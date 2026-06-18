@@ -4,15 +4,15 @@
   Paper-step producer accounting.
 
   This module discharges `PaperRotheStepProducer` from a precise Green-step
-  input.  The remaining unproved sub-lemma is not the producer itself: it is the
-  per-step Green fixed-point existence/trap package `PaperGreenStepInput`.
+  input.  The remaining analytic sub-lemma is not the producer itself: it is the
+  per-step Green/Schauder fixed-point existence/trap package `PaperGreenStepInput`.
 
   Frozen-producer inventory: the frozen `RotheStepProducer` is not closed below
   this layer either.  It is assembled from the carried `RotheStepFloor` /
   `RotheStepInput` floor in `WaveRotheStepClose.lean` and
   `WaveRotheProducer.lean`, where the residual Green tails, flux decay/IBP, and
   source data are explicitly named.  Consequently this paper-side input is the
-  analogous shared per-step parabolic floor, not a faked Banach existence proof.
+  analogous shared per-step parabolic floor, not a faked fixed-point proof.
 
   For each old iterate `Z`, that package supplies a Green convolution
   `W = greenConv c lam R` with the paper-step source
@@ -134,7 +134,7 @@ theorem paperStepSource_sub_crossSource
 
 /-- In the self-frozen case `u = W`, the expanded paper source agrees with the
 committed divergence-form `crossSource`.  This is the only direct-reuse case for
-the existing cross-step Banach fixed point. -/
+the existing cross-step fixed point. -/
 theorem paperStepSource_eq_crossSource_self
     (p : CMParams) (c lam : ℝ) {Z W : ℝ → ℝ}
     (hW : IsCUnifBdd W) (hW_nonneg : ∀ y, 0 ≤ W y)
@@ -227,8 +227,8 @@ theorem paperImplicitStepOp_of_greenConv_source
 
 /-- If the paper source is already a fixed source for the Green convolution,
 the corresponding Green convolution is a paper implicit-step solution.  This is
-the linear-resolvent half of the per-step construction; the Banach argument has
-to supply `hRfix`. -/
+the linear-resolvent half of the per-step construction; the Schauder step
+supplies `hRfix`. -/
 theorem paperImplicitStepOp_exists_of_green_fixed_source
     {p : CMParams} {u Z R : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -1611,7 +1611,7 @@ structure PaperStepAnalyticCore
   R_bound : ∀ y, |R y| ≤ R_bound_const
   R_bound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * R_bound_const
 
-/-- Build the analytic core once the Banach fixed source has been produced.
+/-- Build the analytic core once the fixed source has been produced.
 
 This is the exact interface between the nonlinear fixed-point step
 `R = source(u,Z,greenConv R)` and the Green/resolvent bookkeeping used by the
@@ -1630,7 +1630,7 @@ def paperStepAnalyticCore_of_fixed_source
     R_bound := hRbound
     R_bound_eq := hΛ }
 
-/-- The exact fixed-source payload needed after the Banach step.
+/-- The exact fixed-source payload needed after the nonlinear fixed-point step.
 
 This is deliberately only the nonlinear fixed-source conclusion:
 `R = paperStepSource ... (greenConv R)`, plus the continuous bounded source data
@@ -1666,8 +1666,8 @@ def analyticCore
 end PaperStepFixedSourceCore
 
 /-- Fixed-source existence in the signature required by the current paper
-producer interface.  Proving this is the Banach contraction step for
-`R ↦ paperStepSource p c lam u Z (greenConv c lam R)`. -/
+producer interface.  The concrete constructor below obtains it from the
+per-step Schauder map `W ↦ greenConv c lam (paperStepSource ... W)`. -/
 def PaperStepFixedSourceProvider
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
   ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
@@ -1718,13 +1718,262 @@ def PaperStepFixedSourceCore.of_existsForSuperTrap
     R_bound := hBspec.1
     R_bound_eq := hBspec.2 }
 
-/-! ## Banach fixed-source plumbing
+/-! ## Schauder fixed-source construction
 
-The next lemmas close the metric fixed-point part once the remaining analytic
-source obligations have been supplied explicitly: the source is continuous and
-uniformly bounded as a bounded-continuous function, and its pointwise difference
-is Lipschitz in the Green profile and its first derivative. -/
+The per-step nonlinear map is the Green-smoothed paper source
+`W ↦ greenConv c lam (paperStepSource p c lam u Z W)`.  Its fixed point gives a
+fixed source by setting `R = paperStepSource ... W`.  The topological input is
+Schauder: continuity plus local-uniform compactness of the image, not a
+contraction estimate for the real-power source. -/
 
+/-- The paper per-step Schauder map on profiles. -/
+def paperStepSchauderMap
+    (p : CMParams) (c lam : ℝ) (u Z W : ℝ → ℝ) : ℝ → ℝ :=
+  fun x => greenConv c lam (paperStepSource p c lam u Z W) x
+
+/-- A global derivative bound gives the equicontinuity estimate used in the
+Arzelà-Ascoli/Helly compactness step. -/
+theorem abs_sub_le_of_deriv_abs_le
+    {f : ℝ → ℝ} {A : ℝ}
+    (hf : Differentiable ℝ f) (hderiv : ∀ x, |deriv f x| ≤ A) :
+    ∀ x y, |f x - f y| ≤ A * |x - y| := by
+  intro x y
+  have h :=
+    Convex.norm_image_sub_le_of_norm_deriv_le
+      (𝕜 := ℝ) (G := ℝ) (f := f) (s := Set.univ)
+      (x := y) (y := x)
+      (fun z _hz => hf z)
+      (fun z _hz => by simpa [Real.norm_eq_abs] using hderiv z)
+      convex_univ (Set.mem_univ y) (Set.mem_univ x)
+  simpa [Real.norm_eq_abs, abs_sub_comm] using h
+
+/-- Sup bound for a Green convolution from a bounded continuous source. -/
+theorem greenConv_abs_le_of_bound
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    |greenConv c lam H x| ≤ lam⁻¹ * B := by
+  let Hb : ℝ →ᵇ ℝ :=
+    BoundedContinuousFunction.ofNormedAddCommGroup H hH B
+      (fun y => by simpa [Real.norm_eq_abs] using hB y)
+  have hraw :
+      (∫ y, greenKernel c lam (x - y) * H y) = greenConv c lam H x :=
+    greenConv_raw_eq_of_bounded (c := c) (lam := lam) hlam hH hB x
+  rw [← hraw]
+  have hker :
+      |kernelConvVal (greenKernel c lam) Hb x|
+        ≤ (∫ z, |greenKernel c lam z|) * ‖Hb‖ :=
+    kernelConvVal_abs_le (K := greenKernel c lam)
+      (greenKernel_integrable (c := c) hlam) Hb x
+  have hB_nonneg : 0 ≤ B := le_trans (abs_nonneg _) (hB 0)
+  have hnorm : ‖Hb‖ ≤ B :=
+    (BoundedContinuousFunction.norm_le hB_nonneg).2
+      (fun y => by simpa [Real.norm_eq_abs] using hB y)
+  have hl1_nonneg : 0 ≤ ∫ z, |greenKernel c lam z| :=
+    integral_nonneg fun z => abs_nonneg _
+  calc
+    |∫ y, greenKernel c lam (x - y) * H y|
+        = |kernelConvVal (greenKernel c lam) Hb x| := by rfl
+    _ ≤ (∫ z, |greenKernel c lam z|) * ‖Hb‖ := hker
+    _ ≤ (∫ z, |greenKernel c lam z|) * B :=
+      mul_le_mul_of_nonneg_left hnorm hl1_nonneg
+    _ = lam⁻¹ * B := by rw [greenKernel_l1_eq (c := c) hlam]
+
+/-- Derivative bound for the per-step Schauder image from a bounded continuous
+paper source. -/
+theorem paperStepSchauderMap_deriv_abs_le_of_source_bound
+    {p : CMParams} {u Z W : ℝ → ℝ} (hlam : 0 < lam) {B : ℝ}
+    (hsrcCont : Continuous (paperStepSource p c lam u Z W))
+    (hsrcBound : ∀ y, |paperStepSource p c lam u Z W y| ≤ B) :
+    ∀ x, |deriv (paperStepSchauderMap p c lam u Z W) x|
+      ≤ 2 * (greenDelta c lam)⁻¹ * B := by
+  intro x
+  have hHi : ∀ t,
+      IntegrableOn
+        (gWeight (greenRootPlus c lam) (paperStepSource p c lam u Z W)) (Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hsrcCont hsrcBound t
+  have hLo : ∀ t,
+      IntegrableOn
+        (gWeight (greenRootMinus c lam) (paperStepSource p c lam u Z W)) (Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hsrcCont hsrcBound t
+  have hderiv :
+      deriv (paperStepSchauderMap p c lam u Z W) x =
+        greenConvDeriv c lam (paperStepSource p c lam u Z W) x := by
+    unfold paperStepSchauderMap
+    exact (greenConv_hasDerivAt
+      (c := c) (lam := lam) hsrcCont hHi hLo x).deriv
+  rw [hderiv]
+  exact greenConvDeriv_abs_le
+    (c := c) (lam := lam) hlam hsrcBound hHi hLo x
+
+/-- Equicontinuity estimate for the per-step Schauder image. -/
+theorem paperStepSchauderMap_abs_sub_le_of_source_bound
+    {p : CMParams} {u Z W : ℝ → ℝ} (hlam : 0 < lam) {B : ℝ}
+    (hsrcCont : Continuous (paperStepSource p c lam u Z W))
+    (hsrcBound : ∀ y, |paperStepSource p c lam u Z W y| ≤ B) :
+    ∀ x y,
+      |paperStepSchauderMap p c lam u Z W x -
+          paperStepSchauderMap p c lam u Z W y|
+        ≤ (2 * (greenDelta c lam)⁻¹ * B) * |x - y| := by
+  have hHi : ∀ t,
+      IntegrableOn
+        (gWeight (greenRootPlus c lam) (paperStepSource p c lam u Z W)) (Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hsrcCont hsrcBound t
+  have hLo : ∀ t,
+      IntegrableOn
+        (gWeight (greenRootMinus c lam) (paperStepSource p c lam u Z W)) (Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hsrcCont hsrcBound t
+  have hdiff : Differentiable ℝ (paperStepSchauderMap p c lam u Z W) := by
+    intro x
+    unfold paperStepSchauderMap
+    exact (greenConv_hasDerivAt
+      (c := c) (lam := lam) hsrcCont hHi hLo x).differentiableAt
+  exact abs_sub_le_of_deriv_abs_le hdiff
+    (paperStepSchauderMap_deriv_abs_le_of_source_bound
+      (c := c) (lam := lam) (p := p) (u := u) (Z := Z) (W := W)
+      hlam hsrcCont hsrcBound)
+
+/-- Helly/Arzelà-Ascoli compactness for images in the wave trap with a uniform
+equicontinuity and sup bound. -/
+theorem localUniformSequentiallyCompactRange_inWaveTrapSet_of_uniform_lipschitz_bound
+    {κ M A : ℝ} (hA : 0 ≤ A) (Tmap : (ℝ → ℝ) → ℝ → ℝ)
+    (hmap : ∀ u, InWaveTrapSet κ M u → InWaveTrapSet κ M (Tmap u))
+    (hLip : ∀ u, InWaveTrapSet κ M u →
+      ∀ x y, |Tmap u x - Tmap u y| ≤ A * |x - y|)
+    (hAbs : ∀ u, InWaveTrapSet κ M u → ∀ x, |Tmap u x| ≤ A) :
+    LocalUniformSequentiallyCompactRange (InWaveTrapSet κ M) Tmap := by
+  intro seq hseq
+  set gs : ℕ → ℝ → ℝ := fun n => Tmap (seq n) with hgs
+  have hgsL : ∀ k, ∀ x y, |gs k x - gs k y| ≤ A * |x - y| := by
+    intro k x y
+    exact hLip (seq k) (hseq k) x y
+  have hgsB : ∀ k x, |gs k x| ≤ A := by
+    intro k x
+    exact hAbs (seq k) (hseq k) x
+  obtain ⟨subseq, hsub, g, hpt, hgL⟩ :=
+    helly_pointwise_selection A gs hgsL hgsB
+  have hLU : LocallyUniformConverges (fun n => gs (subseq n)) g :=
+    locallyUniform_of_helly_pointwise hA hpt hgsL hgL
+  have himageTrap : ∀ n, InWaveTrapSet κ M (gs (subseq n)) := by
+    intro n
+    exact hmap (seq (subseq n)) (hseq (subseq n))
+  have hnn : ∀ x, 0 ≤ g x :=
+    fun x => hLU.nonneg_of_forall_nonneg
+      (fun n => (himageTrap n).nonneg x)
+  have hbar : ∀ x, g x ≤ upperBarrier κ M x :=
+    fun x => hLU.le_of_forall_le
+      (fun n => (himageTrap n).le_upperBarrier x)
+  have hleM : ∀ x, g x ≤ M :=
+    fun x => hLU.le_of_forall_le
+      (fun n => (himageTrap n).le_M x)
+  have hgcont : Continuous g :=
+    continuous_of_locallyUniform
+      (fun n => (himageTrap n).cunif_bdd.1) hLU
+  have hgbdd : IsBddFun g := by
+    refine ⟨M, fun x => ?_⟩
+    rw [abs_of_nonneg (hnn x)]
+    exact hleM x
+  refine ⟨subseq, hsub, g, ?_, ?_⟩
+  · exact ⟨⟨hgcont, hgbdd⟩, fun x => ⟨hnn x, hbar x⟩⟩
+  · simpa [hgs] using hLU
+
+/-- Concrete Schauder data for the paper per-step map on the trapped convex set
+`InWaveTrapSet κ M`.  The source continuity field is where real powers use only
+continuity on `[0,M]`; the compactness fields are Green-smoothing bounds. -/
+structure PaperStepSchauderMapData
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
+  sourceBound : ℝ
+  compactBound : ℝ
+  compactBound_nonneg : 0 ≤ compactBound
+  sourceBound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * sourceBound
+  mapsTo : ∀ W, InWaveTrapSet κ M W →
+    InWaveTrapSet κ M (paperStepSchauderMap p c lam u Z W)
+  continuousOn :
+    LocalUniformContinuousOn (InWaveTrapSet κ M) (paperStepSchauderMap p c lam u Z)
+  source_cont : ∀ W, InWaveTrapSet κ M W →
+    Continuous (paperStepSource p c lam u Z W)
+  source_bound : ∀ W, InWaveTrapSet κ M W →
+    ∀ y, |paperStepSource p c lam u Z W y| ≤ sourceBound
+  map_abs_bound : ∀ W, InWaveTrapSet κ M W →
+    ∀ x, |paperStepSchauderMap p c lam u Z W x| ≤ compactBound
+  map_lipschitz : ∀ W, InWaveTrapSet κ M W →
+    ∀ x y,
+      |paperStepSchauderMap p c lam u Z W x -
+          paperStepSchauderMap p c lam u Z W y|
+        ≤ compactBound * |x - y|
+
+namespace PaperStepSchauderMapData
+
+theorem compactRange
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperStepSchauderMapData p c lam M κ Λ u Z) :
+    LocalUniformSequentiallyCompactRange
+      (InWaveTrapSet κ M) (paperStepSchauderMap p c lam u Z) :=
+  localUniformSequentiallyCompactRange_inWaveTrapSet_of_uniform_lipschitz_bound
+    h.compactBound_nonneg (paperStepSchauderMap p c lam u Z)
+    h.mapsTo h.map_lipschitz h.map_abs_bound
+
+theorem exists_fixed
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple (InWaveTrapSet κ M))
+    (h : PaperStepSchauderMapData p c lam M κ Λ u Z) :
+    ∃ W : ℝ → ℝ,
+      InWaveTrapSet κ M W ∧ paperStepSchauderMap p c lam u Z W = W :=
+  hprinciple (paperStepSchauderMap p c lam u Z) h.mapsTo
+    h.continuousOn h.compactRange
+
+end PaperStepSchauderMapData
+
+/-- Construct the fixed-source existence statement from Schauder fixed point on
+the trapped per-step map. -/
+theorem PaperStepFixedSourceExistsForSuperTrap.of_schauder
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple (InWaveTrapSet κ M))
+    (hdata : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        PaperStepSchauderMapData p c lam M κ Λ u Z) :
+    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
+  intro Z hZc hZa hZ0 hZB hZsuper
+  let hs : PaperStepSchauderMapData p c lam M κ Λ u Z :=
+    hdata Z hZc hZa hZ0 hZB hZsuper
+  obtain ⟨W, hWtrap, hfix⟩ := hs.exists_fixed hprinciple
+  let R : ℝ → ℝ := paperStepSource p c lam u Z W
+  have hgreen : (fun x => greenConv c lam R x) = W := by
+    simpa [R, paperStepSchauderMap] using hfix
+  refine ⟨R, hs.source_cont W hWtrap, ?_, ?_⟩
+  · exact ⟨hs.sourceBound, hs.source_bound W hWtrap, hs.sourceBound_eq⟩
+  · calc
+      R = paperStepSource p c lam u Z W := rfl
+      _ = paperStepSource p c lam u Z (fun x => greenConv c lam R x) := by
+        rw [hgreen]
+
+/-- Same constructor, starting from the existing approximate-fixed-sequence
+engine that feeds the local-uniform Schauder principle. -/
+theorem PaperStepFixedSourceExistsForSuperTrap.of_schauder_approx
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (happrox : LocalUniformApproxFixedPointSequences (InWaveTrapSet κ M))
+    (hdata : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        PaperStepSchauderMapData p c lam M κ Λ u Z) :
+    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u :=
+  PaperStepFixedSourceExistsForSuperTrap.of_schauder
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ) (u := u)
+    (localUniformSchauderFixedPointPrinciple_of_approx_fixed_sequences happrox)
+    hdata
+
+/-! ## Historical contraction estimates
+
+These estimates are retained as lower-level resolvent bounds.  The constructor
+for `PaperStepFixedSourceExistsForSuperTrap` above uses Schauder instead. -/
+
+/-
 /-- Sup-norm resolvent estimate for the Green convolution on bounded continuous
 sources:
 `‖greenConv(R₁-R₂)‖∞ ≤ λ⁻¹ ‖R₁-R₂‖∞`. -/
@@ -1831,8 +2080,8 @@ def paperStepFixedSourceBCF
     paperStepFixedSourceBCF p c lam u Z B hcont hbound R x =
       paperStepFixedSourceRawMap p c lam u Z R x := rfl
 
-/-- If the paper source is pointwise Lipschitz in the Green profile and its
-first derivative, then the fixed-source map is a sup-norm contraction with
+/-- If the paper source satisfies a first-order difference estimate in the Green
+profile and its first derivative, then the fixed-source map is a sup-norm contraction with
 constant bounded by `Ls * (λ⁻¹ + 2/δ)`.
 
 The hypothesis `hsourceLip` is the precise first-order source obligation:
@@ -1962,8 +2211,8 @@ theorem paperStepFixedSource_crossContractionFactor_lt_one_of_large_lambda
       crossContractionFactor p Msrc Bv lam (greenDelta c lam) < 1 :=
   crossContractionFactor_lt_one_of_large_lambda p hMsrc hBv c
 
-/-- If the paper source is pointwise Lipschitz in the Green profile and its
-first derivative, then the fixed-source map is a sup-norm contraction with
+/-- If the paper source satisfies a first-order difference estimate in the Green
+profile and its first derivative, then the fixed-source map is a sup-norm contraction with
 constant bounded by `Ls * (λ⁻¹ + 2/δ)`. -/
 theorem paperStepFixedSourceBCF_contracting
     (hlam : 0 < lam) {p : CMParams} {u Z : ℝ → ℝ}
@@ -1987,9 +2236,9 @@ theorem paperStepFixedSourceBCF_contracting
     (paperStepFixedSourceBCF_pointwise_dist_le
       (c := c) (lam := lam) hlam hcont hbound hLs0 hKlt hfactorK hsourceLip)
 
-/-- Banach fixed point for the bundled paper fixed-source map, returning the
+/-- Contractive fixed point for the bundled paper fixed-source map, returning the
 `PaperStepFixedSourceCore` required by the downstream Green bookkeeping. -/
-def paperStepFixedSourceCore_of_banach
+def paperStepFixedSourceCore_of_contracting
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
     {B : ℝ} {K : NNReal}
     (hcont : ∀ R : ℝ →ᵇ ℝ,
@@ -2019,7 +2268,7 @@ def paperStepFixedSourceCore_of_banach
       exact hbound Rb y
     R_bound_eq := hΛ }
 
-/-- Banach fixed point for the bundled paper fixed-source map using the
+/-- Contractive fixed point for the bundled paper fixed-source map using the
 committed `crossImplicitStep_exists_unique` plumbing.  The theorem name is
 cross-step historical, but its statement is the generic BCF contraction fixed
 point and is reused here with the paper fixed-source map as `Φ`. -/
@@ -2057,122 +2306,7 @@ def paperStepFixedSourceCore_of_crossImplicitStep
       rw [← hx]
       exact hbound Rb y
     R_bound_eq := hΛ }
-
-/-- Fixed-source existence from a first-order source Lipschitz estimate and a
-Banach smallness constant.  This is the direct discharge target for
-`PaperStepFixedSourceExistsForSuperTrap`, modulo the explicitly stated source
-continuity, uniform boundedness, and first-order Lipschitz obligations. -/
-theorem PaperStepFixedSourceExistsForSuperTrap.of_banach
-    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
-    (hlam : 0 < lam) {B Ls : ℝ} {K : NNReal}
-    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B)
-    (hLs0 : 0 ≤ Ls)
-    (hKlt : K < 1)
-    (hfactorK : Ls * (lam⁻¹ + 2 * (greenDelta c lam)⁻¹) ≤ (K : ℝ))
-    (hcont : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
-        ∀ R : ℝ →ᵇ ℝ,
-          Continuous (paperStepFixedSourceRawMap p c lam u Z R))
-    (hbound : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
-        ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
-          |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
-    (hsourceLip : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
-        ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
-          |paperStepFixedSourceRawMap p c lam u Z R₁ x -
-              paperStepFixedSourceRawMap p c lam u Z R₂ x|
-            ≤ Ls *
-              (|greenConv c lam (fun y => R₁ y - R₂ y) x| +
-                |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|)) :
-    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
-  intro Z hZc hZa hZ0 hZB hZsuper
-  let hcontZ := hcont Z hZc hZa hZ0 hZB hZsuper
-  let hboundZ := hbound Z hZc hZa hZ0 hZB hZsuper
-  have hpoint :
-      ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
-        dist (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₁ x)
-          (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₂ x)
-          ≤ (K : ℝ) * dist R₁ R₂ :=
-    paperStepFixedSourceBCF_pointwise_dist_le
-      (c := c) (lam := lam) hlam hcontZ hboundZ hLs0 hKlt hfactorK
-      (hsourceLip Z hZc hZa hZ0 hZB hZsuper)
-  let core : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
-    paperStepFixedSourceCore_of_crossImplicitStep
-      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      hcontZ hboundZ hΛ hKlt hpoint
-  exact ⟨core.R, core.R_cont,
-    ⟨core.R_bound_const, core.R_bound, core.R_bound_eq⟩, core.source_eq⟩
-
-/-- Fixed-source existence from the committed cross contraction factor.
-
-This is the concrete Banach route for paper fixed-source data when the source
-difference has the same reaction/chemotaxis split as `crossSource`: the
-pointwise estimate is converted to `crossContractionFactor`, the factor is
-bundled as an `NNReal`, and the fixed point is obtained through
-`crossImplicitStep_exists_unique`. -/
-theorem PaperStepFixedSourceExistsForSuperTrap.of_banach_crossFactor
-    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
-    (hlam : 0 < lam) {B Msrc Bv : ℝ}
-    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B)
-    (hMsrc : 0 ≤ Msrc) (hBv : 0 ≤ Bv)
-    (hfactor :
-      crossContractionFactor p Msrc Bv lam (greenDelta c lam) < 1)
-    (hcont : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
-        ∀ R : ℝ →ᵇ ℝ,
-          Continuous (paperStepFixedSourceRawMap p c lam u Z R))
-    (hbound : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
-        ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
-          |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
-    (hsourceLip : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
-      (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
-        ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
-          |paperStepFixedSourceRawMap p c lam u Z R₁ x -
-              paperStepFixedSourceRawMap p c lam u Z R₂ x|
-            ≤ reactionLip p.α Msrc *
-                |greenConv c lam (fun y => R₁ y - R₂ y) x| +
-              |p.χ| * rpowLip p.m Msrc * Bv *
-                |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|) :
-    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
-  intro Z hZc hZa hZ0 hZB hZsuper
-  let hcontZ := hcont Z hZc hZa hZ0 hZB hZsuper
-  let hboundZ := hbound Z hZc hZa hZ0 hZB hZsuper
-  let K : NNReal :=
-    ⟨crossContractionFactor p Msrc Bv lam (greenDelta c lam),
-      crossContractionFactor_nonneg p hMsrc hBv hlam
-        (greenDelta_pos (c := c) hlam)⟩
-  have hKlt : K < 1 := by
-    apply NNReal.coe_lt_coe.mp
-    simpa [K] using hfactor
-  have hpoint :
-      ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
-        dist (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₁ x)
-          (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₂ x)
-          ≤ (K : ℝ) * dist R₁ R₂ := by
-    simpa [K] using
-      paperStepFixedSourceBCF_pointwise_dist_le_crossFactor
-        (c := c) (lam := lam) hlam hcontZ hboundZ hMsrc hBv
-        (hsourceLip Z hZc hZa hZ0 hZB hZsuper)
-  let core : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
-    paperStepFixedSourceCore_of_crossImplicitStep
-      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      hcontZ hboundZ hΛ hKlt hpoint
-  exact ⟨core.R, core.R_cont,
-    ⟨core.R_bound_const, core.R_bound, core.R_bound_eq⟩, core.source_eq⟩
+-/
 
 /-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
 continuous source data. -/
@@ -2501,6 +2635,16 @@ section AxiomAudit
 #print axioms greenKernel_comp_const_sub_mul_integrable_of_bounded
 #print axioms greenConv_raw_eq_of_bounded
 #print axioms greenKernel_neg_mul_translate_integrable_of_bounded
+#print axioms paperStepSchauderMap
+#print axioms abs_sub_le_of_deriv_abs_le
+#print axioms greenConv_abs_le_of_bound
+#print axioms paperStepSchauderMap_deriv_abs_le_of_source_bound
+#print axioms paperStepSchauderMap_abs_sub_le_of_source_bound
+#print axioms localUniformSequentiallyCompactRange_inWaveTrapSet_of_uniform_lipschitz_bound
+#print axioms PaperStepSchauderMapData.compactRange
+#print axioms PaperStepSchauderMapData.exists_fixed
+#print axioms PaperStepFixedSourceExistsForSuperTrap.of_schauder
+#print axioms PaperStepFixedSourceExistsForSuperTrap.of_schauder_approx
 #print axioms paperStepAnalytic_of_core
 #print axioms paperStepOutput_of_core
 #print axioms paperGreenStepInput_of_core

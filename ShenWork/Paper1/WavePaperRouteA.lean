@@ -173,7 +173,7 @@ theorem bump_mollify_antitone_contDiff_tail_limits
 
 /-! ## Step B: smooth paper step through the existing Green layer -/
 
-/-- Route-A Step B: once the existing paper Green/Banach layer provides a
+/-- Route-A Step B: once the existing paper Green fixed-source layer provides a
 `PaperStepAnalyticCore`, the paper-expanded implicit step equation follows from
 the committed Green resolvent identity. -/
 theorem smooth_paperStep_step_op_of_core
@@ -186,7 +186,7 @@ theorem smooth_paperStep_step_op_of_core
 
 /-- Differentiate the paper implicit-step identity.
 
-This is the wiring lemma that turns the Green/Banach fixed-step equation
+This is the wiring lemma that turns the Green fixed-step equation
 `W - (1 / lam) A(W) = Z` into the differentiated equation consumed by the
 Route-A maximum principle. -/
 theorem paperStep_stepDeriv_of_implicit
@@ -987,7 +987,7 @@ structure PaperStepOutputRouteACore
   routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
   approx : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z W
 
-/-- The non-Banach data needed to turn a fixed source into the Route-A paper
+/-- The Schauder-side data needed to turn a fixed source into the Route-A paper
 step output.  The `fixed` field supplies `W = greenConv R` and the analytic
 core; the remaining fields are exactly the trap-barrier and Route-A payloads
 consumed by `paperRotheStepProducer_of_routeA_greenCore`. -/
@@ -1025,8 +1025,8 @@ def toOutputRouteACore
 
 end PaperStepOutputRouteAAssemblyData
 
-/-- Non-Banach Route-A assembly data once the fixed source has already been
-constructed.  This separates the Banach fixed-source step from the barrier and
+/-- Route-A assembly data once the fixed source has already been
+constructed.  This separates the Schauder fixed-source step from the barrier and
 Route-A payloads, so the fixed source can be supplied concretely by
 `PaperStepFixedSourceExistsForSuperTrap`. -/
 structure PaperStepOutputRouteAFixedRestData
@@ -1045,7 +1045,7 @@ structure PaperStepOutputRouteAFixedRestData
 
 namespace PaperStepOutputRouteAFixedRestData
 
-/-- Reattach the concrete fixed source to the non-Banach Route-A payload. -/
+/-- Reattach the concrete fixed source to the Route-A payload. -/
 def toAssemblyData
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
     {fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z}
@@ -1078,7 +1078,7 @@ def PaperGreenStepInputRouteAAssemblyProvider
       PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z
 
 /-- Per-`Z` Route-A data provider after the fixed source has been constructed
-from the super-trap Banach statement.  The old iterate's supersolution condition
+from the super-trap Schauder statement.  The old iterate's supersolution condition
 is an explicit input; it is not derivable from the bare paper producer shape. -/
 def PaperGreenStepInputRouteASuperRestProvider
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
@@ -1099,7 +1099,7 @@ structure PaperGreenStepInputRouteACore
       Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W
 
 /-- Route-A Green input with the super-trap precondition threaded into
-`produce`.  This is the satisfiable interface for the Banach fixed-source step:
+`produce`.  This is the satisfiable interface for the Schauder fixed-source step:
 the descent orbit supplies `F_u(Z) ≤ 0` inductively, while the bare
 `PaperRotheStepProducer` interface does not carry it. -/
 structure PaperGreenStepInputRouteASuperCore
@@ -1123,7 +1123,7 @@ def paperGreenStepInputRouteACore_of_assembly
     exact (hstep Z hZc hZa hZ0 hZB).toOutputRouteACore
 
 /-- Assemble the super-core from a concrete super-trap fixed-source existence
-statement plus the remaining non-Banach Route-A data. -/
+statement plus the remaining Route-A data. -/
 def paperGreenStepInputRouteASuperCore_of_fixedSource
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -1177,7 +1177,7 @@ def paperGreenStepInputRouteACore_of_trap_fixedSource
 
 The trap hypothesis identifies the intended regime for the frozen profile `u`;
 all analytic obligations still enter through the concrete per-step assembly
-provider, so this theorem does not hide the Banach fixed-source or barrier
+provider, so this theorem does not hide the Schauder fixed-source or barrier
 comparison work. -/
 def paperGreenStepInputRouteACore_of_trap
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
