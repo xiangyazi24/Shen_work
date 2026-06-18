@@ -689,9 +689,10 @@ structure PaperC2CompactConvergence
 /-- Uniform Green/ODE compactness data sufficient to upgrade zeroth-order
 local-uniform convergence of a Rothe orbit to `C²` compact convergence.
 
-The derivative convergence fields are deliberately absent: they are produced by
-`paperC2CompactConvergence_of_uniformBounds` from the derivative equations and
-uniform local Lipschitz bounds for the derivative families.  The remaining
+The first-derivative convergence is produced by
+`paperC2CompactConvergence_of_uniformBounds` from zeroth-order convergence and
+the uniform C² bound.  The second-derivative convergence is supplied by the
+Green/ODE source thread, avoiding any hidden C³ requirement.  The remaining
 fields are the algebraic power continuity and local boundedness data already
 needed by the paper operator terms. -/
 structure PaperC2CompactUniformBounds
@@ -711,11 +712,10 @@ structure PaperC2CompactUniformBounds
       (fun k x => deriv (z (k + 1)) x)
   deriv1_limit_lipschitz :
     LipschitzOnCompacts (fun x => deriv U x)
-  deriv2_uniform_lipschitz :
-    UniformLipschitzOnCompacts
+  deriv2_convergence :
+    LocallyUniformConverges
       (fun k x => iteratedDeriv 2 (z (k + 1)) x)
-  deriv2_limit_lipschitz :
-    LipschitzOnCompacts (fun x => iteratedDeriv 2 U x)
+      (fun x => iteratedDeriv 2 U x)
   pow_m_sub_one :
     LocallyUniformConverges
       (fun k x => (z (k + 1) x) ^ (p.m - 1))
@@ -902,9 +902,9 @@ structure PaperC3BootstrapData
     ∃ C, 0 ≤ C ∧
       ∀ x, |deriv (fun y => iteratedDeriv 2 U y) x| ≤ C
 
-theorem paperC2CompactUniformBounds_of_greenStep
+theorem paperC2CompactUniformBounds_of_greenStep_repr
     {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
-    {z : ℕ → ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ} {R : ℝ → ℝ}
     (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
     (hU : InLowerPinnedMonotoneTrap κ M φ U)
     (hLU : LocallyUniformConverges z U)
@@ -912,7 +912,12 @@ theorem paperC2CompactUniformBounds_of_greenStep
     (hz_le_M : ∀ k x, z k x ≤ M)
     (hstep :
       ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
-    (hc3 : PaperC3BootstrapData U z) :
+    (hR_cont : Continuous R)
+    (hR_bound : ∃ B : ℝ,
+      (∀ k y, |(hstep k).R y| ≤ B) ∧
+        ∀ y, |R y| ≤ B)
+    (hU_green : U = fun x => greenConv c lam R x)
+    (hR_limit : LocallyUniformConverges (fun k => (hstep k).R) R) :
     PaperC2CompactUniformBounds p U z := by
   have hM0 : 0 ≤ M := hM.le
   have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
@@ -932,10 +937,167 @@ theorem paperC2CompactUniformBounds_of_greenStep
       (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
   have hC2_nonneg : 0 ≤ paperStepC2Bound c lam M Λ :=
     paperStepC2Bound_nonneg (c := c) (lam := lam) hlam hM0 hΛ
-  obtain ⟨CU1, hCU1_nonneg, hCU1⟩ := hc3.limit_deriv_bound
-  obtain ⟨CU2, hCU2_nonneg, hCU2⟩ := hc3.limit_second_bound
-  obtain ⟨CZ3, hCZ3_nonneg, hCZ3⟩ := hc3.step_third_bound
-  obtain ⟨CU3, hCU3_nonneg, hCU3⟩ := hc3.limit_third_bound
+  obtain ⟨BR, hBRseq, hBR⟩ := hR_bound
+  have hBR_nonneg : 0 ≤ BR :=
+    le_trans (abs_nonneg (R 0)) (hBR 0)
+  have hR_hi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x) :=
+    fun x => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR_cont hBR x
+  have hR_lo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x) :=
+    fun x => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR_cont hBR x
+  have hU_hasDeriv_value :
+      ∀ x, HasDerivAt U (deriv U x) x := by
+    intro x
+    have hgc := greenConv_hasDerivAt
+      (c := c) (lam := lam) hR_cont hR_hi hR_lo x
+    rw [hU_green]
+    simpa [hgc.deriv] using hgc
+  have hU_deriv_eq :
+      (fun x => deriv U x) = fun x => greenConvDeriv c lam R x := by
+    funext x
+    have hgc := greenConv_hasDerivAt
+      (c := c) (lam := lam) hR_cont hR_hi hR_lo x
+    have hrepr := congrArg (fun f : ℝ → ℝ => deriv f x) hU_green
+    have hrepr' : deriv U x = deriv (fun y => greenConv c lam R y) x := by
+      simpa using hrepr
+    rw [hrepr', hgc.deriv]
+  have hU_iter_eq :
+      ∀ x, iteratedDeriv 2 U x = greenConvDeriv2 c lam R x := by
+    intro x
+    have hgc2 := greenConvDeriv_hasDerivAt
+      (c := c) (lam := lam) hR_cont hR_hi hR_lo x
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ,
+      iteratedDeriv_one]
+    change deriv (fun y => deriv U y) x = greenConvDeriv2 c lam R x
+    rw [hU_deriv_eq]
+    exact hgc2.deriv
+  have hU_hasDeriv_deriv :
+      ∀ x, HasDerivAt (fun y => deriv U y) (iteratedDeriv 2 U x) x := by
+    intro x
+    have hgc2 := greenConvDeriv_hasDerivAt
+      (c := c) (lam := lam) hR_cont hR_hi hR_lo x
+    rw [hU_deriv_eq]
+    simpa [hU_iter_eq x] using hgc2
+  let CU1 : ℝ := 2 * (greenDelta c lam)⁻¹ * BR
+  have hCU1_nonneg : 0 ≤ CU1 := by
+    dsimp [CU1]
+    exact mul_nonneg
+      (mul_nonneg (by norm_num)
+        (inv_pos.mpr (greenDelta_pos (c := c) hlam)).le)
+      hBR_nonneg
+  have hCU1 : ∀ x, |deriv U x| ≤ CU1 := by
+    intro x
+    have hbd := greenConvDeriv_abs_le
+      (c := c) (lam := lam) hlam hBR hR_hi hR_lo x
+    simpa [CU1, hU_deriv_eq] using hbd
+  have hU_second_eq :
+      ∀ x, iteratedDeriv 2 U x =
+        -R x - c * deriv U x + lam * U x := by
+    intro x
+    have hsolve :
+        iteratedDeriv 2 U x + c * deriv U x - lam * U x = -R x := by
+      rw [hU_iter_eq x, congrFun hU_deriv_eq x, congrFun hU_green x]
+      exact greenConv_solves (c := c) (lam := lam) hlam (H := R) x
+    linarith
+  let CU2 : ℝ := BR + |c| * CU1 + |lam| * M
+  have hCU2_nonneg : 0 ≤ CU2 := by
+    dsimp [CU2]
+    have hc : 0 ≤ |c| * CU1 := mul_nonneg (abs_nonneg c) hCU1_nonneg
+    have hl : 0 ≤ |lam| * M := mul_nonneg (abs_nonneg lam) hM0
+    linarith
+  have hCU2 : ∀ x, |iteratedDeriv 2 U x| ≤ CU2 := by
+    intro x
+    have hEq := hU_second_eq x
+    have hRbd := hBR x
+    have hDbd := hCU1 x
+    have hWbd := hU_abs x
+    have hDmul : |c| * |deriv U x| ≤ |c| * CU1 :=
+      mul_le_mul_of_nonneg_left hDbd (abs_nonneg c)
+    have hWmul : |lam| * |U x| ≤ |lam| * M :=
+      mul_le_mul_of_nonneg_left hWbd (abs_nonneg lam)
+    rw [hEq]
+    have htri₁ :
+        |-R x - c * deriv U x + lam * U x|
+          ≤ |-R x - c * deriv U x| + |lam * U x| :=
+      abs_add_le _ _
+    have htri₂ :
+        |-R x - c * deriv U x| ≤ |-R x| + |-(c * deriv U x)| :=
+      abs_add_le _ _
+    calc
+      |-R x - c * deriv U x + lam * U x|
+          ≤ |-R x - c * deriv U x| + |lam * U x| := htri₁
+      _ ≤ (|-R x| + |-(c * deriv U x)|) + |lam * U x| := by
+        exact add_le_add htri₂ le_rfl
+      _ = |R x| + |c| * |deriv U x| + |lam| * |U x| := by
+        rw [abs_neg, abs_neg, abs_mul, abs_mul]
+      _ ≤ CU2 := by
+        dsimp [CU2]
+        linarith
+  have hderiv1_uniform_lipschitz :
+      UniformLipschitzOnCompacts
+        (fun k x => deriv (z (k + 1)) x) :=
+    UniformLipschitzOnCompacts.of_hasDerivAt_bound hC2_nonneg
+      (fun k x => paperStep_hasDerivAt_deriv (hstep k) x)
+      (fun k x =>
+        paperStep_second_deriv_le
+          (c := c) (lam := lam) hlam hM0 hΛ
+          (fun y => hz_abs (k + 1) y) (hstep k) x)
+  have hderiv1_limit_lipschitz :
+      LipschitzOnCompacts (fun x => deriv U x) :=
+    LipschitzOnCompacts.of_hasDerivAt_bound hCU2_nonneg
+      hU_hasDeriv_deriv hCU2
+  have hderiv1 :
+      LocallyUniformConverges
+        (fun k x => deriv (z (k + 1)) x)
+        (fun x => deriv U x) :=
+    hshift.deriv_of_hasDerivAt_of_residual_lipschitz
+      (fun k x => paperStep_hasDerivAt_value (hstep k) x)
+      hU_hasDeriv_value
+      (UniformResidualLipschitzOnCompacts.of_pair
+        hderiv1_uniform_lipschitz hderiv1_limit_lipschitz)
+  have hderiv2 :
+      LocallyUniformConverges
+        (fun k x => iteratedDeriv 2 (z (k + 1)) x)
+        (fun x => iteratedDeriv 2 U x) := by
+    have hRneg : LocallyUniformConverges
+        (fun k x => -((hstep k).R x)) (fun x => -R x) :=
+      hR_limit.neg
+    have hcd : LocallyUniformConverges
+        (fun k x => c * deriv (z (k + 1)) x)
+        (fun x => c * deriv U x) :=
+      hderiv1.const_mul c
+    have hleft : LocallyUniformConverges
+        (fun k x => -((hstep k).R x) - c * deriv (z (k + 1)) x)
+        (fun x => -R x - c * deriv U x) :=
+      hRneg.sub hcd
+    have hval_lam : LocallyUniformConverges
+        (fun k x => lam * z (k + 1) x) (fun x => lam * U x) :=
+      hshift.const_mul lam
+    have hrhs : LocallyUniformConverges
+        (fun k x =>
+          -((hstep k).R x) - c * deriv (z (k + 1)) x
+            + lam * z (k + 1) x)
+        (fun x => -R x - c * deriv U x + lam * U x) := by
+      simpa [sub_eq_add_neg, add_assoc] using hleft.add hval_lam
+    have hseq_eq :
+        ∀ᶠ k : ℕ in atTop,
+          (fun x =>
+              -((hstep k).R x) - c * deriv (z (k + 1)) x
+                + lam * z (k + 1) x) =
+            fun x => iteratedDeriv 2 (z (k + 1)) x := by
+      exact Eventually.of_forall fun k => by
+        funext x
+        exact (paperStep_iteratedDeriv_two_eq
+          (c := c) (lam := lam) hlam (hstep k) x).symm
+    have hlim_eq :
+        (fun x => iteratedDeriv 2 U x) =
+          fun x => -R x - c * deriv U x + lam * U x := by
+      funext x
+      exact hU_second_eq x
+    simpa [hlim_eq] using LocallyUniformConverges.congr hseq_eq hrhs
   have hpow_m_sub_one :
       LocallyUniformConverges
         (fun k x => (z (k + 1) x) ^ (p.m - 1))
@@ -1014,26 +1176,13 @@ theorem paperC2CompactUniformBounds_of_greenStep
   exact
     { hasDeriv_value := fun k x =>
         paperStep_hasDerivAt_value (hstep k) x
-      hasDeriv_U := hc3.limit_hasDeriv_value
+      hasDeriv_U := hU_hasDeriv_value
       hasDeriv_deriv := fun k x =>
         paperStep_hasDerivAt_deriv (hstep k) x
-      hasDeriv_deriv_U := hc3.limit_hasDeriv_deriv
-      deriv1_uniform_lipschitz :=
-        UniformLipschitzOnCompacts.of_hasDerivAt_bound hC2_nonneg
-          (fun k x => paperStep_hasDerivAt_deriv (hstep k) x)
-          (fun k x =>
-            paperStep_second_deriv_le
-              (c := c) (lam := lam) hlam hM0 hΛ
-              (fun y => hz_abs (k + 1) y) (hstep k) x)
-      deriv1_limit_lipschitz :=
-        LipschitzOnCompacts.of_hasDerivAt_bound hCU2_nonneg
-          hc3.limit_hasDeriv_deriv hCU2
-      deriv2_uniform_lipschitz :=
-        UniformLipschitzOnCompacts.of_hasDerivAt_bound hCZ3_nonneg
-          hc3.step_hasDeriv_deriv2 hCZ3
-      deriv2_limit_lipschitz :=
-        LipschitzOnCompacts.of_hasDerivAt_bound hCU3_nonneg
-          hc3.limit_hasDeriv_deriv2 hCU3
+      hasDeriv_deriv_U := hU_hasDeriv_deriv
+      deriv1_uniform_lipschitz := hderiv1_uniform_lipschitz
+      deriv1_limit_lipschitz := hderiv1_limit_lipschitz
+      deriv2_convergence := hderiv2
       pow_m_sub_one := hpow_m_sub_one
       pow_alpha := hpow_alpha
       pow_m_gamma_sub_one := hpow_m_gamma_sub_one
@@ -1062,19 +1211,11 @@ def paperC2CompactConvergence_of_uniformBounds
       hbounds.hasDeriv_value hbounds.hasDeriv_U
       (UniformResidualLipschitzOnCompacts.of_pair
         hbounds.deriv1_uniform_lipschitz hbounds.deriv1_limit_lipschitz)
-  let hderiv2 :
-      LocallyUniformConverges
-        (fun k x => iteratedDeriv 2 (z (k + 1)) x)
-        (fun x => iteratedDeriv 2 U x) :=
-    hderiv1.deriv_of_hasDerivAt_of_residual_lipschitz
-      hbounds.hasDeriv_deriv hbounds.hasDeriv_deriv_U
-      (UniformResidualLipschitzOnCompacts.of_pair
-        hbounds.deriv2_uniform_lipschitz hbounds.deriv2_limit_lipschitz)
   { value := hvalue
     step_hasDeriv_value := hbounds.hasDeriv_value
     step_hasDeriv_deriv := hbounds.hasDeriv_deriv
     deriv1 := hderiv1
-    deriv2 := hderiv2
+    deriv2 := hbounds.deriv2_convergence
     pow_m_sub_one := hbounds.pow_m_sub_one
     pow_alpha := hbounds.pow_alpha
     pow_m_gamma_sub_one := hbounds.pow_m_gamma_sub_one
@@ -1312,7 +1453,7 @@ theorem operator
 #print axioms LocallyUniformConverges.const_mul
 #print axioms paperWaveOperator_eq_terms
 #print axioms paperStep_second_deriv_le
-#print axioms paperC2CompactUniformBounds_of_greenStep
+#print axioms paperC2CompactUniformBounds_of_greenStep_repr
 #print axioms PaperWaveOperatorTermConvergence.of_c2CompactConvergence
 #print axioms PaperWaveOperatorTermConvergence.operator
 
@@ -1775,5 +1916,55 @@ theorem greenConv_tendsto_of_source_locallyUniform_of_uniform_bound
   greenConv_tendsto_of_source_tendsto_of_uniform_bound
     (c := c) (lam := lam) hlam hRs_cont hR_cont hRs_bound hR_bound
     (fun y => hRs_lim.tendsto_at y)
+
+theorem paperC2CompactUniformBounds_of_greenStep
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hLU : LocallyUniformConverges z U)
+    (hz_nonneg : ∀ k x, 0 ≤ z k x)
+    (hz_le_M : ∀ k x, z k x ≤ M)
+    (hstep :
+      ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hR_cont : Continuous R)
+    (hR_bound : ∃ B : ℝ,
+      (∀ k y, |(hstep k).R y| ≤ B) ∧
+        ∀ y, |R y| ≤ B)
+    (hR_limit : LocallyUniformConverges (fun k => (hstep k).R) R) :
+    PaperC2CompactUniformBounds p U z := by
+  obtain ⟨BR, hBRseq, hBR⟩ := hR_bound
+  have hshift :
+      LocallyUniformConverges (fun k => z (k + 1)) U :=
+    hLU.comp_strictMono
+      (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
+  have hU_green : U = fun x => greenConv c lam R x := by
+    funext x
+    have hz_tendsto :
+        Tendsto (fun k : ℕ => z (k + 1) x) atTop (𝓝 (U x)) :=
+      hshift.tendsto_at x
+    have hz_green_tendsto :
+        Tendsto (fun k : ℕ => greenConv c lam (hstep k).R x) atTop
+          (𝓝 (U x)) := by
+      have hseq :
+          (fun k : ℕ => z (k + 1) x) =
+            fun k : ℕ => greenConv c lam (hstep k).R x := by
+        funext k
+        exact congrFun (hstep k).green_repr x
+      simpa [hseq] using hz_tendsto
+    have hgreen_tendsto :
+        Tendsto (fun k : ℕ => greenConv c lam (hstep k).R x) atTop
+          (𝓝 (greenConv c lam R x)) :=
+      greenConv_tendsto_of_source_locallyUniform_of_uniform_bound
+        (c := c) (lam := lam) hlam
+        (fun k => (hstep k).R_cont) hR_cont hBRseq hBR hR_limit x
+    exact tendsto_nhds_unique hz_green_tendsto hgreen_tendsto
+  exact paperC2CompactUniformBounds_of_greenStep_repr
+    (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
+    (φ := φ) (U := U) (z := z) (R := R)
+    hlam hM hΛ hU hLU hz_nonneg hz_le_M hstep hR_cont
+    ⟨BR, hBRseq, hBR⟩ hU_green hR_limit
+
+#print axioms paperC2CompactUniformBounds_of_greenStep
 
 end ShenWork.Paper1

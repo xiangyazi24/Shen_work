@@ -231,6 +231,63 @@ theorem stationaryGreenRepresentationThreadData_of_c2_greenStep
       exact le_trans (hBR y) (le_max_right _ _)
   · exact LocallyUniformConverges.congr hsource_eq hsource_paper
 
+/-- Build the Green-thread data directly from the per-step Green package and
+the independently threaded source convergence.  This is the non-circular route:
+`R_k -> crossSource` is an input, not recovered from `C²` term convergence. -/
+theorem stationaryGreenRepresentationThreadData_of_greenStep
+    {p : CMParams} {c lam κ M Λ : ℝ} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hstep : ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hcross : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B)
+    (hR_limit :
+      LocallyUniformConverges (fun k => (hstep k).R)
+        (crossSource p lam U U U)) :
+    StationaryGreenRepresentationThreadData p c lam U z
+      (fun k => (hstep k).R) := by
+  obtain ⟨BR, hBR⟩ := hR_bound
+  refine
+    { cross_data := hcross
+      step_green := ?_
+      source_cont := ?_
+      source_limit_cont := hR_cont
+      source_bound := ?_
+      source_limit := hR_limit }
+  · intro k
+    exact (hstep k).green_repr
+  · intro k
+    exact (hstep k).R_cont
+  · refine ⟨max (paperStepRBoundFromLambda c lam Λ) BR, ?_, ?_⟩
+    · intro k y
+      exact le_trans
+        (paperStep_R_abs_le_from_lambda
+          (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+          hlam (hstep k) y)
+        (le_max_left _ _)
+    · intro y
+      exact le_trans (hBR y) (le_max_right _ _)
+
+theorem paperC2CompactUniformBounds_of_greenStep_thread
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hLU : LocallyUniformConverges z U)
+    (hz_nonneg : ∀ k x, 0 ≤ z k x)
+    (hz_le_M : ∀ k x, z k x ≤ M)
+    (hstep :
+      ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hthread :
+      StationaryGreenRepresentationThreadData p c lam U z
+        (fun k => (hstep k).R)) :
+    PaperC2CompactUniformBounds p U z :=
+  paperC2CompactUniformBounds_of_greenStep
+    (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
+    (φ := φ) (U := U) (z := z) (R := crossSource p lam U U U)
+    hlam hM hΛ hU hLU hz_nonneg hz_le_M hstep
+    hthread.source_limit_cont hthread.source_bound hthread.source_limit
+
 /-- Single-profile Rothe-limit threading of the stationary Green
 representation.  The proof uses the per-step Green representations and DCT
 continuity of `greenConv`; it does not invert the stationary differential
@@ -1817,7 +1874,8 @@ theorem stationaryCrossGreenData_of_trap
 
 /-- Lower-pinned construction-site Green representation: the stationary
 profile is the Rothe limit, each step has the committed Green representation,
-and the step sources converge through the `C²` compact convergence floor. -/
+and the step sources converge through the independently threaded Green source
+limit. -/
 theorem lowerPinned_stationaryGreenRepresentation_profile_of_greenStep_rotheLimit
     {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
     {z : ℕ → ℝ → ℝ}
@@ -1826,8 +1884,10 @@ theorem lowerPinned_stationaryGreenRepresentation_profile_of_greenStep_rotheLimi
     (hLU : LocallyUniformConverges z (rotheLimit z))
     (hU : InLowerPinnedMonotoneTrap κ M φ U)
     (hstep : ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
-    (hc2 : PaperC2CompactConvergence p U z)
     (hc3 : PaperC3BootstrapData U z)
+    (hR_limit :
+      LocallyUniformConverges (fun k => (hstep k).R)
+        (crossSource p lam U U U))
     (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
     StationaryCrossGreenData p c lam U ∧
       Continuous (crossSource p lam U U U) ∧
@@ -1857,9 +1917,9 @@ theorem lowerPinned_stationaryGreenRepresentation_profile_of_greenStep_rotheLimi
   have hthread :
       StationaryGreenRepresentationThreadData p c lam U z
         (fun k => (hstep k).R) :=
-    stationaryGreenRepresentationThreadData_of_c2_greenStep
+    stationaryGreenRepresentationThreadData_of_greenStep
       (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
-      (U := U) (z := z) hlam hU.bare hLU_U hstep hc2 hcross hR_cont hR_bound
+      (U := U) (z := z) hlam hstep hcross hR_cont hR_bound hR_limit
   exact stationaryGreenRepresentation_profile_of_rotheLimit
     (p := p) (c := c) (lam := lam) (U := U)
     (z := z) (Rseq := fun k => (hstep k).R) hlam hlim hLU hthread
@@ -2041,6 +2101,7 @@ theorem paperLowerPinnedStationary_of_uniformBounds
 theorem paperLowerPinnedStationary_of_greenStep
     {p : CMParams} {c lam κ M Λ : ℝ} {φ : ℝ → ℝ}
     {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (Rlim : (ℝ → ℝ) → ℝ → ℝ)
     (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
     (hLU :
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
@@ -2059,6 +2120,17 @@ theorem paperLowerPinnedStationary_of_greenStep
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
         ∀ k, PaperStepAnalytic p c lam M κ Λ U
           (rotheSeq U k) (rotheSeq U (k + 1)))
+    (hR_cont :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        Continuous (Rlim U))
+    (hR_bound :
+      ∀ U, (hU : InLowerPinnedMonotoneTrap κ M φ U) →
+        ∃ B : ℝ,
+          (∀ k y, |((hgreen U hU) k).R y| ≤ B) ∧
+            ∀ y, |Rlim U y| ≤ B)
+    (hR_limit :
+      ∀ U, (hU : InLowerPinnedMonotoneTrap κ M φ U) →
+        LocallyUniformConverges (fun k => ((hgreen U hU) k).R) (Rlim U))
     (hc3 :
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
         PaperC3BootstrapData U (rotheSeq U)) :
@@ -2071,9 +2143,9 @@ theorem paperLowerPinnedStationary_of_greenStep
     (fun U hU hLU_U =>
       paperC2CompactUniformBounds_of_greenStep
         (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
-        (φ := φ) (U := U) (z := rotheSeq U)
+        (φ := φ) (U := U) (z := rotheSeq U) (R := Rlim U)
         hlam hM hΛ hU hLU_U (hz_nonneg U hU) (hz_le_M U hU)
-        (hgreen U hU) (hc3 U hU))
+        (hgreen U hU) (hR_cont U hU) (hR_bound U hU) (hR_limit U hU))
     (paperDiagonalDifferentiabilityFloor_of_c3BootstrapData
       (p := p) (κ := κ) (M := M) (φ := φ) (rotheSeq := rotheSeq) hc3)
 
@@ -2284,6 +2356,7 @@ theorem paperLowerPinnedStationaryFlatFloor_of_uniformBounds
 theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
     {p : CMParams} {c lam κ M Λ : ℝ} {φ : ℝ → ℝ}
     {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (Rlim : (ℝ → ℝ) → ℝ → ℝ)
     (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
     (hLU :
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
@@ -2302,6 +2375,17 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
         ∀ k, PaperStepAnalytic p c lam M κ Λ U
           (rotheSeq U k) (rotheSeq U (k + 1)))
+    (hR_cont :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        Continuous (Rlim U))
+    (hR_bound :
+      ∀ U, (hU : InLowerPinnedMonotoneTrap κ M φ U) →
+        ∃ B : ℝ,
+          (∀ k y, |((hgreen U hU) k).R y| ≤ B) ∧
+            ∀ y, |Rlim U y| ≤ B)
+    (hR_limit :
+      ∀ U, (hU : InLowerPinnedMonotoneTrap κ M φ U) →
+        LocallyUniformConverges (fun k => ((hgreen U hU) k).R) (Rlim U))
     (hc3 :
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
         PaperC3BootstrapData U (rotheSeq U))
@@ -2313,9 +2397,9 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
     (fun U hU hLU_U =>
       paperC2CompactUniformBounds_of_greenStep
         (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
-        (φ := φ) (U := U) (z := rotheSeq U)
+        (φ := φ) (U := U) (z := rotheSeq U) (R := Rlim U)
         hlam hM hΛ hU hLU_U (hz_nonneg U hU) (hz_le_M U hU)
-        (hgreen U hU) (hc3 U hU))
+        (hgreen U hU) (hR_cont U hU) (hR_bound U hU) (hR_limit U hU))
     hdiff
     (fun U hU hstat =>
       frozenStationaryFlatAtLeft_of_green_source_tail
