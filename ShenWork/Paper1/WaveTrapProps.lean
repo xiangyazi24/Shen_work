@@ -914,6 +914,17 @@ theorem InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_pos
   intro x hx
   exact hU.antitone hx
 
+/-- A lower pin that is positive at one point gives a strictly positive left
+tail.  Monotonicity transports the positive value at `x₀` to every `x ≤ x₀`. -/
+theorem InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_lower_pin_at
+    {κ M : ℝ} {φ U : ℝ → ℝ} (hU : InMonotoneWaveTrapSet κ M U)
+    (hlower : ∀ x, φ x ≤ U x) {x₀ : ℝ} (hφpos : 0 < φ x₀) :
+    StrictlyPositiveAtLeft U := by
+  refine ⟨φ x₀, hφpos, ?_⟩
+  refine eventually_atBot.2 ⟨x₀, ?_⟩
+  intro x hx
+  exact le_trans (hlower x₀) (hU.antitone hx)
+
 /-- Single-profile route (b): monotone left limit + pointwise positivity
 lower-pin + reaction-root at every left limit. -/
 theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
@@ -925,6 +936,21 @@ theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
   rcases monotoneTrap_left_limit_exists hU with ⟨L, hlim, _hL0, _hLM⟩
   have hα : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
   have hleft : StrictlyPositiveAtLeft U := hU.strictlyPositiveAtLeft_of_pos hpos
+  have hL : 0 < L := hleft.limit_pos hlim
+  exact tendsto_atBot_one_of_reaction_root_pin hα hlim hL (hroot L hlim)
+
+/-- Single-profile route (b) with an explicit lower pin `φ ≤ U`, assuming the
+pin is positive at one point. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_lower_pin_at
+    {κ M : ℝ} {φ U : ℝ → ℝ} (p : CMParams)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hlower : ∀ x, φ x ≤ U x) {x₀ : ℝ} (hφpos : 0 < φ x₀)
+    (hroot : ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  rcases monotoneTrap_left_limit_exists hU with ⟨L, hlim, _hL0, _hLM⟩
+  have hα : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hleft : StrictlyPositiveAtLeft U :=
+    hU.strictlyPositiveAtLeft_of_lower_pin_at hlower hφpos
   have hL : 0 < L := hleft.limit_pos hlim
   exact tendsto_atBot_one_of_reaction_root_pin hα hlim hL (hroot L hlim)
 
@@ -994,6 +1020,17 @@ theorem reactionFun_root_of_stationary_flat_limit
     simp [hstat]
   exact tendsto_nhds_unique hop hzero
 
+/-- Equilibrium step at the left endpoint: passing the stationary frozen
+equation to an `atBot` profile limit leaves exactly the logistic reaction root. -/
+theorem reactionFun_root_of_stationary_equation_atBot_limit
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {L : ℝ}
+    (hlim : Tendsto U atBot (𝓝 L))
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hflat : FrozenStationaryFlatAtLeft p U) :
+    reactionFun p.α L = 0 := by
+  exact reactionFun_root_of_stationary_flat_limit hlim
+    hflat.1 hflat.2.1 hflat.2.2 hstat
+
 /-- Single-profile route (b) with all analytic ingredients explicit:
 monotone bounded left limit, stationary-flat root, and paper floor pin. -/
 theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
@@ -1006,8 +1043,37 @@ theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
   refine InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
     p hU hfloor ?_
   intro L hlim
-  exact reactionFun_root_of_stationary_flat_limit hlim
-    hflat.1 hflat.2.1 hflat.2.2 hstat
+  exact reactionFun_root_of_stationary_equation_atBot_limit hlim hstat hflat
+
+/-- Single-profile route (b) with an explicit lower pin and the stationary-flat
+reaction-root step. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lower_pin_at
+    {κ M : ℝ} {p : CMParams} {c : ℝ} {φ U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hlower : ∀ x, φ x ≤ U x) {x₀ : ℝ} (hφpos : 0 < φ x₀)
+    (hflat : FrozenStationaryFlatAtLeft p U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  refine InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_lower_pin_at
+    p hU hlower hφpos ?_
+  intro L hlim
+  exact reactionFun_root_of_stationary_equation_atBot_limit hlim hstat hflat
+
+/-- The raw lower barrier supplies the explicit positive lower pin at
+`lowerBarrierXPlus`, and monotonicity transports it to the whole left tail. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
+    {κ κtilde D M : ℝ} {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hlower : ∀ x, lowerBarrierRaw κ κtilde D x ≤ U x)
+    (hflat : FrozenStationaryFlatAtLeft p U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  exact InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lower_pin_at
+    (p := p) (c := c) (hU := hU)
+    (φ := lowerBarrierRaw κ κtilde D) hlower
+    (x₀ := lowerBarrierXPlus κ κtilde D)
+    (lowerBarrierRaw_pos_at_xplus hκ hgap hD) hflat hstat
 
 /-- Single-profile route (b) with pointwise positivity instead of the vacuous
 whole-trap paper floor. -/
@@ -1021,8 +1087,7 @@ theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
   refine InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
     p hU hpos ?_
   intro L hlim
-  exact reactionFun_root_of_stationary_flat_limit hlim
-    hflat.1 hflat.2.1 hflat.2.2 hstat
+  exact reactionFun_root_of_stationary_equation_atBot_limit hlim hstat hflat
 
 /-- Strong-maximum-principle route: non-trivial stationary nonnegative trapped
 profiles are strictly positive; then the flat left endpoint pins the left
@@ -1225,6 +1290,52 @@ theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_floor
   monotoneTrap_profile_hlim_neg_of_limit_root_and_pin p hroot
     (fun U hU => (hfloor U hU).strictlyPositiveAtLeft)
 
+/-- Universal profile obligation from stationary flatness plus an explicit
+single-point-positive lower pin. -/
+theorem monotoneTrap_profile_hlim_neg_of_stationary_flat_and_lower_pin_at
+    {κ M : ℝ} (p : CMParams) (c : ℝ) {φ : ℝ → ℝ} {x₀ : ℝ}
+    (hφpos : 0 < φ x₀) :
+    ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U →
+        (∀ x, φ x ≤ U x) →
+          FrozenStationaryFlatAtLeft p U →
+            (∀ x, frozenWaveOperator p c U U x = 0) →
+              Tendsto U atBot (𝓝 1) :=
+  fun _U hU hlower hflat hstat =>
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lower_pin_at
+      hU hlower hφpos hflat hstat
+
+/-- Universal profile obligation specialized to the paper raw lower barrier.
+This is the route-b `hlim_neg` constructor: monotone bounded left limit,
+stationary-flat reaction root, and the raw lower pin rule out the zero root. -/
+theorem monotoneTrap_profile_hlim_neg_of_stationary_flat_and_lowerBarrierRaw_pin
+    {κ κtilde D M : ℝ} (p : CMParams) (c : ℝ)
+    (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U →
+        (∀ x, lowerBarrierRaw κ κtilde D x ≤ U x) →
+          FrozenStationaryFlatAtLeft p U →
+            (∀ x, frozenWaveOperator p c U U x = 0) →
+              Tendsto U atBot (𝓝 1) :=
+  fun _U hU hlower hflat hstat =>
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
+      hκ hgap hD hU hlower hflat hstat
+
+/-- Route-b `hlim_neg` for the lower-raw pinned trap: trap membership supplies
+the raw lower pin, stationarity passes to the left-limit reaction root, and the
+positive raw barrier pin rules out the zero root. -/
+theorem monotoneTrap_profile_hlim_neg
+    {κ κtilde D M : ℝ} {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hU :
+      InMonotoneWaveTrapSet κ M U ∧
+        ∀ x, lowerBarrierRaw κ κtilde D x ≤ U x)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hflat : FrozenStationaryFlatAtLeft p U) :
+    Tendsto U atBot (𝓝 1) := by
+  exact InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
+    hκ hgap hD hU.1 hU.2 hflat hstat
+
 /-- The route-b lower pin is not a monotone-trap fact: the zero profile refutes it. -/
 theorem not_monotoneTrap_profile_strictlyPositiveAtLeft
     {κ M : ℝ} (hM : 0 ≤ M) :
@@ -1342,10 +1453,15 @@ section AxiomAudit
 #print axioms reactionFun_root_eq_one_of_pos
 #print axioms tendsto_atBot_one_of_reaction_root_pin
 #print axioms InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_pos
+#print axioms InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_lower_pin_at
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_lower_pin_at
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
 #print axioms reactionFun_root_of_stationary_flat_limit
+#print axioms reactionFun_root_of_stationary_equation_atBot_limit
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lower_pin_at
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_lowerBarrierRaw_pin
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
 #print axioms stationaryStrongMaxPrinciple_of_odeUniqueness
@@ -1354,6 +1470,9 @@ section AxiomAudit
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_floor
+#print axioms monotoneTrap_profile_hlim_neg_of_stationary_flat_and_lower_pin_at
+#print axioms monotoneTrap_profile_hlim_neg_of_stationary_flat_and_lowerBarrierRaw_pin
+#print axioms monotoneTrap_profile_hlim_neg
 #print axioms not_monotoneTrap_profile_strictlyPositiveAtLeft
 #print axioms not_monotoneTrap_profile_hpos
 #print axioms not_monotoneTrap_profile_hlim_neg
