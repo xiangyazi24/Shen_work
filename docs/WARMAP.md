@@ -22,11 +22,12 @@ Faithfulness fact (settled from paper1.pdf): m,α,γ ≥ 1 **REAL** (not integer
 | hprodAll green-core | trap → PaperGreenStepInputRouteACore | ✅ assembly | 614b824 |
 | hprodAll Banach machinery | crossImplicitStep_exists_unique wired + K<1 proven | ✅ DONE | f1c3aa5 |
 | hprodAll per-step Schauder machinery | of_schauder constructs existence from principle+map data, compactness PROVEN, of_banach deleted | ✅ DONE | f076c50 |
-| **hprodAll Schauder map data** | PaperStepSchauderMapData_of_trap for PAPER source (IBP recovers crossSource≠paperStepSource — wrong; Schauder needs only continuity not Lip); mapsTo via super-solution comparison | 🔥 cx_pde paper-src | /tmp/shen_pde_papersourceschauder.md |
+| **hprodAll Schauder map data** | PaperStepSchauderMapData_of_trap; mapsTo (=faithfulness-audit's biggest content) via SUPER-SOLUTION COMPARISON not source-monotonicity (reaction non-monotone); ChatGPT consulting precise resolvent-comparison | 🔥 cx_pde mapsTo-super | /tmp/shen_pde_mapsto_super.md |
 | hstationary | rotheLimit fixed ⟹ frozenWaveOp U U=0 | ✅ assembled, modulo uniform-bounds | 26cbe80 |
 | hstationary uniform-bounds | PaperC2CompactUniformBounds from concrete green-core | ⬜ coupled to hpoint landing | — |
-| **hsmp / hrealize** | chain to stationaryStrongMaxPrinciple_of_trap(5d230b5) modulo StationaryGreenRepresentationFromEquation. §2.6b: U regularity bounced 3× — it's a CONSTRUCTION-SITE fact, threading U=greenConv R from Rothe limit (per-step green_repr + convergence) | 🔥 cx_r3 green-thread | /tmp/shen_r3_greenrepthread.md |
+| hsmp / hrealize | §2.6b RESOLVED: stationaryStrongMaxPrinciple_of_rotheLimit_greenRepresentation — Green-rep THREADED from Rothe limit (hthread = construction input), DCT+limit-deriv proven, cron2-confirmed non-circular | ✅ DONE | df65097 |
 | hstep / htail | PaperRotheSeqStepDependence / PaperRotheTailUniform | ⬜ gap mapped (clamp + step-layer K<1), secondary | — |
+| hlim_neg | left limit=1 via monotone-limit + equilibrium L(1-L^α)=0 + lower-pin | 🔥 cx_r3 | /tmp/shen_r3_hlimneg.md |
 | hcond/hD/hbarLip/scalars | concrete parameter conditions | ⬜ concrete, easy | — |
 
 ## Dependency (ASCII)
