@@ -17,7 +17,7 @@
 | ↳ Per-step assembly + cube witness | `[ ]` not started |
 | ↳ Secondary orbit floors (hstep/htail) | `[ ]` vestigial, deferrable |
 | **Paper 2** (Schauder) | `[x]` DONE |
-| **Paper 3** | `[ ]` scoped, not started |
+| **Paper 3** (persistence/stabilization) | `[~]` statement-complete & build-clean; headline conditional on ~6 PDE floors (P3.1–P3.6) |
 
 ---
 
@@ -76,9 +76,32 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 ## PAPER 2 — Schauder
 - [x] Complete (0 real sorry, builds, axiom-clean)
 
-## PAPER 3
-- [ ] Scope / bottom out the底 (one codex scout pass)
-- [ ] (decomposition TBD after scoping)
+## PAPER 3 — "Persistence and stabilization" (CM with χ(v)=χ₀/(1+v)^β + logistic source)
+
+- [x] Scoped (full survey done). **Statement-complete & build-clean**: all of Thm 2.1–2.5, Props 1.2–1.4,
+  Remark 2.1, Lemmas A.6–A.8 stated + wired into `Paper3MainlineTargets`; **0 sorries / 0 admits / 0 axioms**,
+  full build 3700 jobs. Every paper result has a faithful Lean Prop — NO missing statements.
+
+### Unconditionally PROVEN (no work)
+- [x] Unit-point logistic bridge — Props 1.2–1.4 + Thm 2.1 on the degenerate 1-point (ODE) domain, incl. the
+  negative result `not_Theorem_2_1_part1_when_a_zero_b_pos`
+- [x] Remark 2.1 — exact critical sensitivity `χ* = paperFormula(λ₁)` in regime `aαμ ≤ λ₁²` (formula/spectral)
+- [x] Lemma A.7 + threshold ordering `chiStrong1/3Formula ≤ χ*` (spectrum-free floor)
+
+### Headline `Paper3MainlineTargets` — conditional on ~6 unproven PDE floors (the real remaining work)
+> Same pattern as Paper 1: hard N-dimensional analysis is carried in `*RawData/*BranchData/*FrontierData`
+> hypothesis structures, proven only on the degenerate unit point. To pass playbook audit these must be
+> discharged on a genuine bounded domain (the `intervalDomain`) — or honestly remain labeled conditional.
+- [ ] **P3.1** Core existence/boundedness (Props 1.2–1.4) — `Paper3Proposition1FrontierData` →
+  `NegativeSensitivityGlobalEventualBound` + global classical-solution package (§3 + Part I). *Everything below consumes this.*
+- [ ] **P3.2** Uniform persistence (Thm 2.1) — `UniformPersistencePart{1,2,3,4}Raw` (time-translate compactness,
+  strong max principle, ODE-subsolution lower bound, elliptic Neumann transfer) (§4)
+- [ ] **P3.3** Linear stability dichotomy (Thm 2.2) — `Paper3Theorem22BranchData` over `SpectralData` (stable/unstable decay) (§5)
+- [ ] **P3.4** Sectorial local exponential decay — `SectorialLocalExponentialRaw` (H3.1 framework) on the interval (§5/App A.1)
+- [ ] **P3.5** Compactness/regularization (Lemmas 3.1–3.5, 7.1) — `Paper3CompactnessRegularizationRawData` (§3, §7)
+- [ ] **P3.6** Global stability Thms 2.3–2.5 — `Paper3Stability23To25BranchData` (Lyapunov / rectangle-ODE / `corollary51` dissipation) (§6–8)
+- [ ] **P3.7** Threshold-ordering tails (small) — route `chiStrong2/4Formula` to the spectrum-free floor; discharge A.8 `chiBeta ≤ χ*` (App A.3)
+- [ ] **P3.D** `Paper3MainlineTargets` unconditional on the interval domain
 
 ---
 
