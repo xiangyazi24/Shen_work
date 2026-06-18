@@ -234,6 +234,56 @@ theorem paperWeightedClamp_rpow_abs_le_M
   rw [abs_of_nonneg hpownn]
   exact Real.rpow_le_rpow hmem.1 hθM ha
 
+theorem rpow_abs_sub_le_lip_on_Icc
+    {a M s t : ℝ} (ha : 1 ≤ a) (hM : 0 ≤ M)
+    (hs : s ∈ Set.Icc (0 : ℝ) M) (ht : t ∈ Set.Icc (0 : ℝ) M) :
+    |s ^ a - t ^ a| ≤ rpowLip a M * |s - t| := by
+  have hLip := rpow_m_lipschitz_on_Icc (m := a) (M := M) ha hM
+  have hL0 : 0 ≤ rpowLip a M := rpowLip_nonneg ha hM
+  have hdist := hLip hs ht
+  rw [edist_dist, edist_dist] at hdist
+  have hd : dist (s ^ a) (t ^ a) ≤
+      (Real.toNNReal (rpowLip a M) : ℝ) * dist s t := by
+    have := hdist
+    rw [← ENNReal.ofReal_coe_nnreal, ← ENNReal.ofReal_mul (by positivity),
+      ENNReal.ofReal_le_ofReal_iff (by positivity)] at this
+    exact this
+  rw [Real.coe_toNNReal _ hL0] at hd
+  simpa [Real.dist_eq] using hd
+
+theorem rpow_abs_sub_le_abs_sub_rpow
+    {a s t : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
+    (hs0 : 0 ≤ s) (ht0 : 0 ≤ t) :
+    |s ^ a - t ^ a| ≤ |s - t| ^ a := by
+  by_cases hst : s ≤ t
+  · have hdiff0 : 0 ≤ t - s := sub_nonneg.mpr hst
+    have hmono : s ^ a ≤ t ^ a := Real.rpow_le_rpow hs0 hst ha0
+    have hconc :
+        (s + (t - s)) ^ a ≤ s ^ a + (t - s) ^ a :=
+      rpow_add_le_add_rpow hs0 hdiff0 ha0 ha1
+    have ht_eq : s + (t - s) = t := by ring
+    have hsub : t ^ a - s ^ a ≤ (t - s) ^ a := by
+      rw [ht_eq] at hconc
+      linarith
+    rw [abs_of_nonpos (sub_nonpos.mpr hmono)]
+    have habs : |s - t| = t - s := by
+      rw [abs_of_nonpos (sub_nonpos.mpr hst)]
+      ring
+    simpa [habs] using hsub
+  · have hts : t ≤ s := le_of_not_ge hst
+    have hdiff0 : 0 ≤ s - t := sub_nonneg.mpr hts
+    have hmono : t ^ a ≤ s ^ a := Real.rpow_le_rpow ht0 hts ha0
+    have hconc :
+        (t + (s - t)) ^ a ≤ t ^ a + (s - t) ^ a :=
+      rpow_add_le_add_rpow ht0 hdiff0 ha0 ha1
+    have hs_eq : t + (s - t) = s := by ring
+    have hsub : s ^ a - t ^ a ≤ (s - t) ^ a := by
+      rw [hs_eq] at hconc
+      linarith
+    rw [abs_of_nonneg (sub_nonneg.mpr hmono)]
+    have habs : |s - t| = s - t := abs_of_nonneg hdiff0
+    simpa [habs] using hsub
+
 theorem upperBarrier_shift_le_exp_abs_mul
     {κ M x y : ℝ} (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
     upperBarrier κ M y ≤
@@ -261,6 +311,592 @@ theorem upperBarrier_shift_le_exp_abs_mul
         Real.exp_le_exp.mpr hexp_arg
       _ = Real.exp (κ * |x - y|) * Real.exp (-κ * x) := by
         rw [Real.exp_add]
+
+theorem exp_sub_one_le_self_mul_exp (t : ℝ) :
+    Real.exp t - 1 ≤ t * Real.exp t := by
+  have hsmall : 1 - Real.exp (-t) ≤ t := by
+    have h := Real.add_one_le_exp (-t)
+    linarith
+  have hrewrite : Real.exp t - 1 = Real.exp t * (1 - Real.exp (-t)) := by
+    rw [mul_sub, ← Real.exp_add]
+    rw [show t + -t = 0 by ring, Real.exp_zero]
+    ring
+  rw [hrewrite]
+  calc
+    Real.exp t * (1 - Real.exp (-t)) ≤ Real.exp t * t :=
+      mul_le_mul_of_nonneg_left hsmall (Real.exp_pos _).le
+    _ = t * Real.exp t := by ring
+
+theorem upperBarrier_abs_sub_le_local
+    {κ M x y : ℝ} (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hxy : |x - y| ≤ 1) :
+    |upperBarrier κ M x - upperBarrier κ M y| ≤
+      (κ * Real.exp κ * M) * |x - y| := by
+  set d : ℝ := |x - y| with hd
+  have hd0 : 0 ≤ d := by simpa [hd] using abs_nonneg (x - y)
+  have htd0 : 0 ≤ κ * d := mul_nonneg hκ hd0
+  have htd_le : κ * d ≤ κ := by
+    calc
+      κ * d ≤ κ * 1 := mul_le_mul_of_nonneg_left (by simpa [hd] using hxy) hκ
+      _ = κ := by ring
+  have hexp_minus :
+      Real.exp (κ * d) - 1 ≤ κ * d * Real.exp κ := by
+    calc
+      Real.exp (κ * d) - 1 ≤ (κ * d) * Real.exp (κ * d) :=
+        exp_sub_one_le_self_mul_exp (κ * d)
+      _ ≤ (κ * d) * Real.exp κ := by
+        exact mul_le_mul_of_nonneg_left
+          (Real.exp_le_exp.mpr htd_le) htd0
+      _ = κ * d * Real.exp κ := by ring
+  have hminus_nonneg : 0 ≤ Real.exp (κ * d) - 1 :=
+    sub_nonneg.mpr (Real.one_le_exp htd0)
+  have hkde_nonneg : 0 ≤ κ * d * Real.exp κ := by positivity
+  have hUx0 : 0 ≤ upperBarrier κ M x := upperBarrier_nonneg hM x
+  have hUy0 : 0 ≤ upperBarrier κ M y := upperBarrier_nonneg hM y
+  have hUxM : upperBarrier κ M x ≤ M := upperBarrier_le_M κ M x
+  have hUyM : upperBarrier κ M y ≤ M := upperBarrier_le_M κ M y
+  have hyx :
+      upperBarrier κ M y - upperBarrier κ M x ≤
+        (κ * Real.exp κ * M) * d := by
+    have hshift := upperBarrier_shift_le_exp_abs_mul
+      (κ := κ) (M := M) (x := x) (y := y) hκ hM
+    have hstep :
+        upperBarrier κ M y - upperBarrier κ M x ≤
+          (Real.exp (κ * d) - 1) * upperBarrier κ M x := by
+      calc
+        upperBarrier κ M y - upperBarrier κ M x
+            ≤ Real.exp (κ * d) * upperBarrier κ M x -
+                upperBarrier κ M x := by
+              exact sub_le_sub_right (by simpa [hd] using hshift) _
+        _ = (Real.exp (κ * d) - 1) * upperBarrier κ M x := by ring
+    calc
+      upperBarrier κ M y - upperBarrier κ M x
+          ≤ (Real.exp (κ * d) - 1) * upperBarrier κ M x := hstep
+      _ ≤ (κ * d * Real.exp κ) * upperBarrier κ M x := by
+            exact mul_le_mul_of_nonneg_right hexp_minus hUx0
+      _ ≤ (κ * d * Real.exp κ) * M := by
+            exact mul_le_mul_of_nonneg_left hUxM hkde_nonneg
+      _ = (κ * Real.exp κ * M) * d := by ring
+  have hxy' :
+      upperBarrier κ M x - upperBarrier κ M y ≤
+        (κ * Real.exp κ * M) * d := by
+    have hshift := upperBarrier_shift_le_exp_abs_mul
+      (κ := κ) (M := M) (x := y) (y := x) hκ hM
+    have hstep :
+        upperBarrier κ M x - upperBarrier κ M y ≤
+          (Real.exp (κ * d) - 1) * upperBarrier κ M y := by
+      calc
+        upperBarrier κ M x - upperBarrier κ M y
+            ≤ Real.exp (κ * d) * upperBarrier κ M y -
+                upperBarrier κ M y := by
+              have hsym : |y - x| = d := by
+                rw [hd, abs_sub_comm]
+              exact sub_le_sub_right (by simpa [hsym] using hshift) _
+        _ = (Real.exp (κ * d) - 1) * upperBarrier κ M y := by ring
+    calc
+      upperBarrier κ M x - upperBarrier κ M y
+          ≤ (Real.exp (κ * d) - 1) * upperBarrier κ M y := hstep
+      _ ≤ (κ * d * Real.exp κ) * upperBarrier κ M y := by
+            exact mul_le_mul_of_nonneg_right hexp_minus hUy0
+      _ ≤ (κ * d * Real.exp κ) * M := by
+            exact mul_le_mul_of_nonneg_left hUyM hkde_nonneg
+      _ = (κ * Real.exp κ * M) * d := by ring
+  rw [abs_le]
+  constructor
+  · have := hyx
+    linarith
+  · simpa [hd] using hxy'
+
+/-! ### Pointwise Hölder bookkeeping for fixed-source kernel estimates -/
+
+/-- A real function with a uniform absolute bound and a global Hölder modulus. -/
+structure HolderQuant (β : ℝ) (f : ℝ → ℝ) where
+  C : ℝ
+  H : ℝ
+  C_nonneg : 0 ≤ C
+  H_nonneg : 0 ≤ H
+  bound : ∀ x, |f x| ≤ C
+  holder : ∀ x y, |f x - f y| ≤ H * |x - y| ^ β
+
+structure HolderBudget where
+  C : ℝ
+  H : ℝ
+  C_nonneg : 0 ≤ C
+  H_nonneg : 0 ≤ H
+
+namespace HolderBudget
+
+def const (a : ℝ) : HolderBudget where
+  C := |a|
+  H := 0
+  C_nonneg := abs_nonneg a
+  H_nonneg := le_rfl
+
+def add (hf hg : HolderBudget) : HolderBudget where
+  C := hf.C + hg.C
+  H := hf.H + hg.H
+  C_nonneg := add_nonneg hf.C_nonneg hg.C_nonneg
+  H_nonneg := add_nonneg hf.H_nonneg hg.H_nonneg
+
+def neg (hf : HolderBudget) : HolderBudget := hf
+
+def sub (hf hg : HolderBudget) : HolderBudget :=
+  hf.add hg.neg
+
+def const_mul (a : ℝ) (hf : HolderBudget) : HolderBudget where
+  C := |a| * hf.C
+  H := |a| * hf.H
+  C_nonneg := mul_nonneg (abs_nonneg a) hf.C_nonneg
+  H_nonneg := mul_nonneg (abs_nonneg a) hf.H_nonneg
+
+def mul (hf hg : HolderBudget) : HolderBudget where
+  C := hf.C * hg.C
+  H := hf.C * hg.H + hg.C * hf.H
+  C_nonneg := mul_nonneg hf.C_nonneg hg.C_nonneg
+  H_nonneg :=
+    add_nonneg (mul_nonneg hf.C_nonneg hg.H_nonneg)
+      (mul_nonneg hg.C_nonneg hf.H_nonneg)
+
+end HolderBudget
+
+namespace HolderQuant
+
+def const (β a : ℝ) : HolderQuant β (fun _ : ℝ => a) where
+  C := |a|
+  H := 0
+  C_nonneg := abs_nonneg a
+  H_nonneg := le_rfl
+  bound := by intro x; simp
+  holder := by intro x y; simp
+
+def add {β : ℝ} {f g : ℝ → ℝ}
+    (hf : HolderQuant β f) (hg : HolderQuant β g) :
+    HolderQuant β (fun x => f x + g x) where
+  C := hf.C + hg.C
+  H := hf.H + hg.H
+  C_nonneg := add_nonneg hf.C_nonneg hg.C_nonneg
+  H_nonneg := add_nonneg hf.H_nonneg hg.H_nonneg
+  bound := by
+    intro x
+    calc
+      |f x + g x| ≤ |f x| + |g x| := abs_add_le _ _
+      _ ≤ hf.C + hg.C := add_le_add (hf.bound x) (hg.bound x)
+  holder := by
+    intro x y
+    calc
+      |(f x + g x) - (f y + g y)|
+          = |(f x - f y) + (g x - g y)| := by ring_nf
+      _ ≤ |f x - f y| + |g x - g y| := abs_add_le _ _
+      _ ≤ hf.H * |x - y| ^ β + hg.H * |x - y| ^ β :=
+        add_le_add (hf.holder x y) (hg.holder x y)
+      _ = (hf.H + hg.H) * |x - y| ^ β := by ring
+
+def neg {β : ℝ} {f : ℝ → ℝ} (hf : HolderQuant β f) :
+    HolderQuant β (fun x => -f x) where
+  C := hf.C
+  H := hf.H
+  C_nonneg := hf.C_nonneg
+  H_nonneg := hf.H_nonneg
+  bound := by intro x; simpa using hf.bound x
+  holder := by
+    intro x y
+    have hdiff : (-f x) - (-f y) = -(f x - f y) := by ring
+    rw [hdiff, abs_neg]
+    exact hf.holder x y
+
+def sub {β : ℝ} {f g : ℝ → ℝ}
+    (hf : HolderQuant β f) (hg : HolderQuant β g) :
+    HolderQuant β (fun x => f x - g x) := by
+  simpa [sub_eq_add_neg] using hf.add hg.neg
+
+def const_mul {β a : ℝ} {f : ℝ → ℝ} (hf : HolderQuant β f) :
+    HolderQuant β (fun x => a * f x) where
+  C := |a| * hf.C
+  H := |a| * hf.H
+  C_nonneg := mul_nonneg (abs_nonneg a) hf.C_nonneg
+  H_nonneg := mul_nonneg (abs_nonneg a) hf.H_nonneg
+  bound := by
+    intro x
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hf.bound x) (abs_nonneg a)
+  holder := by
+    intro x y
+    rw [← mul_sub, abs_mul]
+    calc
+      |a| * |f x - f y| ≤ |a| * (hf.H * |x - y| ^ β) :=
+        mul_le_mul_of_nonneg_left (hf.holder x y) (abs_nonneg a)
+      _ = |a| * hf.H * |x - y| ^ β := by ring
+
+def mul {β : ℝ} {f g : ℝ → ℝ}
+    (hf : HolderQuant β f) (hg : HolderQuant β g) :
+    HolderQuant β (fun x => f x * g x) where
+  C := hf.C * hg.C
+  H := hf.C * hg.H + hg.C * hf.H
+  C_nonneg := mul_nonneg hf.C_nonneg hg.C_nonneg
+  H_nonneg :=
+    add_nonneg (mul_nonneg hf.C_nonneg hg.H_nonneg)
+      (mul_nonneg hg.C_nonneg hf.H_nonneg)
+  bound := by
+    intro x
+    rw [abs_mul]
+    exact mul_le_mul (hf.bound x) (hg.bound x)
+      (abs_nonneg _) hf.C_nonneg
+  holder := by
+    intro x y
+    have hsplit :
+        f x * g x - f y * g y =
+          f x * (g x - g y) + g y * (f x - f y) := by ring
+    rw [hsplit]
+    calc
+      |f x * (g x - g y) + g y * (f x - f y)|
+          ≤ |f x * (g x - g y)| + |g y * (f x - f y)| := abs_add_le _ _
+      _ = |f x| * |g x - g y| + |g y| * |f x - f y| := by
+        rw [abs_mul, abs_mul]
+      _ ≤ hf.C * (hg.H * |x - y| ^ β) +
+            hg.C * (hf.H * |x - y| ^ β) := by
+        exact add_le_add
+          (mul_le_mul (hf.bound x) (hg.holder x y)
+            (abs_nonneg _) hf.C_nonneg)
+          (mul_le_mul (hg.bound y) (hf.holder x y)
+            (abs_nonneg _) hg.C_nonneg)
+      _ = (hf.C * hg.H + hg.C * hf.H) * |x - y| ^ β := by ring
+
+def inflate {β : ℝ} {f : ℝ → ℝ} (hf : HolderQuant β f)
+    {C' H' : ℝ} (hC' : 0 ≤ C') (hH' : 0 ≤ H')
+    (hC : hf.C ≤ C') (hH : hf.H ≤ H') :
+    HolderQuant β f where
+  C := C'
+  H := H'
+  C_nonneg := hC'
+  H_nonneg := hH'
+  bound := by
+    intro x
+    exact le_trans (hf.bound x) hC
+  holder := by
+    intro x y
+    calc
+      |f x - f y| ≤ hf.H * |x - y| ^ β := hf.holder x y
+      _ ≤ H' * |x - y| ^ β :=
+        mul_le_mul_of_nonneg_right hH (Real.rpow_nonneg (abs_nonneg _) β)
+
+end HolderQuant
+
+theorem abs_sub_le_two_bounds {f : ℝ → ℝ} {C : ℝ}
+    (_hC : 0 ≤ C) (hf : ∀ x, |f x| ≤ C) (x y : ℝ) :
+    |f x - f y| ≤ 2 * C := by
+  calc
+    |f x - f y| ≤ |f x| + |f y| := abs_sub _ _
+    _ ≤ C + C := add_le_add (hf x) (hf y)
+    _ = 2 * C := by ring
+
+/-- A bounded Lipschitz estimate is a global β-Hölder estimate for `0 < β ≤ 1`. -/
+theorem holder_of_lipschitz_of_bounded
+    {β L C : ℝ} {f : ℝ → ℝ}
+    (hβpos : 0 < β) (hβle : β ≤ 1) (hL : 0 ≤ L) (hC : 0 ≤ C)
+    (hbound : ∀ x, |f x| ≤ C)
+    (hlip : ∀ x y, |f x - f y| ≤ L * |x - y|) :
+    ∀ x y, |f x - f y| ≤ max L (2 * C) * |x - y| ^ β := by
+  intro x y
+  set d : ℝ := |x - y| with hd
+  have hd0 : 0 ≤ d := by simpa [hd] using abs_nonneg (x - y)
+  have hcoefL : L ≤ max L (2 * C) := le_max_left _ _
+  have hcoefC : 2 * C ≤ max L (2 * C) := le_max_right _ _
+  by_cases hdle : d ≤ 1
+  · have hd_pow_ge : d ≤ d ^ β := by
+      by_cases hdz : d = 0
+      · rw [hdz]
+        exact Real.rpow_nonneg (le_refl 0) β
+      · have hdpos : 0 < d := lt_of_le_of_ne hd0 (Ne.symm hdz)
+        calc
+          d = d ^ (1 : ℝ) := by rw [Real.rpow_one]
+          _ ≤ d ^ β := by
+            exact Real.rpow_le_rpow_of_exponent_ge hdpos hdle hβle
+    calc
+      |f x - f y| ≤ L * d := by simpa [hd] using hlip x y
+      _ ≤ L * d ^ β := mul_le_mul_of_nonneg_left hd_pow_ge hL
+      _ ≤ max L (2 * C) * d ^ β :=
+        mul_le_mul_of_nonneg_right hcoefL (Real.rpow_nonneg hd0 β)
+  · have hone_le_d : 1 ≤ d := le_of_not_ge hdle
+    have hone_le_pow : 1 ≤ d ^ β := by
+      calc
+        (1 : ℝ) = (1 : ℝ) ^ β := by rw [Real.one_rpow]
+        _ ≤ d ^ β := Real.rpow_le_rpow zero_le_one hone_le_d hβpos.le
+    calc
+      |f x - f y| ≤ 2 * C := abs_sub_le_two_bounds hC hbound x y
+      _ ≤ max L (2 * C) := hcoefC
+      _ ≤ max L (2 * C) * d ^ β := by
+        have hcoef_nonneg : 0 ≤ max L (2 * C) :=
+          le_trans hL hcoefL
+        calc
+          max L (2 * C) = max L (2 * C) * 1 := by ring
+          _ ≤ max L (2 * C) * d ^ β :=
+            mul_le_mul_of_nonneg_left hone_le_pow hcoef_nonneg
+
+/-- A bounded locally-Lipschitz estimate on unit spatial scales is a global
+β-Hölder estimate for `0 < β ≤ 1`. -/
+theorem holder_of_local_lipschitz_of_bounded
+    {β L C : ℝ} {f : ℝ → ℝ}
+    (hβpos : 0 < β) (hβle : β ≤ 1) (hL : 0 ≤ L) (hC : 0 ≤ C)
+    (hbound : ∀ x, |f x| ≤ C)
+    (hlip : ∀ x y, |x - y| ≤ 1 → |f x - f y| ≤ L * |x - y|) :
+    ∀ x y, |f x - f y| ≤ max L (2 * C) * |x - y| ^ β := by
+  intro x y
+  set d : ℝ := |x - y| with hd
+  have hd0 : 0 ≤ d := by simpa [hd] using abs_nonneg (x - y)
+  have hcoefL : L ≤ max L (2 * C) := le_max_left _ _
+  have hcoefC : 2 * C ≤ max L (2 * C) := le_max_right _ _
+  by_cases hdle : d ≤ 1
+  · have hd_pow_ge : d ≤ d ^ β := by
+      by_cases hdz : d = 0
+      · rw [hdz]
+        exact Real.rpow_nonneg (le_refl 0) β
+      · have hdpos : 0 < d := lt_of_le_of_ne hd0 (Ne.symm hdz)
+        calc
+          d = d ^ (1 : ℝ) := by rw [Real.rpow_one]
+          _ ≤ d ^ β := by
+            exact Real.rpow_le_rpow_of_exponent_ge hdpos hdle hβle
+    calc
+      |f x - f y| ≤ L * d := by
+        simpa [hd] using hlip x y (by simpa [hd] using hdle)
+      _ ≤ L * d ^ β := mul_le_mul_of_nonneg_left hd_pow_ge hL
+      _ ≤ max L (2 * C) * d ^ β :=
+        mul_le_mul_of_nonneg_right hcoefL (Real.rpow_nonneg hd0 β)
+  · have hone_le_d : 1 ≤ d := le_of_not_ge hdle
+    have hone_le_pow : 1 ≤ d ^ β := by
+      calc
+        (1 : ℝ) = (1 : ℝ) ^ β := by rw [Real.one_rpow]
+        _ ≤ d ^ β := Real.rpow_le_rpow zero_le_one hone_le_d hβpos.le
+    calc
+      |f x - f y| ≤ 2 * C := abs_sub_le_two_bounds hC hbound x y
+      _ ≤ max L (2 * C) := hcoefC
+      _ ≤ max L (2 * C) * d ^ β := by
+        have hcoef_nonneg : 0 ≤ max L (2 * C) :=
+          le_trans hL hcoefL
+        calc
+          max L (2 * C) = max L (2 * C) * 1 := by ring
+          _ ≤ max L (2 * C) * d ^ β :=
+            mul_le_mul_of_nonneg_left hone_le_pow hcoef_nonneg
+
+theorem abs_sub_le_of_deriv_abs_le_core
+    {f : ℝ → ℝ} {A : ℝ}
+    (hf : Differentiable ℝ f) (hderiv : ∀ x, |deriv f x| ≤ A) :
+    ∀ x y, |f x - f y| ≤ A * |x - y| := by
+  intro x y
+  have h :=
+    Convex.norm_image_sub_le_of_norm_deriv_le
+      (𝕜 := ℝ) (G := ℝ) (f := f) (s := Set.univ)
+      (x := y) (y := x)
+      (fun z _hz => hf z)
+      (fun z _hz => by simpa [Real.norm_eq_abs] using hderiv z)
+      convex_univ (Set.mem_univ y) (Set.mem_univ x)
+  simpa [Real.norm_eq_abs, abs_sub_comm] using h
+
+structure LocalLipQuant (f : ℝ → ℝ) where
+  C : ℝ
+  L : ℝ
+  C_nonneg : 0 ≤ C
+  L_nonneg : 0 ≤ L
+  bound : ∀ x, |f x| ≤ C
+  local_lip : ∀ x y, |x - y| ≤ 1 → |f x - f y| ≤ L * |x - y|
+
+namespace LocalLipQuant
+
+def toHolder
+    {β : ℝ} {f : ℝ → ℝ} (q : LocalLipQuant f)
+    (hβpos : 0 < β) (hβle : β ≤ 1) :
+    HolderQuant β f where
+  C := q.C
+  H := max q.L (2 * q.C)
+  C_nonneg := q.C_nonneg
+  H_nonneg := le_trans q.L_nonneg (le_max_left _ _)
+  bound := q.bound
+  holder :=
+    holder_of_local_lipschitz_of_bounded hβpos hβle q.L_nonneg q.C_nonneg
+      q.bound q.local_lip
+
+def of_lipschitz
+    {C L : ℝ} {f : ℝ → ℝ}
+    (hC : 0 ≤ C) (hL : 0 ≤ L)
+    (hbound : ∀ x, |f x| ≤ C)
+    (hlip : ∀ x y, |f x - f y| ≤ L * |x - y|) :
+    LocalLipQuant f where
+  C := C
+  L := L
+  C_nonneg := hC
+  L_nonneg := hL
+  bound := hbound
+  local_lip := fun x y _ => hlip x y
+
+end LocalLipQuant
+
+def upperBarrier_localLipQuant
+    {κ M : ℝ} (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    LocalLipQuant (upperBarrier κ M) where
+  C := M
+  L := κ * Real.exp κ * M
+  C_nonneg := hM
+  L_nonneg := by positivity
+  bound := by
+    intro x
+    rw [abs_of_nonneg (upperBarrier_nonneg hM x)]
+    exact upperBarrier_le_M κ M x
+  local_lip := fun x y hxy => upperBarrier_abs_sub_le_local hκ hM hxy
+
+theorem paperWeightedClamp_abs_sub_le
+    {κ M : ℝ} {W : ℝ → ℝ} (x y : ℝ) :
+    |paperWeightedClamp κ M W x - paperWeightedClamp κ M W y| ≤
+      |upperBarrier κ M x - upperBarrier κ M y| + |W x - W y| := by
+  unfold paperWeightedClamp clampIcc
+  have hmax := abs_max_sub_max_le_max (0 : ℝ)
+    (min (upperBarrier κ M x) (W x)) (0 : ℝ)
+    (min (upperBarrier κ M y) (W y))
+  have hmin := abs_min_sub_min_le_max (upperBarrier κ M x) (W x)
+    (upperBarrier κ M y) (W y)
+  calc
+    |max 0 (min (upperBarrier κ M x) (W x)) -
+        max 0 (min (upperBarrier κ M y) (W y))|
+        ≤ max |(0 : ℝ) - 0|
+            |min (upperBarrier κ M x) (W x) -
+              min (upperBarrier κ M y) (W y)| := hmax
+    _ = |min (upperBarrier κ M x) (W x) -
+          min (upperBarrier κ M y) (W y)| := by simp
+    _ ≤ max |upperBarrier κ M x - upperBarrier κ M y| |W x - W y| := hmin
+    _ ≤ |upperBarrier κ M x - upperBarrier κ M y| + |W x - W y| := by
+      exact max_le (le_add_of_nonneg_right (abs_nonneg _))
+        (le_add_of_nonneg_left (abs_nonneg _))
+
+def paperWeightedClamp_localLipQuant
+    {κ M : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M)
+    (hU : LocalLipQuant (upperBarrier κ M)) (hW : LocalLipQuant W) :
+    LocalLipQuant (fun x => paperWeightedClamp κ M W x) where
+  C := M
+  L := hU.L + hW.L
+  C_nonneg := hM
+  L_nonneg := add_nonneg hU.L_nonneg hW.L_nonneg
+  bound := by
+    intro x
+    have hmem := paperWeightedClamp_mem_Icc (κ := κ) (M := M) (W := W) hM x
+    rw [abs_of_nonneg hmem.1]
+    exact le_trans hmem.2 (upperBarrier_le_M κ M x)
+  local_lip := by
+    intro x y hxy
+    calc
+      |paperWeightedClamp κ M W x - paperWeightedClamp κ M W y|
+          ≤ |upperBarrier κ M x - upperBarrier κ M y| + |W x - W y| :=
+        paperWeightedClamp_abs_sub_le x y
+      _ ≤ hU.L * |x - y| + hW.L * |x - y| :=
+        add_le_add (hU.local_lip x y hxy) (hW.local_lip x y hxy)
+      _ = (hU.L + hW.L) * |x - y| := by ring
+
+def HolderQuant.of_lipschitz
+    {β C L : ℝ} {f : ℝ → ℝ}
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hC : 0 ≤ C) (hL : 0 ≤ L)
+    (hbound : ∀ x, |f x| ≤ C)
+    (hlip : ∀ x y, |f x - f y| ≤ L * |x - y|) :
+    HolderQuant β f where
+  C := C
+  H := max L (2 * C)
+  C_nonneg := hC
+  H_nonneg := le_trans hL (le_max_left _ _)
+  bound := hbound
+  holder := holder_of_lipschitz_of_bounded hβpos hβle hL hC hbound hlip
+
+def HolderQuant.rpow_lipschitz_on_Icc
+    {β a M : ℝ} {f : ℝ → ℝ}
+    (hf : HolderQuant β f) (ha : 1 ≤ a) (hM : 0 ≤ M)
+    (hrange : ∀ x, f x ∈ Set.Icc (0 : ℝ) M) :
+    HolderQuant β (fun x => (f x) ^ a) where
+  C := M ^ a
+  H := rpowLip a M * hf.H
+  C_nonneg := Real.rpow_nonneg hM a
+  H_nonneg := mul_nonneg (rpowLip_nonneg ha hM) hf.H_nonneg
+  bound := by
+    intro x
+    have hx := hrange x
+    have hpownn : 0 ≤ (f x) ^ a := Real.rpow_nonneg hx.1 a
+    rw [abs_of_nonneg hpownn]
+    exact Real.rpow_le_rpow hx.1 hx.2 (by linarith)
+  holder := by
+    intro x y
+    have hL0 : 0 ≤ rpowLip a M := rpowLip_nonneg ha hM
+    calc
+      |(f x) ^ a - (f y) ^ a|
+          ≤ rpowLip a M * |f x - f y| :=
+        rpow_abs_sub_le_lip_on_Icc ha hM (hrange x) (hrange y)
+      _ ≤ rpowLip a M * (hf.H * |x - y| ^ β) :=
+        mul_le_mul_of_nonneg_left (hf.holder x y) hL0
+      _ = (rpowLip a M * hf.H) * |x - y| ^ β := by ring
+
+def LocalLipQuant.rpow_selfHolderOnIcc
+    {β M : ℝ} {f : ℝ → ℝ}
+    (q : LocalLipQuant f) (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hM : 0 ≤ M) (hrange : ∀ x, f x ∈ Set.Icc (0 : ℝ) M) :
+    HolderQuant β (fun x => (f x) ^ β) where
+  C := M ^ β
+  H := max (q.L ^ β) (2 * M ^ β)
+  C_nonneg := Real.rpow_nonneg hM β
+  H_nonneg := by
+    exact le_trans (Real.rpow_nonneg q.L_nonneg β) (le_max_left _ _)
+  bound := by
+    intro x
+    have hx := hrange x
+    have hpownn : 0 ≤ (f x) ^ β := Real.rpow_nonneg hx.1 β
+    rw [abs_of_nonneg hpownn]
+    exact Real.rpow_le_rpow hx.1 hx.2 hβpos.le
+  holder := by
+    intro x y
+    set d : ℝ := |x - y| with hd
+    have hd0 : 0 ≤ d := by simpa [hd] using abs_nonneg (x - y)
+    have hcoefL : q.L ^ β ≤ max (q.L ^ β) (2 * M ^ β) := le_max_left _ _
+    have hcoefC : 2 * M ^ β ≤ max (q.L ^ β) (2 * M ^ β) := le_max_right _ _
+    by_cases hdle : d ≤ 1
+    · have hloc : |f x - f y| ≤ q.L * d := by
+        simpa [hd] using q.local_lip x y (by simpa [hd] using hdle)
+      have hpow :
+          |(f x) ^ β - (f y) ^ β| ≤ |f x - f y| ^ β :=
+        rpow_abs_sub_le_abs_sub_rpow hβpos.le hβle (hrange x).1 (hrange y).1
+      have hlocpow : |f x - f y| ^ β ≤ (q.L * d) ^ β :=
+        Real.rpow_le_rpow (abs_nonneg _) hloc hβpos.le
+      calc
+        |(f x) ^ β - (f y) ^ β| ≤ |f x - f y| ^ β := hpow
+        _ ≤ (q.L * d) ^ β := hlocpow
+        _ = q.L ^ β * d ^ β := by
+          rw [Real.mul_rpow q.L_nonneg hd0]
+        _ ≤ max (q.L ^ β) (2 * M ^ β) * d ^ β :=
+          mul_le_mul_of_nonneg_right hcoefL (Real.rpow_nonneg hd0 β)
+    · have hone_le_d : 1 ≤ d := le_of_not_ge hdle
+      have hone_le_pow : 1 ≤ d ^ β := by
+        calc
+          (1 : ℝ) = (1 : ℝ) ^ β := by rw [Real.one_rpow]
+          _ ≤ d ^ β := Real.rpow_le_rpow zero_le_one hone_le_d hβpos.le
+      have hbound : ∀ z, |(f z) ^ β| ≤ M ^ β := by
+        intro z
+        have hz := hrange z
+        have hpownn : 0 ≤ (f z) ^ β := Real.rpow_nonneg hz.1 β
+        rw [abs_of_nonneg hpownn]
+        exact Real.rpow_le_rpow hz.1 hz.2 hβpos.le
+      calc
+        |(f x) ^ β - (f y) ^ β| ≤ 2 * (M ^ β) :=
+          abs_sub_le_two_bounds (Real.rpow_nonneg hM β) hbound x y
+        _ ≤ max (q.L ^ β) (2 * M ^ β) := hcoefC
+        _ ≤ max (q.L ^ β) (2 * M ^ β) * d ^ β := by
+          have hcoef_nonneg : 0 ≤ max (q.L ^ β) (2 * M ^ β) :=
+            le_trans (Real.rpow_nonneg q.L_nonneg β) hcoefL
+          calc
+            max (q.L ^ β) (2 * M ^ β) =
+                max (q.L ^ β) (2 * M ^ β) * 1 := by ring
+            _ ≤ max (q.L ^ β) (2 * M ^ β) * d ^ β :=
+              mul_le_mul_of_nonneg_left hone_le_pow hcoef_nonneg
+
+theorem PaperWeightedHolderSourceBox.abs_le_const
+    {κ M β B H : ℝ} {ω : ℝ → ℝ} {R : ℝ → ℝ}
+    (hBnn : 0 ≤ B) (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    ∀ y, |R y| ≤ B * M := by
+  intro y
+  calc
+    |R y| ≤ B * upperBarrier κ M y := hR.bound y
+    _ ≤ B * M := mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hBnn
 
 /-- Pointwise estimates proving that the weighted truncated fixed-source map
 preserves the weighted-Hölder source box.  The analytic constants are kept in a
@@ -1466,6 +2102,24 @@ theorem gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
         mul_le_mul_of_nonneg_left (hB y) (Real.exp_pos _).le
     _ = B * Real.exp (-r * y) := by ring
 
+theorem PaperWeightedHolderSourceBox.gWeight_Ioi
+    {κ M β B H : ℝ} {ω : ℝ → ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    ∀ t, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi t) :=
+  fun t => gWeight_integrableOn_Ioi_of_bounded
+    (greenRootPlus_pos (c := c) hlam) hR.cont
+    (hR.abs_le_const (B := B) hBnn) t
+
+theorem PaperWeightedHolderSourceBox.gWeight_Iic
+    {κ M β B H : ℝ} {ω : ℝ → ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    ∀ t, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic t) :=
+  fun t => gWeight_integrableOn_Iic_of_bounded
+    (greenRootMinus_neg (c := c) hlam) hR.cont
+    (hR.abs_le_const (B := B) hBnn) t
+
 theorem tailHi_weighted_abs_le_on {r B : ℝ} {H : ℝ → ℝ}
     (hr : 0 < r)
     (hHint : ∀ x, IntegrableOn (gWeight r H) (Ioi x))
@@ -2041,6 +2695,186 @@ theorem PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
       (greenRootMinus_neg (c := c) hlam) hR.cont hR_const t
   exact deriv_greenConv_abs_le_upperBarrier_mass
     (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hR.cont hR.bound hHi hLo x
+
+/-- Source-box Green profile as a bounded locally-Lipschitz factor. -/
+def PaperWeightedHolderSourceBox.greenConv_localLipQuant
+    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    LocalLipQuant (fun x => greenConv c lam R x) := by
+  let Cw : ℝ := greenWeightedMass0 c lam κ * (B * M)
+  let Lw : ℝ := greenWeightedMass1 c lam κ * (B * M)
+  have hmass0 : 0 ≤ greenWeightedMass0 c lam κ :=
+    greenWeightedMass0_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+    greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hBM : 0 ≤ B * M := mul_nonneg hBnn hM
+  have hCw : 0 ≤ Cw := mul_nonneg hmass0 hBM
+  have hLw : 0 ≤ Lw := mul_nonneg hmass1 hBM
+  have hbound : ∀ x, |greenConv c lam R x| ≤ Cw := by
+    intro x
+    calc
+      |greenConv c lam R x|
+          ≤ greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) :=
+        hR.greenConv_abs_le (c := c) (lam := lam) hlam hrpκ hrmκ
+          hκ hM hBnn x
+      _ ≤ greenWeightedMass0 c lam κ * (B * M) := by
+        exact mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass0
+  have hHi := hR.gWeight_Ioi (c := c) (lam := lam) hlam hBnn
+  have hLo := hR.gWeight_Iic (c := c) (lam := lam) hlam hBnn
+  have hdiff : Differentiable ℝ (fun x => greenConv c lam R x) := by
+    intro x
+    exact (greenConv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo x).differentiableAt
+  have hderiv_bound : ∀ x, |deriv (fun x => greenConv c lam R x) x| ≤ Lw := by
+    intro x
+    calc
+      |deriv (fun x => greenConv c lam R x) x|
+          ≤ greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) :=
+        hR.deriv_greenConv_abs_le (c := c) (lam := lam) hlam hrpκ hrmκ
+          hκ hM hBnn x
+      _ ≤ greenWeightedMass1 c lam κ * (B * M) := by
+        exact mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass1
+  exact LocalLipQuant.of_lipschitz hCw hLw hbound
+    (abs_sub_le_of_deriv_abs_le_core hdiff hderiv_bound)
+
+/-- Source-box Green profile as a bounded β-Hölder factor. -/
+def PaperWeightedHolderSourceBox.greenConv_holderQuant
+    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    HolderQuant β (fun x => greenConv c lam R x) := by
+  let Cw : ℝ := greenWeightedMass0 c lam κ * (B * M)
+  let Lw : ℝ := greenWeightedMass1 c lam κ * (B * M)
+  have hmass0 : 0 ≤ greenWeightedMass0 c lam κ :=
+    greenWeightedMass0_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+    greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hBM : 0 ≤ B * M := mul_nonneg hBnn hM
+  have hCw : 0 ≤ Cw := mul_nonneg hmass0 hBM
+  have hLw : 0 ≤ Lw := mul_nonneg hmass1 hBM
+  have hbound : ∀ x, |greenConv c lam R x| ≤ Cw := by
+    intro x
+    calc
+      |greenConv c lam R x|
+          ≤ greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) :=
+        hR.greenConv_abs_le (c := c) (lam := lam) hlam hrpκ hrmκ
+          hκ hM hBnn x
+      _ ≤ greenWeightedMass0 c lam κ * (B * M) := by
+        exact mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass0
+  have hHi := hR.gWeight_Ioi (c := c) (lam := lam) hlam hBnn
+  have hLo := hR.gWeight_Iic (c := c) (lam := lam) hlam hBnn
+  have hdiff : Differentiable ℝ (fun x => greenConv c lam R x) := by
+    intro x
+    exact (greenConv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo x).differentiableAt
+  have hderiv_bound : ∀ x, |deriv (fun x => greenConv c lam R x) x| ≤ Lw := by
+    intro x
+    calc
+      |deriv (fun x => greenConv c lam R x) x|
+          ≤ greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) :=
+        hR.deriv_greenConv_abs_le (c := c) (lam := lam) hlam hrpκ hrmκ
+          hκ hM hBnn x
+      _ ≤ greenWeightedMass1 c lam κ * (B * M) := by
+        exact mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass1
+  have hlip : ∀ x y,
+      |greenConv c lam R x - greenConv c lam R y| ≤ Lw * |x - y| :=
+    abs_sub_le_of_deriv_abs_le_core hdiff hderiv_bound
+  exact HolderQuant.of_lipschitz hβpos hβle hCw hLw hbound hlip
+
+/-- Source-box Green derivative as a bounded β-Hölder factor. -/
+def PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant
+    {β Hbox : ℝ} {ω : ℝ → ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox ω R) :
+    HolderQuant β (fun x => greenConvDeriv c lam R x) := by
+  let Cw : ℝ := greenWeightedMass0 c lam κ * (B * M)
+  let Cwd : ℝ := greenWeightedMass1 c lam κ * (B * M)
+  let Lwd : ℝ := B * M + |c| * Cwd + lam * Cw
+  have hmass0 : 0 ≤ greenWeightedMass0 c lam κ :=
+    greenWeightedMass0_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+    greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hBM : 0 ≤ B * M := mul_nonneg hBnn hM
+  have hCw : 0 ≤ Cw := mul_nonneg hmass0 hBM
+  have hCwd : 0 ≤ Cwd := mul_nonneg hmass1 hBM
+  have hLwd : 0 ≤ Lwd := by
+    dsimp [Lwd]
+    positivity
+  have hHi := hR.gWeight_Ioi (c := c) (lam := lam) hlam hBnn
+  have hLo := hR.gWeight_Iic (c := c) (lam := lam) hlam hBnn
+  have hWbound : ∀ x, |greenConv c lam R x| ≤ Cw := by
+    intro x
+    calc
+      |greenConv c lam R x|
+          ≤ greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) :=
+        hR.greenConv_abs_le (c := c) (lam := lam) hlam hrpκ hrmκ
+          hκ hM hBnn x
+      _ ≤ greenWeightedMass0 c lam κ * (B * M) := by
+        exact mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass0
+  have hDbound : ∀ x, |greenConvDeriv c lam R x| ≤ Cwd := by
+    intro x
+    calc
+      |greenConvDeriv c lam R x|
+          ≤ greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) := by
+        have hraw := greenConvDeriv_abs_le_upperBarrier_of_source_bound
+          (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hR.bound hHi hLo x
+        refine hraw.trans (le_of_eq ?_)
+        unfold greenWeightedMass1
+        ring
+      _ ≤ greenWeightedMass1 c lam κ * (B * M) := by
+        exact mul_le_mul_of_nonneg_left
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hBnn) hmass1
+  have hdiff : Differentiable ℝ (fun x => greenConvDeriv c lam R x) := by
+    intro x
+    exact (greenConvDeriv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo x).differentiableAt
+  have hderiv_bound : ∀ x, |deriv (fun x => greenConvDeriv c lam R x) x| ≤ Lwd := by
+    intro x
+    have hderiv_eq :
+        deriv (fun x => greenConvDeriv c lam R x) x = greenConvDeriv2 c lam R x :=
+      (greenConvDeriv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo x).deriv
+    have hsolve := greenConv_solves (c := c) (lam := lam) hlam (H := R) x
+    have hG2 : greenConvDeriv2 c lam R x =
+        -R x - c * greenConvDeriv c lam R x + lam * greenConv c lam R x := by
+      linarith
+    rw [hderiv_eq, hG2]
+    calc
+      |-R x - c * greenConvDeriv c lam R x + lam * greenConv c lam R x|
+          ≤ |-R x| + |c * greenConvDeriv c lam R x| +
+              |lam * greenConv c lam R x| := by
+            calc
+              |-R x - c * greenConvDeriv c lam R x + lam * greenConv c lam R x|
+                  ≤ |-R x - c * greenConvDeriv c lam R x| +
+                      |lam * greenConv c lam R x| :=
+                    abs_add_le _ _
+              _ ≤ (|-R x| + |c * greenConvDeriv c lam R x|) +
+                      |lam * greenConv c lam R x| := by
+                    exact add_le_add (abs_sub (-R x) (c * greenConvDeriv c lam R x)) le_rfl
+              _ = |-R x| + |c * greenConvDeriv c lam R x| +
+                      |lam * greenConv c lam R x| := by ring
+      _ = |R x| + |c| * |greenConvDeriv c lam R x| +
+            lam * |greenConv c lam R x| := by
+            rw [abs_neg, abs_mul, abs_mul, abs_of_pos hlam]
+      _ ≤ B * M + |c| * Cwd + lam * Cw := by
+            exact add_le_add
+              (add_le_add (hR.abs_le_const (B := B) hBnn x)
+                (mul_le_mul_of_nonneg_left (hDbound x) (abs_nonneg c)))
+              (mul_le_mul_of_nonneg_left (hWbound x) hlam.le)
+  have hlip : ∀ x y,
+      |greenConvDeriv c lam R x - greenConvDeriv c lam R y| ≤ Lwd * |x - y| :=
+    abs_sub_le_of_deriv_abs_le_core hdiff hderiv_bound
+  exact HolderQuant.of_lipschitz hβpos hβle hCwd hLwd hDbound hlip
 
 theorem setIntegral_Ioi_add_right (x : ℝ) (f : ℝ → ℝ) :
     (∫ y in Ioi x, f y) = ∫ s in Ioi (0:ℝ), f (s + x) := by
@@ -4359,6 +5193,455 @@ theorem paperFixedSource_truncation_inactive_of_barriers
   intro x
   exact ⟨hnonneg x, hle x⟩
 
+def frozenElliptic_holderQuant_of_trap
+    (p : CMParams) {κ M β : ℝ} {u : ℝ → ℝ}
+    (hM : 0 < M) (hu : InWaveTrapSet κ M u)
+    (hβpos : 0 < β) (hβle : β ≤ 1) :
+    HolderQuant β (fun x => frozenElliptic p u x) := by
+  let C : ℝ := M ^ p.γ
+  have hC : 0 ≤ C := Real.rpow_nonneg hM.le p.γ
+  have hbound : ∀ x, |frozenElliptic p u x| ≤ C := by
+    intro x
+    rw [abs_of_nonneg (frozenElliptic_nonneg_of_inWaveTrapSet p hu x)]
+    exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu x
+  have hderiv : ∀ x, |deriv (fun x => frozenElliptic p u x) x| ≤ C := by
+    intro x
+    calc
+      |deriv (fun x => frozenElliptic p u x) x|
+          = |deriv (frozenElliptic p u) x| := rfl
+      _ ≤ frozenElliptic p u x :=
+        frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+      _ ≤ C := frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu x
+  have hdiff : Differentiable ℝ (fun x => frozenElliptic p u x) :=
+    frozenElliptic_differentiable p hu.cunif_bdd hu.nonneg
+  exact HolderQuant.of_lipschitz hβpos hβle hC hC hbound
+    (abs_sub_le_of_deriv_abs_le_core hdiff hderiv)
+
+def frozenEllipticDeriv_holderQuant_of_trap
+    (p : CMParams) {κ M β : ℝ} {u : ℝ → ℝ}
+    (hM : 0 < M) (hu : InWaveTrapSet κ M u)
+    (hβpos : 0 < β) (hβle : β ≤ 1) :
+    HolderQuant β (fun x => deriv (frozenElliptic p u) x) := by
+  let C : ℝ := M ^ p.γ
+  let L : ℝ := 2 * C
+  have hC : 0 ≤ C := Real.rpow_nonneg hM.le p.γ
+  have hL : 0 ≤ L := by positivity
+  have huγ_bound : ∀ x, (u x) ^ p.γ ≤ C := by
+    intro x
+    have huM : u x ≤ M := le_trans (hu.le_upperBarrier x) (upperBarrier_le_M κ M x)
+    exact Real.rpow_le_rpow (hu.nonneg x) huM (by linarith [p.hγ])
+  have hbound : ∀ x, |deriv (frozenElliptic p u) x| ≤ C := by
+    intro x
+    calc
+      |deriv (frozenElliptic p u) x| ≤ frozenElliptic p u x :=
+        frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+      _ ≤ C := frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu x
+  have hdiff : Differentiable ℝ (fun x => deriv (frozenElliptic p u) x) := by
+    intro x
+    exact frozenElliptic_deriv_differentiableAt p hu.cunif_bdd hu.nonneg x
+  have hderiv : ∀ x, |deriv (fun x => deriv (frozenElliptic p u) x) x| ≤ L := by
+    intro x
+    have hV : |frozenElliptic p u x| ≤ C := by
+      rw [abs_of_nonneg (frozenElliptic_nonneg_of_inWaveTrapSet p hu x)]
+      exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu x
+    have huγ0 : 0 ≤ (u x) ^ p.γ := Real.rpow_nonneg (hu.nonneg x) p.γ
+    have huγabs : |(u x) ^ p.γ| ≤ C := by
+      rw [abs_of_nonneg huγ0]
+      exact huγ_bound x
+    calc
+      |deriv (fun x => deriv (frozenElliptic p u) x) x|
+          = |deriv (deriv (frozenElliptic p u)) x| := rfl
+      _ = |frozenElliptic p u x - (u x) ^ p.γ| := by
+        rw [frozenElliptic_deriv_deriv_eq p hu.cunif_bdd hu.nonneg x]
+      _ ≤ |frozenElliptic p u x| + |(u x) ^ p.γ| := abs_sub _ _
+      _ ≤ C + C := add_le_add hV huγabs
+      _ = L := by ring
+  exact HolderQuant.of_lipschitz hβpos hβle hC hL hbound
+    (abs_sub_le_of_deriv_abs_le_core hdiff hderiv)
+
+def PaperIterateBase.localLipQuant
+    {κ M : ℝ} {Z : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hZ : PaperIterateBase κ M Z) :
+    LocalLipQuant Z := by
+  let LZ : ℝ := Classical.choose hZ.deriv_le
+  have hLZ : 0 ≤ LZ := (Classical.choose_spec hZ.deriv_le).1
+  have hderivZ : ∀ x, |deriv Z x| ≤ LZ :=
+    (Classical.choose_spec hZ.deriv_le).2
+  let LU : ℝ := κ * Real.exp κ * M
+  let L : ℝ := max LU LZ
+  have hLU : 0 ≤ LU := by positivity
+  have hL : 0 ≤ L := le_trans hLU (le_max_left _ _)
+  have hbound : ∀ x, |Z x| ≤ M := by
+    intro x
+    rw [abs_of_nonneg (hZ.nonneg x)]
+    exact le_trans (hZ.le_barrier x) (upperBarrier_le_M κ M x)
+  have hlocal : ∀ x y, |x - y| ≤ 1 → |Z x - Z y| ≤ L * |x - y| := by
+    intro x y hxy
+    rcases hZ.diff with hEq | hdiff
+    · subst Z
+      calc
+        |upperBarrier κ M x - upperBarrier κ M y|
+            ≤ LU * |x - y| := upperBarrier_abs_sub_le_local hκ hM hxy
+        _ ≤ L * |x - y| :=
+          mul_le_mul_of_nonneg_right (le_max_left LU LZ) (abs_nonneg _)
+    · have hlip := abs_sub_le_of_deriv_abs_le_core hdiff hderivZ x y
+      calc
+        |Z x - Z y| ≤ LZ * |x - y| := hlip
+        _ ≤ L * |x - y| :=
+          mul_le_mul_of_nonneg_right (le_max_right LU LZ) (abs_nonneg _)
+  exact
+    { C := M
+      L := L
+      C_nonneg := hM
+      L_nonneg := hL
+      bound := hbound
+      local_lip := hlocal }
+
+def PaperIterateBase.holderQuant
+    {κ M β : ℝ} {Z : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hZ : PaperIterateBase κ M Z)
+    (hβpos : 0 < β) (hβle : β ≤ 1) :
+    HolderQuant β Z :=
+  (hZ.localLipQuant hκ hM).toHolder hβpos hβle
+
+theorem paperFixedSourceMap_holder_kernel
+    (p : CMParams) {c lam M κ B Hbox : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hu : InWaveTrapSet κ M u)
+    (hZ : PaperIterateBase κ M Z) :
+    ∃ H0 : ℝ, 0 ≤ H0 ∧
+      ∀ R, PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
+        ∀ x y,
+          |paperFixedSourceMap p c lam M κ u Z R x -
+              paperFixedSourceMap p c lam M κ u Z R y| ≤
+            H0 * |x - y| ^ paperWeightedHolderExponent p := by
+  let β : ℝ := paperWeightedHolderExponent p
+  have hβpos : 0 < β := by
+    dsimp [β]
+    exact paperWeightedHolderExponent_pos p
+  have hβle : β ≤ 1 := by
+    dsimp [β]
+    exact paperWeightedHolderExponent_le_one p
+  let BM : ℝ := B * M
+  let Cw : ℝ := greenWeightedMass0 c lam κ * BM
+  let Lw : ℝ := greenWeightedMass1 c lam κ * BM
+  let Cwd : ℝ := greenWeightedMass1 c lam κ * BM
+  let Lwd : ℝ := BM + |c| * Cwd + lam * Cw
+  let LU : ℝ := κ * Real.exp κ * M
+  let Lθ : ℝ := LU + Lw
+  let CV : ℝ := M ^ p.γ
+  let LZ : ℝ := Classical.choose hZ.deriv_le
+  let LZloc : ℝ := max LU LZ
+  let bΘ : HolderBudget :=
+    { C := M
+      H := max Lθ (2 * M)
+      C_nonneg := hM.le
+      H_nonneg := by
+        have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+          greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+        have hBM : 0 ≤ BM := by dsimp [BM]; positivity
+        have hLw : 0 ≤ Lw := by dsimp [Lw]; positivity
+        have hLU : 0 ≤ LU := by dsimp [LU]; positivity
+        exact le_trans (add_nonneg hLU hLw) (le_max_left _ _) }
+  let bWd : HolderBudget :=
+    { C := Cwd
+      H := max Lwd (2 * Cwd)
+      C_nonneg := by
+        have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+          greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+        dsimp [Cwd, BM]
+        positivity
+      H_nonneg := by
+        have hmass0 : 0 ≤ greenWeightedMass0 c lam κ :=
+          greenWeightedMass0_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+        have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+          greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+        have hBM : 0 ≤ BM := by dsimp [BM]; positivity
+        have hCw : 0 ≤ Cw := by dsimp [Cw]; positivity
+        have hCwd : 0 ≤ Cwd := by dsimp [Cwd]; positivity
+        have hLwd : 0 ≤ Lwd := by dsimp [Lwd, BM]; positivity
+        exact le_trans hLwd (le_max_left _ _) }
+  let bV : HolderBudget :=
+    { C := CV
+      H := max CV (2 * CV)
+      C_nonneg := by dsimp [CV]; positivity
+      H_nonneg := by
+        have hCV : 0 ≤ CV := by dsimp [CV]; positivity
+        exact le_trans hCV (le_max_left _ _) }
+  let bVd : HolderBudget :=
+    { C := CV
+      H := max (2 * CV) (2 * CV)
+      C_nonneg := by dsimp [CV]; positivity
+      H_nonneg := by
+        have hCV : 0 ≤ CV := by dsimp [CV]; positivity
+        exact le_trans (by positivity : 0 ≤ 2 * CV) (le_max_left _ _) }
+  let bZ : HolderBudget :=
+    { C := M
+      H := max LZloc (2 * M)
+      C_nonneg := hM.le
+      H_nonneg := by
+        have hLU : 0 ≤ LU := by dsimp [LU]; positivity
+        have hLZ : 0 ≤ LZ := (Classical.choose_spec hZ.deriv_le).1
+        have hLZloc : 0 ≤ LZloc := by dsimp [LZloc]; exact le_trans hLU (le_max_left _ _)
+        exact le_trans hLZloc (le_max_left _ _) }
+  let Hself_m1 : ℝ := max (Lθ ^ β) (2 * M ^ β)
+  let Hlip_m1 : ℝ := rpowLip (p.m - 1) M * bΘ.H
+  let bm1 : HolderBudget :=
+    { C := M ^ (p.m - 1)
+      H := max Hself_m1 Hlip_m1
+      C_nonneg := by positivity
+      H_nonneg := by
+        have hLθ : 0 ≤ Lθ := by
+          have hmass1 : 0 ≤ greenWeightedMass1 c lam κ :=
+            greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+          dsimp [Lθ, LU, Lw, BM]
+          positivity
+        have hself : 0 ≤ Hself_m1 := by
+          dsimp [Hself_m1]
+          exact le_trans (Real.rpow_nonneg hLθ β) (le_max_left _ _)
+        exact le_trans hself (le_max_left _ _) }
+  let bα : HolderBudget :=
+    { C := M ^ p.α
+      H := rpowLip p.α M * bΘ.H
+      C_nonneg := by positivity
+      H_nonneg := by
+        have hLip : 0 ≤ rpowLip p.α M := rpowLip_nonneg p.hα hM.le
+        exact mul_nonneg hLip bΘ.H_nonneg }
+  let bmg : HolderBudget :=
+    { C := M ^ (p.m + p.γ - 1)
+      H := rpowLip (p.m + p.γ - 1) M * bΘ.H
+      C_nonneg := by positivity
+      H_nonneg := by
+        have hpow : 1 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+        have hLip : 0 ≤ rpowLip (p.m + p.γ - 1) M := rpowLip_nonneg hpow hM.le
+        exact mul_nonneg hLip bΘ.H_nonneg }
+  let bChem : HolderBudget :=
+    HolderBudget.const_mul (-p.χ * p.m) ((bm1.mul bVd).mul bWd)
+  let bInner : HolderBudget :=
+    (HolderBudget.const 1).sub
+      (HolderBudget.const_mul p.χ (bm1.mul bV)) |>.sub
+      (bα.sub (HolderBudget.const_mul p.χ bmg))
+  let bReact : HolderBudget := bΘ.mul bInner
+  let bLin : HolderBudget := HolderBudget.const_mul lam bZ
+  let bTotal : HolderBudget := (bChem.add bReact).add bLin
+  refine ⟨bTotal.H, bTotal.H_nonneg, ?_⟩
+  intro R hR x y
+  let W : ℝ → ℝ := fun z => greenConv c lam R z
+  let Θ : ℝ → ℝ := fun z => paperWeightedClamp κ M W z
+  let hWloc : LocalLipQuant W := by
+    simpa [W, BM, Cw, Lw] using
+      PaperWeightedHolderSourceBox.greenConv_localLipQuant
+        (c := c) (lam := lam) (β := β) (Hbox := Hbox) (ω := ω)
+        hlam hrpκ hrmκ hκ hM.le hBnn hR
+  let hΘloc : LocalLipQuant Θ := by
+    simpa [Θ, W, LU, Lθ, BM, Cw, Lw] using
+      paperWeightedClamp_localLipQuant (κ := κ) (M := M) (W := W)
+        hM.le (upperBarrier_localLipQuant hκ hM.le) hWloc
+  have hΘrange : ∀ z, Θ z ∈ Set.Icc (0 : ℝ) M := by
+    intro z
+    have hz := paperWeightedClamp_mem_Icc (κ := κ) (M := M) (W := W) hM.le z
+    exact ⟨hz.1, le_trans hz.2 (upperBarrier_le_M κ M z)⟩
+  let hΘQ : HolderQuant β Θ := by
+    exact (hΘloc.toHolder hβpos hβle).inflate bΘ.C_nonneg bΘ.H_nonneg
+      (by dsimp [hΘloc, bΘ]; rfl)
+      (by dsimp [hΘloc, bΘ, Lθ]; rfl)
+  let hVQ : HolderQuant β (fun z => frozenElliptic p u z) := by
+    exact (frozenElliptic_holderQuant_of_trap p hM hu hβpos hβle).inflate
+      bV.C_nonneg bV.H_nonneg
+      (by dsimp [frozenElliptic_holderQuant_of_trap, bV, CV]; rfl)
+      (by dsimp [frozenElliptic_holderQuant_of_trap, bV, CV]; rfl)
+  let hVdQ : HolderQuant β (fun z => deriv (frozenElliptic p u) z) := by
+    exact (frozenEllipticDeriv_holderQuant_of_trap p hM hu hβpos hβle).inflate
+      bVd.C_nonneg bVd.H_nonneg
+      (by dsimp [frozenEllipticDeriv_holderQuant_of_trap, bVd, CV]; rfl)
+      (by dsimp [frozenEllipticDeriv_holderQuant_of_trap, bVd, CV]; rfl)
+  have hHi := hR.gWeight_Ioi (c := c) (lam := lam) hlam hBnn
+  have hLo := hR.gWeight_Iic (c := c) (lam := lam) hlam hBnn
+  have hWderiv_eq :
+      (fun z => deriv W z) = fun z => greenConvDeriv c lam R z := by
+    funext z
+    dsimp [W]
+    exact (greenConv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo z).deriv
+  let hWdQ : HolderQuant β (fun z => greenConvDeriv c lam R z) := by
+    exact (PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant
+        (c := c) (lam := lam) (β := β) (Hbox := Hbox) (ω := ω)
+        hlam hrpκ hrmκ hκ hM.le hBnn hβpos hβle hR).inflate
+      bWd.C_nonneg bWd.H_nonneg
+      (by dsimp [PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
+      (by dsimp [PaperWeightedHolderSourceBox.greenConvDeriv_holderQuant, bWd, BM, Cw, Cwd, Lwd]; rfl)
+  let hZQ : HolderQuant β Z := by
+    exact (PaperIterateBase.holderQuant hκ hM.le hZ hβpos hβle).inflate
+      bZ.C_nonneg bZ.H_nonneg
+      (by dsimp [PaperIterateBase.holderQuant, PaperIterateBase.localLipQuant, bZ, LZ, LZloc, LU]; rfl)
+      (by dsimp [PaperIterateBase.holderQuant, PaperIterateBase.localLipQuant, bZ, LZ, LZloc, LU]; rfl)
+  let hΘm1Q : HolderQuant β (fun z => Θ z ^ (p.m - 1)) := by
+    by_cases hm1 : p.m = 1
+    · have hfun : (fun z => Θ z ^ (p.m - 1)) = fun _ : ℝ => (1 : ℝ) := by
+        funext z
+        simp [hm1]
+      let hconst : HolderQuant β (fun _ : ℝ => (1 : ℝ)) :=
+        (HolderQuant.const β 1).inflate bm1.C_nonneg bm1.H_nonneg
+          (by dsimp [HolderQuant.const, bm1]; simp [hm1])
+          (by exact bm1.H_nonneg)
+      have hconstC : hconst.C = bm1.C := by
+        dsimp [hconst, HolderQuant.inflate]
+      have hconstH : hconst.H = bm1.H := by
+        dsimp [hconst, HolderQuant.inflate]
+      refine
+        { C := bm1.C
+          H := bm1.H
+          C_nonneg := bm1.C_nonneg
+          H_nonneg := bm1.H_nonneg
+          bound := ?_
+          holder := ?_ }
+      · intro z
+        have := hconst.bound z
+        simpa [hm1, hconstC] using this
+      · intro z z'
+        have := hconst.holder z z'
+        simpa [hm1, hconstH] using this
+    · by_cases hm2 : p.m < 2
+      · have hβeq : β = p.m - 1 := by
+          dsimp [β, paperWeightedHolderExponent]
+          rw [if_neg hm1, if_pos hm2]
+        let hinfl : HolderQuant β (fun z => Θ z ^ β) :=
+          (hΘloc.rpow_selfHolderOnIcc hβpos hβle hM.le hΘrange).inflate
+            bm1.C_nonneg bm1.H_nonneg
+            (by
+              change M ^ β ≤ M ^ (p.m - 1)
+              rw [hβeq])
+            (by
+              change max (hΘloc.L ^ β) (2 * M ^ β) ≤ max Hself_m1 Hlip_m1
+              calc
+                max (hΘloc.L ^ β) (2 * M ^ β) = Hself_m1 := by
+                  dsimp [Hself_m1, hΘloc, Lθ]
+                  rfl
+                _ ≤ max Hself_m1 Hlip_m1 := le_max_left _ _)
+        have hinflC : hinfl.C = bm1.C := by
+          dsimp [hinfl, HolderQuant.inflate]
+        have hinflH : hinfl.H = bm1.H := by
+          dsimp [hinfl, HolderQuant.inflate]
+        refine
+          { C := bm1.C
+            H := bm1.H
+            C_nonneg := bm1.C_nonneg
+            H_nonneg := bm1.H_nonneg
+            bound := ?_
+            holder := ?_ }
+        · intro z
+          have := hinfl.bound z
+          simpa [hβeq, hinflC] using this
+        · intro z z'
+          have := hinfl.holder z z'
+          simpa [hβeq, hinflH] using this
+      · have hpow : 1 ≤ p.m - 1 := by linarith
+        refine (hΘQ.rpow_lipschitz_on_Icc hpow hM.le hΘrange).inflate
+          bm1.C_nonneg bm1.H_nonneg ?_ ?_
+        · dsimp [bm1]
+          rfl
+        · dsimp [bm1, Hlip_m1]
+          exact le_max_right Hself_m1 Hlip_m1
+  let hΘαQ : HolderQuant β (fun z => Θ z ^ p.α) :=
+    (hΘQ.rpow_lipschitz_on_Icc p.hα hM.le hΘrange).inflate
+      bα.C_nonneg bα.H_nonneg (by rfl) (by rfl)
+  let hΘmgQ : HolderQuant β (fun z => Θ z ^ (p.m + p.γ - 1)) := by
+    have hpow : 1 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+    exact (hΘQ.rpow_lipschitz_on_Icc hpow hM.le hΘrange).inflate
+      bmg.C_nonneg bmg.H_nonneg (by rfl) (by rfl)
+  let hChemQ : HolderQuant β (fun z =>
+      (-p.χ * p.m) *
+        ((Θ z ^ (p.m - 1) * deriv (frozenElliptic p u) z) *
+          greenConvDeriv c lam R z)) :=
+    HolderQuant.const_mul ((hΘm1Q.mul hVdQ).mul hWdQ)
+  let hInnerQ : HolderQuant β (fun z =>
+      (1 - p.χ * (Θ z ^ (p.m - 1) * frozenElliptic p u z)) -
+        (Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1))) :=
+    ((HolderQuant.const β 1).sub
+      (HolderQuant.const_mul (hΘm1Q.mul hVQ))).sub
+      (hΘαQ.sub (HolderQuant.const_mul hΘmgQ))
+  let hReactQ : HolderQuant β (fun z => Θ z *
+      ((1 - p.χ * (Θ z ^ (p.m - 1) * frozenElliptic p u z)) -
+        (Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1)))) :=
+    hΘQ.mul hInnerQ
+  let hLinQ : HolderQuant β (fun z => lam * Z z) :=
+    HolderQuant.const_mul hZQ
+  let hTotalQ : HolderQuant β (fun z =>
+      ((-p.χ * p.m) *
+          ((Θ z ^ (p.m - 1) * deriv (frozenElliptic p u) z) *
+            greenConvDeriv c lam R z)
+        + Θ z *
+          ((1 - p.χ * (Θ z ^ (p.m - 1) * frozenElliptic p u z)) -
+            (Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1))))
+        + lam * Z z) :=
+    (hChemQ.add hReactQ).add hLinQ
+  have hholder := hTotalQ.holder x y
+  have hΘC : hΘQ.C = bΘ.C := by
+    dsimp [hΘQ, HolderQuant.inflate]
+  have hΘH : hΘQ.H = bΘ.H := by
+    dsimp [hΘQ, HolderQuant.inflate]
+  have hVC : hVQ.C = bV.C := by
+    dsimp [hVQ, HolderQuant.inflate]
+  have hVH : hVQ.H = bV.H := by
+    dsimp [hVQ, HolderQuant.inflate]
+  have hVdC : hVdQ.C = bVd.C := by
+    dsimp [hVdQ, HolderQuant.inflate]
+  have hVdH : hVdQ.H = bVd.H := by
+    dsimp [hVdQ, HolderQuant.inflate]
+  have hWdC : hWdQ.C = bWd.C := by
+    dsimp [hWdQ, HolderQuant.inflate]
+  have hWdH : hWdQ.H = bWd.H := by
+    dsimp [hWdQ, HolderQuant.inflate]
+  have hZC : hZQ.C = bZ.C := by
+    dsimp [hZQ, HolderQuant.inflate]
+  have hZH : hZQ.H = bZ.H := by
+    dsimp [hZQ, HolderQuant.inflate]
+  have hΘm1C : hΘm1Q.C = bm1.C := by
+    dsimp [hΘm1Q]
+    by_cases hm1 : p.m = 1
+    · simp [hm1]
+    · by_cases hm2 : p.m < 2
+      · simp [hm1, hm2]
+      · simp [hm1, hm2, HolderQuant.inflate]
+  have hΘm1H : hΘm1Q.H = bm1.H := by
+    dsimp [hΘm1Q]
+    by_cases hm1 : p.m = 1
+    · simp [hm1]
+    · by_cases hm2 : p.m < 2
+      · simp [hm1, hm2]
+      · simp [hm1, hm2, HolderQuant.inflate]
+  have hΘαC : hΘαQ.C = bα.C := by
+    dsimp [hΘαQ, HolderQuant.inflate]
+  have hΘαH : hΘαQ.H = bα.H := by
+    dsimp [hΘαQ, HolderQuant.inflate]
+  have hΘmgC : hΘmgQ.C = bmg.C := by
+    dsimp [hΘmgQ, HolderQuant.inflate]
+  have hΘmgH : hΘmgQ.H = bmg.H := by
+    dsimp [hΘmgQ, HolderQuant.inflate]
+  have hHtotal : hTotalQ.H = bTotal.H := by
+    dsimp [hTotalQ, hChemQ, hInnerQ, hReactQ, hLinQ,
+      bTotal, bChem, bInner, bReact, bLin,
+      HolderQuant.add, HolderBudget.add, HolderQuant.mul, HolderBudget.mul,
+      HolderQuant.const_mul, HolderBudget.const_mul, HolderQuant.sub,
+      HolderBudget.sub, HolderQuant.neg, HolderBudget.neg,
+      HolderQuant.const, HolderBudget.const]
+    rw [hΘm1C, hΘm1H, hΘC, hΘH, hVC, hVH, hVdC, hVdH,
+      hWdC, hWdH, hZH, hΘαC, hΘαH, hΘmgC, hΘmgH]
+  rw [hHtotal] at hholder
+  have hWdx :
+      deriv (fun y => greenConv c lam R y) x = greenConvDeriv c lam R x := by
+    simpa [W] using congrArg (fun f : ℝ → ℝ => f x) hWderiv_eq
+  have hWdy :
+      deriv (fun y => greenConv c lam R y) y = greenConvDeriv c lam R y := by
+    simpa [W] using congrArg (fun f : ℝ → ℝ => f y) hWderiv_eq
+  unfold paperFixedSourceMap paperStepSource_truncated paperStepTruncatedNonlinearity
+  dsimp only [W, Θ, β] at hholder ⊢
+  rw [hWdx, hWdy]
+  convert hholder using 1
+  ring_nf
+
 /-- Assemble the source-box bounds from the trap/scalar estimates.
 
 The continuity and weighted bound fields are discharged here.  The genuinely
@@ -4734,6 +6017,7 @@ section AxiomAudit
 #print axioms rpowTrunc_continuous
 #print axioms rpowTrunc_abs_le
 #print axioms paperFixedSourceMap_continuous_of_sourceBox
+#print axioms paperFixedSourceMap_holder_kernel
 #print axioms paperFixedSourceMapBoxBounds_of_trap
 #print axioms PaperFixedSourceMapBoxBounds.mapsTo
 #print axioms PaperFixedSourceMapBoxBounds.compactRange
