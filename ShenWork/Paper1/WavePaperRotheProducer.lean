@@ -129,6 +129,59 @@ theorem rpowTrunc_abs_le {a M s : ℝ} (hM : 0 ≤ M) (ha : 0 ≤ a) :
   rw [abs_of_nonneg hpow_nonneg]
   exact Real.rpow_le_rpow hclamp.1 hclamp.2 ha
 
+theorem paperWeightedClamp_mem_Icc
+    {κ M : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M) (x : ℝ) :
+    paperWeightedClamp κ M W x ∈
+      Set.Icc (0 : ℝ) (upperBarrier κ M x) := by
+  unfold paperWeightedClamp
+  exact clampIcc_mem_Icc (upperBarrier_nonneg hM x) (W x)
+
+theorem paperWeightedClamp_abs_le_upperBarrier
+    {κ M : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M) (x : ℝ) :
+    |paperWeightedClamp κ M W x| ≤ upperBarrier κ M x := by
+  have hmem := paperWeightedClamp_mem_Icc (κ := κ) (M := M) (W := W) hM x
+  rw [abs_of_nonneg hmem.1]
+  exact hmem.2
+
+theorem paperWeightedClamp_rpow_abs_le_M
+    {κ M a : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M) (ha : 0 ≤ a) (x : ℝ) :
+    |(paperWeightedClamp κ M W x) ^ a| ≤ M ^ a := by
+  have hmem := paperWeightedClamp_mem_Icc (κ := κ) (M := M) (W := W) hM x
+  have hθM : paperWeightedClamp κ M W x ≤ M :=
+    le_trans hmem.2 (upperBarrier_le_M κ M x)
+  have hpownn : 0 ≤ (paperWeightedClamp κ M W x) ^ a :=
+    Real.rpow_nonneg hmem.1 a
+  rw [abs_of_nonneg hpownn]
+  exact Real.rpow_le_rpow hmem.1 hθM ha
+
+theorem upperBarrier_shift_le_exp_abs_mul
+    {κ M x y : ℝ} (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    upperBarrier κ M y ≤
+      Real.exp (κ * |x - y|) * upperBarrier κ M x := by
+  by_cases hxM : M ≤ Real.exp (-κ * x)
+  · rw [upperBarrier_eq_M_of_le_exp hxM]
+    have hC : 1 ≤ Real.exp (κ * |x - y|) := by
+      rw [← Real.exp_zero]
+      exact Real.exp_le_exp.mpr (mul_nonneg hκ (abs_nonneg _))
+    calc
+      upperBarrier κ M y ≤ M := upperBarrier_le_M κ M y
+      _ = 1 * M := by ring
+      _ ≤ Real.exp (κ * |x - y|) * M :=
+        mul_le_mul_of_nonneg_right hC hM
+  · have hxexp : Real.exp (-κ * x) ≤ M := (not_le.mp hxM).le
+    rw [upperBarrier_eq_exp_of_exp_le hxexp]
+    have hxy : x - y ≤ |x - y| := le_abs_self (x - y)
+    have hmul : κ * (x - y) ≤ κ * |x - y| :=
+      mul_le_mul_of_nonneg_left hxy hκ
+    have hexp_arg : -κ * y ≤ κ * |x - y| + -κ * x := by
+      linarith
+    calc
+      upperBarrier κ M y ≤ Real.exp (-κ * y) := upperBarrier_le_exp κ M y
+      _ ≤ Real.exp (κ * |x - y| + -κ * x) :=
+        Real.exp_le_exp.mpr hexp_arg
+      _ = Real.exp (κ * |x - y|) * Real.exp (-κ * x) := by
+        rw [Real.exp_add]
+
 /-- Pointwise estimates proving that the weighted truncated fixed-source map
 preserves the weighted-Hölder source box.  The analytic constants are kept in a
 single record so the self-map proof has a narrow, checkable interface. -/
@@ -181,6 +234,7 @@ structure PaperTruncatedFixedSourceBoxData
   beta : ℝ
   B : ℝ
   H : ℝ
+  uTrap : InMonotoneWaveTrapSet κ M u
   hM_nonneg : 0 ≤ M
   B_nonneg : 0 ≤ B
   sourceBound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M)
@@ -1358,6 +1412,492 @@ theorem tailLo_weighted_abs_le_on {r B : ℝ} {H : ℝ → ℝ}
     field_simp [hrne]
   rw [key, hexp, mul_one]
 
+theorem tailHi_upperBarrier_abs_le_on
+    {r κ M B : ℝ} {H : ℝ → ℝ}
+    (hrκ : 0 < r - κ) (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hHint : ∀ x, IntegrableOn (gWeight r H) (Ioi x))
+    {x : ℝ} (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y) :
+    Real.exp (r * x) * |tailHi r H x| ≤
+      B * upperBarrier κ M x / (r - κ) := by
+  let C : ℝ := B * upperBarrier κ M x * Real.exp (-κ * x)
+  have hdom : IntegrableOn (fun y : ℝ => C * Real.exp (-(r - κ) * y)) (Ioi x) :=
+    (integrableOn_exp_mul_Ioi (a := -(r - κ)) (by linarith) x).const_mul C
+  have hstep1 : |tailHi r H x| ≤ ∫ y in Ioi x, |gWeight r H y| := by
+    rw [tailHi]
+    have := norm_integral_le_integral_norm
+      (μ := (volume : Measure ℝ).restrict (Ioi x)) (gWeight r H)
+    simpa [Real.norm_eq_abs] using this
+  have hptbd : ∀ y ∈ Ioi x,
+      |gWeight r H y| ≤ C * Real.exp (-(r - κ) * y) := by
+    intro y hy
+    rw [Set.mem_Ioi] at hy
+    have hyx : x ≤ y := hy.le
+    have habs : |x - y| = y - x := by
+      rw [abs_of_nonpos (sub_nonpos.mpr hyx)]
+      ring
+    have hshift :
+        upperBarrier κ M y ≤
+          Real.exp (κ * (y - x)) * upperBarrier κ M x := by
+      simpa [habs] using
+        (upperBarrier_shift_le_exp_abs_mul
+          (κ := κ) (M := M) (x := x) (y := y) hκ hM)
+    have hHy : |H y| ≤ B * (Real.exp (κ * (y - x)) * upperBarrier κ M x) := by
+      exact (hB y).trans (mul_le_mul_of_nonneg_left hshift hBnn)
+    rw [gWeight, abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc
+      Real.exp (-r * y) * |H y|
+          ≤ Real.exp (-r * y) *
+              (B * (Real.exp (κ * (y - x)) * upperBarrier κ M x)) :=
+            mul_le_mul_of_nonneg_left hHy (Real.exp_pos _).le
+      _ = C * Real.exp (-(r - κ) * y) := by
+        dsimp [C]
+        rw [show Real.exp (-r * y) *
+              (B * (Real.exp (κ * (y - x)) * upperBarrier κ M x))
+              = B * upperBarrier κ M x *
+                (Real.exp (-r * y) * Real.exp (κ * (y - x))) by ring,
+            ← Real.exp_add]
+        have harg : -r * y + κ * (y - x) = -κ * x + -(r - κ) * y := by
+          ring
+        rw [harg, Real.exp_add]
+        ring
+  have hstep2 :
+      (∫ y in Ioi x, |gWeight r H y|) ≤
+        ∫ y in Ioi x, C * Real.exp (-(r - κ) * y) :=
+    setIntegral_mono_on ((hHint x).abs) hdom measurableSet_Ioi hptbd
+  have hval :
+      (∫ y in Ioi x, C * Real.exp (-(r - κ) * y))
+        = C * (Real.exp (-(r - κ) * x) / (r - κ)) := by
+    rw [integral_const_mul, integral_exp_mul_Ioi (a := -(r - κ)) (by linarith) x]
+    have hne : r - κ ≠ 0 := ne_of_gt hrκ
+    field_simp [hne]
+  have htail_abs :
+      |tailHi r H x| ≤ C * (Real.exp (-(r - κ) * x) / (r - κ)) :=
+    le_trans hstep1 (le_trans hstep2 (le_of_eq hval))
+  have hmul := mul_le_mul_of_nonneg_left htail_abs (Real.exp_pos (r * x)).le
+  refine le_trans hmul (le_of_eq ?_)
+  dsimp [C]
+  have hne : r - κ ≠ 0 := ne_of_gt hrκ
+  have hexp :
+      Real.exp (r * x) * Real.exp (-κ * x) *
+          Real.exp (-(r - κ) * x) = 1 := by
+    rw [← Real.exp_add, ← Real.exp_add]
+    have harg : r * x + -κ * x + -(r - κ) * x = 0 := by ring
+    rw [harg, Real.exp_zero]
+  field_simp [hne]
+  rw [show Real.exp (-(x * κ)) = Real.exp (-κ * x) by ring_nf,
+    show Real.exp (-(x * (r - κ))) = Real.exp (-(r - κ) * x) by ring_nf,
+    show Real.exp (r * x) * B * upperBarrier κ M x *
+        Real.exp (-κ * x) * Real.exp (-(r - κ) * x)
+        = B * upperBarrier κ M x *
+          (Real.exp (r * x) * Real.exp (-κ * x) *
+            Real.exp (-(r - κ) * x)) by ring,
+    hexp]
+  ring
+
+theorem tailLo_upperBarrier_abs_le_on
+    {r κ M B : ℝ} {H : ℝ → ℝ}
+    (hrκ : r + κ < 0) (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hHint : ∀ x, IntegrableOn (gWeight r H) (Iic x))
+    {x : ℝ} (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y) :
+    Real.exp (r * x) * |tailLo r H x| ≤
+      B * upperBarrier κ M x / (-(r + κ)) := by
+  let C : ℝ := B * upperBarrier κ M x * Real.exp (κ * x)
+  have hpos : 0 < -(r + κ) := by linarith
+  have hdom : IntegrableOn (fun y : ℝ => C * Real.exp (-(r + κ) * y)) (Iic x) :=
+    (integrableOn_exp_mul_Iic (a := -(r + κ)) hpos x).const_mul C
+  have hstep1 : |tailLo r H x| ≤ ∫ y in Iic x, |gWeight r H y| := by
+    rw [tailLo]
+    simpa [Real.norm_eq_abs] using
+      norm_integral_le_integral_norm
+        (μ := (volume : Measure ℝ).restrict (Iic x)) (gWeight r H)
+  have hptbd : ∀ y ∈ Iic x,
+      |gWeight r H y| ≤ C * Real.exp (-(r + κ) * y) := by
+    intro y hy
+    rw [Set.mem_Iic] at hy
+    have habs : |x - y| = x - y := abs_of_nonneg (sub_nonneg.mpr hy)
+    have hshift :
+        upperBarrier κ M y ≤
+          Real.exp (κ * (x - y)) * upperBarrier κ M x := by
+      simpa [habs] using
+        (upperBarrier_shift_le_exp_abs_mul
+          (κ := κ) (M := M) (x := x) (y := y) hκ hM)
+    have hHy : |H y| ≤ B * (Real.exp (κ * (x - y)) * upperBarrier κ M x) := by
+      exact (hB y).trans (mul_le_mul_of_nonneg_left hshift hBnn)
+    rw [gWeight, abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc
+      Real.exp (-r * y) * |H y|
+          ≤ Real.exp (-r * y) *
+              (B * (Real.exp (κ * (x - y)) * upperBarrier κ M x)) :=
+            mul_le_mul_of_nonneg_left hHy (Real.exp_pos _).le
+      _ = C * Real.exp (-(r + κ) * y) := by
+        dsimp [C]
+        rw [show Real.exp (-r * y) *
+              (B * (Real.exp (κ * (x - y)) * upperBarrier κ M x))
+              = B * upperBarrier κ M x *
+                (Real.exp (-r * y) * Real.exp (κ * (x - y))) by ring,
+            ← Real.exp_add]
+        have harg : -r * y + κ * (x - y) = κ * x + -(r + κ) * y := by
+          ring
+        rw [harg, Real.exp_add]
+        ring
+  have hstep2 :
+      (∫ y in Iic x, |gWeight r H y|) ≤
+        ∫ y in Iic x, C * Real.exp (-(r + κ) * y) :=
+    setIntegral_mono_on ((hHint x).abs) hdom measurableSet_Iic hptbd
+  have hval :
+      (∫ y in Iic x, C * Real.exp (-(r + κ) * y))
+        = C * (Real.exp (-(r + κ) * x) / (-(r + κ))) := by
+    rw [integral_const_mul, integral_exp_mul_Iic (a := -(r + κ)) hpos x]
+  have htail_abs :
+      |tailLo r H x| ≤ C * (Real.exp (-(r + κ) * x) / (-(r + κ))) :=
+    le_trans hstep1 (le_trans hstep2 (le_of_eq hval))
+  have hmul := mul_le_mul_of_nonneg_left htail_abs (Real.exp_pos (r * x)).le
+  refine le_trans hmul (le_of_eq ?_)
+  dsimp [C]
+  have hne : -(r + κ) ≠ 0 := ne_of_gt hpos
+  have hexp :
+      Real.exp (r * x) * Real.exp (κ * x) *
+          Real.exp (-(r + κ) * x) = 1 := by
+    rw [← Real.exp_add, ← Real.exp_add]
+    have harg : r * x + κ * x + -(r + κ) * x = 0 := by ring
+    rw [harg, Real.exp_zero]
+  field_simp [hne]
+  rw [show Real.exp (x * κ) = Real.exp (κ * x) by ring_nf,
+    show Real.exp (-(x * (r + κ))) = Real.exp (-(r + κ) * x) by ring_nf,
+    show Real.exp (r * x) * B * upperBarrier κ M x *
+        Real.exp (κ * x) * Real.exp (-(r + κ) * x)
+        = B * upperBarrier κ M x *
+          (Real.exp (r * x) * Real.exp (κ * x) *
+            Real.exp (-(r + κ) * x)) by ring,
+    hexp]
+  ring
+
+/-- Weighted Green mass bound for the explicit convolution.  The source is
+measured in the same `upperBarrier` weight as the source box. -/
+theorem greenConv_abs_le_upperBarrier_of_source_bound
+    (hlam : 0 < lam) {κ M B : ℝ} {H : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y)
+    (hHi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi x))
+    (hLo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic x))
+    (x : ℝ) :
+    |greenConv c lam H x| ≤
+      (greenDelta c lam)⁻¹ *
+        (B * upperBarrier κ M x / (greenRootPlus c lam - κ) +
+          B * upperBarrier κ M x / (-(greenRootMinus c lam + κ))) := by
+  have hδ : 0 < (greenDelta c lam)⁻¹ :=
+    inv_pos.mpr (greenDelta_pos (c := c) hlam)
+  have hrpκ' : 0 < greenRootPlus c lam - κ := by linarith
+  have hrmκ' : greenRootMinus c lam + κ < 0 := by linarith
+  have hHi_bd :
+      Real.exp (greenRootPlus c lam * x) *
+          |tailHi (greenRootPlus c lam) H x| ≤
+        B * upperBarrier κ M x / (greenRootPlus c lam - κ) :=
+    tailHi_upperBarrier_abs_le_on
+      (r := greenRootPlus c lam) (κ := κ) (M := M) (B := B)
+      hrpκ' hκ hM hBnn hHi hB
+  have hLo_bd :
+      Real.exp (greenRootMinus c lam * x) *
+          |tailLo (greenRootMinus c lam) H x| ≤
+        B * upperBarrier κ M x / (-(greenRootMinus c lam + κ)) :=
+    tailLo_upperBarrier_abs_le_on
+      (r := greenRootMinus c lam) (κ := κ) (M := M) (B := B)
+      hrmκ' hκ hM hBnn hLo hB
+  rw [greenConv, abs_mul, abs_of_pos hδ]
+  have hsum :
+      |Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x
+        + Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+        ≤ B * upperBarrier κ M x / (greenRootPlus c lam - κ) +
+          B * upperBarrier κ M x / (-(greenRootMinus c lam + κ)) := by
+    have hA :
+        |Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x|
+          =
+        Real.exp (greenRootPlus c lam * x) *
+            |tailHi (greenRootPlus c lam) H x| := by
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    have hBtail :
+        |Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+          =
+        Real.exp (greenRootMinus c lam * x) *
+            |tailLo (greenRootMinus c lam) H x| := by
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc
+      |Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x
+        + Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+          ≤ |Real.exp (greenRootPlus c lam * x) *
+              tailHi (greenRootPlus c lam) H x|
+            + |Real.exp (greenRootMinus c lam * x) *
+              tailLo (greenRootMinus c lam) H x| := abs_add_le _ _
+      _ = Real.exp (greenRootPlus c lam * x) *
+              |tailHi (greenRootPlus c lam) H x|
+            + Real.exp (greenRootMinus c lam * x) *
+              |tailLo (greenRootMinus c lam) H x| := by rw [hA, hBtail]
+      _ ≤ B * upperBarrier κ M x / (greenRootPlus c lam - κ) +
+          B * upperBarrier κ M x / (-(greenRootMinus c lam + κ)) :=
+        add_le_add hHi_bd hLo_bd
+  exact mul_le_mul_of_nonneg_left hsum hδ.le
+
+/-- Weighted Green mass bound for the explicit derivative formula. -/
+theorem greenConvDeriv_abs_le_upperBarrier_of_source_bound
+    (hlam : 0 < lam) {κ M B : ℝ} {H : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y)
+    (hHi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi x))
+    (hLo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic x))
+    (x : ℝ) :
+    |greenConvDeriv c lam H x| ≤
+      (greenDelta c lam)⁻¹ *
+        (greenRootPlus c lam *
+            (B * upperBarrier κ M x / (greenRootPlus c lam - κ)) +
+          (-greenRootMinus c lam) *
+            (B * upperBarrier κ M x / (-(greenRootMinus c lam + κ)))) := by
+  have hrp : 0 < greenRootPlus c lam := greenRootPlus_pos (c := c) hlam
+  have hrm : greenRootMinus c lam < 0 := greenRootMinus_neg (c := c) hlam
+  have hδ : 0 < (greenDelta c lam)⁻¹ :=
+    inv_pos.mpr (greenDelta_pos (c := c) hlam)
+  have hrpκ' : 0 < greenRootPlus c lam - κ := by linarith
+  have hrmκ' : greenRootMinus c lam + κ < 0 := by linarith
+  have hHi_bd :
+      Real.exp (greenRootPlus c lam * x) *
+          |tailHi (greenRootPlus c lam) H x| ≤
+        B * upperBarrier κ M x / (greenRootPlus c lam - κ) :=
+    tailHi_upperBarrier_abs_le_on
+      (r := greenRootPlus c lam) (κ := κ) (M := M) (B := B)
+      hrpκ' hκ hM hBnn hHi hB
+  have hLo_bd :
+      Real.exp (greenRootMinus c lam * x) *
+          |tailLo (greenRootMinus c lam) H x| ≤
+        B * upperBarrier κ M x / (-(greenRootMinus c lam + κ)) :=
+    tailLo_upperBarrier_abs_le_on
+      (r := greenRootMinus c lam) (κ := κ) (M := M) (B := B)
+      hrmκ' hκ hM hBnn hLo hB
+  have hHi_term :
+      greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+          |tailHi (greenRootPlus c lam) H x| ≤
+        greenRootPlus c lam *
+          (B * upperBarrier κ M x / (greenRootPlus c lam - κ)) := by
+    simpa [mul_assoc] using mul_le_mul_of_nonneg_left hHi_bd hrp.le
+  have hLo_term :
+      (-greenRootMinus c lam) * Real.exp (greenRootMinus c lam * x) *
+          |tailLo (greenRootMinus c lam) H x| ≤
+        (-greenRootMinus c lam) *
+          (B * upperBarrier κ M x / (-(greenRootMinus c lam + κ))) := by
+    simpa [mul_assoc] using
+      mul_le_mul_of_nonneg_left hLo_bd (neg_nonneg.mpr hrm.le)
+  rw [greenConvDeriv, abs_mul, abs_of_pos hδ]
+  have hsum :
+      |greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x
+        + greenRootMinus c lam * Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+        ≤ greenRootPlus c lam *
+            (B * upperBarrier κ M x / (greenRootPlus c lam - κ)) +
+          (-greenRootMinus c lam) *
+            (B * upperBarrier κ M x / (-(greenRootMinus c lam + κ))) := by
+    have hA :
+        |greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x|
+          =
+        greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+            |tailHi (greenRootPlus c lam) H x| := by
+      rw [abs_mul, abs_mul, abs_of_pos hrp, abs_of_pos (Real.exp_pos _),
+        mul_assoc]
+    have hBtail :
+        |greenRootMinus c lam * Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+          =
+        (-greenRootMinus c lam) * Real.exp (greenRootMinus c lam * x) *
+            |tailLo (greenRootMinus c lam) H x| := by
+      rw [abs_mul, abs_mul, abs_of_neg hrm, abs_of_pos (Real.exp_pos _),
+        mul_assoc]
+    calc
+      |greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x
+        + greenRootMinus c lam * Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+          ≤ |greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+              tailHi (greenRootPlus c lam) H x|
+            + |greenRootMinus c lam * Real.exp (greenRootMinus c lam * x) *
+              tailLo (greenRootMinus c lam) H x| := abs_add_le _ _
+      _ = greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+              |tailHi (greenRootPlus c lam) H x|
+            + (-greenRootMinus c lam) * Real.exp (greenRootMinus c lam * x) *
+              |tailLo (greenRootMinus c lam) H x| := by rw [hA, hBtail]
+      _ ≤ greenRootPlus c lam *
+            (B * upperBarrier κ M x / (greenRootPlus c lam - κ)) +
+          (-greenRootMinus c lam) *
+            (B * upperBarrier κ M x / (-(greenRootMinus c lam + κ))) :=
+        add_le_add hHi_term hLo_term
+  exact mul_le_mul_of_nonneg_left hsum hδ.le
+
+/-- Weighted derivative bound for the genuine derivative of `greenConv`. -/
+theorem deriv_greenConv_abs_le_upperBarrier_of_source_bound
+    (hlam : 0 < lam) {κ M B : ℝ} {H : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hHcont : Continuous H)
+    (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y)
+    (hHi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi x))
+    (hLo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic x))
+    (x : ℝ) :
+    |deriv (greenConv c lam H) x| ≤
+      (greenDelta c lam)⁻¹ *
+        (greenRootPlus c lam *
+            (B * upperBarrier κ M x / (greenRootPlus c lam - κ)) +
+          (-greenRootMinus c lam) *
+            (B * upperBarrier κ M x / (-(greenRootMinus c lam + κ)))) := by
+  have hderiv :
+      deriv (greenConv c lam H) x = greenConvDeriv c lam H x :=
+    (greenConv_hasDerivAt (c := c) (lam := lam) hHcont hHi hLo x).deriv
+  rw [hderiv]
+  exact greenConvDeriv_abs_le_upperBarrier_of_source_bound
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hB hHi hLo x
+
+/-- Weighted `L¹` mass of the Green kernel against `exp(κ|·|)`. -/
+def greenWeightedMass0 (c lam κ : ℝ) : ℝ :=
+  (greenDelta c lam)⁻¹ *
+    ((greenRootPlus c lam - κ)⁻¹ +
+      (-(greenRootMinus c lam + κ))⁻¹)
+
+/-- Weighted `L¹` mass of the Green-kernel derivative against `exp(κ|·|)`. -/
+def greenWeightedMass1 (c lam κ : ℝ) : ℝ :=
+  (greenDelta c lam)⁻¹ *
+    (greenRootPlus c lam * (greenRootPlus c lam - κ)⁻¹ +
+      (-greenRootMinus c lam) * (-(greenRootMinus c lam + κ))⁻¹)
+
+theorem greenWeightedMass0_nonneg
+    (hlam : 0 < lam) {κ : ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam) :
+    0 ≤ greenWeightedMass0 c lam κ := by
+  unfold greenWeightedMass0
+  have hδ : 0 ≤ (greenDelta c lam)⁻¹ :=
+    (inv_pos.mpr (greenDelta_pos (c := c) hlam)).le
+  have hp : 0 < greenRootPlus c lam - κ := by linarith
+  have hm : 0 < -(greenRootMinus c lam + κ) := by linarith
+  exact mul_nonneg hδ (add_nonneg (inv_nonneg.mpr hp.le) (inv_nonneg.mpr hm.le))
+
+theorem greenWeightedMass1_nonneg
+    (hlam : 0 < lam) {κ : ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam) :
+    0 ≤ greenWeightedMass1 c lam κ := by
+  unfold greenWeightedMass1
+  have hδ : 0 ≤ (greenDelta c lam)⁻¹ :=
+    (inv_pos.mpr (greenDelta_pos (c := c) hlam)).le
+  have hrp : 0 ≤ greenRootPlus c lam := (greenRootPlus_pos (c := c) hlam).le
+  have hrm : 0 ≤ -greenRootMinus c lam :=
+    neg_nonneg.mpr (greenRootMinus_neg (c := c) hlam).le
+  have hp : 0 < greenRootPlus c lam - κ := by linarith
+  have hm : 0 < -(greenRootMinus c lam + κ) := by linarith
+  have hs :
+      0 ≤ greenRootPlus c lam * (greenRootPlus c lam - κ)⁻¹ +
+        (-greenRootMinus c lam) * (-(greenRootMinus c lam + κ))⁻¹ :=
+    add_nonneg
+      (mul_nonneg hrp (inv_nonneg.mpr hp.le))
+      (mul_nonneg hrm (inv_nonneg.mpr hm.le))
+  exact mul_nonneg hδ hs
+
+theorem greenConv_abs_le_upperBarrier_mass
+    (hlam : 0 < lam) {κ M B : ℝ} {H : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y)
+    (hHi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi x))
+    (hLo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic x))
+    (x : ℝ) :
+    |greenConv c lam H x| ≤
+      greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) := by
+  have hraw := greenConv_abs_le_upperBarrier_of_source_bound
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hB hHi hLo x
+  refine hraw.trans (le_of_eq ?_)
+  unfold greenWeightedMass0
+  ring
+
+theorem deriv_greenConv_abs_le_upperBarrier_mass
+    (hlam : 0 < lam) {κ M B : ℝ} {H : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hHcont : Continuous H)
+    (hB : ∀ y, |H y| ≤ B * upperBarrier κ M y)
+    (hHi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi x))
+    (hLo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic x))
+    (x : ℝ) :
+    |deriv (greenConv c lam H) x| ≤
+      greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) := by
+  have hraw := deriv_greenConv_abs_le_upperBarrier_of_source_bound
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hHcont hB hHi hLo x
+  refine hraw.trans (le_of_eq ?_)
+  unfold greenWeightedMass1
+  ring
+
+/-- Source-box specialization of the weighted Green profile bound. -/
+theorem PaperWeightedHolderSourceBox.greenConv_abs_le
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox R)
+    (x : ℝ) :
+    |greenConv c lam R x| ≤
+      greenWeightedMass0 c lam κ * (B * upperBarrier κ M x) := by
+  have hR_const : ∀ y, |R y| ≤ B * M := by
+    intro y
+    calc
+      |R y| ≤ B * upperBarrier κ M y := hR.2.1 y
+      _ ≤ B * M :=
+        mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hBnn
+  have hHi : ∀ t,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR.1 hR_const t
+  have hLo : ∀ t,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR.1 hR_const t
+  exact greenConv_abs_le_upperBarrier_mass
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hR.2.1 hHi hLo x
+
+/-- Source-box specialization of the weighted Green derivative bound. -/
+theorem PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
+    {β Hbox : ℝ} (hlam : 0 < lam) {κ M B : ℝ} {R : ℝ → ℝ}
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B Hbox R)
+    (x : ℝ) :
+    |deriv (greenConv c lam R) x| ≤
+      greenWeightedMass1 c lam κ * (B * upperBarrier κ M x) := by
+  have hR_const : ∀ y, |R y| ≤ B * M := by
+    intro y
+    calc
+      |R y| ≤ B * upperBarrier κ M y := hR.2.1 y
+      _ ≤ B * M :=
+        mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hBnn
+  have hHi : ∀ t,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR.1 hR_const t
+  have hLo : ∀ t,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR.1 hR_const t
+  exact deriv_greenConv_abs_le_upperBarrier_mass
+    (c := c) (lam := lam) hlam hrpκ hrmκ hκ hM hBnn hR.1 hR.2.1 hHi hLo x
+
 theorem setIntegral_Ioi_add_right (x : ℝ) (f : ℝ → ℝ) :
     (∫ y in Ioi x, f y) = ∫ s in Ioi (0:ℝ), f (s + x) := by
   let T : ℝ → ℝ := fun s => s + x
@@ -1882,6 +2422,236 @@ theorem paperFixedSourceMap_continuous_of_trap_sourceBox
     (frozenElliptic_deriv_continuous p hu.cunif_bdd hu.nonneg)
     hR
 
+/-- Weighted source-box bound for the truncated fixed-source map.  The only
+non-box analytic inputs are the standard frozen-field bounds and the scalar
+large-`B` inequality. -/
+theorem paperFixedSourceMap_bound_of_sourceBox
+    (p : CMParams) {c lam M κ β B H BV BVd : ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hBVnn : 0 ≤ BV) (hBVdnn : 0 ≤ BVd)
+    (hZ0 : ∀ x, 0 ≤ Z x)
+    (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
+    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
+    (hVderiv_bound : ∀ x, |deriv (frozenElliptic p u) x| ≤ BVd)
+    (hscalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * BV
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H R) :
+    ∀ x, |paperFixedSourceMap p c lam M κ u Z R x| ≤
+      B * upperBarrier κ M x := by
+  intro x
+  let W : ℝ → ℝ := fun y => greenConv c lam R y
+  let Θ : ℝ := paperWeightedClamp κ M W x
+  let Ux : ℝ := upperBarrier κ M x
+  have hUx0 : 0 ≤ Ux := by
+    dsimp [Ux]
+    exact upperBarrier_nonneg hM x
+  have hΘmem :
+      Θ ∈ Set.Icc (0 : ℝ) Ux := by
+    dsimp [Θ, W, Ux]
+    exact paperWeightedClamp_mem_Icc (κ := κ) (M := M)
+      (W := fun y => greenConv c lam R y) hM x
+  have hΘabs : |Θ| ≤ Ux := by
+    rw [abs_of_nonneg hΘmem.1]
+    exact hΘmem.2
+  have hm1_nonneg : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα_nonneg : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1_nonneg : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hΘm1 :
+      |Θ ^ (p.m - 1)| ≤ M ^ (p.m - 1) := by
+    dsimp [Θ, W]
+    exact paperWeightedClamp_rpow_abs_le_M
+      (κ := κ) (M := M) (a := p.m - 1)
+      (W := fun y => greenConv c lam R y) hM hm1_nonneg x
+  have hΘα :
+      |Θ ^ p.α| ≤ M ^ p.α := by
+    dsimp [Θ, W]
+    exact paperWeightedClamp_rpow_abs_le_M
+      (κ := κ) (M := M) (a := p.α)
+      (W := fun y => greenConv c lam R y) hM hα_nonneg x
+  have hΘmg1 :
+      |Θ ^ (p.m + p.γ - 1)| ≤ M ^ (p.m + p.γ - 1) := by
+    dsimp [Θ, W]
+    exact paperWeightedClamp_rpow_abs_le_M
+      (κ := κ) (M := M) (a := p.m + p.γ - 1)
+      (W := fun y => greenConv c lam R y) hM hmg1_nonneg x
+  have hWderiv :
+      |deriv W x| ≤
+        greenWeightedMass1 c lam κ * (B * Ux) := by
+    dsimp [W, Ux]
+    exact PaperWeightedHolderSourceBox.deriv_greenConv_abs_le
+      (c := c) (lam := lam) (β := β) (Hbox := H)
+      hlam hrpκ hrmκ hκ hM hBnn hR x
+  have hmass1_nonneg : 0 ≤ greenWeightedMass1 c lam κ :=
+    greenWeightedMass1_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hM_m1_nonneg : 0 ≤ M ^ (p.m - 1) :=
+    Real.rpow_nonneg hM (p.m - 1)
+  have hM_α_nonneg : 0 ≤ M ^ p.α :=
+    Real.rpow_nonneg hM p.α
+  have hM_mg1_nonneg : 0 ≤ M ^ (p.m + p.γ - 1) :=
+    Real.rpow_nonneg hM (p.m + p.γ - 1)
+  have hderivCoeff_nonneg :
+      0 ≤ |(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+          greenWeightedMass1 c lam κ * B := by
+    positivity
+  have hinnerCoeff_nonneg :
+      0 ≤ 1 + |p.χ| * M ^ (p.m - 1) * BV
+          + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1) := by
+    positivity
+  have hlinearCoeff_nonneg : 0 ≤ lam := hlam.le
+  have hchem :
+      |(-p.χ * p.m) * Θ ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * deriv W x|
+        ≤ (|(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+            greenWeightedMass1 c lam κ * B) * Ux := by
+    calc
+      |(-p.χ * p.m) * Θ ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * deriv W x|
+          = |(-p.χ * p.m)| * |Θ ^ (p.m - 1)| *
+              |deriv (frozenElliptic p u) x| * |deriv W x| := by
+            rw [abs_mul, abs_mul, abs_mul]
+      _ ≤ |(-p.χ * p.m)| * M ^ (p.m - 1) *
+              BVd * (greenWeightedMass1 c lam κ * (B * Ux)) := by
+            gcongr
+            exact hVderiv_bound x
+      _ = (|(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+              greenWeightedMass1 c lam κ * B) * Ux := by
+            ring
+  have hχΘm1V :
+      |p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x|
+        ≤ |p.χ| * M ^ (p.m - 1) * BV := by
+    calc
+      |p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x|
+          = |p.χ| * |Θ ^ (p.m - 1)| * |frozenElliptic p u x| := by
+            rw [abs_mul, abs_mul]
+      _ ≤ |p.χ| * M ^ (p.m - 1) * BV := by
+            gcongr
+            exact hVbound x
+  have hχΘmg1 :
+      |p.χ * Θ ^ (p.m + p.γ - 1)|
+        ≤ |p.χ| * M ^ (p.m + p.γ - 1) := by
+    calc
+      |p.χ * Θ ^ (p.m + p.γ - 1)|
+          = |p.χ| * |Θ ^ (p.m + p.γ - 1)| := by
+            rw [abs_mul]
+      _ ≤ |p.χ| * M ^ (p.m + p.γ - 1) := by
+            gcongr
+  have hinner :
+      |1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+          - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))|
+        ≤ 1 + |p.χ| * M ^ (p.m - 1) * BV
+          + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1) := by
+    let A : ℝ := p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+    let Pα : ℝ := Θ ^ p.α
+    let Cγ : ℝ := p.χ * Θ ^ (p.m + p.γ - 1)
+    have hrewrite :
+        1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+            - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))
+          = (1 + -A + -Pα) + Cγ := by
+      dsimp [A, Pα, Cγ]
+      ring
+    rw [hrewrite]
+    have htri₁ :
+        |(1 + -A + -Pα) + Cγ| ≤ |1 + -A + -Pα| + |Cγ| :=
+      abs_add_le _ _
+    have htri₂ :
+        |1 + -A + -Pα| ≤ |1 + -A| + |Pα| := by
+      simpa using abs_add_le (1 + -A) (-Pα)
+    have htri₃ : |1 + -A| ≤ |(1 : ℝ)| + |A| := by
+      simpa using abs_add_le (1 : ℝ) (-A)
+    have htri :
+        |(1 + -A + -Pα) + Cγ| ≤ |(1 : ℝ)| + |A| + |Pα| + |Cγ| := by
+      linarith
+    have hA : |A| ≤ |p.χ| * M ^ (p.m - 1) * BV := by
+      dsimp [A]
+      exact hχΘm1V
+    have hP : |Pα| ≤ M ^ p.α := by
+      dsimp [Pα]
+      exact hΘα
+    have hC : |Cγ| ≤ |p.χ| * M ^ (p.m + p.γ - 1) := by
+      dsimp [Cγ]
+      exact hχΘmg1
+    have h1 : |(1 : ℝ)| = 1 := abs_of_nonneg zero_le_one
+    linarith
+  have hreact :
+      |Θ *
+          (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+            - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1)))|
+        ≤ (1 + |p.χ| * M ^ (p.m - 1) * BV
+          + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1)) * Ux := by
+    calc
+      |Θ *
+          (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+            - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1)))|
+          = |Θ| *
+              |1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+                - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))| := by
+            rw [abs_mul]
+      _ ≤ Ux *
+            (1 + |p.χ| * M ^ (p.m - 1) * BV
+              + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1)) := by
+            gcongr
+      _ = (1 + |p.χ| * M ^ (p.m - 1) * BV
+              + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1)) * Ux := by
+            ring
+  have hZabs : |Z x| ≤ Ux := by
+    rw [abs_of_nonneg (hZ0 x)]
+    exact hZB x
+  have hlin :
+      |lam * Z x| ≤ lam * Ux := by
+    calc
+      |lam * Z x| = lam * |Z x| := by
+        rw [abs_mul, abs_of_nonneg hlam.le]
+      _ ≤ lam * Ux := mul_le_mul_of_nonneg_left hZabs hlam.le
+  unfold paperFixedSourceMap paperStepSource_truncated paperWeightedClamp
+  dsimp only [W, Θ, Ux] at *
+  calc
+    |(-p.χ * p.m * Θ ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * deriv W x
+        + Θ *
+          (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+            - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1)))
+        + lam * Z x)|
+        ≤ |(-p.χ * p.m) * Θ ^ (p.m - 1) *
+              deriv (frozenElliptic p u) x * deriv W x|
+            + |Θ *
+              (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+                - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1)))|
+            + |lam * Z x| := by
+          have htri := abs_add_le
+            ((-p.χ * p.m) * Θ ^ (p.m - 1) *
+              deriv (frozenElliptic p u) x * deriv W x
+              + Θ *
+                (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+                  - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))))
+            (lam * Z x)
+          have htri₂ := abs_add_le
+            ((-p.χ * p.m) * Θ ^ (p.m - 1) *
+              deriv (frozenElliptic p u) x * deriv W x)
+            (Θ *
+              (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+                - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))))
+          linarith
+    _ ≤ (|(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+            greenWeightedMass1 c lam κ * B) * Ux
+        + (1 + |p.χ| * M ^ (p.m - 1) * BV
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1)) * Ux
+        + lam * Ux := by
+          linarith
+    _ = (|(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * BV
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam) * Ux := by
+          ring
+    _ ≤ B * Ux := mul_le_mul_of_nonneg_right hscalar hUx0
+
 /-- Paper-step analytic data with the bounded-source Green tails omitted.
 
 The omitted fields are closed by `paperStepAnalytic_of_core`; source existence,
@@ -1965,6 +2735,7 @@ precondition, but this is the precise fixed-source existence statement needed
 when the old iterate is carried with `frozenWaveOperator p c u Z ≤ 0`. -/
 def PaperStepFixedSourceExistsForSuperTrap
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop :=
+  InMonotoneWaveTrapSet κ M u →
   ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
     (∀ x, Z x ≤ upperBarrier κ M x) →
     (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
@@ -1980,11 +2751,12 @@ core consumed by the Route-A paper step assembly. -/
 def PaperStepFixedSourceCore.of_existsForSuperTrap
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
     (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
+    (hu : InMonotoneWaveTrapSet κ M u)
     (hZc : Continuous Z) (hZa : Antitone Z) (hZ0 : ∀ x, 0 ≤ Z x)
     (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
     (hZsuper : ∀ x, frozenWaveOperator p c u Z x ≤ 0) :
     PaperStepFixedSourceCore p c lam M κ Λ u Z :=
-  let hex := hfixed Z hZc hZa hZ0 hZB hZsuper
+  let hex := hfixed hu Z hZc hZa hZ0 hZB hZsuper
   let R : ℝ → ℝ := Classical.choose hex
   have hRspec :
       Continuous R ∧
@@ -2165,6 +2937,256 @@ theorem localUniformSequentiallyCompactRange_inWaveTrapSet_of_uniform_lipschitz_
   · exact ⟨⟨hgcont, hgbdd⟩, fun x => ⟨hnn x, hbar x⟩⟩
   · simpa [hgs] using hLU
 
+/-- Small-radius choice for a Hölder modulus. -/
+theorem exists_pos_radius_holder_mul_le
+    {H β ε : ℝ} (hH : 0 ≤ H) (hβ : 0 < β) (hε : 0 < ε) :
+    ∃ η > 0, H * η ^ β ≤ ε := by
+  let base : ℝ := ε / (H + 1)
+  let η : ℝ := base ^ β⁻¹
+  have hden : 0 < H + 1 := by linarith
+  have hbase : 0 < base := div_pos hε hden
+  have hη : 0 < η := by
+    dsimp [η]
+    exact Real.rpow_pos_of_pos hbase β⁻¹
+  refine ⟨η, hη, ?_⟩
+  have hηpow : η ^ β = base := by
+    dsimp [η, base]
+    rw [Real.rpow_inv_rpow hbase.le (ne_of_gt hβ)]
+  rw [hηpow]
+  dsimp [base]
+  have hmuldiv : H * (ε / (H + 1)) = (H * ε) / (H + 1) := by ring
+  rw [hmuldiv, div_le_iff₀ hden]
+  nlinarith
+
+/-- Pointwise convergence plus a shared Hölder modulus upgrades to local-uniform
+convergence on compact intervals. -/
+theorem locallyUniform_of_pointwise_of_equiHolder
+    {z : ℕ → ℝ → ℝ} {f : ℝ → ℝ} {H β : ℝ}
+    (hH : 0 ≤ H) (hβ : 0 < β)
+    (hpt : ∀ x, Tendsto (fun k => z k x) atTop (𝓝 (f x)))
+    (hzH : ∀ k, ∀ x y, |z k x - z k y| ≤ H * |x - y| ^ β)
+    (hfH : ∀ x y, |f x - f y| ≤ H * |x - y| ^ β) :
+    LocallyUniformConverges z f := by
+  intro R hR ε hε
+  obtain ⟨η, hη_pos, hHη⟩ :=
+    exists_pos_radius_holder_mul_le (H := H) (β := β) (ε := ε / 3)
+      hH hβ (by linarith)
+  obtain ⟨Nnode, hNnode⟩ := exists_nat_gt (2 * R / η)
+  set node : ℕ → ℝ := fun i => -R + (i : ℝ) * η with hnode_def
+  have hcover : ∀ x ∈ Set.Icc (-R) R, ∃ i : ℕ, i ≤ Nnode ∧ |x - node i| ≤ η := by
+    intro x hx
+    rw [Set.mem_Icc] at hx
+    obtain ⟨hx1, hx2⟩ := hx
+    set t : ℝ := (x + R) / η with ht_def
+    have ht_nonneg : 0 ≤ t := by
+      rw [ht_def]
+      exact div_nonneg (by linarith) hη_pos.le
+    set i : ℕ := ⌊t⌋₊ with hi_def
+    refine ⟨i, ?_, ?_⟩
+    · have hi_le_t : (i : ℝ) ≤ t := Nat.floor_le ht_nonneg
+      have ht_le : t ≤ 2 * R / η := by
+        rw [ht_def]
+        have hnum : x + R ≤ 2 * R := by nlinarith [hx2]
+        gcongr
+      have hiR : (i : ℝ) < (Nnode : ℝ) :=
+        lt_of_le_of_lt (le_trans hi_le_t ht_le) hNnode
+      have : i < Nnode := by exact_mod_cast hiR
+      exact le_of_lt this
+    · have hi_le_t : (i : ℝ) ≤ t := Nat.floor_le ht_nonneg
+      have ht_lt : t < (i : ℝ) + 1 := Nat.lt_floor_add_one t
+      have hlow : (i : ℝ) * η ≤ x + R := by
+        have := mul_le_mul_of_nonneg_right hi_le_t hη_pos.le
+        rwa [ht_def, div_mul_cancel₀ _ (ne_of_gt hη_pos)] at this
+      have hhigh : x + R < ((i : ℝ) + 1) * η := by
+        have := mul_lt_mul_of_pos_right ht_lt hη_pos
+        rwa [ht_def, div_mul_cancel₀ _ (ne_of_gt hη_pos)] at this
+      rw [hnode_def, abs_le]
+      constructor <;> [nlinarith [hlow]; nlinarith [hhigh]]
+  have hpt3 : ∀ i : ℕ, ∀ᶠ k in atTop, |z k (node i) - f (node i)| < ε / 3 := by
+    intro i
+    have h2 := Metric.tendsto_atTop.mp (hpt (node i)) (ε / 3) (by linarith)
+    obtain ⟨N, hN⟩ := h2
+    rw [eventually_atTop]
+    exact ⟨N, fun k hk => by simpa [Real.dist_eq] using hN k hk⟩
+  have hfin : ∀ᶠ k in atTop,
+      ∀ i : ℕ, i ≤ Nnode → |z k (node i) - f (node i)| < ε / 3 := by
+    have : ∀ᶠ k in atTop, ∀ i ∈ Finset.range (Nnode + 1),
+        |z k (node i) - f (node i)| < ε / 3 := by
+      apply (eventually_all_finset (Finset.range (Nnode + 1))).mpr
+      intro i _; exact hpt3 i
+    filter_upwards [this] with k hk i hi
+    exact hk i (Finset.mem_range.mpr (Nat.lt_succ_of_le hi))
+  filter_upwards [hfin] with k hk x hx
+  obtain ⟨i, hi_le, hxnode⟩ := hcover x hx
+  have hnode_conv := hk i hi_le
+  have hHstep : H * |x - node i| ^ β ≤ ε / 3 := by
+    have hpow : |x - node i| ^ β ≤ η ^ β :=
+      Real.rpow_le_rpow (abs_nonneg _) hxnode hβ.le
+    exact le_trans (mul_le_mul_of_nonneg_left hpow hH) hHη
+  have hHstep' : H * |node i - x| ^ β ≤ ε / 3 := by
+    rw [abs_sub_comm]
+    exact hHstep
+  have hL1 : |z k x - z k (node i)| ≤ ε / 3 :=
+    le_trans (hzH k x (node i)) hHstep
+  have hL3 : |f (node i) - f x| ≤ ε / 3 :=
+    le_trans (hfH (node i) x) hHstep'
+  have htri1 : |z k x - f x|
+      ≤ |z k x - z k (node i)| + |z k (node i) - f (node i)| +
+        |f (node i) - f x| := by
+    have e : z k x - f x =
+        (z k x - z k (node i)) + (z k (node i) - f (node i)) +
+          (f (node i) - f x) := by
+      ring
+    rw [e]
+    calc
+      |(z k x - z k (node i)) + (z k (node i) - f (node i)) +
+          (f (node i) - f x)|
+          ≤ |(z k x - z k (node i)) +
+              (z k (node i) - f (node i))| + |f (node i) - f x| :=
+            abs_add_le _ _
+      _ ≤ |z k x - z k (node i)| + |z k (node i) - f (node i)| +
+          |f (node i) - f x| := by
+            have := abs_add_le (z k x - z k (node i))
+              (z k (node i) - f (node i))
+            linarith
+  have : |z k x - z k (node i)| + |z k (node i) - f (node i)| +
+      |f (node i) - f x| < ε := by
+    linarith [hL1, hL3, hnode_conv]
+  linarith [htri1, this]
+
+/-- Pointwise selection for uniformly bounded families with a shared Hölder
+modulus.  The proof is the same rational diagonal as Helly, with a Hölder
+squeeze from rationals to all real points. -/
+def HolderPointwiseSelection (A H β : ℝ) : Prop :=
+  ∀ gs : ℕ → ℝ → ℝ,
+    (∀ k, ∀ x y, |gs k x - gs k y| ≤ H * |x - y| ^ β) →
+    (∀ k x, |gs k x| ≤ A) →
+      ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+        ∃ g : ℝ → ℝ,
+          (∀ x, Tendsto (fun n => gs (subseq n) x) atTop (𝓝 (g x))) ∧
+          (∀ x y, |g x - g y| ≤ H * |x - y| ^ β)
+
+theorem holder_pointwise_selection
+    (A H β : ℝ) (_hA : 0 ≤ A) (hH : 0 ≤ H) (hβ : 0 < β) :
+    HolderPointwiseSelection A H β := by
+  intro gs hHolder hB
+  obtain ⟨φ, hφ, f₀, hrat⟩ := helly_rational_diagonal gs hB
+  have hcauchy : ∀ x : ℝ, CauchySeq (fun n => gs (φ n) x) := by
+    intro x
+    rw [Metric.cauchySeq_iff]
+    intro ε hε
+    obtain ⟨δ, hδpos, hHδ⟩ :=
+      exists_pos_radius_holder_mul_le (H := H) (β := β) (ε := ε / 4)
+        hH hβ (by linarith)
+    obtain ⟨q, hq⟩ := exists_rat_near x hδpos
+    have hqCauchy : CauchySeq (fun n => gs (φ n) (q : ℝ)) :=
+      (hrat q).cauchySeq
+    rw [Metric.cauchySeq_iff] at hqCauchy
+    obtain ⟨N, hN⟩ := hqCauchy (ε / 3) (by linarith)
+    refine ⟨N, ?_⟩
+    intro m hm n hn
+    have hxm :
+        |gs (φ m) x - gs (φ m) (q : ℝ)| ≤ H * |x - q| ^ β :=
+      hHolder (φ m) x q
+    have hxn :
+        |gs (φ n) x - gs (φ n) (q : ℝ)| ≤ H * |x - q| ^ β :=
+      hHolder (φ n) x q
+    have hmid : dist (gs (φ m) (q : ℝ)) (gs (φ n) (q : ℝ)) < ε / 3 :=
+      hN m hm n hn
+    rw [Real.dist_eq] at hmid ⊢
+    have hHqbound : H * |x - q| ^ β ≤ ε / 4 := by
+      have hpow : |x - (q : ℝ)| ^ β ≤ δ ^ β :=
+        Real.rpow_le_rpow (abs_nonneg _) (le_of_lt hq) hβ.le
+      exact le_trans (mul_le_mul_of_nonneg_left hpow hH) hHδ
+    have htri : |gs (φ m) x - gs (φ n) x|
+        ≤ |gs (φ m) x - gs (φ m) (q : ℝ)|
+          + |gs (φ m) (q : ℝ) - gs (φ n) (q : ℝ)|
+          + |gs (φ n) (q : ℝ) - gs (φ n) x| := by
+      calc
+        |gs (φ m) x - gs (φ n) x|
+            = |(gs (φ m) x - gs (φ m) (q : ℝ))
+                + (gs (φ m) (q : ℝ) - gs (φ n) (q : ℝ))
+                + (gs (φ n) (q : ℝ) - gs (φ n) x)| := by
+              ring_nf
+        _ ≤ |(gs (φ m) x - gs (φ m) (q : ℝ))
+              + (gs (φ m) (q : ℝ) - gs (φ n) (q : ℝ))|
+              + |gs (φ n) (q : ℝ) - gs (φ n) x| := abs_add_le _ _
+        _ ≤ (|gs (φ m) x - gs (φ m) (q : ℝ)|
+              + |gs (φ m) (q : ℝ) - gs (φ n) (q : ℝ)|)
+              + |gs (φ n) (q : ℝ) - gs (φ n) x| := by
+              gcongr
+              exact abs_add_le _ _
+    have hxn' :
+        |gs (φ n) (q : ℝ) - gs (φ n) x| ≤ H * |x - q| ^ β := by
+      rw [abs_sub_comm]
+      exact hxn
+    have hmid' : |gs (φ m) (q : ℝ) - gs (φ n) (q : ℝ)| < ε / 3 := hmid
+    calc
+      |gs (φ m) x - gs (φ n) x|
+          ≤ |gs (φ m) x - gs (φ m) (q : ℝ)|
+              + |gs (φ m) (q : ℝ) - gs (φ n) (q : ℝ)|
+              + |gs (φ n) (q : ℝ) - gs (φ n) x| := htri
+      _ < ε / 4 + ε / 3 + ε / 4 := by
+            have h1 : |gs (φ m) x - gs (φ m) (q : ℝ)| ≤ ε / 4 :=
+              le_trans hxm hHqbound
+            have h3 : |gs (φ n) (q : ℝ) - gs (φ n) x| ≤ ε / 4 :=
+              le_trans hxn' hHqbound
+            linarith
+      _ ≤ ε := by linarith
+  choose g hg using fun x => cauchySeq_tendsto_of_complete (hcauchy x)
+  refine ⟨φ, hφ, g, hg, ?_⟩
+  intro x y
+  have htend : Tendsto (fun n => |gs (φ n) x - gs (φ n) y|) atTop
+      (𝓝 (|g x - g y|)) := by
+    have := ((hg x).sub (hg y)).abs
+    simpa using this
+  refine le_of_tendsto htend ?_
+  filter_upwards with n
+  exact hHolder (φ n) x y
+
+/-- Arzelà-Ascoli/Helly compactness for images in the weighted Hölder source
+box.  Once a map is a self-map of the box, the image family has a uniform
+weighted sup-bound and a shared Hölder modulus, hence a locally uniformly
+convergent subsequence whose limit remains in the same box. -/
+theorem localUniformSequentiallyCompactRange_weightedHolderSourceBox_of_mapsTo
+    {κ M β B H : ℝ} (hM : 0 ≤ M) (hB : 0 ≤ B)
+    (hH : 0 ≤ H) (hβ : 0 < β)
+    (Tmap : (ℝ → ℝ) → ℝ → ℝ)
+    (hmap : ∀ R, PaperWeightedHolderSourceBox κ M β B H R →
+      PaperWeightedHolderSourceBox κ M β B H (Tmap R)) :
+    LocalUniformSequentiallyCompactRange
+      (PaperWeightedHolderSourceBox κ M β B H) Tmap := by
+  intro seq hseq
+  set gs : ℕ → ℝ → ℝ := fun n => Tmap (seq n) with hgs
+  have hbox : ∀ n, PaperWeightedHolderSourceBox κ M β B H (gs n) := by
+    intro n
+    exact hmap (seq n) (hseq n)
+  have hgsH : ∀ k, ∀ x y, |gs k x - gs k y| ≤ H * |x - y| ^ β := by
+    intro k x y
+    exact (hbox k).2.2 x y
+  have hgsB : ∀ k x, |gs k x| ≤ B * M := by
+    intro k x
+    calc
+      |gs k x| ≤ B * upperBarrier κ M x := (hbox k).2.1 x
+      _ ≤ B * M :=
+        mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hB
+  obtain ⟨subseq, hsub, g, hpt, hgH⟩ :=
+    holder_pointwise_selection (B * M) H β (mul_nonneg hB hM) hH hβ
+      gs hgsH hgsB
+  have hLU : LocallyUniformConverges (fun n => gs (subseq n)) g :=
+    locallyUniform_of_pointwise_of_equiHolder hH hβ hpt
+      (fun n => hgsH (subseq n)) hgH
+  have hgcont : Continuous g :=
+    continuous_of_locallyUniform (fun n => (hbox (subseq n)).1) hLU
+  have hgbound : ∀ x, |g x| ≤ B * upperBarrier κ M x := by
+    intro x
+    have htend : Tendsto (fun n => |gs (subseq n) x|) atTop (𝓝 (|g x|)) :=
+      (hLU.tendsto_at x).abs
+    exact le_of_tendsto' htend (fun n => (hbox (subseq n)).2.1 x)
+  refine ⟨subseq, hsub, g, ?_, ?_⟩
+  · exact ⟨hgcont, hgbound, hgH⟩
+  · simpa [hgs] using hLU
+
 /-- Concrete Schauder data for the paper per-step map on the trapped convex set
 `InWaveTrapSet κ M`.  The source continuity field is where real powers use only
 continuity on `[0,M]`; the compactness fields are Green-smoothing bounds. -/
@@ -2223,7 +3245,7 @@ theorem PaperStepFixedSourceExistsForSuperTrap.of_schauder
       (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
         PaperStepSchauderMapData p c lam M κ Λ u Z) :
     PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
-  intro Z hZc hZa hZ0 hZB hZsuper
+  intro _hu Z hZc hZa hZ0 hZB hZsuper
   let hs : PaperStepSchauderMapData p c lam M κ Λ u Z :=
     hdata Z hZc hZa hZ0 hZB hZsuper
   obtain ⟨W, hWtrap, hfix⟩ := hs.exists_fixed hprinciple
@@ -2263,15 +3285,16 @@ identities turn the truncated fixed-source equation into the genuine paper
 source equation. -/
 theorem PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
-    (hdata : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+    (hdata : InMonotoneWaveTrapSet κ M u →
+      ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
       (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
       (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
         PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
     PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
-  intro Z hZc hZa hZ0 hZB hZsuper
+  intro hu Z hZc hZa hZ0 hZB hZsuper
   let hd : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z :=
-    hdata Z hZc hZa hZ0 hZB hZsuper
+    hdata hu Z hZc hZa hZ0 hZB hZsuper
   obtain ⟨R, hRbox, hRfix⟩ := hd.exists_fixed
   have hIcc :
       ∀ x,

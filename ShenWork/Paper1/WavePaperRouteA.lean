@@ -1126,6 +1126,7 @@ def paperGreenStepInputRouteACore_of_assembly
 statement plus the remaining Route-A data. -/
 def paperGreenStepInputRouteASuperCore_of_fixedSource
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hu : InMonotoneWaveTrapSet κ M u)
     (hlam : 0 < lam)
     (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
     (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
@@ -1136,7 +1137,7 @@ def paperGreenStepInputRouteASuperCore_of_fixedSource
     let fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
       PaperStepFixedSourceCore.of_existsForSuperTrap
         (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-        (u := u) (Z := Z) hfixed hZc hZa hZ0 hZB hZsuper
+        (u := u) (Z := Z) hfixed hu hZc hZa hZ0 hZB hZsuper
     exact (hrest Z hZc hZa hZ0 hZB hZsuper fixed).toOutputRouteACore
 
 /-- Forget the super-core to the existing Route-A core when the caller can
@@ -1159,7 +1160,7 @@ for the old iterate; without it the bare paper producer interface is too weak to
 call `PaperStepFixedSourceExistsForSuperTrap`. -/
 def paperGreenStepInputRouteACore_of_trap_fixedSource
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
-    (_hu : InMonotoneWaveTrapSet κ M u)
+    (hu : InMonotoneWaveTrapSet κ M u)
     (hlam : 0 < lam)
     (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
     (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
@@ -1170,7 +1171,7 @@ def paperGreenStepInputRouteACore_of_trap_fixedSource
   paperGreenStepInputRouteACore_of_superCore
     (paperGreenStepInputRouteASuperCore_of_fixedSource
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      (u := u) hlam hfixed hrest)
+      (u := u) hu hlam hfixed hrest)
     hZsuper
 
 /-- Trap-indexed Route-A Green core assembly.
