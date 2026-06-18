@@ -52,7 +52,9 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 - [x] `continuousOn` — source-map continuous dependence (`paperFixedSourceMap_continuousOn_of_boxBounds`, internal) (820f55b)
 - [x] paperDiff-free truncated max-principle + **direct** `truncation_inactive_direct_of_trap` (820f55b) — bypasses the record (upperBarrier non-diff at kink)
 - [~] `map_leftTail` / `ascoliCompactRange` — GATED on the ω self-consistency below
-- [~] **ω self-consistency** (THE last analytic subtlety) — the box left-tail modulus ω depends on the input modulus (absolute-ω is FALSE: upperBarrier is a left plateau, greenConv preserves oscillation). Resolve via (A) majorant ω=K·φ + orbit threading, or (B) limsup/translation-compactness left-end dropping ω → clean Arzelà-Ascoli. *ChatGPT consulting on cheapest-to-formalize route.*
+- [x] **ω self-consistency** — RESOLVED via the exponential left-rate majorant (A+): `ExpLeftRate` predicate + kernel moments (m_σ=O(λ⁻¹)) + greenConv/frozenElliptic rate preservation + two-orbit (Z inner, u outer) left-rate threading. (d774b63 + 9a40dbd, full-build verified)
+- [~] **box-close assembly** — discharge hmap_holder/leftTailCauchy/rate/lower/upper via the proven kernels → constructor needs ONLY hboxCubeData. *cx_pde now*
+- [ ] **boxCubeData** — route (c): carry as the one permitted finite-net floor (same as outer G1) for hprodAll close; full McShane discharge blueprint in docs/boxCubeData-mcshane-blueprint.md for later full-unconditional
 
 #### B.3 Barrier super-solution — DIRECT (dodge the 2nd circularity)
 - [ ] `hupper` / `hlower` — construct directly via `Lemma_4_1_neg_holds_away_from_interface` + `upperBarrier_BC2_atMax_dischargeable` (root found; NOT via the circular `hrest`)
