@@ -344,7 +344,7 @@ private theorem paperWaveOperator_hasDerivAt_routeA
 
 private theorem paperWaveOperator_posMax_value_pos
     {W : ℝ → ℝ} {M x₀ : ℝ}
-    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) M)
     (hqpos : 0 < deriv W x₀) :
     0 < W x₀ := by
   have hx0_nonneg : 0 ≤ W x₀ := (hWrange x₀).1
@@ -370,7 +370,7 @@ def paperWaveOperator_posMax_bookkeeping_of_structural
     (ha : a = -p.χ) (hχ : p.χ ≤ 0)
     (hWreg : ContDiff ℝ 3 W)
     (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
-    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) M)
     (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
     (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
     (hV2bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2)
@@ -733,7 +733,7 @@ def paperStepRouteAData_of_structural
     (ha : a = -p.χ) (hχ : p.χ ≤ 0)
     (hWreg : ContDiff ℝ 3 W)
     (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
-    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) M)
     (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
     (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
     (hV2bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2)
@@ -796,7 +796,7 @@ def PaperStepRouteAStructuralData.toRouteAData
     {La Lb : ℝ}
     (hWreg : ContDiff ℝ 3 W)
     (hwave : Differentiable ℝ (fun y => paperWaveOperator p c u W y))
-    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) hd.M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) hd.M)
     (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
     (hZderiv : ∀ x, deriv Z x ≤ 0)
     (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
@@ -846,7 +846,7 @@ theorem paperStep_antitone_by_routeA_of_structural
     (ha : a = -p.χ) (hχ : p.χ ≤ 0)
     (hWreg : ContDiff ℝ 3 W)
     (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
-    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) M)
     (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
     (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
     (hV2bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2)
@@ -880,7 +880,7 @@ theorem paperStep_antitone_by_routeA_of_structuralData
     (hd : PaperStepRouteAStructuralData p c lam Cmono u Z W)
     (hWreg : ContDiff ℝ 3 W)
     (hwave : Differentiable ℝ (fun y => paperWaveOperator p c u W y))
-    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) hd.M)
+    (hWrange : ∀ x, W x ∈ Set.Icc (0 : ℝ) hd.M)
     (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
     (hZderiv : ∀ x, deriv Z x ≤ 0)
     (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
@@ -905,7 +905,7 @@ structure PaperStepRouteASmoothApproximationData
   routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
   W_reg : ContDiff ℝ 3 W
   wave_diff : Differentiable ℝ (fun y => paperWaveOperator p c u W y)
-  W_range : ∀ x, W x ∈ Set.Icc (0:ℝ) routeA.M
+  W_range : ∀ x, W x ∈ Set.Icc (0 : ℝ) routeA.M
   Z_deriv_nonpos : ∀ x, deriv Z x ≤ 0
 
 /-- Each smooth approximating paper step is antitone by Route A, not by a
@@ -929,8 +929,8 @@ theorem PaperStepRouteASmoothApproximationData.antitone
     (p := p) (c := c) (lam := lam) (Cmono := Cmono)
     (u := u) (Z := Z) (W := W)
     hlam hd.routeA hd.W_reg hd.wave_diff hd.W_range hstep hd.Z_deriv_nonpos
-    htails.1 (show (0:ℝ) ≤ 0 from le_rfl)
-    htails.2 (show (0:ℝ) ≤ 0 from le_rfl)
+    htails.1 (show (0 : ℝ) ≤ 0 from le_rfl)
+    htails.2 (show (0 : ℝ) ≤ 0 from le_rfl)
 
 /-- Route-A mollification/approximant data for a raw paper step.
 
@@ -1025,12 +1025,69 @@ def toOutputRouteACore
 
 end PaperStepOutputRouteAAssemblyData
 
+/-- Non-Banach Route-A assembly data once the fixed source has already been
+constructed.  This separates the Banach fixed-source step from the barrier and
+Route-A payloads, so the fixed source can be supplied concretely by
+`PaperStepFixedSourceExistsForSuperTrap`. -/
+structure PaperStepOutputRouteAFixedRestData
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ)
+    (fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z) where
+  C_chem : ℝ
+  lowerZero :
+    PaperStepLowerData p c lam M C_chem u Z fixed.W (fun _ => 0)
+  upperOld :
+    PaperStepUpperData p c lam M C_chem u Z fixed.W Z
+  upperBarrier :
+    PaperStepUpperData p c lam M C_chem u Z fixed.W (upperBarrier κ M)
+  Cmono : ℝ
+  routeA : PaperStepRouteAStructuralData p c lam Cmono u Z fixed.W
+  approx : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z fixed.W
+
+namespace PaperStepOutputRouteAFixedRestData
+
+/-- Reattach the concrete fixed source to the non-Banach Route-A payload. -/
+def toAssemblyData
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    {fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z}
+    (h : PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
+    PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z :=
+  { fixed := fixed
+    C_chem := h.C_chem
+    lowerZero := h.lowerZero
+    upperOld := h.upperOld
+    upperBarrier := h.upperBarrier
+    Cmono := h.Cmono
+    routeA := h.routeA
+    approx := h.approx }
+
+/-- Assemble the dependent output pair after reattaching the fixed source. -/
+def toOutputRouteACore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    {fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z}
+    (h : PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
+    Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W :=
+  h.toAssemblyData.toOutputRouteACore
+
+end PaperStepOutputRouteAFixedRestData
+
 /-- Per-`Z` assembly provider for the current Route-A Green core interface. -/
 def PaperGreenStepInputRouteAAssemblyProvider
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
   ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
     (∀ x, Z x ≤ upperBarrier κ M x) →
       PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z
+
+/-- Per-`Z` Route-A data provider after the fixed source has been constructed
+from the super-trap Banach statement.  The old iterate's supersolution condition
+is an explicit input; it is not derivable from the bare paper producer shape. -/
+def PaperGreenStepInputRouteASuperRestProvider
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  ∀ Z : ℝ → ℝ, (hZc : Continuous Z) → (hZa : Antitone Z) →
+    (hZ0 : ∀ x, 0 ≤ Z x) →
+    (hZB : ∀ x, Z x ≤ upperBarrier κ M x) →
+    (hZsuper : ∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+    (fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z) →
+      PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed
 
 /-- Per-step Green input using Route-A antitonicity data instead of
 `PaperStepAntitoneData.shiftedOneSided`. -/
@@ -1039,6 +1096,18 @@ structure PaperGreenStepInputRouteACore
   hlam : 0 < lam
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W
+
+/-- Route-A Green input with the super-trap precondition threaded into
+`produce`.  This is the satisfiable interface for the Banach fixed-source step:
+the descent orbit supplies `F_u(Z) ≤ 0` inductively, while the bare
+`PaperRotheStepProducer` interface does not carry it. -/
+structure PaperGreenStepInputRouteASuperCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
+  hlam : 0 < lam
+  produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
       Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W
 
 /-- Assemble a Route-A Green core once the fixed-source, barrier, and Route-A
@@ -1052,6 +1121,57 @@ def paperGreenStepInputRouteACore_of_assembly
   produce := by
     intro Z hZc hZa hZ0 hZB
     exact (hstep Z hZc hZa hZ0 hZB).toOutputRouteACore
+
+/-- Assemble the super-core from a concrete super-trap fixed-source existence
+statement plus the remaining non-Banach Route-A data. -/
+def paperGreenStepInputRouteASuperCore_of_fixedSource
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
+    PaperGreenStepInputRouteASuperCore p c lam M κ Λ u where
+  hlam := hlam
+  produce := by
+    intro Z hZc hZa hZ0 hZB hZsuper
+    let fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+      PaperStepFixedSourceCore.of_existsForSuperTrap
+        (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+        (u := u) (Z := Z) hfixed hZc hZa hZ0 hZB hZsuper
+    exact (hrest Z hZc hZa hZ0 hZB hZsuper fixed).toOutputRouteACore
+
+/-- Forget the super-core to the existing Route-A core when the caller can
+produce the supersolution precondition for every trapped old iterate. -/
+def paperGreenStepInputRouteACore_of_superCore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hin : PaperGreenStepInputRouteASuperCore p c lam M κ Λ u)
+    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+        ∀ x, frozenWaveOperator p c u Z x ≤ 0) :
+    PaperGreenStepInputRouteACore p c lam M κ Λ u where
+  hlam := hin.hlam
+  produce := by
+    intro Z hZc hZa hZ0 hZB
+    exact hin.produce Z hZc hZa hZ0 hZB (hZsuper Z hZc hZa hZ0 hZB)
+
+/-- Trap-indexed Route-A core from the concrete fixed-source provider.  The
+additional `hZsuper` argument is the explicitly threaded super-trap precondition
+for the old iterate; without it the bare paper producer interface is too weak to
+call `PaperStepFixedSourceExistsForSuperTrap`. -/
+def paperGreenStepInputRouteACore_of_trap_fixedSource
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (_hu : InMonotoneWaveTrapSet κ M u)
+    (hlam : 0 < lam)
+    (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
+    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+        ∀ x, frozenWaveOperator p c u Z x ≤ 0) :
+    PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+  paperGreenStepInputRouteACore_of_superCore
+    (paperGreenStepInputRouteASuperCore_of_fixedSource
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      (u := u) hlam hfixed hrest)
+    hZsuper
 
 /-- Trap-indexed Route-A Green core assembly.
 

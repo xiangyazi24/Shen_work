@@ -29,8 +29,10 @@
   No placeholder proof commands.
 -/
 import ShenWork.Paper1.WaveRotheStepClose
+import ShenWork.Paper1.WaveRotheMaxPrincipleClosers
 
 open Filter Topology MeasureTheory Real Set
+open scoped BoundedContinuousFunction
 
 noncomputable section
 
@@ -59,6 +61,93 @@ theorem paperWaveOperator_eq_linear_add_paperStepNonlinearity
         + paperStepNonlinearity p u W x := by
   unfold paperWaveOperator paperStepNonlinearity
   ring_nf
+
+/-- Expanded paper source versus the divergence-form cross source.
+
+The two sources are not definitionally the same for a genuinely frozen profile
+`u`: after the product rule and the frozen elliptic identity
+`V'' = V - u^γ`, the mismatch is exactly
+`χ * W^m * (W^γ - u^γ)`.  In the self-frozen case `u = W` this term vanishes. -/
+theorem paperStepSource_sub_crossSource
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ y, 0 ≤ u y)
+    (hW_nonneg : ∀ y, 0 ≤ W y)
+    (hWdiff : ∀ x, DifferentiableAt ℝ W x) (x : ℝ) :
+    paperStepSource p c lam u Z W x - crossSource p lam u Z W x =
+      p.χ * (W x) ^ p.m * ((W x) ^ p.γ - (u x) ^ p.γ) := by
+  have hchem := chemFlux_split_identity
+    (p := p) (u := u) (W := W) (x := x) hu hu_nonneg (hWdiff x)
+  have hVpp :
+      deriv (deriv (frozenElliptic p u)) x =
+        frozenElliptic p u x - (u x) ^ p.γ :=
+    frozenElliptic_deriv_deriv_eq p hu hu_nonneg x
+  have hm_left : (W x) * (W x) ^ (p.m - 1) = (W x) ^ p.m :=
+    mul_rpow_sub_one p.m p.hm (hW_nonneg x)
+  have hm_right : (W x) ^ (p.m - 1) * (W x) = (W x) ^ p.m := by
+    rw [mul_comm, hm_left]
+  have hmg_left :
+      (W x) * (W x) ^ (p.m + p.γ - 1) = (W x) ^ (p.m + p.γ) := by
+    exact mul_rpow_sub_one (p.m + p.γ) (by linarith [p.hm, p.hγ]) (hW_nonneg x)
+  have hmg_add :
+      (W x) ^ (p.m + p.γ) = (W x) ^ p.m * (W x) ^ p.γ := by
+    exact Real.rpow_add_of_nonneg (hW_nonneg x)
+      (by linarith [p.hm] : 0 ≤ p.m) (by linarith [p.hγ] : 0 ≤ p.γ)
+  have hm_nf : (W x) ^ (-1 + p.m) * (W x) = (W x) ^ p.m := by
+    have hexp : -1 + p.m = p.m - 1 := by ring
+    rw [hexp, hm_right]
+  have hmg_nf :
+      (W x) * (W x) ^ (-1 + p.m + p.γ) =
+        (W x) ^ p.m * (W x) ^ p.γ := by
+    calc
+      (W x) * (W x) ^ (-1 + p.m + p.γ)
+          = (W x) * (W x) ^ (p.m + p.γ - 1) := by
+            congr 1
+            ring_nf
+      _ = (W x) ^ (p.m + p.γ) := hmg_left
+      _ = (W x) ^ p.m * (W x) ^ p.γ := hmg_add
+  have hm_nf_mul :
+      p.χ * (W x) ^ (-1 + p.m) * (W x) * frozenElliptic p u x =
+        p.χ * (W x) ^ p.m * frozenElliptic p u x := by
+    calc
+      p.χ * (W x) ^ (-1 + p.m) * (W x) * frozenElliptic p u x
+          = p.χ * ((W x) ^ (-1 + p.m) * (W x)) *
+              frozenElliptic p u x := by ring
+      _ = p.χ * (W x) ^ p.m * frozenElliptic p u x := by rw [hm_nf]
+  have hmg_nf_mul :
+      p.χ * (W x) * (W x) ^ (-1 + p.m + p.γ) =
+        p.χ * (W x) ^ p.m * (W x) ^ p.γ := by
+    calc
+      p.χ * (W x) * (W x) ^ (-1 + p.m + p.γ)
+          = p.χ * ((W x) * (W x) ^ (-1 + p.m + p.γ)) := by ring
+      _ = p.χ * ((W x) ^ p.m * (W x) ^ p.γ) := by rw [hmg_nf]
+      _ = p.χ * (W x) ^ p.m * (W x) ^ p.γ := by ring
+  have hchem_raw :
+      deriv (fun t => (W t) ^ p.m * deriv (frozenElliptic p u) t) x =
+        p.m * deriv (frozenElliptic p u) x * (W x) ^ (p.m - 1) * deriv W x
+          + (W x) ^ p.m * deriv (deriv (frozenElliptic p u)) x := by
+    simpa [chemFlux] using hchem
+  unfold paperStepSource paperStepNonlinearity crossSource reactionFun
+  rw [hchem_raw, hVpp]
+  ring_nf
+  rw [hm_nf_mul, hmg_nf_mul]
+  ring
+
+/-- In the self-frozen case `u = W`, the expanded paper source agrees with the
+committed divergence-form `crossSource`.  This is the only direct-reuse case for
+the existing cross-step Banach fixed point. -/
+theorem paperStepSource_eq_crossSource_self
+    (p : CMParams) (c lam : ℝ) {Z W : ℝ → ℝ}
+    (hW : IsCUnifBdd W) (hW_nonneg : ∀ y, 0 ≤ W y)
+    (hWdiff : ∀ x, DifferentiableAt ℝ W x) :
+    paperStepSource p c lam W Z W = crossSource p lam W Z W := by
+  funext x
+  have hdiff := paperStepSource_sub_crossSource
+    (p := p) (c := c) (lam := lam) (u := W) (Z := Z) (W := W)
+    hW hW_nonneg hW_nonneg hWdiff x
+  have hzero :
+      p.χ * (W x) ^ p.m * ((W x) ^ p.γ - (W x) ^ p.γ) = 0 := by
+    ring
+  linarith
 
 /-- `greenConv c lam H` solves `L_lam w = -H`, with genuine derivatives. -/
 theorem greenConv_variation_negative
@@ -1600,6 +1689,490 @@ def PaperStepFixedSourceExistsForSuperTrap
           Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
         R = paperStepSource p c lam u Z
           (fun x => greenConv c lam R x)
+
+/-- Repackage the super-trap fixed-source existence statement as the concrete
+core consumed by the Route-A paper step assembly. -/
+def PaperStepFixedSourceCore.of_existsForSuperTrap
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (hfixed : PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u)
+    (hZc : Continuous Z) (hZa : Antitone Z) (hZ0 : ∀ x, 0 ≤ Z x)
+    (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
+    (hZsuper : ∀ x, frozenWaveOperator p c u Z x ≤ 0) :
+    PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+  let hex := hfixed Z hZc hZa hZ0 hZB hZsuper
+  let R : ℝ → ℝ := Classical.choose hex
+  have hRspec :
+      Continuous R ∧
+        (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
+          Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
+        R = paperStepSource p c lam u Z
+          (fun x => greenConv c lam R x) :=
+    Classical.choose_spec hex
+  let B : ℝ := Classical.choose hRspec.2.1
+  have hBspec : (∀ y, |R y| ≤ B) ∧ Λ = 2 * (greenDelta c lam)⁻¹ * B :=
+    Classical.choose_spec hRspec.2.1
+  { R := R
+    source_eq := hRspec.2.2
+    R_cont := hRspec.1
+    R_bound_const := B
+    R_bound := hBspec.1
+    R_bound_eq := hBspec.2 }
+
+/-! ## Banach fixed-source plumbing
+
+The next lemmas close the metric fixed-point part once the remaining analytic
+source obligations have been supplied explicitly: the source is continuous and
+uniformly bounded as a bounded-continuous function, and its pointwise difference
+is Lipschitz in the Green profile and its first derivative. -/
+
+/-- Sup-norm resolvent estimate for the Green convolution on bounded continuous
+sources:
+`‖greenConv(R₁-R₂)‖∞ ≤ λ⁻¹ ‖R₁-R₂‖∞`. -/
+theorem greenConv_abs_le_of_bcf_dist
+    (hlam : 0 < lam) (R₁ R₂ : ℝ →ᵇ ℝ) (x : ℝ) :
+    |greenConv c lam (fun y => R₁ y - R₂ y) x| ≤ lam⁻¹ * dist R₁ R₂ := by
+  let H : ℝ →ᵇ ℝ := R₁ - R₂
+  have hHcont : Continuous (fun y : ℝ => R₁ y - R₂ y) := by
+    simpa [H, BoundedContinuousFunction.sub_apply] using H.continuous
+  have hHbound : ∀ y : ℝ, |R₁ y - R₂ y| ≤ ‖R₁ - R₂‖ := by
+    intro y
+    simpa [Real.norm_eq_abs, BoundedContinuousFunction.sub_apply] using
+      (R₁ - R₂).norm_coe_le_norm y
+  have hraw :
+      (∫ y, greenKernel c lam (x - y) * (R₁ y - R₂ y)) =
+        greenConv c lam (fun y => R₁ y - R₂ y) x :=
+    greenConv_raw_eq_of_bounded
+      (c := c) (lam := lam) hlam hHcont hHbound x
+  rw [← hraw]
+  have hker :
+      |kernelConvVal (greenKernel c lam) H x|
+        ≤ (∫ z, |greenKernel c lam z|) * ‖H‖ :=
+    kernelConvVal_abs_le (K := greenKernel c lam)
+      (greenKernel_integrable (c := c) hlam) H x
+  have hdist : ‖H‖ = dist R₁ R₂ := by
+    simp [H, dist_eq_norm]
+  calc
+    |∫ y, greenKernel c lam (x - y) * (R₁ y - R₂ y)|
+        = |kernelConvVal (greenKernel c lam) H x| := by rfl
+    _ ≤ (∫ z, |greenKernel c lam z|) * ‖H‖ := hker
+    _ = lam⁻¹ * dist R₁ R₂ := by
+      rw [greenKernel_l1_eq (c := c) hlam, hdist]
+
+/-- Sup-norm estimate for the derivative Green kernel on bounded continuous
+source differences:
+`‖greenConvDeriv(R₁-R₂)‖∞ ≤ 2/δ · ‖R₁-R₂‖∞`. -/
+theorem greenConvDeriv_abs_le_of_bcf_dist
+    (hlam : 0 < lam) (R₁ R₂ : ℝ →ᵇ ℝ) (x : ℝ) :
+    |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|
+      ≤ 2 * (greenDelta c lam)⁻¹ * dist R₁ R₂ := by
+  let H : ℝ →ᵇ ℝ := R₁ - R₂
+  have hHcont : Continuous (fun y : ℝ => R₁ y - R₂ y) := by
+    simpa [H, BoundedContinuousFunction.sub_apply] using H.continuous
+  have hHbound : ∀ y : ℝ, |R₁ y - R₂ y| ≤ ‖R₁ - R₂‖ := by
+    intro y
+    simpa [Real.norm_eq_abs, BoundedContinuousFunction.sub_apply] using
+      (R₁ - R₂).norm_coe_le_norm y
+  have hHi : ∀ x,
+      IntegrableOn
+        (gWeight (greenRootPlus c lam) (fun y : ℝ => R₁ y - R₂ y)) (Ioi x) :=
+    fun x => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hHcont hHbound x
+  have hLo : ∀ x,
+      IntegrableOn
+        (gWeight (greenRootMinus c lam) (fun y : ℝ => R₁ y - R₂ y)) (Iic x) :=
+    fun x => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hHcont hHbound x
+  have hderiv :=
+    greenConvDeriv_abs_le (c := c) (lam := lam) hlam hHbound hHi hLo x
+  have hdist : ‖R₁ - R₂‖ = dist R₁ R₂ := by
+    simp [dist_eq_norm]
+  simpa [hdist] using hderiv
+
+/-- The λZ term in the paper source is independent of the fixed-source unknown
+and cancels in source differences. -/
+theorem paperStepSource_sub_cancel_linear
+    (p : CMParams) (c lam : ℝ) (u Z W₁ W₂ : ℝ → ℝ) (x : ℝ) :
+    paperStepSource p c lam u Z W₁ x - paperStepSource p c lam u Z W₂ x =
+      paperStepNonlinearity p u W₁ x - paperStepNonlinearity p u W₂ x := by
+  unfold paperStepSource
+  ring
+
+/-- The raw fixed-source map
+`R ↦ paperStepSource p c lam u Z (greenConv R)`. -/
+def paperStepFixedSourceRawMap
+    (p : CMParams) (c lam : ℝ) (u Z : ℝ → ℝ) (R : ℝ →ᵇ ℝ) : ℝ → ℝ :=
+  paperStepSource p c lam u Z (fun x => greenConv c lam R x)
+
+/-- Bundle the fixed-source map as a bounded continuous self-map, using an
+explicit uniform source bound. -/
+def paperStepFixedSourceBCF
+    (p : CMParams) (c lam : ℝ) (u Z : ℝ → ℝ)
+    (B : ℝ)
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B) :
+    (ℝ →ᵇ ℝ) → (ℝ →ᵇ ℝ) :=
+  fun R =>
+    BoundedContinuousFunction.ofNormedAddCommGroup
+      (paperStepFixedSourceRawMap p c lam u Z R)
+      (hcont R) B
+      (fun x => by
+        simpa [Real.norm_eq_abs] using hbound R x)
+
+@[simp] theorem paperStepFixedSourceBCF_apply
+    (p : CMParams) (c lam : ℝ) (u Z : ℝ → ℝ)
+    (B : ℝ)
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (R : ℝ →ᵇ ℝ) (x : ℝ) :
+    paperStepFixedSourceBCF p c lam u Z B hcont hbound R x =
+      paperStepFixedSourceRawMap p c lam u Z R x := rfl
+
+/-- If the paper source is pointwise Lipschitz in the Green profile and its
+first derivative, then the fixed-source map is a sup-norm contraction with
+constant bounded by `Ls * (λ⁻¹ + 2/δ)`.
+
+The hypothesis `hsourceLip` is the precise first-order source obligation:
+the `lam * Z` term has cancelled, and only `greenConv(R₁-R₂)` plus
+`greenConvDeriv(R₁-R₂)` may appear. -/
+theorem paperStepFixedSourceBCF_pointwise_dist_le
+    (hlam : 0 < lam) {p : CMParams} {u Z : ℝ → ℝ}
+    {B Ls : ℝ} {K : NNReal}
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hLs0 : 0 ≤ Ls)
+    (_hKlt : K < 1)
+    (hfactorK : Ls * (lam⁻¹ + 2 * (greenDelta c lam)⁻¹) ≤ (K : ℝ))
+    (hsourceLip : ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R₁ x -
+          paperStepFixedSourceRawMap p c lam u Z R₂ x|
+        ≤ Ls *
+          (|greenConv c lam (fun y => R₁ y - R₂ y) x| +
+            |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|)) :
+    ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      dist (paperStepFixedSourceBCF p c lam u Z B hcont hbound R₁ x)
+        (paperStepFixedSourceBCF p c lam u Z B hcont hbound R₂ x)
+        ≤ (K : ℝ) * dist R₁ R₂ := by
+  intro R₁ R₂ x
+  rw [paperStepFixedSourceBCF_apply, paperStepFixedSourceBCF_apply, Real.dist_eq]
+  have hW := greenConv_abs_le_of_bcf_dist (c := c) (lam := lam) hlam R₁ R₂ x
+  have hP := greenConvDeriv_abs_le_of_bcf_dist (c := c) (lam := lam) hlam R₁ R₂ x
+  have hsum :
+      |greenConv c lam (fun y => R₁ y - R₂ y) x| +
+          |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|
+        ≤ lam⁻¹ * dist R₁ R₂ +
+          (2 * (greenDelta c lam)⁻¹ * dist R₁ R₂) :=
+    add_le_add hW hP
+  have hsource := hsourceLip R₁ R₂ x
+  have hmul :
+      Ls *
+          (|greenConv c lam (fun y => R₁ y - R₂ y) x| +
+            |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|)
+        ≤ Ls *
+          (lam⁻¹ * dist R₁ R₂ +
+            (2 * (greenDelta c lam)⁻¹ * dist R₁ R₂)) :=
+    mul_le_mul_of_nonneg_left hsum hLs0
+  have hfactor :
+      Ls *
+          (lam⁻¹ * dist R₁ R₂ +
+            (2 * (greenDelta c lam)⁻¹ * dist R₁ R₂))
+        = (Ls * (lam⁻¹ + 2 * (greenDelta c lam)⁻¹)) * dist R₁ R₂ := by
+    ring
+  have hKmul :
+      (Ls * (lam⁻¹ + 2 * (greenDelta c lam)⁻¹)) * dist R₁ R₂
+        ≤ (K : ℝ) * dist R₁ R₂ :=
+    mul_le_mul_of_nonneg_right hfactorK dist_nonneg
+  exact hsource.trans (hmul.trans (le_trans (le_of_eq hfactor) hKmul))
+
+/-- Cross-factor version of the paper fixed-source pointwise estimate.
+
+This is the direct bridge to the existing `WaveRotheStep` contraction factor:
+the paper source may be bounded by the reaction coefficient times the Green
+profile difference plus the chemotaxis coefficient times the derivative Green
+profile difference, and the two resolvent estimates collapse to the committed
+`crossContractionFactor`. -/
+theorem paperStepFixedSourceBCF_pointwise_dist_le_crossFactor
+    (hlam : 0 < lam) {p : CMParams} {u Z : ℝ → ℝ}
+    {B Msrc Bv : ℝ}
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hMsrc : 0 ≤ Msrc) (hBv : 0 ≤ Bv)
+    (hsourceLip : ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R₁ x -
+          paperStepFixedSourceRawMap p c lam u Z R₂ x|
+        ≤ reactionLip p.α Msrc *
+            |greenConv c lam (fun y => R₁ y - R₂ y) x| +
+          |p.χ| * rpowLip p.m Msrc * Bv *
+            |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|) :
+    ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      dist (paperStepFixedSourceBCF p c lam u Z B hcont hbound R₁ x)
+        (paperStepFixedSourceBCF p c lam u Z B hcont hbound R₂ x)
+        ≤ crossContractionFactor p Msrc Bv lam (greenDelta c lam) *
+          dist R₁ R₂ := by
+  intro R₁ R₂ x
+  rw [paperStepFixedSourceBCF_apply, paperStepFixedSourceBCF_apply, Real.dist_eq]
+  have hW := greenConv_abs_le_of_bcf_dist (c := c) (lam := lam) hlam R₁ R₂ x
+  have hP := greenConvDeriv_abs_le_of_bcf_dist (c := c) (lam := lam) hlam R₁ R₂ x
+  have hRxn0 : 0 ≤ reactionLip p.α Msrc :=
+    reactionLip_nonneg p.hα hMsrc
+  have hChem0 : 0 ≤ |p.χ| * rpowLip p.m Msrc * Bv := by
+    have hm0 : 0 ≤ rpowLip p.m Msrc := rpowLip_nonneg p.hm hMsrc
+    positivity
+  have htermW :
+      reactionLip p.α Msrc *
+          |greenConv c lam (fun y => R₁ y - R₂ y) x|
+        ≤ reactionLip p.α Msrc * (lam⁻¹ * dist R₁ R₂) :=
+    mul_le_mul_of_nonneg_left hW hRxn0
+  have htermP :
+      |p.χ| * rpowLip p.m Msrc * Bv *
+          |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|
+        ≤ |p.χ| * rpowLip p.m Msrc * Bv *
+          (2 * (greenDelta c lam)⁻¹ * dist R₁ R₂) :=
+    mul_le_mul_of_nonneg_left hP hChem0
+  calc
+    |paperStepFixedSourceRawMap p c lam u Z R₁ x -
+        paperStepFixedSourceRawMap p c lam u Z R₂ x|
+        ≤ reactionLip p.α Msrc *
+            |greenConv c lam (fun y => R₁ y - R₂ y) x| +
+          |p.χ| * rpowLip p.m Msrc * Bv *
+            |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x| :=
+          hsourceLip R₁ R₂ x
+    _ ≤ reactionLip p.α Msrc * (lam⁻¹ * dist R₁ R₂) +
+          |p.χ| * rpowLip p.m Msrc * Bv *
+            (2 * (greenDelta c lam)⁻¹ * dist R₁ R₂) :=
+          add_le_add htermW htermP
+    _ = crossContractionFactor p Msrc Bv lam (greenDelta c lam) *
+          dist R₁ R₂ := by
+          unfold crossContractionFactor
+          ring
+
+/-- The paper fixed-source path reuses the committed large-`λ` smallness
+lemma for the cross contraction factor. -/
+theorem paperStepFixedSource_crossContractionFactor_lt_one_of_large_lambda
+    (p : CMParams) {Msrc Bv : ℝ} (hMsrc : 0 ≤ Msrc) (hBv : 0 ≤ Bv)
+    (c : ℝ) :
+    ∀ᶠ lam in Filter.atTop,
+      crossContractionFactor p Msrc Bv lam (greenDelta c lam) < 1 :=
+  crossContractionFactor_lt_one_of_large_lambda p hMsrc hBv c
+
+/-- If the paper source is pointwise Lipschitz in the Green profile and its
+first derivative, then the fixed-source map is a sup-norm contraction with
+constant bounded by `Ls * (λ⁻¹ + 2/δ)`. -/
+theorem paperStepFixedSourceBCF_contracting
+    (hlam : 0 < lam) {p : CMParams} {u Z : ℝ → ℝ}
+    {B Ls : ℝ} {K : NNReal}
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hLs0 : 0 ≤ Ls)
+    (hKlt : K < 1)
+    (hfactorK : Ls * (lam⁻¹ + 2 * (greenDelta c lam)⁻¹) ≤ (K : ℝ))
+    (hsourceLip : ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R₁ x -
+          paperStepFixedSourceRawMap p c lam u Z R₂ x|
+        ≤ Ls *
+          (|greenConv c lam (fun y => R₁ y - R₂ y) x| +
+            |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|)) :
+    ContractingWith K (paperStepFixedSourceBCF p c lam u Z B hcont hbound) := by
+  exact contractingWith_of_pointwise_dist_le
+    (Φ := paperStepFixedSourceBCF p c lam u Z B hcont hbound) hKlt
+    (paperStepFixedSourceBCF_pointwise_dist_le
+      (c := c) (lam := lam) hlam hcont hbound hLs0 hKlt hfactorK hsourceLip)
+
+/-- Banach fixed point for the bundled paper fixed-source map, returning the
+`PaperStepFixedSourceCore` required by the downstream Green bookkeeping. -/
+def paperStepFixedSourceCore_of_banach
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    {B : ℝ} {K : NNReal}
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B)
+    (hcontr :
+      ContractingWith K (paperStepFixedSourceBCF p c lam u Z B hcont hbound)) :
+    PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+  let Φ := paperStepFixedSourceBCF p c lam u Z B hcont hbound
+  let Rb : ℝ →ᵇ ℝ := ContractingWith.fixedPoint Φ hcontr
+  have hfix : Function.IsFixedPt Φ Rb := hcontr.fixedPoint_isFixedPt
+  { R := Rb
+    source_eq := by
+      funext x
+      have hx : Φ Rb x = Rb x := by
+        simpa using congrArg (fun R : ℝ →ᵇ ℝ => R x) (show Φ Rb = Rb from hfix)
+      exact hx.symm
+    R_cont := Rb.continuous
+    R_bound_const := B
+    R_bound := by
+      intro y
+      have hx : Φ Rb y = Rb y := by
+        simpa using congrArg (fun R : ℝ →ᵇ ℝ => R y) (show Φ Rb = Rb from hfix)
+      rw [← hx]
+      exact hbound Rb y
+    R_bound_eq := hΛ }
+
+/-- Banach fixed point for the bundled paper fixed-source map using the
+committed `crossImplicitStep_exists_unique` plumbing.  The theorem name is
+cross-step historical, but its statement is the generic BCF contraction fixed
+point and is reused here with the paper fixed-source map as `Φ`. -/
+def paperStepFixedSourceCore_of_crossImplicitStep
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    {B : ℝ} {K : NNReal}
+    (hcont : ∀ R : ℝ →ᵇ ℝ,
+      Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B)
+    (hKlt : K < 1)
+    (hpoint : ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+      dist (paperStepFixedSourceBCF p c lam u Z B hcont hbound R₁ x)
+        (paperStepFixedSourceBCF p c lam u Z B hcont hbound R₂ x)
+        ≤ (K : ℝ) * dist R₁ R₂) :
+    PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+  let Φ := paperStepFixedSourceBCF p c lam u Z B hcont hbound
+  let huniq : ∃! Rb : ℝ →ᵇ ℝ, Φ Rb = Rb :=
+    crossImplicitStep_exists_unique (Φ := Φ) hKlt hpoint
+  let Rb : ℝ →ᵇ ℝ := Classical.choose huniq
+  have hfix : Φ Rb = Rb := (Classical.choose_spec huniq).1
+  { R := Rb
+    source_eq := by
+      funext x
+      have hx : Φ Rb x = Rb x := by
+        simpa using congrArg (fun R : ℝ →ᵇ ℝ => R x) hfix
+      exact hx.symm
+    R_cont := Rb.continuous
+    R_bound_const := B
+    R_bound := by
+      intro y
+      have hx : Φ Rb y = Rb y := by
+        simpa using congrArg (fun R : ℝ →ᵇ ℝ => R y) hfix
+      rw [← hx]
+      exact hbound Rb y
+    R_bound_eq := hΛ }
+
+/-- Fixed-source existence from a first-order source Lipschitz estimate and a
+Banach smallness constant.  This is the direct discharge target for
+`PaperStepFixedSourceExistsForSuperTrap`, modulo the explicitly stated source
+continuity, uniform boundedness, and first-order Lipschitz obligations. -/
+theorem PaperStepFixedSourceExistsForSuperTrap.of_banach
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hlam : 0 < lam) {B Ls : ℝ} {K : NNReal}
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B)
+    (hLs0 : 0 ≤ Ls)
+    (hKlt : K < 1)
+    (hfactorK : Ls * (lam⁻¹ + 2 * (greenDelta c lam)⁻¹) ≤ (K : ℝ))
+    (hcont : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        ∀ R : ℝ →ᵇ ℝ,
+          Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+          |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hsourceLip : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+          |paperStepFixedSourceRawMap p c lam u Z R₁ x -
+              paperStepFixedSourceRawMap p c lam u Z R₂ x|
+            ≤ Ls *
+              (|greenConv c lam (fun y => R₁ y - R₂ y) x| +
+                |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|)) :
+    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
+  intro Z hZc hZa hZ0 hZB hZsuper
+  let hcontZ := hcont Z hZc hZa hZ0 hZB hZsuper
+  let hboundZ := hbound Z hZc hZa hZ0 hZB hZsuper
+  have hpoint :
+      ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+        dist (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₁ x)
+          (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₂ x)
+          ≤ (K : ℝ) * dist R₁ R₂ :=
+    paperStepFixedSourceBCF_pointwise_dist_le
+      (c := c) (lam := lam) hlam hcontZ hboundZ hLs0 hKlt hfactorK
+      (hsourceLip Z hZc hZa hZ0 hZB hZsuper)
+  let core : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+    paperStepFixedSourceCore_of_crossImplicitStep
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      hcontZ hboundZ hΛ hKlt hpoint
+  exact ⟨core.R, core.R_cont,
+    ⟨core.R_bound_const, core.R_bound, core.R_bound_eq⟩, core.source_eq⟩
+
+/-- Fixed-source existence from the committed cross contraction factor.
+
+This is the concrete Banach route for paper fixed-source data when the source
+difference has the same reaction/chemotaxis split as `crossSource`: the
+pointwise estimate is converted to `crossContractionFactor`, the factor is
+bundled as an `NNReal`, and the fixed point is obtained through
+`crossImplicitStep_exists_unique`. -/
+theorem PaperStepFixedSourceExistsForSuperTrap.of_banach_crossFactor
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hlam : 0 < lam) {B Msrc Bv : ℝ}
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B)
+    (hMsrc : 0 ≤ Msrc) (hBv : 0 ≤ Bv)
+    (hfactor :
+      crossContractionFactor p Msrc Bv lam (greenDelta c lam) < 1)
+    (hcont : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        ∀ R : ℝ →ᵇ ℝ,
+          Continuous (paperStepFixedSourceRawMap p c lam u Z R))
+    (hbound : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        ∀ R : ℝ →ᵇ ℝ, ∀ x : ℝ,
+          |paperStepFixedSourceRawMap p c lam u Z R x| ≤ B)
+    (hsourceLip : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+          |paperStepFixedSourceRawMap p c lam u Z R₁ x -
+              paperStepFixedSourceRawMap p c lam u Z R₂ x|
+            ≤ reactionLip p.α Msrc *
+                |greenConv c lam (fun y => R₁ y - R₂ y) x| +
+              |p.χ| * rpowLip p.m Msrc * Bv *
+                |greenConvDeriv c lam (fun y => R₁ y - R₂ y) x|) :
+    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
+  intro Z hZc hZa hZ0 hZB hZsuper
+  let hcontZ := hcont Z hZc hZa hZ0 hZB hZsuper
+  let hboundZ := hbound Z hZc hZa hZ0 hZB hZsuper
+  let K : NNReal :=
+    ⟨crossContractionFactor p Msrc Bv lam (greenDelta c lam),
+      crossContractionFactor_nonneg p hMsrc hBv hlam
+        (greenDelta_pos (c := c) hlam)⟩
+  have hKlt : K < 1 := by
+    apply NNReal.coe_lt_coe.mp
+    simpa [K] using hfactor
+  have hpoint :
+      ∀ R₁ R₂ : ℝ →ᵇ ℝ, ∀ x : ℝ,
+        dist (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₁ x)
+          (paperStepFixedSourceBCF p c lam u Z B hcontZ hboundZ R₂ x)
+          ≤ (K : ℝ) * dist R₁ R₂ := by
+    simpa [K] using
+      paperStepFixedSourceBCF_pointwise_dist_le_crossFactor
+        (c := c) (lam := lam) hlam hcontZ hboundZ hMsrc hBv
+        (hsourceLip Z hZc hZa hZ0 hZB hZsuper)
+  let core : PaperStepFixedSourceCore p c lam M κ Λ u Z :=
+    paperStepFixedSourceCore_of_crossImplicitStep
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      hcontZ hboundZ hΛ hKlt hpoint
+  exact ⟨core.R, core.R_cont,
+    ⟨core.R_bound_const, core.R_bound, core.R_bound_eq⟩, core.source_eq⟩
 
 /-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
 continuous source data. -/
