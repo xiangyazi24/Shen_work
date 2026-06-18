@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WavePaperTermConvergence
+import ShenWork.Paper1.WaveTrapProps
 import ShenWork.Paper1.WaveRotheStationary
 import Mathlib.Topology.Order.MonotoneConvergence
 
@@ -36,6 +37,314 @@ def PaperRotheStepLimitPassage
   ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
     LocallyUniformConverges (rotheSeq U) U →
       PaperImplicitStepLimitPassage p c lam U (rotheSeq U)
+
+/-- A `C²` compact convergence certificate gives `C²` regularity of its limit by
+passing derivatives through locally uniform convergence.  This is the vertical
+Rothe-limit route, not the stationary limit's own Green representation. -/
+theorem stationaryC2Regularity_of_c2CompactConvergence
+    {p : CMParams} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hc2 : PaperC2CompactConvergence p U z) :
+    Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+  have hU_deriv : ∀ x, HasDerivAt U (deriv U x) x := by
+    intro x
+    have hderiv :
+        TendstoLocallyUniformlyOn
+          (fun k x => deriv (z (k + 1)) x)
+          (fun x => deriv U x) atTop (Set.univ : Set ℝ) :=
+      hc2.deriv1.tendstoLocallyUniformlyOn_univ
+    have hstep :
+        ∀ᶠ k : ℕ in atTop,
+          ∀ y : ℝ, y ∈ (Set.univ : Set ℝ) →
+            HasDerivAt (z (k + 1)) (deriv (z (k + 1)) y) y := by
+      exact Eventually.of_forall fun k y _hy => hc2.step_hasDeriv_value k y
+    have hpoint :
+        ∀ y : ℝ, y ∈ (Set.univ : Set ℝ) →
+          Tendsto (fun k : ℕ => z (k + 1) y) atTop (𝓝 (U y)) := by
+      intro y _hy
+      exact hc2.value.tendsto_at y
+    exact hasDerivAt_of_tendstoLocallyUniformlyOn
+      (𝕜 := ℝ) (l := atTop) (s := (Set.univ : Set ℝ))
+      (f := fun k : ℕ => z (k + 1)) (g := U)
+      (f' := fun k x => deriv (z (k + 1)) x)
+      (g' := fun x => deriv U x) isOpen_univ hderiv hstep hpoint
+      (Set.mem_univ x)
+  have hderivU_deriv :
+      ∀ x, HasDerivAt (fun y => deriv U y) (iteratedDeriv 2 U x) x := by
+    intro x
+    have hderiv2 :
+        TendstoLocallyUniformlyOn
+          (fun k x => iteratedDeriv 2 (z (k + 1)) x)
+          (fun x => iteratedDeriv 2 U x) atTop (Set.univ : Set ℝ) :=
+      hc2.deriv2.tendstoLocallyUniformlyOn_univ
+    have hstep :
+        ∀ᶠ k : ℕ in atTop,
+          ∀ y : ℝ, y ∈ (Set.univ : Set ℝ) →
+            HasDerivAt (fun t => deriv (z (k + 1)) t)
+              (iteratedDeriv 2 (z (k + 1)) y) y := by
+      exact Eventually.of_forall fun k y _hy => hc2.step_hasDeriv_deriv k y
+    have hpoint :
+        ∀ y : ℝ, y ∈ (Set.univ : Set ℝ) →
+          Tendsto (fun k : ℕ => deriv (z (k + 1)) y) atTop
+            (𝓝 (deriv U y)) := by
+      intro y _hy
+      exact hc2.deriv1.tendsto_at y
+    exact hasDerivAt_of_tendstoLocallyUniformlyOn
+      (𝕜 := ℝ) (l := atTop) (s := (Set.univ : Set ℝ))
+      (f := fun k : ℕ => fun y => deriv (z (k + 1)) y)
+      (g := fun y => deriv U y)
+      (f' := fun k x => iteratedDeriv 2 (z (k + 1)) x)
+      (g' := fun x => iteratedDeriv 2 U x) isOpen_univ hderiv2 hstep
+      hpoint (Set.mem_univ x)
+  exact ⟨fun x => (hU_deriv x).differentiableAt,
+    fun x => (hderivU_deriv x).differentiableAt⟩
+
+/-- Discharge the stationary `C²` regularity frontier from a profile-wise
+`C²` compact convergence floor for the Rothe iterates. -/
+theorem stationaryC2RegularityFromEquation_of_c2CompactConvergence
+    {p : CMParams} {c κ M : ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hc2 :
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        (∀ x, frozenWaveOperator p c U U x = 0) →
+          PaperC2CompactConvergence p U (rotheSeq U)) :
+    StationaryC2RegularityFromEquation p c κ M := by
+  intro U hU hstat
+  exact stationaryC2Regularity_of_c2CompactConvergence (hc2 U hU hstat)
+
+/-- The same regularity frontier when the compact convergence certificate is
+produced from uniform Green/ODE bounds. -/
+theorem stationaryC2RegularityFromEquation_of_c2CompactUniformBounds
+    {p : CMParams} {c κ M : ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hLU :
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        (∀ x, frozenWaveOperator p c U U x = 0) →
+          LocallyUniformConverges (rotheSeq U) U)
+    (hbounds :
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        (∀ x, frozenWaveOperator p c U U x = 0) →
+          PaperC2CompactUniformBounds p U (rotheSeq U)) :
+    StationaryC2RegularityFromEquation p c κ M :=
+  stationaryC2RegularityFromEquation_of_c2CompactConvergence
+    (fun U hU hstat =>
+      paperC2CompactConvergence_of_uniformBounds
+        (hLU U hU hstat) (hbounds U hU hstat))
+
+/-- Strong maximum principle closed from the vertical `C²` compact convergence
+floor, avoiding the stationary profile's self-Green representation and the
+traveling-wave ODE route. -/
+theorem stationaryStrongMaxPrinciple_of_c2CompactConvergence
+    {p : CMParams} {c κ M : ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hM : 0 < M)
+    (hc2 :
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        (∀ x, frozenWaveOperator p c U U x = 0) →
+          PaperC2CompactConvergence p U (rotheSeq U)) :
+    StationaryStrongMaxPrinciple p c κ M :=
+  stationaryStrongMaxPrinciple_of_trap_regularity hM
+    (stationaryC2RegularityFromEquation_of_c2CompactConvergence hc2)
+
+theorem stationaryStrongMaxPrinciple_of_c2CompactUniformBounds
+    {p : CMParams} {c κ M : ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hM : 0 < M)
+    (hLU :
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        (∀ x, frozenWaveOperator p c U U x = 0) →
+          LocallyUniformConverges (rotheSeq U) U)
+    (hbounds :
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        (∀ x, frozenWaveOperator p c U U x = 0) →
+          PaperC2CompactUniformBounds p U (rotheSeq U)) :
+    StationaryStrongMaxPrinciple p c κ M :=
+  stationaryStrongMaxPrinciple_of_trap_regularity hM
+    (stationaryC2RegularityFromEquation_of_c2CompactUniformBounds hLU hbounds)
+
+/-- Construction-site data for threading the stationary Green representation
+from a Rothe orbit: the shifted iterates are Green convolutions of sources
+`Rseq k`, the sources converge to the stationary diagonal cross source, and the
+stationary cross-map Green bookkeeping is available. -/
+structure StationaryGreenRepresentationThreadData
+    (p : CMParams) (c lam : ℝ) (U : ℝ → ℝ)
+    (z Rseq : ℕ → ℝ → ℝ) : Prop where
+  cross_data : StationaryCrossGreenData p c lam U
+  step_green : ∀ k, z (k + 1) = fun x => greenConv c lam (Rseq k) x
+  source_cont : ∀ k, Continuous (Rseq k)
+  source_limit_cont : Continuous (crossSource p lam U U U)
+  source_bound : ∃ B : ℝ,
+    (∀ k y, |Rseq k y| ≤ B) ∧
+      ∀ y, |crossSource p lam U U U y| ≤ B
+  source_limit : LocallyUniformConverges Rseq (crossSource p lam U U U)
+
+/-- Build the Green-thread data from the actual per-step analytic package and
+`C²` compact convergence of the Rothe iterates.  The source convergence is the
+expanded paper source convergence, transported across
+`paperStepSource_self_eq_crossSource` on the diagonal. -/
+theorem stationaryGreenRepresentationThreadData_of_c2_greenStep
+    {p : CMParams} {c lam κ M Λ : ℝ} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hLU : LocallyUniformConverges z U)
+    (hstep : ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hc2 : PaperC2CompactConvergence p U z)
+    (hcross : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B) :
+    StationaryGreenRepresentationThreadData p c lam U z
+      (fun k => (hstep k).R) := by
+  obtain ⟨BR, hBR⟩ := hR_bound
+  have hdiag :
+      paperStepSource p c lam U U U = crossSource p lam U U U :=
+    paperStepSource_self_eq_crossSource
+      (p := p) (c := c) (lam := lam) (U := U)
+      hU.trap.cunif_bdd hU.nonneg hc2.limit_hasDeriv_value
+  have hsource_paper :
+      LocallyUniformConverges
+        (fun k => paperStepSource p c lam U (z k) (z (k + 1)))
+        (crossSource p lam U U U) := by
+    simpa [hdiag] using
+      hc2.paperStepSource_locallyUniform (c := c) (lam := lam) hLU
+  have hsource_eq :
+      ∀ᶠ k : ℕ in atTop,
+        paperStepSource p c lam U (z k) (z (k + 1)) = (hstep k).R :=
+    Eventually.of_forall fun k => (hstep k).source_eq.symm
+  refine
+    { cross_data := hcross
+      step_green := ?_
+      source_cont := ?_
+      source_limit_cont := hR_cont
+      source_bound := ?_
+      source_limit := ?_ }
+  · intro k
+    exact (hstep k).green_repr
+  · intro k
+    exact (hstep k).R_cont
+  · refine ⟨max (paperStepRBoundFromLambda c lam Λ) BR, ?_, ?_⟩
+    · intro k y
+      exact le_trans
+        (paperStep_R_abs_le_from_lambda
+          (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+          hlam (hstep k) y)
+        (le_max_left _ _)
+    · intro y
+      exact le_trans (hBR y) (le_max_right _ _)
+  · exact LocallyUniformConverges.congr hsource_eq hsource_paper
+
+/-- Single-profile Rothe-limit threading of the stationary Green
+representation.  The proof uses the per-step Green representations and DCT
+continuity of `greenConv`; it does not invert the stationary differential
+equation for an abstract `U`. -/
+theorem stationaryGreenRepresentation_profile_of_rotheLimit
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ} {z Rseq : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hlim : rotheLimit z = U)
+    (hLU : LocallyUniformConverges z (rotheLimit z))
+    (hthread : StationaryGreenRepresentationThreadData p c lam U z Rseq) :
+    StationaryCrossGreenData p c lam U ∧
+      Continuous (crossSource p lam U U U) ∧
+      (∀ x,
+        IntegrableOn
+          (gWeight (greenRootPlus c lam) (crossSource p lam U U U))
+          (Ioi x)) ∧
+      (∀ x,
+        IntegrableOn
+          (gWeight (greenRootMinus c lam) (crossSource p lam U U U))
+          (Iic x)) ∧
+      crossImplicitMap p c lam U U U = U := by
+  let R : ℝ → ℝ := crossSource p lam U U U
+  obtain ⟨B, hBseq, hBR⟩ := hthread.source_bound
+  have hR_cont : Continuous R := by
+    simpa [R] using hthread.source_limit_cont
+  have hR_bound : ∀ y, |R y| ≤ B := by
+    simpa [R] using hBR
+  have hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x) :=
+    fun x => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR_cont hR_bound x
+  have hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x) :=
+    fun x => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR_cont hR_bound x
+  have hLU_U : LocallyUniformConverges z U := by
+    simpa [hlim] using hLU
+  have hLU_shift : LocallyUniformConverges (fun k => z (k + 1)) U :=
+    hLU_U.comp_strictMono
+      (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
+  have hU_green : U = fun x => greenConv c lam R x := by
+    funext x
+    have hz_tendsto :
+        Tendsto (fun k : ℕ => z (k + 1) x) atTop (𝓝 (U x)) :=
+      hLU_shift.tendsto_at x
+    have hgreen_tendsto :
+        Tendsto (fun k : ℕ => greenConv c lam (Rseq k) x) atTop
+          (𝓝 (greenConv c lam R x)) :=
+      greenConv_tendsto_of_source_locallyUniform_of_uniform_bound
+        (c := c) (lam := lam) hlam
+        (R := R) (B := B)
+        hthread.source_cont hR_cont hBseq hR_bound
+        (by simpa [R] using hthread.source_limit) x
+    have hsame :
+        (fun k : ℕ => z (k + 1) x)
+          = fun k : ℕ => greenConv c lam (Rseq k) x := by
+      funext k
+      exact congrFun (hthread.step_green k) x
+    have hz_green_tendsto :
+        Tendsto (fun k : ℕ => z (k + 1) x) atTop
+          (𝓝 (greenConv c lam R x)) := by
+      simpa [hsame] using hgreen_tendsto
+    exact tendsto_nhds_unique hz_tendsto hz_green_tendsto
+  have hcross_green :
+      crossImplicitMap p c lam U U U = fun x => greenConv c lam R x := by
+    simpa [R] using
+      StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
+        (p := p) (c := c) (lam := lam) (U := U) hlam hthread.cross_data
+  have hcross : crossImplicitMap p c lam U U U = U := by
+    calc
+      crossImplicitMap p c lam U U U = fun x => greenConv c lam R x := hcross_green
+      _ = U := hU_green.symm
+  exact ⟨hthread.cross_data, by simpa [R] using hR_cont,
+    by simpa [R] using hRhi, by simpa [R] using hRlo, hcross⟩
+
+/-- Profile-wise construction data sufficient to discharge
+`StationaryGreenRepresentationFromEquation`: every stationary trapped profile
+is the locally uniform Rothe limit of its construction orbit, and that orbit
+carries the per-step Green-source thread. -/
+def StationaryGreenRepresentationFromRotheLimitData
+    (p : CMParams) (c lam κ M : ℝ)
+    (rotheSeq Rseq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop :=
+  ∀ U, InMonotoneWaveTrapSet κ M U →
+    (∀ x, frozenWaveOperator p c U U x = 0) →
+      rotheLimit (rotheSeq U) = U ∧
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)) ∧
+        StationaryGreenRepresentationThreadData p c lam U (rotheSeq U) (Rseq U)
+
+theorem stationaryGreenRepresentationFromEquation_of_rotheLimit
+    {p : CMParams} {c lam κ M : ℝ}
+    {rotheSeq Rseq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hthread :
+      StationaryGreenRepresentationFromRotheLimitData
+        p c lam κ M rotheSeq Rseq) :
+    StationaryGreenRepresentationFromEquation p c lam κ M := by
+  intro U hU hstat
+  rcases hthread U hU hstat with ⟨hlim, hLU, hdata⟩
+  exact stationaryGreenRepresentation_profile_of_rotheLimit
+    (p := p) (c := c) (lam := lam) (U := U)
+    (z := rotheSeq U) (Rseq := Rseq U) hlam hlim hLU hdata
+
+theorem stationaryStrongMaxPrinciple_of_rotheLimit_greenRepresentation
+    {p : CMParams} {c lam κ M : ℝ}
+    {rotheSeq Rseq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hM : 0 < M) (hlam : 0 < lam)
+    (hthread :
+      StationaryGreenRepresentationFromRotheLimitData
+        p c lam κ M rotheSeq Rseq) :
+    StationaryStrongMaxPrinciple p c κ M :=
+  stationaryStrongMaxPrinciple_of_trap hM hlam
+    (stationaryGreenRepresentationFromEquation_of_rotheLimit
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+      (rotheSeq := rotheSeq) (Rseq := Rseq) hlam hthread)
 
 /-- The diagonal differentiability floor needed only for the identity
 `paperWaveOperator = frozenWaveOperator` at `W = U`. -/
@@ -1505,6 +1814,55 @@ theorem stationaryCrossGreenData_of_trap
   · intro x
     exact greenKernel_const_sub_mul_bounded_tendsto_atBot_zero
       (c := c) (lam := lam) hlam hG_bound_nonneg hG_bound x
+
+/-- Lower-pinned construction-site Green representation: the stationary
+profile is the Rothe limit, each step has the committed Green representation,
+and the step sources converge through the `C²` compact convergence floor. -/
+theorem lowerPinned_stationaryGreenRepresentation_profile_of_greenStep_rotheLimit
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M)
+    (hlim : rotheLimit z = U)
+    (hLU : LocallyUniformConverges z (rotheLimit z))
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hstep : ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hc2 : PaperC2CompactConvergence p U z)
+    (hc3 : PaperC3BootstrapData U z)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    StationaryCrossGreenData p c lam U ∧
+      Continuous (crossSource p lam U U U) ∧
+      (∀ x,
+        IntegrableOn
+          (gWeight (greenRootPlus c lam) (crossSource p lam U U U))
+          (Ioi x)) ∧
+      (∀ x,
+        IntegrableOn
+          (gWeight (greenRootMinus c lam) (crossSource p lam U U U))
+          (Iic x)) ∧
+      crossImplicitMap p c lam U U U = U := by
+  have hLU_U : LocallyUniformConverges z U := by
+    simpa [hlim] using hLU
+  have hcross : StationaryCrossGreenData p c lam U :=
+    stationaryCrossGreenData_of_trap
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+      (φ := φ) (U := U) (z := z) hlam hM hU hc3 hstat
+  have hR_cont : Continuous (crossSource p lam U U U) :=
+    lowerPinned_crossSource_continuous_of_c3
+      (p := p) (lam := lam) (κ := κ) (M := M)
+      (φ := φ) (U := U) (z := z) hU hc3
+  have hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B :=
+    lowerPinned_crossSource_bound_of_stat_c3
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+      (φ := φ) (U := U) (z := z) hU hc3 hstat
+  have hthread :
+      StationaryGreenRepresentationThreadData p c lam U z
+        (fun k => (hstep k).R) :=
+    stationaryGreenRepresentationThreadData_of_c2_greenStep
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
+      (U := U) (z := z) hlam hU.bare hLU_U hstep hc2 hcross hR_cont hR_bound
+  exact stationaryGreenRepresentation_profile_of_rotheLimit
+    (p := p) (c := c) (lam := lam) (U := U)
+    (z := z) (Rseq := fun k => (hstep k).R) hlam hlim hLU hthread
 
 theorem lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero_from_c3
     {p : CMParams} {c lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
