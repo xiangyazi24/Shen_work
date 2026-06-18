@@ -1748,6 +1748,42 @@ structure PaperStepUpperData
     paperWaveOperator p c u W x₀ - paperWaveOperator p c u B x₀
       ≤ (reactionLip p.α M + C_chem) * (W x₀ - B x₀)
 
+/-- The paperDiff-free upper data actually consumed by the spatially truncated
+maximum principle. -/
+structure PaperStepUpperTruncatedData
+    (p : CMParams) (c lam M C_chem : ℝ)
+    (u Z W B : ℝ → ℝ) where
+  hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
+  ZB : ∀ x, Z x ≤ B x
+  φcont : Continuous (fun x => W x - B x)
+  La : ℝ
+  Lb : ℝ
+  hbot : Tendsto (fun x => W x - B x) atBot (𝓝 La)
+  hLa : La ≤ 0
+  htop : Tendsto (fun x => W x - B x) atTop (𝓝 Lb)
+  hLb : Lb ≤ 0
+  paperSuper : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ →
+    paperWaveOperator p c u B x₀ ≤ 0
+
+namespace PaperStepUpperData
+
+def toTruncated
+    {p : CMParams} {c lam M C_chem : ℝ} {u Z W B : ℝ → ℝ}
+    (h : PaperStepUpperData p c lam M C_chem u Z W B) :
+    PaperStepUpperTruncatedData p c lam M C_chem u Z W B :=
+  { hCB := h.hCB
+    ZB := h.ZB
+    φcont := h.φcont
+    La := h.La
+    Lb := h.Lb
+    hbot := h.hbot
+    hLa := h.hLa
+    htop := h.htop
+    hLb := h.hLb
+    paperSuper := h.paperSuper }
+
+end PaperStepUpperData
+
 /-- Lower comparison data for a paper step against a sub-barrier `A`. -/
 structure PaperStepLowerData
     (p : CMParams) (c lam M C_chem : ℝ)
@@ -1766,6 +1802,42 @@ structure PaperStepLowerData
   paperDiff : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
     paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀
       ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)
+
+/-- The paperDiff-free lower data actually consumed by the spatially truncated
+maximum principle. -/
+structure PaperStepLowerTruncatedData
+    (p : CMParams) (c lam M C_chem : ℝ)
+    (u Z W A : ℝ → ℝ) where
+  hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
+  AZ : ∀ x, A x ≤ Z x
+  φcont : Continuous (fun x => A x - W x)
+  La : ℝ
+  Lb : ℝ
+  hbot : Tendsto (fun x => A x - W x) atBot (𝓝 La)
+  hLa : La ≤ 0
+  htop : Tendsto (fun x => A x - W x) atTop (𝓝 Lb)
+  hLb : Lb ≤ 0
+  paperSub : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+    0 ≤ paperWaveOperator p c u A x₀
+
+namespace PaperStepLowerData
+
+def toTruncated
+    {p : CMParams} {c lam M C_chem : ℝ} {u Z W A : ℝ → ℝ}
+    (h : PaperStepLowerData p c lam M C_chem u Z W A) :
+    PaperStepLowerTruncatedData p c lam M C_chem u Z W A :=
+  { hCB := h.hCB
+    AZ := h.AZ
+    φcont := h.φcont
+    La := h.La
+    Lb := h.Lb
+    hbot := h.hbot
+    hLa := h.hLa
+    htop := h.htop
+    hLb := h.hLb
+    paperSub := h.paperSub }
+
+end PaperStepLowerData
 
 /-- Sliding comparison data for proving `W` antitone.
 
@@ -4151,6 +4223,121 @@ theorem greenKernel_neg_mul_translate_integrable_of_bounded
   exact hK.mul_bdd hshift
     (Eventually.of_forall fun t => by simpa [Real.norm_eq_abs] using hB (x + t))
 
+/-- Pointwise continuity of the Green convolution under locally uniform source
+convergence and a shared uniform bound. -/
+theorem paperGreenConv_tendsto_of_source_locallyUniform_of_uniform_bound
+    {c lam : ℝ} (hlam : 0 < lam) {Rs : ℕ → ℝ → ℝ} {R : ℝ → ℝ} {B : ℝ}
+    (hRs_cont : ∀ n, Continuous (Rs n))
+    (hR_cont : Continuous R)
+    (hRs_bound : ∀ n y, |Rs n y| ≤ B)
+    (hR_bound : ∀ y, |R y| ≤ B)
+    (hRs_lim : LocallyUniformConverges Rs R) :
+    ∀ x, Tendsto (fun n : ℕ => greenConv c lam (Rs n) x) atTop
+      (𝓝 (greenConv c lam R x)) := by
+  intro x
+  let F : ℕ → ℝ → ℝ := fun n t => greenKernel c lam (-t) * Rs n (x + t)
+  let G : ℝ → ℝ := fun t => greenKernel c lam (-t) * R (x + t)
+  let bound : ℝ → ℝ := fun t => |greenKernel c lam (-t)| * B
+  have hbound_int : Integrable bound := by
+    have hK : Integrable (fun t => |greenKernel c lam (-t)|) :=
+      ((greenKernel_integrable (c := c) hlam).abs).comp_neg
+    simpa [bound] using hK.mul_const B
+  have hF_meas :
+      ∀ᶠ n : ℕ in atTop, AEStronglyMeasurable (F n) volume := by
+    refine Eventually.of_forall ?_
+    intro n
+    exact ((greenKernel_continuous (c := c) (lam := lam)).comp
+        (continuous_neg.comp continuous_id) |>.mul
+      ((hRs_cont n).comp (continuous_const.add continuous_id))).aestronglyMeasurable
+  have h_bound :
+      ∀ᶠ n : ℕ in atTop, ∀ᵐ t ∂volume, ‖F n t‖ ≤ bound t := by
+    refine Eventually.of_forall ?_
+    intro n
+    refine Eventually.of_forall ?_
+    intro t
+    dsimp [F, bound]
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRs_bound n (x + t)) (abs_nonneg _)
+  have h_lim :
+      ∀ᵐ t ∂volume, Tendsto (fun n : ℕ => F n t) atTop (𝓝 (G t)) := by
+    refine Eventually.of_forall ?_
+    intro t
+    exact (hRs_lim.tendsto_at (x + t)).const_mul (greenKernel c lam (-t))
+  have hInt_tendsto :
+      Tendsto (fun n : ℕ => ∫ t, F n t) atTop (𝓝 (∫ t, G t)) :=
+    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+      (μ := volume) (l := atTop) (F := F) (f := G)
+      bound hF_meas h_bound hbound_int h_lim
+  have hseq :
+      (fun n : ℕ => ∫ t, F n t)
+        = fun n : ℕ => greenConv c lam (Rs n) x := by
+    funext n
+    exact (greenConv_eq_translated_integral_of_bounded
+      (c := c) (lam := lam) hlam (hRs_cont n) (hRs_bound n) x).symm
+  have htarget : (∫ t, G t) = greenConv c lam R x := by
+    exact (greenConv_eq_translated_integral_of_bounded
+      (c := c) (lam := lam) hlam hR_cont hR_bound x).symm
+  simpa [hseq, htarget] using hInt_tendsto
+
+/-- Pointwise continuity of the differentiated Green convolution under locally
+uniform source convergence and a shared uniform bound. -/
+theorem paperGreenConvDeriv_tendsto_of_source_locallyUniform_of_uniform_bound
+    {c lam : ℝ} (hlam : 0 < lam) {Rs : ℕ → ℝ → ℝ} {R : ℝ → ℝ} {B : ℝ}
+    (hRs_cont : ∀ n, Continuous (Rs n))
+    (hR_cont : Continuous R)
+    (hRs_bound : ∀ n y, |Rs n y| ≤ B)
+    (hR_bound : ∀ y, |R y| ≤ B)
+    (hRs_lim : LocallyUniformConverges Rs R) :
+    ∀ x, Tendsto (fun n : ℕ => greenConvDeriv c lam (Rs n) x) atTop
+      (𝓝 (greenConvDeriv c lam R x)) := by
+  intro x
+  let F : ℕ → ℝ → ℝ := fun n t => greenKernelDeriv c lam (-t) * Rs n (x + t)
+  let G : ℝ → ℝ := fun t => greenKernelDeriv c lam (-t) * R (x + t)
+  let bound : ℝ → ℝ := fun t => |greenKernelDeriv c lam (-t)| * B
+  have hbound_int : Integrable bound := by
+    have hK : Integrable (fun t => |greenKernelDeriv c lam (-t)|) :=
+      (greenKernelDeriv_integrable (c := c) hlam).comp_neg
+    simpa [bound] using hK.mul_const B
+  have hK_meas :
+      AEStronglyMeasurable (fun t : ℝ => greenKernelDeriv c lam (-t)) volume :=
+    ((greenKernelDeriv_measurable_for_leftTail (c := c) (lam := lam)).comp
+      measurable_neg).aestronglyMeasurable
+  have hF_meas :
+      ∀ᶠ n : ℕ in atTop, AEStronglyMeasurable (F n) volume := by
+    refine Eventually.of_forall ?_
+    intro n
+    exact hK_meas.mul
+      ((hRs_cont n).comp (continuous_const.add continuous_id)).aestronglyMeasurable
+  have h_bound :
+      ∀ᶠ n : ℕ in atTop, ∀ᵐ t ∂volume, ‖F n t‖ ≤ bound t := by
+    refine Eventually.of_forall ?_
+    intro n
+    refine Eventually.of_forall ?_
+    intro t
+    dsimp [F, bound]
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRs_bound n (x + t)) (abs_nonneg _)
+  have h_lim :
+      ∀ᵐ t ∂volume, Tendsto (fun n : ℕ => F n t) atTop (𝓝 (G t)) := by
+    refine Eventually.of_forall ?_
+    intro t
+    exact (hRs_lim.tendsto_at (x + t)).const_mul (greenKernelDeriv c lam (-t))
+  have hInt_tendsto :
+      Tendsto (fun n : ℕ => ∫ t, F n t) atTop (𝓝 (∫ t, G t)) :=
+    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+      (μ := volume) (l := atTop) (F := F) (f := G)
+      bound hF_meas h_bound hbound_int h_lim
+  have hseq :
+      (fun n : ℕ => ∫ t, F n t)
+        = fun n : ℕ => greenConvDeriv c lam (Rs n) x := by
+    funext n
+    exact (greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+      (c := c) (lam := lam) hlam (hRs_cont n) (hRs_bound n) x).symm
+  have htarget : (∫ t, G t) = greenConvDeriv c lam R x := by
+    exact (greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+      (c := c) (lam := lam) hlam hR_cont hR_bound x).symm
+  simpa [hseq, htarget] using hInt_tendsto
+
 /-- Spatial continuity of the truncated fixed-source map from a continuous
 weighted source and the frozen-field continuity data. -/
 theorem paperFixedSourceMap_continuous_of_sourceBox
@@ -4256,6 +4443,144 @@ theorem paperFixedSourceMap_continuous_of_trap_sourceBox
     (frozenElliptic_continuous p hu.cunif_bdd hu.nonneg)
     (frozenElliptic_deriv_continuous p hu.cunif_bdd hu.nonneg)
     hR
+
+/-- Pointwise continuous dependence of the truncated fixed-source map on the
+source profile, for locally uniform source convergence inside one source box. -/
+theorem paperFixedSourceMap_tendsto_of_source_locallyUniform_sourceBox
+    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ}
+    {u Z : ℝ → ℝ} {Rs : ℕ → ℝ → ℝ} {R : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B)
+    (hRs : ∀ n, PaperWeightedHolderSourceBox κ M β B H ω (Rs n))
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R)
+    (hLU : LocallyUniformConverges Rs R) :
+    ∀ x, Tendsto
+      (fun n : ℕ => paperFixedSourceMap p c lam M κ u Z (Rs n) x) atTop
+        (𝓝 (paperFixedSourceMap p c lam M κ u Z R x)) := by
+  intro x
+  have hRs_bound : ∀ n y, |Rs n y| ≤ B * M := by
+    intro n y
+    exact (hRs n).abs_le_const (B := B) hBnn y
+  have hR_bound : ∀ y, |R y| ≤ B * M :=
+    hR.abs_le_const (B := B) hBnn
+  have hW :
+      Tendsto (fun n : ℕ => greenConv c lam (Rs n) x) atTop
+        (𝓝 (greenConv c lam R x)) :=
+    paperGreenConv_tendsto_of_source_locallyUniform_of_uniform_bound
+      (c := c) (lam := lam) hlam
+      (fun n => (hRs n).cont) hR.cont hRs_bound hR_bound hLU x
+  have hWd :
+      Tendsto (fun n : ℕ => greenConvDeriv c lam (Rs n) x) atTop
+        (𝓝 (greenConvDeriv c lam R x)) :=
+    paperGreenConvDeriv_tendsto_of_source_locallyUniform_of_uniform_bound
+      (c := c) (lam := lam) hlam
+      (fun n => (hRs n).cont) hR.cont hRs_bound hR_bound hLU x
+  have hderiv_seq :
+      (fun n : ℕ => deriv (fun y => greenConv c lam (Rs n) y) x) =
+        fun n : ℕ => greenConvDeriv c lam (Rs n) x := by
+    funext n
+    exact (greenConv_hasDerivAt
+      (c := c) (lam := lam) (hRs n).cont
+      ((hRs n).gWeight_Ioi (c := c) (lam := lam) hlam hBnn)
+      ((hRs n).gWeight_Iic (c := c) (lam := lam) hlam hBnn) x).deriv
+  have hderiv_target :
+      deriv (fun y => greenConv c lam R y) x = greenConvDeriv c lam R x :=
+    (greenConv_hasDerivAt
+      (c := c) (lam := lam) hR.cont
+      (hR.gWeight_Ioi (c := c) (lam := lam) hlam hBnn)
+      (hR.gWeight_Iic (c := c) (lam := lam) hlam hBnn) x).deriv
+  let Θs : ℕ → ℝ := fun n =>
+    paperWeightedClamp κ M (fun y => greenConv c lam (Rs n) y) x
+  let Θ : ℝ := paperWeightedClamp κ M (fun y => greenConv c lam R y) x
+  have hΘ : Tendsto Θs atTop (𝓝 Θ) := by
+    unfold Θs Θ paperWeightedClamp
+    exact
+      ((clampIcc_lipschitz (upperBarrier κ M x)).continuous.tendsto
+        (greenConv c lam R x)).comp hW
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1 : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hΘm1 : Tendsto (fun n : ℕ => (Θs n) ^ (p.m - 1)) atTop
+      (𝓝 (Θ ^ (p.m - 1))) :=
+    hΘ.rpow_const (Or.inr hm1)
+  have hΘα : Tendsto (fun n : ℕ => (Θs n) ^ p.α) atTop
+      (𝓝 (Θ ^ p.α)) :=
+    hΘ.rpow_const (Or.inr hα)
+  have hΘmg1 : Tendsto (fun n : ℕ => (Θs n) ^ (p.m + p.γ - 1)) atTop
+      (𝓝 (Θ ^ (p.m + p.γ - 1))) :=
+    hΘ.rpow_const (Or.inr hmg1)
+  have hderiv_tendsto :
+      Tendsto (fun n : ℕ => deriv (fun y => greenConv c lam (Rs n) y) x) atTop
+        (𝓝 (deriv (fun y => greenConv c lam R y) x)) := by
+    simpa [hderiv_seq, hderiv_target] using hWd
+  have hchem :
+      Tendsto
+        (fun n : ℕ =>
+          -p.χ * p.m * (Θs n) ^ (p.m - 1) *
+            deriv (frozenElliptic p u) x *
+              deriv (fun y => greenConv c lam (Rs n) y) x)
+        atTop
+        (𝓝
+          (-p.χ * p.m * Θ ^ (p.m - 1) *
+            deriv (frozenElliptic p u) x *
+              deriv (fun y => greenConv c lam R y) x)) := by
+    have hprod :=
+      (hΘm1.const_mul (-p.χ * p.m * deriv (frozenElliptic p u) x)).mul
+        hderiv_tendsto
+    simpa [mul_assoc, mul_left_comm, mul_comm] using hprod
+  have hinner :
+      Tendsto
+        (fun n : ℕ =>
+          1 - p.χ * (Θs n) ^ (p.m - 1) * frozenElliptic p u x
+            - ((Θs n) ^ p.α - p.χ * (Θs n) ^ (p.m + p.γ - 1)))
+        atTop
+        (𝓝
+          (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+            - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1)))) := by
+    have hone :
+        Tendsto (fun _ : ℕ => (1 : ℝ)) atTop (𝓝 (1 : ℝ)) :=
+      tendsto_const_nhds
+    have hterm1 :
+        Tendsto
+          (fun n : ℕ =>
+            p.χ * (Θs n) ^ (p.m - 1) * frozenElliptic p u x)
+          atTop
+          (𝓝 (p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x)) := by
+      have hraw := hΘm1.const_mul (p.χ * frozenElliptic p u x)
+      simpa [mul_assoc, mul_left_comm, mul_comm] using hraw
+    have hterm2 :
+        Tendsto
+          (fun n : ℕ => p.χ * (Θs n) ^ (p.m + p.γ - 1))
+          atTop
+          (𝓝 (p.χ * Θ ^ (p.m + p.γ - 1))) :=
+      hΘmg1.const_mul p.χ
+    have hparen :
+        Tendsto
+          (fun n : ℕ =>
+            (Θs n) ^ p.α - p.χ * (Θs n) ^ (p.m + p.γ - 1))
+          atTop
+          (𝓝 (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))) :=
+      hΘα.sub hterm2
+    have hraw := (hone.sub hterm1).sub hparen
+    simpa [mul_assoc, mul_left_comm, mul_comm] using hraw
+  have hreact :
+      Tendsto
+        (fun n : ℕ =>
+          Θs n *
+            (1 - p.χ * (Θs n) ^ (p.m - 1) * frozenElliptic p u x
+              - ((Θs n) ^ p.α - p.χ * (Θs n) ^ (p.m + p.γ - 1))))
+        atTop
+        (𝓝
+          (Θ *
+            (1 - p.χ * Θ ^ (p.m - 1) * frozenElliptic p u x
+              - (Θ ^ p.α - p.χ * Θ ^ (p.m + p.γ - 1))))) :=
+    hΘ.mul hinner
+  have hlin :
+      Tendsto (fun _ : ℕ => lam * Z x) atTop (𝓝 (lam * Z x)) :=
+    tendsto_const_nhds
+  have htotal := (hchem.add hreact).add hlin
+  simpa [paperFixedSourceMap, paperStepSource_truncated,
+    paperStepTruncatedNonlinearity, Θs, Θ, hderiv_seq, hderiv_target,
+    mul_assoc, mul_left_comm, mul_comm] using htotal
 
 /-- Weighted source-box bound for the truncated fixed-source map.  The only
 non-box analytic inputs are the standard frozen-field bounds and the scalar
@@ -4889,6 +5214,29 @@ theorem locallyUniform_of_pointwise_of_equiHolder
       |f (node i) - f x| < ε := by
     linarith [hL1, hL3, hnode_conv]
   linarith [htri1, this]
+
+/-- Local-uniform continuity of the truncated fixed-source map on a weighted
+Hölder source box, derived from pointwise Green continuous dependence and the
+uniform image Hölder modulus in `boxBounds`. -/
+theorem paperFixedSourceMap_continuousOn_of_boxBounds
+    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam) (hBnn : 0 ≤ B) (hHnn : 0 ≤ H) (hβpos : 0 < β)
+    (hbox : PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z) :
+    LocalUniformContinuousOn
+      (PaperWeightedHolderSourceBox κ M β B H ω)
+      (paperFixedSourceMap p c lam M κ u Z) := by
+  intro seq R hseq hR hLU
+  apply locallyUniform_of_pointwise_of_equiHolder hHnn hβpos
+  · intro x
+    exact paperFixedSourceMap_tendsto_of_source_locallyUniform_sourceBox
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (β := β) (B := B) (H := H) (ω := ω)
+      (u := u) (Z := Z) (Rs := seq) (R := R)
+      hlam hBnn hseq hR hLU x
+  · intro n x y
+    exact hbox.map_holder (seq n) (hseq n) x y
+  · intro x y
+    exact hbox.map_holder R hR x y
 
 /-- Pointwise selection for uniformly bounded families with a shared Hölder
 modulus.  The proof is the same rational diagonal as Helly, with a Hölder
@@ -5688,7 +6036,7 @@ theorem paperImplicitStep_truncated_le_of_paperBarrier
     (hstep :
       ∀ x, paperImplicitStepOp_truncated p c (1 / lam) M κ u W x = Z x)
     (hWC2 : ∀ x, ContDiffAt ℝ 2 W x)
-    (hd : PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)) :
+    (hd : PaperStepUpperTruncatedData p c lam M C_chem u Z W (upperBarrier κ M)) :
     ∀ x, W x ≤ upperBarrier κ M x := by
   by_contra hcon
   push Not at hcon
@@ -5780,7 +6128,7 @@ theorem paperImplicitStep_truncated_ge_zero
     (hstep :
       ∀ x, paperImplicitStepOp_truncated p c (1 / lam) M κ u W x = Z x)
     (hWC2 : ∀ x, ContDiffAt ℝ 2 W x)
-    (hd : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)) :
+    (hd : PaperStepLowerTruncatedData p c lam M C_chem u Z W (fun _ => 0)) :
     ∀ x, 0 ≤ W x := by
   by_contra hcon
   push Not at hcon
@@ -5844,18 +6192,46 @@ theorem paperImplicitStep_truncated_ge_zero
   have hZnonneg : 0 ≤ Z x₀ := hd.AZ x₀
   linarith
 
+/-- Compatibility wrapper from the full upper comparison record. -/
+theorem paperImplicitStep_truncated_le_of_paperBarrier_full
+    {p : CMParams} {M κ C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M)
+    (hstep :
+      ∀ x, paperImplicitStepOp_truncated p c (1 / lam) M κ u W x = Z x)
+    (hWC2 : ∀ x, ContDiffAt ℝ 2 W x)
+    (hd : PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)) :
+    ∀ x, W x ≤ upperBarrier κ M x :=
+  paperImplicitStep_truncated_le_of_paperBarrier
+    (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+    (C_chem := C_chem) (u := u) (Z := Z) (W := W)
+    hlam hκ hM hstep hWC2 hd.toTruncated
+
+/-- Compatibility wrapper from the full lower comparison record. -/
+theorem paperImplicitStep_truncated_ge_zero_full
+    {p : CMParams} {M κ C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 ≤ M)
+    (hstep :
+      ∀ x, paperImplicitStepOp_truncated p c (1 / lam) M κ u W x = Z x)
+    (hWC2 : ∀ x, ContDiffAt ℝ 2 W x)
+    (hd : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)) :
+    ∀ x, 0 ≤ W x :=
+  paperImplicitStep_truncated_ge_zero
+    (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+    (C_chem := C_chem) (u := u) (Z := Z) (W := W)
+    hlam hM hstep hWC2 hd.toTruncated
+
 /-- Clamp inactivity for a fixed point of the truncated source map, obtained
 from the two truncated max-principles above. -/
-theorem paperFixedSource_truncation_inactive_of_barriers
+theorem paperFixedSource_truncation_inactive_direct_of_trap
     {p : CMParams} {M κ β B H C_chem : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
     (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hR : PaperWeightedHolderSourceBox κ M β B H ω R)
     (hRfix : paperFixedSourceMap p c lam M κ u Z R = R)
     (hlower :
-      PaperStepLowerData p c lam M C_chem u Z
+      PaperStepLowerTruncatedData p c lam M C_chem u Z
         (fun x => greenConv c lam R x) (fun _ => 0))
     (hupper :
-      PaperStepUpperData p c lam M C_chem u Z
+      PaperStepUpperTruncatedData p c lam M C_chem u Z
         (fun x => greenConv c lam R x) (upperBarrier κ M)) :
     ∀ x,
       (fun y => greenConv c lam R y) x ∈
@@ -5901,6 +6277,28 @@ theorem paperFixedSource_truncation_inactive_of_barriers
       hlam hκ hM hstep hWC2 hupper
   intro x
   exact ⟨hnonneg x, hle x⟩
+
+/-- Compatibility wrapper for callers that still construct the full comparison
+records. -/
+theorem paperFixedSource_truncation_inactive_of_barriers
+    {p : CMParams} {M κ β B H C_chem : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R)
+    (hRfix : paperFixedSourceMap p c lam M κ u Z R = R)
+    (hlower :
+      PaperStepLowerData p c lam M C_chem u Z
+        (fun x => greenConv c lam R x) (fun _ => 0))
+    (hupper :
+      PaperStepUpperData p c lam M C_chem u Z
+        (fun x => greenConv c lam R x) (upperBarrier κ M)) :
+    ∀ x,
+      (fun y => greenConv c lam R y) x ∈
+        Set.Icc (0 : ℝ) (upperBarrier κ M x) :=
+  paperFixedSource_truncation_inactive_direct_of_trap
+    (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+    (β := β) (B := B) (H := H) (C_chem := C_chem) (ω := ω)
+    (u := u) (Z := Z) (R := R)
+    hlam hκ hM hBnn hR hRfix hlower.toTruncated hupper.toTruncated
 
 def frozenElliptic_holderQuant_of_trap
     (p : CMParams) {κ M β : ℝ} {u : ℝ → ℝ}
@@ -7239,37 +7637,174 @@ theorem paperFixedSourceMap_leftTailCauchy_kernel
     convert htotal using 1
     ring_nf
 
+/-- Finite left tail for the truncated fixed-source map on the weighted source
+box.  The Green source gives a left limit for `W = G * R` and `W' → 0`; the
+clamp then has a left limit because the upper barrier has one.  The frozen
+elliptic factor and the old iterate have finite left tails by bounded
+antitonicity. -/
+theorem paperFixedSourceMap_leftTail_of_trap_sourceBox
+    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase κ M Z)
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
+    ∃ Rm, Tendsto (paperFixedSourceMap p c lam M κ u Z R) atBot (𝓝 Rm) := by
+  let W : ℝ → ℝ := fun x => greenConv c lam R x
+  let Θ : ℝ → ℝ := fun x => paperWeightedClamp κ M W x
+  rcases hR.greenConv_tendsto_atBot
+      (c := c) (lam := lam) hlam hBnn with
+    ⟨Wm, hWm⟩
+  have hWd :
+      Tendsto (fun x => deriv W x) atBot (𝓝 0) := by
+    simpa [W] using
+      hR.deriv_greenConv_tendsto_atBot_zero
+        (c := c) (lam := lam) hlam hBnn
+  rcases antitone_isBddFun_tendsto_atBot
+      (upperBarrier_antitone (κ := κ) (M := M) hκ)
+      (upperBarrier_isBddFun (κ := κ) (M := M) hM.le) with
+    ⟨Um, hUm⟩
+  have hΘ :
+      Tendsto Θ atBot (𝓝 (max 0 (min Um Wm))) := by
+    have hmin :
+        Tendsto (fun x => min (upperBarrier κ M x) (W x))
+          atBot (𝓝 (min Um Wm)) :=
+      hUm.min hWm
+    simpa [Θ, W, paperWeightedClamp, clampIcc] using
+      (tendsto_const_nhds.max hmin)
+  have hVanti : Antitone (frozenElliptic p u) :=
+    frozenElliptic_antitone_of_monotone_trap p hu
+  have hVbdd : IsBddFun (frozenElliptic p u) :=
+    frozenElliptic_bddFun_of_inWaveTrapSet p hM hu.trap
+  rcases antitone_isBddFun_tendsto_atBot hVanti hVbdd with
+    ⟨Vm, hVm⟩
+  have hZbdd : IsBddFun Z := by
+    refine ⟨M, fun x => ?_⟩
+    rw [abs_of_nonneg (hZ.nonneg x)]
+    exact le_trans (hZ.le_barrier x) (upperBarrier_le_M κ M x)
+  rcases antitone_isBddFun_tendsto_atBot hZ.anti hZbdd with
+    ⟨Zm, hZm⟩
+  have hΘbdd : IsBddFun Θ := by
+    refine ⟨M, fun x => ?_⟩
+    calc
+      |Θ x| ≤ upperBarrier κ M x := by
+        dsimp [Θ]
+        exact paperWeightedClamp_abs_le_upperBarrier
+          (κ := κ) (M := M) (W := W) hM.le x
+      _ ≤ M := upperBarrier_le_M κ M x
+  have hΘnonneg : ∀ x, 0 ≤ Θ x := by
+    intro x
+    exact (paperWeightedClamp_mem_Icc
+      (κ := κ) (M := M) (W := W) hM.le x).1
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1 : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hΘm1 :
+      Tendsto (fun x => (Θ x) ^ (p.m - 1)) atBot
+        (𝓝 ((max 0 (min Um Wm)) ^ (p.m - 1))) :=
+    hΘ.rpow_const (Or.inr hm1)
+  have hΘα :
+      Tendsto (fun x => (Θ x) ^ p.α) atBot
+        (𝓝 ((max 0 (min Um Wm)) ^ p.α)) :=
+    hΘ.rpow_const (Or.inr hα)
+  have hΘmg1 :
+      Tendsto (fun x => (Θ x) ^ (p.m + p.γ - 1)) atBot
+        (𝓝 ((max 0 (min Um Wm)) ^ (p.m + p.γ - 1))) :=
+    hΘ.rpow_const (Or.inr hmg1)
+  have hΘm1bdd : IsBddFun (fun x => (Θ x) ^ (p.m - 1)) :=
+    IsBddFun.rpow_of_nonneg hΘbdd hm1 hΘnonneg
+  have hVdbdd : IsBddFun (fun x => deriv (frozenElliptic p u) x) := by
+    refine ⟨M ^ p.γ, fun x => ?_⟩
+    calc
+      |deriv (frozenElliptic p u) x| ≤ frozenElliptic p u x :=
+        frozenElliptic_deriv_abs_le p hu.trap.cunif_bdd hu.nonneg x
+      _ ≤ M ^ p.γ :=
+        frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu.trap x
+  have hchemCoeffBdd : IsBddFun (fun x =>
+      (-p.χ * p.m) * (Θ x) ^ (p.m - 1) *
+        deriv (frozenElliptic p u) x) := by
+    exact IsBddFun.mul
+      (IsBddFun.const_mul (-p.χ * p.m) hΘm1bdd) hVdbdd
+  have hchem :
+      Tendsto
+        (fun x =>
+          -p.χ * p.m * (Θ x) ^ (p.m - 1) *
+            deriv (frozenElliptic p u) x * deriv W x) atBot
+        (𝓝 0) := by
+    have hrev := tendsto_mul_zero_of_isBddFun hWd hchemCoeffBdd
+    simpa [mul_comm, mul_left_comm, mul_assoc] using hrev
+  have hχΘm1V :
+      Tendsto (fun x => p.χ * (Θ x) ^ (p.m - 1) * frozenElliptic p u x)
+        atBot
+        (𝓝 (p.χ * (max 0 (min Um Wm)) ^ (p.m - 1) * Vm)) := by
+    have hmul := hΘm1.mul hVm
+    simpa [mul_assoc] using hmul.const_mul p.χ
+  have hχΘmg1 :
+      Tendsto (fun x => p.χ * (Θ x) ^ (p.m + p.γ - 1)) atBot
+        (𝓝 (p.χ * (max 0 (min Um Wm)) ^ (p.m + p.γ - 1))) :=
+    hΘmg1.const_mul p.χ
+  have hinner :
+      Tendsto
+        (fun x =>
+          1 - p.χ * (Θ x) ^ (p.m - 1) * frozenElliptic p u x
+            - ((Θ x) ^ p.α - p.χ * (Θ x) ^ (p.m + p.γ - 1))) atBot
+        (𝓝
+          (1 - p.χ * (max 0 (min Um Wm)) ^ (p.m - 1) * Vm
+            - ((max 0 (min Um Wm)) ^ p.α
+              - p.χ * (max 0 (min Um Wm)) ^ (p.m + p.γ - 1)))) := by
+    exact (tendsto_const_nhds.sub hχΘm1V).sub (hΘα.sub hχΘmg1)
+  have hreac :
+      Tendsto
+        (fun x =>
+          Θ x *
+            (1 - p.χ * (Θ x) ^ (p.m - 1) * frozenElliptic p u x
+              - ((Θ x) ^ p.α - p.χ * (Θ x) ^ (p.m + p.γ - 1))))
+        atBot
+        (𝓝
+          ((max 0 (min Um Wm)) *
+            (1 - p.χ * (max 0 (min Um Wm)) ^ (p.m - 1) * Vm
+              - ((max 0 (min Um Wm)) ^ p.α
+                - p.χ * (max 0 (min Um Wm)) ^
+                    (p.m + p.γ - 1))))) :=
+    hΘ.mul hinner
+  have hlin : Tendsto (fun x => lam * Z x) atBot (𝓝 (lam * Zm)) :=
+    hZm.const_mul lam
+  refine ⟨
+    0 +
+      (max 0 (min Um Wm)) *
+        (1 - p.χ * (max 0 (min Um Wm)) ^ (p.m - 1) * Vm
+          - ((max 0 (min Um Wm)) ^ p.α
+            - p.χ * (max 0 (min Um Wm)) ^ (p.m + p.γ - 1))) +
+      lam * Zm, ?_⟩
+  have htotal := (hchem.add hreac).add hlin
+  refine htotal.congr' ?_
+  filter_upwards with x
+  unfold paperFixedSourceMap paperStepSource_truncated paperStepTruncatedNonlinearity
+  dsimp only [W, Θ]
+
 /-- Assemble the source-box bounds from the trap/scalar estimates.
 
 The continuity and weighted bound fields are discharged here.  The genuinely
 Hölder/tail modulus obligations remain explicit inputs, and compactness is then
 derived from the resulting self-map of the weighted source box. -/
 def paperFixedSourceMapBoxBounds_of_trap
-    (p : CMParams) {c lam M κ β B H BV BVd : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hHnn : 0 ≤ H) (hβpos : 0 < β)
-    (hBVnn : 0 ≤ BV) (hBVdnn : 0 ≤ BVd)
-    (hu : InWaveTrapSet κ M u)
-    (hZc : Continuous Z)
-    (hZ0 : ∀ x, 0 ≤ Z x)
-    (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
-    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
-    (hVderiv_bound : ∀ x, |deriv (frozenElliptic p u) x| ≤ BVd)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase κ M Z)
     (hscalar :
-      |(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
             greenWeightedMass1 c lam κ * B
-        + (1 + |p.χ| * M ^ (p.m - 1) * BV
+        + (1 + |p.χ| * M ^ (p.m - 1) * M ^ p.γ
             + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
         + lam ≤ B)
     (hmap_holder : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
       ∀ x y,
         |paperFixedSourceMap p c lam M κ u Z R x -
             paperFixedSourceMap p c lam M κ u Z R y| ≤ H * |x - y| ^ β)
-    (hmap_leftTail : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
-      ∃ Rm, Tendsto (paperFixedSourceMap p c lam M κ u Z R) atBot (𝓝 Rm))
     (hmap_leftTailCauchy : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
       ∀ A x y, x ≤ A → y ≤ A →
         |paperFixedSourceMap p c lam M κ u Z R x -
@@ -7282,28 +7817,50 @@ def paperFixedSourceMapBoxBounds_of_trap
     exact paperFixedSourceMap_continuous_of_trap_sourceBox
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
       (β := β) (B := B) (H := H) (ω := ω)
-      (u := u) (Z := Z) (R := R) hlam hu hZc hBnn hR
+      (u := u) (Z := Z) (R := R) hlam hu.trap hZ.cont hBnn hR
   let map_bound :
       ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
         ∀ x, |paperFixedSourceMap p c lam M κ u Z R x| ≤
           B * upperBarrier κ M x := by
     intro R hR
+    have hVbound : ∀ x, |frozenElliptic p u x| ≤ M ^ p.γ := by
+      intro x
+      rw [abs_of_nonneg (frozenElliptic_nonneg_of_inWaveTrapSet p hu.trap x)]
+      exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu.trap x
+    have hVderiv_bound :
+        ∀ x, |deriv (frozenElliptic p u) x| ≤ M ^ p.γ := by
+      intro x
+      calc
+        |deriv (frozenElliptic p u) x| ≤ frozenElliptic p u x :=
+          frozenElliptic_deriv_abs_le p hu.trap.cunif_bdd hu.nonneg x
+        _ ≤ M ^ p.γ :=
+          frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu.trap x
     exact paperFixedSourceMap_bound_of_sourceBox
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
-      (β := β) (B := B) (H := H) (BV := BV) (BVd := BVd) (ω := ω)
+      (β := β) (B := B) (H := H) (BV := M ^ p.γ) (BVd := M ^ p.γ) (ω := ω)
       (u := u) (Z := Z) (R := R)
-      hlam hrpκ hrmκ hκ hM hBnn hBVnn hBVdnn hZ0 hZB
+      hlam hrpκ hrmκ hκ hM.le hBnn
+      (Real.rpow_nonneg hM.le p.γ) (Real.rpow_nonneg hM.le p.γ)
+      hZ.nonneg hZ.le_barrier
       hVbound hVderiv_bound hscalar hR
+  let map_leftTail :
+      ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+        ∃ Rm, Tendsto (paperFixedSourceMap p c lam M κ u Z R) atBot (𝓝 Rm) := by
+    intro R hR
+    exact paperFixedSourceMap_leftTail_of_trap_sourceBox
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (β := β) (B := B) (H := H) (ω := ω)
+      (u := u) (Z := Z) (R := R) hlam hκ hM hBnn hu hZ hR
   refine
     { map_cont := map_cont
       map_bound := map_bound
       map_holder := hmap_holder
-      map_leftTail := hmap_leftTail
+      map_leftTail := map_leftTail
       map_leftTailCauchy := hmap_leftTailCauchy
       ascoliCompactRange := ?_ }
   apply localUniformSequentiallyCompactRange_weightedHolderSourceBox_of_mapsTo
     (κ := κ) (M := M) (β := β) (B := B) (H := H) (ω := ω)
-    hM hBnn hHnn hβpos
+    hM.le hBnn hHnn hβpos
   intro R hR
   exact
     { cont := map_cont R hR
@@ -7311,7 +7868,7 @@ def paperFixedSourceMapBoxBounds_of_trap
       holder := hmap_holder R hR
       omega_nonneg := hR.omega_nonneg
       omega_tendsto := hR.omega_tendsto
-      leftTail := hmap_leftTail R hR
+      leftTail := map_leftTail R hR
       leftTailCauchy := hmap_leftTailCauchy R hR }
 
 /-- Assemble the truncated source-box fixed-source data from source-box bounds,
@@ -7325,26 +7882,23 @@ def paperTruncatedFixedSourceBoxData_of_trap
     {p : CMParams} {c lam M κ Λ β B H C_chem : ℝ}
     {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hHnn : 0 ≤ H) (hβpos : 0 < β)
     (hu : InMonotoneWaveTrapSet κ M u)
     (hsourceBound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M))
     (hbeta_eq : β = paperWeightedHolderExponent p)
     (hbox :
       PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z)
-    (hcontinuousOn :
-      LocalUniformContinuousOn
-        (PaperWeightedHolderSourceBox κ M β B H ω)
-        (paperFixedSourceMap p c lam M κ u Z))
     (hboxCubeData :
       ProjectedCubeApproxData
         (PaperWeightedHolderSourceBox κ M β B H ω)
         (paperFixedSourceMap p c lam M κ u Z))
     (hlower : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
       paperFixedSourceMap p c lam M κ u Z R = R →
-        PaperStepLowerData p c lam M C_chem u Z
+        PaperStepLowerTruncatedData p c lam M C_chem u Z
           (fun x => greenConv c lam R x) (fun _ => 0))
     (hupper : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
       paperFixedSourceMap p c lam M κ u Z R = R →
-        PaperStepUpperData p c lam M C_chem u Z
+        PaperStepUpperTruncatedData p c lam M C_chem u Z
           (fun x => greenConv c lam R x) (upperBarrier κ M)) :
     PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z := by
   exact
@@ -7358,11 +7912,15 @@ def paperTruncatedFixedSourceBoxData_of_trap
       sourceBound_eq := hsourceBound_eq
       beta_eq := hbeta_eq
       boxBounds := hbox
-      continuousOn := hcontinuousOn
+      continuousOn :=
+        paperFixedSourceMap_continuousOn_of_boxBounds
+          (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+          (β := β) (B := B) (H := H) (ω := ω) (u := u) (Z := Z)
+          hlam hBnn hHnn hβpos hbox
       boxCubeData := hboxCubeData
       truncation_inactive := by
         intro R hR hfix
-        exact paperFixedSource_truncation_inactive_of_barriers
+        exact paperFixedSource_truncation_inactive_direct_of_trap
           (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
           (β := β) (B := B) (H := H) (C_chem := C_chem) (ω := ω)
           (u := u) (Z := Z) (R := R)
