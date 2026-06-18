@@ -429,12 +429,55 @@ theorem mul {sigma aL Cf Cg Bf Bg : ℝ} {f g : ℝ → ℝ} {ellf ellg : ℝ}
         (mul_le_mul hellg (hf x) (abs_nonneg _) hBg)
     _ = (Bf * Cg + Bg * Cf) * Real.exp (sigma * (x - aL)) := by ring
 
+theorem mul_left_bounded_zero {sigma aL Cg Bf : ℝ} {f g : ℝ → ℝ}
+    (hg : ExpLeftRate sigma aL Cg g 0)
+    (hf_bound : ∀ x, |f x| ≤ Bf) (hBf : 0 ≤ Bf) :
+    ExpLeftRate sigma aL (Bf * Cg) (fun x => f x * g x) 0 := by
+  intro x
+  calc
+    |f x * g x - 0| = |f x| * |g x - 0| := by
+      rw [sub_zero, sub_zero, abs_mul]
+    _ ≤ Bf * (Cg * Real.exp (sigma * (x - aL))) :=
+      mul_le_mul (hf_bound x) (hg x) (abs_nonneg _) hBf
+    _ = (Bf * Cg) * Real.exp (sigma * (x - aL)) := by ring
+
 theorem mono_C {sigma aL C C' : ℝ} {f : ℝ → ℝ} {ell : ℝ}
     (hC : C ≤ C') (h : ExpLeftRate sigma aL C f ell) :
     ExpLeftRate sigma aL C' f ell := by
   intro x
   exact le_trans (h x)
     (mul_le_mul_of_nonneg_right hC (Real.exp_pos _).le)
+
+theorem clampIcc {sigma aL CM Cs : ℝ} {M s : ℝ → ℝ} {ellM ells : ℝ}
+    (hM : ExpLeftRate sigma aL CM M ellM)
+    (hs : ExpLeftRate sigma aL Cs s ells) :
+    ExpLeftRate sigma aL (CM + Cs)
+      (fun x => _root_.ShenWork.Paper1.clampIcc (M x) (s x))
+      (_root_.ShenWork.Paper1.clampIcc ellM ells) := by
+  intro x
+  have hmax :
+      |max 0 (min (M x) (s x)) - max 0 (min ellM ells)|
+        ≤ max |(0 : ℝ) - 0| |min (M x) (s x) - min ellM ells| :=
+    abs_max_sub_max_le_max 0 (min (M x) (s x)) 0 (min ellM ells)
+  have hmin :
+      |min (M x) (s x) - min ellM ells| ≤
+        max |M x - ellM| |s x - ells| :=
+    abs_min_sub_min_le_max (M x) (s x) ellM ells
+  have hsum :
+      max |M x - ellM| |s x - ells| ≤ |M x - ellM| + |s x - ells| := by
+    exact max_le (le_add_of_nonneg_right (abs_nonneg _))
+      (le_add_of_nonneg_left (abs_nonneg _))
+  calc
+    |_root_.ShenWork.Paper1.clampIcc (M x) (s x) -
+        _root_.ShenWork.Paper1.clampIcc ellM ells|
+        = |max 0 (min (M x) (s x)) - max 0 (min ellM ells)| := rfl
+    _ ≤ |min (M x) (s x) - min ellM ells| := by
+      simpa using hmax
+    _ ≤ max |M x - ellM| |s x - ells| := hmin
+    _ ≤ |M x - ellM| + |s x - ells| := hsum
+    _ ≤ CM * Real.exp (sigma * (x - aL)) +
+        Cs * Real.exp (sigma * (x - aL)) := add_le_add (hM x) (hs x)
+    _ = (CM + Cs) * Real.exp (sigma * (x - aL)) := by ring
 
 end ExpLeftRate
 
