@@ -244,6 +244,401 @@ theorem stationaryStrongMaxPrinciple_of_linearGronwall
   have hUzero : U = fun _ : ℝ => (0 : ℝ) := funext hzero_all
   exact not_profileNontrivial_zero (by simpa [hUzero] using hnontriv)
 
+private theorem rpow_le_mul_rpow_sub_one_of_mem_band
+    {u M a : ℝ} (ha : 1 ≤ a)
+    (hu0 : 0 ≤ u) (huM : u ≤ M) :
+    u ^ a ≤ M ^ (a - 1) * u := by
+  have ha0 : 0 < a := lt_of_lt_of_le zero_lt_one ha
+  by_cases hu : u = 0
+  · subst u
+    have hane : a ≠ 0 := ne_of_gt ha0
+    simp [Real.zero_rpow hane]
+  · have hupos : 0 < u := lt_of_le_of_ne hu0 (Ne.symm hu)
+    have hpow : u ^ a = u ^ (a - 1) * u := by
+      calc
+        u ^ a = u ^ ((a - 1) + 1) := by ring_nf
+        _ = u ^ (a - 1) * u ^ (1 : ℝ) := by
+          rw [Real.rpow_add hupos]
+        _ = u ^ (a - 1) * u := by rw [Real.rpow_one]
+    have hm1 : 0 ≤ a - 1 := by linarith
+    have hle : u ^ (a - 1) ≤ M ^ (a - 1) :=
+      Real.rpow_le_rpow hupos.le huM hm1
+    rw [hpow]
+    exact mul_le_mul_of_nonneg_right hle hupos.le
+
+private theorem stationary_flux_deriv_eq
+    {p : CMParams} {κ M : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hU_diff : Differentiable ℝ U) (x : ℝ) :
+    deriv (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x =
+      deriv U x * p.m * (U x) ^ (p.m - 1) *
+          deriv (frozenElliptic p U) x +
+        (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ) := by
+  have hU_pow_deriv : HasDerivAt (fun y => (U y) ^ p.m)
+      (deriv U x * p.m * (U x) ^ (p.m - 1)) x :=
+    (hU_diff x).hasDerivAt.rpow_const (Or.inr p.hm)
+  have hV'' := frozenElliptic_deriv_deriv_eq p
+    hU.trap.cunif_bdd hU.nonneg x
+  have hV_deriv : HasDerivAt (deriv (frozenElliptic p U))
+      (frozenElliptic p U x - (U x) ^ p.γ) x := by
+    convert (frozenElliptic_deriv_differentiableAt p
+      hU.trap.cunif_bdd hU.nonneg x).hasDerivAt using 1
+    exact hV''.symm
+  have hprod := hU_pow_deriv.mul hV_deriv
+  have hfun_eq :
+      (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) =
+        (fun y => (U y) ^ p.m) * deriv (frozenElliptic p U) := by
+    ext y
+    simp [Pi.mul_apply]
+  rw [hfun_eq, hprod.deriv]
+
+private theorem stationary_second_deriv_abs_le_of_trap
+    {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
+    (hM : 0 < M)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_diff : Differentiable ℝ U) :
+    ∀ x,
+      |deriv (deriv U) x| ≤
+        (|c| + |p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ) *
+            |deriv U x| +
+          (|p.χ| * M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) +
+              (1 + M ^ p.α)) *
+            |U x| := by
+  intro x
+  have hM0 : 0 ≤ M := hM.le
+  have hUx0 : 0 ≤ U x := hU.nonneg x
+  have hUxM : U x ≤ M := hU.le_M x
+  have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα0 : 0 ≤ p.α := le_trans zero_le_one p.hα
+  have hγ0 : 0 ≤ p.γ := le_trans zero_le_one p.hγ
+  have hMm1_nonneg : 0 ≤ M ^ (p.m - 1) := Real.rpow_nonneg hM0 _
+  have hMγ_nonneg : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM0 _
+  have hMα_nonneg : 0 ≤ M ^ p.α := Real.rpow_nonneg hM0 _
+  have hUm1_abs : |(U x) ^ (p.m - 1)| ≤ M ^ (p.m - 1) := by
+    rw [abs_of_nonneg (Real.rpow_nonneg hUx0 _)]
+    exact Real.rpow_le_rpow hUx0 hUxM hm1
+  have hUm_abs : |(U x) ^ p.m| ≤ M ^ (p.m - 1) * |U x| := by
+    rw [abs_of_nonneg (Real.rpow_nonneg hUx0 _), abs_of_nonneg hUx0]
+    exact rpow_le_mul_rpow_sub_one_of_mem_band p.hm hUx0 hUxM
+  have hUα_abs : |(U x) ^ p.α| ≤ M ^ p.α := by
+    rw [abs_of_nonneg (Real.rpow_nonneg hUx0 _)]
+    exact Real.rpow_le_rpow hUx0 hUxM hα0
+  have hUγ_abs : |(U x) ^ p.γ| ≤ M ^ p.γ := by
+    rw [abs_of_nonneg (Real.rpow_nonneg hUx0 _)]
+    exact Real.rpow_le_rpow hUx0 hUxM hγ0
+  have hV'_abs : |deriv (frozenElliptic p U) x| ≤ M ^ p.γ := by
+    calc
+      |deriv (frozenElliptic p U) x| ≤ frozenElliptic p U x :=
+        frozenElliptic_deriv_abs_le p hU.trap.cunif_bdd hU.nonneg x
+      _ ≤ M ^ p.γ :=
+        frozenElliptic_le_rpow_of_inWaveTrapSet p hM hU.trap x
+  have hV_abs : |frozenElliptic p U x| ≤ M ^ p.γ := by
+    rw [abs_of_nonneg (frozenElliptic_nonneg p hU.nonneg x)]
+    exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hU.trap x
+  have hflux_eq := stationary_flux_deriv_eq (p := p) hU hU_diff x
+  have hflux_bound :
+      |deriv (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x| ≤
+        |p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| +
+          M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x| := by
+    rw [hflux_eq]
+    have hterm1 :
+        |deriv U x * p.m * (U x) ^ (p.m - 1) *
+            deriv (frozenElliptic p U) x| ≤
+          |p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| := by
+      rw [abs_mul, abs_mul, abs_mul]
+      have hA :
+          |deriv U x| * |p.m| * |(U x) ^ (p.m - 1)|
+            ≤ |deriv U x| * |p.m| * M ^ (p.m - 1) := by
+        exact mul_le_mul_of_nonneg_left hUm1_abs
+          (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+      have hB :
+          |deriv U x| * |p.m| * |(U x) ^ (p.m - 1)| *
+              |deriv (frozenElliptic p U) x|
+            ≤ |deriv U x| * |p.m| * M ^ (p.m - 1) * M ^ p.γ := by
+        exact mul_le_mul hA hV'_abs (abs_nonneg _)
+          (mul_nonneg
+            (mul_nonneg (abs_nonneg _) (abs_nonneg _)) hMm1_nonneg)
+      calc
+        |deriv U x| * |p.m| * |(U x) ^ (p.m - 1)| *
+            |deriv (frozenElliptic p U) x|
+            ≤ |deriv U x| * |p.m| * M ^ (p.m - 1) * M ^ p.γ := hB
+        _ = |p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| := by ring
+    have hterm2 :
+        |(U x) ^ p.m *
+            (frozenElliptic p U x - (U x) ^ p.γ)| ≤
+          M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x| := by
+      rw [abs_mul]
+      have hdiff :
+          |frozenElliptic p U x - (U x) ^ p.γ| ≤
+            M ^ p.γ + M ^ p.γ := by
+        calc
+          |frozenElliptic p U x - (U x) ^ p.γ|
+              ≤ |frozenElliptic p U x| + |(U x) ^ p.γ| := abs_sub _ _
+          _ ≤ M ^ p.γ + M ^ p.γ := add_le_add hV_abs hUγ_abs
+      calc
+        |(U x) ^ p.m| * |frozenElliptic p U x - (U x) ^ p.γ|
+            ≤ (M ^ (p.m - 1) * |U x|) * (M ^ p.γ + M ^ p.γ) :=
+          mul_le_mul hUm_abs hdiff (abs_nonneg _)
+            (mul_nonneg hMm1_nonneg (abs_nonneg _))
+        _ = M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x| := by ring
+    calc
+      |deriv U x * p.m * (U x) ^ (p.m - 1) *
+            deriv (frozenElliptic p U) x +
+          (U x) ^ p.m *
+            (frozenElliptic p U x - (U x) ^ p.γ)|
+          ≤ |deriv U x * p.m * (U x) ^ (p.m - 1) *
+                deriv (frozenElliptic p U) x| +
+              |(U x) ^ p.m *
+                (frozenElliptic p U x - (U x) ^ p.γ)| := abs_add_le _ _
+      _ ≤ |p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| +
+            M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x| :=
+          add_le_add hterm1 hterm2
+  have hreact_bound :
+      |U x * (1 - (U x) ^ p.α)| ≤ (1 + M ^ p.α) * |U x| := by
+    rw [abs_mul]
+    have hfac : |1 - (U x) ^ p.α| ≤ 1 + M ^ p.α := by
+      rw [abs_le]
+      have hpow_nonneg : 0 ≤ (U x) ^ p.α := Real.rpow_nonneg hUx0 _
+      have hpow_le : (U x) ^ p.α ≤ M ^ p.α := by
+        simpa [abs_of_nonneg (Real.rpow_nonneg hUx0 _)] using hUα_abs
+      constructor
+      · linarith [hpow_le]
+      · linarith [hpow_nonneg, hMα_nonneg]
+    calc
+      |U x| * |1 - (U x) ^ p.α| ≤ |U x| * (1 + M ^ p.α) :=
+        mul_le_mul_of_nonneg_left hfac (abs_nonneg _)
+      _ = (1 + M ^ p.α) * |U x| := by ring
+  have hstatx := hstat x
+  unfold frozenWaveOperator at hstatx
+  have hiter : iteratedDeriv 2 U x = deriv (deriv U) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+  have hdd_eq :
+      deriv (deriv U) x =
+        -c * deriv U x +
+          p.χ * deriv (fun y => (U y) ^ p.m *
+            deriv (frozenElliptic p U) y) x -
+          U x * (1 - (U x) ^ p.α) := by
+    rw [hiter] at hstatx
+    linarith
+  rw [hdd_eq]
+  calc
+    |-c * deriv U x +
+          p.χ * deriv (fun y => (U y) ^ p.m *
+            deriv (frozenElliptic p U) y) x -
+          U x * (1 - (U x) ^ p.α)|
+        ≤ |-c * deriv U x| +
+            |p.χ * deriv (fun y => (U y) ^ p.m *
+              deriv (frozenElliptic p U) y) x| +
+            |U x * (1 - (U x) ^ p.α)| := by
+          calc
+            |-c * deriv U x +
+                p.χ * deriv (fun y => (U y) ^ p.m *
+                  deriv (frozenElliptic p U) y) x -
+                U x * (1 - (U x) ^ p.α)|
+                ≤ |-c * deriv U x +
+                    p.χ * deriv (fun y => (U y) ^ p.m *
+                      deriv (frozenElliptic p U) y) x| +
+                    |U x * (1 - (U x) ^ p.α)| := abs_sub _ _
+            _ ≤ |-c * deriv U x| +
+                  |p.χ * deriv (fun y => (U y) ^ p.m *
+                    deriv (frozenElliptic p U) y) x| +
+                  |U x * (1 - (U x) ^ p.α)| := by
+                    linarith [abs_add_le (-c * deriv U x)
+                      (p.χ * deriv (fun y => (U y) ^ p.m *
+                        deriv (frozenElliptic p U) y) x)]
+    _ = |c| * |deriv U x| +
+          |p.χ| * |deriv (fun y => (U y) ^ p.m *
+            deriv (frozenElliptic p U) y) x| +
+          |U x * (1 - (U x) ^ p.α)| := by
+            rw [abs_mul, abs_neg, abs_mul]
+    _ ≤ |c| * |deriv U x| +
+            |p.χ| *
+              (|p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| +
+                M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x|) +
+            (1 + M ^ p.α) * |U x| := by
+              have hchem_scaled :
+                  |p.χ| *
+                      |deriv (fun y => (U y) ^ p.m *
+                        deriv (frozenElliptic p U) y) x| ≤
+                    |p.χ| *
+                      (|p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| +
+                        M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x|) :=
+                mul_le_mul_of_nonneg_left hflux_bound (abs_nonneg p.χ)
+              have hchem_with_c :
+                  |c| * |deriv U x| +
+                      |p.χ| *
+                        |deriv (fun y => (U y) ^ p.m *
+                          deriv (frozenElliptic p U) y) x| ≤
+                    |c| * |deriv U x| +
+                      |p.χ| *
+                        (|p.m| * M ^ (p.m - 1) * M ^ p.γ * |deriv U x| +
+                          M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) * |U x|) := by
+                simpa [add_comm, add_left_comm, add_assoc] using
+                  add_le_add_right hchem_scaled (|c| * |deriv U x|)
+              exact add_le_add hchem_with_c hreact_bound
+    _ =
+        (|c| + |p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ) *
+            |deriv U x| +
+          (|p.χ| * M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) +
+              (1 + M ^ p.α)) *
+            |U x| := by ring
+
+private theorem stationaryJet_bound_of_second_deriv_abs_le
+    {U : ℝ → ℝ} {A B : ℝ}
+    (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hsecond : ∀ x,
+      |deriv (deriv U) x| ≤ A * |deriv U x| + B * |U x|) :
+    ∃ K : ℝ, ∀ x,
+      ‖stationaryJetDeriv U x‖ ≤ K * ‖stationaryJet U x‖ := by
+  let K : ℝ := max 1 (A + B)
+  have hK_nonneg : 0 ≤ K := by
+    exact le_trans zero_le_one (le_max_left _ _)
+  have hK_one : 1 ≤ K := le_max_left _ _
+  have hK_AB : A + B ≤ K := le_max_right _ _
+  refine ⟨K, ?_⟩
+  intro x
+  have htarget_nonneg : 0 ≤ K * ‖stationaryJet U x‖ :=
+    mul_nonneg hK_nonneg (norm_nonneg _)
+  rw [pi_norm_le_iff_of_nonneg htarget_nonneg]
+  intro i
+  fin_cases i
+  · have hD_comp :
+        |deriv U x| ≤ ‖stationaryJet U x‖ := by
+      simpa [stationaryJet, Real.norm_eq_abs] using
+        (norm_le_pi_norm (stationaryJet U x) (1 : Fin 2))
+    have hscale :
+        ‖stationaryJet U x‖ ≤ K * ‖stationaryJet U x‖ := by
+      calc
+        ‖stationaryJet U x‖ = 1 * ‖stationaryJet U x‖ := by ring
+        _ ≤ K * ‖stationaryJet U x‖ :=
+          mul_le_mul_of_nonneg_right hK_one (norm_nonneg _)
+    simpa [stationaryJetDeriv, Real.norm_eq_abs] using
+      le_trans hD_comp hscale
+  · have hD_comp :
+        |deriv U x| ≤ ‖stationaryJet U x‖ := by
+      simpa [stationaryJet, Real.norm_eq_abs] using
+        (norm_le_pi_norm (stationaryJet U x) (1 : Fin 2))
+    have hU_comp :
+        |U x| ≤ ‖stationaryJet U x‖ := by
+      simpa [stationaryJet, Real.norm_eq_abs] using
+        (norm_le_pi_norm (stationaryJet U x) (0 : Fin 2))
+    have hlin :
+        A * |deriv U x| + B * |U x| ≤
+          (A + B) * ‖stationaryJet U x‖ := by
+      nlinarith [mul_le_mul_of_nonneg_left hD_comp hA,
+        mul_le_mul_of_nonneg_left hU_comp hB]
+    have hscale :
+        (A + B) * ‖stationaryJet U x‖ ≤
+          K * ‖stationaryJet U x‖ :=
+      mul_le_mul_of_nonneg_right hK_AB (norm_nonneg _)
+    have hdd :
+        |deriv (deriv U) x| ≤ K * ‖stationaryJet U x‖ :=
+      le_trans (hsecond x) (le_trans hlin hscale)
+    simpa [stationaryJetDeriv, Real.norm_eq_abs] using hdd
+
+private theorem reflected_second_deriv_abs_le
+    {U : ℝ → ℝ} {A B : ℝ}
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hsecond : ∀ x,
+      |deriv (deriv U) x| ≤ A * |deriv U x| + B * |U x|) :
+    ∀ x,
+      |deriv (deriv (fun t => U (-t))) x| ≤
+        A * |deriv (fun t => U (-t)) x| + B * |(fun t => U (-t)) x| := by
+  let Urev : ℝ → ℝ := fun t => U (-t)
+  have hneg_diff : Differentiable ℝ (fun t : ℝ => -t) := differentiable_id.neg
+  have hUrev_deriv_eq :
+      deriv Urev = fun t => -deriv U (-t) := by
+    funext t
+    simpa [Urev] using deriv_comp_neg (f := U) (x := t)
+  have hUrev_deriv2_eq :
+      deriv (deriv Urev) = fun t => deriv (deriv U) (-t) := by
+    funext t
+    have hbase :
+        deriv (fun s => deriv U (-s)) t = -deriv (deriv U) (-t) := by
+      simpa using deriv_comp_neg (f := deriv U) (x := t)
+    rw [hUrev_deriv_eq]
+    have hbase_at : HasDerivAt (fun s => deriv U (-s))
+        (-deriv (deriv U) (-t)) t := by
+      simpa using ((hUd_diff (-t)).hasDerivAt.comp t
+        ((hasDerivAt_id t).neg))
+    have hneg_at : HasDerivAt (fun s => -deriv U (-s))
+        (deriv (deriv U) (-t)) t := by
+      convert hbase_at.neg using 1
+      ring
+    exact hneg_at.deriv
+  intro x
+  rw [hUrev_deriv2_eq, hUrev_deriv_eq]
+  simpa [Urev, abs_neg] using hsecond (-x)
+
+/-- The regularity frontier needed before the trap/stationary equation can
+construct the direct linear Grönwall data.  The pointwise frozen equation alone
+mentions `deriv`/`iteratedDeriv`, but does not by itself provide
+`HasDerivAt`/`Differentiable` facts in Lean. -/
+def StationaryC2RegularityFromEquation
+    (p : CMParams) (c κ M : ℝ) : Prop :=
+  ∀ U : ℝ → ℝ,
+    InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
+
+/-- Once the missing C² regularity frontier is supplied, the real-exponent
+trap-band estimates construct the `StationaryLinearGronwallData` needed by the
+strong maximum principle.  No integer exponent or traveling-wave ODE
+realization is used here. -/
+theorem stationaryLinearGronwallData_of_trap
+    {p : CMParams} {c κ M : ℝ}
+    (hM : 0 < M)
+    (hreg : StationaryC2RegularityFromEquation p c κ M) :
+    StationaryLinearGronwallData p c κ M := by
+  intro U hU hstat
+  rcases hreg U hU hstat with ⟨hU_diff, hUd_diff⟩
+  refine ⟨hU_diff, hUd_diff, ?_⟩
+  intro x₀ _hx₀ _hDx₀
+  let A : ℝ := |c| + |p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ
+  let B : ℝ := |p.χ| * M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) +
+    (1 + M ^ p.α)
+  have hM0 : 0 ≤ M := hM.le
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    positivity
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    positivity
+  have hsecond : ∀ x,
+      |deriv (deriv U) x| ≤ A * |deriv U x| + B * |U x| := by
+    intro x
+    simpa [A, B] using
+      stationary_second_deriv_abs_le_of_trap
+        (p := p) (c := c) (κ := κ) (M := M) (U := U)
+        hM hU hstat hU_diff x
+  obtain ⟨K, hK⟩ :=
+    stationaryJet_bound_of_second_deriv_abs_le
+      (U := U) hA_nonneg hB_nonneg hsecond
+  have hsecond_rev :
+      ∀ x,
+        |deriv (deriv (fun t => U (-t))) x| ≤
+          A * |deriv (fun t => U (-t)) x| +
+            B * |(fun t => U (-t)) x| :=
+    reflected_second_deriv_abs_le hUd_diff hsecond
+  obtain ⟨Krev, hKrev⟩ :=
+    stationaryJet_bound_of_second_deriv_abs_le
+      (U := fun t => U (-t)) hA_nonneg hB_nonneg hsecond_rev
+  constructor
+  · intro y _hy
+    exact ⟨K, fun x _hx => hK x⟩
+  · intro y _hy
+    exact ⟨Krev, fun x _hx => hKrev x⟩
+
+theorem stationaryStrongMaxPrinciple_of_trap_regularity
+    {p : CMParams} {c κ M : ℝ}
+    (hM : 0 < M)
+    (hreg : StationaryC2RegularityFromEquation p c κ M) :
+    StationaryStrongMaxPrinciple p c κ M :=
+  stationaryStrongMaxPrinciple_of_linearGronwall
+    (stationaryLinearGronwallData_of_trap hM hreg)
+
 /-- The paper-positive floor cannot be carried for every trapped profile:
 the zero trapped profile refutes it. -/
 theorem not_monotoneTrap_profile_paperPositiveInitialDatum
