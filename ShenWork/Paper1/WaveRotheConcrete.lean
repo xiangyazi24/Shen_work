@@ -266,18 +266,62 @@ structure PaperIterateBase (κ M : ℝ) (Z : ℝ → ℝ) : Prop where
   anti : Antitone Z
   nonneg : ∀ x, 0 ≤ Z x
   le_barrier : ∀ x, Z x ≤ upperBarrier κ M x
+  diff : Z = upperBarrier κ M ∨ Differentiable ℝ Z
+  deriv_le : ∃ L : ℝ, 0 ≤ L ∧ ∀ x, |deriv Z x| ≤ L
+
+theorem upperBarrier_deriv_abs_le_mul {κ M : ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    ∀ x, |deriv (upperBarrier κ M) x| ≤ κ * M := by
+  intro x
+  by_cases hconst : M < Real.exp (-κ * x)
+  · rw [upperBarrier_deriv_eq_zero_of_const_lt hconst]
+    simpa using mul_nonneg hκ hM
+  · by_cases hexp : Real.exp (-κ * x) < M
+    · rw [upperBarrier_deriv_eq_exp_of_lt hexp]
+      have hE0 : 0 ≤ expDecay κ x := by
+        unfold expDecay
+        exact (Real.exp_pos _).le
+      have hE_le : expDecay κ x ≤ M := by
+        unfold expDecay
+        simpa [neg_mul] using hexp.le
+      rw [abs_mul, abs_neg, abs_of_nonneg hκ, abs_of_nonneg hE0]
+      exact mul_le_mul_of_nonneg_left hE_le hκ
+    · have heq : Real.exp (-κ * x) = M :=
+        le_antisymm (not_lt.mp hconst) (not_lt.mp hexp)
+      rcases eq_or_lt_of_le hκ with hκeq | hκpos
+      · subst κ
+        have hderiv0 : deriv (upperBarrier 0 M) x = 0 := by
+          rw [show upperBarrier 0 M = fun _ : ℝ => min M 1 by
+            funext y
+            simp [upperBarrier]]
+          exact deriv_const x (min M 1)
+        rw [hderiv0]
+        simp
+      · rcases eq_or_lt_of_le hM with hMeq | hMpos
+        · subst M
+          have hpos : 0 < Real.exp (-κ * x) := Real.exp_pos _
+          linarith
+        · have hnot :
+              ¬ DifferentiableAt ℝ (upperBarrier κ M) x :=
+            not_differentiableAt_upperBarrier_of_interface
+              (κ := κ) (M := M) (x := x) hκpos hMpos heq
+          rw [deriv_zero_of_not_differentiableAt hnot]
+          simpa using mul_nonneg hκ hM
 
 theorem upperBarrier_paperIterateBase {κ M : ℝ}
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
     PaperIterateBase κ M (upperBarrier κ M) :=
   ⟨upperBarrier_continuous κ M, upperBarrier_antitone hκ,
-   fun x => upperBarrier_nonneg hM x, fun _ => le_rfl⟩
+   fun x => upperBarrier_nonneg hM x, fun _ => le_rfl,
+   Or.inl rfl, ⟨κ * M, mul_nonneg hκ hM,
+    upperBarrier_deriv_abs_le_mul hκ hM⟩⟩
 
 theorem PaperRotheStepFacts.toBase
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
     (h : PaperRotheStepFacts p c lam M κ Λ u Z W) :
     PaperIterateBase κ M W :=
-  ⟨h.cont, h.anti, h.nonneg, h.le_barrier⟩
+  ⟨h.cont, h.anti, h.nonneg, h.le_barrier, Or.inr h.diff,
+    ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩⟩
 
 /-- Producer for the paper implicit orbit.  This is intentionally separate from
 `RotheStepProducer`, whose step equation is frozen. -/
@@ -287,6 +331,8 @@ structure PaperRotheStepProducer
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
       ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
+  produce_regular : ∀ Z : ℝ → ℝ, PaperIterateBase κ M Z →
+      ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
 
 def paperRotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
     (hprod : PaperRotheStepProducer p c lam M κ Λ u)
@@ -295,8 +341,7 @@ def paperRotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
   | 0 => ⟨upperBarrier κ M, upperBarrier_paperIterateBase hκ hM⟩
   | (k+1) =>
     let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
-    let hex := hprod.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
-      prev.2.le_barrier
+    let hex := hprod.produce_regular prev.1 prev.2
     ⟨Classical.choose hex, (Classical.choose_spec hex).toBase⟩
 
 /-- The concrete paper-step Rothe sequence. -/
@@ -317,8 +362,7 @@ theorem rotheSeqOfPaper_stepFacts
       (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k)
       (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1)) := by
   let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
-  have hex := hprod.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
-    prev.2.le_barrier
+  have hex := hprod.produce_regular prev.1 prev.2
   exact Classical.choose_spec hex
 
 theorem rotheSeqOfPaper_base

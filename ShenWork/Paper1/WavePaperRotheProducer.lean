@@ -4598,6 +4598,34 @@ def paperRotheStepProducer_of_greenInput
         le_old := hle_old
         anti := paperStep_antitone_by_sliding
           (c := c) (lam := lam) hin.hlam hstep hZa hout.antitone }
+  produce_regular := by
+    intro Z hZbase
+    obtain ⟨W, hout⟩ :=
+      hin.produce Z hZbase.cont hZbase.anti hZbase.nonneg hZbase.le_barrier
+    have hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x :=
+      paperStep_step_op (c := c) (lam := lam) hin.hlam hout.analytic
+    have hnonneg : ∀ x, 0 ≤ W x := by
+      have hle := paperStep_ge_lower
+        (c := c) (lam := lam) hin.hlam hstep hout.lowerZero
+      intro x
+      exact hle x
+    have hle_old : ∀ x, W x ≤ Z x :=
+      paperStep_le_upper (c := c) (lam := lam) hin.hlam hstep hout.upperOld
+    have hle_barrier : ∀ x, W x ≤ upperBarrier κ M x :=
+      paperStep_le_upper
+        (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
+    refine ⟨W, ?_⟩
+    exact
+      { step_op := hstep
+        cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
+        diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
+        deriv_le :=
+          paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
+        nonneg := hnonneg
+        le_barrier := hle_barrier
+        le_old := hle_old
+        anti := paperStep_antitone_by_sliding
+          (c := c) (lam := lam) hin.hlam hstep hZbase.anti hout.antitone }
 
 /-- All paper-step producers from the precise per-profile Green-step input. -/
 theorem paperRotheStepProducer_all_of_greenInput

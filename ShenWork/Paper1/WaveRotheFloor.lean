@@ -118,10 +118,11 @@ structure RotheFloorResidual
           ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
+        (RotheStepAntitoneData p c lam M C_chem u Z W ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
             RotheStepChemData p u W Z C_chem x₀) ×'
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
-            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀))
+            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀)))
 
 /-! ## 2. `RotheStepFloor` from the residual
 
@@ -136,7 +137,21 @@ def rotheStepFloor_of_residual
   hlam := h.hlam
   hM := h.hM
   baseSuper := h.baseSuper
-  produce := h.produce
+  produce := by
+    intro Z hZc hZa hZ0 hZB hZsuper
+    obtain ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
+        ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, _hRanti, hRint, hstepop, hnonneg,
+          hstepeq, hCnn, hCB,
+          hBsupZ, hZZ, hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
+          hBsupB, hZleB, hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
+        hanti, hchemZ, hchemB⟩ :=
+      h.produce Z hZc hZa hZ0 hZB hZsuper
+    exact ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
+      ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRint, hstepop, hnonneg,
+        hstepeq, hCnn, hCB,
+        hBsupZ, hZZ, hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
+        hBsupB, hZleB, hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
+      hanti, hchemZ, hchemB⟩
 
 /-- **`rotheStepFloor_of_trap` — the per-step Green-regularity floor for every
 trapped profile `u`, modulo the single named residual.**  Trap-membership is

@@ -84,7 +84,7 @@ signs and `greenKernel` is `L¹`. -/
 
 /-- A bounded continuous source has integrable upper weighted tails for every
 positive exponential weight. -/
-theorem gWeight_integrableOn_Ioi_of_bounded {r B : ℝ} {H : ℝ → ℝ}
+theorem rotheResidual_gWeight_integrableOn_Ioi_of_bounded {r B : ℝ} {H : ℝ → ℝ}
     (hr : 0 < r) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) :
     ∀ x, IntegrableOn (gWeight r H) (Ioi x) := by
   intro x
@@ -98,7 +98,7 @@ theorem gWeight_integrableOn_Ioi_of_bounded {r B : ℝ} {H : ℝ → ℝ}
 
 /-- A bounded continuous source has integrable lower weighted tails for every
 negative exponential weight. -/
-theorem gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
+theorem rotheResidual_gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
     (hr : r < 0) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) :
     ∀ x, IntegrableOn (gWeight r H) (Iic x) := by
   intro x
@@ -326,10 +326,11 @@ structure RotheFloorResidualCore
           ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
+        (RotheStepAntitoneData p c lam M C_chem u Z W ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
             RotheStepChemData p u W Z C_chem x₀) ×'
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
-            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀))
+            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀)))
 
 /-! ## 4. `RotheFloorResidual` from the core + the committed super-barrier
 
@@ -354,7 +355,7 @@ def rotheFloorResidual_of_core
           hstepeq, hCnn, hCB, hBsupZ,
           hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
           hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
-        hchemZ, hchemB⟩ :=
+        hanti, hchemZ, hchemB⟩ :=
       h.produceCore Z hZc hZa hZ0 hZB hZsuper
     exact ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
       ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
@@ -365,7 +366,7 @@ def rotheFloorResidual_of_core
         h.hSuper,                          -- F_u(Ū) ≤ 0 (committed super-barrier)
         hZB,                               -- Z ≤ Ū (producer hypothesis, discharged here)
         hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
-      hchemZ, hchemB⟩
+      hanti, hchemZ, hchemB⟩
 
 /-! ## 4a. A thinner core with the already-committed fields discharged
 
@@ -463,10 +464,11 @@ structure RotheFloorResidualCoreSlim
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ Z x₀ ∈ Set.Icc (0 : ℝ) M) ∧
         (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
+        (RotheStepAntitoneData p c lam M C_chem u Z W ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
             RotheStepChemData p u W Z C_chem x₀) ×'
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
-            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀))
+            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀)))
 
 /-- Assemble the old residual floor from the thinner core, inserting the fields
 that are already committed/trivial. -/
@@ -484,15 +486,15 @@ def rotheFloorResidual_of_slimCore
     obtain ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
         ⟨hgr, hcf, hRc, hRb, hRanti, hstepop, hnonneg,
           hstepeq, hCnn, hCB, htails, hBC2Z, hrangeZ, hrangeB⟩,
-        hchemZ, hchemB⟩ :=
+        hanti, hchemZ, hchemB⟩ :=
       h.produceCore Z hZc hZa hZ0 hZB hZsuper
     have hRhi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x) := by
       rcases hRb with ⟨_B, hRbd, _hΛ⟩
-      exact gWeight_integrableOn_Ioi_of_bounded
+      exact rotheResidual_gWeight_integrableOn_Ioi_of_bounded
         (greenRootPlus_pos (c := c) (lam := lam) h.hlam) hRc hRbd
     have hRlo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x) := by
       rcases hRb with ⟨_B, hRbd, _hΛ⟩
-      exact gWeight_integrableOn_Iic_of_bounded
+      exact rotheResidual_gWeight_integrableOn_Iic_of_bounded
         (greenRootMinus_neg (c := c) (lam := lam) h.hlam) hRc hRbd
     have hRint : ∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t)) := by
       rcases hRb with ⟨_B, hRbd, _hΛ⟩
@@ -517,7 +519,7 @@ def rotheFloorResidual_of_slimCore
         hφcZ, htails.hbotZ, htails.hLaZ, htails.htopZ, htails.hLbZ, hBC2Z, hrangeZ,
         hSuper, hZB,
         hφcB, htails.hbotB, htails.hLaB, htails.htopB, htails.hLbB, hBC2B, hrangeB⟩,
-      hchemZ, hchemB⟩
+      hanti, hchemZ, hchemB⟩
 
 /-! ## 5. The trap-level residual + chaining to `b1_chiNeg_existence`
 
@@ -579,10 +581,11 @@ def rotheFloorResidual_of_trap
             ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
             W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
+          (RotheStepAntitoneData p c lam M C_chem u Z W ×'
           ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
               RotheStepChemData p u W Z C_chem x₀) ×'
             (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
-              RotheStepChemData p u W (upperBarrier κ M) C_chem x₀))) :
+              RotheStepChemData p u W (upperBarrier κ M) C_chem x₀)))) :
     RotheFloorResidual p c lam M κ Λ u :=
   rotheFloorResidual_of_core
     { hlam := hlam
@@ -775,8 +778,8 @@ theorem b1_chiNeg_existence_residualClean
 /-! ## 7. Axiom audit -/
 
 section AxiomAudit
-#print axioms gWeight_integrableOn_Ioi_of_bounded
-#print axioms gWeight_integrableOn_Iic_of_bounded
+#print axioms rotheResidual_gWeight_integrableOn_Ioi_of_bounded
+#print axioms rotheResidual_gWeight_integrableOn_Iic_of_bounded
 #print axioms greenKernel_translated_integrable_of_bounded
 #print axioms rotheSlimSourceAntitone_const
 #print axioms bounded_continuous_source_not_forces_antitone

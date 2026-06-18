@@ -118,10 +118,11 @@ def rotheFloorResidual_of_trap_pos
             ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
             W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
+          (RotheStepAntitoneData p c lam M C_chem u Z W ×'
           ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
               RotheStepChemData p u W Z C_chem x₀) ×'
             (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
-              RotheStepChemData p u W (upperBarrier κ M) C_chem x₀))) :
+              RotheStepChemData p u W (upperBarrier κ M) C_chem x₀)))) :
     RotheFloorResidual p c lam M κ Λ u :=
   rotheFloorResidual_of_core
     { hlam := hlam

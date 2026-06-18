@@ -1262,6 +1262,42 @@ def paperRotheStepProducer_of_routeA_greenCore
           (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
           (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
           hin.hlam hout.approx }
+  produce_regular := by
+    intro Z hZbase
+    obtain ⟨W, hout⟩ :=
+      hin.produce Z hZbase.cont hZbase.anti hZbase.nonneg hZbase.le_barrier
+    have hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x :=
+      smooth_paperStep_step_op_of_core
+        (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+        hin.hlam hout.analytic
+    have hbasic :
+        Continuous W ∧ Differentiable ℝ W ∧ ∀ x, |deriv W x| ≤ Λ :=
+      smooth_paperStep_basic_regular_of_core
+        (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+        hin.hlam hout.analytic
+    have hnonneg : ∀ x, 0 ≤ W x := by
+      have hle := paperStep_ge_lower
+        (c := c) (lam := lam) hin.hlam hstep hout.lowerZero
+      intro x
+      exact hle x
+    have hle_old : ∀ x, W x ≤ Z x :=
+      paperStep_le_upper (c := c) (lam := lam) hin.hlam hstep hout.upperOld
+    have hle_barrier : ∀ x, W x ≤ upperBarrier κ M x :=
+      paperStep_le_upper
+        (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
+    refine ⟨W, ?_⟩
+    exact
+      { step_op := hstep
+        cont := hbasic.1
+        diff := hbasic.2.1
+        deriv_le := hbasic.2.2
+        nonneg := hnonneg
+        le_barrier := hle_barrier
+        le_old := hle_old
+        anti := paperStep_antitone_of_trap_via_mollification
+          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
+          (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
+          hin.hlam hout.approx }
 
 theorem paperRotheStepProducer_all_of_routeA_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}
