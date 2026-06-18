@@ -4857,6 +4857,282 @@ theorem greenConvDeriv_expLeftRate
     _ = (greenKernelDerivExpMoment c lam sigma * C) *
           Real.exp (sigma * (x - aL)) := by ring
 
+/-! ### Exponential left-rate for the frozen elliptic resolvent -/
+
+/-- The `(D² - 1)⁻¹` Green-kernel exponential moment. -/
+def frozenEllipticExpMoment (sigma : ℝ) : ℝ :=
+  (1 - sigma ^ 2)⁻¹
+
+theorem greenDelta_zero_one : greenDelta 0 1 = 2 := by
+  unfold greenDelta
+  norm_num
+
+theorem greenRootPlus_zero_one : greenRootPlus 0 1 = 1 := by
+  unfold greenRootPlus
+  rw [greenDelta_zero_one]
+  norm_num
+
+theorem greenRootMinus_zero_one : greenRootMinus 0 1 = -1 := by
+  unfold greenRootMinus
+  rw [greenDelta_zero_one]
+  norm_num
+
+theorem greenKernelExpMoment_zero_one_eq
+    {sigma : ℝ} (hsigma0 : 0 ≤ sigma) (hsigma1 : sigma < 1) :
+    greenKernelExpMoment 0 1 sigma = frozenEllipticExpMoment sigma := by
+  have hroot : sigma < greenRootPlus 0 1 := by
+    simpa [greenRootPlus_zero_one] using hsigma1
+  rw [greenKernelExpMoment_eq (c := 0) (lam := 1) one_pos hsigma0 hroot]
+  rw [greenDelta_zero_one, greenRootPlus_zero_one, greenRootMinus_zero_one]
+  unfold frozenEllipticExpMoment
+  have h1 : 1 - sigma ≠ 0 := by linarith
+  have h2 : -1 - sigma ≠ 0 := by linarith
+  have hden : 1 - sigma ^ 2 ≠ 0 := by
+    have hlt : sigma ^ 2 < 1 := by nlinarith
+    nlinarith
+  field_simp [h1, h2, hden]
+  ring
+
+theorem greenKernelDerivExpMoment_zero_one_eq
+    {sigma : ℝ} (hsigma0 : 0 ≤ sigma) (hsigma1 : sigma < 1) :
+    greenKernelDerivExpMoment 0 1 sigma = frozenEllipticExpMoment sigma := by
+  have hroot : sigma < greenRootPlus 0 1 := by
+    simpa [greenRootPlus_zero_one] using hsigma1
+  rw [greenKernelDerivExpMoment_eq (c := 0) (lam := 1) one_pos hsigma0 hroot]
+  rw [greenDelta_zero_one, greenRootPlus_zero_one, greenRootMinus_zero_one]
+  unfold frozenEllipticExpMoment
+  have h1 : 1 - sigma ≠ 0 := by linarith
+  have h2 : -1 - sigma ≠ 0 := by linarith
+  have hden : 1 - sigma ^ 2 ≠ 0 := by
+    have hlt : sigma ^ 2 < 1 := by nlinarith
+    nlinarith
+  field_simp [h1, h2, hden]
+  ring
+
+theorem ExpLeftRate.rpow_lipschitz_on_Icc
+    {sigma aL C a M : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hf : ExpLeftRate sigma aL C f ell)
+    (ha : 1 ≤ a) (hM : 0 ≤ M)
+    (hrange : ∀ x, f x ∈ Set.Icc (0 : ℝ) M)
+    (hell : ell ∈ Set.Icc (0 : ℝ) M) :
+    ExpLeftRate sigma aL (rpowLip a M * C)
+      (fun x => (f x) ^ a) (ell ^ a) := by
+  intro x
+  have hLip0 : 0 ≤ rpowLip a M := rpowLip_nonneg ha hM
+  calc
+    |(f x) ^ a - ell ^ a| ≤ rpowLip a M * |f x - ell| :=
+      rpow_abs_sub_le_lip_on_Icc ha hM (hrange x) hell
+    _ ≤ rpowLip a M * (C * Real.exp (sigma * (x - aL))) :=
+      mul_le_mul_of_nonneg_left (hf x) hLip0
+    _ = (rpowLip a M * C) * Real.exp (sigma * (x - aL)) := by ring
+
+theorem greenConv_zero_one_eq_Psi
+    {H : ℝ → ℝ} (hH : IsCUnifBdd H) (hH_nonneg : ∀ x, 0 ≤ H x) :
+    greenConv 0 1 H = Psi H 1 1 := by
+  funext x
+  rw [Psi_kernel_splitting hH hH_nonneg x]
+  unfold greenConv tailHi tailLo gWeight
+  rw [greenDelta_zero_one, greenRootPlus_zero_one, greenRootMinus_zero_one]
+  norm_num
+  ring
+
+theorem frozenElliptic_eq_greenConv_zero_one
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) :
+    frozenElliptic p u = greenConv 0 1 (fun y => (u y) ^ p.γ) := by
+  have hf : IsCUnifBdd (fun y => (u y) ^ p.γ) :=
+    rpow_cunif_bdd_of_nonneg p hu hu_nonneg
+  have hf_nonneg : ∀ y, 0 ≤ (u y) ^ p.γ :=
+    fun y => Real.rpow_nonneg (hu_nonneg y) p.γ
+  rw [greenConv_zero_one_eq_Psi hf hf_nonneg]
+  rfl
+
+theorem deriv_frozenElliptic_eq_greenConvDeriv_zero_one
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) :
+    (fun x => deriv (frozenElliptic p u) x) =
+      greenConvDeriv 0 1 (fun y => (u y) ^ p.γ) := by
+  let F : ℝ → ℝ := fun y => (u y) ^ p.γ
+  have hF_cunif : IsCUnifBdd F := by
+    simpa [F] using rpow_cunif_bdd_of_nonneg p hu hu_nonneg
+  have hF_cont : Continuous F := hF_cunif.1
+  rcases hF_cunif.2 with ⟨B, hB⟩
+  have hF_eq : frozenElliptic p u = greenConv 0 1 F := by
+    simpa [F] using frozenElliptic_eq_greenConv_zero_one p hu hu_nonneg
+  have hHi : ∀ t : ℝ, IntegrableOn (gWeight (greenRootPlus 0 1) F) (Ioi t) := by
+    intro t
+    exact gWeight_integrableOn_Ioi_of_bounded
+      (r := greenRootPlus 0 1) (B := B)
+      (by rw [greenRootPlus_zero_one]; norm_num)
+      hF_cont hB t
+  have hLo : ∀ t : ℝ, IntegrableOn (gWeight (greenRootMinus 0 1) F) (Iic t) := by
+    intro t
+    exact gWeight_integrableOn_Iic_of_bounded
+      (r := greenRootMinus 0 1) (B := B)
+      (by rw [greenRootMinus_zero_one]; norm_num)
+      hF_cont hB t
+  funext x
+  have hderiv :
+      deriv (greenConv 0 1 F) x = greenConvDeriv 0 1 F x :=
+    (greenConv_hasDerivAt (c := 0) (lam := 1) hF_cont hHi hLo x).deriv
+  rw [show deriv (frozenElliptic p u) x = deriv (greenConv 0 1 F) x from
+    congrArg (fun G : ℝ → ℝ => deriv G x) hF_eq, hderiv]
+
+theorem frozenElliptic_expLeftRate
+    (p : CMParams) {sigma aL Cu Lu M : ℝ} {u : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hsigma1 : sigma < 1)
+    (hM : 0 ≤ M)
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hu_le : ∀ x, u x ≤ M)
+    (hu_rate : ExpLeftRate sigma aL Cu u Lu) :
+    ExpLeftRate sigma aL
+      (frozenEllipticExpMoment sigma * (rpowLip p.γ M * Cu))
+      (frozenElliptic p u) (Lu ^ p.γ) := by
+  let F : ℝ → ℝ := fun y => (u y) ^ p.γ
+  have hLu : Lu ∈ Set.Icc (0 : ℝ) M :=
+    ExpLeftRate.limit_mem_Icc hsigma hu_rate hu_nonneg hu_le
+  have hrange : ∀ x, u x ∈ Set.Icc (0 : ℝ) M := fun x => ⟨hu_nonneg x, hu_le x⟩
+  have hFrate : ExpLeftRate sigma aL (rpowLip p.γ M * Cu) F (Lu ^ p.γ) := by
+    simpa [F] using
+      hu_rate.rpow_lipschitz_on_Icc p.hγ hM hrange hLu
+  have hF_cunif : IsCUnifBdd F := by
+    simpa [F] using rpow_cunif_bdd_of_nonneg p hu hu_nonneg
+  have hF_bound : ∀ y, |F y| ≤ M ^ p.γ := by
+    intro y
+    dsimp [F]
+    rw [abs_of_nonneg (Real.rpow_nonneg (hu_nonneg y) p.γ)]
+    exact Real.rpow_le_rpow (hu_nonneg y) (hu_le y) (by linarith [p.hγ])
+  have hroot : sigma < greenRootPlus 0 1 := by
+    simpa [greenRootPlus_zero_one] using hsigma1
+  have hgreen :=
+    greenConv_expLeftRate (c := 0) (lam := 1)
+      (sigma := sigma) (aL := aL) (C := rpowLip p.γ M * Cu)
+      (ell := Lu ^ p.γ) (B := M ^ p.γ)
+      one_pos hsigma.le hroot hF_cunif.1 hF_bound hFrate
+  have hmoment := greenKernelExpMoment_zero_one_eq hsigma.le hsigma1
+  have hEq : frozenElliptic p u = greenConv 0 1 F := by
+    simpa [F] using frozenElliptic_eq_greenConv_zero_one p hu hu_nonneg
+  rw [hEq]
+  simpa [frozenEllipticExpMoment, hmoment] using hgreen
+
+theorem frozenElliptic_deriv_expLeftRate
+    (p : CMParams) {sigma aL Cu Lu M : ℝ} {u : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hsigma1 : sigma < 1)
+    (hM : 0 ≤ M)
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hu_le : ∀ x, u x ≤ M)
+    (hu_rate : ExpLeftRate sigma aL Cu u Lu) :
+    ExpLeftRate sigma aL
+      (frozenEllipticExpMoment sigma * (rpowLip p.γ M * Cu))
+      (fun x => deriv (frozenElliptic p u) x) 0 := by
+  let F : ℝ → ℝ := fun y => (u y) ^ p.γ
+  have hLu : Lu ∈ Set.Icc (0 : ℝ) M :=
+    ExpLeftRate.limit_mem_Icc hsigma hu_rate hu_nonneg hu_le
+  have hrange : ∀ x, u x ∈ Set.Icc (0 : ℝ) M := fun x => ⟨hu_nonneg x, hu_le x⟩
+  have hFrate : ExpLeftRate sigma aL (rpowLip p.γ M * Cu) F (Lu ^ p.γ) := by
+    simpa [F] using
+      hu_rate.rpow_lipschitz_on_Icc p.hγ hM hrange hLu
+  have hF_cunif : IsCUnifBdd F := by
+    simpa [F] using rpow_cunif_bdd_of_nonneg p hu hu_nonneg
+  have hF_bound : ∀ y, |F y| ≤ M ^ p.γ := by
+    intro y
+    dsimp [F]
+    rw [abs_of_nonneg (Real.rpow_nonneg (hu_nonneg y) p.γ)]
+    exact Real.rpow_le_rpow (hu_nonneg y) (hu_le y) (by linarith [p.hγ])
+  have hroot : sigma < greenRootPlus 0 1 := by
+    simpa [greenRootPlus_zero_one] using hsigma1
+  have hgreen :=
+    greenConvDeriv_expLeftRate (c := 0) (lam := 1)
+      (sigma := sigma) (aL := aL) (C := rpowLip p.γ M * Cu)
+      (ell := Lu ^ p.γ) (B := M ^ p.γ)
+      one_pos hsigma.le hroot hF_cunif.1 hF_bound hFrate
+  have hmoment := greenKernelDerivExpMoment_zero_one_eq hsigma.le hsigma1
+  have hEq := deriv_frozenElliptic_eq_greenConvDeriv_zero_one p hu hu_nonneg
+  rw [hEq]
+  simpa [frozenEllipticExpMoment, hmoment] using hgreen
+
+/-! ### Explicit fixed-source exponential left-rate bookkeeping -/
+
+/-- The coefficient of the old iterate `Z` in the fixed-source map. -/
+def paperFixedSourceMapAZ (lam : ℝ) : ℝ := |lam|
+
+/-- The explicit exponential-rate radius produced by the fixed-source map:
+`Clamσ*C_R + A_Z*C_Z + D0`.  The analytic estimate supplying `Clamσ` is kept
+separate from the algebraic source-map assembly. -/
+def paperFixedSourceMapRateConstant
+    (Clamsigma A_Z D0 C_R C_Z : ℝ) : ℝ :=
+  Clamsigma * C_R + A_Z * C_Z + D0
+
+/-- The two-radius choice for the old-iterate rate radius. -/
+def paperFixedSourceMapTwoRadiusCZ (m_sigma C_R : ℝ) : ℝ :=
+  m_sigma * C_R
+
+/-- The source-box exponential modulus radius associated to a map-rate radius. -/
+def paperFixedSourceMapExpOmegaRadius (C_R : ℝ) : ℝ :=
+  2 * C_R
+
+/-- Once the truncated nonlinearity has the explicit `Clamσ*C_R + D0`
+left-rate, the full fixed-source map has rate
+`Clamσ*C_R + A_Z*C_Z + D0`; the `Z` contribution is exactly `|lam|*C_Z`. -/
+theorem paperFixedSourceMap_expLeftRate
+    (p : CMParams) {c lam M κ sigma aL : ℝ} {u Z R : ℝ → ℝ}
+    {Clamsigma A_Z D0 C_R C_Z LN LZ : ℝ}
+    (hAZ : A_Z = paperFixedSourceMapAZ lam)
+    (hN : ExpLeftRate sigma aL (Clamsigma * C_R + D0)
+      (fun x =>
+        paperStepTruncatedNonlinearity p c M κ u
+          (fun y => greenConv c lam R y) x) LN)
+    (hZrate : ExpLeftRate sigma aL C_Z Z LZ) :
+    ExpLeftRate sigma aL
+      (paperFixedSourceMapRateConstant Clamsigma A_Z D0 C_R C_Z)
+      (paperFixedSourceMap p c lam M κ u Z R) (LN + lam * LZ) := by
+  have hlin : ExpLeftRate sigma aL (|lam| * C_Z)
+      (fun x => lam * Z x) (lam * LZ) :=
+    ExpLeftRate.const_mul (a := lam) hZrate
+  have hsum := ExpLeftRate.add hN hlin
+  have hconst :
+      (Clamsigma * C_R + D0) + |lam| * C_Z =
+        paperFixedSourceMapRateConstant Clamsigma A_Z D0 C_R C_Z := by
+    rw [hAZ]
+    simp [paperFixedSourceMapRateConstant, paperFixedSourceMapAZ]
+    ring
+  rw [hconst] at hsum
+  simpa [paperFixedSourceMap, paperStepSource_truncated] using hsum
+
+/-- Two-radius closure: with `C_Z = m_sigma*C_R` and
+`Clamσ + A_Z*m_sigma < 1`, any `C_R ≥ D0/(1-(Clamσ+A_Z*m_sigma))`
+absorbs the fixed-source map rate. -/
+theorem paperFixedSourceMap_twoRadius_bound
+    {Clamsigma A_Z m_sigma C_R D0 : ℝ}
+    (hcontract : Clamsigma + A_Z * m_sigma < 1)
+    (hCR : D0 / (1 - (Clamsigma + A_Z * m_sigma)) ≤ C_R) :
+    paperFixedSourceMapRateConstant Clamsigma A_Z D0 C_R
+      (paperFixedSourceMapTwoRadiusCZ m_sigma C_R) ≤ C_R := by
+  have hdelta : 0 < 1 - (Clamsigma + A_Z * m_sigma) := by
+    linarith
+  have hD :
+      D0 ≤ C_R * (1 - (Clamsigma + A_Z * m_sigma)) := by
+    exact (div_le_iff₀ hdelta).mp hCR
+  dsimp [paperFixedSourceMapRateConstant, paperFixedSourceMapTwoRadiusCZ]
+  nlinarith
+
+/-- The two-radius scalar inequality upgrades the explicit fixed-source map
+rate to the source-box radius `C_R`. -/
+theorem paperFixedSourceMap_expLeftRate_twoRadius
+    {sigma aL Clamsigma A_Z m_sigma C_R D0 : ℝ}
+    {F : ℝ → ℝ} {L : ℝ}
+    (hcontract : Clamsigma + A_Z * m_sigma < 1)
+    (hCR : D0 / (1 - (Clamsigma + A_Z * m_sigma)) ≤ C_R)
+    (hF : ExpLeftRate sigma aL
+      (paperFixedSourceMapRateConstant Clamsigma A_Z D0 C_R
+        (paperFixedSourceMapTwoRadiusCZ m_sigma C_R)) F L) :
+    ExpLeftRate sigma aL C_R F L :=
+  ExpLeftRate.mono_C
+    (paperFixedSourceMap_twoRadius_bound
+      (Clamsigma := Clamsigma) (A_Z := A_Z) (m_sigma := m_sigma)
+      (C_R := C_R) (D0 := D0) hcontract hCR)
+    hF
+
 /-- Pointwise continuity of the Green convolution under locally uniform source
 convergence and a shared uniform bound. -/
 theorem paperGreenConv_tendsto_of_source_locallyUniform_of_uniform_bound
@@ -6139,8 +6415,10 @@ point; once it gives `0 ≤ greenConv R ≤ upperBarrier κ M`, the spatial clam
 identities turn the truncated fixed-source equation into the genuine paper
 source equation. -/
 theorem PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
-    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    {p : CMParams} {c lam M κ Λ sigma aL C_u L_u : ℝ} {u : ℝ → ℝ}
+    (hu_rate : ExpLeftRate sigma aL C_u u L_u)
     (hdata : InMonotoneWaveTrapSet κ M u →
+      ExpLeftRate sigma aL C_u u L_u →
       ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
       (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
@@ -6149,7 +6427,7 @@ theorem PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
     PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
   intro hu Z hZc hZa hZ0 hZB hZsuper
   let hd : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z :=
-    hdata hu Z hZc hZa hZ0 hZB hZsuper
+    hdata hu hu_rate Z hZc hZa hZ0 hZB hZsuper
   obtain ⟨R, hRbox, hRfix⟩ := hd.exists_fixed
   have hIcc :
       ∀ x,
@@ -8421,13 +8699,15 @@ The continuity and weighted bound fields are discharged here.  The genuinely
 Hölder/tail modulus obligations remain explicit inputs, and compactness is then
 derived from the resulting self-map of the weighted source box. -/
 def paperFixedSourceMapBoxBounds_of_trap
-    (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (p : CMParams) {c lam M κ β B H sigma aL C_u L_u : ℝ}
+    {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hHnn : 0 ≤ H) (hβpos : 0 < β)
     (hu : InMonotoneWaveTrapSet κ M u)
+    (hu_rate : ExpLeftRate sigma aL C_u u L_u)
     (hZ : PaperIterateBase κ M Z)
     (hscalar :
       |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
@@ -8444,6 +8724,7 @@ def paperFixedSourceMapBoxBounds_of_trap
         |paperFixedSourceMap p c lam M κ u Z R x -
             paperFixedSourceMap p c lam M κ u Z R y| ≤ ω A) :
     PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z := by
+  have _hu_rate : ExpLeftRate sigma aL C_u u L_u := hu_rate
   let map_cont :
       ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
         Continuous (paperFixedSourceMap p c lam M κ u Z R) := by
@@ -8505,6 +8786,79 @@ def paperFixedSourceMapBoxBounds_of_trap
       leftTail := map_leftTail R hR
       leftTailCauchy := hmap_leftTailCauchy R hR }
 
+/-- Source-box bounds from a fixed-source map exponential left-rate estimate.
+This closes the left-tail fields with `ω = K_R * exp(σ(·-aL))`; the remaining
+continuity, weighted bound, Hölder, and compactness arguments are the same as
+`paperFixedSourceMapBoxBounds_of_trap`. -/
+def paperFixedSourceMapBoxBounds_of_trap_expLeftRate
+    (p : CMParams)
+    {c lam M κ β B H sigma aL C_u L_u Cmap K_R : ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hHnn : 0 ≤ H) (hβpos : 0 < β)
+    (hsigma : 0 < sigma)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hu_rate : ExpLeftRate sigma aL C_u u L_u)
+    (hZ : PaperIterateBase κ M Z)
+    (hscalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * M ^ p.γ
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hmap_holder : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H (expLeftOmega sigma aL K_R) R →
+      ∀ x y,
+        |paperFixedSourceMap p c lam M κ u Z R x -
+            paperFixedSourceMap p c lam M κ u Z R y| ≤ H * |x - y| ^ β)
+    (hCmap_le : 2 * Cmap ≤ K_R)
+    (hmap_rate : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H (expLeftOmega sigma aL K_R) R →
+        ∃ Lout : ℝ,
+          ExpLeftRate sigma aL Cmap
+            (paperFixedSourceMap p c lam M κ u Z R) Lout) :
+    PaperFixedSourceMapBoxBounds p c lam M κ β B H
+      (expLeftOmega sigma aL K_R) u Z := by
+  let hmap_leftTail :
+      ∀ R, PaperWeightedHolderSourceBox κ M β B H
+          (expLeftOmega sigma aL K_R) R →
+        ∃ Rm, Tendsto (paperFixedSourceMap p c lam M κ u Z R) atBot
+          (𝓝 Rm) := by
+    intro R hR
+    rcases hmap_rate R hR with ⟨Lout, hrate⟩
+    exact ⟨Lout, hrate.tendsto_atBot hsigma⟩
+  let hmap_leftTailCauchy :
+      ∀ R, PaperWeightedHolderSourceBox κ M β B H
+          (expLeftOmega sigma aL K_R) R →
+      ∀ A x y, x ≤ A → y ≤ A →
+        |paperFixedSourceMap p c lam M κ u Z R x -
+            paperFixedSourceMap p c lam M κ u Z R y| ≤
+          expLeftOmega sigma aL K_R A := by
+    intro R hR A x y hx hy
+    rcases hmap_rate R hR with ⟨Lout, hrate⟩
+    calc
+      |paperFixedSourceMap p c lam M κ u Z R x -
+          paperFixedSourceMap p c lam M κ u Z R y|
+          ≤ 2 * Cmap * Real.exp (sigma * (A - aL)) :=
+        hrate.leftTailCauchy_all hsigma.le A x y hx hy
+      _ ≤ K_R * Real.exp (sigma * (A - aL)) :=
+        mul_le_mul_of_nonneg_right hCmap_le (Real.exp_pos _).le
+      _ = expLeftOmega sigma aL K_R A := rfl
+  let hbase : PaperFixedSourceMapBoxBounds p c lam M κ β B H
+      (expLeftOmega sigma aL K_R) u Z :=
+    paperFixedSourceMapBoxBounds_of_trap
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (β := β) (B := B) (H := H) (sigma := sigma) (aL := aL)
+      (C_u := C_u) (L_u := L_u)
+      hlam hrpκ hrmκ hκ hM hBnn hHnn hβpos hu hu_rate hZ
+      hscalar hmap_holder hmap_leftTailCauchy
+  exact
+    { hbase with
+      map_leftTail := hmap_leftTail
+      map_leftTailCauchy := hmap_leftTailCauchy }
+
 /-- Assemble the truncated source-box fixed-source data from source-box bounds,
 local-uniform continuity, finite-cube data, and the barrier packets used only to
 prove clamp inactivity.
@@ -8513,11 +8867,12 @@ The resulting record carries the already committed `boxCubeData`; the barrier
 packets are consumed immediately by the truncated max-principles and are not
 stored in the fixed-source data. -/
 def paperTruncatedFixedSourceBoxData_of_trap
-    {p : CMParams} {c lam M κ Λ β B H C_chem : ℝ}
+    {p : CMParams} {c lam M κ Λ β B H C_chem sigma aL C_u L_u : ℝ}
     {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hHnn : 0 ≤ H) (hβpos : 0 < β)
     (hu : InMonotoneWaveTrapSet κ M u)
+    (hu_rate : ExpLeftRate sigma aL C_u u L_u)
     (hsourceBound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M))
     (hbeta_eq : β = paperWeightedHolderExponent p)
     (hbox :
@@ -8535,6 +8890,7 @@ def paperTruncatedFixedSourceBoxData_of_trap
         PaperStepUpperTruncatedData p c lam M C_chem u Z
           (fun x => greenConv c lam R x) (upperBarrier κ M)) :
     PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z := by
+  have _hu_rate : ExpLeftRate sigma aL C_u u L_u := hu_rate
   exact
     { beta := β
       B := B

@@ -60,7 +60,7 @@
   two trap-derived frozen-drift facts (`frozenElliptic` continuity and
   `|V_u'| ≤ Bv`).
 
-  No `sorry`/`axiom`/`native_decide`/`admit`.  Touches only Paper1.
+  No placeholder proof commands or new logical primitives.  Touches only Paper1.
 -/
 import ShenWork.Paper1.WaveRotheSchauderData
 import ShenWork.Paper1.WaveRotheHelly
@@ -301,6 +301,140 @@ theorem leftTailCauchy {sigma aL C : ℝ} {f : ℝ → ℝ} {ell : ℝ}
         (mul_le_mul_of_nonneg_left hxexp hC)
         (mul_le_mul_of_nonneg_left hyexp hC)
     _ = 2 * C * Real.exp (sigma * (A - aL)) := by ring
+
+/-- An exponential left-rate bound gives a Cauchy modulus on every left
+half-line.  This version does not require the cutoff `A` to lie left of `aL`;
+monotonicity of the exponential along `x ≤ A` is enough. -/
+theorem leftTailCauchy_all {sigma aL C : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hsigma : 0 ≤ sigma) (h : ExpLeftRate sigma aL C f ell) :
+    ∀ A x y, x ≤ A → y ≤ A →
+      |f x - f y| ≤ 2 * C * Real.exp (sigma * (A - aL)) := by
+  intro A x y hx hy
+  have hC : 0 ≤ C := h.C_nonneg
+  have hxexp :
+      Real.exp (sigma * (x - aL)) ≤ Real.exp (sigma * (A - aL)) := by
+    apply Real.exp_le_exp.mpr
+    exact mul_le_mul_of_nonneg_left (by linarith) hsigma
+  have hyexp :
+      Real.exp (sigma * (y - aL)) ≤ Real.exp (sigma * (A - aL)) := by
+    apply Real.exp_le_exp.mpr
+    exact mul_le_mul_of_nonneg_left (by linarith) hsigma
+  calc
+    |f x - f y| = |(f x - ell) + (ell - f y)| := by ring_nf
+    _ ≤ |f x - ell| + |ell - f y| := abs_add_le _ _
+    _ = |f x - ell| + |f y - ell| := by rw [abs_sub_comm ell (f y)]
+    _ ≤ C * Real.exp (sigma * (x - aL)) +
+        C * Real.exp (sigma * (y - aL)) :=
+      add_le_add (h x) (h y)
+    _ ≤ C * Real.exp (sigma * (A - aL)) +
+        C * Real.exp (sigma * (A - aL)) := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_left hxexp hC)
+        (mul_le_mul_of_nonneg_left hyexp hC)
+    _ = 2 * C * Real.exp (sigma * (A - aL)) := by ring
+
+theorem tendsto_atBot {sigma aL C : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hsigma : 0 < sigma) (h : ExpLeftRate sigma aL C f ell) :
+    Tendsto f atBot (𝓝 ell) := by
+  have hdecay :
+      Tendsto (fun x : ℝ => C * Real.exp (sigma * (x - aL))) atBot (𝓝 0) := by
+    have hsub : Tendsto (fun x : ℝ => x - aL) atBot atBot := by
+      simpa [sub_eq_add_neg] using
+        tendsto_atBot_add_const_right atBot (-aL)
+          (tendsto_id : Tendsto (fun x : ℝ => x) atBot atBot)
+    have hlin : Tendsto (fun x : ℝ => sigma * (x - aL)) atBot atBot :=
+      hsub.const_mul_atBot hsigma
+    have hexp : Tendsto (fun x : ℝ => Real.exp (sigma * (x - aL))) atBot (𝓝 0) :=
+      Real.tendsto_exp_atBot.comp hlin
+    simpa using hexp.const_mul C
+  have hsub0 : Tendsto (fun x : ℝ => f x - ell) atBot (𝓝 0) := by
+    apply squeeze_zero_norm (a := fun x : ℝ => C * Real.exp (sigma * (x - aL)))
+    · intro x
+      simpa [Real.norm_eq_abs] using h x
+    · exact hdecay
+  have hadd := hsub0.add (tendsto_const_nhds : Tendsto (fun _ : ℝ => ell) atBot (𝓝 ell))
+  simpa [sub_add_cancel] using hadd
+
+theorem limit_mem_Icc {sigma aL C M : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hsigma : 0 < sigma) (h : ExpLeftRate sigma aL C f ell)
+    (h0 : ∀ x, 0 ≤ f x) (hM : ∀ x, f x ≤ M) :
+    ell ∈ Set.Icc (0 : ℝ) M := by
+  have hlim := h.tendsto_atBot hsigma
+  constructor
+  · exact le_of_tendsto_of_tendsto tendsto_const_nhds hlim
+      (Eventually.of_forall h0)
+  · exact le_of_tendsto_of_tendsto hlim tendsto_const_nhds
+      (Eventually.of_forall hM)
+
+theorem const_mul {sigma aL C a : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (h : ExpLeftRate sigma aL C f ell) :
+    ExpLeftRate sigma aL (|a| * C) (fun x => a * f x) (a * ell) := by
+  intro x
+  calc
+    |a * f x - a * ell| = |a| * |f x - ell| := by
+      rw [← mul_sub, abs_mul]
+    _ ≤ |a| * (C * Real.exp (sigma * (x - aL))) :=
+      mul_le_mul_of_nonneg_left (h x) (abs_nonneg a)
+    _ = (|a| * C) * Real.exp (sigma * (x - aL)) := by ring
+
+theorem add {sigma aL Cf Cg : ℝ} {f g : ℝ → ℝ} {ellf ellg : ℝ}
+    (hf : ExpLeftRate sigma aL Cf f ellf)
+    (hg : ExpLeftRate sigma aL Cg g ellg) :
+    ExpLeftRate sigma aL (Cf + Cg) (fun x => f x + g x) (ellf + ellg) := by
+  intro x
+  calc
+    |(f x + g x) - (ellf + ellg)|
+        = |(f x - ellf) + (g x - ellg)| := by ring_nf
+    _ ≤ |f x - ellf| + |g x - ellg| := abs_add_le _ _
+    _ ≤ Cf * Real.exp (sigma * (x - aL)) +
+        Cg * Real.exp (sigma * (x - aL)) :=
+      add_le_add (hf x) (hg x)
+    _ = (Cf + Cg) * Real.exp (sigma * (x - aL)) := by ring
+
+theorem neg {sigma aL C : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (h : ExpLeftRate sigma aL C f ell) :
+    ExpLeftRate sigma aL C (fun x => -f x) (-ell) := by
+  intro x
+  have hdiff : -f x - -ell = -(f x - ell) := by ring
+  rw [hdiff, abs_neg]
+  exact h x
+
+theorem sub {sigma aL Cf Cg : ℝ} {f g : ℝ → ℝ} {ellf ellg : ℝ}
+    (hf : ExpLeftRate sigma aL Cf f ellf)
+    (hg : ExpLeftRate sigma aL Cg g ellg) :
+    ExpLeftRate sigma aL (Cf + Cg) (fun x => f x - g x) (ellf - ellg) := by
+  simpa [sub_eq_add_neg] using hf.add hg.neg
+
+theorem mul {sigma aL Cf Cg Bf Bg : ℝ} {f g : ℝ → ℝ} {ellf ellg : ℝ}
+    (hf : ExpLeftRate sigma aL Cf f ellf)
+    (hg : ExpLeftRate sigma aL Cg g ellg)
+    (hf_bound : ∀ x, |f x| ≤ Bf)
+    (hellg : |ellg| ≤ Bg) (hBf : 0 ≤ Bf) (hBg : 0 ≤ Bg) :
+    ExpLeftRate sigma aL (Bf * Cg + Bg * Cf)
+      (fun x => f x * g x) (ellf * ellg) := by
+  intro x
+  have hsplit :
+      f x * g x - ellf * ellg =
+        f x * (g x - ellg) + ellg * (f x - ellf) := by ring
+  rw [hsplit]
+  calc
+    |f x * (g x - ellg) + ellg * (f x - ellf)|
+        ≤ |f x * (g x - ellg)| + |ellg * (f x - ellf)| := abs_add_le _ _
+    _ = |f x| * |g x - ellg| + |ellg| * |f x - ellf| := by
+      rw [abs_mul, abs_mul]
+    _ ≤ Bf * (Cg * Real.exp (sigma * (x - aL))) +
+        Bg * (Cf * Real.exp (sigma * (x - aL))) :=
+      add_le_add
+        (mul_le_mul (hf_bound x) (hg x) (abs_nonneg _) hBf)
+        (mul_le_mul hellg (hf x) (abs_nonneg _) hBg)
+    _ = (Bf * Cg + Bg * Cf) * Real.exp (sigma * (x - aL)) := by ring
+
+theorem mono_C {sigma aL C C' : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hC : C ≤ C') (h : ExpLeftRate sigma aL C f ell) :
+    ExpLeftRate sigma aL C' f ell := by
+  intro x
+  exact le_trans (h x)
+    (mul_le_mul_of_nonneg_right hC (Real.exp_pos _).le)
 
 end ExpLeftRate
 

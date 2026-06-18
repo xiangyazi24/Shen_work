@@ -1187,10 +1187,12 @@ This is the wiring layer: the source-box fixed point first yields
 Route-A fixed-source assembly then produces the Green core consumed by
 `paperRotheStepProducer_of_routeA_greenCore`. -/
 def paperGreenStepInputRouteACore_of_trap_truncatedSourceBox
-    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    {p : CMParams} {c lam M κ Λ sigma aL C_u L_u : ℝ} {u : ℝ → ℝ}
     (hu : InMonotoneWaveTrapSet κ M u)
+    (hu_rate : ExpLeftRate sigma aL C_u u L_u)
     (hlam : 0 < lam)
     (hboxData : InMonotoneWaveTrapSet κ M u →
+      ExpLeftRate sigma aL C_u u L_u →
       ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
       (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
@@ -1206,7 +1208,8 @@ def paperGreenStepInputRouteACore_of_trap_truncatedSourceBox
     (u := u) hu hlam
     (PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      (u := u) hboxData)
+      (sigma := sigma) (aL := aL) (C_u := C_u) (L_u := L_u)
+      (u := u) hu_rate hboxData)
     hrest hZsuper
 
 /-- Trap-indexed Route-A Green core assembly.
