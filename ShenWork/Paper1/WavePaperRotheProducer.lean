@@ -54,6 +54,202 @@ def paperStepSource
     (p : CMParams) (_c lam : ℝ) (u Z W : ℝ → ℝ) (x : ℝ) : ℝ :=
   paperStepNonlinearity p u W x + lam * Z x
 
+/-! ## Truncated fixed-source box
+
+The fixed-source Schauder route below is deliberately on sources, not on raw
+profiles.  The source map first turns a source `R` into the Green profile
+`W = greenConv c lam R`; all real powers of `W` in the paper source are then
+evaluated through the global clamp from `WaveRotheTrunc.lean`. -/
+
+/-- The paper source with every real power of the Green profile clamped to
+`[0,M]`.  The profile itself and its Green derivative are not clamped. -/
+def paperStepSource_truncated
+    (p : CMParams) (c lam M : ℝ) (u Z R : ℝ → ℝ) (x : ℝ) : ℝ :=
+  let W : ℝ → ℝ := fun y => greenConv c lam R y
+  let V : ℝ → ℝ := frozenElliptic p u
+  (-p.χ * p.m * rpowTrunc (p.m - 1) M (W x) * deriv V x * deriv W x
+    + W x * (1 - p.χ * rpowTrunc (p.m - 1) M (W x) * V x
+      - (rpowTrunc p.α M (W x)
+        - p.χ * rpowTrunc (p.m + p.γ - 1) M (W x))))
+    + lam * Z x
+
+/-- The source-space box used for the truncated fixed-source Schauder step. -/
+def PaperSourceBox (B L : ℝ) (R : ℝ → ℝ) : Prop :=
+  Continuous R ∧
+    (∀ x, |R x| ≤ B) ∧
+      ∀ x y, |R x - R y| ≤ L * |x - y|
+
+/-- The truncated fixed-source map on source profiles. -/
+def paperFixedSourceMap
+    (p : CMParams) (c lam M : ℝ) (u Z : ℝ → ℝ) (R : ℝ → ℝ) : ℝ → ℝ :=
+  paperStepSource_truncated p c lam M u Z R
+
+/-- On a profile already in `[0,M]`, the truncated paper source is the genuine
+paper source. -/
+theorem paperStepSource_truncated_eq_paperStepSource_of_Icc
+    (p : CMParams) {c lam M : ℝ} {u Z R : ℝ → ℝ}
+    (hM : 0 ≤ M)
+    (hW : ∀ x, (fun y => greenConv c lam R y) x ∈ Set.Icc (0 : ℝ) M) :
+    paperFixedSourceMap p c lam M u Z R =
+      paperStepSource p c lam u Z (fun x => greenConv c lam R x) := by
+  funext x
+  have hm1 :
+      rpowTrunc (p.m - 1) M (greenConv c lam R x) =
+        (greenConv c lam R x) ^ (p.m - 1) :=
+    rpowTrunc_eq_on_Icc (m := p.m - 1) (M := M) hM (hW x)
+  have hα :
+      rpowTrunc p.α M (greenConv c lam R x) =
+        (greenConv c lam R x) ^ p.α :=
+    rpowTrunc_eq_on_Icc (m := p.α) (M := M) hM (hW x)
+  have hmg1 :
+      rpowTrunc (p.m + p.γ - 1) M (greenConv c lam R x) =
+        (greenConv c lam R x) ^ (p.m + p.γ - 1) :=
+    rpowTrunc_eq_on_Icc (m := p.m + p.γ - 1) (M := M) hM (hW x)
+  unfold paperFixedSourceMap paperStepSource_truncated paperStepSource
+    paperStepNonlinearity
+  dsimp only
+  rw [hm1, hα, hmg1]
+
+theorem rpowTrunc_continuous {a M : ℝ} (ha : 0 ≤ a) :
+    Continuous (rpowTrunc a M) := by
+  unfold rpowTrunc
+  exact (clampIcc_lipschitz M).continuous.rpow_const (fun _ => Or.inr ha)
+
+theorem rpowTrunc_abs_le {a M s : ℝ} (hM : 0 ≤ M) (ha : 0 ≤ a) :
+    |rpowTrunc a M s| ≤ M ^ a := by
+  have hclamp := clampIcc_mem_Icc hM s
+  unfold rpowTrunc
+  have hpow_nonneg : 0 ≤ (clampIcc M s) ^ a :=
+    Real.rpow_nonneg hclamp.1 a
+  rw [abs_of_nonneg hpow_nonneg]
+  exact Real.rpow_le_rpow hclamp.1 hclamp.2 ha
+
+/-- Pointwise bounds proving that the truncated fixed-source map preserves a
+source box.  The numerical estimates are intentionally separated from the
+topological Schauder wrapper, so missing Green/source bounds have a precise
+interface. -/
+structure PaperFixedSourceMapBoxBounds
+    (p : CMParams) (c lam M B L : ℝ) (u Z : ℝ → ℝ) where
+  compactBound : ℝ
+  compactBound_nonneg : 0 ≤ compactBound
+  B_le_compactBound : B ≤ compactBound
+  L_le_compactBound : L ≤ compactBound
+  map_cont : ∀ R, PaperSourceBox B L R →
+    Continuous (paperFixedSourceMap p c lam M u Z R)
+  map_bound : ∀ R, PaperSourceBox B L R →
+    ∀ x, |paperFixedSourceMap p c lam M u Z R x| ≤ B
+  map_lipschitz : ∀ R, PaperSourceBox B L R →
+    ∀ x y,
+      |paperFixedSourceMap p c lam M u Z R x -
+          paperFixedSourceMap p c lam M u Z R y| ≤ L * |x - y|
+
+namespace PaperFixedSourceMapBoxBounds
+
+/-- The crude source-box estimates imply `mapsTo` for the fixed-source map. -/
+theorem mapsTo
+    {p : CMParams} {c lam M B L : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperFixedSourceMapBoxBounds p c lam M B L u Z) :
+    ∀ R, PaperSourceBox B L R →
+      PaperSourceBox B L (paperFixedSourceMap p c lam M u Z R) := by
+  intro R hR
+  exact ⟨h.map_cont R hR, h.map_bound R hR, h.map_lipschitz R hR⟩
+
+/-- Helly/Arzelà compactness for source-box images with a uniform sup and
+Lipschitz bound. -/
+theorem compactRange
+    {p : CMParams} {c lam M B L : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperFixedSourceMapBoxBounds p c lam M B L u Z) :
+    LocalUniformSequentiallyCompactRange
+      (PaperSourceBox B L) (paperFixedSourceMap p c lam M u Z) := by
+  intro seq hseq
+  set gs : ℕ → ℝ → ℝ :=
+    fun n => paperFixedSourceMap p c lam M u Z (seq n) with hgs
+  have himageBox : ∀ n, PaperSourceBox B L (gs n) := by
+    intro n
+    simpa [hgs] using h.mapsTo (seq n) (hseq n)
+  have hgsL : ∀ k, ∀ x y,
+      |gs k x - gs k y| ≤ h.compactBound * |x - y| := by
+    intro k x y
+    calc
+      |gs k x - gs k y| ≤ L * |x - y| := (himageBox k).2.2 x y
+      _ ≤ h.compactBound * |x - y| :=
+        mul_le_mul_of_nonneg_right h.L_le_compactBound (abs_nonneg _)
+  have hgsB : ∀ k x, |gs k x| ≤ h.compactBound := by
+    intro k x
+    exact le_trans ((himageBox k).2.1 x) h.B_le_compactBound
+  obtain ⟨subseq, hsub, g, hpt, hgL⟩ :=
+    helly_pointwise_selection h.compactBound gs hgsL hgsB
+  have hLU : LocallyUniformConverges (fun n => gs (subseq n)) g :=
+    locallyUniform_of_helly_pointwise h.compactBound_nonneg hpt hgsL hgL
+  have hgcont : Continuous g :=
+    continuous_of_locallyUniform
+      (fun n => (himageBox (subseq n)).1) hLU
+  have hgbound : ∀ x, |g x| ≤ B := by
+    intro x
+    have hle : g x ≤ B :=
+      hLU.le_of_forall_le fun n => (abs_le.mp ((himageBox (subseq n)).2.1 x)).2
+    have hge : -B ≤ g x :=
+      le_of_tendsto_of_tendsto' tendsto_const_nhds (hLU.tendsto_at x)
+        fun n => (abs_le.mp ((himageBox (subseq n)).2.1 x)).1
+    exact abs_le.mpr ⟨hge, hle⟩
+  have hglip : ∀ x y, |g x - g y| ≤ L * |x - y| := by
+    intro x y
+    have hdiff :
+        Tendsto (fun n => gs (subseq n) x - gs (subseq n) y) atTop
+          (𝓝 (g x - g y)) :=
+      (hLU.tendsto_at x).sub (hLU.tendsto_at y)
+    exact le_of_tendsto' hdiff.abs
+      (fun n => (himageBox (subseq n)).2.2 x y)
+  refine ⟨subseq, hsub, g, ?_, ?_⟩
+  · exact ⟨hgcont, hgbound, hglip⟩
+  · simpa [hgs] using hLU
+
+end PaperFixedSourceMapBoxBounds
+
+/-- Schauder data for the truncated fixed-source map on a source box. -/
+structure PaperTruncatedFixedSourceBoxData
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
+  B : ℝ
+  L : ℝ
+  hM_nonneg : 0 ≤ M
+  sourceBound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * B
+  principle : LocalUniformSchauderFixedPointPrinciple (PaperSourceBox B L)
+  boxBounds : PaperFixedSourceMapBoxBounds p c lam M B L u Z
+  continuousOn :
+    LocalUniformContinuousOn
+      (PaperSourceBox B L) (paperFixedSourceMap p c lam M u Z)
+  truncation_inactive :
+    ∀ R, PaperSourceBox B L R →
+      paperFixedSourceMap p c lam M u Z R = R →
+        ∀ x, (fun y => greenConv c lam R y) x ∈ Set.Icc (0 : ℝ) M
+
+namespace PaperTruncatedFixedSourceBoxData
+
+theorem mapsTo
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
+    ∀ R, PaperSourceBox h.B h.L R →
+      PaperSourceBox h.B h.L (paperFixedSourceMap p c lam M u Z R) :=
+  h.boxBounds.mapsTo
+
+theorem compactRange
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
+    LocalUniformSequentiallyCompactRange
+      (PaperSourceBox h.B h.L) (paperFixedSourceMap p c lam M u Z) :=
+  h.boxBounds.compactRange
+
+theorem exists_fixed
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
+    ∃ R : ℝ → ℝ,
+      PaperSourceBox h.B h.L R ∧
+        paperFixedSourceMap p c lam M u Z R = R :=
+  h.principle (paperFixedSourceMap p c lam M u Z)
+    h.mapsTo h.continuousOn h.compactRange
+
+end PaperTruncatedFixedSourceBoxData
+
 theorem paperWaveOperator_eq_linear_add_paperStepNonlinearity
     (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (x : ℝ) :
     paperWaveOperator p c u W x =
@@ -1597,6 +1793,70 @@ theorem greenKernel_neg_mul_translate_integrable_of_bounded
   exact hK.mul_bdd hshift
     (Eventually.of_forall fun t => by simpa [Real.norm_eq_abs] using hB (x + t))
 
+/-- Spatial continuity of the truncated fixed-source map from a continuous
+bounded source and the frozen-field continuity data. -/
+theorem paperFixedSourceMap_continuous_of_sourceBox
+    (p : CMParams) {c lam M B L : ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hZ : Continuous Z)
+    (hV : Continuous (frozenElliptic p u))
+    (hVderiv : Continuous (deriv (frozenElliptic p u)))
+    (hR : PaperSourceBox B L R) :
+    Continuous (paperFixedSourceMap p c lam M u Z R) := by
+  have hHi : ∀ t,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR.1 hR.2.1 t
+  have hLo : ∀ t,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR.1 hR.2.1 t
+  have hW2 : ContDiff ℝ 2 (fun x => greenConv c lam R x) :=
+    greenConv_contDiff_two hR.1 hHi hLo
+  have hW : Continuous (fun x => greenConv c lam R x) :=
+    hW2.continuous
+  have hWderiv : Continuous (deriv (fun x => greenConv c lam R x)) :=
+    hW2.continuous_deriv (by norm_num)
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1 : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hWm1 : Continuous
+      (fun x => rpowTrunc (p.m - 1) M (greenConv c lam R x)) :=
+    (rpowTrunc_continuous (a := p.m - 1) (M := M) hm1).comp hW
+  have hWα : Continuous
+      (fun x => rpowTrunc p.α M (greenConv c lam R x)) :=
+    (rpowTrunc_continuous (a := p.α) (M := M) hα).comp hW
+  have hWmg1 : Continuous
+      (fun x => rpowTrunc (p.m + p.γ - 1) M (greenConv c lam R x)) :=
+    (rpowTrunc_continuous (a := p.m + p.γ - 1) (M := M) hmg1).comp hW
+  have hchem : Continuous (fun x =>
+      -p.χ * p.m * rpowTrunc (p.m - 1) M (greenConv c lam R x) *
+        deriv (frozenElliptic p u) x *
+          deriv (fun y => greenConv c lam R y) x) :=
+    (((continuous_const.mul hWm1).mul hVderiv).mul hWderiv)
+  have hinner : Continuous (fun x =>
+      1 - p.χ * rpowTrunc (p.m - 1) M (greenConv c lam R x) *
+          frozenElliptic p u x
+        - (rpowTrunc p.α M (greenConv c lam R x)
+          - p.χ * rpowTrunc (p.m + p.γ - 1) M (greenConv c lam R x))) :=
+    (continuous_const.sub ((continuous_const.mul hWm1).mul hV)).sub
+      (hWα.sub (continuous_const.mul hWmg1))
+  have htotal : Continuous (fun x =>
+      (-p.χ * p.m * rpowTrunc (p.m - 1) M (greenConv c lam R x) *
+          deriv (frozenElliptic p u) x *
+            deriv (fun y => greenConv c lam R y) x
+        + greenConv c lam R x *
+            (1 - p.χ * rpowTrunc (p.m - 1) M (greenConv c lam R x) *
+              frozenElliptic p u x
+              - (rpowTrunc p.α M (greenConv c lam R x)
+                - p.χ * rpowTrunc (p.m + p.γ - 1) M
+                    (greenConv c lam R x))))
+        + lam * Z x) :=
+    (hchem.add (hW.mul hinner)).add (continuous_const.mul hZ)
+  unfold paperFixedSourceMap paperStepSource_truncated
+  dsimp only
+  convert htotal using 1
+
 /-- Paper-step analytic data with the bounded-source Green tails omitted.
 
 The omitted fields are closed by `paperStepAnalytic_of_core`; source existence,
@@ -1967,6 +2227,39 @@ theorem PaperStepFixedSourceExistsForSuperTrap.of_schauder_approx
     (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ) (u := u)
     (localUniformSchauderFixedPointPrinciple_of_approx_fixed_sequences happrox)
     hdata
+
+/-- Fixed-source existence from the validated truncated source-box route.
+
+The Schauder fixed point is taken for the source map
+`R ↦ paperStepSource_truncated ... R` on a coarse bounded-Lipschitz source box.
+The `truncation_inactive` field is the a-priori trap output for that fixed
+point; once it gives `0 ≤ greenConv R ≤ M`, the clamp identities turn the
+truncated fixed-source equation into the genuine paper source equation. -/
+theorem PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hdata : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
+    PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
+  intro Z hZc hZa hZ0 hZB hZsuper
+  let hd : PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z :=
+    hdata Z hZc hZa hZ0 hZB hZsuper
+  obtain ⟨R, hRbox, hRfix⟩ := hd.exists_fixed
+  have hIcc : ∀ x, (fun y => greenConv c lam R y) x ∈ Set.Icc (0 : ℝ) M :=
+    hd.truncation_inactive R hRbox hRfix
+  have htrunc_eq :
+      paperFixedSourceMap p c lam M u Z R =
+        paperStepSource p c lam u Z (fun x => greenConv c lam R x) :=
+    paperStepSource_truncated_eq_paperStepSource_of_Icc
+      (p := p) (c := c) (lam := lam) (M := M)
+      (u := u) (Z := Z) (R := R) hd.hM_nonneg hIcc
+  refine ⟨R, hRbox.1, ?_, ?_⟩
+  · exact ⟨hd.B, hRbox.2.1, hd.sourceBound_eq⟩
+  · calc
+      R = paperFixedSourceMap p c lam M u Z R := hRfix.symm
+      _ = paperStepSource p c lam u Z (fun x => greenConv c lam R x) := htrunc_eq
 
 /-! ## Historical contraction estimates
 
@@ -2645,6 +2938,15 @@ section AxiomAudit
 #print axioms PaperStepSchauderMapData.exists_fixed
 #print axioms PaperStepFixedSourceExistsForSuperTrap.of_schauder
 #print axioms PaperStepFixedSourceExistsForSuperTrap.of_schauder_approx
+#print axioms paperStepSource_truncated
+#print axioms paperStepSource_truncated_eq_paperStepSource_of_Icc
+#print axioms rpowTrunc_continuous
+#print axioms rpowTrunc_abs_le
+#print axioms paperFixedSourceMap_continuous_of_sourceBox
+#print axioms PaperFixedSourceMapBoxBounds.mapsTo
+#print axioms PaperFixedSourceMapBoxBounds.compactRange
+#print axioms PaperTruncatedFixedSourceBoxData.exists_fixed
+#print axioms PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
 #print axioms paperStepAnalytic_of_core
 #print axioms paperStepOutput_of_core
 #print axioms paperGreenStepInput_of_core
