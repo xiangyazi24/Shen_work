@@ -368,3 +368,20 @@ Contact positivity alone does not. It gives \(W(x_0)>0\), but not a uniform lowe
 For the fixed-point/Green solve: yes, absolutely. For the local differential `W≤Z` maximum principle: divergence notation alone is not enough, because product-rule expansion reintroduces the cusp. The most faithful route is Shen’s paper-expanded **parabolic comparison/long-time map**. If you keep Rothe, use the divergence-form paper Green map for existence and either add a genuine weighted comparison invariant or replace the time-descent step by a parabolic/first-contact comparison layer.
 
 Bottom line: the current `hL1`/`C_chem` path is valid for \(m=1\) or \(m\ge2\), but it is not a faithful discharge for the stated \(1\le m\) real-exponent theorem.
+## De-risking analysis (2026-06-19, this session) — corrects the earlier "Route 2a is cheapest" lean
+Checked whether Route 2a's weighted-slope invariant `|Z'| ≤ C·Z` is already available:
+- The campaign HAS log-derivative machinery: `logDerivativeBoundFormula` (Statements.lean:11310) +
+  `Lemma_5_2_explicit` (`deriv U x / U x ≤ logDerivativeBoundFormula p c`). BUT it requires
+  `IsTravelingWave p c U V` — it holds for the WAVE PROFILE (stationary fixed point, using the wave ODE),
+  NOT for a mid-iteration trapped iterate Z. So it is LIMIT/PROFILE-level, not ITERATE-level.
+- Route 2a needs the log-derivative bound as a PER-STEP INVARIANT (preserved by the implicit-step producer),
+  which Lemma 5.2 does NOT provide. The uniform iterate bound is only `|W'| ≤ Λ`; on the right tail
+  (x→+∞, W~e^{−κx}) that gives `|W'|/W ≤ Λ·e^{κx} → ∞`, i.e. the weighted-slope FAILS unless the iterate's
+  derivative also decays exponentially (a right-tail rate the iterate does not currently carry — ExpLeftRate
+  is LEFT-only).
+- CONCLUSION: Route 2a is NOT a trivial reuse of Lemma 5.2; it requires a genuine new per-step
+  log-derivative-preservation result (does the producer preserve `|W'| ≤ C·W` on the right tail?), whose
+  truth is unverified and plausibly hard. This rebalances the routes — **Route 1 (parabolic first-contact,
+  where the cusp vanishes STRUCTURALLY because W=B at the touch) deserves equal/greater weight** as the
+  cleaner faithful long-term route, despite the restructure. Decision remains Xiang's; my earlier lean
+  toward 2a is withdrawn pending his call.
