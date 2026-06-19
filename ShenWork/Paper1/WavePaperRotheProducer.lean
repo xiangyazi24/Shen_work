@@ -1340,6 +1340,1769 @@ theorem map_expLeftRateData_of_expOmega
 
 end PaperFixedSourceMapBoxBounds
 
+/-! ## Source-box projected cube data
+
+The fixed-source Schauder step needs finite-dimensional data for the source
+box itself.  The source cube uses one coordinate for the left limit and finitely
+many coordinates for weighted samples on the same expanding uniform mesh shape
+as the outer order cube. -/
+
+def sourceCubeSampleDim (N : ℕ) : ℕ :=
+  2 * (N + 1) * (N + 1) + 1
+
+lemma sourceCubeSampleDim_pos (N : ℕ) : 0 < sourceCubeSampleDim N := by
+  unfold sourceCubeSampleDim
+  omega
+
+def sourceCubeDim (N : ℕ) : ℕ :=
+  sourceCubeSampleDim N + 1
+
+lemma sourceCubeDim_pos (N : ℕ) : 0 < sourceCubeDim N := by
+  unfold sourceCubeDim
+  omega
+
+lemma sourceCubeUniv_nonempty (N : ℕ) :
+    (Finset.univ : Finset (Fin (sourceCubeSampleDim N))).Nonempty :=
+  ⟨⟨0, sourceCubeSampleDim_pos N⟩, Finset.mem_univ _⟩
+
+def sourceCubeRadius (N : ℕ) : ℝ :=
+  (N + 1 : ℝ)
+
+def sourceCubeMesh (N : ℕ) : ℝ :=
+  ((N + 1 : ℝ))⁻¹
+
+def sourceCubeNode (N : ℕ) (i : Fin (sourceCubeSampleDim N)) : ℝ :=
+  -sourceCubeRadius N + (i : ℕ) * sourceCubeMesh N
+
+lemma sourceCubeMesh_pos (N : ℕ) : 0 < sourceCubeMesh N := by
+  unfold sourceCubeMesh
+  positivity
+
+lemma sourceCubeMesh_nonneg (N : ℕ) : 0 ≤ sourceCubeMesh N :=
+  (sourceCubeMesh_pos N).le
+
+def sourceCubeEps (β : ℝ) (N : ℕ) : ℝ :=
+  (sourceCubeMesh N) ^ β
+
+lemma sourceCubeEps_pos {β : ℝ} (hβ : 0 < β) (N : ℕ) :
+    0 < sourceCubeEps β N := by
+  unfold sourceCubeEps
+  exact Real.rpow_pos_of_pos (sourceCubeMesh_pos N) β
+
+lemma sourceCubeEps_nonneg {β : ℝ} (N : ℕ) :
+    0 ≤ sourceCubeEps β N := by
+  unfold sourceCubeEps
+  exact Real.rpow_nonneg (sourceCubeMesh_nonneg N) β
+
+lemma sourceCubeMesh_tendsto :
+    Tendsto sourceCubeMesh atTop (𝓝 0) := by
+  simpa [sourceCubeMesh, one_div] using
+    (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ))
+
+lemma sourceCubeEps_tendsto {β : ℝ} (hβ : 0 < β) :
+    Tendsto (sourceCubeEps β) atTop (𝓝 0) := by
+  have h := sourceCubeMesh_tendsto.rpow_const (Or.inr hβ.le)
+  simpa [sourceCubeEps, Real.zero_rpow (ne_of_gt hβ)] using h
+
+def sourceSampleCoord (N : ℕ) (i : Fin (sourceCubeSampleDim N)) :
+    Fin (sourceCubeDim N) :=
+  ⟨i.1 + 1, by
+    have hi := i.2
+    unfold sourceCubeDim
+    omega⟩
+
+def sourceWeightedRadius (κ M B : ℝ) (x : ℝ) : ℝ :=
+  B * upperBarrier κ M x
+
+noncomputable def sourceLeftLimitOf
+    (κ M β B H sigma aL K : ℝ) (R : ℝ → ℝ) : ℝ :=
+by
+  classical
+  exact
+    if hR : PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL K) R then
+      Classical.choose hR.leftTail
+    else
+      0
+
+noncomputable def sourceProj
+    (κ M β B H sigma aL K : ℝ) (N : ℕ) (R : ℝ → ℝ) :
+    Fin (sourceCubeDim N) → ℝ :=
+  fun j =>
+    if hj : j.1 = 0 then
+      (sourceLeftLimitOf κ M β B H sigma aL K R + B * M) / (2 * (B * M))
+    else
+      let i : Fin (sourceCubeSampleDim N) :=
+        ⟨j.1 - 1, by
+          have hjlt := j.2
+          unfold sourceCubeDim at hjlt
+          omega⟩
+      (R (sourceCubeNode N i) + sourceWeightedRadius κ M B (sourceCubeNode N i)) /
+        (2 * sourceWeightedRadius κ M B (sourceCubeNode N i))
+
+lemma sourceLeftLimit_abs_le
+    {κ M β B H sigma aL K : ℝ} {R : ℝ → ℝ}
+    (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) R) :
+    |sourceLeftLimitOf κ M β B H sigma aL K R| ≤ B * M := by
+  classical
+  have hlim :
+      Tendsto R atBot
+        (𝓝 (sourceLeftLimitOf κ M β B H sigma aL K R)) := by
+    unfold sourceLeftLimitOf
+    simp [hR, Classical.choose_spec hR.leftTail]
+  have htend :
+      Tendsto (fun x => |R x|) atBot
+        (𝓝 |sourceLeftLimitOf κ M β B H sigma aL K R|) :=
+    hlim.abs
+  exact le_of_tendsto htend
+    (Eventually.of_forall (hR.abs_le_const hBnn))
+
+lemma sourceProj_mem_unitCube
+    {κ M β B H sigma aL K : ℝ}
+    (hM : 0 < M) (hB : 0 < B) (N : ℕ)
+    {R : ℝ → ℝ}
+    (hR : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) R) :
+    sourceProj κ M β B H sigma aL K N R ∈
+      Freudenthal.unitCube (sourceCubeDim N) := by
+  intro j
+  by_cases hj : j.1 = 0
+  · have hSpos : 0 < B * M := mul_pos hB hM
+    have hell := sourceLeftLimit_abs_le (κ := κ) (M := M) (β := β)
+      (B := B) (H := H) (sigma := sigma) (aL := aL) (K := K)
+      (R := R) hB.le hR
+    constructor
+    · unfold sourceProj
+      rw [dif_pos hj]
+      rw [div_nonneg_iff]
+      left
+      constructor
+      · exact neg_le_iff_add_nonneg.mp (abs_le.mp hell).1
+      · positivity
+    · unfold sourceProj
+      rw [dif_pos hj]
+      rw [div_le_one (by positivity : 0 < 2 * (B * M))]
+      have hupper := (abs_le.mp hell).2
+      linarith
+  · let i : Fin (sourceCubeSampleDim N) :=
+      ⟨j.1 - 1, by
+        have hjlt := j.2
+        unfold sourceCubeDim at hjlt
+        omega⟩
+    have hbpos :
+        0 < sourceWeightedRadius κ M B (sourceCubeNode N i) := by
+      unfold sourceWeightedRadius
+      exact mul_pos hB (upperBarrier_pos hM _)
+    have hbound :
+        |R (sourceCubeNode N i)| ≤
+          sourceWeightedRadius κ M B (sourceCubeNode N i) := by
+      simpa [sourceWeightedRadius] using hR.bound (sourceCubeNode N i)
+    constructor
+    · unfold sourceProj
+      rw [dif_neg hj]
+      dsimp only
+      rw [div_nonneg_iff]
+      left
+      constructor
+      · exact neg_le_iff_add_nonneg.mp (abs_le.mp hbound).1
+      · positivity
+    · unfold sourceProj
+      rw [dif_neg hj]
+      dsimp only
+      rw [div_le_one (by positivity : 0 < 2 * sourceWeightedRadius κ M B (sourceCubeNode N i))]
+      change
+        R (sourceCubeNode N i) +
+            sourceWeightedRadius κ M B (sourceCubeNode N i) ≤
+          2 * sourceWeightedRadius κ M B (sourceCubeNode N i)
+      linarith [(abs_le.mp hbound).2]
+
+def sourceDecode (S : ℝ) (t : ℝ) : ℝ :=
+  2 * S * t - S
+
+def sourceLeftCoordDecode (B M : ℝ) {N : ℕ}
+    (a : Fin (sourceCubeDim N) → ℝ) : ℝ :=
+  sourceDecode (B * M) (a ⟨0, sourceCubeDim_pos N⟩)
+
+def sourceNodeFreeValue (κ M B : ℝ) (N : ℕ)
+    (a : Fin (sourceCubeDim N) → ℝ)
+    (i : Fin (sourceCubeSampleDim N)) : ℝ :=
+  sourceWeightedRadius κ M B (sourceCubeNode N i) *
+    (2 * a (sourceSampleCoord N i) - 1)
+
+noncomputable def sourceMcShaneEnvelope
+    (κ M B β H : ℝ) (N : ℕ)
+    (a : Fin (sourceCubeDim N) → ℝ) (x : ℝ) : ℝ :=
+  Finset.univ.inf' (sourceCubeUniv_nonempty N)
+    (fun i : Fin (sourceCubeSampleDim N) =>
+      sourceNodeFreeValue κ M B N a i +
+        H * |x - sourceCubeNode N i| ^ β)
+
+lemma source_finset_inf'_abs_sub_le {ι : Type*} {s : Finset ι}
+    (hs : s.Nonempty) {f g : ι → ℝ} {δ : ℝ}
+    (hfg : ∀ i ∈ s, |f i - g i| ≤ δ) :
+    |s.inf' hs f - s.inf' hs g| ≤ δ := by
+  rw [abs_le]
+  constructor
+  · have hle : s.inf' hs g - δ ≤ s.inf' hs f := by
+      apply Finset.le_inf' hs
+      intro i hi
+      have hg : s.inf' hs g ≤ g i := Finset.inf'_le _ hi
+      have hgf' : g i ≤ f i + δ := by
+        have := (abs_le.mp (hfg i hi)).1
+        linarith
+      linarith
+    linarith
+  · have hle : s.inf' hs f - δ ≤ s.inf' hs g := by
+      apply Finset.le_inf' hs
+      intro i hi
+      have hf : s.inf' hs f ≤ f i := Finset.inf'_le _ hi
+      have hfg' : f i ≤ g i + δ := by
+        have := (abs_le.mp (hfg i hi)).2
+        linarith
+      linarith
+    linarith
+
+lemma finset_inf'_holder
+    {ι : Type*} {s : Finset ι} (hs : s.Nonempty)
+    {F : ι → ℝ → ℝ} {β H : ℝ}
+    (hH : 0 ≤ H)
+    (hF : ∀ i ∈ s, ∀ x y, |F i x - F i y| ≤ H * |x - y| ^ β) :
+    ∀ x y,
+      |s.inf' hs (fun i => F i x) - s.inf' hs (fun i => F i y)|
+        ≤ H * |x - y| ^ β := by
+  intro x y
+  apply source_finset_inf'_abs_sub_le hs
+  intro i hi
+  exact hF i hi x y
+
+lemma sourceMcShaneEnvelope_holder
+    {κ M B β H : ℝ}
+    (hβ0 : 0 ≤ β) (hβ1 : β ≤ 1) (hH : 0 ≤ H)
+    (N : ℕ) (a : Fin (sourceCubeDim N) → ℝ) :
+    ∀ x y,
+      |sourceMcShaneEnvelope κ M B β H N a x -
+          sourceMcShaneEnvelope κ M B β H N a y|
+        ≤ H * |x - y| ^ β := by
+  intro x y
+  unfold sourceMcShaneEnvelope
+  refine
+    (finset_inf'_holder
+      (s := (Finset.univ : Finset (Fin (sourceCubeSampleDim N))))
+      (hs := sourceCubeUniv_nonempty N)
+      (F := fun i z =>
+        sourceNodeFreeValue κ M B N a i +
+          H * |z - sourceCubeNode N i| ^ β)
+      (β := β) (H := H) hH ?_) x y
+  intro i _hi x y
+  have hpow :
+      |(|x - sourceCubeNode N i| ^ β) -
+          (|y - sourceCubeNode N i| ^ β)| ≤
+        |(|x - sourceCubeNode N i|) - (|y - sourceCubeNode N i|)| ^ β :=
+    rpow_abs_sub_le_abs_sub_rpow hβ0 hβ1 (abs_nonneg _) (abs_nonneg _)
+  have habs :
+      |(|x - sourceCubeNode N i|) - (|y - sourceCubeNode N i|)| ≤
+        |x - y| := by
+    simpa [Real.dist_eq] using
+      abs_abs_sub_abs_le_abs_sub (x - sourceCubeNode N i)
+        (y - sourceCubeNode N i)
+  have hpow' :
+      |(|x - sourceCubeNode N i|) - (|y - sourceCubeNode N i|)| ^ β ≤
+        |x - y| ^ β :=
+    Real.rpow_le_rpow (abs_nonneg _) habs hβ0
+  calc
+    |(sourceNodeFreeValue κ M B N a i +
+          H * |x - sourceCubeNode N i| ^ β) -
+        (sourceNodeFreeValue κ M B N a i +
+          H * |y - sourceCubeNode N i| ^ β)|
+        = H * |(|x - sourceCubeNode N i| ^ β) -
+            (|y - sourceCubeNode N i| ^ β)| := by
+          rw [show
+            (sourceNodeFreeValue κ M B N a i +
+                H * |x - sourceCubeNode N i| ^ β) -
+              (sourceNodeFreeValue κ M B N a i +
+                H * |y - sourceCubeNode N i| ^ β)
+              = H * (|x - sourceCubeNode N i| ^ β -
+                |y - sourceCubeNode N i| ^ β) by ring]
+          rw [abs_mul, abs_of_nonneg hH]
+    _ ≤ H *
+        (|(|x - sourceCubeNode N i|) - (|y - sourceCubeNode N i|)| ^ β) :=
+        mul_le_mul_of_nonneg_left hpow hH
+    _ ≤ H * |x - y| ^ β :=
+        mul_le_mul_of_nonneg_left hpow' hH
+
+lemma sourceMcShaneEnvelope_continuous
+    {κ M B β H : ℝ}
+    (hβ0 : 0 ≤ β) (N : ℕ) (a : Fin (sourceCubeDim N) → ℝ) :
+    Continuous (sourceMcShaneEnvelope κ M B β H N a) := by
+  unfold sourceMcShaneEnvelope
+  apply Continuous.finset_inf'_apply (sourceCubeUniv_nonempty N)
+  intro i _hi
+  exact continuous_const.add
+    (continuous_const.mul
+      (((continuous_id.sub continuous_const).abs).rpow_const
+        (fun _ => Or.inr hβ0)))
+
+/-! ### McShane source obstacles and the clipped lift -/
+
+def sourceTube (sigma aL C_R : ℝ) (x : ℝ) : ℝ :=
+  C_R * Real.exp (sigma * min (x - aL) 0)
+
+def sourceLowerObstacle
+    (κ M B sigma aL C_R ell : ℝ) (x : ℝ) : ℝ :=
+  max (-(B * upperBarrier κ M x)) (ell - sourceTube sigma aL C_R x)
+
+def sourceUpperObstacle
+    (κ M B sigma aL C_R ell : ℝ) (x : ℝ) : ℝ :=
+  min (B * upperBarrier κ M x) (ell + sourceTube sigma aL C_R x)
+
+noncomputable def sourceLift
+    (κ M B β H sigma aL C_R : ℝ) (N : ℕ)
+    (a : Fin (sourceCubeDim N) → ℝ) (x : ℝ) : ℝ :=
+  let ell := sourceLeftCoordDecode B M a
+  max (sourceLowerObstacle κ M B sigma aL C_R ell x)
+    (min (sourceUpperObstacle κ M B sigma aL C_R ell x)
+      (sourceMcShaneEnvelope κ M B β H N a x))
+
+def sourceObstacleHolderConst (κ M B sigma C_R : ℝ) : ℝ :=
+  max (B * max (κ * Real.exp κ * M) (2 * M))
+    (max (C_R * sigma) (2 * C_R))
+
+lemma sourceDecode_abs_le {S t : ℝ} (hS : 0 ≤ S)
+    (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
+    |sourceDecode S t| ≤ S := by
+  unfold sourceDecode
+  rw [abs_le]
+  constructor <;> nlinarith
+
+lemma sourceLeftCoordDecode_abs_le {B M : ℝ} {N : ℕ}
+    {a : Fin (sourceCubeDim N) → ℝ}
+    (hBM : 0 ≤ B * M)
+    (ha : a ∈ Freudenthal.unitCube (sourceCubeDim N)) :
+    |sourceLeftCoordDecode B M a| ≤ B * M := by
+  exact sourceDecode_abs_le hBM
+    (ha ⟨0, sourceCubeDim_pos N⟩).1
+    (ha ⟨0, sourceCubeDim_pos N⟩).2
+
+lemma sourceUpperBarrier_eq_M_of_le_aL
+    {κ M aL x : ℝ} (hκ : 0 ≤ κ)
+    (hUleft : M ≤ Real.exp (-κ * aL)) (hx : x ≤ aL) :
+    upperBarrier κ M x = M := by
+  have harg : -κ * aL ≤ -κ * x := by nlinarith
+  exact upperBarrier_eq_M_of_le_exp
+    (le_trans hUleft (Real.exp_le_exp.mpr harg))
+
+lemma sourceTube_nonneg {sigma aL C_R x : ℝ} (hCR : 0 ≤ C_R) :
+    0 ≤ sourceTube sigma aL C_R x := by
+  unfold sourceTube
+  positivity
+
+lemma sourceTube_eq_C_R_of_aL_lt
+    {sigma aL C_R x : ℝ} (hx : aL < x) :
+    sourceTube sigma aL C_R x = C_R := by
+  unfold sourceTube
+  have hmin : min (x - aL) 0 = 0 := by
+    exact min_eq_right (by linarith)
+  rw [hmin]
+  simp
+
+lemma source_abs_le_radius_of_left_or_right
+    {κ M B sigma aL C_R ell x : ℝ}
+    (hκ : 0 ≤ κ) (hB : 0 ≤ B) (hM : 0 ≤ M)
+    (hsigma : 0 ≤ sigma)
+    (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsParam : B * M ≤ C_R)
+    (hell : |ell| ≤ B * M) :
+    |ell| ≤ B * upperBarrier κ M x + sourceTube sigma aL C_R x := by
+  by_cases hx : x ≤ aL
+  · rw [sourceUpperBarrier_eq_M_of_le_aL hκ hUleft hx]
+    exact le_trans hell
+      (le_add_of_nonneg_right (sourceTube_nonneg (le_trans (mul_nonneg hB hM) hObsParam)))
+  · have hxlt : aL < x := lt_of_not_ge hx
+    rw [sourceTube_eq_C_R_of_aL_lt hxlt]
+    have hBM_nonneg : 0 ≤ B * M := mul_nonneg hB hM
+    calc
+      |ell| ≤ B * M := hell
+      _ ≤ C_R := hObsParam
+      _ ≤ B * upperBarrier κ M x + C_R := by
+        exact le_add_of_nonneg_left
+          (mul_nonneg hB (upperBarrier_nonneg hM x))
+
+lemma sourceObstacle_interval_nonempty_of_abs
+    {s t ell : ℝ} (hs : 0 ≤ s) (ht : 0 ≤ t)
+    (hell : |ell| ≤ s + t) :
+    max (-s) (ell - t) ≤ min s (ell + t) := by
+  apply max_le
+  · apply le_min
+    · linarith
+    · have hleft := (abs_le.mp hell).1
+      linarith
+  · apply le_min
+    · have hright := (abs_le.mp hell).2
+      linarith
+    · linarith
+
+lemma sourceObstacle_nonempty
+    {κ M B sigma aL C_R ell : ℝ}
+    (hκ : 0 ≤ κ) (hB : 0 ≤ B) (hM : 0 ≤ M)
+    (hsigma : 0 ≤ sigma)
+    (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsParam : B * M ≤ C_R)
+    (hell : |ell| ≤ B * M) :
+    ∀ x,
+      sourceLowerObstacle κ M B sigma aL C_R ell x ≤
+        sourceUpperObstacle κ M B sigma aL C_R ell x := by
+  intro x
+  unfold sourceLowerObstacle sourceUpperObstacle
+  exact sourceObstacle_interval_nonempty_of_abs
+    (mul_nonneg hB (upperBarrier_nonneg hM x))
+    (sourceTube_nonneg (le_trans (mul_nonneg hB hM) hObsParam))
+    (source_abs_le_radius_of_left_or_right
+      (κ := κ) (M := M) (B := B) (sigma := sigma) (aL := aL)
+      (C_R := C_R) (ell := ell) (x := x)
+      hκ hB hM hsigma hUleft hObsParam hell)
+
+lemma exp_nonpos_abs_sub_le {sigma u v : ℝ}
+    (hsigma : 0 ≤ sigma) (hu : u ≤ 0) (hv : v ≤ 0) :
+    |Real.exp (sigma * u) - Real.exp (sigma * v)| ≤
+      sigma * |u - v| := by
+  have hordered :
+      ∀ {u v : ℝ}, u ≤ 0 → v ≤ 0 → u ≤ v →
+        |Real.exp (sigma * u) - Real.exp (sigma * v)| ≤
+          sigma * |u - v| := by
+    intro u v hu hv huv
+    have hdu : 0 ≤ v - u := sub_nonneg.mpr huv
+    have hd : 0 ≤ sigma * (v - u) := mul_nonneg hsigma hdu
+    have hmono : Real.exp (sigma * u) ≤ Real.exp (sigma * v) := by
+      exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left huv hsigma)
+    have hsmall : 1 - Real.exp (-(sigma * (v - u))) ≤ sigma * (v - u) := by
+      have h := Real.add_one_le_exp (-(sigma * (v - u)))
+      linarith
+    have hexple : Real.exp (sigma * v) ≤ 1 := by
+      rw [← Real.exp_zero]
+      exact Real.exp_le_exp.mpr (mul_nonpos_of_nonneg_of_nonpos hsigma hv)
+    have hdiff :
+        Real.exp (sigma * v) - Real.exp (sigma * u) =
+          Real.exp (sigma * v) *
+            (1 - Real.exp (-(sigma * (v - u)))) := by
+      rw [mul_sub, mul_one, ← Real.exp_add]
+      congr 1
+      ring
+    have hnonneg : 0 ≤ 1 - Real.exp (-(sigma * (v - u))) := by
+      exact sub_nonneg.mpr (Real.exp_le_one_iff.mpr (neg_nonpos.mpr hd))
+    rw [abs_of_nonpos (sub_nonpos.mpr hmono), neg_sub, hdiff]
+    calc
+      Real.exp (sigma * v) *
+          (1 - Real.exp (-(sigma * (v - u))))
+          ≤ 1 * (1 - Real.exp (-(sigma * (v - u)))) :=
+            mul_le_mul_of_nonneg_right hexple hnonneg
+      _ ≤ sigma * (v - u) := by simpa using hsmall
+      _ = sigma * |u - v| := by
+        rw [abs_of_nonpos (sub_nonpos.mpr huv)]
+        ring
+  by_cases huv : u ≤ v
+  · exact hordered hu hv huv
+  · have hvu : v ≤ u := le_of_not_ge huv
+    have h := hordered hv hu hvu
+    rw [abs_sub_comm (Real.exp (sigma * u)) (Real.exp (sigma * v))]
+    rw [abs_sub_comm u v]
+    exact h
+
+lemma min_sub_const_abs_sub_le {a x y : ℝ} :
+    |min (x - a) 0 - min (y - a) 0| ≤ |x - y| := by
+  have hmin := abs_min_sub_min_le_max (x - a) 0 (y - a) 0
+  calc
+    |min (x - a) 0 - min (y - a) 0|
+        ≤ max |(x - a) - (y - a)| |(0 : ℝ) - 0| := hmin
+    _ = |x - y| := by
+      rw [sub_self, abs_zero, max_eq_left]
+      · ring_nf
+      · exact abs_nonneg _
+
+lemma sourceTube_abs_sub_le
+    {sigma aL C_R : ℝ} (hsigma : 0 ≤ sigma) (hCR : 0 ≤ C_R) :
+    ∀ x y,
+      |sourceTube sigma aL C_R x - sourceTube sigma aL C_R y| ≤
+        (C_R * sigma) * |x - y| := by
+  intro x y
+  set ux : ℝ := min (x - aL) 0 with hux
+  set uy : ℝ := min (y - aL) 0 with huy
+  have hux0 : ux ≤ 0 := by simpa [hux] using min_le_right (x - aL) (0 : ℝ)
+  have huy0 : uy ≤ 0 := by simpa [huy] using min_le_right (y - aL) (0 : ℝ)
+  have hminxy : |ux - uy| ≤ |x - y| := by
+    simpa [hux, huy] using min_sub_const_abs_sub_le (a := aL) (x := x) (y := y)
+  unfold sourceTube
+  rw [← hux, ← huy, ← mul_sub, abs_mul, abs_of_nonneg hCR]
+  calc
+    C_R * |Real.exp (sigma * ux) - Real.exp (sigma * uy)|
+        ≤ C_R * (sigma * |ux - uy|) :=
+          mul_le_mul_of_nonneg_left
+            (exp_nonpos_abs_sub_le hsigma hux0 huy0) hCR
+    _ ≤ C_R * (sigma * |x - y|) := by
+          exact mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_left hminxy hsigma) hCR
+    _ = (C_R * sigma) * |x - y| := by ring
+
+lemma sourceTube_le_C_R
+    {sigma aL C_R x : ℝ} (hsigma : 0 ≤ sigma) (hCR : 0 ≤ C_R) :
+    sourceTube sigma aL C_R x ≤ C_R := by
+  unfold sourceTube
+  have hmin_nonpos : min (x - aL) 0 ≤ 0 := min_le_right _ _
+  have hexp : Real.exp (sigma * min (x - aL) 0) ≤ 1 := by
+    rw [← Real.exp_zero]
+    exact Real.exp_le_exp.mpr (mul_nonpos_of_nonneg_of_nonpos hsigma hmin_nonpos)
+  simpa using mul_le_mul_of_nonneg_left hexp hCR
+
+lemma sourceTube_continuous (sigma aL C_R : ℝ) :
+    Continuous (sourceTube sigma aL C_R) := by
+  unfold sourceTube
+  exact continuous_const.mul
+    (Real.continuous_exp.comp
+      (continuous_const.mul
+        ((continuous_id.sub continuous_const).min continuous_const)))
+
+lemma holder_max_same {β H : ℝ} {f g : ℝ → ℝ}
+    (hf : ∀ x y, |f x - f y| ≤ H * |x - y| ^ β)
+    (hg : ∀ x y, |g x - g y| ≤ H * |x - y| ^ β) :
+    ∀ x y, |max (f x) (g x) - max (f y) (g y)| ≤ H * |x - y| ^ β := by
+  intro x y
+  calc
+    |max (f x) (g x) - max (f y) (g y)|
+        ≤ max |f x - f y| |g x - g y| :=
+          abs_max_sub_max_le_max (f x) (g x) (f y) (g y)
+    _ ≤ H * |x - y| ^ β := max_le (hf x y) (hg x y)
+
+lemma holder_min_same {β H : ℝ} {f g : ℝ → ℝ}
+    (hf : ∀ x y, |f x - f y| ≤ H * |x - y| ^ β)
+    (hg : ∀ x y, |g x - g y| ≤ H * |x - y| ^ β) :
+    ∀ x y, |min (f x) (g x) - min (f y) (g y)| ≤ H * |x - y| ^ β := by
+  intro x y
+  calc
+    |min (f x) (g x) - min (f y) (g y)|
+        ≤ max |f x - f y| |g x - g y| :=
+          abs_min_sub_min_le_max (f x) (g x) (f y) (g y)
+    _ ≤ H * |x - y| ^ β := max_le (hf x y) (hg x y)
+
+lemma sourceTube_holder
+    {β sigma aL C_R H : ℝ}
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hsigma : 0 ≤ sigma) (hCR : 0 ≤ C_R)
+    (hH : max (C_R * sigma) (2 * C_R) ≤ H) :
+    ∀ x y,
+      |sourceTube sigma aL C_R x - sourceTube sigma aL C_R y| ≤
+        H * |x - y| ^ β := by
+  have hC : ∀ x, |sourceTube sigma aL C_R x| ≤ C_R := by
+    intro x
+    rw [abs_of_nonneg (sourceTube_nonneg hCR)]
+    exact sourceTube_le_C_R hsigma hCR
+  have hLnn : 0 ≤ C_R * sigma := mul_nonneg hCR hsigma
+  have hHnn : 0 ≤ H := le_trans hLnn (le_trans (le_max_left _ _) hH)
+  intro x y
+  exact le_trans
+    (holder_of_lipschitz_of_bounded hβpos hβle hLnn hCR hC
+      (sourceTube_abs_sub_le hsigma hCR) x y)
+    (mul_le_mul_of_nonneg_right hH
+      (Real.rpow_nonneg (abs_nonneg _) β))
+
+lemma sourceObstacle_holder
+    {κ M B β H sigma aL C_R ell : ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hB : 0 ≤ B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hsigma : 0 ≤ sigma) (hCR : 0 ≤ C_R)
+    (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H) :
+    (∀ x y,
+      |sourceLowerObstacle κ M B sigma aL C_R ell x -
+        sourceLowerObstacle κ M B sigma aL C_R ell y| ≤
+          H * |x - y| ^ β) ∧
+    (∀ x y,
+      |sourceUpperObstacle κ M B sigma aL C_R ell x -
+        sourceUpperObstacle κ M B sigma aL C_R ell y| ≤
+          H * |x - y| ^ β) := by
+  let Hub : ℝ := max (κ * Real.exp κ * M) (2 * M)
+  let hUbQ : HolderQuant β (upperBarrier κ M) :=
+    (upperBarrier_localLipQuant hκ hM).toHolder hβpos hβle
+  have hUbH : hUbQ.H = Hub := rfl
+  have hBHub_nonneg : 0 ≤ B * Hub := by
+    exact mul_nonneg hB (by simpa [← hUbH] using hUbQ.H_nonneg)
+  have hTubeH : max (C_R * sigma) (2 * C_R) ≤ H := by
+    exact le_trans (le_max_right (B * Hub) (max (C_R * sigma) (2 * C_R)))
+      (by simpa [sourceObstacleHolderConst, Hub] using hH_obs)
+  have hBarrierH : B * Hub ≤ H := by
+    exact le_trans (le_max_left (B * Hub) (max (C_R * sigma) (2 * C_R)))
+      (by simpa [sourceObstacleHolderConst, Hub] using hH_obs)
+  have hBbar :
+      ∀ x y,
+        |B * upperBarrier κ M x - B * upperBarrier κ M y| ≤
+          H * |x - y| ^ β := by
+    intro x y
+    have h0 :
+        |B * upperBarrier κ M x - B * upperBarrier κ M y| ≤
+          (B * Hub) * |x - y| ^ β := by
+      rw [← mul_sub, abs_mul, abs_of_nonneg hB]
+      have hscaled := mul_le_mul_of_nonneg_left (hUbQ.holder x y) hB
+      simpa [hUbH, mul_assoc] using hscaled
+    exact le_trans h0
+      (mul_le_mul_of_nonneg_right hBarrierH
+        (Real.rpow_nonneg (abs_nonneg _) β))
+  have hNegBbar :
+      ∀ x y,
+        |-(B * upperBarrier κ M x) - -(B * upperBarrier κ M y)| ≤
+          H * |x - y| ^ β := by
+    intro x y
+    have hdiff :
+        -(B * upperBarrier κ M x) - -(B * upperBarrier κ M y) =
+          -(B * upperBarrier κ M x - B * upperBarrier κ M y) := by ring
+    rw [hdiff, abs_neg]
+    exact hBbar x y
+  have hTube := sourceTube_holder
+    (β := β) (sigma := sigma) (aL := aL) (C_R := C_R) (H := H)
+    hβpos hβle hsigma hCR hTubeH
+  have hEllSub :
+      ∀ x y,
+        |(ell - sourceTube sigma aL C_R x) -
+          (ell - sourceTube sigma aL C_R y)| ≤
+          H * |x - y| ^ β := by
+    intro x y
+    have hdiff :
+        (ell - sourceTube sigma aL C_R x) -
+          (ell - sourceTube sigma aL C_R y) =
+        -(sourceTube sigma aL C_R x - sourceTube sigma aL C_R y) := by ring
+    rw [hdiff, abs_neg]
+    exact hTube x y
+  have hEllAdd :
+      ∀ x y,
+        |(ell + sourceTube sigma aL C_R x) -
+          (ell + sourceTube sigma aL C_R y)| ≤
+          H * |x - y| ^ β := by
+    intro x y
+    have hdiff :
+        (ell + sourceTube sigma aL C_R x) -
+          (ell + sourceTube sigma aL C_R y) =
+        sourceTube sigma aL C_R x - sourceTube sigma aL C_R y := by ring
+    rw [hdiff]
+    exact hTube x y
+  constructor
+  · unfold sourceLowerObstacle
+    exact holder_max_same hNegBbar hEllSub
+  · unfold sourceUpperObstacle
+    exact holder_min_same hBbar hEllAdd
+
+def sourceCubeLocalError (B M H β : ℝ) (N : ℕ) (R : ℝ) : ℝ :=
+  if R ≤ sourceCubeRadius N then
+    (2 * H + 2 * (B * M) + 1) * sourceCubeEps β N
+  else
+    2 * (B * M) + 1
+
+lemma sourceCubeLocalError_nonneg
+    {B M H β : ℝ} (hBM : 0 ≤ B * M) (hH : 0 ≤ H) (N : ℕ) (R : ℝ) :
+    0 ≤ sourceCubeLocalError B M H β N R := by
+  unfold sourceCubeLocalError
+  split_ifs
+  · exact mul_nonneg (by nlinarith) (sourceCubeEps_nonneg N)
+  · nlinarith
+
+lemma sourceCubeLocalError_tendsto {B M H β R : ℝ} (hβ : 0 < β) :
+    Tendsto (fun N => sourceCubeLocalError B M H β N R) atTop (𝓝 0) := by
+  have hev : ∀ᶠ N : ℕ in atTop, R ≤ sourceCubeRadius N := by
+    obtain ⟨N0, hN0⟩ := exists_nat_gt R
+    refine eventually_atTop.mpr ⟨N0, ?_⟩
+    intro N hN
+    unfold sourceCubeRadius
+    have hNR : R < (N0 : ℝ) := hN0
+    have hN0N : (N0 : ℝ) ≤ N := by exact_mod_cast hN
+    nlinarith
+  have hsmall : Tendsto
+      (fun N => (2 * H + 2 * (B * M) + 1) * sourceCubeEps β N)
+      atTop (𝓝 0) := by
+    simpa using (sourceCubeEps_tendsto hβ).const_mul
+      (2 * H + 2 * (B * M) + 1)
+  refine Tendsto.congr' ?_ hsmall
+  filter_upwards [hev] with N hN
+  simp [sourceCubeLocalError, hN]
+
+lemma sourceCube_cover (N : ℕ) {R x : ℝ}
+    (hR : R ≤ sourceCubeRadius N) (hx : x ∈ Set.Icc (-R) R) :
+    ∃ i : Fin (sourceCubeSampleDim N), |x - sourceCubeNode N i| ≤ sourceCubeMesh N := by
+  set A : ℝ := (N + 1 : ℝ) with hA
+  set η : ℝ := sourceCubeMesh N with hη
+  have hApos : 0 < A := by positivity
+  have hηpos : 0 < η := by simpa [hη] using sourceCubeMesh_pos N
+  have hηeq : η = A⁻¹ := by simp [hη, sourceCubeMesh, hA]
+  have hrad : sourceCubeRadius N = A := by simp [sourceCubeRadius, hA]
+  rw [Set.mem_Icc] at hx
+  have hx_low : -A ≤ x := by linarith
+  have hx_high : x ≤ A := by linarith
+  set t : ℝ := (x + A) / η with ht
+  have ht_nonneg : 0 ≤ t := by
+    rw [ht]
+    exact div_nonneg (by linarith) hηpos.le
+  let iNat : ℕ := ⌊t⌋₊
+  have hi_le_t : (iNat : ℝ) ≤ t := Nat.floor_le ht_nonneg
+  have ht_le : t ≤ (2 * (N + 1) * (N + 1) : ℕ) := by
+    rw [ht]
+    have hnum : x + A ≤ 2 * A := by linarith
+    have hdiv : (x + A) / η ≤ (2 * A) / η :=
+      div_le_div_of_nonneg_right hnum hηpos.le
+    have htarget : (2 * A) / η = 2 * A * A := by
+      rw [div_eq_mul_inv, hηeq]
+      field_simp [ne_of_gt hApos]
+    have hcast : ((2 * (N + 1) * (N + 1) : ℕ) : ℝ) = 2 * A * A := by
+      norm_num [hA]
+    linarith
+  have hi_bound : iNat ≤ 2 * (N + 1) * (N + 1) := by
+    have : (iNat : ℝ) ≤ (2 * (N + 1) * (N + 1) : ℕ) :=
+      le_trans hi_le_t ht_le
+    exact_mod_cast this
+  refine ⟨⟨iNat, ?_⟩, ?_⟩
+  · unfold sourceCubeSampleDim
+    omega
+  · have ht_lt : t < (iNat : ℝ) + 1 := Nat.lt_floor_add_one t
+    have hlow : (iNat : ℝ) * η ≤ x + A := by
+      have := mul_le_mul_of_nonneg_right hi_le_t hηpos.le
+      rwa [ht, div_mul_cancel₀ _ (ne_of_gt hηpos)] at this
+    have hhigh : x + A < ((iNat : ℝ) + 1) * η := by
+      have := mul_lt_mul_of_pos_right ht_lt hηpos
+      rwa [ht, div_mul_cancel₀ _ (ne_of_gt hηpos)] at this
+    have hnode : sourceCubeNode N ⟨iNat, by unfold sourceCubeSampleDim; omega⟩ =
+        -A + (iNat : ℝ) * η := by
+      simp [sourceCubeNode, sourceCubeRadius, sourceCubeMesh, hA, hη]
+    rw [hnode, abs_le]
+    constructor <;> nlinarith [hhigh]
+
+lemma sourceTube_tendsto_atBot {sigma aL C_R : ℝ} (hsigma : 0 < sigma) :
+    Tendsto (sourceTube sigma aL C_R) atBot (𝓝 0) := by
+  have hbase :
+      Tendsto (fun x : ℝ => C_R * Real.exp (sigma * (x - aL))) atBot (𝓝 0) := by
+    have hsub : Tendsto (fun x : ℝ => x - aL) atBot atBot := by
+      simpa [sub_eq_add_neg] using
+        tendsto_atBot_add_const_right atBot (-aL)
+          (tendsto_id : Tendsto (fun x : ℝ => x) atBot atBot)
+    have hlin : Tendsto (fun x : ℝ => sigma * (x - aL)) atBot atBot :=
+      hsub.const_mul_atBot hsigma
+    have hexp : Tendsto (fun x : ℝ => Real.exp (sigma * (x - aL))) atBot (𝓝 0) :=
+      Real.tendsto_exp_atBot.comp hlin
+    simpa using hexp.const_mul C_R
+  refine Tendsto.congr' ?_ hbase
+  filter_upwards [eventually_le_atBot aL] with x hx
+  unfold sourceTube
+  have hmin : min (x - aL) 0 = x - aL := min_eq_left (sub_nonpos.mpr hx)
+  rw [hmin]
+
+lemma sourceTube_le_expOmega_half
+    {sigma aL C_R A x : ℝ} (hsigma : 0 ≤ sigma) (hCR : 0 ≤ C_R)
+    (hx : x ≤ A) :
+    sourceTube sigma aL C_R x ≤ C_R * Real.exp (sigma * (A - aL)) := by
+  unfold sourceTube
+  have hmin_le : min (x - aL) 0 ≤ A - aL := by
+    by_cases hA : aL ≤ A
+    · exact le_trans (min_le_right _ _) (sub_nonneg.mpr hA)
+    · have hAlt : A < aL := lt_of_not_ge hA
+      exact le_trans (min_le_left _ _) (by linarith)
+  exact mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr
+    (mul_le_mul_of_nonneg_left hmin_le hsigma)) hCR
+
+lemma sourceLowerObstacle_continuous (κ M B sigma aL C_R ell : ℝ) :
+    Continuous (sourceLowerObstacle κ M B sigma aL C_R ell) := by
+  unfold sourceLowerObstacle
+  exact ((continuous_const.mul (upperBarrier_continuous κ M)).neg).max
+    (continuous_const.sub (sourceTube_continuous sigma aL C_R))
+
+lemma sourceUpperObstacle_continuous (κ M B sigma aL C_R ell : ℝ) :
+    Continuous (sourceUpperObstacle κ M B sigma aL C_R ell) := by
+  unfold sourceUpperObstacle
+  exact (continuous_const.mul (upperBarrier_continuous κ M)).min
+    (continuous_const.add (sourceTube_continuous sigma aL C_R))
+
+lemma sourceLift_continuous
+    {κ M B β H sigma aL C_R : ℝ} (hβ0 : 0 ≤ β)
+    (N : ℕ) (a : Fin (sourceCubeDim N) → ℝ) :
+    Continuous (sourceLift κ M B β H sigma aL C_R N a) := by
+  unfold sourceLift
+  exact (sourceLowerObstacle_continuous κ M B sigma aL C_R
+      (sourceLeftCoordDecode B M a)).max
+    ((sourceUpperObstacle_continuous κ M B sigma aL C_R
+        (sourceLeftCoordDecode B M a)).min
+      (sourceMcShaneEnvelope_continuous hβ0 N a))
+
+lemma sourceLift_interval
+    {κ M B β H sigma aL C_R : ℝ} {N : ℕ}
+    (a : Fin (sourceCubeDim N) → ℝ)
+    (hnonempty : ∀ x,
+      sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x ≤
+        sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x) :
+    ∀ x,
+      sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x ≤
+        sourceLift κ M B β H sigma aL C_R N a x ∧
+      sourceLift κ M B β H sigma aL C_R N a x ≤
+        sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x := by
+  intro x
+  constructor
+  · unfold sourceLift
+    exact le_max_left _ _
+  · unfold sourceLift
+    exact max_le (hnonempty x) (min_le_left _ _)
+
+lemma sourceLift_abs_sub_leftCoord_le_tube
+    {κ M B β H sigma aL C_R : ℝ} {N : ℕ}
+    (a : Fin (sourceCubeDim N) → ℝ)
+    (hnonempty : ∀ x,
+      sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x ≤
+        sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x) :
+    ∀ x,
+      |sourceLift κ M B β H sigma aL C_R N a x -
+        sourceLeftCoordDecode B M a| ≤ sourceTube sigma aL C_R x := by
+  intro x
+  have hI := sourceLift_interval (κ := κ) (M := M) (B := B) (β := β) (H := H)
+    (sigma := sigma) (aL := aL) (C_R := C_R) a hnonempty x
+  unfold sourceLowerObstacle sourceUpperObstacle at hI
+  have hlo : sourceLeftCoordDecode B M a - sourceTube sigma aL C_R x ≤
+      sourceLift κ M B β H sigma aL C_R N a x :=
+    le_trans (le_max_right _ _) hI.1
+  have hhi : sourceLift κ M B β H sigma aL C_R N a x ≤
+      sourceLeftCoordDecode B M a + sourceTube sigma aL C_R x :=
+    le_trans hI.2 (min_le_right _ _)
+  rw [abs_le]
+  constructor <;> linarith
+
+lemma sourceLift_mem_box
+    {κ M B β H sigma aL C_R : ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hB : 0 ≤ B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hH : 0 ≤ H) (hsigma : 0 < sigma) (hCR : 0 ≤ C_R)
+    (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsParam : B * M ≤ C_R)
+    (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H)
+    (N : ℕ) (a : Fin (sourceCubeDim N) → ℝ)
+    (ha : a ∈ Freudenthal.unitCube (sourceCubeDim N)) :
+    PaperWeightedHolderSourceBox κ M β B H (expLeftOmega sigma aL (2 * C_R))
+      (sourceLift κ M B β H sigma aL C_R N a) := by
+  let ell : ℝ := sourceLeftCoordDecode B M a
+  have hell : |ell| ≤ B * M := by
+    simpa [ell] using sourceLeftCoordDecode_abs_le (B := B) (M := M)
+      (N := N) (a := a) (mul_nonneg hB hM) ha
+  have hnonempty :
+      ∀ x,
+        sourceLowerObstacle κ M B sigma aL C_R ell x ≤
+          sourceUpperObstacle κ M B sigma aL C_R ell x :=
+    sourceObstacle_nonempty hκ hB hM hsigma.le hUleft hObsParam hell
+  have hinterval := sourceLift_interval
+    (κ := κ) (M := M) (B := B) (β := β) (H := H)
+    (sigma := sigma) (aL := aL) (C_R := C_R) a (by simpa [ell] using hnonempty)
+  have hTubeAbs := sourceLift_abs_sub_leftCoord_le_tube
+    (κ := κ) (M := M) (B := B) (β := β) (H := H)
+    (sigma := sigma) (aL := aL) (C_R := C_R) a (by simpa [ell] using hnonempty)
+  have hobs_holder := sourceObstacle_holder
+    (κ := κ) (M := M) (B := B) (β := β) (H := H)
+    (sigma := sigma) (aL := aL) (C_R := C_R) (ell := ell)
+    hκ hM hB hβpos hβle hsigma.le hCR hH_obs
+  refine
+    { cont := sourceLift_continuous hβpos.le N a
+      bound := ?_
+      holder := ?_
+      omega_nonneg := expLeftOmega_nonneg (mul_nonneg (by norm_num) hCR)
+      omega_tendsto := expLeftOmega_tendsto_atBot hsigma
+      leftTail := ?_
+      leftTailCauchy := ?_ }
+  · intro x
+    have hI := hinterval x
+    have hlo : -(B * upperBarrier κ M x) ≤
+        sourceLift κ M B β H sigma aL C_R N a x := by
+      exact le_trans (le_max_left _ _) hI.1
+    have hhi : sourceLift κ M B β H sigma aL C_R N a x ≤
+        B * upperBarrier κ M x := by
+      exact le_trans hI.2 (min_le_left _ _)
+    rw [abs_le]
+    exact ⟨hlo, hhi⟩
+  · unfold sourceLift
+    exact holder_max_same hobs_holder.1
+      (holder_min_same hobs_holder.2
+        (sourceMcShaneEnvelope_holder hβpos.le hβle hH N a))
+  · refine ⟨ell, ?_⟩
+    have hsub0 :
+        Tendsto
+          (fun x => sourceLift κ M B β H sigma aL C_R N a x - ell)
+          atBot (𝓝 0) := by
+      apply squeeze_zero_norm (a := sourceTube sigma aL C_R)
+      · intro x
+        simpa [Real.norm_eq_abs, ell] using hTubeAbs x
+      · exact sourceTube_tendsto_atBot hsigma
+    have hadd := hsub0.add
+      (tendsto_const_nhds : Tendsto (fun _ : ℝ => ell) atBot (𝓝 ell))
+    simpa [sub_add_cancel] using hadd
+  · intro A x y hx hy
+    have hxTube := sourceTube_le_expOmega_half (aL := aL) hsigma.le hCR hx
+    have hyTube := sourceTube_le_expOmega_half (aL := aL) hsigma.le hCR hy
+    calc
+      |sourceLift κ M B β H sigma aL C_R N a x -
+          sourceLift κ M B β H sigma aL C_R N a y|
+          ≤ |sourceLift κ M B β H sigma aL C_R N a x - ell| +
+              |sourceLift κ M B β H sigma aL C_R N a y - ell| := by
+            calc
+              |sourceLift κ M B β H sigma aL C_R N a x -
+                  sourceLift κ M B β H sigma aL C_R N a y|
+                  ≤ |sourceLift κ M B β H sigma aL C_R N a x - ell| +
+                      |ell - sourceLift κ M B β H sigma aL C_R N a y| :=
+                    abs_sub_le
+                      (sourceLift κ M B β H sigma aL C_R N a x) ell
+                      (sourceLift κ M B β H sigma aL C_R N a y)
+              _ = |sourceLift κ M B β H sigma aL C_R N a x - ell| +
+                    |sourceLift κ M B β H sigma aL C_R N a y - ell| := by
+                  rw [abs_sub_comm ell
+                    (sourceLift κ M B β H sigma aL C_R N a y)]
+      _ ≤ sourceTube sigma aL C_R x + sourceTube sigma aL C_R y :=
+            add_le_add (hTubeAbs x) (hTubeAbs y)
+      _ ≤ C_R * Real.exp (sigma * (A - aL)) +
+            C_R * Real.exp (sigma * (A - aL)) := add_le_add hxTube hyTube
+      _ = expLeftOmega sigma aL (2 * C_R) A := by
+            simp [expLeftOmega]
+            ring
+
+lemma sourceLeftLimitOf_eq_of_tendsto
+    {κ M β B H sigma aL K : ℝ} {R : ℝ → ℝ} {ell : ℝ}
+    (hR : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) R)
+    (hlim : Tendsto R atBot (𝓝 ell)) :
+    sourceLeftLimitOf κ M β B H sigma aL K R = ell := by
+  classical
+  unfold sourceLeftLimitOf
+  rw [dif_pos hR]
+  exact tendsto_nhds_unique (Classical.choose_spec hR.leftTail) hlim
+
+lemma sourceLeftCoordDecode_sourceProj_eq
+    {κ M β B H sigma aL K C_R : ℝ} {R : ℝ → ℝ} {ell : ℝ}
+    (hM : 0 < M) (hB : 0 < B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) R)
+    (hsigma : 0 < sigma)
+    (hrate : ExpLeftRate sigma aL C_R R ell)
+    (N : ℕ) :
+    sourceLeftCoordDecode B M (sourceProj κ M β B H sigma aL K N R) = ell := by
+  have hleft :
+      sourceLeftLimitOf κ M β B H sigma aL K R = ell :=
+    sourceLeftLimitOf_eq_of_tendsto hR (hrate.tendsto_atBot hsigma)
+  unfold sourceLeftCoordDecode sourceProj sourceDecode
+  rw [dif_pos rfl, hleft]
+  field_simp [ne_of_gt (mul_pos hB hM)]
+  ring
+
+lemma sourceNodeFreeValue_sourceProj_eq
+    {κ M β B H sigma aL K : ℝ} (hM : 0 < M) (hB : 0 < B)
+    (N : ℕ) (R : ℝ → ℝ) (i : Fin (sourceCubeSampleDim N)) :
+    sourceNodeFreeValue κ M B N (sourceProj κ M β B H sigma aL K N R) i =
+      R (sourceCubeNode N i) := by
+  have hcoord_val : (sourceSampleCoord N i).1 = i.1 + 1 := rfl
+  have hcoord_ne : (sourceSampleCoord N i).1 ≠ 0 := by
+    rw [hcoord_val]
+    omega
+  let i' : Fin (sourceCubeSampleDim N) :=
+    ⟨(sourceSampleCoord N i).1 - 1, by
+      have hpred : (sourceSampleCoord N i).1 - 1 = i.1 := by
+        rw [hcoord_val]
+        omega
+      simpa [hpred] using i.2⟩
+  have hi' : i' = i := by
+    ext
+    dsimp [i']
+    rw [hcoord_val]
+    omega
+  have hbpos :
+      0 < sourceWeightedRadius κ M B (sourceCubeNode N i) := by
+    unfold sourceWeightedRadius
+    exact mul_pos hB (upperBarrier_pos hM _)
+  unfold sourceNodeFreeValue sourceProj
+  rw [dif_neg hcoord_ne]
+  dsimp only
+  change sourceWeightedRadius κ M B (sourceCubeNode N i) *
+      (2 * ((R (sourceCubeNode N i') +
+        sourceWeightedRadius κ M B (sourceCubeNode N i')) /
+          (2 * sourceWeightedRadius κ M B (sourceCubeNode N i'))) - 1) =
+      R (sourceCubeNode N i)
+  rw [hi']
+  field_simp [ne_of_gt hbpos]
+  ring
+
+lemma sourceMcShaneEnvelope_proj_lower
+    {κ M β B H sigma aL K : ℝ}
+    (hM : 0 < M) (hB : 0 < B) (N : ℕ) {R : ℝ → ℝ}
+    (hholder : ∀ x y, |R x - R y| ≤ H * |x - y| ^ β)
+    (x : ℝ) :
+    R x ≤
+      sourceMcShaneEnvelope κ M B β H N
+        (sourceProj κ M β B H sigma aL K N R) x := by
+  unfold sourceMcShaneEnvelope
+  apply Finset.le_inf' (sourceCubeUniv_nonempty N)
+  intro i _hi
+  have hright := (abs_le.mp (hholder x (sourceCubeNode N i))).2
+  rw [sourceNodeFreeValue_sourceProj_eq (κ := κ) (M := M) (β := β)
+    (B := B) (H := H) (sigma := sigma) (aL := aL) (K := K)]
+    at *
+  · linarith
+  · exact hM
+  · exact hB
+
+lemma sourceMcShaneEnvelope_proj_upper_near
+    {κ M β B H sigma aL K : ℝ}
+    (hM : 0 < M) (hB : 0 < B) (hβ0 : 0 ≤ β) (hH : 0 ≤ H)
+    (N : ℕ) {R : ℝ → ℝ}
+    (hholder : ∀ x y, |R x - R y| ≤ H * |x - y| ^ β)
+    {x : ℝ} {i : Fin (sourceCubeSampleDim N)}
+    (hnear : |x - sourceCubeNode N i| ≤ sourceCubeMesh N) :
+    sourceMcShaneEnvelope κ M B β H N
+        (sourceProj κ M β B H sigma aL K N R) x ≤
+      R x + 2 * H * sourceCubeEps β N := by
+  have hmin := Finset.inf'_le
+    (s := (Finset.univ : Finset (Fin (sourceCubeSampleDim N))))
+    (f := fun i : Fin (sourceCubeSampleDim N) =>
+      sourceNodeFreeValue κ M B N (sourceProj κ M β B H sigma aL K N R) i +
+        H * |x - sourceCubeNode N i| ^ β)
+    (Finset.mem_univ i)
+  have hdist_pow : |x - sourceCubeNode N i| ^ β ≤ sourceCubeEps β N := by
+    unfold sourceCubeEps
+    exact Real.rpow_le_rpow (abs_nonneg _) hnear hβ0
+  have hnode_le :
+      R (sourceCubeNode N i) ≤ R x + H * sourceCubeEps β N := by
+    have hright := (abs_le.mp (hholder (sourceCubeNode N i) x)).2
+    have hdist :
+        |sourceCubeNode N i - x| ^ β ≤ sourceCubeEps β N := by
+      simpa [abs_sub_comm] using hdist_pow
+    nlinarith [le_trans hright (mul_le_mul_of_nonneg_left hdist hH)]
+  unfold sourceMcShaneEnvelope
+  calc
+    Finset.univ.inf' (sourceCubeUniv_nonempty N)
+        (fun i : Fin (sourceCubeSampleDim N) =>
+          sourceNodeFreeValue κ M B N (sourceProj κ M β B H sigma aL K N R) i +
+            H * |x - sourceCubeNode N i| ^ β)
+        ≤ sourceNodeFreeValue κ M B N
+            (sourceProj κ M β B H sigma aL K N R) i +
+            H * |x - sourceCubeNode N i| ^ β := hmin
+    _ = R (sourceCubeNode N i) + H * |x - sourceCubeNode N i| ^ β := by
+        rw [sourceNodeFreeValue_sourceProj_eq (κ := κ) (M := M) (β := β)
+          (B := B) (H := H) (sigma := sigma) (aL := aL) (K := K)]
+        · exact hM
+        · exact hB
+    _ ≤ R x + 2 * H * sourceCubeEps β N := by
+        nlinarith [hnode_le, mul_le_mul_of_nonneg_left hdist_pow hH]
+
+lemma sourceRate_mem_obstacles
+    {κ M B beta H sigma aL C_R ell : ℝ} {R : ℝ → ℝ}
+    (hB : 0 ≤ B) (hM : 0 ≤ M) (hCR : 0 ≤ C_R)
+    (hsigma : 0 ≤ sigma)
+    (hbound : ∀ x, |R x| ≤ B * upperBarrier κ M x)
+    (hrate : ExpLeftRate sigma aL C_R R ell)
+    (hell : |ell| ≤ B * M)
+    (hObsRight : 2 * (B * M) ≤ C_R) :
+    ∀ x,
+      sourceLowerObstacle κ M B sigma aL C_R ell x ≤ R x ∧
+        R x ≤ sourceUpperObstacle κ M B sigma aL C_R ell x := by
+  intro x
+  have hBM : 0 ≤ B * M := mul_nonneg hB hM
+  have hBψ_abs := hbound x
+  have hBψ_lo : -(B * upperBarrier κ M x) ≤ R x := (abs_le.mp hBψ_abs).1
+  have hBψ_hi : R x ≤ B * upperBarrier κ M x := (abs_le.mp hBψ_abs).2
+  have htube : |R x - ell| ≤ sourceTube sigma aL C_R x := by
+    by_cases hx : x ≤ aL
+    · unfold sourceTube
+      have hmin : min (x - aL) 0 = x - aL := min_eq_left (sub_nonpos.mpr hx)
+      rw [hmin]
+      exact hrate x
+    · have hxlt : aL < x := lt_of_not_ge hx
+      rw [sourceTube_eq_C_R_of_aL_lt hxlt]
+      have hRconst : |R x| ≤ B * M := by
+        exact le_trans (hbound x)
+          (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M x) hB)
+      calc
+        |R x - ell| ≤ |R x| + |ell| := abs_sub _ _
+        _ ≤ B * M + B * M := add_le_add hRconst hell
+        _ = 2 * (B * M) := by ring
+        _ ≤ C_R := hObsRight
+  constructor
+  · unfold sourceLowerObstacle
+    apply max_le hBψ_lo
+    have hleft := (abs_le.mp htube).1
+    linarith
+  · unfold sourceUpperObstacle
+    apply le_min hBψ_hi
+    have hright := (abs_le.mp htube).2
+    linarith
+
+lemma sourceLeftCoordDecode_abs_sub_le_of_coords
+    {B M δ : ℝ} {N : ℕ} {a b : Fin (sourceCubeDim N) → ℝ}
+    (hBM : 0 ≤ B * M)
+    (hcoord : ∀ j, |a j - b j| ≤ δ) :
+    |sourceLeftCoordDecode B M a - sourceLeftCoordDecode B M b| ≤
+      2 * (B * M) * δ := by
+  let j0 : Fin (sourceCubeDim N) := ⟨0, sourceCubeDim_pos N⟩
+  have hj := hcoord j0
+  unfold sourceLeftCoordDecode sourceDecode
+  have htwoBM : 0 ≤ 2 * (B * M) := by nlinarith
+  calc
+    |(2 * (B * M) * a j0 - B * M) -
+        (2 * (B * M) * b j0 - B * M)|
+        = |(2 * (B * M)) * (a j0 - b j0)| := by ring_nf
+    _ = 2 * (B * M) * |a j0 - b j0| := by
+        rw [abs_mul, abs_of_nonneg htwoBM]
+    _ ≤ 2 * (B * M) * δ := mul_le_mul_of_nonneg_left hj htwoBM
+
+lemma sourceNodeFreeValue_abs_sub_le_of_coords
+    {κ M B δ : ℝ} (hB : 0 ≤ B) (hM : 0 ≤ M) (N : ℕ)
+    {a b : Fin (sourceCubeDim N) → ℝ}
+    (hcoord : ∀ j, |a j - b j| ≤ δ) (i : Fin (sourceCubeSampleDim N)) :
+    |sourceNodeFreeValue κ M B N a i - sourceNodeFreeValue κ M B N b i| ≤
+      2 * (B * upperBarrier κ M (sourceCubeNode N i)) * δ := by
+  have hj := hcoord (sourceSampleCoord N i)
+  have hrad_nonneg : 0 ≤ sourceWeightedRadius κ M B (sourceCubeNode N i) := by
+    unfold sourceWeightedRadius
+    exact mul_nonneg hB (upperBarrier_nonneg hM _)
+  unfold sourceNodeFreeValue
+  calc
+    |sourceWeightedRadius κ M B (sourceCubeNode N i) *
+          (2 * a (sourceSampleCoord N i) - 1) -
+        sourceWeightedRadius κ M B (sourceCubeNode N i) *
+          (2 * b (sourceSampleCoord N i) - 1)|
+        = |(2 * sourceWeightedRadius κ M B (sourceCubeNode N i)) *
+            (a (sourceSampleCoord N i) - b (sourceSampleCoord N i))| := by ring_nf
+    _ = 2 * sourceWeightedRadius κ M B (sourceCubeNode N i) *
+        |a (sourceSampleCoord N i) - b (sourceSampleCoord N i)| := by
+        rw [abs_mul, abs_of_nonneg (by nlinarith : 0 ≤ 2 * sourceWeightedRadius κ M B (sourceCubeNode N i))]
+    _ ≤ 2 * sourceWeightedRadius κ M B (sourceCubeNode N i) * δ := by
+        exact mul_le_mul_of_nonneg_left hj (by nlinarith)
+    _ = 2 * (B * upperBarrier κ M (sourceCubeNode N i)) * δ := by
+        unfold sourceWeightedRadius
+        ring
+
+lemma sourceMcShaneEnvelope_abs_sub_le_of_coords
+    {κ M B β H δ : ℝ} (hB : 0 ≤ B) (hM : 0 ≤ M)
+    (N : ℕ) {a b : Fin (sourceCubeDim N) → ℝ}
+    (hcoord : ∀ j, |a j - b j| ≤ δ) (x : ℝ) :
+    |sourceMcShaneEnvelope κ M B β H N a x -
+        sourceMcShaneEnvelope κ M B β H N b x| ≤
+      2 * (B * M) * δ := by
+  unfold sourceMcShaneEnvelope
+  calc
+    |Finset.univ.inf' (sourceCubeUniv_nonempty N)
+          (fun i : Fin (sourceCubeSampleDim N) =>
+            sourceNodeFreeValue κ M B N a i + H * |x - sourceCubeNode N i| ^ β) -
+        Finset.univ.inf' (sourceCubeUniv_nonempty N)
+          (fun i : Fin (sourceCubeSampleDim N) =>
+            sourceNodeFreeValue κ M B N b i + H * |x - sourceCubeNode N i| ^ β)|
+        ≤ 2 * (B * M) * δ := by
+          apply source_finset_inf'_abs_sub_le (sourceCubeUniv_nonempty N)
+          intro i _hi
+          have hnode := sourceNodeFreeValue_abs_sub_le_of_coords
+            (κ := κ) (M := M) (B := B) (δ := δ) hB hM N hcoord i
+          have hrad_le :
+              2 * (B * upperBarrier κ M (sourceCubeNode N i)) * δ ≤
+                2 * (B * M) * δ := by
+            have hcoef :
+                2 * (B * upperBarrier κ M (sourceCubeNode N i)) ≤ 2 * (B * M) := by
+              nlinarith [mul_le_mul_of_nonneg_left
+                (upperBarrier_le_M κ M (sourceCubeNode N i)) hB]
+            by_cases hδ : 0 ≤ δ
+            · exact mul_le_mul_of_nonneg_right hcoef hδ
+            · have hcoord_nonneg : 0 ≤ δ := le_trans (abs_nonneg _) (hcoord (sourceSampleCoord N i))
+              exact False.elim (not_le_of_gt (lt_of_not_ge hδ) hcoord_nonneg)
+          have hterm :
+              |(sourceNodeFreeValue κ M B N a i + H * |x - sourceCubeNode N i| ^ β) -
+                (sourceNodeFreeValue κ M B N b i + H * |x - sourceCubeNode N i| ^ β)| =
+                |sourceNodeFreeValue κ M B N a i - sourceNodeFreeValue κ M B N b i| := by
+            congr 1
+            ring
+          rw [hterm]
+          exact le_trans hnode hrad_le
+
+lemma sourceLowerObstacle_abs_sub_le_of_ell
+    {κ M B sigma aL C_R ell₁ ell₂ x : ℝ} :
+    |sourceLowerObstacle κ M B sigma aL C_R ell₁ x -
+        sourceLowerObstacle κ M B sigma aL C_R ell₂ x| ≤ |ell₁ - ell₂| := by
+  unfold sourceLowerObstacle
+  calc
+    |max (-(B * upperBarrier κ M x)) (ell₁ - sourceTube sigma aL C_R x) -
+        max (-(B * upperBarrier κ M x)) (ell₂ - sourceTube sigma aL C_R x)|
+        ≤ max |-(B * upperBarrier κ M x) - -(B * upperBarrier κ M x)|
+            |(ell₁ - sourceTube sigma aL C_R x) -
+              (ell₂ - sourceTube sigma aL C_R x)| :=
+          abs_max_sub_max_le_max _ _ _ _
+    _ = |ell₁ - ell₂| := by
+        rw [sub_self, abs_zero, max_eq_right]
+        · congr 1
+          ring
+        · exact abs_nonneg _
+
+lemma sourceUpperObstacle_abs_sub_le_of_ell
+    {κ M B sigma aL C_R ell₁ ell₂ x : ℝ} :
+    |sourceUpperObstacle κ M B sigma aL C_R ell₁ x -
+        sourceUpperObstacle κ M B sigma aL C_R ell₂ x| ≤ |ell₁ - ell₂| := by
+  unfold sourceUpperObstacle
+  calc
+    |min (B * upperBarrier κ M x) (ell₁ + sourceTube sigma aL C_R x) -
+        min (B * upperBarrier κ M x) (ell₂ + sourceTube sigma aL C_R x)|
+        ≤ max |B * upperBarrier κ M x - B * upperBarrier κ M x|
+            |(ell₁ + sourceTube sigma aL C_R x) -
+              (ell₂ + sourceTube sigma aL C_R x)| :=
+          abs_min_sub_min_le_max _ _ _ _
+    _ = |ell₁ - ell₂| := by
+        rw [sub_self, abs_zero, max_eq_right]
+        · congr 1
+          ring
+        · exact abs_nonneg _
+
+lemma sourceLift_abs_sub_le_of_coords
+    {κ M B β H sigma aL C_R δ : ℝ}
+    (hB : 0 ≤ B) (hM : 0 ≤ M)
+    (N : ℕ) {a b : Fin (sourceCubeDim N) → ℝ}
+    (hcoord : ∀ j, |a j - b j| ≤ δ) (x : ℝ) :
+    |sourceLift κ M B β H sigma aL C_R N a x -
+        sourceLift κ M B β H sigma aL C_R N b x| ≤
+      2 * (B * M) * δ := by
+  let ella := sourceLeftCoordDecode B M a
+  let ellb := sourceLeftCoordDecode B M b
+  have hell :
+      |ella - ellb| ≤ 2 * (B * M) * δ := by
+    simpa [ella, ellb] using
+      sourceLeftCoordDecode_abs_sub_le_of_coords
+        (B := B) (M := M) (N := N) (a := a) (b := b)
+        (mul_nonneg hB hM) hcoord
+  have hlow :
+      |sourceLowerObstacle κ M B sigma aL C_R ella x -
+          sourceLowerObstacle κ M B sigma aL C_R ellb x| ≤
+        2 * (B * M) * δ :=
+    le_trans sourceLowerObstacle_abs_sub_le_of_ell hell
+  have hup :
+      |sourceUpperObstacle κ M B sigma aL C_R ella x -
+          sourceUpperObstacle κ M B sigma aL C_R ellb x| ≤
+        2 * (B * M) * δ :=
+    le_trans sourceUpperObstacle_abs_sub_le_of_ell hell
+  have henv :
+      |sourceMcShaneEnvelope κ M B β H N a x -
+          sourceMcShaneEnvelope κ M B β H N b x| ≤
+        2 * (B * M) * δ :=
+    sourceMcShaneEnvelope_abs_sub_le_of_coords hB hM N hcoord x
+  unfold sourceLift
+  dsimp only [ella, ellb] at hlow hup
+  calc
+    |max (sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x)
+          (min (sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x)
+            (sourceMcShaneEnvelope κ M B β H N a x)) -
+        max (sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M b) x)
+          (min (sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M b) x)
+            (sourceMcShaneEnvelope κ M B β H N b x))|
+        ≤ max
+            |sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x -
+              sourceLowerObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M b) x|
+            |min (sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x)
+                (sourceMcShaneEnvelope κ M B β H N a x) -
+              min (sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M b) x)
+                (sourceMcShaneEnvelope κ M B β H N b x)| :=
+          abs_max_sub_max_le_max _ _ _ _
+    _ ≤ max (2 * (B * M) * δ) (2 * (B * M) * δ) := by
+        have hD : 2 * (B * M) * δ ≤ max (2 * (B * M) * δ) (2 * (B * M) * δ) := by
+          rw [max_self]
+        have hminpart :
+            |min (sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M a) x)
+                (sourceMcShaneEnvelope κ M B β H N a x) -
+              min (sourceUpperObstacle κ M B sigma aL C_R (sourceLeftCoordDecode B M b) x)
+                (sourceMcShaneEnvelope κ M B β H N b x)| ≤
+              2 * (B * M) * δ :=
+          le_trans (abs_min_sub_min_le_max _ _ _ _) (max_le hup henv)
+        apply max_le
+        · exact le_trans hlow hD
+        · exact le_trans hminpart hD
+    _ = 2 * (B * M) * δ := max_self _
+
+lemma source_coord_abs_sub_le_of_norm {n : ℕ} {a b : Fin n → ℝ} {ε : ℝ}
+    (h : ‖b - a‖ ≤ ε) (i : Fin n) :
+    |b i - a i| ≤ ε := by
+  have hi : ‖(b - a) i‖ ≤ ‖b - a‖ := norm_le_pi_norm (b - a) i
+  simpa [Pi.sub_apply, Real.norm_eq_abs] using le_trans hi h
+
+lemma sourceLift_proj_error
+    {κ M B β H sigma aL C_R : ℝ}
+    (hM : 0 < M) (hB : 0 < B) (hβ0 : 0 ≤ β) (hH : 0 ≤ H)
+    (hsigma : 0 < sigma) (hCR : 0 ≤ C_R)
+    (hObsRight : 2 * (B * M) ≤ C_R)
+    (N : ℕ) {f : ℝ → ℝ}
+    (hf : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL (2 * C_R)) f)
+    {ell : ℝ} (hrate : ExpLeftRate sigma aL C_R f ell)
+    {x : ℝ} {i : Fin (sourceCubeSampleDim N)}
+    (hnear : |x - sourceCubeNode N i| ≤ sourceCubeMesh N) :
+    |f x -
+      sourceLift κ M B β H sigma aL C_R N
+        (sourceProj κ M β B H sigma aL (2 * C_R) N f) x| ≤
+      2 * H * sourceCubeEps β N := by
+  have hleft_eq :
+      sourceLeftLimitOf κ M β B H sigma aL (2 * C_R) f = ell :=
+    sourceLeftLimitOf_eq_of_tendsto hf (hrate.tendsto_atBot hsigma)
+  have hell : |ell| ≤ B * M := by
+    have hleft_abs := sourceLeftLimit_abs_le
+      (κ := κ) (M := M) (β := β) (B := B) (H := H)
+      (sigma := sigma) (aL := aL) (K := 2 * C_R) (R := f)
+      hB.le hf
+    simpa [hleft_eq] using hleft_abs
+  have hdecode :
+      sourceLeftCoordDecode B M
+        (sourceProj κ M β B H sigma aL (2 * C_R) N f) = ell :=
+    sourceLeftCoordDecode_sourceProj_eq
+      (κ := κ) (M := M) (β := β) (B := B) (H := H)
+      (sigma := sigma) (aL := aL) (K := 2 * C_R) (C_R := C_R)
+      (R := f) (ell := ell) hM hB hf hsigma hrate N
+  have hobs :
+      ∀ z,
+        sourceLowerObstacle κ M B sigma aL C_R ell z ≤ f z ∧
+          f z ≤ sourceUpperObstacle κ M B sigma aL C_R ell z :=
+    sourceRate_mem_obstacles
+      (κ := κ) (M := M) (B := B) (beta := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R) (ell := ell)
+      (R := f) hB.le hM.le hCR hsigma.le hf.bound hrate hell hObsRight
+  have henv_lo :
+      f x ≤
+        sourceMcShaneEnvelope κ M B β H N
+          (sourceProj κ M β B H sigma aL (2 * C_R) N f) x :=
+    sourceMcShaneEnvelope_proj_lower
+      (κ := κ) (M := M) (β := β) (B := B) (H := H)
+      (sigma := sigma) (aL := aL) (K := 2 * C_R)
+      hM hB N hf.holder x
+  have henv_hi :
+      sourceMcShaneEnvelope κ M B β H N
+          (sourceProj κ M β B H sigma aL (2 * C_R) N f) x ≤
+        f x + 2 * H * sourceCubeEps β N :=
+    sourceMcShaneEnvelope_proj_upper_near
+      (κ := κ) (M := M) (β := β) (B := B) (H := H)
+      (sigma := sigma) (aL := aL) (K := 2 * C_R)
+      hM hB hβ0 hH N hf.holder hnear
+  have hclip_lo :
+      f x ≤
+        sourceLift κ M B β H sigma aL C_R N
+          (sourceProj κ M β B H sigma aL (2 * C_R) N f) x := by
+    unfold sourceLift
+    dsimp only
+    rw [hdecode]
+    exact le_trans (le_min (hobs x).2 henv_lo) (le_max_right _ _)
+  have hclip_hi :
+      sourceLift κ M B β H sigma aL C_R N
+          (sourceProj κ M β B H sigma aL (2 * C_R) N f) x ≤
+        sourceMcShaneEnvelope κ M B β H N
+          (sourceProj κ M β B H sigma aL (2 * C_R) N f) x := by
+    unfold sourceLift
+    dsimp only
+    rw [hdecode]
+    exact max_le (le_trans (hobs x).1 henv_lo) (min_le_right _ _)
+  rw [abs_of_nonpos (sub_nonpos.mpr hclip_lo)]
+  nlinarith [le_trans hclip_hi henv_hi]
+
+lemma sourceLift_locallyUniform_of_tendsto
+    {κ M B β H sigma aL C_R : ℝ} (hB : 0 ≤ B) (hM : 0 ≤ M)
+    (N : ℕ)
+    {seq : ℕ → Fin (sourceCubeDim N) → ℝ} {a : Fin (sourceCubeDim N) → ℝ}
+    (hseq : Tendsto seq atTop (𝓝 a)) :
+    LocallyUniformConverges
+      (fun n => sourceLift κ M B β H sigma aL C_R N (seq n))
+      (sourceLift κ M B β H sigma aL C_R N a) := by
+  intro R _hR ε hε
+  set δ : ℝ := ε / (2 * (B * M) + 1) with hδ
+  have hBM : 0 ≤ B * M := mul_nonneg hB hM
+  have hdenpos : 0 < 2 * (B * M) + 1 := by nlinarith
+  have hδpos : 0 < δ := by
+    rw [hδ]
+    positivity
+  obtain ⟨N0, hN0⟩ := Metric.tendsto_atTop.mp hseq δ hδpos
+  have hev : ∀ᶠ n in atTop, dist (seq n) a < δ :=
+    eventually_atTop.2 ⟨N0, hN0⟩
+  filter_upwards [hev] with n hn x _hx
+  have hnorm : ‖seq n - a‖ < δ := by
+    simpa [dist_eq_norm] using hn
+  have hcoord : ∀ j, |seq n j - a j| ≤ ‖seq n - a‖ :=
+    fun j => source_coord_abs_sub_le_of_norm le_rfl j
+  have hlift :=
+    sourceLift_abs_sub_le_of_coords
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      (δ := ‖seq n - a‖) hB hM N hcoord (x := x)
+  have hmul : 2 * (B * M) * ‖seq n - a‖ < ε := by
+    have hcoef_nonneg : 0 ≤ 2 * (B * M) := by nlinarith
+    have hcoefdelta_lt : 2 * (B * M) * δ < ε := by
+      rw [hδ]
+      have haux :
+          2 * (B * M) * (ε / (2 * (B * M) + 1)) =
+            (2 * (B * M) * ε) / (2 * (B * M) + 1) := by ring
+      rw [haux, div_lt_iff₀ hdenpos]
+      nlinarith [hBM, hε]
+    exact lt_of_le_of_lt
+      (mul_le_mul_of_nonneg_left (le_of_lt hnorm) hcoef_nonneg) hcoefdelta_lt
+  exact lt_of_le_of_lt hlift hmul
+
+lemma sourceLeftLimitOf_tendsto_of_locallyUniform_expLeftRate
+    {κ M β B H sigma aL K C_R : ℝ}
+    {seq : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (hsigma : 0 < sigma)
+    (hseq_box : ∀ n, PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) (seq n))
+    (hf_box : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) f)
+    (hrate_seq : ∀ n, ∃ ell : ℝ, ExpLeftRate sigma aL C_R (seq n) ell)
+    (hrate_f : ∃ ell : ℝ, ExpLeftRate sigma aL C_R f ell)
+    (hconv : LocallyUniformConverges seq f) :
+    Tendsto
+      (fun n => sourceLeftLimitOf κ M β B H sigma aL K (seq n))
+      atTop
+      (𝓝 (sourceLeftLimitOf κ M β B H sigma aL K f)) := by
+  let ellseq : ℕ → ℝ := fun n => Classical.choose (hrate_seq n)
+  let ell : ℝ := Classical.choose hrate_f
+  have hrate_seq' :
+      ∀ n, ExpLeftRate sigma aL C_R (seq n) (ellseq n) := by
+    intro n
+    exact Classical.choose_spec (hrate_seq n)
+  have hrate_f' : ExpLeftRate sigma aL C_R f ell :=
+    Classical.choose_spec hrate_f
+  have hCnn : 0 ≤ C_R := hrate_f'.C_nonneg
+  have hleft_seq :
+      ∀ n,
+        sourceLeftLimitOf κ M β B H sigma aL K (seq n) = ellseq n := by
+    intro n
+    exact sourceLeftLimitOf_eq_of_tendsto
+      (hseq_box n) ((hrate_seq' n).tendsto_atBot hsigma)
+  have hleft_f :
+      sourceLeftLimitOf κ M β B H sigma aL K f = ell :=
+    sourceLeftLimitOf_eq_of_tendsto hf_box (hrate_f'.tendsto_atBot hsigma)
+  have hdecay :
+      Tendsto (fun A : ℝ => C_R * Real.exp (sigma * (A - aL)))
+        atBot (𝓝 0) := by
+    have hsub : Tendsto (fun A : ℝ => A - aL) atBot atBot := by
+      simpa [sub_eq_add_neg] using
+        tendsto_atBot_add_const_right atBot (-aL)
+          (tendsto_id : Tendsto (fun A : ℝ => A) atBot atBot)
+    have hlin : Tendsto (fun A : ℝ => sigma * (A - aL)) atBot atBot :=
+      hsub.const_mul_atBot hsigma
+    have hexp : Tendsto (fun A : ℝ => Real.exp (sigma * (A - aL)))
+        atBot (𝓝 0) :=
+      Real.tendsto_exp_atBot.comp hlin
+    simpa using hexp.const_mul C_R
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  set η : ℝ := ε / 3 with hη
+  have hηpos : 0 < η := by
+    rw [hη]
+    positivity
+  have htail_event :
+      ∀ᶠ A in atBot,
+        dist (C_R * Real.exp (sigma * (A - aL))) 0 < η :=
+    Metric.tendsto_nhds.mp hdecay η hηpos
+  rcases Filter.eventually_atBot.mp htail_event with ⟨A, hA⟩
+  have htail : C_R * Real.exp (sigma * (A - aL)) < η := by
+    have hdist := hA A le_rfl
+    have hnonneg : 0 ≤ C_R * Real.exp (sigma * (A - aL)) :=
+      mul_nonneg hCnn (Real.exp_pos _).le
+    rw [Real.dist_eq, sub_zero, abs_of_nonneg hnonneg] at hdist
+    exact hdist
+  have hpoint := hconv.tendsto_at A
+  obtain ⟨N0, hN0⟩ := Metric.tendsto_atTop.mp hpoint η hηpos
+  refine ⟨N0, ?_⟩
+  intro n hn
+  have hmid : |seq n A - f A| < η := by
+    have hdist := hN0 n hn
+    simpa [Real.dist_eq] using hdist
+  have hn_tail : |ellseq n - seq n A| ≤
+      C_R * Real.exp (sigma * (A - aL)) := by
+    simpa [abs_sub_comm] using hrate_seq' n A
+  have hf_tail : |f A - ell| ≤
+      C_R * Real.exp (sigma * (A - aL)) :=
+    hrate_f' A
+  rw [Real.dist_eq, hleft_seq n, hleft_f]
+  have hsplit :
+      ellseq n - ell =
+        (ellseq n - seq n A) + (seq n A - f A) + (f A - ell) := by
+    ring
+  rw [hsplit]
+  calc
+    |(ellseq n - seq n A) + (seq n A - f A) + (f A - ell)|
+        ≤ |ellseq n - seq n A| + |seq n A - f A| + |f A - ell| := by
+          have h1 := abs_add_le (ellseq n - seq n A) (seq n A - f A)
+          have h2 :=
+            abs_add_le ((ellseq n - seq n A) + (seq n A - f A)) (f A - ell)
+          nlinarith
+    _ < η + η + η := by nlinarith [hn_tail, hf_tail, htail, hmid]
+    _ = ε := by
+      rw [hη]
+      ring
+
+lemma sourceTfin_continuousOn
+    {κ M B β H sigma aL C_R : ℝ}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hB : 0 < B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hH : 0 ≤ H) (hsigma : 0 < sigma) (hCR : 0 ≤ C_R)
+    (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsParam : B * M ≤ C_R)
+    (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H)
+    (hmap : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) R →
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) (Tmap R))
+    (hmap_rate : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) R →
+      ∃ ell : ℝ, ExpLeftRate sigma aL C_R (Tmap R) ell)
+    (hcont : LocalUniformContinuousOn
+      (PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))) Tmap)
+    (N : ℕ) :
+    ContinuousOn
+      (fun a : Fin (sourceCubeDim N) → ℝ =>
+        sourceProj κ M β B H sigma aL (2 * C_R) N
+          (Tmap (sourceLift κ M B β H sigma aL C_R N a)))
+      (Freudenthal.unitCube (sourceCubeDim N)) := by
+  rw [continuousOn_iff_continuous_restrict]
+  rw [continuous_iff_continuousAt]
+  intro a
+  rw [ContinuousAt, tendsto_nhds_iff_seq_tendsto]
+  intro seq hseq
+  rw [tendsto_pi_nhds]
+  intro j
+  let aval : Fin (sourceCubeDim N) → ℝ := a
+  let seqval : ℕ → Fin (sourceCubeDim N) → ℝ := fun n => seq n
+  have hseq_val :
+      Tendsto seqval atTop (𝓝 aval) := by
+    simpa [seqval, aval] using
+      (continuous_subtype_val.tendsto a).comp hseq
+  have hlift :
+      LocallyUniformConverges
+        (fun n => sourceLift κ M B β H sigma aL C_R N (seqval n))
+        (sourceLift κ M B β H sigma aL C_R N aval) :=
+    sourceLift_locallyUniform_of_tendsto
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      hB.le hM.le N hseq_val
+  have htrap_seq :
+      ∀ n, PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))
+        (sourceLift κ M B β H sigma aL C_R N (seqval n)) := by
+    intro n
+    exact sourceLift_mem_box
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      hκ hM.le hB.le hβpos hβle hH hsigma hCR
+      hUleft hObsParam hH_obs N (seqval n) (seq n).2
+  have htrap_a :
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))
+        (sourceLift κ M B β H sigma aL C_R N aval) :=
+    sourceLift_mem_box
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      hκ hM.le hB.le hβpos hβle hH hsigma hCR
+      hUleft hObsParam hH_obs N aval a.2
+  have hT :=
+    hcont
+      (fun n => sourceLift κ M B β H sigma aL C_R N (seqval n))
+      (sourceLift κ M B β H sigma aL C_R N aval)
+      htrap_seq htrap_a hlift
+  have hTtrap_seq :
+      ∀ n, PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))
+        (Tmap (sourceLift κ M B β H sigma aL C_R N (seqval n))) :=
+    fun n => hmap _ (htrap_seq n)
+  have hTtrap_a :
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))
+        (Tmap (sourceLift κ M B β H sigma aL C_R N aval)) :=
+    hmap _ htrap_a
+  by_cases hj : j.1 = 0
+  · have hleft :=
+      sourceLeftLimitOf_tendsto_of_locallyUniform_expLeftRate
+        (κ := κ) (M := M) (β := β) (B := B) (H := H)
+        (sigma := sigma) (aL := aL) (K := 2 * C_R) (C_R := C_R)
+        hsigma hTtrap_seq hTtrap_a
+        (fun n => hmap_rate _ (htrap_seq n))
+        (hmap_rate _ htrap_a) hT
+    simpa [Set.restrict, sourceProj, hj, seqval, aval] using
+      (hleft.add_const (B * M) |>.div_const (2 * (B * M)))
+  · let i : Fin (sourceCubeSampleDim N) :=
+      ⟨j.1 - 1, by
+        have hjlt := j.2
+        unfold sourceCubeDim at hjlt
+        omega⟩
+    have hpoint := hT.tendsto_at (sourceCubeNode N i)
+    simpa [Set.restrict, sourceProj, hj, seqval, aval, i] using
+      (hpoint.add_const
+        (sourceWeightedRadius κ M B (sourceCubeNode N i)) |>.div_const
+          (2 * sourceWeightedRadius κ M B (sourceCubeNode N i)))
+
+lemma sourceCube_residual_le
+    {κ M B β H sigma aL C_R : ℝ}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hB : 0 < B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hH : 0 ≤ H) (hsigma : 0 < sigma) (hCR : 0 ≤ C_R)
+    (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsParam : B * M ≤ C_R)
+    (hObsRight : 2 * (B * M) ≤ C_R)
+    (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H)
+    (hmap : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) R →
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) (Tmap R))
+    (hmap_rate : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) R →
+      ∃ ell : ℝ, ExpLeftRate sigma aL C_R (Tmap R) ell)
+    (N : ℕ) (a : Fin (sourceCubeDim N) → ℝ)
+    (ha : a ∈ Freudenthal.unitCube (sourceCubeDim N))
+    (hclose :
+      ‖sourceProj κ M β B H sigma aL (2 * C_R) N
+          (Tmap (sourceLift κ M B β H sigma aL C_R N a)) - a‖ ≤
+        sourceCubeEps β N)
+    (R : ℝ) (_hRpos : 0 < R) (x : ℝ) (hx : x ∈ Set.Icc (-R) R) :
+    |Tmap (sourceLift κ M B β H sigma aL C_R N a) x -
+      sourceLift κ M B β H sigma aL C_R N a x| ≤
+        sourceCubeLocalError B M H β N R := by
+  let u : ℝ → ℝ := sourceLift κ M B β H sigma aL C_R N a
+  have hu :
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) u :=
+    sourceLift_mem_box
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      hκ hM.le hB.le hβpos hβle hH hsigma hCR
+      hUleft hObsParam hH_obs N a ha
+  let f : ℝ → ℝ := Tmap u
+  have hf :
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) f :=
+    hmap u hu
+  by_cases hcov : R ≤ sourceCubeRadius N
+  · obtain ⟨i, hnear⟩ := sourceCube_cover N hcov hx
+    rcases hmap_rate u hu with ⟨ell, hrate⟩
+    have hproj :
+        |f x -
+          sourceLift κ M B β H sigma aL C_R N
+            (sourceProj κ M β B H sigma aL (2 * C_R) N f) x| ≤
+          2 * H * sourceCubeEps β N :=
+      sourceLift_proj_error
+        (κ := κ) (M := M) (B := B) (β := β) (H := H)
+        (sigma := sigma) (aL := aL) (C_R := C_R)
+        hM hB hβpos.le hH hsigma hCR hObsRight N hf hrate hnear
+    have hcoord :
+        ∀ j,
+          |sourceProj κ M β B H sigma aL (2 * C_R) N f j - a j| ≤
+            sourceCubeEps β N :=
+      source_coord_abs_sub_le_of_norm hclose
+    have hlift :
+        |sourceLift κ M B β H sigma aL C_R N
+            (sourceProj κ M β B H sigma aL (2 * C_R) N f) x -
+          sourceLift κ M B β H sigma aL C_R N a x| ≤
+          2 * (B * M) * sourceCubeEps β N :=
+      sourceLift_abs_sub_le_of_coords
+        (κ := κ) (M := M) (B := B) (β := β) (H := H)
+        (sigma := sigma) (aL := aL) (C_R := C_R)
+        (δ := sourceCubeEps β N) hB.le hM.le N hcoord (x := x)
+    have htri :
+        |f x - sourceLift κ M B β H sigma aL C_R N a x| ≤
+          |f x -
+            sourceLift κ M B β H sigma aL C_R N
+              (sourceProj κ M β B H sigma aL (2 * C_R) N f) x| +
+          |sourceLift κ M B β H sigma aL C_R N
+              (sourceProj κ M β B H sigma aL (2 * C_R) N f) x -
+            sourceLift κ M B β H sigma aL C_R N a x| := by
+      simpa using abs_sub_le (f x)
+        (sourceLift κ M B β H sigma aL C_R N
+          (sourceProj κ M β B H sigma aL (2 * C_R) N f) x)
+        (sourceLift κ M B β H sigma aL C_R N a x)
+    have herr :
+        |f x - sourceLift κ M B β H sigma aL C_R N a x| ≤
+          (2 * H + 2 * (B * M) + 1) * sourceCubeEps β N := by
+      nlinarith [htri, hproj, hlift, sourceCubeEps_nonneg (β := β) N]
+    simpa [sourceCubeLocalError, hcov, u, f] using herr
+  · have hf_abs : |f x| ≤ B * M := hf.abs_le_const hB.le x
+    have hu_abs : |u x| ≤ B * M := hu.abs_le_const hB.le x
+    have hrough :
+        |f x - u x| ≤ 2 * (B * M) + 1 := by
+      have htri0 : |f x - u x| ≤ |f x| + |u x| := by
+        simpa [sub_zero, zero_sub, abs_neg] using abs_sub_le (f x) 0 (u x)
+      nlinarith [htri0, hf_abs, hu_abs]
+    simpa [sourceCubeLocalError, hcov, u, f] using hrough
+
+noncomputable def sourceBoxProjectedCubeApproxData
+    {κ M β B H sigma aL C_R : ℝ}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hB : 0 < B)
+    (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hH : 0 ≤ H) (hsigma : 0 < sigma) (hCR : 0 ≤ C_R)
+    (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsParam : B * M ≤ C_R)
+    (hObsRight : 2 * (B * M) ≤ C_R)
+    (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H)
+    (hmap : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) R →
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) (Tmap R))
+    (hmap_rate : ∀ R,
+      PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R)) R →
+      ∃ ell : ℝ, ExpLeftRate sigma aL C_R (Tmap R) ell)
+    (hcont : LocalUniformContinuousOn
+      (PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))) Tmap) :
+    ProjectedCubeApproxData
+      (PaperWeightedHolderSourceBox κ M β B H
+        (expLeftOmega sigma aL (2 * C_R))) Tmap where
+  dim := sourceCubeDim
+  proj := sourceProj κ M β B H sigma aL (2 * C_R)
+  lift := sourceLift κ M B β H sigma aL C_R
+  eps := sourceCubeEps β
+  localError := sourceCubeLocalError B M H β
+  eps_pos := sourceCubeEps_pos hβpos
+  proj_trap := by
+    intro N R hR
+    exact sourceProj_mem_unitCube
+      (κ := κ) (M := M) (β := β) (B := B) (H := H)
+      (sigma := sigma) (aL := aL) (K := 2 * C_R)
+      hM hB N hR
+  maps := by
+    intro N a ha
+    exact sourceProj_mem_unitCube
+      (κ := κ) (M := M) (β := β) (B := B) (H := H)
+      (sigma := sigma) (aL := aL) (K := 2 * C_R)
+      hM hB N
+      (hmap _
+        (sourceLift_mem_box
+          (κ := κ) (M := M) (B := B) (β := β) (H := H)
+          (sigma := sigma) (aL := aL) (C_R := C_R)
+          hκ hM.le hB.le hβpos hβle hH hsigma hCR
+          hUleft hObsParam hH_obs N a ha))
+  cont := by
+    intro N
+    exact sourceTfin_continuousOn
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      (Tmap := Tmap)
+      hκ hM hB hβpos hβle hH hsigma hCR hUleft hObsParam hH_obs
+      hmap hmap_rate hcont N
+  lift_trap := by
+    intro N a ha
+    exact sourceLift_mem_box
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      hκ hM.le hB.le hβpos hβle hH hsigma hCR
+      hUleft hObsParam hH_obs N a ha
+  localError_nonneg := by
+    intro N R
+    exact sourceCubeLocalError_nonneg (mul_nonneg hB.le hM.le) hH N R
+  localError_tendsto := by
+    intro R _hR
+    exact sourceCubeLocalError_tendsto hβpos
+  residual_le := by
+    intro N a ha hclose R hR x hx
+    exact sourceCube_residual_le
+      (κ := κ) (M := M) (B := B) (β := β) (H := H)
+      (sigma := sigma) (aL := aL) (C_R := C_R)
+      (Tmap := Tmap)
+      hκ hM hB hβpos hβle hH hsigma hCR hUleft hObsParam hObsRight
+      hH_obs hmap hmap_rate N a ha hclose R hR x hx
+
 /-- Schauder data for the weighted truncated fixed-source map on a source box.
 
 The finite-net approximation witness is the single flagged box-specific cube
@@ -9765,12 +11528,8 @@ def paperFixedSourceMapBoxBounds_of_trap_twoRadius
       hmap_rate
 
 /-- Assemble the truncated source-box fixed-source data from source-box bounds,
-local-uniform continuity, finite-cube data, and scalar/barrier-root facts used
-only to prove clamp inactivity.
-
-The resulting record carries the already committed `boxCubeData`; the lower and
-upper truncated comparison packets are constructed internally and are not
-parameters of the fixed-source data. -/
+local-uniform continuity, the explicit source-box cube witness, and
+scalar/barrier-root facts used only to prove clamp inactivity. -/
 def paperTruncatedFixedSourceBoxData_of_trap
     {p : CMParams} {c lam M κ Λ B H C_chem sigma aL C_u L_u C_R m_sigma : ℝ}
     {u Z : ℝ → ℝ}
@@ -9778,10 +11537,13 @@ def paperTruncatedFixedSourceBoxData_of_trap
     (hrpκ : κ < greenRootPlus c lam)
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hBpos : 0 < B)
     (hsigma : 0 < sigma) (hsigma1 : sigma < 1)
     (hsigma_root : sigma < greenRootPlus c lam)
     (hCRnn : 0 ≤ C_R)
     (hUleft : M ≤ Real.exp (-κ * aL))
+    (hObsRight : 2 * (B * M) ≤ C_R)
+    (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H)
     (hu : InMonotoneWaveTrapSet κ M u)
     (hu_rate : ExpLeftRate sigma aL C_u u L_u)
     (hZ : PaperIterateBase κ M Z)
@@ -9813,12 +11575,7 @@ def paperTruncatedFixedSourceBoxData_of_trap
     (hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1)
     (hbarrierScalar : PaperUpperBarrierSuperScalarConditions p c κ M)
     (hNL_M_nonpos :
-      paperTruncatedLimitNonlinearity p M (L_u ^ p.γ) ≤ 0)
-    (hboxCubeData :
-      ProjectedCubeApproxData
-        (PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B H
-          (expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R)))
-        (paperFixedSourceMap p c lam M κ u Z)) :
+      paperTruncatedLimitNonlinearity p M (L_u ^ p.γ) ≤ 0) :
     PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z := by
   have _hu_rate : ExpLeftRate sigma aL C_u u L_u := hu_rate
   let β : ℝ := paperWeightedHolderExponent p
@@ -9831,6 +11588,9 @@ def paperTruncatedFixedSourceBoxData_of_trap
   let H0 : ℝ := Classical.choose holderKernel
   have hH0nn : 0 ≤ H0 := (Classical.choose_spec holderKernel).1
   have hHnn : 0 ≤ H := le_trans hH0nn hHolder_le
+  have hObsParam : B * M ≤ C_R := by
+    have hBMnn : 0 ≤ B * M := mul_nonneg hBnn hM.le
+    nlinarith
   let hbox :
       PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z :=
     paperFixedSourceMapBoxBounds_of_trap_twoRadius
@@ -9841,6 +11601,82 @@ def paperTruncatedFixedSourceBoxData_of_trap
       hlam hrpκ hrmκ hκ.le hM hBnn hsigma hsigma1 hsigma_root
       hCRnn hUleft hu hu_rate hZ hZ_rate hscalar hHolder_le
       hcontract hCR
+  let hcontBox :
+      LocalUniformContinuousOn
+        (PaperWeightedHolderSourceBox κ M β B H ω)
+        (paperFixedSourceMap p c lam M κ u Z) :=
+    paperFixedSourceMap_continuousOn_of_boxBounds
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (β := paperWeightedHolderExponent p) (B := B) (H := H)
+      (ω := expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
+      (u := u) (Z := Z)
+      hlam hBnn hHnn (paperWeightedHolderExponent_pos p) hbox
+  let hmap_cube :
+      ∀ R,
+        PaperWeightedHolderSourceBox κ M β B H
+          (expLeftOmega sigma aL (2 * C_R)) R →
+        PaperWeightedHolderSourceBox κ M β B H
+          (expLeftOmega sigma aL (2 * C_R))
+          (paperFixedSourceMap p c lam M κ u Z R) := by
+    intro R hR
+    have hRω :
+        PaperWeightedHolderSourceBox κ M β B H ω R := by
+      simpa [ω, paperFixedSourceMapExpOmegaRadius] using hR
+    have hout := hbox.mapsTo R hRω
+    simpa [ω, paperFixedSourceMapExpOmegaRadius] using hout
+  let hmap_rate :
+      ∀ R,
+        PaperWeightedHolderSourceBox κ M β B H
+          (expLeftOmega sigma aL (2 * C_R)) R →
+          ∃ Lout : ℝ,
+            ExpLeftRate sigma aL C_R
+              (paperFixedSourceMap p c lam M κ u Z R) Lout := by
+    intro R hR
+    have hRω :
+        PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B H
+          (expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R)) R := by
+      simpa [β, paperFixedSourceMapExpOmegaRadius] using hR
+    rcases hZ_rate with ⟨LZ, hZr⟩
+    rcases paperStepTruncatedNonlinearity_expLeftRate
+        (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+        (β := paperWeightedHolderExponent p) (B := B) (H := H)
+        (sigma := sigma) (aL := aL) (C_u := C_u) (L_u := L_u)
+        (C_R := C_R) (u := u) (R := R)
+        hlam hsigma hsigma1 hsigma_root hκ.le hM hBnn hCRnn hUleft
+        hu hu_rate hRω with
+      ⟨LN, hN⟩
+    have hraw :
+        ExpLeftRate sigma aL
+          (paperFixedSourceMapRateConstant
+            (paperTruncatedNonlinearityRateClam p c lam M B sigma C_u)
+            (paperFixedSourceMapAZ lam)
+            (paperTruncatedNonlinearityRateD0 p c lam M B sigma C_u)
+            C_R
+            (paperFixedSourceMapTwoRadiusCZ m_sigma C_R))
+          (paperFixedSourceMap p c lam M κ u Z R) (LN + lam * LZ) :=
+      paperFixedSourceMap_expLeftRate
+        (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+        (sigma := sigma) (aL := aL)
+        (Clamsigma := paperTruncatedNonlinearityRateClam p c lam M B sigma C_u)
+        (A_Z := paperFixedSourceMapAZ lam)
+        (D0 := paperTruncatedNonlinearityRateD0 p c lam M B sigma C_u)
+        (C_R := C_R) (C_Z := paperFixedSourceMapTwoRadiusCZ m_sigma C_R)
+        (LN := LN) (LZ := LZ)
+        rfl hN hZr
+    exact ⟨LN + lam * LZ,
+      paperFixedSourceMap_expLeftRate_twoRadius
+        (sigma := sigma) (aL := aL)
+        (Clamsigma := paperTruncatedNonlinearityRateClam p c lam M B sigma C_u)
+        (A_Z := paperFixedSourceMapAZ lam)
+        (m_sigma := m_sigma) (C_R := C_R)
+        (D0 := paperTruncatedNonlinearityRateD0 p c lam M B sigma C_u)
+        hcontract hCR hraw⟩
+  let hcont_cube :
+      LocalUniformContinuousOn
+        (PaperWeightedHolderSourceBox κ M β B H
+          (expLeftOmega sigma aL (2 * C_R)))
+        (paperFixedSourceMap p c lam M κ u Z) := by
+    simpa [ω, paperFixedSourceMapExpOmegaRadius] using hcontBox
   exact
     { beta := paperWeightedHolderExponent p
       B := B
@@ -9852,14 +11688,17 @@ def paperTruncatedFixedSourceBoxData_of_trap
       sourceBound_eq := hsourceBound_eq
       beta_eq := rfl
       boxBounds := hbox
-      continuousOn :=
-        paperFixedSourceMap_continuousOn_of_boxBounds
-          (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
-          (β := paperWeightedHolderExponent p) (B := B) (H := H)
-          (ω := expLeftOmega sigma aL (paperFixedSourceMapExpOmegaRadius C_R))
-          (u := u) (Z := Z)
-          hlam hBnn hHnn (paperWeightedHolderExponent_pos p) hbox
-      boxCubeData := hboxCubeData
+      continuousOn := hcontBox
+      boxCubeData := by
+        simpa [β, ω, paperFixedSourceMapExpOmegaRadius] using
+          (sourceBoxProjectedCubeApproxData
+            (κ := κ) (M := M) (β := β) (B := B) (H := H)
+            (sigma := sigma) (aL := aL) (C_R := C_R)
+            (Tmap := paperFixedSourceMap p c lam M κ u Z)
+            hκ.le hM hBpos (paperWeightedHolderExponent_pos p)
+            (paperWeightedHolderExponent_le_one p) hHnn hsigma hCRnn
+            hUleft hObsParam hObsRight hH_obs
+            hmap_cube hmap_rate hcont_cube)
       truncation_inactive := by
         intro R hR hfix
         let W : ℝ → ℝ := fun x => greenConv c lam R x
