@@ -9530,6 +9530,111 @@ def paperFixedSourceMapBoxBounds_of_trap_expLeftRate
       map_leftTail := hmap_leftTail
       map_leftTailCauchy := hmap_leftTailCauchy }
 
+/-- Scalar hypotheses which make the paper upper barrier a super-solution at
+the only points where the truncated upper maximum principle consumes it.
+
+This is deliberately a scalar bundle, not the super-solution proposition itself:
+`Lemma_4_1_neg_holds_away_from_interface` supplies the genuine paper barrier
+root, and `maxSub_upperBarrier_ne_interface` proves that a differentiable
+Green-produced `W` cannot make `W - upperBarrier` attain its positive maximum at
+the interface kink. -/
+structure PaperUpperBarrierSuperScalarConditions
+    (p : CMParams) (c κ M : ℝ) : Prop where
+  hχ : p.χ ≤ 0
+  hα : p.α ≤ p.m + p.γ - 1
+  hκ1 : κ < 1
+  hγκ : p.γ * κ < 1
+  hmκ : κ * p.m ≤ 1
+  hM : 1 ≤ M
+  hMbound :
+    |p.χ| * (1 + p.m * p.γ * κ ^ 2) /
+        (1 - p.γ ^ 2 * κ ^ 2) *
+        M ^ (p.m + p.γ - p.α - 1) ≤
+      1 + |p.χ| * M ^ (p.m + p.γ - p.α - 1)
+  hc : c = κ + κ⁻¹
+
+/-- At the interface kink, the paper operator of `upperBarrier` has the same
+value as the constant-`M` paper barrier: the classical derivative values of the
+barrier are the Mathlib junk value `0` there. -/
+theorem paperWaveOperator_upperBarrier_interface_eq
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (hM : 0 < M)
+    {x : ℝ} (hx : Real.exp (-κ * x) = M) :
+    paperWaveOperator p c u (upperBarrier κ M) x =
+      M * (1 - p.χ * M ^ (p.m - 1) * frozenElliptic p u x
+        - (M ^ p.α - p.χ * M ^ (p.m + p.γ - 1))) := by
+  unfold paperWaveOperator
+  rw [upperBarrier_iteratedDeriv_two_eq_zero_at_interface hκ hM hx,
+    upperBarrier_deriv_eq_zero_at_interface hκ hM hx,
+    upperBarrier_eq_M_at_interface hx]
+  ring
+
+/-- Interface branch of the paper upper-barrier super-solution, proved from the
+same scalar conditions as the constant-region branch. -/
+theorem paperWaveOperator_upperBarrier_interface_nonpos_neg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hM : 1 ≤ M)
+    (hu : InWaveTrapSet κ M u)
+    {x : ℝ} (hx : Real.exp (-κ * x) = M) :
+    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hM
+  have hconst := paperWaveOperator_const_nonpos_neg
+    p (c := c) hχ hα hκ hM hu x
+  rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x] at hconst
+  rw [paperWaveOperator_upperBarrier_interface_eq p hκ hMpos hx]
+  exact hconst
+
+/-- Full paper upper-barrier super-solution from scalar wave-speed/barrier
+conditions.
+
+Away from the kink this is exactly the committed Lemma 4.1 paper branch.  At
+the kink the paper operator is the constant-`M` expression and is closed by the
+same scalar constant-barrier estimate. -/
+theorem paperUpperBarrier_super_of_scalar
+    {p : CMParams} {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ)
+    (hscalar : PaperUpperBarrierSuperScalarConditions p c κ M)
+    (hu : InMonotoneWaveTrapSet κ M u) :
+    ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  intro x
+  by_cases hx : Real.exp (-κ * x) = M
+  · exact paperWaveOperator_upperBarrier_interface_nonpos_neg
+      (p := p) (c := c) (κ := κ) (M := M) (u := u)
+      hscalar.hχ hscalar.hα hκ hscalar.hM hu.trap hx
+  · exact
+      Lemma_4_1_neg_holds_away_from_interface
+        (p := p) (c := c) (κ := κ) (M := M) (u := u)
+        hscalar.hχ hscalar.hα hκ hscalar.hκ1 hscalar.hγκ
+        hscalar.hmκ hscalar.hM hscalar.hMbound hu.trap hscalar.hc
+        x hx
+
+/-- The paper upper-barrier super-solution fact needed by the truncated upper
+comparison, proved from scalar wave-speed/barrier conditions at a maximum point.
+
+The proof intentionally routes through the committed away-from-interface
+barrier lemma.  The maximum point is away from the kink because the Green
+profile is differentiable there. -/
+theorem paperUpperBarrier_super_atMax_of_scalar
+    {p : CMParams} {c κ M : ℝ} {u W : ℝ → ℝ}
+    (hκ : 0 < κ) (hM : 0 < M)
+    (hscalar : PaperUpperBarrierSuperScalarConditions p c κ M)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hWdiff : Differentiable ℝ W) :
+    ∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
+      paperWaveOperator p c u (upperBarrier κ M) x₀ ≤ 0 := by
+  intro x₀ hmax
+  have hloc : IsLocalMax (fun x => W x - upperBarrier κ M x) x₀ :=
+    hmax.isLocalMax Filter.univ_mem
+  have hne : Real.exp (-κ * x₀) ≠ M :=
+    maxSub_upperBarrier_ne_interface hκ hM (hWdiff x₀) hloc
+  exact
+    Lemma_4_1_neg_holds_away_from_interface
+      (p := p) (c := c) (κ := κ) (M := M) (u := u)
+      hscalar.hχ hscalar.hα hκ hscalar.hκ1 hscalar.hγκ
+      hscalar.hmκ hscalar.hM hscalar.hMbound hu.trap hscalar.hc
+      x₀ hne
+
 /-- Source-box bounds with the fixed-source Hölder, left-tail Cauchy, and
 exponential-rate fields discharged by the kernel estimates and the explicit
 two-radius contraction.  The remaining scalar `hHolder_le` is the honest
@@ -9706,8 +9811,7 @@ def paperTruncatedFixedSourceBoxData_of_trap
           (1 - (paperTruncatedNonlinearityRateClam p c lam M B sigma C_u +
             paperFixedSourceMapAZ lam * m_sigma)) ≤ C_R)
     (hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1)
-    (hpaperSuper :
-      ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0)
+    (hbarrierScalar : PaperUpperBarrierSuperScalarConditions p c κ M)
     (hNL_M_nonpos :
       paperTruncatedLimitNonlinearity p M (L_u ^ p.γ) ≤ 0)
     (hboxCubeData :
@@ -9889,7 +9993,9 @@ def paperTruncatedFixedSourceBoxData_of_trap
             hLb := le_rfl
             paperSuper := by
               intro x₀ _hmax
-              exact hpaperSuper x₀ }
+              exact paperUpperBarrier_super_of_scalar
+                (p := p) (c := c) (κ := κ) (M := M) (u := u)
+                hκ hbarrierScalar hu x₀ }
         have hIcc :
             ∀ x, W x ∈ Set.Icc (0 : ℝ) (upperBarrier κ M x) :=
           paperFixedSource_truncation_inactive_direct_of_trap
