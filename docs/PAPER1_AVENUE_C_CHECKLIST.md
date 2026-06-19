@@ -11,12 +11,19 @@ brick 12 fixed point + 13–16 conversion/tails). CONDITIONAL on `WholeLineTrave
 remaining frontier, NOT vacuous. Earlier milestone (a8af1af): constant-barrier energy engine END-TO-END
 UNCONDITIONAL (`wholeLine_constantBarrier_trapping_unconditional`, faithfulness-verified).
 
-**THE REMAINING FRONTIER (WholeLineTravelingWaveData fields, to make the wave headline unconditional):**
-the PARABOLIC A-PRIORI ESTIMATES — longTime_parabolic_equicontinuity, longTime_image/finite_time_continuity,
-longTime_uniform_tail (the equicontinuity for Ascoli compactness of the long-time map; Shen "Claim 1"), the
-orbit trapping/monotonicity (brick 6 + barrier inequalities + brick 7/8), translate_compactness (brick 16),
-longTime_stationarity (brick 10), the aux-flow existence (brick 5). This is the genuine remaining analytic
-work — standard parabolic regularity theory adapted to ℝ, satisfiable for a real solution.
+**HONEST STATE (independent hostile audit, 2026-06-19):** the headline is FAITHFUL + sound as a CONDITIONAL
+reduction (non-vacuous: U(−∞)=1≠U(+∞)=0 rules out degenerate witnesses, WaveTrap proved nonempty; non-circular:
+equicontinuity genuinely from the t^{−1/2} kernel; axiom-clean). It is **NOT unconditional** — the audit found
+two LOAD-BEARING facts still ASSUMED at the interface:
+  (1) `schauder_principle` — the abstract Schauder/Brouwer fixed-point PRINCIPLE itself
+      (LocalUniformSchauderFixedPointPrinciple), never proved in-tree ("deliberately separated"). Check Mathlib
+      for Schauder/Tychonoff/Brouwer to discharge.
+  (2) the equicontinuity gradient bound (`longTime_image_deriv_bound` takes Λ as a hypothesis) — the kernel
+      machinery (auxiliaryMildMap_deriv_abs_le_of_gradient_bounds) exists but the Leibniz-under-singular-integral
+      bridge connecting it is missing.
+Plus the lighter residuals: ContDiff² regularity, longTime_stationarity, translate_compactness, aux-flow
+existence. DISCHARGED genuinely: orbit trapping, long-time-map mapsTo/continuity/compactness, the kernel half of
+equicontinuity. The headline should be read as "Data ⟹ profile", with these the genuine remaining work.
 
 ## A. Foundation — the Schauder-route engine
 - ✅ L1 heat semigroup e^{(Δ−I)t} (ShenWork/PDE/WholeLineHeatSemigroup.lean) — mass-1/L∞/grad-t^{−1/2}.
