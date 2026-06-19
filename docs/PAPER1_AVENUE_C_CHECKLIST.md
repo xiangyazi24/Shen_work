@@ -110,3 +110,13 @@ To reach fully-unconditional would require formalizing Brouwer + heat-equation/a
 Mathlib — two major STANDARD-MATH formalization projects, entirely separate from "formalize Shen's papers".
 THIS is the honest ceiling: the wave existence is a FAITHFUL conditional reduction to (2 Mathlib gaps +
 satisfiable regularity), axiom-clean, hostile-audited, never carrying the paper's hard content as a hypothesis.
+
+## UPDATE: one of the two Mathlib gaps now CLOSED (heat-semigroup generator)
+The heat-semigroup generator identity ∂t S(t)f=(Δ−I)S(t)f is FULLY FORMALIZED + independently-verified
+axiom-clean (WholeLineConvolutionDifferentiation.wholeLineHeatOp_time_hasDerivAt_of_bounded): gaussian_heat_eq
+(Gaussian solves heat eq) + differentiation under the Gaussian convolution (Gaussian-tail domination). The only
+side condition is standard Bochner measurability. So Paper-1's wave now reduces to JUST:
+- **(a) the Schauder/Brouwer fixed-point principle** [the SINGLE remaining foundational Mathlib gap] +
+- **(c) the satisfiable aux-flow parabolic regularity** [a real solution's properties; the classical bootstrap
+  now has its generator input closed].
+The heat-generator gap is GONE. Schauder is the one remaining standard-math Mathlib gap for full unconditionality.
