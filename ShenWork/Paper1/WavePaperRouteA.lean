@@ -1275,6 +1275,10 @@ def paperRotheStepProducer_of_routeA_greenCore
       { step_op := hstep
         cont := hbasic.1
         diff := hbasic.2.1
+        contDiff2 :=
+          paperStep_contDiff_two_of_core
+            (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+            hin.hlam hout.analytic
         deriv_le := hbasic.2.2
         left_rate := hout.left_rate
         nonneg := hnonneg
@@ -1316,6 +1320,10 @@ def paperRotheStepProducer_of_routeA_greenCore
       { step_op := hstep
         cont := hbasic.1
         diff := hbasic.2.1
+        contDiff2 :=
+          paperStep_contDiff_two_of_core
+            (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+            hin.hlam hout.analytic
         deriv_le := hbasic.2.2
         left_rate := hout.left_rate
         nonneg := hnonneg

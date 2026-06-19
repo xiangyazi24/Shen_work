@@ -4047,6 +4047,13 @@ theorem paperStep_cont
     Continuous W :=
   (paperStep_diff (c := c) (lam := lam) hlam ha).continuous
 
+theorem paperStep_contDiff_two
+    {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (_hlam : 0 < lam) (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
+    ContDiff ℝ 2 W := by
+  rw [ha.green_repr]
+  exact greenConv_contDiff_two ha.R_cont ha.R_hi ha.R_lo
+
 /-! ## Green regularity bootstrap
 
 The committed Green identity gives `W = greenConv c lam R`.  A continuous source
@@ -11958,6 +11965,8 @@ def paperRotheStepProducer_of_greenInput
       { step_op := hstep
         cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
         diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
+        contDiff2 :=
+          paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
         deriv_le :=
           paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
         left_rate := hout.left_rate
@@ -11991,6 +12000,8 @@ def paperRotheStepProducer_of_greenInput
       { step_op := hstep
         cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
         diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
+        contDiff2 :=
+          paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
         deriv_le :=
           paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
         left_rate := hout.left_rate
@@ -12060,6 +12071,7 @@ section AxiomAudit
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple_clean
 #print axioms paperStep_deriv_le
 #print axioms paperStep_diff
+#print axioms paperStep_contDiff_two
 #print axioms paperStep_contDiff_two_of_core
 #print axioms paperStep_deriv_tendsto_zero_of_core
 #print axioms tailHi_contDiff_one

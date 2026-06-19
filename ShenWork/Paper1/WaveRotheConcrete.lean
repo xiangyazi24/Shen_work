@@ -630,6 +630,7 @@ structure PaperRotheStepFacts
   step_op : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x
   cont : Continuous W
   diff : Differentiable ℝ W
+  contDiff2 : ContDiff ℝ 2 W
   deriv_le : ∀ x, |deriv W x| ≤ Λ
   left_rate : ExpLeftRateData W
   nonneg : ∀ x, 0 ≤ W x
@@ -646,6 +647,7 @@ structure PaperIterateBase (p : CMParams) (c κ M : ℝ)
   nonneg : ∀ x, 0 ≤ Z x
   le_barrier : ∀ x, Z x ≤ upperBarrier κ M x
   diff : Z = upperBarrier κ M ∨ Differentiable ℝ Z
+  contDiff2 : Z = upperBarrier κ M ∨ ContDiff ℝ 2 Z
   deriv_le : ∃ L : ℝ, 0 ≤ L ∧ ∀ x, |deriv Z x| ≤ L
   left_rate : ExpLeftRateData Z
   paperSuper : ∀ x, paperWaveOperator p c u Z x ≤ 0
@@ -696,7 +698,7 @@ theorem upperBarrier_paperIterateBase {κ M : ℝ}
     PaperIterateBase p c κ M u (upperBarrier κ M) :=
   ⟨upperBarrier_continuous κ M, upperBarrier_antitone hκ,
    fun x => upperBarrier_nonneg hM x, fun _ => le_rfl,
-   Or.inl rfl, ⟨κ * M, mul_nonneg hκ hM,
+   Or.inl rfl, Or.inl rfl, ⟨κ * M, mul_nonneg hκ hM,
     upperBarrier_deriv_abs_le_mul hκ hM⟩,
    upperBarrier_expLeftRateData hκ hM, hUbarSuper⟩
 
@@ -705,6 +707,7 @@ theorem PaperRotheStepFacts.toBase
     (h : PaperRotheStepFacts p c lam M κ Λ u Z W) :
     PaperIterateBase p c κ M u W :=
   ⟨h.cont, h.anti, h.nonneg, h.le_barrier, Or.inr h.diff,
+    Or.inr h.contDiff2,
     ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩,
     h.left_rate, h.paperSuper⟩
 
@@ -835,6 +838,11 @@ theorem rotheSeqOfPaper_paperSuper (k : ℕ) (x : ℝ) :
     paperWaveOperator p c u
       (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) x ≤ 0 :=
   (rotheSeqOfPaper_base hprod hκ hM k).paperSuper x
+
+theorem rotheSeqOfPaper_contDiff2_or_barrier (k : ℕ) :
+    rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k = upperBarrier κ M ∨
+      ContDiff ℝ 2 (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) :=
+  (rotheSeqOfPaper_base hprod hκ hM k).contDiff2
 
 theorem rotheSeqOfPaper_le_barrier (k : ℕ) (x : ℝ) :
     rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x ≤ upperBarrier κ M x :=
@@ -1904,6 +1912,7 @@ section AxiomAudit
 #print axioms rotheSeqOf
 #print axioms rotheSeqOfPaper
 #print axioms rotheSeqOfPaper_stepFacts
+#print axioms rotheSeqOfPaper_contDiff2_or_barrier
 #print axioms rotheSeqOfPaper_lowerPinned_base
 #print axioms paperRotheOrbitData
 #print axioms paperTmap_maps_trap
