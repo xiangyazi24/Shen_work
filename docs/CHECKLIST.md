@@ -63,11 +63,21 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 #### B.4 Assemble the concrete producer
 - [x] `boxCubeData` — finite-net cube witness for the source box: DISCHARGED via McShane (97e17b2, see B.2)
 - [x] `paperTruncatedFixedSourceBoxData_of_trap` — complete constructor, no carried provider (only scalar/parameter conditions on B/H/C_R/σ + rate data)
-- [~] **Final wire (IN FLIGHT, cx_pde)** — `paperTruncatedFixedSourceBoxData_of_trap` is still an ISLAND (no caller); the wire defs (`of_truncated_sourceBox`, `paperGreenStepInputRouteACore_of_trap_truncatedSourceBox`) take the box-data provider as an abstract `hboxData` hypothesis. REMAINING: choose concrete B/H/C_R satisfying the scalar conditions, discharge `hrest` (PaperGreenStepInputRouteASuperRestProvider) + `hZsuper` (via `paperUpperBarrier_super_of_scalar`), thread the outer-orbit ExpLeftRate, assemble `∀u producer` ⟹ **`hprodAll` unconditional**, remove from headline. Spec `/tmp/shen_finalwire.md`.
+- [x] **Inductive paper-super engine** (2f510c5) — `paperWaveOperator_eq_of_implicitStep` (`P_u(W)=λ(W−Z)`) + `paperWaveOperator_nonpos_of_implicitStep_le` (descending step ⟹ paper super-sol); `paperSuper` produced from `W≤Z` inductively (base = barrier, orbit carries via `PaperIterateBase.paperSuper`). The frozen→paper off-diagonal bridge is NOT used (it needs the unavailable `Z≥u`). Off-diag identity `paperWaveOperator_eq_frozenWaveOperator_add_offdiag` banked (diagonal lemma = its `W=u` case).
+- [x] **RouteA-core headline** (2f510c5) — `b1_chiNeg_existence_paper_routeA_core_of_cubeApproxData` removes `hprodAll`; verified full-build green (8308) + axiom-clean. Carry moved to `hpar : PaperLowerRawParabolicFloorRouteACore`.
+- [~] **Per-step producer concrete close (IN FLIGHT, cx_pde)** — the `producer` field of `PaperLowerRawParabolicFloorRouteACore` is closeable via the **paperDiff-FREE** truncated box data (codex's first attempt mis-routed to the full `PaperStepUpperData.paperDiff`, a hard comparison estimate the truncbox is designed to AVOID). Spec `/tmp/shen_producer_close.md`. On close ⟹ per-step EXISTENCE fully discharged.
 
-### C. Secondary headline floors (deferrable; vestigial under the direct route)
-- [ ] `hstep` — PaperRotheSeqStepDependence (orbit step-dependence)
-- [ ] `htail` — PaperRotheTailUniform (orbit tail-uniformity)
+### C. Genuine remaining ORBIT floors (NOT vestigial — carried by BOTH frozen and paper branches)
+> Corrected 2026-06-18: these were mislabeled "vestigial/deferrable". The source comment (WaveRotheConcrete.lean:995)
+> is explicit: "The frozen branch does not close RotheContinuousDependence from the committed producer alone:
+> it names the fixed-step dependence and the uniform Rothe tail as the exact remaining analytic inputs. The
+> paper branch has the same status." So these are the GENUINE remaining analytic content of the Rothe
+> convergence — required by `PaperLowerRawParabolicFloorRouteACore`, carried by both branches, NOT optional.
+> To pass the playbook audit they must be discharged (or honestly remain named frontiers).
+- [ ] **`step`** — `PaperRotheSeqStepDependence`: fixed-step locally-uniform dependence of the paper Rothe orbit on the frozen profile (seq_n→u loc.unif. ⟹ k-th iterate of seq_n → k-th iterate of u). The producer's CONTINUITY in the frozen profile. Genuine analytic floor.
+- [ ] **`tail`** — `PaperRotheTailUniform`: uniform-in-profile tail convergence of the Rothe orbit to its k-limit on compact windows (∀R,ε ∃K uniform over all trapped v). The uniform RATE of monotone Rothe convergence. Genuine analytic floor.
+- [ ] **`hconv`** — `PaperLowerPinnedStationaryFlatFloor` (stationary flat-at-left limit). Genuine floor.
+- [ ] **`hsmp`** — `StationaryStrongMaxPrinciple`. Genuine floor.
 - [ ] cube data — outer G1 `ProjectedCubeApproxData` (same finite-net floor as B.4's boxCubeData)
 - [ ] scalars — hcond/hD/hbarLip concrete witnesses (paper's parameter hypotheses; mostly trivial)
 
