@@ -96,3 +96,17 @@ Verified Mathlib has only Banach contraction FP (ContractingWith.exists_fixedPoi
   dischargeable (the machinery exists).
 Honest ceiling: the wave headline faithfully reduces Shen's traveling-wave existence to (a) Schauder [Mathlib
 gap, acceptable] + (b) the parabolic Claim 1 [paper content, partially done, the rest dischargeable].
+
+## DEFINITIVE honest ceiling (2026-06-19, verified Mathlib gaps)
+The aux-flow mild→classical bootstrap (WholeLineAuxiliaryClassical.lean) reduces the classical-solution field
+(longTime_evolution_eq) to the HEAT-SEMIGROUP GENERATOR identity ∂t S(t)f = (Δ+c∂x−I)S(t)f. Verified: Mathlib
+has NO heat kernel / heat equation / analytic-semigroup theory (only algebraic semigroups). So the Paper-1
+traveling-wave existence irreducibly rests on TWO genuine Mathlib gaps:
+- **Schauder/Brouwer fixed-point principle** (Mathlib has only Banach contraction).
+- **The heat-semigroup generator identity** (Mathlib has no heat-equation / analytic-semigroup theory).
+BOTH are standard textbook analysis facts, NOT Shen's content. Assuming them is FAITHFUL (feedback_no_axiom_
+escape). The rest of the residual is a real aux-flow's satisfiable parabolic regularity (mostly discharged).
+To reach fully-unconditional would require formalizing Brouwer + heat-equation/analytic-semigroup theory in
+Mathlib — two major STANDARD-MATH formalization projects, entirely separate from "formalize Shen's papers".
+THIS is the honest ceiling: the wave existence is a FAITHFUL conditional reduction to (2 Mathlib gaps +
+satisfiable regularity), axiom-clean, hostile-audited, never carrying the paper's hard content as a hypothesis.
