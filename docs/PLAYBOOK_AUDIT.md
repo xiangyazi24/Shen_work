@@ -27,16 +27,24 @@ First unconditional Shen headline landed: Paper 2 Theorem 1.1 at χ₀=0 (986e7d
 named frontiers, each actively discharging:
 - **Paper 1 — Theorem 1.1 (traveling-wave existence):** the m<2 cusp RESOLVED as a discrete-Rothe artifact;
   the faithful §4.2 parabolic-mild-Schauder engine fully built — **wave bricks 1–17 ALL ✅**, the headline
-  `wholeLine_travelingWave_exists` assembled + the constant-barrier energy engine END-TO-END UNCONDITIONAL
-  (`wholeLine_constantBarrier_trapping_unconditional`). HONEST CEILING (hostile-audited FAITHFUL, axiom-clean,
-  non-vacuous, regression-verified): the wave headline `wholeLine_travelingWave_exists_consolidated` is a
-  FAITHFUL CONDITIONAL theorem reducing to **(a) the Schauder fixed-point principle** [genuine Mathlib gap —
-  no Brouwer/Schauder in Mathlib; faithful to assume per feedback_no_axiom_escape, NOT the paper's content]
-  **+ (b) an 11-field aux-flow parabolic-regularity residual** [spatial/time monotonicity, Duhamel continuity,
-  longTime_evolution_eq (= the flow solves eq 4.12), derivative convergence, profile C², T10 left-tail — ALL
-  SATISFIABLE properties of a real aux-flow; the load-bearing equicontinuity bound was DISCHARGED via real
-  Mathlib Leibniz (intervalIntegral.hasDerivAt_integral_of_dominated)]. To reach unconditional needs (a) a
-  separate Brouwer/Schauder Mathlib formalization + (b) the full aux-flow parabolic existence (real PDE theory;
+  `wholeLine_travelingWave_exists` assembled + the constant-barrier energy engine END-TO-END UNCONDITIONAL.
+  **CORRECTION (Xiang, "摸清家底"): the earlier "Schauder = Mathlib gap" claim was WRONG — we have our OWN
+  Brouwer.** This session CLOSED, all axiom-clean + build-verified: (i) `inMonotoneWaveTrap_schauderPrinciple`
+  — the Schauder fixed-point principle UNCONDITIONAL from our own `brouwer_fixedPoint` (n-dim via Sperner,
+  Brouwer.lean/BrouwerNDim.lean) + `exists_finite_eps_net` + the partition-of-unity projection
+  (WaveTrapProjectedCubeApproxData); (ii) the heat-semigroup generator identity (WholeLineConvolutionDiff-
+  erentiation — Gaussian solves the heat eq + Leibniz under the convolution; the "no heat theory in Mathlib"
+  claim was also bypassed by building it); (iii) the 1D weak→classical elliptic regularity keystone
+  (WeakRegularity1D, reusable); (iv) the weak-stationary limit + its inputs; (v) ALL 14 residual fields
+  discharged (the 9 mechanical + profile-regularity via the weak+elliptic route + longTime_uniform_tail +
+  fixedPoint_flat_left). The final assembly (`wholeLine_travelingWave_exists_assembled`, 1c52a40) isolates the
+  TRUE MINIMAL RESIDUAL = **(a) the Schauder-for-WaveTrap BRIDGE** [the proved principle is for
+  InMonotoneWaveTrapSet; the headline uses WaveTrap κ κt D — same shape, different barrier params; a
+  154-reference adaptation of the construction, codex-shaped, blocked on codex quota] **+ (b) the concrete
+  aux-flow parabolic-regularity inputs** [Hclassical/Hweak/Hflow_lip/… — SATISFIABLE properties of a real
+  solution; the aux-flow local(Banach)/global(gluing)/classical(generator)/equicontinuity pieces are built,
+  remaining = wiring]. NO Mathlib gap remains; the residual is our-own-tree wiring + satisfiable regularity.
+  (Superseded note: earlier text said unconditional needs a separate Brouwer/Schauder Mathlib formalization;
   local existence via Banach done, the regularity discharges banked abstractly). This is the honest ceiling —
   a strong faithful conditional formalization, NOT carrying the paper's hard content as an unsatisfiable hyp.
 - **Paper 2 — Theorem 1.1 (boundedness/global existence, interval γ≥1):** **χ₀=0 case now UNCONDITIONAL**
