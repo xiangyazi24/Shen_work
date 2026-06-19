@@ -160,3 +160,17 @@ parabolic derivative compactness / Barbalat
 ```
 
 The analytic heart is therefore not the PDE identity anymore; it is the long-time derivative convergence and the left-end derivative-tail flatness.
+
+## STRATEGIC PIVOT (cron2): the analytic heart is the WEAK-LIMIT + 1D ELLIPTIC route, NOT derivative convergence
+Do NOT gate on WholeLineParabolicDerivativeConvergence (w_t→0, w_x→U_x, w_xx→U_xx) — that needs heavy
+C^{2,1}_loc time-translate compactness / Barbalat + time-equicontinuity of w_t. Instead, the formalization-
+friendly faithful route (10-lemma chain):
+1. monotone pointwise limit U(x)=inf_t w(t,x) (HAVE, brick 9) → 2. U Lipschitz (uniform-Lip) →
+3. Dini: w(t,·)→U loc-unif (Mathlib Dini) → 4. time-shift squeeze U≤w(t+s)≤w(t) → 5. Yukawa resolvent
+loc-unif continuous (HAVE) → 6. nonlinearity loc-unif continuous → 7. time-integrated WEAK identity
+∫(w(t+τ)−w(t))φ = ∫∫(wφ''−cwφ'+Nφ) (φ∈C_c^∞, no boundary terms) → 8. t→∞ ⟹ ∫(Uφ''−cUφ'+N(U,V_U)φ)=0
+(U is a WEAK stationary solution) → 9. **1D ELLIPTIC REGULARITY**: weak ODE U''+cU'+N(U,V_U)=0 + continuous
+source ⟹ U∈C²_loc + pointwise equation (THE keystone — 1D, formalizable: U''=g distributionally, g continuous
+⟹ U∈C²). This discharges fixedPoint_profile_regularity + longTime_evolution_eq WITHOUT the hard derivative
+convergence. 10/11. derivative convergence = OPTIONAL corollary.
+⟹ NEXT HEART = the weak-limit passage (lemmas 7-8) + the 1D elliptic regularity lemma (9).
