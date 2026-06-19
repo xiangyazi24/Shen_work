@@ -22,7 +22,7 @@ u\in C([\delta,T];A^\sigma),\qquad 0<\sigma<1,
 
 proved by a **time-weighted \(A^\sigma\) restart/fixed-point argument**, or by a separate physical Hölder/Schauder seed. After that, the Fourier–Wiener \(A^r\) machinery handles the rest.
 
-Mathlib gives good underlying infrastructure for \(\ell^p\), summability, completeness, strong measurability, and Bochner integral estimates, but it does **not** appear to provide a ready-made weighted \(\ell^1\) convolution Banach algebra. The documented `lp` file gives \(\ell^p\)-style spaces, completeness for \(p\ge1\), summability/norm tools, and pointwise normed ring/algebra instances for \(p=\infty\), not the weighted \(\ell^1\) convolution algebra needed here. citeturn827968view0 Bochner integral estimates and strong measurability are available as general primitives, including norm-of-integral bounds and closure of strong measurability under algebraic operations. citeturn785980view0 citeturn366577view0
+Mathlib gives good underlying infrastructure for \(\ell^p\), summability, completeness, strong measurability, and Bochner integral estimates, but it does **not** appear to provide a ready-made weighted \(\ell^1\) convolution Banach algebra. The documented `lp` file gives \(\ell^p\)-style spaces, completeness for \(p\ge1\), summability/norm tools, and pointwise normed ring/algebra instances for \(p=\infty\), not the weighted \(\ell^1\) convolution algebra needed here. [Mathlib lpSpace](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/Normed/Lp/lpSpace.html) Bochner integral estimates and strong measurability are available as general primitives, including norm-of-integral bounds and closure of strong measurability under algebraic operations. [Mathlib Bochner.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html) [Mathlib StronglyMeasurable.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/StronglyMeasurable/Basic.html)
 
 ---
 
@@ -242,7 +242,7 @@ Then
 
 For the cosine model, either absorb a harmless structural constant or route through the even Fourier extension and then restrict back.
 
-This estimate is **not a ready Mathlib theorem** in the form needed. Build it from summability, `tsum` manipulation, nonnegative series estimates, and the \(p=1\) `lp` infrastructure. Mathlib’s docs expose the relevant \(\ell^p\) and summability primitives, but the convolution algebra itself is project infrastructure. citeturn827968view0
+This estimate is **not a ready Mathlib theorem** in the form needed. Build it from summability, `tsum` manipulation, nonnegative series estimates, and the \(p=1\) `lp` infrastructure. Mathlib’s docs expose the relevant \(\ell^p\) and summability primitives, but the convolution algebra itself is project infrastructure. [Mathlib lpSpace](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/Normed/Lp/lpSpace.html)
 
 ## Resolvent estimates
 
@@ -590,7 +590,7 @@ which is finite precisely because
 
 Multiplying by \(t^\beta\), the transport contribution is \(O(t^{1/2})\), small on short intervals. This gives a contraction in the weighted \(A^\sigma\) norm, while Layer‑2 uniqueness identifies the weighted solution with the already-constructed \(C^0\) mild solution.
 
-This seed lemma is not Mathlib infrastructure; it is project PDE infrastructure built from the Layer‑1 heat estimates, Layer‑2 uniqueness, the Banach fixed-point theorem, scalar beta-integral estimates, and Bochner integral estimates. The interval-integral library has the general interval integral apparatus, but the specific singular-kernel formulas should be pinned as project lemmas. citeturn785980view3
+This seed lemma is not Mathlib infrastructure; it is project PDE infrastructure built from the Layer‑1 heat estimates, Layer‑2 uniqueness, the Banach fixed-point theorem, scalar beta-integral estimates, and Bochner integral estimates. The interval-integral library has the general interval integral apparatus, but the specific singular-kernel formulas should be pinned as project lemmas. [Mathlib IntervalIntegral.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/IntervalIntegral/Basic.html)
 
 ---
 
@@ -820,7 +820,7 @@ For \(0\le a<1\),
 \]
 
 Consumes: scalar interval integration.  
-Mathlib scaffold: interval integral, change of variables, real power integrability. Interval integral infrastructure exists, but this exact singular-kernel lemma should be project-pinned. citeturn785980view3
+Mathlib scaffold: interval integral, change of variables, real power integrability. Interval integral infrastructure exists, but this exact singular-kernel lemma should be project-pinned. [Mathlib IntervalIntegral.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/IntervalIntegral/Basic.html)
 
 ---
 
@@ -873,7 +873,7 @@ C t^{1-m/2}\|F\|_{C_tA^r}.
 \]
 
 Consumes: Lemmas 3 and 5.  
-Mathlib scaffold: strong measurability from continuity, Bochner integral norm estimate. citeturn366577view0 citeturn785980view0
+Mathlib scaffold: strong measurability from continuity, Bochner integral norm estimate. [Mathlib StronglyMeasurable.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/StronglyMeasurable/Basic.html) [Mathlib Bochner.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html)
 
 ---
 
@@ -1282,20 +1282,20 @@ This is slightly beyond the requested 15–25 count; if you want exactly 25, mer
 These are not PDE-ready, but the underlying infrastructure exists.
 
 1. **\(\ell^p\)-style sequence spaces, summability, completeness.**  
-   Mathlib documents `lp` as a subtype of functions satisfying a finite \(p\)-norm condition, with completeness for \(p\ge1\), plus useful norm and summability tools. citeturn827968view0
+   Mathlib documents `lp` as a subtype of functions satisfying a finite \(p\)-norm condition, with completeness for \(p\ge1\), plus useful norm and summability tools. [Mathlib lpSpace](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Analysis/Normed/Lp/lpSpace.html)
 
 2. **Strong measurability from continuity and closure under operations.**  
-   Useful for \(t\mapsto F(u(t))\), \(t\mapsto Q(u(t))\), and Banach-valued Duhamel integrands. citeturn366577view0
+   Useful for \(t\mapsto F(u(t))\), \(t\mapsto Q(u(t))\), and Banach-valued Duhamel integrands. [Mathlib StronglyMeasurable.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Function/StronglyMeasurable/Basic.html)
 
 3. **Bochner integral norm estimates.**  
    The norm estimate
    \[
    \left\|\int f\right\|\le\int\|f\|
    \]
-   is part of the documented Bochner integral API. citeturn785980view0
+   is part of the documented Bochner integral API. [Mathlib Bochner.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Bochner/Basic.html)
 
 4. **Interval integrals and change-of-variable scaffolding.**  
-   Enough to build the scalar singular-kernel estimates, though the exact heat-kernel power integrals should be pinned in the project. citeturn785980view3
+   Enough to build the scalar singular-kernel estimates, though the exact heat-kernel power integrals should be pinned in the project. [Mathlib IntervalIntegral.Basic](https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/IntervalIntegral/Basic.html)
 
 ## Derivable but must be built in this repo
 
