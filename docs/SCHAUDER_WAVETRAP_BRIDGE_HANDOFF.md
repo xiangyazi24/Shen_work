@@ -74,3 +74,12 @@ After this, the wave headline carries NO Schauder-principle residual — it is p
 the concrete aux-flow inputs (incl. longTime_image_continuity, itself dischargeable from the banked parabolic
 equicontinuity) remain. So Paper-1 wave reduces to the aux-flow regularity alone — no Mathlib gap, no abstract
 Schauder hypothesis.
+
+## ✅ DONE (solo, 2026-06-19, pipe-mode unblock) — Schauder residual ELIMINATED
+The wave headline `wholeLine_travelingWave_exists_consolidated` NO LONGER carries the abstract Schauder
+principle. Re-threaded all 6 chain files to use `wholeLine_wave_fixedPoint_exists_of_continuousImage` (proved
+from our own Brouwer + the antitone-majorant retraction + the continuous-image, = LongTimeMapImageContinuity).
+Removed every schauder_principle / schauder_approx_fixed_sequences / Hschauder residual field + provision.
+VERIFIED: full chain builds (EXIT=0), headline depends only on [propext, Classical.choice, Quot.sound], grep
+confirms zero schauder residual. Commit c709329. No WaveTrap def change — the continuity is supplied by the
+map's image. The wave headline now reduces to ONLY the concrete aux-flow regularity inputs.
