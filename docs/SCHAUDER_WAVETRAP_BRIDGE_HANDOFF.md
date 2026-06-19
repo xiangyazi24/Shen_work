@@ -44,3 +44,13 @@ is built + reusable). Found + confirmed the real obstruction:
   barriers, the long-time limit) must also supply `Continuous` (all true — the objects are continuous). A
   structural change to a foundational def → codex-shaped cascade, OR Xiang's authorization to modify brick-3.
 This is the precise, complete resolution path; blocked only on codex quota (purchase-cap) / the brick-3 decision.
+
+## Cascade scope MEASURED (solo, 2026-06-19)
+Adding `Continuous` to `WaveTrap` (brick 3): only ~4-5 CONSTRUCTION sites (waveTrap_upper_mem [upperBarrier
+continuous — easy], longTimeMap mapsTo [the long-time limit continuous — needs Dini/loc-unif from brick 9],
+WaveResidualLastTwo, WholeLineWaveTrap:71 [already a ContinuousMap]). BUT the def-structure change (2-conjunct →
+3-conjunct) breaks ALL ~40 CONSUMPTION sites that extract antitone via `hu.2` (become `hu.2.1`). So it IS a
+~40-site systematic refactor — codex-shaped. Cleanest for codex: change WaveTrap to carry Continuous, then
+fix the ~40 `.2`→`.2.1` extractions + supply Continuous at the ~5 construction sites (all true: barriers/limits
+are continuous; the long-time-limit continuity from the monotone loc-unif Dini limit). The banked retraction
+(a6abb04) then closes the principle modulo Lstar continuity. Blocked on codex quota / Xiang's nod for the refactor.
