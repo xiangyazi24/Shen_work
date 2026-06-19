@@ -118,3 +118,32 @@ Replace Rellich/Aubin-Lions (absent in Mathlib) with weighted-ℓ¹ tail compact
   algebra + Fourier-multiplier R-bound + heat smoothing) ⟹ u is a mild solution. The Duhamel terms pass to
   the limit (∂xE integral ≤ 2C T^{1/2}‖H(u_n)−H(u)‖). This is nonlinear-continuity, NOT a new compactness theorem.
 ~15-lemma interface pinned. Mathlib: Arzelà-Ascoli (time layer) ✓, lp/tsum (tails) ✓; weighted-ℓ¹ criterion = ours to build.
+
+### R3 — LAYER 3 (SMOOTHING / A^r REGULARITY BOOTSTRAP) DESIGNED (ChatGPT cron2 + verified) — full transcript docs/layer3-smoothing-transcript.md
+The abstract A^r bootstrap closes cleanly ONCE you have a positive-time A^σ seed (0<σ<1); it does NOT
+follow from a bare C⁰ mild solution by applying A^r→A^{r+m} heat estimates. 26-lemma DAG pinned.
+- DUHAMEL GAIN (the key constraint, VERIFIED): reaction term ∫E(t−τ)F gains any m<2 derivatives
+  (kernel t^{−m/2}, ∫₀ᵗ integrable iff m<2); TRANSPORT term ∫∂xE(t−τ)Q gains only m<1 (∂xE multiplier
+  (πik)e^{−π²k²t} ⟹ t^{−(1+m)/2}, integrable iff m<1). So one-step bootstrap = A^r ⟹ A^{r+θ}, any 0<θ<1;
+  iterate with decreasing delays ⟹ A^R for all finite R at positive time ⟹ C^∞_x. Do NOT use ∂xxE on the
+  Duhamel term (exponent (2+m)/2≥1, non-integrable).
+- A^r ALGEBRA: ‖fg‖_{A^r}≤C_r‖f‖‖g‖ via weight-submultiplicativity (1+|k|)^r≤(1+|ℓ|)^r(1+|k−ℓ|)^r + ℓ¹
+  convolution; resolvent ‖Rf‖_{A^{r+2}}≤C‖f‖_{A^r}; A^s↪C^k (s≥k). Real powers u^m,u^γ,S(v) via smooth
+  composition on a POSITIVE range κ≤u≤M.
+- TIME REG: A^{r+2} + nonlinearity in A^r ⟹ ∂t u∈A^r ⟹ u∈C¹([δ,T];A^r) (parabolic trade 2 space=1 time);
+  + Lipschitz-in-time ‖u(t)−u(s)‖_{A^r}≤C|t−s| on positive slabs (the equicontinuity Layer-7 consumes).
+- CONVERGENCE CHECK (honest — does NOT close from Layer-1 + bare-C⁰-Layer-2): surfaces THREE NEW
+  cross-layer dependencies that must be pinned:
+  (Dep-1 SEED) C⁰ mild ⟹ C([δ,T];A^σ), 0<σ<1 — the C⁰→A^σ singularity ∑|k|e^{−π²k²s}~s⁻¹ is NOT
+    time-integrable, so this is NOT automatic; proved by a TIME-WEIGHTED A^σ restart fixed-point on
+    X_{σ,β,T}={w: sup_s s^β‖w(s)‖_{A^σ}<∞}, β=(σ+1)/2<1, identified with the Layer-2 C⁰ solution by uniqueness.
+  (Dep-2 COMPOSITION) Fourier-Wiener smooth composition Φ(u)∈A^r for κ≤u≤M — a SERIOUS project lemma
+    (not generic Mathlib); split integer-power (algebra) vs real-power (needs positivity).
+  (Dep-3 STRICT POSITIVITY) real powers need κ≤u (strict, not just u≥0) on positive-time slabs — a
+    Harnack/strong-positivity dependency on the max-principle layer (Layer-4/5), NOT given by Layer-2 u≥0.
+- MATHLIB GAPS: Gap A weighted-ℓ¹ convolution Banach algebra (essential, build from lp p=1 + Summable +
+  tsum + Tonelli); Gap B Fourier-Wiener smooth composition; Gap C strict positive lower bound; Gap D the
+  C⁰→A^σ seed. Underlying lp/Summable/Bochner-norm/interval-integral primitives confirmed present.
+NET: Layer-3 is feasible but couples to a SEED sub-layer + a strong-positivity max-principle dependency —
+the layer DAG is NOT purely bottom-up linear (Layer-3 ⟂ Layer-4 positivity). Build seed + algebra + (integer-power)
+composition first; real-power composition + strict-positivity gate the full nonlinear bootstrap.
