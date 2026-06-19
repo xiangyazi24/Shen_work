@@ -21,21 +21,26 @@ campaign actively discharges them (T6 atom closed, T7e atoms B/C/D/O1 done) — 
 not fake. (DOCTRINE.md mandates vacuity-checking each carried hypothesis against the zero function / a
 real solution.)
 
-## Layer 3 — completeness / "no carrying the hard content": **NOT YET — all three headlines conditional**
-None of the three headline theorems are yet fully unconditional; each still carries the paper's hard
-analytic content as a named frontier:
-- **Paper 1 — Theorem 1.1 (traveling-wave existence):** raw/frozen-profile construction bridges proved;
-  "the Schauder proof producing the remaining raw profile fields remains open." The Rothe parabolic-orbit
-  construction is built & axiom-clean and reduces to satisfiable frontiers. **NEW (this session):** the
-  per-step *existence* (truncbox + McShane finite-net + truncated Schauder) is discharged, but the
-  antitone-in-time `W≤Z` step hits a GENUINE m<2 non-Lipschitz cusp obstruction (docs/paper1-mlt2-cusp-
-  obstruction.md) — the discrete Rothe comparison is faithful only for m=1 or m≥2; faithful route
-  (parabolic first-contact / weighted-slope invariant / honest residual) is an open architecture decision.
-- **Paper 2 — Theorem 1.1 (boundedness/global existence, interval γ≥1):** `paper2_theorem_1_1_of_frontier`
-  conditional on F1 (`IntervalDomainUniformLocalExistence`) + hMildLocal (15/15 fields proved); the full
-  chain Picard FP → C² induction → DuhamelSourceTimeC1 → bootstrap → localExistence → γ≥1 umbrella → L²
-  uniqueness → δ-iteration is proved MODULO F1/F2 (the local-existence + Duhamel-source-regularity atoms,
-  = OUTSTANDING_TARGETS T7e/T8). CLOSEST to complete. Abstract-domain still open.
+## Layer 3 — completeness / "no carrying the hard content": **PARTIAL — Paper 2 χ₀=0 unconditional; rest conditional**
+First unconditional Shen headline landed: Paper 2 Theorem 1.1 at χ₀=0 (986e7d1). The remaining headlines
+(Paper 2 general χ≤0, Paper 1 wave, Paper 3 persistence) still carry the paper's hard analytic content as
+named frontiers, each actively discharging:
+- **Paper 1 — Theorem 1.1 (traveling-wave existence):** the m<2 cusp is RESOLVED as a discrete-Rothe
+  ARTIFACT (回归原著): the faithful route is the whole-line parabolic-mild-Schauder engine (Shen §4.2), now
+  the active architecture (docs/WAVE_ARCHITECTURE.md, source-grounded 17-brick map). avenue-c progress is
+  tracked in **docs/PAPER1_AVENUE_C_CHECKLIST.md**: foundation (heat/resolvent/compactness/Schauder/mild
+  map) ✅; constant-barrier energy-comparison engine ✅ atoms (timeLeibniz/pdeSubstitution/IBP-no-gap/
+  chemotaxisCrossControl) + frontiers, wiring in flight; wave bricks 1/17 ✅ (speed/exponent algebra),
+  bricks 2 (exp barriers) & 4 (frozen-signal V_x bound) in flight, bricks 6–12 (differentiated weak-
+  comparison monotonicity + long-time map) the open analytic core. Headline still conditional (wave not
+  yet unconditional) — but the route is faithful, decided, and discharging atom by atom; no cusp block.
+- **Paper 2 — Theorem 1.1 (boundedness/global existence, interval γ≥1):** **χ₀=0 case now UNCONDITIONAL**
+  (`intervalDomain_theorem_1_1_chiZero_unconditional`, commit 986e7d1; non-vacuous since χ₀≤0 holds for 0≤0;
+  §3.3 triple-audited FAITHFUL + independent build + axioms clean — the first full unconditional Shen
+  headline). General χ≤0 still conditional: `paper2_theorem_1_1_of_frontier` on F1
+  (`IntervalDomainUniformLocalExistence`) + hMildLocal (15/15 fields); the gradient-map conjugate-kernel
+  faithfulness finding (docs/paper2-gradient-map-conjugate-kernel-finding.md) is the open design decision
+  for extending χ₀=0 → all χ≤0. Abstract-domain still open.
 - **Paper 3 — Theorems 2.1–2.5 (persistence/stabilization):** linear-stability parts done unconditionally
   (T10: exact χ* threshold, dichotomy); the analytic persistence proofs (uniform persistence, global
   stability) remain package-field assumptions. Built on Paper 2's interface, so gated on Paper 2.
