@@ -92,6 +92,31 @@ def paperImplicitStepOp (p : CMParams) (c h : ℝ) (u W : ℝ → ℝ) : ℝ →
     paperImplicitStepOp p c h u W x =
       W x - h * paperWaveOperator p c u W x := rfl
 
+/-- Solving the paper implicit step with `h = 1 / lam` identifies the paper
+operator with the discrete descent residual. -/
+theorem paperWaveOperator_eq_of_implicitStep
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x) :
+    ∀ x, paperWaveOperator p c u W x = lam * (W x - Z x) := by
+  intro x
+  have hne : lam ≠ 0 := ne_of_gt hlam
+  have hx : W x - (1 / lam) * paperWaveOperator p c u W x = Z x := by
+    simpa [paperImplicitStepOp_apply] using hstep x
+  field_simp [hne] at hx
+  linarith
+
+/-- A descending paper implicit step is a paper super-solution. -/
+theorem paperWaveOperator_nonpos_of_implicitStep_le
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hle : ∀ x, W x ≤ Z x) :
+    ∀ x, paperWaveOperator p c u W x ≤ 0 := by
+  intro x
+  rw [paperWaveOperator_eq_of_implicitStep p c lam hlam hstep x]
+  exact mul_nonpos_of_nonneg_of_nonpos hlam.le (sub_nonpos.mpr (hle x))
+
 /-- The chemotaxis flux `Q_u(W) y = (W y)^m · V'(y)`, `V = frozenElliptic p u`, so
 that the chemotaxis term of `F_u` is `−χ · (Q_u W)'`. -/
 def chemFlux (p : CMParams) (u W : ℝ → ℝ) : ℝ → ℝ :=

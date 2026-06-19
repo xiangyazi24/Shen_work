@@ -973,6 +973,33 @@ theorem b1_chiNeg_existence_paper_min_core_of_cubeApproxData
     hcond hD hD_ge_one hΛ0 hΛM
     (paperLowerRawParabolicFloor_of_core hpar) hconv hsmp
 
+/-- Route-A headline wrapper: the old all-`u` producer hypothesis is replaced
+by the Route-A parabolic floor.  The actual per-step producer is obtained by
+`paperRotheStepProducer_of_routeA_greenCore`, whose output now threads the paper
+super-solution of the previous iterate through the Rothe orbit. -/
+theorem b1_chiNeg_existence_paper_routeA_core_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorRouteACore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+          (fun u =>
+            (paperLowerRawParabolicFloor_of_routeA_core hpar).producer u
+              |>.producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper_min_of_cubeApproxData p c lam M κ κtilde D Λ
+    hcond hD hD_ge_one hΛ0 hΛM
+    (paperLowerRawParabolicFloor_of_routeA_core hpar) hconv hsmp
+
 theorem b1_chiPos_existence_paper_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
@@ -1204,6 +1231,7 @@ theorem b1_chiPos_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_clean_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_min_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_min_core_of_cubeApproxData
+#print axioms b1_chiNeg_existence_paper_routeA_core_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper'_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_clean_of_cubeApproxData

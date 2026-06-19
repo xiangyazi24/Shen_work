@@ -636,9 +636,11 @@ structure PaperRotheStepFacts
   le_barrier : ∀ x, W x ≤ upperBarrier κ M x
   le_old : ∀ x, W x ≤ Z x
   anti : Antitone W
+  paperSuper : ∀ x, paperWaveOperator p c u W x ≤ 0
 
 /-- The base shape needed to keep producing paper iterates. -/
-structure PaperIterateBase (κ M : ℝ) (Z : ℝ → ℝ) : Prop where
+structure PaperIterateBase (p : CMParams) (c κ M : ℝ)
+    (u Z : ℝ → ℝ) : Prop where
   cont : Continuous Z
   anti : Antitone Z
   nonneg : ∀ x, 0 ≤ Z x
@@ -646,6 +648,7 @@ structure PaperIterateBase (κ M : ℝ) (Z : ℝ → ℝ) : Prop where
   diff : Z = upperBarrier κ M ∨ Differentiable ℝ Z
   deriv_le : ∃ L : ℝ, 0 ≤ L ∧ ∀ x, |deriv Z x| ≤ L
   left_rate : ExpLeftRateData Z
+  paperSuper : ∀ x, paperWaveOperator p c u Z x ≤ 0
 
 theorem upperBarrier_deriv_abs_le_mul {κ M : ℝ}
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
@@ -687,38 +690,44 @@ theorem upperBarrier_deriv_abs_le_mul {κ M : ℝ}
           simpa using mul_nonneg hκ hM
 
 theorem upperBarrier_paperIterateBase {κ M : ℝ}
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
-    PaperIterateBase κ M (upperBarrier κ M) :=
+    {p : CMParams} {c : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hUbarSuper : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0) :
+    PaperIterateBase p c κ M u (upperBarrier κ M) :=
   ⟨upperBarrier_continuous κ M, upperBarrier_antitone hκ,
    fun x => upperBarrier_nonneg hM x, fun _ => le_rfl,
    Or.inl rfl, ⟨κ * M, mul_nonneg hκ hM,
     upperBarrier_deriv_abs_le_mul hκ hM⟩,
-   upperBarrier_expLeftRateData hκ hM⟩
+   upperBarrier_expLeftRateData hκ hM, hUbarSuper⟩
 
 theorem PaperRotheStepFacts.toBase
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
     (h : PaperRotheStepFacts p c lam M κ Λ u Z W) :
-    PaperIterateBase κ M W :=
+    PaperIterateBase p c κ M u W :=
   ⟨h.cont, h.anti, h.nonneg, h.le_barrier, Or.inr h.diff,
     ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩,
-    h.left_rate⟩
+    h.left_rate, h.paperSuper⟩
 
 /-- Producer for the paper implicit orbit.  This is intentionally separate from
 `RotheStepProducer`, whose step equation is frozen. -/
 structure PaperRotheStepProducer
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop where
   hlam : 0 < lam
+  basePaperSuper : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
       ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
-  produce_regular : ∀ Z : ℝ → ℝ, PaperIterateBase κ M Z →
+  produce_regular : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
       ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
 
 def paperRotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
     (hprod : PaperRotheStepProducer p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
-    ∀ k : ℕ, { Z : ℝ → ℝ // PaperIterateBase κ M Z }
-  | 0 => ⟨upperBarrier κ M, upperBarrier_paperIterateBase hκ hM⟩
+    ∀ k : ℕ, { Z : ℝ → ℝ // PaperIterateBase p c κ M u Z }
+  | 0 =>
+    ⟨upperBarrier κ M,
+      upperBarrier_paperIterateBase hκ hM hprod.basePaperSuper⟩
   | (k+1) =>
     let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
     let hex := hprod.produce_regular prev.1 prev.2
@@ -748,7 +757,8 @@ theorem rotheSeqOfPaper_stepFacts
 theorem rotheSeqOfPaper_base
     (hprod : PaperRotheStepProducer p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
-    PaperIterateBase κ M (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) :=
+    PaperIterateBase p c κ M u
+      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) :=
   (paperRotheStep p c lam M κ Λ u hprod hκ hM k).2
 
 theorem rotheSeqOfPaper_lowerPinned_base
@@ -820,6 +830,11 @@ theorem rotheSeqOfPaper_anti_x (k : ℕ) :
 theorem rotheSeqOfPaper_nonneg (k : ℕ) (x : ℝ) :
     0 ≤ rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x :=
   (rotheSeqOfPaper_base hprod hκ hM k).nonneg x
+
+theorem rotheSeqOfPaper_paperSuper (k : ℕ) (x : ℝ) :
+    paperWaveOperator p c u
+      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) x ≤ 0 :=
+  (rotheSeqOfPaper_base hprod hκ hM k).paperSuper x
 
 theorem rotheSeqOfPaper_le_barrier (k : ℕ) (x : ℝ) :
     rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x ≤ upperBarrier κ M x :=

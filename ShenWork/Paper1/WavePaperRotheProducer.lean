@@ -8234,16 +8234,16 @@ def PaperStepFixedSourceProvider
     (∀ x, Z x ≤ upperBarrier κ M x) →
       PaperStepFixedSourceCore p c lam M κ Λ u Z
 
-/-- The stronger super-solution version matching the frozen Rothe step input.
+/-- The stronger super-solution version matching the paper Rothe step input.
 The current `PaperGreenStepInputRouteACore.produce` does not expose this
 precondition, but this is the precise fixed-source existence statement needed
-when the old iterate is carried with `frozenWaveOperator p c u Z ≤ 0`. -/
+when the old iterate is carried with `paperWaveOperator p c u Z ≤ 0`. -/
 def PaperStepFixedSourceExistsForSuperTrap
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop :=
   InMonotoneWaveTrapSet κ M u →
   ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
     (∀ x, Z x ≤ upperBarrier κ M x) →
-    (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+    (∀ x, paperWaveOperator p c u Z x ≤ 0) →
       ∃ R : ℝ → ℝ,
         Continuous R ∧
         (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
@@ -8259,7 +8259,7 @@ def PaperStepFixedSourceCore.of_existsForSuperTrap
     (hu : InMonotoneWaveTrapSet κ M u)
     (hZc : Continuous Z) (hZa : Antitone Z) (hZ0 : ∀ x, 0 ≤ Z x)
     (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
-    (hZsuper : ∀ x, frozenWaveOperator p c u Z x ≤ 0) :
+    (hZsuper : ∀ x, paperWaveOperator p c u Z x ≤ 0) :
     PaperStepFixedSourceCore p c lam M κ Λ u Z :=
   let hex := hfixed hu Z hZc hZa hZ0 hZB hZsuper
   let R : ℝ → ℝ := Classical.choose hex
@@ -8807,7 +8807,7 @@ theorem PaperStepFixedSourceExistsForSuperTrap.of_schauder
     (hdata : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
       (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
         PaperStepSchauderMapData p c lam M κ Λ u Z) :
     PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
   intro _hu Z hZc hZa hZ0 hZB hZsuper
@@ -8832,7 +8832,7 @@ theorem PaperStepFixedSourceExistsForSuperTrap.of_schauder_approx
     (hdata : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
       (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
         PaperStepSchauderMapData p c lam M κ Λ u Z) :
     PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u :=
   PaperStepFixedSourceExistsForSuperTrap.of_schauder
@@ -8856,7 +8856,7 @@ theorem PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
       ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
       (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
-      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
         PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z) :
     PaperStepFixedSourceExistsForSuperTrap p c lam M κ Λ u := by
   intro hu Z hZc hZa hZ0 hZB hZsuper
@@ -9713,8 +9713,8 @@ def frozenEllipticDeriv_holderQuant_of_trap
     (abs_sub_le_of_deriv_abs_le_core hdiff hderiv)
 
 def PaperIterateBase.localLipQuant
-    {κ M : ℝ} {Z : ℝ → ℝ}
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hZ : PaperIterateBase κ M Z) :
+    {p : CMParams} {c κ M : ℝ} {u Z : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hZ : PaperIterateBase p c κ M u Z) :
     LocalLipQuant Z := by
   let LZ : ℝ := Classical.choose hZ.deriv_le
   have hLZ : 0 ≤ LZ := (Classical.choose_spec hZ.deriv_le).1
@@ -9751,8 +9751,8 @@ def PaperIterateBase.localLipQuant
       local_lip := hlocal }
 
 def PaperIterateBase.holderQuant
-    {κ M β : ℝ} {Z : ℝ → ℝ}
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hZ : PaperIterateBase κ M Z)
+    {p : CMParams} {c κ M β : ℝ} {u Z : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hZ : PaperIterateBase p c κ M u Z)
     (hβpos : 0 < β) (hβle : β ≤ 1) :
     HolderQuant β Z :=
   (hZ.localLipQuant hκ hM).toHolder hβpos hβle
@@ -9988,7 +9988,7 @@ theorem paperFixedSourceMap_holder_kernel
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hu : InWaveTrapSet κ M u)
-    (hZ : PaperIterateBase κ M Z) :
+    (hZ : PaperIterateBase p c κ M u Z) :
     ∃ H0 : ℝ, 0 ≤ H0 ∧
       ∀ R, PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
         ∀ x y,
@@ -10326,7 +10326,7 @@ theorem paperFixedSourceMap_leftTailCauchy_kernel
     (hrmκ : κ < -greenRootMinus c lam)
     (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (hZ : PaperIterateBase κ M Z) :
+    (hZ : PaperIterateBase p c κ M u Z) :
     ∃ ω0 : ℝ → ℝ,
       (∀ A, 0 ≤ ω0 A) ∧ Tendsto ω0 atBot (𝓝 0) ∧
       ∀ R, PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
@@ -10992,7 +10992,7 @@ theorem paperFixedSourceMap_leftTail_of_trap_sourceBox
     (p : CMParams) {c lam M κ β B H : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
     (hlam : 0 < lam) (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
     (hu : InMonotoneWaveTrapSet κ M u)
-    (hZ : PaperIterateBase κ M Z)
+    (hZ : PaperIterateBase p c κ M u Z)
     (hR : PaperWeightedHolderSourceBox κ M β B H ω R) :
     ∃ Rm, Tendsto (paperFixedSourceMap p c lam M κ u Z R) atBot (𝓝 Rm) := by
   let W : ℝ → ℝ := fun x => greenConv c lam R x
@@ -11142,7 +11142,7 @@ def paperFixedSourceMapBoxBounds_of_trap
     (hHnn : 0 ≤ H) (hβpos : 0 < β)
     (hu : InMonotoneWaveTrapSet κ M u)
     (hu_rate : ExpLeftRate sigma aL C_u u L_u)
-    (hZ : PaperIterateBase κ M Z)
+    (hZ : PaperIterateBase p c κ M u Z)
     (hscalar :
       |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
             greenWeightedMass1 c lam κ * B
@@ -11235,7 +11235,7 @@ def paperFixedSourceMapBoxBounds_of_trap_expLeftRate
     (hsigma : 0 < sigma)
     (hu : InMonotoneWaveTrapSet κ M u)
     (hu_rate : ExpLeftRate sigma aL C_u u L_u)
-    (hZ : PaperIterateBase κ M Z)
+    (hZ : PaperIterateBase p c κ M u Z)
     (hscalar :
       |(-p.χ * p.m)| * M ^ (p.m - 1) * M ^ p.γ *
             greenWeightedMass1 c lam κ * B
@@ -11416,7 +11416,7 @@ def paperFixedSourceMapBoxBounds_of_trap_twoRadius
     (hUleft : M ≤ Real.exp (-κ * aL))
     (hu : InMonotoneWaveTrapSet κ M u)
     (hu_rate : ExpLeftRate sigma aL C_u u L_u)
-    (hZ : PaperIterateBase κ M Z)
+    (hZ : PaperIterateBase p c κ M u Z)
     (hZ_rate :
       ∃ LZ : ℝ,
         ExpLeftRate sigma aL (paperFixedSourceMapTwoRadiusCZ m_sigma C_R) Z LZ)
@@ -11546,7 +11546,7 @@ def paperTruncatedFixedSourceBoxData_of_trap
     (hH_obs : sourceObstacleHolderConst κ M B sigma C_R ≤ H)
     (hu : InMonotoneWaveTrapSet κ M u)
     (hu_rate : ExpLeftRate sigma aL C_u u L_u)
-    (hZ : PaperIterateBase κ M Z)
+    (hZ : PaperIterateBase p c κ M u Z)
     (hZ_rate :
       ∃ LZ : ℝ,
         ExpLeftRate sigma aL (paperFixedSourceMapTwoRadiusCZ m_sigma C_R) Z LZ)
@@ -11887,8 +11887,10 @@ def paperStepOutput_of_core
 structure PaperGreenStepInput
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
   hlam : 0 < lam
+  basePaperSuper : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
       Σ' W : ℝ → ℝ, PaperStepOutput p c lam M κ Λ u Z W
 
 /-- Thinner paper Green-step input: the bounded-source Green tails are closed by
@@ -11897,8 +11899,10 @@ max-principle comparison data remain explicit. -/
 structure PaperGreenStepInputCore
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
   hlam : 0 < lam
+  basePaperSuper : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, paperWaveOperator p c u Z x ≤ 0) →
       Σ' W : ℝ → ℝ, PaperStepOutputCore p c lam M κ Λ u Z W
 
 /-- Honest paper-side name for the shared per-step parabolic floor.
@@ -11921,9 +11925,10 @@ def paperGreenStepInput_of_core
     (hin : PaperGreenStepInputCore p c lam M κ Λ u) :
     PaperGreenStepInput p c lam M κ Λ u where
   hlam := hin.hlam
+  basePaperSuper := hin.basePaperSuper
   produce := by
-    intro Z hZc hZa hZ0 hZB
-    obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB
+    intro Z hZc hZa hZ0 hZB hZsuper
+    obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB hZsuper
     exact ⟨W, paperStepOutput_of_core hin.hlam hout⟩
 
 /-- `PaperRotheStepProducer` from the precise Green-step input. -/
@@ -11932,9 +11937,10 @@ def paperRotheStepProducer_of_greenInput
     (hin : PaperGreenStepInput p c lam M κ Λ u) :
     PaperRotheStepProducer p c lam M κ Λ u where
   hlam := hin.hlam
+  basePaperSuper := hin.basePaperSuper
   produce := by
-    intro Z hZc hZa hZ0 hZB
-    obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB
+    intro Z hZc hZa hZ0 hZB hZsuper
+    obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB hZsuper
     have hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x :=
       paperStep_step_op (c := c) (lam := lam) hin.hlam hout.analytic
     have hnonneg : ∀ x, 0 ≤ W x := by
@@ -11959,11 +11965,15 @@ def paperRotheStepProducer_of_greenInput
         le_barrier := hle_barrier
         le_old := hle_old
         anti := paperStep_antitone_by_sliding
-          (c := c) (lam := lam) hin.hlam hstep hZa hout.antitone }
+          (c := c) (lam := lam) hin.hlam hstep hZa hout.antitone
+        paperSuper :=
+          paperWaveOperator_nonpos_of_implicitStep_le
+            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
   produce_regular := by
     intro Z hZbase
     obtain ⟨W, hout⟩ :=
-      hin.produce Z hZbase.cont hZbase.anti hZbase.nonneg hZbase.le_barrier
+      hin.produce Z hZbase.cont hZbase.anti hZbase.nonneg
+        hZbase.le_barrier hZbase.paperSuper
     have hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x :=
       paperStep_step_op (c := c) (lam := lam) hin.hlam hout.analytic
     have hnonneg : ∀ x, 0 ≤ W x := by
@@ -11988,7 +11998,10 @@ def paperRotheStepProducer_of_greenInput
         le_barrier := hle_barrier
         le_old := hle_old
         anti := paperStep_antitone_by_sliding
-          (c := c) (lam := lam) hin.hlam hstep hZbase.anti hout.antitone }
+          (c := c) (lam := lam) hin.hlam hstep hZbase.anti hout.antitone
+        paperSuper :=
+          paperWaveOperator_nonpos_of_implicitStep_le
+            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
 
 /-- All paper-step producers from the precise per-profile Green-step input. -/
 theorem paperRotheStepProducer_all_of_greenInput

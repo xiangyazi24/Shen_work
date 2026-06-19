@@ -3102,6 +3102,97 @@ theorem FrozenStationaryWaveProfile.mk_from_stationary
     lim_neg_inf := hlim_neg
     lim_pos_inf := hlim_pos }
 
+theorem paperWaveOperator_eq_frozenWaveOperator_add_offdiag
+    (p : CMParams) {c : ℝ} {u W : ℝ → ℝ} (x : ℝ)
+    (hu_bdd : IsCUnifBdd u) (hu_nonneg : ∀ y, 0 ≤ u y)
+    (hW_nonneg : ∀ y, 0 ≤ W y)
+    (hW_diff : DifferentiableAt ℝ W x)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x)
+    (_hW_rpow_diff : DifferentiableAt ℝ (fun y => (W y) ^ p.m) x) :
+    paperWaveOperator p c u W x =
+      frozenWaveOperator p c u W x
+        + p.χ * (W x) ^ p.m * ((W x) ^ p.γ - (u x) ^ p.γ) := by
+  unfold paperWaveOperator frozenWaveOperator
+  simp only
+  have hW_pow_deriv : HasDerivAt (fun y => (W y) ^ p.m)
+      (deriv W x * p.m * (W x) ^ (p.m - 1)) x :=
+    hW_diff.hasDerivAt.rpow_const (Or.inr p.hm)
+  have hV'' := frozenElliptic_deriv_deriv_eq p hu_bdd hu_nonneg x
+  have hV_deriv : HasDerivAt (deriv (frozenElliptic p u))
+      (frozenElliptic p u x - (u x) ^ p.γ) x := by
+    convert hV_diff.hasDerivAt using 1
+    exact hV''.symm
+  have hprod := hW_pow_deriv.mul hV_deriv
+  have hfun_eq :
+      (fun y => (W y) ^ p.m * deriv (frozenElliptic p u) y) =
+      (fun y => (W y) ^ p.m) * deriv (frozenElliptic p u) := by
+    ext y; simp [Pi.mul_apply]
+  have hchem :
+      deriv (fun y => (W y) ^ p.m * deriv (frozenElliptic p u) y) x =
+        deriv W x * p.m * (W x) ^ (p.m - 1) *
+            deriv (frozenElliptic p u) x +
+          (W x) ^ p.m * (frozenElliptic p u x - (u x) ^ p.γ) := by
+    rw [hfun_eq, hprod.deriv]
+  rw [hchem]
+  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  by_cases hWx_zero : W x = 0
+  · have hWm_zero : (W x) ^ p.m = 0 := by
+      rw [hWx_zero]
+      exact Real.zero_rpow (ne_of_gt hm_pos)
+    have hWγ_zero : (W x) ^ p.γ = 0 := by
+      rw [hWx_zero]
+      exact Real.zero_rpow (ne_of_gt hγ_pos)
+    rw [hWm_zero, hWγ_zero, hWx_zero]
+    ring_nf
+  · have hWx_pos : 0 < W x := lt_of_le_of_ne (hW_nonneg x) (Ne.symm hWx_zero)
+    have hpow_m : (W x) ^ p.m = W x * (W x) ^ (p.m - 1) := by
+      calc
+        (W x) ^ p.m = (W x) ^ (1 + (p.m - 1)) := by
+          congr 1
+          ring
+        _ = (W x) ^ (1 : ℝ) * (W x) ^ (p.m - 1) := by
+          rw [Real.rpow_add hWx_pos]
+        _ = W x * (W x) ^ (p.m - 1) := by
+          rw [Real.rpow_one]
+    have hpow_tailγ_nf :
+        (W x) ^ (-1 + p.m) * W x * (W x) ^ p.γ =
+          W x * (W x) ^ (-1 + p.m + p.γ) := by
+      calc
+        (W x) ^ (-1 + p.m) * W x * (W x) ^ p.γ =
+            ((W x) ^ (-1 + p.m) * (W x) ^ (1 : ℝ)) * (W x) ^ p.γ := by
+          rw [Real.rpow_one]
+        _ = (W x) ^ ((-1 + p.m) + 1) * (W x) ^ p.γ := by
+          rw [← Real.rpow_add hWx_pos]
+        _ = (W x) ^ p.m * (W x) ^ p.γ := by
+          congr 2
+          ring
+        _ = (W x) ^ (p.m + p.γ) := by
+          rw [← Real.rpow_add hWx_pos]
+        _ = (W x) ^ (1 + (-1 + p.m + p.γ)) := by
+          congr 1
+          ring
+        _ = (W x) ^ (1 : ℝ) * (W x) ^ (-1 + p.m + p.γ) := by
+          rw [Real.rpow_add hWx_pos]
+        _ = W x * (W x) ^ (-1 + p.m + p.γ) := by
+          rw [Real.rpow_one]
+    rw [hpow_m]
+    ring_nf
+    have hchem_tail :
+        p.χ * W x * (W x) ^ (-1 + p.m + p.γ) =
+          p.χ * (W x) ^ (-1 + p.m) * W x * (W x) ^ p.γ := by
+      calc
+        p.χ * W x * (W x) ^ (-1 + p.m + p.γ) =
+            p.χ * (W x * (W x) ^ (-1 + p.m + p.γ)) := by
+          ring
+        _ = p.χ * ((W x) ^ (-1 + p.m) * W x * (W x) ^ p.γ) := by
+          rw [← hpow_tailγ_nf]
+        _ = p.χ * (W x) ^ (-1 + p.m) * W x * (W x) ^ p.γ := by
+          ring
+    nlinarith [hchem_tail]
+
+#print axioms paperWaveOperator_eq_frozenWaveOperator_add_offdiag
+
 theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
     (p : CMParams) {c : ℝ} {U : ℝ → ℝ} (x : ℝ)
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
@@ -3109,84 +3200,12 @@ theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
     (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
     (_hU_rpow_diff : DifferentiableAt ℝ (fun y => (U y) ^ p.m) x) :
     paperWaveOperator p c U U x = frozenWaveOperator p c U U x := by
-  unfold paperWaveOperator frozenWaveOperator
-  simp only
-  have hU_pow_deriv : HasDerivAt (fun y => (U y) ^ p.m)
-      (deriv U x * p.m * (U x) ^ (p.m - 1)) x :=
-    hU_diff.hasDerivAt.rpow_const (Or.inr p.hm)
-  have hV'' := frozenElliptic_deriv_deriv_eq p hU hU_nonneg x
-  have hV_deriv : HasDerivAt (deriv (frozenElliptic p U))
-      (frozenElliptic p U x - (U x) ^ p.γ) x := by
-    convert hV_diff.hasDerivAt using 1
-    exact hV''.symm
-  have hprod := hU_pow_deriv.mul hV_deriv
-  have hfun_eq :
-      (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) =
-      (fun y => (U y) ^ p.m) * deriv (frozenElliptic p U) := by
-    ext y; simp [Pi.mul_apply]
-  have hchem :
-      deriv (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x =
-        deriv U x * p.m * (U x) ^ (p.m - 1) *
-            deriv (frozenElliptic p U) x +
-          (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ) := by
-    rw [hfun_eq, hprod.deriv]
-  rw [hchem]
-  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
-  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
-  by_cases hUx_zero : U x = 0
-  · have hUm_zero : (U x) ^ p.m = 0 := by
-      rw [hUx_zero]
-      exact Real.zero_rpow (ne_of_gt hm_pos)
-    have hUγ_zero : (U x) ^ p.γ = 0 := by
-      rw [hUx_zero]
-      exact Real.zero_rpow (ne_of_gt hγ_pos)
-    rw [hUm_zero, hUγ_zero, hUx_zero]
-    ring_nf
-  · have hUx_pos : 0 < U x := lt_of_le_of_ne (hU_nonneg x) (Ne.symm hUx_zero)
-    have hpow_m : (U x) ^ p.m = U x * (U x) ^ (p.m - 1) := by
-      calc
-        (U x) ^ p.m = (U x) ^ (1 + (p.m - 1)) := by
-          congr 1
-          ring
-        _ = (U x) ^ (1 : ℝ) * (U x) ^ (p.m - 1) := by
-          rw [Real.rpow_add hUx_pos]
-        _ = U x * (U x) ^ (p.m - 1) := by
-          rw [Real.rpow_one]
-    have hpow_tailγ_nf :
-        (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ =
-          U x * (U x) ^ (-1 + p.m + p.γ) := by
-      calc
-        (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ =
-            ((U x) ^ (-1 + p.m) * (U x) ^ (1 : ℝ)) * (U x) ^ p.γ := by
-          rw [Real.rpow_one]
-        _ = (U x) ^ ((-1 + p.m) + 1) * (U x) ^ p.γ := by
-          rw [← Real.rpow_add hUx_pos]
-        _ = (U x) ^ p.m * (U x) ^ p.γ := by
-          congr 2
-          ring
-        _ = (U x) ^ (p.m + p.γ) := by
-          rw [← Real.rpow_add hUx_pos]
-        _ = (U x) ^ (1 + (-1 + p.m + p.γ)) := by
-          congr 1
-          ring
-        _ = (U x) ^ (1 : ℝ) * (U x) ^ (-1 + p.m + p.γ) := by
-          rw [Real.rpow_add hUx_pos]
-        _ = U x * (U x) ^ (-1 + p.m + p.γ) := by
-          rw [Real.rpow_one]
-    rw [hpow_m]
-    ring_nf
-    have hchem_tail :
-        p.χ * U x * (U x) ^ (-1 + p.m + p.γ) =
-          p.χ * (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ := by
-      calc
-        p.χ * U x * (U x) ^ (-1 + p.m + p.γ) =
-            p.χ * (U x * (U x) ^ (-1 + p.m + p.γ)) := by
-          ring
-        _ = p.χ * ((U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ) := by
-          rw [← hpow_tailγ_nf]
-        _ = p.χ * (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ := by
-          ring
-    nlinarith [hchem_tail]
+  have h := paperWaveOperator_eq_frozenWaveOperator_add_offdiag p (c := c)
+    (u := U) (W := U) x hU hU_nonneg hU_nonneg hU_diff hV_diff _hU_rpow_diff
+  have hzero :
+      p.χ * (U x) ^ p.m * ((U x) ^ p.γ - (U x) ^ p.γ) = 0 := by
+    ring
+  simpa [hzero] using h
 
 theorem FrozenStationaryWaveProfile.mk_from_paper_stationarity
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
