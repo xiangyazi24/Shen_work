@@ -99,3 +99,22 @@ fold01:ℝ→[0,1] (even 2-periodic fold). MATHLIB VERIFIED present: Gaussian In
 PoissonSummation, Convolution, ParametricIntegral (∂xE), Floor/fract (fold01), cosh/sinh. TO BUILD: the
 Neumann assembly + estimates + fold01 + Green's-fn resolvent (Gaussian-conv-semigroup likely derivable from
 the Gaussian FT). Full ~25-lemma Layer-1 interface pinned in the R1 transcript. Layer-1 = Mathlib-feasible.
+
+### R7 — LAYER 7 (COMPACTNESS, Aubin-Lions replacement) DESIGNED (ChatGPT, independent of existence thread)
+Replace Rellich/Aubin-Lions (absent in Mathlib) with weighted-ℓ¹ tail compactness on A^r.
+- SPATIAL: A^{r+δ} ⊂⊂ A^r. Criterion (TOTAL-BOUNDEDNESS, not diagonal extraction): uniform tail smallness
+  sup_S ‖Q_N a‖_{A^r}≤ε + finite-mode precompactness (P_N S in a finite coordinate box) ⟹ S precompact.
+  Core estimate `tail_bound_high_to_low`: ‖a−P_N a‖_{A^r} ≤ (1+N)^{-δ}‖a‖_{A^{r+δ}}. NOT discrete-ℤ Ascoli
+  (misses the tail). Plus `high_norm_retention_under_low_convergence` (A^r-limit keeps the A^{r+δ} bound) — key for ω-limits.
+- PHYSICAL: A^r ↪ C^0 (‖F^{-1}a‖_∞ ≤ ‖a‖_{A^r}, r≥0); A^{m+δ}⊂⊂A^m↪C^m. A^r-compactness ⟹ C^0-compactness
+  through the continuous Fourier reconstruction — NO separate physical Arzelà-Ascoli needed.
+- TIME (the Aubin-Lions replacement): uniform A^{r+δ} bound (⟹ spatial precompact per t) + Duhamel
+  EQUICONTINUITY modulus ω(h)=η_{M,δ}(h)+B0·h+2C·B1·h^{1/2} (η = semigroup-strong-continuity, low/high-mode
+  split) ⟹ precompact in C([0,T];A^r) via Mathlib's Arzelà-Ascoli (the ONE place to use it).
+- ω-LIMIT: translate family u(·+t_n) precompact on each window (modulus is translation-invariant) + diagonal
+  across windows. Limit continuous into A^r, keeps A^{r+δ} bound pointwise.
+- ADVERSARIAL GAP (must build with this layer): compactness alone does NOT make the limit solve the SAME
+  equation — need CLOSEDNESS: u_n→u in C_t A^r + uniform A^{r+δ} + nonlinear LOCAL-LIPSCHITZ (from A^r Banach
+  algebra + Fourier-multiplier R-bound + heat smoothing) ⟹ u is a mild solution. The Duhamel terms pass to
+  the limit (∂xE integral ≤ 2C T^{1/2}‖H(u_n)−H(u)‖). This is nonlinear-continuity, NOT a new compactness theorem.
+~15-lemma interface pinned. Mathlib: Arzelà-Ascoli (time layer) ✓, lp/tsum (tails) ✓; weighted-ℓ¹ criterion = ours to build.
