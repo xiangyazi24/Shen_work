@@ -2,7 +2,12 @@
 
 The finite, named inventory for the whole-line parabolic-mild-Schauder route (docs/WAVE_ARCHITECTURE.md).
 Distance = this board, NOT a time estimate. `✅` = built sorry-free + axiom-clean (integrated-build verified) ·
-`🟡` = in flight / partial (named) · `⬜` = open. Last verified: 2426cb4 (2026-06-19, integrated build green).
+`🟡` = in flight / partial (named) · `⬜` = open. Last verified: a8af1af (2026-06-19, integrated build green).
+
+**MILESTONE (a8af1af):** the constant-barrier energy engine is END-TO-END UNCONDITIONAL —
+`wholeLine_constantBarrier_trapping_unconditional` (lo≤U≤hi for a classical solution, χ≤0, no carried bridge
+artifacts; the postIBP/gradient_control/K_control/V_x residuals all PROVED, faithfulness-verified). Bricks
+1,2,4,5,7,8 ✅. In flight: 3 (wave trap), 6 (exp-barrier trapping — analytic heart), 9 (long-time limit).
 
 ## A. Foundation — the Schauder-route engine
 - ✅ L1 heat semigroup e^{(Δ−I)t} (ShenWork/PDE/WholeLineHeatSemigroup.lean) — mass-1/L∞/grad-t^{−1/2}.
