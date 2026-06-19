@@ -4,10 +4,19 @@ The finite, named inventory for the whole-line parabolic-mild-Schauder route (do
 Distance = this board, NOT a time estimate. `✅` = built sorry-free + axiom-clean (integrated-build verified) ·
 `🟡` = in flight / partial (named) · `⬜` = open. Last verified: a8af1af (2026-06-19, integrated build green).
 
-**MILESTONE (a8af1af):** the constant-barrier energy engine is END-TO-END UNCONDITIONAL —
-`wholeLine_constantBarrier_trapping_unconditional` (lo≤U≤hi for a classical solution, χ≤0, no carried bridge
-artifacts; the postIBP/gradient_control/K_control/V_x residuals all PROVED, faithfulness-verified). Bricks
-1,2,4,5,7,8 ✅. In flight: 3 (wave trap), 6 (exp-barrier trapping — analytic heart), 9 (long-time limit).
+**MILESTONE (8fcc1e8):** wave bricks 1–17 ALL ✅. The traveling-wave existence HEADLINE is assembled:
+`wholeLine_travelingWave_exists` (χ≤0, α≤m+γ−1, c>2 ⟹ ∃ U*,V* a traveling-wave profile: solves divergence
+wave eq, U*(−∞)=1, U*(+∞)=0, monotone, right-tail ~e^{−κx}). GENUINE chain (consumes brick 11 longTimeMap +
+brick 12 fixed point + 13–16 conversion/tails). CONDITIONAL on `WholeLineTravelingWaveData` = the precise
+remaining frontier, NOT vacuous. Earlier milestone (a8af1af): constant-barrier energy engine END-TO-END
+UNCONDITIONAL (`wholeLine_constantBarrier_trapping_unconditional`, faithfulness-verified).
+
+**THE REMAINING FRONTIER (WholeLineTravelingWaveData fields, to make the wave headline unconditional):**
+the PARABOLIC A-PRIORI ESTIMATES — longTime_parabolic_equicontinuity, longTime_image/finite_time_continuity,
+longTime_uniform_tail (the equicontinuity for Ascoli compactness of the long-time map; Shen "Claim 1"), the
+orbit trapping/monotonicity (brick 6 + barrier inequalities + brick 7/8), translate_compactness (brick 16),
+longTime_stationarity (brick 10), the aux-flow existence (brick 5). This is the genuine remaining analytic
+work — standard parabolic regularity theory adapted to ℝ, satisfiable for a real solution.
 
 ## A. Foundation — the Schauder-route engine
 - ✅ L1 heat semigroup e^{(Δ−I)t} (ShenWork/PDE/WholeLineHeatSemigroup.lean) — mass-1/L∞/grad-t^{−1/2}.
