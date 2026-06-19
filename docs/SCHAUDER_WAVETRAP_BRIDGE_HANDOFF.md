@@ -27,3 +27,20 @@ image-restrict totally-bounded/compact-closure lemmas, `lift_trap` (from waveTra
 Spec: /tmp/shen_schwavetrap.md. Then the headline's Hschauder_waveTrap discharges; remaining = the concrete
 aux-flow inputs (Hclassical/Hweak/Hflow_lip/… — satisfiable real-solution regularity, the aux-flow
 local/global/classical/equicontinuity pieces are built, just need wiring).
+
+## COMPLETE DIAGNOSIS (solo, 2026-06-19) — the obstruction is CONTINUITY, inherent to the construction
+Attempted the retraction bridge (WaveTrapSchauderViaRetraction.lean, a6abb04 — the antitone-majorant foundation
+is built + reusable). Found + confirmed the real obstruction:
+- `InMonotoneWaveTrapSet` requires `IsCUnifBdd` (= Continuous ∧ IsBddFun); `WaveTrap κ κt D` does NOT require
+  continuity. So `WaveTrap ⊄ InMonotone`, and the retraction `T'=Tmap∘r` can't be shown InMonotone→InMonotone.
+- Route (a) [re-prove ProjectedCubeApproxData for WaveTrap] is ALSO blocked by continuity: the construction's
+  `profileRestrictIcc (hu : Continuous u)` (WaveTrapProjectedCubeApproxData.lean:15) restricts profiles to
+  [−R,R] ASSUMING continuity — the Fréchet-metric ε-net machinery fundamentally needs continuous members.
+- CONCLUSION: the Schauder construction inherently needs CONTINUOUS trap members. The correct fix (math is fine —
+  wave profiles ARE continuous) is to make the headline's trap continuity-required:
+  **add `Continuous u` to `WaveTrap` (WholeLineWaveTrap.lean:13)**, then `WaveTrap ⊆ InMonotoneWaveTrapSet κ 1`
+  and the retraction (a6abb04) closes the principle — needing only `Lstar` continuous (running-sup of a
+  continuous bounded function, doable). This CASCADES: every WaveTrap-construction site (bricks 2/3/9/12, the
+  barriers, the long-time limit) must also supply `Continuous` (all true — the objects are continuous). A
+  structural change to a foundational def → codex-shaped cascade, OR Xiang's authorization to modify brick-3.
+This is the precise, complete resolution path; blocked only on codex quota (purchase-cap) / the brick-3 decision.
