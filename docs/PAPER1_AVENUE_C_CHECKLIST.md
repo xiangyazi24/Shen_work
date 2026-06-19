@@ -81,3 +81,18 @@ the auxiliary moving-frame flow (5), the differentiated weak-comparison monotoni
 map + its compactness/continuity (9-12), then the conversion+tails (13-16). Bricks 6-12 are the genuine
 multi-session analytic core. No constant-barrier shortcut reaches the wave; no pointwise strong max principle is
 needed (the monotonicity is energy-provable). This board is the source of truth for "how far".
+
+## The residual splits into TWO kinds (key distinction for the §3.3 audit)
+Verified Mathlib has only Banach contraction FP (ContractingWith.exists_fixedPoint), NO Brouwer/Schauder
+(a known long-standing Mathlib gap). So:
+- **(a) schauder_principle = a genuine MATHLIB GAP** (standard textbook theorem, not Shen's content). Carrying
+  it as a hypothesis is FAITHFUL per feedback_no_axiom_escape ("axioms/assumptions only for genuine Mathlib
+  gaps") — you cannot formalize Schauder without a separate major Brouwer-formalization project. This is NOT a
+  §3.3 violation (not the paper's hard content).
+- **(b) the parabolic a-priori estimates (Shen Claim 1)** = the paper's ACTUAL analytic content. The
+  equicontinuity KERNEL-HALF is PROVED (t^{−1/2} Duhamel); the Leibniz-under-singular-integral BRIDGE
+  (connecting auxiliaryMildMap_deriv_abs_le → longTime_image_deriv_bound) + the ContDiff² regularity +
+  stationarity + translate-compactness remain. THIS is the genuine remaining paper-content work, and it IS
+  dischargeable (the machinery exists).
+Honest ceiling: the wave headline faithfully reduces Shen's traveling-wave existence to (a) Schauder [Mathlib
+gap, acceptable] + (b) the parabolic Claim 1 [paper content, partially done, the rest dischargeable].
