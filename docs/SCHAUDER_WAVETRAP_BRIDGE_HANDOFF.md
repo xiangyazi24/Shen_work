@@ -54,3 +54,23 @@ WaveResidualLastTwo, WholeLineWaveTrap:71 [already a ContinuousMap]). BUT the de
 fix the ~40 `.2`→`.2.1` extractions + supply Continuous at the ~5 construction sites (all true: barriers/limits
 are continuous; the long-time-limit continuity from the monotone loc-unif Dini limit). The banked retraction
 (a6abb04) then closes the principle modulo Lstar continuity. Blocked on codex quota / Xiang's nod for the refactor.
+
+## RESOLVED IN PRINCIPLE (solo, 2026-06-19) — no cascade needed
+The Schauder-for-WaveTrap gap is now PROVEN, axiom-clean, WITHOUT the WaveTrap-continuity cascade:
+- `waveTrap_fixedPoint_of_continuousImage` (WaveTrapSchauderViaRetraction.lean, dec57b1): ∃ U∈WaveTrap, Tmap U=U
+  from mapsTo+cont+compact + the CONTINUOUS-IMAGE hyp (∀u∈WaveTrap, Continuous(Tmap u)), via the antitone-
+  majorant retraction + our own Brouwer. The continuity is supplied by the map's IMAGE, not the trap def.
+- `wholeLine_wave_fixedPoint_exists_of_continuousImage` (WaveFixedPointContinuousImage.lean, 6751c20): the
+  brick-12 drop-in. Its hTimg = `LongTimeMapImageContinuity` = `longTime_image_continuity`, ALREADY a
+  WholeLineTravelingWaveData field.
+REMAINING (mechanical re-threading, ~4 files — codex-clean or careful solo):
+1. WholeLineTravelingWaveExistence.lean:156 — swap `wholeLine_wave_fixedPoint_exists ... H.schauder_principle`
+   → `wholeLine_wave_fixedPoint_exists_of_continuousImage (waveExponent_pos hc) hκt hD hmapsTo hcont hcompact
+   H.longTime_image_continuity`. Then `schauder_principle` is unused.
+2. Remove `schauder_principle` field from `WholeLineTravelingWaveData` (Existence.lean:7).
+3. Remove the providers: WholeLineWaveExistenceReduced.lean:498, WholeLineWaveExistenceConsolidated.lean
+   :410/418/451/463, WholeLineTravelingWaveAssembled.lean:311/413 (drop the `Hschauder*` hyp + provision).
+After this, the wave headline carries NO Schauder-principle residual — it is proved from our own Brouwer; only
+the concrete aux-flow inputs (incl. longTime_image_continuity, itself dischargeable from the banked parabolic
+equicontinuity) remain. So Paper-1 wave reduces to the aux-flow regularity alone — no Mathlib gap, no abstract
+Schauder hypothesis.
