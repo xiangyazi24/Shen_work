@@ -147,3 +147,29 @@ follow from a bare C⁰ mild solution by applying A^r→A^{r+m} heat estimates. 
 NET: Layer-3 is feasible but couples to a SEED sub-layer + a strong-positivity max-principle dependency —
 the layer DAG is NOT purely bottom-up linear (Layer-3 ⟂ Layer-4 positivity). Build seed + algebra + (integer-power)
 composition first; real-power composition + strict-positivity gate the full nonlinear bootstrap.
+
+### R-Layer2 — LAYER 2 (C⁰ MILD LOCAL EXISTENCE) DESIGNED (ChatGPT, Xiang-rescued paste) — full transcript docs/layer2-mild-existence-transcript.md
+Layer 2 = a TRUNCATED C⁰ mild fixed-point engine on C([0,T];C⁰([0,1])); transport −χ∂xq enters as
+−χ∫∂xE(t−τ)q(u) (derivative on the heat semigroup, flux only C⁰-bounded+Lipschitz). Closes LOCAL clamped
+existence+uniqueness from Layer-1 + resolvent; does NOT discharge the full PDE alone. 36-lemma DAG pinned.
+- FOUNDATION = CLAMP, not positivity: all real powers on clipC0 M u = min(M,max(0,u)); positivity/comparison
+  is a LATER layer proving the clamp INACTIVE (recovers real powers). Mirrors the Paper-1 truncbox lesson.
+- SPACES: C0=BoundedContinuousFunction I01 ℝ, Path T=BCF (IT T) C0; NEW P3Params (m α γ β χ c a b), not CMParams.
+- Φ(U)(t)=E(t)u₀+∫E(t−τ)F_M+∫∂xE(t−τ)B_M; ball M=2(‖u₀‖+1); √T smallness from ∫(t−τ)^{-1/2}=2√t;
+  ContractingWith (1/2) on the closed ball for explicit short T_*=min(T_map,T_ctr).
+- DRIFT CAVEAT: literal +c·u_x is NOT compatible with the even-reflection Neumann kernel unless c=0; set c=0
+  in the first production theorem, keep c optional with a warning (Shen's wave has c≠0 — Paper-3 bounded domain
+  recommends c=0 first; c≠0↔classical advection needs a drift-Neumann/boundary lemma).
+- NEW LAYER-1 DEPENDENCY (pin NOW): resolventGradC0 — ∂xR as a C0→C0 map with C⁰ operator-norm + Lipschitz.
+  R1 only pinned R''=Rf−f and the resolvent; the GRADIENT C⁰ map is unpinned, and WITHOUT it the flux
+  u^m·S(v)·vx is not even a closed C⁰ map → Layer-2 cannot start. Add to Layer-1 interface.
+- MATHLIB GAPS: heatC0/heatGradC0 semigroup; ∫(t−τ)^{-1/2}=2√t + Bochner version; TIME-CONTINUITY of the
+  weakly-singular Duhamel term (genuine gap, ParametricIntegral alone insufficient); BCF-valued Duhamel
+  constructors; Duhamel splitting/concatenation; maximal-mild framework (use ℝ≥0∞ for Tmax); positivity for
+  clamp removal; c≠0 Neumann compatibility. Present: ContractingWith, BCF completeness, interval-integral bounds.
+- CONVERGENCE: closes local clamped existence; remaining deps to full PDE = (1) clamp removal via a
+  positivity/max-principle layer, (2) global a-priori C⁰ bound (energy/Moser) to push Tmax=∞.
+CROSS-LAYER NET (Layer-2 ∪ Layer-3): both surface the SAME positivity dependency (strict 0<κ≤u on slabs) and
+the SAME clamp/composition pattern — positivity (a max-principle layer) is the shared keystone gating both the
+clamp-removal (Layer-2 → real PDE) and the real-power bootstrap (Layer-3). Build order: heat/resolvent (incl.
+resolventGrad) → C⁰ clamped mild (Layer-2) → positivity/comparison → clamp removal + A^σ seed → A^r bootstrap (Layer-3).
