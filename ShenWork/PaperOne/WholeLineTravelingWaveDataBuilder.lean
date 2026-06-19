@@ -24,9 +24,6 @@ structure WholeLineTravelingWaveResidualData
   kappa_lt_kappat : waveExponent c < κt
   D_ge_one : 1 ≤ D
   paper3_chi_nonpos : p3.χ₀ ≤ 0
-  schauder_approx_fixed_sequences :
-    ShenWork.Paper1.LocalUniformApproxFixedPointSequences
-      (fun U : ℝ → ℝ => U ∈ WaveTrap (waveExponent c) κt D)
   orbit_properties : WholeLineOrbitPropertiesData p c κt D raw_w
   longTime_deriv_bound_nonneg : 0 ≤ Λ
   longTime_image_differentiable :
@@ -149,9 +146,6 @@ def wholeLineTravelingWaveData_of_residual
       wt wx wxx p3 where
   kappa_lt_kappat := H.kappa_lt_kappat
   D_ge_one := H.D_ge_one
-  schauder_principle :=
-    ShenWork.Paper1.localUniformSchauderFixedPointPrinciple_of_approx_fixed_sequences
-      H.schauder_approx_fixed_sequences
   orbit_lower_bound := (wholeLine_orbit_fields H.orbit_properties).1
   orbit_upper_bound := (wholeLine_orbit_fields H.orbit_properties).2.1
   orbit_spatial_antitone := (wholeLine_orbit_fields H.orbit_properties).2.2

@@ -252,9 +252,6 @@ structure WholeLineWaveExistenceReducedResidualData
   kappa_lt_kappat : waveExponent c < κt
   D_ge_one : 1 ≤ D
   paper3_chi_nonpos : p3.χ₀ ≤ 0
-  schauder_principle :
-    ShenWork.Paper1.LocalUniformSchauderFixedPointPrinciple
-      (fun U : ℝ → ℝ => U ∈ WaveTrap (waveExponent c) κt D)
   orbit_properties :
     WholeLineOrbitPropertiesData p c κt D Haux.raw_w
   auxiliaryDuhamel_continuity :
@@ -495,7 +492,6 @@ def travelingWaveData
       wt Haux.raw_wx wxx p3 where
   kappa_lt_kappat := H.kappa_lt_kappat
   D_ge_one := H.D_ge_one
-  schauder_principle := H.schauder_principle
   orbit_lower_bound := (wholeLine_orbit_fields H.orbit_properties).1
   orbit_upper_bound := (wholeLine_orbit_fields H.orbit_properties).2.1
   orbit_spatial_antitone := (wholeLine_orbit_fields H.orbit_properties).2.2

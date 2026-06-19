@@ -308,9 +308,6 @@ theorem wholeLine_travelingWave_exists_assembled
     {wxx : (ℝ → ℝ) → ℝ → ℝ → ℝ}
     {p3 : CM2Params}
     (hχ0 : p3.χ₀ = p.χ)
-    (Hschauder_waveTrap :
-      ShenWork.Paper1.LocalUniformSchauderFixedPointPrinciple
-        (fun U : ℝ → ℝ => U ∈ WaveTrap (waveExponent c) κt D))
     (Horbit : WholeLineOrbitPropertiesData p c κt D Haux.raw_w)
     (Hduhamel :
       ∀ t,
@@ -410,7 +407,7 @@ theorem wholeLine_travelingWave_exists_assembled
       (p := p) hχ hα (c := c) (κt := κt) (D := D) (Λ := Λ)
       (hc := hc) (Haux := Haux)
       (wt := assembledConcreteWt Haux wxx) (wxx := wxx) (p3 := p3)
-      Hschauder_waveTrap ?_
+      ?_
   exact
     wholeLineWaveExistenceConsolidatedResidualData_lastTwo
       (p := p) (c := c) (κt := κt) (D := D) (Λ := Λ)

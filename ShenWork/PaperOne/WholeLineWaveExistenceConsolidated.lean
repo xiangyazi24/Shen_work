@@ -406,16 +406,12 @@ def travelingWaveData
     {p3 : CM2Params}
     (H : WholeLineWaveExistenceConsolidatedResidualData
       p c κt D Λ Haux wt wxx p3)
-    (hc : 2 < c)
-    (Hschauder :
-      ShenWork.Paper1.LocalUniformSchauderFixedPointPrinciple
-        (fun U : ℝ → ℝ => U ∈ WaveTrap (waveExponent c) κt D)) :
+    (hc : 2 < c) :
     WholeLineTravelingWaveData p c (waveExponent c) κt D
       (wholeLineForwardOrbitExtension (waveExponent c) Haux.raw_w)
       wt Haux.raw_wx wxx p3 where
   kappa_lt_kappat := H.kappa_lt_kappat
   D_ge_one := H.D_ge_one
-  schauder_principle := Hschauder
   orbit_lower_bound := H.orbit_lower_bound hc
   orbit_upper_bound := H.orbit_upper_bound
   orbit_spatial_antitone := H.orbit_spatial_antitone hc
@@ -448,9 +444,6 @@ theorem wholeLine_travelingWave_exists_consolidated
     {Haux : WholeLineAuxiliaryGlobalFamilyData p c κt D}
     {wt wxx : (ℝ → ℝ) → ℝ → ℝ → ℝ}
     {p3 : CM2Params}
-    (Hschauder :
-      ShenWork.Paper1.LocalUniformSchauderFixedPointPrinciple
-        (fun U : ℝ → ℝ => U ∈ WaveTrap (waveExponent c) κt D))
     (H : WholeLineWaveExistenceConsolidatedResidualData
       p c κt D Λ Haux wt wxx p3) :
     ∃ Ustar Vstar : ℝ → ℝ,
@@ -460,7 +453,7 @@ theorem wholeLine_travelingWave_exists_consolidated
       (p := p) hχ hα (c := c) (κt := κt) (D := D) hc
       (w := wholeLineForwardOrbitExtension (waveExponent c) Haux.raw_w)
       (wt := wt) (wx := Haux.raw_wx) (wxx := wxx) (p3 := p3)
-      (H.travelingWaveData hc Hschauder)
+      (H.travelingWaveData hc)
 
 #print axioms WholeLineWaveExistenceConsolidatedResidualData.orbit_lower_bound
 #print axioms WholeLineWaveExistenceConsolidatedResidualData.orbit_upper_bound

@@ -135,9 +135,6 @@ structure WholeLineTravelingWaveCoreData
   kappa_lt_kappat : waveExponent c < κt
   D_ge_one : 1 ≤ D
   paper3_chi_nonpos : p3.χ₀ ≤ 0
-  schauder_approx_fixed_sequences :
-    ShenWork.Paper1.LocalUniformApproxFixedPointSequences
-      (fun U : ℝ → ℝ => U ∈ WaveTrap (waveExponent c) κt D)
   orbit_properties : WholeLineOrbitPropertiesData p c κt D raw_w
   auxiliary_solution :
     ∀ U, U ∈ WaveTrap (waveExponent c) κt D →
@@ -395,7 +392,6 @@ def wholeLineTravelingWaveResidualData_of_core
   kappa_lt_kappat := H.kappa_lt_kappat
   D_ge_one := H.D_ge_one
   paper3_chi_nonpos := H.paper3_chi_nonpos
-  schauder_approx_fixed_sequences := H.schauder_approx_fixed_sequences
   orbit_properties := H.orbit_properties
   longTime_deriv_bound_nonneg := H.longTime_deriv_bound_nonneg
   longTime_image_differentiable := H.longTime_image_differentiable

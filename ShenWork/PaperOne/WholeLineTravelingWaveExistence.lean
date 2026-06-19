@@ -1,5 +1,6 @@
 import ShenWork.PaperOne.WaveSpeedExponent
 import ShenWork.PaperOne.WholeLineWaveFixedPoint
+import ShenWork.PaperOne.WaveFixedPointContinuousImage
 import ShenWork.PaperOne.WholeLineLongTimeMap
 import ShenWork.PaperOne.WholeLineLongTimeStationary
 import ShenWork.PaperOne.WholeLineDiagonalEquation
@@ -27,9 +28,6 @@ structure WholeLineTravelingWaveData
     (p3 : CM2Params) where
   kappa_lt_kappat : κ < κt
   D_ge_one : 1 ≤ D
-  schauder_principle :
-    ShenWork.Paper1.LocalUniformSchauderFixedPointPrinciple
-      (fun U : ℝ → ℝ => U ∈ WaveTrap κ κt D)
   orbit_lower_bound :
     ∀ U, U ∈ WaveTrap κ κt D →
       ∀ t x, lowerBarrier κ κt D x ≤ w U t x
@@ -153,10 +151,11 @@ theorem wholeLine_travelingWave_exists
         H.longTime_image_continuity
         H.longTime_parabolic_equicontinuity)
   rcases
-      wholeLine_wave_fixedPoint_exists
+      wholeLine_wave_fixedPoint_exists_of_continuousImage
         (κ := κ) (κt := κt) (D := D) (T := longTimeMap w)
-        (by simpa [κ] using H.schauder_principle)
-        hmapsTo hcont hcompact with
+        hκ (by simpa [κ] using H.kappa_lt_kappat) (by simpa [κ] using H.D_ge_one)
+        hmapsTo hcont hcompact
+        (by simpa [κ] using H.longTime_image_continuity) with
     ⟨Ustar, hUstar, hfixed⟩
   have hUstar_original : Ustar ∈ WaveTrap (waveExponent c) κt D := by
     simpa [κ] using hUstar
