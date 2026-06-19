@@ -173,3 +173,39 @@ CROSS-LAYER NET (Layer-2 ∪ Layer-3): both surface the SAME positivity dependen
 the SAME clamp/composition pattern — positivity (a max-principle layer) is the shared keystone gating both the
 clamp-removal (Layer-2 → real PDE) and the real-power bootstrap (Layer-3). Build order: heat/resolvent (incl.
 resolventGrad) → C⁰ clamped mild (Layer-2) → positivity/comparison → clamp removal + A^σ seed → A^r bootstrap (Layer-3).
+
+### R-Layer4 — LAYER 4 (POSITIVITY / COMPARISON / SMP) DESIGNED (ChatGPT cron2) — full transcript docs/layer4-positivity-comparison-transcript.md
+Layer 4 = a weak-max-principle/comparison/SMP layer for the CLAMPED physical mild equation — NOT a second
+fixed point, NOT naive Duhamel positivity (the transport −χ∫∂xE(t−τ)q has NO sign, so E≥0/R≥0 alone do not
+make the Duhamel map order-preserving).
+- LOWER u≥0: energy / negative-part testing. Where u<0 the clamp z=C_M(u)=0 kills both the reaction and the
+  flux z^m S(v) v_x, so testing the weak form against −u_- gives ½ d/dt‖u_-‖²₂ ≤ −‖∂x u_-‖²₂ ≤ 0; u₀≥0 ⟹
+  u_-≡0 ⟹ u≥0. Does NOT need the Duhamel map to preserve positivity (the derivative heat term is handled by
+  the divergence structure + the clamped flux vanishing where u<0).
+- UPPER u≤M: symmetric, test against (u−M)_+ with the logistic super-solution.
+- STRONG positivity 0<κ≤u on [δ,T]: a strong max principle for the positive-time classical clamped equation +
+  slab compactness. Harnack NOT needed for EXISTENCE of some κ_{δ,T}>0 (only for explicit quantitative κ).
+- COMPARISON with the non-Lipschitz s^{m-1} (1<m<2): the faithful route is to do the comparison on the
+  STRICT-POSITIVE slab (from strong positivity) where s^{m-1} IS locally Lipschitz (s≥κ>0). Divergence form
+  fixes the C⁰ solve but NOT the bare s^{m-1} in a differential comparison.
+- MATHLIB GAPS: no parabolic max principle / SMP / Neumann-kernel positivity package / PDE comparison —
+  all must be built; energy method on top of Bochner + the heat estimates. ~15-25 lemma DAG in transcript.
+- CONVERGENCE: closes the clamp-removal (Layer-2 → real PDE) + supplies the strict positivity Layer-3 needs.
+
+### Paper-1 m<2 CUSP OBSTRUCTION (ChatGPT cron3) — full transcript docs/paper1-mlt2-cusp-obstruction.md
+GENUINE obstruction (NOT tactical), DECISION REQUIRED (escalated to Xiang). The discrete Rothe time-descent
+W≤Z via the elliptic positive-max-of-(W−Z) comparison is NOT faithful for 1<m<2: the transport difference
+contributes (−χ)mV'Z'(W^{m-1}−Z^{m-1}) at the contact max, a BAD (nonnegative) term, and s↦s^{m-1} is NOT
+Lipschitz at 0 — so |W^{m-1}−Z^{m-1}| ≤ L(W−Z) is FALSE under only 0≤Z≤W≤M, |Z'|≤Λ. Contact positivity does
+NOT save it (contact can be in the right tail where both are small; no uniform lower bound). The current repo
+hL1/C_chem path is valid ONLY for m=1 or m≥2 — NOT the real-exponent m≥1 theorem.
+WHY SHEN WORKS: his §4 uses a CONTINUOUS parabolic comparison via FIRST CONTACT, where W=B and W_x=B_x at the
+touching point, so W^{m-1}−B^{m-1}=0 EXACTLY — the cusp term vanishes structurally. The discrete
+positive-max-of-(W−Z) (W>Z there) loses this cancellation. Divergence form does NOT fix the differential W≤Z
+(product rule reintroduces the cusp).
+THREE ROUTES (Xiang's call): (1) Route-1 PARABOLIC — formalize §4's parabolic auxiliary flow + first-contact
+comparison + long-time/Schauder map (most faithful, big restructure); (2) Route-2a WEIGHTED SLOPE INVARIANT —
+add |Z'(x)|≤C·Z(x) + a weighted cusp lemma z((z+δ)^p−z^p)≤C·δ making the term absorbable (NEW invariant to
+thread; NB the barrier already satisfies |barrier'|=κ·e^{−κx}=κ·barrier on the exp part, and the repo's
+ExpLeftRate machinery is about exactly this exponential structure — plausibly the cheapest faithful route);
+(3) Route-2b HONEST RESIDUAL — carry a real RotheStepTimeDescentData comparison frontier (NOT the false hL1).
