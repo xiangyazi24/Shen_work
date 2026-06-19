@@ -385,3 +385,33 @@ Checked whether Route 2a's weighted-slope invariant `|Z'| ≤ C·Z` is already a
   where the cusp vanishes STRUCTURALLY because W=B at the touch) deserves equal/greater weight** as the
   cleaner faithful long-term route, despite the restructure. Decision remains Xiang's; my earlier lean
   toward 2a is withdrawn pending his call.
+
+## RESOLUTION (2026-06-19, 回归原著 via /lean) — the cusp is a discrete-Rothe ARTIFACT; Shen uses parabolic-Schauder
+Per the playbook ("回归原著" + the never-bottoming-out fingerprint = structural mis-framing, not difficulty),
+read Shen Paper 1 §4.2 (paper1.pdf, eq 3.1 — the ACTUAL proof of Theorem 1.1(1), monotone wave, χ≤0):
+
+Shen's method is NOT a discrete Rothe iteration. It is:
+- a CONTINUOUS parabolic Cauchy problem (3.1):
+  `U_t = U_xx + |χ|m U^{m-1} U_x V_x + U(1 + |χ|U^{m-1}V − (U^α + |χ|U^{m+γ-1}))`, U(0,x)=u0,
+  V(t,x;u)=Ψ(x;u^γ(t,·),1,1) the frozen elliptic signal;
+- CONSTANT sub/super-solutions U≡u0, U≡ū0 → trapping `u0 ≤ U ≤ ū0` by the PARABOLIC comparison principle;
+- the DIVERGENCE-FORM mild representation
+  `U(t) = e^{(Δ−I)t}u0 − χ∫₀ᵗ e^{(Δ−I)(t−s)} ∂x(U^m V_x) ds + ∫₀ᵗ e^{(Δ−I)(t−s)} U(2−U^α) ds`;
+- SCHAUDER fixed-point on T(u)=U(·,·;u) (continuous + compact via a-priori parabolic estimates + diagonal).
+
+CONSEQUENCE: there is NO `W≤Z` antitone-in-time step, NO monotone iteration, NO discrete elliptic
+positive-maximum comparison anywhere in Shen's proof. Trapping is constant barriers + parabolic comparison;
+the `U^{m-1}` term lives INSIDE the divergence `∂x(U^m V_x)` where `U^m` is Lipschitz (m≥1). So the m<2 cusp
+NEVER ARISES in the faithful proof — it is purely an artifact of the discrete-Rothe per-step reframing
+(WavePaperRothe*), which is an OVER-DECOMPOSITION relative to the source (playbook §2.6 anti-pattern). The
+never-bottoming-out grind (box-close→hpaperSuper→McShane→wire→upperOld→paperDiff→C²→cusp→…) was the
+fingerprint of this mis-framing.
+
+FAITHFUL ROUTE (decided by the SOURCE, not a method choice): the parabolic Cauchy + divergence-mild +
+constant-barrier parabolic comparison + Schauder structure — which is the SAME machinery as Paper 2's
+bounded-domain existence (IntervalGradientDuhamelMap divergence mild + IntervalDomainMaxPrinciple + Schauder/
+Banach), on the whole line instead of [0,1]. Paper 1 and Paper 2 existence are ONE parabolic-mild-Schauder
+engine. The discrete Rothe + cusp is a detour to be dropped; the McShane/truncbox machinery may be partly
+recyclable, but the CORE construction should be parabolic-Schauder. This also answers the framework blueprint:
+the fresh C⁰/A^r mild design ≈ Shen's actual method ≈ the existing PDE framework — three independent
+derivations converge, validating the existing framework.
