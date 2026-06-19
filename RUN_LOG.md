@@ -78,3 +78,15 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - 统筹: keep codex (residual grind) + ChatGPT Pro (T7 representation route) saturated in parallel, rolling harvest.
 - end: <fill>
 - final result: <fill>
+
+## MILESTONE 2026-06-19 ~03:30 — avenue (a) χ₀=0 ACHIEVED (first full unconditional Shen headline)
+- `intervalDomain_theorem_1_1_chiZero_unconditional` (986e7d1): full Paper-2 Theorem 1.1 for χ₀=0 —
+  global existence + boundedness, NO carried frontier. §3.3 triple-audited (self+codex+adversarial opus =
+  FAITHFUL, cleared the known-vacuous-sibling trap), independent build 3705 green + axiom-clean.
+- Path of decomposition tonight (all banked, axiom-clean): assembly bridge 4d86894 → threshold + T6 wiring →
+  u_pos/trace 88295ff → χ₀=0/general-χ pde_u bridges c589a7a/97242f4 → R ff6a3df → hsrc reduction 419e3f6 →
+  gradient-map FINDING (general-χ, Xiang's call) → χ₀=0 localExistence d151c07 → χ₀=0 FULL Theorem 1.1 986e7d1.
+- BLOCKED for general-χ (χ<0): the gradient mild map output-derivative-vs-conjugate-kernel faithfulness issue
+  (docs/paper2-gradient-map-conjugate-kernel-finding.md) — design decision A/B/C awaits Xiang. χ₀=0 escapes it.
+- NOW active: avenue (c) Paper-1 whole-line parabolic (layer-1 Gaussian semigroup in flight). avenue (b)
+  general-χ resumes once Xiang picks the map fix.
