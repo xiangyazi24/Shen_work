@@ -58,3 +58,23 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - FAITHFULNESS Q to Xiang: does the paper's wave-existence assume a chemotaxis budget / m>1?
 - end: <in progress>
 - final result: <in progress>
+
+## Run 2026-06-19 ~02:00 (overnight /automode — Xiang asleep, no-questions, 统筹 ChatGPT+codex)
+- Main goal: complete Shen trilogy formalization → pass playbook audit (Layer 3 completeness).
+- Avenues (ranked by proximity to a headline):
+  (a) **Paper 2 Theorem 1.1 unconditional** [ACTIVE, closest] — drive localExistence → discharge F1.
+      State: assembly bridge (4d86894) + threshold discharged + T6 wired → residual =
+      CoupledDuhamelResidualAfterBankedT6 {u_pos, pde_u, slice-agreement, initialTrace}. Attack: close
+      u_pos/trace/pde_u from banked atoms (O1/semigroup/T6); slice-agreement = T7 cosine-inversion (deep,
+      ChatGPT-consult in parallel). Terminal: localExistence axiom-clean unconditional, OR slice-agreement
+      is a documented SATISFIABLE frontier with everything else discharged + honest label.
+  (b) Paper 2 F2 = DuhamelSourceTimeC1 for the fixed-point source (the other existence input).
+  (c) Paper 1 parabolic pivot — whole-line wave via the Paper-2 parabolic-Schauder engine (回归原著 faithful
+      route); barriers in PDE/TravelingWaveConstruction.lean. Drop the discrete-Rothe cusp detour.
+  (d) Paper 3 — linear parts done (T10); persistence gated on Paper 2.
+  (e) Verify/land blueprint candidate additions (A^r-tail compactness, A^σ seed, etc.).
+- Fallback: if Paper-2 existence hits the T7 representation wall, carry it as a documented satisfiable
+  frontier (campaign-standard honest reduction) + pivot to (c)/(d), NOT stop.
+- 统筹: keep codex (residual grind) + ChatGPT Pro (T7 representation route) saturated in parallel, rolling harvest.
+- end: <fill>
+- final result: <fill>
