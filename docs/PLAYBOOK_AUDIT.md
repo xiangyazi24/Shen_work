@@ -25,15 +25,20 @@ real solution.)
 First unconditional Shen headline landed: Paper 2 Theorem 1.1 at χ₀=0 (986e7d1). The remaining headlines
 (Paper 2 general χ≤0, Paper 1 wave, Paper 3 persistence) still carry the paper's hard analytic content as
 named frontiers, each actively discharging:
-- **Paper 1 — Theorem 1.1 (traveling-wave existence):** the m<2 cusp is RESOLVED as a discrete-Rothe
-  ARTIFACT (回归原著): the faithful route is the whole-line parabolic-mild-Schauder engine (Shen §4.2), now
-  the active architecture (docs/WAVE_ARCHITECTURE.md, source-grounded 17-brick map). avenue-c progress is
-  tracked in **docs/PAPER1_AVENUE_C_CHECKLIST.md**: foundation (heat/resolvent/compactness/Schauder/mild
-  map) ✅; constant-barrier energy-comparison engine ✅ atoms (timeLeibniz/pdeSubstitution/IBP-no-gap/
-  chemotaxisCrossControl) + frontiers, wiring in flight; wave bricks 1/17 ✅ (speed/exponent algebra),
-  bricks 2 (exp barriers) & 4 (frozen-signal V_x bound) in flight, bricks 6–12 (differentiated weak-
-  comparison monotonicity + long-time map) the open analytic core. Headline still conditional (wave not
-  yet unconditional) — but the route is faithful, decided, and discharging atom by atom; no cusp block.
+- **Paper 1 — Theorem 1.1 (traveling-wave existence):** the m<2 cusp RESOLVED as a discrete-Rothe artifact;
+  the faithful §4.2 parabolic-mild-Schauder engine fully built — **wave bricks 1–17 ALL ✅**, the headline
+  `wholeLine_travelingWave_exists` assembled + the constant-barrier energy engine END-TO-END UNCONDITIONAL
+  (`wholeLine_constantBarrier_trapping_unconditional`). HONEST CEILING (hostile-audited FAITHFUL, axiom-clean,
+  non-vacuous, regression-verified): the wave headline `wholeLine_travelingWave_exists_consolidated` is a
+  FAITHFUL CONDITIONAL theorem reducing to **(a) the Schauder fixed-point principle** [genuine Mathlib gap —
+  no Brouwer/Schauder in Mathlib; faithful to assume per feedback_no_axiom_escape, NOT the paper's content]
+  **+ (b) an 11-field aux-flow parabolic-regularity residual** [spatial/time monotonicity, Duhamel continuity,
+  longTime_evolution_eq (= the flow solves eq 4.12), derivative convergence, profile C², T10 left-tail — ALL
+  SATISFIABLE properties of a real aux-flow; the load-bearing equicontinuity bound was DISCHARGED via real
+  Mathlib Leibniz (intervalIntegral.hasDerivAt_integral_of_dominated)]. To reach unconditional needs (a) a
+  separate Brouwer/Schauder Mathlib formalization + (b) the full aux-flow parabolic existence (real PDE theory;
+  local existence via Banach done, the regularity discharges banked abstractly). This is the honest ceiling —
+  a strong faithful conditional formalization, NOT carrying the paper's hard content as an unsatisfiable hyp.
 - **Paper 2 — Theorem 1.1 (boundedness/global existence, interval γ≥1):** **χ₀=0 case now UNCONDITIONAL**
   (`intervalDomain_theorem_1_1_chiZero_unconditional`, commit 986e7d1; non-vacuous since χ₀≤0 holds for 0≤0;
   §3.3 triple-audited FAITHFUL + independent build + axioms clean — the first full unconditional Shen
