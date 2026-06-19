@@ -55,16 +55,15 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 - [x] **ω self-consistency** — RESOLVED via the exponential left-rate majorant (A+): `ExpLeftRate` predicate + kernel moments (m_σ=O(λ⁻¹)) + greenConv/frozenElliptic rate preservation + two-orbit (Z inner, u outer) left-rate threading. (d774b63 + 9a40dbd, full-build verified)
 - [x] **box-close COMPLETE** (aecea7e) — map self-invariance + barrier endpoints all INTERNAL; paperTruncatedFixedSourceBoxData_of_trap carries ONLY: paper parameter conditions + iterate data (hu/hu_rate/hZ/hZ_rate) + hpaperSuper (barrier super-sol, parameter fact) + hboxCubeData. The entire weighted-Hölder Schauder + ExpLeftRate two-radius self-consistency + truncation_inactive + barrier left-endpoint signs are formalized. Full-build verified.
 - [~] **hpaperSuper** — barrier super-solution (upperBarrier is a paper super-sol under wave-speed); parameter fact, provable from the barrier ODE / shared with genuine producer. Small remaining piece.
-- [ ] **hboxCubeData** — route (c) carry (the one finite-net floor, same as outer G1) → hprodAll close; McShane discharge blueprint in docs/ for full-unconditional later
+- [x] **hboxCubeData DISCHARGED** (97e17b2) — `paperTruncatedFixedSourceBoxData_of_trap` now constructs the finite-net Schauder cube data INTERNALLY via the McShane source-cube witness (`sourceLift_proj_error`, `sourceCube_residual_le`, `sourceBoxProjectedCubeApproxData`); hboxCubeData field GONE, replaced by 3 genuine scalar conditions (hBpos, 2BM≤C_R, sourceObstacleHolderConst≤H — concrete finite majorant, satisfiable, not vacuous). Independent full build 8308 jobs green + axiom-clean + 0 sorry. **This was the LAST hard analytic brick of the per-step box.**
 
 #### B.3 Barrier super-solution — DIRECT (dodge the 2nd circularity)
 - [ ] `hupper` / `hlower` — construct directly via `Lemma_4_1_neg_holds_away_from_interface` + `upperBarrier_BC2_atMax_dischargeable` (root found; NOT via the circular `hrest`)
 
 #### B.4 Assemble the concrete producer
-- [ ] `paperFixedSourceMapBoxBounds_of_trap` — choose B/H/ω internally (kernel-derived), discharge all box fields
-- [ ] `paperTruncatedFixedSourceBoxData_of_trap` — fully concrete, only `boxCubeData` carried
-- [ ] `boxCubeData` — finite-net cube witness for the source box (mirror outer G1's `ProjectedCubeApproxData`) **or** accept as the same carried shared floor the outer G1 carries
-- [ ] Final wire: `of_truncated_sourceBox` → `PaperStepFixedSourceExistsForSuperTrap` → `paperGreenStepInputRouteACore` → `paperRotheStepProducer_of_routeA_greenCore` ⟹ **`hprodAll` unconditional**
+- [x] `boxCubeData` — finite-net cube witness for the source box: DISCHARGED via McShane (97e17b2, see B.2)
+- [x] `paperTruncatedFixedSourceBoxData_of_trap` — complete constructor, no carried provider (only scalar/parameter conditions on B/H/C_R/σ + rate data)
+- [~] **Final wire (IN FLIGHT, cx_pde)** — `paperTruncatedFixedSourceBoxData_of_trap` is still an ISLAND (no caller); the wire defs (`of_truncated_sourceBox`, `paperGreenStepInputRouteACore_of_trap_truncatedSourceBox`) take the box-data provider as an abstract `hboxData` hypothesis. REMAINING: choose concrete B/H/C_R satisfying the scalar conditions, discharge `hrest` (PaperGreenStepInputRouteASuperRestProvider) + `hZsuper` (via `paperUpperBarrier_super_of_scalar`), thread the outer-orbit ExpLeftRate, assemble `∀u producer` ⟹ **`hprodAll` unconditional**, remove from headline. Spec `/tmp/shen_finalwire.md`.
 
 ### C. Secondary headline floors (deferrable; vestigial under the direct route)
 - [ ] `hstep` — PaperRotheSeqStepDependence (orbit step-dependence)
