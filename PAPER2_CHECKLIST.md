@@ -27,7 +27,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - 🟡 `DB` ConjugateMildExistenceData — local Picard existence/contraction data
 - 🟡 `Hinf` ConjugatePicardInfThresholdData — inf-threshold for strictPos floor
 - 🟡 `hsmall` — smallness/threshold hyp
-- 🟡 `Hpde` HasBFormSpectralPdeAgreement — interior PDE faithfulness; **skeleton ready** (/tmp/gpt_spectral.txt: d/dt Duhamel = ∂ₓQ interior, no circularity)
+- 🟡→IN PROGRESS `Hpde` HasBFormSpectralPdeAgreement — interior PDE faithfulness; **codex grinding now** (discharge to named standard heat-semigroup facts, zero-time-trace route, no circularity)
 - 🟡 `DT` TruncatedConjugateMildExistenceData — truncated Picard existence
 - ✅→🟡 `HbridgeData`/`HtruncatedEnergy` — bridge DISCHARGED via producer (9a2b056); `truncated_nonneg` DISCHARGED from the standard negative-part energy core via Gronwall (5db37e7, opus-verified GENUINE). Now carries the DEEPER `TruncatedNegativePartEnergyCoreRegularData`; its `semigroup_weak` field = the next atom (**codex grinding now**, duhamel skeleton). Remaining sub-fields: weak energy estimate, Sobolev plumbing (energy_cont/has_deriv/integrable), zero-energy→nonneg — standard parabolic facts approaching Mathlib gaps.
 - ✅ `A/Dbar/M/hM` coefficient bounds
@@ -36,7 +36,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - 🟡 `hpde_v` elliptic resolver (chemical v) — resolver machinery
 - 🟡 `neumann` normalDeriv u = normalDeriv v = 0 — satisfiable via `resolverGradReal_zero` (flux|∂=0); **skeleton ready** (/tmp/gpt_neudis.txt: F|∂=0 → ∂ₓ/∫ds interchange)
 - 🟡 `initialTrace` InitialTrace — B-form initial approach as t→0
-- 🟡 `TruncatedMildSemigroupWeakAfterBNDualityOn` (inside Henergy/mild-weak) — **skeleton ready** (/tmp/gpt_duhamel.txt: semigroup weak Duhamel differentiation)
+- ✅ `semigroup_weak` (TruncatedMildSemigroupWeakAfterBNDualityOn) — DISCHARGED to NAMED standard heat-semigroup facts pack (e0d9038, opus HONEST-BOTTOM): t^{-1/2} gradient bound, Lebesgue endpoint, DCT majorant, semigroup form identity, Duhamel differentiation (chemotaxis gated on restricted duality). Honest Mathlib-gap bottom.
 - 🟡 `hUniform` (F1) IntervalDomainUniformLocalExistence — textbook uniform continuation
 
 ## Scoreboard
