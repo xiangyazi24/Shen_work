@@ -26,6 +26,7 @@ Prove from the concrete cosine kernel K_N(t,x,y)=Σ_k e^{-(kπ)²t} φ_k(x)φ_k(
 - A4. hsmall — small-T threshold (choose T; A√T+BT ≤ floor/2)
 - A5. HpdeFacts  BFormSpectralPdeAgreementStandardFacts — = F2-F6 (prove them)
 - A6. HtruncatedEnergy  TruncatedNegativePartEnergyCoreRegularData — weak energy estimate + F-facts + Sobolev (energy_cont/deriv/integrable)
+  **A6 route (ChatGPT, verified):** standard local weak neg-part argument; chemotaxis cancels (disjoint support u_+·(u_-)_x=0, w irrelevant), diffusion=‖(u_-)_x‖², reaction≤ℓ‖u_-‖² (ℓ=0 for truncated logistic). ONE genuine Mathlib GAP: the Lions-Magenes H^1/H^{-1} neg-part chain rule ½d/dt‖u_-‖²=<u_t,-u_-> (Mathlib has posPart/negPart Lipschitz but NOT this energy chain rule) — route: Steklov time-averaging/mollification + pass to limit + a project a.e.-Gronwall lemma (Mathlib Gronwall is right-deriv based). ATTACK via Steklov; skeleton /tmp/gpt_A6.txt.
 - A7. hLinearStripCore — IsClassicalNeumannLinearDriftSuperSolution. **RESOLVED (ChatGPT A7, verified):** the naive
   super-solution with reaction C₀=a−bu^α is FALSE — residual L u = −χ₀·u·w_x is SIGN-CHANGING (w_x = (v−u)/(1+v)^β −
   β·v_x²/(1+v)^{β+1}, counterexample u=c+εcos(πx)). FIX: redefine the concrete reaction to absorb the divergence
