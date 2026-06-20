@@ -32,7 +32,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - ✅→🟡 `HbridgeData`/`HtruncatedEnergy` — bridge DISCHARGED via producer (9a2b056); `truncated_nonneg` DISCHARGED from the standard negative-part energy core via Gronwall (5db37e7, opus-verified GENUINE). Now carries the DEEPER `TruncatedNegativePartEnergyCoreRegularData`; its `semigroup_weak` field = the next atom (**codex grinding now**, duhamel skeleton). Remaining sub-fields: weak energy estimate, Sobolev plumbing (energy_cont/has_deriv/integrable), zero-energy→nonneg — standard parabolic facts approaching Mathlib gaps.
 - ✅ `A/Dbar/M/hM` coefficient bounds
 - 🟡 `hstrip` SquareHeatRestartStripData — coefficient regularity + hsuper for strictPos
-- 🟡 `regularity` classical C² — from cosine representation
+- ✅(redundant) `regularity` classical C² — GENUINE reduction to BFormDirectFrontier (21e2882, opus GENUINE-REDUCTION): field removed, derived via existing 7-component lemma intervalConjugatePicardLimit_classicalRegularity_direct. DEFECT (opus-flagged §2.6): regularityFrontier.bank/hTimeNhd/hResolverData DUPLICATE the spectral substrate in HpdeFacts + neumannFacts. Not unsound/unfaithful — minimality only.
 - ✅ `hpde_v` elliptic resolver — GENUINELY discharged + FIELD REMOVED (e922ec2, opus GENUINE-DISCHARGE HIGH + proof-term): elliptic identity 0=Δv−μv+νu^γ derived on-the-fly (obtain source-decay → resolver Laplacian bridge + coefficient-form elliptic identity + cosine source reconstruction → rw+ring). Only carried fact = SourceCoeffQuadraticDecay (satisfiable + dischargeable via sourceCoeffQuadraticDecay_of_solution).
 - ✅ `neumann` normalDeriv u = normalDeriv v = 0 — GENUINELY discharged (148ccca, opus GENUINE-DISCHARGE + proof-term read): u via 3-leg assembly (chemFlux-vanishing from resolverGradReal_zero → interchange license → ring), v via HasDerivWithinAt from resolverGradReal_zero/_one. Only carried Mathlib-gap fact = the DCT interchange license (load-bearing).
 - 🟡 `initialTrace` InitialTrace — B-form initial approach as t→0
@@ -44,4 +44,12 @@ Non-vacuous headline: ✅ (conditional). Discharged cross-cutting cores: ~9 ✅.
 Bundle fields toward unconditional: 0/13 fully discharged, 1 in progress (HbridgeData), 3 with ChatGPT skeletons ready.
 Distance = the 13 bundle atoms above (each may expand 1–2 sub-layers when pushed), NOT a time estimate.
 
-Last verified: 2026-06-20, headline build 8415 jobs RC=0, axioms clean. codex grinding HbridgeData/truncated_nonneg.
+## Cleanup TODO (minimality, not faithfulness)
+- **Unify the carried spectral/resolver substrate**: regularityFrontier (Type-level bank/hTimeNhd/hResolverData) duplicates
+  the spectral cosine-agreement reconstructible from HpdeFacts + the resolver data in neumannFacts. Carry the Type-level
+  frontier ONCE and derive HpdeFacts/hpde_u + hpde_v + regularity from it. Orthogonal to faithfulness (headline already
+  non-vacuous + axiom-clean); do as a minimization pass after the remaining atoms (DB/Hinf/hstrip/F1) are discharged.
+
+Last verified: 2026-06-20, headline build 8426 jobs RC=0, axioms [propext,Classical.choice,Quot.sound].
+Genuine discharges banked this run: truncated_nonneg, semigroup_weak, Hpde (after re-wrapper bounce), neumann, hpde_v
+(field removed), regularity (genuine but redundant). Remaining bundle atoms: DB, Hinf, hstrip, energy-core Sobolev fields, F1.
