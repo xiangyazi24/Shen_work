@@ -186,3 +186,15 @@ SuperSolution shape — boundedness + classical regularity + Lipschitz, matching
 ParabolicMaxPrinciple.comparison_principle), which the actual B-form solution satisfies (cosine-rep C²), then prove
 it from the tree's whole-line comparison via Neumann even-reflection. The regularity-hypothesized version is
 satisfiable + dischargeable; the bare-deriv one is not.
+
+## §3.3 FIX + new finding (2026-06-20, opus audit): vacuity fixed, but tree comparison is DRIFT-FREE
+The bare-deriv vacuity is FIXED: NeumannLinearDriftComparisonRegular (IntervalBFormLinearDriftComparisonRegular.lean)
+uses genuine HasDerivAt + boundedness + Neumann ⟹ the spike counterexample is EXCLUDED (a spike isn't HasDerivAt-
+differentiable), the interface is SATISFIABLE, and the corrected strict_pos_..._regular / bform_strictPos_..._regular
+(IntervalBFormSquareHeatSubsolutionRegular.lean) are NON-VACUOUS conditionals. BUT the opus auditor found the
+reflection route of_evenReflectionTreeData is BLOCKED for nonzero drift: the tree's ParabolicMaxPrinciple.comparison_
+principle is PURE-REACTION whole-line (u_t=u_xx+g(u), value-only g, NO drift slot), and the interval equation has a
+genuine drift B·w_x (slope-dependent) that no g(value) can carry — codex's own no_reaction_absorbs_nonzero_drift_at_
+fixed_value PROVES the obstruction. So strictPos is honestly-conditional on a DRIFT comparison principle the tree
+LACKS (the tree only has drift-free). The genuine remaining strictPos piece = a 1D Neumann-interval comparison/max
+principle WITH first-order drift (a real PDE lemma, not in tree). The reflection-to-pure-reaction route is dead.
