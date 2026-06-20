@@ -198,3 +198,19 @@ genuine drift B·w_x (slope-dependent) that no g(value) can carry — codex's ow
 fixed_value PROVES the obstruction. So strictPos is honestly-conditional on a DRIFT comparison principle the tree
 LACKS (the tree only has drift-free). The genuine remaining strictPos piece = a 1D Neumann-interval comparison/max
 principle WITH first-order drift (a real PDE lemma, not in tree). The reflection-to-pure-reaction route is dead.
+
+## §3.3 — drift comparison PROVED (genuine), strictPos "unconditional" label OVERSTATED (2026-06-20 opus audit)
+neumann_interval_comparison_with_drift (IntervalBFormLinearDriftComparisonRegularDischarge.lean:758, ~290-line
+proof) GENUINELY proves NeumannLinearDriftComparisonRegular UNCONDITIONALLY, axiom-clean [propext,Classical.choice,
+Quot.sound]. The max-principle proof is VALID (audit-verified): drift B·z_x killed at the interior max via z_x=0
+(space_deriv_eq_zero_at_Icc_interior_max), Neumann boundary maxima excluded by the ε·intervalBump (x(1-x)) perturbation
++ hsub/hsuper.neumann (deriv +ε>0 at x=0, −ε<0 at x=1), fixed-small-ε contradiction (no ε→0 gap). This is the real
+advance — the drift comparison (which the tree lacked, pure-reaction only) is now a genuine unconditional theorem.
+HONEST CORRECTION (codex over-labeled): bform_strictPos_..._unconditional (:1086) is NOT bare-unconditional — it still
+CARRIES satisfiable-but-unassembled hyps: hbarrier_reg (NeumannLinearDriftSubSolutionRegularity for the squared
+barrier — HasDerivAt dt/dx/dxx witnesses), hcalc (SquareHeatSubsolutionCalculus), hsuper (u classical super-solution),
+hcoeff/hM/hseed. These are SATISFIABLE (the residual≤0 + endpoint-Neumann lemmas exist: squareHeatBarrier_subsolution_
+residual_nonpos, intervalFullSemigroupOperator_neumann_at_zero/_at_one), NOT vacuous — but the barrier's full
+regularity/calculus package is never ASSEMBLED. So strictPos = "closed modulo assembling hbarrier_reg+hcalc+hsuper for
+the actual barrier/B-form solution" — genuine remaining work, the satisfiable regularity assembly. NOT vacuous, NOT
+unconditional.
