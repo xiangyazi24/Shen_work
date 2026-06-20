@@ -4,6 +4,8 @@ import ShenWork.Paper2.IntervalBFormSpectralPdeAgreementStandardFacts
 import ShenWork.Paper2.IntervalBFormNeumannDischarge
 import ShenWork.Paper2.IntervalBFormHpdeVDischarge
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
+import ShenWork.Paper2.IntervalConjugatePicardInfThresholdDischarge
+import ShenWork.Paper2.IntervalConjugatePicardCoreDischarge
 import ShenWork.Paper2.IntervalBFormRegularityDischarge
 import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqBankedConcrete
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
@@ -14,7 +16,8 @@ open ShenWork.IntervalDomain
   (intervalDomain intervalDomainLift intervalDomainPoint
    intervalDomainClassicalRegularity)
 open ShenWork.IntervalConjugatePicard
-  (ConjugateMildExistenceData ConjugatePicardInfThresholdData
+  (ConjugateMildExistenceData ConjugateMildExistenceCore
+   ConjugatePicardInfThresholdData
    conjugateMildSolutionData_of_data conjugatePicardLimit paperPositiveFloor)
 open ShenWork.IntervalMildToClassical
   (mildChemicalConcentration)
@@ -35,34 +38,40 @@ negative-part step is the regular flux/test chain: the concrete test is
 `[0,1]`. -/
 structure PositiveDatumBFormLocalComponentsSqRegular
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) where
-  DB : ConjugateMildExistenceData p u₀
+  DCore : ConjugateMildExistenceCore p u₀
   huPaper : PaperPositiveInitialDatum intervalDomain u₀
-  Hinf : ConjugatePicardInfThresholdData p u₀ DB.T
+  Hinf : ConjugatePicardInfThresholdData p u₀ DCore.T
   hsmall :
     |p.χ₀| * (heatGradientLinftyLinftyConstant *
-        (2 * Real.sqrt DB.T) * Hinf.CQ)
-      + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
+        (2 * Real.sqrt DCore.T) * Hinf.CQ)
+      + DCore.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
   HpdeFacts :
-    ShenWork.IntervalBFormSpectral.BFormSpectralPdeAgreementStandardFacts p DB.T
-      (conjugatePicardLimit p u₀ DB.T)
+    ShenWork.IntervalBFormSpectral.BFormSpectralPdeAgreementStandardFacts p DCore.T
+      (conjugatePicardLimit p u₀ DCore.T)
   DT : TruncatedConjugateMildExistenceData p u₀
-  HbridgeT : DT.T = DB.T
+  HbridgeT : DT.T = DCore.T
   HtruncatedEnergy : TruncatedNegativePartEnergyCoreRegularData p DT
-  htruncatedM_le_DBM : DT.M ≤ DB.M
+  htruncatedM_le_DBM : DT.M ≤ DCore.M
   hLinearStripCore :
-    ∀ τ, 0 < τ → τ < DB.T →
-      NeumannLinearDriftCoefficientsRegular (DB.T - τ)
-        (restartTimeShift τ (bformConcreteDrift p DB))
-        (restartTimeShift τ (bformConcreteReact p DB)) ∧
-      IsClassicalNeumannLinearDriftSuperSolution (DB.T - τ)
-        (restartTimeShift τ (bformConcreteDrift p DB))
-        (restartTimeShift τ (bformConcreteReact p DB))
-        (restartTimeShift τ (bformConjugatePicardLift p DB))
+    ∀ τ, 0 < τ → τ < DCore.T →
+      NeumannLinearDriftCoefficientsRegular (DCore.T - τ)
+        (restartTimeShift τ (bformConcreteDrift p DCore.toData))
+        (restartTimeShift τ (bformConcreteReact p DCore.toData)) ∧
+      IsClassicalNeumannLinearDriftSuperSolution (DCore.T - τ)
+        (restartTimeShift τ (bformConcreteDrift p DCore.toData))
+        (restartTimeShift τ (bformConcreteReact p DCore.toData))
+        (restartTimeShift τ (bformConjugatePicardLift p DCore.toData))
   regularityFrontier :
-    ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB
+    ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DCore.toData
   neumannFacts :
-    BFormNeumannStandardFacts p DB.T u₀
-      (conjugatePicardLimit p u₀ DB.T)
+    BFormNeumannStandardFacts p DCore.T u₀
+      (conjugatePicardLimit p u₀ DCore.T)
+
+abbrev PositiveDatumBFormLocalComponentsSqRegular.DB
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    ConjugateMildExistenceData p u₀ :=
+  K.DCore.toData
 
 def PositiveDatumBFormLocalComponentsSqRegular.regularity
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -166,6 +175,25 @@ def PositiveDatumBFormLocalComponentsSqRegular.strictPos
     (bformConcreteM_nonneg p K.DB)
     (bformConcreteM_closes p K.DB)
     K.hstrip
+
+def PositiveDatumBFormLocalComponentsSqRegular.uniformPositive_on_compact
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀)
+    {s t : ℝ} (hs : 0 < s) (hst : s ≤ t) (htT : t < K.DB.T) :
+    ∃ c : ℝ, 0 < c ∧
+      ∀ τ ∈ Set.Icc s t, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        c ≤ intervalDomainLift
+          (conjugatePicardLimit p u₀ K.DB.T τ) x := by
+  have hjoint : ContinuousOn
+      (Function.uncurry
+        (fun (τ : ℝ) (x : ℝ) =>
+          intervalDomainLift (conjugatePicardLimit p u₀ K.DB.T τ) x))
+      (Set.Ioo (0 : ℝ) K.DB.T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    (K.regularity.2.2.2.2.2.2).1
+  exact ShenWork.IntervalConjugatePicard.conjugatePicardLimit_uniformPositive_on_compact
+    (p := p) (u₀ := u₀) (T := K.DB.T)
+    hs hst htT hjoint
+    (fun τ x hτ hτT => K.strictPos τ x hτ hτT)
 
 def PositiveDatumBFormLocalComponentsSqRegular.hpde_u
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
