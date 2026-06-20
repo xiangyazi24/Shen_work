@@ -98,11 +98,11 @@ theorem negativePart_half_energy_deriv_le_regular
   have htest := hweakTest
   have hchem_neg :
       (∫ x,
-        truncatedChemotacticPower p (intervalDomainLift (u t) x)
+        truncatedChemFluxLifted p (u t) x
           * deriv (negativePartTest u t) x
         ∂ intervalMeasure 1) = 0 := by
-    refine truncatedChemotacticPower_mul_negDeriv_integral_eq_zero
-      (p := p) (u := fun x => intervalDomainLift (u t) x)
+    refine truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+      (p := p) (w := u t)
       (duNeg := fun x => deriv (negativePartTest u t) x) ?_
     filter_upwards [H.neg_deriv_zero_on_pos t ht htT] with x hx hpos
     change deriv (-negativePartLift (u t)) x = 0
@@ -126,9 +126,9 @@ theorem negativePart_half_energy_deriv_le_regular
               ∂ intervalMeasure 1) := by
             rw [H.time_chain t ht htT, H.diffusion_chain t ht htT]
       _ =
-        p.χ₀ *
+          p.χ₀ *
             (∫ x,
-              truncatedChemotacticPower p (intervalDomainLift (u t) x)
+              truncatedChemFluxLifted p (u t) x
                 * deriv (negativePartTest u t) x
               ∂ intervalMeasure 1)
           + (∫ x, truncatedLogisticLifted p (u t) x * negativePartTest u t x

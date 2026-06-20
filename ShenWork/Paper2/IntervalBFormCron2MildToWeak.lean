@@ -44,8 +44,7 @@ def TruncatedWeakLocalPDEOn (p : CM2Params) (T : ℝ)
       =
     p.χ₀ *
         (∫ x,
-          truncatedChemotacticPower p (intervalDomainLift (u t) x)
-            * deriv φ x
+          truncatedChemFluxLifted p (u t) x * deriv φ x
           ∂ intervalMeasure 1)
       + (∫ x, truncatedLogisticLifted p (u t) x * φ x
           ∂ intervalMeasure 1)
@@ -112,8 +111,7 @@ def TruncatedMildSemigroupWeakAfterBNDualityOn
           =
         p.χ₀ *
             (∫ x,
-              truncatedChemotacticPower p (intervalDomainLift (u t) x)
-                * deriv φ x
+              truncatedChemFluxLifted p (u t) x * deriv φ x
               ∂ intervalMeasure 1)
           + (∫ x, truncatedLogisticLifted p (u t) x * φ x
               ∂ intervalMeasure 1)
@@ -184,7 +182,7 @@ theorem truncatedMildToWeakAvailable_of_regularData_allTests
     (H : TruncatedMildToWeakRegularData p DB Test)
     (all_tests : ∀ φ : ℝ → ℝ, Test φ) :
     TruncatedMildToWeakAvailable p DB := by
-  intro hmild _hBNDuality t ht htT φ
+  intro hmild t ht htT φ
   exact truncatedWeakLocalPDEOn_of_regularData H hmild t ht htT φ (all_tests φ)
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart

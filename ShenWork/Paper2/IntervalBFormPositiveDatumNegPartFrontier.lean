@@ -167,9 +167,6 @@ structure BFormPositiveClassicalFrontier
         intervalDomain.normalDeriv
           ((mildChemicalConcentration p
             (conjugatePicardLimit p u₀ DB.T)) t) x = 0
-  initialTrace :
-    InitialTrace intervalDomain u₀
-      (conjugatePicardLimit p u₀ DB.T)
 
 theorem isClassicalSolution_of_BFormPositiveClassicalFrontier
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -193,7 +190,8 @@ theorem localClassicalSolution_of_BFormPositiveClassicalFrontier
     conjugatePicardLimit p u₀ DB.T,
     mildChemicalConcentration p (conjugatePicardLimit p u₀ DB.T), ?_⟩
   exact ⟨isClassicalSolution_of_BFormPositiveClassicalFrontier F,
-    F.initialTrace⟩
+    ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
+      p F.route.datum.admissible.2 DB⟩
 
 /-- Per-datum B-form frontier for the boundary-vanishing
 `PositiveInitialDatum` class. -/
@@ -243,4 +241,3 @@ theorem paper2_theorem_1_1_general_chi_bform_negpart
 #print axioms paper2_theorem_1_1_general_chi_bform_negpart
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart
-

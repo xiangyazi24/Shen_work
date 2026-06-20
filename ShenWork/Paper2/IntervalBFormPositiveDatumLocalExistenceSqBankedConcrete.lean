@@ -363,11 +363,6 @@ structure PositiveDatumBFormSqBankedConcreteHypotheses
           aC s k =
             (intervalNeumannResolverSourceCoeff p
               ((conjugatePicardLimit p u₀ DB.T) s) k).re)
-  hInitialApproach : ∀ ε, 0 < ε →
-    ∃ δ > 0, ∀ t, 0 < t → t < δ →
-      ∀ x : intervalDomainPoint,
-        |ShenWork.IntervalConjugateDuhamelMap.intervalConjugateDuhamelMap p u₀
-            (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε
   DT : TruncatedConjugateMildExistenceData p u₀
   Hbridge : TruncatedConjugateLimitBridge p DB DT
   HmildWeak : TruncatedMildToWeakAvailable p DB
@@ -398,7 +393,6 @@ def positiveDatumBFormSqBankedPlumbing_of_solution
       (p := p) (T := DB.T) (u := conjugatePicardLimit p u₀ DB.T)
       H.hResolverCoeffTimeC1
   hVpos := bform_mildChemicalConcentration_pos_of_conjugate_data p DB
-  hInitialApproach := H.hInitialApproach
   DT := H.DT
   Hbridge := H.Hbridge
   HmildWeak := H.HmildWeak

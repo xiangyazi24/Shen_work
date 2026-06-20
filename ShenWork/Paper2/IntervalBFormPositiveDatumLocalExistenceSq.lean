@@ -44,7 +44,6 @@ structure PositiveDatumBFormLocalComponentsSq
       (conjugatePicardLimit p u₀ DB.T)
   DT : TruncatedConjugateMildExistenceData p u₀
   Hbridge : TruncatedConjugateLimitBridge p DB DT
-  HbN : BNDualityAvailable
   HmildWeak : TruncatedMildToWeakAvailable p DB
   Henergy : NegativePartEnergyCoreData p DB
   A : ℝ
@@ -87,9 +86,6 @@ structure PositiveDatumBFormLocalComponentsSq
         intervalDomain.normalDeriv
           ((mildChemicalConcentration p
             (conjugatePicardLimit p u₀ DB.T)) t) x = 0
-  initialTrace :
-    InitialTrace intervalDomain u₀
-      (conjugatePicardLimit p u₀ DB.T)
 
 def PositiveDatumBFormLocalComponentsSq.negativePart_zero
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -97,7 +93,7 @@ def PositiveDatumBFormLocalComponentsSq.negativePart_zero
     ∀ t, 0 < t → t ≤ K.DB.T → ∀ x : intervalDomainPoint,
       negativePart (conjugatePicardLimit p u₀ K.DB.T t x) = 0 :=
   bform_negativePart_zero_of_concrete_truncated_energyCore
-    K.DT K.Hbridge K.HbN K.HmildWeak K.Henergy
+    K.DT K.Hbridge K.HmildWeak K.Henergy
 
 def PositiveDatumBFormLocalComponentsSq.strictPos
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -163,7 +159,9 @@ theorem PositiveDatumBFormLocalComponentsSq.localClassicalSolution
   refine ⟨K.DB.T, K.DB.hT,
     conjugatePicardLimit p u₀ K.DB.T,
     mildChemicalConcentration p (conjugatePicardLimit p u₀ K.DB.T), ?_⟩
-  exact ⟨K.isClassicalSolution, K.initialTrace⟩
+  exact ⟨K.isClassicalSolution,
+    ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
+      p (PaperPositiveInitialDatum.admissible K.huPaper).2 K.DB⟩
 
 /-- Per-datum squared-barrier B-form local hypothesis.  The seed used by the
 constructor is the paper-positive floor seed, so the datum class is the

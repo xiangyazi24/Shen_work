@@ -7,7 +7,6 @@
   already named `conjugatePicardLimit` on the shared time window.
 -/
 import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
-import ShenWork.Paper2.IntervalBFormCron2BNDuality
 
 open ShenWork.IntervalDomain (intervalDomainPoint)
 open ShenWork.IntervalConjugatePicard
@@ -57,22 +56,18 @@ theorem truncatedConjugateMildSolution_conjugatePicardLimit_of_data
         Hmild t ht htT' x
     _ = truncatedConjugateDuhamelMap p u₀
           (conjugatePicardLimit p u₀ DB.T) t x := by
-        have hlift : ∀ s y,
-            ShenWork.IntervalDomain.intervalDomainLift
-                (truncatedConjugatePicardLimit p u₀ DT.T s) y
+        have hslice : ∀ s,
+            truncatedConjugatePicardLimit p u₀ DT.T s
               =
-            ShenWork.IntervalDomain.intervalDomainLift
-                (conjugatePicardLimit p u₀ DB.T s) y := by
-          intro s y
+            conjugatePicardLimit p u₀ DB.T s := by
+          intro s
           by_cases hs : 0 < s ∧ s ≤ DB.T
-          · exact congrArg
-              (fun f : intervalDomainPoint → ℝ =>
-                ShenWork.IntervalDomain.intervalDomainLift f y)
-              (funext fun z => (hlim s hs.1 hs.2 z).symm)
+          · exact funext fun z => (hlim s hs.1 hs.2 z).symm
           · unfold conjugatePicardLimit truncatedConjugatePicardLimit
             have hsT : ¬(0 < s ∧ s ≤ DT.T) := by
               intro hsDT
               exact hs ⟨hsDT.1, by simpa [hT] using hsDT.2⟩
+            funext z
             simp [hs, hsT]
         have hflux :
             (fun s : ℝ =>
@@ -86,8 +81,7 @@ theorem truncatedConjugateMildSolution_conjugatePicardLimit_of_data
                   (conjugatePicardLimit p u₀ DB.T s)) x.1 := by
           funext s
           congr 1
-          funext y
-          simp [truncatedChemFluxLifted, hlift s y]
+          rw [hslice s]
         have hlog :
             (fun s : ℝ =>
               intervalFullSemigroupOperator (t - s)
@@ -100,8 +94,7 @@ theorem truncatedConjugateMildSolution_conjugatePicardLimit_of_data
                   (conjugatePicardLimit p u₀ DB.T s)) x.1 := by
           funext s
           congr 1
-          funext y
-          simp [truncatedLogisticLifted, truncatedLogisticLocal, hlift s y]
+          rw [hslice s]
         unfold truncatedConjugateDuhamelMap
         rw [hflux, hlog]
 
@@ -113,13 +106,11 @@ def bformCron2NegativePartHyp_of_concrete_truncated
     {DB : ConjugateMildExistenceData p u₀}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     (Hbridge : TruncatedConjugateLimitBridge p DB DT)
-    (HbN : BNDualityAvailable)
     (HmildWeak : TruncatedMildToWeakAvailable p DB)
     (Henergy : NegativePartEnergyGronwallAvailable p DB) :
     BFormCron2NegativePartHyp p DB where
   truncated_mild :=
     truncatedConjugateMildSolution_conjugatePicardLimit_of_data DB DT Hbridge
-  bN_duality := HbN
   mild_to_weak := HmildWeak
   negative_part_energy := Henergy
 

@@ -63,9 +63,6 @@ structure PositiveDatumBFormLocalComponentsSqRegular
   neumannFacts :
     BFormNeumannStandardFacts p DB.T u₀
       (conjugatePicardLimit p u₀ DB.T)
-  initialTrace :
-    InitialTrace intervalDomain u₀
-      (conjugatePicardLimit p u₀ DB.T)
 
 def PositiveDatumBFormLocalComponentsSqRegular.regularity
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -252,7 +249,9 @@ theorem PositiveDatumBFormLocalComponentsSqRegular.localClassicalSolution
   refine ⟨K.DB.T, K.DB.hT,
     conjugatePicardLimit p u₀ K.DB.T,
     mildChemicalConcentration p (conjugatePicardLimit p u₀ K.DB.T), ?_⟩
-  exact ⟨K.isClassicalSolution, K.initialTrace⟩
+  exact ⟨K.isClassicalSolution,
+    ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
+      p (PaperPositiveInitialDatum.admissible K.huPaper).2 K.DB⟩
 
 def PositiveDatumBFormLocalHypSqRegular (p : CM2Params) : Prop :=
   ∀ u₀ : intervalDomainPoint → ℝ,

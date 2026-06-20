@@ -57,14 +57,8 @@ structure PositiveDatumBFormSqBankedPlumbing
     ∀ t, 0 < t → t < DB.T → ∀ x : intervalDomainPoint,
       0 < mildChemicalConcentration p
         (conjugatePicardLimit p u₀ DB.T) t x
-  hInitialApproach : ∀ ε, 0 < ε →
-    ∃ δ > 0, ∀ t, 0 < t → t < δ →
-      ∀ x : intervalDomainPoint,
-        |ShenWork.IntervalConjugateDuhamelMap.intervalConjugateDuhamelMap p u₀
-            (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε
   DT : TruncatedConjugateMildExistenceData p u₀
   Hbridge : TruncatedConjugateLimitBridge p DB DT
-  HbN : BNDualityAvailable
   HmildWeak : TruncatedMildToWeakAvailable p DB
   Henergy : NegativePartEnergyCoreData p DB
   A : ℝ
@@ -95,7 +89,6 @@ def PositiveDatumBFormSqBankedPlumbing.directFrontier
   hTimeNhd := P.hTimeNhd
   hResolverData := P.hResolverData
   hVpos := P.hVpos
-  hInitialApproach := P.hInitialApproach
 
 def hpde_of_BFormBankedInputs
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -126,7 +119,6 @@ def PositiveDatumBFormLocalComponentsSq.of_banked
     Hpde := hpde_of_BFormBankedInputs P.bank
     DT := P.DT
     Hbridge := P.Hbridge
-    HbN := P.HbN
     HmildWeak := P.HmildWeak
     Henergy := P.Henergy
     A := P.A
@@ -145,8 +137,7 @@ def PositiveDatumBFormLocalComponentsSq.of_banked
     neumann := by
       intro t x ht htT hx
       exact hsol.neumann ht htT hx
-    initialTrace :=
-      ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_initialTrace_direct F }
+  }
 
 /-- Discharge `PositiveDatumBFormLocalHypSq` from the banked per-datum B-form
 plumbing. -/

@@ -1,11 +1,9 @@
 /-
   Kernel symmetry and the regular B_N adjoint identity for the cron2 route.
 
-  The exact carried proposition `BNDualityAvailable` in
-  `IntervalBFormNegativePartCron2` quantifies over arbitrary functions
-  `g ψ : ℝ → ℝ`.  The theorem proved here is the concrete Fubini identity under
-  the explicit hypotheses that make the Bochner integrals and the derivative of
-  `S_N(τ)ψ` available.
+  This file proves the concrete regular B_N Fubini identity under the explicit
+  hypotheses that make the Bochner integrals and the derivative of `S_N(τ)ψ`
+  available.
 -/
 import ShenWork.Paper2.IntervalBFormNegativePartCron2
 

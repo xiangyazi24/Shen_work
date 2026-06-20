@@ -23,19 +23,12 @@ time-neighborhood spectral data. -/
 theorem bForm_classicalRegularity_of_direct_frontier
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
-    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB) :
+  (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB) :
     intervalDomain.classicalRegularity DB.T
       (conjugatePicardLimit p u₀ DB.T)
       (mildChemicalConcentration p
         (conjugatePicardLimit p u₀ DB.T)) := by
-  rcases F with ⟨bank, hTimeNhd, hResolverData, hVpos, hInitialApproach⟩
-  let F' : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB :=
-    { bank := bank
-      hTimeNhd := hTimeNhd
-      hResolverData := hResolverData
-      hVpos := hVpos
-      hInitialApproach := hInitialApproach }
   simpa [intervalDomain] using
-    ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_classicalRegularity_direct F'
+    ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_classicalRegularity_direct F
 
 end ShenWork.Paper2.BFormPositiveDatumLocalSq

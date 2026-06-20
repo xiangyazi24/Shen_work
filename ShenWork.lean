@@ -152,6 +152,7 @@ import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 import ShenWork.Paper2.IntervalDomainL2PDEIntegral
 import ShenWork.Paper2.IntervalDomainL2CrossControl
 import ShenWork.Paper2.IntervalDuhamelIntegrability
+import ShenWork.Paper2.IntervalBFormInitialTrace
 -- 2026-06-09: working-front modules added to the build closure.
 -- These 17 maximal orphans pull in all 92 previously-unbuilt files;
 -- before this, a green full build did NOT cover the Theorem 1.1 chain

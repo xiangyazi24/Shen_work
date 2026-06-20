@@ -2,6 +2,7 @@ import ShenWork.Paper2.IntervalBFormPIDUnconditional
 import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalMildRegularityFrontierAssembly
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
+import ShenWork.Paper2.IntervalBFormInitialTrace
 import ShenWork.PDE.IntervalCoupledRegularityBootstrap
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalResolverSpatialC2
@@ -178,11 +179,6 @@ structure BFormDirectFrontier
   hVpos : ∀ t, 0 < t → t < DB.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p
       (conjugatePicardLimit p u₀ DB.T) t x
-  hInitialApproach : ∀ ε, 0 < ε →
-    ∃ δ > 0, ∀ t, 0 < t → t < δ →
-      ∀ x : intervalDomainPoint,
-        |intervalConjugateDuhamelMap p u₀
-            (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε
 
 private theorem bform_u_pos
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -428,34 +424,9 @@ theorem intervalConjugatePicardLimit_initialTrace_direct
     {DB : ConjugateMildExistenceData p u₀}
     (F : BFormDirectFrontier p DB) :
     InitialTrace intervalDomain u₀
-      (conjugatePicardLimit p u₀ DB.T) := by
-  intro ε hε
-  obtain ⟨δ₀, hδ₀, hsmall⟩ := F.hInitialApproach (ε / 2) (by linarith)
-  refine ⟨min δ₀ DB.T, lt_min hδ₀ DB.hT, fun t ht htδ => ?_⟩
-  have htδ₀ : t < δ₀ := lt_of_lt_of_le htδ (min_le_left _ _)
-  have htT : t ≤ DB.T := le_of_lt (lt_of_lt_of_le htδ (min_le_right _ _))
-  change intervalDomainSupNorm
-    (fun x => conjugatePicardLimit p u₀ DB.T t x - u₀ x) < ε
-  unfold intervalDomainSupNorm
-  have hpt :
-      ∀ x : intervalDomainPoint,
-        |conjugatePicardLimit p u₀ DB.T t x - u₀ x| < ε / 2 := by
-    intro x
-    change |(conjugateMildSolutionData_of_data DB).u t x - u₀ x| < ε / 2
-    rw [(conjugateMildSolutionData_of_data DB).hmild t ht htT x]
-    exact hsmall t ht htδ₀ x
-  haveI : Nonempty intervalDomainPoint :=
-    ⟨⟨0, by constructor <;> norm_num⟩⟩
-  have hle :
-      sSup (Set.range
-          (fun x : intervalDomainPoint =>
-            |conjugatePicardLimit p u₀ DB.T t x - u₀ x|)) ≤
-        ε / 2 := by
-    apply csSup_le (Set.range_nonempty _)
-    intro y hy
-    rcases hy with ⟨x, rfl⟩
-    exact le_of_lt (hpt x)
-  linarith
+      (conjugatePicardLimit p u₀ DB.T) :=
+  ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
+    p (PaperPositiveInitialDatum.admissible F.bank.huPaper).2 DB
 
 theorem intervalConjugatePicardLimit_isClassicalSolution_direct
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
