@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalBFormSpectralPdeAgreementStandardFacts
+import ShenWork.Paper2.IntervalBFormLegDefs
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 
 open Filter Topology Set

@@ -129,4 +129,18 @@ theorem shiftedNeumannFractionalGeneratorHeatCoeff_l2_norm_le
           rw [Real.sqrt_sq hfactor_nonneg]
           rfl
 
+/-- Explicit half-generator form of F1.  For `ω = 0`, the multiplier
+`λ_n^(1/2) e^{-tλ_n}` is the Neumann heat-gradient multiplier on the
+orthonormal cosine/sine bases, and the constant
+`((1/2)/e)^(1/2)` is analytically `1 / sqrt (2e)`. -/
+theorem shiftedNeumannHalfGeneratorHeatCoeff_l2_norm_le
+    {ω t : ℝ} (hω : 0 ≤ ω) (ht : 0 < t)
+    {a : ℕ → ℂ} (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    coeffL2Norm
+        (shiftedNeumannFractionalGeneratorHeatCoeff ω (1 / 2 : ℝ) t a) ≤
+      (((1 / 2 : ℝ) / Real.exp 1) ^ (1 / 2 : ℝ) *
+          t ^ (-(1 / 2 : ℝ))) * coeffL2Norm a :=
+  shiftedNeumannFractionalGeneratorHeatCoeff_l2_norm_le
+    hω (by norm_num : 0 ≤ (1 / 2 : ℝ)) ht ha
+
 end ShenWork.PDE.F1ProbeFractionalSmoothing

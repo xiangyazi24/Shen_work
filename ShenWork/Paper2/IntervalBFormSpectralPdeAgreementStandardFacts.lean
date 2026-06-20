@@ -2,11 +2,12 @@ import Mathlib.Topology.UniformSpace.UniformConvergence
 import ShenWork.PDE.IntervalResolverSpectralJointC2Producer
 import ShenWork.Paper2.IntervalBFormPdeUProducer
 import ShenWork.Paper2.IntervalBFormRestart
-import ShenWork.Paper2.IntervalConjugateCosineSeries
+import ShenWork.Paper2.IntervalBFormLegDefs
 import ShenWork.Paper2.IntervalDuhamelSourceShift
+import ShenWork.Paper2.IntervalCD6CosineModeBounds
 
 open Filter Topology Set MeasureTheory
-open scoped Topology
+open scoped Topology Interval
 
 noncomputable section
 
@@ -34,40 +35,66 @@ open ShenWork.IntervalCoupledRegularityBootstrap
 open ShenWork.IntervalMildToClassical
   (mildChemicalConcentration)
 
-/-- The flux slice used by the B-form chemotaxis Duhamel leg. -/
-def bFormChemFluxAt (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) : ℝ → ℝ :=
-  chemFluxLifted p (u t)
-
-/-- One positive-time cosine term in the B-kernel representation. -/
-def bFormPositiveTimeCosineTerm
+theorem bFormPositiveTimeCosineTerm_deriv
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (t r x : ℝ) (n : ℕ) : ℝ :=
-  (Real.exp (-r * unitIntervalCosineEigenvalue n) *
-    (((n : ℝ) * Real.pi) * intervalSineInner (bFormChemFluxAt p u t) n))
-      * cosineMode n x
+    (t r x : ℝ) (n : ℕ) :
+    deriv (fun y : ℝ => bFormPositiveTimeCosineTerm p u t r y n) x =
+      (Real.exp (-r * unitIntervalCosineEigenvalue n) *
+        (((n : ℝ) * Real.pi) * intervalSineInner (bFormChemFluxAt p u t) n)) *
+        deriv (cosineMode n) x := by
+  let c : ℝ :=
+    Real.exp (-r * unitIntervalCosineEigenvalue n) *
+      (((n : ℝ) * Real.pi) * intervalSineInner (bFormChemFluxAt p u t) n)
+  change deriv (fun y : ℝ => c * cosineMode n y) x =
+    c * deriv (cosineMode n) x
+  rw [ShenWork.CosineSpectrum.cosineMode_deriv]
+  exact ((ShenWork.CosineSpectrum.cosineMode_hasDerivAt n x).const_mul c).deriv
 
-/-- The B-form chemotaxis Duhamel leg before multiplication by `-χ₀`. -/
-def bFormConjugateDuhamelLeg
+theorem bFormPositiveTimeCosineTerm_second_deriv
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (t x : ℝ) : ℝ :=
-  ∫ s in (0 : ℝ)..t,
-    intervalConjugateKernelOperator (t - s) (chemFluxLifted p (u s)) x
-
-/-- The ordinary logistic Duhamel leg. -/
-def bFormLogisticDuhamelLeg
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (t x : ℝ) : ℝ :=
-  ∫ s in (0 : ℝ)..t,
-    intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x
-
-/-- The non-homogeneous part of the B-form mild profile. -/
-def bFormInhomogeneousDuhamelLeg
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (t x : ℝ) : ℝ :=
-  (-p.χ₀) * bFormConjugateDuhamelLeg p u t x
-    + bFormLogisticDuhamelLeg p u t x
-
+    (t r x : ℝ) (n : ℕ) :
+    deriv
+        (fun y : ℝ =>
+          deriv (fun z : ℝ => bFormPositiveTimeCosineTerm p u t r z n) y) x =
+      (Real.exp (-r * unitIntervalCosineEigenvalue n) *
+        (((n : ℝ) * Real.pi) * intervalSineInner (bFormChemFluxAt p u t) n)) *
+        (-(((n : ℝ) * Real.pi) ^ 2 * cosineMode n x)) := by
+  let c : ℝ :=
+    Real.exp (-r * unitIntervalCosineEigenvalue n) *
+      (((n : ℝ) * Real.pi) * intervalSineInner (bFormChemFluxAt p u t) n)
+  have hfun :
+      (fun y : ℝ =>
+          deriv (fun z : ℝ => bFormPositiveTimeCosineTerm p u t r z n) y) =
+        fun y : ℝ =>
+          c * (-((n : ℝ) * Real.pi) *
+            Real.sin ((n : ℝ) * Real.pi * y)) := by
+    funext y
+    rw [bFormPositiveTimeCosineTerm_deriv]
+    rw [ShenWork.CosineSpectrum.cosineMode_deriv]
+  change deriv
+      (fun y : ℝ =>
+        deriv (fun z : ℝ => bFormPositiveTimeCosineTerm p u t r z n) y) x =
+    c * (-(((n : ℝ) * Real.pi) ^ 2 * cosineMode n x))
+  rw [hfun]
+  let freq : ℝ := (n : ℝ) * Real.pi
+  have hlin : HasDerivAt (fun y : ℝ => freq * y) freq x := by
+    simpa using ((hasDerivAt_id x).const_mul freq)
+  have hsin :
+      HasDerivAt (fun y : ℝ => Real.sin (freq * y))
+        (Real.cos (freq * x) * freq) x :=
+    (Real.hasDerivAt_sin (freq * x)).comp x hlin
+  have hderiv := (hsin.const_mul (c * (-freq))).deriv
+  rw [show (fun y : ℝ =>
+        c * (-((n : ℝ) * Real.pi) *
+          Real.sin ((n : ℝ) * Real.pi * y))) =
+      fun y : ℝ => c * (-((n : ℝ) * Real.pi)) *
+        Real.sin ((n : ℝ) * Real.pi * y) by
+        funext y
+        ring]
+  dsimp [freq] at hderiv
+  rw [hderiv]
+  simp only [cosineMode]
+  ring
 /-- Local bounded classical regularity on the current finite Picard window.
 The bound is the local fixed-point ball bound, not a global boundedness
 conclusion. -/
@@ -96,6 +123,222 @@ def BFormDifferentiatedCosineSeriesUniformConvergence
                     deriv (fun z : ℝ =>
                       bFormPositiveTimeCosineTerm p u t₀ r z n) y) x|
                   ≤ M2 n)
+
+/-- Sine coefficients of a bounded flux slice are uniformly bounded.  The
+factor `2` is the positive-mode Neumann normalization in `intervalSineInner`. -/
+theorem intervalSineInner_abs_le_of_bound
+    {g : ℝ → ℝ} {C : ℝ} (hC : 0 ≤ C)
+    (hg : ∀ y ∈ Set.Icc (0 : ℝ) 1, |g y| ≤ C) :
+    ∀ n : ℕ, |intervalSineInner g n| ≤ 2 * C := by
+  intro n
+  unfold intervalSineInner
+  by_cases hn : n = 0
+  · simp [hn, hC]
+  · simp only [hn, if_false]
+    rw [abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+    have hint :
+        ‖∫ y in (0 : ℝ)..1,
+            Real.sin ((n : ℝ) * Real.pi * y) * g y‖ ≤ C := by
+      have hbound : ∀ y ∈ Ι (0 : ℝ) 1,
+          ‖Real.sin ((n : ℝ) * Real.pi * y) * g y‖ ≤ C := by
+        intro y hy
+        have hyUcc : y ∈ Set.uIcc (0 : ℝ) 1 :=
+          Set.uIoc_subset_uIcc hy
+        have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
+          simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hyUcc
+        rw [Real.norm_eq_abs, abs_mul]
+        calc |Real.sin ((n : ℝ) * Real.pi * y)| * |g y|
+            ≤ 1 * C :=
+              mul_le_mul (Real.abs_sin_le_one _)
+                (hg y hyIcc) (abs_nonneg _) (by norm_num)
+          _ = C := by ring
+      have h := intervalIntegral.norm_integral_le_of_norm_le_const
+        (a := (0 : ℝ)) (b := 1) (C := C) hbound
+      simpa using h
+    calc
+      2 * |∫ y in (0 : ℝ)..1,
+            Real.sin ((n : ℝ) * Real.pi * y) * g y|
+          = 2 * ‖∫ y in (0 : ℝ)..1,
+            Real.sin ((n : ℝ) * Real.pi * y) * g y‖ := by
+              rw [Real.norm_eq_abs]
+      _ ≤ 2 * C := mul_le_mul_of_nonneg_left hint (by norm_num)
+
+theorem bFormDifferentiatedCosineSeriesUniformConvergence_of_sineInner_bound
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    (hσ : ∀ t₀, 0 < t₀ → t₀ < T →
+      ∃ C : ℝ, 0 ≤ C ∧
+        ∀ n : ℕ, |intervalSineInner (bFormChemFluxAt p u t₀) n| ≤ C) :
+    BFormDifferentiatedCosineSeriesUniformConvergence p T u := by
+  intro t₀ ht₀ ht₀T K _hK _hKsub ε hε
+  obtain ⟨C, hC, hσC⟩ := hσ t₀ ht₀ ht₀T
+  let M0 : ℕ → ℝ := fun n =>
+    C * (|((n : ℝ) * Real.pi)| ^ 1 *
+      Real.exp (-ε * unitIntervalCosineEigenvalue n))
+  let M1 : ℕ → ℝ := fun n =>
+    C * (|((n : ℝ) * Real.pi)| ^ 2 *
+      Real.exp (-ε * unitIntervalCosineEigenvalue n))
+  let M2 : ℕ → ℝ := fun n =>
+    C * (|((n : ℝ) * Real.pi)| ^ 3 *
+      Real.exp (-ε * unitIntervalCosineEigenvalue n))
+  refine ⟨M0, M1, M2, ?_, ?_, ?_, ?_, ?_⟩
+  · exact
+      (ShenWork.Paper2.CD6CosineModeBounds.frequency_pow_mul_exp_summable
+        1 hε).mul_left C
+  · exact
+      (ShenWork.Paper2.CD6CosineModeBounds.frequency_pow_mul_exp_summable
+        2 hε).mul_left C
+  · exact
+      (ShenWork.Paper2.CD6CosineModeBounds.frequency_pow_mul_exp_summable
+        3 hε).mul_left C
+  · intro n
+    have hpow1 : 0 ≤ |((n : ℝ) * Real.pi)| ^ 1 := by positivity
+    have hpow2 : 0 ≤ |((n : ℝ) * Real.pi)| ^ 2 := by positivity
+    have hpow3 : 0 ≤ |((n : ℝ) * Real.pi)| ^ 3 := by positivity
+    have hexp : 0 ≤ Real.exp (-ε * unitIntervalCosineEigenvalue n) :=
+      Real.exp_nonneg _
+    exact ⟨mul_nonneg hC (mul_nonneg hpow1 hexp),
+      mul_nonneg hC (mul_nonneg hpow2 hexp),
+      mul_nonneg hC (mul_nonneg hpow3 hexp)⟩
+  · intro r hεr _hrT x _hxK n
+    let freq : ℝ := (n : ℝ) * Real.pi
+    let lam : ℝ := unitIntervalCosineEigenvalue n
+    let sigma : ℝ := intervalSineInner (bFormChemFluxAt p u t₀) n
+    have hlam_nonneg : 0 ≤ lam := by
+      dsimp [lam, unitIntervalCosineEigenvalue]
+      positivity
+    have hexp_le :
+        Real.exp (-r * lam) ≤ Real.exp (-ε * lam) := by
+      apply Real.exp_le_exp.mpr
+      have hmul : ε * lam ≤ r * lam :=
+        mul_le_mul_of_nonneg_right hεr hlam_nonneg
+      linarith
+    have hcoef_nonneg :
+        0 ≤ Real.exp (-ε * lam) * (|freq| * C) :=
+      mul_nonneg (Real.exp_nonneg _) (mul_nonneg (abs_nonneg _) hC)
+    have hcoef_le :
+        |Real.exp (-r * lam) * (freq * sigma)| ≤
+          Real.exp (-ε * lam) * (|freq| * C) := by
+      calc
+        |Real.exp (-r * lam) * (freq * sigma)|
+            = Real.exp (-r * lam) * (|freq| * |sigma|) := by
+              rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _), abs_mul]
+        _ ≤ Real.exp (-r * lam) * (|freq| * C) := by
+              exact mul_le_mul_of_nonneg_left
+                (mul_le_mul_of_nonneg_left
+                  (by simpa [sigma] using hσC n) (abs_nonneg freq))
+                (Real.exp_nonneg _)
+        _ ≤ Real.exp (-ε * lam) * (|freq| * C) :=
+              mul_le_mul_of_nonneg_right hexp_le
+                (mul_nonneg (abs_nonneg freq) hC)
+    have hcos : |cosineMode n x| ≤ 1 := by
+      unfold cosineMode
+      exact Real.abs_cos_le_one _
+    have hderiv_cos : |deriv (cosineMode n) x| ≤ |freq| := by
+      rw [ShenWork.CosineSpectrum.cosineMode_deriv]
+      dsimp [freq]
+      rw [abs_mul, abs_neg]
+      exact mul_le_of_le_one_right (abs_nonneg _)
+        (Real.abs_sin_le_one _)
+    have hsecond_cos :
+        |(-(((n : ℝ) * Real.pi) ^ 2 * cosineMode n x))| ≤ |freq| ^ 2 := by
+      dsimp [freq]
+      rw [abs_neg, abs_mul, abs_pow]
+      exact mul_le_of_le_one_right (pow_nonneg (abs_nonneg _) 2) hcos
+    have hM0 :
+        |bFormPositiveTimeCosineTerm p u t₀ r x n| ≤ M0 n := by
+      dsimp [bFormPositiveTimeCosineTerm, M0, freq, lam, sigma] at *
+      calc
+        |Real.exp (-r * unitIntervalCosineEigenvalue n) *
+              (((n : ℝ) * Real.pi) *
+                intervalSineInner (bFormChemFluxAt p u t₀) n) *
+            cosineMode n x|
+            =
+          |Real.exp (-r * unitIntervalCosineEigenvalue n) *
+              (((n : ℝ) * Real.pi) *
+                intervalSineInner (bFormChemFluxAt p u t₀) n)| *
+            |cosineMode n x| := by rw [abs_mul]
+        _ ≤
+          (Real.exp (-ε * unitIntervalCosineEigenvalue n) *
+              (|((n : ℝ) * Real.pi)| * C)) * 1 :=
+            mul_le_mul
+              (by simpa [freq, lam, sigma] using hcoef_le)
+              hcos
+              (abs_nonneg _)
+              (by
+                simpa [freq, lam] using hcoef_nonneg)
+        _ = C * (|((n : ℝ) * Real.pi)| ^ 1 *
+              Real.exp (-ε * unitIntervalCosineEigenvalue n)) := by
+            ring
+    have hM1 :
+        |deriv (fun y : ℝ =>
+            bFormPositiveTimeCosineTerm p u t₀ r y n) x| ≤ M1 n := by
+      rw [bFormPositiveTimeCosineTerm_deriv]
+      dsimp [M1, freq, lam, sigma] at *
+      calc
+        |(Real.exp (-r * unitIntervalCosineEigenvalue n) *
+              (((n : ℝ) * Real.pi) *
+                intervalSineInner (bFormChemFluxAt p u t₀) n)) *
+            deriv (cosineMode n) x|
+            =
+          |Real.exp (-r * unitIntervalCosineEigenvalue n) *
+              (((n : ℝ) * Real.pi) *
+                intervalSineInner (bFormChemFluxAt p u t₀) n)| *
+            |deriv (cosineMode n) x| := by rw [abs_mul]
+        _ ≤
+          (Real.exp (-ε * unitIntervalCosineEigenvalue n) *
+              (|((n : ℝ) * Real.pi)| * C)) *
+            |((n : ℝ) * Real.pi)| :=
+            mul_le_mul
+              (by simpa [freq, lam, sigma] using hcoef_le)
+              (by simpa [freq] using hderiv_cos)
+              (abs_nonneg _)
+              (by simpa [freq, lam] using hcoef_nonneg)
+        _ = C * (|((n : ℝ) * Real.pi)| ^ 2 *
+              Real.exp (-ε * unitIntervalCosineEigenvalue n)) := by
+            ring
+    have hM2 :
+        |deriv (fun y : ℝ =>
+            deriv (fun z : ℝ =>
+              bFormPositiveTimeCosineTerm p u t₀ r z n) y) x|
+          ≤ M2 n := by
+      rw [bFormPositiveTimeCosineTerm_second_deriv]
+      dsimp [M2, freq, lam, sigma] at *
+      calc
+        |(Real.exp (-r * unitIntervalCosineEigenvalue n) *
+              (((n : ℝ) * Real.pi) *
+                intervalSineInner (bFormChemFluxAt p u t₀) n)) *
+            (-(((n : ℝ) * Real.pi) ^ 2 * cosineMode n x))|
+            =
+          |Real.exp (-r * unitIntervalCosineEigenvalue n) *
+              (((n : ℝ) * Real.pi) *
+                intervalSineInner (bFormChemFluxAt p u t₀) n)| *
+            |(-(((n : ℝ) * Real.pi) ^ 2 * cosineMode n x))| := by
+              rw [abs_mul]
+        _ ≤
+          (Real.exp (-ε * unitIntervalCosineEigenvalue n) *
+              (|((n : ℝ) * Real.pi)| * C)) *
+            |((n : ℝ) * Real.pi)| ^ 2 :=
+            mul_le_mul
+              (by simpa [freq, lam, sigma] using hcoef_le)
+              (by simpa [freq] using hsecond_cos)
+              (abs_nonneg _)
+              (by simpa [freq, lam] using hcoef_nonneg)
+        _ = C * (|((n : ℝ) * Real.pi)| ^ 3 *
+              Real.exp (-ε * unitIntervalCosineEigenvalue n)) := by
+            ring
+    exact ⟨hM0, hM1, hM2⟩
+
+theorem bFormDifferentiatedCosineSeriesUniformConvergence_of_flux_bound
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    (hQ : ∀ t₀, 0 < t₀ → t₀ < T →
+      ∃ C : ℝ, 0 ≤ C ∧
+        ∀ y ∈ Set.Icc (0 : ℝ) 1, |bFormChemFluxAt p u t₀ y| ≤ C) :
+    BFormDifferentiatedCosineSeriesUniformConvergence p T u := by
+  refine bFormDifferentiatedCosineSeriesUniformConvergence_of_sineInner_bound ?_
+  intro t₀ ht₀ ht₀T
+  rcases hQ t₀ ht₀ ht₀T with ⟨C, hC, hCbd⟩
+  refine ⟨2 * C, mul_nonneg (by norm_num) hC, ?_⟩
+  exact intervalSineInner_abs_le_of_bound hC hCbd
 
 /-- SATISFIABLE standard fact, currently a project theorem gap: interior Abel trace.
 `B_N(r)Q(t)` tends locally uniformly to `∂ₓQ(t)` as `r ↓ 0`. -/
