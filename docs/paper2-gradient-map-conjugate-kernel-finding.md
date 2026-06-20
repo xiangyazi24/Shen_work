@@ -277,3 +277,27 @@ Non-vacuity audits MUST cite resolverGradReal_zero as the witness for this field
 field as a theorem (prove ∂ₓ∫₀ᵗB_N(t-s)F ds = 0 at boundary FROM F|∂=0, justifying the ∂ₓ/∫ds interchange via DCT — the
 boundary-vanishing is exactly what kills the r↓0 obstruction). Dispatched to cron3. LESSON: verify-don't-transcribe against
 the ACTUAL flux definition — ChatGPT's abstract Q=u^m would have condemned a faithful construction.
+
+## §3.3 CATCH #9 (2026-06-20, opus adversarial audit + I MISSED IT in 5f8ed35): Hbridge UNSATISFIABLE ⟹ headline VACUOUS
+SAME SHAPE AS CATCH #7. The general-chi headline paper2_theorem_1_1_general_chi_bformSq_regular (banked 5f8ed35, which I
+REPORTED as "audit-confirmed non-vacuous via 20-field enumeration") is ACTUALLY VACUOUS. The bundle
+PositiveDatumBFormLocalComponentsSqRegular (IntervalBFormPositiveDatumLocalExistenceSqRegular.lean:44) carries
+Hbridge : TruncatedConjugateLimitBridge (IntervalBFormCron2Concrete.lean:26) which asserts POINTWISE EQUALITY
+conjugatePicardLimit p u₀ DB.T = truncatedConjugatePicardLimit p u₀ DT.T. BUT: conjugatePicardLimit is the fixed point of
+intervalConjugateDuhamelMap (IntervalConjugateDuhamelMap.lean:295) propagating the TRUE cell flux chemFluxLifted =
+u·v_x/(1+v)^β (IntervalGradientDuhamelMap.lean:47, v-DEPENDENT); truncatedConjugatePicardLimit is the fixed point of
+truncatedConjugateDuhamelMap (IntervalBFormNegativePartCron2.lean:101) propagating truncatedChemFluxLifted = (u_+)^m
+(NegativePartCron2.lean:32, NO v-dependence). Two DIFFERENT fluxes ⟹ two DIFFERENT fixed points ⟹ Hbridge (their equality)
+is UNSATISFIABLE (would need u·v_x/(1+v)^β = (u_+)^m, i.e. v_x/(1+v)^β = u^{m-1}, a non-generic algebraic constraint).
+EVIDENCE: grep TruncatedConjugateLimitBridge = 8 occurrences, ALL consumer/hypothesis positions, ZERO producers (never
+constructed/proven). Independent hostile opus audit (default-assume-bug) verified all 5 tasks against source → BUG CONFIRMED.
+The nonnegativity (negativePart_zero → bform_negativePart_zero_of_concrete_truncated_regular_energyCore, RegularNegativePartEnergy.lean:240,
+uses Hbridge to transfer U_T≥0 to U) is the dependency path. The prior "exhaustive 20-field" audit (ae18fdbc) MISSED Hbridge's
+unsatisfiability exactly as the pre-catch-7 audit missed HbN — it checked each field's TYPE, not whether the carried
+EQUALITY/quantification is SATISFIABLE. FIX: the FAITHFUL truncation is truncatedChemFluxLifted := u_+·v_x/(1+v)^β (truncate
+the u-FACTOR of the cell flux), NOT (u_+)^m. It (a) vanishes on {u<0} (u_+=0 ⟹ negative-part cancellation still holds) AND
+(b) EQUALS the full cell flux on {u≥0} (u_+=u ⟹ Hbridge dischargeable: once U≥0, U solves the truncated eq too). The code's
+(u_+)^m has property (a) but NOT (b), which is why the bridge is broken. META-LESSON (bake into playbook §3.3): a "field-by-field
+non-vacuity audit" MUST, for every carried field that is an EQUALITY or a ∀-statement, exhibit a SATISFYING WITNESS (or cite a
+producer theorem), not merely confirm the field's type is inhabited-in-principle. Two catches (#7 HbN universal-false, #9 Hbridge
+equality-unsatisfiable) had this identical miss. Enumerating field TYPES ≠ enumerating field SATISFIABILITY.
