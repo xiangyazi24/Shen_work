@@ -214,3 +214,15 @@ residual_nonpos, intervalFullSemigroupOperator_neumann_at_zero/_at_one), NOT vac
 regularity/calculus package is never ASSEMBLED. So strictPos = "closed modulo assembling hbarrier_reg+hcalc+hsuper for
 the actual barrier/B-form solution" — genuine remaining work, the satisfiable regularity assembly. NOT vacuous, NOT
 unconditional.
+
+## §3.3 catch (2026-06-20 codex): the squared barrier is DEGENERATE at t=0 (semigroup S_N(0)=0, not id)
+codex PROVED squareHeatBarrier M f 0 x = 0 (intervalFullSemigroupOperator 0 f = 0 — the heat kernel at EXACTLY
+t=0 is degenerate; S_N(0)=id is only the t→0+ LIMIT). But SquareHeatSubsolutionCalculus.initial_eq required
+= f² ⟹ forces f=0, contradicting the positive seed. So the barrier w=exp(-Mt)(S_N t f)² is DISCONTINUOUS at
+t=0 (jumps 0→f² as t→0+) ⟹ NOT a classical sub-solution on the CLOSED [0,T]; the calculus initial_eq is
+mis-framed. codex refused to fake it. FIX: apply the PROVED drift comparison neumann_interval_comparison_with_drift
+on [t₀,T] for small t₀>0 (where w is regular and w(t₀)≈f² ≤ u(t₀)≈u₀ by continuity + the seed f²≤u₀), giving
+w≤u on [t₀,T], hence strictPos u≥w>0 on [t₀,T]; then t₀→0 covers all t>0. (Equivalently: w(0)=0≤u₀ trivially
+holds, but the barrier's t=0 DISCONTINUITY breaks the closed-strip classical-sub-solution regularity, so the
+comparison must start at t₀>0.) The drift comparison itself is unaffected (proved for any regular sub/super on
+the strip); only the initial-condition framing needs the t₀-restart.
