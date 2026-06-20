@@ -27,7 +27,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - 🟡 `DB` ConjugateMildExistenceData — local Picard existence/contraction data
 - 🟡 `Hinf` ConjugatePicardInfThresholdData — inf-threshold for strictPos floor
 - 🟡 `hsmall` — smallness/threshold hyp
-- 🟡→IN PROGRESS `Hpde` HasBFormSpectralPdeAgreement — interior PDE faithfulness; **codex grinding now** (discharge to named standard heat-semigroup facts, zero-time-trace route, no circularity)
+- ✅ `Hpde` HasBFormSpectralPdeAgreement — interior PDE faithfulness GENUINELY discharged (aefd8fb, opus GENUINE-DISCHARGE after v1 re-wrapper REJECTED): exists_data derived via real construction (bForm_restart_of_global_cosine + coeff bounds + eigenvalue summability) from the carried reconstruction implication whose premises are the 4 load-bearing analytic facts (cosine-series convergence, zero-time trace, Duhamel-deriv identity, semigroup generator). Honest Mathlib-gap bottom.
 - 🟡 `DT` TruncatedConjugateMildExistenceData — truncated Picard existence
 - ✅→🟡 `HbridgeData`/`HtruncatedEnergy` — bridge DISCHARGED via producer (9a2b056); `truncated_nonneg` DISCHARGED from the standard negative-part energy core via Gronwall (5db37e7, opus-verified GENUINE). Now carries the DEEPER `TruncatedNegativePartEnergyCoreRegularData`; its `semigroup_weak` field = the next atom (**codex grinding now**, duhamel skeleton). Remaining sub-fields: weak energy estimate, Sobolev plumbing (energy_cont/has_deriv/integrable), zero-energy→nonneg — standard parabolic facts approaching Mathlib gaps.
 - ✅ `A/Dbar/M/hM` coefficient bounds
