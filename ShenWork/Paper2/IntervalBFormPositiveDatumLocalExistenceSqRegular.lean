@@ -2,6 +2,7 @@ import ShenWork.Paper2.IntervalBFormTruncatedBridgeProducerData
 import ShenWork.Paper2.IntervalBFormPdeUProducer
 import ShenWork.Paper2.IntervalBFormSpectralPdeAgreementStandardFacts
 import ShenWork.Paper2.IntervalBFormNeumannDischarge
+import ShenWork.Paper2.IntervalBFormHpdeVDischarge
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
 import ShenWork.Paper2.IntervalBFormDirectClassical
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
@@ -9,7 +10,8 @@ import ShenWork.Paper2.IntervalDomainGlobalWellposed
 open Filter Topology Set
 
 open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainLift intervalDomainPoint)
+  (intervalDomain intervalDomainLift intervalDomainPoint
+   intervalDomainClassicalRegularity)
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData ConjugatePicardInfThresholdData
    conjugateMildSolutionData_of_data conjugatePicardLimit paperPositiveFloor)
@@ -69,16 +71,6 @@ structure PositiveDatumBFormLocalComponentsSqRegular
       (conjugatePicardLimit p u₀ DB.T)
       (mildChemicalConcentration p
         (conjugatePicardLimit p u₀ DB.T))
-  hpde_v :
-    ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.inside →
-      0 = intervalDomain.laplacian
-            ((mildChemicalConcentration p
-              (conjugatePicardLimit p u₀ DB.T)) t) x
-          - p.μ *
-            (mildChemicalConcentration p
-              (conjugatePicardLimit p u₀ DB.T)) t x
-          + p.ν *
-            ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.γ
   neumannFacts :
     BFormNeumannStandardFacts p DB.T u₀
       (conjugatePicardLimit p u₀ DB.T)
@@ -194,8 +186,26 @@ theorem PositiveDatumBFormLocalComponentsSqRegular.isClassicalSolution
       (mildChemicalConcentration p
         (conjugatePicardLimit p u₀ K.DB.T)) := by
   let R := K.route
+  have hreg :
+      intervalDomainClassicalRegularity K.DB.T
+        (conjugatePicardLimit p u₀ K.DB.T)
+        (mildChemicalConcentration p
+          (conjugatePicardLimit p u₀ K.DB.T)) := by
+    simpa [intervalDomain] using K.regularity
+  have hpdeV :
+      ∀ t x, 0 < t → t < K.DB.T → x ∈ intervalDomain.inside →
+        0 = intervalDomain.laplacian
+              ((mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ K.DB.T)) t) x
+            - p.μ *
+              (mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ K.DB.T)) t x
+            + p.ν *
+              ((conjugatePicardLimit p u₀ K.DB.T) t x) ^ p.γ :=
+    bForm_mildChemical_hpde_v_of_resolver_standardFacts
+      K.neumannFacts.resolver_source_decay hreg R.strictPos
   refine IsPaper2ClassicalSolution.of_components K.DB.hT
-    K.regularity R.strictPos ?_ R.hpde_u K.hpde_v K.neumann
+    K.regularity R.strictPos ?_ R.hpde_u hpdeV K.neumann
   intro t x ht htT
   exact ShenWork.IntervalMildToClassical.mildChemical_nonneg
     (T := K.DB.T) p
