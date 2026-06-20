@@ -123,3 +123,11 @@ already exists (coupledChemDivSourceCoeffs + IntervalWeakH2Neumann decay lemmas)
 must be redone against the chemDiv (one-higher-derivative) source — that IS the paper's real local-existence
 content, not a shortcut. Secondary flag: the slice target omits the S_N(t)u₀ homogeneous term — verify it is
 separately handled (instant smoothing for t>0) and not a second gap.
+
+## Paper-1 margin route (2026-06-20, ChatGPT cron): crude |F|≤C·U⁺ with C<1 is FALSE
+The global weighted-margin route is false: best global constant ≥1 even at χ=0 (right-tail logistic coeff=1);
+small t₀ doesn't help (ρ_t~min(1,λ)t competes with Ct). Unconditional margin needs a SHARPER super-solution:
+spatially-resolved tail/core using the exact semigroup tail action with λ=1+κc−κ²>1 (needs c>κ), or F₊ not |F|,
+or a modified barrier. DO NOT dispatch the crude route. The conditional aux-flow discharge (margin CARRIED,
+commit 1fa12a7) stands as honest; unconditional margin is deferred genuine work, NOT blocking the conditional
+formalization.
