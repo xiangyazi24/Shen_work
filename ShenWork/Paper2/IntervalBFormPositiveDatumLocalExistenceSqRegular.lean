@@ -4,7 +4,7 @@ import ShenWork.Paper2.IntervalBFormSpectralPdeAgreementStandardFacts
 import ShenWork.Paper2.IntervalBFormNeumannDischarge
 import ShenWork.Paper2.IntervalBFormHpdeVDischarge
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
-import ShenWork.Paper2.IntervalBFormDirectClassical
+import ShenWork.Paper2.IntervalBFormRegularityDischarge
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 open Filter Topology Set
@@ -66,17 +66,23 @@ structure PositiveDatumBFormLocalComponentsSqRegular
         x ∈ Set.Ioo (0 : ℝ) 1 → |drift (τ + s) x| ≤ A) ∧
       (∀ s x, 0 < s → s < DB.T - τ →
         x ∈ Set.Ioo (0 : ℝ) 1 → -react (τ + s) x ≤ Dbar)
-  regularity :
-    intervalDomain.classicalRegularity DB.T
-      (conjugatePicardLimit p u₀ DB.T)
-      (mildChemicalConcentration p
-        (conjugatePicardLimit p u₀ DB.T))
+  regularityFrontier :
+    ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB
   neumannFacts :
     BFormNeumannStandardFacts p DB.T u₀
       (conjugatePicardLimit p u₀ DB.T)
   initialTrace :
     InitialTrace intervalDomain u₀
       (conjugatePicardLimit p u₀ DB.T)
+
+def PositiveDatumBFormLocalComponentsSqRegular.regularity
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    intervalDomain.classicalRegularity K.DB.T
+      (conjugatePicardLimit p u₀ K.DB.T)
+      (mildChemicalConcentration p
+        (conjugatePicardLimit p u₀ K.DB.T)) :=
+  bForm_classicalRegularity_of_direct_frontier K.regularityFrontier
 
 def PositiveDatumBFormLocalComponentsSqRegular.boundedClassicalRegularity
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
