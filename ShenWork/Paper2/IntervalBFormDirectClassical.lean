@@ -1,0 +1,552 @@
+import ShenWork.Paper2.IntervalBFormPIDUnconditional
+import ShenWork.Paper2.IntervalConjugateCosineSeries
+import ShenWork.Paper2.IntervalMildRegularityFrontierAssembly
+import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
+import ShenWork.PDE.IntervalCoupledRegularityBootstrap
+import ShenWork.PDE.IntervalCosineSliceRegularity
+import ShenWork.PDE.IntervalResolverSpatialC2
+
+open Filter Topology Set
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalConjugateDuhamelMap
+  (IntervalConjugateMildSolution intervalConjugateDuhamelMap)
+open ShenWork.IntervalConjugatePicard
+  (ConjugateMildExistenceData ConjugatePicardInfThresholdData
+   conjugateMildSolutionData_of_data conjugatePicardLimit paperPositiveFloor)
+open ShenWork.IntervalMildRegularityBootstrap
+  (HasRestartCosineRepresentations RestartCosineRepresentation restartDuhamelCoeff)
+open ShenWork.IntervalMildTimeDerivContinuity
+  (HasTimeNeighborhoodSpectralAgreement)
+open ShenWork.IntervalResolverDirectTimeRegularity
+  (HasResolverDirectSpectralData)
+open ShenWork.IntervalMildToClassical
+  (mildChemicalConcentration)
+open ShenWork.IntervalSourceCoefficientTimeC1
+  (localRestartCoeff)
+open ShenWork.IntervalDuhamelClosedC2
+  (DuhamelSourceTimeC1)
+open ShenWork.IntervalBFormSpectral
+  (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1)
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledChemicalConcentration coupledChemDivSourceCoeffs
+   coupledLogisticSourceCoeffs sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
+   coupledChemical_ellipticPDE_of_closedC2_neumann
+   coupledChemical_neumannBC_of_closedC2_neumann)
+open ShenWork.HeatKernelGradientEstimates
+  (heatGradientLinftyLinftyConstant)
+open ShenWork.IntervalNeumannFullKernel
+  (cosineCoeffs)
+open ShenWork.CosineSpectrum
+  (cosineMode)
+open ShenWork.Paper2
+open ShenWork.Paper2.RegularityFrontierAssembly
+open ShenWork.IntervalResolverSpatialC2
+  (resolverR_summability)
+open ShenWork.IntervalCosineSliceRegularity
+  (intervalDomainCosineSlice_contDiffOn_Ioo
+   intervalDomainCosineSlice_neumann_limit_left
+   intervalDomainCosineSlice_neumann_limit_right
+   intervalDomainCosineSlice_conjunct7)
+open ShenWork.PDE
+
+noncomputable section
+
+namespace ShenWork.Paper2.BFormDirectClassical
+
+/-- Banked B-form inputs needed for the direct classical assembly.
+
+This is the B-form half of the old end-to-end file, without any gradient-form
+solution record or output-derivative bridge. -/
+structure BFormBankedInputs
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DB : ConjugateMildExistenceData p u₀) where
+  huPaper : PaperPositiveInitialDatum intervalDomain u₀
+  Hinf : ConjugatePicardInfThresholdData p u₀ DB.T
+  hsmall :
+    |p.χ₀| * (heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt DB.T) * Hinf.CQ)
+      + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
+  MInit : ℝ
+  haInit : ∀ n,
+    |cosineCoeffs (intervalDomainLift u₀) n| ≤ MInit
+  hlogSrc : DuhamelSourceTimeC1
+    (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+  hchemSrc : DuhamelSourceTimeC1
+    (coupledChemDivSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+  hB_global : ∀ t, 0 < t → t ≤ DB.T →
+    Set.EqOn
+      (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
+      (fun x => ∑' n,
+        localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+          t n * cosineMode n x)
+      (Set.Icc (0 : ℝ) 1)
+  hlogCont : ∀ t, 0 < t → t < DB.T →
+    Continuous
+      (intervalDomainConstExtend
+        (ShenWork.IntervalDomainExistence.intervalLogisticSource p
+          ((conjugatePicardLimit p u₀ DB.T) t)))
+  hlogFourier : ∀ t, 0 < t → t < DB.T →
+    Summable (fun n : ℤ =>
+      fourierCoeff
+        (ShenWork.IntervalCosineInversion.reflCircle
+          (intervalDomainConstExtend
+            (ShenWork.IntervalDomainExistence.intervalLogisticSource p
+              ((conjugatePicardLimit p u₀ DB.T) t)))) n)
+  hchemCont : ∀ t, 0 < t → t < DB.T →
+    Continuous
+      (intervalDomainConstExtend
+        (fun x : intervalDomainPoint =>
+          intervalDomainChemotaxisDiv p
+            ((conjugatePicardLimit p u₀ DB.T) t)
+            (coupledChemicalConcentration p
+              (conjugatePicardLimit p u₀ DB.T) t) x))
+  hchemFourier : ∀ t, 0 < t → t < DB.T →
+    Summable (fun n : ℤ =>
+      fourierCoeff
+        (ShenWork.IntervalCosineInversion.reflCircle
+          (intervalDomainConstExtend
+            (fun x : intervalDomainPoint =>
+              intervalDomainChemotaxisDiv p
+                ((conjugatePicardLimit p u₀ DB.T) t)
+                (coupledChemicalConcentration p
+                  (conjugatePicardLimit p u₀ DB.T) t) x))) n)
+
+def BFormBankedInputs.hsrcB
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    DuhamelSourceTimeC1
+      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) :=
+  bFormSource_duhamelSourceTimeC1 B.hlogSrc B.hchemSrc
+
+theorem hasRestartCosineRepresentations_of_BFormBankedInputs
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    HasRestartCosineRepresentations DB.T
+      (conjugatePicardLimit p u₀ DB.T) := by
+  intro t ht htT
+  refine ⟨?_⟩
+  refine
+    { τ := t
+      hτ := ht
+      M := B.MInit
+      a₀ := cosineCoeffs (intervalDomainLift u₀)
+      a := bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)
+      ha₀ := B.haInit
+      src := B.hsrcB
+      hagree := ?_ }
+  intro x hx
+  have h := B.hB_global t ht htT.le hx
+  simpa [restartDuhamelCoeff, localRestartCoeff] using h
+
+theorem BFormBankedInputs.hpde_u
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.inside →
+      intervalDomain.timeDeriv (conjugatePicardLimit p u₀ DB.T) t x =
+        intervalDomain.laplacian
+            ((conjugatePicardLimit p u₀ DB.T) t) x
+          - p.χ₀ * intervalDomain.chemotaxisDiv p
+              ((conjugatePicardLimit p u₀ DB.T) t)
+              (mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ DB.T) t) x
+          + (conjugatePicardLimit p u₀ DB.T) t x
+            * (p.a - p.b *
+              ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.α) :=
+  ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_unconditional
+      DB B.huPaper B.Hinf B.hsmall
+      (cosineCoeffs (intervalDomainLift u₀)) B.haInit
+      B.hlogSrc B.hchemSrc B.hB_global
+      B.hlogCont B.hlogFourier B.hchemCont B.hchemFourier
+
+/-- Direct B-form frontier for one datum.  Every field is map-agnostic: no
+gradient mild record and no output-derivative bridge. -/
+structure BFormDirectFrontier
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DB : ConjugateMildExistenceData p u₀) where
+  bank : BFormBankedInputs p DB
+  hTimeNhd :
+    HasTimeNeighborhoodSpectralAgreement DB.T
+      (conjugatePicardLimit p u₀ DB.T)
+  hResolverData :
+    HasResolverDirectSpectralData DB.T
+      (mildChemicalConcentration p (conjugatePicardLimit p u₀ DB.T)) p
+  hVpos : ∀ t, 0 < t → t < DB.T → ∀ x : intervalDomainPoint,
+    0 < mildChemicalConcentration p
+      (conjugatePicardLimit p u₀ DB.T) t x
+  hInitialApproach : ∀ ε, 0 < ε →
+    ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x : intervalDomainPoint,
+        |intervalConjugateDuhamelMap p u₀
+            (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε
+
+private theorem bform_u_pos
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t x, 0 < t → t < DB.T →
+      0 < conjugatePicardLimit p u₀ DB.T t x := by
+  intro t x ht htT
+  exact ShenWork.IntervalConjugatePicard.conjugatePicardLimit_pos_of_PID
+    B.huPaper B.Hinf B.hsmall t ht (le_of_lt htT) x
+
+private theorem bform_u_closedC2_endpointDerivs
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t, 0 < t → t < DB.T →
+      ContDiffOn ℝ 2
+          (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
+          (Set.Icc (0 : ℝ) 1)
+        ∧ deriv
+          (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)) 0 = 0
+        ∧ deriv
+          (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)) 1 = 0 := by
+  intro t ht htT
+  let H := hasRestartCosineRepresentations_of_BFormBankedInputs B
+  have h0 : intervalDomainLift (conjugatePicardLimit p u₀ DB.T t) 0 ≠ 0 := by
+    have hmem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    simp only [intervalDomainLift, hmem, dif_pos]
+    exact ne_of_gt (bform_u_pos B t ⟨0, hmem⟩ ht htT)
+  have h1 : intervalDomainLift (conjugatePicardLimit p u₀ DB.T t) 1 ≠ 0 := by
+    have hmem : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    simp only [intervalDomainLift, hmem, dif_pos]
+    exact ne_of_gt (bform_u_pos B t ⟨1, hmem⟩ ht htT)
+  exact (Classical.choice (H t ht htT)).conjunct7 h0 h1
+
+private theorem bform_u_neumann_left
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t, 0 < t → t < DB.T →
+      Filter.Tendsto
+        (deriv (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
+  intro t ht htT
+  let H := hasRestartCosineRepresentations_of_BFormBankedInputs B
+  exact (Classical.choice (H t ht htT)).neumann_limit_left
+
+private theorem bform_u_neumann_right
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t, 0 < t → t < DB.T →
+      Filter.Tendsto
+        (deriv (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  intro t ht htT
+  let H := hasRestartCosineRepresentations_of_BFormBankedInputs B
+  exact (Classical.choice (H t ht htT)).neumann_limit_right
+
+private theorem lift_resolver_eqOn_Icc
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) :
+    Set.EqOn
+      (intervalDomainLift (intervalNeumannResolverR p u))
+      (fun x : ℝ => ∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1) := by
+  intro x hxIcc
+  simp only [intervalDomainLift, dif_pos hxIcc,
+    ShenWork.IntervalResolverGradientBridge.resolverR_apply_eq, cosineMode]
+
+private theorem resolver_lift_ne_zero
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (x : intervalDomainPoint)
+    (hpos : 0 < intervalNeumannResolverR p u x) :
+    intervalDomainLift (intervalNeumannResolverR p u) x.1 ≠ 0 := by
+  have heq : intervalDomainLift (intervalNeumannResolverR p u) x.1 =
+      intervalNeumannResolverR p u x := by
+    unfold intervalDomainLift
+    split
+    · rfl
+    · exact absurd x.2 ‹_›
+  rw [heq]
+  exact ne_of_gt hpos
+
+private def bform_sourceDecay
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB)
+    {t : ℝ} (ht : 0 < t) (htT : t < DB.T) :
+    SourceCoeffQuadraticDecay p
+      (conjugatePicardLimit p u₀ DB.T t) := by
+  have hpos_lift :
+      ∀ y ∈ Set.Icc (0 : ℝ) 1,
+        0 < intervalDomainLift (conjugatePicardLimit p u₀ DB.T t) y := by
+    intro y hy
+    simp only [intervalDomainLift, hy, dif_pos]
+    exact bform_u_pos B t ⟨y, hy⟩ ht htT
+  exact sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
+    (p := p)
+    (u := conjugatePicardLimit p u₀ DB.T t)
+    (bform_u_closedC2_endpointDerivs B t ht htT).1
+    (bform_u_neumann_left B t ht htT)
+    (bform_u_neumann_right B t ht htT)
+    hpos_lift
+
+private theorem bform_vSpatialInterior
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) DB.T →
+      ContDiffOn ℝ 2
+        (intervalDomainLift
+          (mildChemicalConcentration p
+            (conjugatePicardLimit p u₀ DB.T) t))
+        (Set.Ioo (0 : ℝ) 1) := by
+  intro t ht
+  change ContDiffOn ℝ 2
+    (intervalDomainLift
+      (intervalNeumannResolverR p (conjugatePicardLimit p u₀ DB.T t)))
+    (Set.Ioo (0 : ℝ) 1)
+  exact intervalDomainCosineSlice_contDiffOn_Ioo
+    (resolverR_summability (bform_sourceDecay B ht.1 ht.2))
+    (lift_resolver_eqOn_Icc p (conjugatePicardLimit p u₀ DB.T t))
+
+private theorem bform_vNeumannLimits
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) DB.T →
+      Filter.Tendsto
+          (deriv (intervalDomainLift
+            (mildChemicalConcentration p
+              (conjugatePicardLimit p u₀ DB.T) t)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Filter.Tendsto
+          (deriv (intervalDomainLift
+            (mildChemicalConcentration p
+              (conjugatePicardLimit p u₀ DB.T) t)))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  intro t ht
+  change Filter.Tendsto
+          (deriv (intervalDomainLift
+            (intervalNeumannResolverR p (conjugatePicardLimit p u₀ DB.T t))))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Filter.Tendsto
+          (deriv (intervalDomainLift
+            (intervalNeumannResolverR p (conjugatePicardLimit p u₀ DB.T t))))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  exact
+    ⟨intervalDomainCosineSlice_neumann_limit_left
+        (resolverR_summability (bform_sourceDecay B ht.1 ht.2))
+        (lift_resolver_eqOn_Icc p (conjugatePicardLimit p u₀ DB.T t)),
+      intervalDomainCosineSlice_neumann_limit_right
+        (resolverR_summability (bform_sourceDecay B ht.1 ht.2))
+        (lift_resolver_eqOn_Icc p (conjugatePicardLimit p u₀ DB.T t))⟩
+
+private theorem bform_vClosedSpatial
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB)
+    (hVpos : ∀ t, 0 < t → t < DB.T → ∀ x : intervalDomainPoint,
+      0 < mildChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T) t x) :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) DB.T →
+      ContDiffOn ℝ 2
+          (intervalDomainLift
+            (mildChemicalConcentration p
+              (conjugatePicardLimit p u₀ DB.T) t))
+          (Set.Icc (0 : ℝ) 1) ∧
+        deriv
+          (intervalDomainLift
+            (mildChemicalConcentration p
+              (conjugatePicardLimit p u₀ DB.T) t)) 0 = 0 ∧
+        deriv
+          (intervalDomainLift
+            (mildChemicalConcentration p
+              (conjugatePicardLimit p u₀ DB.T) t)) 1 = 0 := by
+  intro t ht
+  change ContDiffOn ℝ 2
+          (intervalDomainLift
+            (intervalNeumannResolverR p (conjugatePicardLimit p u₀ DB.T t)))
+          (Set.Icc (0 : ℝ) 1) ∧
+        deriv
+          (intervalDomainLift
+            (intervalNeumannResolverR p (conjugatePicardLimit p u₀ DB.T t))) 0 = 0 ∧
+        deriv
+          (intervalDomainLift
+            (intervalNeumannResolverR p (conjugatePicardLimit p u₀ DB.T t))) 1 = 0
+  have hv0 : 0 < intervalNeumannResolverR p
+      (conjugatePicardLimit p u₀ DB.T t) ⟨0, by constructor <;> norm_num⟩ := by
+    simpa [mildChemicalConcentration] using
+      hVpos t ht.1 ht.2 ⟨0, by constructor <;> norm_num⟩
+  have hv1 : 0 < intervalNeumannResolverR p
+      (conjugatePicardLimit p u₀ DB.T t) ⟨1, by constructor <;> norm_num⟩ := by
+    simpa [mildChemicalConcentration] using
+      hVpos t ht.1 ht.2 ⟨1, by constructor <;> norm_num⟩
+  exact intervalDomainCosineSlice_conjunct7
+    (resolverR_summability (bform_sourceDecay B ht.1 ht.2))
+    (lift_resolver_eqOn_Icc p (conjugatePicardLimit p u₀ DB.T t))
+    (resolver_lift_ne_zero ⟨0, by constructor <;> norm_num⟩ hv0)
+    (resolver_lift_ne_zero ⟨1, by constructor <;> norm_num⟩ hv1)
+
+theorem intervalConjugatePicardLimit_classicalRegularity_direct
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormDirectFrontier p DB) :
+    intervalDomainClassicalRegularity DB.T
+      (conjugatePicardLimit p u₀ DB.T)
+      (mildChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T)) := by
+  unfold intervalDomainClassicalRegularity
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t ht
+    exact
+      ⟨(bform_u_closedC2_endpointDerivs F.bank t ht.1 ht.2).1.mono
+          Set.Ioo_subset_Icc_self,
+        bform_vSpatialInterior F.bank t ht⟩
+  · intro x t ht
+    have hu := timeSlices_u_of_spectralAgreement F.hTimeNhd x
+    have hv := timeSlices_v_of_resolverSpectral F.hResolverData x
+    exact ⟨⟨hu.1 t ht, hv.1 t ht⟩, ⟨hu.2, hv.2⟩⟩
+  · exact
+      ⟨jointTimeDerivInterior_u_of_spectralAgreement F.hTimeNhd,
+       jointTimeDerivInterior_v_of_resolverSpectral F.hResolverData⟩
+  · intro t ht
+    exact
+      ⟨⟨bform_u_neumann_left F.bank t ht.1 ht.2,
+          bform_u_neumann_right F.bank t ht.1 ht.2⟩,
+        bform_vNeumannLimits F.bank t ht⟩
+  · intro t ht
+    exact
+      ⟨bform_u_closedC2_endpointDerivs F.bank t ht.1 ht.2,
+        bform_vClosedSpatial F.bank F.hVpos t ht⟩
+  · exact
+      ⟨jointTimeDerivClosed_u_of_spectralAgreement F.hTimeNhd,
+       jointTimeDerivClosed_v_of_resolverSpectral F.hResolverData⟩
+  · exact
+      ⟨jointSolutionClosed_u_of_spectralAgreement F.hTimeNhd,
+       jointSolutionClosed_v_of_resolverSpectral F.hResolverData⟩
+
+theorem intervalConjugatePicardLimit_initialTrace_direct
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormDirectFrontier p DB) :
+    InitialTrace intervalDomain u₀
+      (conjugatePicardLimit p u₀ DB.T) := by
+  intro ε hε
+  obtain ⟨δ₀, hδ₀, hsmall⟩ := F.hInitialApproach (ε / 2) (by linarith)
+  refine ⟨min δ₀ DB.T, lt_min hδ₀ DB.hT, fun t ht htδ => ?_⟩
+  have htδ₀ : t < δ₀ := lt_of_lt_of_le htδ (min_le_left _ _)
+  have htT : t ≤ DB.T := le_of_lt (lt_of_lt_of_le htδ (min_le_right _ _))
+  change intervalDomainSupNorm
+    (fun x => conjugatePicardLimit p u₀ DB.T t x - u₀ x) < ε
+  unfold intervalDomainSupNorm
+  have hpt :
+      ∀ x : intervalDomainPoint,
+        |conjugatePicardLimit p u₀ DB.T t x - u₀ x| < ε / 2 := by
+    intro x
+    change |(conjugateMildSolutionData_of_data DB).u t x - u₀ x| < ε / 2
+    rw [(conjugateMildSolutionData_of_data DB).hmild t ht htT x]
+    exact hsmall t ht htδ₀ x
+  haveI : Nonempty intervalDomainPoint :=
+    ⟨⟨0, by constructor <;> norm_num⟩⟩
+  have hle :
+      sSup (Set.range
+          (fun x : intervalDomainPoint =>
+            |conjugatePicardLimit p u₀ DB.T t x - u₀ x|)) ≤
+        ε / 2 := by
+    apply csSup_le (Set.range_nonempty _)
+    intro y hy
+    rcases hy with ⟨x, rfl⟩
+    exact le_of_lt (hpt x)
+  linarith
+
+theorem intervalConjugatePicardLimit_isClassicalSolution_direct
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormDirectFrontier p DB) :
+    IsPaper2ClassicalSolution intervalDomain p DB.T
+      (conjugatePicardLimit p u₀ DB.T)
+      (mildChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T)) := by
+  refine IsPaper2ClassicalSolution.of_components DB.hT
+    (intervalConjugatePicardLimit_classicalRegularity_direct F)
+    ?_ ?_ ?_ ?_ ?_
+  · exact bform_u_pos F.bank
+  · intro t x ht htT
+    exact le_of_lt (F.hVpos t ht htT x)
+  · exact F.bank.hpde_u
+  · have h :=
+      coupledChemical_ellipticPDE_of_closedC2_neumann p
+        (bform_u_pos F.bank)
+        (fun t ht htT => (bform_u_closedC2_endpointDerivs F.bank t ht htT).1)
+        (bform_u_neumann_left F.bank)
+        (bform_u_neumann_right F.bank)
+    simpa [coupledChemicalConcentration, mildChemicalConcentration] using h
+  · have h :=
+      coupledChemical_neumannBC_of_closedC2_neumann p
+        (bform_u_pos F.bank)
+        (fun t ht htT => (bform_u_closedC2_endpointDerivs F.bank t ht htT).1)
+        (bform_u_neumann_left F.bank)
+        (bform_u_neumann_right F.bank)
+    simpa [coupledChemicalConcentration, mildChemicalConcentration] using h
+
+theorem localClassicalSolution_of_BFormDirectFrontier
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormDirectFrontier p DB) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  refine ⟨DB.T, DB.hT,
+    conjugatePicardLimit p u₀ DB.T,
+    mildChemicalConcentration p (conjugatePicardLimit p u₀ DB.T), ?_⟩
+  exact ⟨intervalConjugatePicardLimit_isClassicalSolution_direct F,
+    intervalConjugatePicardLimit_initialTrace_direct F⟩
+
+def BFormPaperLocalFrontier (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomainPoint → ℝ,
+    PaperPositiveInitialDatum intervalDomain u₀ →
+      ∃ DB : ConjugateMildExistenceData p u₀,
+        Nonempty (BFormDirectFrontier p DB)
+
+theorem paperPositive_localExistence_of_BFormDirect
+    {p : CM2Params}
+    (hPerDatum : BFormPaperLocalFrontier p) :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PaperPositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨DB, ⟨F⟩⟩ := hPerDatum u₀ hu₀
+  exact localClassicalSolution_of_BFormDirectFrontier F
+
+/-- The actual gamma-`≥ 1` continuation umbrella still asks for local existence
+for the weaker `PositiveInitialDatum` interface.  This wrapper records that
+requirement explicitly rather than pretending that the B-form PID bank proves
+`PositiveInitialDatum → PaperPositiveInitialDatum`. -/
+theorem paper2_theorem_1_1_general_chi_bform
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hUniform : IntervalDomainUniformLocalExistence p) :
+    Theorem_1_1 intervalDomain p := by
+  let hData : IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge p :=
+    { localExistence := hlocal
+      uniformLocal := hUniform }
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
+    p hχ ha hb hγ_ge_one hData
+
+#print axioms BFormBankedInputs.hsrcB
+#print axioms hasRestartCosineRepresentations_of_BFormBankedInputs
+#print axioms BFormBankedInputs.hpde_u
+#print axioms intervalConjugatePicardLimit_classicalRegularity_direct
+#print axioms intervalConjugatePicardLimit_initialTrace_direct
+#print axioms intervalConjugatePicardLimit_isClassicalSolution_direct
+#print axioms localClassicalSolution_of_BFormDirectFrontier
+#print axioms paperPositive_localExistence_of_BFormDirect
+#print axioms paper2_theorem_1_1_general_chi_bform
+
+end ShenWork.Paper2.BFormDirectClassical
