@@ -29,7 +29,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - 🟡 `hsmall` — smallness/threshold hyp
 - 🟡 `Hpde` HasBFormSpectralPdeAgreement — interior PDE faithfulness; **skeleton ready** (/tmp/gpt_spectral.txt: d/dt Duhamel = ∂ₓQ interior, no circularity)
 - 🟡 `DT` TruncatedConjugateMildExistenceData — truncated Picard existence
-- 🟡→IN PROGRESS `HbridgeData` TruncatedConjugateLimitBridgeProducerData — **codex discharging `truncated_nonneg`** (negative-part estimate on truncated faithful-flux solution) + bound, from the energy core
+- ✅→🟡 `HbridgeData`/`HtruncatedEnergy` — bridge DISCHARGED via producer (9a2b056); `truncated_nonneg` DISCHARGED from the standard negative-part energy core via Gronwall (5db37e7, opus-verified GENUINE). Now carries the DEEPER `TruncatedNegativePartEnergyCoreRegularData`; its `semigroup_weak` field = the next atom (**codex grinding now**, duhamel skeleton). Remaining sub-fields: weak energy estimate, Sobolev plumbing (energy_cont/has_deriv/integrable), zero-energy→nonneg — standard parabolic facts approaching Mathlib gaps.
 - ✅ `A/Dbar/M/hM` coefficient bounds
 - 🟡 `hstrip` SquareHeatRestartStripData — coefficient regularity + hsuper for strictPos
 - 🟡 `regularity` classical C² — from cosine representation
