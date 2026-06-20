@@ -33,7 +33,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - ✅ `A/Dbar/M/hM` coefficient bounds
 - 🟡 `hstrip` SquareHeatRestartStripData — coefficient regularity + hsuper for strictPos
 - 🟡 `regularity` classical C² — from cosine representation
-- 🟡 `hpde_v` elliptic resolver (chemical v) — resolver machinery
+- ✅ `hpde_v` elliptic resolver — GENUINELY discharged + FIELD REMOVED (e922ec2, opus GENUINE-DISCHARGE HIGH + proof-term): elliptic identity 0=Δv−μv+νu^γ derived on-the-fly (obtain source-decay → resolver Laplacian bridge + coefficient-form elliptic identity + cosine source reconstruction → rw+ring). Only carried fact = SourceCoeffQuadraticDecay (satisfiable + dischargeable via sourceCoeffQuadraticDecay_of_solution).
 - ✅ `neumann` normalDeriv u = normalDeriv v = 0 — GENUINELY discharged (148ccca, opus GENUINE-DISCHARGE + proof-term read): u via 3-leg assembly (chemFlux-vanishing from resolverGradReal_zero → interchange license → ring), v via HasDerivWithinAt from resolverGradReal_zero/_one. Only carried Mathlib-gap fact = the DCT interchange license (load-bearing).
 - 🟡 `initialTrace` InitialTrace — B-form initial approach as t→0
 - ✅ `semigroup_weak` (TruncatedMildSemigroupWeakAfterBNDualityOn) — DISCHARGED to NAMED standard heat-semigroup facts pack (e0d9038, opus HONEST-BOTTOM): t^{-1/2} gradient bound, Lebesgue endpoint, DCT majorant, semigroup form identity, Duhamel differentiation (chemotaxis gated on restricted duality). Honest Mathlib-gap bottom.
