@@ -1,6 +1,7 @@
 import ShenWork.Paper2.IntervalBFormTruncatedBridgeProducerData
 import ShenWork.Paper2.IntervalBFormPdeUProducer
 import ShenWork.Paper2.IntervalBFormSpectralPdeAgreementStandardFacts
+import ShenWork.Paper2.IntervalBFormNeumannDischarge
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
 import ShenWork.Paper2.IntervalBFormDirectClassical
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
@@ -78,13 +79,9 @@ structure PositiveDatumBFormLocalComponentsSqRegular
               (conjugatePicardLimit p u₀ DB.T)) t x
           + p.ν *
             ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.γ
-  neumann :
-    ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.boundary →
-      intervalDomain.normalDeriv
-          ((conjugatePicardLimit p u₀ DB.T) t) x = 0 ∧
-        intervalDomain.normalDeriv
-          ((mildChemicalConcentration p
-            (conjugatePicardLimit p u₀ DB.T)) t) x = 0
+  neumannFacts :
+    BFormNeumannStandardFacts p DB.T u₀
+      (conjugatePicardLimit p u₀ DB.T)
   initialTrace :
     InitialTrace intervalDomain u₀
       (conjugatePicardLimit p u₀ DB.T)
@@ -177,6 +174,17 @@ def PositiveDatumBFormLocalComponentsSqRegular.route
   negativePart_zero := K.negativePart_zero
   strictPos := K.strictPos
   hpde_u := K.hpde_u
+
+def PositiveDatumBFormLocalComponentsSqRegular.neumann
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    ∀ t x, 0 < t → t < K.DB.T → x ∈ intervalDomain.boundary →
+      intervalDomain.normalDeriv
+          ((conjugatePicardLimit p u₀ K.DB.T) t) x = 0 ∧
+        intervalDomain.normalDeriv
+          ((mildChemicalConcentration p
+            (conjugatePicardLimit p u₀ K.DB.T)) t) x = 0 :=
+  bForm_neumann_of_standardFacts K.neumannFacts
 
 theorem PositiveDatumBFormLocalComponentsSqRegular.isClassicalSolution
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
