@@ -301,3 +301,20 @@ the u-FACTOR of the cell flux), NOT (u_+)^m. It (a) vanishes on {u<0} (u_+=0 ⟹
 non-vacuity audit" MUST, for every carried field that is an EQUALITY or a ∀-statement, exhibit a SATISFYING WITNESS (or cite a
 producer theorem), not merely confirm the field's type is inhabited-in-principle. Two catches (#7 HbN universal-false, #9 Hbridge
 equality-unsatisfiable) had this identical miss. Enumerating field TYPES ≠ enumerating field SATISFIABILITY.
+
+### CATCH #9 RESOLVED (2026-06-20, commit 9a2b056, build+axioms+opus verified)
+codex implemented the fix: truncatedChemFluxLifted := positivePart(u)·v_x/(1+v)^β (NegativePartCron2.lean:31).
+NEW producer truncatedConjugateLimitBridge_of_faithful_truncation (FaithfulBridgeProducer.lean:133) DERIVES the bridge
+from TruncatedConjugateLimitBridgeProducerData via: truncated limit nonneg → maps agree on nonneg
+(truncatedConjugateDuhamelMap_eq_intervalConjugateDuhamelMap_of_nonneg, PROVED, uses positivePart(u)=u on {u≥0} for BOTH
+chemotaxis and logistic) → uT is a full-map fixed point → full Picard uniqueness (IntervalConjugatePicardUniqueness.lean,
+contraction K^n→0, PROVED) → uT = conjugatePicardLimit. Bundle now carries HbridgeData (SATISFIABLE) not raw Hbridge.
+THE FLIP: the carried hypothesis went UNSATISFIABLE → SATISFIABLE, so the headline went VACUOUS → NON-VACUOUS. Build clean
+(8415 jobs RC=0), #print axioms = [propext, Classical.choice, Quot.sound]. Independent hostile opus audit confirmed all
+machinery PROVED (no sorry); it flagged truncated_nonneg as "carried not produced" and called it "vacuity moved down" —
+DISPOSITION (Fable disposes): that framing is WRONG. truncated_nonneg (truncatedConjugatePicardLimit ≥ 0) is a SATISFIABLE
+TRUE fact (the negative-part estimate endpoint; faithful flux vanishes on {u<0} so the cancellation gives nonneg, self-
+contained no circularity), so it is CONDITIONALITY (like every other carried bundle field Hpde/Henergy/neumann/...), NOT
+vacuity. Unsatisfiable-carried = vacuous (#9); satisfiable-but-undischarged = conditional (normal). REMAINING ATOM toward
+UNCONDITIONAL: a producer truncatedConjugateLimitBridgeProducerData_of_energyCore constructing HbridgeData (incl.
+truncated_nonneg) from the negative-part energy core — the pieces (cancellation) are proved, the assembly is the work.
