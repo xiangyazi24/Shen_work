@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalBFormFaithfulBridgeProducer
+import ShenWork.Paper2.IntervalBFormTruncatedBridgeProducerData
 import ShenWork.Paper2.IntervalBFormPdeUProducer
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
 import ShenWork.Paper2.IntervalBFormDirectClassical
@@ -41,7 +41,9 @@ structure PositiveDatumBFormLocalComponentsSqRegular
     ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p DB.T
       (conjugatePicardLimit p u₀ DB.T)
   DT : TruncatedConjugateMildExistenceData p u₀
-  HbridgeData : TruncatedConjugateLimitBridgeProducerData p DB DT
+  HbridgeT : DT.T = DB.T
+  HtruncatedEnergy : TruncatedNegativePartEnergyCoreRegularData p DT
+  htruncatedM_le_DBM : DT.M ≤ DB.M
   A : ℝ
   Dbar : ℝ
   M : ℝ
@@ -86,11 +88,18 @@ structure PositiveDatumBFormLocalComponentsSqRegular
     InitialTrace intervalDomain u₀
       (conjugatePicardLimit p u₀ DB.T)
 
+def PositiveDatumBFormLocalComponentsSqRegular.bridgeData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    TruncatedConjugateLimitBridgeProducerData p K.DB K.DT :=
+  truncatedConjugateLimitBridgeProducerData_of_cores
+    K.HbridgeT K.HtruncatedEnergy K.htruncatedM_le_DBM
+
 def PositiveDatumBFormLocalComponentsSqRegular.bridge
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
     TruncatedConjugateLimitBridge p K.DB K.DT :=
-  truncatedConjugateLimitBridge_of_faithful_truncation K.HbridgeData
+  truncatedConjugateLimitBridge_of_faithful_truncation K.bridgeData
 
 def PositiveDatumBFormLocalComponentsSqRegular.negativePart_zero
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -100,10 +109,10 @@ def PositiveDatumBFormLocalComponentsSqRegular.negativePart_zero
   intro t ht htT x
   have Hbridge := K.bridge
   have htDT : t ≤ K.DT.T := by
-    simpa [K.HbridgeData.hT] using htT
+    simpa [K.HbridgeT] using htT
   have hnonneg :
       0 ≤ truncatedConjugatePicardLimit p u₀ K.DT.T t x :=
-    K.HbridgeData.truncated_nonneg t ht htDT x
+    K.bridgeData.truncated_nonneg t ht htDT x
   have heq :
       conjugatePicardLimit p u₀ K.DB.T t x
         = truncatedConjugatePicardLimit p u₀ K.DT.T t x :=
