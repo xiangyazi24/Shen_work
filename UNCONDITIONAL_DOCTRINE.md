@@ -26,7 +26,14 @@ Prove from the concrete cosine kernel K_N(t,x,y)=Σ_k e^{-(kπ)²t} φ_k(x)φ_k(
 - A4. hsmall — small-T threshold (choose T; A√T+BT ≤ floor/2)
 - A5. HpdeFacts  BFormSpectralPdeAgreementStandardFacts — = F2-F6 (prove them)
 - A6. HtruncatedEnergy  TruncatedNegativePartEnergyCoreRegularData — weak energy estimate + F-facts + Sobolev (energy_cont/deriv/integrable)
-- A7. hLinearStripCore — IsClassicalNeumannLinearDriftSuperSolution: the nonlinear→linear residual identity bridge (residual≡0 since u solves its own PDE; the gap is the algebraic flux-derivative cancellation)
+- A7. hLinearStripCore — IsClassicalNeumannLinearDriftSuperSolution. **RESOLVED (ChatGPT A7, verified):** the naive
+  super-solution with reaction C₀=a−bu^α is FALSE — residual L u = −χ₀·u·w_x is SIGN-CHANGING (w_x = (v−u)/(1+v)^β −
+  β·v_x²/(1+v)^{β+1}, counterexample u=c+εcos(πx)). FIX: redefine the concrete reaction to absorb the divergence
+  remainder: C_exact := a − bu^α − χ₀·w_x (w_x explicit via resolver v_xx=v−u; BOUNDED since v−u,v_x bounded, 1+v≥1).
+  Then L_{B,C_exact} u = 0 EXACTLY (u is genuine super+sub-solution). Keep B=−χ₀w. Recompute −C_exact ≤ Dbar' bound
+  (w_x bounded). Squared-barrier comparison goes through with the corrected bounded C_exact. CODEX TASK (queued after
+  foundation): change bformConcreteReact → C_exact, prove residual≡0, discharge hLinearStripCore unconditionally. Skeleton
+  /tmp/gpt_A7.txt.
 - A8. regularityFrontier  BFormDirectFrontier — spectral/restart/resolver data (REUSE F + resolver; also fixes the redundancy)
 - A9. neumannFacts — chemotaxis interchange DCT license (from F + chemFlux boundary-vanishing resolverGradReal_zero) + heat/logistic leg Neumann
 - (huPaper = the paper's positive-initial-datum ANTECEDENT — NOT discharged, it is the theorem's hypothesis)
