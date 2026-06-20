@@ -112,6 +112,38 @@ theorem truncatedChemotacticPower_mul_negDeriv_integral_eq_zero
       (p := p) (μ := intervalMeasure 1) hdu_zero_on_pos)]
   simp
 
+/-- A.e. disjoint-support cancellation for the faithful truncated flux.
+
+Only the leading `positivePart u` factor matters.  On `{u ≤ 0}` it is zero;
+on `{0 < u}` the weak derivative of `u_-` is zero by hypothesis. -/
+lemma truncatedChemFluxLifted_mul_negDeriv_eq_zero_ae
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {duNeg : ℝ → ℝ}
+    (hdu_zero_on_pos :
+      ∀ᵐ x ∂ intervalMeasure 1,
+        0 < intervalDomainLift w x → duNeg x = 0) :
+    (fun x => truncatedChemFluxLifted p w x * duNeg x)
+      =ᵐ[intervalMeasure 1] fun _ => 0 := by
+  filter_upwards [hdu_zero_on_pos] with x hx
+  by_cases hpos : 0 < intervalDomainLift w x
+  · simp [hx hpos]
+  · have hpp :
+        positivePart (intervalDomainLift w x) = 0 :=
+      positivePart_eq_zero_of_nonpos (le_of_not_gt hpos)
+    simp [truncatedChemFluxLifted, hpp]
+
+/-- Integral cancellation for the faithful truncated flux. -/
+theorem truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {duNeg : ℝ → ℝ}
+    (hdu_zero_on_pos :
+      ∀ᵐ x ∂ intervalMeasure 1,
+        0 < intervalDomainLift w x → duNeg x = 0) :
+    (∫ x, truncatedChemFluxLifted p w x * duNeg x
+        ∂ intervalMeasure 1) = 0 := by
+  rw [MeasureTheory.integral_congr_ae
+    (truncatedChemFluxLifted_mul_negDeriv_eq_zero_ae
+      (p := p) (w := w) hdu_zero_on_pos)]
+  simp
+
 /-- Classical continuous-slice version of the cancellation, stated as an a.e.
 identity for the actual classical derivative of `u_-`. -/
 lemma truncatedChemotacticPower_mul_deriv_negativePart_eq_zero_ae_of_continuous
@@ -254,9 +286,9 @@ def NegativePartWeakTestIdentityAt
         deriv (intervalDomainLift (u t)) x * deriv (negativePartTest u t) x
         ∂ intervalMeasure 1)
     =
-  p.χ₀ *
+    p.χ₀ *
       (∫ x,
-        truncatedChemotacticPower p (intervalDomainLift (u t) x)
+        truncatedChemFluxLifted p (u t) x
           * deriv (negativePartTest u t) x
         ∂ intervalMeasure 1)
     + (∫ x, truncatedLogisticLifted p (u t) x * negativePartTest u t x
@@ -319,11 +351,11 @@ theorem negativePart_half_energy_deriv_le
     H.weak ht htT
   have hchem_neg :
       (∫ x,
-        truncatedChemotacticPower p (intervalDomainLift (u t) x)
+        truncatedChemFluxLifted p (u t) x
           * deriv (negativePartTest u t) x
         ∂ intervalMeasure 1) = 0 := by
-    refine truncatedChemotacticPower_mul_negDeriv_integral_eq_zero
-      (p := p) (u := fun x => intervalDomainLift (u t) x)
+    refine truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+      (p := p) (w := u t)
       (duNeg := fun x => deriv (negativePartTest u t) x) ?_
     filter_upwards [H.neg_deriv_zero_on_pos t ht htT] with x hx hpos
     change deriv (-negativePartLift (u t)) x = 0
@@ -347,9 +379,9 @@ theorem negativePart_half_energy_deriv_le
               ∂ intervalMeasure 1) := by
             rw [H.time_chain t ht htT, H.diffusion_chain t ht htT]
       _ =
-        p.χ₀ *
+          p.χ₀ *
             (∫ x,
-              truncatedChemotacticPower p (intervalDomainLift (u t) x)
+              truncatedChemFluxLifted p (u t) x
                 * deriv (negativePartTest u t) x
               ∂ intervalMeasure 1)
           + (∫ x, truncatedLogisticLifted p (u t) x * negativePartTest u t x
@@ -459,11 +491,10 @@ def bformCron2NegativePartHyp_of_concrete_truncated_energyCore
     {DB : ConjugateMildExistenceData p u₀}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     (Hbridge : TruncatedConjugateLimitBridge p DB DT)
-    (HbN : BNDualityAvailable)
     (HmildWeak : TruncatedMildToWeakAvailable p DB)
     (Henergy : NegativePartEnergyCoreData p DB) :
     BFormCron2NegativePartHyp p DB :=
-  bformCron2NegativePartHyp_of_concrete_truncated DT Hbridge HbN HmildWeak
+  bformCron2NegativePartHyp_of_concrete_truncated DT Hbridge HmildWeak
     (negativePartEnergyGronwallAvailable_of_coreData Henergy)
 
 /-- Direct `negativePart_zero` theorem from the concrete truncated Picard data,
@@ -473,13 +504,12 @@ theorem bform_negativePart_zero_of_concrete_truncated_energyCore
     {DB : ConjugateMildExistenceData p u₀}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     (Hbridge : TruncatedConjugateLimitBridge p DB DT)
-    (HbN : BNDualityAvailable)
     (HmildWeak : TruncatedMildToWeakAvailable p DB)
     (Henergy : NegativePartEnergyCoreData p DB) :
     ∀ t, 0 < t → t ≤ DB.T → ∀ x : intervalDomainPoint,
       negativePart (conjugatePicardLimit p u₀ DB.T t x) = 0 := by
   exact bform_negativePart_zero
     (bformCron2NegativePartHyp_of_concrete_truncated_energyCore
-      DT Hbridge HbN HmildWeak Henergy)
+      DT Hbridge HmildWeak Henergy)
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart

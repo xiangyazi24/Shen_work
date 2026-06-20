@@ -11,6 +11,7 @@ open ShenWork.IntervalConjugateDuhamelMap
   (IntervalConjugateMildSolution intervalConjugateKernelOperator)
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData conjugatePicardLimit)
+open ShenWork.PDE (intervalNeumannResolverR)
 open ShenWork.Paper2
 
 noncomputable section
@@ -27,11 +28,13 @@ derives the `negativePart_zero` field from a named weak-energy/Gronwall
 certificate.  No solution-level endpoint flux lemma is used.
 -/
 
-/-- The truncated chemotaxis flux appearing in the cron2 route:
-`Q(u) = (u_+)^m`, lifted to `[0,1]`. -/
+/-- Faithful truncated chemotaxis flux for the cron2 route:
+the original flux with only the leading `u` factor replaced by `u_+`. -/
 def truncatedChemFluxLifted (p : CM2Params)
     (w : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun y => truncatedChemotacticPower p (intervalDomainLift w y)
+  fun y =>
+    positivePart (intervalDomainLift w y) * resolverGradReal p w y
+      / (1 + intervalDomainLift (intervalNeumannResolverR p w) y) ^ p.β
 
 /-- A nonnegative-friendly local logistic source.  The precise analytic
 one-sided estimate is part of the weak-energy certificate below. -/
@@ -81,22 +84,6 @@ lemma truncatedChemotacticPower_mul_deriv_negativePart_eq_zero
       truncatedChemotacticPower_eq_zero_of_nonpos p hnonpos
     simp [hflux]
 
-/-- The B-form conjugate-kernel duality required by cron2, in the exact
-operator shape of this development:
-
-`∫ B_N(τ)g ψ = -∫ g ∂x(S_N(τ)ψ)`.
-
-This is the first missing analytic bridge: it should be proved from
-`intervalConjugateKernelOperator`, kernel symmetry, Fubini, and interval
-integration by parts. -/
-def BNDualityAvailable : Prop :=
-  ∀ ⦃τ : ℝ⦄, 0 < τ → ∀ g ψ : ℝ → ℝ,
-    (∫ x, intervalConjugateKernelOperator τ g x * ψ x ∂ intervalMeasure 1)
-      =
-    -(∫ y, g y *
-        deriv (fun z : ℝ => intervalFullSemigroupOperator τ ψ z) y
-        ∂ intervalMeasure 1)
-
 /-- Truncated B-form mild map, with `Q(u)` replaced by `Q(u_+)`. -/
 def truncatedConjugateDuhamelMap (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
@@ -117,9 +104,9 @@ def TruncatedConjugateMildSolution (p : CM2Params) (T : ℝ)
   ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
     u t x = truncatedConjugateDuhamelMap p u₀ u t x
 
-/-- Weak local PDE obtained after the B_N-duality step:
+/-- Weak local PDE obtained after the regular B-form duality step:
 
-`⟨u_t,φ⟩ + ∫ u_x φ_x = χ₀∫ (u_+)^m φ_x + ∫ L̃(u)φ`.
+`⟨u_t,φ⟩ + ∫ u_x φ_x = χ₀∫ Q_T(u) φ_x + ∫ L̃(u)φ`.
 
 This is deliberately a concrete integral identity, not an opaque shell. -/
 def TruncatedWeakLocalPDE (p : CM2Params) (T : ℝ)
@@ -136,22 +123,20 @@ def TruncatedWeakLocalPDE (p : CM2Params) (T : ℝ)
       =
     p.χ₀ *
         (∫ x,
-          truncatedChemotacticPower p (intervalDomainLift (u t) x)
-            * deriv φ x
+          truncatedChemFluxLifted p (u t) x * deriv φ x
           ∂ intervalMeasure 1)
       + (∫ x, truncatedLogisticLifted p (u t) x * φ x
           ∂ intervalMeasure 1)
 
-/-- Step 3 bridge: truncated mild fixed point plus B_N-duality gives the weak
-local PDE.  This is the second missing analytic bridge. -/
+/-- Step 3 bridge: truncated mild fixed point gives the weak local PDE once the
+regular flux/test duality and semigroup weak identity are supplied upstream. -/
 def TruncatedMildToWeakAvailable
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DB : ConjugateMildExistenceData p u₀) : Prop :=
   TruncatedConjugateMildSolution p DB.T u₀
       (conjugatePicardLimit p u₀ DB.T) →
-    BNDualityAvailable →
-      TruncatedWeakLocalPDE p DB.T
-        (conjugatePicardLimit p u₀ DB.T)
+    TruncatedWeakLocalPDE p DB.T
+      (conjugatePicardLimit p u₀ DB.T)
 
 /-- Endpoint of the weak negative-part energy estimate:
 
@@ -175,8 +160,6 @@ structure BFormCron2NegativePartHyp
   truncated_mild :
     TruncatedConjugateMildSolution p DB.T u₀
       (conjugatePicardLimit p u₀ DB.T)
-  /-- Step 2: `∫ B_N g ψ = -∫ g ∂x(S_N ψ)`. -/
-  bN_duality : BNDualityAvailable
   /-- Step 3: truncated mild fixed point implies the weak local PDE. -/
   mild_to_weak : TruncatedMildToWeakAvailable p DB
   /-- Step 4: weak negative-part energy plus Gronwall gives `u ≥ 0`. -/
@@ -193,7 +176,7 @@ theorem bform_negativePart_zero
   have hweak :
       TruncatedWeakLocalPDE p DB.T
         (conjugatePicardLimit p u₀ DB.T) :=
-    H.mild_to_weak H.truncated_mild H.bN_duality
+    H.mild_to_weak H.truncated_mild
   have hnonneg :
       0 ≤ conjugatePicardLimit p u₀ DB.T t x :=
     H.negative_part_energy hweak t ht htT x
@@ -236,11 +219,5 @@ def bform_negpart_route_of_cron2_lower_barrier
   bform_negpart_route_of_lower_barrier datum B
     (bform_negativePart_zero H)
     hLift_cont hLift_nonneg hLift_pos_somewhere hbarrier
-
-#print axioms truncatedChemotacticPower_eq_zero_of_nonpos
-#print axioms truncatedChemotacticPower_mul_deriv_negativePart_eq_zero
-#print axioms bform_negativePart_zero
-#print axioms bform_truncation_inactive_of_cron2
-#print axioms bform_negpart_route_of_cron2_lower_barrier
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart

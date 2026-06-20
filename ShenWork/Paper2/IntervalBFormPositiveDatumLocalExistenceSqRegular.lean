@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalBFormCron2RegularNegativePartEnergy
+import ShenWork.Paper2.IntervalBFormFaithfulBridgeProducer
 import ShenWork.Paper2.IntervalBFormPdeUProducer
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
 import ShenWork.Paper2.IntervalBFormDirectClassical
@@ -41,8 +41,7 @@ structure PositiveDatumBFormLocalComponentsSqRegular
     ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p DB.T
       (conjugatePicardLimit p u₀ DB.T)
   DT : TruncatedConjugateMildExistenceData p u₀
-  Hbridge : TruncatedConjugateLimitBridge p DB DT
-  Henergy : NegativePartEnergyCoreRegularData p DB
+  HbridgeData : TruncatedConjugateLimitBridgeProducerData p DB DT
   A : ℝ
   Dbar : ℝ
   M : ℝ
@@ -87,13 +86,30 @@ structure PositiveDatumBFormLocalComponentsSqRegular
     InitialTrace intervalDomain u₀
       (conjugatePicardLimit p u₀ DB.T)
 
+def PositiveDatumBFormLocalComponentsSqRegular.bridge
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    TruncatedConjugateLimitBridge p K.DB K.DT :=
+  truncatedConjugateLimitBridge_of_faithful_truncation K.HbridgeData
+
 def PositiveDatumBFormLocalComponentsSqRegular.negativePart_zero
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
     ∀ t, 0 < t → t ≤ K.DB.T → ∀ x : intervalDomainPoint,
-      negativePart (conjugatePicardLimit p u₀ K.DB.T t x) = 0 :=
-  bform_negativePart_zero_of_concrete_truncated_regular_energyCore
-    K.DT K.Hbridge K.Henergy
+      negativePart (conjugatePicardLimit p u₀ K.DB.T t x) = 0 := by
+  intro t ht htT x
+  have Hbridge := K.bridge
+  have htDT : t ≤ K.DT.T := by
+    simpa [K.HbridgeData.hT] using htT
+  have hnonneg :
+      0 ≤ truncatedConjugatePicardLimit p u₀ K.DT.T t x :=
+    K.HbridgeData.truncated_nonneg t ht htDT x
+  have heq :
+      conjugatePicardLimit p u₀ K.DB.T t x
+        = truncatedConjugatePicardLimit p u₀ K.DT.T t x :=
+    Hbridge.2 t ht htT x
+  rw [heq]
+  exact negativePart_eq_zero_of_nonneg hnonneg
 
 def PositiveDatumBFormLocalComponentsSqRegular.strictPos
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
