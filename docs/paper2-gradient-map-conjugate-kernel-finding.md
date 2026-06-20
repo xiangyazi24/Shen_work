@@ -131,3 +131,15 @@ spatially-resolved tail/core using the exact semigroup tail action with λ=1+κc
 or a modified barrier. DO NOT dispatch the crude route. The conditional aux-flow discharge (margin CARRIED,
 commit 1fa12a7) stands as honest; unconditional margin is deferred genuine work, NOT blocking the conditional
 formalization.
+
+## Paper-2 B-form positivity route (2026-06-20, ChatGPT cron2 + verified)
+The relative multiplicative-cone route FAILS for the conjugate kernel B_N: ∫∫|∂_yK_N|·h_s^m does NOT give
+o(1)·h_t (derivative kernel "bridge drift" interior→boundary gives O(1) relative correction, even m=1). codex's
+stall was CORRECT. Two valid routes:
+- GENERAL nonneg (boundary-vanishing data): truncate the nonlinearity + weak negative-part estimate, key
+  cancellation (u₊)^m(u₋)_x=0 a.e. (= Q vanishes at u=0); then strong max principle for interior strict pos.
+- PID LOCAL EXISTENCE (the spectral-provider hpost: 0<u on CLOSED [0,1]): the ABSOLUTE inf-threshold suffices —
+  S_N(t)u₀ ≥ inf u₀ (>0 for PID), chemotaxis correction ≤ |χ₀|Cg·2√t·M^m, react ≤ t‖L‖, so
+  u_{n+1} ≥ inf u₀ − |χ₀|Cg2√t·M^m − t‖L‖ ≥ inf u₀/2 > 0 for small t, uniformly in x (incl. boundary). This is
+  the route for the local-existence spectral provider (NOT the relative cone, NOT the negative-part route which
+  is for general boundary-vanishing data).
