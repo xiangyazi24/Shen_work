@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalBFormTruncatedBridgeProducerData
 import ShenWork.Paper2.IntervalBFormPdeUProducer
+import ShenWork.Paper2.IntervalBFormSpectralPdeAgreementStandardFacts
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
 import ShenWork.Paper2.IntervalBFormDirectClassical
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
@@ -37,8 +38,8 @@ structure PositiveDatumBFormLocalComponentsSqRegular
     |p.χ₀| * (heatGradientLinftyLinftyConstant *
         (2 * Real.sqrt DB.T) * Hinf.CQ)
       + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
-  Hpde :
-    ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p DB.T
+  HpdeFacts :
+    ShenWork.IntervalBFormSpectral.BFormSpectralPdeAgreementStandardFacts p DB.T
       (conjugatePicardLimit p u₀ DB.T)
   DT : TruncatedConjugateMildExistenceData p u₀
   HbridgeT : DT.T = DB.T
@@ -87,6 +88,26 @@ structure PositiveDatumBFormLocalComponentsSqRegular
   initialTrace :
     InitialTrace intervalDomain u₀
       (conjugatePicardLimit p u₀ DB.T)
+
+def PositiveDatumBFormLocalComponentsSqRegular.boundedClassicalRegularity
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    ShenWork.IntervalBFormSpectral.BFormBoundedClassicalRegularity p K.DB.T
+      (conjugatePicardLimit p u₀ K.DB.T) := by
+  refine ⟨K.regularity, ?_⟩
+  refine ⟨(conjugateMildSolutionData_of_data K.DB).M,
+    (conjugateMildSolutionData_of_data K.DB).hM.le, ?_⟩
+  intro t ht htT x
+  exact (conjugateMildSolutionData_of_data K.DB).hbound t ht htT x
+
+def PositiveDatumBFormLocalComponentsSqRegular.Hpde
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p K.DB.T
+      (conjugatePicardLimit p u₀ K.DB.T) :=
+  ShenWork.IntervalBFormSpectral.hasBFormSpectralPdeAgreement_of_standardFacts
+    (conjugateMildSolutionData_of_data K.DB).hmild
+    K.boundedClassicalRegularity K.HpdeFacts
 
 def PositiveDatumBFormLocalComponentsSqRegular.bridgeData
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
