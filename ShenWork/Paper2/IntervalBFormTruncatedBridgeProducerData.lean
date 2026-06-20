@@ -1,5 +1,5 @@
 import ShenWork.Paper2.IntervalBFormFaithfulBridgeProducer
-import ShenWork.Paper2.IntervalBFormCron2RegularNegativePartEnergy
+import ShenWork.Paper2.IntervalBFormCron2SemigroupWeakDuhamel
 
 open Filter Topology Set MeasureTheory
 open scoped Topology
@@ -24,9 +24,18 @@ structure TruncatedNegativePartMildToWeakRegularData
         BNDualityForFluxTestAt p
           (truncatedConjugatePicardLimit p u₀ DT.T) t s
           (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t)
-  semigroup_weak :
-    NegativePartMildSemigroupWeakAfterFluxTestDuality p DT.T u₀
+  semigroup_weak_facts :
+    NegativePartStandardHeatSemigroupDuhamelFacts p DT.T u₀
       (truncatedConjugatePicardLimit p u₀ DT.T)
+
+def TruncatedNegativePartMildToWeakRegularData.semigroup_weak
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DT : TruncatedConjugateMildExistenceData p u₀}
+    (H : TruncatedNegativePartMildToWeakRegularData p DT) :
+    NegativePartMildSemigroupWeakAfterFluxTestDuality p DT.T u₀
+      (truncatedConjugatePicardLimit p u₀ DT.T) :=
+  negativePartMildSemigroupWeakAfterFluxTestDuality_of_standardHeatSemigroupDuhamelFacts
+    H.semigroup_weak_facts
 
 def TruncatedNegativePartMildToWeakRegularData.weakTest
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
