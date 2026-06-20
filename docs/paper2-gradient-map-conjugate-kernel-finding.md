@@ -240,3 +240,18 @@ reduction is VACUOUS. REJECTED, NOT banked. FIX: rebuild the bundle using the ba
 comparison + completing-the-square, seed-based + satisfiable) instead of the linear heat_lower_barrier. The other
 bundle fields (Hpde, Henergy, regularity, hpde_v, neumann, initialTrace) are satisfiable. The squared-barrier route is
 the genuine non-vacuous one - it is what I built (drift comparison PROVED, IntervalBFormStrictPosClosed.lean).
+
+## §3.3 CATCH #7 (2026-06-20, ChatGPT cron + I OVERCLAIMED first): BNDualityAvailable (universal) is FALSE
+The bundle's HbN field is BNDualityAvailable (IntervalBFormNegativePartCron2.lean:92) = the B_N-duality quantified
+over ALL g,ψ : ℝ→ℝ (no integrability). I initially (wrongly) argued it is TRUE via a non-L¹-both-sides-0 case-split.
+codex correctly objected (∂K bounded + sign-changing ⟹ ∂K·g can be integrable even for non-L¹ g, so B_N g need not
+be 0), and ChatGPT cron gave an explicit COUNTEREXAMPLE: g smooth integrable, ψ=|w−1/2|^{−3/2} (non-L¹). Then
+S_N(t)ψ=0 (non-integrable→Lean 0) so RHS=0; but B_N(t)g·ψ ~ C|x−1/2|^{−1/2} near 1/2 is integrable & positive so
+LHS>0 ≠ RHS. ⟹ BNDualityAvailable is FALSE. Therefore the bundle carrying HbN:BNDualityAvailable is UNINHABITED ⟹
+the banked headline (c071bb5, audit-claimed non-vacuous) is actually VACUOUS via HbN. The prior non-vacuity audit
+MISSED the universal quantification of HbN (it scrutinized the linear barrier + main fields, assumed BNDualityAvailable
+was a "standard duality"). LESSON: verify-don't-transcribe applies to MY OWN analysis — I overclaimed "it's true";
+firing the ChatGPT cross-check is what caught it. FIX: restrict HbN to the regular duality bN_duality_regular (needs
+IntegrableOn g, IntegrableOn ψ — TRUE, proved), applied to the SPECIFIC chemotaxis flux Q (bounded/integrable on
+[0,1]) + the negative-part test (bounded). Re-thread through the energy core + the bundle. The regular duality is the
+genuine non-vacuous one.
