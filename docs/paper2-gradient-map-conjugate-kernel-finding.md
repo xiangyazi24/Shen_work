@@ -255,3 +255,25 @@ firing the ChatGPT cross-check is what caught it. FIX: restrict HbN to the regul
 IntegrableOn g, IntegrableOn ψ — TRUE, proved), applied to the SPECIFIC chemotaxis flux Q (bounded/integrable on
 [0,1]) + the negative-part test (bounded). Re-thread through the energy core + the bundle. The regular duality is the
 genuine non-vacuous one.
+
+## §3.3 NON-CATCH #8 (2026-06-20, ChatGPT cron3 + verify-don't-transcribe SAVED IT): Neumann BC is FAITHFUL
+ChatGPT cron3 raised the most dangerous-looking concern of the campaign: the time-integrated B-Duhamel chemotaxis leg
+W_B(t,x) = (-χ₀)∫₀ᵗ B_N(t-s) F(s) (x) ds (intervalConjugateDuhamelMap, IntervalConjugateDuhamelMap.lean:298). Per-lag,
+B_N(r)F is a cosine series → ∂ₓ=0 at the boundary (intervalConjugate_normalDeriv_zero, carries SATISFIABLE DifferentiableAt
+hyps, smooth for r>0). BUT ∂ₓ and ∫₀ᵗds do NOT commute across the singular lag r=t-s↓0. ChatGPT's decisive example Q≡1:
+each lag has zero boundary derivative, yet ∫ limit = ½-|x| has a CORNER at x=0 (one-sided deriv -1≠0). General formula:
+W_{B,x}(t,0) = -Q(t,0); homogeneous Neumann holds only if Q|∂ = 0. ChatGPT (wrongly) assumed B_N acts on raw Q=u^m
+(boundary-NONZERO → corner → BC FAILS). RESOLUTION via source: B_N actually acts on chemFluxLifted = u·v_x/(1+v)^β
+(IntervalGradientDuhamelMap.lean:47), NOT u^m. The resolver gradient v_x = resolverGradReal is a SINE series
+Σ coeff·(-kπ sin(kπx)) (IntervalDomainL2StaticVDifference.lean:748) and resolverGradReal_zero PROVES it vanishes at x=0,1
+(IntervalDomainL2UEnergyCombine.lean:71,81), C¹ (line 387). ⟹ chemFlux(t,0)=chemFlux(t,1)=0 — EXACTLY the Q|∂=0
+compatibility ChatGPT's own §7 flagged as required. Corner absent ⟹ Neumann BC genuinely holds. Two more confirmations:
+(a) normalDeriv = derivWithin (Ici 0 / Iic 1) one-sided physical derivative (IntervalDomain.lean:2943), NOT vacuous-at-corner
+two-sided Mathlib deriv — the field is HONEST. (b) Interior PDE source is ∂ₓ(flux) = B_N's zero-time trace, so Correction-1
+(forcing-shape) doesn't bite either. VERDICT: NOT a faithfulness bug; construction faithful; ChatGPT's general warning is
+correct but used the wrong Q. GENUINE TAKEAWAY: the bundle's `neumann` field (IntervalBFormPositiveDatumLocalExistenceSqRegular.lean:79)
+is CARRIED, satisfiable ONLY because chemFlux|∂=0 (resolverGradReal_zero) — a generic-Q audit would call it unsatisfiable.
+Non-vacuity audits MUST cite resolverGradReal_zero as the witness for this field. Remaining real atom: DISCHARGE the neumann
+field as a theorem (prove ∂ₓ∫₀ᵗB_N(t-s)F ds = 0 at boundary FROM F|∂=0, justifying the ∂ₓ/∫ds interchange via DCT — the
+boundary-vanishing is exactly what kills the r↓0 obstruction). Dispatched to cron3. LESSON: verify-don't-transcribe against
+the ACTUAL flux definition — ChatGPT's abstract Q=u^m would have condemned a faithful construction.
