@@ -158,3 +158,18 @@ GENUINE FIX: bypass GradientMildSolutionData. The B-form solution satisfies IsPa
 (intervalConjugate_normalDeriv_zero, from cosine rep), positivity (conjugatePicardLimit_pos_of_PID), C² regularity
 (from cosine rep), + the resolver v-side (χ-general). Assemble these directly into IsPaper2ClassicalSolution →
 Theorem_1_1 (+ F1 hUniform restart/gluing, the genuine satisfiable frontier). NO output-deriv bridge.
+
+## Paper-2 negative-part positivity ROUTE (2026-06-20, ChatGPT cron2) — the deep-PDE ceiling
+The B-form general-χ headline's hlocal reduces to BFormNegativePartPositivityRoute (negativePart_zero / strictPos
+/ hpde_u). hpde_u = banked (bform_negpart_hpde_u_of_bank from intervalConjugateMildSolution_pde_u). The other two
+are genuine DEEP PDE formalizations (no tree producers), per cron2's verified route:
+- NONNEG (u≥0): truncate Q→Q(u₊); B_N-duality (∫B_N(τ)g·ψ = −∫g·∂xS_N(τ)ψ); mild-to-weak (⟨u_t,φ⟩+∫u_xφ_x =
+  χ₀∫b(u₊)^m φ_x + ∫L̃(u)φ); negative-part energy ½d/dt‖u₋‖²+‖(u₋)_x‖² ≤ ℓ‖u₋‖² with u₋(0)=0 ⟹ u≥0; remove
+  truncation. The LOCAL ∂x gives the disjoint-support cancellation the nonlocal B_N lacks — must go through the
+  weak LOCAL PDE, not the mild level.
+- STRICTPOS (0<u): plain S_N heat-kernel positivity is INSUFFICIENT (signed nonlocal chemotaxis, no u≥c·S_N(t)u₀).
+  Needs the linearized operator's positive fundamental solution / SMP / Harnack — "essentially the strong maximum
+  principle". A sub-solution comparison (w=e^{−Ct}S_N(t)u₀, hbarrier u≥w) is an alternative but needs a genuine
+  Neumann-interval comparison principle (tree only has whole-line scalar ParabolicMaxPrinciple.comparison_principle).
+These are the honest-conditional ceiling — satisfiable but heavy (weak negative-part energy + SMP/Harnack), the
+same F2-level analytic frontier the χ₀=0 case and the other Shen headlines carry.
