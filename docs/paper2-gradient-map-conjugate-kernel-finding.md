@@ -226,3 +226,17 @@ w≤u on [t₀,T], hence strictPos u≥w>0 on [t₀,T]; then t₀→0 covers all
 holds, but the barrier's t=0 DISCONTINUITY breaks the closed-strip classical-sub-solution regularity, so the
 comparison must start at t₀>0.) The drift comparison itself is unaffected (proved for any regular sub/super on
 the strip); only the initial-condition framing needs the t₀-restart.
+
+## §3.3 CATCH #6 (2026-06-20 opus audit): hlocal bundle REGRESSED to the unsatisfiable LINEAR barrier
+codex's IntervalBFormPositiveDatumLocalExistence.lean reduced the general-χ headline to PositiveDatumBFormLocalHyp =
+(∀ datum, Nonempty PositiveDatumBFormLocalComponents) + hUniform. But the bundle's heat_lower_barrier field requires
+exp(-Ct)·S_N(t)u₀ ≤ conjugatePicardLimit (the u₀-LINEAR lower bound), via bform_strictPos_of_semigroup_lower_barrier.
+This is the UNSATISFIABLE linear barrier cron2 already rejected: the B-form Duhamel = S(t)u₀ − χ₀∫S(t−s)·chemDiv +…,
+the signed nonlocal chemotaxis correction can push u below exp(-Ct)S_N u₀; exp(-Ct)S_N u₀ is NOT a sub-solution (no
+−Cv absorbs the v_x-gradient drift — completing-the-square needs v², not v). No lemma derives it anywhere; it is
+carried as an unproved hypothesis ⟹ the bundle is UNINHABITED ⟹ PositiveDatumBFormLocalHyp is FALSE ⟹ the headline
+reduction is VACUOUS. REJECTED, NOT banked. FIX: rebuild the bundle using the banked SQUARED-barrier route
+(bform_strictPos_of_square_heat_subsolution + the squared barrier squareHeatBarrier M f ≤ u PROVED from the drift
+comparison + completing-the-square, seed-based + satisfiable) instead of the linear heat_lower_barrier. The other
+bundle fields (Hpde, Henergy, regularity, hpde_v, neumann, initialTrace) are satisfiable. The squared-barrier route is
+the genuine non-vacuous one - it is what I built (drift comparison PROVED, IntervalBFormStrictPosClosed.lean).
