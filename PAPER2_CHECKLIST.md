@@ -34,7 +34,7 @@ Markers: ✅ discharged sorry-free & axiom-clean · 🟡 carried-SATISFIABLE (wi
 - 🟡 `hstrip` SquareHeatRestartStripData — coefficient regularity + hsuper for strictPos
 - 🟡 `regularity` classical C² — from cosine representation
 - 🟡 `hpde_v` elliptic resolver (chemical v) — resolver machinery
-- 🟡 `neumann` normalDeriv u = normalDeriv v = 0 — satisfiable via `resolverGradReal_zero` (flux|∂=0); **skeleton ready** (/tmp/gpt_neudis.txt: F|∂=0 → ∂ₓ/∫ds interchange)
+- ✅ `neumann` normalDeriv u = normalDeriv v = 0 — GENUINELY discharged (148ccca, opus GENUINE-DISCHARGE + proof-term read): u via 3-leg assembly (chemFlux-vanishing from resolverGradReal_zero → interchange license → ring), v via HasDerivWithinAt from resolverGradReal_zero/_one. Only carried Mathlib-gap fact = the DCT interchange license (load-bearing).
 - 🟡 `initialTrace` InitialTrace — B-form initial approach as t→0
 - ✅ `semigroup_weak` (TruncatedMildSemigroupWeakAfterBNDualityOn) — DISCHARGED to NAMED standard heat-semigroup facts pack (e0d9038, opus HONEST-BOTTOM): t^{-1/2} gradient bound, Lebesgue endpoint, DCT majorant, semigroup form identity, Duhamel differentiation (chemotaxis gated on restricted duality). Honest Mathlib-gap bottom.
 - 🟡 `hUniform` (F1) IntervalDomainUniformLocalExistence — textbook uniform continuation
