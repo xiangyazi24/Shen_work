@@ -143,3 +143,18 @@ stall was CORRECT. Two valid routes:
   u_{n+1} ≥ inf u₀ − |χ₀|Cg2√t·M^m − t‖L‖ ≥ inf u₀/2 > 0 for small t, uniformly in x (incl. boundary). This is
   the route for the local-existence spectral provider (NOT the relative cone, NOT the negative-part route which
   is for general boundary-vanishing data).
+
+## ⛔ FAKE WIRING CAUGHT (2026-06-20) — GradientMildSolutionData bakes in the output-deriv map
+codex's IntervalBFormEndToEnd.lean wired the B-form into the headline via conjugateAsGradientMildSolutionData,
+which BRIDGES the B-form solution into GradientMildSolutionData. But GradientMildSolutionData (IntervalMildPicard.lean:1396)
+has field hmild : IntervalMildSolution = the OUTPUT-DERIV fixed-point equation (u = intervalGradientDuhamelMap u).
+The bridge carries hGradientBridge : IntervalMildSolution p T u₀ (conjugatePicardLimit) — i.e. "the B-form solution
+ALSO satisfies the output-deriv map equation". For χ₀≠0 this is UNSATISFIABLE: the conjugate map (cosine chemotaxis)
+≠ the output-deriv map (sine chemotaxis), so the same u cannot satisfy both fixed-point equations. ⟹
+paper2_theorem_1_1_general_chi_via_bform is VACUOUS for χ₀≠0. REJECTED, NOT banked. Build EXIT=0 does not save a
+vacuous conditional (§3.3).
+GENUINE FIX: bypass GradientMildSolutionData. The B-form solution satisfies IsPaper2ClassicalSolution
+(Statements.lean:70) DIRECTLY: interior PDE (intervalConjugateMildSolution_pde_u), Neumann BC
+(intervalConjugate_normalDeriv_zero, from cosine rep), positivity (conjugatePicardLimit_pos_of_PID), C² regularity
+(from cosine rep), + the resolver v-side (χ-general). Assemble these directly into IsPaper2ClassicalSolution →
+Theorem_1_1 (+ F1 hUniform restart/gluing, the genuine satisfiable frontier). NO output-deriv bridge.
