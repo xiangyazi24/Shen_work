@@ -325,7 +325,7 @@ private theorem bformConcreteReact_bound
     mul_le_mul_of_nonneg_left hpow p.hb
   linarith [p.ha, hmul]
 
-private theorem bformConcreteDrift_bound_restart
+theorem bformConcreteDrift_bound_restart
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DB : ConjugateMildExistenceData p u₀) :
     ∀ τ, 0 < τ → τ < DB.T →
@@ -336,7 +336,7 @@ private theorem bformConcreteDrift_bound_restart
   exact bformConcreteDrift_bound p DB (τ + s) x
     (by linarith) (by linarith) hx
 
-private theorem bformConcreteReact_bound_restart
+theorem bformConcreteReact_bound_restart
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DB : ConjugateMildExistenceData p u₀) :
     ∀ τ, 0 < τ → τ < DB.T →
@@ -370,7 +370,6 @@ structure PositiveDatumBFormSqBankedConcreteHypotheses
             (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε
   DT : TruncatedConjugateMildExistenceData p u₀
   Hbridge : TruncatedConjugateLimitBridge p DB DT
-  HbN : BNDualityAvailable
   HmildWeak : TruncatedMildToWeakAvailable p DB
   Henergy : NegativePartEnergyCoreData p DB
   hLinearStripCore :
@@ -402,7 +401,6 @@ def positiveDatumBFormSqBankedPlumbing_of_solution
   hInitialApproach := H.hInitialApproach
   DT := H.DT
   Hbridge := H.Hbridge
-  HbN := H.HbN
   HmildWeak := H.HmildWeak
   Henergy := H.Henergy
   A := bformConcreteDriftA p DB

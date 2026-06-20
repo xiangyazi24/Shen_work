@@ -5,6 +5,7 @@ import ShenWork.Paper2.IntervalBFormNeumannDischarge
 import ShenWork.Paper2.IntervalBFormHpdeVDischarge
 import ShenWork.Paper2.IntervalBFormStrictPosClosed
 import ShenWork.Paper2.IntervalBFormRegularityDischarge
+import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqBankedConcrete
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 open Filter Topology Set
@@ -48,24 +49,15 @@ structure PositiveDatumBFormLocalComponentsSqRegular
   HbridgeT : DT.T = DB.T
   HtruncatedEnergy : TruncatedNegativePartEnergyCoreRegularData p DT
   htruncatedM_le_DBM : DT.M ≤ DB.M
-  A : ℝ
-  Dbar : ℝ
-  M : ℝ
-  hM_nonneg : 0 ≤ M
-  hM : A ^ 2 / 2 + Dbar ≤ M
-  drift : ℝ → ℝ → ℝ
-  react : ℝ → ℝ → ℝ
-  hstrip :
+  hLinearStripCore :
     ∀ τ, 0 < τ → τ < DB.T →
       NeumannLinearDriftCoefficientsRegular (DB.T - τ)
-        (restartTimeShift τ drift) (restartTimeShift τ react) ∧
+        (restartTimeShift τ (bformConcreteDrift p DB))
+        (restartTimeShift τ (bformConcreteReact p DB)) ∧
       IsClassicalNeumannLinearDriftSuperSolution (DB.T - τ)
-        (restartTimeShift τ drift) (restartTimeShift τ react)
-        (restartTimeShift τ (bformConjugatePicardLift p DB)) ∧
-      (∀ s x, 0 < s → s < DB.T - τ →
-        x ∈ Set.Ioo (0 : ℝ) 1 → |drift (τ + s) x| ≤ A) ∧
-      (∀ s x, 0 < s → s < DB.T - τ →
-        x ∈ Set.Ioo (0 : ℝ) 1 → -react (τ + s) x ≤ Dbar)
+        (restartTimeShift τ (bformConcreteDrift p DB))
+        (restartTimeShift τ (bformConcreteReact p DB))
+        (restartTimeShift τ (bformConjugatePicardLift p DB))
   regularityFrontier :
     ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB
   neumannFacts :
@@ -136,6 +128,31 @@ def PositiveDatumBFormLocalComponentsSqRegular.negativePart_zero
   rw [heq]
   exact negativePart_eq_zero_of_nonneg hnonneg
 
+def PositiveDatumBFormLocalComponentsSqRegular.hstrip
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    ∀ τ, 0 < τ → τ < K.DB.T →
+      NeumannLinearDriftCoefficientsRegular (K.DB.T - τ)
+        (restartTimeShift τ (bformConcreteDrift p K.DB))
+        (restartTimeShift τ (bformConcreteReact p K.DB)) ∧
+      IsClassicalNeumannLinearDriftSuperSolution (K.DB.T - τ)
+        (restartTimeShift τ (bformConcreteDrift p K.DB))
+        (restartTimeShift τ (bformConcreteReact p K.DB))
+        (restartTimeShift τ (bformConjugatePicardLift p K.DB)) ∧
+      (∀ s x, 0 < s → s < K.DB.T - τ →
+        x ∈ Set.Ioo (0 : ℝ) 1 →
+          |bformConcreteDrift p K.DB (τ + s) x| ≤
+            bformConcreteDriftA p K.DB) ∧
+      (∀ s x, 0 < s → s < K.DB.T - τ →
+        x ∈ Set.Ioo (0 : ℝ) 1 →
+          -bformConcreteReact p K.DB (τ + s) x ≤
+            bformConcreteDbar p K.DB) := by
+  intro τ hτ hτT
+  obtain ⟨hcoeff, hsuper⟩ := K.hLinearStripCore τ hτ hτT
+  exact ⟨hcoeff, hsuper,
+    bformConcreteDrift_bound_restart p K.DB τ hτ hτT,
+    bformConcreteReact_bound_restart p K.DB τ hτ hτT⟩
+
 def PositiveDatumBFormLocalComponentsSqRegular.strictPos
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
@@ -143,9 +160,15 @@ def PositiveDatumBFormLocalComponentsSqRegular.strictPos
       0 < conjugatePicardLimit p u₀ K.DB.T t x :=
   bform_strictPos_closed
     (p := p) (u₀ := u₀) (DB := K.DB)
-    (A := K.A) (D := K.Dbar) (M := K.M)
-    (drift := K.drift) (react := K.react)
-    K.huPaper K.Hinf K.hsmall K.hM_nonneg K.hM K.hstrip
+    (A := bformConcreteDriftA p K.DB)
+    (D := bformConcreteDbar p K.DB)
+    (M := bformConcreteM p K.DB)
+    (drift := bformConcreteDrift p K.DB)
+    (react := bformConcreteReact p K.DB)
+    K.huPaper K.Hinf K.hsmall
+    (bformConcreteM_nonneg p K.DB)
+    (bformConcreteM_closes p K.DB)
+    K.hstrip
 
 def PositiveDatumBFormLocalComponentsSqRegular.hpde_u
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
