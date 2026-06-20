@@ -173,3 +173,16 @@ are genuine DEEP PDE formalizations (no tree producers), per cron2's verified ro
   Neumann-interval comparison principle (tree only has whole-line scalar ParabolicMaxPrinciple.comparison_principle).
 These are the honest-conditional ceiling — satisfiable but heavy (weak negative-part energy + SMP/Harnack), the
 same F2-level analytic frontier the χ₀=0 case and the other Shen headlines carry.
+
+## §3.3 CATCH (2026-06-20, codex): NeumannLinearDriftComparison was MIS-STATED (bare-deriv ⟹ FALSE)
+The strictPos squared-sub-solution (IntervalBFormSquareHeatSubsolution.lean, commit 18) carried
+NeumannLinearDriftComparison stated with BARE `deriv` residuals + no continuity/differentiability/boundedness.
+codex found a COUNTEREXAMPLE: zero coefficients, zero solution, a single-point spike has bare-deriv residual 0,
+satisfies the initial + Neumann-endpoint conditions, yet violates the comparison at the spike ⟹ the interface is
+FALSE/unsatisfiable ⟹ the squared-sub-solution lemma is VACUOUS as carried. (codex documented it in
+IntervalBFormSquareHeatSubsolutionComparisonStall.lean — refused to fake the discharge.) This is a real §3.3
+catch in a banked file. FIX: re-state NeumannLinearDriftComparison WITH the proper regularity (IsClassicalSub/
+SuperSolution shape — boundedness + classical regularity + Lipschitz, matching the tree's
+ParabolicMaxPrinciple.comparison_principle), which the actual B-form solution satisfies (cosine-rep C²), then prove
+it from the tree's whole-line comparison via Neumann even-reflection. The regularity-hypothesized version is
+satisfiable + dischargeable; the bare-deriv one is not.
