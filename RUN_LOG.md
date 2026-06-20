@@ -90,3 +90,9 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
   (docs/paper2-gradient-map-conjugate-kernel-finding.md) — design decision A/B/C awaits Xiang. χ₀=0 escapes it.
 - NOW active: avenue (c) Paper-1 whole-line parabolic (layer-1 Gaussian semigroup in flight). avenue (b)
   general-χ resumes once Xiang picks the map fix.
+
+## Run 2026-06-20 00:35 (/automode reaffirmed: dont ask, orchestrate codex+chatgpt)
+- standing goal: 3 Shen papers FAITHFUL per playbook audit
+- banked this session: 1fa12a7 (P1 discharge), 4488abe (P2 B-form map), P2 htime/hchem discharge
+- active: B-form Picard existence (codex) -> discharge HasBFormSpectralPdeAgreement -> headline wiring
+- parallel: P1 global-margin (chatgpt), then P3 (gated on P2)
