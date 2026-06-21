@@ -7,7 +7,26 @@ Detailed audit log: `SHEN_AUDIT_CHECKLIST.md`. This file = the global map, updat
 
 Legend: ✅ proven+committed · 🟢 proven in-clone (commit/wire pending) · 🟡 in active work (codex grinding)
 · 🔴 genuine hard core (open) · ⚠️ faithfulness note.
-Last update: 2026-06-21 ~13:40.
+Last update: 2026-06-21 round-3 dispatch.
+
+## ROUND 3 (06-21) — each paper at ONE named irreducible wall; all 3 codexes honest-stalled axiom-clean, re-fired
+- **P1 wall = FixedSourceStationaryPointwiseStabilization** (genuine Liouville: bounded entire stationary
+  W''+cW'−λW+R=0, 0<c1≤W≤C2 ⇒ W≡U_-=(a/b)^{1/α}) + auxRHS still carries deriv(auxFlux) → re-fired P1stab:
+  REDEFINE auxMap to TRUE divergence form (−χ·greenConvDeriv on the kernel, NOT deriv of flux) so auxRHS
+  continuity comes from the C⁰ trap; + build the no-nonconstant-bounded-entire-solution lemma (z=W−U_- max-principle
+  or bounded-inverse contraction). ChatGPT cron1 consulted (git-drop, soundness of two routes + minimal hyps).
+- **P2 wall = RestartRepresentativeIdentity** (u-slice = its cosine series). GENUINE WIN: provider + first factor
+  ALREADY CONSTRUCTED *given* the identity (bFormFluxH1Constructor_of_restartRepresentativeIdentity,
+  p2WeightedRestartCoeffToUFactor_of_restartRepresentativeIdentity, IntervalBFormP2NonCircularRepBridge.lean:56/64).
+  Only the identity remains → re-fired P2repid: prove it NON-CIRCULARLY from conjugatePicardLimit's DEFINITION
+  (cosine-Duhamel L²-limit ∈ closed cosine span ⇒ equals its cosine series, HilbertBasis.hasSum_repr), NOT from
+  flux H¹ (circular). ChatGPT cron2 consulted (git-drop, is the identity automatic-by-construction / hidden circularity).
+- **P3 wall = headline field defs are SHARP-mis-stated vs paper liminf** (deepest insight this round). Codex PROVED
+  actual m=1-linear min-estimate, CompactMinDanskin→Dini wrapping, faithful u+v liminf. But the headline
+  IntervalDomainSectorialTheorem21Persistence demands raw EXACT-eventual parts 1-4 (STRONGER than paper & false,
+  z=θ−e^{-t} counterexample). Paper3 Thm 2.1 = liminf. → re-fired P3faith WITH PERMISSION to correct the Part
+  field DEFINITIONS to the paper-faithful liminf u+v form (faithfulness fix, not downgrade), then discharge from the
+  proven pieces; part3's m>1 branch is VACUOUS for the m=1 interval operator (state faithfully). P3 = closest to landing.
 
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
