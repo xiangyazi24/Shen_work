@@ -113,6 +113,13 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
   the L² seed (GN q=4 + finite root tower), NOT forward; + l2SeedReg closed-time bridge.
 - LESSON: "wire to existing frontier" backfires — those frontiers are themselves carried obligations.
   Re-attacks must PROVE the atoms from the staged designs, not forward. No fake/relocation landed.
+- **P1 Rothe re-attempt #2 (WaveRotheBarrierConvergence.lean): REJECTED** (audit + cron1 both): proved
+  per-u convergence from carried `anti_k` (iteration-index Antitone) — but `anti_k`'s ONLY concrete
+  producer (RotheStepProducer.produce) REQUIRES + propagates SPATIAL antitone (anti_x) = the χ≥1/2
+  monotone-comparison obstruction the barrier pivot exists to kill (SPATIAL-ANTITONE-REGRESSION); also
+  carried (no producer) + ORPHANED (0 consumers of the file). The genuine P1 Rothe route must use
+  ARZELÀ–ASCOLI with NO antitone (anti_k or anti_x) + prove the RESIDUAL z_{k+1}−z_k→0 (energy
+  dissipation) for the stationary limit. P1aa re-fired on exactly that (cron1 designing the dissipation).
 
 ## Scoreboard (5 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc, 2c58ff5)
 - Paper 1: field-shrink + hc3-artifact-elimination + barrier-route de-monotonization (projection layer
