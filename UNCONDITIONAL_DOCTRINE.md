@@ -44,7 +44,16 @@ Prove from the concrete cosine kernel K_N(t,x,y)=Σ_k e^{-(kπ)²t} φ_k(x)φ_k(
 - B2. StationaryGreenRepresentationThreadData — explicit Green representation on the interval (cosine/Green kernel)
 - B3. C²/C³ bootstrap regularity from the stationary equation
 
-### P3 frontier
+#
+### P3 FINDING (codex v3b, verify-don't-transcribe): small-data-around-ZERO bootstrap is FALSE
+My X^θ skeleton was WRONG: CM2Params allows a>0 ⟹ zero state LINEARLY UNSTABLE ⟹ small const data GROWS to the positive
+equilibrium (a/b)^{1/α}, leaving the 2δ ball. codex FORMALIZED the counterexample (ShenWork/PDE/LogisticSmallOrbitObstruction.lean:
+not_bernoulliLogisticSolution_le_two_mul_initial_for_all_nonneg_time). CORRECT route for IntervalDomainGlobalSolutionExists:
+global = local existence (sectorial) + A-PRIORI L∞ BOUND via the PARABOLIC MAXIMUM PRINCIPLE + logistic dissipation
+(at an interior max u_x=0 kills the chemotaxis first-order part; the logistic -bu^{α+1} dominates ⟹ u ≤ max(‖u₀‖,(a/b)^{1/α}))
+— the Paper-2-style boundedness argument. NOT small-data-around-0. Re-attacking P3 with this.
+
+## P3 frontier
 - C1. IntervalDomainSectorialMainlineCoreExistence — sectorial semigroup (explicit cosine rep on interval) + small-data
   global existence + uniform persistence parts 1-4 (the hard Section-4 analysis)
 
