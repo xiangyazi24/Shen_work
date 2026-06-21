@@ -81,10 +81,10 @@ groups — not "one Moser ladder away".
 - NOT yet dispatched.
 
 ────────────────────────────────────────────────────────────────────────
-## LANDED MILESTONES (committed, root-verified) — main green @ a3118f4
-0eb36e3 (P1 10→5) · 2b6e975 (P2 hB_global) · 0528f04 (P2 6→5) · 7cc3ddc (P2 5→3) · 2c58ff5 (P3 l2BootstrapSeed wired).
+## LANDED MILESTONES (committed, cold-verified) — main green @ 486fb4f
+0eb36e3 (P1 10→5) · 2b6e975 (P2 hB_global) · 0528f04 (P2 6→5) · 7cc3ddc (P2 5→3) · 2c58ff5 (P3 l2BootstrapSeed) · **486fb4f (P3 6th: Moser frontier shrink, full-closure cold-verified)**.
 
-## ⚠️ 6th REDUCTION (P3 Moser frontier shrink) — GENUINE but COMMIT DEFERRED (clone-drift)
+## 6th REDUCTION (P3 Moser frontier shrink) — LANDED 486fb4f via full-closure cold-build (43-file consistent P3 diff)
 opus audit GENUINE-REALIZED-REDUCTION, builds 8700 jobs IN THE CLONE, axiom-clean (drops bloated
 Corollary21FrontierData/Prop25MoserFrontiers → 3 smaller per-exponent obligations). Cherry-pick commit
 (0a6442e) FAILED the fresh-clone gate: the clone has MODIFIED versions of shared files (e.g. one defining
