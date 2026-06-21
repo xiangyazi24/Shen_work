@@ -23,7 +23,13 @@ LINEAR, "T solves the frozen eq" TRUE BY CONSTRUCTION; outer Schauder fixed poin
   Tmap continuity (FrozenEllipticDerivDependence proven), nontriviality (lower-pin), left-tail (finite var)
 - 🟡 **fixed-source Schauder assembly** (P1fixedsrc grinding): linear map T(u) + trap-inv + continuity +
   AA compactness + Schauder fixed point → IsRightVanishingTravelingWave → wire Remark_1_3_2.
-- 🔴 genuine core now = the Schauder fixed-point assembly (clean; the Rothe residual→0 is ELIMINATED by the pivot).
+- 🟢 **Schauder/Brouwer core ALREADY PROVEN in-repo, axiom-clean**: full n-dim Brouwer via Sperner/Freudenthal
+  (Brouwer.lean, BrouwerNDimFreudenthal/Final/Complete — all forbidden=0) + Schauder principle
+  (localUniformSchauderFixedPointPrinciple_of_brouwer, InMonotoneWaveTrapSchauderPrinciple.lean). Mathlib LACKS
+  these (cron1) — the repo built them. P1 fixed-source reduces to feeding the barrier-trap ProjectedCubeApproxData
+  (already built) + continuity (proven) + AA compactness (proven) into the principle (check trap-genericity: it's
+  named "InMonotoneWaveTrap" — may need re-targeting to InLowerPinnedBarrierTrap).
+- 🔴 genuine core now = the Schauder fixed-point ASSEMBLY for the barrier trap (clean; Brouwer done, Rothe residual→0 ELIMINATED).
 - DEAD (abandoned): crossImplicitMap, rotheLimit, residual→0, anti_k/anti_x, monotone comparison.
 
 ────────────────────────────────────────────────────────────────────────
