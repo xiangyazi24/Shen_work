@@ -22,11 +22,21 @@ Headline asserts ∃ U V, IsRightVanishingTravelingWave (carries ode_U + ode_V �
   U'' convergence is algebraic from the ODE (U''=−R−cU'+λU), positivity already C²-only. Retargeted onto the
   existing C³-free producer; hc3 field removed (in-clone; folded into the existence reduction).
 - ✅ C¹ convergence z_k'→U' PROVEN; Rlim wrapper PROVEN (in-clone).
-- 🟡 **hpar (the Rothe-Schauder existence construction)** — the genuine irreducible P1 core (the paper's main
-  EXISTENCE theorem). Was an assumed existential; decomposed (producer constructed). Residual now
-  PaperLowerRawParabolicFloorCoreAnalyticResidual = {green core, step dependence, **uniform-over-trap Dini tail**}.
-  Key gap: the proven convergence is per-profile; the residual needs it UNIFORM over the trap (Arzelà–Ascoli
-  equicontinuity from uniform C² bounds + Dini). Codex grinding (/var/tmp/shen_cx_p1).
+- ✅ **barrier route de-monotonized** (opus audit GENUINE-DISCHARGE of projection layer, in-clone): pivoted
+  the existence route from monotone-comparison (fails χ≥1/2, anti-monotone) to barrier-Schauder. Concrete
+  barrier-projected cube data (WaveBarrierProjectedCubeApproxData.lean: finite-net/partition-of-unity, NO
+  waveOrderEnvelope, NO antitone — the order-envelope's one-sided inf-lower-bound is FALSE for non-antitone);
+  residual_le + localError→0 GENUINELY PROVEN (triangle ineq, 4·netRadius→0), axiom-clean. The Schauder bridge
+  consumes only LOCAL-uniform residual (Icc(-R)R), so tail-pinching AND antitone drop out. New concrete headline
+  ConcreteBarrierSchauderConstruction sheds `Nonempty LowerPinnedBarrierWaveCubeApproxData` (strictly 1 fewer
+  free atom, faithful). Full P1 existence blueprint staged (P1_TRAPINV_FINDINGS.md): AA compactness, both
+  barrier sides (R+MU≥0 lower / R≤q·upper upper), Tmap continuity (C⁰_loc divergence-form), a-priori C² Green
+  bound B_image, nontriviality (tiny), left-tail (finite variation + flatness).
+- 🟡 **schauderData = FrozenStationaryMapSchauderData — the TRUE crisp P1 residual** (audit-located): the hard
+  Rothe-Schauder existence was never on the cube atom — it is field 2 `crossImplicitMap p c lam u (Tmap u)(Tmap u)
+  = Tmap u` (per-u self-frozen Green fixed point = Rothe parabolic convergence = old `hpar`), carried in BOTH old
+  and new headlines. Codex P1schauder grinding: discharge fields 1 (trap-inv)/3 (Tmap cont)/4 (AA compact) from
+  the blueprint → shrink schauderData to just field 2; field 2 = the genuine paper-hard existence core.
 
 ## Paper 2 — bounded-domain boundedness (paper2_theorem_1_1_general_chi_via_bform)
 Headline conditional on Nonempty(BFormSpectralFrontier p DB) per datum.
