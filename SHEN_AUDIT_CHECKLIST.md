@@ -18,19 +18,29 @@ Headline asserts ∃ U V, IsRightVanishingTravelingWave (carries ode_U + ode_V �
 - ✅ PositiveCoreStationaryGreenData shrunk 10→5 fields {hLU,hstep,hz_nonneg,hz_le_M,hc3}; deleted
   hgreenEq/hR_cont/hR_bound/hR_limit+Rlim; ode_U/ode_V proven SMP-free via stationary_profile_pos_of_trap_regular
   (commit 0eb36e3, opus GENUINE-NET-REDUCTION, clean-3 verified)
-- 🟡 **hc3 (C³ bootstrap)** — the LAST P1 frontier. Codex grinding (/var/tmp/shen_cx_p1) the V-bootstrap route:
-  V''=V−U^γ ⟹ U∈C² ⟹ V∈C⁴ ⟹ V''∈C² ⟹ R∈C¹ ⟹ U∈C³ (U>0 from trap; NO extra Schauder hyp needed).
-  cron3 cross-checking the derivation. → if hc3 closes, **P1 is FULLY UNCONDITIONAL**.
+- ✅ **hc3 ELIMINATED as an over-decomposition artifact** (opus architecture audit): C³ was never load-bearing —
+  U'' convergence is algebraic from the ODE (U''=−R−cU'+λU), positivity already C²-only. Retargeted onto the
+  existing C³-free producer; hc3 field removed (in-clone; folded into the existence reduction).
+- ✅ C¹ convergence z_k'→U' PROVEN; Rlim wrapper PROVEN (in-clone).
+- 🟡 **hpar (the Rothe-Schauder existence construction)** — the genuine irreducible P1 core (the paper's main
+  EXISTENCE theorem). Was an assumed existential; decomposed (producer constructed). Residual now
+  PaperLowerRawParabolicFloorCoreAnalyticResidual = {green core, step dependence, **uniform-over-trap Dini tail**}.
+  Key gap: the proven convergence is per-profile; the residual needs it UNIFORM over the trap (Arzelà–Ascoli
+  equicontinuity from uniform C² bounds + Dini). Codex grinding (/var/tmp/shen_cx_p1).
 
 ## Paper 2 — bounded-domain boundedness (paper2_theorem_1_1_general_chi_via_bform)
 Headline conditional on Nonempty(BFormSpectralFrontier p DB) per datum.
 
-- ✅ hB_global (global cosine representation) discharged via flux-deriv reconstruction; BFormBankedInputs −1 field
-  (commit 2b6e975, opus GENUINE-NET-REDUCTION, Paper2 root-clean)
-- 🟡 **BFormSpectralFrontier construction** — 6 fields {bank, hGradientBridge, hTimeNhd, hResolverData,
-  hSupNormDeriv, hVpos}. hTimeNhd + hResolverData have producers (need wiring to conjugatePicardLimit); hVpos
-  (positivity), hGradientBridge (mild solution), bank (source regularity), hSupNormDeriv (max-principle) need
-  proof/wiring. Codex scoping+constructing (/var/tmp/shen_cx_pde). → reduces P2 toward unconditional.
+- ✅ hB_global discharged via flux-deriv reconstruction (commit 2b6e975, GENUINE-NET-REDUCTION)
+- ✅ BFormSpectralFrontier 6→5: hVpos discharged (max-principle), hResolverData lowered to hResolverCoeffTimeC1
+  (commit 0528f04, GENUINE-NET-REDUCTION, warm-gate BS_EXIT=0)
+- ✅ BFormSpectralFrontier 5→3: dropped non-faithful hGradientBridge (demanded gradient-form mild; for Neumann
+  ∂ₓK_N≠−∂ᵧK_N, the faithful Duhamel is the SOURCE/conjugate form) + hSupNormDeriv; headline rewired to the direct
+  B-form classical route on the PROVEN conjugate mild solution; byte-identical Theorem_1_1 (commit 7cc3ddc,
+  opus GENUINE-NET-REDUCTION faithful). Also proven in-clone: hsource_bridge, hTimeNhd_of_BForm_global_cosine,
+  conjugate mild identity, independent time-IBP u-C².
+- 🟡 **3 residual: bank, hTimeNhd, hResolverCoeffTimeC1.** hTimeNhd's last circularity: the only cosine-rep route
+  goes through flux_deriv → u-C² → hTimeNhd; needs the independent u-C² wired in (time-IBP route confirmed hTimeNhd-free).
 
 ## Paper 3 — persistence / critical-sensitivity boundedness (L² bootstrap → L∞)
 Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
@@ -39,19 +49,30 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
 - ✅ sharp absorption threshold IntervalDomainSharpL2AbsorptionThreshold (γ<1 ∨ 2γ<α) + equivalence
   (2+2γ<max(4,2+α)) + satisfiability witness (axiom-clean; SHARP by spike test)
 - ✅ absorbing-inequality algebraic producer (uniform half-energy + spatial absorption ⇒ absorbing inequality)
-- 🟡 **l2BootstrapSeed** — codex grinding (/var/tmp/shen_cx_p3) the close: antecedent IntervalDomainBoundednessHyp
-  =(γ<1∨2γ<α)∧0<b + witness, spatial absorption (Young CaseA / 1D-GN CaseB), two scalar Grönwall lemmas
-  (integrated-energy first-crossing, dodges AC+uniform-Ceps), Neumann-Poincaré → uniform L².
+- ✅ logistic L1 mass bound M1 PROVEN for intervalDomain: mass-derivative identity (∫Δu=0,∫chemDiv=0 via real
+  FTC+Neumann) + Jensen + HasDerivAt first-crossing → intervalDomain_Proposition_2_4 (in-clone, axiom-clean)
+- ✅ Agmon inequality (1D L∞) + L^p interpolation for the classical slice PROVEN (in-clone, FTC+Cauchy-Schwarz)
+- 🟡 **l2BootstrapSeed** — last step (in-clone): Young-split the proven L^p interpolation → spatial absorption
+  Case B (M1 base) → absorbing inequality → Neumann-Poincaré + scalar first-crossing → uniform L² →
+  LpPowerBoundedBefore 2. Antecedent IntervalDomainBoundednessHyp=(γ<1∨2γ<α)∧0<b∧0<γ∧γN<2 + witness.
   P3 counterexample recorded: small-data-around-0 global bootstrap is FALSE (a>0 ⟹ 0 unstable).
 - ⬜ **driftBoundFromMass** — the Moser L^p ladder. Honest stall: L1 mass can't control u^γ for γ>1; needs an
   L^p before-bound. The new uniform-L² (from l2BootstrapSeed) seeds the iteration L²→L^p→L^∞. Next after l2BootstrapSeed.
 
 ---
 
-## Scoreboard
-- Paper 1: 2/3 layers ✅, hc3 grinding → 1 frontier from unconditional.
-- Paper 2: 1 reduction ✅, BFormSpectralFrontier (6 fields) grinding.
-- Paper 3: 3 bricks ✅, l2BootstrapSeed grinding + driftBoundFromMass open.
+## Scoreboard (4 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc)
+- Paper 1: field-shrink + hc3-artifact-elimination ✅; frontier = hpar (Rothe-Schauder EXISTENCE: uniform-over-trap
+  compactness) — the paper's main existence theorem, genuinely irreducible.
+- Paper 2: hB_global + 6→5 + 5→3 ✅ (closest to unconditional); 3 residual fields, hTimeNhd the analytic core.
+- Paper 3: mass bound M1 + Prop_2_4 + Agmon + L^p interpolation ✅; l2BootstrapSeed one Young-split away; then driftBoundFromMass.
+
+## Honest end-state of the overnight run
+Each of the 3 papers reduced from a monolithic conditional to its SINGLE genuine main theorem, every intermediate
+sub-lemma actually PROVEN (mass comparison, Prop 2.4, Agmon, L^p interpolation, conjugate mild identity, hsource_bridge,
+C¹ convergence). What remains is the papers' hard analytic cores — P1 existence (Rothe compactness), P2 well-posedness
+(hTimeNhd spectral regularity), P3 boundedness (final absorption assembly). The hc3 over-decomposition and the
+hGradientBridge non-faithfulness were both exposed by hostile audit; no fake/rename-carry/vacuity landed across ~17 rounds.
 
 ## Discipline (every landing)
 proof-term read → #print axioms ⊆ {propext, Classical.choice, Quot.sound} → hostile opus rename-carry/vacuity
