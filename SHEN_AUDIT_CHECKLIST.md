@@ -69,16 +69,24 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
   (not orphaned). 5 atoms discharged: aprioriBound, massComparison (=Prop_2_4), b_pos, l2EnergyInequality,
   l2BootstrapSeed. Antecedent IntervalDomainBoundednessHyp=(γ<1∨2γ<α)∧0<b∧0<γ∧γN<2 satisfiable (witness).
   Fresh-cache full ShenWork compile pass (3558 jobs), axiom-clean.
-- 🟡 **Moser L^p→L^∞ ladder = the genuine P3 residual** (4 carried atoms, all ∀-quantified analytic
-  implications, file shows explicit counter-constructions so they are real open obligations not False):
-  driftBoundFromMass, l2SeedRegularity, allLpBoundFromBootstrap (=Corollary_2_1), endpointBoundFromLp
-  (=Proposition_2_5). Uniform-L² (now wired) seeds L²→L^p→L^∞. Codex P3 + cron3 (1D Moser recursion) rolling.
+- 🟡 **Moser L^p→L^∞ ladder** (4 carried atoms on the `_of_aprioriFacts` path): driftBoundFromMass,
+  l2SeedRegularity, allLpBoundFromBootstrap (=Corollary_2_1), endpointBoundFromLp (=Proposition_2_5).
+  Uniform-L² (wired) seeds L²→L^p→L^∞. P3moser2 + cron findings (spike-crux + finite root-tower + seed) rolling.
+- ⚠️ **FAITHFULNESS CORRECTION (source audit 06-21):** paper3.pdf is Part II — headline
+  `IntervalDomainSectorialTheorem21And22UnconditionalTarget` = `Theorem_2_2 ∧ Theorem_2_1`
+  (stability + persistence), faithful target, genuine conclusion (verified, IntervalDomainSectorial.lean:2203).
+  The Moser ladder is only the BOUNDEDNESS INPUT (in Part II boundedness is a HYPOTHESIS from Part I [7],
+  so the repo proves it under its own sufficient condition γ<1∨2γ<α). The FULL target carries THREE distinct
+  frontier groups, not one: (a) boundedness/aprioriFacts (Moser ladder — being worked), (b)
+  `IntervalDomainSectorialTheorem22LocalFrontiers` (stability), (c) `IntervalDomainSectorialTheorem21PersistenceFrontiers`
+  (the 4 uniform-persistence parts — the actual Theorem 2.1 content) + nonlinear Duhamel/orbit control + small-data
+  global existence (per def comment :2214). So P3 is NOT "one Moser ladder away" — (b),(c) are separate, largely
+  unaddressed. 2c58ff5 landed the aprioriBound bundle on the boundedness path only.
+- ⚠️ **REGIME (verify deeper):** formal boundedness sufficient cond γ<1∨2γ<α may be NARROWER than Part I's full
+  χ-threshold (α vs m+γ−1 / 2m+γ−2, paper3 lines 459-479). Faithfulness narrowing of the INPUT, not the target;
+  no vacuity (witness (N,γ,α,b)=(1,½,2,1)), no L∞ circularity (cron1 P3-audit).
 
 ---
-
-- ⚠ **REGIME (verify vs source, not vacuity):** formal antecedent requires 2γ<α; paper may claim OR-regime
-  (γ<1 ∨ 2γ<α). If so the γ<1 ∧ 2γ≥α branch is uncovered by current spatial absorption — a faithfulness
-  narrowing (still genuine, satisfiable witness (1,½,2,1)), NOT a vacuity. cron1 P3-audit: no vacuity, no L∞ circularity.
 
 ## Scoreboard (5 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc, 2c58ff5)
 - Paper 1: field-shrink + hc3-artifact-elimination + barrier-route de-monotonization (projection layer
