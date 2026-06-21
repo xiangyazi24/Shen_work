@@ -81,8 +81,24 @@ groups — not "one Moser ladder away".
 - NOT yet dispatched.
 
 ────────────────────────────────────────────────────────────────────────
-## LANDED MILESTONES (committed, root-verified)
+## LANDED MILESTONES (committed, root-verified) — main green @ a3118f4
 0eb36e3 (P1 10→5) · 2b6e975 (P2 hB_global) · 0528f04 (P2 6→5) · 7cc3ddc (P2 5→3) · 2c58ff5 (P3 l2BootstrapSeed wired).
+
+## ⚠️ 6th REDUCTION (P3 Moser frontier shrink) — GENUINE but COMMIT DEFERRED (clone-drift)
+opus audit GENUINE-REALIZED-REDUCTION, builds 8700 jobs IN THE CLONE, axiom-clean (drops bloated
+Corollary21FrontierData/Prop25MoserFrontiers → 3 smaller per-exponent obligations). Cherry-pick commit
+(0a6442e) FAILED the fresh-clone gate: the clone has MODIFIED versions of shared files (e.g. one defining
+`resolverGrad_sup_le_sourceL2`) absent from origin/main — full clone-drift (78 new files + modified shared
+files). Reverted main to a3118f4 (green). LANDS via FULL-CLOSURE SYNC, not per-file cherry-pick, once the
+P3 clone reaches a stable point.
+
+## COMMIT MECHANICS (lesson 06-21)
+The /var/tmp/shen_cx_* clones have DRIFTED far from origin/main (modified shared files, not just new files).
+Per-file cherry-pick of a reduction now silently misses modified-shared deps → fresh-clone gate (shenbuild.sh,
+git reset --hard origin/main + lake build) catches it. To LAND clone work: at a STABLE clone point (no codex
+writing), rsync the reduction's FULL transitive closure (new + modified files, clone versions) → mini → root-build
+→ commit. Or periodically full-sync the clone ShenWork tree. NEVER trust a warm/audit build alone for a commit —
+the cold fresh-clone build is the real gate (it caught what the audit's in-clone 8700-job build could not).
 
 ## DISCIPLINE (every reduction)
 proof-term read → #print axioms ⊆ {propext,Classical.choice,Quot.sound} → INDEPENDENT hostile opus audit
