@@ -92,6 +92,19 @@ Corollary21FrontierData/Prop25MoserFrontiers → 3 smaller per-exponent obligati
 files). Reverted main to a3118f4 (green). LANDS via FULL-CLOSURE SYNC, not per-file cherry-pick, once the
 P3 clone reaches a stable point.
 
+## ROUND 2 audits (06-21, both REJECTED — loop held; genuine infra, named residuals)
+- **P2resc0 BForm 2→1: PHANTOM.** The C¹→C⁰ resolver-coeff weakening is GENUINE+honest (BFormResolverSourceCoeffTimeC0
+  = the weaker u∈C_tL² content, not relocation), but UNWIRED dead code — headline still 2-field; the C0→frontier
+  bridge BFormFluxH1ConstructorC0 is an UNPROVEN Prop. Residual: prove that bridge + rewire headline (P2 follow-up).
+- **P3liminf persistence: CONDITIONAL + WEAKER-THAN-PAPER.** Danskin PROVEN (orphan); Dini ineq only def'd not proven.
+  KEY: the committed intervalDomainChemotaxisDiv is m-INDEPENDENT + LINEAR-at-critical (loss factor u(x*), = the m=1
+  case Cχ·z) — the over-general z^m def mismatched it. Also the liminf defs DROPPED the paper's v-component
+  (liminf inf v ≥ (ν/μ)(liminf inf u)^γ). P3actual re-fired: actual m=1-linear Dini + v-component (proven elliptic
+  transfer) + wire Danskin/scalar-persistence to discharge the headline part_ULower.
+- **P2 basis UNBLOCKED:** Mathlib v4.29.1 HAS fourierBasis (Mathlib.Analysis.Fourier.AddCircle, circle exponential
+  HilbertBasis) → Neumann cosine basis by even-reflection. P2fourier building the representative → flux provider.
+- P1liou: analytic Liouville (bounded-entire-between-positive-constants ≡ equilibrium, design staged) + payloads → Remark_1_3_2 unconditional.
+
 ## COMMIT MECHANICS (lesson 06-21)
 The /var/tmp/shen_cx_* clones have DRIFTED far from origin/main (modified shared files, not just new files).
 Per-file cherry-pick of a reduction now silently misses modified-shared deps → fresh-clone gate (shenbuild.sh,
