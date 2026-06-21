@@ -76,11 +76,19 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
 
 ---
 
-## Scoreboard (4 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc)
-- Paper 1: field-shrink + hc3-artifact-elimination ✅; frontier = hpar (Rothe-Schauder EXISTENCE: uniform-over-trap
-  compactness) — the paper's main existence theorem, genuinely irreducible.
-- Paper 2: hB_global + 6→5 + 5→3 ✅ (closest to unconditional); 3 residual fields, hTimeNhd the analytic core.
-- Paper 3: mass bound M1 + Prop_2_4 + Agmon + L^p interpolation ✅; l2BootstrapSeed one Young-split away; then driftBoundFromMass.
+- ⚠ **REGIME (verify vs source, not vacuity):** formal antecedent requires 2γ<α; paper may claim OR-regime
+  (γ<1 ∨ 2γ<α). If so the γ<1 ∧ 2γ≥α branch is uncovered by current spatial absorption — a faithfulness
+  narrowing (still genuine, satisfiable witness (1,½,2,1)), NOT a vacuity. cron1 P3-audit: no vacuity, no L∞ circularity.
+
+## Scoreboard (5 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc, 2c58ff5)
+- Paper 1: field-shrink + hc3-artifact-elimination + barrier-route de-monotonization (projection layer
+  audit-GENUINE, in-clone) ✅; frontier crisp = schauderData field 2 (Rothe parabolic convergence, the
+  paper's main existence theorem). Full existence blueprint staged; P1schauder grinding fields 1/3/4 + field 2.
+- Paper 2: hB_global + 6→5 + 5→3 ✅ (closest to unconditional); flux-H¹ provider in P2coeff (bridges 3+4
+  closed, 1+2 grinding); route audit (cron2c) ⇒ once provider lands, hTimeNhd (from H¹) + hResolverCoeffTimeC1
+  (not needed) also shed → P2 ≈ bank + absorbing.
+- Paper 3: l2BootstrapSeed DISCHARGED+WIRED (commit 2c58ff5, 5th reduction) ✅; residual = quantitative Moser
+  L^p→L^∞ ladder (P3moser2: spike-crux + finite root-tower + integrated-energy seed all staged; no vacuity/circularity per cron1 audit).
 
 ## Honest end-state of the overnight run
 Each of the 3 papers reduced from a monolithic conditional to its SINGLE genuine main theorem, every intermediate
