@@ -28,6 +28,24 @@ Last update: 2026-06-21 round-3 dispatch.
   field DEFINITIONS to the paper-faithful liminf u+v form (faithfulness fix, not downgrade), then discharge from the
   proven pieces; part3's m>1 branch is VACUOUS for the m=1 interval operator (state faithfully). P3 = closest to landing.
 
+### ROUND 3 harvest (codex stalls audited + ChatGPT routes confirmed)
+- **P1: Green route is CIRCULAR — REJECTED, pivoted to MONOTONE.** Codex's residual FixedSourceStationaryLinearGreenIdentity
+  asserts (W−Ustar) = greenConv(0) = the Liouville CONCLUSION in disguise (assumed-conclusion §3.3). GENUINE kept:
+  the auxRHS true-divergence-form wrapper (WaveFixedSourceTrueDivergence.lean) — REMOVES the C⁰ continuity blocker.
+  ChatGPT cron2 (577-line) CONFIRMS the monotone+root-pinning route is the ONLY unconditional internal proof (trap
+  IS monotone → Antitone W); refinement: W''→0 comes from "RHS converges ⇒ W''→A finite + W'→0 ⇒ A=0", not a
+  generic lemma. P1 codex RE-FIRED on the full monotone chain (limits→W'→0→resolver-at-const→reaction-root→squeeze).
+- **P2: gap precisely = P2RestartRepresentativeHasSum.** conjugatePicardLimit = limUnder of Picard ITERATES (not a
+  tsum), so no direct unfold. Codex PROVED (axiom-clean) that GIVEN this HasSum, restartRepresentativeIdentity +
+  bFormFluxH1Constructor follow. ChatGPT cron2 CONFIRMS non-circular: cosine basis COMPLETE in L² ⇒ hasSum_repr free;
+  only coefficient-identification (a_k = ⟪cosBasis k, u_s⟫ via inner-product continuity along iterates' L²-conv).
+  P2 codex RE-FIRED on exactly that. Watch: identity is L²/a.e. (HasSum), NOT pointwise EqOn.
+- **P3 stability Theorem 2.2 route DESIGNED** (ChatGPT cron1): it's the LOCAL spectral-stability small-data theorem
+  (χ<χ* ⇒ exp convergence of small data), NOT global attraction; σ_k = −(d1λ_k+αa) + χ0νγ(u*)^{m+γ−1}λ_k/((1+v*)^β(μ+d2λ_k)),
+  σ_0=−αa<0; route = spectral-gap + Duhamel small-data contraction. Ready to dispatch to p3 clone once persistence lands.
+- ChatGPT cron1/cron2 kept rolling: 6 git-drop consults this round (P1-Liouville, P2-rep, P3-stability, P1-monotone,
+  P3-faithful-stmt, P2-cosine-basis), all in answers/*.md on origin/main.
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
