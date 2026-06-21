@@ -96,6 +96,24 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
 
 ---
 
+## Round audit 06-21 (3 codex reductions ALL rejected as RELOCATION — adversarial loop held)
+- **P1 `_of_params` builder: REJECTED (relocation + orphan).** Fields 1/3/4 not constructed — moved
+  into 3 unproduced parameter structs; zero call-sites. Audit found fields 1/3/4 are ALREADY built by
+  the existing concrete `rotheSchauderData_barrierPinned` (real per-u Rothe data + PROVEN
+  helly_pointwise_selection + produced FrozenEllipticDerivDependence). Genuine residual UNCHANGED =
+  field 2 (per-u Rothe convergence). P1rothe re-fired: PROVE it via DCT on the Green recurrence + AA, no wrapper.
+- **P2 3→2: REJECTED (relocation + fragment).** fluxBridge lifted out of the struct into a co-equal
+  BFormFluxH1Provider/mkFlux hypothesis (strengthened to IntervalH1Weak), never constructed from a
+  proven u∈H¹. Struct-field count ≠ obligation count; headline still 3 obligations. Coeff-identity file
+  = model-only rfl, isolated leaf. P2prov re-fired: CONSTRUCT the provider via the 2 genuine bridges.
+- **P3 Moser: REJECTED (relocation), 1 genuine sub-win.** Drift atom GENUINELY discharged
+  (IntervalDomainChemotacticDriftBound_of_LinfBound, real proof). But all-Lp/endpoint FORWARDED to
+  carried frontiers strictly LARGER (Corollary21FrontierData ⊇ all Paper-2 §2 incl Prop 2.5 verbatim).
+  l2SeedReg honest open; headline wired, axiom-clean. P3prove re-fired: PROVE Cor 2.1 + Prop 2.5 from
+  the L² seed (GN q=4 + finite root tower), NOT forward; + l2SeedReg closed-time bridge.
+- LESSON: "wire to existing frontier" backfires — those frontiers are themselves carried obligations.
+  Re-attacks must PROVE the atoms from the staged designs, not forward. No fake/relocation landed.
+
 ## Scoreboard (5 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc, 2c58ff5)
 - Paper 1: field-shrink + hc3-artifact-elimination + barrier-route de-monotonization (projection layer
   audit-GENUINE, in-clone) ✅; frontier crisp = schauderData field 2 (Rothe parabolic convergence, the
