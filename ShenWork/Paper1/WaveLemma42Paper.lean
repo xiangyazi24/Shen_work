@@ -1736,7 +1736,7 @@ The extra field is exactly the per-step data consumed by the paper
 max-principle after Lemma 4.2 has supplied the raw lower subsolution. -/
 structure PaperLowerRawStepProducer
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) : Prop where
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) : Type where
   producer : PaperRotheStepProducer p c lam M κ Λ u
   lowerRawAux :
     InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
@@ -1817,7 +1817,7 @@ def paperLowerRawStepProducer_of_routeA_core
   paperLowerRawStepProducer_of_routeA h.green h.lowerRawAux
 
 /-- All live lower-raw producers from Route-A per-step Green cores. -/
-theorem paperLowerRawStepProducer_all_of_routeA
+def paperLowerRawStepProducer_all_of_routeA
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
     (hinput :
       ∀ u : ℝ → ℝ,
@@ -1830,7 +1830,7 @@ theorem paperLowerRawStepProducer_all_of_routeA
 base-barrier Lipschitz bound, fixed-step dependence, and uniform tail. -/
 structure PaperLowerRawParabolicFloor
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop where
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
   producer :
     ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u
   barLip :
@@ -2198,22 +2198,16 @@ structure PositivePaperLemma42ExactConditions
   hM : 1 ≤ M
   hc : c = κ + κ⁻¹
   hχ_nonneg : 0 ≤ p.χ
-  hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)
+  hχ_small : p.χ < 1
   hα_eq : p.α = p.m + p.γ - 1
 
 namespace PositivePaperLemma42ExactConditions
 
-theorem chi_lt_half
+theorem chi_lt_one
     {p : CMParams} {c κ κtilde M : ℝ}
     (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
-    p.χ < (1 / 2 : ℝ) :=
-  lt_of_lt_of_le h.hχ_small (min_le_left _ _)
-
-theorem chi_lt_chiStar
-    {p : CMParams} {c κ κtilde M : ℝ}
-    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
-    p.χ < chiStar p :=
-  lt_of_lt_of_le h.hχ_small (min_le_right _ _)
+    p.χ < 1 :=
+  h.hχ_small
 
 theorem chi_abs_eq
     {p : CMParams} {c κ κtilde M : ℝ}
@@ -2226,7 +2220,7 @@ theorem chi_abs_le_one
     (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
     |p.χ| ≤ 1 := by
   rw [h.chi_abs_eq]
-  linarith [h.chi_lt_half]
+  linarith [h.chi_lt_one]
 
 theorem one_sub_abs_chi_nonneg
     {p : CMParams} {c κ κtilde M : ℝ}

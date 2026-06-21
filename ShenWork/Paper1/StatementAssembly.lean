@@ -5,6 +5,7 @@
   `Statements` and `Lemma25Helpers`.  It adds no new analytic frontier.
 -/
 import ShenWork.Paper1.Lemma25Helpers
+import ShenWork.Paper1.WaveLemma42G1Discharge
 
 namespace ShenWork.Paper1
 
@@ -80,6 +81,65 @@ theorem paper1_Theorem_1_3_of_mainlineExistence
     (hexist : Paper1MainlineExistence cStarStarFn) :
     Theorem_1_3 :=
   (paper1_mainlineStatementTargets_of_mainlineExistence hexist).2
+
+/-! ## Remark 1.3(2) target -/
+
+/-- Retained-Green construction data for Paper1 Remark 1.3(2).  The per-step
+Green witnesses and diagonal differentiability floor are not fields here: they
+are recovered in
+`b1_chiPos_rightVanishing_paper_min_core_of_retainedGreenStep` from the retained
+Type-valued step producer and the bundled `PositiveCoreStationaryGreenData`. -/
+def Remark_1_3_2.RetainedGreenStepConstruction : Prop :=
+  ∀ p : CMParams,
+    p.α = p.m + p.γ - 1 →
+    (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p →
+    (1 / 2 : ℝ) ≤ p.χ →
+    p.χ < min (positiveSensitivityExtendedThreshold p) 1 →
+      ∀ c : ℝ, 2 < c →
+        ∃ lam M κ κtilde D Λ : ℝ,
+          ∃ hcond : PositivePaperLemma42ExactConditions p c κ κtilde M,
+            ∃ hpar :
+              PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+                hcond.hκ0.le (le_trans zero_le_one hcond.hM),
+              paperDMin p.χ M κ κtilde p.m p.γ c < D ∧
+                1 ≤ D ∧
+                  0 < lam ∧
+                    0 ≤ Λ ∧
+                      Λ ≤ M ∧
+                        Nonempty
+                          (PositiveCoreStationaryGreenData p c lam M κ κtilde D Λ
+                            hcond hpar)
+
+/-- Paper1 Remark 1.3(2) from the retained-Green positive-core construction.
+This is the headline bridge from the statement-layer remark to the retained
+payload wrapper; the former free per-step Green and diagonal differentiability
+inputs are consumed inside the retained wrapper. -/
+theorem Remark_1_3_2.of_retainedGreenStepConstruction
+    (construction : Remark_1_3_2.RetainedGreenStepConstruction) :
+    Remark_1_3_2 := by
+  refine Remark_1_3_2.of_frozen_right_vanishing_profile_existence ?_
+  intro p hα hext hχ_ge hχ_lt c hc
+  obtain ⟨lam, M, κ, κtilde, D, Λ, hcond, hpar, hD, hD_ge_one,
+      hlam, hΛ0, hΛM, hgreenData_nonempty⟩ :=
+    construction p hα hext hχ_ge hχ_lt c hc
+  let hgreenData := Classical.choice hgreenData_nonempty
+  obtain ⟨U, _hU, hprofile⟩ :=
+    b1_chiPos_rightVanishing_paper_min_core_of_retainedGreenStep
+      p c lam M κ κtilde D Λ hcond hD hD_ge_one hlam hΛ0 hΛM hpar
+      hgreenData
+  exact ⟨U, hprofile⟩
+
+/-- Aggregator-facing wrapper for Paper1 Remark 1.3(2). -/
+theorem paper1_Remark_1_3_2_of_retainedGreenStepConstruction
+    (construction : Remark_1_3_2.RetainedGreenStepConstruction) :
+    Remark_1_3_2 :=
+  Remark_1_3_2.of_retainedGreenStepConstruction construction
+
+/-- Instance-facing wrapper for Paper1 Remark 1.3(2). -/
+theorem paper1_Remark_1_3_2_of_retainedGreenStepConstructionFact
+    [construction : Fact Remark_1_3_2.RetainedGreenStepConstruction] :
+    Remark_1_3_2 :=
+  paper1_Remark_1_3_2_of_retainedGreenStepConstruction construction.out
 
 /-! ## Lemma 2.5 targets -/
 
@@ -266,14 +326,16 @@ theorem paper1_Proposition_1_2_of_frontierData
 /-- Paper1 statement targets currently assembled by this file. -/
 def Paper1CombinedStatementTargets : Prop :=
   Paper1MainStatementTargets ∧
-    Paper1PropositionTargets ∧
-      Paper1Lemma25Targets ∧
-        Paper1Lemma51And52Targets
+    Remark_1_3_2 ∧
+      Paper1PropositionTargets ∧
+        Paper1Lemma25Targets ∧
+          Paper1Lemma51And52Targets
 
 /-- Bundled data for the Paper1 combined statement-target assembly. -/
 structure Paper1CombinedStatementData
     (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
   main : Paper1MainResultsData cStarStarFn
+  remark132 : Remark_1_3_2.RetainedGreenStepConstruction
   propositions : Paper1PropositionFrontierData
   lemma51 : Paper1Lemma51FrontierData
   lemma52 : Paper1Lemma52FrontierData
@@ -284,6 +346,7 @@ theorem paper1_combinedStatementTargets_of_data
     (hData : Paper1CombinedStatementData cStarStarFn) :
     Paper1CombinedStatementTargets :=
   ⟨paper1_mainStatementTargets_of_mainResultsData hData.main,
+    paper1_Remark_1_3_2_of_retainedGreenStepConstruction hData.remark132,
     paper1_propositionTargets_of_frontierData hData.propositions,
     paper1_lemma25Targets,
     paper1_lemma51And52Targets_of_frontierData

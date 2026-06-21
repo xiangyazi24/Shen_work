@@ -1272,25 +1272,27 @@ def paperRotheStepProducer_of_routeA_greenCore
         (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
     refine ⟨W, ?_⟩
     exact
-      { step_op := hstep
-        cont := hbasic.1
-        diff := hbasic.2.1
-        contDiff2 :=
-          paperStep_contDiff_two_of_core
-            (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-            hin.hlam hout.analytic
-        deriv_le := hbasic.2.2
-        left_rate := hout.left_rate
-        nonneg := hnonneg
-        le_barrier := hle_barrier
-        le_old := hle_old
-        anti := paperStep_antitone_of_trap_via_mollification
-          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
-          (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
-          hin.hlam hout.approx
-        paperSuper :=
-          paperWaveOperator_nonpos_of_implicitStep_le
-            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+      { analytic := paperStepAnalytic_of_core hin.hlam hout.analytic
+        facts :=
+          { step_op := hstep
+            cont := hbasic.1
+            diff := hbasic.2.1
+            contDiff2 :=
+              paperStep_contDiff_two_of_core
+                (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+                hin.hlam hout.analytic
+            deriv_le := hbasic.2.2
+            left_rate := hout.left_rate
+            nonneg := hnonneg
+            le_barrier := hle_barrier
+            le_old := hle_old
+            anti := paperStep_antitone_of_trap_via_mollification
+              (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
+              (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
+              hin.hlam hout.approx
+            paperSuper :=
+              paperWaveOperator_nonpos_of_implicitStep_le
+                (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old } }
   produce_regular := by
     intro Z hZbase
     obtain ⟨W, hout⟩ :=
@@ -1317,27 +1319,29 @@ def paperRotheStepProducer_of_routeA_greenCore
         (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
     refine ⟨W, ?_⟩
     exact
-      { step_op := hstep
-        cont := hbasic.1
-        diff := hbasic.2.1
-        contDiff2 :=
-          paperStep_contDiff_two_of_core
-            (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-            hin.hlam hout.analytic
-        deriv_le := hbasic.2.2
-        left_rate := hout.left_rate
-        nonneg := hnonneg
-        le_barrier := hle_barrier
-        le_old := hle_old
-        anti := paperStep_antitone_of_trap_via_mollification
-          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
-          (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
-          hin.hlam hout.approx
-        paperSuper :=
-          paperWaveOperator_nonpos_of_implicitStep_le
-            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+      { analytic := paperStepAnalytic_of_core hin.hlam hout.analytic
+        facts :=
+          { step_op := hstep
+            cont := hbasic.1
+            diff := hbasic.2.1
+            contDiff2 :=
+              paperStep_contDiff_two_of_core
+                (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+                hin.hlam hout.analytic
+            deriv_le := hbasic.2.2
+            left_rate := hout.left_rate
+            nonneg := hnonneg
+            le_barrier := hle_barrier
+            le_old := hle_old
+            anti := paperStep_antitone_of_trap_via_mollification
+              (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
+              (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
+              hin.hlam hout.approx
+            paperSuper :=
+              paperWaveOperator_nonpos_of_implicitStep_le
+                (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old } }
 
-theorem paperRotheStepProducer_all_of_routeA_greenCore
+def paperRotheStepProducer_all_of_routeA_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}
     (hinput : ∀ u : ℝ → ℝ, PaperGreenStepInputRouteACore p c lam M κ Λ u) :
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
@@ -1354,14 +1358,14 @@ abbrev PaperPerStepParabolicFloorRouteA
   PaperGreenStepInputRouteACore p c lam M κ Λ u
 
 /-- `PaperRotheStepProducer` from the Route-A per-step parabolic floor. -/
-theorem paperRotheStepProducer_of_routeA_parabolicFloor
+def paperRotheStepProducer_of_routeA_parabolicFloor
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
     (hin : PaperPerStepParabolicFloorRouteA p c lam M κ Λ u) :
     PaperRotheStepProducer p c lam M κ Λ u :=
   paperRotheStepProducer_of_routeA_greenCore hin
 
 /-- All paper-step producers from the Route-A per-step parabolic floor. -/
-theorem paperRotheStepProducer_all_of_routeA_parabolicFloor
+def paperRotheStepProducer_all_of_routeA_parabolicFloor
     {p : CMParams} {c lam M κ Λ : ℝ}
     (hfloor : ∀ u : ℝ → ℝ, PaperPerStepParabolicFloorRouteA p c lam M κ Λ u) :
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=

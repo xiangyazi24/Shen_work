@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WaveG1Bridge
 import ShenWork.Paper1.WaveLemma42Paper
+import ShenWork.Paper1.WavePaperStationaryFloor
 
 namespace ShenWork.Paper1
 
@@ -1104,6 +1105,427 @@ theorem b1_chiPos_existence_paper_of_cubeApproxData
     FrozenStationaryWaveProfile.mk_auto_limits hcpos hpos
       hU.bare.trap.cunif_bdd hstat hlim_neg hlim_pos⟩
 
+/-- Positive-sensitivity lower-pinned paper construction for the right-
+vanishing target.  This is the Remark 1.3(2) endpoint shape: the cube/Brouwer
+frontier is discharged, and the left endpoint uses the monotone positive left
+tail rather than the stronger flat-left convergence to `1`. -/
+theorem b1_chiPos_rightVanishing_paper_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond hprodAll))
+    (hauxData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            hprodAll u k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+                hprodAll u (k + 1)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            hprodAll U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U := by
+  let zseq :=
+    rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond hprodAll
+  have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
+  have hcpos : 0 < c := by
+    rw [hcond.hc]
+    have hinv : 0 < κ⁻¹ := inv_pos.mpr hcond.hκ0
+    nlinarith [hcond.hκ0, hinv]
+  have hstep :
+      RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D) zseq := by
+    have haux' : ∀ u,
+        InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+          ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+            rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hcond.hκ0.le hM0 k x) →
+            ∃ C_chem La Lb,
+              PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+                (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u)
+                  hcond.hκ0.le hM0 (k + 1)) := by
+      simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using hauxData
+    simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using
+      rotheSeqOfPaper_lowerBarrierRaw_positive_stepInvariant hcond hD
+        hD_ge_one hprodAll hcond.hκ0.le hM0 haux'
+  have hlower :
+      RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D) zseq :=
+    rotheOrbitLowerBound_of_stepLowerInvariant
+      (fun u hu => by
+        simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using
+          rotheSeqOfPaper_lowerPinned_base (hprodAll u) hcond.hκ0.le hM0 hu)
+      hstep
+  have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitData p c lam M κ zseq u := by
+    intro u _hu
+    simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using
+      paperRotheOrbitData (p := p) (c := c) (lam := lam) (M := M)
+        (κ := κ) (Λ := Λ) (u := u) hprodAll hcond.hκ0.le hM0
+        hΛ0 hΛM hbarLip
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
+  have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
+  have hExpM :
+      Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M :=
+    lowerBarrierExpXPlus_le_one_of_one_le_D hcond.hκ0 hgap_pos
+      hD_ge_one hcond.hM
+  have hplat : InMonotoneWaveTrapSet κ M
+      (lowerBarrierPlateau κ κtilde D) :=
+    lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
+      hcond.hκ0 hgap_pos hDpos hExpM
+  have Happrox : LowerPinnedWaveCubeApproxData κ M
+      (lowerBarrierRaw κ κtilde D) zseq :=
+    lowerPinnedRawWaveCubeApproxData p c lam M κ κtilde D hMpos
+      hcond.hκ0 hgap_pos hDpos hplat zseq hŪbdd hdep hdata hlower
+  obtain ⟨U, hU, hfix⟩ :=
+    paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData p c lam M κ
+      (lowerBarrierRaw κ κtilde D) hM0 zseq hŪbdd
+      (helly_pointwise_selection M) hdep hdata hlower Happrox
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hstationary U hU (by simpa [zseq] using hfix)
+  have hnontriv : ProfileNontrivial U :=
+    profileNontrivial_of_lowerBarrierRaw_positive_tail_bound hcond hD
+      (fun x _hx => hU.lower x)
+  have hpos : ∀ x, 0 < U x :=
+    hsmp U hU.bare hstat hnontriv
+  have hlim_pos : Tendsto U atTop (𝓝 0) :=
+    hU.bare.tendsto_atTop_zero hcond.hκ0
+  have hleft : StrictlyPositiveAtLeft U :=
+    InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_pos hU.bare hpos
+  exact ⟨U, hU,
+    FrozenRightVanishingWaveProfile.mk_auto_limits hcpos hpos
+      hU.bare.trap.cunif_bdd hstat hleft hlim_pos⟩
+
+theorem b1_chiPos_rightVanishing_paper'_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+        (fun u => (hprodAll u).producer)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U :=
+  b1_chiPos_rightVanishing_paper_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    (fun u => (hprodAll u).producer) hbarLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    hdep (hauxData_of_positive_conditions hcond hD hD_ge_one hprodAll)
+    hstationary (hsmp_of_odeRealization hrealize)
+
+theorem b1_chiPos_rightVanishing_paper_clean_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (htail : PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U :=
+  b1_chiPos_rightVanishing_paper'_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    hprodAll hbarLip
+    (by
+      simpa [rotheSeqOfPaperFromPositiveCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hprodAll u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hstep htail)
+    hstationary hrealize
+
+theorem b1_chiPos_rightVanishing_paper_min_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u => (hpar.producer u).producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U :=
+  b1_chiPos_rightVanishing_paper_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    (fun u => (hpar.producer u).producer) hpar.barLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [rotheSeqOfPaperFromPositiveCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hpar.producer u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_positive_conditions hcond hD hD_ge_one hpar.producer)
+    hconv.stationary hsmp
+
+theorem b1_chiPos_rightVanishing_paper_min_core_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u =>
+            (paperLowerRawParabolicFloor_of_core hpar).producer u |>.producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U :=
+  b1_chiPos_rightVanishing_paper_min_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    (paperLowerRawParabolicFloor_of_core hpar) hconv hsmp
+
+/-- The positive core Rothe sequence used by the right-vanishing paper wrapper. -/
+abbrev positiveCoreRotheSeq
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM)) :
+    (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+  rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+    (fun u =>
+      (paperLowerRawParabolicFloor_of_core hpar).producer u |>.producer)
+
+/-- The retained Green analytic payload of the positive-core paper Rothe
+sequence.  This is no longer a separate hypothesis: it is read back from the
+Type-valued `PaperRotheStepProducer` stored in `hpar`. -/
+def positiveCoreStepAnalytic
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM)) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      ∀ k, PaperStepAnalytic p c lam M κ Λ U
+        (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k)
+        (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U
+          (k + 1)) := by
+  intro U _hU k
+  simpa [positiveCoreRotheSeq, rotheSeqOfPaperFromPositiveCond] using
+    rotheSeqOfPaper_stepAnalytic
+      ((paperLowerRawParabolicFloor_of_core hpar).producer U |>.producer)
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) k
+
+/-- Type-level stationary Green payload retained for the positive-core paper
+sequence.  The per-step Green packages are deliberately not fields here: they
+are derived by `positiveCoreStepAnalytic` from the Type-valued producer.  The
+remaining fields are the compactness/C³ limit data needed by the stationary
+frontier. -/
+structure PositiveCoreStationaryGreenData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM)) : Type where
+  Rlim : (ℝ → ℝ) → ℝ → ℝ
+  hLU :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      LocallyUniformConverges
+        (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U)
+        (rotheLimit
+          (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U))
+  hstep :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      ∀ k, paperImplicitStepOp p c (1 / lam) U
+          (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U
+            (k + 1)) =
+        positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k
+  hz_nonneg :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      ∀ k x,
+        0 ≤ positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k x
+  hz_le_M :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      ∀ k x,
+        positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k x ≤ M
+  hR_cont :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      Continuous (Rlim U)
+  hR_bound :
+    ∀ U, (hU : InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U) →
+      ∃ B : ℝ,
+        (∀ k y,
+          |((positiveCoreStepAnalytic p c lam M κ κtilde D Λ hcond hpar U hU) k).R y|
+            ≤ B) ∧
+          ∀ y, |Rlim U y| ≤ B
+  hR_limit :
+    ∀ U, (hU : InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U) →
+      LocallyUniformConverges
+        (fun k =>
+          ((positiveCoreStepAnalytic p c lam M κ κtilde D Λ hcond hpar U hU) k).R)
+        (Rlim U)
+  hc3 :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      PaperC3BootstrapData U
+        (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U)
+  hgreenEq : StationaryGreenRepresentationFromEquation p c lam κ M
+
+/-- Right-vanishing positive branch after feeding the Green-step stationary
+floor and the stationary Green strong maximum principle into the B1 wrapper.
+
+This older entry point keeps the frontier pieces as explicit arguments.  The
+new retained-payload wrapper below derives the per-step Green packages from the
+Type-valued producer and derives the diagonal differentiability floor from the
+C³ data. -/
+theorem b1_chiPos_rightVanishing_paper_min_core_of_greenStep
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hlam : 0 < lam) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (Rlim : (ℝ → ℝ) → ℝ → ℝ)
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        LocallyUniformConverges
+          (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U)
+          (rotheLimit
+            (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U
+            (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U
+              (k + 1)) =
+          positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k)
+    (hz_nonneg :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        ∀ k x,
+          0 ≤ positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k x)
+    (hz_le_M :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        ∀ k x,
+          positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k x ≤ M)
+    (hgreen :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        ∀ k, PaperStepAnalytic p c lam M κ Λ U
+          (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U k)
+          (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U
+            (k + 1)))
+    (hR_cont :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        Continuous (Rlim U))
+    (hR_bound :
+      ∀ U, (hU : InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U) →
+        ∃ B : ℝ,
+          (∀ k y, |((hgreen U hU) k).R y| ≤ B) ∧
+            ∀ y, |Rlim U y| ≤ B)
+    (hR_limit :
+      ∀ U, (hU : InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U) →
+        LocallyUniformConverges (fun k => ((hgreen U hU) k).R) (Rlim U))
+    (hc3 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        PaperC3BootstrapData U
+          (positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar U))
+    (hdiff :
+      PaperDiagonalDifferentiabilityFloor p κ M (lowerBarrierRaw κ κtilde D))
+    (hgreenEq : StationaryGreenRepresentationFromEquation p c lam κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U := by
+  let zseq := positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar
+  have hMpos : 0 < M := lt_of_lt_of_le zero_lt_one hcond.hM
+  have hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D) zseq :=
+    paperLowerPinnedStationaryFlatFloor_of_greenStep
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+      (Λ := Λ) (φ := lowerBarrierRaw κ κtilde D) (rotheSeq := zseq)
+      Rlim hlam hMpos hΛ0 hLU hstep hz_nonneg hz_le_M hgreen
+      hR_cont hR_bound hR_limit hc3 hdiff
+  have hsmp : StationaryStrongMaxPrinciple p c κ M :=
+    stationaryStrongMaxPrinciple_of_trap hMpos hlam hgreenEq
+  exact b1_chiPos_rightVanishing_paper_min_core_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM hpar
+    (by
+      simpa [zseq, positiveCoreRotheSeq] using hconv)
+    hsmp
+
+/-- Right-vanishing positive branch from the retained Type-level stationary
+Green payload.  The per-step `PaperStepAnalytic` witnesses are recovered from
+the Type-valued producer, and the diagonal differentiability floor is recovered
+from the retained C³ bootstrap data. -/
+theorem b1_chiPos_rightVanishing_paper_min_core_of_retainedGreenStep
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hlam : 0 < lam) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hgreenData :
+      PositiveCoreStationaryGreenData p c lam M κ κtilde D Λ hcond hpar) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenRightVanishingWaveProfile p c U := by
+  exact b1_chiPos_rightVanishing_paper_min_core_of_greenStep
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hlam hΛ0 hΛM hpar
+    hgreenData.Rlim
+    hgreenData.hLU
+    hgreenData.hstep
+    hgreenData.hz_nonneg
+    hgreenData.hz_le_M
+    (positiveCoreStepAnalytic p c lam M κ κtilde D Λ hcond hpar)
+    hgreenData.hR_cont
+    hgreenData.hR_bound
+    hgreenData.hR_limit
+    hgreenData.hc3
+    (paperDiagonalDifferentiabilityFloor_of_c3BootstrapData
+      (p := p) (κ := κ) (M := M)
+      (φ := lowerBarrierRaw κ κtilde D)
+      (rotheSeq := positiveCoreRotheSeq p c lam M κ κtilde D Λ hcond hpar)
+      hgreenData.hc3)
+    hgreenData.hgreenEq
+
 theorem b1_chiPos_existence_paper'_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
@@ -1233,6 +1655,13 @@ theorem b1_chiPos_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_routeA_core_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_of_cubeApproxData
+#print axioms b1_chiPos_rightVanishing_paper_of_cubeApproxData
+#print axioms b1_chiPos_rightVanishing_paper'_of_cubeApproxData
+#print axioms b1_chiPos_rightVanishing_paper_clean_of_cubeApproxData
+#print axioms b1_chiPos_rightVanishing_paper_min_of_cubeApproxData
+#print axioms b1_chiPos_rightVanishing_paper_min_core_of_cubeApproxData
+#print axioms b1_chiPos_rightVanishing_paper_min_core_of_greenStep
+#print axioms b1_chiPos_rightVanishing_paper_min_core_of_retainedGreenStep
 #print axioms b1_chiPos_existence_paper'_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_clean_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_min_of_cubeApproxData

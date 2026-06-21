@@ -32,6 +32,7 @@ import ShenWork.Paper1.WaveRotheStepClose
 import ShenWork.Paper1.WaveRotheResidualClose
 import ShenWork.Paper1.WaveRotheMaxPrincipleClosers
 import ShenWork.Paper1.WaveG1Bridge
+import ShenWork.Paper1.WaveRotheConcrete
 
 open Filter Topology MeasureTheory Real Set
 open scoped BoundedContinuousFunction
@@ -41,20 +42,6 @@ noncomputable section
 namespace ShenWork.Paper1
 
 variable {c lam : ℝ}
-
-/-! ## The paper-step Green source -/
-
-/-- The non-`W'' + cW'` part of the expanded paper wave operator. -/
-def paperStepNonlinearity (p : CMParams) (u W : ℝ → ℝ) (x : ℝ) : ℝ :=
-  let V := frozenElliptic p u
-  (-p.χ * p.m * (W x) ^ (p.m - 1) * deriv V x * deriv W x
-    + W x * (1 - p.χ * (W x) ^ (p.m - 1) * V x
-      - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1))))
-
-/-- The Green source for the paper implicit Euler step. -/
-def paperStepSource
-    (p : CMParams) (_c lam : ℝ) (u Z W : ℝ → ℝ) (x : ℝ) : ℝ :=
-  paperStepNonlinearity p u W x + lam * Z x
 
 /-! ## Weighted-Hölder fixed-source box
 
@@ -3863,20 +3850,6 @@ theorem paperImplicitStep_le_of_paperBarrier_maxPrinciple_clean
   linarith
 
 /-! ## Green-step input and producer assembly -/
-
-/-- Green analytic data for one paper step. -/
-structure PaperStepAnalytic
-    (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
-  R : ℝ → ℝ
-  source_eq : R = paperStepSource p c lam u Z W
-  green_repr : W = fun x => greenConv c lam R x
-  conv_form : W = fun x => ∫ y, greenKernel c lam (x - y) * R y
-  R_cont : Continuous R
-  R_bound : ∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
-    Λ = 2 * (greenDelta c lam)⁻¹ * B
-  R_hi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x)
-  R_lo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)
-  R_int_trans : ∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t))
 
 /-- Upper comparison data for a paper step against a barrier `B`. -/
 structure PaperStepUpperData
@@ -11962,22 +11935,24 @@ def paperRotheStepProducer_of_greenInput
         (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
     refine ⟨W, ?_⟩
     exact
-      { step_op := hstep
-        cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
-        diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
-        contDiff2 :=
-          paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
-        deriv_le :=
-          paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
-        left_rate := hout.left_rate
-        nonneg := hnonneg
-        le_barrier := hle_barrier
-        le_old := hle_old
-        anti := paperStep_antitone_by_sliding
-          (c := c) (lam := lam) hin.hlam hstep hZa hout.antitone
-        paperSuper :=
-          paperWaveOperator_nonpos_of_implicitStep_le
-            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+      { analytic := hout.analytic
+        facts :=
+          { step_op := hstep
+            cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
+            diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
+            contDiff2 :=
+              paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
+            deriv_le :=
+              paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
+            left_rate := hout.left_rate
+            nonneg := hnonneg
+            le_barrier := hle_barrier
+            le_old := hle_old
+            anti := paperStep_antitone_by_sliding
+              (c := c) (lam := lam) hin.hlam hstep hZa hout.antitone
+            paperSuper :=
+              paperWaveOperator_nonpos_of_implicitStep_le
+                (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old } }
   produce_regular := by
     intro Z hZbase
     obtain ⟨W, hout⟩ :=
@@ -11997,53 +11972,55 @@ def paperRotheStepProducer_of_greenInput
         (c := c) (lam := lam) hin.hlam hstep hout.upperBarrier
     refine ⟨W, ?_⟩
     exact
-      { step_op := hstep
-        cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
-        diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
-        contDiff2 :=
-          paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
-        deriv_le :=
-          paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
-        left_rate := hout.left_rate
-        nonneg := hnonneg
-        le_barrier := hle_barrier
-        le_old := hle_old
-        anti := paperStep_antitone_by_sliding
-          (c := c) (lam := lam) hin.hlam hstep hZbase.anti hout.antitone
-        paperSuper :=
-          paperWaveOperator_nonpos_of_implicitStep_le
-            (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old }
+      { analytic := hout.analytic
+        facts :=
+          { step_op := hstep
+            cont := paperStep_cont (c := c) (lam := lam) hin.hlam hout.analytic
+            diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
+            contDiff2 :=
+              paperStep_contDiff_two (c := c) (lam := lam) hin.hlam hout.analytic
+            deriv_le :=
+              paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
+            left_rate := hout.left_rate
+            nonneg := hnonneg
+            le_barrier := hle_barrier
+            le_old := hle_old
+            anti := paperStep_antitone_by_sliding
+              (c := c) (lam := lam) hin.hlam hstep hZbase.anti hout.antitone
+            paperSuper :=
+              paperWaveOperator_nonpos_of_implicitStep_le
+                (p := p) (c := c) (lam := lam) hin.hlam hstep hle_old } }
 
 /-- All paper-step producers from the precise per-profile Green-step input. -/
-theorem paperRotheStepProducer_all_of_greenInput
+def paperRotheStepProducer_all_of_greenInput
     {p : CMParams} {c lam M κ Λ : ℝ}
     (hinput : ∀ u : ℝ → ℝ, PaperGreenStepInput p c lam M κ Λ u) :
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
   fun u => paperRotheStepProducer_of_greenInput (hinput u)
 
 /-- `PaperRotheStepProducer` from the explicitly named shared parabolic floor. -/
-theorem paperRotheStepProducer_of_parabolicFloor
+def paperRotheStepProducer_of_parabolicFloor
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
     (hin : PaperPerStepParabolicFloor p c lam M κ Λ u) :
     PaperRotheStepProducer p c lam M κ Λ u :=
   paperRotheStepProducer_of_greenInput hin
 
 /-- All paper-step producers from the explicitly named shared parabolic floor. -/
-theorem paperRotheStepProducer_all_of_parabolicFloor
+def paperRotheStepProducer_all_of_parabolicFloor
     {p : CMParams} {c lam M κ Λ : ℝ}
     (hfloor : ∀ u : ℝ → ℝ, PaperPerStepParabolicFloor p c lam M κ Λ u) :
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
   fun u => paperRotheStepProducer_of_parabolicFloor (hfloor u)
 
 /-- `PaperRotheStepProducer` from the thinner paper Green-step core. -/
-theorem paperRotheStepProducer_of_greenCore
+def paperRotheStepProducer_of_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
     (hin : PaperGreenStepInputCore p c lam M κ Λ u) :
     PaperRotheStepProducer p c lam M κ Λ u :=
   paperRotheStepProducer_of_greenInput (paperGreenStepInput_of_core hin)
 
 /-- All paper-step producers from the thinner paper Green-step core. -/
-theorem paperRotheStepProducer_all_of_greenCore
+def paperRotheStepProducer_all_of_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}
     (hinput : ∀ u : ℝ → ℝ, PaperGreenStepInputCore p c lam M κ Λ u) :
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
