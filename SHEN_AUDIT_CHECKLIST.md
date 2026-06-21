@@ -120,6 +120,16 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
   carried (no producer) + ORPHANED (0 consumers of the file). The genuine P1 Rothe route must use
   ARZELÀ–ASCOLI with NO antitone (anti_k or anti_x) + prove the RESIDUAL z_{k+1}−z_k→0 (energy
   dissipation) for the stationary limit. P1aa re-fired on exactly that (cron1 designing the dissipation).
+- **P3 Moser re-attempt (IntervalDomainMoserActualAtoms.lean): GENUINE-PARTIAL-REDUCTION but ORPHANED**
+  (audit afc542c). REAL+HONEST: new Moser pieces genuinely SMALLER (single per-exponent inequalities,
+  not §2 bundles); 2 of the old Prop25MoserFrontiers 7 fields (energy, powerIntegrable) genuinely
+  DISCHARGED from solution regularity (real proofs); finite ROOT-TOWER SCALAR fully PROVEN
+  (Σ1/2^k≤1, Σk/2^k≤2, ∏≤4C, recursion — no sorryAx); drift preserved; l2SeedReg honest open
+  (closed-time u(0) trace defined-not-constructed, no fake); axiom-clean. GAP = WIRING: the new file
+  is imported by nothing; the shipped headline still routes through bloated
+  Corollary21FrontierData/Prop25MoserFrontiers. Path to realize: P3lemmas proves hdiss/hrel/trace →
+  wiring leg switches IntervalDomainMoserLadderHeadline to the new atoms + drops old frontier fields
+  → commit genuine realized reduction. Orphan held in-clone (not committed unbuilt).
 
 ## Scoreboard (5 root-verified reductions landed: 0eb36e3, 2b6e975, 0528f04, 7cc3ddc, 2c58ff5)
 - Paper 1: field-shrink + hc3-artifact-elimination + barrier-route de-monotonization (projection layer
