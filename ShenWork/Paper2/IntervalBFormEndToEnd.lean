@@ -15,6 +15,7 @@ import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalRegularityFrontierWiring
 import ShenWork.Paper2.IntervalBFormInitialTrace
 import ShenWork.Paper2.IntervalBFormDirectClassical
+import ShenWork.Paper2.IntervalResolverStrictPositivity
 
 open Filter Topology Set
 
@@ -182,6 +183,61 @@ structure BFormSpectralFrontier
     0 < mildChemicalConcentration p
       (conjugatePicardLimit p u₀ DB.T) t x
 
+/-- Strictly smaller residual for the B-form spectral frontier.
+
+Compared with `BFormSpectralFrontier`, the resolver direct spectral package is
+reduced to the existing per-`t₀` clamped coefficient producer, and the resolver
+positivity field is not carried: it is produced from the gradient mild bridge.
+The remaining carried fields are the currently missing per-datum producers for
+the B-form bank, the gradient-map fixed-point bridge, the u-side time
+neighbourhood package, and the sup-norm derivative maximum-principle field. -/
+structure BFormSpectralFrontierResidual
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DB : ConjugateMildExistenceData p u₀) where
+  bank : BFormBankedInputs p DB
+  hGradientBridge :
+    IntervalMildSolution p DB.T u₀ (conjugatePicardLimit p u₀ DB.T)
+  hTimeNhd :
+    HasTimeNeighborhoodSpectralAgreement DB.T
+      (conjugatePicardLimit p u₀ DB.T)
+  hResolverCoeffTimeC1 :
+    ∀ t₀, 0 < t₀ → t₀ < DB.T →
+      ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
+        W ∈ 𝓝 t₀ ∧
+        (∀ s ∈ W, ∀ k,
+          aC s k =
+            (ShenWork.PDE.intervalNeumannResolverSourceCoeff p
+              ((conjugatePicardLimit p u₀ DB.T) s) k).re)
+  hSupNormDeriv :
+    IntervalDomainSupNormDerivativeNonposOn
+      (conjugatePicardLimit p u₀ DB.T) (Set.Ioo (0 : ℝ) DB.T)
+
+/-- Construct the actual `BFormSpectralFrontier` from the smaller named
+residual.  This is the anti-fanout step: `hResolverData` is produced by the
+clamped per-`t₀` resolver assembler, and `hVpos` is produced by the strict
+resolver positivity theorem applied to the actual conjugate Picard limit
+viewed as a gradient mild datum via `hGradientBridge`. -/
+theorem bFormSpectralFrontier_of_residual
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (R : BFormSpectralFrontierResidual p DB) :
+    Nonempty (BFormSpectralFrontier p DB) := by
+  refine ⟨?_⟩
+  refine
+    { bank := R.bank
+      hGradientBridge := R.hGradientBridge
+      hTimeNhd := R.hTimeNhd
+      hResolverData := ?_
+      hSupNormDeriv := R.hSupNormDeriv
+      hVpos := ?_ }
+  · exact
+      ShenWork.Paper2.RegularityFrontierAssembly.hasResolverDirectSpectralData_of_clamped_perT0
+        (p := p) (T := DB.T) (u := conjugatePicardLimit p u₀ DB.T)
+        R.hResolverCoeffTimeC1
+  · exact
+      ShenWork.IntervalResolverStrictPositivity.mildChemicalConcentration_pos
+        p (conjugateAsGradientMildSolutionData DB R.hGradientBridge)
+
 def BFormSpectralFrontier.toDirectClassical
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
@@ -294,10 +350,11 @@ theorem hMildLocal_of_BForm
     (hPerDatum : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
         ∃ DB : ConjugateMildExistenceData p u₀,
-          Nonempty (BFormSpectralFrontier p DB)) :
+          Nonempty (BFormSpectralFrontierResidual p DB)) :
     IntervalDomainGradientMildRestartFrontierCoreLocalData p := by
   intro u₀ hu₀
-  obtain ⟨DB, ⟨F⟩⟩ := hPerDatum u₀ hu₀
+  obtain ⟨DB, ⟨R⟩⟩ := hPerDatum u₀ hu₀
+  obtain ⟨F⟩ := bFormSpectralFrontier_of_residual R
   exact
     ⟨conjugateAsGradientMildSolutionData DB F.hGradientBridge,
       hasRestartCosineRepresentations_of_BFormSpectralFrontier F,
@@ -316,11 +373,12 @@ theorem paper2_theorem_1_1_general_chi_via_bform
     (hPerDatum : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
         ∃ DB : ConjugateMildExistenceData p u₀,
-          Nonempty (BFormSpectralFrontier p DB)) :
+          Nonempty (BFormSpectralFrontierResidual p DB)) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartFrontierCoreLocalData
     p hχ ha hb hγ_ge_one (hMildLocal_of_BForm p hPerDatum) hUniform
 
+#print axioms bFormSpectralFrontier_of_residual
 #print axioms BFormBankedInputs.hsrcB
 #print axioms BFormSpectralFrontier.hB_global
 #print axioms hasRestartCosineRepresentations_of_BFormSpectralFrontier
