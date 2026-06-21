@@ -1,0 +1,3 @@
+import ShenWork.PaperOne.WholeLineAuxiliaryDivergenceGlobal
+#print axioms ShenWork.PaperOne.auxiliaryDivGlobalFamily_of_frozenSignal
+#print axioms ShenWork.PaperOne.movingFrameHeatOp_sub

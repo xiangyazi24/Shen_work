@@ -30,7 +30,7 @@
   `solution_resolver_(cosine|sine)Series_summable`; the source `ℓ²` summability is
   `source_resolverCoeff_re_sq_summable`.
 
-  No `sorry`, no `admit`, no custom `axiom`.
+  No proof placeholders or custom assumptions.
 -/
 import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 
@@ -215,6 +215,52 @@ theorem source_coeffL2Norm_le
     exact Real.sqrt_le_sqrt hIle
   linarith
 
+/-- Source `ℓ²` mass controlled by the actual source `L²` norm.
+
+This is the non-`L∞` version of `source_coeffL2Norm_le`: cosine-Bessel gives
+`coeffL2Norm(νu^γ) ≤ 2·sqrt(∫₀¹ |νu^γ|²)`. -/
+theorem source_coeffL2Norm_le_sourceL2
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    coeffL2Norm
+        (fun k : ℕ => intervalNeumannResolverSourceCoeff p (u τ) k -
+          intervalNeumannResolverSourceCoeff p (fun _ => 0) k)
+      ≤ 2 * Real.sqrt
+        (∫ x in (0:ℝ)..1, ‖((p.ν * intervalDomainLift (u τ) x ^ p.γ : ℝ) : ℂ)‖ ^ 2) := by
+  classical
+  simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero]
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (u τ) x ^ p.γ with hg
+  have hgcont : ContinuousOn g (Set.Icc (0:ℝ) 1) := source_continuousOn_Icc hsol hτ
+  set f : ℝ → ℂ := fun x => ((g x : ℝ) : ℂ) with hf
+  have hfcontOn : ContinuousOn f (Set.uIcc (0:ℝ) 1) := by
+    rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+    exact Complex.continuous_ofReal.comp_continuousOn hgcont
+  have hfint : IntervalIntegrable f volume 0 1 := hfcontOn.intervalIntegrable
+  have hfsq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1 :=
+    ((hfcontOn.norm).pow 2).intervalIntegrable
+  have hL2 : MemLp (unitIntervalEvenReflection f) 2
+      (volume.restrict (Set.Ioc (-1:ℝ) 1)) :=
+    evenReflection_memLp_two_of_continuousOn hgcont
+  obtain ⟨_hsum, hnorm_le⟩ := unitIntervalNeumannCosineCoeff_l2_bound hfint hL2 hfsq
+  have hre : ∀ k : ℕ,
+      (intervalNeumannResolverSourceCoeff p (u τ) k).re = unitIntervalNeumannCosineCoeff f k := by
+    intro k
+    simp only [intervalNeumannResolverSourceCoeff, hf, hg, Complex.ofReal_re]
+  have hnorm_eq : coeffL2Norm
+      (fun k : ℕ => intervalNeumannResolverSourceCoeff p (u τ) k)
+      = unitIntervalCosineL2TsumNorm (unitIntervalNeumannCosineCoeff f) := by
+    rw [coeffL2Norm, coeffL2Energy, unitIntervalCosineL2TsumNorm,
+      unitIntervalCosineL2TsumEnergy]
+    congr 1
+    refine tsum_congr (fun k => ?_)
+    have him : (intervalNeumannResolverSourceCoeff p (u τ) k).im = 0 := by
+      simp [intervalNeumannResolverSourceCoeff]
+    rw [Complex.sq_norm, Complex.normSq_apply, him, hre k]
+    ring
+  rw [hnorm_eq]
+  simpa [f, g, hf, hg] using hnorm_le
+
 /-- **Piece 1, value sup bound `Fv(M)`.**  Quantitative τ-independent sup bound on
 the resolver VALUE (= the lifted chemical concentration `v`), explicit in a uniform
 upper bound `M` on the solution:
@@ -269,6 +315,28 @@ theorem resolverGrad_sup_le_of_ub
   have hWnn : 0 ≤ Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) :=
     Real.sqrt_nonneg _
   exact mul_le_mul_of_nonneg_left (source_coeffL2Norm_le hsol hτ hub) hWnn
+
+/-- Resolver-gradient sup bound controlled by the source `L²` norm, without first
+assuming a pointwise upper bound on `u`. -/
+theorem resolverGrad_sup_le_sourceL2
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
+    |resolverGradReal p (u τ) x| ≤
+      Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * Real.sqrt
+          (∫ y in (0:ℝ)..1, ‖((p.ν * intervalDomainLift (u τ) y ^ p.γ : ℝ) : ℂ)‖ ^ 2)) := by
+  have hsrc := source_resolverCoeff_re_sq_summable_single hsol hτ
+  have hsum₁ := solution_resolver_sineSeries_summable hsol hτ x
+  have hsum₂ := zero_resolver_sineSeries_summable p x
+  have hbound := intervalNeumannResolverR_grad_sup_lipschitz p (u τ) (fun _ => 0) hsrc
+    ⟨x, hx⟩ hsum₁ hsum₂
+  rw [intervalNeumannResolverRGrad_zero, sub_zero] at hbound
+  rw [resolverGradReal_eq p (u τ) ⟨x, hx⟩]
+  refine hbound.trans ?_
+  exact mul_le_mul_of_nonneg_left (source_coeffL2Norm_le_sourceL2 hsol hτ)
+    (Real.sqrt_nonneg _)
 
 /-- **Uniform source-difference `L²` mass** (the `(δ,M)`-explicit analogue of
 `source_integral_le_Eu`).  With `lift(uᵢ τ) ∈ [δ,M]` (δ>0) on `[0,1]`, the source
@@ -447,11 +515,11 @@ theorem static_v_value_L2_le_Eu_uniform
       refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
       intro x hx
       simp only [Set.mem_setOf_eq] at hx
-      push_neg at hx
+      push Not at hx
       obtain ⟨hxIcc, hne⟩ := hx
       simp only [Set.mem_insert_iff, Set.mem_singleton_iff]
       by_contra hcon
-      push_neg at hcon
+      push Not at hcon
       obtain ⟨hx0, hx1⟩ := hcon
       exact absurd (hpt x ⟨lt_of_le_of_ne hxIcc.1 (Ne.symm hx0),
         lt_of_le_of_ne hxIcc.2 hx1⟩) (not_le.mpr hne)

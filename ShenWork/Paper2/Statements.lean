@@ -2656,7 +2656,7 @@ def Proposition_2_1
 
 /-- A deliberately degenerate bounded-domain instance for showing that
 `Proposition_2_1` cannot be derived from the current abstract semigroup API
-alone.  The PDE side admits the constant solution `u = 1`, `v = 1/2`, but the
+alone.  The PDE side allows the constant solution `u = 1`, `v = 1/2`, but the
 fake `lpNorm` below assigns size `1` to the signal and size `0` to the source. -/
 def proposition21CounterDomain : BoundedDomainData where
   Point := Unit
@@ -2910,9 +2910,9 @@ def Paper2MassDerivativeIdentity
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
       ∀ t, 0 < t → t < T →
-        deriv (fun τ => D.integral (u τ)) t =
-          D.integral
-            (fun x => u t x * (p.a - p.b * (u t x) ^ p.α))
+        HasDerivAt (fun τ => D.integral (u τ))
+          (D.integral
+            (fun x => u t x * (p.a - p.b * (u t x) ^ p.α))) t
 
 /-- The ODE-comparison step for Proposition 2.4 once the exact mass derivative
 identity has been proved.  It packages the initial trace at `t = 0`, the
@@ -2920,18 +2920,18 @@ constant-mass case `a = b = 0`, and the positive-logistic comparison bound. -/
 def Paper2MassComparisonPrinciple
     (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-    ∀ T > 0, ∀ u : ℝ → D.Point → ℝ,
+    ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
       InitialTrace D u₀ u →
-      (∀ t x, 0 < t → t < T → 0 < u t x) →
       (∀ t, 0 < t → t < T →
-        deriv (fun τ => D.integral (u τ)) t =
-          D.integral
-            (fun x => u t x * (p.a - p.b * (u t x) ^ p.α))) →
+        HasDerivAt (fun τ => D.integral (u τ))
+          (D.integral
+            (fun x => u t x * (p.a - p.b * (u t x) ^ p.α))) t) →
         (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
           (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
 
 /-- A fake bounded-domain interface showing that Proposition 2.4 is not a
-consequence of the abstract API alone.  The PDE admits the constant solution
+consequence of the abstract API alone.  The PDE allows the constant solution
 `u = v = 1`, while the abstract `supNorm` makes the initial trace accept the
 different datum `u₀ = 2`; the abstract integral then distinguishes the two and
 violates mass conservation in the `a = b = 0` branch. -/
@@ -3460,7 +3460,7 @@ conclusion from these pointwise facts via Mathlib's mean-value theorem,
 plus a continuity-based argument that the sup stays above threshold on the
 whole prior interval. -/
 
-/-- Primitive analytic axioms for the parabolic max principle of the
+/-- Primitive analytic assumptions for the parabolic max principle of the
 chemotaxis-logistic system on a bounded domain.  Conclusion is `Lemma_3_1 D p`
 proved in `Lemma_3_1_of_parabolicMaxPrinciple`. -/
 structure ParabolicMaxPrincipleData
@@ -4683,8 +4683,7 @@ theorem Proposition_2_4.of_mass_derivative_identity_and_comparison
     (hcompare : Paper2MassComparisonPrinciple D p) :
     Proposition_2_4 D p := by
   intro u₀ hu₀ T hT u v hsol htrace
-  exact hcompare u₀ hu₀ T hT u htrace
-    (fun t x ht0 htT => hsol.u_pos' ht0 htT)
+  exact hcompare u₀ hu₀ T hT u v hsol htrace
     (hmassDeriv T hT u v hsol)
 
 /-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally equal

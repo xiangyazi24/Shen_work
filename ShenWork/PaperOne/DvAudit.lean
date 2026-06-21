@@ -1,0 +1,2 @@
+import ShenWork.PaperOne.WholeLineAuxiliaryMildMapDivergence
+#print axioms ShenWork.PaperOne.auxiliaryMildMapDiv_rateEstimates

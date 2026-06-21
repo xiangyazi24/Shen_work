@@ -1,0 +1,3 @@
+import ShenWork.PaperOne.WholeLineAuxiliaryDivergenceLocal
+#print axioms ShenWork.PaperOne.auxiliaryFlowDiv_localExists
+#print axioms ShenWork.PaperOne.frozenSignal_Vx_bound_one_of_waveTrap

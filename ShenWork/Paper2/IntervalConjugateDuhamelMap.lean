@@ -14,7 +14,6 @@
   Fully proved; no placeholder proof terms or custom logical constants.
 -/
 import ShenWork.PDE.IntervalFullKernelGradientLinfty
-import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
 import ShenWork.PDE.IntervalFullSemigroupNeumann
 import ShenWork.PDE.IntervalGradDuhamelBound
 import ShenWork.Paper2.IntervalGradientDuhamelMap
@@ -173,48 +172,6 @@ theorem continuousOn_deriv_intervalNeumannFullKernel_snd {t : ℝ} (ht : 0 < t) 
     rw [show x + y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = y by ring]
     exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩
 
-/-- Joint measurability of the full-kernel second-variable derivative closed form
-in `(s, y)`. -/
-theorem deriv_intervalNeumannFullKernel_snd_s_dependent_measurable (t x₀ : ℝ) :
-    Measurable (fun w : ℝ × ℝ =>
-      -(∑' k : ℤ, deriv (fun z : ℝ => heatKernel (t - w.1) z)
-          (x₀ - w.2 + 2 * (k : ℝ)))
-        + (∑' k : ℤ, deriv (fun z : ℝ => heatKernel (t - w.1) z)
-          (x₀ + w.2 + 2 * (k : ℝ)))) := by
-  set g₁ : ℤ → ℝ × ℝ → ℝ :=
-    fun k w => deriv (fun z : ℝ => heatKernel (t - w.1) z)
-      (x₀ - w.2 + 2 * (k : ℝ)) with hg₁_def
-  set g₂ : ℤ → ℝ × ℝ → ℝ :=
-    fun k w => deriv (fun z : ℝ => heatKernel (t - w.1) z)
-      (x₀ + w.2 + 2 * (k : ℝ)) with hg₂_def
-  have hg₁_meas : ∀ k, Measurable (g₁ k) := fun _ =>
-    measurable_deriv_heatKernel_comp (by fun_prop) t
-  have hg₂_meas : ∀ k, Measurable (g₂ k) := fun _ =>
-    measurable_deriv_heatKernel_comp (by fun_prop) t
-  have hsum_aux : ∀ (z : ℝ) (w : ℝ × ℝ),
-      Summable (fun k : ℤ =>
-        deriv (fun u : ℝ => heatKernel (t - w.1) u) (z + 2 * (k : ℝ))) := by
-    intro z w
-    rcases lt_or_ge 0 (t - w.1) with hτ | hτ
-    · exact latticeGaussianGradSummable hτ z
-    · have hz : (fun k : ℤ =>
-          deriv (fun u : ℝ => heatKernel (t - w.1) u) (z + 2 * (k : ℝ)))
-          = fun _ : ℤ => (0 : ℝ) := by
-        funext k
-        have hzero : (fun u : ℝ => heatKernel (t - w.1) u) = fun _ : ℝ => (0 : ℝ) := by
-          funext u
-          exact heatKernel_of_nonpos hτ u
-        rw [hzero, deriv_const]
-      rw [hz]
-      exact summable_zero
-  have hg₁_sum : ∀ w, Summable (fun k : ℤ => g₁ k w) := fun w =>
-    hsum_aux (x₀ - w.2) w
-  have hg₂_sum : ∀ w, Summable (fun k : ℤ => g₂ k w) := fun w =>
-    hsum_aux (x₀ + w.2) w
-  simpa [g₁, g₂] using
-    ((measurable_tsum_int_of_summable hg₁_meas hg₁_sum).neg.add
-      (measurable_tsum_int_of_summable hg₂_meas hg₂_sum))
-
 /-- Interval-integrability of `∂ᵧ K_full(t,x,y)` on `[0,1]`. -/
 theorem intervalIntegrable_deriv_intervalNeumannFullKernel_snd {t : ℝ}
     (ht : 0 < t) (x : ℝ) :
@@ -332,57 +289,6 @@ open ShenWork.HeatKernelGradientEstimates
 def intervalConjugateKernelOperator (t : ℝ) (Q : ℝ → ℝ) (x : ℝ) : ℝ :=
   -∫ y, deriv (fun y' : ℝ => intervalNeumannFullKernel t x y') y * Q y
       ∂ intervalMeasure 1
-
-/-- For a jointly measurable time-dependent source, the B-kernel time integrand
-is strongly measurable on `[0,t]`. -/
-theorem intervalConjugateKernelOperator_s_dependent_aestronglyMeasurable_x
-    {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
-    (hF_ae : AEStronglyMeasurable (Function.uncurry F)
-      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod (intervalMeasure 1)))
-    (x₀ : ℝ) :
-    AEStronglyMeasurable
-      (fun s : ℝ => intervalConjugateKernelOperator (t - s) (F s) x₀)
-      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
-  set Kd : ℝ × ℝ → ℝ :=
-    fun w =>
-      -(∑' k : ℤ, deriv (fun z : ℝ => heatKernel (t - w.1) z)
-          (x₀ - w.2 + 2 * (k : ℝ)))
-        + (∑' k : ℤ, deriv (fun z : ℝ => heatKernel (t - w.1) z)
-          (x₀ + w.2 + 2 * (k : ℝ))) with hKd_def
-  have hKd_meas := deriv_intervalNeumannFullKernel_snd_s_dependent_measurable t x₀
-  set D : ℝ → ℝ := fun s => -∫ y, Kd (s, y) * F s y ∂(intervalMeasure 1) with hD_def
-  have hD_aestrong : AEStronglyMeasurable D
-      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
-    have hint_ae : AEStronglyMeasurable (fun w : ℝ × ℝ => Kd w * F w.1 w.2)
-        ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod (intervalMeasure 1)) :=
-      hKd_meas.aestronglyMeasurable.mul hF_ae
-    exact (MeasureTheory.AEStronglyMeasurable.integral_prod_right'
-      (μ := MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t))
-      (ν := intervalMeasure 1) (f := fun w : ℝ × ℝ => Kd w * F w.1 w.2)
-      hint_ae).neg
-  refine hD_aestrong.congr ?_
-  have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t := Set.uIoc_of_le ht.le
-  have hae_lt_t : ∀ᵐ s ∂(MeasureTheory.volume.restrict (Set.uIoc 0 t)), s < t := by
-    refine (MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr ?_
-    have hae_ne_t : ∀ᵐ s ∂MeasureTheory.volume, s ≠ t := by
-      have heq : {s : ℝ | ¬ s ≠ t} = {t} := by ext s; simp [eq_comm]
-      rw [MeasureTheory.ae_iff, heq]
-      exact Real.volume_singleton
-    filter_upwards [hae_ne_t] with s hsne hs
-    rw [huIoc_eq] at hs
-    exact lt_of_le_of_ne hs.2 hsne
-  filter_upwards [hae_lt_t] with s hst
-  have htms_pos : 0 < t - s := sub_pos.mpr hst
-  simp only [hD_def, intervalConjugateKernelOperator]
-  congr 1
-  refine MeasureTheory.integral_congr_ae ?_
-  filter_upwards with y
-  have hKfun :
-      deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x₀ y') y =
-        Kd (s, y) := by
-    rw [hKd_def]
-    exact (hasDerivAt_intervalNeumannFullKernel_snd htms_pos x₀ y).deriv
-  rw [hKfun]
 
 /-- The B-form Picard map.  Compared with `intervalGradientDuhamelMap`, only the
 chemotaxis leg changes: `∂ₓS(t-s)Q` is replaced by `B_N(t-s)Q`. -/
@@ -602,48 +508,6 @@ theorem conjugateDuhamel_sup_bound
         have hsqrt : Real.sqrt t ≤ Real.sqrt T := Real.sqrt_le_sqrt htT
         nlinarith [hCgnn, hCq, Real.sqrt_nonneg t, Real.sqrt_nonneg T, hsqrt,
           mul_nonneg hCgnn hCq]
-
-/-- B-kernel Duhamel integrand of a bounded jointly-measurable source is
-IntervalIntegrable in time. -/
-theorem conjugateKernelDuhamel_intervalIntegrable_of_joint_measurable
-    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ → ℝ}
-    (hf_meas : Measurable (Function.uncurry f))
-    {C : ℝ} (_hC : 0 ≤ C) (hf_bdd : ∀ s y, |f s y| ≤ C) (x : ℝ) :
-    IntervalIntegrable
-      (fun s => intervalConjugateKernelOperator (t - s) (f s) x) volume 0 t := by
-  rw [intervalIntegrable_iff]
-  have hf_slice_int : ∀ s, Integrable (f s) (intervalMeasure 1) := fun s =>
-    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
-      ((hf_meas.comp measurable_prodMk_left).aestronglyMeasurable)
-      (hf_bdd s)
-  have hmeas : AEStronglyMeasurable
-      (fun s => intervalConjugateKernelOperator (t - s) (f s) x)
-      (volume.restrict (Set.uIoc 0 t)) :=
-    intervalConjugateKernelOperator_s_dependent_aestronglyMeasurable_x
-      ht hf_meas.aestronglyMeasurable x
-  set Cg := heatGradientLinftyLinftyConstant
-  have hdom_int : IntegrableOn
-      (fun s => Cg * (t - s) ^ (-(1/2) : ℝ) * C) (Set.uIoc 0 t) volume := by
-    rw [show (fun s => Cg * (t - s) ^ (-(1/2) : ℝ) * C) =
-        (fun s => (Cg * C) * (t - s) ^ (-(1/2) : ℝ)) from by ext; ring]
-    rw [← intervalIntegrable_iff]
-    exact (ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half t).const_mul
-      (Cg * C)
-  have hne : ∀ᵐ s ∂volume, s ≠ t := by
-    rw [ae_iff]
-    simp only [not_not, Set.setOf_eq_eq_singleton]
-    exact Real.volume_singleton
-  have hae : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
-      ‖(fun s => intervalConjugateKernelOperator (t - s) (f s) x) s‖
-        ≤ (fun s => Cg * (t - s) ^ (-(1/2) : ℝ) * C) s := by
-    rw [Set.uIoc_of_le ht.le, ae_restrict_iff' measurableSet_Ioc]
-    filter_upwards [hne] with s hs_ne hs_mem
-    rw [Real.norm_eq_abs]
-    have hts : 0 < t - s := sub_pos.mpr (lt_of_le_of_ne hs_mem.2 hs_ne)
-    have h :=
-      intervalConjugateKernelOperator_abs_le hts (hf_slice_int s) (hf_bdd s) x
-    simpa [Cg] using h
-  exact Integrable.mono' hdom_int.integrable hmeas hae
 
 theorem intervalConjugateKernelOperator_sub {τ x : ℝ} {f g : ℝ → ℝ}
     (hf : Integrable

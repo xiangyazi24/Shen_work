@@ -202,7 +202,7 @@ def bform_negpart_route_of_cron2_lower_barrier
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀} {C : ℝ}
     (datum : PositiveInitialDatum intervalDomain u₀)
-    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB)
+    (B : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB)
     (H : BFormCron2NegativePartHyp p DB)
     (hLift_cont :
       ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1))
@@ -216,7 +216,7 @@ def bform_negpart_route_of_cron2_lower_barrier
             * intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
           ≤ conjugatePicardLimit p u₀ DB.T t x) :
     BFormNegativePartPositivityRoute p DB :=
-  bform_negpart_route_of_lower_barrier datum F
+  bform_negpart_route_of_lower_barrier datum B
     (bform_negativePart_zero H)
     hLift_cont hLift_nonneg hLift_pos_somewhere hbarrier
 

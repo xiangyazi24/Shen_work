@@ -66,9 +66,10 @@ lemma intervalDomain_grad_const_integral_zero (B : ℝ) :
   simpa [intervalDomainLift, intervalDomain, intervalDomainGradNorm, hxIcc] using
     hderiv
 
-theorem not_unitIntervalPowerGNYoungForMoser :
-    ¬ UnitIntervalPowerGNYoungForMoser := by
+theorem not_oldUnitIntervalPowerGNYoungForMoser :
+    ¬ OldUnitIntervalPowerGNYoungForMoser := by
   intro hGN
+  unfold OldUnitIntervalPowerGNYoungForMoser at hGN
   rcases hGN 1 1 1 (by norm_num) (by norm_num) (by norm_num) with
     ⟨Ceps, hCeps, hineq⟩
   let A : ℝ := Ceps + 1
@@ -121,7 +122,7 @@ theorem not_unitIntervalPowerGNYoungForMoser :
       (by dsimp [A]; exact lt_add_of_pos_right Ceps zero_lt_one) hApos
   exact not_lt_of_ge hAineq hstrict
 
-#print axioms not_unitIntervalPowerGNYoungForMoser
+#print axioms not_oldUnitIntervalPowerGNYoungForMoser
 
 end ShenWork.Paper2.IntervalDomainGNYObstruction
 

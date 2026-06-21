@@ -248,6 +248,28 @@ theorem poincare_interval
         ring
     _ = L ^ 2 * ∫ s in (0 : ℝ)..L, f' s ^ 2 := by ring
 
+/-- Coarse Neumann-Poincaré inequality on the unit interval.
+
+The sharp constant is `1 / π²`; this theorem keeps the already proved
+constant `1`, which is enough for the downstream absorbing estimate because it
+is still a positive Poincaré constant. -/
+theorem poincare_unit_interval_coarse
+    {f f' : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Icc (0 : ℝ) 1))
+    (hf_deriv : ∀ x ∈ Icc (0 : ℝ) 1, HasDerivAt f (f' x) x)
+    (hf'_int : IntervalIntegrable f' volume 0 1)
+    (hf'_sq_int : IntervalIntegrable (fun x => f' x ^ 2) volume 0 1) :
+    let fbar := ∫ x in (0 : ℝ)..1, f x
+    ∫ x in (0 : ℝ)..1, (f x - fbar) ^ 2 ≤
+      ∫ x in (0 : ℝ)..1, f' x ^ 2 := by
+  intro fbar
+  have h := poincare_interval (L := 1) (f := f) (f' := f')
+    (by norm_num) hf_cont hf_deriv hf'_int hf'_sq_int
+  change ∫ x in (0 : ℝ)..1,
+      (f x - ((1 / 1) * ∫ x in (0 : ℝ)..1, f x)) ^ 2 ≤
+        1 ^ 2 * ∫ x in (0 : ℝ)..1, f' x ^ 2 at h
+  simpa using h
+
 end ShenWork.Poincare
 
 end

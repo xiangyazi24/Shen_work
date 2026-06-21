@@ -1764,6 +1764,58 @@ theorem intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers
     mul_le_mul_of_nonneg_left hCeps' hchiBound
   linarith
 
+/-- Uniform-in-time version of
+`intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers`.
+The cross-diffusion bootstrap predicate already supplies one constant `Ceps`
+for all interior times; this theorem keeps that constant exposed instead of
+rechoosing it after `t`. -/
+theorem intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers_uniformCeps
+    {params : CM2Params} {T rho eps chiBound : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hfrontiers : ∀ t, 0 < t → t < T →
+      (deriv (fun τ => intervalDomainL2HalfEnergy u τ) t =
+        intervalDomain.integral (intervalDomainL2TimeTerm u t)) ∧
+      (intervalDomain.integral (intervalDomainL2TimeTerm u t) =
+        intervalDomainL2DiffusionIntegral u t -
+          params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t) ∧
+      (intervalDomainL2DiffusionIntegral u t =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainL2DiffusionDissipation u t) ∧
+      (intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0) ∧
+      (intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0) ∧
+      (-params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t))) :
+    ∃ Ceps, ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+        intervalDomainL2DiffusionDissipation u t ≤
+          chiBound *
+              (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+                Ceps *
+                  intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+            intervalDomainL2LogisticIntegral params u t := by
+  have htwo : (1 : ℝ) < 2 := by norm_num
+  obtain ⟨Ceps, hCeps⟩ := hcross eps heps 2 htwo
+  refine ⟨Ceps, ?_⟩
+  intro t ht0 htT
+  rcases hfrontiers t ht0 htT with
+    ⟨hL2Time, hPDEIntegral, hIBP, hNeuR, hNeuL, hCrossControl⟩
+  have hbasic :=
+    intervalDomain_l2_half_energy_inequality_of_cross_control
+      (params := params) (t := t) (chiBound := chiBound)
+      (u := u) (v := v) hL2Time hPDEIntegral hIBP hNeuR hNeuL hCrossControl
+  have hCeps' :
+      intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t) ≤
+        eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ (2 + rho)) := by
+    simpa [intervalDomainLpWeightedGradientDissipation] using hCeps t ht0 htT
+  have hscaled :=
+    mul_le_mul_of_nonneg_left hCeps' hchiBound
+  linarith
+
 /-- A full Paper 2 energy inequality gives the reduced Moser step once the
 time-derivative plus lower-order contribution is nonnegative.
 

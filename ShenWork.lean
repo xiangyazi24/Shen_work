@@ -167,6 +167,8 @@ import ShenWork.Paper2.IntervalDomainConstExtendAdapter
 import ShenWork.Paper2.IntervalDomainF1Assembly
 import ShenWork.Paper2.IntervalDomainFinalWiring
 import ShenWork.Paper2.IntervalDomainMinPersistFinal
+import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
 import ShenWork.Paper2.IntervalPicardGateSolve
 import ShenWork.Paper2.IntervalDomainHresWiring

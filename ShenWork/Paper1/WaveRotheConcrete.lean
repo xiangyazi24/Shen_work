@@ -70,7 +70,7 @@ import ShenWork.Paper1.WaveRotheMaxPrincipleClosers
 import ShenWork.Paper1.WaveRotheC1
 import ShenWork.Paper1.WaveRotheTrap
 
-open Filter Topology Set MeasureTheory
+open Filter Topology Set
 
 set_option maxHeartbeats 1000000
 
@@ -624,34 +624,6 @@ theorem upperBarrier_expLeftRateData {κ M : ℝ}
       simp [upperBarrier]
     simp [ExpLeftRate, hU]
 
-/-! ## Paper-step analytic payload -/
-
-/-- The non-`W'' + cW'` part of the expanded paper wave operator. -/
-def paperStepNonlinearity (p : CMParams) (u W : ℝ → ℝ) (x : ℝ) : ℝ :=
-  let V := frozenElliptic p u
-  (-p.χ * p.m * (W x) ^ (p.m - 1) * deriv V x * deriv W x
-    + W x * (1 - p.χ * (W x) ^ (p.m - 1) * V x
-      - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1))))
-
-/-- The Green source for the paper implicit Euler step. -/
-def paperStepSource
-    (p : CMParams) (_c lam : ℝ) (u Z W : ℝ → ℝ) (x : ℝ) : ℝ :=
-  paperStepNonlinearity p u W x + lam * Z x
-
-/-- Green analytic data for one paper step. -/
-structure PaperStepAnalytic
-    (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
-  R : ℝ → ℝ
-  source_eq : R = paperStepSource p c lam u Z W
-  green_repr : W = fun x => greenConv c lam R x
-  conv_form : W = fun x => ∫ y, greenKernel c lam (x - y) * R y
-  R_cont : Continuous R
-  R_bound : ∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
-    Λ = 2 * (greenDelta c lam)⁻¹ * B
-  R_hi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x)
-  R_lo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)
-  R_int_trans : ∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t))
-
 /-- Per-step facts for the paper implicit orbit. -/
 structure PaperRotheStepFacts
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) : Prop where
@@ -666,14 +638,6 @@ structure PaperRotheStepFacts
   le_old : ∀ x, W x ≤ Z x
   anti : Antitone W
   paperSuper : ∀ x, paperWaveOperator p c u W x ≤ 0
-
-/-- Type-level paper step data.  This retains the Green analytic payload
-alongside the legacy step facts, so the Rothe orbit can expose both the old
-order/trap interface and the source data needed at the stationary limit. -/
-structure PaperRotheStepData
-    (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) : Type where
-  analytic : PaperStepAnalytic p c lam M κ Λ u Z W
-  facts : PaperRotheStepFacts p c lam M κ Λ u Z W
 
 /-- The base shape needed to keep producing paper iterates. -/
 structure PaperIterateBase (p : CMParams) (c κ M : ℝ)
@@ -747,24 +711,18 @@ theorem PaperRotheStepFacts.toBase
     ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩,
     h.left_rate, h.paperSuper⟩
 
-theorem PaperRotheStepData.toBase
-    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
-    (h : PaperRotheStepData p c lam M κ Λ u Z W) :
-    PaperIterateBase p c κ M u W :=
-  h.facts.toBase
-
 /-- Producer for the paper implicit orbit.  This is intentionally separate from
 `RotheStepProducer`, whose step equation is frozen. -/
 structure PaperRotheStepProducer
-    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type where
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop where
   hlam : 0 < lam
   basePaperSuper : ∀ x, paperWaveOperator p c u (upperBarrier κ M) x ≤ 0
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
       (∀ x, paperWaveOperator p c u Z x ≤ 0) →
-      Σ' W : ℝ → ℝ, PaperRotheStepData p c lam M κ Λ u Z W
+      ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
   produce_regular : ∀ Z : ℝ → ℝ, PaperIterateBase p c κ M u Z →
-      Σ' W : ℝ → ℝ, PaperRotheStepData p c lam M κ Λ u Z W
+      ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
 
 def paperRotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
     (hprod : PaperRotheStepProducer p c lam M κ Λ u)
@@ -776,7 +734,7 @@ def paperRotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
   | (k+1) =>
     let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
     let hex := hprod.produce_regular prev.1 prev.2
-    ⟨hex.1, hex.2.toBase⟩
+    ⟨Classical.choose hex, (Classical.choose_spec hex).toBase⟩
 
 /-- The concrete paper-step Rothe sequence. -/
 def rotheSeqOfPaper (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
@@ -795,39 +753,9 @@ theorem rotheSeqOfPaper_stepFacts
     PaperRotheStepFacts p c lam M κ Λ u
       (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k)
       (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1)) := by
-  change PaperRotheStepFacts p c lam M κ Λ u
-    (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
-    (hprod.produce_regular
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).2).1
-  exact
-    (hprod.produce_regular
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).2).2.facts
-
-def rotheSeqOfPaper_stepData
-    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
-    PaperRotheStepData p c lam M κ Λ u
-      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k)
-      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1)) := by
-  change PaperRotheStepData p c lam M κ Λ u
-    (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
-    (hprod.produce_regular
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).2).1
-  exact
-    (hprod.produce_regular
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
-      (paperRotheStep p c lam M κ Λ u hprod hκ hM k).2).2
-
-def rotheSeqOfPaper_stepAnalytic
-    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
-    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
-    PaperStepAnalytic p c lam M κ Λ u
-      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k)
-      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1)) :=
-  (rotheSeqOfPaper_stepData hprod hκ hM k).analytic
+  let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
+  have hex := hprod.produce_regular prev.1 prev.2
+  exact Classical.choose_spec hex
 
 theorem rotheSeqOfPaper_base
     (hprod : PaperRotheStepProducer p c lam M κ Λ u)

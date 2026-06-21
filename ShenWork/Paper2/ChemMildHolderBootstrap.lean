@@ -35,7 +35,7 @@
   (the genuine domain of `u`); the zero-extension `intervalDomainLift (u t)` is NOT
   globally Hölder on `ℝ` since `u` is strictly positive at the endpoints (`hpos`).
 
-  This file is intended to stay free of proof-gap placeholders and custom trust hooks.
+  No `sorry`/`admit`/custom `axiom`/`native_decide`.
 -/
 import ShenWork.Paper2.ChemMildHolder
 import ShenWork.Paper2.IntervalDuhamelIntegrability
@@ -391,7 +391,7 @@ theorem chemFluxLifted_uncurry_measurable {p : CM2Params}
 /-- Uniform order-box bound on the chemotaxis source (re-derived from the private
 `chemFluxLifted_bound_of_ball`): `|Q(w)(y)| ≤ M·√(∑ gradWeightₖ²)·2νMᵞ`, using the
 resolver positivity `(1+R)^β ≥ 1` and the L² gradient bound `|∂ₓR| ≤ C_RG`. -/
-theorem chemFluxLifted_bound_of_ball'
+private theorem chemFluxLifted_bound_of_ball'
     (p : CM2Params) {M : ℝ} (hM_nonneg : 0 ≤ M)
     {w : intervalDomainPoint → ℝ}
     (hw_bound : ∀ x, |w x| ≤ M)

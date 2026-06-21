@@ -8,6 +8,7 @@
 -/
 import ShenWork.Paper3.StatementAssembly
 import ShenWork.Paper3.IntervalDomainStabilityChain
+import ShenWork.Paper3.IntervalDomainSectorialNonlinearBridges
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
@@ -285,6 +286,73 @@ def IntervalDomainPaper3Theorem21PartTargets
     Theorem_2_1_part3 intervalDomain p ∧
     Theorem_2_1_part4 intervalDomain p
       (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Single-target wrapper for concrete interval-domain Paper3 Theorem 2.1
+from the persistence package alone.
+
+This is the Theorem 2.1-specific entry point: it does not carry the sectorial
+mainline existence package, and therefore does not require the local-stability
+orbit comparison or small-data Cauchy existence fields used by Theorem 2.2. -/
+theorem intervalDomain_paper3_Theorem_2_1_of_persistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hpersist : IntervalDomainSectorialTheorem21Persistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+    p M0 uBar vLower
+    hpersist.part1 hpersist.part2 hpersist.part3 hpersist.part4
+
+/-- Instance-facing concrete interval-domain Paper3 Theorem 2.1 wrapper from
+the persistence package alone. -/
+theorem intervalDomain_paper3_Theorem_2_1_of_persistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hpersist : Fact (IntervalDomainSectorialTheorem21Persistence p uBar)] :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_Theorem_2_1_of_persistence
+    p M0 uBar vLower hpersist.out
+
+/-- Assemble concrete interval-domain Paper3 Theorem 2.1 and all four part
+statements from the persistence package alone. -/
+theorem intervalDomain_paper3_Theorem_2_1_partTargets_of_persistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hpersist : IntervalDomainSectorialTheorem21Persistence p uBar) :
+    IntervalDomainPaper3Theorem21PartTargets p M0 uBar vLower := by
+  have h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_paper3_Theorem_2_1_of_persistence
+      p M0 uBar vLower hpersist
+  exact ⟨h21, h21.1, h21.2.1, h21.2.2.1, h21.2.2.2⟩
+
+/-- Instance-facing concrete interval-domain Paper3 Theorem 2.1 part-target
+bundle from the persistence package alone. -/
+theorem intervalDomain_paper3_Theorem_2_1_partTargets_of_persistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hpersist : Fact (IntervalDomainSectorialTheorem21Persistence p uBar)] :
+    IntervalDomainPaper3Theorem21PartTargets p M0 uBar vLower :=
+  intervalDomain_paper3_Theorem_2_1_partTargets_of_persistence
+    p M0 uBar vLower hpersist.out
+
+/-- Sectorial-constants interval-domain Paper3 Theorem 2.1 from the
+persistence package alone. -/
+theorem intervalDomain_paper3_Theorem_2_1_sectorial_of_persistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hpersist : IntervalDomainSectorialTheorem21Persistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_sectorialMainline_of_persistence
+    p M0 uBar vLower hpersist
+
+/-- Instance-facing sectorial-constants interval-domain Paper3 Theorem 2.1
+from the persistence package alone. -/
+theorem intervalDomain_paper3_Theorem_2_1_sectorial_of_persistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hpersist : Fact (IntervalDomainSectorialTheorem21Persistence p uBar)] :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_Theorem_2_1_sectorial_of_persistence
+    p M0 uBar vLower hpersist.out
 
 /-- Single-target wrapper for the concrete interval-domain Paper3 Theorem
 2.1 statement from the core existence bundle. -/

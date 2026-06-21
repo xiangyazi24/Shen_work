@@ -19,13 +19,14 @@ noncomputable section
 
 namespace ShenWork.Paper2.BFormPositiveDatumNegPart
 
-/-- The B-form negative-part route's `hpde_u` field is supplied by the direct
-frontier.  The global B-form representation is reconstructed there from the
-carried regularity data. -/
-theorem bform_negpart_hpde_u_of_frontier
+/-- The B-form negative-part route's `hpde_u` field is exactly the banked
+unconditional B-form interior PDE.  The `PaperPositiveInitialDatum` and spectral
+inputs are carried by `BFormDirectClassical.BFormBankedInputs`; no PDE identity
+is reproved here. -/
+theorem bform_negpart_hpde_u_of_bank
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
-    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB) :
+    (B : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB) :
     ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.inside →
       intervalDomain.timeDeriv (conjugatePicardLimit p u₀ DB.T) t x =
         intervalDomain.laplacian
@@ -37,7 +38,7 @@ theorem bform_negpart_hpde_u_of_frontier
           + (conjugatePicardLimit p u₀ DB.T) t x
             * (p.a - p.b *
               ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.α) :=
-  F.hpde_u
+  ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs.hpde_u B
 
 /-- Strict positivity of the full Neumann heat semigroup for nonnegative data
 that is positive somewhere on `[0,1]`.  This exposes the kernel-positivity
@@ -188,7 +189,7 @@ def bform_negpart_route_of_lower_barrier
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀} {C : ℝ}
     (datum : PositiveInitialDatum intervalDomain u₀)
-    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB)
+    (B : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB)
     (hnegativePart_zero :
       ∀ t, 0 < t → t ≤ DB.T → ∀ x : intervalDomainPoint,
         negativePart (conjugatePicardLimit p u₀ DB.T t x) = 0)
@@ -209,6 +210,6 @@ def bform_negpart_route_of_lower_barrier
   strictPos :=
     bform_strictPos_of_semigroup_lower_barrier
       hLift_cont hLift_nonneg hLift_pos_somewhere hbarrier
-  hpde_u := bform_negpart_hpde_u_of_frontier F
+  hpde_u := bform_negpart_hpde_u_of_bank B
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart

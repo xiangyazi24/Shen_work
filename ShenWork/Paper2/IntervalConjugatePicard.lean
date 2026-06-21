@@ -601,19 +601,8 @@ theorem intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral
   exact ShenWork.IntervalBFormSpectral.intervalConjugateMildSolution_pde_u_of_spectral
     p hB Hpde
 
-/-- Direct unfolding of the B-form Picard fixed point for the actual
-`conjugatePicardLimit` associated to the Picard data.  This is the
-source-form/B-kernel Duhamel identity, not the older gradient-kernel map. -/
-theorem intervalConjugateMildSolution_of_conjugatePicardLimit
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (D : ConjugateMildExistenceData p u₀) :
-    IntervalConjugateMildSolution p D.T u₀
-      (conjugatePicardLimit p u₀ D.T) :=
-  (conjugateMildSolutionData_of_data D).hmild
-
 #print axioms intervalConjugateMildSolution_of_data
 #print axioms intervalConjugateMildSolution_exists_from_data
 #print axioms intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral
-#print axioms intervalConjugateMildSolution_of_conjugatePicardLimit
 
 end ShenWork.IntervalConjugatePicard

@@ -27,11 +27,13 @@ Integral monotonicity (`integral_mono_on`) delivers the claim; the right-hand
 integrand is interval-integrable because it agrees a.e. with the continuous
 `derivWithin` representative.
 
-No `sorry`/`admit`/custom `axiom`.
+No proof placeholders or custom assumptions.
 -/
 
 import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
+import ShenWork.Paper2.IntervalDomainCrossDiffusionBootstrap
+import ShenWork.Paper2.IntervalDomainEnergyStep
 
 open MeasureTheory
 open scoped Topology
@@ -156,7 +158,7 @@ theorem intervalDomain_l2_crossControl_of_regularity
     refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
     intro y hy
     simp only [Set.mem_setOf_eq] at hy
-    push_neg at hy
+    push Not at hy
     obtain ⟨hyIoc, hne⟩ := hy
     simp only [Set.mem_singleton_iff]
     by_contra hy1
@@ -319,11 +321,11 @@ theorem intervalDomain_l2_half_energy_inequality_unconditional
   -- genuine endpoint Neumann values, as closed-`Icc` `derivWithin` zeros.
   have hset : (Set.Ici (0:ℝ)) =ᶠ[𝓝 (0:ℝ)] (Set.Icc (0:ℝ) 1) := by
     filter_upwards [Iio_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx
-    simp only [Set.mem_Icc, eq_iff_iff]
+    simp only [eq_iff_iff]
     exact ⟨fun h0 => ⟨h0, le_of_lt hx⟩, fun h => h.1⟩
   have hset1 : (Set.Iic (1:ℝ)) =ᶠ[𝓝 (1:ℝ)] (Set.Icc (0:ℝ) 1) := by
     filter_upwards [Ioi_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx
-    simp only [Set.mem_Icc, eq_iff_iff]
+    simp only [eq_iff_iff]
     exact ⟨fun h1 => ⟨le_of_lt hx, h1⟩, fun h => h.2⟩
   have hdw0 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) 0 = 0 := by
     have hN := (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1
@@ -375,5 +377,143 @@ theorem intervalDomain_l2_half_energy_inequality_unconditional
     (intervalDomain_l2_half_energy_hPDEIntegral_of_regularity hsol ht0 htT)
     hcont hf1_cont hf_deriv hf_deriv2 hf1_int hf2_int hbdryR hbdryL
     (intervalDomain_l2_crossControl_of_regularity hsol ht0 htT)
+
+/-- Uniform-in-time version of
+`intervalDomain_l2_half_energy_inequality_unconditional`.  The proof exposes
+the single `Ceps` already supplied by `CrossDiffusionBootstrapEstimate`, while
+the regularity, Neumann, and cross-control frontiers are generated pointwise
+from the classical solution exactly as in the pointwise theorem. -/
+theorem intervalDomain_l2_half_energy_inequality_unconditional_uniformCeps
+    {params : CM2Params} {T rho eps : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v) :
+    ∃ Ceps, ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        |params.χ₀| *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+          intervalDomainL2LogisticIntegral params u t := by
+  refine
+    intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers_uniformCeps
+      (params := params) (T := T) (rho := rho) (eps := eps)
+      (chiBound := |params.χ₀|) (u := u) (v := v)
+      heps (abs_nonneg _) hcross ?_
+  intro t ht0 htT
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hCu : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 t ht).1.1
+  have hset : (Set.Ici (0:ℝ)) =ᶠ[𝓝 (0:ℝ)] (Set.Icc (0:ℝ) 1) := by
+    filter_upwards [Iio_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx
+    simp only [eq_iff_iff]
+    exact ⟨fun h0 => ⟨h0, le_of_lt hx⟩, fun h => h.1⟩
+  have hset1 : (Set.Iic (1:ℝ)) =ᶠ[𝓝 (1:ℝ)] (Set.Icc (0:ℝ) 1) := by
+    filter_upwards [Ioi_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx
+    simp only [eq_iff_iff]
+    exact ⟨fun h1 => ⟨le_of_lt hx, h1⟩, fun h => h.2⟩
+  have hdw0 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) 0 = 0 := by
+    have hN := (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1
+    have hNeq : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint
+        = derivWithin (intervalDomainLift (u t)) (Set.Ici (0:ℝ)) 0 := by
+      show intervalDomainNormalDeriv (u t) intervalDomainLeftEndpoint = _
+      unfold intervalDomainNormalDeriv
+      rw [if_pos (show (intervalDomainLeftEndpoint : intervalDomainPoint).1 = 0 from rfl)]
+    rw [hNeq, derivWithin_congr_set hset] at hN
+    exact hN
+  have hdw1 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) 1 = 0 := by
+    have hN := (hsol.neumann ht0 htT intervalDomain_rightEndpoint_mem_boundary).1
+    have hNeq : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint
+        = derivWithin (intervalDomainLift (u t)) (Set.Iic (1:ℝ)) 1 := by
+      show intervalDomainNormalDeriv (u t) intervalDomainRightEndpoint = _
+      unfold intervalDomainNormalDeriv
+      rw [if_neg (show ¬ (intervalDomainRightEndpoint : intervalDomainPoint).1 = 0 by
+            norm_num [intervalDomainRightEndpoint]),
+        if_pos (show (intervalDomainRightEndpoint : intervalDomainPoint).1 = 1 from rfl)]
+    rw [hNeq, derivWithin_congr_set hset1] at hN
+    exact hN
+  have hcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc 0 1) := hCu.continuousOn
+  have hf1_cont : ContinuousOn (deriv (intervalDomainLift (u t))) (Set.Icc 0 1) :=
+    deriv_intervalDomainLift_continuousOn_Icc_of_regularity hCu hdw0 hdw1
+  have hf_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (intervalDomainLift (u t))
+        (deriv (intervalDomainLift (u t)) x) (Set.Ioi x) x := fun x hx =>
+    (hasDerivAt_of_contDiffOn_two_interior hCu hx).hasDerivWithinAt
+  have hf_deriv2 : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (deriv (intervalDomainLift (u t)))
+        (deriv (deriv (intervalDomainLift (u t))) x) (Set.Ioi x) x := fun x hx =>
+    (hasDerivAt_deriv_of_contDiffOn_two_interior hCu hx).hasDerivWithinAt
+  have hf1_int : IntervalIntegrable (deriv (intervalDomainLift (u t))) volume 0 1 :=
+    intervalIntegrable_deriv_of_contDiffOn_two hCu
+  have hf2_int : IntervalIntegrable (deriv (deriv (intervalDomainLift (u t)))) volume 0 1 :=
+    intervalIntegrable_deriv_deriv_of_contDiffOn_two hCu
+  have hbdryR : deriv (intervalDomainLift (u t)) 1 =
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint := by
+    rw [deriv_intervalDomainLift_eq_zero_at_one,
+      (hsol.neumann ht0 htT intervalDomain_rightEndpoint_mem_boundary).1]
+  have hbdryL : deriv (intervalDomainLift (u t)) 0 =
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint := by
+    rw [deriv_intervalDomainLift_eq_zero_at_zero,
+      (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1]
+  have hIBP :
+      intervalDomainL2DiffusionIntegral u t =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainL2DiffusionDissipation u t :=
+    intervalDomain_spatial_integrationByParts_identity (u t) (u t)
+      hcont hf1_cont hf_deriv hf_deriv2 hf1_int hf2_int hbdryR hbdryL
+  exact
+    ⟨intervalDomain_l2_half_energy_hL2Time hsol ht,
+      intervalDomain_l2_half_energy_hPDEIntegral_of_regularity hsol ht0 htT,
+      hIBP,
+      (hsol.neumann ht0 htT intervalDomain_rightEndpoint_mem_boundary).1,
+      (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1,
+      intervalDomain_l2_crossControl_of_regularity hsol ht0 htT⟩
+
+/-- Same L² half-energy inequality with the cross-diffusion bootstrap discharged
+from the elliptic resolver equation.  The resulting bootstrap exponent is
+`rho = 2γ`. -/
+theorem intervalDomain_l2_half_energy_inequality_unconditional_crossDiffusion
+    {params : CM2Params} {T eps t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps)
+    (ht0 : 0 < t) (htT : t < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ∃ Ceps,
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        |params.χ₀| *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + 2 * params.γ))) +
+          intervalDomainL2LogisticIntegral params u t :=
+  intervalDomain_l2_half_energy_inequality_unconditional
+    (params := params) (T := T) (rho := 2 * params.γ)
+    (eps := eps) (t := t) (u := u) (v := v)
+    heps ht0 htT hsol
+    (intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol)
+
+/-- Uniform-in-time L² half-energy inequality with the cross-diffusion
+bootstrap discharged by the elliptic resolver equation.  The constant `Ceps`
+is selected once for the whole finite classical branch. -/
+theorem intervalDomain_l2_half_energy_inequality_unconditional_crossDiffusion_uniformCeps
+    {params : CM2Params} {T eps : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ∃ Ceps, ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        |params.χ₀| *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + 2 * params.γ))) +
+          intervalDomainL2LogisticIntegral params u t :=
+  intervalDomain_l2_half_energy_inequality_unconditional_uniformCeps
+    (params := params) (T := T) (rho := 2 * params.γ)
+    (eps := eps) (u := u) (v := v)
+    heps hsol
+    (intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol)
 
 end ShenWork.Paper2

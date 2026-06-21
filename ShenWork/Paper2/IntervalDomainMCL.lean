@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 import ShenWork.Paper2.IntervalDomainStructuredMoserPower
+import ShenWork.PDE.IntervalDomainAPrioriGlobal
 
 open MeasureTheory
 open ShenWork.IntervalDomain
@@ -12,10 +13,14 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainMCL
 
-/-- General unit-interval GN/Young power estimate feeding the relative Moser
-interpolation field.  This is deliberately stated for an arbitrary profile
-`f`, not as the Moser-closure field for a particular solution. -/
-def UnitIntervalPowerGNYoungForMoser : Prop :=
+/-- Legacy power estimate previously used to feed the relative Moser
+interpolation field.
+
+This statement is false for constant functions: the left side scales like
+`A^(p+rho)` while the lower-order term scales only like `A^p`.  It is kept
+under an explicit `Old` name for the older conditional route and for the
+counterexample module. -/
+def OldUnitIntervalPowerGNYoungForMoser : Prop :=
   ∀ rho p eps : ℝ, 0 < rho → 0 < p → 0 < eps →
     ∃ Ceps, 0 ≤ Ceps ∧
       ∀ f : intervalDomain.Point → ℝ,
@@ -26,13 +31,58 @@ def UnitIntervalPowerGNYoungForMoser : Prop :=
               (intervalDomain.gradNorm (fun y => f y ^ (p / 2)) x) ^ 2) +
             Ceps * intervalDomain.integral (fun x => f x ^ p)
 
+/-- The proved classical-slice unit-interval GN/Agmon package.
+
+This is the satisfiable replacement for the false arbitrary-power Moser
+frontier above.  It is intentionally slice-level: the caller supplies
+nonnegativity, boundedness, integrability, and the classical derivative data
+needed by `agmon_inequality_interval`. -/
+def UnitIntervalPowerGNYoungForMoser : Prop :=
+  ∀ pExp : ℝ, 1 ≤ pExp →
+    ∀ f : intervalDomain.Point → ℝ,
+      (∀ x : intervalDomain.Point, 0 ≤ f x) →
+      BddAbove (Set.range fun x : intervalDomain.Point => |f x|) →
+      IntervalIntegrable (intervalDomainLift f) MeasureTheory.volume 0 1 →
+      IntervalIntegrable
+        (fun y : ℝ => intervalDomainLift
+          (fun x : intervalDomain.Point => (f x) ^ pExp) y)
+        MeasureTheory.volume 0 1 →
+      ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
+      ∀ f' : ℝ → ℝ,
+        (∀ x ∈ Set.Icc (0 : ℝ) 1, HasDerivAt (intervalDomainLift f) (f' x) x) →
+        IntervalIntegrable f' MeasureTheory.volume 0 1 →
+        IntervalIntegrable (fun y : ℝ => (intervalDomainLift f y) ^ 2)
+          MeasureTheory.volume 0 1 →
+        IntervalIntegrable (fun y : ℝ => f' y ^ 2) MeasureTheory.volume 0 1 →
+        IntervalIntegrable (fun y : ℝ => intervalDomainLift f y * f' y)
+          MeasureTheory.volume 0 1 →
+          intervalDomain.integral (fun x : intervalDomain.Point => (f x) ^ pExp) ≤
+              (intervalDomainSupNorm f) ^ (pExp - 1) * intervalDomain.integral f ∧
+            ∀ x ∈ Set.Icc (0 : ℝ) 1,
+              (intervalDomainLift f x) ^ 2 ≤
+                (2 / (1 : ℝ)) *
+                    (∫ y in (0 : ℝ)..1, (intervalDomainLift f y) ^ 2) +
+                  2 * Real.sqrt
+                      (∫ y in (0 : ℝ)..1, (intervalDomainLift f y) ^ 2) *
+                    Real.sqrt (∫ y in (0 : ℝ)..1, f' y ^ 2)
+
+/-- The classical-slice GN/Agmon package is proved from the interval-domain
+slice estimate and `agmon_inequality_interval`. -/
+theorem unitIntervalPowerGNYoungForMoser_proved :
+    UnitIntervalPowerGNYoungForMoser := by
+  intro pExp hpExp f hf_nonneg hf_bdd hf_int hfp_int hf_cont f'
+    hf_deriv hf'_int hf_sq_int hf'_sq_int hff'_int
+  exact ShenWork.IntervalDomainExistence.intervalDomain_Lp_interpolation_classicalSlice
+    (pExp := pExp) hpExp (f := f) hf_nonneg hf_bdd hf_int hfp_int
+    hf_cont (f' := f') hf_deriv hf'_int hf_sq_int hf'_sq_int hff'_int
+
 theorem relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hGN : UnitIntervalPowerGNYoungForMoser) :
+    (hGN : OldUnitIntervalPowerGNYoungForMoser) :
     RelativeMoserInterpolationBefore intervalDomain u T rho p0 := by
   intro p hp eps heps
   have hrho := AbstractLpBootstrapHypothesis.rho_pos hboot
@@ -111,7 +161,7 @@ theorem Proposition_2_5_intervalDomain_of_MCL_frontiers
           pExp →
         LpPowerBoundedBefore intervalDomain pExp T u →
           MoserDissipationDropBefore intervalDomain u T 1 pExp)
-    (hGN : UnitIntervalPowerGNYoungForMoser)
+    (hGN : OldUnitIntervalPowerGNYoungForMoser)
     (hEndpoint :
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
