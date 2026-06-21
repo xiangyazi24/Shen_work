@@ -52,12 +52,17 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
 - ✅ logistic L1 mass bound M1 PROVEN for intervalDomain: mass-derivative identity (∫Δu=0,∫chemDiv=0 via real
   FTC+Neumann) + Jensen + HasDerivAt first-crossing → intervalDomain_Proposition_2_4 (in-clone, axiom-clean)
 - ✅ Agmon inequality (1D L∞) + L^p interpolation for the classical slice PROVEN (in-clone, FTC+Cauchy-Schwarz)
-- 🟡 **l2BootstrapSeed** — last step (in-clone): Young-split the proven L^p interpolation → spatial absorption
-  Case B (M1 base) → absorbing inequality → Neumann-Poincaré + scalar first-crossing → uniform L² →
-  LpPowerBoundedBefore 2. Antecedent IntervalDomainBoundednessHyp=(γ<1∨2γ<α)∧0<b∧0<γ∧γN<2 + witness.
-  P3 counterexample recorded: small-data-around-0 global bootstrap is FALSE (a>0 ⟹ 0 unstable).
-- ⬜ **driftBoundFromMass** — the Moser L^p ladder. Honest stall: L1 mass can't control u^γ for γ>1; needs an
-  L^p before-bound. The new uniform-L² (from l2BootstrapSeed) seeds the iteration L²→L^p→L^∞. Next after l2BootstrapSeed.
+- ✅ **l2BootstrapSeed DISCHARGED + WIRED** (commit 2c58ff5, opus audit GENUINE-WIRED-REDUCTION):
+  the headline `intervalDomain_sectorialMainline_unconditionalTarget_of_aprioriFacts` no longer carries
+  the `aprioriBound` bundle — it is CONSTRUCTED via `of_l2RouteData ∘ to_routeData ∘ to_seedData`
+  (mass→spatial→absorbing→integrated→L2power→bootstrap), both route fns called on the live headline path
+  (not orphaned). 5 atoms discharged: aprioriBound, massComparison (=Prop_2_4), b_pos, l2EnergyInequality,
+  l2BootstrapSeed. Antecedent IntervalDomainBoundednessHyp=(γ<1∨2γ<α)∧0<b∧0<γ∧γN<2 satisfiable (witness).
+  Fresh-cache full ShenWork compile pass (3558 jobs), axiom-clean.
+- 🟡 **Moser L^p→L^∞ ladder = the genuine P3 residual** (4 carried atoms, all ∀-quantified analytic
+  implications, file shows explicit counter-constructions so they are real open obligations not False):
+  driftBoundFromMass, l2SeedRegularity, allLpBoundFromBootstrap (=Corollary_2_1), endpointBoundFromLp
+  (=Proposition_2_5). Uniform-L² (now wired) seeds L²→L^p→L^∞. Codex P3 + cron3 (1D Moser recursion) rolling.
 
 ---
 
