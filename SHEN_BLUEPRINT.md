@@ -58,8 +58,10 @@ groups — not "one Moser ladder away".
   then wire {l2SeedReg, RelativeMoserInterp, reshaped-dissipation, root-tower} into IntervalDomainMoserActualAtoms
   → switch IntervalDomainMoserLadderHeadline to consume it → DROP bloated Corollary21FrontierData/Prop25MoserFrontiers.
 - 🟢 IntervalDomainMoserActualAtoms.lean genuine-partial-reduction (audit) but ORPHAN — needs wiring.
-- ⚠️ regime: IntervalDomainBoundednessHyp has redundant 2γ<α conjunct ⇒ covers only damping-dominant
-  regime (not full sharp OR-threshold). ⚠️ driftBoundFromMass needs L∞ (from ladder), not mass (1<γ<2 spike).
+- ⚠️ regime SHARPENED (cron2 Moser-energy full): the clean v_xx IBP route needs only **α>γ**, NOT 2γ<α
+  (2γ<α appears only in cruder v_x estimates). So IntervalDomainBoundednessHyp's 2γ<α is OVER-STRONG —
+  the headline regime can be STRENGTHENED to α>γ. ⚠️ driftBoundFromMass needs L∞ (from ladder), not mass (1<γ<2 spike).
+  Energy ineq constants explicit: c0=2, σ=1, K=a₊+C_abs, C_abs=(1-r)r^q(2/b)^q(χν)^{1+q}, r=γ/α, q=γ/(α-γ).
 
 ### (b) Theorem 2.2 stability — Theorem22LocalFrontiers
 - 🔴 OPEN, design staged (P3_STABILITY_FINDINGS): per-mode spectral gap λ_k+αa−χ₀νγu*^{m+γ-1}λ_k/(μ+λ_k)≥δ
