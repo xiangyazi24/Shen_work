@@ -1226,6 +1226,182 @@ def paperC2CompactConvergence_of_uniformBounds
     bdd_pow_m_sub_one := hbounds.bdd_pow_m_sub_one
     bdd_reaction_bracket := hbounds.bdd_reaction_bracket }
 
+/-- C³ bootstrap data closes the `C²` compact-convergence package once the
+zeroth-order Rothe convergence and the step Green packages are known.  The
+first derivative is obtained from the uniform second-derivative bound; the
+second derivative is obtained by applying the same interpolation lemma to the
+first derivatives, using the retained uniform third-derivative bounds. -/
+theorem paperC2CompactConvergence_of_c3BootstrapData
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hLU : LocallyUniformConverges z U)
+    (hz_nonneg : ∀ k x, 0 ≤ z k x)
+    (hz_le_M : ∀ k x, z k x ≤ M)
+    (hstep :
+      ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hc3 : PaperC3BootstrapData U z) :
+    PaperC2CompactConvergence p U z := by
+  have hM0 : 0 ≤ M := hM.le
+  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hU_nonneg : ∀ x, 0 ≤ U x := hbare.nonneg
+  have hU_le_M : ∀ x, U x ≤ M := hbare.le_M
+  have hU_abs : ∀ x, |U x| ≤ M := by
+    intro x
+    rw [abs_of_nonneg (hU_nonneg x)]
+    exact hU_le_M x
+  have hz_abs : ∀ k x, |z k x| ≤ M := by
+    intro k x
+    rw [abs_of_nonneg (hz_nonneg k x)]
+    exact hz_le_M k x
+  have hshift :
+      LocallyUniformConverges (fun k => z (k + 1)) U :=
+    hLU.comp_strictMono
+      (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
+  have hC2_nonneg : 0 ≤ paperStepC2Bound c lam M Λ :=
+    paperStepC2Bound_nonneg (c := c) (lam := lam) hlam hM0 hΛ
+  obtain ⟨CU1, hCU1_nonneg, hCU1⟩ := hc3.limit_deriv_bound
+  obtain ⟨CU2, hCU2_nonneg, hCU2⟩ := hc3.limit_second_bound
+  obtain ⟨C3z, hC3z_nonneg, hC3z⟩ := hc3.step_third_bound
+  obtain ⟨C3U, hC3U_nonneg, hC3U⟩ := hc3.limit_third_bound
+  have hderiv1_uniform_lipschitz :
+      UniformLipschitzOnCompacts
+        (fun k x => deriv (z (k + 1)) x) :=
+    UniformLipschitzOnCompacts.of_hasDerivAt_bound hC2_nonneg
+      (fun k x => paperStep_hasDerivAt_deriv (hstep k) x)
+      (fun k x =>
+        paperStep_second_deriv_le
+          (c := c) (lam := lam) hlam hM0 hΛ
+          (fun y => hz_abs (k + 1) y) (hstep k) x)
+  have hderiv1_limit_lipschitz :
+      LipschitzOnCompacts (fun x => deriv U x) :=
+    LipschitzOnCompacts.of_hasDerivAt_bound hCU2_nonneg
+      hc3.limit_hasDeriv_deriv hCU2
+  have hderiv1 :
+      LocallyUniformConverges
+        (fun k x => deriv (z (k + 1)) x)
+        (fun x => deriv U x) :=
+    hshift.deriv_of_hasDerivAt_of_residual_lipschitz
+      (fun k x => paperStep_hasDerivAt_value (hstep k) x)
+      hc3.limit_hasDeriv_value
+      (UniformResidualLipschitzOnCompacts.of_pair
+        hderiv1_uniform_lipschitz hderiv1_limit_lipschitz)
+  have hderiv2_uniform_lipschitz :
+      UniformLipschitzOnCompacts
+        (fun k x => iteratedDeriv 2 (z (k + 1)) x) :=
+    UniformLipschitzOnCompacts.of_hasDerivAt_bound hC3z_nonneg
+      hc3.step_hasDeriv_deriv2 hC3z
+  have hderiv2_limit_lipschitz :
+      LipschitzOnCompacts (fun x => iteratedDeriv 2 U x) :=
+    LipschitzOnCompacts.of_hasDerivAt_bound hC3U_nonneg
+      hc3.limit_hasDeriv_deriv2 hC3U
+  have hderiv2 :
+      LocallyUniformConverges
+        (fun k x => iteratedDeriv 2 (z (k + 1)) x)
+        (fun x => iteratedDeriv 2 U x) :=
+    hderiv1.deriv_of_hasDerivAt_of_residual_lipschitz
+      (fun k x => paperStep_hasDerivAt_deriv (hstep k) x)
+      hc3.limit_hasDeriv_deriv
+      (UniformResidualLipschitzOnCompacts.of_pair
+        hderiv2_uniform_lipschitz hderiv2_limit_lipschitz)
+  have hpow_m_sub_one :
+      LocallyUniformConverges
+        (fun k x => (z (k + 1) x) ^ (p.m - 1))
+        (fun x => (U x) ^ (p.m - 1)) :=
+    hshift.rpow_of_nonneg_le (by linarith [p.hm]) hM0
+      (fun k x => hz_nonneg (k + 1) x)
+      (fun k x => hz_le_M (k + 1) x)
+      hU_nonneg hU_le_M
+  have hpow_alpha :
+      LocallyUniformConverges
+        (fun k x => (z (k + 1) x) ^ p.α)
+        (fun x => (U x) ^ p.α) :=
+    hshift.rpow_of_nonneg_le (by linarith [p.hα]) hM0
+      (fun k x => hz_nonneg (k + 1) x)
+      (fun k x => hz_le_M (k + 1) x)
+      hU_nonneg hU_le_M
+  have hpow_m_gamma_sub_one :
+      LocallyUniformConverges
+        (fun k x => (z (k + 1) x) ^ (p.m + p.γ - 1))
+        (fun x => (U x) ^ (p.m + p.γ - 1)) :=
+    hshift.rpow_of_nonneg_le (by linarith [p.hm, p.hγ]) hM0
+      (fun k x => hz_nonneg (k + 1) x)
+      (fun k x => hz_le_M (k + 1) x)
+      hU_nonneg hU_le_M
+  have hbdd_U : LocallyBoundedOnCompacts U :=
+    LocallyBoundedOnCompacts.of_global_bound hM0 hU_abs
+  have hbdd_derivU : LocallyBoundedOnCompacts (fun x => deriv U x) :=
+    LocallyBoundedOnCompacts.of_global_bound hCU1_nonneg hCU1
+  have hMγ_nonneg : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM0 p.γ
+  have hbdd_V : LocallyBoundedOnCompacts (frozenElliptic p U) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMγ_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (frozenElliptic_nonneg p hU_nonneg x)]
+    exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hbare.trap x
+  have hbdd_derivV :
+      LocallyBoundedOnCompacts (fun x => deriv (frozenElliptic p U) x) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMγ_nonneg ?_
+    intro x
+    calc
+      |deriv (frozenElliptic p U) x| ≤ frozenElliptic p U x :=
+        frozenElliptic_deriv_abs_le p hbare.trap.cunif_bdd hU_nonneg x
+      _ ≤ M ^ p.γ :=
+        frozenElliptic_le_rpow_of_inWaveTrapSet p hM hbare.trap x
+  have hMm1_nonneg : 0 ≤ M ^ (p.m - 1) :=
+    Real.rpow_nonneg hM0 (p.m - 1)
+  have hbdd_pow_m_sub_one :
+      LocallyBoundedOnCompacts (fun x => (U x) ^ (p.m - 1)) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMm1_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg x) (p.m - 1))]
+    exact Real.rpow_le_rpow (hU_nonneg x) (hU_le_M x)
+      (by linarith [p.hm])
+  have hMα_nonneg : 0 ≤ M ^ p.α := Real.rpow_nonneg hM0 p.α
+  have hbdd_pow_alpha :
+      LocallyBoundedOnCompacts (fun x => (U x) ^ p.α) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMα_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg x) p.α)]
+    exact Real.rpow_le_rpow (hU_nonneg x) (hU_le_M x)
+      (by linarith [p.hα])
+  have hMmg_nonneg : 0 ≤ M ^ (p.m + p.γ - 1) :=
+    Real.rpow_nonneg hM0 (p.m + p.γ - 1)
+  have hbdd_pow_m_gamma_sub_one :
+      LocallyBoundedOnCompacts (fun x => (U x) ^ (p.m + p.γ - 1)) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMmg_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg x) (p.m + p.γ - 1))]
+    exact Real.rpow_le_rpow (hU_nonneg x) (hU_le_M x)
+      (by linarith [p.hm, p.hγ])
+  have hbdd_reaction_bracket :
+      LocallyBoundedOnCompacts (paperWaveReactionBracket p U U) := by
+    have hpowV := hbdd_pow_m_sub_one.mul hbdd_V
+    have hleft := (hpowV.const_mul p.χ).const_sub 1
+    have hright := hbdd_pow_alpha.sub
+      (hbdd_pow_m_gamma_sub_one.const_mul p.χ)
+    have hbr := hleft.sub hright
+    simpa [paperWaveReactionBracket, mul_assoc] using hbr
+  exact paperC2CompactConvergence_of_uniformBounds hLU
+    { hasDeriv_value := fun k x =>
+        paperStep_hasDerivAt_value (hstep k) x
+      hasDeriv_U := hc3.limit_hasDeriv_value
+      hasDeriv_deriv := fun k x =>
+        paperStep_hasDerivAt_deriv (hstep k) x
+      hasDeriv_deriv_U := hc3.limit_hasDeriv_deriv
+      deriv1_uniform_lipschitz := hderiv1_uniform_lipschitz
+      deriv1_limit_lipschitz := hderiv1_limit_lipschitz
+      deriv2_convergence := hderiv2
+      pow_m_sub_one := hpow_m_sub_one
+      pow_alpha := hpow_alpha
+      pow_m_gamma_sub_one := hpow_m_gamma_sub_one
+      bdd_U := hbdd_U
+      bdd_derivU := hbdd_derivU
+      bdd_V := hbdd_V
+      bdd_derivV := hbdd_derivV
+      bdd_pow_m_sub_one := hbdd_pow_m_sub_one
+      bdd_reaction_bracket := hbdd_reaction_bracket }
+
 structure PaperWaveOperatorTermConvergence
     (p : CMParams) (c : ℝ) (U : ℝ → ℝ) (z : ℕ → ℝ → ℝ) : Prop where
   d2 :
@@ -1418,6 +1594,46 @@ theorem paperStepSource_locallyUniform
 #print axioms PaperC2CompactConvergence.termConvergence
 
 end PaperC2CompactConvergence
+
+/-- Under the fixed-profile convergence `z -> U`, the retained C³ bootstrap
+identifies the per-step Green sources with the stationary diagonal source in the
+locally uniform limit. -/
+theorem paperStepAnalytic_R_locallyUniform_crossSource_of_c3BootstrapData
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hLU : LocallyUniformConverges z U)
+    (hz_nonneg : ∀ k x, 0 ≤ z k x)
+    (hz_le_M : ∀ k x, z k x ≤ M)
+    (hstep :
+      ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hc3 : PaperC3BootstrapData U z) :
+    LocallyUniformConverges (fun k => (hstep k).R)
+      (crossSource p lam U U U) := by
+  have hc2 : PaperC2CompactConvergence p U z :=
+    paperC2CompactConvergence_of_c3BootstrapData
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+      (Λ := Λ) (φ := φ) (U := U) (z := z)
+      hlam hM hΛ hU hLU hz_nonneg hz_le_M hstep hc3
+  have hdiag :
+      paperStepSource p c lam U U U = crossSource p lam U U U :=
+    paperStepSource_self_eq_crossSource
+      (p := p) (c := c) (lam := lam) (U := U)
+      hU.bare.trap.cunif_bdd hU.bare.nonneg
+      (PaperC2CompactConvergence.limit_hasDeriv_value hc2)
+  have hsource_paper :
+      LocallyUniformConverges
+        (fun k => paperStepSource p c lam U (z k) (z (k + 1)))
+        (crossSource p lam U U U) := by
+    simpa [hdiag] using
+      PaperC2CompactConvergence.paperStepSource_locallyUniform
+        (p := p) (c := c) (lam := lam) (U := U) (z := z) hc2 hLU
+  have hsource_eq :
+      ∀ᶠ k : ℕ in atTop,
+        paperStepSource p c lam U (z k) (z (k + 1)) = (hstep k).R :=
+    Eventually.of_forall fun k => (hstep k).source_eq.symm
+  exact LocallyUniformConverges.congr hsource_eq hsource_paper
 
 namespace PaperWaveOperatorTermConvergence
 
@@ -1624,14 +1840,6 @@ theorem greenKernelDerivConv_eq_greenConvDeriv
   rw [← hsplit, hLeft, hRight, greenConvDeriv]
   ring
 
-theorem greenConv_eq_translated_integral_of_bounded
-    {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
-    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
-    greenConv c lam H x =
-      ∫ t, greenKernel c lam (-t) * H (x + t) := by
-  rw [← greenKernelConv_eq_translated (c := c) (lam := lam) H x]
-  exact (greenConv_raw_eq_of_bounded (c := c) (lam := lam) hlam hH hB x).symm
-
 theorem greenConvDeriv_eq_translated_integral_of_bounded
     {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
     (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
@@ -1640,117 +1848,6 @@ theorem greenConvDeriv_eq_translated_integral_of_bounded
   rw [← greenKernelDerivConv_eq_translated c lam H x]
   exact (greenKernelDerivConv_eq_greenConvDeriv
     (c := c) (lam := lam) hlam hH hB x).symm
-
-theorem greenConv_tendsto_atBot_of_source_tendsto
-    {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B L : ℝ}
-    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B)
-    (hlim : Tendsto H atBot (𝓝 L)) :
-    Tendsto (greenConv c lam H) atBot (𝓝 (L * lam⁻¹)) := by
-  let F : ℝ → ℝ → ℝ := fun x t => greenKernel c lam (-t) * H (x + t)
-  let G : ℝ → ℝ := fun t => greenKernel c lam (-t) * L
-  let bound : ℝ → ℝ := fun t => |greenKernel c lam (-t)| * B
-  have hbound_int : Integrable bound := by
-    have hK : Integrable (fun t => |greenKernel c lam (-t)|) :=
-      ((greenKernel_integrable (c := c) hlam).abs).comp_neg
-    simpa [bound] using hK.mul_const B
-  have hF_meas :
-      ∀ᶠ x in atBot, AEStronglyMeasurable (F x) volume := by
-    refine Eventually.of_forall ?_
-    intro x
-    exact ((greenKernel_continuous (c := c) (lam := lam)).comp
-        (continuous_neg.comp continuous_id) |>.mul
-      (hH.comp (continuous_const.add continuous_id))).aestronglyMeasurable
-  have h_bound :
-      ∀ᶠ x in atBot, ∀ᵐ t ∂volume, ‖F x t‖ ≤ bound t := by
-    refine Eventually.of_forall ?_
-    intro x
-    refine Eventually.of_forall ?_
-    intro t
-    dsimp [F, bound]
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hB (x + t)) (abs_nonneg _)
-  have h_lim :
-      ∀ᵐ t ∂volume, Tendsto (fun x => F x t) atBot (𝓝 (G t)) := by
-    refine Eventually.of_forall ?_
-    intro t
-    have hshift : Tendsto (fun x : ℝ => x + t) atBot atBot :=
-      tendsto_atBot_add_const_right atBot t tendsto_id
-    exact hlim.comp hshift |>.const_mul (greenKernel c lam (-t))
-  have hInt_tendsto :
-      Tendsto (fun x => ∫ t, F x t) atBot (𝓝 (∫ t, G t)) :=
-    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
-      (μ := volume) (l := atBot) (F := F) (f := G)
-      bound hF_meas h_bound hbound_int h_lim
-  have hGint : (∫ t, G t) = L * lam⁻¹ := by
-    dsimp [G]
-    rw [show (fun t : ℝ => greenKernel c lam (-t) * L)
-        = fun t : ℝ => L * greenKernel c lam (-t) by
-          funext t; ring]
-    rw [MeasureTheory.integral_const_mul]
-    rw [integral_neg_eq_self (greenKernel c lam) volume]
-    rw [greenKernel_integral_eq (c := c) hlam]
-  have hrewrite :
-      (fun x => ∫ t, F x t) = greenConv c lam H := by
-    funext x
-    exact (greenConv_eq_translated_integral_of_bounded
-      (c := c) (lam := lam) hlam hH hB x).symm
-  simpa [hrewrite, hGint] using hInt_tendsto
-
-theorem greenConvDeriv_tendsto_atBot_of_source_tendsto
-    {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B L : ℝ}
-    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B)
-    (hlim : Tendsto H atBot (𝓝 L)) :
-    Tendsto (greenConvDeriv c lam H) atBot (𝓝 0) := by
-  let F : ℝ → ℝ → ℝ := fun x t => greenKernelDeriv c lam (-t) * H (x + t)
-  let G : ℝ → ℝ := fun t => greenKernelDeriv c lam (-t) * L
-  let bound : ℝ → ℝ := fun t => |greenKernelDeriv c lam (-t)| * B
-  have hbound_int : Integrable bound := by
-    have hK : Integrable (fun t => |greenKernelDeriv c lam (-t)|) :=
-      (greenKernelDeriv_integrable (c := c) hlam).comp_neg
-    simpa [bound] using hK.mul_const B
-  have hF_meas :
-      ∀ᶠ x in atBot, AEStronglyMeasurable (F x) volume := by
-    refine Eventually.of_forall ?_
-    intro x
-    refine (greenKernelDeriv_measurable (c := c) (lam := lam)).comp measurable_neg
-      |>.aestronglyMeasurable.mul ?_
-    exact (hH.comp (continuous_const.add continuous_id)).aestronglyMeasurable
-  have h_bound :
-      ∀ᶠ x in atBot, ∀ᵐ t ∂volume, ‖F x t‖ ≤ bound t := by
-    refine Eventually.of_forall ?_
-    intro x
-    refine Eventually.of_forall ?_
-    intro t
-    dsimp [F, bound]
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hB (x + t)) (abs_nonneg _)
-  have h_lim :
-      ∀ᵐ t ∂volume, Tendsto (fun x => F x t) atBot (𝓝 (G t)) := by
-    refine Eventually.of_forall ?_
-    intro t
-    have hshift : Tendsto (fun x : ℝ => x + t) atBot atBot :=
-      tendsto_atBot_add_const_right atBot t tendsto_id
-    exact hlim.comp hshift |>.const_mul (greenKernelDeriv c lam (-t))
-  have hInt_tendsto :
-      Tendsto (fun x => ∫ t, F x t) atBot (𝓝 (∫ t, G t)) :=
-    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
-      (μ := volume) (l := atBot) (F := F) (f := G)
-      bound hF_meas h_bound hbound_int h_lim
-  have hGint : (∫ t, G t) = 0 := by
-    dsimp [G]
-    rw [show (fun t : ℝ => greenKernelDeriv c lam (-t) * L)
-        = fun t : ℝ => L * greenKernelDeriv c lam (-t) by
-          funext t; ring]
-    rw [MeasureTheory.integral_const_mul]
-    rw [integral_neg_eq_self (greenKernelDeriv c lam) volume]
-    rw [greenKernelDeriv_integral_eq_zero (c := c) (lam := lam) hlam]
-    ring
-  have hrewrite :
-      (fun x => ∫ t, F x t) = greenConvDeriv c lam H := by
-    funext x
-    exact (greenConvDeriv_eq_translated_integral_of_bounded
-      (c := c) (lam := lam) hlam hH hB x).symm
-  simpa [hrewrite, hGint] using hInt_tendsto
 
 theorem greenConvDeriv2_tendsto_atBot_of_source_tendsto
     {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B L : ℝ}

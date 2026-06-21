@@ -3311,6 +3311,26 @@ theorem FrozenRightVanishingWaveProfile.to_rightVanishingTravelingWave
   intro x
   simpa [frozenWaveOperator] using h.stationary_eq x
 
+/-- Assemble the right-vanishing frozen profile directly from the frozen
+stationary equation, a positive left tail, and the right endpoint limit. -/
+theorem FrozenRightVanishingWaveProfile.mk_auto_limits
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hU_pos : ∀ x, 0 < U x)
+    (hU_bdd : IsCUnifBdd U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hpositive_left : StrictlyPositiveAtLeft U)
+    (hU_lim_pos : Tendsto U atTop (𝓝 0)) :
+    FrozenRightVanishingWaveProfile p c U :=
+  { hc := hc
+    U_pos := hU_pos
+    stationary_eq := hstat
+    elliptic_eq := frozenElliptic_ode p hU_bdd (fun x => (hU_pos x).le)
+    positive_at_left := hpositive_left
+    lim_pos_inf :=
+      ⟨hU_lim_pos, frozenElliptic_tendsto_atTop_of_U_tendsto p hU_bdd
+        (fun x => (hU_pos x).le) hU_lim_pos⟩ }
+
 /-- Bridge from FrozenStationaryWaveProfile (stronger) to
 FrozenRightVanishingWaveProfile (weaker). Left convergence to 1 implies
 StrictlyPositiveAtLeft. -/

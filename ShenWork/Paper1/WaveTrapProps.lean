@@ -802,6 +802,109 @@ theorem stationaryLinearGronwallData_of_trap
   · intro y _hy
     exact ⟨Krev, fun x _hx => hKrev x⟩
 
+/-- Profile-specific strong maximum principle from the same Green/C²
+regularity input used by the global trap version.  This is useful at a Rothe
+fixed point, where the Green representation is available for the actual limit
+profile without proving a universal representation theorem for every trapped
+stationary profile. -/
+theorem stationary_profile_pos_of_trap_regular
+    {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
+    (hM : 0 < M)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hnontriv : ProfileNontrivial U)
+    (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
+    ∀ x, 0 < U x := by
+  have hzeroCauchy :
+      ∀ x₀, U x₀ = 0 → deriv U x₀ = 0 →
+        (∀ y, x₀ ≤ y →
+          ∃ K : ℝ, ∀ x ∈ Ico x₀ y,
+            ‖stationaryJetDeriv U x‖ ≤ K * ‖stationaryJet U x‖) ∧
+        (∀ y, y ≤ x₀ →
+          ∃ K : ℝ, ∀ x ∈ Ico (-x₀) (-y),
+            ‖stationaryJetDeriv (fun t => U (-t)) x‖ ≤
+              K * ‖stationaryJet (fun t => U (-t)) x‖) := by
+    intro x₀ _hx₀ _hDx₀
+    let A : ℝ := |c| + |p.χ| * |p.m| * M ^ (p.m - 1) * M ^ p.γ
+    let B : ℝ := |p.χ| * M ^ (p.m - 1) * (M ^ p.γ + M ^ p.γ) +
+      (1 + M ^ p.α)
+    have hA_nonneg : 0 ≤ A := by
+      dsimp [A]
+      positivity
+    have hB_nonneg : 0 ≤ B := by
+      dsimp [B]
+      positivity
+    have hsecond : ∀ x,
+        |deriv (deriv U) x| ≤ A * |deriv U x| + B * |U x| := by
+      intro x
+      simpa [A, B] using
+        stationary_second_deriv_abs_le_of_trap
+          (p := p) (c := c) (κ := κ) (M := M) (U := U)
+          hM hU hstat hU_diff x
+    obtain ⟨K, hK⟩ :=
+      stationaryJet_bound_of_second_deriv_abs_le
+        (U := U) hA_nonneg hB_nonneg hsecond
+    have hsecond_rev :
+        ∀ x,
+          |deriv (deriv (fun t => U (-t))) x| ≤
+            A * |deriv (fun t => U (-t)) x| +
+              B * |(fun t => U (-t)) x| :=
+      reflected_second_deriv_abs_le hUd_diff hsecond
+    obtain ⟨Krev, hKrev⟩ :=
+      stationaryJet_bound_of_second_deriv_abs_le
+        (U := fun t => U (-t)) hA_nonneg hB_nonneg hsecond_rev
+    constructor
+    · intro y _hy
+      exact ⟨K, fun x _hx => hK x⟩
+    · intro y _hy
+      exact ⟨Krev, fun x _hx => hKrev x⟩
+  intro x₀
+  by_contra hnot
+  have hx₀_zero : U x₀ = 0 :=
+    le_antisymm (not_lt.mp hnot) (hU.nonneg x₀)
+  have hmin : IsLocalMin U x₀ := by
+    dsimp [IsLocalMin, IsMinFilter]
+    exact Eventually.of_forall fun x => by
+      simpa [hx₀_zero] using hU.nonneg x
+  have hx₀_deriv : deriv U x₀ = 0 :=
+    hmin.hasDerivAt_eq_zero (hU_diff x₀).hasDerivAt
+  rcases hzeroCauchy x₀ hx₀_zero hx₀_deriv with ⟨hright, hleft⟩
+  have hzero_all : ∀ y, U y = 0 := by
+    intro y
+    by_cases hxy : x₀ ≤ y
+    · rcases hright y hxy with ⟨K, hK⟩
+      exact (stationaryJet_zero_of_gronwall_right hxy
+        hU_diff hUd_diff hK hx₀_zero hx₀_deriv y ⟨hxy, le_rfl⟩).1
+    · have hyx : y ≤ x₀ := le_of_not_ge hxy
+      rcases hleft y hyx with ⟨K, hK⟩
+      let Urev : ℝ → ℝ := fun t => U (-t)
+      have hneg_diff : Differentiable ℝ (fun t : ℝ => -t) :=
+        differentiable_id.neg
+      have hUrev_diff : Differentiable ℝ Urev := by
+        intro t
+        exact (hU_diff (-t)).comp t (hneg_diff t)
+      have hUrev_deriv_eq :
+          deriv Urev = fun t => -deriv U (-t) := by
+        funext t
+        simpa [Urev] using deriv_comp_neg (f := U) (x := t)
+      have hUrev_deriv_diff : Differentiable ℝ (deriv Urev) := by
+        rw [hUrev_deriv_eq]
+        intro t
+        exact ((hUd_diff (-t)).comp t (hneg_diff t)).neg
+      have hrev0 : Urev (-x₀) = 0 := by
+        simp [Urev, hx₀_zero]
+      have hrevD : deriv Urev (-x₀) = 0 := by
+        rw [hUrev_deriv_eq]
+        simp [hx₀_deriv]
+      have hle_rev : -x₀ ≤ -y := neg_le_neg hyx
+      have hrez := stationaryJet_zero_of_gronwall_right hle_rev
+        hUrev_diff hUrev_deriv_diff hK hrev0 hrevD (-y)
+        ⟨hle_rev, le_rfl⟩
+      simpa [Urev] using hrez.1
+  have hUzero : U = fun _ : ℝ => (0 : ℝ) := funext hzero_all
+  exact not_profileNontrivial_zero (by simpa [hUzero] using hnontriv)
+
 theorem stationaryStrongMaxPrinciple_of_trap_regularity
     {p : CMParams} {c κ M : ℝ}
     (hM : 0 < M)
