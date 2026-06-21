@@ -4,7 +4,8 @@ noncomputable section
 
 namespace ShenWork.Paper2
 
-/-- Abstract data for the smooth bounded Neumann domain used in Paper2.
+/--
+  Abstract data for the smooth bounded Neumann domain used in Paper2.
 
   The differential operators are intentionally bundled here: the statement layer
   can express the paper PDE now, while later analytic work can instantiate these

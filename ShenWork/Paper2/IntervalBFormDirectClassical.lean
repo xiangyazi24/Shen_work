@@ -32,7 +32,7 @@ open ShenWork.IntervalMildToClassical
 open ShenWork.IntervalSourceCoefficientTimeC1
   (localRestartCoeff)
 open ShenWork.IntervalDuhamelClosedC2
-  (DuhamelSourceTimeC1)
+  (DuhamelSourceTimeC1 duhamelSpectralCoeff)
 open ShenWork.IntervalBFormSpectral
   (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1)
 open ShenWork.IntervalCoupledRegularityBootstrap
@@ -125,6 +125,131 @@ def BFormBankedInputs.hsrcB
     DuhamelSourceTimeC1
       (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) :=
   bFormSource_duhamelSourceTimeC1 B.hlogSrc B.hchemSrc
+
+private theorem bform_localRestartCoeff_abs_summable
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    ∀ t, 0 < t →
+      Summable (fun n : ℕ =>
+        |localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) t n|) := by
+  intro t ht
+  have hMInit_nonneg : 0 ≤ B.MInit :=
+    le_trans (abs_nonneg _) (B.haInit 0)
+  have hhom : Summable (fun n : ℕ =>
+      |Real.exp (-t * unitIntervalCosineEigenvalue n) *
+        cosineCoeffs (intervalDomainLift u₀) n|) := by
+    refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+      ((ShenWork.IntervalSemigroupComposition.expEigSummable ht).mul_right B.MInit)
+    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul_of_nonneg_left (B.haInit n) (Real.exp_pos _).le
+  have hduh : Summable (fun n : ℕ =>
+      |duhamelSpectralCoeff
+        (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) t n|) := by
+    refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+      (B.hsrcB.henv_summable.mul_left t)
+    exact ShenWork.IntervalPicardIterateRestart.abs_duhamelSpectralCoeff_le
+      B.hsrcB ht n
+  refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+    (hhom.add hduh)
+  unfold localRestartCoeff
+  exact abs_add_le _ _
+
+/-- A global B-form cosine formula gives the local time-neighborhood spectral
+agreement required by the time-derivative regularity layer.  The local source
+is the nonnegative time-shift of the banked B-form `DuhamelSourceTimeC1`
+package, so this route is independent of any pre-existing `hTimeNhd`. -/
+theorem hTimeNhd_of_BForm_global_cosine
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB)
+    (hB_global : ∀ t, 0 < t → t ≤ DB.T →
+      Set.EqOn
+        (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
+        (fun x : ℝ => ∑' n : ℕ,
+          localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+            (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+            t n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1)) :
+    HasTimeNeighborhoodSpectralAgreement DB.T
+      (conjugatePicardLimit p u₀ DB.T) := by
+  constructor
+  intro t₀ ht₀ ht₀T
+  set u : ℝ → intervalDomainPoint → ℝ :=
+    conjugatePicardLimit p u₀ DB.T
+  set τ : ℝ := t₀ / 2 with hτdef
+  have hτpos : 0 < τ := by rw [hτdef]; linarith
+  have hτT : τ < DB.T := by rw [hτdef]; linarith
+  have htmτ : t₀ - τ = τ := by rw [hτdef]; ring
+  set a₀ : ℕ → ℝ := cosineCoeffs (intervalDomainLift (u τ)) with ha₀def
+  set a : ℝ → ℕ → ℝ :=
+    fun σ n => bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T) (τ + σ) n
+    with hadef
+  set M : ℝ := ∑' n : ℕ,
+    |localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) τ n| with hMdef
+  have hsumτ :
+      Summable (fun n : ℕ =>
+        |localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) τ n|) :=
+    bform_localRestartCoeff_abs_summable B τ hτpos
+  have hM_nonneg : 0 ≤ M := by
+    rw [hMdef]
+    exact tsum_nonneg (fun n => abs_nonneg _)
+  have ha₀_bd : ∀ n, |a₀ n| ≤ M := by
+    intro n
+    have hcoeff :
+        a₀ n =
+          localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+            (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) τ n := by
+      exact ShenWork.IntervalConjugatePicard.cosineCoeffs_eq_localRestartCoeff_of_bForm_global_rep
+        (u := u) (a₀ := cosineCoeffs (intervalDomainLift u₀))
+        (aB := bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+        (τ := τ) (by simpa [u] using hB_global τ hτpos hτT.le) hsumτ n
+    rw [hcoeff]
+    have hsingle :=
+      hsumτ.sum_le_tsum {n}
+        (fun k _ => abs_nonneg
+          (localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+            (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) τ k))
+    simpa [hMdef] using hsingle
+  have srcShift : DuhamelSourceTimeC1 a := by
+    simpa [a, hadef, add_comm] using
+      ShenWork.IntervalDuhamelSourceShift.DuhamelSourceTimeC1.shift_nonneg
+        B.hsrcB hτpos.le
+  have ha_cont : ∀ k, ContinuousOn
+      (fun s => bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T) s k)
+      (Set.Icc 0 DB.T) := by
+    intro k
+    exact (continuous_iff_continuousAt.2
+      (fun s => (B.hsrcB.hderiv s k).continuousAt)).continuousOn
+  have hB_restart :
+      ∀ t₁, 0 < t₁ → t₁ < DB.T →
+        ∀ᶠ s in 𝓝 t₁, ∀ y : intervalDomainPoint,
+          u s y =
+            ∑' n,
+              localRestartCoeff
+                (cosineCoeffs (intervalDomainLift (u (t₁ / 2))))
+                (fun σ n =>
+                  bFormSourceCoeffs p
+                    (conjugatePicardLimit p u₀ DB.T) (t₁ / 2 + σ) n)
+                (s - t₁ / 2) n * cosineMode n y.1 :=
+    ShenWork.IntervalConjugatePicard.bForm_restart_of_global_cosine
+      (u := u) (T := DB.T)
+      (a₀ := cosineCoeffs (intervalDomainLift u₀))
+      (aB := bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+      ha_cont (by simpa [u] using hB_global)
+      (by
+        intro t ht htT
+        exact bform_localRestartCoeff_abs_summable B t ht)
+  have hoff : 0 < t₀ - τ := by rw [htmτ]; exact hτpos
+  have hrep : ∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
+      u s y = ∑' n, localRestartCoeff a₀ a (s - τ) n * cosineMode n y.1 := by
+    have h := hB_restart t₀ ht₀ ht₀T
+    simpa [a₀, a, τ, hτdef, ha₀def, hadef] using h
+  exact ⟨a₀, M, hM_nonneg, ha₀_bd, a, srcShift, τ, hoff, by
+    simpa [u] using hrep⟩
 
 private theorem logisticSource_continuous_of_constExtend
     {p : CM2Params} {w : intervalDomainPoint → ℝ}
@@ -960,6 +1085,8 @@ theorem paper2_theorem_1_1_general_chi_bform
     p hχ ha hb hγ_ge_one hData
 
 #print axioms BFormBankedInputs.hsrcB
+#print axioms bform_localRestartCoeff_abs_summable
+#print axioms hTimeNhd_of_BForm_global_cosine
 #print axioms hB_global_of_flux_deriv_reconstruction
 #print axioms BFormDirectFrontier.hB_global
 #print axioms hasRestartCosineRepresentations_of_BFormDirectFrontier
