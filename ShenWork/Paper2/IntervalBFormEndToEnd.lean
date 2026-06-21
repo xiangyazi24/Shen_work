@@ -14,6 +14,7 @@ import ShenWork.Paper2.IntervalBFormPIDUnconditional
 import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalRegularityFrontierWiring
 import ShenWork.Paper2.IntervalBFormInitialTrace
+import ShenWork.Paper2.IntervalBFormDirectClassical
 
 open Filter Topology Set
 
@@ -45,7 +46,7 @@ open ShenWork.IntervalBFormSpectral
   (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
-   coupledLogisticSourceCoeffs)
+   coupledLogisticSourceCoeffs coupledChemDivSourceLift)
 open ShenWork.HeatKernelGradientEstimates
   (heatGradientLinftyLinftyConstant)
 open ShenWork.IntervalNeumannFullKernel
@@ -78,14 +79,6 @@ structure BFormBankedInputs
     (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
   hchemSrc : DuhamelSourceTimeC1
     (coupledChemDivSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
-  hB_global : ∀ t, 0 < t → t ≤ DB.T →
-    Set.EqOn
-      (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
-      (fun x => ∑' n,
-        localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
-          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
-          t n * cosineMode n x)
-      (Set.Icc (0 : ℝ) 1)
   hlogCont : ∀ t, 0 < t → t < DB.T →
     Continuous
       (intervalDomainConstExtend
@@ -127,50 +120,22 @@ def BFormBankedInputs.hsrcB
       (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) :=
   bFormSource_duhamelSourceTimeC1 B.hlogSrc B.hchemSrc
 
-/-- The banked global B-form cosine representation gives the restart-cosine
-regularity interface used for Neumann boundary regularity. -/
-theorem hasRestartCosineRepresentations_of_BFormBankedInputs
+def BFormBankedInputs.toDirectClassical
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
     (B : BFormBankedInputs p DB) :
-    HasRestartCosineRepresentations DB.T
-      (conjugatePicardLimit p u₀ DB.T) := by
-  intro t ht htT
-  refine ⟨?_⟩
-  refine
-    { τ := t
-      hτ := ht
-      M := B.MInit
-      a₀ := cosineCoeffs (intervalDomainLift u₀)
-      a := bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)
-      ha₀ := B.haInit
-      src := B.hsrcB
-      hagree := ?_ }
-  intro x hx
-  have h := B.hB_global t ht htT.le hx
-  simpa [restartDuhamelCoeff, localRestartCoeff] using h
-
-/-- Banked B-form interior PDE for the conjugate Picard limit. -/
-theorem BFormBankedInputs.hpde_u
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {DB : ConjugateMildExistenceData p u₀}
-    (B : BFormBankedInputs p DB) :
-    ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.inside →
-      intervalDomain.timeDeriv (conjugatePicardLimit p u₀ DB.T) t x =
-        intervalDomain.laplacian
-            ((conjugatePicardLimit p u₀ DB.T) t) x
-          - p.χ₀ * intervalDomain.chemotaxisDiv p
-              ((conjugatePicardLimit p u₀ DB.T) t)
-              (mildChemicalConcentration p
-                (conjugatePicardLimit p u₀ DB.T) t) x
-          + (conjugatePicardLimit p u₀ DB.T) t x
-            * (p.a - p.b *
-              ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.α) :=
-  ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_unconditional
-      DB B.huPaper B.Hinf B.hsmall
-      (cosineCoeffs (intervalDomainLift u₀)) B.haInit
-      B.hlogSrc B.hchemSrc B.hB_global
-      B.hlogCont B.hlogFourier B.hchemCont B.hchemFourier
+    ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB where
+  huPaper := B.huPaper
+  Hinf := B.Hinf
+  hsmall := B.hsmall
+  MInit := B.MInit
+  haInit := B.haInit
+  hlogSrc := B.hlogSrc
+  hchemSrc := B.hchemSrc
+  hlogCont := B.hlogCont
+  hlogFourier := B.hlogFourier
+  hchemCont := B.hchemCont
+  hchemFourier := B.hchemFourier
 
 /-- View the B-form Picard fixed point as the existing gradient-mild solution
 record, once the genuine map bridge to `IntervalMildSolution` is supplied. -/
@@ -216,6 +181,56 @@ structure BFormSpectralFrontier
   hVpos : ∀ t, 0 < t → t < DB.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p
       (conjugatePicardLimit p u₀ DB.T) t x
+
+def BFormSpectralFrontier.toDirectClassical
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormSpectralFrontier p DB) :
+    ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB where
+  bank := F.bank.toDirectClassical
+  hTimeNhd := F.hTimeNhd
+  hResolverData := F.hResolverData
+  hVpos := F.hVpos
+
+theorem BFormSpectralFrontier.hB_global
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormSpectralFrontier p DB) :
+    ∀ t, 0 < t → t ≤ DB.T →
+      Set.EqOn
+        (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
+        (fun x => ∑' n,
+          localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+            (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+            t n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1) :=
+  F.toDirectClassical.hB_global
+
+theorem hasRestartCosineRepresentations_of_BFormSpectralFrontier
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormSpectralFrontier p DB) :
+    HasRestartCosineRepresentations DB.T
+      (conjugatePicardLimit p u₀ DB.T) :=
+  ShenWork.Paper2.BFormDirectClassical.hasRestartCosineRepresentations_of_BFormDirectFrontier
+    F.toDirectClassical
+
+theorem BFormSpectralFrontier.hpde_u
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormSpectralFrontier p DB) :
+    ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.inside →
+      intervalDomain.timeDeriv (conjugatePicardLimit p u₀ DB.T) t x =
+        intervalDomain.laplacian
+            ((conjugatePicardLimit p u₀ DB.T) t) x
+          - p.χ₀ * intervalDomain.chemotaxisDiv p
+              ((conjugatePicardLimit p u₀ DB.T) t)
+              (mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ DB.T) t) x
+          + (conjugatePicardLimit p u₀ DB.T) t x
+            * (p.a - p.b *
+              ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.α) :=
+  F.toDirectClassical.hpde_u
 
 /-- The B-form initial approach transfers to the gradient mild map using the
 B-form fixed point and the explicit gradient-map bridge. -/
@@ -264,12 +279,12 @@ theorem gradientMildClassicalFrontierCoreData_of_BForm
     (F : BFormSpectralFrontier p DB) :
     GradientMildClassicalFrontierCoreData p
       (conjugateAsGradientMildSolutionData DB F.hGradientBridge) where
-  hpde_u := F.bank.hpde_u
+  hpde_u := F.hpde_u
   hregularityFrontier :=
     gradientMildClassicalRegularityFrontierData_of_spectral
       p (conjugateAsGradientMildSolutionData DB F.hGradientBridge)
       F.hTimeNhd F.hResolverData
-      (hasRestartCosineRepresentations_of_BFormBankedInputs F.bank)
+      (hasRestartCosineRepresentations_of_BFormSpectralFrontier F)
       F.hVpos
 
 /-- Construct the restart-frontier local data consumed by the gamma >= 1 umbrella
@@ -285,7 +300,7 @@ theorem hMildLocal_of_BForm
   obtain ⟨DB, ⟨F⟩⟩ := hPerDatum u₀ hu₀
   exact
     ⟨conjugateAsGradientMildSolutionData DB F.hGradientBridge,
-      hasRestartCosineRepresentations_of_BFormBankedInputs F.bank,
+      hasRestartCosineRepresentations_of_BFormSpectralFrontier F,
       gradientInitialApproach_of_BForm F,
       gradientMildClassicalFrontierCoreData_of_BForm F⟩
 
@@ -307,8 +322,9 @@ theorem paper2_theorem_1_1_general_chi_via_bform
     p hχ ha hb hγ_ge_one (hMildLocal_of_BForm p hPerDatum) hUniform
 
 #print axioms BFormBankedInputs.hsrcB
-#print axioms hasRestartCosineRepresentations_of_BFormBankedInputs
-#print axioms BFormBankedInputs.hpde_u
+#print axioms BFormSpectralFrontier.hB_global
+#print axioms hasRestartCosineRepresentations_of_BFormSpectralFrontier
+#print axioms BFormSpectralFrontier.hpde_u
 #print axioms conjugateAsGradientMildSolutionData
 #print axioms gradientInitialApproach_of_BForm
 #print axioms gradientMildClassicalFrontierCoreData_of_BForm

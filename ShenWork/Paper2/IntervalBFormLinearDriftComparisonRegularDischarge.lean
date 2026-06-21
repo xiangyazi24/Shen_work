@@ -1118,7 +1118,7 @@ def bform_negpart_route_of_square_heat_subsolution_regular_unconditional
     {DB : ConjugateMildExistenceData p u₀}
     {A D M : ℝ} {f : ℝ → ℝ} {drift react : ℝ → ℝ → ℝ}
     (datum : PositiveInitialDatum intervalDomain u₀)
-    (Bbank : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB)
+    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB)
     (hnegativePart_zero :
       ∀ t, 0 < t → t ≤ DB.T → ∀ x : intervalDomainPoint,
         negativePart (conjugatePicardLimit p u₀ DB.T t x) = 0)
@@ -1142,7 +1142,7 @@ def bform_negpart_route_of_square_heat_subsolution_regular_unconditional
         -react t x ≤ D)
     (hseed : SquareHeatSeed (intervalDomainLift u₀) f) :
     BFormNegativePartPositivityRoute p DB :=
-  bform_negpart_route_of_square_heat_subsolution_regular datum Bbank
+  bform_negpart_route_of_square_heat_subsolution_regular datum F
     hnegativePart_zero hcoeff hsuper hu_initial
     neumann_interval_comparison_with_drift hbarrier_reg hcalc hM
     hB_bound hC_neg_bound hseed

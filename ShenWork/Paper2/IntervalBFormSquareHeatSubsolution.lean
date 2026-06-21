@@ -270,7 +270,7 @@ def bform_negpart_route_of_square_heat_lower_barrier
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀} {M : ℝ} {f : ℝ → ℝ}
     (datum : PositiveInitialDatum intervalDomain u₀)
-    (Bbank : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB)
+    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB)
     (hnegativePart_zero :
       ∀ t, 0 < t → t ≤ DB.T → ∀ x : intervalDomainPoint,
         negativePart (conjugatePicardLimit p u₀ DB.T t x) = 0)
@@ -283,7 +283,7 @@ def bform_negpart_route_of_square_heat_lower_barrier
   datum := datum
   negativePart_zero := hnegativePart_zero
   strictPos := bform_strictPos_of_square_heat_subsolution hseed hbarrier
-  hpde_u := bform_negpart_hpde_u_of_bank Bbank
+  hpde_u := bform_negpart_hpde_u_of_frontier F
 
 /-- Route constructor with the hbarrier discharged by the squared heat
 subsolution plus the named Neumann linear comparison principle. -/
@@ -292,7 +292,7 @@ def bform_negpart_route_of_square_heat_subsolution
     {DB : ConjugateMildExistenceData p u₀}
     {A D M : ℝ} {f : ℝ → ℝ} {drift react : ℝ → ℝ → ℝ}
     (datum : PositiveInitialDatum intervalDomain u₀)
-    (Bbank : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB)
+    (F : ShenWork.Paper2.BFormDirectClassical.BFormDirectFrontier p DB)
     (hnegativePart_zero :
       ∀ t, 0 < t → t ≤ DB.T → ∀ x : intervalDomainPoint,
         negativePart (conjugatePicardLimit p u₀ DB.T t x) = 0)
@@ -312,7 +312,7 @@ def bform_negpart_route_of_square_heat_subsolution
         -react t x ≤ D)
     (hseed : SquareHeatSeed (intervalDomainLift u₀) f) :
     BFormNegativePartPositivityRoute p DB :=
-  bform_negpart_route_of_square_heat_lower_barrier datum Bbank
+  bform_negpart_route_of_square_heat_lower_barrier datum F
     hnegativePart_zero hseed
     (bform_square_heat_hbarrier_of_neumann_linear_drift_square_heat_subsolution
       hu hcompare hcalc hM hB_bound hC_neg_bound hseed)

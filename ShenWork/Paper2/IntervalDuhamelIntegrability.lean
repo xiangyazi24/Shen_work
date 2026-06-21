@@ -644,6 +644,77 @@ theorem chemFluxLifted_bounded_of_continuous
   · simp only [chemFluxLifted, intervalDomainLift, dif_neg hy, zero_mul, zero_div, abs_zero]
     exact le_max_right _ _
 
+/-- Closed-interval spatial continuity of the lifted chemotaxis flux for a
+continuous nonnegative order-box slice. -/
+theorem chemFluxLifted_continuousOn_Icc_of_continuous
+    (p : CM2Params) {w : intervalDomainPoint -> Real} {M : Real}
+    (_hw : forall x, |w x| <= M) (_hM : 0 <= M)
+    (hcont : Continuous w) (hw_nonneg : forall x, 0 <= w x) :
+    ContinuousOn (chemFluxLifted p w) (Set.Icc (0 : ℝ) 1) := by
+  open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+      ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+      ShenWork.IntervalNeumannFullKernel ShenWork.IntervalResolverPositivity in
+  have hcont_on : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift w) = w := by
+      ext ⟨x, hx⟩
+      simp [Set.restrict, intervalDomainLift, hx]
+      rfl
+    rw [this]
+    exact hcont
+  have hgrad_cont : Continuous (fun x : ℝ => resolverGradReal p w x) :=
+    resolverGradReal_continuous_of_continuousOn p hcont_on
+  have hval_cont : Continuous (fun x : ℝ => ∑' k : ℕ,
+      (intervalNeumannResolverCoeff p w k).re * unitIntervalCosineMode k x) :=
+    resolverValueReal_continuous_of_continuousOn p hcont_on
+  have hR_nonneg : ∀ x : intervalDomainPoint, 0 ≤ intervalNeumannResolverR p w x := by
+    have hcont_src : Continuous (fun x : intervalDomainPoint => p.ν * (w x) ^ p.γ) :=
+      continuous_const.mul (hcont.rpow_const (fun x => Or.inr p.hγ.le))
+    set clip : ℝ → intervalDomainPoint := fun x =>
+      ⟨max 0 (min x 1), le_max_left 0 _, max_le (by norm_num) (min_le_right x 1)⟩
+    have hclip_cont : Continuous clip :=
+      Continuous.subtype_mk (continuous_const.max (continuous_id.min continuous_const)) _
+    set f : ℝ → ℝ := (fun x : intervalDomainPoint => p.ν * (w x) ^ p.γ) ∘ clip
+    have hf_cont : Continuous f := hcont_src.comp hclip_cont
+    have hf_nonneg : ∀ y, 0 ≤ f y := fun y =>
+      mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+    have hf_coeff : ∀ k, cosineCoeffs f k =
+        (intervalNeumannResolverSourceCoeff p w k).re := by
+      intro k
+      have hsrc_eq : (intervalNeumannResolverSourceCoeff p w k).re =
+          cosineCoeffs (fun x => p.ν * intervalDomainLift w x ^ p.γ) k := by
+        simp [cosineCoeffs, intervalNeumannResolverSourceCoeff, Complex.ofReal_re]
+      rw [hsrc_eq]
+      exact cosineCoeffs_congr_on_Icc (fun x hx => by
+        simp only [f, Function.comp, clip]
+        have hclip_eq : max 0 (min x 1) = x := by
+          rw [min_eq_left hx.2, max_eq_right hx.1]
+        simp only [hclip_eq, intervalDomainLift, dif_pos (Set.mem_Icc.mpr hx)]) k
+    have hâ : Summable (fun k => (cosineCoeffs f k) ^ 2) := by
+      have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+      simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+      exact h.congr (fun k => by rw [hf_coeff])
+    exact fun x => intervalNeumannResolverR_nonneg_of_nonneg_source
+      hf_cont hf_nonneg hf_coeff hâ x
+  have hden_pos : ∀ x : intervalDomainPoint,
+      0 < (1 + intervalNeumannResolverR p w x) ^ p.β :=
+    fun x => Real.rpow_pos_of_pos (by linarith [hR_nonneg x]) p.β
+  rw [continuousOn_iff_continuous_restrict]
+  show Continuous (Set.restrict (Set.Icc (0 : ℝ) 1) (chemFluxLifted p w))
+  have heq : Set.restrict (Set.Icc (0 : ℝ) 1) (chemFluxLifted p w) =
+      fun x : ↑(Set.Icc (0 : ℝ) 1) =>
+        w x * resolverGradReal p w x.1
+          / (1 + intervalNeumannResolverR p w x) ^ p.β := by
+    ext ⟨x, hx⟩
+    simp only [Set.restrict, chemFluxLifted, intervalDomainLift, dif_pos hx]
+    congr 1
+  rw [heq]
+  refine Continuous.div ?_ ?_ (fun x => ne_of_gt (hden_pos x))
+  · exact (hcont.comp (continuous_subtype_val.subtype_mk _)).mul
+      (hgrad_cont.comp continuous_subtype_val)
+  · refine (continuous_const.add ?_).rpow_const (fun x => Or.inr p.hβ)
+    exact hval_cont.comp continuous_subtype_val
+
 
 
 

@@ -102,7 +102,7 @@ def PositiveDatumBFormSqDeepestHypotheses.Hpde
     (H : PositiveDatumBFormSqDeepestHypotheses p DB) :
     ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p DB.T
       (conjugatePicardLimit p u₀ DB.T) :=
-  hpde_of_BFormBankedInputs H.bank
+  hpde_of_BFormDirectFrontier H.directFrontier
 
 /-- The truncated Picard construction, plus the explicit bridge, gives the
 truncated mild fixed point for the named conjugate Picard limit. -/

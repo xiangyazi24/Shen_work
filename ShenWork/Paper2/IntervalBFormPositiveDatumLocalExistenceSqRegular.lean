@@ -83,7 +83,7 @@ def PositiveDatumBFormLocalComponentsSqRegular.Hpde
     (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
     ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p K.DB.T
       (conjugatePicardLimit p u₀ K.DB.T) :=
-  hpde_of_BFormBankedInputs K.regularityFrontier.bank
+  hpde_of_BFormDirectFrontier K.regularityFrontier
 
 def PositiveDatumBFormLocalComponentsSqRegular.bridgeData
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}

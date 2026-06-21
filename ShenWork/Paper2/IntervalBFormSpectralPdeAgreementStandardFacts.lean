@@ -20,7 +20,8 @@ open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalConjugateDuhamelMap
   (intervalConjugateKernelOperator)
 open ShenWork.IntervalConjugateCosineSeries
-  (intervalSineInner)
+  (intervalSineInner
+   intervalConjugateKernelOperator_tendstoUniformlyOn_deriv_of_endpoint_zero)
 open ShenWork.IntervalNeumannFullKernel
   (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalDuhamelClosedC2
@@ -352,6 +353,51 @@ def BFormInteriorZeroTimeTrace
         (fun x => deriv (bFormChemFluxAt p u t₀) x)
         (𝓝[>] (0 : ℝ)) K
 
+/-- Producer for F3 from actual flux-slice `C¹` data.  The endpoint
+compatibility and cosine-coefficient bound are not carried: endpoint vanishing
+comes from the resolver-gradient endpoint identities inside `chemFluxLifted`,
+and the coefficient bound comes from continuity of the derivative on `[0,1]`.
+
+The remaining input is the precise regularity datum that the direct frontier is
+supposed to thread: for each actual flux slice, a continuous derivative function
+realizing `HasDerivAt` on `[0,1]`. -/
+theorem bFormInteriorZeroTimeTrace_of_flux_hasDerivAt
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    (hfluxC1 : ∀ t₀, 0 < t₀ → t₀ < T →
+      ∃ q' : ℝ → ℝ,
+        Continuous (bFormChemFluxAt p u t₀) ∧
+        Continuous q' ∧
+        ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+          HasDerivAt (bFormChemFluxAt p u t₀) (q' y) y) :
+    BFormInteriorZeroTimeTrace p T u := by
+  intro t₀ ht₀ ht₀T K _hK hKsub
+  rcases hfluxC1 t₀ ht₀ ht₀T with
+    ⟨q', hflux_cont, hq'_cont, hflux_deriv⟩
+  obtain ⟨B, hB_bound⟩ :=
+    (isCompact_Icc (a := (0 : ℝ)) (b := 1)).exists_bound_of_continuousOn
+      (hq'_cont.continuousOn (s := Set.Icc (0 : ℝ) 1))
+  have hB_nonneg : 0 ≤ B := by
+    exact le_trans (norm_nonneg (q' 0))
+      (hB_bound 0 ⟨le_rfl, by norm_num⟩)
+  have hcoeff_bound : ∀ n : ℕ, |cosineCoeffs q' n| ≤ 2 * B :=
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      (hq'_cont.continuousOn (s := Set.Icc (0 : ℝ) 1))
+      hB_nonneg
+      (fun x hx => by
+        simpa [Real.norm_eq_abs] using hB_bound x hx)
+  have hflux0 : bFormChemFluxAt p u t₀ 0 = 0 := by
+    unfold bFormChemFluxAt chemFluxLifted
+    rw [ShenWork.Paper2.resolverGradReal_zero]
+    simp
+  have hflux1 : bFormChemFluxAt p u t₀ 1 = 0 := by
+    unfold bFormChemFluxAt chemFluxLifted
+    rw [ShenWork.Paper2.resolverGradReal_one]
+    simp
+  exact
+    intervalConjugateKernelOperator_tendstoUniformlyOn_deriv_of_endpoint_zero
+      (K := K) (M := 2 * B) hKsub hflux_cont hq'_cont
+      hflux_deriv hflux0 hflux1 hcoeff_bound
+
 /-- SATISFIABLE standard fact, currently a project theorem gap: Duhamel
 differentiation identity for the inhomogeneous B-form leg.  The endpoint
 contribution of the B-kernel is the zero-time trace `∂ₓQ(t)`. -/
@@ -441,14 +487,24 @@ structure BFormSpectralPdeAgreementStandardFacts
     (p : CM2Params) (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   differentiated_cosine_series_uniform :
     BFormDifferentiatedCosineSeriesUniformConvergence p T u
-  interior_zero_time_trace :
-    BFormInteriorZeroTimeTrace p T u
+  fluxC1 : ∀ t₀, 0 < t₀ → t₀ < T →
+    ∃ q' : ℝ → ℝ,
+      Continuous (bFormChemFluxAt p u t₀) ∧
+      Continuous q' ∧
+      ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+        HasDerivAt (bFormChemFluxAt p u t₀) (q' y) y
   duhamel_time_derivative_identity :
     BFormDuhamelTimeDerivativeInteriorPdeIdentity p T u
   semigroup_generator_identity :
     BFormSemigroupGeneratorIdentity p T u
   duhamel_cosine_reconstruction :
     BFormDuhamelCosineReconstructionFromStandardFacts p T u
+
+theorem BFormSpectralPdeAgreementStandardFacts.interior_zero_time_trace
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    (H : BFormSpectralPdeAgreementStandardFacts p T u) :
+    BFormInteriorZeroTimeTrace p T u :=
+  bFormInteriorZeroTimeTrace_of_flux_hasDerivAt H.fluxC1
 
 /-- Constructor from the named standard heat-semigroup/Duhamel facts to the
 existing spectral-agreement interface consumed by the PDE producer.  The
@@ -550,6 +606,7 @@ theorem intervalConjugateMildSolution_pde_u_of_standardFacts
   intervalConjugateMildSolution_pde_u_of_spectral p hB
     (hasBFormSpectralPdeAgreement_of_standardFacts hB hreg H)
 
+#print axioms bFormInteriorZeroTimeTrace_of_flux_hasDerivAt
 #print axioms hasBFormSpectralPdeAgreement_of_standardFacts
 #print axioms intervalConjugateMildSolution_pde_u_of_standardFacts
 
