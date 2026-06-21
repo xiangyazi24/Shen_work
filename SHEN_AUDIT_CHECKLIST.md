@@ -82,9 +82,17 @@ Headline conditional on IntervalDomainMassLpSmoothingRouteData (3 atoms).
   (the 4 uniform-persistence parts — the actual Theorem 2.1 content) + nonlinear Duhamel/orbit control + small-data
   global existence (per def comment :2214). So P3 is NOT "one Moser ladder away" — (b),(c) are separate, largely
   unaddressed. 2c58ff5 landed the aprioriBound bundle on the boundedness path only.
-- ⚠️ **REGIME (verify deeper):** formal boundedness sufficient cond γ<1∨2γ<α may be NARROWER than Part I's full
-  χ-threshold (α vs m+γ−1 / 2m+γ−2, paper3 lines 459-479). Faithfulness narrowing of the INPUT, not the target;
-  no vacuity (witness (N,γ,α,b)=(1,½,2,1)), no L∞ circularity (cron1 P3-audit).
+- ⚠️ **REGIME (VERIFIED from def, IntervalDomainAPrioriGlobal.lean:27):** IntervalDomainBoundednessHyp =
+  SharpL2AbsorptionThreshold(γ<1∨2γ<α) ∧ 0<b ∧ **2γ<α** ∧ 0<γ ∧ γN<2. The 2γ<α conjunct makes the
+  (γ<1∨2γ<α) "sharp threshold" REDUNDANT → operative hyp is just 2γ<α ∧ 0<b ∧ 0<γ ∧ γN<2. So the theorem
+  covers ONLY the damping-dominant regime; the γ<1 ∧ 2γ≥α branch is silently excluded. NOT vacuous (witness
+  (N,γ,α,b)=(1,½,2,1) ok), no L∞ circularity (cron1 P3-audit). TO EARN the full sharp OR-threshold: drop the
+  2γ<α conjunct + prove the γ<1 ∧ 2γ≥α spatial-absorption branch (Young q=2+2γ,s=2+α needs 2γ<α, so the γ<1
+  branch needs a DIFFERENT absorption). Until then, don't market as "sharp OR-threshold boundedness."
+- ⚠️ **driftBoundFromMass for 1<γ<2 is FALSE from mass alone** (verified reasoning): mass ∫u controls ∫u^γ only
+  for γ≤1 on bounded Ω; for 1<γ<2 a spike keeps ∫u fixed while ∫u^γ grows. γN<2 is the BOOTSTRAP threshold
+  (p0=2 > γN), NOT the drift-from-mass theorem. driftBoundFromMass genuinely needs L∞ (from the ladder) /
+  smoothing, not mass — matches P3moser2's own stall (needs pointwise u≤M'). Atom name is misleading.
 
 ---
 
