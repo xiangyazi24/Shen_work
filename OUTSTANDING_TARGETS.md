@@ -323,3 +323,30 @@ NOTE: H1-grad's MemLp fix (268754f) is clean/non-circular REGARDLESS (flux slice
 stands. The circularity risk is specifically the u-regularity (H¹) the SOLUTION-tested fields need.
 ACTION: structural audit dispatched (does parabolic smoothing of the mild solution give u t∈H¹ for t>0
 independently, or is it circular with hF1?). DO NOT patch H1-hom/src/chem field-by-field until answered.
+
+## ★★★ STRUCTURAL VERDICT — GREEN: bundle SOUND, frontier CONSOLIDATES (2026-06-22, struct audit git-drop 7b1e544, all 7 anchors tree-verified)
+VERDICT (option i): bundle is UNDER-HYPOTHESIZED, NOT vacuous. Do NOT redesign. Fix = add ONE bundle-level
+positive-time H¹ field for u=conjugatePicardLimit, discharged by mild-solution parabolic smoothing (H^σ
+bootstrap), NOT from localClassicalSolution. NON-CIRCULAR: dependency order is mild fixed point → bounded+
+nonneg+continuous slices → H⁰=L² seed → positive-time H¹ smoothing → φ=-u_-(t) admissible H¹ test → weak
+identity fields → localClassicalSolution (strictly upstream, no cycle). Only MemHSigma 1 needed (not ContDiffOn 2).
+This RE-ELEVATES the H^σ bootstrap from "off critical path" to the discharging foundation (corrects the
+earlier triple-confirmed "bootstrap off critical path" verdict — that was about ContDiffOn 2; MemHSigma 1 for
+the weak-test admissibility IS on the path).
+
+CONSOLIDATION (the big simplification): the 4 false weak-identity fields all reduce to ONE missing regularity
+field + a NegativePartTestAdmissibleH1 predicate consumed by each. Two pieces now:
+ A. STRUCTURAL (medium wiring): add field `u_posTime_memHSigma_one : ∀ t, 0<t→t≤DB.T → MemHSigma 1
+    (cosineCoeffs (intervalDomainLift ((conjugatePicardLimit p u₀ DB.T) t)))` to the bundle; derive
+    NegativePartTestAdmissibleH1 (Lipschitz Sobolev chain rule for negativePart); wire the 4 weak-identity
+    fields to consume it.
+ B. ANALYTIC KEYSTONE: instantiate UniformBootstrapStep (IntervalEnvelopeProp.lean:179 / IntervalUniform
+    Bootstrap.lean:179, carried uninstantiated by gradientSolution_contDiffOn_two_FINAL:193) — the per-level
+    MemHSigma σ → σ+α gain. Producer chain (all anchors VERIFIED): memHSigma_zero_of_continuousOn (H⁰ seed,
+    IntervalChiNegCloseBaseSeed) ∘ conjugatePicardLimit_hasContinuousSlices ∘ chemFluxLifted_sup_bound_of_ball
+    (bounded flux) ∘ fluxSineEnvelope_uniform (τ-uniform envelope hg/hg_dom, IntervalMixedProduct) ∘
+    duhamelEnergy_endpoint_uniform (parabolic gain). Uses ONLY DB mild data — independent of hF1. → DISPATCH.
+H1-grad (t^{-1/2}) still needed separately for the chemotaxis/source DCT dominators; opus a761b2f9 grinding it.
+NET FRONTIER NOW: {B: UniformBootstrapStep instantiation [new keystone]} + {A: H¹-field structural wiring} +
+{H1-grad t^{-1/2} [in flight]} + {H3 hF1 / H4 strip — still genuine but now the H¹ they implicitly needed is
+the bootstrap field}. The 4 false fields are no longer 4 separate hard producers — they share ONE discharge.
