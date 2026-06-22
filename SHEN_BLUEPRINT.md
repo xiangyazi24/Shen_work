@@ -354,3 +354,16 @@ REMAINING (Core assembly subagent): discharge hmapsTo_pos's hB_abs/hR_abs (conju
 valueDuhamel_sup_bound fed the per-w integrability) + hmapsTo_nn + port hcont/hmeas (via the ∂_y-kernel AEStrongMeas)
 + hbase_* (n=0 homogeneous heat) + constants (K<1 by shrinking T) → inhabit Core → toData → paper2_theorem_1_1.
 WORKFLOW: all clones diverge — commit via TARGETED OVERLAY (add files + merge imports, NEVER --delete mirror).
+
+## ✅✅✅ P2 KEYSTONE LANDED (origin/main d7659d9, 06-22) — the existence Core, hostile-audited FAITHFUL
+conjugateMildExistenceCore_exists: ConjugateMildExistenceCore p u₀ genuinely INHABITED per positive datum (0 sorries,
+axiom-clean). The construction the WHOLE campaign reduces to (P2 boundedness + P3 persistence-discharge + P3 stability
+all need it). Real T=1/c²>0, real K<1 contraction, all 30 fields. Structural fix: 4 flux fields' ∀ s → s∈(0,T] (the
+solution horizon; faithful — contraction only uses (0,t]⊆(0,T]; s=0 a.e.-exclusion measure-zero). hmapsTo_pos floor
+hand-written by me; rest via subagents + ChatGPT. HOSTILE-OPUS-AUDITED FAITHFUL (T non-degenerate, restriction
+faithful, hyps satisfiable, shared-lemma changes sound). Cold-build 8810 jobs.
+FINAL WIRING (in progress): assemble BFormSpectralFrontier (6 fields: bank/hGradientBridge/hTimeNhd/hResolverData/
+hSupNormDeriv/hVpos, all properties of conjugatePicardLimit derived from the Data) → discharge hPerDatum of
+paper2_theorem_1_1_general_chi_via_bform → P2 boundedness UNCONDITIONAL → cascade P3 unconditional persistence.
+CAMPAIGN MILESTONES LANDED: P3 persistence(m=1), P3 equilibrium witness, P2 existence Core. P1 left-floor proven +
+Remark_1_3_2 reduced to RightVanishingWaveExistence. All 3 papers reduced to existence; P2/P3 existence = the Core (DONE).
