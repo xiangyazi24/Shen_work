@@ -210,9 +210,6 @@ structure BFormSpectralFrontier
   hResolverData :
     HasResolverDirectSpectralData DB.T
       (mildChemicalConcentration p (conjugatePicardLimit p u₀ DB.T)) p
-  hSupNormDeriv :
-    IntervalDomainSupNormDerivativeNonposOn
-      (conjugatePicardLimit p u₀ DB.T) (Set.Ioo (0 : ℝ) DB.T)
   hVpos : ∀ t, 0 < t → t < DB.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p
       (conjugatePicardLimit p u₀ DB.T) t x
