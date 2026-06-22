@@ -199,3 +199,22 @@ Duhamel smoothing), breaking the source-package circularity. At χ₀=0 the cone
 What is UNCONDITIONAL today: χ₀=0 Paper-2 boundedness (from_cone_construction). χ₀<0 is reduced
 (machine-checked, axiom-clean) to the single C²-bootstrap residual, with all bridges/wirings landed.
 Updated: 2026-06-22 (TRUE BOTTOM = parabolic C² bootstrap + circularity; all reductions above it landed).
+
+## C²-BOOTSTRAP ROUTE CONFIRMED (cron Q280, 2026-06-22) — the circularity break
+cron confirms the direct B-form bootstrap is SOUND + genuinely NON-CIRCULAR (organize per-step:
+assume only u∈L^∞_t H^σ ∩ L^∞ → derive v∈H^{σ+2}, Q,L∈H^σ → B-form Duhamel + heat-kernel → u∈H^{σ+ρ};
+NO source-C¹ package assumed). Key semigroup estimate: ‖∂ₓS(r)F‖_{H^{σ+ρ}} ≲ r^{−(1+ρ)/2}‖F‖_{H^σ},
+integrable for ρ<1 (the B-form derivative-on-kernel is the whole point).
+TARGETS (1D Sobolev embedding H^s↪C^k needs s>k+1/2): C²_x = H³ (6 half-steps); C²_t C⁰_x = H⁵ (10);
+C²_t C²_x = H⁷ (14). 
+- intervalDomainClassicalRegularity demands C²_x + C¹_t → H³ (6 steps).
+- IterateSourceTimeData (what win needs) demands C²-in-TIME (time2 = d2u) → H⁵ (10 steps). [possible
+  FAC-chain over-demand: DuhamelSourceTimeC1On only needs first-time-deriv adot; a more direct win route
+  might need only C¹_t/H³ — optimization to check at harvest.]
+ANALYTIC INPUTS (all but #3 landed): (1) heat-kernel/B-form multiplier [HSigma machinery], (2) elliptic
+resolver gain H^σ→H^{σ+2} [resolver_memHSigmaPlus2_of_memHSigma], (3) 1D fractional Moser product
+‖fg‖_{H^σ}≤‖f‖_∞‖g‖_{H^σ}+‖g‖_∞‖f‖_{H^σ} [may need explicit frontier lemma — Mathlib gap], (4) L^∞ +
+positive floor for real powers [keystone hmapsTo_pos].
+THE PRIZE: the half-step brick bform_half_step_smoothing (H^σ+L^∞+flux-L² ⟹ u(t)∈H^{σ+ρ}, iterable).
+Subagent a6d0852b attacking it; iterate to H⁵ for win. P1 per-step solver attacked in parallel (ab5616bf).
+Updated: 2026-06-22 (C²-bootstrap route confirmed non-circular; half-step engine = the prize; targets H³/H⁵).
