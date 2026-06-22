@@ -83,7 +83,7 @@ theorem conjugateDuhamel_sup_bound_of_ball
     simp only [hq, if_pos (And.intro hs.1 (le_trans hs.2 htT))]
   rw [← hint_eq]
   exact ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-    ht htT hq_int hCQ hq_sup x.1 hB_int_q
+    ht htT (fun s _ _ => hq_int s) hCQ (fun s _ _ => hq_sup s) x.1 hB_int_q
 
 /-- **Ball-conditional logistic value Duhamel sup bound** (uses the universal
 value bound on the `0`-extended cutoff source). -/
@@ -159,7 +159,7 @@ theorem conjugateDuhamel_sup_bound_of_ball_univ
       simp only [hq, if_pos (And.intro hs.1 (le_trans hs.2 htT))]
     rw [← hint_eq]
     exact ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-      ht htT hq_int hCQ hq_sup x.1 (hint.congr hcongr.symm)
+      ht htT (fun s _ _ => hq_int s) hCQ (fun s _ _ => hq_sup s) x.1 (hint.congr hcongr.symm)
   · rw [intervalIntegral.integral_undef hint, abs_zero]
     exact mul_nonneg (mul_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
       (mul_nonneg (by norm_num) (Real.sqrt_nonneg T))) hCQ

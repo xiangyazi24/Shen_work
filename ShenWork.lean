@@ -263,3 +263,4 @@ import ShenWork.Paper2.IntervalConjugateFluxDiffBall
 import ShenWork.Paper2.IntervalConjugateLogisticDiffBall
 import ShenWork.Paper2.IntervalConjugateBallSupBound
 import ShenWork.Paper2.IntervalConjugateConePreserved
+import ShenWork.Paper2.IntervalConjugatePicardCoreInhabit

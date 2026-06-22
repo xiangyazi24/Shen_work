@@ -24,16 +24,16 @@ banked conjugate-kernel `√T` estimate. -/
 theorem conjugateChemotaxisDuhamel_diff_sup_bound
     (p : CM2Params) {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
     {q₁ q₂ : ℝ → ℝ → ℝ} {D : ℝ} (hD : 0 ≤ D)
-    (hq_diff : ∀ s y, |q₁ s y - q₂ s y| ≤ D)
-    (hq_int_diff : ∀ s, Integrable (fun y => q₁ s y - q₂ s y)
+    (hq_diff : ∀ s, 0 < s → s ≤ T → ∀ y, |q₁ s y - q₂ s y| ≤ D)
+    (hq_int_diff : ∀ s, 0 < s → s ≤ T → Integrable (fun y => q₁ s y - q₂ s y)
       (intervalMeasure 1))
     (x : ℝ)
-    (hKq₁ : ∀ s, Integrable
+    (hKq₁ : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y =>
         deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x y') y
           * q₁ s y)
       (intervalMeasure 1))
-    (hKq₂ : ∀ s, Integrable
+    (hKq₂ : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y =>
         deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x y') y
           * q₂ s y)
@@ -56,18 +56,18 @@ theorem conjugateChemotaxisDuhamel_diff_sup_bound
 theorem conjugateChemFluxDuhamel_diff_sup_bound
     (p : CM2Params) {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
     {u w : ℝ → intervalDomainPoint → ℝ} {D : ℝ} (hD : 0 ≤ D)
-    (hq_diff : ∀ s y,
+    (hq_diff : ∀ s, 0 < s → s ≤ T → ∀ y,
       |chemFluxLifted p (u s) y - chemFluxLifted p (w s) y| ≤ D)
-    (hq_int_diff : ∀ s, Integrable
+    (hq_int_diff : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y => chemFluxLifted p (u s) y - chemFluxLifted p (w s) y)
       (intervalMeasure 1))
     (x : ℝ)
-    (hKq_u : ∀ s, Integrable
+    (hKq_u : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y =>
         deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x y') y
           * chemFluxLifted p (u s) y)
       (intervalMeasure 1))
-    (hKq_w : ∀ s, Integrable
+    (hKq_w : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y =>
         deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x y') y
           * chemFluxLifted p (w s) y)
@@ -92,17 +92,17 @@ theorem intervalConjugateDuhamelMap_diff_bound_of_banked
     {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
     (x : intervalDomainPoint)
     {Dq Cv : ℝ} (hDq : 0 ≤ Dq)
-    (hq_diff : ∀ s y,
+    (hq_diff : ∀ s, 0 < s → s ≤ T → ∀ y,
       |chemFluxLifted p (u s) y - chemFluxLifted p (w s) y| ≤ Dq)
-    (hq_int_diff : ∀ s, Integrable
+    (hq_int_diff : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y => chemFluxLifted p (u s) y - chemFluxLifted p (w s) y)
       (intervalMeasure 1))
-    (hKq_u : ∀ s, Integrable
+    (hKq_u : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y =>
         deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) (x.1) y') y
           * chemFluxLifted p (u s) y)
       (intervalMeasure 1))
-    (hKq_w : ∀ s, Integrable
+    (hKq_w : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y =>
         deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) (x.1) y') y
           * chemFluxLifted p (w s) y)

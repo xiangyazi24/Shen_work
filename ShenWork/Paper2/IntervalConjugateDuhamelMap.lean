@@ -466,20 +466,23 @@ theorem intervalConjugateKernelOperator_abs_le {t : ℝ} (ht : 0 < t)
 
 theorem conjugateDuhamel_sup_bound
     {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {q : ℝ → ℝ → ℝ}
-    (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
-    {Cq : ℝ} (hCq : 0 ≤ Cq) (hq_sup : ∀ s y, |q s y| ≤ Cq) (x : ℝ)
+    (hq_int : ∀ s, 0 < s → s ≤ T → Integrable (q s) (intervalMeasure 1))
+    {Cq : ℝ} (hCq : 0 ≤ Cq)
+    (hq_sup : ∀ s, 0 < s → s ≤ T → ∀ y, |q s y| ≤ Cq) (x : ℝ)
     (hB_int : IntervalIntegrable
       (fun s : ℝ => intervalConjugateKernelOperator (t - s) (q s) x) volume 0 t) :
     |∫ s in (0:ℝ)..t, intervalConjugateKernelOperator (t - s) (q s) x|
       ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * Cq := by
   set Cg := heatGradientLinftyLinftyConstant with hCgdef
   have hCgnn : 0 ≤ Cg := heatGradientLinftyLinftyConstant_nonneg
-  have hptw : ∀ s, 0 ≤ s → s < t →
+  have hptw : ∀ s, 0 < s → s < t →
       |intervalConjugateKernelOperator (t - s) (q s) x|
         ≤ Cg * Cq * (t - s) ^ (-(1/2) : ℝ) := by
-    intro s _hs0 hst
+    intro s hs0 hst
+    have hsT : s ≤ T := hst.le.trans htT
     have hts : 0 < t - s := sub_pos.mpr hst
-    have h := intervalConjugateKernelOperator_abs_le hts (hq_int s) (hq_sup s) x
+    have h := intervalConjugateKernelOperator_abs_le hts
+      (hq_int s hs0 hsT) (hq_sup s hs0 hsT) x
     calc |intervalConjugateKernelOperator (t - s) (q s) x|
         ≤ Cg * (t - s) ^ (-(1 / 2) : ℝ) * Cq := by simpa [Cg] using h
       _ = Cg * Cq * (t - s) ^ (-(1 / 2) : ℝ) := by ring
@@ -490,12 +493,16 @@ theorem conjugateDuhamel_sup_bound
   have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
     rw [ae_iff]
     simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hne0 : ∀ᵐ s : ℝ ∂volume, s ≠ 0 := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
   have hae : (fun s : ℝ => |intervalConjugateKernelOperator (t - s) (q s) x|)
       ≤ᵐ[volume.restrict (Set.Icc 0 t)]
       (fun s : ℝ => Cg * Cq * (t - s) ^ (-(1/2) : ℝ)) := by
     refine (ae_restrict_iff' measurableSet_Icc).2 ?_
-    filter_upwards [hne] with s hs_ne hs_mem
-    exact hptw s hs_mem.1 (lt_of_le_of_ne hs_mem.2 hs_ne)
+    filter_upwards [hne, hne0] with s hs_ne hs_ne0 hs_mem
+    exact hptw s (lt_of_le_of_ne hs_mem.1 (Ne.symm hs_ne0))
+      (lt_of_le_of_ne hs_mem.2 hs_ne)
   calc |∫ s in (0:ℝ)..t, intervalConjugateKernelOperator (t - s) (q s) x|
       ≤ ∫ s in (0:ℝ)..t, |intervalConjugateKernelOperator (t - s) (q s) x| :=
         intervalIntegral.abs_integral_le_integral_abs ht.le
@@ -529,13 +536,15 @@ theorem intervalConjugateKernelOperator_sub {τ x : ℝ} {f g : ℝ → ℝ}
 
 theorem conjugateDuhamel_diff_sup_bound
     {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {q₁ q₂ : ℝ → ℝ → ℝ}
-    {D : ℝ} (hD : 0 ≤ D) (hq_diff : ∀ s y, |q₁ s y - q₂ s y| ≤ D)
-    (hq_int_diff : ∀ s, Integrable (fun y => q₁ s y - q₂ s y) (intervalMeasure 1))
+    {D : ℝ} (hD : 0 ≤ D)
+    (hq_diff : ∀ s, 0 < s → s ≤ T → ∀ y, |q₁ s y - q₂ s y| ≤ D)
+    (hq_int_diff : ∀ s, 0 < s → s ≤ T →
+      Integrable (fun y => q₁ s y - q₂ s y) (intervalMeasure 1))
     (x : ℝ)
-    (hKq₁ : ∀ s, Integrable
+    (hKq₁ : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y => deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x y') y * q₁ s y)
       (intervalMeasure 1))
-    (hKq₂ : ∀ s, Integrable
+    (hKq₂ : ∀ s, 0 < s → s ≤ T → Integrable
       (fun y => deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x y') y * q₂ s y)
       (intervalMeasure 1))
     (hB_int : IntervalIntegrable
@@ -545,16 +554,17 @@ theorem conjugateDuhamel_diff_sup_bound
         (intervalConjugateKernelOperator (t - s) (q₁ s) x
           - intervalConjugateKernelOperator (t - s) (q₂ s) x)|
       ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * D := by
-  have hcongr : (fun s : ℝ => intervalConjugateKernelOperator (t - s) (q₁ s) x
+  have hcongr : ∀ᵐ s : ℝ ∂volume, s ∈ Set.uIoc 0 t →
+      (intervalConjugateKernelOperator (t - s) (q₁ s) x
         - intervalConjugateKernelOperator (t - s) (q₂ s) x)
-      = fun s : ℝ =>
-          intervalConjugateKernelOperator (t - s) (fun y => q₁ s y - q₂ s y) x := by
-    funext s
-    rw [intervalConjugateKernelOperator_sub (hKq₁ s) (hKq₂ s)]
-  rw [intervalIntegral.integral_congr
-      (g := fun s : ℝ =>
-        intervalConjugateKernelOperator (t - s) (fun y => q₁ s y - q₂ s y) x)
-      (fun s _ => congrFun hcongr s)]
+      = intervalConjugateKernelOperator (t - s) (fun y => q₁ s y - q₂ s y) x := by
+    refine Filter.Eventually.of_forall (fun s hs => ?_)
+    have hs' : s ∈ Set.Ioc 0 t := by
+      rwa [Set.uIoc_of_le ht.le] at hs
+    have hs0 : 0 < s := hs'.1
+    have hsT : s ≤ T := hs'.2.trans htT
+    rw [intervalConjugateKernelOperator_sub (hKq₁ s hs0 hsT) (hKq₂ s hs0 hsT)]
+  rw [intervalIntegral.integral_congr_ae hcongr]
   exact conjugateDuhamel_sup_bound ht htT hq_int_diff hD hq_diff x hB_int
 
 /-! ## Algebraic interior PDE core with the chemotaxis source retained -/

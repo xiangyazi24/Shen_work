@@ -155,8 +155,8 @@ theorem intervalConjugateDuhamelMap_ge_half_floor
       heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * H.CQ := by
     simpa [B] using
       ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-        ht htT (H.hQ_int n) H.hCQ
-        (H.hQ_bound n) x.1 (H.hB_int n t ht htT x)
+        ht htT (fun s _ _ => H.hQ_int n s) H.hCQ
+        (fun s _ _ => H.hQ_bound n s) x.1 (H.hB_int n t ht htT x)
   have hchem_abs :
       |(-p.χ₀) * B| ≤
         |p.χ₀| *

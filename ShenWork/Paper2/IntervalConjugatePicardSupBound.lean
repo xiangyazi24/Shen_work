@@ -71,7 +71,7 @@ theorem intervalConjugateDuhamelMap_sup_bound_of_banked
       ≤ |p.χ₀| * (heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * Cq) := by
     rw [abs_mul, abs_neg]
     exact mul_le_mul_of_nonneg_left
-      (conjugateDuhamel_sup_bound ht htT hq_int hCq hq_sup x.1 hB_int)
+      (conjugateDuhamel_sup_bound ht htT (fun s _ _ => hq_int s) hCq (fun s _ _ => hq_sup s) x.1 hB_int)
       (abs_nonneg p.χ₀)
   -- Logistic leg: value-Duhamel sup bound.
   have hL : |Lleg| ≤ T * Cl :=

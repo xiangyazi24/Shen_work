@@ -87,7 +87,7 @@ structure ConjugateMildExistenceCore (p : CM2Params)
     HasJointMeasurability u →
     HasJointMeasurability w →
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
-    ∀ s y, |chemFluxLifted p (u s) y - chemFluxLifted p (w s) y| ≤ CQ * d
+    ∀ s, 0 < s → s ≤ T → ∀ y, |chemFluxLifted p (u s) y - chemFluxLifted p (w s) y| ≤ CQ * d
   hflux_diff_integrable : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
     (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x) →
@@ -98,7 +98,7 @@ structure ConjugateMildExistenceCore (p : CM2Params)
     HasJointMeasurability u →
     HasJointMeasurability w →
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
-    ∀ s, Integrable
+    ∀ s, 0 < s → s ≤ T → Integrable
       (fun y => chemFluxLifted p (u s) y - chemFluxLifted p (w s) y)
       (intervalMeasure 1)
   hflux_kernel_integrable_left : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
@@ -111,7 +111,7 @@ structure ConjugateMildExistenceCore (p : CM2Params)
     HasJointMeasurability u →
     HasJointMeasurability w →
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
-    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ∀ s,
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ∀ s, 0 < s → s ≤ T →
       Integrable
         (fun y =>
           deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x.1 y') y
@@ -127,7 +127,7 @@ structure ConjugateMildExistenceCore (p : CM2Params)
     HasJointMeasurability u →
     HasJointMeasurability w →
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
-    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ∀ s,
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ∀ s, 0 < s → s ≤ T →
       Integrable
         (fun y =>
           deriv (fun y' : ℝ => intervalNeumannFullKernel (t - s) x.1 y') y

@@ -161,7 +161,7 @@ theorem conjugateDuhamel_sup_bound_of_integrable_sources
       (fun s : ℝ => intervalConjugateKernelOperator (t - s) (q s) x)
       volume 0 t
   · exact ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-      ht htT hq_int hCq hq_sup x hB_int
+      ht htT (fun s _ _ => hq_int s) hCq (fun s _ _ => hq_sup s) x hB_int
   · rw [intervalIntegral.integral_undef hB_int, abs_zero]
     exact mul_nonneg
       (mul_nonneg heatGradientLinftyLinftyConstant_nonneg
