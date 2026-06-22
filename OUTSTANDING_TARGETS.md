@@ -298,3 +298,28 @@ CosineCoeff_l2_bound); the ONE genuinely-missing analytic input = spatial sine-P
 interchange — build from tsum_sq_fourierCoeffOn on the odd reflection). That is the real next brick.
 LESSON: a comment labeling a carried field "SATISFIABLE" is an ASSERTION, not a proof — test it. The audit
 caught it exactly because the producer ATTEMPTED the proof instead of trusting the label.
+
+## ★★★ STRUCTURAL INFLECTION — §3.3 FINGERPRINT (2026-06-22, 4th false field; STOP field-grind, AUDIT)
+H1-hom semigroup_form_identity (IntervalBFormCron2SemigroupWeakDuhamel.lean:191) is the FOURTH false-as-
+stated field this campaign (opus aebef98c, counterexample formalized axiom-clean, ChatGPT cross-checked):
+false for arbitrary u because test φ=-u_-(t) can be a spatial KINK (classical deriv=0 a.e. → spatial
+Dirichlet term collapses, fails to cancel nonzero time term). Counterexample: u₀=cos(πp), u(·,p)=-1 for
+p≤1/2 else 0, t=1/2 → contribution = π·e^{-π²/2} ≠ 0. Needs φ=-u_-(t) ∈ H¹.
+PATTERN (4 false fields, all same shape): source-bridge(closed-hderiv), bank-hchemCont(constExtend),
+H1-grad(∀f no L²), H1-hom(∀u no H¹). The structure NegativePartStandardHeatSemigroupDuhamelFacts (:168) +
+the deepest bundle PositiveDatumBFormSqDeepestHypotheses (IntervalBFormPositiveDatumLocalExistenceSqDeepest
+.lean:35) carry the weak-identity facts as ASSUMED hypotheses with ZERO regularity assumption on
+u=conjugatePicardLimit (a MILD solution). That under-hypothesis is exactly why the fields are false-as-stated.
+THE STRUCTURAL QUESTION (§3.3 vacuity/satisfiability — must answer before fixing field-by-field):
+ Is u=conjugatePicardLimit's spatial H¹ regularity (for t>0, via parabolic smoothing / the built H^σ
+ bootstrap engine) GENUINELY AVAILABLE to discharge all 4 fields' regularity hypotheses — making the bundle
+ sound with a single u-regularity input — OR is that regularity CIRCULAR with what local existence (hF1/H3)
+ is supposed to produce, making the carried hypotheses unsatisfiable (vacuous bundle)?
+ · If available (parabolic smoothing is a genuine separate input): fix = add ONE u-regularity field to the
+   bundle (u t ∈ H¹ for t∈(0,T]), discharged by the bootstrap; all 4 weak-identity fields then become true.
+   This RE-ELEVATES the H^σ bootstrap from "off critical path" to the discharging foundation. NON-circular.
+ · If circular: the carried-hypothesis design is broken; needs redesign, not hypothesis-patching.
+NOTE: H1-grad's MemLp fix (268754f) is clean/non-circular REGARDLESS (flux slices trivially L²); that fix
+stands. The circularity risk is specifically the u-regularity (H¹) the SOLUTION-tested fields need.
+ACTION: structural audit dispatched (does parabolic smoothing of the mild solution give u t∈H¹ for t>0
+independently, or is it circular with hF1?). DO NOT patch H1-hom/src/chem field-by-field until answered.
