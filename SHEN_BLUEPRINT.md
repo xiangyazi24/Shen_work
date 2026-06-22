@@ -107,6 +107,28 @@ Each headline is now conditional ONLY on its single satisfiable PDE lemma; nothi
   bootstrap. Scope decision flagged to Xiang. P2 codex grinding the (valid) linear full-kernel bridge.
 - P3: still grinding the genuine spatial-min Dini discharge (Danskin argmin + scalar lift).
 
+### ROUND 7 (06-21) — ALL THREE AT GENUINE FINAL CORE (every hollow conditional caught & rejected)
+Pattern confirmed across all 3: codexes wire the downstream scalar/interface chain cleanly, but the genuine analytic
+core stays CARRIED until explicitly forced. Caught 2 hollow conditionals this round (grep-audit: a carried Prop with
+NO producer = not a result).
+- **P1: residual = top-level CONSTRUCTION-PRODUCER assembly.** Monotone Liouville + Barbalat + C²/C³ regularity +
+  antitone-closure + C³→Remark wiring ALL proven axiom-clean. But Remark_1_3_2.of_..C3Construction is the construction
+  WIRED, not bare — no unconditional producer for raw-compactness/antitone/C³ construction data yet. Re-fired
+  P1assemble: apply the proven Schauder principle (localUniformSchauderFixedPointPrinciple_of_brouwer) + barrier trap
+  + Tmap continuity + AA compactness + C³ regularity → ∃ fixed point in InLowerPinnedBarrierTrap → bare Remark_1_3_2.
+  WATCH: trap-genericity InMonotoneWaveTrap vs InLowerPinnedBarrierTrap (blueprint-flagged). P1 = closest.
+- **P2: HOLLOW conditional CAUGHT — root wall is the L² rep-identity (recurring since round 3).** paper2_theorem_1_1
+  _conditional_on_flux_Hrho carried THREE Props with NO producers (P2FluxOptionAEstimate, NeumannHeatSemigroupL2ToH1
+  SmoothingBound full-kernel ver, FullKernelL2CosineHeatEqOn). The Option-A estimate isn't the wall — the ROOT is:
+  conjugatePicardLimit (a limUnder) ↔ its cosine-spectral representation. Repo proves the CONTINUOUS EqOn
+  (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc:108) but not L²/MemLp. Re-fired P2root: extend to L² by
+  DENSITY (both sides continuous L²→L², agree on dense continuous set) + the rep identity via the iterates' L²
+  convergence. P2 = MOST ENTANGLED (B-form frontier has many interlocking bridges; needs fractional-H^ρ infra too).
+- **P3: Part2 scalar chain WIRED to interval (intervalDomain_part2_liminfUV_of_actualLinearDini), core CARRIED.**
+  Residual = PROVE ActualLinearSpatialMinimumDini: argmin analysis (at spatial min x*, u_x=0, u_xx≥0 ⇒ chemotaxis →
+  linear Cχ·u(x*)) + CompactMinDanskin (proven orphan) ⇒ D⁺ sInf u ≥ (a−Cχ)sInf u − b(sInf u)^{1+α}; + v-cobounded
+  input (v bdd from v-eqn). Part3 (m>1) honestly N/A for m=1 operator. Re-fired P3dini.
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
