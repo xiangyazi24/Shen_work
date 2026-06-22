@@ -301,3 +301,5 @@ import ShenWork.Paper2.IntervalSourceBridgeOpen
 import ShenWork.Paper2.IntervalBankChemSliceFix
 
 import ShenWork.Paper2.IntervalNeumannHeatGradientL2
+
+import ShenWork.Paper2.IntervalMildPosTimeHSigma
