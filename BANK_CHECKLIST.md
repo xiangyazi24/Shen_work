@@ -308,3 +308,16 @@ Updated: 2026-06-22 (full build clean; honest headline status).
   (d) assemble IterateSourceTimeData → ChemDivSolutionRegularityResidual → win (landed producer) →
       END GATE (landed) → χ₀<0 IsPaper2ClassicalSolution unconditional → P3 cascade.
 Updated: 2026-06-22 (WALL-A complete; assembly is the last P2 integration).
+
+## ★ χ₀<0 REDUCED TO ITS GENUINE PDE HARD CORE (9c4724c, 20 bricks this run)
+ENTIRE per-time analytic bootstrap LANDED + WIRED (engine, WALL-A/B/C, composition, single-step,
+hdecomp, envelope-packaging, Fubini discharged, iteration→C²). The χ₀<0 boundedness now bottoms out at
+TWO genuine PDE pieces (not scaffolding):
+  (1) UNIFORM-IN-TIME H^σ flux closure = the L^∞ max-principle a priori bound (‖u‖_∞≤max(‖u₀‖_∞,K),
+      favorable χ₀≤0 sign — cron1b) → engine's uniform-on-[c,t] bound → uniform H^σ envelope g. [crux]
+  (2) time-regularity (du/d2u from ∂ₜu=Δu−χ₀∂ₓflux+logistic) + IterateSourceTimeData assembly → win → END GATE.
+## P1 — genuine PDE floors (parallel hard cores)
+hprodAll (per-step parabolic solver), hstationary (GreenIdentity), hsmp (ODE-realization), hflat (C³-tail).
+## HONEST: analytic scaffolding 100% landed + full build clean; the genuine PDE hard cores (Gronwall/L^∞
+## a priori for P2, parabolic existence for P1) are the substantial remaining work for the unconditional audit.
+Updated: 2026-06-22 (χ₀<0 reduced to L^∞/Gronwall crux + time-reg/assembly; P1 to 4 parabolic floors).
