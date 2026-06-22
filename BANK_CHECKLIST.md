@@ -272,3 +272,12 @@ Updated: 2026-06-22 (WALL-B χ₀≠0 resolved via divergence-mode; 5 bricks lan
 ✅ left floor ✅ Schauder ✅ per-step Green solve + existence + max-principle (44d209d)
 🔨 PaperStepOutput order (W≤Z/monotone/left-rate) + Rothe limit [a58db7a2] → RightVanishingWaveExistence.
 Updated: 2026-06-22 (8 bricks landed this stretch; analytic prizes done, WALL-A flux residual + assembly remain).
+
+## STATUS 2026-06-22 (fa57fb4) — 10 bricks landed this run
+P2 χ₀<0 walls: ✅ ENGINE ✅ WALL-B(full: 8d956e3+7e795d9) ✅ WALL-C ✅ WALL-A(algebra+flux: 58d9edd+fa57fb4)
+  🔨 WALL-A connector (function bridge cosineCoeffs(fg)=cosProd + (1+v)^{−β} composition) [ae01c4a4]
+  🔨 ASSEMBLY (iterate engine on gradient soln → IterateSourceTimeData → win → END GATE; bind flux hchem)
+P1: ✅ left floor ✅ Schauder ✅ per-step(44d209d) ✅ order layer(a15e1e1)
+  🔨 chemotaxis quasi-monotonicity flux-diff IBP (stepFlux_diff_ibp) [ab1bde60] 🔨 Rothe limit hstationary
+P3: ✅ persistence m=1 ✅ equilibrium witness; cascades from P2 boundedness.
+Remaining to all-3-unconditional: WALL-A connector + P2 assembly + P1 IBP/Rothe. All routes dead-end-free.
