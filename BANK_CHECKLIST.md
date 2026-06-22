@@ -281,3 +281,18 @@ P1: ✅ left floor ✅ Schauder ✅ per-step(44d209d) ✅ order layer(a15e1e1)
   🔨 chemotaxis quasi-monotonicity flux-diff IBP (stepFlux_diff_ibp) [ab1bde60] 🔨 Rothe limit hstationary
 P3: ✅ persistence m=1 ✅ equilibrium witness; cascades from P2 boundedness.
 Remaining to all-3-unconditional: WALL-A connector + P2 assembly + P1 IBP/Rothe. All routes dead-end-free.
+
+## ✅ FULL ShenWork BUILD CLEAN (76e3654, 8828 jobs, 2026-06-22)
+After fixing the latent dedup breakage (WavePaperTermConvergence never compiled on origin/main), the
+ENTIRE library builds end-to-end. Foundation for the playbook audit. 14 bricks landed this run.
+
+## HONEST HEADLINE STATUS (full build ≠ unconditional headlines)
+- P2 χ₀=0: ✅ UNCONDITIONAL (from_cone_construction).
+- P2 χ₀<0: 🔨 CONDITIONAL — engine + all walls (A/B/C) landed; remaining = WALL-A residuals (CosineMulBridge
+  + (1+v)^{−β} composition, in flight a1b105c3) + the ASSEMBLY (iterate engine on D.u → IterateSourceTimeData
+  → win → END GATE). Most reachable next milestone.
+- P3: 🔨 persistence(m=1)+equilibrium landed, CONDITIONAL on PositiveGlobalBoundedSolution (= P2 χ₀<0). Cascades.
+- P1: 🔨 CONDITIONAL on 4 genuine PDE-construction floors: hprodAll (per-step parabolic solver — DEEPEST,
+  no producer), hstationary (GreenIdentity), hsmp (ODE-realization), hflat (C³ Green-source-tail). hLU discharged.
+Audit (all-3-unconditional) NOT yet reached; library builds, cores landed, residuals named.
+Updated: 2026-06-22 (full build clean; honest headline status).
