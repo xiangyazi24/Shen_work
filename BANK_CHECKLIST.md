@@ -296,3 +296,15 @@ ENTIRE library builds end-to-end. Foundation for the playbook audit. 14 bricks l
   no producer), hstationary (GreenIdentity), hsmp (ODE-realization), hflat (C³ Green-source-tail). hLU discharged.
 Audit (all-3-unconditional) NOT yet reached; library builds, cores landed, residuals named.
 Updated: 2026-06-22 (full build clean; honest headline status).
+
+## P2 χ₀<0 — ALL ANALYTIC PIECES LANDED (7b8ebf0, 17 bricks this run)
+✅ ENGINE ✅ WALL-A(algebra+flux+bridge+composition; flux LINEAR in u m=1) ✅ WALL-B(coeff↔solution)
+✅ WALL-C(C² embedding). KEY: flux φ=u·v_x·(1+v)^{−β} — u linear, (1+v)^{−β} via C^k-decay (v 2-ahead).
+🔨 ASSEMBLY (the remaining P2 integration):
+  (a) single-step bootstrap on D.u: u∈MemHSigma σ ⟹ u∈MemHSigma(σ+1/2) [flux∈H^σ via WALL-A product +
+      composition → F=sineCoeffs → engine → WALL-B coeff identity]. THE CRUX.
+  (b) iterate (a) to MemHSigma(>5/2) → WALL-C → ContDiffOn 2 (space C²).
+  (c) time regularity du/d2u from the equation ∂ₜu=Δu−χ₀∂ₓ(flux)+logistic.
+  (d) assemble IterateSourceTimeData → ChemDivSolutionRegularityResidual → win (landed producer) →
+      END GATE (landed) → χ₀<0 IsPaper2ClassicalSolution unconditional → P3 cascade.
+Updated: 2026-06-22 (WALL-A complete; assembly is the last P2 integration).
