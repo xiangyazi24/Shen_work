@@ -94,3 +94,33 @@ NOT 5 leaf lemmas. Two substantial pieces:
 frontier hSupNormDeriv (fixed→dropped 5059227), bank globals (diagnosed). Same pattern.
 
 Updated: 2026-06-22 (frontier fix landed 5059227; bank re-scoped).
+
+## SCOREBOARD (2026-06-22, after c32453d)
+LANDED axiom-clean (cold-build 3642 jobs):
+  ✅ field 9  hlogCont      — coupledLogistic_constExtend_continuous_of_limit (unconditional from DB)
+  ✅ field 10 hlogFourier   — coupledLogistic_fourierCoeff_summable_of_limit (unconditional from DB)
+  🟡 field 12 hchemFourier  — hchemFourier_of_chemDiv_C2Neumann (conditional interface; residual = C²→C⁴)
+  🟡 field 2  Hinf          — 6 windowed integrability bricks (hQ_int/hB_int/hL_int); global hQ/hL_bound block
+ALSO LANDED: ✅ frontier hSupNormDeriv DROPPED (5059227, false+unused).
+HELD (target over-strong type, NOT banked): field 7 hchemSrc (B's reduction → global DuhamelSourceTimeC1).
+FALSE-AS-TYPED (need refactor): field 7 (global→windowed+integrable-sing), field 11 hchemCont
+  (constExtend(chemDiv) discontinuous at endpoints since v''(0)≠0 → interior-representative), field 2
+  hQ_bound/hL_bound (global→windowed).
+BLOCKED on regularity: field 6 hlogSrc, field 8 hB_global (need RestartCosineRepr for the limit),
+  field 12 residual (C²→C⁴ elliptic-gain wiring on conjugatePicardLimit).
+
+## LINCHPIN (verified): GradientMildSolutionData IS produced unconditionally
+intervalDomain_gradientMildSolutionData_of_continuous_positiveDatum (IntervalPositiveDatumThreshold:56),
+coneGradientMildSolutionData_exists_with_gate_data (χ₀=0 in-tower). So χ₀<0 boundedness is NOT
+axiomatized — it bottoms out at the chemotaxis-source HALF-STEP REGULARITY upgrade (the gradient path
+HAS the regularity machinery via GradientMildHalfStepRestartData → IsPaper2ClassicalSolution; at χ₀=0
+the in-tower production handles logistic-only; χ₀<0 needs the chemotaxis half-step). That + the bank
+field-type refactor = the true remaining core. NOT leaves.
+
+## NEXT (architecture fork surfaced to Xiang)
+A) Refactor bank field types → positive-time windowed + integrable-singularity + interior representatives
+   (cron1c BFormSourceRegularity; A's interior-rep finding). In-place vs fresh structure = Xiang's call.
+B) Chemotaxis half-step regularity: wire GradientMildHalfStepRestartData (the gradient path's regularity
+   engine, already producing IsPaper2ClassicalSolution at χ₀=0) to carry the chemotaxis source for χ₀<0.
+
+Updated: 2026-06-22 (c32453d: fields 9/10/12-iface/2-windowed landed; linchpin verified favorable).
