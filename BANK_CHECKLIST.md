@@ -124,3 +124,28 @@ B) Chemotaxis half-step regularity: wire GradientMildHalfStepRestartData (the gr
    engine, already producing IsPaper2ClassicalSolution at χ₀=0) to carry the chemotaxis source for χ₀<0.
 
 Updated: 2026-06-22 (c32453d: fields 9/10/12-iface/2-windowed landed; linchpin verified favorable).
+
+## ★★★ ROUTE RESOLVED (2026-06-22, B-scoping map ada83a41) — ABANDON BANK, USE GRADIENT PATH
+The B-form bank (BFormBankedInputs, 4 over-strong fields) is the WRONG OBJECT. The faithful route
+to χ₀<0 Paper-2 boundedness is the GRADIENT PATH (same engine that makes χ₀=0 unconditional):
+- Engine `isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData`
+  (IntervalMildToLocalExistence.lean:456) is SOURCE-AGNOSTIC; `GradientMildClassicalCoreData.hpde_u`
+  (:157) ALREADY carries −χ₀·chemotaxisDiv for all χ₀. The bank-refactor architecture fork is MOOT.
+- Entire χ₀<0 classical regularity reduces to ONE genuine analytic brick + 4 mechanical wirings.
+
+### THE 5-BRICK GRADIENT-PATH PLAN (subagent a2f8e776 attacking)
+- 🔨 BRICK 2 (THE GAP, load-bearing): `duhamelSourceTimeC1_of_shifted_On` — lift windowed one-sided
+  DuhamelSourceTimeC1On → global two-sided DuhamelSourceTimeC1 for the t/2-SHIFTED chemDiv source.
+  The t/2 shift dissolves the s→0+ singularity (shifted s=0 = physical t/2>0). Needs HasDerivWithinAt
+  →HasDerivAt + envelope Icc→0≤s, via CoupledChemDivLocalChainRule + chemDivMixedTimeDeriv_
+  jointContinuousOn_closed + resolver_memHSigmaPlus2_of_memHSigma. Builds on landed
+  DuhamelSourceTimeC1On.shift_zero + ChemDivUncond windowed producer (already does the shift-trick).
+- ⚙️ BRICK 1: chemDivShiftedSource...On_of_window (CLEAN, = shift_zero instantiation)
+- ⚙️ BRICK 3: coupledChemDivTimeC1Fields_shifted_of_solutionRegularity (CLEAN-ish given #2)
+- ⚙️ BRICK 4: gradientMildHalfStepRestartData_of_chemDivSourceData (CLEAN given 1-3)
+- ⚙️ BRICK 5 = END GATE: wire into the engine → χ₀<0 IsPaper2ClassicalSolution (CLEAN)
+If #2 lands + wirings compile → χ₀<0 Paper-2 boundedness UNCONDITIONAL → P3 PositiveGlobalBoundedSolution
+discharged → P3 unconditional persistence cascade.
+
+Bank bricks landed (fields 9/10/12-iface/2-windowed, c32453d) still feed Residual A (CoupledChemDivTimeC1Fields).
+Updated: 2026-06-22 (route resolved: gradient path; χ₀<0 = brick #2 + 4 wirings).
