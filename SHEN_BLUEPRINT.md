@@ -129,6 +129,21 @@ NO producer = not a result).
   linear Cχ·u(x*)) + CompactMinDanskin (proven orphan) ⇒ D⁺ sInf u ≥ (a−Cχ)sInf u − b(sInf u)^{1+α}; + v-cobounded
   input (v bdd from v-eqn). Part3 (m>1) honestly N/A for m=1 operator. Re-fired P3dini.
 
+### ROUND 8 (06-21) — P1 ROUTE REFINEMENT: monotonicity is a genuine SEPARATE analytic core
+- **P1: T does NOT preserve antitone (Pro VERIFIED 5556ceda3).** fixed-source existence is PROVEN
+  (fixedSourceLowerPinnedBarrier_exists_fixed_of_green_apriori, axiom-clean) but lands in the BARRIER trap (non-
+  monotone). The chain u antitone ⇒ V[u] antitone ✓ ⇒ source antitone ✗ (logistic-after-shift sign param-dependent;
+  chemotaxis source derivative no one-sided sign) ⇒ T(u) antitone ✗. So monotonicity of the wave is a SEPARATE
+  genuine analytic core, NOT wiring/trap-membership. The monotone Liouville (proven) NEEDS antitone ⇒ must prove it.
+  CORRECT mechanism (Pro Option B/C): differentiate the profile eqn, w=U' solves a linear (parabolic/elliptic) eqn,
+  MAXIMUM PRINCIPLE under paper sign/param assumptions + w→0 at ±∞ ⇒ w≤0 ⇒ U antitone. Does NOT need source-antitone.
+  So P1's REAL last core = the U'-max-principle monotonicity theorem (+ then the 2 wiring producers). NOT one-step-away.
+  (My round-1 pivot assumed "trap is monotone" per ChatGPT v1 — but fixed-source lands in the barrier trap; monotone
+  trap needs T-preserves-mono which is false. Liouville-route correction: prove monotonicity via U' max principle.)
+- This puts all 3 papers at one genuine HARD analytic core each: P1 = U'-max-principle monotonicity; P2 = L²
+  cosine-spectral rep of conjugatePicardLimit (+ fractional H^ρ); P3 = spatial-min argmin Dini. None is mere wiring;
+  each is a real (standard, satisfiable) PDE lemma. Codexes grinding all three.
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
