@@ -264,3 +264,6 @@ import ShenWork.Paper2.IntervalConjugateLogisticDiffBall
 import ShenWork.Paper2.IntervalConjugateBallSupBound
 import ShenWork.Paper2.IntervalConjugateConePreserved
 import ShenWork.Paper2.IntervalConjugatePicardCoreInhabit
+import ShenWork.Paper2.IntervalBankSourceSliceLeaves
+import ShenWork.Paper2.IntervalBankChemDivFourier
+import ShenWork.Paper2.IntervalBankInfAndLogSrcWiring
