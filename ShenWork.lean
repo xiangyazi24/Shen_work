@@ -271,3 +271,4 @@ import ShenWork.Paper2.Brick2ShiftedGlobalize
 import ShenWork.Paper2.Brick4ChemDivHalfStep
 import ShenWork.Paper2.Brick5EndGate
 import ShenWork.Paper2.IntervalChemDivWinDischarge
+import ShenWork.Paper1.IntervalP1PerStepFixedSource
