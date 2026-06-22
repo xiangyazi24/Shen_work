@@ -56,7 +56,7 @@ Route: ChatGPT-Pro-verified fractional bootstrap (answers/p2-flux-Hrho-parabolic
 ## Scoreboard
 Reusable bricks: B1 ✅, B2 ✅, B4 ✅, B3-scalars ✅ (kernel-L2 + L∞-multiplier landed,
 axiom-clean; ORIGINAL L²ₜL²ₓ B3-full statement found FALSE, corrected to L∞ₜL²ₓ route);
-B3-full operator-level Minkowski assembly 🟡 (per-mode cores all landed);
+B3-full operator-level H^sigma energy assembly DONE (per-mode + tsum, axiom-clean, Jun 22);
 B5 ⬜, B6 ⬜.
 Terminal bridges: 0/3 discharged. paper2_theorem_1_1 still CONDITIONAL on the
 three bridges (NOT unconditional yet).
@@ -98,11 +98,35 @@ The B-divergence kernel only has L²_t L²_x → L²_x smoothing, no positive fr
       Supporting: `weight_sqrt_le` (√λ(1+λ)^{σ/2}≤(1+λ)^{(σ+1)/2}),
       `one_add_rpow_le` ((1+λ)^θ≤2^θ(1+λ^θ)).
 
-### REMAINING for B3-full (operator level):
-The Minkowski integral-triangle inequality ‖∫₀ˢ K(s−τ,·)F(τ)dτ‖_{Hσ} ≤
-∫₀ˢ ‖K(s−τ,·)F(τ)‖_{Hσ}dτ over the ℓ²-valued integrand, then per-τ ℓ²-pullout via
-`linfty_multiplier_bound` and the landed terminal-singularity integral. Needs Mathlib
-Bochner/Minkowski-over-ℓ² machinery. Per-mode scalar cores all landed.
+### B3-full OPERATOR LEVEL - LANDED (Jun 22, axiom-clean, ShenWork green)
+Two new files, wired into ShenWork.lean (8743 jobs green):
+
+- IntervalBFormHSigmaDuhamelMode.lean:
+  * duhamelModeCoeff d lam F s = int_0^s sqrt(lam) e^{-d lam (s-tau)} F(tau) dtau.
+  * integral_reflected_singularity: int_0^s (s-tau)^{-p} = s^{1-p}/(1-p).
+  * intervalIntegrable_reflected_singularity: reflected integrand integrable, p<1.
+  * hSigma_mode_duhamel_bound (THE per-mode H^sigma bound):
+    (1+lam)^{sigma/2}|B_k(s)| <= C_sigma M_k s^{(1-sigma)/2}/((1-sigma)/2),
+    0<=sigma<1, d>0, 0<s<=1, |F|<=M on [0,s]. Route = abs_integral_le_integral_abs,
+    integral_const_mul, integral_mono_on_of_le_Ioo (excludes tau=s null endpoint
+    where (s-tau)^{-p}=0 clashes with finite kernel), landed linfty_multiplier_bound,
+    integral_reflected_singularity. Pure scalar interval calculus, NO Bochner/l2.
+
+- IntervalBFormHSigmaDuhamelEnergy.lean:
+  * duhamelEnergyCoeff d F s k = duhamelModeCoeff d (lam k) (F k) s.
+  * hSigma_mode_sq_bound: (1+lam_k)^sigma B_k(s)^2 <= C^2 R(s)^2 (Msup k)^2.
+  * hSigmaEnergy_duhamel_bound (THE operator H^sigma energy bound):
+    MemHSigma sigma (duhamelEnergyCoeff..) AND hSigmaEnergy sigma (..) <=
+    C_sigma^2 R(s)^2 sum_k (Msup k)^2, given Summable (Msup^2). Assembly =
+    Summable.of_nonneg_of_le + tsum_le_tsum + tsum_mul_left.
+
+### RESIDUAL on B3 (precise):
+Landed operator constant is sum_k (Msup_k)^2 (l2 of per-mode TIME-SUP envelope),
+NOT the sharp M_inf^2 = sup_tau sum_k F_k(tau)^2. Since sum_k sup_tau >= sup_tau
+sum_k this is a correct weaker bound; CLOSES the bootstrap whenever the source's
+per-mode sup envelope is l2-summable. Sharp M_inf^2 needs the l2-valued Minkowski
+integral-triangle (norm_integral_le_integral_norm into lp R 2, Bochner) - deferred.
+The Msup^2 form is what B5 (chemotaxis flux product, smooth in tau) feeds.
 
 ### B6 route correction (ChatGPT-verified): closes only for t>0 / on [ε,T], NOT to t=0
 (unless H¹ initial data). The genuine bottleneck is NOT the B3 estimate but the

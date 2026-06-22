@@ -248,3 +248,5 @@ import ShenWork.Paper2.IntervalHSigmaScale
 import ShenWork.Paper2.IntervalBFormHSigmaSmoothing
 import ShenWork.Paper2.IntervalBFormHSigmaKernelL2
 import ShenWork.Paper2.IntervalBFormHSigmaLinftyMultiplier
+import ShenWork.Paper2.IntervalBFormHSigmaDuhamelMode
+import ShenWork.Paper2.IntervalBFormHSigmaDuhamelEnergy
