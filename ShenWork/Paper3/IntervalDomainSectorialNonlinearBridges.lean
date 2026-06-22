@@ -4,7 +4,8 @@
   This file does not prove the Duhamel bootstrap or lower-barrier arguments.
   It discharges the formal glue around them:
   * a global Cauchy-solution package implies both small-data existence fields;
-  * pointwise eventual lower barriers imply the four raw persistence fields.
+  * pointwise eventual lower barriers, together with the paper-faithful liminf
+    frontiers, imply the four raw persistence fields.
 -/
 import ShenWork.Paper3.IntervalDomainSectorial
 import ShenWork.Paper3.IntervalDomainTheorem21Part1
@@ -53,6 +54,9 @@ def IntervalDomainUniformPersistencePart1PointwiseRaw
     ∀ u v : ℝ → intervalDomain.Point → ℝ,
       PositiveGlobalBoundedSolution intervalDomain p u v →
         ∃ δu > 0,
+          δu ≤ liminfInfValue intervalDomain u ∧
+          p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+            liminfInfValue intervalDomain v ∧
           (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, δu ≤ u t x) ∧
           (∀ᶠ t in atTop, ∀ x : intervalDomain.Point,
             p.ν / p.μ * δu ^ p.γ ≤ v t x)
@@ -67,7 +71,10 @@ def IntervalDomainUniformPersistencePart2PointwiseRaw
           let lowerU :=
             ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
               (1 / p.α)
-          (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, lowerU ≤ u t x) ∧
+          lowerU ≤ liminfInfValue intervalDomain u ∧
+            p.ν / p.μ * lowerU ^ p.γ ≤
+              liminfInfValue intervalDomain v ∧
+            (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, lowerU ≤ u t x) ∧
             (∀ᶠ t in atTop, ∀ x : intervalDomain.Point,
               p.ν / p.μ * lowerU ^ p.γ ≤ v t x)
 
@@ -80,7 +87,10 @@ def IntervalDomainUniformPersistencePart3PointwiseRaw
         let lowerU :=
           min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
             max (1 / (p.m - 1)) (1 / p.α)
-        (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, lowerU ≤ u t x) ∧
+        lowerU ≤ liminfInfValue intervalDomain u ∧
+          p.ν / p.μ * lowerU ^ p.γ ≤
+            liminfInfValue intervalDomain v ∧
+          (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, lowerU ≤ u t x) ∧
           (∀ᶠ t in atTop, ∀ x : intervalDomain.Point,
             p.ν / p.μ * lowerU ^ p.γ ≤ v t x)
 
@@ -95,6 +105,8 @@ def IntervalDomainUniformPersistencePart4PointwiseRaw
         PositiveGlobalBoundedSolution intervalDomain p u v →
         HasInitialMass intervalDomain u uStar →
           0 < minimalVLowerFormula 1 p.γ uStar uBar ∧
+          minimalVLowerFormula 1 p.γ uStar uBar ≤
+            liminfInfValue intervalDomain v ∧
           (∀ᶠ t in atTop, ∀ x : intervalDomain.Point,
             minimalVLowerFormula 1 p.γ uStar uBar ≤ v t x)
 
@@ -104,16 +116,9 @@ theorem intervalDomain_uniformPersistencePart1Raw_of_pointwise
     (hpoint : IntervalDomainUniformPersistencePart1PointwiseRaw p) :
     UniformPersistencePart1Raw intervalDomain p := by
   intro hm u v huv
-  rcases hpoint hm u v huv with ⟨δu, hδu, hu, hv⟩
-  refine ⟨δu, hδu, ?_, ?_⟩
-  · exact
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        hδu hu
-  · have hvpos : 0 < p.ν / p.μ * δu ^ p.γ :=
-      mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hδu _)
-    exact
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        hvpos hv
+  rcases hpoint hm u v huv with
+    ⟨δu, hδu, huLower, hvLower, _hu, _hv⟩
+  exact ⟨δu, hδu, huLower, hvLower⟩
 
 /-- Pointwise lower barriers imply the second raw persistence field. -/
 theorem intervalDomain_uniformPersistencePart2Raw_of_pointwise
@@ -121,14 +126,9 @@ theorem intervalDomain_uniformPersistencePart2Raw_of_pointwise
     (hpoint : IntervalDomainUniformPersistencePart2PointwiseRaw p) :
     UniformPersistencePart2Raw intervalDomain p := by
   intro ha hb hχ0 hm hβ hχ u v huv
-  rcases hpoint ha hb hχ0 hm hβ hχ u v huv with ⟨hu, hv⟩
-  refine ⟨?_, ?_⟩
-  · exact
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        (theorem_2_1_part2_lowerU_pos p ha hb hχ0 hm hβ hχ) hu
-  · exact
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        (theorem_2_1_part2_lowerV_pos p ha hb hχ0 hm hβ hχ) hv
+  rcases hpoint ha hb hχ0 hm hβ hχ u v huv with
+    ⟨huLower, hvLower, _hu, _hv⟩
+  exact ⟨huLower, hvLower⟩
 
 /-- Pointwise lower barriers imply the third raw persistence field. -/
 theorem intervalDomain_uniformPersistencePart3Raw_of_pointwise
@@ -136,14 +136,9 @@ theorem intervalDomain_uniformPersistencePart3Raw_of_pointwise
     (hpoint : IntervalDomainUniformPersistencePart3PointwiseRaw p) :
     UniformPersistencePart3Raw intervalDomain p := by
   intro ha hb hχ0 hm hβ u v huv
-  rcases hpoint ha hb hχ0 hm hβ u v huv with ⟨hu, hv⟩
-  refine ⟨?_, ?_⟩
-  · exact
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        (theorem_2_1_part3_lowerU_pos p ha hb hχ0 hm hβ) hu
-  · exact
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        (theorem_2_1_part3_lowerV_pos p ha hb hχ0 hm hβ) hv
+  rcases hpoint ha hb hχ0 hm hβ u v huv with
+    ⟨huLower, hvLower, _hu, _hv⟩
+  exact ⟨huLower, hvLower⟩
 
 /-- Pointwise lower barriers imply the fourth raw persistence field for the
 concrete sectorial constants. -/
@@ -153,10 +148,8 @@ theorem intervalDomain_uniformPersistencePart4Raw_of_pointwise
     UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1 := by
   intro hCO ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
   rcases hpoint ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass with
-    ⟨hlower_pos, hpointwise⟩
-  simpa [minimalVLowerFormula] using
-    (intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-      hlower_pos hpointwise)
+    ⟨_hlower_pos, hlower, _hpointwise⟩
+  simpa [minimalVLowerFormula] using hlower
 
 /-- Bundled pointwise persistence frontiers. -/
 structure IntervalDomainSectorialPointwisePersistenceFacts

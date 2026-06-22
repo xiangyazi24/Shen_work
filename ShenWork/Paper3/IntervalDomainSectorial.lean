@@ -2753,16 +2753,17 @@ theorem intervalDomain_C51_minimal_of_persistence_raw
     (hglobal u v huv (by
       simpa [minimalEquilibrium_fst_eq] using hmass))
 
-/-- Theorem 2.1(1) extracted on the interval: any positive global bounded
-solution is eventually uniformly positive in both components. -/
+/-- Theorem 2.1(1) extracted on the interval in its paper-faithful liminf
+form. -/
 theorem intervalDomain_Theorem_2_1_part1_persistence
     {p : CM2Params} {C : Paper3Constants intervalDomain p}
     (h21 : Theorem_2_1 intervalDomain p C)
     (hm : 1 ≤ p.m)
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
-    ∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ) :=
+    ∃ δu > 0, δu ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+        liminfInfValue intervalDomain v :=
   h21.1 hm u v huv
 
 /-- Theorem 2.1(2) extracted on the interval for the `m = 1`, positive
@@ -2778,8 +2779,8 @@ theorem intervalDomain_Theorem_2_1_part2_persistence
     let lowerU :=
       ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
         (1 / p.α)
-    EventuallyLowerBound intervalDomain u lowerU ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * lowerU ^ p.γ) :=
+    lowerU ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * lowerU ^ p.γ ≤ liminfInfValue intervalDomain v :=
   h21.2.1 ha hb hχ0 hm hβ hχ u v huv
 
 /-- Theorem 2.1(3) extracted on the interval for the superlinear positive
@@ -2794,8 +2795,8 @@ theorem intervalDomain_Theorem_2_1_part3_persistence
     let lowerU :=
       min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
         max (1 / (p.m - 1)) (1 / p.α)
-    EventuallyLowerBound intervalDomain u lowerU ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * lowerU ^ p.γ) :=
+    lowerU ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * lowerU ^ p.γ ≤ liminfInfValue intervalDomain v :=
   h21.2.2.1 ha hb hχ0 hm hβ u v huv
 
 /-- Theorem 2.1(4) extracted on the interval for the minimal model. -/
@@ -2810,9 +2811,9 @@ theorem intervalDomain_Theorem_2_1_part4_persistence
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasInitialMass intervalDomain u uStar) :
-    EventuallyLowerBound intervalDomain v
-      (minimalVLowerFormula
-        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) :=
+    minimalVLowerFormula C.gaussianLowerConst p.γ uStar
+        (C.eventualMinimalUBound uStar) ≤
+      liminfInfValue intervalDomain v :=
   h21.2.2.2 ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
 
 /-- Theorem 2.1 persistence plus the nonminimal global-convergence frontier
@@ -2840,8 +2841,9 @@ theorem intervalDomain_C51_nonminimal_of_T21_persistence_raw
           (positiveEquilibrium p ⟨ha, hb⟩).2)
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
-    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    (∃ δu > 0, δu ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+        liminfInfValue intervalDomain v) ∧
     ExponentialC1Convergence intervalDomain N u v
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 := by
@@ -2876,8 +2878,9 @@ theorem intervalDomain_C51_minimal_of_T21_persistence_raw
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasInitialMass intervalDomain u uStar) :
-    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    (∃ δu > 0, δu ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+        liminfInfValue intervalDomain v) ∧
     ExponentialC1Convergence intervalDomain N u v
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
@@ -2916,9 +2919,9 @@ theorem intervalDomain_C51_minimal_of_T21_part4_raw
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasInitialMass intervalDomain u uStar) :
-    EventuallyLowerBound intervalDomain v
-      (minimalVLowerFormula
-        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) ∧
+    minimalVLowerFormula C.gaussianLowerConst p.γ uStar
+        (C.eventualMinimalUBound uStar) ≤
+      liminfInfValue intervalDomain v ∧
     ExponentialC1Convergence intervalDomain N u v
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
@@ -2960,8 +2963,9 @@ theorem intervalDomain_Theorem_2_1_part1_sectorialMainline
     (hm : 1 ≤ p.m)
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
-    ∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ) :=
+    ∃ δu > 0, δu ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+        liminfInfValue intervalDomain v :=
   intervalDomain_Theorem_2_1_part1_persistence h21 hm huv
 
 /-- Theorem 2.1(4) on the concrete sectorial interval constants, with the
@@ -2980,8 +2984,8 @@ theorem intervalDomain_Theorem_2_1_part4_sectorialMainline
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasInitialMass intervalDomain u uStar) :
-    EventuallyLowerBound intervalDomain v
-      (minimalVLowerFormula 1 p.γ uStar uBar) := by
+    minimalVLowerFormula 1 p.γ uStar uBar ≤
+      liminfInfValue intervalDomain v := by
   simpa [intervalDomainSectorialPaper3Constants] using
     intervalDomain_Theorem_2_1_part4_persistence
       (C := intervalDomainSectorialPaper3Constants p M0 uBar vLower)
@@ -3107,8 +3111,9 @@ theorem intervalDomain_C51_nonminimal_of_T21_sectorialMainline
           (positiveEquilibrium p ⟨ha, hb⟩).2)
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
-    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    (∃ δu > 0, δu ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+        liminfInfValue intervalDomain v) ∧
     ExponentialC1Convergence intervalDomain
       intervalDomainSectorialStabilityNorms u v
       (positiveEquilibrium p ⟨ha, hb⟩).1
@@ -3141,8 +3146,9 @@ theorem intervalDomain_C51_minimal_of_T21_sectorialMainline
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasInitialMass intervalDomain u uStar) :
-    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
-      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    (∃ δu > 0, δu ≤ liminfInfValue intervalDomain u ∧
+      p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+        liminfInfValue intervalDomain v) ∧
     ExponentialC1Convergence intervalDomain
       intervalDomainSectorialStabilityNorms u v
       (minimalEquilibrium p uStar).1
@@ -3180,8 +3186,8 @@ theorem intervalDomain_C51_minimal_of_T21_part4_sectorialMainline
     {u v : ℝ → intervalDomain.Point → ℝ}
     (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
     (hmass : HasInitialMass intervalDomain u uStar) :
-    EventuallyLowerBound intervalDomain v
-      (minimalVLowerFormula 1 p.γ uStar uBar) ∧
+    minimalVLowerFormula 1 p.γ uStar uBar ≤
+      liminfInfValue intervalDomain v ∧
     ExponentialC1Convergence intervalDomain
       intervalDomainSectorialStabilityNorms u v
       (minimalEquilibrium p uStar).1

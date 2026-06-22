@@ -100,6 +100,7 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.Paper2.IntervalDomainL2UStaticVControl
 import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 import ShenWork.Paper2.IntervalDomainResolverSupQuantitative
+import ShenWork.Paper2.IntervalDomainCrossDiffusionBootstrap
 import ShenWork.Paper2.IntervalResolverWeakBounds
 import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.Paper2.IntervalMildPicard
@@ -167,8 +168,6 @@ import ShenWork.Paper2.IntervalDomainConstExtendAdapter
 import ShenWork.Paper2.IntervalDomainF1Assembly
 import ShenWork.Paper2.IntervalDomainFinalWiring
 import ShenWork.Paper2.IntervalDomainMinPersistFinal
-import ShenWork.PDE.P3MoserActualWiring
-import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
 import ShenWork.Paper2.IntervalPicardGateSolve
 import ShenWork.Paper2.IntervalDomainHresWiring
@@ -240,3 +239,6 @@ import ShenWork.PDE.IntervalChemDivMixedReprConstruct
 import ShenWork.PDE.IntervalChemDivFluxHDgWiring
 import ShenWork.PDE.IntervalIterateGradMajorant
 import ShenWork.Paper1.BrouwerNDimFreudenthal
+import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
+import ShenWork.Paper3.IntervalDomainPersistenceActualLinearPart2

@@ -9,6 +9,7 @@
 import ShenWork.Paper2.Statements
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Topology.Order.LiminfLimsup
 
 open Filter Topology
 
@@ -162,6 +163,10 @@ def EventuallyLowerBound
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (δ : ℝ) : Prop :=
   0 < δ ∧ ∀ᶠ t in atTop, δ ≤ D.infValue (u t)
 
+def liminfInfValue
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) : ℝ :=
+  Filter.liminf (fun t => D.infValue (u t)) atTop
+
 def UniformConvergesInSup
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (a : ℝ) : Prop :=
   Tendsto (fun t => D.supNorm (fun x => u t x - a)) atTop (𝓝 0)
@@ -242,6 +247,16 @@ lemma EventuallyLowerBound.eventually
     (h : EventuallyLowerBound D u δ) :
     ∀ᶠ t in atTop, δ ≤ D.infValue (u t) :=
   h.2
+
+lemma EventuallyLowerBound.le_liminfInfValue
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {δ : ℝ}
+    (hcobdd :
+      IsCoboundedUnder (fun x y : ℝ => x ≥ y) atTop
+        (fun t => D.infValue (u t)))
+    (h : EventuallyLowerBound D u δ) :
+    δ ≤ liminfInfValue D u := by
+  unfold liminfInfValue
+  exact Filter.le_liminf_of_le (hf := hcobdd) (h := h.2)
 
 lemma UniformConvergesInSup.tendsto
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {a : ℝ}
@@ -3622,8 +3637,9 @@ def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   1 ≤ p.m →
     ∀ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v →
-        ∃ δu > 0, EventuallyLowerBound D u δu ∧
-          EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
+        ∃ δu > 0, δu ≤ liminfInfValue D u ∧
+          p.ν / p.μ * (liminfInfValue D u) ^ p.γ ≤
+            liminfInfValue D v
 
 /-- A degenerate bounded-domain API showing that Paper3 Theorem 2.1(1)
 cannot be proved from the current abstract `BoundedDomainData` interface alone.
@@ -5245,8 +5261,9 @@ def UniformPersistencePart1Raw
   1 ≤ p.m →
     ∀ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v →
-        ∃ δu > 0, EventuallyLowerBound D u δu ∧
-          EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
+        ∃ δu > 0, δu ≤ liminfInfValue D u ∧
+          p.ν / p.μ * (liminfInfValue D u) ^ p.γ ≤
+            liminfInfValue D v
 
 /-- Raw obstruction for `uniformPersistencePart1`: on the fake lower-envelope
 domain the positive constant solution exists, but `infValue` is identically
@@ -5262,12 +5279,8 @@ lemma not_UniformPersistencePart1Raw_no_lower_envelope :
   rcases h hm (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
       theorem21Part1Counter_positiveGlobalBounded with
     ⟨δu, hδu_pos, hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨_hδu_pos', hlower_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop, δu ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
-  have hnonpos : δu ≤ 0 := hT T le_rfl
+  have hnonpos : δu ≤ 0 := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hlowerU
   linarith
 
 lemma not_forall_Theorem_2_1_part1 :
@@ -5280,12 +5293,8 @@ lemma not_forall_Theorem_2_1_part1 :
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
       theorem21Part1Counter_positiveGlobalBounded with
     ⟨δu, hδu_pos, hδu_lower, _hv_lower⟩
-  rcases hδu_lower with ⟨_hδu_pos', hlower_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop, δu ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
-  have hnonpos : δu ≤ 0 := hT T le_rfl
+  have hnonpos : δu ≤ 0 := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hδu_lower
   linarith
 
 lemma theorem21NoLowerEnvelope_constant_one_classical
@@ -5351,8 +5360,8 @@ def Theorem_2_1_part2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         PositiveGlobalBoundedSolution D p u v →
           let lowerU :=
             ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
-          EventuallyLowerBound D u lowerU ∧
-            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+          lowerU ≤ liminfInfValue D u ∧
+            p.ν / p.μ * lowerU ^ p.γ ≤ liminfInfValue D v
 
 /-- Raw version of the former `Paper3Constants.uniformPersistencePart2`, with no
 constants package. -/
@@ -5364,8 +5373,8 @@ def UniformPersistencePart2Raw
         PositiveGlobalBoundedSolution D p u v →
           let lowerU :=
             ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
-          EventuallyLowerBound D u lowerU ∧
-            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+          lowerU ≤ liminfInfValue D u ∧
+            p.ν / p.μ * lowerU ^ p.γ ≤ liminfInfValue D v
 
 lemma not_forall_Theorem_2_1_part2 :
     ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_2_1_part2 D p) := by
@@ -5392,17 +5401,11 @@ lemma not_forall_Theorem_2_1_part2 :
       (by norm_num [p, theorem21Part2CounterParams])
       hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
     ⟨hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
-            (1 / p.α) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
   have hnonpos :
       ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
-          (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
+          (1 / p.α) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hlowerU
+  norm_num [p, theorem21Part2CounterParams, Theta_beta_zero] at hnonpos
 
 /-- Raw obstruction for `uniformPersistencePart2`: on the fake lower-envelope
 domain the positive constant solution exists, but `infValue` is identically
@@ -5432,17 +5435,11 @@ lemma not_UniformPersistencePart2Raw_no_lower_envelope :
       (by norm_num [p, theorem21Part2CounterParams])
       hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
     ⟨hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨_hlowerU_pos, hlowerU_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
-            (1 / p.α) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
   have hnonpos :
       ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
-          (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
+          (1 / p.α) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hlowerU
+  norm_num [p, theorem21Part2CounterParams, Theta_beta_zero] at hnonpos
 
 def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
@@ -5451,8 +5448,8 @@ def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         let lowerU :=
           min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
             max (1 / (p.m - 1)) (1 / p.α)
-        EventuallyLowerBound D u lowerU ∧
-          EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+        lowerU ≤ liminfInfValue D u ∧
+          p.ν / p.μ * lowerU ^ p.γ ≤ liminfInfValue D v
 
 /-- Raw version of the former `Paper3Constants.uniformPersistencePart3`, with no
 constants package. -/
@@ -5464,8 +5461,8 @@ def UniformPersistencePart3Raw
         let lowerU :=
           min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
             max (1 / (p.m - 1)) (1 / p.α)
-        EventuallyLowerBound D u lowerU ∧
-          EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+        lowerU ≤ liminfInfValue D u ∧
+          p.ν / p.μ * lowerU ^ p.γ ≤ liminfInfValue D v
 
 def theorem21Part3CounterParams : CM2Params :=
   { N := 1
@@ -5510,19 +5507,12 @@ lemma not_forall_Theorem_2_1_part3 :
       (by norm_num [p, theorem21Part3CounterParams])
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
     ⟨hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        (min 1
-            (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-          max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
   have hnonpos :
       (min 1
           (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
+        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hlowerU
+  norm_num [p, theorem21Part3CounterParams, Theta_beta_zero] at hnonpos
 
 /-- Raw obstruction for `uniformPersistencePart3`: the fake lower-envelope
 domain again refutes the asserted positive lower bound. -/
@@ -5548,19 +5538,12 @@ lemma not_UniformPersistencePart3Raw_no_lower_envelope :
       (by norm_num [p, theorem21Part3CounterParams])
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
     ⟨hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨_hlowerU_pos, hlowerU_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        (min 1
-            (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-          max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
   have hnonpos :
       (min 1
           (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
+        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hlowerU
+  norm_num [p, theorem21Part3CounterParams, Theta_beta_zero] at hnonpos
 
 /-- Parameters for the minimal-model lower-bound obstruction in Theorem 2.1(4).
 The fake bounded-domain API still admits the positive constant solution
@@ -5682,12 +5665,11 @@ def UniformPersistencePart4Raw
         ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
           PositiveGlobalBoundedSolution D p u v →
           HasInitialMass D u uStar →
-            EventuallyLowerBound D v
-              (gaussianLowerConst *
+            (gaussianLowerConst *
                 if p.γ ≤ 1 then
                   uStar * (eventualMinimalUBound uStar) ^ (p.γ - 1)
                 else
-                  uStar ^ p.γ)
+                  uStar ^ p.γ) ≤ liminfInfValue D v
 
 /-- Raw obstruction for `uniformPersistencePart4`: the fake lower-envelope
 domain refutes the positive eventual lower bound even for the positive
@@ -5709,12 +5691,12 @@ lemma not_UniformPersistencePart4Raw_no_lower_envelope :
       p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
     norm_num [p, theorem21Part4CounterParams, chiBeta]
   have hlower :
-      EventuallyLowerBound D (fun _ _ => (1 : ℝ))
-        ((1 : ℝ) *
+      ((1 : ℝ) *
           if p.γ ≤ 1 then
             (1 : ℝ) * ((fun _ => (1 : ℝ)) 1) ^ (p.γ - 1)
           else
-            (1 : ℝ) ^ p.γ) := by
+            (1 : ℝ) ^ p.γ) ≤
+        liminfInfValue D (fun _ _ => (1 : ℝ)) := by
     exact h
       (by norm_num)
       (by norm_num [p, theorem21Part4CounterParams])
@@ -5724,23 +5706,14 @@ lemma not_UniformPersistencePart4Raw_no_lower_envelope :
       (by norm_num [p, theorem21Part4CounterParams])
       hχ 1 (by norm_num) (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
       huv hmass
-  rcases hlower with ⟨hlower_pos, hlower_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        ((1 : ℝ) *
-          (if p.γ ≤ 1 then
-            (1 : ℝ) * ((fun _ => (1 : ℝ)) 1) ^ (p.γ - 1)
-          else
-            (1 : ℝ) ^ p.γ)) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
   have hnonpos :
       ((1 : ℝ) *
         (if p.γ ≤ 1 then
           (1 : ℝ) * ((fun _ => (1 : ℝ)) 1) ^ (p.γ - 1)
         else
-          (1 : ℝ) ^ p.γ)) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
+          (1 : ℝ) ^ p.γ)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain, liminfInfValue] using hlower
+  norm_num [p, theorem21Part4CounterParams] at hnonpos
 
 /-- Raw version of the Lemma A.7 threshold comparisons, with the four strong
 threshold functions and the critical threshold exposed instead of packaged as
@@ -6016,9 +5989,9 @@ def Theorem_2_1_part4
       ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
         PositiveGlobalBoundedSolution D p u v →
         HasInitialMass D u uStar →
-          EventuallyLowerBound D v
-            (minimalVLowerFormula
-              C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar))
+          minimalVLowerFormula
+              C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar) ≤
+            liminfInfValue D v
 
 /-- Paper3 Theorem 2.1: uniform persistence. -/
 def Theorem_2_1 (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
@@ -9989,11 +9962,7 @@ theorem Theorem_2_1.of_parts
 equal to `Theorem_2_1_part1 D p`.  Target signature only. -/
 theorem Theorem_2_1_part1.of_assumed_bound_branch
     {D : BoundedDomainData} {p : CM2Params}
-    (hbound : 1 ≤ p.m →
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          ∃ δu > 0, EventuallyLowerBound D u δu ∧
-            EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)) :
+    (hbound : Theorem_2_1_part1 D p) :
     Theorem_2_1_part1 D p :=
   hbound
 
@@ -10001,14 +9970,7 @@ theorem Theorem_2_1_part1.of_assumed_bound_branch
 equal to `Theorem_2_1_part2 D p`.  Target signature only. -/
 theorem Theorem_2_1_part2.of_assumed_bound_branch
     {D : BoundedDomainData} {p : CM2Params}
-    (hbound : 0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
-      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
-        ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-            let lowerU :=
-              ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
-            EventuallyLowerBound D u lowerU ∧
-              EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)) :
+    (hbound : Theorem_2_1_part2 D p) :
     Theorem_2_1_part2 D p :=
   hbound
 
@@ -10016,14 +9978,7 @@ theorem Theorem_2_1_part2.of_assumed_bound_branch
 equal to `Theorem_2_1_part3 D p`.  Target signature only. -/
 theorem Theorem_2_1_part3.of_assumed_bound_branch
     {D : BoundedDomainData} {p : CM2Params}
-    (hbound : 0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          let lowerU :=
-            min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-              max (1 / (p.m - 1)) (1 / p.α)
-          EventuallyLowerBound D u lowerU ∧
-            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)) :
+    (hbound : Theorem_2_1_part3 D p) :
     Theorem_2_1_part3 D p :=
   hbound
 
@@ -10031,14 +9986,7 @@ theorem Theorem_2_1_part3.of_assumed_bound_branch
 equal to `Theorem_2_1_part4 D p C`.  Target signature only. -/
 theorem Theorem_2_1_part4.of_assumed_bound_branch
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (hbound : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
-        ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-          HasInitialMass D u uStar →
-            EventuallyLowerBound D v
-              (minimalVLowerFormula
-                C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar))) :
+    (hbound : Theorem_2_1_part4 D p C) :
     Theorem_2_1_part4 D p C :=
   hbound
 
@@ -12032,37 +11980,50 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
     have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
     field_simp
     linarith
+  have hu_liminf :
+      liminfInfValue ShenWork.Paper2.unitPointDomain u = u 1 () := by
+    have hu_eq_eventually :
+        ∀ᶠ t in atTop,
+          ShenWork.Paper2.unitPointDomain.infValue (u t) = u 1 () := by
+      refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+      have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+      have h1_mem : (1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
+        show (0 : ℝ) < 1; norm_num
+      have ht_mem : t ∈ Set.Ioi (0 : ℝ) := ht_pos
+      have h_eq : u 1 () = u t () := h_const 1 h1_mem t ht_mem
+      show u t () = u 1 ()
+      exact h_eq.symm
+    calc
+      liminfInfValue ShenWork.Paper2.unitPointDomain u =
+          Filter.liminf (fun _ : ℝ => u 1 ()) atTop := by
+        simpa [liminfInfValue] using
+          (Filter.liminf_congr (f := atTop) hu_eq_eventually)
+      _ = u 1 () := by simp
+  have hv_liminf :
+      liminfInfValue ShenWork.Paper2.unitPointDomain v =
+        (p.ν / p.μ) * (u 1 ()) ^ p.γ := by
+    have hv_eq_eventually :
+        ∀ᶠ t in atTop,
+          ShenWork.Paper2.unitPointDomain.infValue (v t) =
+            (p.ν / p.μ) * (u 1 ()) ^ p.γ := by
+      refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+      have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+      have h1_mem : (1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
+        show (0 : ℝ) < 1; norm_num
+      have ht_mem : t ∈ Set.Ioi (0 : ℝ) := ht_pos
+      have h_eq : u 1 () = u t () := h_const 1 h1_mem t ht_mem
+      show v t () = (p.ν / p.μ) * (u 1 ()) ^ p.γ
+      rw [hv_eq t ht_pos, h_eq]
+    calc
+      liminfInfValue ShenWork.Paper2.unitPointDomain v =
+          Filter.liminf (fun _ : ℝ => (p.ν / p.μ) * (u 1 ()) ^ p.γ) atTop := by
+        simpa [liminfInfValue] using
+          (Filter.liminf_congr (f := atTop) hv_eq_eventually)
+      _ = (p.ν / p.μ) * (u 1 ()) ^ p.γ := by simp
   refine ⟨u 1 () / 2, hδ_pos, ?_, ?_⟩
-  · -- EventuallyLowerBound u (u 1 () / 2)
-    refine ⟨hδ_pos, ?_⟩
-    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
-    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
-    have h1_mem : (1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
-      show (0 : ℝ) < 1; norm_num
-    have ht_mem : t ∈ Set.Ioi (0 : ℝ) := ht_pos
-    have h_eq : u 1 () = u t () := h_const 1 h1_mem t ht_mem
-    show u 1 () / 2 ≤ ShenWork.Paper2.unitPointDomain.infValue (u t)
-    show u 1 () / 2 ≤ u t ()
-    rw [← h_eq]; linarith
-  · -- EventuallyLowerBound v (ν/μ * (u 1 () / 2)^γ)
-    have hν_pos : 0 < p.ν := p.hν
-    have hμ_pos : 0 < p.μ := p.hμ
-    have hδγ_pos : 0 < (u 1 () / 2) ^ p.γ :=
-      Real.rpow_pos_of_pos hδ_pos _
-    refine ⟨mul_pos (div_pos hν_pos hμ_pos) hδγ_pos, ?_⟩
-    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
-    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
-    have h1_mem : (1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
-      show (0 : ℝ) < 1; norm_num
-    have ht_mem : t ∈ Set.Ioi (0 : ℝ) := ht_pos
-    have h_eq : u 1 () = u t () := h_const 1 h1_mem t ht_mem
-    show (p.ν / p.μ) * (u 1 () / 2) ^ p.γ ≤
-      ShenWork.Paper2.unitPointDomain.infValue (v t)
-    show (p.ν / p.μ) * (u 1 () / 2) ^ p.γ ≤ v t ()
-    rw [hv_eq t ht_pos, ← h_eq]
-    apply mul_le_mul_of_nonneg_left _ (div_pos hν_pos hμ_pos).le
-    apply Real.rpow_le_rpow hδ_pos.le _ p.hγ.le
+  · rw [hu_liminf]
     linarith
+  · rw [hu_liminf, hv_liminf]
 
 /-! ### Theorem_2_1 part 4 vacuous (unit-point) -/
 

@@ -42,6 +42,17 @@ structure IntervalDomainLogisticULowerFields (p : CM2Params) : Prop where
         PositiveGlobalBoundedSolution intervalDomain p u v →
           ∃ deltaU > 0,
             ∀ᶠ t in atTop, ∀ x : intervalDomain.Point, deltaU ≤ u t x
+  part1Liminf :
+    0 < p.a → 0 < p.b → 1 ≤ p.m →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution intervalDomain p u v →
+          ∃ deltaU > 0,
+            deltaU ≤ liminfInfValue intervalDomain u ∧
+            p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+              liminfInfValue intervalDomain v ∧
+            (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop, ∀ x : intervalDomain.Point,
+              p.ν / p.μ * deltaU ^ p.γ ≤ v t x)
   part2 :
     0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
       p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
@@ -49,12 +60,27 @@ structure IntervalDomainLogisticULowerFields (p : CM2Params) : Prop where
           PositiveGlobalBoundedSolution intervalDomain p u v →
             ∀ᶠ t in atTop,
               ∀ x : intervalDomain.Point, theorem21Part2LowerU p ≤ u t x
+  part2Liminf :
+    0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            theorem21Part2LowerU p ≤ liminfInfValue intervalDomain u ∧
+            p.ν / p.μ * theorem21Part2LowerU p ^ p.γ ≤
+              liminfInfValue intervalDomain v
   part3 :
     0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
       ∀ u v : ℝ → intervalDomain.Point → ℝ,
         PositiveGlobalBoundedSolution intervalDomain p u v →
           ∀ᶠ t in atTop,
             ∀ x : intervalDomain.Point, theorem21Part3LowerU p ≤ u t x
+  part3Liminf :
+    0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution intervalDomain p u v →
+          theorem21Part3LowerU p ≤ liminfInfValue intervalDomain u ∧
+          p.ν / p.μ * theorem21Part3LowerU p ^ p.γ ≤
+            liminfInfValue intervalDomain v
 
 /-- Once the three u-lower fields are proved, the existing elliptic transfer
 and persistence packaging close `IntervalDomainLogisticPersistenceInputs`. -/
@@ -62,8 +88,11 @@ def IntervalDomainLogisticULowerFields.to_inputs
     {p : CM2Params} (h : IntervalDomainLogisticULowerFields p) :
     IntervalDomainLogisticPersistenceInputs p where
   part1ULower := h.part1
+  part1Liminf := h.part1Liminf
   part2ULower := h.part2
+  part2Liminf := h.part2Liminf
   part3ULower := h.part3
+  part3Liminf := h.part3Liminf
 
 /-- Once the three u-lower fields are proved, the logistic-branch sectorial
 persistence package follows from the already proved wrappers. -/

@@ -9,6 +9,8 @@ import ShenWork.PDE.UnitPointDecayODE
 
 noncomputable section
 
+open Filter
+
 namespace ShenWork.Paper3
 
 /-- Paper 3 Proposition 1.3 holds unconditionally on the unit-point
@@ -136,69 +138,8 @@ theorem unitPointDomain.Proposition_1_2_when_not_a_pos_b_zero
 This proves Theorem_2_1_part1 in the minimal regime without ODE uniqueness. -/
 theorem unitPointDomain.Theorem_2_1_part1_when_a_zero_b_zero
     (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) :
-    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
-  intro _hm u v hsol
-  -- Extract components of PGBS
-  have hglobal := hsol.1
-  -- Get regularity: Differentiable ℝ (fun t => u t ())
-  have hreg : Differentiable ℝ (fun t : ℝ => u t ()) := by
-    have h2 := hglobal 2 (by norm_num : (0 : ℝ) < 2)
-    exact h2.2.1.1
-  -- Get PDE: deriv (fun s => u s ()) t = 0 for all t > 0
-  have hderiv_zero : ∀ t : ℝ, 0 < t → deriv (fun s : ℝ => u s ()) t = 0 := by
-    intro t ht
-    have hT := hglobal (t + 1) (by linarith)
-    have hpde := hT.pde_u (t := t) (x := ()) ht (by linarith) (Set.mem_univ _)
-    simp only [ShenWork.Paper2.unitPointDomain] at hpde
-    rw [ha, hb] at hpde
-    linarith
-  -- u is constant on (0, ∞): use IsOpen.is_const_of_deriv_eq_zero
-  have hconst : ∀ t₁ t₂ : ℝ, 0 < t₁ → 0 < t₂ →
-      u t₁ () = u t₂ () := by
-    intro t₁ t₂ ht₁ ht₂
-    have hIoi_open : IsOpen (Set.Ioi (0 : ℝ)) := isOpen_Ioi
-    have hIoi_preconn : IsPreconnected (Set.Ioi (0 : ℝ)) :=
-      convex_Ioi (0 : ℝ) |>.isPreconnected
-    have hDiffOn : DifferentiableOn ℝ (fun t : ℝ => u t ()) (Set.Ioi 0) :=
-      hreg.differentiableOn
-    have hEqOn : Set.EqOn (deriv (fun t : ℝ => u t ())) 0 (Set.Ioi 0) :=
-      fun t ht => hderiv_zero t ht
-    exact hIoi_open.is_const_of_deriv_eq_zero hIoi_preconn hDiffOn hEqOn ht₁ ht₂
-  -- u(t)() = u(1)() for all t > 0
-  have hval : ∀ t : ℝ, 0 < t → u t () = u 1 () :=
-    fun t ht => hconst t 1 ht one_pos
-  -- u(1)() > 0 from PGBS positivity
-  have hpos : 0 < u 1 () := hsol.2.2 1 () one_pos (Set.mem_univ _)
-  -- Set δu = u(1)()
-  refine ⟨u 1 (), hpos, ?_, ?_⟩
-  · -- EventuallyLowerBound D u (u 1 ())
-    refine ⟨hpos, Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩⟩
-    change u 1 () ≤ ShenWork.Paper2.unitPointDomain.infValue (u t)
-    change u 1 () ≤ u t ()
-    rw [hval t (lt_of_lt_of_le one_pos ht)]
-  · -- EventuallyLowerBound D v (ν/μ * (u 1 ())^γ)
-    have hv_eq : ∀ t : ℝ, 0 < t →
-        v t () = (p.ν / p.μ) * (u t ()) ^ p.γ := by
-      intro t ht
-      have hT := hglobal (t + 1) (by linarith)
-      have hpde_v := hT.pde_v (t := t) (x := ()) ht (by linarith) (Set.mem_univ _)
-      simp only [ShenWork.Paper2.unitPointDomain] at hpde_v
-      have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
-      have h : p.μ * v t () = p.ν * (u t ()) ^ p.γ := by linarith
-      field_simp at h ⊢
-      linarith
-    have hv_const : ∀ t : ℝ, 0 < t →
-        v t () = (p.ν / p.μ) * (u 1 ()) ^ p.γ := by
-      intro t ht
-      rw [hv_eq t ht, hval t ht]
-    have hv_pos : 0 < (p.ν / p.μ) * (u 1 ()) ^ p.γ := by
-      apply mul_pos (div_pos p.hν p.hμ)
-      exact Real.rpow_pos_of_pos hpos _
-    refine ⟨hv_pos, Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩⟩
-    change p.ν / p.μ * (u 1 ()) ^ p.γ ≤
-      ShenWork.Paper2.unitPointDomain.infValue (v t)
-    change p.ν / p.μ * (u 1 ()) ^ p.γ ≤ v t ()
-    rw [hv_const t (lt_of_lt_of_le one_pos ht)]
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p :=
+  unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb
 
 /-- Theorem 2.1 part 1 for the unit-point domain in the `0 < a ∧ 0 < b`
 regime.  Any `PositiveGlobalBoundedSolution` on unitPointDomain satisfies
@@ -211,7 +152,7 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
     (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
     Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
   intro _hm u v hsol
-  obtain ⟨hglobal, _hbdd, hupos⟩ := hsol
+  obtain ⟨hglobal, hbdd, hupos⟩ := hsol
   -- Setup: f(t) = u t (), e = (a/b)^(1/α)
   set f : ℝ → ℝ := fun t => u t () with hf_def
   set e : ℝ := (p.a / p.b) ^ (1 / p.α) with he_def
@@ -425,23 +366,91 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
       exact min_le_left _ _
   -- Set δu = min(f(1), e)
   have hδ_pos : 0 < min (f 1) e := lt_min hf1_pos he_pos
-  refine ⟨min (f 1) e, hδ_pos, ?_, ?_⟩
-  · -- EventuallyLowerBound D u (min (f 1) e)
-    refine ⟨hδ_pos, ?_⟩
+  have hu_lower_eventually :
+      ∀ᶠ t in atTop,
+        min (f 1) e ≤ ShenWork.Paper2.unitPointDomain.infValue (u t) := by
     refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
-    exact hf_lower t ht
-  · -- EventuallyLowerBound D v (ν/μ * (min (f 1) e)^γ)
-    have hv_lb_pos : 0 < p.ν / p.μ * (min (f 1) e) ^ p.γ :=
-      mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hδ_pos _)
-    refine ⟨hv_lb_pos, ?_⟩
+    change min (f 1) e ≤ u t ()
+    simpa [hf_def] using hf_lower t ht
+  rcases hbdd with ⟨M, hM⟩
+  have hu_upper_eventually :
+      ∀ᶠ t in atTop,
+        ShenWork.Paper2.unitPointDomain.infValue (u t) ≤ M := by
+    filter_upwards [hM] with t hMt
+    change u t () ≤ M
+    exact (le_abs_self (u t ())).trans
+      (by simpa [ShenWork.Paper2.unitPointDomain] using hMt)
+  have hu_cobdd :
+      IsCoboundedUnder (fun x y : ℝ => x ≥ y) atTop
+        (fun t => ShenWork.Paper2.unitPointDomain.infValue (u t)) :=
+    isCoboundedUnder_ge_of_eventually_le atTop hu_upper_eventually
+  have hu_bddBelow :
+      IsBoundedUnder (fun x y : ℝ => x ≥ y) atTop
+        (fun t => ShenWork.Paper2.unitPointDomain.infValue (u t)) :=
+    isBoundedUnder_of_eventually_ge hu_lower_eventually
+  have hu_liminf_lower :
+      min (f 1) e ≤ liminfInfValue ShenWork.Paper2.unitPointDomain u := by
+    exact Filter.le_liminf_of_le (hf := hu_cobdd) hu_lower_eventually
+  have hu_liminf_pos :
+      0 < liminfInfValue ShenWork.Paper2.unitPointDomain u :=
+    hδ_pos.trans_le hu_liminf_lower
+  let phi : ℝ → ℝ := fun y => p.ν / p.μ * (max y 0) ^ p.γ
+  have hphi_mono : Monotone phi := by
+    intro y z hyz
+    dsimp [phi]
+    exact mul_le_mul_of_nonneg_left
+      (Real.rpow_le_rpow (le_max_right y (0 : ℝ))
+        (max_le_max hyz le_rfl) p.hγ.le)
+      (div_pos p.hν p.hμ).le
+  have hphi_cont :
+      ContinuousAt phi (liminfInfValue ShenWork.Paper2.unitPointDomain u) := by
+    dsimp [phi]
+    exact (((continuous_id.max continuous_const).continuousAt.rpow_const
+      (Or.inr p.hγ.le)).const_mul (p.ν / p.μ))
+  have hphi_liminf :
+      phi (liminfInfValue ShenWork.Paper2.unitPointDomain u) =
+        Filter.liminf
+          (fun t => phi (ShenWork.Paper2.unitPointDomain.infValue (u t)))
+          atTop := by
+    simpa [liminfInfValue, Function.comp_def] using
+      (hphi_mono.map_liminf_of_continuousAt
+        (F := atTop)
+        (a := fun t => ShenWork.Paper2.unitPointDomain.infValue (u t))
+        hphi_cont hu_cobdd hu_bddBelow)
+  have hv_phi_eventually :
+      ∀ᶠ t in atTop,
+        ShenWork.Paper2.unitPointDomain.infValue (v t) =
+          phi (ShenWork.Paper2.unitPointDomain.infValue (u t)) := by
     refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
     have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
-    change p.ν / p.μ * (min (f 1) e) ^ p.γ ≤
-      ShenWork.Paper2.unitPointDomain.infValue (v t)
-    change p.ν / p.μ * (min (f 1) e) ^ p.γ ≤ v t ()
-    rw [hv_eq t ht_pos]
-    apply mul_le_mul_of_nonneg_left _ (div_pos p.hν p.hμ).le
-    exact Real.rpow_le_rpow hδ_pos.le (hf_lower t ht) p.hγ.le
+    have hft_pos : 0 < f t := hf_pos t ht_pos
+    change v t () = phi (u t ())
+    have hmax : max (u t ()) (0 : ℝ) = u t () := by
+      exact max_eq_left (by simpa [hf_def] using hft_pos.le)
+    calc
+      v t () = p.ν / p.μ * (f t) ^ p.γ := hv_eq t ht_pos
+      _ = p.ν / p.μ * (u t ()) ^ p.γ := by simp [hf_def]
+      _ = phi (u t ()) := by simp [phi, hmax]
+  have hv_liminf_phi :
+      liminfInfValue ShenWork.Paper2.unitPointDomain v =
+        Filter.liminf
+          (fun t => phi (ShenWork.Paper2.unitPointDomain.infValue (u t)))
+          atTop := by
+    simpa [liminfInfValue] using
+      (Filter.liminf_congr (f := atTop) hv_phi_eventually)
+  refine ⟨min (f 1) e, hδ_pos, ?_, ?_⟩
+  · exact hu_liminf_lower
+  · exact le_of_eq (calc
+      p.ν / p.μ *
+          (liminfInfValue ShenWork.Paper2.unitPointDomain u) ^ p.γ =
+          phi (liminfInfValue ShenWork.Paper2.unitPointDomain u) := by
+            simp [phi, max_eq_left hu_liminf_pos.le]
+      _ =
+          Filter.liminf
+            (fun t => phi (ShenWork.Paper2.unitPointDomain.infValue (u t)))
+            atTop := hphi_liminf
+      _ = liminfInfValue ShenWork.Paper2.unitPointDomain v :=
+          hv_liminf_phi.symm)
 
 /-! ### Theorem_2_1 FULL composites using part1_when_a_pos_b_pos -/
 
@@ -640,14 +649,9 @@ theorem unitPointDomain.not_Theorem_2_1_part1_when_a_zero_b_pos :
   have hpgbs : PositiveGlobalBoundedSolution
       ShenWork.Paper2.unitPointDomain p u v :=
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd
-  -- Apply h21 to get δu > 0 with EventuallyLowerBound
+  -- Apply h21 to get δu > 0 with δu ≤ liminf u.
   have hm : (1 : ℝ) ≤ p.m := le_refl _
   rcases h21 hm u v hpgbs with ⟨δu, hδu_pos, hδu_lower, _⟩
-  -- EventuallyLowerBound says: 0 < δu ∧ ∀ᶠ t in atTop, δu ≤ infValue (u t)
-  -- On unitPointDomain, infValue f = f ()
-  rcases hδu_lower with ⟨_, hδu_ev⟩
-  rw [Filter.eventually_atTop] at hδu_ev
-  rcases hδu_ev with ⟨T₀, hT₀⟩
   -- The decay ODE u' = -u^{α+1} with α=1 gives u' = -u².
   -- Via 1/u trick: (1/u)' = 1, so 1/u(t) = 1/u(1) + (t-1).
   -- Hence u(t) → 0, contradicting the eventual lower bound.
@@ -700,38 +704,54 @@ theorem unitPointDomain.not_Theorem_2_1_part1_when_a_zero_b_pos :
       isPreconnected_Ioi hg_minus_id_diff hg_minus_id_deriv
       (Set.mem_Ioi.mpr ht) (Set.mem_Ioi.mpr one_pos)
     linarith
-  -- Choose t_star large enough so u(t_star) < δu
-  have hu1_pos : 0 < u 1 () := hupos 1 one_pos
-  have hu1_inv_pos : 0 < (u 1 ())⁻¹ := inv_pos.mpr hu1_pos
-  -- Choose t_star large enough
-  set t_star := max T₀ 1 + (u 1 ())⁻¹ + δu⁻¹ with ht_star_def
-  have ht_star_pos : 0 < t_star := by
-    simp only [t_star]
-    linarith [le_max_right T₀ 1, inv_pos.mpr hδu_pos]
-  have ht_star_ge_T₀ : T₀ ≤ t_star := by
-    simp only [t_star]
-    linarith [le_max_left T₀ (1 : ℝ), hu1_inv_pos, inv_pos.mpr hδu_pos]
-  -- At t_star: (u 1 ())⁻¹ + (t_star - 1) > δu⁻¹
-  have hden_large : δu⁻¹ < (u 1 ())⁻¹ + (t_star - 1) := by
-    simp only [t_star]
-    have : (1 : ℝ) ≤ max T₀ 1 := le_max_right T₀ 1
+  have hu_nonneg_eventually :
+      ∀ᶠ t in atTop,
+        0 ≤ ShenWork.Paper2.unitPointDomain.infValue (u t) := by
+    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+    change 0 ≤ u t ()
+    exact (hupos t ht_pos).le
+  have hu_bddBelow :
+      IsBoundedUnder (fun x y : ℝ => x ≥ y) atTop
+        (fun t => ShenWork.Paper2.unitPointDomain.infValue (u t)) :=
+    isBoundedUnder_of_eventually_ge hu_nonneg_eventually
+  have hu_liminf_le_zero :
+      liminfInfValue ShenWork.Paper2.unitPointDomain u ≤ 0 := by
+    unfold liminfInfValue
+    refine Filter.liminf_le_of_le (hf := hu_bddBelow) ?_
+    intro b hb_ev
+    by_contra hb_not_le_zero
+    have hb_pos : 0 < b := lt_of_not_ge hb_not_le_zero
+    rw [Filter.eventually_atTop] at hb_ev
+    rcases hb_ev with ⟨T₀, hT₀⟩
+    have hu1_pos : 0 < u 1 () := hupos 1 one_pos
+    have hu1_inv_pos : 0 < (u 1 ())⁻¹ := inv_pos.mpr hu1_pos
+    set t_star := max T₀ 1 + (u 1 ())⁻¹ + b⁻¹ with ht_star_def
+    have ht_star_pos : 0 < t_star := by
+      simp only [t_star]
+      linarith [le_max_right T₀ 1, inv_pos.mpr hb_pos]
+    have ht_star_ge_T₀ : T₀ ≤ t_star := by
+      simp only [t_star]
+      linarith [le_max_left T₀ (1 : ℝ), hu1_inv_pos, inv_pos.mpr hb_pos]
+    have hden_large : b⁻¹ < (u 1 ())⁻¹ + (t_star - 1) := by
+      simp only [t_star]
+      have : (1 : ℝ) ≤ max T₀ 1 := le_max_right T₀ 1
+      linarith
+    have hut_star_eq : (u t_star ())⁻¹ = (u 1 ())⁻¹ + (t_star - 1) :=
+      hg_linear t_star ht_star_pos
+    have hden_pos : 0 < (u 1 ())⁻¹ + (t_star - 1) := by
+      linarith [inv_pos.mpr hb_pos]
+    have hut_star_val : u t_star () =
+        ((u 1 ())⁻¹ + (t_star - 1))⁻¹ := by
+      rw [← hut_star_eq, inv_inv]
+    have hut_star_lt : u t_star () < b := by
+      rw [hut_star_val]
+      exact (inv_lt_comm₀ hb_pos hden_pos).mp hden_large
+    have hcontra := hT₀ t_star ht_star_ge_T₀
+    change b ≤ ShenWork.Paper2.unitPointDomain.infValue (u t_star) at hcontra
+    change b ≤ u t_star () at hcontra
     linarith
-  -- So u(t_star) = ((u 1 ())⁻¹ + (t_star - 1))⁻¹ < δu
-  have hut_star_eq : (u t_star ())⁻¹ = (u 1 ())⁻¹ + (t_star - 1) :=
-    hg_linear t_star ht_star_pos
-  have hut_star_pos : 0 < u t_star () := hupos t_star ht_star_pos
-  have hden_pos : 0 < (u 1 ())⁻¹ + (t_star - 1) := by linarith [inv_pos.mpr hδu_pos]
-  have hut_star_val : u t_star () = ((u 1 ())⁻¹ + (t_star - 1))⁻¹ := by
-    rw [← hut_star_eq, inv_inv]
-  have hut_star_lt : u t_star () < δu := by
-    rw [hut_star_val]
-    exact (inv_lt_comm₀ hδu_pos hden_pos).mp hden_large
-  -- But hT₀ says δu ≤ infValue (u t_star) = u t_star ()
-  have hcontra := hT₀ t_star ht_star_ge_T₀
-  -- infValue (u t) on unitPointDomain = u t ()
-  change δu ≤ ShenWork.Paper2.unitPointDomain.infValue (u t_star) at hcontra
-  change δu ≤ u t_star () at hcontra
-  linarith
+  exact (not_lt_of_ge (hδu_lower.trans hu_liminf_le_zero)) hδu_pos
 
 /-! ### Theorem_2_1 part1 covering ALL b when a > 0 -/
 

@@ -23,6 +23,17 @@ structure IntervalDomainLogisticPersistenceInputs
         PositiveGlobalBoundedSolution intervalDomain p u v →
           ∃ deltaU > 0,
             ∀ᶠ t in atTop, ∀ x : intervalDomain.Point, deltaU ≤ u t x
+  part1Liminf :
+    0 < p.a → 0 < p.b → 1 ≤ p.m →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution intervalDomain p u v →
+          ∃ deltaU > 0,
+            deltaU ≤ liminfInfValue intervalDomain u ∧
+            p.ν / p.μ * (liminfInfValue intervalDomain u) ^ p.γ ≤
+              liminfInfValue intervalDomain v ∧
+            (∀ᶠ t in atTop, ∀ x : intervalDomain.Point, deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop, ∀ x : intervalDomain.Point,
+              p.ν / p.μ * deltaU ^ p.γ ≤ v t x)
   part2ULower :
     0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
       p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
@@ -30,12 +41,27 @@ structure IntervalDomainLogisticPersistenceInputs
           PositiveGlobalBoundedSolution intervalDomain p u v →
             ∀ᶠ t in atTop,
               ∀ x : intervalDomain.Point, theorem21Part2LowerU p ≤ u t x
+  part2Liminf :
+    0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            theorem21Part2LowerU p ≤ liminfInfValue intervalDomain u ∧
+            p.ν / p.μ * theorem21Part2LowerU p ^ p.γ ≤
+              liminfInfValue intervalDomain v
   part3ULower :
     0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
       ∀ u v : ℝ → intervalDomain.Point → ℝ,
         PositiveGlobalBoundedSolution intervalDomain p u v →
           ∀ᶠ t in atTop,
             ∀ x : intervalDomain.Point, theorem21Part3LowerU p ≤ u t x
+  part3Liminf :
+    0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution intervalDomain p u v →
+          theorem21Part3LowerU p ≤ liminfInfValue intervalDomain u ∧
+          p.ν / p.μ * theorem21Part3LowerU p ^ p.γ ≤
+            liminfInfValue intervalDomain v
 
 theorem intervalDomain_uniformPersistencePart4Raw_vacuous_of_a_pos
     {p : CM2Params} {uBar : ℝ}
@@ -50,12 +76,7 @@ theorem IntervalDomainLogisticPersistenceInputs.to_pointwise_part1
     (ha : 0 < p.a) (hb : 0 < p.b) :
     IntervalDomainUniformPersistencePart1PointwiseRaw p := by
   intro hm u v hsol
-  rcases h.part1ULower ha hb hm u v hsol with
-    ⟨deltaU, hdeltaU, hpointU⟩
-  exact
-    ⟨deltaU, hdeltaU, hpointU,
-      intervalDomain_eventually_v_lower_of_eventually_u_lower
-        hsol hdeltaU hpointU⟩
+  exact h.part1Liminf ha hb hm u v hsol
 
 theorem IntervalDomainLogisticPersistenceInputs.to_pointwise_part2
     {p : CM2Params}
@@ -76,7 +97,13 @@ theorem IntervalDomainLogisticPersistenceInputs.to_pointwise_part2
           p.ν / p.μ * theorem21Part2LowerU p ^ p.γ ≤ v t x :=
     intervalDomain_eventually_v_lower_of_eventually_u_lower
       hsol hdelta hpointU
-  simpa [theorem21Part2LowerU] using And.intro hpointU hpointV
+  rcases h.part2Liminf ha hb hχ0 hm hβ hχ u v hsol with
+    ⟨huLower, hvLower⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · simpa [theorem21Part2LowerU] using huLower
+  · simpa [theorem21Part2LowerU] using hvLower
+  · simpa [theorem21Part2LowerU] using hpointU
+  · simpa [theorem21Part2LowerU] using hpointV
 
 theorem IntervalDomainLogisticPersistenceInputs.to_pointwise_part3
     {p : CM2Params}
@@ -97,7 +124,13 @@ theorem IntervalDomainLogisticPersistenceInputs.to_pointwise_part3
           p.ν / p.μ * theorem21Part3LowerU p ^ p.γ ≤ v t x :=
     intervalDomain_eventually_v_lower_of_eventually_u_lower
       hsol hdelta hpointU
-  simpa [theorem21Part3LowerU] using And.intro hpointU hpointV
+  rcases h.part3Liminf ha hb hχ0 hm hβ u v hsol with
+    ⟨huLower, hvLower⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · simpa [theorem21Part3LowerU] using huLower
+  · simpa [theorem21Part3LowerU] using hvLower
+  · simpa [theorem21Part3LowerU] using hpointU
+  · simpa [theorem21Part3LowerU] using hpointV
 
 theorem IntervalDomainLogisticPersistenceInputs.to_part1Raw
     {p : CM2Params}

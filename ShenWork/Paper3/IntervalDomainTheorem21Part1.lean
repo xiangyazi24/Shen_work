@@ -244,11 +244,10 @@ theorem Theorem_2_1_part1_intervalDomain_vacuous_when_m_lt_one
 /-- Conditional intervalDomain version of Paper3 Theorem 2.1(1).
 
 The two assumptions are intentionally not hidden inside a constants package:
-`hStrongMaximumPersistence` is exactly the missing Section 4.1 compactness plus
-strong-maximum-principle argument for the u-equation, while
-`hEllipticLowerComparison` is the missing elliptic Neumann comparison argument
-for the v-equation.  Given those pointwise analytic inputs, the repository's
-existing `Theorem_2_1_part1` statement follows for `intervalDomain`. -/
+`hStrongMaximumPersistence` is the missing Section 4.1 compactness plus
+strong-maximum-principle argument for the u-equation, stated at the liminf
+interface.  `hEllipticLiminfComparison` is the paper-faithful elliptic Neumann
+comparison for the v-equation. -/
 theorem Theorem_2_1_part1_intervalDomain_of_pointwise_persistence
     (p : CM2Params)
     (hStrongMaximumPersistence :
@@ -256,42 +255,22 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_persistence
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0,
-              ∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  deltaU ≤ u t x)
-    (hEllipticLowerComparison :
-      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
-          {deltaU : ℝ},
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u)
+    (hEllipticLiminfComparison :
+      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ},
         PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
-          0 < deltaU →
-            (∀ᶠ t in atTop,
-              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                deltaU ≤ u t x) →
-              ∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x) :
+          p.ν / p.μ *
+              (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                p.γ ≤
+            liminfInfValue ShenWork.IntervalDomain.intervalDomain v) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
   intro hm u v hsol
   rcases hStrongMaximumPersistence hm u v hsol with
-    ⟨deltaU, hdeltaU, hpointU⟩
-  have huLower :
-      EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u deltaU :=
-    intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-      hdeltaU hpointU
-  have hpointV :
-      ∀ᶠ t in atTop,
-        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-          p.ν / p.μ * deltaU ^ p.γ ≤ v t x :=
-    hEllipticLowerComparison hsol hdeltaU hpointU
-  have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-    exact mul_pos (div_pos p.hν p.hμ)
-      (Real.rpow_pos_of_pos hdeltaU _)
-  have hvLower :
-      EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain v
-        (p.ν / p.μ * deltaU ^ p.γ) :=
-    intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-      hdeltaV hpointV
-  exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
+    ⟨deltaU, hdeltaU, huLower⟩
+  exact
+    ⟨deltaU, hdeltaU, huLower,
+      hEllipticLiminfComparison hsol⟩
 
 /-- Direct pointwise intervalDomain persistence theorem from the two Section
 4.1 analytic frontiers.  This records the intended pointwise meaning without
@@ -344,25 +323,15 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0,
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x)) :
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
   intro hm u v hsol
-  rcases hpointwise hm u v hsol with
-    ⟨deltaU, hdeltaU, hpointU, hpointV⟩
-  have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-    exact mul_pos (div_pos p.hν p.hμ)
-      (Real.rpow_pos_of_pos hdeltaU _)
-  exact
-    ⟨deltaU, hdeltaU,
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        hdeltaU hpointU,
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        hdeltaV hpointV⟩
+  exact hpointwise hm u v hsol
 
 /-- Statement-layer assembly from pointwise persistence when the analytic
 frontier gives a possibly stronger `v` lower bound.  The formal work here is
@@ -376,6 +345,12 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0, ∃ deltaV > 0,
               p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v ∧
               (∀ᶠ t in atTop,
                 ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
                   deltaU ≤ u t x) ∧
@@ -385,22 +360,9 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
   intro hm u v hsol
   rcases hpointwise hm u v hsol with
-    ⟨deltaU, hdeltaU, deltaV, _hdeltaV, htarget_le, hpointU, hpointV⟩
-  have htarget_pos : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-    exact mul_pos (div_pos p.hν p.hμ)
-      (Real.rpow_pos_of_pos hdeltaU _)
-  have htargetV :
-      ∀ᶠ t in atTop,
-        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-          p.ν / p.μ * deltaU ^ p.γ ≤ v t x := by
-    filter_upwards [hpointV] with t ht x
-    exact le_trans htarget_le (ht x)
-  exact
-    ⟨deltaU, hdeltaU,
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        hdeltaU hpointU,
-      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
-        htarget_pos htargetV⟩
+    ⟨deltaU, hdeltaU, _deltaV, _hdeltaV, _htarget_le, huLower,
+      hvLower, _hpointU, _hpointV⟩
+  exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
 
 /-- Statement-layer assembly from lower-envelope persistence when the `v`
 frontier gives a possibly stronger positive lower bound than the theorem's
@@ -413,18 +375,17 @@ theorem Theorem_2_1_part1_of_lowerEnvelope_with_v_margin
           PositiveGlobalBoundedSolution D p u v →
             ∃ deltaU > 0, ∃ deltaV > 0,
               p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              deltaU ≤ liminfInfValue D u ∧
+              p.ν / p.μ * (liminfInfValue D u) ^ p.γ ≤
+                liminfInfValue D v ∧
               EventuallyLowerBound D u deltaU ∧
               EventuallyLowerBound D v deltaV) :
     Theorem_2_1_part1 D p := by
   intro hm u v hsol
   rcases hlower hm u v hsol with
-    ⟨deltaU, hdeltaU, deltaV, _hdeltaV, htarget_le, huLower, hvLower⟩
-  have htarget_pos : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-    exact mul_pos (div_pos p.hν p.hμ)
-      (Real.rpow_pos_of_pos hdeltaU _)
-  exact
-    ⟨deltaU, hdeltaU, huLower,
-      EventuallyLowerBound_of_le htarget_pos htarget_le hvLower⟩
+    ⟨deltaU, hdeltaU, _deltaV, _hdeltaV, _htarget_le, huLower,
+      hvLower, _huEventual, _hvEventual⟩
+  exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
 
 /-- Interval-domain statement-layer assembly from lower-envelope persistence
 with a stronger `v` lower-bound margin. -/
@@ -436,6 +397,12 @@ theorem Theorem_2_1_part1_intervalDomain_of_lowerEnvelope_with_v_margin
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0, ∃ deltaV > 0,
               p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v ∧
               EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u
                 deltaU ∧
               EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain v
@@ -451,25 +418,14 @@ theorem Theorem_2_1_part1_intervalDomain_iff_lowerEnvelope_with_v_margin
       1 ≤ p.m →
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
-            ∃ deltaU > 0, ∃ deltaV > 0,
-              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
-              EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u
-                deltaU ∧
-              EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain v
-                deltaV := by
-  constructor
-  · intro h21 hm u v hsol
-    rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
-    have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-      exact mul_pos (div_pos p.hν p.hμ)
-        (Real.rpow_pos_of_pos hdeltaU _)
-    exact
-      ⟨deltaU, hdeltaU, p.ν / p.μ * deltaU ^ p.γ, hdeltaV,
-        le_rfl, huLower, hvLower⟩
-  · intro hlower
-    exact
-      Theorem_2_1_part1_intervalDomain_of_lowerEnvelope_with_v_margin
-        p hlower
+            ∃ deltaU > 0,
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v := by
+  rfl
 
 /-- Direct pointwise persistence from a stronger `v` lower-bound frontier. -/
 theorem
@@ -519,34 +475,22 @@ Theorem_2_1_part1_intervalDomain_of_pointwise_persistence_with_v_margin
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0,
-              ∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  deltaU ≤ u t x)
-    (hEllipticLowerComparison :
-      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
-          {deltaU : ℝ},
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u)
+    (hEllipticLiminfComparison :
+      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ},
         PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
-          0 < deltaU →
-            (∀ᶠ t in atTop,
-              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                deltaU ≤ u t x) →
-              ∃ deltaV > 0,
-                p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
-                ∀ᶠ t in atTop,
-                  ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                    deltaV ≤ v t x) :
+          p.ν / p.μ *
+              (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                p.γ ≤
+            liminfInfValue ShenWork.IntervalDomain.intervalDomain v) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
-  refine
-    Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
-      p ?_
   intro hm u v hsol
   rcases hStrongMaximumPersistence hm u v hsol with
-    ⟨deltaU, hdeltaU, hpointU⟩
-  rcases hEllipticLowerComparison hsol hdeltaU hpointU with
-    ⟨deltaV, hdeltaV, htarget_le, hpointV⟩
+    ⟨deltaU, hdeltaU, huLower⟩
   exact
-    ⟨deltaU, hdeltaU, deltaV, hdeltaV, htarget_le, hpointU,
-      hpointV⟩
+    ⟨deltaU, hdeltaU, huLower,
+      hEllipticLiminfComparison hsol⟩
 
 /-- Direct pointwise persistence from the Section 4.1 persistence frontiers
 when the elliptic comparison returns a stronger `v` lower constant. -/
@@ -606,6 +550,12 @@ theorem Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0,
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v ∧
               (∀ᶠ t in atTop,
                 ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
                   x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
@@ -625,16 +575,9 @@ theorem Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
   intro hm u v hsol
   rcases hbounds hm u v hsol with
-    ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
-  have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-    exact mul_pos (div_pos p.hν p.hμ)
-      (Real.rpow_pos_of_pos hdeltaU _)
-  exact
-    ⟨deltaU, hdeltaU,
-      intervalDomain_eventuallyLowerBound_of_inside_boundary_lower
-        hdeltaU huInside huBoundary,
-      intervalDomain_eventuallyLowerBound_of_inside_boundary_lower
-        hdeltaV hvInside hvBoundary⟩
+    ⟨deltaU, hdeltaU, huLower, hvLower, _huInside, _huBoundary,
+      _hvInside, _hvBoundary⟩
+  exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
 
 /-- Direct intended pointwise persistence when the analytic frontiers are
 available separately on the open interval and on the two Neumann endpoints. -/
@@ -681,9 +624,8 @@ theorem Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_boun
       intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
         hvInside hvBoundary⟩
 
-/-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p`: the
-statement-layer lower-envelope formulation is exactly the expected pointwise
-eventual persistence statement for both `u` and `v`. -/
+/-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p` in the
+paper-faithful liminf form. -/
 theorem Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope
     {p : CM2Params}
     (h21 : Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p) :
@@ -691,26 +633,16 @@ theorem Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope
       ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
         PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
           ∃ deltaU > 0,
-            (∀ᶠ t in atTop,
-              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                deltaU ≤ u t x) ∧
-            (∀ᶠ t in atTop,
-              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
-  intro hm u v hsol
-  rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
-  exact
-    ⟨deltaU, hdeltaU,
-      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
-        huLower,
-      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
-        hvLower⟩
+            deltaU ≤
+              liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+            p.ν / p.μ *
+                (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                  p.γ ≤
+              liminfInfValue ShenWork.IntervalDomain.intervalDomain v :=
+  h21
 
 /-- Exact semantic equivalence between the intervalDomain statement-layer
-Theorem 2.1(1) and its intended pointwise eventual-persistence formulation.
-For the concrete interval domain, the positivity of the lower-envelope
-constant rules out the unbounded-below `sInf` fallback, so no extra `BddBelow`
-input is needed. -/
+Theorem 2.1(1) and its paper-faithful liminf formulation. -/
 theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds
     (p : CM2Params) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
@@ -718,21 +650,16 @@ theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0,
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
-  constructor
-  · intro h21
-    exact Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope h21
-  · intro hpointwise
-    exact Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds p hpointwise
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v := by
+  rfl
 
-/-- Exact semantic equivalence between the intervalDomain statement-layer
-Theorem 2.1(1) and the formulation with separate open-interior and boundary
-eventual lower bounds. -/
+/-- Exact semantic equivalence with the paper-faithful liminf formulation;
+the old interior/boundary eventual read-back is intentionally not asserted. -/
 theorem Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds
     (p : CM2Params) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
@@ -740,86 +667,30 @@ theorem Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0,
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
-                    deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
-                    deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
-                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
-                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
-  constructor
-  · intro h21 hm u v hsol
-    rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
-    have huPoint :
-        ∀ᶠ t in atTop,
-          ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-            deltaU ≤ u t x :=
-      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
-        huLower
-    have hvPoint :
-        ∀ᶠ t in atTop,
-          ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-            p.ν / p.μ * deltaU ^ p.γ ≤ v t x :=
-      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
-        hvLower
-    rcases
-        (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
-          huPoint) with
-      ⟨huInside, huBoundary⟩
-    rcases
-        (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
-          hvPoint) with
-      ⟨hvInside, hvBoundary⟩
-    exact
-      ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
-  · intro hbounds
-    exact
-      Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
-        p hbounds
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v := by
+  rfl
 
-/-- Exact semantic equivalence with the pointwise formulation where the
-analytic `v` frontier may provide any stronger positive lower bound `deltaV`.
-The Lean side only needs the comparison
-`ν / μ * deltaU ^ γ ≤ deltaV` to recover the paper's lower envelope. -/
+/-- Exact semantic equivalence with the paper-faithful liminf formulation;
+the stronger-`v` pointwise margin is a separate sufficient frontier. -/
 theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds_with_v_margin
     (p : CM2Params) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
       1 ≤ p.m →
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
-            ∃ deltaU > 0, ∃ deltaV > 0,
-              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  deltaV ≤ v t x) := by
-  constructor
-  · intro h21 hm u v hsol
-    rcases
-        Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope
-          h21 hm u v hsol with
-      ⟨deltaU, hdeltaU, hpointU, hpointV⟩
-    have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-      exact mul_pos (div_pos p.hν p.hμ)
-        (Real.rpow_pos_of_pos hdeltaU _)
-    exact
-      ⟨deltaU, hdeltaU, p.ν / p.μ * deltaU ^ p.γ, hdeltaV,
-        le_rfl, hpointU, hpointV⟩
-  · intro hpointwise
-    exact
-      Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
-        p hpointwise
+            ∃ deltaU > 0,
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v := by
+  rfl
 
 /-- Statement-layer assembly from interior/boundary lower bounds when the
 analytic `v` frontier gives a stronger lower constant. -/
@@ -832,6 +703,12 @@ Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds_with_v_margin
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
             ∃ deltaU > 0, ∃ deltaV > 0,
               p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v ∧
               (∀ᶠ t in atTop,
                 ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
                   x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
@@ -849,30 +726,11 @@ Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds_with_v_margin
                   x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
                     deltaV ≤ v t x)) :
     Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
-  refine
-    Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
-      p ?_
   intro hm u v hsol
   rcases hbounds hm u v hsol with
     ⟨deltaU, hdeltaU, deltaV, _hdeltaV, htarget_le,
-      huInside, huBoundary, hvInside, hvBoundary⟩
-  have hvInsideTarget :
-      ∀ᶠ t in atTop,
-        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-          x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
-            p.ν / p.μ * deltaU ^ p.γ ≤ v t x := by
-    filter_upwards [hvInside] with t ht x hx
-    exact le_trans htarget_le (ht x hx)
-  have hvBoundaryTarget :
-      ∀ᶠ t in atTop,
-        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-          x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
-            p.ν / p.μ * deltaU ^ p.γ ≤ v t x := by
-    filter_upwards [hvBoundary] with t ht x hx
-    exact le_trans htarget_le (ht x hx)
-  exact
-    ⟨deltaU, hdeltaU, huInside, huBoundary, hvInsideTarget,
-      hvBoundaryTarget⟩
+      huLower, hvLower, _huInside, _huBoundary, _hvInside, _hvBoundary⟩
+  exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
 
 /-- Direct pointwise persistence from interior/boundary lower bounds with a
 stronger `v` lower constant. -/
@@ -936,8 +794,8 @@ Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_bounds_with_
       intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
         hvInsideTarget hvBoundaryTarget⟩
 
-/-- Exact semantic equivalence with the interior/boundary formulation where
-the `v` frontier may be stronger than the theorem's required constant. -/
+/-- Exact semantic equivalence with the paper-faithful liminf formulation;
+the interior/boundary margin frontier remains only a sufficient input. -/
 theorem
 Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_with_v_margin
     (p : CM2Params) :
@@ -945,40 +803,14 @@ Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_with_v_margin
       1 ≤ p.m →
         ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
           PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
-            ∃ deltaU > 0, ∃ deltaV > 0,
-              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
-                    deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
-                    deltaU ≤ u t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
-                    deltaV ≤ v t x) ∧
-              (∀ᶠ t in atTop,
-                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
-                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
-                    deltaV ≤ v t x) := by
-  constructor
-  · intro h21 hm u v hsol
-    rcases
-        (Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds
-          p).mp h21 hm u v hsol with
-      ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
-    have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
-      exact mul_pos (div_pos p.hν p.hμ)
-        (Real.rpow_pos_of_pos hdeltaU _)
-    exact
-      ⟨deltaU, hdeltaU, p.ν / p.μ * deltaU ^ p.γ, hdeltaV,
-        le_rfl, huInside, huBoundary, hvInside, hvBoundary⟩
-  · intro hbounds
-    exact
-      Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds_with_v_margin
-        p hbounds
+            ∃ deltaU > 0,
+              deltaU ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain u ∧
+              p.ν / p.μ *
+                  (liminfInfValue ShenWork.IntervalDomain.intervalDomain u) ^
+                    p.γ ≤
+                liminfInfValue ShenWork.IntervalDomain.intervalDomain v := by
+  rfl
 
 end
 
