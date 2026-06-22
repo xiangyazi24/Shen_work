@@ -340,3 +340,17 @@ intervalConjugateDuhamelMap_sup_bound_of_banked, hcontr from _diff_bound_of_bank
 B/C/D/O1/glue1/glue2 — all PROVEN) + a CONCRETE complete weighted trajectory metric space + Banach FP + hB_global.
 This is local-existence ASSEMBLY (atoms proven) + the metric model, NOT new analysis. InfThreshold dischargeable.
 P2 = P3-existence (both = this FP construction). Banach-assembly subagent attacking on shen_canon.
+
+## P2 KEYSTONE — FINAL ASSEMBLY (06-22, 23e224e) — Core atoms landed, assembly in progress
+The existence keystone (ConjugateMildExistenceCore) is the universal root: closing it discharges paper2_theorem_1_1
+(P2 boundedness) AND P3's PositiveGlobalBoundedSolution (unconditional persistence). NON-circular (hand-rolled pointwise
+Picard limit, not Mathlib Banach). ATOMS LANDED (axiom-clean, origin/main):
+- hmapsTo_pos floor (intervalConjugateDuhamelMap_ge_half_floor_of_ball / _pos_of_ball) — I wrote this myself by
+  generalizing the proven iterate-level half-floor to an arbitrary ball trajectory w.
+- flux integrability (conjugateChemFlux_duhamel_intervalIntegrable_of_ball + diff + chemFluxLifted_sup_bound_of_ball,
+  + the ∂_y-kernel measurability) — discharges hflux_duhamel_integrable fields.
+- hmapsTo (intervalConjugateDuhamelMap_mapsTo_of_banked), localized sup bound, sup-bound brick (earlier).
+REMAINING (Core assembly subagent): discharge hmapsTo_pos's hB_abs/hR_abs (conjugateDuhamel_sup_bound +
+valueDuhamel_sup_bound fed the per-w integrability) + hmapsTo_nn + port hcont/hmeas (via the ∂_y-kernel AEStrongMeas)
++ hbase_* (n=0 homogeneous heat) + constants (K<1 by shrinking T) → inhabit Core → toData → paper2_theorem_1_1.
+WORKFLOW: all clones diverge — commit via TARGETED OVERLAY (add files + merge imports, NEVER --delete mirror).
