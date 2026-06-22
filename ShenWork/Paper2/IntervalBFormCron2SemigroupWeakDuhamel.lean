@@ -87,10 +87,18 @@ def negativePartLogisticWeakTerm
     ∂ intervalMeasure 1
 
 /-- SATISFIABLE standard heat-semigroup fact, currently a Mathlib/project gap:
-`‖∂ₓ S_N(τ)f‖₂ ≤ C τ^{-1/2} ‖f‖₂` on the unit interval. -/
+`‖∂ₓ S_N(τ)f‖₂ ≤ C τ^{-1/2} ‖f‖₂` on the unit interval.
+
+The `MemLp f 2` hypothesis is ESSENTIAL: without it the statement is FALSE.
+For `f ∈ L¹ ∖ L²` (e.g. `x^{-2/3}`), Mathlib's `integral_undef` collapses the
+RHS mass `√(∫ f² ∂μ)` to `0`, while `S_N(τ)f` is a genuine smooth heat image
+with nonzero `n=1` spectral mode, so the LHS gradient `L²` norm is positive —
+contradicting `LHS ≤ C·τ^{-1/2}·0`. (Refutation of the unconditional form was
+formalized axiom-clean; the `L²`-restricted form below is the true, provable
+estimate via the cosine→sine spectral chain + `λ e^{-2τλ} ≤ (2eτ)^{-1}`.) -/
 def NeumannHeatGradientTMinusHalfBound : Prop :=
   ∃ C : ℝ, 0 ≤ C ∧
-    ∀ τ, 0 < τ → ∀ f : ℝ → ℝ,
+    ∀ τ, 0 < τ → ∀ f : ℝ → ℝ, MemLp f 2 (intervalMeasure 1) →
       Real.sqrt
           (∫ x,
             (deriv (fun z : ℝ => intervalFullSemigroupOperator τ f z) x) ^ 2

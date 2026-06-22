@@ -277,3 +277,24 @@ NET REVISION: H2 is MEDIUM mirror-assembly, not a hard analytic frontier. The ge
 concentrated in H1 (semigroup_weak: t^{-1/2} L² + 3 weak-identity producers) + H5 (Henergy, consumes H1) +
 H3/H4. This is the test-don't-assert payoff: probing the "DT hard" headline showed it's mirror-work off a
 landed core, not new PDE. Honest downgrade.
+
+## ★★ §3.3 AUDIT CATCH #3 — H1-grad def was FALSE as stated (2026-06-22, opus producer, refutation formalized axiom-clean + ChatGPT cross-checked, def tree-verified)
+NeumannHeatGradientTMinusHalfBound (IntervalBFormCron2SemigroupWeakDuhamel.lean:91), labeled "SATISFIABLE"
+in its own comment, was MATHEMATICALLY FALSE as literally stated: it quantified `∀ f : ℝ → ℝ` with NO L²
+hypothesis. Counterexample (opus, formalized as 2 axiom-clean lemmas rhs_eq_zero_of_sq_not_integrable +
+gradient_L2_forced_zero_of_bound): for f∈L¹∖L² (e.g. x^{-2/3}), Mathlib integral_undef collapses RHS mass
+√(∫f² ∂μ)=0, but S_N(τ)f is a genuine heat image with nonzero n=1 mode so LHS gradient-L² >0 → LHS≤0 false.
+The opus producer correctly REFUSED to fake a proof (no sorry/axiom), formalized the refutation, cross-
+checked via ChatGPT. THIRD FALSE carried field this campaign (after source-bridge closed-hderiv + bank
+hchemCont constExtend) — `#print axioms` cannot detect a false-as-stated carried Prop; only attempting it does.
+FIX (landed, same FALSE→satisfiable pattern as the prior two): added `MemLp f 2 (intervalMeasure 1)` to the
+def. The only reference is the carried field gradient_tminus_half:163 (never applied concretely), so the fix
+is localized + safe; the L²-restricted form is TRUE + provable. Downstream consumers apply it to flux slices
+which are bounded/continuous on [0,1] hence L² (witness available).
+REMAINING for H1-grad (now provable): the conditional spectral proof. Repo has most of the chain
+(unitIntervalCosineHeatGradientTsumEnergy_le, unitIntervalCosineHeatValue_deriv_of_l2, unitIntervalNeumann
+CosineCoeff_l2_bound); the ONE genuinely-missing analytic input = spatial sine-Parseval ∫₀¹(Σbₙsin nπx)²=
+½Σbₙ² (no output-direction Parseval for this operator in repo; Mathlib has no packaged fourierCoeffOn/tsum
+interchange — build from tsum_sq_fourierCoeffOn on the odd reflection). That is the real next brick.
+LESSON: a comment labeling a carried field "SATISFIABLE" is an ASSERTION, not a proof — test it. The audit
+caught it exactly because the producer ATTEMPTED the proof instead of trusting the label.
