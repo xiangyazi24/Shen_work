@@ -261,3 +261,14 @@ NOT ∂ₓS_N(r)Q. So chemotaxis Duhamel coeff_k = −χ₀∫e^{−(t−τ)λ_k
 Then: iterate engine (F=sineCoeffs(flux) per WALL-B + flux∈H^σ per WALL-A) H^0→H^{1−ε}→...→H⁵ →
 WALL-C → ContDiffOn 2 → IterateSourceTimeData → win → END GATE → χ₀<0 UNCONDITIONAL → P3 cascade.
 Updated: 2026-06-22 (WALL-B χ₀≠0 resolved via divergence-mode; 5 bricks landed; 2 walls in flight).
+
+## P2 χ₀<0 — analytic prizes LANDED (2026-06-22, 58d9edd)
+✅ ENGINE (40c4885) ✅ WALL-C embedding (9ff1fcd) ✅ WALL-B partial+bridge (8d956e3)
+✅ WALL-B chemotaxis divergence-mode (7e795d9) ✅ WALL-A prize: additive discrete-Young H^σ product (58d9edd)
+🔨 WALL-A residual: difference-conv 2-cover + cosine product + chemotaxisFlux_memHSigma [acb1bfb6]
+🔨 ASSEMBLY: iterate engine H^0→H^{1−ε}→...→H⁵ (flux∈H^σ via WALL-A, F=sineCoeffs via WALL-B) → WALL-C
+   ContDiffOn 2 → IterateSourceTimeData → win → END GATE → χ₀<0 unconditional. + bind named flux into hchem.
+## P1 — order layer in flight
+✅ left floor ✅ Schauder ✅ per-step Green solve + existence + max-principle (44d209d)
+🔨 PaperStepOutput order (W≤Z/monotone/left-rate) + Rothe limit [a58db7a2] → RightVanishingWaveExistence.
+Updated: 2026-06-22 (8 bricks landed this stretch; analytic prizes done, WALL-A flux residual + assembly remain).
