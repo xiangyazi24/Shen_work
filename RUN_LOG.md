@@ -96,3 +96,11 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - banked this session: 1fa12a7 (P1 discharge), 4488abe (P2 B-form map), P2 htime/hchem discharge
 - active: B-form Picard existence (codex) -> discharge HasBFormSpectralPdeAgreement -> headline wiring
 - parallel: P1 global-margin (chatgpt), then P3 (gated on P2)
+
+## Run 2026-06-22 (automode, χ₀<0 T7e frontier to completion)
+- doctrine: OUTSTANDING_TARGETS.md (T7e 5-atom inventory + H1 keystone decomposition)
+- approval: Xiang "继续推 ... /automode 直到完成目标"
+- starting avenue: H1-grad (keystone, opus a761b2f9 in flight) + parallel-start the independent H1 producer
+- atoms: H1{grad★/hom/src/chem} → unlock on grad; H2 DT (mirror, medium); H3 hF1; H4 strip; H5 Henergy
+- FALSE fields fixed this campaign: source-bridge(787d375), bank-hchemCont(3fd5c90), H1-grad-def(268754f)
+- end: <fill on close>
