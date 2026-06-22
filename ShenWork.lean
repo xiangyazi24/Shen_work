@@ -256,3 +256,5 @@ import ShenWork.Paper2.IntervalConjugateCoreHmapsTo
 import ShenWork.Paper2.IntervalConjugateDuhamelSupLocalized
 import ShenWork.Paper1.LeftFloorProducer
 import ShenWork.Paper1.Remark132Assembly
+import ShenWork.Paper2.IntervalConjugateHmapsToPos
+import ShenWork.Paper2.IntervalConjugateChemFluxIntegrable
