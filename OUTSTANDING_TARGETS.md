@@ -373,3 +373,19 @@ Both NON-circular (no localClassicalSolution). VERIFY-DON'T-ASSERT FLAG: the non
 the audit + boot opus; the producer must be built using ONLY mild data + the H^σ induction — if it secretly
 needs C²/classical regularity, that IS the circularity, surface it. → DISPATCH one opus on B1+B2 (single
 coherent core). codex returns Jun 26 for a 2nd thread.
+
+## ★★ KEYSTONE B step BUILT mild-only — residual SHARPENED to ONE atom (2026-06-22, opus a6168b9a, verified 3608 green + axioms clean)
+NON-CIRCULARITY CONFIRMED BY TEST: uniformBootstrapStep_of_sliceMildData : SliceMildStepData → Uniform
+BootstrapStep α ut compiles importing ONLY IntervalBootstrapInputs + the scaffold (no localClassicalSolution
+/C²-producer), axiom-clean. The structural audit "option i sound" is VINDICATED at the proof level.
+B1+B2 SUPERSEDED: both already discharged mild-only in repo (B1 = gradientSolution_cosineCoeff_decomp_chi
+IntervalBootstrapDecomp.lean:99; B2 = fluxSineEnvelope_uniform / IntervalEnvelopeProp).
+THE ONE GENUINE RESIDUAL (sharpened): τ-uniform trajectory-H^σ flux envelope = SliceMildStepData.genv/glenv:
+a per-σ sequence with hg: MemHSigma σ (genv σ) AND hg_dom: ∀τ∈[0,t]∀k |sineCoeffs(Q τ) k| ≤ genv σ k —
+i.e. a single H^σ sequence dominating the flux sine-coeffs UNIFORMLY over the whole trajectory window [0,t],
+not just the endpoint slice. Engine header: "no such uniform producer exists in Paper2." NON-circular (it's
+the monotone H^σ induction propagated across [0,t] — a continuation/fixed-point closure, upstream of classical
+existence). This is now THE single deepest analytic atom for χ₀<0 regularity.
+OPEN QUESTION for the route: does the uniform-in-τ H^σ flux bound follow from the engine's ENDPOINT-uniform
+per-mode bound (R(s)=s^{(1-α)/2}≤1, no Gronwall) + the uniform L∞ ball, OR need a full continuation/openness-
+closedness argument? → dispatch opus (Lean) + ChatGPT git-drop (route) in parallel.
