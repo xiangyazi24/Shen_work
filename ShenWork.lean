@@ -294,3 +294,4 @@ import ShenWork.Paper2.IntervalChiNegCloseBaseSeed
 import ShenWork.Paper2.IntervalTimeRegDirect
 import ShenWork.Paper2.IntervalChiNegClose2TimeDeriv
 import ShenWork.Paper2.IntervalChiNegAssemblyHagree
+import ShenWork.Paper2.IntervalSourceBridgeTest
