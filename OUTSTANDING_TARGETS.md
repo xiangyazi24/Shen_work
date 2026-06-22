@@ -350,3 +350,26 @@ H1-grad (t^{-1/2}) still needed separately for the chemotaxis/source DCT dominat
 NET FRONTIER NOW: {B: UniformBootstrapStep instantiation [new keystone]} + {A: H¹-field structural wiring} +
 {H1-grad t^{-1/2} [in flight]} + {H3 hF1 / H4 strip — still genuine but now the H¹ they implicitly needed is
 the bootstrap field}. The 4 false fields are no longer 4 separate hard producers — they share ONE discharge.
+
+## ★★ KEYSTONE B PRECISELY LOCATED (2026-06-22, boot opus a45e9570 — H1-grad ✅ landed b57f439, boot scaffold 8d4693e)
+H1-grad ✅ DISCHARGED+VERIFIED (b57f439): NeumannHeatGradientTMinusHalfBound (L²-restricted, C=1), real
+sine-Parseval (AddCircle.tsum_sq_fourierCoeffOn), cold-build 8414 green, axioms clean. First genuine hard
+analytic atom closed this run.
+Boot scaffold (8d4693e, CONDITIONAL): conjugatePicardLimit_slice_memHSigma_zero (H⁰ seed, UNCONDITIONAL,
+non-circular) + memHSigma_antitone + the MemHSigma-1 ladder (carries UniformBootstrapStep, not discharged).
+KEYSTONE B = instantiate UniformBootstrapStep α (slice) — the ONE shared blocker that discharges the H¹
+field → admissibility → all of H1-hom/src/chem. Boot opus located it to two non-circular sub-bricks:
+ B1: mild-only slice cosine decomposition hdecomp/conjugatePicardLimit_cosineSeries. The per-mode kernel
+     identity EXISTS unconditionally (intervalConjugateKernelOperator_cosineSeries, IntervalConjugate
+     CosineSeries.lean:246: cosineCoeffs(B_N(t)g)_n = e^{-tλ_n}√λ_n sineCoeffs(g)_n). Assembling the full
+     slice series (conjugatePicardLimit_cosineSeries :507) needs DuhamelSourceTimeC1 + Duhamel-leg
+     integrabilities + hsource_bridge VIA THE MILD ROUTE (currently only produced via downstream ContDiffOn
+     2 Neumann: hchemFourier_slice_of_limit_C2Neumann / _PID_unconditional — must build the upstream variant).
+ B2: σ-level flux envelope Mc∈H^σ needs v_x∈H^σ at running σ (fluxFunction_memHSigma). Elliptic gain: v
+     solves -v''+v=u so v_x is one degree smoother than u → v_x∈H^σ from u∈H^{σ-1}. The bootstrap induction
+     is well-founded from H⁰ (each step +α). No MemHSigma σ…of_bounded for σ>0 (L∞⇏H^{σ>0}) — must go
+     through the per-level elliptic regularity, NOT a sup bound.
+Both NON-circular (no localClassicalSolution). VERIFY-DON'T-ASSERT FLAG: the non-circularity is asserted by
+the audit + boot opus; the producer must be built using ONLY mild data + the H^σ induction — if it secretly
+needs C²/classical regularity, that IS the circularity, surface it. → DISPATCH one opus on B1+B2 (single
+coherent core). codex returns Jun 26 for a 2nd thread.
