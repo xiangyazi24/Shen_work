@@ -7,7 +7,20 @@ Detailed audit log: `SHEN_AUDIT_CHECKLIST.md`. This file = the global map, updat
 
 Legend: ✅ proven+committed · 🟢 proven in-clone (commit/wire pending) · 🟡 in active work (codex grinding)
 · 🔴 genuine hard core (open) · ⚠️ faithfulness note.
-Last update: 2026-06-21 round-3 dispatch.
+Last update: 2026-06-21 — FIRST MILESTONE LANDED.
+
+## ✅✅ MILESTONE #1 LANDED (origin/main c3620c9, 06-21) — Paper 3 Theorem 2.1 persistence (m=1 small-sensitivity)
+`IntervalDomainSectorialTheorem21Persistence` via `..._actualLinearSmall`: liminf inf_x u ≥ θ ∧ liminf inf_x v ≥
+(ν/μ)θ^γ, θ=((a−Cχ)/b)^{1/α}, Cχ=χ0μΘ_{β-1}, conditional ONLY on satisfiable PositiveGlobalBoundedSolution + params
+(m=1, a>Cχ). Dini DERIVED from PDE (interior-argmin u_x=0/u_xx≥0 + theta_linear bound + CompactMinDanskin), NOT
+carried. Part3(m>1) vacuous for m=1. HOSTILE-OPUS-AUDITED FAITHFUL. Cold-build green (8718 jobs), axiom-clean.
+Landed by Opus (Codex usage-limited): codex did the Dini proof pre-limit; Opus did the hostile audit + full-closure
+cold-build commit. LANDING MECHANICS: buildserver HTTPS remote has NO push creds → mirror verified ShenWork to mini
+(~/repos/Shen_work, has gh auth) → commit + push from mini. Cold-build = mirror p3 clone ShenWork onto fresh
+origin/main (rsync --delete, keep .lake) → lake build ShenWork → BS_EXIT=0 gate.
+REMAINING (all Opus-driven, Codex out until 06-26): P2 = flux bridge BFormFluxACWeakBridge (≈flux-H¹, needs F∈H^ρ;
+content already in BFormSpectralFrontierResidual, wiring path exists); P3 stability Thm 2.2 (route designed); P1 =
+route reconciliation (target needs NO monotonicity — Rothe right-vanishing vs fixed-source existence).
 
 ## ROUND 3 (06-21) — each paper at ONE named irreducible wall; all 3 codexes honest-stalled axiom-clean, re-fired
 - **P1 wall = FixedSourceStationaryPointwiseStabilization** (genuine Liouville: bounded entire stationary
