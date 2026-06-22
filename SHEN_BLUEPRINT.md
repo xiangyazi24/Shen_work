@@ -89,6 +89,24 @@ Each headline is now conditional ONLY on its single satisfiable PDE lemma; nothi
   DONE under flat tails). Codex grinding; Pro P1mono hard-steps landed (26bd410a3, VERIFIED).
 - P3 stability Thm 2.2 Duhamel/mode-wise route landed on Pro (01b23b036) — staged for dispatch after persistence.
 
+### ROUND 6 (06-21) — P2 B-form H¹ OBSTRUCTION (proven false), P1 one regularity-lemma from milestone
+- **P1: monotone Liouville analytic core DONE (axiom-clean); ONE step from Remark_1_3_2.** Proven: Barbalat,
+  C²-regularity-satisfiability, resolver-at-constant, root-pin+squeeze, antitone-closure of left-translate limits,
+  the limit→Liouville→Tendsto U atBot→Remark wiring. REMAINING = the C²-of-left-translate-LIMIT producer
+  (FixedSourceLeftTranslateRegularStationaryCompactness): translates share uniform C² bounds ⇒ the locally-uniform
+  limit is C² by Arzelà-Ascoli (RotheAACompactnessData). Re-fired P1c2lim. P1 = closest to a real milestone.
+- **P2: the B-form L²→H¹ route is PROVEN FALSE for unconditional flux-H¹** (Pro git-drop c0a0ef86a, VERIFIED, with
+  explicit lacunary counterexample). The single √λ_k closes the L² mild interp non-circularly ((s−τ)^{−1/2}
+  integrable), but H¹ needs a 2nd √λ_k → A·e^{−(s−τ)A} ~ (s−τ)^{−1} NON-integrable, and L^∞_t L²_x → H¹_x is
+  UNBOUNDED (not just a bad estimate). ⇒ DO NOT write an unconditional L²→H¹ B-form theorem (false). P2 needs a
+  genuine EXTRA regularity input: (A) F∈L^∞_t H^ρ (ρ>0) ⇒ ‖u^B(s)‖_H¹ ≤ C s^{ρ/2}‖F‖_{L^∞ H^ρ}; (B) Dini/Hölder
+  time reg; (C) maximal regularity+trace. PLAN (Pro's modular recommendation): prove the linear-semigroup L²→H¹
+  bound unconditionally (the proven IntervalBFormDirectSmoothingCalc), formalize the chemotaxis-Duhamel H¹ as a
+  CONDITIONAL lemma carrying explicit F∈H^ρ. So P2 headline = CONDITIONAL on a standard satisfiable parabolic-
+  regularity input (faithful; NOT the hard content in disguise) — UNLESS we invest in the full maximal-regularity
+  bootstrap. Scope decision flagged to Xiang. P2 codex grinding the (valid) linear full-kernel bridge.
+- P3: still grinding the genuine spatial-min Dini discharge (Danskin argmin + scalar lift).
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
