@@ -276,3 +276,4 @@ import ShenWork.Paper2.IntervalCosineSobolevEmbedding
 import ShenWork.Paper2.IntervalGradientCoeffDuhamel
 import ShenWork.Paper2.IntervalDivergenceModeIdentity
 import ShenWork.Paper2.IntervalWienerAlgebra
+import ShenWork.Paper1.IntervalP1OrderLayer
