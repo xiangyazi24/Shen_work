@@ -172,3 +172,30 @@ NEXT: discharge win (wire closed-slab timeC1 producers + h_coeff bridge → full
 unconditionally), then hagree + frontierCore → END GATE unconditional → χ₀<0 P2 boundedness → P3 cascade.
 The ℓ¹ envelope (historically the deep gap) is DONE; remaining = time-deriv wiring + restart agreement.
 Updated: 2026-06-22 (Brick 2 + conditional end-gate landed 089e3de; residuals pinned to win-timeC1/hagree/frontierCore).
+
+## ★★★ TRUE BOTTOM REACHED (win-discharge a3f02ab5, 2026-06-22)
+χ₀<0 boundedness traced through ALL reduction layers to its irreducible analytic core:
+  END GATE ← win ← ChemDivSolutionRegularityResidual ← IterateSourceTimeData
+  = the gradient mild solution D.u is C² in SPACE and TIME (parabolic regularity bootstrap,
+    the "G4 frontier / restart cosine representation").
+- GradientMildSolutionData carries only CONTINUOUS slices, NOT C². The C² is the genuine analytic content.
+- NOT s=0 (handled by .toOn/windows), NOT the envelope leg (h_coeff discharged via chemDiv_coeff_bound_of_EWA),
+  NOT the ℓ¹ summability (EWA SourceEnvelope landed). The bottom is purely the C² parabolic bootstrap.
+- ⚠️ STRUCTURAL CIRCULARITY: the only existing repo route to this C² regularity
+  (ResolverHasSpectralAgreement.exists_data) itself CARRIES a DuhamelSourceTimeC1 — the same class
+  of object win produces. So χ₀<0 CANNOT close via the source-package route; the C² regularity must
+  be produced DIRECTLY from the fixed point via heat-kernel smoothing (the HSigma machinery, which D's
+  earlier finding showed is scaffolding NOT wired to the limit). Breaking this circularity = Paper 2's
+  genuine hard theorem.
+
+LANDED (axiom-clean, the final clean reduction): coupledChemDivSource_timeC1On_of_gradientSolution
+(win from ChemDivSolutionRegularityResidual; localizes the bottom to IterateSourceTimeData).
+
+GENUINE REMAINING CORE (one thing, Paper 2's hard analytic theorem): a DIRECT parabolic-smoothing
+C²-regularity bootstrap for the gradient fixed point (L^∞ → C²(space)+C²(time) for t>0 via heat-kernel
+Duhamel smoothing), breaking the source-package circularity. At χ₀=0 the cone produces it in-tower
+(logistic); χ₀<0 needs the chemotaxis version. This is substantial (likely multi-session) — surfaced to Xiang.
+
+What is UNCONDITIONAL today: χ₀=0 Paper-2 boundedness (from_cone_construction). χ₀<0 is reduced
+(machine-checked, axiom-clean) to the single C²-bootstrap residual, with all bridges/wirings landed.
+Updated: 2026-06-22 (TRUE BOTTOM = parabolic C² bootstrap + circularity; all reductions above it landed).
