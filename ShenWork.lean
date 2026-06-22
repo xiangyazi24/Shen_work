@@ -251,3 +251,6 @@ import ShenWork.Paper2.IntervalBFormHSigmaKernelL2
 import ShenWork.Paper2.IntervalBFormHSigmaLinftyMultiplier
 import ShenWork.Paper2.IntervalBFormHSigmaDuhamelMode
 import ShenWork.Paper2.IntervalBFormHSigmaDuhamelEnergy
+import ShenWork.Paper2.IntervalConjugatePicardSupBound
+import ShenWork.Paper2.IntervalConjugateCoreHmapsTo
+import ShenWork.Paper2.IntervalConjugateDuhamelSupLocalized
