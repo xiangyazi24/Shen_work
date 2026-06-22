@@ -14,6 +14,12 @@ Last update: 2026-06-21 — FIRST MILESTONE LANDED.
 (ν/μ)θ^γ, θ=((a−Cχ)/b)^{1/α}, Cχ=χ0μΘ_{β-1}, conditional ONLY on satisfiable PositiveGlobalBoundedSolution + params
 (m=1, a>Cχ). Dini DERIVED from PDE (interior-argmin u_x=0/u_xx≥0 + theta_linear bound + CompactMinDanskin), NOT
 carried. Part3(m>1) vacuous for m=1. HOSTILE-OPUS-AUDITED FAITHFUL. Cold-build green (8718 jobs), axiom-clean.
+
+## ✅ MILESTONE #1.5 LANDED (origin/main b9a4ecc, 06-21) — P3 hypothesis class PROVABLY INHABITED
+`intervalDomain_persistingSolution_exists`: constant equilibrium (u≡U*, v≡V*) is a genuine IsPaper2ClassicalSolution
+(7 conjuncts genuine, endpoint Neumann via TRUE one-sided derivWithin not junk) + bounded + positive ⇒ ∃ u v,
+PositiveGlobalBoundedSolution ∧ persistence. Unconditional ∃-a-persisting-solution. Addresses "don't assume input"
+(Xiang). TRIVIAL equilibrium witness (general non-trivial existence = Paper 2 Thm 1.1). Audited FAITHFUL, axiom-clean.
 Landed by Opus (Codex usage-limited): codex did the Dini proof pre-limit; Opus did the hostile audit + full-closure
 cold-build commit. LANDING MECHANICS: buildserver HTTPS remote has NO push creds → mirror verified ShenWork to mini
 (~/repos/Shen_work, has gh auth) → commit + push from mini. Cold-build = mirror p3 clone ShenWork onto fresh
