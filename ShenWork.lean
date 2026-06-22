@@ -258,3 +258,8 @@ import ShenWork.Paper1.LeftFloorProducer
 import ShenWork.Paper1.Remark132Assembly
 import ShenWork.Paper2.IntervalConjugateHmapsToPos
 import ShenWork.Paper2.IntervalConjugateChemFluxIntegrable
+import ShenWork.Paper2.IntervalConjugateKernelJointMeas
+import ShenWork.Paper2.IntervalConjugateFluxDiffBall
+import ShenWork.Paper2.IntervalConjugateLogisticDiffBall
+import ShenWork.Paper2.IntervalConjugateBallSupBound
+import ShenWork.Paper2.IntervalConjugateConePreserved
