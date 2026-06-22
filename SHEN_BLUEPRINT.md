@@ -68,6 +68,27 @@ Last update: 2026-06-21 round-3 dispatch.
   P3 stability Theorem 2.2 = local spectral small-data (χ<χ*, ‖w0‖<ε); Duhamel/mode-wise route consulted on Pro (prep dispatch).
 - NOTE: ChatGPT git-drop "[reported]" (vs "[VERIFIED]") = phantom commit (file not actually on main) — re-fire. P1mono-PRO was lost this way.
 
+### ROUND 5 (06-21) — ALL THREE PAPERS CONVERGED TO ONE NAMED GENUINE ANALYTIC CORE EACH (the faithful structure)
+Each headline is now conditional ONLY on its single satisfiable PDE lemma; nothing fake landed (every claim hostilely audited).
+- **P3 "completion" claim (1.1M tokens) AUDITED → CONDITIONAL (frontier repackaging), NOT a milestone.** Hostile opus
+  found: headline IS on real interval [0,1] + statement faithful (liminf u&v, right θ, satisfiable, axiom-clean) BUT
+  rests on carried frontier IntervalDomainLogisticPersistenceInputs whose fields ARE the conclusion; the only real
+  liminf proof is on the DISCONNECTED singleton unitPointDomain. GENUINE RESIDUAL = the spatial-minimum lower-right
+  Dini comparison on the interval. Re-fired P3discharge: at spatial argmin x*, u_xx≥0 & u_x=0 ⇒ chemotaxis term →
+  linear Cχ·u(x*) ⇒ D⁺ sInf_x u ≥ (a−Cχ)sInf_x u − b(sInf_x u)^{1+α} ⇒ wire PROVEN-orphan CompactMinDanskin + the
+  scalar persistence (proven on singleton, domain-agnostic, LIFT it) ⇒ liminf sInf_x u ≥ θ; v via elliptic transfer.
+  Part3 (m>1 superlinear) N/A for the m=1-linear committed operator — state regime split faithfully.
+- **P2 genuine core = B-form positive-time H¹ smoothing** (= P2SolutionSpatialH2Regularity / BFormDirectP2FactorSmoothing).
+  Codex proved bFormFluxH1Provider follows from it (axiom-clean). Relationship to the repo's existing
+  GradientMildHalfStepH2SourceData H² bootstrap is (iii) GENUINELY DIFFERENT (conjugatePicardLimit ≠ gradient-mild;
+  uniqueness only compares conjugate-mild; B-form refuses to coerce). Re-fired P2bridge: try GradientToConjugate
+  equivalence (if a gradient-mild solution satisfies the conjugate fixed-point eq ⇒ uniqueness ⇒ transfer H²); else
+  direct heat-semigroup smoothing (cosine multiplier sup_k (kπ/L)²e^{−2d1(kπ/L)²s} ≤ 1/(2e d1 s) ⇒ L²→H¹ for s>0 +
+  Duhamel preserves). Pro consulted in PIPE mode (Xiang switched git-drop→pipe; both modes worked this session).
+- **P1 genuine core = Barbalat (W'→0) + C² regularity threading + resolver-at-constant** (Ustar=1; root-pin+squeeze
+  DONE under flat tails). Codex grinding; Pro P1mono hard-steps landed (26bd410a3, VERIFIED).
+- P3 stability Thm 2.2 Duhamel/mode-wise route landed on Pro (01b23b036) — staged for dispatch after persistence.
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
