@@ -22,6 +22,25 @@ REMAINING (all Opus-driven, Codex out until 06-26): P2 = flux bridge BFormFluxAC
 content already in BFormSpectralFrontierResidual, wiring path exists); P3 stability Thm 2.2 (route designed); P1 =
 route reconciliation (target needs NO monotonicity — Rothe right-vanishing vs fixed-source existence).
 
+## P1 PRECISE BOTTLENECK (Opus exec verified, Pro-checked, P1_BARE_REMARK_DIAGNOSIS.md): genuine core = StrictlyPositiveAtLeft
+fixedSourceLowerPinnedBarrier_exists_fixed_of_green_apriori is PROVEN (axiom-clean). IsRightVanishingTravelingWave's
+right-vanishing/ode_V/U_pos/tail are FREE from the trap. Two FALSE premises killed the "shortest path": (1)
+lowerBarrierRaw φ=e^{−κx}−D·e^{−κtilde x} → −∞ at far left (NOT positive there), so U≥φ gives NO left floor; (2)
+brick-1 C² second_bound is FALSE ∀-trap (flux F=u^m V' only C⁰ on C⁰ trap) — but existence uses only value+lipschitz
+(Arzelà-Ascoli), so brick 1 REDUCES to value+lipschitz (EASY, lemmas half-exist: greenConv_abs_le_upperBarrier...,
+greenConvDeriv_abs_le...). Brick 2 FixedSourceBarrierInvarianceData = MEDIUM (barrier sub/super-sign assembly).
+GENUINE BOTTLENECK = StrictlyPositiveAtLeft U (positive floor at −∞) for the NON-MONOTONE fixed point: needs strong
+max-principle (U≥0,U≢0⇒U>0) + left-tail Liouville (bounded positive stationary → positive equilibrium at −∞). Same
+left-tail stabilization core monotonicity was meant to supply (monotonicity blocked: T doesn't preserve antitone).
+P1 = NOT quick; left-floor is a real PDE theorem. greenConv ODE-C² identity (greenConv_variation_negative) IS proven.
+
+## CAMPAIGN HONEST STATE (post milestone #1): each remaining piece has a genuine hard analytic core, none quick.
+- P3 persistence (m=1): ✅ LANDED conditional on PositiveGlobalBoundedSolution. Equilibrium-witness (∃ provable
+  persisting solution) in progress to make it non-vacuous; full discharge = Paper 2 existence+regularity.
+- P1 traveling wave: core = StrictlyPositiveAtLeft (strong-max + left-tail Liouville).
+- P2 boundedness: core = flux bridge / F∈H^ρ regularity (= IsPaper2Bounded+classical regularity, the largest piece).
+- These three cores (P1 left-tail Liouville, P2 flux-H^ρ, P3-existence=P2) are the real frontier. Codex out till 06-26.
+
 ## ROUND 3 (06-21) — each paper at ONE named irreducible wall; all 3 codexes honest-stalled axiom-clean, re-fired
 - **P1 wall = FixedSourceStationaryPointwiseStabilization** (genuine Liouville: bounded entire stationary
   W''+cW'−λW+R=0, 0<c1≤W≤C2 ⇒ W≡U_-=(a/b)^{1/α}) + auxRHS still carries deriv(auxFlux) → re-fired P1stab:
