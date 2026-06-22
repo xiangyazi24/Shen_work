@@ -57,3 +57,40 @@ PREREQ to verify: is u∈H^2 (4-half-step bootstrap) of the limit reachable from
 (IntervalBFormHSigmaSmoothing rate (1-σ)/2)? If not, the bootstrap-to-H^2 is the true sub-residual.
 
 Updated: 2026-06-22 (cron1b Q274 impostor, cron2b Q275 route).
+
+## ⚠️⚠️ UNIFIED ROOT FINDING (cron1c Q278 + subagents B/C/D, 2026-06-22)
+The conjugate Picard limit is a WEAK mild solution (bounded/continuous/nonneg/windowed
+contraction data) — it carries NO classical/global regularity. Several BFormBankedInputs
+fields are typed GLOBAL / closed-at-0, which is OVER-STRONG / unsatisfiable for this weak limit:
+- field 2 Hinf: producer demands hQ_bound/hL_bound ∀s (global); keystone data only windowed
+  (0<t≤T); for s>T no M-control. Consumer DISCARDS the window hyps. [subagent C: windowed
+  half landed (hQ_int/hB_int/hL_int via 6 bricks); global hQ_bound/hL_bound block]
+- field 6 hlogSrc: global cosine-repr + timeC1; limit carries no RestartCosineRepresentation
+  + time-C¹ coeff data. [subagent C: blocked, needs GradientMildSolutionData regularity]
+- field 7 hchemSrc: GLOBAL DuhamelSourceTimeC1 — UNSATISFIABLE. cron1c PROVES ‖S(s)‖~1+s^{−1/2}
+  as s→0+ (u_x~s^{−1/2} term); no uniform envelope. [subagent B: reduction landed but targets
+  the over-strong global type → HELD, not banked]
+- field 12 hchemFourier: positive-time already, but the landed ℓ¹ tool needs C²-Neumann SLICE
+  ⟹ C³(u)/C⁴(v), strictly above the limit's landed closedC2 (C², keyed IsPaper2ClassicalSolution).
+  [subagent D: conditional interface hchemFourier_of_chemDiv_C2Neumann landed (axiom-clean,
+  satisfiable); residual = the C²→C⁴ elliptic-gain wiring on the limit]
+
+cron1c FAITHFUL OBJECT: global package is UNNECESSARY (Duhamel converges: ∫₀ᵗ s^{−1/2} ds=2√t).
+Correct = PAIR: (i) positive-time windowed C¹ package on every W⊂⊂(0,T) [= existing
+HasTimeNeighborhoodSpectralAgreement architecture] + (ii) integrable-singularity-near-0 package
+(‖F(s)‖_{L²}≤C, θ=0 for the B-form flux). Does NOT weaken the theorem.
+
+D's finding: HSigma machinery (HSigmaSmoothing/DuhamelEnergy/Scale) is OPERATOR-LEVEL SCAFFOLDING
+ONLY — NOT wired to conjugatePicardLimit; single step gated σ<1. No landed iterated H² bootstrap.
+
+## TRUE REMAINING CORE for χ₀<0 unconditional P2 (re-scoped, honest)
+NOT 5 leaf lemmas. Two substantial pieces:
+1. REFACTOR bank global fields → positive-time windowed + integrable-singularity (cron1c's
+   two-part BFormSourceRegularity; matches existing frontier architecture). [design fork: in-place
+   vs fresh structure — surfaced to Xiang]
+2. The weak→classical POSITIVE-TIME regularity bootstrap for conjugatePicardLimit (wire HSigma
+   scaffolding to the limit; C²→C⁴ via elliptic +2 gain ×2). = Paper 2's boundedness core itself.
+3 over-strong "global/closed-at-0" fields caught this session: keystone flux (fixed→(0,T]),
+frontier hSupNormDeriv (fixed→dropped 5059227), bank globals (diagnosed). Same pattern.
+
+Updated: 2026-06-22 (frontier fix landed 5059227; bank re-scoped).
