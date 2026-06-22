@@ -36,3 +36,24 @@ Structure def: `IntervalBFormDirectClassical.lean:62` (13 fields). Mapped 2026-0
 Bank → BFormSpectralFrontier (6 fields) → hPerDatum → unconditional P2 → P3 cascade.
 
 Last verified: 2026-06-22 (mapper a261b373, canonical d7659d9/c516590).
+
+## ⚠️ FRONTIER IMPOSTOR (cron1b + source-verified 2026-06-22) — GATING
+`BFormSpectralFrontier.hSupNormDeriv : IntervalDomainSupNormDerivativeNonposOn (limit) (Ioo 0 T)`
+(IntervalBFormEndToEnd.lean:213) is the repo's OWN documented-FALSE field
+(IntervalHsupNormProof.lean: flat datum 0<ε<K=(a/b)^{1/α} ⟹ logistic ODE ⟹ supNorm INCREASES,
+deriv>0, contradicts deriv_nonpos). It is UNSATISFIABLE for admissible small data ⟹ frontier
+uninhabitable ⟹ hPerDatum undischargeable ⟹ paper2_theorem_1_1_general_chi_via_bform vacuously
+conditional (IMPOSTOR). BUT it is UNUSED downstream: IntervalDomainEndToEnd.lean:158 destructures
+it as `_hSupNormDeriv` (discarded). FIX: drop the field (or replace w/ the conditional above-capacity
++ pure-heat true pieces, mirroring HsupNormConsumers.Lemma31CarrierTarget which the cone route uses).
+Strict improvement — removes an unsatisfiable hypothesis without weakening the theorem. [me, next]
+
+## Field 12 hchemFourier — COMPLETE analytic route (cron2b, Q275)
+u(t)∈H^{3/2+} ⟹ v∈H^{σ+2}, Q=u^m(1+v)^{-β}v_x∈H^σ ⟹ S=Q_x∈H^{σ-1}, σ-1>1/2 ⟹ ℓ¹.
+Iteration: 4 half-steps from H^0 (k=4: u∈H^2 → Q∈H^2 → S∈H^1 → ℓ¹). k=3 FAILS (S∈H^{1/2} endpoint).
+Caveats handled: (a) H^{1/2} not an algebra → cross first step via L^∞∩H^s Moser (limit has L^∞);
+(b) u^m noninteger m → keystone hmapsTo_pos positive floor on slice. Lemma: hchemFourier_of_u_H2.
+PREREQ to verify: is u∈H^2 (4-half-step bootstrap) of the limit reachable from landed HSigma bricks
+(IntervalBFormHSigmaSmoothing rate (1-σ)/2)? If not, the bootstrap-to-H^2 is the true sub-residual.
+
+Updated: 2026-06-22 (cron1b Q274 impostor, cron2b Q275 route).
