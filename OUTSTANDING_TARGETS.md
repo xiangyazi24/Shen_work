@@ -400,3 +400,24 @@ L∞ ball has no high-freq decay. Two layers (analysis in repo d6e4e9f:ANALYSIS_
  WIRING (mechanical given Uσ): Vxσ=√λ_k Uσ/(1+λ_k) resolver relay + Gdenσ denom composition + GENVσ=
    trueCosProd(trueCosProd Uσ Gdenσ)Vxσ → fluxSineEnvelope_uniform (:258, σ>1/2) gives genv+uniform dom.
 → opus aa154279 dispatched (wiring-first then core). This is the genuine remaining PDE math for χ₀<0 regularity.
+
+## ★★★ FRONTIER CONVERGED to hsource_bridge (2026-06-22, trajectory opus aa154279 verified 3611 green axioms-clean + R2 nature tested)
+Trajectory envelope ✅ wiring COMPLETE + core smoothing step PROVEN (IntervalTrajectoryEnvelope, axioms
+clean): fluxEnvelope_of_factorEnvelopes (genv/glenv from abstract traj env), trajectoryEnvelope_of_source
+Envelope (endpoint-uniform propagator → explicit H^{r+α} dominator, closedness needs no ℓ²-sup). Imports only
+mild engine — non-circular.
+KEY FINDING (R2 tested, not assumed): gradientSolution_cosineCoeff_decomp_chi (IntervalBootstrapDecomp:99) is
+ALREADY GENERAL IN χ₀ (free {χ₀:ℝ}, (-χ₀) throughout) — it works for χ₀<0 as-is. So R2 is NOT "prove a new
+χ₀<0 kernel identity"; it's DISCHARGING that theorem's hypotheses for the conjugatePicardLimit slice:
+ · hpt_chem/hpt_log (per-τ divergence-mode/kernel identities) — EXIST (intervalConjugateKernelOperator_
+   cosineSeries; duhamelEnergyCoeff_sineFlux_eq_integral).
+ · hmap (the slice EQUALS the three-term Duhamel map: heat S(t)u₀ + (-χ₀)∫chem + ∫log on [0,1]) — THIS is the
+   genuine bottom = the long-named hsource_bridge / conjugate mild three-term Duhamel representation. The
+   conjugatePicardLimit satisfies its fixed-point/mild equation by construction; the missing piece is putting
+   it in the exact three-term cosineCoeffs-compatible form decomp_chi consumes.
+ · R1 base seed (first positive-time smoothing pass, Icc→Ioc) — minor.
+THE BOTTOM (converged across 3 opus rounds, STABLE+named): hsource_bridge = conjugate mild three-term Duhamel
+representation (hmap). Discharge it → decomp_chi gives the per-mode kernel identity → trajectory envelope
+closes → SliceMildStepData → UniformBootstrapStep → MemHSigma 1 → H¹ field → H1-hom/src/chem → χ₀<0 closes.
+This is NOT never-bottoming-out: it converged to ONE specific named piece (the decomp theorem is general; only
+its hmap hypothesis for the conjugate slice is missing). → dispatch opus on hmap/hsource_bridge.

@@ -305,3 +305,5 @@ import ShenWork.Paper2.IntervalNeumannHeatGradientL2
 import ShenWork.Paper2.IntervalMildPosTimeHSigma
 
 import ShenWork.Paper2.IntervalMildBootstrapStep
+
+import ShenWork.Paper2.IntervalTrajectoryEnvelope
