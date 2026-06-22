@@ -384,3 +384,17 @@ localExistence constructor (parallel per-datum-existence frontier) remains.
 HONEST: all hard analytic cores built+verified; completion awaits the T7e per-datum-existence assembly
 (P2 χ₀<0 + P1), genuine multi-session PDE-assembly work. Audit (test-don't-assert + ChatGPT git-drop)
 caught 3-4 of my overstatements this run — accounting kept honest throughout.
+
+## SCOREBOARD UPDATE 2026-06-22 (H1-grad ✅ verified; frontier = keystone B)
+χ₀=0: ✅ unconditional. χ₀<0 atom board:
+ ✅ H1-grad — NeumannHeatGradientTMinusHalfBound (b57f439, full-closure 8858 green, axioms clean, §3.3
+    audited, real sine-Parseval). FIRST genuine hard analytic atom discharged this run.
+ 🟡 H1 scaffold — H⁰ seed + ladder + antitone landed (8d4693e, axioms clean); MemHSigma-1 carries the step.
+ 🔨 KEYSTONE B — UniformBootstrapStep instantiation (B1 mild-only hdecomp/hsource_bridge + B2 σ-level flux
+    envelope). The ONE shared blocker → H¹ field → discharges H1-hom/src/chem. opus a6168b9a in flight.
+ ⬜ H1-hom/src/chem — weak-identity producers; unblock once keystone B gives the H¹ admissibility field.
+    (H1-grad's t^{-1/2} now available for the H1-src/chem DCT dominators.)
+ ⬜ H2 DT (mirror-assembly, medium), H3 hF1, H4 strip, H5 Henergy — downstream of the regularity field.
+ ✅ all 4 FALSE fields fixed (source-bridge 787d375, bank-hchemCont 3fd5c90, H1-grad-def 268754f,
+    H1-hom→consolidated into keystone-B H¹ discharge). Structure validated SOUND (struct audit 7b1e544).
+Distance = discharge keystone B (the per-level parabolic bootstrap), then the consolidated wiring. Last verified: 8858-job full closure.
