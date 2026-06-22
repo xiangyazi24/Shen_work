@@ -18,6 +18,7 @@ import ShenWork.PDE.SobolevEmbedding
 import ShenWork.PDE.GagliardoNirenberg
 import ShenWork.PDE.SpecialCases
 import ShenWork.Paper1.Statements
+import ShenWork.Paper1.NoSmallLeftPocket
 import ShenWork.Paper2.Defs
 import ShenWork.Paper2.Statements
 import ShenWork.Paper3.Defs
