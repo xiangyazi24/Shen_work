@@ -278,3 +278,4 @@ import ShenWork.Paper2.IntervalDivergenceModeIdentity
 import ShenWork.Paper2.IntervalWienerAlgebra
 import ShenWork.Paper1.IntervalP1OrderLayer
 import ShenWork.Paper2.IntervalWienerAlgebraFlux
+import ShenWork.Paper1.IntervalP1ChemoMonotone
