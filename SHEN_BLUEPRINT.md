@@ -326,3 +326,17 @@ recursion coeff identity — NOT flux bridge) + B3-full Minkowski + B5 1D Sobole
 ⚠️ STALE-CLONE TRAP: /var/tmp/shen_cx_pde is a no-git snapshot ~22k lines BEHIND origin/main; earlier P2 work there
 NEVER pushed. WORKFLOW FIX: all Lean work now on FRESH canonical clone /var/tmp/shen_canon (synced from origin/main,
 shares mathlib cache). Old shen_cx_* clones are stale — do NOT trust their builds. [[feedback_fresh_canonical_clone]]
+
+## P2 CLOSURE REFRAMED (06-22, verified by source) — the wall is the BANACH FIXED POINT, not H^σ algebra
+8 H^σ-bootstrap bricks landed (B1-B5 + kernelL2/linftyMult/DuhamelMode/DuhamelEnergy, cf4c2d5) — they feed regularity
+summabilities but do NOT close paper2_theorem_1_1. The VERIFIED live reduction: FinalWiring.paper2_theorem_1_1_from_two
+← hQuant + PerDatumSpectralFrontier. The frontier's hard fields (HasTimeNeighborhoodSpectralAgreement,
+HasResolverDirectSpectralData, SourceCoeffQuadraticDecay, PDE-identity, positivity) are ALL DERIVED from a Banach
+fixed point ConjugateMildExistenceData + BFormBankedInputs(hB_global = the FP's cosine Duhamel representation). NOW
+NON-CIRCULAR at the predicate level (the round-3 "circular rep-identity wall" is resolved). hQuant = the SAME
+fixed-point construction packaged uniform-in-datum, NOT a separate parabolic input — closing the FP discharges BOTH.
+GENUINE RESIDUAL = instantiate the FP: assemble ConjugateMildExistenceCore (hmapsTo from the landed
+intervalConjugateDuhamelMap_sup_bound_of_banked, hcontr from _diff_bound_of_banked, positivity/cont/meas from
+B/C/D/O1/glue1/glue2 — all PROVEN) + a CONCRETE complete weighted trajectory metric space + Banach FP + hB_global.
+This is local-existence ASSEMBLY (atoms proven) + the metric model, NOT new analysis. InfThreshold dischargeable.
+P2 = P3-existence (both = this FP construction). Banach-assembly subagent attacking on shen_canon.
