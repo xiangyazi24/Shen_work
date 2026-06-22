@@ -244,3 +244,20 @@ Green solve + fixed-source EXISTENCE + max-principle (trap-invariance) layer lan
 🔨 Remaining: PaperStepOutput order layer (W≤Z comparison/monotonicity/left-rate) + PerStepBoxZWitness
 regularity + Rothe limit (hstationary) → RightVanishingWaveExistence → unconditional Remark_1_3_2.
 Updated: 2026-06-22 (WALL-A Wiener-escape; engine+P1-per-step landed; both cores decomposed to named bricks).
+
+## WALL-B χ₀≠0 RESOLVED via divergence-mode identity (cron Q285, 2026-06-22)
+The chemotaxis term's spectral form: the flux Q=u^m(1+v)^{−β}v_x VANISHES at the Neumann boundary
+(v_x(0)=v_x(1)=0 ⟹ Q(0)=Q(1)=0). For boundary-vanishing Q, IBP gives THE KEY IDENTITY:
+  cosineCoeffs(∂ₓQ)_k = √λ_k · sineCoeffs(Q)_k   (k≥1; k=0 auto-zero since ∫∂ₓQ=Q(1)−Q(0)=0).
+So the divergence maps SINE flux coeffs → COSINE source coeffs with the √λ_k multiplier = EXACTLY the
+engine's diagonal √λ_k factor. The engine source F_k(τ) = sineCoeffs(Q(τ))_k (NOT cosine — the trap).
+Correct semigroup object: S_N(∂ₓQ) = B_N(r)Q = −∫∂_yK_N·Q = ∂ₓS_D(r)Q (the repo's kernel operator),
+NOT ∂ₓS_N(r)Q. So chemotaxis Duhamel coeff_k = −χ₀∫e^{−(t−τ)λ_k}√λ_k sineCoeffs(Q(τ))_k dτ =
+−χ₀·duhamelEnergyCoeff with F=sineCoeffs(Q). Subagent a8f2dbd5 proving the IBP identity + engine connection.
+
+## P2 χ₀<0 STATUS (after 8d956e3 — 5 bricks landed this stretch)
+✅ ENGINE (40c4885) · ✅ WALL-C embedding (9ff1fcd) · ✅ WALL-B partial χ₀=0 + engine bridge (8d956e3)
+🔨 WALL-A flux H^σ (Wiener-algebra σ>1/2) [ae1b702e] · 🔨 WALL-B χ₀≠0 divergence-mode [a8f2dbd5]
+Then: iterate engine (F=sineCoeffs(flux) per WALL-B + flux∈H^σ per WALL-A) H^0→H^{1−ε}→...→H⁵ →
+WALL-C → ContDiffOn 2 → IterateSourceTimeData → win → END GATE → χ₀<0 UNCONDITIONAL → P3 cascade.
+Updated: 2026-06-22 (WALL-B χ₀≠0 resolved via divergence-mode; 5 bricks landed; 2 walls in flight).
