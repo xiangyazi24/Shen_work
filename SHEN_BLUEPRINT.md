@@ -318,3 +318,11 @@ themselves carried). Re-attacks must PROVE from staged designs, not forward.
 - P2: compose flux-primitive H¹ certificate → construct provider → 3→2 → then drop hTimeNhd/hResolverCoeffTimeC1.
 - P3(a): prove integrated PDE energy inequality → wire the proven Moser pieces → realized boundedness reduction.
 - P3(b),(c): dispatch stability + persistence frontiers (designs staged).
+
+## P2 BOOTSTRAP PROGRESS (06-21, b553e5e) — 4 bricks LANDED, rep-identity crux remains
+B1 spectral_multiplier_bound + B2 H^σ cosine scale + B4 elliptic H^σ→H^{σ+2} + B3-scalar kernel ALL on origin/main,
+axiom-clean (8739 jobs). Remaining: rep identity (crux, non-circular via HilbertBasis completeness + Picard spectral
+recursion coeff identity — NOT flux bridge) + B3-full Minkowski + B5 1D Sobolev product + B6 ladder wiring.
+⚠️ STALE-CLONE TRAP: /var/tmp/shen_cx_pde is a no-git snapshot ~22k lines BEHIND origin/main; earlier P2 work there
+NEVER pushed. WORKFLOW FIX: all Lean work now on FRESH canonical clone /var/tmp/shen_canon (synced from origin/main,
+shares mathlib cache). Old shen_cx_* clones are stale — do NOT trust their builds. [[feedback_fresh_canonical_clone]]
