@@ -267,3 +267,6 @@ import ShenWork.Paper2.IntervalConjugatePicardCoreInhabit
 import ShenWork.Paper2.IntervalBankSourceSliceLeaves
 import ShenWork.Paper2.IntervalBankChemDivFourier
 import ShenWork.Paper2.IntervalBankInfAndLogSrcWiring
+import ShenWork.Paper2.Brick2ShiftedGlobalize
+import ShenWork.Paper2.Brick4ChemDivHalfStep
+import ShenWork.Paper2.Brick5EndGate
