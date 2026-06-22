@@ -257,3 +257,23 @@ _of_standardHeatSemigroupDuhamelFacts:218). The genuine self-lemma gaps, by leg:
    average, a.e.-only → needs right-interval fixed-t specialization). All consume H1-grad's t^{-1/2} bound.
 NET: H1 = {t^{-1/2} L² bound [codex now]} + {3 weak-identity producers, each with landed-nearby machinery +
 named Mathlib FTC/DCT/IBP cores}. The t^{-1/2} bound is the shared foundation. Genuine analysis, not wiring.
+
+## ★ H2 (DT) REFINEMENT — DOWNGRADE (2026-06-22, cron1 Q320 3ff7f8a1, field-by-field, all 6 cited full-map lemmas tree-VERIFIED)
+Q316 headline said "DT hard". The field-by-field probe REFINES this: DT is NOT a genuine hard PDE atom like
+H1 semigroup_weak — it is MIRROR-ASSEMBLY of the landed FULL-map Picard core onto truncated sources. The
+full-map (untruncated) versions of all 5 operator estimates are LANDED + reusable (VERIFIED):
+ · maps-to:        hPhiB_le inside conjugateMildExistenceCore_exists (IntervalConjugatePicardCoreInhabit)
+ · contraction:    ConjugateMildExistenceCore.contraction_from_banked + intervalConjugateDuhamelMap_diff_
+                   bound_of_banked (IntervalConjugatePicardCoreInhabit / ...CoreDischarge)
+ · continuity:     intervalConjugateDuhamelMap_hasContinuousSlices_of_ball (...CoreInhabit)
+ · measurability:  intervalConjugateDuhamelMap_hasJointMeasurability_of_ball (...CoreInhabit)
+ · small-time K<1: exists_small_contraction_time_target (Wiener/EWA/SourceFixedPointClean) — K(T)=O(√T)+O(T)<1
+DT effort, per field: base-one-step = PURE WIRING; continuity+measurability = SHORT source-wrapper adapts
+(need truncatedChemFluxLifted_uncurry_measurable + truncatedLogisticLifted_uncurry_measurable); maps-to +
+contraction = SHORT-TO-MEDIUM assembly once truncated flux/logistic pointwise-bound + Lipschitz wrappers
+added. K<1 = standard short-time Picard (shrink T), NOT weighted norm. cron1 gave the 6 target def shapes
+(truncatedConjugateDuhamelMap_{mapsTo,contracts}_ball etc.) mirroring each landed full-map lemma.
+NET REVISION: H2 is MEDIUM mirror-assembly, not a hard analytic frontier. The genuine hard analysis is
+concentrated in H1 (semigroup_weak: t^{-1/2} L² + 3 weak-identity producers) + H5 (Henergy, consumes H1) +
+H3/H4. This is the test-don't-assert payoff: probing the "DT hard" headline showed it's mirror-work off a
+landed core, not new PDE. Honest downgrade.
