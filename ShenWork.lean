@@ -290,3 +290,4 @@ import ShenWork.Paper2.IntervalBootstrapInputs
 import ShenWork.Paper2.IntervalUniformBootstrap
 import ShenWork.Paper2.IntervalEnvelopeProp
 import ShenWork.Paper2.IntervalMixedProduct
+import ShenWork.Paper2.IntervalChiNegCloseBaseSeed
