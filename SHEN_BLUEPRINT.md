@@ -144,6 +144,25 @@ NO producer = not a result).
   cosine-spectral rep of conjugatePicardLimit (+ fractional H^ρ); P3 = spatial-min argmin Dini. None is mere wiring;
   each is a real (standard, satisfiable) PDE lemma. Codexes grinding all three.
 
+### ROUND 9 (06-21) — CODEX USAGE LIMIT HIT (resets Jun 26 9:17 PM); P1 target finding; P2 root half-broken
+- **⚠️ CODEX PRO OUT OF CREDITS until 2026-06-26 21:17.** New codex runs ERROR immediately; runs started before the
+  limit finish normally. P1 dispatch blocked. Awaiting Xiang's call: buy credits / wait / Opus-self. P2+P3 finished
+  their pre-limit runs.
+- **P1 BIG FINDING (verify-before-claim): IsRightVanishingTravelingWave needs NO monotonicity** — only ode_U/ode_V +
+  U_pos + lim_pos_inf (U,V→0 at +∞) + positive_at_left (StrictlyPositiveAtLeft = positive FLOOR at left, NOT U→1).
+  The 8 rounds of monotone Liouville/Barbalat/C³/antitonicity solved a HARDER problem than the target. BUT the wrinkle:
+  the right-vanishing machinery (WaveLemma42G1Discharge b1_chiPos_rightVanishing_..._of_cubeApproxData) is built on the
+  ROTHE route (InLowerPinnedMonotoneTrap + rotheLimit + positiveCoreRotheSeq), NOT the fixed-source barrier route.
+  So P1 = reconcile fixed-source existence with Rothe right-vanishing, OR finish the Rothe route (which HAS the
+  right-vanishing; was abandoned on "residual→0"). Route-level untangle, not pure wiring. NOT one-step-away, but the
+  monotone-Liouville detour is dead — target is weaker.
+- **P2 root HALF-BROKEN (genuine progress, 813k):** PROVED axiom-clean FullKernelL2CosineHeatEqOn_by_density +
+  neumannHeatSemigroupL2ToH1SmoothingBound_by_density (the L² spectral-rep wall since round 3). Residual narrowed to
+  P2ConjugateLimitRestartHasSum (the rep identity), and the missing ingredient is now AVAILABLE:
+  conjugatePicardIter_uniform_convergence (IntervalConjugatePicard.lean:93, geometric K^n contraction). Route:
+  uniform conv ⇒ L² conv ⇒ ⟪cosBasis k, limit⟫ = lim iterate-coeff ⇒ hasSum_repr. CLEAR path, needs a run (blocked).
+- P3: P3dini still running at limit-time (will finish) — proving the argmin spatial-min Dini.
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
