@@ -254,3 +254,5 @@ import ShenWork.Paper2.IntervalBFormHSigmaDuhamelEnergy
 import ShenWork.Paper2.IntervalConjugatePicardSupBound
 import ShenWork.Paper2.IntervalConjugateCoreHmapsTo
 import ShenWork.Paper2.IntervalConjugateDuhamelSupLocalized
+import ShenWork.Paper1.LeftFloorProducer
+import ShenWork.Paper1.Remark132Assembly
