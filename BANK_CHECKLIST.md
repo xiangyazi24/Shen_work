@@ -218,3 +218,29 @@ positive floor for real powers [keystone hmapsTo_pos].
 THE PRIZE: the half-step brick bform_half_step_smoothing (H^σ+L^∞+flux-L² ⟹ u(t)∈H^{σ+ρ}, iterable).
 Subagent a6d0852b attacking it; iterate to H⁵ for win. P1 per-step solver attacked in parallel (ab5616bf).
 Updated: 2026-06-22 (C²-bootstrap route confirmed non-circular; half-step engine = the prize; targets H³/H⁵).
+
+## WALL-A TRACTABLE via Wiener-algebra escape (cron Q283, 2026-06-22)
+cron: naive coeff-convolution proves a Wiener-algebra (ℓ¹) product, NOT the L^∞-Moser (which needs
+paraproduct, Mathlib-absent). BUT: H^σ ⊂ ℓ¹ for σ>1/2 (Cauchy-Schwarz, Σ(1+λ_n)^{−σ}<∞ iff σ>1/2), so
+for σ>1/2 the EASY convolution route gives the full algebra ‖fg‖_{H^σ}≤C‖f‖_{H^σ}‖g‖_{H^σ}.
+ESCAPE: the bootstrap AVOIDS the σ≤1/2 paraproduct by JUMPING H^0→H^{1−ε} in step 1 (engine allows any
+ρ<1) using only the ELEMENTARY L² flux bound (u^m,(1+v)^{−β}∈L^∞, v_x∈L² — no algebra); all later product
+steps have σ>1/2 ⟹ Wiener algebra. So WALL-A reduces to the σ>1/2 product/composition theory (Mathlib-
+tractable). Subagent ae1b702e proving: cosWeight_le_add (Peetre), hSigma_subset_l1_of_gt_half,
+memHSigma_mul_of_gt_half, memHSigma_rpow_of_positive_range, chemotaxisFlux_memHSigma (TARGET), +
+chemotaxisFlux_L2_of_bounded (step-1 seed).
+
+## P2 χ₀<0 WALL STATUS
+✅ ENGINE landed (40c4885): hSigmaEnergy_duhamel_bound_shifted (circularity-free half-step H^r→H^{r+α}).
+🔨 WALL-A (flux H^σ regularity): σ>1/2 Wiener-algebra route [ae1b702e attacking] — TRACTABLE.
+🔨 WALL-B (spectral repr cosineCoeffs(D.u)=duhamelEnergyCoeff): the engine↔solution link — PENDING.
+🔨 WALL-C (MemHSigma σ→ContDiffOn 2, σ>5/2 / H³): cosine-Sobolev embedding [ae44f5eb attacking].
+Then: iterate engine (H^0→H^{1−ε}→...→H⁵ via WALL-A flux at each rung) + WALL-C → IterateSourceTimeData
+→ win → END GATE → χ₀<0 IsPaper2ClassicalSolution UNCONDITIONAL → P3 PositiveGlobalBoundedSolution cascade.
+
+## P1 STATUS (after 44d209d)
+✅ Left floor (StrictlyPositiveAtLeft) proven. ✅ Schauder/Brouwer half unconditional. ✅ per-step LINEAR
+Green solve + fixed-source EXISTENCE + max-principle (trap-invariance) layer landed (44d209d).
+🔨 Remaining: PaperStepOutput order layer (W≤Z comparison/monotonicity/left-rate) + PerStepBoxZWitness
+regularity + Rothe limit (hstationary) → RightVanishingWaveExistence → unconditional Remark_1_3_2.
+Updated: 2026-06-22 (WALL-A Wiener-escape; engine+P1-per-step landed; both cores decomposed to named bricks).
