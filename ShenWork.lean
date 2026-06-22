@@ -292,3 +292,4 @@ import ShenWork.Paper2.IntervalEnvelopeProp
 import ShenWork.Paper2.IntervalMixedProduct
 import ShenWork.Paper2.IntervalChiNegCloseBaseSeed
 import ShenWork.Paper2.IntervalTimeRegDirect
+import ShenWork.Paper2.IntervalChiNegClose2TimeDeriv
