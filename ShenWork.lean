@@ -282,3 +282,4 @@ import ShenWork.Paper1.IntervalP1ChemoMonotone
 import ShenWork.Paper2.IntervalWienerAlgebraConnect
 import ShenWork.Paper1.IntervalP1RotheLimit
 import ShenWork.Paper1.IntervalP1FinalFloors
+import ShenWork.Paper2.IntervalWienerAlgebraResidual
