@@ -54,7 +54,9 @@ Route: ChatGPT-Pro-verified fractional bootstrap (answers/p2-flux-Hrho-parabolic
 - `resolver_H2_of_L2` (elliptic L²→H² coefficient identity).
 
 ## Scoreboard
-Reusable bricks: B1 ✅, B2 ✅, B4 ✅ (3 done); B3 🟡 (scalar kernel done, assembly open);
+Reusable bricks: B1 ✅, B2 ✅, B4 ✅, B3-scalars ✅ (kernel-L2 + L∞-multiplier landed,
+axiom-clean; ORIGINAL L²ₜL²ₓ B3-full statement found FALSE, corrected to L∞ₜL²ₓ route);
+B3-full operator-level Minkowski assembly 🟡 (per-mode cores all landed);
 B5 ⬜, B6 ⬜.
 Terminal bridges: 0/3 discharged. paper2_theorem_1_1 still CONDITIONAL on the
 three bridges (NOT unconditional yet).
@@ -66,3 +68,45 @@ coefficient identity) but NOT yet formalized.
 Last verified (Jun 21): B1, B2, B4, B3-scalar-kernel all build into oleans
 axiom-clean (propext, Classical.choice, Quot.sound) via `lake build`.  Root
 ShenWork imports all three new modules.
+
+---
+
+## 2026-06-21 UPDATE — B3 route CORRECTED (ChatGPT-Pro-verified + self-verified)
+
+### CRITICAL: the originally-planned B3-full statement is FALSE.
+`‖Bduhamel F s‖²_{H^σ} ≤ C·M·s^{(1−σ)/2}` from the **L²_t L²_x** datum
+`∑_k ∫₀ˢ F_k² ≤ M` is FALSE for every σ>0. Single-mode counterexample (verified):
+freeze all modes but N, F_N=√M·g_N/‖g_N‖, g_N(r)=√λ_N e^{−dλ_N(s−τ)}. Datum holds
+(∫F_N²=M) but (1+λ_N)^σ B_N(s)² = (1+λ_N)^σ M(1−e^{−2dλ_N s})/(2d) → ∞ as λ_N→∞.
+The B-divergence kernel only has L²_t L²_x → L²_x smoothing, no positive fractional gain.
+
+### The CORRECT bricks (both landed below):
+- The TRUE smoothing brick takes an **L∞_t L²_x** source (M∞ := sup_τ ‖F(τ)‖_{ℓ²})
+  and gains a half derivative with rate s^{1−σ} (squared energy). This matches the
+  landed scalar multiplier (θ=(σ+1)/2). Route = Minkowski (integral-triangle), NO
+  time-Cauchy-Schwarz.
+
+- [x] **B3-kernelL2 `IntervalBFormHSigmaKernelL2.lean`** (axiom-clean, in ShenWork):
+      `integral_kernel_L2_eq`: ∫₀ˢ λ e^{−2dλr} dr = (1−e^{−2dλs})/(2d) (FTC);
+      `integral_kernel_L2_le`: ≤ 1/(2d) (the sharp per-mode weighted-source constant);
+      `integral_kernel_L2_nonneg`. Documents the falsity of the planned form.
+- [x] **B3-Linfty-multiplier `IntervalBFormHSigmaLinftyMultiplier.lean`** (axiom-clean,
+      in ShenWork): `linfty_multiplier_bound`: for 0≤σ<1, d>0, 0<r≤1, λ≥0,
+      (1+λ)^{σ/2}·λ^{1/2}·e^{−dλr} ≤ C_σ·r^{−(σ+1)/2}. This is the single genuinely-new
+      per-mode ingredient of the L∞_t→H^σ Minkowski estimate; r≤1 sidesteps the
+      continuum low-freq issue (alt: Neumann spectral-gap λ_k≥π² version, all r>0).
+      Supporting: `weight_sqrt_le` (√λ(1+λ)^{σ/2}≤(1+λ)^{(σ+1)/2}),
+      `one_add_rpow_le` ((1+λ)^θ≤2^θ(1+λ^θ)).
+
+### REMAINING for B3-full (operator level):
+The Minkowski integral-triangle inequality ‖∫₀ˢ K(s−τ,·)F(τ)dτ‖_{Hσ} ≤
+∫₀ˢ ‖K(s−τ,·)F(τ)‖_{Hσ}dτ over the ℓ²-valued integrand, then per-τ ℓ²-pullout via
+`linfty_multiplier_bound` and the landed terminal-singularity integral. Needs Mathlib
+Bochner/Minkowski-over-ℓ² machinery. Per-mode scalar cores all landed.
+
+### B6 route correction (ChatGPT-verified): closes only for t>0 / on [ε,T], NOT to t=0
+(unless H¹ initial data). The genuine bottleneck is NOT the B3 estimate but the
+elliptic structure: deriving v_x ∈ L∞_t L²_x from v = frozenElliptic(u) + bounded u
+(otherwise the initial flux F is not even known L²_x — circularity risk). Index ladder:
+bounded u ⇒ v_x∈L²_x ⇒ F∈L∞_t L²_x ⇒(B3) u∈H^{1/2} ⇒(B4) v∈H^{5/2} ⇒ F∈H^{1/2}(B5)
+⇒(B3) u∈H¹. Terminal singularity at H¹ step is r^{−3/4}, integrable (∫₀ʰr^{−3/4}=4h^{1/4}).

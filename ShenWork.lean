@@ -246,3 +246,5 @@ import ShenWork.Paper3.IntervalDomainConstantEquilibriumWitness
 import ShenWork.Paper2.IntervalSpectralMultiplierBound
 import ShenWork.Paper2.IntervalHSigmaScale
 import ShenWork.Paper2.IntervalBFormHSigmaSmoothing
+import ShenWork.Paper2.IntervalBFormHSigmaKernelL2
+import ShenWork.Paper2.IntervalBFormHSigmaLinftyMultiplier
