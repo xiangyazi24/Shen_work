@@ -242,3 +242,4 @@ import ShenWork.Paper1.BrouwerNDimFreudenthal
 import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper3.IntervalDomainPersistenceActualLinearPart2
+import ShenWork.Paper3.IntervalDomainConstantEquilibriumWitness
