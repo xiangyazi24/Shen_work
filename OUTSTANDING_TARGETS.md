@@ -234,3 +234,26 @@ WIRING (assembled or trivial — do NOT bank as new math, §2.6):
 NET: χ₀<0 completion = discharge {H1..H5}. H1 is the keystone (two consumers). These are paper-level PDE
 theorems (quantitative local existence + negative-part weak energy for a chemotaxis system), genuine multi-
 session formalization — the OUTSTANDING T7e/T6 "operator-assembly/fixed-point not done", now named & grounded.
+
+## ★ H1 KEYSTONE DECOMPOSITION (2026-06-22, cron1 f0944027 + cron2 b2019e97, both grounded on 2ced46e, key anchors tree-verified)
+H1 = semigroup_weak bottoms out at NegativePartStandardHeatSemigroupDuhamelFacts fields (IntervalBFormCron2
+SemigroupWeakDuhamel.lean), all carried satisfiably, consumer chain wired (negativePartMildSemigroupWeak...
+_of_standardHeatSemigroupDuhamelFacts:218). The genuine self-lemma gaps, by leg:
+ H1-grad ★ NeumannHeatGradientTMinusHalfBound (:91) — L²→L² gradient smoothing ‖∂ₓS_N(τ)f‖₂≤Cτ^{-1/2}‖f‖₂.
+   MOST LEVERAGED (DCT dominator for BOTH legs built from it) + MOST SELF-CONTAINED. Tree has only the
+   L∞→L∞ pointwise version (intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t); the L² one is a
+   gap. Proof = spectral/Bessel: cosine modes → sine deriv → λe^{-2τλ}≤C/τ (x e^{-x}≤e^{-1}) → cosine
+   Bessel/Parseval. MIRROR resolverSourceCoeff_re_sq_summable_of_continuousOn (IntervalResolverWeakBounds).
+   → DISPATCHED to codex (uisai2), unbounded grind.
+ H1-hom  semigroup_form_identity — homogeneous heat weak-generator identity =0. Landed nearby: heat identity
+   unitIntervalCosineHeatValue_heat_identity, spatial IBP intervalDomain_spatial_integrationByParts_identity
+   (needs generalizing from test=f to arbitrary φ). Mathlib: integral_mul_deriv_eq_deriv_mul_of_hasDeriv_right.
+ H1-src  source_duhamel_differentiation — ordinary L² Duhamel weak differentiation. Landed nearby: time-IBP/
+   cutoff route in IntervalDuhamelClosedC2 (duhamelIntegrand_hasDerivAt, duhamelCutoff_FTC). Mathlib:
+   integral_hasDerivAt_right + tendsto_integral_filter_of_dominated_convergence.
+ H1-chem source_endpoint+dct (chemotaxis divergence leg, cron2): ChemotaxisDuhamelEndpointLebesguePointFact
+   (:117) + DCTDominatingFunction (:146). B_N duality gives positive-lag only; endpoint limit is the gap.
+   Mathlib supplies general DCT (tendsto_integral_filter_of_dominated_convergence) + Vitali (ae_tendsto_
+   average, a.e.-only → needs right-interval fixed-t specialization). All consume H1-grad's t^{-1/2} bound.
+NET: H1 = {t^{-1/2} L² bound [codex now]} + {3 weak-identity producers, each with landed-nearby machinery +
+named Mathlib FTC/DCT/IBP cores}. The t^{-1/2} bound is the shared foundation. Genuine analysis, not wiring.
