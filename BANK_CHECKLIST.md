@@ -149,3 +149,26 @@ discharged → P3 unconditional persistence cascade.
 
 Bank bricks landed (fields 9/10/12-iface/2-windowed, c32453d) still feed Residual A (CoupledChemDivTimeC1Fields).
 Updated: 2026-06-22 (route resolved: gradient path; χ₀<0 = brick #2 + 4 wirings).
+
+## END-GATE RESIDUALS (precise, after 089e3de) — gradient-path route
+END GATE isPaper2ClassicalSolution_of_chemDivSourceData_chiNeg is CONDITIONAL on:
+  D (GradientMildSolutionData) — ✅ produced unconditionally
+  S (ChemDivHalfStepSourceData) = { win, hagree } — open
+  C (GradientMildClassicalCoreData) — reduces to halfStepRestartData + frontierCore
+✅ Brick 2 (duhamelSourceTimeC1_of_shifted_On) LANDED (089e3de) — windowed→global shift bridge, real.
+
+win = DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs) (c',d'). Produced by
+coupledChemDivSource_timeC1On_of_EWA (ChemDivSourceAssembly.lean:52) from:
+  ✅ envelope/henv_summable — EWA SourceEnvelope (Wiener-algebra ℓ¹, LANDED, the hard part)
+  🔨 h_coeff — value-envelope domination (eval/coeff bridge) — OPEN
+  🔨 adot/h_deriv/h_adotcont/h_Mdot — chemDiv source TIME-DERIVATIVE leg — OPEN, but producers EXIST:
+     CoupledChemDivLocalChainRule (IntervalChemDivTimeDerivative:74), chemDivMixedTimeDeriv_
+     jointContinuousOn_closed (IntervalChemDivTimeDerivClosed:54). = WIRING on positive-time window
+     (c'>0 avoids s→0+; feed the gradient solution's time-C¹ regularity).
+🔨 hagree — restart cosine agreement (EqOn lift to cosine series) — OPEN
+🔨 frontierCore (for C) — OPEN
+
+NEXT: discharge win (wire closed-slab timeC1 producers + h_coeff bridge → full windowed package
+unconditionally), then hagree + frontierCore → END GATE unconditional → χ₀<0 P2 boundedness → P3 cascade.
+The ℓ¹ envelope (historically the deep gap) is DONE; remaining = time-deriv wiring + restart agreement.
+Updated: 2026-06-22 (Brick 2 + conditional end-gate landed 089e3de; residuals pinned to win-timeC1/hagree/frontierCore).
