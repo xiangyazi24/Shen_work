@@ -297,3 +297,4 @@ import ShenWork.Paper2.IntervalChiNegAssemblyHagree
 import ShenWork.Paper2.IntervalSourceBridgeTest
 import ShenWork.Paper2.IntervalTimeNhdChiNeg
 import ShenWork.Paper2.IntervalChiNegFinalClose
+import ShenWork.Paper2.IntervalSourceBridgeOpen
