@@ -360,3 +360,27 @@ close it. The audit (test-don't-assert + ChatGPT git-drop cross-check) caught my
 gave the true state. Path forward IF pursuing χ₀<0: open-interval source-bridge + higher-Neumann-BC
 composition + the deepest-bundle continuation fields. NOT a one-assembly close.
 Updated: 2026-06-22 (triple-confirmed: χ₀<0 = deepest-bundle frontier, not closed this run).
+
+## ★★ COMPREHENSIVE STATE / HANDOFF (2026-06-22, after 3fd5c90 — 32 bricks this run)
+χ₀=0 boundedness: UNCONDITIONAL (from_cone_construction). P3 persistence(m=1)+equilibrium: landed.
+χ₀<0: ALL analytic machinery built+verified (engine, WALL-A/B/C, spectral identities, hTimeNhd, time-reg
+circularity broken via kernel-separation FTC, hsource_bridge legs). Both FALSE fields FIXED to satisfiable
+forms: (a) source-bridge closed-hderiv → within-interval HasDerivWithinAt(Ioi) [IntervalSourceBridgeOpen,
+787d375]; (b) bank hchemCont constExtend → interior-agreeing ChemDivCosineFourierDataIoo [IntervalBankChem
+SliceFix, 3fd5c90]; hchemFourier dischargeable as-is; hResolverData/hVpos landed (O1+resolver).
+REMAINING (the T7e deepest-bundle / per-datum classical local existence frontier — triple-confirmed by
+subagent+cron1+cron2 git-drop, substantial multi-session):
+ 1. Wire the satisfiable forms into the bank/consumer structures (upstream edits, like the dedup/frontier
+    fixes): replace chemDivCosineFourierData_constExtend with chemDivCosineFourierDataIoo_of_repr; restate
+    source_bridge_slice_of_divMode to source_bridge_slice_open.
+ 2. UniformBootstrapStep per-level induction (the τ-uniform envelope at every rung; high-σ composition needs
+    higher-Neumann BC f'''(0)=0 for (1+v)^{−β} — AUTO-satisfied by cosine/Neumann structure, needs a lemma).
+    NOTE: this bootstrap track is OFF the Theorem_1_1 critical path (deepest bundle uses L²/continuity).
+ 3. Deepest-bundle continuation fields: DT, Hbridge, Test, HmildWeakRegular, Henergy, A/Dbar/M, drift/react/
+    hstrip + hF1 (IntervalDomainUniformLocalExistence). These are the genuine per-datum classical local
+    existence (the OUTSTANDING_TARGETS T7e/T6 operator-assembly frontier).
+P1: left-floor + per-step existence/maxprinciple + order-layer + chemo-monotone + hLU landed; T6/T7
+localExistence constructor (parallel per-datum-existence frontier) remains.
+HONEST: all hard analytic cores built+verified; completion awaits the T7e per-datum-existence assembly
+(P2 χ₀<0 + P1), genuine multi-session PDE-assembly work. Audit (test-don't-assert + ChatGPT git-drop)
+caught 3-4 of my overstatements this run — accounting kept honest throughout.
