@@ -389,3 +389,14 @@ existence). This is now THE single deepest analytic atom for χ₀<0 regularity.
 OPEN QUESTION for the route: does the uniform-in-τ H^σ flux bound follow from the engine's ENDPOINT-uniform
 per-mode bound (R(s)=s^{(1-α)/2}≤1, no Gronwall) + the uniform L∞ ball, OR need a full continuation/openness-
 closedness argument? → dispatch opus (Lean) + ChatGPT git-drop (route) in parallel.
+
+## ★ TRAJECTORY ENVELOPE ROUTE = (b) continuation closure (2026-06-22, git-drop d6e4e9f, propagator+envelope claims tree-verified)
+The deepest atom (genv/glenv) route VERDICT: (b) trajectory-envelope continuation closure, NOT closed-form
+majorant. Engine is a PROPAGATOR (duhamelEnergy_mode_endpoint_uniform:96-101 consumes Msup/hFbd, verified);
+L∞ ball has no high-freq decay. Two layers (analysis in repo d6e4e9f:ANALYSIS_traj_envelope.md):
+ CORE (hard): TrajectoryHSigmaEnvelope σ t u (τ-uniform coordinatewise H^σ env for u(τ) on [0,t]) via
+   continuation P(σ,s): base (σ=0 continuity seed; σ>0 first smoothing, Icc→Ioc), openness (endpoint-uniform
+   no elapsed-time blow-up → extend), closedness (monotone envelope recurrence, NOT arbitrary ℓ² sup).
+ WIRING (mechanical given Uσ): Vxσ=√λ_k Uσ/(1+λ_k) resolver relay + Gdenσ denom composition + GENVσ=
+   trueCosProd(trueCosProd Uσ Gdenσ)Vxσ → fluxSineEnvelope_uniform (:258, σ>1/2) gives genv+uniform dom.
+→ opus aa154279 dispatched (wiring-first then core). This is the genuine remaining PDE math for χ₀<0 regularity.
