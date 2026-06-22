@@ -321,3 +321,20 @@ hprodAll (per-step parabolic solver), hstationary (GreenIdentity), hsmp (ODE-rea
 ## HONEST: analytic scaffolding 100% landed + full build clean; the genuine PDE hard cores (Gronwall/L^∞
 ## a priori for P2, parabolic existence for P1) are the substantial remaining work for the unconditional audit.
 Updated: 2026-06-22 (χ₀<0 reduced to L^∞/Gronwall crux + time-reg/assembly; P1 to 4 parabolic floors).
+
+## ⚠️ CORRECTION (2026-06-22): commit 28a5c2e OVERSTATED "regularity CLOSES"
+VERIFIED: gradientSolution_contDiffOn_two_FINAL CARRIES (S : UniformBootstrapStep) + (h0 : MemHSigma σ₀)
+as HYPOTHESES; UniformBootstrapStep is defined but INSTANTIATED NOWHERE. The "no Gronwall" lemma
+(duhamelEnergy_mode_endpoint_uniform) only proves the per-mode endpoint constant R(s)=s^{(1−α)/2}≤1
+doesn't accumulate in time — TRUE but it is ONE ingredient; it TAKES the uniform-in-window H^σ envelope
+as a hypothesis, does NOT produce it. The uniform-window H^σ flux envelope IS the genuine parabolic
+a-priori estimate, with NO producer in the repo.
+HONEST χ₀<0 STATE: reduced (machine-checked, axiom-clean) to ONE hard theorem — the DIRECT parabolic-
+smoothing C²-regularity bootstrap of the gradient fixed point (uniform-in-time L^∞ → C²_x+C²_t for t>0 via
+heat-kernel/B-form Duhamel smoothing, breaking the source-package circularity ResolverHasSpectralAgreement
+→ DuhamelSourceTimeC1). This supplies UniformBootstrapStep + IterateSourceTimeData(du/d2u) + win +
+frontierCore/hagree simultaneously. χ₀=0 unconditional (from_cone); χ₀<0 needs the chemotaxis version =
+~6-14 half-steps of genuine PDE work, multi-session. NOT closed. The earlier "no Gronwall = closes" was
+my over-optimism; the propagation MECHANISM has no t-accumulation, but the per-level ENVELOPE producer is
+the genuine missing PDE estimate (it IS the bootstrap, and it bottoms out at the direct heat-kernel route).
+Updated: 2026-06-22 (honest correction — χ₀<0 NOT closed; reduces to the direct parabolic C² bootstrap).
