@@ -1624,14 +1624,6 @@ theorem greenKernelDerivConv_eq_greenConvDeriv
   rw [← hsplit, hLeft, hRight, greenConvDeriv]
   ring
 
-theorem greenConv_eq_translated_integral_of_bounded
-    {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
-    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
-    greenConv c lam H x =
-      ∫ t, greenKernel c lam (-t) * H (x + t) := by
-  rw [← greenKernelConv_eq_translated (c := c) (lam := lam) H x]
-  exact (greenConv_raw_eq_of_bounded (c := c) (lam := lam) hlam hH hB x).symm
-
 theorem greenConvDeriv_eq_translated_integral_of_bounded
     {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
     (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
@@ -1640,117 +1632,6 @@ theorem greenConvDeriv_eq_translated_integral_of_bounded
   rw [← greenKernelDerivConv_eq_translated c lam H x]
   exact (greenKernelDerivConv_eq_greenConvDeriv
     (c := c) (lam := lam) hlam hH hB x).symm
-
-theorem greenConv_tendsto_atBot_of_source_tendsto
-    {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B L : ℝ}
-    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B)
-    (hlim : Tendsto H atBot (𝓝 L)) :
-    Tendsto (greenConv c lam H) atBot (𝓝 (L * lam⁻¹)) := by
-  let F : ℝ → ℝ → ℝ := fun x t => greenKernel c lam (-t) * H (x + t)
-  let G : ℝ → ℝ := fun t => greenKernel c lam (-t) * L
-  let bound : ℝ → ℝ := fun t => |greenKernel c lam (-t)| * B
-  have hbound_int : Integrable bound := by
-    have hK : Integrable (fun t => |greenKernel c lam (-t)|) :=
-      ((greenKernel_integrable (c := c) hlam).abs).comp_neg
-    simpa [bound] using hK.mul_const B
-  have hF_meas :
-      ∀ᶠ x in atBot, AEStronglyMeasurable (F x) volume := by
-    refine Eventually.of_forall ?_
-    intro x
-    exact ((greenKernel_continuous (c := c) (lam := lam)).comp
-        (continuous_neg.comp continuous_id) |>.mul
-      (hH.comp (continuous_const.add continuous_id))).aestronglyMeasurable
-  have h_bound :
-      ∀ᶠ x in atBot, ∀ᵐ t ∂volume, ‖F x t‖ ≤ bound t := by
-    refine Eventually.of_forall ?_
-    intro x
-    refine Eventually.of_forall ?_
-    intro t
-    dsimp [F, bound]
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hB (x + t)) (abs_nonneg _)
-  have h_lim :
-      ∀ᵐ t ∂volume, Tendsto (fun x => F x t) atBot (𝓝 (G t)) := by
-    refine Eventually.of_forall ?_
-    intro t
-    have hshift : Tendsto (fun x : ℝ => x + t) atBot atBot :=
-      tendsto_atBot_add_const_right atBot t tendsto_id
-    exact hlim.comp hshift |>.const_mul (greenKernel c lam (-t))
-  have hInt_tendsto :
-      Tendsto (fun x => ∫ t, F x t) atBot (𝓝 (∫ t, G t)) :=
-    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
-      (μ := volume) (l := atBot) (F := F) (f := G)
-      bound hF_meas h_bound hbound_int h_lim
-  have hGint : (∫ t, G t) = L * lam⁻¹ := by
-    dsimp [G]
-    rw [show (fun t : ℝ => greenKernel c lam (-t) * L)
-        = fun t : ℝ => L * greenKernel c lam (-t) by
-          funext t; ring]
-    rw [MeasureTheory.integral_const_mul]
-    rw [integral_neg_eq_self (greenKernel c lam) volume]
-    rw [greenKernel_integral_eq (c := c) hlam]
-  have hrewrite :
-      (fun x => ∫ t, F x t) = greenConv c lam H := by
-    funext x
-    exact (greenConv_eq_translated_integral_of_bounded
-      (c := c) (lam := lam) hlam hH hB x).symm
-  simpa [hrewrite, hGint] using hInt_tendsto
-
-theorem greenConvDeriv_tendsto_atBot_of_source_tendsto
-    {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B L : ℝ}
-    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B)
-    (hlim : Tendsto H atBot (𝓝 L)) :
-    Tendsto (greenConvDeriv c lam H) atBot (𝓝 0) := by
-  let F : ℝ → ℝ → ℝ := fun x t => greenKernelDeriv c lam (-t) * H (x + t)
-  let G : ℝ → ℝ := fun t => greenKernelDeriv c lam (-t) * L
-  let bound : ℝ → ℝ := fun t => |greenKernelDeriv c lam (-t)| * B
-  have hbound_int : Integrable bound := by
-    have hK : Integrable (fun t => |greenKernelDeriv c lam (-t)|) :=
-      (greenKernelDeriv_integrable (c := c) hlam).comp_neg
-    simpa [bound] using hK.mul_const B
-  have hF_meas :
-      ∀ᶠ x in atBot, AEStronglyMeasurable (F x) volume := by
-    refine Eventually.of_forall ?_
-    intro x
-    refine (greenKernelDeriv_measurable (c := c) (lam := lam)).comp measurable_neg
-      |>.aestronglyMeasurable.mul ?_
-    exact (hH.comp (continuous_const.add continuous_id)).aestronglyMeasurable
-  have h_bound :
-      ∀ᶠ x in atBot, ∀ᵐ t ∂volume, ‖F x t‖ ≤ bound t := by
-    refine Eventually.of_forall ?_
-    intro x
-    refine Eventually.of_forall ?_
-    intro t
-    dsimp [F, bound]
-    rw [abs_mul]
-    exact mul_le_mul_of_nonneg_left (hB (x + t)) (abs_nonneg _)
-  have h_lim :
-      ∀ᵐ t ∂volume, Tendsto (fun x => F x t) atBot (𝓝 (G t)) := by
-    refine Eventually.of_forall ?_
-    intro t
-    have hshift : Tendsto (fun x : ℝ => x + t) atBot atBot :=
-      tendsto_atBot_add_const_right atBot t tendsto_id
-    exact hlim.comp hshift |>.const_mul (greenKernelDeriv c lam (-t))
-  have hInt_tendsto :
-      Tendsto (fun x => ∫ t, F x t) atBot (𝓝 (∫ t, G t)) :=
-    MeasureTheory.tendsto_integral_filter_of_dominated_convergence
-      (μ := volume) (l := atBot) (F := F) (f := G)
-      bound hF_meas h_bound hbound_int h_lim
-  have hGint : (∫ t, G t) = 0 := by
-    dsimp [G]
-    rw [show (fun t : ℝ => greenKernelDeriv c lam (-t) * L)
-        = fun t : ℝ => L * greenKernelDeriv c lam (-t) by
-          funext t; ring]
-    rw [MeasureTheory.integral_const_mul]
-    rw [integral_neg_eq_self (greenKernelDeriv c lam) volume]
-    rw [greenKernelDeriv_integral_eq_zero (c := c) (lam := lam) hlam]
-    ring
-  have hrewrite :
-      (fun x => ∫ t, F x t) = greenConvDeriv c lam H := by
-    funext x
-    exact (greenConvDeriv_eq_translated_integral_of_bounded
-      (c := c) (lam := lam) hlam hH hB x).symm
-  simpa [hrewrite, hGint] using hInt_tendsto
 
 theorem greenConvDeriv2_tendsto_atBot_of_source_tendsto
     {c lam : ℝ} (hlam : 0 < lam) {H : ℝ → ℝ} {B L : ℝ}
