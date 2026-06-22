@@ -200,3 +200,37 @@ Its core analytic step is exactly `DuhamelHeatValueRepresentation` (the Fubini
 *constructed* Duhamel term — the same predicate T5-u showed is NOT needed for the
 energy inequality but IS needed to exhibit a solution.  Plus `uniformLocal`
 (parabolic continuation with uniform δ(M)).
+
+## ★★ T7e DEEPEST-BUNDLE ATOM INVENTORY (2026-06-22, two-source converged: cron1 fdd4cc66 + cron2 8da1dfe2, both read 0a74b0c, both verdict OK, file-cited; key claims verified against tree)
+Distance to χ₀<0 Theorem_1_1 = this FINITE named atom set (not a time estimate). The Hσ coefficient
+bootstrap engine + mixed Wiener product is CLEAN (cron2: no hidden commutator/interpolation/maximal-
+regularity gap). The deepest bundle is genuine PDE production, NOT Lean wiring (both crons converge).
+
+GENUINE HARD ATOMS (real PDE theorems — the per-datum classical local existence frontier):
+ H1. semigroup_weak  — weak Neumann Duhamel differentiation identity (TruncatedMildSemigroupWeakAfter
+     BNDualityOn, IntervalBFormCron2MildToWeak.lean:97). CENTRAL: both crons name it — feeds DT-side
+     mild→weak AND Henergy negative-part. Needs t^{-1/2} Neumann gradient smoothing + endpoint Lebesgue-
+     point + DCT dominators + 3 tested weak identities (NegativePartStandardHeatSemigroupDuhamelFacts,
+     IntervalBFormCron2SemigroupWeakDuhamel.lean:160). VERIFIED both structs exist in tree.
+ H2. DT  — truncated Picard operator estimates (TruncatedConjugateMildExistenceData, IntervalBFormCron2
+     TruncatedPicard.lean:346): maps-to / contraction / continuity+measurability preservation + base one-
+     step. Consumed by truncatedConjugateMildSolutionData_of_data:472 (VERIFIED consumes-not-produces).
+     Needs truncatedConjugateDuhamelMap_{mapsTo,contracts}_ball + 2 preservation lemmas.
+ H3. hF1  — quantitative local classical existence: ∀M>0 ∃δ(M)>0, PID(u₀)∧‖u₀‖∞≤M ⇒ classical (u,v) on
+     [0,δ(M)]; + RestartAndGlueWorks + interior sup-norm preservation. (IntervalDomainUniformContinuation/
+     RestartExtension/GlueLargeCase — δ(M)-extraction from the Picard contraction is the open core.)
+ H4. A,Dbar + drift/react/hstrip  — pointwise L∞ drift/reaction bounds (|B|≤A, -C≤Dbar) on every restarted
+     strip + classical supersolution structure. NOT Hσ summability (cron2). Consumer bform_strictPos_closed
+     is wired; producer is the gap.
+ H5. Henergy  — negative-part weak energy producer (NegativePartEnergyCoreData): weak -u_- test + nonsmooth
+     chain rules + energy differentiability + initial trace + zero-L²→pointwise upgrade. CONSUMES H1.
+     Gronwall-to-zero consumer already wired.
+
+WIRING (assembled or trivial — do NOT bank as new math, §2.6):
+ Hbridge (truncatedConjugateLimitBridgeProducerData_of_cores + _of_faithful_truncation — VERIFIED already
+   used together in IntervalBFormPositiveDatumLocalExistenceSqRegular.lean:92,99), Test (pick bounded-
+   measurable class, not all-tests), bN_fubini_integrable, bN_semigroup_deriv, M:=max 0 (A²/2+Dbar).
+
+NET: χ₀<0 completion = discharge {H1..H5}. H1 is the keystone (two consumers). These are paper-level PDE
+theorems (quantitative local existence + negative-part weak energy for a chemotaxis system), genuine multi-
+session formalization — the OUTSTANDING T7e/T6 "operator-assembly/fixed-point not done", now named & grounded.
