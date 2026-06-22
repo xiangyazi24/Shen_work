@@ -46,6 +46,28 @@ Last update: 2026-06-21 round-3 dispatch.
 - ChatGPT cron1/cron2 kept rolling: 6 git-drop consults this round (P1-Liouville, P2-rep, P3-stability, P1-monotone,
   P3-faithful-stmt, P2-cosine-basis), all in answers/*.md on origin/main.
 
+### ROUND 4 (06-21, Pro greenlit by Xiang) — architecture locked per paper
+- **P1 reduced to TWO named atoms: Barbalat + resolver-at-constant.** Codex caught that abstract-∀Ustar monotone
+  Liouville is FALSE (constant solution W≡1) → Ustar FIXED = 1 (repo logistic u(1−u^α), no a,b). DONE (axiom-clean):
+  auxRHS true-divergence wrapper, root-pin+squeeze under flat tails (fixedSourceLeftLiouvilleMonotone_of_tail_reaction_roots).
+  RESIDUAL = Step 2 (W'→0 via BARBALAT: antitone+bdd ⇒ W' integrable, bdd W'' ⇒ W' UC, UC+integrable ⇒ →0; Mathlib
+  may lack Barbalat → prove by contradiction) needing the construction's C² regularity THREADED in (satisfiable:
+  the Schauder profile IS C² via B_image bound) + Step 3 (resolver V[W]→V[L], ∂_xV→0 at constant limit). Pro P1mono
+  consulted. P1 codex grinding regularity-thread + Barbalat.
+- **P2 architecture PIVOTED (Pro-driven) + interface FIXED.** Codex Phase-A finding: downstream needs NOT pointwise
+  EqOn but the WEAK interface (chemFluxLifted AC on [0,1] + coupledChemDivSourceLift =ᵐ deriv chemFluxLifted), which
+  hB_global_of_flux_ac_reconstruction already consumes. Provider REWIRED to bFormFluxH1Constructor_of_p2FluxH1SourceBridge;
+  the circular pointwise rep-identity consumer DELETED (genuine cleanup). Pro REVISED the route: partial-sum IBP for
+  the NONLINEAR flux is NOT self-sufficient (only "any distributional limit of (P_N F)' is the weak deriv", needs
+  Σλ_k|b_k|²<∞); the CLEAN non-circular route = PARABOLIC SMOOTHING (u(s,·)∈H¹, v(s,·)∈H² for s>0 from heat-semigroup/
+  elliptic resolver, INDEPENDENT of flux deriv) ⇒ F=u^m(1+v)^{−β}v_x ∈ H¹ by SOBOLEV PRODUCT/chain rule (1D H¹∩L^∞
+  Banach algebra). RESIDUAL = P2FluxH1SourceBridge via Sobolev calculus from the smoothing (codex Phase-A checks if
+  the repo's solution carries the H¹/H² regularity; if not, that smoothing is the single genuine analytic input).
+- **P3: faithful liminf form CONFIRMED by Pro** (sharp-eventual at θ is false, z=θ−e^{−t}; correct eventual = ε-loss
+  ∀ε∃T∀t≥T inf u≥θ−ε; both u AND v components). θ=((a−Cχ)/b)^{1/α}, Cχ=χ0μΘ_{β−1}. P3 codex correcting the fields.
+  P3 stability Theorem 2.2 = local spectral small-data (χ<χ*, ‖w0‖<ε); Duhamel/mode-wise route consulted on Pro (prep dispatch).
+- NOTE: ChatGPT git-drop "[reported]" (vs "[VERIFIED]") = phantom commit (file not actually on main) — re-fire. P1mono-PRO was lost this way.
+
 ────────────────────────────────────────────────────────────────────────
 ## PAPER 1 — traveling-wave existence  (Remark_1_3_2 : ∃ U V, IsRightVanishingTravelingWave)
 ROUTE DECIDED (Xiang-approved pivot 06-21): **fixed-source linear Schauder** — ABANDON the repo's
