@@ -65,3 +65,13 @@ hyps: PaperPositiveInitialDatum, 1≤α, 1≤γ, hû₀} + remaining:
 - hmean0 (wiring): D.M=2·B₀≥|u₀| opaque behind Classical.choice — extract it.
 Everything else (the trajectory machine, the direct supersolution, the §3.3 fixes, the BCF τ=0 bypass, the stale-
 note clearances) is built. Crux A is the genuine remaining PDE frontier.
+
+## [2026-06-23] crux B DONE (092bee5); hmean0 closing; χ₀<0 → crux A only
+- crux B (logistic-leg joint continuity) DONE: valueOp_src_jointCont + logisticLeg_continuous_full (092bee5,
+  source-generic non-singular semigroup joint continuity, mirrors the landed B-kernel engine). axiom-clean.
+- hmean0: cosine→mean bridge built (conjugate_hmean0_of_datumBound); datum bound |u₀ x|≤M closing via the Core's
+  hbase_ball (0th iterate = heat semigroup) + the t→0⁺ strong-continuity limit (a262631a in flight).
+- After hmean0: χ₀<0 H¹ envelope conditional on {4 faithful hyps} + ONLY crux A.
+CRUX A (the genuine deep PDE frontier): the uniform-in-time H^σ flux envelope g/gl. The box-extend induction needs
+genv per-restart but genv needs the GLOBAL coordinatewise envelope (not partial BoundUpTo r) — circularity needs a
+uniform flux bound WITHOUT the global genv = the uniform a-priori estimate. The campaign's core open seam.
