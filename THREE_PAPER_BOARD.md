@@ -150,3 +150,13 @@ axiom-clean; full FluxFactorEnvelopes + genv assembled CONDITIONAL on gW. Non-ci
      H^σ env of (1+v)^{-β}) from v's H^σ env, WITHOUT ContDiff 2 (the only landed one, memHSigma_one_add_
      rpow_neg_of_contDiff_two, needs C² = circular). For σ>1/2, H^σ is a Banach algebra embedding in L∞;
      g(v)=(1+v)^{-β} smooth+bounded on v≥0 → standard Moser/Nemytskii H^σ composition estimate. → opus.
+
+## ★ #4A per-step Green-solve CLOSED — residual sharpened (2026-06-22 [opus], verified 8285)
+RotheStepProducerImpl: crossStep_concrete_solution (per-step Green-solve EXISTENCE as concrete Continuous
+ℝ→ℝ satisfying the Green convolution eqn) + crossStep_concrete_unique + greenKernel_smallness_iff (1/λ
+contraction) UNCOND+axiom-clean. Non-vacuous (lower-pinned, no bare-trap). #4A now = 2 named non-circular gaps:
+  #4A-A RotheStepInput.produce step-output bundle: needs crossStep_output_of_solution (truncated-bcf↔raw
+        crossImplicitMap bridge crossStepSelfMap_apply_eq_crossImplicitMap WaveStepFluxId:80 ~14 per-x
+        integ/decay hyps + lower-pinned RotheMaxData max-principle). Real PDE gap. → opus.
+  #4A-B RotheContinuousDependence: rotheLimit_continuousDependence (propagate FrozenEllipticDerivDependence
+        through Rothe limit by DCT + uniform contraction). The deep core. Real gap. → opus.

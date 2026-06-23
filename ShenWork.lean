@@ -318,3 +318,5 @@ import ShenWork.Paper2.IntervalDecompTauLift
 import ShenWork.Paper1.ConstructionNegProducer
 
 import ShenWork.Paper2.IntervalFluxFactorEnvelope
+
+import ShenWork.Paper1.RotheStepProducerImpl
