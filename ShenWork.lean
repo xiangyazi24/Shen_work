@@ -406,3 +406,4 @@ import ShenWork.Paper2.IntervalChiNegTrajBridges
 import ShenWork.Paper2.IntervalChiNegLegContinuity
 import ShenWork.Paper2.IntervalChiNegDirectBase
 import ShenWork.Paper2.IntervalChiNegBaseDirectExtend
+import ShenWork.Paper2.IntervalChiNegValueOpCont
