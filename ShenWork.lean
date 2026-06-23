@@ -376,3 +376,4 @@ import ShenWork.Paper2.IntervalCarrySeamDischarge
 import ShenWork.Paper2.IntervalMixedMulBridgeDischarge
 import ShenWork.Paper2.IntervalCarrySeamFullDischarge
 import ShenWork.Paper2.IntervalChiNegContinuationEnvelope
+import ShenWork.Paper2.IntervalChiNegEnvelopePersistence
