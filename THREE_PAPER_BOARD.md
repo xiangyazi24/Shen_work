@@ -1,5 +1,8 @@
 # THREE-PAPER FORMALIZATION BOARD (Chen-Ruau-Shen) — honest cross-paper status
-Last verified: full-closure 8862 jobs; 7 real sorry tactics repo-wide (all P2 χ₀<0 analytic).
+Last verified: repo is SORRY-FREE (live grep 2026-06-23: no bare `sorry` tactic anywhere incl.
+Statements.lean — the prior "7 sorry" line was STALE; those are carried HYPOTHESES / named residuals,
+not tactics). All headlines are CONDITIONAL on satisfiable carried bundles; the frontier is discharging
+those bundles, not closing sorries. (full-closure last counted 8862 jobs.)
 Audit standard (playbook §3.3): headline UNCONDITIONAL on satisfiable CMParams, no sorry/admit/
 native_decide/custom-axiom, no carried-hard/unsatisfiable hypothesis, faithful to paper.
 
