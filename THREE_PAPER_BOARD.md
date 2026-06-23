@@ -57,3 +57,24 @@ DISCHARGING those bundles so the headlines become UNCONDITIONAL on satisfiable C
 The remaining work is NOT sorry-closing — it is the genuine analytic DISCHARGE of these satisfiable bundles
 (R1a fixed-point flux envelope is the hard core → codex Jun 26). MUST audit each bundle is SATISFIABLE (non-
 vacuous) before claiming discharge — a sorry-free conditional on an UNSATISFIABLE bundle is the §3.3 vacuity trap.
+
+## ★ NUMBERED ATOM REGISTRY (2026-06-22) — flat #N, no more ad-hoc letter-codes
+Stable numbers; cite #N in reports/dispatches/commits. ChatGPT dispatches cite their ask-gpt Q<N> / RUN#N.
+CLOSED (✅ verified, full-closure + axiom-clean):
+  C1 H1-grad NeumannHeatGradientTMinusHalfBound (was "H1-grad")           — b57f439
+  C2 UniformBootstrapStep mild-only step (was "keystone B step")          — c356629
+  C3 trajectory propagator + genv/glenv wiring + σ-ladder (was "R1/σ-ladder") — de51937/44f4e3f
+  C4 conjugate hmap + per-τ k≠0 helpers (building blocks, was "Task A/B")  — d42a783
+  C5 4 false fields fixed; C6 structure validated sound; C7 repo sorry-free
+OPEN (the discharge frontier):
+  #1 [P2 χ₀<0] τ-uniform flux factor-envelope FIXED-POINT (was "R1a") — the hard core. Feeds TrajLadderData
+     → SliceMildStepData. Elliptic relay landed. → codex Jun 26.
+  #2 [P2 χ₀<0] hdecomp τ-lift (was "R1b") — ∀τ version of landed per-endpoint decomp. IN FLIGHT (opus).
+  #3 [P2 χ₀<0] per-τ ∀k fields at joint-continuity interface incl. k=0 mode.
+  #4 [P1] construction_neg — frozen stationary wave profile existence χ≤0 (+monotone+tail asymptotic).
+  #5 [P1] construction_pos — same, χ≥0 regime.
+  #6 [P1] cStarStar_spec — stability speed threshold family asymptotic.
+  #7 [P1] stability — orbital stability of traveling waves under perturbations.
+  #8 [P3] Theorem 2.2 fractional-power-embedding frontier (cascades from P2 χ₀≤0 boundedness).
+Discharging {#1..#3} → ChiNegDatumUniformConstruction (P2 χ₀<0). {#4..#7} → Paper1MainResultsData (P1).
+{#8} → Paper3Constants (P3 T2.2). χ₀=0 + P3 T10 already unconditional.
