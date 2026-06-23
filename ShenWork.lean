@@ -408,3 +408,4 @@ import ShenWork.Paper2.IntervalChiNegDirectBase
 import ShenWork.Paper2.IntervalChiNegBaseDirectExtend
 import ShenWork.Paper2.IntervalChiNegValueOpCont
 import ShenWork.Paper2.IntervalChiNegDatumBound
+import ShenWork.Paper2.IntervalChiNegUniformEnvelope
