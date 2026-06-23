@@ -458,3 +458,17 @@ Neumann resolver; different operators, no bridge. χ₀<0 genuine residuals: E�
 trajBaseEnvelope_of_fluxFactors) + hvnn (Neumann-resolver positivity, provable via kernel positivity) + bridge
 assembly. The false-field obstruction is GONE; remaining is provable/landed. (Xiang independently confirmed (★)
 false w/ matching counterexample; (★) already redundant via contact-point live producer.)
+
+## 2026-06-23 SESSION FINAL — χ₀<0 base-E non-circularly reduced to landed ChemMildLocal
+- baseTrajectoryEnvelope LANDED (fe29c86, verified 3612, axiom-clean) via cron1_q5-audited time-continuation:
+  continuation_from_local_extension PROVED (global BoundUpTo Estar t = OUTPUT), hclosed_left from per-mode
+  continuity PROVED; carries ONLY hext (short-time ∃r'>r persistence) + hbase(τ=0) + hcont. SIGNATURE-VERIFIED:
+  no all-τ domination carried (contrast the REJECTED circular base-E that carried hEdom=conclusion).
+- hext IS the X_E={sup_k|a_k|/E_k<∞} envelope-lattice version of the LANDED ChemMildLocal.lean χ₀<0 mild local
+  existence (chemMildLocal_orderBox_exists; Banach contraction q(T)=|χ₀|C∇2√T+L·T→0). NOT a missing theorem.
+- REMAINING χ₀<0 GAP (precise, dischargeable): bridge ChemMildLocal's L∞ order-box persistence → X_E coordinatewise
+  H^σ persistence (hext). Same universal carried Cauchy frontier as the whole Thm11 framework (χ₀=0 DISCHARGES
+  local existence via the chiZero datum provider; χ₀<0 needs the X_E analog).
+- SESSION net: 7 χ₀<0 pieces landed (hvnn, CarrySeam 3-bridge, mixedMulBridge, carrySeam-full, base-E + boards);
+  bridge sub-frontier COMPLETE; base-E non-circular; §3.3 catch on circular base-E (rejected). χ₀<0 = faithful
+  §3.3 conditional, remaining gap = L∞→X_E bridge. P1 (a′) route+bootstrap clear (cron2_q3), closure self-assessed.
