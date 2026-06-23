@@ -396,3 +396,4 @@ import ShenWork.Paper2.IntervalChiNegSupersolution
 import ShenWork.Paper2.IntervalChiNegDirectSupersolution
 import ShenWork.Paper2.IntervalCarrySeamWienerDischarge
 import ShenWork.Paper2.IntervalCarrySeamConjDischarge
+import ShenWork.Paper2.IntervalCarrySeamFrontier
