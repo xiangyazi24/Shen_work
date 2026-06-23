@@ -183,3 +183,12 @@ rotheStepAnalytic_of_greenSource (10-field bundle from one Green rep) UNCOND+axi
         DATA from which rotheStep_le_barrier derives W≤B — non-circular). → opus.
   #4A-II crossStepSelfMap_apply_eq_crossImplicitMap ~14 integrability/decay/folding hyps (WaveStepFluxId:80).
   #4A-B RotheContinuousDependence (rotheLimit_continuousDependence, DCT through Rothe limit). → opus.
+
+## ★★ #1E gW membership+assembly CLOSED — #1 down to ONE scalar #1F (2026-06-22 [opus], verified axiom-clean)
+IntervalGWProductEnvelope: gW_memHSigma (MemHSigma σ gW via trueCosProd Banach algebra) + genv_of_traj_denom
+(full FluxFactorEnvelopes with gW BUILT + genv chained, τ-uniform domination RELATIVE to a τ-uniform denom
+env) UNCOND+axiom-clean. #1 remaining = ONE scalar:
+  #1F DenomUniformEnvelope = τ-uniform ∫₀¹|((1+v τ)^{-β})''| ≤ B (+ mode-0 A). Tractable: ((1+v)^{-β})'' =
+     β(β+1)(1+v)^{-β-2}(v')² − β(1+v)^{-β-1}v'', all denom powers ≤1 ⟹ bounded by (v')²+|v''| ⟹ ∫ ≤ ‖v‖_{H²}
+     τ-uniform from the resolver H^{σ+2} envelope (v in ball uniformly). Faà di Bruno + powers≤1 + resolver
+     env. Bounded computation, NOT a Mathlib gap. → opus. CLOSING #1F closes #1 → FluxFactorEnvelopes → trajLadder.
