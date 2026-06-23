@@ -264,3 +264,14 @@ NOT unconditional MemHSigma 1, carries exactly:
        The genuine hard χ₀<0 PDE. → opus.
 χ₀<0 = (C1) continuation base [genuine] + (C2) bundle assembly [tractable] → MemHSigma 1 → H¹ → weak identities
 → ChiNegDatumUniformConstruction. Everything else landed.
+
+## ★ P1 #4-C tendsto CLOSED, #4-B → chemo-monotonicity wall (2026-06-22 [opus], verified 8317)
+CrossSourceNonDiagonal: #4-C non-diagonal tendsto CLOSED (crossFlux_deriv_eq_nondiagonal + crossSource_tendsto_
+at{Bot,Top}_nondiagonal + crossSource_greenConv_tendsto wired to R-data — discharges the source→iterate bridge).
+#4-B antitone reduced (crossSource_eq_reactStep_add_fluxDefect + _antitone_of_summands). P1 #4 remaining walls:
+  #4-A rotheStepFluxData_of_trap (~14-field whole-line flux integrability/decay).
+  #4-B-core RotheChemoMonotoneResidual (WaveRotheOrder:126): the chemotaxis-flux-defect SIGN Antitone(−χ·deriv
+       (stepFlux)) — the MAX-PRINCIPLE monotonicity content (carried diagonally too, long-standing). + W≤Z coupling.
+  #4-D-rest hBC2Z/hrange/hchem/hanti.
+  #4-B hR source identity (bcf fixed point = crossSource, provably not rfl — producer-supplied).
+The genuine P1 #4 cores are the chemotaxis max-principle monotonicity (#4-B-core) + flux integrability (#4-A).

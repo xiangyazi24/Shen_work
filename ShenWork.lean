@@ -342,3 +342,5 @@ import ShenWork.Paper2.IntervalDenomSecondDerivBound
 import ShenWork.Paper1.RotheFloorOrbitDataImpl
 
 import ShenWork.Paper2.IntervalChiNegTrajectoryAssembly
+
+import ShenWork.Paper1.CrossSourceNonDiagonal
