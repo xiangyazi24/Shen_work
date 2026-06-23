@@ -110,3 +110,10 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - approval: /automode "不要随便停下, 知道通过 playbook audit" (continuation, invocation = approval)
 - avenues in flight: (a) #1D [a6eef2b8], (b) #4B/#4C [a59e3280]; dispatching #4A + #3 now
 - end: <on close>
+
+## Run 2026-06-23 (continuation, /automode)
+- avenue (a): χ₀<0 R1a — FluxFactorEnvelopes-from-running-envelope ladder step (the single
+  remaining carried residual after hvnn discharged 64158eb). Engine (succ_wired+iterate→C²) LANDED.
+- parallel: P1 (a′) orbit-admissible narrowing (gated on cron2_q4 closure verdict).
+- cron1_q4 (R1a base-E₀ closability) + cron2_q4 (P1 a′ closure) auditing in flight.
+- starting commit: 6159d66
