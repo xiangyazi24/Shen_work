@@ -348,3 +348,5 @@ import ShenWork.Paper1.CrossSourceNonDiagonal
 import ShenWork.Paper2.IntervalChiNegTrajectoryClosure
 
 import ShenWork.Paper1.ChemoMonotoneImpl
+
+import ShenWork.Paper2.IntervalChiNegFluxSourceClosure

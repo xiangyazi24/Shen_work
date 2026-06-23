@@ -300,3 +300,12 @@ barrierSource_of_integrated_residual → the comparison; WaveStepFluxIBP.stepFlu
 ∫Kλ'·g — still sign-indefinite via naive forms, the genuine residual), NOT the over-strong pointwise antitone.
 EARLIER crossSource-antitone dispatches were chasing the wrong (over-strong) field — corrected: route integrated.
 P1 #4 walls: #4-A flux integrability + the INTEGRATED chemo-defect sign + #4-D-rest.
+
+## ★★★ χ₀<0 R1 CONTINUATION CLOSURE CLOSED (2026-06-22 [opus], verified, the marathon's deepest bottom)
+IntervalChiNegFluxSourceClosure: trajBaseEnvelope_of_fluxFactors — hMsq (τ-uniform decaying H⁰ flux envelope)
+DISCHARGED via the landed fluxSineEnvelope_uniform (Msup=trueCosProd gW gvx, the flux DIVERGENCE STRUCTURE
+gives the decaying H^σ dominator the L∞ ball couldn't). The compactness attack was UNNECESSARY — better landed
+route found. The R1 continuation closure (flagged at the start as the deepest χ₀<0 PDE) is CLOSED. Axiom-clean.
+χ₀<0 NOW = (C2) MildPackageFamily: per-slice conjugatePicardLimit mild content (resolver positivity [landed
+elliptic max], heat/chem/log integral continuities + cosine-swap feeding conjugateSlice_decomp_tauLift, k=0
+mean-conservation) + threading FluxFactorEnvelopes (#1, landed). Largely LANDED per-slice data → assembly. → opus.
