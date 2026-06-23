@@ -309,3 +309,15 @@ route found. The R1 continuation closure (flagged at the start as the deepest χ
 χ₀<0 NOW = (C2) MildPackageFamily: per-slice conjugatePicardLimit mild content (resolver positivity [landed
 elliptic max], heat/chem/log integral continuities + cosine-swap feeding conjugateSlice_decomp_tauLift, k=0
 mean-conservation) + threading FluxFactorEnvelopes (#1, landed). Largely LANDED per-slice data → assembly. → opus.
+
+## ★ χ₀<0 → per-slice mild seam (2026-06-22 [opus], verified, MY framing corrected by subagent)
+IntervalChiNegMildPackage: reach_H1_conjugate reaches TrajectoryHSigmaEnvelope 1 for conjugatePicardLimit;
+hdecomp discharged σ-UNIFORMLY (one conjugateSlice_decomp_tauLift, σ/E-independent). HONEST: MemHSigma 1 NOT
+unconditional from landed data (even u_posTime_memHSigma_one_of_mild carries a per-slice step). χ₀<0 headline
+conditional on the per-slice MILD SEAM:
+  SeamHyp (per-(σ,E)): hvnn resolver positivity [landed elliptic max], hbr/hbridge [cosineMulBridge_of_summable],
+    hvrel/hdiv [landed divergence/resolver identities], hQ_cont/hFl_cont [conjugatePicardLimit_hasContinuousSlices],
+    σ-level L envelope. Landed LEMMAS, need per-(σ,E) instantiation.
+  DecompHyp: Fubini swaps + continuities [per-τ] + the GENUINE k=0/τ=0 mean-conservation hzero (#3).
+  + FluxFactorEnvelopes [#1 landed] + htraj_dom.
+Final χ₀<0 = instantiate SeamHyp/DecompHyp from landed lemmas (dozens of per-field) + close k=0 mean. → opus.
