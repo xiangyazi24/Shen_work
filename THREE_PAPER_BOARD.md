@@ -357,3 +357,13 @@ sign at y=x); the paper signs the chemo term at the PARABOLIC w=uₓ level (max 
 NOT the integrated kernel. So ChemoDefectDominates = the paper's χ≤0 quasi-monotonicity, dischargeable via the
 parabolic gradient argument (landed WaveAuxMap Green identity for w + WaveAuxInvariance.ChemotaxisSandwich). → opus.
 P1 #4 = ChemoDefectDominates (parabolic quasi-monotonicity) + #4-A flux integrability + #4-D-rest.
+
+## ★ P1 #4 chemo → (★) gradient quasi-monotonicity = RotheChemoMonotoneResidual (2026-06-22 [opus], verified 3392)
+ChemoDefectDominatesImpl: chemoDefectDominates_of_pointwise_residual — ChemoDefectDominates reduces EXACTLY to
+(★) λ(Z−W) ≤ (−χ)∂ₓ(stepFlux_Z−stepFlux_W) via greenConv_mono + IBP (eliminates W'). chemoDefectDominates_of_
+rotheResidual consumes the landed RotheChemoMonotoneResidual (gradient form, B=Z) via deriv_stepFluxDiff_eq.
+UNIFIES two separately-carried obligations (integrated ChemoDefectDominates + gradient RotheChemoMonotone) → ONE.
+(★) = RotheChemoMonotoneResidual = the paper's §4.2 χ≤0 quasi-monotonicity, signed by the PARABOLIC w=uₓ max
+principle (eq 4.13) — NO counterpart in the elliptic frozen-fixed-point construction. The formalization carries
+it as the paper's own hypothesis. → discharge via ChemotaxisSandwich (WaveAuxInvariance) / elliptic gradient sign.
+P1 #4 = (★) quasi-monotonicity [paper core] + #4-A flux integrability + #4-D-rest.
