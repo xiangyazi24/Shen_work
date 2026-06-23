@@ -398,3 +398,5 @@ import ShenWork.Paper2.IntervalCarrySeamWienerDischarge
 import ShenWork.Paper2.IntervalCarrySeamConjDischarge
 import ShenWork.Paper2.IntervalCarrySeamFrontier
 import ShenWork.Paper2.IntervalCarrySeamGradient
+import ShenWork.Paper2.IntervalReflCircleContinuousOn
+import ShenWork.Paper2.IntervalCarrySeamGradientContinuousOn
