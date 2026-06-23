@@ -212,3 +212,17 @@ conv_form), UNCOND+axiom-clean. P1 #4 (non-paper construction) now = ONE structu
      signs + (D) lower-trap/at-max/chem packets. Missing lemma: rotheFloorStepData_of_trap (discharge A-D from
      trap+per-step solve). Non-circular, satisfiable (the hR/hstep_eq/hnonneg trio = what crossStep_concrete_
      solution+flux-bridge+resolver-positivity produce). → opus. Then floor→RotheStepFloor→producer→construction.
+
+## ★★ P1 #4 container CLOSED + FINGERPRINT recognized — bottom = 4 analytic atoms (2026-06-22 [opus], verified 8315)
+RotheFloorStepDataImpl: rotheFloorStepData_of_trap + rotheFloorResidual_of_orbit + rotheStepFloor_of_orbit —
+chaining wired, hnonneg PROVED (greenConv_nonneg_of_source_nonneg). FINGERPRINT (playbook §2.6): hprovider →
+RotheFloorResidual → RotheFloorStepData → RotheFloorOrbitData = 4 repackaging levels, each closing peripheral
+(hnonneg/tails/step_op/Bsuper) but carrying the SAME (A)-(D). STOP repackaging. The genuine irreducible P1 #4
+bottom = 4 analytic atoms (attack DIRECTLY, no more _of_trap carriers):
+  #4-A flux-IBP step eqn: RotheStepFluxData_of_trap — the ~14-field crossStepSelfMap_apply_eq_crossImplicitMap
+       integrability/decay/folding from the trapped bounded continuous source. (WaveStepFluxId:80)
+  #4-B source identity hR (R=crossSource — likely DEFINITIONAL, audit if it should be rfl not carried) +
+       Antitone (crossSource) from chem-flux sign + Z antitone.
+  #4-C whole-line Green-decay source limits Rbot/Rtop + comparison signs from trapped Z endpoints.
+  #4-D at-max C²/range/chem + antitone elliptic regularity.
+All non-circular (consume trap+solve). These 4 = the genuine analytic content of the P1 per-step construction.
