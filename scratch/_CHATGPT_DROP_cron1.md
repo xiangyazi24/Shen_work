@@ -1,448 +1,933 @@
 # ChatGPT git-drop (cron1)
 
-## Q72 — Per-mode mild/Duhamel identity: deep representation theorem or Fubini?
+## Q74 — χ₀<0 interval chemotaxis: Lean-ready H¹ energy route
 
 ### Executive verdict
 
-If you already have the **spatial mild identity** for each `t > 0` as an equality in a function space on `[0,1]` where the cosine-coefficient functional is bounded linear, then the per-mode identity is **not** a new parabolic representation theorem.
-
-It is exactly:
-
-1. apply the bounded linear functional
+The H¹ route is viable in 1D and needs no Moser/Alikakos iteration. The correct structure is:
 
 ```text
-L_k(f) = cosineCoeffs f k = c_k ∫_0^1 cos(kπx) f(x) dx,
+uniform L∞ order box
+  → 1D elliptic resolver bounds for v, v_x, v_xx
+  → H¹ energy differential inequality
+  → sliding-window ∫‖u_x‖² bound from landed L² energy
+  → uniform Gronwall / averaging lemma
+  → uniform-in-time H¹ bound.
 ```
 
-2. use linearity of `L_k`,
-3. commute `L_k` through the Bochner/interval time integrals by `ContinuousLinearMap.integral_comp_comm`, equivalently scalar Fubini,
-4. use the already-known spectral action of the heat semigroup on cosine modes for the initial heat term.
+Important correction: the inequality
 
-So the carried seam
-
-```lean
-cosineCoeffs (∫ time, spatialIntegrand time) k
-  = ∫ time, cosineCoeffs (spatialIntegrand time) k
+```text
+y'(t) ≤ A y(t) + B,   y(t)=1/2 ‖u_x(t)‖²₂
 ```
 
-is trivial once the mild integral is a legitimate Bochner integral and the coefficient functional is available as a continuous linear map. The diagonal convention `S(0)=0` is harmless because it changes the time integrand on a null set.
+alone gives only an exponential-in-`T` bound. A genuinely uniform-in-time H¹ bound comes from combining it with a **uniform sliding-window bound**
 
-The only genuinely nontrivial things that could still be hiding under the name “parabolic representation theorem” are **not** the Fubini/per-mode passage itself. They are:
+```text
+∀ t ≥ 0,  ∫_t^{t+R} y(s) ds ≤ C_R
+```
 
-- proving the spatial mild identity in the right Banach/function space;
-- proving the time integrands are Bochner integrable / strongly measurable;
-- proving the heat or gradient kernels have the claimed spectral action, e.g. `cosineCoeffs (S(t) f) k = exp(-t λ_k) cosineCoeffs f k`, or the corresponding `B = ∂x S` mode formula;
-- handling an a.e.-in-space equality if your mild identity is only an `Lᵖ` equality rather than a continuous-function equality.
-
-But if those pieces are already landed, the per-mode Duhamel identity is immediate.
+coming from the L²/dissipation energy estimate. The logistic damping is used at the L∞/L² level to produce uniform bounds and sliding-window dissipation; the H¹ differential inequality itself need not have a negative coefficient in front of `y`.
 
 ---
 
-## Precise mathematical statement
+## 0. Sign convention
 
-Let `X` be a Banach space of spatial functions on `[0,1]`, for example `C([0,1], ℝ)` or a bundled interval-domain continuous-function type. For each `k`, define
-
-```text
-L_k : X →L[ℝ] ℝ,
-L_k(f) = c_k ∫_0^1 cos(kπx) f(x) dx.
-```
-
-For `C([0,1], ℝ)`, boundedness is elementary:
+Below I write the PDE in the sign convention matching the identity you requested:
 
 ```text
-|L_k(f)| ≤ c_k ∫_0^1 |f(x)| dx ≤ c_k ‖f‖∞.
+u_t = u_xx - a ∂x(u v_x) + f(u),     a := -χ₀ > 0,
+μ v - v_xx = u,
+v_x(0)=v_x(1)=0,
+u_x(0)=u_x(1)=0.
 ```
 
-Suppose the spatial mild identity is
+Then
 
 ```text
-u(τ)
-  = S(τ) u₀
-    + (-χ₀) • ∫ s in 0..τ, B(τ-s) (chemFlux (u s))
-    +        ∫ s in 0..τ, S(τ-s) (logistic (u s))
+y' = -‖u_xx‖²₂ + a ∫ u_xx ∂x(u v_x) - ∫ u_xx f(u).
 ```
 
-as an equality in `X`, and suppose the two time integrands are integrable as `X`-valued functions:
-
-```lean
-hchem_int : Integrable (fun s => B (τ-s) (chemFlux (u s))) μτ
-hlog_int  : Integrable (fun s => S (τ-s) (logistic (u s))) μτ
-```
-
-where `μτ` is the restricted Lebesgue measure corresponding to the interval integral `0..τ`.
-
-Then applying `L_k` gives
+After integrating the reaction term by parts,
 
 ```text
-L_k(u(τ))
-  = L_k(S(τ)u₀)
-    + (-χ₀) * L_k(∫ s, B(τ-s)(chemFlux(u s)))
-    +          L_k(∫ s, S(τ-s)(logistic(u s))).
+- ∫ u_xx f(u) = ∫ f'(u) u_x².
 ```
 
-The integral terms commute:
+If your file’s PDE uses the opposite convention
 
 ```text
-L_k(∫ s, B(τ-s)(chemFlux(u s)))
-  = ∫ s, L_k(B(τ-s)(chemFlux(u s))),
-
-L_k(∫ s, S(τ-s)(logistic(u s)))
-  = ∫ s, L_k(S(τ-s)(logistic(u s))).
+u_t = u_xx + a ∂x(u v_x) + f(u),
 ```
 
-The heat initial term is then reduced by the semigroup spectral identity:
+then the taxis term below changes sign. All estimates are unchanged after taking absolute values.
+
+---
+
+## 1. H¹ energy identity
+
+Let
 
 ```text
-L_k(S(τ)u₀) = exp(-τ λ_k) L_k(u₀).
+y(t) := 1/2 ∫_0^1 u_x(t,x)^2 dx.
+```
+
+Assume temporarily enough classical regularity to justify the calculation, e.g. `u(t,·) ∈ C²`, `u_t` continuous, and Neumann boundary condition `u_x(t,0)=u_x(t,1)=0`. Then
+
+```text
+y'(t)
+  = ∫_0^1 u_x u_xt
+  = [u_x u_t]_{0}^{1} - ∫_0^1 u_xx u_t
+  = - ∫_0^1 u_xx u_t.
+```
+
+Using
+
+```text
+u_t = u_xx - a ∂x(u v_x) + f(u),
+```
+
+we get the exact identity
+
+```text
+y'
+  = - ∫ u_xx²
+    + a ∫ u_xx ∂x(u v_x)
+    - ∫ u_xx f(u).
+```
+
+Since
+
+```text
+∂x(u v_x) = u_x v_x + u v_xx,
+```
+
+this is
+
+```text
+y'
+  = - ‖u_xx‖²₂
+    + a ∫ u_xx u_x v_x
+    + a ∫ u_xx u v_xx
+    - ∫ u_xx f(u).
+```
+
+For the reaction term, integration by parts gives
+
+```text
+- ∫_0^1 u_xx f(u)
+  = - [u_x f(u)]_0^1 + ∫_0^1 f'(u) u_x²
+  = ∫_0^1 f'(u) u_x²,
+```
+
+again because `u_x=0` at the endpoints. Thus the clean identity is
+
+```text
+y'
+  = - ‖u_xx‖²₂
+    + a ∫ u_xx u_x v_x
+    + a ∫ u_xx u v_xx
+    + ∫ f'(u) u_x².
+```
+
+This is the exact identity I would formalize.
+
+### Bounds for the taxis terms
+
+Assume the landed order box gives
+
+```text
+0 ≤ u(t,x) ≤ M
+```
+
+or at least `|u| ≤ M`, and resolver bounds give
+
+```text
+‖v_x‖∞ ≤ V₁,
+‖v_xx‖∞ ≤ V₂.
+```
+
+Let
+
+```text
+X := ‖u_xx‖₂,
+Z := ‖u_x‖₂ = sqrt(2y).
+```
+
+Then
+
+```text
+|a ∫ u_xx u_x v_x|
+  ≤ a ‖v_x‖∞ ‖u_xx‖₂ ‖u_x‖₂
+  ≤ a V₁ X Z,
+```
+
+and, since the interval has length `1`,
+
+```text
+|a ∫ u_xx u v_xx|
+  ≤ a ‖u‖∞ ‖v_xx‖∞ ‖u_xx‖₂ ‖1‖₂
+  ≤ a M V₂ X.
+```
+
+Using Young’s inequality in the form
+
+```text
+p q ≤ ε p² + q² / (4ε),      ε > 0,
+```
+
+with `ε₁ = ε₂ = 1/4`,
+
+```text
+a V₁ X Z ≤ (1/4) X² + a² V₁² Z²
+         = (1/4) X² + 2 a² V₁² y,
+```
+
+and
+
+```text
+a M V₂ X ≤ (1/4) X² + a² M² V₂².
+```
+
+For the logistic/reaction term, define
+
+```text
+L₊ := max 0 (sup_{0≤z≤M} f'(z)).
+```
+
+Then
+
+```text
+∫ f'(u) u_x² ≤ L₊ ‖u_x‖²₂ = 2 L₊ y.
+```
+
+Therefore
+
+```text
+y'
+  ≤ - (1/2) ‖u_xx‖²₂
+     + (2 a² V₁² + 2 L₊) y
+     + a² M² V₂².
+```
+
+In particular, dropping the negative term,
+
+```text
+y' ≤ A y + B,
+```
+
+with
+
+```text
+A := 2 a² V₁² + 2 L₊,
+B := a² M² V₂².
+```
+
+More generally, with arbitrary `ε₁, ε₂ > 0`, `ε₁+ε₂<1`, the sharper bookkeeping is
+
+```text
+y'
+  ≤ - (1 - ε₁ - ε₂) ‖u_xx‖²₂
+     + (a² V₁² / (2 ε₁) + 2 L₊) y
+     + a² M² V₂² / (4 ε₂).
+```
+
+This general form is better if you want to preserve a larger fraction of the `‖u_xx‖²` dissipation.
+
+### Logistic specialization
+
+For the usual logistic source
+
+```text
+f(u) = u (α₀ - b u^p)
+```
+
+with `b ≥ 0`, `p ≥ 0`,
+
+```text
+f'(u) = α₀ - b (p+1) u^p ≤ α₀.
+```
+
+So one may take
+
+```text
+L₊ := max 0 α₀
+```
+
+or just `L₊ := α₀` if `α₀ ≥ 0` is a parameter hypothesis.
+
+If your paper permits a sublinear power with singular derivative at zero, e.g. `p < 1` and no positive lower bound for `u`, then the literal `f'(u)` identity is not Lean-clean without extra work. In that case use the already-landed Lipschitz-on-order-box reaction estimate when available, or assume a positive lower bound `δ ≤ u` to make `f'` bounded. For the standard `C¹` logistic regime this issue does not appear.
+
+---
+
+## 2. Resolver bounds needed
+
+The H¹ estimate above needs only
+
+```text
+V₁ ≥ ‖v_x‖∞,
+V₂ ≥ ‖v_xx‖∞.
+```
+
+These follow in 1D from the Neumann elliptic problem and the `L∞` order box.
+
+Assume
+
+```text
+μ v - v_xx = u,
+v_x(0)=v_x(1)=0,
+0 ≤ u ≤ M,
+μ > 0.
+```
+
+### Bound for `v`
+
+By the Neumann maximum principle,
+
+```text
+0 ≤ v ≤ M / μ.
+```
+
+Indeed, at a maximum point of `v`, including endpoints via the Neumann endpoint argument, `v_xx ≤ 0`, so
+
+```text
+μ v = u + v_xx ≤ M.
+```
+
+At a minimum, `μ v = u + v_xx ≥ 0` in the corresponding maximum-principle form, giving `v ≥ 0` when `u ≥ 0`.
+
+### Bound for `v_xx`
+
+From the equation,
+
+```text
+v_xx = μ v - u.
+```
+
+Hence
+
+```text
+‖v_xx‖∞ ≤ μ ‖v‖∞ + ‖u‖∞ ≤ M + M = 2M.
+```
+
+So one can take
+
+```text
+V₂ := 2M.
+```
+
+If you use a sharper Green-kernel bound for `‖v‖∞`, replace `2M` by the corresponding constant.
+
+### Bound for `v_x`
+
+Using `v_x(0)=0`,
+
+```text
+|v_x(x)| = |∫_0^x v_xx(s) ds| ≤ ∫_0^1 |v_xx(s)| ds ≤ ‖v_xx‖∞.
+```
+
+Since the interval length is `1`,
+
+```text
+‖v_x‖∞ ≤ ‖v_xx‖∞ ≤ 2M.
+```
+
+So a simple concrete choice is
+
+```text
+V₁ := 2M,
+V₂ := 2M.
+```
+
+Then
+
+```text
+A = 2 a² (2M)² + 2L₊ = 8a² M² + 2L₊,
+B = a² M² (2M)² = 4a² M⁴.
+```
+
+These constants are crude but Lean-friendly.
+
+If the repo already has quantitative resolver constants, prefer using those. The landed file `IntervalDomainL2UEnergyUniform.lean` defines explicit resolver-gradient constants such as `FgQuant`, `CgradQuant`, and `CvalQuant`, and the header records that the uniform L² machinery is built on τ-independent resolver sup bounds. In particular, it exposes `FgQuant` as a τ-independent gradient sup constant and `CfluxQuant` as a τ-independent flux constant built from resolver controls. That file’s header says the uniform inequality uses a single constant depending only on the order-box parameters, not on time.
+
+---
+
+## 3. Closing the uniform-in-time H¹ bound
+
+### 3.1 What Gronwall alone gives
+
+From
+
+```text
+y' ≤ A y + B,
+```
+
+standard Gronwall gives, on `[0,T]`,
+
+```text
+y(t) ≤ y(0) e^{At} + (B/A)(e^{At}-1)
+```
+
+if `A>0`, and
+
+```text
+y(t) ≤ y(0) + Bt
+```
+
+if `A=0`.
+
+This is only local/exponential in final time. It is **not** a uniform-in-time estimate unless `A≤0` or another dissipative input is used.
+
+### 3.2 Where uniformity really comes from
+
+The uniform route needs the negative diffusion term and the landed L² energy machinery.
+
+Keep the stronger inequality
+
+```text
+y' + c ‖u_xx‖²₂ ≤ A y + B,
+```
+
+with, for example,
+
+```text
+c = 1/2,
+A = 2a²V₁² + 2L₊,
+B = a²M²V₂².
+```
+
+For the final uniform H¹ bound, it is enough to know a sliding-window dissipation estimate:
+
+```text
+∀ t ≥ 0,
+  ∫_t^{t+R} y(s) ds ≤ C_R.
+```
+
+Usually take `R=1`. This comes from the L² energy inequality plus the uniform `L∞` order box. A typical L² energy estimate gives
+
+```text
+E₂'(t) + c₀ ‖u_x(t)‖²₂ ≤ C₀,
+```
+
+with `E₂(t)=1/2‖u(t)‖²₂`, and `E₂(t)` uniformly bounded by the order box. Integrating over `[t,t+R]` gives
+
+```text
+∫_t^{t+R} ‖u_x(s)‖²₂ ds
+  ≤ (E₂(t) - E₂(t+R) + C₀ R) / c₀
+  ≤ C_R.
+```
+
+Since `y = 1/2 ‖u_x‖²₂`, this gives the needed bound on `∫ y`.
+
+This is exactly the role of the landed L² half-energy machinery. In the repo, `IntervalDomainL2UEnergyUniform.lean` records a τ-independent energy differential inequality with a single Grönwall constant depending on the order-box parameters; the header names `intervalDomainL2U_energy_diffIneq_bound_uniform` and its explicit variant as the uniform-in-time L² energy input.
+
+### 3.3 Uniform Gronwall / averaging lemma
+
+A very Lean-friendly uniform lemma is the following elementary one. Suppose `y ≥ 0`, absolutely continuous, and for all `s ∈ [t,t+R]`,
+
+```text
+y'(s) ≤ A y(s) + B,
+```
+
+and
+
+```text
+∫_t^{t+R} y(s) ds ≤ C_R.
+```
+
+Then
+
+```text
+y(t+R) ≤ (1/R + A) C_R + B R.
+```
+
+Proof: for any `s ∈ [t,t+R]`, integrate the differential inequality from `s` to `t+R`:
+
+```text
+y(t+R) - y(s)
+  ≤ ∫_s^{t+R} (A y(ξ) + B) dξ
+  ≤ A ∫_t^{t+R} y(ξ)dξ + B R.
 ```
 
 Thus
 
 ```text
-ĉ_k(u(τ))
-  = exp(-τ λ_k) û₀_k
-    + (-χ₀) ∫_0^τ ĉ_k(B(τ-s)(chemFlux(u(s)))) ds
-    +        ∫_0^τ ĉ_k(S(τ-s)(logistic(u(s)))) ds.
+y(t+R) ≤ y(s) + A C_R + B R.
 ```
 
-This is precisely the desired per-mode mild identity.
+Average this inequality in `s` over `[t,t+R]`:
+
+```text
+R y(t+R) ≤ ∫_t^{t+R} y(s) ds + R(A C_R + B R),
+```
+
+so
+
+```text
+y(t+R) ≤ C_R/R + A C_R + B R.
+```
+
+For `R=1`,
+
+```text
+y(t+1) ≤ (1+A) C_1 + B.
+```
+
+This is often easier to formalize than the textbook uniform Gronwall lemma because it avoids exponentials.
+
+For the initial interval `[0,1]`, use ordinary Gronwall from `y(0)`:
+
+```text
+y(t) ≤ gronwallBound y(0) A B t,       0 ≤ t ≤ 1.
+```
+
+For `t ≥ 1`, apply the averaging lemma with the window `[t-1,t]`:
+
+```text
+y(t) ≤ (1+A) C_1 + B.
+```
+
+Therefore a global uniform bound is
+
+```text
+sup_{t ≥ 0} y(t)
+  ≤ max (sup_{0≤s≤1} gronwallBound y(0) A B s)
+        ((1+A) C_1 + B).
+```
+
+Using monotonicity of `gronwallBound` for `A,B,y(0) ≥ 0`, this can be simplified to
+
+```text
+Y_H1 := max (gronwallBound y(0) A B 1) ((1+A) C_1 + B).
+```
+
+Then
+
+```text
+‖u_x(t)‖²₂ = 2y(t) ≤ 2 Y_H1
+```
+
+uniformly in final time.
+
+### 3.4 Does logistic damping make `A ≤ 0`?
+
+Not in the crude H¹ inequality above. The reaction term gives
+
+```text
+∫ f'(u) u_x²,
+```
+
+and for logistic `f'(u) = α₀ - b(p+1)u^p`, the upper bound is still `≤ α₀`, which is generally positive. The taxis estimates also contribute a positive coefficient to `y`.
+
+So do **not** claim the H¹ differential inequality is uniformly dissipative by itself. The uniformity comes from:
+
+1. global/order-box `L∞` control,
+2. L² energy producing a sliding-window `∫ y`,
+3. the H¹ differential inequality and the uniform Gronwall/averaging lemma.
+
+This is still a uniform-in-time H¹ bound, but the damping enters indirectly via the lower-level a-priori estimates.
 
 ---
 
-## Lean / Mathlib lemma chain: continuous-linear-map route
+## 4. Minimal Mathlib / Lean path
 
-This is the cleanest formalization if your Duhamel integrals are already Bochner integrals into a Banach space of spatial functions.
+### 4.1 Energy time derivative
 
-### 1. Bundle the coefficient as a continuous linear map
-
-Define or prove a lemma exposing:
+For the derivative of
 
 ```lean
-cosCoeffCLM (k : ℕ) : X →L[ℝ] ℝ
+fun t => (1/2 : ℝ) * ∫ x in (0:ℝ)..1, (ux t x)^2
+```
+
+there are two possible routes.
+
+#### Route A: avoid differentiating under the spatial integral directly
+
+This is often cleaner. Establish a lemma for smooth/classical solutions as a packaged identity:
+
+```lean
+theorem H1_energy_identity_of_classical
+  (hu_reg : ...)
+  (hPDE : ∀ t x, u_t t x = u_xx t x - a * deriv (fun x => u t x * v_x t x) x + f (u t x))
+  (hNeu : ∀ t, deriv (u t) 0 = 0 ∧ deriv (u t) 1 = 0) :
+  HasDerivAt
+    (fun t => (1/2) * ∫ x in (0:ℝ)..1, (u_x t x)^2)
+    (- ∫ x in (0:ℝ)..1, (u_xx t x)^2
+      + a * ∫ x in (0:ℝ)..1, u_xx t x * deriv (fun x => u t x * v_x t x) x
+      - ∫ x in (0:ℝ)..1, u_xx t x * f (u t x))
+    t
+```
+
+Then prove it once using the parametric integral tools.
+
+Relevant Mathlib file/lemmas:
+
+```lean
+Mathlib.Analysis.Calculus.ParametricIntervalIntegral
+intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_lip
+```
+
+These are the interval-integral versions of differentiating under the integral sign.
+
+The pointwise derivative of `(u_x)^2` is handled by:
+
+```lean
+HasDerivAt.mul
+HasDerivAt.pow
+```
+
+and algebra/simp.
+
+#### Route B: work with an already-landed weak energy identity
+
+If the repo already has a classical/weak energy identity framework, reuse it. For formal progress, it may be better to state the H¹ identity as an intermediate theorem requiring a `ClassicalH1EnergySolution` structure with all regularity, boundary, and integration-by-parts fields, then later instantiate it from the classical bootstrap.
+
+### 4.2 Integration by parts
+
+Use interval integration by parts from:
+
+```lean
+Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+```
+
+Relevant lemmas include:
+
+```lean
+intervalIntegral.integral_mul_deriv_eq_deriv_mul_of_hasDerivAt
+intervalIntegral.integral_mul_deriv_eq_deriv_mul_of_hasDerivWithinAt
+intervalIntegral.integral_mul_deriv_eq_deriv_mul
+intervalIntegral.integral_deriv_mul_eq_sub_of_hasDerivAt
+```
+
+The basic identity needed repeatedly is:
+
+```text
+∫_0^1 φ * ψ' = φ(1)ψ(1) - φ(0)ψ(0) - ∫_0^1 φ' * ψ.
+```
+
+For
+
+```text
+∫ u_x u_xt = -∫ u_xx u_t,
+```
+
+use `φ = u_x`, `ψ = u_t` in the form `∫ φ * ψ'` or equivalently apply the derivative-of-product identity to `u_x * u_t`, depending on how `u_xt` is represented.
+
+Boundary terms vanish by rewriting with:
+
+```lean
+hNeu0 : u_x t 0 = 0
+hNeu1 : u_x t 1 = 0
+```
+
+For the reaction term,
+
+```text
+-∫ u_xx f(u) = ∫ f'(u) u_x²,
+```
+
+use integration by parts with
+
+```text
+φ = f(u),     ψ' = u_xx,
+```
+
+or `φ = u_x`, `ψ = f(u)` depending on the exact representation. The chain rule is:
+
+```lean
+HasDerivAt.comp
+```
+
+for
+
+```text
+deriv (fun x => f (u x)) = f'(u x) * u_x x.
+```
+
+### 4.3 Young/Cauchy estimates
+
+For the inequalities, use elementary real arithmetic rather than searching for a named Young lemma.
+
+Core facts:
+
+```lean
+sq_nonneg (p - q)
+abs_mul
+norm_mul
+intervalIntegral.integral_mono_on
+norm_integral_le_integral_norm
+```
+
+The algebraic Young inequality can be proved once as a local lemma:
+
+```lean
+lemma mul_le_eps_sq_add_sq_div {p q eps : ℝ} (heps : 0 < eps) :
+  p * q ≤ eps * p^2 + q^2 / (4 * eps) := by
+  nlinarith [sq_nonneg (2 * eps * p - q)]
+```
+
+Usually it is cleaner to state it for nonnegative `p`, `q`, but the square proof works generally after appropriate rearrangement and `eps > 0`.
+
+For Cauchy-Schwarz on interval integrals, if not already in the repo, it may be easier to use the standard L² inequality already available in your energy files, or prove the specialized forms:
+
+```text
+|∫ f g| ≤ (∫ f²)^{1/2} (∫ g²)^{1/2}.
+```
+
+But in the estimates above we mostly use sup bounds:
+
+```text
+|∫ u_xx u_x v_x|
+  ≤ ‖v_x‖∞ ∫ |u_xx| |u_x|
+  ≤ ‖v_x‖∞ ‖u_xx‖₂ ‖u_x‖₂.
+```
+
+If Cauchy-Schwarz in interval form is cumbersome, a repo-local lemma for `∫ |f*g|` is worth adding once.
+
+### 4.4 Resolver estimates
+
+Formalize as simple interval lemmas:
+
+```lean
+theorem resolver_v_sup_le
+  (hμ : 0 < μ) (hu : ∀ x ∈ Icc 0 1, 0 ≤ u x ∧ u x ≤ M)
+  (hv_eq : ∀ x, μ * v x - deriv (deriv v) x = u x)
+  (hNeu : deriv v 0 = 0 ∧ deriv v 1 = 0) :
+  ∀ x ∈ Icc 0 1, 0 ≤ v x ∧ v x ≤ M / μ
+```
+
+This is the maximum principle already landed in spirit.
+
+Then:
+
+```lean
+theorem resolver_vxx_sup_le_twoM
+  ... : ∀ x ∈ Icc 0 1, |deriv (deriv v) x| ≤ 2*M
+```
+
+from
+
+```lean
+deriv (deriv v) x = μ * v x - u x.
+```
+
+Finally:
+
+```lean
+theorem resolver_vx_sup_le_twoM
+  ... : ∀ x ∈ Icc 0 1, |deriv v x| ≤ 2*M
+```
+
+using
+
+```text
+v_x(x) = v_x(0) + ∫_0^x v_xx = ∫_0^x v_xx
+```
+
+and `v_x(0)=0`.
+
+In Lean, this last step uses FTC / interval integral:
+
+```lean
+intervalIntegral.integral_eq_sub_of_hasDerivAt
+```
+
+or an existing derivative-integral theorem from `FundThmCalculus`.
+
+If the repo’s spectral resolver bounds are easier to use, substitute them directly:
+
+```lean
+V₁ := FgQuant p M
+V₂ := some landed C²/vxx sup constant
+```
+
+The H¹ inequality only needs the abstract assumptions `‖v_x‖∞≤V₁`, `‖v_xx‖∞≤V₂`.
+
+### 4.5 Gronwall
+
+Mathlib has:
+
+```lean
+Mathlib.Analysis.ODE.Gronwall
+```
+
+with:
+
+```lean
+gronwallBound
+norm_le_gronwallBound_of_norm_deriv_right_le
+le_gronwallBound_of_liminf_deriv_right_le
+```
+
+The theorem `norm_le_gronwallBound_of_norm_deriv_right_le` bounds `‖f x‖` when there is a right-derivative bound
+
+```lean
+‖f' x‖ ≤ K * ‖f x‖ + ε.
+```
+
+For scalar nonnegative `y`, the lemma
+
+```lean
+le_gronwallBound_of_liminf_deriv_right_le
+```
+
+is closer, but it is often simpler to prove a scalar corollary once:
+
+```lean
+theorem scalar_gronwall_of_hasDerivWithinAt
+  (hy_cont : ContinuousOn y (Icc a b))
+  (hy_deriv : ∀ t ∈ Ico a b, HasDerivWithinAt y (yp t) (Ici t) t)
+  (hy0 : y a ≤ δ)
+  (hineq : ∀ t ∈ Ico a b, yp t ≤ A * y t + B) :
+  ∀ t ∈ Icc a b, y t ≤ gronwallBound δ A B (t-a)
+```
+
+by applying Mathlib’s `le_gronwallBound_of_liminf_deriv_right_le`.
+
+For the uniform sliding-window step, Mathlib probably does not have exactly the PDE-style uniform Gronwall lemma. Add a small local theorem:
+
+```lean
+theorem uniform_bound_of_deriv_le_and_integral_window
+    {y yp : ℝ → ℝ} {A B R C t : ℝ}
+    (hR : 0 < R) (hA : 0 ≤ A) (hB : 0 ≤ B)
+    (hy_ac : enough absolute-continuity / FTC on [t,t+R])
+    (hderiv : ∀ s ∈ Icc t (t+R), HasDerivAt y (yp s) s)
+    (hineq : ∀ s ∈ Icc t (t+R), yp s ≤ A * y s + B)
+    (hwin : ∫ s in t..t+R, y s ≤ C) :
+    y (t+R) ≤ C/R + A*C + B*R
+```
+
+The proof is just the averaging argument above. If the derivative/FTC formalization is heavy, use an integral form as input instead:
+
+```lean
+hinc : ∀ s ∈ Icc t (t+R),
+  y (t+R) ≤ y s + A * (∫ ξ in t..t+R, y ξ) + B * R
+```
+
+Then the averaging lemma is elementary interval-integral algebra.
+
+This is the most Lean-friendly route.
+
+---
+
+## 5. Suggested theorem factoring
+
+I would split the formalization into four independent lemmas.
+
+### Lemma 1: abstract H¹ identity
+
+```lean
+theorem h1_energy_identity
+  (regularity_and_boundary_hypotheses)
+  (pde_identity) :
+  HasDerivAt y
+    (- X2 t + a * taxis t + reactionH1 t)
+    t
+```
+
+where
+
+```lean
+y t      = (1/2) * ∫ x in 0..1, (u_x t x)^2
+X2 t     = ∫ x in 0..1, (u_xx t x)^2
+taxis t  = ∫ x in 0..1, u_xx t x * deriv (fun x => u t x * v_x t x) x
+reactionH1 t = ∫ x in 0..1, f' (u t x) * (u_x t x)^2
+```
+
+### Lemma 2: abstract H¹ differential inequality from sup bounds
+
+```lean
+theorem h1_diff_ineq_of_sup_bounds
+  (huM : ∀ x, |u t x| ≤ M)
+  (hvx : ∀ x, |v_x t x| ≤ V₁)
+  (hvxx : ∀ x, |v_xx t x| ≤ V₂)
+  (hf' : ∀ x, f' (u t x) ≤ L₊) :
+  y' t ≤ A * y t + B
 ```
 
 with
 
 ```lean
-cosCoeffCLM_apply : cosCoeffCLM k f = cosineCoeffs f k
+A = 2*a^2*V₁^2 + 2*L₊
+B = a^2*M^2*V₂^2.
 ```
 
-For continuous functions on `[0,1]`, this is just the integral functional against the bounded continuous test function `cos(kπx)`. The proof is the sup-norm bound:
+Or keep the stronger version with `- (1/2) ‖u_xx‖²`.
 
-```text
-|∫_0^1 cos(kπx) f(x) dx| ≤ ∫_0^1 |f(x)| dx ≤ ‖f‖∞.
-```
-
-If your existing `cosineCoeffs` is defined on raw `ℝ → ℝ`, you can either wrap slices as continuous maps, or prove a bespoke lemma:
+### Lemma 3: resolver bounds from `L∞`
 
 ```lean
-cosineCoeffs_integral_comm
+theorem resolver_bounds_from_linf
+  (hμ : 0 < μ)
+  (hu : ∀ x ∈ Icc 0 1, 0 ≤ u x ∧ u x ≤ M)
+  (hres : μ*v - v_xx = u)
+  (hNeu : v_x 0 = 0 ∧ v_x 1 = 0) :
+  (∀ x, |v_x x| ≤ 2*M) ∧ (∀ x, |v_xx x| ≤ 2*M)
 ```
 
-from Fubini. The `ContinuousLinearMap` route is cleaner once the spatial mild identity is already in a function space.
-
-### 2. Apply the coefficient functional to the spatial mild identity
-
-Given
+### Lemma 4: uniform H¹ from differential inequality plus L² window
 
 ```lean
-h_mild_spatial :
-  u τ = S τ u₀
-    + (-χ₀) • (∫ s in 0..τ, B (τ-s) (chemFlux (u s)))
-    +        (∫ s in 0..τ, S (τ-s) (logistic (u s)))
+theorem uniform_H1_of_diffineq_and_window
+  (hlocal : ∀ t ∈ Icc 0 1, y t ≤ gronwallBound (y 0) A B t)
+  (hwin : ∀ t, 0 ≤ t → ∫ s in t..t+1, y s ≤ C₁)
+  (hdiff : ∀ t, y' t ≤ A*y t + B) :
+  ∀ t ≥ 0, y t ≤ max (gronwallBound (y 0) A B 1) ((1+A)*C₁ + B)
 ```
 
-use, schematically:
-
-```lean
-have hmode := congrArg (fun f => cosCoeffCLM k f) h_mild_spatial
-```
-
-Then simplify by linearity:
-
-```lean
-simp [ContinuousLinearMap.map_add, ContinuousLinearMap.map_smul] at hmode
-```
-
-or just `simp` if the coercions are arranged.
-
-### 3. Commute the functional through the time integrals
-
-Mathlib theorem:
-
-```lean
-ContinuousLinearMap.integral_comp_comm
-```
-
-has the essential shape:
-
-```lean
-(L : E →L[𝕜] F) → Integrable φ μ →
-  ∫ x, L (φ x) ∂μ = L (∫ x, φ x ∂μ)
-```
-
-So in the direction you usually want:
-
-```lean
-have hchem_comm :
-    cosCoeffCLM k (∫ s, B (τ-s) (chemFlux (u s)) ∂μτ)
-      = ∫ s, cosCoeffCLM k (B (τ-s) (chemFlux (u s))) ∂μτ := by
-  simpa using ((cosCoeffCLM k).integral_comp_comm hchem_int).symm
-
-have hlog_comm :
-    cosCoeffCLM k (∫ s, S (τ-s) (logistic (u s)) ∂μτ)
-      = ∫ s, cosCoeffCLM k (S (τ-s) (logistic (u s))) ∂μτ := by
-  simpa using ((cosCoeffCLM k).integral_comp_comm hlog_int).symm
-```
-
-For interval integrals, either phrase the Duhamel integral as a set integral over `volume.restrict (Set.uIoc 0 τ)`, or convert using:
-
-```lean
-intervalIntegral.integral_of_le hτ_nonneg
-```
-
-when `0 ≤ τ`. In practice the pattern is:
-
-```lean
-rw [intervalIntegral.integral_of_le hτ_nonneg]
-exact ((cosCoeffCLM k).integral_comp_comm hchem_int).symm
-```
-
-where `hchem_int` is stated for the restricted measure on `Set.Ioc 0 τ`.
-
-### 4. Rewrite the heat term spectrally
-
-You still need the standard heat-mode lemma:
-
-```lean
-cosineCoeffs_heatSemigroup
-  : cosineCoeffs (S τ u₀) k = Real.exp (-(τ * lam k)) * cosineCoeffs u₀ k
-```
-
-or whatever name exists in the repo.
-
-This is not Fubini; it is the spectral diagonalization of `S(t)`. But it is a basic heat-kernel/eigenfunction identity. If this lemma is already available, the per-mode initial term is done.
-
-### 5. Final shape
-
-The final theorem should look like:
-
-```lean
-theorem perMode_mild_of_spatial_mild
-    (hτ : 0 ≤ τ)
-    (h_mild_spatial : spatial mild identity at τ)
-    (hchem_int : Integrable (fun s => B (τ-s) (chemFlux (u s))) μτ)
-    (hlog_int  : Integrable (fun s => S (τ-s) (logistic (u s))) μτ)
-    (hheat_mode : cosineCoeffs (S τ u₀) k = Real.exp (-(τ * lam k)) * cosineCoeffs u₀ k) :
-    cosineCoeffs (u τ) k
-      = Real.exp (-(τ * lam k)) * cosineCoeffs u₀ k
-        + (-χ₀) * (∫ s in 0..τ,
-            cosineCoeffs (B (τ-s) (chemFlux (u s))) k)
-        + (∫ s in 0..τ,
-            cosineCoeffs (S (τ-s) (logistic (u s))) k) := by
-  -- apply `cosCoeffCLM k` to `h_mild_spatial`
-  -- rewrite by `map_add`, `map_smul`
-  -- use `ContinuousLinearMap.integral_comp_comm` for both integrals
-  -- use `hheat_mode`
-  -- ring/simp
-```
-
-This is a small lemma, not a deep representation theorem.
-
----
-
-## Scalar Fubini route, if you do not want to bundle `cosCoeffCLM`
-
-If the mild identity is pointwise in `x` and your spatial integral is represented as a raw function
-
-```lean
-fun x => ∫ s in 0..τ, H s x
-```
-
-then unfold `cosineCoeffs` and use scalar Fubini.
-
-For fixed `k`, define
-
-```lean
-def K (x s : ℝ) : ℝ :=
-  Real.cos ((k:ℝ) * Real.pi * x) * H s x
-```
-
-Prove
-
-```lean
-hK_int : IntegrableOn K.uncurry (Set.uIoc 0 1 ×ˢ Set.uIoc 0 τ)
-```
-
-Then Mathlib has:
-
-```lean
-MeasureTheory.intervalIntegral_intervalIntegral_swap
-```
-
-with shape:
-
-```lean
-∫ x in a..b, ∫ y in c..d, F x y
-  = ∫ y in c..d, ∫ x in a..b, F x y
-```
-
-from an `IntegrableOn F.uncurry (Set.uIoc a b ×ˢ Set.uIoc c d)` hypothesis.
-
-The proof skeleton is:
-
-```lean
-have hswap :
-  (∫ x in (0:ℝ)..1, ∫ s in (0:ℝ)..τ,
-      Real.cos ((k:ℝ) * Real.pi * x) * H s x)
-    =
-  (∫ s in (0:ℝ)..τ, ∫ x in (0:ℝ)..1,
-      Real.cos ((k:ℝ) * Real.pi * x) * H s x) := by
-  exact MeasureTheory.intervalIntegral_intervalIntegral_swap hK_int
-```
-
-Then fold the spatial integral back into `cosineCoeffs (H s) k` using the coefficient definition.
-
-The relevant Mathlib Fubini lemmas are:
-
-```lean
-MeasureTheory.integral_prod
-MeasureTheory.integral_prod_symm
-MeasureTheory.integral_integral
-MeasureTheory.integral_integral_swap
-MeasureTheory.intervalIntegral_integral_swap
-MeasureTheory.intervalIntegral_intervalIntegral_swap
-```
-
-For integrability from boundedness on a finite rectangle, the useful lemma is:
-
-```lean
-MeasureTheory.IntegrableOn.of_bound
-```
-
-It asks for:
-
-```lean
-hs   : volume rectangle < ∞
-hasm : AEStronglyMeasurable K (volume.restrict rectangle)
-hbd  : ∀ᵐ z ∂volume.restrict rectangle, ‖K z‖ ≤ C
-```
-
-In this application:
-
-```text
-|K(x,s)| ≤ |H(s,x)| ≤ ‖f(s)‖∞ ≤ C_f,
-```
-
-because `|cos| ≤ 1` and the Neumann heat semigroup is sup-norm contractive. The rectangle has finite measure.
-
----
-
-## The diagonal `s = τ`
-
-The convention
-
-```text
-S(0) f = 0
-```
-
-while
-
-```text
-lim_{s → τ-} S(τ-s) f(s) = f(τ)
-```
-
-does **not** obstruct the coefficient/time-integral swap.
-
-For fixed `τ`, the bad time set is the singleton `{τ}`. The interval integral over `0..τ` uses Lebesgue measure, and singletons have measure zero. Therefore any two versions of the integrand that differ only at `s = τ` are a.e. equal, and Bochner/scalar integrals agree.
-
-In Lean, use one of:
-
-```lean
-integral_congr_ae
-MeasureTheory.IntegrableOn.congr_fun_ae
-MeasureTheory.integrableOn_congr_fun_ae
-```
-
-after proving the two versions are equal a.e. on the restricted interval measure. The product version is the same: `{τ} × [0,1]` has product measure zero.
-
-Thus the diagonal jump is just a measurability/integrability bookkeeping issue, not a representation-theorem issue.
-
----
-
-## What exactly could still be genuinely deep?
-
-The phrase “parabolic representation theorem” may refer to something stronger than the Fubini step. Here is the precise separation.
-
-### Trivial-given-Fubini
-
-The following is not deep:
-
-```text
-cosineCoeffs (∫ time, spatialIntegrand time) k
-  = ∫ time, cosineCoeffs (spatialIntegrand time) k.
-```
-
-This is just bounded linear maps commuting with Bochner integrals.
-
-### Potentially nontrivial but separate
-
-The following may be real lemmas, but they are separate from the per-mode passage:
-
-1. **Spatial mild identity.** If the fixed-point construction gives only an abstract fixed point, proving it satisfies the displayed spatial Duhamel identity in the desired function space may require work.
-
-2. **Bochner integrability.** You must know that
-
-```lean
-fun s => B (τ-s) (chemFlux (u s))
-fun s => S (τ-s) (logistic (u s))
-```
-
-are integrable into the chosen spatial Banach space, or prove scalar integrability after unfolding.
-
-3. **Spectral action of kernels.** To replace
-
-```text
-cosineCoeffs (S(τ)u₀) k
-```
-
-by
-
-```text
-exp(-τλ_k) û₀_k
-```
-
-requires the heat semigroup cosine-mode identity. To rewrite the `B = ∂xS` term into a specific closed-form Duhamel coefficient may require the corresponding gradient-kernel spectral identity. That is not the same as the Fubini step.
-
-4. **Equality level.** If the spatial mild identity is only a.e. in `x`, then applying a coefficient functional is still fine, but the theorem statement should be phrased in an `L¹`/`L²` compatible way and use `integral_congr_ae`.
-
-If your collaborators' “parabolic representation theorem” means one of these stronger items, then name that item explicitly. But the per-mode Duhamel identity as written is not itself that theorem.
+This last lemma is the final uniform-in-time step.
 
 ---
 
 ## Final answer
 
-Yes: given the spatial mild identity and the needed integrability, the per-mode identity follows immediately by applying the bounded cosine-coefficient functional and commuting it through the time integral. No additional regularity theorem is needed for that passage.
+The H¹ route is clean and 1D-specific. The exact energy identity is
 
-The correct formal seam to discharge is therefore small:
-
-```lean
-cosCoeffCLM_integral_comm
+```text
+y'
+  = - ‖u_xx‖²₂
+    + a ∫ u_xx u_x v_x
+    + a ∫ u_xx u v_xx
+    + ∫ f'(u) u_x².
 ```
 
-or, more directly,
+With `0≤u≤M`, `‖v_x‖∞≤V₁`, `‖v_xx‖∞≤V₂`, and `f'(u)≤L₊`, it gives
 
-```lean
-perMode_mild_of_spatial_mild
+```text
+y' ≤ -1/2 ‖u_xx‖²₂ + (2a²V₁²+2L₊) y + a²M²V₂²,
 ```
 
-proved by:
+hence in particular
 
-```lean
-congrArg (fun f => cosCoeffCLM k f) h_mild_spatial
-ContinuousLinearMap.integral_comp_comm
-map_add / map_smul
-heat_semigroup_cosineCoeff
+```text
+y' ≤ A y + B.
 ```
 
-If anything remains genuinely hard, it is not “coefficient of time integral equals time integral of coefficient”; it is the prior spatial mild identity, Bochner integrability, or spectral kernel identities for `S`/`B`.
+The resolver bounds can be taken crudely as
+
+```text
+‖v‖∞ ≤ M/μ,
+‖v_xx‖∞ ≤ 2M,
+‖v_x‖∞ ≤ 2M.
+```
+
+The final uniform-in-time H¹ bound is **not** from ordinary Gronwall alone. It is from ordinary Gronwall on the first unit interval plus a sliding-window uniform Gronwall/averaging lemma using the landed L² energy estimate
+
+```text
+∀t, ∫_t^{t+1} y(s) ds ≤ C₁.
+```
+
+Then for `t≥1`,
+
+```text
+y(t) ≤ (1+A)C₁ + B,
+```
+
+and globally
+
+```text
+y(t) ≤ max (gronwallBound (y 0) A B 1) ((1+A)C₁+B).
+```
+
+No Moser iteration is needed. The only serious formal obligations are the classical H¹ energy identity, the interval integration-by-parts bookkeeping, and the sliding-window extraction from the landed L² energy machinery.
