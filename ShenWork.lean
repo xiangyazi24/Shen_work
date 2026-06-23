@@ -392,3 +392,4 @@ import ShenWork.Paper2.IntervalChiNegTrajBanachFinal
 import ShenWork.Paper2.IntervalChiNegMapsTo
 import ShenWork.Paper2.IntervalReflCircleWiener
 import ShenWork.Paper2.IntervalChiNegGwInvariance
+import ShenWork.Paper2.IntervalChiNegSupersolution
