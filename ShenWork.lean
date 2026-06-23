@@ -405,3 +405,4 @@ import ShenWork.Paper2.IntervalChiNegCapstone
 import ShenWork.Paper2.IntervalChiNegTrajBridges
 import ShenWork.Paper2.IntervalChiNegLegContinuity
 import ShenWork.Paper2.IntervalChiNegDirectBase
+import ShenWork.Paper2.IntervalChiNegBaseDirectExtend
