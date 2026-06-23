@@ -117,3 +117,9 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - parallel: P1 (a′) orbit-admissible narrowing (gated on cron2_q4 closure verdict).
 - cron1_q4 (R1a base-E₀ closability) + cron2_q4 (P1 a′ closure) auditing in flight.
 - starting commit: 6159d66
+
+## Run 2026-06-23 (continuation, /automode) — final Cauchy-frontier push
+- χ₀<0: a2e5ce7f attacking the concrete X_E Banach instantiation (mirror χ₀=0 datum provider) — THE final piece.
+- avenue (parallel, dependency-free): P1 per-step RotheStepInput floor (the per-step Green solvability) +
+  P3 T2.2 cascade from χ₀<0. Both independent of a2e5ce7f.
+- starting commit: 36519f2
