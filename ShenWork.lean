@@ -418,3 +418,4 @@ import ShenWork.Paper2.IntervalChiNegH1Energy
 import ShenWork.Paper2.IntervalChiNegH1EnergyCore
 import ShenWork.Paper2.IntervalChiNegH1EnergyDeriv
 import ShenWork.Paper2.IntervalChiNegGradSummable
+import ShenWork.Paper2.IntervalChiNegH1Final
