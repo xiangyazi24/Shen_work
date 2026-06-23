@@ -131,3 +131,13 @@ fiable (witness (γ+γ⁻¹)+|χ|^{1/6}, axiom-clean) — vacuity GONE. Paper1Ma
 UPDATED REGISTRY: #6 ✅ resolved+fixed. P1 remaining = #4 construction_neg + #5 construction_pos (🟡 Rothe/
 Green core) + #7 stability (🔨 orbital stability) — all → codex Jun 26. P1 bundle now SATISFIABLE end-to-end
 (pending #4/#5/#7 discharge).
+
+## ★ #4 construction_neg REDUCED (2026-06-22, 0d411e3 [opus], verified 8278) — driving with opus, not deferring
+constructionNeg_of_provider + Theorem_1_1.of_constructionNeg_provider: whole neg-branch construction reduced
+to ONE hprovider. hUmono/hVmono + FrozenStationaryWaveProfile join UNCONDITIONAL+axiom-clean, non-vacuous
+(lower-pinned Schauder). #4 now = 3 named non-circular residuals (also serve #5 construction_pos, sign-agnostic):
+  #4A Rothe provider — per-step Green producer (hprodTrap/RotheStepProducer) + continuous dependence (hdep/
+      RotheContinuousDependence). The big PDE machinery core.
+  #4B ShenUpperBoundNegative_of_stationary_strongMaxPrinciple — U0<1 strict (strong max principle on the
+      stationary eqn). Bounded PDE lemma. → opus.
+  #4C HasWaveRightTailAsymptotic_of_stationary — sharp +∞ tail (ODE linearization). Bounded PDE lemma. → opus.
