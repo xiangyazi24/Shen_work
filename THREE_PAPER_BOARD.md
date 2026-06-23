@@ -520,3 +520,16 @@ false w/ matching counterexample; (★) already redundant via contact-point live
   universal per-step/local Cauchy-frontier input, same class as χ₀<0's Hpersist and the Thm11 local existence.
 - BOTH PAPERS now at FAITHFUL §3.3 conditionals on the ONE universal Cauchy frontier (per-step/local existence),
   with ALL specialized machinery DERIVED/landed. χ₀<0 Hpersist (a2db5f94 attacking) + P1 per-step floor.
+
+## 2026-06-23 — BOTH papers' specialized mathematics COMPLETE; unified at the per-step/local Cauchy frontier
+- P1 admissible_closure hin floor DISCHARGED (684e811, verified 8319 @HEAD): rotheStepInput_of_residualProvider
+  + admissibleStep_of_residualProvider build RotheStepInput from the landed orbit-residual chain → discharge hin
+  → the admissible-orbit step. P1 now carries ONLY the per-step RotheFloorOrbitDataResidual for the PRODUCED W
+  (untruncated source R=crossSource + whole-line flux IBP; the closed solve gives only the TRUNCATED fixed
+  point). Two-way-audited: feeds INTO construction_neg, genuine per-step frontier vs landed STALL record.
+- χ₀<0: faithful conditional on the concrete chemotaxis envelope-lattice Banach (3 explicit steps; a1778f6
+  attacking the coeff-envelope vs sup-metric reconciliation).
+- UNIFIED HONEST STATE: ALL specialized mathematics of all 3 papers DERIVED/landed. Both χ₀<0 and P1 bottom out
+  at the SAME standard per-step/local Cauchy frontier (concrete local well-posedness), structurally distinct
+  from the truncated/χ₀=0-flux-killing routes. P3 T2.2 cascades from χ₀<0. Three papers = FAITHFUL §3.3
+  conditionals on this one universal standard-PDE frontier; everything novel/specialized is done.
