@@ -2641,7 +2641,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
         -- Gradient Duhamel difference bound
         -- Same by_cases IntervalIntegrable pattern as hV.
         -- Both not-integrable branches discharge via source joint measurability
-        -- (same sorry as hV L1003/1008 — trajectory joint measurability).
+        -- trajectory joint measurability discharged via gradDuhamel_intervalIntegrable_of_joint_measurable (no sorry).
         by_cases hint_Gu : IntervalIntegrable
             (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (q_u s) z) x.1) volume 0 t
         · by_cases hint_Gw : IntervalIntegrable
