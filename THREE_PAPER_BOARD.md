@@ -50,6 +50,18 @@ native_decide/custom-axiom, no carried-hard/unsatisfiable hypothesis, faithful t
   hWsum/hvxsum E-derivable via fourierCoeff_reflCircle_summable_of_cosineCoeff_abs).
   SESSION 2026-06-23 net: 6 χ₀<0/P1 pieces landed; χ₀<0 pinned to E₀-regime-(ii) hard core; P1 (a′) route
   + R_bound bootstrap clear (cron2_q3), closure self-assessed (orbit stays smooth from Ū).
+- [§3.3 CATCH — base-E producer REJECTED as CIRCULAR] aebc1f8b's baseTrajectoryEnvelope carried
+  hEdom (|cosineCoeffs(u τ) k| ≤ Estar k = the TrajectoryHSigmaEnvelope.hdom CONCLUSION) as a certificate
+  field, USED it to build the flux envelope gQ (genv_…_uncond needs heU=u-domination), then re-derived
+  |u|≤meanLadderEnv≤Estar via hSuper. Loop: hEdom→gQ→chemE→meanLadderEnv→|u|≤Estar = hEdom. Assumes the
+  domination to build the flux, re-derives it. hSuper real but doesn't break the circle. NOT landed.
+- [χ₀<0 GENUINE BOTTOM, identified] The base-E fixed-point circularity (chemotaxis Duhamel bound needs the
+  flux envelope needs the u-envelope = conclusion) must be broken by a TIME-CONTINUATION BOOTSTRAP: derive
+  hEdom on a maximal [0,T*], extend to t by continuity using hSuper's strict margin (the paper's local
+  regularity theory). This is the genuine χ₀<0 analytic core — deep, NOT fakeable by carrying hEdom. cron1_q4
+  route (supersolution certificate) is necessary but the COORDINATEWISE domination still needs the time
+  continuation. Either prove it (time-continuation producer) or carry it FAITHFULLY as the paper's local
+  existence/regularity theorem (satisfiable standing input). χ₀<0 = FAITHFUL §3.3 conditional on this.
 - [P1 #4] RotheStepInputBuild: two RotheStepTails packets (14 Prop-fields) COLLAPSED off carried surface
   (b5f4c51, verified 8307, axiom-clean) [opus a6b6bdf4] via landed rotheStepTails_greenConv_* . hprodTrap
   stays CONDITIONAL: RotheStepInputBuild.produce (per-Z Green-source + at-max elliptic packets, non-diag
