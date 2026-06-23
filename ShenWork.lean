@@ -382,3 +382,4 @@ import ShenWork.Paper2.IntervalChiNegBoxExtendDischarge
 import ShenWork.Paper2.IntervalChiNegRestartIdentity
 import ShenWork.Paper1.IntervalP1AdmissibleClosure
 import ShenWork.Paper2.IntervalChiNegPersistDischarge
+import ShenWork.Paper2.IntervalChiNegLocalExist
