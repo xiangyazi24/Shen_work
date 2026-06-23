@@ -506,3 +506,17 @@ false w/ matching counterexample; (★) already redundant via contact-point live
 - ALL χ₀<0 specialized machinery DERIVED/landed: strictness (chemDuhamel_uniform_strict), base-E continuation,
   bridges, ladder, hvnn, decomp, C²-via-resolver, Hrestart. χ₀<0 = FAITHFUL §3.3 conditional on Hpersist =
   local existence (the universal Thm11 carried Cauchy frontier; χ₀=0 discharges via the chiZero datum provider).
+
+## 2026-06-23 — P1 (a′) orbit-admissible closure BUILT (56c7666)
+- admissible_closure : AdmissibleZ u Z → Σ' W, RotheStepOutput u Z W ×' AdmissibleZ u W (verified 8307 @HEAD,
+  axiom-clean) [opus ab4aec26, cron2_q4 recipe]. Re-feeds the landed rotheStep recursion → RotheStepProducer
+  over the admissible class → b1_chiNeg_existence_rothe*.
+- DERIVED: the 1<m<2 weighted-slope cancellation (rpow_weighted_slope_bound via Real.concaveOn_rpow — the
+  delicate fact was DERIVABLE), m≥2/m=1 chem L1, chemData_m_mid (genuine RotheStepChemData for 1<m<2), the
+  closure invariants (supersol from W≤Z, endpoint limits, at-max C², kinked-Ū special seed).
+- CARRIED (two-way-audited, NOT disguised conclusion): hin=RotheStepInput (the landed per-step analytic floor,
+  same container the existing recursion carries) + hsrc (Green SOURCE endpoint limits, a source datum).
+- P1 construction_neg now bottoms out at the per-step RotheStepInput floor (per-step Green solvability) — the
+  universal per-step/local Cauchy-frontier input, same class as χ₀<0's Hpersist and the Thm11 local existence.
+- BOTH PAPERS now at FAITHFUL §3.3 conditionals on the ONE universal Cauchy frontier (per-step/local existence),
+  with ALL specialized machinery DERIVED/landed. χ₀<0 Hpersist (a2db5f94 attacking) + P1 per-step floor.
