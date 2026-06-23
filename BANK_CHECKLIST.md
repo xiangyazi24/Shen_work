@@ -398,3 +398,19 @@ caught 3-4 of my overstatements this run — accounting kept honest throughout.
  ✅ all 4 FALSE fields fixed (source-bridge 787d375, bank-hchemCont 3fd5c90, H1-grad-def 268754f,
     H1-hom→consolidated into keystone-B H¹ discharge). Structure validated SOUND (struct audit 7b1e544).
 Distance = discharge keystone B (the per-level parabolic bootstrap), then the consolidated wiring. Last verified: 8858-job full closure.
+
+## SCOREBOARD 2026-06-22 (honest, post-overclaim-correction)
+χ₀=0: ✅ unconditional. χ₀<0 atom board (full-closure verified 8862):
+ ✅ H1-grad (NeumannHeatGradientTMinusHalfBound, real sine-Parseval, b57f439)
+ ✅ keystone B step (UniformBootstrapStep mild-only, non-circular by test, c356629)
+ ✅ trajectory envelope: propagator (smoothing step) + genv/glenv WIRING-given-envelope (de51937)
+ 🟡 building blocks: Task A hmap (rfl) + per-τ k≠0 helpers (d42a783, labeled NOT-the-bottom)
+ ✅ 4 FALSE fields caught+fixed; structure validated SOUND
+ ⚠️ 1 OVERCLAIM caught by hostile audit ("bottom discharged" → corrected): the assembled-decomp route is
+    island/wrong-object/k=0-hole/weaker-interface; NOT the bottom.
+ 🔨 GENUINE BOTTOM = R1: τ-uniform-in-time H^σ trajectory/flux envelope via CONTINUATION CLOSURE (base/
+    openness/closedness). The trajectory CORE — propagator landed, envelope PRODUCTION open. "No such uniform
+    producer in Paper2." This is the real deepest hard-PDE atom. Plus: per-τ ∀k fields at joint-continuity
+    interface + k=0 mode. → opus dispatched.
+Distance = R1 continuation closure (genuine hard PDE), then per-τ ∀k wiring → SliceMildStepData → MemHSigma 1
+→ H¹ → H1-hom/src/chem → χ₀<0. Last verified: 8862 full closure.
