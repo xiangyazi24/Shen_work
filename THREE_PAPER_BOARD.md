@@ -141,3 +141,12 @@ to ONE hprovider. hUmono/hVmono + FrozenStationaryWaveProfile join UNCONDITIONAL
   #4B ShenUpperBoundNegative_of_stationary_strongMaxPrinciple — U0<1 strict (strong max principle on the
       stationary eqn). Bounded PDE lemma. → opus.
   #4C HasWaveRightTailAsymptotic_of_stationary — sharp +∞ tail (ODE linearization). Bounded PDE lemma. → opus.
+
+## ★ #1 gvx half CLOSED — residual sharpened to #1D (2026-06-22 [opus], verified 3612)
+IntervalFluxFactorEnvelope: sineEnv_memHSigma (v_x sine env MemHSigma σ from Uσ, via λ/(1+λ)²≤1) UNCOND+
+axiom-clean; full FluxFactorEnvelopes + genv assembled CONDITIONAL on gW. Non-circular (single import, no C²).
+#1 now = ONE named residual:
+  #1D non-C² bounded-range Nemytskii/Wiener H^σ composition envelope for (1+v)^{-β}: build Gdenσ (cosine
+     H^σ env of (1+v)^{-β}) from v's H^σ env, WITHOUT ContDiff 2 (the only landed one, memHSigma_one_add_
+     rpow_neg_of_contDiff_two, needs C² = circular). For σ>1/2, H^σ is a Banach algebra embedding in L∞;
+     g(v)=(1+v)^{-β} smooth+bounded on v≥0 → standard Moser/Nemytskii H^σ composition estimate. → opus.

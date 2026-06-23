@@ -316,3 +316,5 @@ import ShenWork.Paper2.IntervalTrajectoryEnvelopeClosure
 import ShenWork.Paper2.IntervalDecompTauLift
 
 import ShenWork.Paper1.ConstructionNegProducer
+
+import ShenWork.Paper2.IntervalFluxFactorEnvelope
