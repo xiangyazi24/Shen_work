@@ -202,3 +202,13 @@ the single honest container for whole-line Green-decay + flux-IBP + source-antit
 route paperRotheStepProducer_of_params carries wit + hrest (PaperGreenStepInputRouteASuperRestProvider) + hZsuper.
 My leaf pieces (Green-solve/step-output/RotheMaxData/tails) are PARTS of this floor. → target RotheFloorResidual
 directly (the Green-decay/flux-IBP/source-antitone floor) + the paper hrest, not more leaves.
+
+## ★★ P1 #4 floor assembly CLOSED — #4 construction → ONE container (2026-06-22 [opus], verified 8313)
+RotheFloorResidualImpl: rotheFloorResidual_of_data + rotheStepFloor_of_data — the ENTIRE RotheFloorResidual
+floor assembly wired from landed leaf pieces (Green-solve step_op, R_cont/bound/hi/lo, tails via GreenConvTails,
+conv_form), UNCOND+axiom-clean. P1 #4 (non-paper construction) now = ONE structure:
+  #4-container RotheFloorStepData p c lam M κ Λ u Z — per-Z (A) flux-IBP step eqn (crossStepSelfMap_apply_eq_
+     crossImplicitMap ~14 hyps) + (B) source identity+antitone + (C) whole-line Green-decay limits+comparison
+     signs + (D) lower-trap/at-max/chem packets. Missing lemma: rotheFloorStepData_of_trap (discharge A-D from
+     trap+per-step solve). Non-circular, satisfiable (the hR/hstep_eq/hnonneg trio = what crossStep_concrete_
+     solution+flux-bridge+resolver-positivity produce). → opus. Then floor→RotheStepFloor→producer→construction.
