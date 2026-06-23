@@ -226,3 +226,16 @@ bottom = 4 analytic atoms (attack DIRECTLY, no more _of_trap carriers):
   #4-C whole-line Green-decay source limits Rbot/Rtop + comparison signs from trapped Z endpoints.
   #4-D at-max C²/range/chem + antitone elliptic regularity.
 All non-circular (consume trap+solve). These 4 = the genuine analytic content of the P1 per-step construction.
+
+## ★★★ #1F CLOSED — #1 denom-envelope analytic core DONE (2026-06-22 [opus], verified 3617, signature-audited)
+denomUniformEnvelope_of_trajectoryEnvelope + genv_of_trajectoryEnvelope_uncond: the τ-uniform ∫|((1+v)^{-β})''|
+≤ B bound (denom powers ≤1 ⟹ |w''|≤β(β+1)S₀²+βS₀, S₀=∑|E.env| from trajectory env, C²-via-resolver) — the
+DENOMINATOR ENVELOPE is now PRODUCED internally, not assumed. #1's last ANALYTIC residual is CLOSED. ✅
+HONEST CORRECTION (opus said "#1 closes unconditionally" — signature audit shows OVERSTATED): genv_of_
+trajectoryEnvelope_uncond carries E (trajectory envelope, the chain INPUT) + hvnn (resolver positivity, #1D
+datum) + hbr/hbridge (per-τ Fourier bridges) + heU (E.hdom domination) + hvrel/hdiv (resolver-relay sine,
+landed identities). So #1 = FluxFactorEnvelopes PRODUCIBLE from a trajectory envelope + the per-τ SEAM WIRING.
+The denom-envelope (genuine hard residual, via the attack vector) is done; remaining #1 = audit/discharge the
+seam bridges hbr/hbridge (connect E's cosine coeffs to the concrete flux Q) — likely landed/definitional. → next.
+χ₀<0 chain: #1 analytic core ✅; then the bridges + #3 k=0 + the trajectory-envelope PRODUCTION (the
+continuation closure, still the deep χ₀<0 bottom) → ChiNegDatumUniformConstruction.

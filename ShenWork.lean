@@ -336,3 +336,5 @@ import ShenWork.Paper1.GreenConvTails
 import ShenWork.Paper1.RotheFloorResidualImpl
 
 import ShenWork.Paper1.RotheFloorStepDataImpl
+
+import ShenWork.Paper2.IntervalDenomSecondDerivBound
