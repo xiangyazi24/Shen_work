@@ -51,3 +51,17 @@ HELPS), s>0 via conjugateSlice_decomp_tauLift + the direct supersolution bounds 
 chemDuhamel_direct, log≤logE). The genv(E₀) self-reference resolves as a SEQUENCE-space supersolution fixed point
 (small T contraction, memHSigma_deflate), NOT a BCF function-space fixed point — so NO τ=0 continuity issue.
 G1/G2/G3 bridges + the BCF base are now SUPERSEDED for the live base route.
+
+## [2026-06-23] χ₀<0 WIRED END-TO-END — reduced to 1 deep crux + buildable pieces
+chiNeg_H1_unconditional (62c9461) / chiNeg_H1_closed (ab87ef1): the χ₀<0 H¹ envelope for conjugatePicardLimit is
+WIRED END-TO-END, axiom-clean. hu0 (τ=0 convention) DISCHARGED via the uTilde patch. Conditional on {4 faithful
+hyps: PaperPositiveInitialDatum, 1≤α, 1≤γ, hû₀} + remaining:
+- CRUX A (deep, the campaign's core open seam): the uniform-in-time H^σ flux envelope g/gl. The box-extend
+  induction needs genv per-restart, but genv_of_trajectoryEnvelope_uncond needs the GLOBAL coordinatewise envelope
+  (not the partial BoundUpTo r), so the circularity needs a uniform flux bound WITHOUT the global genv — the
+  uniform a-priori estimate. Documented open (IntervalBootstrapInputs only repackages per-time). Feeds E₀ + C's L.
+- CRUX B (buildable): valueOp_src_jointCont — the source-generic semigroup joint continuity, extending the LANDED
+  fixed-coeff unitIntervalCosineHeatValue_continuousOn_slab (IntervalSemigroupNeumann:496). Feeds hmd's hswap_log.
+- hmean0 (wiring): D.M=2·B₀≥|u₀| opaque behind Classical.choice — extract it.
+Everything else (the trajectory machine, the direct supersolution, the §3.3 fixes, the BCF τ=0 bypass, the stale-
+note clearances) is built. Crux A is the genuine remaining PDE frontier.
