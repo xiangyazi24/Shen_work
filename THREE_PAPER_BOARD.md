@@ -493,3 +493,16 @@ false w/ matching counterexample; (★) already redundant via contact-point live
   (strictness, base-E continuation, bridges, ladder, hvnn, decomp, C²-via-resolver). P1 (a′) recipe in hand.
   Both papers = FAITHFUL §3.3 conditionals on satisfiable paper-supported local existence (the universal
   Thm11-framework carried Cauchy frontier). Next: wire hdecomp; implement P1 (a′) strengthened admissible class.
+
+## 2026-06-23 — χ₀<0 reduced to a SINGLE carried input (Hpersist); Hrestart DERIVED
+- Hrestart DERIVED (311ec05, two-way audit caught the 2nd under-claim this session): purely algebraic from
+  the landed origin decomposition (adjacent-interval split + exp-additivity + τ-shift); no mild-restart-
+  invariance needed. χ₀<0 baseEnvelope_of_residualSupply NOW CARRIES ONLY Hpersist.
+- Hpersist = |e^{−ρλ_k}u(r)_k|+|flLeg ρ k| ≤ (1−|χ₀|δ)Estar k (inflated-supersolution margin). TRUE for the
+  actual mild solution (local existence + boundedness); its DISCHARGE = the X_E={sup_k|a_k|/E_k<∞} envelope-
+  lattice ContractingWith (cron1_q6 route: EnvOrderBox invariance + ContractingWith + uniqueness; aeae3ec5
+  proved the chem-leg invariance; heat/logistic legs + the X_E metric/contraction remain). ChemMildLocal gives
+  the SCALAR contraction core, not the X_E instantiation = the genuine frontier.
+- ALL χ₀<0 specialized machinery DERIVED/landed: strictness (chemDuhamel_uniform_strict), base-E continuation,
+  bridges, ladder, hvnn, decomp, C²-via-resolver, Hrestart. χ₀<0 = FAITHFUL §3.3 conditional on Hpersist =
+  local existence (the universal Thm11 carried Cauchy frontier; χ₀=0 discharges via the chiZero datum provider).
