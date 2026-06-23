@@ -26,6 +26,20 @@ native_decide/custom-axiom, no carried-hard/unsatisfiable hypothesis, faithful t
   hbridge CARRIED as named atom hmixbridge → mixedMulBridge_of_summable producer a18122b5 IN FLIGHT.
   χ₀<0 CarrySeam surface now {hmixbridge(in flight), hû₀ initial H^{σ+1/4}, mild, hμ1}.
   REMAINING χ₀<0 HARD CORE = E₀ base envelope (cron1_q4 auditing unconditional-vs-standing-a-priori).
+- [P2 χ₀<0] mixedMulBridge_of_summable LANDED (fdfd4b5, verified 3595, axiom-clean) [opus a18122b5]: the LAST
+  CarrySeam bridge. Insert W's COSINE series into ∫sin·W·vx (consume landed cosine inversion), sin·cos
+  product-to-sum → sine output; built-new rawSinCos_prod_to_sum (odd-sine mixed identity). ALL 4 bridges now
+  dischargeable from mild regularity. carrySeam_of_mild_full (a6f6b3b0, in flight) consumes it → fully
+  bridge-free CarrySeam.
+- [E₀ ASSESSMENT — my own, cron1_q4 stuck] grep-general: base constructors are only the naive
+  trajBaseEnvelope_of_{fluxFactors,sourceEnvelope}; substantial L²-energy infra IS landed
+  (intervalDomainL2UBoundedDatumUniform_of_bounded — the method making χ₀=0 UNCONDITIONAL). The base E₀ is a
+  per-mode fixed point E₀ = |û₀| + Φ(E₀) + L (Φ=chemotaxis flux, short-time CONTRACTION ~t; L=logistic),
+  seeded by the L²-energy a-priori bound + hû₀ (û₀∈H^{σ₀}). ASSESSMENT: χ₀<0 bottoms out CONDITIONAL on
+  SATISFIABLE STANDING hyps {hû₀ initial regularity, L²-energy a-priori bound} — both the paper's own
+  assumptions; all hard machinery (H¹ bootstrap ladder, C²-via-resolver, 4 bridges, hvnn, decomp) LANDED.
+  This is a FAITHFUL conditional per §3.3 (not vacuous, not over-strong). Verify vs cron1_q4 when tab unstuck.
+  cron1_q4/cron2_q4 STUCK (status=pending 40min, bridge has question-only — tab health, Xiang to nudge).
 - [P1 #4] RotheStepInputBuild: two RotheStepTails packets (14 Prop-fields) COLLAPSED off carried surface
   (b5f4c51, verified 8307, axiom-clean) [opus a6b6bdf4] via landed rotheStepTails_greenConv_* . hprodTrap
   stays CONDITIONAL: RotheStepInputBuild.produce (per-Z Green-source + at-max elliptic packets, non-diag
