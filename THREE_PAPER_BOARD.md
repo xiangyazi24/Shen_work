@@ -472,3 +472,24 @@ false w/ matching counterexample; (★) already redundant via contact-point live
 - SESSION net: 7 χ₀<0 pieces landed (hvnn, CarrySeam 3-bridge, mixedMulBridge, carrySeam-full, base-E + boards);
   bridge sub-frontier COMPLETE; base-E non-circular; §3.3 catch on circular base-E (rejected). χ₀<0 = faithful
   §3.3 conditional, remaining gap = L∞→X_E bridge. P1 (a′) route+bootstrap clear (cron2_q3), closure self-assessed.
+
+## 2026-06-23 SESSION END — χ₀<0 strictness PROVED, reduced to 2 residuals; P1 (a′) recipe received
+- [χ₀<0] aeae3ec5 (599247f, verified 3618, axiom-clean): PROVED chemDuhamel_uniform_strict — the uniform-in-k
+  strictness the prior producer called a "wall". √λ_k cancels kernel 1/√λ_k, resolver 1/(1+λ_k) absorbs λ_k →
+  sineEnv Estar k·(1−e^{−δλ_k})/√λ_k ≤ δ·Estar k SHARP+uniform, no low-k/high-k split. SUPERSEDES cron1_q5's
+  pessimism on the chem leg (the √λ structure gives uniform-δ; no inflated envelope needed for chem).
+- [χ₀<0] HONEST 2-RESIDUAL REDUCTION (aeae3ec5 corrected my brief's over-claim): hinv for the actual u needs
+  (1) hdecomp = per-slice restart Duhamel identity (landed conjugateSlice_decomp_tauLift_pos, needs restart-at-r
+  wiring — TRACTABLE), (2) hgap = heat+logistic supersolution margin |e^{−ρλ_k}u(r)_k|+|logistic_k| ≤
+  (1−|χ₀|δ)Estar_k. ANALYSIS: hgap's heat leg at low k (e^{−ρλ_k}≈1) carries ~full Estar_k → hgap IS exactly
+  cron1_q5's INFLATED supersolution T(ρE*)≤E* / local-inflated-envelope persistence = the genuine carried
+  bottom (the paper's local existence in the envelope lattice X_E). χ₀<0 = FAITHFUL §3.3 conditional on hgap.
+- [P1 a′] cron2_q4 RECEIVED (Xiang manual paste): orbit-admissible Rothe SOUND with STRENGTHENED admissible class
+  — AdmissibleZ = basic trap + Green-source/endpoint-tail data + AT-MAX regularity (NOT global C², Ū is kinked)
+  + for 1<m<2 a weighted slope/log-slope bound |B'|≤K·B (contact-derivative cancellation; the m-1 power is
+  non-Lipschitz at 0). Closure lemma: AdmissibleZ Z → ∃W, RotheStepOutput ∧ AdmissibleZ W. supersol from W≤Z
+  (F_u(W)=λ(W−Z)≤0), C² from Green rep, tails from a Green-endpoint lemma. This is the precise (a′) recipe.
+- SESSION net: χ₀<0 driven to {hdecomp wirable, hgap=local-persistence bottom}, ALL hard machinery landed
+  (strictness, base-E continuation, bridges, ladder, hvnn, decomp, C²-via-resolver). P1 (a′) recipe in hand.
+  Both papers = FAITHFUL §3.3 conditionals on satisfiable paper-supported local existence (the universal
+  Thm11-framework carried Cauchy frontier). Next: wire hdecomp; implement P1 (a′) strengthened admissible class.
