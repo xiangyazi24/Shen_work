@@ -15,6 +15,17 @@ native_decide/custom-axiom, no carried-hard/unsatisfiable hypothesis, faithful t
   χ₀<0 MemHSigma-1 FRONTIER now carries {FluxFactorEnvelopes(E₀) + bridges hbr/hbridge/hvrel/hdiv}
   (τ-uniform H^σ factor envelopes + cosine-basis product/convolution bridge) — no longer the resolver
   max principle. cron1_q3 consulting on E₀ unconditionality + the cosine product bound.
+- [§2.6 audit] R1a "ladder step" producer adapter REJECTED as re-wrapper — genv_of_trajectoryEnvelope_uncond
+  (IntervalDenomSecondDerivBound:499) ALREADY builds E→flux-source envelope with D discharged via
+  denomUniformEnvelope_of_trajectoryEnvelope. Stop-and-audit of meanReach_H1_conjugate (the MemHSigma-1
+  consumer) → ladder (genv_uncond+succ_wired+meanReach_H1_of_base) is LANDED; it carries exactly
+  {E₀ base envelope, C=∀σE CarrySeam, mild a-priori bounds + hmd correct non-vacuous decomp}.
+- [P2 χ₀<0] CarrySeam 3-of-4 bridges DISCHARGED (5b3c460, verified 3628, axiom-clean) [opus a438fb68]:
+  carrySeam_of_mild discharges hbr (consumed cosineMulBridge_of_summable), hvrel (envelopes_resolver+resolver
+  diagonal, needs hμ1:1≤μ), hdiv (BUILT-new sine-of-deriv divergence identity, auto-vanishing boundary).
+  hbridge CARRIED as named atom hmixbridge → mixedMulBridge_of_summable producer a18122b5 IN FLIGHT.
+  χ₀<0 CarrySeam surface now {hmixbridge(in flight), hû₀ initial H^{σ+1/4}, mild, hμ1}.
+  REMAINING χ₀<0 HARD CORE = E₀ base envelope (cron1_q4 auditing unconditional-vs-standing-a-priori).
 - [P1 #4] RotheStepInputBuild: two RotheStepTails packets (14 Prop-fields) COLLAPSED off carried surface
   (b5f4c51, verified 8307, axiom-clean) [opus a6b6bdf4] via landed rotheStepTails_greenConv_* . hprodTrap
   stays CONDITIONAL: RotheStepInputBuild.produce (per-Z Green-source + at-max elliptic packets, non-diag
