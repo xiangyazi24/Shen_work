@@ -167,3 +167,10 @@ non-circular, resolver gain not bootstrapped target). Covers the MemHSigma-1 tar
 #1 remaining = #1E: gW product envelope — W=u·(1+v)^{-β} τ-uniform DOMINATING envelope (mixed product algebra
 MixedMulBridge/fluxCosEnvelope_of_factorEnvelopes + τ-uniformity over [0,t]) → discharges FluxFactorEnvelopes
 .gW. → opus.
+
+## ★ #4B reduced to one scalar, #4C carried (2026-06-22 [opus], verified 8279)
+StationaryUpperTail: ShenUpperBoundNegative_of_strictAtZero (whole predicate from positivity + U0<1, the trap
+saturates ONLY at x=0) UNCOND+axiom-clean. So #4B = ONE scalar residual:
+  #4B' U 0 < 1 strict (strong-max/Hopf strictness on frozenWaveOperator=0; barrier saturated at 0). χ<0 needs
+       strict-convolution frozenElliptic<1, χ=0 needs 2nd-order ODE uniqueness. Real gap. → opus.
+  #4C HasWaveRightTailAsymptotic_of_stationary carries htail (no +∞-linearization producer in repo). Real gap. → opus.

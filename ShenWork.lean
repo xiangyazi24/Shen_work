@@ -322,3 +322,5 @@ import ShenWork.Paper2.IntervalFluxFactorEnvelope
 import ShenWork.Paper1.RotheStepProducerImpl
 
 import ShenWork.Paper2.IntervalDenomEnvelopeResolver
+
+import ShenWork.Paper1.StationaryUpperTail
