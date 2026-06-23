@@ -102,3 +102,21 @@ No producer for the full bundle; only the StatementAssembly wrappers consume it.
 NET: P1 is a FULL frontier comparable to χ₀<0 — #4/#5 hard Rothe/Green core, #7 orbital stability, #6 vacuity-
 flagged. NOT closer to done. Combined campaign frontier: {#1 χ₀<0 flux fixed-point, #3 k=0, #7 P1 stability,
 #4/#5 Rothe/Green} = codex Jun 26; {#2 done-bulk, #6 resolve flag, #8 P3 cascade} = tractable/blocked.
+
+## ★★★ #6 RESOLVED — cStarStar_spec is GENUINELY OVER-STRONG (§3.3 VACUITY in P1, 2026-06-22, fully tree-verified)
+VERIFIED unsatisfiable at the reachable stable-regime point p = (χ=0, γ=1, m=1, α=1):
+ · CMParams.hγ : 1 ≤ γ ALLOWS γ=1 (Defs.lean). chiStar at γ=1,m=1 = min 1 ((2+2)/(1+1+2)) = min 1 1 = 1 > 0,
+   so χ=0 < chiStar=1 → the positive branch (0≤χ<chiStar, α=m+γ-1) holds → p IS in StableWaveParameterRegime.
+ · stabilitySpeedBaseline p = 1 + |χ|^{1/6} + (1+|χ|^{1/6})⁻¹ = 1 + 0 + 1 = 2 at χ=0.
+ · StabilitySpeedThresholdFamilyAsymptotic forces cStarStar 0 = γ+γ⁻¹ exactly (at χ=0 the bound A|χ|^{1/6}=0).
+   At γ=1: γ+γ⁻¹ = 2.
+ · cStarStar_spec demands stabilitySpeedBaseline < cStarStar p.χ, i.e. 2 < 2 → FALSE. So cStarStar_spec p is
+   false for EVERY cStarStarFn → Paper1MainResultsData is UNSATISFIABLE → paper1_Theorem_1_1_of_mainResults
+   Data is conditional on an empty bundle (§3.3 vacuity). γ+γ⁻¹≥2 with equality IFF γ=1 (AM-GM) — γ=1 is the
+   sole degenerate point, but it IS reachable, so the field as typed cannot pass audit.
+FIX (a statement-faithfulness decision — needs the PAPER, FLAGGED to Xiang):
+ (a) strict `<` → `≤` at the baseline (if paper's threshold is non-strict at criticality), OR
+ (b) exclude γ=1 (strengthen CMParams hγ to 1 < γ, or restrict the stable regime), OR
+ (c) puncture the asymptotic at χ=0 with a positive offset so cStarStar 0 > baseline strictly.
+This does NOT affect #4/#5/#7 (those are satisfiable); but Paper1MainResultsData cannot be DISCHARGED until #6
+is refactored. P1 audit is BLOCKED on this faithfulness call. (χ₀<0 + P3 unaffected.)
