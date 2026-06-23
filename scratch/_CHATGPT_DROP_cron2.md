@@ -1,384 +1,293 @@
-# Q81 (cron2): χ₀<0 chemotaxis after uniform H¹ — global existence and asymptotics roadmap
+# Q83 (cron2): χ₀<0 chemotaxis — global-existence assembly from the order box
 
-## Executive answer
+## Executive verdict
 
-With a uniform-in-time `H¹` bound in hand, the **global existence theorem is now straightforward** if the local theory has the standard continuation property: the local lifespan from a time slice depends only on the `H¹` norm of that slice. Then a finite maximal time contradicts the ability to restart from a time close to the endpoint.
+Yes: **if your local Picard theorem really gives a lifespan depending only on the `L∞`/order-box size of the datum**, then global existence follows from the uniform `L∞` order box alone. The uniform `H¹` estimate is then not needed to prevent finite-time breakdown; it is needed for the stronger global boundedness/regularity theorem and for downstream compactness/asymptotics.
 
-The asymptotic theorem is a separate layer. For nontrivial nonnegative data, the expected limit is the positive constant logistic equilibrium
-
-```text
-u(t,·) → K,
-v(t,·) → K/μ,
-```
-
-where `K` is the carrying capacity, e.g. `K=1` for `f(u)=u(1-u)` or `f(u)=u(1-u^α)`. The zero datum stays zero. Exponential convergence is expected under the usual stable-logistic assumptions, but it is **not a direct consequence of the uniform H¹ bound alone**. It needs a convergence mechanism: Lyapunov/LaSalle, entropy dissipation plus an entropy gap, or an eventual perturbative spectral-stability argument.
-
-The shortest next paper-style theorem is therefore:
+The clean dependency split is:
 
 ```text
-local mild/classical solution
-+ nonnegativity/order box
-+ uniform H¹ a-priori estimate
-+ H¹ continuation criterion
-⇒ global bounded classical solution, classical for t>0.
+Global existence as a mild/order-box solution:
+  local existence with τ=τ(M)
+  + order-box preservation 0≤u≤M
+  + finite restart/gluing
+  ⇒ solution on every [0,T].
+
+Global bounded H¹/classical solution:
+  global mild/order-box solution on every [0,T]
+  + uniform H¹ a-priori estimate on finite horizons
+  + classicality/smoothing constructor
+  ⇒ global bounded classical solution, classical for t>0.
 ```
 
-Do this before asymptotics. The asymptotics should be a later theorem.
+So the `H¹` estimate buys the **uniform H¹ clause**, stronger continuation criteria, source regularity, compactness, and classical regularity. It is not logically necessary for bare global mild existence if the local theory is genuinely `L∞`-order-box controlled.
 
-## 1. Continuation lemma: precise statement
+## 1. Continuation mechanism when lifespan depends only on `L∞`
 
-Let `X := H¹_N(0,1)` or the cosine `H¹` phase space compatible with Neumann boundary conditions.
+The local theorem you want to use should have this shape:
 
-A standard local well-posedness/continuation package is:
+```lean
+local_order_box_existence :
+  ∀ M, 0 ≤ M → ∃ τ > 0,
+    ∀ w, DataSpace w → (∀ x, 0 ≤ w x) → (∀ x, w x ≤ M) →
+      ∃ u, MildSolutionOn [0, τ] w u ∧
+           (∀ t ∈ [0,τ], ∀ x, 0 ≤ u t x ∧ u t x ≤ M)
+```
+
+or, if the logistic upper box is `Mbar=max(Mdata,K)`, use `Mbar` everywhere.
+
+Then global existence follows by restart:
+
+1. Let `Mbar` be the invariant order-box bound from the maximum principle.
+2. Choose `τ=τ(Mbar)>0` from local existence.
+3. Build the solution on `[0,τ]` from `u₀`.
+4. At time `τ`, the slice `u(τ)` is again admissible and satisfies `0≤u(τ)≤Mbar`.
+5. Restart from `u(τ)` for another interval of length `τ`.
+6. Repeat finitely many times to cover any prescribed `[0,T]`.
+
+The `H¹` bound is not used in this restart argument unless the local theorem's `DataSpace` requires `H¹` and the local lifespan actually depends on the `H¹` norm. You stated that the lifespan depends on the `L∞`/order-box bound; under that hypothesis, the order box is enough.
+
+### Critical audit point
+
+Make sure the local theorem really has a lifespan lower bound controlled only by `Mbar`. Many Sobolev Picard theorems are stated as
 
 ```text
-(Local existence with lifespan bounded below on bounded sets)
-For every R>0 there exists τ(R)>0 such that for every time t₀ and every datum
-w∈X with ||w||_X≤R, the problem with initial datum w at t₀ has a unique mild
-solution on [t₀,t₀+τ(R)].
+τ = τ(||w||_{H^σ})
 ```
 
-Equivalently, the maximal solution `u:[0,Tmax)→X` satisfies the blow-up alternative
+or
 
 ```text
-Tmax < ∞  ⇒  limsup_{t↑Tmax} ||u(t)||_X = ∞.
+τ = τ(||w||_{X})
 ```
 
-Then the continuation lemma is:
+for the phase space `X`. If your theorem still depends on an `H^σ` or `H¹` norm, then the `L∞` box alone is not enough; you need the uniform norm bound in that phase space. But if your current Picard setup has an order-box-based contraction time, then yes, global mild existence is an immediate restart consequence of the order box.
+
+## 2. What the H¹ bound buys beyond global existence
+
+The `H¹` estimate is still valuable. It gives:
 
 ```text
-ContinuationLemma:
-Assume u is the unique maximal X-solution on [0,Tmax).
-Assume sup_{0≤t<Tmax} ||u(t)||_X ≤ R < ∞.
-Then Tmax = ∞.
+sup_t ||u(t)||_{H¹} ≤ C,
 ```
 
-Proof:
+which implies or supports:
 
-1. Suppose `Tmax<∞`.
-2. Let `τ := τ(R)`.
-3. Pick `t₀∈[0,Tmax)` with `Tmax - t₀ < τ/2`.
-4. Since `||u(t₀)||_X≤R`, local existence from `u(t₀)` gives a solution on `[t₀,t₀+τ]`.
-5. By uniqueness, this new solution agrees with the old solution on `[t₀,Tmax)`.
-6. Since `t₀+τ > Tmax`, this extends the old maximal solution past `Tmax`, contradiction.
+- a norm-based continuation criterion if you later switch the phase space to `H¹`;
+- uniform control of the gradient / spectral energy;
+- uniform source bounds for the flux and logistic terms;
+- compactness of trajectories in lower norms after smoothing;
+- input to asymptotic/omega-limit arguments;
+- a headline theorem saying the global solution is uniformly bounded in `H¹`;
+- classicality for `t>0` via smoothing or your `IsPaper2ClassicalSolution` constructor.
 
-So once you have
+So the right formal order is:
 
 ```text
-sup_{t<Tmax} ||u(t)||_{H¹} ≤ C,
+first global mild existence by L∞ restart;
+then apply the already-built H¹ a-priori theorem on each finite horizon;
+then attach classicality / stronger regularity.
 ```
 
-global existence follows immediately.
+## 3. Restart/gluing subtleties
 
-### Important formal detail
+### 3.1 The restart datum must be in the local data space
 
-If your a-priori theorem is stated as `sup_{t>0} ||u(t)||_{H¹}≤C`, check the behavior at `t=0`.
-
-- If `u₀∈H¹`, include `t=0` using the initial coefficient bound.
-- If `u₀` is only `L∞` or `H^σ`, `σ<1`, then the global theorem should be phrased as existence for all time plus `sup_{t≥ε} ||u(t)||_{H¹}<∞` for every `ε>0`, unless you prove instantaneous smoothing and start continuation in a weaker phase space.
-
-For an `H¹`-based continuation criterion from time zero, you need `u₀∈H¹`.
-
-## 2. What exactly does the uniform H¹ bound buy?
-
-On `[0,1]`, `H¹` embeds into `L∞`. But you already have a stronger order box. The uniform `H¹` bound gives:
+At every restart time `t₀`, you need:
 
 ```text
-sup_t ||u(t)||_{H¹} < ∞,
-sup_t ||u(t)||_{L∞} < ∞,
+DataSpace (u t₀),
+0 ≤ u t₀,
+u t₀ ≤ Mbar.
 ```
 
-and, through the elliptic resolver,
+The order inequalities come from the maximum principle. The `DataSpace` membership usually comes from continuity of the mild solution in the phase space. If `DataSpace` is `C([0,1])`, `L∞`, `H^σ`, or the cosine phase space used by Picard, ensure the local solution is continuous into that space up to the endpoint.
+
+If the local classical theorem requires Neumann compatibility at the initial time, do not use that theorem for restart. Use the mild local theorem for restart; recover classicality later for positive times. Time slices of a classical solution may satisfy compatibility, but formalizing that is avoidable.
+
+### 3.2 The local equation must be autonomous or time-shift invariant
+
+The restarted local solution from `w=u(t₀)` is naturally written in shifted time:
 
 ```text
-sup_t ||v(t)||_{H³} or at least resolver-controlled v, v_x, v_xx bounds
+z(s),  s∈[0,τ],  z(0)=u(t₀).
 ```
 
-in the regularity scale your formalization uses.
-
-For **global existence**, this is enough if the local theory is in `H¹`.
-
-For **global bounded classical solution**, one normally adds parabolic smoothing:
+The global piece is
 
 ```text
-for every ε>0 and every finite or infinite T,
-u is classical on [ε,T]×[0,1],
+u(t) = z(t-t₀),  t∈[t₀,t₀+τ].
 ```
 
-with bounds depending on `ε` and the uniform `H¹`/`L∞` bounds. If the initial datum is smooth and satisfies compatibility, classicality can include `t=0`; otherwise it is classical for `t>0`.
+You need a lemma that the PDE/mild formulation is invariant under this time shift.
 
-So the clean headline is:
+### 3.3 Gluing mild solutions
+
+A good concatenation lemma is:
+
+```lean
+mild_concat :
+  MildSolutionOn [0,a] u0 u₁ →
+  MildSolutionOn [0,b] (u₁ a) u₂ →
+  u₂ 0 = u₁ a →
+  MildSolutionOn [0,a+b] u0 (glue u₁ (shift_by a u₂))
+```
+
+For a Duhamel/mild formulation, the proof for `t>a` uses the semigroup identity:
 
 ```text
-For nonnegative u₀∈H¹, the solution exists globally and remains bounded in H¹ and L∞.
-Moreover, by parabolic regularization it is classical for t>0.
+u₁(a) = S(a)u₀ + ∫₀ᵃ S(a-r)N(u₁(r)) dr,
+
+u(t) = S(t-a)u₁(a) + ∫ₐᵗ S(t-s)N(u(s)) ds
+     = S(t)u₀ + ∫₀ᵃ S(t-r)N(u(r)) dr
+              + ∫ₐᵗ S(t-s)N(u(s)) ds.
 ```
 
-If your `IsPaper2ClassicalSolution` constructor already turns the mild solution plus source regularity into classicality, the remaining work is just to feed it the global time interval after continuation.
+The seam value agrees because `u₂(0)=u₁(a)`. Continuity at the seam is then automatic.
 
-## 3. Expected steady state
+You do not need uniqueness for existence-by-gluing, but uniqueness is useful to prove that different restart partitions give the same solution and to state a canonical global solution.
 
-For logistic source with carrying capacity `K>0`, the constant steady state is
+### 3.4 Classicality at the glue times
 
-```text
-u_* = K,
-v_* = K/μ.
+If you glue only as a mild solution, do not try to prove time differentiability piecewise at the artificial seam times. First prove the concatenated object is a mild solution on the whole interval. Then use the smoothing/classicality theorem for mild solutions on the whole interval. That avoids seam-regularity headaches.
+
+## 4. Avoiding maximal-time machinery: finite-horizon induction
+
+For Lean, the cleanest first theorem is probably finite-horizon existence:
+
+```lean
+global_mild_on_finite_horizon :
+  ∀ T > 0, ∃ u,
+    MildSolutionOn [0,T] u₀ u ∧
+    (∀ t ∈ [0,T], ∀ x, 0 ≤ u t x ∧ u t x ≤ Mbar)
 ```
 
-There is also the zero steady state if the logistic source has the usual factor `u`, and the zero solution is selected by the zero initial datum.
+Proof outline:
 
-For nontrivial nonnegative initial data, the expected asymptotic behavior is
+1. Choose `τ>0` from `local_order_box_existence Mbar`.
+2. Pick `N : ℕ` such that `T ≤ N*τ`; for example `N = Nat.ceil (T/τ) + 1` in whatever real/NNReal formulation is easiest.
+3. Prove by induction on `n`:
 
-```text
-u(t) → K,
-v(t) → K/μ,
-```
-
-usually exponentially fast in norms below the eventual classical regularity level, and then by interpolation/smoothing in stronger norms.
-
-A useful maximum-principle uniqueness check for positive stationary states is short:
-
-Let `(U,V)` be a positive stationary solution with Neumann boundary conditions:
-
-```text
-0 = U_xx + a (U V_x)_x + f(U),     a=-χ₀>0,
-μV - V_xx = U.
-```
-
-At a maximum point of `U`, say `Umax`, we have `U_x=0`, `U_xx≤0`, and the elliptic maximum principle gives `μV≤Umax`, hence
-
-```text
-V_xx = μV-U ≤ 0
-```
-
-at that point. Therefore
-
-```text
-0 = U_xx + a U V_xx + f(Umax) ≤ f(Umax),
-```
-
-so `f(Umax)≥0`. For the logistic source, this forces `Umax≤K`.
-
-At a minimum point `Umin`, the same reasoning gives `U_xx≥0`, `μV≥Umin`, hence `V_xx≥0`, and therefore
-
-```text
-0 = U_xx + a U V_xx + f(Umin) ≥ f(Umin),
-```
-
-so `f(Umin)≤0`, forcing `Umin≥K` for a positive solution. Hence `U≡K`.
-
-Thus the only positive steady state is the carrying capacity. This is a very useful endpoint for LaSalle/omega-limit arguments.
-
-## 4. Lyapunov / entropy functional
-
-For the drift-diffusion part without logistic reaction, the repulsive sign gives a convex free energy. Write
-
-```text
-a := -χ₀ > 0,
-z := v - K/μ = (μ-Δ_N)^{-1}(u-K),
-Φ_K(s) := s log(s/K) - s + K.
-```
-
-A natural relative free energy is
-
-```text
-E[u] := ∫_0^1 Φ_K(u) dx + (a/2) ∫_0^1 (u-K) z dx.
-```
-
-Since the Neumann resolver is positive self-adjoint, the second term is nonnegative. The variational derivative is
-
-```text
-δE/δu = log(u/K) + a z.
-```
-
-The diffusion plus repulsive taxis can be written as
-
-```text
-u_xx + a ∂x(u v_x)
-  = ∂x( u ∂x( log(u/K) + a z ) ).
-```
-
-Therefore along smooth positive solutions,
-
-```text
-dE/dt
-  = - ∫_0^1 u |∂x(log(u/K)+a z)|² dx
-    + ∫_0^1 (log(u/K)+a z) f(u) dx.                 (Entropy identity)
-```
-
-The first term is the entropy dissipation. The reaction contribution needs analysis.
-
-For a pure scalar logistic ODE, the entropy part satisfies
-
-```text
-∫ log(u/K) f(u) dx ≤ 0
-```
-
-because `log(u/K)` and `f(u)` have opposite signs around `K`. The extra chemical piece
-
-```text
-a ∫ z f(u) dx
-```
-
-is not automatically sign-definite pointwise. It can often be controlled using the positivity of the resolver, the logistic monotonicity, and eventual bounds `0<δ≤u≤M`, but this is an additional estimate. Do not treat the full entropy as a one-line Lyapunov functional unless you have proved this reaction term is nonpositive or dominated by the entropy gap.
-
-So the Lyapunov route is canonical, but not necessarily the shortest Lean route unless the entropy infrastructure is already present.
-
-## 5. Is convergence exponential?
-
-Expected answer: **yes for nontrivial nonnegative data under the usual stable logistic assumptions**, but proving it requires more than the uniform `H¹` bound.
-
-The linearization around `(K,K/μ)` is very favorable. Let
-
-```text
-w := u-K,
-z := v-K/μ = (μ-Δ_N)^{-1}w.
-```
-
-Ignoring nonlinear terms,
-
-```text
-w_t = w_xx + a K z_xx + f'(K) w.
-```
-
-On Neumann cosine mode `k`, with `λ_k=(kπ)²`,
-
-```text
-z_k = w_k/(μ+λ_k),
-z_xx,k = -λ_k w_k/(μ+λ_k),
-```
-
-so the linear eigenvalue is
-
-```text
--λ_k - aK λ_k/(μ+λ_k) + f'(K).
-```
-
-For `k=0`, it is `f'(K)<0`. For `k≥1`, it is even more negative. Thus the linearized operator has a spectral gap whenever the logistic equilibrium is stable, i.e. `f'(K)<0`.
-
-A clean exponential proof can proceed as:
-
-1. prove convergence/precompactness and identify the omega-limit as `K`; or prove eventual closeness by comparison;
-2. use the spectral gap and nonlinear estimates to obtain
-
-   ```text
-   d/dt ||w||²₂ ≤ -γ ||w||²₂
+   ```lean
+   ∃ u, MildSolutionOn [0,n*τ] u₀ u ∧ order_box_on [0,n*τ] u
    ```
 
-   for large time;
-3. bootstrap to higher norms by parabolic smoothing.
+4. The successor step restarts from the endpoint and glues using `mild_concat`.
+5. Restrict the solution on `[0,N*τ]` to `[0,T]`.
 
-Alternatively, prove an entropy inequality of the form
+This avoids defining a maximal solution, proving a blow-up alternative, or reasoning with `limsup` at a finite endpoint.
 
-```text
-E[u(t)]' ≤ -c E[u(t)]
+Later, if you need an actual global function `u : ℝ≥0 → X`, obtain it from the compatible finite-horizon family using uniqueness, or define it by choosing a finite-horizon solution on `[0,n]` and using consistency. But for many formal paper statements, `∀ T, ∃ solution on [0,T]` is already the easiest global existence formulation.
+
+## 5. Minimal theorem to formalize first
+
+The first theorem should separate existence from the H¹ estimate.
+
+### Theorem 1: global order-box mild solution on finite horizons
+
+```lean
+ theorem exists_mild_solution_on_every_finite_horizon
+   (u₀_nonneg : ∀ x, 0 ≤ u₀ x)
+   (u₀_box : ∀ x, u₀ x ≤ Mbar)
+   ... :
+   ∀ T > 0, ∃ u,
+     MildSolutionOn (Set.Icc 0 T) u₀ u ∧
+     (∀ t ∈ Set.Icc 0 T, ∀ x, 0 ≤ u t x ∧ u t x ≤ Mbar)
 ```
 
-for large time or globally after establishing `0<δ≤u≤M`. This gives exponential convergence directly.
-
-But the uniform `H¹` bound alone only gives precompactness after smoothing; it does not by itself provide a monotone functional or a decay rate.
-
-## 6. Shortest path to the paper headline
-
-For a clean paper theorem, split the results:
-
-### Theorem A: global bounded classical solution
-
-Assumptions:
+This theorem needs only:
 
 ```text
-u₀≥0,
-u₀∈H¹ or smoother depending on the local theory,
-χ₀<0,
-μ>0,
-logistic source with an absorbing carrying capacity K.
+local order-box existence with τ(Mbar)>0,
+maximum-principle/order-box preservation,
+restart/gluing.
 ```
 
-Conclusion:
+It does **not** need the uniform H¹ estimate.
+
+### Theorem 2: global finite-horizon H¹ bound
+
+Apply the already-built a-priori estimate to the solution from Theorem 1:
+
+```lean
+ theorem exists_mild_solution_on_every_finite_horizon_with_H1_bound
+   ... :
+   ∀ T > 0, ∃ u,
+     MildSolutionOn (Set.Icc 0 T) u₀ u ∧
+     order_box_on [0,T] u ∧
+     (∀ t ∈ Set.Icc 0 T, ||u t||_{H¹} ≤ C)
+```
+
+If the initial datum is not in `H¹`, replace `[0,T]` by `(0,T]` or `[ε,T]` in the H¹ clause:
 
 ```text
-There exists a unique global solution u on [0,∞).
-The solution remains nonnegative and uniformly bounded:
-  sup_{t≥0} ||u(t)||∞ ≤ M,
-  sup_{t≥0} ||u(t)||H¹ ≤ C.
-The associated v=(μ-Δ_N)^{-1}u satisfies the corresponding uniform resolver bounds.
-The solution is classical for t>0, and from t=0 if the initial datum has the required compatibility/smoothness.
+∀ ε>0, ∀ t∈[ε,T], ||u(t)||_{H¹}≤C(ε).
 ```
 
-Proof dependencies:
+If your current uniform bound is genuinely `sup_{t>0} ||u(t)||_{H¹}≤C` independent of `ε`, then use `(0,T]`. But be careful: such a bound including arbitrarily small positive times usually requires either `u₀∈H¹` or a very strong smoothing estimate with possible singularity already controlled.
+
+### Theorem 3: global bounded classical solution
+
+```lean
+ theorem global_bounded_classical_solution
+   ... :
+   ∀ T > 0, ∃ u v,
+     IsPaper2ClassicalSolutionOn (Set.Icc 0 T) u v ∧
+     order_box_on [0,T] u ∧
+     (∀ t ∈ ..., ||u t||_{H¹} ≤ C) ∧
+     resolver_relation u v
+```
+
+or, more naturally for classicality,
 
 ```text
-local well-posedness + continuation;
-L∞ order box;
-uniform H¹ estimate;
-parabolic smoothing / classicality constructor.
+classical on (0,T] or [ε,T].
 ```
 
-This theorem does **not** need the asymptotic Lyapunov functional.
+This theorem uses the H¹/source regularity/classicality constructor.
 
-### Theorem B: convergence to steady state
+## 6. Which statement needs H¹?
 
-Additional work:
+Bare finite-horizon existence:
 
 ```text
-eventual positivity/lower bound, or entropy coercivity;
-precompactness in a topology strong enough to pass to steady states;
-unique positive stationary state;
-LaSalle/entropy decay or spectral-gap perturbation.
+∀T, ∃ mild solution on [0,T]
 ```
 
-Conclusion:
+needs only `L∞` restart, assuming local lifespan is controlled by `L∞`.
+
+Order-box bounded global mild existence:
 
 ```text
-if u₀ not identically zero, then u(t)→K and v(t)→K/μ;
-under stable logistic assumptions, convergence is exponential.
+∀T, ∃ mild solution on [0,T] with 0≤u≤Mbar
 ```
 
-This theorem may need eventual higher regularity or compactness, but those can be derived from the global bounded classical solution by smoothing.
+also needs only `L∞` restart plus the maximum principle.
 
-## 7. What needs more than uniform H¹?
-
-### For global existence
-
-No more a-priori estimates are needed if the local continuation criterion is `H¹`-based.
-
-### For bounded classicality
-
-You need regularity/smoothing, but not a new dissipative a-priori estimate. Use the existing mild/classical constructor or semigroup smoothing on `[ε,∞)`.
-
-### For asymptotics
-
-Yes, you need something beyond the bare uniform `H¹` bound:
+Uniform-H¹ global boundedness:
 
 ```text
-precompactness / smoothing,
-identification of stationary limits,
-and a convergence mechanism: Lyapunov/LaSalle, entropy gap, comparison, or spectral stability.
+∀T, ∃ solution on [0,T] with ||u(t)||H¹≤C
 ```
 
-Uniform `H¹` is the boundedness platform, not the decay proof.
+needs the H¹ a-priori theorem, but not for continuation.
 
-## Final recommendation
-
-Next formal theorem should be the continuation theorem:
+Global classical solution:
 
 ```text
-uniform_H1_bound + local_lifespan_lower_bound_on_H1_balls
-  ⇒ global_solution.
+classical for t>0 with resolver/source regularity
 ```
 
-Then prove the global bounded classical statement by combining global existence with the already-built `L∞` and `H¹` bounds plus classicality/smoothing.
+needs smoothing/classicality inputs, typically supported by H¹ or stronger source estimates.
 
-Only after that should you start the convergence theorem. For convergence, the most concrete route is either:
+## 7. Final recommendation
 
-```text
-entropy/LaSalle using E[u]=∫Φ_K(u)+(a/2)∫(u-K)(μ-Δ_N)^{-1}(u-K),
-```
+Formalize in this order:
 
-with a proved reaction-term control, or
+1. **`mild_concat` / restart lemma.** This is the main infrastructure.
+2. **Finite-horizon global mild existence by induction on the number of steps.** Use only the order-box local lifespan.
+3. **Attach the uniform order box on the whole finite horizon.** This should be preserved by each local piece and by gluing.
+4. **Apply the uniform H¹ a-priori estimate on the finite-horizon solution.** This gives the global boundedness theorem.
+5. **Feed the bounded global mild solution into `IsPaper2ClassicalSolution` / smoothing.** This gives the paper-style global bounded classical solution.
 
-```text
-eventual positivity + spectral-gap stability around K.
-```
-
-The second route is probably shorter in Lean if the cosine spectral infrastructure is already strong; the first route is more canonical in PDE prose but requires more entropy calculus.
+This route avoids maximal-time machinery and uses the `H¹` estimate exactly where it belongs: not to force existence, but to strengthen the global solution to a uniformly bounded `H¹`/classical one.
