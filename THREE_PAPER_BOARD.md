@@ -174,3 +174,12 @@ saturates ONLY at x=0) UNCOND+axiom-clean. So #4B = ONE scalar residual:
   #4B' U 0 < 1 strict (strong-max/Hopf strictness on frozenWaveOperator=0; barrier saturated at 0). χ<0 needs
        strict-convolution frozenElliptic<1, χ=0 needs 2nd-order ODE uniqueness. Real gap. → opus.
   #4C HasWaveRightTailAsymptotic_of_stationary carries htail (no +∞-linearization producer in repo). Real gap. → opus.
+
+## ★ #4A-A step-output CLOSED — residual localized (2026-06-22 [opus], verified 8305)
+RotheStepOutputImpl: crossStep_output_of_solution (full RotheStepOutput) + frozenImplicitStepOp_of_greenConv_
+crossSource (genuinely-new non-paper step_op derivation, the committed one only did the paper route) +
+rotheStepAnalytic_of_greenSource (10-field bundle from one Green rep) UNCOND+axiom-clean. #4A residual now:
+  #4A-I lower-pinned RotheMaxData elliptic comparison + antitone + nonneg packets (super-barrier comparison
+        DATA from which rotheStep_le_barrier derives W≤B — non-circular). → opus.
+  #4A-II crossStepSelfMap_apply_eq_crossImplicitMap ~14 integrability/decay/folding hyps (WaveStepFluxId:80).
+  #4A-B RotheContinuousDependence (rotheLimit_continuousDependence, DCT through Rothe limit). → opus.

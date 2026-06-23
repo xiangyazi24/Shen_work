@@ -324,3 +324,5 @@ import ShenWork.Paper1.RotheStepProducerImpl
 import ShenWork.Paper2.IntervalDenomEnvelopeResolver
 
 import ShenWork.Paper1.StationaryUpperTail
+
+import ShenWork.Paper1.RotheStepOutputImpl
