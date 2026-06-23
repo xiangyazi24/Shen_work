@@ -551,3 +551,24 @@ false w/ matching counterexample; (★) already redundant via contact-point live
   carries abstractly throughout (χ₀=0 discharges it ONLY by structurally killing the chemotaxis flux). To reach
   "genuinely unconditional" requires building the concrete mild-Picard Banach from scratch (a major Cauchy-theory
   undertaking the repo's design avoids) — a SCOPE/METHOD decision for the senior author.
+
+## 2026-06-23 — χ₀<0 concrete Banach machinery COMPLETE; final discharge = genuine PDE crux (definitively localized)
+- The ENTIRE concrete trajectory-BCF Banach machinery is BUILT/landed this session: Traj CompleteSpace + concrete
+  trajPhi + correspondence (trajPhi_apply rfl) + ContractingWith wrapper + EnvBall completeness + NON-CIRCULAR
+  readout (trajBanach_envelope_of_invariance, domination by uniqueness) + the singular-Duhamel DCT engine
+  (continuous_singular_duhamel, the Mathlib gap) + the joint kernel (τ,x)-continuity tower + the candidate-generic
+  MapsTo decomposition (cosineCoeff_decomp_of_threeTermMap, hzero verified = correct 3-term not false conservation)
+  + the precise reduction chiNeg_base_envelope_unconditional → {TrajSeam, hLip, hUfix, seed}. ~17 producers, 3
+  under-claims caught+corrected, 2 circular fakes rejected.
+- FINAL DISCHARGE = GENUINE PDE CRUX (a97bf65f exhaustive trace + 3 repo-internal axiom-clean citations):
+  (i) DESIGN MISMATCH: TrajSeam.henv wants the BARE sineEnv E_base bound, but genv outputs the gW-INFLATED
+      trueCosProd(gW E_base Gden)(sineEnv E_base) (gW self-convolution absorbs the (1+R)^{−β} weight; gW≤1 is
+      FALSE). The MapsTo (ac5cc155) was framed with the wrong henv shape → needs reframing to the gW-inflated
+      envelope + a gW-ABSORBING (self-referential) supersolution E_base ≥ its own gW-inflated flux (small-δ).
+  (ii) WIENER ℓ¹-CONVOLUTION-CLOSURE LEMMA (reflCircle Fourier ℓ¹ of a product from ℓ¹ factors) — absent in BOTH
+      repo and Mathlib v4.29.1 (no fourierCoeff_mul); needed to make the candidate bridges box-generic.
+  (iii) box-generic resolver-relay + weight envelope (landed only for actual u).
+  (iv) hLip = Traj-metric K-contraction, needs the singular-(t−s)^{−1/2} gradient Duhamel BCF continuity (G1).
+- HONEST: χ₀<0 = FAITHFUL §3.3 conditional; the concrete construction is complete bar these genuine non-landed
+  analysis facts + the gW/E_base design reframing. (i)+(ii) are real-analysis lemmas (Young ℓ¹ conv is buildable;
+  the gW-absorbing supersolution is the genuine self-referential small-δ crux). NOT a wiring gap.
