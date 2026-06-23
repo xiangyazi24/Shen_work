@@ -307,3 +307,5 @@ import ShenWork.Paper2.IntervalMildPosTimeHSigma
 import ShenWork.Paper2.IntervalMildBootstrapStep
 
 import ShenWork.Paper2.IntervalTrajectoryEnvelope
+
+import ShenWork.Paper2.IntervalConjugateSourceBridge

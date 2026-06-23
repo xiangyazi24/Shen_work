@@ -421,3 +421,28 @@ representation (hmap). Discharge it → decomp_chi gives the per-mode kernel ide
 closes → SliceMildStepData → UniformBootstrapStep → MemHSigma 1 → H¹ field → H1-hom/src/chem → χ₀<0 closes.
 This is NOT never-bottoming-out: it converged to ONE specific named piece (the decomp theorem is general; only
 its hmap hypothesis for the conjugate slice is missing). → dispatch opus on hmap/hsource_bridge.
+
+## ★★★ CORRECTION — "bottom discharged" was OVERCLAIMED (2026-06-22, hostile audit a956d4df, all 3 decisive claims tree-verified)
+The bottom-closer opus claimed A+B discharge the χ₀<0 regularity bottom. HOSTILE AUDIT VERDICT: (c) OVERCLAIMED.
+And MY OWN framing ("could close the chain", "likely wiring") was too optimistic — the §3.3 gate corrected it
+before landing. Verified facts:
+ 1. k=0 HOLE: conjugateSlice_cosineCoeff_decomp carries hk:k≠0, but the chain's SliceMildStepData.hpt_log is
+    ∀k (IntervalMildBootstrapStep.lean:143) and FALSE at k=0 (Fl s 0 = cosineCoeffs/√λ₀ = /0). No k=0 treatment.
+ 2. ISLAND + WRONG OBJECT: file untracked, imported by nothing; proves the BOOTSTRAP-route ASSEMBLED decomp
+    (cosineCoeffs(slice)=…), which the chain does NOT consume (SliceMildStepData rebuilds decomp from per-τ
+    ∀k fields). The named hsource_bridge is a different FORWARD-route value identity (IntervalConjugate
+    CosineSeries:414). decomp_chi is consumed only in IntervalBootstrapDecomp/TimeRegDirect, not the chain.
+ 3. WEAKER INTERFACE: the Fubini swaps are carried hypotheses; the chain's real entry gradientSolution_
+    memHSigma_succ_fully_uncond DERIVES them from joint ContinuousOn(uncurry) (the SliceMildStepData fields
+    hchemTerm_cont/hlogTerm_cont:136-138 need joint continuity, not the spatial-x continuity the file gives).
+ 4. REAL CRUX UNTOUCHED: the chain's own stall report (IntervalTrajectoryEnvelope:285-355) names the genuine
+    residual = R1 genv/glenv (τ-uniform-in-time H^σ flux envelope, "no such uniform producer in Paper2") + the
+    per-τ ∀k fields at the joint-continuity interface. R1 is the trajectory ENVELOPE PRODUCTION (continuation
+    closure) — the trajectory opus proved the smoothing-step PROPAGATOR + the genv/glenv WIRING-given-envelope,
+    but left the envelope production OPEN. THAT is the real bottom.
+WHAT'S REAL (landed as honest BUILDING BLOCKS, NOT the bottom): Task A conjugateMildSolution_lift_eq_threeTerm
+Map_on_Icc (the hmap, rfl-level, genuinely part of the chain) + per-τ k≠0 helpers conjugateKernel_cosineCoeff
+/conjugateLog_cosineCoeff (toward hpt_chem/hpt_log for k≠0). Axiom-clean. NEED reshaping to joint-continuity
+interface + k=0 + connection to R1.
+GENUINE BOTTOM (re-aimed): R1 = τ-uniform-in-time H^σ trajectory/flux envelope via CONTINUATION CLOSURE
+(base/openness/closedness, the trajectory CORE). This is the real deepest analytic atom — genuinely hard PDE.
