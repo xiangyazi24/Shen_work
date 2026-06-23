@@ -1,217 +1,105 @@
-# Q73 (cron2): χ₀<0 chemotaxis boundedness — build vs rebuild verdict
+# Q78 (cron2): χ₀<0 chemotaxis uniform-H¹ proof — completeness audit
 
-## Executive verdict
+## Verdict
 
-**Rebuild the a-priori bound around the norm-based route.** Do not spend the main proof budget discharging the current coordinatewise/σ-ladder seams.
+Modulo the three remaining carries you listed, the norm/energy route is **mathematically complete** for a uniform-in-time `H¹` bound, provided the constants in the carries are genuinely local/classical-regularity constants and not secretly using the target `H¹` bound.
 
-The current coordinatewise architecture is axiom-clean and useful as scaffolding, but it is proving the wrong base object for the PDE. A uniform-in-time coordinatewise `H^σ` envelope
+The built chain
 
 ```text
-∃ g ∈ H^σ, ∀ k, sup_t |u_k(t)| ≤ g_k
+L∞ order box
+→ elliptic resolver C²/sup bounds
+→ spectral H¹ energy identity
+→ y' ≤ A y + B
+→ L² dissipation window ∫_{t-1}^t y ≤ Cwin
+→ uniform Gronwall / averaging
+→ sup_t y(t) ≤ C
 ```
 
-is strictly stronger than the standard continuation quantity
+is the right structure. There is no missing Moser step and no hidden exponential-in-time growth once the sliding-window integral is available. The taxis term is not sign-definite in the `H¹` energy, but it does not need to be: with the `L∞` box and resolver bounds it is handled by Young and contributes only to the linear coefficient `A` and constant `B` in `y'≤Ay+B`.
+
+The only real audit warnings are:
+
+1. the source regularity seam must not smuggle in a uniform `H¹` bound;
+2. the L² window constant must be independent of the final time `T`;
+3. the uniform-Gronwall lemma needs absolute continuity/differentiability of `y` on intervals, which your spectral derivative/source seam appears designed to supply;
+4. the full `H¹` norm needs the zero mode / `L²` part, not just the derivative seminorm, but the `L∞` box supplies it immediately on `[0,1]`.
+
+## 1. Audit of the logic
+
+Let
 
 ```text
-sup_t ||u(t)||_{H^σ} < ∞
+y(t) := 1/2 ∑_k λ_k |û_k(t)|² = 1/2 ||u_x(t)||²_{L²}.
 ```
 
-and is not implied by a uniform Sobolev norm bound. That means the coordinatewise base seam is not just a missing lemma; it is a stronger invariant than the PDE needs. The over-quantified per-σ `CarrySeam` family then multiplies that extra strength across the whole ladder.
-
-For the target **uniform `H¹` boundedness**, the least remaining Lean work should be:
+You have built the spectral energy derivative and the estimate
 
 ```text
-maximum principle L∞ bound
-  → elliptic resolver L∞ bounds for v, v_x, v_xx
-  → L² energy gives sliding-window integral of ||u_x||²
-  → H¹ differential inequality y' ≤ A y + B
-  → uniform Gronwall on sliding windows
-  → optional one-shot coordinatewise envelope from Duhamel, only if an API still wants it.
+y'(t) ≤ A y(t) + B                                      (1)
 ```
 
-So the recommendation is:
+with constants `A,B` depending only on the fixed problem parameters, the `L∞` order-box bound, the resolver constants, and the logistic coefficients on that box. This is fine even if `A>0`; the point is that you also have the window estimate.
+
+You also have
 
 ```text
-Main theorem: rebuild as a norm-based uniform H¹ bound.
-Old coordinatewise ladder: keep as optional/post-processing, not as the main route.
+∀ t ≥ 1,  ∫_{t-1}^{t} y(s) ds ≤ Cwin.                  (2)
 ```
 
-If the final formal object is currently named `TrajectoryHSigmaEnvelope 1` and literally means a coordinatewise `H¹` envelope, then that final object is stronger than “uniform `H¹` boundedness.” Either change the final statement to a norm bound, or derive the coordinatewise object after the norm/source estimates by a one-shot Duhamel lemma. Do not use it as the base of the global proof.
-
-## Why finishing the current three seams is probably more work
-
-The three carried seams are not comparable in difficulty:
-
-1. **Per-mode mild decomposition** is standard and probably finite.
-2. **Coordinatewise base envelope** is the real problem. It is stronger than a uniform norm bound and cannot be obtained just from `sup_t ||u(t)||_{H^σ}`. A trajectory can remain in a bounded `H^σ` ball while visiting different high modes at different times; the coordinatewise sup can fail to be in `H^σ`.
-3. **Per-σ `CarrySeam` family** over-quantifies the regularity ladder. Even if each individual bridge is standard, the formal cost repeats across σ, products, resolver estimates, flux estimates, and mode summability.
-
-By contrast, the norm route requires a small number of global estimates:
+Then the averaging/uniform-Gronwall step is valid. For `t≥1`, integrate (1) from any `s∈[t-1,t]` to `t`:
 
 ```text
-L∞ comparison;
-resolver max/elliptic bounds;
-L² energy identity;
-H¹ energy inequality;
-uniform Gronwall.
+y(t) ≤ e^{A(t-s)} y(s) + ∫_s^t e^{A(t-r)} B dr.
 ```
 
-These are analytically canonical and directly tied to the repulsive sign `χ₀<0` and logistic damping. They also prove exactly the needed continuation criterion.
-
-## Setup and notation
-
-Write
+If `A≥0`, then `t-s≤1`, hence
 
 ```text
-a := -χ₀ > 0.
+y(t) ≤ e^A y(s) + B e^A.
 ```
 
-The equation becomes, in one space dimension,
+Averaging over `s∈[t-1,t]` gives
 
 ```text
-u_t = u_xx + a ∂x(u v_x) + f(u),
-μ v - v_xx = u,
-u_x = v_x = 0 at x=0,1.
+y(t) ≤ e^A ∫_{t-1}^{t} y(s) ds + B e^A
+     ≤ e^A Cwin + B e^A.                              (3)
 ```
 
-For a logistic source, keep the hypotheses abstract but usable:
+If you want a sharper constant, replace `B e^A` with `B (e^A-1)/A` when `A>0`, and with `B` when `A=0`. The coarse bound above is enough.
+
+For `t∈[0,1]`, use the local/classical bound or integrate (1) from `0`:
 
 ```text
-f is C¹ on [0,M],
-f(0) ≥ 0,
-f(s) ≤ r s - b s^{1+α}     or at least gives a scalar ODE upper bound,
-f'(s) ≤ L_f on [0,M].
-```
-
-The exact constants do not matter. The proof only needs an absorbing `L∞` bound `M` and a finite slope bound `L_f` on `[0,M]`.
-
-## Step 1: maximum-principle `L∞` bound
-
-Assume temporarily that the solution is smooth and nonnegative; for a mild solution, prove this first for Galerkin/classical approximants or for positive times and pass to the limit.
-
-Let `m(t)=max_x u(t,x)`. At a maximum point `x_t`,
-
-```text
-u_x(t,x_t)=0,
-u_xx(t,x_t)≤0.
-```
-
-The elliptic maximum principle for
-
-```text
-μ v - v_xx = u,   v_x=0 at the boundary
-```
-
-gives
-
-```text
-0 ≤ μ v ≤ ||u||∞.
-```
-
-Thus, at the maximum point where `u=m(t)`,
-
-```text
-v_xx = μv-u ≤ m(t)-m(t)=0.
-```
-
-Since
-
-```text
-∂x(u v_x)=u_x v_x + u v_xx,
-```
-
-we get at the maximum
-
-```text
-a ∂x(u v_x) = a u v_xx ≤ 0.
+y(t) ≤ e^A y(0) + B e^A.
 ```
 
 Therefore
 
 ```text
-m'(t) ≤ f(m(t)).
+sup_{t∈[0,T]} y(t)
+  ≤ max(e^A y(0)+B e^A, e^A Cwin+B e^A),
 ```
 
-For the usual logistic `f(s)=r s-b s^{1+α}`, this gives
+and this bound is independent of `T`. This is a genuine uniform bound, not an exponential-in-`T` estimate.
+
+So the uniform-Gronwall/averaging logic is sound.
+
+## 2. Is there a hidden sign issue in the taxis term?
+
+At the `L∞` maximum-principle level, the repulsive sign `χ₀<0` gives an inward-pointing contribution at the spatial maximum. That is the crucial sign use for the order box.
+
+At the `H¹` level, you should **not** expect the taxis term to be dissipative pointwise. The proof only needs it to be controlled. With `a=-χ₀>0`,
 
 ```text
-sup_{t≥0} ||u(t)||∞ ≤ M := max(||u₀||∞, (r/b)^{1/α}).
+u_t = u_xx + a ∂x(u v_x) + f(u).
 ```
 
-This is the core repulsive-sign estimate. It avoids Moser iteration entirely.
-
-## Step 2: elliptic resolver bounds from `0≤u≤M`
-
-From `μv-v_xx=u` and Neumann boundary conditions:
+Testing against `-u_xx` gives schematically
 
 ```text
-0 ≤ μv ≤ M,
-||v||∞ ≤ M/μ,
-||v_xx||∞ = ||μv-u||∞ ≤ 2M.
-```
-
-In one dimension, the Green kernel or direct ODE representation gives a uniform bound
-
-```text
-||v_x||∞ ≤ C_μ M.
-```
-
-The precise value is unimportant. Formalize it as a resolver lemma:
-
-```lean
-resolver_Linf_bounds :
-  0 ≤ u → (∀ x, u x ≤ M) →
-    ||v||∞ ≤ C₀ M ∧ ||v_x||∞ ≤ C₁ M ∧ ||v_xx||∞ ≤ C₂ M.
-```
-
-For the energy proof below, `v_x` in `L∞` and `v_xx` in `L∞` or `L²` are enough.
-
-## Step 3: L² energy gives a sliding-window bound for `||u_x||²`
-
-Multiply the PDE by `u` and integrate over `[0,1]`. Neumann boundary terms vanish:
-
-```text
-1/2 d/dt ||u||₂²
-  = -||u_x||₂² - a ∫ u u_x v_x + ∫ u f(u).
-```
-
-Integrate the chemotaxis term once:
-
-```text
--a ∫ u u_x v_x
-  = -(a/2) ∫ (u²)_x v_x
-  =  (a/2) ∫ u² v_xx.
-```
-
-Using `0≤u≤M`, `||v_xx||∞≤C(M)`, and boundedness of `u f(u)` on `[0,M]`, obtain
-
-```text
-1/2 d/dt ||u||₂² + ||u_x||₂² ≤ C_L2.
-```
-
-Since `||u(t)||₂²≤M²` on the unit interval, integration over `[t,t+1]` gives
-
-```text
-∫_t^{t+1} ||u_x(s)||₂² ds ≤ C_win
-```
-
-for every `t≥0`, with `C_win` depending on `M`, `χ₀`, `μ`, and the logistic constants, but not on `t`.
-
-This sliding-window integral is the missing ingredient that prevents the H¹ estimate from becoming an exponentially growing Gronwall bound.
-
-## Step 4: H¹ differential inequality
-
-Let
-
-```text
-y(t) := ||u_x(t)||₂².
-```
-
-Differentiate the equation by testing against `-u_xx`:
-
-```text
-1/2 y'(t)
-  = -||u_xx||₂²
+1/2 d/dt ||u_x||²₂
+  = -||u_xx||²₂
     - a ∫ u_xx ∂x(u v_x)
     - ∫ u_xx f(u).
 ```
@@ -219,258 +107,232 @@ Differentiate the equation by testing against `-u_xx`:
 Expand
 
 ```text
-∂x(u v_x)=u_x v_x + u v_xx.
+∂x(u v_x) = u_x v_x + u v_xx.
 ```
 
-For the chemotaxis term, use Young:
+Then Young gives, for any small `ε>0`,
 
 ```text
 |a ∫ u_xx (u_x v_x + u v_xx)|
-  ≤ ε ||u_xx||₂²
-    + C_ε a² ( ||v_x||∞² ||u_x||₂² + ||u||∞² ||v_xx||₂² ).
+  ≤ ε ||u_xx||²₂
+    + Cε a² ( ||v_x||²∞ ||u_x||²₂ + ||u||²∞ ||v_xx||²₂ ).
 ```
 
-The resolver and `L∞` bounds make
+The `L∞` order box and elliptic resolver bounds give
 
 ```text
-||v_x||∞ ≤ C(M),
 ||u||∞ ≤ M,
-||v_xx||₂ ≤ C(M),
+||v_x||∞ ≤ Cv1(M),
+||v_xx||₂ ≤ Cv2(M),
 ```
 
-so
+so the taxis term contributes
 
 ```text
-|a ∫ u_xx ∂x(u v_x)|
-  ≤ ε ||u_xx||₂² + C₁ y(t) + C₂.
+≤ ε ||u_xx||²₂ + C1 y(t) + C2.
 ```
 
-For the reaction term, integrate by parts:
+For the reaction,
 
 ```text
--∫ u_xx f(u) = ∫ f'(u) u_x² ≤ L_f y(t),
+-∫ u_xx f(u) = ∫ f'(u) u_x² ≤ Lf y(t),
 ```
 
-where `L_f := sup_{0≤s≤M} f'(s)`.
-
-Taking, say, `ε=1/2`, dropping the remaining nonnegative `||u_xx||₂²` term, and doubling constants gives
+where
 
 ```text
-y'(t) ≤ A y(t) + B.        (H1-diff)
+Lf := sup_{0≤s≤M} f'(s) < ∞.
 ```
 
-Here `A,B` are uniform in time.
-
-Important: this inequality alone would only give an exponential-in-time estimate. The uniform bound comes from combining it with the sliding-window integral from the L² energy estimate.
-
-## Step 5: uniform Gronwall on sliding windows
-
-Use the elementary uniform Gronwall lemma:
-
-If
-
-```text
-y' ≤ A y + B,
-∫_t^{t+1} y(s) ds ≤ C_win  for all t≥0,
-```
-
-then for all `t≥0`,
-
-```text
-y(t+1) ≤ e^A C_win + e^A B.
-```
-
-Proof: for any `s∈[t,t+1]`, integrate `(H1-diff)` from `s` to `t+1`:
-
-```text
-y(t+1) ≤ e^{A(t+1-s)} y(s)
-         + B ∫_s^{t+1} e^{A(t+1-r)} dr
-       ≤ e^A y(s) + e^A B.
-```
-
-Average this inequality over `s∈[t,t+1]` and use the window bound.
-
-Together with the local bound on `[0,1]`, this yields
-
-```text
-sup_{t≥0} ||u_x(t)||₂² < ∞.
-```
-
-Since `||u(t)||₂≤M` on the unit interval, we obtain
-
-```text
-sup_{t≥0} ||u(t)||_{H¹} < ∞.
-```
-
-This is the shortest rigorous arbitrary-data H¹ route I would formalize. It is not Moser iteration. It is two energy estimates plus a one-page uniform Gronwall lemma.
-
-## Is a single H¹ energy identity enough?
-
-Almost, but not quite by itself.
-
-The H¹ identity gives
+Choose `ε` small enough to leave part of the `-||u_xx||²₂` dissipation, then drop the remaining negative term. This yields exactly
 
 ```text
 y' ≤ A y + B.
 ```
 
-That is not a uniform-in-time bound unless either:
+Thus there is no hidden sign issue: the repulsive sign is used to obtain the `L∞` box, not to make the `H¹` taxis contribution negative.
 
-1. `A<0`, which would require an absorption/spectral-gap condition not generally available for arbitrary coefficients; or
-2. one combines it with a sliding-window integral bound for `y`.
+## 3. Audit of the L² dissipation window
 
-The L² energy identity supplies exactly that window bound. So the minimal robust package is:
-
-```text
-L² energy window + H¹ differential inequality + uniform Gronwall.
-```
-
-This is still much lighter than Moser iteration and much lighter than the coordinatewise σ-ladder.
-
-## Mild solutions and regularity justification
-
-If the local solution is only mild in `H^σ`, prove the energy estimates by one of these standard formal routes:
-
-1. prove them first for Galerkin/cosine truncations and pass to the limit;
-2. use parabolic smoothing to show the mild solution is classical for every `t>0`, prove estimates on `[ε,T]`, then let `ε↓0` using lower semicontinuity and local boundedness;
-3. define the local Picard solution in a regular enough space from the start, if the existing local theory permits it.
-
-For Lean, Galerkin/cosine truncations may be the cleanest if the spectral infrastructure already exists. The estimates above are finite-dimensional identities before passage to the limit.
-
-## Coordinatewise envelope: never needed for uniform H¹ boundedness
-
-A coordinatewise envelope is not a standard continuation criterion and is not needed for the final mathematical statement
+The window estimate must be genuinely uniform. The standard route is to test the equation against `u`:
 
 ```text
-sup_t ||u(t)||_{H¹} < ∞.
+1/2 d/dt ||u||²₂
+  = -||u_x||²₂ - a ∫ u u_x v_x + ∫ u f(u).
 ```
 
-It is an artifact of the current ladder design.
-
-Moreover, the implication
+Integrating the taxis term by parts,
 
 ```text
-sup_t ||u(t)||_{H¹} < ∞
-  ⇒ ∃g∈H¹, ∀k, sup_t |u_k(t)|≤g_k
+-a ∫ u u_x v_x
+  = -(a/2) ∫ (u²)_x v_x
+  =  (a/2) ∫ u² v_xx.
 ```
 
-is false in general. A path can stay in a bounded `H¹` ball while visiting different high modes at different times. The pointwise-in-mode supremum can then fail to be square-summable with the `H¹` weights.
-
-So do not try to prove the coordinatewise envelope from the norm bound by abstract Hilbert-space reasoning. It requires extra structure from the equation, typically the mild formula plus a uniform source estimate.
-
-## Optional one-shot coordinatewise envelope after the H¹ proof
-
-If some existing API still demands a `TrajectoryHSigmaEnvelope 1`, derive it after the norm/source estimates, not before.
-
-From the PDE and the uniform `H¹` bound, in one dimension:
+This term may have either sign, but the `L∞` box and resolver bound give
 
 ```text
-u ∈ H¹ ⇒ u ∈ L∞,
-v=(μ-Δ)^{-1}u gives v_x, v_xx controlled,
-N(u):=a ∂x(u v_x)+f(u)
+|(a/2) ∫ u² v_xx| ≤ C(M).
 ```
 
-is uniformly controlled in a space strong enough to estimate Fourier coefficients. The cleanest coefficient argument is through the mild formula:
+The reaction term is also bounded on the order box:
 
 ```text
-u_k(t)=e^{-λ_k t}u_{0,k}
-       + ∫_0^t e^{-λ_k(t-s)} N_k(s) ds,
-λ_k=(kπ)².
+|∫ u f(u)| ≤ C_f(M).
 ```
 
-If
+Therefore
 
 ```text
-sup_s ||N(s)||_{L²} ≤ A,
+1/2 d/dt ||u||²₂ + ||u_x||²₂ ≤ C0.                  (4)
 ```
 
-then for `k≥1`,
+Since `[0,1]` has finite measure and `0≤u≤M`,
 
 ```text
-|N_k(s)| ≤ A,
+||u(t)||²₂ ≤ M².
 ```
 
-and hence
+Integrating (4) over `[t-1,t]` yields
 
 ```text
-sup_t |∫_0^t e^{-λ_k(t-s)} N_k(s) ds|
-  ≤ A ∫_0^∞ e^{-λ_k r} dr
-  = A/λ_k.
+∫_{t-1}^{t} ||u_x(s)||²₂ ds
+  ≤ 1/2 ||u(t-1)||²₂ - 1/2 ||u(t)||²₂ + C0
+  ≤ 1/2 M² + C0.
 ```
 
-Define
+Since `y=1/2||u_x||²₂`, this gives
 
 ```text
-g_k := |u_{0,k}| + A/λ_k,     k≥1,
+∫_{t-1}^{t} y(s) ds ≤ Cwin
 ```
 
-and handle `k=0` by the mass/logistic bound. Then
+with `Cwin` independent of `t` and independent of the final lifespan `T`.
+
+This is the key estimate that makes the H¹ differential inequality uniform.
+
+## 4. H¹ seminorm versus full H¹ norm
+
+The spectral energy `y` controls only the Neumann `H¹` seminorm:
 
 ```text
-∑_{k≥1} (1+λ_k) g_k² < ∞
+y(t)=1/2 ||u_x(t)||²₂.
 ```
 
-because `u₀∈H¹` for the heat part, and
+It does **not** control the zero mode by Poincaré, because Neumann boundary conditions allow constants. So, by itself, `y` is not the full `H¹` norm.
+
+But the `L∞` order box gives the missing piece immediately:
 
 ```text
-∑_{k≥1} (1+λ_k) / λ_k² < ∞
+||u(t)||²₂ ≤ |[0,1]| ||u(t)||²∞ ≤ M².
 ```
 
-in one dimension.
-
-If `u₀` is only in `H^σ` with `σ<1`, then this one-shot argument gives a coordinatewise `H^σ` envelope immediately, and an `H¹` envelope only after positive-time smoothing or with stronger source estimates / initial regularity. For the final uniform `H¹` norm theorem, none of this is necessary.
-
-## Minimal Lean target list
-
-To minimize remaining work, introduce or prove these lemmas instead of the σ-ladder seams:
-
-```lean
--- 1. comparison / maximum principle
-repulsive_logistic_Linf_bound :
-  Nonnegative u₀ → ... → ∃ M, ∀ t x, 0 ≤ u t x ∧ u t x ≤ M
-
--- 2. elliptic resolver bounds
-neumann_resolvent_bounds_Linf :
-  0 ≤ u → (∀ x, u x ≤ M) →
-    bounds_on v v_x v_xx
-
--- 3. L² energy window
-chemotaxis_L2_energy_window :
-  LinfBound M u → ResolverBounds M v →
-    ∃ Cwin, ∀ t, ∫ s in t..t+1, ||u_x s||₂² ≤ Cwin
-
--- 4. H¹ differential inequality
-chemotaxis_H1_diff_ineq :
-  LinfBound M u → ResolverBounds M v →
-    ∃ A B, ∀ t, deriv (fun t => ||u_x t||₂²) t ≤ A*||u_x t||₂² + B
-
--- 5. uniform Gronwall
-uniform_gronwall_window :
-  y' ≤ A*y+B → (∀t, ∫_{t}^{t+1} y≤Cwin) → ∀t≥1, y t ≤ C
-
--- 6. final theorem
-uniform_H1_bound :
-  ∃ C, ∀ t, ||u t||_{H¹} ≤ C
-```
-
-Only after this, optionally:
-
-```lean
-coordinate_envelope_from_mild_and_source_bound :
-  mild_coeff_formula → sup_t ||N(t)||₂≤A → ∃g∈H¹, ∀k, sup_t |u_k(t)|≤g_k
-```
-
-This optional lemma replaces the whole finite σ-ladder if the final API still wants a coordinatewise object.
-
-## Final build-vs-rebuild answer
-
-**Rebuild the main a-priori proof.** The shortest rigorous path is not the coordinatewise ladder. It is:
+Thus
 
 ```text
-repulsive maximum principle for L∞
-+ L² energy window
-+ H¹ differential inequality
-+ uniform Gronwall.
+||u(t)||²_{H¹}
+  = ||u(t)||²₂ + ||u_x(t)||²₂
+  ≤ M² + 2 sup_t y(t).
 ```
 
-This should be less total Lean work than discharging the coordinatewise base envelope and over-quantified `CarrySeam` family. The coordinatewise envelope is not needed for uniform `H¹` boundedness; it should be removed from the main theorem path and, if still required by downstream code, recovered afterwards from the mild coefficient formula and a uniform source bound.
+So yes: the H¹ seminorm bound plus the already-built `L∞` box gives uniform full `H¹` boundedness. In the final theorem, explicitly combine the two facts rather than claiming the seminorm alone is the `H¹` norm.
+
+## 5. Reaction/logistic subtlety
+
+The logistic term cannot break the proof as long as the order box is truly established.
+
+For the maximum principle, the logistic source must provide a scalar upper ODE bound, for example
+
+```text
+f(s) ≤ r s - b s^{1+α}
+```
+
+or more generally a dissipative one-sided bound producing `u≤M`.
+
+For the H¹ energy inequality, you do **not** need the reaction to be dissipative at derivative level. You only need
+
+```text
+Lf := sup_{0≤s≤M} f'(s) < ∞,
+Cf := sup_{0≤s≤M} |s f(s)| < ∞.
+```
+
+Both are automatic for the usual polynomial/logistic source once `0≤u≤M`. The contribution
+
+```text
+∫ f'(u) u_x²
+```
+
+is then bounded by `Lf ||u_x||²₂`, which is absorbed into the `A y` term. It may increase `A`; the uniform-window Gronwall handles that. Therefore the reaction term does not cause non-uniformity after the order box is known.
+
+## 6. Remaining carries (a)--(c): are they honest?
+
+### (a) Divergence-weighted source regularity
+
+This is honest if it is used only to justify:
+
+```text
+termwise spectral differentiation,
+time-C¹ of the coefficient source,
+weighted summability needed for the derivative of the tsum,
+integration-by-parts / coefficient identities.
+```
+
+It becomes suspicious only if the assumptions include something essentially equivalent to
+
+```text
+sup_t ∑ λ_k |û_k(t)|² < ∞
+```
+
+or a uniform-in-time source bound that can only be proved from the target H¹ estimate. Then the seam would be circular.
+
+Audit it syntactically: it should talk about regularity of the classical solution/source on compact time intervals or smooth approximants, not about a global uniform `H¹` bound. If the constants in the source regularity seam are allowed to depend on `T`, that is fine for justifying identities on `[0,T]`; the **estimate constants** `A,B,Cwin` must not depend on those regularity constants.
+
+### (b) Initial-datum coefficient bound
+
+This is honest and necessary for the short-time part `[0,1]` and for `y(0)<∞`. It should be exactly the assumption that the initial datum belongs to `H¹` if the final statement starts at `t=0` with a finite `H¹` bound.
+
+If the initial datum is only `L∞` or `H^σ` with `σ<1`, then a uniform `H¹` bound on `[0,∞)` including `t=0` is false as stated. You can still get
+
+```text
+sup_{t≥τ} ||u(t)||_{H¹} < ∞    for every τ>0
+```
+
+by parabolic smoothing, but not a bound including `t=0` unless `u₀∈H¹`. So make sure the theorem statement and the initial coefficient bound agree.
+
+### (c) `IsPaper2ClassicalSolution`
+
+This is a standard regularity wrapper. If its constructor from the chemotaxis source data is present, then it is legitimate to keep it as the remaining classicality seam. It should supply enough regularity to interpret the PDE pointwise / spectrally and to validate the energy identities.
+
+Again, the classicality seam may depend on local existence and smoothness, but the final uniform bound constants must depend only on the order box, resolver constants, equation parameters, and initial `H¹` size, not on a hidden classical norm over `[0,T]`.
+
+## 7. Possible hidden gaps checklist
+
+The proof is complete if all of the following are true:
+
+```text
+[ ] The L∞ box is uniform in T and includes nonnegativity 0≤u≤M.
+[ ] μ>0 for the Neumann resolver, so the zero mode of v is controlled.
+[ ] Resolver bounds for v_x and v_xx are uniform from 0≤u≤M.
+[ ] The spectral derivative identity is justified by source regularity without assuming the target H¹ bound.
+[ ] The constants A,B in y'≤Ay+B depend only on M, χ₀, μ, f, and fixed domain constants.
+[ ] The L² window ∫_{t-1}^t y≤Cwin is proved with Cwin independent of t and T.
+[ ] Uniform Gronwall is applied to a nonnegative absolutely continuous y.
+[ ] The interval [0,1] is handled separately by y(0) or a local bound.
+[ ] The full H¹ norm combines y with the L∞→L² bound.
+```
+
+If these boxes are checked, there is no hidden analytic gap in the uniform-H¹ argument.
+
+## Final answer to the three questions
+
+1. **Yes**, the χ₀<0 uniform-H¹ bound is complete modulo (a)--(c), provided those carries are regularity/classicality inputs and not hidden a-priori H¹ bounds. The averaging argument is valid and gives a constant independent of `T` because it combines `y'≤Ay+B` with a uniform sliding-window integral of `y`.
+
+2. The H¹ seminorm bound is not by itself the full H¹ bound under Neumann boundary conditions. But the already-built `L∞` box gives a uniform `L²` bound, hence full `H¹` boundedness follows immediately:
+
+   ```text
+   ||u||²_{H¹} ≤ M² + 2y.
+   ```
+
+3. There is no additional standard χ₀<0/logistic subtlety that destroys uniform boundedness in 1D. The logistic term must produce the order box and have bounded derivative on that box. Once `0≤u≤M`, its H¹ contribution is only `≤ Lf ||u_x||²`, which the uniform-window Gronwall handles. The taxis term may not have a good sign in H¹, but Young plus resolver bounds is enough.
+
+Bottom line: the energy/norm route has now reached the right mathematical endpoint. The remaining work is regularity/classicality plumbing, not another missing a-priori estimate.
