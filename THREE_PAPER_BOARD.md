@@ -192,3 +192,13 @@ env) UNCOND+axiom-clean. #1 remaining = ONE scalar:
      β(β+1)(1+v)^{-β-2}(v')² − β(1+v)^{-β-1}v'', all denom powers ≤1 ⟹ bounded by (v')²+|v''| ⟹ ∫ ≤ ‖v‖_{H²}
      τ-uniform from the resolver H^{σ+2} envelope (v in ball uniformly). Faà di Bruno + powers≤1 + resolver
      env. Bounded computation, NOT a Mathlib gap. → opus. CLOSING #1F closes #1 → FluxFactorEnvelopes → trajLadder.
+
+## ★ #4A-tails CLOSED (stale-gap caught) + true #4 residual = RotheFloorResidual (2026-06-22 [opus], verified 8306)
+GreenConvTails: greenConv_tendsto_atTop (missing atTop mirror of landed atBot) + rotheStepTails_of_limits +
+rotheStepTails_greenConv_upperBarrier — all 7 RotheStepTails fields UNCOND given source limits. The "no greenConv-
+tendsto" STALL was STALE (WavePaperRotheProducer already has the atBot DCT). Grep-general win.
+TRUE P1 #4 RESIDUAL (both routes traced): non-paper rotheStepProducer_of_floor needs `RotheFloorResidual` =
+the single honest container for whole-line Green-decay + flux-IBP + source-antitone (WaveRotheFloor:7). Paper
+route paperRotheStepProducer_of_params carries wit + hrest (PaperGreenStepInputRouteASuperRestProvider) + hZsuper.
+My leaf pieces (Green-solve/step-output/RotheMaxData/tails) are PARTS of this floor. → target RotheFloorResidual
+directly (the Green-decay/flux-IBP/source-antitone floor) + the paper hrest, not more leaves.

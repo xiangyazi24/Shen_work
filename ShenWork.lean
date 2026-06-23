@@ -330,3 +330,5 @@ import ShenWork.Paper1.RotheStepOutputImpl
 import ShenWork.Paper2.IntervalGWProductEnvelope
 
 import ShenWork.Paper1.RotheMaxDataImpl
+
+import ShenWork.Paper1.GreenConvTails
