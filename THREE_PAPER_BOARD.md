@@ -120,3 +120,14 @@ FIX (a statement-faithfulness decision — needs the PAPER, FLAGGED to Xiang):
  (c) puncture the asymptotic at χ=0 with a positive offset so cStarStar 0 > baseline strictly.
 This does NOT affect #4/#5/#7 (those are satisfiable); but Paper1MainResultsData cannot be DISCHARGED until #6
 is refactored. P1 audit is BLOCKED on this faithfulness call. (χ₀<0 + P3 unaffected.)
+
+## ★★ #6 RESOLVED ✅ (2026-06-22, ca986bc, independent full-closure 8865 verified) — resolved from paper, not escalated
+cStarStar_spec was over-strong (strict <) → unsatisfiable at χ=0,γ=1. RESOLVED by reading paper1.pdf Thm 1.2
+(line 487): the paper has c∗∗>baseline GENERICALLY but =baseline at the degenerate γ=1, and EXPLICITLY covers
+m=α=γ=1 ("new even for the case m=α=γ=1"). Faithful encoding over CMParams (hγ:1≤γ) = `≤` (strict generic,
+equality at boundary). FIX: 13 spec-interface sites strict→≤ + forced lt_trans→lt_of_le_of_lt; no downstream
+proof needed the strict gap (verified by diff, nothing faked). SATISFIABILITY PROVEN: cStarStar_spec_satis
+fiable (witness (γ+γ⁻¹)+|χ|^{1/6}, axiom-clean) — vacuity GONE. Paper1MainResultsData no longer vacuity-blocked.
+UPDATED REGISTRY: #6 ✅ resolved+fixed. P1 remaining = #4 construction_neg + #5 construction_pos (🟡 Rothe/
+Green core) + #7 stability (🔨 orbital stability) — all → codex Jun 26. P1 bundle now SATISFIABLE end-to-end
+(pending #4/#5/#7 discharge).
