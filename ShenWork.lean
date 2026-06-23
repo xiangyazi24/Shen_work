@@ -390,3 +390,4 @@ import ShenWork.Paper2.IntervalChiNegTrajBanach
 import ShenWork.Paper2.IntervalChiNegTrajBanachClose
 import ShenWork.Paper2.IntervalChiNegTrajBanachFinal
 import ShenWork.Paper2.IntervalChiNegMapsTo
+import ShenWork.Paper2.IntervalReflCircleWiener
