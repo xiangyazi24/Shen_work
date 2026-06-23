@@ -347,3 +347,13 @@ u(a−b·uᵅ) has NONZERO mean → mean EVOLVES → hzero GENERICALLY FALSE (co
     (IntervalDomainThm11ChiZeroCoreProvider:72). → opus. [FLAG: verify χ₀=0 from_cone_construction unconditional
     or carries Hvpos.]
   bridges from E (trajectory envelope) + continuities.
+
+## ★★ P1 #4 chemo → ChemoDefectDominates (paper §4.2 parabolic route) (2026-06-22 [opus], verified 3391, paper-grounded)
+ChemoReactionBalance: quantitative envelope CLOSED UNCOND — kernel-deriv identity Kλ'=r±·Kλ ⟹ |Kλ'|≤ρ·Kλ
+(ρ=greenRootSup), V' bound |deriv frozenElliptic|≤M (landed frozenElliptic_deriv_abs_le), chemo-defect
+integrand bound. hDom reduced to named SATISFIABLE scalar ChemoDefectDominates (hDom_of_chemoDefectDominates +
+hsign bridge). PAPER-GROUNDED finding (paper1 §4.2 eq 4.13): hDom NOT closable from integrated Kλ' kernel (flips
+sign at y=x); the paper signs the chemo term at the PARABOLIC w=uₓ level (max principle on the gradient eqn),
+NOT the integrated kernel. So ChemoDefectDominates = the paper's χ≤0 quasi-monotonicity, dischargeable via the
+parabolic gradient argument (landed WaveAuxMap Green identity for w + WaveAuxInvariance.ChemotaxisSandwich). → opus.
+P1 #4 = ChemoDefectDominates (parabolic quasi-monotonicity) + #4-A flux integrability + #4-D-rest.

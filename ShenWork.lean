@@ -356,3 +356,5 @@ import ShenWork.Paper2.IntervalChiNegMildPackage
 import ShenWork.Paper1.IntegratedChemoDefectImpl
 
 import ShenWork.Paper2.IntervalChiNegSeamDischarge
+
+import ShenWork.Paper1.ChemoReactionBalance
