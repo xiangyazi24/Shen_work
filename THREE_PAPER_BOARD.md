@@ -572,3 +572,15 @@ false w/ matching counterexample; (★) already redundant via contact-point live
 - HONEST: χ₀<0 = FAITHFUL §3.3 conditional; the concrete construction is complete bar these genuine non-landed
   analysis facts + the gW/E_base design reframing. (i)+(ii) are real-analysis lemmas (Young ℓ¹ conv is buildable;
   the gW-absorbing supersolution is the genuine self-referential small-δ crux). NOT a wiring gap.
+
+## [2026-06-23] CORRECTION — the 5d798ef "obstruction" is a bare-sineEnv-interface ARTIFACT, not a χ₀<0 blocker
+The proven (1−α)-derivative loss in IntervalChiNegSupersolution.lean (5d798ef) is REAL but ROUTE-SPECIFIC:
+it only shows the `gwInflatedBase` encoding (forcing the convolution flux `M = trueCosProd(gW E)(sineEnv E)` under
+the BARE `sineEnv Estar = √λ·Estar/(1+λ)` of the landed `chemDuhamelContribution_le`) needs `M ∈ H^{σ+1}`. That
+interface PRE-deflates Estar, so dominating M demands the `(1+λ)/√λ` inflation. NOT a real obstruction.
+The Duhamel KERNEL already carries √λ: `duhamelModeCoeff = ∫ lam^{1/2}·exp(−λ(s−τ))·F` (IntervalBFormHSigmaDuhamelMode:40),
+and the LANDED `hSigma_mode_duhamel_bound` (:79) gives the DIRECT deflation `(1+λ)^{σ/2}·|duhamelModeCoeff| ≤ C·M·s^{(1−σ)/2}`.
+So the chemDuhamel of M is `≤ C'·M_k/(1+λ_k)^{σ/2}`, and `M/(1+λ)^{σ/2} ∈ H^σ` (Σ M² ≤ ‖M‖²_{H^σ}). Hence the
+supersolution `Estar = |û₀| + C'·M/(1+λ)^{σ/2} + log ∈ H^σ` → hEhatH HOLDS via the direct route. Two-way audit
+caught BOTH the producer's STALL and my own over-banking of it. Direct-route build dispatched →
+IntervalChiNegDirectSupersolution.lean.
