@@ -2,7 +2,8 @@
 
 Repo: `xiangyazi24/Shen_work`  
 Branch: `main`  
-Audited HEAD: `103c3b20378d5c282d4b6660633fe0cff5aed60b`
+Audited HEAD: `103c3b20378d5c282d4b6660633fe0cff5aed60b`  
+Report commits: initial `296dc66ee304f1eb7efded4d1b64c85b43174666`; corrected `THIS_COMMIT`
 
 ## Scope note
 
@@ -17,11 +18,11 @@ The actual structure in `ShenWork/Paper1/Statements.lean` also contains four aux
 
 ## Summary table
 
-| Field | Already discharged? | Status | Satisfiable? | Main missing theorem |
+| Field | Already discharged? | Status | Satisfiable? | Main missing theorem / fix |
 |---|---:|---:|---:|---|
 | `construction_neg` | No; carried through the bundle | 🟡 partial | Yes | A completed negative-branch construction producer assembling Rothe/Schauder fixed point, stationary equation, strict bounds, and sharp right-tail asymptotic |
 | `construction_pos` | No; carried through the bundle | 🟡 partial | Yes | Same construction producer under the positive-sign super-barrier regime |
-| `cStarStar_spec` | No landed producer found | ✅ dischargeable now | Yes | Elementary explicit threshold family proof |
+| `cStarStar_spec` | No landed producer found | 🟥 over-strong as typed | No, if the stable regime includes `χ=0, γ=1` | Refactor the strict baseline field at `χ=0` (`≤`, or exclude `χ=0`, or asymptotic punctured at 0 with explicit positive offset) |
 | `stability` | No; carried | 🔨 open | Yes | Full weighted orbital stability theorem for the nonlinear Cauchy problem |
 
 ## 1. `construction_neg`
@@ -78,7 +79,7 @@ The remaining analytic gap is the same fixed-point/Rothe construction core as th
 
 ### Satisfiability / vacuity
 
-Satisfiable/non-vacuous. The parameter regime is consistent: `0≤χ<min(1/2, chiStar p)` is stronger than the super-barrier’s small-positive condition, and the field is aligned with the paper’s critical branch. No over-strong contradiction was found.
+Satisfiable/non-vacuous. The parameter regime is consistent: `0≤χ<min(1/2, chiStar p)` is the paper’s small-positive regime and aligns with the positive super-barrier machinery. No over-strong contradiction was found in this field alone.
 
 ## 3. `cStarStar_spec`
 
@@ -86,8 +87,9 @@ Satisfiable/non-vacuous. The parameter regime is consistent: `0≤χ<min(1/2, ch
 
 For every stable-wave parameter regime, it asks for a threshold family `cStarStarFn p` with:
 
-1. `StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p)`, i.e. a big-O bound around `p.γ + p.γ⁻¹` as `χ→0`;
-2. `stabilitySpeedBaseline p < cStarStarFn p p.χ`.
+1. `StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p)`, i.e. a bound
+   `|c**(χ) - (p.γ+p.γ⁻¹)| ≤ A |χ|^(1/6)` for all sufficiently small `χ`;
+2. the strict pointwise baseline inequality `stabilitySpeedBaseline p < cStarStarFn p p.χ`.
 
 ### Landed pieces
 
@@ -97,23 +99,38 @@ For every stable-wave parameter regime, it asks for a threshold family `cStarSta
 
 ### Classification
 
-✅ **Dischargeable now** (not already discharged). This is elementary real analysis, not PDE. A workable explicit choice is, for example,
-
-```lean
-fun p χ => p.γ + p.γ⁻¹ + 2 * |χ| ^ (1 / 6 : ℝ)
-```
-
-The asymptotic field is immediate with constant `A=2` up to routine real-power bookkeeping. The baseline inequality uses `p.γ≥1`, hence `p.γ+p.γ⁻¹≥2`, and
+🟥 **Over-strong as typed, not merely undischargeable.** The asymptotic definition is not punctured at zero. Plugging `χ=0` into the bound forces
 
 ```text
-stabilitySpeedBaseline p = 1+a+(1+a)⁻¹ < 2+2a
+cStarStarFn p 0 = p.γ + p.γ⁻¹.
 ```
 
-for `a=|p.χ|^(1/6)`.
+But
+
+```text
+stabilitySpeedBaseline p = 1 + |p.χ|^(1/6) + (1+|p.χ|^(1/6))⁻¹,
+```
+
+so at `p.χ = 0`, the baseline is `2`. If `p.γ = 1`, then `p.γ + p.γ⁻¹ = 2`, making the required strict inequality
+
+```text
+2 < 2
+```
+
+impossible. `CMParams` permits `γ = 1`, and `StableWaveParameterRegime` contains the nonnegative branch at `χ = 0` whenever the small-positive side accepts it.
 
 ### Satisfiability / vacuity
 
-Satisfiable/non-vacuous. The field is not over-strong because the threshold family is arbitrary and can be chosen above the baseline while retaining the required `O(|χ|^(1/6))` asymptotic.
+Not globally satisfiable as currently typed if the stable regime includes `χ=0, γ=1`. This is a type-level endpoint bug, not PDE content.
+
+Minimal fixes, in increasing faithfulness:
+
+1. weaken the pointwise baseline field to `≤` at the `χ=0, γ=1` endpoint;
+2. make the asymptotic statement punctured at zero, so `cStarStarFn p 0` can be chosen strictly above the baseline;
+3. restrict the strict baseline comparison to `p.χ ≠ 0` or to `p.γ + p.γ⁻¹ > stabilitySpeedBaseline p` at the evaluated parameter;
+4. separate the speed threshold used for stability from the asymptotic representative.
+
+After such a refactor, the proof is elementary real algebra.
 
 ## 4. `stability`
 
@@ -155,35 +172,39 @@ theorem paper1_weighted_orbital_stability
 
 ### Satisfiability / vacuity
 
-Satisfiable/non-vacuous. The field is mathematically strong but aligned with Paper 1’s Theorem 1.2. No formal inconsistency was detected. It is simply unproved.
+Satisfiable/non-vacuous. The field is mathematically strong but aligned with Paper 1’s Theorem 1.2. No formal inconsistency was detected in the stability statement itself. It is simply unproved.
 
 ## Most tractable next target
 
-`cStarStar_spec` is the most tractable next target.
+The most tractable target is now the **`cStarStar_spec` type correction**, not a proof of the existing field.
 
 ### Precise route
 
-1. Define a concrete threshold family:
+1. Refactor the structure field. The minimal mechanically safe variant is:
+
+```lean
+cStarStar_spec : ∀ p : CMParams, StableWaveParameterRegime p →
+  StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+    (p.χ = 0 ∧ p.γ = 1 ∨ stabilitySpeedBaseline p < cStarStarFn p p.χ)
+```
+
+A cleaner mathematical variant is to make the asymptotic punctured at zero and keep the strict baseline condition.
+
+2. After refactor, prove the explicit threshold algebra. A punctured-asymptotic version can use, for instance:
 
 ```lean
 def paper1_cStarStarFn_explicit (p : CMParams) (χ : ℝ) : ℝ :=
-  p.γ + p.γ⁻¹ + 2 * |χ| ^ (1 / 6 : ℝ)
+  if χ = 0 then stabilitySpeedBaseline p + 1
+  else p.γ + p.γ⁻¹ + 2 * |χ| ^ (1 / 6 : ℝ)
 ```
 
-2. Prove `StabilitySpeedThresholdFamilyAsymptotic p (paper1_cStarStarFn_explicit p)` with `A = 2` and any `δ > 0`.
-
-3. Prove `stabilitySpeedBaseline p < paper1_cStarStarFn_explicit p p.χ` using:
-   - `1 ≤ p.γ`, hence `2 ≤ p.γ + p.γ⁻¹`;
-   - `a = |p.χ|^(1/6) ≥ 0`;
-   - `1+a+(1+a)⁻¹ < 2+2a`.
-
-4. Package it as the `cStarStar_spec` field. This creates no new PDE obligations and gives a concrete `cStarStarFn` for later `Paper1MainResultsData` assembly.
+3. Mirror the existing speed-consequence lemmas (`kappa_pos_of_stabilitySpeedBaseline_lt`, `kappa_lt_one_of_stabilitySpeedBaseline_lt`, `kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt`) after the refactor, because these consumers only need the strict baseline inequality at the actual evaluated parameter.
 
 ## Final distance map
 
 - `construction_neg`: 🟡 partial; hard construction producer still missing.
 - `construction_pos`: 🟡 partial; same construction producer, positive-sign super-barrier already swapped in.
-- `cStarStar_spec`: ✅ dischargeable now; elementary threshold-family proof.
+- `cStarStar_spec`: 🟥 over-strong as typed at the `χ=0, γ=1` endpoint; fix/refactor first.
 - `stability`: 🔨 open; full nonlinear orbital stability theorem.
 
-The bundle is satisfiable overall, but the tree does not yet discharge it. The current P1 headline remains a sorry-free conditional wrapper, not an unconditional Paper 1 theorem.
+The current P1 headline remains a sorry-free conditional wrapper. The requested 4-field bundle is not fully non-vacuous as typed until the `cStarStar_spec` endpoint issue is repaired.
