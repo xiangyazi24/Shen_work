@@ -309,3 +309,5 @@ import ShenWork.Paper2.IntervalMildBootstrapStep
 import ShenWork.Paper2.IntervalTrajectoryEnvelope
 
 import ShenWork.Paper2.IntervalConjugateSourceBridge
+
+import ShenWork.Paper2.IntervalTrajectoryEnvelopeClosure
