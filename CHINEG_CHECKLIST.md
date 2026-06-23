@@ -38,3 +38,16 @@ supersolution Estar (IntervalChiNegDirectSupersolution, hEhatH discharged) — t
 Banach OUTPUT (domination by uniqueness), NOT a prior-envelope-dependent ladder step. So E₀ = the EnvBall/
 trajBanach fixed point at Estar, combining the machinery already built this session. NEXT: wire trajBanach +
 direct-route supersolution + the MapsTo into the base E₀ producer (the genuine local-existence core).
+
+## [2026-06-23] STRUCTURAL: BCF base is τ=0-broken; redirect to DIRECT domination (no BCF)
+trajPhi (Traj t = C(closed box [0,t]×Ω)) requires hcontFam = the Duhamel map continuous on the CLOSED box. But
+intervalConjugateDuhamelMap at t=0 = intervalFullSemigroupOperator 0 (lift u₀) + 0 + 0 = 0 (intervalFull
+SemigroupOperator_zero: Neumann kernel is a Dirac at t=0, represented as 0), while τ→0⁺ → u₀ (strong continuity).
+So the map JUMPS at τ=0 for u₀≢0 ⟹ hcontFam UNSATISFIABLE ⟹ the BCF/trajBanach base (a54820ef + the G1/G2/G3
+bridges) is VACUOUSLY conditional. The BCF approach is over-engineered AND broken at τ=0.
+REDIRECT: meanReach_H1_of_base takes E₀ as a plain TrajectoryHSigmaEnvelope STRUCTURE (env/henv/hdom), no BCF, no
+map-continuity. hdom for u=conjugatePicardLimit holds DIRECTLY: s=0 trivial (u 0 = 0 → 0 ≤ E₀, the τ=0 convention
+HELPS), s>0 via conjugateSlice_decomp_tauLift + the direct supersolution bounds (heat≤|û₀|, chemDuhamel≤chemE via
+chemDuhamel_direct, log≤logE). The genv(E₀) self-reference resolves as a SEQUENCE-space supersolution fixed point
+(small T contraction, memHSigma_deflate), NOT a BCF function-space fixed point — so NO τ=0 continuity issue.
+G1/G2/G3 bridges + the BCF base are now SUPERSEDED for the live base route.
