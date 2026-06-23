@@ -400,3 +400,4 @@ import ShenWork.Paper2.IntervalCarrySeamFrontier
 import ShenWork.Paper2.IntervalCarrySeamGradient
 import ShenWork.Paper2.IntervalReflCircleContinuousOn
 import ShenWork.Paper2.IntervalCarrySeamGradientContinuousOn
+import ShenWork.Paper2.IntervalChiNegBaseDirect
