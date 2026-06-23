@@ -413,3 +413,4 @@ import ShenWork.Paper2.IntervalChiNegUniformClose
 import ShenWork.Paper2.IntervalChiNegCoordCert
 import ShenWork.Paper2.IntervalChiNegHenvEnvBall
 import ShenWork.Paper2.IntervalChiNegAssemble
+import ShenWork.Paper2.IntervalChiNegHmdC
