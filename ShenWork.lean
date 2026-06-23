@@ -403,3 +403,4 @@ import ShenWork.Paper2.IntervalCarrySeamGradientContinuousOn
 import ShenWork.Paper2.IntervalChiNegBaseDirect
 import ShenWork.Paper2.IntervalChiNegCapstone
 import ShenWork.Paper2.IntervalChiNegTrajBridges
+import ShenWork.Paper2.IntervalChiNegLegContinuity
