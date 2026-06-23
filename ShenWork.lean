@@ -380,3 +380,4 @@ import ShenWork.Paper2.IntervalChiNegEnvelopePersistence
 import ShenWork.Paper2.IntervalChiNegCandidateInvariance
 import ShenWork.Paper2.IntervalChiNegBoxExtendDischarge
 import ShenWork.Paper2.IntervalChiNegRestartIdentity
+import ShenWork.Paper1.IntervalP1AdmissibleClosure
