@@ -378,3 +378,14 @@ RotheMaxData [#4-I landed], nonneg [greenConv_nonneg]} → hprodTrap via the CON
 (rotheStep_le_barrier), NOT the global (★). My residual-tree route (RotheFloorResidual→...→carries ★) was the
 WRONG/pessimistic route. → route construction_neg through the live producer: build RotheStepInput from #4-A+#4-I
 + landed tails/floor → rotheStepProducer → hprodTrap → b1_chiNeg_existence (+hdep/hprinciple/hGreen/hlim). (★) GONE.
+
+## ★★ χ₀<0 FIX1 k=0 DISCHARGED (false hzero removed) (2026-06-23 [opus], verified 3627, corrected me twice)
+IntervalChiNegMeanFixed{Step,Iterate}+SeamFixed{,Reach}: trajLadder_step_meanFixed (k=0 via DIRECT mean bound
+|coeff_0|≤Mmean, k≠0 via conjugateSlice_decomp_tauLift_pos) — the false hzero FULLY REMOVED (root cause was
+deeper: also in htraj_dom + hdecomp; fixed via decoupled mean-step, no existing file edited). meanReach_H1_
+conjugate reaches TrajectoryHSigmaEnvelope 1, axiom-clean. SUBAGENT CORRECTED ME: FIX2 (Hvpos via greenConv_
+nonneg) WRONG — greenConv_nonneg is Paper1 full-line advection-diffusion, resolverValue is Paper2 Fourier-cosine
+Neumann resolver; different operators, no bridge. χ₀<0 genuine residuals: E₀ (R1 base seed, dischargeable via
+trajBaseEnvelope_of_fluxFactors) + hvnn (Neumann-resolver positivity, provable via kernel positivity) + bridge
+assembly. The false-field obstruction is GONE; remaining is provable/landed. (Xiang independently confirmed (★)
+false w/ matching counterexample; (★) already redundant via contact-point live producer.)

@@ -362,3 +362,11 @@ import ShenWork.Paper1.ChemoReactionBalance
 import ShenWork.Paper1.ChemoDefectDominatesImpl
 
 import ShenWork.Paper1.GradientQuasiMonotone
+
+import ShenWork.Paper2.IntervalChiNegMeanFixedStep
+
+import ShenWork.Paper2.IntervalChiNegMeanFixedIterate
+
+import ShenWork.Paper2.IntervalChiNegSeamFixed
+
+import ShenWork.Paper2.IntervalChiNegSeamFixedReach
