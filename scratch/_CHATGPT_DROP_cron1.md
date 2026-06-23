@@ -1,352 +1,267 @@
 # ChatGPT git-drop (cron1)
 
-## Q68 — χ₀<0 coordinatewise H^σ envelope and Fubini swap
+## Q72 — Per-mode mild/Duhamel identity: deep representation theorem or Fubini?
 
 ### Executive verdict
 
-**Q1.** The fixed-`Estar` restart/continuation route is sound for arbitrary finite data **only after** it is formulated as a genuinely coordinatewise, robust invariant-envelope argument. It does **not** follow from a scalar `H^σ` budget such as `B(Estar) ~ ‖Estar‖_{H^σ}²` alone, and it does **not** follow from the landed `L∞` order-box existence alone. The right statement is:
+If you already have the **spatial mild identity** for each `t > 0` as an equality in a function space on `[0,1]` where the cosine-coefficient functional is bounded linear, then the per-mode identity is **not** a new parabolic representation theorem.
 
-```lean
-hstrict : Tδ (ρ • Estar) ≤ Estar        -- coordinatewise, with ρ > 1
+It is exactly:
+
+1. apply the bounded linear functional
+
+```text
+L_k(f) = cosineCoeffs f k = c_k ∫_0^1 cos(kπx) f(x) dx,
 ```
 
-or, less robustly,
+2. use linearity of `L_k`,
+3. commute `L_k` through the Bochner/interval time integrals by `ContinuousLinearMap.integral_comp_comm`, equivalently scalar Fubini,
+4. use the already-known spectral action of the heat semigroup on cosine modes for the initial heat term.
+
+So the carried seam
 
 ```lean
-hstrict : Tδ Estar ≤ θ • Estar          -- coordinatewise, θ < 1
+cosineCoeffs (∫ time, spatialIntegrand time) k
+  = ∫ time, cosineCoeffs (spatialIntegrand time) k
 ```
 
-plus a local restricted-contraction/invariance step in the `Estar` envelope box. With that, the time step `δ` may be data-dependent and very small, but positive; finitely many steps cover a fixed finite `[0,T]`. No small-data assumption is inherently needed. What is needed is a **coordinatewise supersolution certificate**, not just a norm estimate.
+is trivial once the mild integral is a legitimate Bochner integral and the coefficient functional is available as a continuous linear map. The diagonal convention `S(0)=0` is harmless because it changes the time integrand on a null set.
 
-**Q2.** The Fubini/coefficient swap is valid. The jump at the diagonal `s = τ` is harmless because it is a null time slice, and Bochner integrals are insensitive to a.e. changes. The minimal hypotheses are `AEStronglyMeasurable` plus an integrable majorant. In Mathlib, either use `ContinuousLinearMap.integral_comp_comm` for a continuous linear coefficient functional, or use scalar Fubini via `MeasureTheory.intervalIntegral_intervalIntegral_swap` / `MeasureTheory.integral_integral_swap`. The diagonal convention `S(0)=0` causes no mathematical obstruction.
+The only genuinely nontrivial things that could still be hiding under the name “parabolic representation theorem” are **not** the Fubini/per-mode passage itself. They are:
+
+- proving the spatial mild identity in the right Banach/function space;
+- proving the time integrands are Bochner integrable / strongly measurable;
+- proving the heat or gradient kernels have the claimed spectral action, e.g. `cosineCoeffs (S(t) f) k = exp(-t λ_k) cosineCoeffs f k`, or the corresponding `B = ∂x S` mode formula;
+- handling an a.e.-in-space equality if your mild identity is only an `Lᵖ` equality rather than a continuous-function equality.
+
+But if those pieces are already landed, the per-mode Duhamel identity is immediate.
 
 ---
 
-## Q1 — fixed supersolution versus small data
+## Precise mathematical statement
 
-### 1. What the fixed-`Estar` route must actually prove
-
-Let
-
-```lean
-BoundUpTo Estar r :=
-  ∀ s ∈ Set.Icc (0:ℝ) r, ∀ k,
-    |cosineCoeffs (u s) k| ≤ Estar k
-```
-
-and suppose `Estar ∈ H^σ`, i.e.
-
-```lean
-hEstar : MemHSigma σ Estar
-```
-
-with `σ > 1/2` and, for a ratio/inflated-box argument, preferably
-
-```lean
-hEstar_pos : ∀ k, 0 < Estar k
-```
-
-or else a harmless positive `H^σ` tail has to be added.
-
-The non-circular continuation step should not say:
-
-> Since `BoundUpTo Estar r` holds, estimate the new interval `[r,r+δ]` from the old bound.
-
-That is circular for the chemotaxis flux, because the Duhamel integral over `[r,s]` depends on `u(τ)` for `τ ∈ [r,s]`, and the envelope on that new interval is exactly what is being proved.
-
-The correct local step is instead:
-
-1. Build a local candidate path space on `[r,r+δ]` consisting of paths in the landed `L∞` order box **and** satisfying the coefficient envelope `Estar` (or `ρ • Estar`) on the new interval.
-2. Concatenate each candidate with the already-known old solution on `[0,r]`.
-3. On this candidate history, the whole interval `[0,r+δ]` satisfies the envelope bound by construction, so all factor envelopes can be built from `Estar` or `ρ • Estar` without circularity.
-4. Prove the mild map sends this restricted candidate space into itself using the coordinatewise supersolution inequality.
-5. Use the already-landed `L∞` contraction metric restricted to this closed invariant subset. The contraction constant is inherited from the `L∞` order-box contraction.
-6. Use uniqueness in the larger `L∞` order box to identify this restricted fixed point with the pre-existing mild solution.
-
-This gives the carried extension field:
-
-```lean
-hext : ∀ r, 0 ≤ r → r < T → BoundUpTo Estar r →
-  ∃ r' > r, r' ≤ T ∧ BoundUpTo Estar r'
-```
-
-without assuming the conclusion on the actual solution.
-
-### 2. Why the `L∞` short-piece estimate alone does not close
-
-The tempting shortcut is to restart at time `r` and estimate the short tail `[r,s]` using only the `L∞` order box:
+Let `X` be a Banach space of spatial functions on `[0,1]`, for example `C([0,1], ℝ)` or a bundled interval-domain continuous-function type. For each `k`, define
 
 ```text
-|u(τ,x)| ≤ M'
+L_k : X →L[ℝ] ℝ,
+L_k(f) = c_k ∫_0^1 cos(kπx) f(x) dx.
 ```
 
-This is not enough for a coordinatewise `H^σ` envelope. A bounded source has at best a flat coefficient bound
+For `C([0,1], ℝ)`, boundedness is elementary:
 
 ```text
-|F_k(τ)| ≲ M'
+|L_k(f)| ≤ c_k ∫_0^1 |f(x)| dx ≤ c_k ‖f‖∞.
 ```
 
-or some weak heat-smoothed tail. For the gradient/chemotaxis Duhamel mode one sees the obstruction already in the model estimate
+Suppose the spatial mild identity is
 
 ```text
-sqrt(λ_k) ∫_r^s exp(-(s-a)λ_k) C da
-  = C * (1 - exp(-(s-r)λ_k)) / sqrt(λ_k).
+u(τ)
+  = S(τ) u₀
+    + (-χ₀) • ∫ s in 0..τ, B(τ-s) (chemFlux (u s))
+    +        ∫ s in 0..τ, S(τ-s) (logistic (u s))
 ```
 
-For fixed `k` this tends to zero as `s-r → 0`, but not uniformly relative to an arbitrary `H^σ` coordinate envelope. For high modes `k >> (s-r)^(-1/2)`, this behaves like `C / sqrt(λ_k) ~ C/k`. A typical `H^σ` envelope with `σ > 1/2` may decay faster than `1/k`, so the ratio to `Estar k` can blow up. Thus:
-
-```text
-L∞ order-box bound + small δ
-```
-
-is not a coordinatewise `H^σ` persistence theorem.
-
-This is the same basic reason that a uniform `L²` or `H^σ` norm bound does not imply a single coordinatewise summable envelope: `sup_τ Σ_k ...` does not imply `Σ_k sup_τ ...`.
-
-### 3. What the elapsed-time factor really buys
-
-You wrote a landed estimate of the form
-
-```text
-(1+λ_k)^(σ/2) * |Duhamel_k(δ)|
-  ≤ C * sup_s |F_k(s)| * δ^((1-σ)/2) / ((1-σ)/2).
-```
-
-This is useful, but with two caveats.
-
-First, the displayed `δ^((1-σ)/2)` is a small factor only when
-
-```text
-σ < 1.
-```
-
-If `σ ≥ 1`, the exponent is nonpositive and this direct endpoint estimate is not a small-gain base estimate. For the `σ ∈ (1/2, 3/2)` regime, the formal route should start with a seed level `< 1` and then use the already-landed σ-ladder / Duhamel gain step with gain `< 1` to reach `H¹`. Do not use the displayed base estimate directly at `σ ≥ 1`.
-
-Second, a scalar quadratic budget
-
-```text
-B(Estar) ~ ‖Estar‖_{H^σ}²
-```
-
-is not itself a coordinatewise supersolution. The inequality needed by the bootstrap is not merely
-
-```text
-‖D_Q(G_Q(Estar))‖_{H^σ} ≤ C B(Estar),
-```
-
-but
+as an equality in `X`, and suppose the two time integrands are integrable as `X`-valued functions:
 
 ```lean
-∀ k,
-  heatPart_k + |χ₀| * chemPart_k + logPart_k ≤ Estar k.
+hchem_int : Integrable (fun s => B (τ-s) (chemFlux (u s))) μτ
+hlog_int  : Integrable (fun s => S (τ-s) (logistic (u s))) μτ
 ```
 
-This is strictly stronger. In particular, a bound by a canonical tail like
+where `μτ` is the restricted Lebesgue measure corresponding to the interval integral `0..τ`.
+
+Then applying `L_k` gives
 
 ```text
-C * B(Estar) * (1+λ_k)^(-σ/2)
+L_k(u(τ))
+  = L_k(S(τ)u₀)
+    + (-χ₀) * L_k(∫ s, B(τ-s)(chemFlux(u s)))
+    +          L_k(∫ s, S(τ-s)(logistic(u s))).
 ```
 
-would not even be an `H^σ` envelope by itself: multiplying its square by `(1+λ_k)^σ` gives a non-summable constant tail. The actual proof must use the real envelope sequence produced by the Duhamel propagator, convolution algebra, and source envelopes, not only a scalar norm budget.
-
-### 4. Does arbitrary data force small-data?
-
-No small-data assumption is inherent **provided** the following are available:
-
-```lean
--- coordinatewise robust supersolution, with δ allowed to depend on Estar
-hstrict : ∀ k, Tδ (ρ • Estar) k ≤ Estar k
-
--- local restricted-contraction/invariance in the Estar or ρ•Estar box
-hext_local : BoundUpTo Estar r → ∃ r' > r, r' ≤ T ∧ BoundUpTo Estar r'
-```
-
-For large data, the admissible step size may be tiny, e.g.
+The integral terms commute:
 
 ```text
-δ_max ~ (margin / (|χ₀| * C * B(Estar)))^p,
+L_k(∫ s, B(τ-s)(chemFlux(u s)))
+  = ∫ s, L_k(B(τ-s)(chemFlux(u s))),
+
+L_k(∫ s, S(τ-s)(logistic(u s)))
+  = ∫ s, L_k(S(τ-s)(logistic(u s))).
 ```
 
-with `p > 0`, but it is still positive if the coordinatewise margin is positive. Then `ceil(T / δ_max)` steps cover `[0,T]`.
-
-Thus the route is **local-in-time invariant box iteration**, not small-data. The data-size dependence moves into the chosen local time step. This is a standard continuation mechanism.
-
-But if the only proven fact is a global scalar `H^σ` or `L²` bound, then the route does not close. One needs the coordinatewise supersolution certificate or an alternative energy/Gronwall theorem that directly constructs a coordinatewise envelope.
-
-### 5. The low mode and margin issue
-
-The heat factor gives no help at `k = 0` because `λ_0 = 0`, and only weak help for small positive modes over short times. Therefore the supersolution has to include the mean/logistic low-mode budget explicitly. The mean-fixed formal route does this by patching the zero mode with a direct mean bound rather than relying on the false mean-conservation row.
-
-For the continuation proof, the robust form
-
-```lean
-Tδ (ρ • Estar) ≤ Estar
-```
-
-is cleaner than relying on pointwise strictness
-
-```lean
-Tδ Estar ≤ θ • Estar.
-```
-
-The latter gives a margin `(1-θ) Estar k`, which tends to zero as `k → ∞`. Per-mode continuity cannot exploit that uniformly in `k`. The restricted-contraction/invariant-subset proof avoids needing a uniform-in-`k` continuity radius.
-
-### 6. Lean-formalizable shape for Q1
-
-The clean local theorem should be stated around an invariant restricted space, not around per-mode openness.
-
-Suggested abstract definitions:
-
-```lean
-def BoundAt (E : ℕ → ℝ) (s : ℝ) : Prop :=
-  ∀ k, |cosineCoeffs (u s) k| ≤ E k
-
-def BoundUpTo (E : ℕ → ℝ) (r : ℝ) : Prop :=
-  ∀ s ∈ Set.Icc (0:ℝ) r, BoundAt E s
-```
-
-For a restart at `r`, define a candidate subtype of the already-landed `L∞` order-box path space:
-
-```lean
-def EnvOrderBox (E : ℕ → ℝ) (r δ : ℝ) : Set Path :=
-  { w |
-      LinftyOrderBox w ∧
-      restart_initial_condition w r ∧
-      ∀ s ∈ Set.Icc r (min T (r + δ)),
-        ∀ k, |cosineCoeffs (w s) k| ≤ E k }
-```
-
-Then prove:
-
-```lean
-hclosed_env : IsClosed (EnvOrderBox E r δ)
-hcomplete_env : CompleteSpace {w // w ∈ EnvOrderBox E r δ}
-hmaps_env : MapsTo (restrictedMildMap r δ) (EnvOrderBox E r δ) (EnvOrderBox E r δ)
-hcontract_env : ContractingWith q (restrictedMildMap r δ on the subtype)
-```
-
-`hcontract_env` should be inherited from the landed `L∞` contraction, because the metric is still the `L∞` metric and the subtype is smaller. The only new analytic work is `hmaps_env`, the invariant-envelope proof. This is exactly where the supersolution inequality is used.
-
-The conclusion is:
-
-```lean
-theorem hext_of_restricted_contraction
-    (hgood : BoundUpTo Estar r)
-    (hstrict : Tδ (ρ • Estar) ≤ Estar)
-    (hrestricted : restricted L∞ contraction + invariant EnvOrderBox)
-    (huniq : uniqueness in the larger L∞ order box) :
-  ∃ r' > r, r' ≤ T ∧ BoundUpTo Estar r'
-```
-
-This is more Lean-tractable than building a new Banach contraction in
+The heat initial term is then reduced by the semigroup spectral identity:
 
 ```text
-X_E = { a : ℕ → ℝ | sup_k |a_k| / E_k < ∞ }.
+L_k(S(τ)u₀) = exp(-τ λ_k) L_k(u₀).
 ```
 
-`X_E` is mathematically a Banach space if `E_k > 0`, since it is isometric to `ℓ∞`. But proving the nonlinear chemotaxis map is Lipschitz in that weighted coefficient norm requires new difference estimates for resolver, denominator composition, Wiener products, and the mixed product. The restricted-subset route reuses the landed `L∞` contraction and only adds an invariance lemma.
+Thus
+
+```text
+ĉ_k(u(τ))
+  = exp(-τ λ_k) û₀_k
+    + (-χ₀) ∫_0^τ ĉ_k(B(τ-s)(chemFlux(u(s)))) ds
+    +        ∫_0^τ ĉ_k(S(τ-s)(logistic(u(s)))) ds.
+```
+
+This is precisely the desired per-mode mild identity.
 
 ---
 
-## Q2 — Fubini/coefficient swap with the diagonal convention `S(0)=0`
+## Lean / Mathlib lemma chain: continuous-linear-map route
 
-### 1. Mathematical statement
+This is the cleanest formalization if your Duhamel integrals are already Bochner integrals into a Banach space of spatial functions.
 
-For fixed `τ` and `k`, set
+### 1. Bundle the coefficient as a continuous linear map
 
-```text
-H(s,x) = S(τ-s)(f(s))(x)
-```
-
-for `s < τ`, and set `H(τ,x) = 0` by convention. The desired identity is
-
-```text
-cosineCoeffs (fun x => ∫ s in 0..τ, H(s,x) ds) k
-  = ∫ s in 0..τ, cosineCoeffs (fun x => H(s,x)) k ds.
-```
-
-The diagonal issue is harmless. For fixed `τ`, the bad set is the time slice `{τ}` times the spatial interval. This set has product measure zero. Changing the integrand there does not change either the Bochner integral in time or the product integral used by Fubini.
-
-So the convention `S(0)=0`, even though the left limit as `s → τ-` is `f(τ)`, causes no problem.
-
-### 2. Minimal hypotheses
-
-For fixed `τ`, it is enough to have the following on the rectangle `[0,τ] × [0,1]`:
-
-1. `AEStronglyMeasurable` of the scalar integrand
+Define or prove a lemma exposing:
 
 ```lean
-fun z : ℝ × ℝ => Real.cos ((k:ℝ) * Real.pi * z.2) * H z.1 z.2
+cosCoeffCLM (k : ℕ) : X →L[ℝ] ℝ
 ```
 
-with respect to the product of restricted Lebesgue measures.
-
-2. An integrable majorant. A typical bound is
-
-```text
-|H(s,x)| ≤ C_f
-```
-
-coming from
-
-```text
-‖S(τ-s) f(s)‖∞ ≤ ‖f(s)‖∞ ≤ C_f.
-```
-
-Since `|cos| ≤ 1` and `[0,τ] × [0,1]` has finite measure, the product integrand is integrable.
-
-3. The coefficient normalization is a finite scalar multiple of a spatial integral, e.g.
-
-```text
-cosineCoeffs g k = c_k ∫ x in 0..1, cos(kπx) * g x dx
-```
-
-with `c_0 = 1`, `c_k = 2` for `k ≥ 1` depending on your normalization.
-
-No joint continuity at the diagonal is required. A.e. strong measurability plus integrability is enough.
-
-### 3. Clean Mathlib path A: continuous linear coefficient functional
-
-If your time-dependent heat output is represented as a Bochner-integrable path into a Banach function space, this is the cleanest route.
-
-Define a continuous linear map
+with
 
 ```lean
-cosCoeffCLM (k : ℕ) : C(Icc01, ℝ) →L[ℝ] ℝ
+cosCoeffCLM_apply : cosCoeffCLM k f = cosineCoeffs f k
 ```
 
-or an analogous continuous linear functional on an `L¹`/interval-integrable function space, with
+For continuous functions on `[0,1]`, this is just the integral functional against the bounded continuous test function `cos(kπx)`. The proof is the sup-norm bound:
+
+```text
+|∫_0^1 cos(kπx) f(x) dx| ≤ ∫_0^1 |f(x)| dx ≤ ‖f‖∞.
+```
+
+If your existing `cosineCoeffs` is defined on raw `ℝ → ℝ`, you can either wrap slices as continuous maps, or prove a bespoke lemma:
 
 ```lean
-cosCoeffCLM k g = cosineCoeffs g k.
+cosineCoeffs_integral_comm
 ```
 
-Then use:
+from Fubini. The `ContinuousLinearMap` route is cleaner once the spatial mild identity is already in a function space.
+
+### 2. Apply the coefficient functional to the spatial mild identity
+
+Given
+
+```lean
+h_mild_spatial :
+  u τ = S τ u₀
+    + (-χ₀) • (∫ s in 0..τ, B (τ-s) (chemFlux (u s)))
+    +        (∫ s in 0..τ, S (τ-s) (logistic (u s)))
+```
+
+use, schematically:
+
+```lean
+have hmode := congrArg (fun f => cosCoeffCLM k f) h_mild_spatial
+```
+
+Then simplify by linearity:
+
+```lean
+simp [ContinuousLinearMap.map_add, ContinuousLinearMap.map_smul] at hmode
+```
+
+or just `simp` if the coercions are arranged.
+
+### 3. Commute the functional through the time integrals
+
+Mathlib theorem:
 
 ```lean
 ContinuousLinearMap.integral_comp_comm
 ```
 
-in the form
+has the essential shape:
 
 ```lean
-∫ s, cosCoeffCLM k (Φ s) ∂μ
-  = cosCoeffCLM k (∫ s, Φ s ∂μ)
+(L : E →L[𝕜] F) → Integrable φ μ →
+  ∫ x, L (φ x) ∂μ = L (∫ x, φ x ∂μ)
 ```
 
-or its symmetric rewrite. Mathlib also has evaluation support for continuous-map-valued integrals:
+So in the direction you usually want:
 
 ```lean
-ContinuousMap.integral_apply
+have hchem_comm :
+    cosCoeffCLM k (∫ s, B (τ-s) (chemFlux (u s)) ∂μτ)
+      = ∫ s, cosCoeffCLM k (B (τ-s) (chemFlux (u s))) ∂μτ := by
+  simpa using ((cosCoeffCLM k).integral_comp_comm hchem_int).symm
+
+have hlog_comm :
+    cosCoeffCLM k (∫ s, S (τ-s) (logistic (u s)) ∂μτ)
+      = ∫ s, cosCoeffCLM k (S (τ-s) (logistic (u s))) ∂μτ := by
+  simpa using ((cosCoeffCLM k).integral_comp_comm hlog_int).symm
 ```
 
-This path avoids a manual two-variable Fubini proof. The diagonal jump is still harmless because the time path only needs to be Bochner integrable, not continuous everywhere.
+For interval integrals, either phrase the Duhamel integral as a set integral over `volume.restrict (Set.uIoc 0 τ)`, or convert using:
 
-### 4. Clean Mathlib path B: scalar Fubini on the rectangle
+```lean
+intervalIntegral.integral_of_le hτ_nonneg
+```
 
-If the coefficient is already unfolded as an interval integral, use scalar Fubini.
+when `0 ≤ τ`. In practice the pattern is:
 
-Let
+```lean
+rw [intervalIntegral.integral_of_le hτ_nonneg]
+exact ((cosCoeffCLM k).integral_comp_comm hchem_int).symm
+```
+
+where `hchem_int` is stated for the restricted measure on `Set.Ioc 0 τ`.
+
+### 4. Rewrite the heat term spectrally
+
+You still need the standard heat-mode lemma:
+
+```lean
+cosineCoeffs_heatSemigroup
+  : cosineCoeffs (S τ u₀) k = Real.exp (-(τ * lam k)) * cosineCoeffs u₀ k
+```
+
+or whatever name exists in the repo.
+
+This is not Fubini; it is the spectral diagonalization of `S(t)`. But it is a basic heat-kernel/eigenfunction identity. If this lemma is already available, the per-mode initial term is done.
+
+### 5. Final shape
+
+The final theorem should look like:
+
+```lean
+theorem perMode_mild_of_spatial_mild
+    (hτ : 0 ≤ τ)
+    (h_mild_spatial : spatial mild identity at τ)
+    (hchem_int : Integrable (fun s => B (τ-s) (chemFlux (u s))) μτ)
+    (hlog_int  : Integrable (fun s => S (τ-s) (logistic (u s))) μτ)
+    (hheat_mode : cosineCoeffs (S τ u₀) k = Real.exp (-(τ * lam k)) * cosineCoeffs u₀ k) :
+    cosineCoeffs (u τ) k
+      = Real.exp (-(τ * lam k)) * cosineCoeffs u₀ k
+        + (-χ₀) * (∫ s in 0..τ,
+            cosineCoeffs (B (τ-s) (chemFlux (u s))) k)
+        + (∫ s in 0..τ,
+            cosineCoeffs (S (τ-s) (logistic (u s))) k) := by
+  -- apply `cosCoeffCLM k` to `h_mild_spatial`
+  -- rewrite by `map_add`, `map_smul`
+  -- use `ContinuousLinearMap.integral_comp_comm` for both integrals
+  -- use `hheat_mode`
+  -- ring/simp
+```
+
+This is a small lemma, not a deep representation theorem.
+
+---
+
+## Scalar Fubini route, if you do not want to bundle `cosCoeffCLM`
+
+If the mild identity is pointwise in `x` and your spatial integral is represented as a raw function
+
+```lean
+fun x => ∫ s in 0..τ, H s x
+```
+
+then unfold `cosineCoeffs` and use scalar Fubini.
+
+For fixed `k`, define
 
 ```lean
 def K (x s : ℝ) : ℝ :=
@@ -359,70 +274,22 @@ Prove
 hK_int : IntegrableOn K.uncurry (Set.uIoc 0 1 ×ˢ Set.uIoc 0 τ)
 ```
 
-or with the variables swapped depending on the lemma orientation. Then use:
+Then Mathlib has:
 
 ```lean
 MeasureTheory.intervalIntegral_intervalIntegral_swap
 ```
 
-which has shape:
+with shape:
 
 ```lean
 ∫ x in a..b, ∫ y in c..d, F x y
   = ∫ y in c..d, ∫ x in a..b, F x y
 ```
 
-from an `IntegrableOn F.uncurry (uIoc a b ×ˢ uIoc c d)` hypothesis.
+from an `IntegrableOn F.uncurry (Set.uIoc a b ×ˢ Set.uIoc c d)` hypothesis.
 
-For one interval and one arbitrary measure, Mathlib also has:
-
-```lean
-MeasureTheory.intervalIntegral_integral_swap
-```
-
-and the fully product-measure version:
-
-```lean
-MeasureTheory.integral_integral_swap
-```
-
-with hypothesis
-
-```lean
-Integrable (Function.uncurry f) (μ.prod ν)
-```
-
-The useful surrounding lemmas are:
-
-```lean
-MeasureTheory.integral_prod
-MeasureTheory.integral_prod_symm
-MeasureTheory.integral_integral
-MeasureTheory.integral_integral_swap
-MeasureTheory.Integrable.integral_prod_left
-MeasureTheory.Integrable.integral_prod_right
-MeasureTheory.integrable_prod_iff
-```
-
-For integrability from a bounded majorant on a finite rectangle, use:
-
-```lean
-MeasureTheory.IntegrableOn.of_bound
-```
-
-with an `AEStronglyMeasurable` proof and an eventual norm bound, plus the finite-measure proof for the rectangle. If you need to replace the diagonal convention by a nicer version that uses `S(0)f = f`, use:
-
-```lean
-MeasureTheory.IntegrableOn.congr_fun_ae
-MeasureTheory.integrableOn_congr_fun_ae
-MeasureTheory.integral_congr_ae
-```
-
-The diagonal null set is handled by showing the two versions are equal a.e. with respect to the restricted product measure.
-
-### 5. Skeleton of the scalar proof
-
-After unfolding `cosineCoeffs`, prove:
+The proof skeleton is:
 
 ```lean
 have hswap :
@@ -434,32 +301,148 @@ have hswap :
   exact MeasureTheory.intervalIntegral_intervalIntegral_swap hK_int
 ```
 
-Then use interval-integral linearity to move the `x`-dependent cosine through the inner time integral:
+Then fold the spatial integral back into `cosineCoeffs (H s) k` using the coefficient definition.
+
+The relevant Mathlib Fubini lemmas are:
 
 ```lean
-∫ s in 0..τ, Real.cos (...) * H s x
-  = Real.cos (...) * ∫ s in 0..τ, H s x
+MeasureTheory.integral_prod
+MeasureTheory.integral_prod_symm
+MeasureTheory.integral_integral
+MeasureTheory.integral_integral_swap
+MeasureTheory.intervalIntegral_integral_swap
+MeasureTheory.intervalIntegral_intervalIntegral_swap
 ```
 
-This is by `intervalIntegral.integral_const_mul` / scalar multiplication rewrites, assuming the relevant integrability.
-
-On the right side, fold the spatial integral back into `cosineCoeffs (fun x => H s x) k`, using your existing lemma for the cosine coefficient integral formula.
-
-### 6. Final Q2 verdict
-
-The swap holds. The diagonal jump is genuinely harmless. The correct formal target is not continuity on the closed triangle, but:
+For integrability from boundedness on a finite rectangle, the useful lemma is:
 
 ```lean
-AEStronglyMeasurable K (restricted product measure)
-IntegrableOn K rectangle
+MeasureTheory.IntegrableOn.of_bound
 ```
 
-plus Fubini. The boundedness of `f`, the `L∞` contraction/order box, and heat-semigroup sup-norm contraction supply the integrable majorant. The convention `S(0)=0` can be erased by `integral_congr_ae` because it changes only a null time slice.
+It asks for:
+
+```lean
+hs   : volume rectangle < ∞
+hasm : AEStronglyMeasurable K (volume.restrict rectangle)
+hbd  : ∀ᵐ z ∂volume.restrict rectangle, ‖K z‖ ≤ C
+```
+
+In this application:
+
+```text
+|K(x,s)| ≤ |H(s,x)| ≤ ‖f(s)‖∞ ≤ C_f,
+```
+
+because `|cos| ≤ 1` and the Neumann heat semigroup is sup-norm contractive. The rectangle has finite measure.
 
 ---
 
-## Bottom line
+## The diagonal `s = τ`
 
-For Q1, the fixed-`Estar` route is a sound arbitrary-data continuation method **if** the proof is built around a coordinatewise robust supersolution and an invariant restricted local fixed-point space. The step size becomes data-dependent; no small data is required. But scalar `H^σ` budgets and `L∞` order-box bounds are insufficient by themselves, and the displayed `δ^((1-σ)/2)` base gain only gives smallness for `σ < 1`.
+The convention
 
-For Q2, use Bochner/Fubini under `AEStronglyMeasurable + IntegrableOn`; the diagonal discontinuity from the `S(0)=0` convention is null and harmless. The most Lean-friendly proof is either `ContinuousLinearMap.integral_comp_comm` for a coefficient continuous linear map, or `MeasureTheory.intervalIntegral_intervalIntegral_swap` after unfolding the coefficient integral.
+```text
+S(0) f = 0
+```
+
+while
+
+```text
+lim_{s → τ-} S(τ-s) f(s) = f(τ)
+```
+
+does **not** obstruct the coefficient/time-integral swap.
+
+For fixed `τ`, the bad time set is the singleton `{τ}`. The interval integral over `0..τ` uses Lebesgue measure, and singletons have measure zero. Therefore any two versions of the integrand that differ only at `s = τ` are a.e. equal, and Bochner/scalar integrals agree.
+
+In Lean, use one of:
+
+```lean
+integral_congr_ae
+MeasureTheory.IntegrableOn.congr_fun_ae
+MeasureTheory.integrableOn_congr_fun_ae
+```
+
+after proving the two versions are equal a.e. on the restricted interval measure. The product version is the same: `{τ} × [0,1]` has product measure zero.
+
+Thus the diagonal jump is just a measurability/integrability bookkeeping issue, not a representation-theorem issue.
+
+---
+
+## What exactly could still be genuinely deep?
+
+The phrase “parabolic representation theorem” may refer to something stronger than the Fubini step. Here is the precise separation.
+
+### Trivial-given-Fubini
+
+The following is not deep:
+
+```text
+cosineCoeffs (∫ time, spatialIntegrand time) k
+  = ∫ time, cosineCoeffs (spatialIntegrand time) k.
+```
+
+This is just bounded linear maps commuting with Bochner integrals.
+
+### Potentially nontrivial but separate
+
+The following may be real lemmas, but they are separate from the per-mode passage:
+
+1. **Spatial mild identity.** If the fixed-point construction gives only an abstract fixed point, proving it satisfies the displayed spatial Duhamel identity in the desired function space may require work.
+
+2. **Bochner integrability.** You must know that
+
+```lean
+fun s => B (τ-s) (chemFlux (u s))
+fun s => S (τ-s) (logistic (u s))
+```
+
+are integrable into the chosen spatial Banach space, or prove scalar integrability after unfolding.
+
+3. **Spectral action of kernels.** To replace
+
+```text
+cosineCoeffs (S(τ)u₀) k
+```
+
+by
+
+```text
+exp(-τλ_k) û₀_k
+```
+
+requires the heat semigroup cosine-mode identity. To rewrite the `B = ∂xS` term into a specific closed-form Duhamel coefficient may require the corresponding gradient-kernel spectral identity. That is not the same as the Fubini step.
+
+4. **Equality level.** If the spatial mild identity is only a.e. in `x`, then applying a coefficient functional is still fine, but the theorem statement should be phrased in an `L¹`/`L²` compatible way and use `integral_congr_ae`.
+
+If your collaborators' “parabolic representation theorem” means one of these stronger items, then name that item explicitly. But the per-mode Duhamel identity as written is not itself that theorem.
+
+---
+
+## Final answer
+
+Yes: given the spatial mild identity and the needed integrability, the per-mode identity follows immediately by applying the bounded cosine-coefficient functional and commuting it through the time integral. No additional regularity theorem is needed for that passage.
+
+The correct formal seam to discharge is therefore small:
+
+```lean
+cosCoeffCLM_integral_comm
+```
+
+or, more directly,
+
+```lean
+perMode_mild_of_spatial_mild
+```
+
+proved by:
+
+```lean
+congrArg (fun f => cosCoeffCLM k f) h_mild_spatial
+ContinuousLinearMap.integral_comp_comm
+map_add / map_smul
+heat_semigroup_cosineCoeff
+```
+
+If anything remains genuinely hard, it is not “coefficient of time integral equals time integral of coefficient”; it is the prior spatial mild identity, Bochner integrability, or spectral kernel identities for `S`/`B`.
