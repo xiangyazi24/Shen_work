@@ -401,3 +401,4 @@ import ShenWork.Paper2.IntervalCarrySeamGradient
 import ShenWork.Paper2.IntervalReflCircleContinuousOn
 import ShenWork.Paper2.IntervalCarrySeamGradientContinuousOn
 import ShenWork.Paper2.IntervalChiNegBaseDirect
+import ShenWork.Paper2.IntervalChiNegCapstone
