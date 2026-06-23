@@ -533,3 +533,21 @@ false w/ matching counterexample; (★) already redundant via contact-point live
   at the SAME standard per-step/local Cauchy frontier (concrete local well-posedness), structurally distinct
   from the truncated/χ₀=0-flux-killing routes. P3 T2.2 cascades from χ₀<0. Three papers = FAITHFUL §3.3
   conditionals on this one universal standard-PDE frontier; everything novel/specialized is done.
+
+## 2026-06-23 — §2.6 STOP: the local-existence frontier is the repo's DELIBERATE abstract-carry (definitive)
+- a7f91706 (Steps 2&3) STALLED honestly (no file). DEFINITIVE STRUCTURAL FINDING (grep-verified): the conjugate
+  mild map intervalConjugateDuhamelMap is a TRAJECTORY-SPACE self-map (ℝ→pt→ℝ ≈ C([0,T],C(Ω̄)), time-coupled
+  Duhamel over [0,t]) — NOT a single-slice endomorphism. IntervalMildPicard.lean:13 records this as DELIBERATE
+  DESIGN: "bypasses BoundedContinuousFunction entirely — no BCF, no metric space on function types." The repo
+  CARRIES the local existence ABSTRACTLY by design (hand-rolled K^n contraction decay, abstract ContractingWith).
+- §2.6 FINGERPRINT: ~12 producer rounds on the χ₀<0 local-existence frontier, each a genuine reduction (strictness,
+  continuation, inflation, candidate-generic invariance, Hrestart, Banach Step1-completeness all LANDED; 3
+  under-claims caught+corrected) — but the concrete Banach keeps needing one-more-layer BECAUSE the repo carries
+  it abstractly. STOP grinding; the concrete mild-Picard Banach (single-slice OR trajectory-space + the from-scratch
+  coefficient-envelope↔sup two-sided Fourier/Sobolev embedding, NOT in Mathlib v4.29.1) is a from-scratch
+  undertaking AGAINST the repo's deliberate design.
+- HONEST CULMINATION: ALL specialized mathematics of all 3 papers DERIVED/landed. The three papers are FAITHFUL
+  §3.3 conditionals on the ONE universal standard local-existence Cauchy frontier, which the repo DELIBERATELY
+  carries abstractly throughout (χ₀=0 discharges it ONLY by structurally killing the chemotaxis flux). To reach
+  "genuinely unconditional" requires building the concrete mild-Picard Banach from scratch (a major Cauchy-theory
+  undertaking the repo's design avoids) — a SCOPE/METHOD decision for the senior author.
