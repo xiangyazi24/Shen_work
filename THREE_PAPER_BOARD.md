@@ -251,3 +251,16 @@ P1 #4 = RotheFloorOrbitDataResidual = the per-step non-diagonal crossSource anal
   #4-C per-step crossSource_tendsto_at{Bot,Top} for distinct u,Z,W (only diagonal landed)
   #4-D-rest hBC2Z (Z arbitrary) + hrange/hchem + hanti (RotheStepAntitoneData shifted packet)
 These are genuine per-step chemotaxis-source PDE lemmas — the irreducible analytic content of the P1 construction.
+
+## ★★ χ₀<0 σ-ladder ENGINE assembled — bottom = (C1)+(C2) continuation closure (2026-06-22 [opus], verified, no overclaim)
+IntervalChiNegTrajectoryAssembly: TrajStepBridges.step (σ→σ+1/4 via landed genv #1 + glenv + trajLadder_step) +
+trajStep_iterate + trajEnvelope_one_of_base (reach TrajectoryHSigmaEnvelope 1) UNCOND+axiom-clean. Opus honest:
+NOT unconditional MemHSigma 1, carries exactly:
+  (C2) mkBundle: σ-uniform TrajStepBridges family — ASSEMBLY (every field landed at fixed σ: genv/glenv/hdecomp
+       /bridges/resolver-relay/positivity); wire them per σ + thread τ-uniformity. Tractable. → opus.
+  (C1) the τ-uniform BASE TrajectoryHSigmaEnvelope σ₀>1/2 — the GENUINE deep bottom = R1 continuation closure.
+       L∞ ball CAN'T give it (sup_τ of ℓ² family ∉ ℓ²); H⁰ seed is per-slice not τ-uniform. Needs the monotone-
+       recurrence base (route analysis d6e4e9f: base/openness/closedness, endpoint-uniform, NOT naive ℓ² sup).
+       The genuine hard χ₀<0 PDE. → opus.
+χ₀<0 = (C1) continuation base [genuine] + (C2) bundle assembly [tractable] → MemHSigma 1 → H¹ → weak identities
+→ ChiNegDatumUniformConstruction. Everything else landed.
