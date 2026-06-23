@@ -275,3 +275,16 @@ at{Bot,Top}_nondiagonal + crossSource_greenConv_tendsto wired to R-data — disc
   #4-D-rest hBC2Z/hrange/hchem/hanti.
   #4-B hR source identity (bcf fixed point = crossSource, provably not rfl — producer-supplied).
 The genuine P1 #4 cores are the chemotaxis max-principle monotonicity (#4-B-core) + flux integrability (#4-A).
+
+## ★★ χ₀<0 chain fully assembled — bottom = (C1) decaying flux envelope + (C2) InputFamily (2026-06-22 [opus], verified, SUBAGENT CAUGHT MY OVERCLAIM)
+IntervalChiNegTrajectoryClosure: mkBundle (E → BundleInputs → TrajStepBridges) + mkBundleFamily + trajBase
+Envelope_of_sourceEnvelope (propagator at r=0) + trajEnvelope_one_of_baseInputs UNCOND+axiom-clean. MY OVERCLAIM
+CORRECTED: I briefed (C2) as "assembly that should close" — subagent audited that only heU=E.hdom is E-derivable;
+the rest carry genuine per-slice analytic content. Honest §3.3 even on the orchestrator's framing.
+χ₀<0 GENUINE BOTTOM (2 irreducible analytic cores, both non-circular, confirmed no localClassicalSolution):
+  (C1) hMsq: τ-uniform DECAYING H⁰ flux-source envelope Msup∈H⁰ + htraj_dom. The L∞ ball CAN'T give it
+       (k↦2M ∉ H⁰). THE genuine R1 continuation-closure content — a single τ-uniform decaying dominator for the
+       flux coeffs (route d6e4e9f: monotone recurrence, not naive ℓ² sup). The deepest χ₀<0 PDE. → opus.
+  (C2) InputFamily: per-slice mild-solution analytic data (IntervalConjugateMildSolution continuity + Fourier
+       summability for cosineMulBridge + the τ-uniform decomposition conjugateSlice_decomp_tauLift residuals).
+Everything else in the χ₀<0 chain is ASSEMBLED+landed. = (C1)+(C2) → MemHSigma 1 → H¹ → ChiNegDatumUniformConstruction.
