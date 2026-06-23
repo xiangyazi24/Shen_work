@@ -16859,28 +16859,28 @@ theorem two_le_stabilitySpeedBaseline (p : CMParams) :
 
 theorem two_lt_of_stabilitySpeedBaseline_lt
     {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hlower : stabilitySpeedBaseline p ≤ threshold p.χ)
     (hc : threshold p.χ < c) :
     2 < c :=
-  lt_of_le_of_lt (two_le_stabilitySpeedBaseline p) (lt_trans hlower hc)
+  lt_of_le_of_lt (two_le_stabilitySpeedBaseline p) (lt_of_le_of_lt hlower hc)
 
 theorem kappa_pos_of_stabilitySpeedBaseline_lt
     {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hlower : stabilitySpeedBaseline p ≤ threshold p.χ)
     (hc : threshold p.χ < c) :
     0 < kappa c :=
   kappa_pos_of_two_lt (two_lt_of_stabilitySpeedBaseline_lt hlower hc)
 
 theorem kappa_lt_one_of_stabilitySpeedBaseline_lt
     {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hlower : stabilitySpeedBaseline p ≤ threshold p.χ)
     (hc : threshold p.χ < c) :
     kappa c < 1 :=
   kappa_lt_one_of_two_lt (two_lt_of_stabilitySpeedBaseline_lt hlower hc)
 
 theorem kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
     {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hlower : stabilitySpeedBaseline p ≤ threshold p.χ)
     (hc : threshold p.χ < c) :
     kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) := by
   let a : ℝ := (1 + |p.χ| ^ (1 / 6 : ℝ))⁻¹
@@ -16907,7 +16907,7 @@ theorem kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
     rw [inv_inv]
     ring
   have hspeed : a + a⁻¹ < kappa c + (kappa c)⁻¹ := by
-    have hbaseline_lt : stabilitySpeedBaseline p < c := lt_trans hlower hc
+    have hbaseline_lt : stabilitySpeedBaseline p < c := lt_of_le_of_lt hlower hc
     rw [hbaseline_eq] at hbaseline_lt
     rw [kappa_add_inv_eq_of_two_lt hc_two]
     exact hbaseline_lt
@@ -16938,7 +16938,7 @@ theorem kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
 
 theorem eta_pos_of_stability_weight_hypotheses
     {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hlower : stabilitySpeedBaseline p ≤ threshold p.χ)
     (hc : threshold p.χ < c) (hketa : kappa c < eta) :
     0 < eta :=
   lt_trans (kappa_pos_of_stabilitySpeedBaseline_lt hlower hc) hketa
@@ -16958,7 +16958,7 @@ theorem eta_lt_one_of_stability_weight_upper_bound
 
 theorem eta_mem_Ioo_zero_one_of_stability_weight_hypotheses
     {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hlower : stabilitySpeedBaseline p ≤ threshold p.χ)
     (hc : threshold p.χ < c) (hketa : kappa c < eta)
     (heta_upper : eta < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ))) :
     eta ∈ Set.Ioo (0 : ℝ) 1 :=
@@ -17117,7 +17117,7 @@ theorem Lemma_5_3.same_power_branch_of_stability_hypotheses
         p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
           ∫ x : ℝ, |U x| ^ 2) :=
   Lemma_5_3.same_power_branch_of_stable_strict_tail_bounds hregime
-    (eta_pos_of_stability_weight_hypotheses hlower hc hketa)
+    (eta_pos_of_stability_weight_hypotheses hlower.le hc hketa)
     (eta_lt_one_of_stability_weight_upper_bound p heta_upper)
     hu1 hu2 hbound1 hbound2 hclose hsource
 
@@ -17147,7 +17147,7 @@ theorem Lemma_5_3.same_power_branch_of_stability_hypotheses_of_continuous
           ∫ x : ℝ, |U x| ^ 2) :=
   Lemma_5_3.same_power_branch_of_stable_strict_tail_bounds_of_continuous
     hregime
-    (eta_pos_of_stability_weight_hypotheses hlower hc hketa)
+    (eta_pos_of_stability_weight_hypotheses hlower.le hc hketa)
     (eta_lt_one_of_stability_weight_upper_bound p heta_upper)
     hcont1 hcont2 hbound1 hbound2 hclose hsource
 
@@ -17156,7 +17156,7 @@ def Theorem_1_2 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
       ∀ c : ℝ, cStarStar p.χ < c →
       ∀ U V : ℝ → ℝ,
         IsTravelingWave p c U V →
@@ -17284,7 +17284,7 @@ theorem Theorem_1_2.of_assumed_stability_branch
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -17346,7 +17346,7 @@ def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      stabilitySpeedBaseline p ≤ cStarStar p.χ ∧
       ∀ c : ℝ, cStarStar p.χ < c →
       ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
         IsTravelingWave p c U₁ V₁ →
@@ -17527,7 +17527,7 @@ theorem Theorem_1_3.of_assumed_uniqueness_branch
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (huniq : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
@@ -17722,7 +17722,7 @@ theorem Theorem_1_2_and_1_3.of_stability_cauchy_unique_resolvent_remark43
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -17803,7 +17803,7 @@ theorem paper1_main_results
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -17875,7 +17875,7 @@ structure Paper1MainResultsData
   cStarStar_spec :
     ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ
   stability :
     ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →

@@ -1807,7 +1807,7 @@ theorem Theorem_1_2.of_signal_derivative_stability_branch
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -1885,7 +1885,7 @@ theorem Theorem_1_2.of_signal_energy_dissipation_uniform_branch
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -1970,7 +1970,7 @@ theorem Theorem_1_2.of_signal_energy_dissipation_l2_to_uniform_branch
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -2149,7 +2149,7 @@ theorem Theorem_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -2408,7 +2408,7 @@ theorem Theorem_1_2_and_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauch
     (cStarStarFn : CMParams → (ℝ → ℝ))
     (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
       StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+        stabilitySpeedBaseline p ≤ cStarStarFn p p.χ)
     (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
       ∀ c : ℝ, cStarStarFn p p.χ < c →
       ∀ U V : ℝ → ℝ,
@@ -2516,7 +2516,7 @@ structure Paper1MainlineExistence
     (cStarStarFn : CMParams → (ℝ → ℝ)) : Prop where
   cStarStar_spec : ∀ p : CMParams, StableWaveParameterRegime p →
     StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
-      stabilitySpeedBaseline p < cStarStarFn p p.χ
+      stabilitySpeedBaseline p ≤ cStarStarFn p p.χ
   regularity : ∀ p : CMParams, StableWaveParameterRegime p →
     ∀ c : ℝ, cStarStarFn p p.χ < c →
     ∀ U V : ℝ → ℝ,

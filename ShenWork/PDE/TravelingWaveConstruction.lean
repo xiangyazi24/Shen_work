@@ -613,7 +613,7 @@ theorem logisticProfile_stability_tail_data_of_threshold
         ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
           (logisticProfile (kappa c)) :=
   logisticProfile_stability_tail_data_of_stable_regime hregime
-    (ShenWork.Paper1.two_lt_of_stabilitySpeedBaseline_lt hlower hc)
+    (ShenWork.Paper1.two_lt_of_stabilitySpeedBaseline_lt hlower.le hc)
 
 theorem logisticProfile_negative_construction_seed_data
     {c : ℝ} (hc : 2 < c) :
