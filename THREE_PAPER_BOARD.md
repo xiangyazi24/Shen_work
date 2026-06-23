@@ -39,7 +39,17 @@ native_decide/custom-axiom, no carried-hard/unsatisfiable hypothesis, faithful t
   SATISFIABLE STANDING hyps {hû₀ initial regularity, L²-energy a-priori bound} — both the paper's own
   assumptions; all hard machinery (H¹ bootstrap ladder, C²-via-resolver, 4 bridges, hvnn, decomp) LANDED.
   This is a FAITHFUL conditional per §3.3 (not vacuous, not over-strong). Verify vs cron1_q4 when tab unstuck.
-  cron1_q4/cron2_q4 STUCK (status=pending 40min, bridge has question-only — tab health, Xiang to nudge).
+  cron1_q4/cron2_q4 STUCK (status=pending 40min→deadline, NO answer — tab health, Xiang to nudge).
+- [E₀ REFINED — two regimes] The bootstrap flux envelope (FluxFactorEnvelopes/genv) needs σ>1/2 (Banach
+  algebra), so the ladder CANNOT start at σ=0. Base E₀ has two regimes: (i) L² (σ₀=0) DIRECT from the landed
+  L²-energy method + chemotaxisFlux_L2_of_bounded (no fixed point); (ii) the σ₀>1/2 ladder START needs a
+  short-time H^{σ₀>1/2} a-priori envelope — the genuine analytic core (low-regularity 0→1/2 smoothing /
+  short-time contraction). This (ii) is intricate enough to warrant the cron1_q4 audit BEFORE a producer
+  grind (§2.6 don't-grind-mis-framed). All else (ladder σ>1/2→1, decomp, bridges, hvnn, C²-via-resolver)
+  LANDED. χ₀<0 BRIDGE SUB-FRONTIER COMPLETE (carrySeam_of_mild_full a90aa08, all 4 bridges discharged;
+  hWsum/hvxsum E-derivable via fourierCoeff_reflCircle_summable_of_cosineCoeff_abs).
+  SESSION 2026-06-23 net: 6 χ₀<0/P1 pieces landed; χ₀<0 pinned to E₀-regime-(ii) hard core; P1 (a′) route
+  + R_bound bootstrap clear (cron2_q3), closure self-assessed (orbit stays smooth from Ū).
 - [P1 #4] RotheStepInputBuild: two RotheStepTails packets (14 Prop-fields) COLLAPSED off carried surface
   (b5f4c51, verified 8307, axiom-clean) [opus a6b6bdf4] via landed rotheStepTails_greenConv_* . hprodTrap
   stays CONDITIONAL: RotheStepInputBuild.produce (per-Z Green-source + at-max elliptic packets, non-diag
