@@ -239,3 +239,15 @@ The denom-envelope (genuine hard residual, via the attack vector) is done; remai
 seam bridges hbr/hbridge (connect E's cosine coeffs to the concrete flux Q) — likely landed/definitional. → next.
 χ₀<0 chain: #1 analytic core ✅; then the bridges + #3 k=0 + the trajectory-envelope PRODUCTION (the
 continuation closure, still the deep χ₀<0 bottom) → ChiNegDatumUniformConstruction.
+
+## ★ P1 #4 → non-diagonal crossSource analysis (2026-06-22 [opus], verified 8316, anti-repackaging respected)
+RotheFloorOrbitDataImpl: hprodTrap_of_orbitResidual (chains rotheFloorOrbitData_of_trap → floor → producer,
+RELATIVE to RotheFloorOrbitDataResidual) + ONE genuine field discharged: (D) hBC2B at-max C² (from landed
+upperBarrier_BC2_atMax_dischargeable — gone from residual, not renamed). KEY INSIGHT: landed crossSource
+machinery is DIAGONAL-only (U U U); the per-step NON-DIAGONAL triple (u,Z,W distinct) is genuinely irreducible.
+P1 #4 = RotheFloorOrbitDataResidual = the per-step non-diagonal crossSource analysis (named missing lemmas):
+  #4-A rotheStepFluxData_of_trap (~14-field whole-line integrability/decay of deriv(stepFlux) for the iterate)
+  #4-B crossSource_antitone_of_lowerPinned_orbit (non-diagonal antitone) + hR source identity
+  #4-C per-step crossSource_tendsto_at{Bot,Top} for distinct u,Z,W (only diagonal landed)
+  #4-D-rest hBC2Z (Z arbitrary) + hrange/hchem + hanti (RotheStepAntitoneData shifted packet)
+These are genuine per-step chemotaxis-source PDE lemmas — the irreducible analytic content of the P1 construction.
