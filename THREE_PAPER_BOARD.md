@@ -332,3 +332,18 @@ greenConv_mono — entire reaction increment absorbed). hsign REDUCED to ONE nam
   non-circular/non-over-strong (reaction half proved not assumed). hVmono (V'≤0) + frozenElliptic_deriv_
   differentiableAt landed; the magnitude bound is the piece. → opus.
 P1 #4 = hDom (chemo-vs-reaction V' bound) + #4-A flux integrability + #4-D-rest.
+
+## ★★★ §3.3 CATCH — χ₀<0 hzero (k=0) GENERICALLY FALSE (2026-06-22 [opus], verified 3627)
+IntervalChiNegSeamDischarge: k=0 Duhamel collapse (duhamelEnergyCoeff_zero, both legs vanish √λ₀=0) + hzero↔
+mean-conservation reduction + τ=0 branch UNCOND. §3.3 CATCH (audit working): DecompHyp.hzero (k=0) = mean
+conservation cosineCoeffs(u τ) 0 = û₀ 0, but the mild eqn gives û₀ 0 + ∫₀^τ(logistic mean); logistic source
+u(a−b·uᵅ) has NONZERO mean → mean EVOLVES → hzero GENERICALLY FALSE (codebase doctrine IntervalDecompTauLift
+:34-37 corroborates). The opus REDUCED+REFUTED rather than faked — caught a false field before it banked.
+χ₀<0 genuine residuals (NOT unconditional MemHSigma 1 from landed data):
+  k=0 FIX: replace false hzero with DIRECT k=0 mean bound |coeff_0(τ)|=|mean|≤M (L∞ ball, τ-uniform); the
+    flux source k=0 is handled (chem mean=0 divergence, log mean bounded). hzero is false AND the wrong
+    obligation — the chain needs the bounded k=0 coeff, not mean-conservation. → restructure (upstream).
+  Hvpos: resolver positivity (elliptic strong max principle) — STANDING Paper2 residual, carried even at χ₀=0
+    (IntervalDomainThm11ChiZeroCoreProvider:72). → opus. [FLAG: verify χ₀=0 from_cone_construction unconditional
+    or carries Hvpos.]
+  bridges from E (trajectory envelope) + continuities.
