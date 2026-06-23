@@ -1,611 +1,716 @@
 # ChatGPT git-drop (cron1)
 
-## Q77 — χ₀<0 H¹ energy rebuild: divergence-weighted source regularity
+## Q82 — χ₀<0 divergence-weighted flux regularity: exact weighted-Wiener bookkeeping
 
 ### Executive verdict
 
-No: for a classical solution with only spatial `C²` regularity, the divergence-weighted source summability
+Yes: the clean sufficient condition for the chemotaxis flux target
 
 ```text
-Σ_k λ_k |sourceCoeff_k| < ∞
+Σ_k λ_k^(3/2) |sineCoeff(F)_k| < ∞,
+F = W v_x,
+W = u (1+v)^(-β),
+v = (μ-Δ)^(-1)u,
 ```
 
-is **not automatic**. Bare `C²` gives at best coefficient decay `O(λ_k^{-1}) = O(k^{-2})`, and multiplying by `λ_k ~ k²` leaves a non-summable constant tail. One needs a genuine Wiener/weighted-ℓ¹ regularity input, or enough Sobolev/Hölder smoothness to imply it.
-
-The clean sufficient condition is not “flux is `C²`”; it is one of the following coefficient-level conditions:
+is exactly
 
 ```text
-A₂-cos condition:  Σ_k (1+λ_k) |cosCoeff(F)_k| < ∞,
+u(t) ∈ A^3_cos,
 ```
 
-for a cosine source `F`, or, for a divergence source written as `∂x F` with `F = W v_x` and `F(0)=F(1)=0`,
+where
 
 ```text
-A₃-sin condition:  Σ_k (1+λ_k)^(3/2) |sineCoeff(F)_k| < ∞.
+‖u‖_{A^3_cos} := Σ_k (1+λ_k)^(3/2) |cosineCoeff(u)_k| < ∞.
 ```
 
-Indeed,
+The bookkeeping is:
 
 ```text
-cosCoeff(∂x F)_k = ± sqrt(λ_k) * sineCoeff(F)_k
+u ∈ A^3_cos
+  ⇒ v = R_μ u ∈ A^5_cos, hence v ∈ A^3_cos
+  ⇒ v_x ∈ A^4_sin, hence v_x ∈ A^3_sin
+  ⇒ (1+v)^(-β) ∈ A^3_cos               -- weighted Wiener composition/Wiener-Lévy/Moser
+  ⇒ W = u(1+v)^(-β) ∈ A^3_cos          -- cosine product
+  ⇒ F = W v_x ∈ A^3_sin                -- mixed cosine×sine product
+  ⇒ Σ_k λ_k^(3/2)|sineCoeff(F)_k| < ∞.
+```
+
+So `u(t) ∈ A^3_cos` is the single clean per-slice sufficient condition.
+
+Caveat: for the full nonlinear mild solution, the linear heat term from `u₀ ∈ L∞` is instantly in every `A^s`, but the Duhamel endpoint is not smoothed at `s=t`. Thus the assertion
+
+```text
+u(t) ∈ A^3 for every t>0 from u₀ ∈ L∞
+```
+
+is a genuine positive-time parabolic smoothing theorem / bootstrap theorem, not merely the observation that `e^{-tλ_k}` kills polynomial weights. It is true in the standard analytic-parabolic picture, but in Lean it should be a named theorem, not hidden inside the flux bookkeeping.
+
+---
+
+## 1. Definitions and weights
+
+Let
+
+```text
+λ_k = (kπ)^2,
+w_s(k) = (1+λ_k)^(s/2).
+```
+
+For a cosine coefficient sequence `a`, define
+
+```text
+‖a‖_{A^s_cos} := Σ_k w_s(k) |a_k|.
+```
+
+For a sine coefficient sequence `b`, define
+
+```text
+‖b‖_{A^s_sin} := Σ_k w_s(k) |b_k|.
+```
+
+In Lean, I would define the predicate first:
+
+```lean
+def WeightedL1 (s : ℝ) (a : ℕ → ℝ) : Prop :=
+  Summable (fun k => (1 + lam k) ^ (s / 2) * |a k|)
+```
+
+and then use separate aliases for cosine/sine only at the API level:
+
+```lean
+abbrev CosA (s : ℝ) (f : ℝ → ℝ) : Prop :=
+  WeightedL1 s (cosineCoeffs f)
+
+abbrev SinA (s : ℝ) (f : ℝ → ℝ) : Prop :=
+  WeightedL1 s (sineCoeffs f)
+```
+
+Mode `k=0` is harmless for sine because `sineCoeff _ 0 = 0`, and for the divergence target because `λ_0 = 0`.
+
+Also note:
+
+```text
+λ_k^(3/2) ≤ (1+λ_k)^(3/2) = w_3(k),
 ```
 
 so
 
 ```text
-Σ_k λ_k |cosCoeff(∂x F)_k|
-  ≃ Σ_k λ_k^(3/2) |sineCoeff(F)_k|.
+F ∈ A^3_sin ⇒ Σ_k λ_k^(3/2)|sineCoeff(F)_k| < ∞.
 ```
 
-A Sobolev sufficient condition is:
-
-```text
-F ∈ H^{5/2+ε}   ⇒   Σ λ_k |cosCoeff(F)_k| < ∞,
-F ∈ H^{7/2+ε}   ⇒   Σ λ_k |cosCoeff(∂xF)_k| < ∞.
-```
-
-Equivalently, in weighted Wiener notation, `F ∈ A₂` for the non-divergence source and `F ∈ A₃` for the pre-divergence flux.
-
-For the mild/parabolic solution, the right route is therefore **not** abstract `C²` regularity. It is to exploit parabolic smoothing of the solution coefficients and then use the landed Wiener algebra product machinery to pass weighted-ℓ¹ regularity through
-
-```text
-u ↦ v = (μ-Δ)^{-1}u,
-u ↦ v_x,
-(u,v) ↦ W = u(1+v)^{-β},
-(W,v_x) ↦ F = W v_x.
-```
-
-For every positive time strip `[ε,T]`, analytic heat smoothing should give the required weighted Wiener bounds. Uniformity down to `t=0` requires corresponding high initial regularity, or else one should settle for time-integrable singular bounds near zero. It is not a consequence of the mere `L∞` order box or `C²` classicality.
+This is the exact target reduction.
 
 ---
 
-## 1. First correction: use the right coefficient basis for the chemotaxis flux
+## 2. Resolver gain: exact constants
 
 Let
 
 ```text
-F := W v_x,
-W := u(1+v)^{-β}.
+u_k := cosineCoeff(u)_k,
+v_k := cosineCoeff(v)_k = u_k / (μ + λ_k),
+μ > 0.
 ```
 
-The divergence source in the PDE is
+### 2.1 Two-derivative gain for `v`
+
+Compute:
 
 ```text
-∂x F.
+w_{s+2}(k) |v_k|
+  = (1+λ_k)^((s+2)/2) |u_k|/(μ+λ_k)
+  = w_s(k) |u_k| * (1+λ_k)/(μ+λ_k).
 ```
 
-Since `v_x=0` at the Neumann endpoints, normally
+The multiplier satisfies
 
 ```text
-F(0)=F(1)=0.
+(1+λ)/(μ+λ) ≤ C_R(μ),
+C_R(μ) := max 1 (1/μ).
 ```
 
-Thus the natural spectral representation of the divergence is
+Indeed the ratio is monotone in `λ` depending on whether `μ` is above or below `1`, and its endpoint limits are `1/μ` at `λ=0` and `1` at infinity.
+
+Therefore
 
 ```text
-cosCoeff(∂x F)_k = ± sqrt(λ_k) * sineCoeff(F)_k.
+‖v‖_{A^{s+2}_cos} ≤ C_R(μ) ‖u‖_{A^s_cos}.
 ```
 
-So the natural weighted source condition is
-
-```text
-Σ_k λ_k |sqrt(λ_k) * sineCoeff(F)_k| < ∞,
-```
-
-that is
-
-```text
-Σ_k λ_k^(3/2) |sineCoeff(F)_k| < ∞.
-```
-
-If instead one literally asks for
-
-```text
-Σ_k λ_k |cosCoeff(F)_k| < ∞
-```
-
-with `F = W v_x`, this is a different and somewhat unnatural condition. It also has endpoint-compatibility traps: for a cosine expansion, two integrations by parts produce boundary terms involving `F'(0)` and `F'(1)`. Unless the Neumann-type compatibility `F'(0)=F'(1)=0` holds, `λ_k cosCoeff(F)_k` has a non-decaying oscillatory boundary contribution, so absolute summability fails immediately.
-
-So the clean formalization should name the source package in terms of the **sine coefficients of the pre-divergence flux** or the **cosine coefficients of its divergence**, not the cosine coefficients of the pre-divergence flux.
-
----
-
-## 2. Why bare `C²` is insufficient
-
-For a scalar function `f` on `[0,1]`, a `C²` bound gives at best
-
-```text
-|cosCoeff(f)_k| ≲ k^{-2} ≃ λ_k^{-1},
-```
-
-assuming the relevant boundary terms are controlled. Then
-
-```text
-λ_k |cosCoeff(f)_k| ≲ 1,
-```
-
-and
-
-```text
-Σ_k 1
-```
-
-diverges. Therefore `C²` alone cannot prove
-
-```text
-Σ_k λ_k |cosCoeff(f)_k| < ∞.
-```
-
-This is not a Lean artifact; it is mathematically false.
-
-A more exact way to phrase the minimal cosine condition is:
-
-```text
-f'(0)=f'(1)=0
-and
-f'' has absolutely summable cosine coefficients.
-```
-
-Indeed, modulo normalization constants, integration by parts gives for `k>0`
-
-```text
-λ_k cosCoeff(f)_k
-  = boundary_terms_from_f'  - cosCoeff(f'')_k.
-```
-
-If the boundary terms vanish, then
-
-```text
-Σ_k λ_k |cosCoeff(f)_k| < ∞
-```
-
-is essentially the statement that `f''` belongs to the cosine Wiener algebra.
-
-In Sobolev notation this is implied by
-
-```text
-f ∈ H^s,   s > 5/2.
-```
-
-Proof by Cauchy-Schwarz:
-
-```text
-Σ_k λ_k |c_k|
-  ≤ (Σ_k (1+λ_k)^s c_k²)^{1/2}
-     (Σ_k λ_k² (1+λ_k)^{-s})^{1/2}.
-```
-
-Since `λ_k ~ k²`, the second sum behaves like
-
-```text
-Σ_k k^{4-2s},
-```
-
-which converges iff
-
-```text
-4 - 2s < -1,   i.e.   s > 5/2.
-```
-
-For the divergence source `∂xF`, the corresponding condition is stronger. If
-
-```text
-cosCoeff(∂xF)_k = sqrt(λ_k) sineCoeff(F)_k,
-```
-
-then
-
-```text
-Σ_k λ_k |cosCoeff(∂xF)_k|
-  = Σ_k λ_k^(3/2) |sineCoeff(F)_k|.
-```
-
-A Sobolev sufficient condition is then
-
-```text
-F ∈ H^s,   s > 7/2.
-```
-
-Again by Cauchy-Schwarz:
-
-```text
-Σ_k λ_k^(3/2) |s_k|
-  ≤ (Σ_k (1+λ_k)^s s_k²)^{1/2}
-     (Σ_k λ_k^3 (1+λ_k)^{-s})^{1/2},
-```
-
-and the second sum behaves like
-
-```text
-Σ_k k^{6-2s},
-```
-
-which converges iff
-
-```text
-6 - 2s < -1,   i.e.   s > 7/2.
-```
-
-### Hölder/BV sufficient conditions
-
-For the non-divergence cosine condition, it is enough to have coefficient decay
-
-```text
-|cosCoeff(f)_k| ≤ C k^{-3-ε}
-```
-
-for some `ε>0`. This follows from, for example, a compatible `C^{3,α}` periodic/even extension with `α>0`, or from a condition like “the relevant third derivative has a little more than bounded variation/Dini control” depending on the exact Fourier theorem you formalize.
-
-For the divergence source, since one needs
-
-```text
-|sineCoeff(F)_k| = O(k^{-4-ε}),
-```
-
-a compatible `C^{4,α}`-type condition is a safe classical sufficient condition.
-
-Do **not** claim `C^{2,1}` is enough for the non-divergence condition: it gives at best a borderline `k^{-3}` coefficient decay, and
-
-```text
-Σ_k k² k^{-3} = Σ_k 1/k
-```
-
-still diverges.
-
----
-
-## 3. Weighted Wiener formulation: the cleanest Lean target
-
-Define weighted ℓ¹ coefficient classes.
-
-For cosine coefficients:
+A Lean-friendly theorem:
 
 ```lean
-def CosA (r : ℝ) (a : ℕ → ℝ) : Prop :=
-  Summable (fun k => (1 + lam k) ^ (r/2) * |a k|)
+theorem resolver_cosA_gain_two
+    (hμ : 0 < μ) (hu : WeightedL1 s uhat) :
+    WeightedL1 (s+2) (fun k => uhat k / (μ + lam k))
 ```
 
-For sine coefficients, the same definition with `sineCoeffs`.
+with the proof by `Summable.of_nonneg_of_le` and the pointwise multiplier bound.
 
-Then the source hypotheses become clean:
+### 2.2 Zero-derivative bound for `v`
+
+Sometimes useful:
 
 ```text
-CosA 2 (cosineCoeffs F)
+w_s(k)|v_k| = w_s(k)|u_k|/(μ+λ_k) ≤ (1/μ) w_s(k)|u_k|.
 ```
 
-for a direct cosine source `F`, and
+Thus
 
 ```text
-SinA 3 (sineCoeffs F)
+‖v‖_{A^s_cos} ≤ μ^{-1} ‖u‖_{A^s_cos}.
 ```
 
-for a divergence source `∂xF` represented by the sine coefficients of the flux `F`.
+### 2.3 One-derivative net gain for `v_x`
 
-Sobolev-to-Wiener embedding:
+The sine coefficients of `v_x` are, up to sign/normalization,
+
+```text
+sineCoeff(v_x)_k = sqrt(λ_k) v_k
+                 = sqrt(λ_k) u_k/(μ+λ_k).
+```
+
+Then
+
+```text
+w_{s+1}(k) |sineCoeff(v_x)_k|
+  = w_s(k)|u_k| * sqrt(λ_k) sqrt(1+λ_k)/(μ+λ_k).
+```
+
+The multiplier satisfies the crude but clean bound
+
+```text
+sqrt(λ) sqrt(1+λ)/(μ+λ)
+  ≤ (1+λ)/(μ+λ)
+  ≤ C_R(μ),
+```
+
+because `sqrt(λ) ≤ sqrt(1+λ)`.
+
+Therefore
+
+```text
+‖v_x‖_{A^{s+1}_sin} ≤ C_R(μ) ‖u‖_{A^s_cos}.
+```
+
+In particular:
+
+```text
+u ∈ A^3_cos ⇒ v_x ∈ A^4_sin ⇒ v_x ∈ A^3_sin,
+```
+
+and also
+
+```text
+u ∈ A^2_cos ⇒ v_x ∈ A^3_sin.
+```
+
+Since `A^3 ⊂ A^2`, `u ∈ A^3` is enough.
+
+Lean theorem:
 
 ```lean
-theorem weightedL1_of_memHSigma
-    (h : MemHSigma s a) (hrs : r + 1/2 < s) :
-    Summable (fun k => (1 + lam k)^(r/2) * |a k|)
+theorem resolver_vx_sinA_gain_one
+    (hμ : 0 < μ) (hu : WeightedL1 s uhat) :
+    WeightedL1 (s+1)
+      (fun k => Real.sqrt (lam k) * (uhat k / (μ + lam k)))
 ```
 
-The proof is just Cauchy-Schwarz with
-
-```text
-(1+λ)^(r/2)|a_k|
-  = ((1+λ)^(s/2)|a_k|) * (1+λ)^((r-s)/2),
-```
-
-and
-
-```text
-Σ_k (1+λ_k)^{r-s} < ∞
-```
-
-iff `s-r > 1/2`.
-
-Product closure should be formulated as weighted Wiener algebra estimates:
+Pointwise multiplier lemma:
 
 ```lean
-CosA r a → CosA r b → CosA r (trueCosProd a b)
-CosA r a → SinA r b → SinA r (trueMixedProd a b)
+lemma sqrt_lam_mul_sqrt_one_add_div_le
+    (hμ : 0 < μ) :
+  Real.sqrt (lam k) * Real.sqrt (1 + lam k) / (μ + lam k)
+    ≤ max 1 μ⁻¹
 ```
 
-for `r ≥ 0`, using the same Peetre/submultiplicative weight estimates already used for the `H^σ`, `σ>1/2`, product algebra. This is the correct coefficient-level infrastructure for the source regularity package.
+or avoid the sharp `max` and use any finite constant already convenient in the repo.
 
 ---
 
-## 4. Applying the weighted Wiener route to `F = W v_x`
+## 3. Weighted Wiener product estimates
 
-Let
+For `s ≥ 0`, the weighted Wiener space `A^s` is an algebra. The user wrote `s>1/2`; that threshold is needed when deriving ℓ¹ from an `H^s`/`MemHSigma` norm, but once the norm is already weighted ℓ¹, the product algebra works for all `s ≥ 0`.
 
-```text
-F = W v_x,
-W = u (1+v)^(-β),
-v = (μ-Δ)^(-1)u.
-```
-
-For the divergence source package, it suffices to prove
+The reason is the Peetre/submultiplicative weight estimate. If a product mode `k` arises from either
 
 ```text
-F ∈ A₃^sin,
-```
-
-that is
-
-```text
-Σ_k (1+λ_k)^(3/2) |sineCoeff(F)_k| < ∞.
-```
-
-A clean sufficient chain is:
-
-1. `u ∈ A₃^cos`.
-2. The resolver gives `v ∈ A₅^cos` and `v_x ∈ A₄^sin`; in particular `v_x ∈ A₃^sin`.
-
-   Modewise,
-
-   ```text
-   sineCoeff(v_x)_k ≃ sqrt(λ_k) * u_k / (μ+λ_k),
-   ```
-
-   so `v_x` gains one derivative in weighted Wiener scale.
-
-3. Since `v ≥ 0`, the function `z ↦ (1+z)^(-β)` is smooth on the range. A Wiener/Nemytskii composition theorem gives
-
-   ```text
-   (1+v)^(-β) ∈ A₃^cos.
-   ```
-
-   In a Lean build, this is a real lemma: either prove it as a smooth composition theorem in weighted Wiener algebra, or route through stronger regularity estimates that imply `A₃`.
-
-4. Product closure gives
-
-   ```text
-   W = u * (1+v)^(-β) ∈ A₃^cos.
-   ```
-
-5. Mixed cosine×sine product closure gives
-
-   ```text
-   F = W * v_x ∈ A₃^sin.
-   ```
-
-6. Therefore
-
-   ```text
-   cosCoeff(∂xF)_k = sqrt(λ_k) sineCoeff(F)_k
-   ```
-
-   satisfies
-
-   ```text
-   Σ_k λ_k |cosCoeff(∂xF)_k| < ∞.
-   ```
-
-This is the cleanest derivation. It uses the solution’s smoothed weighted coefficients and the Wiener algebra, not bare classical `C²` regularity.
-
-For the weaker non-divergence condition
-
-```text
-Σ_k λ_k |cosCoeff(F)_k| < ∞,
-```
-
-it would suffice to prove `F ∈ A₂^cos`, but again `F = W v_x` is naturally sine-type, so the divergence/sine formulation is preferred.
-
----
-
-## 5. What parabolic smoothing gives for the mild solution
-
-For the mild solution, parabolic smoothing is the right source of the missing weighted-ℓ¹ regularity.
-
-For the heat part,
-
-```text
-u_k^heat(s) = exp(-s λ_k) u₀,k.
-```
-
-For every `s > 0`, the exponential factor gives arbitrary weighted ℓ¹ summability even if `u₀` has only low regularity. For each `ε > 0`, the bound is uniform on `[ε,T]`:
-
-```text
-sup_{s∈[ε,T]} Σ_k (1+λ_k)^(r/2) |exp(-sλ_k) u₀,k| < ∞.
-```
-
-The constant blows up as `ε ↓ 0` unless `u₀` already has the corresponding weighted ℓ¹ regularity.
-
-For the Duhamel terms, the same principle applies, but the endpoint `a=s` in
-
-```text
-∫_0^s exp(-(s-a)λ_k) source_k(a) da
-```
-
-has no smoothing at the instant `a=s`. Thus one either:
-
-- bootstraps parabolic regularity on positive time strips `[ε,T]`, where the solution is already smoother, or
-- proves time-integrable singular estimates near `0`, or
-- assumes enough initial regularity to make the bound uniform down to `0`.
-
-Consequently:
-
-```text
-For every ε>0:   weighted source ℓ¹ is expected uniformly on [ε,T].
-For [0,T]:       uniformity requires compatible high initial regularity, or a separate near-zero argument.
-```
-
-So the mild solution does inherit enough smoothing for `s>0`, but this is a parabolic smoothing theorem / coefficient-bootstrap theorem. It is not a consequence of `C²` alone.
-
----
-
-## 6. Time-C¹ coefficient regularity and derivative bounds
-
-The package you describe also wants time-C¹ cosine coefficients and a uniform/integrable time derivative bound. This is again not automatic from spatial `C²`.
-
-A sufficient coefficient-level hypothesis is:
-
-```text
-s ↦ sourceCoeff_k(s) is C¹ for every k,
-Σ_k λ_k |sourceCoeff_k(s)| ≤ G(s),
-Σ_k λ_k |∂_s sourceCoeff_k(s)| ≤ G₁(s),
-```
-
-with `G`, `G₁` bounded or integrable on the relevant time interval.
-
-For a classical parabolic solution, this follows if the solution has enough mixed time-space regularity on the interval in question. For a mild solution, the clean proof is again through positive-time analytic smoothing and differentiating the coefficient ODE/PDE modewise. On `[ε,T]`, this should be obtainable from parabolic regularity. Uniformly down to `0`, it requires correspondingly regular initial data or tolerating an integrable singularity.
-
-Lean-wise, do not hide this under `C²`. State the actual coefficient package or prove it from weighted Wiener smoothing.
-
----
-
-## 7. Minimal sufficient conditions, summarized
-
-### If the source is a direct cosine source `F`
-
-A precise coefficient condition:
-
-```text
-Σ_k λ_k |cosCoeff(F)_k| < ∞.
-```
-
-Sufficient function-space conditions:
-
-```text
-F ∈ H^{5/2+ε}
+k = m+n
 ```
 
 or
 
 ```text
-F' endpoint-compatible and F'' in the cosine Wiener algebra.
+k = |m-n|,
 ```
 
-Safe classical condition:
+then
 
 ```text
-compatible C^{3,α}, α>0.
+sqrt(1+λ_k) ≤ sqrt(1+λ_{m+n}) ≤ sqrt(1+λ_m) + sqrt(1+λ_n)
+             ≤ 2 sqrt(1+λ_m) sqrt(1+λ_n).
 ```
 
-### If the source is a divergence `∂xF`, with `F = W v_x`
-
-Natural coefficient condition:
+Therefore
 
 ```text
-Σ_k λ_k |cosCoeff(∂xF)_k| < ∞
+w_s(k) ≤ 2^s w_s(m) w_s(n),      s ≥ 0.
 ```
 
-equivalently, using `F(0)=F(1)=0`,
+This handles both the additive convolution and the cosine folding/correlation terms.
+
+### 3.1 Cosine × cosine → cosine
+
+There is a constant `Ccos(s)` depending only on `s` and the cosine normalization such that
 
 ```text
-Σ_k λ_k^(3/2) |sineCoeff(F)_k| < ∞.
+‖trueCosProd(a,b)‖_{A^s_cos}
+  ≤ Ccos(s) ‖a‖_{A^s_cos} ‖b‖_{A^s_cos}.
 ```
 
-Sufficient function-space condition:
+A more useful tame version is
 
 ```text
-F ∈ H^{7/2+ε}
+‖trueCosProd(a,b)‖_{A^s}
+  ≤ C_s (‖a‖_{A^s} ‖b‖_{A^0} + ‖a‖_{A^0} ‖b‖_{A^s}),
 ```
 
-or coefficient-level:
+and since `A^s ⊂ A^0` for `s ≥ 0`, this implies the algebra estimate.
 
-```text
-F ∈ A₃^sin.
-```
-
-Safe classical condition:
-
-```text
-compatible C^{4,α}, α>0.
-```
-
-### For `F = W v_x`
-
-Clean weighted-Wiener sufficient condition:
-
-```text
-u ∈ A₃^cos,
-v = R u,
-v_x ∈ A₃^sin,
-(1+v)^(-β) ∈ A₃^cos,
-W = u(1+v)^(-β) ∈ A₃^cos,
-F = W v_x ∈ A₃^sin.
-```
-
-Then the divergence-weighted source ℓ¹ follows immediately.
-
----
-
-## 8. Lean-oriented theorem targets
-
-I would add the following abstract lemmas rather than trying to squeeze this out of `C²`.
-
-### Weighted ℓ¹ scale
-
-```lean
-def WeightedL1 (r : ℝ) (a : ℕ → ℝ) : Prop :=
-  Summable (fun k => (1 + lam k) ^ (r / 2) * |a k|)
-```
-
-### Sobolev to weighted ℓ¹
-
-```lean
-theorem weightedL1_of_memHSigma
-    (ha : MemHSigma s a) (hrs : r + (1/2 : ℝ) < s) :
-    WeightedL1 r a
-```
-
-### Divergence transfer
-
-```lean
-theorem divergence_weightedL1_of_flux_sine_A3
-    (hF : WeightedL1 3 (sineCoeffs F))
-    (hboundary : F 0 = 0 ∧ F 1 = 0)
-    (hdiv : ∀ k, cosineCoeffs (deriv F) k = Real.sqrt (lam k) * sineCoeffs F k) :
-    Summable (fun k => lam k * |cosineCoeffs (deriv F) k|)
-```
-
-Mode `k=0` is harmless since `lam 0 = 0`.
-
-### Product closures
+Lean target:
 
 ```lean
 theorem weightedL1_trueCosProd
-    (ha : WeightedL1 r a) (hb : WeightedL1 r b) (hr : 0 ≤ r) :
-    WeightedL1 r (trueCosProd a b)
-
-theorem weightedL1_trueMixedProd
-    (ha : WeightedL1 r a) (hb : WeightedL1 r b) (hr : 0 ≤ r) :
-    WeightedL1 r (trueMixedProd a b)
+    (hs : 0 ≤ s)
+    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
+    WeightedL1 s (trueCosProd a b)
 ```
 
-These are weighted-ℓ¹ analogues of the existing `H^σ` product algebra. They should be easier than the `H^σ` proof: use submultiplicative/Peetre weights and ℓ¹ convolution estimates.
+or the stronger normed estimate if you have a bundled norm.
 
-### Resolver transfer
+### 3.2 Cosine × sine → sine
+
+For the mixed product, the same bookkeeping applies. The product formula has the same additive and folded/correlation indices, with one sign change in the difference term. Absolute values absorb the sign.
+
+Thus
+
+```text
+‖trueMixedProd(a,b)‖_{A^s_sin}
+  ≤ Cmix(s) ‖a‖_{A^s_cos} ‖b‖_{A^s_sin}.
+```
+
+Lean target:
 
 ```lean
-theorem weightedL1_vx_of_u
-    (hu : WeightedL1 (r - 1) (cosineCoeffs u)) :
-    WeightedL1 r (sineCoeffs vx)
+theorem weightedL1_trueMixedProd
+    (hs : 0 ≤ s)
+    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
+    WeightedL1 s (trueMixedProd a b)
 ```
 
-because the multiplier for `v_x` is `sqrt λ /(μ+λ)`, which gains one derivative.
+This is the weighted-ℓ¹ analogue of the already-landed mixed `H^σ` product algebra.
 
-### Composition theorem
+---
 
-For the denominator:
+## 4. Composition: `(1+v)^(-β)`
+
+You need a weighted Wiener Nemytskii/Wiener-Lévy theorem.
+
+Let
+
+```text
+ψ(z) = (1+z)^(-β),   β ≥ 0.
+```
+
+Since `v ≥ 0`, the range of `v` is contained in `[0,R]` for some `R`, so `ψ` is smooth and in fact real analytic on an open neighborhood of the range, with no singularity near it.
+
+The correct estimate is:
+
+```text
+‖ψ(v)‖_{A^s_cos}
+  ≤ C_{s,β,R}(1 + ‖v‖_{A^s_cos}),
+```
+
+where `R ≥ ‖v‖_∞`.
+
+For `ψ(0)=1`, the constant `1` accounts for the zero/constant mode. If one applies the theorem to `ψ(v)-ψ(0)`, the estimate is linear in `‖v‖_{A^s}`:
+
+```text
+‖ψ(v)-ψ(0)‖_{A^s} ≤ C_{s,β,R} ‖v‖_{A^s}.
+```
+
+This is a genuine analytic composition lemma. Possible proof routes:
+
+1. **Wiener-Lévy / holomorphic functional calculus** for weighted Wiener algebras.
+2. **Besov/Moser composition** for the Fourier ℓ¹ scale.
+3. For integer `s=3`, a hand proof via differentiating up to order `3` plus an already-proved inverse/composition closure in `A^0`.
+
+Do not pretend this follows from product closure alone unless `β` is a nonnegative integer and the expression is a polynomial. For real `β`, this is a real Nemytskii/Wiener-Lévy lemma.
+
+Lean target:
+
+```lean
+theorem weightedL1_one_add_rpow_neg
+    (hs : 0 ≤ s)
+    (hβ : 0 ≤ β)
+    (hv_nonneg : ∀ x, 0 ≤ v x)
+    (hvA : WeightedL1 s (cosineCoeffs v)) :
+    WeightedL1 s (cosineCoeffs (fun x => (1 + v x) ^ (-β)))
+```
+
+For estimates, expose a normed version:
+
+```text
+‖(1+v)^(-β)‖_{A^s} ≤ C(s,β,‖v‖∞) * (1 + ‖v‖_{A^s}).
+```
+
+Since the resolver gives `‖v‖∞ ≤ M/μ`, in the chemotaxis application the constant depends only on `s, β, μ, M` and the relevant `A^s` norm of `u`.
+
+---
+
+## 5. Bookkeeping for `W = u(1+v)^(-β)`
+
+Assume
+
+```text
+u ∈ A^3_cos.
+```
+
+Then by resolver gain:
+
+```text
+v ∈ A^5_cos,
+```
+
+hence, by monotonicity of the weights,
+
+```text
+v ∈ A^3_cos.
+```
+
+By the composition theorem:
+
+```text
+D := (1+v)^(-β) ∈ A^3_cos,
+```
+
+with
+
+```text
+‖D‖_{A^3} ≤ C_{β,μ,M}(1 + ‖v‖_{A^3})
+          ≤ C_{β,μ,M}(1 + C_R(μ) ‖u‖_{A^1})
+          ≤ C_{β,μ,M}(1 + C_R(μ) ‖u‖_{A^3}).
+```
+
+Then product closure gives
+
+```text
+W = u D ∈ A^3_cos,
+```
+
+with
+
+```text
+‖W‖_{A^3}
+  ≤ Ccos(3) ‖u‖_{A^3} ‖D‖_{A^3}
+  ≤ C ‖u‖_{A^3} (1 + ‖u‖_{A^3}).
+```
+
+The exact polynomial dependence is not important for summability; for explicit estimates it is typically quadratic in the `A^3` size of `u`.
+
+---
+
+## 6. Bookkeeping for `F = W v_x`
+
+From `u ∈ A^3_cos`, the derivative-resolver gain gives
+
+```text
+v_x ∈ A^4_sin,
+```
+
+hence
+
+```text
+v_x ∈ A^3_sin.
+```
+
+More explicitly, using only the minimal input,
+
+```text
+u ∈ A^2_cos ⇒ v_x ∈ A^3_sin.
+```
+
+Since `A^3 ⊂ A^2`, `u ∈ A^3` is enough.
+
+Now apply the mixed product estimate:
+
+```text
+F = W v_x ∈ A^3_sin,
+```
+
+with
+
+```text
+‖F‖_{A^3_sin}
+  ≤ Cmix(3) ‖W‖_{A^3_cos} ‖v_x‖_{A^3_sin}
+  ≤ C ‖u‖_{A^3} (1 + ‖u‖_{A^3}) ‖u‖_{A^2}
+  ≤ C ‖u‖_{A^3}^2 (1 + ‖u‖_{A^3}).
+```
+
+Thus
+
+```text
+Σ_k λ_k^(3/2) |sineCoeff(F)_k|
+  ≤ Σ_k (1+λ_k)^(3/2) |sineCoeff(F)_k|
+  = ‖F‖_{A^3_sin}
+  < ∞.
+```
+
+This confirms the reduction:
+
+```text
+u(t) ∈ A^3_cos  ⇒  W(t)v_x(t) ∈ A^3_sin
+                 ⇒  divergence-weighted source ℓ¹.
+```
+
+So, yes: **per-slice `u ∈ A^3_cos` is the single clean sufficient condition** for the chemotaxis flux source regularity package.
+
+---
+
+## 7. Relation to Sobolev `MemHSigma`
+
+If you want to produce `A^3` from a Sobolev coefficient square-summability statement, the embedding is:
+
+```text
+MemHSigma q a  and  q > s + 1/2  ⇒  WeightedL1 s a.
+```
+
+Proof by Cauchy-Schwarz:
+
+```text
+Σ w_s |a_k|
+  = Σ ((1+λ_k)^(q/2)|a_k|) * (1+λ_k)^((s-q)/2)
+  ≤ (Σ (1+λ_k)^q a_k²)^(1/2)
+     (Σ (1+λ_k)^(s-q))^(1/2).
+```
+
+Since `λ_k ~ k²`,
+
+```text
+Σ (1+λ_k)^(s-q)
+```
+
+converges iff
+
+```text
+2(q-s) > 1,
+```
+
+that is
+
+```text
+q > s + 1/2.
+```
+
+Therefore:
+
+```text
+u ∈ H^{3+1/2+ε} = H^{7/2+ε}
+  ⇒ u ∈ A^3.
+```
+
+This is a sufficient Sobolev route, but for the weighted-Wiener formalization it is cleaner to work directly in `A^3`.
+
+---
+
+## 8. Parabolic smoothing: what is true and what must be proved
+
+### 8.1 Linear heat part
+
+If `u₀ ∈ L∞`, then the raw cosine coefficients satisfy a flat bound
+
+```text
+|u₀,k| ≤ C ‖u₀‖∞.
+```
+
+For the heat part,
+
+```text
+(S(t)u₀)_k = exp(-tλ_k) u₀,k.
+```
+
+Thus for every `t>0` and every `s ≥ 0`,
+
+```text
+‖S(t)u₀‖_{A^s}
+  ≤ C ‖u₀‖∞ Σ_k (1+λ_k)^(s/2) exp(-tλ_k)
+  < ∞.
+```
+
+The sum behaves like
+
+```text
+t^{-(s+1)/2}
+```
+
+as `t ↓ 0`. For `s=3`, it behaves like `t^{-2}`.
+
+So the heat term is instantly in `A^3`.
+
+### 8.2 Full nonlinear mild solution
+
+For the full mild solution, do not argue only from the heat factor in the initial term. The Duhamel term has an endpoint `a=t` where the heat kernel has zero elapsed time:
+
+```text
+∫_0^t S(t-a) N(u(a)) da.
+```
+
+A bounded source alone does not give `A^3` at the endpoint. The smoothing is recovered by a positive-time bootstrap / analytic-semigroup regularity theorem, not by a one-line estimate using `exp(-tλ_k)`.
+
+The clean formal theorem should be named something like:
+
+```lean
+theorem mildSolution_cosA_posTime
+    (ht : 0 < t) :
+    WeightedL1 3 (cosineCoeffs (u t))
+```
+
+or uniformly on positive strips:
+
+```lean
+theorem mildSolution_cosA_uniform_on_Icc_pos
+    (hε : 0 < ε) (hεT : ε ≤ T) :
+    ∃ C, ∀ t ∈ Set.Icc ε T,
+      weightedL1Norm 3 (cosineCoeffs (u t)) ≤ C
+```
+
+This theorem is standard parabolic smoothing, but it is a genuine theorem. It should be proved by one of:
+
+1. analytic semigroup smoothing in a weighted-Wiener scale;
+2. local contraction restarted at positive time in `A^3`;
+3. classical parabolic regularity strong enough to imply `A^3`, e.g. compatible `H^{7/2+ε}` or weighted Fourier decay.
+
+Once this theorem is available, the flux source regularity follows by the algebraic chain above.
+
+### 8.3 Uniform down to zero
+
+Uniform `A^3` bounds on `[0,T]` require either:
+
+```text
+u₀ ∈ A^3
+```
+
+or a separate near-zero integrable-singularity statement. From `u₀ ∈ L∞` alone, one expects constants to blow up as `t ↓ 0`, even for the linear heat equation.
+
+For many energy arguments it is enough to have the weighted source package on `[ε,T]` and then handle the initial layer separately by approximation or by local smoothing estimates with integrable singularities.
+
+---
+
+## 9. Lean theorem chain to formalize
+
+I would implement the following lemmas in this order.
+
+### Weighted Wiener infrastructure
+
+```lean
+def WeightedL1 (s : ℝ) (a : ℕ → ℝ) : Prop :=
+  Summable (fun k => (1 + lam k) ^ (s / 2) * |a k|)
+
+theorem weightedL1_mono
+    (hsr : r ≤ s) (ha : WeightedL1 s a) : WeightedL1 r a
+```
+
+### Resolver
+
+```lean
+theorem weightedL1_resolver_gain_two
+    (hμ : 0 < μ) (ha : WeightedL1 s a) :
+    WeightedL1 (s+2) (fun k => a k / (μ + lam k))
+
+theorem weightedL1_resolver_deriv_gain_one
+    (hμ : 0 < μ) (ha : WeightedL1 s a) :
+    WeightedL1 (s+1)
+      (fun k => Real.sqrt (lam k) * (a k / (μ + lam k)))
+```
+
+### Products
+
+```lean
+theorem weightedL1_trueCosProd
+    (hs : 0 ≤ s)
+    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
+    WeightedL1 s (trueCosProd a b)
+
+theorem weightedL1_trueMixedProd
+    (hs : 0 ≤ s)
+    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
+    WeightedL1 s (trueMixedProd a b)
+```
+
+### Composition
 
 ```lean
 theorem weightedL1_one_add_resolver_rpow_neg
-    (hv : WeightedL1 r (cosineCoeffs v))
-    (hbase : ∀ x, 0 ≤ v x)
     (hβ : 0 ≤ β)
-    (hr : suitable, e.g. r is integer or r > 1/2 with a proved Wiener composition theorem) :
-    WeightedL1 r (cosineCoeffs (fun x => (1 + v x)^(-β)))
+    (hv_nonneg : ∀ x, 0 ≤ v x)
+    (hvA : WeightedL1 s (cosineCoeffs v)) :
+    WeightedL1 s
+      (cosineCoeffs (fun x => (1 + v x) ^ (-β)))
 ```
 
-This is a genuine analytic lemma. If proving a full Nemytskii theorem is too much, use the stronger positive-time smoothing/classical `C^{m,α}` route as a temporary producer.
+This is the one genuinely analytic Nemytskii/Wiener-Lévy lemma.
+
+### Flux target
+
+```lean
+theorem chemFlux_sinA3_of_u_cosA3
+    (hμ : 0 < μ)
+    (hβ : 0 ≤ β)
+    (huA3 : WeightedL1 3 (cosineCoeffs u))
+    (hv_def : cosineCoeffs v = fun k => cosineCoeffs u k / (μ + lam k))
+    (hvx_def : sineCoeffs vx = fun k => Real.sqrt (lam k) * cosineCoeffs v k)
+    (hden : WeightedL1 3 (cosineCoeffs (fun x => (1 + v x)^(-β))))
+    (hWbridge : cosineCoeffs W = trueCosProd (cosineCoeffs u)
+        (cosineCoeffs (fun x => (1 + v x)^(-β))))
+    (hFbridge : sineCoeffs F = trueMixedProd (cosineCoeffs W) (sineCoeffs vx)) :
+    WeightedL1 3 (sineCoeffs F)
+```
+
+Then the divergence-weighted source summability is immediate:
+
+```lean
+theorem divergence_weighted_source_l1
+    (hF_A3 : WeightedL1 3 (sineCoeffs F)) :
+    Summable (fun k => (lam k) ^ (3/2 : ℝ) * |sineCoeffs F k|)
+```
+
+Use pointwise:
+
+```lean
+(lam k) ^ (3/2 : ℝ) ≤ (1 + lam k) ^ (3/2 : ℝ)
+```
+
+from `lam_nonneg` and `Real.rpow_le_rpow`.
 
 ---
 
 ## Final answer
 
-The carried divergence-weighted source regularity is **not automatic** from a bounded classical `C²` solution. It requires genuinely higher regularity: at least `H^{5/2+ε}` for a direct cosine source, and `H^{7/2+ε}` for a pre-divergence flux whose divergence coefficients are weighted by an extra `sqrt λ`. Equivalently, it requires membership in a weighted Wiener algebra: `A₂` for a direct cosine source, `A₃` for the sine coefficients of the pre-divergence flux.
+The exact gain/product chain is correct as follows:
 
-For the mild solution, the right way to obtain it is through parabolic smoothing of the solution’s coefficients and weighted Wiener product/ composition estimates. On positive time strips `[ε,T]`, this should hold with constants depending on `ε`. Uniformity down to `0` needs high initial regularity or a separate integrable-singularity argument. Bare `C²` and the `L∞` order box are not enough.
+```text
+Resolver:  A^s_cos(u) → A^{s+2}_cos(v),       constant ≤ max(1,1/μ)
+Derivative: A^s_cos(u) → A^{s+1}_sin(v_x),    constant ≤ max(1,1/μ)
+Product:   A^s × A^s → A^s,                  for weighted Wiener A^s, s≥0
+Composition: v∈A^s, v≥0 ⇒ (1+v)^(-β)∈A^s,   Wiener-Lévy/Moser lemma
+Flux:      u∈A^3 ⇒ W∈A^3_cos and v_x∈A^3_sin ⇒ Wv_x∈A^3_sin
+Target:    Wv_x∈A^3_sin ⇒ Σ λ_k^(3/2)|sineCoeff(Wv_x)_k| < ∞.
+```
+
+Thus **`u(t) ∈ A^3_cos` is the single clean per-slice sufficient condition** for the divergence-weighted chemotaxis source regularity.
+
+For the mild solution, the linear heat part is instantly in `A^3` from `u₀∈L∞`, but the full nonlinear Duhamel term requires a positive-time parabolic smoothing/bootstrap theorem. On `[ε,T]`, this should yield uniform `A^3` bounds; down to `0`, either assume `u₀∈A^3` or allow the expected heat-smoothing singularity.
