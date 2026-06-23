@@ -27,3 +27,14 @@ CMParams + initial regularity. Tracks the `CarrySeam` fields + base.
 - hû₀ : MemHSigma (σ+1/4) (initial data) — legitimate initial-regularity assumption
 
 Last verified: 820b383 (3634 jobs, axiom-clean)
+
+## [2026-06-23] BASE E₀ analysis — the genuine final residual, route identified
+IntervalTrajectoryEnvelopeClosure.lean:196-211 documents the precise stall: the L² seed
+`conjugatePicardLimit_slice_memHSigma_zero` gives per-slice `MemHSigma 0 (cosineCoeffs (u τ))`, but the τ-UNIFORM
+coordinatewise `env ∈ H^{σ₀}` (σ₀>0) is NOT pointwise from it — the mild L∞ ball gives `k↦2M ∉ H^{σ₀}` (no decay).
+The base needs the FIRST positive-time smoothing (heat instantaneous regularization). KEY: that IS the
+trajBanach fixed point (trajBanach_envelope_of_invariance, IntervalChiNegTrajBanach) at the direct-route
+supersolution Estar (IntervalChiNegDirectSupersolution, hEhatH discharged) — the coordinatewise envelope as the
+Banach OUTPUT (domination by uniqueness), NOT a prior-envelope-dependent ladder step. So E₀ = the EnvBall/
+trajBanach fixed point at Estar, combining the machinery already built this session. NEXT: wire trajBanach +
+direct-route supersolution + the MapsTo into the base E₀ producer (the genuine local-existence core).
