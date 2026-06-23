@@ -78,3 +78,27 @@ OPEN (the discharge frontier):
   #8 [P3] Theorem 2.2 fractional-power-embedding frontier (cascades from P2 χ₀≤0 boundedness).
 Discharging {#1..#3} → ChiNegDatumUniformConstruction (P2 χ₀<0). {#4..#7} → Paper1MainResultsData (P1).
 {#8} → Paper3Constants (P3 T2.2). χ₀=0 + P3 T10 already unconditional.
+
+## ★ P1 DISCHARGE MAP (2026-06-22, [ChatGPT cron2 RUN#373 git-drop 296dc66+241d188], key claims tree-verified)
+Paper1MainResultsData (4 core fields + 4 aux wave_cont/cauchy_unique/resolvent/tail_asymp for Thm 1.2/1.3).
+No producer for the full bundle; only the StatementAssembly wrappers consume it. All 4 core satisfiable EXCEPT
+#6 (flagged). Status:
+ #4 construction_neg — 🟡 PARTIAL, satisfiable. Landed: b1_neg_hVmono (elliptic deriv monotone), lower-pinned
+    Schauder wrappers (non-vacuous, repairs the false bare-trap Schauder principle), Rothe cleanup (hVcont).
+    HARD RESIDUAL: the construction theorem = per-step Rothe/Green producer (RotheFloorResidualCore/Rothe
+    StepProducer) + Rothe continuous-dependence/Schauder fixed point + stationarity + strict bounds + right-
+    tail asymptotic. Carried: hstat/hlim_bot/hupper/htail (WaveBridgeWrappers), hprodTrap/hdep (WaveRotheClose).
+ #5 construction_pos — 🟡 PARTIAL, satisfiable. Rothe sign-agnostic; whole_line_super_barrier_pos swapped in
+    (rotheFloorResidual_of_trap_pos). Carries same Green/stationary/positivity core (b1_chiPos_existence).
+ #6 cStarStar_spec — ⚠️ POTENTIAL VACUITY (was mis-rated ✅; ChatGPT self-corrected). The strict baseline
+    `stabilitySpeedBaseline p < cStarStarFn p p.χ` must hold ∀ stable-regime p. VERIFIED: χ=0 IS in the stable
+    regime (StableWaveParameterRegime positive branch 0≤χ, Statements.lean:16779). UNRESOLVED: whether
+    StabilitySpeedThresholdFamilyAsymptotic PINS cStarStarFn p 0 to = baseline (→ strict < FALSE → over-strong,
+    needs statement refactor strict→≤ or χ=0 exclusion/punctured-asymptotic) OR leaves cStarStarFn free (→ pick
+    baseline+1, dischargeable). MUST resolve before claiming #6 — do NOT bank as easy. → verify StabilitySpeed
+    ThresholdFamilyAsymptotic (faithfulness: check paper's threshold is strict vs ≤ at χ=0).
+ #7 stability — 🔨 OPEN, satisfiable. The full weighted orbital stability theorem for the nonlinear Cauchy
+    problem. The genuine hard P1 core (comparable to χ₀<0). → codex Jun 26.
+NET: P1 is a FULL frontier comparable to χ₀<0 — #4/#5 hard Rothe/Green core, #7 orbital stability, #6 vacuity-
+flagged. NOT closer to done. Combined campaign frontier: {#1 χ₀<0 flux fixed-point, #3 k=0, #7 P1 stability,
+#4/#5 Rothe/Green} = codex Jun 26; {#2 done-bulk, #6 resolve flag, #8 P3 cascade} = tractable/blocked.
