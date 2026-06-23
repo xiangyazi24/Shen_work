@@ -416,3 +416,4 @@ import ShenWork.Paper2.IntervalChiNegAssemble
 import ShenWork.Paper2.IntervalChiNegHmdC
 import ShenWork.Paper2.IntervalChiNegH1Energy
 import ShenWork.Paper2.IntervalChiNegH1EnergyCore
+import ShenWork.Paper2.IntervalChiNegH1EnergyDeriv
