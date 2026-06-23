@@ -321,3 +321,14 @@ conditional on the per-slice MILD SEAM:
   DecompHyp: Fubini swaps + continuities [per-τ] + the GENUINE k=0/τ=0 mean-conservation hzero (#3).
   + FluxFactorEnvelopes [#1 landed] + htraj_dom.
 Final χ₀<0 = instantiate SeamHyp/DecompHyp from landed lemmas (dozens of per-field) + close k=0 mean. → opus.
+
+## ★★ P1 #4 chemo → ONE scalar hDom (chemotaxis-vs-reaction balance) (2026-06-22 [opus], verified 3390)
+IntegratedChemoDefectImpl: REACTION half DISCHARGED UNCOND (reaction_increment_ge_neg_lambda_shift through
+greenConv_mono — entire reaction increment absorbed). hsign REDUCED to ONE named scalar hDom:
+  hDom: −greenConv(−λ(Z−W)) x ≤ (−χ)·∫Kλ'(x−y)·(Z^m−W^m)·V'(y) dy — the integrated chemo-defect dominates the
+  λ-shift Green image. NOT closable from order structure (derivative on KERNEL Kλ', not source; reverse-IBP
+  reintroduces false W'-pointwise). Needs a QUANTITATIVE V' magnitude bound (frozenElliptic deriv |V'| × trap
+  width × |χ| ≤ reaction shift) — the chemotaxis-vs-reaction BALANCE, the genuine analytic heart. Non-vacuous/
+  non-circular/non-over-strong (reaction half proved not assumed). hVmono (V'≤0) + frozenElliptic_deriv_
+  differentiableAt landed; the magnitude bound is the piece. → opus.
+P1 #4 = hDom (chemo-vs-reaction V' bound) + #4-A flux integrability + #4-D-rest.

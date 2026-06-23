@@ -352,3 +352,5 @@ import ShenWork.Paper1.ChemoMonotoneImpl
 import ShenWork.Paper2.IntervalChiNegFluxSourceClosure
 
 import ShenWork.Paper2.IntervalChiNegMildPackage
+
+import ShenWork.Paper1.IntegratedChemoDefectImpl
