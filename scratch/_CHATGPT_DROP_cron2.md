@@ -1,338 +1,384 @@
-# Q78 (cron2): χ₀<0 chemotaxis uniform-H¹ proof — completeness audit
+# Q81 (cron2): χ₀<0 chemotaxis after uniform H¹ — global existence and asymptotics roadmap
 
-## Verdict
+## Executive answer
 
-Modulo the three remaining carries you listed, the norm/energy route is **mathematically complete** for a uniform-in-time `H¹` bound, provided the constants in the carries are genuinely local/classical-regularity constants and not secretly using the target `H¹` bound.
+With a uniform-in-time `H¹` bound in hand, the **global existence theorem is now straightforward** if the local theory has the standard continuation property: the local lifespan from a time slice depends only on the `H¹` norm of that slice. Then a finite maximal time contradicts the ability to restart from a time close to the endpoint.
 
-The built chain
-
-```text
-L∞ order box
-→ elliptic resolver C²/sup bounds
-→ spectral H¹ energy identity
-→ y' ≤ A y + B
-→ L² dissipation window ∫_{t-1}^t y ≤ Cwin
-→ uniform Gronwall / averaging
-→ sup_t y(t) ≤ C
-```
-
-is the right structure. There is no missing Moser step and no hidden exponential-in-time growth once the sliding-window integral is available. The taxis term is not sign-definite in the `H¹` energy, but it does not need to be: with the `L∞` box and resolver bounds it is handled by Young and contributes only to the linear coefficient `A` and constant `B` in `y'≤Ay+B`.
-
-The only real audit warnings are:
-
-1. the source regularity seam must not smuggle in a uniform `H¹` bound;
-2. the L² window constant must be independent of the final time `T`;
-3. the uniform-Gronwall lemma needs absolute continuity/differentiability of `y` on intervals, which your spectral derivative/source seam appears designed to supply;
-4. the full `H¹` norm needs the zero mode / `L²` part, not just the derivative seminorm, but the `L∞` box supplies it immediately on `[0,1]`.
-
-## 1. Audit of the logic
-
-Let
+The asymptotic theorem is a separate layer. For nontrivial nonnegative data, the expected limit is the positive constant logistic equilibrium
 
 ```text
-y(t) := 1/2 ∑_k λ_k |û_k(t)|² = 1/2 ||u_x(t)||²_{L²}.
+u(t,·) → K,
+v(t,·) → K/μ,
 ```
 
-You have built the spectral energy derivative and the estimate
+where `K` is the carrying capacity, e.g. `K=1` for `f(u)=u(1-u)` or `f(u)=u(1-u^α)`. The zero datum stays zero. Exponential convergence is expected under the usual stable-logistic assumptions, but it is **not a direct consequence of the uniform H¹ bound alone**. It needs a convergence mechanism: Lyapunov/LaSalle, entropy dissipation plus an entropy gap, or an eventual perturbative spectral-stability argument.
+
+The shortest next paper-style theorem is therefore:
 
 ```text
-y'(t) ≤ A y(t) + B                                      (1)
+local mild/classical solution
++ nonnegativity/order box
++ uniform H¹ a-priori estimate
++ H¹ continuation criterion
+⇒ global bounded classical solution, classical for t>0.
 ```
 
-with constants `A,B` depending only on the fixed problem parameters, the `L∞` order-box bound, the resolver constants, and the logistic coefficients on that box. This is fine even if `A>0`; the point is that you also have the window estimate.
+Do this before asymptotics. The asymptotics should be a later theorem.
 
-You also have
+## 1. Continuation lemma: precise statement
+
+Let `X := H¹_N(0,1)` or the cosine `H¹` phase space compatible with Neumann boundary conditions.
+
+A standard local well-posedness/continuation package is:
 
 ```text
-∀ t ≥ 1,  ∫_{t-1}^{t} y(s) ds ≤ Cwin.                  (2)
+(Local existence with lifespan bounded below on bounded sets)
+For every R>0 there exists τ(R)>0 such that for every time t₀ and every datum
+w∈X with ||w||_X≤R, the problem with initial datum w at t₀ has a unique mild
+solution on [t₀,t₀+τ(R)].
 ```
 
-Then the averaging/uniform-Gronwall step is valid. For `t≥1`, integrate (1) from any `s∈[t-1,t]` to `t`:
+Equivalently, the maximal solution `u:[0,Tmax)→X` satisfies the blow-up alternative
 
 ```text
-y(t) ≤ e^{A(t-s)} y(s) + ∫_s^t e^{A(t-r)} B dr.
+Tmax < ∞  ⇒  limsup_{t↑Tmax} ||u(t)||_X = ∞.
 ```
 
-If `A≥0`, then `t-s≤1`, hence
+Then the continuation lemma is:
 
 ```text
-y(t) ≤ e^A y(s) + B e^A.
+ContinuationLemma:
+Assume u is the unique maximal X-solution on [0,Tmax).
+Assume sup_{0≤t<Tmax} ||u(t)||_X ≤ R < ∞.
+Then Tmax = ∞.
 ```
 
-Averaging over `s∈[t-1,t]` gives
+Proof:
+
+1. Suppose `Tmax<∞`.
+2. Let `τ := τ(R)`.
+3. Pick `t₀∈[0,Tmax)` with `Tmax - t₀ < τ/2`.
+4. Since `||u(t₀)||_X≤R`, local existence from `u(t₀)` gives a solution on `[t₀,t₀+τ]`.
+5. By uniqueness, this new solution agrees with the old solution on `[t₀,Tmax)`.
+6. Since `t₀+τ > Tmax`, this extends the old maximal solution past `Tmax`, contradiction.
+
+So once you have
 
 ```text
-y(t) ≤ e^A ∫_{t-1}^{t} y(s) ds + B e^A
-     ≤ e^A Cwin + B e^A.                              (3)
+sup_{t<Tmax} ||u(t)||_{H¹} ≤ C,
 ```
 
-If you want a sharper constant, replace `B e^A` with `B (e^A-1)/A` when `A>0`, and with `B` when `A=0`. The coarse bound above is enough.
+global existence follows immediately.
 
-For `t∈[0,1]`, use the local/classical bound or integrate (1) from `0`:
+### Important formal detail
+
+If your a-priori theorem is stated as `sup_{t>0} ||u(t)||_{H¹}≤C`, check the behavior at `t=0`.
+
+- If `u₀∈H¹`, include `t=0` using the initial coefficient bound.
+- If `u₀` is only `L∞` or `H^σ`, `σ<1`, then the global theorem should be phrased as existence for all time plus `sup_{t≥ε} ||u(t)||_{H¹}<∞` for every `ε>0`, unless you prove instantaneous smoothing and start continuation in a weaker phase space.
+
+For an `H¹`-based continuation criterion from time zero, you need `u₀∈H¹`.
+
+## 2. What exactly does the uniform H¹ bound buy?
+
+On `[0,1]`, `H¹` embeds into `L∞`. But you already have a stronger order box. The uniform `H¹` bound gives:
 
 ```text
-y(t) ≤ e^A y(0) + B e^A.
+sup_t ||u(t)||_{H¹} < ∞,
+sup_t ||u(t)||_{L∞} < ∞,
 ```
 
-Therefore
+and, through the elliptic resolver,
 
 ```text
-sup_{t∈[0,T]} y(t)
-  ≤ max(e^A y(0)+B e^A, e^A Cwin+B e^A),
+sup_t ||v(t)||_{H³} or at least resolver-controlled v, v_x, v_xx bounds
 ```
 
-and this bound is independent of `T`. This is a genuine uniform bound, not an exponential-in-`T` estimate.
+in the regularity scale your formalization uses.
 
-So the uniform-Gronwall/averaging logic is sound.
+For **global existence**, this is enough if the local theory is in `H¹`.
 
-## 2. Is there a hidden sign issue in the taxis term?
-
-At the `L∞` maximum-principle level, the repulsive sign `χ₀<0` gives an inward-pointing contribution at the spatial maximum. That is the crucial sign use for the order box.
-
-At the `H¹` level, you should **not** expect the taxis term to be dissipative pointwise. The proof only needs it to be controlled. With `a=-χ₀>0`,
+For **global bounded classical solution**, one normally adds parabolic smoothing:
 
 ```text
-u_t = u_xx + a ∂x(u v_x) + f(u).
+for every ε>0 and every finite or infinite T,
+u is classical on [ε,T]×[0,1],
 ```
 
-Testing against `-u_xx` gives schematically
+with bounds depending on `ε` and the uniform `H¹`/`L∞` bounds. If the initial datum is smooth and satisfies compatibility, classicality can include `t=0`; otherwise it is classical for `t>0`.
+
+So the clean headline is:
 
 ```text
-1/2 d/dt ||u_x||²₂
-  = -||u_xx||²₂
-    - a ∫ u_xx ∂x(u v_x)
-    - ∫ u_xx f(u).
+For nonnegative u₀∈H¹, the solution exists globally and remains bounded in H¹ and L∞.
+Moreover, by parabolic regularization it is classical for t>0.
 ```
 
-Expand
+If your `IsPaper2ClassicalSolution` constructor already turns the mild solution plus source regularity into classicality, the remaining work is just to feed it the global time interval after continuation.
+
+## 3. Expected steady state
+
+For logistic source with carrying capacity `K>0`, the constant steady state is
 
 ```text
-∂x(u v_x) = u_x v_x + u v_xx.
+u_* = K,
+v_* = K/μ.
 ```
 
-Then Young gives, for any small `ε>0`,
+There is also the zero steady state if the logistic source has the usual factor `u`, and the zero solution is selected by the zero initial datum.
+
+For nontrivial nonnegative initial data, the expected asymptotic behavior is
 
 ```text
-|a ∫ u_xx (u_x v_x + u v_xx)|
-  ≤ ε ||u_xx||²₂
-    + Cε a² ( ||v_x||²∞ ||u_x||²₂ + ||u||²∞ ||v_xx||²₂ ).
+u(t) → K,
+v(t) → K/μ,
 ```
 
-The `L∞` order box and elliptic resolver bounds give
+usually exponentially fast in norms below the eventual classical regularity level, and then by interpolation/smoothing in stronger norms.
+
+A useful maximum-principle uniqueness check for positive stationary states is short:
+
+Let `(U,V)` be a positive stationary solution with Neumann boundary conditions:
 
 ```text
-||u||∞ ≤ M,
-||v_x||∞ ≤ Cv1(M),
-||v_xx||₂ ≤ Cv2(M),
+0 = U_xx + a (U V_x)_x + f(U),     a=-χ₀>0,
+μV - V_xx = U.
 ```
 
-so the taxis term contributes
+At a maximum point of `U`, say `Umax`, we have `U_x=0`, `U_xx≤0`, and the elliptic maximum principle gives `μV≤Umax`, hence
 
 ```text
-≤ ε ||u_xx||²₂ + C1 y(t) + C2.
+V_xx = μV-U ≤ 0
 ```
 
-For the reaction,
+at that point. Therefore
 
 ```text
--∫ u_xx f(u) = ∫ f'(u) u_x² ≤ Lf y(t),
+0 = U_xx + a U V_xx + f(Umax) ≤ f(Umax),
 ```
 
-where
+so `f(Umax)≥0`. For the logistic source, this forces `Umax≤K`.
+
+At a minimum point `Umin`, the same reasoning gives `U_xx≥0`, `μV≥Umin`, hence `V_xx≥0`, and therefore
 
 ```text
-Lf := sup_{0≤s≤M} f'(s) < ∞.
+0 = U_xx + a U V_xx + f(Umin) ≥ f(Umin),
 ```
 
-Choose `ε` small enough to leave part of the `-||u_xx||²₂` dissipation, then drop the remaining negative term. This yields exactly
+so `f(Umin)≤0`, forcing `Umin≥K` for a positive solution. Hence `U≡K`.
+
+Thus the only positive steady state is the carrying capacity. This is a very useful endpoint for LaSalle/omega-limit arguments.
+
+## 4. Lyapunov / entropy functional
+
+For the drift-diffusion part without logistic reaction, the repulsive sign gives a convex free energy. Write
 
 ```text
-y' ≤ A y + B.
+a := -χ₀ > 0,
+z := v - K/μ = (μ-Δ_N)^{-1}(u-K),
+Φ_K(s) := s log(s/K) - s + K.
 ```
 
-Thus there is no hidden sign issue: the repulsive sign is used to obtain the `L∞` box, not to make the `H¹` taxis contribution negative.
-
-## 3. Audit of the L² dissipation window
-
-The window estimate must be genuinely uniform. The standard route is to test the equation against `u`:
+A natural relative free energy is
 
 ```text
-1/2 d/dt ||u||²₂
-  = -||u_x||²₂ - a ∫ u u_x v_x + ∫ u f(u).
+E[u] := ∫_0^1 Φ_K(u) dx + (a/2) ∫_0^1 (u-K) z dx.
 ```
 
-Integrating the taxis term by parts,
+Since the Neumann resolver is positive self-adjoint, the second term is nonnegative. The variational derivative is
 
 ```text
--a ∫ u u_x v_x
-  = -(a/2) ∫ (u²)_x v_x
-  =  (a/2) ∫ u² v_xx.
+δE/δu = log(u/K) + a z.
 ```
 
-This term may have either sign, but the `L∞` box and resolver bound give
+The diffusion plus repulsive taxis can be written as
 
 ```text
-|(a/2) ∫ u² v_xx| ≤ C(M).
+u_xx + a ∂x(u v_x)
+  = ∂x( u ∂x( log(u/K) + a z ) ).
 ```
 
-The reaction term is also bounded on the order box:
+Therefore along smooth positive solutions,
 
 ```text
-|∫ u f(u)| ≤ C_f(M).
+dE/dt
+  = - ∫_0^1 u |∂x(log(u/K)+a z)|² dx
+    + ∫_0^1 (log(u/K)+a z) f(u) dx.                 (Entropy identity)
 ```
 
-Therefore
+The first term is the entropy dissipation. The reaction contribution needs analysis.
+
+For a pure scalar logistic ODE, the entropy part satisfies
 
 ```text
-1/2 d/dt ||u||²₂ + ||u_x||²₂ ≤ C0.                  (4)
+∫ log(u/K) f(u) dx ≤ 0
 ```
 
-Since `[0,1]` has finite measure and `0≤u≤M`,
+because `log(u/K)` and `f(u)` have opposite signs around `K`. The extra chemical piece
 
 ```text
-||u(t)||²₂ ≤ M².
+a ∫ z f(u) dx
 ```
 
-Integrating (4) over `[t-1,t]` yields
+is not automatically sign-definite pointwise. It can often be controlled using the positivity of the resolver, the logistic monotonicity, and eventual bounds `0<δ≤u≤M`, but this is an additional estimate. Do not treat the full entropy as a one-line Lyapunov functional unless you have proved this reaction term is nonpositive or dominated by the entropy gap.
+
+So the Lyapunov route is canonical, but not necessarily the shortest Lean route unless the entropy infrastructure is already present.
+
+## 5. Is convergence exponential?
+
+Expected answer: **yes for nontrivial nonnegative data under the usual stable logistic assumptions**, but proving it requires more than the uniform `H¹` bound.
+
+The linearization around `(K,K/μ)` is very favorable. Let
 
 ```text
-∫_{t-1}^{t} ||u_x(s)||²₂ ds
-  ≤ 1/2 ||u(t-1)||²₂ - 1/2 ||u(t)||²₂ + C0
-  ≤ 1/2 M² + C0.
+w := u-K,
+z := v-K/μ = (μ-Δ_N)^{-1}w.
 ```
 
-Since `y=1/2||u_x||²₂`, this gives
+Ignoring nonlinear terms,
 
 ```text
-∫_{t-1}^{t} y(s) ds ≤ Cwin
+w_t = w_xx + a K z_xx + f'(K) w.
 ```
 
-with `Cwin` independent of `t` and independent of the final lifespan `T`.
-
-This is the key estimate that makes the H¹ differential inequality uniform.
-
-## 4. H¹ seminorm versus full H¹ norm
-
-The spectral energy `y` controls only the Neumann `H¹` seminorm:
+On Neumann cosine mode `k`, with `λ_k=(kπ)²`,
 
 ```text
-y(t)=1/2 ||u_x(t)||²₂.
+z_k = w_k/(μ+λ_k),
+z_xx,k = -λ_k w_k/(μ+λ_k),
 ```
 
-It does **not** control the zero mode by Poincaré, because Neumann boundary conditions allow constants. So, by itself, `y` is not the full `H¹` norm.
-
-But the `L∞` order box gives the missing piece immediately:
+so the linear eigenvalue is
 
 ```text
-||u(t)||²₂ ≤ |[0,1]| ||u(t)||²∞ ≤ M².
+-λ_k - aK λ_k/(μ+λ_k) + f'(K).
 ```
 
-Thus
+For `k=0`, it is `f'(K)<0`. For `k≥1`, it is even more negative. Thus the linearized operator has a spectral gap whenever the logistic equilibrium is stable, i.e. `f'(K)<0`.
 
-```text
-||u(t)||²_{H¹}
-  = ||u(t)||²₂ + ||u_x(t)||²₂
-  ≤ M² + 2 sup_t y(t).
-```
+A clean exponential proof can proceed as:
 
-So yes: the H¹ seminorm bound plus the already-built `L∞` box gives uniform full `H¹` boundedness. In the final theorem, explicitly combine the two facts rather than claiming the seminorm alone is the `H¹` norm.
-
-## 5. Reaction/logistic subtlety
-
-The logistic term cannot break the proof as long as the order box is truly established.
-
-For the maximum principle, the logistic source must provide a scalar upper ODE bound, for example
-
-```text
-f(s) ≤ r s - b s^{1+α}
-```
-
-or more generally a dissipative one-sided bound producing `u≤M`.
-
-For the H¹ energy inequality, you do **not** need the reaction to be dissipative at derivative level. You only need
-
-```text
-Lf := sup_{0≤s≤M} f'(s) < ∞,
-Cf := sup_{0≤s≤M} |s f(s)| < ∞.
-```
-
-Both are automatic for the usual polynomial/logistic source once `0≤u≤M`. The contribution
-
-```text
-∫ f'(u) u_x²
-```
-
-is then bounded by `Lf ||u_x||²₂`, which is absorbed into the `A y` term. It may increase `A`; the uniform-window Gronwall handles that. Therefore the reaction term does not cause non-uniformity after the order box is known.
-
-## 6. Remaining carries (a)--(c): are they honest?
-
-### (a) Divergence-weighted source regularity
-
-This is honest if it is used only to justify:
-
-```text
-termwise spectral differentiation,
-time-C¹ of the coefficient source,
-weighted summability needed for the derivative of the tsum,
-integration-by-parts / coefficient identities.
-```
-
-It becomes suspicious only if the assumptions include something essentially equivalent to
-
-```text
-sup_t ∑ λ_k |û_k(t)|² < ∞
-```
-
-or a uniform-in-time source bound that can only be proved from the target H¹ estimate. Then the seam would be circular.
-
-Audit it syntactically: it should talk about regularity of the classical solution/source on compact time intervals or smooth approximants, not about a global uniform `H¹` bound. If the constants in the source regularity seam are allowed to depend on `T`, that is fine for justifying identities on `[0,T]`; the **estimate constants** `A,B,Cwin` must not depend on those regularity constants.
-
-### (b) Initial-datum coefficient bound
-
-This is honest and necessary for the short-time part `[0,1]` and for `y(0)<∞`. It should be exactly the assumption that the initial datum belongs to `H¹` if the final statement starts at `t=0` with a finite `H¹` bound.
-
-If the initial datum is only `L∞` or `H^σ` with `σ<1`, then a uniform `H¹` bound on `[0,∞)` including `t=0` is false as stated. You can still get
-
-```text
-sup_{t≥τ} ||u(t)||_{H¹} < ∞    for every τ>0
-```
-
-by parabolic smoothing, but not a bound including `t=0` unless `u₀∈H¹`. So make sure the theorem statement and the initial coefficient bound agree.
-
-### (c) `IsPaper2ClassicalSolution`
-
-This is a standard regularity wrapper. If its constructor from the chemotaxis source data is present, then it is legitimate to keep it as the remaining classicality seam. It should supply enough regularity to interpret the PDE pointwise / spectrally and to validate the energy identities.
-
-Again, the classicality seam may depend on local existence and smoothness, but the final uniform bound constants must depend only on the order box, resolver constants, equation parameters, and initial `H¹` size, not on a hidden classical norm over `[0,T]`.
-
-## 7. Possible hidden gaps checklist
-
-The proof is complete if all of the following are true:
-
-```text
-[ ] The L∞ box is uniform in T and includes nonnegativity 0≤u≤M.
-[ ] μ>0 for the Neumann resolver, so the zero mode of v is controlled.
-[ ] Resolver bounds for v_x and v_xx are uniform from 0≤u≤M.
-[ ] The spectral derivative identity is justified by source regularity without assuming the target H¹ bound.
-[ ] The constants A,B in y'≤Ay+B depend only on M, χ₀, μ, f, and fixed domain constants.
-[ ] The L² window ∫_{t-1}^t y≤Cwin is proved with Cwin independent of t and T.
-[ ] Uniform Gronwall is applied to a nonnegative absolutely continuous y.
-[ ] The interval [0,1] is handled separately by y(0) or a local bound.
-[ ] The full H¹ norm combines y with the L∞→L² bound.
-```
-
-If these boxes are checked, there is no hidden analytic gap in the uniform-H¹ argument.
-
-## Final answer to the three questions
-
-1. **Yes**, the χ₀<0 uniform-H¹ bound is complete modulo (a)--(c), provided those carries are regularity/classicality inputs and not hidden a-priori H¹ bounds. The averaging argument is valid and gives a constant independent of `T` because it combines `y'≤Ay+B` with a uniform sliding-window integral of `y`.
-
-2. The H¹ seminorm bound is not by itself the full H¹ bound under Neumann boundary conditions. But the already-built `L∞` box gives a uniform `L²` bound, hence full `H¹` boundedness follows immediately:
+1. prove convergence/precompactness and identify the omega-limit as `K`; or prove eventual closeness by comparison;
+2. use the spectral gap and nonlinear estimates to obtain
 
    ```text
-   ||u||²_{H¹} ≤ M² + 2y.
+   d/dt ||w||²₂ ≤ -γ ||w||²₂
    ```
 
-3. There is no additional standard χ₀<0/logistic subtlety that destroys uniform boundedness in 1D. The logistic term must produce the order box and have bounded derivative on that box. Once `0≤u≤M`, its H¹ contribution is only `≤ Lf ||u_x||²`, which the uniform-window Gronwall handles. The taxis term may not have a good sign in H¹, but Young plus resolver bounds is enough.
+   for large time;
+3. bootstrap to higher norms by parabolic smoothing.
 
-Bottom line: the energy/norm route has now reached the right mathematical endpoint. The remaining work is regularity/classicality plumbing, not another missing a-priori estimate.
+Alternatively, prove an entropy inequality of the form
+
+```text
+E[u(t)]' ≤ -c E[u(t)]
+```
+
+for large time or globally after establishing `0<δ≤u≤M`. This gives exponential convergence directly.
+
+But the uniform `H¹` bound alone only gives precompactness after smoothing; it does not by itself provide a monotone functional or a decay rate.
+
+## 6. Shortest path to the paper headline
+
+For a clean paper theorem, split the results:
+
+### Theorem A: global bounded classical solution
+
+Assumptions:
+
+```text
+u₀≥0,
+u₀∈H¹ or smoother depending on the local theory,
+χ₀<0,
+μ>0,
+logistic source with an absorbing carrying capacity K.
+```
+
+Conclusion:
+
+```text
+There exists a unique global solution u on [0,∞).
+The solution remains nonnegative and uniformly bounded:
+  sup_{t≥0} ||u(t)||∞ ≤ M,
+  sup_{t≥0} ||u(t)||H¹ ≤ C.
+The associated v=(μ-Δ_N)^{-1}u satisfies the corresponding uniform resolver bounds.
+The solution is classical for t>0, and from t=0 if the initial datum has the required compatibility/smoothness.
+```
+
+Proof dependencies:
+
+```text
+local well-posedness + continuation;
+L∞ order box;
+uniform H¹ estimate;
+parabolic smoothing / classicality constructor.
+```
+
+This theorem does **not** need the asymptotic Lyapunov functional.
+
+### Theorem B: convergence to steady state
+
+Additional work:
+
+```text
+eventual positivity/lower bound, or entropy coercivity;
+precompactness in a topology strong enough to pass to steady states;
+unique positive stationary state;
+LaSalle/entropy decay or spectral-gap perturbation.
+```
+
+Conclusion:
+
+```text
+if u₀ not identically zero, then u(t)→K and v(t)→K/μ;
+under stable logistic assumptions, convergence is exponential.
+```
+
+This theorem may need eventual higher regularity or compactness, but those can be derived from the global bounded classical solution by smoothing.
+
+## 7. What needs more than uniform H¹?
+
+### For global existence
+
+No more a-priori estimates are needed if the local continuation criterion is `H¹`-based.
+
+### For bounded classicality
+
+You need regularity/smoothing, but not a new dissipative a-priori estimate. Use the existing mild/classical constructor or semigroup smoothing on `[ε,∞)`.
+
+### For asymptotics
+
+Yes, you need something beyond the bare uniform `H¹` bound:
+
+```text
+precompactness / smoothing,
+identification of stationary limits,
+and a convergence mechanism: Lyapunov/LaSalle, entropy gap, comparison, or spectral stability.
+```
+
+Uniform `H¹` is the boundedness platform, not the decay proof.
+
+## Final recommendation
+
+Next formal theorem should be the continuation theorem:
+
+```text
+uniform_H1_bound + local_lifespan_lower_bound_on_H1_balls
+  ⇒ global_solution.
+```
+
+Then prove the global bounded classical statement by combining global existence with the already-built `L∞` and `H¹` bounds plus classicality/smoothing.
+
+Only after that should you start the convergence theorem. For convergence, the most concrete route is either:
+
+```text
+entropy/LaSalle using E[u]=∫Φ_K(u)+(a/2)∫(u-K)(μ-Δ_N)^{-1}(u-K),
+```
+
+with a proved reaction-term control, or
+
+```text
+eventual positivity + spectral-gap stability around K.
+```
+
+The second route is probably shorter in Lean if the cosine spectral infrastructure is already strong; the first route is more canonical in PDE prose but requires more entropy calculus.
