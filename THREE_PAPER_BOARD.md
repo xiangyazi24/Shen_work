@@ -288,3 +288,15 @@ the rest carry genuine per-slice analytic content. Honest §3.3 even on the orch
   (C2) InputFamily: per-slice mild-solution analytic data (IntervalConjugateMildSolution continuity + Fourier
        summability for cosineMulBridge + the τ-uniform decomposition conjugateSlice_decomp_tauLift residuals).
 Everything else in the χ₀<0 chain is ASSEMBLED+landed. = (C1)+(C2) → MemHSigma 1 → H¹ → ChiNegDatumUniformConstruction.
+
+## ★ P1 #4-B chemo: pointwise FALSE, route is INTEGRATED (2026-06-22 [opus]+grep-general, verified 8318)
+ChemoMonotoneImpl: chemoDefect_eq_crossTerm_add_secondOrder + chemoDefect_crossTerm_nonneg (first-order cross
+term (−χ)W'mW^{m-1}V'≥0 from landed signs χ≤0/W'≤0/V'≤0) UNCOND. KEY: the POINTWISE antitone (RotheChemo
+MonotoneResidual) is genuinely FALSE-from-landed-signs (second-order V''=V−u^γ sign indeterminate; ChatGPT
+Q363 counterexample). The construction does NOT need it — it routes through the LANDED INTEGRATED form:
+IntervalP1ChemoMonotone (greenConv_chemoDefect_eq_kernelDeriv, W'-eliminated) → crossSource_greenConv_le_
+barrierSource_of_integrated_residual → the comparison; WaveStepFluxIBP.stepFlux_diff_ibp discharges it
+"in integrated form against greenConv_mono". So P1 #4 chemo wall = the INTEGRATED chemo-defect sign (hChemo,
+∫Kλ'·g — still sign-indefinite via naive forms, the genuine residual), NOT the over-strong pointwise antitone.
+EARLIER crossSource-antitone dispatches were chasing the wrong (over-strong) field — corrected: route integrated.
+P1 #4 walls: #4-A flux integrability + the INTEGRATED chemo-defect sign + #4-D-rest.
