@@ -320,3 +320,5 @@ import ShenWork.Paper1.ConstructionNegProducer
 import ShenWork.Paper2.IntervalFluxFactorEnvelope
 
 import ShenWork.Paper1.RotheStepProducerImpl
+
+import ShenWork.Paper2.IntervalDenomEnvelopeResolver

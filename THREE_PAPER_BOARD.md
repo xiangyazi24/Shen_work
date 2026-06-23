@@ -160,3 +160,10 @@ contraction) UNCOND+axiom-clean. Non-vacuous (lower-pinned, no bare-trap). #4A n
         integ/decay hyps + lower-pinned RotheMaxData max-principle). Real PDE gap. → opus.
   #4A-B RotheContinuousDependence: rotheLimit_continuousDependence (propagate FrozenEllipticDerivDependence
         through Rothe limit by DCT + uniform contraction). The deep core. Real gap. → opus.
+
+## ★★ #1D CLOSED via attack-vector (2026-06-22 [opus], verified 3502) — the first opus's "circular" was WRONG
+denom_envelope_memHSigma: (1+v)^{-β} ∈ H^σ UNCONDITIONAL for 1/2<σ<3/2, via C²-via-resolver (v∈H^{σ+2}→C²
+non-circular, resolver gain not bootstrapped target). Covers the MemHSigma-1 target range. Axiom-clean.
+#1 remaining = #1E: gW product envelope — W=u·(1+v)^{-β} τ-uniform DOMINATING envelope (mixed product algebra
+MixedMulBridge/fluxCosEnvelope_of_factorEnvelopes + τ-uniformity over [0,t]) → discharges FluxFactorEnvelopes
+.gW. → opus.
