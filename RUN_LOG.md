@@ -104,3 +104,9 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - atoms: H1{grad★/hom/src/chem} → unlock on grad; H2 DT (mirror, medium); H3 hF1; H4 strip; H5 Henergy
 - FALSE fields fixed this campaign: source-bridge(787d375), bank-hchemCont(3fd5c90), H1-grad-def(268754f)
 - end: <fill on close>
+
+## Run 2026-06-22 (automode continuation to audit pass)
+- doctrine: this DOCTRINE.md run section + THREE_PAPER_BOARD.md numbered registry
+- approval: /automode "不要随便停下, 知道通过 playbook audit" (continuation, invocation = approval)
+- avenues in flight: (a) #1D [a6eef2b8], (b) #4B/#4C [a59e3280]; dispatching #4A + #3 now
+- end: <on close>

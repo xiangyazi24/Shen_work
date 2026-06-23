@@ -62,3 +62,15 @@ Rides on Paper 2 existence. Persistence/lower-envelope; deferred until (c)/(d) l
 - **cx_r3** owns BrouwerNDim* / Brouwer* / Freudenthal (R3→G1). Never touches wave files.
 - **cx_pde** owns WaveRothe* / WaveTrapProps (non-triviality). Never touches BrouwerNDim/Paper2.
 - **Paper-2 codexes** own Paper2/*. **ChatGPT** = route audit (verify-don't-transcribe).
+
+## Run 2026-06-22 (automode continuation — drive to playbook audit pass, no casual stops)
+Goal: all 3 Chen-Ruau-Shen papers UNCONDITIONAL passing playbook §3.3. Avenues = the numbered atoms
+(THREE_PAPER_BOARD.md is the live board):
+ (a) P2 χ₀<0 → ChiNegDatumUniformConstruction: #1D non-C² Nemytskii (1+v)^{-β} envelope [opus a6eef2b8] →
+     closes #1 gW → FluxFactorEnvelopes → trajLadder → regularity chain; then #3 k=0 + Fubini swaps.
+ (b) P1 → Paper1MainResultsData: #4A Rothe/Green per-step producer + continuous dependence (the construction
+     core); #4B/#4C strong-max upper bound + tail [opus a59e3280]; #5 construction_pos (mirrors #4, sign-
+     agnostic); #7 orbital stability.
+ (c) P3 → #8 Theorem 2.2 fractional-power frontier (cascades from P2 χ₀≤0 boundedness).
+Fallback: each atom that stalls → sharpen to its single named sub-residual, dispatch fresh opus, never defer.
+Terminal: headline unconditional + #print axioms clean + §3.3 non-vacuous, per paper.
