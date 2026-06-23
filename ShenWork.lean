@@ -386,3 +386,4 @@ import ShenWork.Paper2.IntervalChiNegLocalExist
 import ShenWork.Paper2.IntervalChiNegEnvBallBanach
 import ShenWork.Paper1.IntervalP1StepInputAssembly
 import ShenWork.Paper2.IntervalChiNegSupBanach
+import ShenWork.Paper2.IntervalChiNegTrajBanach
