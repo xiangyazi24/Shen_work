@@ -314,3 +314,5 @@ import ShenWork.Paper2.IntervalConjugateSourceBridge
 import ShenWork.Paper2.IntervalTrajectoryEnvelopeClosure
 
 import ShenWork.Paper2.IntervalDecompTauLift
+
+import ShenWork.Paper1.ConstructionNegProducer
