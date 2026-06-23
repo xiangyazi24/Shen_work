@@ -367,3 +367,14 @@ UNIFIES two separately-carried obligations (integrated ChemoDefectDominates + gr
 principle (eq 4.13) — NO counterpart in the elliptic frozen-fixed-point construction. The formalization carries
 it as the paper's own hypothesis. → discharge via ChemotaxisSandwich (WaveAuxInvariance) / elliptic gradient sign.
 P1 #4 = (★) quasi-monotonicity [paper core] + #4-A flux integrability + #4-D-rest.
+
+## ★★★ P1 #4 (★) REDUNDANT — route through LIVE PRODUCER (2026-06-23 [opus], verified 3391, grep-general win)
+GradientQuasiMonotone: (★) bare pointwise REFUTED (counterexample, gradientResidual_not_signed_pointwise) +
+the ELLIPTIC ADAPTATION (contact-point bound elliptic_contact_chem_bound: at φ=W−B contact max, W'=B' forces
+the gradient-diff to a bounded Lipschitz increment → implicitStep_le_of_barrier_maxPrinciple_clean → W≤B).
+KEY: RotheChemoMonotoneResidual (★) is REDUNDANT. The LIVE producer rotheStepProducer (WaveRotheProducer:510)
+← rotheStepProducer_of_input ← RotheStepInput {analytic:RotheStepAnalytic [#4-A landed], maxZ/maxBarrier:
+RotheMaxData [#4-I landed], nonneg [greenConv_nonneg]} → hprodTrap via the CONTACT-POINT max principle
+(rotheStep_le_barrier), NOT the global (★). My residual-tree route (RotheFloorResidual→...→carries ★) was the
+WRONG/pessimistic route. → route construction_neg through the live producer: build RotheStepInput from #4-A+#4-I
++ landed tails/floor → rotheStepProducer → hprodTrap → b1_chiNeg_existence (+hdep/hprinciple/hGreen/hlim). (★) GONE.

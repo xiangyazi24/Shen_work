@@ -360,3 +360,5 @@ import ShenWork.Paper2.IntervalChiNegSeamDischarge
 import ShenWork.Paper1.ChemoReactionBalance
 
 import ShenWork.Paper1.ChemoDefectDominatesImpl
+
+import ShenWork.Paper1.GradientQuasiMonotone
