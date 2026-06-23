@@ -3,6 +3,25 @@ Last verified: full-closure 8862 jobs; 7 real sorry tactics repo-wide (all P2 χ
 Audit standard (playbook §3.3): headline UNCONDITIONAL on satisfiable CMParams, no sorry/admit/
 native_decide/custom-axiom, no carried-hard/unsatisfiable hypothesis, faithful to paper.
 
+## 2026-06-23 ROUND (two genuine advances landed, both honestly labeled; cron1/cron2 audited)
+- [P2 χ₀<0] hvnn DISCHARGED off carried list (64158eb, verified 3574, axiom-clean) [opus a0c9c360].
+  carrySeam_hvnn: Neumann-resolver positivity reduced to per-slice continuity+nonneg via landed
+  laplaceHeatTrunc_nonneg (heat-semigroup positivity, (μ−Δ)⁻¹=∫e^{−μt}e^{tΔ}). NON-circular.
+  cron1 audit CONFIRMS: positivity must NOT be coefficient-wise (spectral multiplier gives only
+  quadratic-form positivity) — must come from heat-kernel positivity. This route is exactly that.
+  χ₀<0 MemHSigma-1 FRONTIER now carries {FluxFactorEnvelopes(E₀) + bridges hbr/hbridge/hvrel/hdiv}
+  (τ-uniform H^σ factor envelopes + cosine-basis product/convolution bridge) — no longer the resolver
+  max principle. cron1_q3 consulting on E₀ unconditionality + the cosine product bound.
+- [P1 #4] RotheStepInputBuild: two RotheStepTails packets (14 Prop-fields) COLLAPSED off carried surface
+  (b5f4c51, verified 8307, axiom-clean) [opus a6b6bdf4] via landed rotheStepTails_greenConv_* . hprodTrap
+  stays CONDITIONAL: RotheStepInputBuild.produce (per-Z Green-source + at-max elliptic packets, non-diag
+  u,Z,W) is genuine §3.3 PDE content. construction_neg = 🟡 (NOT ✅).
+  cron2 FAITHFULNESS FINDING (file-cited): carried per-step package IS faithful AS a structural PDE-step
+  input (non-circular, not a disguised existence assumption), BUT paper §4.2 uses a continuous-time frozen
+  PARABOLIC FLOW from upper barrier (not all-Z implicit-Euler). Our Rothe route is a structural REPLACEMENT
+  — faithful in method, satisfiable, NOT verbatim in paper. cron2_q3 deciding discharge route (a) Rothe
+  step-solver on closed contraction core vs (b) formalize paper's actual parabolic flow.
+
 ## P1 — Remark 1.3.2 / Theorem 1.1 (traveling-wave existence)
 Headline: paper1_Theorem_1_1_of_mainResultsData (Paper1/StatementAssembly.lean:34) — CONDITIONAL on
 `Paper1MainResultsData cStarStarFn`. Landed: left-floor, per-step Green solve + existence + max-principle,
