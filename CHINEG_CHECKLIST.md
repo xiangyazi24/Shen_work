@@ -75,3 +75,14 @@ note clearances) is built. Crux A is the genuine remaining PDE frontier.
 CRUX A (the genuine deep PDE frontier): the uniform-in-time H^σ flux envelope g/gl. The box-extend induction needs
 genv per-restart but genv needs the GLOBAL coordinatewise envelope (not partial BoundUpTo r) — circularity needs a
 uniform flux bound WITHOUT the global genv = the uniform a-priori estimate. The campaign's core open seam.
+
+## [2026-06-23] PIVOT #2 — P3 needs L∞, not H¹; both H¹ routes hit the window-uniform flux envelope (deep gap)
+Verified P3 T2.2 (paper3_unitInterval_T22_with_fractionalPowerEmbedding) consumes the SUP NORM (L∞) via
+SupControlsXpSigmaDistance + of_xpSigma_le_supNorm + D.supNorm — its fractional-power space bootstraps regularity
+FROM the sup norm. So the cascade needs the L∞ boundedness, NOT the uniform H¹.
+BOTH χ₀<0 architectures (coordinatewise ladder + H¹ energy) bottom out at the WINDOW-UNIFORM flux envelope (the
+documented fixed-point/Gronwall-continuation gap, IntervalBootstrapInputs TASK-3) — NOT on the cascade path.
+DECISION (engineering, mine): close the χ₀<0 UNIFORM L∞ GLOBAL BOUNDEDNESS (sup_t‖u(t)‖_∞ ≤ M, M=2·B₀ uniform from
+the max principle + repulsive sign + logistic) via the LANDED ConjugateMildExistenceCore order box + restart
+(cron2 Q83: lifespan τ(M) bounded below + order-box preservation + finite restart → global). The H¹ energy method
+(built, IntervalChiNegH1Energy*) is a STRONGER separate clause; the window-uniform flux envelope is its only gap.
