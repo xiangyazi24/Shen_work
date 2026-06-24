@@ -232,3 +232,13 @@ NET: the χ₀<0 unconditional close now bottlenecks on the SINGLE Hv defeq wall
    axiom-clean.
 REMAINING for Hv: K1(ii) continuity-in-σ + K1(iii) window bound (now tractable, same opaque technique) + wiring into
 realSlice_resolverSpectralData. REMAINING for hchemInv/hlogInv: the C²-Neumann source-slice regularity (a bootstrap residual).
+
+## [2026-06-24] AVENUE (a) DONE — Hv fully closed (defeq wall overcome end-to-end)
+✅ K1(ii) powerCoeff_continuousOn_of_inputs + K1(iii) powerCoeff_bound_of_inputs + realSlice_resolverSpectralData_full
+   (SourcePowerCoeffDerivComplete.lean): the power-source ν·u^γ time-C¹ quadruple COMPLETE, Hv assembled. All
+   axiom-clean on uisai2 (build 9.1s, no timeout), independently re-verified. Hv-full carries only the engine inputs
+   (hK1 per-σ HasDerivAt data + hslabcont joint continuity) — suppliable from banked realSlice_hasDerivAt_time /
+   realSlice_pos at the assembly. Second opaque barrier: `local irreducible gPow` placed AFTER its rfl bridges,
+   BEFORE the continuity/bound engines (defused a follow-on whnf timeout 23s→9s).
+χ₀<0 carried-hyp status: Hv ✅ (was THE hard wall). Remaining: (b) C²-Neumann source regularity [a055db6b in flight],
+(c) thread landed/standing hyps, (d) assembly to unconditional chiNeg_theorem_1_1.
