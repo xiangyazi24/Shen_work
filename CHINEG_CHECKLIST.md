@@ -289,3 +289,15 @@ RESIDUAL to fully unconditional: (1) secondary regularity side-atoms — MOSTLY 
 h_src_cont_chem/log, hgrad) to check vs banked; (2) the 24-field realSlice_reducedCore wiring; (3) the ~40-hyp
 picardEWA_uncond_fixedPoint contraction estimates (per-datum). Stale untracked SourceChiNegNegUnconditional.lean
 (prior frozen-frontier framing) to reconcile/remove.
+
+## [2026-06-24] SECOND statement-level vacuity — faithful construction's DATUM CLASS too weak (my own miss)
+The slab wiring (046a247) banked the 3 evalST atoms internally (real win). But the wiring producer + ChatGPT found:
+my chiNeg_theorem_1_1_faithful (acfb10e) ALSO carries an unsatisfiable hypothesis — ChiNegDatumUniformConstructionFaithful
+quantifies over PositiveInitialDatum (Paper2:277 = admissible ∧ 0<u₀ on OPEN (0,1); inf CAN be 0, e.g. x(1−x)). But the
+contraction tower (heatEWA_uniformFloor, HeatFloor:403) feeding picardEWA needs hfloor:∀y,δ≤u₀ y — a UNIFORM positive floor,
+UNCONSTRUCTIBLE from the weak class. The headline Theorem_1_1 (Paper2:4420) uses the STRONGER PaperPositiveInitialDatum
+(Paper2:297, has .floor = ∃η>0,∀x η≤u₀ x). So the faithful obligation OVER-WEAKENED the datum class ⟹ unsatisfiable ⟹
+my "faithful non-vacuous" claim was WRONG (same vacuity class as the hfp operator, via datum class). I missed this.
+FIX (statement-level): restate the faithful construction over PaperPositiveInitialDatum (matching headline) → floor available
+→ contraction tower closes → SATISFIABLE + dischargeable. + wire my BANKED full discharges hchemInv←realSlice_hchemInv_direct_realSlice
+(ea4afd2, NOT the C²-route — residual 2 ARTIFACT), Hv←realSlice_resolverSpectralData_full (b7bbfe6 — residual 3 ARTIFACT).
