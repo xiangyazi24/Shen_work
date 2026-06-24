@@ -323,3 +323,12 @@ Lean trick is the SAME, but the analytic envelope is stronger. So among the 4 op
 (needs q_t∈A³_sin, the divergence loss); hlog = tractable (power of u, the power-source quadruple template applies,
 no divergence); h_flux_diff/h_src_cont = mechanical from C². The A³ slice machinery (IntervalChiNegA3Slice) may supply
 q_t∈A³_sin via the A³ bootstrap + time-derivative. (verify-don't-transcribe: claims grepped vs tree.)
+
+## [2026-06-24] cron1 Q115: hchem ⟸ u∈A³ AND u_t∈A³ (same-scale Wiener; u_t∈A³ = NEW smoothing theorem)
+ChatGPT (f47fe391): q_t∈A³_sin needs u∈A³_cos AND u_t∈A³_cos (Wiener same-scale: A⁰ is NOT a free multiplier of A³).
+u_t∈A³ is a genuine additional positive-time smoothing theorem (differentiate the mild eq + the +1 ladder for the
+linearized eq), NOT automatic from u∈A³. So hchem reduces to the SATISFIABLE STANDING input {u,u_t∈A³} = the paper's
+solution regularity ⟹ faithful conditional PASSES §3.3; OR discharge via the A³ bootstrap of u + u_t (deep).
+NET 4-package status: Hv closeable (quadruple built) · hlog tractable (power-of-u) · secondary mechanical (C²) ·
+hchem = the genuine deep one, reducible to satisfiable-standing {u,u_t∈A³}. So χ₀<0 faithful conditional is
+§3.3-passing once hchem/hlog/Hv/secondary carry their satisfiable-standing regularity; unconditional needs the A³ smoothing.
