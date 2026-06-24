@@ -341,3 +341,12 @@ NET: the χ₀<0 deep frontier = coupled A³ Wiener bootstrap {u∈A³ (the u la
 linearized ladder, this Q120 structure)} → q_t∈A³_sin → hchem. Route now STRUCTURALLY PRECISE; formalization is
 substantial (the +1 ladder for u + linearized for u_t). χ₀<0 = §3.3-passing faithful conditional (carries this as
 satisfiable standing solution-regularity); unconditional = formalize the A³ bootstrap.
+
+## [2026-06-24] cron1 Q121: COMPLETE A³-bootstrap formalization roadmap (the path to χ₀<0 unconditional)
+ChatGPT (Q121): divergence Duhamel gain lemma — √λ_k∫_a^t e^{-(t-s)λ_k}ds=(1-e^{-(t-a)λ_k})/√λ_k≤1/√λ_k ⟹
+(1+λ_k)^{(r+1)/2}·√λ_k∫e·|S_k| ≤ Cdiv·(1+λ_k)^{r/2}·Esrc_k, Cdiv=sup_k√(1+λ_k)/√λ_k=√(1+π²)/π (UNIFORM in t/a/window;
+k=0 trivial since √λ_0=0). NO positive-time lower bound needed. Window-localize to [τ₀,T₀], 0<τ₀<t₀<T₀ (sidesteps the
+global window-uniform envelope gap; per-slice alone insufficient for DuhamelSourceTimeC1's continuity/window-uniform).
+6-LEMMA roadmap: (1) weighted-Wiener infra + divergence-gain lemma; (2) Wiener product/resolver/composition; (3)
+source-at-level-r: u∈A^r⇒flux∈SinA^r (+linearized for u_t); (4) ladder step TrajA r⇒TrajA(r+1); (5) A⁰ seed; (6)
+3-step wrapper A⁰→A³ for u + u_t. This discharges hchem→unconditional. Substantial but FULLY SCOPED.
