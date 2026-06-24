@@ -242,3 +242,13 @@ realSlice_resolverSpectralData. REMAINING for hchemInv/hlogInv: the C²-Neumann 
    BEFORE the continuity/bound engines (defused a follow-on whnf timeout 23s→9s).
 χ₀<0 carried-hyp status: Hv ✅ (was THE hard wall). Remaining: (b) C²-Neumann source regularity [a055db6b in flight],
 (c) thread landed/standing hyps, (d) assembly to unconditional chiNeg_theorem_1_1.
+
+## [2026-06-24] AVENUE (b): hlogInv ✅, hchemInv → higher-regularity (C³/C⁴) residual
+✅ hlogInv — realSlice_hlogInv_of_bankedU (SourceSliceC2Neumann.lean), logistic source C²-Neumann fully from banked
+   u-C² + chain rule + junk-value endpoint deriv. Carries only hlogNE0/hlogNE1 (logistic endpoint nonvanishing,
+   analogue of huNE). axiom-clean.
+🔨 hchemInv — chem source ∂ₓ(u·v_x/(1+v)^β) C²-Neumann needs u∈C³ + v∈C⁴; banked track is C²
+   (cosineCoeffSeries_contDiff_two; resolver λ_k|v̂_k|=C² not λ_k²=C⁴). Genuine higher-regularity residual =
+   the NEW analytic frontier (replaces the now-cracked defeq wall). Route: A³ Wiener ladder (cron1 Q84: A⁰→A³,
+   +1/pass) + resolver +2 gain → u∈C³, v∈C⁴ → chem C²-Neumann.
+χ₀<0 status: Hv ✅, hlogInv ✅; hchemInv = higher-Wiener bootstrap (sole hard residual); then (c)/(d) assembly.
