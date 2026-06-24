@@ -277,3 +277,15 @@ two operators differ by exactly the chemotaxis term. This is a foundational corr
 TO FULLY UNCONDITIONAL: discharge the realization frontier — EWA fixed point existence (picardEWA Banach, landed
 SourceFixedPoint) + the evalST realization atoms (realizes_clean). My session's source-regularity discharges
 (Hv/hlogInv/hchemInv/pde_u family) feed the reduced core directly. Next: assemble the frontier from picardEWA + evalST bridges.
+
+## [2026-06-24] χ₀<0 realization HARD CORE closed (3 evalST atoms) — prior "irreducible frontier" framing was WRONG
+✅ realSlice_evalST_realizes / realSlice_realPow_realizes / realSlice_flux_realizes (SourceChiNegUncond.lean):
+   the evalST↔real-space synthesis bridge (h_u/h_uα/h_flux_nbhd) for the ABSTRACT picardEWA fixed point u_star,
+   axiom-clean. Two-way-audit finding: a prior session froze these as needing embed-form; FALSE — flux_nbhd_of_realized
+   / slice_smul_realPow_eq_source take the field abstract, base realization true by DEFINITION of realSlice
+   (landed SourceCenterFloorHeat precedent runs the same chain for heatEWA).
+RESIDUAL to fully unconditional: (1) secondary regularity side-atoms — MOSTLY ALREADY BANKED this session
+(hsumE/htime/hlap/hsum_*/hchemInv/hlogInv/hdecay/Hvpos/htimeDeriv/Hv); a few flagged by producer (h_flux_diff,
+h_src_cont_chem/log, hgrad) to check vs banked; (2) the 24-field realSlice_reducedCore wiring; (3) the ~40-hyp
+picardEWA_uncond_fixedPoint contraction estimates (per-datum). Stale untracked SourceChiNegNegUnconditional.lean
+(prior frozen-frontier framing) to reconcile/remove.
