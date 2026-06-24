@@ -105,3 +105,18 @@ DECISION (engineering, mine): build the cascade-critical producer = UNIFORM-IN-T
 χ₀<0 chemotaxis via constant-supersolution comparison (logistic carrying capacity caps u; repulsive sign +
 resolver bound the frozen drift), using the landed NeumannLinearDriftComparisonRegular, feeding the P3 T2.2
 SupControlsXpSigmaDistance socket. This AVOIDS the flux envelope. The H¹ envelope is a separate stronger clause.
+
+## [2026-06-23] L∞ comparison producer — interface + supersolution residual PINNED (route-independent recon)
+NeumannLinearDriftComparisonRegular T B C u₀ u : feed actual solution u as SUBsolution w + constant M̄ as
+SUPERsolution → conclusion u t x ≤ M̄ on (0,T)×[0,1]. (Symmetric −M̄ as sub gives lower bound.)
+Chemotaxis u-eq as drift-reaction: u_t = u_xx + B u_x + C·u with
+  B = a v_x   (drift; a:=−χ₀>0),
+  C = aμv + 1 − (a+1)u   (from a u(μv−u) + u(1−u) = u·[aμv + 1 − (a+1)u]).
+Constant M̄ supersolution residual: dt=dx=dxx=0 ⟹ residual = −C·M̄ ≥ 0 ⟺ C ≤ 0 ⟺ M̄ ≥ (aμv+1)/(a+1).
+The −(a+1)u² term is the STABILIZER (repulsive a + logistic together). The nonlocal v (v=(μ−Δ)⁻¹u,
+v≤‖u‖/μ) makes M̄≥(aμv+1)/(a+1) a BOOTSTRAP — uniform-in-T closure is exactly cron1 Q(super)'s question.
+Obstruction noted: no_reaction_absorbs_nonzero_drift_at_fixed_value — drift B=a v_x does NOT even-reflect
+into a value-only reaction; the comparison's reflection data must carry the drift. Producer (when route lands):
+(1) drift-reaction form, (2) constant-M̄ supersolution residual ≥0 via M̄≥(aμ‖v‖+1)/(a+1), (3) apply comparison
+→ u≤M̄, (4) bootstrap uniform-in-T, (5) wire to P3 SupControlsXpSigmaDistance socket. PENDING: cron1 route +
+opus audit of "P3 needs only L∞".
