@@ -1,293 +1,484 @@
-# Q83 (cron2): χ₀<0 chemotaxis — global-existence assembly from the order box
+# Q85 (cron2): χ₀<0 chemotaxis — entropy route to convergence to the carrying capacity
 
 ## Executive verdict
 
-Yes: **if your local Picard theorem really gives a lifespan depending only on the `L∞`/order-box size of the datum**, then global existence follows from the uniform `L∞` order box alone. The uniform `H¹` estimate is then not needed to prevent finite-time breakdown; it is needed for the stronger global boundedness/regularity theorem and for downstream compactness/asymptotics.
-
-The clean dependency split is:
+For the repulsive sign `χ₀<0`, the clean Lyapunov functional is the **relative entropy**
 
 ```text
-Global existence as a mild/order-box solution:
-  local existence with τ=τ(M)
-  + order-box preservation 0≤u≤M
-  + finite restart/gluing
-  ⇒ solution on every [0,T].
-
-Global bounded H¹/classical solution:
-  global mild/order-box solution on every [0,T]
-  + uniform H¹ a-priori estimate on finite horizons
-  + classicality/smoothing constructor
-  ⇒ global bounded classical solution, classical for t>0.
+E(t) := ∫₀¹ h(u(t,x)) dx,
+h(s) := s log s - s + 1.
 ```
 
-So the `H¹` estimate buys the **uniform H¹ clause**, stronger continuation criteria, source regularity, compactness, and classical regularity. It is not logically necessary for bare global mild existence if the local theory is genuinely `L∞`-order-box controlled.
+For
 
-## 1. Continuation mechanism when lifespan depends only on `L∞`
+```text
+u_t = u_xx + a ∂x(u v_x) + u(1-u),   a := -χ₀ > 0,
+μ v - v_xx = u,
+Neumann BC,
+```
 
-The local theorem you want to use should have this shape:
+this entropy has the decisive identity
+
+```text
+E'(t)
+  = - ∫₀¹ u_x²/u dx
+    - a ∫₀¹ u_x v_x dx
+    + ∫₀¹ u(1-u) log u dx.
+```
+
+The chemotaxis term is **dissipative** for the repulsive sign:
+
+```text
+∫ u_x v_x dx ≥ 0,
+```
+
+because `v=(μ-Δ_N)^{-1}u` and, in Neumann cosine modes,
+
+```text
+∫ u_x v_x = ∑_{k≥1} λ_k /(μ+λ_k) |u_k|² ≥ 0.
+```
+
+The logistic term is also dissipative:
+
+```text
+u(1-u) log u = -u(u-1) log u ≤ 0.
+```
+
+Thus `E` is a genuine Lyapunov functional with no smallness condition on `|χ₀|`.
+
+For **exponential decay**, however, you need a positive lower bound
+
+```text
+0 < m ≤ u(t,x) ≤ M < ∞
+```
+
+on the time interval where you want the exponential estimate. If the initial datum is strictly positive, this follows from scalar min/max comparison. If the initial datum is merely nonnegative and nontrivial, you need an eventual positivity / strong maximum principle input; then the exponential estimate starts after a positive time `t₀`.
+
+The shortest first theorem to formalize is therefore:
+
+```text
+Assume 0<m≤u₀≤M. Then
+  ||u(t)-1||²_{L²} ≤ C e^{-δt}
+  and v(t)→1/μ exponentially in H²/L∞-type resolver norms.
+```
+
+For nonnegative nontrivial data without a positive lower bound, first prove/eventually assume positivity, then apply the same theorem from `t₀>0`.
+
+## 1. The Lyapunov functional and derivative
+
+Let
+
+```text
+a := -χ₀ > 0,
+h(s) := s log s - s + 1,
+E(t) := ∫ h(u(t,x)) dx.
+```
+
+The derivative of `h` is
+
+```text
+h'(s)=log s.
+```
+
+For a smooth positive solution,
+
+```text
+E'(t) = ∫ log u · u_t.
+```
+
+Insert the PDE:
+
+```text
+E'
+ = ∫ log u · u_xx
+   + a ∫ log u · ∂x(u v_x)
+   + ∫ log u · u(1-u).
+```
+
+The diffusion term is
+
+```text
+∫ log u · u_xx
+  = - ∫ (u_x/u) u_x
+  = - ∫ u_x²/u.
+```
+
+For the taxis term, using Neumann boundary conditions,
+
+```text
+a ∫ log u · ∂x(u v_x)
+  = -a ∫ (u_x/u) u v_x
+  = -a ∫ u_x v_x.
+```
+
+Since `v=(μ-Δ_N)^{-1}u`, this term has a spectral sign:
+
+```text
+∫ u_x v_x
+  = ∑_{k≥1} λ_k u_k v_k
+  = ∑_{k≥1} λ_k /(μ+λ_k) |u_k|²
+  ≥ 0.
+```
+
+Thus the repulsive chemotaxis contribution is nonpositive:
+
+```text
+-a ∫ u_x v_x ≤ 0.
+```
+
+For the logistic term,
+
+```text
+∫ u(1-u) log u
+  = - ∫ u(u-1) log u.
+```
+
+Pointwise,
+
+```text
+u(u-1)log u ≥ 0
+```
+
+for every `u>0`, with equality only at `u=1`. Therefore
+
+```text
+E'(t)
+  = - ∫ u_x²/u
+    - a ∫ u_x v_x
+    - ∫ u(u-1)log u
+  ≤ - ∫ u(u-1)log u
+  ≤ 0.
+```
+
+This is the clean Lyapunov identity.
+
+## 2. Coercivity and exponential decay
+
+Assume that along the solution
+
+```text
+0 < m ≤ u(t,x) ≤ M.
+```
+
+Define the pointwise logistic entropy dissipation
+
+```text
+d(s) := s(s-1)log s.
+```
+
+On the compact interval `[m,M]`, both `h(s)` and `d(s)` are nonnegative and vanish only at `s=1`. The quotient
+
+```text
+q(s) := d(s)/h(s)
+```
+
+extends continuously at `s=1`, with
+
+```text
+lim_{s→1} q(s)=2.
+```
+
+Hence
+
+```text
+δ := inf_{s∈[m,M]} q(s) > 0.
+```
+
+Then pointwise
+
+```text
+d(s) ≥ δ h(s),   s∈[m,M].
+```
+
+Using the entropy identity,
+
+```text
+E'(t) ≤ -∫ d(u(t,x)) dx ≤ -δ ∫ h(u(t,x)) dx = -δ E(t).
+```
+
+Therefore
+
+```text
+E(t) ≤ E(0) e^{-δt}.
+```
+
+To convert entropy decay into `L²` decay, use the compact-interval comparison
+
+```text
+h(s) ≥ c₂ (s-1)²,   s∈[m,M],
+```
+
+where
+
+```text
+c₂ := inf_{s∈[m,M], s≠1} h(s)/(s-1)² > 0
+```
+
+with value `1/2` at `s=1` by continuous extension. Then
+
+```text
+||u(t)-1||²_{L²}
+  ≤ c₂^{-1} E(t)
+  ≤ c₂^{-1} E(0) e^{-δt}.
+```
+
+So the cleanest formal theorem is:
 
 ```lean
-local_order_box_existence :
-  ∀ M, 0 ≤ M → ∃ τ > 0,
-    ∀ w, DataSpace w → (∀ x, 0 ≤ w x) → (∀ x, w x ≤ M) →
-      ∃ u, MildSolutionOn [0, τ] w u ∧
-           (∀ t ∈ [0,τ], ∀ x, 0 ≤ u t x ∧ u t x ≤ M)
+entropy_exponential_L2_convergence :
+  0 < m → (∀ t x, m ≤ u t x) → (∀ t x, u t x ≤ M) →
+  EntropyIdentity u v →
+  ∃ C δ > 0, ∀ t, ‖u t - 1‖_{L²}^2 ≤ C * Real.exp (-δ*t)
 ```
 
-or, if the logistic upper box is `Mbar=max(Mdata,K)`, use `Mbar` everywhere.
+with explicit constants from the compact interval `[m,M]`.
 
-Then global existence follows by restart:
+## 3. Convergence of `v`
 
-1. Let `Mbar` be the invariant order-box bound from the maximum principle.
-2. Choose `τ=τ(Mbar)>0` from local existence.
-3. Build the solution on `[0,τ]` from `u₀`.
-4. At time `τ`, the slice `u(τ)` is again admissible and satisfies `0≤u(τ)≤Mbar`.
-5. Restart from `u(τ)` for another interval of length `τ`.
-6. Repeat finitely many times to cover any prescribed `[0,T]`.
-
-The `H¹` bound is not used in this restart argument unless the local theorem's `DataSpace` requires `H¹` and the local lifespan actually depends on the `H¹` norm. You stated that the lifespan depends on the `L∞`/order-box bound; under that hypothesis, the order box is enough.
-
-### Critical audit point
-
-Make sure the local theorem really has a lifespan lower bound controlled only by `Mbar`. Many Sobolev Picard theorems are stated as
+Let
 
 ```text
-τ = τ(||w||_{H^σ})
+w := u-1,
+z := v - 1/μ.
 ```
 
-or
+Then
 
 ```text
-τ = τ(||w||_{X})
+μ z - z_xx = w,
+Neumann BC.
 ```
 
-for the phase space `X`. If your theorem still depends on an `H^σ` or `H¹` norm, then the `L∞` box alone is not enough; you need the uniform norm bound in that phase space. But if your current Picard setup has an order-box-based contraction time, then yes, global mild existence is an immediate restart consequence of the order box.
-
-## 2. What the H¹ bound buys beyond global existence
-
-The `H¹` estimate is still valuable. It gives:
+The Neumann resolver gives
 
 ```text
-sup_t ||u(t)||_{H¹} ≤ C,
+||z||_{H²} ≤ C_μ ||w||_{L²}.
 ```
 
-which implies or supports:
-
-- a norm-based continuation criterion if you later switch the phase space to `H¹`;
-- uniform control of the gradient / spectral energy;
-- uniform source bounds for the flux and logistic terms;
-- compactness of trajectories in lower norms after smoothing;
-- input to asymptotic/omega-limit arguments;
-- a headline theorem saying the global solution is uniformly bounded in `H¹`;
-- classicality for `t>0` via smoothing or your `IsPaper2ClassicalSolution` constructor.
-
-So the right formal order is:
+Therefore the `L²` exponential decay of `u-1` gives
 
 ```text
-first global mild existence by L∞ restart;
-then apply the already-built H¹ a-priori theorem on each finite horizon;
-then attach classicality / stronger regularity.
+||v(t)-1/μ||_{H²} ≤ C e^{-δt/2}
 ```
 
-## 3. Restart/gluing subtleties
+if the `u` estimate is stated as squared norm decay. Equivalently, adjust constants so that both are written with `e^{-γt}`.
 
-### 3.1 The restart datum must be in the local data space
+In one dimension, `H²` embeds into `C¹`, so this also gives exponential convergence of `v` to `1/μ` in sup-type norms if your formal library has the embedding.
 
-At every restart time `t₀`, you need:
+## 4. Does chemotaxis require a smallness condition?
+
+For the entropy route: **no smallness condition is needed** for `χ₀<0`.
+
+The entire chemotaxis contribution is
 
 ```text
-DataSpace (u t₀),
-0 ≤ u t₀,
-u t₀ ≤ Mbar.
+-a ∫ u_x v_x ≤ 0,
 ```
 
-The order inequalities come from the maximum principle. The `DataSpace` membership usually comes from continuity of the mild solution in the phase space. If `DataSpace` is `C([0,1])`, `L∞`, `H^σ`, or the cosine phase space used by Picard, ensure the local solution is continuous into that space up to the endpoint.
+and is discarded. It does not need to be dominated by diffusion or logistic damping.
 
-If the local classical theorem requires Neumann compatibility at the initial time, do not use that theorem for restart. Use the mild local theorem for restart; recover classicality later for positive times. Time slices of a classical solution may satisfy compatibility, but formalizing that is avoidable.
-
-### 3.2 The local equation must be autonomous or time-shift invariant
-
-The restarted local solution from `w=u(t₀)` is naturally written in shifted time:
+This is the main advantage of the entropy `∫(u log u-u+1)` over a raw `L²` distance. If you differentiate
 
 ```text
-z(s),  s∈[0,τ],  z(0)=u(t₀).
+1/2 ||u-1||²_{L²},
 ```
 
-The global piece is
+the taxis nonlinearity produces terms such as
 
 ```text
-u(t) = z(t-t₀),  t∈[t₀,t₀+τ].
+∫ (u-1) ∂x(u v_x),
 ```
 
-You need a lemma that the PDE/mild formulation is invariant under this time shift.
+which are not globally sign-definite in an obvious way and usually require perturbative smallness, eventual closeness, or more estimates. The entropy eliminates this issue because its derivative is `log u`, causing the taxis term to collapse to the signed form `-a∫u_xv_x`.
 
-### 3.3 Gluing mild solutions
+So:
 
-A good concatenation lemma is:
+```text
+Global entropy decay for repulsive sign: unconditional in |χ₀|.
+Raw L² energy decay: clean only after perturbative/equilibrium closeness, or with extra work.
+```
+
+## 5. Positive lower bound: the real caveat
+
+The entropy identity itself only needs positivity. The **exponential coercivity** needs a uniform lower bound `m>0`.
+
+If the initial datum satisfies
+
+```text
+0 < m₀ ≤ u₀(x) ≤ M₀,
+```
+
+then scalar min/max comparison gives explicit lower and upper barriers.
+
+At a spatial maximum of `u`, the repulsive term is nonpositive and
+
+```text
+M'(t) ≤ M(t)(1-M(t)).
+```
+
+At a spatial minimum of `u`, the repulsive term is nonnegative and
+
+```text
+m'(t) ≥ m(t)(1-m(t)).
+```
+
+The logistic ODE preserves positivity and converges to `1`. Hence a positive lower bound is available globally, and indeed one can squeeze `u` between two scalar logistic ODE solutions. This comparison route alone can prove `L∞` convergence to `1` exponentially when `m₀>0`.
+
+If `u₀≥0` is nontrivial but may vanish, the solution should become strictly positive for every `t>0` by the strong parabolic maximum principle. Then, for any fixed `t₀>0`, set
+
+```text
+m(t₀) := min_x u(t₀,x) > 0
+```
+
+and run the entropy exponential theorem from `t₀` onward. Formalizing this requires a strong-positivity/Harnack-type input or a separate smoothing positivity lemma.
+
+If `u₀≡0`, then `u(t)≡0`; it does **not** converge to `1`. So the asymptotic theorem must exclude the zero datum or assume positive initial data.
+
+## 6. Minimal input beyond global bounded H¹
+
+For the clean `L²` exponential theorem, the minimal inputs are:
+
+```text
+1. global classical positive solution;
+2. uniform upper bound u≤M;
+3. uniform lower bound m≤u, or eventual lower bound after t₀;
+4. Neumann resolver spectral positivity:
+     ∫ u_x v_x = ∑ λ_k/(μ+λ_k)|u_k|² ≥ 0;
+5. compact-interval coercivity lemmas for h and d on [m,M].
+```
+
+You do **not** need a Neumann Poincaré inequality for the entropy `L²` convergence, because the logistic term damps the zero mode as well as nonzero modes. Poincaré/spectral gap becomes useful for a perturbative `H¹` or linearized proof, but not for the first entropy-to-`L²` theorem.
+
+You also do **not** need more than global bounded `H¹` for boundedness. For the entropy derivative, however, you need enough classical regularity and positivity to justify multiplying by `log u` and integrating by parts. If positivity at zero is inconvenient, prove the identity first for `h_ε(s)=(s+ε)log(s+ε)-(s+ε)+1` and pass to the limit, or state the first theorem under `m≤u`.
+
+## 7. What about `H¹` exponential convergence?
+
+Do not make `H¹` exponential convergence the first asymptotics target.
+
+From entropy you get directly:
+
+```text
+||u(t)-1||_{L²} ≤ C e^{-γt},
+||v(t)-1/μ||_{H²} ≤ C e^{-γt}.
+```
+
+To upgrade to `H¹`, use one of these later routes:
+
+### Route A: smoothing + source decay
+
+Use the equation for `w=u-1` and Duhamel on sliding windows. Once `u→1` in `L²` exponentially and `u` is uniformly bounded in `H¹`, in one dimension interpolation gives decay in `L∞` at a possibly weaker rate:
+
+```text
+||w||∞ ≤ C ||w||₂^{1/2} ||w||_{H¹}^{1/2}.
+```
+
+Then the nonlinear source decays, and heat smoothing gives `H¹` decay for `t≥1`.
+
+### Route B: eventual perturbative H¹ energy
+
+After `u` is close to `1` in `L∞`, write the equation for `w=u-1` and use the linear spectral gap around equilibrium. The linearization has mode eigenvalues
+
+```text
+-λ_k - a λ_k/(μ+λ_k) - 1,
+```
+
+for `K=1`, all strictly negative. Nonlinear terms are small for large time, so an `H¹` energy inequality closes exponentially.
+
+Both routes are standard, but they are more work than the first `L²` entropy theorem.
+
+## 8. Lean-oriented theorem sequence
+
+Recommended theorem order:
+
+### Theorem 1: entropy identity
 
 ```lean
-mild_concat :
-  MildSolutionOn [0,a] u0 u₁ →
-  MildSolutionOn [0,b] (u₁ a) u₂ →
-  u₂ 0 = u₁ a →
-  MildSolutionOn [0,a+b] u0 (glue u₁ (shift_by a u₂))
+entropy_deriv_identity :
+  PositiveClassicalSolution u v →
+  a = -χ₀ → 0 < a →
+  HasDerivAt
+    (fun t => ∫ x in Icc 0 1, u t x * log (u t x) - u t x + 1)
+    ( - ∫ x, (ux t x)^2 / (u t x)
+      - a * ∫ x, ux t x * vx t x
+      - ∫ x, u t x * (u t x - 1) * log (u t x) )
+    t
 ```
 
-For a Duhamel/mild formulation, the proof for `t>a` uses the semigroup identity:
-
-```text
-u₁(a) = S(a)u₀ + ∫₀ᵃ S(a-r)N(u₁(r)) dr,
-
-u(t) = S(t-a)u₁(a) + ∫ₐᵗ S(t-s)N(u(s)) ds
-     = S(t)u₀ + ∫₀ᵃ S(t-r)N(u(r)) dr
-              + ∫ₐᵗ S(t-s)N(u(s)) ds.
-```
-
-The seam value agrees because `u₂(0)=u₁(a)`. Continuity at the seam is then automatic.
-
-You do not need uniqueness for existence-by-gluing, but uniqueness is useful to prove that different restart partitions give the same solution and to state a canonical global solution.
-
-### 3.4 Classicality at the glue times
-
-If you glue only as a mild solution, do not try to prove time differentiability piecewise at the artificial seam times. First prove the concatenated object is a mild solution on the whole interval. Then use the smoothing/classicality theorem for mild solutions on the whole interval. That avoids seam-regularity headaches.
-
-## 4. Avoiding maximal-time machinery: finite-horizon induction
-
-For Lean, the cleanest first theorem is probably finite-horizon existence:
+### Theorem 2: chemotaxis sign
 
 ```lean
-global_mild_on_finite_horizon :
-  ∀ T > 0, ∃ u,
-    MildSolutionOn [0,T] u₀ u ∧
-    (∀ t ∈ [0,T], ∀ x, 0 ≤ u t x ∧ u t x ≤ Mbar)
+resolver_entropy_chem_nonneg :
+  v = (μ - Δ_N)^{-1} u →
+  0 < μ →
+  0 ≤ ∫ x, ux x * vx x
 ```
 
-Proof outline:
+The spectral proof is likely shortest if the cosine infrastructure is already built.
 
-1. Choose `τ>0` from `local_order_box_existence Mbar`.
-2. Pick `N : ℕ` such that `T ≤ N*τ`; for example `N = Nat.ceil (T/τ) + 1` in whatever real/NNReal formulation is easiest.
-3. Prove by induction on `n`:
+### Theorem 3: compact interval coercivity
 
-   ```lean
-   ∃ u, MildSolutionOn [0,n*τ] u₀ u ∧ order_box_on [0,n*τ] u
+```lean
+entropy_logistic_coercivity_on_Icc :
+  0 < m → m ≤ 1 → 1 ≤ M →
+  ∃ δ > 0, ∀ s ∈ Icc m M,
+    s*(s-1)*log s ≥ δ * (s*log s - s + 1)
+```
+
+Do not require `m≤1≤M` if you do not want; just assume `1∈[m,M]`, which follows for asymptotic boxes around the carrying capacity. More generally use `m≤s≤M` and include the point `1` in the interval.
+
+### Theorem 4: entropy exponential decay
+
+```lean
+entropy_exponential_decay :
+  entropy_deriv_identity →
+  chem_nonneg →
+  logistic_entropy_coercivity →
+  E t ≤ E 0 * exp (-δ*t)
+```
+
+### Theorem 5: L² convergence
+
+```lean
+L2_convergence_from_entropy :
+  (∀ t x, m ≤ u t x ∧ u t x ≤ M) →
+  E t ≤ E0 * exp (-δ*t) →
+  ||u t - 1||²_{L²} ≤ C * exp (-δ*t)
+```
+
+### Theorem 6: resolver convergence
+
+```lean
+resolver_convergence_to_constant :
+  ||u t - 1||_{L²} ≤ C e^{-γt} →
+  ||v t - 1/μ||_{H²} ≤ Cμ*C e^{-γt}
+```
+
+This sequence is much shorter than a full LaSalle formalization and gives an explicit exponential rate under a positive lower bound.
+
+## Final answer to the three questions
+
+1. The right Lyapunov functional is
+
+   ```text
+   E(t)=∫(u log u-u+1).
    ```
 
-4. The successor step restarts from the endpoint and glues using `mild_concat`.
-5. Restrict the solution on `[0,N*τ]` to `[0,T]`.
+   Its derivative is
 
-This avoids defining a maximal solution, proving a blow-up alternative, or reasoning with `limsup` at a finite endpoint.
+   ```text
+   E' = -∫u_x²/u - a∫u_xv_x - ∫u(u-1)logu ≤ -δE
+   ```
 
-Later, if you need an actual global function `u : ℝ≥0 → X`, obtain it from the compatible finite-horizon family using uniqueness, or define it by choosing a finite-horizon solution on `[0,n]` and using consistency. But for many formal paper statements, `∀ T, ∃ solution on [0,T]` is already the easiest global existence formulation.
+   once `0<m≤u≤M`. This yields exponential entropy and `L²` decay.
 
-## 5. Minimal theorem to formalize first
+2. No chemotaxis smallness is needed for `χ₀<0`. The taxis term has the good sign in the entropy identity and can be discarded. The real condition for exponential decay is not small `|χ₀|`; it is positivity/coercivity, i.e. a positive lower bound for `u` or eventual positivity.
 
-The first theorem should separate existence from the H¹ estimate.
+3. The shortest formalizable first statement is
 
-### Theorem 1: global order-box mild solution on finite horizons
+   ```text
+   if 0<m≤u₀≤M and u is the global classical solution, then
+   ||u(t)-1||²_{L²} ≤ C e^{-δt},
+   ||v(t)-1/μ||_{H²} ≤ C e^{-δt}.
+   ```
 
-```lean
- theorem exists_mild_solution_on_every_finite_horizon
-   (u₀_nonneg : ∀ x, 0 ≤ u₀ x)
-   (u₀_box : ∀ x, u₀ x ≤ Mbar)
-   ... :
-   ∀ T > 0, ∃ u,
-     MildSolutionOn (Set.Icc 0 T) u₀ u ∧
-     (∀ t ∈ Set.Icc 0 T, ∀ x, 0 ≤ u t x ∧ u t x ≤ Mbar)
-```
-
-This theorem needs only:
-
-```text
-local order-box existence with τ(Mbar)>0,
-maximum-principle/order-box preservation,
-restart/gluing.
-```
-
-It does **not** need the uniform H¹ estimate.
-
-### Theorem 2: global finite-horizon H¹ bound
-
-Apply the already-built a-priori estimate to the solution from Theorem 1:
-
-```lean
- theorem exists_mild_solution_on_every_finite_horizon_with_H1_bound
-   ... :
-   ∀ T > 0, ∃ u,
-     MildSolutionOn (Set.Icc 0 T) u₀ u ∧
-     order_box_on [0,T] u ∧
-     (∀ t ∈ Set.Icc 0 T, ||u t||_{H¹} ≤ C)
-```
-
-If the initial datum is not in `H¹`, replace `[0,T]` by `(0,T]` or `[ε,T]` in the H¹ clause:
-
-```text
-∀ ε>0, ∀ t∈[ε,T], ||u(t)||_{H¹}≤C(ε).
-```
-
-If your current uniform bound is genuinely `sup_{t>0} ||u(t)||_{H¹}≤C` independent of `ε`, then use `(0,T]`. But be careful: such a bound including arbitrarily small positive times usually requires either `u₀∈H¹` or a very strong smoothing estimate with possible singularity already controlled.
-
-### Theorem 3: global bounded classical solution
-
-```lean
- theorem global_bounded_classical_solution
-   ... :
-   ∀ T > 0, ∃ u v,
-     IsPaper2ClassicalSolutionOn (Set.Icc 0 T) u v ∧
-     order_box_on [0,T] u ∧
-     (∀ t ∈ ..., ||u t||_{H¹} ≤ C) ∧
-     resolver_relation u v
-```
-
-or, more naturally for classicality,
-
-```text
-classical on (0,T] or [ε,T].
-```
-
-This theorem uses the H¹/source regularity/classicality constructor.
-
-## 6. Which statement needs H¹?
-
-Bare finite-horizon existence:
-
-```text
-∀T, ∃ mild solution on [0,T]
-```
-
-needs only `L∞` restart, assuming local lifespan is controlled by `L∞`.
-
-Order-box bounded global mild existence:
-
-```text
-∀T, ∃ mild solution on [0,T] with 0≤u≤Mbar
-```
-
-also needs only `L∞` restart plus the maximum principle.
-
-Uniform-H¹ global boundedness:
-
-```text
-∀T, ∃ solution on [0,T] with ||u(t)||H¹≤C
-```
-
-needs the H¹ a-priori theorem, but not for continuation.
-
-Global classical solution:
-
-```text
-classical for t>0 with resolver/source regularity
-```
-
-needs smoothing/classicality inputs, typically supported by H¹ or stronger source estimates.
-
-## 7. Final recommendation
-
-Formalize in this order:
-
-1. **`mild_concat` / restart lemma.** This is the main infrastructure.
-2. **Finite-horizon global mild existence by induction on the number of steps.** Use only the order-box local lifespan.
-3. **Attach the uniform order box on the whole finite horizon.** This should be preserved by each local piece and by gluing.
-4. **Apply the uniform H¹ a-priori estimate on the finite-horizon solution.** This gives the global boundedness theorem.
-5. **Feed the bounded global mild solution into `IsPaper2ClassicalSolution` / smoothing.** This gives the paper-style global bounded classical solution.
-
-This route avoids maximal-time machinery and uses the `H¹` estimate exactly where it belongs: not to force existence, but to strengthen the global solution to a uniformly bounded `H¹`/classical one.
+   Minimal inputs: the entropy identity, resolver sign lemma, compact-interval coercivity, and the positive lower/upper box. Do `H¹` exponential convergence later via smoothing or eventual perturbative spectral estimates.
