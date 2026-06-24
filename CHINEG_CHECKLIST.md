@@ -360,3 +360,19 @@ RANKING: (b) h_flux_diff + (c) h_src_cont = MECHANICAL (smooth composition u·v_
 COMPLETE χ₀<0 unconditional route (cron1+cron2): [banked] divergence-gain lemma → A³ ladder (u + u_t, linearized) →
 {u∈A³,u_t∈A³} → EWA calculus-closure (cron2 finite theorem) → all source/flux packages → hchem/hlog/secondary → core.
 Substantial but FULLY mapped. Next tractable: h_flux_diff/h_src_cont_chem (mechanical).
+
+## [2026-06-24] A³ ladder step VERIFIED (namespace ShenWork.EWA.A3LadderStep, axiom-clean)
+✅ windowed_divergence_gain + uniformBootstrapStep_of_windowed_divergence (8cc7eb7) — the +1 weighted-Wiener
+ladder step (MemHSigma σ→σ+1 via the divergence Duhamel leg), σ-UNIFORM Cdiv (no σ<1 restriction). Reduces the
+campaign's UniformBootstrapStep gap from "Gronwall-continuation closure" to a "summable-envelope hypothesis".
+A³ ROADMAP STATUS (6 lemmas): ✅1 divergence-gain (a2e766b) · ✅4 ladder step (8cc7eb7). RESIDUAL: 2 source-at-level-r
+(window-uniform flux envelope producer Esrc σ + the flux=u·v_x·(1+v)^{-β} Wiener-product bridge to divDuhamelFamily),
+5 A⁰ seed, 6 wrapper A⁰→A³ for u+u_t. The analytic +1 gain (the part with NO prior σ-uniform producer) is now closed.
+
+## CONSOLIDATED HONEST STATE (end of 2026-06-24 χ₀<0 marathon)
+χ₀<0 Theorem 1.1 = §3.3-PASSING faithful conditional (two vacuities FIXED: hfp operator + datum class).
+VERIFIED-BANKED this arc: 2 vacuity fixes · Hv (defeq-cracked quadruple) · h_flux_diff · h_src_cont_log · 3 evalST
+hard-core atoms · maximally-wired core (13/24 hyps + residual classified) · A³ roadmap lemmas 1+4 · Milestone 1 floor unlock.
+PER-SLICE 4 packages: 3 closed (Hv/h_src_cont_log/h_flux_diff), h_src_cont_chem residual (Gap 1, C¹-to-boundary, standing).
+UNCONDITIONAL route FULLY MAPPED (cron1+cron2): A³ ladder (lemmas 2/3/5/6 remain) → EWA calculus-closure → hchem/hlog.
+All satisfiable-standing / fully-scoped. Repo sorry-free. P1/P3 separate (sorry-free, conditional headlines).
