@@ -350,3 +350,13 @@ global window-uniform envelope gap; per-slice alone insufficient for DuhamelSour
 6-LEMMA roadmap: (1) weighted-Wiener infra + divergence-gain lemma; (2) Wiener product/resolver/composition; (3)
 source-at-level-r: u∈A^r⇒flux∈SinA^r (+linearized for u_t); (4) ladder step TrajA r⇒TrajA(r+1); (5) A⁰ seed; (6)
 3-step wrapper A⁰→A³ for u + u_t. This discharges hchem→unconditional. Substantial but FULLY SCOPED.
+
+## [2026-06-24] cron2 Q113: strategic route — finite EWA calculus-closure, NOT general C^∞ smoothing
+ChatGPT cron2: do NOT formalize general interior C^∞ parabolic smoothing (too expensive). Instead ONE finite theorem:
+EWAClassicalCore (uCoeff/uDotCoeff/vCoeff/vDotCoeff + coeff identities v̂=û/(μ+λ) + local A²(u)/A¹(u_t) bounds +
+time-deriv/continuity + positivity) ⇒ h_flux_diff ∧ h_src_cont ∧ DuhamelSourceTimeC1 ALL AT ONCE.
+RANKING: (b) h_flux_diff + (c) h_src_cont = MECHANICAL (smooth composition u·v_x/(1+v)^β + Wiener algebra, from C²).
+(a) hchem/hlog time-C¹ = the genuine hard core (needs the weighted-Wiener TIME bounds = cron1's u,u_t∈A³ ladder).
+COMPLETE χ₀<0 unconditional route (cron1+cron2): [banked] divergence-gain lemma → A³ ladder (u + u_t, linearized) →
+{u∈A³,u_t∈A³} → EWA calculus-closure (cron2 finite theorem) → all source/flux packages → hchem/hlog/secondary → core.
+Substantial but FULLY mapped. Next tractable: h_flux_diff/h_src_cont_chem (mechanical).
