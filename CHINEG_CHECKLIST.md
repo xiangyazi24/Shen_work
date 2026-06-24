@@ -203,3 +203,18 @@ IRREDUCIBLE at the blowup points, or pin goal types via `show` to block whnf, or
 coefficient so the derivative target avoids the rpow defeq. This is the real hard core of the χ₀<0 unconditional close.
 STATE: 8 carried hyps banked axiom-clean; χ₀<0 Theorem 1.1 = FAITHFUL §3.3 conditional; Hv's power-source
 time-C¹ is the isolated structural frontier; remaining pde_u-family/trace/source hyps have producers (wiring).
+
+## [2026-06-23] χ₀<0 leaf: 13/~24 carried hyps banked axiom-clean
+✅ DISCHARGED (banked, verified): hsumE, huNE0/1, hrealizes, hdecay, Hvpos, htimeDeriv, hdiffU (commits 8ee0c5e/2ab9996/3142377),
+   htime, hlap, hsum_lap, hsum_chem, hsum_log (efde806).
+RESIDUAL CLASSIFICATION of the remaining ~11:
+- HARD (the one genuine wall): Hv — power-source ν·u^γ time-C¹, STRUCTURAL defeq blowup (whnf/isDefEq timeout even
+  at 1M heartbeats, both producers). Needs irreducibility/show engineering. THE bottleneck for unconditional.
+- TRACTABLE residuals: hchemInv/hlogInv — need a continuous surrogate g + Fourier ℓ¹ summability, then
+  chemDiv_source_inversion/logistic_source_inversion (SourceInversion.lean:108/72). Focused producer.
+- LANDED producers (wiring): hchem (coupledChemDivSource_timeC1On_of_EWA), htrace (realSlice_initialTrace), hlog (?).
+- STANDING satisfiable: hu0bd, hu0cos, hT — initial-datum regularity + 0<T (the paper's own hyps).
+- FROM FIXED-POINT CONSTRUCTION: hδρ, hheat, hu_ball — heat-floor/ball data from exists_uniform_EWA_lifespan + Banach.
+- ASSESS: hrecon, hdefect.
+NET: the χ₀<0 unconditional close now bottlenecks on the SINGLE Hv defeq wall; everything else is tractable/landed/standing
++ the final assembly. χ₀<0 Theorem 1.1 = faithful §3.3 conditional, surface reduced to ~11 (1 hard).
