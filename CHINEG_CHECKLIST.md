@@ -385,3 +385,14 @@ CORRECTION: my plan to seed from the L∞ box (uniformLiftBoundZeroM) was WRONG 
 The A³ bootstrap base = the INITIAL DATUM's Wiener regularity (hû₀∈A^σ, satisfiable standing) + heat semigroup + the
 ladder (banked lemmas 1+4). Remaining formalization: lemma 2 (Wiener product, in flight), 3 (source-at-level-r:
 u∈A^r⇒flux∈A^r via the W=uD, q=Wv_x product chain), 5 (seed: window-uniform A¹ from datum via heat), 6 (wrapper).
+
+## [2026-06-24] cron1 Q125: seed origin MAPPED — A³ bootstrap chain complete end-to-end
+ChatGPT (Q125): A¹ seed factors as L²/L∞ box → positive-time H^θ (θ>1/2) smoothing → A⁰ on buffered [η,T₀] → flux+
+logistic A⁰ → Duhamel gain (buffer η<τ₀ gives the s=t endpoint smoothing) → u∈A¹ on [τ₀,T₀]. Heat leg EASY
+(Σw_1(k)e^{-τ₀λ_k}|û₀_k|≤C(τ₀)‖u₀‖, e^{-τ₀λ} dominates any weight); Duhamel leg is the obstruction (s=t no smoothing),
+fixed by the buffered window. Minimal seed input = window-uniform TrajA 0 (A⁰) OR positive-time MemHSigma θ (θ>1/2),
+a SATISFIABLE STANDING input (the solution's positive-time Sobolev regularity, the paper's own).
+COMPLETE A³ BOOTSTRAP CHAIN (cron1 Q112/115/120/121/124/125, all mapped): L²/L∞ box [banked uniformLiftBoundZeroM] →
+L² energy [IntervalDomainL2* machinery] → positive-time H^θ [standing] → A⁰ → A¹ seed → A³ ladder [banked lemmas 1+4]
+→ u_t∈A³ [linearized ladder] → q_t∈A³_sin → hchem → unconditional. Route-mapping COMPLETE; remaining = formalization
+(lemmas 2/3/5/6 + the H^θ smoothing + the linearized ladder). Substantial, fully scoped, satisfiable-standing.
