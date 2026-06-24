@@ -1,631 +1,488 @@
 # ChatGPT git-drop (cron1)
 
-## Q121 — Lean strategy for the positive-time weighted-Wiener `A³` bootstrap
+## Q124 — χ₀≤0 chemotaxis: `A⁰` seed for the weighted-Wiener ladder
 
 ### Executive verdict
 
-The clean formalization should expose the divergence Duhamel smoothing as a standalone lemma:
+The uniform `L∞` order box
 
 ```text
-SinA^r source envelope for S
-  ⇒ CosA^{r+1} envelope for ∫ heat(t-s) ∂x S(s) ds.
+0 ≤ u ≤ M,
+0 ≤ v ≤ M/μ,
+‖v_x‖∞ ≤ C(M,μ)
 ```
 
-The exact per-mode bound is, for `k ≥ 1`,
+**does not** give a window-uniform `A⁰` sine/cosine envelope for the flux
 
 ```text
-sqrt(λ_k) ∫_a^t exp(-(t-s)λ_k) ds
-  = (1 - exp(-(t-a)λ_k)) / sqrt(λ_k)
-  ≤ 1 / sqrt(λ_k),
+q = u v_x (1+v)^(-β).
 ```
 
-and hence
+Bounded × bounded × bounded is still only bounded. `A⁰` means coefficient `ℓ¹`, and `L∞` does not imply `ℓ¹` Fourier/cosine/sine coefficients. Nor does bare `C¹` suffice in general. So there is no finite constant depending only on `M, μ, β` that bounds
 
 ```text
-(1+λ_k)^((r+1)/2)
-  * sqrt(λ_k) ∫_a^t exp(-(t-s)λ_k) |S_k(s)| ds
-≤ Cdiv * (1+λ_k)^(r/2) * Esrc_k,
+Σ_k |sineCoeff(q)_k|.
 ```
 
-where
+The clean seed route is instead:
 
 ```text
-Cdiv := sup_{k≥1} sqrt(1+λ_k)/sqrt(λ_k)
-      = sqrt(1 + 1/π²)
-      = sqrt(1+π²)/π.
+window-uniform u ∈ A¹_cos
+  ⇒ v ∈ A³_cos,
+     v_x ∈ A²_sin,
+     D=(1+v)^(-β) ∈ A¹_cos (indeed A³ if you prove that much),
+     W=uD ∈ A¹_cos,
+     q=W v_x ∈ A¹_sin,
+  ⇒ q ∈ A⁰_sin.
 ```
 
-For `k=0`, the divergence coefficient is zero because `sqrt(λ_0)=0`, so the bound is trivial. This constant is uniform in `t`, `a`, and the window length. No positive-time lower bound is needed for the divergence Duhamel gain itself.
+Thus, if you already have a window-uniform `A¹` trajectory envelope for `u`, that is a clean and strong seed. It gives not only the `A⁰` pre-divergence flux seed, but actually an `A¹_sin` flux envelope. In divergence language, `q∈A¹_sin` means
 
-The prior “window-uniform flux envelope” gap is not avoided by merely saying “per-slice `A³`.” For a Duhamel estimate, a fixed target time `t` still integrates over a time interval, so one needs either a local window-uniform source envelope on the integration interval or an integrable-in-time envelope. What can be localized is the window: for an interior time `t₀>0`, work on a small compact positive-time window `[τ₀,T₀]` with `0<τ₀<t₀<T₀`, instead of a global `[0,T]` window. Per-slice membership is enough for algebraic `q_t(t₀)∈A³`; it is not enough for `DuhamelSourceTimeC1`, which asks for continuity/window-uniform derivative control.
+```text
+∂x q ∈ A⁰_cos,
+```
 
-The minimal Lean decomposition is:
+because `cosCoeff(∂x q)_k = ± sqrt(λ_k) sineCoeff(q)_k`.
 
-1. weighted-Wiener infrastructure and the divergence Duhamel gain lemma;
-2. weighted Wiener product/resolver/composition lemmas;
-3. source-at-level-`r` lemma: `u ∈ A^r ⇒ flux ∈ SinA^r` (and linearized analogue for `u_t`);
-4. ladder step: `TrajA r ⇒ TrajA (r+1)`;
-5. seed: positive-time `A⁰` envelope;
-6. three-step wrapper: `A⁰ → A¹ → A² → A³` for `u`, and similarly for `u_t`.
+For the ladder itself, the natural source variable is the **pre-divergence sine flux** `q`. The first step only needs `q∈A⁰_sin` to produce `u∈A¹_cos`. If your implementation packages the actual divergence source `∂xq` as a cosine source, then the corresponding seed is one scale lower: `q∈A⁰_sin` is `∂xq∈A^{-1}_cos`, while `∂xq∈A⁰_cos` requires `q∈A¹_sin`.
 
 ---
 
-## 1. Definitions to use
+## 1. Why `L∞` and `C¹` are not enough for `A⁰`
 
-Use a coefficient predicate first, independent of cosine/sine packaging:
+`A⁰` is the Wiener algebra condition
 
-```lean
-def WeightedL1 (r : ℝ) (a : ℕ → ℝ) : Prop :=
-  Summable (fun k => (1 + lam k) ^ (r / 2) * |a k|)
+```text
+Σ_k |coeff_k| < ∞.
 ```
 
-Then define trajectory/window envelopes:
+A uniform bound on the function only gives a flat coefficient estimate, e.g.
 
-```lean
-def TrajA (r : ℝ) (J : Set ℝ) (coeff : ℝ → ℕ → ℝ) : Prop :=
-  ∃ E : ℕ → ℝ,
-    WeightedL1 r E ∧
-    (∀ k, 0 ≤ E k) ∧
-    ∀ t ∈ J, ∀ k, |coeff t k| ≤ E k
+```text
+|sineCoeff(q)_k| ≤ C ‖q‖∞,
 ```
 
-For cosine/sine, specialize:
+which is not summable.
 
-```lean
-TrajA r J (fun t k => cosineCoeffs (u t) k)
-TrajA r J (fun t k => sineCoeffs (F t) k)
+Even `C¹` is not enough. If `q(0)=q(1)=0`, integration by parts gives
+
+```text
+sineCoeff(q)_k = (1/(kπ)) * cosineCoeff(q')_k
 ```
 
-The explicit nonnegativity field is useful for mode-zero and envelope monotonicity proofs.
+up to normalization. If `q'` is merely continuous, its cosine coefficients go to zero but need not be summable, so `sineCoeff(q)_k` need not be `ℓ¹`.
+
+Sufficient classical regularity includes any of the following:
+
+1. **Weighted-Wiener directly:**
+
+   ```text
+   q ∈ A^ε_sin for some ε>0.
+   ```
+
+   Since `(1+λ_k)^{ε/2} ≥ 1`, this implies `q∈A⁰_sin`.
+
+2. **Sobolev:**
+
+   ```text
+   q ∈ H^{1/2+ε}
+   ```
+
+   by Cauchy-Schwarz:
+
+   ```text
+   Σ |q_k| ≤ (Σ (1+λ_k)^σ q_k²)^{1/2}
+              (Σ (1+λ_k)^(-σ))^{1/2},
+   ```
+
+   which converges when `σ>1/2`.
+
+3. **Endpoint-compatible Hölder regularity:**
+
+   If `q(0)=q(1)=0` and `q∈C^{1,α}` for some `α>0`, or more generally `q'` has a Dini/BV-type modulus strong enough to make the Fourier coefficients of `q'` summable after the extra `1/k`, then `q∈A⁰_sin`.
+
+   A safe Lean-friendly classical sufficient condition is `q'` of bounded variation or `q∈W^{2,1}` with endpoint compatibility, yielding `|sineCoeff(q)_k| = O(k^{-2})` and hence summability.
+
+Bare `C¹` does not provide this.
+
+So the answer to the requested “explicit constant in terms of `M, μ, β`” is: **none exists from those data alone**. Any valid constant must also depend on a positive-time spatial regularity norm/envelope, such as `‖u‖_{A¹}` or a Sobolev/Hölder norm.
 
 ---
 
-## 2. The core per-mode divergence smoothing bound
+## 2. Seed from `u ∈ A¹`: exact product/composition budget
 
-Let the divergence Duhamel coefficient be
-
-```text
-D_k(t) := ∫_a^t exp(-(t-s)λ_k) * sqrt(λ_k) * S_k(s) ds.
-```
-
-Assume a source envelope on the integration window:
-
-```text
-∀ s∈[a,t], |S_k(s)| ≤ Esrc_k.
-```
-
-Then:
-
-### Mode `k = 0`
-
-Since
-
-```text
-λ_0 = 0,
-sqrt(λ_0)=0,
-```
-
-we have
-
-```text
-D_0(t) = 0.
-```
-
-Thus every weighted estimate is trivial at mode zero.
-
-### Modes `k ≥ 1`
-
-For `λ_k>0`,
-
-```text
-|D_k(t)|
-  ≤ Esrc_k * sqrt(λ_k) ∫_a^t exp(-(t-s)λ_k) ds
-  = Esrc_k * (1 - exp(-(t-a)λ_k)) / sqrt(λ_k)
-  ≤ Esrc_k / sqrt(λ_k).
-```
-
-Multiplying by the target weight gives
-
-```text
-(1+λ_k)^((r+1)/2) |D_k(t)|
-  ≤ sqrt(1+λ_k)/sqrt(λ_k) * (1+λ_k)^(r/2) Esrc_k
-  ≤ Cdiv * (1+λ_k)^(r/2) Esrc_k,
-```
-
-where
-
-```text
-Cdiv = sqrt(1 + 1/π²)
-```
-
-because `λ_k ≥ π²` for `k≥1`.
-
-### Lean lemma shape
+Assume on a compact positive-time window `J=[τ₀,T₀]⊂(0,T)` that there is a single nonnegative envelope `Eu1` with
 
 ```lean
-theorem divDuhamel_mode_weighted_bound
-    {r a t : ℝ} {Senv : ℕ → ℝ} (hE0 : ∀ k, 0 ≤ Senv k)
-    {S : ℝ → ℕ → ℝ}
-    (hdom : ∀ s ∈ Set.Icc a t, ∀ k, |S s k| ≤ Senv k)
-    (k : ℕ) :
-    (1 + lam k) ^ ((r + 1) / 2) *
-      |∫ s in a..t,
-          Real.exp (-((t - s) * lam k)) * Real.sqrt (lam k) * S s k|
-      ≤ Cdiv * ((1 + lam k) ^ (r / 2) * Senv k)
+hEu1 : WeightedL1 1 Eu1
+hEu1_dom : ∀ t ∈ J, ∀ k,
+  |cosineCoeffs (u t) k| ≤ Eu1 k
 ```
 
-For `a≤t`. If the interval orientation is not fixed, state it with `Set.Icc a t` and `intervalIntegral.integral_of_le` or work with a restricted measure to avoid signed interval issues.
+This is the clean hypothesis.
 
-The proof splits on `k=0` and `k≠0`; for `k≠0`, use:
+### Resolver
 
-```lean
-lam k ≥ Real.pi^2
-Real.sqrt (lam k) > 0
-intervalIntegral.integral_mono_on
-intervalIntegral.integral_const_mul
-∫_a^t exp(-(t-s)*λ) ds = (1 - exp(-(t-a)*λ)) / λ
-Real.exp_pos
-Real.exp_nonneg
-```
-
-If proving the closed-form exponential integral is annoying, use the simpler bound
+For each time `t`,
 
 ```text
-∫_a^t exp(-(t-s)λ) ds ≤ ∫_0^∞ exp(-ρλ)dρ = 1/λ.
+v̂_k = û_k/(μ+λ_k),
+sineCoeff(v_x)_k = ± sqrt(λ_k) û_k/(μ+λ_k).
 ```
 
-In Lean that may still need a lemma. If no improper-integral lemma exists in the repo, prove the finite closed form once.
+Weighted gains:
 
-### Summability consequence
+```text
+u ∈ A¹_cos ⇒ v ∈ A³_cos,
+u ∈ A¹_cos ⇒ v_x ∈ A²_sin.
+```
 
-From the per-mode bound:
+With constant
+
+```text
+C_R(μ) := max(1, 1/μ),
+```
+
+one has schematically
+
+```text
+‖v‖_{A³} ≤ C_R(μ) ‖u‖_{A¹},
+‖v_x‖_{A²} ≤ C_R(μ) ‖u‖_{A¹}.
+```
+
+Since `A²⊂A¹⊂A⁰`, this gives
+
+```text
+v_x ∈ A¹_sin
+```
+
+as needed for an `A¹` flux envelope.
+
+### Denominator
+
+Let
+
+```text
+D := (1+v)^(-β).
+```
+
+Since `v≥0`, the map `z ↦ (1+z)^(-β)` is smooth on the range. A weighted-Wiener composition/Wiener-Lévy lemma gives
+
+```text
+v ∈ A¹_cos ⇒ D ∈ A¹_cos.
+```
+
+If you use the stronger `v∈A³`, then the same theorem gives `D∈A³`, hence also `D∈A¹`.
+
+A norm estimate has the form
+
+```text
+‖D‖_{A¹} ≤ C_comp(β, ‖v‖∞) * (1 + ‖v‖_{A¹}).
+```
+
+Using the resolver maximum principle,
+
+```text
+‖v‖∞ ≤ M/μ,
+```
+
+so the composition constant can be taken as
+
+```text
+C_comp(β, M/μ).
+```
+
+It still depends on the `A¹` size of `v`, hence ultimately the `A¹` size of `u`; it is not an `L∞`-only bound.
+
+### Weight factor
+
+```text
+W := uD.
+```
+
+Cosine product closure in weighted Wiener algebra gives
+
+```text
+u ∈ A¹_cos,
+D ∈ A¹_cos
+⇒ W ∈ A¹_cos.
+```
+
+In norm form:
+
+```text
+‖W‖_{A¹} ≤ C_prod(1) ‖u‖_{A¹} ‖D‖_{A¹}.
+```
+
+### Flux
+
+```text
+q := W v_x.
+```
+
+Mixed cosine×sine product closure gives
+
+```text
+W ∈ A¹_cos,
+v_x ∈ A¹_sin
+⇒ q ∈ A¹_sin.
+```
+
+Thus
+
+```text
+q ∈ A¹_sin ⇒ q ∈ A⁰_sin.
+```
+
+and also
+
+```text
+∂xq ∈ A⁰_cos.
+```
+
+because
+
+```text
+|cosCoeff(∂xq)_k| = sqrt(λ_k) |sineCoeff(q)_k|
+```
+
+and
+
+```text
+sqrt(λ_k) ≤ sqrt(1+λ_k).
+```
+
+### Envelope expression
+
+If you want an explicit Lean envelope, define:
 
 ```lean
-theorem divDuhamel_gain_one_weightedL1
-    (hE : WeightedL1 r Senv)
-    (hE0 : ∀ k, 0 ≤ Senv k)
-    (hdom : ∀ s ∈ Set.Icc a t, ∀ k, |S s k| ≤ Senv k) :
-    WeightedL1 (r+1)
-      (fun k => ∫ s in a..t,
-          Real.exp (-((t - s) * lam k)) * Real.sqrt (lam k) * S s k)
+Evx1 k := Real.sqrt (lam k) * (Eu1 k / (μ + lam k))
 ```
 
-Proof:
+and let `D1` be the denominator envelope from the composition theorem:
 
 ```lean
-exact Summable.of_nonneg_of_le
-  (fun k => by positivity)
-  (fun k => divDuhamel_mode_weighted_bound ... k)
-  (hE.mul_left Cdiv)
+hD1 : WeightedL1 1 D1
+hD1_dom : ∀ t∈J, Envelopes D1 (cosineCoeffs (D t))
 ```
 
-up to rewriting `(1+λ)^((r+1)/2)` into the `WeightedL1 (r+1)` definition.
+Then define
 
-This lemma is the formal heart of the `+1` ladder.
+```lean
+EW1 := trueCosProd Eu1 D1
+Eq1 := trueMixedProd EW1 Evx1
+```
+
+The product/envelope lemmas give:
+
+```lean
+WeightedL1 1 Eq1
+∀ t ∈ J, ∀ k, |sineCoeffs (q t) k| ≤ Eq1 k
+```
+
+Then the `A⁰` seed is just `Eq1` downgraded by monotonicity:
+
+```lean
+WeightedL1 0 Eq1
+```
+
+and the divergence-source `A⁰` envelope is
+
+```lean
+Ediv0 k := Real.sqrt (lam k) * Eq1 k
+```
+
+with
+
+```lean
+WeightedL1 0 Ediv0
+```
+
+because `Eq1 ∈ A¹`.
 
 ---
 
-## 3. Non-divergence Duhamel lemma
+## 3. Should the seed be `A⁰` or `A¹`?
 
-For the logistic/non-divergence source, one can prove either the full `+2` gain or only the `+1` gain needed by the ladder.
+It depends on which object you call the source.
 
-If
+### If the source is the pre-divergence flux `q`
 
-```text
-G_k(s) ≤ Genv_k,
-```
-
-then for `k≥1`,
+The divergence Duhamel lemma is naturally formulated as:
 
 ```text
-∫_a^t exp(-(t-s)λ_k) ds ≤ 1/λ_k.
+q ∈ A^r_sin ⇒ ∫ S(t-s)∂xq(s) ds ∈ A^{r+1}_cos.
 ```
 
-So
+For the first ladder step
 
 ```text
-(1+λ_k)^((r+2)/2)
-  ∫ exp(...) |G_k(s)| ds
-≤ ((1+λ_k)/λ_k) * (1+λ_k)^(r/2) Genv_k
-≤ C0 * (1+λ_k)^(r/2) Genv_k,
+u ∈ A¹,
 ```
 
-where
+you need
 
 ```text
-C0 := (1+π²)/π²
+q ∈ A⁰_sin.
 ```
 
-for `k≥1`. At `k=0`, the multiplier is just the time length `t-a`; on a finite window it contributes one finite coordinate and can be handled by `Summable.update` or by adding a single-mode envelope.
+So the minimal seed is `A⁰_sin` for `q`.
 
-Lean-friendly form:
+### If the source is the actual divergence `∂xq`
 
-```lean
-theorem heatDuhamel_gain_two_weightedL1
-    (hT : t - a ≤ Tlen)
-    (hE : WeightedL1 r Genv)
-    (hE0 : ∀ k, 0 ≤ Genv k)
-    (hdom : ∀ s ∈ Set.Icc a t, ∀ k, |G s k| ≤ Genv k) :
-    WeightedL1 (r+2)
-      (fun k => ∫ s in a..t,
-          Real.exp (-((t - s) * lam k)) * G s k)
+Then the heat Duhamel source is a cosine source. The same first step corresponds to
+
+```text
+∂xq ∈ A^{-1}_cos ⇒ Duhamel ∈ A¹_cos.
 ```
 
-For the `A^r → A^{r+1}` ladder, a weaker `+1` non-divergence lemma is enough and slightly easier at low modes; but proving `+2` once is more reusable.
+If your infrastructure does not have negative `A` spaces, you may prefer to require the stronger condition
+
+```text
+∂xq ∈ A⁰_cos,
+```
+
+which is equivalent to
+
+```text
+q ∈ A¹_sin.
+```
+
+This is stronger than necessary for the first step, but much cleaner if your formalization only handles nonnegative weights.
+
+### Recommended Lean choice
+
+Since you already have or expect `u∈A¹`, prove the stronger and cleaner seed:
+
+```text
+q ∈ A¹_sin.
+```
+
+Then you get both:
+
+```text
+q ∈ A⁰_sin       -- for the natural divergence Duhamel +1 ladder,
+∂xq ∈ A⁰_cos     -- if a cosine-source package wants the divergence itself.
+```
+
+So the practical answer is: seed at `A¹` if you have it; it subsumes the `A⁰` seed and avoids negative-space bookkeeping.
 
 ---
 
-## 4. Per-slice versus window-uniform
+## 4. Minimal Lean hypotheses
 
-### What per-slice is enough for
-
-If your only goal at a fixed time `t₀` is the algebraic statement
-
-```text
-q_t(t₀) ∈ A³_sin,
-```
-
-then per-slice hypotheses suffice:
-
-```text
-u(t₀) ∈ A³_cos,
-u_t(t₀) ∈ A³_cos,
-```
-
-plus resolver, denominator composition, and product bridge lemmas. No time window is needed for this purely algebraic product conclusion.
-
-### What per-slice is not enough for
-
-For a Duhamel smoothing estimate such as
-
-```text
-u(t₀) = heat leg + ∫_{a}^{t₀} heat(t₀-s) source(s) ds,
-```
-
-per-slice membership of `source(s)` for each `s` is not enough. You need either:
-
-```text
-∃ E, WeightedL1 r E ∧ ∀ s∈[a,t₀], ∀ k, |source_k(s)| ≤ E_k
-```
-
-or an integrable-in-time majorant:
-
-```text
-∀ k, |source_k(s)| ≤ E_k(s),
-Σ_k w_r(k) ∫_a^{t₀} E_k(s) ds < ∞.
-```
-
-The former is much easier to formalize.
-
-### Correct local way to avoid the old gap
-
-You can avoid a **global** window-uniform flux envelope by localizing around the target time. For an interior time `t₀>0`, choose
-
-```text
-0 < a < t₀ < b < T.
-```
-
-Prove trajectory envelopes only on `[a,b]`. This is enough for:
-
-- local `A³` membership at `t₀`,
-- local time-C¹ / dominated-tsum arguments near `t₀`,
-- `DuhamelSourceTimeC1` if it is a clamped-window statement around `t₀`.
-
-So the answer is:
-
-```text
-per-slice alone: enough for pointwise algebra, not enough for Duhamel/time-C¹;
-local positive-time window: enough and avoids the global campaign gap.
-```
-
-If the theorem `DuhamelSourceTimeC1` includes a window-uniform derivative bound, then it necessarily needs at least a local window envelope or an integrable majorant. A fixed-time proof cannot supply continuity/uniformity by itself.
-
----
-
-## 5. Product and source lemmas at level `r`
-
-The weighted-Wiener product lemmas should be independent of the PDE.
-
-### Product closure
+A clean lemma to add is:
 
 ```lean
-theorem weightedL1_trueCosProd
-    (hr : 0 ≤ r)
-    (ha : WeightedL1 r a) (hb : WeightedL1 r b) :
-    WeightedL1 r (trueCosProd a b)
-
-theorem weightedL1_trueMixedProd
-    (hr : 0 ≤ r)
-    (ha : WeightedL1 r a) (hb : WeightedL1 r b) :
-    WeightedL1 r (trueMixedProd a b)
-```
-
-Need envelope versions too:
-
-```lean
-theorem envelopes_trueCosProd_weighted
-    (hr : 0 ≤ r)
-    (hEa : WeightedL1 r Ea) (hEb : WeightedL1 r Eb)
-    (ha : Envelopes Ea a) (hb : Envelopes Eb b) :
-    Envelopes (trueCosProd Ea Eb) (trueCosProd a b)
-
-theorem envelopes_trueMixedProd_weighted
-    ...
-```
-
-The envelope monotonicity can reuse the same `trueCosProd`/`trueMixedProd` monotonicity style already present for `H^σ`, but now with weighted-ℓ¹ membership.
-
-### Resolver gain
-
-```lean
-theorem weightedL1_resolver_gain_two
-    (hμ : 0 < μ) (ha : WeightedL1 r a) :
-    WeightedL1 (r+2) (fun k => a k / (μ + lam k))
-
-theorem weightedL1_resolver_deriv_gain_one
-    (hμ : 0 < μ) (ha : WeightedL1 r a) :
-    WeightedL1 (r+1)
-      (fun k => Real.sqrt (lam k) * (a k / (μ + lam k)))
-```
-
-Use monotonicity to downgrade from `A^{r+1}` to `A^r` when building products.
-
-### Denominator composition
-
-This is the one true analytic Nemytskii/Wiener-Lévy lemma:
-
-```lean
-theorem weightedL1_one_add_rpow_neg
-    (hr : 0 ≤ r)
+theorem flux_seed_A1_of_u_A1
+    (hμ : 0 < μ)
     (hβ : 0 ≤ β)
-    (hv_nonneg : ∀ x, 0 ≤ v x)
-    (hvA : WeightedL1 r (cosineCoeffs v)) :
-    WeightedL1 r
-      (cosineCoeffs (fun x => (1 + v x)^(-β)))
+    {J : Set ℝ}
+    {u v vx D q : ℝ → ℝ → ℝ}
+    (huA1 : TrajA 1 J (fun t k => cosineCoeffs (u t) k))
+    (hv_def : ∀ t∈J, ∀ k,
+      cosineCoeffs (v t) k = cosineCoeffs (u t) k / (μ + lam k))
+    (hvx_def : ∀ t∈J, ∀ k,
+      |sineCoeffs (vx t) k|
+        = Real.sqrt (lam k) * |cosineCoeffs (v t) k|)
+    (hD_def : ∀ t, D t = fun x => (1 + v t x)^(-β))
+    (hD_comp : denominator A¹ composition theorem / envelope)
+    (hW_bridge : ∀ t∈J, CosineMulBridge (u t) (D t))
+    (hQ_bridge : ∀ t∈J, MixedMulBridge (fun x => u t x * D t x) (vx t))
+    (hq_def : ∀ t, q t = fun x => u t x * D t x * vx t x) :
+    TrajA 1 J (fun t k => sineCoeffs (q t) k)
 ```
 
-and similarly for exponent `-β-1` if needed for `q_t`.
-
-### Chem flux at level `r`
-
-For `u` itself:
+Then derive:
 
 ```lean
-theorem chemFlux_sinA_of_u_cosA
-    (hr : 0 ≤ r)
-    (huA : TrajA r J (fun t k => cosineCoeffs (u t) k))
-    (resolver / denominator / product bridge hypotheses) :
-    TrajA r J (fun t k => sineCoeffs (fun x => W t x * vx t x) k)
+theorem flux_seed_A0_of_u_A1 ... :
+  TrajA 0 J (fun t k => sineCoeffs (q t) k)
 ```
 
-For `u_t` / linearized source:
+by monotonicity.
+
+If you need the divergence source itself:
 
 ```lean
-theorem chemFluxLin_sinA_of_u_A3_and_U_A-r
-    (hr : 0 ≤ r) (hr3 : r ≤ 3)
-    (huA3 : TrajA 3 J (fun t k => cosineCoeffs (u t) k))
-    (hUA  : TrajA r J (fun t k => cosineCoeffs (U t) k))
-    (resolver / denominator / product bridge hypotheses) :
-    TrajA r J (fun t k => sineCoeffs (Qlin t) k)
+theorem div_flux_seed_A0_of_flux_A1
+    (hqA1 : TrajA 1 J (fun t k => sineCoeffs (q t) k))
+    (hdiv : ∀ t∈J, ∀ k,
+      |cosineCoeffs (fun x => deriv (q t) x) k|
+        = Real.sqrt (lam k) * |sineCoeffs (q t) k|) :
+    TrajA 0 J (fun t k => cosineCoeffs (fun x => deriv (q t) x) k)
 ```
 
-where
+using pointwise:
 
 ```text
-Qlin = U v_x D + u V_x D - β u v_x V D₁.
+sqrt(λ_k) ≤ sqrt(1+λ_k).
 ```
 
 ---
 
-## 6. Ladder step lemmas
+## 5. Answers to the three questions
 
-### For `u`
+### Q1
 
-Assume the mild coefficient identity on a window with a restart time `a`:
+No. `L∞` plus bounded resolver outputs does not imply a window-uniform `A⁰` flux envelope. There is no constant depending only on `M, μ, β`. You need extra positive-time spatial regularity: for example `q∈A^ε` for some `ε>0`, `q∈H^{1/2+ε}`, or endpoint-compatible `C^{1,α}` / `W^{2,1}`-type regularity. Bare `C¹` is not enough.
+
+### Q2
+
+Yes. A window-uniform `u∈A¹_cos` is a clean sufficient seed. The product budget is:
 
 ```text
-û_k(t) = heat_k(t,a) + chemDuhamel_k(t,a) + logDuhamel_k(t,a).
+u∈A¹
+⇒ v∈A³,
+   v_x∈A²⊂A¹,
+   D=(1+v)^(-β)∈A¹,
+   W=uD∈A¹,
+   q=Wv_x∈A¹_sin.
 ```
 
-Then:
+Thus `q∈A⁰_sin`, and also `∂xq∈A⁰_cos` if needed.
 
-```lean
-theorem u_A_step
-    (hr : 0 ≤ r)
-    (huA : TrajA r Jbig (fun t k => cosineCoeffs (u t) k))
-    (hflux : TrajA r Jbig (fun t k => sineCoeffs (Q t) k))
-    (hlog  : TrajA r Jbig (fun t k => cosineCoeffs (Log t) k))
-    (hmild : coefficient mild identity on target window J using source on Jbig)
-    (hheat : positive-time heat leg is A^{r+1} on J) :
-    TrajA (r+1) J (fun t k => cosineCoeffs (u t) k)
+The resulting bound depends on the window-uniform `A¹` envelope/norm of `u`, plus `M, μ, β` through resolver and denominator composition constants. It does not depend only on `M, μ, β`.
+
+### Q3
+
+For the natural divergence-ladder formulation, the minimal seed is
+
+```text
+q ∈ A⁰_sin.
 ```
 
-The proof uses:
+For a nonnegative-weight cosine-source package for the divergence itself, use the stronger but cleaner seed
 
-- heat leg smoothing for the restart/initial term;
-- `divDuhamel_gain_one_weightedL1` for chemotaxis;
-- `heatDuhamel_gain_two_weightedL1` or a weaker `+1` lemma for logistic;
-- sum closure of `WeightedL1`.
-
-### For `U = u_t`
-
-Same form, with the linearized mild identity:
-
-```lean
-theorem u_t_A_step
-    (hr : 0 ≤ r) (hr3 : r ≤ 3)
-    (huA3 : TrajA 3 Jbig (fun t k => cosineCoeffs (u t) k))
-    (hUA  : TrajA r Jbig (fun t k => cosineCoeffs (U t) k))
-    (hQlin : TrajA r Jbig (fun t k => sineCoeffs (Qlin t) k))
-    (hRlin : TrajA r Jbig (fun t k => cosineCoeffs (Rlin t) k))
-    (hUmild : linearized coefficient mild identity) :
-    TrajA (r+1) J (fun t k => cosineCoeffs (U t) k)
+```text
+q ∈ A¹_sin,
 ```
 
-Again the divergence term is limiting; the reaction derivative term gains more.
+which gives
+
+```text
+∂xq ∈ A⁰_cos.
+```
+
+The minimal practical Lean hypothesis that produces either seed is:
+
+```text
+window-uniform TrajA 1 for u on the positive-time window.
+```
+
+Together with resolver identities, denominator composition in `A¹`, and cosine/mixed product bridges, this yields a window-uniform `A¹_sin` envelope for the flux.
 
 ---
 
-## 7. Seed lemmas
+## Final recommendation
 
-You need a seed before the ladder starts.
-
-### `A⁰` seed for `u`
-
-Options:
-
-1. From a positive-time `MemHSigma σ` theorem with `σ>1/2`:
+Do not try to seed the ladder from `L∞`. Add the lemma:
 
 ```lean
-theorem weightedL1_zero_of_memHSigma_gt_half
-    (hσ : 1/2 < σ)
-    (hH : MemHSigma σ a) :
-    WeightedL1 0 a
+flux_seed_A1_of_u_A1
 ```
 
-by Cauchy-Schwarz.
+and use your available positive-time/window-uniform `u∈A¹` theorem to instantiate it. Then downgrade `A¹` to `A⁰` for the pre-divergence ladder, or multiply by `sqrt(λ)` to get an `A⁰` envelope for the divergence source itself.
 
-2. From an already-landed trajectory envelope at `σ>1/2`.
-
-3. From a separate positive-time `A⁰` theorem.
-
-Do not claim `L∞` or `L²` implies `A⁰`; it does not.
-
-### `A⁰` seed for `u_t`
-
-Your per-mode derivative theorem seeds the `U` ladder only if it gives a window-uniform ℓ¹ envelope:
-
-```lean
-hU_A0_seed : TrajA 0 Jbig (fun t k => deriv (fun s => cosineCoeffs (u s) k) t)
-```
-
-or equivalently for the realized `U` coefficients.
-
-Per-mode differentiability alone does not seed the ladder.
-
----
-
-## 8. Three-step wrappers
-
-For `u`:
-
-```lean
-theorem positiveTime_u_A3_of_A0_seed
-    (hA0 : TrajA 0 J0 uCoeff)
-    (hstep : ∀ r ∈ {0,1,2}, u_A_step r) :
-    TrajA 3 J3 uCoeff
-```
-
-For `U`:
-
-```lean
-theorem positiveTime_u_t_A3_of_A0_seed
-    (huA3 : TrajA 3 Jbig uCoeff)
-    (hUA0 : TrajA 0 Jbig UCoeff)
-    (hstepU : ∀ r ∈ {0,1,2}, u_t_A_step r) :
-    TrajA 3 J UCoeff
-```
-
-In Lean, avoid literal finite-set recursion if it becomes annoying. Just apply the step three times with `r=0`, `r=1`, `r=2`, using `norm_num`/`linarith` for side conditions.
-
----
-
-## 9. Dependency order: minimal formalization plan
-
-Here is the clean dependency order.
-
-### Lemma 1: weighted ℓ¹ infrastructure
-
-```lean
-WeightedL1
-WeightedL1.mono
-WeightedL1.add
-WeightedL1.smul
-weightedL1_zero_of_memHSigma_gt_half
-```
-
-### Lemma 2: heat/Duhamel smoothing
-
-```lean
-heat_posTime_weightedL1_of_coeff_bound
-
-divDuhamel_mode_weighted_bound
-
-divDuhamel_gain_one_weightedL1
-
-heatDuhamel_gain_two_weightedL1
-```
-
-The exact divergence smoothing constant is:
-
-```text
-Cdiv = sqrt(1 + 1/π²) = sqrt(1+π²)/π.
-```
-
-### Lemma 3: weighted Wiener algebra and resolver
-
-```lean
-weightedL1_trueCosProd
-weightedL1_trueMixedProd
-weightedL1_resolver_gain_two
-weightedL1_resolver_deriv_gain_one
-weightedL1_one_add_rpow_neg       -- composition
-```
-
-### Lemma 4: source regularity at level `r`
-
-```lean
-chemFlux_sinA_of_u_cosA
-logistic_cosA_of_u_cosA
-chemFluxLin_sinA_of_u_A3_and_U_A-r
-reactionLin_cosA_of_u_A3_and_U_A-r
-```
-
-### Lemma 5: ladder steps
-
-```lean
-u_A_step
-u_t_A_step
-```
-
-### Lemma 6: three-step wrappers
-
-```lean
-positiveTime_u_A3_of_A0_seed
-positiveTime_u_t_A3_of_A0_seed
-```
-
-### Lemma 7: chem source time-C¹ consumer
-
-Once both wrappers are available:
-
-```lean
-chemSource_timeC1_of_u_A3_and_u_t_A3
-```
-
-This final theorem should be mostly product/chain-rule/coefficient-swap, not parabolic smoothing.
-
----
-
-## Final answer
-
-1. The exact divergence Duhamel constant for the `+1` step is
-
-```text
-Cdiv = sup_{k≥1} sqrt(1+λ_k)/sqrt(λ_k)
-     = sqrt(1 + 1/π²).
-```
-
-The per-mode bound is
-
-```text
-(1+λ_k)^((r+1)/2)
-|∫_a^t e^{-(t-s)λ_k} sqrt(λ_k) S_k(s) ds|
-≤ Cdiv (1+λ_k)^(r/2) Esrc_k.
-```
-
-Mode zero is killed by `sqrt(λ_0)=0`.
-
-2. Per-slice `A³` is enough for pointwise algebra like `q_t(t)∈A³_sin`, but not enough for Duhamel smoothing or `DuhamelSourceTimeC1` if that theorem needs continuity/window-uniform derivative bounds. Use **local positive-time windows** `[a,b]⊂(0,T)` or integrable-in-time majorants. This sidesteps the global campaign gap but not the need for a local envelope.
-
-3. The clean formalization is the six-lemma ladder above: weighted-ℓ¹ infrastructure, divergence Duhamel gain, Wiener products/resolver/composition, source-at-level-`r`, ladder step, and three-step wrapper. Apply the same pattern to `u` and to `u_t` using the linearized equation.
+This precisely avoids the old window-uniform flux-envelope gap: the gap is not solved by `L∞`; it is solved by a local positive-time `A¹` trajectory envelope for `u` plus the weighted-Wiener product/composition machinery.
