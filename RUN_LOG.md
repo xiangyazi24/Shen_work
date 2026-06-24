@@ -131,3 +131,15 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - end: <fill on close>
 EOF2
 git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commit -q -m "automode(continuation): χ₀<0 unconditional-close doctrine + run-log" && git push origin main 2>&1 | tail -1
+## Run 2026-06-24 close (χ₀<0 faithful-fix arc)
+- MAJOR: caught + fixed a §3.3 VACUITY — original chiNeg_theorem_1_1's hfp used the logistic-only intervalDuhamelOperator
+  while the real χ₀<0 solution (picardEWA, with (-χ₀)·chemFluxEWA) is chemotaxis-inclusive ⟹ hfp unsatisfiable for χ₀<0
+  ⟹ original theorem VACUOUS. Campaign had mislabeled it "faithful".
+- FIXED: chiNeg_theorem_1_1_faithful (SourceChiNegFaithful.lean, acfb10e) — routes around hfp via
+  localExistence_of_regularityBootstrap (no hfp); faithful §3.3 conditional on a SATISFIABLE realization frontier; axiom-clean.
+- ALSO: defeq wall (power-source time-C¹ Hv) CRACKED via opaque/irreducible technique; full source-regularity family
+  (Hv/hlogInv/hchemInv/pde_u) banked axiom-clean (~20 commits).
+- REMAINING for FULLY unconditional: discharge ChiNegDatumUniformConstructionFaithful — a ~50-hyp assembly
+  (picardEWA_uncond_fixedPoint contraction estimates + realizes_clean evalST atoms + realSlice_reducedCore's banked
+  discharges). All pieces landed; needs a fresh-context wiring producer. BLOCKED: subagent dispatch rate-limited
+  (server throttling) at close. Re-dispatch scheduled.
