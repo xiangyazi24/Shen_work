@@ -396,3 +396,12 @@ COMPLETE A³ BOOTSTRAP CHAIN (cron1 Q112/115/120/121/124/125, all mapped): L²/L
 L² energy [IntervalDomainL2* machinery] → positive-time H^θ [standing] → A⁰ → A¹ seed → A³ ladder [banked lemmas 1+4]
 → u_t∈A³ [linearized ladder] → q_t∈A³_sin → hchem → unconditional. Route-mapping COMPLETE; remaining = formalization
 (lemmas 2/3/5/6 + the H^θ smoothing + the linearized ladder). Substantial, fully scoped, satisfiable-standing.
+
+## [2026-06-24] A³ roadmap 3/6 cores BANKED; remaining = composition + seed + wrapper + H^θ
+✅ Lemma 1 divergence-gain (a2e766b) · ✅ Lemma 2 quantitative Wiener norm wNorm_addConv_le + wNorm_resolver_le
+(ce337ee; items 1+2 membership already landed — memHSigma_cosProd/resolver +2; built the missing QUANTITATIVE submult
+bound) · ✅ Lemma 4 ladder step (8cc7eb7). All axiom-clean (namespace ShenWork.Wiener.EWA / .A3LadderStep).
+REMAINING: lemma 3 source-at-level-r (u∈A^r⇒flux∈A^r; needs the composition) · the (1+v)^{-β} COMPOSITION (binomial
+series Σbinom(-β,j)v^{⋆j}, converges Cσ‖v‖_w<1 small-data; general data needs Wiener-Lévy analytic composition — the
+genuine hard piece) · lemma 5 seed (window-uniform A¹ from datum via L²→H^θ→A⁰→A¹, cron1 Q125) · lemma 6 wrapper ·
+the linearized ladder for u_t. Complete chain MAPPED; 3/6 cores banked; the composition + H^θ are the deep remaining.
