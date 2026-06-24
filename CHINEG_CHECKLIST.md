@@ -190,3 +190,16 @@ hrealizes, htimeDeriv, hdiffU, huNE0/1, hdecay, Hv, Hvpos, hT, hu0cos, hrecon, h
 HONEST STATE: χ₀<0 Theorem 1.1 is a FAITHFUL §3.3 CONDITIONAL (satisfiable regularity hyps, the paper's own).
 UNCONDITIONAL close needs: thread all ~24 hyps (most have producers) + crack the power-source time-C¹ quadruple
 (the genuine analytic wall) + the assembly. Larger than the "one brick" I framed; correcting the optimism.
+
+## [2026-06-23] POWER-SOURCE time-C¹ = GENUINE structural defeq WALL (confirmed, both producers)
+The Hv residual = power-source ν·u^γ time-C¹ quadruple. TWO independent producers, same integral-swap route
+(cosineCoeffs_hasDerivAt_of_smooth_param + HasDerivAt.rpow_const + the banked realSlice_hasDerivAt_time for u_t):
+  · attempt 1 (SourcePowerSourceTimeC1, default heartbeats): timeout whnf/isDefEq at 200000 (lines 302/252/378/339).
+  · attempt 2 (v2, maxHeartbeats 1000000): STILL timeout whnf/isDefEq at 1000000 (lines 310/263/387/350).
+So it is a STRUCTURAL defeq blowup — Lean cannot whnf-reduce the EWA cosineCoeffs of the rpow u^γ in any
+reasonable heartbeat budget. NOT a maxHeartbeats tuning issue. Both files TRASHED (never banked, untracked).
+GENUINE FIX needed (focused engineering, not a flailing producer): make the heavy EWA/cosineCoeff defs
+IRREDUCIBLE at the blowup points, or pin goal types via `show` to block whnf, or reformulate the power-source
+coefficient so the derivative target avoids the rpow defeq. This is the real hard core of the χ₀<0 unconditional close.
+STATE: 8 carried hyps banked axiom-clean; χ₀<0 Theorem 1.1 = FAITHFUL §3.3 conditional; Hv's power-source
+time-C¹ is the isolated structural frontier; remaining pde_u-family/trace/source hyps have producers (wiring).
