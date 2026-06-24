@@ -74,3 +74,19 @@ Goal: all 3 Chen-Ruau-Shen papers UNCONDITIONAL passing playbook §3.3. Avenues 
  (c) P3 → #8 Theorem 2.2 fractional-power frontier (cascades from P2 χ₀≤0 boundedness).
 Fallback: each atom that stalls → sharpen to its single named sub-residual, dispatch fresh opus, never defer.
 Terminal: headline unconditional + #print axioms clean + §3.3 non-vacuous, per paper.
+
+---
+## [2026-06-24 RUN] χ₀<0 unconditional hU — route (B) A³ Wiener (ENGINEERING DECISION, mine)
+Goal: discharge hU (ChiNegDatumUniformConstructionFaithful) for large positive C⁰ data via the built A³
+Wiener route ⟹ Theorem_1_1 χ₀<0 unconditional (max-principle Lemma_3_1 already real + faithful).
+Decision: drive (B) not (A). (A) C⁰ Prop 1.1 contraction needs sectorial/analytic-semigroup/fractional-power
+Mathlib stack (deep, nonexistent). (B) is 5 cores + architecture in; diagonal semigroup sidesteps the gap;
+both prove the SAME faithful Theorem_1_1 ⟹ engineering call.
+Avenues:
+ (a) General-data composition (1+v)^{-β}∈A³ for large v≥0 — BOTTLENECK. Moser route B: v∈MemHSob 4∩L^∞,v≥0 ⟹
+     (1+v)^{-β}∈MemHSob 4 (order-4 chain rule, g^{(j)}(v) bounded as v≥0 off the -1 singularity, H^4 Moser
+     products) → memWNorm_of_memHSob(s=4,σ=3,BANKED) → A³. Reuses banked Sobolev/Heat.
+ (b) Recentered-binomial for time-increment (complement, NOT escape — base (1+v₀)^{-β} still needs (a)).
+ (c) Wire seed(C⁰→A^σ@t₀, banked)+composition(a)+ladder(banked)+restart → hU unconditional.
+ Fallback: route (A) only after (a)(b)(c) documented terminal.
+Fork-independent parallel: Paper2 Prop2.x (Prop2.4 brick in flight), Paper1 T11pos/global, Paper3.

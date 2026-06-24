@@ -143,3 +143,10 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
   (picardEWA_uncond_fixedPoint contraction estimates + realizes_clean evalST atoms + realSlice_reducedCore's banked
   discharges). All pieces landed; needs a fresh-context wiring producer. BLOCKED: subagent dispatch rate-limited
   (server throttling) at close. Re-dispatch scheduled.
+
+## Run 2026-06-24 (continuation, autonomous)
+- doctrine: route-B section appended (git HEAD daea6e0+)
+- approval: /automode continuation (live autonomous run, no re-handshake)
+- starting avenue: (a) general-data composition (1+v)^{-β}∈A³ via Moser H^4→A^3
+- parallel: Prop 2.4 mass-comparison brick (a98c63c0) in flight, fork-independent
+- end: <open>
