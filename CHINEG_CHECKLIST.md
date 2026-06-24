@@ -301,3 +301,17 @@ my "faithful non-vacuous" claim was WRONG (same vacuity class as the hfp operato
 FIX (statement-level): restate the faithful construction over PaperPositiveInitialDatum (matching headline) → floor available
 → contraction tower closes → SATISFIABLE + dischargeable. + wire my BANKED full discharges hchemInv←realSlice_hchemInv_direct_realSlice
 (ea4afd2, NOT the C²-route — residual 2 ARTIFACT), Hv←realSlice_resolverSpectralData_full (b7bbfe6 — residual 3 ARTIFACT).
+
+## [2026-06-24] HONEST CORRECTION (3rd over-claim caught) — "full discharges" carry per-slice hyps; per-slice frontier is OPEN
+Producer signature-read caught my over-claim: realSlice_hchemInv_direct_realSlice carries hcont/h_coeff;
+realSlice_resolverSpectralData_full carries bc/hagree/hdecay/vdotL. So they are axiom-clean CONDITIONAL lemmas,
+NOT unconditional — I conflated "axiom-clean" (no sorry/custom-axiom in proof) with "no carried hyps". Residuals 2/3
+are REAL (per-slice realization frontier), not artifacts.
+✅ Milestone 1 banked (7eefb0f, build-verified on uisai2 DISK canonical — /dev/shm pkg cache was corrupted, infra
+glitch): ChiNegDatumUniformConstructionStrong (over PaperPositiveInitialDatum) + the floor unlock
+(chiNegStrong_heatFloor_of_paperDatum via paperFloorDatum_heatEWA_uniformFloor) + EWA fixed point. axiom-clean.
+HONEST χ₀<0 STATE: faithful §3.3 CONDITIONAL — conditional surface = the per-slice realization frontier
+(hagree/bc/htime/hlap/hchemInv/hlogInv/hdecay/resolver-source/h_flux_diff/h_src_cont), satisfiable (the paper's
+solution regularity), NOT vacuous once the datum class is PaperPositiveInitialDatum. Two statement vacuities FIXED
+(hfp operator + datum class). UNCONDITIONAL requires discharging the per-slice frontier (deep) + the continuation
+factory typed over weak data (architectural). NOT near-done; the conditional is the honest landed result.
