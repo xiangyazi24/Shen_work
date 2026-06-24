@@ -90,3 +90,18 @@ Avenues:
  (c) Wire seed(C⁰→A^σ@t₀, banked)+composition(a)+ladder(banked)+restart → hU unconditional.
  Fallback: route (A) only after (a)(b)(c) documented terminal.
 Fork-independent parallel: Paper2 Prop2.x (Prop2.4 brick in flight), Paper1 T11pos/global, Paper3.
+
+---
+## [2026-06-24 REFRAME] avenue (a) composition was PHANTOM — REAL frontier = reduced-core realization
+Composition (1+v)^{-β}∈MemHSigma is DONE unconditionally (memHSigma_one_add_rpow_neg_of_contDiff_two, σ<3/2,
+C²-route). 3 over-builds caught (Prop2.4, MemHSob dup, composition campaign). Abandon avenue (a).
+REAL χ₀<0 unconditional frontier (SourceReducedCoreWire.lean §(ii) GENUINELY-OPEN + SourceChiNegNegUncond):
+ (a') TIME-C¹ resolver source: realSlice_resolverSpectralData_residual bottoms out at a clamped
+     DuhamelSourceTimeC1 witness for the resolver source — OPEN time-C¹. THE deepest real-analysis atom.
+ (b') h_src_cont_chem — the C¹-to-boundary secondary regularity (Gap 1, per-slice package #4).
+ (c') Realization bridge: ChiNegFaithfulRealizationFrontier = produce u_star:EWA δ 1 with
+     CoupledDuhamelReducedClassicalCore p δ u0 (realSlice u_star); the no-embed (realSlice-definitional) route
+     vs the missing picardEWA→embedEWA bridge.
+DISCIPLINE: grep the existing ShenWork.Wiener.EWA / IntervalChiNeg* / ShenWork.Paper2.ln namespace BEFORE any
+brick (3 over-builds this session from skipping this). Reduced core was 13/24 wired earlier this session
+(SourceReducedCoreWire); Hv/h_flux_diff/h_src_cont_log already closed; residual = (a')(b')(c').
