@@ -158,3 +158,9 @@ Strategy: parallel discharge, one new bridge file per hyp (disjoint, no edit rac
 by name; the genuinely-hard residual is the resolver Hv spectral-data + htimeDeriv time-derivative bridge.
 Build gate: local lake build is hook-BLOCKED (mini kernel-panics); verify on uisai2 via uisai2-shm-build.sh (sync
 to /dev/shm/xhuan5/shen_work). uisai1 SSH down since 6/15 → uisai2 only.
+
+## [2026-06-23] BANKED 3/~10 carried hyps (verified axiom-clean on uisai2)
+✅ hsumE — SourceFullCoeffSlabSummable.lean (_of_chemLeg reduce + _of_chemReg full discharge via chemDivDuhamel_eigenvalue_summable). Build-gate caught a producer Bv-currying bug (declared ℕ→ℝ→ℝ, used as ℝ→ℕ→ℝ → sorryAx); fixed.
+✅ huNE0/huNE1 — SourceEndpointNonvanish.lean (from realSlice_pos; positivity holds AT endpoints since intervalDomainPoint∋{0,1}).
+✅ hrealizes — SourceRealizesDischarge.lean (one-step wiring from landed realizes_clean; u₀-summability coincides with already-carried hsumE/hu0cos, not independent).
+REMAINING: htimeDeriv, hdiffU, hdecay, Hv, Hvpos (cron2 resolving the v̂_k=û_k/(μ+λ_k) resolver-C²/positivity + time-deriv majorant route); hu0cos/log = satisfiable standing initial-datum regularity.
