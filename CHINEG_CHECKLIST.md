@@ -497,3 +497,24 @@ GENERAL-DATA composition (Moser route B: H^4 chain rule → A³, decided). Until
 is satisfiable only near-equilibrium ⟹ §3.3-passing faithful CONDITIONAL, not unconditional.
 LESSON: mis-framing a question to ChatGPT yields a confidently-wrong audit; always verify the actual Lean def before
 surfacing a strategic "pivot/tear-down". Grep the RIGHT namespace (Paper1 vs Paper2 both have Theorem_1_1).
+
+## [2026-06-24] THREE-PAPER AUDIT PASS (verified, in response to goal = all 3 papers pass playbook audit)
+VERIFIED REPO TRUTH (computed, not trusted from stale board): 0 genuine sorry/admit/native_decide tokens across
+ALL of Paper1/Paper2/Paper3/Wiener/PDE (the raw grep "350/5" were PROSE mentions; precise token grep = 0; rg exit 1).
+The completion gap is NOT sorries — it is the CONDITIONAL/assumed-branch structure the §3.3 audit targets.
+HEADLINES.md (authoritative, 2026-06-15): 0/28 headline Props UNCONDITIONAL; gradient of mechanism behind each.
+Per-paper audit:
+ · Paper2 T11 (χ₀≤0): max-principle sup-bound Lemma_3_1 is GENUINELY BUILT + sorry-free (IntervalLemma31Closure.lean
+   — real Hamilton/Dini machinery: boundary_max_deriv2_rlimit_nonpos, max_point_slope_bound, supNorm_nonincr_core;
+   NOT a tautology). ⟹ Paper2 T11 χ₀<0 = REAL max-principle + the hU local-existence FORK (Xiang's call: C⁰ Prop 1.1
+   contraction vs A³ Wiener). The fork gates the DEEPEST Paper2 front.
+ · Paper2 Prop 2.1-2.5: conditional reductions (.of_assumed_estimate_branch / .of_mass_derivative_identity...), not
+   pure tautologies; the owed content = real Lᵖ resolvent / weighted gradient / Moser / mass estimates. FORK-INDEPENDENT.
+ · Paper1: T11neg 🟢 (Rothe+Brouwer, reduced to G1 Brouwer + producers, non-vacuous); T11pos UNTOUCHED; T12/P11/P12
+   🔴 stubbed (Section-3 global Cauchy + Section-5 stability). Paper1 is sorry-free but largely conditional/stubbed.
+ · Paper3: all 🟡, sits ON Paper2's solution objects (persistence/stability/critical-sensitivity).
+DRIVING (fork-independent): dispatched Prop 2.4 ODE-comparison brick (Paper2MassComparisonPrinciple: a=b=0 mass
+conservation via M'=0 + a,b>0 logistic mass bound via Jensen+ODE-comparison) → converts a 🔴 assumed-branch to real.
+HONEST DISTANCE: the goal (all 3 papers pass §3.3 audit) is a large multi-paper effort; repo is sorry-free but
+0/28 unconditional. Paper2 deepest front = fork (Xiang). Fork-independent fronts (Paper2 Prop 2.x, Paper1 T11pos/
+global-existence, Paper3) are the parallel grind.
