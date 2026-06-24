@@ -558,3 +558,15 @@ chemDenom_smallData_termNorm_summable, SobolevEmbedding(MemHSob), HeatSmoothing,
 REFRAME: abandon avenue (a) composition (phantom). Attack the REAL frontier: picardEWA→embedEWA bridge +
 trajectory (C1)/(C2). CHECK-EXISTING (grep the ShenWork.Paper2.ln / IntervalChiNeg* / IntervalCkComposition
 namespace) BEFORE any further brick.
+
+## [2026-06-24] check-existing-first PREVENTED over-build #4; REAL frontier re-located to window-uniform C t₀
+The DuhamelSourceTimeC1 witness brick (dispatched WITH explicit check-existing-first + STOP-if-exists) correctly
+STOPPED: the time-C¹ resolver witness ALREADY EXISTS — realSlice_resolverSource_clampedWitness
+(SourceResolverTimeC1Discharge.lean:88) + realSlice_resolverSpectralData_full + realSlice_Hv_closed
+(SourcePerSliceClose.lean:282), axiom-clean, EXIT=0 on canonical uisai2. The SourceReducedCoreWire §(ii) doc I
+cited was STALE again (time-C¹ discharge landed 11:17; §(ii) wire 10:53). GENUINE remaining frontier (re-located,
+computed from code): the WINDOW-UNIFORM power-source quadratic-decay constant C t₀ — uniformizing
+realSlice_resolverDecay's σ-DEPENDENT SourceCoeffQuadraticDecay over the clamp window Icc(t₀/4)((t₀+3T)/4); no
+banked producer supplies a window-uniform C t₀. This is a SPATIAL-decay uniformization (not time-C¹).
+NEXT (the one real atom): produce window-uniform C t₀. Lesson: dispatch briefs MUST carry check-existing-first+STOP
+— it caught the 4th over-build the orchestrator's own skipped gate would have missed.
