@@ -141,3 +141,20 @@ Deep check-existing + reconcile (NOT prematurely concluding):
   classical-solution existence — which for χ₀<0 hits the SAME coupled-existence frontier.
 NET: the genuine χ₀<0 frontier = coupled chemotaxis local-existence Duhamel fixed-point (= base-E flux envelope),
 faithfully isolated by the campaign, CONDITIONAL on a real deep regularity theorem. Sup bound NOT the gap.
+
+## [2026-06-23] χ₀<0 LEAF INVENTORY — realSlice_reducedCore carried hyps → unconditional chiNeg_theorem_1_1
+The single open leaf = discharge the ~10 carried hyps of realSlice_reducedCore (SourceReducedCore:84), which
+assemble CoupledDuhamelReducedClassicalCore for the EWA fixed point realSlice u_star. Inventory + producer files:
+  · hsumE (eigenvalue-ℓ¹ source summability) — REDUCED by SourceFullCoeffSlabSummable.lean [unverified, build in flight]
+  · hrealizes (lift = fullSourceCoeff synthesis) — producers HCoeffDischarge/EmbedEWA/Flux
+  · htimeDeriv (slice ∂ₜ = fullSourceCoeffDot synth) — SourcePdeU(fullSourceCoeff_pde_u, 5 carried)/SourceTimeRegularityMajorant(fullSourceCoeffDot_abs_summable)
+  · hdiffU (slice DifferentiableAt) — pairs with htimeDeriv
+  · huNE0/huNE1 (endpoint nonvanishing) — from realSlice_pos (SourcePositivity:51) [producer dispatched]
+  · hdecay (SourceCoeffQuadraticDecay) — resolver decay
+  · Hv (HasResolverDirectSpectralData) — resolver spectral data (consumed via timeSlices_v_of_resolverSpectral etc.)
+  · Hvpos (resolver positivity) — IntervalResolverStrictPositivity / IntervalDomainResolverStrictPos
+  · hu0cos / log summability — initial-datum regularity (hû₀∈H^σ, satisfiable standing)
+Strategy: parallel discharge, one new bridge file per hyp (disjoint, no edit race), each consuming its producer
+by name; the genuinely-hard residual is the resolver Hv spectral-data + htimeDeriv time-derivative bridge.
+Build gate: local lake build is hook-BLOCKED (mini kernel-panics); verify on uisai2 via uisai2-shm-build.sh (sync
+to /dev/shm/xhuan5/shen_work). uisai1 SSH down since 6/15 → uisai2 only.
