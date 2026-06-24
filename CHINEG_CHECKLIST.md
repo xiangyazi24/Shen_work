@@ -315,3 +315,11 @@ HONEST χ₀<0 STATE: faithful §3.3 CONDITIONAL — conditional surface = the p
 solution regularity), NOT vacuous once the datum class is PaperPositiveInitialDatum. Two statement vacuities FIXED
 (hfp operator + datum class). UNCONDITIONAL requires discharging the per-slice frontier (deep) + the continuation
 factory typed over weak data (architectural). NOT near-done; the conditional is the honest landed result.
+
+## [2026-06-24] cron1 Q112: hchem is the genuine hard core of the 4 packages (divergence derivative-loss → q_t∈A³_sin)
+ChatGPT (be86c02a): chem source S_chem=∂ₓq (q=u·v_x·(1+v)^{-β}); divergence gives cosineCoeff(∂ₓq)_n=±√λ_n·sineCoeff(q)_n.
+So Σλ_n|cosineCoeff(S_chem)_n|<∞ needs q_t∈A³_sin — a HIGHER Wiener bound, NOT from bare C². The opaque/integral-swap
+Lean trick is the SAME, but the analytic envelope is stronger. So among the 4 open packages: hchem = genuine hard
+(needs q_t∈A³_sin, the divergence loss); hlog = tractable (power of u, the power-source quadruple template applies,
+no divergence); h_flux_diff/h_src_cont = mechanical from C². The A³ slice machinery (IntervalChiNegA3Slice) may supply
+q_t∈A³_sin via the A³ bootstrap + time-derivative. (verify-don't-transcribe: claims grepped vs tree.)
