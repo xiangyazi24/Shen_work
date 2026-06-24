@@ -176,3 +176,17 @@ REMAINING: htimeDeriv, hdiffU, hdecay, Hv, Hvpos (cron2 resolving the v̂_k=û_k
 REMAINING after Hv: ASSEMBLY producer — wire the 8 discharged hyps + exists_uniform_EWA_lifespan into
 realSlice_reducedCore (currently carries them) → CoupledDuhamelReducedClassicalCore → ChiNegDatumUniformConstruction
 → UNCONDITIONAL chiNeg_theorem_1_1. Plus standing hu0cos/log (paper's initial-datum regularity, satisfiable).
+
+## [2026-06-23] HONEST CORRECTION — realSlice_reducedCore interface is ~24 hyps, not ~10; quadruple hit a wall
+My "7/~10, nearly closed" reports UNDERCOUNTED. Full realSlice_reducedCore (SourceReducedCore:84) carries ~24:
+hu0bd, hδρ/hheat/hu_ball, htime, hlap, hchemInv, hlogInv, hsum_lap, hsum_chem, hsum_log, hchem, hlog, hsumE,
+hrealizes, htimeDeriv, hdiffU, huNE0/1, hdecay, Hv, Hvpos, hT, hu0cos, hrecon, hdefect, htrace.
+- GENUINELY BANKED by me (verified axiom-clean): hsumE, huNE0/1, hrealizes, hdecay, Hvpos, htimeDeriv, hdiffU (8).
+- Have EXISTING producers (need wiring): htime≈htimeDeriv, hlap/hchemInv/hlogInv (fullSourceCoeff_pde_u),
+  htrace (realSlice_initialTrace), hchem (coupledChemDivSource_timeC1On_of_EWA). hlog/hsum_*/hrecon/hdefect = unassessed.
+- Hv: REDUCTION banked, but its residual (power-source ν·u^γ time-C¹ quadruple) BROKE in build —
+  SourcePowerSourceTimeC1.lean: 8 errors incl. multiple maxHeartbeats timeouts (isDefEq/whnf on EWA structure),
+  implicit-synthesis failures, unknown-constant. NOT banked. This is a GENUINE hard frontier, not a quick fix.
+HONEST STATE: χ₀<0 Theorem 1.1 is a FAITHFUL §3.3 CONDITIONAL (satisfiable regularity hyps, the paper's own).
+UNCONDITIONAL close needs: thread all ~24 hyps (most have producers) + crack the power-source time-C¹ quadruple
+(the genuine analytic wall) + the assembly. Larger than the "one brick" I framed; correcting the optimism.
