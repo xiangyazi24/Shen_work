@@ -518,3 +518,19 @@ conservation via M'=0 + a,b>0 logistic mass bound via Jensen+ODE-comparison) →
 HONEST DISTANCE: the goal (all 3 papers pass §3.3 audit) is a large multi-paper effort; repo is sorry-free but
 0/28 unconditional. Paper2 deepest front = fork (Xiang). Fork-independent fronts (Paper2 Prop 2.x, Paper1 T11pos/
 global-existence, Paper3) are the parallel grind.
+
+## [2026-06-24] OVER-BUILD caught + corrected: Prop 2.4 was ALREADY closed; HEADLINES.md is STALE
+Dispatched a Prop 2.4 mass-comparison brick trusting HEADLINES.md's 🔴 marking — but `intervalDomain_Proposition_2_4`
+(IntervalDomainMass.lean:828) ALREADY discharges Proposition_2_4 intervalDomain, wiring the real concrete
+intervalDomain_Paper2MassDerivativeIdentity (line 365) + intervalDomain_Paper2MassComparisonPrinciple (line 676).
+My brick re-proved a WEAKER abstract-conditional version (4 carried hyps) of existing concrete work → TRASHED
+(not banked). Root cause: trusted the STALE HEADLINES.md (2026-06-15) 🔴 instead of computing from code
+(no-unmaintained-index lesson). The producer was honest + cited the existing proof + the not_forall_Proposition_2_4
+witness (abstract target is FALSE on bare API — no linearity/Jensen).
+CORRECTED REAL Prop-2.x state (computed from code, grep intervalDomain_Proposition_2_N):
+ · Prop 2.4: CLOSED (intervalDomain_Proposition_2_4). · Prop 2.1/2.2/2.3/2.5: genuinely OPEN (no
+   intervalDomain_Proposition_2_{1,2,3,5}). Those are the real fork-independent Prop targets.
+LESSON REINFORCED: grep `intervalDomain_<thing>` BEFORE dispatching any "discharge X" brick; HEADLINES.md is stale,
+the audit MUST compute from code, not the board.
+MAIN avenue (a) (general-data composition, the χ₀<0 unconditional bottleneck) unaffected — 2 lanes in flight
+(Moser brick a2dc7190 + cron1 bridge bxa6ihcj6).

@@ -150,3 +150,5 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
 - starting avenue: (a) general-data composition (1+v)^{-β}∈A³ via Moser H^4→A^3
 - parallel: Prop 2.4 mass-comparison brick (a98c63c0) in flight, fork-independent
 - end: <open>
+
+- avenue(a) in flight; Prop2.4 parallel brick was OVER-BUILD (already closed concretely) → trashed; real open Props = 2.1/2.2/2.3/2.5
