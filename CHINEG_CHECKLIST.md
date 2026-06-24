@@ -454,3 +454,21 @@ Seed chain now fully mapped+partly-built: L² →S(t₀) (heat smoothing M_θ(t)
 A³ roadmap: 5 cores banked (divergence-gain/quantitative-Wiener/small-data-composition-CLOSED/ladder-step/
 Sobolev-embedding). Remaining: heat-smoothing lemma (M_θ sup, clean calculus), seed assembly, lemma 6 wrapper,
 u_t ladder (cron1 in flight), general-data composition (Moser route B, integer order-4 chain rule).
+
+## [2026-06-24] u_t ladder DESIGN CLOSED (ChatGPT Q, my candidate refuted-and-sharpened) → entire A³ route DESIGNED
+TWO-WAY AUDIT: my candidate "differentiate-in-space, read u_t off one rung" was VALID but SUBOPTIMAL —
+direct PDE read-off gives u∈A^N ⟹ u_t∈A^{N-2}, so u_t∈A³ needs u∈A⁵. SHARPER route (ChatGPT): linearized
+Duhamel ladder. U=u_t solves U_t=U_xx+a∂ₓQ_lin(U)+(1-2u)U with Q_lin(U)=U·v_x·D+u·V_x·D-β·u·v_x·V·D₁.
+NON-CIRCULARITY (spectral): V̂_k=Û_k/(μ+λ_k) ⟹ V:A^r→A^{r+2}, V_x:A^r→A^{r+1}, so by monotonicity U∈A^r ⟹
+V,V_x∈A^r ⟹ Q_lin(U)∈A^r_sin ⟹ [divergence Duhamel +1] ⟹ U∈A^{r+1}. Ladder A⁰→A¹→A²→A³ closes given
+u∈A³ on window + U seed in A⁰. NO infinite derivative-loss loop (divergence costs 1, heat Duhamel gives 1 back).
+
+ENTIRE A³ UNCONDITIONAL ROUTE NOW DESIGNED END-TO-END:
+ (1) SEED: datum L² →heat smoothing M_θ(t)→ H^θ →[memWNorm_of_memHSob σ=0]→ A⁰ →buffered Duhamel→ A¹.
+ (2) SPATIAL divergence ladder A¹→A²→A³ (u∈A³). [windowed_divergence_gain BANKED, lemma 4]
+ (3) u_t ladder: U seed A⁰ → linearized Duhamel A⁰→A³ (u_t∈A³). [linearized-rung lemma = next brick]
+ (4) q_t∈A³_sin from (u,u_t)∈A³ + composition [small-data BANKED; general-data Moser route B decided].
+ (5) packages close → unconditional headline.
+DESIGN phase COMPLETE. Remaining = LEAN GRIND of designed bricks: heat-smoothing (in flight), linearized
+Duhamel rung, U=u_t A⁰ seed, q_t assembly, general-data Moser (integer order-4, if global needed).
+A³ cores BANKED: 5 (divergence-gain, quantitative-Wiener, small-data-composition, ladder-step, Sobolev-embedding).
