@@ -534,3 +534,27 @@ LESSON REINFORCED: grep `intervalDomain_<thing>` BEFORE dispatching any "dischar
 the audit MUST compute from code, not the board.
 MAIN avenue (a) (general-data composition, the χ₀<0 unconditional bottleneck) unaffected — 2 lanes in flight
 (Moser brick a2dc7190 + cron1 bridge bxa6ihcj6).
+
+## [2026-06-24] MAJOR CORRECTION: composition was a PHANTOM bottleneck — 3 over-builds; REAL frontier = picardEWA→embedEWA
+THREE over-builds this session, all from skipping check-existing-first (the #1 automode tactic):
+ 1. Prop 2.4 mass-comparison — already closed (intervalDomain_Proposition_2_4). Trashed.
+ 2. MemHSob (SobolevEmbedding) — byte-identical DUPLICATE of existing MemHSigma (IntervalHSigmaScale.lean:36).
+ 3. The ENTIRE A³ Wiener composition campaign (gBinom/chemDenom_smallData/Sobolev/Heat + planned Moser) —
+    the (1+v)^{-β} composition ALREADY EXISTS UNCONDITIONALLY: `ShenWork.Paper2.ln.memHSigma_one_add_rpow_neg_of
+    _contDiff_two` (IntervalCkComposition.lean:302) proves (1+v)^{-β}∈MemHSigma σ for 0≤σ<3/2, ANY positive data,
+    via the trivial C²-route ((1+v)^{-β} is ContDiff 2 since v≥0⟹1+v≥1 off the singularity; C²+Neumann⟹MemHSigma
+    σ<3/2). chemotaxisFlux_denom_memHSigma_uncond axiom-checked. There NEVER was a small-data bottleneck.
+    My Moser brick was KILLED before landing the 3rd over-build. ChatGPT's "A³ is over-building" verdict VINDICATED.
+REAL χ₀<0 FRONTIER (from the code's own honest stall reports):
+ · chiNeg_theorem_1_1_unconditional_faithful (SourceChiNegNegUnconditional.lean): Theorem_1_1 intervalDomain p
+   MODULO ChiNegFaithfulRealizationFrontier. The gap (verbatim): the irreducible evalST-realization atoms
+   (h_flux_nbhd / h_u / h_uα) for the Picard fixed point — only landed producers need embed-form
+   (u_star=embedEWA u…), and NO picardEWA→embedEWA bridge exists. ← THE REAL IRREDUCIBLE CORE.
+ · IntervalChiNegTrajectoryAssembly: carries (C1) τ-uniform base envelope @σ₀>1/2 ("single open seam") +
+   (C2) the σ-uniform bundle (reducible to one mkBundle map). The σ-ladder engine residuals.
+SESSION-START summary already flagged "3 evalST hard-core atoms" — I DRIFTED into the phantom composition.
+REDUNDANT banked this session (superseded by existing infra, NOT deleted pending reconcile): gBinom_abs_le,
+chemDenom_smallData_termNorm_summable, SobolevEmbedding(MemHSob), HeatSmoothing, the A³ ladder cores.
+REFRAME: abandon avenue (a) composition (phantom). Attack the REAL frontier: picardEWA→embedEWA bridge +
+trajectory (C1)/(C2). CHECK-EXISTING (grep the ShenWork.Paper2.ln / IntervalChiNeg* / IntervalCkComposition
+namespace) BEFORE any further brick.
