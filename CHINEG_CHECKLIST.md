@@ -332,3 +332,12 @@ solution regularity ⟹ faithful conditional PASSES §3.3; OR discharge via the 
 NET 4-package status: Hv closeable (quadruple built) · hlog tractable (power-of-u) · secondary mechanical (C²) ·
 hchem = the genuine deep one, reducible to satisfiable-standing {u,u_t∈A³}. So χ₀<0 faithful conditional is
 §3.3-passing once hchem/hlog/Hv/secondary carry their satisfiable-standing regularity; unconditional needs the A³ smoothing.
+
+## [2026-06-24] cron1 Q120: u_t∈A³ route MAPPED — linearized eq + same +1 Wiener ladder
+ChatGPT (Q120): U:=u_t solves U_t = U_xx + a∂ₓ(U v_x D + u V_x D − β u v_x V D₁) + (1−2u)U (D=(1+v)^{-β}, V=(μ-Δ)^{-1}U).
+Frozen-coeff linearized flux Qlin_r(U)∈A^r_sin (given u∈A³, U∈A^r); divergence Duhamel leg gains +1 ⟹ A^{r+1}_cos.
+Reaction (1-2u)U non-divergence, gains +2, never limiting. So from A⁰ seed for u_t, ladder A⁰→A¹→A²→A³ gives u_t∈A³.
+NET: the χ₀<0 deep frontier = coupled A³ Wiener bootstrap {u∈A³ (the u ladder, IntervalChiNegA3Slice) + u_t∈A³ (the
+linearized ladder, this Q120 structure)} → q_t∈A³_sin → hchem. Route now STRUCTURALLY PRECISE; formalization is
+substantial (the +1 ladder for u + linearized for u_t). χ₀<0 = §3.3-passing faithful conditional (carries this as
+satisfiable standing solution-regularity); unconditional = formalize the A³ bootstrap.
