@@ -1,518 +1,412 @@
-# Q90 (cron2): classical regularity bridges for the EWA Duhamel chemotaxis solution
+# Q113 (cron2): classical regularity frontier — EWA calculus closure vs interior smoothing
 
-## Executive answer
+## Executive verdict
 
-For the time-derivative bridge, the clean sufficient condition is a **locally uniform `ℓ¹` majorant for the source coefficients** plus the heat-smoothing majorant for the initial coefficients. The endpoint `r=t` in Duhamel contributes the source value `F_n(t)`; the differentiated kernel contributes an integrated majorant bounded by the same source majorant. The summable bound is therefore `2 S_n`, **not** `λ_n S_n`.
-
-For the resolver bridge, the package is direct: if
+There is a unified route, but it should **not** be a full “interior `C∞` parabolic smoothing” theorem. That theorem is conceptually true, but it is far too expensive to formalize from scratch in Lean for this target. The better unified route is a **finite EWA calculus-closure theorem**:
 
 ```text
-v̂_n(t) = û_n(t)/(μ+λ_n),   μ>0,
-λ_n=(nπ)^2,
+C¹_t / weighted-Wiener-in-time data for u
++ resolver smoothing for v
++ positivity of u and 1+v
++ weighted-Wiener algebra / smooth-composition lemmas
+⇒ all remaining source/flux regularity packages at once.
 ```
 
-then division by `μ+λ_n` gains two Neumann/cosine derivatives. In particular, `u(t)` in weighted Wiener order `0` already gives `v(t)∈C²_x`, because
+This should discharge `(b)` and `(c)` mechanically and reduce `(a)` to the genuinely hard finite-time regularity statement: the nonlinear source is `C¹` in time as an EWA sequence with a locally summable majorant.
+
+So the recommended strategy is:
 
 ```text
-λ_n |v̂_n| = λ_n |û_n|/(μ+λ_n) ≤ |û_n|.
+Do NOT prove general interior C∞ smoothing.
+Do prove one finite theorem:
+  EWAClassicalCore ⇒
+    h_flux_diff ∧ h_src_cont ∧ DuhamelSourceTimeC1.
 ```
 
-Strict positivity of `v` is not a spectral-summability fact; it comes from the positive Neumann resolvent kernel or the strong maximum principle. From `u≥0` one gets `v≥0`; from `u≥0` and `u` nontrivial one gets `v>0`.
+The hard part is not differentiating `u·v_x/(1+v)^β` in space. The hard part is proving the **time-`C¹` source package** with the correct weighted-Wiener bounds.
 
-## Notation
+## 1. Unified route: finite EWA classical-core theorem
+
+A useful abstraction is:
+
+```lean
+structure EWAClassicalCore
+    (uCoeff uDotCoeff : ℝ → ℕ → ℝ)
+    (vCoeff vDotCoeff : ℝ → ℕ → ℝ)
+    (I : Set ℝ) : Prop where
+  -- coefficient identities
+  v_coeff : ∀ t n, vCoeff t n = uCoeff t n / (μ + lambda n)
+  vdot_coeff : ∀ t n, vDotCoeff t n = uDotCoeff t n / (μ + lambda n)
+
+  -- local uniform spatial regularity
+  u_A2_loc : ∃ B, ∀ t∈I, A 2 (uCoeff t) ≤ B
+  uDot_A1_loc : ∃ B, ∀ t∈I, A 1 (uDotCoeff t) ≤ B
+
+  -- coefficient time differentiability / continuity in the EWA norm
+  u_time_deriv : ∀ n t, t∈I → HasDerivAt (fun s => uCoeff s n) (uDotCoeff t n) t
+  u_cont_A2 : ContinuousOn (fun t => uCoeff t) I   -- in A₂ norm, or explicit ε form
+  uDot_cont_A1 : ContinuousOn (fun t => uDotCoeff t) I -- in A₁ norm
+
+  -- positivity boxes
+  u_pos : ∀ t∈I, ∀ x, 0 < u t x
+  v_pos : ∀ t∈I, ∀ x, 0 ≤ v t x
+```
+
+The exact indices can be adjusted, but the important point is this:
+
+- `u∈A₂` gives spatial `C²` for `u`.
+- `u_t∈A₁` is the convenient finite assumption for time differentiability of the chem divergence source, because differentiating the flux time derivative in `x` sees `(u_t)_x`.
+- `v=(μ-Δ_N)^{-1}u` gains two derivatives, so `v∈A₄` if `u∈A₂`.
+- `v_t=(μ-Δ_N)^{-1}u_t` gains two derivatives, so `v_t∈A₃` if `u_t∈A₁`.
+
+Under this core, prove one theorem:
+
+```lean
+theorem all_source_regularities_of_EWAClassicalCore
+    (hcore : EWAClassicalCore uCoeff uDotCoeff vCoeff vDotCoeff I)
+    (hβ : ... ) (hα : ... ) :
+    DuhamelSourceTimeC1 ... ∧
+    (∀ t∈I, ∀ x, DifferentiableAt ℝ (chemFluxLifted t) x) ∧
+    ContinuousOn (fun p : ℝ × ℝ => wChem p.1 p.2) (I.prod Set.univ) ∧
+    ContinuousOn (fun p : ℝ × ℝ => wLog p.1 p.2) (I.prod Set.univ) := by
+  -- finite calculus closure, not PDE smoothing
+```
+
+This theorem is the right replacement for many small, ad hoc regularity hypotheses.
+
+## 2. Why not formalize interior `C∞` smoothing?
+
+The statement
+
+```text
+mild solution of a semilinear parabolic equation with smooth nonlinearity
+⇒ smooth on (0,T)×(0,1)
+```
+
+is mathematically standard. But in Lean it would require a large theory:
+
+```text
+analytic semigroup smoothing in a scale of Banach spaces;
+bootstrapping across time and space derivatives;
+boundary compatibility or interior-only localization;
+composition theorems in those spaces;
+resolver regularity at each bootstrapped level;
+conversion back to the exact cosine/source coefficient packages.
+```
+
+That is far more work than the finite package you actually need. Since your EWA development already has weighted-Wiener controls and coefficient time derivatives, a **finite regularity bootstrap** is much cheaper.
+
+In short:
+
+```text
+Interior C∞ theorem: elegant on paper, expensive in Lean.
+Finite EWA calculus closure: less glamorous, much cheaper and exactly targets the remaining packages.
+```
+
+## 3. Spatial flux differentiability `(b)` is mechanical
 
 Let
 
 ```text
-λ_n := (nπ)^2,
-e_n(x) := cos(nπx).
+Φ(y) := (1+y)^(-β),
+G(x) := u(x) * v_x(x) * Φ(v(x)).
 ```
 
-Ignore harmless normalization constants for the cosine basis; in Lean either carry them explicitly or absorb them into the coefficient maps.
-
-For a coefficient sequence `c : ℕ → ℝ`, define the weighted Wiener seminorm
+Assume at the slice `t`:
 
 ```text
-A_s(c) := ∑' n, (1+λ_n)^(s/2) * |c_n|.
-```
-
-`A_0(c)<∞` gives absolute/uniform convergence of
-
-```text
-∑ c_n cos(nπx),
-```
-
-because `|cos(nπx)|≤1`. `A_2(c)<∞` gives uniform convergence of the second spatial derivative series, since `λ_n≤1+λ_n`.
-
-## Part A: time derivative of the Duhamel coefficient series
-
-Write the combined source coefficient as
-
-```text
-F_n(t) := a * ChemDiv_n(t) + Logistic_n(t),   a=-χ₀>0.
-```
-
-The Duhamel coefficient is
-
-```text
-u_n(t)
-  = exp(-λ_n t) u0_n
-    + ∫_0^t exp(-λ_n*(t-r)) F_n(r) dr.
-```
-
-For `n=0`, `λ_0=0`, so
-
-```text
-u_0'(t)=F_0(t).
-```
-
-For all `n`, the coefficient derivative is
-
-```text
-u_n'(t)
-  = -λ_n exp(-λ_n t) u0_n
-    + F_n(t)
-    - ∫_0^t λ_n exp(-λ_n*(t-r)) F_n(r) dr
-
-  = -λ_n u_n(t) + F_n(t).
-```
-
-The second form is often the PDE diagonal identity. The first form is the best form for proving the derivative series is uniformly summable.
-
-## The endpoint `r=t` and the correct majorant
-
-Let `I=[τ,T₁]⊂(0,T)` be a compact time subinterval with `0<τ≤T₁<T`. To control the derivative series uniformly on `I`, it is enough to assume:
-
-```text
-sourceMajorant_on_[0,T₁]:
-  ∃ S : ℕ → ℝ,
-    Summable S ∧
-    (∀ n, 0 ≤ S n) ∧
-    (∀ n, ∀ r∈[0,T₁], |F_n(r)| ≤ S n),
-
-initialHeatDerivativeMajorant_on_I:
-  Summable (fun n => λ_n * exp(-λ_n*τ) * |u0_n|).
-```
-
-Then, for `t∈I`,
-
-```text
-| -λ_n exp(-λ_n t) u0_n |
-  ≤ λ_n exp(-λ_n τ) |u0_n|.
-```
-
-For the Duhamel part,
-
-```text
-|F_n(t)| ≤ S_n,
-```
-
-and
-
-```text
-|∫_0^t λ_n exp(-λ_n*(t-r)) F_n(r) dr|
-  ≤ ∫_0^t λ_n exp(-λ_n*(t-r)) S_n dr
-  = (1 - exp(-λ_n t)) S_n
-  ≤ S_n.
-```
-
-Thus the whole derivative coefficient has the summable majorant
-
-```text
-|u_n'(t)|
-  ≤ λ_n exp(-λ_n τ) |u0_n| + 2 S_n.          (A-majorant)
-```
-
-This is the exact bound to feed to a Weierstrass/M-test style termwise derivative theorem.
-
-Important: the pointwise differentiated kernel satisfies
-
-```text
-|∂_t [ exp(-λ_n*(t-r)) F_n(r) ]|
-  ≤ λ_n exp(-λ_n*(t-r)) S_n.
-```
-
-Do **not** take `sup_{r≤t}` of this bound, because at `r=t` it becomes `λ_n S_n`, which is usually not summable. The correct operation is to integrate the kernel first:
-
-```text
-∫_0^t λ_n exp(-λ_n*(t-r)) dr ≤ 1.
-```
-
-So the summable derivative majorant is `2S_n`, not `λ_nS_n`.
-
-## Lean-formalizable termwise derivative lemma
-
-A general theorem sufficient for `htimeDeriv/hdiffU` is:
-
-```lean
-/-- Termwise time derivative for an absolutely/uniformly summable cosine series. -/
-theorem hasDerivAt_tsum_cos_of_uniform_deriv_majorant
-    {I : Set ℝ} {c cdot : ℕ → ℝ → ℝ} {t : ℝ}
-    (ht : t ∈ I)
-    (hI_mem_nhds : I ∈ 𝓝 t)
-    (hc_deriv : ∀ n, ∀ s ∈ I, HasDerivAt (fun τ => c n τ) (cdot n s) s)
-    (hval_maj : ∃ A : ℕ → ℝ, Summable A ∧
-      ∀ n s, s ∈ I → |c n s| ≤ A n)
-    (hderiv_maj : ∃ B : ℕ → ℝ, Summable B ∧
-      ∀ n s, s ∈ I → |cdot n s| ≤ B n) :
-    ∀ x,
-      HasDerivAt
-        (fun s => ∑' n, c n s * Real.cos (n * Real.pi * x))
-        (∑' n, cdot n t * Real.cos (n * Real.pi * x))
-        t :=
-by
-  -- Weierstrass M-test + termwise derivative theorem.
-  sorry
-```
-
-The Duhamel-specific instantiation uses
-
-```lean
-cdot n t = -lambda n * Real.exp (-(lambda n) * t) * u0Coeff n
-           + F n t
-           - ∫ r in 0..t,
-               lambda n * Real.exp (-(lambda n) * (t-r)) * F n r
-```
-
-with derivative majorant
-
-```lean
-B n = lambda n * Real.exp (-(lambda n) * τ) * |u0Coeff n| + 2 * S n.
-```
-
-If your code uses the diagonal PDE form, prove the identity
-
-```lean
-cdot n t = -lambda n * uCoeff n t + F n t
-```
-
-as a separate lemma after the derivative formula.
-
-## Continuity of the time derivative
-
-For `DifferentiableAt` at a fixed `(t,x)`, the local majorant above is enough. If the target is a classical solution with `u_t` continuous in `(t,x)`, use the stronger but still natural assumption:
-
-```text
-t ↦ F(t) is continuous from compact time intervals into A_0,
-```
-
-meaning
-
-```text
-∀ t₀∈(0,T), ∀ ε>0, ∃ δ>0,
-  |t-t₀|<δ → ∑' n |F_n(t)-F_n(t₀)| < ε.
+u is C¹ at x,
+v is C² at x,
+1+v(x)>0.
 ```
 
 Then
 
 ```text
-t ↦ (u_n'(t))_n
+G'(x)
+ = u_x v_x (1+v)^(-β)
+   + u v_xx (1+v)^(-β)
+   - β u v_x^2 (1+v)^(-β-1).
 ```
 
-is continuous into `ℓ¹`, and hence
+There is no hidden obstruction from non-integer `β`: the real power map
 
 ```text
-(t,x) ↦ ∑ u_n'(t) cos(nπx)
+y ↦ y^(-β)
 ```
 
-is jointly continuous. Time-`C¹` of the source coefficients is stronger than necessary for `u_t`; source continuity in `A_0` suffices.
+is smooth on the open set `y>0`. Here the base is `1+v`, and since `v≥0` or `v>0`, we have `1+v>0`.
 
-## Spatial regularity of `u` from EWA data
-
-For classicality in `x`, the clean package is:
-
-```text
-uCoeff(t) ∈ A_2 locally uniformly in t.
-```
-
-Then
-
-```text
-u(t,x)    = ∑ u_n(t) cos(nπx),
-u_x(t,x)  = ∑_{n≥1} -nπ u_n(t) sin(nπx),
-u_xx(t,x) = ∑_{n≥1} -λ_n u_n(t) cos(nπx),
-```
-
-all converge uniformly in `x`, locally uniformly in `t`. Since your EWA solution already controls weighted-Wiener norms per slice, the missing time bridge is exactly the `A_0` control of `u_t` above.
-
-## Part B: direct spectral resolver data for `v`
-
-Define
-
-```text
-v_n(t) := u_n(t)/(μ+λ_n),   μ>0.
-```
-
-Then coefficientwise
-
-```text
-(μ+λ_n) v_n(t) = u_n(t),
-```
-
-which is exactly
-
-```text
-μ v - v_xx = u
-```
-
-in the cosine basis, with Neumann boundary conditions.
-
-## Weighted-Wiener smoothing estimate
-
-For every `s≥0`, there is a constant `C_{μ,s}` such that
-
-```text
-A_{s+2}(v(t)) ≤ C_{μ,s} A_s(u(t)).
-```
-
-Indeed,
-
-```text
-(1+λ_n)^((s+2)/2) |v_n|
-  = (1+λ_n)^((s+2)/2) |u_n|/(μ+λ_n)
-  ≤ C_{μ,s} (1+λ_n)^(s/2) |u_n|.
-```
-
-For most purposes one can take
-
-```text
-C_{μ,s} = sup_n (1+λ_n)/(μ+λ_n) ≤ max(1, 1/μ),
-```
-
-independent of `s`, because the extra factor is just `(1+λ_n)/(μ+λ_n)`.
-
-## C² spatial resolver package
-
-A minimal direct spectral data lemma is:
+Lean-oriented chain-rule proof:
 
 ```lean
-/-- Direct Neumann resolver spectral data from cosine coefficients. -/
-theorem resolver_direct_spectral_data_of_coeffs
-    (hμ : 0 < μ)
-    {uCoeff : ℕ → ℝ} {vCoeff : ℕ → ℝ}
-    (hvCoeff : ∀ n, vCoeff n = uCoeff n / (μ + lambda n))
-    (hu_A0 : Summable (fun n => |uCoeff n|)) :
-    ResolverSpectralC2Data uCoeff vCoeff := by
-  -- 1. v series converges absolutely:
-  --    |v_n| ≤ (1/μ)|u_n|.
-  -- 2. v_x series converges absolutely:
-  --    sqrt(λ_n)|v_n| ≤ Cμ |u_n|.
-  -- 3. v_xx series converges absolutely:
-  --    λ_n|v_n| ≤ |u_n|.
-  -- 4. coefficient equation: (μ+λ_n)v_n=u_n.
-  -- 5. Neumann BC: sine derivative vanishes at endpoints.
-  sorry
+-- pointwise hypotheses at x
+hu  : HasDerivAt u ux x
+hv1 : HasDerivAt v vx x
+hvx : HasDerivAt (deriv v) vxx x
+hbase : 0 < 1 + v x
+
+-- real-power composition
+hpow : HasDerivAt (fun y => y ^ (-β)) ((-β) * (1 + v x) ^ (-β - 1)) (1 + v x)
+hbase_deriv : HasDerivAt (fun x => 1 + v x) (deriv v x) x
+hPhi : HasDerivAt (fun x => (1 + v x) ^ (-β))
+        ((-β) * (1 + v x) ^ (-β - 1) * deriv v x) x :=
+  hpow.comp x hbase_deriv
+
+-- products
+hflux : HasDerivAt
+  (fun x => u x * deriv v x * (1 + v x) ^ (-β))
+  (deriv u x * deriv v x * (1 + v x)^(-β)
+    + u x * iteratedDeriv 2 v x * (1 + v x)^(-β)
+    - β * u x * (deriv v x)^2 * (1 + v x)^(-β-1))
+  x := by
+  -- `hu.mul hvx` then `.mul hPhi`, ring normalize
 ```
 
-The estimates used in that proof are:
+If your flux is exactly
 
 ```text
-|v_n| ≤ μ^{-1}|u_n|,
-√λ_n |v_n| = √λ_n |u_n|/(μ+λ_n) ≤ C_μ |u_n|,
-λ_n |v_n| = λ_n |u_n|/(μ+λ_n) ≤ |u_n|.
+chemFluxLifted = u * v_x / (1+v)^β,
 ```
 
-For example,
+rewrite it as
 
 ```text
-sup_{λ≥0} √λ/(μ+λ) = 1/(2√μ),
+u * v_x * (1+v)^(-β)
 ```
 
-so one may take `C_μ = 1/(2√μ)` for the first derivative bound.
+and use the formula above.
 
-Thus `u∈A_0` already yields `v∈C²_x`. If `u∈A_s`, then `v∈A_{s+2}`.
+## 4. Source continuity `(c)` is also mechanical, but needs joint continuity
 
-## Joint time derivative for the resolver
-
-If `u` has time derivative coefficients `dotU_n(t)` with local `A_0` majorants, define
+For the chem source
 
 ```text
-dotV_n(t) := dotU_n(t)/(μ+λ_n).
+wChem = ∂x( u v_x (1+v)^(-β) )
 ```
 
-Then the same smoothing estimates give:
+use the explicit formula:
 
 ```text
-∑ |dotV_n(t)| ≤ μ^{-1} ∑ |dotU_n(t)|,
-∑ λ_n |dotV_n(t)| ≤ ∑ |dotU_n(t)|.
+wChem
+ = u_x v_x (1+v)^(-β)
+   + u v_xx (1+v)^(-β)
+   - β u v_x^2 (1+v)^(-β-1).
 ```
 
-So if `dotU(t)∈A_0` locally uniformly in time, then `v_t(t)∈C²_x` locally uniformly in time and
+For the logistic source, writing the logistic constants as `r,b,α` to avoid conflict with `a=-χ₀`,
 
 ```text
-∂_t v(t,x) = ∑ dotU_n(t)/(μ+λ_n) cos(nπx).
+wLog = u * (r - b * u^α).
 ```
 
-Lean-shaped statement:
+If `u>0`, the real power `u^α` is smooth, even for non-integer `α`.
+
+The continuity proof is just:
+
+```text
+joint continuity of u, u_x, v, v_x, v_xx
++ positivity of 1+v and u
++ continuity of real powers on positive bases
++ product/addition continuity
+⇒ joint continuity of wChem and wLog.
+```
+
+Important caveat: **per-slice `C²` alone gives continuity in `x` at fixed `t`, not joint continuity in `(t,x)`**. For `h_src_cont` as a joint statement, you need local uniform coefficient convergence and time-continuity of the coefficients, for example:
+
+```text
+t ↦ uCoeff(t) is continuous into A₂,
+t ↦ vCoeff(t) is continuous into A₄,
+```
+
+or explicit epsilon-majorant versions. Your coefficient time derivative / EWA data likely already gives this, but it must be stated.
+
+Lean-shaped theorem:
 
 ```lean
-theorem resolver_time_deriv_from_u_time_deriv
-    (hμ : 0 < μ)
-    (hvCoeff : ∀ n t, vCoeff n t = uCoeff n t / (μ + lambda n))
-    (hu_time : ∀ x, HasDerivAt
-      (fun t => ∑' n, uCoeff n t * cosBasis n x)
-      (∑' n, dotU n t * cosBasis n x) t)
-    (hdotU_A0_local : ∃ B : ℕ → ℝ, Summable B ∧
-      ∀ n s, s ∈ I → |dotU n s| ≤ B n) :
-    ∀ x, HasDerivAt
-      (fun t => ∑' n, vCoeff n t * cosBasis n x)
-      (∑' n, dotU n t / (μ + lambda n) * cosBasis n x) t :=
-by
-  -- termwise derivative with majorant B_n / μ.
-  sorry
+theorem source_joint_cont_of_joint_C2
+    (hu0  : ContinuousOn (fun p : ℝ × ℝ => u p.1 p.2) domain)
+    (hux  : ContinuousOn (fun p => deriv (u p.1) p.2) domain)
+    (hv0  : ContinuousOn (fun p => v p.1 p.2) domain)
+    (hvx  : ContinuousOn (fun p => deriv (v p.1) p.2) domain)
+    (hvxx : ContinuousOn (fun p => iteratedDeriv 2 (v p.1) p.2) domain)
+    (hu_pos : ∀ p∈domain, 0 < u p.1 p.2)
+    (hv_base : ∀ p∈domain, 0 < 1 + v p.1 p.2) :
+    ContinuousOn (fun p => wChem p.1 p.2) domain ∧
+    ContinuousOn (fun p => wLog p.1 p.2) domain := by
+  -- continuity algebra and `Real.continuousAt_rpow_const` on positive bases
 ```
 
-For a stronger `C¹_t C²_x` package, require `t↦dotU(t)` continuous into `A_0`; then the resolver time derivative is continuous into `A_2`.
+## 5. The genuinely hard package `(a)`
 
-## Positivity of `v`
+`DuhamelSourceTimeC1` is the real analytic core.
 
-Spectral summability gives regularity, not positivity. Positivity should be a separate resolver-kernel or maximum-principle lemma.
+For the logistic source:
 
-The correct statements are:
+```text
+L(u) := u (r - b u^α),
+L_t = u_t (r - b(1+α)u^α).
+```
+
+This is easy once `u_t` is in the right EWA space and `u>0`.
+
+For the chem flux:
+
+```text
+G := u v_x (1+v)^(-β).
+```
+
+The time derivative is
+
+```text
+G_t
+ = u_t v_x (1+v)^(-β)
+   + u (v_t)_x (1+v)^(-β)
+   - β u v_x v_t (1+v)^(-β-1).
+```
+
+The chem source is `∂x G`, so its time derivative is
+
+```text
+(∂xG)_t = ∂x(G_t).
+```
+
+To make this coefficientwise and summably bounded, a convenient finite assumption is:
+
+```text
+u_t ∈ A₁ locally uniformly in time,
+u ∈ A₂ locally uniformly in time,
+v = Rμ u,       so v ∈ A₄,
+v_t = Rμ u_t,   so v_t ∈ A₃.
+```
+
+Then:
+
+```text
+v_x ∈ A₃,
+(v_t)_x ∈ A₂,
+(1+v)^(-β) ∈ A₂ or better,
+G_t ∈ A₁,
+∂xG_t ∈ A₀.
+```
+
+Since `A_s` is a Banach algebra for weighted Wiener norms and derivative maps `A_s → A_{s-1}`, this gives:
+
+```text
+t ↦ sourceCoeff(t) is differentiable into A₀,
+sourceCoeffDot(t) = coeffs(∂xG_t + L_t),
+sourceCoeffDot has a locally uniform ℓ¹ majorant,
+sourceCoeffDot is continuous in time into A₀.
+```
+
+That is exactly the content needed by `DuhamelSourceTimeC1`.
+
+A good theorem statement is:
 
 ```lean
-/-- Nonnegative source gives nonnegative Neumann resolvent. -/
-theorem resolver_nonneg_of_nonneg
-    (hμ : 0 < μ)
-    (hu : ∀ x, 0 ≤ u x)
-    (hv : μ • v - secondDeriv v = u)
-    (hNeumann : deriv v 0 = 0 ∧ deriv v 1 = 0) :
-    ∀ x, 0 ≤ v x := by
-  -- maximum principle or positive Green kernel
-  sorry
-
-/-- Nontrivial nonnegative source gives strictly positive Neumann resolvent. -/
-theorem resolver_pos_of_nonneg_nontrivial
-    (hμ : 0 < μ)
-    (hu : ∀ x, 0 ≤ u x)
-    (hnotzero : ∃ x, 0 < u x) -- or 0 < ∫ u
-    (hv : μ • v - secondDeriv v = u)
-    (hNeumann : deriv v 0 = 0 ∧ deriv v 1 = 0) :
-    ∀ x, 0 < v x := by
-  -- strong maximum principle, or v(x)=∫ Gμ(x,y)u(y)dy with Gμ>0
-  sorry
+theorem DuhamelSourceTimeC1_of_EWA_core
+    (hcore : EWAClassicalCore uCoeff uDotCoeff vCoeff vDotCoeff I)
+    (halpha : ... ) (hbeta : ... )
+    (hAlg : WeightedWienerAlgebraClosure) :
+    DuhamelSourceTimeC1
+      (fun t => chemSourceCoeff t + logisticSourceCoeff t)
+      (fun t => chemSourceCoeffDot t + logisticSourceCoeffDot t) := by
+  -- logistic time derivative by smooth composition
+  -- resolver time derivative v_t = Rμ u_t
+  -- flux time derivative formula for G_t
+  -- derivative map A₁→A₀ for ∂xG_t
+  -- coefficient linearity
+  -- local ℓ¹ majorant and continuity in A₀
 ```
 
-Kernel form is often the easiest analytically:
+This is the one to attack with full effort.
+
+## 6. Boundary/coefficient subtlety for the divergence source
+
+If you identify the cosine coefficients of `∂xG` by integration by parts, remember the boundary term.
+
+For Neumann `v_x=0` at `x=0,1`,
 
 ```text
-v(x)=∫_0^1 G_μ(x,y) u(y) dy,
-G_μ(x,y)>0.
+G = u v_x (1+v)^(-β)
 ```
 
-Then `u≥0` implies `v≥0`, and if `u` is nontrivial, the integral is strictly positive for every `x`.
-
-If `u≡0`, then `v≡0`, so the strict claim `0<v` is false. In the chemotaxis/logistic setting, strict positivity follows for positive times from nontrivial nonnegative data by the strong parabolic maximum principle; but for the resolver lemma itself, include the nontriviality or positive-mass hypothesis.
-
-## Source coefficient decay from weighted Wiener control
-
-The generic pointwise decay lemma is:
-
-```lean
-theorem coeff_decay_of_weighted_wiener_bound
-    {s B : ℝ} (hB : A_s coeff ≤ B) :
-    ∀ n, |coeff n| ≤ B / (1 + lambda n)^(s/2) := by
-  -- each nonnegative summand is bounded by the total sum
-  sorry
-```
-
-Thus:
+vanishes at the endpoints. For `G_t`, the boundary value also vanishes if `(v_t)_x=0` at the endpoints, which follows from `v_t=Rμ u_t` with Neumann resolver data. Then
 
 ```text
-A_2(coeff)≤B  ⇒  |coeff_n| ≤ B/(1+λ_n),
-A_4(coeff)≤B  ⇒  |coeff_n| ≤ B/(1+λ_n)^2.
+⟨∂xG, cos(nπx)⟩ = -⟨G, ∂x cos(nπx)⟩,
 ```
 
-If your `hdecay` means **quadratic decay in the mode index `n`**, then `A_2` is enough because `1+λ_n≈1+n²`:
+and similarly for the time derivative.
+
+If your source coefficients are defined spectrally rather than by integrals, this may already be built into the lift. But if a proof gets stuck, check that the flux boundary term is explicitly available.
+
+## 7. Difficulty ranking
+
+### Tier 1 — genuinely hard analytic core
 
 ```text
-|coeff_n| ≤ C B/(1+n²).
+(a) DuhamelSourceTimeC1
 ```
 
-If your `hdecay` means **quadratic decay in the spectral parameter `λ_n`**, then require `A_4`:
+Reasons:
 
 ```text
-|coeff_n| ≤ B/(1+λ_n)^2.
+- requires time differentiability of nonlinear source coefficients;
+- requires local ℓ¹/weighted-Wiener majorants for the source derivative;
+- chem part needs v_t and (v_t)_x through the resolver;
+- divergence source needs one spatial derivative of G_t;
+- real-power composition must be done in a weighted-Wiener algebra, not just pointwise;
+- coefficient formula may need boundary-term control.
 ```
 
-State the formal lemma in terms of `(1+λ_n)` so there is no ambiguity.
+This is where the proof effort should go.
 
-## Recommended package for `HasResolverDirectSpectralData`
-
-A good formal structure should be split into three independent parts:
-
-```lean
-structure HasResolverDirectSpectralData
-    (μ : ℝ)
-    (uCoeff vCoeff dotUCoeff : ℝ → ℕ → ℝ) : Prop where
-  hμ : 0 < μ
-
-  -- coefficient identity
-  coeff_eq : ∀ t n, vCoeff t n = uCoeff t n / (μ + lambda n)
-  resolvent_coeff_eq : ∀ t n, (μ + lambda n) * vCoeff t n = uCoeff t n
-
-  -- spatial C² at each time, preferably locally uniform in t
-  u_A0_loc : ∀ K compact, ∃ B, ∀ t∈K, A_0 (uCoeff t) ≤ B
-  v_A2_loc : ∀ K compact, ∃ B, ∀ t∈K, A_2 (vCoeff t) ≤ B
-
-  -- concrete series formulas
-  v_series : ∀ t x, v t x = ∑' n, vCoeff t n * cosBasis n x
-  vx_series : ∀ t x, deriv (v t) x =
-      ∑' n, -sqrt(lambda n) * vCoeff t n * sinBasis n x
-  vxx_series : ∀ t x, iteratedDeriv 2 (v t) x =
-      ∑' n, -lambda n * vCoeff t n * cosBasis n x
-
-  -- elliptic equation and Neumann boundary
-  elliptic_eq : ∀ t x, μ * v t x - iteratedDeriv 2 (v t) x = u t x
-  neumann_left : ∀ t, deriv (v t) 0 = 0
-  neumann_right : ∀ t, deriv (v t) 1 = 0
-
-  -- time derivative, if needed by classicality
-  dotV_series : ∀ t x, deriv (fun s => v s x) t =
-      ∑' n, dotUCoeff t n / (μ + lambda n) * cosBasis n x
-```
-
-But most of these fields should be theorems derived from the smaller assumptions:
+### Tier 2 — moderate/mechanical but needs the right joint hypotheses
 
 ```text
-uCoeff ∈ A_0 locally uniformly,
-dotUCoeff ∈ A_0 locally uniformly,
-vCoeff_n = uCoeff_n/(μ+λ_n).
+(c) h_src_cont
 ```
 
-Do not make positivity part of the spectral-data structure unless the structure also carries `u≥0` and nontriviality. Prefer a separate field/lemma:
+The algebra is easy, but do not try to prove joint continuity from per-slice `C²` alone. Use local uniform weighted-Wiener convergence and time-continuity into `A₂/A₄`.
 
-```lean
-Hvpos : (∀ t x, 0 ≤ u t x) → (∀ t, ∃ x, 0 < u t x) → ∀ t x, 0 < v t x.
-```
-
-## Minimal assumptions to close (A) and (B)
-
-For `(A) htimeDeriv/hdiffU`, use:
+### Tier 3 — easiest pointwise calculus
 
 ```text
-For every compact I=[τ,T₁]⊂(0,T):
-  ∃ S∈ℓ¹, ∀n r∈[0,T₁], |F_n(r)|≤S_n,
-  ∑ λ_n exp(-λ_n τ)|u0_n| <∞.
+(b) h_flux_diff
 ```
 
-Then
+This is immediate from `u∈C¹`, `v∈C²`, and `1+v>0`. It is a chain-rule/product-rule lemma. No serious PDE analysis remains here.
+
+### Already essentially direct
 
 ```text
-u_t(t,x)=∑ [ -λ_n u_n(t)+F_n(t) ] cos(nπx)
+resolver C² / v positivity
 ```
 
-with uniform convergence on `I×[0,1]`.
+`v∈C²` is direct from `v̂_k=û_k/(μ+λ_k)` and weighted-Wiener smoothing. Positivity of `v` is direct from the positive Neumann resolvent kernel or maximum principle, not from spectral summability.
 
-For `(B) Hv/Hvpos/hdecay`, use:
+## 8. Final recommended implementation plan
 
-```text
-μ>0,
-v_n=u_n/(μ+λ_n),
-u(t)∈A_0 locally uniformly,
-u_t(t)∈A_0 locally uniformly for the time derivative,
-u≥0 and nontrivial for strict positivity,
-source∈A_2 or A_4 depending on the intended meaning of quadratic decay.
-```
+1. **Prove `h_flux_diff` now** as a local chain-rule lemma. It should be short.
 
-Then the resolver fields are direct and should not be carried as a deep analytic hypothesis. The only genuinely non-spectral part is strict positivity, which should be discharged by the positive kernel / maximum principle lemma.
+2. **Prove `h_src_cont` from a reusable joint-continuity theorem** using the explicit source formula. This should be a moderate but mechanical continuity proof.
+
+3. **Define `EWAClassicalCore`** with precisely the finite time/spatial regularity needed:
+
+   ```text
+   u∈C_t A₂,
+   u_t∈C_t A₁,
+   v=Rμu,
+   v_t=Rμu_t,
+   u>0,
+   v≥0.
+   ```
+
+4. **Prove `DuhamelSourceTimeC1_of_EWA_core`**. This is the main theorem. It should consume weighted-Wiener algebra, derivative-loss, smooth-composition, and resolver-smoothing lemmas.
+
+5. Wire `(a)+(b)+(c)` from that theorem and the two mechanical lemmas. Avoid introducing a broad interior-smoothing theorem unless you later need many more regularity levels.
+
+## Bottom line
+
+The remaining frontier is not “classical PDE smoothing” in full generality. It is a finite calculus problem in your EWA coefficient algebra. The only truly hard package is `DuhamelSourceTimeC1`; `h_flux_diff` and `h_src_cont` are mechanical consequences of the already-proved spatial `C²` data plus local uniform time-continuity. The best unification is a finite `EWAClassicalCore ⇒ source regularities` theorem, not an all-purpose `C∞` interior-regularity development.
