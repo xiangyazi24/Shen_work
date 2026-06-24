@@ -123,3 +123,11 @@ Faithfulness fully resolved against the actual paper at every step; no invented 
 - avenue (parallel, dependency-free): P1 per-step RotheStepInput floor (the per-step Green solvability) +
   P3 T2.2 cascade from χ₀<0. Both independent of a2e5ce7f.
 - starting commit: 36519f2
+
+## Run 2026-06-24 (continuation — χ₀<0 unconditional close)
+- doctrine: CHINEG_DOCTRINE.md
+- approval: continuation of live autonomous run (Xiang "继续证明呀")
+- starting avenue: (a) Hv completion [a41438de in flight] + (b) C²-Neumann [dispatching]
+- end: <fill on close>
+EOF2
+git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commit -q -m "automode(continuation): χ₀<0 unconditional-close doctrine + run-log" && git push origin main 2>&1 | tail -1
