@@ -164,3 +164,15 @@ to /dev/shm/xhuan5/shen_work). uisai1 SSH down since 6/15 → uisai2 only.
 ✅ huNE0/huNE1 — SourceEndpointNonvanish.lean (from realSlice_pos; positivity holds AT endpoints since intervalDomainPoint∋{0,1}).
 ✅ hrealizes — SourceRealizesDischarge.lean (one-step wiring from landed realizes_clean; u₀-summability coincides with already-carried hsumE/hu0cos, not independent).
 REMAINING: htimeDeriv, hdiffU, hdecay, Hv, Hvpos (cron2 resolving the v̂_k=û_k/(μ+λ_k) resolver-C²/positivity + time-deriv majorant route); hu0cos/log = satisfiable standing initial-datum regularity.
+
+## [2026-06-23] χ₀<0 leaf: 7/~10 carried hyps BANKED axiom-clean; Hv last (in flight)
+✅ hsumE, huNE0/1, hrealizes (commit 8ee0c5e) ✅ hdecay, Hvpos (resolver, 2ab9996) ✅ htimeDeriv, hdiffU (3142377)
+   — all verified axiom-clean [propext,Classical.choice,Quot.sound] on uisai2.
+   Build-gate caught 2 real producer bugs static-audit missed: (1) Bv currying backwards→sorryAx (fixed ℝ→ℕ→ℝ);
+   (2) theorem vs def for Type-valued SourceCoeffQuadraticDecay (fixed→def); (3) intervalDomainLift subtype
+   eta unsolved goal (fixed→canonical `simp [intervalDomainLift, x.2]`).
+🔨 Hv — last carried hyp: realSlice_resolverSpectralData (banked) reduces it to Hclamp = resolver-source ν·u^γ
+   time-C¹ clamped witness; producer building it by mirroring coupledChemDivSource_timeC1On_of_EWA.
+REMAINING after Hv: ASSEMBLY producer — wire the 8 discharged hyps + exists_uniform_EWA_lifespan into
+realSlice_reducedCore (currently carries them) → CoupledDuhamelReducedClassicalCore → ChiNegDatumUniformConstruction
+→ UNCONDITIONAL chiNeg_theorem_1_1. Plus standing hu0cos/log (paper's initial-datum regularity, satisfiable).
