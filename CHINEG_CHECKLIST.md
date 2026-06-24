@@ -120,3 +120,24 @@ into a value-only reaction; the comparison's reflection data must carry the drif
 (1) drift-reaction form, (2) constant-M̄ supersolution residual ≥0 via M̄≥(aμ‖v‖+1)/(a+1), (3) apply comparison
 → u≤M̄, (4) bootstrap uniform-in-T, (5) wire to P3 SupControlsXpSigmaDistance socket. PENDING: cron1 route +
 opus audit of "P3 needs only L∞".
+
+## [2026-06-23] RECONCILIATION — pivots #1/#2 were DETOURS; the χ₀≤0 sup bound is ALREADY LANDED unconditional
+Deep check-existing + reconcile (NOT prematurely concluding):
+- `uniformLiftBoundZeroM_of_regime (hχ:χ₀≤0)(ha)(hb) : IntervalDomainUniformLiftBoundZeroM p` is LANDED,
+  unconditional, no sorry/admit/axiom, WIDELY consumed (FinalWiring/RestartLocalWiring/QuantFromThreshold/
+  Theorem11ChiZero*). It derives M=max(supNorm u₀,(a/b)^{1/α}) — EXACTLY the constant supersolution cron1 Q88
+  re-derived. So the UNIFORM SUP (L∞) bound for χ₀≤0 is DONE. The comparison-principle producer I scoped in
+  pivots #1/#2 is REDUNDANT — NOT building it.
+- `GlobalSolutionGluingFromReachability_of_regime_gammaGeOne (hχ:χ₀≤0,ha,hb,hγ≥1)` is UNCONDITIONAL (L² energy
+  route, no sorry). So the χ₀≤0 global-solution GLUING is landed too.
+- Paper2 Theorem_1_1 for χ₀=0 = `intervalDomain_theorem_1_1_chiZero_unconditional` UNCONDITIONAL (no chemotaxis
+  coupling). For χ₀<0 the sup bound + gluing land, but Theorem_1_1 carries the COUPLED CHEMOTAXIS LOCAL-EXISTENCE
+  Duhamel fixed-point (ChiNegDatumUniformConstruction / coupledResidual) — the base-E/flux-envelope core
+  (board line 58: "base-E fixed-point circularity — chemotaxis Duhamel bound needs the regularity theory").
+- MY IntervalChiNeg* campaign (61 files, MemHSigma/H¹/flux envelope) targets EXACTLY this coupled-existence core —
+  NOT the sup bound. The pivots to "L∞ comparison" (pivot #1/#2) were DETOURS chasing an already-landed bound;
+  the campaign's ORIGINAL target (the flux-envelope / coupled Duhamel regularity) IS the genuine χ₀<0 frontier.
+- T2.2 cascade: SmallDataGlobalExistence ⟸ IntervalDomainGlobalSolutionExists ⟸ gluing(LANDED χ₀≤0) +
+  classical-solution existence — which for χ₀<0 hits the SAME coupled-existence frontier.
+NET: the genuine χ₀<0 frontier = coupled chemotaxis local-existence Duhamel fixed-point (= base-E flux envelope),
+faithfully isolated by the campaign, CONDITIONAL on a real deep regularity theorem. Sup bound NOT the gap.
