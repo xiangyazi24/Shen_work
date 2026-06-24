@@ -1,484 +1,518 @@
-# Q85 (cron2): χ₀<0 chemotaxis — entropy route to convergence to the carrying capacity
+# Q90 (cron2): classical regularity bridges for the EWA Duhamel chemotaxis solution
 
-## Executive verdict
+## Executive answer
 
-For the repulsive sign `χ₀<0`, the clean Lyapunov functional is the **relative entropy**
+For the time-derivative bridge, the clean sufficient condition is a **locally uniform `ℓ¹` majorant for the source coefficients** plus the heat-smoothing majorant for the initial coefficients. The endpoint `r=t` in Duhamel contributes the source value `F_n(t)`; the differentiated kernel contributes an integrated majorant bounded by the same source majorant. The summable bound is therefore `2 S_n`, **not** `λ_n S_n`.
 
-```text
-E(t) := ∫₀¹ h(u(t,x)) dx,
-h(s) := s log s - s + 1.
-```
-
-For
+For the resolver bridge, the package is direct: if
 
 ```text
-u_t = u_xx + a ∂x(u v_x) + u(1-u),   a := -χ₀ > 0,
-μ v - v_xx = u,
-Neumann BC,
+v̂_n(t) = û_n(t)/(μ+λ_n),   μ>0,
+λ_n=(nπ)^2,
 ```
 
-this entropy has the decisive identity
+then division by `μ+λ_n` gains two Neumann/cosine derivatives. In particular, `u(t)` in weighted Wiener order `0` already gives `v(t)∈C²_x`, because
 
 ```text
-E'(t)
-  = - ∫₀¹ u_x²/u dx
-    - a ∫₀¹ u_x v_x dx
-    + ∫₀¹ u(1-u) log u dx.
+λ_n |v̂_n| = λ_n |û_n|/(μ+λ_n) ≤ |û_n|.
 ```
 
-The chemotaxis term is **dissipative** for the repulsive sign:
+Strict positivity of `v` is not a spectral-summability fact; it comes from the positive Neumann resolvent kernel or the strong maximum principle. From `u≥0` one gets `v≥0`; from `u≥0` and `u` nontrivial one gets `v>0`.
 
-```text
-∫ u_x v_x dx ≥ 0,
-```
-
-because `v=(μ-Δ_N)^{-1}u` and, in Neumann cosine modes,
-
-```text
-∫ u_x v_x = ∑_{k≥1} λ_k /(μ+λ_k) |u_k|² ≥ 0.
-```
-
-The logistic term is also dissipative:
-
-```text
-u(1-u) log u = -u(u-1) log u ≤ 0.
-```
-
-Thus `E` is a genuine Lyapunov functional with no smallness condition on `|χ₀|`.
-
-For **exponential decay**, however, you need a positive lower bound
-
-```text
-0 < m ≤ u(t,x) ≤ M < ∞
-```
-
-on the time interval where you want the exponential estimate. If the initial datum is strictly positive, this follows from scalar min/max comparison. If the initial datum is merely nonnegative and nontrivial, you need an eventual positivity / strong maximum principle input; then the exponential estimate starts after a positive time `t₀`.
-
-The shortest first theorem to formalize is therefore:
-
-```text
-Assume 0<m≤u₀≤M. Then
-  ||u(t)-1||²_{L²} ≤ C e^{-δt}
-  and v(t)→1/μ exponentially in H²/L∞-type resolver norms.
-```
-
-For nonnegative nontrivial data without a positive lower bound, first prove/eventually assume positivity, then apply the same theorem from `t₀>0`.
-
-## 1. The Lyapunov functional and derivative
+## Notation
 
 Let
 
 ```text
-a := -χ₀ > 0,
-h(s) := s log s - s + 1,
-E(t) := ∫ h(u(t,x)) dx.
+λ_n := (nπ)^2,
+e_n(x) := cos(nπx).
 ```
 
-The derivative of `h` is
+Ignore harmless normalization constants for the cosine basis; in Lean either carry them explicitly or absorb them into the coefficient maps.
+
+For a coefficient sequence `c : ℕ → ℝ`, define the weighted Wiener seminorm
 
 ```text
-h'(s)=log s.
+A_s(c) := ∑' n, (1+λ_n)^(s/2) * |c_n|.
 ```
 
-For a smooth positive solution,
+`A_0(c)<∞` gives absolute/uniform convergence of
 
 ```text
-E'(t) = ∫ log u · u_t.
+∑ c_n cos(nπx),
 ```
 
-Insert the PDE:
+because `|cos(nπx)|≤1`. `A_2(c)<∞` gives uniform convergence of the second spatial derivative series, since `λ_n≤1+λ_n`.
+
+## Part A: time derivative of the Duhamel coefficient series
+
+Write the combined source coefficient as
 
 ```text
-E'
- = ∫ log u · u_xx
-   + a ∫ log u · ∂x(u v_x)
-   + ∫ log u · u(1-u).
+F_n(t) := a * ChemDiv_n(t) + Logistic_n(t),   a=-χ₀>0.
 ```
 
-The diffusion term is
+The Duhamel coefficient is
 
 ```text
-∫ log u · u_xx
-  = - ∫ (u_x/u) u_x
-  = - ∫ u_x²/u.
+u_n(t)
+  = exp(-λ_n t) u0_n
+    + ∫_0^t exp(-λ_n*(t-r)) F_n(r) dr.
 ```
 
-For the taxis term, using Neumann boundary conditions,
+For `n=0`, `λ_0=0`, so
 
 ```text
-a ∫ log u · ∂x(u v_x)
-  = -a ∫ (u_x/u) u v_x
-  = -a ∫ u_x v_x.
+u_0'(t)=F_0(t).
 ```
 
-Since `v=(μ-Δ_N)^{-1}u`, this term has a spectral sign:
+For all `n`, the coefficient derivative is
 
 ```text
-∫ u_x v_x
-  = ∑_{k≥1} λ_k u_k v_k
-  = ∑_{k≥1} λ_k /(μ+λ_k) |u_k|²
-  ≥ 0.
+u_n'(t)
+  = -λ_n exp(-λ_n t) u0_n
+    + F_n(t)
+    - ∫_0^t λ_n exp(-λ_n*(t-r)) F_n(r) dr
+
+  = -λ_n u_n(t) + F_n(t).
 ```
 
-Thus the repulsive chemotaxis contribution is nonpositive:
+The second form is often the PDE diagonal identity. The first form is the best form for proving the derivative series is uniformly summable.
+
+## The endpoint `r=t` and the correct majorant
+
+Let `I=[τ,T₁]⊂(0,T)` be a compact time subinterval with `0<τ≤T₁<T`. To control the derivative series uniformly on `I`, it is enough to assume:
 
 ```text
--a ∫ u_x v_x ≤ 0.
+sourceMajorant_on_[0,T₁]:
+  ∃ S : ℕ → ℝ,
+    Summable S ∧
+    (∀ n, 0 ≤ S n) ∧
+    (∀ n, ∀ r∈[0,T₁], |F_n(r)| ≤ S n),
+
+initialHeatDerivativeMajorant_on_I:
+  Summable (fun n => λ_n * exp(-λ_n*τ) * |u0_n|).
 ```
 
-For the logistic term,
+Then, for `t∈I`,
 
 ```text
-∫ u(1-u) log u
-  = - ∫ u(u-1) log u.
+| -λ_n exp(-λ_n t) u0_n |
+  ≤ λ_n exp(-λ_n τ) |u0_n|.
 ```
 
-Pointwise,
+For the Duhamel part,
 
 ```text
-u(u-1)log u ≥ 0
+|F_n(t)| ≤ S_n,
 ```
 
-for every `u>0`, with equality only at `u=1`. Therefore
+and
 
 ```text
-E'(t)
-  = - ∫ u_x²/u
-    - a ∫ u_x v_x
-    - ∫ u(u-1)log u
-  ≤ - ∫ u(u-1)log u
-  ≤ 0.
+|∫_0^t λ_n exp(-λ_n*(t-r)) F_n(r) dr|
+  ≤ ∫_0^t λ_n exp(-λ_n*(t-r)) S_n dr
+  = (1 - exp(-λ_n t)) S_n
+  ≤ S_n.
 ```
 
-This is the clean Lyapunov identity.
-
-## 2. Coercivity and exponential decay
-
-Assume that along the solution
+Thus the whole derivative coefficient has the summable majorant
 
 ```text
-0 < m ≤ u(t,x) ≤ M.
+|u_n'(t)|
+  ≤ λ_n exp(-λ_n τ) |u0_n| + 2 S_n.          (A-majorant)
 ```
 
-Define the pointwise logistic entropy dissipation
+This is the exact bound to feed to a Weierstrass/M-test style termwise derivative theorem.
+
+Important: the pointwise differentiated kernel satisfies
 
 ```text
-d(s) := s(s-1)log s.
+|∂_t [ exp(-λ_n*(t-r)) F_n(r) ]|
+  ≤ λ_n exp(-λ_n*(t-r)) S_n.
 ```
 
-On the compact interval `[m,M]`, both `h(s)` and `d(s)` are nonnegative and vanish only at `s=1`. The quotient
+Do **not** take `sup_{r≤t}` of this bound, because at `r=t` it becomes `λ_n S_n`, which is usually not summable. The correct operation is to integrate the kernel first:
 
 ```text
-q(s) := d(s)/h(s)
+∫_0^t λ_n exp(-λ_n*(t-r)) dr ≤ 1.
 ```
 
-extends continuously at `s=1`, with
+So the summable derivative majorant is `2S_n`, not `λ_nS_n`.
 
-```text
-lim_{s→1} q(s)=2.
-```
+## Lean-formalizable termwise derivative lemma
 
-Hence
-
-```text
-δ := inf_{s∈[m,M]} q(s) > 0.
-```
-
-Then pointwise
-
-```text
-d(s) ≥ δ h(s),   s∈[m,M].
-```
-
-Using the entropy identity,
-
-```text
-E'(t) ≤ -∫ d(u(t,x)) dx ≤ -δ ∫ h(u(t,x)) dx = -δ E(t).
-```
-
-Therefore
-
-```text
-E(t) ≤ E(0) e^{-δt}.
-```
-
-To convert entropy decay into `L²` decay, use the compact-interval comparison
-
-```text
-h(s) ≥ c₂ (s-1)²,   s∈[m,M],
-```
-
-where
-
-```text
-c₂ := inf_{s∈[m,M], s≠1} h(s)/(s-1)² > 0
-```
-
-with value `1/2` at `s=1` by continuous extension. Then
-
-```text
-||u(t)-1||²_{L²}
-  ≤ c₂^{-1} E(t)
-  ≤ c₂^{-1} E(0) e^{-δt}.
-```
-
-So the cleanest formal theorem is:
+A general theorem sufficient for `htimeDeriv/hdiffU` is:
 
 ```lean
-entropy_exponential_L2_convergence :
-  0 < m → (∀ t x, m ≤ u t x) → (∀ t x, u t x ≤ M) →
-  EntropyIdentity u v →
-  ∃ C δ > 0, ∀ t, ‖u t - 1‖_{L²}^2 ≤ C * Real.exp (-δ*t)
+/-- Termwise time derivative for an absolutely/uniformly summable cosine series. -/
+theorem hasDerivAt_tsum_cos_of_uniform_deriv_majorant
+    {I : Set ℝ} {c cdot : ℕ → ℝ → ℝ} {t : ℝ}
+    (ht : t ∈ I)
+    (hI_mem_nhds : I ∈ 𝓝 t)
+    (hc_deriv : ∀ n, ∀ s ∈ I, HasDerivAt (fun τ => c n τ) (cdot n s) s)
+    (hval_maj : ∃ A : ℕ → ℝ, Summable A ∧
+      ∀ n s, s ∈ I → |c n s| ≤ A n)
+    (hderiv_maj : ∃ B : ℕ → ℝ, Summable B ∧
+      ∀ n s, s ∈ I → |cdot n s| ≤ B n) :
+    ∀ x,
+      HasDerivAt
+        (fun s => ∑' n, c n s * Real.cos (n * Real.pi * x))
+        (∑' n, cdot n t * Real.cos (n * Real.pi * x))
+        t :=
+by
+  -- Weierstrass M-test + termwise derivative theorem.
+  sorry
 ```
 
-with explicit constants from the compact interval `[m,M]`.
+The Duhamel-specific instantiation uses
 
-## 3. Convergence of `v`
+```lean
+cdot n t = -lambda n * Real.exp (-(lambda n) * t) * u0Coeff n
+           + F n t
+           - ∫ r in 0..t,
+               lambda n * Real.exp (-(lambda n) * (t-r)) * F n r
+```
 
-Let
+with derivative majorant
+
+```lean
+B n = lambda n * Real.exp (-(lambda n) * τ) * |u0Coeff n| + 2 * S n.
+```
+
+If your code uses the diagonal PDE form, prove the identity
+
+```lean
+cdot n t = -lambda n * uCoeff n t + F n t
+```
+
+as a separate lemma after the derivative formula.
+
+## Continuity of the time derivative
+
+For `DifferentiableAt` at a fixed `(t,x)`, the local majorant above is enough. If the target is a classical solution with `u_t` continuous in `(t,x)`, use the stronger but still natural assumption:
 
 ```text
-w := u-1,
-z := v - 1/μ.
+t ↦ F(t) is continuous from compact time intervals into A_0,
+```
+
+meaning
+
+```text
+∀ t₀∈(0,T), ∀ ε>0, ∃ δ>0,
+  |t-t₀|<δ → ∑' n |F_n(t)-F_n(t₀)| < ε.
 ```
 
 Then
 
 ```text
-μ z - z_xx = w,
-Neumann BC.
+t ↦ (u_n'(t))_n
 ```
 
-The Neumann resolver gives
+is continuous into `ℓ¹`, and hence
 
 ```text
-||z||_{H²} ≤ C_μ ||w||_{L²}.
+(t,x) ↦ ∑ u_n'(t) cos(nπx)
 ```
 
-Therefore the `L²` exponential decay of `u-1` gives
+is jointly continuous. Time-`C¹` of the source coefficients is stronger than necessary for `u_t`; source continuity in `A_0` suffices.
+
+## Spatial regularity of `u` from EWA data
+
+For classicality in `x`, the clean package is:
 
 ```text
-||v(t)-1/μ||_{H²} ≤ C e^{-δt/2}
+uCoeff(t) ∈ A_2 locally uniformly in t.
 ```
 
-if the `u` estimate is stated as squared norm decay. Equivalently, adjust constants so that both are written with `e^{-γt}`.
-
-In one dimension, `H²` embeds into `C¹`, so this also gives exponential convergence of `v` to `1/μ` in sup-type norms if your formal library has the embedding.
-
-## 4. Does chemotaxis require a smallness condition?
-
-For the entropy route: **no smallness condition is needed** for `χ₀<0`.
-
-The entire chemotaxis contribution is
+Then
 
 ```text
--a ∫ u_x v_x ≤ 0,
+u(t,x)    = ∑ u_n(t) cos(nπx),
+u_x(t,x)  = ∑_{n≥1} -nπ u_n(t) sin(nπx),
+u_xx(t,x) = ∑_{n≥1} -λ_n u_n(t) cos(nπx),
 ```
 
-and is discarded. It does not need to be dominated by diffusion or logistic damping.
+all converge uniformly in `x`, locally uniformly in `t`. Since your EWA solution already controls weighted-Wiener norms per slice, the missing time bridge is exactly the `A_0` control of `u_t` above.
 
-This is the main advantage of the entropy `∫(u log u-u+1)` over a raw `L²` distance. If you differentiate
+## Part B: direct spectral resolver data for `v`
+
+Define
 
 ```text
-1/2 ||u-1||²_{L²},
+v_n(t) := u_n(t)/(μ+λ_n),   μ>0.
 ```
 
-the taxis nonlinearity produces terms such as
+Then coefficientwise
 
 ```text
-∫ (u-1) ∂x(u v_x),
+(μ+λ_n) v_n(t) = u_n(t),
 ```
 
-which are not globally sign-definite in an obvious way and usually require perturbative smallness, eventual closeness, or more estimates. The entropy eliminates this issue because its derivative is `log u`, causing the taxis term to collapse to the signed form `-a∫u_xv_x`.
-
-So:
+which is exactly
 
 ```text
-Global entropy decay for repulsive sign: unconditional in |χ₀|.
-Raw L² energy decay: clean only after perturbative/equilibrium closeness, or with extra work.
+μ v - v_xx = u
 ```
 
-## 5. Positive lower bound: the real caveat
+in the cosine basis, with Neumann boundary conditions.
 
-The entropy identity itself only needs positivity. The **exponential coercivity** needs a uniform lower bound `m>0`.
+## Weighted-Wiener smoothing estimate
 
-If the initial datum satisfies
+For every `s≥0`, there is a constant `C_{μ,s}` such that
 
 ```text
-0 < m₀ ≤ u₀(x) ≤ M₀,
+A_{s+2}(v(t)) ≤ C_{μ,s} A_s(u(t)).
 ```
 
-then scalar min/max comparison gives explicit lower and upper barriers.
-
-At a spatial maximum of `u`, the repulsive term is nonpositive and
+Indeed,
 
 ```text
-M'(t) ≤ M(t)(1-M(t)).
+(1+λ_n)^((s+2)/2) |v_n|
+  = (1+λ_n)^((s+2)/2) |u_n|/(μ+λ_n)
+  ≤ C_{μ,s} (1+λ_n)^(s/2) |u_n|.
 ```
 
-At a spatial minimum of `u`, the repulsive term is nonnegative and
+For most purposes one can take
 
 ```text
-m'(t) ≥ m(t)(1-m(t)).
+C_{μ,s} = sup_n (1+λ_n)/(μ+λ_n) ≤ max(1, 1/μ),
 ```
 
-The logistic ODE preserves positivity and converges to `1`. Hence a positive lower bound is available globally, and indeed one can squeeze `u` between two scalar logistic ODE solutions. This comparison route alone can prove `L∞` convergence to `1` exponentially when `m₀>0`.
+independent of `s`, because the extra factor is just `(1+λ_n)/(μ+λ_n)`.
 
-If `u₀≥0` is nontrivial but may vanish, the solution should become strictly positive for every `t>0` by the strong parabolic maximum principle. Then, for any fixed `t₀>0`, set
+## C² spatial resolver package
 
-```text
-m(t₀) := min_x u(t₀,x) > 0
-```
-
-and run the entropy exponential theorem from `t₀` onward. Formalizing this requires a strong-positivity/Harnack-type input or a separate smoothing positivity lemma.
-
-If `u₀≡0`, then `u(t)≡0`; it does **not** converge to `1`. So the asymptotic theorem must exclude the zero datum or assume positive initial data.
-
-## 6. Minimal input beyond global bounded H¹
-
-For the clean `L²` exponential theorem, the minimal inputs are:
-
-```text
-1. global classical positive solution;
-2. uniform upper bound u≤M;
-3. uniform lower bound m≤u, or eventual lower bound after t₀;
-4. Neumann resolver spectral positivity:
-     ∫ u_x v_x = ∑ λ_k/(μ+λ_k)|u_k|² ≥ 0;
-5. compact-interval coercivity lemmas for h and d on [m,M].
-```
-
-You do **not** need a Neumann Poincaré inequality for the entropy `L²` convergence, because the logistic term damps the zero mode as well as nonzero modes. Poincaré/spectral gap becomes useful for a perturbative `H¹` or linearized proof, but not for the first entropy-to-`L²` theorem.
-
-You also do **not** need more than global bounded `H¹` for boundedness. For the entropy derivative, however, you need enough classical regularity and positivity to justify multiplying by `log u` and integrating by parts. If positivity at zero is inconvenient, prove the identity first for `h_ε(s)=(s+ε)log(s+ε)-(s+ε)+1` and pass to the limit, or state the first theorem under `m≤u`.
-
-## 7. What about `H¹` exponential convergence?
-
-Do not make `H¹` exponential convergence the first asymptotics target.
-
-From entropy you get directly:
-
-```text
-||u(t)-1||_{L²} ≤ C e^{-γt},
-||v(t)-1/μ||_{H²} ≤ C e^{-γt}.
-```
-
-To upgrade to `H¹`, use one of these later routes:
-
-### Route A: smoothing + source decay
-
-Use the equation for `w=u-1` and Duhamel on sliding windows. Once `u→1` in `L²` exponentially and `u` is uniformly bounded in `H¹`, in one dimension interpolation gives decay in `L∞` at a possibly weaker rate:
-
-```text
-||w||∞ ≤ C ||w||₂^{1/2} ||w||_{H¹}^{1/2}.
-```
-
-Then the nonlinear source decays, and heat smoothing gives `H¹` decay for `t≥1`.
-
-### Route B: eventual perturbative H¹ energy
-
-After `u` is close to `1` in `L∞`, write the equation for `w=u-1` and use the linear spectral gap around equilibrium. The linearization has mode eigenvalues
-
-```text
--λ_k - a λ_k/(μ+λ_k) - 1,
-```
-
-for `K=1`, all strictly negative. Nonlinear terms are small for large time, so an `H¹` energy inequality closes exponentially.
-
-Both routes are standard, but they are more work than the first `L²` entropy theorem.
-
-## 8. Lean-oriented theorem sequence
-
-Recommended theorem order:
-
-### Theorem 1: entropy identity
+A minimal direct spectral data lemma is:
 
 ```lean
-entropy_deriv_identity :
-  PositiveClassicalSolution u v →
-  a = -χ₀ → 0 < a →
-  HasDerivAt
-    (fun t => ∫ x in Icc 0 1, u t x * log (u t x) - u t x + 1)
-    ( - ∫ x, (ux t x)^2 / (u t x)
-      - a * ∫ x, ux t x * vx t x
-      - ∫ x, u t x * (u t x - 1) * log (u t x) )
-    t
+/-- Direct Neumann resolver spectral data from cosine coefficients. -/
+theorem resolver_direct_spectral_data_of_coeffs
+    (hμ : 0 < μ)
+    {uCoeff : ℕ → ℝ} {vCoeff : ℕ → ℝ}
+    (hvCoeff : ∀ n, vCoeff n = uCoeff n / (μ + lambda n))
+    (hu_A0 : Summable (fun n => |uCoeff n|)) :
+    ResolverSpectralC2Data uCoeff vCoeff := by
+  -- 1. v series converges absolutely:
+  --    |v_n| ≤ (1/μ)|u_n|.
+  -- 2. v_x series converges absolutely:
+  --    sqrt(λ_n)|v_n| ≤ Cμ |u_n|.
+  -- 3. v_xx series converges absolutely:
+  --    λ_n|v_n| ≤ |u_n|.
+  -- 4. coefficient equation: (μ+λ_n)v_n=u_n.
+  -- 5. Neumann BC: sine derivative vanishes at endpoints.
+  sorry
 ```
 
-### Theorem 2: chemotaxis sign
+The estimates used in that proof are:
+
+```text
+|v_n| ≤ μ^{-1}|u_n|,
+√λ_n |v_n| = √λ_n |u_n|/(μ+λ_n) ≤ C_μ |u_n|,
+λ_n |v_n| = λ_n |u_n|/(μ+λ_n) ≤ |u_n|.
+```
+
+For example,
+
+```text
+sup_{λ≥0} √λ/(μ+λ) = 1/(2√μ),
+```
+
+so one may take `C_μ = 1/(2√μ)` for the first derivative bound.
+
+Thus `u∈A_0` already yields `v∈C²_x`. If `u∈A_s`, then `v∈A_{s+2}`.
+
+## Joint time derivative for the resolver
+
+If `u` has time derivative coefficients `dotU_n(t)` with local `A_0` majorants, define
+
+```text
+dotV_n(t) := dotU_n(t)/(μ+λ_n).
+```
+
+Then the same smoothing estimates give:
+
+```text
+∑ |dotV_n(t)| ≤ μ^{-1} ∑ |dotU_n(t)|,
+∑ λ_n |dotV_n(t)| ≤ ∑ |dotU_n(t)|.
+```
+
+So if `dotU(t)∈A_0` locally uniformly in time, then `v_t(t)∈C²_x` locally uniformly in time and
+
+```text
+∂_t v(t,x) = ∑ dotU_n(t)/(μ+λ_n) cos(nπx).
+```
+
+Lean-shaped statement:
 
 ```lean
-resolver_entropy_chem_nonneg :
-  v = (μ - Δ_N)^{-1} u →
-  0 < μ →
-  0 ≤ ∫ x, ux x * vx x
+theorem resolver_time_deriv_from_u_time_deriv
+    (hμ : 0 < μ)
+    (hvCoeff : ∀ n t, vCoeff n t = uCoeff n t / (μ + lambda n))
+    (hu_time : ∀ x, HasDerivAt
+      (fun t => ∑' n, uCoeff n t * cosBasis n x)
+      (∑' n, dotU n t * cosBasis n x) t)
+    (hdotU_A0_local : ∃ B : ℕ → ℝ, Summable B ∧
+      ∀ n s, s ∈ I → |dotU n s| ≤ B n) :
+    ∀ x, HasDerivAt
+      (fun t => ∑' n, vCoeff n t * cosBasis n x)
+      (∑' n, dotU n t / (μ + lambda n) * cosBasis n x) t :=
+by
+  -- termwise derivative with majorant B_n / μ.
+  sorry
 ```
 
-The spectral proof is likely shortest if the cosine infrastructure is already built.
+For a stronger `C¹_t C²_x` package, require `t↦dotU(t)` continuous into `A_0`; then the resolver time derivative is continuous into `A_2`.
 
-### Theorem 3: compact interval coercivity
+## Positivity of `v`
+
+Spectral summability gives regularity, not positivity. Positivity should be a separate resolver-kernel or maximum-principle lemma.
+
+The correct statements are:
 
 ```lean
-entropy_logistic_coercivity_on_Icc :
-  0 < m → m ≤ 1 → 1 ≤ M →
-  ∃ δ > 0, ∀ s ∈ Icc m M,
-    s*(s-1)*log s ≥ δ * (s*log s - s + 1)
+/-- Nonnegative source gives nonnegative Neumann resolvent. -/
+theorem resolver_nonneg_of_nonneg
+    (hμ : 0 < μ)
+    (hu : ∀ x, 0 ≤ u x)
+    (hv : μ • v - secondDeriv v = u)
+    (hNeumann : deriv v 0 = 0 ∧ deriv v 1 = 0) :
+    ∀ x, 0 ≤ v x := by
+  -- maximum principle or positive Green kernel
+  sorry
+
+/-- Nontrivial nonnegative source gives strictly positive Neumann resolvent. -/
+theorem resolver_pos_of_nonneg_nontrivial
+    (hμ : 0 < μ)
+    (hu : ∀ x, 0 ≤ u x)
+    (hnotzero : ∃ x, 0 < u x) -- or 0 < ∫ u
+    (hv : μ • v - secondDeriv v = u)
+    (hNeumann : deriv v 0 = 0 ∧ deriv v 1 = 0) :
+    ∀ x, 0 < v x := by
+  -- strong maximum principle, or v(x)=∫ Gμ(x,y)u(y)dy with Gμ>0
+  sorry
 ```
 
-Do not require `m≤1≤M` if you do not want; just assume `1∈[m,M]`, which follows for asymptotic boxes around the carrying capacity. More generally use `m≤s≤M` and include the point `1` in the interval.
+Kernel form is often the easiest analytically:
 
-### Theorem 4: entropy exponential decay
+```text
+v(x)=∫_0^1 G_μ(x,y) u(y) dy,
+G_μ(x,y)>0.
+```
+
+Then `u≥0` implies `v≥0`, and if `u` is nontrivial, the integral is strictly positive for every `x`.
+
+If `u≡0`, then `v≡0`, so the strict claim `0<v` is false. In the chemotaxis/logistic setting, strict positivity follows for positive times from nontrivial nonnegative data by the strong parabolic maximum principle; but for the resolver lemma itself, include the nontriviality or positive-mass hypothesis.
+
+## Source coefficient decay from weighted Wiener control
+
+The generic pointwise decay lemma is:
 
 ```lean
-entropy_exponential_decay :
-  entropy_deriv_identity →
-  chem_nonneg →
-  logistic_entropy_coercivity →
-  E t ≤ E 0 * exp (-δ*t)
+theorem coeff_decay_of_weighted_wiener_bound
+    {s B : ℝ} (hB : A_s coeff ≤ B) :
+    ∀ n, |coeff n| ≤ B / (1 + lambda n)^(s/2) := by
+  -- each nonnegative summand is bounded by the total sum
+  sorry
 ```
 
-### Theorem 5: L² convergence
+Thus:
+
+```text
+A_2(coeff)≤B  ⇒  |coeff_n| ≤ B/(1+λ_n),
+A_4(coeff)≤B  ⇒  |coeff_n| ≤ B/(1+λ_n)^2.
+```
+
+If your `hdecay` means **quadratic decay in the mode index `n`**, then `A_2` is enough because `1+λ_n≈1+n²`:
+
+```text
+|coeff_n| ≤ C B/(1+n²).
+```
+
+If your `hdecay` means **quadratic decay in the spectral parameter `λ_n`**, then require `A_4`:
+
+```text
+|coeff_n| ≤ B/(1+λ_n)^2.
+```
+
+State the formal lemma in terms of `(1+λ_n)` so there is no ambiguity.
+
+## Recommended package for `HasResolverDirectSpectralData`
+
+A good formal structure should be split into three independent parts:
 
 ```lean
-L2_convergence_from_entropy :
-  (∀ t x, m ≤ u t x ∧ u t x ≤ M) →
-  E t ≤ E0 * exp (-δ*t) →
-  ||u t - 1||²_{L²} ≤ C * exp (-δ*t)
+structure HasResolverDirectSpectralData
+    (μ : ℝ)
+    (uCoeff vCoeff dotUCoeff : ℝ → ℕ → ℝ) : Prop where
+  hμ : 0 < μ
+
+  -- coefficient identity
+  coeff_eq : ∀ t n, vCoeff t n = uCoeff t n / (μ + lambda n)
+  resolvent_coeff_eq : ∀ t n, (μ + lambda n) * vCoeff t n = uCoeff t n
+
+  -- spatial C² at each time, preferably locally uniform in t
+  u_A0_loc : ∀ K compact, ∃ B, ∀ t∈K, A_0 (uCoeff t) ≤ B
+  v_A2_loc : ∀ K compact, ∃ B, ∀ t∈K, A_2 (vCoeff t) ≤ B
+
+  -- concrete series formulas
+  v_series : ∀ t x, v t x = ∑' n, vCoeff t n * cosBasis n x
+  vx_series : ∀ t x, deriv (v t) x =
+      ∑' n, -sqrt(lambda n) * vCoeff t n * sinBasis n x
+  vxx_series : ∀ t x, iteratedDeriv 2 (v t) x =
+      ∑' n, -lambda n * vCoeff t n * cosBasis n x
+
+  -- elliptic equation and Neumann boundary
+  elliptic_eq : ∀ t x, μ * v t x - iteratedDeriv 2 (v t) x = u t x
+  neumann_left : ∀ t, deriv (v t) 0 = 0
+  neumann_right : ∀ t, deriv (v t) 1 = 0
+
+  -- time derivative, if needed by classicality
+  dotV_series : ∀ t x, deriv (fun s => v s x) t =
+      ∑' n, dotUCoeff t n / (μ + lambda n) * cosBasis n x
 ```
 
-### Theorem 6: resolver convergence
+But most of these fields should be theorems derived from the smaller assumptions:
+
+```text
+uCoeff ∈ A_0 locally uniformly,
+dotUCoeff ∈ A_0 locally uniformly,
+vCoeff_n = uCoeff_n/(μ+λ_n).
+```
+
+Do not make positivity part of the spectral-data structure unless the structure also carries `u≥0` and nontriviality. Prefer a separate field/lemma:
 
 ```lean
-resolver_convergence_to_constant :
-  ||u t - 1||_{L²} ≤ C e^{-γt} →
-  ||v t - 1/μ||_{H²} ≤ Cμ*C e^{-γt}
+Hvpos : (∀ t x, 0 ≤ u t x) → (∀ t, ∃ x, 0 < u t x) → ∀ t x, 0 < v t x.
 ```
 
-This sequence is much shorter than a full LaSalle formalization and gives an explicit exponential rate under a positive lower bound.
+## Minimal assumptions to close (A) and (B)
 
-## Final answer to the three questions
+For `(A) htimeDeriv/hdiffU`, use:
 
-1. The right Lyapunov functional is
+```text
+For every compact I=[τ,T₁]⊂(0,T):
+  ∃ S∈ℓ¹, ∀n r∈[0,T₁], |F_n(r)|≤S_n,
+  ∑ λ_n exp(-λ_n τ)|u0_n| <∞.
+```
 
-   ```text
-   E(t)=∫(u log u-u+1).
-   ```
+Then
 
-   Its derivative is
+```text
+u_t(t,x)=∑ [ -λ_n u_n(t)+F_n(t) ] cos(nπx)
+```
 
-   ```text
-   E' = -∫u_x²/u - a∫u_xv_x - ∫u(u-1)logu ≤ -δE
-   ```
+with uniform convergence on `I×[0,1]`.
 
-   once `0<m≤u≤M`. This yields exponential entropy and `L²` decay.
+For `(B) Hv/Hvpos/hdecay`, use:
 
-2. No chemotaxis smallness is needed for `χ₀<0`. The taxis term has the good sign in the entropy identity and can be discarded. The real condition for exponential decay is not small `|χ₀|`; it is positivity/coercivity, i.e. a positive lower bound for `u` or eventual positivity.
+```text
+μ>0,
+v_n=u_n/(μ+λ_n),
+u(t)∈A_0 locally uniformly,
+u_t(t)∈A_0 locally uniformly for the time derivative,
+u≥0 and nontrivial for strict positivity,
+source∈A_2 or A_4 depending on the intended meaning of quadratic decay.
+```
 
-3. The shortest formalizable first statement is
-
-   ```text
-   if 0<m≤u₀≤M and u is the global classical solution, then
-   ||u(t)-1||²_{L²} ≤ C e^{-δt},
-   ||v(t)-1/μ||_{H²} ≤ C e^{-δt}.
-   ```
-
-   Minimal inputs: the entropy identity, resolver sign lemma, compact-interval coercivity, and the positive lower/upper box. Do `H¹` exponential convergence later via smoothing or eventual perturbative spectral estimates.
+Then the resolver fields are direct and should not be carried as a deep analytic hypothesis. The only genuinely non-spectral part is strict positivity, which should be discharged by the positive kernel / maximum principle lemma.
