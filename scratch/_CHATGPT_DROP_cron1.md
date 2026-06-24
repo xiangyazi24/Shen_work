@@ -1,689 +1,523 @@
 # ChatGPT git-drop (cron1)
 
-## Q88 — χ₀<0 interval chemotaxis: constant L∞ supersolution
+## Q112 — χ₀<0 chemotaxis divergence source: time-C¹ coefficient package
 
 ### Executive verdict
 
-For the repulsive sign as stated,
+The chemotaxis source time-C¹ theorem is **formally the same opaque/integral-swap pattern** once the pointwise time derivative and a weighted coefficient majorant are available. There is no new `whnf`/`realSlice` obstacle inherent in the divergence.
+
+But there **is** a genuine analytic derivative-loss: because
 
 ```text
-u_t = u_xx + a ∂x(u v_x) + u(1-u),
-a := -χ₀ > 0,
-μ v - v_xx = u,
+S_chem = ∂x q,
+q := u v_x (1+v)^(-β),
 ```
 
-the constant upper bound
+one should prove the time derivative at the pre-divergence flux level and then use the sine/cosine divergence identity
 
 ```text
-M := max(1, ‖u₀‖∞)
+cosineCoeff(∂x q)_n = ± sqrt(λ_n) sineCoeff(q)_n.
 ```
 
-**does close uniformly in time**. No window-uniform `H^σ` flux envelope is needed.
-
-The crucial point is to rewrite the actual equation as a local semilinear drift-reaction equation with the actual resolver `v` frozen as a coefficient:
+Thus a coefficient package for `S_chem` at weight `r` requires the pre-divergence quantity `q` and its time derivative to be controlled in sine `A^{r+1}`. In particular, for the divergence-weighted source regularity
 
 ```text
-u_t = u_xx + a v_x u_x + u(1 + a μ v) - (a+1)u².
+Σ_n λ_n |cosineCoeff(S_chem)_n| < ∞,
 ```
 
-Then, on any strip where `0 ≤ u ≤ M`, the resolver maximum principle gives
+a clean sufficient condition is
 
 ```text
-0 ≤ v ≤ M/μ,
+q_t ∈ A^3_sin.
 ```
 
-hence
-
-```text
-M[(a+1)M - 1 - a μ v] ≥ M[(a+1)M - 1 - aM] = M(M-1) ≥ 0.
-```
-
-So `M` is a constant supersolution of the **rewritten local semilinear equation**. The nonlocality is closed by the same `M`-ball through `v ≤ M/μ`.
-
-Do **not** test the constant `M` in the frozen divergence expression `a M v_xx + M(1-M)` with `v_xx = μv - u_actual`; that is the wrong comparison operator and can give a false obstruction. The comparison operator should be the local semilinear equation actually satisfied by `u`, with reaction
-
-```text
-R_v(q) := q(1 + a μ v) - (a+1)q².
-```
-
-At `q=u`, this is exactly the original equation. At `q=M`, it exposes the stabilizing `-(a+1)M²` term.
+This is not supplied by bare `C²`; it is a weighted Wiener/positive-time smoothing input. The actual Lean trick is the same; the analytic envelope is stronger.
 
 ---
 
-## 1. Expansion and exact drift-reaction form
+## 1. Exact time derivative formula
 
-Start from
+Set
 
 ```text
-u_t = u_xx + a ∂x(u v_x) + u(1-u).
+D      := (1+v)^(-β),
+D₁     := (1+v)^(-β-1),
+q      := u v_x D,
+S_chem := ∂x q.
 ```
 
-Expand:
+Let
 
 ```text
-∂x(u v_x) = u_x v_x + u v_xx.
+U := u_t,
+V := v_t = (μ-Δ_N)^(-1) U,
+V_x := ∂x V.
 ```
 
-Use the elliptic equation
+Since the resolver is linear and time-independent,
 
 ```text
-μv - v_xx = u,
+cosineCoeff(V)_n = cosineCoeff(U)_n / (μ + λ_n),
+sineCoeff(V_x)_n = ± sqrt(λ_n) cosineCoeff(V)_n.
 ```
 
-so
+Differentiate `q = u v_x D` in time:
 
 ```text
-v_xx = μv - u.
+q_t
+  = U v_x D
+    + u V_x D
+    + u v_x D_t.
 ```
 
-Then
+The denominator derivative is
 
 ```text
-a ∂x(u v_x)
-  = a u_x v_x + a u(μv-u)
-  = a v_x u_x + a μ u v - a u².
+D_t = -β (1+v)^(-β-1) V = -β D₁ V.
 ```
 
-Adding the logistic term gives
+Therefore the exact pointwise formula is
 
 ```text
-u(1-u) = u - u².
-```
-
-Therefore
-
-```text
-u_t
-  = u_xx + a v_x u_x + a μu v - a u² + u - u²
-  = u_xx + a v_x u_x + u(1+a μv) - (a+1)u².
-```
-
-So the local drift and reaction are:
-
-```text
-B(t,x) := a v_x(t,x),
-R_v(t,x,q) := q(1+a μ v(t,x)) - (a+1)q².
+q_t
+  = D * U * v_x
+    + D * u * V_x
+    - β * D₁ * u * v_x * V.
 ```
 
 Equivalently,
 
 ```text
-u_t = u_xx + B u_x + R_v(t,x,u).
+q_t = D * (U*v_x + u*V_x - β*u*v_x*V/(1+v)).
 ```
 
-The stabilizing quadratic coefficient is exactly
+Now use the divergence identity. Since `v_x=0` at the Neumann endpoints and also `V_x=0`, both `q` and `q_t` vanish at the endpoints, so the sine/divergence coefficient identity is the right basis statement.
+
+For every mode `n`, with the sign fixed by your repo’s convention,
 
 ```text
--(a+1)u².
+d/dt cosineCoeff(S_chem(t))_n
+  = cosineCoeff(∂x q_t(t))_n
+  = ± sqrt(λ_n) * sineCoeff(q_t(t))_n.
 ```
 
-It consists of:
+Thus the formula to formalize is:
+
+```lean
+-- schematic, sign hidden behind the repo's divergence-mode identity
+HasDerivAt
+  (fun t => cosineCoeffs (Schem t) n)
+  (divSign n * Real.sqrt (lam n) * sineCoeffs (qdot t) n)
+  t
+```
+
+where
+
+```lean
+qdot t x =
+    (1 + v t x)^(-β) * U t x * vx t x
+  + (1 + v t x)^(-β) * u t x * Vx t x
+  - β * (1 + v t x)^(-β - 1) * u t x * vx t x * V t x
+```
+
+and
+
+```lean
+V  t = resolver μ (U t)
+Vx t = deriv (V t)
+```
+
+in whatever coefficient/function representation the repo uses.
+
+### Do not expand the spatial divergence in Lean
+
+Avoid expanding
 
 ```text
--a u²      from a u v_xx = a u(μv-u),
--u²        from logistic u(1-u).
+∂x q_t
 ```
 
-This is the sign that closes the bound.
+as a physical derivative. That expansion introduces terms like `U_x`, `V_xx`, etc. It is algebraically true but formally and analytically more expensive. The divergence identity
+
+```text
+cosineCoeff(∂x q_t)_n = ± sqrt(λ_n) sineCoeff(q_t)_n
+```
+
+is the clean route: it moves the derivative loss into a single explicit `sqrt(λ_n)` multiplier and avoids asking for pointwise spatial derivatives of `U`.
 
 ---
 
-## 2. Constant supersolution condition
+## 2. Coefficient-level form of the derivative
 
-For a constant candidate `Mbar`, the drift and diffusion terms vanish:
-
-```text
-(Mbar)_t = 0,
-(Mbar)_x = 0,
-(Mbar)_xx = 0.
-```
-
-For the rewritten semilinear equation, the supersolution residual is
+Let the coefficient sequences be:
 
 ```text
-Res(Mbar)
-  := (Mbar)_t - (Mbar)_xx - B(Mbar)_x - R_v(t,x,Mbar)
-  = - R_v(t,x,Mbar)
-  = Mbar[(a+1)Mbar - 1 - a μ v(t,x)].
+û      := cosineCoeffs(u),
+Û      := cosineCoeffs(U),
+v̂      := resolverCoeff μ û,
+V̂      := resolverCoeff μ Û,
+vx̂_sin := sqrt(λ) * v̂,
+Vx̂_sin := sqrt(λ) * V̂,
+D̂      := cosineCoeffs(D),
+D₁̂     := cosineCoeffs(D₁).
 ```
 
-Thus the exact condition is
+Then the sine coefficients of `q_t` are obtained from mixed cosine×sine products:
 
 ```text
-(a+1)Mbar ≥ 1 + a μ sup_{strip} v.
+sineCoeffs(q_t)
+  = trueMixedProd( trueCosProd(D̂, Û), vx̂_sin )
+    + trueMixedProd( trueCosProd(D̂, û), Vx̂_sin )
+    - β * trueMixedProd( trueCosProd(trueCosProd(D₁̂, û), V̂), vx̂_sin ).
 ```
 
-Equivalently,
+This is the exact coefficient-level expression, modulo your product-normalization conventions.
+
+So the time derivative of the chem source coefficient is
 
 ```text
-Mbar ≥ (1 + a μ sup v)/(a+1).
+∂t SchemCoeff_n
+  = ± sqrt(λ_n) * [
+      trueMixedProd( trueCosProd(D̂, Û), vx̂_sin )_n
+    + trueMixedProd( trueCosProd(D̂, û), Vx̂_sin )_n
+    - β * trueMixedProd( trueCosProd(trueCosProd(D₁̂, û), V̂), vx̂_sin )_n
+    ].
 ```
 
-This is the inequality to use if `sup v` is known independently.
-
-But in the bootstrap/comparison argument, `sup v` is controlled by the same `Mbar`-ball. If
-
-```text
-0 ≤ u ≤ Mbar
-```
-
-on the strip, then the Neumann resolver positivity/maximum principle gives
-
-```text
-0 ≤ v ≤ Mbar/μ.
-```
-
-Indeed, at a maximum point of `v`, the Neumann endpoint argument included,
-
-```text
-v_xx ≤ 0,
-μv = u + v_xx ≤ Mbar.
-```
-
-At a minimum,
-
-```text
-v ≥ 0
-```
-
-by the already-landed resolver positivity for `u ≥ 0`.
-
-Therefore
-
-```text
-μ v ≤ Mbar,
-```
-
-and hence
-
-```text
-Res(Mbar)
-  ≥ Mbar[(a+1)Mbar - 1 - aMbar]
-  = Mbar(Mbar - 1).
-```
-
-So every
-
-```text
-Mbar ≥ 1
-```
-
-is a supersolution once the same strip has `u≤Mbar`. Taking
-
-```text
-M := max(1, ‖u₀‖∞)
-```
-
-is sufficient.
-
-### Important correction about the “raw divergence residual”
-
-You wrote that at constant `Mbar` the residual looks like
-
-```text
--[a Mbar v_xx + Mbar(1-Mbar)]
-```
-
-with
-
-```text
-v_xx = μv - u.
-```
-
-That expression corresponds to testing `q=Mbar` in the operator
-
-```text
-q ↦ q_xx + a ∂x(q v_x) + q(1-q)
-```
-
-while keeping `v` tied to the **actual** `u`. This is not the right local comparison operator.
-
-For comparison, freeze the coefficient `v` and rewrite the actual PDE as
-
-```text
-q_t = q_xx + a v_x q_x + q(1+a μv) - (a+1)q².
-```
-
-The actual solution `u` satisfies this equation exactly. The constant `Mbar` is tested in this rewritten equation, not in the raw frozen-divergence expression. That is what recovers the `-(a+1)Mbar²` term.
-
-If one insists on the raw frozen-divergence residual, one obtains a condition involving `μv-u_actual`, and it need not close. That is an artifact of choosing the wrong comparison formulation.
+For absolute-value/envelope statements, the sign is irrelevant.
 
 ---
 
-## 3. Bounded drift needed by the comparison lemma
+## 3. Clean sufficient weighted-Wiener majorant
 
-Your comparison lemma requires bounded drift
+Fix a compact time window
 
 ```text
-B = a v_x.
+J = [t₀,t₁] ⊂ (0,T).
 ```
 
-Under the same `M`-ball,
+For the divergence-weighted package, use weight `A^3` at the pre-divergence sine level. A clean sufficient envelope package is:
 
 ```text
-0 ≤ u ≤ M,
-0 ≤ v ≤ M/μ.
+Eu3       ∈ A^3_cos,   |û_n(t)| ≤ Eu3_n
+EU3       ∈ A^3_cos,   |Û_n(t)| ≤ EU3_n
+D3        ∈ A^3_cos,   |D̂_n(t)| ≤ D3_n
+D1_3      ∈ A^3_cos,   |D₁̂_n(t)| ≤ D1_3_n
+Evx3      ∈ A^3_sin,   |sineCoeff(v_x(t))_n| ≤ Evx3_n
+EV3       ∈ A^3_cos,   |V̂_n(t)| ≤ EV3_n
+EVx3      ∈ A^3_sin,   |sineCoeff(V_x(t))_n| ≤ EVx3_n
+```
+
+uniformly for `t∈J`.
+
+The resolver gives explicit choices from `Eu3` and `EU3`:
+
+```text
+Ev3_n   := Eu3_n  / (μ+λ_n),
+Evx3_n  := sqrt(λ_n) * Eu3_n / (μ+λ_n),
+EV3_n   := EU3_n  / (μ+λ_n),
+EVx3_n  := sqrt(λ_n) * EU3_n / (μ+λ_n).
+```
+
+Since
+
+```text
+sqrt(λ_n)/(μ+λ_n) ≤ C(μ) / sqrt(1+λ_n),
+```
+
+`EVx3 ∈ A^3` follows from `EU3 ∈ A^2`, but for Lean simplicity it is fine to assume/prove `EU3 ∈ A^3`; then all resolver-derived envelopes are immediate by monotonicity/gain lemmas.
+
+### The majorant for `q_t`
+
+Define the pre-divergence time-derivative envelope:
+
+```text
+Eqdot3 :=
+    trueMixedProd( trueCosProd(D3, EU3), Evx3 )
+  + trueMixedProd( trueCosProd(D3, Eu3), EVx3 )
+  + β * trueMixedProd( trueCosProd(trueCosProd(D1_3, Eu3), EV3), Evx3 ).
+```
+
+Here `+` means pointwise sum of nonnegative envelope sequences.
+
+By weighted Wiener product closure,
+
+```text
+Eqdot3 ∈ A^3_sin.
+```
+
+For every `t∈J` and every `n`, the coefficient derivative obeys
+
+```text
+|∂t cosineCoeff(S_chem(t))_n|
+  ≤ sqrt(λ_n) * Eqdot3_n.
+```
+
+Therefore, for any target source weight `r`,
+
+```text
+(1+λ_n)^(r/2) |∂t SchemCoeff_n(t)|
+  ≤ (1+λ_n)^((r+1)/2) Eqdot3_n.
+```
+
+So if `Eqdot3 ∈ A^3_sin`, then the derivative source coefficients are summable at source weight `r=2`:
+
+```text
+Σ_n (1+λ_n)^1 |∂t SchemCoeff_n(t)| < ∞.
+```
+
+This is the natural divergence-weighted source derivative package.
+
+### Minimal versus clean hypotheses on `U = u_t`
+
+The clean same-scale condition is:
+
+```text
+U ∈ A^3_cos on J.
+```
+
+It is stronger than strictly necessary for some terms, but it is the most Lean-friendly because every product is an `A^3 × A^3 → A^3` product.
+
+A possible refinement is:
+
+```text
+U ∈ A^2_cos
+```
+
+because the worst term involving `U` through `V_x` gains one derivative by the resolver. But proving mixed tame estimates with different weights is extra infrastructure. For a first Lean formalization, use the same-level `A^3` envelope for `U`.
+
+Important: the resolver smoothing helps `V` and `V_x`; it does **not** eliminate the raw `U` in the term
+
+```text
+D * U * v_x.
+```
+
+So if your already-proved statement (A) only gives unweighted or low-weight summability of `Û`, it is not enough for the divergence-weighted derivative package. You need the appropriate positive-time weighted Wiener bound for `u_t`, or a sharper tame-product infrastructure.
+
+---
+
+## 4. Sufficient conditions for `HasDerivAt` and continuity
+
+There are two layers.
+
+### Function-level derivative
+
+At each `(t,x)`, prove
+
+```lean
+HasDerivAt (fun t => q t x) (qdot t x) t
+```
+
+by product and chain rules:
+
+```lean
+HasDerivAt.mul
+HasDerivAt.add
+HasDerivAt.sub
+HasDerivAt.const_mul
+HasDerivAt.rpow_const
+```
+
+For the denominator:
+
+```lean
+HasDerivAt (fun t => (1 + v t x)^(-β))
+  ((-β) * (1 + v t x)^(-β - 1) * V t x)
+  t
+```
+
+using `1+v>0`, which follows from `v≥0`.
+
+### Coefficient-level derivative
+
+Use the divergence identity and the bounded linear sine-coefficient functional:
+
+```text
+SchemCoeff_n(t) = ± sqrt(λ_n) * sineCoeff(q(t))_n.
+```
+
+Then
+
+```lean
+HasDerivAt (fun t => sineCoeffs (q t) n) (sineCoeffs (qdot t) n) t
+```
+
+follows by applying the bounded linear functional `sineCoeffCLM n` to the function-level derivative, or by the same integral-swap/dominated-differentiation engine you used for the power source.
+
+The diagonal/integral-swap issue is no different from before: once `qdot` is an integrable/dominated time derivative for the coefficient integral, the coefficient derivative follows.
+
+### Continuity in time
+
+For each fixed `n`, continuity of
+
+```text
+t ↦ ∂t SchemCoeff_n(t)
+```
+
+follows from continuity of the factor coefficient maps and continuity of the product coefficient formulas. If product coefficients are defined by infinite sums, use a dominated-tsum lemma with the envelope `Eqdot3` above.
+
+A standard Lean pattern:
+
+```lean
+-- schematic local lemma
+theorem continuous_tsum_of_uniform_summable_bound
+    (hcont : ∀ n, ContinuousOn (fun t => f n t) J)
+    (hbound : ∀ t ∈ J, ∀ n, |f n t| ≤ E n)
+    (hE : Summable E) :
+    ContinuousOn (fun t => ∑' n, f n t) J
+```
+
+If such a lemma is not already in the repo, it is worth adding once. It is the same dominated-convergence argument for `tsum` that the earlier `hasDerivAt_tsum` machinery likely already contains.
+
+---
+
+## 5. Exact Lean-style theorem shape
+
+I would not state the theorem by expanding every product in the goal. State it in three layers.
+
+### Layer 1: pointwise derivative of the flux
+
+```lean
+def chemPreFlux (u v vx : ℝ → ℝ) (β : ℝ) : ℝ → ℝ :=
+  fun x => u x * vx x * (1 + v x)^(-β)
+
+def chemPreFlux_tdot
+    (u U v V vx Vx : ℝ → ℝ) (β : ℝ) : ℝ → ℝ :=
+  fun x =>
+      (1 + v x)^(-β) * U x * vx x
+    + (1 + v x)^(-β) * u x * Vx x
+    - β * (1 + v x)^(-β - 1) * u x * vx x * V x
+
+theorem hasDerivAt_chemPreFlux
+    (hu : ∀ x, HasDerivAt (fun t => u t x) (U x) t)
+    (hv : ∀ x, HasDerivAt (fun t => v t x) (V x) t)
+    (hvx : ∀ x, HasDerivAt (fun t => vx t x) (Vx x) t)
+    (hv_nonneg : ∀ x, 0 ≤ v t x)
+    (hβ : 0 ≤ β) :
+    ∀ x, HasDerivAt
+      (fun τ => chemPreFlux (u τ) (v τ) (vx τ) β x)
+      (chemPreFlux_tdot (u t) U (v t) V (vx t) Vx β x)
+      t
+```
+
+### Layer 2: coefficient derivative via sine functional and divergence identity
+
+```lean
+theorem hasDerivAt_chemSourceCoeff
+    (hdiv : ∀ τ n,
+      cosineCoeffs (fun x => deriv (chemPreFlux (u τ) (v τ) (vx τ) β) x) n
+        = divSign n * Real.sqrt (lam n) * sineCoeffs (chemPreFlux (u τ) (v τ) (vx τ) β) n)
+    (hpre : HasDerivAt (fun τ => chemPreFlux (u τ) (v τ) (vx τ) β) qdot t)
+    (n : ℕ) :
+    HasDerivAt
+      (fun τ => cosineCoeffs (Schem τ) n)
+      (divSign n * Real.sqrt (lam n) * sineCoeffs qdot n)
+      t
+```
+
+In practice, `hpre` may be pointwise plus coefficient integral swap rather than a Banach-valued `HasDerivAt`.
+
+### Layer 3: weighted majorant
+
+```lean
+def chemPreFluxDotEnv3
+    (D3 EU3 Evx3 D1_3 Eu3 EV3 EVx3 : ℕ → ℝ) (β : ℝ) : ℕ → ℝ :=
+  trueMixedProd (trueCosProd D3 EU3) Evx3
+  + trueMixedProd (trueCosProd D3 Eu3) EVx3
+  + |β| • trueMixedProd (trueCosProd (trueCosProd D1_3 Eu3) EV3) Evx3
+
+theorem chemSourceCoeff_tdot_bound
+    (hEnv : WeightedL1 3 (chemPreFluxDotEnv3 D3 EU3 Evx3 D1_3 Eu3 EV3 EVx3 β))
+    (hdom : ∀ t ∈ J, ∀ n,
+      |sineCoeffs (qdot t) n| ≤ chemPreFluxDotEnv3 ... n) :
+    ∀ t ∈ J, ∀ n,
+      |deriv (fun τ => cosineCoeffs (Schem τ) n) t|
+        ≤ Real.sqrt (lam n) * chemPreFluxDotEnv3 ... n
+```
+
+Then the weighted summability consequence:
+
+```lean
+theorem chemSourceCoeff_tdot_weightedL1
+    (hEnv3 : WeightedL1 3 Eqdot) :
+    Summable (fun n => (1 + lam n) *
+      |deriv (fun τ => cosineCoeffs (Schem τ) n) t|)
+```
+
+using
+
+```text
+(1+λ_n) * sqrt(λ_n) ≤ (1+λ_n)^(3/2).
+```
+
+---
+
+## 6. Answer to the three questions
+
+### Q1
+
+The exact formula is:
+
+```text
+q_t
+  = (1+v)^(-β) u_t v_x
+    + u (1+v)^(-β) (v_t)_x
+    - β u v_x v_t (1+v)^(-β-1),
+```
+
+where
+
+```text
+v_t = (μ-Δ_N)^(-1) u_t,
+(v_t)_x has sine coefficients sqrt(λ_n) * (u_t)_n/(μ+λ_n).
 ```
 
 Then
 
 ```text
-v_xx = μv - u,
+∂t cosineCoeff(S_chem)_n
+  = ± sqrt(λ_n) sineCoeff(q_t)_n.
 ```
 
-with both `μv` and `u` in `[0,M]`, so
+This expression is linear in one of `u_t`, `v_t`, or `(v_t)_x` in each term.
+
+### Q2
+
+A clean sufficient majorant on a compact positive-time window is:
 
 ```text
-|v_xx| ≤ M.
+Eqdot3 =
+    trueMixedProd( trueCosProd(D3, EU3), Evx3 )
+  + trueMixedProd( trueCosProd(D3, Eu3), EVx3 )
+  + β * trueMixedProd( trueCosProd(trueCosProd(D1_3, Eu3), EV3), Evx3 )
 ```
 
-Using Neumann boundary condition `v_x(0)=0`, for `x∈[0,1]`,
+with all factor envelopes in `A^3`, and `EV3`, `EVx3` obtained by resolver smoothing from a weighted envelope for `u_t`.
+
+Then
 
 ```text
-|v_x(x)| = |∫_0^x v_xx(y)dy|
-         ≤ ∫_0^1 |v_xx(y)|dy
-         ≤ M.
+|∂t cosineCoeff(S_chem)_n| ≤ sqrt(λ_n) Eqdot3_n.
 ```
 
 Thus
 
 ```text
-‖v_x‖∞ ≤ M,
-‖B‖∞ ≤ aM.
+Σ_n (1+λ_n) |∂t cosineCoeff(S_chem)_n| < ∞
 ```
 
-If you do not want to use nonnegativity, the cruder sign-free estimates are
+follows from
 
 ```text
-|v| ≤ M/μ,
-|v_xx| ≤ 2M,
-|v_x| ≤ 2M,
-|B| ≤ 2aM.
+Eqdot3 ∈ A^3_sin.
 ```
 
-But with `u ≥ 0`, the sharper `M` bound is available.
-
-The reaction
-
-```text
-R_v(q) = q(1+a μv) - (a+1)q²
-```
-
-is locally Lipschitz in `q` on any bounded interval. On `q ∈ [0,M]`, one may take for example
-
-```text
-Lip_R ≤ 1 + aM + 2(a+1)M,
-```
-
-because `μv≤M`.
-
-For the divided-difference linearization used by a linear comparison lemma, define
-
-```text
-C_M(t,x)
-  := if u(t,x) = M then
-       ∂_q R_v(t,x,M)
-     else
-       (R_v(t,x,u(t,x)) - R_v(t,x,M)) / (u(t,x)-M).
-```
-
-Algebraically, since `R_v(q)` is quadratic,
-
-```text
-R_v(u) - R_v(M)
-  = [(1+a μv) - (a+1)(u+M)] (u-M).
-```
-
-So no actual `if` is needed:
-
-```text
-C_M(t,x) = (1+a μv(t,x)) - (a+1)(u(t,x)+M).
-```
-
-Then for `z := u-M`,
-
-```text
-z_t
-  = z_xx + B z_x + C_M z + R_v(M).
-```
-
-Since `R_v(M) ≤ 0`, one has
-
-```text
-z_t ≤ z_xx + B z_x + C_M z.
-```
-
-With `z(0)≤0` and Neumann boundary condition for `z`, the linear comparison principle gives `z≤0`.
-
-This is the clean bridge from a semilinear supersolution to your linear drift-reaction comparison lemma.
-
-For nonnegativity, use `0` as a subsolution. Since
-
-```text
-R_v(0)=0,
-```
-
-and the drift/diffusion terms vanish on `0`, comparison gives
-
-```text
-u ≥ 0
-```
-
-from `u₀≥0`.
-
----
-
-## 4. Uniform-in-time closure
-
-The constant
-
-```text
-M = max(1, ‖u₀‖∞)
-```
-
-is independent of `T`. To prove the bound on any finite strip `[0,T]`, use a continuation/first-crossing argument.
-
-### Option A: first-crossing proof
-
-Let
-
-```text
-U(t) := sup_{x∈[0,1]} u(t,x).
-```
-
-Assume there is a first time `t*` when `U(t*) = M` and the solution attempts to cross above `M`. At a maximum point `x*`,
-
-```text
-u_x(t*,x*) = 0,
-u_xx(t*,x*) ≤ 0.
-```
-
-Since before `t*` we have `u≤M`, the resolver bound gives
-
-```text
-μv(t*,x*) ≤ M.
-```
-
-Using the rewritten equation at the maximum:
-
-```text
-u_t
-  = u_xx + a v_x u_x + u(1+a μv) - (a+1)u²
-  ≤ M(1+aM) - (a+1)M²
-  = M(1-M)
-  ≤ 0.
-```
-
-So the solution cannot cross upward through `M`.
-
-This is conceptually shortest, but in Lean it may require a fair amount of topology for the maximum point and first crossing.
-
-### Option B: comparison + epsilon bootstrap
-
-This is often more Lean-friendly with an existing comparison lemma.
-
-For `ε>0`, set
-
-```text
-Mε := M + ε.
-```
-
-Then `Mε > 1` unless `M=1, ε>0`, in any case `Mε>1`.
-
-Define
-
-```lean
-def Good (τ : ℝ) : Prop :=
-  ∀ s ∈ Set.Icc (0:ℝ) τ, ∀ x ∈ Set.Icc (0:ℝ) 1,
-    0 ≤ u s x ∧ u s x ≤ Mε
-```
-
-or use your interval-domain lifted formulation.
-
-On any interval satisfying `Good τ`, the resolver bounds give
-
-```text
-0 ≤ v ≤ Mε/μ,
-|v_x| ≤ Mε.
-```
-
-Then `B=a v_x` is bounded, the reaction is Lipschitz on `[0,Mε]`, and `Mε` is a **strict** supersolution:
-
-```text
-Res(Mε)
-  ≥ Mε(Mε-1) > 0
-```
-
-if `Mε>1`; if `M=1`, this is positive for every `ε>0`.
-
-Use the landed comparison lemma on the strip to prove the solution cannot exceed `Mε`. The usual open/closed continuation then yields
-
-```text
-u ≤ Mε
-```
-
-on `[0,T]`. Letting `ε ↓ 0` gives
-
-```text
-u ≤ M.
-```
-
-This version avoids relying on a strict margin at `M` when `M=1`.
-
-In Lean, rather than literally taking a limit in `ε`, prove:
-
-```lean
-∀ ε > 0, u t x ≤ M + ε
-```
-
-then conclude `u t x ≤ M` by `le_of_forall_pos_le_add`, or the corresponding existing lemma.
-
----
-
-## 5. Lean-formalizable lemma chain
-
-Here is the clean theorem factoring.
-
-### 5.1 Algebraic rewrite
-
-```lean
-theorem chiNeg_rewrite_drift_reaction
-    (a μ : ℝ) {u v : ℝ → ℝ}
-    (hres : ∀ x, μ * v x - deriv (deriv v) x = u x) :
-    (fun x => deriv (deriv u) x
-      + a * deriv (fun y => u y * deriv v y) x
-      + u x * (1 - u x))
-    =
-    (fun x => deriv (deriv u) x
-      + a * deriv v x * deriv u x
-      + u x * (1 + a * μ * v x)
-      - (a+1) * (u x)^2) := by
-  -- product rule + hres + ring
-```
-
-Depending on your notation, this may be per `(t,x)` rather than a function equality.
-
-### 5.2 Resolver order-box bounds
-
-```lean
-theorem resolver_bounds_of_orderBox
-    (hμ : 0 < μ)
-    (hu : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ u x ∧ u x ≤ M)
-    (hres : ∀ x ∈ Set.Icc (0:ℝ) 1, μ * v x - deriv (deriv v) x = u x)
-    (hNeu : deriv v 0 = 0 ∧ deriv v 1 = 0) :
-    (∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ v x ∧ v x ≤ M / μ) ∧
-    (∀ x ∈ Set.Icc (0:ℝ) 1, |deriv (deriv v) x| ≤ M) ∧
-    (∀ x ∈ Set.Icc (0:ℝ) 1, |deriv v x| ≤ M)
-```
-
-The first part is the Neumann maximum principle / resolver positivity. The second follows from `v_xx=μv-u`. The third follows by integrating `v_xx` from the endpoint where `v_x=0`.
-
-If the repo already has landed resolver `L∞/C²` bounds, use those and only prove the implication `u≤M ⇒ μv≤M` if not already exposed.
-
-### 5.3 Constant supersolution residual
-
-```lean
-def Rv (a μ : ℝ) (v : ℝ) (q : ℝ) : ℝ :=
-  q * (1 + a * μ * v) - (a + 1) * q^2
-
-theorem const_super_residual_nonneg
-    (ha : 0 ≤ a) (hM1 : 1 ≤ M) (hM0 : 0 ≤ M)
-    (hvM : μ * v ≤ M) :
-    0 ≤ M * ((a+1) * M - 1 - a * μ * v) := by
-  -- nlinarith
-```
-
-This is the exact residual statement:
-
-```text
-0 ≤ M[(a+1)M - 1 - aμv].
-```
-
-### 5.4 Difference linearization for the comparison lemma
-
-```lean
-theorem reaction_diff_factor
-    (a μ v u M : ℝ) :
-    Rv a μ v u - Rv a μ v M
-      = ((1 + a * μ * v) - (a+1) * (u + M)) * (u - M) := by
-  ring
-```
-
-Then for `z = u-M`, derive:
-
-```text
-z_t ≤ z_xx + B z_x + C z
-```
-
-with
-
-```lean
-def B (t x) := a * deriv (v t) x
-
-def C (t x) :=
-  (1 + a * μ * v t x) - (a+1) * (u t x + M)
-```
-
-provided the constant residual is nonnegative.
-
-This is the point where your `NeumannLinearDriftComparisonRegular` can be applied.
-
-### 5.5 Uniform upper bound theorem
-
-```lean
-theorem chiNeg_uniform_Linf_upper
-    (ha : 0 < a) (hμ : 0 < μ)
-    (hu0_nonneg : ∀ x, 0 ≤ u0 x)
-    (hu0_bound : ∀ x, u0 x ≤ M)
-    (hM : M = max 1 (sSup/Norm of u0))
-    (hsolution : classical/mild regular solution on [0,T]) :
-    ∀ t ∈ Set.Icc (0:ℝ) T, ∀ x ∈ Set.Icc (0:ℝ) 1,
-      0 ≤ u t x ∧ u t x ≤ M
-```
-
-Prove first with `Mε = M + ε`, then send `ε→0` if the comparison continuation needs strictness.
-
-### 5.6 Uniform in `T`
-
-State the finite-horizon theorem with a constant that does not mention `T` except in the quantifier. Then expose a global corollary:
-
-```lean
-theorem chiNeg_uniform_Linf_upper_global
-    (hsol_global : solution on all finite strips) :
-    ∀ t ≥ 0, ∀ x, u t x ≤ M
-```
-
-by applying the finite-horizon theorem with `T = max 1 t` or `T=t+1`.
-
----
-
-## 6. Answer to the three precise questions
-
-### Q1
-
-The drift is
-
-```text
-B = a v_x.
-```
-
-The reaction is
-
-```text
-R_v(u) = u(1+a μv) - (a+1)u².
-```
-
-The coefficient of `u²` is exactly
-
-```text
--(a+1),
-```
-
-with `-a u²` from the repulsive chemotaxis term and `-u²` from logistic damping.
-
-### Q2
-
-The exact supersolution inequality for a constant `Mbar` is
-
-```text
-Mbar[(a+1)Mbar - 1 - a μv(t,x)] ≥ 0
-```
-
-for all `(t,x)` on the strip.
-
-Equivalently,
-
-```text
-Mbar ≥ (1 + a μ sup v)/(a+1).
-```
-
-Under the bootstrap/order-box assumption `0≤u≤Mbar`, the resolver gives `μv≤Mbar`, hence the residual is at least
-
-```text
-Mbar(Mbar-1).
-```
-
-Thus `Mbar = max(1, ‖u₀‖∞)` closes. The nonlocality does not force dependence on anything else; it is closed by the resolver maximum principle inside the same `Mbar`-ball.
+This is the exact divergence-weighted derivative-source majorant.
 
 ### Q3
 
-Since the constant supersolution does close, no alternative Hσ/window-flux estimate is needed for the L∞ bound. The minimal a-priori chain is:
+The formal method is the same opaque/integral-swap/product-rule method used for the power source: treat `realSlice`/the solution object opaquely, prove the pointwise time derivative by chain/product rules, and pin the goal by `change` as needed. The divergence itself should be handled by the sine/cosine divergence identity, not by expanding an extra spatial derivative.
 
-```text
-u≤M on strip
-  ⇒ resolver maximum principle: 0≤v≤M/μ
-  ⇒ drift bound: |a v_x|≤aM
-  ⇒ constant M supersolution residual ≥ M(M-1)
-  ⇒ comparison principle preserves u≤M
-  ⇒ continuation/epsilon bootstrap gives u≤M on every finite strip
-  ⇒ finite-strip theorem with M independent of T gives global uniform-in-time L∞ bound.
-```
+But analytically the divergence costs one derivative: to control the chem source derivative at source weight `r`, you need the pre-divergence flux derivative `q_t` at sine weight `r+1`. For the divergence-weighted package `r=2`, this is `q_t ∈ A^3_sin`.
 
-This is entirely `L∞`/maximum-principle level. It avoids any window-uniform `H^σ` flux envelope.
-
----
-
-## Final Lean guidance
-
-The main formal pitfall is choosing the wrong comparison operator. Do not apply the constant supersolution test to
-
-```text
-q ↦ q_xx + a ∂x(q v_x) + q(1-q)
-```
-
-with `v` still tied to the actual `u`. Instead first rewrite the actual equation as
-
-```text
-u_t = u_xx + a v_x u_x + R_v(u),
-R_v(q)=q(1+a μv)-(a+1)q².
-```
-
-Then use the constant supersolution for this local semilinear drift-reaction equation. If the landed comparison lemma is linear, feed it the difference equation for `z=u-M` with coefficient
-
-```text
-C_M = (1+a μv) - (a+1)(u+M),
-```
-
-and use the nonpositive residual `R_v(M)≤0`.
-
-That is the clean formal path.
+So: **no new whnf wall, but yes a genuine higher weighted-Wiener bound.**
