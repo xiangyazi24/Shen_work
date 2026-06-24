@@ -252,3 +252,16 @@ realSlice_resolverSpectralData. REMAINING for hchemInv/hlogInv: the C²-Neumann 
    the NEW analytic frontier (replaces the now-cracked defeq wall). Route: A³ Wiener ladder (cron1 Q84: A⁰→A³,
    +1/pass) + resolver +2 gain → u∈C³, v∈C⁴ → chem C²-Neumann.
 χ₀<0 status: Hv ✅, hlogInv ✅; hchemInv = higher-Wiener bootstrap (sole hard residual); then (c)/(d) assembly.
+
+## [2026-06-24] CRITICAL §3.3 — original chiNeg_theorem_1_1 is VACUOUS for χ₀<0 (operator mismatch)
+ChiNegDatumUniformConstruction's hfp: realSlice u_star = intervalDuhamelOperator p u0 (realSlice u_star).
+intervalDuhamelOperator (IntervalDomainExistence:595) = heatEWA + ∫intervalLogisticSource — LOGISTIC-ONLY, no chemotaxis.
+But realSlice u_star = realSlice(picardEWA u_star), and picardEWA = heatEWA + (-χ₀)·divDuhamelEWA(chemFluxEWA) +
+valDuhamelEWA(growthEWA) — CHEMOTAXIS-INCLUSIVE. So hfp ⟺ (-χ₀)·chemFluxDuhamel = 0 ⟺ χ₀=0. UNSATISFIABLE for χ₀<0.
+⟹ chiNeg_theorem_1_1 (carries ChiNegDatumUniformConstruction) is a VACUOUS conditional — the §3.3-catalogued
+"unsatisfiable hypothesis" failure. My session's discharges (Hv/source-regularity/etc.) are genuine lemmas but were
+toward a vacuous target; the UNSATISFIABLE atom is hfp, which CANNOT be discharged (it's false).
+FAITHFUL FIX: restate hfp with the chemotaxis-inclusive intervalGradientDuhamelMap (which picardEWA's realization
+DOES satisfy via the evalST bridge), then re-prove the localExistence chain with it. Bridge
+intervalGradientDuhamelMap_eq_intervalDuhamelOperator_of_frontiers (IntervalMildToLocalExistence:972) confirms the
+two operators differ by exactly the chemotaxis term. This is a foundational correction, not a discharge.
