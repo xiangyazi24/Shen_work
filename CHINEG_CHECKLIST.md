@@ -442,3 +442,15 @@ H^{σ+1/2+ε}↪A^σ. REUSES the H^θ infrastructure the seed lemma 5 already ne
 (1+v)^{-m}=((1+v)^{-1})^m via inverse-closedness.
 A³ roadmap cores: 4/6 banked + lemma 3 now GENUINELY closed (small-data). Remaining: lemma 5 seed (H^θ),
 lemma 6 wrapper, linearized ladder, + general-data composition (Moser+Sobolev route now decided).
+
+## [2026-06-24] Sobolev embedding H^s↪A^σ BANKED (shared bridge, axiom-clean)
+SobolevEmbedding.lean (committed this turn): MemHSob s a := Summable((1+lam k)^s·(a k)²);
+memWNorm_of_memHSob (hs: σ+1/2<s): MemHSob s a → MemWNorm σ a, via AM-GM + summable_one_add_lam_rpow_neg
+(p-series, p=s-σ>1/2). SHARP threshold σ+1/2<s (half-derivative loss). axiom-clean uisai2 EXIT=0,
+independently re-verified. Conventions: wAbs σ a k=(1+lam k)^(σ/2)|a k|, lam k=(kπ)².
+This is the SHARED engine: σ=0 → seed's H^θ→A⁰ step (θ>1/2); σ=3 → general-data H^4→A³ (route B integer detour).
+Seed chain now fully mapped+partly-built: L² →S(t₀) (heat smoothing M_θ(t)=sup(1+x)^θe^{-2tx} finite t>0)→ H^θ
+→[memWNorm_of_memHSob σ=0]→ A⁰ →[buffered Duhamel]→ A¹.
+A³ roadmap: 5 cores banked (divergence-gain/quantitative-Wiener/small-data-composition-CLOSED/ladder-step/
+Sobolev-embedding). Remaining: heat-smoothing lemma (M_θ sup, clean calculus), seed assembly, lemma 6 wrapper,
+u_t ladder (cron1 in flight), general-data composition (Moser route B, integer order-4 chain rule).
