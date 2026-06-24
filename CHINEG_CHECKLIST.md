@@ -472,3 +472,28 @@ ENTIRE A³ UNCONDITIONAL ROUTE NOW DESIGNED END-TO-END:
 DESIGN phase COMPLETE. Remaining = LEAN GRIND of designed bricks: heat-smoothing (in flight), linearized
 Duhamel rung, U=u_t A⁰ seed, q_t assembly, general-data Moser (integer order-4, if global needed).
 A³ cores BANKED: 5 (divergence-gain, quantitative-Wiener, small-data-composition, ladder-step, Sobolev-embedding).
+
+## [2026-06-24] FAITHFULNESS RE-AUDIT + SELF-CORRECTION: architecture IS faithful; A³ Wiener = LOCAL-EXISTENCE engine
+NEAR-MISS (verify-before-claim caught it): a §4 faithfulness audit + a GREP ERROR (I read Paper1's traveling-wave
+Theorem_1_1 in Paper1/Statements.lean, not Paper2's) + a MIS-FRAMED ChatGPT question (I described the Wiener route
+as proving Thm 1.1 DIRECTLY) almost led me to report "the whole A³ route is unfaithful, pivot to max-principle".
+WRONG. Reading the ACTUAL def (Paper2/Statements.lean:4420) corrected it.
+VERIFIED TRUTH:
+ · Paper2 Theorem_1_1 def IS FAITHFUL: encodes the paper's (1.21)/(1.22) exactly — supNorm(u t)≤max(supNorm u₀,
+   (a/b)^(1/α)) ∧ InitialTrace ∧ IsPaper2ClassicalSolution ∧ (m≥1→IsPaper2GlobalClassicalSolution), both a,b>0 and
+   a=b=0 branches. Guarded by not_forall_Theorem_1_1 (regularity obligation is real).
+ · Paper2 §3 (PDF-verified, lines 3308-3350): proves Thm 1.1 via MAXIMUM PRINCIPLE — ū(t)=max u, resolvent
+   order-preservation v=(µI-Δ)^{-1}(νu^γ)≤(ν/µ)ū^γ (3.2), Lemma 3.1 (χ₀≤0 ⟹ ū nonincreasing above u*=(a/b)^{1/α}).
+ · chiNeg_theorem_1_1_faithful = theorem_1_1_intervalDomain_chiNeg_of_coupledFluxClassicalLocalExistenceResidual
+   ∘ (residual from hU). The MAX-PRINCIPLE sup-bound is WIRED in the residual→Theorem_1_1 lemma (conditional only
+   on local classical existence). hU = ChiNegDatumUniformConstructionFaithful supplies ONLY local classical existence.
+ ⟹ The A³ weighted-Wiener bootstrap is the LOCAL-CLASSICAL-EXISTENCE engine (the genuine hard χ₀<0 regularity
+   floor) discharging hU — NOT an unfaithful max-principle replacement. This session's banked lemmas (small-data
+   composition, Sobolev embedding, heat smoothing, divergence ladder, ladder step) ARE faithful local-existence
+   infrastructure, not a wrong detour.
+HONEST REMAINING GAP (unchanged, correctly framed): hU (local existence) via the Wiener route reaches only
+SMALL-DATA (composition is small-data Cσ‖v‖<1). LARGE-DATA hU ⟹ unconditional large-data Theorem_1_1 needs the
+GENERAL-DATA composition (Moser route B: H^4 chain rule → A³, decided). Until then chiNeg_theorem_1_1_faithful's hU
+is satisfiable only near-equilibrium ⟹ §3.3-passing faithful CONDITIONAL, not unconditional.
+LESSON: mis-framing a question to ChatGPT yields a confidently-wrong audit; always verify the actual Lean def before
+surfacing a strategic "pivot/tear-down". Grep the RIGHT namespace (Paper1 vs Paper2 both have Theorem_1_1).
