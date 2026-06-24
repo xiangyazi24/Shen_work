@@ -218,3 +218,17 @@ RESIDUAL CLASSIFICATION of the remaining ~11:
 - ASSESS: hrecon, hdefect.
 NET: the χ₀<0 unconditional close now bottlenecks on the SINGLE Hv defeq wall; everything else is tractable/landed/standing
 + the final assembly. χ₀<0 Theorem 1.1 = faithful §3.3 conditional, surface reduced to ~11 (1 hard).
+
+## [2026-06-24] DEFEQ WALL CRACKED + inversion reduced
+✅ K1(i) of Hv — realSlice_powerCoeff_hasDerivAt (SourcePowerCoeffDeriv.lean): the power-source ν·u^γ coefficient
+   time-derivative HasDerivAt, BUILDS ~7s (was 1M-heartbeat whnf timeout). Technique that beat the wall:
+   `attribute [local irreducible] realSlice` + apply cosineCoeffs_hasDerivAt_of_smooth_param over an OPAQUE abstract
+   v + `set v := realSlice u_star` only AFTER the engine ran + `change` to pin the goal (block defeq search) +
+   `HasDerivAt.rpow_const (p:=p.γ)` explicit exponent. Validates the banked lean lesson (whnf timeout = block
+   unfolding, not maxHeartbeats). axiom-clean.
+✅ hchemInv/hlogInv — realSlice_hchemInv/hlogInv_of_C2Neumann (SourceInversionDischarge.lean): conditionally
+   discharged via const-extension surrogate (NOT the discontinuous zero-extension lift) + chemDiv/logistic_source_inversion.
+   REDUCED to: C²-Neumann regularity of the chem/log source slices (continuity + ContDiffOn 2 + endpoint deriv→0 + Neumann).
+   axiom-clean.
+REMAINING for Hv: K1(ii) continuity-in-σ + K1(iii) window bound (now tractable, same opaque technique) + wiring into
+realSlice_resolverSpectralData. REMAINING for hchemInv/hlogInv: the C²-Neumann source-slice regularity (a bootstrap residual).
