@@ -86,3 +86,22 @@ DECISION (engineering, mine): close the χ₀<0 UNIFORM L∞ GLOBAL BOUNDEDNESS 
 the max principle + repulsive sign + logistic) via the LANDED ConjugateMildExistenceCore order box + restart
 (cron2 Q83: lifespan τ(M) bounded below + order-box preservation + finite restart → global). The H¹ energy method
 (built, IntervalChiNegH1Energy*) is a STRONGER separate clause; the window-uniform flux envelope is its only gap.
+
+## [2026-06-23] STRATEGIC REDIRECT — cascade path = comparison-principle uniform L∞, flux envelope is OFF-path
+Harvested cron2 Q85 + cron1 Q84 + check-existing gate:
+- P3 T2.2 socket = SupControlsXpSigmaDistance (sup norm). cron2 Q85: the uniform-in-time bound 0<m≤u≤M
+  follows from "scalar min/max comparison" — NOT the flux envelope. Relative-entropy Lyapunov E=∫(u log u−u+1)
+  is dissipative for χ₀<0 with NO |χ₀| smallness (chem term Σλ_k/(μ+λ_k)|u_k|²≥0; logistic u(1−u)log u≤0).
+- cron1 Q84: the A³/H¹ regularity is a strictly-stronger Wiener-ladder clause (A⁰ seed→A³, +1/pass), NOT
+  one-pass from L∞ → OFF the P3 cascade.
+- Check-existing: chiNeg_H1_unconditional / chiNeg_H1_closed = the H¹ route carrying the flux-envelope seams
+  (Hpersist_direct/Estar-choice). Hpersist itself is COORDINATEWISE (per-mode Estar) — the box-extend
+  "global existence" is the SAME coordinatewise architecture, also carries henv (per-mode flux envelope).
+  conjugatePicardLimit_bounded gives only LOCAL L∞ (ball M=2·B0 DOUBLES per restart — not uniform-in-time).
+- The campaign HAS the true sup-over-x comparison apparatus: NeumannLinearDriftComparisonRegular delivers
+  ∃M,∀t∈[0,T],∀x,|u t x|≤M via sub/supersolution of the linear drift-reaction eq (drift bounded, reaction
+  Lipschitz). NOT YET assembled for the chemotaxis u-equation, NOT yet uniform-in-T.
+DECISION (engineering, mine): build the cascade-critical producer = UNIFORM-IN-TIME L∞ sup bound for the
+χ₀<0 chemotaxis via constant-supersolution comparison (logistic carrying capacity caps u; repulsive sign +
+resolver bound the frozen drift), using the landed NeumannLinearDriftComparisonRegular, feeding the P3 T2.2
+SupControlsXpSigmaDistance socket. This AVOIDS the flux envelope. The H¹ envelope is a separate stronger clause.
