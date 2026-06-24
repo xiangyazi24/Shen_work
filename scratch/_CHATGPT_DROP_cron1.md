@@ -1,716 +1,665 @@
 # ChatGPT git-drop (cron1)
 
-## Q82 — χ₀<0 divergence-weighted flux regularity: exact weighted-Wiener bookkeeping
+## Q84 — χ₀<0 positive-time `A³_cos` smoothing theorem: exact ladder and endpoint issue
 
 ### Executive verdict
 
-Yes: the clean sufficient condition for the chemotaxis flux target
+The clean weighted-Wiener smoothing statement is **not** a one-pass consequence of the `L∞` order box. The Duhamel endpoint `s=t` blocks arbitrary heat smoothing of the nonlinear source. The correct proof is a bootstrap/ladder in weighted Wiener spaces.
+
+However, the ladder does **not** start from `L∞` or `L²` by simply renaming them `A⁰`. In this notation
 
 ```text
-Σ_k λ_k^(3/2) |sineCoeff(F)_k| < ∞,
-F = W v_x,
-W = u (1+v)^(-β),
-v = (μ-Δ)^(-1)u,
+A⁰ = { coefficients in ℓ¹ },
 ```
 
-is exactly
+which is strictly stronger than both `L²` (`ℓ²` coefficients) and `L∞` (only flat coefficient bounds). Thus the clean theorem is:
 
 ```text
-u(t) ∈ A^3_cos,
+A⁰ seed on a positive-time interval + nonlinear ladder ⇒ A³ per slice.
 ```
 
-where
+The ladder gain for the chemotaxis divergence term is exactly **+1 weighted-Wiener derivative per pass**:
 
 ```text
-‖u‖_{A^3_cos} := Σ_k (1+λ_k)^(3/2) |cosineCoeff(u)_k| < ∞.
+u ∈ A^r_cos
+  ⇒ flux F = W v_x ∈ A^r_sin
+  ⇒ ∂xF ∈ A^{r-1}_cos
+  ⇒ ∫ S(t-s)∂xF(s) ds ∈ A^{r+1}_cos.
 ```
 
-The bookkeeping is:
+The logistic/non-divergence term gains +2 and is not limiting. Therefore, once an `A⁰` seed is available, three steps give
 
 ```text
-u ∈ A^3_cos
-  ⇒ v = R_μ u ∈ A^5_cos, hence v ∈ A^3_cos
-  ⇒ v_x ∈ A^4_sin, hence v_x ∈ A^3_sin
-  ⇒ (1+v)^(-β) ∈ A^3_cos               -- weighted Wiener composition/Wiener-Lévy/Moser
-  ⇒ W = u(1+v)^(-β) ∈ A^3_cos          -- cosine product
-  ⇒ F = W v_x ∈ A^3_sin                -- mixed cosine×sine product
-  ⇒ Σ_k λ_k^(3/2)|sineCoeff(F)_k| < ∞.
+A⁰ → A¹ → A² → A³.
 ```
 
-So `u(t) ∈ A^3_cos` is the single clean per-slice sufficient condition.
-
-Caveat: for the full nonlinear mild solution, the linear heat term from `u₀ ∈ L∞` is instantly in every `A^s`, but the Duhamel endpoint is not smoothed at `s=t`. Thus the assertion
-
-```text
-u(t) ∈ A^3 for every t>0 from u₀ ∈ L∞
-```
-
-is a genuine positive-time parabolic smoothing theorem / bootstrap theorem, not merely the observation that `e^{-tλ_k}` kills polynomial weights. It is true in the standard analytic-parabolic picture, but in Lean it should be a named theorem, not hidden inside the flux bookkeeping.
+If you need small elapsed-time factors for a contraction/supersolution argument, use gains `< 1` for the divergence term. For pure regularity, the endpoint Duhamel estimate gives the full `+1` gain but without a small factor.
 
 ---
 
-## 1. Definitions and weights
+## 1. Weighted Wiener spaces and the heat/Duhamel multiplier
 
 Let
 
 ```text
-λ_k = (kπ)^2,
-w_s(k) = (1+λ_k)^(s/2).
+λ_k = (kπ)²,
+w_r(k) = (1+λ_k)^(r/2),
+‖a‖_{A^r} = Σ_k w_r(k) |a_k|.
 ```
 
-For a cosine coefficient sequence `a`, define
+The heat semigroup is diagonal:
 
 ```text
-‖a‖_{A^s_cos} := Σ_k w_s(k) |a_k|.
+(S(t)a)_k = exp(-tλ_k) a_k.
 ```
 
-For a sine coefficient sequence `b`, define
+For a non-divergence source `G_k(s)`, the Duhamel coefficient is
 
 ```text
-‖b‖_{A^s_sin} := Σ_k w_s(k) |b_k|.
+D_k(t) = ∫_0^t exp(-(t-s)λ_k) G_k(s) ds.
 ```
 
-In Lean, I would define the predicate first:
-
-```lean
-def WeightedL1 (s : ℝ) (a : ℕ → ℝ) : Prop :=
-  Summable (fun k => (1 + lam k) ^ (s / 2) * |a k|)
-```
-
-and then use separate aliases for cosine/sine only at the API level:
-
-```lean
-abbrev CosA (s : ℝ) (f : ℝ → ℝ) : Prop :=
-  WeightedL1 s (cosineCoeffs f)
-
-abbrev SinA (s : ℝ) (f : ℝ → ℝ) : Prop :=
-  WeightedL1 s (sineCoeffs f)
-```
-
-Mode `k=0` is harmless for sine because `sineCoeff _ 0 = 0`, and for the divergence target because `λ_0 = 0`.
-
-Also note:
+If `G ∈ L∞([0,t]; A^r)`, then for `0 ≤ α ≤ 2`,
 
 ```text
-λ_k^(3/2) ≤ (1+λ_k)^(3/2) = w_3(k),
+D ∈ A^{r+α},
 ```
 
-so
+with the endpoint estimate
 
 ```text
-F ∈ A^3_sin ⇒ Σ_k λ_k^(3/2)|sineCoeff(F)_k| < ∞.
+w_{r+α}(k) |D_k(t)|
+  ≤ C_{α,t} w_r(k) sup_s |G_k(s)|.
 ```
 
-This is the exact target reduction.
+For `0 ≤ α < 2`, one has the small-time factor
+
+```text
+C_α t^{1-α/2}
+```
+
+coming from
+
+```text
+(1+λ)^{α/2} ∫_0^t exp(-ρλ) dρ ≤ C_α t^{1-α/2}.
+```
+
+For `α=2`, the estimate is still finite on a bounded time interval but has no small factor:
+
+```text
+(1+λ) ∫_0^t exp(-ρλ) dρ ≤ C_t.
+```
+
+The zero mode only contributes `t`; this is harmless for finite `t` and often vanishes for divergence sources.
 
 ---
 
-## 2. Resolver gain: exact constants
+## 2. Divergence source: why the gain is +1, not +2
 
-Let
-
-```text
-u_k := cosineCoeff(u)_k,
-v_k := cosineCoeff(v)_k = u_k / (μ + λ_k),
-μ > 0.
-```
-
-### 2.1 Two-derivative gain for `v`
-
-Compute:
+For the chemotaxis term write
 
 ```text
-w_{s+2}(k) |v_k|
-  = (1+λ_k)^((s+2)/2) |u_k|/(μ+λ_k)
-  = w_s(k) |u_k| * (1+λ_k)/(μ+λ_k).
+F := W v_x,
+source := ∂xF.
 ```
 
-The multiplier satisfies
+With the sine/cosine divergence identity,
 
 ```text
-(1+λ)/(μ+λ) ≤ C_R(μ),
-C_R(μ) := max 1 (1/μ).
+cosCoeff(∂xF)_k = ± sqrt(λ_k) sineCoeff(F)_k.
 ```
 
-Indeed the ratio is monotone in `λ` depending on whether `μ` is above or below `1`, and its endpoint limits are `1/μ` at `λ=0` and `1` at infinity.
-
-Therefore
+If
 
 ```text
-‖v‖_{A^{s+2}_cos} ≤ C_R(μ) ‖u‖_{A^s_cos}.
-```
-
-A Lean-friendly theorem:
-
-```lean
-theorem resolver_cosA_gain_two
-    (hμ : 0 < μ) (hu : WeightedL1 s uhat) :
-    WeightedL1 (s+2) (fun k => uhat k / (μ + lam k))
-```
-
-with the proof by `Summable.of_nonneg_of_le` and the pointwise multiplier bound.
-
-### 2.2 Zero-derivative bound for `v`
-
-Sometimes useful:
-
-```text
-w_s(k)|v_k| = w_s(k)|u_k|/(μ+λ_k) ≤ (1/μ) w_s(k)|u_k|.
-```
-
-Thus
-
-```text
-‖v‖_{A^s_cos} ≤ μ^{-1} ‖u‖_{A^s_cos}.
-```
-
-### 2.3 One-derivative net gain for `v_x`
-
-The sine coefficients of `v_x` are, up to sign/normalization,
-
-```text
-sineCoeff(v_x)_k = sqrt(λ_k) v_k
-                 = sqrt(λ_k) u_k/(μ+λ_k).
-```
-
-Then
-
-```text
-w_{s+1}(k) |sineCoeff(v_x)_k|
-  = w_s(k)|u_k| * sqrt(λ_k) sqrt(1+λ_k)/(μ+λ_k).
-```
-
-The multiplier satisfies the crude but clean bound
-
-```text
-sqrt(λ) sqrt(1+λ)/(μ+λ)
-  ≤ (1+λ)/(μ+λ)
-  ≤ C_R(μ),
-```
-
-because `sqrt(λ) ≤ sqrt(1+λ)`.
-
-Therefore
-
-```text
-‖v_x‖_{A^{s+1}_sin} ≤ C_R(μ) ‖u‖_{A^s_cos}.
-```
-
-In particular:
-
-```text
-u ∈ A^3_cos ⇒ v_x ∈ A^4_sin ⇒ v_x ∈ A^3_sin,
-```
-
-and also
-
-```text
-u ∈ A^2_cos ⇒ v_x ∈ A^3_sin.
-```
-
-Since `A^3 ⊂ A^2`, `u ∈ A^3` is enough.
-
-Lean theorem:
-
-```lean
-theorem resolver_vx_sinA_gain_one
-    (hμ : 0 < μ) (hu : WeightedL1 s uhat) :
-    WeightedL1 (s+1)
-      (fun k => Real.sqrt (lam k) * (uhat k / (μ + lam k)))
-```
-
-Pointwise multiplier lemma:
-
-```lean
-lemma sqrt_lam_mul_sqrt_one_add_div_le
-    (hμ : 0 < μ) :
-  Real.sqrt (lam k) * Real.sqrt (1 + lam k) / (μ + lam k)
-    ≤ max 1 μ⁻¹
-```
-
-or avoid the sharp `max` and use any finite constant already convenient in the repo.
-
----
-
-## 3. Weighted Wiener product estimates
-
-For `s ≥ 0`, the weighted Wiener space `A^s` is an algebra. The user wrote `s>1/2`; that threshold is needed when deriving ℓ¹ from an `H^s`/`MemHSigma` norm, but once the norm is already weighted ℓ¹, the product algebra works for all `s ≥ 0`.
-
-The reason is the Peetre/submultiplicative weight estimate. If a product mode `k` arises from either
-
-```text
-k = m+n
-```
-
-or
-
-```text
-k = |m-n|,
+F ∈ A^r_sin,
 ```
 
 then
 
 ```text
-sqrt(1+λ_k) ≤ sqrt(1+λ_{m+n}) ≤ sqrt(1+λ_m) + sqrt(1+λ_n)
-             ≤ 2 sqrt(1+λ_m) sqrt(1+λ_n).
+∂xF ∈ A^{r-1}_cos,
 ```
 
-Therefore
+because
 
 ```text
-w_s(k) ≤ 2^s w_s(m) w_s(n),      s ≥ 0.
+w_{r-1}(k) sqrt(λ_k) |F_k|
+  ≤ w_r(k) |F_k|.
 ```
 
-This handles both the additive convolution and the cosine folding/correlation terms.
-
-### 3.1 Cosine × cosine → cosine
-
-There is a constant `Ccos(s)` depending only on `s` and the cosine normalization such that
+Now the heat Duhamel gains two derivatives from the source scale:
 
 ```text
-‖trueCosProd(a,b)‖_{A^s_cos}
-  ≤ Ccos(s) ‖a‖_{A^s_cos} ‖b‖_{A^s_cos}.
+A^{r-1}_cos --Duhamel--> A^{r+1}_cos.
 ```
 
-A more useful tame version is
+Equivalently, directly:
 
 ```text
-‖trueCosProd(a,b)‖_{A^s}
-  ≤ C_s (‖a‖_{A^s} ‖b‖_{A^0} + ‖a‖_{A^0} ‖b‖_{A^s}),
+w_{r+1}(k) ∫_0^t exp(-(t-s)λ_k) sqrt(λ_k)|F_k(s)| ds
+  ≤ C_t w_r(k) sup_s |F_k(s)|.
 ```
 
-and since `A^s ⊂ A^0` for `s ≥ 0`, this implies the algebra estimate.
-
-Lean target:
-
-```lean
-theorem weightedL1_trueCosProd
-    (hs : 0 ≤ s)
-    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
-    WeightedL1 s (trueCosProd a b)
-```
-
-or the stronger normed estimate if you have a bundled norm.
-
-### 3.2 Cosine × sine → sine
-
-For the mixed product, the same bookkeeping applies. The product formula has the same additive and folded/correlation indices, with one sign change in the difference term. Absolute values absorb the sign.
-
-Thus
+For `k≥1`, use
 
 ```text
-‖trueMixedProd(a,b)‖_{A^s_sin}
-  ≤ Cmix(s) ‖a‖_{A^s_cos} ‖b‖_{A^s_sin}.
+sqrt(λ_k) sqrt(1+λ_k) ∫_0^t exp(-ρλ_k) dρ
+  ≤ sqrt(λ_k) sqrt(1+λ_k) / λ_k
+  = sqrt(1+λ_k)/sqrt(λ_k)
+  ≤ C,
 ```
 
-Lean target:
+since `λ_k ≥ π²` for `k≥1`. For `k=0`, the divergence mode is zero.
 
-```lean
-theorem weightedL1_trueMixedProd
-    (hs : 0 ≤ s)
-    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
-    WeightedL1 s (trueMixedProd a b)
-```
+So the chemotaxis divergence term gives a **net +1** gain from flux regularity to `u` regularity.
 
-This is the weighted-ℓ¹ analogue of the already-landed mixed `H^σ` product algebra.
+### Small-factor version
 
----
-
-## 4. Composition: `(1+v)^(-β)`
-
-You need a weighted Wiener Nemytskii/Wiener-Lévy theorem.
-
-Let
+If you need a shrinking factor in `t`, then use any `0 ≤ α < 1`:
 
 ```text
-ψ(z) = (1+z)^(-β),   β ≥ 0.
-```
-
-Since `v ≥ 0`, the range of `v` is contained in `[0,R]` for some `R`, so `ψ` is smooth and in fact real analytic on an open neighborhood of the range, with no singularity near it.
-
-The correct estimate is:
-
-```text
-‖ψ(v)‖_{A^s_cos}
-  ≤ C_{s,β,R}(1 + ‖v‖_{A^s_cos}),
-```
-
-where `R ≥ ‖v‖_∞`.
-
-For `ψ(0)=1`, the constant `1` accounts for the zero/constant mode. If one applies the theorem to `ψ(v)-ψ(0)`, the estimate is linear in `‖v‖_{A^s}`:
-
-```text
-‖ψ(v)-ψ(0)‖_{A^s} ≤ C_{s,β,R} ‖v‖_{A^s}.
-```
-
-This is a genuine analytic composition lemma. Possible proof routes:
-
-1. **Wiener-Lévy / holomorphic functional calculus** for weighted Wiener algebras.
-2. **Besov/Moser composition** for the Fourier ℓ¹ scale.
-3. For integer `s=3`, a hand proof via differentiating up to order `3` plus an already-proved inverse/composition closure in `A^0`.
-
-Do not pretend this follows from product closure alone unless `β` is a nonnegative integer and the expression is a polynomial. For real `β`, this is a real Nemytskii/Wiener-Lévy lemma.
-
-Lean target:
-
-```lean
-theorem weightedL1_one_add_rpow_neg
-    (hs : 0 ≤ s)
-    (hβ : 0 ≤ β)
-    (hv_nonneg : ∀ x, 0 ≤ v x)
-    (hvA : WeightedL1 s (cosineCoeffs v)) :
-    WeightedL1 s (cosineCoeffs (fun x => (1 + v x) ^ (-β)))
-```
-
-For estimates, expose a normed version:
-
-```text
-‖(1+v)^(-β)‖_{A^s} ≤ C(s,β,‖v‖∞) * (1 + ‖v‖_{A^s}).
-```
-
-Since the resolver gives `‖v‖∞ ≤ M/μ`, in the chemotaxis application the constant depends only on `s, β, μ, M` and the relevant `A^s` norm of `u`.
-
----
-
-## 5. Bookkeeping for `W = u(1+v)^(-β)`
-
-Assume
-
-```text
-u ∈ A^3_cos.
-```
-
-Then by resolver gain:
-
-```text
-v ∈ A^5_cos,
-```
-
-hence, by monotonicity of the weights,
-
-```text
-v ∈ A^3_cos.
-```
-
-By the composition theorem:
-
-```text
-D := (1+v)^(-β) ∈ A^3_cos,
+F ∈ A^r_sin
+  ⇒ ∫ S(t-s)∂xF(s) ds ∈ A^{r+α}_cos,
 ```
 
 with
 
 ```text
-‖D‖_{A^3} ≤ C_{β,μ,M}(1 + ‖v‖_{A^3})
-          ≤ C_{β,μ,M}(1 + C_R(μ) ‖u‖_{A^1})
-          ≤ C_{β,μ,M}(1 + C_R(μ) ‖u‖_{A^3}).
+‖Dchem(t)‖_{A^{r+α}}
+  ≤ C_α t^{(1-α)/2} sup_s ‖F(s)‖_{A^r_sin}.
 ```
 
-Then product closure gives
-
-```text
-W = u D ∈ A^3_cos,
-```
-
-with
-
-```text
-‖W‖_{A^3}
-  ≤ Ccos(3) ‖u‖_{A^3} ‖D‖_{A^3}
-  ≤ C ‖u‖_{A^3} (1 + ‖u‖_{A^3}).
-```
-
-The exact polynomial dependence is not important for summability; for explicit estimates it is typically quadratic in the `A^3` size of `u`.
+This is the estimate you quoted. The endpoint `α=1` is the full regularity gain but no small-time margin.
 
 ---
 
-## 6. Bookkeeping for `F = W v_x`
+## 3. Nonlinearity at level `A^r`
 
-From `u ∈ A^3_cos`, the derivative-resolver gain gives
-
-```text
-v_x ∈ A^4_sin,
-```
-
-hence
+Assume `r ≥ 0` and
 
 ```text
-v_x ∈ A^3_sin.
+u ∈ A^r_cos.
 ```
 
-More explicitly, using only the minimal input,
-
-```text
-u ∈ A^2_cos ⇒ v_x ∈ A^3_sin.
-```
-
-Since `A^3 ⊂ A^2`, `u ∈ A^3` is enough.
-
-Now apply the mixed product estimate:
-
-```text
-F = W v_x ∈ A^3_sin,
-```
-
-with
-
-```text
-‖F‖_{A^3_sin}
-  ≤ Cmix(3) ‖W‖_{A^3_cos} ‖v_x‖_{A^3_sin}
-  ≤ C ‖u‖_{A^3} (1 + ‖u‖_{A^3}) ‖u‖_{A^2}
-  ≤ C ‖u‖_{A^3}^2 (1 + ‖u‖_{A^3}).
-```
-
-Thus
-
-```text
-Σ_k λ_k^(3/2) |sineCoeff(F)_k|
-  ≤ Σ_k (1+λ_k)^(3/2) |sineCoeff(F)_k|
-  = ‖F‖_{A^3_sin}
-  < ∞.
-```
-
-This confirms the reduction:
-
-```text
-u(t) ∈ A^3_cos  ⇒  W(t)v_x(t) ∈ A^3_sin
-                 ⇒  divergence-weighted source ℓ¹.
-```
-
-So, yes: **per-slice `u ∈ A^3_cos` is the single clean sufficient condition** for the chemotaxis flux source regularity package.
-
----
-
-## 7. Relation to Sobolev `MemHSigma`
-
-If you want to produce `A^3` from a Sobolev coefficient square-summability statement, the embedding is:
-
-```text
-MemHSigma q a  and  q > s + 1/2  ⇒  WeightedL1 s a.
-```
-
-Proof by Cauchy-Schwarz:
-
-```text
-Σ w_s |a_k|
-  = Σ ((1+λ_k)^(q/2)|a_k|) * (1+λ_k)^((s-q)/2)
-  ≤ (Σ (1+λ_k)^q a_k²)^(1/2)
-     (Σ (1+λ_k)^(s-q))^(1/2).
-```
-
-Since `λ_k ~ k²`,
-
-```text
-Σ (1+λ_k)^(s-q)
-```
-
-converges iff
-
-```text
-2(q-s) > 1,
-```
-
-that is
-
-```text
-q > s + 1/2.
-```
-
-Therefore:
-
-```text
-u ∈ H^{3+1/2+ε} = H^{7/2+ε}
-  ⇒ u ∈ A^3.
-```
-
-This is a sufficient Sobolev route, but for the weighted-Wiener formalization it is cleaner to work directly in `A^3`.
-
----
-
-## 8. Parabolic smoothing: what is true and what must be proved
-
-### 8.1 Linear heat part
-
-If `u₀ ∈ L∞`, then the raw cosine coefficients satisfy a flat bound
-
-```text
-|u₀,k| ≤ C ‖u₀‖∞.
-```
-
-For the heat part,
-
-```text
-(S(t)u₀)_k = exp(-tλ_k) u₀,k.
-```
-
-Thus for every `t>0` and every `s ≥ 0`,
-
-```text
-‖S(t)u₀‖_{A^s}
-  ≤ C ‖u₀‖∞ Σ_k (1+λ_k)^(s/2) exp(-tλ_k)
-  < ∞.
-```
-
-The sum behaves like
-
-```text
-t^{-(s+1)/2}
-```
-
-as `t ↓ 0`. For `s=3`, it behaves like `t^{-2}`.
-
-So the heat term is instantly in `A^3`.
-
-### 8.2 Full nonlinear mild solution
-
-For the full mild solution, do not argue only from the heat factor in the initial term. The Duhamel term has an endpoint `a=t` where the heat kernel has zero elapsed time:
-
-```text
-∫_0^t S(t-a) N(u(a)) da.
-```
-
-A bounded source alone does not give `A^3` at the endpoint. The smoothing is recovered by a positive-time bootstrap / analytic-semigroup regularity theorem, not by a one-line estimate using `exp(-tλ_k)`.
-
-The clean formal theorem should be named something like:
-
-```lean
-theorem mildSolution_cosA_posTime
-    (ht : 0 < t) :
-    WeightedL1 3 (cosineCoeffs (u t))
-```
-
-or uniformly on positive strips:
-
-```lean
-theorem mildSolution_cosA_uniform_on_Icc_pos
-    (hε : 0 < ε) (hεT : ε ≤ T) :
-    ∃ C, ∀ t ∈ Set.Icc ε T,
-      weightedL1Norm 3 (cosineCoeffs (u t)) ≤ C
-```
-
-This theorem is standard parabolic smoothing, but it is a genuine theorem. It should be proved by one of:
-
-1. analytic semigroup smoothing in a weighted-Wiener scale;
-2. local contraction restarted at positive time in `A^3`;
-3. classical parabolic regularity strong enough to imply `A^3`, e.g. compatible `H^{7/2+ε}` or weighted Fourier decay.
-
-Once this theorem is available, the flux source regularity follows by the algebraic chain above.
-
-### 8.3 Uniform down to zero
-
-Uniform `A^3` bounds on `[0,T]` require either:
-
-```text
-u₀ ∈ A^3
-```
-
-or a separate near-zero integrable-singularity statement. From `u₀ ∈ L∞` alone, one expects constants to blow up as `t ↓ 0`, even for the linear heat equation.
-
-For many energy arguments it is enough to have the weighted source package on `[ε,T]` and then handle the initial layer separately by approximation or by local smoothing estimates with integrable singularities.
-
----
-
-## 9. Lean theorem chain to formalize
-
-I would implement the following lemmas in this order.
-
-### Weighted Wiener infrastructure
-
-```lean
-def WeightedL1 (s : ℝ) (a : ℕ → ℝ) : Prop :=
-  Summable (fun k => (1 + lam k) ^ (s / 2) * |a k|)
-
-theorem weightedL1_mono
-    (hsr : r ≤ s) (ha : WeightedL1 s a) : WeightedL1 r a
-```
+Then the same weighted-Wiener product bookkeeping from Q82 gives:
 
 ### Resolver
 
-```lean
-theorem weightedL1_resolver_gain_two
-    (hμ : 0 < μ) (ha : WeightedL1 s a) :
-    WeightedL1 (s+2) (fun k => a k / (μ + lam k))
-
-theorem weightedL1_resolver_deriv_gain_one
-    (hμ : 0 < μ) (ha : WeightedL1 s a) :
-    WeightedL1 (s+1)
-      (fun k => Real.sqrt (lam k) * (a k / (μ + lam k)))
+```text
+v = (μ-Δ)^(-1)u ∈ A^{r+2}_cos,
+v_x ∈ A^{r+1}_sin.
 ```
 
-### Products
+In particular, by monotonicity of weights,
 
-```lean
-theorem weightedL1_trueCosProd
-    (hs : 0 ≤ s)
-    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
-    WeightedL1 s (trueCosProd a b)
-
-theorem weightedL1_trueMixedProd
-    (hs : 0 ≤ s)
-    (ha : WeightedL1 s a) (hb : WeightedL1 s b) :
-    WeightedL1 s (trueMixedProd a b)
+```text
+v ∈ A^r_cos,
+v_x ∈ A^r_sin.
 ```
 
-### Composition
+### Denominator composition
 
-```lean
-theorem weightedL1_one_add_resolver_rpow_neg
-    (hβ : 0 ≤ β)
-    (hv_nonneg : ∀ x, 0 ≤ v x)
-    (hvA : WeightedL1 s (cosineCoeffs v)) :
-    WeightedL1 s
-      (cosineCoeffs (fun x => (1 + v x) ^ (-β)))
+Using `v ≥ 0` and the weighted Wiener composition/Wiener-Lévy lemma,
+
+```text
+(1+v)^(-β) ∈ A^r_cos.
 ```
 
-This is the one genuinely analytic Nemytskii/Wiener-Lévy lemma.
+This composition lemma is genuine analytic content. It is not a consequence of product closure unless the exponent is a polynomial case.
 
-### Flux target
+### Weight factor
 
-```lean
-theorem chemFlux_sinA3_of_u_cosA3
-    (hμ : 0 < μ)
-    (hβ : 0 ≤ β)
-    (huA3 : WeightedL1 3 (cosineCoeffs u))
-    (hv_def : cosineCoeffs v = fun k => cosineCoeffs u k / (μ + lam k))
-    (hvx_def : sineCoeffs vx = fun k => Real.sqrt (lam k) * cosineCoeffs v k)
-    (hden : WeightedL1 3 (cosineCoeffs (fun x => (1 + v x)^(-β))))
-    (hWbridge : cosineCoeffs W = trueCosProd (cosineCoeffs u)
-        (cosineCoeffs (fun x => (1 + v x)^(-β))))
-    (hFbridge : sineCoeffs F = trueMixedProd (cosineCoeffs W) (sineCoeffs vx)) :
-    WeightedL1 3 (sineCoeffs F)
+By cosine product closure,
+
+```text
+W = u(1+v)^(-β) ∈ A^r_cos.
 ```
 
-Then the divergence-weighted source summability is immediate:
+### Flux
 
-```lean
-theorem divergence_weighted_source_l1
-    (hF_A3 : WeightedL1 3 (sineCoeffs F)) :
-    Summable (fun k => (lam k) ^ (3/2 : ℝ) * |sineCoeffs F k|)
+By mixed cosine×sine product closure,
+
+```text
+F = W v_x ∈ A^r_sin.
 ```
 
-Use pointwise:
+Therefore the chemotaxis source satisfies
 
-```lean
-(lam k) ^ (3/2 : ℝ) ≤ (1 + lam k) ^ (3/2 : ℝ)
+```text
+∂xF ∈ A^{r-1}_cos,
 ```
 
-from `lam_nonneg` and `Real.rpow_le_rpow`.
+and the Duhamel contribution lies in
+
+```text
+A^{r+1}_cos.
+```
+
+### Logistic source
+
+For a smooth/logistic Nemytskii term `L(u)`, the same composition/product algebra gives
+
+```text
+L(u) ∈ A^r_cos.
+```
+
+Its non-divergence Duhamel leg gains two derivatives:
+
+```text
+∫ S(t-s)L(u(s)) ds ∈ A^{r+2}_cos.
+```
+
+So the logistic leg is never worse than the chemotaxis divergence leg.
 
 ---
 
-## Final answer
+## 4. The finite ladder
 
-The exact gain/product chain is correct as follows:
+Once an `A⁰` seed is available on the relevant time interval, the ladder is:
+
+### Step 0: seed
 
 ```text
-Resolver:  A^s_cos(u) → A^{s+2}_cos(v),       constant ≤ max(1,1/μ)
-Derivative: A^s_cos(u) → A^{s+1}_sin(v_x),    constant ≤ max(1,1/μ)
-Product:   A^s × A^s → A^s,                  for weighted Wiener A^s, s≥0
-Composition: v∈A^s, v≥0 ⇒ (1+v)^(-β)∈A^s,   Wiener-Lévy/Moser lemma
-Flux:      u∈A^3 ⇒ W∈A^3_cos and v_x∈A^3_sin ⇒ Wv_x∈A^3_sin
-Target:    Wv_x∈A^3_sin ⇒ Σ λ_k^(3/2)|sineCoeff(Wv_x)_k| < ∞.
+u ∈ A⁰_cos.
 ```
 
-Thus **`u(t) ∈ A^3_cos` is the single clean per-slice sufficient condition** for the divergence-weighted chemotaxis source regularity.
+Then:
 
-For the mild solution, the linear heat part is instantly in `A^3` from `u₀∈L∞`, but the full nonlinear Duhamel term requires a positive-time parabolic smoothing/bootstrap theorem. On `[ε,T]`, this should yield uniform `A^3` bounds; down to `0`, either assume `u₀∈A^3` or allow the expected heat-smoothing singularity.
+```text
+v ∈ A²,
+v_x ∈ A¹,
+(1+v)^(-β) ∈ A⁰,
+W ∈ A⁰,
+F=Wv_x ∈ A⁰_sin,
+∂xF ∈ A^{-1}_cos,
+Duhamel_chem ∈ A¹_cos,
+Duhamel_log ∈ A²_cos,
+heat leg ∈ A^∞ for t>0.
+```
+
+Conclusion:
+
+```text
+u ∈ A¹_cos.
+```
+
+### Step 1
+
+```text
+u ∈ A¹_cos
+  ⇒ F ∈ A¹_sin
+  ⇒ ∂xF ∈ A⁰_cos
+  ⇒ chem Duhamel ∈ A²_cos
+  ⇒ u ∈ A²_cos.
+```
+
+### Step 2
+
+```text
+u ∈ A²_cos
+  ⇒ F ∈ A²_sin
+  ⇒ ∂xF ∈ A¹_cos
+  ⇒ chem Duhamel ∈ A³_cos
+  ⇒ u ∈ A³_cos.
+```
+
+Thus:
+
+```text
+A⁰ → A¹ → A² → A³.
+```
+
+This is the clean three-step ladder.
+
+If you want strict small-time factors at every step, use
+
+```text
+A^r → A^{r+α}
+```
+
+for any fixed `α<1`, and take `N > 3/α` steps. This is more cumbersome but useful for invariant-ball proofs. For pure positive-time regularity, the exact `+1` ladder is cleaner.
+
+---
+
+## 5. The base `A⁰` seed is the real issue
+
+The statement
+
+```text
+u ∈ A⁰ = L²/L∞
+```
+
+is false. `A⁰` means
+
+```text
+Σ_k |cosCoeff(u)_k| < ∞.
+```
+
+Neither `L²` nor `L∞` implies this.
+
+From `u₀ ∈ L∞`, the heat leg
+
+```text
+e^{-tλ_k} u₀,k
+```
+
+is in every `A^r` for `t>0`. But the Duhamel term has the endpoint `s=t`, where there is no heat smoothing. Therefore the full nonlinear `A⁰` seed is not obtained by simply saying “the heat semigroup smooths.”
+
+### What bounded sources alone give
+
+Suppose only that the pre-divergence flux coefficients are flatly bounded:
+
+```text
+|sineCoeff(F(s))_k| ≤ C.
+```
+
+Then the divergence Duhamel coefficient is bounded by
+
+```text
+∫_0^t exp(-(t-s)λ_k) sqrt(λ_k) C ds
+  ≤ C / sqrt(λ_k)
+```
+
+for high modes. Therefore the `A^r` summand behaves like
+
+```text
+(1+λ_k)^{r/2} / sqrt(λ_k) ~ k^{r-1}.
+```
+
+The series
+
+```text
+Σ_k k^{r-1}
+```
+
+converges only for
+
+```text
+r < 0.
+```
+
+So a bounded divergence source gives `A^r` only for negative `r`, not `A⁰`. This is exactly the endpoint obstruction.
+
+Since the weighted-Wiener product algebra above is clean for `r ≥ 0`, this negative regularity seed is not enough by itself to start the `A`-algebra ladder.
+
+### How to get the seed
+
+There are three honest options.
+
+#### Option A: use an already-proved `H^σ`, `σ>1/2`, positive-time seed
+
+If you already have per-slice or trajectory
+
+```text
+u(t) ∈ H^σ,  σ > 1/2,
+```
+
+then Cauchy-Schwarz gives
+
+```text
+u(t) ∈ A⁰.
+```
+
+Indeed,
+
+```text
+Σ |u_k| ≤ (Σ (1+λ_k)^σ u_k²)^{1/2}
+          (Σ (1+λ_k)^(-σ))^{1/2},
+```
+
+and the second sum converges exactly when `σ > 1/2`.
+
+This is the best bridge if your repo already has a positive-time `MemHSigma σ` result with `σ>1/2`.
+
+#### Option B: prove a separate parabolic seed theorem
+
+Name a theorem such as:
+
+```lean
+theorem mildSolution_cosA0_posTime
+    (ht : 0 < t) :
+    WeightedL1 0 (cosineCoeffs (u t))
+```
+
+This is a genuine positive-time smoothing theorem. It cannot be reduced to the heat leg alone.
+
+A standard analytic proof would use parabolic regularity in a scale weaker than `A⁰` first, then bootstrap to `H^σ>1/2`, then embed to `A⁰`, or use time-weighted fixed-point spaces on `(0,t]`.
+
+#### Option C: assume `u₀ ∈ A⁰` and run an `A⁰` local theory
+
+If the initial data already has `A⁰`, then the Duhamel map preserves/improves `A⁰`, and the ladder can start immediately. But this is an extra data regularity assumption.
+
+---
+
+## 6. Answer to question 1: what σ can the Duhamel estimate reach?
+
+For a non-divergence source `G ∈ A^r`, heat Duhamel reaches
+
+```text
+A^{r+α} for every α ≤ 2,
+```
+
+with a small factor only for `α<2`.
+
+For a divergence source `G = ∂xF` with `F ∈ A^r_sin`, heat Duhamel reaches
+
+```text
+A^{r+α} for every α ≤ 1,
+```
+
+with a small factor only for `α<1`.
+
+The endpoint `α=1` is exactly the full divergence-limited smoothing gain but has no small-time power.
+
+Therefore the nonlinear chemotaxis bootstrap is:
+
+```text
+u ∈ A^r  ⇒  F(u) ∈ A^r_sin  ⇒  chemDuhamel ∈ A^{r+1}_cos.
+```
+
+This is not circular as a ladder step: assuming `u ∈ A^r` on a time interval, the product/resolver machinery bounds the source in `A^r`, and the Duhamel operator improves the output to `A^{r+1}`.
+
+It is circular only if you try to prove the initial `A^r` assumption at the same level without a seed or continuation argument.
+
+---
+
+## 7. Answer to question 2: single theorem or ladder?
+
+For Lean, do **not** start with a monolithic theorem
+
+```lean
+mildSolution_cosA3_posTime_from_Linf
+```
+
+unless all lower-level smoothing infrastructure is already available. It will hide the exact obstruction.
+
+Instead formalize modularly:
+
+```lean
+theorem chemDuhamel_gain_one_A
+    (hr : 0 ≤ r)
+    (hF : ∀ s ∈ Icc t0 t1, SinA r (F s)) :
+    CosA (r+1) (fun k => ∫ ... sqrt(lam k) * sineCoeff(F s) k ...)
+```
+
+```lean
+theorem logisticDuhamel_gain_two_A
+    (hr : 0 ≤ r)
+    (hG : ∀ s ∈ Icc t0 t1, CosA r (G s)) :
+    CosA (r+2) (fun k => ∫ ... cosineCoeff(G s) k ...)
+```
+
+```lean
+theorem nonlinearity_flux_A
+    (hr : 0 ≤ r)
+    (hu : CosA r u) :
+    SinA r (fun x => W x * vx x)
+```
+
+Then combine them into:
+
+```lean
+theorem mild_A_step
+    (hr : 0 ≤ r)
+    (huA : trajectory/slice u in A^r on the interval)
+    (hheat : heat leg smooth) :
+    u(t) ∈ A^{r+1}_cos
+```
+
+Finally iterate:
+
+```lean
+theorem mild_A3_of_A0_seed
+    (hA0 : positive-time A0 seed) :
+    u(t) ∈ A^3_cos
+```
+
+This is much less work and much less brittle than a one-pass proof.
+
+A direct one-pass proof from the `L∞` box to `A³` is not available: the divergence endpoint estimate from bounded flux gives only `A^r` for `r<0`.
+
+---
+
+## 8. Answer to question 3: product machinery at each ladder step
+
+Yes. Each step uses the same resolver/flux weighted-Wiener machinery at the current level `r`:
+
+```text
+u ∈ A^r
+  ⇒ v ∈ A^{r+2}
+  ⇒ v_x ∈ A^{r+1} ⊂ A^r
+  ⇒ (1+v)^(-β) ∈ A^r
+  ⇒ W = u(1+v)^(-β) ∈ A^r
+  ⇒ F = W v_x ∈ A^r_sin.
+```
+
+Then Duhamel gives the next level:
+
+```text
+F ∈ A^r_sin ⇒ Dchem ∈ A^{r+1}_cos.
+```
+
+So the product bookkeeping is exactly the Q82 machinery, parameterized by `r`, and applied repeatedly at `r=0,1,2`.
+
+The one extra analytic lemma is the composition theorem
+
+```text
+v ∈ A^r, v≥0 ⇒ (1+v)^(-β) ∈ A^r.
+```
+
+This is needed at every level. If you only prove it at `r=0,1,2`, that is enough for the three-step ladder.
+
+---
+
+## 9. Suggested Lean theorem names
+
+### Weighted Wiener predicate
+
+```lean
+def WeightedL1 (r : ℝ) (a : ℕ → ℝ) : Prop :=
+  Summable (fun k => (1 + lam k) ^ (r / 2) * |a k|)
+```
+
+### Heat leg
+
+```lean
+theorem heat_cosA_all_posTime_of_linf_coeff_bound
+    (ht : 0 < t)
+    (hcoeff : ∀ k, |u0hat k| ≤ M0)
+    (r : ℝ) :
+    WeightedL1 r (fun k => Real.exp (-(t * lam k)) * u0hat k)
+```
+
+### Duhamel gain, non-divergence
+
+```lean
+theorem heatDuhamel_cosA_gain_two
+    (hr : 0 ≤ r)
+    (hG : ∀ s ∈ Icc 0 t, WeightedL1 r (G s))
+    (hG_unif : ∃ Genv, WeightedL1 r Genv ∧ ∀ s ∈ Icc 0 t, ∀ k, |G s k| ≤ Genv k) :
+    WeightedL1 (r+2)
+      (fun k => ∫ s in 0..t, Real.exp (-((t-s) * lam k)) * G s k)
+```
+
+For endpoint `+2`, allow constants depending on `t` and handle mode zero.
+
+### Duhamel gain, divergence
+
+```lean
+theorem heatDuhamel_div_sinA_gain_one
+    (hr : 0 ≤ r)
+    (hFenv : WeightedL1 r Fenv)
+    (hFbd : ∀ s ∈ Icc 0 t, ∀ k, |Fsin s k| ≤ Fenv k) :
+    WeightedL1 (r+1)
+      (fun k => ∫ s in 0..t,
+        Real.exp (-((t-s) * lam k)) * Real.sqrt (lam k) * Fsin s k)
+```
+
+The proof is the pointwise multiplier bound
+
+```text
+(1+λ)^{1/2} sqrt(λ) ∫_0^t exp(-ρλ)dρ ≤ C_t
+```
+
+combined with the `A^r` envelope.
+
+### Nonlinearity at level `r`
+
+```lean
+theorem chemFlux_sinA_of_u_cosA
+    (hr : 0 ≤ r)
+    (hu : WeightedL1 r (cosineCoeffs u)) :
+    WeightedL1 r (sineCoeffs (fun x => W x * vx x))
+```
+
+with assumptions/fields for resolver definition, denominator composition, and product bridges.
+
+### Ladder theorem
+
+```lean
+theorem mild_posTime_A3_of_A0_seed
+    (hA0 : trajectory/slice A0 seed on the needed interval)
+    (hstep : ∀ r ∈ {0,1,2}, A^r step theorem) :
+    WeightedL1 3 (cosineCoeffs (u t))
+```
+
+If you want a uniform-on-strip version:
+
+```lean
+theorem mild_posTime_A3_uniform_on_Icc
+    (hε : 0 < ε) (hεT : ε ≤ T)
+    (hA0strip : ∃ E0, WeightedL1 0 E0 ∧
+      ∀ s ∈ Icc ε T, ∀ k, |cosineCoeffs (u s) k| ≤ E0 k) :
+    ∃ E3, WeightedL1 3 E3 ∧
+      ∀ s ∈ Icc ε T, ∀ k, |cosineCoeffs (u s) k| ≤ E3 k
+```
+
+This uniform-envelope form is usually more useful than per-slice membership.
+
+---
+
+## 10. Final answer
+
+The positive-time `A³` theorem should be named and proved as a **two-stage theorem**:
+
+1. **Seed theorem:** obtain `A⁰` on a positive-time slice/strip. This does not follow from `L∞` by a one-line heat estimate because of the Duhamel endpoint. It must come from an existing `H^σ`, `σ>1/2`, smoothing theorem, a separate parabolic seed theorem, or an `A⁰` local theory.
+
+2. **Weighted-Wiener ladder:** once `A⁰` is available, iterate the divergence-limited gain
+
+```text
+A^r → A^{r+1}
+```
+
+three times. The logistic leg gains two derivatives, and the chemotaxis divergence leg gains one. The product/resolver/denominator machinery is used at every step at the current level `r`.
+
+So the concrete ladder is:
+
+```text
+A⁰ seed
+  → flux in A⁰_sin → chem Duhamel in A¹_cos → u in A¹
+  → flux in A¹_sin → chem Duhamel in A²_cos → u in A²
+  → flux in A²_sin → chem Duhamel in A³_cos → u in A³.
+```
+
+This is the Lean-ready structure. A direct one-pass proof from the `L∞` order box to `A³` is not sound; the endpoint source is not smoothed enough. A monolithic `u(t) ∈ A³` theorem is fine as a final wrapper, but the formal proof should expose the `A⁰` seed and the three +1 ladder steps.
