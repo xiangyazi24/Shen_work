@@ -1,665 +1,689 @@
 # ChatGPT git-drop (cron1)
 
-## Q84 — χ₀<0 positive-time `A³_cos` smoothing theorem: exact ladder and endpoint issue
+## Q88 — χ₀<0 interval chemotaxis: constant L∞ supersolution
 
 ### Executive verdict
 
-The clean weighted-Wiener smoothing statement is **not** a one-pass consequence of the `L∞` order box. The Duhamel endpoint `s=t` blocks arbitrary heat smoothing of the nonlinear source. The correct proof is a bootstrap/ladder in weighted Wiener spaces.
-
-However, the ladder does **not** start from `L∞` or `L²` by simply renaming them `A⁰`. In this notation
+For the repulsive sign as stated,
 
 ```text
-A⁰ = { coefficients in ℓ¹ },
+u_t = u_xx + a ∂x(u v_x) + u(1-u),
+a := -χ₀ > 0,
+μ v - v_xx = u,
 ```
 
-which is strictly stronger than both `L²` (`ℓ²` coefficients) and `L∞` (only flat coefficient bounds). Thus the clean theorem is:
+the constant upper bound
 
 ```text
-A⁰ seed on a positive-time interval + nonlinear ladder ⇒ A³ per slice.
+M := max(1, ‖u₀‖∞)
 ```
 
-The ladder gain for the chemotaxis divergence term is exactly **+1 weighted-Wiener derivative per pass**:
+**does close uniformly in time**. No window-uniform `H^σ` flux envelope is needed.
+
+The crucial point is to rewrite the actual equation as a local semilinear drift-reaction equation with the actual resolver `v` frozen as a coefficient:
 
 ```text
-u ∈ A^r_cos
-  ⇒ flux F = W v_x ∈ A^r_sin
-  ⇒ ∂xF ∈ A^{r-1}_cos
-  ⇒ ∫ S(t-s)∂xF(s) ds ∈ A^{r+1}_cos.
+u_t = u_xx + a v_x u_x + u(1 + a μ v) - (a+1)u².
 ```
 
-The logistic/non-divergence term gains +2 and is not limiting. Therefore, once an `A⁰` seed is available, three steps give
+Then, on any strip where `0 ≤ u ≤ M`, the resolver maximum principle gives
 
 ```text
-A⁰ → A¹ → A² → A³.
+0 ≤ v ≤ M/μ,
 ```
 
-If you need small elapsed-time factors for a contraction/supersolution argument, use gains `< 1` for the divergence term. For pure regularity, the endpoint Duhamel estimate gives the full `+1` gain but without a small factor.
+hence
+
+```text
+M[(a+1)M - 1 - a μ v] ≥ M[(a+1)M - 1 - aM] = M(M-1) ≥ 0.
+```
+
+So `M` is a constant supersolution of the **rewritten local semilinear equation**. The nonlocality is closed by the same `M`-ball through `v ≤ M/μ`.
+
+Do **not** test the constant `M` in the frozen divergence expression `a M v_xx + M(1-M)` with `v_xx = μv - u_actual`; that is the wrong comparison operator and can give a false obstruction. The comparison operator should be the local semilinear equation actually satisfied by `u`, with reaction
+
+```text
+R_v(q) := q(1 + a μ v) - (a+1)q².
+```
+
+At `q=u`, this is exactly the original equation. At `q=M`, it exposes the stabilizing `-(a+1)M²` term.
 
 ---
 
-## 1. Weighted Wiener spaces and the heat/Duhamel multiplier
+## 1. Expansion and exact drift-reaction form
 
-Let
-
-```text
-λ_k = (kπ)²,
-w_r(k) = (1+λ_k)^(r/2),
-‖a‖_{A^r} = Σ_k w_r(k) |a_k|.
-```
-
-The heat semigroup is diagonal:
+Start from
 
 ```text
-(S(t)a)_k = exp(-tλ_k) a_k.
+u_t = u_xx + a ∂x(u v_x) + u(1-u).
 ```
 
-For a non-divergence source `G_k(s)`, the Duhamel coefficient is
+Expand:
 
 ```text
-D_k(t) = ∫_0^t exp(-(t-s)λ_k) G_k(s) ds.
+∂x(u v_x) = u_x v_x + u v_xx.
 ```
 
-If `G ∈ L∞([0,t]; A^r)`, then for `0 ≤ α ≤ 2`,
+Use the elliptic equation
 
 ```text
-D ∈ A^{r+α},
+μv - v_xx = u,
 ```
 
-with the endpoint estimate
+so
 
 ```text
-w_{r+α}(k) |D_k(t)|
-  ≤ C_{α,t} w_r(k) sup_s |G_k(s)|.
+v_xx = μv - u.
 ```
 
-For `0 ≤ α < 2`, one has the small-time factor
+Then
 
 ```text
-C_α t^{1-α/2}
+a ∂x(u v_x)
+  = a u_x v_x + a u(μv-u)
+  = a v_x u_x + a μ u v - a u².
 ```
 
-coming from
+Adding the logistic term gives
 
 ```text
-(1+λ)^{α/2} ∫_0^t exp(-ρλ) dρ ≤ C_α t^{1-α/2}.
+u(1-u) = u - u².
 ```
 
-For `α=2`, the estimate is still finite on a bounded time interval but has no small factor:
+Therefore
 
 ```text
-(1+λ) ∫_0^t exp(-ρλ) dρ ≤ C_t.
+u_t
+  = u_xx + a v_x u_x + a μu v - a u² + u - u²
+  = u_xx + a v_x u_x + u(1+a μv) - (a+1)u².
 ```
 
-The zero mode only contributes `t`; this is harmless for finite `t` and often vanishes for divergence sources.
+So the local drift and reaction are:
+
+```text
+B(t,x) := a v_x(t,x),
+R_v(t,x,q) := q(1+a μ v(t,x)) - (a+1)q².
+```
+
+Equivalently,
+
+```text
+u_t = u_xx + B u_x + R_v(t,x,u).
+```
+
+The stabilizing quadratic coefficient is exactly
+
+```text
+-(a+1)u².
+```
+
+It consists of:
+
+```text
+-a u²      from a u v_xx = a u(μv-u),
+-u²        from logistic u(1-u).
+```
+
+This is the sign that closes the bound.
 
 ---
 
-## 2. Divergence source: why the gain is +1, not +2
+## 2. Constant supersolution condition
 
-For the chemotaxis term write
+For a constant candidate `Mbar`, the drift and diffusion terms vanish:
 
 ```text
-F := W v_x,
-source := ∂xF.
+(Mbar)_t = 0,
+(Mbar)_x = 0,
+(Mbar)_xx = 0.
 ```
 
-With the sine/cosine divergence identity,
+For the rewritten semilinear equation, the supersolution residual is
 
 ```text
-cosCoeff(∂xF)_k = ± sqrt(λ_k) sineCoeff(F)_k.
+Res(Mbar)
+  := (Mbar)_t - (Mbar)_xx - B(Mbar)_x - R_v(t,x,Mbar)
+  = - R_v(t,x,Mbar)
+  = Mbar[(a+1)Mbar - 1 - a μ v(t,x)].
 ```
 
-If
+Thus the exact condition is
 
 ```text
-F ∈ A^r_sin,
+(a+1)Mbar ≥ 1 + a μ sup_{strip} v.
 ```
 
-then
+Equivalently,
 
 ```text
-∂xF ∈ A^{r-1}_cos,
+Mbar ≥ (1 + a μ sup v)/(a+1).
 ```
 
-because
+This is the inequality to use if `sup v` is known independently.
+
+But in the bootstrap/comparison argument, `sup v` is controlled by the same `Mbar`-ball. If
 
 ```text
-w_{r-1}(k) sqrt(λ_k) |F_k|
-  ≤ w_r(k) |F_k|.
+0 ≤ u ≤ Mbar
 ```
 
-Now the heat Duhamel gains two derivatives from the source scale:
+on the strip, then the Neumann resolver positivity/maximum principle gives
 
 ```text
-A^{r-1}_cos --Duhamel--> A^{r+1}_cos.
+0 ≤ v ≤ Mbar/μ.
 ```
 
-Equivalently, directly:
+Indeed, at a maximum point of `v`, the Neumann endpoint argument included,
 
 ```text
-w_{r+1}(k) ∫_0^t exp(-(t-s)λ_k) sqrt(λ_k)|F_k(s)| ds
-  ≤ C_t w_r(k) sup_s |F_k(s)|.
+v_xx ≤ 0,
+μv = u + v_xx ≤ Mbar.
 ```
 
-For `k≥1`, use
+At a minimum,
 
 ```text
-sqrt(λ_k) sqrt(1+λ_k) ∫_0^t exp(-ρλ_k) dρ
-  ≤ sqrt(λ_k) sqrt(1+λ_k) / λ_k
-  = sqrt(1+λ_k)/sqrt(λ_k)
-  ≤ C,
+v ≥ 0
 ```
 
-since `λ_k ≥ π²` for `k≥1`. For `k=0`, the divergence mode is zero.
+by the already-landed resolver positivity for `u ≥ 0`.
 
-So the chemotaxis divergence term gives a **net +1** gain from flux regularity to `u` regularity.
-
-### Small-factor version
-
-If you need a shrinking factor in `t`, then use any `0 ≤ α < 1`:
+Therefore
 
 ```text
-F ∈ A^r_sin
-  ⇒ ∫ S(t-s)∂xF(s) ds ∈ A^{r+α}_cos,
+μ v ≤ Mbar,
+```
+
+and hence
+
+```text
+Res(Mbar)
+  ≥ Mbar[(a+1)Mbar - 1 - aMbar]
+  = Mbar(Mbar - 1).
+```
+
+So every
+
+```text
+Mbar ≥ 1
+```
+
+is a supersolution once the same strip has `u≤Mbar`. Taking
+
+```text
+M := max(1, ‖u₀‖∞)
+```
+
+is sufficient.
+
+### Important correction about the “raw divergence residual”
+
+You wrote that at constant `Mbar` the residual looks like
+
+```text
+-[a Mbar v_xx + Mbar(1-Mbar)]
 ```
 
 with
 
 ```text
-‖Dchem(t)‖_{A^{r+α}}
-  ≤ C_α t^{(1-α)/2} sup_s ‖F(s)‖_{A^r_sin}.
+v_xx = μv - u.
 ```
 
-This is the estimate you quoted. The endpoint `α=1` is the full regularity gain but no small-time margin.
+That expression corresponds to testing `q=Mbar` in the operator
+
+```text
+q ↦ q_xx + a ∂x(q v_x) + q(1-q)
+```
+
+while keeping `v` tied to the **actual** `u`. This is not the right local comparison operator.
+
+For comparison, freeze the coefficient `v` and rewrite the actual PDE as
+
+```text
+q_t = q_xx + a v_x q_x + q(1+a μv) - (a+1)q².
+```
+
+The actual solution `u` satisfies this equation exactly. The constant `Mbar` is tested in this rewritten equation, not in the raw frozen-divergence expression. That is what recovers the `-(a+1)Mbar²` term.
+
+If one insists on the raw frozen-divergence residual, one obtains a condition involving `μv-u_actual`, and it need not close. That is an artifact of choosing the wrong comparison formulation.
 
 ---
 
-## 3. Nonlinearity at level `A^r`
+## 3. Bounded drift needed by the comparison lemma
 
-Assume `r ≥ 0` and
-
-```text
-u ∈ A^r_cos.
-```
-
-Then the same weighted-Wiener product bookkeeping from Q82 gives:
-
-### Resolver
+Your comparison lemma requires bounded drift
 
 ```text
-v = (μ-Δ)^(-1)u ∈ A^{r+2}_cos,
-v_x ∈ A^{r+1}_sin.
+B = a v_x.
 ```
 
-In particular, by monotonicity of weights,
+Under the same `M`-ball,
 
 ```text
-v ∈ A^r_cos,
-v_x ∈ A^r_sin.
+0 ≤ u ≤ M,
+0 ≤ v ≤ M/μ.
 ```
 
-### Denominator composition
-
-Using `v ≥ 0` and the weighted Wiener composition/Wiener-Lévy lemma,
+Then
 
 ```text
-(1+v)^(-β) ∈ A^r_cos.
+v_xx = μv - u,
 ```
 
-This composition lemma is genuine analytic content. It is not a consequence of product closure unless the exponent is a polynomial case.
-
-### Weight factor
-
-By cosine product closure,
+with both `μv` and `u` in `[0,M]`, so
 
 ```text
-W = u(1+v)^(-β) ∈ A^r_cos.
+|v_xx| ≤ M.
 ```
 
-### Flux
-
-By mixed cosine×sine product closure,
+Using Neumann boundary condition `v_x(0)=0`, for `x∈[0,1]`,
 
 ```text
-F = W v_x ∈ A^r_sin.
+|v_x(x)| = |∫_0^x v_xx(y)dy|
+         ≤ ∫_0^1 |v_xx(y)|dy
+         ≤ M.
 ```
 
-Therefore the chemotaxis source satisfies
+Thus
 
 ```text
-∂xF ∈ A^{r-1}_cos,
+‖v_x‖∞ ≤ M,
+‖B‖∞ ≤ aM.
 ```
 
-and the Duhamel contribution lies in
+If you do not want to use nonnegativity, the cruder sign-free estimates are
 
 ```text
-A^{r+1}_cos.
+|v| ≤ M/μ,
+|v_xx| ≤ 2M,
+|v_x| ≤ 2M,
+|B| ≤ 2aM.
 ```
 
-### Logistic source
+But with `u ≥ 0`, the sharper `M` bound is available.
 
-For a smooth/logistic Nemytskii term `L(u)`, the same composition/product algebra gives
+The reaction
 
 ```text
-L(u) ∈ A^r_cos.
+R_v(q) = q(1+a μv) - (a+1)q²
 ```
 
-Its non-divergence Duhamel leg gains two derivatives:
+is locally Lipschitz in `q` on any bounded interval. On `q ∈ [0,M]`, one may take for example
 
 ```text
-∫ S(t-s)L(u(s)) ds ∈ A^{r+2}_cos.
+Lip_R ≤ 1 + aM + 2(a+1)M,
 ```
 
-So the logistic leg is never worse than the chemotaxis divergence leg.
+because `μv≤M`.
+
+For the divided-difference linearization used by a linear comparison lemma, define
+
+```text
+C_M(t,x)
+  := if u(t,x) = M then
+       ∂_q R_v(t,x,M)
+     else
+       (R_v(t,x,u(t,x)) - R_v(t,x,M)) / (u(t,x)-M).
+```
+
+Algebraically, since `R_v(q)` is quadratic,
+
+```text
+R_v(u) - R_v(M)
+  = [(1+a μv) - (a+1)(u+M)] (u-M).
+```
+
+So no actual `if` is needed:
+
+```text
+C_M(t,x) = (1+a μv(t,x)) - (a+1)(u(t,x)+M).
+```
+
+Then for `z := u-M`,
+
+```text
+z_t
+  = z_xx + B z_x + C_M z + R_v(M).
+```
+
+Since `R_v(M) ≤ 0`, one has
+
+```text
+z_t ≤ z_xx + B z_x + C_M z.
+```
+
+With `z(0)≤0` and Neumann boundary condition for `z`, the linear comparison principle gives `z≤0`.
+
+This is the clean bridge from a semilinear supersolution to your linear drift-reaction comparison lemma.
+
+For nonnegativity, use `0` as a subsolution. Since
+
+```text
+R_v(0)=0,
+```
+
+and the drift/diffusion terms vanish on `0`, comparison gives
+
+```text
+u ≥ 0
+```
+
+from `u₀≥0`.
 
 ---
 
-## 4. The finite ladder
+## 4. Uniform-in-time closure
 
-Once an `A⁰` seed is available on the relevant time interval, the ladder is:
-
-### Step 0: seed
+The constant
 
 ```text
-u ∈ A⁰_cos.
+M = max(1, ‖u₀‖∞)
 ```
 
-Then:
+is independent of `T`. To prove the bound on any finite strip `[0,T]`, use a continuation/first-crossing argument.
+
+### Option A: first-crossing proof
+
+Let
 
 ```text
-v ∈ A²,
-v_x ∈ A¹,
-(1+v)^(-β) ∈ A⁰,
-W ∈ A⁰,
-F=Wv_x ∈ A⁰_sin,
-∂xF ∈ A^{-1}_cos,
-Duhamel_chem ∈ A¹_cos,
-Duhamel_log ∈ A²_cos,
-heat leg ∈ A^∞ for t>0.
+U(t) := sup_{x∈[0,1]} u(t,x).
 ```
 
-Conclusion:
+Assume there is a first time `t*` when `U(t*) = M` and the solution attempts to cross above `M`. At a maximum point `x*`,
 
 ```text
-u ∈ A¹_cos.
+u_x(t*,x*) = 0,
+u_xx(t*,x*) ≤ 0.
 ```
 
-### Step 1
+Since before `t*` we have `u≤M`, the resolver bound gives
 
 ```text
-u ∈ A¹_cos
-  ⇒ F ∈ A¹_sin
-  ⇒ ∂xF ∈ A⁰_cos
-  ⇒ chem Duhamel ∈ A²_cos
-  ⇒ u ∈ A²_cos.
+μv(t*,x*) ≤ M.
 ```
 
-### Step 2
+Using the rewritten equation at the maximum:
 
 ```text
-u ∈ A²_cos
-  ⇒ F ∈ A²_sin
-  ⇒ ∂xF ∈ A¹_cos
-  ⇒ chem Duhamel ∈ A³_cos
-  ⇒ u ∈ A³_cos.
+u_t
+  = u_xx + a v_x u_x + u(1+a μv) - (a+1)u²
+  ≤ M(1+aM) - (a+1)M²
+  = M(1-M)
+  ≤ 0.
 ```
 
-Thus:
+So the solution cannot cross upward through `M`.
+
+This is conceptually shortest, but in Lean it may require a fair amount of topology for the maximum point and first crossing.
+
+### Option B: comparison + epsilon bootstrap
+
+This is often more Lean-friendly with an existing comparison lemma.
+
+For `ε>0`, set
 
 ```text
-A⁰ → A¹ → A² → A³.
+Mε := M + ε.
 ```
 
-This is the clean three-step ladder.
+Then `Mε > 1` unless `M=1, ε>0`, in any case `Mε>1`.
 
-If you want strict small-time factors at every step, use
+Define
+
+```lean
+def Good (τ : ℝ) : Prop :=
+  ∀ s ∈ Set.Icc (0:ℝ) τ, ∀ x ∈ Set.Icc (0:ℝ) 1,
+    0 ≤ u s x ∧ u s x ≤ Mε
+```
+
+or use your interval-domain lifted formulation.
+
+On any interval satisfying `Good τ`, the resolver bounds give
 
 ```text
-A^r → A^{r+α}
+0 ≤ v ≤ Mε/μ,
+|v_x| ≤ Mε.
 ```
 
-for any fixed `α<1`, and take `N > 3/α` steps. This is more cumbersome but useful for invariant-ball proofs. For pure positive-time regularity, the exact `+1` ladder is cleaner.
+Then `B=a v_x` is bounded, the reaction is Lipschitz on `[0,Mε]`, and `Mε` is a **strict** supersolution:
+
+```text
+Res(Mε)
+  ≥ Mε(Mε-1) > 0
+```
+
+if `Mε>1`; if `M=1`, this is positive for every `ε>0`.
+
+Use the landed comparison lemma on the strip to prove the solution cannot exceed `Mε`. The usual open/closed continuation then yields
+
+```text
+u ≤ Mε
+```
+
+on `[0,T]`. Letting `ε ↓ 0` gives
+
+```text
+u ≤ M.
+```
+
+This version avoids relying on a strict margin at `M` when `M=1`.
+
+In Lean, rather than literally taking a limit in `ε`, prove:
+
+```lean
+∀ ε > 0, u t x ≤ M + ε
+```
+
+then conclude `u t x ≤ M` by `le_of_forall_pos_le_add`, or the corresponding existing lemma.
 
 ---
 
-## 5. The base `A⁰` seed is the real issue
+## 5. Lean-formalizable lemma chain
 
-The statement
+Here is the clean theorem factoring.
 
-```text
-u ∈ A⁰ = L²/L∞
-```
-
-is false. `A⁰` means
-
-```text
-Σ_k |cosCoeff(u)_k| < ∞.
-```
-
-Neither `L²` nor `L∞` implies this.
-
-From `u₀ ∈ L∞`, the heat leg
-
-```text
-e^{-tλ_k} u₀,k
-```
-
-is in every `A^r` for `t>0`. But the Duhamel term has the endpoint `s=t`, where there is no heat smoothing. Therefore the full nonlinear `A⁰` seed is not obtained by simply saying “the heat semigroup smooths.”
-
-### What bounded sources alone give
-
-Suppose only that the pre-divergence flux coefficients are flatly bounded:
-
-```text
-|sineCoeff(F(s))_k| ≤ C.
-```
-
-Then the divergence Duhamel coefficient is bounded by
-
-```text
-∫_0^t exp(-(t-s)λ_k) sqrt(λ_k) C ds
-  ≤ C / sqrt(λ_k)
-```
-
-for high modes. Therefore the `A^r` summand behaves like
-
-```text
-(1+λ_k)^{r/2} / sqrt(λ_k) ~ k^{r-1}.
-```
-
-The series
-
-```text
-Σ_k k^{r-1}
-```
-
-converges only for
-
-```text
-r < 0.
-```
-
-So a bounded divergence source gives `A^r` only for negative `r`, not `A⁰`. This is exactly the endpoint obstruction.
-
-Since the weighted-Wiener product algebra above is clean for `r ≥ 0`, this negative regularity seed is not enough by itself to start the `A`-algebra ladder.
-
-### How to get the seed
-
-There are three honest options.
-
-#### Option A: use an already-proved `H^σ`, `σ>1/2`, positive-time seed
-
-If you already have per-slice or trajectory
-
-```text
-u(t) ∈ H^σ,  σ > 1/2,
-```
-
-then Cauchy-Schwarz gives
-
-```text
-u(t) ∈ A⁰.
-```
-
-Indeed,
-
-```text
-Σ |u_k| ≤ (Σ (1+λ_k)^σ u_k²)^{1/2}
-          (Σ (1+λ_k)^(-σ))^{1/2},
-```
-
-and the second sum converges exactly when `σ > 1/2`.
-
-This is the best bridge if your repo already has a positive-time `MemHSigma σ` result with `σ>1/2`.
-
-#### Option B: prove a separate parabolic seed theorem
-
-Name a theorem such as:
+### 5.1 Algebraic rewrite
 
 ```lean
-theorem mildSolution_cosA0_posTime
-    (ht : 0 < t) :
-    WeightedL1 0 (cosineCoeffs (u t))
+theorem chiNeg_rewrite_drift_reaction
+    (a μ : ℝ) {u v : ℝ → ℝ}
+    (hres : ∀ x, μ * v x - deriv (deriv v) x = u x) :
+    (fun x => deriv (deriv u) x
+      + a * deriv (fun y => u y * deriv v y) x
+      + u x * (1 - u x))
+    =
+    (fun x => deriv (deriv u) x
+      + a * deriv v x * deriv u x
+      + u x * (1 + a * μ * v x)
+      - (a+1) * (u x)^2) := by
+  -- product rule + hres + ring
 ```
 
-This is a genuine positive-time smoothing theorem. It cannot be reduced to the heat leg alone.
+Depending on your notation, this may be per `(t,x)` rather than a function equality.
 
-A standard analytic proof would use parabolic regularity in a scale weaker than `A⁰` first, then bootstrap to `H^σ>1/2`, then embed to `A⁰`, or use time-weighted fixed-point spaces on `(0,t]`.
+### 5.2 Resolver order-box bounds
 
-#### Option C: assume `u₀ ∈ A⁰` and run an `A⁰` local theory
+```lean
+theorem resolver_bounds_of_orderBox
+    (hμ : 0 < μ)
+    (hu : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ u x ∧ u x ≤ M)
+    (hres : ∀ x ∈ Set.Icc (0:ℝ) 1, μ * v x - deriv (deriv v) x = u x)
+    (hNeu : deriv v 0 = 0 ∧ deriv v 1 = 0) :
+    (∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ v x ∧ v x ≤ M / μ) ∧
+    (∀ x ∈ Set.Icc (0:ℝ) 1, |deriv (deriv v) x| ≤ M) ∧
+    (∀ x ∈ Set.Icc (0:ℝ) 1, |deriv v x| ≤ M)
+```
 
-If the initial data already has `A⁰`, then the Duhamel map preserves/improves `A⁰`, and the ladder can start immediately. But this is an extra data regularity assumption.
+The first part is the Neumann maximum principle / resolver positivity. The second follows from `v_xx=μv-u`. The third follows by integrating `v_xx` from the endpoint where `v_x=0`.
+
+If the repo already has landed resolver `L∞/C²` bounds, use those and only prove the implication `u≤M ⇒ μv≤M` if not already exposed.
+
+### 5.3 Constant supersolution residual
+
+```lean
+def Rv (a μ : ℝ) (v : ℝ) (q : ℝ) : ℝ :=
+  q * (1 + a * μ * v) - (a + 1) * q^2
+
+theorem const_super_residual_nonneg
+    (ha : 0 ≤ a) (hM1 : 1 ≤ M) (hM0 : 0 ≤ M)
+    (hvM : μ * v ≤ M) :
+    0 ≤ M * ((a+1) * M - 1 - a * μ * v) := by
+  -- nlinarith
+```
+
+This is the exact residual statement:
+
+```text
+0 ≤ M[(a+1)M - 1 - aμv].
+```
+
+### 5.4 Difference linearization for the comparison lemma
+
+```lean
+theorem reaction_diff_factor
+    (a μ v u M : ℝ) :
+    Rv a μ v u - Rv a μ v M
+      = ((1 + a * μ * v) - (a+1) * (u + M)) * (u - M) := by
+  ring
+```
+
+Then for `z = u-M`, derive:
+
+```text
+z_t ≤ z_xx + B z_x + C z
+```
+
+with
+
+```lean
+def B (t x) := a * deriv (v t) x
+
+def C (t x) :=
+  (1 + a * μ * v t x) - (a+1) * (u t x + M)
+```
+
+provided the constant residual is nonnegative.
+
+This is the point where your `NeumannLinearDriftComparisonRegular` can be applied.
+
+### 5.5 Uniform upper bound theorem
+
+```lean
+theorem chiNeg_uniform_Linf_upper
+    (ha : 0 < a) (hμ : 0 < μ)
+    (hu0_nonneg : ∀ x, 0 ≤ u0 x)
+    (hu0_bound : ∀ x, u0 x ≤ M)
+    (hM : M = max 1 (sSup/Norm of u0))
+    (hsolution : classical/mild regular solution on [0,T]) :
+    ∀ t ∈ Set.Icc (0:ℝ) T, ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 ≤ u t x ∧ u t x ≤ M
+```
+
+Prove first with `Mε = M + ε`, then send `ε→0` if the comparison continuation needs strictness.
+
+### 5.6 Uniform in `T`
+
+State the finite-horizon theorem with a constant that does not mention `T` except in the quantifier. Then expose a global corollary:
+
+```lean
+theorem chiNeg_uniform_Linf_upper_global
+    (hsol_global : solution on all finite strips) :
+    ∀ t ≥ 0, ∀ x, u t x ≤ M
+```
+
+by applying the finite-horizon theorem with `T = max 1 t` or `T=t+1`.
 
 ---
 
-## 6. Answer to question 1: what σ can the Duhamel estimate reach?
+## 6. Answer to the three precise questions
 
-For a non-divergence source `G ∈ A^r`, heat Duhamel reaches
+### Q1
 
-```text
-A^{r+α} for every α ≤ 2,
-```
-
-with a small factor only for `α<2`.
-
-For a divergence source `G = ∂xF` with `F ∈ A^r_sin`, heat Duhamel reaches
+The drift is
 
 ```text
-A^{r+α} for every α ≤ 1,
+B = a v_x.
 ```
 
-with a small factor only for `α<1`.
-
-The endpoint `α=1` is exactly the full divergence-limited smoothing gain but has no small-time power.
-
-Therefore the nonlinear chemotaxis bootstrap is:
+The reaction is
 
 ```text
-u ∈ A^r  ⇒  F(u) ∈ A^r_sin  ⇒  chemDuhamel ∈ A^{r+1}_cos.
+R_v(u) = u(1+a μv) - (a+1)u².
 ```
 
-This is not circular as a ladder step: assuming `u ∈ A^r` on a time interval, the product/resolver machinery bounds the source in `A^r`, and the Duhamel operator improves the output to `A^{r+1}`.
+The coefficient of `u²` is exactly
 
-It is circular only if you try to prove the initial `A^r` assumption at the same level without a seed or continuation argument.
+```text
+-(a+1),
+```
+
+with `-a u²` from the repulsive chemotaxis term and `-u²` from logistic damping.
+
+### Q2
+
+The exact supersolution inequality for a constant `Mbar` is
+
+```text
+Mbar[(a+1)Mbar - 1 - a μv(t,x)] ≥ 0
+```
+
+for all `(t,x)` on the strip.
+
+Equivalently,
+
+```text
+Mbar ≥ (1 + a μ sup v)/(a+1).
+```
+
+Under the bootstrap/order-box assumption `0≤u≤Mbar`, the resolver gives `μv≤Mbar`, hence the residual is at least
+
+```text
+Mbar(Mbar-1).
+```
+
+Thus `Mbar = max(1, ‖u₀‖∞)` closes. The nonlocality does not force dependence on anything else; it is closed by the resolver maximum principle inside the same `Mbar`-ball.
+
+### Q3
+
+Since the constant supersolution does close, no alternative Hσ/window-flux estimate is needed for the L∞ bound. The minimal a-priori chain is:
+
+```text
+u≤M on strip
+  ⇒ resolver maximum principle: 0≤v≤M/μ
+  ⇒ drift bound: |a v_x|≤aM
+  ⇒ constant M supersolution residual ≥ M(M-1)
+  ⇒ comparison principle preserves u≤M
+  ⇒ continuation/epsilon bootstrap gives u≤M on every finite strip
+  ⇒ finite-strip theorem with M independent of T gives global uniform-in-time L∞ bound.
+```
+
+This is entirely `L∞`/maximum-principle level. It avoids any window-uniform `H^σ` flux envelope.
 
 ---
 
-## 7. Answer to question 2: single theorem or ladder?
+## Final Lean guidance
 
-For Lean, do **not** start with a monolithic theorem
-
-```lean
-mildSolution_cosA3_posTime_from_Linf
-```
-
-unless all lower-level smoothing infrastructure is already available. It will hide the exact obstruction.
-
-Instead formalize modularly:
-
-```lean
-theorem chemDuhamel_gain_one_A
-    (hr : 0 ≤ r)
-    (hF : ∀ s ∈ Icc t0 t1, SinA r (F s)) :
-    CosA (r+1) (fun k => ∫ ... sqrt(lam k) * sineCoeff(F s) k ...)
-```
-
-```lean
-theorem logisticDuhamel_gain_two_A
-    (hr : 0 ≤ r)
-    (hG : ∀ s ∈ Icc t0 t1, CosA r (G s)) :
-    CosA (r+2) (fun k => ∫ ... cosineCoeff(G s) k ...)
-```
-
-```lean
-theorem nonlinearity_flux_A
-    (hr : 0 ≤ r)
-    (hu : CosA r u) :
-    SinA r (fun x => W x * vx x)
-```
-
-Then combine them into:
-
-```lean
-theorem mild_A_step
-    (hr : 0 ≤ r)
-    (huA : trajectory/slice u in A^r on the interval)
-    (hheat : heat leg smooth) :
-    u(t) ∈ A^{r+1}_cos
-```
-
-Finally iterate:
-
-```lean
-theorem mild_A3_of_A0_seed
-    (hA0 : positive-time A0 seed) :
-    u(t) ∈ A^3_cos
-```
-
-This is much less work and much less brittle than a one-pass proof.
-
-A direct one-pass proof from the `L∞` box to `A³` is not available: the divergence endpoint estimate from bounded flux gives only `A^r` for `r<0`.
-
----
-
-## 8. Answer to question 3: product machinery at each ladder step
-
-Yes. Each step uses the same resolver/flux weighted-Wiener machinery at the current level `r`:
+The main formal pitfall is choosing the wrong comparison operator. Do not apply the constant supersolution test to
 
 ```text
-u ∈ A^r
-  ⇒ v ∈ A^{r+2}
-  ⇒ v_x ∈ A^{r+1} ⊂ A^r
-  ⇒ (1+v)^(-β) ∈ A^r
-  ⇒ W = u(1+v)^(-β) ∈ A^r
-  ⇒ F = W v_x ∈ A^r_sin.
+q ↦ q_xx + a ∂x(q v_x) + q(1-q)
 ```
 
-Then Duhamel gives the next level:
+with `v` still tied to the actual `u`. Instead first rewrite the actual equation as
 
 ```text
-F ∈ A^r_sin ⇒ Dchem ∈ A^{r+1}_cos.
+u_t = u_xx + a v_x u_x + R_v(u),
+R_v(q)=q(1+a μv)-(a+1)q².
 ```
 
-So the product bookkeeping is exactly the Q82 machinery, parameterized by `r`, and applied repeatedly at `r=0,1,2`.
-
-The one extra analytic lemma is the composition theorem
+Then use the constant supersolution for this local semilinear drift-reaction equation. If the landed comparison lemma is linear, feed it the difference equation for `z=u-M` with coefficient
 
 ```text
-v ∈ A^r, v≥0 ⇒ (1+v)^(-β) ∈ A^r.
+C_M = (1+a μv) - (a+1)(u+M),
 ```
 
-This is needed at every level. If you only prove it at `r=0,1,2`, that is enough for the three-step ladder.
+and use the nonpositive residual `R_v(M)≤0`.
 
----
-
-## 9. Suggested Lean theorem names
-
-### Weighted Wiener predicate
-
-```lean
-def WeightedL1 (r : ℝ) (a : ℕ → ℝ) : Prop :=
-  Summable (fun k => (1 + lam k) ^ (r / 2) * |a k|)
-```
-
-### Heat leg
-
-```lean
-theorem heat_cosA_all_posTime_of_linf_coeff_bound
-    (ht : 0 < t)
-    (hcoeff : ∀ k, |u0hat k| ≤ M0)
-    (r : ℝ) :
-    WeightedL1 r (fun k => Real.exp (-(t * lam k)) * u0hat k)
-```
-
-### Duhamel gain, non-divergence
-
-```lean
-theorem heatDuhamel_cosA_gain_two
-    (hr : 0 ≤ r)
-    (hG : ∀ s ∈ Icc 0 t, WeightedL1 r (G s))
-    (hG_unif : ∃ Genv, WeightedL1 r Genv ∧ ∀ s ∈ Icc 0 t, ∀ k, |G s k| ≤ Genv k) :
-    WeightedL1 (r+2)
-      (fun k => ∫ s in 0..t, Real.exp (-((t-s) * lam k)) * G s k)
-```
-
-For endpoint `+2`, allow constants depending on `t` and handle mode zero.
-
-### Duhamel gain, divergence
-
-```lean
-theorem heatDuhamel_div_sinA_gain_one
-    (hr : 0 ≤ r)
-    (hFenv : WeightedL1 r Fenv)
-    (hFbd : ∀ s ∈ Icc 0 t, ∀ k, |Fsin s k| ≤ Fenv k) :
-    WeightedL1 (r+1)
-      (fun k => ∫ s in 0..t,
-        Real.exp (-((t-s) * lam k)) * Real.sqrt (lam k) * Fsin s k)
-```
-
-The proof is the pointwise multiplier bound
-
-```text
-(1+λ)^{1/2} sqrt(λ) ∫_0^t exp(-ρλ)dρ ≤ C_t
-```
-
-combined with the `A^r` envelope.
-
-### Nonlinearity at level `r`
-
-```lean
-theorem chemFlux_sinA_of_u_cosA
-    (hr : 0 ≤ r)
-    (hu : WeightedL1 r (cosineCoeffs u)) :
-    WeightedL1 r (sineCoeffs (fun x => W x * vx x))
-```
-
-with assumptions/fields for resolver definition, denominator composition, and product bridges.
-
-### Ladder theorem
-
-```lean
-theorem mild_posTime_A3_of_A0_seed
-    (hA0 : trajectory/slice A0 seed on the needed interval)
-    (hstep : ∀ r ∈ {0,1,2}, A^r step theorem) :
-    WeightedL1 3 (cosineCoeffs (u t))
-```
-
-If you want a uniform-on-strip version:
-
-```lean
-theorem mild_posTime_A3_uniform_on_Icc
-    (hε : 0 < ε) (hεT : ε ≤ T)
-    (hA0strip : ∃ E0, WeightedL1 0 E0 ∧
-      ∀ s ∈ Icc ε T, ∀ k, |cosineCoeffs (u s) k| ≤ E0 k) :
-    ∃ E3, WeightedL1 3 E3 ∧
-      ∀ s ∈ Icc ε T, ∀ k, |cosineCoeffs (u s) k| ≤ E3 k
-```
-
-This uniform-envelope form is usually more useful than per-slice membership.
-
----
-
-## 10. Final answer
-
-The positive-time `A³` theorem should be named and proved as a **two-stage theorem**:
-
-1. **Seed theorem:** obtain `A⁰` on a positive-time slice/strip. This does not follow from `L∞` by a one-line heat estimate because of the Duhamel endpoint. It must come from an existing `H^σ`, `σ>1/2`, smoothing theorem, a separate parabolic seed theorem, or an `A⁰` local theory.
-
-2. **Weighted-Wiener ladder:** once `A⁰` is available, iterate the divergence-limited gain
-
-```text
-A^r → A^{r+1}
-```
-
-three times. The logistic leg gains two derivatives, and the chemotaxis divergence leg gains one. The product/resolver/denominator machinery is used at every step at the current level `r`.
-
-So the concrete ladder is:
-
-```text
-A⁰ seed
-  → flux in A⁰_sin → chem Duhamel in A¹_cos → u in A¹
-  → flux in A¹_sin → chem Duhamel in A²_cos → u in A²
-  → flux in A²_sin → chem Duhamel in A³_cos → u in A³.
-```
-
-This is the Lean-ready structure. A direct one-pass proof from the `L∞` order box to `A³` is not sound; the endpoint source is not smoothed enough. A monolithic `u(t) ∈ A³` theorem is fine as a final wrapper, but the formal proof should expose the `A⁰` seed and the three +1 ladder steps.
+That is the clean formal path.
