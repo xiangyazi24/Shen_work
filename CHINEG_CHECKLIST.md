@@ -376,3 +376,12 @@ hard-core atoms · maximally-wired core (13/24 hyps + residual classified) · A�
 PER-SLICE 4 packages: 3 closed (Hv/h_src_cont_log/h_flux_diff), h_src_cont_chem residual (Gap 1, C¹-to-boundary, standing).
 UNCONDITIONAL route FULLY MAPPED (cron1+cron2): A³ ladder (lemmas 2/3/5/6 remain) → EWA calculus-closure → hchem/hlog.
 All satisfiable-standing / fully-scoped. Repo sorry-free. P1/P3 separate (sorry-free, conditional headlines).
+
+## [2026-06-24] cron1 Q124: A⁰ seed — L∞ box INSUFFICIENT; seed = window-uniform u∈A¹ (from datum, not boundedness)
+ChatGPT (Q124): the uniform L∞ order box (0≤u≤M, v,v_x bounded) does NOT give a window-uniform A⁰ flux envelope —
+L∞ does NOT imply ℓ¹ Fourier coeffs (bounded×bounded×bounded = bounded, not summable). Clean seed: window-uniform
+u∈A¹_cos ⇒ v∈A³, v_x∈A²_sin, D=(1+v)^{-β}∈A¹, W=uD∈A¹, q=W·v_x∈A¹_sin ⇒ q∈A⁰_sin (even A¹). So ∂ₓq∈A⁰_cos.
+CORRECTION: my plan to seed from the L∞ box (uniformLiftBoundZeroM) was WRONG — cron1 caught it (saved a bad producer).
+The A³ bootstrap base = the INITIAL DATUM's Wiener regularity (hû₀∈A^σ, satisfiable standing) + heat semigroup + the
+ladder (banked lemmas 1+4). Remaining formalization: lemma 2 (Wiener product, in flight), 3 (source-at-level-r:
+u∈A^r⇒flux∈A^r via the W=uD, q=Wv_x product chain), 5 (seed: window-uniform A¹ from datum via heat), 6 (wrapper).
