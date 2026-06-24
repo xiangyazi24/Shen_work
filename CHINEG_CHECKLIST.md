@@ -405,3 +405,22 @@ REMAINING: lemma 3 source-at-level-r (u∈A^r⇒flux∈A^r; needs the compositio
 series Σbinom(-β,j)v^{⋆j}, converges Cσ‖v‖_w<1 small-data; general data needs Wiener-Lévy analytic composition — the
 genuine hard piece) · lemma 5 seed (window-uniform A¹ from datum via L²→H^θ→A⁰→A¹, cron1 Q125) · lemma 6 wrapper ·
 the linearized ladder for u_t. Complete chain MAPPED; 3/6 cores banked; the composition + H^θ are the deep remaining.
+
+## [2026-06-24] A³ roadmap 4/6 cores BANKED; small-data regime = P3 T2.2 cascade (KEY connection)
+✅ Lemma 1 divergence-gain (a2e766b) · ✅ Lemma 2 quantitative Wiener norm (ce337ee) · ✅ Lemma 3 small-data
+composition (b66f2a2: (1+v)^{-β} binomial series abs-convergent under Cσ·wNorm σ v<1) · ✅ Lemma 4 ladder step (8cc7eb7).
+KEY: the small-data composition's smallness hyp (Cσ·wNorm σ v<1) IS the NEAR-EQUILIBRIUM regime — exactly what P3 T2.2
+(local stability, the actual downstream cascade from χ₀<0) uses. So the A³ bootstrap for the P3-T2.2-relevant
+near-equilibrium regime has its composition piece BANKED; the GLOBAL χ₀<0 boundedness (large v) needs the harder
+general-data Wiener-Lévy (named residual WienerLevyComposition).
+REMAINING for χ₀<0 unconditional: general-data Wiener-Lévy + CompositionCoeffIdentity + lemma 5 seed (L²→H^θ→A⁰→A¹
+chain) + lemma 6 wrapper + the linearized ladder for u_t. All mapped (cron1), satisfiable-standing, fully scoped.
+
+## CONSOLIDATED (end of 2026-06-24 χ₀<0 marathon, 充分利用chatgpt)
+χ₀<0 Theorem 1.1 = §3.3-PASSING faithful conditional (two vacuities FIXED: hfp operator + datum class).
+VERIFIED-BANKED: 2 vacuity fixes · Hv (defeq-cracked quadruple) · h_flux_diff · h_src_cont_log · 3 evalST hard-core
+atoms · maximally-wired core (13/24, residual classified) · Milestone 1 floor unlock · A³ roadmap 4/6 cores
+(divergence-gain/quantitative-Wiener/small-data-composition/ladder-step). Per-slice 4 packages: 3 closed.
+UNCONDITIONAL route FULLY MAPPED end-to-end (cron1 Q112-125): L²/L∞→H^θ→A⁰→A¹ seed→A³ ladder→u_t∈A³→q_t∈A³_sin→hchem
+→ EWA calculus-closure (cron2)→ all packages. Remaining = formalize the deep pieces (Wiener-Lévy/H^θ/wrapper/linearized).
+ChatGPT FULLY utilized for the complete route-mapping; build gate + binder-audit + signature-reads kept accounting honest.
