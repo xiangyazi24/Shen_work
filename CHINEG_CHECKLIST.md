@@ -424,3 +424,21 @@ atoms · maximally-wired core (13/24, residual classified) · Milestone 1 floor 
 UNCONDITIONAL route FULLY MAPPED end-to-end (cron1 Q112-125): L²/L∞→H^θ→A⁰→A¹ seed→A³ ladder→u_t∈A³→q_t∈A³_sin→hchem
 → EWA calculus-closure (cron2)→ all packages. Remaining = formalize the deep pieces (Wiener-Lévy/H^θ/wrapper/linearized).
 ChatGPT FULLY utilized for the complete route-mapping; build gate + binder-audit + signature-reads kept accounting honest.
+
+## [2026-06-24] A³ lemma 3 (small-data composition) GENUINELY CLOSED + §3.3 self-correction + general-data route DECIDED
+SELF-CORRECTION (§3.3): my earlier "banked composition" (b66f2a2) was OVER-STATED. The abstract
+binomialSeries_termNorm_summable carries `r₀≤1` + `|c j|≤A·r₀^j`, which is UNSATISFIABLE for the real
+binomial coeffs gBinom β j (polynomial growth → forces 1<r₀). So b66f2a2 alone could NOT deliver the
+(1+v)^{-β} composition — caught by the opus binomial-bound brick auditing the consumer signature.
+FIXED + BANKED this turn:
+ · gBinom_abs_le (BinomialCoeffBound.lean, commit before 0798205): |binom(-β,j)|≤A·r^j SHARP at 1<r.
+ · chemDenom_smallData_termNorm_summable (WienerCompositionConnected.lean, 0798205): the REAL (1+v)^{-β}
+   series is summable under ONLY 0≤σ/MemWNorm/0≤β/smallness — NO carried majorant hyp. §3.3 gap closed.
+   axiom-clean uisai2 EXIT=0. This is lemma 3 GENUINELY closed for the near-equilibrium (P3 T2.2) regime.
+GENERAL-DATA ROUTE DECIDED (ChatGPT Q128, route-audit): for large v, do NOT formalize weighted Wiener-Lévy
+(GRS inverse-closedness — deep Mathlib gap). Instead route (1+v)^{-β} ∈ A^σ via Moser/Nemytskii in H^s
+(‖g(v)‖_{H^s}≤C(s,β,‖v‖_∞)(1+‖v‖_{H^s}), v≥0 stays off the -1 singularity) + Sobolev embedding
+H^{σ+1/2+ε}↪A^σ. REUSES the H^θ infrastructure the seed lemma 5 already needs. Integer-β shortcut:
+(1+v)^{-m}=((1+v)^{-1})^m via inverse-closedness.
+A³ roadmap cores: 4/6 banked + lemma 3 now GENUINELY closed (small-data). Remaining: lemma 5 seed (H^θ),
+lemma 6 wrapper, linearized ladder, + general-data composition (Moser+Sobolev route now decided).
