@@ -265,3 +265,15 @@ FAITHFUL FIX: restate hfp with the chemotaxis-inclusive intervalGradientDuhamelM
 DOES satisfy via the evalST bridge), then re-prove the localExistence chain with it. Bridge
 intervalGradientDuhamelMap_eq_intervalDuhamelOperator_of_frontiers (IntervalMildToLocalExistence:972) confirms the
 two operators differ by exactly the chemotaxis term. This is a foundational correction, not a discharge.
+
+## [2026-06-24] χ₀<0 FAITHFUL (non-vacuous) Theorem 1.1 — vacuity FIXED
+✅ chiNeg_theorem_1_1_faithful (SourceChiNegFaithful.lean): faithful §3.3 conditional, axiom-clean on uisai2.
+   Routes around the false logistic hfp: core (my discharges) → regularityBootstrap_of_coupledDuhamel_reducedClassicalCore
+   (UNCONDITIONAL, no hfp) → localExistence_of_regularityBootstrap (no hfp, just destructures RegularityBootstrap +
+   of_components) → theorem_1_1_chiNeg residual reduction → Theorem_1_1.
+   Carries ONE SATISFIABLE named hyp ChiNegDatumUniformConstructionFaithful = {EWA fixed point u_star + reduced core}
+   — NO hfp of any kind. Satisfiable (the EWA fixed point exists + realSlice realizes its cosine synthesis, TRUE
+   evalST facts), unlike the old unsatisfiable logistic hfp. The vacuity is FIXED at the statement level.
+TO FULLY UNCONDITIONAL: discharge the realization frontier — EWA fixed point existence (picardEWA Banach, landed
+SourceFixedPoint) + the evalST realization atoms (realizes_clean). My session's source-regularity discharges
+(Hv/hlogInv/hchemInv/pde_u family) feed the reduced core directly. Next: assemble the frontier from picardEWA + evalST bridges.
