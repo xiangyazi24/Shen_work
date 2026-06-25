@@ -163,7 +163,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
       ∀ x, deriv g (-x) = -(deriv g x) := by
     intro g hg heven x
     have hd : DifferentiableAt ℝ g (-x) := (hg.differentiable le_top).differentiableAt
-    have := (hd.hasDerivAt.comp x (hasDerivAt_neg x)).deriv
+    have := (hd.hasDerivAt.scomp x (hasDerivAt_neg x)).deriv
     simp only [Function.comp_def] at this
     rw [show g (-id x) = g (-x) from rfl] at this
     have hd2 : deriv (fun y => g (-y)) x = deriv g (-x) * -1 := this
@@ -185,7 +185,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
       ∀ x, deriv g (-x) = deriv g x := by
     intro g hg hodd x
     have hd : DifferentiableAt ℝ g (-x) := (hg.differentiable le_top).differentiableAt
-    have := (hd.hasDerivAt.comp x (hasDerivAt_neg x)).deriv
+    have := (hd.hasDerivAt.scomp x (hasDerivAt_neg x)).deriv
     simp only [Function.comp_def] at this
     rw [show g (-id x) = g (-x) from rfl] at this
     have hd2 : deriv (fun y => g (-y)) x = deriv g (-x) * -1 := this
