@@ -105,3 +105,28 @@ REAL χ₀<0 unconditional frontier (SourceReducedCoreWire.lean §(ii) GENUINELY
 DISCIPLINE: grep the existing ShenWork.Wiener.EWA / IntervalChiNeg* / ShenWork.Paper2.ln namespace BEFORE any
 brick (3 over-builds this session from skipping this). Reduced core was 13/24 wired earlier this session
 (SourceReducedCoreWire); Hv/h_flux_diff/h_src_cont_log already closed; residual = (a')(b')(c').
+
+---
+## [2026-06-25] hlogSrc/hchemSrc production — the LAST frontier
+
+### State
+ALL 998 files / 392K LOC sorry-free. Paper 3 done. Paper 1 done. Paper 2 χ₀=0 unconditional.
+Paper 2 χ₀<0: BFormBankedInputs has NO false fields (barriers A/B/C resolved 63cc68e/b84ddb3).
+Only `hlogSrc` + `hchemSrc` unfilled.
+
+### Route: B-form iterate TimeC1On tower + limit passage
+Level 0: FREE (conjugatePicardIter 0 = picardIter 0 definitionally).
+Level n+1: need B-form spectral representation + K2 bounds for conjugatePicardIter.
+Limit: duhamelSourceTimeC1On_of_uniform_limit (sorry-free, generic).
+
+### Steps
+1. [ ] Spectral representation: `conjugatePicardIter (n+1)` lift on [0,1] = ∑ localRestartCoeff ... * cosineMode
+2. [ ] G1/G2 bounds: spatial derivative/Hessian bounds for conjugate iterates from spectral decay
+3. [ ] Strict positivity: from Hinf + smallness (iter_ball_package gives nonnegativity)
+4. [ ] Joint continuity: from heat kernel regularization
+5. [ ] Instantiate sourceTimeC1On_succ_of_sourceTimeC1On for conjugate iterates
+6. [ ] Level 0 wrapper (definitional bridge from picardIter 0)
+7. [ ] All-level induction via sourceTimeC1On_all_windows_of_base_step
+8. [ ] Limit passage: iterate TimeC1On → conjugatePicardLimit TimeC1On
+9. [ ] BFormBankedInputs assembly from all field producers
+10. [ ] Theorem 1.1 χ₀<0 unconditional from BFormBankedInputs
