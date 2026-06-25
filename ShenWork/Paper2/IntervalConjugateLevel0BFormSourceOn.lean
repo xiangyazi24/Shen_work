@@ -20,6 +20,7 @@
 -/
 import ShenWork.Paper2.IntervalConjugateIterSourceTower
 import ShenWork.Paper2.IntervalBFormSpectralHtime
+import ShenWork.Paper2.IntervalBFormNegPartStrictPosBarrier
 
 open MeasureTheory Set Filter
 open scoped Topology
@@ -38,7 +39,8 @@ open ShenWork.IntervalCoupledRegularityBootstrap
 open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1On)
 open ShenWork.Paper2.ConjugateIterSourceTower (conjLogSourceTimeC1On_level0)
 open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
-open ShenWork.Paper2 (PaperPositiveInitialDatum)
+open ShenWork.Paper2 (PaperPositiveInitialDatum PositiveInitialDatum)
+open ShenWork.IntervalDomain (intervalDomain)
 
 noncomputable section
 
@@ -356,24 +358,16 @@ from these structures. -/
 `ConjugateMildExistenceData` for level 0. -/
 theorem level0_heat_pos_of_data
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (D : ConjugateMildExistenceData p u₀)
-    {c : ℝ} (hc : 0 < c) (hcT : c ≤ D.T) :
-    ∀ σ ∈ Icc c D.T, ∀ x ∈ Icc (0 : ℝ) 1,
+    (_D : ConjugateMildExistenceData p u₀)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {c : ℝ} (hc : 0 < c) (_hcT : c ≤ _D.T) :
+    ∀ σ ∈ Icc c _D.T, ∀ x ∈ Icc (0 : ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x := by
-  -- From D.hbase_nonneg we get nonnegativity; from the positive initial
-  -- datum and maximum principle we get strict positivity.
-  -- The heat semigroup preserves strict positivity for t > 0 when the
-  -- initial datum is positive.
-  sorry
-  -- SORRY: needs ~30 lines connecting D.hbase_nonneg with the strong maximum
-  -- principle for the heat equation on [0,1] with Neumann BCs.  The existing
-  -- `D.hmapsTo_pos` gives positivity for the Duhamel iterate (level 1+),
-  -- but level 0 positivity from PID + heat semigroup requires a separate
-  -- argument.  Actually, this IS available from the iter_ball_package at n=0
-  -- since D.hbase_nonneg gives nonnegativity and the PID floor gives strict
-  -- positivity.  But the correct extraction from D uses D.hbase_nonneg and
-  -- the fact that intervalDomainLift restricted to Icc 0 1 equals the
-  -- subtype value.  For now sorry'd pending the extraction wiring.
+  intro σ hσ x hx
+  have hσpos : 0 < σ := lt_of_lt_of_le hc hσ.1
+  simp only [intervalDomainLift, dif_pos hx, conjugatePicardIter]
+  exact ShenWork.Paper2.BFormPositiveDatumNegPart.intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+    hu₀ hσpos x
 
 /-- Extract the heat-semigroup sup bound on `[c,T]` from
 `ConjugateMildExistenceData` for level 0. -/
@@ -388,13 +382,9 @@ theorem level0_heat_sup_of_data
   -- The lift on Icc 0 1 equals the subtype value, so the bound transfers.
   have hσpos : 0 < σ := lt_of_lt_of_le hc hσ.1
   have hσT : σ ≤ D.T := hσ.2
-  -- Need: intervalDomainLift (f σ) x = f σ ⟨x, hx⟩ when x ∈ Icc 0 1
-  -- and |f σ ⟨x, hx⟩| ≤ D.M from D.hbase_ball
-  sorry
-  -- SORRY: ~15 lines unwinding intervalDomainLift on Icc 0 1 + D.hbase_ball.
-  -- The key step is: for x ∈ [0,1], intervalDomainLift w x = w ⟨x, hx⟩,
-  -- so |intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x|
-  --    = |conjugatePicardIter p u₀ 0 σ ⟨x, hx⟩| ≤ D.M,
-  -- and since the iterate is nonneg, the absolute value equals the value.
+  simp only [intervalDomainLift, dif_pos hx]
+  have hball := D.hbase_ball σ hσpos hσT ⟨x, hx⟩
+  have hnn := D.hbase_nonneg σ hσpos hσT ⟨x, hx⟩
+  linarith [abs_le.mp (abs_le_of_le_of_neg_le (le_of_abs_le hball) (by linarith))]
 
 end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
