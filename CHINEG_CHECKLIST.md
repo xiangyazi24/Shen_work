@@ -668,3 +668,28 @@ BANKED this session: ball-estimates producer (d7ecd0e) + all windowed infrastruc
 EXCEPT for hregularize. With hregularize:
   ball-estimates + hregularize → exactLocalClassicalSolution → CoupledFluxClassicalLocalExistenceResidual
   → theorem_1_1_intervalDomain_chiNeg → Theorem_1_1 (χ₀<0) UNCONDITIONAL.
+
+## [2026-06-25] ARCHITECTURAL CLARITY: the χ₀<0 unconditional route goes through the CANONICAL chain
+FOUND: intervalDomain_mildExistenceData_of_paperPositiveDatum (IntervalMildExistenceAssembly.lean)
+  UNCONDITIONALLY produces MildExistenceData for ANY p (including χ₀<0) from PaperPositiveInitialDatum.
+  No cosine-summability needed. Requires only 1≤α, 1≤γ (parameter constraints the headline carries).
+FOUND: regularityBootstrap_of_gradientMild_bankedT6_fullSourceCoeff (IntervalGeneralChiFrontier.lean)
+  produces RegularityBootstrap for GENERAL χ₀ from GradientMildSolutionData + DuhamelSourceTimeC1
+  + T6 slice agreement + source spectral inversions + CoupledDuhamelClassicalResidualAfterT6.
+  NOTE: this takes GLOBAL DuhamelSourceTimeC1 for D.u (the Picard limit), NOT realSlice u_star.
+  D.u is NOT dite-clamped → GLOBAL DuhamelSourceTimeC1 IS satisfiable for D.u → no obstruction.
+CHAIN: PaperPositiveInitialDatum
+  → intervalDomain_mildExistenceData_of_paperPositiveDatum (UNCONDITIONAL, any χ₀)
+  → gradientMildSolutionData_of_data (Picard convergence)
+  → regularityBootstrap_of_gradientMild_bankedT6_fullSourceCoeff (GENERAL χ₀)
+  → IsPaper2ClassicalSolution.of_components
+  → CoupledFluxClassicalLocalExistenceResidual
+  → theorem_1_1_intervalDomain_chiNeg → Theorem_1_1 (χ₀<0)
+REMAINING for the canonical chain: produce the iterate-side regularity inputs for χ₀<0:
+  (a) DuhamelSourceTimeC1 for coupledChemicalSourceCoeffs p D.u (GLOBAL, satisfiable for D.u)
+  (b) CoupledDuhamelT6SliceAgreement p D.T D.u
+  (c) Source spectral inversions (hchemInv/hlogInv)
+  (d) CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
+The χ₀=0 case produces these via LimitRegularityInputs + the Picard tower. For χ₀<0, the same
+tower works (MildExistenceData is unconditional) — the iterate-side regularity needs the same
+kind of source/spectral data, with the chemotaxis term present (but bounded by |χ₀|·C∇·2√T < 1).
