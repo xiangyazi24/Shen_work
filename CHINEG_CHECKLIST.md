@@ -636,3 +636,22 @@ regularity; the CANONICAL Picard chain provides local existence for C⁰ data (n
 PATH: produce hlocal for χ₀<0 from the canonical chain → feed the umbrella → Theorem_1_1 (χ₀<0) unconditional.
 The EWA infrastructure (this session's work) serves source regularity at positive time; the cosine-summability
 obstruction is BYPASSED by not routing local existence through EWA.
+
+## [2026-06-25] SESSION ENDPOINT — precise frontier for next session
+INFRASTRUCTURE COMPLETE (this session, all axiom-clean, uisai2 EXIT=0):
+  IntervalDuhamelSpectralDerivOn, SourceSpatialJointRegularity, SourceJointRegularityOn,
+  SourceClassicalRegularityOn, ChemDivAdotEnvelope, ResolverSliceG12Wiring chain,
+  SourceReducedCore/Wire refactor (On binders), ChiNegFrontierAssembly capstone,
+  h_src_cont_chem removal.
+REMAINING (the per-datum local-existence bridge):
+  chemMildLocal_orderBox_exists (contraction core, ANY χ₀) EXISTS but needs wiring to:
+  → IntervalCoupledResolverBallEstimates (4 conjuncts: self-map bound, chemDiv Lip K*D,
+    source integrability ×2) — NO producer, needs formalization of standard mild estimates
+  → exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates (takes ball estimates +
+    hregularize) → CoupledFluxClassicalLocalExistenceResidual
+  → theorem_1_1_intervalDomain_chiNeg_of_coupledFluxClassicalLocalExistenceResidual
+  → Theorem_1_1 intervalDomain p (χ₀<0) UNCONDITIONAL
+  hregularize (RegularityBootstrap from Duhamel fixed point) — producers exist for
+  GradientMildSolutionData (canonical chain), need bridge from the contraction fixed point.
+NEXT SESSION: formalize the 4 ball-estimate conjuncts (standard mild-solution PDE estimates
+specialized to the interval-domain Neumann system) + wire hregularize.
