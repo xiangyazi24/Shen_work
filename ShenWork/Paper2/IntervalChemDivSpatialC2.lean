@@ -64,6 +64,15 @@ theorem chemFlux_contDiff_three
     exact h1v.rpow_const_of_ne (fun x => ne_of_gt (hv_pos x))
   exact hprod.div hdenom (fun x => hdenom_pos x)
 
+theorem chemFlux_contDiffOn_three_of_global
+    {β : ℝ} {u v : ℝ → ℝ}
+    (hu : ContDiff ℝ 4 u)
+    (hv : ContDiff ℝ 4 v)
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
+    (hβnn : 0 ≤ β) :
+    ContDiffOn ℝ 3 (chemFluxFun β u v) (Icc (0 : ℝ) 1) :=
+  (chemFlux_contDiff_three hu hv hv_pos hβnn).contDiffOn
+
 theorem chemFlux_contDiffOn_three
     {β : ℝ} {u v : ℝ → ℝ}
     (hu : ContDiffOn ℝ 4 u (Icc (0 : ℝ) 1))
@@ -71,11 +80,19 @@ theorem chemFlux_contDiffOn_three
     (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + v x)
     (hβnn : 0 ≤ β) :
     ContDiffOn ℝ 3 (chemFluxFun β u v) (Icc (0 : ℝ) 1) := by
-  sorry -- TODO: for the heat semigroup case where u, v are GLOBAL C⁴,
-  -- use (chemFlux_contDiff_three hu_global hv_global hv_pos_global hβnn).contDiffOn.
-  -- For the general ContDiffOn case, need ContDiffOn composition on convex sets.
+  sorry -- General ContDiffOn case: needs ContDiffOn.mul/.div/.rpow_const_of_ne on convex Icc
 
 /-! ## C² of chemDivLift from C³ of flux -/
+
+/-- Global C² of `deriv(chemFluxFun)` from global C⁴ of u,v. -/
+theorem chemFluxDeriv_contDiff_two
+    {β : ℝ} {u v : ℝ → ℝ}
+    (hu : ContDiff ℝ 4 u) (hv : ContDiff ℝ 4 v)
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) (hβnn : 0 ≤ β) :
+    ContDiff ℝ 2 (deriv (chemFluxFun β u v)) := by
+  have h3 : ContDiff ℝ (2 + 1) (chemFluxFun β u v) := by
+    exact (chemFlux_contDiff_three hu hv hv_pos hβnn).of_le (by norm_num)
+  exact h3.deriv'
 
 /-- The chemDiv source lift is C² on [0,1] when the flux is C³.
 chemDivLift = intervalDomainLift (chemotaxisDiv ...) = deriv(flux) on [0,1]. -/
@@ -86,11 +103,8 @@ theorem chemDivLift_contDiffOn_two
     (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + intervalDomainLift v x) :
     ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
   sorry
-  -- SORRY: the chemDivLift on [0,1] is deriv(flux) on [0,1].
-  -- With flux C³ on [0,1] (from chemFlux_contDiffOn_three), deriv(flux) is C² on [0,1].
-  -- Needs ContDiffOn.derivWithin on convex Icc (UniqueDiffOn for Icc)
-  -- or the global version below composed with .contDiffOn.
-  -- flux is C³ from chemFlux_contDiffOn_three.
+  -- For global C⁴ u,v: use chemFluxDeriv_contDiff_two + show chemDivLift = deriv(flux) on [0,1]
+  -- The definition mismatch (chemDivLift vs deriv(chemFluxFun)) needs unfolding.
   -- C³ of flux on Icc → deriv(flux) is C² on Int(Icc) = Ioo.
   -- Need ContDiffOn ℝ 2 on the CLOSED Icc: use that flux is C³ on Icc
   -- (a convex set) so deriv is C² on Icc by ContDiffOn.deriv.
