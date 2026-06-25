@@ -1,234 +1,153 @@
-# Q582 (cron2): level-0 Picard / heat-semigroup spectral bridge
+# Q584 (cron2): summability of `C / (max 1 k)^2`
 
 ## Executive verdict
 
-Yes: the repo already proves the level-0 spectral bridge on `chatgpt-scratch`, but the theorem is **not** named `picardIter_cosine_representation`.
-
-The main level-0 bridge is:
+On `chatgpt-scratch`, the exact definition is **not** the π-normalized version.  It is:
 
 ```lean
-ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+def reciprocalSquareTerm (n : ℕ) : ℝ := 1 / (n : ℝ) ^ 2
 ```
 
-It proves, for `σ > 0`, subtype-continuous initial datum, and bounded initial cosine coefficients:
+and the existing theorem is:
 
 ```lean
-Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
-  (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
-  (Set.Icc (0 : ℝ) 1)
+theorem reciprocalSquareTerm_summable : Summable reciprocalSquareTerm
 ```
 
-and `iterateReprCoeff p u₀ 0 σ k` is definitionally
+The clean wiring for
 
 ```lean
-Real.exp (-σ * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k
+Summable (fun k : ℕ => C / (max (1 : ℝ) (k : ℝ)) ^ 2)
 ```
 
-So this is exactly the spectral representation of the heat slice `S(σ)(lift u₀)` on `[0,1]`.
-
-The direct semigroup bridge is also present:
+is to drop the finite `k = 0` term with
 
 ```lean
-intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+rw [← summable_nat_add_iff (k := 1)]
 ```
 
-which proves
+Then the tail term at `k = n+1` satisfies
 
 ```lean
-intervalFullSemigroupOperator t (intervalDomainLift f) x =
-  unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
+max (1 : ℝ) ((n + 1 : ℕ) : ℝ) = ((n + 1 : ℕ) : ℝ)
 ```
 
-on `[0,1]`, and `heatValue_eq_cosineSeries` rewrites `unitIntervalCosineHeatValue` as the explicit `∑' cosineMode` series.
-
-`IntervalMildPicard.lean` itself mostly defines the Picard iteration and measurability/continuity infrastructure; the spectral representation theorem is in `IntervalPicardIterateRepresentation.lean`, with supporting semigroup identity in `IntervalSpectralSubtypeAdapter.lean` and heat-value series expansion in `IntervalPicardIterateRestart.lean`.
-
-## 1. Level-0 coefficients
-
-`ShenWork/Paper2/IntervalPicardIterateRepresentation.lean:64`
+so the tail is definitionally/algebraically
 
 ```lean
-def iterateReprCoeff (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
-    ℕ → ℝ → ℕ → ℝ
-  | 0,     σ, k => Real.exp (-σ * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k
-  | n + 1, σ, k => restartIterateCoeff p u₀ n σ k
+C / ((n + 1 : ℝ)^2) = C * reciprocalSquareTerm (n + 1)
 ```
 
-Thus at level `0`, the representation coefficient is exactly the damped heat coefficient.
-
-## 2. Level-0 summability
-
-`ShenWork/Paper2/IntervalPicardIterateRepresentation.lean:74`
+and this is summable by
 
 ```lean
-theorem hbsum_zero
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ 0 σ k|)
+(reciprocalSquareTerm_summable.comp_injective (fun a b h => by omega)).mul_left C
 ```
 
-This gives the eigenvalue-weighted summability for the level-0 damped coefficients.
+Note: the assumption `0 ≤ C` is **not needed** for pure summability, since scalar multiples of summable series are summable for all real `C`.  It is useful only if you prove the result by nonnegative comparison.
 
-## 3. Main level-0 agreement theorem: `hagree_zero`
+## Exact repo definition
 
-`ShenWork/Paper2/IntervalPicardIterateRepresentation.lean:83`
+`ShenWork/PDE/IntervalDomainRegularityBootstrap.lean:117`
 
 ```lean
-theorem hagree_zero
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
-      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
-      (Set.Icc (0 : ℝ) 1)
+/-- Reciprocal-square summand controlling the second-derivative series. -/
+def reciprocalSquareTerm (n : ℕ) : ℝ := 1 / (n : ℝ) ^ 2
 ```
 
-Proof route in the file:
+`ShenWork/PDE/IntervalDomainRegularityBootstrap.lean:120`
 
 ```lean
-have hlift : intervalDomainLift (picardIter p u₀ 0 σ) x
-    = intervalFullSemigroupOperator σ (intervalDomainLift u₀) x := by
-  simp only [intervalDomainLift, picardIter, dif_pos hx]
-
-rw [ShenWork.IntervalSpectralSubtypeAdapter.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-      hσ hu₀_cont hu₀_bound hx]
-rw [heatValue_eq_cosineSeries]
-rfl
+theorem reciprocalSquareTerm_summable : Summable reciprocalSquareTerm := by
+  change Summable (fun n : ℕ => 1 / (n : ℝ) ^ 2)
+  exact Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)
 ```
 
-So `hagree_zero` does exactly what you need: it bridges the level-0 Picard slice to the cosine-mode series on `[0,1]`.
-
-## 4. Direct semigroup-to-heat-value identity
-
-`ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean:49`
+Important consequence: `reciprocalSquareTerm 0 = 0`, because real division by zero gives `1 / 0 = 0`.  Your target sequence has value `C` at `k = 0`, because `max 1 0 = 1`.  So do **not** try a global pointwise comparison
 
 ```lean
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-    {t : ℝ} (ht : 0 < t) {f : intervalDomainPoint → ℝ} (hf : Continuous f)
-    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift f) n| ≤ M)
-    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalFullSemigroupOperator t (intervalDomainLift f) x =
-      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
+C / (max 1 k)^2 ≤ C * reciprocalSquareTerm k
 ```
 
-This is the closed-interval spectral identity with only subtype continuity of `f`, avoiding the false requirement that `intervalDomainLift f` be globally continuous on `ℝ`.
+at `k = 0`; it is false when `0 < C`.  First throw away the finite initial term.
 
-## 5. Heat value to explicit cosine series
+## Recommended theorem
 
-`ShenWork/Paper2/IntervalPicardIterateRestart.lean:197`
+This version is stronger than requested: no `0 ≤ C` hypothesis is needed.
 
 ```lean
-theorem heatValue_eq_cosineSeries (t : ℝ) (a : ℕ → ℝ) (x : ℝ) :
-    unitIntervalCosineHeatValue t a x
-      = ∑' k, (Real.exp (-t * (λ_ k)) * a k) * cosineMode k x
+import ShenWork.PDE.IntervalDomainRegularityBootstrap
+
+open ShenWork.IntervalDomainRegularityBootstrap
+
+noncomputable section
+
+/-- `∑ C / (max 1 k)^2` is summable.  The `k=0` term is finite, and the tail is
+`C * reciprocalSquareTerm (k+1)`. -/
+theorem summable_const_div_max_one_nat_sq (C : ℝ) :
+    Summable (fun k : ℕ => C / (max (1 : ℝ) (k : ℝ)) ^ 2) := by
+  -- Remove the finite initial term `k = 0`.
+  rw [← summable_nat_add_iff (k := 1)]
+  -- On the shifted tail, `max 1 (n+1) = n+1`, so the term is exactly
+  -- `C * reciprocalSquareTerm (n+1)`.
+  have htail :
+      (fun n : ℕ => C / (max (1 : ℝ) ((n + 1 : ℕ) : ℝ)) ^ 2)
+        = fun n : ℕ => C * reciprocalSquareTerm (n + 1) := by
+    funext n
+    have hn : (1 : ℝ) ≤ ((n + 1 : ℕ) : ℝ) := by
+      exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
+    simp [reciprocalSquareTerm, max_eq_right hn, mul_one_div]
+  rw [htail]
+  exact (reciprocalSquareTerm_summable.comp_injective
+    (fun a b h => by omega)).mul_left C
 ```
 
-Combining this with the semigroup identity gives the direct statement:
+If you want to keep the requested nonnegativity assumption in the theorem statement:
 
 ```lean
-intervalFullSemigroupOperator σ (intervalDomainLift u₀) x =
-  ∑' k,
-    (Real.exp (-σ * unitIntervalCosineEigenvalue k)
-      * cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x
+theorem summable_nonneg_const_div_max_one_nat_sq {C : ℝ} (_hC : 0 ≤ C) :
+    Summable (fun k : ℕ => C / (max (1 : ℝ) (k : ℝ)) ^ 2) :=
+  summable_const_div_max_one_nat_sq C
 ```
 
-for `0 < σ`, `x ∈ Icc 0 1`, assuming `Continuous u₀` and the coefficient bound.
+## If `omega` is undesirable
 
-## 6. Related theorem: `heatSlice_profile_eq_heatValue`
-
-`ShenWork/Paper2/IntervalPicardLevel0SourceTimeC1On.lean:88`
+The only use of `omega` is to prove injectivity of `fun n => n + 1`.  You can replace it with a direct `Nat.succ` argument if Lean accepts the definitional shape in your file:
 
 ```lean
-theorem heatSlice_profile_eq_heatValue
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {σ x M₀ : ℝ} (hσ : 0 < σ) (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalDomainLift (picardIter p u₀ 0 σ) x =
-      unitIntervalCosineHeatValue σ (heatCoeff u₀) x
+(reciprocalSquareTerm_summable.comp_injective
+  (fun a b h => by exact Nat.succ.inj h)).mul_left C
 ```
 
-This is the same bridge but stops at `unitIntervalCosineHeatValue`; use `heatValue_eq_cosineSeries` to get the explicit `∑' cosineMode` form.
+If Lean sees `a + 1` rather than `Nat.succ a`, keep the `omega` version; that exact pattern already appears in the repo's indexed/default `ChemDivAdotEnvelope.lean`.
 
-The same file also proves the level-0 coefficient identity:
+## Existing pattern in `ChemDivAdotEnvelope.lean` on the indexed/default branch
 
-`ShenWork/Paper2/IntervalPicardLevel0SourceTimeC1On.lean:102`
+`ChemDivAdotEnvelope.lean` is currently 404 on `chatgpt-scratch`, but the indexed/default branch contains the same tail-shift pattern:
 
 ```lean
-theorem heatSliceCoeff_eq_damped
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {σ M₀ : ℝ} (hσ : 0 < σ) (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) (k : ℕ) :
-    cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k =
-      Real.exp (-σ * (λ_ k)) * heatCoeff u₀ k
+theorem adotEnvelope_summable {Cdot : ℝ} (hC : 0 ≤ Cdot) :
+    Summable (adotEnvelope Cdot) := by
+  rw [← summable_nat_add_iff (k := 1)]
+  apply Summable.of_nonneg_of_le
+  · intro n; exact adotEnvelope_nonneg hC (n + 1)
+  · intro n
+    show adotEnvelope Cdot (n + 1) ≤ Cdot * reciprocalSquareTerm (n + 1)
+    simp only [adotEnvelope, Nat.succ_ne_zero, ↓reduceIte, reciprocalSquareTerm]
+    have hn1_pos : (0 : ℝ) < (↑(n + 1) : ℝ) :=
+      Nat.cast_pos.mpr (Nat.succ_pos n)
+    have hden_pos : (0 : ℝ) < (↑(n + 1) : ℝ) ^ 2 := by positivity
+    rw [mul_one_div]
+    apply div_le_div_of_nonneg_left hC hden_pos
+    rw [mul_pow]
+    have hpi_sq : (1 : ℝ) ≤ Real.pi ^ 2 := by
+      nlinarith [Real.pi_gt_three]
+    calc (↑(n + 1) : ℝ) ^ 2
+        = (↑(n + 1) : ℝ) ^ 2 * 1 := by ring
+      _ ≤ (↑(n + 1) : ℝ) ^ 2 * Real.pi ^ 2 := by
+          exact mul_le_mul_of_nonneg_left hpi_sq (by positivity)
+  · exact (reciprocalSquareTerm_summable.comp_injective
+      (fun a b h => by omega)).mul_left Cdot
 ```
 
-## 7. Related theorem for successor levels, not level 0
-
-`ShenWork/Paper2/IntervalPicardIterateRestart.lean:293`
-
-```lean
-theorem iterate_lift_eq_cosineSeries
-    (p : CM2Params) (hχ0 : p.χ₀ = 0)
-    (u₀ : intervalDomainPoint → ℝ) (n : ℕ)
-    (hu₀_cont : Continuous (intervalDomainLift u₀))
-    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceTimeC1
-      (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k))
-    {t : ℝ} (ht : 0 < t)
-    (hL_cont : ∀ s, 0 < s → s ≤ t →
-      Continuous (logisticLifted p (picardIter p u₀ n s)))
-    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
-    intervalDomainLift (picardIter p u₀ (n+1) t) x
-      = ∑' k, iterateCoeff p u₀ n t k * cosineMode k x
-```
-
-This is for `picardIter … (n+1)`, not the base `0` case.  It combines homogeneous heat plus Duhamel source terms.  For level 0, `hagree_zero` is the cleaner theorem.
-
-## 8. Tower use confirms `hagree_zero` is the live base bridge
-
-`ShenWork/Paper2/IntervalPicardSourceTower.lean:527` uses `hbsum_zero` and `hagree_zero` to build the base tower carrier:
-
-```lean
-def tower_zero
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
-    (H : TowerInputs p u₀ M A₂ T) :
-    TowerLevel p u₀ M A₂ T 0 :=
-  ...
-  { hrepr_sum := fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound
-    hrepr_agree := fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound
-    ... }
-```
-
-So `hagree_zero` is not stale; it is wired into the current tower base case.
-
-## 9. Search/name conclusions
-
-Search results on/around `chatgpt-scratch`:
-
-- `picardIter_cosine_representation`: no exact theorem name found.
-- `hagree_zero`: found and active in `IntervalPicardIterateRepresentation.lean`; used by `tower_zero`.
-- `iterate_lift_eq`: found `iterate_lift_eq_cosineSeries`, but it is the successor-level theorem for `n+1`.
-- `level0.*agree`: no better exact level-0 theorem name found on branch; `IntervalConjugateLevel0BFormSourceOn.lean` appears in indexed/default search results but is 404 on `chatgpt-scratch`.
-- `semigroup.*agree`: the relevant branch theorem is `intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont`, plus `heatValue_eq_cosineSeries`.
-
-## Practical use
-
-For the base level, use:
-
-```lean
-have hagree : Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
-    (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
-    (Set.Icc (0 : ℝ) 1) :=
-  ShenWork.IntervalPicardIterateRepresentation.hagree_zero
-    p u₀ hσ hu₀_cont hu₀_bound
-```
-
-If you need the statement directly in terms of `intervalFullSemigroupOperator`, combine:
-
-```lean
-intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-heatValue_eq_cosineSeries
-```
-
-or copy the two-line proof pattern from `hagree_zero`.
+For your `max 1 k` sequence the comparison is even simpler than the `π` case: after shifting to `n+1`, there is no π denominator to compare away; it is just equality with `C * reciprocalSquareTerm (n+1)`.
