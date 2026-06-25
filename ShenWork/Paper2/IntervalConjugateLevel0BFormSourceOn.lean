@@ -162,17 +162,122 @@ theorem level0_chemDiv_envelope_summable
       Summable envelope ∧
       ∀ s ∈ Icc c T, ∀ n,
         |coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s n| ≤ envelope n := by
-  sorry
-  -- Chain (all pieces exist, wiring needed):
-  -- 1. U_cos s := intervalFullSemigroupOperator s (intervalDomainLift u₀) — the global cosine series
-  --    hu_cos : ContDiff ℝ 4 (U_cos s) — from heatSemigroup_contDiff_four
-  --    hu_even : ∀ x, U_cos s (-x) = U_cos s x — from cosineMode_neg via tsum_congr
-  --    hu_symm1 : ∀ x, U_cos s (2-x) = U_cos s x — from cosineMode_neg + cosineMode_add_two
-  --    h_agree_u : intervalDomainLift (S(s)u₀) = U_cos s on [0,1] — definitional
-  -- 2. V_cos s := intervalNeumannResolverR p (S(s)u₀) — resolver cosine series (similar properties)
-  -- 3. chemDivSource_weakH2_of_cosineRep → H2 per slice
-  -- 4. coupledChemDivSource_quadraticDecay_of_uniformH2 → |c_k| ≤ C/(kπ)²
-  -- 5. Summable envelope from reciprocalSquareTerm_summable
+  -- ── Sub-goal 1: per-slice weak-H² Neumann data with uniform second-derivative bound ──
+  -- Chain: heat semigroup C⁴ (heatSemigroup_contDiff_four) → resolver C⁴ (sorry) →
+  -- chemDivSource_weakH2_of_cosineRep → IntervalWeakH2Neumann per slice.
+  -- The uniform L¹(|f''|) bound over [c,T] uses compactness + continuity of s ↦ f''_s.
+  -- Each step is >20 lines of new infrastructure; sorry'd as a block.
+  have hH2 : ∃ (B : ℝ), 0 ≤ B ∧
+      ∀ s ∈ Icc c T,
+        ∃ (h2 : ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)),
+        (∫ x in (0 : ℝ)..1, |h2.secondDeriv x|) ≤ B := by
+    sorry
+    -- Proof sketch (>20 lines each):
+    -- For each s ∈ [c,T] with c > 0:
+    --   U_cos s := fun x => ∑' k, (exp(-s*λ_k) * heatCoeff u₀ k) * cosineMode k x
+    --   ContDiff ℝ 4 (U_cos s) — from heatSemigroup_contDiff_four (s > 0)
+    --   Even/symm1 of U_cos s — from cosineMode_neg/cosineMode_add_two via tsum_congr
+    --   V_cos s := resolver cosine series — ContDiff ℝ 4, even, symm1 (sorry)
+    --   chemDivSource_weakH2_of_cosineRep → IntervalWeakH2Neumann
+    --   Uniform B from compactness of [c,T] and continuity of the second-derivative norm
+  -- ── Sub-goal 2: uniform sup bound on the chemDiv source slices ──
+  -- The chemDiv source is a continuous function on [0,1] for each s ∈ [c,T], and
+  -- is uniformly bounded because u and v are uniformly bounded.
+  have hSup : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+      (∀ s ∈ Icc c T,
+        ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+          (Icc (0 : ℝ) 1)) ∧
+      (∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+        |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup) := by
+    sorry
+    -- Proof sketch (>20 lines): u bounded by M, v bounded (resolver of bounded u),
+    -- so the chemDiv source = deriv(u · v' / (1+v)^β) is bounded on [0,1] × [c,T]
+    -- by a constant depending on M, the C² norms, and p.β.
+  -- ── Extract the data ──
+  obtain ⟨B, hBnn, hH2_data⟩ := hH2
+  obtain ⟨Msup, hMsupnn, hcont_slices, hsup_slices⟩ := hSup
+  -- ── Build the envelope ──
+  -- For k = 0: |c₀| ≤ 2 * Msup (from cosine coefficient of bounded continuous function)
+  -- For k ≥ 1: |cₖ| ≤ 2B / (kπ)² ≤ Cenv / (kπ)² (from weak-H² quadratic decay)
+  -- Unified constant: Cenv = 2 * max B Msup ≥ both 2B and 2Msup.
+  -- Envelope: Cenv · reciprocalSquareTerm (max 1 k)
+  --   k=0: Cenv · 1/1² = Cenv ≥ 2Msup ≥ |c₀|
+  --   k≥1: Cenv · 1/k² ≥ Cenv/(kπ)² ≥ 2B/(kπ)² ≥ |cₖ|     (since 1/k² ≥ 1/(kπ)²)
+  -- Summability: Cenv · reciprocalSquareTerm is summable by reciprocalSquareTerm_summable.
+  -- But reciprocalSquareTerm 0 = 1/0² = ... undefined. Let me use max 1 k instead.
+  --
+  -- Simpler approach: Use ∑ 1/k² convergence starting from k=1, plus a finite value at k=0.
+  -- Define envelope k = Cenv * (1 / ((max 1 k : ℝ) ^ 2)).
+  -- At k=0: envelope 0 = Cenv * (1/1) = Cenv ≥ 2Msup.
+  -- At k≥1: envelope k = Cenv/k² ≥ Cenv/(kπ)² ≥ 2B/(kπ)² (since π² ≥ 1).
+  -- Summable: dominated by Cenv · 1/k² (the 1/(max 1 k)² series).
+  set Cenv := 2 * max B Msup with hCenv_def
+  have hCenv_nn : 0 ≤ Cenv := by positivity
+  have hCenv_ge_2B : 2 * B ≤ Cenv := by
+    simp only [hCenv_def]; exact mul_le_mul_of_nonneg_left (le_max_left _ _) (by norm_num)
+  have hCenv_ge_2Msup : 2 * Msup ≤ Cenv := by
+    simp only [hCenv_def]; exact mul_le_mul_of_nonneg_left (le_max_right _ _) (by norm_num)
+  -- The envelope: Cenv / (max 1 k)²
+  refine ⟨fun k => Cenv / (max 1 (k : ℝ)) ^ 2, ?_, ?_⟩
+  · -- ── Summability of the envelope ──
+    -- Split: envelope = (indicator at 0) + (tail for k ≥ 1).
+    -- At k=0: Cenv/(max 1 0)² = Cenv/1 = Cenv.
+    -- At k≥1: Cenv/(max 1 k)² = Cenv/k².
+    -- The k=0 indicator is summable (single nonzero term).
+    -- The k≥1 tail is summable by comparison with reciprocalSquareTerm.
+    have hsplit : (fun k => Cenv / (max 1 (k : ℝ)) ^ 2) =
+        (fun k => if k = 0 then Cenv else 0) +
+        (fun k => if k = 0 then 0 else Cenv / (k : ℝ) ^ 2) := by
+      ext k; simp only [Pi.add_apply]
+      by_cases hk : k = 0
+      · subst hk; simp
+      · have hk1 : (1 : ℝ) ≤ (k : ℝ) := by exact_mod_cast Nat.one_le_iff_ne_zero.mpr hk
+        simp [hk, max_eq_right hk1]
+    rw [hsplit]
+    apply Summable.add
+    · -- Single-term at k=0
+      apply summable_of_ne_finset_zero (s := {0})
+      intro k hk; simp [Finset.mem_singleton] at hk; simp [hk]
+    · -- Tail for k ≥ 1: dominated by Cenv * reciprocalSquareTerm
+      apply Summable.of_nonneg_of_le
+        (fun k => by split_ifs <;> positivity)
+        (fun k => ?_)
+        (ShenWork.IntervalDomainRegularityBootstrap.reciprocalSquareTerm_summable.mul_left Cenv)
+      by_cases hk : k = 0
+      · simp [hk]; positivity
+      · simp only [hk, ite_false,
+            ShenWork.IntervalDomainRegularityBootstrap.reciprocalSquareTerm, mul_one_div,
+            le_refl]
+  · -- ── Uniform bound on coefficients ──
+    intro s hs n
+    obtain ⟨h2s, hBs⟩ := hH2_data s hs
+    by_cases hn : n = 0
+    · -- Case k = 0: |c₀| ≤ 2 * Msup ≤ Cenv = Cenv / (max 1 0)²
+      subst hn
+      simp only [Nat.cast_zero, max_eq_left (by norm_num : (0 : ℝ) ≤ 1), one_pow, div_one]
+      have h0 := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+        (hcont_slices s hs) hMsupnn (hsup_slices s hs) 0
+      exact le_trans h0 hCenv_ge_2Msup
+    · -- Case k ≥ 1: |cₖ| ≤ 2B/(kπ)² ≤ Cenv/(kπ)² ≤ Cenv/k²
+      have hk : 1 ≤ n := Nat.one_le_iff_ne_zero.mpr hn
+      have hn_pos : (0 : ℝ) < (n : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk
+      have hmax_eq : max 1 (n : ℝ) = (n : ℝ) :=
+        max_eq_right (by exact_mod_cast hk : (1 : ℝ) ≤ (n : ℝ))
+      simp only [hmax_eq]
+      have hdecay :=
+        ShenWork.IntervalSourceDecayQuantitative.intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+          h2s hBs n hk
+      calc |ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+              (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s) n|
+          ≤ 2 * B / ((n : ℝ) * Real.pi) ^ 2 := hdecay
+        _ ≤ Cenv / ((n : ℝ) * Real.pi) ^ 2 := by
+            gcongr; exact hCenv_ge_2B
+        _ ≤ Cenv / (n : ℝ) ^ 2 := by
+            apply div_le_div_of_nonneg_left hCenv_nn (by positivity)
+            have hpi_ge_one : (1 : ℝ) ≤ Real.pi := by linarith [Real.pi_gt_three]
+            exact pow_le_pow_left₀ (le_of_lt hn_pos)
+              (le_mul_of_one_le_right (le_of_lt hn_pos) hpi_ge_one) 2
 
 /-- Time-derivative and continuity data for the chemDiv coefficients of the
 heat semigroup on a positive window.  The time derivative is computed by the
