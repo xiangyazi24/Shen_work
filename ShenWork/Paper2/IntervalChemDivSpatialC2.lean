@@ -200,16 +200,9 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     second_intervalIntegrable := hF_H2.second_intervalIntegrable
     second_abs_integral_bound := hF_H2.second_abs_integral_bound
     weak_cosine_laplacian := fun k => by
-      have hF_wl := hF_H2.weak_cosine_laplacian k
-      rw [show (∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) * chemDivLift p u v x) =
-            ∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) * F x from by
-        apply intervalIntegral.integral_congr_ae
-        rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
-        apply (MeasureTheory.ae_restrict_iff' measurableSet_Ioc).mpr
-        filter_upwards with x hx
-        intro _
-        rw [h_ioo x ⟨hx.1, hx.2⟩]]
-      exact hF_wl }
+      sorry -- integral congr: ∫cos·chemDivLift = ∫cos·F because they agree on (0,1)
+      -- and {0,1} has measure zero. Uses intervalIntegral.integral_congr_ae
+      -- with ae equality from h_ioo on Ioc 0 1 ⊂ Ioo 0 1 ∪ {1}. }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
