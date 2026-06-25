@@ -161,10 +161,10 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
   -- 4. One-sided tendsto at endpoints — from continuity of deriv F at those points
   have htend0 : Filter.Tendsto (deriv F)
       (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
-    rw [← hbc0]; exact (hF'_cont.tendsto 0).mono_left nhdsWithin_le_nhds
+    rw [← hbc0]; exact (hF'_cont.continuousAt).continuousWithinAt.tendsto
   have htend1 : Filter.Tendsto (deriv F)
       (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
-    rw [← hbc1]; exact (hF'_cont.tendsto 1).mono_left nhdsWithin_le_nhds
+    rw [← hbc1]; exact (hF'_cont.continuousAt).continuousWithinAt.tendsto
   -- 5. Build IntervalWeakH2Neumann for F
   have hF_H2 : IntervalWeakH2Neumann F :=
     ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
