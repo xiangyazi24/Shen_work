@@ -199,8 +199,7 @@ theorem level0_chemDiv_envelope_summable
           intervalDomainLift (conjugatePicardIter p u₀ 0 s) x = U_cos x := by
         intro x hx
         simp only [intervalDomainLift, dif_pos hx, conjugatePicardIter]
-        sorry -- need: intervalFullSemigroupOperator s (lift u₀) x = U_cos x
-        -- where U_cos is the tsum form. This is the spectral representation bridge.
+        sorry -- spectral bridge: intervalFullSemigroupOperator_eq_cosineHeatValue_Icc + rfl
       -- Inline helpers for cosineMode parity (cosineMode k x = cos(kπx))
       have cosineMode_neg' : ∀ (k : ℕ) (x : ℝ),
           cosineMode k (-x) = cosineMode k x := by
