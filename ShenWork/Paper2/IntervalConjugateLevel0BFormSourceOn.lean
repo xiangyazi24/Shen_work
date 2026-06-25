@@ -161,15 +161,14 @@ theorem level0_chemDiv_envelope_summable
       Summable envelope ∧
       ∀ s ∈ Icc c T, ∀ n,
         |coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s n| ≤ envelope n := by
-  -- The heat semigroup S(s)u₀ for s ≥ c > 0 is spatially C∞ on [0,1] with
-  -- Neumann boundary conditions.  The chemDiv source is
-  --   ∇·(u · χ(v) · ∇v)
-  -- where v = (μ - Δ)⁻¹(ν · u^γ) is the chemical concentration.
-  -- Since u = S(s)u₀ is C∞ with exponentially decaying coefficients,
-  -- v and ∇v are also C∞, and the product/composition is C∞.
-  -- The Neumann H² property gives |cosineCoeffs(chemDiv source) k| ≤ C/(kπ)²
-  -- for k ≥ 1, yielding a summable envelope.
   sorry
+  -- Route (H2 chain is sorry-free in IntervalChemDivSpatialC2.lean):
+  -- 1. For each s ∈ [c,T], produce IntervalWeakH2Neumann via
+  --    chemDivSource_weakH2_of_cosineRep with cosine representatives
+  --    U_cos = heat semigroup cosine series, V_cos = resolver cosine series
+  -- 2. Extract quadratic decay via coupledChemDivSource_quadraticDecay_of_uniformH2
+  -- 3. Build summable envelope from the decay bound
+  -- Blocked on: providing cosine representatives + their symmetry hypotheses
 
 /-- Time-derivative and continuity data for the chemDiv coefficients of the
 heat semigroup on a positive window.  The time derivative is computed by the
