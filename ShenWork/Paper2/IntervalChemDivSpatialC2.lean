@@ -161,7 +161,9 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   -- Parity helper: derivative of even C¹ function is odd
   have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
       ∀ x, deriv g (-x) = -(deriv g x) := by
-    intro g _hg heven x; sorry -- deriv_comp_neg + funext heven
+    intro g _hg heven x
+    have h1 := deriv_comp_neg (f := g) (x := x)
+    rw [show (fun x => g (-x)) = g from funext heven] at h1; linarith
   -- Odd function vanishes at 0
   have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
     intro g hodd; have h := hodd 0; rw [neg_zero] at h; linarith
@@ -175,7 +177,10 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   -- Parity helper: derivative of odd C¹ function is even
   have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
       ∀ x, deriv g (-x) = deriv g x := by
-    intro g _hg hodd x; sorry -- deriv_comp_neg + funext hodd + deriv_neg
+    intro g _hg hodd x
+    have h1 := deriv_comp_neg (f := g) (x := x)
+    rw [show (fun x => g (-x)) = fun x => -(g x) from funext hodd] at h1
+    simp [deriv_neg] at h1; linarith
   -- F = φ' is even (derivative of odd φ)
   have hF_even : ∀ x, F (-x) = F x :=
     deriv_odd_even
