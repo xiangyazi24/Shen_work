@@ -739,3 +739,13 @@ B-form route (BFormBankedInputs → Theorem_1_1): 12 fields scoped field-by-fiel
 CONCLUSION: χ₀<0 unconditional does NOT need new χ₀-specific analysis beyond what χ₀=0 needs.
 The shared hard piece is the Tower (iterate/limit source TimeC1 package). The 2 retypes are
 mechanical (the Hinf retype + hchemCont representative fix = same pattern as this session's fixes).
+
+## [2026-06-25] WINDOWED G2.5 BANKED (caec0d1) + REMAINING: B-form global→On adaptation
+Windowed G2.5 (duhamelSourceTimeC1On_of_uniform_limit) banked — iterate→limit source TimeC1On passage
+is now χ₀-independent. The iterate induction (Level0 + Successor, both χ₀-independent) + windowed G2.5
+produces DuhamelSourceTimeC1On for the limit for any χ₀.
+REMAINING: BFormBankedInputs and its consumer intervalConjugateMildSolution_pde_u_PID_unconditional
+still take GLOBAL DuhamelSourceTimeC1 (not On). conjugatePicardLimit uses ite (same boundary jump).
+FIX: same pattern as the EWA refactor — either (a) refactor BFormBankedInputs to On, or (b) soft-clamp
+globalize via Brick2. Both contained. The windowed infrastructure (this session) + G2.5 passage make
+the On data PRODUCIBLE; the interface just needs threading.
