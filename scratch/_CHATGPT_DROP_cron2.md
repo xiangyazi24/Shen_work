@@ -1,153 +1,260 @@
-# Q584 (cron2): summability of `C / (max 1 k)^2`
+# Q585 (cron2): `intervalNeumannResolverR` vs high-regularity resolver synthesis
 
 ## Executive verdict
 
-On `chatgpt-scratch`, the exact definition is **not** the π-normalized version.  It is:
+On `chatgpt-scratch`, the high-regularity file does **not** currently use the names
 
 ```lean
-def reciprocalSquareTerm (n : ℕ) : ℝ := 1 / (n : ℝ) ^ 2
+intervalResolverLiftR
+intervalResolverLiftR_contDiff_four
+intervalResolverLiftR_even
+intervalResolverLiftR_reflect_one
 ```
 
-and the existing theorem is:
+Instead, the corresponding real-line representative is named
 
 ```lean
-theorem reciprocalSquareTerm_summable : Summable reciprocalSquareTerm
+resolverRSynthesis
 ```
 
-The clean wiring for
+with theorems
 
 ```lean
-Summable (fun k : ℕ => C / (max (1 : ℝ) (k : ℝ)) ^ 2)
+resolverR_contDiff_four
+resolverR_even
+resolverR_symm1
 ```
 
-is to drop the finite `k = 0` term with
+The answer to your mathematical question is: **yes, it is the same resolver on `[0,1]` / on `intervalDomainPoint`**.  The branch already has the bridge theorem:
 
 ```lean
-rw [← summable_nat_add_iff (k := 1)]
+theorem intervalNeumannResolverR_eq_resolverRSynthesis
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : intervalDomainPoint) :
+    intervalNeumannResolverR p u x = resolverRSynthesis p u x.1
 ```
 
-Then the tail term at `k = n+1` satisfies
+So for
 
 ```lean
-max (1 : ℝ) ((n + 1 : ℕ) : ℝ) = ((n + 1 : ℕ) : ℝ)
+u := conjugatePicardIter p u₀ 0 s
 ```
 
-so the tail is definitionally/algebraically
+and
 
 ```lean
-C / ((n + 1 : ℝ)^2) = C * reciprocalSquareTerm (n + 1)
+coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s
+  = intervalNeumannResolverR p (conjugatePicardIter p u₀ 0 s)
 ```
 
-and this is summable by
+by definition, you can rewrite the interval-domain resolver value to the real-line synthesis value at `x.1`.
+
+The only difference is the **domain/codomain wrapper**:
+
+- `intervalNeumannResolverR p u : intervalDomainPoint → ℝ`
+- `resolverRSynthesis p u : ℝ → ℝ`
+
+On `x : intervalDomainPoint`, they agree at `x.1`.  They do not differ in coefficients or basis.
+
+## 1. Resolver used by the coupled concentration
+
+`ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean:29`
 
 ```lean
-(reciprocalSquareTerm_summable.comp_injective (fun a b h => by omega)).mul_left C
+/-- The concrete elliptic signal attached to a coupled trajectory. -/
+def coupledChemicalConcentration (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) :
+    ℝ → intervalDomainPoint → ℝ :=
+  fun t => intervalNeumannResolverR p (u t)
 ```
 
-Note: the assumption `0 ≤ C` is **not needed** for pure summability, since scalar multiples of summable series are summable for all real `C`.  It is useful only if you prove the result by nonnegative comparison.
-
-## Exact repo definition
-
-`ShenWork/PDE/IntervalDomainRegularityBootstrap.lean:117`
+Therefore for the level-0 heat trajectory:
 
 ```lean
-/-- Reciprocal-square summand controlling the second-derivative series. -/
-def reciprocalSquareTerm (n : ℕ) : ℝ := 1 / (n : ℝ) ^ 2
+coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s
+  = intervalNeumannResolverR p (conjugatePicardIter p u₀ 0 s)
 ```
 
-`ShenWork/PDE/IntervalDomainRegularityBootstrap.lean:120`
+is just definitional unfolding.
+
+## 2. Definition of the committed interval resolver
+
+`ShenWork/PDE/IntervalNeumannEllipticResolverR.lean:104`
 
 ```lean
-theorem reciprocalSquareTerm_summable : Summable reciprocalSquareTerm := by
-  change Summable (fun n : ℕ => 1 / (n : ℝ) ^ 2)
-  exact Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)
+def intervalNeumannResolverR
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) :
+    intervalDomainPoint → ℝ :=
+  fun x =>
+    ∑' k : ℕ,
+      (intervalNeumannResolverCoeff p u k).re *
+        unitIntervalCosineMode k x.1
 ```
 
-Important consequence: `reciprocalSquareTerm 0 = 0`, because real division by zero gives `1 / 0 = 0`.  Your target sequence has value `C` at `k = 0`, because `max 1 0 = 1`.  So do **not** try a global pointwise comparison
+This is the subtype-valued resolver used downstream.
+
+## 3. Definition of the high-regularity real-line representative
+
+`ShenWork/Paper2/IntervalResolverHighRegularity.lean:42`
 
 ```lean
-C / (max 1 k)^2 ≤ C * reciprocalSquareTerm k
+/-- The real-line cosine synthesis associated to the interval Neumann resolver.
+
+This is the natural globally-defined representative of `intervalNeumannResolverR p u`.
+On the fundamental interval `[0,1]`, it agrees with the subtype-valued resolver via
+`IntervalResolverSpatialC2.resolverR_eq_cosineSeries`. -/
+def resolverRSynthesis (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
+  ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x
 ```
 
-at `k = 0`; it is false when `0 < C`.  First throw away the finite initial term.
+This is exactly the object your message calls `intervalResolverLiftR`, modulo naming.
 
-## Recommended theorem
+## 4. Existing bridge theorem: they agree on `intervalDomainPoint`
 
-This version is stronger than requested: no `0 ≤ C` hypothesis is needed.
+`ShenWork/Paper2/IntervalResolverHighRegularity.lean:50`
 
 ```lean
-import ShenWork.PDE.IntervalDomainRegularityBootstrap
-
-open ShenWork.IntervalDomainRegularityBootstrap
-
-noncomputable section
-
-/-- `∑ C / (max 1 k)^2` is summable.  The `k=0` term is finite, and the tail is
-`C * reciprocalSquareTerm (k+1)`. -/
-theorem summable_const_div_max_one_nat_sq (C : ℝ) :
-    Summable (fun k : ℕ => C / (max (1 : ℝ) (k : ℝ)) ^ 2) := by
-  -- Remove the finite initial term `k = 0`.
-  rw [← summable_nat_add_iff (k := 1)]
-  -- On the shifted tail, `max 1 (n+1) = n+1`, so the term is exactly
-  -- `C * reciprocalSquareTerm (n+1)`.
-  have htail :
-      (fun n : ℕ => C / (max (1 : ℝ) ((n + 1 : ℕ) : ℝ)) ^ 2)
-        = fun n : ℕ => C * reciprocalSquareTerm (n + 1) := by
-    funext n
-    have hn : (1 : ℝ) ≤ ((n + 1 : ℕ) : ℝ) := by
-      exact_mod_cast Nat.succ_le_succ (Nat.zero_le n)
-    simp [reciprocalSquareTerm, max_eq_right hn, mul_one_div]
-  rw [htail]
-  exact (reciprocalSquareTerm_summable.comp_injective
-    (fun a b h => by omega)).mul_left C
+/-- The resolver value on the interval agrees with the real-line synthesis. -/
+theorem intervalNeumannResolverR_eq_resolverRSynthesis
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : intervalDomainPoint) :
+    intervalNeumannResolverR p u x = resolverRSynthesis p u x.1 := by
+  simpa [resolverRSynthesis] using
+    ShenWork.IntervalResolverSpatialC2.resolverR_eq_cosineSeries (p := p) (u := u) x
 ```
 
-If you want to keep the requested nonnegativity assumption in the theorem statement:
+So the bridge is already proved.  You do not need to reprove coefficient equality or basis equality for this connection.
+
+## 5. Lower-level basis bridge
+
+`ShenWork/PDE/IntervalResolverSpatialC2.lean:81` gives the intermediate theorem:
 
 ```lean
-theorem summable_nonneg_const_div_max_one_nat_sq {C : ℝ} (_hC : 0 ≤ C) :
-    Summable (fun k : ℕ => C / (max (1 : ℝ) (k : ℝ)) ^ 2) :=
-  summable_const_div_max_one_nat_sq C
+theorem resolverR_eq_cosineSeries
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (x : intervalDomainPoint) :
+    intervalNeumannResolverR p u x =
+      ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x.1 := by
+  unfold intervalNeumannResolverR
+  refine tsum_congr (fun k => ?_)
+  rw [unitIntervalCosineMode_eq_cosineMode]
 ```
 
-## If `omega` is undesirable
+The file header states the point explicitly: `intervalNeumannResolverR` uses `unitIntervalCosineMode`, and `unitIntervalCosineMode k y = cosineMode k y` is the bridge from `HeatKernelLpEstimates`.
 
-The only use of `omega` is to prove injectivity of `fun n => n + 1`.  You can replace it with a direct `Nat.succ` argument if Lean accepts the definitional shape in your file:
+`ShenWork/PDE/CosineSpectrum.lean:22` defines the ambient cosine mode:
 
 ```lean
-(reciprocalSquareTerm_summable.comp_injective
-  (fun a b h => by exact Nat.succ.inj h)).mul_left C
+/-- The same cosine mode as a function on the ambient real line. -/
+def cosineMode (n : ℕ) (x : ℝ) : ℝ :=
+  Real.cos ((n : ℝ) * Real.pi * x)
 ```
 
-If Lean sees `a + 1` rather than `Nat.succ a`, keep the `omega` version; that exact pattern already appears in the repo's indexed/default `ChemDivAdotEnvelope.lean`.
-
-## Existing pattern in `ChemDivAdotEnvelope.lean` on the indexed/default branch
-
-`ChemDivAdotEnvelope.lean` is currently 404 on `chatgpt-scratch`, but the indexed/default branch contains the same tail-shift pattern:
+`ShenWork/Wiener/EWA/ResolverEvalBridge.lean:37` also records the intended match:
 
 ```lean
-theorem adotEnvelope_summable {Cdot : ℝ} (hC : 0 ≤ Cdot) :
-    Summable (adotEnvelope Cdot) := by
-  rw [← summable_nat_add_iff (k := 1)]
-  apply Summable.of_nonneg_of_le
-  · intro n; exact adotEnvelope_nonneg hC (n + 1)
-  · intro n
-    show adotEnvelope Cdot (n + 1) ≤ Cdot * reciprocalSquareTerm (n + 1)
-    simp only [adotEnvelope, Nat.succ_ne_zero, ↓reduceIte, reciprocalSquareTerm]
-    have hn1_pos : (0 : ℝ) < (↑(n + 1) : ℝ) :=
-      Nat.cast_pos.mpr (Nat.succ_pos n)
-    have hden_pos : (0 : ℝ) < (↑(n + 1) : ℝ) ^ 2 := by positivity
-    rw [mul_one_div]
-    apply div_le_div_of_nonneg_left hC hden_pos
-    rw [mul_pow]
-    have hpi_sq : (1 : ℝ) ≤ Real.pi ^ 2 := by
-      nlinarith [Real.pi_gt_three]
-    calc (↑(n + 1) : ℝ) ^ 2
-        = (↑(n + 1) : ℝ) ^ 2 * 1 := by ring
-      _ ≤ (↑(n + 1) : ℝ) ^ 2 * Real.pi ^ 2 := by
-          exact mul_le_mul_of_nonneg_left hpi_sq (by positivity)
-  · exact (reciprocalSquareTerm_summable.comp_injective
-      (fun a b h => by omega)).mul_left Cdot
+-- Basis match (`cosineMode = unitIntervalCosineMode`).
+-- ... These are definitionally the same (`Real.cos (kπx)`), bridged by the committed
+-- `unitIntervalCosineMode_eq_cosineMode`.
 ```
 
-For your `max 1 k` sequence the comparison is even simpler than the `π` case: after shifting to `n+1`, there is no π denominator to compare away; it is just equality with `C * reciprocalSquareTerm (n+1)`.
+So yes: both bases are the same cosine basis; the repo has a named bridge theorem for it.
+
+## 6. High-regularity theorems available on the real-line representative
+
+`ShenWork/Paper2/IntervalResolverHighRegularity.lean:97`
+
+```lean
+theorem resolverR_contDiff_four
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc : Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
+    ContDiff ℝ 4 (resolverRSynthesis p u)
+```
+
+`ShenWork/Paper2/IntervalResolverHighRegularity.lean:108`
+
+```lean
+theorem resolverR_even (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    resolverRSynthesis p u (-x) = resolverRSynthesis p u x
+```
+
+`ShenWork/Paper2/IntervalResolverHighRegularity.lean:115`
+
+```lean
+theorem resolverR_symm1 (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    resolverRSynthesis p u (2 - x) = resolverRSynthesis p u x
+```
+
+These are the current names corresponding to your `intervalResolverLiftR_contDiff_four`, `intervalResolverLiftR_even`, and `intervalResolverLiftR_reflect_one`.
+
+## 7. Practical bridge for the level-0 coupled concentration
+
+A direct lemma you can add/use:
+
+```lean
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.Paper2.ResolverHighRegularity
+
+@[simp] theorem coupledChemicalConcentration_eq_resolverRSynthesis_level0
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (s : ℝ)
+    (x : intervalDomainPoint) :
+    coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s x =
+      resolverRSynthesis p (conjugatePicardIter p u₀ 0 s) x.1 := by
+  rw [coupledChemicalConcentration]
+  exact intervalNeumannResolverR_eq_resolverRSynthesis
+    p (conjugatePicardIter p u₀ 0 s) x
+```
+
+Depending on namespace/imports, the proof may need fully qualified names:
+
+```lean
+  rw [ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration]
+  exact ShenWork.Paper2.ResolverHighRegularity.intervalNeumannResolverR_eq_resolverRSynthesis
+    p (conjugatePicardIter p u₀ 0 s) x
+```
+
+For a general trajectory `u`, the more reusable version is:
+
+```lean
+@[simp] theorem coupledChemicalConcentration_eq_resolverRSynthesis
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ)
+    (x : intervalDomainPoint) :
+    coupledChemicalConcentration p u s x =
+      resolverRSynthesis p (u s) x.1 := by
+  rw [ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration]
+  exact ShenWork.Paper2.ResolverHighRegularity.intervalNeumannResolverR_eq_resolverRSynthesis
+    p (u s) x
+```
+
+## 8. How to use C⁴/even/reflection for the interval resolver
+
+If you need high regularity for the interval-domain resolver, work with the real-line representative:
+
+```lean
+have hC4 : ContDiff ℝ 4
+    (resolverRSynthesis p (conjugatePicardIter p u₀ 0 s)) :=
+  resolverR_contDiff_four hsrc
+```
+
+and transfer pointwise values to `coupledChemicalConcentration` / `intervalNeumannResolverR` using
+
+```lean
+intervalNeumannResolverR_eq_resolverRSynthesis
+```
+
+For derivatives at endpoint/reflection arguments, the real-line representative is the right object; the interval-domain function only has subtype domain and cannot itself be differentiated as `ℝ → ℝ` until you choose a real-line representative/lift.  The branch already chooses `resolverRSynthesis` for exactly this purpose.
+
+## Conclusion
+
+`intervalNeumannResolverR` and the high-regularity real-line synthesis do not differ analytically.  They are the same cosine series with the same coefficients and the same cosine basis; the only distinction is domain:
+
+```text
+intervalNeumannResolverR p u : intervalDomainPoint → ℝ
+resolverRSynthesis p u       : ℝ → ℝ
+```
+
+On `x : intervalDomainPoint`, the equality is already proved by
+
+```lean
+intervalNeumannResolverR_eq_resolverRSynthesis p u x
+```
