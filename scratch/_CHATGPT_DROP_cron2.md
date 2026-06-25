@@ -1,288 +1,292 @@
-# Q579 (cron2): joint continuity of `coupledChemDivTimeDerivativeLift` without `ResolverHasSpectralAgreement`
+# Q529 (cron2): `coupledChemDivSourceCoeffs` derivative/continuity infrastructure
 
 ## Executive verdict
 
-Yes: the repo **does** have a non-`ResolverHasSpectralAgreement` route to
+The exact theorem you need exists on `chatgpt-scratch`:
+
+```lean
+coupledChemDivCoeff_hasDerivAt_of_chainRule
+```
+
+It proves
+
+```lean
+HasDerivAt
+  (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+  (coupledChemDivAdot p u s n) s
+```
+
+from only
+
+```lean
+hchain : CoupledChemDivLocalChainRule p u
+```
+
+There are also wrappers giving the `HasDerivWithinAt` form for `coupledChemDivSourceCoeffs`, and `ContinuousOn (fun s => coupledChemDivAdot p u s n)` on `[0,T]` from joint continuity of `coupledChemDivTimeDerivativeLift` on `[0,T] × [0,1]`.
+
+`ChemDivGcont.lean` is a separate small file: it uses the same `CoupledChemDivLocalChainRule` to show global time-continuity of the **source coefficients**
+
+```lean
+Continuous (fun s => coupledChemDivSourceCoeffs p u s n)
+```
+
+not of `adot`.
+
+The remaining analytic input is how to produce `CoupledChemDivLocalChainRule`.  The repo has several generic producers:
+
+```text
+CoupledChemDivPointwiseChainAtoms → CoupledChemDivLocalChainRule
+CoupledChemDivOuterCommuteAtoms → CoupledChemDivLocalChainRule
+CoupledChemDivFluxJointC2Hyp → CoupledChemDivLocalChainRule
+```
+
+but no theorem specialized to `u = conjugatePicardIter p u₀ 0` was found in these files.
+
+## 1. Exact `HasDerivAt` theorem for the cosine coefficient
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:79`
+
+```lean
+theorem coupledChemDivCoeff_hasDerivAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) (s : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+      (coupledChemDivAdot p u s n) s
+```
+
+Internally it expands the local slab from `hchain.exists_local_slab s`:
+
+```lean
+rcases hchain.exists_local_slab s with
+  ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
+```
+
+and applies:
+
+```lean
+ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
+  (f := coupledChemDivSourceLift p u)
+  (f' := coupledChemDivTimeDerivativeLift p u)
+  (τ := s) (δ := δ) (n := n) hδ hf_cont hdiff hcont_deriv
+```
+
+So the only analytic package consumed is `CoupledChemDivLocalChainRule p u`; no H², decay, zeroth coefficient, or Mdot data is used.
+
+## 2. `HasDerivWithinAt` wrapper for `coupledChemDivSourceCoeffs`
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:100`
+
+```lean
+theorem chemDivAdot_hasDerivWithinAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
+        (coupledChemDivAdot p u s n) (Set.Icc 0 T) s
+```
+
+This is just the previous global `HasDerivAt`, rewritten through the definitional equality
+
+```lean
+coupledChemDivSourceCoeffs p u r n
+  = cosineCoeffs (coupledChemDivSourceLift p u r) n
+```
+
+and restricted using `.hasDerivWithinAt`.
+
+For a different closed interval such as `[c,T]`, the same pattern should work directly from
+
+```lean
+(coupledChemDivCoeff_hasDerivAt_of_chainRule hchain s n).hasDerivWithinAt
+```
+
+with `simpa [coupledChemDivSourceCoeffs]`.
+
+## 3. `ContinuousOn` theorem for `coupledChemDivAdot` on a closed interval
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:125`
+
+```lean
+theorem chemDivAdot_continuousOn_of_jointCont
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n) (Set.Icc (0 : ℝ) T)
+```
+
+It uses the compact dominated-continuity lemma:
+
+```lean
+cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+  (f := coupledChemDivTimeDerivativeLift p u)
+  (c := (0 : ℝ)) (T := T) n hjointcont
+```
+
+and the definitional equality
+
+```lean
+coupledChemDivAdot p u s n
+  = cosineCoeffs (coupledChemDivTimeDerivativeLift p u s) n
+```
+
+For a positive window `[c,T]`, use the same lower-level theorem directly with `(c := c) (T := T)` if you have
 
 ```lean
 ContinuousOn
-  (Function.uncurry
-    (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
-  (Icc c T ×ˢ Icc (0 : ℝ) 1)
+  (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+  (Icc c T ×ˢ Icc (0:ℝ) 1)
 ```
 
-but it is not a one-line `ContDiff` theorem specialized to the heat semigroup.  The best existing route is:
+## 4. Combined derivative/continuity package in `ChemDivAdot.lean`
 
-```text
-ChemDivMixedReprWitnessData
-  → ChemDivMixedReprData
-  → ChemDivMixedTimeDerivClosedRepr
-  → ContinuousOn (uncurry coupledChemDivTimeDerivativeLift) on the closed slab
-```
-
-This route bypasses `ResolverHasSpectralAgreement`.  It asks instead for a globally continuous closed-slab representative `Gmix` of the mixed time-derivative field, or for the more structured witness bundle of ten continuous slice representatives
-
-```text
-U, U_t, U_tx, U_x, v, v_x, v_xx, v_t, v_tx, v_txx.
-```
-
-For the heat semigroup level-0 case, this is probably the clean route: build the witness data directly from heat-series representatives for the `U` fields and elliptic-resolver/series representatives for the `V` fields on the positive time window.  It is simpler than manufacturing `ResolverHasSpectralAgreement`, because `ResolverHasSpectralAgreement` is a Duhamel/restart spectral package and carries a `DuhamelSourceTimeC1` datum.
-
-I found **no theorem** already specialized to
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:149`
 
 ```lean
-coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)
+theorem chemDivAdot_deriv_legs_of_smoothness
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u)
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    (∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+        HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
+          (coupledChemDivAdot p u s n) (Set.Icc 0 T) s)
+      ∧ (∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n)
+          (Set.Icc (0 : ℝ) T))
 ```
 
-and no direct theorem saying “`ContDiff` of the heat/resolver composition implies joint continuity of `coupledChemDivTimeDerivativeLift`.”  The existing “composition” theorem is the `mixedAlgebra`/representative route.
+This is the ready-made `[0,T]` package for the derivative leg plus `adot` continuity leg.  It deliberately does not prove `Mdot`.
 
-## 1. The existing `ResolverHasSpectralAgreement` route
+## 5. `CoupledChemDivLocalChainRule`: structure and meaning
 
-`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:50` gives only the resolver time-derivative field `v_t`, not the full chemDiv mixed derivative:
-
-```lean
-theorem coupledChemicalTimeDerivative_jointContinuousOn_closed
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {U : ℝ}
-    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)) :
-    ContinuousOn
-      (Function.uncurry (coupledChemicalTimeDerivativeLift p u))
-      (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1)
-```
-
-The underlying structure is in `ShenWork/Paper2/IntervalResolverTimeRegularity.lean:38`:
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:78`
 
 ```lean
-structure ResolverHasSpectralAgreement
-    (T : ℝ) (v : ℝ → intervalDomainPoint → ℝ) : Prop where
-  exists_data : ∀ t₀, 0 < t₀ → t₀ < T →
-    ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
-      (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 a) (offset : ℝ),
-      (0 < t₀ - offset) ∧
-      (∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
-        v s x = ∑' n, localRestartCoeff a₀ a (s - offset) n *
-          cosineMode n x.1)
-```
-
-The closed-slab theorem it feeds is in `IntervalResolverTimeRegularity.lean:97`:
-
-```lean
-theorem resolver_timeDeriv_jointContinuousOn_closed
-    {T : ℝ} {v : ℝ → intervalDomainPoint → ℝ}
-    (H : ResolverHasSpectralAgreement T v) :
-    ContinuousOn
-      (Function.uncurry
-        (fun (t : ℝ) (x : ℝ) =>
-          deriv (fun s => intervalDomainLift (v s) x) t))
-      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1)
-```
-
-Search for a heat-specific construction of
-
-```lean
-ResolverHasSpectralAgreement U (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0))
-```
-
-found no direct theorem.  More importantly, constructing it is not “simple”: the structure demands local restart cosine data plus `DuhamelSourceTimeC1` for the coefficient family.  For level 0, direct heat/resolver smoothness is likely a shorter proof obligation than building this restart/Duhamel spectral agreement package.
-
-## 2. Non-`ResolverHasSpectralAgreement` route: closed-slab representative
-
-The main alternative is in `ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean`.
-
-### 2.1 Closed-slab representative structure
-
-`IntervalChemDivTimeDerivClosed.lean:43`:
-
-```lean
-def ChemDivMixedTimeDerivClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
-```
-
-### 2.2 Joint continuity theorem
-
-`IntervalChemDivTimeDerivClosed.lean:54`:
-
-```lean
-theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
+structure CoupledChemDivLocalChainRule
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt
+        (fun r => coupledChemDivSourceLift p u r x)
+        (coupledChemDivTimeDerivativeLift p u s x) s) ∧
     ContinuousOn
       (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
       (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-This theorem is exactly the target shape, except centered as `Icc (τ-δ) (τ+δ)` instead of arbitrary `Icc c T`.  For a fixed positive window `[c,T]`, one can choose e.g.
+So it packages exactly:
+
+1. eventual per-slice continuity of the source lift near each time `τ`,
+2. pointwise time `HasDerivAt` of the source lift on interior spatial points,
+3. closed-slab joint continuity of the derivative field.
+
+This is the core analytic input behind the coefficient `HasDerivAt` theorem.
+
+## 6. Producers for `CoupledChemDivLocalChainRule`
+
+### 6.1 Direct wrapper from pointwise atoms
+
+`ShenWork/PDE/IntervalChemDivLocalChainRule.lean:17`
 
 ```lean
-τ := (c + T) / 2
-δ := (T - c) / 2
-```
-
-when `c ≤ T`, and then rewrite `Icc (τ-δ) (τ+δ)` to `Icc c T` (or choose any slightly larger slab around `[c,T]` and use `.mono`).
-
-This theorem uses no `ResolverHasSpectralAgreement`; all it needs is the continuous representative `Gmix` and the equality on the closed slab.
-
-## 3. Constructing the closed representative by composition: `mixedAlgebra`
-
-The composition route is in `ShenWork/PDE/IntervalChemDivMixedReprConstruct.lean`.
-
-### 3.1 Explicit algebra for the mixed derivative
-
-`IntervalChemDivMixedReprConstruct.lean:49`:
-
-```lean
-def mixedAlgebra (β : ℝ)
-    (Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc : ℝ × ℝ → ℝ) :
-    ℝ × ℝ → ℝ :=
-  fun q =>
-    let U := Uc q; let Ut := Utc q; let Utx := Utxc q; let Ux := Uxc q
-    let V := Vc q; let Vx := Vxc q; let Vxx := Vxxc q
-    let Vt := Vtc q; let Vtx := Vtxc q; let Vtxx := Vtxxc q
-    let B := 1 + V
-    ((Utx * Vx + Ut * Vxx) / B ^ β - β * Ut * Vx * Vx / B ^ (β + 1)) +
-    ((Ux * Vtx + U * Vtxx) / B ^ β - β * U * Vtx * Vx / B ^ (β + 1)) -
-    (β * (Ux * Vx * Vt + U * Vxx * Vt + U * Vx * Vtx) / B ^ (β + 1)
-      - β * (β + 1) * U * Vx * Vt * Vx / B ^ (β + 2))
-```
-
-This is the “smooth functional of `u`, `v`, and derivatives” made explicit.
-
-### 3.2 Representative data bundle
-
-`IntervalChemDivMixedReprConstruct.lean:70`:
-
-```lean
-structure ChemDivMixedReprData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) where
-  Uc : ℝ × ℝ → ℝ
-  Utc : ℝ × ℝ → ℝ
-  Utxc : ℝ × ℝ → ℝ
-  Uxc : ℝ × ℝ → ℝ
-  Vc : ℝ × ℝ → ℝ
-  Vxc : ℝ × ℝ → ℝ
-  Vxxc : ℝ × ℝ → ℝ
-  Vtc : ℝ × ℝ → ℝ
-  Vtxc : ℝ × ℝ → ℝ
-  Vtxxc : ℝ × ℝ → ℝ
-  cont_Uc : Continuous Uc
-  cont_Utc : Continuous Utc
-  cont_Utxc : Continuous Utxc
-  cont_Uxc : Continuous Uxc
-  cont_Vc : Continuous Vc
-  cont_Vxc : Continuous Vxc
-  cont_Vxxc : Continuous Vxxc
-  cont_Vtc : Continuous Vtc
-  cont_Vtxc : Continuous Vtxc
-  cont_Vtxxc : Continuous Vtxxc
-  floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
-  agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-    coupledChemDivTimeDerivativeLift p u t x =
-      mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
-```
-
-### 3.3 Data → closed representative
-
-`IntervalChemDivMixedReprConstruct.lean:102`:
-
-```lean
-theorem chemDivMixedTimeDerivClosedRepr_of_data
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (D : ChemDivMixedReprData p u τ δ) :
-    ShenWork.IntervalCoupledRegularityBootstrap.ChemDivMixedTimeDerivClosedRepr
-      p u τ δ
-```
-
-This theorem proves that `mixedAlgebra` of the continuous representatives is itself continuous, using the positivity floor for the `rpow` denominators.
-
-So the clean non-spectral proof chain is:
-
-```lean
-have D : ChemDivMixedReprData p u τ δ := ...
-have Hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ :=
-  chemDivMixedTimeDerivClosedRepr_of_data D
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed Hrepr
-```
-
-## 4. Even more structured witness bundle
-
-`ShenWork/PDE/IntervalChemDivMixedReprWitness.lean` gives a larger witness structure that derives the `agree` field by the spatial chain rule.
-
-`IntervalChemDivMixedReprWitness.lean:178`:
-
-```lean
-structure ChemDivMixedReprWitnessData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) where
-  Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc : ℝ × ℝ → ℝ
-  cont_Uc : Continuous Uc
-  cont_Utc : Continuous Utc
-  cont_Utxc : Continuous Utxc
-  cont_Uxc : Continuous Uxc
-  cont_Vc : Continuous Vc
-  cont_Vxc : Continuous Vxc
-  cont_Vxxc : Continuous Vxxc
-  cont_Vtc : Continuous Vtc
-  cont_Vtxc : Continuous Vtxc
-  cont_Vtxxc : Continuous Vtxxc
-  floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
-  Uc_eq : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-    Uc (t, x) = intervalDomainLift (u t) x
-  Utc_eq : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-    Utc (t, x) = ShenWork.Paper2.PicardLimitK1.slopeSlice u t x
-  Vc_eq : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-    Vc (t, x) = intervalDomainLift (coupledChemicalConcentration p u t) x
-  Vtc_eq : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-    Vtc (t, x) = coupledChemicalTimeDerivativeLift p u t x
-  hUx : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    HasDerivAt (fun y => intervalDomainLift (u t) y) (Uxc (t, x)) x
-  hUtx : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    HasDerivAt (fun y => ShenWork.Paper2.PicardLimitK1.slopeSlice u t y)
-      (Utxc (t, x)) x
-  hVx : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    HasDerivAt (fun y => intervalDomainLift (coupledChemicalConcentration p u t) y)
-      (Vxc (t, x)) x
-  hVxx : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    HasDerivAt
-      (fun y => deriv (intervalDomainLift (coupledChemicalConcentration p u t)) y)
-      (Vxxc (t, x)) x
-  hVtx : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    HasDerivAt (fun y => coupledChemicalTimeDerivativeLift p u t y) (Vtxc (t, x)) x
-  hVtxx : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    HasDerivAt (fun y => deriv (coupledChemicalTimeDerivativeLift p u t) y)
-      (Vtxxc (t, x)) x
-  Vxc_eq : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    Vxc (t, x) = deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x
-  Vtxc_eq : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Ioo (0 : ℝ) 1,
-    Vtxc (t, x) = deriv (coupledChemicalTimeDerivativeLift p u t) x
-  boundary_agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
-    coupledChemDivTimeDerivativeLift p u t x =
-      mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
-```
-
-The theorem deriving the closed representative is `IntervalChemDivMixedReprWitness.lean:326`:
-
-```lean
-theorem chemDivMixedTimeDerivClosedRepr_of_witness
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (W : ChemDivMixedReprWitnessData p u τ δ) :
-    ShenWork.IntervalCoupledRegularityBootstrap.ChemDivMixedTimeDerivClosedRepr
-      p u τ δ
-```
-
-This is the most explicit route if you want Lean to verify that the committed `coupledChemDivTimeDerivativeLift` equals the smooth composition on the closed slab.
-
-## 5. Factor-`C²` packages do not by themselves remove `htime_cont`
-
-A tempting route is `CoupledChemDivFluxFactorJointC2Inputs`, but note that it still **contains** the desired continuity field as a hypothesis.
-
-`ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean:79`:
-
-```lean
-structure CoupledChemDivFluxFactorJointC2Inputs
+structure CoupledChemDivPointwiseChainAtoms
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    ...
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt
+        (fun r => coupledChemDivSourceLift p u r x)
+        (coupledChemDivTimeDerivativeLift p u s x) s) ∧
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+```
+
+Producer:
+
+`ShenWork/PDE/IntervalChemDivLocalChainRule.lean:33`
+
+```lean
+theorem coupledChemDivLocalChainRule_of_pointwiseChainAtoms
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (A : CoupledChemDivPointwiseChainAtoms p u) :
+    CoupledChemDivLocalChainRule p u
+```
+
+This is a pure wrapper; it does not prove the analytic facts.
+
+### 6.2 From outer-commute atoms
+
+`ShenWork/PDE/IntervalChemDivOuterCommute.lean:33`
+
+```lean
+structure CoupledChemDivOuterCommuteAtoms
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt
+        (fun r => deriv (coupledChemDivFluxLift p u r) x)
+        (deriv (coupledChemDivFluxTimeDerivativeLift p u s) x) s) ∧
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+```
+
+Producer:
+
+`ShenWork/PDE/IntervalChemDivOuterCommute.lean:48`
+
+```lean
+theorem coupledChemDivLocalChainRule_of_outerCommuteAtoms
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (A : CoupledChemDivOuterCommuteAtoms p u) :
+    CoupledChemDivLocalChainRule p u
+```
+
+It relies on these two identities:
+
+```lean
+theorem coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
+    (hx : x ∈ Ioo (0 : ℝ) 1) :
+    coupledChemDivSourceLift p u s x =
+      deriv (coupledChemDivFluxLift p u s) x
+```
+
+and
+
+```lean
+theorem coupledChemDivTimeDerivativeLift_eq_deriv_fluxTimeDerivative
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ} :
+    coupledChemDivTimeDerivativeLift p u s x =
+      deriv (coupledChemDivFluxTimeDerivativeLift p u s) x
+```
+
+### 6.3 From primitive joint-`C²` flux regularity
+
+`ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean:126`
+
+```lean
+structure CoupledChemDivFluxJointC2Hyp
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      ContDiffAt ℝ 2
+        (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      (fun r : ℝ => deriv (coupledChemDivFluxLift p u r) x) =ᶠ[𝓝 s]
+        (fun r : ℝ =>
+          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+            (r, x) (0, 1))) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
       (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
         (fun y : ℝ =>
@@ -293,100 +297,89 @@ structure CoupledChemDivFluxFactorJointC2Inputs
       (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-So proving “`u`, `v`, `v_x` are joint `C²`” is not enough to use this structure unless you also supply the `ContinuousOn` field.  The explicit way to supply that field is the `ChemDivMixedTimeDerivClosedRepr` route above.
+Direct producer:
 
-There is a helper in `IntervalChemDivTimeDerivClosed.lean:87` that plugs this representative route into the physical resolver chain:
-
-```lean
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_cont : ∀ s : ℝ, Continuous (u s))
-    (hu_nonneg : ∀ s : ℝ, ∀ x : intervalDomainPoint, 0 ≤ u s x)
-    (other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-      (∀ᶠ s in 𝓝 τ,
-        ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-      (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-        ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
-      ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    CoupledChemDivFluxFactorJointC2Inputs p u
-```
-
-This again confirms that `ChemDivMixedTimeDerivClosedRepr` is the intended non-spectral discharge of `htime_cont`.
-
-## 6. Physical resolver C² data is another alternative to `ResolverHasSpectralAgreement`
-
-The v-side smoothness route can avoid `ResolverHasSpectralAgreement` by using `PhysicalResolverJointC2Data`.
-
-`ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean:83`:
+`ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean:180`
 
 ```lean
-structure PhysicalResolverJointC2Data
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Bt : ℕ → ℕ → ℝ) : Prop where
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant Bt m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant Bt m)
-```
-
-It gives joint `C²` of `v` and `v_x`:
-
-`IntervalResolverJointC2PhysicalConcrete.lean:115`:
-
-```lean
-theorem coupledChemical_jointContDiffAt_two
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
-```
-
-and joint `C²` of `v_x`:
-
-`IntervalResolverJointC2PhysicalConcrete.lean:137`:
-
-```lean
-theorem coupledChemical_grad_jointContDiffAt_two
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x)
-```
-
-This is not the full `coupledChemDivTimeDerivativeLift` continuity theorem, but it supplies major v-side pieces for the representative/witness route.  For heat level 0, constructing `PhysicalResolverJointC2Data` from heat-smooth source coefficients may be more natural than constructing `ResolverHasSpectralAgreement`.
-
-## 7. Practical recommendation for `[c,T]`
-
-For the positive heat window, avoid `ResolverHasSpectralAgreement`.  Add a windowed theorem of the following shape:
-
-```lean
-theorem chemDivTimeDerivative_jointContinuousOn_of_mixedRepr_on
+theorem coupledChemDivLocalChainRule_of_fluxJointC2
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {c T τ δ : ℝ}
-    (hsub : Icc c T ⊆ Icc (τ - δ) (τ + δ))
-    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
-  (chemDivMixedTimeDeriv_jointContinuousOn_closed H).mono
-    (by intro q hq; exact ⟨hsub hq.1, hq.2⟩)
+    (H : CoupledChemDivFluxJointC2Hyp p u) :
+    CoupledChemDivLocalChainRule p u
 ```
 
-Then prove the heat-specific representative:
+This is usually the best abstraction to target if you want to prove the chain rule from smoothness/Clairaut rather than from the pointwise source-lift formula directly.
+
+## 7. What `ChemDivAdot.lean` provides
+
+`ChemDivAdot.lean` provides exactly the `adot` derivative/continuity reductions:
+
+1. global coefficient `HasDerivAt` from `CoupledChemDivLocalChainRule`,
+2. `[0,T]` `HasDerivWithinAt` for `coupledChemDivSourceCoeffs`,
+3. `[0,T]` `ContinuousOn` of `coupledChemDivAdot` from joint continuity of `coupledChemDivTimeDerivativeLift`,
+4. a combined theorem bundling (2) and (3),
+5. the `Mdot` residual converter from a supplied summable envelope.
+
+The key exact theorems are:
 
 ```lean
-∃ τ δ, Icc c T ⊆ Icc (τ - δ) (τ + δ) ∧
-  ChemDivMixedTimeDerivClosedRepr
-    p (conjugatePicardIter p u₀ 0) τ δ
+coupledChemDivCoeff_hasDerivAt_of_chainRule
+chemDivAdot_hasDerivWithinAt_of_chainRule
+chemDivAdot_continuousOn_of_jointCont
+chemDivAdot_deriv_legs_of_smoothness
+chemDivAdot_Mdot_residual
 ```
 
-or directly construct `ChemDivMixedReprWitnessData` for the level-0 heat semigroup.  This is the committed non-spectral route and lines up with the mathematical statement “the field is a smooth composition of smooth heat/resolver factors.”
+It does **not** produce `CoupledChemDivLocalChainRule`; it consumes it.
 
-No direct heat-specialized theorem was found.
+It also does **not** produce the uniform-in-`n` `Mdot` bound from smoothness alone.  The comments explicitly isolate `Mdot` as a residual.
+
+## 8. What `ChemDivGcont.lean` provides
+
+`ShenWork/Wiener/EWA/ChemDivGcont.lean` imports `ChemDivAdot.lean` and proves global time-continuity of the source coefficient family from the same chain-rule package.
+
+`ChemDivGcont.lean:53`
+
+```lean
+theorem chemDiv_coeff_continuous_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) (n : ℕ) :
+    Continuous (fun s => coupledChemDivSourceCoeffs p u s n)
+```
+
+`ChemDivGcont.lean:74`
+
+```lean
+theorem chemDiv_coeff_timeContinuous
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) :
+    ∀ n, Continuous (fun s => coupledChemDivSourceCoeffs p u s n)
+```
+
+Proof route:
+
+```lean
+coupledChemDivCoeff_hasDerivAt_of_chainRule hchain s n
+  → continuousAt
+  → Continuous (fun s => cosineCoeffs (coupledChemDivSourceLift p u s) n)
+  → simpa [coupledChemDivSourceCoeffs]
+```
+
+This file is about the source coefficient time-continuity `hGcont`; it is not about `adot` continuity and not about `Mdot`.
+
+## Practical summary
+
+For your target, the likely code shape is:
+
+```lean
+have hAt : HasDerivAt
+    (fun r => coupledChemDivSourceCoeffs p u r n)
+    (coupledChemDivAdot p u s n) s := by
+  simpa [coupledChemDivSourceCoeffs] using
+    coupledChemDivCoeff_hasDerivAt_of_chainRule
+      (p := p) (u := u) hchain s n
+
+exact hAt.hasDerivWithinAt
+```
+
+and for `adot` continuity on `[c,T]`, use the generic coefficient-continuity lemma behind `chemDivAdot_continuousOn_of_jointCont` with `(c := c)` and `(T := T)`, assuming the joint continuity of `coupledChemDivTimeDerivativeLift` on `Icc c T ×ˢ Icc 0 1`.
