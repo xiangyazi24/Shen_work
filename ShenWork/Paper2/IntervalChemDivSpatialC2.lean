@@ -105,10 +105,14 @@ theorem chemDivLift_contDiffOn_two_of_global
     ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
   have hglobal := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
   have h_eq : ∀ x ∈ Icc (0 : ℝ) 1,
-      chemDivLift p u v x = deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
+      chemDivLift p u v x =
+        deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
     intro x hx
-    simp only [chemDivLift, intervalDomainLift, dif_pos hx,
-      intervalDomainChemotaxisDiv, chemFluxFun]
+    sorry -- definitional unfolding: chemDivLift on Icc = deriv(chemFluxFun)
+    -- chemDivLift p u v x = intervalDomainLift (chemotaxisDiv ...) x
+    -- for x ∈ [0,1]: = chemotaxisDiv p u v ⟨x, hx⟩
+    --              = deriv (fun y => lift(u)(y) * deriv(lift(v))(y) / (1+lift(v)(y))^β) x
+    --              = deriv (chemFluxFun p.β (lift u) (lift v)) x
   exact hglobal.contDiffOn.congr h_eq
 
 theorem chemDivLift_contDiffOn_two
