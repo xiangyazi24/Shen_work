@@ -570,3 +570,16 @@ realSlice_resolverDecay's σ-DEPENDENT SourceCoeffQuadraticDecay over the clamp 
 banked producer supplies a window-uniform C t₀. This is a SPATIAL-decay uniformization (not time-C¹).
 NEXT (the one real atom): produce window-uniform C t₀. Lesson: dispatch briefs MUST carry check-existing-first+STOP
 — it caught the 4th over-build the orchestrator's own skipped gate would have missed.
+
+## [2026-06-24] Paper 3 linear dichotomy UNCONDITIONAL (verified axiom-clean, check-existing)
+Paper 3 T2.2's linear spectral branch: sigma_neg_of_chi_nonpos_a_pos + LinearlyStable_of_chi_nonpos_a_pos
+both axiom-clean [propext, Classical.choice, Quot.sound] in ShenWork.Paper3 namespace. These are the mode
+growth-rate negativity + linear stability of the positive equilibrium for χ₀≤0 — unconditional, no sorry,
+genuine Paper 3 content (not just a Paper 2 forwarding). The full T2.2 (nonlinear C¹ exponential convergence)
+remains conditional on the spectral semigroup orbit bound frontier. Paper 3 Prop 1.3 has a forwarding bridge
+paper3_Proposition_1_3_of_Paper2_Theorem_1_3 (conditional on Paper 2 T1.3).
+THREE-PAPER AUDIT STATE (computed from code, verified):
+ · Paper 1: T11neg 🟢 (Rothe+Brouwer), T11pos ⬜ (cron1 scoping in flight), T12/P11/P12 🔴.
+ · Paper 2: T11 χ₀<0 = max-principle REAL + hU frontier (spatial-deriv JC sorry-fix in flight);
+   Prop 2.4 CLOSED. Props 2.1/2.2/2.3/2.5 open (conditional reductions).
+ · Paper 3: T2.2 linear branch UNCONDITIONAL (verified). T2.2 nonlinear conditional. Rest 🟡.
