@@ -1,441 +1,578 @@
-# Q363 (cron2): `LimitRegularityInputs` and the χ₀<0 resolver-data route
+# Q375 (cron2): `CoupledDuhamelClassicalResidualAfterT6`
 
 ## Executive verdict
 
-I read the current definitions.
+I read the current definition in `ShenWork/PDE/IntervalCoupledRegularityBanked.lean`.
 
-`MildLocalChi0.LimitRegularityInputs` is **not** a mild-fixed-point package. It contains exactly one field that is the mild equation (`hfix`) plus a large amount of independent datum/coefficient/spectral/spatial/classical/frontier data. The current definition does **not** ask for datum absolute cosine summability as a field; it asks for a bounded datum-coefficient witness (`M₀`, `hu₀_bound`) and for per-slice summability/series representation (`bc`, `hbsum`, `hagree`).
+`CoupledDuhamelClassicalResidualAfterT6 p T u` is a **seven-field classical-regularity residual**. It is not the whole mild-to-classical gap. It is specifically the part of `intervalDomainClassicalRegularity T u (coupledChemicalConcentration p u)` that is **not supplied by the banked T6 Duhamel closed-slice atom**.
 
-From the mild contraction fixed point **alone**, the only `LimitRegularityInputs` field I would count as directly produced is `hfix`. If one also carries the ordinary external hypotheses used to launch the fixed point, then `hα`, `ha`, `hb`, `hu₀_cont`, and possibly elementary bounded-coefficient/ball facts can be supplied from those external assumptions/packages. But that is not “from the fixed-point equality alone,” and it does not produce the spectral K1/K2 ledger, `hpde_u`, `Hvsrc`, or `Hvpos`.
-
-`Hu` is the one subtle exception: `IntervalDomainLedgerSweep.lean` now deletes `Hu` from a reduced ledger and reconstructs it. But that reconstruction still uses the heavy reduced ledger fields (`hsrc0`, `bc/hbsum/hagree`, `hG1t/hG2t`, K1 coefficient time-C¹ data, etc.). So `Hu` is derivable from the **reduced regularity ledger**, not from the mild fixed point alone.
-
-The repo **does** contain
+The T6 atom, under source time-`C¹` and slice agreement,
 
 ```lean
-coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
+hsrc   : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u)
+hagree : CoupledDuhamelT6SliceAgreement p T u
 ```
 
-in `ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean`. It takes `CoupledFluxResolverAnalyticData`. That object is a nested `Prop`, not a structure with projections. Its final datum-level payload is:
+supplies only the **u-side closed spatial `C²` package** and the **u-side Neumann one-sided/endpoint data** for each positive time slice:
 
-1. `IntervalCoupledResolverBallEstimates p (intervalNeumannResolverR p) u0 T Mball K`, and
-2. a regularization bridge from any bounded coupled-Duhamel fixed point with `v = intervalNeumannResolverR p (u t)` to `RegularityBootstrap p T u0 u`.
+```lean
+ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc 0 1)
+Filter.Tendsto (deriv (intervalDomainLift (u t))) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
+Filter.Tendsto (deriv (intervalDomainLift (u t))) (nhdsWithin 1 (Set.Iio 1)) (nhds 0)
+deriv (intervalDomainLift (u t)) 0 = 0
+deriv (intervalDomainLift (u t)) 1 = 0
+```
 
-So `CoupledFluxResolverAnalyticData` is **not easier than `hregularize` in the absolute sense**: it includes an `hregularize`-shaped obligation plus resolver ball estimates and uniform parameter choices. It is cleaner than the χ₀=0 spectral ledger only in the sense that it avoids the `LimitRegularityInputs` K1/K2 cosine-restart machinery. The hard PDE/classical-bootstrap content remains.
+`CoupledDuhamelClassicalResidualAfterT6` carries the complement needed to build the full seven-atom `intervalDomainClassicalRegularity` package: resolver/v-side spatial regularity and Neumann data, plus all time/joint continuity regularity for both `u` and the coupled chemical concentration.
+
+So, yes: **relative to the banked T6 spectral/source data, this is exactly the named residual for the classical-regularity part that T6 cannot close.** But it is not the full “mild solution → classical solution” gap, because it does **not** include:
+
+* positivity of `u`,
+* the pointwise parabolic PDE `pde_u`,
+* initial trace,
+* resolver nonnegativity/PDE/boundary facts discharged by the coupled core.
+
+Those are packaged one level up in `CoupledDuhamelResidualAfterBankedT6` / `CoupledDuhamelBankedT6Frontier`. In the gradient-mild route, positivity and trace are already banked, so the remaining frontier becomes `pde_u + CoupledDuhamelClassicalResidualAfterT6`. In the χ₀=0 spectral route, `pde_u` can be closed by spectral agreement, leaving this classical residual as the named remaining coupled regularity obligation.
 
 ## Lean probes used
 
 ```lean
-import ShenWork.Paper2.IntervalDomainMildLocalChi0
-import ShenWork.Paper2.IntervalDomainLedgerSweep
+import ShenWork.PDE.IntervalCoupledRegularityBanked
 
-open MeasureTheory Set Filter Topology
+open MeasureTheory
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
 open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap)
-open ShenWork.IntervalDomainExistence (intervalLogisticSource)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
-open ShenWork.IntervalMildPicard (GradientMildSolutionData)
-open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
-open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.IntervalDuhamelClosedC2
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.Paper2
+
+#check CoupledDuhamelT6SliceAgreement
+#check coupledDuhamel_T6_closedSlicePack
+#check CoupledDuhamelClassicalResidualAfterT6
+#check intervalDomainClassicalRegularity_of_T6_source_and_residual
+#check CoupledDuhamelResidualAfterBankedT6
+#check regularityBootstrap_of_coupledDuhamel_bankedT6_source_and_residual
+
+end ShenWork.IntervalCoupledRegularityBootstrap
+```
+
+```lean
+import ShenWork.PDE.IntervalCoupledClassicalResidualAfterT6FromBanked
+
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalMildPicard
+open ShenWork.IntervalMildRegularityBootstrap
+  (HasRestartCosineRepresentations)
 open ShenWork.IntervalMildTimeDerivContinuity
   (HasTimeNeighborhoodSpectralAgreement)
-open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
+open ShenWork.IntervalResolverDirectTimeRegularity
+  (HasResolverDirectSpectralData)
+open ShenWork.IntervalMildToClassical
+open ShenWork.Paper2
+open ShenWork.Paper2.RegularityFrontierWiring
 
-#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs
-#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs.hfix
-#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs.Hu
-#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs.Hvsrc
-#check ShenWork.Paper2.LedgerSweep.ReducedLimitRegularityInputs
-#check ShenWork.Paper2.LedgerSweep.Hu_of_reduced
-#check ShenWork.Paper2.LedgerSweep.limitRegularityInputs_of_reduced
+#check coupledDuhamelClassicalResidualAfterT6_of_frontier
+#check coupledDuhamelClassicalResidualAfterT6_of_banked_resolver_O1_T6
+
+end ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
 ```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+import ShenWork.PDE.IntervalCoupledResidualAfterBankedT6Discharge
+
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
 
 open ShenWork.IntervalDomain
+open ShenWork.IntervalMildPicard
+open ShenWork.IntervalMildPicardThreshold
+open ShenWork.IntervalMildToClassical
+open ShenWork.IntervalDomainPdeUProducer
 open ShenWork.IntervalDomainExistence
-open ShenWork.PDE
-open ShenWork.Paper2.ChiNegResidual
+open ShenWork.IntervalDuhamelClosedC2
 
-#check CoupledFluxClassicalLocalExistenceResidual
-#check CoupledFluxResolverAnalyticData
-#check exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
-#check coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-#check IntervalCoupledResolverBallEstimates
-#check RegularityBootstrap
+#check CoupledDuhamelBankedT6Frontier
+#check CoupledDuhamelBankedT6ChiZeroFrontier
+#check coupledDuhamelResidualAfterBankedT6_of_gradientMild_frontier
+#check coupledDuhamelResidualAfterBankedT6_of_gradientMild_chiZero_spectral
+#check regularityBootstrap_of_gradientMild_bankedT6_chiZero_spectral
+
+end ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
-## 1. Exact contents of `LimitRegularityInputs`
+## Exact definition read
 
-Definition read from `ShenWork/Paper2/IntervalDomainMildLocalChi0.lean`:
-
-```lean
-import ShenWork.Paper2.IntervalDomainMildLocalChi0
-
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap)
-open ShenWork.IntervalDomainExistence (intervalLogisticSource)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
-open ShenWork.IntervalMildPicard (GradientMildSolutionData)
-open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
-open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
-open ShenWork.IntervalMildTimeDerivContinuity
-  (HasTimeNeighborhoodSpectralAgreement)
-open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
-
--- Current object:
-#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs
-
--- The full structure, as read, has these fields:
---
--- structure LimitRegularityInputs
---     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
---     (D : GradientMildSolutionData p u₀) where
---   hα : 1 ≤ p.α
---   ha : 0 ≤ p.a
---   hb : 0 ≤ p.b
---   hu₀_cont : Continuous u₀
---   M₀ : ℝ
---   hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
---   hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ,
---     (hx : x ∈ Set.Icc (0:ℝ) 1) →
---       intervalDomainLift (D.u t) x =
---         intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
---   hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
---     (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T
---   Msup : ℝ
---   bc : ℝ → ℕ → ℝ
---   hbsum : ∀ σ, 0 < σ → σ < D.T →
---     Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
---   hagree : ∀ σ, 0 < σ → σ < D.T →
---     Set.EqOn (intervalDomainLift (D.u σ))
---       (fun x => ∑' n, bc σ n * cosineMode n x)
---       (Set.Icc (0 : ℝ) 1)
---   hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
---     0 < intervalDomainLift (D.u σ) x
---   hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
---     intervalDomainLift (D.u σ) x ≤ Msup
---   hG1t : ∀ a' b', 0 < a' → b' < D.T → ∃ G1,
---     ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
---       |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
---   hG2t : ∀ a' b', 0 < a' → b' < D.T → ∃ G2,
---     ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
---       |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
---   hN0t : ∀ σ, 0 < σ → σ < D.T →
---     deriv (intervalDomainLift (D.u σ)) 0 = 0
---   hN1t : ∀ σ, 0 < σ → σ < D.T →
---     deriv (intervalDomainLift (D.u σ)) 1 = 0
---   adott : ℝ → ℕ → ℝ
---   hderivt : ∀ σ, 0 < σ → σ < D.T → ∀ k,
---     HasDerivAt
---       (fun r => cosineCoeffs
---         (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u r))) k)
---       (adott σ k) σ
---   hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T)
---   hMdott : ∀ a' b', 0 < a' → b' < D.T → ∃ Mdot,
---     ∀ σ ∈ Set.Icc a' b', ∀ k, |adott σ k| ≤ Mdot
---   hLc : ∀ t, 0 < t → t < D.T →
---     ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
---   hpde_u :
---     ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
---       intervalDomain.timeDeriv D.u t x =
---         intervalDomain.laplacian (D.u t) x
---           - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
---               (mildChemicalConcentration p D.u t) x
---           + D.u t x * (p.a - p.b * (D.u t x) ^ p.α)
---   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
---   Hvsrc : ∀ t₀, 0 < t₀ → t₀ < D.T →
---     ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
---       W ∈ 𝓝 t₀ ∧
---       (∀ s ∈ W, ∀ k,
---         aC s k = (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
---   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
---     0 < mildChemicalConcentration p D.u t x
-```
-
-Grouped semantically, that is:
-
-* Regime fields: `hα`, `ha`, `hb`.
-* Datum fields: `hu₀_cont`, `M₀`, `hu₀_bound`.
-* Fixed-point field: `hfix`.
-* Weak source package: `hsrc0` for the patched logistic-source coefficients.
-* K2/slice representation and spatial bounds: `Msup`, `bc`, `hbsum`, `hagree`, `hpost`, `hubt`, `hG1t`, `hG2t`, `hN0t`, `hN1t`.
-* K1/time-coefficient data: `adott`, `hderivt`, `hadotcontt`, `hMdott`.
-* H3 slice continuity: `hLc`.
-* Frontier/classical residuals: `hpde_u`, `Hu`, `Hvsrc`, `Hvpos`.
-
-Important correction to older mental models: there is no current `HsupNorm` field in this structure, and there is no datum field literally saying `Summable (fun k => |cosineCoeffs (intervalDomainLift u₀) k|)`. The datum field is the uniform bound `hu₀_bound`; the summability field in this structure is the per-positive-slice representation field `hbsum`.
-
-## 2. What can be produced from the mild fixed point alone?
-
-By “mild fixed point alone,” I mean just the equality `u = Φ(u)` produced by the contraction/Picard step, not the whole surrounding cone package, not the PID hypotheses, and not extra spectral regularity inputs.
-
-Under that interpretation:
-
-* Directly produced: `hfix`.
-* Not produced by the fixed-point equality itself: essentially everything else.
-
-More nuanced split:
-
-* `hα`, `ha`, `hb` are regime assumptions on `p`, not consequences of a fixed point.
-* `hu₀_cont` is from the initial datum/PID assumption, not from the fixed point.
-* `M₀`/`hu₀_bound` are not datum absolute summability. They are plausibly routine from bounded/continuous datum plus coefficient estimates, but still not from the fixed-point equality alone.
-* `hpost`/`hubt` may be available from the stronger cone/closed-ball construction package, depending on which `D` is in hand, but not from the equality `u = Φ(u)` alone.
-* `hsrc0`, `bc`, `hbsum`, `hagree`, `hG1t`, `hG2t`, `hN0t`, `hN1t`, `adott`, `hderivt`, `hadotcontt`, `hMdott`, and `hLc` are the real K1/K2/continuity regularity ledger. They require spectral/coefficient/spatial bootstrap inputs. They are not consequences of a bare contraction fixed point.
-* `hpde_u` is the pointwise parabolic PDE. The file comments explicitly treat it as a residual because the available mild-to-PDE producer is circular at this layer.
-* `Hvsrc` is a per-`t₀` clamped resolver-source `DuhamelSourceTimeC1` witness. It is not generated by the u-fixed-point equation alone.
-* `Hvpos` is strict positivity of the elliptic chemical concentration. The ledger comments treat this as a strong-maximum-principle type residual.
-
-The special case is `Hu`. `IntervalDomainLedgerSweep.lean` defines `ReducedLimitRegularityInputs` by deleting `Hu`, and proves:
+The current definition is:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainLedgerSweep
+import ShenWork.PDE.IntervalCoupledRegularityBanked
 
-open ShenWork.Paper2.LedgerSweep
+open MeasureTheory
+open scoped Topology
 
-#check ReducedLimitRegularityInputs
-#check Hu_of_reduced
-#check limitRegularityInputs_of_reduced
-```
-
-That gives the theorem-level fact:
-
-```lean
--- Conceptually:
--- ReducedLimitRegularityInputs p u₀ D  +  hχ0 : p.χ₀ = 0
---   ⟹ HasTimeNeighborhoodSpectralAgreement D.T D.u
---   ⟹ LimitRegularityInputs p u₀ D
-```
-
-But `Hu_of_reduced` consumes the reduced ledger fields (`hsrc0`, `bc/hbsum/hagree`, positivity/sup bounds, K2 compact gradient/Hessian bounds, K1 time-C¹ data, and `hLc`). It is **not** a theorem saying that the contraction fixed point alone implies `Hu`.
-
-So the answer to the practical question is: without the spectral/coefficient datum/ledger, the mild contraction fixed point only gives the fixed-point equation. It does not fill `hregularize`/`LimitRegularityInputs`.
-
-## 3. The χ₀<0 resolver-data theorem exists
-
-Yes, the repo has the theorem in `ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean`:
-
-```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.Paper2.ChiNegResidual
-
-#check coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-```
-
-Its statement is:
-
-```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.Paper2.ChiNegResidual
-
--- theorem coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
---     (p : CM2Params) (hα : 1 ≤ p.α)
---     (H : CoupledFluxResolverAnalyticData p) :
---     CoupledFluxClassicalLocalExistenceResidual p
-#check coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-```
-
-The target residual is:
-
-```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+namespace ShenWork.IntervalCoupledRegularityBootstrap
 
 open ShenWork.IntervalDomain
-open ShenWork.Paper2.ChiNegResidual
-
--- def CoupledFluxClassicalLocalExistenceResidual (p : CM2Params) : Prop :=
---   ∀ M : ℝ, 0 < M → ∃ delta : ℝ, 0 < delta ∧
---     ∀ {u0 : intervalDomain.Point → ℝ},
---       PositiveInitialDatum intervalDomain u0 →
---       (∀ x, |u0 x| ≤ M) →
---         ∃ u v,
---           IsPaper2ClassicalSolution intervalDomain p delta u v ∧
---           InitialTrace intervalDomain u0 u
-#check CoupledFluxClassicalLocalExistenceResidual
-```
-
-## 4. Exact contents of `CoupledFluxResolverAnalyticData`
-
-`CoupledFluxResolverAnalyticData` is not a structure. It is a nested `Prop` with quantifiers and conjunctions. Definition read from `IntervalDomainThm11ChiNegResidual.lean`:
-
-```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.IntervalDomain
+open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalDomainExistence
-open ShenWork.PDE
-open ShenWork.Paper2.ChiNegResidual
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.Paper2
 
--- Current object:
-#check CoupledFluxResolverAnalyticData
+/-- The residual classical-regularity atoms after T6 has supplied the u-side
+closed-spatial regularity and one-sided Neumann limits. -/
+structure CoupledDuhamelClassicalResidualAfterT6
+    (p : CM2Params) (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  v_interiorC2 :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+      ContDiffOn ℝ 2
+        (intervalDomainLift (coupledChemicalConcentration p u t))
+        (Set.Ioo (0 : ℝ) 1)
+  timeC1 :
+    ∀ x : intervalDomainPoint, ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+      (DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
+          DifferentiableAt ℝ
+            (fun s : ℝ => coupledChemicalConcentration p u s x) t) ∧
+        (ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => u r x) s)
+            (Set.Ioo (0 : ℝ) T) ∧
+          ContinuousOn
+            (fun s : ℝ =>
+              deriv (fun r : ℝ => coupledChemicalConcentration p u r x) s)
+            (Set.Ioo (0 : ℝ) T))
+  jointTimeDeriv :
+    ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1) ∧
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv
+              (fun s : ℝ =>
+                intervalDomainLift (coupledChemicalConcentration p u s) x) t))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1)
+  v_neumannLimits :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+      Filter.Tendsto
+          (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Filter.Tendsto
+          (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  v_closedC2 :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+      ContDiffOn ℝ 2
+          (intervalDomainLift (coupledChemicalConcentration p u t))
+          (Set.Icc (0 : ℝ) 1) ∧
+        deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 0 = 0 ∧
+        deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 1 = 0
+  closedJointTimeDeriv :
+    ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) ∧
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv
+              (fun s : ℝ =>
+                intervalDomainLift (coupledChemicalConcentration p u s) x) t))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
+  jointValue :
+    ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) ∧
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            intervalDomainLift (coupledChemicalConcentration p u t) x))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
 
--- Full definition, as read:
--- def CoupledFluxResolverAnalyticData (p : CM2Params) : Prop :=
---   ∀ M : ℝ, 0 < M →
---     ∃ Mball : ℝ, 0 < Mball ∧ M ≤ Mball ∧
---       ∀ L : ℝ, 0 < L →
---         ∃ T A K : ℝ, 0 < T ∧ 0 < A ∧ 0 ≤ K ∧ A * T < 1 ∧
---           |p.χ₀| * K + L ≤ A ∧
---             ∀ {u0 : intervalDomain.Point → ℝ},
---               PositiveInitialDatum intervalDomain u0 →
---               (∀ x, |u0 x| ≤ M) →
---                 IntervalCoupledResolverBallEstimates p
---                   (intervalNeumannResolverR p) u0 T Mball K ∧
---                 ∀ u v : ℝ → intervalDomain.Point → ℝ,
---                   intervalTrajectoryBoundedOn T Mball u →
---                   (∀ t x, 0 ≤ t → t ≤ T →
---                     u t x = intervalCoupledDuhamelOperator p
---                       (intervalNeumannResolverR p) u0 u t x) →
---                   (∀ t, v t = intervalNeumannResolverR p (u t)) →
---                     RegularityBootstrap p T u0 u
+end ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
-Spelled out as “fields”:
+## Field-by-field interpretation
 
-* For every datum size `M > 0`, choose a fixed-point ball radius `Mball`.
-* Prove `0 < Mball` and `M ≤ Mball`.
-* For every positive logistic Lipschitz constant `L`, choose `T`, `A`, and `K`.
-* Prove numeric constraints:
-  * `0 < T`,
-  * `0 < A`,
-  * `0 ≤ K`,
-  * `A * T < 1`,
-  * `|p.χ₀| * K + L ≤ A`.
-* For every positive initial datum `u0` with `|u0| ≤ M`, provide:
-  * `IntervalCoupledResolverBallEstimates p (intervalNeumannResolverR p) u0 T Mball K`, and
-  * for every `u v`, a regularization bridge:
+### 1. `v_interiorC2`
+
+This is **v-side interior spatial `C²`**:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.PDE
-open ShenWork.Paper2.ChiNegResidual
-
--- This is the second datum-level conjunct inside CoupledFluxResolverAnalyticData:
---
--- ∀ u v : ℝ → intervalDomain.Point → ℝ,
---   intervalTrajectoryBoundedOn T Mball u →
---   (∀ t x, 0 ≤ t → t ≤ T →
---     u t x = intervalCoupledDuhamelOperator p
---       (intervalNeumannResolverR p) u0 u t x) →
---   (∀ t, v t = intervalNeumannResolverR p (u t)) →
---     RegularityBootstrap p T u0 u
-#check RegularityBootstrap
+∀ t ∈ (0,T),
+  ContDiffOn ℝ 2
+    (intervalDomainLift (coupledChemicalConcentration p u t))
+    (Set.Ioo 0 1)
 ```
 
-The `IntervalCoupledResolverBallEstimates` conjunct itself is also a nested `Prop`, with four pieces:
+T6 supplies u-side closed `C²` from the Duhamel profile. It does not prove this resolver/v-side interior spatial regularity.
+
+### 2. `timeC1`
+
+This is **pointwise-in-space time differentiability and time-derivative continuity** for both `u` and the coupled chemical concentration:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.PDE
-
-#check IntervalCoupledResolverBallEstimates
-
--- Conceptually, for IntervalCoupledResolverBallEstimates p R u₀ T M K:
---
--- (1) self-map bound:
---     any trajectory bounded by M on [0,T] is sent by the coupled Duhamel map
---     back into the M-ball.
---
--- (2) chemotaxis-divergence Lipschitz bound:
---     if u₁,u₂ are in the M-ball and differ by at most D, then
---     |chemDiv(u₁,Ru₁) - chemDiv(u₂,Ru₂)| ≤ K * D.
---
--- (3) time-integrability of the Duhamel integrand:
---     IntegrableOn in s over Set.Icc 0 t.
---
--- (4) lifted-source integrability:
---     Integrable (intervalDomainLift (intervalCoupledSource ...))
---     against intervalMeasure 1.
+∀ x, ∀ t ∈ (0,T),
+  (DifferentiableAt ℝ (fun s => u s x) t ∧
+   DifferentiableAt ℝ (fun s => coupledChemicalConcentration p u s x) t) ∧
+  (ContinuousOn (fun s => deriv (fun r => u r x) s) (Set.Ioo 0 T) ∧
+   ContinuousOn
+     (fun s => deriv
+       (fun r => coupledChemicalConcentration p u r x) s)
+     (Set.Ioo 0 T))
 ```
 
-There is also a structural producer `IntervalCoupledResolverBallEstimatesProducer.produce` that assembles these four pieces from more primitive estimates: initial-data bound, source sup bound, chemDiv `K·D` Lipschitz, component sup bounds, and measurability of the semigroup integrand and lifted source. That producer **does not** prove the regularization bridge; it just packages the ball estimates.
+This is not a spatial T6 conclusion. T6 is a per-time-slice closed `C²`/Neumann statement for the u-profile, not a time-`C¹` statement for the solution trajectory and resolver trajectory.
 
-## 5. Is `CoupledFluxResolverAnalyticData` easier to produce than `hregularize`?
+### 3. `jointTimeDeriv`
 
-No, not as a whole.
-
-The key reason is that `CoupledFluxResolverAnalyticData` literally contains a regularization bridge of this shape:
+This is **open-spatial joint continuity of time derivatives** for both lifted `u` and lifted `v`:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.PDE
-open ShenWork.Paper2.ChiNegResidual
-
--- The hregularize argument in exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
--- has the same essential shape:
---
--- hregularize :
---   ∀ u v : ℝ → intervalDomainPoint → ℝ,
---     intervalTrajectoryBoundedOn T M u →
---     (∀ t x, 0 ≤ t → t ≤ T →
---       u t x = intervalCoupledDuhamelOperator p R u0 u t x) →
---     (∀ t, v t = R (u t)) →
---       RegularityBootstrap p T u0 u
-#check exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      deriv (fun s => intervalDomainLift (u s) x) t))
+  (Set.Ioo 0 T ×ˢ Set.Ioo 0 1)
+∧
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      deriv
+        (fun s =>
+          intervalDomainLift (coupledChemicalConcentration p u s) x) t))
+  (Set.Ioo 0 T ×ˢ Set.Ioo 0 1)
 ```
 
-And `RegularityBootstrap` itself is the classical/PDE payload:
+Again: not provided by T6 closed-slice spatial regularity.
+
+### 4. `v_neumannLimits`
+
+This is **v-side one-sided Neumann limit data**:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.PDE
-
--- def RegularityBootstrap (p : CM2Params) (T : ℝ)
---     (u₀ : intervalDomainPoint → ℝ)
---     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
---   ∃ v : ℝ → intervalDomainPoint → ℝ,
---     (∀ t x, 0 < t → t < T → 0 < u t x) ∧
---     (∀ t x, 0 < t → t < T → 0 ≤ v t x) ∧
---     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
---       intervalDomain.timeDeriv u t x =
---         intervalDomain.laplacian (u t) x
---           - p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) x
---           + u t x * (p.a - p.b * (u t x) ^ p.α)) ∧
---     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
---       0 = intervalDomain.laplacian (v t) x
---         - p.μ * v t x + p.ν * (u t x) ^ p.γ) ∧
---     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.boundary →
---       intervalDomain.normalDeriv (u t) x = 0 ∧
---       intervalDomain.normalDeriv (v t) x = 0) ∧
---     intervalDomainClassicalRegularity T u v ∧
---     InitialTrace intervalDomain u₀ u
-#check RegularityBootstrap
+∀ t ∈ (0,T),
+  Filter.Tendsto
+    (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
+    (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
+  ∧
+  Filter.Tendsto
+    (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
+    (nhdsWithin 1 (Set.Iio 1)) (nhds 0)
 ```
 
-Thus, `CoupledFluxResolverAnalyticData` is better understood as:
+T6 supplies the analogous u-side one-sided Neumann limits; this field carries the resolver/v-side analog.
+
+### 5. `v_closedC2`
+
+This is **v-side closed spatial `C²` plus endpoint `deriv = 0` values**:
+
+```lean
+∀ t ∈ (0,T),
+  ContDiffOn ℝ 2
+    (intervalDomainLift (coupledChemicalConcentration p u t))
+    (Set.Icc 0 1)
+  ∧
+  deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 0 = 0
+  ∧
+  deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 1 = 0
+```
+
+T6 supplies the analogous u-side closed `C²` and endpoint derivative values; this field carries the v-side analog.
+
+### 6. `closedJointTimeDeriv`
+
+This is **closed-spatial joint continuity of time derivatives** for both lifted `u` and lifted `v`:
+
+```lean
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      deriv (fun s => intervalDomainLift (u s) x) t))
+  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
+∧
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      deriv
+        (fun s =>
+          intervalDomainLift (coupledChemicalConcentration p u s) x) t))
+  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
+```
+
+This is stronger in the spatial component than `jointTimeDeriv` because the spatial slab is closed `[0,1]`, not open `(0,1)`.
+
+### 7. `jointValue`
+
+This is **closed-spatial joint continuity of the lifted values** of both `u` and `v`:
+
+```lean
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
+∧
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      intervalDomainLift (coupledChemicalConcentration p u t) x))
+  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
+```
+
+This is value-level joint continuity on `(0,T) × [0,1]` for both the population and resolver signal.
+
+## How T6 and the residual reconstruct `intervalDomainClassicalRegularity`
+
+The file immediately uses the residual here:
+
+```lean
+import ShenWork.PDE.IntervalCoupledRegularityBanked
+
+open MeasureTheory
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDuhamelClosedC2
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.Paper2
+
+#check intervalDomainClassicalRegularity_of_T6_source_and_residual
+
+-- theorem intervalDomainClassicalRegularity_of_T6_source_and_residual
+--     {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+--     (hsrc : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u))
+--     (hagree : CoupledDuhamelT6SliceAgreement p T u)
+--     (R : CoupledDuhamelClassicalResidualAfterT6 p T u) :
+--     intervalDomainClassicalRegularity T u (coupledChemicalConcentration p u)
+
+end ShenWork.IntervalCoupledRegularityBootstrap
+```
+
+The proof pattern is important:
+
+```lean
+-- hpack := coupledDuhamel_T6_closedSlicePack hsrc hagree
+--
+-- intervalDomainClassicalRegularity_of_atoms
+--   { interiorC2 :=
+--       -- u-side from hpack, v-side from R.v_interiorC2
+--     timeC1 := R.timeC1
+--     jointTimeDeriv := R.jointTimeDeriv
+--     neumannLimits :=
+--       -- u-side from hpack, v-side from R.v_neumannLimits
+--     closedC2 :=
+--       -- u-side from hpack, v-side from R.v_closedC2
+--     closedJointTimeDeriv := R.closedJointTimeDeriv
+--     jointValue := R.jointValue }
+```
+
+So the split is exactly:
+
+| Atom in `intervalDomainClassicalRegularity` | u-side source | v-side / time source |
+|---|---|---|
+| `interiorC2` | T6 `hpack` restricted from closed to open | `R.v_interiorC2` |
+| `timeC1` | `R.timeC1` | `R.timeC1` |
+| `jointTimeDeriv` | `R.jointTimeDeriv` | `R.jointTimeDeriv` |
+| `neumannLimits` | T6 `hpack` | `R.v_neumannLimits` |
+| `closedC2` | T6 `hpack` | `R.v_closedC2` |
+| `closedJointTimeDeriv` | `R.closedJointTimeDeriv` | `R.closedJointTimeDeriv` |
+| `jointValue` | `R.jointValue` | `R.jointValue` |
+
+This shows the residual is deliberately the **post-T6 complement** of the full classical regularity atom list.
+
+## What it is not carrying
+
+It does not carry `u_pos`, `pde_u`, or `InitialTrace`. Those are in the next wrapper:
+
+```lean
+import ShenWork.PDE.IntervalCoupledRegularityBanked
+
+open MeasureTheory
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDuhamelClosedC2
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.Paper2
+
+-- structure CoupledDuhamelResidualAfterBankedT6
+--     (p : CM2Params) (T : ℝ) (u₀ : intervalDomainPoint → ℝ)
+--     (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+--   u_pos : ∀ t x, 0 < t → t < T → 0 < u t x
+--   pde_u : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+--     intervalDomain.timeDeriv u t x =
+--       intervalDomain.laplacian (u t) x
+--         - p.χ₀ * intervalDomain.chemotaxisDiv p (u t)
+--             (coupledChemicalConcentration p u t) x
+--         + u t x * (p.a - p.b * (u t x) ^ p.α)
+--   classicalResidual : CoupledDuhamelClassicalResidualAfterT6 p T u
+--   initialTrace : InitialTrace intervalDomain u₀ u
+#check CoupledDuhamelResidualAfterBankedT6
+
+end ShenWork.IntervalCoupledRegularityBootstrap
+```
+
+And after using gradient-mild positivity plus the banked initial-approach theorem, the remaining frontier is:
+
+```lean
+import ShenWork.PDE.IntervalCoupledResidualAfterBankedT6Discharge
+
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalMildPicard
+open ShenWork.IntervalMildPicardThreshold
+open ShenWork.IntervalMildToClassical
+open ShenWork.IntervalDomainPdeUProducer
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalDuhamelClosedC2
+
+-- structure CoupledDuhamelBankedT6Frontier
+--     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+--     (D : GradientMildSolutionData p u₀) : Prop where
+--   pde_u : ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
+--     intervalDomain.timeDeriv D.u t x =
+--       intervalDomain.laplacian (D.u t) x
+--         - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
+--             (coupledChemicalConcentration p D.u t) x
+--         + D.u t x * (p.a - p.b * (D.u t x) ^ p.α)
+--   classicalResidual : CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
+#check CoupledDuhamelBankedT6Frontier
+
+end ShenWork.IntervalCoupledRegularityBootstrap
+```
+
+And in the χ₀=0 spectral specialization:
+
+```lean
+import ShenWork.PDE.IntervalCoupledResidualAfterBankedT6Discharge
+
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalMildPicard
+open ShenWork.IntervalMildPicardThreshold
+open ShenWork.IntervalMildToClassical
+open ShenWork.IntervalDomainPdeUProducer
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalDuhamelClosedC2
+
+-- structure CoupledDuhamelBankedT6ChiZeroFrontier
+--     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+--     (D : GradientMildSolutionData p u₀) : Prop where
+--   hpde : HasSpectralPdeAgreement p D.T D.u
+--   classicalResidual : CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
+#check CoupledDuhamelBankedT6ChiZeroFrontier
+
+end ShenWork.IntervalCoupledRegularityBootstrap
+```
+
+That confirms the layering:
 
 ```text
-uniform parameter choices
-+ resolver self-map / chemDiv-Lipschitz / integrability estimates
-+ hregularize-like RegularityBootstrap bridge
+T6 hsrc+hagree
+  closes: u closed C² + u Neumann slice data
+
+CoupledDuhamelClassicalResidualAfterT6
+  carries: v spatial/Neumann data + all u/v time/joint/value continuity
+
+CoupledDuhamelResidualAfterBankedT6
+  carries: u positivity + pde_u + classicalResidual + initialTrace
+
+GradientMildData + banked initial approach
+  closes: u positivity + initialTrace
+
+Spectral PDE producer, in χ₀=0 or full-source form
+  closes: pde_u
+
+Remaining named post-banked-T6 frontier
+  often reduces to: CoupledDuhamelClassicalResidualAfterT6
 ```
 
-The first two parts are more modular than the χ₀=0 `LimitRegularityInputs` spectral restart ledger. But the last part is exactly the hard classical bootstrap/comparison/regularity content. Producing `CoupledFluxResolverAnalyticData` is therefore **not** a shortcut around `hregularize`; it is a wrapper that still asks for it, in a resolver-specialized form.
+## Can it be discharged from existing banked spectral/frontier data?
 
-## Bottom line for the route decision
+There is a theorem that turns the already banked regularity frontier into this residual:
 
-* χ₀=0 `LimitRegularityInputs`: enormous spectral/restart/classical ledger. Fixed point alone gives only `hfix`. `Hu` can be removed only after keeping the other heavy reduced-ledger fields.
-* χ₀<0 `CoupledFluxResolverAnalyticData`: avoids the χ₀=0 cosine-restart ledger, but it still contains the core regularization bridge to `RegularityBootstrap`, plus resolver ball estimates and uniform constants.
-* Therefore, if the target is “derive local classical existence from contraction alone,” neither route closes it. The χ₀<0 resolver-data route is cleaner as an interface, but it is not easier than `hregularize`; it includes `hregularize` as one of its required payloads.
+```lean
+import ShenWork.PDE.IntervalCoupledClassicalResidualAfterT6FromBanked
+
+open scoped Topology
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalMildPicard
+open ShenWork.IntervalMildRegularityBootstrap
+  (HasRestartCosineRepresentations)
+open ShenWork.IntervalMildTimeDerivContinuity
+  (HasTimeNeighborhoodSpectralAgreement)
+open ShenWork.IntervalResolverDirectTimeRegularity
+  (HasResolverDirectSpectralData)
+open ShenWork.IntervalMildToClassical
+open ShenWork.Paper2
+open ShenWork.Paper2.RegularityFrontierWiring
+
+-- theorem coupledDuhamelClassicalResidualAfterT6_of_frontier
+--     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+--     (D : GradientMildSolutionData p u₀)
+--     (F : GradientMildClassicalRegularityFrontierData p D) :
+--     CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
+#check coupledDuhamelClassicalResidualAfterT6_of_frontier
+
+-- theorem coupledDuhamelClassicalResidualAfterT6_of_banked_resolver_O1_T6
+--     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+--     (D : GradientMildSolutionData p u₀)
+--     (Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u)
+--     (Hv : HasResolverDirectSpectralData D.T
+--       (mildChemicalConcentration p D.u) p)
+--     (Hrestart : HasRestartCosineRepresentations D.T D.u)
+--     (Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
+--       0 < mildChemicalConcentration p D.u t x) :
+--     CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
+#check coupledDuhamelClassicalResidualAfterT6_of_banked_resolver_O1_T6
+
+end ShenWork.IntervalCoupledRegularityBootstrap
+```
+
+That theorem says the residual is available if you have the older/banked regularity frontier data:
+
+* `Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u`,
+* `Hv : HasResolverDirectSpectralData D.T (mildChemicalConcentration p D.u) p`,
+* `Hrestart : HasRestartCosineRepresentations D.T D.u`,
+* `Hvpos : strict positivity of mildChemicalConcentration`.
+
+But that is not “T6 source data alone.” It uses the regularity-frontier machinery to provide the time/joint/v-side atoms.
+
+## Answer to the direct question
+
+For `CoupledDuhamelClassicalResidualAfterT6 p D.T D.u`, the fields are exactly:
+
+1. `v_interiorC2` — v/resolver interior spatial `C²` on `(0,1)`.
+2. `timeC1` — pointwise time `C¹` data for both `D.u` and `coupledChemicalConcentration p D.u`.
+3. `jointTimeDeriv` — joint continuity of time derivatives on `(0,D.T) × (0,1)` for both lifted fields.
+4. `v_neumannLimits` — v/resolver one-sided Neumann derivative limits at `0` and `1`.
+5. `v_closedC2` — v/resolver closed-interval `C²` plus endpoint derivative equalities.
+6. `closedJointTimeDeriv` — joint continuity of time derivatives on `(0,D.T) × [0,1]` for both lifted fields.
+7. `jointValue` — joint continuity of lifted values on `(0,D.T) × [0,1]` for both lifted fields.
+
+It is the **post-T6 classical-regularity residual**, not the full mild-to-classical residual. T6 closes the u spatial/Neumann slice atoms; this structure carries the v-side and temporal/joint atoms still needed to assemble `intervalDomainClassicalRegularity`.
