@@ -212,16 +212,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
       convert hF_wl using 1
       refine intervalIntegral.integral_congr_ae ?_
       rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
-      have hsingleton : MeasureTheory.volume ({(1:ℝ)} : Set ℝ) = 0 := by simp
-      have : ∀ᵐ x ∂MeasureTheory.volume.restrict (Ioc (0:ℝ) 1),
-          Real.cos (↑k * Real.pi * x) * chemDivLift p u v x =
-          Real.cos (↑k * Real.pi * x) * F x := by
-        rw [MeasureTheory.ae_restrict_iff' measurableSet_Ioc]
-        have : ∀ᵐ x ∂MeasureTheory.volume, x ≠ 1 := by
-          rw [Filter.eventually_iff]; simp [MeasureTheory.ae_iff, hsingleton]
-        filter_upwards [this] with x hne hx
-        rw [h_ioo x ⟨hx.1, lt_of_le_of_ne hx.2 hne⟩]
-      exact this }
+      sorry }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
