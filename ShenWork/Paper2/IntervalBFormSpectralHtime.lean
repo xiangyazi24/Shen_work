@@ -10,6 +10,7 @@
 -/
 import ShenWork.Paper2.IntervalBFormSpectralHchem
 import ShenWork.Paper2.IntervalConjugateDuhamelMap
+import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
 
 open Filter Topology
 
@@ -24,6 +25,7 @@ open ShenWork.IntervalSourceCoefficientTimeC1
   (localRestartCoeff duhamelSourceTimeC1_const_mul duhamelSourceTimeC1_add)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemDivSourceCoeffs coupledLogisticSourceCoeffs)
+open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
 
 /-- The B-form total source coefficient family:
 reaction coefficients minus `χ₀` times chem-div coefficients. -/
@@ -48,6 +50,28 @@ noncomputable def bFormSource_duhamelSourceTimeC1
         (fun s n => coupledLogisticSourceCoeffs p u s n
           + (-p.χ₀) * coupledChemDivSourceCoeffs p u s n) :=
     duhamelSourceTimeC1_add hlog hchemScaled
+  convert hsum using 1
+  ext s n
+  simp [bFormSourceCoeffs]
+  ring
+
+/-- `DuhamelSourceTimeC1On` for the B-form total source, obtained by the committed
+addition/scalar-closure of coefficient time-regularity on a window `[lo, hi]`. -/
+noncomputable def bFormSource_duhamelSourceTimeC1On
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {lo hi : ℝ}
+    (hlog : DuhamelSourceTimeC1On (coupledLogisticSourceCoeffs p u) lo hi)
+    (hchem : DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs p u) lo hi) :
+    DuhamelSourceTimeC1On (bFormSourceCoeffs p u) lo hi := by
+  have hchemScaled :
+      DuhamelSourceTimeC1On
+        (fun s n => (-p.χ₀) * coupledChemDivSourceCoeffs p u s n) lo hi :=
+    hchem.const_mul (-p.χ₀)
+  have hsum :
+      DuhamelSourceTimeC1On
+        (fun s n => coupledLogisticSourceCoeffs p u s n
+          + (-p.χ₀) * coupledChemDivSourceCoeffs p u s n) lo hi :=
+    hlog.add hchemScaled
   convert hsum using 1
   ext s n
   simp [bFormSourceCoeffs]

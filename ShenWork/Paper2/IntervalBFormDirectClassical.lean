@@ -6,6 +6,7 @@ import ShenWork.Paper2.IntervalBFormInitialTrace
 import ShenWork.PDE.IntervalCoupledRegularityBootstrap
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalResolverSpatialC2
+import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
 
 open Filter Topology Set
 
@@ -27,8 +28,11 @@ open ShenWork.IntervalSourceCoefficientTimeC1
   (localRestartCoeff)
 open ShenWork.IntervalDuhamelClosedC2
   (DuhamelSourceTimeC1)
+open ShenWork.IntervalDuhamelSourceTimeC1On
+  (DuhamelSourceTimeC1On)
 open ShenWork.IntervalBFormSpectral
-  (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1)
+  (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1
+   bFormSource_duhamelSourceTimeC1On)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
    coupledLogisticSourceCoeffs sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
@@ -122,6 +126,55 @@ def BFormBankedInputs.hsrcB
       (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) :=
   bFormSource_duhamelSourceTimeC1 B.hlogSrc B.hchemSrc
 
+/-- Windowed restriction of the B-form source for the `On`-based regularity path. -/
+def BFormBankedInputs.hsrcB_on
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB) :
+    DuhamelSourceTimeC1On
+      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T :=
+  ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1.toOn B.hsrcB 0 DB.T le_rfl
+
+/-- Eigenvalue-weighted restart coefficient summability from the windowed
+`DuhamelSourceTimeC1On` source via the homogeneous + Duhamel triangle split. -/
+private theorem bform_restartCoeff_eigenvalue_summable
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB)
+    {t : ℝ} (ht : 0 < t) (htT : t < DB.T) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        |localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+          t n|) := by
+  have hhom :=
+    ShenWork.IntervalMildRegularityBootstrap.restartHomogeneousCoeff_eigenvalue_summable
+      ht B.haInit
+  have hduh :=
+    ShenWork.IntervalDuhamelSourceTimeC1On.duhamelSpectralCoeff_eigenvalue_summable_on
+      B.hsrcB_on ht htT.le
+  refine Summable.of_nonneg_of_le
+    (fun n => mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity)
+      (abs_nonneg _)) (fun n => ?_) (hhom.add hduh)
+  rw [← mul_add]
+  exact mul_le_mul_of_nonneg_left
+    (by simp only [localRestartCoeff]; exact abs_add_le _ _)
+    (by unfold unitIntervalCosineEigenvalue; positivity)
+
+private theorem bform_B_global_as_restartCoeff_eqOn
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (B : BFormBankedInputs p DB)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DB.T) :
+    Set.EqOn (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
+      (fun x : ℝ => ∑' n : ℕ,
+        localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+          t n * cosineMode n x)
+      (Set.Icc (0 : ℝ) 1) := by
+  intro x hx
+  exact B.hB_global t ht htT hx
+
 theorem hasRestartCosineRepresentations_of_BFormBankedInputs
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
@@ -203,7 +256,8 @@ private theorem bform_u_closedC2_endpointDerivs
         ∧ deriv
           (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)) 1 = 0 := by
   intro t ht htT
-  let H := hasRestartCosineRepresentations_of_BFormBankedInputs B
+  have heig := bform_restartCoeff_eigenvalue_summable B ht htT
+  have hagree := bform_B_global_as_restartCoeff_eqOn B ht htT.le
   have h0 : intervalDomainLift (conjugatePicardLimit p u₀ DB.T t) 0 ≠ 0 := by
     have hmem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
     simp only [intervalDomainLift, hmem, dif_pos]
@@ -212,7 +266,7 @@ private theorem bform_u_closedC2_endpointDerivs
     have hmem : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
     simp only [intervalDomainLift, hmem, dif_pos]
     exact ne_of_gt (bform_u_pos B t ⟨1, hmem⟩ ht htT)
-  exact (Classical.choice (H t ht htT)).conjunct7 h0 h1
+  exact intervalDomainCosineSlice_conjunct7 heig hagree h0 h1
 
 private theorem bform_u_neumann_left
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -223,8 +277,9 @@ private theorem bform_u_neumann_left
         (deriv (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)))
         (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
   intro t ht htT
-  let H := hasRestartCosineRepresentations_of_BFormBankedInputs B
-  exact (Classical.choice (H t ht htT)).neumann_limit_left
+  exact intervalDomainCosineSlice_neumann_limit_left
+    (bform_restartCoeff_eigenvalue_summable B ht htT)
+    (bform_B_global_as_restartCoeff_eqOn B ht htT.le)
 
 private theorem bform_u_neumann_right
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -235,8 +290,9 @@ private theorem bform_u_neumann_right
         (deriv (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t)))
         (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
   intro t ht htT
-  let H := hasRestartCosineRepresentations_of_BFormBankedInputs B
-  exact (Classical.choice (H t ht htT)).neumann_limit_right
+  exact intervalDomainCosineSlice_neumann_limit_right
+    (bform_restartCoeff_eigenvalue_summable B ht htT)
+    (bform_B_global_as_restartCoeff_eqOn B ht htT.le)
 
 private theorem lift_resolver_eqOn_Icc
     (p : CM2Params) (u : intervalDomainPoint → ℝ) :
@@ -511,6 +567,7 @@ theorem paper2_theorem_1_1_general_chi_bform
     p hχ ha hb hγ_ge_one hData
 
 #print axioms BFormBankedInputs.hsrcB
+#print axioms BFormBankedInputs.hsrcB_on
 #print axioms hasRestartCosineRepresentations_of_BFormBankedInputs
 #print axioms BFormBankedInputs.hpde_u
 #print axioms intervalConjugatePicardLimit_classicalRegularity_direct

@@ -100,6 +100,52 @@ def DuhamelSourceTimeC1On.restrict_hi {a : ℝ → ℕ → ℝ} {lo hi hi' : ℝ
     intro s hs n
     exact src.hderivBound s ⟨hs.1, le_trans hs.2 hhi'⟩ n
 
+/-- **Scalar multiplication preserves `DuhamelSourceTimeC1On`.** -/
+noncomputable def DuhamelSourceTimeC1On.const_mul {a : ℝ → ℕ → ℝ} {lo hi : ℝ}
+    (src : DuhamelSourceTimeC1On a lo hi) (c : ℝ) :
+    DuhamelSourceTimeC1On (fun s n => c * a s n) lo hi where
+  adot := fun s n => c * src.adot s n
+  hderiv := by
+    intro s hs n
+    exact (src.hderiv s hs n).const_mul c
+  hadotcont := by
+    intro n
+    exact continuousOn_const.mul (src.hadotcont n)
+  envelope := fun n => |c| * src.envelope n
+  henv_summable := src.henv_summable.mul_left |c|
+  henv_bound := by
+    intro s hs n
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (src.henv_bound s hs n) (abs_nonneg c)
+  derivBound := |c| * src.derivBound
+  hderivBound := by
+    intro s hs n
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (src.hderivBound s hs n) (abs_nonneg c)
+
+/-- **Addition preserves `DuhamelSourceTimeC1On`.** -/
+noncomputable def DuhamelSourceTimeC1On.add {a b : ℝ → ℕ → ℝ} {lo hi : ℝ}
+    (ha : DuhamelSourceTimeC1On a lo hi) (hb : DuhamelSourceTimeC1On b lo hi) :
+    DuhamelSourceTimeC1On (fun s n => a s n + b s n) lo hi where
+  adot := fun s n => ha.adot s n + hb.adot s n
+  hderiv := by
+    intro s hs n
+    exact (ha.hderiv s hs n).add (hb.hderiv s hs n)
+  hadotcont := by
+    intro n
+    exact (ha.hadotcont n).add (hb.hadotcont n)
+  envelope := fun n => ha.envelope n + hb.envelope n
+  henv_summable := ha.henv_summable.add hb.henv_summable
+  henv_bound := by
+    intro s hs n
+    exact (abs_add_le _ _).trans
+      (add_le_add (ha.henv_bound s hs n) (hb.henv_bound s hs n))
+  derivBound := ha.derivBound + hb.derivBound
+  hderivBound := by
+    intro s hs n
+    exact (abs_add_le _ _).trans
+      (add_le_add (ha.hderivBound s hs n) (hb.hderivBound s hs n))
+
 /-- Per-mode time integration by parts from one-sided closed-window derivative data. -/
 theorem duhamelCoeff_eigenvalue_mul_on
     {lo hi t lam : ℝ} {a adot : ℝ → ℝ} (_hlohi : lo ≤ hi)
