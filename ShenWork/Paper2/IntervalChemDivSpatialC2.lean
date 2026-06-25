@@ -162,13 +162,10 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
       ∀ x, deriv g (-x) = -(deriv g x) := by
     intro g hg heven x
-    have hd : DifferentiableAt ℝ g (-x) := (hg.differentiable le_top).differentiableAt
-    have := (hd.hasDerivAt.scomp x (hasDerivAt_neg x)).deriv
-    simp only [Function.comp_def] at this
-    rw [show g (-id x) = g (-x) from rfl] at this
-    have hd2 : deriv (fun y => g (-y)) x = deriv g (-x) * -1 := this
-    have hd3 : deriv (fun y => g (-y)) x = deriv g x := by
-      congr 1; ext y; exact heven y
+    have : deriv (fun y => g (-y)) x = deriv g (-x) * -1 :=
+      ((hg.differentiable le_top).differentiableAt (x := -x)).hasDerivAt.comp_hasDerivAt
+        x (hasDerivAt_neg x) |>.deriv
+    have : deriv (fun y => g (-y)) x = deriv g x := by congr 1; ext y; exact heven y
     linarith
   -- Odd function vanishes at 0
   have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
@@ -184,14 +181,12 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
       ∀ x, deriv g (-x) = deriv g x := by
     intro g hg hodd x
-    have hd : DifferentiableAt ℝ g (-x) := (hg.differentiable le_top).differentiableAt
-    have := (hd.hasDerivAt.scomp x (hasDerivAt_neg x)).deriv
-    simp only [Function.comp_def] at this
-    rw [show g (-id x) = g (-x) from rfl] at this
-    have hd2 : deriv (fun y => g (-y)) x = deriv g (-x) * -1 := this
-    have hd3 : deriv (fun y => g (-y)) x = -(deriv g x) := by
-      have : (fun y => g (-y)) = fun y => -(g y) := funext hodd
-      rw [this]; exact (((hg.differentiable le_top).differentiableAt).hasDerivAt).neg.deriv
+    have h1 : deriv (fun y => g (-y)) x = deriv g (-x) * -1 :=
+      ((hg.differentiable le_top).differentiableAt (x := -x)).hasDerivAt.comp_hasDerivAt
+        x (hasDerivAt_neg x) |>.deriv
+    have h2 : deriv (fun y => g (-y)) x = -(deriv g x) := by
+      rw [show (fun y => g (-y)) = fun y => -(g y) from funext hodd]
+      exact ((hg.differentiable le_top).differentiableAt).hasDerivAt.neg.deriv
     linarith
   -- F = φ' is even (derivative of odd φ)
   have hF_even : ∀ x, F (-x) = F x :=
