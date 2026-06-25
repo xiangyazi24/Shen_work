@@ -187,13 +187,13 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     -- F x = deriv(flux with U_cos, V_cos) at x
     -- The two flux functions agree near x ∈ (0,1) because lift u = U_cos and lift v = V_cos on [0,1]
     apply Filter.EventuallyEq.deriv_eq
-    have hball := Metric.isOpen_Ioo.mem_nhds (⟨hx0, hx1⟩ : x ∈ Ioo (0:ℝ) 1)
+    have hball := isOpen_Ioo.mem_nhds (⟨hx0, hx1⟩ : x ∈ Ioo (0:ℝ) 1)
     filter_upwards [hball] with y hy
     have hy_icc : y ∈ Icc (0 : ℝ) 1 := ⟨hy.1.le, hy.2.le⟩
     rw [h_agree_u y hy_icc, h_agree_v y hy_icc]
     congr 1
     exact (Filter.EventuallyEq.deriv_eq (by
-      filter_upwards [Metric.isOpen_Ioo.mem_nhds hy] with z hz
+      filter_upwards [isOpen_Ioo.mem_nhds hy] with z hz
       exact h_agree_v z ⟨hz.1.le, hz.2.le⟩)).symm
   -- Ioo-agreement → same cosine coefficients → same H2
   exact hF_H2.congr_on_Icc (fun x hx => by
