@@ -200,9 +200,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     second_intervalIntegrable := hF_H2.second_intervalIntegrable
     second_abs_integral_bound := hF_H2.second_abs_integral_bound
     weak_cosine_laplacian := fun k => by
-      sorry -- integral congr: ∫cos·chemDivLift = ∫cos·F because they agree on (0,1)
-      -- and {0,1} has measure zero. Uses intervalIntegral.integral_congr_ae
-      -- with ae equality from h_ioo on Ioc 0 1 ⊂ Ioo 0 1 ∪ {1}. }
+      sorry }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
