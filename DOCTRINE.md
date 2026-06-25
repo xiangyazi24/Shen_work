@@ -136,9 +136,26 @@ Production target: `DuhamelSourceTimeC1On (bFormSourceCoeffs p (conjugatePicardL
 9. [ ] BFormBankedInputs assembly from all field producers
 10. [ ] Theorem 1.1 χ₀<0 unconditional
 
-### GENUINE GAP: chemDiv source C² for conjugate iterates
-The repo has NO producer of `ContDiffOn ℝ 2 (coupledChemDivSourceLift p u s) (Icc 0 1)` for
-any u. It's always taken as a hypothesis. The `SourceSliceC2Neumann.lean` explicitly marks
-chem source C² as a residual. Building this requires: u C⁴ + v = resolver(u) C⁴ → flux C³ →
-chemDiv C². For heat semigroup iterates, C∞ holds (exponential coefficient decay), but the
-Lean proof needs new infrastructure connecting cosine series ContDiff to composition regularity.
+### GENUINE GAP: chemDiv source H2 Neumann for conjugate iterates
+The key composition chain (flux C³ → chemDiv C² → H2) is proved for GLOBAL C⁴ inputs
+(chemFlux_contDiff_three, chemFluxDeriv_contDiff_two — both sorry-free). The H2 assembly
+via congr_on_Icc is structurally complete (3679 jobs build clean on uisai2).
+
+ARCHITECTURAL ISSUE (2026-06-25 ChatGPT Q489): the `ContDiff ℝ 4 (intervalDomainLift u)`
+hypothesis is UNSATISFIABLE for generic heat semigroup data because `intervalDomainLift`
+is a ZERO-EXTENSION (= 0 outside [0,1]), which has a jump at the boundary when u(0) ≠ 0.
+The correct approach: use the GLOBAL COSINE SERIES function `U_cos = ∑ exp(-tλ_k) û₀_k cos(kπx)`
+(which IS even and C∞) as the input to the H2 construction, not `intervalDomainLift`.
+The cosine series agrees with `intervalDomainLift u` on [0,1], so `congr_on_Icc` transfers.
+The parity argument (flux odd → deriv(flux) even → deriv²(flux)(0) = 0) works for U_cos.
+
+FIX NEEDED: refactor `chemDivSource_weakH2_of_uv_C4_global` to take:
+  - `U_cos V_cos : ℝ → ℝ` (the global cosine representatives)
+  - `hu_cos : ContDiff ℝ 4 U_cos` (from heatSemigroup_contDiff_four)
+  - `hv_cos : ContDiff ℝ 4 V_cos` (from resolver eigenvalue decay)
+  - `h_agree_u : ∀ x ∈ Icc 0 1, intervalDomainLift u x = U_cos x`
+  - `h_agree_v : ∀ x ∈ Icc 0 1, intervalDomainLift v x = V_cos x`
+  - `hu_even : ∀ x, U_cos (-x) = U_cos x` (cosine series is even)
+  - `hv_even : ∀ x, V_cos (-x) = V_cos x`
+Then: build H2 for F = deriv(chemFluxFun β U_cos V_cos) using parity → deriv F 0 = 0,
+transfer to chemDivLift via congr_on_Icc + h_agree.
