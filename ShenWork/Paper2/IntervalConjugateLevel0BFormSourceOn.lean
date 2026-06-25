@@ -22,6 +22,8 @@ import ShenWork.Paper2.IntervalConjugateIterSourceTower
 import ShenWork.Paper2.IntervalBFormSpectralHtime
 import ShenWork.Paper2.IntervalBFormNegPartStrictPosBarrier
 import ShenWork.Paper2.IntervalChemDivSpatialC2
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.PDE.IntervalChemDivTimeDerivative
 
 open MeasureTheory Set Filter
 open scoped Topology
@@ -42,6 +44,9 @@ open ShenWork.Paper2.ConjugateIterSourceTower (conjLogSourceTimeC1On_level0)
 open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
 open ShenWork.Paper2 (PaperPositiveInitialDatum PositiveInitialDatum)
 open ShenWork.IntervalDomain (intervalDomain)
+open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
+open ShenWork.Paper2.ChemDivSpatialC2 (chemDivSource_weakH2_of_cosineRep)
+open ShenWork.CosineSpectrum (cosineMode)
 
 noncomputable section
 
@@ -162,7 +167,165 @@ theorem level0_chemDiv_envelope_summable
       Summable envelope ∧
       ∀ s ∈ Icc c T, ∀ n,
         |coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s n| ≤ envelope n := by
-  sorry
+  -- ── Sub-goal 1: per-slice weak-H² Neumann data with uniform L¹(|f''|) bound ──
+  -- Chain: heat semigroup C⁴ (heatSemigroup_contDiff_four) → resolver C⁴ (sorry) →
+  -- chemDivSource_weakH2_of_cosineRep → IntervalWeakH2Neumann per slice.
+  -- The uniform L¹(|f''|) bound over [c,T] uses compactness + continuity of s ↦ f''_s.
+  -- Each step is >20 lines of new infrastructure; sorry'd as a block.
+  have hH2 : ∃ (B : ℝ), 0 ≤ B ∧
+      ∀ s ∈ Icc c T,
+        ∃ (h2 : ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)),
+        (∫ x in (0 : ℝ)..1, |h2.secondDeriv x|) ≤ B := by
+    -- Per-slice H2 via chemDivSource_weakH2_of_cosineRep.
+    -- U_cos s := heat semigroup cosine series (C⁴ from heatSemigroup_contDiff_four).
+    -- V_cos s := resolver cosine series (C⁴ sorry — only C² available in codebase).
+    -- The per-slice H2 is well-typed; the uniform L¹ bound is sorry'd.
+    --
+    -- Step 1: For each s ∈ [c,T], produce IntervalWeakH2Neumann per slice.
+    have hH2_per_slice : ∀ s ∈ Icc c T,
+        ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s) := by
+      intro s hs
+      have hs_pos : 0 < s := lt_of_lt_of_le hc hs.1
+      -- U_cos: the heat semigroup cosine series is C⁴ for s > 0
+      set U_cos := fun x => ∑' k,
+        (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
+          cosineMode k x with hU_cos_def
+      have hU_C4 : ContDiff ℝ 4 U_cos :=
+        heatSemigroup_contDiff_four _hu₀_bound hs_pos
+      -- U_cos agrees with intervalDomainLift (conjugatePicardIter p u₀ 0 s) on [0,1]
+      have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
+          intervalDomainLift (conjugatePicardIter p u₀ 0 s) x = U_cos x := by
+        sorry
+        -- Proof: intervalDomainLift (conjugatePicardIter p u₀ 0 s) x
+        --   = intervalFullSemigroupOperator s (lift u₀) x  (by definition + dif_pos)
+        --   = unitIntervalCosineHeatValue s (heatCoeff u₀) x  (spectral bridge)
+        --   = U_cos x  (cosineHeatSynthesis_eq_cosineHeatValue)
+      -- Inline helpers for cosineMode parity (cosineMode k x = cos(kπx))
+      have cosineMode_neg' : ∀ (k : ℕ) (x : ℝ),
+          cosineMode k (-x) = cosineMode k x := by
+        intro k x; unfold cosineMode
+        rw [show (k : ℝ) * Real.pi * (-x) = -((k : ℝ) * Real.pi * x) from by ring,
+          Real.cos_neg]
+      have cosineMode_add_two' : ∀ (k : ℕ) (x : ℝ),
+          cosineMode k (x + 2) = cosineMode k x := by
+        intro k x; unfold cosineMode
+        rw [show (k : ℝ) * Real.pi * (x + 2)
+              = (k : ℝ) * Real.pi * x + ((k : ℤ) : ℝ) * (2 * Real.pi) from by
+            push_cast; ring,
+          Real.cos_add_int_mul_two_pi _ (k : ℤ)]
+      -- U_cos is even: cosineMode k (-x) = cosineMode k x
+      have hU_even : ∀ x, U_cos (-x) = U_cos x := by
+        intro x; simp only [hU_cos_def]
+        exact tsum_congr (fun k => by congr 1; exact cosineMode_neg' k x)
+      -- U_cos is symmetric about x=1: U_cos(2-x) = U_cos(x)
+      have hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x := by
+        intro x
+        rw [show (2 : ℝ) - x = (-x) + 2 from by ring]
+        simp only [hU_cos_def]
+        rw [show (fun k => (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+              heatCoeff u₀ k) * cosineMode k ((-x) + 2)) =
+            (fun k => (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+              heatCoeff u₀ k) * cosineMode k (-x)) from
+          funext (fun k => by congr 1; exact cosineMode_add_two' k (-x))]
+        exact hU_even x
+      -- V_cos: resolver cosine series — C⁴, even, symm1, agrees on [0,1]
+      -- SORRY: resolver C⁴ requires elliptic gain from H^σ with σ > 4.5; only C² proved.
+      have hV_data : ∃ V_cos : ℝ → ℝ,
+          ContDiff ℝ 4 V_cos ∧
+          (∀ x, (0 : ℝ) < 1 + V_cos x) ∧
+          (∀ x ∈ Icc (0 : ℝ) 1,
+            intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s) x = V_cos x) ∧
+          (∀ x, V_cos (-x) = V_cos x) ∧
+          (∀ x, V_cos (2 - x) = V_cos x) := by
+        sorry
+        -- Proof sketch: V_cos = resolverValue p.μ (cosineCoeffs (lift (u s))) x.
+        -- Even/symm1: from resolverValue_even, resolverValue_add_two.
+        -- C⁴: resolver gain is +2 (elliptic regularity); u ∈ H^{4+ε} for s > 0
+        --   → v ∈ H^{6+ε} → C⁴.  Needs MemHSigma σ with σ > 4.5 for the source,
+        --   which follows from the exponential coefficient decay of the heat semigroup.
+        --   Infrastructure gap: only resolverValue_contDiff_two (C²) is proved.
+        -- Agreement: from the committed resolver spectral bridge on [0,1].
+        -- Positivity: from resolverValue_nonneg (u ≥ 0 on [c,T]) + resolver structure.
+      let V_cos := hV_data.choose
+      have hV := hV_data.choose_spec
+      exact chemDivSource_weakH2_of_cosineRep hU_C4 hV.1 hV.2.1
+        hU_agree hV.2.2.1 hU_even hV.2.2.2.1 hU_symm1 hV.2.2.2.2
+    -- Step 2: Uniform L¹(|f''|) bound over [c,T].
+    -- From compactness of [c,T] and continuity of the second-derivative norm.
+    have hL1_uniform : ∃ (B : ℝ), 0 ≤ B ∧ ∀ s (hs : s ∈ Icc c T),
+        (∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x|) ≤ B := by
+      sorry
+      -- Proof sketch: for each s, (hH2_per_slice s hs).secondDeriv is the
+      -- classical second derivative of the chemDiv source (deriv²(flux) for the
+      -- cosine representative). On the compact set [c,T], the second derivative
+      -- is jointly continuous in (s,x), hence the L¹ norm is continuous in s on
+      -- [c,T], hence bounded on the compact set.
+    obtain ⟨B, hBnn, hL1⟩ := hL1_uniform
+    exact ⟨B, hBnn, fun s hs => ⟨hH2_per_slice s hs, hL1 s hs⟩⟩
+  -- ── Sub-goal 2: uniform sup bound and continuity of chemDiv source slices ──
+  have hSup : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+      (∀ s ∈ Icc c T,
+        ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+          (Icc (0 : ℝ) 1)) ∧
+      (∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+        |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup) := by
+    sorry
+    -- Proof sketch (>20 lines): u bounded by M, v bounded (resolver of bounded u),
+    -- chemDiv source = deriv(u · v' / (1+v)^β) bounded on [0,1] × [c,T].
+  -- ── Extract and build envelope ──
+  obtain ⟨B, hBnn, hH2_data⟩ := hH2
+  obtain ⟨Msup, hMsupnn, hcont_slices, hsup_slices⟩ := hSup
+  -- Envelope: Cenv / (max 1 k)² where Cenv = 2 · max B Msup.
+  -- k=0: Cenv ≥ 2Msup ≥ |c₀| (from cosineCoeffs_abs_le_of_continuous_bounded).
+  -- k≥1: Cenv/k² ≥ Cenv/(kπ)² ≥ 2B/(kπ)² ≥ |cₖ| (from H² quadratic decay, π≥1).
+  set Cenv := 2 * max B Msup with hCenv_def
+  have hCenv_nn : 0 ≤ Cenv := mul_nonneg (by norm_num) (hBnn.trans (le_max_left _ _))
+  have hCenv_ge_2B : 2 * B ≤ Cenv := by
+    simp only [hCenv_def]; exact mul_le_mul_of_nonneg_left (le_max_left _ _) (by norm_num)
+  have hCenv_ge_2Msup : 2 * Msup ≤ Cenv := by
+    simp only [hCenv_def]; exact mul_le_mul_of_nonneg_left (le_max_right _ _) (by norm_num)
+  -- Summability: Cenv / (max 1 k)² is summable (bounded by Cenv/k² for k≥1).
+  -- Coefficient bound: mode 0 from sup bound, mode k≥1 from H² quadratic decay.
+  -- The complete calculation uses hH2_data for quadratic decay and
+  -- hcont_slices/hsup_slices for the zeroth mode.
+  exact ⟨fun k => Cenv / (max 1 (k : ℝ)) ^ 2,
+    sorry, -- Summability: Cenv/(max 1 k)² ~ Cenv/k² for k≥1 (reciprocal square)
+    fun s hs n => by
+      obtain ⟨h2s, hBs⟩ := hH2_data s hs
+      by_cases hn : n = 0
+      · -- mode 0: |c₀| ≤ 2·Msup ≤ Cenv = Cenv/(max 1 0)²
+        subst hn; simp only [Nat.cast_zero, max_eq_left
+          (by norm_num : (0 : ℝ) ≤ 1), one_pow, div_one]
+        open ShenWork.IntervalMildPicardRegularity in
+        exact le_trans
+          (cosineCoeffs_abs_le_of_continuous_bounded
+            (hcont_slices s hs) hMsupnn
+            (hsup_slices s hs) 0)
+          hCenv_ge_2Msup
+      · -- mode k≥1: |cₖ| ≤ 2B/(kπ)² ≤ Cenv/(kπ)² ≤ Cenv/k²
+        have hk : 1 ≤ n := Nat.one_le_iff_ne_zero.mpr hn
+        have hn_pos : (0 : ℝ) < (n : ℝ) := by
+          exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk
+        simp only [max_eq_right (show (1 : ℝ) ≤ (n : ℝ) by
+          exact_mod_cast hk)]
+        open ShenWork.IntervalSourceDecayQuantitative in
+        calc |cosineCoeffs (coupledChemDivSourceLift
+                p (conjugatePicardIter p u₀ 0) s) n|
+            ≤ 2 * B / ((n : ℝ) * Real.pi) ^ 2 :=
+              intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+                h2s hBs n hk
+          _ ≤ Cenv / ((n : ℝ) * Real.pi) ^ 2 := by
+              gcongr
+          _ ≤ Cenv / (n : ℝ) ^ 2 := by
+              apply div_le_div_of_nonneg_left hCenv_nn
+                (by positivity)
+              exact pow_le_pow_left₀ (le_of_lt hn_pos)
+                (le_mul_of_one_le_right (le_of_lt hn_pos)
+                  (by linarith [Real.pi_gt_three]))
+                2⟩
 
 /-- Time-derivative and continuity data for the chemDiv coefficients of the
 heat semigroup on a positive window.  The time derivative is computed by the
@@ -185,16 +348,88 @@ theorem level0_chemDiv_timeDerivData
           (adot s n) (Icc c T) s) ∧
       (∀ n, ContinuousOn (fun s => adot s n) (Icc c T)) ∧
       (∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot) := by
-  -- The time derivative of coupledChemDivSourceCoeffs is computed via the
-  -- chain rule.  Since u = S(t)u₀ satisfies ∂ₜu = Δu (the heat equation),
-  -- and the chemDiv source is a smooth functional of u and its spatial
-  -- derivatives, the time derivative ∂ₜ(chemDiv source coefficients) exists
-  -- and is continuous on [c,T] with c > 0.
+  -- Canonical adot: the cosine coefficients of the pointwise chain-rule field
+  -- coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) s.
+  -- The chain rule for ∂ₜ(∇·(u·χ(v)·∇v)) uses ∂ₜu = Δu (the heat equation).
   --
-  -- The uniform bound follows from the uniform bounds on u, ∂ₓu, ∂²ₓu,
-  -- ∂ₜu, and ∂ₜ∂ₓu on the compact set [c,T] × [0,1], all of which are
-  -- available from the heat semigroup's explicit cosine-series representation.
-  sorry
+  -- Step 1: CoupledChemDivLocalChainRule for the heat semigroup trajectory.
+  -- This is the pointwise chain rule + local dominated-convergence slab.
+  -- SORRY: needs ~60 lines connecting the heat equation ∂ₜu = Δu through
+  -- the composed chemDiv functional to produce the local HasDerivAt slab.
+  have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
+      p (conjugatePicardIter p u₀ 0) := by
+    sorry
+    -- The heat semigroup u(s,x) = S(s)u₀(x) satisfies ∂ₜu = Δu with
+    -- smooth spatial dependence for s > 0.  The resolver v = Γ_μ(u) inherits
+    -- time differentiability from the spectral route.  The chemDiv source
+    -- F(s,x) = ∂ₓ(u·∂ₓv/(1+v)^β) is a smooth composition, so ∂ₜF exists
+    -- and equals the chain-rule expression coupledChemDivTimeDerivativeLift.
+    -- The local slab hypothesis (HasDerivAt on a ball + joint continuity of
+    -- the derivative field) follows from the joint smoothness of the heat
+    -- semigroup on (0,∞)×[0,1].
+  -- Step 2: Joint continuity of the chain-rule field on [c,T]×[0,1].
+  -- SORRY: needs ~40 lines from the resolver time-regularity route.
+  have hjointcont : ContinuousOn
+      (Function.uncurry (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivTimeDerivativeLift
+        p (conjugatePicardIter p u₀ 0)))
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+    sorry
+    -- From coupledChemicalTimeDerivative_jointContinuousOn_closed and the
+    -- composition chain for the chemDiv time derivative.  The heat semigroup
+    -- trajectory and its time/spatial derivatives are jointly continuous on
+    -- (0,∞) × ℝ, hence on the compact slab [c,T] × [0,1] with c > 0.
+  -- Step 3: HasDerivWithinAt from the chain rule (HasDerivAt → HasDerivWithinAt).
+  set adot := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot
+    p (conjugatePicardIter p u₀ 0) with hadot_def
+  have hderiv_global : ∀ s n,
+      HasDerivAt
+        (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
+        (adot s n) s := by
+    intro s n
+    -- Inline the chain-rule → cosineCoeffs HasDerivAt step
+    -- (reproduces coupledChemDivCoeff_hasDerivAt_of_chainRule from ChemDivAdot.lean)
+    rcases hchain.exists_local_slab s with ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
+    simpa only [coupledChemDivSourceCoeffs, hadot_def,
+      ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot] using
+      ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
+        (f := coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0))
+        (f' := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivTimeDerivativeLift
+          p (conjugatePicardIter p u₀ 0))
+        (τ := s) (δ := δ) (n := n) hδ hf_cont hdiff hcont_deriv
+  have hderiv : ∀ s ∈ Icc c T, ∀ n,
+      HasDerivWithinAt
+        (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
+        (adot s n) (Icc c T) s := by
+    intro s _ n
+    exact (hderiv_global s n).hasDerivWithinAt
+  -- Step 4: ContinuousOn of adot from joint continuity.
+  have hadotcont : ∀ n, ContinuousOn (fun s => adot s n) (Icc c T) := by
+    intro n
+    open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint in
+    open ShenWork.IntervalCoupledRegularityBootstrap in
+    have key :=
+      cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+        (f := coupledChemDivTimeDerivativeLift
+          p (conjugatePicardIter p u₀ 0))
+        (c := c) (T := T) n hjointcont
+    open ShenWork.IntervalCoupledRegularityBootstrap in
+    simpa only [hadot_def, coupledChemDivAdot] using key
+  -- Step 5: Uniform bound on |adot s n| ≤ Mdot for all n.
+  -- GENUINE RESIDUAL: a uniform-in-n bound on the time-derivative coefficients.
+  -- Per-mode smoothness gives per-n bounds on [c,T] but NOT a uniform constant.
+  -- The uniform bound needs the time-derivative field to have a summable
+  -- cosine-coefficient envelope (the EWA-T-3 time-chain brick).
+  have hMdot : ∃ (Mdot : ℝ), ∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot := by
+    sorry
+    -- For the heat semigroup at level 0, the time derivative field
+    -- coupledChemDivTimeDerivativeLift is smooth on [c,T]×[0,1] (c > 0).
+    -- Its cosine coefficients decay like 1/k² (quadratic, from the H²
+    -- regularity of the time derivative field), giving summability and hence
+    -- a uniform bound.  But this requires H² of ∂ₜ(chemDiv source), which
+    -- in turn requires ∂ₜ∂²ₓ(chemDiv source) — two more spatial derivatives
+    -- plus one time derivative of the chemDiv functional.
+  obtain ⟨Mdot, hMdot⟩ := hMdot
+  exact ⟨adot, Mdot, hderiv, hadotcont, hMdot⟩
 
 /-- Construct `Level0ChemDivSourceData` from the basic heat semigroup hypotheses.
 This combines the envelope and time-derivative data. -/
@@ -207,11 +442,27 @@ noncomputable def level0ChemDivSourceData
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
     (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
-    Level0ChemDivSourceData p u₀ c T := by
-  sorry
-  -- Blocked on chemDiv C² regularity infrastructure (IntervalChemDivSpatialC2.lean).
-  -- Chain: heat semigroup C⁴ → resolver C⁴ → flux C³ → chemDiv C² → H² → decay → envelope
-  --        + chain rule for time derivatives → adot + continuity + bound
+    Level0ChemDivSourceData p u₀ c T :=
+  -- Wire envelope data from level0_chemDiv_envelope_summable
+  let envData := level0_chemDiv_envelope_summable p hc hcT hu₀_cont hu₀_bound hpos hub
+  let env := envData.choose
+  let henv := envData.choose_spec
+  -- Wire time-derivative data from level0_chemDiv_timeDerivData
+  let tdData := level0_chemDiv_timeDerivData p hc hcT hu₀_cont hu₀_bound hpos hub
+  let adot := tdData.choose
+  let tdRest := tdData.choose_spec
+  let Mdot := tdRest.choose
+  let htd := tdRest.choose_spec
+  {
+    envelope := env
+    henv_summable := henv.1
+    henv_bound := henv.2
+    adot := adot
+    hderiv := htd.1
+    hadotcont := htd.2.1
+    derivBound := Mdot
+    hderivBound := htd.2.2
+  }
 
 /-! ## Section 4: The logistic source `DuhamelSourceTimeC1On` for level 0
 
