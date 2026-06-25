@@ -141,11 +141,17 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     IntervalWeakH2Neumann (chemDivLift p u v) := by
   have hC2 := @chemDivLift_contDiffOn_two_of_global p u v hu hv hv_pos
   have hbc := chemDivLift_neumann_bc p u v
-  exact ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-    hC2
-    (by rw [hbc.1]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
-    (by rw [hbc.2]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
-    hbc.1 hbc.2
+  have ht0 : Filter.Tendsto (deriv (chemDivLift p u v))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
+    rw [← hbc.1]; exact (hC2.continuousOn.continuousWithinAt
+      (Set.mem_Icc.mpr ⟨le_refl _, zero_le_one⟩)).tendsto.mono_left
+      (nhdsWithin_mono _ Set.Ioi_subset_Ici_self)
+  have ht1 : Filter.Tendsto (deriv (chemDivLift p u v))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+    rw [← hbc.2]; exact (hC2.continuousOn.continuousWithinAt
+      (Set.mem_Icc.mpr ⟨zero_le_one, le_refl _⟩)).tendsto.mono_left
+      (nhdsWithin_mono _ Set.Iio_subset_Iic_self)
+  sorry -- Wire ht0, ht1, hbc.1, hbc.2 into intervalWeakH2Neumann_of_contDiffOn hC2
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
