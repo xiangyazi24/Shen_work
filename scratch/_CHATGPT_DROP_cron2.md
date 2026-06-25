@@ -1,299 +1,473 @@
-# Q331 (cron2): does `fullSourceCoeff_jointSolutionClosed` use source time-derivative data?
+# Q343 (cron2): heat smoothing, EWA start data, and the χ₀<0 unconditional route
 
-## Executive answer
+## Executive verdict
 
-`fullSourceCoeff_jointSolutionClosed` itself composes the value legs exactly as expected:
+The obstruction is **real for the current EWA framework**, but it is **not a mathematical requirement of Paper 2 local existence**.
+
+A merely positive continuous datum on `[0,1]` need not have absolutely summable cosine coefficients, so it need not produce a `WA 1` datum. The EWA fixed-point tower still requires exactly that `WA 1` datum:
 
 ```lean
-heatValueSeries_jointContinuousOn
-+ duhamelSeries_jointContinuousOn hchem
-+ duhamelSeries_jointContinuousOn hlog
+hsumc : Summable (fun k => |cosineCoeffs u₀ k|)
+hmem  : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))
 ```
 
-It does **not** call `duhamelDerivSeries_jointContinuousOn`; that derivative-series theorem is used by the separate time-derivative field.
+This is visible in the current χ₀<0 source-form fixed-point engine and in the strong-datum wrapper.
 
-However, the current proof of `duhamelSeries_jointContinuousOn` is **not envelope-only**. Its summable **majorant** is envelope-only, but the proof still uses `src.hderiv` to obtain pointwise continuity of each source coefficient `s ↦ a s n`, hence continuity/integrability of the Duhamel integrand and continuity of each Duhamel coefficient.
+There is **partial heat-smoothing infrastructure** in the repo:
 
-So the precise verdict is:
+```lean
+ShenWork.Wiener.EWA.HeatSmoothing.heat_L2_to_memHSob
+ShenWork.Wiener.EWA.HeatSmoothing.heat_L2_to_memWNorm
+```
+
+but it is not yet the exact bridge needed for the EWA tower, namely:
+
+```lean
+0 < t₀ → Continuous u₀ → bounded cosine coefficients of u₀
+→ MemW 1 (ofCosineCoeffs (fun k => exp (-t₀ * λ_k) * cosineCoeffs u₀ k))
+```
+
+The closest landed ingredients are `HeatSmoothing.lean` and the level-0 heat-slice coefficient identity:
+
+```lean
+heatSliceCoeff_eq_damped :
+  cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k
+    = Real.exp (-σ * λ_k) * heatCoeff u₀ k
+```
+
+So the positive-time smoothing fix is analytically right, but the exact `S(t₀)u₀ ∈ WA 1` bridge is not obviously already packaged as a theorem.
+
+The clean strategic fix is **not** “EWA from the raw datum.” It is:
 
 ```text
-Majorant for value-field joint continuity: envelope-only.
-Existing theorem dependencies: envelope + henv_summable + henv_bound + src.hderiv-as-continuity.
-Not used in the value theorem: src.adot, src.hadotcont, src.derivBound, src.hderivBound.
+canonical/local PDE chain for arbitrary positive C⁰ datum u₀
+  → get a classical/mild solution on [0,t₀]
+  → use u(t₀) as a smooth/Wiener datum for the EWA/source-regularity chain
+  → glue/identify by uniqueness on the overlap, or use the EWA chain only as a positive-time regularity supplier.
 ```
 
-This means the circularity can be weakened, but not all the way to “just an envelope.” A refactor target should be a smaller value-source structure carrying:
+The repo already has forward restart/glue infrastructure, but it does **not** take a solution constructed only after `t₀` and extend it backward to the original datum. To connect back to `t=0`, you still need the canonical local solution from `u₀` on `[0,t₀]`, then restart from an interior slice.
 
-```lean
-continuous coefficients: ∀ n, Continuous (fun s => a s n)
-envelope : ℕ → ℝ
-henv_summable : Summable envelope
-henv_bound : ∀ s, 0 ≤ s → ∀ n, |a s n| ≤ envelope n
-```
+## 1. Heat smoothing → cosine summability: what is actually in the repo?
 
-or a windowed analogue on `[0,T]`. It does **not** need the full time-derivative `DuhamelSourceTimeC1` package.
+### 1.1 `HeatFloorIcc.lean` is not the smoothing bridge
 
-## What `fullSourceCoeff_jointSolutionClosed` actually calls
-
-The theorem is:
-
-```lean
-theorem fullSourceCoeff_jointSolutionClosed (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ) {Mu0 : ℝ}
-    (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
-    (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
-    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u)) {T : ℝ} :
-    ContinuousOn
-      (Function.uncurry (fun (t : ℝ) (x : ℝ) =>
-        ∑' n, fullSourceCoeff p u u₀cos t n * cosineMode n x))
-      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
-  (fullSourceCoeff_jointContinuousOn p u u₀cos hu0bd hchem hlog).mono (slabClosed_subset T)
-```
-
-So it reduces to the private value theorem `fullSourceCoeff_jointContinuousOn`.
-
-That theorem proves:
-
-```lean
-private theorem fullSourceCoeff_jointContinuousOn ... :
-    ContinuousOn
-      (fun q : ℝ × ℝ => ∑' n, fullSourceCoeff p u u₀cos q.1 n * cosineMode n q.2)
-      (Ioi (0 : ℝ) ×ˢ univ) := by
-  have hheat := heatValueSeries_jointContinuousOn u₀cos hu0bd
-  have hchemJ := duhamelSeries_jointContinuousOn hchem
-  have hlogJ := duhamelSeries_jointContinuousOn hlog
-  have hsum := ((hheat.add (hchemJ.const_smul (-p.χ₀))).add hlogJ)
-  refine hsum.congr (fun q hq => ?_)
-  have := fullSourceCoeff_tsum_split p u u₀cos hu0bd hchem hlog hq
-  ...
-```
-
-So yes: the value field uses `duhamelSeries_jointContinuousOn` for each Duhamel value leg.
-
-## What the value split needs
-
-The value split theorem is:
-
-```lean
-private theorem fullSourceCoeff_tsum_split ...
-    (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
-    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u))
-    {q : ℝ × ℝ} (hq : q ∈ Ioi (0 : ℝ) ×ˢ (univ : Set ℝ)) :
-    (∑' n, fullSourceCoeff p u u₀cos q.1 n * cosineMode n q.2) = ...
-```
-
-Inside the split, the Duhamel value summability is:
-
-```lean
-have hchemS := (duhamelVal_summable' hchem hqp q.2).mul_left (-p.χ₀)
-have hlogS := duhamelVal_summable' hlog hqp q.2
-```
-
-The helper `duhamelVal_summable'` uses the value envelope:
-
-```lean
-private theorem duhamelVal_summable' {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
-    {t : ℝ} (ht : 0 < t) (x : ℝ) :
-    Summable (fun n => duhamelSpectralCoeff a t n * cosineMode n x) := by
-  refine Summable.of_norm ((src.henv_summable.mul_left t).of_nonneg_of_le ...)
-  ...
-  calc |duhamelSpectralCoeff a t n| * |cosineMode n x|
-      ≤ (t * src.envelope n) * 1 :=
-        mul_le_mul (abs_duhamelSpectralCoeff_le src ht n) ...
-```
-
-So the split/summability side is envelope-based. But this is only the pointwise summability used for `tsum_add`; it is not the whole joint-continuity proof.
-
-## What `duhamelSeries_jointContinuousOn` really uses
-
-The proof of `duhamelSeries_jointContinuousOn` has three logically separate parts.
-
-### 1. Per-mode continuity: uses `src.hderiv`
-
-Inside `continuousOn_tsum`, for each mode `n`, it proves continuity of:
-
-```lean
-q ↦ duhamelSpectralCoeff a q.1 n * cosineMode n q.2
-```
-
-by first proving:
-
-```lean
-have hb_cont : Continuous (fun τ => duhamelSpectralCoeff a τ n) :=
-  continuous_iff_continuousAt.2
-    (fun τ => (duhamelSpectralCoeff_hasDerivAt src τ n).continuousAt)
-```
-
-This is a real dependency on `duhamelSpectralCoeff_hasDerivAt src`.
-
-And `duhamelSpectralCoeff_hasDerivAt` itself proves source coefficient continuity from:
-
-```lean
-have hcont_an : Continuous (fun s => a s n) :=
-  continuous_iff_continuousAt.2 (fun s => (src.hderiv s n).continuousAt)
-```
-
-Thus the value-series theorem uses `src.hderiv`, but only to get continuity of `a(·,n)` and hence continuity of the Duhamel coefficient.
-
-### 2. Summable majorant: envelope-only
-
-At a point `p`, the proof sets:
-
-```lean
-T := p.1 + 1
-```
-
-and on the local open box
-
-```lean
-Set.Ioo (p.1 / 2) T ×ˢ Set.univ
-```
-
-it uses the summable majorant:
-
-```lean
-fun n => T * src.envelope n
-```
-
-with summability:
-
-```lean
-have hu : Summable (fun n => T * src.envelope n) :=
-  src.henv_summable.mul_left T
-```
-
-This part is envelope-only.
-
-### 3. Bound on the coefficient: envelope + source continuity/integrability
-
-For the norm bound, it proves:
-
-```lean
-|duhamelSpectralCoeff a q.1 n| ≤ T * src.envelope n
-```
-
-The estimate itself uses only `src.henv_bound` and `exp ≤ 1`, but to apply integral comparison it first proves integrability via continuity of the integrand:
-
-```lean
-have hintegrand_cont : ContinuousOn
-    (fun s => Real.exp (-(q.1 - s) * unitIntervalCosineEigenvalue n) * a s n)
-    (Set.Icc 0 q.1) :=
-  ((Real.continuous_exp.comp ...).mul
-    (continuous_iff_continuousAt.2
-      (fun s => (src.hderiv s n).continuousAt))).continuousOn
-```
-
-Again, `src.hderiv` is used as a way to get source coefficient continuity.
-
-## What is not used by the value theorem
-
-In `duhamelSeries_jointContinuousOn`, I did **not** see use of:
-
-```lean
-src.adot
-src.hadotcont
-src.derivBound
-src.hderivBound
-```
-
-Those are used in the derivative-series side:
-
-```lean
-duhamelDerivSeries_jointContinuousOn
-```
-
-whose majorant is:
-
-```lean
-src.envelope n + src.derivBound * reciprocalSquareTerm n
-```
-
-and whose proof calls:
-
-```lean
-duhamelSpectralCoeff_deriv_continuous src n
-duhamelSpectralCoeff_deriv_summable_uniform_bound src ...
-```
-
-That is a separate theorem, not the value-field joint-solution theorem.
-
-## Consequence for the circularity question
-
-The statement:
+`HeatFloorIcc.lean` is about the **positivity floor**, not about manufacturing Wiener summability. Its docstring explicitly says the remaining datum-level gap is:
 
 ```text
-VALUE-field joint continuity only uses source envelope.
+obstruction (a) — the Wiener-ℓ¹ / absolute cosine summability `Summable |c₀ k|`
+and the corresponding `MemW` membership — which the C(Ω̄)+floor class does NOT supply.
 ```
 
-is **false for the current proof** if interpreted literally, because the proof uses `src.hderiv` for source-coefficient continuity.
+The theorem it ultimately provides still takes both summability and `MemW` as inputs:
 
-But the statement:
+```lean
+import ShenWork.Wiener.EWA.HeatFloorIcc
+
+open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
+open ShenWork.IntervalNeumannFullKernel
+
+#check ShenWork.EWA.heatEWA_uniformFloor_Icc
+-- theorem heatEWA_uniformFloor_Icc
+--   {u₀ : ℝ → ℝ} (hu₀ : Continuous u₀) {δ : ℝ}
+--   (hfloor : ∀ y ∈ Set.Icc (0 : ℝ) 1, δ ≤ u₀ y)
+--   (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
+--   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
+--   UniformFloor (heatEWA (T := T)
+--     (⟨ofCosineCoeffs (cosineCoeffs u₀), hmem⟩ : WA 1)) δ
+
+#check ShenWork.EWA.paperFloorDatum_heatEWA_uniformFloor
+-- theorem paperFloorDatum_heatEWA_uniformFloor
+--   ...
+--   (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
+--   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
+--   UniformFloor (heatEWA ... ) η
+```
+
+So `HeatFloorIcc` discharges the **floor** from closed-domain positivity; it deliberately does **not** discharge the raw datum `MemW 1` obstruction.
+
+### 1.2 `HeatFlow.lean` constructs heat flow only from an existing `WA r` input
+
+`HeatFlow.lean` has:
+
+```lean
+import ShenWork.Wiener.EWA.HeatFlow
+
+open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
+
+#check ShenWork.EWA.heatEWA
+-- noncomputable def heatEWA (u₀E : WA r) : EWA T r
+
+#check ShenWork.EWA.heatEWA_mem
+-- theorem heatEWA_mem (u₀E : WA r) :
+--   GMemW (K := CT T) r (fun n => heatModeCT n (u₀E.toFun n))
+```
+
+This proves the heat evolution preserves a Wiener datum already in `WA r`. It does not turn arbitrary continuous data into `WA r`.
+
+### 1.3 `HeatSmoothing.lean` is close, but not the exact `WA 1` bridge
+
+There is a useful heat-smoothing file:
+
+```lean
+import ShenWork.Wiener.EWA.HeatSmoothing
+
+open ShenWork.Wiener.EWA
+
+#check ShenWork.Wiener.EWA.heat_L2_to_memHSob
+-- theorem heat_L2_to_memHSob {θ t : ℝ}
+--   (hθ : 0 ≤ θ) (ht : 0 < t) {f : ℕ → ℝ}
+--   (hf : MemL2 f) : MemHSob θ (heatCoeff t f)
+
+#check ShenWork.Wiener.EWA.heat_L2_to_memWNorm
+-- theorem heat_L2_to_memWNorm {θ t : ℝ}
+--   (hθ : (1 / 2 : ℝ) < θ) (ht : 0 < t) {f : ℕ → ℝ}
+--   (hf : MemL2 f) : MemWNorm 0 (heatCoeff t f)
+```
+
+This proves positive-time smoothing into `A⁰ = MemWNorm 0`. Since `heat_L2_to_memHSob` is for arbitrary `θ ≥ 0`, one should be able to get an `A¹` version by composing with:
+
+```lean
+#check ShenWork.Wiener.EWA.memWNorm_of_memHSob
+-- theorem memWNorm_of_memHSob {σ s : ℝ}
+--   (hs : σ + 1 / 2 < s) {a : ℕ → ℝ}
+--   (ha : MemHSob s a) : MemWNorm σ a
+```
+
+with `σ := 1` and any `s > 3/2`.
+
+But I did not find an already-packaged theorem of the exact form:
+
+```lean
+heat_C0_to_MemW1_or_WA1_at_positive_time
+```
+
+nor a theorem that directly produces:
+
+```lean
+MemW 1 (ofCosineCoeffs (fun k => Real.exp (-t₀ * λ_k) * cosineCoeffs u₀ k))
+```
+
+from `Continuous u₀` or `PositiveInitialDatum`.
+
+### 1.4 The closest concrete coefficient identity is already present
+
+For the level-0 heat slice, the repo has:
+
+```lean
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+
+open ShenWork.IntervalPicardLevel0SourceTimeC1On
+
+#check heatSliceCoeff_eq_damped
+-- theorem heatSliceCoeff_eq_damped
+--   (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+--   {σ M₀ : ℝ} (hσ : 0 < σ) (hu₀_cont : Continuous u₀)
+--   (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) (k : ℕ) :
+--   cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k =
+--     Real.exp (-σ * λ_k) * heatCoeff u₀ k
+```
+
+This is nearly the bridge you want. Given a crude uniform coefficient bound on the raw cosine coefficients, the exponential damping gives weighted ℓ¹ summability for positive `σ`. What still seems missing is the final packaging into `MemW 1` / `WA 1` for the smoothed datum.
+
+A plausible missing theorem shape is:
+
+```lean
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+import ShenWork.Wiener.EWA.HeatFlow
+
+open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.IntervalPicardLevel0SourceTimeC1On
+
+-- Suggested missing bridge.
+theorem heatSlice_MemW1_of_coeff_bound
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    {σ M₀ : ℝ} (hσ : 0 < σ)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) :
+    MemW 1 (ofCosineCoeffs
+      (fun k => cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k)) := by
+  -- Use `heatSliceCoeff_eq_damped` to rewrite coefficients as
+  --   exp(-σ λ_k) * heatCoeff u₀ k.
+  -- Bound by `M₀ * exp(-σ λ_k)`.
+  -- Prove `∑ (1+k) * M₀ * exp(-σ λ_k)` summable from the existing heat-trace
+  -- exponential summability lemmas.
+  -- Then fold through `ofCosineCoeffs`/`MemW 1`.
+  sorry
+```
+
+That bridge is finite and much smaller than the original global EWA obstruction.
+
+## 2. Restart / continuation: what exists and what it does
+
+The repo has a forward restart-and-glue interface:
+
+```lean
+import ShenWork.Paper2.IntervalDomainRestartExtension
+
+open ShenWork.Paper2.RestartExtension
+
+#check RestartAndGlueWorks
+-- def RestartAndGlueWorks (p : CM2Params) : Prop :=
+--   ∀ {M δ : ℝ}, 0 < M → 0 < δ →
+--     (∀ {w : intervalDomain.Point → ℝ},
+--       PositiveInitialDatum intervalDomain w →
+--       (∀ x, |w x| ≤ M) →
+--       ∃ uw vw, IsPaper2ClassicalSolution intervalDomain p δ uw vw ∧
+--         InitialTrace intervalDomain w uw) →
+--     ∀ {u₀}, PositiveInitialDatum intervalDomain u₀ →
+--       (∀ x, |u₀ x| ≤ M) →
+--     ∀ {T₀}, 0 < T₀ →
+--     ∀ {u v}, IsPaper2ClassicalSolution intervalDomain p T₀ u v →
+--       InitialTrace intervalDomain u₀ u →
+--       (∀ t, 0 < t → t < T₀ → ∀ x, |u t x| ≤ M) →
+--       ∃ u' v', IsPaper2ClassicalSolution intervalDomain p (T₀ + δ / 2) u' v' ∧
+--         InitialTrace intervalDomain u₀ u'
+```
+
+And a concrete glue theorem from explicit hypotheses:
+
+```lean
+import ShenWork.Paper2.IntervalDomainGlueExtension
+
+open ShenWork.Paper2.GlueExtension
+
+#check restartAndGlueWorks_of_hypotheses
+-- theorem restartAndGlueWorks_of_hypotheses
+--   (p : CM2Params)
+--   (hRegShift : TimeShift.RegularityTimeShiftWorks)
+--   (hOverlap : OverlapUniqueForPID p)
+--   (hTraceShift : TimeShiftInitialTraceWorks)
+--   (hPR : PiecewiseGlue.PiecewiseClassicalWorks p) :
+--   RestartAndGlueWorks p
+```
+
+This is a **forward extension** mechanism. It assumes an existing solution on `[0,T₀]`, restarts from an interior slice near `T₀`, and glues forward. It does not say:
 
 ```text
-VALUE-field joint continuity does not need the full source time-derivative package.
+given a solution on (t₀,t₀+T), extend backward to initial datum u₀ at t=0.
 ```
 
-is **true**.
+So the proposed “start EWA at `S(t₀)u₀`, then extend back to `t=0`” is not directly supported as a backward theorem. The Lean-faithful way is:
 
-A weaker interface should be enough:
+```text
+1. Use canonical/local existence from u₀ to build a solution on [0,t₀].
+2. Use an interior slice u(t₀) or u(t₀/2) as the restart datum.
+3. Run the EWA or source-regularity chain from that positive-time datum.
+4. Glue forward using overlap uniqueness / time-shift / piecewise-classical infrastructure.
+```
+
+This matches how `RestartAndGlueWorks` is typed.
+
+## 3. Does the canonical Picard chain require cosine summability?
+
+The core canonical gradient-mild Picard chain does **not** expose a `MemW 1` or absolute cosine summability assumption in its primary data structure.
+
+`MildExistenceData` is function-space / kernel-based:
 
 ```lean
-structure DuhamelSourceValueRegularity (a : ℝ → ℕ → ℝ) where
-  hcont : ∀ n, Continuous (fun s => a s n)
-  envelope : ℕ → ℝ
-  henv_summable : Summable envelope
-  henv_bound : ∀ s, 0 ≤ s → ∀ n, |a s n| ≤ envelope n
+import ShenWork.Paper2.IntervalMildPicard
+
+open ShenWork.IntervalMildPicard
+
+#check MildExistenceData
+-- structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) where
+--   T M K C₀ : ℝ
+--   hbase_ball : ... |picardIter p u₀ 0 t x| ≤ M
+--   hbase_nonneg : ... 0 ≤ picardIter p u₀ 0 t x
+--   hbase_cont : HasContinuousSlices T (picardIter p u₀ 0)
+--   hmapsTo / hmapsTo_nn / hmapsTo_pos
+--   hcont_preserved
+--   hcontr
+--   hbase_diff
+--   hbase_meas
+--   hmeas_preserved
 ```
 
-and a windowed version:
+The output is:
 
 ```lean
-structure DuhamelSourceValueRegularityOn (a : ℝ → ℕ → ℝ) (lo hi : ℝ) where
-  hcontOn : ∀ n, ContinuousOn (fun s => a s n) (Set.Icc lo hi)
-  envelope : ℕ → ℝ
-  henv_summable : Summable envelope
-  henv_bound : ∀ s ∈ Set.Icc lo hi, ∀ n, |a s n| ≤ envelope n
+#check intervalMildSolution_of_data
+-- theorem intervalMildSolution_of_data
+--   (D : MildExistenceData p u₀) :
+--   ∃ T > 0, ∃ u, IntervalMildSolution p T u₀ u
+
+#check GradientMildSolutionData
+#check gradientMildSolutionData_of_data
 ```
 
-Then a new theorem could mirror the value proof without carrying `adot`/`derivBound`:
+This layer is not the EWA layer. It defines Picard iterates as plain functions and uses the Neumann heat kernel / Duhamel map machinery. The module docstring even says it avoids the bounded-continuous-function topology and proceeds by pointwise Cauchy convergence.
+
+At the theorem-assembly level, the repo has a local-existence input stated for every positive admissible datum:
 
 ```lean
-import ShenWork.PDE.IntervalSourceCoefficientTimeC1
-import ShenWork.Wiener.EWA.SourceJointRegularity
+import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
 
-noncomputable section
+open ShenWork.Paper2
 
-namespace ShenWork.IntervalSourceCoefficientTimeC1
+#check IntervalDomainGradientMildLocalData
+-- def IntervalDomainGradientMildLocalData (p : CM2Params) : Prop :=
+--   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
+--     ∃ D : GradientMildSolutionData p u₀,
+--       initial-approach ∧
+--       IsPaper2ClassicalSolution intervalDomain p D.T D.u ...
 
-/-- Proposed refactor target, not currently in the repo. -/
-structure DuhamelSourceValueRegularity (a : ℝ → ℕ → ℝ) where
-  hcont : ∀ n, Continuous (fun s => a s n)
-  envelope : ℕ → ℝ
-  henv_summable : Summable envelope
-  henv_bound : ∀ s, 0 ≤ s → ∀ n, |a s n| ≤ envelope n
-
--- theorem duhamelSeries_jointContinuousOn_of_valueRegularity
---     {a : ℝ → ℕ → ℝ} (src : DuhamelSourceValueRegularity a) :
---     ContinuousOn
---       (Function.uncurry
---         (fun (τ : ℝ) (x : ℝ) =>
---           ∑' n, duhamelSpectralCoeff a τ n * cosineMode n x))
---       (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := ...
--- Same proof as `duhamelSeries_jointContinuousOn`, replacing:
---   src.hderiv s n .continuousAt
--- with:
---   src.hcont n
--- and keeping the same `T * src.envelope n` majorant.
-
-end ShenWork.IntervalSourceCoefficientTimeC1
+#check localExistence_of_gradientMildLocalData
+-- theorem localExistence_of_gradientMildLocalData
+--   (p : CM2Params)
+--   (hMildLocal : IntervalDomainGradientMildLocalData p) :
+--   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
+--     ∃ Tmax > 0, ∃ u v,
+--       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+--       InitialTrace intervalDomain u₀ u
 ```
 
-For your intended `DuhamelSourceTimeC1On` route, the analogous local theorem should not require the full global `DuhamelSourceTimeC1`. It should consume windowed coefficient continuity and the windowed envelope. If the source is only needed on the slab `Ioo 0 T`, this is the right direction.
+There is also a B-form positive-datum route:
 
-## Final verdict
+```lean
+import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistence
 
-`fullSourceCoeff_jointSolutionClosed` calls only the value Duhamel joint-continuity theorem, not the derivative Duhamel theorem.
+open ShenWork.Paper2.BFormPositiveDatumLocal
 
-But the current `duhamelSeries_jointContinuousOn` proof still depends on `src.hderiv`, because it uses differentiability to prove per-mode continuity of `a(s,n)` and then of `duhamelSpectralCoeff a t n`.
+#check PositiveDatumBFormLocalHyp
+-- def PositiveDatumBFormLocalHyp (p : CM2Params) : Prop :=
+--   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
+--     Nonempty (PositiveDatumBFormLocalComponents p u₀)
 
-So the circularity is not broken by envelope alone. It can be broken by replacing the source dependency with a **value-only source regularity** interface: coefficient continuity plus envelope/summability/bound. That is strictly weaker than `DuhamelSourceTimeC1` and avoids `adot`, `hadotcont`, `derivBound`, and `hderivBound`.
+#check positiveDatum_localExistence_of_BForm
+-- theorem positiveDatum_localExistence_of_BForm
+--   (hBForm : PositiveDatumBFormLocalHyp p) :
+--   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
+--     ∃ Tmax > 0, ∃ u v,
+--       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+--       InitialTrace intervalDomain u₀ u
+```
+
+So yes: the canonical chain can be routed over arbitrary positive continuous data, modulo its own Picard/local-classical side conditions. It does not require the raw datum to be a `WA 1` datum.
+
+## 4. Is the cosine-summability obstruction an EWA artifact?
+
+Yes. It is an artifact of the **EWA source-form fixed-point framework**, not a genuine mathematical requirement for Keller–Segel local existence from positive continuous data.
+
+The evidence is visible in the EWA fixed-point theorem:
+
+```lean
+import ShenWork.Wiener.EWA.SourceUncondFixedPoint
+
+open ShenWork.EWA
+
+#check picardEWA_uncond_fixedPoint
+-- theorem picardEWA_uncond_fixedPoint ...
+--   (hsumc : Summable (fun k => |cosineCoeffs u₀ k|))
+--   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀)))
+--   ...
+--   ∃ u_star ∈ closedBall (heatEWA ... ) ρ,
+--     u_star = picardEWA ... u_star
+```
+
+And in the strong-datum wrapper:
+
+```lean
+#check chiNegStrong_heatFloor_of_paperDatum
+-- theorem chiNegStrong_heatFloor_of_paperDatum
+--   ...
+--   (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
+--   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
+--   ∃ η > 0, UniformFloor (heatEWA ... ) η
+```
+
+The comments in `SourceChiNegUncondFix.lean` identify the same issue: the strong datum supplies the floor, but not the cosine-summability/Wiener membership. It says the remaining residual includes the per-slice realization frontier and notes that the EWA fixed-point engine still needs standard `hsumc`/`hmem` inputs.
+
+Mathematically, positive-time heat smoothing eliminates the rough datum issue. Lean-wise, the correct hybrid plan is:
+
+```text
+A. Use the canonical local-existence chain from raw positive C⁰ datum u₀.
+B. Pick t₀ > 0 inside that local solution.
+C. Prove the slice u(t₀) has the coefficient envelope needed by EWA:
+     MemW 1 (ofCosineCoeffs (cosineCoeffs (intervalDomainLift (u t₀))))
+   or a direct `Bv` envelope for `embedEWA`.
+D. Run the EWA/source-regularity chain on the restarted interval with datum u(t₀).
+E. Glue/identify with the canonical solution using overlap uniqueness, or only use EWA to supply positive-time regularity fields.
+```
+
+## Recommended next theorem targets
+
+### Target 1: exact positive-time heat-to-`WA 1` bridge
+
+This is the missing small bridge if the restart datum is literally a heat slice:
+
+```lean
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+import ShenWork.Wiener.EWA.HeatFlow
+
+open ShenWork.IntervalPicardLevel0SourceTimeC1On
+open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
+open ShenWork.IntervalNeumannFullKernel
+
+-- Suggested target.
+theorem heatSlice_MemW1_of_coeff_bound
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    {σ M₀ : ℝ} (hσ : 0 < σ)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) :
+    MemW 1 (ofCosineCoeffs
+      (fun k => cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k)) := by
+  -- Rewrite by `heatSliceCoeff_eq_damped`.
+  -- Bound by `M₀ * exp(-σ λ_k)`.
+  -- Use exponential summability with polynomial weight `(1+k)`.
+  -- Fold through `ofCosineCoeffs`.
+  sorry
+```
+
+### Target 2: general positive-time solution-slice Wiener bridge
+
+For the actual nonlinear solution, this is the stronger target:
+
+```lean
+import ShenWork.Wiener.EWA.EmbedEWA
+
+open ShenWork.EWA
+
+-- Suggested target.
+theorem classical_positive_time_slice_has_A1_envelope
+    {p : CM2Params} {T t₀ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht₀ : 0 < t₀) (ht₀T : t₀ < T) :
+    ∃ Bv : ℕ → ℝ,
+      (∀ k, 0 ≤ Bv k) ∧
+      Summable (fun k => (1 + (k : ℝ)) * Bv k) ∧
+      (∀ k, |cosineCoeffs (intervalDomainLift (u t₀)) k| ≤ Bv k) := by
+  -- Use positive-time classical/smoothing regularity or C² coefficient decay.
+  -- A `C²` Neumann slice gives O(k^{-2}); weighted by (1+k) this is summable.
+  sorry
+```
+
+If `intervalDomainClassicalRegularity` already gives closed spatial `C²` with Neumann data at positive times, this theorem should be much more direct than proving EWA existence from the raw datum.
+
+### Target 3: restart/EWA splice theorem
+
+This is the correct glue shape:
+
+```lean
+-- Pseudocode shape, not an existing theorem name.
+theorem canonical_then_EWA_positive_time_splice
+    (hlocal : local solution from u₀ on [0,t₀])
+    (hA1 : A¹/Wiener data for u(t₀))
+    (hEWA : EWA source-regularity/classical core from u(t₀) on [0,T])
+    (huniq : overlap uniqueness) :
+    solution / regularity on [0,t₀+T]
+```
+
+Do not try to construct a solution on `(0,t₀+T)` by running EWA from `S(t₀)u₀` alone unless you also identify `S(t₀)u₀` with the actual nonlinear solution slice. In the nonlinear problem, `u(t₀)` is not merely `S(t₀)u₀`; it includes Duhamel source contributions. `S(t₀)u₀` is useful for a smoothing seed, but it is not the exact state of the nonlinear solution at time `t₀`.
+
+## Final answers to the four questions
+
+1. **Heat smoothing bridge:** partially yes, but not the exact EWA-start bridge. `HeatSmoothing.lean` gives `L² → H^θ` and `L² → A⁰`. `HeatFloorIcc.lean` is not the smoothing bridge; it still requires `Summable |cosineCoeffs u₀|` and `MemW 1`. A direct positive-time `C⁰ → WA 1` theorem for the damped heat coefficients appears not to be packaged, though the needed ingredients exist.
+
+2. **Restart / continuation:** yes, forward restart-and-glue exists (`RestartAndGlueWorks`, `restartAndGlueWorks_of_hypotheses`). It extends an existing solution forward by restarting from an interior slice. It does not extend a later EWA solution backward to the original datum.
+
+3. **Canonical Picard:** the function-space Picard chain (`MildExistenceData`, `GradientMildSolutionData`) does not require raw `MemW 1`. It is formulated over positive continuous interval data and the kernel/Duhamel map, modulo its own maps-to/contraction/classicality side conditions. The B-form and gradient-mild local-data routes expose local existence for arbitrary positive data through component/frontier packages, not through EWA raw-datum membership.
+
+4. **Strategic classification:** the cosine-summability obstruction is an EWA artifact. The mathematically faithful route is hybrid: canonical local existence for arbitrary positive `C⁰` data, then positive-time smoothing/regularity to get EWA-compatible data, then EWA only as a positive-time source-regularity/spectral-realization engine. This avoids demanding `MemW 1` at `t=0`, where it is false for general continuous data.
