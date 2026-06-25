@@ -41,19 +41,38 @@ Proof sketch:
 - u · v' / (1+v)^β is C³ (division by nonvanishing C⁴ denominator)
 -/
 
+theorem chemFlux_contDiff_three
+    {β : ℝ} {u v : ℝ → ℝ}
+    (hu : ContDiff ℝ 4 u)
+    (hv : ContDiff ℝ 4 v)
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
+    (hβnn : 0 ≤ β) :
+    ContDiff ℝ 3 (chemFluxFun β u v) := by
+  unfold chemFluxFun
+  have hv3 : ContDiff ℝ 3 (deriv v) := by
+    have : ContDiff ℝ (3 + 1) v := hv.of_le (by norm_num)
+    exact this.deriv'
+  have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) :=
+    (hu.of_le (by norm_num : (3 : ℕ∞) ≤ 4)).mul hv3
+  have hdenom_pos : ∀ x, (1 + v x) ^ β ≠ 0 := by
+    intro x
+    exact ne_of_gt (Real.rpow_pos_of_pos (hv_pos x) β)
+  have hdenom : ContDiff ℝ 3 (fun y => (1 + v y) ^ β) := by
+    have h1v : ContDiff ℝ 3 (fun y => 1 + v y) :=
+      contDiff_const.add (hv.of_le (by norm_num : (3 : ℕ∞) ≤ 4))
+    exact h1v.rpow_const_of_ne (fun x => ne_of_gt (hv_pos x))
+  exact hprod.div hdenom (fun x => hdenom_pos x)
+
 theorem chemFlux_contDiffOn_three
     {β : ℝ} {u v : ℝ → ℝ}
     (hu : ContDiffOn ℝ 4 u (Icc (0 : ℝ) 1))
     (hv : ContDiffOn ℝ 4 v (Icc (0 : ℝ) 1))
     (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + v x)
-    (hβ : 0 ≤ β) :
+    (hβnn : 0 ≤ β) :
     ContDiffOn ℝ 3 (chemFluxFun β u v) (Icc (0 : ℝ) 1) := by
-  sorry
-  -- SORRY: ~60 lines. Uses ContDiffOn.mul, ContDiffOn.div, ContDiffOn.rpow_const
-  -- (or ContDiffOn.pow for integer β), deriv_contDiffOn for v' from v C⁴.
-  -- The positivity of (1+v) ensures the rpow/div are smooth.
-  -- Mathlib's ContDiffOn.div needs the denominator to be nonvanishing,
-  -- which follows from hv_pos.
+  sorry -- TODO: restrict global ContDiff to ContDiffOn, or prove directly on Icc
+  -- With global C⁴ u/v (from heat semigroup), use chemFlux_contDiff_three
+  -- and .contDiffOn to restrict.
 
 /-! ## C² of chemDivLift from C³ of flux -/
 
