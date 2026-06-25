@@ -98,10 +98,9 @@ theorem resolverR_contDiff_four
         |(intervalNeumannResolverSourceCoeff p u k).re|)) :
     ContDiff ℝ 4 (resolverRSynthesis p u) := by
   simpa [resolverRSynthesis] using
-    ShenWork.Paper2.ParabolicDuhamelGainNonCircular
-      .cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
-        (b := fun k : ℕ => (intervalNeumannResolverCoeff p u k).re)
-        (resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted hsrc)
+    ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+      (b := fun k : ℕ => (intervalNeumannResolverCoeff p u k).re)
+      (resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted hsrc)
 
 /-- Evenness of the real-line resolver synthesis. -/
 theorem resolverR_even (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
