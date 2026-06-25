@@ -703,3 +703,14 @@ spatial regularity, datum properties). The 5 χ₀-dependent fields all have exi
   Hvsrc — resolver source ν·u^γ doesn't depend on χ₀ directly; time-C¹ from u's regularity
   Hvpos — resolver positivity from strong maximum principle, needs only u>0 (from D.hpos)
 NEXT: assemble a general-χ₀ LimitRegularityInputs producer by threading existing producers.
+
+## [2026-06-25] SESSION FINAL: irreducible core = evalST realization atoms (unchanged from session start)
+Assembly brick confirmed: unconditional χ₀<0 Theorem 1.1 is blocked by GENUINE OPEN ANALYTIC CONTENT.
+The irreducible core = the 3 evalST realization atoms (h_flux_nbhd, h_u, h_uα) for the Picard fixed point.
+Only producers (flux_nbhd_of_embed_discharged, embedEWA_realizes) work for embed-form only; no
+picardEWA→embedEWA bridge exists. ChiNegFaithfulRealizationFrontier p (SourceChiNegNegUnconditional.lean:97)
+is the single Prop that gates the headline.
+SESSION CONTRIBUTION: cleared all surrounding infrastructure (windowed PDE/JC/classical-regularity/Mdot/
+spatial-JC/Hv/G12/h_src_cont_chem fix/hchem-hlog On refactor/capstone assembly/ball-estimates producer/
+architectural clarity). The irreducible core is exposed, precisely named, not hidden behind over-built layers.
+NEXT: build the picardEWA→embedEWA bridge or produce the evalST atoms directly for picardEWA.
