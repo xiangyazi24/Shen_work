@@ -58,9 +58,9 @@ theorem chemFlux_contDiff_three
   have hdenom_pos : ∀ x, (1 + v x) ^ β ≠ 0 := by
     intro x
     exact ne_of_gt (Real.rpow_pos_of_pos (hv_pos x) β)
+  have hv3' : ContDiff ℝ 3 v := hv.of_le (by norm_num)
   have hdenom : ContDiff ℝ 3 (fun y => (1 + v y) ^ β) := by
-    have h1v : ContDiff ℝ 3 (fun y => 1 + v y) :=
-      contDiff_const.add (hv.of_le (by norm_num : (3 : ℕ∞) ≤ 4))
+    have h1v : ContDiff ℝ 3 (fun y => 1 + v y) := contDiff_const.add hv3'
     exact h1v.rpow_const_of_ne (fun x => ne_of_gt (hv_pos x))
   exact hprod.div hdenom (fun x => hdenom_pos x)
 
