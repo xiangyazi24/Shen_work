@@ -1,380 +1,569 @@
-# Q425 / cron1: Barrier B — windowed `ConjugatePicardInfThresholdData` vs new parallel structure
+# Q446 / cron1: `hlogSrc` frontier for B-form `conjugatePicardLimit`
 
 ## Executive verdict
 
-Your corrected diagnosis is right:
+I do **not** find an existing K1/K2 tower for `conjugatePicardIter` analogous to the `picardIter` tower.  The repo has:
 
-```text
-windowed ⇒ unconditional is NOT available.
-unconditional ⇒ windowed is trivial but is the wrong direction.
-```
+* the B-form Picard core (`conjugatePicardIter`, `conjugatePicardLimit`, ball/geometric/limit mild solution),
+* windowed ball/source-control leaves for conjugate iterates,
+* limit-side source-slice leaves (`hlogCont`, `hlogFourier`, etc.),
+* the generic one-step `DuhamelSourceTimeC1On` recursion theorem,
+* and the uniform-limit theorem for `DuhamelSourceTimeC1On`.
 
-The old `ConjugatePicardInfThresholdData` is over-typed.  Its current fields
-
-```lean
-hQ_int   : ∀ n s, Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) ...
-hQ_bound : ∀ n s y, |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
-hL_bound : ∀ n s y, |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
-```
-
-ask for all real `s`, but the actual Picard ball / source-control facts are only on the fixed-point horizon window `(0,T]`.  There is no reason in the current definitions to expect the B-form Picard iterates to be uniformly bounded for `s > T`, and for `s < 0` the heat/Duhamel objects are merely total Lean definitions, not analytic semigroup-time objects with paper meaning.
-
-So the honest theorem shape is windowed:
+But I did **not** find conjugate-iterate versions of the K1/K2 data needed to instantiate the source recursion:
 
 ```lean
-hQ_int   : ∀ n s, 0 < s → s ≤ T → Integrable ...
-hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y, |...| ≤ CQ
-hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y, |...| ≤ CL
+hagree        -- cosine representation of conjugatePicardIter level slices
+hbsum         -- eigenvalue-weighted summability of that representation
+hpos          -- strict positive lift on the closed slab
+hG1 / hG2     -- spatial derivative / second-derivative bounds
+hrestart      -- restart coefficient agreement
+hprofile_joint -- joint continuity of the lifted profile on the closed slab
 ```
 
-Adding a **new windowed structure** is viable, but not as a pure one-line change to `BFormBankedInputs` unless you also route the B-form downstream theorems through windowed variants.  Existing downstream theorems currently take `ConjugatePicardInfThresholdData`; if `BFormBankedInputs.Hinf` is changed to a new type, any theorem that consumes `B.Hinf` will stop elaborating unless it is duplicated/generalized.
+`ConjugateMildExistenceData` + `iter_ball_package` gives only the low-order fixed-point data: ball bound, nonnegativity, continuous spatial slices, and joint measurability on `(0,T]`.  It does **not** contain spectral representations, eigenvalue-weighted coefficient summability, derivative/Hessian bounds, restart representations, or joint continuity on closed time-space slabs.  So it is not enough to instantiate `sourceTimeC1On_succ_of_sourceTimeC1On` for `conjugatePicardIter`.
 
-The best low-risk patch is therefore:
+The gradient tower does not transfer automatically.  `picardIter` and `conjugatePicardIter` are different iterations: the gradient route uses `intervalGradientDuhamelMap`, whose chemotaxis leg is `∂ₓ S(t-s) Q`; the B-form route uses `intervalConjugateDuhamelMap`, whose chemotaxis leg is the conjugate kernel operator `B_N(t-s) Q = -∫ ∂ᵧK_N(t-s,x,y)Q(y)dy`.  I did not find a theorem equating the two iterate families, nor a wrapper theorem reducing `conjugatePicardIter` to `picardIter`.
 
-```text
-Add WindowedConjugatePicardInfThresholdData + producer from the banked windowed facts.
-Add windowed analogues of the few positivity/PDE theorems that BFormBankedInputs needs.
-Change the B-form bank/frontier path to use the windowed structure.
-Leave the old over-typed structure and old theorem stack untouched for compatibility.
-```
-
-This avoids the full 12-file retype of the old API, but it does **not** avoid touching the B-form bank path and its direct consumers.
+Therefore: `hlogSrc` is still a genuine frontier.  The available recursion/limit machinery can be reused, but it needs a new B-form/conjugate iterate K1/K2 tower or a new direct route to source-time-`C¹` for the limit.
 
 ---
 
-## Why the unconditional bound is not justified
+## 1. What `conjugatePicardIter` is
 
-Current iterates are defined in `IntervalConjugatePicard.lean` as total functions, but the convergence/ball package is explicitly windowed.  `ConjugatePicardInfThresholdData` itself stores `hgeom` windowed:
+Definition in `ShenWork/Paper2/IntervalConjugatePicard.lean`:
 
 ```lean
-hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
-  ∀ x : intervalDomainPoint,
-    |conjugatePicardIter p u₀ (n + 1) t x
-      - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+/-- B-form Picard iteration:
+`u₀(t,x) = S(t)u₀(x)`, `u_{n+1} = Φᴮ(u_n)`. -/
+def conjugatePicardIter (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℕ → (ℝ → intervalDomainPoint → ℝ)
+  | 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+  | n + 1 => fun t x =>
+      intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
+
+/-- Pointwise limit of the B-form Picard iterates on `(0,T]`; zero outside. -/
+def conjugatePicardLimit (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ)
+    (t : ℝ) (x : intervalDomainPoint) : ℝ :=
+  if 0 < t ∧ t ≤ T then
+    atTop.limUnder (fun n => conjugatePicardIter p u₀ n t x)
+  else 0
 ```
 
-and its Duhamel integrability fields are already windowed:
+The corresponding B-form map is in `IntervalConjugateDuhamelMap.lean`:
 
 ```lean
-hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ...
-hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ...
+/-- The conjugate-kernel chemotaxis operator
+`B_N(t)Q(x) = -∫₀¹ ∂ᵧK_N(t,x,y)Q(y)dy`. -/
+def intervalConjugateKernelOperator (t : ℝ) (Q : ℝ → ℝ) (x : ℝ) : ℝ :=
+  -∫ y, deriv (fun y' : ℝ => intervalNeumannFullKernel t x y') y * Q y
+      ∂ intervalMeasure 1
+
+/-- The B-form Picard map.  Compared with `intervalGradientDuhamelMap`, only the
+chemotaxis leg changes: `∂ₓS(t-s)Q` is replaced by `B_N(t-s)Q`. -/
+def intervalConjugateDuhamelMap (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) (x : intervalDomainPoint) : ℝ :=
+  intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+    + (-p.χ₀) * (∫ s in (0:ℝ)..t,
+        intervalConjugateKernelOperator (t - s) (chemFluxLifted p (u s)) x.1)
+    + ∫ s in (0:ℝ)..t,
+        intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x.1
 ```
 
-But the three source fields remain unconditional:
+Compare with `intervalGradientDuhamelMap` in `IntervalGradientDuhamelMap.lean`:
 
 ```lean
-hQ_int : ∀ n s, Integrable ...
-hQ_bound : ∀ n s y, |...| ≤ CQ
-hL_bound : ∀ n s y, |...| ≤ CL
+/-- **The weak divergence-form mild map.**  `Φ(u₀,u)(t,x) = S(t)u₀(x) −
+χ₀∫₀ᵗ∂ₓS(t−s)Q(u(s))(x)ds + ∫₀ᵗS(t−s)L(u(s))(x)ds`.  The chemotaxis term puts
+`∂ₓ` on the semigroup (divergence form), so it integrates the C⁰ flux `Q`. -/
+def intervalGradientDuhamelMap (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) (x : intervalDomainPoint) : ℝ :=
+  intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+    + (-p.χ₀) * (∫ s in (0:ℝ)..t,
+        deriv (fun z => intervalFullSemigroupOperator (t - s) (chemFluxLifted p (u s)) z) x.1)
+    + ∫ s in (0:ℝ)..t,
+        intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x.1
 ```
 
-That mismatch is exactly the over-typing.
+So the two iterations are not definitionally the same after level 0.
 
-The landed bank file says this explicitly in its module comment:
+---
 
-```lean
-IMPORTANT — neither top-level field is fully landed here; see the trailing
-report.  Field 2's producer demands UNCONDITIONAL-in-`s` bounds
-(`hQ_bound/hL_bound : ∀ n s y, …`) that are NOT derivable from the
-window-only data `D` (no `s > T` control); field 6 needs a restart-cosine
-representation + time-`C¹` coefficient data for `conjugatePicardLimit` that is
-not landed anywhere in the tree.  The bricks below are exactly the windowed
-half that IS axiom-clean.
+## 2. Relation between `picardIter` and `conjugatePicardIter`
+
+Search result summary:
+
+```text
+conjugatePicardIter picardIter
 ```
 
-So the repo itself already documents the conclusion: the currently landed facts are windowed, and unconditional-in-`s` is not derivable from the current data.
-
-The relevant landed windowed facts are:
+finds references in docs / bank files / core files, but I did not find an equality theorem of the form:
 
 ```lean
-/-- **Windowed chemotaxis-flux sup bound over the iterates** (`hQ_bound` on the
-window `(0, D.T]`). -/
-theorem iterChemFlux_windowBound
+conjugatePicardIter p u₀ n = picardIter p u₀ n
+```
+
+or a conditional equality under smoothness / Neumann / integration-by-parts assumptions.
+
+The only overlap is level 0:
+
+```lean
+conjugatePicardIter p u₀ 0 t x
+  = intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+```
+
+and the gradient tower level-0 heat facts are likewise for the heat semigroup.  But for successors the maps differ:
+
+```lean
+picardIter successor      uses intervalGradientDuhamelMap
+conjugatePicard successor uses intervalConjugateDuhamelMap
+```
+
+Analytically these chemotaxis legs may be related by kernel integration by parts under enough regularity/boundary hypotheses, but that bridge is not present as an iterate-family equality in the repo.
+
+---
+
+## 3. What the generic source recursion actually provides
+
+`IntervalPicardSourceTimeC1OnRecursion.lean` contains a genuinely useful **one-step generic theorem**:
+
+```lean
+/-- Endpoint-inclusive successor source package.
+
+The predecessor enters only through the shifted `src : DuhamelSourceTimeC1On a 0 W`.
+All remaining assumptions are the satisfiable restart/field facts on the closed
+window `[lo, hi]`: representation, positivity, sup/C2 bounds, coefficient-window
+shift, and restart agreement. -/
+noncomputable def sourceTimeC1On_succ_of_sourceTimeC1On
+    {p : CM2Params}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀)
+    (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W lo hi aτ M G1 G2 : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    (hlohi : lo ≤ hi)
+    (haτpos : 0 < aτ)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W))
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ ∈ Set.Icc lo hi,
+      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ ∈ Set.Icc lo hi,
+      Set.EqOn (intervalDomainLift (w σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (w σ) x)
+    (hub : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (w σ) x ≤ M)
+    (hG1 : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (intervalDomainLift (w σ)) x| ≤ G1)
+    (hG2 : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (deriv (intervalDomainLift (w σ))) x| ≤ G2)
+    (hrestart : ∀ s ∈ Set.Icc lo hi, ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 =
+        ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1)
+    (hC2cont : ∀ s ∈ Set.Icc lo hi,
+      ContinuousOn (intervalDomainLift (w s)) (Set.Icc (0 : ℝ) 1))
+    (hprofile_joint : ContinuousOn
+      (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)) :
+    DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (w s)) k) lo hi
+```
+
+This theorem can in principle be applied to `w := conjugatePicardIter p u₀ (n+1)` or `w := conjugatePicardIter p u₀ n`.  But all of the hard K1/K2 fields are inputs, not outputs.
+
+The induction wrapper is **not** generic over the iterate family.  It is hardwired to `picardIter`:
+
+```lean
+/-- The level-`n` canonical source package on the positive window `[c,T]`. -/
+abbrev LevelSourceTimeC1On
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (n : ℕ) (c T : ℝ) :=
+  DuhamelSourceTimeC1On
+    (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+    c T
+
+/-- A level source package on every positive lower endpoint, all reaching `T`. -/
+abbrev LevelSourceTimeC1OnUpTo
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (n : ℕ) (T : ℝ) :=
+  ∀ c, 0 < c → c < T → LevelSourceTimeC1On p u₀ n c T
+
+/-- The induction signature for producing all level source packages from a base
+case and an endpoint-inclusive successor step. -/
+noncomputable def sourceTimeC1On_all_windows_of_base_step
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {T : ℝ}
+    (base : LevelSourceTimeC1OnUpTo p u₀ 0 T)
+    (step : ∀ n,
+      LevelSourceTimeC1OnUpTo p u₀ n T →
+        LevelSourceTimeC1OnUpTo p u₀ (n + 1) T) :
+    ∀ n, LevelSourceTimeC1OnUpTo p u₀ n T
+```
+
+So for B-form iterates you would need a parallel alias/induction wrapper:
+
+```lean
+abbrev ConjugateLevelSourceTimeC1On
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (n : ℕ) (c T : ℝ) :=
+  DuhamelSourceTimeC1On
+    (fun s k => cosineCoeffs
+      (logisticLifted p (conjugatePicardIter p u₀ n s)) k)
+    c T
+```
+
+and then an analogous `all_windows` induction, whose successor step is supplied by the generic one-step theorem above after building the B-form K1/K2 facts.
+
+---
+
+## 4. What exists for `conjugatePicardIter`
+
+### 4.1 Ball/nonneg/continuous-slice package
+
+`IntervalBankInfAndLogSrcWiring.lean` provides:
+
+```lean
+/-- The conjugate Picard iterates satisfy the ball / nonneg / continuous-slice /
+joint-measurability package on the window `(0, D.T]`, replayed from the keystone
+`ConjugateMildExistenceData`. -/
+theorem iter_ball_package
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
+    (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+        |conjugatePicardIter p u₀ n t x| ≤ D.M) ∧
+    (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+        0 ≤ conjugatePicardIter p u₀ n t x) ∧
+    HasContinuousSlices D.T (conjugatePicardIter p u₀ n) ∧
+    HasJointMeasurability (conjugatePicardIter p u₀ n)
+```
+
+This is useful, but it is weaker than the K1/K2 input package.  In particular:
+
+```text
+HasContinuousSlices            ≠ joint ContinuousOn on closed slab
+nonnegativity                  ≠ strict positivity on closed slab
+ball bound                     ≠ derivative/Hessian bounds
+joint measurability            ≠ source coefficient TimeC1On
+```
+
+### 4.2 Windowed source-control bounds
+
+Same file provides windowed chem/logistic source bounds and integrability:
+
+```lean
+theorem iterChemFlux_windowBound
     (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
     ∀ s, 0 < s → s ≤ D.T → ∀ y,
       |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ iterCQ D
 
-/-- **Windowed logistic sup bound over the iterates** (`hL_bound` on the
-window `(0, D.T]`). -/
 theorem iterLogistic_windowBound
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
     ∀ s, 0 < s → s ≤ D.T → ∀ y,
       |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ iterCL D
 
-/-- **`hQ_int`: per-slice spatial integrability of the chemotaxis flux over the
-iterates** (windowed). -/
 theorem iterChemFlux_integrable
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
     ∀ s, 0 < s → s ≤ D.T →
       Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) (intervalMeasure 1)
 ```
 
-These are exactly the facts a windowed threshold package should carry.
+Again: useful for Barrier B / Hinf, but not enough for source coefficient time-`C¹`.
 
----
+### 4.3 Geometric convergence and limit regularity
 
-## Why changing only the producer cannot work
-
-The current producer has the old unconditional signature:
+The B-form Picard file proves the usual windowed convergence, boundedness, nonnegativity, and continuous-slice inheritance:
 
 ```lean
-def conjugatePicardInfThresholdData_of_picard_bounds
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (D : ConjugateMildExistenceData p u₀)
-    (CQ CL : ℝ) (hCQ : 0 ≤ CQ) (hCL : 0 ≤ CL)
-    (hQ_int : ∀ n s,
-      Integrable
-        (ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
-          (conjugatePicardIter p u₀ n s))
-        (ShenWork.IntervalDomain.intervalMeasure 1))
-    (hQ_bound : ∀ n s y,
-      |ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
-          (conjugatePicardIter p u₀ n s) y| ≤ CQ)
-    ...
-    (hL_bound : ∀ n s y,
-      |ShenWork.IntervalGradientDuhamelMap.logisticLifted p
-          (conjugatePicardIter p u₀ n s) y| ≤ CL)
-    ... :
-    ConjugatePicardInfThresholdData p u₀ D.T := by
-  ...
+theorem conjugatePicardIter_pointwise_convergent ...
+theorem conjugatePicardIter_pointwise_tail_bound ...
+theorem conjugatePicardIter_uniform_convergence ...
+theorem conjugatePicardLimit_bounded ...
+theorem conjugatePicardLimit_nonneg ...
+theorem conjugatePicardLimit_hasContinuousSlices ...
+theorem conjugatePicardLimit_is_mildSolution ...
 ```
 
-You cannot change this producer to accept windowed inputs and still return the old structure, because the old structure literally demands unrestricted fields.  A windowed input cannot fill:
+and the data structure has:
 
 ```lean
-hQ_bound : ∀ n s y, ...
-```
-
-unless you invent/prove behavior outside `(0,T]`, or define a cutoff iterate/source, which would no longer be the same `conjugatePicardIter p u₀ n s`.
-
-So there are only three honest options:
-
-1. **Retype the old structure** to windowed fields.  Correct but cascades.
-2. **Add a new windowed structure** and route new B-form bank/frontier code through it.  Compatible with old files.
-3. **Keep old structure and prove unconditional bounds**.  Not supported by current analytic data and likely false / meaningless outside the horizon.
-
----
-
-## Is a parallel windowed structure viable?
-
-Yes.  This is viable and probably the least disruptive approach if you want to avoid editing every old consumer.
-
-Suggested new structure:
-
-```lean
-structure ConjugatePicardInfThresholdDataOn
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
+structure ConjugateMildExistenceData (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ) where
+  T : ℝ
+  M : ℝ
   K : ℝ
   C₀ : ℝ
-  CQ : ℝ
-  CL : ℝ
   hT : 0 < T
+  hM : 0 < M
   hK : K < 1
   hK_nn : 0 ≤ K
   hC₀ : 0 ≤ C₀
-  hCQ : 0 ≤ CQ
-  hCL : 0 ≤ CL
-  hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
-    ∀ x : intervalDomainPoint,
-      |conjugatePicardIter p u₀ (n + 1) t x
-        - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
-  hQ_int : ∀ n s, 0 < s → s ≤ T →
-    Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
-      (intervalMeasure 1)
-  hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
-    |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
-  hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-    IntervalIntegrable
-      (fun s : ℝ =>
-        intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
-      volume 0 t
-  hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
-    |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
-  hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-    IntervalIntegrable
-      (fun s : ℝ =>
-        intervalFullSemigroupOperator (t - s)
-          (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1)
-      volume 0 t
+  hbase_ball : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    |conjugatePicardIter p u₀ 0 t x| ≤ M
+  hbase_nonneg : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    0 ≤ conjugatePicardIter p u₀ 0 t x
+  hbase_cont : HasContinuousSlices T (conjugatePicardIter p u₀ 0)
+  hmapsTo : ...
+  hmapsTo_nn : ...
+  hmapsTo_pos : ...
+  hcont_preserved : ...
+  hcontr : ...
+  hbase_diff : ...
+  hbase_meas : HasJointMeasurability (conjugatePicardIter p u₀ 0)
+  hmeas_preserved : ∀ w, HasJointMeasurability w →
+    HasJointMeasurability (fun t x => intervalConjugateDuhamelMap p u₀ w t x)
 ```
 
-Suggested producer from the landed bank facts:
+`hmapsTo_pos` can give strict positivity of successor outputs under ball/nonneg/continuous-slice assumptions, and `conjugateMildSolutionData_of_data` uses it to prove strict positivity of the **limit**:
 
 ```lean
-def conjugatePicardInfThresholdDataOn_of_picard_bounds
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (D : ConjugateMildExistenceData p u₀)
-    (CQ CL : ℝ) (hCQ : 0 ≤ CQ) (hCL : 0 ≤ CL)
-    (hQ_int : ∀ n s, 0 < s → s ≤ D.T → Integrable ...)
-    (hQ_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CQ)
-    (hB_int : ∀ n t, 0 < t → t ≤ D.T → ∀ x, IntervalIntegrable ...)
-    (hL_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CL)
-    (hL_int : ∀ n t, 0 < t → t ≤ D.T → ∀ x, IntervalIntegrable ...) :
-    ConjugatePicardInfThresholdDataOn p u₀ D.T := ...
+hpos : ∀ t, 0 < t → t ≤ T → ∀ x, 0 < u t x
 ```
 
-This producer can be filled directly from:
+But this still does not supply representation / hbsum / G1 / G2 / restart agreement for the iterates.
+
+### 4.4 PID inf-threshold positivity
+
+`IntervalConjugatePicardInfThreshold.lean` proves strong positivity/lower-floor statements for iterates and the limit under additional PID + Hinf + smallness assumptions:
 
 ```lean
-CQ := iterCQ D
-CL := iterCL D
-hCQ := iterCQ_nonneg D
-hCL := iterCL_nonneg D
-hQ_int := fun n => iterChemFlux_integrable D n
-hQ_bound := fun n => iterChemFlux_windowBound D n
-hB_int := iterChemFlux_duhamel_intervalIntegrable D
-hL_bound := fun n => iterLogistic_windowBound D n
-hL_int := iterLogistic_duhamel_intervalIntegrable D
+theorem conjugatePicardIter_ge_half_floor_of_PID
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T : ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (H : ConjugatePicardInfThresholdData p u₀ T)
+    (hsmall :
+      |p.χ₀| * (heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * H.CQ)
+        + T * H.CL ≤ paperPositiveFloor hu₀ / 2) :
+    ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      paperPositiveFloor hu₀ / 2 ≤ conjugatePicardIter p u₀ n t x
+
+theorem conjugatePicardLimit_pos_of_PID
+    ... :
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      0 < conjugatePicardLimit p u₀ T t x
 ```
 
-This is cleaner than trying to coerce windowed facts into the old over-typed structure.
+This helps with `hpos`, but it still depends on `Hinf` and does not provide the spectral or derivative pieces.
 
 ---
 
-## But can you change only `BFormBankedInputs.Hinf` to the windowed structure?
+## 5. What exists for the limit, not the iterates
 
-Not by itself.
-
-Current `BFormBankedInputs` in `IntervalBFormDirectClassical.lean` has:
+`IntervalBankSourceSliceLeaves.lean` proves some limit-side source-slice leaves for `conjugatePicardLimit`:
 
 ```lean
-structure BFormBankedInputs
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    (DB : ConjugateMildExistenceData p u₀) where
-  huPaper : PaperPositiveInitialDatum intervalDomain u₀
-  Hinf : ConjugatePicardInfThresholdData p u₀ DB.T
-  hsmall :
-    |p.χ₀| * (heatGradientLinftyLinftyConstant *
-        (2 * Real.sqrt DB.T) * Hinf.CQ)
-      + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
-  ...
-```
+theorem conjugatePicardLimit_hasContinuousSlices_of_data
+    (DB : ConjugateMildExistenceData p u₀) :
+    HasContinuousSlices DB.T (conjugatePicardLimit p u₀ DB.T)
 
-and `BFormBankedInputs.hpde_u` passes `B.Hinf` to a theorem whose type expects the old structure:
+theorem coupledLogistic_constExtend_continuous_of_limit
+    (DB : ConjugateMildExistenceData p u₀) :
+    ∀ t, 0 < t → t < DB.T →
+      Continuous
+        (intervalDomainConstExtend
+          (intervalLogisticSource p ((conjugatePicardLimit p u₀ DB.T) t)))
 
-```lean
-ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_global_restart_on
-    DB B.huPaper B.Hinf B.hsmall
-    ...
-```
-
-Likewise `IntervalBFormEndToEnd.lean` has a parallel `BFormBankedInputs` structure with the old `Hinf : ConjugatePicardInfThresholdData p u₀ DB.T` field.
-
-And strict positivity uses old `Hinf` directly:
-
-```lean
-theorem bform_strictPos_closed
-    ...
+theorem coupledLogistic_fourierCoeff_summable_of_limit
+    (DB : ConjugateMildExistenceData p u₀)
+    (huPaper : PaperPositiveInitialDatum intervalDomain u₀)
     (Hinf : ConjugatePicardInfThresholdData p u₀ DB.T)
-    (hsmall : ... Hinf.CQ ... Hinf.CL ...)
-    ...
+    (hsmall : ...)
+    (HR : HasRestartCosineRepresentations DB.T (conjugatePicardLimit p u₀ DB.T)) :
+    ∀ t, 0 < t → t < DB.T →
+      Summable (fun n : ℤ => fourierCoeff ... n)
 ```
 
-with the immediate barrier helper:
+This is important, but it is not `DuhamelSourceTimeC1On` for the limit coefficients.  The file itself states that it supplies fields like `hlogCont`/`hlogFourier` and consumes a restart representation of the limit; it does not close `hlogSrc`.
 
-```lean
-theorem squareHeatBarrier_paperPositiveConstSeed_initial_le
-    ...
-    (Hinf : ConjugatePicardInfThresholdData p u₀ DB.T)
-    ...
+The bank wiring file also explicitly says the top-level `hlogSrc` field is not fully landed:
+
+```text
+field 6 needs a restart-cosine representation + time-C¹ coefficient data for
+`conjugatePicardLimit` that is not landed anywhere in the tree.
 ```
 
-So if `BFormBankedInputs.Hinf` becomes `ConjugatePicardInfThresholdDataOn`, old calls like these break unless you also introduce windowed versions of the positivity/PDE theorems.
+That matches the current search result.
 
 ---
 
-## Minimal viable parallel-windowed path
+## 6. Why `ConjugateMildExistenceData` + `iter_ball_package` is insufficient
 
-Do **not** try to convert the new windowed structure back to the old one.  Instead add new variants along the B-form route:
-
-```text
-ConjugatePicardInfThresholdDataOn
-conjugatePicardInfThresholdDataOn_of_picard_bounds
-intervalConjugateDuhamelMap_ge_half_floor_on
-conjugatePicardIter_ge_half_floor_of_PID_on
-conjugatePicardLimit_ge_half_floor_of_PID_on
-conjugatePicardLimit_pos_of_PID_on
-squareHeatBarrier_paperPositiveConstSeed_initial_le_on
-bform_strictPos_closed_on
-```
-
-For the PDE route, either:
-
-```text
-intervalConjugateMildSolution_pde_u_PID_global_restart_on_on
-```
-
-or, better, inspect whether the existing `intervalConjugateMildSolution_pde_u_PID_global_restart_on` only carries `Hinf` for positivity/smallness.  If so, replace its dependency by a smaller interface:
+To instantiate:
 
 ```lean
-structure ConjugateInfThresholdLike ... where
-  CQ CL : ℝ
-  hT : 0 < T
-  hCQ : 0 ≤ CQ
-  hCL : 0 ≤ CL
-  hgeom : ... windowed ...
-  hQ_int : ... windowed ...
-  hQ_bound : ... windowed ...
-  hB_int : ... windowed ...
-  hL_bound : ... windowed ...
-  hL_int : ... windowed ...
+sourceTimeC1On_succ_of_sourceTimeC1On
 ```
 
-or pass only the actual derived positivity theorem:
+for B-form iterates, you need at each closed window `[lo,hi]`:
 
 ```lean
-hpos : ∀ t, 0 < t → t < T → ∀ x, 0 < conjugatePicardLimit p u₀ T t x
+hbsum : ∀ σ ∈ Set.Icc lo hi,
+  Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+
+hagree : ∀ σ ∈ Set.Icc lo hi,
+  Set.EqOn (intervalDomainLift (w σ))
+    (fun x => ∑' n, bc σ n * cosineMode n x)
+    (Set.Icc (0 : ℝ) 1)
+
+hpos : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+  0 < intervalDomainLift (w σ) x
+
+hG1 : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+  |deriv (intervalDomainLift (w σ)) x| ≤ G1
+
+hG2 : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+  |deriv (deriv (intervalDomainLift (w σ))) x| ≤ G2
+
+hrestart : ∀ s ∈ Set.Icc lo hi, ∀ x : intervalDomainPoint,
+  intervalDomainLift (w s) x.1 =
+    ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1
+
+hC2cont : ∀ s ∈ Set.Icc lo hi,
+  ContinuousOn (intervalDomainLift (w s)) (Set.Icc (0 : ℝ) 1)
+
+hprofile_joint : ContinuousOn
+  (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+  (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)
 ```
 
-where possible.  This is often even cleaner: many downstream classical/PDE theorems do not need the original inf-threshold structure, only the positivity consequence and the constants in `hsmall`.
+`iter_ball_package` gives:
+
+```lean
+ball bound
+nonnegativity
+HasContinuousSlices
+HasJointMeasurability
+```
+
+Only `hC2cont` is plausibly obtainable from `HasContinuousSlices`; even that is just continuity, not C².  The rest does not follow:
+
+* `hagree` needs a cosine-series representation.
+* `hbsum` needs eigenvalue-weighted summability of representation coefficients.
+* `hG1`/`hG2` need spatial derivative/Hessian estimates.
+* `hrestart` needs local restart coefficient synthesis.
+* `hprofile_joint` needs joint continuity on compact slabs, not merely joint measurability plus per-slice continuity.
+* `hpos` needs strict positivity, not just nonnegativity; it can be supplied by `hmapsTo_pos` for successors or by PID inf-threshold, but it is not part of `iter_ball_package`.
+
+So the answer is no: these K1/K2 facts are not derivable from `ConjugateMildExistenceData + iter_ball_package` alone.
 
 ---
 
-## Is this less work than the 12-file retype?
+## 7. What the gradient tower has that B-form lacks
 
-Probably yes if you keep the old API untouched and add a windowed B-form route, but it is not free.
+`IntervalPicardSourceTower.lean` is explicitly a `picardIter` tower.  Its carrier packages representation, G1/G2 profiles, per-window source packages, endpoint-inclusive source packages, and bounded source packages:
 
-Expected edits:
+```lean
+structure TowerLevel (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (M A₂ T : ℝ) (n : ℕ) where
+  /-- Eigenvalue-weighted summability of the level-`n` representation coefficients. -/
+  hrepr_sum : ∀ σ, 0 < σ → σ ≤ T →
+    Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ n σ k|)
+  /-- `[0,1]` agreement of the level-`n` slice with its representation series. -/
+  hrepr_agree : ∀ σ, 0 < σ → σ ≤ T →
+    Set.EqOn (intervalDomainLift (picardIter p u₀ n σ))
+      (fun x => ∑' k, iterateReprCoeff p u₀ n σ k * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1)
+  /-- Kernel G1-line: first-derivative sup bound along `G1profile p M`. -/
+  hG1 : ∀ σ, 0 < σ → σ ≤ T → ∀ x : ℝ,
+    |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
+  /-- Coefficient G2-line: second-derivative sup bound along `G2profile A₂`. -/
+  hG2 : ∀ σ, 0 < σ → σ ≤ T → ∀ x : ℝ,
+    |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2profile A₂ σ
+  srcWin : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → SourceWin p u₀ n lo hi
+  winAdot : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → WindowAdotLegs p u₀ n lo hi
+  srcOn : LevelSourceTimeC1OnUpTo p u₀ n T
+  srcBdd : DuhamelSourceBddOn (patchedSource p u₀ (picardIter p u₀ n)) T
+```
 
-1. One new structure file or addendum in `IntervalConjugatePicardInfThreshold.lean`.
-2. One new producer using `IntervalBankInfAndLogSrcWiring` facts.
-3. Windowed copies/generic versions of the inf-threshold positivity chain.
-4. Windowed variants of the few B-form bank consumers that currently require old `Hinf`.
-5. Change `BFormBankedInputs` / `BFormDirectFrontier` for the new route only.
+This is exactly the missing K1/K2 material, but it is tied to `picardIter`, not `conjugatePicardIter`.  Its `TowerInputs` even includes a `χ₀ = 0` field:
 
-This avoids touching old clients that still use `ConjugatePicardInfThresholdData`, but it does mean maintaining two routes temporarily.
+```lean
+/-- `χ₀ = 0` (the homogeneous-propagator regime). -/
+hχ0 : p.χ₀ = 0
+```
+
+So it is not a general-χ/B-form iterate tower.
 
 ---
 
-## Recommended implementation strategy
+## 8. Can the existing limit theorem be used?
 
-Best short-term path:
+Yes, but only after the iterate source packages and coefficient convergence data have been produced.
 
-```text
-A. Leave old ConjugatePicardInfThresholdData exactly as-is.
-B. Add ConjugatePicardInfThresholdDataOn with windowed fields.
-C. Add a bank producer from iterChemFlux_windowBound / iterLogistic_windowBound / iterChemFlux_integrable.
-D. Add windowed variants of the positivity lemmas by copying the old proofs and replacing:
-     H.hQ_int n s     → H.hQ_int n s hs hsT
-     H.hQ_bound n s   → H.hQ_bound n s hs hsT
-     H.hL_bound n s   → H.hL_bound n s hs hsT
-   plus use a windowed/cutoff value-Duhamel bound for the logistic leg if needed.
-E. Change only the new/direct B-form bank path to use HinfOn.
+`IntervalMildPicardLimitRegularityOn.lean` provides:
+
+```lean
+/-- `DuhamelSourceTimeC1On` passes to pointwise limits when the derivatives
+converge uniformly on `Icc lo hi`, the coefficients share a common summable
+envelope, and the derivative sequence is uniformly bounded. -/
+def duhamelSourceTimeC1On_of_uniform_limit
+    {a : ℝ → ℕ → ℝ} {aSeq : ℕ → ℝ → ℕ → ℝ}
+    {lo hi : ℝ}
+    (hconv : ∀ s ∈ Icc lo hi, ∀ k, Tendsto (fun n => aSeq n s k) atTop (nhds (a s k)))
+    {adotSeq : ℕ → ℝ → ℕ → ℝ}
+    (hderiv_each : ∀ n, ∀ s ∈ Icc lo hi, ∀ k,
+      HasDerivWithinAt (fun r => aSeq n r k) (adotSeq n s k) (Icc lo hi) s)
+    {adot : ℝ → ℕ → ℝ}
+    (hadot_unif : ∀ k, TendstoUniformlyOn (fun n s => adotSeq n s k)
+      (fun s => adot s k) atTop (Icc lo hi))
+    (hadot_cont : ∀ k, ContinuousOn (fun s => adot s k) (Icc lo hi))
+    {envelope : ℕ → ℝ}
+    (henv_summable : Summable envelope)
+    (henv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |aSeq n s k| ≤ envelope k)
+    {D : ℝ}
+    (hderiv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |adotSeq n s k| ≤ D) :
+    DuhamelSourceTimeC1On a lo hi
 ```
 
-This is viable and avoids editing old consumers.  But if your goal is a single canonical API, the cleaner final state is still to retype `ConjugatePicardInfThresholdData` itself to windowed fields and patch the fallout once.
+This is a good endpoint.  But it requires uniform convergence of source coefficients and source-derivative coefficients, common envelopes, and derivative bounds.  Those are precisely what the missing conjugate iterate tower would have to provide.  It does not by itself manufacture K1/K2 facts from `ConjugateMildExistenceData`.
+
+---
+
+## 9. Recommended route to `hlogSrc`
+
+A viable route is:
+
+1. Define conjugate versions of the source package aliases:
+
+```lean
+abbrev ConjugateLevelSourceTimeC1On
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (n : ℕ) (c T : ℝ) :=
+  DuhamelSourceTimeC1On
+    (fun s k => cosineCoeffs (logisticLifted p (conjugatePicardIter p u₀ n s)) k)
+    c T
+
+abbrev ConjugateLevelSourceTimeC1OnUpTo
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (n : ℕ) (T : ℝ) :=
+  ∀ c, 0 < c → c < T → ConjugateLevelSourceTimeC1On p u₀ n c T
+```
+
+2. Reuse / adapt the level-0 heat source theorem.  Level 0 is definitionally the same heat semigroup form, so the existing heat tools should be reusable with small wrappers.
+
+3. Build a B-form successor tower for `conjugatePicardIter`.  This is the real work.  It must prove, for the successor slice, a B-form restart representation, eigenvalue-weighted summability, G1/G2 estimates, strict positivity, and joint continuity on closed slabs.
+
+4. Apply `sourceTimeC1On_succ_of_sourceTimeC1On` with those B-form facts.
+
+5. Use a conjugate analogue of `sourceTimeC1On_all_windows_of_base_step` to get all iterate source packages.
+
+6. Prove the coefficient/uniform derivative convergence assumptions needed by `duhamelSourceTimeC1On_of_uniform_limit` and pass to `conjugatePicardLimit`.
+
+Only after step 6 do you get:
+
+```lean
+DuhamelSourceTimeC1On
+  (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
+```
+
+or more likely first on every `[c, DB.T]`, then extended/packaged as required by the bank API.
 
 ---
 
 ## Final answer
 
-* The unconditional bound `∀ s` is not justified by the current Picard ball machinery and is likely false / analytically meaningless outside `(0,T]`.
-* The old structure is over-typed.
-* You cannot produce the old unconditional structure from windowed inputs without adding nontrivial and probably false outside-window facts.
-* Adding a new windowed structure is viable.
-* But changing `BFormBankedInputs.Hinf` to the new structure requires windowed variants/generic versions of the B-form consumers that currently expect `ConjugatePicardInfThresholdData`; it is not a pure one-field change.
-* This parallel route is still a reasonable way to avoid the full 12-file old-API retype while preserving backward compatibility.
+* The K1/K2 properties for `conjugatePicardIter` are **not already proved** in the repo, as far as the grep/read pass shows.
+* `ConjugateMildExistenceData + iter_ball_package` gives ball/nonneg/continuous-slices/joint-measurability and source sup/integrability windows, but not representation/eigenvalue-summability/G1/G2/restart/joint-continuity.
+* `picardIter` and `conjugatePicardIter` are not wrappers of one another; they use different Duhamel maps.  No equality bridge was found.
+* The existing source-TimeC1On successor theorem is reusable, but its existing induction wrapper is `picardIter`-specific.  A conjugate/B-form source tower must be added or a different direct source-time-`C¹` route for the limit must be found.
+* So `hlogSrc` remains a real production frontier, not a missing simple instantiation of the current tower.
