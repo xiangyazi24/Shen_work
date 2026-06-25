@@ -1,578 +1,382 @@
-# Q375 (cron2): `CoupledDuhamelClassicalResidualAfterT6`
+# Q381 (cron2): `realSlice`, `intervalDomainLift`, and the evalST `h_u` atom
 
 ## Executive verdict
 
-I read the current definition in `ShenWork/PDE/IntervalCoupledRegularityBanked.lean`.
+I read the exact current definitions and the current `h_u` producers.
 
-`CoupledDuhamelClassicalResidualAfterT6 p T u` is a **seven-field classical-regularity residual**. It is not the whole mild-to-classical gap. It is specifically the part of `intervalDomainClassicalRegularity T u (coupledChemicalConcentration p u)` that is **not supplied by the banked T6 Duhamel closed-slice atom**.
+The answer is:
 
-The T6 atom, under source time-`C¹` and slice agreement,
+* If `h_u` is interpreted as the **real-part identity**
 
-```lean
-hsrc   : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u)
-hagree : CoupledDuhamelT6SliceAgreement p T u
-```
+  ```lean
+  (evalST τ (x : WA.Circ) (GWA.incl _ u_star)).re
+    = intervalDomainLift (realSlice u_star τ.1) x
+  ```
 
-supplies only the **u-side closed spatial `C²` package** and the **u-side Neumann one-sided/endpoint data** for each positive time slice:
+  then yes: on `x ∈ Set.Icc 0 1` and `τ : TimeDom T`, it is a definitional/unfolding fact. No analytic content, no Picard fixed-point equation, no Banach theorem, no source data.
 
-```lean
-ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc 0 1)
-Filter.Tendsto (deriv (intervalDomainLift (u t))) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
-Filter.Tendsto (deriv (intervalDomainLift (u t))) (nhdsWithin 1 (Set.Iio 1)) (nhds 0)
-deriv (intervalDomainLift (u t)) 0 = 0
-deriv (intervalDomainLift (u t)) 1 = 0
-```
+* But the current code’s slab atom `h_u` is actually the **complex-valued identity**
 
-`CoupledDuhamelClassicalResidualAfterT6` carries the complement needed to build the full seven-atom `intervalDomainClassicalRegularity` package: resolver/v-side spatial regularity and Neumann data, plus all time/joint continuity regularity for both `u` and the coupled chemical concentration.
+  ```lean
+  evalST τ x (GWA.incl _ u_star)
+    = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
+  ```
 
-So, yes: **relative to the banked T6 spectral/source data, this is exactly the named residual for the classical-regularity part that T6 cannot close.** But it is not the full “mild solution → classical solution” gap, because it does **not** include:
+  not merely a real-part equality. For that stronger statement, the real part is definitional, but the imaginary part needs the genuine/structural reality input
 
-* positivity of `u`,
-* the pointwise parabolic PDE `pde_u`,
-* initial trace,
-* resolver nonnegativity/PDE/boundary facts discharged by the coupled core.
+  ```lean
+  (evalST τ (x : WA.Circ) (GWA.incl _ u_star)).im = 0
+  ```
 
-Those are packaged one level up in `CoupledDuhamelResidualAfterBankedT6` / `CoupledDuhamelBankedT6Frontier`. In the gradient-mild route, positivity and trace are already banked, so the remaining frontier becomes `pde_u + CoupledDuhamelClassicalResidualAfterT6`. In the χ₀=0 spectral route, `pde_u` can be closed by spectral agreement, leaving this classical residual as the named remaining coupled regularity obligation.
+  In the Picard fixed-point route this is discharged from `EvenRealEWA u_star`, which is itself supplied for the Picard fixed point by `picardEWA_evenReal_fixedPoint`.
 
-## Lean probes used
+So there is **no realization gap** in the real part. The only non-definitional piece in the current complex `h_u` theorem is proving that the eval is real-valued. That is not PDE/source content; it is parity/even-real algebraic content.
 
-```lean
-import ShenWork.PDE.IntervalCoupledRegularityBanked
+There is one important boundary caveat: `intervalDomainLift` is a zero-extension, so the unfolding is only valid when the theorem has `hx : x ∈ Set.Icc 0 1`. Outside `[0,1]`, the lift is `0`, while `evalST τ x …` need not vanish. The existing `h_u` slab correctly quantifies `∀ x ∈ Set.Icc 0 1`.
 
-open MeasureTheory
-open scoped Topology
+Also, the time does **not** need to be interior. Since `τ : TimeDom T` is already a subtype proof of `τ.1 ∈ [0,T]`, `realSlice u_star τ.1` selects the `if_pos τ.2` branch. The same definitional argument works at `τ.1 = 0` or `τ.1 = T` as well.
 
-namespace ShenWork.IntervalCoupledRegularityBootstrap
+## Exact definitions read
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDuhamelClosedC2
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalNeumannFullKernel
-open ShenWork.Paper2
+### `TimeDom`
 
-#check CoupledDuhamelT6SliceAgreement
-#check coupledDuhamel_T6_closedSlicePack
-#check CoupledDuhamelClassicalResidualAfterT6
-#check intervalDomainClassicalRegularity_of_T6_source_and_residual
-#check CoupledDuhamelResidualAfterBankedT6
-#check regularityBootstrap_of_coupledDuhamel_bankedT6_source_and_residual
-
-end ShenWork.IntervalCoupledRegularityBootstrap
-```
+From `ShenWork/Wiener/EWA/Basic.lean`:
 
 ```lean
-import ShenWork.PDE.IntervalCoupledClassicalResidualAfterT6FromBanked
+import ShenWork.Wiener.EWA.Basic
 
-open scoped Topology
+namespace ShenWork.EWA
 
-namespace ShenWork.IntervalCoupledRegularityBootstrap
+/-- The compact time domain `[0, T] ⊆ ℝ`. -/
+abbrev TimeDom (T : ℝ) : Type := Set.Icc (0 : ℝ) T
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildRegularityBootstrap
-  (HasRestartCosineRepresentations)
-open ShenWork.IntervalMildTimeDerivContinuity
-  (HasTimeNeighborhoodSpectralAgreement)
-open ShenWork.IntervalResolverDirectTimeRegularity
-  (HasResolverDirectSpectralData)
-open ShenWork.IntervalMildToClassical
-open ShenWork.Paper2
-open ShenWork.Paper2.RegularityFrontierWiring
-
-#check coupledDuhamelClassicalResidualAfterT6_of_frontier
-#check coupledDuhamelClassicalResidualAfterT6_of_banked_resolver_O1_T6
-
-end ShenWork.IntervalCoupledRegularityBootstrap
+end ShenWork.EWA
 ```
+
+So a term `τ : TimeDom T` is a subtype with `τ.1 : ℝ` and `τ.2 : τ.1 ∈ Set.Icc 0 T`.
+
+### `evalST`
+
+From `ShenWork/Wiener/EWA/Decisive.lean`:
 
 ```lean
-import ShenWork.PDE.IntervalCoupledResidualAfterBankedT6Discharge
+import ShenWork.Wiener.EWA.Decisive
 
-open scoped Topology
+open ShenWork.GWA ShenWork.Wiener
 
-namespace ShenWork.IntervalCoupledRegularityBootstrap
+namespace ShenWork.EWA
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildPicardThreshold
-open ShenWork.IntervalMildToClassical
-open ShenWork.IntervalDomainPdeUProducer
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalDuhamelClosedC2
+variable {T : ℝ}
 
-#check CoupledDuhamelBankedT6Frontier
-#check CoupledDuhamelBankedT6ChiZeroFrontier
-#check coupledDuhamelResidualAfterBankedT6_of_gradientMild_frontier
-#check coupledDuhamelResidualAfterBankedT6_of_gradientMild_chiZero_spectral
-#check regularityBootstrap_of_gradientMild_bankedT6_chiZero_spectral
+/-- **Space-time point evaluation** `EWA T 0 →+* ℂ`: slice the time-coefficients
+at time `τ` (landing in `WA 0`), then evaluate the resulting Fourier series at
+the spatial point `x : WA.Circ`. -/
+def evalST (τ : TimeDom T) (x : WA.Circ) : EWA T 0 →+* ℂ :=
+  (WA.evalAt x).comp (sliceWA τ).toRingHom
 
-end ShenWork.IntervalCoupledRegularityBootstrap
+@[simp] theorem evalST_apply (τ : TimeDom T) (x : WA.Circ) (a : EWA T 0) :
+    evalST τ x a = WA.evalAt x (sliceWA τ a) := rfl
+
+end ShenWork.EWA
 ```
 
-## Exact definition read
+`evalST` is not itself a physical-space lift. It is the circle/Wiener point evaluation of an EWA element after time slicing. The physical-space slice is **defined from it** by `realSlice`.
 
-The current definition is:
+### `realSlice`
+
+From `ShenWork/Wiener/EWA/SourceClassicalExistence.lean`:
 
 ```lean
-import ShenWork.PDE.IntervalCoupledRegularityBanked
+import ShenWork.Wiener.EWA.SourceClassicalExistence
 
-open MeasureTheory
-open scoped Topology
+open ShenWork.GWA ShenWork.Wiener
+open ShenWork.IntervalDomain (intervalDomainPoint)
 
-namespace ShenWork.IntervalCoupledRegularityBootstrap
+namespace ShenWork.EWA
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDuhamelClosedC2
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalNeumannFullKernel
-open ShenWork.Paper2
+variable {T : ℝ}
 
-/-- The residual classical-regularity atoms after T6 has supplied the u-side
-closed-spatial regularity and one-sided Neumann limits. -/
-structure CoupledDuhamelClassicalResidualAfterT6
-    (p : CM2Params) (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  v_interiorC2 :
-    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-      ContDiffOn ℝ 2
-        (intervalDomainLift (coupledChemicalConcentration p u t))
-        (Set.Ioo (0 : ℝ) 1)
-  timeC1 :
-    ∀ x : intervalDomainPoint, ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-      (DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
-          DifferentiableAt ℝ
-            (fun s : ℝ => coupledChemicalConcentration p u s x) t) ∧
-        (ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => u r x) s)
-            (Set.Ioo (0 : ℝ) T) ∧
-          ContinuousOn
-            (fun s : ℝ =>
-              deriv (fun r : ℝ => coupledChemicalConcentration p u r x) s)
-            (Set.Ioo (0 : ℝ) T))
-  jointTimeDeriv :
-    ContinuousOn
-        (Function.uncurry
-          (fun (t : ℝ) (x : ℝ) =>
-            deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
-        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1) ∧
-      ContinuousOn
-        (Function.uncurry
-          (fun (t : ℝ) (x : ℝ) =>
-            deriv
-              (fun s : ℝ =>
-                intervalDomainLift (coupledChemicalConcentration p u s) x) t))
-        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1)
-  v_neumannLimits :
-    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-      Filter.Tendsto
-          (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
-          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
-        Filter.Tendsto
-          (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
-          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
-  v_closedC2 :
-    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-      ContDiffOn ℝ 2
-          (intervalDomainLift (coupledChemicalConcentration p u t))
-          (Set.Icc (0 : ℝ) 1) ∧
-        deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 0 = 0 ∧
-        deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 1 = 0
-  closedJointTimeDeriv :
-    ContinuousOn
-        (Function.uncurry
-          (fun (t : ℝ) (x : ℝ) =>
-            deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
-        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) ∧
-      ContinuousOn
-        (Function.uncurry
-          (fun (t : ℝ) (x : ℝ) =>
-            deriv
-              (fun s : ℝ =>
-                intervalDomainLift (coupledChemicalConcentration p u s) x) t))
-        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
-  jointValue :
-    ContinuousOn
-        (Function.uncurry
-          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
-        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) ∧
-      ContinuousOn
-        (Function.uncurry
-          (fun (t : ℝ) (x : ℝ) =>
-            intervalDomainLift (coupledChemicalConcentration p u t) x))
-        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
+/-- **The realized real-space slice of an `EWA T 1` element.**  At time `t` (clamped to
+`[0,T]` by the membership test) and interior point `x : intervalDomainPoint`, the slice
+is the real part of the Wiener point-evaluation of the grade-drop `incl u*`. -/
+def realSlice (u_star : EWA T 1) : ℝ → intervalDomainPoint → ℝ :=
+  fun t x =>
+    if h : t ∈ Set.Icc (0 : ℝ) T then
+      (evalST (⟨t, h⟩ : TimeDom T) ((x.1 : ℝ) : WA.Circ)
+        (GWA.incl (by omega : (0:ℕ) ≤ 1) u_star)).re
+    else 0
 
-end ShenWork.IntervalCoupledRegularityBootstrap
+end ShenWork.EWA
 ```
 
-## Field-by-field interpretation
+Key point: for `τ : TimeDom T`, `realSlice u_star τ.1` unfolds with `dif_pos τ.2` to the real part of `evalST (⟨τ.1, τ.2⟩ : TimeDom T)`. This is definitionally the same time as `τ` after the trivial subtype equality `Subtype.ext rfl`.
 
-### 1. `v_interiorC2`
+### `intervalDomainLift`
 
-This is **v-side interior spatial `C²`**:
+From `ShenWork/PDE/IntervalDomain.lean`:
 
 ```lean
-∀ t ∈ (0,T),
-  ContDiffOn ℝ 2
-    (intervalDomainLift (coupledChemicalConcentration p u t))
-    (Set.Ioo 0 1)
+import ShenWork.PDE.IntervalDomain
+
+namespace ShenWork.IntervalDomain
+
+-- Unit interval domain point space used by the concrete bounded-domain API.
+def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
+
+-- Extend a function on the unit interval to ℝ by zero outside
+-- `[0,1]`, so that `intervalIntegral` and `deriv` can be applied directly.
+def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
+
+end ShenWork.IntervalDomain
 ```
 
-T6 supplies u-side closed `C²` from the Duhamel profile. It does not prove this resolver/v-side interior spatial regularity.
+Key point: on `hx : x ∈ Set.Icc 0 1`, this unfolds to `f ⟨x,hx⟩`; outside `[0,1]`, it unfolds to `0`.
 
-### 2. `timeC1`
+## The definitional real-part lemma
 
-This is **pointwise-in-space time differentiability and time-derivative continuity** for both `u` and the coupled chemical concentration:
+The following is the exact “real part only” theorem. It needs no parity and no fixed-point hypothesis:
 
 ```lean
-∀ x, ∀ t ∈ (0,T),
-  (DifferentiableAt ℝ (fun s => u s x) t ∧
-   DifferentiableAt ℝ (fun s => coupledChemicalConcentration p u s x) t) ∧
-  (ContinuousOn (fun s => deriv (fun r => u r x) s) (Set.Ioo 0 T) ∧
-   ContinuousOn
-     (fun s => deriv
-       (fun r => coupledChemicalConcentration p u r x) s)
-     (Set.Ioo 0 T))
+import ShenWork.Wiener.EWA.SourceChiNegUncond
+
+open scoped BigOperators
+open Set Metric
+open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+
+noncomputable section
+
+namespace ShenWork.EWA
+
+variable {T : ℝ}
+
+/-- Real-part version of `h_u`: purely definitional on `[0,1]`. -/
+theorem realSlice_evalST_re_definally
+    (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ)
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    (evalST τ (x : WA.Circ)
+      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).re
+      = intervalDomainLift (realSlice u_star τ.1) x := by
+  have hτ : (⟨τ.1, τ.2⟩ : TimeDom T) = τ := Subtype.ext rfl
+  symm
+  rw [intervalDomainLift, dif_pos hx, realSlice, dif_pos τ.2, hτ]
+
+end ShenWork.EWA
 ```
 
-This is not a spatial T6 conclusion. T6 is a per-time-slice closed `C²`/Neumann statement for the u-profile, not a time-`C¹` statement for the solution trajectory and resolver trajectory.
+This is the core check. The only bookkeeping is:
 
-### 3. `jointTimeDeriv`
+1. `dif_pos hx` for `intervalDomainLift`,
+2. `dif_pos τ.2` for `realSlice`,
+3. `Subtype.ext rfl` to rewrite `(⟨τ.1, τ.2⟩ : TimeDom T)` back to `τ`.
 
-This is **open-spatial joint continuity of time derivatives** for both lifted `u` and lifted `v`:
+No source coefficients and no `picardEWA` fixed-point equality appear.
+
+## The current code’s actual `h_u`: complex equality
+
+The current production theorem is in `ShenWork/Wiener/EWA/SourceChiNegUncond.lean`:
 
 ```lean
-ContinuousOn
-  (Function.uncurry
-    (fun (t : ℝ) (x : ℝ) =>
-      deriv (fun s => intervalDomainLift (u s) x) t))
-  (Set.Ioo 0 T ×ˢ Set.Ioo 0 1)
-∧
-ContinuousOn
-  (Function.uncurry
-    (fun (t : ℝ) (x : ℝ) =>
-      deriv
-        (fun s =>
-          intervalDomainLift (coupledChemicalConcentration p u s) x) t))
-  (Set.Ioo 0 T ×ˢ Set.Ioo 0 1)
+import ShenWork.Wiener.EWA.SourceChiNegUncond
+
+open scoped BigOperators
+open Set Metric
+open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+
+noncomputable section
+
+namespace ShenWork.EWA
+
+variable {T : ℝ}
+
+#check realSlice_evalST_realizes
+#check evalST_incl_im_zero_of_evenReal
+
+/-- Existing theorem shape, paraphrased:
+
+For any `u_star : EWA T 1`, any `τ : TimeDom T`, and any `x ∈ [0,1]`,
+`evalST` realizes the lifted `realSlice` as a complex number, provided the eval has
+zero imaginary part. -/
+#check (realSlice_evalST_realizes :
+  ∀ (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ),
+    x ∈ Set.Icc (0 : ℝ) 1 →
+    (evalST τ (x : WA.Circ)
+      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0 →
+    evalST τ (x : WA.Circ)
+      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
+      = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
+
+end ShenWork.EWA
 ```
 
-Again: not provided by T6 closed-slice spatial regularity.
-
-### 4. `v_neumannLimits`
-
-This is **v-side one-sided Neumann limit data**:
+The actual proof in the file is exactly the split above:
 
 ```lean
-∀ t ∈ (0,T),
-  Filter.Tendsto
-    (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
-    (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
-  ∧
-  Filter.Tendsto
-    (deriv (intervalDomainLift (coupledChemicalConcentration p u t)))
-    (nhdsWithin 1 (Set.Iio 1)) (nhds 0)
+import ShenWork.Wiener.EWA.SourceChiNegUncond
+
+open scoped BigOperators
+open Set Metric
+open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+
+noncomputable section
+
+namespace ShenWork.EWA
+
+variable {T : ℝ}
+
+/-- Existing proof pattern, copied structurally. -/
+theorem realSlice_evalST_realizes_pattern (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ)
+    (hx : x ∈ Set.Icc (0 : ℝ) 1)
+    (hreal : (evalST τ (x : WA.Circ)
+      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0) :
+    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
+      = (intervalDomainLift (realSlice u_star τ.1) x : ℂ) := by
+  have hτ : (⟨τ.1, τ.2⟩ : TimeDom T) = τ := Subtype.ext rfl
+  have hlift : intervalDomainLift (realSlice u_star τ.1) x
+      = (evalST τ (x : WA.Circ)
+        (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).re := by
+    rw [intervalDomainLift, dif_pos hx, realSlice, dif_pos τ.2, hτ]
+  rw [hlift]
+  apply Complex.ext
+  · rw [Complex.ofReal_re]
+  · rw [Complex.ofReal_im, hreal]
+
+end ShenWork.EWA
 ```
 
-T6 supplies the analogous u-side one-sided Neumann limits; this field carries the resolver/v-side analog.
+So the complex equality is **not** just `rfl`: the imaginary component is a real-valuedness obligation.
 
-### 5. `v_closedC2`
+## How the current slab discharges the imaginary part
 
-This is **v-side closed spatial `C²` plus endpoint `deriv = 0` values**:
+`SourceChiNegUncond.lean` proves:
 
 ```lean
-∀ t ∈ (0,T),
-  ContDiffOn ℝ 2
-    (intervalDomainLift (coupledChemicalConcentration p u t))
-    (Set.Icc 0 1)
-  ∧
-  deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 0 = 0
-  ∧
-  deriv (intervalDomainLift (coupledChemicalConcentration p u t)) 1 = 0
+import ShenWork.Wiener.EWA.SourceChiNegUncond
+
+open scoped BigOperators
+open Set Metric
+open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+
+noncomputable section
+
+namespace ShenWork.EWA
+
+variable {T : ℝ}
+
+/-- Full-circle reality of `evalST (incl u_star)` from `EvenRealEWA u_star`. -/
+#check evalST_incl_im_zero_of_evenReal
+
+end ShenWork.EWA
 ```
 
-T6 supplies the analogous u-side closed `C²` and endpoint derivative values; this field carries the v-side analog.
-
-### 6. `closedJointTimeDeriv`
-
-This is **closed-spatial joint continuity of time derivatives** for both lifted `u` and lifted `v`:
+And `SourceChiNegUncondWire.lean` packages the slab atom:
 
 ```lean
-ContinuousOn
-  (Function.uncurry
-    (fun (t : ℝ) (x : ℝ) =>
-      deriv (fun s => intervalDomainLift (u s) x) t))
-  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
-∧
-ContinuousOn
-  (Function.uncurry
-    (fun (t : ℝ) (x : ℝ) =>
-      deriv
-        (fun s =>
-          intervalDomainLift (coupledChemicalConcentration p u s) x) t))
-  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
+import ShenWork.Wiener.EWA.SourceChiNegUncondWire
+
+open scoped BigOperators
+open Set Metric
+open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+
+noncomputable section
+
+namespace ShenWork.EWA
+
+variable {T : ℝ}
+
+#check realSlice_h_u_slab
+
+/-- Existing slab shape, paraphrased:
+
+If `u_star` is even-real, then for every `τ : TimeDom T` and every `x ∈ [0,1]`,
+the complex `h_u` identity holds. -/
+#check (realSlice_h_u_slab :
+  ∀ {u_star : EWA T 1}, EvenRealEWA u_star →
+    ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
+        = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
+
+end ShenWork.EWA
 ```
 
-This is stronger in the spatial component than `jointTimeDeriv` because the spatial slab is closed `[0,1]`, not open `(0,1)`.
-
-### 7. `jointValue`
-
-This is **closed-spatial joint continuity of the lifted values** of both `u` and `v`:
+The proof is short:
 
 ```lean
-ContinuousOn
-  (Function.uncurry
-    (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
-  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
-∧
-ContinuousOn
-  (Function.uncurry
-    (fun (t : ℝ) (x : ℝ) =>
-      intervalDomainLift (coupledChemicalConcentration p u t) x))
-  (Set.Ioo 0 T ×ˢ Set.Icc 0 1)
+intro τ x hx
+exact realSlice_evalST_realizes u_star τ x hx
+  (evalST_incl_im_zero_of_evenReal hER τ (x : WA.Circ))
 ```
 
-This is value-level joint continuity on `(0,T) × [0,1]` for both the population and resolver signal.
+So for the Picard fixed point:
 
-## How T6 and the residual reconstruct `intervalDomainClassicalRegularity`
+* `picardEWA_evenReal_fixedPoint` gives `EvenRealEWA u_star`,
+* `evalST_incl_im_zero_of_evenReal` gives the imaginary part is zero,
+* `realSlice_evalST_realizes` uses the definitional real-part unfolding plus that zero-imaginary fact.
 
-The file immediately uses the residual here:
+## Boundary and scope checks
+
+### Spatial scope
+
+The theorem is only true in the stated form on `[0,1]`:
 
 ```lean
-import ShenWork.PDE.IntervalCoupledRegularityBanked
-
-open MeasureTheory
-open scoped Topology
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDuhamelClosedC2
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalNeumannFullKernel
-open ShenWork.Paper2
-
-#check intervalDomainClassicalRegularity_of_T6_source_and_residual
-
--- theorem intervalDomainClassicalRegularity_of_T6_source_and_residual
---     {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
---     (hsrc : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u))
---     (hagree : CoupledDuhamelT6SliceAgreement p T u)
---     (R : CoupledDuhamelClassicalResidualAfterT6 p T u) :
---     intervalDomainClassicalRegularity T u (coupledChemicalConcentration p u)
-
-end ShenWork.IntervalCoupledRegularityBootstrap
+∀ x ∈ Set.Icc (0 : ℝ) 1, ...
 ```
 
-The proof pattern is important:
+This restriction is essential because:
 
 ```lean
--- hpack := coupledDuhamel_T6_closedSlicePack hsrc hagree
---
--- intervalDomainClassicalRegularity_of_atoms
---   { interiorC2 :=
---       -- u-side from hpack, v-side from R.v_interiorC2
---     timeC1 := R.timeC1
---     jointTimeDeriv := R.jointTimeDeriv
---     neumannLimits :=
---       -- u-side from hpack, v-side from R.v_neumannLimits
---     closedC2 :=
---       -- u-side from hpack, v-side from R.v_closedC2
---     closedJointTimeDeriv := R.closedJointTimeDeriv
---     jointValue := R.jointValue }
+intervalDomainLift f x = if hx : x ∈ Set.Icc 0 1 then f ⟨x,hx⟩ else 0
 ```
 
-So the split is exactly:
+For `x ∉ [0,1]`, the RHS lift is `0`, while `evalST τ (x : WA.Circ) ...` is a circle/Wiener evaluation and is not definitionally zero. Therefore a global `∀ x : ℝ` version would be a genuine/false extra claim, not a definitional one.
 
-| Atom in `intervalDomainClassicalRegularity` | u-side source | v-side / time source |
-|---|---|---|
-| `interiorC2` | T6 `hpack` restricted from closed to open | `R.v_interiorC2` |
-| `timeC1` | `R.timeC1` | `R.timeC1` |
-| `jointTimeDeriv` | `R.jointTimeDeriv` | `R.jointTimeDeriv` |
-| `neumannLimits` | T6 `hpack` | `R.v_neumannLimits` |
-| `closedC2` | T6 `hpack` | `R.v_closedC2` |
-| `closedJointTimeDeriv` | `R.closedJointTimeDeriv` | `R.closedJointTimeDeriv` |
-| `jointValue` | `R.jointValue` | `R.jointValue` |
+### Time scope
 
-This shows the residual is deliberately the **post-T6 complement** of the full classical regularity atom list.
-
-## What it is not carrying
-
-It does not carry `u_pos`, `pde_u`, or `InitialTrace`. Those are in the next wrapper:
+For `τ : TimeDom T`, no interior-time hypothesis is needed:
 
 ```lean
-import ShenWork.PDE.IntervalCoupledRegularityBanked
-
-open MeasureTheory
-open scoped Topology
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDuhamelClosedC2
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalNeumannFullKernel
-open ShenWork.Paper2
-
--- structure CoupledDuhamelResidualAfterBankedT6
---     (p : CM2Params) (T : ℝ) (u₀ : intervalDomainPoint → ℝ)
---     (u : ℝ → intervalDomainPoint → ℝ) : Prop where
---   u_pos : ∀ t x, 0 < t → t < T → 0 < u t x
---   pde_u : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
---     intervalDomain.timeDeriv u t x =
---       intervalDomain.laplacian (u t) x
---         - p.χ₀ * intervalDomain.chemotaxisDiv p (u t)
---             (coupledChemicalConcentration p u t) x
---         + u t x * (p.a - p.b * (u t x) ^ p.α)
---   classicalResidual : CoupledDuhamelClassicalResidualAfterT6 p T u
---   initialTrace : InitialTrace intervalDomain u₀ u
-#check CoupledDuhamelResidualAfterBankedT6
-
-end ShenWork.IntervalCoupledRegularityBootstrap
+τ.2 : τ.1 ∈ Set.Icc (0 : ℝ) T
 ```
 
-And after using gradient-mild positivity plus the banked initial-approach theorem, the remaining frontier is:
+Therefore `realSlice u_star τ.1` always unfolds through `dif_pos τ.2`. The existing h_u slab works for all `τ : TimeDom T`, not just `τ.1 ∈ Set.Ioo 0 T`.
 
-```lean
-import ShenWork.PDE.IntervalCoupledResidualAfterBankedT6Discharge
-
-open scoped Topology
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildPicardThreshold
-open ShenWork.IntervalMildToClassical
-open ShenWork.IntervalDomainPdeUProducer
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalDuhamelClosedC2
-
--- structure CoupledDuhamelBankedT6Frontier
---     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---     (D : GradientMildSolutionData p u₀) : Prop where
---   pde_u : ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
---     intervalDomain.timeDeriv D.u t x =
---       intervalDomain.laplacian (D.u t) x
---         - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
---             (coupledChemicalConcentration p D.u t) x
---         + D.u t x * (p.a - p.b * (D.u t x) ^ p.α)
---   classicalResidual : CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
-#check CoupledDuhamelBankedT6Frontier
-
-end ShenWork.IntervalCoupledRegularityBootstrap
-```
-
-And in the χ₀=0 spectral specialization:
-
-```lean
-import ShenWork.PDE.IntervalCoupledResidualAfterBankedT6Discharge
-
-open scoped Topology
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildPicardThreshold
-open ShenWork.IntervalMildToClassical
-open ShenWork.IntervalDomainPdeUProducer
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalDuhamelClosedC2
-
--- structure CoupledDuhamelBankedT6ChiZeroFrontier
---     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---     (D : GradientMildSolutionData p u₀) : Prop where
---   hpde : HasSpectralPdeAgreement p D.T D.u
---   classicalResidual : CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
-#check CoupledDuhamelBankedT6ChiZeroFrontier
-
-end ShenWork.IntervalCoupledRegularityBootstrap
-```
-
-That confirms the layering:
-
-```text
-T6 hsrc+hagree
-  closes: u closed C² + u Neumann slice data
-
-CoupledDuhamelClassicalResidualAfterT6
-  carries: v spatial/Neumann data + all u/v time/joint/value continuity
-
-CoupledDuhamelResidualAfterBankedT6
-  carries: u positivity + pde_u + classicalResidual + initialTrace
-
-GradientMildData + banked initial approach
-  closes: u positivity + initialTrace
-
-Spectral PDE producer, in χ₀=0 or full-source form
-  closes: pde_u
-
-Remaining named post-banked-T6 frontier
-  often reduces to: CoupledDuhamelClassicalResidualAfterT6
-```
-
-## Can it be discharged from existing banked spectral/frontier data?
-
-There is a theorem that turns the already banked regularity frontier into this residual:
-
-```lean
-import ShenWork.PDE.IntervalCoupledClassicalResidualAfterT6FromBanked
-
-open scoped Topology
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildRegularityBootstrap
-  (HasRestartCosineRepresentations)
-open ShenWork.IntervalMildTimeDerivContinuity
-  (HasTimeNeighborhoodSpectralAgreement)
-open ShenWork.IntervalResolverDirectTimeRegularity
-  (HasResolverDirectSpectralData)
-open ShenWork.IntervalMildToClassical
-open ShenWork.Paper2
-open ShenWork.Paper2.RegularityFrontierWiring
-
--- theorem coupledDuhamelClassicalResidualAfterT6_of_frontier
---     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---     (D : GradientMildSolutionData p u₀)
---     (F : GradientMildClassicalRegularityFrontierData p D) :
---     CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
-#check coupledDuhamelClassicalResidualAfterT6_of_frontier
-
--- theorem coupledDuhamelClassicalResidualAfterT6_of_banked_resolver_O1_T6
---     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---     (D : GradientMildSolutionData p u₀)
---     (Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u)
---     (Hv : HasResolverDirectSpectralData D.T
---       (mildChemicalConcentration p D.u) p)
---     (Hrestart : HasRestartCosineRepresentations D.T D.u)
---     (Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
---       0 < mildChemicalConcentration p D.u t x) :
---     CoupledDuhamelClassicalResidualAfterT6 p D.T D.u
-#check coupledDuhamelClassicalResidualAfterT6_of_banked_resolver_O1_T6
-
-end ShenWork.IntervalCoupledRegularityBootstrap
-```
-
-That theorem says the residual is available if you have the older/banked regularity frontier data:
-
-* `Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u`,
-* `Hv : HasResolverDirectSpectralData D.T (mildChemicalConcentration p D.u) p`,
-* `Hrestart : HasRestartCosineRepresentations D.T D.u`,
-* `Hvpos : strict positivity of mildChemicalConcentration`.
-
-But that is not “T6 source data alone.” It uses the regularity-frontier machinery to provide the time/joint/v-side atoms.
+If instead one states a lemma at an arbitrary real `t : ℝ`, then the branch depends on a proof of `t ∈ [0,T]`; outside `[0,T]`, `realSlice u_star t` is defined to be `0`.
 
 ## Answer to the direct question
 
-For `CoupledDuhamelClassicalResidualAfterT6 p D.T D.u`, the fields are exactly:
+The proposed reasoning is correct for the **real part**:
 
-1. `v_interiorC2` — v/resolver interior spatial `C²` on `(0,1)`.
-2. `timeC1` — pointwise time `C¹` data for both `D.u` and `coupledChemicalConcentration p D.u`.
-3. `jointTimeDeriv` — joint continuity of time derivatives on `(0,D.T) × (0,1)` for both lifted fields.
-4. `v_neumannLimits` — v/resolver one-sided Neumann derivative limits at `0` and `1`.
-5. `v_closedC2` — v/resolver closed-interval `C²` plus endpoint derivative equalities.
-6. `closedJointTimeDeriv` — joint continuity of time derivatives on `(0,D.T) × [0,1]` for both lifted fields.
-7. `jointValue` — joint continuity of lifted values on `(0,D.T) × [0,1]` for both lifted fields.
+```text
+Re(evalST τ x (incl u_star))
+= realSlice u_star τ.1 ⟨x,hx⟩
+= intervalDomainLift (realSlice u_star τ.1) x
+```
 
-It is the **post-T6 classical-regularity residual**, not the full mild-to-classical residual. T6 closes the u spatial/Neumann slice atoms; this structure carries the v-side and temporal/joint atoms still needed to assemble `intervalDomainClassicalRegularity`.
+up to the harmless subtype rewrite `⟨τ.1,τ.2⟩ = τ` and the spatial branch `hx : x ∈ [0,1]`.
+
+But the existing current atom used by `realizes_clean` is stronger:
+
+```lean
+evalST τ x (incl u_star) = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
+```
+
+For that, definitional unfolding gives only the real part. The imaginary part is closed by `EvenRealEWA`:
+
+```lean
+(evalST τ x (incl u_star)).im = 0
+```
+
+So the final verdict is:
+
+```text
+Re-only h_u:        trivial definitional unfolding on x ∈ [0,1].
+Current complex h_u: real part trivial; imaginary part needs even-real/parity.
+Not a PDE/source gap: the only non-definitional content is algebraic reality of evalST.
+Not valid globally in x: intervalDomainLift is a zero-extension outside [0,1].
+```
