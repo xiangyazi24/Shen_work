@@ -85,10 +85,8 @@ structure BFormBankedInputs
   MInit : ℝ
   haInit : ∀ n,
     |cosineCoeffs (intervalDomainLift u₀) n| ≤ MInit
-  hlogSrc : DuhamelSourceTimeC1On
-    (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
-  hchemSrc : DuhamelSourceTimeC1On
-    (coupledChemDivSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
+  hsrcBDirect : DuhamelSourceTimeC1On
+    (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
   hB_global : ∀ t, 0 < t → t ≤ DB.T →
     Set.EqOn
       (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
@@ -123,7 +121,7 @@ def BFormBankedInputs.hsrcB
     (B : BFormBankedInputs p DB) :
     DuhamelSourceTimeC1On
       (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T :=
-  bFormSource_duhamelSourceTimeC1On B.hlogSrc B.hchemSrc
+  B.hsrcBDirect
 
 /-- Eigenvalue-weighted restart coefficient summability from the windowed
 `DuhamelSourceTimeC1On` source via the homogeneous + Duhamel triangle split. -/
