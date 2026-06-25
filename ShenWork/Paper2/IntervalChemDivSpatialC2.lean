@@ -94,8 +94,6 @@ theorem chemFluxDeriv_contDiff_two
     exact (chemFlux_contDiff_three hu hv hv_pos hβnn).of_le (by norm_num)
   exact h3.deriv'
 
-/-- The chemDiv source lift is C² on [0,1] when the flux is C³.
-chemDivLift = intervalDomainLift (chemotaxisDiv ...) = deriv(flux) on [0,1]. -/
 /-- For GLOBAL C⁴ u, v (e.g. heat semigroup cosine series), chemDivLift is C² on [0,1].
 The key: chemDivLift = deriv(chemFluxFun) on [0,1] by definition unfolding,
 and deriv(chemFluxFun) is GLOBALLY C² from chemFluxDeriv_contDiff_two. -/
@@ -105,7 +103,7 @@ theorem chemDivLift_contDiffOn_two_of_global
     (hv : ContDiff ℝ 4 (intervalDomainLift v))
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
     ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
-  have hglobal := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ.le
+  have hglobal := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
   have h_eq : ∀ x ∈ Icc (0 : ℝ) 1,
       chemDivLift p u v x = deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
     intro x hx
