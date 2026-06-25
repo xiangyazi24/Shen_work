@@ -1,195 +1,124 @@
-# Q570 (cron2): uniform-in-`n` bounds for `coupledChemDivAdot`
+# Q571 (cron2): sup/L∞ bound route for `coupledChemDivAdot`
 
 ## Executive verdict
 
-On `chatgpt-scratch`, I found **no unconditional heat-level0 theorem** and no theorem specialized to
+There is **no existing bound theorem** on `chatgpt-scratch` proving a uniform sup/L∞ bound of the form
 
 ```lean
-u = conjugatePicardIter p u₀ 0
+∀ s ∈ Icc c T, ∀ x ∈ Icc (0:ℝ) 1,
+  |coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) s x| ≤ B
 ```
 
-that proves
+nor a general sufficient-regularity theorem that bounds
 
 ```lean
-∃ Mdot, ∀ s ∈ Icc c T, ∀ n,
-  |coupledChemDivAdot p u s n| ≤ Mdot
+|coupledChemDivTimeDerivativeLift p u s x|.
 ```
 
-or even the `[0,T]` version without additional analytic inputs.
+Searches for `coupledChemDivTimeDerivativeLift bound/sup/L∞/Linfty/B_sup/hbd` found no producer on `chatgpt-scratch`.  The only match with a `B_sup` field is `ChemDivAdotEnvelope.lean` on the indexed/default branch, and that file is **absent** on `chatgpt-scratch` (`fetch_file(..., ref = "chatgpt-scratch")` returns 404).
 
-What exists on `chatgpt-scratch` is only the **residual converter**:
+However, your proposed shortcut is absolutely the right shape: the repo already has the generic coefficient estimate
 
 ```lean
-chemDivAdot_Mdot_residual
+|cosineCoeffs f n| ≤ 2 * B
 ```
 
-It turns a supplied nonnegative summable envelope for `|coupledChemDivAdot p u s n|` into a single uniform `Mdot`.  It does **not** construct that envelope.
-
-There is a stronger file, `ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean`, visible in the repository's indexed/default branch, that provides conditional producers from quadratic decay / spatial H² data.  But `fetch_file(..., ref="chatgpt-scratch")` returns **404** for that file, so it is **not currently present on `chatgpt-scratch`**.  Porting or recreating that file would give useful conditional Mdot producers, but still not an unconditional heat-level0 bound: it requires H²/quadratic-decay inputs for the time-derivative field.
-
-Bottom line: the genuine residual is real.  The repo has the abstract envelope-to-Mdot theorem on `chatgpt-scratch`; default has conditional H²/quadratic-decay producers; neither branch has a ready-made heat-semigroup-level0 uniform `Mdot` theorem.
-
-## 1. `ChemDivAdot.lean` on `chatgpt-scratch`: envelope residual only
-
-`ShenWork/Wiener/EWA/ChemDivAdot.lean:165` states explicitly that per-mode continuity does **not** imply a uniform-in-`n` bound:
+for every mode `n`, assuming `f` is continuous on `[0,1]` and `|f| ≤ B`.  Therefore the Level0 `Mdot` residual can be reduced to exactly two analytic facts:
 
 ```lean
-The uniform bound `Mdot` is a SINGLE real with `|coupledChemDivAdot p u s n| ≤ Mdot`
-for ALL `n` and all `s ∈ [0,T]`.  Per-mode smoothness gives continuity of each
-`s ↦ coupledChemDivAdot p u s n` on the compact `[0,T]`, hence a per-`n` bound — but the
-constant depends on `n` and there is no uniform control as `n → ∞` from smoothness alone.
+hcont : ∀ s ∈ Icc c T,
+  ContinuousOn (coupledChemDivTimeDerivativeLift p u s) (Icc (0:ℝ) 1)
+
+hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc (0:ℝ) 1,
+  |coupledChemDivTimeDerivativeLift p u s x| ≤ B
 ```
 
-The only Mdot theorem in this file is the residual converter:
+Then `Mdot := 2 * B` works for all modes, with no H²/quadratic-decay requirement.
 
-`ShenWork/Wiener/EWA/ChemDivAdot.lean:185`
+## 1. Existing generic cosine-coefficient sup bound
+
+`ShenWork/Paper2/IntervalMildPicardRegularity.lean:837` on `chatgpt-scratch`:
 
 ```lean
-theorem chemDivAdot_Mdot_residual
+/-- Cosine coefficients of a bounded continuous function on `[0,1]` are uniformly bounded. -/
+theorem cosineCoeffs_abs_le_of_continuous_bounded
+    {f : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    {B : ℝ} (hB : 0 ≤ B)
+    (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
+    ∀ n, |cosineCoeffs f n| ≤ 2 * B
+```
+
+This theorem is already used for heat/Picard C² base data immediately below it (`picardIterateHasC2Slices_zero`) to uniformly bound cosine coefficients of bounded continuous initial data.
+
+For `adot`, since
+
+```lean
+coupledChemDivAdot p u s n = cosineCoeffs (coupledChemDivTimeDerivativeLift p u s) n
+```
+
+by definition, the missing bridge should be very small:
+
+```lean
+theorem chemDivAdot_Mdot_of_timeDeriv_sup_on
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (env : ℕ → ℝ) (henvnn : ∀ n, 0 ≤ env n) (henvsum : Summable env)
-    (henv : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n, |coupledChemDivAdot p u s n| ≤ env n) :
-    ∃ Mdot : ℝ, ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ Mdot
+    {c T B : ℝ} (hB : 0 ≤ B)
+    (hcont : ∀ s ∈ Icc c T,
+      ContinuousOn (coupledChemDivTimeDerivativeLift p u s) (Icc (0:ℝ) 1))
+    (hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc (0:ℝ) 1,
+      |coupledChemDivTimeDerivativeLift p u s x| ≤ B) :
+    ∃ Mdot : ℝ, ∀ s ∈ Icc c T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot := by
+  refine ⟨2 * B, ?_⟩
+  intro s hs n
+  simpa [coupledChemDivAdot] using
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      (hcont s hs) hB (hbd s hs) n
 ```
 
-Interpretation: this is useful once you prove an envelope, but it does not prove any pointwise coefficient decay or H² regularity by itself.
+This is strictly easier than the H²/quadratic-decay route if all you need is a uniform-in-mode bound.
 
-## 2. `CoupledChemDivTimeC1Fields`: Mdot is an input field, not produced
+## 2. Full `coupledChemDivTimeDerivativeLift` bound: not found
 
-`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:96`
+The definition of the field to be bounded is in `ShenWork/PDE/IntervalChemDivTimeDerivative.lean:31`:
 
 ```lean
-structure CoupledChemDivTimeC1Fields
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
-  ...
-  hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n)
-  MchemDot : ℝ
-  hMdot : ∀ s, 0 ≤ s → ∀ n, |coupledChemDivAdot p u s n| ≤ MchemDot
+def coupledChemDivTimeDerivativeLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s x : ℝ) : ℝ :=
+  deriv
+    (fun y : ℝ =>
+      let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
+      let vt : ℝ → ℝ := coupledChemicalTimeDerivativeLift p u s
+      ShenWork.Paper2.PicardLimitK1.slopeSlice u s y * deriv v y /
+          (1 + v y) ^ p.β +
+        intervalDomainLift (u s) y * deriv vt y / (1 + v y) ^ p.β -
+        p.β * intervalDomainLift (u s) y * deriv v y * vt y /
+          (1 + v y) ^ (p.β + 1))
+    x
 ```
 
-`hMdot` is then passed through when constructing the source time-C¹ package:
-
-`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:130`
-
-```lean
-noncomputable def coupledChemDivSource_timeC1_of_fields
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (F : CoupledChemDivTimeC1Fields p u) :
-    DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u)
-```
-
-with the call ending in:
-
-```lean
-... (Mdot := F.MchemDot) F.hMdot
-```
-
-So this structure does not solve the residual; it requires it.
-
-## 3. `IntervalChemDivWinDischarge.lean`: residual bundle also carries `hMdot`
-
-`ShenWork/Paper2/IntervalChemDivWinDischarge.lean:79`
-
-```lean
-structure ChemDivSolutionRegularityResidual
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
-  ...
-  hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n)
-  MchemDot : ℝ
-  hMdot : ∀ s, 0 ≤ s → ∀ n, |coupledChemDivAdot p u s n| ≤ MchemDot
-```
-
-The residual is wired into the global source package:
-
-`ShenWork/Paper2/IntervalChemDivWinDischarge.lean:122`
-
-```lean
-theorem fluxJointC2Hyp_of_residual {u : ℝ → intervalDomainPoint → ℝ}
-    (R : ChemDivSolutionRegularityResidual p u) :
-    CoupledChemDivFluxJointC2Hyp p u
-```
-
-and then:
-
-`ShenWork/Paper2/IntervalChemDivWinDischarge.lean:131`
-
-```lean
-noncomputable def coupledChemDivSource_duhamelSourceTimeC1_of_residual
-    {u : ℝ → intervalDomainPoint → ℝ}
-    (R : ChemDivSolutionRegularityResidual p u) :
-    DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u)
-```
-
-The call passes `R.hadotcont R.MchemDot R.hMdot`, so again the uniform adot bound is assumed in the residual bundle, not generated there.
-
-## 4. `ChemDivAdotEnvelope.lean`: useful conditional producers, but absent on `chatgpt-scratch`
-
-Attempted branch fetch:
+Searches for these patterns found no producer:
 
 ```text
-fetch_file(path = "ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean", ref = "chatgpt-scratch")
-→ 404 Not Found
+coupledChemDivTimeDerivativeLift bound sup L∞ Linfty
+coupledChemDivTimeDerivativeLift B_sup hbd |coupledChemDivTimeDerivativeLift|
+"|coupledChemDivTimeDerivativeLift"
+"coupledChemDivTimeDerivativeLift p u s x" "≤"
+"B_sup" "coupledChemDivTimeDerivativeLift"
 ```
 
-The file exists on the repository's indexed/default branch.  It is exactly the missing conditional envelope/Mdot producer.
+The only theorem mentioning an explicit sup bound for this field is the default-branch `ChemDivAdotEnvelope.lean` theorem below, where the bound is a hypothesis.
 
-### Envelope definition and lemmas
+## 3. `ChemDivAdotEnvelope.lean`: conditional hbd consumer, not a bound producer
 
-`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:62` on default/indexed branch:
+On `chatgpt-scratch`, this path is missing:
 
-```lean
-noncomputable def adotEnvelope (Cdot : ℝ) (n : ℕ) : ℝ :=
-  if n = 0 then Cdot else Cdot / ((n : ℝ) * Real.pi) ^ 2
+```text
+ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean  -- 404 on ref=chatgpt-scratch
 ```
 
-`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:67`
+On the indexed/default branch, it contains:
 
-```lean
-theorem adotEnvelope_nonneg {Cdot : ℝ} (hC : 0 ≤ Cdot) :
-    ∀ n, 0 ≤ adotEnvelope Cdot n
-```
-
-`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:82`
-
-```lean
-theorem adotEnvelope_summable {Cdot : ℝ} (hC : 0 ≤ Cdot) :
-    Summable (adotEnvelope Cdot)
-```
-
-`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:109`
-
-```lean
-theorem adotEnvelope_bound
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {Cdot : ℝ} {s : ℝ}
-    (hzero : |coupledChemDivAdot p u s 0| ≤ Cdot)
-    (hdecay : ∀ n : ℕ, 1 ≤ n →
-      |coupledChemDivAdot p u s n| ≤ Cdot / ((n : ℝ) * Real.pi) ^ 2) :
-    ∀ n, |coupledChemDivAdot p u s n| ≤ adotEnvelope Cdot n
-```
-
-### Uniform Mdot from quadratic decay
-
-`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:137` on default/indexed branch:
-
-```lean
-theorem chemDivAdot_Mdot_of_quadratic_decay
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {Cdot : ℝ} (hC : 0 ≤ Cdot)
-    (hzero : ∀ s ∈ Icc (0 : ℝ) T,
-      |coupledChemDivAdot p u s 0| ≤ Cdot)
-    (hdecay : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
-      |coupledChemDivAdot p u s n| ≤ Cdot / ((n : ℝ) * Real.pi) ^ 2) :
-    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ Mdot
-```
-
-This is exactly the desired output shape, but the hypotheses are still the genuine analytic work: mode-0 bound plus uniform quadratic decay for all `n ≥ 1`.
-
-### Uniform Mdot from spatial H²/sup bounds
-
-`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:163` on default/indexed branch:
+`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:163`:
 
 ```lean
 theorem chemDivAdot_Mdot_of_spatial_H2
@@ -205,41 +134,108 @@ theorem chemDivAdot_Mdot_of_spatial_H2
       |coupledChemDivAdot p u s n| ≤ Mdot
 ```
 
-This is the more practical theorem to port/adapt for level 0.  It still requires a uniform sup bound for the time-derivative field and a raw quadratic coefficient-decay estimate, i.e. the H² regularity of `coupledChemDivTimeDerivativeLift` on the time window.
+This theorem confirms the intended interface: a uniform sup bound `hbd` on `coupledChemDivTimeDerivativeLift` is recognized as useful.  But the theorem does **not** prove `hbd`; it consumes it.  Also, it includes an extra H²/quadratic-decay input for positive modes, which is unnecessary for the simpler all-mode `2*B_sup` argument above.
 
-## 5. Search conclusion
+## 4. Individual terms: no full numerical bound found
 
-Searches for:
+The expression for `coupledChemDivTimeDerivativeLift` needs bounds on the spatial derivative of a three-term flux-time expression involving:
 
-```text
-coupledChemDivAdot Mdot bound hMdot
-chemDivAdot_Mdot adotEnvelope chemDivAdot_Mdot_of_quadratic_decay
-"|coupledChemDivAdot" "≤"
-MchemDot hMdot coupledChemDivAdot
-```
+- `intervalDomainLift (u s)`
+- `slopeSlice u s` / `u_t`
+- `v = coupledChemicalConcentration p u s`
+- `deriv v`
+- `vt = coupledChemicalTimeDerivativeLift p u s`
+- `deriv vt`
+- one more outer spatial derivative of the whole expression
+- denominator floors `(1 + v)^β`, `(1 + v)^(β+1)`
 
-found no additional unconditional/specialized bound theorem.  The only relevant results are:
+I found continuity/joint-C²/repr infrastructure for these factors, but not a packaged numerical sup bound.
 
-1. `chemDivAdot_Mdot_residual` on `chatgpt-scratch`, requiring a summable envelope.
-2. `hMdot` fields in `CoupledChemDivTimeC1Fields` and `ChemDivSolutionRegularityResidual`, which are assumptions.
-3. `ChemDivAdotEnvelope.lean` on the default/indexed branch, containing conditional producers from quadratic decay / spatial H² inputs, but missing from `chatgpt-scratch`.
+### Resolver time derivative
 
-## Practical recommendation
-
-For the Level0 heat-semigroup chain, the next target should be a windowed version of the default-branch theorem, probably:
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean` gives continuity/differentiability facts for `coupledChemicalTimeDerivativeLift`, not bounds:
 
 ```lean
-theorem level0_chemDivAdot_Mdot_of_spatial_H2_on
-    ...
-    (hcont : ∀ s ∈ Icc c T, ContinuousOn
-      (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) s) (Icc 0 1))
-    (hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc 0 1,
-      |coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) s x| ≤ B_sup)
-    (hdecay_raw : ∀ s ∈ Icc c T, ∀ n, 1 ≤ n →
-      |coupledChemDivAdot p (conjugatePicardIter p u₀ 0) s n|
-        ≤ 2 * B_H2 / ((n : ℝ) * Real.pi)^2) :
-    ∃ Mdot, ∀ s ∈ Icc c T, ∀ n,
-      |coupledChemDivAdot p (conjugatePicardIter p u₀ 0) s n| ≤ Mdot
+theorem coupledChemicalTimeDerivative_jointContinuousOn_closed
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {U : ℝ}
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)) :
+    ContinuousOn
+      (Function.uncurry (coupledChemicalTimeDerivativeLift p u))
+      (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1)
 ```
 
-The proof should be a direct port of `ChemDivAdotEnvelope.lean`, but with `Icc c T` instead of `Icc 0 T`.  The remaining analytic payload is proving `hbd` and `hdecay_raw` for the heat semigroup time-derivative field.
+and
+
+```lean
+theorem coupledChemicalTimeDerivative_continuousOn_Icc_of_lt_horizon
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {U T c x : ℝ}
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
+    (hc : 0 < c) (hTU : T < U) (hx : x ∈ Icc (0 : ℝ) 1) :
+    ContinuousOn
+      (fun s => coupledChemicalTimeDerivativeLift p u s x)
+      (Icc c T)
+```
+
+Searches for `|coupledChemicalTimeDerivativeLift|` and `coupledChemicalTimeDerivativeLift ≤ ...` found no norm estimate.
+
+### Heat trajectory sup bound exists, but only for `u`, not for chemDiv time derivative
+
+`ShenWork/Paper2/IntervalHsupNormHeat.lean:65` proves the pure heat trajectory remains bounded by the initial sup bound:
+
+```lean
+theorem heat_supNorm_le_initial
+    {u₀ : intervalDomainPoint → ℝ} {B : ℝ} (hB : 0 ≤ B)
+    (hbound : ∀ y, |intervalDomainLift u₀ y| ≤ B)
+    {t : ℝ} (ht : 0 < t) :
+    intervalDomainSupNorm (heatTrajectory u₀ t) ≤ B
+```
+
+This is useful for the `U` factor, but it does not bound `u_t`, `v_t`, `∂ₓv`, `∂ₓv_t`, or the outer spatial derivative defining `coupledChemDivTimeDerivativeLift`.
+
+### Residual bundle still assumes the time-derivative coefficient bound
+
+`ShenWork/Paper2/IntervalChemDivWinDischarge.lean:79` has the residual bundle:
+
+```lean
+structure ChemDivSolutionRegularityResidual
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
+  ...
+  hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n)
+  MchemDot : ℝ
+  hMdot : ∀ s, 0 ≤ s → ∀ n, |coupledChemDivAdot p u s n| ≤ MchemDot
+```
+
+This confirms the bound remains a residual assumption in that route.
+
+## 5. Recommended next Lean target
+
+Add the simple sup-bound-to-Mdot lemma first.  It should build on the existing `cosineCoeffs_abs_le_of_continuous_bounded` and avoid H²/quadratic decay entirely:
+
+```lean
+theorem chemDivAdot_Mdot_of_timeDeriv_sup_on
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {c T B : ℝ} (hB : 0 ≤ B)
+    (hcont : ∀ s ∈ Icc c T,
+      ContinuousOn (coupledChemDivTimeDerivativeLift p u s) (Icc (0:ℝ) 1))
+    (hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc (0:ℝ) 1,
+      |coupledChemDivTimeDerivativeLift p u s x| ≤ B) :
+    ∃ Mdot, ∀ s ∈ Icc c T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
+```
+
+Then the genuine heat-semigroup analytic target becomes sharply named:
+
+```lean
+level0_coupledChemDivTimeDerivativeLift_sup_bound
+```
+
+with conclusion roughly:
+
+```lean
+∃ B, 0 ≤ B ∧
+  ∀ s ∈ Icc c T, ∀ x ∈ Icc (0:ℝ) 1,
+    |coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) s x| ≤ B
+```
+
+I did not find this theorem, or any equivalent bound on all the necessary component factors, in the current repo.
