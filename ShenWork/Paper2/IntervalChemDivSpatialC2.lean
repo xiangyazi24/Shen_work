@@ -187,10 +187,18 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     -- F x = deriv(flux with U_cos, V_cos) at x
     -- The two flux functions agree near x ∈ (0,1) because lift u = U_cos and lift v = V_cos on [0,1]
     apply Filter.EventuallyEq.deriv_eq
-    sorry -- EventuallyEq of the two flux functions near x ∈ (0,1):
-    -- need: intervalDomainLift u =ᶠ U_cos, intervalDomainLift v =ᶠ V_cos near x,
-    -- then deriv(lift v) =ᶠ deriv(V_cos) near x (by EventuallyEq.deriv),
-    -- then the flux products agree pointwise near x.
+    have hmem : x ∈ Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
+    have hu_eq : intervalDomainLift u =ᶠ[nhds x] U_cos := by
+      filter_upwards [isOpen_Ioo.mem_nhds hmem] with z hz
+      exact h_agree_u z ⟨hz.1.le, hz.2.le⟩
+    have hv_eq : intervalDomainLift v =ᶠ[nhds x] V_cos := by
+      filter_upwards [isOpen_Ioo.mem_nhds hmem] with z hz
+      exact h_agree_v z ⟨hz.1.le, hz.2.le⟩
+    have hdv_eq : deriv (intervalDomainLift v) =ᶠ[nhds x] deriv V_cos :=
+      hv_eq.deriv
+    filter_upwards [hu_eq, hv_eq, hdv_eq] with y hu_y hv_y hdv_y
+    simp only [chemFluxFun]
+    rw [hu_y, hv_y, hdv_y]
   -- Transfer via Ioo agreement: the H2 structure only uses f through ∫₀¹ cos·f,
   -- which is insensitive to endpoint values (measure zero). Build H2 for chemDivLift
   -- with the SAME secondDeriv as F's H2, since the weak_cosine_laplacian identity
@@ -200,7 +208,20 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     second_intervalIntegrable := hF_H2.second_intervalIntegrable
     second_abs_integral_bound := hF_H2.second_abs_integral_bound
     weak_cosine_laplacian := fun k => by
-      sorry }
+      have hF_wl := hF_H2.weak_cosine_laplacian k
+      convert hF_wl using 1
+      refine intervalIntegral.integral_congr_ae ?_
+      rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+      have hsingleton : MeasureTheory.volume ({(1:ℝ)} : Set ℝ) = 0 := by simp
+      have : ∀ᵐ x ∂MeasureTheory.volume.restrict (Ioc (0:ℝ) 1),
+          Real.cos (↑k * Real.pi * x) * chemDivLift p u v x =
+          Real.cos (↑k * Real.pi * x) * F x := by
+        rw [MeasureTheory.ae_restrict_iff' measurableSet_Ioc]
+        have : ∀ᵐ x ∂MeasureTheory.volume, x ≠ 1 := by
+          rw [Filter.eventually_iff]; simp [MeasureTheory.ae_iff, hsingleton]
+        filter_upwards [this] with x hne hx
+        rw [h_ioo x ⟨hx.1, lt_of_le_of_ne hx.2 hne⟩]
+      exact this }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
