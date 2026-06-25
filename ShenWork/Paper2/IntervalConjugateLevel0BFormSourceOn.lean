@@ -398,31 +398,39 @@ theorem level0_chemDiv_timeDerivData
   -- The chain rule for ∂ₜ(∇·(u·χ(v)·∇v)) uses ∂ₜu = Δu (the heat equation).
   --
   -- Step 1: CoupledChemDivLocalChainRule for the heat semigroup trajectory.
-  -- This is the pointwise chain rule + local dominated-convergence slab.
-  -- SORRY: needs ~60 lines connecting the heat equation ∂ₜu = Δu through
-  -- the composed chemDiv functional to produce the local HasDerivAt slab.
-  have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
+  -- Wired through the committed chain:
+  --   FluxJointC2Hyp → OuterCommuteAtoms → LocalChainRule.
+  -- The FluxJointC2Hyp carries 5 fields (per-slab source continuity, joint C²
+  -- of uncurried flux, spatial/time fderiv bridges, time-derivative continuity).
+  -- For the heat semigroup each field holds because S(t)u₀ is jointly C∞ for
+  -- t > 0, the resolver inherits regularity via the spectral route, and the
+  -- flux is a smooth composition.  The sorry covers the heat-semigroup-specific
+  -- wiring of these 5 fields; the chain FluxJointC2Hyp → OuterCommuteAtoms →
+  -- LocalChainRule is already committed infrastructure.
+  have hfluxC2 : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
       p (conjugatePicardIter p u₀ 0) := by
     sorry
-    -- The heat semigroup u(s,x) = S(s)u₀(x) satisfies ∂ₜu = Δu with
-    -- smooth spatial dependence for s > 0.  The resolver v = Γ_μ(u) inherits
-    -- time differentiability from the spectral route.  The chemDiv source
-    -- F(s,x) = ∂ₓ(u·∂ₓv/(1+v)^β) is a smooth composition, so ∂ₜF exists
-    -- and equals the chain-rule expression coupledChemDivTimeDerivativeLift.
-    -- The local slab hypothesis (HasDerivAt on a ball + joint continuity of
-    -- the derivative field) follows from the joint smoothness of the heat
-    -- semigroup on (0,∞)×[0,1].
+  have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
+      p (conjugatePicardIter p u₀ 0) :=
+    ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
   -- Step 2: Joint continuity of the chain-rule field on [c,T]×[0,1].
-  -- SORRY: needs ~40 lines from the resolver time-regularity route.
+  -- Derived FROM hchain: each τ ∈ [c,T] gives per-slab continuity on
+  -- Icc (τ-δ) (τ+δ) ×ˢ Icc 0 1 (from hchain.exists_local_slab).
+  -- ContinuousOn is local, so it suffices to check at each point.
   have hjointcont : ContinuousOn
       (Function.uncurry (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivTimeDerivativeLift
         p (conjugatePicardIter p u₀ 0)))
       (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-    sorry
-    -- From coupledChemicalTimeDerivative_jointContinuousOn_closed and the
-    -- composition chain for the chemDiv time derivative.  The heat semigroup
-    -- trajectory and its time/spatial derivatives are jointly continuous on
-    -- (0,∞) × ℝ, hence on the compact slab [c,T] × [0,1] with c > 0.
+    intro ⟨s, x⟩ hsx
+    obtain ⟨hs, hx⟩ := mem_prod.1 hsx
+    -- Get the local slab from hchain at τ = s
+    rcases hchain.exists_local_slab s with ⟨δ, hδ, _, _, hcont⟩
+    -- The point (s,x) is in the local slab Icc (s-δ) (s+δ) ×ˢ Icc 0 1
+    have hmem : (s, x) ∈ Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1 :=
+      mem_prod.2 ⟨⟨by linarith, by linarith⟩, hx⟩
+    -- The target set is contained in the local slab
+    exact ContinuousWithinAt.mono (hcont.continuousWithinAt hmem)
+      (Set.prod_mono (fun t ht => ⟨by linarith [ht.1], by linarith [ht.2]⟩) le_rfl)
   -- Step 3: HasDerivWithinAt from the chain rule (HasDerivAt → HasDerivWithinAt).
   set adot := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot
     p (conjugatePicardIter p u₀ 0) with hadot_def
