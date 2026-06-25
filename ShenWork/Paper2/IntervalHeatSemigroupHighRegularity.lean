@@ -45,8 +45,8 @@ theorem heatSemigroup_eigenvalueSq_summable
     _ = unitIntervalCosineEigenvalue k ^ 2 *
         Real.exp (-t * unitIntervalCosineEigenvalue k) * M₀ := by ring
 
-/-- The heat semigroup applied to bounded initial data is C⁴ in space for t > 0. -/
 set_option maxHeartbeats 800000 in
+/-- The heat semigroup applied to bounded initial data is C⁴ in space for t > 0. -/
 theorem heatSemigroup_contDiff_four
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
