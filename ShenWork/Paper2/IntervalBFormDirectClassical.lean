@@ -7,6 +7,7 @@ import ShenWork.PDE.IntervalCoupledRegularityBootstrap
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalResolverSpatialC2
 import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
+import ShenWork.Paper2.IntervalBFormSpectralProviderDischargeOn
 
 open Filter Topology Set
 
@@ -17,7 +18,7 @@ open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData ConjugatePicardInfThresholdData
    conjugateMildSolutionData_of_data conjugatePicardLimit paperPositiveFloor)
 open ShenWork.IntervalMildRegularityBootstrap
-  (HasRestartCosineRepresentations RestartCosineRepresentation restartDuhamelCoeff)
+  (restartDuhamelCoeff)
 open ShenWork.IntervalMildTimeDerivContinuity
   (HasTimeNeighborhoodSpectralAgreement)
 open ShenWork.IntervalResolverDirectTimeRegularity
@@ -32,7 +33,10 @@ open ShenWork.IntervalDuhamelSourceTimeC1On
   (DuhamelSourceTimeC1On)
 open ShenWork.IntervalBFormSpectral
   (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1
-   bFormSource_duhamelSourceTimeC1On)
+   bFormSource_duhamelSourceTimeC1On
+   LogisticCosineFourierData ChemDivCosineFourierData
+   logisticCosineFourierData_constExtend
+   chemDivCosineFourierData_constExtend)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
    coupledLogisticSourceCoeffs sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
@@ -75,10 +79,10 @@ structure BFormBankedInputs
   MInit : ℝ
   haInit : ∀ n,
     |cosineCoeffs (intervalDomainLift u₀) n| ≤ MInit
-  hlogSrc : DuhamelSourceTimeC1
-    (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
-  hchemSrc : DuhamelSourceTimeC1
-    (coupledChemDivSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+  hlogSrc : DuhamelSourceTimeC1On
+    (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
+  hchemSrc : DuhamelSourceTimeC1On
+    (coupledChemDivSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
   hB_global : ∀ t, 0 < t → t ≤ DB.T →
     Set.EqOn
       (intervalDomainLift (conjugatePicardLimit p u₀ DB.T t))
@@ -122,9 +126,9 @@ def BFormBankedInputs.hsrcB
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
     (B : BFormBankedInputs p DB) :
-    DuhamelSourceTimeC1
-      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) :=
-  bFormSource_duhamelSourceTimeC1 B.hlogSrc B.hchemSrc
+    DuhamelSourceTimeC1On
+      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T :=
+  bFormSource_duhamelSourceTimeC1On B.hlogSrc B.hchemSrc
 
 /-- Windowed restriction of the B-form source for the `On`-based regularity path. -/
 def BFormBankedInputs.hsrcB_on
@@ -133,7 +137,7 @@ def BFormBankedInputs.hsrcB_on
     (B : BFormBankedInputs p DB) :
     DuhamelSourceTimeC1On
       (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T :=
-  ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1.toOn B.hsrcB 0 DB.T le_rfl
+  B.hsrcB
 
 /-- Eigenvalue-weighted restart coefficient summability from the windowed
 `DuhamelSourceTimeC1On` source via the homogeneous + Duhamel triangle split. -/
@@ -175,26 +179,6 @@ private theorem bform_B_global_as_restartCoeff_eqOn
   intro x hx
   exact B.hB_global t ht htT hx
 
-theorem hasRestartCosineRepresentations_of_BFormBankedInputs
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {DB : ConjugateMildExistenceData p u₀}
-    (B : BFormBankedInputs p DB) :
-    HasRestartCosineRepresentations DB.T
-      (conjugatePicardLimit p u₀ DB.T) := by
-  intro t ht htT
-  refine ⟨?_⟩
-  refine
-    { τ := t
-      hτ := ht
-      M := B.MInit
-      a₀ := cosineCoeffs (intervalDomainLift u₀)
-      a := bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)
-      ha₀ := B.haInit
-      src := B.hsrcB
-      hagree := ?_ }
-  intro x hx
-  have h := B.hB_global t ht htT.le hx
-  simpa [restartDuhamelCoeff, localRestartCoeff] using h
 
 theorem BFormBankedInputs.hpde_u
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -211,11 +195,69 @@ theorem BFormBankedInputs.hpde_u
           + (conjugatePicardLimit p u₀ DB.T) t x
             * (p.a - p.b *
               ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.α) :=
-  ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_unconditional
+  ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_global_restart_on
       DB B.huPaper B.Hinf B.hsmall
-      (cosineCoeffs (intervalDomainLift u₀)) B.haInit
-      B.hlogSrc B.hchemSrc B.hB_global
-      B.hlogCont B.hlogFourier B.hchemCont B.hchemFourier
+      (fun σ n => localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+        (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) σ n)
+      (fun σ hσ hσT => bform_restartCoeff_eigenvalue_summable B hσ hσT)
+      (fun σ hσ hσT => bform_B_global_as_restartCoeff_eqOn B hσ hσT.le)
+      (cosineCoeffs (intervalDomainLift u₀))
+      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T))
+      B.hsrcB
+      (fun _ _ _ _ => rfl)
+      B.hB_global
+      (fun t ht htT => by
+        have hhom : Summable (fun n : ℕ =>
+            |Real.exp (-t * unitIntervalCosineEigenvalue n) *
+              cosineCoeffs (intervalDomainLift u₀) n|) := by
+          refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+            ((ShenWork.IntervalSemigroupComposition.expEigSummable ht).mul_right
+              B.MInit)
+          rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+          exact mul_le_mul_of_nonneg_left (B.haInit n) (Real.exp_pos _).le
+        have hduh : Summable (fun n : ℕ =>
+            |ShenWork.IntervalDuhamelClosedC2.duhamelSpectralCoeff
+              (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) t n|) := by
+          refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+            (B.hsrcB.henv_summable.mul_left t)
+          unfold ShenWork.IntervalDuhamelClosedC2.duhamelSpectralCoeff
+          rw [← Real.norm_eq_abs]
+          calc ‖∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+                  bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T) s n‖
+              ≤ B.hsrcB.envelope n * |t - 0| := by
+                apply intervalIntegral.norm_integral_le_of_norm_le_const
+                intro s hs
+                rw [Set.uIoc_of_le ht.le] at hs
+                rw [Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+                calc Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+                      |bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T) s n|
+                    ≤ 1 * |bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T) s n| := by
+                      apply mul_le_mul_of_nonneg_right _ (abs_nonneg _)
+                      rw [Real.exp_le_one_iff]
+                      have hts : 0 ≤ t - s := by linarith [hs.2]
+                      have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+                        unfold unitIntervalCosineEigenvalue; positivity
+                      nlinarith [mul_nonneg hts hlam]
+                  _ = |bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T) s n| :=
+                      one_mul _
+                  _ ≤ B.hsrcB.envelope n :=
+                      B.hsrcB.henv_bound s ⟨le_of_lt hs.1, le_trans hs.2 htT⟩ n
+            _ = t * B.hsrcB.envelope n := by rw [sub_zero, abs_of_pos ht]; ring
+        exact (hhom.add hduh).of_nonneg_of_le
+          (fun n => abs_nonneg _)
+          (fun n => by simp only [localRestartCoeff]; exact abs_add_le _ _))
+      (fun t ht htT =>
+        logisticCosineFourierData_constExtend p
+          (conjugatePicardLimit p u₀ DB.T) t (B.hlogCont t ht htT)
+          (B.hlogFourier t ht htT))
+      (fun t ht htT =>
+        chemDivCosineFourierData_constExtend p
+          ((conjugatePicardLimit p u₀ DB.T) t)
+          (coupledChemicalConcentration p
+            (conjugatePicardLimit p u₀ DB.T) t)
+          (B.hchemCont t ht htT) (B.hchemFourier t ht htT))
+
 
 /-- Direct B-form frontier for one datum.  Every field is map-agnostic: no
 gradient mild record and no output-derivative bridge. -/
@@ -568,7 +610,6 @@ theorem paper2_theorem_1_1_general_chi_bform
 
 #print axioms BFormBankedInputs.hsrcB
 #print axioms BFormBankedInputs.hsrcB_on
-#print axioms hasRestartCosineRepresentations_of_BFormBankedInputs
 #print axioms BFormBankedInputs.hpde_u
 #print axioms intervalConjugatePicardLimit_classicalRegularity_direct
 #print axioms intervalConjugatePicardLimit_initialTrace_direct
