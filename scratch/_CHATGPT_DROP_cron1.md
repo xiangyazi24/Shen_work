@@ -1,239 +1,194 @@
-# Q619 / cron1: eigenvalue-weighted resolver-source summability for the heat semigroup
+# Q623 / cron1: C²-Neumann ⇒ eigenvalue-weighted cosine-coefficient summability?
 
 ## Verdict
 
-I did **not** find a theorem in the repo that directly proves the target hypothesis
+I did **not** find a theorem in `Shen_work` proving the reverse direction
 
 ```lean
-Summable (fun k : ℕ =>
-  unitIntervalCosineEigenvalue k *
-    |(intervalNeumannResolverSourceCoeff p (conjugatePicardIter p u₀ 0 s) k).re|)
+ContDiffOn ℝ 2 f (Set.Icc (0 : ℝ) 1)
+  + Neumann endpoint data
+  ⟹
+Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
 ```
 
-or the equivalent heat-level statement for the resolver source `ν * (S(s)u₀)^γ`.
+Searches for variants of
 
-In other words: the repo has the **consumer** for this hypothesis, and it has several nearby heat/coefficient-summability engines, but I found no producer specialized to
-
-```lean
-u = conjugatePicardIter p u₀ 0 s
+```text
+eigenvalue summable C2
+H2 eigenvalue summable
+contDiff_two implies eigenvalue summable
+closedC2 eigenvalue summable
+of_contDiffOn eigenvalue Summable cosineCoeffs
 ```
 
-and no theorem whose conclusion is eigenvalue-`ℓ¹` summability of
+turn up only the **forward** APIs and weaker decay APIs, not the desired reverse theorem.
 
-```lean
-(intervalNeumannResolverSourceCoeff p u k).re
+Also, analytically, the proposed reverse is not valid from bare `C²` alone.  The repo's existing C²/weak-H² route gives only quadratic coefficient decay
+
+```text
+|a_k| ≤ C / (kπ)^2
 ```
 
-for the heat semigroup / level-0 Picard iterate.
+so
 
-## Exact consumer found
+```text
+λ_k |a_k| ≲ constant
+```
 
-`ShenWork/Paper2/IntervalResolverHighRegularity.lean` has the C⁴ resolver route.  The key theorem is generic and consumes exactly the missing source-side hypothesis:
+which is not summable.  To get `∑ λ_k |a_k| < ∞`, one needs stronger input, for example a Sobolev/coefficient condition such as `H^σ` with `σ > 5/2`, or a genuinely stronger smoothness/analytic/exponential-decay theorem.
+
+## What the repo **does** have
+
+### 1. Forward direction: eigenvalue-ℓ¹ ⇒ C² cosine series
+
+The eigenvalue-ℓ¹ space file explicitly identifies the membership predicate as the hypothesis consumed by `cosineCoeffSeries_contDiff_two`:
 
 ```lean
-theorem resolverR_contDiff_four
+/-- Eigenvalue-ℓ¹ membership: `Σ_n λ_n |a_n|` converges. -/
+def MemEig (a : ℕ → ℝ) : Prop :=
+  Summable (fun n => unitIntervalCosineEigenvalue n * |a n|)
+```
+
+Location:
+
+- `ShenWork/PDE/EigenvalueL1Space.lean:71-73`
+
+The same file header says this is exactly the hypothesis that the committed `cosineCoeffSeries_contDiff_two` engine consumes to produce a `C²` cosine series:
+
+- `ShenWork/PDE/EigenvalueL1Space.lean:12-19`
+
+So the repo already treats eigenvalue-ℓ¹ as the **input** side of C² construction, not as a consequence of C².
+
+### 2. C²/weak-H² ⇒ quadratic decay, not eigenvalue-ℓ¹
+
+`IntervalMildSourceDecayHelper.lean` has the relevant weak-H²/C² bridge.  It packages closed C² + Neumann data into a weak `H²_N` certificate:
+
+```lean
+noncomputable def intervalWeakH2Neumann_of_contDiffOn
+    {g : ℝ → ℝ}
+    (hgC2 : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
+    (htend0 : Filter.Tendsto (deriv g) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (htend1 : Filter.Tendsto (deriv g) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
+    (hbc0 : deriv g 0 = 0) (hbc1 : deriv g 1 = 0) :
+    IntervalWeakH2Neumann g
+```
+
+Location:
+
+- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:76-92`
+
+But the conclusion extracted from weak `H²_N` is only:
+
+```lean
+theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ C / ((k : ℝ) * Real.pi) ^ 2
+```
+
+Location:
+
+- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:190-193`
+
+This is the reverse-ish result present in the repo, and it is strictly weaker than `Summable (λ_k |a_k|)`.
+
+### 3. Closed C² positive slice ⇒ `SourceCoeffQuadraticDecay`
+
+The concrete power-source route similarly produces only quadratic decay:
+
+```lean
+def sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
     {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    ContDiff ℝ 4 (resolverRSynthesis p u)
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hN0 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift u x) :
+    SourceCoeffQuadraticDecay p u
 ```
 
 Location:
 
-- `ShenWork/Paper2/IntervalResolverHighRegularity.lean:97-106`
+- `ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean:51-59`
 
-Just above it, the file proves the comparison step:
+Inside, it builds a weak-H² certificate and then calls `intervalWeakH2Neumann_cosineCoeff_quadratic_decay`:
+
+- `ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean:73-93`
+
+So this is exactly the `C² ⇒ O(k⁻²)` theorem, not `C² ⇒ eigenvalue-ℓ¹`.
+
+### 4. Representation/eigenvalue-summable ⇒ weak-H² for power source
+
+The power-source adapter goes the other way: it assumes eigenvalue summability of a profile representation and then constructs weak-H² for `ν*u^γ`:
 
 ```lean
-theorem resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        (unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|))
+noncomputable def intervalWeakH2Neumann_of_eigenvalue_summable
+    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
+    {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    {w : intervalDomainPoint → ℝ}
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
+    IntervalWeakH2Neumann (fun x : ℝ => ν * intervalDomainLift w x ^ γ)
 ```
 
 Location:
 
-- `ShenWork/Paper2/IntervalResolverHighRegularity.lean:77-90`
+- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:71-79`
 
-So the C⁴ resolver theorem exists, but its `hsrc` is still an input.
+Again: eigenvalue summability is an assumption, not derived from C².
 
-## Nearby results that are **not** the target
+### 5. Stronger available route: `MemHSigma σ`, `σ > 5/2` ⇒ eigenvalue-ℓ¹
 
-### 1. Source `ℓ¹` gives resolver C², not source eigenvalue-`ℓ¹`
-
-`ShenWork/PDE/IntervalResolverPhysicalC2.lean` proves:
+The closest positive result to the desired conclusion is in `IntervalCosineSobolevEmbedding.lean`:
 
 ```lean
-theorem resolverR_eigenWeighted_summable_of_sourceL1
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|)
+theorem memHSigma_summable_eigenvalue_abs {σ : ℝ} (hσ : 5 / 2 < σ) {b : ℕ → ℝ}
+    (hb : MemHSigma σ b) :
+    Summable fun n => unitIntervalCosineEigenvalue n * |b n|
 ```
 
 Location:
 
-- `ShenWork/PDE/IntervalResolverPhysicalC2.lean:108-117`
+- `ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean:111-121`
 
-This is resolver-coefficient weighted summability from source `ℓ¹`, i.e. the C² route, not eigenvalue-weighted summability of the source coefficients themselves.
+The file header explains the mechanism: Cauchy–Schwarz/AM–GM gives
 
-### 2. Heat semigroup coefficient summability exists for the raw heat coefficients
-
-`ShenWork/PDE/IntervalSemigroupNeumann.lean` has:
-
-```lean
-theorem heatCoeff_eigenvalue_summable {t : ℝ} (ht : 0 < t)
-    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) :
-    Summable (fun n => unitIntervalCosineEigenvalue n *
-      |Real.exp (-t * unitIntervalCosineEigenvalue n) * a n|)
+```text
+Σ λ_n |b_n| ≤ 1/2 Σ (1+λ_n)^σ b_n² + 1/2 Σ λ_n²/(1+λ_n)^σ,
 ```
 
-Location:
-
-- `ShenWork/PDE/IntervalSemigroupNeumann.lean:33-73`
-
-This is the expected heat smoothing for the **linear heat coefficient leg**.  It is not about the nonlinear resolver source `ν * (S(t)u₀)^γ`.
-
-On `main`, there is also a stronger raw heat theorem:
-
-```lean
-theorem heatSemigroup_eigenvalueSq_summable
-    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {t : ℝ} (ht : 0 < t) :
-    Summable (fun k => unitIntervalCosineEigenvalue k ^ 2 *
-      |Real.exp (-t * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k|)
-```
-
-Location:
-
-- `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:27-33`
-
-Again, this is raw `S(t)u₀` coefficient summability, not the power-source/resolver-source coefficient family.
-
-### 3. Per-slice gradient summability exists for a mild decomposition, but not resolver source
-
-`ShenWork/Paper2/IntervalChiNegGradSummable.lean` has:
-
-```lean
-theorem gradSummable_heat ... :
-    Summable (fun k : ℕ =>
-      lam k * |Real.exp (-(τ * lam k)) * uhat0 k|)
-```
-
-and
-
-```lean
-theorem gradSummable_slice ... :
-    Summable (fun k : ℕ =>
-      lam k * |cosineCoeffs (intervalDomainLift (u τ)) k|)
-```
+and the dual weight is summable exactly for `σ > 5/2`.
 
 Locations:
 
-- `ShenWork/Paper2/IntervalChiNegGradSummable.lean:88-99`
-- `ShenWork/Paper2/IntervalChiNegGradSummable.lean:123-189`
+- `ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean:15-24`
+- `ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean:107-121`
 
-These concern the slice coefficients of `u τ`, not the nonlinear source coefficients of `ν * u^γ`.
+This is likely the correct coefficient-space replacement for the invalid `C² ⇒ eigenvalue-ℓ¹` route.
 
-### 4. Quadratic decay for the power source exists, but it is weaker than `hsrc`
+## Consequence for the heat-semigroup resolver-source goal
 
-On `main`, `ShenWork/Wiener/EWA/SourceResolverSpectralDischarge.lean` proves a pointwise quadratic-decay route:
-
-```lean
-def realSlice_resolverDecay ... :
-    ∀ t ∈ Set.Ioo (0 : ℝ) T,
-      SourceCoeffQuadraticDecay p (realSlice u_star t)
-```
-
-Location:
-
-- `ShenWork/Wiener/EWA/SourceResolverSpectralDischarge.lean:138-167`
-
-And `ShenWork/Wiener/EWA/ResolverSourceWindowUniformDecay.lean` proves a window-uniform quadratic-decay constant for
+For
 
 ```lean
-cosineCoeffs (fun x => p.ν * intervalDomainLift (realSlice u_star σ) x ^ p.γ) k
+f x = p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 s) x ^ p.γ
 ```
 
-Location:
-
-- `ShenWork/Wiener/EWA/ResolverSourceWindowUniformDecay.lean:69-131`
-
-But quadratic decay alone is not the desired `hsrc`: if `|a_k| ≤ C / ((kπ)^2)`, then `λ_k * |a_k| ≤ C`, which is not summable.  So these are not enough for `intervalResolverLiftR_contDiff_four` / `resolverR_contDiff_four`.
-
-### 5. Weak source `ℓ²` exists, but not eigenvalue-`ℓ¹`
-
-`ShenWork/Paper2/IntervalResolverWeakBounds.lean` proves only source coefficient square-summability from continuity:
+at `s > 0`, proving `f` is merely `C²` with Neumann data will only feed the existing quadratic-decay machinery.  It will not discharge
 
 ```lean
-theorem resolverSourceCoeff_re_sq_summable_of_continuousOn
-    (p : CM2Params) {u : intervalDomainPoint → ℝ}
-    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1)) :
-    Summable fun k : ℕ =>
-      ((intervalNeumannResolverSourceCoeff p u k -
-        intervalNeumannResolverSourceCoeff p (fun _ => 0) k).re) ^ 2
+Summable (fun k => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
 ```
 
-Location:
+by any theorem I found.
 
-- `ShenWork/Paper2/IntervalResolverWeakBounds.lean:63-90`
+The viable Lean routes are instead:
 
-This is `ℓ²`, not `Summable (λ_k * |sourceCoeff k|)`.
+1. prove a stronger coefficient-space statement, e.g. `MemHSigma σ` for the source coefficients with `σ > 5/2`, then apply `memHSigma_summable_eigenvalue_abs`; or
+2. prove the actual heat/analytic/exponential-decay statement directly for the source coefficients of `ν*(S(s)u₀)^γ`; or
+3. prove a higher-regularity coefficient-decay theorem strong enough to imply `∑ λ_k |a_k| < ∞`.
 
-### 6. Resolver-source time-`C¹` producer exists, but it is not this summability theorem
-
-`ShenWork/Paper2/IntervalResolverSourceTimeC1.lean` has a global representation-fed producer:
-
-```lean
-noncomputable def resolverSource_timeC1_of_global_representation ... :
-    DuhamelSourceTimeC1
-      (fun s k => (ShenWork.PDE.intervalNeumannResolverSourceCoeff p (w s) k).re)
-```
-
-Location:
-
-- `ShenWork/Paper2/IntervalResolverSourceTimeC1.lean:142-165`
-
-It consumes representation summability of the underlying slice coefficients plus quadratic-decay/K1 data for the power source and produces a time-`C¹` package.  It does not conclude eigenvalue-weighted summability of the resolver source coefficients.
-
-## Grep/search outcome
-
-Searches I ran or effectively checked:
-
-```text
-resolverSourceCoeff eigenvalue summable
-resolverSource summable
-intervalResolverLiftR_contDiff_four / resolverR_contDiff_four
-intervalNeumannResolverSourceCoeff Summable unitIntervalCosineEigenvalue
-unitIntervalCosineEigenvalue k * |(intervalNeumannResolverSourceCoeff
-conjugatePicardIter intervalNeumannResolverSourceCoeff Summable
-conjugatePicardIter resolverSourceCoeff
-sourceEigenWeighted
-powerSource eigenvalue Summable resolverSource
-```
-
-The exact target shape only appears as a **hypothesis/consumer input** in `IntervalResolverHighRegularity.lean`, not as a produced theorem for the heat semigroup.
-
-## Recommended next lemma
-
-The missing theorem should be added as a producer, probably with a name like:
-
-```lean
-theorem heatResolverSourceCoeff_eigenvalue_summable
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {s : ℝ}
-    (hs : 0 < s)
-    -- plus whatever boundedness/positivity/smoothness hypotheses the existing heat level-0 API carries
-    : Summable (fun k : ℕ =>
-        unitIntervalCosineEigenvalue k *
-          |(intervalNeumannResolverSourceCoeff p
-              (conjugatePicardIter p u₀ 0 s) k).re|)
-```
-
-Analytically, the intended route is plausible: heat smoothing gives exponential/polynomial-weight summability for the heat coefficients, and the power source `ν*(S(s)u₀)^γ` should inherit enough smoothness/decay on `s > 0`.  But I did not find the Lean theorem that packages this implication for the resolver source coefficients.
+The current repo has route (1)'s summability core, but I did not find a completed theorem applying it to the nonlinear resolver source at the level-0 heat semigroup.
