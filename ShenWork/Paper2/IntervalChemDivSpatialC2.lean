@@ -163,19 +163,43 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     sorry -- parity: U_cos even + V_cos even → V_cos' odd → flux odd → F even → F' odd → F'(0)=0
   have hbc1 : deriv F 1 = 0 := by
     sorry -- antisymmetry about x=1 (cosine series on [0,1] with Neumann BCs)
-  have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
-    sorry -- from hbc0 + continuity of deriv F at 0
-  have htend1 : Filter.Tendsto (deriv F) (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
-    sorry -- from hbc1 + continuity of deriv F at 1
+  have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) :=
+    hbc0 ▸ (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
+  have htend1 : Filter.Tendsto (deriv F) (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) :=
+    hbc1 ▸ (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
   have hF_H2 : IntervalWeakH2Neumann F :=
     ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
       hF_C2on htend0 htend1 hbc0 hbc1
-  -- Transfer: F = chemDivLift on (0,1) because U_cos = lift u and V_cos = lift v on [0,1],
-  -- and deriv agrees on the interior where neighborhoods stay inside [0,1].
-  -- Use cosineCoeffs_congr_on_Ioo: f = g on (0,1) → same cosine coefficients → same H2.
-  sorry
-  -- Route: show F = chemDivLift on Ioo 0 1 (interior agreement from h_agree + deriv locality),
-  -- then transfer H2 via the integral-based congr (Ioo is co-null in [0,1]).
+  -- Transfer H2 via Ioo agreement: F and chemDivLift have the same cosine
+  -- integrals because they agree on (0,1) (measure-theoretically = [0,1]).
+  have h_ioo : ∀ x ∈ Ioo (0 : ℝ) 1, F x = chemDivLift p u v x := by
+    intro x ⟨hx0, hx1⟩
+    have hx_icc : x ∈ Icc (0 : ℝ) 1 := ⟨hx0.le, hx1.le⟩
+    -- chemDivLift on [0,1] = deriv(flux with lift u, lift v) at x
+    have hcdl : chemDivLift p u v x =
+        deriv (fun y => intervalDomainLift u y * deriv (intervalDomainLift v) y /
+          (1 + intervalDomainLift v y) ^ p.β) x := by
+      unfold chemDivLift intervalDomainLift; rw [dif_pos hx_icc]
+      unfold intervalDomainChemotaxisDiv; rfl
+    rw [hcdl]
+    -- F x = deriv(flux with U_cos, V_cos) at x
+    -- The two flux functions agree near x ∈ (0,1) because lift u = U_cos and lift v = V_cos on [0,1]
+    apply Filter.EventuallyEq.deriv_eq
+    have hball := Metric.isOpen_Ioo.mem_nhds (⟨hx0, hx1⟩ : x ∈ Ioo (0:ℝ) 1)
+    filter_upwards [hball] with y hy
+    have hy_icc : y ∈ Icc (0 : ℝ) 1 := ⟨hy.1.le, hy.2.le⟩
+    rw [h_agree_u y hy_icc, h_agree_v y hy_icc]
+    congr 1
+    exact (Filter.EventuallyEq.deriv_eq (by
+      filter_upwards [Metric.isOpen_Ioo.mem_nhds hy] with z hz
+      exact h_agree_v z ⟨hz.1.le, hz.2.le⟩)).symm
+  -- Ioo-agreement → same cosine coefficients → same H2
+  exact hF_H2.congr_on_Icc (fun x hx => by
+    by_cases hx0 : x = 0
+    · subst hx0; sorry -- endpoint: F 0 vs chemDivLift 0, both involve deriv at boundary
+    by_cases hx1 : x = 1
+    · subst hx1; sorry -- endpoint: F 1 vs chemDivLift 1
+    · exact h_ioo x ⟨lt_of_le_of_ne hx.1 (Ne.symm hx0), lt_of_le_of_ne hx.2 hx1⟩)
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
