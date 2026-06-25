@@ -103,7 +103,7 @@ theorem chemDivLift_contDiffOn_two_of_global
       chemDivLift p u v x =
         deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
     intro x hx
-    sorry -- definitional: chemDivLift on Icc = deriv(chemFluxFun), unfold + dif_pos
+    simp only [chemDivLift, intervalDomainLift, dif_pos hx, intervalDomainChemotaxisDiv]
   exact hglobal.contDiffOn.congr h_eq
 
 -- General chemDivLift_contDiffOn_two omitted — use _of_global for heat semigroup.
