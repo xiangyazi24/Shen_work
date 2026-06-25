@@ -1,406 +1,363 @@
 # ChatGPT git-drop (cron1)
 
-## Q344 — χ₀<0 local-existence producer audit
+## Q352 — `hregularize` audit: canonical χ₀=0 chain vs. EWA/cosine regularity
 
 ### Executive verdict
 
-I do **not** find a closed canonical local-classical-existence producer for `χ₀ < 0` analogous to the χ₀=0 route.
+`regularityBootstrap_of_gradientMildSolutionData` **does not** take an order-box contraction fixed point and prove `RegularityBootstrap` from scratch.
 
-What exists for χ₀<0 is:
+It takes:
 
-1. a real **contraction-smallness core** in `ChemMildLocal.lean`, valid for arbitrary `χ₀` through `|χ₀|`, but not by itself a Paper 2 local classical solution producer;
-2. a conditional **canonical/non-EWA residual producer**
-   ```lean
-   coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-   ```
-   from the big analytic package
-   ```lean
-   CoupledFluxResolverAnalyticData p
-   ```
-   but that package is not produced unconditionally;
-3. an EWA route
-   ```lean
-   chiNeg_residual_of_datumUniformFaithful
-   ```
-   from
-   ```lean
-   ChiNegDatumUniformConstructionFaithful p
-   ```
-   but that faithful construction is still an explicit carried frontier;
-4. a one-field residual wrapper
-   ```lean
-   ChiNegativeNonminimalCoupledLocalExistenceResidual p
-   ```
-   whose field is exactly the quantitative coupled local factory, but again it is a residual, not a producer.
+```lean
+D : GradientMildSolutionData p u0
+hInitialApproach : ...
+hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+  (mildChemicalConcentration p D.u)
+```
 
-So the answer to the critical question is:
+and then repackages the already-classical solution into `RegularityBootstrap`.
+
+So it is **not** the missing `hregularize` needed by
+
+```lean
+exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
+```
+
+because that `hregularize` must upgrade an arbitrary coupled Duhamel fixed point, merely known to be bounded and to satisfy the mild identity, into `RegularityBootstrap`.
+
+For χ₀=0, the repo does **not** get `hregularize` from the bare order-box contraction alone.  It uses the canonical Picard/restart chain plus an explicit residual ledger `LimitRegularityInputs`.  That ledger carries half-step restart/cosine/source-time-C¹/frontier data.  This is canonical in the sense “not EWA reduced core,” but it is **not** free of cosine/source-regularity inputs.
+
+Thus the answer to the key question is:
 
 ```text
-No: I do not see a fully closed canonical χ₀<0 hlocal producer.
-Yes: there are conditional χ₀<0 residual closures and a real Banach-contraction core.
+No: hregularize cannot currently be filled from the canonical contraction fixed point alone.
+Yes: χ₀=0 uses the canonical Picard/restart chain, but that chain still needs additional regularity data, including cosine/restart/source-time-C¹ fields, carried in LimitRegularityInputs.
 ```
 
 ---
 
-## 1. Search result: no closed `quantitativeLocalExistence` for χ₀<0 / χ₀≤0
+## 1. What `exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates` needs
 
-I searched for the requested families:
-
-```text
-quantitativeLocalExistence.*chiNeg
-quantitativeLocalExistence.*chi_le
-localExistence.*chiNeg
-localExistence.*chi_le
-hlocal.*chiNeg
-CoupledFluxClassicalLocalExistenceResidual.*chi
-```
-
-The hits point to residual / audit / EWA files, not to a closed theorem of the shape:
+The theorem in `IntervalDomainThm11ChiNegResidual.lean` has the regularization hypothesis:
 
 ```lean
-∀ u₀, PositiveInitialDatum intervalDomain u₀ →
-  ∃ Tmax > 0, ∃ u v,
-    IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
-    InitialTrace intervalDomain u₀ u
+(hregularize :
+  ∀ u v : ℝ → intervalDomainPoint → ℝ,
+    intervalTrajectoryBoundedOn T M u →
+    (∀ t x, 0 ≤ t → t ≤ T →
+      u t x = intervalCoupledDuhamelOperator p R u0 u t x) →
+    (∀ t, v t = R (u t)) →
+      RegularityBootstrap p T u0 u)
 ```
 
-or the stronger quantitative factory:
+It first constructs the fixed point:
 
 ```lean
-∀ M > 0, ∃ δ > 0,
-  ∀ {u₀}, PositiveInitialDatum intervalDomain u₀ →
-  (∀ x, |u₀ x| ≤ M) →
-    ∃ u v,
-      IsPaper2ClassicalSolution intervalDomain p δ u v ∧
-      InitialTrace intervalDomain u₀ u
+obtain ⟨u, vR, hu_ball, hfp, hvR⟩ :=
+  intervalCoupledDuhamel_fixed_point_exists_on_closed_ball
+    p R u0 hA hM hT hAT hM hmap hcontr hbase
 ```
 
-for χ₀<0 / χ₀≤0, without additional residual hypotheses.
+then applies:
+
+```lean
+obtain ⟨v, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ :=
+  hregularize u vR hu_ball hfp hvR
+```
+
+and finally builds the classical solution:
+
+```lean
+IsPaper2ClassicalSolution.of_components hT hclassreg hpos hvnn hpde_u hpde_v hbc
+```
+
+So `hregularize` is not a light wrapper.  It is the full regularity/PDE bootstrap from a coupled mild fixed point to the paper's classical solution package.
 
 ---
 
-## 2. What `ChemMildLocal.lean` actually closes
-
-`ChemMildLocal.lean` is real progress, but it is a **contraction core**, not the full local-classical-existence theorem.
-
-The key theorem is:
-
-```lean
-import ShenWork.Paper2.ChemMildLocal
-
-#check ShenWork.Paper2.chemMildLocal_orderBox_exists
-```
-
-with type:
-
-```lean
-theorem chemMildLocal_orderBox_exists (χ₀ L : ℝ) (hL : 0 ≤ L) :
-    ∃ T : ℝ, 0 < T ∧ ∃ q : ℝ≥0,
-      (q : ℝ) = chemMildLocalLipConst χ₀ L T ∧ q < 1
-```
-
-The file explicitly says the contraction constant is
-
-```text
-q(T) = |χ₀| · C∇ · 2√T + L · T
-```
-
-and that `q(T) → 0` as `T → 0`.  It also has:
-
-```lean
-theorem chemMildLocal_orderBox_fixedPoint (χ₀ L : ℝ) (hL : 0 ≤ L)
-    {α : Type*} [MetricSpace α] [CompleteSpace α] [Nonempty α] :
-    ∃ T : ℝ, 0 < T ∧ ∃ q : ℝ≥0,
-      (q : ℝ) = chemMildLocalLipConst χ₀ L T ∧ q < 1 ∧
-      ∀ {f : α → α}, ContractingWith q f → ∀ x₀ : α,
-        ∃ y : α, Function.IsFixedPt f y ∧
-          Tendsto (fun n => f^[n] x₀) atTop (𝓝 y)
-```
-
-This is not sign-restricted; the theorem takes `χ₀` and uses `|χ₀|`.  But the file header is explicit that the remaining datum-shape bookkeeping is still open: instantiate the genuine `C([0,T],C(Ω̄))` order-box, prove the mild map is the concrete `ContractingWith` map, and bridge the fixed point to classical regularity.  Therefore it is not the hlocal producer by itself.
-
----
-
-## 3. `IntervalChiNegLocalExist.lean`: envelope-lattice reduction, not a closed producer
-
-`IntervalChiNegLocalExist.lean` proves candidate-generic invariance and an abstract fixed-point reduction, but it deliberately carries the concrete Banach instantiation as hypotheses.
-
-The important theorem is:
-
-```lean
-import ShenWork.Paper2.IntervalChiNegLocalExist
-
-#check ShenWork.Paper2.IntervalChiNegLocalExist.localExist_of_envBall_fixedPoint
-```
-
-It assumes, among other things:
-
-```lean
-{α : Type*} [MetricSpace α]
-(hcomplete : IsComplete s)
-(hself : MapsTo Φ s s)
-(hdist : ∀ a b : s,
-  dist (hself.restrict Φ s s a) (hself.restrict Φ s s b) ≤ q * dist a b)
-(hreadout : ∀ y ∈ s, Function.IsFixedPt Φ y →
-  (∀ k, |cosineCoeffs (u r) k| ≤ E_base k))
-```
-
-and then returns the `LocalExist`-style pair:
-
-```lean
-(∀ k, |cosineCoeffs (u r) k| ≤ E_base k)
-  ∧ (∀ k τ, |G k τ| ≤ Llog * E_base k)
-```
-
-The file header states the missing frontier exactly: no concrete `MetricSpace`/`IsComplete` model of the envelope ball, no concrete `Φ` with `MapsTo` plus contraction, and no fixed-point-to-`cosineCoeffs (u r)` readout is built in the repo.  So this is not a full hlocal producer either.
-
----
-
-## 4. Canonical/non-EWA conditional route: `CoupledFluxResolverAnalyticData`
-
-The closest canonical χ₀<0 local-existence producer is conditional:
-
-```lean
-import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
-
-#check ShenWork.Paper2.ChiNegResidual.CoupledFluxResolverAnalyticData
-#check ShenWork.Paper2.ChiNegResidual.coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-```
-
-The residual target is:
-
-```lean
-def CoupledFluxClassicalLocalExistenceResidual (p : CM2Params) : Prop :=
-  ∀ M : ℝ, 0 < M → ∃ delta : ℝ, 0 < delta ∧
-    ∀ {u0 : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u0 →
-      (∀ x, |u0 x| ≤ M) →
-        ∃ u v,
-          IsPaper2ClassicalSolution intervalDomain p delta u v ∧
-          InitialTrace intervalDomain u0 u
-```
-
-The canonical analytic package is:
-
-```lean
-def CoupledFluxResolverAnalyticData (p : CM2Params) : Prop :=
-  ∀ M : ℝ, 0 < M →
-    ∃ Mball : ℝ, 0 < Mball ∧ M ≤ Mball ∧
-      ∀ L : ℝ, 0 < L →
-        ∃ T A K : ℝ, 0 < T ∧ 0 < A ∧ 0 ≤ K ∧ A * T < 1 ∧
-          |p.χ₀| * K + L ≤ A ∧
-            ∀ {u0 : intervalDomain.Point → ℝ},
-              PositiveInitialDatum intervalDomain u0 →
-              (∀ x, |u0 x| ≤ M) →
-                IntervalCoupledResolverBallEstimates p
-                  (intervalNeumannResolverR p) u0 T Mball K ∧
-                ∀ u v : ℝ → intervalDomain.Point → ℝ,
-                  intervalTrajectoryBoundedOn T Mball u →
-                  (∀ t x, 0 ≤ t → t ≤ T →
-                    u t x = intervalCoupledDuhamelOperator p
-                      (intervalNeumannResolverR p) u0 u t x) →
-                  (∀ t, v t = intervalNeumannResolverR p (u t)) →
-                    RegularityBootstrap p T u0 u
-```
-
-And the theorem is:
-
-```lean
-theorem coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-    (p : CM2Params) (hα : 1 ≤ p.α)
-    (H : CoupledFluxResolverAnalyticData p) :
-    CoupledFluxClassicalLocalExistenceResidual p
-```
-
-So this is a canonical/non-EWA conditional local-existence route, but the big analytic package `CoupledFluxResolverAnalyticData p` is still an input.  I do not see a theorem producing it unconditionally.
-
----
-
-## 5. The one-field B1 residual is just the same quantitative local factory
-
-`IntervalDomainThm11ChiNegativeResidualB1.lean` defines:
-
-```lean
-structure ChiNegativeNonminimalCoupledLocalExistenceResidual
-    (p : CM2Params) : Prop where
-  localExistence :
-    ∀ M : ℝ, 0 < M → ∃ delta : ℝ, 0 < delta ∧
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-        (∀ x, |u₀ x| ≤ M) →
-          ∃ u v : ℝ → intervalDomain.Point → ℝ,
-            IsPaper2ClassicalSolution intervalDomain p delta u v ∧
-            InitialTrace intervalDomain u₀ u
-```
-
-It proves:
-
-```lean
-theorem coupledFluxResidual_of_coupledLocalResidual
-    {p : CM2Params}
-    (H : ChiNegativeNonminimalCoupledLocalExistenceResidual p) :
-    ChiNegResidual.CoupledFluxClassicalLocalExistenceResidual p :=
-  H.localExistence
-```
-
-and:
-
-```lean
-theorem Theorem_1_1_intervalDomain_chiNegative_nonminimal_of_coupledLocalResidual
-    (p : CM2Params) (hχ : p.χ₀ < 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (H : ChiNegativeNonminimalCoupledLocalExistenceResidual p) :
-    Theorem_1_1 intervalDomain p
-```
-
-This is useful cleanup, but it is still a residual field, not a producer.
-
----
-
-## 6. The EWA faithful route: not canonical hlocal, still a residual route
-
-`SourceChiNegFaithful.lean` defines:
-
-```lean
-def ChiNegDatumUniformConstructionFaithful (p : CM2Params) : Prop :=
-  ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
-    ∀ {u0 : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u0 →
-      (∀ x, |u0 x| ≤ M) →
-        ∃ u_star : EWA δ 1,
-          CoupledDuhamelReducedClassicalCore p δ u0 (realSlice u_star)
-```
-
-and proves:
-
-```lean
-theorem chiNeg_residual_of_datumUniformFaithful (p : CM2Params)
-    (hU : ChiNegDatumUniformConstructionFaithful p) :
-    CoupledFluxClassicalLocalExistenceResidual p
-```
-
-The proof does not use the old false logistic-only `hfp`.  It destructures the reduced core:
-
-```lean
-have hreg : RegularityBootstrap p δ u0 (realSlice u_star) :=
-  regularityBootstrap_of_coupledDuhamel_reducedClassicalCore p C
-obtain ⟨v, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ := hreg
-exact ⟨realSlice u_star, v,
-  IsPaper2ClassicalSolution.of_components hδ hclassreg hpos hvnn hpde_u hpde_v hbc,
-  htrace⟩
-```
-
-So this is a different way to manufacture the same quantitative residual — from EWA realization data.  But the construction itself is still the carried frontier `ChiNegDatumUniformConstructionFaithful p`.
-
-`ChiNegFrontierAssembly.lean` repackages this through:
-
-```lean
-def ChiNegFaithfulRealizationFrontier (p : CM2Params) : Prop :=
-  ∀ M : ℝ, 0 < M → ∀ δ : ℝ, 0 < δ →
-    ∀ {u0 : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u0 →
-      (∀ x, |u0 x| ≤ M) →
-        ∃ u_star : EWA δ 1,
-          CoupledDuhamelReducedClassicalCore p δ u0 (realSlice u_star)
-```
-
-and proves:
-
-```lean
-theorem chiNeg_datumUniformFaithful_of_frontier (p : CM2Params)
-    (hF : ChiNegFaithfulRealizationFrontier p) :
-    ChiNegDatumUniformConstructionFaithful p
-```
-
-plus:
-
-```lean
-theorem chiNeg_theorem_1_1_of_faithfulFrontier ... :
-    Theorem_1_1 intervalDomain p
-```
-
-Again: useful faithful reduction, but not unconditional.
-
----
-
-## 7. Does `theorem_1_1_intervalDomain_chiNeg_of_coupledFlux...` go through the umbrella?
-
-Yes.  It is not a direct EWA-only path.
+## 2. What `regularityBootstrap_of_gradientMildSolutionData` actually takes
 
 The theorem is:
 
 ```lean
-theorem theorem_1_1_intervalDomain_chiNeg_of_coupledFluxClassicalLocalExistenceResidual
-    (p : CM2Params) (hchi_neg : p.χ₀ < 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (_halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ)
-    (hExist : CoupledFluxClassicalLocalExistenceResidual p) :
-    Theorem_1_1 intervalDomain p :=
-  RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
-    p (le_of_lt hchi_neg) ha hb hgamma hExist
-    (localExistence_of_coupledFluxClassicalLocalExistenceResidual p hExist)
+theorem regularityBootstrap_of_gradientMildSolutionData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    RegularityBootstrap p D.T u0 D.u
 ```
 
-So it takes the quantitative residual `hExist` as `hQuant` and also derives ordinary `hlocal` from the same residual by:
+Inside the proof it extracts closed spatial `C²` and one-sided Neumann inputs from
 
 ```lean
-localExistence_of_coupledFluxClassicalLocalExistenceResidual p hExist
+hclassical.regularity
 ```
 
-Then `RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal` calls the umbrella theorem:
+and uses `hclassical` again for:
 
 ```lean
-Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+mildSolution_parabolicPDE p D hclassical
+mildSolution_classicalRegularity p D hclassical
 ```
 
-and builds the uniform restart/glue continuation using `hQuant` and the Lemma 3.1 sup-norm bound.  Thus:
+Therefore this theorem is **downstream** of an `IsPaper2ClassicalSolution`, not an upstream theorem that proves one.
+
+It is useful as a repackaging bridge:
 
 ```text
-EWA faithful construction
-  → CoupledFluxClassicalLocalExistenceResidual
-  → RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
-  → umbrella/final wiring
-  → Theorem_1_1 intervalDomain p.
+GradientMildSolutionData + initial approach + already-classical solution
+  → RegularityBootstrap.
 ```
 
-It does **not** bypass the umbrella.  It supplies the umbrella's local-existence and quantitative restart inputs from the residual.
+It is not the requested analytic theorem:
+
+```text
+bounded mild fixed point + Duhamel identity + resolver identity
+  → RegularityBootstrap.
+```
 
 ---
 
-## Final classification
+## 3. The restart/cosine variants still need classical/core data
 
-### Closed / canonical for χ₀<0?
+The repo has variants that reduce the amount of full classical data required, for example:
 
-```text
-No fully closed canonical hlocal producer found.
+```lean
+regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData_and_coreData
 ```
 
-### Real pieces that exist
+with type shape:
 
-```text
-ChemMildLocal.chemMildLocal_orderBox_exists
-  Real short-time contraction-smallness core, any χ₀ via |χ₀|.
-
-ChemMildLocal.chemMildLocal_orderBox_fixedPoint
-  Banach fixed-point core on an arbitrary complete metric model.
-
-ChiNegResidual.coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
-  Conditional canonical/non-EWA residual producer from CoupledFluxResolverAnalyticData.
-
-EWA.chiNeg_residual_of_datumUniformFaithful
-  Conditional EWA residual producer from ChiNegDatumUniformConstructionFaithful.
-
-ChiNegativeResidual.Theorem_1_1_intervalDomain_chiNegative_nonminimal_of_coupledLocalResidual
-  One-field residual closeout to Theorem 1.1.
+```lean
+theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData_and_coreData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (R : GradientMildHalfStepRestartData D)
+    (hInitialApproach : ...)
+    (C : GradientMildClassicalCoreData p D) :
+    RegularityBootstrap p D.T u0 D.u
 ```
 
-### Still open / carried
+But this still needs:
 
-```text
-Concrete χ₀<0 local classical existence for arbitrary positive interval data.
-Concrete quantitative factory ∀M ∃δ uniform over |u₀|≤M.
-Concrete order-box Banach instantiation + regularization bridge, unless supplied by CoupledFluxResolverAnalyticData or EWA faithful realization frontier.
+```lean
+R : GradientMildHalfStepRestartData D
+C : GradientMildClassicalCoreData p D
 ```
 
-### Relation to χ₀=0
+and the core contains:
 
-The χ₀=0 route has canonical Picard/restart scaffolding specialized to the no-flux case.  The χ₀<0 route does **not** currently have an analogous unconditional canonical local-existence producer.  It has a faithful EWA reduction and a canonical analytic-data reduction, both conditional on named residuals.
+```lean
+hpde_u : ...
+hclassicalRegularity : intervalDomainClassicalRegularity D.T D.u
+  (mildChemicalConcentration p D.u)
+```
+
+There is also a frontier-core version:
+
+```lean
+regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
+```
+
+with:
+
+```lean
+R : GradientMildHalfStepRestartData D
+C : GradientMildClassicalFrontierCoreData p D
+```
+
+but `GradientMildClassicalFrontierCoreData` still carries:
+
+```lean
+hpde_u : ...
+hregularityFrontier : GradientMildClassicalRegularityFrontierData p D
+```
+
+So these variants are genuine improvements over requiring a full classical solution, but they still need substantial regularity/PDE input.  They do not derive that input from the order-box fixed point alone.
+
+---
+
+## 4. How χ₀=0 produces `hlocal`
+
+The χ₀=0 local route is in `IntervalDomainMildLocalChi0.lean`.
+
+The file-level comments describe the chain:
+
+1. `D` is built from cone existence:
+
+```lean
+coneGradientMildSolutionData_exists
+```
+
+2. `R : GradientMildHalfStepRestartData D` is built from limit regularity inputs: K2 spatial-slice families, K1 source-coefficient time-`C¹` families, datum continuity / `ℓ¹` coefficient data, and the mild fixed-point equation.
+
+3. `HasRestartCosineRepresentations D.T D.u` follows from `R`.
+
+4. The frontier core is assembled from `Hrestart`, resolver spectral data `Hv`, and residual fields `Hu`, `HsupNorm`, `Hvpos`, plus carried `hpde_u`.
+
+This is encoded in the ledger:
+
+```lean
+structure LimitRegularityInputs
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) where
+  ...
+```
+
+The ledger contains, among many fields:
+
+```lean
+hu₀_cont : Continuous u₀
+M₀ : ℝ
+hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+hsrc0 : DuhamelSourceBddOn ... D.T
+bc : ℝ → ℕ → ℝ
+hbsum : ∀ σ, 0 < σ → σ < D.T →
+  Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+hagree : ∀ σ, 0 < σ → σ < D.T →
+  Set.EqOn (intervalDomainLift (D.u σ))
+    (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc 0 1)
+adott : ℝ → ℕ → ℝ
+hderivt : ... HasDerivAt ...
+hadotcontt : ...
+hMdott : ...
+hpde_u : ...
+Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
+Hvsrc : ... DuhamelSourceTimeC1 ... clamped resolver source witness ...
+Hvpos : ...
+```
+
+So the χ₀=0 chain is canonical Picard/restart, not EWA reduced core, but it **does** rely on coefficient/restart/source-regularity data.  It is not just the output of a `C([0,T],C)` contraction.
+
+The top-level χ₀=0 local-data theorem is:
+
+```lean
+theorem hMildLocal_chi0_zero_of_inputs
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (hα_ge : 1 ≤ p.α)
+    (H : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
+        LimitRegularityInputs p u₀ D) :
+    RestartLocalWiring.IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p
+```
+
+It builds `D` by:
+
+```lean
+coneGradientMildSolutionData_exists p hχ0 hM hα_ge
+```
+
+then obtains the ledger:
+
+```lean
+have I : LimitRegularityInputs p u₀ D := H u₀ hu₀ D hDu'
+```
+
+and returns:
+
+```lean
+⟨D, restartData_of_inputs hχ0 I, initialApproach, frontierCore_of_inputs hχ0 I⟩
+```
+
+This is then converted to `hlocal` by:
+
+```lean
+RestartLocalWiring.localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
+```
+
+which destructures:
+
+```lean
+⟨D, R, hInitialApproach, hCore⟩
+```
+
+and calls:
+
+```lean
+localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
+```
+
+---
+
+## 5. Does χ₀=0 use the EWA/source-regularity chain?
+
+It does **not** use the EWA reduced core path.
+
+The imports and structure of `IntervalDomainMildLocalChi0.lean` are the canonical Picard/restart stack:
+
+```lean
+import ShenWork.Paper2.IntervalPicardLimitSourceData
+import ShenWork.Paper2.IntervalPicardLimitRestartWeak
+import ShenWork.Paper2.IntervalRegularityFrontierWiring
+import ShenWork.Paper2.IntervalDomainConeQuantBridge
+import ShenWork.Paper2.IntervalDomainConstExtendAdapter
+import ShenWork.Paper2.IntervalDomainRestartPackaging
+```
+
+This is separate from the `ShenWork/Wiener/EWA` reduced-core track.
+
+But it is still spectral/restart based.  The ledger explicitly contains cosine coefficients, summability, restart cosine representations, source time-`C¹`, and clamped resolver source `DuhamelSourceTimeC1` witnesses.  So if by “EWA/cosine-summable data” you mean “any Fourier/cosine/restart regularity,” then χ₀=0 still needs such data.  It just gets them from the canonical Picard-limit/restart ledger, not from `EWA`.
+
+---
+
+## 6. Can `hregularize` be filled from the canonical order-box fixed point alone?
+
+No, not with the current repo theorems.
+
+The bare canonical order-box fixed point supplies something like:
+
+```lean
+intervalTrajectoryBoundedOn T M u
+∀ t x, 0 ≤ t → t ≤ T →
+  u t x = intervalCoupledDuhamelOperator p R u0 u t x
+∀ t, v t = R (u t)
+```
+
+The required `hregularize` must turn those into:
+
+```lean
+RegularityBootstrap p T u0 u
+```
+
+which includes positivity, chemical nonnegativity, PDE identities, Neumann boundary data, classical regularity, and initial trace.  The existing canonical theorems do not derive all of that from the fixed-point identity alone.
+
+The χ₀=0 chain fills the gap by carrying and wiring:
+
+```lean
+GradientMildHalfStepRestartData D
+GradientMildClassicalFrontierCoreData p D
+```
+
+or a stronger `GradientMildClassicalCoreData p D`.  Those packages include the missing regularity/PDE source data.
+
+Therefore a direct `hregularize` for `exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates` would be a new theorem.  Its honest statement would need either:
+
+```lean
+-- strong canonical regularity inputs
+GradientMildHalfStepRestartData / H²-source data / source-time-C¹ / frontier core
+```
+
+or a genuine PDE theorem:
+
+```lean
+bounded coupled Duhamel fixed point
+  → parabolic smoothing + source regularity + resolver regularity
+  → RegularityBootstrap.
+```
+
+That theorem is not currently present.
+
+---
+
+## Final answer
+
+* `regularityBootstrap_of_gradientMildSolutionData` is **not** the desired regularization theorem from a mild fixed point.  It repackages an already-classical solution, or via variants, a solution plus separate core/frontier regularity data.
+* The χ₀=0 local route uses the **canonical Picard/restart chain**, not the EWA reduced core.
+* However, the canonical χ₀=0 route still depends on a large `LimitRegularityInputs` ledger containing cosine/restart/source-time-C¹/resolver-frontier data.
+* Therefore, `hregularize` for the χ₀<0 coupled-Duhamel fixed point cannot currently be filled from the canonical order-box contraction alone.  It needs additional regularity/frontier data, or a new parabolic regularization theorem.
