@@ -1,154 +1,90 @@
-# Q403 / cron1: Barrier B — can `ConjugatePicardInfThresholdData` be weakened to windowed bounds with no consumer fallout?
+# Q425 / cron1: Barrier B — windowed `ConjugatePicardInfThresholdData` vs new parallel structure
 
 ## Executive verdict
 
-The proposed **mathematical** direction is correct:
+Your corrected diagnosis is right:
 
 ```text
-unconditional-in-s bounds  ⇒  windowed bounds on 0 < s ≤ T
+windowed ⇒ unconditional is NOT available.
+unconditional ⇒ windowed is trivial but is the wrong direction.
 ```
 
-and the available banked producer facts in `IntervalBankInfAndLogSrcWiring.lean` are exactly windowed:
+The old `ConjugatePicardInfThresholdData` is over-typed.  Its current fields
 
 ```lean
-iterChemFlux_windowBound      : ∀ s, 0 < s → s ≤ D.T → ∀ y, |chemFluxLifted ...| ≤ iterCQ D
-iterLogistic_windowBound      : ∀ s, 0 < s → s ≤ D.T → ∀ y, |logisticLifted ...| ≤ iterCL D
-iterChemFlux_integrable       : ∀ s, 0 < s → s ≤ D.T → Integrable ...
+hQ_int   : ∀ n s, Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) ...
+hQ_bound : ∀ n s y, |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+hL_bound : ∀ n s y, |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
 ```
 
-So weakening the `ConjugatePicardInfThresholdData` fields to windowed bounds is the right conceptual fix for Barrier B.
+ask for all real `s`, but the actual Picard ball / source-control facts are only on the fixed-point horizon window `(0,T]`.  There is no reason in the current definitions to expect the B-form Picard iterates to be uniformly bounded for `s > T`, and for `s < 0` the heat/Duhamel objects are merely total Lean definitions, not analytic semigroup-time objects with paper meaning.
 
-But the proposed “change only the structure fields and everything else compiles as-is” is **not correct**.  Lean will not automatically turn an old projection application such as
+So the honest theorem shape is windowed:
 
 ```lean
-H.hQ_int n s
-H.hQ_bound n s
-H.hL_bound n
+hQ_int   : ∀ n s, 0 < s → s ≤ T → Integrable ...
+hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y, |...| ≤ CQ
+hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y, |...| ≤ CL
 ```
 
-into
+Adding a **new windowed structure** is viable, but not as a pure one-line change to `BFormBankedInputs` unless you also route the B-form downstream theorems through windowed variants.  Existing downstream theorems currently take `ConjugatePicardInfThresholdData`; if `BFormBankedInputs.Hinf` is changed to a new type, any theorem that consumes `B.Hinf` will stop elaborating unless it is duplicated/generalized.
 
-```lean
-H.hQ_int n s hs hsT
-H.hQ_bound n s hs hsT
-H.hL_bound n s hs hsT
+The best low-risk patch is therefore:
+
+```text
+Add WindowedConjugatePicardInfThresholdData + producer from the banked windowed facts.
+Add windowed analogues of the few positivity/PDE theorems that BFormBankedInputs needs.
+Change the B-form bank/frontier path to use the windowed structure.
+Leave the old over-typed structure and old theorem stack untouched for compatibility.
 ```
 
-Consumers do not necessarily pattern-match on the structure, but they do use the **exact projection types** and exact arities.  Those call sites will break and need mechanical eta-expansion / localized-bound rewiring.
-
-The good news: this is a **syntactic/API retype**, not an analytic obstacle.  The producer can be changed/wrapped cheaply, and the consumers can be patched mechanically.  The one slightly nontrivial spot is the logistic value-Duhamel bound, because the currently called theorem expects an unconditional `∀ s y` bound; a small windowed/cutoff variant is needed there or the proof must use an existing cutoff theorem.
+This avoids the full 12-file retype of the old API, but it does **not** avoid touching the B-form bank path and its direct consumers.
 
 ---
 
-## Current structure: the three problematic fields are unconditional
+## Why the unconditional bound is not justified
 
-Current definition in `ShenWork/Paper2/IntervalConjugatePicardInfThreshold.lean`:
-
-```lean
-import ShenWork.Paper2.IntervalConjugatePicard
-import ShenWork.Paper2.IntervalConjugatePicardBounds
-import ShenWork.Paper2.IntervalMildPicardThreshold
-
-open MeasureTheory Set Filter
-open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
-open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
-open ShenWork.IntervalConjugateDuhamelMap
-  (intervalConjugateDuhamelMap intervalConjugateKernelOperator)
-open ShenWork.IntervalConjugatePicard
-  (conjugatePicardIter conjugatePicardLimit)
-open ShenWork.IntervalMildPicard
-  (real_cauchySeq_of_geometric_bound)
-open ShenWork.IntervalNeumannFullKernel
-  (intervalFullSemigroupOperator intervalFullSemigroupOperator_lower_bound)
-open ShenWork.HeatKernelGradientEstimates
-  (heatGradientLinftyLinftyConstant)
-open ShenWork.Paper2
-  (PaperPositiveInitialDatum)
-
-noncomputable section
-
-namespace ShenWork.IntervalConjugatePicard
-
-/-- B-form Picard facts needed by the inf-threshold argument.  This package
-contains ball-derived source bounds and geometric convergence, but no positivity
-field for the map or the limit. -/
-structure ConjugatePicardInfThresholdData
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
-  K : ℝ
-  C₀ : ℝ
-  CQ : ℝ
-  CL : ℝ
-  hT : 0 < T
-  hK : K < 1
-  hK_nn : 0 ≤ K
-  hC₀ : 0 ≤ C₀
-  hCQ : 0 ≤ CQ
-  hCL : 0 ≤ CL
-  hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
-    ∀ x : intervalDomainPoint,
-      |conjugatePicardIter p u₀ (n + 1) t x
-        - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
-  hQ_int : ∀ n s,
-    Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
-      (intervalMeasure 1)
-  hQ_bound : ∀ n s y,
-    |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
-  hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-    IntervalIntegrable
-      (fun s : ℝ =>
-        intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
-      volume 0 t
-  hL_bound : ∀ n s y,
-    |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
-  hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-    IntervalIntegrable
-      (fun s : ℝ =>
-        intervalFullSemigroupOperator (t - s)
-          (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1)
-      volume 0 t
-```
-
-Fields already windowed:
+Current iterates are defined in `IntervalConjugatePicard.lean` as total functions, but the convergence/ball package is explicitly windowed.  `ConjugatePicardInfThresholdData` itself stores `hgeom` windowed:
 
 ```lean
-hgeom
-hB_int
-hL_int
+hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+  ∀ x : intervalDomainPoint,
+    |conjugatePicardIter p u₀ (n + 1) t x
+      - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
 ```
 
-Fields that should be retyped:
+and its Duhamel integrability fields are already windowed:
 
 ```lean
-hQ_int
-hQ_bound
-hL_bound
+hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ...
+hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, ...
 ```
 
-Recommended windowed shape, matching the landed bank producers:
+But the three source fields remain unconditional:
 
 ```lean
-hQ_int : ∀ n s, 0 < s → s ≤ T →
-  Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
-    (intervalMeasure 1)
-
-hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
-  |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
-
-hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
-  |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+hQ_int : ∀ n s, Integrable ...
+hQ_bound : ∀ n s y, |...| ≤ CQ
+hL_bound : ∀ n s y, |...| ≤ CL
 ```
 
-This order is intentional: it matches `IntervalBankInfAndLogSrcWiring` exactly.
+That mismatch is exactly the over-typing.
 
----
+The landed bank file says this explicitly in its module comment:
 
-## The landed bank facts are windowed, not unconditional
+```lean
+IMPORTANT — neither top-level field is fully landed here; see the trailing
+report.  Field 2's producer demands UNCONDITIONAL-in-`s` bounds
+(`hQ_bound/hL_bound : ∀ n s y, …`) that are NOT derivable from the
+window-only data `D` (no `s > T` control); field 6 needs a restart-cosine
+representation + time-`C¹` coefficient data for `conjugatePicardLimit` that is
+not landed anywhere in the tree.  The bricks below are exactly the windowed
+half that IS axiom-clean.
+```
 
-`ShenWork/Paper2/IntervalBankInfAndLogSrcWiring.lean` explicitly says the fully landed facts are windowed and that the old producer demanded unconditional-in-`s` bounds that the bank cannot derive outside the active window.
+So the repo itself already documents the conclusion: the currently landed facts are windowed, and unconditional-in-`s` is not derivable from the current data.
 
-Relevant definitions/theorems:
+The relevant landed windowed facts are:
 
 ```lean
 /-- **Windowed chemotaxis-flux sup bound over the iterates** (`hQ_bound` on the
@@ -176,13 +112,13 @@ theorem iterChemFlux_integrable
       Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) (intervalMeasure 1)
 ```
 
-So if the aim is to use the banked facts, the structure really should not require unconditional `∀ s` bounds.
+These are exactly the facts a windowed threshold package should carry.
 
 ---
 
-## Producer: close, but not literally unchanged
+## Why changing only the producer cannot work
 
-Current producer in `IntervalConjugatePicardInfThresholdDischarge.lean` takes unconditional bounds and assigns them directly:
+The current producer has the old unconditional signature:
 
 ```lean
 def conjugatePicardInfThresholdData_of_picard_bounds
@@ -204,228 +140,241 @@ def conjugatePicardInfThresholdData_of_picard_bounds
     ... :
     ConjugatePicardInfThresholdData p u₀ D.T := by
   ...
-  exact
-    { K := D.K
-      C₀ := D.C₀
-      CQ := CQ
-      CL := CL
-      ...
-      hQ_int := hQ_int
-      hQ_bound := hQ_bound
-      hB_int := hB_int
-      hL_bound := hL_bound
-      hL_int := hL_int }
 ```
 
-If the structure fields become windowed but the producer still accepts unconditional inputs, the field assignments must be eta-expanded:
+You cannot change this producer to accept windowed inputs and still return the old structure, because the old structure literally demands unrestricted fields.  A windowed input cannot fill:
 
 ```lean
-hQ_int := fun n s _hs _hsT => hQ_int n s
-hQ_bound := fun n s _hs _hsT y => hQ_bound n s y
-hL_bound := fun n s _hs _hsT y => hL_bound n s y
+hQ_bound : ∀ n s y, ...
 ```
 
-So the producer is not literally unchanged.  It is a tiny proof-term change.
+unless you invent/prove behavior outside `(0,T]`, or define a cutoff iterate/source, which would no longer be the same `conjugatePicardIter p u₀ n s`.
 
-If the real producer source is `IntervalBankInfAndLogSrcWiring`, it is even cleaner to change the producer signature to accept windowed inputs:
+So there are only three honest options:
 
-```lean
-(hQ_int : ∀ n s, 0 < s → s ≤ D.T → Integrable ...)
-(hQ_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CQ)
-(hL_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CL)
-```
-
-then the record fields can be filled directly from:
-
-```lean
-fun n => iterChemFlux_integrable D n
-fun n => iterChemFlux_windowBound D n
-fun n => iterLogistic_windowBound D n
-```
-
-Either way, this is not an analytic problem.
+1. **Retype the old structure** to windowed fields.  Correct but cascades.
+2. **Add a new windowed structure** and route new B-form bank/frontier code through it.  Compatible with old files.
+3. **Keep old structure and prove unconditional bounds**.  Not supported by current analytic data and likely false / meaningless outside the horizon.
 
 ---
 
-## Consumers: they will not compile “as-is”
+## Is a parallel windowed structure viable?
 
-The representative consumer is `intervalConjugateDuhamelMap_ge_half_floor` in `IntervalConjugatePicardInfThreshold.lean`.
+Yes.  This is viable and probably the least disruptive approach if you want to avoid editing every old consumer.
 
-Current chemotaxis part:
+Suggested new structure:
 
 ```lean
-have hB_abs : |B| ≤
-    heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * H.CQ := by
-  simpa [B] using
-    ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-      ht htT (fun s _ _ => H.hQ_int n s) H.hCQ
-      (fun s _ _ => H.hQ_bound n s) x.1 (H.hB_int n t ht htT x)
+structure ConjugatePicardInfThresholdDataOn
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
+  K : ℝ
+  C₀ : ℝ
+  CQ : ℝ
+  CL : ℝ
+  hT : 0 < T
+  hK : K < 1
+  hK_nn : 0 ≤ K
+  hC₀ : 0 ≤ C₀
+  hCQ : 0 ≤ CQ
+  hCL : 0 ≤ CL
+  hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+    ∀ x : intervalDomainPoint,
+      |conjugatePicardIter p u₀ (n + 1) t x
+        - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+  hQ_int : ∀ n s, 0 < s → s ≤ T →
+    Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
+      (intervalMeasure 1)
+  hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+    |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+  hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    IntervalIntegrable
+      (fun s : ℝ =>
+        intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
+      volume 0 t
+  hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+    |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+  hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    IntervalIntegrable
+      (fun s : ℝ =>
+        intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1)
+      volume 0 t
 ```
 
-Notice that `conjugateDuhamel_sup_bound` itself already has a **windowed API**:
+Suggested producer from the landed bank facts:
 
 ```lean
-theorem conjugateDuhamel_sup_bound
-    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {q : ℝ → ℝ → ℝ}
-    (hq_int : ∀ s, 0 < s → s ≤ T → Integrable (q s) (intervalMeasure 1))
-    {Cq : ℝ} (hCq : 0 ≤ Cq)
-    (hq_sup : ∀ s, 0 < s → s ≤ T → ∀ y, |q s y| ≤ Cq) (x : ℝ)
+def conjugatePicardInfThresholdDataOn_of_picard_bounds
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildExistenceData p u₀)
+    (CQ CL : ℝ) (hCQ : 0 ≤ CQ) (hCL : 0 ≤ CL)
+    (hQ_int : ∀ n s, 0 < s → s ≤ D.T → Integrable ...)
+    (hQ_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CQ)
+    (hB_int : ∀ n t, 0 < t → t ≤ D.T → ∀ x, IntervalIntegrable ...)
+    (hL_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CL)
+    (hL_int : ∀ n t, 0 < t → t ≤ D.T → ∀ x, IntervalIntegrable ...) :
+    ConjugatePicardInfThresholdDataOn p u₀ D.T := ...
+```
+
+This producer can be filled directly from:
+
+```lean
+CQ := iterCQ D
+CL := iterCL D
+hCQ := iterCQ_nonneg D
+hCL := iterCL_nonneg D
+hQ_int := fun n => iterChemFlux_integrable D n
+hQ_bound := fun n => iterChemFlux_windowBound D n
+hB_int := iterChemFlux_duhamel_intervalIntegrable D
+hL_bound := fun n => iterLogistic_windowBound D n
+hL_int := iterLogistic_duhamel_intervalIntegrable D
+```
+
+This is cleaner than trying to coerce windowed facts into the old over-typed structure.
+
+---
+
+## But can you change only `BFormBankedInputs.Hinf` to the windowed structure?
+
+Not by itself.
+
+Current `BFormBankedInputs` in `IntervalBFormDirectClassical.lean` has:
+
+```lean
+structure BFormBankedInputs
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DB : ConjugateMildExistenceData p u₀) where
+  huPaper : PaperPositiveInitialDatum intervalDomain u₀
+  Hinf : ConjugatePicardInfThresholdData p u₀ DB.T
+  hsmall :
+    |p.χ₀| * (heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt DB.T) * Hinf.CQ)
+      + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
+  ...
+```
+
+and `BFormBankedInputs.hpde_u` passes `B.Hinf` to a theorem whose type expects the old structure:
+
+```lean
+ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_global_restart_on
+    DB B.huPaper B.Hinf B.hsmall
     ...
 ```
 
-So after weakening the fields, this call should become:
+Likewise `IntervalBFormEndToEnd.lean` has a parallel `BFormBankedInputs` structure with the old `Hinf : ConjugatePicardInfThresholdData p u₀ DB.T` field.
+
+And strict positivity uses old `Hinf` directly:
 
 ```lean
-ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-  ht htT
-  (fun s hs hsT => H.hQ_int n s hs hsT)
-  H.hCQ
-  (fun s hs hsT => H.hQ_bound n s hs hsT)
-  x.1
-  (H.hB_int n t ht htT x)
+theorem bform_strictPos_closed
+    ...
+    (Hinf : ConjugatePicardInfThresholdData p u₀ DB.T)
+    (hsmall : ... Hinf.CQ ... Hinf.CL ...)
+    ...
 ```
 
-Lean will not infer those proof arguments from the old
+with the immediate barrier helper:
 
 ```lean
-fun s _ _ => H.hQ_int n s
+theorem squareHeatBarrier_paperPositiveConstSeed_initial_le
+    ...
+    (Hinf : ConjugatePicardInfThresholdData p u₀ DB.T)
+    ...
 ```
 
-because, after the field retype, `H.hQ_int n s` is a function waiting for proofs, not an `Integrable ...` term.
-
-Current logistic part:
-
-```lean
-have hR_abs : |R| ≤ T * H.CL := by
-  simpa [R] using
-    ShenWork.IntervalGradDuhamelBound.valueDuhamel_sup_bound
-      ht htT H.hCL (H.hL_bound n) x.1 (H.hL_int n t ht htT x)
-```
-
-This one is more important: `valueDuhamel_sup_bound` currently expects an unconditional source bound:
-
-```lean
-theorem valueDuhamel_sup_bound
-    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {r : ℝ → ℝ → ℝ}
-    {Cr : ℝ} (hCr : 0 ≤ Cr) (hr_sup : ∀ s y, |r s y| ≤ Cr) (x : ℝ)
-    (hr_int : IntervalIntegrable ...)
-```
-
-So after weakening `H.hL_bound`, this call cannot be fixed by merely adding hidden proof arguments to the same theorem.  You need one of:
-
-1. a small windowed version of `valueDuhamel_sup_bound`, analogous to `conjugateDuhamel_sup_bound`, excluding both endpoints `s = 0` and `s = t` as null sets; or
-2. a cutoff-source proof, like `IntervalConjugateBallSupBound.valueDuhamel_sup_bound_of_ball`, but without requiring data not stored in `ConjugatePicardInfThresholdData`; or
-3. keep a separate unconditional logistic field, which defeats the purpose if only windowed facts are available.
-
-A useful local theorem would have the shape:
-
-```lean
-theorem valueDuhamel_sup_bound_window
-    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {r : ℝ → ℝ → ℝ}
-    {Cr : ℝ} (hCr : 0 ≤ Cr)
-    (hr_sup : ∀ s, 0 < s → s ≤ T → ∀ y, |r s y| ≤ Cr) (x : ℝ)
-    (hr_int : IntervalIntegrable
-      (fun s : ℝ => intervalFullSemigroupOperator (t - s) (r s) x) volume 0 t) :
-    |∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s) (r s) x| ≤ T * Cr
-```
-
-Its proof is almost the same as `valueDuhamel_sup_bound`, with both `{0}` and `{t}` removed as null sets, or via a cutoff source.
-
-Then the consumer becomes:
-
-```lean
-ShenWork.IntervalGradDuhamelBound.valueDuhamel_sup_bound_window
-  ht htT H.hCL
-  (fun s hs hsT => H.hL_bound n s hs hsT)
-  x.1
-  (H.hL_int n t ht htT x)
-```
+So if `BFormBankedInputs.Hinf` becomes `ConjugatePicardInfThresholdDataOn`, old calls like these break unless you also introduce windowed versions of the positivity/PDE theorems.
 
 ---
 
-## Does this “touch 12 files”?
+## Minimal viable parallel-windowed path
 
-It may still touch many files, depending on how many constructors/projections appear outside the core file.  But it is not 12 files of analytic redesign.  It is mostly mechanical API fallout:
-
-1. Change the three structure fields.
-2. Adjust `conjugatePicardInfThresholdData_of_picard_bounds` either by eta-expanding unconditional inputs or by changing its signature to windowed inputs.
-3. Patch direct uses of `H.hQ_int`, `H.hQ_bound`, `H.hL_bound` to pass window hypotheses.
-4. Add or use a windowed value-Duhamel bound for the logistic leg.
-5. Patch record literals that assign these fields directly.
-
-So: **the proposed weakening is the right simplification**, but **not zero-touch**.
-
----
-
-## Answer to the exact question
-
-> “If we weaken the structure fields to windowed bounds, the producer can still fill them from unconditional bounds, and consumers compile as-is. Is this correct?”
-
-Half-correct:
+Do **not** try to convert the new windowed structure back to the old one.  Instead add new variants along the B-form route:
 
 ```text
-Correct: unconditional ⟹ windowed, so the old producer can still fill weakened fields.
-Incorrect: the producer and consumers do not compile literally as-is.
+ConjugatePicardInfThresholdDataOn
+conjugatePicardInfThresholdDataOn_of_picard_bounds
+intervalConjugateDuhamelMap_ge_half_floor_on
+conjugatePicardIter_ge_half_floor_of_PID_on
+conjugatePicardLimit_ge_half_floor_of_PID_on
+conjugatePicardLimit_pos_of_PID_on
+squareHeatBarrier_paperPositiveConstSeed_initial_le_on
+bform_strictPos_closed_on
 ```
 
-The producer needs eta-expansion or a windowed signature.  Consumers using projections must pass the new proof arguments.  The chemotaxis consumer is easy because `conjugateDuhamel_sup_bound` already has a windowed API.  The logistic consumer needs a windowed/cutoff value-Duhamel lemma or a proof rewrite, because the currently called `valueDuhamel_sup_bound` expects an unconditional `∀ s y` bound.
+For the PDE route, either:
 
-> “Or do the consumers pattern-match on the EXACT field type and break?”
+```text
+intervalConjugateMildSolution_pde_u_PID_global_restart_on_on
+```
 
-They mostly do not “pattern-match” in the semantic sense, but yes, they break for the same practical reason: Lean projection applications are exact.  A field retype changes the type of every `H.hQ_int`, `H.hQ_bound`, and `H.hL_bound` occurrence.  Old code such as
+or, better, inspect whether the existing `intervalConjugateMildSolution_pde_u_PID_global_restart_on` only carries `Hinf` for positivity/smallness.  If so, replace its dependency by a smaller interface:
 
 ```lean
-H.hQ_int n s
-H.hQ_bound n s
-H.hL_bound n
+structure ConjugateInfThresholdLike ... where
+  CQ CL : ℝ
+  hT : 0 < T
+  hCQ : 0 ≤ CQ
+  hCL : 0 ≤ CL
+  hgeom : ... windowed ...
+  hQ_int : ... windowed ...
+  hQ_bound : ... windowed ...
+  hB_int : ... windowed ...
+  hL_bound : ... windowed ...
+  hL_int : ... windowed ...
 ```
 
-will no longer elaborate unless it is rewritten to feed the window hypotheses or routed through a localized bound theorem.
+or pass only the actual derived positivity theorem:
+
+```lean
+hpos : ∀ t, 0 < t → t < T → ∀ x, 0 < conjugatePicardLimit p u₀ T t x
+```
+
+where possible.  This is often even cleaner: many downstream classical/PDE theorems do not need the original inf-threshold structure, only the positivity consequence and the constants in `hsmall`.
 
 ---
 
-## Recommended minimal patch shape
+## Is this less work than the 12-file retype?
 
-```lean
--- In ConjugatePicardInfThresholdData:
-hQ_int : ∀ n s, 0 < s → s ≤ T →
-  Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) (intervalMeasure 1)
+Probably yes if you keep the old API untouched and add a windowed B-form route, but it is not free.
 
-hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
-  |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+Expected edits:
 
-hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
-  |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+1. One new structure file or addendum in `IntervalConjugatePicardInfThreshold.lean`.
+2. One new producer using `IntervalBankInfAndLogSrcWiring` facts.
+3. Windowed copies/generic versions of the inf-threshold positivity chain.
+4. Windowed variants of the few B-form bank consumers that currently require old `Hinf`.
+5. Change `BFormBankedInputs` / `BFormDirectFrontier` for the new route only.
+
+This avoids touching old clients that still use `ConjugatePicardInfThresholdData`, but it does mean maintaining two routes temporarily.
+
+---
+
+## Recommended implementation strategy
+
+Best short-term path:
+
+```text
+A. Leave old ConjugatePicardInfThresholdData exactly as-is.
+B. Add ConjugatePicardInfThresholdDataOn with windowed fields.
+C. Add a bank producer from iterChemFlux_windowBound / iterLogistic_windowBound / iterChemFlux_integrable.
+D. Add windowed variants of the positivity lemmas by copying the old proofs and replacing:
+     H.hQ_int n s     → H.hQ_int n s hs hsT
+     H.hQ_bound n s   → H.hQ_bound n s hs hsT
+     H.hL_bound n s   → H.hL_bound n s hs hsT
+   plus use a windowed/cutoff value-Duhamel bound for the logistic leg if needed.
+E. Change only the new/direct B-form bank path to use HinfOn.
 ```
 
-Then update the old unconditional producer with wrappers if keeping its old signature:
+This is viable and avoids editing old consumers.  But if your goal is a single canonical API, the cleaner final state is still to retype `ConjugatePicardInfThresholdData` itself to windowed fields and patch the fallout once.
 
-```lean
-hQ_int := fun n s _hs _hsT => hQ_int n s
-hQ_bound := fun n s _hs _hsT y => hQ_bound n s y
-hL_bound := fun n s _hs _hsT y => hL_bound n s y
-```
+---
 
-or change the producer signature to take windowed facts and assign them directly.
+## Final answer
 
-Finally, patch the inf-threshold proof:
-
-```lean
--- chem leg
-ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-  ht htT
-  (fun s hs hsT => H.hQ_int n s hs hsT)
-  H.hCQ
-  (fun s hs hsT => H.hQ_bound n s hs hsT)
-  x.1
-  (H.hB_int n t ht htT x)
-
--- logistic leg: use/add a windowed value-Duhamel bound
-valueDuhamel_sup_bound_window
-  ht htT H.hCL
-  (fun s hs hsT => H.hL_bound n s hs hsT)
-  x.1
-  (H.hL_int n t ht htT x)
-```
-
-That is the simple fix: weaken the ledger to the actual domain of use, but budget for mechanical projection updates and one localized logistic bound lemma.
+* The unconditional bound `∀ s` is not justified by the current Picard ball machinery and is likely false / analytically meaningless outside `(0,T]`.
+* The old structure is over-typed.
+* You cannot produce the old unconditional structure from windowed inputs without adding nontrivial and probably false outside-window facts.
+* Adding a new windowed structure is viable.
+* But changing `BFormBankedInputs.Hinf` to the new structure requires windowed variants/generic versions of the B-form consumers that currently expect `ConjugatePicardInfThresholdData`; it is not a pure one-field change.
+* This parallel route is still a reasonable way to avoid the full 12-file old-API retype while preserving backward compatibility.
