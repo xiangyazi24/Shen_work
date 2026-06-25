@@ -291,7 +291,16 @@ theorem level0_chemDiv_envelope_summable
   -- hcont_slices/hsup_slices for the zeroth mode.
   exact ⟨fun k => Cenv / (max 1 (k : ℝ)) ^ 2,
     by
-      sorry, -- Summability of Cenv/(max 1 k)²: comparison with 1/k² series
+      -- Summability of Cenv/(max 1 k)²: comparison with 1/k² series.
+      -- For k ≥ 1, max 1 k = k, so the term = Cenv / k² = Cenv * (1/k²).
+      -- The series ∑ Cenv / k² is summable (p-series with p = 2 > 1).
+      apply Summable.of_norm_bounded_eventually_nat
+          ((Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)).mul_left Cenv)
+      rw [Filter.eventually_atTop]
+      exact ⟨1, fun k hk => by
+        rw [Real.norm_eq_abs, abs_of_nonneg (div_nonneg hCenv_nn (sq_nonneg _))]
+        have hk_cast : (1 : ℝ) ≤ (k : ℝ) := Nat.one_le_cast.mpr hk
+        rw [max_eq_right hk_cast, mul_one_div]⟩,
     fun s hs n => by
       obtain ⟨h2s, hBs⟩ := hH2_data s hs
       by_cases hn : n = 0
