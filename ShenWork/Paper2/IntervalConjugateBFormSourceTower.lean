@@ -76,7 +76,7 @@ noncomputable def conjBFormSourceTimeC1OnUpTo_all
         (coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T := by
       sorry -- Needs chemDiv C² for iterate n+1 (same gap as level 0)
     -- Step 5: combine
-    exact bFormSource_duhamelSourceTimeC1On _hlog _hchem
+    exact ShenWork.IntervalBFormSpectral.bFormSource_duhamelSourceTimeC1On _hlog _hchem
 
 /-! ## Limit passage -/
 
