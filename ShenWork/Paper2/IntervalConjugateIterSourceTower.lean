@@ -56,7 +56,7 @@ theorem conjLogLevel0_eq_gradLevel0 (p : CM2Params) (u₀ : intervalDomainPoint 
     cosineCoeffs (logisticLifted p (picardIter p u₀ 0 s)) k := by
   rfl
 
-theorem conjLogSourceTimeC1On_level0
+noncomputable def conjLogSourceTimeC1On_level0
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     {c T M G1 G2 Udot M₀ : ℝ}
     (hc : 0 < c) (hcT : c < T)
