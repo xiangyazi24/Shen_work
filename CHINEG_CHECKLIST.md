@@ -724,3 +724,18 @@ Site #3 (hpde_u) HAS a general-χ₀ alternative (IntervalBFormPdeUProducer). Si
 Sites #1,#2,#4,#5 + A,B,C ALL trace to the same LocalRestartWeak engine = χ₀=0-only.
 FIX OPTIONS: (a) port tower to B-form (conjugate Picard), or (b) build general-χ₀ restart/K1/positivity.
 Both substantial — this is the genuine remaining infrastructure for χ₀<0 unconditional.
+
+## [2026-06-25] DEFINITIVE: χ₀<0 unconditional = χ₀=0 Tower + 2 mechanical retypes (NO new χ₀-specific analysis)
+B-form route (BFormBankedInputs → Theorem_1_1): 12 fields scoped field-by-field.
+  9 PRODUCIBLE (trivially or given later fields).
+  3 blockers:
+    Fields 5+6 (hlogSrc/hchemSrc): the "Tower" piece = iterate/limit source DuhamelSourceTimeC1.
+      This is the SAME bottleneck as χ₀=0. It is χ₀-INDEPENDENT: same construction for all χ₀.
+      Once landed for χ₀=0, it works for χ₀<0.
+    Field 2 (Hinf): retype ConjugatePicardInfThresholdData to windowed bounds (mechanical,
+      consumers already use windowed; windowed versions landed in IntervalBankInfAndLogSrcWiring).
+    Field 10 (hchemCont): representative retype for chemDiv endpoint discontinuity (documented fix,
+      same as h_src_cont_chem fix done this session). Interface change, not new analysis.
+CONCLUSION: χ₀<0 unconditional does NOT need new χ₀-specific analysis beyond what χ₀=0 needs.
+The shared hard piece is the Tower (iterate/limit source TimeC1 package). The 2 retypes are
+mechanical (the Hinf retype + hchemCont representative fix = same pattern as this session's fixes).
