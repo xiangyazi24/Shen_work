@@ -430,7 +430,7 @@ theorem level0_chemDiv_timeDerivData
       mem_prod.2 ⟨⟨by linarith, by linarith⟩, hx⟩
     -- The target set is contained in the local slab
     exact ContinuousWithinAt.mono (hcont.continuousWithinAt hmem)
-      (Set.prod_mono (fun t ht => ⟨by linarith [ht.1], by linarith [ht.2]⟩) le_rfl)
+      (Set.prod_mono (fun t ht => ⟨by linarith [ht.1, hs.1], by linarith [ht.2, hs.2]⟩) le_rfl)
   -- Step 3: HasDerivWithinAt from the chain rule (HasDerivAt → HasDerivWithinAt).
   set adot := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot
     p (conjugatePicardIter p u₀ 0) with hadot_def
