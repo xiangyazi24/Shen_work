@@ -583,3 +583,15 @@ THREE-PAPER AUDIT STATE (computed from code, verified):
  · Paper 2: T11 χ₀<0 = max-principle REAL + hU frontier (spatial-deriv JC sorry-fix in flight);
    Prop 2.4 CLOSED. Props 2.1/2.2/2.3/2.5 open (conditional reductions).
  · Paper 3: T2.2 linear branch UNCONDITIONAL (verified). T2.2 nonlinear conditional. Rest 🟡.
+
+## [2026-06-25] FRONTIER: DuhamelSourceTimeC1 global type UNSATISFIABLE for realSlice (dite boundary)
+realSlice u_star uses dite on t∈[0,T]: the source coefficients coupledChemDivSourceCoeffs p (realSlice u_star) s n
+jump from 0 (s<0 or s>T) to nonzero (s∈(0,T)) at the boundary — NOT C¹ there. So the global DuhamelSourceTimeC1
+(with ∀ s, HasDerivAt...) is UNSATISFIABLE = §3.3 vacuity (same pattern as h_src_cont_chem).
+Mdot envelope BANKED (e5e29d1) — the content is ready; the blocking issue is the TYPE, not the math.
+duhamelSourceTimeC1_of_shifted_On (Brick2) produces a CLAMPED shifted family ≠ the original — type mismatch with
+reduced core's hchem/hlog binder. The canonical chain (IntervalChemDivWinDischarge) produces global
+DuhamelSourceTimeC1 for D.u (not realSlice u_star) — no bridge between D.u and realSlice u_star exists.
+OPTIONS: (a) refactor 16 EWA files from DuhamelSourceTimeC1 → DuhamelSourceTimeC1On (big);
+(b) bridge D.u ↔ realSlice u_star (requires showing EWA fixed point = canonical Picard limit);
+(c) extend realSlice smoothly beyond [0,T] (change dite to smooth clamp — needs architectural decision).
