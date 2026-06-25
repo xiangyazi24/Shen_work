@@ -1,382 +1,592 @@
-# Q381 (cron2): `realSlice`, `intervalDomainLift`, and the evalST `h_u` atom
+# Q404 (cron2): Barrier C / `BFormBankedInputs.hchemCont`
 
 ## Executive verdict
 
-I read the exact current definitions and the current `h_u` producers.
+I traced `BFormBankedInputs.hchemCont` through `IntervalBFormDirectClassical.lean`, `IntervalBFormPIDUnconditional.lean`, the old global provider, the windowed `On` provider, and `IntervalBankChemSliceFix.lean`.
 
-The answer is:
+The short answer:
 
-* If `h_u` is interpreted as the **real-part identity**
+* **Do not just delete `hchemCont` in the current code path.** It is not dead at present. `BFormBankedInputs.hpde_u` passes it to `intervalConjugateMildSolution_pde_u_PID_unconditional`; that theorem uses it to build `ChemDivCosineFourierData` through the hard-wired `chemDivCosineFourierData_constExtend` provider.
 
-  ```lean
-  (evalST τ (x : WA.Circ) (GWA.incl _ u_star)).re
-    = intervalDomainLift (realSlice u_star τ.1) x
-  ```
+* **Changing it to `ContinuousOn ... (Ioo 0 1)` is also not enough** for the current consumers. The old consumer wants a `ChemDivCosineFourierData`, whose `representative` is globally continuous and agrees with `chemDivLift` on `Icc 0 1`. The landed fix introduces `ChemDivCosineFourierDataIoo`, not merely a local `ContinuousOn` field.
 
-  then yes: on `x ∈ Set.Icc 0 1` and `τ : TimeDom T`, it is a definitional/unfolding fact. No analytic content, no Picard fixed-point equation, no Banach theorem, no source data.
-
-* But the current code’s slab atom `h_u` is actually the **complex-valued identity**
+* The right fix is to **replace the false field by an endpoint-insensitive representative package**, e.g.
 
   ```lean
-  evalST τ x (GWA.incl _ u_star)
-    = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
+  hchemDataIoo : ∀ t, 0 < t → t < DB.T →
+    ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
+      ((conjugatePicardLimit p u₀ DB.T) t)
+      (coupledChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T) t)
   ```
 
-  not merely a real-part equality. For that stronger statement, the real part is definitional, but the imaginary part needs the genuine/structural reality input
+  or equivalently explicit fields `ψ`, `Continuous ψ`, `EqOn ψ chemDivLift (Ioo 0 1)`, and Fourier summability for `reflCircle ψ`.
 
-  ```lean
-  (evalST τ (x : WA.Circ) (GWA.incl _ u_star)).im = 0
-  ```
+* The endpoint values really do not matter for the PDE identity: the Fourier-convergence consumers evaluate only at `hx : x.1 ∈ Ioo 0 1`. But the **current type** forces endpoint continuity/agreement through `ChemDivCosineFourierData` and `chemDivCosineFourierData_constExtend`, so the code still asks for a false endpoint statement.
 
-  In the Picard fixed-point route this is discharged from `EvenRealEWA u_star`, which is itself supplied for the Picard fixed point by `picardEWA_evenReal_fixedPoint`.
+* The **windowed `On` PDE identity** does **not inherently need `hchemCont`**. It still currently takes `hchemData : ChemDivCosineFourierData ...`, so in the current signature it still indirectly needs a chem-div Fourier package. But if the `On` theorem is rewired to take `ChemDivCosineFourierDataIoo` and use the `_Ioo` consumers from `IntervalBankChemSliceFix.lean`, then `hchemCont` disappears. The windowed `On` route is the right place to do this because it directly proves the interior PDE and does not pack the old global `HasBFormSpectralPdeAgreement` existential.
 
-So there is **no realization gap** in the real part. The only non-definitional piece in the current complex `h_u` theorem is proving that the eval is real-valued. That is not PDE/source content; it is parity/even-real algebraic content.
-
-There is one important boundary caveat: `intervalDomainLift` is a zero-extension, so the unfolding is only valid when the theorem has `hx : x ∈ Set.Icc 0 1`. Outside `[0,1]`, the lift is `0`, while `evalST τ x …` need not vanish. The existing `h_u` slab correctly quantifies `∀ x ∈ Set.Icc 0 1`.
-
-Also, the time does **not** need to be interior. Since `τ : TimeDom T` is already a subtype proof of `τ.1 ∈ [0,T]`, `realSlice u_star τ.1` selects the `if_pos τ.2` branch. The same definitional argument works at `τ.1 = 0` or `τ.1 = T` as well.
-
-## Exact definitions read
-
-### `TimeDom`
-
-From `ShenWork/Wiener/EWA/Basic.lean`:
-
-```lean
-import ShenWork.Wiener.EWA.Basic
-
-namespace ShenWork.EWA
-
-/-- The compact time domain `[0, T] ⊆ ℝ`. -/
-abbrev TimeDom (T : ℝ) : Type := Set.Icc (0 : ℝ) T
-
-end ShenWork.EWA
-```
-
-So a term `τ : TimeDom T` is a subtype with `τ.1 : ℝ` and `τ.2 : τ.1 ∈ Set.Icc 0 T`.
-
-### `evalST`
-
-From `ShenWork/Wiener/EWA/Decisive.lean`:
-
-```lean
-import ShenWork.Wiener.EWA.Decisive
-
-open ShenWork.GWA ShenWork.Wiener
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- **Space-time point evaluation** `EWA T 0 →+* ℂ`: slice the time-coefficients
-at time `τ` (landing in `WA 0`), then evaluate the resulting Fourier series at
-the spatial point `x : WA.Circ`. -/
-def evalST (τ : TimeDom T) (x : WA.Circ) : EWA T 0 →+* ℂ :=
-  (WA.evalAt x).comp (sliceWA τ).toRingHom
-
-@[simp] theorem evalST_apply (τ : TimeDom T) (x : WA.Circ) (a : EWA T 0) :
-    evalST τ x a = WA.evalAt x (sliceWA τ a) := rfl
-
-end ShenWork.EWA
-```
-
-`evalST` is not itself a physical-space lift. It is the circle/Wiener point evaluation of an EWA element after time slicing. The physical-space slice is **defined from it** by `realSlice`.
-
-### `realSlice`
-
-From `ShenWork/Wiener/EWA/SourceClassicalExistence.lean`:
-
-```lean
-import ShenWork.Wiener.EWA.SourceClassicalExistence
-
-open ShenWork.GWA ShenWork.Wiener
-open ShenWork.IntervalDomain (intervalDomainPoint)
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- **The realized real-space slice of an `EWA T 1` element.**  At time `t` (clamped to
-`[0,T]` by the membership test) and interior point `x : intervalDomainPoint`, the slice
-is the real part of the Wiener point-evaluation of the grade-drop `incl u*`. -/
-def realSlice (u_star : EWA T 1) : ℝ → intervalDomainPoint → ℝ :=
-  fun t x =>
-    if h : t ∈ Set.Icc (0 : ℝ) T then
-      (evalST (⟨t, h⟩ : TimeDom T) ((x.1 : ℝ) : WA.Circ)
-        (GWA.incl (by omega : (0:ℕ) ≤ 1) u_star)).re
-    else 0
-
-end ShenWork.EWA
-```
-
-Key point: for `τ : TimeDom T`, `realSlice u_star τ.1` unfolds with `dif_pos τ.2` to the real part of `evalST (⟨τ.1, τ.2⟩ : TimeDom T)`. This is definitionally the same time as `τ` after the trivial subtype equality `Subtype.ext rfl`.
-
-### `intervalDomainLift`
-
-From `ShenWork/PDE/IntervalDomain.lean`:
-
-```lean
-import ShenWork.PDE.IntervalDomain
-
-namespace ShenWork.IntervalDomain
-
--- Unit interval domain point space used by the concrete bounded-domain API.
-def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
-
--- Extend a function on the unit interval to ℝ by zero outside
--- `[0,1]`, so that `intervalIntegral` and `deriv` can be applied directly.
-def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
-
-end ShenWork.IntervalDomain
-```
-
-Key point: on `hx : x ∈ Set.Icc 0 1`, this unfolds to `f ⟨x,hx⟩`; outside `[0,1]`, it unfolds to `0`.
-
-## The definitional real-part lemma
-
-The following is the exact “real part only” theorem. It needs no parity and no fixed-point hypothesis:
-
-```lean
-import ShenWork.Wiener.EWA.SourceChiNegUncond
-
-open scoped BigOperators
-open Set Metric
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- Real-part version of `h_u`: purely definitional on `[0,1]`. -/
-theorem realSlice_evalST_re_definally
-    (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    (evalST τ (x : WA.Circ)
-      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).re
-      = intervalDomainLift (realSlice u_star τ.1) x := by
-  have hτ : (⟨τ.1, τ.2⟩ : TimeDom T) = τ := Subtype.ext rfl
-  symm
-  rw [intervalDomainLift, dif_pos hx, realSlice, dif_pos τ.2, hτ]
-
-end ShenWork.EWA
-```
-
-This is the core check. The only bookkeeping is:
-
-1. `dif_pos hx` for `intervalDomainLift`,
-2. `dif_pos τ.2` for `realSlice`,
-3. `Subtype.ext rfl` to rewrite `(⟨τ.1, τ.2⟩ : TimeDom T)` back to `τ`.
-
-No source coefficients and no `picardEWA` fixed-point equality appear.
-
-## The current code’s actual `h_u`: complex equality
-
-The current production theorem is in `ShenWork/Wiener/EWA/SourceChiNegUncond.lean`:
-
-```lean
-import ShenWork.Wiener.EWA.SourceChiNegUncond
-
-open scoped BigOperators
-open Set Metric
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-#check realSlice_evalST_realizes
-#check evalST_incl_im_zero_of_evenReal
-
-/-- Existing theorem shape, paraphrased:
-
-For any `u_star : EWA T 1`, any `τ : TimeDom T`, and any `x ∈ [0,1]`,
-`evalST` realizes the lifted `realSlice` as a complex number, provided the eval has
-zero imaginary part. -/
-#check (realSlice_evalST_realizes :
-  ∀ (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ),
-    x ∈ Set.Icc (0 : ℝ) 1 →
-    (evalST τ (x : WA.Circ)
-      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0 →
-    evalST τ (x : WA.Circ)
-      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-      = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
-
-end ShenWork.EWA
-```
-
-The actual proof in the file is exactly the split above:
-
-```lean
-import ShenWork.Wiener.EWA.SourceChiNegUncond
-
-open scoped BigOperators
-open Set Metric
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- Existing proof pattern, copied structurally. -/
-theorem realSlice_evalST_realizes_pattern (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1)
-    (hreal : (evalST τ (x : WA.Circ)
-      (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0) :
-    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-      = (intervalDomainLift (realSlice u_star τ.1) x : ℂ) := by
-  have hτ : (⟨τ.1, τ.2⟩ : TimeDom T) = τ := Subtype.ext rfl
-  have hlift : intervalDomainLift (realSlice u_star τ.1) x
-      = (evalST τ (x : WA.Circ)
-        (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).re := by
-    rw [intervalDomainLift, dif_pos hx, realSlice, dif_pos τ.2, hτ]
-  rw [hlift]
-  apply Complex.ext
-  · rw [Complex.ofReal_re]
-  · rw [Complex.ofReal_im, hreal]
-
-end ShenWork.EWA
-```
-
-So the complex equality is **not** just `rfl`: the imaginary component is a real-valuedness obligation.
-
-## How the current slab discharges the imaginary part
-
-`SourceChiNegUncond.lean` proves:
-
-```lean
-import ShenWork.Wiener.EWA.SourceChiNegUncond
-
-open scoped BigOperators
-open Set Metric
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- Full-circle reality of `evalST (incl u_star)` from `EvenRealEWA u_star`. -/
-#check evalST_incl_im_zero_of_evenReal
-
-end ShenWork.EWA
-```
-
-And `SourceChiNegUncondWire.lean` packages the slab atom:
-
-```lean
-import ShenWork.Wiener.EWA.SourceChiNegUncondWire
-
-open scoped BigOperators
-open Set Metric
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-#check realSlice_h_u_slab
-
-/-- Existing slab shape, paraphrased:
-
-If `u_star` is even-real, then for every `τ : TimeDom T` and every `x ∈ [0,1]`,
-the complex `h_u` identity holds. -/
-#check (realSlice_h_u_slab :
-  ∀ {u_star : EWA T 1}, EvenRealEWA u_star →
-    ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-        = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
-
-end ShenWork.EWA
-```
-
-The proof is short:
-
-```lean
-intro τ x hx
-exact realSlice_evalST_realizes u_star τ x hx
-  (evalST_incl_im_zero_of_evenReal hER τ (x : WA.Circ))
-```
-
-So for the Picard fixed point:
-
-* `picardEWA_evenReal_fixedPoint` gives `EvenRealEWA u_star`,
-* `evalST_incl_im_zero_of_evenReal` gives the imaginary part is zero,
-* `realSlice_evalST_realizes` uses the definitional real-part unfolding plus that zero-imaginary fact.
-
-## Boundary and scope checks
-
-### Spatial scope
-
-The theorem is only true in the stated form on `[0,1]`:
-
-```lean
-∀ x ∈ Set.Icc (0 : ℝ) 1, ...
-```
-
-This restriction is essential because:
-
-```lean
-intervalDomainLift f x = if hx : x ∈ Set.Icc 0 1 then f ⟨x,hx⟩ else 0
-```
-
-For `x ∉ [0,1]`, the RHS lift is `0`, while `evalST τ (x : WA.Circ) ...` is a circle/Wiener evaluation and is not definitionally zero. Therefore a global `∀ x : ℝ` version would be a genuine/false extra claim, not a definitional one.
-
-### Time scope
-
-For `τ : TimeDom T`, no interior-time hypothesis is needed:
-
-```lean
-τ.2 : τ.1 ∈ Set.Icc (0 : ℝ) T
-```
-
-Therefore `realSlice u_star τ.1` always unfolds through `dif_pos τ.2`. The existing h_u slab works for all `τ : TimeDom T`, not just `τ.1 ∈ Set.Ioo 0 T`.
-
-If instead one states a lemma at an arbitrary real `t : ℝ`, then the branch depends on a proof of `t ∈ [0,T]`; outside `[0,T]`, `realSlice u_star t` is defined to be `0`.
-
-## Answer to the direct question
-
-The proposed reasoning is correct for the **real part**:
+Bottom line:
 
 ```text
-Re(evalST τ x (incl u_star))
-= realSlice u_star τ.1 ⟨x,hx⟩
-= intervalDomainLift (realSlice u_star τ.1) x
+Current global path:
+  hchemCont is used and false.
+
+Endpoint-insensitive fixed path:
+  remove hchemCont only after replacing old ChemDivCosineFourierData
+  by ChemDivCosineFourierDataIoo / smooth-surrogate data.
+
+Changing hchemCont to ContinuousOn Ioo alone:
+  insufficient; the consumer needs a globally continuous representative
+  plus Fourier summability, not just local continuity.
+
+Windowed On path:
+  can avoid hchemCont once its hchemData argument is changed to the Ioo package
+  and its two chemDiv consumer calls are switched to the _Ioo lemmas.
 ```
 
-up to the harmless subtype rewrite `⟨τ.1,τ.2⟩ = τ` and the spatial branch `hx : x ∈ [0,1]`.
-
-But the existing current atom used by `realizes_clean` is stronger:
+## Lean probes used
 
 ```lean
-evalST τ x (incl u_star) = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
-```
+import ShenWork.Paper2.IntervalBFormDirectClassical
 
-For that, definitional unfolding gives only the real part. The imaginary part is closed by `EvenRealEWA`:
+open Filter Topology Set
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalConjugateDuhamelMap
+  (IntervalConjugateMildSolution intervalConjugateDuhamelMap)
+open ShenWork.IntervalConjugatePicard
+  (ConjugateMildExistenceData ConjugatePicardInfThresholdData
+   conjugateMildSolutionData_of_data conjugatePicardLimit paperPositiveFloor)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.IntervalBFormSpectral
+  (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1
+   bFormSource_duhamelSourceTimeC1On)
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledChemicalConcentration coupledChemDivSourceCoeffs
+   coupledLogisticSourceCoeffs)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.Paper2
+
+namespace ShenWork.Paper2.BFormDirectClassical
+
+#check BFormBankedInputs
+#check BFormBankedInputs.hpde_u
+#check BFormBankedInputs.hsrcB
+#check BFormBankedInputs.hsrcB_on
+
+end ShenWork.Paper2.BFormDirectClassical
+```
 
 ```lean
-(evalST τ x (incl u_star)).im = 0
+import ShenWork.Paper2.IntervalBFormPIDUnconditional
+
+open Filter Topology Set
+
+namespace ShenWork.IntervalBFormSpectral
+
+#check ChemDivCosineFourierData
+#check chemDivCosineFourierData_constExtend
+#check chemDiv_cosineSeries_summable
+#check chemDiv_cosineFourier_convergence
+
+end ShenWork.IntervalBFormSpectral
+
+namespace ShenWork.IntervalConjugatePicard
+
+#check hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
+#check intervalConjugateMildSolution_pde_u_PID_unconditional
+
+end ShenWork.IntervalConjugatePicard
 ```
 
-So the final verdict is:
+```lean
+import ShenWork.Paper2.IntervalBFormSpectralProviderDischargeOn
+
+open Filter Topology Set
+
+namespace ShenWork.IntervalConjugatePicard
+
+#check pde_u_of_localized_data_with_hpost_on
+#check pde_u_PID_global_restart_on
+#check intervalConjugateMildSolution_pde_u_PID_global_restart_on
+
+end ShenWork.IntervalConjugatePicard
+```
+
+```lean
+import ShenWork.Paper2.IntervalBankChemSliceFix
+
+open Set Filter Topology
+
+namespace ShenWork.Paper2.BankChemSliceFix
+
+#check chemDivLift_continuousOn_Ioo
+#check ChemDivCosineFourierDataIoo
+#check chemDiv_cosineSeries_summable_Ioo
+#check chemDiv_cosineFourier_convergence_Ioo
+#check coupledChemDiv_cosineSeries_summable_Ioo
+#check coupledChemDiv_cosineFourier_convergence_Ioo
+#check chemDivCosineFourierDataIoo_of_repr
+#check hchemFourier_of_chemDiv_C2Neumann_reexport
+
+end ShenWork.Paper2.BankChemSliceFix
+```
+
+## 1. Exact `BFormBankedInputs.hchemCont` field
+
+In `ShenWork/Paper2/IntervalBFormDirectClassical.lean`, `BFormBankedInputs` currently contains:
+
+```lean
+import ShenWork.Paper2.IntervalBFormDirectClassical
+
+open Filter Topology Set
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalConjugatePicard
+  (ConjugateMildExistenceData ConjugatePicardInfThresholdData
+   conjugatePicardLimit paperPositiveFloor)
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledChemicalConcentration)
+open ShenWork.HeatKernelGradientEstimates
+  (heatGradientLinftyLinftyConstant)
+open ShenWork.IntervalNeumannFullKernel
+  (cosineCoeffs)
+open ShenWork.Paper2
+
+namespace ShenWork.Paper2.BFormDirectClassical
+
+-- Relevant excerpt, as read:
+--
+-- structure BFormBankedInputs
+--     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+--     (DB : ConjugateMildExistenceData p u₀) where
+--   ...
+--   hchemCont : ∀ t, 0 < t → t < DB.T →
+--     Continuous
+--       (intervalDomainConstExtend
+--         (fun x : intervalDomainPoint =>
+--           intervalDomainChemotaxisDiv p
+--             ((conjugatePicardLimit p u₀ DB.T) t)
+--             (coupledChemicalConcentration p
+--               (conjugatePicardLimit p u₀ DB.T) t) x))
+--   hchemFourier : ∀ t, 0 < t → t < DB.T →
+--     Summable (fun n : ℤ =>
+--       fourierCoeff
+--         (ShenWork.IntervalCosineInversion.reflCircle
+--           (intervalDomainConstExtend
+--             (fun x : intervalDomainPoint =>
+--               intervalDomainChemotaxisDiv p
+--                 ((conjugatePicardLimit p u₀ DB.T) t)
+--                 (coupledChemicalConcentration p
+--                   (conjugatePicardLimit p u₀ DB.T) t) x))) n)
+#check BFormBankedInputs
+
+end ShenWork.Paper2.BFormDirectClassical
+```
+
+This is exactly the false endpoint-continuity statement documented by `IntervalBankSourceSliceLeaves.lean` and `IntervalBankChemSliceFix.lean`: the representative is the constant extension of `intervalDomainChemotaxisDiv`, but the endpoint values forced by the zero-extension derivative convention do not match the interior one-sided limit in general.
+
+## 2. Is `hchemCont` actually used by `intervalConjugateMildSolution_pde_u_PID_unconditional`?
+
+Yes. It is not dead in the current direct-classical path.
+
+`BFormBankedInputs.hpde_u` in `IntervalBFormDirectClassical.lean` passes the bank fields to `intervalConjugateMildSolution_pde_u_PID_unconditional`:
+
+```lean
+import ShenWork.Paper2.IntervalBFormDirectClassical
+
+open Filter Topology Set
+
+namespace ShenWork.Paper2.BFormDirectClassical
+
+-- Current shape, relevant tail:
+--
+-- theorem BFormBankedInputs.hpde_u ... (B : BFormBankedInputs p DB) : ... :=
+--   ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_unconditional
+--       DB B.huPaper B.Hinf B.hsmall
+--       (cosineCoeffs (intervalDomainLift u₀)) B.haInit
+--       B.hlogSrc B.hchemSrc B.hB_global
+--       B.hlogCont B.hlogFourier B.hchemCont B.hchemFourier
+#check BFormBankedInputs.hpde_u
+
+end ShenWork.Paper2.BFormDirectClassical
+```
+
+Inside `IntervalBFormPIDUnconditional.lean`, `intervalConjugateMildSolution_pde_u_PID_unconditional` first builds a `HasBFormSpectralPdeAgreement` by calling `hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional`:
+
+```lean
+import ShenWork.Paper2.IntervalBFormPIDUnconditional
+
+open Filter Topology Set
+
+namespace ShenWork.IntervalConjugatePicard
+
+-- theorem intervalConjugateMildSolution_pde_u_PID_unconditional ...
+--   have Hpde : HasBFormSpectralPdeAgreement p D.T
+--       (conjugatePicardLimit p u₀ D.T) :=
+--     hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
+--       D hu₀ Hinf hsmall aInit haInit hlogSrc hchemSrc hB_global
+--       hlogCont hlogFourier hchemCont hchemFourier
+--   exact intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral D Hpde
+#check intervalConjugateMildSolution_pde_u_PID_unconditional
+
+end ShenWork.IntervalConjugatePicard
+```
+
+Then `hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional` uses `hchemCont` to build the chem-div Fourier package by the old const-extension provider:
+
+```lean
+import ShenWork.Paper2.IntervalBFormPIDUnconditional
+
+open Filter Topology Set
+
+namespace ShenWork.IntervalConjugatePicard
+
+-- Current use, excerpt:
+--
+-- have hchemData : ∀ t, 0 < t → t < D.T →
+--     ChemDivCosineFourierData p (u t)
+--       (coupledChemicalConcentration p u t) := by
+--   intro t ht htT
+--   exact chemDivCosineFourierData_constExtend p (u t)
+--     (coupledChemicalConcentration p u t)
+--     (by simpa [u] using hchemCont t ht htT)
+--     (by simpa [u] using hchemFourier t ht htT)
+#check hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
+
+end ShenWork.IntervalConjugatePicard
+```
+
+So current consumption is real: `hchemCont` supplies `ChemDivCosineFourierData.continuous_representative` for the representative hard-wired to `intervalDomainConstExtend (chemDiv)`.
+
+## 3. What does the old chem-div consumer actually need?
+
+The old package is in `IntervalBFormSpectralHchem.lean`:
+
+```lean
+import ShenWork.Paper2.IntervalBFormPIDUnconditional
+
+open Set
+
+namespace ShenWork.IntervalBFormSpectral
+
+-- structure ChemDivCosineFourierData
+--     (p : CM2Params) (u v : intervalDomainPoint → ℝ) where
+--   representative : ℝ → ℝ
+--   continuous_representative : Continuous representative
+--   representative_eq_chemDiv :
+--     Set.EqOn representative (chemDivLift p u v) (Set.Icc (0 : ℝ) 1)
+--   fourier_summable :
+--     Summable (fun n : ℤ => fourierCoeff (reflCircle representative) n)
+#check ChemDivCosineFourierData
+
+-- The old constExtend builder demands global continuity of the false representative:
+#check chemDivCosineFourierData_constExtend
+
+-- The two downstream consumers only evaluate at interior points:
+#check chemDiv_cosineSeries_summable
+#check chemDiv_cosineFourier_convergence
+
+end ShenWork.IntervalBFormSpectral
+```
+
+The important asymmetry:
+
+* The **type** requires global `Continuous representative` and `EqOn ... (Icc 0 1)`.
+* The **actual convergence/summability consumers** require `hx : x.1 ∈ Ioo 0 1` and only evaluate at interior points.
+
+That matches the audit: endpoint values do not matter for the PDE identity, but the current representative package has an endpoint-sensitive shape.
+
+## 4. Why `ContinuousOn ... (Ioo 0 1)` alone is not enough
+
+A field like
+
+```lean
+hchemContIoo : ∀ t, 0 < t → t < DB.T →
+  ContinuousOn
+    (intervalDomainConstExtend
+      (fun x : intervalDomainPoint => intervalDomainChemotaxisDiv p ... x))
+    (Set.Ioo (0 : ℝ) 1)
+```
+
+or even
+
+```lean
+ContinuousOn (chemDivLift p u v) (Set.Ioo (0 : ℝ) 1)
+```
+
+is too weak for the current inversion machinery. The inversion theorem `intervalCosine_hasSum_pointwise` is used on a globally continuous representative and a Fourier-summable reflected representative. The landed replacement in `IntervalBankChemSliceFix.lean` therefore does not just switch `Continuous` to `ContinuousOn`; it introduces a new package:
+
+```lean
+import ShenWork.Paper2.IntervalBankChemSliceFix
+
+open Set Filter Topology
+
+namespace ShenWork.Paper2.BankChemSliceFix
+
+-- structure ChemDivCosineFourierDataIoo
+--     (p : CM2Params) (u v : intervalDomainPoint → ℝ) where
+--   representative : ℝ → ℝ
+--   continuous_representative : Continuous representative
+--   representative_eq_chemDiv :
+--     Set.EqOn representative (chemDivLift p u v) (Set.Ioo (0 : ℝ) 1)
+--   fourier_summable :
+--     Summable (fun n : ℤ => fourierCoeff (reflCircle representative) n)
+#check ChemDivCosineFourierDataIoo
+
+#check chemDivCosineFourierDataIoo_of_repr
+#check chemDiv_cosineSeries_summable_Ioo
+#check chemDiv_cosineFourier_convergence_Ioo
+#check coupledChemDiv_cosineSeries_summable_Ioo
+#check coupledChemDiv_cosineFourier_convergence_Ioo
+
+end ShenWork.Paper2.BankChemSliceFix
+```
+
+This is the correct payload: a globally continuous surrogate `ψ` that agrees with the physical chem-div lift on the open interval, plus Fourier summability for `reflCircle ψ`.
+
+Thus a useful bank replacement is not `hchemCont : ContinuousOn ... Ioo`; it is either direct `hchemDataIoo` or explicit surrogate fields:
+
+```lean
+-- Preferred direct package field:
+hchemDataIoo : ∀ t, 0 < t → t < DB.T →
+  ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
+    ((conjugatePicardLimit p u₀ DB.T) t)
+    (coupledChemicalConcentration p
+      (conjugatePicardLimit p u₀ DB.T) t)
+```
+
+or:
+
+```lean
+-- Equivalent expanded shape:
+hchemRep : ∀ t, 0 < t → t < DB.T → ℝ → ℝ
+hchemRep_cont : ∀ t ht htT, Continuous (hchemRep t ht htT)
+hchemRep_eq : ∀ t ht htT,
+  Set.EqOn (hchemRep t ht htT)
+    (ShenWork.IntervalBFormSpectral.chemDivLift p
+      ((conjugatePicardLimit p u₀ DB.T) t)
+      (coupledChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T) t))
+    (Set.Ioo (0 : ℝ) 1)
+hchemRep_fourier : ∀ t ht htT,
+  Summable (fun n : ℤ =>
+    fourierCoeff (ShenWork.IntervalCosineInversion.reflCircle
+      (hchemRep t ht htT)) n)
+```
+
+## 5. Can `hchemCont` be removed entirely?
+
+Only after changing the consumer interface.
+
+### Not safe in the current path
+
+Current path:
 
 ```text
-Re-only h_u:        trivial definitional unfolding on x ∈ [0,1].
-Current complex h_u: real part trivial; imaginary part needs even-real/parity.
-Not a PDE/source gap: the only non-definitional content is algebraic reality of evalST.
-Not valid globally in x: intervalDomainLift is a zero-extension outside [0,1].
+BFormBankedInputs.hpde_u
+  → intervalConjugateMildSolution_pde_u_PID_unconditional
+  → hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
+  → chemDivCosineFourierData_constExtend
+  → ChemDivCosineFourierData.continuous_representative
 ```
+
+In this path, deleting `hchemCont` breaks the call to `chemDivCosineFourierData_constExtend`.
+
+### Safe after replacing the consumer with Ioo package
+
+If the bank carries `hchemDataIoo` and the PDE theorem uses the `_Ioo` consumers, then there is no need for `hchemCont`.
+
+Suggested shape:
+
+```lean
+import ShenWork.Paper2.IntervalBankChemSliceFix
+
+open Set Filter Topology
+
+-- In the bank, replace false hchemCont (+ maybe the old hchemFourier shape)
+-- by a direct endpoint-insensitive package:
+--
+-- hchemDataIoo : ∀ t, 0 < t → t < DB.T →
+--   ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
+--     ((conjugatePicardLimit p u₀ DB.T) t)
+--     (coupledChemicalConcentration p
+--       (conjugatePicardLimit p u₀ DB.T) t)
+```
+
+Then in the PDE proof, replace old calls:
+
+```lean
+-- old:
+-- ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineFourier_convergence
+--   p u t₀ (hchemData t₀ ht₀ ht₀T) hx
+--
+-- ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineSeries_summable
+--   p u t₀ (hchemData t₀ ht₀ ht₀T) hx
+```
+
+with:
+
+```lean
+-- new:
+-- ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineFourier_convergence_Ioo
+--   p u t₀ (hchemDataIoo t₀ ht₀ ht₀T) hx
+--
+-- ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineSeries_summable_Ioo
+--   p u t₀ (hchemDataIoo t₀ ht₀ ht₀T) hx
+```
+
+Because the PDE conclusion has `x ∈ intervalDomain.inside`, these calls already have exactly the required `hx : x.1 ∈ Ioo 0 1`.
+
+## 6. Does the windowed `On` PDE identity still need `hchemCont`?
+
+### Current `On` theorem: still needs a chem-div data package, but not necessarily `hchemCont`
+
+The windowed theorem currently has this argument:
+
+```lean
+import ShenWork.Paper2.IntervalBFormSpectralProviderDischargeOn
+
+open Filter Topology Set
+
+namespace ShenWork.IntervalConjugatePicard
+
+-- theorem pde_u_of_localized_data_with_hpost_on ...
+--   (hchemData : ∀ t, 0 < t → t < D.T →
+--     ChemDivCosineFourierData p
+--       ((conjugatePicardLimit p u₀ D.T) t)
+--       (coupledChemicalConcentration p
+--         (conjugatePicardLimit p u₀ D.T) t)) :
+--   ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside → ...
+#check pde_u_of_localized_data_with_hpost_on
+#check intervalConjugateMildSolution_pde_u_PID_global_restart_on
+
+end ShenWork.IntervalConjugatePicard
+```
+
+Inside it, the chem-div data is consumed only through interior calls:
+
+```lean
+-- Current body excerpt:
+--
+-- have hchem :
+--     (∑' n, coupledChemDivSourceCoeffs p u t₀ n * cosineMode n x.1)
+--       = intervalDomain.chemotaxisDiv p (u t₀)
+--           (ShenWork.IntervalMildToClassical.mildChemicalConcentration p u t₀) x :=
+--   ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineFourier_convergence
+--     p u t₀ (hchemData t₀ ht₀ ht₀T) hx
+--
+-- have hsum_chem := ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineSeries_summable
+--   p u t₀ (hchemData t₀ ht₀ ht₀T) hx
+```
+
+So the windowed `On` theorem does **not** need the false `hchemCont` statement as such. It only needs enough chem-div Fourier data to perform interior convergence and summability. The present signature still names the old `ChemDivCosineFourierData`, so if one insists on constructing that old package via `chemDivCosineFourierData_constExtend`, one is back to the false `hchemCont`. But the theorem body is already compatible with the Ioo replacement.
+
+### Correct `On`-fixed shape
+
+A fixed theorem should take:
+
+```lean
+hchemDataIoo : ∀ t, 0 < t → t < D.T →
+  ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
+    ((conjugatePicardLimit p u₀ D.T) t)
+    (coupledChemicalConcentration p
+      (conjugatePicardLimit p u₀ D.T) t)
+```
+
+and use:
+
+```lean
+ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineFourier_convergence_Ioo
+ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineSeries_summable_Ioo
+```
+
+Then `hchemCont` is gone. The source time-C¹ windowing (`DuhamelSourceTimeC1On`) solves a separate problem: it avoids needing a global `DuhamelSourceTimeC1` witness inside `HasBFormSpectralPdeAgreement`. It does not, by itself, solve the endpoint-continuity problem unless the chem-div Fourier package is also changed to the Ioo/surrogate version.
+
+## 7. Concrete recommendation
+
+Do **not** replace
+
+```lean
+hchemCont : Continuous (intervalDomainConstExtend chemDiv)
+```
+
+by
+
+```lean
+hchemCont : ContinuousOn (intervalDomainConstExtend chemDiv) (Set.Ioo 0 1)
+```
+
+because that still does not provide the globally continuous Fourier-inversion representative.
+
+Instead, change the bank and consumers to one of these two designs:
+
+### Option A — best: carry the finished Ioo package
+
+```lean
+import ShenWork.Paper2.IntervalBankChemSliceFix
+
+open Set Filter Topology
+
+-- Replace hchemCont/hchemFourier with one endpoint-insensitive package:
+--
+-- hchemDataIoo : ∀ t, 0 < t → t < DB.T →
+--   ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
+--     ((conjugatePicardLimit p u₀ DB.T) t)
+--     (coupledChemicalConcentration p
+--       (conjugatePicardLimit p u₀ DB.T) t)
+```
+
+This is the cleanest for consumers: they no longer know about the false `constExtend(chemDiv)` representative.
+
+### Option B — carry surrogate pieces
+
+```lean
+import ShenWork.Paper2.IntervalBankChemSliceFix
+
+open Set Filter Topology
+
+-- Carry a smooth/global representative explicitly:
+--
+-- hchemRep : ∀ t, 0 < t → t < DB.T → ℝ → ℝ
+-- hchemRep_cont : ∀ t ht htT, Continuous (hchemRep t ht htT)
+-- hchemRep_eq : ∀ t ht htT,
+--   Set.EqOn (hchemRep t ht htT)
+--     (ShenWork.IntervalBFormSpectral.chemDivLift p
+--       ((conjugatePicardLimit p u₀ DB.T) t)
+--       (coupledChemicalConcentration p
+--         (conjugatePicardLimit p u₀ DB.T) t))
+--     (Set.Ioo (0 : ℝ) 1)
+-- hchemRep_fourier : ∀ t ht htT,
+--   Summable (fun n : ℤ =>
+--     fourierCoeff (ShenWork.IntervalCosineInversion.reflCircle
+--       (hchemRep t ht htT)) n)
+--
+-- Then build:
+--
+-- ShenWork.Paper2.BankChemSliceFix.chemDivCosineFourierDataIoo_of_repr
+```
+
+Option A is simpler and less error-prone.
+
+## Final answer to the user’s specific questions
+
+### “Can I just REMOVE the field entirely?”
+
+Not in the current direct-classical path. It is used to build `ChemDivCosineFourierData` via `chemDivCosineFourierData_constExtend`.
+
+You can remove it only after replacing the old chem-div Fourier-data API with `ChemDivCosineFourierDataIoo` or direct surrogate data. In that reworked path, the field should disappear because endpoint continuity is irrelevant.
+
+### “Or change it to `ContinuousOn ... (Ioo 0 1)`?”
+
+Not by itself. `ContinuousOn` on the interior is true/satisfiable, but it is not enough for the old Fourier inversion package. The consumer needs a globally continuous representative plus Fourier summability. Use the `ChemDivCosineFourierDataIoo` package instead.
+
+### “Is it actually used by `intervalConjugateMildSolution_pde_u_PID_unconditional`, or passed through?”
+
+It is actually used, but only to construct `hchemData : ChemDivCosineFourierData ...`. After that, the endpoint values are not used by the PDE identity; the Fourier convergence is evaluated only at interior points.
+
+### “If the windowed On PDE identity replaces the global PDE identity, does it still need hchemCont?”
+
+Conceptually no. The current `On` theorem still takes old `ChemDivCosineFourierData`, so as written it still needs some old-style chem-div data. But it does not need the false `hchemCont` once rewired to take `ChemDivCosineFourierDataIoo` and call the `_Ioo` consumers. The `On` path removes the global source-time-C¹ obstruction; the Ioo package removes Barrier C.
