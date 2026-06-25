@@ -14,6 +14,7 @@ import ShenWork.Paper2.IntervalBFormPIDUnconditional
 import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalRegularityFrontierWiring
 import ShenWork.Paper2.IntervalBFormInitialTrace
+import ShenWork.Paper2.IntervalBankChemSliceFix
 import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
 import ShenWork.Paper2.IntervalBFormSpectralProviderDischargeOn
 
@@ -51,6 +52,8 @@ open ShenWork.IntervalBFormSpectral
    LogisticCosineFourierData ChemDivCosineFourierData
    logisticCosineFourierData_constExtend
    chemDivCosineFourierData_constExtend)
+open ShenWork.Paper2.BankChemSliceFix
+  (ChemDivCosineFourierDataIoo)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
    coupledLogisticSourceCoeffs)
@@ -106,24 +109,11 @@ structure BFormBankedInputs
           (intervalDomainConstExtend
             (ShenWork.IntervalDomainExistence.intervalLogisticSource p
               ((conjugatePicardLimit p u₀ DB.T) t)))) n)
-  hchemCont : ∀ t, 0 < t → t < DB.T →
-    Continuous
-      (intervalDomainConstExtend
-        (fun x : intervalDomainPoint =>
-          intervalDomainChemotaxisDiv p
-            ((conjugatePicardLimit p u₀ DB.T) t)
-            (coupledChemicalConcentration p
-              (conjugatePicardLimit p u₀ DB.T) t) x))
-  hchemFourier : ∀ t, 0 < t → t < DB.T →
-    Summable (fun n : ℤ =>
-      fourierCoeff
-        (ShenWork.IntervalCosineInversion.reflCircle
-          (intervalDomainConstExtend
-            (fun x : intervalDomainPoint =>
-              intervalDomainChemotaxisDiv p
-                ((conjugatePicardLimit p u₀ DB.T) t)
-                (coupledChemicalConcentration p
-                  (conjugatePicardLimit p u₀ DB.T) t) x))) n)
+  hchemIoo : ∀ t, 0 < t → t < DB.T →
+    ChemDivCosineFourierDataIoo p
+      ((conjugatePicardLimit p u₀ DB.T) t)
+      (coupledChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T) t)
 
 /-- The canonical B-form source coefficients have the time-`C¹` package required
 by restart-cosine regularity. -/
@@ -247,12 +237,7 @@ theorem BFormBankedInputs.hpde_u
         logisticCosineFourierData_constExtend p
           (conjugatePicardLimit p u₀ DB.T) t (B.hlogCont t ht htT)
           (B.hlogFourier t ht htT))
-      (fun t ht htT =>
-        chemDivCosineFourierData_constExtend p
-          ((conjugatePicardLimit p u₀ DB.T) t)
-          (coupledChemicalConcentration p
-            (conjugatePicardLimit p u₀ DB.T) t)
-          (B.hchemCont t ht htT) (B.hchemFourier t ht htT))
+      (fun t ht htT => B.hchemIoo t ht htT)
 
 /-- View the B-form Picard fixed point as the existing gradient-mild solution
 record, once the genuine map bridge to `IntervalMildSolution` is supplied. -/

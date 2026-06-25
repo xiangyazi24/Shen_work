@@ -32,6 +32,7 @@
 import ShenWork.Paper2.IntervalBFormSpectralProvider
 import ShenWork.Paper2.IntervalConjugatePicardInfThreshold
 import ShenWork.Paper2.IntervalBFormRestart
+import ShenWork.Paper2.IntervalBankChemSliceFix
 import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
 import ShenWork.PDE.IntervalDuhamelSpectralDerivOn
 import ShenWork.PDE.IntervalDuhamelSpectralEqCosineSeriesOn
@@ -59,6 +60,10 @@ open ShenWork.IntervalSourceCoefficientTimeC1
   (localRestartCoeff homogeneousCosineSeries_hasDerivAt_time)
 open ShenWork.IntervalBFormSpectral
   (LogisticCosineFourierData ChemDivCosineFourierData)
+open ShenWork.Paper2.BankChemSliceFix
+  (ChemDivCosineFourierDataIoo
+   coupledChemDiv_cosineSeries_summable_Ioo
+   coupledChemDiv_cosineFourier_convergence_Ioo)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
    coupledLogisticSourceCoeffs)
@@ -434,7 +439,7 @@ theorem pde_u_of_localized_data_with_hpost_on
     (hlogData : ∀ t, 0 < t → t < D.T →
       LogisticCosineFourierData p (conjugatePicardLimit p u₀ D.T) t)
     (hchemData : ∀ t, 0 < t → t < D.T →
-      ChemDivCosineFourierData p
+      ChemDivCosineFourierDataIoo p
         ((conjugatePicardLimit p u₀ D.T) t)
         (coupledChemicalConcentration p
           (conjugatePicardLimit p u₀ D.T) t)) :
@@ -544,12 +549,12 @@ theorem pde_u_of_localized_data_with_hpost_on
       (∑' n, coupledChemDivSourceCoeffs p u t₀ n * cosineMode n x.1)
         = intervalDomain.chemotaxisDiv p (u t₀)
             (ShenWork.IntervalMildToClassical.mildChemicalConcentration p u t₀) x :=
-    ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineFourier_convergence
+    coupledChemDiv_cosineFourier_convergence_Ioo
       p u t₀ (hchemData t₀ ht₀ ht₀T) hx
   -- Summabilities
   have hsum_src := ShenWork.IntervalBFormSpectral.coupledLogistic_cosineSeries_summable
     (hlogData t₀ ht₀ ht₀T) hx
-  have hsum_chem := ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineSeries_summable
+  have hsum_chem := coupledChemDiv_cosineSeries_summable_Ioo
     p u t₀ (hchemData t₀ ht₀ ht₀T) hx
   have hsum_lb : Summable (fun n => unitIntervalCosineEigenvalue n
       * localRestartCoeff a₀ a (t₀ - τ) n * cosineMode n x.1) := by
@@ -607,7 +612,7 @@ theorem pde_u_PID_global_restart_on
     (hlogData : ∀ t, 0 < t → t < D.T →
       LogisticCosineFourierData p (conjugatePicardLimit p u₀ D.T) t)
     (hchemData : ∀ t, 0 < t → t < D.T →
-      ChemDivCosineFourierData p
+      ChemDivCosineFourierDataIoo p
         ((conjugatePicardLimit p u₀ D.T) t)
         (coupledChemicalConcentration p
           (conjugatePicardLimit p u₀ D.T) t)) :
@@ -672,7 +677,7 @@ theorem intervalConjugateMildSolution_pde_u_PID_global_restart_on
     (hlogData : ∀ t, 0 < t → t < D.T →
       LogisticCosineFourierData p (conjugatePicardLimit p u₀ D.T) t)
     (hchemData : ∀ t, 0 < t → t < D.T →
-      ChemDivCosineFourierData p
+      ChemDivCosineFourierDataIoo p
         ((conjugatePicardLimit p u₀ D.T) t)
         (coupledChemicalConcentration p
           (conjugatePicardLimit p u₀ D.T) t)) :

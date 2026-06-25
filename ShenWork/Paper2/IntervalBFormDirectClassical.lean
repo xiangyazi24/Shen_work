@@ -3,6 +3,7 @@ import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalMildRegularityFrontierAssembly
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
 import ShenWork.Paper2.IntervalBFormInitialTrace
+import ShenWork.Paper2.IntervalBankChemSliceFix
 import ShenWork.PDE.IntervalCoupledRegularityBootstrap
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalResolverSpatialC2
@@ -37,6 +38,8 @@ open ShenWork.IntervalBFormSpectral
    LogisticCosineFourierData ChemDivCosineFourierData
    logisticCosineFourierData_constExtend
    chemDivCosineFourierData_constExtend)
+open ShenWork.Paper2.BankChemSliceFix
+  (ChemDivCosineFourierDataIoo)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
    coupledLogisticSourceCoeffs sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
@@ -103,24 +106,11 @@ structure BFormBankedInputs
           (intervalDomainConstExtend
             (ShenWork.IntervalDomainExistence.intervalLogisticSource p
               ((conjugatePicardLimit p u₀ DB.T) t)))) n)
-  hchemCont : ∀ t, 0 < t → t < DB.T →
-    Continuous
-      (intervalDomainConstExtend
-        (fun x : intervalDomainPoint =>
-          intervalDomainChemotaxisDiv p
-            ((conjugatePicardLimit p u₀ DB.T) t)
-            (coupledChemicalConcentration p
-              (conjugatePicardLimit p u₀ DB.T) t) x))
-  hchemFourier : ∀ t, 0 < t → t < DB.T →
-    Summable (fun n : ℤ =>
-      fourierCoeff
-        (ShenWork.IntervalCosineInversion.reflCircle
-          (intervalDomainConstExtend
-            (fun x : intervalDomainPoint =>
-              intervalDomainChemotaxisDiv p
-                ((conjugatePicardLimit p u₀ DB.T) t)
-                (coupledChemicalConcentration p
-                  (conjugatePicardLimit p u₀ DB.T) t) x))) n)
+  hchemIoo : ∀ t, 0 < t → t < DB.T →
+    ChemDivCosineFourierDataIoo p
+      ((conjugatePicardLimit p u₀ DB.T) t)
+      (coupledChemicalConcentration p
+        (conjugatePicardLimit p u₀ DB.T) t)
 
 def BFormBankedInputs.hsrcB
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -251,12 +241,7 @@ theorem BFormBankedInputs.hpde_u
         logisticCosineFourierData_constExtend p
           (conjugatePicardLimit p u₀ DB.T) t (B.hlogCont t ht htT)
           (B.hlogFourier t ht htT))
-      (fun t ht htT =>
-        chemDivCosineFourierData_constExtend p
-          ((conjugatePicardLimit p u₀ DB.T) t)
-          (coupledChemicalConcentration p
-            (conjugatePicardLimit p u₀ DB.T) t)
-          (B.hchemCont t ht htT) (B.hchemFourier t ht htT))
+      (fun t ht htT => B.hchemIoo t ht htT)
 
 
 /-- Direct B-form frontier for one datum.  Every field is map-agnostic: no
