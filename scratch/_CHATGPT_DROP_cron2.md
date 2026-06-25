@@ -1,367 +1,405 @@
-# Q464 (cron2): Neumann BC for `chemDivLift`
+# Q489 (cron2): is `deriv (deriv (chemFluxFun ...)) 0 = 0` true for cosine heat/resolver profiles?
 
 ## Executive verdict
 
-For the theorem exactly as stated,
+For **smooth global cosine-series representatives** `U,V : ℝ → ℝ`, the statement is TRUE:
 
 ```lean
-deriv (chemDivLift p u v) 0 = 0 ∧ deriv (chemDivLift p u v) 1 = 0
+deriv (deriv (chemFluxFun β U V)) 0 = 0
 ```
 
-the cleanest proof is **not** direct flux algebra and not cosine parity. It is the **zero-extension endpoint-derivative convention**.
+provided `U` and `V` are even about `0`, `V` is smooth enough, and the denominator is positive. The reason is exactly the parity argument:
 
-`chemDivLift p u v` is defined as
+```text
+U even,
+V even,
+V' odd,
+(1+V)^β even,
+φ := U * V' / (1+V)^β odd,
+φ' even,
+φ'' odd,
+φ''(0) = 0.
+```
+
+Your later worry that `φ''(0)` might be generically nonzero is correct for **general non-even Neumann data**, but not for genuine cosine-series/even-reflection data. A quick Taylor expansion confirms this:
+
+```text
+U(x) = U₀ + U₂ x²/2 + O(x⁴)
+V(x) = V₀ + V₂ x²/2 + V₄ x⁴/24 + O(x⁶)
+V'(x) = V₂ x + V₄ x³/6 + O(x⁵)
+(1+V(x))^{-β} = Q₀ + Q₂ x²/2 + O(x⁴)
+φ(x) = U(x) V'(x) (1+V(x))^{-β}
+     = (U₀ V₂ Q₀) x + O(x³).
+```
+
+There is no `x²` term, so `φ''(0)=0`. `φ'(0)=U₀ V₂/(1+V₀)^β` can be nonzero; that is not a contradiction. The second derivative still vanishes because `φ` is odd.
+
+The major Lean caution is that this is a theorem about the **global cosine representatives**, not about the zero-extension functions `intervalDomainLift u` and `intervalDomainLift v` unless those lifts literally are the global cosine representatives. For ordinary positive heat/resolver slices, `intervalDomainLift u` is zero outside `[0,1]`, hence it is not the global cosine series and is not even/smooth across `0`. The repo already distinguishes these two routes:
+
+* `chemDivLift_neumann_bc` for `chemDivLift = intervalDomainLift (...)` is now discharged by zero-extension endpoint derivative lemmas. This proves only the two-sided Mathlib endpoint derivative/junk value.
+* The real weak-H² one-sided Neumann limits for the chem-div source should be proved by comparing `chemDivLift` on the interior with a **smooth global cosine representative** `F = deriv (chemFluxFun β Ucos Vcos)`, then using parity to show `deriv F 0 = 0` and continuity to get the one-sided limit.
+
+So the clean Lean approach is:
+
+```text
+Do NOT try to prove parity for `intervalDomainLift u`.
+Define/use global cosine representatives `Ucos`, `Vcos`.
+Prove `Even Ucos` and `Even Vcos` by `tsum_congr` + `cos_neg`.
+Prove a reusable parity lemma for `chemFluxFun`.
+Use it to show `deriv (deriv (chemFluxFun β Ucos Vcos)) 0 = 0`.
+Transfer to `chemDivLift` only on `Ioo/Icc` by equality with the global representative, and use zero-extension only for the endpoint point-derivative conjuncts.
+```
+
+## What the repo currently has
+
+`IntervalChemDivSpatialC2.lean` defines:
 
 ```lean
-intervalDomainLift (fun pt => intervalDomainChemotaxisDiv p u v pt)
+/-- The chemotaxis flux function whose spatial derivative is the chemDiv source.
+`φ(y) = lift(u)(y) · deriv(lift(v))(y) / (1 + lift(v)(y))^β` -/
+def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
+  u y * deriv v y / (1 + v y) ^ β
 ```
 
-and `intervalDomainLift` is identically `0` off `[0,1]`. Therefore at the left endpoint it is zero on the whole left side, and at the right endpoint it is zero on the whole right side. For the ordinary two-sided Mathlib `deriv`, this forces the endpoint derivative to be `0` for any zero-extension: if the function is differentiable at the endpoint, the derivative must agree with the derivative of the constant zero side; if it is not differentiable, Mathlib's `deriv` is the junk value `0`.
-
-So the strongest useful lemma is:
+It also has global smoothness lemmas:
 
 ```lean
-theorem intervalDomainLift_deriv_left_endpoint_zero
-    (w : intervalDomainPoint → ℝ) :
-    deriv (intervalDomainLift w) 0 = 0
+theorem chemFlux_contDiff_three
+    {β : ℝ} {u v : ℝ → ℝ}
+    (hu : ContDiff ℝ 4 u)
+    (hv : ContDiff ℝ 4 v)
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
+    (hβnn : 0 ≤ β) :
+    ContDiff ℝ 3 (chemFluxFun β u v)
 
-theorem intervalDomainLift_deriv_right_endpoint_zero
-    (w : intervalDomainPoint → ℝ) :
-    deriv (intervalDomainLift w) 1 = 0
+theorem chemFluxDeriv_contDiff_two
+    {β : ℝ} {u v : ℝ → ℝ}
+    (hu : ContDiff ℝ 4 u) (hv : ContDiff ℝ 4 v)
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) (hβnn : 0 ≤ β) :
+    ContDiff ℝ 2 (deriv (chemFluxFun β u v))
 ```
 
-Then `chemDivLift_neumann_bc` is a one-line specialization:
+and an agreement lemma for the interval source:
 
 ```lean
-simpa [chemDivLift] using
-  ⟨intervalDomainLift_deriv_left_endpoint_zero
-      (fun pt => intervalDomainChemotaxisDiv p u v pt),
-   intervalDomainLift_deriv_right_endpoint_zero
-      (fun pt => intervalDomainChemotaxisDiv p u v pt)⟩
+theorem chemDivLift_contDiffOn_two_of_global
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
+    (hu : ContDiff ℝ 4 (intervalDomainLift u))
+    (hv : ContDiff ℝ 4 (intervalDomainLift v))
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
+    ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1)
 ```
 
-This proof uses none of `hu_C2`, `hv_C2`, `hu_N0`, `hv_N0`, etc. Those hypotheses are irrelevant for the **two-sided zero-extension endpoint derivative**.
-
-However, this is an important warning: the theorem as stated proves only the **junk-value endpoint derivative** of a zero-extension. It does **not** prove the genuine one-sided Neumann boundary condition needed for integration by parts / `IntervalWeakH2Neumann`. For the genuine source regularity, you still need:
+But note the issue: for positive heat/resolver slices, the hypotheses
 
 ```lean
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 0 (Ioi 0)) (nhds 0)
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 1 (Iio 1)) (nhds 0)
+ContDiff ℝ 4 (intervalDomainLift u)
+ContDiff ℝ 4 (intervalDomainLift v)
 ```
 
-and those are not consequences of only `u,v ∈ C²` plus `u' = v' = 0` at endpoints. The repo already records that the chem source needs higher regularity: roughly `u ∈ C³` and `v ∈ C⁴`, or a cosine/even-reflection package giving the required odd-derivative vanishings.
+are generally false because `intervalDomainLift` is the zero-extension and usually jumps at the endpoints. The **global C⁴ object** is the cosine-series representative, not `intervalDomainLift`.
 
-Thus:
-
-* For the exact theorem with `deriv ... 0 = 0`: use **(c)**, the zero-extension/junk-value route, and prove a general lemma for all `intervalDomainLift` functions.
-* For the mathematically meaningful chem source Neumann condition: use **(b)**/spectral parity or stronger cosine-series regularity, not the weak `C² + first Neumann` hypotheses.
-* **(a)** direct flux computation is the wrong local target for the two-sided `deriv`; it computes interior/right-hand flux derivatives, while the Lean endpoint `deriv` of a zero-extension is governed by the outside-zero side and junk-value convention.
-
-## Files checked
-
-### `IntervalDomain.lean`: definitions
-
-`intervalDomainChemotaxisDiv` is the derivative of the chemotaxis flux:
-
-```lean
-def intervalDomainChemotaxisDiv (p : CM2Params)
-    (u v : intervalDomainPoint → ℝ) (x : intervalDomainPoint) : ℝ :=
-  deriv
-    (fun y : ℝ =>
-      intervalDomainLift u y * deriv (intervalDomainLift v) y /
-        (1 + intervalDomainLift v y) ^ p.β)
-    x.1
-```
-
-`intervalDomainLift` zero-extends a subtype function:
-
-```lean
-def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
-
-def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
-```
-
-`chemDivLift` in `IntervalBFormSpectralHchem.lean` is just:
-
-```lean
-def chemDivLift (p : CM2Params) (u v : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  intervalDomainLift (fun x => intervalDomainChemotaxisDiv p u v x)
-```
-
-Therefore the endpoint derivative in your theorem is the endpoint derivative of a zero-extension.
-
-### `IntervalCosineSliceRegularity.lean`: existing template
-
-The repo already says the two-sided endpoint derivative is the junk-value endpoint convention:
-
-```lean
-/-- **Junk-value endpoint derivative at the left endpoint.**  If the lift of a
-slice is nonzero at `0`, then — since `intervalDomainLift` zero-extends to the
-left of `0` — the lift is discontinuous at `0`, hence not differentiable, hence
-`deriv = 0` by the Mathlib junk-value convention. -/
-theorem intervalDomainLift_deriv_left_endpoint_zero_of_ne
-    {w : intervalDomainPoint → ℝ} (hne : intervalDomainLift w 0 ≠ 0) :
-    deriv (intervalDomainLift w) 0 = 0
-
-/-- **Junk-value endpoint derivative at the right endpoint.**  Symmetric to
-`intervalDomainLift_deriv_left_endpoint_zero_of_ne`. -/
-theorem intervalDomainLift_deriv_right_endpoint_zero_of_ne
-    {w : intervalDomainPoint → ℝ} (hne : intervalDomainLift w 1 ≠ 0) :
-    deriv (intervalDomainLift w) 1 = 0
-```
-
-The current lemma requires endpoint nonvanishing because it proves non-differentiability via a jump. For `chemDivLift`, endpoint nonvanishing is usually the wrong hypothesis: often the endpoint value is `0`, but the zero-extension still has ordinary two-sided derivative `0` either by differentiability with zero slope or by non-differentiability/junk.
-
-So the useful generalization is to remove the `hne` hypothesis entirely.
-
-### `SourceSliceC2Neumann.lean`: logistic-source template
-
-The logistic source proof separates two notions:
-
-1. genuine one-sided Neumann limits, proved by comparison with a smooth/cosine-series interior representative:
-
-```lean
-Tendsto (deriv (intervalDomainLift (intervalLogisticSource ...)))
-  (nhdsWithin 0 (Ioi 0)) (nhds 0)
-```
-
-2. endpoint point-derivatives of the zero-extension, proved by the junk-value route:
-
-```lean
-intervalDomainLift_deriv_left_endpoint_zero_of_ne
-intervalDomainLift_deriv_right_endpoint_zero_of_ne
-```
-
-This is exactly the template to follow conceptually: do not confuse the two-sided point derivative with the genuine one-sided normal derivative.
-
-### `IntervalChemDivSpatialC2.lean`: current chem-div residual
-
-The file already has the target theorem as a `sorry`:
+The same file now has:
 
 ```lean
 theorem chemDivLift_neumann_bc
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu_C2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Icc (0 : ℝ) 1))
-    (hv_C2 : ContDiffOn ℝ 2 (intervalDomainLift v) (Icc (0 : ℝ) 1))
-    (hu_N0 : deriv (intervalDomainLift u) 0 = 0)
-    (hu_N1 : deriv (intervalDomainLift u) 1 = 0)
-    (hv_N0 : deriv (intervalDomainLift v) 0 = 0)
-    (hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
+    (p : CM2Params) (u v : intervalDomainPoint → ℝ) :
     deriv (chemDivLift p u v) 0 = 0 ∧
     deriv (chemDivLift p u v) 1 = 0 := by
-  sorry
+  simp only [chemDivLift]
+  exact ⟨ShenWork.intervalDomainLift_deriv_at_zero_eq_zero _,
+    ShenWork.intervalDomainLift_deriv_at_one_eq_zero _⟩
 ```
 
-The comments there suggest a symmetry/flux computation route. For this exact statement, that is overkill and potentially misleading. The theorem follows from zero-extension alone. The higher-regularity residual in the same file is still real for the C²/weak-H² source data; the endpoint point-derivative theorem is not the hard part.
+That theorem is about point derivatives of zero-extensions. It is not the same as the parity theorem for `chemFluxFun` on global cosine representatives.
 
-## Recommended Lean lemma
+## Verification by Taylor expansion
 
-Add this near `IntervalCosineSliceRegularity.lean`, next to the existing `_of_ne` junk-value lemmas, or in a small zero-extension helper file imported by `IntervalChemDivSpatialC2.lean`.
-
-```lean
-import ShenWork.PDE.IntervalCosineSliceRegularity
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-
-namespace ShenWork.IntervalCosineSliceRegularity
-
-/-- The ordinary two-sided derivative at the left endpoint of any zero-extension
-`intervalDomainLift w` is `0`.
-
-If the zero-extension is differentiable at `0`, the left-side constant-zero branch
-forces derivative `0`; if it is not differentiable, Mathlib's `deriv` is the junk
-value `0`. -/
-theorem intervalDomainLift_deriv_left_endpoint_zero
-    (w : intervalDomainPoint → ℝ) :
-    deriv (intervalDomainLift w) 0 = 0 := by
-  by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift w) 0
-  · -- Since `intervalDomainLift w = 0` on `Iio 0`, the within-derivative along
-    -- `Iio 0` is zero.  The global derivative restricts to the same within-derivative,
-    -- and uniqueness on the left neighbourhood gives the global derivative is zero.
-    have hleft : (intervalDomainLift w) =ᶠ[nhdsWithin (0 : ℝ) (Set.Iio 0)] (fun _ : ℝ => 0) := by
-      refine Filter.eventuallyEq_iff_exists_mem.mpr ?_
-      refine ⟨Set.Iio (0 : ℝ), self_mem_nhdsWithin, ?_⟩
-      intro y hy
-      have hnot : y ∉ Set.Icc (0 : ℝ) 1 := fun hyIcc => (not_le.mpr hy) hyIcc.1
-      simp [intervalDomainLift, hnot]
-    -- Implementation detail: use `HasDerivAt.hasDerivWithinAt`,
-    -- `(hasDerivWithinAt_const ...).congr_of_eventuallyEq`, and uniqueness for
-    -- `UniqueDiffWithinAt ℝ (Set.Iio 0) 0`.
-    -- One possible proof shape:
-    --   have hglob : HasDerivAt (intervalDomainLift w)
-    --       (deriv (intervalDomainLift w) 0) 0 := hdiff.hasDerivAt
-    --   have hwithin_glob := hglob.hasDerivWithinAt
-    --   have hwithin_zero : HasDerivWithinAt (intervalDomainLift w) 0 (Set.Iio 0) 0 := ...
-    --   exact (hwithin_zero.unique hwithin_glob uniqueDiffWithinAt_Iio).symm
-    sorry
-  · exact deriv_zero_of_not_differentiableAt hdiff
-
-/-- The ordinary two-sided derivative at the right endpoint of any zero-extension
-`intervalDomainLift w` is `0`. -/
-theorem intervalDomainLift_deriv_right_endpoint_zero
-    (w : intervalDomainPoint → ℝ) :
-    deriv (intervalDomainLift w) 1 = 0 := by
-  by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift w) 1
-  · have hright : (intervalDomainLift w) =ᶠ[nhdsWithin (1 : ℝ) (Set.Ioi 1)] (fun _ : ℝ => 0) := by
-      refine Filter.eventuallyEq_iff_exists_mem.mpr ?_
-      refine ⟨Set.Ioi (1 : ℝ), self_mem_nhdsWithin, ?_⟩
-      intro y hy
-      have hnot : y ∉ Set.Icc (0 : ℝ) 1 := fun hyIcc => (not_le.mpr hy) hyIcc.2
-      simp [intervalDomainLift, hnot]
-    -- Same proof shape, using uniqueness on `Set.Ioi 1`.
-    sorry
-  · exact deriv_zero_of_not_differentiableAt hdiff
-
-end ShenWork.IntervalCosineSliceRegularity
-```
-
-I left the uniqueness sub-proof schematic because the exact Mathlib lemma names around `UniqueDiffWithinAt` for `Iio/Ioi` may vary. If those names are awkward in v4.29.1, an alternative is to use `HasDerivAtFilter` uniqueness directly on `nhdsWithin 0 (Iio 0)` / `nhdsWithin 1 (Ioi 1)`.
-
-The key point: this lemma is general and independent of `chemDiv`.
-
-## Final `chemDivLift_neumann_bc` proof shape
-
-Once the two general zero-extension lemmas are available:
-
-```lean
-import ShenWork.Paper2.IntervalChemDivSpatialC2
-import ShenWork.PDE.IntervalCosineSliceRegularity
-
-open Set
-open ShenWork.IntervalDomain
-  (intervalDomainLift intervalDomainPoint intervalDomainChemotaxisDiv)
-open ShenWork.IntervalBFormSpectral (chemDivLift)
-open ShenWork.IntervalCosineSliceRegularity
-  (intervalDomainLift_deriv_left_endpoint_zero
-   intervalDomainLift_deriv_right_endpoint_zero)
-
-namespace ShenWork.Paper2.ChemDivSpatialC2
-
-theorem chemDivLift_neumann_bc_clean
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu_C2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Icc (0 : ℝ) 1))
-    (hv_C2 : ContDiffOn ℝ 2 (intervalDomainLift v) (Icc (0 : ℝ) 1))
-    (hu_N0 : deriv (intervalDomainLift u) 0 = 0)
-    (hu_N1 : deriv (intervalDomainLift u) 1 = 0)
-    (hv_N0 : deriv (intervalDomainLift v) 0 = 0)
-    (hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
-    deriv (chemDivLift p u v) 0 = 0 ∧
-    deriv (chemDivLift p u v) 1 = 0 := by
-  constructor
-  · simpa [chemDivLift] using
-      intervalDomainLift_deriv_left_endpoint_zero
-        (fun x : intervalDomainPoint => intervalDomainChemotaxisDiv p u v x)
-  · simpa [chemDivLift] using
-      intervalDomainLift_deriv_right_endpoint_zero
-        (fun x : intervalDomainPoint => intervalDomainChemotaxisDiv p u v x)
-
-end ShenWork.Paper2.ChemDivSpatialC2
-```
-
-All six assumptions are unused. You may keep them in the theorem for compatibility with `chemDivSource_weakH2_of_uv_C4`, but they should not appear in the proof.
-
-## What if you need the real Neumann BC?
-
-If the goal is the real boundary condition for source inversion / weak-H², the endpoint point-derivative is not enough. `IntervalWeakH2Neumann` requires both the endpoint point derivatives and the one-sided endpoint derivative limits:
-
-```lean
-noncomputable def intervalWeakH2Neumann_of_contDiffOn
-    {g : ℝ → ℝ}
-    (hgC2 : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
-    (htend0 : Filter.Tendsto (deriv g) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
-    (htend1 : Filter.Tendsto (deriv g) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
-    (hbc0 : deriv g 0 = 0) (hbc1 : deriv g 1 = 0) :
-    IntervalWeakH2Neumann g
-```
-
-For `g = chemDivLift p u v`, the `hbc0/hbc1` part is the easy zero-extension lemma above. The hard part is:
-
-```lean
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 0 (Ioi 0)) (nhds 0)
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 1 (Iio 1)) (nhds 0)
-```
-
-Those are statements about the interior behavior of `flux''` at the endpoints. They require higher parity/regularity assumptions, not just `C²` and first Neumann data.
-
-A meaningful theorem should look like one of these:
-
-### Spectral/even-reflection route
-
-```lean
-/-- If the chem-div source has an even cosine-series representative with enough
-weighted summability, then the genuine one-sided Neumann limits hold. -/
-theorem chemDivLift_neumann_limits_of_cosineSeries
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
-    (hagree : Set.EqOn (chemDivLift p u v)
-      (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
-    Tendsto (deriv (chemDivLift p u v)) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
-    Tendsto (deriv (chemDivLift p u v)) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
-  -- same pattern as `intervalDomainCosineSlice_neumann_limit_left/right`
-  sorry
-```
-
-This is the clean parity route. If you can represent the chem-div source as a cosine series with `∑ λₙ |bₙ| < ∞`, the endpoint derivative limits follow exactly like the existing cosine-slice Neumann lemmas.
-
-### Direct flux route, but with the right hypotheses
-
-To prove `flux'' → 0` at endpoints directly, you need enough derivatives and endpoint compatibility. Schematically at `0`:
+Let `U,V` be smooth and even about `0`. Then all odd derivatives of `U,V` at `0` vanish, and near `0`:
 
 ```text
-F = U * V' * (1+V)^(-β)
-chemDiv = F'
-deriv(chemDiv) interior = F''
+U(x) = U₀ + U₂ x²/2 + U₄ x⁴/24 + ...
+V(x) = V₀ + V₂ x²/2 + V₄ x⁴/24 + ...
 ```
 
-`F''(0)` contains terms involving `U'(0)`, `V'(0)`, `V'''(0)`, and products of lower derivatives. `U'(0)=V'(0)=0` kills many terms, but you still need a condition killing the relevant odd derivative term, e.g. `V'''(0)=0` in the even-reflection case. That is why merely `U,V ∈ C²` plus first Neumann data is not enough for the real one-sided Neumann limit.
+Then:
 
-The right direct theorem would require something like:
+```text
+V'(x) = V₂ x + V₄ x³/6 + ...
+Q(x) := (1+V(x))^{-β} = Q₀ + Q₂ x²/2 + ...
+φ(x) := U(x) V'(x) Q(x)
+      = U₀ V₂ Q₀ x + (cubic terms) + ...
+```
+
+So:
+
+```text
+φ'(0)  = U₀ V₂ Q₀      -- can be nonzero
+φ''(0) = 0             -- because no quadratic term
+```
+
+Concrete sanity check:
+
+```text
+U(x) = 1,
+V(x) = cos(πx),
+β = 0.
+
+φ(x) = V'(x) = -π sin(πx).
+φ'(0) = -π² ≠ 0.
+φ''(0) = π³ sin(0) = 0.
+```
+
+So the requested value is zero for smooth cosine profiles. What can be nonzero is `deriv (chemFluxFun ...) 0`, not `deriv (deriv (chemFluxFun ...)) 0`.
+
+## Counterexample outside the cosine/even class
+
+The statement is false if you only assume first Neumann data and insufficient parity. For example, with `β = 0`, `U(x)=1`, and
+
+```text
+V(x) = 1 + x² + x³
+```
+
+we still have `V'(0)=0`, but
+
+```text
+φ(x) = V'(x) = 2x + 3x²,
+φ''(0) = 6 ≠ 0.
+```
+
+So the vanishing is not a consequence of `V'(0)=0` alone. It needs even-reflection/odd-derivative vanishings, or equivalently enough cosine-series parity.
+
+## Why the parity is global for cosine series
+
+The concern “the global function may not have the same parity beyond `[-1,1]`” is not a problem if the global function is literally defined by the Neumann cosine series
 
 ```lean
-theorem chemDivLift_neumann_limits_of_flux_parity
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu_C3 : ContDiffOn ℝ 3 (intervalDomainLift u) (Icc 0 1))
-    (hv_C4 : ContDiffOn ℝ 4 (intervalDomainLift v) (Icc 0 1))
-    (hu_N0 : deriv (intervalDomainLift u) 0 = 0)
-    (hu_N1 : deriv (intervalDomainLift u) 1 = 0)
-    (hv_N0 : deriv (intervalDomainLift v) 0 = 0)
-    (hv_N1 : deriv (intervalDomainLift v) 1 = 0)
-    -- plus odd-derivative/parity conditions, e.g. V''' endpoint vanish and U''' as needed
-    :
-    Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 0 (Ioi 0)) (nhds 0) ∧
-    Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 1 (Iio 1)) (nhds 0) := by
+fun x => ∑' k, a k * Real.cos ((k : ℝ) * Real.pi * x)
+```
+
+Each term is globally even about `0`:
+
+```lean
+Real.cos ((k : ℝ) * Real.pi * (-x)) = Real.cos (-((k : ℝ) * Real.pi * x))
+                                  = Real.cos ((k : ℝ) * Real.pi * x)
+```
+
+and globally even about `1` as well:
+
+```text
+cos(kπ(1+h)) = (-1)^k cos(kπh) = cos(kπ(1-h)).
+```
+
+So if the sum is defined as a global `tsum`, the parity is global by `tsum_congr`. The function is also `2`-periodic. The only way parity fails is if you replace the global cosine representative by the interval zero-extension `intervalDomainLift`.
+
+## Recommended Lean route
+
+### Step 1: define local/global parity helpers
+
+Mathlib may already have some parity API around `Even`/`Odd`; if that is inconvenient in v4.29.1, use explicit predicates:
+
+```lean
+def EvenAtZero (f : ℝ → ℝ) : Prop := ∀ x, f (-x) = f x
+def OddAtZero  (f : ℝ → ℝ) : Prop := ∀ x, f (-x) = - f x
+```
+
+Useful lemmas:
+
+```lean
+theorem deriv_odd_of_evenAtZero
+    {f : ℝ → ℝ}
+    (hf_even : EvenAtZero f)
+    (hf_diff : ∀ x, DifferentiableAt ℝ f x) :
+    OddAtZero (deriv f) := by
+  -- Differentiate `f (-x) = f x`.
+  -- Expected result: `deriv f (-x) = - deriv f x`, equivalently oddness.
+  sorry
+
+theorem deriv_even_of_oddAtZero
+    {f : ℝ → ℝ}
+    (hf_odd : OddAtZero f)
+    (hf_diff : ∀ x, DifferentiableAt ℝ f x) :
+    EvenAtZero (deriv f) := by
+  -- Differentiate `f (-x) = - f x`.
+  -- Expected result: `deriv f (-x) = deriv f x`.
+  sorry
+
+theorem deriv_at_zero_eq_zero_of_evenAtZero
+    {f : ℝ → ℝ}
+    (hf_even : EvenAtZero f)
+    (hf_diff0 : DifferentiableAt ℝ f 0) :
+    deriv f 0 = 0 := by
+  -- If f is even and differentiable at 0, compare the derivative from x and -x.
   sorry
 ```
 
-But I would avoid this direct route unless you already have the endpoint parity lemmas. The cosine-series route is cleaner.
-
-## Answer to the three options
-
-### (a) Direct computation
-
-Not the clean proof for the stated theorem. Direct computation is useful only for the genuine one-sided limit. For the two-sided zero-extension `deriv`, the endpoint value is dominated by the outside-zero branch and Mathlib's junk convention.
-
-### (b) Symmetry / cosine parity
-
-This is the clean proof for **genuine Neumann limits**. If the chem-div source has an even cosine-series representative with enough weighted summability, then the derivative is a sine series and the one-sided endpoint limits vanish. This is the right mathematical proof for weak-H² / source inversion.
-
-### (c) Zero-extension
-
-This is the clean proof for the theorem exactly as written. It proves the pointwise endpoint equations for ordinary `deriv` with no assumptions. It should be factored as a general lemma for `intervalDomainLift`.
-
-## Recommendation
-
-1. Replace the body of `chemDivLift_neumann_bc` with the zero-extension lemma proof. Keep the current assumptions only if downstream theorem signatures expect them.
-2. Do **not** treat this as closing the chem-div source Neumann problem. The genuine source problem is the one-sided `Tendsto` pair needed by `intervalWeakH2Neumann_of_contDiffOn`.
-3. For the real chem-div source tower, prefer a cosine/spectral theorem giving both:
+Then:
 
 ```lean
-ContDiffOn ℝ 2 (chemDivLift p u v) (Icc 0 1)
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 0 (Ioi 0)) (nhds 0)
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 1 (Iio 1)) (nhds 0)
+theorem second_deriv_at_zero_eq_zero_of_oddAtZero
+    {f : ℝ → ℝ}
+    (hf_odd : OddAtZero f)
+    (hf_C2 : ContDiff ℝ 2 f) :
+    deriv (deriv f) 0 = 0 := by
+  have hdf_even : EvenAtZero (deriv f) :=
+    deriv_even_of_oddAtZero hf_odd (fun x => (hf_C2.differentiable (by norm_num)).differentiableAt)
+  exact deriv_at_zero_eq_zero_of_evenAtZero hdf_even
+    ((hf_C2.deriv (by norm_num)).differentiable (by norm_num)).differentiableAt
 ```
 
-The endpoint `deriv = 0` conjunct can then be discharged mechanically by zero-extension.
+The exact `ContDiff.differentiable` calls may need minor v4.29.1 adjustment, but this is the right proof skeleton.
+
+### Step 2: prove cosine-series evenness
+
+For a global cosine series:
+
+```lean
+def cosineSeries (a : ℕ → ℝ) : ℝ → ℝ :=
+  fun x => ∑' k, a k * Real.cos ((k : ℝ) * Real.pi * x)
+```
+
+prove:
+
+```lean
+theorem cosineSeries_evenAtZero (a : ℕ → ℝ) :
+    EvenAtZero (cosineSeries a) := by
+  intro x
+  unfold cosineSeries
+  apply tsum_congr
+  intro k
+  simp [mul_assoc, Real.cos_neg]
+```
+
+For the endpoint `1`, use a shifted version:
+
+```lean
+def EvenAtOne (f : ℝ → ℝ) : Prop := ∀ h, f (1 - h) = f (1 + h)
+```
+
+and prove it termwise from `cos(kπ(1±h))`.
+
+### Step 3: prove `chemFluxFun` is odd from even inputs
+
+Assume `U,V` are global smooth cosine representatives:
+
+```lean
+theorem chemFluxFun_oddAtZero_of_even
+    {β : ℝ} {U V : ℝ → ℝ}
+    (hU_even : EvenAtZero U)
+    (hV_even : EvenAtZero V)
+    (hV_diff : ∀ x, DifferentiableAt ℝ V x)
+    (hden_pos : ∀ x, 0 < 1 + V x) :
+    OddAtZero (chemFluxFun β U V) := by
+  intro x
+  unfold chemFluxFun
+  have hVderiv_odd : deriv V (-x) = - deriv V x :=
+    deriv_odd_of_evenAtZero hV_even hV_diff x
+  have hden_even : (1 + V (-x)) ^ β = (1 + V x) ^ β := by
+    rw [hV_even x]
+  rw [hU_even x, hVderiv_odd, hden_even]
+  ring
+```
+
+No direct flux expansion is needed.
+
+### Step 4: the target theorem for global cosine representatives
+
+```lean
+theorem chemFluxFun_second_deriv_zero_at_zero_of_even
+    {β : ℝ} {U V : ℝ → ℝ}
+    (hU_even : EvenAtZero U)
+    (hV_even : EvenAtZero V)
+    (hU_C4 : ContDiff ℝ 4 U)
+    (hV_C4 : ContDiff ℝ 4 V)
+    (hden_pos : ∀ x, 0 < 1 + V x)
+    (hβnn : 0 ≤ β) :
+    deriv (deriv (chemFluxFun β U V)) 0 = 0 := by
+  have hodd : OddAtZero (chemFluxFun β U V) :=
+    chemFluxFun_oddAtZero_of_even hU_even hV_even
+      (fun x => (hV_C4.differentiable (by norm_num)).differentiableAt) hden_pos
+  exact second_deriv_at_zero_eq_zero_of_oddAtZero hodd
+    ((chemFlux_contDiff_three hU_C4 hV_C4 hden_pos hβnn).of_le (by norm_num))
+```
+
+This is the lemma you want for the heat semigroup/resolver global representatives.
+
+## How to use this for `chemDivLift` / weak-H²
+
+Do not set `U = intervalDomainLift u` unless that lift is truly the global cosine representative. Instead, carry explicit global representatives:
+
+```lean
+Ucos : ℝ → ℝ
+Vcos : ℝ → ℝ
+hU_eq : Set.EqOn (intervalDomainLift u) Ucos (Set.Icc 0 1)
+hV_eq : Set.EqOn (intervalDomainLift v) Vcos (Set.Icc 0 1)
+hU_even : EvenAtZero Ucos
+hV_even : EvenAtZero Vcos
+hU_C4 : ContDiff ℝ 4 Ucos
+hV_C4 : ContDiff ℝ 4 Vcos
+hden_pos : ∀ x, 0 < 1 + Vcos x
+```
+
+Then prove the smooth global flux fact:
+
+```lean
+have hF0 : deriv (deriv (chemFluxFun p.β Ucos Vcos)) 0 = 0 :=
+  chemFluxFun_second_deriv_zero_at_zero_of_even hU_even hV_even hU_C4 hV_C4 hden_pos p.hβ
+```
+
+and use equality on the open interior to get the genuine one-sided limit:
+
+```lean
+Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
+```
+
+by eventual derivative agreement on `Ioo 0 1` plus continuity of
+
+```lean
+deriv (deriv (chemFluxFun p.β Ucos Vcos))
+```
+
+at `0` and `hF0`.
+
+The endpoint point derivative conjuncts
+
+```lean
+deriv (chemDivLift p u v) 0 = 0
+```
+
+should continue to be handled by the zero-extension lemma, as the repo now does.
+
+## Answer to the question “is it false?”
+
+* For **generic smooth functions** satisfying only `v'(0)=0`, yes, the statement can be false. Example: `U=1`, `V=1+x²+x³`, `β=0`, then `φ''(0)=6`.
+* For **smooth cosine-series/even-reflection functions**, no, it is not false. It is true by parity, and `φ''(0)=0` even though `φ'(0)` may be nonzero.
+* For **`intervalDomainLift` zero-extensions**, the expression is not the smooth global cosine-series expression; endpoint derivatives can become Mathlib junk values. Do not use zero-extension endpoint `deriv` to prove the genuine spectral/weak-H² Neumann condition.
+
+## Practical recommendation
+
+Add a small parity file, perhaps:
+
+```lean
+ShenWork/Paper2/IntervalChemFluxParity.lean
+```
+
+with:
+
+```lean
+EvenAtZero, OddAtZero
+cosineSeries_evenAtZero
+deriv_odd_of_evenAtZero
+deriv_even_of_oddAtZero
+deriv_at_zero_eq_zero_of_evenAtZero
+second_deriv_at_zero_eq_zero_of_oddAtZero
+chemFluxFun_oddAtZero_of_even
+chemFluxFun_second_deriv_zero_at_zero_of_even
+```
+
+Then use it only with the global cosine representatives, not directly with `intervalDomainLift`. This cleanly separates:
+
+```text
+global smooth parity proof   → genuine one-sided Neumann limit
+zero-extension endpoint lemma → point derivative hbc0/hbc1
+```
+
+That separation matches the repo’s current direction and avoids confusing the zero-extension/junk derivative with the mathematically meaningful boundary condition.
