@@ -27,6 +27,7 @@ import ShenWork.Wiener.EWA.HeatFloor
 
 open scoped BigOperators Topology
 open ShenWork.IntervalDomain (intervalDomainPoint)
+open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.PDE
