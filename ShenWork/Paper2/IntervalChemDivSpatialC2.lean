@@ -138,15 +138,21 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     (hu : ContDiff ℝ 4 (intervalDomainLift u))
     (hv : ContDiff ℝ 4 (intervalDomainLift v))
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
-    IntervalWeakH2Neumann (chemDivLift p u v) := by
-  sorry
-  -- The H2 assembly is blocked by the endpoint tendsto trap:
-  -- chemDivLift = intervalDomainLift(chemotaxisDiv) has a zero-extension
-  -- discontinuity in its DERIVATIVE at the endpoints, so the tendsto
-  -- hypothesis of intervalWeakH2Neumann_of_contDiffOn fails.
-  -- Fix: construct IntervalWeakH2Neumann directly with secondDeriv =
-  -- the global deriv(deriv(deriv(chemFluxFun))) restricted to [0,1],
-  -- and verify the weak cosine Laplacian identity by IBP.
+    IntervalWeakH2Neumann (chemDivLift p u v) where
+  secondDeriv := deriv (deriv (deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v))))
+  second_intervalIntegrable := by
+    have h4 : ContDiff ℝ 4 (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) :=
+      (chemFlux_contDiff_three hu hv hv_pos p.hβ).of_le (by norm_num)
+    exact (h4.deriv'.deriv'.deriv'.continuous.intervalIntegrable _ _)
+  second_abs_integral_bound := by
+    refine ⟨_, intervalIntegral.integral_nonneg (by norm_num : (0:ℝ) ≤ 1)
+      (fun x _ => abs_nonneg _), le_refl _⟩
+  weak_cosine_laplacian := by
+    sorry -- IBP twice: ∫cos·f'' = -(kπ)² ∫cos·f, using f = chemDivLift = φ' on (0,1)
+    -- The cosine integral over (0,1) equals the integral over [0,1] (endpoint null set).
+    -- The IBP boundary terms vanish because:
+    -- 1st IBP: [cos·φ'']₀¹ = 0 (φ'' = deriv(deriv(flux)) at endpoints, Neumann-type)
+    -- 2nd IBP: [sin·φ''']₀¹ = 0 (sin(0) = sin(kπ·1) = 0 for k = endpoint value)
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
