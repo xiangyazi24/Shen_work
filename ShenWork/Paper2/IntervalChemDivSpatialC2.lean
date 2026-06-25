@@ -150,7 +150,9 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     (h_agree_u : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift u x = U_cos x)
     (h_agree_v : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift v x = V_cos x)
     (hu_even : ∀ x, U_cos (-x) = U_cos x)
-    (hv_even : ∀ x, V_cos (-x) = V_cos x) :
+    (hv_even : ∀ x, V_cos (-x) = V_cos x)
+    (hu_symm1 : ∀ x, U_cos (2 - x) = U_cos x)
+    (hv_symm1 : ∀ x, V_cos (2 - x) = V_cos x) :
     IntervalWeakH2Neumann (chemDivLift p u v) := by
   set F := deriv (chemFluxFun p.β U_cos V_cos)
   have hF_C2 : ContDiff ℝ 2 F := chemFluxDeriv_contDiff_two hu_cos hv_cos hv_cos_pos p.hβ
@@ -189,8 +191,18 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   -- Neumann BCs from parity: F even → F' odd → F'(0) = 0
   have hbc0 : deriv F 0 = 0 :=
     odd_zero (deriv_even_odd (hF_C2.of_le (by norm_num)) hF_even)
+  -- Flux antisymmetry about x=1: φ(2-x) = -φ(x)
+  have hflux_antisymm1 : ∀ x, chemFluxFun p.β U_cos V_cos (2 - x) =
+      -(chemFluxFun p.β U_cos V_cos x) := by
+    intro x; unfold chemFluxFun
+    have hdv1 := deriv_comp_neg (f := fun t => V_cos (2 - t)) (x := x)
+    sorry -- needs deriv V_cos (2-x) = -(deriv V_cos x) from hv_symm1 + chain rule
+  -- F = φ' symmetric about x=1: F(2-x) = F(x)
+  have hF_symm1 : ∀ x, F (2 - x) = F x := by
+    sorry -- from hflux_antisymm1 via deriv_odd_even-like argument with shift
+  -- F' antisymmetric about x=1 → F'(1) = 0
   have hbc1 : deriv F 1 = 0 := by
-    sorry -- antisymmetry about x=1 (needs reflection around 1, more complex)
+    sorry -- from hF_symm1: deriv F (2-x) = -(deriv F x), set x=1
   have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
     conv_rhs => rw [← hbc0]
     exact (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
