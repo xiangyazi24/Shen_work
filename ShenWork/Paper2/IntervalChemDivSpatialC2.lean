@@ -158,11 +158,46 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   have hF'_cont : Continuous (deriv F) := by
     have : ContDiff ℝ (1 + 1) F := hF_C2.of_le (by norm_num)
     exact this.deriv'.continuous
-  -- Neumann BCs from parity: flux is odd about 0 → F = flux' is even → F' is odd → F'(0) = 0
-  have hbc0 : deriv F 0 = 0 := by
-    sorry -- parity: U_cos even + V_cos even → V_cos' odd → flux odd → F even → F' odd → F'(0)=0
+  -- Parity helper: derivative of even C¹ function is odd
+  have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
+      ∀ x, deriv g (-x) = -(deriv g x) := by
+    intro g hg heven x
+    have h1 := (hg.differentiable le_top).differentiableAt.hasDerivAt (x := -x)
+    have h2 := h1.comp x (hasDerivAt_neg x)
+    have h3 : g ∘ Neg.neg = g := funext heven
+    rw [h3] at h2
+    have h4 := (hg.differentiable le_top).differentiableAt.hasDerivAt (x := x)
+    linarith [h4.unique h2]
+  -- Odd function vanishes at 0
+  have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
+    intro g hodd; linarith [hodd 0]
+  -- Flux is odd (U even, V' odd, denominator even)
+  have hflux_odd : ∀ x, chemFluxFun p.β U_cos V_cos (-x) =
+      -(chemFluxFun p.β U_cos V_cos x) := by
+    intro x; unfold chemFluxFun
+    have hdv : deriv V_cos (-x) = -(deriv V_cos x) :=
+      deriv_even_odd (hv_cos.of_le (by norm_num)) hv_even x
+    rw [hu_even, hv_even, hdv]; ring
+  -- Parity helper: derivative of odd C¹ function is even
+  have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
+      ∀ x, deriv g (-x) = deriv g x := by
+    intro g hg hodd x
+    have h1 := (hg.differentiable le_top).differentiableAt.hasDerivAt (x := -x)
+    have h2 := (h1.comp x (hasDerivAt_neg x)).neg
+    have h3 : -(g ∘ Neg.neg) = g := funext (fun y => by simp [hodd y])
+    rw [h3] at h2
+    have h4 := (hg.differentiable le_top).differentiableAt.hasDerivAt (x := x)
+    linarith [h4.unique h2]
+  -- F = φ' is even (derivative of odd φ)
+  have hF_even : ∀ x, F (-x) = F x :=
+    deriv_odd_even
+      ((chemFlux_contDiff_three hu_cos hv_cos hv_cos_pos p.hβ).of_le (by norm_num))
+      hflux_odd
+  -- Neumann BCs from parity: F even → F' odd → F'(0) = 0
+  have hbc0 : deriv F 0 = 0 :=
+    odd_zero (deriv_even_odd (hF_C2.of_le (by norm_num)) hF_even)
   have hbc1 : deriv F 1 = 0 := by
-    sorry -- antisymmetry about x=1 (cosine series on [0,1] with Neumann BCs)
+    sorry -- antisymmetry about x=1 (needs reflection around 1, more complex)
   have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
     conv_rhs => rw [← hbc0]
     exact (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
