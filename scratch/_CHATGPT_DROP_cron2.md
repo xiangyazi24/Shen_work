@@ -1,412 +1,485 @@
-# Q113 (cron2): classical regularity frontier — EWA calculus closure vs interior smoothing
+# Q328 (cron2): logistic source `DuhamelSourceTimeC1On` for `realSlice u_star`
 
-## Executive verdict
+## Executive answer
 
-There is a unified route, but it should **not** be a full “interior `C∞` parabolic smoothing” theorem. That theorem is conceptually true, but it is far too expensive to formalize from scratch in Lean for this target. The better unified route is a **finite EWA calculus-closure theorem**:
+Yes: the repo has the **right general coefficient-Leibniz lemmas** to produce the logistic `hderiv`/`hadotcont` on a closed time window without first producing a global `DuhamelSourceTimeC1`.
 
-```text
-C¹_t / weighted-Wiener-in-time data for u
-+ resolver smoothing for v
-+ positivity of u and 1+v
-+ weighted-Wiener algebra / smooth-composition lemmas
-⇒ all remaining source/flux regularity packages at once.
-```
-
-This should discharge `(b)` and `(c)` mechanically and reduce `(a)` to the genuinely hard finite-time regularity statement: the nonlinear source is `C¹` in time as an EWA sequence with a locally summable majorant.
-
-So the recommended strategy is:
-
-```text
-Do NOT prove general interior C∞ smoothing.
-Do prove one finite theorem:
-  EWAClassicalCore ⇒
-    h_flux_diff ∧ h_src_cont ∧ DuhamelSourceTimeC1.
-```
-
-The hard part is not differentiating `u·v_x/(1+v)^β` in space. The hard part is proving the **time-`C¹` source package** with the correct weighted-Wiener bounds.
-
-## 1. Unified route: finite EWA classical-core theorem
-
-A useful abstraction is:
+The most relevant theorem is the windowed one:
 
 ```lean
-structure EWAClassicalCore
-    (uCoeff uDotCoeff : ℝ → ℕ → ℝ)
-    (vCoeff vDotCoeff : ℝ → ℕ → ℝ)
-    (I : Set ℝ) : Prop where
-  -- coefficient identities
-  v_coeff : ∀ t n, vCoeff t n = uCoeff t n / (μ + lambda n)
-  vdot_coeff : ∀ t n, vDotCoeff t n = uDotCoeff t n / (μ + lambda n)
-
-  -- local uniform spatial regularity
-  u_A2_loc : ∃ B, ∀ t∈I, A 2 (uCoeff t) ≤ B
-  uDot_A1_loc : ∃ B, ∀ t∈I, A 1 (uDotCoeff t) ≤ B
-
-  -- coefficient time differentiability / continuity in the EWA norm
-  u_time_deriv : ∀ n t, t∈I → HasDerivAt (fun s => uCoeff s n) (uDotCoeff t n) t
-  u_cont_A2 : ContinuousOn (fun t => uCoeff t) I   -- in A₂ norm, or explicit ε form
-  uDot_cont_A1 : ContinuousOn (fun t => uDotCoeff t) I -- in A₁ norm
-
-  -- positivity boxes
-  u_pos : ∀ t∈I, ∀ x, 0 < u t x
-  v_pos : ∀ t∈I, ∀ x, 0 ≤ v t x
+ShenWork.IntervalMildPicardRegularityEndpoint2.cosineCoeffs_hasDerivWithinAt_of_smooth_param
 ```
 
-The exact indices can be adjusted, but the important point is this:
-
-- `u∈A₂` gives spatial `C²` for `u`.
-- `u_t∈A₁` is the convenient finite assumption for time differentiability of the chem divergence source, because differentiating the flux time derivative in `x` sees `(u_t)_x`.
-- `v=(μ-Δ_N)^{-1}u` gains two derivatives, so `v∈A₄` if `u∈A₂`.
-- `v_t=(μ-Δ_N)^{-1}u_t` gains two derivatives, so `v_t∈A₃` if `u_t∈A₁`.
-
-Under this core, prove one theorem:
+It gives exactly the shape needed for a `DuhamelSourceTimeC1On` constructor:
 
 ```lean
-theorem all_source_regularities_of_EWAClassicalCore
-    (hcore : EWAClassicalCore uCoeff uDotCoeff vCoeff vDotCoeff I)
-    (hβ : ... ) (hα : ... ) :
-    DuhamelSourceTimeC1 ... ∧
-    (∀ t∈I, ∀ x, DifferentiableAt ℝ (chemFluxLifted t) x) ∧
-    ContinuousOn (fun p : ℝ × ℝ => wChem p.1 p.2) (I.prod Set.univ) ∧
-    ContinuousOn (fun p : ℝ × ℝ => wLog p.1 p.2) (I.prod Set.univ) := by
-  -- finite calculus closure, not PDE smoothing
+HasDerivWithinAt
+  (fun s => cosineCoeffs (f s) n)
+  (cosineCoeffs (f' σ) n)
+  (Set.Icc a' W) σ
 ```
 
-This theorem is the right replacement for many small, ad hoc regularity hypotheses.
-
-## 2. Why not formalize interior `C∞` smoothing?
-
-The statement
-
-```text
-mild solution of a semilinear parabolic equation with smooth nonlinearity
-⇒ smooth on (0,T)×(0,1)
-```
-
-is mathematically standard. But in Lean it would require a large theory:
-
-```text
-analytic semigroup smoothing in a scale of Banach spaces;
-bootstrapping across time and space derivatives;
-boundary compatibility or interior-only localization;
-composition theorems in those spaces;
-resolver regularity at each bootstrapped level;
-conversion back to the exact cosine/source coefficient packages.
-```
-
-That is far more work than the finite package you actually need. Since your EWA development already has weighted-Wiener controls and coefficient time derivatives, a **finite regularity bootstrap** is much cheaper.
-
-In short:
-
-```text
-Interior C∞ theorem: elegant on paper, expensive in Lean.
-Finite EWA calculus closure: less glamorous, much cheaper and exactly targets the remaining packages.
-```
-
-## 3. Spatial flux differentiability `(b)` is mechanical
-
-Let
-
-```text
-Φ(y) := (1+y)^(-β),
-G(x) := u(x) * v_x(x) * Φ(v(x)).
-```
-
-Assume at the slice `t`:
-
-```text
-u is C¹ at x,
-v is C² at x,
-1+v(x)>0.
-```
-
-Then
-
-```text
-G'(x)
- = u_x v_x (1+v)^(-β)
-   + u v_xx (1+v)^(-β)
-   - β u v_x^2 (1+v)^(-β-1).
-```
-
-There is no hidden obstruction from non-integer `β`: the real power map
-
-```text
-y ↦ y^(-β)
-```
-
-is smooth on the open set `y>0`. Here the base is `1+v`, and since `v≥0` or `v>0`, we have `1+v>0`.
-
-Lean-oriented chain-rule proof:
+from:
 
 ```lean
--- pointwise hypotheses at x
-hu  : HasDerivAt u ux x
-hv1 : HasDerivAt v vx x
-hvx : HasDerivAt (deriv v) vxx x
-hbase : 0 < 1 + v x
-
--- real-power composition
-hpow : HasDerivAt (fun y => y ^ (-β)) ((-β) * (1 + v x) ^ (-β - 1)) (1 + v x)
-hbase_deriv : HasDerivAt (fun x => 1 + v x) (deriv v x) x
-hPhi : HasDerivAt (fun x => (1 + v x) ^ (-β))
-        ((-β) * (1 + v x) ^ (-β - 1) * deriv v x) x :=
-  hpow.comp x hbase_deriv
-
--- products
-hflux : HasDerivAt
-  (fun x => u x * deriv v x * (1 + v x) ^ (-β))
-  (deriv u x * deriv v x * (1 + v x)^(-β)
-    + u x * iteratedDeriv 2 v x * (1 + v x)^(-β)
-    - β * u x * (deriv v x)^2 * (1 + v x)^(-β-1))
-  x := by
-  -- `hu.mul hvx` then `.mul hPhi`, ring normalize
+hf_cont      : ∀ s ∈ Set.Icc a' W, ContinuousOn (f s) (Set.Icc 0 1)
+h_diff       : ∀ x ∈ Set.Ioo 0 1, ∀ s ∈ Set.Icc a' W,
+                 HasDerivAt / HasDerivWithinAt of s ↦ f s x
+h_cont_deriv : ContinuousOn (Function.uncurry f')
+                 (Set.Icc a' W ×ˢ Set.Icc 0 1)
 ```
 
-If your flux is exactly
-
-```text
-chemFluxLifted = u * v_x / (1+v)^β,
-```
-
-rewrite it as
-
-```text
-u * v_x * (1+v)^(-β)
-```
-
-and use the formula above.
-
-## 4. Source continuity `(c)` is also mechanical, but needs joint continuity
-
-For the chem source
-
-```text
-wChem = ∂x( u v_x (1+v)^(-β) )
-```
-
-use the explicit formula:
-
-```text
-wChem
- = u_x v_x (1+v)^(-β)
-   + u v_xx (1+v)^(-β)
-   - β u v_x^2 (1+v)^(-β-1).
-```
-
-For the logistic source, writing the logistic constants as `r,b,α` to avoid conflict with `a=-χ₀`,
-
-```text
-wLog = u * (r - b * u^α).
-```
-
-If `u>0`, the real power `u^α` is smooth, even for non-integer `α`.
-
-The continuity proof is just:
-
-```text
-joint continuity of u, u_x, v, v_x, v_xx
-+ positivity of 1+v and u
-+ continuity of real powers on positive bases
-+ product/addition continuity
-⇒ joint continuity of wChem and wLog.
-```
-
-Important caveat: **per-slice `C²` alone gives continuity in `x` at fixed `t`, not joint continuity in `(t,x)`**. For `h_src_cont` as a joint statement, you need local uniform coefficient convergence and time-continuity of the coefficients, for example:
-
-```text
-t ↦ uCoeff(t) is continuous into A₂,
-t ↦ vCoeff(t) is continuous into A₄,
-```
-
-or explicit epsilon-majorant versions. Your coefficient time derivative / EWA data likely already gives this, but it must be stated.
-
-Lean-shaped theorem:
+There is also an older/global local-neighborhood version:
 
 ```lean
-theorem source_joint_cont_of_joint_C2
-    (hu0  : ContinuousOn (fun p : ℝ × ℝ => u p.1 p.2) domain)
-    (hux  : ContinuousOn (fun p => deriv (u p.1) p.2) domain)
-    (hv0  : ContinuousOn (fun p => v p.1 p.2) domain)
-    (hvx  : ContinuousOn (fun p => deriv (v p.1) p.2) domain)
-    (hvxx : ContinuousOn (fun p => iteratedDeriv 2 (v p.1) p.2) domain)
-    (hu_pos : ∀ p∈domain, 0 < u p.1 p.2)
-    (hv_base : ∀ p∈domain, 0 < 1 + v p.1 p.2) :
-    ContinuousOn (fun p => wChem p.1 p.2) domain ∧
-    ContinuousOn (fun p => wLog p.1 p.2) domain := by
-  -- continuity algebra and `Real.continuousAt_rpow_const` on positive bases
+ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
 ```
 
-## 5. The genuinely hard package `(a)`
+which gives global `HasDerivAt` at a point from a local slab, but for your new target the `Endpoint2` closed-window theorem is the better match.
 
-`DuhamelSourceTimeC1` is the real analytic core.
-
-For the logistic source:
+So the answer to the core question is:
 
 ```text
-L(u) := u (r - b u^α),
-L_t = u_t (r - b(1+α)u^α).
+The logistic hderiv/hadotcont can be produced without global DuhamelSourceTimeC1.
+Use the windowed coefficient-Leibniz theorem plus pointwise logistic chain rule and joint continuity of the derivative field.
 ```
 
-This is easy once `u_t` is in the right EWA space and `u>0`.
+The remaining burden is not global source `TimeC1`; it is the usual local/window data for `realSlice u_star`: positivity, profile joint continuity, a time-derivative field for `realSlice`, and a uniform derivative-coefficient bound `Mdot`.
 
-For the chem flux:
+## Exact target family
 
-```text
-G := u v_x (1+v)^(-β).
-```
-
-The time derivative is
-
-```text
-G_t
- = u_t v_x (1+v)^(-β)
-   + u (v_t)_x (1+v)^(-β)
-   - β u v_x v_t (1+v)^(-β-1).
-```
-
-The chem source is `∂x G`, so its time derivative is
-
-```text
-(∂xG)_t = ∂x(G_t).
-```
-
-To make this coefficientwise and summably bounded, a convenient finite assumption is:
-
-```text
-u_t ∈ A₁ locally uniformly in time,
-u ∈ A₂ locally uniformly in time,
-v = Rμ u,       so v ∈ A₄,
-v_t = Rμ u_t,   so v_t ∈ A₃.
-```
-
-Then:
-
-```text
-v_x ∈ A₃,
-(v_t)_x ∈ A₂,
-(1+v)^(-β) ∈ A₂ or better,
-G_t ∈ A₁,
-∂xG_t ∈ A₀.
-```
-
-Since `A_s` is a Banach algebra for weighted Wiener norms and derivative maps `A_s → A_{s-1}`, this gives:
-
-```text
-t ↦ sourceCoeff(t) is differentiable into A₀,
-sourceCoeffDot(t) = coeffs(∂xG_t + L_t),
-sourceCoeffDot has a locally uniform ℓ¹ majorant,
-sourceCoeffDot is continuous in time into A₀.
-```
-
-That is exactly the content needed by `DuhamelSourceTimeC1`.
-
-A good theorem statement is:
+Your target is:
 
 ```lean
-theorem DuhamelSourceTimeC1_of_EWA_core
-    (hcore : EWAClassicalCore uCoeff uDotCoeff vCoeff vDotCoeff I)
-    (halpha : ... ) (hbeta : ... )
-    (hAlg : WeightedWienerAlgebraClosure) :
-    DuhamelSourceTimeC1
-      (fun t => chemSourceCoeff t + logisticSourceCoeff t)
-      (fun t => chemSourceCoeffDot t + logisticSourceCoeffDot t) := by
-  -- logistic time derivative by smooth composition
-  -- resolver time derivative v_t = Rμ u_t
-  -- flux time derivative formula for G_t
-  -- derivative map A₁→A₀ for ∂xG_t
-  -- coefficient linearity
-  -- local ℓ¹ majorant and continuity in A₀
+DuhamelSourceTimeC1On
+  (coupledLogisticSourceCoeffs p (realSlice u_star)) 0 T
 ```
 
-This is the one to attack with full effort.
+The relevant definitions identify this family with the `logisticLifted` family used by the windowed constructors.
 
-## 6. Boundary/coefficient subtlety for the divergence source
+```lean
+-- from ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
+/-- Lifted logistic source. -/
+def coupledLogisticSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (ShenWork.IntervalDomainExistence.intervalLogisticSource p (u s))
 
-If you identify the cosine coefficients of `∂xG` by integration by parts, remember the boundary term.
+/-- Cosine coefficients of the logistic source. -/
+def coupledLogisticSourceCoeffs (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) : ℝ → ℕ → ℝ :=
+  fun s n => cosineCoeffs (coupledLogisticSourceLift p u s) n
 
-For Neumann `v_x=0` at `x=0,1`,
-
-```text
-G = u v_x (1+v)^(-β)
+-- from ShenWork/Paper2/IntervalGradientDuhamelMap.lean
+/-- The lifted logistic source `L(w) = lift(w·(a − b·w^α))`. -/
+def logisticLifted (p : CM2Params) (w : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  intervalDomainLift (intervalLogisticSource p w)
 ```
 
-vanishes at the endpoints. For `G_t`, the boundary value also vanishes if `(v_t)_x=0` at the endpoints, which follows from `v_t=Rμ u_t` with Neumann resolver data. Then
+Thus this rewrite should be a `simpa`/`rfl`-level bridge:
 
-```text
-⟨∂xG, cos(nπx)⟩ = -⟨G, ∂x cos(nπx)⟩,
+```lean
+coupledLogisticSourceCoeffs p u
+  = fun s k => cosineCoeffs (logisticLifted p (u s)) k
 ```
 
-and similarly for the time derivative.
+up to namespace unfolding.
 
-If your source coefficients are defined spectrally rather than by integrals, this may already be built into the lift. But if a proof gets stuck, check that the flux boundary term is explicitly available.
+## Windowed constructor already in the repo
 
-## 7. Difficulty ranking
+The theorem you named is exactly the windowed logistic constructor:
 
-### Tier 1 — genuinely hard analytic core
-
-```text
-(a) DuhamelSourceTimeC1
+```lean
+noncomputable def limitSource_duhamelSourceTimeC1On_of_representation
+    (p : CM2Params)
+    (w : ℝ → intervalDomainPoint → ℝ)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {lo hi M G1 G2 : ℝ}
+    (hlohi : lo ≤ hi)
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ ∈ Set.Icc lo hi,
+      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ ∈ Set.Icc lo hi, Set.EqOn (intervalDomainLift (w σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ ∈ Set.Icc lo hi,
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (w σ) x)
+    (hub : ∀ σ ∈ Set.Icc lo hi,
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (w σ) x ≤ M)
+    (hG1 : ∀ σ ∈ Set.Icc lo hi,
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (w σ)) x| ≤ G1)
+    (hG2 : ∀ σ ∈ Set.Icc lo hi,
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (deriv (intervalDomainLift (w σ))) x| ≤ G2)
+    (adot : ℝ → ℕ → ℝ)
+    (hderiv : ∀ σ ∈ Set.Icc lo hi, ∀ k, HasDerivWithinAt
+      (fun r => cosineCoeffs
+        (logisticSourceFun p.a p.b p.α (intervalDomainLift (w r))) k)
+      (adot σ k) (Set.Icc lo hi) σ)
+    (hadotcont : ∀ k, ContinuousOn (fun σ => adot σ k) (Set.Icc lo hi))
+    {Mdot : ℝ}
+    (hMdot : ∀ σ ∈ Set.Icc lo hi, ∀ k, |adot σ k| ≤ Mdot) :
+    DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (w s)) k) lo hi
 ```
 
-Reasons:
+It builds the value envelope from the representation data and forwards the time-derivative fields:
 
-```text
-- requires time differentiability of nonlinear source coefficients;
-- requires local ℓ¹/weighted-Wiener majorants for the source derivative;
-- chem part needs v_t and (v_t)_x through the resolver;
-- divergence source needs one spatial derivative of G_t;
-- real-power composition must be done in a weighted-Wiener algebra, not just pointwise;
-- coefficient formula may need boundary-term control.
+```lean
+{ adot := adot
+  hderiv := hderiv
+  hadotcont := hadotcont
+  envelope := fun n => if n = 0 then C else C / ((n : ℝ) * Real.pi) ^ 2
+  henv_summable := ...
+  henv_bound := ...
+  derivBound := Mdot
+  hderivBound := hMdot }
 ```
 
-This is where the proof effort should go.
+So if you instantiate:
 
-### Tier 2 — moderate/mechanical but needs the right joint hypotheses
-
-```text
-(c) h_src_cont
+```lean
+w  := realSlice u_star
+lo := 0
+hi := T
 ```
 
-The algebra is easy, but do not try to prove joint continuity from per-slice `C²` alone. Use local uniform weighted-Wiener convergence and time-continuity into `A₂/A₄`.
+and provide the representation/bounds and derivative fields on `[0,T]`, its output should reduce to your desired target by unfolding `coupledLogisticSourceCoeffs`/`coupledLogisticSourceLift`/`logisticLifted`.
 
-### Tier 3 — easiest pointwise calculus
+## General coefficient-Leibniz theorem: global/local version
 
-```text
-(b) h_flux_diff
+The repo has this general local-neighborhood theorem:
+
+```lean
+-- ShenWork/Paper2/IntervalMildPicardRegularity.lean
+namespace ShenWork.IntervalMildPicardRegularity
+
+theorem cosineCoeffs_hasDerivAt_of_smooth_param
+    {f f' : ℝ → ℝ → ℝ} {τ δ : ℝ} {n : ℕ} (hδ : 0 < δ)
+    (hf_cont : ∀ᶠ s in 𝓝 τ, ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
+    (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      ∀ s ∈ Metric.ball τ δ,
+        HasDerivAt (fun r => f r x) (f' s x) s)
+    (h_cont_deriv : ContinuousOn (Function.uncurry f')
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivAt (fun s => cosineCoeffs (f s) n)
+      (cosineCoeffs (f' τ) n) τ
 ```
 
-This is immediate from `u∈C¹`, `v∈C²`, and `1+v>0`. It is a chain-rule/product-rule lemma. No serious PDE analysis remains here.
+This is useful if you already have a local open slab around a point and want a full `HasDerivAt`.
 
-### Already essentially direct
+## General coefficient-Leibniz theorem: closed-window version
 
-```text
-resolver C² / v positivity
+For `DuhamelSourceTimeC1On`, use this theorem instead:
+
+```lean
+-- ShenWork/Paper2/IntervalMildPicardRegularityEndpoint2.lean
+namespace ShenWork.IntervalMildPicardRegularityEndpoint2
+
+/-- One-sided closed-window time-Leibniz rule for cosine coefficients. -/
+theorem cosineCoeffs_hasDerivWithinAt_of_smooth_param
+    {f f' : ℝ → ℝ → ℝ} {a' W : ℝ} {n : ℕ} (ha'W : a' ≤ W)
+    {σ : ℝ} (hσ : σ ∈ Set.Icc a' W)
+    (hf_cont : ∀ s ∈ Set.Icc a' W,
+      ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
+    (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Set.Icc a' W,
+      HasDerivWithinAt (fun r => f r x) (f' s x) (Set.Icc a' W) s)
+    (h_cont_deriv : ContinuousOn (Function.uncurry f')
+      (Set.Icc a' W ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivWithinAt (fun s => cosineCoeffs (f s) n)
+      (cosineCoeffs (f' σ) n) (Set.Icc a' W) σ
 ```
 
-`v∈C²` is direct from `v̂_k=û_k/(μ+λ_k)` and weighted-Wiener smoothing. Positivity of `v` is direct from the positive Neumann resolvent kernel or maximum principle, not from spectral summability.
+There is also a sibling with `{lo hi τ}` in `IntervalMildPicardRegularityEndpoint.lean`:
 
-## 8. Final recommended implementation plan
+```lean
+theorem cosineCoeffs_hasDerivWithinAt_of_smooth_param
+    {f f' : ℝ → ℝ → ℝ} {lo hi τ : ℝ} {n : ℕ} (_hlohi : lo ≤ hi)
+    (hτ : τ ∈ Set.Icc lo hi)
+    (hf_cont : ∀ s ∈ Set.Icc lo hi,
+      ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
+    (h_diff : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      ∀ s ∈ Set.Icc lo hi,
+        HasDerivWithinAt (fun r => f r x) (f' s x) (Set.Icc lo hi) s)
+    (h_cont_deriv : ContinuousOn (Function.uncurry f')
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivWithinAt (fun s => cosineCoeffs (f s) n)
+      (cosineCoeffs (f' τ) n) (Set.Icc lo hi) τ
+```
 
-1. **Prove `h_flux_diff` now** as a local chain-rule lemma. It should be short.
+Either form is suitable; `Endpoint2` is the one used by the restart-window logistic theorem.
 
-2. **Prove `h_src_cont` from a reusable joint-continuity theorem** using the explicit source formula. This should be a moderate but mechanical continuity proof.
+## Logistic pointwise chain rule
 
-3. **Define `EWAClassicalCore`** with precisely the finite time/spatial regularity needed:
+The scalar/global lemma is:
 
-   ```text
-   u∈C_t A₂,
-   u_t∈C_t A₁,
-   v=Rμu,
-   v_t=Rμu_t,
-   u>0,
-   v≥0.
-   ```
+```lean
+-- ShenWork/Paper2/IntervalMildPicardRegularity.lean
+namespace ShenWork.IntervalMildPicardRegularity
 
-4. **Prove `DuhamelSourceTimeC1_of_EWA_core`**. This is the main theorem. It should consume weighted-Wiener algebra, derivative-loss, smooth-composition, and resolver-smoothing lemmas.
+theorem logisticSourceFun_hasDerivAt_time
+    {a b α : ℝ} (_hα : 0 < α)
+    {f : ℝ → ℝ} {f' σ : ℝ}
+    (hf_pos : 0 < f σ)
+    (hf_deriv : HasDerivAt f f' σ) :
+    HasDerivAt (fun r => f r * (a - b * (f r) ^ α))
+      (f' * (a - b * (1 + α) * (f σ) ^ α)) σ
+```
 
-5. Wire `(a)+(b)+(c)` from that theorem and the two mechanical lemmas. Avoid introducing a broad interior-smoothing theorem unless you later need many more regularity levels.
+For the closed-window route, the repo uses the windowed/within version inside:
+
+```lean
+-- ShenWork/Paper2/IntervalPicardIterateTimeC1EndpointAdot.lean
+theorem logisticSource_adot_hasDerivWithinAt_endpoint_window
+    {p : CM2Params} (hα : 0 < p.α)
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W lo hi aτ σ : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    (haτpos : 0 < aτ) (hσ : σ ∈ Set.Icc lo hi)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W))
+    (hagree : ∀ s ∈ Set.Icc lo hi, ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 =
+        ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1)
+    (hpos : ∀ s ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (w s) x)
+    (hC2cont : ∀ s ∈ Set.Icc lo hi,
+      ContinuousOn (intervalDomainLift (w s)) (Set.Icc (0 : ℝ) 1))
+    (hprofile_joint : ContinuousOn
+      (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1))
+    (k : ℕ) :
+    HasDerivWithinAt
+      (fun r => cosineCoeffs
+        (logisticSourceFun p.a p.b p.α (intervalDomainLift (w r))) k)
+      (cosineCoeffs (fun x => logisticSourceDot a₀ a p w offset σ x) k)
+      (Set.Icc lo hi) σ
+```
+
+This theorem is already a specialized production of `hderiv` for logistic coefficients. It does **not** assume global `DuhamelSourceTimeC1`; it assumes a predecessor window source package and a restart representation.
+
+## Existing packaged recursion theorem
+
+The repo has a higher-level packaged theorem that already combines the hderiv/hadotcont/Mdot pieces for a successor logistic source:
+
+```lean
+-- ShenWork/Paper2/IntervalPicardSourceTimeC1OnRecursion.lean
+namespace ShenWork.IntervalPicardSourceTimeC1OnRecursion
+
+noncomputable def sourceTimeC1On_succ_of_sourceTimeC1On
+    {p : CM2Params}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀)
+    (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W lo hi aτ M G1 G2 : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    (hlohi : lo ≤ hi)
+    (haτpos : 0 < aτ)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W))
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ ∈ Set.Icc lo hi,
+      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ ∈ Set.Icc lo hi,
+      Set.EqOn (intervalDomainLift (w σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (w σ) x)
+    (hub : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (w σ) x ≤ M)
+    (hG1 : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (intervalDomainLift (w σ)) x| ≤ G1)
+    (hG2 : ∀ σ ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (deriv (intervalDomainLift (w σ))) x| ≤ G2)
+    (hrestart : ∀ s ∈ Set.Icc lo hi, ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 =
+        ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1)
+    (hC2cont : ∀ s ∈ Set.Icc lo hi,
+      ContinuousOn (intervalDomainLift (w s)) (Set.Icc (0 : ℝ) 1))
+    (hprofile_joint : ContinuousOn
+      (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)) :
+    DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (w s)) k) lo hi
+```
+
+Inside, it defines:
+
+```lean
+let adot : ℝ → ℕ → ℝ :=
+  fun σ k => cosineCoeffs (fun x => logisticSourceDot a₀ a p w offset σ x) k
+```
+
+then obtains `Mdot` from:
+
+```lean
+exists_logisticSource_adot_bound_On_shift
+```
+
+and supplies `hderiv` via:
+
+```lean
+logisticSource_adot_hasDerivWithinAt_endpoint_window
+```
+
+and supplies `hadotcont` via:
+
+```lean
+cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+```
+
+applied to the joint-continuity theorem for `logisticSourceDot`.
+
+So this theorem is a ready-made route if your `realSlice u_star` is represented in the same restart form on `[0,T]`.
+
+## Mdot producer
+
+The Mdot producer is:
+
+```lean
+theorem exists_logisticSource_adot_bound_On_shift
+    {p : CM2Params}
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀)
+    (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W lo hi aτ : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    (haτpos : 0 < aτ)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W))
+    (hpos : ∀ s ∈ Set.Icc lo hi, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (w s) x)
+    (hprofile_joint : ContinuousOn
+      (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∃ Mdot : ℝ, ∀ σ ∈ Set.Icc lo hi, ∀ k,
+      |cosineCoeffs (fun x => logisticSourceDot a₀ a p w offset σ x) k|
+        ≤ Mdot
+```
+
+It works by proving joint continuity of the derivative field on the compact window and then applying the general bound for cosine coefficients of a continuous bounded function.
+
+## Minimal direct route for `realSlice u_star`
+
+If you do **not** want to use the restart recursion theorem, the direct proof should look like this:
+
+```lean
+import ShenWork.Paper2.IntervalDomainLimitSourceRepresentationOn
+import ShenWork.Paper2.IntervalMildPicardRegularityEndpoint2
+import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
+import ShenWork.Wiener.EWA.SourceClassicalExistence
+
+open Set
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
+open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.IntervalMildPicardRegularityEndpoint2
+open ShenWork.IntervalDomainLimitSourceRepresentationOn
+open ShenWork.IntervalDuhamelSourceTimeC1On
+
+noncomputable section
+
+namespace ShenWork.EWA
+
+-- Suggested shape only; names of `uDot`/`adot` can be adjusted.
+theorem logistic_timeC1On_realSlice_of_window_data
+    {T : ℝ} (p : CM2Params) (u_star : EWA T 1)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {M G1 G2 : ℝ}
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ ∈ Set.Icc (0 : ℝ) T,
+      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ ∈ Set.Icc (0 : ℝ) T,
+      Set.EqOn (intervalDomainLift (realSlice u_star σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ ∈ Set.Icc (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (realSlice u_star σ) x)
+    (hub : ∀ σ ∈ Set.Icc (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (realSlice u_star σ) x ≤ M)
+    (hG1 : ∀ σ ∈ Set.Icc (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (intervalDomainLift (realSlice u_star σ)) x| ≤ G1)
+    (hG2 : ∀ σ ∈ Set.Icc (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (deriv (intervalDomainLift (realSlice u_star σ))) x| ≤ G2)
+    (adot : ℝ → ℕ → ℝ)
+    (hderiv : ∀ σ ∈ Set.Icc (0 : ℝ) T, ∀ k,
+      HasDerivWithinAt
+        (fun r => cosineCoeffs
+          (logisticSourceFun p.a p.b p.α
+            (intervalDomainLift (realSlice u_star r))) k)
+        (adot σ k) (Set.Icc (0 : ℝ) T) σ)
+    (hadotcont : ∀ k, ContinuousOn (fun σ => adot σ k) (Set.Icc (0 : ℝ) T))
+    {Mdot : ℝ}
+    (hMdot : ∀ σ ∈ Set.Icc (0 : ℝ) T, ∀ k, |adot σ k| ≤ Mdot) :
+    DuhamelSourceTimeC1On
+      (coupledLogisticSourceCoeffs p (realSlice u_star)) 0 T := by
+  have H : DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (realSlice u_star s)) k) 0 T :=
+    limitSource_duhamelSourceTimeC1On_of_representation
+      p (realSlice u_star) hα ha hb (show (0 : ℝ) ≤ T from by
+        -- supply/derive this from the window assumptions in the real theorem
+        sorry)
+      bc hbsum hagree hpos hub hG1 hG2 adot hderiv hadotcont hMdot
+  -- The family is definitionally the same after unfolding the two lifted-source definitions.
+  simpa [coupledLogisticSourceCoeffs, coupledLogisticSourceLift, logisticLifted] using H
+
+end ShenWork.EWA
+```
+
+This direct wrapper shows the key point: `limitSource_duhamelSourceTimeC1On_of_representation` does not need global `DuhamelSourceTimeC1`; it needs the local `hderiv`, `hadotcont`, and `hMdot` on `[0,T]`.
+
+## How to produce `hderiv` directly
+
+Use the closed-window coefficient-Leibniz theorem with:
+
+```lean
+f  := fun s x => logisticSourceFun p.a p.b p.α
+        (intervalDomainLift (realSlice u_star s)) x
+
+f' := fun s x =>
+        u_t(s,x) * (p.a - p.b * (1 + p.α) *
+          (intervalDomainLift (realSlice u_star s) x) ^ p.α)
+```
+
+Then prove:
+
+```lean
+hf_cont : ∀ s ∈ Set.Icc 0 T, ContinuousOn (f s) (Set.Icc 0 1)
+h_diff  : ∀ x ∈ Set.Ioo 0 1, ∀ s ∈ Set.Icc 0 T,
+  HasDerivWithinAt (fun r => f r x) (f' s x) (Set.Icc 0 T) s
+h_cont_deriv : ContinuousOn (Function.uncurry f')
+  (Set.Icc 0 T ×ˢ Set.Icc 0 1)
+```
+
+The pointwise `h_diff` is just the logistic chain rule plus the time derivative of `realSlice`. The continuity `h_cont_deriv` is product/rpow continuity using positivity of `realSlice`.
+
+## How to produce `hadotcont`
+
+After defining:
+
+```lean
+adot σ k := cosineCoeffs (f' σ) k
+```
+
+use the existing compact dominated-continuity lemma:
+
+```lean
+cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+```
+
+This is exactly what `sourceTimeC1On_succ_of_sourceTimeC1On` does after proving joint continuity of `logisticSourceDot`.
 
 ## Bottom line
 
-The remaining frontier is not “classical PDE smoothing” in full generality. It is a finite calculus problem in your EWA coefficient algebra. The only truly hard package is `DuhamelSourceTimeC1`; `h_flux_diff` and `h_src_cont` are mechanical consequences of the already-proved spatial `C²` data plus local uniform time-continuity. The best unification is a finite `EWAClassicalCore ⇒ source regularities` theorem, not an all-purpose `C∞` interior-regularity development.
+The repo already has the correct general machinery. For the logistic source, you do **not** need to manufacture a global `DuhamelSourceTimeC1` first.
+
+Use one of two routes:
+
+1. **Direct route:** instantiate `IntervalMildPicardRegularityEndpoint2.cosineCoeffs_hasDerivWithinAt_of_smooth_param` with the pointwise logistic derivative field of `realSlice`, then feed `limitSource_duhamelSourceTimeC1On_of_representation`.
+
+2. **Existing restart route:** use `sourceTimeC1On_succ_of_sourceTimeC1On`, which already packages `hderiv`, `hadotcont`, and `Mdot` via `logisticSource_adot_hasDerivWithinAt_endpoint_window`, `cosineCoeffs_continuousOn_of_jointContinuousOn_Icc`, and `exists_logisticSource_adot_bound_On_shift`.
+
+For `realSlice u_star`, the missing theorem is not a coefficient-Leibniz theorem. It is the window data that lets you instantiate that theorem: a `[0,T]` representation/bounds for `realSlice`, positivity, joint continuity of the field and its time derivative, and a uniform `Mdot` bound. The source time-C¹ part itself is window-local and does not require a global source package.
