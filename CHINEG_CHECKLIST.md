@@ -693,3 +693,13 @@ REMAINING for the canonical chain: produce the iterate-side regularity inputs fo
 The χ₀=0 case produces these via LimitRegularityInputs + the Picard tower. For χ₀<0, the same
 tower works (MildExistenceData is unconditional) — the iterate-side regularity needs the same
 kind of source/spectral data, with the chemotaxis term present (but bounded by |χ₀|·C∇·2√T < 1).
+
+## [2026-06-25] LimitRegularityInputs χ₀-dependence: gap is SMALL (15/20 independent, 5 have producers)
+Field-by-field scoping confirmed: 15 of 20 LimitRegularityInputs fields are χ₀-INDEPENDENT (logistic source,
+spatial regularity, datum properties). The 5 χ₀-dependent fields all have existing general-χ₀ producers:
+  hfix — already general (intervalGradientDuhamelMap carries chemotaxis for any χ₀)
+  hpde_u — fullSourceCoeff_pde_u (SourcePdeU.lean) is general-χ₀
+  Hu — HasTimeNeighborhoodSpectralAgreement_of_conjugateMild (IntervalTimeNhdChiNeg.lean) is general-χ₀
+  Hvsrc — resolver source ν·u^γ doesn't depend on χ₀ directly; time-C¹ from u's regularity
+  Hvpos — resolver positivity from strong maximum principle, needs only u>0 (from D.hpos)
+NEXT: assemble a general-χ₀ LimitRegularityInputs producer by threading existing producers.
