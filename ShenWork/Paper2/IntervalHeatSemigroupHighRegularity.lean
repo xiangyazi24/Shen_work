@@ -2,8 +2,7 @@
   ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 
   The heat semigroup `S(t)u₀ = ∑ exp(-t λ_k) û₀_k cos(kπx)` has eigenvalue-
-  squared-weighted summability for t > 0 (from the existing
-  `eigenvalueSq_mul_exp_summable`), hence C⁴ spatial regularity via
+  squared-weighted summability for t > 0, hence C⁴ spatial regularity via
   `cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable`.
 
   No `sorry`/`admit`/`native_decide`/custom `axiom`.  New file only.
@@ -13,7 +12,7 @@ import ShenWork.Paper2.ChemMildC1etaComm
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode unitIntervalCosineEigenvalue)
+open ShenWork.CosineSpectrum (cosineMode)
 
 noncomputable section
 
@@ -54,7 +53,7 @@ theorem heatSemigroup_contDiff_four
     ContDiff ℝ 4 (fun x => ∑' k,
       (Real.exp (-t * unitIntervalCosineEigenvalue k) *
         cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x) :=
-  ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+  ShenWork.IntervalParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
     (heatSemigroup_eigenvalueSq_summable hu₀_bound ht)
 
 #print axioms heatSemigroup_eigenvalueSq_summable
