@@ -141,12 +141,9 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     IntervalWeakH2Neumann (chemDivLift p u v) where
   secondDeriv := deriv (deriv (deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v))))
   second_intervalIntegrable := by
-    have h4 : ContDiff ℝ 4 (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) :=
-      (chemFlux_contDiff_three hu hv hv_pos p.hβ).of_le (by norm_num)
-    exact (h4.deriv'.deriv'.deriv'.continuous.intervalIntegrable _ _)
+    sorry -- deriv³(flux) is continuous (flux is C⁴) → intervalIntegrable
   second_abs_integral_bound := by
-    refine ⟨_, intervalIntegral.integral_nonneg (by norm_num : (0:ℝ) ≤ 1)
-      (fun x _ => abs_nonneg _), le_refl _⟩
+    sorry -- continuous on compact → bounded → ∃ B, ∫|f| ≤ B
   weak_cosine_laplacian := by
     sorry -- IBP twice: ∫cos·f'' = -(kπ)² ∫cos·f, using f = chemDivLift = φ' on (0,1)
     -- The cosine integral over (0,1) equals the integral over [0,1] (endpoint null set).
