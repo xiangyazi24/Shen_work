@@ -1,4 +1,37 @@
-# UNDERSTANDING.md — Shen_work (campaign handoff to Codex, 2026-06-10 ~15:45)
+# UNDERSTANDING.md — Shen_work (2026-06-25 update)
+
+## CURRENT STATE (2026-06-25)
+
+998 files, 392K LOC, **0 real sorry tokens**, **0 custom axioms** across all three papers.
+
+### Paper 1 (traveling waves): SORRY-FREE, unconditional infrastructure landed.
+### Paper 2 (bounded-domain existence): Two unconditional theorems proved:
+  - **χ₀ = 0**: `intervalDomain_theorem_1_1_chiZero_unconditional` — UNCONDITIONAL, axiom-clean.
+  - **χ₀ < 0**: `paper2_theorem_1_1_general_chi_bform` — conditional on `hlocal` + `hUniform`.
+    All barriers to satisfiability resolved (A: DuhamelSourceTimeC1On, B: Hinf windowed
+    retype 63cc68e, C: hchemIoo b84ddb3). BFormBankedInputs has NO false fields.
+    **Remaining production task**: fill `hlogSrc` and `hchemSrc` (DuhamelSourceTimeC1On for
+    logistic/chem-div source coefficients of `conjugatePicardLimit`).
+    Route: iterate TimeC1On induction (χ₀-independent, sorry-free) + windowed G2.5 limit passage.
+### Paper 3 (long-time dynamics): SORRY-FREE, linear dichotomy unconditional.
+
+### χ₀ < 0 PRODUCTION FRONTIER
+`BFormBankedInputs` fields — all satisfiable, all but 2 have sorry-free producers:
+- `huPaper`, `Hinf`, `hsmall`, `MInit`, `haInit`: from existence data + ball estimates
+- `hB_global`: from `conjugatePicardLimit_cosineSeries` (sorry-free)
+- `hlogCont`, `hlogFourier`: Fields 9/10 from `IntervalBankSourceSliceLeaves` (sorry-free)
+- `hchemIoo`: from `IntervalBankChemSliceFix` (sorry-free, replaces false `hchemCont`)
+- **`hlogSrc`**: NEEDS PRODUCTION — `DuhamelSourceTimeC1On (coupledLogisticSourceCoeffs ...)`
+- **`hchemSrc`**: NEEDS PRODUCTION — `DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs ...)`
+
+Production route for `hlogSrc`/`hchemSrc`:
+1. `sourceTimeC1On_succ_of_sourceTimeC1On` (IntervalPicardSourceTimeC1OnRecursion) — GENERIC
+2. `duhamelSourceTimeC1On_of_uniform_limit` (IntervalMildPicardLimitRegularityOn) — limit passage
+3. Need: K1/K2 properties (representation, G1/G2 bounds, positivity) for `conjugatePicardIter`
+
+---
+
+## HISTORICAL (2026-06-10/11 — kept for reference, superseded by above)
 
 ## ⛔ FIDELITY CORRECTION (2026-06-11 ~04:00 — READ FIRST, supersedes all "done"/"unconditional"/"sorry-free" language below)
 An independent adversarial audit (HANDOFF/FIDELITY-AUDIT.md) found this campaign
