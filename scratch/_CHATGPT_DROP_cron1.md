@@ -1,446 +1,309 @@
 # ChatGPT git-drop (cron1)
 
-## Q327 — `DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs p (realSlice u_star)) 0 T`: input audit
+## Q329 — circularity check: `hchem_on` vs. source joint-regularity feeders
 
 ### Executive verdict
 
-The assembler
+There are **two different issues** that must not be conflated.
+
+1. **Mathematically/conceptually**, the flux-factor joint `C²` data should *not* be produced from the chem-div source coefficient `DuhamelSourceTimeC1`.  It should come from the Picard/K1/EWA solution-side regularity: joint regularity of `u`, `u_t`, `v`, `v_t`, `v_x`, `v_xt`, plus product/quotient/rpow calculus.  This is the non-circular route.
+
+2. **In the current Lean file `SourceJointRegularity.lean`, the theorem `fullSourceCoeff_jointSolutionClosed` is over-typed as taking global `DuhamelSourceTimeC1` packages for chem and log.**  Its value-field majorant is envelope-only, but the proof still uses `src.hderiv` indirectly to prove per-mode time continuity of the Duhamel coefficient.  Therefore, if you literally route the production of `CoupledChemDivLocalChainRule` through the current `fullSourceCoeff_jointSolutionClosed` theorem, you inherit a formal dependency on `hchem/hlog`.  That would be circular for producing `hchem_on`.
+
+The fix is not to use `fullSourceCoeff_jointSolutionClosed` as the source of flux-factor joint regularity.  Use the Picard/K1/EWA regularity route, or split out a weaker value-field continuity theorem that takes only:
 
 ```lean
-coupledChemDivSource_timeC1On_of_EWA
+∀ n, Continuous (fun s => sourceCoeffs s n)
+Summable envelope
+∀ s∈[0,T], ∀ n, |sourceCoeffs s n| ≤ envelope n
 ```
 
-is exactly a **consumer** of the remaining time-derivative legs. It supplies the value-side `envelope` and `henv_summable` from the EWA `sourceEnvelope`, but it does not prove the chain-rule slab, joint continuity of the time-derivative lift, or the Mdot bound.
-
-Its current signature is:
-
-```lean
-noncomputable def coupledChemDivSource_timeC1On_of_EWA
-    {μ ν γ : ℝ} (hμ : 0 < μ)
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (U : EWA T 1)
-    (h_coeff : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-        |coupledChemDivSourceCoeffs p u s n|
-          ≤ sourceEnvelope (chemDivEWA μ ν γ hμ p U) n)
-    (adot : ℝ → ℕ → ℝ)
-    (h_deriv : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-        HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
-          (adot s n) (Set.Icc 0 T) s)
-    (h_adotcont : ∀ n, ContinuousOn (fun s => adot s n) (Set.Icc 0 T))
-    (Mdot : ℝ) (h_Mdot : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n, |adot s n| ≤ Mdot) :
-    DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs p u) 0 T
-```
-
-and its fields are assigned by:
-
-```lean
-envelope := sourceEnvelope (chemDivEWA μ ν γ hμ p U)
-henv_summable := sourceEnvelope_summable _
-henv_bound := h_coeff
-derivBound := Mdot
-hderivBound := h_Mdot
-```
-
-So the current assembly split is:
-
-```text
-h_coeff            caller-side eval/coeff bridge into the EWA sourceEnvelope
-adot               should be coupledChemDivAdot p u
-h_deriv            from CoupledChemDivLocalChainRule
-h_adotcont         from joint continuity of coupledChemDivTimeDerivativeLift on [0,T]×[0,1]
-Mdot/h_Mdot        from chemDivAdot_Mdot_of_spatial_H2 or a stronger envelope
-```
+rather than the full `DuhamelSourceTimeC1` package.
 
 ---
 
-## (A) What `CoupledChemDivLocalChainRule` needs
+## What `fullSourceCoeff_jointSolutionClosed` actually does
 
-The definition is in `IntervalChemDivTimeDerivative.lean`:
+The theorem is a thin wrapper:
 
 ```lean
-structure CoupledChemDivLocalChainRule
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ,
-      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt
-        (fun r => coupledChemDivSourceLift p u r x)
-        (coupledChemDivTimeDerivativeLift p u s x) s) ∧
+theorem fullSourceCoeff_jointSolutionClosed (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ) {Mu0 : ℝ}
+    (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
+    (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
+    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u)) {T : ℝ} :
     ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+      (Function.uncurry (fun (t : ℝ) (x : ℝ) =>
+        ∑' n, fullSourceCoeff p u u₀cos t n * cosineMode n x))
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
+  (fullSourceCoeff_jointContinuousOn p u u₀cos hu0bd hchem hlog).mono (slabClosed_subset T)
 ```
 
-So it needs three local-slab facts around every time `τ`:
-
-1. eventual spatial continuity of the source lift,
-2. pointwise-in-space time `HasDerivAt` of the chem-div source lift,
-3. joint continuity of the explicit time-derivative field on the closed slab.
-
-### Is per-slice `ContDiff 2` of `realSlice u_star` enough?
-
-No. Per-slice spatial `C²` is not enough by itself.
-
-It helps with spatial regularity of the factors, but the chain-rule package also needs **time differentiability** of
+The real proof is in the private theorem `fullSourceCoeff_jointContinuousOn`, which does exactly the three-leg split:
 
 ```lean
-r ↦ coupledChemDivSourceLift p u r x
+have hheat := heatValueSeries_jointContinuousOn u₀cos hu0bd
+have hchemJ := duhamelSeries_jointContinuousOn hchem
+have hlogJ := duhamelSeries_jointContinuousOn hlog
+have hsum := ((hheat.add (hchemJ.const_smul (-p.χ₀))).add hlogJ)
+refine hsum.congr (fun q hq => ?_)
+have := fullSourceCoeff_tsum_split p u u₀cos hu0bd hchem hlog hq
+...
 ```
 
-with derivative
-
-```lean
-coupledChemDivTimeDerivativeLift p u s x
-```
-
-and joint continuity of that derivative field. Those are time/mixed regularity facts, not merely per-slice spatial `C²` facts.
-
-The repo has a clean hierarchy for producing this package:
-
-```lean
-CoupledChemDivPointwiseChainAtoms p u
-  → coupledChemDivLocalChainRule_of_pointwiseChainAtoms
-  → CoupledChemDivLocalChainRule p u
-```
-
-where `CoupledChemDivPointwiseChainAtoms` has exactly the same `exists_local_slab` content.
-
-There is also a more structural route:
-
-```lean
-CoupledChemDivFluxJointC2Hyp p u
-  → coupledChemDivLocalChainRule_of_fluxJointC2
-  → CoupledChemDivLocalChainRule p u
-```
-
-and an even more factorized route:
-
-```lean
-CoupledChemDivFluxFactorJointC2Inputs p u
-  → coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-  → coupledChemDivLocalChainRule_of_fluxJointC2
-```
-
-The factor-level package explicitly needs local joint `C²` of:
-
-```lean
-(t,x) ↦ intervalDomainLift (u t) x
-(t,x) ↦ intervalDomainLift (coupledChemicalConcentration p u t) x
-(t,x) ↦ deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x
-```
-
-plus positivity of `1+v`, the time-partial bridge, and the closed-slab continuity of `coupledChemDivTimeDerivativeLift`.
-
-So the correct statement is:
-
-```text
-SourceSliceC2Neumann / per-slice C² is useful but insufficient.
-For (A) you need either the explicit pointwise chain atoms or the joint-flux C² / FAC package.
-```
+So the value-field theorem consumes `DuhamelSourceTimeC1` only through the two Duhamel value-leg lemmas and the pointwise split.
 
 ---
 
-## (B) Joint continuity of `coupledChemDivTimeDerivativeLift`
+## Does the value-field proof use `src.hderiv`?
 
-### What exists for `∂ₜv` only
+### Uniform majorant: envelope-only
 
-`IntervalChemDivTimeDerivative.lean` has:
+For the value Duhamel series, the local `continuousOn_tsum` majorant in `duhamelSeries_jointContinuousOn` is:
 
 ```lean
-theorem coupledChemicalTimeDerivative_jointContinuousOn_closed
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {U : ℝ}
-    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)) :
+T * src.envelope n
+```
+
+and the summability proof is:
+
+```lean
+have hu : Summable (fun n => T * src.envelope n) :=
+  src.henv_summable.mul_left T
+```
+
+The norm bound uses:
+
+```lean
+src.henv_bound s hs n
+```
+
+together with the heat kernel bound and `|cosineMode n x| ≤ 1`.
+
+So the **M-test / uniform majorant** part is indeed envelope-only:
+
+```text
+src.envelope
+src.henv_summable
+src.henv_bound
+```
+
+It does **not** use `src.adot`, `src.hadotcont`, `src.derivBound`, or `src.hderivBound`.
+
+### Term continuity: uses `src.hderiv` indirectly
+
+However, each summand must be continuous in `(t,x)`.  In `duhamelSeries_jointContinuousOn`, the proof obtains continuity of
+
+```lean
+fun τ => duhamelSpectralCoeff a τ n
+```
+
+from:
+
+```lean
+have hb_cont : Continuous (fun τ => duhamelSpectralCoeff a τ n) :=
+  continuous_iff_continuousAt.2
+    (fun τ => (duhamelSpectralCoeff_hasDerivAt src τ n).continuousAt)
+```
+
+and `duhamelSpectralCoeff_hasDerivAt src τ n` itself uses `src.hderiv` to prove continuity of the source coefficient `fun s => a s n`:
+
+```lean
+have hcont_an : Continuous (fun s => a s n) :=
+  continuous_iff_continuousAt.2 (fun s => (src.hderiv s n).continuousAt)
+```
+
+So the accurate answer is:
+
+```text
+fullSourceCoeff_jointSolutionClosed uses src.hderiv indirectly for per-mode continuity,
+but its uniform summable majorant uses only src.envelope / henv_summable / henv_bound.
+```
+
+It does not use the full derivative-envelope side of `DuhamelSourceTimeC1` for the value field.  It only needs source coefficient continuity plus the envelope.
+
+---
+
+## What about `fullSourceCoeffDot_jointTimeDerivClosed`?
+
+This one is different and genuinely source-time-C¹ dependent.
+
+The theorem is:
+
+```lean
+theorem fullSourceCoeffDot_jointTimeDerivClosed (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ) {Mu0 : ℝ}
+    (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
+    (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
+    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u)) {T : ℝ} :
     ContinuousOn
-      (Function.uncurry (coupledChemicalTimeDerivativeLift p u))
-      (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1)
+      (Function.uncurry (fun (t : ℝ) (x : ℝ) =>
+        ∑' n, fullSourceCoeffDot p u u₀cos t n * cosineMode n x))
+      (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
+  (fullSourceCoeffDot_jointContinuousOn p u u₀cos hu0bd hchem hlog).mono (slabClosed_subset T)
 ```
 
-This is only the resolver time-derivative factor `v_t`, not the full chem-div time-derivative lift.
-
-It also has the fixed-space compact-window version:
+The private proof calls:
 
 ```lean
-theorem coupledChemicalTimeDerivative_continuousOn_Icc_of_lt_horizon
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {U T c x : ℝ}
-    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
-    (hc : 0 < c) (hTU : T < U) (hx : x ∈ Icc (0 : ℝ) 1) :
-    ContinuousOn
-      (fun s => coupledChemicalTimeDerivativeLift p u s x)
-      (Icc c T)
+have hchemJ := duhamelDerivSeries_jointContinuousOn hchem
+have hlogJ := duhamelDerivSeries_jointContinuousOn hlog
 ```
 
-Again, this is for `v_t`, not for the full `coupledChemDivTimeDerivativeLift`.
-
-### What exists for full `coupledChemDivTimeDerivativeLift`
-
-`IntervalChemDivTimeDerivClosed.lean` introduces the exact representative-based hypothesis:
+`duhamelDerivSeries_jointContinuousOn` uses the derivative-side majorant:
 
 ```lean
-def ChemDivMixedTimeDerivClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
+src.envelope n + src.derivBound * reciprocalSquareTerm n
 ```
 
-and proves:
+and uses the derivative identity / IBP path through:
 
 ```lean
-theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+duhamelSpectralCoeff_deriv_summable_uniform_bound
 ```
 
-So the repo **does** have a theorem producing the desired closed-slab joint continuity, but only from the explicit closed-slab representative `ChemDivMixedTimeDerivClosedRepr`. It is not unconditional for arbitrary `u`.
-
-I found no `ChemDivGcont` / `chemDivGcont` symbol by grep.
-
-There is also a higher-level producer:
+which depends on:
 
 ```lean
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_cont : ∀ s : ℝ, Continuous (u s))
-    (hu_nonneg : ∀ s : ℝ, ∀ x : intervalDomainPoint, 0 ≤ u s x)
-    (other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-      (∀ᶠ s in 𝓝 τ,
-        ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-      (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-        ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
-      ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    CoupledChemDivFluxFactorJointC2Inputs p u
+src.hderiv
+src.hadotcont
+src.hderivBound
+src.derivBound
 ```
 
-This discharges the `htime_cont` field internally via `chemDivMixedTimeDeriv_jointContinuousOn_closed`, but still requires the `ChemDivMixedTimeDerivClosedRepr` input.
+So `fullSourceCoeffDot_jointTimeDerivClosed` genuinely requires the source coefficient time-C¹ package.  It is not an envelope-only theorem.
 
-### For `h_adotcont` on `[0,T]`
-
-The EWA brick `ChemDivAdot.lean` has:
-
-```lean
-theorem chemDivAdot_continuousOn_of_jointCont
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (hjointcont : ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
-    ∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n) (Set.Icc (0 : ℝ) T)
-```
-
-So for your final theorem, the required exact route is:
-
-```text
-joint continuity of coupledChemDivTimeDerivativeLift on [0,T]×[0,1]
-  → chemDivAdot_continuousOn_of_jointCont
-  → h_adotcont.
-```
-
-The repo currently gives a local closed-slab continuity theorem from `ChemDivMixedTimeDerivClosedRepr`. To get the **global window** `[0,T]×[0,1]`, you either need a single representative on `[0,T]`, or a compact/gluing lemma from local slabs covering `[0,T]`. The landed theorem itself is local-slab-shaped.
+Using this theorem to build the chain-rule data needed for `hchem_on` would be circular.
 
 ---
 
-## (C) What `chemDivAdot_Mdot_of_spatial_H2` needs
+## The actual circularity status
 
-The file `ChemDivAdotEnvelope.lean` has the requested Mdot producer:
-
-```lean
-theorem chemDivAdot_Mdot_of_spatial_H2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {B_sup B_H2 : ℝ} (hBs : 0 ≤ B_sup) (hBh : 0 ≤ B_H2)
-    (hcont : ∀ s ∈ Icc (0 : ℝ) T, ContinuousOn
-      (coupledChemDivTimeDerivativeLift p u s) (Icc (0 : ℝ) 1))
-    (hbd : ∀ s ∈ Icc (0 : ℝ) T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |coupledChemDivTimeDerivativeLift p u s x| ≤ B_sup)
-    (hdecay_raw : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
-      |coupledChemDivAdot p u s n| ≤ 2 * B_H2 / ((n : ℝ) * Real.pi) ^ 2) :
-    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ Mdot
-```
-
-So it does **not** directly take `IntervalWeakH2Neumann` as an argument. It takes the already-quantified consequences:
-
-1. nonnegative constants:
-
-```lean
-hBs : 0 ≤ B_sup
-hBh : 0 ≤ B_H2
-```
-
-2. per-slice spatial continuity of the time-derivative field:
-
-```lean
-hcont : ∀ s ∈ Icc 0 T,
-  ContinuousOn (coupledChemDivTimeDerivativeLift p u s) (Icc 0 1)
-```
-
-3. uniform sup bound:
-
-```lean
-hbd : ∀ s ∈ Icc 0 T, ∀ x ∈ Icc 0 1,
-  |coupledChemDivTimeDerivativeLift p u s x| ≤ B_sup
-```
-
-4. uniform quadratic coefficient-decay bound for positive modes:
-
-```lean
-hdecay_raw : ∀ s ∈ Icc 0 T, ∀ n, 1 ≤ n →
-  |coupledChemDivAdot p u s n| ≤ 2 * B_H2 / ((n : ℝ) * Real.pi) ^ 2
-```
-
-Internally it sets:
-
-```lean
-Cdot := max (2 * B_sup) (2 * B_H2)
-```
-
-uses `cosineCoeffs_abs_le_of_continuous_bounded` for mode `0`, and uses `hdecay_raw` for modes `n ≥ 1`, then delegates to the summable-envelope theorem.
-
-### What still feeds `hdecay_raw`?
-
-The file documentation says the intended source is:
+### If the chain is literally this:
 
 ```text
-IntervalWeakH2Neumann + quantitative H²_N coefficient decay
+hchem_on
+  ← CoupledChemDivLocalChainRule
+    ← CoupledChemDivFluxFactorJointC2Inputs
+      ← joint C² of u/v/∂v
+        ← fullSourceCoeff_jointSolutionClosed + fullSourceCoeffDot_jointTimeDerivClosed
+          ← DuhamelSourceTimeC1 chem/log
 ```
 
-namely the theorem:
+then **yes, that Lean dependency chain is circular**.
+
+The value-field theorem is only mildly overstrong, but the time-derivative theorem is genuinely downstream of `DuhamelSourceTimeC1`.
+
+### If the chain is instead this:
+
+```text
+Picard fixed point / EWA/K1 solution-side regularity
+  → joint continuity/C² of u and slopeSlice u
+  → resolver time regularity for v and v_t
+  → product/quotient/rpow calculus for flux factors
+  → CoupledChemDivFluxFactorJointC2Inputs
+  → CoupledChemDivLocalChainRule
+  → h_deriv for coupledChemDivAdot
+  → hchem_on
+```
+
+then it is **not circular**.
+
+This is the intended architecture.  In fact, the definition of the chem-div time derivative already points to this route:
 
 ```lean
-intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+def coupledChemDivTimeDerivativeLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s x : ℝ) : ℝ :=
+  deriv
+    (fun y : ℝ =>
+      let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
+      let vt : ℝ → ℝ := coupledChemicalTimeDerivativeLift p u s
+      ShenWork.Paper2.PicardLimitK1.slopeSlice u s y * deriv v y /
+          (1 + v y) ^ p.β +
+        intervalDomainLift (u s) y * deriv vt y / (1 + v y) ^ p.β -
+        p.β * intervalDomainLift (u s) y * deriv v y * vt y /
+          (1 + v y) ^ (p.β + 1))
+    x
 ```
 
-But `chemDivAdot_Mdot_of_spatial_H2` expects the final coefficient decay inequality already packaged as `hdecay_raw`. If you want a theorem that starts from per-slice `IntervalWeakH2Neumann` of `coupledChemDivTimeDerivativeLift p u s` plus a uniform bound on the relevant second-derivative integral, that is one wrapper above this current theorem.
+The `u_t` factor is `PicardLimitK1.slopeSlice`, not `fullSourceCoeffDot`.
 
 ---
 
-## Current dependency map for your final `DuhamelSourceTimeC1On`
+## What to change / avoid
 
-The intended final assembly should look like:
+### Do not use `fullSourceCoeffDot_jointTimeDerivClosed` to prove `hchem_on`
 
-```lean
-let adot := coupledChemDivAdot p (realSlice u_star)
+That theorem is downstream of `DuhamelSourceTimeC1`.  It is appropriate after `hchem/hlog` are known, for the classical-regularity capstone, but not for building `hchem_on` itself.
 
-have h_deriv : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-    HasDerivWithinAt
-      (fun r => coupledChemDivSourceCoeffs p (realSlice u_star) r n)
-      (adot s n) (Set.Icc 0 T) s :=
-  chemDivAdot_hasDerivWithinAt_of_chainRule hchain
+### Split the value theorem if needed
 
-have h_adotcont : ∀ n,
-    ContinuousOn (fun s => adot s n) (Set.Icc 0 T) :=
-  chemDivAdot_continuousOn_of_jointCont hjointcont
-
-obtain ⟨Mdot, h_Mdot⟩ :=
-  chemDivAdot_Mdot_of_spatial_H2 hBs hBh hcont hbd hdecay_raw
-
-exact coupledChemDivSource_timeC1On_of_EWA
-  (hμ := hμ) p (realSlice u_star) U
-  h_coeff
-  adot
-  h_deriv
-  h_adotcont
-  Mdot
-  h_Mdot
-```
-
-where the currently open producer obligations for `u = realSlice u_star` are:
-
-```text
-hchain       : CoupledChemDivLocalChainRule p (realSlice u_star)
-hjointcont   : ContinuousOn (Function.uncurry
-                 (coupledChemDivTimeDerivativeLift p (realSlice u_star)))
-                 (Icc 0 T ×ˢ Icc 0 1)
-hcont        : ∀ s∈[0,T], ContinuousOn (coupledChemDivTimeDerivativeLift ... s) [0,1]
-hbd          : uniform sup bound of the derivative field
-hdecay_raw   : uniform 1/n² coefficient decay of coupledChemDivAdot
-h_coeff      : EWA sourceEnvelope domination for the value coefficients
-```
-
-`hcont` follows immediately from `hjointcont` by restricting to a fixed time slice, but `hbd` and `hdecay_raw` require quantitative boundedness / H²_N information.
-
----
-
-## Answer to the three specific questions
-
-### (A)
-
-`CoupledChemDivLocalChainRule` requires a local slab around every `τ`: eventual source continuity, pointwise time `HasDerivAt` of the source lift, and joint continuity of `coupledChemDivTimeDerivativeLift` on the closed slab. It is **not** produced merely from per-slice `ContDiff 2` of `realSlice u_star`; per-slice spatial C² does not provide the needed time derivative or mixed continuity.
-
-The closest producers are:
+For solution-field joint continuity alone, the current theorem is stronger than necessary.  A non-circular variant should have a source package like:
 
 ```lean
+structure DuhamelSourceValueJointData (a : ℝ → ℕ → ℝ) : Prop where
+  envelope : ℕ → ℝ
+  henv_summable : Summable envelope
+  henv_bound : ∀ s, 0 ≤ s → ∀ n, |a s n| ≤ envelope n
+  hcont : ∀ n, Continuous (fun s => a s n)
+```
+
+Then prove:
+
+```lean
+duhamelSeries_jointContinuousOn_valueOnly
+  (src : DuhamelSourceValueJointData a) :
+  ContinuousOn
+    (Function.uncurry
+      (fun τ x => ∑' n, duhamelSpectralCoeff a τ n * cosineMode n x))
+    (Set.Ioi 0 ×ˢ Set.univ)
+```
+
+The proof is exactly the existing `duhamelSeries_jointContinuousOn` proof, replacing
+
+```lean
+(duhamelSpectralCoeff_hasDerivAt src τ n).continuousAt
+```
+
+by a direct continuity proof for the Duhamel integral from `src.hcont n`.
+
+This would let `fullSourceCoeff_jointSolutionClosed` be proved from envelope + source continuity, without requiring source time-C¹.
+
+### For flux factor joint C², use the factor path
+
+The relevant non-circular producers are the ones around:
+
+```lean
+CoupledChemDivPointwiseChainAtoms
 coupledChemDivLocalChainRule_of_pointwiseChainAtoms
+CoupledChemDivFluxJointC2Hyp
 coupledChemDivLocalChainRule_of_fluxJointC2
-```
-
-and the factor-level route through:
-
-```lean
 CoupledChemDivFluxFactorJointC2Inputs
+coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
 ```
 
-### (B)
-
-The repo has:
+and the closed-slab representative route:
 
 ```lean
+ChemDivMixedTimeDerivClosedRepr
 chemDivMixedTimeDeriv_jointContinuousOn_closed
 ```
 
-which proves joint continuity of the full `coupledChemDivTimeDerivativeLift`, but only from:
-
-```lean
-ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-It also has resolver-only joint continuity for `coupledChemicalTimeDerivativeLift` from `ResolverHasSpectralAgreement`, but that is only the `v_t` factor, not the full chem-div derivative field.
-
-I found no `ChemDivGcont` / `chemDivGcont` symbol.
-
-### (C)
-
-`chemDivAdot_Mdot_of_spatial_H2` needs:
-
-```lean
-hBs : 0 ≤ B_sup
-hBh : 0 ≤ B_H2
-hcont : ∀ s∈[0,T], ContinuousOn (coupledChemDivTimeDerivativeLift p u s) [0,1]
-hbd : ∀ s∈[0,T], ∀ x∈[0,1], |coupledChemDivTimeDerivativeLift p u s x| ≤ B_sup
-hdecay_raw : ∀ s∈[0,T], ∀ n≥1,
-  |coupledChemDivAdot p u s n| ≤ 2 * B_H2 / ((n : ℝ) * Real.pi)^2
-```
-
-It returns exactly:
-
-```lean
-∃ Mdot, ∀ s∈[0,T], ∀ n,
-  |coupledChemDivAdot p u s n| ≤ Mdot
-```
-
-It does not itself prove `hdecay_raw`; it consumes the quadratic-decay inequality that should come from `IntervalWeakH2Neumann` plus a uniform second-derivative integral bound.
+These are the right upstream targets for `hchem_on`.
 
 ---
 
-## Final classification
+## Final answer
 
-For `realSlice u_star`, the three non-produced inputs are accurately identified, but they are not all equally primitive:
+`fullSourceCoeff_jointSolutionClosed` currently takes `DuhamelSourceTimeC1` and therefore formally depends on `hchem/hlog`.  In its value proof, the **summable majorant** uses only `src.envelope`, `src.henv_summable`, and `src.henv_bound`; however, the proof still uses `src.hderiv` indirectly to obtain per-mode continuity of the Duhamel coefficient.  So it is not purely envelope-only as written.
+
+`fullSourceCoeffDot_jointTimeDerivClosed` genuinely uses the derivative side of `DuhamelSourceTimeC1` and is definitely downstream of `hchem/hlog`.
+
+Therefore:
 
 ```text
-(A) hchain:
-    not from per-slice C² alone;
-    route through pointwise chain atoms or flux joint-C²/FAC inputs.
-
-(B) hjointcont:
-    no unconditional theorem for arbitrary u;
-    available from ChemDivMixedTimeDerivClosedRepr via chemDivMixedTimeDeriv_jointContinuousOn_closed.
-
-(C) Mdot/H²:
-    Mdot producer exists;
-    it needs continuity, uniform sup bound, and positive-mode quadratic coefficient decay of coupledChemDivAdot.
+Using SourceJointRegularity's current fullSourceCoeffDot path to prove hchem_on is circular.
+Using the Picard/K1/EWA factor-regularity path to prove hchem_on is not circular.
 ```
 
-Thus the remaining hard analytic producer is not the final `DuhamelSourceTimeC1On` assembly. The final assembly is wired. The real work is to produce the **closed-slab mixed time-derivative representative / joint-C² chain data** and the **uniform H²_N quantitative bounds** for `coupledChemDivTimeDerivativeLift p (realSlice u_star)`.
+The practical route is to keep `hchem_on` upstream of `SourceJointRegularity`'s time-derivative capstone, and, if necessary, introduce a weaker value-only source package for solution-field joint continuity so the value-field regularity does not artificially require source time-C¹.
