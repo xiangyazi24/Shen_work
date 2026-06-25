@@ -162,14 +162,15 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
   have htend0 : Filter.Tendsto (deriv F)
       (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
     rw [← hbc0]
-    exact (hF'_cont.continuousAt.continuousWithinAt).tendsto
+    exact hF'_cont.continuousWithinAt.tendsto
   have htend1 : Filter.Tendsto (deriv F)
       (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
     rw [← hbc1]
-    exact (hF'_cont.continuousAt.continuousWithinAt).tendsto
+    exact hF'_cont.continuousWithinAt.tendsto
   -- 5. Build IntervalWeakH2Neumann for F
   have hF_H2 : IntervalWeakH2Neumann F :=
-    intervalWeakH2Neumann_of_contDiffOn hF_C2on htend0 htend1 hbc0 hbc1
+    ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+      hF_C2on htend0 htend1 hbc0 hbc1
   -- 6. Transfer to chemDivLift via agreement on [0,1]
   have h_eq : ∀ x ∈ Icc (0 : ℝ) 1, F x = chemDivLift p u v x := by
     intro x hx
