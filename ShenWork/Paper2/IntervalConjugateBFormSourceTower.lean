@@ -64,14 +64,19 @@ noncomputable def conjBFormSourceTimeC1OnUpTo_all
     -- exact level0_bFormSource_duhamelSourceTimeC1On_auto p DB hu₀pos hc hcT.le
   | succ n ih =>
     intro c hc hcT
-    sorry
-    -- SORRY: Successor step. Architecture:
-    -- 1. ih gives bForm source TimeC1On at level n on every [c', T] with c' > 0
-    -- 2. intervalConjugateDuhamelMap_cosineSeries gives the representation of level n+1
-    -- 3. sourceTimeC1On_succ_of_sourceTimeC1On gives logistic TimeC1On at level n+1
-    -- 4. A parallel chemDiv successor gives chemDiv TimeC1On at level n+1
-    -- 5. bFormSource_duhamelSourceTimeC1On combines them
-    -- The genuine gap is step 4: chemDiv source regularity for finite iterates.
+    -- Step 1: predecessor bForm source TimeC1On
+    have _hpred := ih (c / 2) (by linarith) (by linarith)
+    -- Step 2-3: logistic TimeC1On at level n+1 (from existing successor step)
+    -- Uses: predecessor bForm TimeC1On → representation → sourceTimeC1On_succ
+    have _hlog : DuhamelSourceTimeC1On
+        (coupledLogisticSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T := by
+      sorry -- Wires ih + intervalConjugateDuhamelMap_cosineSeries + sourceTimeC1On_succ
+    -- Step 4: chemDiv TimeC1On at level n+1 (GENUINE GAP)
+    have _hchem : DuhamelSourceTimeC1On
+        (coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T := by
+      sorry -- Needs chemDiv C² for iterate n+1 (same gap as level 0)
+    -- Step 5: combine
+    exact bFormSource_duhamelSourceTimeC1On _hlog _hchem
 
 /-! ## Limit passage -/
 
