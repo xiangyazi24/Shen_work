@@ -191,13 +191,25 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     -- need: intervalDomainLift u =ᶠ U_cos, intervalDomainLift v =ᶠ V_cos near x,
     -- then deriv(lift v) =ᶠ deriv(V_cos) near x (by EventuallyEq.deriv),
     -- then the flux products agree pointwise near x.
-  -- Ioo-agreement → same cosine coefficients → same H2
-  exact hF_H2.congr_on_Icc (fun x hx => by
-    by_cases hx0 : x = 0
-    · subst hx0; sorry -- endpoint: F 0 vs chemDivLift 0, both involve deriv at boundary
-    by_cases hx1 : x = 1
-    · subst hx1; sorry -- endpoint: F 1 vs chemDivLift 1
-    · exact h_ioo x ⟨lt_of_le_of_ne hx.1 (Ne.symm hx0), lt_of_le_of_ne hx.2 hx1⟩)
+  -- Transfer via Ioo agreement: the H2 structure only uses f through ∫₀¹ cos·f,
+  -- which is insensitive to endpoint values (measure zero). Build H2 for chemDivLift
+  -- with the SAME secondDeriv as F's H2, since the weak_cosine_laplacian identity
+  -- is an integral equality that depends only on interior values.
+  exact {
+    secondDeriv := hF_H2.secondDeriv
+    second_intervalIntegrable := hF_H2.second_intervalIntegrable
+    second_abs_integral_bound := hF_H2.second_abs_integral_bound
+    weak_cosine_laplacian := fun k => by
+      have hF_wl := hF_H2.weak_cosine_laplacian k
+      rw [show (∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) * chemDivLift p u v x) =
+            ∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) * F x from by
+        apply intervalIntegral.integral_congr_ae
+        rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+        apply (MeasureTheory.ae_restrict_iff' measurableSet_Ioc).mpr
+        filter_upwards with x hx
+        intro _
+        rw [h_ioo x ⟨hx.1, hx.2⟩]]
+      exact hF_wl }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
