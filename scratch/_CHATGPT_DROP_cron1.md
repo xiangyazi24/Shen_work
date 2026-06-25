@@ -1,591 +1,431 @@
-# Q380 / cron1: `picardEWA` vs `embedEWA`, and the three evalST realization atoms
+# Q403 / cron1: Barrier B — can `ConjugatePicardInfThresholdData` be weakened to windowed bounds with no consumer fallout?
 
 ## Executive verdict
 
-Reading current `main`, the premise that the three atoms
-
-```lean
-h_flux_nbhd
-h_u
-h_uα
-```
-
-are still an irreducible core is **stale / no longer true in the current tree**.
-
-The old diagnosis was reasonable for an earlier state of the EWA route: the embed-form producers
-
-```lean
-embedEWA_realizes
-flux_nbhd_of_embed_discharged
-```
-
-only work for elements explicitly of the form
-
-```lean
-embedEWA u hBv hBvnn hBvsum hcont
-```
-
-and there is still no theorem literally saying
-
-```lean
-u_star = embedEWA (realSlice u_star) ...
-```
-
-for a `picardEWA` fixed point.
-
-But the current repo has a **no-embed direct route** in:
+The proposed **mathematical** direction is correct:
 
 ```text
-ShenWork/Wiener/EWA/SourceChiNegUncond.lean
-ShenWork/Wiener/EWA/SourceChiNegUncondWire.lean
+unconditional-in-s bounds  ⇒  windowed bounds on 0 < s ≤ T
 ```
 
-It proves the three atoms for an abstract Picard fixed point by using `realSlice` directly:
+and the available banked producer facts in `IntervalBankInfAndLogSrcWiring.lean` are exactly windowed:
 
 ```lean
-realSlice_evalST_realizes   -- h_u, pointwise
-realSlice_realPow_realizes  -- h_uα, pointwise
-realSlice_flux_realizes     -- h_flux_nbhd, pointwise
-
-realSlice_h_u_slab          -- h_u, slab-shaped
-realSlice_h_uα_slab         -- h_uα, slab-shaped
-realSlice_h_flux_slab       -- h_flux_nbhd, slab-shaped
-
-realizes_evalST_discharged  -- consumes these internally to remove the three hypotheses
+iterChemFlux_windowBound      : ∀ s, 0 < s → s ≤ D.T → ∀ y, |chemFluxLifted ...| ≤ iterCQ D
+iterLogistic_windowBound      : ∀ s, 0 < s → s ≤ D.T → ∀ y, |logisticLifted ...| ≤ iterCL D
+iterChemFlux_integrable       : ∀ s, 0 < s → s ≤ D.T → Integrable ...
 ```
 
-So the better current summary is:
+So weakening the `ConjugatePicardInfThresholdData` fields to windowed bounds is the right conceptual fix for Barrier B.
 
-```text
-picardEWA → embedEWA bridge: still not present as equality.
-But it is no longer needed for h_u/h_uα/h_flux_nbhd: these are now produced directly for picardEWA/realSlice.
+But the proposed “change only the structure fields and everything else compiles as-is” is **not correct**.  Lean will not automatically turn an old projection application such as
+
+```lean
+H.hQ_int n s
+H.hQ_bound n s
+H.hL_bound n
 ```
 
-The remaining residuals are secondary analytic side-atoms, not these three evalST realization atoms: for example `h_flux_diff`, source continuity, eigenvalue-summability / source-time-C¹ packages, PDE time/laplacian/inversion/trace inputs, and per-datum contraction setup.
+into
+
+```lean
+H.hQ_int n s hs hsT
+H.hQ_bound n s hs hsT
+H.hL_bound n s hs hsT
+```
+
+Consumers do not necessarily pattern-match on the structure, but they do use the **exact projection types** and exact arities.  Those call sites will break and need mechanical eta-expansion / localized-bound rewiring.
+
+The good news: this is a **syntactic/API retype**, not an analytic obstacle.  The producer can be changed/wrapped cheaply, and the consumers can be patched mechanically.  The one slightly nontrivial spot is the logistic value-Duhamel bound, because the currently called theorem expects an unconditional `∀ s y` bound; a small windowed/cutoff variant is needed there or the proof must use an existing cutoff theorem.
 
 ---
 
-## (1) What is `picardEWA` vs `embedEWA`?
+## Current structure: the three problematic fields are unconditional
 
-### `picardEWA`
-
-`picardEWA` is **not itself “the fixed point”**.  It is the **source-form Picard map** on the EWA algebra.  A Picard fixed point is a value `u_star : EWA T 1` satisfying
+Current definition in `ShenWork/Paper2/IntervalConjugatePicardInfThreshold.lean`:
 
 ```lean
-u_star = picardEWA p μ ν γ hμ hT u₀E u_star
-```
+import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalConjugatePicardBounds
+import ShenWork.Paper2.IntervalMildPicardThreshold
 
-The definition is in `ShenWork/Wiener/EWA/SourceFixedPoint.lean`.
-
-```lean
-import ShenWork.Wiener.EWA.FluxLipschitzGraded
-import ShenWork.Wiener.EWA.HeatFlow
-import ShenWork.Paper2.Defs
-import Mathlib.Topology.MetricSpace.Contracting
-
-open scoped BigOperators NNReal ENNReal
-open MeasureTheory Set Real Metric Filter Topology
-open ShenWork.GWA ShenWork.Wiener
+open MeasureTheory Set Filter
+open ShenWork.IntervalDomain
+  (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
+open ShenWork.IntervalConjugateDuhamelMap
+  (intervalConjugateDuhamelMap intervalConjugateKernelOperator)
+open ShenWork.IntervalConjugatePicard
+  (conjugatePicardIter conjugatePicardLimit)
+open ShenWork.IntervalMildPicard
+  (real_cauchySeq_of_geometric_bound)
+open ShenWork.IntervalNeumannFullKernel
+  (intervalFullSemigroupOperator intervalFullSemigroupOperator_lower_bound)
+open ShenWork.HeatKernelGradientEstimates
+  (heatGradientLinftyLinftyConstant)
+open ShenWork.Paper2
+  (PaperPositiveInitialDatum)
 
 noncomputable section
 
-namespace ShenWork.EWA
+namespace ShenWork.IntervalConjugatePicard
 
-variable {T : ℝ}
-
-/-- **The source-form Picard map** on `EWA T 1`:
-`Φ(u) = heatEWA u₀E + (−χ₀)•𝒟(Q(u)) + 𝒱(G(u))`, with `Q = chemFluxEWA`, `G = growthEWA`,
-`𝒟 = divDuhamelEWA` (the `C₀√T` divergence-Duhamel) and `𝒱 = valDuhamelEWA` (the `T`
-value-Duhamel).  The chemotactic and growth nonlinearities live at grade 1. -/
-def picardEWA (p : CM2Params) (μ ν γ : ℝ) (hμ : 0 < μ) (hT : 0 ≤ T)
-    (u₀E : WA 1) (u : EWA T 1) : EWA T 1 :=
-  heatEWA u₀E
-    + ((-p.χ₀ : ℝ) : ℂ) • divDuhamelEWA hT (chemFluxEWA μ ν p.β γ hμ u)
-    + valDuhamelEWA hT (growthEWA p.α p.a p.b u)
+/-- B-form Picard facts needed by the inf-threshold argument.  This package
+contains ball-derived source bounds and geometric convergence, but no positivity
+field for the map or the limit. -/
+structure ConjugatePicardInfThresholdData
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
+  K : ℝ
+  C₀ : ℝ
+  CQ : ℝ
+  CL : ℝ
+  hT : 0 < T
+  hK : K < 1
+  hK_nn : 0 ≤ K
+  hC₀ : 0 ≤ C₀
+  hCQ : 0 ≤ CQ
+  hCL : 0 ≤ CL
+  hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+    ∀ x : intervalDomainPoint,
+      |conjugatePicardIter p u₀ (n + 1) t x
+        - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+  hQ_int : ∀ n s,
+    Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
+      (intervalMeasure 1)
+  hQ_bound : ∀ n s y,
+    |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+  hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    IntervalIntegrable
+      (fun s : ℝ =>
+        intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
+      volume 0 t
+  hL_bound : ∀ n s y,
+    |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+  hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    IntervalIntegrable
+      (fun s : ℝ =>
+        intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1)
+      volume 0 t
 ```
 
-The fixed point theorem is:
+Fields already windowed:
 
 ```lean
-/-- **BRICKS 2–4 assembled (conditional on the carried self-map + Lipschitz data).**
-On the good ball `B = closedBall (heatEWA u₀E) ρ`, if
-
-* `hself` : `Φ` maps `B` into `B` (BRICK-2 positivity / floor preservation), and
-* `hLipQ` / `hLipG` : the BRICK-1 flux/growth Lipschitz bounds hold for every pair in `B`,
-* `hK` : the contraction constant `K = |χ₀|·C₀√T·L_Q + L_G·T < 1` (BRICK-3 small-time),
-* `hKnn` : `0 ≤ K`,
-
-then `Φ` has a fixed point in `B`:  `∃ u* ∈ B, u* = Φ(u*)`. -/
-theorem picardEWA_exists_fixedPoint {p : CM2Params} {μ ν γ ρ L_Q L_G : ℝ}
-    (hμ : 0 < μ) (hT : 0 ≤ T) (u₀E : WA 1) (hρ : 0 ≤ ρ)
-    (hself : MapsTo (picardEWA p μ ν γ hμ hT u₀E)
-      (Metric.closedBall (heatEWA u₀E) ρ) (Metric.closedBall (heatEWA u₀E) ρ))
-    (hLipQ : ∀ u ∈ Metric.closedBall (heatEWA (T := T) u₀E) ρ,
-      ∀ w ∈ Metric.closedBall (heatEWA (T := T) u₀E) ρ,
-      ‖chemFluxEWA μ ν p.β γ hμ u - chemFluxEWA μ ν p.β γ hμ w‖ ≤ L_Q * ‖u - w‖)
-    (hLipG : ∀ u ∈ Metric.closedBall (heatEWA (T := T) u₀E) ρ,
-      ∀ w ∈ Metric.closedBall (heatEWA (T := T) u₀E) ρ,
-      ‖growthEWA p.α p.a p.b u - growthEWA p.α p.a p.b w‖ ≤ L_G * ‖u - w‖)
-    (hKnn : (0 : ℝ) ≤ |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T)
-    (hK : |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T < 1) :
-    ∃ u_star ∈ Metric.closedBall (heatEWA (T := T) u₀E) ρ,
-      u_star = picardEWA p μ ν γ hμ hT u₀E u_star
+hgeom
+hB_int
+hL_int
 ```
 
-So yes: `picardEWA` is the Banach-contraction Picard operator in the EWA algebra; `u_star` is the abstract fixed point of that operator.
-
-### `embedEWA`
-
-`embedEWA` is a **function-to-EWA embedding**.  It takes a known real trajectory
+Fields that should be retyped:
 
 ```lean
-u : ℝ → intervalDomainPoint → ℝ
+hQ_int
+hQ_bound
+hL_bound
 ```
 
-and packages its per-time cosine coefficients into an element of `EWA T 1`.  It is not obtained from a fixed-point theorem; it is built directly from the function’s slice coefficients, with continuity and weighted-ℓ¹ envelope hypotheses.
-
-The definition is in `ShenWork/Wiener/EWA/EmbedEWA.lean`.
+Recommended windowed shape, matching the landed bank producers:
 
 ```lean
-import Mathlib
-import ShenWork.Wiener.EWA.CoeffBridge
-import ShenWork.Wiener.EWA.EvenRealClosure
-import ShenWork.Wiener.WeightedL1CosineAdapter
-import ShenWork.PDE.IntervalNeumannFullKernel
-import ShenWork.PDE.IntervalDomain
-import ShenWork.PDE.CosineSpectrum
+hQ_int : ∀ n s, 0 < s → s ≤ T →
+  Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
+    (intervalMeasure 1)
 
-open scoped BigOperators
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalNeumannFullKernel ShenWork.IntervalDomain
+hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+  |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
 
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- The underlying `ℝ → ℂ` per-mode coefficient
-`t ↦ ofCosineCoeffs (cosineCoeffs (intervalDomainLift (u t))) n`. -/
-def embedModeFun (u : ℝ → intervalDomainPoint → ℝ) (n : ℤ) (t : ℝ) : ℂ :=
-  ofCosineCoeffs (fun k => cosineCoeffs (intervalDomainLift (u t)) k) n
-
-/-- **The embed construction** `embedEWA u … : EWA T 1`, with `n`-th
-time-coefficient `t ↦ ofCosineCoeffs (cosineCoeffs (lift (u t))) n`. -/
-def embedEWA (u : ℝ → intervalDomainPoint → ℝ)
-    {Bv : ℕ → ℝ} (hBv : ∀ t k, |cosineCoeffs (intervalDomainLift (u t)) k| ≤ Bv k)
-    (hBvnn : ∀ k, 0 ≤ Bv k)
-    (hBvsum : Summable (fun k : ℕ => (1 + (k : ℝ)) * Bv k))
-    (hcont : ∀ n : ℤ, Continuous (embedModeFun u n)) : EWA T 1 :=
-  ⟨fun n => embedModeCT u n (hcont n), embedEWA_mem u hBv hBvnn hBvsum hcont⟩
+hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+  |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
 ```
 
-And it comes with the key realization theorem:
-
-```lean
-/-- **`embedEWA` realizes `u`.**  Given the committed Neumann cosine-series property
-of the solution slice (`hcos_series`: `lift (u t)` IS its cosine series on `[0,1]`),
-the space-time synthesis of `embedEWA u …` reproduces `lift (u τ.1) x` for every
-`τ` and `x ∈ [0,1]`. -/
-theorem embedEWA_realizes (u : ℝ → intervalDomainPoint → ℝ)
-    {Bv : ℕ → ℝ} (hBv : ∀ t k, |cosineCoeffs (intervalDomainLift (u t)) k| ≤ Bv k)
-    (hBvnn : ∀ k, 0 ≤ Bv k)
-    (hBvsum : Summable (fun k : ℕ => (1 + (k : ℝ)) * Bv k))
-    (hcont : ∀ n : ℤ, Continuous (embedModeFun u n))
-    (hsummable : ∀ t, Summable (fun k => |cosineCoeffs (intervalDomainLift (u t)) k|))
-    (hcos_series : ∀ t x, x ∈ Set.Icc (0:ℝ) 1 →
-      intervalDomainLift (u t) x
-        = ∑' k : ℕ, cosineCoeffs (intervalDomainLift (u t)) k * cosineMode k x)
-    (τ : TimeDom T) (x : ℝ) (hx : x ∈ Set.Icc (0:ℝ) 1) :
-    evalST τ (x : WA.Circ)
-        (GWA.incl (by omega : (0:ℕ) ≤ 1) (embedEWA u hBv hBvnn hBvsum hcont))
-      = (intervalDomainLift (u τ.1) x : ℂ)
-```
-
-So yes: `embedEWA` is a packaging/embedding construction for a known physical function, while `picardEWA` is the nonlinear EWA Picard operator whose fixed point is abstract until interpreted by `realSlice`.
+This order is intentional: it matches `IntervalBankInfAndLogSrcWiring` exactly.
 
 ---
 
-## (2) Does `h_u` fail for `picardEWA`?  What is the real issue?
+## The landed bank facts are windowed, not unconditional
 
-The atom is:
+`ShenWork/Paper2/IntervalBankInfAndLogSrcWiring.lean` explicitly says the fully landed facts are windowed and that the old producer demanded unconditional-in-`s` bounds that the bank cannot derive outside the active window.
 
-```lean
-h_u : ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
-  evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-    = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
-```
-
-For an arbitrary `u_star : EWA T 1`, the **real-valued** physical slice is defined by the real part of `evalST`:
+Relevant definitions/theorems:
 
 ```lean
-import ShenWork.Wiener.EWA.SourceStrongSolution
-import ShenWork.Wiener.EWA.SourceFixedPointAbs
-import ShenWork.Wiener.EWA.HeatFloor
-import ShenWork.Wiener.EWA.ChemDivEval
-import ShenWork.Wiener.EWA.FluxEvalBridge
-import ShenWork.Wiener.EWA.GrowthEvalBridge
+/-- **Windowed chemotaxis-flux sup bound over the iterates** (`hQ_bound` on the
+window `(0, D.T]`). -/
+theorem iterChemFlux_windowBound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
+    ∀ s, 0 < s → s ≤ D.T → ∀ y,
+      |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ iterCQ D
 
-open scoped BigOperators
-open ShenWork.GWA ShenWork.Wiener
-open ShenWork.IntervalDuhamelClosedC2 (duhamelSpectralCoeff DuhamelSourceTimeC1)
-open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemDivSourceCoeffs coupledChemDivSourceLift coupledLogisticSourceCoeffs)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.PDE (intervalNeumannResolverCoeff)
-open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
-open ShenWork.CosineSpectrum (cosineMode)
+/-- **Windowed logistic sup bound over the iterates** (`hL_bound` on the
+window `(0, D.T]`). -/
+theorem iterLogistic_windowBound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
+    ∀ s, 0 < s → s ≤ D.T → ∀ y,
+      |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ iterCL D
 
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- **The realized real-space slice of an `EWA T 1` element.** -/
-def realSlice (u_star : EWA T 1) : ℝ → intervalDomainPoint → ℝ :=
-  fun t x =>
-    if h : t ∈ Set.Icc (0 : ℝ) T then
-      (evalST (⟨t, h⟩ : TimeDom T) ((x.1 : ℝ) : WA.Circ)
-        (GWA.incl (by omega : (0:ℕ) ≤ 1) u_star)).re
-    else 0
+/-- **`hQ_int`: per-slice spatial integrability of the chemotaxis flux over the
+iterates** (windowed). -/
+theorem iterChemFlux_integrable
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildExistenceData p u₀) (n : ℕ) :
+    ∀ s, 0 < s → s ≤ D.T →
+      Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) (intervalMeasure 1)
 ```
 
-This means `h_u` is **almost definitional**, but not entirely: it is a complex equality
-
-```lean
-evalST ... = (real number : ℂ)
-```
-
-and `realSlice` only stores the **real part**.  Therefore we also need the imaginary part of the evaluation to vanish.
-
-The current repo proves exactly this:
-
-```lean
-import ShenWork.Wiener.EWA.SourceFluxNbhdDischarge
-import ShenWork.Wiener.EWA.SourceFixedPointParity
-
-open scoped BigOperators
-open Set Metric
-open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
-open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
-open ShenWork.PDE
-  (intervalNeumannResolverR intervalNeumannResolverCoeff
-    intervalNeumannResolverSourceCoeff)
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-
-noncomputable section
-
-namespace ShenWork.EWA
-
-variable {T : ℝ}
-
-/-- **The base realization for `realSlice`.**  For ANY `u_star : EWA T 1` the
-Wiener point-evaluation of `incl u_star` realizes the lift of its own real slice
-on `[0,1]`, PROVIDED `evalST` is real there (`(evalST …).im = 0`). -/
-theorem realSlice_evalST_realizes (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1)
-    (hreal : (evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0) :
-    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-      = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
-
-/-- Full-circle reality of `evalST (incl u_star)` from `EvenRealEWA u_star`. -/
-theorem evalST_incl_im_zero_of_evenReal {u_star : EWA T 1}
-    (hER : EvenRealEWA u_star) (τ : TimeDom T) (y : WA.Circ) :
-    (evalST τ y (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0
-```
-
-And for a Picard fixed point, the repo proves `EvenRealEWA u_star` from the contraction/fixed-point data:
-
-```lean
-/-- **THE DISCHARGE — `EvenRealEWA u_star`.** ... -/
-theorem picardEWA_evenReal_fixedPoint (p : CM2Params) {μ ν γ ρ L_Q L_G : ℝ}
-    (hμ : 0 < μ) (hT : (0 : ℝ) ≤ T) (u₀cos : ℕ → ℝ) (hmem : MemW 1 (ofCosineCoeffs u₀cos))
-    (hρ : 0 ≤ ρ)
-    (hself : MapsTo (picardEWA p μ ν γ hμ hT (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1))
-      (Metric.closedBall (heatEWA (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ)
-      (Metric.closedBall (heatEWA (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ))
-    (hLipQ : ∀ a ∈ Metric.closedBall (heatEWA (T := T)
-        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ,
-      ∀ b ∈ Metric.closedBall (heatEWA (T := T)
-        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ,
-      ‖chemFluxEWA μ ν p.β γ hμ a - chemFluxEWA μ ν p.β γ hμ b‖ ≤ L_Q * ‖a - b‖)
-    (hLipG : ∀ a ∈ Metric.closedBall (heatEWA (T := T)
-        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ,
-      ∀ b ∈ Metric.closedBall (heatEWA (T := T)
-        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ,
-      ‖growthEWA p.α p.a p.b a - growthEWA p.α p.a p.b b‖ ≤ L_G * ‖a - b‖)
-    (hKnn : (0 : ℝ) ≤ |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T)
-    (hK : |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T < 1)
-    (u_star : EWA T 1)
-    (hmem_star : u_star ∈ Metric.closedBall (heatEWA (T := T)
-      (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ)
-    (hfix : u_star = picardEWA p μ ν γ hμ hT (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1) u_star) :
-    EvenRealEWA u_star
-```
-
-So the current answer to “why doesn’t `h_u` hold for `picardEWA`?” is:
-
-```text
-It DOES hold in the current repo, provided the fixed point's even-real parity is supplied/proved.
-The old issue was that a bare abstract EWA fixed point does not automatically expose a physical lift
-unless you define `realSlice` and prove the evaluation is real.  That is now done.
-```
-
-The slab theorem is:
-
-```lean
-/-- **`h_u` slab — DISCHARGED.** -/
-theorem realSlice_h_u_slab {u_star : EWA T 1} (hER : EvenRealEWA u_star) :
-    ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-        = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
-```
+So if the aim is to use the banked facts, the structure really should not require unconditional `∀ s` bounds.
 
 ---
 
-## (3) What would a `picardEWA → embedEWA` bridge look like?
+## Producer: close, but not literally unchanged
 
-A literal bridge would be something like:
-
-```lean
-theorem picardEWA_eq_embed_realSlice
-    (p : CM2Params) ...
-    (u_star : EWA T 1)
-    (hfix : u_star = picardEWA p p.μ p.ν p.γ p.hμ hT u₀E u_star)
-    (hER : EvenRealEWA u_star)
-    -- continuity/envelope/summability needed to construct embedEWA (realSlice u_star)
-    {Bv : ℕ → ℝ}
-    (hBv : ∀ t k, |cosineCoeffs (intervalDomainLift (realSlice u_star t)) k| ≤ Bv k)
-    (hBvnn : ∀ k, 0 ≤ Bv k)
-    (hBvsum : Summable (fun k : ℕ => (1 + (k : ℝ)) * Bv k))
-    (hcont : ∀ n : ℤ, Continuous (embedModeFun (realSlice u_star) n)) :
-    u_star = embedEWA (realSlice u_star) hBv hBvnn hBvsum hcont
-```
-
-But this is stronger than what the three evalST atoms require.  It is an equality of EWA coefficient objects, not merely equality of their values on `[0,1]`.
-
-The actual proof would likely proceed by extensionality on EWA coefficients.  A more useful intermediate theorem would be a coefficient-extractor statement:
+Current producer in `IntervalConjugatePicardInfThresholdDischarge.lean` takes unconditional bounds and assigns them directly:
 
 ```lean
-∀ τ k,
-  ewaCosCoeffAt (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star) τ k
-    = cosineCoeffs (intervalDomainLift (realSlice u_star τ.1)) k
-```
-
-For even-real EWA elements, the repo already has exactly the kind of non-circular bridge needed to get such coefficient identities from an `evalST` identity:
-
-```lean
-ewaCosCoeffAt_eq_cosineCoeffs_of_even_real
-slice_eq_ofCosineCoeffs_of_even_real
-```
-
-These are used repeatedly in `SourceRealizesRecords.lean` and `FluxRealizeEmbed.lean`.
-
-However, a full equality
-
-```lean
-u_star = embedEWA (realSlice u_star) ...
-```
-
-also needs all the data needed to construct the RHS `embedEWA`, namely the uniform A¹ envelope and time-continuity of embedded coefficients.  Those are not automatic from an arbitrary `EWA T 1` fixed point unless one proves them separately.
-
-So yes, conceptually the bridge would say:
-
-```text
-The Picard fixed point is the EWA embedding of its own physical realization.
-```
-
-But it is best viewed as a **coefficient uniqueness / characterization theorem**, and it is stronger than necessary.  The current tree avoids it by proving the evalST atoms directly for `realSlice u_star`.
-
----
-
-## (4) Is there a simpler route by induction on Picard iterates?
-
-Conceptually yes, but it is not the route the current tree uses, and it would likely be heavier.
-
-The induction route would look like:
-
-```text
-1. Define Picard iterates U₀ = heatEWA u₀E, Uₙ₊₁ = picardEWA ... Uₙ.
-2. Prove h_u / h_uα / h_flux_nbhd for every Uₙ.
-3. Prove Uₙ → u_star in EWA norm via contraction.
-4. Prove evalST is continuous enough to pass the atoms to the limit.
-```
-
-This is plausible because `evalST` is continuous on Wiener algebras and because the parity proof already uses a version of “iterate then pass to the closed limit.”  In fact, `picardEWA_evenReal_fixedPoint` proves even-real parity by showing each Banach iterate is even-real and then using closedness of `EvenRealEWA`.
-
-But for the three evalST atoms, the current repo has an even simpler route:
-
-1. Define the physical realization by `realSlice`.
-2. Prove `evalST(incl u_star)` is real from `EvenRealEWA u_star`.
-3. Then `h_u` follows by unfolding `realSlice`.
-4. Prove `h_uα` from `realPowEWA_eval`, the uniform floor, and `h_u`.
-5. Prove `h_flux_nbhd` using the abstract theorem `flux_nbhd_of_realized`, not the embed specialization.
-
-The core direct producers are:
-
-```lean
-/-- **The base realization for `realSlice`.** -/
-theorem realSlice_evalST_realizes (u_star : EWA T 1) (τ : TimeDom T) (x : ℝ)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1)
-    (hreal : (evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)).im = 0) :
-    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-      = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
-
-/-- **`h_uα` PRODUCED for the fixed point.** -/
-theorem realSlice_realPow_realizes (p : CM2Params) (u_star : EWA T 1)
-    {δ : ℝ} (hδpos : 0 < δ) (hER : EvenRealEWA u_star)
-    (hfloor : UniformFloor u_star δ) (hα : 0 ≤ p.α)
-    (τ : TimeDom T) (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) (realPowEWA u_star p.α))
-      = ((intervalDomainLift (realSlice u_star τ.1) x ^ p.α : ℝ) : ℂ)
-
-/-- **`h_flux_nbhd` PRODUCED for the fixed point.** -/
-theorem realSlice_flux_realizes (p : CM2Params) (u_star : EWA T 1)
-    {δ : ℝ} (hδpos : 0 < δ) (hβpos : 0 < p.β) (hER : EvenRealEWA u_star)
-    (hfloor : UniformFloor u_star δ)
-    (τ : TimeDom T) (x : ℝ) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
-    (hsum : ∀ σ : TimeDom T, ResolverSourceSummable p (realSlice u_star σ.1))
-    (hgrad : Summable fun k : ℕ =>
-      |(intervalNeumannResolverCoeff p (realSlice u_star τ.1) k).re| * ((k : ℝ) * Real.pi))
-    (hμle1 : p.μ ≤ 1)
-    (f : ℝ → ℝ → ℝ) (hf_cont : ∀ σ : TimeDom T, Continuous (f σ.1))
-    (hf_nonneg : ∀ (σ : TimeDom T) (y : ℝ), 0 ≤ f σ.1 y)
-    (hf_coeff : ∀ (σ : TimeDom T) (k : ℕ),
-      cosineCoeffs (f σ.1) k = (intervalNeumannResolverSourceCoeff p (realSlice u_star σ.1) k).re)
-    (hâ : ∀ σ : TimeDom T, Summable (fun k => (cosineCoeffs (f σ.1) k) ^ 2)) :
-    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1)
-        (chemFluxEWA p.μ p.ν p.β p.γ p.hμ u_star))
-      = ((chemFluxLifted p (realSlice u_star τ.1) x : ℝ) : ℂ)
-```
-
-And the slab packaging is:
-
-```lean
-/-- **`h_u` slab — DISCHARGED.** -/
-theorem realSlice_h_u_slab {u_star : EWA T 1} (hER : EvenRealEWA u_star) :
-    ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
-        = (intervalDomainLift (realSlice u_star τ.1) x : ℂ)
-
-/-- **`h_uα` slab — DISCHARGED.** -/
-theorem realSlice_h_uα_slab (p : CM2Params) {u_star : EWA T 1} {δ : ℝ}
-    (hδpos : 0 < δ) (hER : EvenRealEWA u_star) (hfloor : UniformFloor u_star δ)
-    (hα : 0 ≤ p.α) :
-    ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) (realPowEWA u_star p.α))
-        = ((intervalDomainLift (realSlice u_star τ.1) x ^ p.α : ℝ) : ℂ)
-
-/-- **`h_flux_nbhd` slab — DISCHARGED.** -/
-theorem realSlice_h_flux_slab (p : CM2Params) {u_star : EWA T 1} {δ : ℝ}
-    (hδpos : 0 < δ) (hβpos : 0 < p.β) (hER : EvenRealEWA u_star)
-    (hfloor : UniformFloor u_star δ)
-    (hsum : ∀ σ : TimeDom T, ResolverSourceSummable p (realSlice u_star σ.1))
-    (hgrad : ∀ (τ : TimeDom T),
-      Summable fun k : ℕ =>
-        |(intervalNeumannResolverCoeff p (realSlice u_star τ.1) k).re| * ((k : ℝ) * Real.pi))
-    (hμle1 : p.μ ≤ 1)
-    (f : ℝ → ℝ → ℝ) (hf_cont : ∀ σ : TimeDom T, Continuous (f σ.1))
-    (hf_nonneg : ∀ (σ : TimeDom T) (y : ℝ), 0 ≤ f σ.1 y)
-    (hf_coeff : ∀ (σ : TimeDom T) (k : ℕ),
-      cosineCoeffs (f σ.1) k = (intervalNeumannResolverSourceCoeff p (realSlice u_star σ.1) k).re)
-    (hâ : ∀ σ : TimeDom T, Summable (fun k => (cosineCoeffs (f σ.1) k) ^ 2)) :
-    ∀ (τ : TimeDom T), ∀ y ∈ Set.Ioo (0 : ℝ) 1,
-      evalST τ (y : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1)
-        (chemFluxEWA p.μ p.ν p.β p.γ p.hμ u_star))
-        = ((chemFluxLifted p (realSlice u_star τ.1) y : ℝ) : ℂ)
-```
-
-Finally, the direct consumer that no longer carries these three hard atoms is:
-
-```lean
-/-- **The χ₀<0 `realizes` slab — three hard-core evalST atoms DISCHARGED.** -/
-theorem realizes_evalST_discharged (p : CM2Params) (u₀cos : ℕ → ℝ)
-    (hsumc : Summable (fun k => |u₀cos k|)) (hmem : MemW 1 (ofCosineCoeffs u₀cos))
-    (hT : (0 : ℝ) ≤ T)
-    {ρ L_Q L_G δ : ℝ} (hδpos : 0 < δ) (u_star : EWA T 1)
-    (hfix : u_star = picardEWA p p.μ p.ν p.γ p.hμ hT
-      (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1) u_star)
+def conjugatePicardInfThresholdData_of_picard_bounds
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildExistenceData p u₀)
+    (CQ CL : ℝ) (hCQ : 0 ≤ CQ) (hCL : 0 ≤ CL)
+    (hQ_int : ∀ n s,
+      Integrable
+        (ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
+          (conjugatePicardIter p u₀ n s))
+        (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hQ_bound : ∀ n s y,
+      |ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
+          (conjugatePicardIter p u₀ n s) y| ≤ CQ)
     ...
-    (t : ℝ) (htlo : 0 < t) (hthi : t ≤ T) :
-    ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      intervalDomainLift (realSlice u_star t) x
-        = ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n * cosineMode n x
+    (hL_bound : ∀ n s y,
+      |ShenWork.IntervalGradientDuhamelMap.logisticLifted p
+          (conjugatePicardIter p u₀ n s) y| ≤ CL)
+    ... :
+    ConjugatePicardInfThresholdData p u₀ D.T := by
+  ...
+  exact
+    { K := D.K
+      C₀ := D.C₀
+      CQ := CQ
+      CL := CL
+      ...
+      hQ_int := hQ_int
+      hQ_bound := hQ_bound
+      hB_int := hB_int
+      hL_bound := hL_bound
+      hL_int := hL_int }
 ```
 
-The proof derives `EvenRealEWA u_star`, builds `h_u`, `h_uα`, and `h_flux` internally, then calls `realizes_clean`.
+If the structure fields become windowed but the producer still accepts unconditional inputs, the field assignments must be eta-expanded:
+
+```lean
+hQ_int := fun n s _hs _hsT => hQ_int n s
+hQ_bound := fun n s _hs _hsT y => hQ_bound n s y
+hL_bound := fun n s _hs _hsT y => hL_bound n s y
+```
+
+So the producer is not literally unchanged.  It is a tiny proof-term change.
+
+If the real producer source is `IntervalBankInfAndLogSrcWiring`, it is even cleaner to change the producer signature to accept windowed inputs:
+
+```lean
+(hQ_int : ∀ n s, 0 < s → s ≤ D.T → Integrable ...)
+(hQ_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CQ)
+(hL_bound : ∀ n s, 0 < s → s ≤ D.T → ∀ y, |...| ≤ CL)
+```
+
+then the record fields can be filled directly from:
+
+```lean
+fun n => iterChemFlux_integrable D n
+fun n => iterChemFlux_windowBound D n
+fun n => iterLogistic_windowBound D n
+```
+
+Either way, this is not an analytic problem.
 
 ---
 
-## Existing partial/full bridge work: theorem inventory
+## Consumers: they will not compile “as-is”
 
-### Embed route
+The representative consumer is `intervalConjugateDuhamelMap_ge_half_floor` in `IntervalConjugatePicardInfThreshold.lean`.
 
-```lean
-embedEWA
-embedEWA_evenReal
-embedEWA_realizes
-flux_nbhd_of_embed
-flux_nbhd_of_embed_discharged
-```
-
-Meaning: works when the EWA element is literally built by embedding a known function’s cosine coefficients.
-
-### Abstract/no-embed route
+Current chemotaxis part:
 
 ```lean
-flux_nbhd_of_realized
-resolver_value_of_slice
-slice_smul_realPow_eq_source
+have hB_abs : |B| ≤
+    heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * H.CQ := by
+  simpa [B] using
+    ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
+      ht htT (fun s _ _ => H.hQ_int n s) H.hCQ
+      (fun s _ _ => H.hQ_bound n s) x.1 (H.hB_int n t ht htT x)
 ```
 
-Meaning: `flux_nbhd_of_realized` already abstracts away from `embedEWA`; it only needs the base realization `h_u` and the source/resolver sub-atoms.  This is the key reason the no-embed route works.
-
-### Picard fixed-point parity / reality
+Notice that `conjugateDuhamel_sup_bound` itself already has a **windowed API**:
 
 ```lean
-picardEWA_evenReal
-isClosed_evenReal
-picardEWA_evenReal_fixedPoint
-evalST_incl_im_zero_of_evenReal
+theorem conjugateDuhamel_sup_bound
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {q : ℝ → ℝ → ℝ}
+    (hq_int : ∀ s, 0 < s → s ≤ T → Integrable (q s) (intervalMeasure 1))
+    {Cq : ℝ} (hCq : 0 ≤ Cq)
+    (hq_sup : ∀ s, 0 < s → s ≤ T → ∀ y, |q s y| ≤ Cq) (x : ℝ)
+    ...
 ```
 
-Meaning: the Picard fixed point is even-real, hence its `evalST` values are real casts.
-
-### Direct Picard/realSlice atom producers
+So after weakening the fields, this call should become:
 
 ```lean
-realSlice_evalST_realizes
-realSlice_realPow_realizes
-realSlice_flux_realizes
+ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
+  ht htT
+  (fun s hs hsT => H.hQ_int n s hs hsT)
+  H.hCQ
+  (fun s hs hsT => H.hQ_bound n s hs hsT)
+  x.1
+  (H.hB_int n t ht htT x)
 ```
 
-Meaning: pointwise `h_u`, `h_uα`, and `h_flux_nbhd` for abstract `u_star`, without an embed equality.
-
-### Slab packagers and final discharge
+Lean will not infer those proof arguments from the old
 
 ```lean
-realSlice_h_u_slab
-realSlice_h_uα_slab
-realSlice_h_flux_slab
-realizes_evalST_discharged
+fun s _ _ => H.hQ_int n s
 ```
 
-Meaning: the exact slab-shaped hypotheses consumed by `realizes_clean` are now produced internally.
+because, after the field retype, `H.hQ_int n s` is a function waiting for proofs, not an `Integrable ...` term.
+
+Current logistic part:
+
+```lean
+have hR_abs : |R| ≤ T * H.CL := by
+  simpa [R] using
+    ShenWork.IntervalGradDuhamelBound.valueDuhamel_sup_bound
+      ht htT H.hCL (H.hL_bound n) x.1 (H.hL_int n t ht htT x)
+```
+
+This one is more important: `valueDuhamel_sup_bound` currently expects an unconditional source bound:
+
+```lean
+theorem valueDuhamel_sup_bound
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {r : ℝ → ℝ → ℝ}
+    {Cr : ℝ} (hCr : 0 ≤ Cr) (hr_sup : ∀ s y, |r s y| ≤ Cr) (x : ℝ)
+    (hr_int : IntervalIntegrable ...)
+```
+
+So after weakening `H.hL_bound`, this call cannot be fixed by merely adding hidden proof arguments to the same theorem.  You need one of:
+
+1. a small windowed version of `valueDuhamel_sup_bound`, analogous to `conjugateDuhamel_sup_bound`, excluding both endpoints `s = 0` and `s = t` as null sets; or
+2. a cutoff-source proof, like `IntervalConjugateBallSupBound.valueDuhamel_sup_bound_of_ball`, but without requiring data not stored in `ConjugatePicardInfThresholdData`; or
+3. keep a separate unconditional logistic field, which defeats the purpose if only windowed facts are available.
+
+A useful local theorem would have the shape:
+
+```lean
+theorem valueDuhamel_sup_bound_window
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {r : ℝ → ℝ → ℝ}
+    {Cr : ℝ} (hCr : 0 ≤ Cr)
+    (hr_sup : ∀ s, 0 < s → s ≤ T → ∀ y, |r s y| ≤ Cr) (x : ℝ)
+    (hr_int : IntervalIntegrable
+      (fun s : ℝ => intervalFullSemigroupOperator (t - s) (r s) x) volume 0 t) :
+    |∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s) (r s) x| ≤ T * Cr
+```
+
+Its proof is almost the same as `valueDuhamel_sup_bound`, with both `{0}` and `{t}` removed as null sets, or via a cutoff source.
+
+Then the consumer becomes:
+
+```lean
+ShenWork.IntervalGradDuhamelBound.valueDuhamel_sup_bound_window
+  ht htT H.hCL
+  (fun s hs hsT => H.hL_bound n s hs hsT)
+  x.1
+  (H.hL_int n t ht htT x)
+```
 
 ---
 
-## Bottom line
+## Does this “touch 12 files”?
 
-Answers to the four questions:
+It may still touch many files, depending on how many constructors/projections appear outside the core file.  But it is not 12 files of analytic redesign.  It is mostly mechanical API fallout:
 
-1. **Yes, with a nuance:** `picardEWA` is the EWA Picard **operator**; a fixed point is `u_star = picardEWA ... u_star`.  `embedEWA` is a known-function embedding into EWA via time-dependent cosine coefficients.
+1. Change the three structure fields.
+2. Adjust `conjugatePicardInfThresholdData_of_picard_bounds` either by eta-expanding unconditional inputs or by changing its signature to windowed inputs.
+3. Patch direct uses of `H.hQ_int`, `H.hQ_bound`, `H.hL_bound` to pass window hypotheses.
+4. Add or use a windowed value-Duhamel bound for the logistic leg.
+5. Patch record literals that assign these fields directly.
 
-2. **It actually does hold now.**  For arbitrary `u_star`, `h_u` needs eval-reality because `realSlice` stores only the real part.  For a Picard fixed point, `picardEWA_evenReal_fixedPoint` gives `EvenRealEWA`, `evalST_incl_im_zero_of_evenReal` gives reality, and `realSlice_evalST_realizes` gives `h_u`.
+So: **the proposed weakening is the right simplification**, but **not zero-touch**.
 
-3. **A literal bridge would be** `u_star = embedEWA (realSlice u_star) ...`, but that is stronger than needed and would require coefficient extensionality plus the envelope/continuity data needed to construct the RHS.  A coefficient characterization theorem would be the more surgical version.
+---
 
-4. **Induction on Picard iterates is conceptually possible but not needed.**  The current tree has a simpler direct route through `realSlice`, even-real parity, `realPowEWA_eval`, and `flux_nbhd_of_realized`.  There is no need to prove `picardEWA = embedEWA (realSlice picardEWA)` just to discharge the three evalST atoms.
+## Answer to the exact question
+
+> “If we weaken the structure fields to windowed bounds, the producer can still fill them from unconditional bounds, and consumers compile as-is. Is this correct?”
+
+Half-correct:
+
+```text
+Correct: unconditional ⟹ windowed, so the old producer can still fill weakened fields.
+Incorrect: the producer and consumers do not compile literally as-is.
+```
+
+The producer needs eta-expansion or a windowed signature.  Consumers using projections must pass the new proof arguments.  The chemotaxis consumer is easy because `conjugateDuhamel_sup_bound` already has a windowed API.  The logistic consumer needs a windowed/cutoff value-Duhamel lemma or a proof rewrite, because the currently called `valueDuhamel_sup_bound` expects an unconditional `∀ s y` bound.
+
+> “Or do the consumers pattern-match on the EXACT field type and break?”
+
+They mostly do not “pattern-match” in the semantic sense, but yes, they break for the same practical reason: Lean projection applications are exact.  A field retype changes the type of every `H.hQ_int`, `H.hQ_bound`, and `H.hL_bound` occurrence.  Old code such as
+
+```lean
+H.hQ_int n s
+H.hQ_bound n s
+H.hL_bound n
+```
+
+will no longer elaborate unless it is rewritten to feed the window hypotheses or routed through a localized bound theorem.
+
+---
+
+## Recommended minimal patch shape
+
+```lean
+-- In ConjugatePicardInfThresholdData:
+hQ_int : ∀ n s, 0 < s → s ≤ T →
+  Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s)) (intervalMeasure 1)
+
+hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+  |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+
+hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+  |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+```
+
+Then update the old unconditional producer with wrappers if keeping its old signature:
+
+```lean
+hQ_int := fun n s _hs _hsT => hQ_int n s
+hQ_bound := fun n s _hs _hsT y => hQ_bound n s y
+hL_bound := fun n s _hs _hsT y => hL_bound n s y
+```
+
+or change the producer signature to take windowed facts and assign them directly.
+
+Finally, patch the inf-threshold proof:
+
+```lean
+-- chem leg
+ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
+  ht htT
+  (fun s hs hsT => H.hQ_int n s hs hsT)
+  H.hCQ
+  (fun s hs hsT => H.hQ_bound n s hs hsT)
+  x.1
+  (H.hB_int n t ht htT x)
+
+-- logistic leg: use/add a windowed value-Duhamel bound
+valueDuhamel_sup_bound_window
+  ht htT H.hCL
+  (fun s hs hsT => H.hL_bound n s hs hsT)
+  x.1
+  (H.hL_int n t ht htT x)
+```
+
+That is the simple fix: weaken the ledger to the actual domain of use, but budget for mechanical projection updates and one localized logistic bound lemma.
