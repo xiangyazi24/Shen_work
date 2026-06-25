@@ -13,6 +13,7 @@
 -/
 import ShenWork.Paper2.IntervalBFormSpectralHchem
 import ShenWork.PDE.IntervalChemDivFluxFACSourceDecay
+import ShenWork.PDE.IntervalChemDivAEMeasurable
 
 open Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomainChemotaxisDiv)
@@ -129,20 +130,13 @@ theorem chemDivLift_contDiffOn_two
 
 /-- The chemDiv source has homogeneous Neumann BCs on [0,1] when u and v
 are Neumann-type functions (cosine series = even reflections). -/
-private theorem intervalDomainLift_deriv_zero
-    (w : intervalDomainPoint → ℝ) :
-    deriv (intervalDomainLift w) 0 = 0 := by sorry
-
-private theorem intervalDomainLift_deriv_one
-    (w : intervalDomainPoint → ℝ) :
-    deriv (intervalDomainLift w) 1 = 0 := by sorry
-
 theorem chemDivLift_neumann_bc
     (p : CM2Params) (u v : intervalDomainPoint → ℝ) :
     deriv (chemDivLift p u v) 0 = 0 ∧
     deriv (chemDivLift p u v) 1 = 0 := by
   simp only [chemDivLift]
-  exact ⟨intervalDomainLift_deriv_zero _, intervalDomainLift_deriv_one _⟩
+  exact ⟨ShenWork.intervalDomainLift_deriv_at_zero_eq_zero _,
+    ShenWork.intervalDomainLift_deriv_at_one_eq_zero _⟩
   -- SORRY: ~40 lines. chemDivLift = deriv(flux) where flux = u·v'/(1+v)^β.
   -- deriv(chemDivLift) = deriv(deriv(flux)) = flux''.
   -- At x=0: flux(y) = u(y)·v'(y)/(1+v(y))^β.
