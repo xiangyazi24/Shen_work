@@ -1,405 +1,432 @@
-# Q489 (cron2): is `deriv (deriv (chemFluxFun ...)) 0 = 0` true for cosine heat/resolver profiles?
+# Q527 (cron2): chemDiv `adot` infrastructure for heat semigroup level 0
 
 ## Executive verdict
 
-For **smooth global cosine-series representatives** `U,V : ℝ → ℝ`, the statement is TRUE:
+The repo already has the coefficient derivative theorem you need.  For the heat semigroup target on `[c,T]`, the derivative and continuity legs should be filled with the canonical
 
 ```lean
-deriv (deriv (chemFluxFun β U V)) 0 = 0
+adot := coupledChemDivAdot p (conjugatePicardIter p u₀ 0)
 ```
 
-provided `U` and `V` are even about `0`, `V` is smooth enough, and the denominator is positive. The reason is exactly the parity argument:
+and then:
 
-```text
-U even,
-V even,
-V' odd,
-(1+V)^β even,
-φ := U * V' / (1+V)^β odd,
-φ' even,
-φ'' odd,
-φ''(0) = 0.
-```
+1. `h_deriv` comes from `CoupledChemDivLocalChainRule` via the committed `HasDerivAt` theorem and `.hasDerivWithinAt`.
+2. `h_adotcont` comes from joint continuity of `coupledChemDivTimeDerivativeLift` on `[c,T] × [0,1]` plus `cosineCoeffs_continuousOn_of_jointContinuousOn_Icc`.
+3. `Mdot` is not produced by smoothness/continuity.  It requires a uniform summable envelope or a quadratic-decay/H² bound for the time-derivative field.
 
-Your later worry that `φ''(0)` might be generically nonzero is correct for **general non-even Neumann data**, but not for genuine cosine-series/even-reflection data. A quick Taylor expansion confirms this:
+Important branch note: `ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean` is present in the current indexed/default branch, but `fetch_file(..., ref="chatgpt-scratch")` returned 404 for that path.  If the active implementation branch is `chatgpt-scratch`, either port that file or copy/generalize its proofs locally.
 
-```text
-U(x) = U₀ + U₂ x²/2 + O(x⁴)
-V(x) = V₀ + V₂ x²/2 + V₄ x⁴/24 + O(x⁶)
-V'(x) = V₂ x + V₄ x³/6 + O(x⁵)
-(1+V(x))^{-β} = Q₀ + Q₂ x²/2 + O(x⁴)
-φ(x) = U(x) V'(x) (1+V(x))^{-β}
-     = (U₀ V₂ Q₀) x + O(x³).
-```
+## Target sorry location
 
-There is no `x²` term, so `φ''(0)=0`. `φ'(0)=U₀ V₂/(1+V₀)^β` can be nonzero; that is not a contradiction. The second derivative still vanishes because `φ` is odd.
+The target theorem is in:
 
-The major Lean caution is that this is a theorem about the **global cosine representatives**, not about the zero-extension functions `intervalDomainLift u` and `intervalDomainLift v` unless those lifts literally are the global cosine representatives. For ordinary positive heat/resolver slices, `intervalDomainLift u` is zero outside `[0,1]`, hence it is not the global cosine series and is not even/smooth across `0`. The repo already distinguishes these two routes:
-
-* `chemDivLift_neumann_bc` for `chemDivLift = intervalDomainLift (...)` is now discharged by zero-extension endpoint derivative lemmas. This proves only the two-sided Mathlib endpoint derivative/junk value.
-* The real weak-H² one-sided Neumann limits for the chem-div source should be proved by comparing `chemDivLift` on the interior with a **smooth global cosine representative** `F = deriv (chemFluxFun β Ucos Vcos)`, then using parity to show `deriv F 0 = 0` and continuity to get the one-sided limit.
-
-So the clean Lean approach is:
-
-```text
-Do NOT try to prove parity for `intervalDomainLift u`.
-Define/use global cosine representatives `Ucos`, `Vcos`.
-Prove `Even Ucos` and `Even Vcos` by `tsum_congr` + `cos_neg`.
-Prove a reusable parity lemma for `chemFluxFun`.
-Use it to show `deriv (deriv (chemFluxFun β Ucos Vcos)) 0 = 0`.
-Transfer to `chemDivLift` only on `Ioo/Icc` by equality with the global representative, and use zero-extension only for the endpoint point-derivative conjuncts.
-```
-
-## What the repo currently has
-
-`IntervalChemDivSpatialC2.lean` defines:
+`ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean:335`
 
 ```lean
-/-- The chemotaxis flux function whose spatial derivative is the chemDiv source.
-`φ(y) = lift(u)(y) · deriv(lift(v))(y) / (1 + lift(v)(y))^β` -/
-def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
-  u y * deriv v y / (1 + v y) ^ β
+theorem level0_chemDiv_timeDerivData
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    {c T M M₀ : ℝ} (hc : 0 < c) (_hcT : c ≤ T)
+    (_hu₀_cont : Continuous u₀)
+    (_hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
+    (_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
+    (_hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
+    ∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
+      (∀ s ∈ Icc c T, ∀ n,
+        HasDerivWithinAt
+          (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
+          (adot s n) (Icc c T) s) ∧
+      (∀ n, ContinuousOn (fun s => adot s n) (Icc c T)) ∧
+      (∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot)
 ```
 
-It also has global smoothness lemmas:
+Inside it, the current skeleton already has the right structure:
+
+- `hchain : CoupledChemDivLocalChainRule p (conjugatePicardIter p u₀ 0)` at `IntervalConjugateLevel0BFormSourceOn.lean:359`, currently sorry at line `361`.
+- `hjointcont : ContinuousOn (Function.uncurry (coupledChemDivTimeDerivativeLift p ...)) (Icc c T ×ˢ Icc 0 1)` at line `372`, currently sorry at line `376`.
+- `hderiv_global` is then derived at line `384`; `hderiv` on `[c,T]` at line `399` uses `.hasDerivWithinAt`.
+- `hadotcont` is derived at line `406` using `cosineCoeffs_continuousOn_of_jointContinuousOn_Icc`.
+- the remaining true residual is `hMdot` at line `422`, currently sorry at line `423`.
+
+## 1. `HasDerivAt` / `HasDerivWithinAt` theorems for `coupledChemDivSourceCoeffs`
+
+### Candidate derivative definition
+
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:45`
 
 ```lean
-theorem chemFlux_contDiff_three
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
-    (hβnn : 0 ≤ β) :
-    ContDiff ℝ 3 (chemFluxFun β u v)
-
-theorem chemFluxDeriv_contDiff_two
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u) (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) (hβnn : 0 ≤ β) :
-    ContDiff ℝ 2 (deriv (chemFluxFun β u v))
+def coupledChemDivAdot (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) (n : ℕ) : ℝ :=
+  cosineCoeffs (coupledChemDivTimeDerivativeLift p u s) n
 ```
 
-and an agreement lemma for the interval source:
+### Original full-field `HasDerivAt` theorem
+
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:114`
 
 ```lean
-theorem chemDivLift_contDiffOn_two_of_global
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu : ContDiff ℝ 4 (intervalDomainLift u))
-    (hv : ContDiff ℝ 4 (intervalDomainLift v))
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
-    ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1)
+theorem coupledChemDivCoeff_hasDerivAt_of_fields
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (F : CoupledChemDivTimeC1Fields p u) (s : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+      (coupledChemDivAdot p u s n) s
 ```
 
-But note the issue: for positive heat/resolver slices, the hypotheses
+Hypotheses hidden inside `F : CoupledChemDivTimeC1Fields p u` are at `IntervalChemDivTimeDerivative.lean:96`:
 
 ```lean
-ContDiff ℝ 4 (intervalDomainLift u)
-ContDiff ℝ 4 (intervalDomainLift v)
+structure CoupledChemDivTimeC1Fields
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
+  Cchem : ℝ
+  hCchem : 0 ≤ Cchem
+  hH2 : ∀ s, 0 ≤ s →
+    IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)
+  hdecay : ∀ s, 0 ≤ s → ∀ k : ℕ, 1 ≤ k →
+    |cosineCoeffs (coupledChemDivSourceLift p u s) k|
+      ≤ Cchem / ((k : ℝ) * Real.pi) ^ 2
+  hzero : ∀ s, 0 ≤ s →
+    |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ Cchem
+  hchain : CoupledChemDivLocalChainRule p u
+  hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n)
+  MchemDot : ℝ
+  hMdot : ∀ s, 0 ≤ s → ∀ n, |coupledChemDivAdot p u s n| ≤ MchemDot
 ```
 
-are generally false because `intervalDomainLift` is the zero-extension and usually jumps at the endpoints. The **global C⁴ object** is the cosine-series representative, not `intervalDomainLift`.
+But the theorem body only uses `F.hchain`.
 
-The same file now has:
+### Slim `HasDerivAt` theorem consuming only the chain-rule package
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:79`
 
 ```lean
-theorem chemDivLift_neumann_bc
-    (p : CM2Params) (u v : intervalDomainPoint → ℝ) :
-    deriv (chemDivLift p u v) 0 = 0 ∧
-    deriv (chemDivLift p u v) 1 = 0 := by
-  simp only [chemDivLift]
-  exact ⟨ShenWork.intervalDomainLift_deriv_at_zero_eq_zero _,
-    ShenWork.intervalDomainLift_deriv_at_one_eq_zero _⟩
+theorem coupledChemDivCoeff_hasDerivAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) (s : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+      (coupledChemDivAdot p u s n) s
 ```
 
-That theorem is about point derivatives of zero-extensions. It is not the same as the parity theorem for `chemFluxFun` on global cosine representatives.
-
-## Verification by Taylor expansion
-
-Let `U,V` be smooth and even about `0`. Then all odd derivatives of `U,V` at `0` vanish, and near `0`:
-
-```text
-U(x) = U₀ + U₂ x²/2 + U₄ x⁴/24 + ...
-V(x) = V₀ + V₂ x²/2 + V₄ x⁴/24 + ...
-```
-
-Then:
-
-```text
-V'(x) = V₂ x + V₄ x³/6 + ...
-Q(x) := (1+V(x))^{-β} = Q₀ + Q₂ x²/2 + ...
-φ(x) := U(x) V'(x) Q(x)
-      = U₀ V₂ Q₀ x + (cubic terms) + ...
-```
-
-So:
-
-```text
-φ'(0)  = U₀ V₂ Q₀      -- can be nonzero
-φ''(0) = 0             -- because no quadratic term
-```
-
-Concrete sanity check:
-
-```text
-U(x) = 1,
-V(x) = cos(πx),
-β = 0.
-
-φ(x) = V'(x) = -π sin(πx).
-φ'(0) = -π² ≠ 0.
-φ''(0) = π³ sin(0) = 0.
-```
-
-So the requested value is zero for smooth cosine profiles. What can be nonzero is `deriv (chemFluxFun ...) 0`, not `deriv (deriv (chemFluxFun ...)) 0`.
-
-## Counterexample outside the cosine/even class
-
-The statement is false if you only assume first Neumann data and insufficient parity. For example, with `β = 0`, `U(x)=1`, and
-
-```text
-V(x) = 1 + x² + x³
-```
-
-we still have `V'(0)=0`, but
-
-```text
-φ(x) = V'(x) = 2x + 3x²,
-φ''(0) = 6 ≠ 0.
-```
-
-So the vanishing is not a consequence of `V'(0)=0` alone. It needs even-reflection/odd-derivative vanishings, or equivalently enough cosine-series parity.
-
-## Why the parity is global for cosine series
-
-The concern “the global function may not have the same parity beyond `[-1,1]`” is not a problem if the global function is literally defined by the Neumann cosine series
+This is the cleanest theorem for your `[c,T]` target, because once you have global `HasDerivAt`, Lean can restrict it to any set:
 
 ```lean
-fun x => ∑' k, a k * Real.cos ((k : ℝ) * Real.pi * x)
+exact (coupledChemDivCoeff_hasDerivAt_of_chainRule hchain s n).hasDerivWithinAt
 ```
 
-Each term is globally even about `0`:
+You may need the `simpa [coupledChemDivSourceCoeffs]` wrapper because the theorem is stated for `cosineCoeffs (coupledChemDivSourceLift ...)`, while your target is stated with `coupledChemDivSourceCoeffs`.
+
+### Existing `[0,T]` `HasDerivWithinAt` theorem
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:100`
 
 ```lean
-Real.cos ((k : ℝ) * Real.pi * (-x)) = Real.cos (-((k : ℝ) * Real.pi * x))
-                                  = Real.cos ((k : ℝ) * Real.pi * x)
+theorem chemDivAdot_hasDerivWithinAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
+        (coupledChemDivAdot p u s n) (Set.Icc 0 T) s
 ```
 
-and globally even about `1` as well:
+This is useful for consumers shaped as `[0,T]`, but it is not directly the target `[c,T]` theorem.  For the heat semigroup positive window, use the global `HasDerivAt` theorem above and restrict to `Icc c T`; this is exactly what the current target file does around `IntervalConjugateLevel0BFormSourceOn.lean:384-404`.
 
-```text
-cos(kπ(1+h)) = (-1)^k cos(kπh) = cos(kπ(1-h)).
-```
+### Chain-rule package required by the `HasDerivAt` theorem
 
-So if the sum is defined as a global `tsum`, the parity is global by `tsum_congr`. The function is also `2`-periodic. The only way parity fails is if you replace the global cosine representative by the interval zero-extension `intervalDomainLift`.
-
-## Recommended Lean route
-
-### Step 1: define local/global parity helpers
-
-Mathlib may already have some parity API around `Even`/`Odd`; if that is inconvenient in v4.29.1, use explicit predicates:
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:78`
 
 ```lean
-def EvenAtZero (f : ℝ → ℝ) : Prop := ∀ x, f (-x) = f x
-def OddAtZero  (f : ℝ → ℝ) : Prop := ∀ x, f (-x) = - f x
+structure CoupledChemDivLocalChainRule
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt
+        (fun r => coupledChemDivSourceLift p u r x)
+        (coupledChemDivTimeDerivativeLift p u s x) s) ∧
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-Useful lemmas:
+There is a pointwise-atom wrapper in `ShenWork/PDE/IntervalChemDivLocalChainRule.lean:33`:
 
 ```lean
-theorem deriv_odd_of_evenAtZero
-    {f : ℝ → ℝ}
-    (hf_even : EvenAtZero f)
-    (hf_diff : ∀ x, DifferentiableAt ℝ f x) :
-    OddAtZero (deriv f) := by
-  -- Differentiate `f (-x) = f x`.
-  -- Expected result: `deriv f (-x) = - deriv f x`, equivalently oddness.
-  sorry
-
-theorem deriv_even_of_oddAtZero
-    {f : ℝ → ℝ}
-    (hf_odd : OddAtZero f)
-    (hf_diff : ∀ x, DifferentiableAt ℝ f x) :
-    EvenAtZero (deriv f) := by
-  -- Differentiate `f (-x) = - f x`.
-  -- Expected result: `deriv f (-x) = deriv f x`.
-  sorry
-
-theorem deriv_at_zero_eq_zero_of_evenAtZero
-    {f : ℝ → ℝ}
-    (hf_even : EvenAtZero f)
-    (hf_diff0 : DifferentiableAt ℝ f 0) :
-    deriv f 0 = 0 := by
-  -- If f is even and differentiable at 0, compare the derivative from x and -x.
-  sorry
+theorem coupledChemDivLocalChainRule_of_pointwiseChainAtoms
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (A : CoupledChemDivPointwiseChainAtoms p u) :
+    CoupledChemDivLocalChainRule p u
 ```
 
-Then:
+## 2. Continuity theorem for `coupledChemDivAdot`
+
+### Direct theorem, `[0,T]` shape
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:125`
 
 ```lean
-theorem second_deriv_at_zero_eq_zero_of_oddAtZero
-    {f : ℝ → ℝ}
-    (hf_odd : OddAtZero f)
-    (hf_C2 : ContDiff ℝ 2 f) :
-    deriv (deriv f) 0 = 0 := by
-  have hdf_even : EvenAtZero (deriv f) :=
-    deriv_even_of_oddAtZero hf_odd (fun x => (hf_C2.differentiable (by norm_num)).differentiableAt)
-  exact deriv_at_zero_eq_zero_of_evenAtZero hdf_even
-    ((hf_C2.deriv (by norm_num)).differentiable (by norm_num)).differentiableAt
+theorem chemDivAdot_continuousOn_of_jointCont
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n) (Set.Icc (0 : ℝ) T)
 ```
 
-The exact `ContDiff.differentiable` calls may need minor v4.29.1 adjustment, but this is the right proof skeleton.
+Again, this is `[0,T]`-shaped.  For the actual positive window `[c,T]`, use the lower-level compact dominated-convergence lemma directly.
 
-### Step 2: prove cosine-series evenness
+### Generic coefficient-continuity lemma, arbitrary `[c,T]`
 
-For a global cosine series:
+`ShenWork/Paper2/IntervalDomainPositiveWindowK1OnEndpoint.lean:31`
 
 ```lean
-def cosineSeries (a : ℕ → ℝ) : ℝ → ℝ :=
-  fun x => ∑' k, a k * Real.cos ((k : ℝ) * Real.pi * x)
+theorem cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+    {f : ℝ → ℝ → ℝ} {c T : ℝ} (k : ℕ)
+    (hf : ContinuousOn (Function.uncurry f)
+      (Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn (fun σ => cosineCoeffs (f σ) k) (Set.Icc c T)
 ```
 
-prove:
+This is exactly what the target skeleton uses at `IntervalConjugateLevel0BFormSourceOn.lean:406-417`:
 
 ```lean
-theorem cosineSeries_evenAtZero (a : ℕ → ℝ) :
-    EvenAtZero (cosineSeries a) := by
-  intro x
-  unfold cosineSeries
-  apply tsum_congr
-  intro k
-  simp [mul_assoc, Real.cos_neg]
+have key :=
+  cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+    (f := coupledChemDivTimeDerivativeLift
+      p (conjugatePicardIter p u₀ 0))
+    (c := c) (T := T) n hjointcont
+simpa only [hadot_def, coupledChemDivAdot] using key
 ```
 
-For the endpoint `1`, use a shifted version:
+So `hadotcont` needs precisely:
 
 ```lean
-def EvenAtOne (f : ℝ → ℝ) : Prop := ∀ h, f (1 - h) = f (1 + h)
+hjointcont : ContinuousOn
+  (Function.uncurry (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
+  (Icc c T ×ˢ Icc (0 : ℝ) 1)
 ```
 
-and prove it termwise from `cos(kπ(1±h))`.
+### Combined derivative+continuity package
 
-### Step 3: prove `chemFluxFun` is odd from even inputs
-
-Assume `U,V` are global smooth cosine representatives:
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:149`
 
 ```lean
-theorem chemFluxFun_oddAtZero_of_even
-    {β : ℝ} {U V : ℝ → ℝ}
-    (hU_even : EvenAtZero U)
-    (hV_even : EvenAtZero V)
-    (hV_diff : ∀ x, DifferentiableAt ℝ V x)
-    (hden_pos : ∀ x, 0 < 1 + V x) :
-    OddAtZero (chemFluxFun β U V) := by
-  intro x
-  unfold chemFluxFun
-  have hVderiv_odd : deriv V (-x) = - deriv V x :=
-    deriv_odd_of_evenAtZero hV_even hV_diff x
-  have hden_even : (1 + V (-x)) ^ β = (1 + V x) ^ β := by
-    rw [hV_even x]
-  rw [hU_even x, hVderiv_odd, hden_even]
-  ring
+theorem chemDivAdot_deriv_legs_of_smoothness
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u)
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    (∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+        HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
+          (coupledChemDivAdot p u s n) (Set.Icc 0 T) s)
+      ∧ (∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n)
+          (Set.Icc (0 : ℝ) T))
 ```
 
-No direct flux expansion is needed.
+This is a good reference theorem, but for the target `[c,T]` it is better to inline/use the two lower-level facts as above.
 
-### Step 4: the target theorem for global cosine representatives
+## 3. Resolver time-derivative continuity facts and their hypotheses
+
+The resolver-side hypothesis is:
+
+`ShenWork/Paper2/IntervalResolverTimeRegularity.lean:38`
 
 ```lean
-theorem chemFluxFun_second_deriv_zero_at_zero_of_even
-    {β : ℝ} {U V : ℝ → ℝ}
-    (hU_even : EvenAtZero U)
-    (hV_even : EvenAtZero V)
-    (hU_C4 : ContDiff ℝ 4 U)
-    (hV_C4 : ContDiff ℝ 4 V)
-    (hden_pos : ∀ x, 0 < 1 + V x)
-    (hβnn : 0 ≤ β) :
-    deriv (deriv (chemFluxFun β U V)) 0 = 0 := by
-  have hodd : OddAtZero (chemFluxFun β U V) :=
-    chemFluxFun_oddAtZero_of_even hU_even hV_even
-      (fun x => (hV_C4.differentiable (by norm_num)).differentiableAt) hden_pos
-  exact second_deriv_at_zero_eq_zero_of_oddAtZero hodd
-    ((chemFlux_contDiff_three hU_C4 hV_C4 hden_pos hβnn).of_le (by norm_num))
+structure ResolverHasSpectralAgreement
+    (T : ℝ) (v : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_data : ∀ t₀, 0 < t₀ → t₀ < T →
+    ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
+      (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 a) (offset : ℝ),
+      (0 < t₀ - offset) ∧
+      (∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
+        v s x = ∑' n, localRestartCoeff a₀ a (s - offset) n *
+          cosineMode n x.1)
 ```
 
-This is the lemma you want for the heat semigroup/resolver global representatives.
+It gives joint continuity of `v_t` (not of the full chemDiv time derivative):
 
-## How to use this for `chemDivLift` / weak-H²
-
-Do not set `U = intervalDomainLift u` unless that lift is truly the global cosine representative. Instead, carry explicit global representatives:
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:50`
 
 ```lean
-Ucos : ℝ → ℝ
-Vcos : ℝ → ℝ
-hU_eq : Set.EqOn (intervalDomainLift u) Ucos (Set.Icc 0 1)
-hV_eq : Set.EqOn (intervalDomainLift v) Vcos (Set.Icc 0 1)
-hU_even : EvenAtZero Ucos
-hV_even : EvenAtZero Vcos
-hU_C4 : ContDiff ℝ 4 Ucos
-hV_C4 : ContDiff ℝ 4 Vcos
-hden_pos : ∀ x, 0 < 1 + Vcos x
+theorem coupledChemicalTimeDerivative_jointContinuousOn_closed
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {U : ℝ}
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)) :
+    ContinuousOn
+      (Function.uncurry (coupledChemicalTimeDerivativeLift p u))
+      (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1)
 ```
 
-Then prove the smooth global flux fact:
+and fixed-space closed-window continuity:
+
+`ShenWork/PDE/IntervalChemDivTimeDerivative.lean:60`
 
 ```lean
-have hF0 : deriv (deriv (chemFluxFun p.β Ucos Vcos)) 0 = 0 :=
-  chemFluxFun_second_deriv_zero_at_zero_of_even hU_even hV_even hU_C4 hV_C4 hden_pos p.hβ
+theorem coupledChemicalTimeDerivative_continuousOn_Icc_of_lt_horizon
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {U T c x : ℝ}
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
+    (hc : 0 < c) (hTU : T < U) (hx : x ∈ Icc (0 : ℝ) 1) :
+    ContinuousOn
+      (fun s => coupledChemicalTimeDerivativeLift p u s x)
+      (Icc c T)
 ```
 
-and use equality on the open interior to get the genuine one-sided limit:
+The lower-level endpoint theorem is in `ShenWork/Paper2/IntervalResolverTimeEndpoint.lean:39`:
 
 ```lean
-Tendsto (deriv (chemDivLift p u v)) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)
+theorem resolver_lift_timeDeriv_continuousOn_Icc_of_lt_horizon
+    {U T c x : ℝ} {v : ℝ → intervalDomainPoint → ℝ}
+    (H : ResolverHasSpectralAgreement U v)
+    (hc : 0 < c) (hTU : T < U) (hx : x ∈ Icc (0 : ℝ) 1) :
+    ContinuousOn
+      (fun s => deriv (fun r => intervalDomainLift (v r) x) s)
+      (Icc c T)
 ```
 
-by eventual derivative agreement on `Ioo 0 1` plus continuity of
+There are convenience wrappers in `ShenWork/PDE/IntervalChemDivLocalChainRule.lean`:
+
+- `chemDiv_vt_jointContinuous_factor` at line `40`, requiring only `H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)` and returning joint continuity of `coupledChemicalTimeDerivativeLift` on `Ioo 0 U × [0,1]`.
+- `chemDiv_vt_continuousOn_factor` at line `50`, requiring `H`, `hc : 0 < c`, `hTU : T < U`, and `hx : x ∈ Icc 0 1`, returning fixed-`x` continuity on `Icc c T`.
+- `chemDiv_v_hasDerivAt_factor` at line `72`, requiring `H`, `hs0 : 0 < s`, `hsU : s < U`, `hy : y ∈ Icc 0 1`, returning pointwise `HasDerivAt` for `v` with derivative `coupledChemicalTimeDerivativeLift`.
+
+Crucial distinction: these resolver facts only control `coupledChemicalTimeDerivativeLift` (`v_t`).  They do not by themselves prove
 
 ```lean
-deriv (deriv (chemFluxFun p.β Ucos Vcos))
+ContinuousOn
+  (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+  (Icc c T ×ˢ Icc (0 : ℝ) 1)
 ```
 
-at `0` and `hF0`.
+because `coupledChemDivTimeDerivativeLift` also contains `slopeSlice u`, `deriv v`, `deriv vt`, products, powers, and an outer spatial derivative.  You need an additional chemDiv mixed-time-derivative continuity/closed representative fact.
 
-The endpoint point derivative conjuncts
+One such abstraction exists:
+
+`ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean:43`
 
 ```lean
-deriv (chemDivLift p u v) 0 = 0
+def ChemDivMixedTimeDerivClosedRepr
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
+  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
+    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
 ```
 
-should continue to be handled by the zero-extension lemma, as the repo now does.
+and it produces:
 
-## Answer to the question “is it false?”
-
-* For **generic smooth functions** satisfying only `v'(0)=0`, yes, the statement can be false. Example: `U=1`, `V=1+x²+x³`, `β=0`, then `φ''(0)=6`.
-* For **smooth cosine-series/even-reflection functions**, no, it is not false. It is true by parity, and `φ''(0)=0` even though `φ'(0)` may be nonzero.
-* For **`intervalDomainLift` zero-extensions**, the expression is not the smooth global cosine-series expression; endpoint derivatives can become Mathlib junk values. Do not use zero-extension endpoint `deriv` to prove the genuine spectral/weak-H² Neumann condition.
-
-## Practical recommendation
-
-Add a small parity file, perhaps:
+`ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean:54`
 
 ```lean
-ShenWork/Paper2/IntervalChemFluxParity.lean
+theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
+    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-with:
+For the heat-semigroup positive window, the missing analytic step is to produce the analogous closed representative/joint continuity on `[c,T] × [0,1]`.
+
+## 4. Bound theorem for `coupledChemDivAdot`
+
+### General residual: summable envelope implies `Mdot`
+
+`ShenWork/Wiener/EWA/ChemDivAdot.lean:185`
 
 ```lean
-EvenAtZero, OddAtZero
-cosineSeries_evenAtZero
-deriv_odd_of_evenAtZero
-deriv_even_of_oddAtZero
-deriv_at_zero_eq_zero_of_evenAtZero
-second_deriv_at_zero_eq_zero_of_oddAtZero
-chemFluxFun_oddAtZero_of_even
-chemFluxFun_second_deriv_zero_at_zero_of_even
+theorem chemDivAdot_Mdot_residual
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (env : ℕ → ℝ) (henvnn : ∀ n, 0 ≤ env n) (henvsum : Summable env)
+    (henv : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n, |coupledChemDivAdot p u s n| ≤ env n) :
+    ∃ Mdot : ℝ, ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
 ```
 
-Then use it only with the global cosine representatives, not directly with `intervalDomainLift`. This cleanly separates:
+This isolates the exact missing ingredient: a nonnegative summable envelope `env` dominating all time-derivative coefficients uniformly in time and mode.
 
-```text
-global smooth parity proof   → genuine one-sided Neumann limit
-zero-extension endpoint lemma → point derivative hbc0/hbc1
+However, this theorem is `[0,T]`-shaped.  Your target is `[c,T]`.  If you only have heat-semigroup smoothing for `c > 0`, clone/generalize this theorem to arbitrary `Icc c T`; its proof should be identical.
+
+### Quadratic-decay producer on current default branch
+
+`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:135` (current default branch; absent from `chatgpt-scratch` when fetched by ref)
+
+```lean
+theorem chemDivAdot_Mdot_of_quadratic_decay
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {Cdot : ℝ} (hC : 0 ≤ Cdot)
+    (hzero : ∀ s ∈ Icc (0 : ℝ) T,
+      |coupledChemDivAdot p u s 0| ≤ Cdot)
+    (hdecay : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
+      |coupledChemDivAdot p u s n| ≤ Cdot / ((n : ℝ) * Real.pi) ^ 2) :
+    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
 ```
 
-That separation matches the repo’s current direction and avoids confusing the zero-extension/junk derivative with the mathematically meaningful boundary condition.
+### H²/sup-bound producer on current default branch
+
+`ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean:161` (current default branch; absent from `chatgpt-scratch` when fetched by ref)
+
+```lean
+theorem chemDivAdot_Mdot_of_spatial_H2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {B_sup B_H2 : ℝ} (hBs : 0 ≤ B_sup) (hBh : 0 ≤ B_H2)
+    (hcont : ∀ s ∈ Icc (0 : ℝ) T, ContinuousOn
+      (coupledChemDivTimeDerivativeLift p u s) (Icc (0 : ℝ) 1))
+    (hbd : ∀ s ∈ Icc (0 : ℝ) T, ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivTimeDerivativeLift p u s x| ≤ B_sup)
+    (hdecay_raw : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
+      |coupledChemDivAdot p u s n| ≤ 2 * B_H2 / ((n : ℝ) * Real.pi) ^ 2) :
+    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
+```
+
+For your `[c,T]` heat-window theorem, the natural local replacement is:
+
+```lean
+∃ Cdot, 0 ≤ Cdot ∧
+  (∀ s ∈ Icc c T, |coupledChemDivAdot p u s 0| ≤ Cdot) ∧
+  (∀ s ∈ Icc c T, ∀ n, 1 ≤ n →
+    |coupledChemDivAdot p u s n| ≤ Cdot / ((n : ℝ) * Real.pi)^2)
+```
+
+then use the same `adotEnvelope` proof with `Icc c T` instead of `Icc 0 T`.
+
+## Practical fill strategy for `level0_chemDiv_timeDerivData`
+
+Use this shape:
+
+```lean
+set u := conjugatePicardIter p u₀ 0
+set adot := coupledChemDivAdot p u with hadot_def
+
+have hderiv : ∀ s ∈ Icc c T, ∀ n,
+    HasDerivWithinAt
+      (fun r => coupledChemDivSourceCoeffs p u r n)
+      (adot s n) (Icc c T) s := by
+  intro s hs n
+  have hAt : HasDerivAt
+      (fun r => coupledChemDivSourceCoeffs p u r n)
+      (adot s n) s := by
+    simpa [coupledChemDivSourceCoeffs, hadot_def] using
+      coupledChemDivCoeff_hasDerivAt_of_chainRule
+        (p := p) (u := u) hchain s n
+  exact hAt.hasDerivWithinAt
+
+have hadotcont : ∀ n, ContinuousOn (fun s => adot s n) (Icc c T) := by
+  intro n
+  have key :=
+    ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
+      .cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+        (f := coupledChemDivTimeDerivativeLift p u) (c := c) (T := T) n hjointcont
+  simpa [hadot_def, coupledChemDivAdot] using key
+```
+
+For `hMdot`, do not try to get it from `ResolverHasSpectralAgreement` or `hadotcont`.  You need one of:
+
+1. a windowed version of `chemDivAdot_Mdot_residual` plus a summable envelope on `[c,T]`, or
+2. a windowed version of `chemDivAdot_Mdot_of_quadratic_decay`, or
+3. a windowed version of `chemDivAdot_Mdot_of_spatial_H2` once you have H²/sup bounds for `coupledChemDivTimeDerivativeLift` on `[c,T] × [0,1]`.
+
+Bottom line: the derivative/continuity sorries are reducible to `hchain` and `hjointcont`; the real analytic content for `adot` is the uniform coefficient envelope for `coupledChemDivTimeDerivativeLift` on the positive window.
