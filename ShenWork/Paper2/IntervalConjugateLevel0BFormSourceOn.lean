@@ -21,6 +21,7 @@
 import ShenWork.Paper2.IntervalConjugateIterSourceTower
 import ShenWork.Paper2.IntervalBFormSpectralHtime
 import ShenWork.Paper2.IntervalBFormNegPartStrictPosBarrier
+import ShenWork.Paper2.IntervalChemDivSpatialC2
 
 open MeasureTheory Set Filter
 open scoped Topology
