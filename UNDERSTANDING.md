@@ -1,8 +1,11 @@
 # UNDERSTANDING.md — Shen_work (2026-06-25 update)
 
-## CURRENT STATE (2026-06-25)
+## CURRENT STATE (2026-06-25, end of session)
 
-998 files, 392K LOC, **0 real sorry tokens**, **0 custom axioms** across all three papers.
+1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
+Paper 2 χ₀<0: 8 sorry across 2 NEW infrastructure files (Tower: 5, Level0: 3).
+All 8 sorry trace to **chemDiv adot** (time derivative of chemDiv coefficients for heat semigroup).
+The chemDiv H2 regularity chain is **FULLY PROVED** (IntervalChemDivSpatialC2.lean: 0 sorry).
 
 ### Paper 1 (traveling waves): SORRY-FREE, unconditional infrastructure landed.
 ### Paper 2 (bounded-domain existence): Two unconditional theorems proved:
