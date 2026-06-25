@@ -627,3 +627,12 @@ has 13 gap families, many deep analytic content:
 STATUS: the INFRASTRUCTURE layer (this session's work) is complete. The CONTENT layer (per-datum regularity)
 is a wide-open frontier with deep analytic gaps. These are NOT going to close by wiring — they are the genuine
 hard analysis of the χ₀<0 local classical existence problem.
+
+## [2026-06-25] ARCHITECTURAL INSIGHT: bypass EWA cosine-summability via the UMBRELLA route
+The χ₀=0 unconditional headline routes through Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound
+(IntervalDomainTheorem11Umbrella.lean) which takes hlocal (per-datum local existence) + hreach + positivity
+witnesses + hχ≤0. This SAME umbrella works for χ₀<0 (it takes hχ : χ₀ ≤ 0). The EWA chain provides source
+regularity; the CANONICAL Picard chain provides local existence for C⁰ data (no cosine-summability needed).
+PATH: produce hlocal for χ₀<0 from the canonical chain → feed the umbrella → Theorem_1_1 (χ₀<0) unconditional.
+The EWA infrastructure (this session's work) serves source regularity at positive time; the cosine-summability
+obstruction is BYPASSED by not routing local existence through EWA.
