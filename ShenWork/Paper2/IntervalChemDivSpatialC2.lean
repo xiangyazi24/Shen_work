@@ -191,18 +191,29 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   -- Neumann BCs from parity: F even → F' odd → F'(0) = 0
   have hbc0 : deriv F 0 = 0 :=
     odd_zero (deriv_even_odd (hF_C2.of_le (by norm_num)) hF_even)
+  -- V_cos' antisymmetric about x=1: V_cos'(2-x) = -V_cos'(x)
+  have hdv_antisymm1 : ∀ x, deriv V_cos (2 - x) = -(deriv V_cos x) := by
+    intro x
+    have h1 := deriv_comp_const_sub (f := V_cos) (a := 2) (x := x)
+    rw [show (fun x => V_cos (2 - x)) = V_cos from funext hv_symm1] at h1; linarith
   -- Flux antisymmetry about x=1: φ(2-x) = -φ(x)
   have hflux_antisymm1 : ∀ x, chemFluxFun p.β U_cos V_cos (2 - x) =
       -(chemFluxFun p.β U_cos V_cos x) := by
     intro x; unfold chemFluxFun
-    have hdv1 := deriv_comp_neg (f := fun t => V_cos (2 - t)) (x := x)
-    sorry -- needs deriv V_cos (2-x) = -(deriv V_cos x) from hv_symm1 + chain rule
-  -- F = φ' symmetric about x=1: F(2-x) = F(x)
+    rw [hu_symm1, hv_symm1, hdv_antisymm1]; ring
+  -- F symmetric about x=1 (derivative of antisymmetric function)
   have hF_symm1 : ∀ x, F (2 - x) = F x := by
-    sorry -- from hflux_antisymm1 via deriv_odd_even-like argument with shift
+    intro x
+    have h1 := deriv_comp_const_sub (f := chemFluxFun p.β U_cos V_cos) (a := 2) (x := x)
+    rw [show (fun x => chemFluxFun p.β U_cos V_cos (2 - x)) =
+        fun x => -(chemFluxFun p.β U_cos V_cos x) from funext hflux_antisymm1] at h1
+    simp [deriv_neg, F] at h1; linarith
   -- F' antisymmetric about x=1 → F'(1) = 0
   have hbc1 : deriv F 1 = 0 := by
-    sorry -- from hF_symm1: deriv F (2-x) = -(deriv F x), set x=1
+    have h1 := deriv_comp_const_sub (f := F) (a := 2) (x := 1)
+    rw [show (fun x => F (2 - x)) = F from funext hF_symm1] at h1
+    have : (2 : ℝ) - 1 = 1 := by norm_num
+    rw [this] at h1; linarith
   have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
     conv_rhs => rw [← hbc0]
     exact (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
