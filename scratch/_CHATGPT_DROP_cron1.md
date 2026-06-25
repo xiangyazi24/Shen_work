@@ -1,335 +1,288 @@
-# Q480 / cron1: direct `IntervalWeakH2Neumann` construction avoiding zero-extension endpoint tendsto
+# Q518 / cron1: chemDiv `adot` on a positive window
 
 ## Executive verdict
 
-I found **one genuinely useful direct constructor** that does **not** require endpoint `Tendsto` hypotheses on the target zero-extension function:
+For the desired heat-semigroup statement on `[c,T]`, the repo has a **generic, proved bridge** from the local chem-div chain rule to coefficient `HasDerivAt` with derivative exactly
 
 ```lean
-IntervalWeakH2Neumann.congr_on_Icc
+coupledChemDivAdot p u s n
 ```
 
-in `ShenWork/Paper2/IntervalDomainLogisticWeakH2Adapter.lean`.
+and therefore `HasDerivWithinAt` on any closed window follows immediately by `.hasDerivWithinAt`.
 
-It is a record-literal transfer theorem: if `hf : IntervalWeakH2Neumann f` and `f = g` on `[0,1]`, then it builds `IntervalWeakH2Neumann g` with the **same** `secondDeriv`, `second_intervalIntegrable`, and `weak_cosine_laplacian`, because the structure only sees `g` through the integral `∫₀¹ cos · g`.  This is exactly the zero-extension bypass pattern.
-
-However, I did **not** find an existing direct constructor specialized to
+What I did **not** find on the target `chatgpt-scratch` branch is a closed, heat-semigroup-specialized producer of the full package
 
 ```lean
-IntervalWeakH2Neumann (chemDivLift p u v)
+∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
+  hderiv_on_Icc ∧ hadotcont_on_Icc ∧ hMdot_on_Icc
 ```
 
-or to a generic smooth `φ'`/`φ'''` pair.  The existing chem-div source tools either:
+for `u = conjugatePicardIter p u₀ 0`.  The missing part is not the formal coefficient derivative bridge; it is the analytic input for the heat level: local chain rule/joint-continuity of the explicit time-derivative field, plus a **uniform-in-mode** bound for `coupledChemDivAdot`.
 
-1. still call `intervalWeakH2Neumann_of_contDiffOn` and require endpoint data, or
-2. carry `IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)` as a residual field, or
-3. prove coefficient decay from an already-built `IntervalWeakH2Neumann` certificate.
+Code search on `main` does show newer roadmap/prototype files for exactly this level-0 heat-semigroup package, but several of them are not present on `chatgpt-scratch` at the time of this report.  In particular, `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`, `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`, `ShenWork/Paper2/IntervalChemDivSpatialC2.lean`, and `ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean` were found by repo code search/default-branch fetches, while `fetch_file(..., ref := "chatgpt-scratch")` returned 404 for them.  Treat them as useful roadmap unless merged into the target branch.
 
-So the shortest viable route for `chemDivLift p u v` is likely:
+## 1. Existing derivative theorem for `coupledChemDivAdot`
 
-```text
-Build an IntervalWeakH2Neumann certificate for a smooth representative F
-that agrees with chemDivLift p u v on [0,1], then transfer it by
-IntervalWeakH2Neumann.congr_on_Icc.
-```
-
-This avoids proving endpoint `Tendsto` for the zero-extension itself.  It does **not** avoid proving the weak cosine Laplacian identity for the smooth representative.  That identity still has real boundary terms; endpoint values are not magically erased by measure-zero arguments.
-
----
-
-## 1. Definition of `IntervalWeakH2Neumann`
-
-`ShenWork/PDE/IntervalMildSourceDecayHelper.lean` defines the structure:
+The canonical candidate is already fixed in
 
 ```lean
-/-- A lightweight weak `H²_N` certificate on `[0,1]`.
-
-The field `weak_cosine_laplacian` is the Neumann cosine weak-IBP identity.  The
-`second_abs_integral_bound` field is the `L¹` control implied by an `L²` weak
-second derivative on the finite interval. -/
-structure IntervalWeakH2Neumann (f : ℝ → ℝ) where
-  secondDeriv : ℝ → ℝ
-  second_intervalIntegrable : IntervalIntegrable secondDeriv volume (0 : ℝ) 1
-  second_abs_integral_bound :
-    ∃ B : ℝ, 0 ≤ B ∧ ∫ x in (0 : ℝ)..1, |secondDeriv x| ≤ B
-  weak_cosine_laplacian : ∀ k : ℕ,
-    (∫ x in (0 : ℝ)..1,
-        Real.cos ((k : ℝ) * Real.pi * x) * secondDeriv x) =
-      -((k : ℝ) * Real.pi) ^ 2 *
-        ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
+-- ShenWork/PDE/IntervalChemDivTimeDerivative.lean
+noncomputable def coupledChemDivAdot (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) (n : ℕ) : ℝ :=
+  cosineCoeffs (coupledChemDivTimeDerivativeLift p u s) n
 ```
 
-The standard constructor is:
+and `coupledChemDivTimeDerivativeLift` is the pointwise chain-rule field using `slopeSlice u` and `coupledChemicalTimeDerivativeLift` for the elliptic concentration time derivative.
+
+The main proved branch-local bridge is in `ShenWork/Wiener/EWA/ChemDivAdot.lean`:
 
 ```lean
-noncomputable def intervalWeakH2Neumann_of_contDiffOn
-    {g : ℝ → ℝ}
-    (hgC2 : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
-    (htend0 : Filter.Tendsto (deriv g) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
-    (htend1 : Filter.Tendsto (deriv g) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
-    (hbc0 : deriv g 0 = 0) (hbc1 : deriv g 1 = 0) :
-    IntervalWeakH2Neumann g where
-  secondDeriv := deriv (deriv g)
-  second_intervalIntegrable :=
-    intervalIntegrable_deriv_deriv_of_contDiffOn_two hgC2
-  second_abs_integral_bound := by
-    refine ⟨∫ x in (0 : ℝ)..1, |deriv (deriv g) x|, ?_, le_rfl⟩
-    exact intervalIntegral.integral_nonneg (by norm_num : (0 : ℝ) ≤ 1)
-      (fun x _hx => abs_nonneg _)
-  weak_cosine_laplacian := by
-    intro k
-    exact intervalCosineLaplacianCoeff_eq_of_contDiffOn k hgC2 htend0 htend1 hbc0 hbc1
+theorem coupledChemDivCoeff_hasDerivAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) (s : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+      (coupledChemDivAdot p u s n) s
 ```
 
-So the default path is exactly the endpoint-tendsto path you want to avoid for zero-extension functions.
-
----
-
-## 2. Direct constructor found: `IntervalWeakH2Neumann.congr_on_Icc`
-
-The key direct constructor is in `ShenWork/Paper2/IntervalDomainLogisticWeakH2Adapter.lean`:
+There is also the packaged window form on `[0,T]`:
 
 ```lean
-/-- **Weak-H²/Neumann certificate transfers across `[0,1]`-agreement.**  The
-certificate uses its function `f` only through the `∫₀¹ cos·f` integral, so two
-functions equal on `[0,1]` share it (with the SAME `secondDeriv`). -/
-def _root_.ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann.congr_on_Icc
-    {f g : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
-    (hfg : ∀ x ∈ Set.Icc (0 : ℝ) 1, f x = g x) :
-    IntervalWeakH2Neumann g where
-  secondDeriv := hf.secondDeriv
-  second_intervalIntegrable := hf.second_intervalIntegrable
-  second_abs_integral_bound := hf.second_abs_integral_bound
-  weak_cosine_laplacian := fun k => by
-    have hint : (∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * g x)
-        = ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x := by
-      refine intervalIntegral.integral_congr (fun x hx => ?_)
-      rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hx
-      rw [hfg x hx]
-    rw [hint]; exact hf.weak_cosine_laplacian k
+theorem chemDivAdot_hasDerivWithinAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
+        (coupledChemDivAdot p u s n) (Set.Icc 0 T) s
 ```
 
-This is directly relevant to your situation.  It says: do **not** try to prove endpoint tendsto for the zero-extension target.  Instead, build the weak-H² certificate for a nicer representative, then transfer across equality on `[0,1]`.
-
-For `chemDivLift p u v`, the candidate shape is:
+For the requested positive window `[c,T]`, do not need a new theorem.  Use the global `HasDerivAt` theorem and restrict to the desired set:
 
 ```lean
-let U := intervalDomainLift u
-let V := intervalDomainLift v
-let φ := chemFluxFun p.β U V
-let F := deriv φ
+let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
 
--- 1. prove hf : IntervalWeakH2Neumann F
--- 2. prove hEq : ∀ x ∈ Icc 0 1, F x = chemDivLift p u v x
--- 3. exact hf.congr_on_Icc hEq
+have hderiv_Icc_cT :
+    ∀ s ∈ Set.Icc c T, ∀ n,
+      HasDerivWithinAt
+        (fun r => coupledChemDivSourceCoeffs p u r n)
+        (coupledChemDivAdot p u s n)
+        (Set.Icc c T) s := by
+  intro s hs n
+  have hAt :
+      HasDerivAt
+        (fun r => coupledChemDivSourceCoeffs p u r n)
+        (coupledChemDivAdot p u s n) s := by
+    simpa [coupledChemDivSourceCoeffs] using
+      coupledChemDivCoeff_hasDerivAt_of_chainRule
+        (p := p) (u := u) hchain s n
+  exact hAt.hasDerivWithinAt
 ```
 
-The equality in step 2 is the same bridge from Q463.
+So the answer to question (1) is: **yes, for arbitrary `u`, provided you have `CoupledChemDivLocalChainRule p u`; no heat-specialized closed theorem is needed for the formal `HasDerivWithinAt` step.**
 
----
+## 2. Infrastructure for `adot` continuity and boundedness
 
-## 3. Representation-based direct constructors also exist, but only for power/logistic source families
+### Continuity
 
-`IntervalDomainLogisticWeakH2Adapter.lean` uses `congr_on_Icc` to avoid global C²/tendsto demands on zero-extensions.  The logistic source constructor is:
+The branch-local generic theorem is:
 
 ```lean
-/-- **Logistic-source weak-H²/Neumann certificate from the cosine representation.**
-
-For a positive profile `w` whose lift agrees on `[0,1]` with an eigenvalue-summable
-cosine series, the logistic source `logisticSourceFun a b α (lift w)` has the
-weak-H²/Neumann certificate — built from the genuinely-`C²` cosine series, with NO
-global-`C²` hypothesis on the (zero-extended) lift. -/
-def logisticSource_intervalWeakH2Neumann_of_eigenvalue_summable
-    {a b α : ℝ} {bc : ℕ → ℝ}
-    (hbsum : Summable (fun n => unitIntervalCosineEigenvalue n * |bc n|))
-    {w : intervalDomainPoint → ℝ}
-    (hagree : Set.EqOn (intervalDomainLift w)
-        (fun x => ∑' n, bc n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
-    IntervalWeakH2Neumann (logisticSourceFun a b α (intervalDomainLift w)) := by
-  have hC2 : ContDiff ℝ 2 (fun x => ∑' n, bc n * cosineMode n x) :=
-    ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_contDiff_two hbsum
-  ...
-  have hwH2 : IntervalWeakH2Neumann
-      (logisticSourceFun a b α (fun x => ∑' n, bc n * cosineMode n x)) :=
-    logisticSourceFun_intervalWeakH2Neumann hC2 hpos_cs hd0 hd1
-  refine hwH2.congr_on_Icc (fun x hx => ?_)
-  simp only [logisticSourceFun]
-  rw [hagree hx]
+theorem chemDivAdot_continuousOn_of_jointCont
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n) (Set.Icc (0 : ℝ) T)
 ```
 
-This is not for `chemDivLift`, but it is the exact architectural pattern you want: build a certificate for a smooth cosine representative, then transfer by `[0,1]` equality.
-
-The same file also points to the power-source analogue:
+It is just the compact dominated-convergence lemma for cosine coefficients.  For `[c,T]`, use the underlying lemma directly:
 
 ```lean
-ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
+ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
+  .cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
 ```
 
-but that power-source constructor still ultimately uses `intervalWeakH2Neumann_of_contDiffOn` after proving endpoint data for the power source.
-
----
-
-## 4. Existing `intervalWeakH2Neumann_of_eigenvalue_summable` still uses the endpoint constructor internally
-
-In `IntervalMildSourceDecayHelper.lean`, the power-source constructor is not a pure direct record literal.  It proves endpoint data and then calls the standard constructor:
+whose shape is:
 
 ```lean
-noncomputable def intervalWeakH2Neumann_of_eigenvalue_summable
-    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
-    {w : intervalDomainPoint → ℝ}
-    (hagree : Set.EqOn (intervalDomainLift w)
-        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
-    IntervalWeakH2Neumann (fun x : ℝ => ν * intervalDomainLift w x ^ γ) := by
-  ...
-  exact intervalWeakH2Neumann_of_contDiffOn hC2g htend0 htend1 hbc0 hbc1
+theorem cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+    {f : ℝ → ℝ → ℝ} {c T : ℝ} (k : ℕ)
+    (hf : ContinuousOn (Function.uncurry f)
+      (Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn (fun σ => cosineCoeffs (f σ) k) (Set.Icc c T)
 ```
 
-So it is zero-extension-aware, but not a direct replacement for your request.
-
----
-
-## 5. Existing chem-div constructors still depend on C²/Neumann or residual data
-
-For chem-div, the currently landed constructor is only conditional:
+Thus, for the heat semigroup level:
 
 ```lean
-/-- **Per-slice weak-`H²ₙ` certificate for the chem-div source.**
-
-From the source slice being `C²` on `[0,1]` with homogeneous Neumann endpoint
-data, the committed `intervalWeakH2Neumann_of_contDiffOn` packager yields the
-weak `H²_N` certificate whose weak second derivative is `deriv (deriv f)`. -/
-def chemDivSource_weakH2_of_spatialC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s : ℝ}
-    (hC2 : ContDiffOn ℝ 2 (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
-    (ht0 : Tendsto (deriv (coupledChemDivSourceLift p u s))
-      (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0))
-    (ht1 : Tendsto (deriv (coupledChemDivSourceLift p u s))
-      (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0))
-    (hbc0 : deriv (coupledChemDivSourceLift p u s) 0 = 0)
-    (hbc1 : deriv (coupledChemDivSourceLift p u s) 1 = 0) :
-    IntervalWeakH2Neumann (coupledChemDivSourceLift p u s) :=
-  intervalWeakH2Neumann_of_contDiffOn hC2 ht0 ht1 hbc0 hbc1
+have hadotcont :
+    ∀ n, ContinuousOn
+      (fun s => coupledChemDivAdot p (conjugatePicardIter p u₀ 0) s n)
+      (Set.Icc c T) := by
+  intro n
+  simpa [coupledChemDivAdot] using
+    ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
+      .cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+        (f := coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0))
+        (c := c) (T := T) n hjoint
 ```
 
-And in `IntervalChemDivSpatialC2.lean`, the planned `chemDivSource_weakH2_of_uv_C4` still has the TODO/sorry comment:
+The remaining obligation is therefore the slab continuity
 
 ```lean
-noncomputable def chemDivSource_weakH2_of_uv_C4
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu : ContDiffOn ℝ 4 (intervalDomainLift u) (Icc (0 : ℝ) 1))
-    (hv : ContDiffOn ℝ 4 (intervalDomainLift v) (Icc (0 : ℝ) 1))
-    ... :
-    IntervalWeakH2Neumann (chemDivLift p u v) := by
-  sorry
-  -- Wires chemDivLift_contDiffOn_two + chemDivLift_neumann_bc
-  -- into chemDivSource_weakH2_of_spatialC2. Blocked on the 3 sorry above.
+ContinuousOn
+  (Function.uncurry
+    (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
+  (Icc c T ×ˢ Icc 0 1)
 ```
 
-So there is no existing direct chem-div weak-H² constructor in the repo.
+not the cosine-coefficient continuity step.
 
-The residual route carries the certificate as data.  `IntervalChemDivWinDischarge.lean` defines:
+### Boundedness
+
+There are two levels.
+
+On `chatgpt-scratch`, `ShenWork/Wiener/EWA/ChemDivAdot.lean` isolates the honest residual:
 
 ```lean
-structure ChemDivSolutionRegularityResidual
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
-  ...
-  hH2 : ∀ s, 0 ≤ s → IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)
-  ...
+theorem chemDivAdot_Mdot_residual
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (env : ℕ → ℝ) (henvnn : ∀ n, 0 ≤ env n) (henvsum : Summable env)
+    (henv : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ env n) :
+    ∃ Mdot : ℝ, ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
 ```
 
-That confirms the current state: chem-div weak-H² is still an input/residual, not produced directly.
+For `[c,T]`, the same proof pattern works with the window changed, or you can provide an envelope on `[0,T]` and restrict.  The important point is: **per-mode continuity on compact `[c,T]` only gives a bound depending on `n`; it does not give one uniform `Mdot` for all modes.**
 
----
-
-## 6. The proposed `φ'`/`φ'''` direct construction has a real boundary-term obligation
-
-Suppose
+On `main`/default, the file `ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean` goes further and supplies a concrete producer from quadratic decay of the `adot` coefficients:
 
 ```lean
-φ := chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)
-f := φ'
-secondDeriv := φ'''
+theorem chemDivAdot_Mdot_of_quadratic_decay
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {Cdot : ℝ} (hC : 0 ≤ Cdot)
+    (hzero : ∀ s ∈ Icc (0 : ℝ) T,
+      |coupledChemDivAdot p u s 0| ≤ Cdot)
+    (hdecay : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
+      |coupledChemDivAdot p u s n| ≤ Cdot / ((n : ℝ) * Real.pi) ^ 2) :
+    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
 ```
 
-Then the weak identity asks:
+and also a spatial-H² style wrapper:
 
 ```lean
-∫₀¹ cos(kπx) φ'''(x) dx
-  = -((kπ)^2) * ∫₀¹ cos(kπx) φ'(x) dx
+theorem chemDivAdot_Mdot_of_spatial_H2
+    ...
+    (hcont : ∀ s ∈ Icc (0 : ℝ) T,
+      ContinuousOn (coupledChemDivTimeDerivativeLift p u s) (Icc 0 1))
+    (hbd : ∀ s ∈ Icc (0 : ℝ) T, ∀ x ∈ Icc 0 1,
+      |coupledChemDivTimeDerivativeLift p u s x| ≤ B_sup)
+    (hdecay_raw : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
+      |coupledChemDivAdot p u s n| ≤ 2 * B_H2 / ((n : ℝ) * Real.pi) ^ 2) :
+    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
+      |coupledChemDivAdot p u s n| ≤ Mdot
 ```
 
-Two integrations by parts give:
+This is exactly the right shape for the positive heat window: prove the time-derivative field has uniform spatial H²/Neumann control on `[c,T]`, then apply the quadratic envelope argument.
 
-```text
-∫ cos φ''' = [cos · φ'']₀¹ - (kπ)^2 ∫ cos φ'
-```
+`ShenWork/Paper2/IntervalChemDivWinDischarge.lean` confirms that the currently landed windowed consumer still treats `hadotcont`, `MchemDot`, and `hMdot` as part of the regularity residual.  It does not derive them from a bare `GradientMildSolutionData`.
 
-because the intermediate sine boundary term vanishes.  Thus the desired weak identity requires
+## 3. Is `ResolverHasSpectralAgreement` needed?
 
-```text
-[cos(kπx) · φ''(x)]₀¹ = 0
-```
-
-for every `k`.  Equivalently, it forces endpoint conditions strong enough to make the flux second derivative vanish in the correct cosine parity sense, typically `φ''(0)=φ''(1)=0` if the identity is to hold for all modes.
-
-So the “integrals ignore endpoints” observation helps you transfer `f` across pointwise endpoint mismatches, but it does **not** erase the boundary term in the weak Laplacian identity.  The direct record-literal construction still needs a proof of the `weak_cosine_laplacian` field, and that proof has endpoint/parity content.
-
-This is why `congr_on_Icc` is useful but not a complete solution: it lets you avoid endpoint tendsto for the zero-extension target, but you must still build a valid weak-H² certificate for some smooth representative.
-
----
-
-## 7. Recommended route for `chemDivLift p u v`
-
-The cleanest repo-compatible design is:
+For the **generic coupled solution route**, yes: existing branch-local facts use `ResolverHasSpectralAgreement` to get the `v_t` factor for
 
 ```lean
--- Smooth representative:
-let U : ℝ → ℝ := <global cosine representative for intervalDomainLift u on [0,1]>
-let V : ℝ → ℝ := <global cosine representative for intervalDomainLift v on [0,1]>
-let φ : ℝ → ℝ := chemFluxFun p.β U V
-let F : ℝ → ℝ := deriv φ
-let SD : ℝ → ℝ := deriv (deriv (deriv φ))
+v = coupledChemicalConcentration p u
 ```
 
-Then prove a new direct constructor with explicit boundary/parity assumptions:
+The relevant proved wrappers are in `IntervalChemDivTimeDerivative.lean` and `IntervalChemDivLocalChainRule.lean`:
 
 ```lean
-noncomputable def intervalWeakH2Neumann_of_flux_derivative
-    {φ F SD : ℝ → ℝ}
-    (hF : ∀ x ∈ Set.Icc (0:ℝ) 1, F x = deriv φ x)
-    (hSD : ∀ x ∈ Set.Icc (0:ℝ) 1, SD x = deriv (deriv (deriv φ)) x)
-    (hSD_int : IntervalIntegrable SD volume 0 1)
-    (hSD_bound : ∃ B, 0 ≤ B ∧ ∫ x in (0:ℝ)..1, |SD x| ≤ B)
-    (hweak : ∀ k,
-      (∫ x in (0:ℝ)..1, Real.cos ((k:ℝ) * Real.pi * x) * SD x)
-        = -((k:ℝ) * Real.pi)^2 *
-          ∫ x in (0:ℝ)..1, Real.cos ((k:ℝ) * Real.pi * x) * F x) :
-    IntervalWeakH2Neumann F :=
-{ secondDeriv := SD
-  second_intervalIntegrable := hSD_int
-  second_abs_integral_bound := hSD_bound
-  weak_cosine_laplacian := hweak }
+theorem coupledChemicalTimeDerivative_jointContinuousOn_closed
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)) :
+    ContinuousOn
+      (Function.uncurry (coupledChemicalTimeDerivativeLift p u))
+      (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1)
 ```
-
-Then transfer:
 
 ```lean
-have hF_H2 : IntervalWeakH2Neumann F := ...
-have hEq : ∀ x ∈ Set.Icc (0:ℝ) 1, F x = chemDivLift p u v x := ...
-exact hF_H2.congr_on_Icc hEq
+theorem coupledChemicalTimeDerivative_continuousOn_Icc_of_lt_horizon
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
+    (hc : 0 < c) (hTU : T < U) (hx : x ∈ Icc (0 : ℝ) 1) :
+    ContinuousOn
+      (fun s => coupledChemicalTimeDerivativeLift p u s x)
+      (Icc c T)
 ```
 
-This is the repo's existing pattern, and it avoids the false endpoint tendsto demand on the zero-extension target.
+and
 
----
+```lean
+theorem chemDiv_v_hasDerivAt_factor
+    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
+    (hs0 : 0 < s) (hsU : s < U) (hy : y ∈ Icc (0 : ℝ) 1) :
+    HasDerivAt
+      (fun r => intervalDomainLift (coupledChemicalConcentration p u r) y)
+      (coupledChemicalTimeDerivativeLift p u s y) s
+```
 
-## Final answer
+For the **level-0 heat semigroup**, `ResolverHasSpectralAgreement` is probably not mathematically necessary and may be the wrong bottom.  A more direct proof should use the explicit heat series:
 
-* There is **no existing direct `IntervalWeakH2Neumann (chemDivLift p u v)` constructor** that bypasses `intervalWeakH2Neumann_of_contDiffOn`.
-* The key existing tool is `IntervalWeakH2Neumann.congr_on_Icc`, which transfers a weak-H² certificate across equality on `[0,1]` without endpoint tendsto for the target.
-* Representation-based constructors for logistic/power sources already use this pattern; they build a certificate for a smooth cosine representative and transfer to the zero-extension/physical source.
-* For chem-div, you still need to build the weak cosine Laplacian identity for a smooth representative. Integrals ignoring endpoint values are not enough: the triple-derivative IBP has a boundary term `[cos(kπx) φ''(x)]₀¹` that must vanish.
-* Therefore the recommended patch is to add a new smooth-representative direct constructor, prove the boundary/parity weak identity there, and then use `IntervalWeakH2Neumann.congr_on_Icc` to transfer to `chemDivLift p u v`.
+1. `conjugatePicardIter p u₀ 0` is definitionally
+   ```lean
+   fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+   ```
+   from `IntervalConjugatePicard.lean`.
+2. On `main`, `IntervalHeatSemigroupHighRegularity.lean` proves `heatSemigroup_contDiff_four` from bounded initial cosine coefficients and `t > 0`.
+3. On `main`, `IntervalChemDivSpatialC2.lean` contains the spatial C²/H² route for `chemDivLift` from global C⁴ cosine representatives.
+4. The remaining heat-level time step should prove the direct chain rule for
+   ```lean
+   s ↦ coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s n
+   ```
+   using `∂ₜ S(t)u₀ = Δ S(t)u₀` and the differentiated elliptic resolver source, then feed the already-landed coefficient bridge.
+
+The default-branch file `IntervalConjugateLevel0BFormSourceOn.lean` states exactly the requested theorem as
+
+```lean
+theorem level0_chemDiv_timeDerivData ... :
+  ∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
+    (∀ s ∈ Icc c T, ∀ n,
+      HasDerivWithinAt
+        (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
+        (adot s n) (Icc c T) s) ∧
+    (∀ n, ContinuousOn (fun s => adot s n) (Icc c T)) ∧
+    (∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot)
+```
+
+but it is currently `sorry` there.  The comment says the intended proof is direct from heat-semigroup regularity, not from resolver spectral agreement.
+
+## Minimal route I would implement
+
+Use the branch-local bridge and specialize only the analytic hypotheses to the heat level:
+
+```lean
+let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
+let adot : ℝ → ℕ → ℝ := coupledChemDivAdot p u
+
+-- analytic heat-level obligations:
+hchain : CoupledChemDivLocalChainRule p u
+hjoint : ContinuousOn
+  (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+  (Icc c T ×ˢ Icc 0 1)
+henv : ∃ env, Summable env ∧ (∀ n, 0 ≤ env n) ∧
+  ∀ s ∈ Icc c T, ∀ n, |coupledChemDivAdot p u s n| ≤ env n
+```
+
+Then:
+
+* `hderiv` is `coupledChemDivCoeff_hasDerivAt_of_chainRule hchain` plus `.hasDerivWithinAt`;
+* `hadotcont` is `cosineCoeffs_continuousOn_of_jointContinuousOn_Icc` applied to `coupledChemDivTimeDerivativeLift`;
+* `Mdot` is `chemDivAdot_Mdot_residual` or the default-branch quadratic-envelope producer after merging/importing it.
+
+So the practical answer is:
+
+* **Yes**, the coefficient `HasDerivAt`/`HasDerivWithinAt` bridge exists and is already in terms of `coupledChemDivAdot`.
+* **Continuity** is reduced to joint continuity of `coupledChemDivTimeDerivativeLift` on the compact slab.
+* **Boundedness** requires a summable/quadratic envelope for the `adot` coefficients; compactness plus per-mode continuity is insufficient.
+* **ResolverHasSpectralAgreement** is the existing generic way to get `v_t` regularity, but for `u = S(t)u₀` on `[c,T]`, a direct heat-series/elliptic-resolver proof should avoid it.  That direct proof is not fully landed on `chatgpt-scratch`.
