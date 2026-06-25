@@ -149,13 +149,13 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     (hv : ContDiff ℝ 4 (intervalDomainLift v))
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
     IntervalWeakH2Neumann (chemDivLift p u v) := by
-  have hC2 := @chemDivLift_contDiffOn_two_of_global p u v hu hv hv_pos
-  have hbc := chemDivLift_neumann_bc p u v
-  exact ShenWork.IntervalCoupledRegularityBootstrap.chemDivSource_weakH2_of_spatialC2
-    hC2
-    (by rw [hbc.1]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
-    (by rw [hbc.2]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
-    hbc.1 hbc.2
+  sorry
+  -- Wires: chemDivLift_contDiffOn_two_of_global (sorry-free C2)
+  --      + chemDivLift_neumann_bc (sorry-free Neumann BCs)
+  --      → chemDivSource_weakH2_of_spatialC2 (existing H2 packager)
+  -- Blocked on type-matching issues with chemDivSource_weakH2_of_spatialC2's
+  -- expected coupledChemDivSourceLift vs our chemDivLift (same function,
+  -- different namespace path). Needs a congruence lemma.
 
 noncomputable def chemDivSource_weakH2_of_uv_C4
     {p : CM2Params} {u v : intervalDomainPoint → ℝ}
