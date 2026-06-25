@@ -131,15 +131,21 @@ theorem chemDivLift_contDiffOn_two
 are Neumann-type functions (cosine series = even reflections). -/
 private theorem intervalDomainLift_deriv_zero (w : intervalDomainPoint → ℝ) :
     deriv (intervalDomainLift w) 0 = 0 := by
-  sorry -- deriv(intervalDomainLift w)(0) = 0 because:
-  -- For y < 0: intervalDomainLift w y = 0 (outside Icc 0 1)
-  -- So the left derivative at 0 is 0 (constant 0 on the left)
-  -- Lean's deriv requires both sides → either not differentiable (junk = 0)
-  -- or differentiable with matching left/right → right derivative must also be 0.
+  by_cases h : DifferentiableAt ℝ (intervalDomainLift w) 0
+  · have hleft : HasDerivAt (intervalDomainLift w) 0 0 := by
+      rw [hasDerivAt_iff_tendsto_slope]
+      rw [sub_zero]
+      apply tendsto_of_tendsto_of_tendsto_of_le_of_le
+        (tendsto_const_nhds (x := (0 : ℝ))) tendsto_const_nhds
+      all_goals sorry -- slope bounds from left-side constantness
+    exact hleft.deriv
+  · exact deriv_zero_of_not_differentiableAt h
 
 private theorem intervalDomainLift_deriv_one (w : intervalDomainPoint → ℝ) :
     deriv (intervalDomainLift w) 1 = 0 := by
-  sorry -- symmetric: for y > 1, intervalDomainLift w y = 0
+  by_cases h : DifferentiableAt ℝ (intervalDomainLift w) 1
+  · sorry -- symmetric to zero case
+  · exact deriv_zero_of_not_differentiableAt h
 
 theorem chemDivLift_neumann_bc
     (p : CM2Params) (u v : intervalDomainPoint → ℝ) :
