@@ -208,7 +208,16 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     second_intervalIntegrable := hF_H2.second_intervalIntegrable
     second_abs_integral_bound := hF_H2.second_abs_integral_bound
     weak_cosine_laplacian := fun k => by
-      sorry }
+      have hF_wl := hF_H2.weak_cosine_laplacian k
+      convert hF_wl using 1
+      symm
+      apply intervalIntegral.integral_congr_ae
+      have hne1 : ∀ᵐ x ∂MeasureTheory.volume, x ≠ (1 : ℝ) := by
+        rw [Filter.eventually_iff_exists_mem]; refine ⟨{(1:ℝ)}ᶜ, ?_, fun x hx => hx⟩
+        rw [Filter.mem_ae_iff]; simp [Real.volume_singleton]
+      filter_upwards [hne1] with x hne1 hmem
+      rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hmem
+      rw [h_ioo x ⟨hmem.1, lt_of_le_of_ne hmem.2 hne1⟩] }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
