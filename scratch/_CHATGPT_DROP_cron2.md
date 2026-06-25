@@ -1,473 +1,441 @@
-# Q343 (cron2): heat smoothing, EWA start data, and the χ₀<0 unconditional route
+# Q363 (cron2): `LimitRegularityInputs` and the χ₀<0 resolver-data route
 
 ## Executive verdict
 
-The obstruction is **real for the current EWA framework**, but it is **not a mathematical requirement of Paper 2 local existence**.
+I read the current definitions.
 
-A merely positive continuous datum on `[0,1]` need not have absolutely summable cosine coefficients, so it need not produce a `WA 1` datum. The EWA fixed-point tower still requires exactly that `WA 1` datum:
+`MildLocalChi0.LimitRegularityInputs` is **not** a mild-fixed-point package. It contains exactly one field that is the mild equation (`hfix`) plus a large amount of independent datum/coefficient/spectral/spatial/classical/frontier data. The current definition does **not** ask for datum absolute cosine summability as a field; it asks for a bounded datum-coefficient witness (`M₀`, `hu₀_bound`) and for per-slice summability/series representation (`bc`, `hbsum`, `hagree`).
 
-```lean
-hsumc : Summable (fun k => |cosineCoeffs u₀ k|)
-hmem  : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))
-```
+From the mild contraction fixed point **alone**, the only `LimitRegularityInputs` field I would count as directly produced is `hfix`. If one also carries the ordinary external hypotheses used to launch the fixed point, then `hα`, `ha`, `hb`, `hu₀_cont`, and possibly elementary bounded-coefficient/ball facts can be supplied from those external assumptions/packages. But that is not “from the fixed-point equality alone,” and it does not produce the spectral K1/K2 ledger, `hpde_u`, `Hvsrc`, or `Hvpos`.
 
-This is visible in the current χ₀<0 source-form fixed-point engine and in the strong-datum wrapper.
+`Hu` is the one subtle exception: `IntervalDomainLedgerSweep.lean` now deletes `Hu` from a reduced ledger and reconstructs it. But that reconstruction still uses the heavy reduced ledger fields (`hsrc0`, `bc/hbsum/hagree`, `hG1t/hG2t`, K1 coefficient time-C¹ data, etc.). So `Hu` is derivable from the **reduced regularity ledger**, not from the mild fixed point alone.
 
-There is **partial heat-smoothing infrastructure** in the repo:
+The repo **does** contain
 
 ```lean
-ShenWork.Wiener.EWA.HeatSmoothing.heat_L2_to_memHSob
-ShenWork.Wiener.EWA.HeatSmoothing.heat_L2_to_memWNorm
+coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
 ```
 
-but it is not yet the exact bridge needed for the EWA tower, namely:
+in `ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean`. It takes `CoupledFluxResolverAnalyticData`. That object is a nested `Prop`, not a structure with projections. Its final datum-level payload is:
+
+1. `IntervalCoupledResolverBallEstimates p (intervalNeumannResolverR p) u0 T Mball K`, and
+2. a regularization bridge from any bounded coupled-Duhamel fixed point with `v = intervalNeumannResolverR p (u t)` to `RegularityBootstrap p T u0 u`.
+
+So `CoupledFluxResolverAnalyticData` is **not easier than `hregularize` in the absolute sense**: it includes an `hregularize`-shaped obligation plus resolver ball estimates and uniform parameter choices. It is cleaner than the χ₀=0 spectral ledger only in the sense that it avoids the `LimitRegularityInputs` K1/K2 cosine-restart machinery. The hard PDE/classical-bootstrap content remains.
+
+## Lean probes used
 
 ```lean
-0 < t₀ → Continuous u₀ → bounded cosine coefficients of u₀
-→ MemW 1 (ofCosineCoeffs (fun k => exp (-t₀ * λ_k) * cosineCoeffs u₀ k))
-```
+import ShenWork.Paper2.IntervalDomainMildLocalChi0
+import ShenWork.Paper2.IntervalDomainLedgerSweep
 
-The closest landed ingredients are `HeatSmoothing.lean` and the level-0 heat-slice coefficient identity:
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain
+  (intervalDomain intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
+open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.IntervalMildTimeDerivContinuity
+  (HasTimeNeighborhoodSpectralAgreement)
+open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
+
+#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs
+#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs.hfix
+#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs.Hu
+#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs.Hvsrc
+#check ShenWork.Paper2.LedgerSweep.ReducedLimitRegularityInputs
+#check ShenWork.Paper2.LedgerSweep.Hu_of_reduced
+#check ShenWork.Paper2.LedgerSweep.limitRegularityInputs_of_reduced
+```
 
 ```lean
-heatSliceCoeff_eq_damped :
-  cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k
-    = Real.exp (-σ * λ_k) * heatCoeff u₀ k
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.PDE
+open ShenWork.Paper2.ChiNegResidual
+
+#check CoupledFluxClassicalLocalExistenceResidual
+#check CoupledFluxResolverAnalyticData
+#check exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
+#check coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
+#check IntervalCoupledResolverBallEstimates
+#check RegularityBootstrap
 ```
 
-So the positive-time smoothing fix is analytically right, but the exact `S(t₀)u₀ ∈ WA 1` bridge is not obviously already packaged as a theorem.
+## 1. Exact contents of `LimitRegularityInputs`
 
-The clean strategic fix is **not** “EWA from the raw datum.” It is:
+Definition read from `ShenWork/Paper2/IntervalDomainMildLocalChi0.lean`:
+
+```lean
+import ShenWork.Paper2.IntervalDomainMildLocalChi0
+
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain
+  (intervalDomain intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
+open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.IntervalMildTimeDerivContinuity
+  (HasTimeNeighborhoodSpectralAgreement)
+open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
+
+-- Current object:
+#check ShenWork.Paper2.MildLocalChi0.LimitRegularityInputs
+
+-- The full structure, as read, has these fields:
+--
+-- structure LimitRegularityInputs
+--     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+--     (D : GradientMildSolutionData p u₀) where
+--   hα : 1 ≤ p.α
+--   ha : 0 ≤ p.a
+--   hb : 0 ≤ p.b
+--   hu₀_cont : Continuous u₀
+--   M₀ : ℝ
+--   hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+--   hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ,
+--     (hx : x ∈ Set.Icc (0:ℝ) 1) →
+--       intervalDomainLift (D.u t) x =
+--         intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
+--   hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
+--     (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T
+--   Msup : ℝ
+--   bc : ℝ → ℕ → ℝ
+--   hbsum : ∀ σ, 0 < σ → σ < D.T →
+--     Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+--   hagree : ∀ σ, 0 < σ → σ < D.T →
+--     Set.EqOn (intervalDomainLift (D.u σ))
+--       (fun x => ∑' n, bc σ n * cosineMode n x)
+--       (Set.Icc (0 : ℝ) 1)
+--   hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+--     0 < intervalDomainLift (D.u σ) x
+--   hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+--     intervalDomainLift (D.u σ) x ≤ Msup
+--   hG1t : ∀ a' b', 0 < a' → b' < D.T → ∃ G1,
+--     ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+--       |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
+--   hG2t : ∀ a' b', 0 < a' → b' < D.T → ∃ G2,
+--     ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+--       |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
+--   hN0t : ∀ σ, 0 < σ → σ < D.T →
+--     deriv (intervalDomainLift (D.u σ)) 0 = 0
+--   hN1t : ∀ σ, 0 < σ → σ < D.T →
+--     deriv (intervalDomainLift (D.u σ)) 1 = 0
+--   adott : ℝ → ℕ → ℝ
+--   hderivt : ∀ σ, 0 < σ → σ < D.T → ∀ k,
+--     HasDerivAt
+--       (fun r => cosineCoeffs
+--         (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u r))) k)
+--       (adott σ k) σ
+--   hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T)
+--   hMdott : ∀ a' b', 0 < a' → b' < D.T → ∃ Mdot,
+--     ∀ σ ∈ Set.Icc a' b', ∀ k, |adott σ k| ≤ Mdot
+--   hLc : ∀ t, 0 < t → t < D.T →
+--     ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
+--   hpde_u :
+--     ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
+--       intervalDomain.timeDeriv D.u t x =
+--         intervalDomain.laplacian (D.u t) x
+--           - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
+--               (mildChemicalConcentration p D.u t) x
+--           + D.u t x * (p.a - p.b * (D.u t x) ^ p.α)
+--   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
+--   Hvsrc : ∀ t₀, 0 < t₀ → t₀ < D.T →
+--     ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
+--       W ∈ 𝓝 t₀ ∧
+--       (∀ s ∈ W, ∀ k,
+--         aC s k = (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
+--   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
+--     0 < mildChemicalConcentration p D.u t x
+```
+
+Grouped semantically, that is:
+
+* Regime fields: `hα`, `ha`, `hb`.
+* Datum fields: `hu₀_cont`, `M₀`, `hu₀_bound`.
+* Fixed-point field: `hfix`.
+* Weak source package: `hsrc0` for the patched logistic-source coefficients.
+* K2/slice representation and spatial bounds: `Msup`, `bc`, `hbsum`, `hagree`, `hpost`, `hubt`, `hG1t`, `hG2t`, `hN0t`, `hN1t`.
+* K1/time-coefficient data: `adott`, `hderivt`, `hadotcontt`, `hMdott`.
+* H3 slice continuity: `hLc`.
+* Frontier/classical residuals: `hpde_u`, `Hu`, `Hvsrc`, `Hvpos`.
+
+Important correction to older mental models: there is no current `HsupNorm` field in this structure, and there is no datum field literally saying `Summable (fun k => |cosineCoeffs (intervalDomainLift u₀) k|)`. The datum field is the uniform bound `hu₀_bound`; the summability field in this structure is the per-positive-slice representation field `hbsum`.
+
+## 2. What can be produced from the mild fixed point alone?
+
+By “mild fixed point alone,” I mean just the equality `u = Φ(u)` produced by the contraction/Picard step, not the whole surrounding cone package, not the PID hypotheses, and not extra spectral regularity inputs.
+
+Under that interpretation:
+
+* Directly produced: `hfix`.
+* Not produced by the fixed-point equality itself: essentially everything else.
+
+More nuanced split:
+
+* `hα`, `ha`, `hb` are regime assumptions on `p`, not consequences of a fixed point.
+* `hu₀_cont` is from the initial datum/PID assumption, not from the fixed point.
+* `M₀`/`hu₀_bound` are not datum absolute summability. They are plausibly routine from bounded/continuous datum plus coefficient estimates, but still not from the fixed-point equality alone.
+* `hpost`/`hubt` may be available from the stronger cone/closed-ball construction package, depending on which `D` is in hand, but not from the equality `u = Φ(u)` alone.
+* `hsrc0`, `bc`, `hbsum`, `hagree`, `hG1t`, `hG2t`, `hN0t`, `hN1t`, `adott`, `hderivt`, `hadotcontt`, `hMdott`, and `hLc` are the real K1/K2/continuity regularity ledger. They require spectral/coefficient/spatial bootstrap inputs. They are not consequences of a bare contraction fixed point.
+* `hpde_u` is the pointwise parabolic PDE. The file comments explicitly treat it as a residual because the available mild-to-PDE producer is circular at this layer.
+* `Hvsrc` is a per-`t₀` clamped resolver-source `DuhamelSourceTimeC1` witness. It is not generated by the u-fixed-point equation alone.
+* `Hvpos` is strict positivity of the elliptic chemical concentration. The ledger comments treat this as a strong-maximum-principle type residual.
+
+The special case is `Hu`. `IntervalDomainLedgerSweep.lean` defines `ReducedLimitRegularityInputs` by deleting `Hu`, and proves:
+
+```lean
+import ShenWork.Paper2.IntervalDomainLedgerSweep
+
+open ShenWork.Paper2.LedgerSweep
+
+#check ReducedLimitRegularityInputs
+#check Hu_of_reduced
+#check limitRegularityInputs_of_reduced
+```
+
+That gives the theorem-level fact:
+
+```lean
+-- Conceptually:
+-- ReducedLimitRegularityInputs p u₀ D  +  hχ0 : p.χ₀ = 0
+--   ⟹ HasTimeNeighborhoodSpectralAgreement D.T D.u
+--   ⟹ LimitRegularityInputs p u₀ D
+```
+
+But `Hu_of_reduced` consumes the reduced ledger fields (`hsrc0`, `bc/hbsum/hagree`, positivity/sup bounds, K2 compact gradient/Hessian bounds, K1 time-C¹ data, and `hLc`). It is **not** a theorem saying that the contraction fixed point alone implies `Hu`.
+
+So the answer to the practical question is: without the spectral/coefficient datum/ledger, the mild contraction fixed point only gives the fixed-point equation. It does not fill `hregularize`/`LimitRegularityInputs`.
+
+## 3. The χ₀<0 resolver-data theorem exists
+
+Yes, the repo has the theorem in `ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean`:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.Paper2.ChiNegResidual
+
+#check coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
+```
+
+Its statement is:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.Paper2.ChiNegResidual
+
+-- theorem coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
+--     (p : CM2Params) (hα : 1 ≤ p.α)
+--     (H : CoupledFluxResolverAnalyticData p) :
+--     CoupledFluxClassicalLocalExistenceResidual p
+#check coupledFluxClassicalLocalExistenceResidual_of_resolverAnalyticData
+```
+
+The target residual is:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2.ChiNegResidual
+
+-- def CoupledFluxClassicalLocalExistenceResidual (p : CM2Params) : Prop :=
+--   ∀ M : ℝ, 0 < M → ∃ delta : ℝ, 0 < delta ∧
+--     ∀ {u0 : intervalDomain.Point → ℝ},
+--       PositiveInitialDatum intervalDomain u0 →
+--       (∀ x, |u0 x| ≤ M) →
+--         ∃ u v,
+--           IsPaper2ClassicalSolution intervalDomain p delta u v ∧
+--           InitialTrace intervalDomain u0 u
+#check CoupledFluxClassicalLocalExistenceResidual
+```
+
+## 4. Exact contents of `CoupledFluxResolverAnalyticData`
+
+`CoupledFluxResolverAnalyticData` is not a structure. It is a nested `Prop` with quantifiers and conjunctions. Definition read from `IntervalDomainThm11ChiNegResidual.lean`:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.PDE
+open ShenWork.Paper2.ChiNegResidual
+
+-- Current object:
+#check CoupledFluxResolverAnalyticData
+
+-- Full definition, as read:
+-- def CoupledFluxResolverAnalyticData (p : CM2Params) : Prop :=
+--   ∀ M : ℝ, 0 < M →
+--     ∃ Mball : ℝ, 0 < Mball ∧ M ≤ Mball ∧
+--       ∀ L : ℝ, 0 < L →
+--         ∃ T A K : ℝ, 0 < T ∧ 0 < A ∧ 0 ≤ K ∧ A * T < 1 ∧
+--           |p.χ₀| * K + L ≤ A ∧
+--             ∀ {u0 : intervalDomain.Point → ℝ},
+--               PositiveInitialDatum intervalDomain u0 →
+--               (∀ x, |u0 x| ≤ M) →
+--                 IntervalCoupledResolverBallEstimates p
+--                   (intervalNeumannResolverR p) u0 T Mball K ∧
+--                 ∀ u v : ℝ → intervalDomain.Point → ℝ,
+--                   intervalTrajectoryBoundedOn T Mball u →
+--                   (∀ t x, 0 ≤ t → t ≤ T →
+--                     u t x = intervalCoupledDuhamelOperator p
+--                       (intervalNeumannResolverR p) u0 u t x) →
+--                   (∀ t, v t = intervalNeumannResolverR p (u t)) →
+--                     RegularityBootstrap p T u0 u
+```
+
+Spelled out as “fields”:
+
+* For every datum size `M > 0`, choose a fixed-point ball radius `Mball`.
+* Prove `0 < Mball` and `M ≤ Mball`.
+* For every positive logistic Lipschitz constant `L`, choose `T`, `A`, and `K`.
+* Prove numeric constraints:
+  * `0 < T`,
+  * `0 < A`,
+  * `0 ≤ K`,
+  * `A * T < 1`,
+  * `|p.χ₀| * K + L ≤ A`.
+* For every positive initial datum `u0` with `|u0| ≤ M`, provide:
+  * `IntervalCoupledResolverBallEstimates p (intervalNeumannResolverR p) u0 T Mball K`, and
+  * for every `u v`, a regularization bridge:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.PDE
+open ShenWork.Paper2.ChiNegResidual
+
+-- This is the second datum-level conjunct inside CoupledFluxResolverAnalyticData:
+--
+-- ∀ u v : ℝ → intervalDomain.Point → ℝ,
+--   intervalTrajectoryBoundedOn T Mball u →
+--   (∀ t x, 0 ≤ t → t ≤ T →
+--     u t x = intervalCoupledDuhamelOperator p
+--       (intervalNeumannResolverR p) u0 u t x) →
+--   (∀ t, v t = intervalNeumannResolverR p (u t)) →
+--     RegularityBootstrap p T u0 u
+#check RegularityBootstrap
+```
+
+The `IntervalCoupledResolverBallEstimates` conjunct itself is also a nested `Prop`, with four pieces:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.PDE
+
+#check IntervalCoupledResolverBallEstimates
+
+-- Conceptually, for IntervalCoupledResolverBallEstimates p R u₀ T M K:
+--
+-- (1) self-map bound:
+--     any trajectory bounded by M on [0,T] is sent by the coupled Duhamel map
+--     back into the M-ball.
+--
+-- (2) chemotaxis-divergence Lipschitz bound:
+--     if u₁,u₂ are in the M-ball and differ by at most D, then
+--     |chemDiv(u₁,Ru₁) - chemDiv(u₂,Ru₂)| ≤ K * D.
+--
+-- (3) time-integrability of the Duhamel integrand:
+--     IntegrableOn in s over Set.Icc 0 t.
+--
+-- (4) lifted-source integrability:
+--     Integrable (intervalDomainLift (intervalCoupledSource ...))
+--     against intervalMeasure 1.
+```
+
+There is also a structural producer `IntervalCoupledResolverBallEstimatesProducer.produce` that assembles these four pieces from more primitive estimates: initial-data bound, source sup bound, chemDiv `K·D` Lipschitz, component sup bounds, and measurability of the semigroup integrand and lifted source. That producer **does not** prove the regularization bridge; it just packages the ball estimates.
+
+## 5. Is `CoupledFluxResolverAnalyticData` easier to produce than `hregularize`?
+
+No, not as a whole.
+
+The key reason is that `CoupledFluxResolverAnalyticData` literally contains a regularization bridge of this shape:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.PDE
+open ShenWork.Paper2.ChiNegResidual
+
+-- The hregularize argument in exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
+-- has the same essential shape:
+--
+-- hregularize :
+--   ∀ u v : ℝ → intervalDomainPoint → ℝ,
+--     intervalTrajectoryBoundedOn T M u →
+--     (∀ t x, 0 ≤ t → t ≤ T →
+--       u t x = intervalCoupledDuhamelOperator p R u0 u t x) →
+--     (∀ t, v t = R (u t)) →
+--       RegularityBootstrap p T u0 u
+#check exactLocalClassicalSolution_of_coupledDuhamel_resolver_estimates
+```
+
+And `RegularityBootstrap` itself is the classical/PDE payload:
+
+```lean
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.PDE
+
+-- def RegularityBootstrap (p : CM2Params) (T : ℝ)
+--     (u₀ : intervalDomainPoint → ℝ)
+--     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+--   ∃ v : ℝ → intervalDomainPoint → ℝ,
+--     (∀ t x, 0 < t → t < T → 0 < u t x) ∧
+--     (∀ t x, 0 < t → t < T → 0 ≤ v t x) ∧
+--     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+--       intervalDomain.timeDeriv u t x =
+--         intervalDomain.laplacian (u t) x
+--           - p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) x
+--           + u t x * (p.a - p.b * (u t x) ^ p.α)) ∧
+--     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+--       0 = intervalDomain.laplacian (v t) x
+--         - p.μ * v t x + p.ν * (u t x) ^ p.γ) ∧
+--     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.boundary →
+--       intervalDomain.normalDeriv (u t) x = 0 ∧
+--       intervalDomain.normalDeriv (v t) x = 0) ∧
+--     intervalDomainClassicalRegularity T u v ∧
+--     InitialTrace intervalDomain u₀ u
+#check RegularityBootstrap
+```
+
+Thus, `CoupledFluxResolverAnalyticData` is better understood as:
 
 ```text
-canonical/local PDE chain for arbitrary positive C⁰ datum u₀
-  → get a classical/mild solution on [0,t₀]
-  → use u(t₀) as a smooth/Wiener datum for the EWA/source-regularity chain
-  → glue/identify by uniqueness on the overlap, or use the EWA chain only as a positive-time regularity supplier.
+uniform parameter choices
++ resolver self-map / chemDiv-Lipschitz / integrability estimates
++ hregularize-like RegularityBootstrap bridge
 ```
 
-The repo already has forward restart/glue infrastructure, but it does **not** take a solution constructed only after `t₀` and extend it backward to the original datum. To connect back to `t=0`, you still need the canonical local solution from `u₀` on `[0,t₀]`, then restart from an interior slice.
+The first two parts are more modular than the χ₀=0 `LimitRegularityInputs` spectral restart ledger. But the last part is exactly the hard classical bootstrap/comparison/regularity content. Producing `CoupledFluxResolverAnalyticData` is therefore **not** a shortcut around `hregularize`; it is a wrapper that still asks for it, in a resolver-specialized form.
 
-## 1. Heat smoothing → cosine summability: what is actually in the repo?
+## Bottom line for the route decision
 
-### 1.1 `HeatFloorIcc.lean` is not the smoothing bridge
-
-`HeatFloorIcc.lean` is about the **positivity floor**, not about manufacturing Wiener summability. Its docstring explicitly says the remaining datum-level gap is:
-
-```text
-obstruction (a) — the Wiener-ℓ¹ / absolute cosine summability `Summable |c₀ k|`
-and the corresponding `MemW` membership — which the C(Ω̄)+floor class does NOT supply.
-```
-
-The theorem it ultimately provides still takes both summability and `MemW` as inputs:
-
-```lean
-import ShenWork.Wiener.EWA.HeatFloorIcc
-
-open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
-open ShenWork.IntervalNeumannFullKernel
-
-#check ShenWork.EWA.heatEWA_uniformFloor_Icc
--- theorem heatEWA_uniformFloor_Icc
---   {u₀ : ℝ → ℝ} (hu₀ : Continuous u₀) {δ : ℝ}
---   (hfloor : ∀ y ∈ Set.Icc (0 : ℝ) 1, δ ≤ u₀ y)
---   (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
---   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
---   UniformFloor (heatEWA (T := T)
---     (⟨ofCosineCoeffs (cosineCoeffs u₀), hmem⟩ : WA 1)) δ
-
-#check ShenWork.EWA.paperFloorDatum_heatEWA_uniformFloor
--- theorem paperFloorDatum_heatEWA_uniformFloor
---   ...
---   (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
---   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
---   UniformFloor (heatEWA ... ) η
-```
-
-So `HeatFloorIcc` discharges the **floor** from closed-domain positivity; it deliberately does **not** discharge the raw datum `MemW 1` obstruction.
-
-### 1.2 `HeatFlow.lean` constructs heat flow only from an existing `WA r` input
-
-`HeatFlow.lean` has:
-
-```lean
-import ShenWork.Wiener.EWA.HeatFlow
-
-open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
-
-#check ShenWork.EWA.heatEWA
--- noncomputable def heatEWA (u₀E : WA r) : EWA T r
-
-#check ShenWork.EWA.heatEWA_mem
--- theorem heatEWA_mem (u₀E : WA r) :
---   GMemW (K := CT T) r (fun n => heatModeCT n (u₀E.toFun n))
-```
-
-This proves the heat evolution preserves a Wiener datum already in `WA r`. It does not turn arbitrary continuous data into `WA r`.
-
-### 1.3 `HeatSmoothing.lean` is close, but not the exact `WA 1` bridge
-
-There is a useful heat-smoothing file:
-
-```lean
-import ShenWork.Wiener.EWA.HeatSmoothing
-
-open ShenWork.Wiener.EWA
-
-#check ShenWork.Wiener.EWA.heat_L2_to_memHSob
--- theorem heat_L2_to_memHSob {θ t : ℝ}
---   (hθ : 0 ≤ θ) (ht : 0 < t) {f : ℕ → ℝ}
---   (hf : MemL2 f) : MemHSob θ (heatCoeff t f)
-
-#check ShenWork.Wiener.EWA.heat_L2_to_memWNorm
--- theorem heat_L2_to_memWNorm {θ t : ℝ}
---   (hθ : (1 / 2 : ℝ) < θ) (ht : 0 < t) {f : ℕ → ℝ}
---   (hf : MemL2 f) : MemWNorm 0 (heatCoeff t f)
-```
-
-This proves positive-time smoothing into `A⁰ = MemWNorm 0`. Since `heat_L2_to_memHSob` is for arbitrary `θ ≥ 0`, one should be able to get an `A¹` version by composing with:
-
-```lean
-#check ShenWork.Wiener.EWA.memWNorm_of_memHSob
--- theorem memWNorm_of_memHSob {σ s : ℝ}
---   (hs : σ + 1 / 2 < s) {a : ℕ → ℝ}
---   (ha : MemHSob s a) : MemWNorm σ a
-```
-
-with `σ := 1` and any `s > 3/2`.
-
-But I did not find an already-packaged theorem of the exact form:
-
-```lean
-heat_C0_to_MemW1_or_WA1_at_positive_time
-```
-
-nor a theorem that directly produces:
-
-```lean
-MemW 1 (ofCosineCoeffs (fun k => Real.exp (-t₀ * λ_k) * cosineCoeffs u₀ k))
-```
-
-from `Continuous u₀` or `PositiveInitialDatum`.
-
-### 1.4 The closest concrete coefficient identity is already present
-
-For the level-0 heat slice, the repo has:
-
-```lean
-import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
-
-open ShenWork.IntervalPicardLevel0SourceTimeC1On
-
-#check heatSliceCoeff_eq_damped
--- theorem heatSliceCoeff_eq_damped
---   (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---   {σ M₀ : ℝ} (hσ : 0 < σ) (hu₀_cont : Continuous u₀)
---   (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) (k : ℕ) :
---   cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k =
---     Real.exp (-σ * λ_k) * heatCoeff u₀ k
-```
-
-This is nearly the bridge you want. Given a crude uniform coefficient bound on the raw cosine coefficients, the exponential damping gives weighted ℓ¹ summability for positive `σ`. What still seems missing is the final packaging into `MemW 1` / `WA 1` for the smoothed datum.
-
-A plausible missing theorem shape is:
-
-```lean
-import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
-import ShenWork.Wiener.EWA.HeatFlow
-
-open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
-open ShenWork.IntervalNeumannFullKernel
-open ShenWork.IntervalPicardLevel0SourceTimeC1On
-
--- Suggested missing bridge.
-theorem heatSlice_MemW1_of_coeff_bound
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) :
-    MemW 1 (ofCosineCoeffs
-      (fun k => cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k)) := by
-  -- Use `heatSliceCoeff_eq_damped` to rewrite coefficients as
-  --   exp(-σ λ_k) * heatCoeff u₀ k.
-  -- Bound by `M₀ * exp(-σ λ_k)`.
-  -- Prove `∑ (1+k) * M₀ * exp(-σ λ_k)` summable from the existing heat-trace
-  -- exponential summability lemmas.
-  -- Then fold through `ofCosineCoeffs`/`MemW 1`.
-  sorry
-```
-
-That bridge is finite and much smaller than the original global EWA obstruction.
-
-## 2. Restart / continuation: what exists and what it does
-
-The repo has a forward restart-and-glue interface:
-
-```lean
-import ShenWork.Paper2.IntervalDomainRestartExtension
-
-open ShenWork.Paper2.RestartExtension
-
-#check RestartAndGlueWorks
--- def RestartAndGlueWorks (p : CM2Params) : Prop :=
---   ∀ {M δ : ℝ}, 0 < M → 0 < δ →
---     (∀ {w : intervalDomain.Point → ℝ},
---       PositiveInitialDatum intervalDomain w →
---       (∀ x, |w x| ≤ M) →
---       ∃ uw vw, IsPaper2ClassicalSolution intervalDomain p δ uw vw ∧
---         InitialTrace intervalDomain w uw) →
---     ∀ {u₀}, PositiveInitialDatum intervalDomain u₀ →
---       (∀ x, |u₀ x| ≤ M) →
---     ∀ {T₀}, 0 < T₀ →
---     ∀ {u v}, IsPaper2ClassicalSolution intervalDomain p T₀ u v →
---       InitialTrace intervalDomain u₀ u →
---       (∀ t, 0 < t → t < T₀ → ∀ x, |u t x| ≤ M) →
---       ∃ u' v', IsPaper2ClassicalSolution intervalDomain p (T₀ + δ / 2) u' v' ∧
---         InitialTrace intervalDomain u₀ u'
-```
-
-And a concrete glue theorem from explicit hypotheses:
-
-```lean
-import ShenWork.Paper2.IntervalDomainGlueExtension
-
-open ShenWork.Paper2.GlueExtension
-
-#check restartAndGlueWorks_of_hypotheses
--- theorem restartAndGlueWorks_of_hypotheses
---   (p : CM2Params)
---   (hRegShift : TimeShift.RegularityTimeShiftWorks)
---   (hOverlap : OverlapUniqueForPID p)
---   (hTraceShift : TimeShiftInitialTraceWorks)
---   (hPR : PiecewiseGlue.PiecewiseClassicalWorks p) :
---   RestartAndGlueWorks p
-```
-
-This is a **forward extension** mechanism. It assumes an existing solution on `[0,T₀]`, restarts from an interior slice near `T₀`, and glues forward. It does not say:
-
-```text
-given a solution on (t₀,t₀+T), extend backward to initial datum u₀ at t=0.
-```
-
-So the proposed “start EWA at `S(t₀)u₀`, then extend back to `t=0`” is not directly supported as a backward theorem. The Lean-faithful way is:
-
-```text
-1. Use canonical/local existence from u₀ to build a solution on [0,t₀].
-2. Use an interior slice u(t₀) or u(t₀/2) as the restart datum.
-3. Run the EWA or source-regularity chain from that positive-time datum.
-4. Glue forward using overlap uniqueness / time-shift / piecewise-classical infrastructure.
-```
-
-This matches how `RestartAndGlueWorks` is typed.
-
-## 3. Does the canonical Picard chain require cosine summability?
-
-The core canonical gradient-mild Picard chain does **not** expose a `MemW 1` or absolute cosine summability assumption in its primary data structure.
-
-`MildExistenceData` is function-space / kernel-based:
-
-```lean
-import ShenWork.Paper2.IntervalMildPicard
-
-open ShenWork.IntervalMildPicard
-
-#check MildExistenceData
--- structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) where
---   T M K C₀ : ℝ
---   hbase_ball : ... |picardIter p u₀ 0 t x| ≤ M
---   hbase_nonneg : ... 0 ≤ picardIter p u₀ 0 t x
---   hbase_cont : HasContinuousSlices T (picardIter p u₀ 0)
---   hmapsTo / hmapsTo_nn / hmapsTo_pos
---   hcont_preserved
---   hcontr
---   hbase_diff
---   hbase_meas
---   hmeas_preserved
-```
-
-The output is:
-
-```lean
-#check intervalMildSolution_of_data
--- theorem intervalMildSolution_of_data
---   (D : MildExistenceData p u₀) :
---   ∃ T > 0, ∃ u, IntervalMildSolution p T u₀ u
-
-#check GradientMildSolutionData
-#check gradientMildSolutionData_of_data
-```
-
-This layer is not the EWA layer. It defines Picard iterates as plain functions and uses the Neumann heat kernel / Duhamel map machinery. The module docstring even says it avoids the bounded-continuous-function topology and proceeds by pointwise Cauchy convergence.
-
-At the theorem-assembly level, the repo has a local-existence input stated for every positive admissible datum:
-
-```lean
-import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
-
-open ShenWork.Paper2
-
-#check IntervalDomainGradientMildLocalData
--- def IntervalDomainGradientMildLocalData (p : CM2Params) : Prop :=
---   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
---     ∃ D : GradientMildSolutionData p u₀,
---       initial-approach ∧
---       IsPaper2ClassicalSolution intervalDomain p D.T D.u ...
-
-#check localExistence_of_gradientMildLocalData
--- theorem localExistence_of_gradientMildLocalData
---   (p : CM2Params)
---   (hMildLocal : IntervalDomainGradientMildLocalData p) :
---   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
---     ∃ Tmax > 0, ∃ u v,
---       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
---       InitialTrace intervalDomain u₀ u
-```
-
-There is also a B-form positive-datum route:
-
-```lean
-import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistence
-
-open ShenWork.Paper2.BFormPositiveDatumLocal
-
-#check PositiveDatumBFormLocalHyp
--- def PositiveDatumBFormLocalHyp (p : CM2Params) : Prop :=
---   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
---     Nonempty (PositiveDatumBFormLocalComponents p u₀)
-
-#check positiveDatum_localExistence_of_BForm
--- theorem positiveDatum_localExistence_of_BForm
---   (hBForm : PositiveDatumBFormLocalHyp p) :
---   ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
---     ∃ Tmax > 0, ∃ u v,
---       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
---       InitialTrace intervalDomain u₀ u
-```
-
-So yes: the canonical chain can be routed over arbitrary positive continuous data, modulo its own Picard/local-classical side conditions. It does not require the raw datum to be a `WA 1` datum.
-
-## 4. Is the cosine-summability obstruction an EWA artifact?
-
-Yes. It is an artifact of the **EWA source-form fixed-point framework**, not a genuine mathematical requirement for Keller–Segel local existence from positive continuous data.
-
-The evidence is visible in the EWA fixed-point theorem:
-
-```lean
-import ShenWork.Wiener.EWA.SourceUncondFixedPoint
-
-open ShenWork.EWA
-
-#check picardEWA_uncond_fixedPoint
--- theorem picardEWA_uncond_fixedPoint ...
---   (hsumc : Summable (fun k => |cosineCoeffs u₀ k|))
---   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀)))
---   ...
---   ∃ u_star ∈ closedBall (heatEWA ... ) ρ,
---     u_star = picardEWA ... u_star
-```
-
-And in the strong-datum wrapper:
-
-```lean
-#check chiNegStrong_heatFloor_of_paperDatum
--- theorem chiNegStrong_heatFloor_of_paperDatum
---   ...
---   (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
---   (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
---   ∃ η > 0, UniformFloor (heatEWA ... ) η
-```
-
-The comments in `SourceChiNegUncondFix.lean` identify the same issue: the strong datum supplies the floor, but not the cosine-summability/Wiener membership. It says the remaining residual includes the per-slice realization frontier and notes that the EWA fixed-point engine still needs standard `hsumc`/`hmem` inputs.
-
-Mathematically, positive-time heat smoothing eliminates the rough datum issue. Lean-wise, the correct hybrid plan is:
-
-```text
-A. Use the canonical local-existence chain from raw positive C⁰ datum u₀.
-B. Pick t₀ > 0 inside that local solution.
-C. Prove the slice u(t₀) has the coefficient envelope needed by EWA:
-     MemW 1 (ofCosineCoeffs (cosineCoeffs (intervalDomainLift (u t₀))))
-   or a direct `Bv` envelope for `embedEWA`.
-D. Run the EWA/source-regularity chain on the restarted interval with datum u(t₀).
-E. Glue/identify with the canonical solution using overlap uniqueness, or only use EWA to supply positive-time regularity fields.
-```
-
-## Recommended next theorem targets
-
-### Target 1: exact positive-time heat-to-`WA 1` bridge
-
-This is the missing small bridge if the restart datum is literally a heat slice:
-
-```lean
-import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
-import ShenWork.Wiener.EWA.HeatFlow
-
-open ShenWork.IntervalPicardLevel0SourceTimeC1On
-open ShenWork.GWA ShenWork.Wiener ShenWork.EWA
-open ShenWork.IntervalNeumannFullKernel
-
--- Suggested target.
-theorem heatSlice_MemW1_of_coeff_bound
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) :
-    MemW 1 (ofCosineCoeffs
-      (fun k => cosineCoeffs (intervalDomainLift (picardIter p u₀ 0 σ)) k)) := by
-  -- Rewrite by `heatSliceCoeff_eq_damped`.
-  -- Bound by `M₀ * exp(-σ λ_k)`.
-  -- Use exponential summability with polynomial weight `(1+k)`.
-  -- Fold through `ofCosineCoeffs`.
-  sorry
-```
-
-### Target 2: general positive-time solution-slice Wiener bridge
-
-For the actual nonlinear solution, this is the stronger target:
-
-```lean
-import ShenWork.Wiener.EWA.EmbedEWA
-
-open ShenWork.EWA
-
--- Suggested target.
-theorem classical_positive_time_slice_has_A1_envelope
-    {p : CM2Params} {T t₀ : ℝ}
-    {u v : ℝ → intervalDomainPoint → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    (ht₀ : 0 < t₀) (ht₀T : t₀ < T) :
-    ∃ Bv : ℕ → ℝ,
-      (∀ k, 0 ≤ Bv k) ∧
-      Summable (fun k => (1 + (k : ℝ)) * Bv k) ∧
-      (∀ k, |cosineCoeffs (intervalDomainLift (u t₀)) k| ≤ Bv k) := by
-  -- Use positive-time classical/smoothing regularity or C² coefficient decay.
-  -- A `C²` Neumann slice gives O(k^{-2}); weighted by (1+k) this is summable.
-  sorry
-```
-
-If `intervalDomainClassicalRegularity` already gives closed spatial `C²` with Neumann data at positive times, this theorem should be much more direct than proving EWA existence from the raw datum.
-
-### Target 3: restart/EWA splice theorem
-
-This is the correct glue shape:
-
-```lean
--- Pseudocode shape, not an existing theorem name.
-theorem canonical_then_EWA_positive_time_splice
-    (hlocal : local solution from u₀ on [0,t₀])
-    (hA1 : A¹/Wiener data for u(t₀))
-    (hEWA : EWA source-regularity/classical core from u(t₀) on [0,T])
-    (huniq : overlap uniqueness) :
-    solution / regularity on [0,t₀+T]
-```
-
-Do not try to construct a solution on `(0,t₀+T)` by running EWA from `S(t₀)u₀` alone unless you also identify `S(t₀)u₀` with the actual nonlinear solution slice. In the nonlinear problem, `u(t₀)` is not merely `S(t₀)u₀`; it includes Duhamel source contributions. `S(t₀)u₀` is useful for a smoothing seed, but it is not the exact state of the nonlinear solution at time `t₀`.
-
-## Final answers to the four questions
-
-1. **Heat smoothing bridge:** partially yes, but not the exact EWA-start bridge. `HeatSmoothing.lean` gives `L² → H^θ` and `L² → A⁰`. `HeatFloorIcc.lean` is not the smoothing bridge; it still requires `Summable |cosineCoeffs u₀|` and `MemW 1`. A direct positive-time `C⁰ → WA 1` theorem for the damped heat coefficients appears not to be packaged, though the needed ingredients exist.
-
-2. **Restart / continuation:** yes, forward restart-and-glue exists (`RestartAndGlueWorks`, `restartAndGlueWorks_of_hypotheses`). It extends an existing solution forward by restarting from an interior slice. It does not extend a later EWA solution backward to the original datum.
-
-3. **Canonical Picard:** the function-space Picard chain (`MildExistenceData`, `GradientMildSolutionData`) does not require raw `MemW 1`. It is formulated over positive continuous interval data and the kernel/Duhamel map, modulo its own maps-to/contraction/classicality side conditions. The B-form and gradient-mild local-data routes expose local existence for arbitrary positive data through component/frontier packages, not through EWA raw-datum membership.
-
-4. **Strategic classification:** the cosine-summability obstruction is an EWA artifact. The mathematically faithful route is hybrid: canonical local existence for arbitrary positive `C⁰` data, then positive-time smoothing/regularity to get EWA-compatible data, then EWA only as a positive-time source-regularity/spectral-realization engine. This avoids demanding `MemW 1` at `t=0`, where it is false for general continuous data.
+* χ₀=0 `LimitRegularityInputs`: enormous spectral/restart/classical ledger. Fixed point alone gives only `hfix`. `Hu` can be removed only after keeping the other heavy reduced-ledger fields.
+* χ₀<0 `CoupledFluxResolverAnalyticData`: avoids the χ₀=0 cosine-restart ledger, but it still contains the core regularization bridge to `RegularityBootstrap`, plus resolver ball estimates and uniform constants.
+* Therefore, if the target is “derive local classical existence from contraction alone,” neither route closes it. The χ₀<0 resolver-data route is cleaner as an interface, but it is not easier than `hregularize`; it includes `hregularize` as one of its required payloads.
