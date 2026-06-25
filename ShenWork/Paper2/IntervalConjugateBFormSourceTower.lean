@@ -46,7 +46,7 @@ abbrev ConjBFormSourceTimeC1OnUpTo
 
 /-! ## Full tower: all iterate levels -/
 
-theorem conjBFormSourceTimeC1OnUpTo_all
+noncomputable def conjBFormSourceTimeC1OnUpTo_all
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DB : ConjugateMildExistenceData p u₀)
     (huPaper : PaperPositiveInitialDatum intervalDomain u₀)
@@ -75,7 +75,7 @@ theorem conjBFormSourceTimeC1OnUpTo_all
 
 /-! ## Limit passage -/
 
-theorem conjBFormSourceTimeC1On_limit
+noncomputable def conjBFormSourceTimeC1On_limit
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DB : ConjugateMildExistenceData p u₀)
     (huPaper : PaperPositiveInitialDatum intervalDomain u₀)
@@ -95,7 +95,7 @@ theorem conjBFormSourceTimeC1On_limit
 
 /-! ## Final production: hsrcBDirect for BFormBankedInputs -/
 
-theorem hsrcBDirect_of_data
+noncomputable def hsrcBDirect_of_data
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DB : ConjugateMildExistenceData p u₀)
     (huPaper : PaperPositiveInitialDatum intervalDomain u₀)
