@@ -1,247 +1,314 @@
-# Q578 / cron1: heat semigroup spectral identity for `intervalDomainLift u₀`
+# Q583 / cron1: `ChemDivMixedReprWitnessData` for the heat semigroup
 
-## Verdict
+## Executive verdict
 
-There are **two routes** in the repo:
-
-1. **Closed interval `[0,1]`, continuous subtype datum**: use the committed constant-extension adapter
+`ChemDivMixedReprWitnessData` is already a substantial **assembled witness interface** on `chatgpt-scratch`, and the repo already has two capstone producers:
 
 ```lean
-ShenWork.IntervalSpectralSubtypeAdapter
-  .intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
+ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
 ```
 
-This is the best route for your stated target with `x ∈ Icc 0 1` and `u₀ : intervalDomainPoint → ℝ` continuous.  It avoids the false hypothesis `Continuous (intervalDomainLift u₀)` by replacing the zero extension with the constant extension internally, then transfers back.
-
-2. **Rough/L¹ input route**: yes, there is a theorem for integrable input,
+These produce
 
 ```lean
-ShenWork.IntervalNHGBricks.operator_eq_cosineModel_of_integrable
+ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-but it only gives the identity for **interior** points `x ∈ Ioo 0 1`, not the closed interval.  It is the L¹-dominated `FullKernelIntegralInterchange` route.
+which is exactly the closed-slab representative needed to discharge the `htime_cont` field in the FAC chain.
 
-I did **not** find a direct theorem that states the full closed-interval spectral identity from only `AEStronglyMeasurable`/bounded input.  For bounded AEStronglyMeasurable input you can first get `Integrable f (intervalMeasure 1)` and then use the L¹ theorem on `Ioo`; for endpoints, the packaged theorem is the subtype-continuity/constant-extension adapter.
-
-## Definitions and low-level facts
-
-`intervalFullSemigroupOperator` itself accepts an arbitrary function syntactically:
+For the heat semigroup, I found **no direct specialized producer** by search for `conjugatePicardIter` / heat.  The intended route is to instantiate the general capstone with:
 
 ```lean
--- ShenWork/PDE/IntervalNeumannFullKernel.lean:79-81
-/-- The full periodised-image Neumann heat propagator on `[0,1]`. -/
-def intervalFullSemigroupOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
-  ∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1
+u := conjugatePicardIter p u₀ 0
+c k t := Real.exp (-t * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k
 ```
 
-So the operator definition has no `Continuous`/`Measurable` argument.  Those hypotheses appear in theorems about the operator.
+and then supply the honest heat-level data:
 
-The low-level theorem in `IntervalNeumannFullKernel.lean` separates the hard identity from a named interchange hypothesis:
+1. `PhysicalResolverJointC2Data p u Bt` for the elliptic resolver;
+2. `IteratePicardJointC2Data u c Btu` for the heat iterate;
+3. iterate gradient majorant summability `∀ m ≤ 2, Summable (boundedWeightJointGradMajorant Btu m)` or at least the order-2 instance;
+4. global denominator floor for the resolver value-series representative;
+5. endpoint/boundary agreement `bdry`.
+
+The closest already-packaged endpoint is therefore **not** the raw `ChemDivMixedReprWitnessData` constructor but:
 
 ```lean
--- ShenWork/PDE/IntervalNeumannFullKernel.lean:126-130
-def FullKernelIntegralInterchange (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : Prop :=
-  (∫ y, (∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
-      (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) * f y
-        ∂ intervalMeasure 1)
-    = unitIntervalCosineHeatValue t (cosineCoeffs f) x
+ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
 ```
 
-and then:
+which packages the witness and immediately returns `ChemDivMixedTimeDerivClosedRepr`.
+
+## `ChemDivMixedTimeDerivClosedRepr`
+
+Defined in `ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean:45-49`:
 
 ```lean
--- ShenWork/PDE/IntervalNeumannFullKernel.lean:137-145
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue
-    (t : ℝ) (_ht : 0 < t) (f : ℝ → ℝ) (x : ℝ)
-    (_hx : x ∈ Set.Ioo (0 : ℝ) 1)
-    (hkernel : ∀ y, intervalNeumannFullKernel t x y = ...)
-    (hinterchange : FullKernelIntegralInterchange t f x) :
-    intervalFullSemigroupOperator t f x =
-      unitIntervalCosineHeatValue t (cosineCoeffs f) x
+def ChemDivMixedTimeDerivClosedRepr
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
+  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
+    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
 ```
 
-Thus the real question is which files produce `FullKernelIntegralInterchange t f x`.
-
-## Continuous route: automatic but too strong for zero extension
-
-`ShenWork/PDE/IntervalFullKernelInterchange.lean` proves the automatic interchange for continuous real-line inputs:
+The consumer theorem is `chemDivMixedTimeDeriv_jointContinuousOn_closed`, lines `56-61`, which turns this representative into:
 
 ```lean
--- ShenWork/PDE/IntervalFullKernelInterchange.lean:80-83
-/-- **`FullKernelIntegralInterchange` holds** for every continuous `f`. -/
-theorem fullKernelIntegralInterchange_holds
-    (t : ℝ) (ht : 0 < t) (f : ℝ → ℝ) (hf : Continuous f) (x : ℝ) :
-    FullKernelIntegralInterchange t f x
+ContinuousOn
+  (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+  (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-The cleaned closed-interval theorem in `IntervalFullKernelSpectralClean.lean` still takes global `Continuous f`:
+and `coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged`, lines `87-103`, consumes it inside the FAC route.
+
+## `ChemDivMixedReprData`
+
+Defined in `ShenWork/PDE/IntervalChemDivMixedReprConstruct.lean:72-97`.
+
+It packages ten globally continuous representatives:
 
 ```lean
--- ShenWork/PDE/IntervalFullKernelSpectralClean.lean:28-33
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
-    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
-    (hM : ∀ n, |cosineCoeffs f n| ≤ M) {x : ℝ}
-    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalFullSemigroupOperator t f x =
-      unitIntervalCosineHeatValue t (cosineCoeffs f) x
+structure ChemDivMixedReprData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) where
+  Uc : ℝ × ℝ → ℝ
+  Utc : ℝ × ℝ → ℝ
+  Utxc : ℝ × ℝ → ℝ
+  Uxc : ℝ × ℝ → ℝ
+  Vc : ℝ × ℝ → ℝ
+  Vxc : ℝ × ℝ → ℝ
+  Vxxc : ℝ × ℝ → ℝ
+  Vtc : ℝ × ℝ → ℝ
+  Vtxc : ℝ × ℝ → ℝ
+  Vtxxc : ℝ × ℝ → ℝ
+  cont_Uc : Continuous Uc
+  cont_Utc : Continuous Utc
+  cont_Utxc : Continuous Utxc
+  cont_Uxc : Continuous Uxc
+  cont_Vc : Continuous Vc
+  cont_Vxc : Continuous Vxc
+  cont_Vxxc : Continuous Vxxc
+  cont_Vtc : Continuous Vtc
+  cont_Vtxc : Continuous Vtxc
+  cont_Vtxxc : Continuous Vtxxc
+  floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
+  agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+    coupledChemDivTimeDerivativeLift p u t x =
+      mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
 ```
 
-Do not feed this theorem with `f = intervalDomainLift u₀` for positive boundary data; the zero extension is not globally continuous.
+The constructor-to-target theorem is `chemDivMixedTimeDerivClosedRepr_of_data`, lines `104-145`: it takes `ChemDivMixedReprData` and builds `ChemDivMixedTimeDerivClosedRepr` by using `mixedAlgebra ...` as the global continuous `Gmix`.
 
-## L¹/integrable route
+## `ChemDivMixedReprWitnessData`: fields
 
-`ShenWork/Paper2/IntervalNeumannHeatGradientL2Bricks.lean` has the L¹ interchange:
+Defined in `ShenWork/PDE/IntervalChemDivMixedReprWitness.lean:181-251`.
+
+It refines `ChemDivMixedReprData` by replacing the single `agree` field with more primitive field-equality and spatial derivative facts.  Fields:
+
+### Ten representative functions
 
 ```lean
--- lines 20-23
-/-- L¹-dominated interchange: `FullKernelIntegralInterchange` for integrable input. -/
-theorem fullKernelIntegralInterchange_holds_of_integrable
-    (t : ℝ) (ht : 0 < t) (f : ℝ → ℝ) (hf : Integrable f (intervalMeasure 1)) (x : ℝ) :
-    FullKernelIntegralInterchange t f x
+Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc : ℝ × ℝ → ℝ
 ```
 
-and the operator identity:
+### Continuity fields
 
 ```lean
--- lines 58-66
-/-- Operator → cosine model for integrable input on `Ioo 0 1`. -/
-theorem operator_eq_cosineModel_of_integrable
-    {τ : ℝ} (hτ : 0 < τ) {f : ℝ → ℝ}
-    (hf : Integrable f (intervalMeasure 1)) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    intervalFullSemigroupOperator τ f x
-      = unitIntervalCosineHeatValue τ (cosineCoeffs f) x :=
-  intervalFullSemigroupOperator_eq_cosineHeatValue τ hτ f x hx
-    (fun y => intervalNeumannFullKernel_eq_cosineKernel_clean τ hτ x y)
-    (fullKernelIntegralInterchange_holds_of_integrable τ hτ f hf x)
+cont_Uc cont_Utc cont_Utxc cont_Uxc : Continuous ...
+cont_Vc cont_Vxc cont_Vxxc cont_Vtc cont_Vtxc cont_Vtxxc : Continuous ...
 ```
 
-There is also an alias in `ShenWork/Paper2/IntervalNeumannHeatGradientL2.lean:92-97`:
+### Floor and closed-slab value matches
 
 ```lean
-theorem operator_eq_cosineModel_of_integrable
-    {τ : ℝ} (hτ : 0 < τ) {f : ℝ → ℝ}
-    (hf : Integrable f (intervalMeasure 1)) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    intervalFullSemigroupOperator τ f x
-      = unitIntervalCosineHeatValue τ (cosineCoeffs f) x :=
-  ShenWork.IntervalNHGBricks.operator_eq_cosineModel_of_integrable hτ hf hx
+floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
+Uc_eq  : Uc  (t,x) = intervalDomainLift (u t) x
+Utc_eq : Utc (t,x) = slopeSlice u t x
+Vc_eq  : Vc  (t,x) = intervalDomainLift (coupledChemicalConcentration p u t) x
+Vtc_eq : Vtc (t,x) = coupledChemicalTimeDerivativeLift p u t x
 ```
 
-This answers the rough-input question: **yes, an L¹ version exists, but only for `x ∈ Ioo 0 1`.**
+all on `t ∈ Icc (τ-δ) (τ+δ), x ∈ Icc 0 1`.
 
-## From AEStronglyMeasurable + bounded to L¹
-
-The repo has the generic finite-interval integrability helper:
+### Interior spatial derivative legs
 
 ```lean
--- ShenWork/PDE/IntervalDomain.lean:42-49
-theorem intervalMeasure_integrable_of_abs_bound
-    {L M : ℝ} {f : ℝ → ℝ}
-    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
-    (hf_bound : ∀ y, |f y| ≤ M) :
-    Integrable f (intervalMeasure L)
+hUx    : HasDerivAt (fun y => intervalDomainLift (u t) y) (Uxc (t,x)) x
+hUtx   : HasDerivAt (fun y => slopeSlice u t y) (Utxc (t,x)) x
+hVx    : HasDerivAt (fun y => intervalDomainLift (coupledChemicalConcentration p u t) y) (Vxc (t,x)) x
+hVxx   : HasDerivAt (fun y => deriv (intervalDomainLift (coupledChemicalConcentration p u t)) y) (Vxxc (t,x)) x
+hVtx   : HasDerivAt (fun y => coupledChemicalTimeDerivativeLift p u t y) (Vtxc (t,x)) x
+hVtxx  : HasDerivAt (fun y => deriv (coupledChemicalTimeDerivativeLift p u t) y) (Vtxxc (t,x)) x
 ```
 
-So if you can prove:
+for `x ∈ Ioo 0 1`.
+
+### Interior derivative-value equalities
 
 ```lean
-hf_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1)
-hf_bound : ∀ y, |intervalDomainLift u₀ y| ≤ M
+Vxc_eq  : Vxc (t,x) = deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x
+Vtxc_eq : Vtxc (t,x) = deriv (coupledChemicalTimeDerivativeLift p u t) x
 ```
 
-then you get `Integrable (intervalDomainLift u₀) (intervalMeasure 1)`, and then the L¹ identity on `Ioo 0 1`.
+for `x ∈ Ioo 0 1`.
 
-For measurability of the zero extension from subtype continuity, there are private lemmas, not a public API:
+### Boundary leg
 
 ```lean
--- ShenWork/Paper2/IntervalMildPicard.lean:103-123
-private theorem intervalDomainLift_measurable_of_continuous
-    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
-    Measurable (intervalDomainLift f)
+boundary_agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
+  coupledChemDivTimeDerivativeLift p u t x =
+    mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
 ```
 
-The same lemma is copied as private in `IntervalMildPicardThreshold.lean`:
+This is the remaining endpoint/junk-value Neumann matching fact.
+
+## Witness assembly chain
+
+The internal chain is:
 
 ```lean
--- ShenWork/Paper2/IntervalMildPicardThreshold.lean:31-33
-The file-private measurability lemmas of IntervalMildPicard.lean are
-copied verbatim (they are `private`, hence not importable).
-
--- lines 96-116
-private theorem intervalDomainLift_measurable_of_continuous
-    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
-    Measurable (intervalDomainLift f)
+ChemDivMixedReprWitnessData p u τ δ
+  ── witnessData ──▶
+ChemDivMixedReprData p u τ δ
+  ── chemDivMixedTimeDerivClosedRepr_of_data ──▶
+ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-Since those lemmas are private, downstream files cannot import them.  You can either reprove the small piecewise-measurable lemma, or route through `intervalDomainConstExtend` when you need global continuity/spectral identity.
-
-## Closed interval `[0,1]`: use subtype-continuity adapter
-
-For your exact target with `x ∈ Icc 0 1`, the best landed theorem is still:
+The two theorems are:
 
 ```lean
--- ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean:49-54
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-    {t : ℝ} (ht : 0 < t) {f : intervalDomainPoint → ℝ} (hf : Continuous f)
-    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift f) n| ≤ M)
-    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalFullSemigroupOperator t (intervalDomainLift f) x =
-      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
+-- IntervalChemDivMixedReprWitness.lean:141-153
+def witnessData
+    (W : ChemDivMixedReprWitnessData p u τ δ) :
+    ChemDivMixedReprData p u τ δ
+
+-- IntervalChemDivMixedReprWitness.lean:159-164
+theorem chemDivMixedTimeDerivClosedRepr_of_witness
+    (W : ChemDivMixedReprWitnessData p u τ δ) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ :=
+  chemDivMixedTimeDerivClosedRepr_of_data (witnessData W)
 ```
 
-It uses the constant extension internally:
+`witness_agree`, lines `88-138`, is the key proof deriving the closed-slab `agree` field.  It splits `[0,1]` into interior plus endpoints; interior uses `fluxTimeDeriv_hasDerivAt_space`, while endpoints use `boundary_agree`.
+
+## Main existing producer
+
+The full general producer is `mkWitnessData`, in `IntervalChemDivMixedReprWitness.lean:1038-1127`:
 
 ```lean
--- ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean:62-69
-calc intervalFullSemigroupOperator t (intervalDomainLift f) x
-    = intervalFullSemigroupOperator t (intervalDomainConstExtend f) x :=
-      semigroupOperator_constExtend_eq_lift.symm
-  _ = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainConstExtend f)) x :=
-      ShenWork.IntervalFullKernelSpectralClean.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
-        ht (constExtend_continuous hf) hM' hx
-  _ = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x := by
-      rw [hcoef]
+def mkWitnessData {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {c : ℕ → ℝ → ℝ} {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (Hu : IteratePicardJointC2Data u c Btu)
+    (Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
+    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+    (bdry : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
+      coupledChemDivTimeDerivativeLift p u t x =
+        mixedAlgebra p.β (valueSeriesRep c) (iterateDtValue c) (iterateDtGrad c)
+          (gradSeriesRep c) (valueSeriesRep (resolverTimeCoeff p u))
+          (gradSeriesRep (resolverTimeCoeff p u))
+          (grad2SeriesRep (resolverTimeCoeff p u)) (resolverDtValue p u)
+          (resolverDtGrad p u) (resolverDtGrad2 p u) (t, x)) :
+    ChemDivMixedReprWitnessData p u τ δ
 ```
 
-## Practical snippets
-
-### Closed interval, continuous subtype datum
+It sets:
 
 ```lean
-have hheat :
-    intervalFullSemigroupOperator s (intervalDomainLift u₀) x =
-      unitIntervalCosineHeatValue s (cosineCoeffs (intervalDomainLift u₀)) x :=
-  ShenWork.IntervalSpectralSubtypeAdapter
-    .intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-      hs hu₀_cont hM hx
+Uc    := valueSeriesRep c
+Utc   := iterateDtValue c
+Utxc  := iterateDtGrad c
+Uxc   := gradSeriesRep c
+Vc    := valueSeriesRep (resolverTimeCoeff p u)
+Vxc   := gradSeriesRep (resolverTimeCoeff p u)
+Vxxc  := grad2SeriesRep (resolverTimeCoeff p u)
+Vtc   := resolverDtValue p u
+Vtxc  := resolverDtGrad p u
+Vtxxc := resolverDtGrad2 p u
 ```
 
-Then convert `unitIntervalCosineHeatValue` to the explicit tsum using the already-found EWA bridge:
+and discharges all continuity/equality/interior derivative fields from `H`, `Hu`, and `Hg2u`.  The only externally supplied non-series fields are `hfloor` and `bdry`.
+
+The immediate target producer is:
 
 ```lean
-have hsum :
-    unitIntervalCosineHeatValue s (cosineCoeffs (intervalDomainLift u₀)) x =
-      ∑' k : ℕ,
-        (Real.exp (-s * unitIntervalCosineEigenvalue k) *
-          cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x := by
-  simpa [unitIntervalCosineEigenvalue] using
-    (ShenWork.EWA.cosineHeatSynthesis_eq_cosineHeatValue
-      (cosineCoeffs (intervalDomainLift u₀)) s x).symm
+-- IntervalChemDivMixedReprWitness.lean:96-112 of the final chunk
+theorem chemDivMixedTimeDerivClosedRepr_of_mkWitness
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (Hu : IteratePicardJointC2Data u c Btu)
+    (Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
+    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+    (bdry : ...endpoint equality...) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-### Interior only, L¹ input
+## Higher-level producer with iterate gradient family
+
+`ShenWork/PDE/IntervalIterateGradMajorant.lean` wraps the previous theorem with the iterate gradient family:
 
 ```lean
-have hf_int : Integrable (intervalDomainLift u₀) (intervalMeasure 1) := by
-  -- e.g. from AEStronglyMeasurable + bounded via intervalMeasure_integrable_of_abs_bound
-  ...
-
-have hheat_interior :
-    intervalFullSemigroupOperator s (intervalDomainLift u₀) x =
-      unitIntervalCosineHeatValue s (cosineCoeffs (intervalDomainLift u₀)) x :=
-  ShenWork.IntervalNHGBricks.operator_eq_cosineModel_of_integrable
-    hs hf_int hxIoo
+-- lines 106-123
+theorem chemDivMixedClosedRepr_of_iterateGradSummable
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (Hu : IteratePicardJointC2Data u c Btu)
+    (HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant Btu m))
+    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+    (bdry : ...endpoint equality...) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ :=
+  chemDivMixedTimeDerivClosedRepr_of_mkWitness H Hu
+    (iterate_Hg2u_of_gradSummable HuGrad) hfloor bdry
 ```
+
+This is the cleanest theorem to call if your heat-level data naturally supplies all gradient-majorant orders.
+
+## For the heat semigroup
+
+Search found no theorem directly named for:
+
+```lean
+ChemDivMixedReprWitnessData p (conjugatePicardIter p u₀ 0) ...
+chemDivMixed... conjugatePicardIter
+mkWitnessData ... heat
+```
+
+So the heat-level task is to instantiate the generic producer.  Minimal plan:
+
+```lean
+let u := conjugatePicardIter p u₀ 0
+let c : ℕ → ℝ → ℝ := fun k t =>
+  Real.exp (-t * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k
+
+have H : PhysicalResolverJointC2Data p u Bt := ...
+have Hu : IteratePicardJointC2Data u c Btu := ...
+have HuGrad : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointGradMajorant Btu m) := ...
+have hfloor : ∀ q, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q := ...
+have bdry : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0,1} : Set ℝ),
+  coupledChemDivTimeDerivativeLift p u t x = mixedAlgebra ... (t,x) := ...
+
+exact ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
+  H Hu HuGrad hfloor bdry
+```
+
+For heat data, `Hu` and `HuGrad` should be the easiest analytic part: the coefficients are explicit exponentials times initial coefficients, so their time derivatives and weighted summability follow from Gaussian damping on any positive window.  However the existing `IteratePicardJointC2Data` is global in `t` and not windowed, so if your proof only works on `[c,T]`, a windowed variant may be more natural.
+
+The two genuinely nontrivial remaining inputs are likely:
+
+1. `H : PhysicalResolverJointC2Data p u Bt`, unless already available from the source-time-C²/floor route for this `u`;
+2. `bdry`, the endpoint matching of the junk-value `coupledChemDivTimeDerivativeLift` with the mixed algebra.  The design comments say this should follow from Neumann sine-series boundary vanishing, but it is intentionally an explicit input to the producer.
 
 ## Bottom line
 
-For `x ∈ [0,1]`, do **not** try to use an AEStronglyMeasurable/L¹ theorem unless you also prove a boundary-continuity closure theorem.  Use the existing subtype-continuity adapter.  For `x ∈ (0,1)`, the L¹ theorem is already available and only needs `Integrable f (intervalMeasure 1)`.
+`ChemDivMixedReprWitnessData` itself is not the best thing to construct manually.  Use:
+
+```lean
+chemDivMixedClosedRepr_of_iterateGradSummable
+```
+
+or one level lower:
+
+```lean
+chemDivMixedTimeDerivClosedRepr_of_mkWitness
+```
+
+The repo already builds the ten representatives and all continuity/interior derivative fields.  For the heat semigroup, the remaining work is to produce the resolver joint-C² data, the heat iterate joint-C² data plus gradient-majorant summability, the positive denominator floor, and the endpoint `bdry` equality.
