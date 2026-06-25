@@ -197,11 +197,8 @@ theorem level0_chemDiv_envelope_summable
       -- U_cos agrees with intervalDomainLift (conjugatePicardIter p u₀ 0 s) on [0,1]
       have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (conjugatePicardIter p u₀ 0 s) x = U_cos x := by
-        sorry
-        -- Proof: intervalDomainLift (conjugatePicardIter p u₀ 0 s) x
-        --   = intervalFullSemigroupOperator s (lift u₀) x  (by definition + dif_pos)
-        --   = unitIntervalCosineHeatValue s (heatCoeff u₀) x  (spectral bridge)
-        --   = U_cos x  (cosineHeatSynthesis_eq_cosineHeatValue)
+        intro x hx
+        simp only [intervalDomainLift, dif_pos hx, conjugatePicardIter, U_cos]
       -- Inline helpers for cosineMode parity (cosineMode k x = cos(kπx))
       have cosineMode_neg' : ∀ (k : ℕ) (x : ℝ),
           cosineMode k (-x) = cosineMode k x := by
@@ -292,7 +289,8 @@ theorem level0_chemDiv_envelope_summable
   -- The complete calculation uses hH2_data for quadratic decay and
   -- hcont_slices/hsup_slices for the zeroth mode.
   exact ⟨fun k => Cenv / (max 1 (k : ℝ)) ^ 2,
-    sorry, -- Summability: Cenv/(max 1 k)² ~ Cenv/k² for k≥1 (reciprocal square)
+    by
+      sorry, -- Summability of Cenv/(max 1 k)²: comparison with 1/k² series
     fun s hs n => by
       obtain ⟨h2s, hBs⟩ := hH2_data s hs
       by_cases hn : n = 0
