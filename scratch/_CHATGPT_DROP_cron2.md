@@ -1,49 +1,43 @@
-# Q404 (cron2): Barrier C / `BFormBankedInputs.hchemCont`
+# Q426 (cron2): B-form consumption of `BFormBankedInputs.Hinf`
 
 ## Executive verdict
 
-I traced `BFormBankedInputs.hchemCont` through `IntervalBFormDirectClassical.lean`, `IntervalBFormPIDUnconditional.lean`, the old global provider, the windowed `On` provider, and `IntervalBankChemSliceFix.lean`.
+I read the current `IntervalBFormDirectClassical.lean` and the inf-threshold definitions/proofs.
 
-The short answer:
+In the current B-form direct chain, `B.Hinf : ConjugatePicardInfThresholdData p u₀ DB.T` is consumed for **strict positivity of the B-form Picard limit**, not for the B-form source regularity itself. The live consumers are:
 
-* **Do not just delete `hchemCont` in the current code path.** It is not dead at present. `BFormBankedInputs.hpde_u` passes it to `intervalConjugateMildSolution_pde_u_PID_unconditional`; that theorem uses it to build `ChemDivCosineFourierData` through the hard-wired `chemDivCosineFourierData_constExtend` provider.
+1. `BFormBankedInputs.hpde_u` — passes `B.Hinf` and `B.hsmall` to the windowed `On` PDE theorem. Inside the `On` theorem, `Hinf` is used only to derive `hpost : ∀ σ∈(0,T), ∀x∈[0,1], 0 < lift(u σ) x` via `conjugatePicardLimit_hpost_of_PID`.
+2. `bform_u_pos` — directly proves `0 < conjugatePicardLimit ... t x` from `B.huPaper`, `B.Hinf`, and `B.hsmall` using `conjugatePicardLimit_pos_of_PID`.
+3. All later uses of `B.Hinf` in `IntervalBFormDirectClassical.lean` are indirect through `bform_u_pos`: endpoint nonzero for `u`, source-decay positivity for the resolver source, v-regularity, classical solution positivity, and elliptic PDE/Neumann bridge hypotheses.
 
-* **Changing it to `ContinuousOn ... (Ioo 0 1)` is also not enough** for the current consumers. The old consumer wants a `ChemDivCosineFourierData`, whose `representative` is globally continuous and agrees with `chemDivLift` on `Icc 0 1`. The landed fix introduces `ChemDivCosineFourierDataIoo`, not merely a local `ContinuousOn` field.
+No theorem in `IntervalBFormDirectClassical.lean` directly projects `B.Hinf.CQ`, `B.Hinf.CL`, `B.Hinf.hQ_bound`, `B.Hinf.hgeom`, etc. The direct file passes the whole `Hinf` package into the inf-threshold lemmas.
 
-* The right fix is to **replace the false field by an endpoint-insensitive representative package**, e.g.
+Inside the inf-threshold lemmas, the actual fields used are:
+
+* `CQ`, `CL` occur in the stated smallness budget `hsmall`:
 
   ```lean
-  hchemDataIoo : ∀ t, 0 < t → t < DB.T →
-    ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
-      ((conjugatePicardLimit p u₀ DB.T) t)
-      (coupledChemicalConcentration p
-        (conjugatePicardLimit p u₀ DB.T) t)
+  |p.χ₀| * (heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * H.CQ)
+    + T * H.CL ≤ paperPositiveFloor hu₀ / 2
   ```
 
-  or equivalently explicit fields `ψ`, `Continuous ψ`, `EqOn ψ chemDivLift (Ioo 0 1)`, and Fourier summability for `reflCircle ψ`.
+* The one-step lower-bound proof uses chem/logistic source bounds/integrability:
+  `H.hQ_int`, `H.hCQ`, `H.hQ_bound`, `H.hB_int`, `H.hCL`, `H.hL_bound`, `H.hL_int`.
+* The limit-passage proof uses the geometric convergence data:
+  `H.hK`, `H.hK_nn`, `H.hC₀`, `H.hgeom`.
+* I did not find a live use of `H.hT` in these proofs; the theorem statements already carry the required time hypotheses externally.
 
-* The endpoint values really do not matter for the PDE identity: the Fourier-convergence consumers evaluate only at `hx : x.1 ∈ Ioo 0 1`. But the **current type** forces endpoint continuity/agreement through `ChemDivCosineFourierData` and `chemDivCosineFourierData_constExtend`, so the code still asks for a false endpoint statement.
+The important range issue: every downstream consumer in the B-form chain only needs positivity/source bounds on **positive-time windows** (`0 < t`, `t < T` or `t ≤ T`). The fields in `ConjugatePicardInfThresholdData` are over-strong where they quantify over all `s` unconditionally:
 
-* The **windowed `On` PDE identity** does **not inherently need `hchemCont`**. It still currently takes `hchemData : ChemDivCosineFourierData ...`, so in the current signature it still indirectly needs a chem-div Fourier package. But if the `On` theorem is rewired to take `ChemDivCosineFourierDataIoo` and use the `_Ioo` consumers from `IntervalBankChemSliceFix.lean`, then `hchemCont` disappears. The windowed `On` route is the right place to do this because it directly proves the interior PDE and does not pack the old global `HasBFormSpectralPdeAgreement` existential.
-
-Bottom line:
-
-```text
-Current global path:
-  hchemCont is used and false.
-
-Endpoint-insensitive fixed path:
-  remove hchemCont only after replacing old ChemDivCosineFourierData
-  by ChemDivCosineFourierDataIoo / smooth-surrogate data.
-
-Changing hchemCont to ContinuousOn Ioo alone:
-  insufficient; the consumer needs a globally continuous representative
-  plus Fourier summability, not just local continuity.
-
-Windowed On path:
-  can avoid hchemCont once its hchemData argument is changed to the Ioo package
-  and its two chemDiv consumer calls are switched to the _Ioo lemmas.
+```lean
+hQ_int   : ∀ n s, Integrable ...
+hQ_bound : ∀ n s y, |chemFluxLifted ... n s y| ≤ CQ
+hL_bound : ∀ n s y, |logisticLifted ... n s y| ≤ CL
 ```
+
+The proofs only invoke them for `s` in the integration interval `0 < s ≤ t ≤ T`. Because the current fields are unconditional, the proof can pass `fun s _ _ => H.hQ_int n s`, `fun s _ _ => H.hQ_bound n s`, and `H.hL_bound n` without threading window hypotheses. A windowed structure would be enough for these consumers, but the proof signatures would need to carry/pass the `0 < s` and `s ≤ T` hypotheses to the fields.
+
+So: `Hinf` is not merely an algebraic package for `hsmall`. It supplies the analytic source-bound/integrability and geometric convergence data used to prove positivity of iterates and the limit. But all of that use is **windowed positive-time use**. It is not using unconditional-in-`s` facts in an essential way; those fields are over-typed for the live B-form consumers.
 
 ## Lean probes used
 
@@ -51,52 +45,51 @@ Windowed On path:
 import ShenWork.Paper2.IntervalBFormDirectClassical
 
 open Filter Topology Set
-
 open ShenWork.IntervalDomain
-open ShenWork.IntervalConjugateDuhamelMap
-  (IntervalConjugateMildSolution intervalConjugateDuhamelMap)
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData ConjugatePicardInfThresholdData
-   conjugateMildSolutionData_of_data conjugatePicardLimit paperPositiveFloor)
+   conjugatePicardLimit paperPositiveFloor)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
 open ShenWork.IntervalBFormSpectral
-  (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1
-   bFormSource_duhamelSourceTimeC1On)
+  (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1On)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemicalConcentration coupledChemDivSourceCoeffs
    coupledLogisticSourceCoeffs)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.Paper2
-
-namespace ShenWork.Paper2.BFormDirectClassical
+open ShenWork.Paper2.BFormDirectClassical
 
 #check BFormBankedInputs
 #check BFormBankedInputs.hpde_u
-#check BFormBankedInputs.hsrcB
-#check BFormBankedInputs.hsrcB_on
-
-end ShenWork.Paper2.BFormDirectClassical
+#check BFormDirectFrontier
+#check intervalConjugatePicardLimit_classicalRegularity_direct
+#check intervalConjugatePicardLimit_isClassicalSolution_direct
 ```
 
 ```lean
-import ShenWork.Paper2.IntervalBFormPIDUnconditional
+import ShenWork.Paper2.IntervalConjugatePicardInfThreshold
 
-open Filter Topology Set
-
-namespace ShenWork.IntervalBFormSpectral
-
-#check ChemDivCosineFourierData
-#check chemDivCosineFourierData_constExtend
-#check chemDiv_cosineSeries_summable
-#check chemDiv_cosineFourier_convergence
-
-end ShenWork.IntervalBFormSpectral
+open MeasureTheory Set Filter
+open ShenWork.IntervalDomain
+  (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
+open ShenWork.IntervalConjugateDuhamelMap
+  (intervalConjugateDuhamelMap intervalConjugateKernelOperator)
+open ShenWork.IntervalConjugatePicard
+  (conjugatePicardIter conjugatePicardLimit)
+open ShenWork.HeatKernelGradientEstimates
+  (heatGradientLinftyLinftyConstant)
+open ShenWork.Paper2 (PaperPositiveInitialDatum)
 
 namespace ShenWork.IntervalConjugatePicard
 
-#check hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
-#check intervalConjugateMildSolution_pde_u_PID_unconditional
+#check ConjugatePicardInfThresholdData
+#check intervalConjugateDuhamelMap_ge_half_floor
+#check conjugatePicardIter_ge_half_floor_of_PID
+#check conjugatePicardLimit_pos_of_PID
+#check conjugatePicardLimit_hpost_of_PID
 
 end ShenWork.IntervalConjugatePicard
 ```
@@ -115,478 +108,378 @@ namespace ShenWork.IntervalConjugatePicard
 end ShenWork.IntervalConjugatePicard
 ```
 
-```lean
-import ShenWork.Paper2.IntervalBankChemSliceFix
+## 1. Current `BFormBankedInputs` shape
 
-open Set Filter Topology
-
-namespace ShenWork.Paper2.BankChemSliceFix
-
-#check chemDivLift_continuousOn_Ioo
-#check ChemDivCosineFourierDataIoo
-#check chemDiv_cosineSeries_summable_Ioo
-#check chemDiv_cosineFourier_convergence_Ioo
-#check coupledChemDiv_cosineSeries_summable_Ioo
-#check coupledChemDiv_cosineFourier_convergence_Ioo
-#check chemDivCosineFourierDataIoo_of_repr
-#check hchemFourier_of_chemDiv_C2Neumann_reexport
-
-end ShenWork.Paper2.BankChemSliceFix
-```
-
-## 1. Exact `BFormBankedInputs.hchemCont` field
-
-In `ShenWork/Paper2/IntervalBFormDirectClassical.lean`, `BFormBankedInputs` currently contains:
+Current `BFormBankedInputs` has already moved to the windowed `On` source and `hchemIoo` shape:
 
 ```lean
 import ShenWork.Paper2.IntervalBFormDirectClassical
 
 open Filter Topology Set
-
 open ShenWork.IntervalDomain
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData ConjugatePicardInfThresholdData
    conjugatePicardLimit paperPositiveFloor)
+open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
+open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs)
 open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemicalConcentration)
-open ShenWork.HeatKernelGradientEstimates
-  (heatGradientLinftyLinftyConstant)
-open ShenWork.IntervalNeumannFullKernel
-  (cosineCoeffs)
+  (coupledChemicalConcentration coupledChemDivSourceCoeffs
+   coupledLogisticSourceCoeffs)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.Paper2
+open ShenWork.Paper2.BFormDirectClassical
 
-namespace ShenWork.Paper2.BFormDirectClassical
-
--- Relevant excerpt, as read:
+-- Current relevant excerpt:
 --
 -- structure BFormBankedInputs
 --     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
 --     (DB : ConjugateMildExistenceData p u₀) where
---   ...
---   hchemCont : ∀ t, 0 < t → t < DB.T →
---     Continuous
---       (intervalDomainConstExtend
---         (fun x : intervalDomainPoint =>
---           intervalDomainChemotaxisDiv p
---             ((conjugatePicardLimit p u₀ DB.T) t)
---             (coupledChemicalConcentration p
---               (conjugatePicardLimit p u₀ DB.T) t) x))
---   hchemFourier : ∀ t, 0 < t → t < DB.T →
---     Summable (fun n : ℤ =>
---       fourierCoeff
---         (ShenWork.IntervalCosineInversion.reflCircle
---           (intervalDomainConstExtend
---             (fun x : intervalDomainPoint =>
---               intervalDomainChemotaxisDiv p
---                 ((conjugatePicardLimit p u₀ DB.T) t)
---                 (coupledChemicalConcentration p
---                   (conjugatePicardLimit p u₀ DB.T) t) x))) n)
+--   huPaper : PaperPositiveInitialDatum intervalDomain u₀
+--   Hinf : ConjugatePicardInfThresholdData p u₀ DB.T
+--   hsmall :
+--     |p.χ₀| * (heatGradientLinftyLinftyConstant *
+--         (2 * Real.sqrt DB.T) * Hinf.CQ)
+--       + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
+--   MInit : ℝ
+--   haInit : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ MInit
+--   hlogSrc : DuhamelSourceTimeC1On
+--     (coupledLogisticSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
+--   hchemSrc : DuhamelSourceTimeC1On
+--     (coupledChemDivSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T
+--   hB_global : ∀ t, 0 < t → t ≤ DB.T → Set.EqOn ...
+--   hlogCont : ...
+--   hlogFourier : ...
+--   hchemIoo : ∀ t, 0 < t → t < DB.T →
+--     ChemDivCosineFourierDataIoo p
+--       ((conjugatePicardLimit p u₀ DB.T) t)
+--       (coupledChemicalConcentration p
+--         (conjugatePicardLimit p u₀ DB.T) t)
 #check BFormBankedInputs
-
-end ShenWork.Paper2.BFormDirectClassical
 ```
 
-This is exactly the false endpoint-continuity statement documented by `IntervalBankSourceSliceLeaves.lean` and `IntervalBankChemSliceFix.lean`: the representative is the constant extension of `intervalDomainChemotaxisDiv`, but the endpoint values forced by the zero-extension derivative convention do not match the interior one-sided limit in general.
+So in the current file, the field name is still `Hinf`, but the source machinery is now windowed; the false `hchemCont` has been replaced by `hchemIoo`.
 
-## 2. Is `hchemCont` actually used by `intervalConjugateMildSolution_pde_u_PID_unconditional`?
+## 2. Direct consumers of `B.Hinf` in `IntervalBFormDirectClassical.lean`
 
-Yes. It is not dead in the current direct-classical path.
+### Consumer A: `BFormBankedInputs.hpde_u`
 
-`BFormBankedInputs.hpde_u` in `IntervalBFormDirectClassical.lean` passes the bank fields to `intervalConjugateMildSolution_pde_u_PID_unconditional`:
+`BFormBankedInputs.hpde_u` passes `B.Hinf` and `B.hsmall` into the `On` PDE theorem:
 
 ```lean
 import ShenWork.Paper2.IntervalBFormDirectClassical
 
-open Filter Topology Set
+open ShenWork.Paper2.BFormDirectClassical
 
-namespace ShenWork.Paper2.BFormDirectClassical
-
--- Current shape, relevant tail:
---
--- theorem BFormBankedInputs.hpde_u ... (B : BFormBankedInputs p DB) : ... :=
---   ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_unconditional
---       DB B.huPaper B.Hinf B.hsmall
---       (cosineCoeffs (intervalDomainLift u₀)) B.haInit
---       B.hlogSrc B.hchemSrc B.hB_global
---       B.hlogCont B.hlogFourier B.hchemCont B.hchemFourier
-#check BFormBankedInputs.hpde_u
-
-end ShenWork.Paper2.BFormDirectClassical
-```
-
-Inside `IntervalBFormPIDUnconditional.lean`, `intervalConjugateMildSolution_pde_u_PID_unconditional` first builds a `HasBFormSpectralPdeAgreement` by calling `hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional`:
-
-```lean
-import ShenWork.Paper2.IntervalBFormPIDUnconditional
-
-open Filter Topology Set
-
-namespace ShenWork.IntervalConjugatePicard
-
--- theorem intervalConjugateMildSolution_pde_u_PID_unconditional ...
---   have Hpde : HasBFormSpectralPdeAgreement p D.T
---       (conjugatePicardLimit p u₀ D.T) :=
---     hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
---       D hu₀ Hinf hsmall aInit haInit hlogSrc hchemSrc hB_global
---       hlogCont hlogFourier hchemCont hchemFourier
---   exact intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral D Hpde
-#check intervalConjugateMildSolution_pde_u_PID_unconditional
-
-end ShenWork.IntervalConjugatePicard
-```
-
-Then `hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional` uses `hchemCont` to build the chem-div Fourier package by the old const-extension provider:
-
-```lean
-import ShenWork.Paper2.IntervalBFormPIDUnconditional
-
-open Filter Topology Set
-
-namespace ShenWork.IntervalConjugatePicard
-
--- Current use, excerpt:
---
--- have hchemData : ∀ t, 0 < t → t < D.T →
---     ChemDivCosineFourierData p (u t)
---       (coupledChemicalConcentration p u t) := by
---   intro t ht htT
---   exact chemDivCosineFourierData_constExtend p (u t)
---     (coupledChemicalConcentration p u t)
---     (by simpa [u] using hchemCont t ht htT)
---     (by simpa [u] using hchemFourier t ht htT)
-#check hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
-
-end ShenWork.IntervalConjugatePicard
-```
-
-So current consumption is real: `hchemCont` supplies `ChemDivCosineFourierData.continuous_representative` for the representative hard-wired to `intervalDomainConstExtend (chemDiv)`.
-
-## 3. What does the old chem-div consumer actually need?
-
-The old package is in `IntervalBFormSpectralHchem.lean`:
-
-```lean
-import ShenWork.Paper2.IntervalBFormPIDUnconditional
-
-open Set
-
-namespace ShenWork.IntervalBFormSpectral
-
--- structure ChemDivCosineFourierData
---     (p : CM2Params) (u v : intervalDomainPoint → ℝ) where
---   representative : ℝ → ℝ
---   continuous_representative : Continuous representative
---   representative_eq_chemDiv :
---     Set.EqOn representative (chemDivLift p u v) (Set.Icc (0 : ℝ) 1)
---   fourier_summable :
---     Summable (fun n : ℤ => fourierCoeff (reflCircle representative) n)
-#check ChemDivCosineFourierData
-
--- The old constExtend builder demands global continuity of the false representative:
-#check chemDivCosineFourierData_constExtend
-
--- The two downstream consumers only evaluate at interior points:
-#check chemDiv_cosineSeries_summable
-#check chemDiv_cosineFourier_convergence
-
-end ShenWork.IntervalBFormSpectral
-```
-
-The important asymmetry:
-
-* The **type** requires global `Continuous representative` and `EqOn ... (Icc 0 1)`.
-* The **actual convergence/summability consumers** require `hx : x.1 ∈ Ioo 0 1` and only evaluate at interior points.
-
-That matches the audit: endpoint values do not matter for the PDE identity, but the current representative package has an endpoint-sensitive shape.
-
-## 4. Why `ContinuousOn ... (Ioo 0 1)` alone is not enough
-
-A field like
-
-```lean
-hchemContIoo : ∀ t, 0 < t → t < DB.T →
-  ContinuousOn
-    (intervalDomainConstExtend
-      (fun x : intervalDomainPoint => intervalDomainChemotaxisDiv p ... x))
-    (Set.Ioo (0 : ℝ) 1)
-```
-
-or even
-
-```lean
-ContinuousOn (chemDivLift p u v) (Set.Ioo (0 : ℝ) 1)
-```
-
-is too weak for the current inversion machinery. The inversion theorem `intervalCosine_hasSum_pointwise` is used on a globally continuous representative and a Fourier-summable reflected representative. The landed replacement in `IntervalBankChemSliceFix.lean` therefore does not just switch `Continuous` to `ContinuousOn`; it introduces a new package:
-
-```lean
-import ShenWork.Paper2.IntervalBankChemSliceFix
-
-open Set Filter Topology
-
-namespace ShenWork.Paper2.BankChemSliceFix
-
--- structure ChemDivCosineFourierDataIoo
---     (p : CM2Params) (u v : intervalDomainPoint → ℝ) where
---   representative : ℝ → ℝ
---   continuous_representative : Continuous representative
---   representative_eq_chemDiv :
---     Set.EqOn representative (chemDivLift p u v) (Set.Ioo (0 : ℝ) 1)
---   fourier_summable :
---     Summable (fun n : ℤ => fourierCoeff (reflCircle representative) n)
-#check ChemDivCosineFourierDataIoo
-
-#check chemDivCosineFourierDataIoo_of_repr
-#check chemDiv_cosineSeries_summable_Ioo
-#check chemDiv_cosineFourier_convergence_Ioo
-#check coupledChemDiv_cosineSeries_summable_Ioo
-#check coupledChemDiv_cosineFourier_convergence_Ioo
-
-end ShenWork.Paper2.BankChemSliceFix
-```
-
-This is the correct payload: a globally continuous surrogate `ψ` that agrees with the physical chem-div lift on the open interval, plus Fourier summability for `reflCircle ψ`.
-
-Thus a useful bank replacement is not `hchemCont : ContinuousOn ... Ioo`; it is either direct `hchemDataIoo` or explicit surrogate fields:
-
-```lean
--- Preferred direct package field:
-hchemDataIoo : ∀ t, 0 < t → t < DB.T →
-  ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
-    ((conjugatePicardLimit p u₀ DB.T) t)
-    (coupledChemicalConcentration p
-      (conjugatePicardLimit p u₀ DB.T) t)
-```
-
-or:
-
-```lean
--- Equivalent expanded shape:
-hchemRep : ∀ t, 0 < t → t < DB.T → ℝ → ℝ
-hchemRep_cont : ∀ t ht htT, Continuous (hchemRep t ht htT)
-hchemRep_eq : ∀ t ht htT,
-  Set.EqOn (hchemRep t ht htT)
-    (ShenWork.IntervalBFormSpectral.chemDivLift p
-      ((conjugatePicardLimit p u₀ DB.T) t)
-      (coupledChemicalConcentration p
-        (conjugatePicardLimit p u₀ DB.T) t))
-    (Set.Ioo (0 : ℝ) 1)
-hchemRep_fourier : ∀ t ht htT,
-  Summable (fun n : ℤ =>
-    fourierCoeff (ShenWork.IntervalCosineInversion.reflCircle
-      (hchemRep t ht htT)) n)
-```
-
-## 5. Can `hchemCont` be removed entirely?
-
-Only after changing the consumer interface.
-
-### Not safe in the current path
-
-Current path:
-
-```text
-BFormBankedInputs.hpde_u
-  → intervalConjugateMildSolution_pde_u_PID_unconditional
-  → hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
-  → chemDivCosineFourierData_constExtend
-  → ChemDivCosineFourierData.continuous_representative
-```
-
-In this path, deleting `hchemCont` breaks the call to `chemDivCosineFourierData_constExtend`.
-
-### Safe after replacing the consumer with Ioo package
-
-If the bank carries `hchemDataIoo` and the PDE theorem uses the `_Ioo` consumers, then there is no need for `hchemCont`.
-
-Suggested shape:
-
-```lean
-import ShenWork.Paper2.IntervalBankChemSliceFix
-
-open Set Filter Topology
-
--- In the bank, replace false hchemCont (+ maybe the old hchemFourier shape)
--- by a direct endpoint-insensitive package:
---
--- hchemDataIoo : ∀ t, 0 < t → t < DB.T →
---   ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
---     ((conjugatePicardLimit p u₀ DB.T) t)
---     (coupledChemicalConcentration p
---       (conjugatePicardLimit p u₀ DB.T) t)
-```
-
-Then in the PDE proof, replace old calls:
-
-```lean
--- old:
--- ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineFourier_convergence
---   p u t₀ (hchemData t₀ ht₀ ht₀T) hx
---
--- ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineSeries_summable
---   p u t₀ (hchemData t₀ ht₀ ht₀T) hx
-```
-
-with:
-
-```lean
--- new:
--- ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineFourier_convergence_Ioo
---   p u t₀ (hchemDataIoo t₀ ht₀ ht₀T) hx
---
--- ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineSeries_summable_Ioo
---   p u t₀ (hchemDataIoo t₀ ht₀ ht₀T) hx
-```
-
-Because the PDE conclusion has `x ∈ intervalDomain.inside`, these calls already have exactly the required `hx : x.1 ∈ Ioo 0 1`.
-
-## 6. Does the windowed `On` PDE identity still need `hchemCont`?
-
-### Current `On` theorem: still needs a chem-div data package, but not necessarily `hchemCont`
-
-The windowed theorem currently has this argument:
-
-```lean
-import ShenWork.Paper2.IntervalBFormSpectralProviderDischargeOn
-
-open Filter Topology Set
-
-namespace ShenWork.IntervalConjugatePicard
-
--- theorem pde_u_of_localized_data_with_hpost_on ...
---   (hchemData : ∀ t, 0 < t → t < D.T →
---     ChemDivCosineFourierData p
---       ((conjugatePicardLimit p u₀ D.T) t)
---       (coupledChemicalConcentration p
---         (conjugatePicardLimit p u₀ D.T) t)) :
---   ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside → ...
-#check pde_u_of_localized_data_with_hpost_on
-#check intervalConjugateMildSolution_pde_u_PID_global_restart_on
-
-end ShenWork.IntervalConjugatePicard
-```
-
-Inside it, the chem-div data is consumed only through interior calls:
-
-```lean
 -- Current body excerpt:
 --
--- have hchem :
---     (∑' n, coupledChemDivSourceCoeffs p u t₀ n * cosineMode n x.1)
---       = intervalDomain.chemotaxisDiv p (u t₀)
---           (ShenWork.IntervalMildToClassical.mildChemicalConcentration p u t₀) x :=
---   ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineFourier_convergence
---     p u t₀ (hchemData t₀ ht₀ ht₀T) hx
---
--- have hsum_chem := ShenWork.IntervalBFormSpectral.coupledChemDiv_cosineSeries_summable
---   p u t₀ (hchemData t₀ ht₀ ht₀T) hx
+-- theorem BFormBankedInputs.hpde_u ... (B : BFormBankedInputs p DB) : ... :=
+--   ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_PID_global_restart_on
+--       DB B.huPaper B.Hinf B.hsmall
+--       ...
+#check BFormBankedInputs.hpde_u
 ```
 
-So the windowed `On` theorem does **not** need the false `hchemCont` statement as such. It only needs enough chem-div Fourier data to perform interior convergence and summability. The present signature still names the old `ChemDivCosineFourierData`, so if one insists on constructing that old package via `chemDivCosineFourierData_constExtend`, one is back to the false `hchemCont`. But the theorem body is already compatible with the Ioo replacement.
-
-### Correct `On`-fixed shape
-
-A fixed theorem should take:
+In the `On` theorem, `Hinf` is not used for source estimates; source estimates come from `hsrcB_on`, `hB_global`, `hlogData`, and `hchemData`. `Hinf` is used to derive `hpost`:
 
 ```lean
-hchemDataIoo : ∀ t, 0 < t → t < D.T →
-  ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
-    ((conjugatePicardLimit p u₀ D.T) t)
-    (coupledChemicalConcentration p
-      (conjugatePicardLimit p u₀ D.T) t)
+-- In pde_u_PID_global_restart_on:
+-- have hpost := conjugatePicardLimit_hpost_of_PID
+--   (p := p) (u₀ := u₀) (T := D.T) hu₀ Hinf hsmall
+-- ...
+-- exact pde_u_of_localized_data_with_hpost_on
+--   D hpost bc hbsum hagree aB hsrcB_on hsource_split hB_restart hlogData
+--     hchemData
 ```
 
-and use:
+Thus in the PDE branch, `B.Hinf` is only a provider for the strict positive-slice hypothesis `hpost`; after that, the local PDE proof does not inspect `Hinf`.
+
+### Consumer B: `bform_u_pos`
+
+`bform_u_pos` directly consumes `B.Hinf`:
 
 ```lean
-ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineFourier_convergence_Ioo
-ShenWork.Paper2.BankChemSliceFix.coupledChemDiv_cosineSeries_summable_Ioo
+import ShenWork.Paper2.IntervalBFormDirectClassical
+
+open ShenWork.Paper2.BFormDirectClassical
+
+-- private theorem bform_u_pos ... (B : BFormBankedInputs p DB) :
+--     ∀ t x, 0 < t → t < DB.T →
+--       0 < conjugatePicardLimit p u₀ DB.T t x := by
+--   intro t x ht htT
+--   exact ShenWork.IntervalConjugatePicard.conjugatePicardLimit_pos_of_PID
+--     B.huPaper B.Hinf B.hsmall t ht (le_of_lt htT) x
 ```
 
-Then `hchemCont` is gone. The source time-C¹ windowing (`DuhamelSourceTimeC1On`) solves a separate problem: it avoids needing a global `DuhamelSourceTimeC1` witness inside `HasBFormSpectralPdeAgreement`. It does not, by itself, solve the endpoint-continuity problem unless the chem-div Fourier package is also changed to the Ioo/surrogate version.
+This is the main direct positivity consumer in the classical solution assembly.
 
-## 7. Concrete recommendation
+### Indirect consumers through `bform_u_pos`
 
-Do **not** replace
+Several later helpers consume the positivity produced by `bform_u_pos`, hence indirectly depend on `B.Hinf`:
 
 ```lean
-hchemCont : Continuous (intervalDomainConstExtend chemDiv)
+import ShenWork.Paper2.IntervalBFormDirectClassical
+
+open ShenWork.Paper2.BFormDirectClassical
+
+#check intervalConjugatePicardLimit_classicalRegularity_direct
+#check intervalConjugatePicardLimit_isClassicalSolution_direct
 ```
 
-by
+From the file:
+
+* `bform_u_closedC2_endpointDerivs` uses `bform_u_pos` only to prove endpoint nonzero (`h0`, `h1`) before applying `intervalDomainCosineSlice_conjunct7`.
+* `bform_sourceDecay` uses `bform_u_pos` to prove the positive `hpos_lift` needed by `sourceCoeffQuadraticDecay_of_closedC2_neumann_slice`.
+* `bform_vSpatialInterior`, `bform_vNeumannLimits`, and `bform_vClosedSpatial` consume `bform_sourceDecay`, hence indirectly depend on positivity from `Hinf`.
+* `intervalConjugatePicardLimit_isClassicalSolution_direct` uses `bform_u_pos` directly for the `u_pos` field, and again as an input to `coupledChemical_ellipticPDE_of_closedC2_neumann` and `coupledChemical_neumannBC_of_closedC2_neumann`.
+
+Notably, these are all positive-time/interior classical-solution uses. They do not require source bounds at arbitrary global `s` outside the horizon.
+
+## 3. Definition of `ConjugatePicardInfThresholdData`
+
+The structure is:
 
 ```lean
-hchemCont : ContinuousOn (intervalDomainConstExtend chemDiv) (Set.Ioo 0 1)
+import ShenWork.Paper2.IntervalConjugatePicardInfThreshold
+
+open MeasureTheory Set Filter
+open ShenWork.IntervalDomain
+  (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
+open ShenWork.IntervalConjugatePicard
+  (conjugatePicardIter conjugatePicardLimit)
+
+namespace ShenWork.IntervalConjugatePicard
+
+-- structure ConjugatePicardInfThresholdData
+--     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
+--   K : ℝ
+--   C₀ : ℝ
+--   CQ : ℝ
+--   CL : ℝ
+--   hT : 0 < T
+--   hK : K < 1
+--   hK_nn : 0 ≤ K
+--   hC₀ : 0 ≤ C₀
+--   hCQ : 0 ≤ CQ
+--   hCL : 0 ≤ CL
+--   hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+--     ∀ x : intervalDomainPoint,
+--       |conjugatePicardIter p u₀ (n + 1) t x
+--         - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+--   hQ_int : ∀ n s,
+--     Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
+--       (intervalMeasure 1)
+--   hQ_bound : ∀ n s y,
+--     |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+--   hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+--     IntervalIntegrable
+--       (fun s : ℝ =>
+--         intervalConjugateKernelOperator (t - s)
+--           (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
+--       volume 0 t
+--   hL_bound : ∀ n s y,
+--     |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+--   hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+--     IntervalIntegrable
+--       (fun s : ℝ =>
+--         intervalFullSemigroupOperator (t - s)
+--           (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1)
+--       volume 0 t
+#check ConjugatePicardInfThresholdData
+
+end ShenWork.IntervalConjugatePicard
 ```
 
-because that still does not provide the globally continuous Fourier-inversion representative.
+This is a mixed package:
 
-Instead, change the bank and consumers to one of these two designs:
+* Algebraic/geometric convergence: `K`, `C₀`, `hK`, `hK_nn`, `hC₀`, `hgeom`.
+* Chemotaxis source estimates: `CQ`, `hCQ`, `hQ_int`, `hQ_bound`, `hB_int`.
+* Logistic source estimates: `CL`, `hCL`, `hL_bound`, `hL_int`.
+* Horizon positivity: `hT`, apparently not essential in the downstream proofs I read.
 
-### Option A — best: carry the finished Ioo package
+## 4. What fields are extracted by the positivity lemmas?
+
+### `intervalConjugateDuhamelMap_ge_half_floor`
+
+This is the one-step lower bound for the conjugate map. It uses:
+
+* `H.CQ` and `H.CL` in the smallness statement `hsmall`.
+* Chem leg:
+  * `H.hQ_int n s`,
+  * `H.hCQ`,
+  * `H.hQ_bound n s`,
+  * `H.hB_int n t ht htT x`.
+* Logistic leg:
+  * `H.hCL`,
+  * `H.hL_bound n`,
+  * `H.hL_int n t ht htT x`.
+
+The proof invokes the chem bound as:
 
 ```lean
-import ShenWork.Paper2.IntervalBankChemSliceFix
-
-open Set Filter Topology
-
--- Replace hchemCont/hchemFourier with one endpoint-insensitive package:
---
--- hchemDataIoo : ∀ t, 0 < t → t < DB.T →
---   ShenWork.Paper2.BankChemSliceFix.ChemDivCosineFourierDataIoo p
---     ((conjugatePicardLimit p u₀ DB.T) t)
---     (coupledChemicalConcentration p
---       (conjugatePicardLimit p u₀ DB.T) t)
+ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
+  ht htT (fun s _ _ => H.hQ_int n s) H.hCQ
+  (fun s _ _ => H.hQ_bound n s) x.1 (H.hB_int n t ht htT x)
 ```
 
-This is the cleanest for consumers: they no longer know about the false `constExtend(chemDiv)` representative.
-
-### Option B — carry surrogate pieces
+and the logistic bound as:
 
 ```lean
-import ShenWork.Paper2.IntervalBankChemSliceFix
-
-open Set Filter Topology
-
--- Carry a smooth/global representative explicitly:
---
--- hchemRep : ∀ t, 0 < t → t < DB.T → ℝ → ℝ
--- hchemRep_cont : ∀ t ht htT, Continuous (hchemRep t ht htT)
--- hchemRep_eq : ∀ t ht htT,
---   Set.EqOn (hchemRep t ht htT)
---     (ShenWork.IntervalBFormSpectral.chemDivLift p
---       ((conjugatePicardLimit p u₀ DB.T) t)
---       (coupledChemicalConcentration p
---         (conjugatePicardLimit p u₀ DB.T) t))
---     (Set.Ioo (0 : ℝ) 1)
--- hchemRep_fourier : ∀ t ht htT,
---   Summable (fun n : ℤ =>
---     fourierCoeff (ShenWork.IntervalCosineInversion.reflCircle
---       (hchemRep t ht htT)) n)
---
--- Then build:
---
--- ShenWork.Paper2.BankChemSliceFix.chemDivCosineFourierDataIoo_of_repr
+ShenWork.IntervalGradDuhamelBound.valueDuhamel_sup_bound
+  ht htT H.hCL (H.hL_bound n) x.1 (H.hL_int n t ht htT x)
 ```
 
-Option A is simpler and less error-prone.
+The `_ _` arguments in the first call are the tell: the theorem only asks for facts on the integration window, but the current `H.hQ_int` and `H.hQ_bound` are unconditional, so the proof simply ignores those window hypotheses.
 
-## Final answer to the user’s specific questions
+### `conjugatePicardIter_ge_half_floor_of_PID`
 
-### “Can I just REMOVE the field entirely?”
+This uses the one-step lemma above inductively. It consumes the same fields indirectly.
 
-Not in the current direct-classical path. It is used to build `ChemDivCosineFourierData` via `chemDivCosineFourierData_constExtend`.
+### `conjugatePicardLimit_pos_of_PID`
 
-You can remove it only after replacing the old chem-div Fourier-data API with `ChemDivCosineFourierDataIoo` or direct surrogate data. In that reworked path, the field should disappear because endpoint continuity is irrelevant.
+This first gets the iterate lower bound, then passes to the limit. The limit passage uses:
 
-### “Or change it to `ContinuousOn ... (Ioo 0 1)`?”
+* `H.hK`,
+* `H.hK_nn`,
+* `H.hC₀`,
+* `H.hgeom`.
 
-Not by itself. `ContinuousOn` on the interior is true/satisfiable, but it is not enough for the old Fourier inversion package. The consumer needs a globally continuous representative plus Fourier summability. Use the `ChemDivCosineFourierDataIoo` package instead.
+Specifically:
 
-### “Is it actually used by `intervalConjugateMildSolution_pde_u_PID_unconditional`, or passed through?”
+```lean
+real_cauchySeq_of_geometric_bound H.hK H.hK_nn H.hC₀
+  (fun n => H.hgeom n t ht htT x)
+```
 
-It is actually used, but only to construct `hchemData : ChemDivCosineFourierData ...`. After that, the endpoint values are not used by the PDE identity; the Fourier convergence is evaluated only at interior points.
+Again, this is a positive-window use: `hgeom` is invoked only at `0 < t`, `t ≤ T`.
 
-### “If the windowed On PDE identity replaces the global PDE identity, does it still need hchemCont?”
+### `conjugatePicardLimit_hpost_of_PID`
 
-Conceptually no. The current `On` theorem still takes old `ChemDivCosineFourierData`, so as written it still needs some old-style chem-div data. But it does not need the false `hchemCont` once rewired to take `ChemDivCosineFourierDataIoo` and call the `_Ioo` consumers. The `On` path removes the global source-time-C¹ obstruction; the Ioo package removes Barrier C.
+This just converts `conjugatePicardLimit_pos_of_PID` into the lifted closed-interval form:
+
+```lean
+∀ σ, 0 < σ → σ < T →
+  ∀ x ∈ Set.Icc 0 1,
+    0 < intervalDomainLift (conjugatePicardLimit p u₀ T σ) x
+```
+
+It passes `σ hσ hσT.le` to `conjugatePicardLimit_pos_of_PID`.
+
+## 5. Windowed versus unconditional: is `Hinf` over-typed?
+
+For the B-form direct consumers: yes, the unconditional parts are over-typed.
+
+The live B-form consumers only ask for:
+
+* `0 < t`, `t < DB.T` / `t ≤ DB.T` positivity of the limit;
+* bounds/integrability of source terms only inside Duhamel integrals over `s ∈ (0,t]` with `t ≤ T`;
+* geometric convergence only for positive `t ≤ T`.
+
+Thus a windowed version would be enough, for example:
+
+```lean
+structure ConjugatePicardInfThresholdDataOn
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
+  K : ℝ
+  C₀ : ℝ
+  CQ : ℝ
+  CL : ℝ
+  hK : K < 1
+  hK_nn : 0 ≤ K
+  hC₀ : 0 ≤ C₀
+  hCQ : 0 ≤ CQ
+  hCL : 0 ≤ CL
+  hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+    ∀ x : intervalDomainPoint,
+      |conjugatePicardIter p u₀ (n + 1) t x
+        - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+  hQ_int : ∀ n s, 0 < s → s ≤ T →
+    Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
+      (intervalMeasure 1)
+  hQ_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+    |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
+  hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    IntervalIntegrable
+      (fun s : ℝ =>
+        intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
+      volume 0 t
+  hL_bound : ∀ n s, 0 < s → s ≤ T → ∀ y,
+    |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
+  hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    IntervalIntegrable
+      (fun s : ℝ =>
+        intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1)
+      volume 0 t
+```
+
+Then `intervalConjugateDuhamelMap_ge_half_floor` would pass the window facts instead of dropping them:
+
+```lean
+-- schematic replacement in the chem leg:
+(fun s hs0 hst => H.hQ_int n s hs0 (le_trans hst htT))
+(fun s hs0 hst => H.hQ_bound n s hs0 (le_trans hst htT))
+```
+
+and logistic:
+
+```lean
+(fun s hs0 hst => H.hL_bound n s hs0 (le_trans hst htT))
+```
+
+The `hB_int`/`hL_int` fields are already windowed in the current structure. The real over-typed fields are `hQ_int`, `hQ_bound`, and `hL_bound` (and arguably `hT`, which appears redundant in the uses I inspected).
+
+## 6. Is `Hinf` only supplying `hsmall` and algebraic contraction data?
+
+No. It supplies more than `hsmall`.
+
+`hsmall` only references the scalar constants `CQ` and `CL`. But to prove the positivity theorem, the code also uses:
+
+* chem integrability and bound fields (`hQ_int`, `hQ_bound`, `hB_int`),
+* logistic bound and integrability fields (`hL_bound`, `hL_int`),
+* geometric convergence (`hgeom`) and contraction scalars (`hK`, `hK_nn`, `hC₀`).
+
+However, all of those uses are in the positive-time window. So the right conclusion is:
+
+```text
+Hinf is not just algebraic budget data.
+It is a positivity/inf-threshold package containing source bounds + integrability + geometric convergence.
+But its unconditional-in-s fields are stronger than the B-form consumers need.
+A windowed `ConjugatePicardInfThresholdDataOn` would suffice for the current chain.
+```
+
+## 7. Practical refactor recommendation
+
+For minimum churn, do not retype `BFormBankedInputs.Hinf` immediately. Instead introduce an adapter theorem:
+
+```lean
+-- Schematic:
+def ConjugatePicardInfThresholdData.toOn
+    (H : ConjugatePicardInfThresholdData p u₀ T) :
+    ConjugatePicardInfThresholdDataOn p u₀ T :=
+  { K := H.K
+    C₀ := H.C₀
+    CQ := H.CQ
+    CL := H.CL
+    hK := H.hK
+    hK_nn := H.hK_nn
+    hC₀ := H.hC₀
+    hCQ := H.hCQ
+    hCL := H.hCL
+    hgeom := H.hgeom
+    hQ_int := fun n s _hs _hsT => H.hQ_int n s
+    hQ_bound := fun n s _hs _hsT y => H.hQ_bound n s y
+    hB_int := H.hB_int
+    hL_bound := fun n s _hs _hsT y => H.hL_bound n s y
+    hL_int := H.hL_int }
+```
+
+Then prove the inf-threshold lemmas from the `On` structure. Existing unconditional callers can use `.toOn`; future producers need only build the windowed structure.
+
+## Final answer
+
+`BFormBankedInputs.Hinf` is consumed in the B-form chain to prove strict positivity of `conjugatePicardLimit` on `(0,T]` / `(0,T)`. Direct uses in `IntervalBFormDirectClassical.lean` are `BFormBankedInputs.hpde_u` and `bform_u_pos`; subsequent classical-regularity and solution theorems use it indirectly through `bform_u_pos` and `bform_sourceDecay`.
+
+Internally, the inf-threshold proof extracts more than just `CQ`/`CL`: it uses chem/logistic bounds and integrability (`hQ_int`, `hQ_bound`, `hB_int`, `hL_bound`, `hL_int`) for the one-step lower bound, and `hgeom` plus `hK/hK_nn/hC₀` for the limit passage. But all source-bound uses are windowed inside Duhamel integrals, so the unconditional fields `∀ n s` are over-typed. A windowed structure would suffice, with the proof passing `0 < s` and `s ≤ T` through to the fields.
