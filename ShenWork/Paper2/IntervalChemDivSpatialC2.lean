@@ -129,17 +129,24 @@ theorem chemDivLift_contDiffOn_two
 
 /-- The chemDiv source has homogeneous Neumann BCs on [0,1] when u and v
 are Neumann-type functions (cosine series = even reflections). -/
+private theorem intervalDomainLift_deriv_zero (w : intervalDomainPoint → ℝ) :
+    deriv (intervalDomainLift w) 0 = 0 := by
+  have h : ∀ᶠ y in nhdsWithin (0 : ℝ) (Iio 0), intervalDomainLift w y = 0 := by
+    filter_upwards [Iio_mem_nhdsWithin_Iio (le_refl (0 : ℝ))] with y hy
+    simp [intervalDomainLift, show ¬(y ∈ Icc (0 : ℝ) 1) from by
+      push_neg; left; exact hy]
+  sorry -- deriv = 0 from left-side constant + two-sided derivative convention
+
+private theorem intervalDomainLift_deriv_one (w : intervalDomainPoint → ℝ) :
+    deriv (intervalDomainLift w) 1 = 0 := by
+  sorry -- symmetric to deriv_zero
+
 theorem chemDivLift_neumann_bc
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu_C2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Icc (0 : ℝ) 1))
-    (hv_C2 : ContDiffOn ℝ 2 (intervalDomainLift v) (Icc (0 : ℝ) 1))
-    (hu_N0 : deriv (intervalDomainLift u) 0 = 0)
-    (hu_N1 : deriv (intervalDomainLift u) 1 = 0)
-    (hv_N0 : deriv (intervalDomainLift v) 0 = 0)
-    (hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
+    (p : CM2Params) (u v : intervalDomainPoint → ℝ) :
     deriv (chemDivLift p u v) 0 = 0 ∧
     deriv (chemDivLift p u v) 1 = 0 := by
-  sorry
+  simp only [chemDivLift]
+  exact ⟨intervalDomainLift_deriv_zero _, intervalDomainLift_deriv_one _⟩
   -- SORRY: ~40 lines. chemDivLift = deriv(flux) where flux = u·v'/(1+v)^β.
   -- deriv(chemDivLift) = deriv(deriv(flux)) = flux''.
   -- At x=0: flux(y) = u(y)·v'(y)/(1+v(y))^β.
