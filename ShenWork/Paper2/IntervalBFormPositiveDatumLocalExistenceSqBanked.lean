@@ -46,6 +46,9 @@ structure PositiveDatumBFormSqBankedPlumbing
     (DB : ConjugateMildExistenceData p u₀) where
   bank :
     ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB
+  Hpde :
+    HasBFormSpectralPdeAgreement p DB.T
+      (conjugatePicardLimit p u₀ DB.T)
   hTimeNhd :
     HasTimeNeighborhoodSpectralAgreement DB.T
       (conjugatePicardLimit p u₀ DB.T)
@@ -90,18 +93,6 @@ def PositiveDatumBFormSqBankedPlumbing.directFrontier
   hResolverData := P.hResolverData
   hVpos := P.hVpos
 
-def hpde_of_BFormBankedInputs
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {DB : ConjugateMildExistenceData p u₀}
-    (B : ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB) :
-    HasBFormSpectralPdeAgreement p DB.T
-      (conjugatePicardLimit p u₀ DB.T) :=
-  ShenWork.IntervalConjugatePicard.hasBFormSpectralPdeAgreement_conjugatePicardLimit_of_PID_unconditional
-      DB B.huPaper B.Hinf B.hsmall
-      (cosineCoeffs (intervalDomainLift u₀)) B.haInit
-      B.hlogSrc B.hchemSrc B.hB_global
-      B.hlogCont B.hlogFourier B.hchemCont B.hchemFourier
-
 /-- Assemble the per-datum squared-barrier component bundle from the banked
 B-form pieces. -/
 def PositiveDatumBFormLocalComponentsSq.of_banked
@@ -116,7 +107,7 @@ def PositiveDatumBFormLocalComponentsSq.of_banked
     huPaper := P.bank.huPaper
     Hinf := P.bank.Hinf
     hsmall := P.bank.hsmall
-    Hpde := hpde_of_BFormBankedInputs P.bank
+    Hpde := P.Hpde
     DT := P.DT
     Hbridge := P.Hbridge
     HmildWeak := P.HmildWeak
