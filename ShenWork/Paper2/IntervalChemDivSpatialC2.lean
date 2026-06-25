@@ -208,10 +208,6 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     second_intervalIntegrable := hF_H2.second_intervalIntegrable
     second_abs_integral_bound := hF_H2.second_abs_integral_bound
     weak_cosine_laplacian := fun k => by
-      have hF_wl := hF_H2.weak_cosine_laplacian k
-      convert hF_wl using 1
-      refine intervalIntegral.integral_congr_ae ?_
-      rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
       sorry }
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
