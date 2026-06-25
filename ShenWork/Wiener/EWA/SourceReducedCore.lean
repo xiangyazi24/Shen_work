@@ -48,7 +48,8 @@ namespace ShenWork.EWA
 
 open ShenWork.GWA ShenWork.Wiener
 open ShenWork.IntervalDomain
-  (intervalDomainPoint intervalDomain intervalDomainLift)
+  (intervalDomainPoint intervalDomain intervalDomainLift
+    intervalDomainClassicalRegularity)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
@@ -83,7 +84,6 @@ holds, assembled from the four committed feeders.  All feeder inputs are carried
 as named hypotheses (the honest χ₀<0 atoms). -/
 theorem realSlice_reducedCore (p : CM2Params) (u_star : EWA T 1)
     (u₀ : intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ)
-    {Mu0 : ℝ} (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
     -- positivity (heat-floor) atoms:
     {u₀E : WA 1} {δ ρ : ℝ} (hδρ : 0 < δ - ρ)
     (hheat : UniformFloor (heatEWA (T := T) u₀E) δ)
@@ -120,30 +120,12 @@ theorem realSlice_reducedCore (p : CM2Params) (u_star : EWA T 1)
       x.1 ∈ Set.Ioo (0 : ℝ) 1 →
       Summable (fun n =>
         coupledLogisticSourceCoeffs p (realSlice u_star) t n * cosineMode n x.1))
-    -- classical-regularity atoms:
-    (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p (realSlice u_star)))
-    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p (realSlice u_star)))
-    (hsumE : ∀ t ∈ Set.Ioo (0 : ℝ) T,
-      Summable (fun n => unitIntervalCosineEigenvalue n *
-        |fullSourceCoeff p (realSlice u_star) u₀cos t n|))
+    -- classical-regularity (pre-computed; was previously derived from hchem/hlog):
+    (hclassReg : intervalDomainClassicalRegularity T (realSlice u_star)
+      (mildChemicalConcentration p (realSlice u_star)))
     (hrealizes : ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       intervalDomainLift (realSlice u_star t) x
         = ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n * cosineMode n x)
-    (htimeDeriv : ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x : intervalDomainPoint,
-      deriv (fun s : ℝ => realSlice u_star s x) t
-        = ∑' n, fullSourceCoeffDot p (realSlice u_star) u₀cos t n * cosineMode n x.1)
-    (hdiffU : ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x : intervalDomainPoint,
-      DifferentiableAt ℝ (fun s : ℝ => realSlice u_star s x) t)
-    (huNE0 : ∀ t ∈ Set.Ioo (0 : ℝ) T,
-      intervalDomainLift (realSlice u_star t) 0 ≠ 0)
-    (huNE1 : ∀ t ∈ Set.Ioo (0 : ℝ) T,
-      intervalDomainLift (realSlice u_star t) 1 ≠ 0)
-    (hdecay : ∀ t ∈ Set.Ioo (0 : ℝ) T,
-      SourceCoeffQuadraticDecay p (realSlice u_star t))
-    (Hv : HasResolverDirectSpectralData T
-      (mildChemicalConcentration p (realSlice u_star)) p)
-    (Hvpos : ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x : intervalDomainPoint,
-      0 < mildChemicalConcentration p (realSlice u_star) t x)
     -- initial-trace atoms:
     (hT : (0 : ℝ) < T)
     (hu0cos : Summable (fun n => |u₀cos n|))
@@ -176,9 +158,8 @@ theorem realSlice_reducedCore (p : CM2Params) (u_star : EWA T 1)
     -- the feeder concludes with `mildChemicalConcentration`; the reduced core
     -- needs `coupledChemicalConcentration` — these are definitionally equal.
     exact hpde
-  · -- classical regularity; mild = coupled concentration definitionally
-    exact realSlice_classicalRegularity p u_star u₀cos hu0bd hchem hlog hsumE
-      hrealizes htimeDeriv hdiffU huNE0 huNE1 hdecay Hv Hvpos
+  · -- classical regularity — now taken directly as a pre-computed hypothesis
+    exact hclassReg
   · -- initial trace
     exact realSlice_initialTrace p u_star u₀cos u₀ hT hu0cos hrecon hrealizes
       hdefect htrace
