@@ -161,12 +161,10 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   -- Parity helper: derivative of even C¹ function is odd
   have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
       ∀ x, deriv g (-x) = -(deriv g x) := by
-    intro g hg heven x
-    have hdiff := hg.differentiable le_top
-    have h1 : deriv (g ∘ Neg.neg) x = deriv Neg.neg x • deriv g (-x) :=
-      deriv.scomp x hdiff.differentiableAt differentiable_neg.differentiableAt
-    have h2 : g ∘ Neg.neg = g := funext heven
-    rw [h2, deriv_neg, neg_one_smul] at h1; linarith
+    intro g _hg heven x
+    have h1 : deriv (fun y => g (-y)) x = -(deriv g (-x)) := deriv_comp_neg
+    have h2 : (fun y => g (-y)) = g := funext heven
+    rw [h2] at h1; linarith
   -- Odd function vanishes at 0
   have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
     intro g hodd; have h := hodd 0; rw [neg_zero] at h; linarith
@@ -180,14 +178,12 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   -- Parity helper: derivative of odd C¹ function is even
   have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
       ∀ x, deriv g (-x) = deriv g x := by
-    intro g hg hodd x
-    have hdiff := hg.differentiable le_top
-    have h1 : deriv (g ∘ Neg.neg) x = deriv Neg.neg x • deriv g (-x) :=
-      deriv.scomp x hdiff.differentiableAt differentiable_neg.differentiableAt
-    have h2 : (g ∘ Neg.neg) = fun y => -(g y) := funext hodd
+    intro g _hg hodd x
+    have h1 : deriv (fun y => g (-y)) x = -(deriv g (-x)) := deriv_comp_neg
+    have h2 : (fun y => g (-y)) = fun y => -(g y) := funext hodd
     rw [h2] at h1
     have h3 : deriv (fun y => -(g y)) x = -(deriv g x) := deriv_neg
-    rw [h3, deriv_neg, neg_one_smul] at h1; linarith
+    linarith
   -- F = φ' is even (derivative of odd φ)
   have hF_even : ∀ x, F (-x) = F x :=
     deriv_odd_even
