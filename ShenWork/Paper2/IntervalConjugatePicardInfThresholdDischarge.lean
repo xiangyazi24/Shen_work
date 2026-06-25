@@ -22,12 +22,12 @@ def conjugatePicardInfThresholdData_of_picard_bounds
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : ConjugateMildExistenceData p u₀)
     (CQ CL : ℝ) (hCQ : 0 ≤ CQ) (hCL : 0 ≤ CL)
-    (hQ_int : ∀ n s,
+    (hQ_int : ∀ n, ∀ s, 0 < s → s ≤ D.T →
       Integrable
         (ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
           (conjugatePicardIter p u₀ n s))
         (ShenWork.IntervalDomain.intervalMeasure 1))
-    (hQ_bound : ∀ n s y,
+    (hQ_bound : ∀ n, ∀ s, 0 < s → s ≤ D.T → ∀ y,
       |ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
           (conjugatePicardIter p u₀ n s) y| ≤ CQ)
     (hB_int : ∀ n t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
@@ -38,7 +38,7 @@ def conjugatePicardInfThresholdData_of_picard_bounds
             (ShenWork.IntervalGradientDuhamelMap.chemFluxLifted p
               (conjugatePicardIter p u₀ n s)) x.1)
         volume 0 t)
-    (hL_bound : ∀ n s y,
+    (hL_bound : ∀ n, ∀ s, 0 < s → s ≤ D.T → ∀ y,
       |ShenWork.IntervalGradientDuhamelMap.logisticLifted p
           (conjugatePicardIter p u₀ n s) y| ≤ CL)
     (hL_int : ∀ n t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,

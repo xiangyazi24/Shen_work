@@ -23,13 +23,12 @@
   landed `conjugatePicardIter_ball` ball/continuity/measurability replay and the
   landed `*_of_ball` integrability atoms.
 
-  IMPORTANT — neither top-level field is fully landed here; see the trailing
-  report.  Field 2's producer demands UNCONDITIONAL-in-`s` bounds
-  (`hQ_bound/hL_bound : ∀ n s y, …`) that are NOT derivable from the
-  window-only data `D` (no `s > T` control); field 6 needs a restart-cosine
+  IMPORTANT — field 2's producer
+  `conjugatePicardInfThresholdData_of_picard_bounds` now accepts WINDOWED bounds
+  (`hQ_bound/hL_bound : ∀ n, ∀ s, 0 < s → s ≤ T → …`), so the bricks below
+  are a COMPLETE match for field 2.  Field 6 still needs a restart-cosine
   representation + time-`C¹` coefficient data for `conjugatePicardLimit` that is
-  not landed anywhere in the tree.  The bricks below are exactly the windowed
-  half that IS axiom-clean.
+  not landed anywhere in the tree.
 
   No `sorry`/`admit`/`native_decide`/custom `axiom`.  New names only.
 -/

@@ -65,10 +65,10 @@ structure ConjugatePicardInfThresholdData
     ∀ x : intervalDomainPoint,
       |conjugatePicardIter p u₀ (n + 1) t x
         - conjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
-  hQ_int : ∀ n s,
+  hQ_int : ∀ n, ∀ s, 0 < s → s ≤ T →
     Integrable (chemFluxLifted p (conjugatePicardIter p u₀ n s))
       (intervalMeasure 1)
-  hQ_bound : ∀ n s y,
+  hQ_bound : ∀ n, ∀ s, 0 < s → s ≤ T → ∀ y,
     |chemFluxLifted p (conjugatePicardIter p u₀ n s) y| ≤ CQ
   hB_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
     IntervalIntegrable
@@ -76,7 +76,7 @@ structure ConjugatePicardInfThresholdData
         intervalConjugateKernelOperator (t - s)
           (chemFluxLifted p (conjugatePicardIter p u₀ n s)) x.1)
       volume 0 t
-  hL_bound : ∀ n s y,
+  hL_bound : ∀ n, ∀ s, 0 < s → s ≤ T → ∀ y,
     |logisticLifted p (conjugatePicardIter p u₀ n s) y| ≤ CL
   hL_int : ∀ n t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
     IntervalIntegrable
@@ -155,8 +155,8 @@ theorem intervalConjugateDuhamelMap_ge_half_floor
       heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * H.CQ := by
     simpa [B] using
       ShenWork.IntervalConjugateDuhamelMap.conjugateDuhamel_sup_bound
-        ht htT (fun s _ _ => H.hQ_int n s) H.hCQ
-        (fun s _ _ => H.hQ_bound n s) x.1 (H.hB_int n t ht htT x)
+        ht htT (fun s hs hsT => H.hQ_int n s hs hsT) H.hCQ
+        (fun s hs hsT => H.hQ_bound n s hs hsT) x.1 (H.hB_int n t ht htT x)
   have hchem_abs :
       |(-p.χ₀) * B| ≤
         |p.χ₀| *
@@ -169,9 +169,33 @@ theorem intervalConjugateDuhamelMap_ge_half_floor
         ≤ (-p.χ₀) * B :=
     (abs_le.mp hchem_abs).1
   have hR_abs : |R| ≤ T * H.CL := by
-    simpa [R] using
-      ShenWork.IntervalGradDuhamelBound.valueDuhamel_sup_bound
-        ht htT H.hCL (H.hL_bound n) x.1 (H.hL_int n t ht htT x)
+    simp only [R]
+    have hint := H.hL_int n t ht htT x
+    have hae : (fun s => |intervalFullSemigroupOperator (t - s)
+        (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1|)
+        ≤ᵐ[volume.restrict (Set.Icc 0 t)] (fun _ => H.CL) := by
+      refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+      have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+        rw [ae_iff]
+        simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+      have hne0 : ∀ᵐ s : ℝ ∂volume, s ≠ 0 := by
+        rw [ae_iff]
+        simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+      filter_upwards [hne, hne0] with s hs_ne hs_ne0 hs_mem
+      have hs_pos : 0 < s := lt_of_le_of_ne hs_mem.1 (Ne.symm hs_ne0)
+      have hs_lt : s < t := lt_of_le_of_ne hs_mem.2 hs_ne
+      exact ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+        (sub_pos.mpr hs_lt) H.hCL (H.hL_bound n s hs_pos (hs_lt.le.trans htT)) x.1
+    calc |∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1|
+        ≤ ∫ s in (0:ℝ)..t, |intervalFullSemigroupOperator (t - s)
+            (logisticLifted p (conjugatePicardIter p u₀ n s)) x.1| :=
+          intervalIntegral.abs_integral_le_integral_abs ht.le
+      _ ≤ ∫ _s in (0:ℝ)..t, H.CL :=
+          intervalIntegral.integral_mono_ae_restrict ht.le hint.abs
+            intervalIntegrable_const hae
+      _ = t * H.CL := by rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul]
+      _ ≤ T * H.CL := by exact mul_le_mul_of_nonneg_right htT H.hCL
   have hR_lower : -(T * H.CL) ≤ R := (abs_le.mp hR_abs).1
   change paperPositiveFloor hu₀ / 2 ≤ S + (-p.χ₀) * B + R
   linarith
