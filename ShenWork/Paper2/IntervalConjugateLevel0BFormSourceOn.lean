@@ -23,6 +23,7 @@ import ShenWork.Paper2.IntervalBFormSpectralHtime
 import ShenWork.Paper2.IntervalBFormNegPartStrictPosBarrier
 import ShenWork.Paper2.IntervalChemDivSpatialC2
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.Paper2.IntervalResolverHighRegularity
 import ShenWork.PDE.IntervalChemDivTimeDerivative
 
 open MeasureTheory Set Filter
@@ -47,6 +48,10 @@ open ShenWork.IntervalDomain (intervalDomain)
 open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
 open ShenWork.Paper2.ChemDivSpatialC2 (chemDivSource_weakH2_of_cosineRep)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.Paper2.IntervalResolverHighRegularity
+  (intervalResolverLiftR intervalResolverLiftR_contDiff_four
+   intervalResolverLiftR_even intervalResolverLiftR_reflect_one)
+open ShenWork.PDE (intervalNeumannResolverR)
 
 noncomputable section
 
@@ -238,15 +243,46 @@ theorem level0_chemDiv_envelope_summable
               (conjugatePicardIter p u₀ 0) s) x = V_cos x) ∧
           (∀ x, V_cos (-x) = V_cos x) ∧
           (∀ x, V_cos (2 - x) = V_cos x) := by
-        sorry
-        -- Proof sketch: V_cos = resolverValue p.μ (cosineCoeffs (lift (u s))) x.
-        -- Even/symm1: from resolverValue_even, resolverValue_add_two.
-        -- C⁴: resolver gain is +2 (elliptic regularity); u ∈ H^{4+ε} for s > 0
-        --   → v ∈ H^{6+ε} → C⁴.  Needs MemHSigma σ with σ > 4.5 for the source,
-        --   which follows from the exponential coefficient decay of the heat semigroup.
-        --   Infrastructure gap: only resolverValue_contDiff_two (C²) is proved.
-        -- Agreement: from the committed resolver spectral bridge on [0,1].
-        -- Positivity: from resolverValue_nonneg (u ≥ 0 on [c,T]) + resolver structure.
+        -- Witness: the lifted resolver cosine series from IntervalResolverHighRegularity
+        set V := intervalResolverLiftR p (conjugatePicardIter p u₀ 0 s) with hV_def
+        refine ⟨V, ?_, ?_, ?_, ?_, ?_⟩
+        · -- C⁴: from intervalResolverLiftR_contDiff_four.
+          -- Needs eigenvalue-weighted ℓ¹ summability of the source coefficients
+          -- (ν * u^γ for u = heat semigroup at s > 0).
+          -- The heat semigroup at s > 0 has exponential coefficient decay, so
+          -- ν * u^γ (with u C∞) has rapidly decaying cosine coefficients,
+          -- giving ∑ λ_k |â_k.re| < ∞.
+          apply intervalResolverLiftR_contDiff_four
+          -- SORRY: source eigenvalue-weighted summability (H² + IBP of ν*u^γ)
+          sorry
+        · -- Positivity: 0 < 1 + V x.
+          -- The resolver V ≥ 0 (source ν*u^γ ≥ 0 gives nonneg resolvent),
+          -- so 1 + V x > 0.
+          -- SORRY: needs the resolver nonnegativity infrastructure for the
+          -- lifted cosine series (resolverR_pos_of_representation + lift bridge).
+          sorry
+        · -- Agreement on [0,1]: intervalDomainLift (coupledChemicalConcentration …) = V
+          -- Chain: coupledChemicalConcentration = intervalNeumannResolverR (def) →
+          -- lift on [0,1] = subtype value (def of intervalDomainLift) →
+          -- R p w ⟨x,hx⟩ = ∑' k, coeff.re * unitIntervalCosineMode k x.1 (def of R) →
+          -- unitIntervalCosineMode = cosineMode (rfl) →
+          -- = intervalResolverLiftR p w x (def).
+          intro x hx
+          -- Reduce to: R p w ⟨x,hx⟩ = intervalResolverLiftR p w x.
+          -- Both sides unfold to ∑' k, coeff.re * Real.cos(kπx):
+          --   LHS: coupledChemicalConcentration ≡ intervalNeumannResolverR (def) →
+          --        intervalDomainLift on [0,1] → subtype value → R body uses
+          --        unitIntervalCosineMode ≡ cosineMode ≡ Real.cos(kπx).
+          --   RHS: intervalResolverLiftR body uses cosineMode ≡ Real.cos(kπx).
+          show intervalDomainLift (intervalNeumannResolverR p
+            (conjugatePicardIter p u₀ 0 s)) x =
+            intervalResolverLiftR p (conjugatePicardIter p u₀ 0 s) x
+          simp only [intervalDomainLift, dif_pos hx]
+          rfl
+        · -- Even: from intervalResolverLiftR_even
+          exact intervalResolverLiftR_even p (conjugatePicardIter p u₀ 0 s)
+        · -- Symm1: from intervalResolverLiftR_reflect_one
+          exact intervalResolverLiftR_reflect_one p (conjugatePicardIter p u₀ 0 s)
       let V_cos := hV_data.choose
       have hV := hV_data.choose_spec
       exact chemDivSource_weakH2_of_cosineRep hU_C4 hV.1 hV.2.1
@@ -429,14 +465,47 @@ theorem level0_chemDiv_timeDerivData
   -- The uniform bound needs the time-derivative field to have a summable
   -- cosine-coefficient envelope (the EWA-T-3 time-chain brick).
   have hMdot : ∃ (Mdot : ℝ), ∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot := by
-    sorry
-    -- For the heat semigroup at level 0, the time derivative field
-    -- coupledChemDivTimeDerivativeLift is smooth on [c,T]×[0,1] (c > 0).
-    -- Its cosine coefficients decay like 1/k² (quadratic, from the H²
-    -- regularity of the time derivative field), giving summability and hence
-    -- a uniform bound.  But this requires H² of ∂ₜ(chemDiv source), which
-    -- in turn requires ∂ₜ∂²ₓ(chemDiv source) — two more spatial derivatives
-    -- plus one time derivative of the chemDiv functional.
+    -- Strategy: joint continuity on the compact [c,T]×[0,1] gives a uniform
+    -- sup bound B_sup on |coupledChemDivTimeDerivativeLift p u s x|.
+    -- Then cosineCoeffs_abs_le_of_continuous_bounded gives |adot s n| ≤ 2·B_sup
+    -- for ALL n — the uniform-in-n bound from a sup bound, no H² needed.
+    set F := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivTimeDerivativeLift
+      p (conjugatePicardIter p u₀ 0)
+    -- The compact slab [c,T] × [0,1]
+    set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1
+    have hKcompact : IsCompact K := isCompact_Icc.prod isCompact_Icc
+    -- hjointcont says: ContinuousOn (Function.uncurry F) K
+    -- Extract uniform bound from compactness + continuity
+    have hFcont_norm : ContinuousOn (fun p => ‖Function.uncurry F p‖) K :=
+      hjointcont.norm
+    obtain ⟨B_sup, hB_sup⟩ := hKcompact.bddAbove_image hFcont_norm
+    -- B_sup bounds the norm image; extract pointwise bound
+    have hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1, |F s x| ≤ B_sup := by
+      intro s hs x hx
+      have hmem : (s, x) ∈ K := ⟨hs, hx⟩
+      have : ‖Function.uncurry F (s, x)‖ ≤ B_sup :=
+        hB_sup (Set.mem_image_of_mem _ hmem)
+      simp [Function.uncurry, Real.norm_eq_abs] at this
+      exact this
+    -- Per-slice continuity from joint continuity
+    have hcont_slice : ∀ s ∈ Icc c T, ContinuousOn (F s) (Icc (0 : ℝ) 1) := by
+      intro s hs
+      exact ContinuousOn.uncurry_left s hs hjointcont
+    -- B_sup is an upper bound so it is ≥ 0: pick any point in the nonempty
+    -- compact slab and use 0 ≤ ‖·‖ ≤ B_sup.
+    have hB_sup_nn : 0 ≤ B_sup := by
+      have hmem : (c, (0 : ℝ)) ∈ K :=
+        ⟨left_mem_Icc.mpr _hcT, left_mem_Icc.mpr (by norm_num : (0 : ℝ) ≤ 1)⟩
+      exact le_trans (norm_nonneg _) (hB_sup (Set.mem_image_of_mem _ hmem))
+    -- Now apply cosineCoeffs_abs_le_of_continuous_bounded per slice.
+    -- adot s n = cosineCoeffs (F s) n by definition (coupledChemDivAdot unfolds
+    -- to cosineCoeffs of coupledChemDivTimeDerivativeLift, which is F).
+    refine ⟨2 * B_sup, fun s hs n => ?_⟩
+    show |adot s n| ≤ 2 * B_sup
+    -- Unfold adot to cosineCoeffs of F s
+    change |cosineCoeffs (F s) n| ≤ 2 * B_sup
+    exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      (hcont_slice s hs) hB_sup_nn (hbd s hs) n
   obtain ⟨Mdot, hMdot⟩ := hMdot
   exact ⟨adot, Mdot, hderiv, hadotcont, hMdot⟩
 
