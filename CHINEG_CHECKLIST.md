@@ -655,3 +655,16 @@ REMAINING (the per-datum local-existence bridge):
   GradientMildSolutionData (canonical chain), need bridge from the contraction fixed point.
 NEXT SESSION: formalize the 4 ball-estimate conjuncts (standard mild-solution PDE estimates
 specialized to the interval-domain Neumann system) + wire hregularize.
+
+## [2026-06-25] hregularize = the genuine remaining hard piece (mild-to-classical regularity)
+cron1 confirmed: hregularize (upgrading bounded mild fixed point → RegularityBootstrap) has NO existing
+producer from contraction data alone. χ₀=0 uses LimitRegularityInputs which carries cosine/restart/source
+data (not free of regularity inputs). regularityBootstrap_of_gradientMildSolutionData is circular (takes
+IsPaper2ClassicalSolution as input). The EWA reduced core route has cosine-summability obstruction.
+WHAT hregularize IS: the paper's parabolic regularity theory (§2.2) — taking a bounded mild solution
+satisfying the Duhamel identity and proving C²-spatial, C¹-temporal, PDE identity, Neumann BC, initial trace.
+This is genuine PDE content: Schauder estimates / semigroup regularity / elliptic regularity.
+BANKED this session: ball-estimates producer (d7ecd0e) + all windowed infrastructure. The CHAIN is complete
+EXCEPT for hregularize. With hregularize:
+  ball-estimates + hregularize → exactLocalClassicalSolution → CoupledFluxClassicalLocalExistenceResidual
+  → theorem_1_1_intervalDomain_chiNeg → Theorem_1_1 (χ₀<0) UNCONDITIONAL.
