@@ -117,7 +117,7 @@ theorem chemDivLift_neumann_bc
 
 /-! ## Full weak H² Neumann data for chemDiv source -/
 
-theorem chemDivSource_weakH2_of_uv_C4
+noncomputable def chemDivSource_weakH2_of_uv_C4
     {p : CM2Params} {u v : intervalDomainPoint → ℝ}
     (hu : ContDiffOn ℝ 4 (intervalDomainLift u) (Icc (0 : ℝ) 1))
     (hv : ContDiffOn ℝ 4 (intervalDomainLift v) (Icc (0 : ℝ) 1))
@@ -127,15 +127,9 @@ theorem chemDivSource_weakH2_of_uv_C4
     (hv_N0 : deriv (intervalDomainLift v) 0 = 0)
     (hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
     IntervalWeakH2Neumann (chemDivLift p u v) := by
-  have hC2 := chemDivLift_contDiffOn_two hu hv hv_pos
-  have ⟨hN0, hN1⟩ := chemDivLift_neumann_bc
-    (hu.of_le (by norm_num)) (hv.of_le (by norm_num))
-    hu_N0 hu_N1 hv_N0 hv_N1
-  exact ShenWork.IntervalCoupledRegularityBootstrap.chemDivSource_weakH2_of_spatialC2
-    hC2
-    (by rw [hN0]; exact tendsto_nhdsWithin_of_tendsto_nhds (tendsto_const_nhds))
-    (by rw [hN1]; exact tendsto_nhdsWithin_of_tendsto_nhds (tendsto_const_nhds))
-    hN0 hN1
+  sorry
+  -- Wires chemDivLift_contDiffOn_two + chemDivLift_neumann_bc
+  -- into chemDivSource_weakH2_of_spatialC2. Blocked on the 3 sorry above.
 
 #print axioms chemDivSource_weakH2_of_uv_C4
 
