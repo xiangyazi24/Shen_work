@@ -31,9 +31,9 @@ theorem heatSemigroup_eigenvalueSq_summable
         cosineCoeffs (intervalDomainLift u₀) k|) := by
   have hM₀nn : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
   refine Summable.of_nonneg_of_le
-    (fun _ => by positivity)
+    (fun k => mul_nonneg (by positivity) (abs_nonneg _))
     (fun k => ?_)
-    ((ShenWork.ChemMildC1etaComm.eigenvalueSq_mul_exp_summable ht).mul_right M₀)
+    ((ShenWork.Paper2.eigenvalueSq_mul_exp_summable ht).mul_right M₀)
   rw [abs_mul, abs_of_pos (Real.exp_pos _)]
   calc unitIntervalCosineEigenvalue k ^ 2 *
       (Real.exp (-t * unitIntervalCosineEigenvalue k) *
@@ -53,7 +53,7 @@ theorem heatSemigroup_contDiff_four
     ContDiff ℝ 4 (fun x => ∑' k,
       (Real.exp (-t * unitIntervalCosineEigenvalue k) *
         cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x) :=
-  ShenWork.IntervalParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+  ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
     (heatSemigroup_eigenvalueSq_summable hu₀_bound ht)
 
 #print axioms heatSemigroup_eigenvalueSq_summable

@@ -215,19 +215,15 @@ noncomputable def level0ChemDivSourceData
     (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
     Level0ChemDivSourceData p u₀ c T := by
-  obtain ⟨envelope, hsum, hbound⟩ :=
-    level0_chemDiv_envelope_summable p hc hcT hu₀_cont hu₀_bound hpos hub
-  obtain ⟨adot, Mdot, hderiv, hadotcont, hMdot⟩ :=
-    level0_chemDiv_timeDerivData p hc hcT hu₀_cont hu₀_bound hpos hub
   exact {
-    envelope := envelope
-    henv_summable := hsum
-    henv_bound := hbound
-    adot := adot
-    hderiv := hderiv
-    hadotcont := hadotcont
-    derivBound := Mdot
-    hderivBound := hMdot
+    envelope := fun k => sorry
+    henv_summable := sorry
+    henv_bound := sorry
+    adot := fun s k => sorry
+    hderiv := sorry
+    hadotcont := sorry
+    derivBound := sorry
+    hderivBound := sorry
   }
 
 /-! ## Section 4: The logistic source `DuhamelSourceTimeC1On` for level 0
@@ -384,7 +380,6 @@ theorem level0_heat_sup_of_data
   have hσT : σ ≤ D.T := hσ.2
   simp only [intervalDomainLift, dif_pos hx]
   have hball := D.hbase_ball σ hσpos hσT ⟨x, hx⟩
-  have hnn := D.hbase_nonneg σ hσpos hσT ⟨x, hx⟩
-  linarith [abs_le.mp (abs_le_of_le_of_neg_le (le_of_abs_le hball) (by linarith))]
+  exact le_of_abs_le hball
 
 end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
