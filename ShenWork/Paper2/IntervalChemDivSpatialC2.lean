@@ -109,8 +109,8 @@ theorem chemDivLift_contDiffOn_two_of_global
       chemDivLift p u v x =
         deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
     intro x hx
-    simp only [chemDivLift, intervalDomainLift, dif_pos hx, intervalDomainChemotaxisDiv,
-      chemFluxFun]
+    unfold chemDivLift intervalDomainLift intervalDomainChemotaxisDiv chemFluxFun
+    simp [dif_pos hx]
   exact hglobal.contDiffOn.congr h_eq
 
 theorem chemDivLift_contDiffOn_two
@@ -151,7 +151,7 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
     IntervalWeakH2Neumann (chemDivLift p u v) := by
   have hC2 := chemDivLift_contDiffOn_two_of_global hu hv hv_pos
-  have hbc := chemDivLift_neumann_bc p u v
+  have hbc := @chemDivLift_neumann_bc p u v
   exact ShenWork.IntervalCoupledRegularityBootstrap.chemDivSource_weakH2_of_spatialC2
     hC2
     (by rw [hbc.1]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
