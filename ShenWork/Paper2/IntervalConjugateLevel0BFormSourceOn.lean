@@ -163,13 +163,16 @@ theorem level0_chemDiv_envelope_summable
       ∀ s ∈ Icc c T, ∀ n,
         |coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s n| ≤ envelope n := by
   sorry
-  -- Route (H2 chain is sorry-free in IntervalChemDivSpatialC2.lean):
-  -- 1. For each s ∈ [c,T], produce IntervalWeakH2Neumann via
-  --    chemDivSource_weakH2_of_cosineRep with cosine representatives
-  --    U_cos = heat semigroup cosine series, V_cos = resolver cosine series
-  -- 2. Extract quadratic decay via coupledChemDivSource_quadraticDecay_of_uniformH2
-  -- 3. Build summable envelope from the decay bound
-  -- Blocked on: providing cosine representatives + their symmetry hypotheses
+  -- Chain (all pieces exist, wiring needed):
+  -- 1. U_cos s := intervalFullSemigroupOperator s (intervalDomainLift u₀) — the global cosine series
+  --    hu_cos : ContDiff ℝ 4 (U_cos s) — from heatSemigroup_contDiff_four
+  --    hu_even : ∀ x, U_cos s (-x) = U_cos s x — from cosineMode_neg via tsum_congr
+  --    hu_symm1 : ∀ x, U_cos s (2-x) = U_cos s x — from cosineMode_neg + cosineMode_add_two
+  --    h_agree_u : intervalDomainLift (S(s)u₀) = U_cos s on [0,1] — definitional
+  -- 2. V_cos s := intervalNeumannResolverR p (S(s)u₀) — resolver cosine series (similar properties)
+  -- 3. chemDivSource_weakH2_of_cosineRep → H2 per slice
+  -- 4. coupledChemDivSource_quadraticDecay_of_uniformH2 → |c_k| ≤ C/(kπ)²
+  -- 5. Summable envelope from reciprocalSquareTerm_summable
 
 /-- Time-derivative and continuity data for the chemDiv coefficients of the
 heat semigroup on a positive window.  The time derivative is computed by the
