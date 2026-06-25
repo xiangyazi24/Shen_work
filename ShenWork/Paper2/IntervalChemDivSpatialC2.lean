@@ -163,10 +163,12 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     sorry -- parity: U_cos even + V_cos even → V_cos' odd → flux odd → F even → F' odd → F'(0)=0
   have hbc1 : deriv F 1 = 0 := by
     sorry -- antisymmetry about x=1 (cosine series on [0,1] with Neumann BCs)
-  have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) :=
-    hbc0 ▸ (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
-  have htend1 : Filter.Tendsto (deriv F) (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) :=
-    hbc1 ▸ (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
+  have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+    conv_rhs => rw [← hbc0]
+    exact (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
+  have htend1 : Filter.Tendsto (deriv F) (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+    conv_rhs => rw [← hbc1]
+    exact (hF'_cont.continuousAt.tendsto).mono_left nhdsWithin_le_nhds
   have hF_H2 : IntervalWeakH2Neumann F :=
     ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
       hF_C2on htend0 htend1 hbc0 hbc1
