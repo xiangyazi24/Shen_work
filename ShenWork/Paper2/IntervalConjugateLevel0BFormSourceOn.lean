@@ -215,16 +215,10 @@ noncomputable def level0ChemDivSourceData
     (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
     Level0ChemDivSourceData p u₀ c T := by
-  exact {
-    envelope := fun k => sorry
-    henv_summable := sorry
-    henv_bound := sorry
-    adot := fun s k => sorry
-    hderiv := sorry
-    hadotcont := sorry
-    derivBound := sorry
-    hderivBound := sorry
-  }
+  sorry
+  -- Blocked on chemDiv C² regularity infrastructure (IntervalChemDivSpatialC2.lean).
+  -- Chain: heat semigroup C⁴ → resolver C⁴ → flux C³ → chemDiv C² → H² → decay → envelope
+  --        + chain rule for time derivatives → adot + continuity + bound
 
 /-! ## Section 4: The logistic source `DuhamelSourceTimeC1On` for level 0
 
