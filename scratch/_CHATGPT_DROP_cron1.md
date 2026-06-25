@@ -1,288 +1,297 @@
-# Q518 / cron1: chemDiv `adot` on a positive window
+# Q526 / cron1: `intervalNeumannResolverR` spatial regularity and evenness audit
 
 ## Executive verdict
 
-For the desired heat-semigroup statement on `[c,T]`, the repo has a **generic, proved bridge** from the local chem-div chain rule to coefficient `HasDerivAt` with derivative exactly
+I found **landed C² resolver regularity**, but **no landed C⁴ resolver theorem** for
 
 ```lean
-coupledChemDivAdot p u s n
+intervalNeumannResolverR p u
 ```
 
-and therefore `HasDerivWithinAt` on any closed window follows immediately by `.hasDerivWithinAt`.
+or for its real-line cosine synthesis.  The existing resolver regularity is in two files:
 
-What I did **not** find on the target `chatgpt-scratch` branch is a closed, heat-semigroup-specialized producer of the full package
+1. `ShenWork/PDE/IntervalResolverSpatialC2.lean` — coefficient-decay route from `SourceCoeffQuadraticDecay p u`.
+2. `ShenWork/PDE/IntervalResolverPhysicalC2.lean` — physical elliptic route from `Summable (fun k => |(intervalNeumannResolverSourceCoeff p u k).re|)`.
+
+Both prove `ContDiff ℝ 2` / `ContDiffOn ℝ 2` for the **cosine synthesis**
 
 ```lean
-∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
-  hderiv_on_Icc ∧ hadotcont_on_Icc ∧ hMdot_on_Icc
+fun x : ℝ => ∑' k : ℕ,
+  (intervalNeumannResolverCoeff p u k).re * cosineMode k x
 ```
 
-for `u = conjugatePicardIter p u₀ 0`.  The missing part is not the formal coefficient derivative bridge; it is the analytic input for the heat level: local chain rule/joint-continuity of the explicit time-derivative field, plus a **uniform-in-mode** bound for `coupledChemDivAdot`.
+not a literal global function `fun x => intervalNeumannResolverR p u x`, since `intervalNeumannResolverR p u` has domain `intervalDomainPoint`, i.e. the subtype `[0,1]`.  The bridge from the synthesis to the actual resolver value on interval points is `resolverR_eq_cosineSeries`.
 
-Code search on `main` does show newer roadmap/prototype files for exactly this level-0 heat-semigroup package, but several of them are not present on `chatgpt-scratch` at the time of this report.  In particular, `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`, `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`, `ShenWork/Paper2/IntervalChemDivSpatialC2.lean`, and `ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean` were found by repo code search/default-branch fetches, while `fetch_file(..., ref := "chatgpt-scratch")` returned 404 for them.  Treat them as useful roadmap unless merged into the target branch.
-
-## 1. Existing derivative theorem for `coupledChemDivAdot`
-
-The canonical candidate is already fixed in
+For evenness: I found `cosineMode_neg`, and the resolver-floor code uses `cosineMode_neg` with `tsum_congr` inside the full real-line resolver synthesis.  I did **not** find a packaged theorem named like
 
 ```lean
--- ShenWork/PDE/IntervalChemDivTimeDerivative.lean
-noncomputable def coupledChemDivAdot (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) (n : ℕ) : ℝ :=
-  cosineCoeffs (coupledChemDivTimeDerivativeLift p u s) n
+intervalNeumannResolverR_even
+resolverR_even
+resolverSynthesis_even
 ```
 
-and `coupledChemDivTimeDerivativeLift` is the pointwise chain-rule field using `slopeSlice u` and `coupledChemicalTimeDerivativeLift` for the elliptic concentration time derivative.
+or a literal statement `intervalNeumannResolverR p u (-x) = intervalNeumannResolverR p u x`.  Also, that literal statement is not type-correct as written unless one first works with a lifted/synthesis function on `ℝ`, because `intervalNeumannResolverR p u` takes `intervalDomainPoint`, not arbitrary `ℝ`.
 
-The main proved branch-local bridge is in `ShenWork/Wiener/EWA/ChemDivAdot.lean`:
+## Exact hits: resolver definition and coefficient equation
+
+`ShenWork/PDE/IntervalNeumannEllipticResolverR.lean` defines the source coefficient, resolver coefficient, and resolver:
+
+* `intervalNeumannResolverSourceCoeff` at `IntervalNeumannEllipticResolverR.lean:76-80`.
+* `intervalNeumannResolverCoeff` at `IntervalNeumannEllipticResolverR.lean:89-92`.
+* `intervalNeumannResolverR` at `IntervalNeumannEllipticResolverR.lean:102-108`:
 
 ```lean
-theorem coupledChemDivCoeff_hasDerivAt_of_chainRule
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (hchain : CoupledChemDivLocalChainRule p u) (s : ℝ) (n : ℕ) :
-    HasDerivAt
-      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
-      (coupledChemDivAdot p u s n) s
+def intervalNeumannResolverR
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) :
+    intervalDomainPoint → ℝ :=
+  fun x =>
+    ∑' k : ℕ,
+      (intervalNeumannResolverCoeff p u k).re *
+        unitIntervalCosineMode k x.1
 ```
 
-There is also the packaged window form on `[0,T]`:
+The coefficient-form elliptic identity is already landed:
+
+* `intervalNeumannResolverCoeff_elliptic` at `IntervalNeumannEllipticResolverR.lean:141-149`:
 
 ```lean
-theorem chemDivAdot_hasDerivWithinAt_of_chainRule
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (hchain : CoupledChemDivLocalChainRule p u) :
-    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-      HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
-        (coupledChemDivAdot p u s n) (Set.Icc 0 T) s
+theorem intervalNeumannResolverCoeff_elliptic
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
+    ((p.μ : ℂ) + (unitIntervalNeumannSpectrum.eigenvalue k : ℂ)) *
+        intervalNeumannResolverCoeff p u k =
+      intervalNeumannResolverSourceCoeff p u k := by
 ```
 
-For the requested positive window `[c,T]`, do not need a new theorem.  Use the global `HasDerivAt` theorem and restrict to the desired set:
+This is the equation needed to prove inequalities of the form
 
 ```lean
-let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
-
-have hderiv_Icc_cT :
-    ∀ s ∈ Set.Icc c T, ∀ n,
-      HasDerivWithinAt
-        (fun r => coupledChemDivSourceCoeffs p u r n)
-        (coupledChemDivAdot p u s n)
-        (Set.Icc c T) s := by
-  intro s hs n
-  have hAt :
-      HasDerivAt
-        (fun r => coupledChemDivSourceCoeffs p u r n)
-        (coupledChemDivAdot p u s n) s := by
-    simpa [coupledChemDivSourceCoeffs] using
-      coupledChemDivCoeff_hasDerivAt_of_chainRule
-        (p := p) (u := u) hchain s n
-  exact hAt.hasDerivWithinAt
+λ_k * |v̂_k| ≤ |â_k|
+λ_k^2 * |v̂_k| ≤ λ_k * |â_k|
 ```
 
-So the answer to question (1) is: **yes, for arbitrary `u`, provided you have `CoupledChemDivLocalChainRule p u`; no heat-specialized closed theorem is needed for the formal `HasDerivWithinAt` step.**
+where `v̂_k = intervalNeumannResolverCoeff p u k` and `â_k = intervalNeumannResolverSourceCoeff p u k`.
 
-## 2. Infrastructure for `adot` continuity and boundedness
+## Existing C² route 1: `SourceCoeffQuadraticDecay`
 
-### Continuity
+File: `ShenWork/PDE/IntervalResolverSpatialC2.lean`.
 
-The branch-local generic theorem is:
+The file header says it proves spatial C² regularity and Neumann endpoint facts for the elliptic resolver under `SourceCoeffQuadraticDecay`; specifically it lists `resolverR_summability`, `resolverR_eq_cosineSeries`, `resolverR_contDiff_two`, and endpoint derivative lemmas at `IntervalResolverSpatialC2.lean:13-25`.
+
+Main theorem references:
+
+* `resolverR_summability`, `IntervalResolverSpatialC2.lean:62-75`:
 
 ```lean
-theorem chemDivAdot_continuousOn_of_jointCont
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (hjointcont : ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
-    ∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n) (Set.Icc (0 : ℝ) T)
+theorem resolverR_summability
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u) :
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|) := by
 ```
 
-It is just the compact dominated-convergence lemma for cosine coefficients.  For `[c,T]`, use the underlying lemma directly:
+This is the one-eigenvalue-weight summability input for C².
+
+* `resolverR_eq_cosineSeries`, `IntervalResolverSpatialC2.lean:82-89`:
 
 ```lean
-ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
-  .cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+theorem resolverR_eq_cosineSeries
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (x : intervalDomainPoint) :
+    intervalNeumannResolverR p u x =
+      ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x.1 := by
 ```
 
-whose shape is:
+This is the bridge from the actual subtype-valued resolver to the real-line synthesis form.
+
+* `resolverR_contDiff_two`, `IntervalResolverSpatialC2.lean:96-102`:
 
 ```lean
-theorem cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
-    {f : ℝ → ℝ → ℝ} {c T : ℝ} (k : ℕ)
-    (hf : ContinuousOn (Function.uncurry f)
-      (Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1)) :
-    ContinuousOn (fun σ => cosineCoeffs (f σ) k) (Set.Icc c T)
+theorem resolverR_contDiff_two
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u) :
+    ContDiff ℝ 2
+      (fun x : ℝ => ∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re * cosineMode k x) :=
+  cosineCoeffSeries_contDiff_two (resolverR_summability hdecay)
 ```
 
-Thus, for the heat semigroup level:
+* `resolverR_contDiffOn_Icc`, `IntervalResolverSpatialC2.lean:128-135`:
 
 ```lean
-have hadotcont :
-    ∀ n, ContinuousOn
-      (fun s => coupledChemDivAdot p (conjugatePicardIter p u₀ 0) s n)
-      (Set.Icc c T) := by
-  intro n
-  simpa [coupledChemDivAdot] using
-    ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
-      .cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
-        (f := coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0))
-        (c := c) (T := T) n hjoint
+theorem resolverR_contDiffOn_Icc
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u) :
+    ContDiffOn ℝ 2
+      (fun x : ℝ => ∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1) :=
+  (resolverR_contDiff_two hdecay).contDiffOn
 ```
 
-The remaining obligation is therefore the slab continuity
+Endpoint Neumann facts are also there:
+
+* `resolverR_deriv_at_zero`, `IntervalResolverSpatialC2.lean:107-112`.
+* `resolverR_deriv_at_one`, `IntervalResolverSpatialC2.lean:117-122`.
+
+## Existing C² route 2: physical/source-ℓ¹ route
+
+File: `ShenWork/PDE/IntervalResolverPhysicalC2.lean`.
+
+This file explicitly states that it proves a physical/elliptic C² route from source coefficient `ℓ¹`; see the summary at `IntervalResolverPhysicalC2.lean:34-40`.
+
+Key theorem references:
+
+* `resolverR_eigenWeighted_le_source`, `IntervalResolverPhysicalC2.lean:61-97`:
 
 ```lean
-ContinuousOn
-  (Function.uncurry
-    (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
-  (Icc c T ×ˢ Icc 0 1)
+theorem resolverR_eigenWeighted_le_source
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
+    unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re| ≤
+      |(intervalNeumannResolverSourceCoeff p u k).re| := by
 ```
 
-not the cosine-coefficient continuity step.
+This is exactly the inequality you described for the C² level.
 
-### Boundedness
-
-There are two levels.
-
-On `chatgpt-scratch`, `ShenWork/Wiener/EWA/ChemDivAdot.lean` isolates the honest residual:
+* `resolverR_eigenWeighted_summable_of_sourceL1`, `IntervalResolverPhysicalC2.lean:106-115`:
 
 ```lean
-theorem chemDivAdot_Mdot_residual
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (env : ℕ → ℝ) (henvnn : ∀ n, 0 ≤ env n) (henvsum : Summable env)
-    (henv : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ env n) :
-    ∃ Mdot : ℝ, ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ Mdot
+theorem resolverR_eigenWeighted_summable_of_sourceL1
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|) := by
 ```
 
-For `[c,T]`, the same proof pattern works with the window changed, or you can provide an envelope on `[0,T]` and restrict.  The important point is: **per-mode continuity on compact `[c,T]` only gives a bound depending on `n`; it does not give one uniform `Mdot` for all modes.**
-
-On `main`/default, the file `ShenWork/Wiener/EWA/ChemDivAdotEnvelope.lean` goes further and supplies a concrete producer from quadratic decay of the `adot` coefficients:
+* `resolverR_contDiff_two_of_source_l1`, `IntervalResolverPhysicalC2.lean:122-128`:
 
 ```lean
-theorem chemDivAdot_Mdot_of_quadratic_decay
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {Cdot : ℝ} (hC : 0 ≤ Cdot)
-    (hzero : ∀ s ∈ Icc (0 : ℝ) T,
-      |coupledChemDivAdot p u s 0| ≤ Cdot)
-    (hdecay : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
-      |coupledChemDivAdot p u s n| ≤ Cdot / ((n : ℝ) * Real.pi) ^ 2) :
-    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ Mdot
+theorem resolverR_contDiff_two_of_source_l1
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
+    ContDiff ℝ 2
+      (fun x : ℝ => ∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re * cosineMode k x) :=
+  cosineCoeffSeries_contDiff_two (resolverR_eigenWeighted_summable_of_sourceL1 hsrc)
 ```
 
-and also a spatial-H² style wrapper:
+* `resolverR_contDiffOn_Icc_of_source_l1`, `IntervalResolverPhysicalC2.lean:131-138`:
 
 ```lean
-theorem chemDivAdot_Mdot_of_spatial_H2
-    ...
-    (hcont : ∀ s ∈ Icc (0 : ℝ) T,
-      ContinuousOn (coupledChemDivTimeDerivativeLift p u s) (Icc 0 1))
-    (hbd : ∀ s ∈ Icc (0 : ℝ) T, ∀ x ∈ Icc 0 1,
-      |coupledChemDivTimeDerivativeLift p u s x| ≤ B_sup)
-    (hdecay_raw : ∀ s ∈ Icc (0 : ℝ) T, ∀ n : ℕ, 1 ≤ n →
-      |coupledChemDivAdot p u s n| ≤ 2 * B_H2 / ((n : ℝ) * Real.pi) ^ 2) :
-    ∃ Mdot : ℝ, ∀ s ∈ Icc (0 : ℝ) T, ∀ n,
-      |coupledChemDivAdot p u s n| ≤ Mdot
+theorem resolverR_contDiffOn_Icc_of_source_l1
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
+    ContDiffOn ℝ 2
+      (fun x : ℝ => ∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1) :=
+  (resolverR_contDiff_two_of_source_l1 hsrc).contDiffOn
 ```
 
-This is exactly the right shape for the positive heat window: prove the time-derivative field has uniform spatial H²/Neumann control on `[c,T]`, then apply the quadratic envelope argument.
+## Evidence that C⁴ is not already packaged for the resolver
 
-`ShenWork/Paper2/IntervalChemDivWinDischarge.lean` confirms that the currently landed windowed consumer still treats `hadotcont`, `MchemDot`, and `hMdot` as part of the regularity residual.  It does not derive them from a bare `GradientMildSolutionData`.
+I searched for the requested patterns:
 
-## 3. Is `ResolverHasSpectralAgreement` needed?
+* `intervalNeumannResolverR ContDiff`
+* `intervalNeumannResolverR ContDiffOn`
+* `resolver contDiff`
+* `resolverR C2`
+* `resolverR_contDiff_four`
+* `cosineCoeffSeries_contDiff_four`
 
-For the **generic coupled solution route**, yes: existing branch-local facts use `ResolverHasSpectralAgreement` to get the `v_t` factor for
+The resolver-specific hits bottom out at C² (`IntervalResolverSpatialC2.lean`, `IntervalResolverPhysicalC2.lean`, and audit/consumer files).  Search for `resolverR_contDiff_four` returned no hits.
+
+There **is** a generic C⁴ cosine-series engine:
+
+* `cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable`, `ShenWork/Paper2/IntervalParabolicDuhamelGainNonCircular.lean:354-405`:
 
 ```lean
-v = coupledChemicalConcentration p u
+theorem cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+    {b : ℕ → ℝ}
+    (hb : Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n * |b n|))) :
+    ContDiff ℝ 4 (fun x : ℝ => ∑' n : ℕ, b n * cosineMode n x) := by
 ```
 
-The relevant proved wrappers are in `IntervalChemDivTimeDerivative.lean` and `IntervalChemDivLocalChainRule.lean`:
+So the missing resolver-C⁴ lemma should be small and direct, but it is not currently named/packaged for the resolver.  The natural new lemma is the C⁴ analogue of `resolverR_eigenWeighted_le_source`:
 
 ```lean
-theorem coupledChemicalTimeDerivative_jointContinuousOn_closed
-    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u)) :
-    ContinuousOn
-      (Function.uncurry (coupledChemicalTimeDerivativeLift p u))
-      (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1)
-```
-
-```lean
-theorem coupledChemicalTimeDerivative_continuousOn_Icc_of_lt_horizon
-    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
-    (hc : 0 < c) (hTU : T < U) (hx : x ∈ Icc (0 : ℝ) 1) :
-    ContinuousOn
-      (fun s => coupledChemicalTimeDerivativeLift p u s x)
-      (Icc c T)
-```
-
-and
-
-```lean
-theorem chemDiv_v_hasDerivAt_factor
-    (H : ResolverHasSpectralAgreement U (coupledChemicalConcentration p u))
-    (hs0 : 0 < s) (hsU : s < U) (hy : y ∈ Icc (0 : ℝ) 1) :
-    HasDerivAt
-      (fun r => intervalDomainLift (coupledChemicalConcentration p u r) y)
-      (coupledChemicalTimeDerivativeLift p u s y) s
-```
-
-For the **level-0 heat semigroup**, `ResolverHasSpectralAgreement` is probably not mathematically necessary and may be the wrong bottom.  A more direct proof should use the explicit heat series:
-
-1. `conjugatePicardIter p u₀ 0` is definitionally
-   ```lean
-   fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-   ```
-   from `IntervalConjugatePicard.lean`.
-2. On `main`, `IntervalHeatSemigroupHighRegularity.lean` proves `heatSemigroup_contDiff_four` from bounded initial cosine coefficients and `t > 0`.
-3. On `main`, `IntervalChemDivSpatialC2.lean` contains the spatial C²/H² route for `chemDivLift` from global C⁴ cosine representatives.
-4. The remaining heat-level time step should prove the direct chain rule for
-   ```lean
-   s ↦ coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s n
-   ```
-   using `∂ₜ S(t)u₀ = Δ S(t)u₀` and the differentiated elliptic resolver source, then feed the already-landed coefficient bridge.
-
-The default-branch file `IntervalConjugateLevel0BFormSourceOn.lean` states exactly the requested theorem as
-
-```lean
-theorem level0_chemDiv_timeDerivData ... :
-  ∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
-    (∀ s ∈ Icc c T, ∀ n,
-      HasDerivWithinAt
-        (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
-        (adot s n) (Icc c T) s) ∧
-    (∀ n, ContinuousOn (fun s => adot s n) (Icc c T)) ∧
-    (∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot)
-```
-
-but it is currently `sorry` there.  The comment says the intended proof is direct from heat-semigroup regularity, not from resolver spectral agreement.
-
-## Minimal route I would implement
-
-Use the branch-local bridge and specialize only the analytic hypotheses to the heat level:
-
-```lean
-let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
-let adot : ℝ → ℕ → ℝ := coupledChemDivAdot p u
-
--- analytic heat-level obligations:
-hchain : CoupledChemDivLocalChainRule p u
-hjoint : ContinuousOn
-  (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-  (Icc c T ×ˢ Icc 0 1)
-henv : ∃ env, Summable env ∧ (∀ n, 0 ≤ env n) ∧
-  ∀ s ∈ Icc c T, ∀ n, |coupledChemDivAdot p u s n| ≤ env n
+λ_k * (λ_k * |(intervalNeumannResolverCoeff p u k).re|)
+  ≤ λ_k * |(intervalNeumannResolverSourceCoeff p u k).re|
 ```
 
 Then:
 
-* `hderiv` is `coupledChemDivCoeff_hasDerivAt_of_chainRule hchain` plus `.hasDerivWithinAt`;
-* `hadotcont` is `cosineCoeffs_continuousOn_of_jointContinuousOn_Icc` applied to `coupledChemDivTimeDerivativeLift`;
-* `Mdot` is `chemDivAdot_Mdot_residual` or the default-branch quadratic-envelope producer after merging/importing it.
+```lean
+theorem resolverR_contDiff_four_of_source_eigenWeighted_l1
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc1 : Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
+    ContDiff ℝ 4
+      (fun x : ℝ => ∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re * cosineMode k x) :=
+  cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+    (resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted hsrc1)
+```
 
-So the practical answer is:
+That is exactly your heuristic: for C², source `ℓ¹` gives resolver eigenvalue-weight `ℓ¹`; for C⁴, source one-eigenvalue-weight `ℓ¹` gives resolver two-eigenvalue-weight `ℓ¹`.
 
-* **Yes**, the coefficient `HasDerivAt`/`HasDerivWithinAt` bridge exists and is already in terms of `coupledChemDivAdot`.
-* **Continuity** is reduced to joint continuity of `coupledChemDivTimeDerivativeLift` on the compact slab.
-* **Boundedness** requires a summable/quadratic envelope for the `adot` coefficients; compactness plus per-mode continuity is insufficient.
-* **ResolverHasSpectralAgreement** is the existing generic way to get `v_t` regularity, but for `u = S(t)u₀` on `[c,T]`, a direct heat-series/elliptic-resolver proof should avoid it.  That direct proof is not fully landed on `chatgpt-scratch`.
+## Audit file confirms no stronger Schauder-style resolver C²/C⁴ API
+
+`ShenWork/Paper2/IntervalEllipticResolverC2Audit.lean` says the committed elliptic resolver regularity does **not** include a Schauder/Hölder-source theorem; the available spatial theorem is `IntervalResolverSpatialC2.resolverR_contDiff_two` with `SourceCoeffQuadraticDecay` as hypothesis.  See `IntervalEllipticResolverC2Audit.lean:28-47`.
+
+This audit is about C², but it reinforces the same conclusion for C⁴: the repo has coefficient-series regularity engines and C² resolver wrappers, not a higher-order packaged resolver regularity theorem.
+
+## Evenness / symmetry status
+
+The primitive cosine-mode evenness theorem exists:
+
+* `cosineMode_neg`, `ShenWork/Wiener/EWA/HeatFloor.lean:115-118`:
+
+```lean
+theorem cosineMode_neg (k : ℕ) (x : ℝ) :
+    ShenWork.CosineSpectrum.cosineMode k (-x) = ShenWork.CosineSpectrum.cosineMode k x := by
+```
+
+The same file also has the period-two theorem:
+
+* `cosineMode_add_two`, `HeatFloor.lean:121-126`.
+* `cosineMode_add_int_two`, `HeatFloor.lean:149-154`.
+
+For the resolver synthesis, `SourceResolverFloor.lean` uses these facts rather than packaging a standalone evenness theorem:
+
+* `resolverSynthesis_eq_resolverR`, `ShenWork/Wiener/EWA/SourceResolverFloor.lean:152-157`, bridges the real-line synthesis to the actual resolver on `[0,1]`:
+
+```lean
+theorem resolverSynthesis_eq_resolverR (p : CM2Params) (uR : intervalDomainPoint → ℝ)
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    (∑' k : ℕ, (intervalNeumannResolverCoeff p uR k).re * cosineMode k x)
+      = intervalNeumannResolverR p uR ⟨x, hx⟩ := by
+```
+
+* `resolverSynthesis_nonneg_all`, `SourceResolverFloor.lean:170-193`, reduces all real `x` to `[0,1]`; inside it, the equality step uses
+
+```lean
+rw [show x = y + 2 * (m : ℝ) from by rw [hy]; ring, cosineMode_add_int_two]
+...
+rw [h]; exact tsum_congr (fun k => by rw [cosineMode_neg])
+```
+
+So the ingredients for evenness are present, and the resolver synthesis already uses them, but I did **not** find a named theorem of the form
+
+```lean
+theorem resolverSynthesis_neg ...
+theorem intervalNeumannResolverR_even ...
+```
+
+A minimal standalone theorem should be immediate:
+
+```lean
+theorem resolverSynthesis_neg (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    (∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k (-x)) =
+      ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x := by
+  exact tsum_congr (fun k => by rw [ShenWork.EWA.cosineMode_neg])
+```
+
+For a statement involving `intervalNeumannResolverR`, formulate it on the subtype `[0,1]` via `resolverR_eq_cosineSeries`, or formulate it for the real-line synthesis.  The raw expression `intervalNeumannResolverR p u (-x)` is not type-correct unless `-x` is supplied as an `intervalDomainPoint`.
