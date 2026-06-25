@@ -1,141 +1,80 @@
-# Q572 / cron1: `Continuous (intervalDomainLift u₀)` and the spectral bridge
+# Q578 / cron1: heat semigroup spectral identity for `intervalDomainLift u₀`
 
 ## Verdict
 
-Your diagnosis is correct: for a general continuous
+There are **two routes** in the repo:
+
+1. **Closed interval `[0,1]`, continuous subtype datum**: use the committed constant-extension adapter
 
 ```lean
-u₀ : intervalDomainPoint → ℝ
+ShenWork.IntervalSpectralSubtypeAdapter
+  .intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
 ```
 
-`Continuous (intervalDomainLift u₀)` is **not** true.  The lift is a zero extension to all of `ℝ`, so unless the boundary traces match the outside value `0` — in particular `u₀(0)=0` and `u₀(1)=0` with the right compatibility — it has jumps at the endpoints.  For positive data it is definitely false.
+This is the best route for your stated target with `x ∈ Icc 0 1` and `u₀ : intervalDomainPoint → ℝ` continuous.  It avoids the false hypothesis `Continuous (intervalDomainLift u₀)` by replacing the zero extension with the constant extension internally, then transfers back.
 
-The repo already has this exact diagnosis and a replacement route.  The key file is:
-
-```text
-ShenWork/PDE/IntervalDomainContinuousExtension.lean
-```
-
-Its header says the paper works on `C(Ω̄)`, the spectral chain sees only values on `[0,1]`, and the bridge is to extend a subtype function by constants instead of by zero.  The comments explicitly say the constant extension is globally continuous and agrees with `intervalDomainLift` on `(0,1)` / `[0,1]` where needed.
-
-## What exists for `intervalDomainLift`
-
-The zero-extension behavior is visible in `IntervalDomainExistence.lean` for constants:
+2. **Rough/L¹ input route**: yes, there is a theorem for integrable input,
 
 ```lean
--- ShenWork/PDE/IntervalDomainExistence.lean:54-60
-/-- The lift of a constant function on intervalDomainPoint equals
-`c` on `[0,1]` and `0` outside. -/
-lemma intervalDomainLift_const (c : ℝ) :
-    intervalDomainLift (fun _ : intervalDomainPoint => c) =
-      fun x => if x ∈ Set.Icc (0 : ℝ) 1 then c else 0 := by
-  ext x
-  simp [intervalDomainLift]
+ShenWork.IntervalNHGBricks.operator_eq_cosineModel_of_integrable
 ```
 
-This is the concrete obstruction: if `c ≠ 0`, that function jumps at `0` and `1`.
+but it only gives the identity for **interior** points `x ∈ Ioo 0 1`, not the closed interval.  It is the L¹-dominated `FullKernelIntegralInterchange` route.
 
-I did not find a useful general theorem of the form
+I did **not** find a direct theorem that states the full closed-interval spectral identity from only `AEStronglyMeasurable`/bounded input.  For bounded AEStronglyMeasurable input you can first get `Integrable f (intervalMeasure 1)` and then use the L¹ theorem on `Ioo`; for endpoints, the packaged theorem is the subtype-continuity/constant-extension adapter.
+
+## Definitions and low-level facts
+
+`intervalFullSemigroupOperator` itself accepts an arbitrary function syntactically:
 
 ```lean
-Continuous (intervalDomainLift u₀)
+-- ShenWork/PDE/IntervalNeumannFullKernel.lean:79-81
+/-- The full periodised-image Neumann heat propagator on `[0,1]`. -/
+def intervalFullSemigroupOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1
 ```
 
-from `Continuous u₀`; that theorem would be false.  Search hits for `Continuous (intervalDomainLift ...)` are mostly old call sites, handoff notes, or adapters documenting that the old requirement was bad.
+So the operator definition has no `Continuous`/`Measurable` argument.  Those hypotheses appear in theorems about the operator.
 
-## The replacement: constant extension
-
-`ShenWork/PDE/IntervalDomainContinuousExtension.lean` defines:
+The low-level theorem in `IntervalNeumannFullKernel.lean` separates the hard identity from a named interchange hypothesis:
 
 ```lean
--- lines 27-34
-def intervalDomainConstExtend (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun x =>
-    if h0 : x ≤ 0 then f ⟨0, ⟨le_refl _, zero_le_one⟩⟩
-    else if h1 : 1 ≤ x then f ⟨1, ⟨zero_le_one, le_refl _⟩⟩
-    else f ⟨x, ⟨(not_le.mp h0).le, (not_le.mp h1).le⟩⟩
+-- ShenWork/PDE/IntervalNeumannFullKernel.lean:126-130
+def FullKernelIntegralInterchange (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : Prop :=
+  (∫ y, (∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+      (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) * f y
+        ∂ intervalMeasure 1)
+    = unitIntervalCosineHeatValue t (cosineCoeffs f) x
 ```
 
-It proves agreement with the zero lift:
+and then:
 
 ```lean
--- lines 37-49
-theorem constExtend_eq_lift_on_Ioo {f : intervalDomainPoint → ℝ}
-    {x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    intervalDomainConstExtend f x = intervalDomainLift f x
-
-theorem constExtend_eq_lift_on_Icc {f : intervalDomainPoint → ℝ}
-    {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
-    intervalDomainConstExtend f x = intervalDomainLift f x
+-- ShenWork/PDE/IntervalNeumannFullKernel.lean:137-145
+theorem intervalFullSemigroupOperator_eq_cosineHeatValue
+    (t : ℝ) (_ht : 0 < t) (f : ℝ → ℝ) (x : ℝ)
+    (_hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hkernel : ∀ y, intervalNeumannFullKernel t x y = ...)
+    (hinterchange : FullKernelIntegralInterchange t f x) :
+    intervalFullSemigroupOperator t f x =
+      unitIntervalCosineHeatValue t (cosineCoeffs f) x
 ```
 
-and the crucial continuity theorem:
+Thus the real question is which files produce `FullKernelIntegralInterchange t f x`.
+
+## Continuous route: automatic but too strong for zero extension
+
+`ShenWork/PDE/IntervalFullKernelInterchange.lean` proves the automatic interchange for continuous real-line inputs:
 
 ```lean
--- lines 60-66
-/-- The constant extension is globally continuous when f is continuous
-on the subtype. This is the paper-faithful replacement for the false
-`Continuous (intervalDomainLift f)`. -/
-theorem constExtend_continuous {f : intervalDomainPoint → ℝ}
-    (hf : Continuous f) : Continuous (intervalDomainConstExtend f)
+-- ShenWork/PDE/IntervalFullKernelInterchange.lean:80-83
+/-- **`FullKernelIntegralInterchange` holds** for every continuous `f`. -/
+theorem fullKernelIntegralInterchange_holds
+    (t : ℝ) (ht : 0 < t) (f : ℝ → ℝ) (hf : Continuous f) (x : ℝ) :
+    FullKernelIntegralInterchange t f x
 ```
 
-It also proves the two congruence facts needed to transfer spectral statements back to the zero lift:
-
-```lean
--- lines 78-82
-theorem cosineCoeffs_constExtend_eq_lift (f : intervalDomainPoint → ℝ) (n : ℕ) :
-    cosineCoeffs (intervalDomainConstExtend f) n =
-    cosineCoeffs (intervalDomainLift f) n
-
--- lines 96-103
-theorem semigroupOperator_constExtend_eq_lift
-    {f : intervalDomainPoint → ℝ} {t x : ℝ} :
-    intervalFullSemigroupOperator t (intervalDomainConstExtend f) x =
-    intervalFullSemigroupOperator t (intervalDomainLift f) x
-```
-
-## Spectral bridge with subtype continuity
-
-There is an exact adapter for your use case:
-
-```text
-ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean
-```
-
-The file header states the problem directly: the closed-interval spectral identity takes `Continuous f` globally on `ℝ`, but Picard calls were using `f = intervalDomainLift g`, whose global continuity is false for positive boundary data.  It says the solution is to use `intervalDomainConstExtend g`, which is globally continuous and indistinguishable from the lift for both the semigroup operator and cosine coefficients.
-
-The main theorem is:
-
-```lean
--- ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean:49-54
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-    {t : ℝ} (ht : 0 < t) {f : intervalDomainPoint → ℝ} (hf : Continuous f)
-    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift f) n| ≤ M)
-    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalFullSemigroupOperator t (intervalDomainLift f) x =
-      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
-```
-
-The proof is exactly the constant-extension transfer:
-
-```lean
--- lines 62-69
-calc intervalFullSemigroupOperator t (intervalDomainLift f) x
-    = intervalFullSemigroupOperator t (intervalDomainConstExtend f) x :=
-      semigroupOperator_constExtend_eq_lift.symm
-  _ = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainConstExtend f)) x :=
-      ShenWork.IntervalFullKernelSpectralClean.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
-        ht (constExtend_continuous hf) hM' hx
-  _ = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x := by
-      rw [hcoef]
-```
-
-So: **use this theorem instead of trying to prove `Continuous (intervalDomainLift u₀)`**.
-
-## Does the original spectral bridge take `ContinuousOn`?
-
-The original cleaned bridge does **not** take `ContinuousOn`; it takes global `Continuous f`:
+The cleaned closed-interval theorem in `IntervalFullKernelSpectralClean.lean` still takes global `Continuous f`:
 
 ```lean
 -- ShenWork/PDE/IntervalFullKernelSpectralClean.lean:28-33
@@ -147,27 +86,162 @@ theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
       unitIntervalCosineHeatValue t (cosineCoeffs f) x
 ```
 
-Search for a `ContinuousOn` variant of `intervalFullSemigroupOperator_eq_cosineHeatValue...` did not reveal a clean theorem replacing `hf : Continuous f` by `ContinuousOn f (Icc 0 1)`.  The repo’s solution is the stronger and cleaner subtype-continuity adapter above.
+Do not feed this theorem with `f = intervalDomainLift u₀` for positive boundary data; the zero extension is not globally continuous.
 
-## Practical replacement snippet
+## L¹/integrable route
 
-Use:
+`ShenWork/Paper2/IntervalNeumannHeatGradientL2Bricks.lean` has the L¹ interchange:
 
 ```lean
-have hspec :
-    intervalFullSemigroupOperator t (intervalDomainLift u₀) x =
-      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift u₀)) x :=
+-- lines 20-23
+/-- L¹-dominated interchange: `FullKernelIntegralInterchange` for integrable input. -/
+theorem fullKernelIntegralInterchange_holds_of_integrable
+    (t : ℝ) (ht : 0 < t) (f : ℝ → ℝ) (hf : Integrable f (intervalMeasure 1)) (x : ℝ) :
+    FullKernelIntegralInterchange t f x
+```
+
+and the operator identity:
+
+```lean
+-- lines 58-66
+/-- Operator → cosine model for integrable input on `Ioo 0 1`. -/
+theorem operator_eq_cosineModel_of_integrable
+    {τ : ℝ} (hτ : 0 < τ) {f : ℝ → ℝ}
+    (hf : Integrable f (intervalMeasure 1)) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalFullSemigroupOperator τ f x
+      = unitIntervalCosineHeatValue τ (cosineCoeffs f) x :=
+  intervalFullSemigroupOperator_eq_cosineHeatValue τ hτ f x hx
+    (fun y => intervalNeumannFullKernel_eq_cosineKernel_clean τ hτ x y)
+    (fullKernelIntegralInterchange_holds_of_integrable τ hτ f hf x)
+```
+
+There is also an alias in `ShenWork/Paper2/IntervalNeumannHeatGradientL2.lean:92-97`:
+
+```lean
+theorem operator_eq_cosineModel_of_integrable
+    {τ : ℝ} (hτ : 0 < τ) {f : ℝ → ℝ}
+    (hf : Integrable f (intervalMeasure 1)) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalFullSemigroupOperator τ f x
+      = unitIntervalCosineHeatValue τ (cosineCoeffs f) x :=
+  ShenWork.IntervalNHGBricks.operator_eq_cosineModel_of_integrable hτ hf hx
+```
+
+This answers the rough-input question: **yes, an L¹ version exists, but only for `x ∈ Ioo 0 1`.**
+
+## From AEStronglyMeasurable + bounded to L¹
+
+The repo has the generic finite-interval integrability helper:
+
+```lean
+-- ShenWork/PDE/IntervalDomain.lean:42-49
+theorem intervalMeasure_integrable_of_abs_bound
+    {L M : ℝ} {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ M) :
+    Integrable f (intervalMeasure L)
+```
+
+So if you can prove:
+
+```lean
+hf_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1)
+hf_bound : ∀ y, |intervalDomainLift u₀ y| ≤ M
+```
+
+then you get `Integrable (intervalDomainLift u₀) (intervalMeasure 1)`, and then the L¹ identity on `Ioo 0 1`.
+
+For measurability of the zero extension from subtype continuity, there are private lemmas, not a public API:
+
+```lean
+-- ShenWork/Paper2/IntervalMildPicard.lean:103-123
+private theorem intervalDomainLift_measurable_of_continuous
+    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
+    Measurable (intervalDomainLift f)
+```
+
+The same lemma is copied as private in `IntervalMildPicardThreshold.lean`:
+
+```lean
+-- ShenWork/Paper2/IntervalMildPicardThreshold.lean:31-33
+The file-private measurability lemmas of IntervalMildPicard.lean are
+copied verbatim (they are `private`, hence not importable).
+
+-- lines 96-116
+private theorem intervalDomainLift_measurable_of_continuous
+    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
+    Measurable (intervalDomainLift f)
+```
+
+Since those lemmas are private, downstream files cannot import them.  You can either reprove the small piecewise-measurable lemma, or route through `intervalDomainConstExtend` when you need global continuity/spectral identity.
+
+## Closed interval `[0,1]`: use subtype-continuity adapter
+
+For your exact target with `x ∈ Icc 0 1`, the best landed theorem is still:
+
+```lean
+-- ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean:49-54
+theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+    {t : ℝ} (ht : 0 < t) {f : intervalDomainPoint → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift f) n| ≤ M)
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalFullSemigroupOperator t (intervalDomainLift f) x =
+      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
+```
+
+It uses the constant extension internally:
+
+```lean
+-- ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean:62-69
+calc intervalFullSemigroupOperator t (intervalDomainLift f) x
+    = intervalFullSemigroupOperator t (intervalDomainConstExtend f) x :=
+      semigroupOperator_constExtend_eq_lift.symm
+  _ = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainConstExtend f)) x :=
+      ShenWork.IntervalFullKernelSpectralClean.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
+        ht (constExtend_continuous hf) hM' hx
+  _ = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x := by
+      rw [hcoef]
+```
+
+## Practical snippets
+
+### Closed interval, continuous subtype datum
+
+```lean
+have hheat :
+    intervalFullSemigroupOperator s (intervalDomainLift u₀) x =
+      unitIntervalCosineHeatValue s (cosineCoeffs (intervalDomainLift u₀)) x :=
   ShenWork.IntervalSpectralSubtypeAdapter
     .intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-      ht hu₀_cont hM hx
+      hs hu₀_cont hM hx
 ```
 
-where
+Then convert `unitIntervalCosineHeatValue` to the explicit tsum using the already-found EWA bridge:
 
 ```lean
-hu₀_cont : Continuous u₀
-hM : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M
-hx : x ∈ Set.Icc (0 : ℝ) 1
+have hsum :
+    unitIntervalCosineHeatValue s (cosineCoeffs (intervalDomainLift u₀)) x =
+      ∑' k : ℕ,
+        (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+          cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x := by
+  simpa [unitIntervalCosineEigenvalue] using
+    (ShenWork.EWA.cosineHeatSynthesis_eq_cosineHeatValue
+      (cosineCoeffs (intervalDomainLift u₀)) s x).symm
 ```
 
-This is the paper-faithful bridge: `u₀` is continuous on the closed interval subtype, the constant extension supplies the global continuity demanded by the old spectral theorem, and the final statement is still about `intervalDomainLift u₀`.
+### Interior only, L¹ input
+
+```lean
+have hf_int : Integrable (intervalDomainLift u₀) (intervalMeasure 1) := by
+  -- e.g. from AEStronglyMeasurable + bounded via intervalMeasure_integrable_of_abs_bound
+  ...
+
+have hheat_interior :
+    intervalFullSemigroupOperator s (intervalDomainLift u₀) x =
+      unitIntervalCosineHeatValue s (cosineCoeffs (intervalDomainLift u₀)) x :=
+  ShenWork.IntervalNHGBricks.operator_eq_cosineModel_of_integrable
+    hs hf_int hxIoo
+```
+
+## Bottom line
+
+For `x ∈ [0,1]`, do **not** try to use an AEStronglyMeasurable/L¹ theorem unless you also prove a boundary-continuity closure theorem.  Use the existing subtype-continuity adapter.  For `x ∈ (0,1)`, the L¹ theorem is already available and only needs `Integrable f (intervalMeasure 1)`.
