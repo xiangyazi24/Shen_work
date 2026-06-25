@@ -109,11 +109,10 @@ theorem chemDivLift_contDiffOn_two_of_global
       chemDivLift p u v x =
         deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
     intro x hx
-    sorry -- definitional unfolding: chemDivLift on Icc = deriv(chemFluxFun)
-    -- chemDivLift p u v x = intervalDomainLift (chemotaxisDiv ...) x
-    -- for x ∈ [0,1]: = chemotaxisDiv p u v ⟨x, hx⟩
-    --              = deriv (fun y => lift(u)(y) * deriv(lift(v))(y) / (1+lift(v)(y))^β) x
-    --              = deriv (chemFluxFun p.β (lift u) (lift v)) x
+    simp only [chemDivLift, intervalDomainLift, dif_pos hx, intervalDomainChemotaxisDiv]
+    congr 1
+    ext y
+    simp [chemFluxFun]
   exact hglobal.contDiffOn.congr h_eq
 
 theorem chemDivLift_contDiffOn_two
@@ -147,19 +146,31 @@ theorem chemDivLift_neumann_bc
 
 /-! ## Full weak H² Neumann data for chemDiv source -/
 
+noncomputable def chemDivSource_weakH2_of_uv_C4_global
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
+    (hu : ContDiff ℝ 4 (intervalDomainLift u))
+    (hv : ContDiff ℝ 4 (intervalDomainLift v))
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
+    IntervalWeakH2Neumann (chemDivLift p u v) := by
+  have hC2 := chemDivLift_contDiffOn_two_of_global hu hv hv_pos
+  have ⟨hN0, hN1⟩ := chemDivLift_neumann_bc p u v
+  exact ShenWork.IntervalCoupledRegularityBootstrap.chemDivSource_weakH2_of_spatialC2
+    hC2
+    (by rw [hN0]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
+    (by rw [hN1]; exact tendsto_nhdsWithin_of_tendsto_nhds tendsto_const_nhds)
+    hN0 hN1
+
 noncomputable def chemDivSource_weakH2_of_uv_C4
     {p : CM2Params} {u v : intervalDomainPoint → ℝ}
     (hu : ContDiffOn ℝ 4 (intervalDomainLift u) (Icc (0 : ℝ) 1))
     (hv : ContDiffOn ℝ 4 (intervalDomainLift v) (Icc (0 : ℝ) 1))
     (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + intervalDomainLift v x)
-    (hu_N0 : deriv (intervalDomainLift u) 0 = 0)
-    (hu_N1 : deriv (intervalDomainLift u) 1 = 0)
-    (hv_N0 : deriv (intervalDomainLift v) 0 = 0)
-    (hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
+    (_hu_N0 : deriv (intervalDomainLift u) 0 = 0)
+    (_hu_N1 : deriv (intervalDomainLift u) 1 = 0)
+    (_hv_N0 : deriv (intervalDomainLift v) 0 = 0)
+    (_hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
     IntervalWeakH2Neumann (chemDivLift p u v) := by
-  sorry
-  -- Wires chemDivLift_contDiffOn_two + chemDivLift_neumann_bc
-  -- into chemDivSource_weakH2_of_spatialC2. Blocked on the 3 sorry above.
+  sorry -- General ContDiffOn case. For global C⁴, use chemDivSource_weakH2_of_uv_C4_global.
 
 #print axioms chemDivSource_weakH2_of_uv_C4
 
