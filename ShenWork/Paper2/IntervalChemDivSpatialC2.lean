@@ -138,18 +138,27 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     (hu : ContDiff ℝ 4 (intervalDomainLift u))
     (hv : ContDiff ℝ 4 (intervalDomainLift v))
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
-    IntervalWeakH2Neumann (chemDivLift p u v) where
-  secondDeriv := deriv (deriv (deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v))))
-  second_intervalIntegrable := by
-    sorry -- deriv³(flux) is continuous (flux is C⁴) → intervalIntegrable
-  second_abs_integral_bound := by
-    sorry -- continuous on compact → bounded → ∃ B, ∫|f| ≤ B
-  weak_cosine_laplacian := by
-    sorry -- IBP twice: ∫cos·f'' = -(kπ)² ∫cos·f, using f = chemDivLift = φ' on (0,1)
-    -- The cosine integral over (0,1) equals the integral over [0,1] (endpoint null set).
-    -- The IBP boundary terms vanish because:
-    -- 1st IBP: [cos·φ'']₀¹ = 0 (φ'' = deriv(deriv(flux)) at endpoints, Neumann-type)
-    -- 2nd IBP: [sin·φ''']₀¹ = 0 (sin(0) = sin(kπ·1) = 0 for k = endpoint value)
+    IntervalWeakH2Neumann (chemDivLift p u v) := by
+  -- Strategy: build H2 for the GLOBAL function deriv(chemFluxFun) (which is smooth
+  -- everywhere, no endpoint issues), then transfer via congr_on_Icc.
+  set F := deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v))
+  have hF_C2 : ContDiff ℝ 2 F := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
+  have hF_H2 : IntervalWeakH2Neumann F := by
+    have hF_C2on : ContDiffOn ℝ 2 F (Set.Icc (0 : ℝ) 1) := hF_C2.contDiffOn
+    have hF_cont_deriv : Continuous (deriv F) := (hF_C2.of_le (by norm_num : (1 : ℕ∞) + 1 ≤ 2)).deriv'.continuous
+    exact ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+      hF_C2on
+      (hF_cont_deriv.continuousAt.continuousWithinAt.tendsto.mono_left
+        (nhdsWithin_mono _ Set.Ioi_subset_Ici_self))
+      (hF_cont_deriv.continuousAt.continuousWithinAt.tendsto.mono_left
+        (nhdsWithin_mono _ Set.Iio_subset_Iic_self))
+      sorry -- deriv F 0 = 0 (Neumann BC of deriv(chemFluxFun) at 0)
+      sorry -- deriv F 1 = 0 (Neumann BC of deriv(chemFluxFun) at 1)
+  -- Transfer via agreement on [0,1]:
+  exact hF_H2.congr_on_Icc (fun x hx => by
+    have h := chemDivLift_contDiffOn_two_of_global hu hv hv_pos
+    sorry -- chemDivLift = F on [0,1] (definitional bridge, proved above)
+  )
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
