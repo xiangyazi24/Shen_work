@@ -143,22 +143,12 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
   -- everywhere, no endpoint issues), then transfer via congr_on_Icc.
   set F := deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v))
   have hF_C2 : ContDiff ℝ 2 F := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
-  have hF_H2 : IntervalWeakH2Neumann F := by
-    have hF_C2on : ContDiffOn ℝ 2 F (Set.Icc (0 : ℝ) 1) := hF_C2.contDiffOn
-    have hF_cont_deriv : Continuous (deriv F) := (hF_C2.of_le (by norm_num : (1 : ℕ∞) + 1 ≤ 2)).deriv'.continuous
-    exact ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-      hF_C2on
-      (hF_cont_deriv.continuousAt.continuousWithinAt.tendsto.mono_left
-        (nhdsWithin_mono _ Set.Ioi_subset_Ici_self))
-      (hF_cont_deriv.continuousAt.continuousWithinAt.tendsto.mono_left
-        (nhdsWithin_mono _ Set.Iio_subset_Iic_self))
-      sorry -- deriv F 0 = 0 (Neumann BC of deriv(chemFluxFun) at 0)
-      sorry -- deriv F 1 = 0 (Neumann BC of deriv(chemFluxFun) at 1)
-  -- Transfer via agreement on [0,1]:
-  exact hF_H2.congr_on_Icc (fun x hx => by
-    have h := chemDivLift_contDiffOn_two_of_global hu hv hv_pos
-    sorry -- chemDivLift = F on [0,1] (definitional bridge, proved above)
-  )
+  sorry
+  -- Route: build H2 for global F = deriv(chemFluxFun) via
+  -- intervalWeakH2Neumann_of_contDiffOn (smooth → tendsto trivial),
+  -- then congr_on_Icc to transfer to chemDivLift (agreement on [0,1]).
+  -- Remaining sorry: deriv F 0 = 0 (Neumann BC of the global function at 0)
+  -- + the agreement bridge (chemDivLift = F on [0,1], proved in the C2 theorem above)
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
