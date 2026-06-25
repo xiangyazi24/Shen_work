@@ -595,3 +595,20 @@ DuhamelSourceTimeC1 for D.u (not realSlice u_star) — no bridge between D.u and
 OPTIONS: (a) refactor 16 EWA files from DuhamelSourceTimeC1 → DuhamelSourceTimeC1On (big);
 (b) bridge D.u ↔ realSlice u_star (requires showing EWA fixed point = canonical Picard limit);
 (c) extend realSlice smoothly beyond [0,T] (change dite to smooth clamp — needs architectural decision).
+
+## [2026-06-25] CAPSTONE + REMAINING WIRING
+BANKED (92b91bc): ChiNegFrontierAssembly.lean — chiNeg_theorem_1_1_of_faithfulFrontier:
+  Theorem_1_1 intervalDomain p (χ₀<0) from the SATISFIABLE ChiNegFaithfulRealizationFrontier.
+  Assembly: frontier → datumUniform → faithful → Theorem_1_1. axiom-clean.
+REMAINING to make UNCONDITIONAL (produce ChiNegFaithfulRealizationFrontier per datum):
+ (a) hchem_on: DuhamelSourceTimeC1On for chem-div — producible from coupledChemDivSource_timeC1On_of_EWA
+     + banked adot chain, BUT needs CoupledChemDivLocalChainRule + joint continuity for realSlice u_star
+     (these are the inputs to chemDivAdot_hasDerivWithinAt_of_chainRule)
+ (b) hlog_on: DuhamelSourceTimeC1On for logistic — needs assembly (simpler than chem, same pattern)
+ (c) hclassReg: intervalDomainClassicalRegularity — the EWA route (SourceClassicalRegularity) takes the OLD
+     global DuhamelSourceTimeC1 (unsatisfiable cascade). BYPASS: use the CANONICAL mild-solution route
+     (mildSolution_classicalRegularity_of_restartCosineRepresentations_and_frontier etc.) which does NOT
+     need DuhamelSourceTimeC1. This is how χ₀=0 does it.
+ (d) The ~37 standing EWA framework hypotheses — producible from per-datum Picard fixed-point construction.
+STRATEGY: bypass the SourceClassicalRegularity cascade via the canonical mild-solution route for hclassReg;
+produce hchem_on/hlog_on from windowed assemblers; thread all through realSlice_reducedCore_wired.
