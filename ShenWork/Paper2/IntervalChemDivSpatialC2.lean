@@ -163,7 +163,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
       ∀ x, deriv g (-x) = -(deriv g x) := by
     intro g hg heven x
     have : deriv (fun y => g (-y)) x = deriv g (-x) * -1 :=
-      ((hg.differentiable le_top).differentiableAt (x := -x)).hasDerivAt.comp_hasDerivAt
+      ((hg.differentiable le_top).differentiableAt (x := -x)).hasDerivAt.scomp
         x (hasDerivAt_neg x) |>.deriv
     have : deriv (fun y => g (-y)) x = deriv g x := by congr 1; ext y; exact heven y
     linarith
@@ -182,7 +182,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
       ∀ x, deriv g (-x) = deriv g x := by
     intro g hg hodd x
     have h1 : deriv (fun y => g (-y)) x = deriv g (-x) * -1 :=
-      ((hg.differentiable le_top).differentiableAt (x := -x)).hasDerivAt.comp_hasDerivAt
+      ((hg.differentiable le_top).differentiableAt (x := -x)).hasDerivAt.scomp
         x (hasDerivAt_neg x) |>.deriv
     have h2 : deriv (fun y => g (-y)) x = -(deriv g x) := by
       rw [show (fun y => g (-y)) = fun y => -(g y) from funext hodd]
