@@ -749,3 +749,16 @@ still take GLOBAL DuhamelSourceTimeC1 (not On). conjugatePicardLimit uses ite (s
 FIX: same pattern as the EWA refactor — either (a) refactor BFormBankedInputs to On, or (b) soft-clamp
 globalize via Brick2. Both contained. The windowed infrastructure (this session) + G2.5 passage make
 the On data PRODUCIBLE; the interface just needs threading.
+
+## [2026-06-25] B-FORM ON REFACTOR PLAN: 1 new theorem + 7 file signature changes
+Recommended approach (scoped field-by-field):
+  1. NEW: duhamelSpectral_eq_cosineSeries_on (windowed, IntervalDuhamelClosedC2.lean, ~50 lines)
+  2. NEW: bFormSource_duhamelSourceTimeC1On (trivial closure, ~20 lines)
+  3. CHANGE: BFormBankedInputs hlogSrc/hchemSrc types → On
+  4. CHANGE: IntervalBFormPIDUnconditional signatures
+  5. CHANGE: IntervalConjugateCosineSeries signatures
+  6. CHANGE: IntervalBFormPositiveDatumLocalExistenceSqBankedConcrete
+  7. CHANGE: IntervalBFormEndToEnd
+Total: ~7 files, 1 substantial new theorem, rest type-signature changes. Same pattern as the EWA
+On refactor (SourceReducedCoreWire) already completed this session. After this: BFormBankedInputs
+is fillable from windowed iterate source TimeC1On + windowed G2.5 (both χ₀-independent) → χ₀<0 unconditional.
