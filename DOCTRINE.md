@@ -119,14 +119,26 @@ Level 0: FREE (conjugatePicardIter 0 = picardIter 0 definitionally).
 Level n+1: need B-form spectral representation + K2 bounds for conjugatePicardIter.
 Limit: duhamelSourceTimeC1On_of_uniform_limit (sorry-free, generic).
 
+### REFACTORED (7e90e3d): BFormBankedInputs now needs ONE field `hsrcBDirect`
+The old hlogSrc+hchemSrc were ONLY used together to make hsrcB. Collapsed to single field.
+Production target: `DuhamelSourceTimeC1On (bFormSourceCoeffs p (conjugatePicardLimit ...)) 0 DB.T`
+
 ### Steps
-1. [ ] Spectral representation: `conjugatePicardIter (n+1)` lift on [0,1] = ∑ localRestartCoeff ... * cosineMode
-2. [ ] G1/G2 bounds: spatial derivative/Hessian bounds for conjugate iterates from spectral decay
-3. [ ] Strict positivity: from Hinf + smallness (iter_ball_package gives nonnegativity)
-4. [ ] Joint continuity: from heat kernel regularization
-5. [ ] Instantiate sourceTimeC1On_succ_of_sourceTimeC1On for conjugate iterates
-6. [ ] Level 0 wrapper (definitional bridge from picardIter 0)
-7. [ ] All-level induction via sourceTimeC1On_all_windows_of_base_step
-8. [ ] Limit passage: iterate TimeC1On → conjugatePicardLimit TimeC1On
+1. [x] Level 0 wrapper (a4575de — definitional bridge from picardIter 0)
+2. [ ] Level 0 bForm source TimeC1On (logistic part: existing level0Source_timeC1On;
+       chemDiv part: needs H²+decay+adot from heat semigroup C∞ regularity — IN PROGRESS)
+3. [ ] Iterate spectral representation (intervalConjugateDuhamelMap_cosineSeries — EXISTS)
+4. [ ] G1/G2 bounds from spectral decay (cosineCoeffSeries_contDiff_two — EXISTS, needs wiring)
+5. [ ] ChemDiv C² for iterates (GENUINE GAP — repo has no producer, ChatGPT confirmed)
+6. [ ] ChemDiv H²+decay+adot for iterates (from C² via existing chain)
+7. [ ] bForm source TimeC1On per iterate (logistic via sourceTimeC1On_succ + chemDiv via chain)
+8. [ ] Limit passage via duhamelSourceTimeC1On_of_uniform_limit
 9. [ ] BFormBankedInputs assembly from all field producers
-10. [ ] Theorem 1.1 χ₀<0 unconditional from BFormBankedInputs
+10. [ ] Theorem 1.1 χ₀<0 unconditional
+
+### GENUINE GAP: chemDiv source C² for conjugate iterates
+The repo has NO producer of `ContDiffOn ℝ 2 (coupledChemDivSourceLift p u s) (Icc 0 1)` for
+any u. It's always taken as a hypothesis. The `SourceSliceC2Neumann.lean` explicitly marks
+chem source C² as a residual. Building this requires: u C⁴ + v = resolver(u) C⁴ → flux C³ →
+chemDiv C². For heat semigroup iterates, C∞ holds (exponential coefficient decay), but the
+Lean proof needs new infrastructure connecting cosine series ContDiff to composition regularity.
