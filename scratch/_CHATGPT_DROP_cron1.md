@@ -1,297 +1,181 @@
-# Q526 / cron1: `intervalNeumannResolverR` spatial regularity and evenness audit
+# Q547 / cron1: `IntervalResolverHighRegularity.lean`
 
-## Executive verdict
+## Result
 
-I found **landed C² resolver regularity**, but **no landed C⁴ resolver theorem** for
+Created the requested file:
 
-```lean
-intervalNeumannResolverR p u
+```text
+ShenWork/Paper2/IntervalResolverHighRegularity.lean
 ```
 
-or for its real-line cosine synthesis.  The existing resolver regularity is in two files:
+Code commit for the Lean file: `9db81696d0581ca9591cc01c449d4068d0c199d5`.
 
-1. `ShenWork/PDE/IntervalResolverSpatialC2.lean` — coefficient-decay route from `SourceCoeffQuadraticDecay p u`.
-2. `ShenWork/PDE/IntervalResolverPhysicalC2.lean` — physical elliptic route from `Summable (fun k => |(intervalNeumannResolverSourceCoeff p u k).re|)`.
+## Existing resolver regularity found first
 
-Both prove `ContDiff ℝ 2` / `ContDiffOn ℝ 2` for the **cosine synthesis**
+Search found the existing resolver regularity bottoms out at **C²**, not C⁴:
 
-```lean
-fun x : ℝ => ∑' k : ℕ,
-  (intervalNeumannResolverCoeff p u k).re * cosineMode k x
-```
+* `ShenWork/PDE/IntervalResolverSpatialC2.lean`
+  * `resolverR_summability`
+  * `resolverR_eq_cosineSeries`
+  * `resolverR_contDiff_two`
+  * `resolverR_contDiffOn_Icc`
+* `ShenWork/PDE/IntervalResolverPhysicalC2.lean`
+  * `resolverR_eigenWeighted_le_source`
+  * `resolverR_eigenWeighted_summable_of_sourceL1`
+  * `resolverR_contDiff_two_of_source_l1`
+  * `resolverR_contDiffOn_Icc_of_source_l1`
 
-not a literal global function `fun x => intervalNeumannResolverR p u x`, since `intervalNeumannResolverR p u` has domain `intervalDomainPoint`, i.e. the subtype `[0,1]`.  The bridge from the synthesis to the actual resolver value on interval points is `resolverR_eq_cosineSeries`.
+The file below adds the C⁴ bridge from eigenvalue-weighted source summability, plus the resolver synthesis evenness/symmetry and denominator positivity wrapper.
 
-For evenness: I found `cosineMode_neg`, and the resolver-floor code uses `cosineMode_neg` with `tsum_congr` inside the full real-line resolver synthesis.  I did **not** find a packaged theorem named like
+I did not run a local `lake build` through the connector; this was committed through GitHub contents API.
 
-```lean
-intervalNeumannResolverR_even
-resolverR_even
-resolverSynthesis_even
-```
-
-or a literal statement `intervalNeumannResolverR p u (-x) = intervalNeumannResolverR p u x`.  Also, that literal statement is not type-correct as written unless one first works with a lifted/synthesis function on `ℝ`, because `intervalNeumannResolverR p u` takes `intervalDomainPoint`, not arbitrary `ℝ`.
-
-## Exact hits: resolver definition and coefficient equation
-
-`ShenWork/PDE/IntervalNeumannEllipticResolverR.lean` defines the source coefficient, resolver coefficient, and resolver:
-
-* `intervalNeumannResolverSourceCoeff` at `IntervalNeumannEllipticResolverR.lean:76-80`.
-* `intervalNeumannResolverCoeff` at `IntervalNeumannEllipticResolverR.lean:89-92`.
-* `intervalNeumannResolverR` at `IntervalNeumannEllipticResolverR.lean:102-108`:
+## Complete Lean file
 
 ```lean
-def intervalNeumannResolverR
-    (p : CM2Params) (u : intervalDomainPoint → ℝ) :
-    intervalDomainPoint → ℝ :=
-  fun x =>
-    ∑' k : ℕ,
-      (intervalNeumannResolverCoeff p u k).re *
-        unitIntervalCosineMode k x.1
-```
+/-
+  ShenWork/Paper2/IntervalResolverHighRegularity.lean
 
-The coefficient-form elliptic identity is already landed:
+  High spatial regularity and symmetry facts for the concrete interval Neumann
+  elliptic resolver.
 
-* `intervalNeumannResolverCoeff_elliptic` at `IntervalNeumannEllipticResolverR.lean:141-149`:
+  The file is intentionally coefficient-level.  It upgrades the committed C²
+  resolver route to C⁴ whenever the resolver source coefficients carry one
+  eigenvalue weight in `ℓ¹`.  The static resolvent identity gives
 
-```lean
-theorem intervalNeumannResolverCoeff_elliptic
+    λₖ * |v̂ₖ| ≤ |âₖ|,
+
+  already proved in `IntervalResolverPhysicalC2`; multiplying by `λₖ ≥ 0`
+  gives the C⁴ summability driver
+
+    λₖ * (λₖ * |v̂ₖ|) ≤ λₖ * |âₖ|.
+
+  The symmetry statements are for the real-line cosine synthesis of the resolver;
+  the actual `intervalNeumannResolverR p u` has domain `intervalDomainPoint`.
+
+  No `sorry`, no `admit`, no custom `axiom`.
+-/
+import ShenWork.PDE.IntervalResolverPhysicalC2
+import ShenWork.PDE.IntervalResolverPositivity
+import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
+import ShenWork.Wiener.EWA.HeatFloor
+
+open scoped BigOperators Topology
+open ShenWork.IntervalDomain (intervalDomainPoint)
+open ShenWork.IntervalDuhamelClosedC2
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.PDE
+  (intervalNeumannResolverCoeff intervalNeumannResolverSourceCoeff intervalNeumannResolverR)
+
+noncomputable section
+
+namespace ShenWork.Paper2.ResolverHighRegularity
+
+/-- The real-line cosine synthesis associated to the interval Neumann resolver.
+
+This is the natural globally-defined representative of `intervalNeumannResolverR p u`.
+On the fundamental interval `[0,1]`, it agrees with the subtype-valued resolver via
+`IntervalResolverSpatialC2.resolverR_eq_cosineSeries`. -/
+def resolverRSynthesis (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
+  ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x
+
+/-- The resolver value on the interval agrees with the real-line synthesis. -/
+theorem intervalNeumannResolverR_eq_resolverRSynthesis
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : intervalDomainPoint) :
+    intervalNeumannResolverR p u x = resolverRSynthesis p u x.1 := by
+  simpa [resolverRSynthesis] using
+    ShenWork.IntervalResolverSpatialC2.resolverR_eq_cosineSeries (p := p) (u := u) x
+
+private theorem unitIntervalCosineEigenvalue_nonneg (k : ℕ) :
+    0 ≤ unitIntervalCosineEigenvalue k := by
+  unfold unitIntervalCosineEigenvalue
+  positivity
+
+/-- Pointwise C⁴ summability driver for resolver coefficients.
+
+The committed physical C² bridge gives `λₖ * |v̂ₖ| ≤ |âₖ|`.  Multiplying by
+`λₖ ≥ 0` gives `λₖ² * |v̂ₖ| ≤ λₖ * |âₖ|`, exactly the input comparison needed by
+`cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable`. -/
+theorem resolverR_eigenSqWeighted_le_sourceEigenWeighted
     (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
-    ((p.μ : ℂ) + (unitIntervalNeumannSpectrum.eigenvalue k : ℂ)) *
-        intervalNeumannResolverCoeff p u k =
-      intervalNeumannResolverSourceCoeff p u k := by
-```
+    unitIntervalCosineEigenvalue k *
+        (unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|) ≤
+      unitIntervalCosineEigenvalue k *
+        |(intervalNeumannResolverSourceCoeff p u k).re| := by
+  exact mul_le_mul_of_nonneg_left
+    (ShenWork.IntervalResolverPhysicalC2.resolverR_eigenWeighted_le_source p u k)
+    (unitIntervalCosineEigenvalue_nonneg k)
 
-This is the equation needed to prove inequalities of the form
-
-```lean
-λ_k * |v̂_k| ≤ |â_k|
-λ_k^2 * |v̂_k| ≤ λ_k * |â_k|
-```
-
-where `v̂_k = intervalNeumannResolverCoeff p u k` and `â_k = intervalNeumannResolverSourceCoeff p u k`.
-
-## Existing C² route 1: `SourceCoeffQuadraticDecay`
-
-File: `ShenWork/PDE/IntervalResolverSpatialC2.lean`.
-
-The file header says it proves spatial C² regularity and Neumann endpoint facts for the elliptic resolver under `SourceCoeffQuadraticDecay`; specifically it lists `resolverR_summability`, `resolverR_eq_cosineSeries`, `resolverR_contDiff_two`, and endpoint derivative lemmas at `IntervalResolverSpatialC2.lean:13-25`.
-
-Main theorem references:
-
-* `resolverR_summability`, `IntervalResolverSpatialC2.lean:62-75`:
-
-```lean
-theorem resolverR_summability
+/-- Eigenvalue-squared weighted resolver summability from eigenvalue-weighted source
+summability. -/
+theorem resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted
     {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hdecay : SourceCoeffQuadraticDecay p u) :
-    Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|) := by
-```
-
-This is the one-eigenvalue-weight summability input for C².
-
-* `resolverR_eq_cosineSeries`, `IntervalResolverSpatialC2.lean:82-89`:
-
-```lean
-theorem resolverR_eq_cosineSeries
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (x : intervalDomainPoint) :
-    intervalNeumannResolverR p u x =
-      ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x.1 := by
-```
-
-This is the bridge from the actual subtype-valued resolver to the real-line synthesis form.
-
-* `resolverR_contDiff_two`, `IntervalResolverSpatialC2.lean:96-102`:
-
-```lean
-theorem resolverR_contDiff_two
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hdecay : SourceCoeffQuadraticDecay p u) :
-    ContDiff ℝ 2
-      (fun x : ℝ => ∑' k : ℕ,
-        (intervalNeumannResolverCoeff p u k).re * cosineMode k x) :=
-  cosineCoeffSeries_contDiff_two (resolverR_summability hdecay)
-```
-
-* `resolverR_contDiffOn_Icc`, `IntervalResolverSpatialC2.lean:128-135`:
-
-```lean
-theorem resolverR_contDiffOn_Icc
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hdecay : SourceCoeffQuadraticDecay p u) :
-    ContDiffOn ℝ 2
-      (fun x : ℝ => ∑' k : ℕ,
-        (intervalNeumannResolverCoeff p u k).re * cosineMode k x)
-      (Set.Icc (0 : ℝ) 1) :=
-  (resolverR_contDiff_two hdecay).contDiffOn
-```
-
-Endpoint Neumann facts are also there:
-
-* `resolverR_deriv_at_zero`, `IntervalResolverSpatialC2.lean:107-112`.
-* `resolverR_deriv_at_one`, `IntervalResolverSpatialC2.lean:117-122`.
-
-## Existing C² route 2: physical/source-ℓ¹ route
-
-File: `ShenWork/PDE/IntervalResolverPhysicalC2.lean`.
-
-This file explicitly states that it proves a physical/elliptic C² route from source coefficient `ℓ¹`; see the summary at `IntervalResolverPhysicalC2.lean:34-40`.
-
-Key theorem references:
-
-* `resolverR_eigenWeighted_le_source`, `IntervalResolverPhysicalC2.lean:61-97`:
-
-```lean
-theorem resolverR_eigenWeighted_le_source
-    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
-    unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re| ≤
-      |(intervalNeumannResolverSourceCoeff p u k).re| := by
-```
-
-This is exactly the inequality you described for the C² level.
-
-* `resolverR_eigenWeighted_summable_of_sourceL1`, `IntervalResolverPhysicalC2.lean:106-115`:
-
-```lean
-theorem resolverR_eigenWeighted_summable_of_sourceL1
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|) := by
-```
-
-* `resolverR_contDiff_two_of_source_l1`, `IntervalResolverPhysicalC2.lean:122-128`:
-
-```lean
-theorem resolverR_contDiff_two_of_source_l1
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    ContDiff ℝ 2
-      (fun x : ℝ => ∑' k : ℕ,
-        (intervalNeumannResolverCoeff p u k).re * cosineMode k x) :=
-  cosineCoeffSeries_contDiff_two (resolverR_eigenWeighted_summable_of_sourceL1 hsrc)
-```
-
-* `resolverR_contDiffOn_Icc_of_source_l1`, `IntervalResolverPhysicalC2.lean:131-138`:
-
-```lean
-theorem resolverR_contDiffOn_Icc_of_source_l1
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    ContDiffOn ℝ 2
-      (fun x : ℝ => ∑' k : ℕ,
-        (intervalNeumannResolverCoeff p u k).re * cosineMode k x)
-      (Set.Icc (0 : ℝ) 1) :=
-  (resolverR_contDiff_two_of_source_l1 hsrc).contDiffOn
-```
-
-## Evidence that C⁴ is not already packaged for the resolver
-
-I searched for the requested patterns:
-
-* `intervalNeumannResolverR ContDiff`
-* `intervalNeumannResolverR ContDiffOn`
-* `resolver contDiff`
-* `resolverR C2`
-* `resolverR_contDiff_four`
-* `cosineCoeffSeries_contDiff_four`
-
-The resolver-specific hits bottom out at C² (`IntervalResolverSpatialC2.lean`, `IntervalResolverPhysicalC2.lean`, and audit/consumer files).  Search for `resolverR_contDiff_four` returned no hits.
-
-There **is** a generic C⁴ cosine-series engine:
-
-* `cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable`, `ShenWork/Paper2/IntervalParabolicDuhamelGainNonCircular.lean:354-405`:
-
-```lean
-theorem cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n : ℕ =>
-      unitIntervalCosineEigenvalue n *
-        (unitIntervalCosineEigenvalue n * |b n|))) :
-    ContDiff ℝ 4 (fun x : ℝ => ∑' n : ℕ, b n * cosineMode n x) := by
-```
-
-So the missing resolver-C⁴ lemma should be small and direct, but it is not currently named/packaged for the resolver.  The natural new lemma is the C⁴ analogue of `resolverR_eigenWeighted_le_source`:
-
-```lean
-λ_k * (λ_k * |(intervalNeumannResolverCoeff p u k).re|)
-  ≤ λ_k * |(intervalNeumannResolverSourceCoeff p u k).re|
-```
-
-Then:
-
-```lean
-theorem resolverR_contDiff_four_of_source_eigenWeighted_l1
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc1 : Summable (fun k : ℕ =>
+    (hsrc : Summable (fun k : ℕ =>
       unitIntervalCosineEigenvalue k *
         |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    ContDiff ℝ 4
-      (fun x : ℝ => ∑' k : ℕ,
-        (intervalNeumannResolverCoeff p u k).re * cosineMode k x) :=
-  cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
-    (resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted hsrc1)
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        (unitIntervalCosineEigenvalue k * |(intervalNeumannResolverCoeff p u k).re|)) := by
+  refine Summable.of_nonneg_of_le (fun k => ?_) (fun k => ?_) hsrc
+  · exact mul_nonneg (unitIntervalCosineEigenvalue_nonneg k)
+      (mul_nonneg (unitIntervalCosineEigenvalue_nonneg k) (abs_nonneg _))
+  · exact resolverR_eigenSqWeighted_le_sourceEigenWeighted p u k
+
+/-- **C⁴ regularity of the real-line resolver synthesis.**
+
+This is the resolver analogue of the heat-semigroup C⁴ engine: once the source
+coefficients have one eigenvalue weight in `ℓ¹`, the static resolvent supplies the
+second eigenvalue weight needed for `ContDiff ℝ 4`. -/
+theorem resolverR_contDiff_four
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc : Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
+    ContDiff ℝ 4 (resolverRSynthesis p u) := by
+  simpa [resolverRSynthesis] using
+    ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+      (b := fun k : ℕ => (intervalNeumannResolverCoeff p u k).re)
+      (resolverR_eigenSqWeighted_summable_of_sourceEigenWeighted hsrc)
+
+/-- Evenness of the real-line resolver synthesis. -/
+theorem resolverR_even (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    resolverRSynthesis p u (-x) = resolverRSynthesis p u x := by
+  unfold resolverRSynthesis
+  refine tsum_congr (fun k => ?_)
+  rw [ShenWork.EWA.cosineMode_neg k x]
+
+/-- Symmetry of the real-line resolver synthesis about `x = 1`: `R(2 - x) = R(x)`. -/
+theorem resolverR_symm1 (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    resolverRSynthesis p u (2 - x) = resolverRSynthesis p u x := by
+  unfold resolverRSynthesis
+  refine tsum_congr (fun k => ?_)
+  rw [show (2 : ℝ) - x = -x + 2 by ring,
+    ShenWork.EWA.cosineMode_add_two k (-x),
+    ShenWork.EWA.cosineMode_neg k x]
+
+/-- Positivity of the chemotactic denominator `1 + R(u)`. -/
+theorem resolverR_pos_denom
+    {p : CM2Params} {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
+    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (x : intervalDomainPoint) :
+    0 < 1 + intervalNeumannResolverR p u x := by
+  exact add_pos_of_pos_of_nonneg zero_lt_one
+    (ShenWork.IntervalResolverPositivity.intervalNeumannResolverR_nonneg_of_nonneg_source
+      (p := p) (u := u) (f := f) hf_cont hf_nonneg hf_coeff hâ x)
+
+end ShenWork.Paper2.ResolverHighRegularity
 ```
 
-That is exactly your heuristic: for C², source `ℓ¹` gives resolver eigenvalue-weight `ℓ¹`; for C⁴, source one-eigenvalue-weight `ℓ¹` gives resolver two-eigenvalue-weight `ℓ¹`.
+## Notes for the heat-semigroup specialization
 
-## Audit file confirms no stronger Schauder-style resolver C²/C⁴ API
-
-`ShenWork/Paper2/IntervalEllipticResolverC2Audit.lean` says the committed elliptic resolver regularity does **not** include a Schauder/Hölder-source theorem; the available spatial theorem is `IntervalResolverSpatialC2.resolverR_contDiff_two` with `SourceCoeffQuadraticDecay` as hypothesis.  See `IntervalEllipticResolverC2Audit.lean:28-47`.
-
-This audit is about C², but it reinforces the same conclusion for C⁴: the repo has coefficient-series regularity engines and C² resolver wrappers, not a higher-order packaged resolver regularity theorem.
-
-## Evenness / symmetry status
-
-The primitive cosine-mode evenness theorem exists:
-
-* `cosineMode_neg`, `ShenWork/Wiener/EWA/HeatFloor.lean:115-118`:
+This file proves the coefficient-level high-regularity bridge:
 
 ```lean
-theorem cosineMode_neg (k : ℕ) (x : ℝ) :
-    ShenWork.CosineSpectrum.cosineMode k (-x) = ShenWork.CosineSpectrum.cosineMode k x := by
+Summable (fun k => unitIntervalCosineEigenvalue k *
+  |(intervalNeumannResolverSourceCoeff p u k).re|)
+→ ContDiff ℝ 4 (resolverRSynthesis p u)
 ```
 
-The same file also has the period-two theorem:
-
-* `cosineMode_add_two`, `HeatFloor.lean:121-126`.
-* `cosineMode_add_int_two`, `HeatFloor.lean:149-154`.
-
-For the resolver synthesis, `SourceResolverFloor.lean` uses these facts rather than packaging a standalone evenness theorem:
-
-* `resolverSynthesis_eq_resolverR`, `ShenWork/Wiener/EWA/SourceResolverFloor.lean:152-157`, bridges the real-line synthesis to the actual resolver on `[0,1]`:
-
-```lean
-theorem resolverSynthesis_eq_resolverR (p : CM2Params) (uR : intervalDomainPoint → ℝ)
-    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    (∑' k : ℕ, (intervalNeumannResolverCoeff p uR k).re * cosineMode k x)
-      = intervalNeumannResolverR p uR ⟨x, hx⟩ := by
-```
-
-* `resolverSynthesis_nonneg_all`, `SourceResolverFloor.lean:170-193`, reduces all real `x` to `[0,1]`; inside it, the equality step uses
-
-```lean
-rw [show x = y + 2 * (m : ℝ) from by rw [hy]; ring, cosineMode_add_int_two]
-...
-rw [h]; exact tsum_congr (fun k => by rw [cosineMode_neg])
-```
-
-So the ingredients for evenness are present, and the resolver synthesis already uses them, but I did **not** find a named theorem of the form
-
-```lean
-theorem resolverSynthesis_neg ...
-theorem intervalNeumannResolverR_even ...
-```
-
-A minimal standalone theorem should be immediate:
-
-```lean
-theorem resolverSynthesis_neg (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
-    (∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k (-x)) =
-      ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x := by
-  exact tsum_congr (fun k => by rw [ShenWork.EWA.cosineMode_neg])
-```
-
-For a statement involving `intervalNeumannResolverR`, formulate it on the subtype `[0,1]` via `resolverR_eq_cosineSeries`, or formulate it for the real-line synthesis.  The raw expression `intervalNeumannResolverR p u (-x)` is not type-correct unless `-x` is supplied as an `intervalDomainPoint`.
+For `u = S(t)u₀`, the remaining upstream lemma is exactly the heat/product-composition fact that the source `ν * u^γ` has eigenvalue-weighted summability.  Once supplied, `resolverR_contDiff_four` applies directly.
