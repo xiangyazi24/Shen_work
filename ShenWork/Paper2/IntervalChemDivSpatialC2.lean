@@ -164,7 +164,7 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
     intro g hg heven x; sorry
   -- Odd function vanishes at 0
   have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
-    intro g hodd; linarith [hodd 0]
+    intro g hodd; have h := hodd 0; simp at h; exact h
   -- Flux is odd (U even, V' odd, denominator even)
   have hflux_odd : ∀ x, chemFluxFun p.β U_cos V_cos (-x) =
       -(chemFluxFun p.β U_cos V_cos x) := by
