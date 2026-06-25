@@ -161,7 +161,6 @@ theorem realizes_evalST_discharged (p : CM2Params) (u₀cos : ℕ → ℝ)
     -- the two remaining SECONDARY regularity side-atoms (named residuals, untouched):
     (h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont_chem : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1))
     (h_src_cont_log : ∀ (τ : TimeDom T), Continuous (wLog p u_star τ.1))
     (t : ℝ) (htlo : 0 < t) (hthi : t ≤ T) :
     ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -178,7 +177,7 @@ theorem realizes_evalST_discharged (p : CM2Params) (u₀cos : ℕ → ℝ)
   have h_flux := realSlice_h_flux_slab p hδpos hβpos hER hfloor hsumR hgrad hμle1
     f hf_cont hf_nonneg hf_coeff hf2
   exact realizes_clean p u₀cos hsumc hmem hT u_star hfix hρ hself hLipQ hLipG hKnn hK
-    hmem_star hgrad h_flux h_flux_diff h_src_cont_chem h_u h_uα h_src_cont_log t htlo hthi
+    hmem_star hgrad h_flux h_flux_diff h_u h_uα h_src_cont_log t htlo hthi
 
 end ShenWork.EWA
 

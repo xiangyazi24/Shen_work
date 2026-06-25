@@ -131,8 +131,13 @@ structure EWARealizesOn (T : ℝ) (r : ℕ) (U : EWA T r)
   eval_eq : ∀ (τ : TimeDom T) (x : ℝ),
     evalST τ (x : WA.Circ) (GWA.incl (by omega : (0:ℕ) ≤ r) U)
       = ((∑' k : ℕ, cosineCoeffs (intervalDomainLift (w τ.1)) k * cosineMode k x : ℝ) : ℂ)
-  /-- Interval form: on `[0,1]` the cosine series reproduces the physical lift. -/
-  is_cosine_series : ∀ (τ : TimeDom T) (x : ℝ), x ∈ Set.Icc (0:ℝ) 1 →
+  /-- Interval form: on `(0,1)` the cosine series reproduces the physical lift.
+  Weakened from `Icc` to `Ioo` (2026-06-24): the chemotaxis-divergence source
+  uses `deriv` of a zero-extension lift, which is discontinuous at endpoints
+  `{0,1}` (left-derivative = 0, interior right-limit ≠ 0).  No consumer
+  projects this field, and the interior agreement suffices for all downstream
+  cosine-coefficient identities. -/
+  is_cosine_series : ∀ (τ : TimeDom T) (x : ℝ), x ∈ Set.Ioo (0:ℝ) 1 →
     intervalDomainLift (w τ.1) x
       = ∑' k : ℕ, cosineCoeffs (intervalDomainLift (w τ.1)) k * cosineMode k x
   /-- The realized coefficient family is absolutely summable. -/

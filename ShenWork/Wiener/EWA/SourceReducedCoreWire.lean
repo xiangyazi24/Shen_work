@@ -118,7 +118,6 @@ theorem realSlice_realizes_slab_evalST_discharged
     (hf2 : ∀ σ : TimeDom T, Summable (fun k => (cosineCoeffs (f σ.1) k) ^ 2))
     (h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont_chem : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1))
     (h_src_cont_log : ∀ (τ : TimeDom T), Continuous (wLog p u_star τ.1)) :
     ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       intervalDomainLift (realSlice u_star t) x
@@ -126,7 +125,7 @@ theorem realSlice_realizes_slab_evalST_discharged
   intro t ht
   exact realizes_evalST_discharged p u₀cos hsumc hmem hT hδpos u_star hfix hρ hself
     hLipQ hLipG hKnn hK hmem_star hβpos hαnn hμle1 hfloorδ hfloor hsumR hgrad
-    f hf_cont hf_nonneg hf_coeff hf2 h_flux_diff h_src_cont_chem h_src_cont_log
+    f hf_cont hf_nonneg hf_coeff hf2 h_flux_diff h_src_cont_log
     t ht.1 ht.2.le
 
 /-! ### The maximally-wired reduced core. -/
@@ -172,7 +171,7 @@ the named χ₀<0 residuals §3.3 must flag):
   * `Hv` — `HasResolverDirectSpectralData`, the resolver-source TIME-C¹ frontier.
     `realSlice_resolverSpectralData_residual` shows it bottoms out at a clamped
     `DuhamelSourceTimeC1` witness for the resolver source — also OPEN time-C¹.
-  * `h_flux_diff`/`h_src_cont_chem`/`h_src_cont_log` — the secondary regularity
+  * `h_flux_diff`/`h_src_cont_log` — the secondary regularity (h_src_cont_chem
     side-atoms (flux differentiability, `wChem`/`wLog` continuity); no producer in
     the tree, carried through the realizes nexus.
 
@@ -226,7 +225,6 @@ theorem realSlice_reducedCore_wired (p : CM2Params) (u_star : EWA T 1)
     -- secondary regularity side-atoms (genuinely open, no producer):
     (h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont_chem : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1))
     (h_src_cont_log : ∀ (τ : TimeDom T), Continuous (wLog p u_star τ.1))
     -- source TIME-C¹ packages (genuinely open):
     (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p (realSlice u_star)))
@@ -271,7 +269,7 @@ theorem realSlice_reducedCore_wired (p : CM2Params) (u_star : EWA T 1)
         = ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n * cosineMode n x := by
     refine realSlice_realizes_slab_evalST_discharged p u₀cos hsumc hmem hT0 hδ'pos
       u_star ?_ hρ' ?_ ?_ ?_ hKnn hK ?_ hβpos hαnn hμle1 hfloorδ hfloor hsumR hgrad
-      f hf_cont hf_nonneg hf_coeff hf2 h_flux_diff h_src_cont_chem h_src_cont_log
+      f hf_cont hf_nonneg hf_coeff hf2 h_flux_diff h_src_cont_log
     · exact hfix
     · exact hρ'ρ ▸ hself
     · exact hρ'ρ ▸ hLipQ

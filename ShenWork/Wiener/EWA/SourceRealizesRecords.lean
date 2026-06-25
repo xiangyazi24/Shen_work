@@ -150,8 +150,7 @@ theorem chemDiv_realizesOn (p : CM2Params) (u_star : EWA T 1)
         (chemFluxEWA p.μ p.ν p.β p.γ p.hμ u_star))
         = ((chemFluxLifted p (realSlice u_star τ.1) y : ℝ) : ℂ))
     (h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
-      DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1)) :
+      DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x) :
     EWARealizesOn T 0 (chemDivEWA p.μ p.ν p.γ p.hμ p u_star) (wChem p u_star) := by
   -- even-real of the chemDiv element, per slice
   have hER : EvenRealEWA (chemDivEWA p.μ p.ν p.γ p.hμ p u_star) :=
@@ -181,32 +180,23 @@ theorem chemDiv_realizesOn (p : CM2Params) (u_star : EWA T 1)
     congr 1
     refine tsum_congr (fun k => ?_)
     rw [hcoeff τ k]
-  · -- is_cosine_series on [0,1]: lift = synthesis on Ioo (eval bridge + eval_eq),
-    -- extended to Icc by continuity of both sides.
+  · -- is_cosine_series on (0,1): lift = synthesis on Ioo (eval bridge).
+    -- Weakened from Icc (2026-06-24): chemDiv lift is discontinuous at
+    -- endpoints {0,1} due to zero-extension; Ioo agreement is direct.
     intro τ x hx
-    set g : ℝ → ℝ := fun y => ∑' k : ℕ,
-      cosineCoeffs (intervalDomainLift (wChem p u_star τ.1)) k * cosineMode k y with hg
-    have hsum : Summable
-        (fun k => |cosineCoeffs (intervalDomainLift (wChem p u_star τ.1)) k|) := by
-      refine (ewaCosCoeffAt_abs_summable (fun n => hER.even τ n)
-        (fun n => hER.real τ n)).congr (fun k => ?_)
-      rw [hcoeff τ k]
-    have hgcont : Continuous g := cosineSeries_continuous hsum
-    have hliftcont : ContinuousOn (intervalDomainLift (wChem p u_star τ.1))
-        (Set.Icc (0 : ℝ) 1) := lift_continuousOn_Icc (h_src_cont τ)
-    have hagree_Ioo : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
-        intervalDomainLift (wChem p u_star τ.1) y = g y := by
-      intro y hy
-      have h1 := heval τ y hy
-      have h2 := evalST_eq_cosineSynthesis_of_even_real
-        (fun n => hER.even τ n) (fun n => hER.real τ n) y
-      rw [h2] at h1
-      have h3 : (∑' k : ℕ, ewaCosCoeffAt (chemDivEWA p.μ p.ν p.γ p.hμ p u_star) τ k
-            * cosineMode k y) = g y := by
-        rw [hg]; exact tsum_congr (fun k => by rw [hcoeff τ k])
-      rw [h3] at h1
-      exact Complex.ofReal_inj.mp h1.symm
-    exact eqOn_Icc_of_eqOn_Ioo hliftcont hgcont hagree_Ioo x hx
+    have h1 := heval τ x hx
+    have h2 := evalST_eq_cosineSynthesis_of_even_real
+      (fun n => hER.even τ n) (fun n => hER.real τ n) x
+    rw [h2] at h1
+    have h3 : (∑' k : ℕ, ewaCosCoeffAt
+          (chemDivEWA p.μ p.ν p.γ p.hμ p u_star) τ k
+          * cosineMode k x)
+        = ∑' k : ℕ, cosineCoeffs
+            (intervalDomainLift (wChem p u_star τ.1)) k
+          * cosineMode k x :=
+      tsum_congr (fun k => by rw [hcoeff τ k])
+    rw [h3] at h1
+    exact Complex.ofReal_inj.mp h1.symm
   · -- intrinsic summability, congr'd to cosineCoeffs (lift)
     intro τ
     refine (ewaCosCoeffAt_abs_summable (fun n => hER.even τ n)
@@ -275,23 +265,16 @@ theorem logistic_realizesOn (p : CM2Params) (u_star : EWA T 1)
       refine (ewaCosCoeffAt_abs_summable (fun n => hER.even τ n)
         (fun n => hER.real τ n)).congr (fun k => ?_)
       rw [hcoeff τ k]
-    have hgcont : Continuous g := cosineSeries_continuous hsum
-    have hliftcont : ContinuousOn (intervalDomainLift (wLog p u_star τ.1))
-        (Set.Icc (0 : ℝ) 1) := lift_continuousOn_Icc (h_src_cont τ)
-    have hagree_Ioo : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
-        intervalDomainLift (wLog p u_star τ.1) y = g y := by
-      intro y hy
-      have h1 := heval τ y hy
-      have h2 := evalST_eq_cosineSynthesis_of_even_real
-        (fun n => hER.even τ n) (fun n => hER.real τ n) y
-      rw [h2] at h1
-      have h3 : (∑' k : ℕ,
-            ewaCosCoeffAt (GWA.incl (by omega : (0 : ℕ) ≤ 1)
-              (growthEWA p.α p.a p.b u_star)) τ k * cosineMode k y) = g y := by
-        rw [hg]; exact tsum_congr (fun k => by rw [hcoeff τ k])
-      rw [h3] at h1
-      exact Complex.ofReal_inj.mp h1.symm
-    exact eqOn_Icc_of_eqOn_Ioo hliftcont hgcont hagree_Ioo x hx
+    have h1 := heval τ x hx
+    have h2 := evalST_eq_cosineSynthesis_of_even_real
+      (fun n => hER.even τ n) (fun n => hER.real τ n) x
+    rw [h2] at h1
+    have h3 : (∑' k : ℕ,
+          ewaCosCoeffAt (GWA.incl (by omega : (0 : ℕ) ≤ 1)
+            (growthEWA p.α p.a p.b u_star)) τ k * cosineMode k x) = g x := by
+      rw [hg]; exact tsum_congr (fun k => by rw [hcoeff τ k])
+    rw [h3] at h1
+    exact Complex.ofReal_inj.mp h1.symm
   · intro τ
     refine (ewaCosCoeffAt_abs_summable (fun n => hER.even τ n)
       (fun n => hER.real τ n)).congr (fun k => ?_)

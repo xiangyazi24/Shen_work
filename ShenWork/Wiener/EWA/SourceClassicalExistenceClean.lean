@@ -79,7 +79,6 @@ theorem sourceClassical_spatial_existence_clean
         = ((chemFluxLifted p (realSlice u_star τ.1) y : ℝ) : ℂ))
     (h_flux_diff_rc : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont_chem : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1))
     (h_u : ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
       evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
         = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
@@ -126,7 +125,7 @@ theorem sourceClassical_spatial_existence_clean
           intervalDomainLift (realSlice u_star t) x
             = ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n * cosineMode n x := by
   have hreal := realizes_clean (T := T) p u₀cos hsum hmem hT u_star hfix hρ hself hLipQ
-    hLipG hKnn hK hmem_star hgrad_rc h_flux_nbhd_rc h_flux_diff_rc h_src_cont_chem h_u
+    hLipG hKnn hK hmem_star hgrad_rc h_flux_nbhd_rc h_flux_diff_rc h_u
     h_uα h_src_cont_log t htlo hthi
   exact sourceClassical_spatial_existence_of_fixedPoint (T := T) hμ p u_star u₀cos
     htlo hthi hτ0 hτt hu0bd hreal hGcont hMlift hLiftCont hLiftBd Bv hBv hBvnn hBvsum

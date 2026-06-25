@@ -74,7 +74,6 @@ theorem realizes_clean (p : CM2Params) (u₀cos : ℕ → ℝ)
         = ((chemFluxLifted p (realSlice u_star τ.1) y : ℝ) : ℂ))
     (h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont_chem : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1))
     (h_u : ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
       evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
         = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
@@ -90,7 +89,6 @@ theorem realizes_clean (p : CM2Params) (u₀cos : ℕ → ℝ)
     picardEWA_evenReal_fixedPoint p p.hμ hT u₀cos hmem hρ hself hLipQ hLipG hKnn hK
       u_star hmem_star hfix
   have H_chem := chemDiv_realizesOn p u_star hER_star hgrad h_flux_nbhd h_flux_diff
-    h_src_cont_chem
   have H_log := logistic_realizesOn p u_star hER_star h_u h_uα h_src_cont_log
   exact realizes_of_picardFixedPoint p u₀cos hsum hmem hT u_star hfix hER_star
     (wChem p u_star) H_chem (wChem_lift_eq p u_star)

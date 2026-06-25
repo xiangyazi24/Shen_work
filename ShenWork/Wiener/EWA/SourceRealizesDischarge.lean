@@ -99,7 +99,6 @@ theorem realSlice_realizes_of_atoms (p : CM2Params) (u₀cos : ℕ → ℝ)
         = ((chemFluxLifted p (realSlice u_star τ.1) y : ℝ) : ℂ))
     (h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x)
-    (h_src_cont_chem : ∀ (τ : TimeDom T), Continuous (wChem p u_star τ.1))
     (h_u : ∀ (τ : TimeDom T), ∀ x ∈ Set.Icc (0 : ℝ) 1,
       evalST τ x (GWA.incl (by omega : (0 : ℕ) ≤ 1) u_star)
         = (intervalDomainLift (realSlice u_star τ.1) x : ℂ))
@@ -112,7 +111,7 @@ theorem realSlice_realizes_of_atoms (p : CM2Params) (u₀cos : ℕ → ℝ)
         = ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n * cosineMode n x := by
   intro t ht
   exact realizes_clean p u₀cos hsum hmem hT u_star hfix hρ hself hLipQ hLipG hKnn hK
-    hmem_star hgrad h_flux_nbhd h_flux_diff h_src_cont_chem h_u h_uα h_src_cont_log
+    hmem_star hgrad h_flux_nbhd h_flux_diff h_u h_uα h_src_cont_log
     t ht.1 ht.2.le
 
 end ShenWork.EWA
