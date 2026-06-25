@@ -16,6 +16,7 @@ import ShenWork.PDE.IntervalChemDivFluxFACSourceDecay
 
 open Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomainChemotaxisDiv)
+open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
 open ShenWork.IntervalBFormSpectral (chemDivLift)
 
 noncomputable section
@@ -52,8 +53,8 @@ theorem chemFlux_contDiff_three
   have hv3 : ContDiff ℝ 3 (deriv v) := by
     have : ContDiff ℝ (3 + 1) v := hv.of_le (by norm_num)
     exact this.deriv'
-  have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) :=
-    (hu.of_le (by norm_num : (3 : ℕ∞) ≤ 4)).mul hv3
+  have hu3 : ContDiff ℝ 3 u := hu.of_le (by norm_num)
+  have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) := hu3.mul hv3
   have hdenom_pos : ∀ x, (1 + v x) ^ β ≠ 0 := by
     intro x
     exact ne_of_gt (Real.rpow_pos_of_pos (hv_pos x) β)
@@ -130,7 +131,7 @@ theorem chemDivSource_weakH2_of_uv_C4
   have ⟨hN0, hN1⟩ := chemDivLift_neumann_bc
     (hu.of_le (by norm_num)) (hv.of_le (by norm_num))
     hu_N0 hu_N1 hv_N0 hv_N1
-  exact ShenWork.PDE.IntervalChemDivFluxFACSourceDecay.chemDivSource_weakH2_of_spatialC2
+  exact ShenWork.IntervalCoupledRegularityBootstrap.chemDivSource_weakH2_of_spatialC2
     hC2
     (by rw [hN0]; exact tendsto_nhdsWithin_of_tendsto_nhds (tendsto_const_nhds))
     (by rw [hN1]; exact tendsto_nhdsWithin_of_tendsto_nhds (tendsto_const_nhds))
