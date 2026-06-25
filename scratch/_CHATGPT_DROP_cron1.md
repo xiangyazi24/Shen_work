@@ -1,450 +1,355 @@
-# Q362 / cron1: `hregularize` grep report
+# Q374 / cron1: What is `CoupledDuhamelT6SliceAgreement p D.T D.u`, and does it depend on `χ₀`?
 
 ## Executive verdict
 
-The exact `χ₀ < 0` residual still has no unconditional theorem of the requested shape:
+`CoupledDuhamelT6SliceAgreement p T u` is **not** merely the ordinary statement that each slice `u t` agrees with its own cosine series, as one would get from a generic Picard-limit/cosine convergence argument.
 
-```lean
-∀ u v : ℝ → intervalDomainPoint → ℝ,
-  intervalTrajectoryBoundedOn T M u →
-  (∀ t x, 0 ≤ t → t ≤ T →
-    u t x = intervalCoupledDuhamelOperator p R u0 u t x) →
-  (∀ t, v t = R (u t)) →
-    RegularityBootstrap p T u0 u
-```
-
-That is still carried as `hregularize` in `ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean` and again inside `CoupledFluxResolverAnalyticData`.  So the genuinely missing object is not a single small field such as Neumann BC or initial trace; it is the upstream bridge from a **bare bounded coupled Duhamel fixed point** to the spectral/frontier data consumed by the existing regularity assemblers.
-
-Most of the seven analytic ingredients do already exist in the repo, and several exist for **general χ / general p**, not only for `χ₀ = 0`.  The caveat is that they usually require one of these stronger packages:
-
-- `GradientMildSolutionData p u₀`, sometimes plus `HasRestartCosineRepresentations`, `GradientMildHalfStepRestartData`, `HasTimeNeighborhoodSpectralAgreement`, `HasResolverDirectSpectralData`, or `GradientMildClassicalRegularityFrontierData`;
-- B-form Picard/frontier data such as `ConjugateMildExistenceData`, `BFormBankedInputs`, or `BFormDirectFrontier`;
-- per-time spectral/PDE agreement packages such as `HasBFormSpectralPdeAgreement`.
-
-Thus the current state is:
+It is a much more specific T6 handoff predicate:
 
 ```text
-Existing theoremlets: yes, many, including general-χ B-form versions.
-Exact coupled hregularize from bounded fixed point alone: still missing.
+for every interior time t, the lifted slice intervalDomainLift (u t)
+agrees on [0,1] with the inhomogeneous Neumann-heat Duhamel profile
+built from the full coupled source coefficients coupledChemicalSourceCoeffs p u s.
 ```
 
----
+That full source is chemotaxis-specific.  It is the coupled source
 
-## Requested grep buckets: main hits
+```lean
+(-p.χ₀ * chemotaxisDiv) + logistic
+```
 
-I treated the requested grep patterns as code-search buckets and then opened the relevant files to check theorem strength.
+with the elliptic resolver substituted into the chemical concentration.  Therefore the predicate **does depend on `χ₀` through `p`**, although it is not restricted to the negative-`χ₀` regime and does not use the sign of `χ₀`.  When `p.χ₀ = 0`, the chemotaxis part of the source split vanishes, so the same definition specializes to the logistic-only source.  For general nonzero `χ₀`, it is genuinely coupled/chemotaxis-specific.
+
+Short answer to the user’s fork:
 
 ```text
-positivity:
-  mildSolution_strictlyPositive
-    ShenWork/Paper2/IntervalMildToClassical.lean
-  parabolicMaxPrinciple / maximum principle framework
-    ShenWork/PDE/ParabolicMaxPrinciple.lean
-  B-form strict positivity / PID floor
-    ShenWork/Paper2/IntervalBFormStrictPosClosed.lean
-    ShenWork/Paper2/IntervalBFormDirectClassical.lean
-
-C² spatial:
-  Schauder
-    mostly Paper1/docs; not the Paper2 hregularize bridge
-  spatialC2
-    ShenWork/PDE/IntervalResolverSpatialC2.lean
-    ShenWork/Paper2/IntervalRegularityFrontierWiring.lean
-    ShenWork/Paper2/IntervalChiNegConcreteConnectors.lean
-    ShenWork/Paper2/IntervalParabolicDuhamelGainNonCircular.lean
-  sliceC2 / ContDiffOn ℝ 2 slices
-    ShenWork/Paper2/IntervalMildRegularityBootstrap.lean
-    ShenWork/Paper2/IntervalBFormDirectClassical.lean
-    ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean
-
-C¹ temporal:
-  timeDeriv
-    ShenWork/PDE/IntervalMildTimeDerivContinuity.lean
-    ShenWork/Paper2/IntervalMildTimeRegularity.lean
-    ShenWork/Paper2/IntervalMildRegularityFrontierAssembly.lean
-    ShenWork/PDE/IntervalMildFrontierFromSpectral.lean
-    ShenWork/Paper2/IntervalResolverDirectTimeRegularity.lean
-  timeC1
-    ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
-    ShenWork/Paper2/IntervalResolverSourceTimeC1.lean
-    ShenWork/Paper2/IntervalMildRegularityBootstrap.lean
-  HasDerivAt.*time.*mild
-    mildSolution_hasDerivAt_time
-    intervalDomainLift_hasDerivAt_time
-    mildSolution_differentiableAt_time
-
-PDE identity:
-  parabolicPDE
-    ShenWork/Paper2/IntervalMildToClassical.lean
-  mildSolution.*PDE
-    ShenWork/Paper2/IntervalDomainPdeUProducer.lean        -- χ₀ = 0
-    ShenWork/Paper2/IntervalBFormPdeUProducer.lean         -- general χ
-    ShenWork/Paper2/IntervalBFormDirectClassical.lean      -- banked B-form direct
-
-Neumann BC:
-  neumannBC
-    ShenWork/Paper2/IntervalMildToClassical.lean
-    ShenWork/Paper2/IntervalMildRegularityBootstrap.lean
-    ShenWork/Paper2/IntervalBFormDirectClassical.lean
-    ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean
-  normalDeriv.*zero
-    ShenWork/Paper2/IntervalBFormNeumannDischarge.lean
-    ShenWork/Paper2/IntervalMildToClassical.lean
-
-Initial trace:
-  initialTrace / InitialTrace.*mild
-    ShenWork/Paper2/IntervalMildToClassical.lean
-    ShenWork/Paper2/IntervalBFormInitialTrace.lean
-    ShenWork/Paper2/IntervalBFormDirectClassical.lean
+It is about agreement with a T6 Duhamel source profile, not plain slice Fourier inversion.
+The profile uses the full coupled source coefficients, hence it is χ₀-dependent via p.χ₀.
 ```
 
 ---
 
-## Step-by-step status
+## Exact definition
 
-### 1. `L∞` bound
-
-**Exists / not the hard part.**
-
-For gradient mild data, the bound is a field of `GradientMildSolutionData`:
-
-```lean
-hbound : ∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M
-```
-
-For the exact χ-negative residual, the analogous boundedness is already an input to `hregularize`:
-
-```lean
-intervalTrajectoryBoundedOn T M u
-```
-
-So the `L∞` step is not what is missing.  It is either in the Picard data or explicitly supplied to the residual theorem.
-
----
-
-### 2. Positivity
-
-**Exists in the packaged Picard routes; not proved from the bare coupled fixed-point signature.**
-
-Relevant existing names:
-
-```lean
-theorem mildSolution_strictlyPositive
-```
-
-in `IntervalMildToClassical.lean` gives positivity for `D : GradientMildSolutionData p u₀` by returning `D.hpos`.  The underlying gradient Picard construction in `IntervalMildPicard.lean` builds `hpos` using the Picard/mild map positivity machinery.
-
-For the B-form/PID route, there are stronger positivity facts, for example:
-
-```lean
-theorem conjugatePicardLimit_ge_half_floor_of_PID
-```
-
-and the local helper in `IntervalBFormDirectClassical.lean`:
-
-```lean
-private theorem bform_u_pos
-```
-
-which supplies strict positivity of the conjugate Picard limit on the B-form horizon.
-
-The classical maximum-principle infrastructure also exists in `ShenWork/PDE/ParabolicMaxPrinciple.lean`, including theorems such as:
-
-```lean
-theorem weak_maximum_principle_linear
-theorem parabolic_maximum_principle
-```
-
-But that file is a classical maximum principle for already sufficiently regular subsolutions.  I did not find a theorem that takes the exact bare coupled Duhamel fixed-point assumptions of `hregularize` and derives strict positivity directly by this maximum principle.
-
-**Classification:** exists for gradient/B-form Picard data; missing for the exact arbitrary bounded coupled fixed point.
-
----
-
-### 3. Spatial `C²`
-
-**Exists conditionally, including general-χ/B-form routes.  The missing part is deriving the required spectral/restart hypotheses from the bare fixed point.**
-
-Important existing gradient/restart names:
-
-```lean
-theorem restartDuhamelFormula_closedC2_of_timeC1_source
-theorem restartDuhamelSlice_conjunct7
-theorem gradientMild_contDiffOn_of_restartCosineRepresentations
-theorem gradientMild_closedC2_neumann_of_restartCosineRepresentations
-```
-
-These live mainly in `IntervalMildRegularityBootstrap.lean`.  They turn restart cosine representations and source-time-`C¹` information into closed `ContDiffOn ℝ 2` spatial regularity and endpoint derivative/Neumann data.
-
-The general-χ B-form direct route also has the spatial `C²` endpoint package, e.g. in `IntervalBFormDirectClassical.lean`:
-
-```lean
-private theorem bform_u_closedC2_endpointDerivs
-```
-
-which proves closed spatial `C²` plus endpoint derivative zero for the B-form Picard limit from banked B-form spectral inputs.
-
-The resolver side is also present in `IntervalCoupledRegularityBootstrap.lean` and `IntervalRegularityFrontierWiring.lean`; closed `C²` plus Neumann for `u` yields source coefficient decay, which yields resolver spatial regularity.
-
-**Classification:** theoremlets exist.  What is missing for `hregularize` is an unconditional derivation of `HasRestartCosineRepresentations` / B-form global restart series / equivalent spectral data from the exact assumptions
-
-```lean
-hu_ball : intervalTrajectoryBoundedOn T M u
-hfp     : ∀ t x, 0 ≤ t → t ≤ T → u t x = intervalCoupledDuhamelOperator p R u0 u t x
-hvR     : ∀ t, v t = R (u t)
-```
-
----
-
-### 4. Temporal `C¹`
-
-**Exists as a spectral-agreement bridge; not from the mild equation alone.**
-
-Key files:
+The definition is in:
 
 ```text
-ShenWork/Paper2/IntervalMildTimeRegularity.lean
-ShenWork/PDE/IntervalMildTimeDerivContinuity.lean
-ShenWork/PDE/IntervalMildFrontierFromSpectral.lean
-ShenWork/Paper2/IntervalMildRegularityFrontierAssembly.lean
+ShenWork/PDE/IntervalCoupledRegularityBanked.lean
 ```
 
-Key names:
+Lean context:
 
 ```lean
-structure HasTimeNeighborhoodSpectralAgreement
+import ShenWork.PDE.IntervalCoupledRegularityBanked
 
-theorem mildSolution_differentiableAt_time
-theorem mildSolution_hasDerivAt_time
-theorem intervalDomainLift_hasDerivAt_time
-theorem mildSolution_timeDeriv_continuousOn_fixed_x
-theorem mildSolution_timeDeriv_jointContinuousOn
-theorem mildSolution_timeDeriv_jointContinuousOn_closed
+open MeasureTheory
+open scoped Topology
 
-theorem timeSlices_u_of_spectralAgreement
-theorem jointTimeDerivInterior_u_of_spectralAgreement
-theorem jointTimeDerivClosed_u_of_spectralAgreement
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDuhamelClosedC2
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.Paper2
 ```
 
-These prove fixed-`x` differentiability, continuity of the time derivative, and joint continuity of the time derivative for the mild solution **assuming** `HasTimeNeighborhoodSpectralAgreement T u`.
+Definition:
 
-The v/resolver side is handled through `HasResolverDirectSpectralData` and assembled in `IntervalMildRegularityFrontierAssembly.lean`.
+```lean
+/-- The exact slice agreement needed to apply the T6 Duhamel closed-`C²` atom to
+the coupled fixed point slice.  This is the missing bridge between the fixed
+point equation and the spectral Duhamel profile. -/
+def CoupledDuhamelT6SliceAgreement
+    (p : CM2Params) (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∀ t : ℝ, 0 < t → t < T →
+    Set.EqOn (intervalDomainLift (u t))
+      (fun x => ∫ s in (0 : ℝ)..t,
+        unitIntervalCosineHeatValue (t - s)
+          (coupledChemicalSourceCoeffs p u s) x)
+      (Set.Icc (0 : ℝ) 1)
+```
 
-**Classification:** temporal `C¹` exists conditionally.  The missing upstream fact is:
+Key observations:
+
+1. The right side is **not**
+
+```lean
+fun x => ∑' n, b t n * cosineMode n x
+```
+
+for an arbitrary slice coefficient family `b t n`.
+
+2. The right side is an **integral in time** of the Neumann heat evolution of a coefficient sequence:
+
+```lean
+unitIntervalCosineHeatValue (t - s)
+  (coupledChemicalSourceCoeffs p u s) x
+```
+
+3. There is no `u₀` argument in the predicate.  It is not the usual full mild formula
 
 ```text
-bounded coupled Duhamel fixed point
-  → HasTimeNeighborhoodSpectralAgreement T u
-  → HasResolverDirectSpectralData T (mildChemicalConcentration p u) p
+S(t) u₀ + ∫₀ᵗ S(t-s) F(u(s)) ds.
 ```
 
-or an equivalent semigroup-generator theorem deriving `u_t = Au + f` and continuity directly from the mild equation.
+It is specifically the source-Duhamel profile consumed by the T6 closed-`C²` atom.
 
 ---
 
-### 5. PDE identity
+## What source coefficients are used?
 
-**Exists in several forms, including a general-χ B-form spectral producer; the exact coupled fixed-point-to-PDE bridge is still missing.**
+The coefficients are defined in:
 
-There is a wrapper in `IntervalMildToClassical.lean`:
-
-```lean
-theorem mildSolution_parabolicPDE
+```text
+ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
 ```
 
-but this consumes
+Relevant context:
 
 ```lean
-hclassical : IsPaper2ClassicalSolution ...
+import ShenWork.PDE.IntervalCoupledRegularityBootstrap
+import ShenWork.PDE.IntervalSourceCoefficientTimeC1
+import ShenWork.PDE.IntervalSemigroupNeumann
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDuhamelClosedC2
+open ShenWork.IntervalNeumannFullKernel
+open ShenWork.IntervalSemigroupNeumann
+open ShenWork.IntervalSourceCoefficientTimeC1
+open ShenWork.PDE.IntervalMildSourceDecayHelper
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
-and returns `hclassical.pde_u`.  So it is not a derivation by differentiating the mild form.
-
-For `χ₀ = 0`, `IntervalDomainPdeUProducer.lean` contains:
+Definitions:
 
 ```lean
-structure HasSpectralPdeAgreement
+/-- Lifted chemotaxis-divergence source with the elliptic resolver substituted. -/
+def coupledChemDivSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (fun x => intervalDomainChemotaxisDiv p (u s)
+      (coupledChemicalConcentration p u s) x)
 
-theorem mildSolution_pde_u_of_spectral
-    (p : CM2Params) (hχ0 : p.χ₀ = 0) ...
+/-- Cosine coefficients of the chemotaxis-divergence source. -/
+def coupledChemDivSourceCoeffs (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) : ℝ → ℕ → ℝ :=
+  fun s n => cosineCoeffs (coupledChemDivSourceLift p u s) n
+
+/-- Lifted logistic source. -/
+def coupledLogisticSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (ShenWork.IntervalDomainExistence.intervalLogisticSource p (u s))
+
+/-- Cosine coefficients of the logistic source. -/
+def coupledLogisticSourceCoeffs (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) : ℝ → ℕ → ℝ :=
+  fun s n => cosineCoeffs (coupledLogisticSourceLift p u s) n
+
+/-- Lifted full chemotaxis-logistic source with the elliptic resolver substituted. -/
+def coupledChemicalSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (ShenWork.IntervalDomainExistence.intervalCoupledSource p (u s)
+      (coupledChemicalConcentration p u s))
+
+/-- Cosine coefficients of the coupled chemotaxis-logistic source. -/
+def coupledChemicalSourceCoeffs (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) : ℝ → ℕ → ℝ :=
+  fun s n => cosineCoeffs (coupledChemicalSourceLift p u s) n
 ```
 
-For **general χ**, the B-form route contains the important non-χ₀=0 producer in `IntervalBFormPdeUProducer.lean`:
-
-```lean
-structure HasBFormSpectralPdeAgreement
-
-theorem intervalConjugateMildSolution_pde_u_of_spectral
-```
-
-This theorem proves the full PDE identity with the chemotaxis divergence term:
-
-```lean
-intervalDomain.timeDeriv u t x =
-  intervalDomain.laplacian (u t) x
-    - p.χ₀ * intervalDomain.chemotaxisDiv p (u t)
-        (mildChemicalConcentration p u t) x
-    + u t x * (p.a - p.b * (u t x) ^ p.α)
-```
-
-`IntervalBFormDirectClassical.lean` also packages a banked version:
-
-```lean
-theorem BFormBankedInputs.hpde_u
-```
-
-**Classification:** PDE identity exists for general χ in the B-form spectral/banked route.  It is not yet connected to the exact `hregularize` inputs for an arbitrary bounded coupled Duhamel fixed point.
+So `CoupledDuhamelT6SliceAgreement` uses coefficients of the **full coupled source**, not merely coefficients of `u t`.
 
 ---
 
-### 6. Neumann BC
+## Where `χ₀` enters
 
-**Exists conditionally; missing only as an unconditional consequence of the bare coupled fixed-point assumptions.**
-
-For the gradient route, `IntervalMildToClassical.lean` has:
+The full coupled source is split in `IntervalCoupledSourceTimeC1.lean` as:
 
 ```lean
-theorem mildSolution_neumannBC_of_closedC2_neumann
-theorem mildSolution_neumannBC
+/-- Coupled source `DuhamelSourceTimeC1` by scaling chem-div and adding logistic. -/
+noncomputable def coupledChemicalSource_duhamelSourceTimeC1
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u))
+    (hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
+    (hsplit : coupledChemicalSourceCoeffs p u =
+      fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
+        + coupledLogisticSourceCoeffs p u s n) :
+    DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u) := by
+  have hchemScaled :
+      DuhamelSourceTimeC1
+        (fun s n => (-p.χ₀) * coupledChemDivSourceCoeffs p u s n) :=
+    duhamelSourceTimeC1_const_mul hchem (-p.χ₀)
+  have hsum :
+      DuhamelSourceTimeC1
+        (fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
+          + coupledLogisticSourceCoeffs p u s n) := by
+    simpa using
+      duhamelSourceTimeC1_add hchemScaled hlog
+  rw [hsplit]
+  exact hsum
 ```
 
-The first consumes closed `C²` and one-sided endpoint derivative limits.  The second uses `HasRestartCosineRepresentations` to produce those hypotheses.
-
-For the restart/C² route, `IntervalMildRegularityBootstrap.lean` has:
+And `intervalCoupledSource` unfolds in `IntervalCoupledBallEstimates.lean` as:
 
 ```lean
-theorem gradientMild_neumann_left_of_restartCosineRepresentations
-theorem gradientMild_neumann_right_of_restartCosineRepresentations
-theorem gradientMild_closedC2_neumann_of_restartCosineRepresentations
+unfold intervalCoupledSource
+calc
+  |(-p.χ₀ * intervalDomainChemotaxisDiv p u v y) +
+      intervalLogisticSource p u y|
+      ≤ |(-p.χ₀ * intervalDomainChemotaxisDiv p u v y)| +
+          |intervalLogisticSource p u y| := abs_add_le _ _
 ```
 
-For the B-form route, `IntervalBFormDirectClassical.lean` has:
-
-```lean
-private theorem bform_u_neumann_left
-private theorem bform_u_neumann_right
-```
-
-and uses these to assemble `intervalConjugatePicardLimit_classicalRegularity_direct` and `intervalConjugatePicardLimit_isClassicalSolution_direct`.
-
-The coupled chemical/resolver Neumann bridge exists in `IntervalCoupledRegularityBootstrap.lean`, e.g. via:
-
-```lean
-coupledChemical_neumannBC_of_closedC2_neumann
-```
-
-**Classification:** Neumann BC theoremlets exist.  What is missing is the direct path
-
-```text
-bare bounded coupled Duhamel fixed point → closed spatial C²/restart data → Neumann BC.
-```
+That is the smoking gun: the source used by `CoupledDuhamelT6SliceAgreement` is not χ-independent.  It contains the chemotaxis-divergence term scaled by `-p.χ₀`.
 
 ---
 
-### 7. Initial trace
+## What T6 does with this predicate
 
-**Exists in the B-form Picard route and conditionally in the gradient route; not found for the exact arbitrary coupled fixed-point signature.**
-
-Gradient route:
+The immediate consumer is:
 
 ```lean
-theorem mildSolution_initialTrace
+/-- The full closed-slice package supplied by T6 once the source is time-`C¹`
+and the fixed point slice agrees with the corresponding Duhamel profile. -/
+theorem coupledDuhamel_T6_closedSlicePack
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    (hsrc : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u))
+    (hagree : CoupledDuhamelT6SliceAgreement p T u) :
+    ∀ t : ℝ, 0 < t → t < T →
+      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) ∧
+      Filter.Tendsto (deriv (intervalDomainLift (u t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (intervalDomainLift (u t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) ∧
+      deriv (intervalDomainLift (u t)) 0 = 0 ∧
+      deriv (intervalDomainLift (u t)) 1 = 0 := by
+  intro t ht htT
+  exact duhamelProfile_closedC2_neumann_of_timeC1_source
+    hsrc ht (hagree t ht htT)
 ```
 
-in `IntervalMildToClassical.lean` proves `InitialTrace intervalDomain u₀ D.u`, but it consumes an explicit uniform initial-approach hypothesis for the gradient Duhamel map:
+So the predicate is exactly the handoff that lets T6 transfer regularity from the Duhamel heat profile to the actual slice `u t`.
+
+It is then used by:
 
 ```lean
-hInitialApproach : ∀ ε, 0 < ε →
-  ∃ δ > 0, ∀ t, 0 < t → t < δ →
-    ∀ x, |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε
+theorem intervalDomainClassicalRegularity_of_T6_source_and_residual
+    (hsrc : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u))
+    (hagree : CoupledDuhamelT6SliceAgreement p T u)
+    (R : CoupledDuhamelClassicalResidualAfterT6 p T u) :
+    intervalDomainClassicalRegularity T u (coupledChemicalConcentration p u)
 ```
 
-B-form route:
+and finally by:
 
 ```lean
-theorem intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
-theorem conjugatePicardLimit_initialTrace_of_conjugate_data
+theorem regularityBootstrap_of_coupledDuhamel_bankedT6_source_and_residual
+    (hsrc : DuhamelSourceTimeC1 (coupledChemicalSourceCoeffs p u))
+    (hagree : CoupledDuhamelT6SliceAgreement p T u)
+    (R : CoupledDuhamelResidualAfterBankedT6 p T u₀ u) :
+    RegularityBootstrap p T u₀ u
 ```
 
-in `IntervalBFormInitialTrace.lean` prove the B-form Picard fixed point approaches the initial datum.  `IntervalBFormDirectClassical.lean` then exposes:
-
-```lean
-theorem intervalConjugatePicardLimit_initialTrace_direct
-```
-
-**Classification:** initial trace is proved for the B-form Picard data and conditionally for gradient mild data.  I did not find a theorem of the exact form required by `hregularize`, i.e. one taking only the arbitrary coupled fixed point equation and `intervalTrajectoryBoundedOn` and returning the trace.
+So `CoupledDuhamelT6SliceAgreement` is a **regularity-transfer assumption** for the T6 atom, not just a passive Fourier inversion lemma.
 
 ---
 
-## What already fully assembles downstream
+## Is it “cosine series agreeing with the function on each slice”?
 
-The strongest already-assembled general-χ downstream route I found is in `IntervalBFormDirectClassical.lean`:
+Only in a very indirect sense.
 
-```lean
-structure BFormDirectFrontier
-
-theorem intervalConjugatePicardLimit_classicalRegularity_direct
-theorem intervalConjugatePicardLimit_initialTrace_direct
-theorem intervalConjugatePicardLimit_isClassicalSolution_direct
-theorem localClassicalSolution_of_BFormDirectFrontier
-```
-
-This is significant: once `BFormDirectFrontier p DB` is available, the file assembles the B-form Picard limit into a classical Paper 2 solution with initial trace, for general p / general χ.
-
-But `BFormDirectFrontier` still carries exactly the kind of data that a bare `hregularize` would need to produce:
+The predicate says `intervalDomainLift (u t)` agrees with a Duhamel profile built from `unitIntervalCosineHeatValue`.  Since `unitIntervalCosineHeatValue` is a cosine-heat series evaluator, the right side is spectral.  But the statement is not the generic slice inversion shape:
 
 ```lean
-bank : BFormBankedInputs p DB
-hTimeNhd : HasTimeNeighborhoodSpectralAgreement DB.T
-  (conjugatePicardLimit p u₀ DB.T)
-hResolverData : HasResolverDirectSpectralData DB.T
-  (mildChemicalConcentration p (conjugatePicardLimit p u₀ DB.T)) p
-hVpos : ∀ t, 0 < t → t < DB.T → ∀ x,
-  0 < mildChemicalConcentration p
-    (conjugatePicardLimit p u₀ DB.T) t x
+Set.EqOn (intervalDomainLift (u t))
+  (fun x => ∑' n, b t n * cosineMode n x)
+  (Set.Icc (0 : ℝ) 1)
 ```
 
-So this is an assembler after the spectral/frontier witnesses are available, not the missing bare fixed-point regularizer.
+Instead, it is:
+
+```lean
+Set.EqOn (intervalDomainLift (u t))
+  (fun x => ∫ s in (0 : ℝ)..t,
+    unitIntervalCosineHeatValue (t - s)
+      (coupledChemicalSourceCoeffs p u s) x)
+  (Set.Icc (0 : ℝ) 1)
+```
+
+So the agreement is with a **Duhamel reconstruction from the full source coefficients**, not with a standalone per-slice coefficient expansion of `u t`.
+
+This matters because a Picard convergence argument that gives a per-slice cosine expansion of the limit would normally produce a statement involving coefficients of the slice, restart coefficients, or initial-data coefficients.  This definition instead requires exact equality with a source-only Duhamel profile involving `coupledChemicalSourceCoeffs p u s`.
 
 ---
 
-## Genuinely missing piece
+## Does it depend on `χ₀`?
 
-For the exact `χ₀ < 0` residual, the missing theorem is still:
+Yes, syntactically and semantically, through `p`.
 
-```text
-from:
-  hu_ball : intervalTrajectoryBoundedOn T M u
-  hfp     : ∀ t x, 0 ≤ t → t ≤ T →
-              u t x = intervalCoupledDuhamelOperator p R u0 u t x
-  hvR     : ∀ t, v t = R (u t)
+The predicate itself has no separate `hχ` or sign assumption:
 
-to:
-  RegularityBootstrap p T u0 u
+```lean
+CoupledDuhamelT6SliceAgreement (p : CM2Params) (T : ℝ) (u : ...)
 ```
 
-The repo already has most of the downstream bricks.  The missing upstream work is to derive, from that fixed-point data, either:
+So it is not **regime-specific**.  It works uniformly for any parameter record `p`.
 
-```text
-HasRestartCosineRepresentations / B-form global restart series
-HasTimeNeighborhoodSpectralAgreement
-HasResolverDirectSpectralData or clamped per-t₀ resolver source C¹ data
-HasBFormSpectralPdeAgreement or equivalent PDE-source split
-resolver strict positivity for v, if the chosen assembler needs it
-initial approach for the exact coupled Duhamel operator
+But the RHS uses:
+
+```lean
+coupledChemicalSourceCoeffs p u s
 ```
 
-or to bypass those predicates and prove the seven RegularityBootstrap fields directly from the mild equation.
+and those coefficients are coefficients of the full coupled source.  The code explicitly uses the split:
 
-In short:
+```lean
+coupledChemicalSourceCoeffs p u
+  = fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
+      + coupledLogisticSourceCoeffs p u s n
+```
+
+Therefore, changing only `p.χ₀` changes the coefficient family unless the chem-div coefficients vanish.  At `p.χ₀ = 0`, the source becomes logistic-only.  At `p.χ₀ ≠ 0`, it includes chemotaxis.
+
+---
+
+## Answer to the intended design question
+
+`CoupledDuhamelT6SliceAgreement p D.T D.u` is **not** the χ-independent “cosine series agrees with the function on each slice” fact that should follow just from Picard convergence.
+
+It is chemotaxis-aware because it asks for equality with the T6 Duhamel profile using `coupledChemicalSourceCoeffs`, and those coefficients encode
+
+```lean
+-logistic? no:
+-(p.χ₀ * chemDivCoeffs) + logisticCoeffs
+```
+
+more explicitly:
+
+```lean
+fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
+  + coupledLogisticSourceCoeffs p u s n
+```
+
+So if the plan was to discharge `CoupledDuhamelT6SliceAgreement p D.T D.u` by “Picard convergence gives slice cosine agreement,” that is not enough as stated.  One would need to prove the stronger identity that the actual slice equals the **full coupled Duhamel heat profile** formed from the coupled source coefficients.  In particular, one must account for the chemotaxis source term and its `χ₀` scaling.
+
+---
+
+## Practical implication
+
+The name `SliceAgreement` is slightly misleading if read too broadly.  It is not a generic inversion lemma.  It is the missing bridge between:
 
 ```text
-Already exists:
-  L∞ bound infrastructure, positivity for packed Picard data, C²/Neumann from restart/spectral data,
-  C¹-time from spectral neighborhood agreement, general-χ B-form PDE identity, B-form initial trace,
-  and downstream classical/RegularityBootstrap-style assemblers.
-
-Genuinely missing:
-  the unconditional hregularize bridge from an arbitrary bounded coupled Duhamel fixed point
-  to those spectral/frontier hypotheses or directly to RegularityBootstrap.
+fixed point equation / mild formula
 ```
+
+and
+
+```text
+T6 source-coefficient Duhamel profile with coupledChemicalSourceCoeffs
+```
+
+For general `χ₀`, proving it is tied to the same chemotaxis source-identification problem as the rest of the general-χ banked-T6 path.  For `χ₀ = 0`, the chemotaxis part drops out and it reduces to the logistic-source Duhamel profile, but the definition itself is still parameterized by the full coupled source machinery.
