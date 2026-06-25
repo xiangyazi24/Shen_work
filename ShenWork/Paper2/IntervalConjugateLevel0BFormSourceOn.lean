@@ -300,7 +300,8 @@ theorem level0_chemDiv_envelope_summable
       exact ⟨1, fun k hk => by
         rw [Real.norm_eq_abs, abs_of_nonneg (div_nonneg hCenv_nn (sq_nonneg _))]
         have hk_cast : (1 : ℝ) ≤ (k : ℝ) := Nat.one_le_cast.mpr hk
-        rw [max_eq_right hk_cast, mul_one_div]⟩,
+        rw [max_eq_right hk_cast]
+        exact le_of_eq (mul_one_div Cenv ((k : ℝ) ^ 2)).symm⟩,
     fun s hs n => by
       obtain ⟨h2s, hBs⟩ := hH2_data s hs
       by_cases hn : n = 0
