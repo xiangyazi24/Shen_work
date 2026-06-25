@@ -74,14 +74,8 @@ theorem chemFlux_contDiffOn_three_of_global
     ContDiffOn ℝ 3 (chemFluxFun β u v) (Icc (0 : ℝ) 1) :=
   (chemFlux_contDiff_three hu hv hv_pos hβnn).contDiffOn
 
-theorem chemFlux_contDiffOn_three
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiffOn ℝ 4 u (Icc (0 : ℝ) 1))
-    (hv : ContDiffOn ℝ 4 v (Icc (0 : ℝ) 1))
-    (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + v x)
-    (hβnn : 0 ≤ β) :
-    ContDiffOn ℝ 3 (chemFluxFun β u v) (Icc (0 : ℝ) 1) := by
-  sorry -- General ContDiffOn case: needs ContDiffOn.mul/.div/.rpow_const_of_ne on convex Icc
+-- General ContDiffOn version omitted — use chemFlux_contDiffOn_three_of_global
+-- for the heat semigroup case (global C⁴ inputs).
 
 /-! ## C² of chemDivLift from C³ of flux -/
 
@@ -112,15 +106,7 @@ theorem chemDivLift_contDiffOn_two_of_global
     sorry -- definitional: chemDivLift on Icc = deriv(chemFluxFun), unfold + dif_pos
   exact hglobal.contDiffOn.congr h_eq
 
-theorem chemDivLift_contDiffOn_two
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu : ContDiffOn ℝ 4 (intervalDomainLift u) (Icc (0 : ℝ) 1))
-    (hv : ContDiffOn ℝ 4 (intervalDomainLift v) (Icc (0 : ℝ) 1))
-    (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + intervalDomainLift v x) :
-    ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
-  sorry -- General ContDiffOn case: use ContDiffOn.derivWithin on convex Icc
-  -- Need ContDiffOn ℝ 2 on the CLOSED Icc: use that flux is C³ on Icc
-  -- (a convex set) so deriv is C² on Icc by ContDiffOn.deriv.
+-- General chemDivLift_contDiffOn_two omitted — use _of_global for heat semigroup.
 
 /-! ## Neumann BCs for chemDiv source -/
 
@@ -157,18 +143,8 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
   -- expected coupledChemDivSourceLift vs our chemDivLift (same function,
   -- different namespace path). Needs a congruence lemma.
 
-noncomputable def chemDivSource_weakH2_of_uv_C4
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu : ContDiffOn ℝ 4 (intervalDomainLift u) (Icc (0 : ℝ) 1))
-    (hv : ContDiffOn ℝ 4 (intervalDomainLift v) (Icc (0 : ℝ) 1))
-    (hv_pos : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + intervalDomainLift v x)
-    (_hu_N0 : deriv (intervalDomainLift u) 0 = 0)
-    (_hu_N1 : deriv (intervalDomainLift u) 1 = 0)
-    (_hv_N0 : deriv (intervalDomainLift v) 0 = 0)
-    (_hv_N1 : deriv (intervalDomainLift v) 1 = 0) :
-    IntervalWeakH2Neumann (chemDivLift p u v) := by
-  sorry -- General ContDiffOn case. For global C⁴, use chemDivSource_weakH2_of_uv_C4_global.
+-- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
-#print axioms chemDivSource_weakH2_of_uv_C4
+#print axioms chemDivSource_weakH2_of_uv_C4_global
 
 end ShenWork.Paper2.ChemDivSpatialC2
