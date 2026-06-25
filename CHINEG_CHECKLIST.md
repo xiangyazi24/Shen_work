@@ -714,3 +714,13 @@ SESSION CONTRIBUTION: cleared all surrounding infrastructure (windowed PDE/JC/cl
 spatial-JC/Hv/G12/h_src_cont_chem fix/hchem-hlog On refactor/capstone assembly/ball-estimates producer/
 architectural clarity). The irreducible core is exposed, precisely named, not hidden behind over-built layers.
 NEXT: build the picardEWA→embedEWA bridge or produce the evalST atoms directly for picardEWA.
+
+## [2026-06-25] PRECISE GAP: χ₀=0 tower has 5 hχ0 leaf sites, all tracing to ONE bottleneck
+Root cause: intervalGradientDuhamelMap_eq_of_chi0_zero (drops chemotaxis from Duhamel map).
+This enables: restart cosine rep → LocalRestartWeak → K1 quadruple → uniform positivity → slice TC.
+For χ₀<0: the chiNeg tower has PARALLEL B-form pathway (conjugatePicardLimit + B-form source), but
+it operates on conjugatePicardLimit (not D.u) and uses different data types. NOT a simple swap.
+Site #3 (hpde_u) HAS a general-χ₀ alternative (IntervalBFormPdeUProducer). Site D trivial.
+Sites #1,#2,#4,#5 + A,B,C ALL trace to the same LocalRestartWeak engine = χ₀=0-only.
+FIX OPTIONS: (a) port tower to B-form (conjugate Picard), or (b) build general-χ₀ restart/K1/positivity.
+Both substantial — this is the genuine remaining infrastructure for χ₀<0 unconditional.
