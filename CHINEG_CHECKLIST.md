@@ -612,3 +612,18 @@ REMAINING to make UNCONDITIONAL (produce ChiNegFaithfulRealizationFrontier per d
  (d) The ~37 standing EWA framework hypotheses — producible from per-datum Picard fixed-point construction.
 STRATEGY: bypass the SourceClassicalRegularity cascade via the canonical mild-solution route for hclassReg;
 produce hchem_on/hlog_on from windowed assemblers; thread all through realSlice_reducedCore_wired.
+
+## [2026-06-25] HONEST GAP ASSESSMENT: 13 gap families to ChiNegFaithfulRealizationFrontier unconditional
+The INFRASTRUCTURE is built (windowed PDE/JC/classical-regularity/capstone all banked axiom-clean).
+But the per-datum realization-track (Picard fixed point → concrete PDE regularity → CoupledDuhamelReducedClassicalCore)
+has 13 gap families, many deep analytic content:
+ · FUNDAMENTAL BLOCKER (Gaps 10-12): cosine-summability of datum — a positive C⁰ datum needn't have ℓ¹ cosine
+   coefficients. HeatFloorIcc.lean flags this as "obstruction (a)". Without this, EWA can't start.
+ · Gaps 1-2: DuhamelSourceTimeC1On producers for chem+log need time-differentiability of source coefficients,
+   which requires solution regularity properties that are themselves among the hypotheses (partially circular).
+ · Gaps 3-9: spectral data, resolver summability, gradient ℓ¹, resolver source family, Hv spectral data, chemInv
+   data, logistic endpoint nonvanishing — all carried, no unconditional producer.
+ · Gap 13: initial trace condition (defect summability + limit) — no producer.
+STATUS: the INFRASTRUCTURE layer (this session's work) is complete. The CONTENT layer (per-datum regularity)
+is a wide-open frontier with deep analytic gaps. These are NOT going to close by wiring — they are the genuine
+hard analysis of the χ₀<0 local classical existence problem.
