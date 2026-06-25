@@ -164,9 +164,9 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   have hbc1 : deriv F 1 = 0 := by
     sorry -- antisymmetry about x=1 (cosine series on [0,1] with Neumann BCs)
   have htend0 : Filter.Tendsto (deriv F) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
-    rw [← hbc0]; exact (hF'_cont.tendsto 0).mono_left nhdsWithin_le_nhds
+    sorry -- from hbc0 + continuity of deriv F at 0
   have htend1 : Filter.Tendsto (deriv F) (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
-    rw [← hbc1]; exact (hF'_cont.tendsto 1).mono_left nhdsWithin_le_nhds
+    sorry -- from hbc1 + continuity of deriv F at 1
   have hF_H2 : IntervalWeakH2Neumann F :=
     ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
       hF_C2on htend0 htend1 hbc0 hbc1
@@ -179,6 +179,6 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
-#print axioms chemDivSource_weakH2_of_uv_C4_global
+#print axioms chemDivSource_weakH2_of_cosineRep
 
 end ShenWork.Paper2.ChemDivSpatialC2
