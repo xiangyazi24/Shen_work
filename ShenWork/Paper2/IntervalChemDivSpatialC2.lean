@@ -162,9 +162,8 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
       ∀ x, deriv g (-x) = -(deriv g x) := by
     intro g _hg heven x
-    have h1 : deriv (fun y => g (-y)) x = -(deriv g (-x)) := deriv_comp_neg
-    have h2 : (fun y => g (-y)) = g := funext heven
-    rw [h2] at h1; linarith
+    have h1 : deriv (fun y => g (-y)) x = -(deriv g (-x)) := by exact deriv_comp_neg
+    rw [show (fun y => g (-y)) = g from funext heven] at h1; linarith
   -- Odd function vanishes at 0
   have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
     intro g hodd; have h := hodd 0; rw [neg_zero] at h; linarith
@@ -179,10 +178,9 @@ noncomputable def chemDivSource_weakH2_of_cosineRep
   have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
       ∀ x, deriv g (-x) = deriv g x := by
     intro g _hg hodd x
-    have h1 : deriv (fun y => g (-y)) x = -(deriv g (-x)) := deriv_comp_neg
-    have h2 : (fun y => g (-y)) = fun y => -(g y) := funext hodd
-    rw [h2] at h1
-    have h3 : deriv (fun y => -(g y)) x = -(deriv g x) := deriv_neg
+    have h1 : deriv (fun y => g (-y)) x = -(deriv g (-x)) := by exact deriv_comp_neg
+    rw [show (fun y => g (-y)) = fun y => -(g y) from funext hodd] at h1
+    have h2 : deriv (fun y => -(g y)) x = -(deriv g x) := by exact deriv_neg
     linarith
   -- F = φ' is even (derivative of odd φ)
   have hF_even : ∀ x, F (-x) = F x :=
