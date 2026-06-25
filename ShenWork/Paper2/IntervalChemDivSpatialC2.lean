@@ -139,16 +139,48 @@ noncomputable def chemDivSource_weakH2_of_uv_C4_global
     (hv : ContDiff ℝ 4 (intervalDomainLift v))
     (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
     IntervalWeakH2Neumann (chemDivLift p u v) := by
-  -- Strategy: build H2 for the GLOBAL function deriv(chemFluxFun) (which is smooth
+  -- Strategy: build H2 for the GLOBAL function F = deriv(chemFluxFun) (which is smooth
   -- everywhere, no endpoint issues), then transfer via congr_on_Icc.
   set F := deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v))
   have hF_C2 : ContDiff ℝ 2 F := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
-  sorry
-  -- Route: build H2 for global F = deriv(chemFluxFun) via
-  -- intervalWeakH2Neumann_of_contDiffOn (smooth → tendsto trivial),
-  -- then congr_on_Icc to transfer to chemDivLift (agreement on [0,1]).
-  -- Remaining sorry: deriv F 0 = 0 (Neumann BC of the global function at 0)
-  -- + the agreement bridge (chemDivLift = F on [0,1], proved in the C2 theorem above)
+  -- 1. ContDiffOn ℝ 2 F (Icc 0 1) — trivial from global C²
+  have hF_C2on : ContDiffOn ℝ 2 F (Icc (0 : ℝ) 1) := hF_C2.contDiffOn
+  -- 2. deriv F is continuous (F is C², so deriv F is C¹, hence continuous)
+  have hF'_cont : Continuous (deriv F) := by
+    have : ContDiff ℝ (1 + 1) F := hF_C2.of_le (by norm_num)
+    exact this.deriv'.continuous
+  -- 3. Neumann BCs: deriv F 0 = 0 and deriv F 1 = 0
+  --    These follow from the parity structure of the cosine-series representation:
+  --    for even-reflected u and v, the flux φ = u·v'/(1+v)^β is odd about x=0
+  --    (u even, v' odd → product odd, denominator even → quotient odd).
+  --    F = φ' is even → F' = φ'' is odd → F'(0) = 0. Similarly at x=1.
+  have hbc0 : deriv F 0 = 0 := by
+    sorry -- follows from parity: F = deriv(flux), flux is odd about 0, so F is even, F' is odd, F'(0)=0
+  have hbc1 : deriv F 1 = 0 := by
+    sorry -- follows from parity/antisymmetry about x=1
+  -- 4. One-sided tendsto at endpoints — from continuity of deriv F at those points
+  have htend0 : Filter.Tendsto (deriv F)
+      (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+    rw [← hbc0]
+    exact (hF'_cont.continuousAt.continuousWithinAt).tendsto
+  have htend1 : Filter.Tendsto (deriv F)
+      (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+    rw [← hbc1]
+    exact (hF'_cont.continuousAt.continuousWithinAt).tendsto
+  -- 5. Build IntervalWeakH2Neumann for F
+  have hF_H2 : IntervalWeakH2Neumann F :=
+    intervalWeakH2Neumann_of_contDiffOn hF_C2on htend0 htend1 hbc0 hbc1
+  -- 6. Transfer to chemDivLift via agreement on [0,1]
+  have h_eq : ∀ x ∈ Icc (0 : ℝ) 1, F x = chemDivLift p u v x := by
+    intro x hx
+    show deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x
+      = chemDivLift p u v x
+    symm
+    unfold chemDivLift intervalDomainLift
+    rw [dif_pos hx]
+    unfold intervalDomainChemotaxisDiv chemFluxFun
+    rfl
+  exact hF_H2.congr_on_Icc h_eq
 
 -- General chemDivSource_weakH2_of_uv_C4 omitted — use _global for heat semigroup.
 
