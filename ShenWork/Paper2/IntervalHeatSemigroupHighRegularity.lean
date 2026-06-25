@@ -46,15 +46,17 @@ theorem heatSemigroup_eigenvalueSq_summable
         Real.exp (-t * unitIntervalCosineEigenvalue k) * M₀ := by ring
 
 /-- The heat semigroup applied to bounded initial data is C⁴ in space for t > 0. -/
+set_option maxHeartbeats 800000 in
 theorem heatSemigroup_contDiff_four
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     {t : ℝ} (ht : 0 < t) :
     ContDiff ℝ 4 (fun x => ∑' k,
       (Real.exp (-t * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x) :=
-  ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
-    (heatSemigroup_eigenvalueSq_summable hu₀_bound ht)
+        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x) := by
+  apply ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+  convert heatSemigroup_eigenvalueSq_summable hu₀_bound ht using 1
+  ext k; ring
 
 #print axioms heatSemigroup_eigenvalueSq_summable
 #print axioms heatSemigroup_contDiff_four
