@@ -1,4 +1,4 @@
-# Q827 / cron1: does `coupledChemDivFlux_contDiffAt_of_factorJointC2` work for smooth reps?
+# Q829 / cron1: generic smooth-representative `ContDiffAt` for `chemFluxFun`
 
 Repo inspected: `xiangyazi24/Shen_work`
 Source ref inspected: `main`
@@ -6,21 +6,80 @@ Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-`coupledChemDivFlux_contDiffAt_of_factorJointC2` **does not take arbitrary smooth representatives** `U_cos` / `V_cos` directly.  It is hard-wired to the coupled lifted API:
+There is **not** an already-factored generic smooth-representative lemma of the exact form
 
 ```lean
-hu : ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
+ContDiffAt ℝ 2 (fun q => chemFluxFun β (U q.1) (V q.1) q.2) (s, x)
+```
 
-hv : ContDiffAt ℝ 2
+or named something like `smoothChemFlux_contDiffAt...` / `chemFlux_contDiffAt...` that I found.
+
+But the repo already demonstrates the exact Mathlib calculus methods you need in the coupled/lifted theorem:
+
+```lean
+ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFlux_contDiffAt_of_factorJointC2
+```
+
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
+
+That proof uses:
+
+```lean
+(contDiffAt_const (c := (1 : ℝ))).add hv
+hbase_fun.rpow_const_of_ne (ne_of_gt hbase)
+(hu.mul hgradv).div hden hden_ne
+```
+
+So for Route A, build the generic smooth-representative lemma directly from Mathlib using the same proof skeleton.  You do **not** need new analytic infrastructure for the product/quotient/rpow part.
+
+## `chemFluxFun` definition check
+
+Yes.  In
+
+```text
+ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+```
+
+`chemFluxFun` unfolds exactly as desired:
+
+```lean
+/-- The chemotaxis flux function whose spatial derivative is the chemDiv source.
+`φ(y) = lift(u)(y) · deriv(lift(v))(y) / (1 + lift(v)(y))^β` -/
+def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
+  u y * deriv v y / (1 + v y) ^ β
+```
+
+Therefore:
+
+```lean
+chemFluxFun β (U q.1) (V q.1) q.2
+```
+
+is definitionally:
+
+```lean
+U q.1 q.2 * deriv (V q.1) q.2 / (1 + V q.1 q.2) ^ β
+```
+
+## Existing non-generic theorem as template
+
+The coupled theorem has hypotheses hard-wired to `intervalDomainLift`:
+
+```lean
+(hu : ContDiffAt ℝ 2
+  (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
+(hv : ContDiffAt ℝ 2
   (fun q : ℝ × ℝ =>
     intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-  (s, x)
-
-hgradv : ContDiffAt ℝ 2
+  (s, x))
+(hgradv : ContDiffAt ℝ 2
   (fun q : ℝ × ℝ =>
     deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-  (s, x)
+  (s, x))
 ```
 
 and concludes:
@@ -30,92 +89,47 @@ ContDiffAt ℝ 2
   (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
 ```
 
-So the theorem takes the `intervalDomainLift` versions, **not** a hypothesis of the form
+So it is not directly usable for `U_cos`/`V_cos`, but its proof is exactly the generic proof you want.
+
+## Suggested generic lemma
+
+A local lemma should be short:
 
 ```lean
-hu : ContDiffAt ℝ 2 (fun q => U_cos q.1 q.2) (s, x)
-```
-
-## Exact target flux
-
-The target is also hard-wired:
-
-```lean
-def coupledChemDivFluxLift (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (s y : ℝ) : ℝ :=
-  let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
-  intervalDomainLift (u s) y * deriv v y / (1 + v y) ^ p.β
-```
-
-That is the lifted/coupled flux, not the smooth representative
-
-```lean
-deriv
-  (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
-    (fun x => U_cos s x)
-    (fun x => V_cos s x)) x
-```
-
-or its uncurried version.
-
-## What this means for sub-sorry `2A-core`
-
-For `2A-core`, which asks for continuity of the **smooth representative** built from `U_cos` and `V_cos`, do not call `coupledChemDivFlux_contDiffAt_of_factorJointC2` directly.  There are two clean routes:
-
-### Route A: prove a generic smooth-representative analogue
-
-Use the existing theorem as a template and make a local/generic lemma with arbitrary factors:
-
-```lean
--- schematic
 theorem smoothChemFlux_contDiffAt_of_factorJointC2
-    {β : ℝ} {U V G : ℝ × ℝ → ℝ} {q0 : ℝ × ℝ}
-    (hU : ContDiffAt ℝ 2 U q0)
-    (hV : ContDiffAt ℝ 2 V q0)
-    (hG : ContDiffAt ℝ 2 G q0)
-    (hbase : 0 < 1 + V q0) :
-    ContDiffAt ℝ 2 (fun q => U q * G q / (1 + V q) ^ β) q0 := by
-  have hbase_fun : ContDiffAt ℝ 2 (fun q => 1 + V q) q0 := by
+    {β : ℝ} {U V : ℝ → ℝ → ℝ} {s x : ℝ}
+    (hU : ContDiffAt ℝ 2 (fun q : ℝ × ℝ => U q.1 q.2) (s, x))
+    (hV : ContDiffAt ℝ 2 (fun q : ℝ × ℝ => V q.1 q.2) (s, x))
+    (hgradV : ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ => deriv (V q.1) q.2) (s, x))
+    (hbase : 0 < 1 + V s x) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun β (U q.1) (V q.1) q.2)
+      (s, x) := by
+  unfold ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun
+  have hbase_fun : ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ => 1 + V q.1 q.2) (s, x) := by
     simpa using (contDiffAt_const (c := (1 : ℝ))).add hV
-  have hden : ContDiffAt ℝ 2 (fun q => (1 + V q) ^ β) q0 :=
+  have hden : ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ => (1 + V q.1 q.2) ^ β) (s, x) :=
     hbase_fun.rpow_const_of_ne (ne_of_gt hbase)
-  have hden_ne : (1 + V q0) ^ β ≠ 0 :=
+  have hden_ne : (1 + V s x) ^ β ≠ 0 :=
     ne_of_gt (Real.rpow_pos_of_pos hbase β)
-  simpa using (hU.mul hG).div hden hden_ne
+  exact (hU.mul hgradV).div hden hden_ne
 ```
 
-Then instantiate:
+If the final `exact` leaves a definitional mismatch because of pair simplification, use:
 
 ```lean
-U q := U_cos q.1 q.2
-V q := V_cos q.1 q.2
-G q := deriv (V_cos q.1) q.2
+  simpa using (hU.mul hgradV).div hden hden_ne
 ```
 
-This matches the actual `2A-core` smooth-representative statement.
+or keep the `unfold chemFluxFun` before the denominator proof as shown.
 
-### Route B: prove continuity for lifted flux, then transfer by agreement
+## Existing spatial-only smooth-representative lemmas
 
-You can use `coupledChemDivFlux_contDiffAt_of_factorJointC2` for the lifted/coupled flux, then use the separate agreement subgoal (`2A-agree`) to transfer `ContinuousOn` by `ContinuousOn.congr`.
-
-But that does **not** prove `2A-core` as currently written if `2A-core` specifically names the smooth representative.  It proves the coupled lifted flux/source continuity and relies on agreement to rewrite.
-
-## Existing spatial-only smooth-representative lemma
-
-There is already a one-variable smooth-representative lemma in:
-
-```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-```
-
-It defines:
-
-```lean
-def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
-  u y * deriv v y / (1 + v y) ^ β
-```
-
-and proves, for global spatial functions:
+`IntervalChemDivSpatialC2.lean` has one-variable/global spatial lemmas:
 
 ```lean
 theorem chemFlux_contDiff_three
@@ -127,28 +141,34 @@ theorem chemFlux_contDiff_three
     ContDiff ℝ 3 (chemFluxFun β u v)
 ```
 
-and:
+The proof uses the same algebraic ingredients:
 
 ```lean
-theorem chemFluxDeriv_contDiff_two
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u) (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) (hβnn : 0 ≤ β) :
-    ContDiff ℝ 2 (deriv (chemFluxFun β u v))
+have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) := hu3.mul hv3
+have h1v : ContDiff ℝ 3 (fun y => 1 + v y) := contDiff_const.add hv3'
+exact h1v.rpow_const_of_ne (fun x => ne_of_gt (hv_pos x))
+exact hprod.div hdenom (fun x => hdenom_pos x)
 ```
 
-These are spatial-only, not joint `(s,x)` lemmas.  For `2A-core`, the missing piece is the joint analogue/localization of this smooth-representative calculus.
+and it also has:
 
-## Practical conclusion
-
-Answer to the specific question:
-
-```text
-coupledChemDivFlux_contDiffAt_of_factorJointC2 requires intervalDomainLift inputs.
-It does not accept U_cos/V_cos directly.
+```lean
+theorem chemFluxDeriv_contDiff_two ... :
+  ContDiff ℝ 2 (deriv (chemFluxFun β u v))
 ```
 
-For `2A-core`, either:
+Those are useful confirmation, but they are not the joint `(s,x)` lemma required for `2A-core`.
 
-1. add a generic `smoothChemFlux_contDiffAt_of_factorJointC2` using the same five-line `ContDiffAt.add` / `.rpow_const_of_ne` / `.mul` / `.div` proof, then get continuity of the derivative/fderiv of the smooth representative; or
-2. use the existing coupled theorem only after translating the problem to the lifted coupled flux and then use `2A-agree`/`ContinuousOn.congr` to connect back to the smooth representative.
+## Practical answer
+
+Use Mathlib directly, copying the existing coupled theorem proof style.  The exact standard method names are already working in this repo:
+
+```lean
+ContDiffAt.add
+ContDiffAt.mul
+ContDiffAt.div
+ContDiffAt.rpow_const_of_ne
+contDiffAt_const
+```
+
+The generic smooth-representative lemma should be a small local lemma, not a new hard analytic subproblem.
