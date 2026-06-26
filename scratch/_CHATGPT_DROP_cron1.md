@@ -1,84 +1,41 @@
-# Q815 / cron1: heat level-0 lift vs cosine-series representative
+# Q817 / cron1: `hagree_zero` heat-slice agreement
 
 Repo inspected: `xiangyazi24/Shen_work`
 Source refs inspected:
-- `chatgpt-scratch` for `IntervalPicardIterateRepresentation.lean` and scratch write target.
-- `main` for the current `IntervalConjugateLevel0BFormSourceOn.lean` and `IntervalHeatSemigroupHighRegularity.lean` state.  Note: fetching `IntervalConjugateLevel0BFormSourceOn.lean` on `chatgpt-scratch` returned 404, so the Level0 usage below is from `main`.
+- `main` for `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`
+- `chatgpt-scratch` for `ShenWork/Paper2/IntervalPicardIterateRepresentation.lean` and the scratch write target
 Branch written: `chatgpt-scratch`
 
-## Verdict
+## Grep result requested
 
-Yes, the agreement lemma you want already exists.  The name is:
+Command:
 
-```lean
-ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+```bash
+grep -n "hagree_zero\|hagree.*zero\|heatCoeff.*agree" \
+  ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean | head -10
 ```
 
-It gives exactly the level-0 heat-slice cosine-series agreement on `[0,1]`, packaged as `Set.EqOn`:
+Current hits are the two `hagree_zero` uses:
 
-```lean
-theorem hagree_zero
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
-      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
-      (Set.Icc (0 : ℝ) 1)
+```text
+206:        exact ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+301:            ShenWork.IntervalPicardIterateRepresentation.hagree_zero
 ```
 
-and
+## First Level0 use: local `hU_agree`
+
+Around the first hit, the file builds the heat cosine representative
 
 ```lean
-iterateReprCoeff p u₀ 0 σ k
-  = Real.exp (-σ * unitIntervalCosineEigenvalue k)
-      * cosineCoeffs (intervalDomainLift u₀) k
+set U_cos := fun x => ∑' k,
+  (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
+    cosineMode k x with hU_cos_def
 ```
 
-by the definition of `iterateReprCoeff`.
-
-So for your RHS using `heatCoeff u₀ k`, use the existing abbrev
+then proves:
 
 ```lean
-abbrev heatCoeff (u₀ : intervalDomainPoint → ℝ) : ℕ → ℝ :=
-  cosineCoeffs (intervalDomainLift u₀)
-```
-
-from `IntervalPicardLevel0SourceTimeC1On.lean`, and `simpa [iterateReprCoeff, heatCoeff]` should align the RHS.
-
-## Answer to the three search questions
-
-### 1. Agreement lemma on `Icc 0 1`?
-
-Yes: `hagree_zero`.  Strictly, it is stated for `picardIter p u₀ 0 σ`, not for `conjugatePicardIter p u₀ 0 σ`, but the level-0 branches are definitionally the same heat semigroup slice:
-
-```lean
-picardIter p u₀ 0
-  = fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-
-conjugatePicardIter p u₀ 0
-  = fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-```
-
-The current Level0 file already relies on this: it uses `hagree_zero` to prove an agreement whose LHS is written with `conjugatePicardIter p u₀ 0 s`.
-
-### 2. `hagree_zero` or similar?
-
-Yes.  `hagree_zero` is the relevant lemma.  I did not find a better/directly named lemma matching `intervalDomainLift.*cosineSeries.*agree`; the repo convention here is the `hagree_*` family from `IntervalPicardIterateRepresentation.lean`.
-
-Also nearby:
-
-```lean
-hbsum_zero
-hagree_succ
-```
-
-but for the level-0 heat slice, `hagree_zero` is the one to use.
-
-### 3. Does the Level0 file already use `hagree_zero`?
-
-Yes.  In `IntervalConjugateLevel0BFormSourceOn.lean`, the current file uses:
-
-```lean
+-- U_cos agrees with intervalDomainLift (conjugatePicardIter p u₀ 0 s) on [0,1]
 have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
     intervalDomainLift (conjugatePicardIter p u₀ 0 s) x = U_cos x := by
   intro x hx
@@ -86,7 +43,17 @@ have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
     p u₀ hs_pos _hu₀_cont _hu₀_bound hx
 ```
 
-and later:
+This is the direct pointwise form you asked for.
+
+## Second Level0 use: `hagree_w : Set.EqOn ...`
+
+Around the second hit, after setting
+
+```lean
+set w := conjugatePicardIter p u₀ 0 s
+```
+
+the file proves the packaged `EqOn` form:
 
 ```lean
 have hagree_w : Set.EqOn (intervalDomainLift w)
@@ -96,93 +63,66 @@ have hagree_w : Set.EqOn (intervalDomainLift w)
     p u₀ hs_pos _hu₀_cont _hu₀_bound
 ```
 
-So the exact bridge from conjugate level-0 lift to heat cosine series is already being used in that file.
+This is probably the cleaner bridge to pass into downstream lemmas.
 
-## Wiring `heatSemigroup_jointContDiffAt_two`
+## Definition/source lemma
 
-The new joint regularity theorem is here:
+The definition is in:
 
-```lean
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+```text
+ShenWork/Paper2/IntervalPicardIterateRepresentation.lean
 ```
 
-Its target is the cosine-series representative:
+The coefficient family is:
 
 ```lean
-ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-  ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-    cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
+def iterateReprCoeff (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℕ → ℝ → ℕ → ℝ
+  | 0,     σ, k => Real.exp (-σ * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k
+  | n + 1, σ, k => restartIterateCoeff p u₀ n σ k
 ```
 
-The Level0 file currently opens only:
+The agreement lemma is:
 
 ```lean
-open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
+theorem hagree_zero
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
+      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1) := by
+  ...
 ```
 
-so either add/open the joint namespace:
+Because level 0 of `conjugatePicardIter` and `picardIter` are both the same heat semigroup slice, the Level0 file can use this lemma directly for `conjugatePicardIter p u₀ 0 s`.
+
+## `heatCoeff` alignment
+
+`heatCoeff` is just the initial cosine-coefficient family:
 
 ```lean
-open ShenWork.Paper2.HeatSemigroupJointRegularity
-  (heatSemigroup_jointContDiffAt_two)
+abbrev heatCoeff (u₀ : intervalDomainPoint → ℝ) : ℕ → ℝ :=
+  cosineCoeffs (intervalDomainLift u₀)
 ```
 
-or call the theorem fully qualified.
-
-## Suggested bridge shape
-
-For an interior spatial basepoint `hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1`, define:
+So the RHS in `hagree_zero`
 
 ```lean
-let U_lift : ℝ × ℝ → ℝ := fun q =>
-  intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2
-
-let U_series : ℝ × ℝ → ℝ := fun q =>
-  ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
-    cosineMode k q.2
+∑' k, iterateReprCoeff p u₀ 0 s k * cosineMode k x
 ```
 
-Then:
+should align with the Level0 heat-series RHS
 
 ```lean
-have hU_series_C2 : ContDiffAt ℝ 2 U_series (s₀, x₀) := by
-  -- with hs₀ : c < s₀, hc : 0 < c
-  simpa [U_series, ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff] using
-    ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-      (u₀ := u₀) (M₀ := M₀) _hu₀_bound hc hs₀
+∑' k, (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
 ```
 
-Build the event-level agreement from `hagree_zero`:
+by simplification with:
 
 ```lean
-have hU_lift_eq_series : U_lift =ᶠ[𝓝 (s₀, x₀)] U_series := by
-  -- Need two neighborhood facts:
-  --   (a) q.1 > 0 near s₀, since 0 < c < s₀;
-  --   (b) q.2 ∈ Icc 0 1 near x₀, since x₀ ∈ Ioo 0 1.
-  filter_upwards [/* time-neighborhood q.1 > 0 */,
-                  /* space-neighborhood q.2 ∈ Icc 0 1 */] with q hq_time hq_x
-  have h := ShenWork.IntervalPicardIterateRepresentation.hagree_zero
-    p u₀ hq_time _hu₀_cont _hu₀_bound hq_x
-  -- `h` is for `picardIter`; unfold/simpa level-0 definitions to rewrite
-  -- `conjugatePicardIter` to the same heat slice.
-  simpa [U_lift, U_series,
-    ShenWork.IntervalConjugatePicard.conjugatePicardIter,
-    ShenWork.IntervalMildPicard.picardIter,
-    ShenWork.IntervalPicardIterateRepresentation.iterateReprCoeff,
-    ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff] using h
+simp [ShenWork.IntervalPicardIterateRepresentation.iterateReprCoeff,
+      ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff]
 ```
 
-Finally transfer:
-
-```lean
-exact hU_series_C2.congr_of_eventuallyEq hU_lift_eq_series
-```
-
-The orientation above matches the pattern already used in
-`heatSemigroup_jointContDiffAt_two`: `h.congr_of_eventuallyEq hEq` transfers from the current smooth representative to the left side of `hEq`.
-
-## Important endpoint caveat
-
-This `ContDiffAt` transfer is an **interior** bridge.  `hagree_zero` is `EqOn Icc`, but an ordinary neighborhood of `(s₀, 0)` or `(s₀, 1)` contains spatial points outside `[0,1]`; there the zero-extension `intervalDomainLift` is generally `0`, while the cosine-series representative is the even/periodic heat representative.  So for plain `ContDiffAt` you want `x₀ ∈ Ioo 0 1`.
-
-At endpoints, use a within-set statement (`ContDiffWithinAt`/`ContDiffOn`) or switch to the globally even cosine representative rather than the zero-extension.
+(or equivalent local opens/simpa).
