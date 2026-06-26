@@ -1,6 +1,6 @@
 # Q804 (cron2) — Final handoff priorities for next session
 
-Static repo inspection only; I did not run a Lean build.
+Static repo inspection only; I did not run a Lean build. Reconfirmed for the repeated Q804 handoff prompt.
 
 ## Short answer
 
@@ -12,11 +12,11 @@ Your priority order is basically right, with one important refinement:
 3. Build the physical resolver/source C² data once, then use it to close 3C/3D/3F/3G.
 ```
 
-The better phrasing for item 3 is: **do not attack 3C, 3D, 3F, 3G separately**.  Build the one physical data package that the existing lemmas consume, then apply the existing downstream tools.
+The better phrasing for item 3 is: **do not attack 3C, 3D, 3F, 3G separately**. Build the one physical data package that the existing lemmas consume, then apply the existing downstream tools.
 
 ## Priority 1 — Close the last HeatRegularity sorry
 
-Current main has already closed the old cutoff-derivative-bound sorry.  The remaining heat regularity obstruction is now the heat-term factor bound:
+Current main has already closed the old cutoff-derivative-bound sorry. The remaining heat regularity obstruction is now the heat-term factor bound:
 
 ```lean
 private theorem heatTerm_iteratedFDeriv_global_bound
@@ -31,7 +31,7 @@ private theorem heatTerm_iteratedFDeriv_global_bound
   sorry
 ```
 
-This statement is still too sharp as written.  The Leibniz expansion gives a finite binomial constant:
+This statement is still too sharp as written. The Leibniz expansion gives a finite binomial constant:
 
 ```text
 ∑ i≤j C(j,i) · (1+λ)^i · (1+λ)^(j-i)
@@ -56,7 +56,7 @@ heatTermLeibnizConstant j := ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ)
 
 and use that instead of simplifying to `2 ^ j`.
 
-This is the highest-priority item because `heatSemigroup_jointContDiffAt_two` depends on the `contDiff_tsum` majorant.  Once this is axiom-clean, Level0 can cite heat joint regularity instead of carrying local analytic sorries.
+This is the highest-priority item because `heatSemigroup_jointContDiffAt_two` depends on the `contDiff_tsum` majorant. Once this is axiom-clean, Level0 can cite heat joint regularity instead of carrying local analytic sorries.
 
 ## Priority 2 — Wire `heatSemigroup_jointContDiffAt_two` into Level0 3B
 
@@ -88,7 +88,7 @@ heat semigroup cosine representation agrees on [0,1]
 heatSemigroup_jointContDiffAt_two gives joint C² at positive time
 ```
 
-Do not generalize this too much in the next session.  Just make the exact Level0 sub-sorry compile.  That provides the `u`-side joint-C² input needed by the physical chemDiv/resolver pipeline.
+Do not generalize this too much in the next session. Just make the exact Level0 sub-sorry compile. That provides the `u`-side joint-C² input needed by the physical chemDiv/resolver pipeline.
 
 ## Priority 3 — Build the physical resolver/source C² data package for the heat semigroup
 
@@ -137,7 +137,7 @@ coupledChemical_grad_jointContDiffAt_two
 
 and those feed the existing bridge lemmas for the flux/time-derivative path.
 
-This is the highest-leverage move after 3B.  It is better than proving 3C, 3D, 3F, and 3G independently, because the physical data package is the common missing object.
+This is the highest-leverage move after 3B. It is better than proving 3C, 3D, 3F, and 3G independently, because the physical data package is the common missing object.
 
 ## Better next-session plan
 
@@ -157,7 +157,7 @@ D. Use the existing time/flux bridges to close 3F and 3G.
    Goal: finish Level0’s physical chemDiv chain.
 ```
 
-Do **not** prioritize the Tower file yet.  Q800 showed the Tower still needs extra wrappers and endpoint-extension infrastructure; it should remain downstream until Level0 is clean.
+Do **not** prioritize the Tower file yet. Q800 showed the Tower still needs extra wrappers and endpoint-extension infrastructure; it should remain downstream until Level0 is clean.
 
 ## Verdict
 
