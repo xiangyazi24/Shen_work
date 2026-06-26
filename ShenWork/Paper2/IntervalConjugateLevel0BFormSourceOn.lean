@@ -162,7 +162,7 @@ Since `cosineCoeffs f n` is defined via `∫₀¹ f(x) cos(nπx) dx`, the bound
 The proof delegates to the primitive `unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm`. -/
 private theorem cosineCoeffs_abs_le_of_integrable_bounded
     {f : ℝ → ℝ} (hf : IntervalIntegrable f volume 0 1)
-    {B : ℝ} (hB : 0 ≤ B)
+    {B : ℝ} (_hB : 0 ≤ B)
     (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
     ∀ n, |cosineCoeffs f n| ≤ 2 * B := by
   intro n
@@ -171,13 +171,8 @@ private theorem cosineCoeffs_abs_le_of_integrable_bounded
   -- It follows from the real-valued one because Complex.ofReal is
   -- a continuous (isometric) embedding.
   have hint : IntervalIntegrable (fun x : ℝ => (f x : ℂ))
-      volume (0 : ℝ) 1 := by
-    apply IntervalIntegrable.mono_fun hf
-    · -- AEStronglyMeasurable of Complex.ofReal ∘ f from f's measurability
-      exact (Complex.continuous_ofReal.comp_aestronglyMeasurable
-        hf.aestronglyMeasurable)
-    · exact eventually_of_forall fun x => by
-        simp [Complex.norm_real, Real.norm_eq_abs]
+      volume (0 : ℝ) 1 :=
+    intervalIntegrable_iff.mpr hf.def'.ofReal
   have hcoeff :=
     ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm
       hint n
@@ -769,8 +764,8 @@ theorem level0_chemDiv_envelope_summable
               apply intervalIntegral.integral_mono_on (by norm_num)
                 (hH2_per_slice s hs).second_intervalIntegrable.norm
                 (intervalIntegrable_const)
-                (fun x hx => by rw [Real.norm_eq_abs]; exact hptwise s hs x
-                  (Set.Icc_subset_Icc_left (by norm_num) hx))
+                (fun x hx => by
+                  rw [Real.norm_eq_abs]; exact hptwise s hs x hx)
           _ = C := by simp
       exact ⟨C, hCnn, hL1_from_ptwise⟩
     obtain ⟨B, hBnn, hL1⟩ := hL1_uniform
@@ -835,24 +830,24 @@ theorem level0_chemDiv_envelope_summable
         IntervalIntegrable (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
           volume 0 1 := by
       intro s hs
-      -- Use mono_fun: the constant Msup is IntervalIntegrable, and our function's norm
-      -- is ≤ Msup a.e. on Ι 0 1.  The only auxiliary is AEStronglyMeasurable.
-      apply IntervalIntegrable.mono_fun intervalIntegrable_const
-      · -- AEStronglyMeasurable of coupledChemDivSourceLift on Ι 0 1:
-        -- On Ioo 0 1 (= Ioc 0 1 a.e.), the function agrees with the jointly smooth
-        -- cosine-series representative, hence is continuous and measurable.
-        -- intervalDomainLift is piecewise (measurable set Icc 0 1, smooth inner fn, 0),
-        -- hence measurable globally.
-        sorry -- [SUB-SORRY 2B-meas: AEStronglyMeasurable of coupledChemDivSourceLift.
-               --  Route: intervalDomainLift is Measurable (Measurable.piecewise on
-               --    MeasurableSet Icc 0 1 with measurable inner fn and 0 outside),
-               --    hence AEStronglyMeasurable on any restriction.
-               --  This is a generic property of intervalDomainLift, not specific to
-               --  chemDiv; could be factored into a standalone lemma.]
-      · -- Norm domination: ‖source(x)‖ ≤ ‖Msup‖ = Msup a.e. on Ι 0 1
-        apply eventually_of_forall
+      -- Use mono_fun': the constant Msup is IntervalIntegrable (as ℝ → ℝ), and our
+      -- function's norm is ≤ Msup a.e. on Ι 0 1.
+      apply IntervalIntegrable.mono_fun' (intervalIntegrable_const (c := Msup))
+      · -- AEStronglyMeasurable of coupledChemDivSourceLift on Ι 0 1.
+        -- coupledChemDivSourceLift = intervalDomainLift (chemotaxisDiv ...)
+        -- which is `fun x => dite (x ∈ Icc 0 1) (fun hx => deriv(flux)(x)) (fun _ => 0)`.
+        -- Since `deriv` of any function is Measurable (measurable_deriv in Mathlib),
+        -- the whole piecewise function is Measurable → AEStronglyMeasurable.
+        have hmeas : Measurable
+            (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s) :=
+          measurable_deriv _
+            |>.comp measurable_subtype_coe
+            |>.dite measurable_const measurableSet_Icc
+        exact hmeas.aestronglyMeasurable.restrict
+      · -- Norm domination: ‖source(x)‖ ≤ Msup a.e. on Ι 0 1
+        apply Eventually.of_forall
         intro x
-        rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg hMsup_nn]
+        simp only [Real.norm_eq_abs]
         by_cases hx : x ∈ Icc (0 : ℝ) 1
         · exact hbd s hs x hx
         · simp only [coupledChemDivSourceLift, intervalDomainLift, dif_neg hx,
