@@ -3,10 +3,20 @@
 ## CURRENT STATE (2026-06-25, late session)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: **14 sorry** across 2 files (Level0: 9 sub-sorry, Tower: 5).
-Session progress: original 11 sorry → 3 big sorry filled + 3 remaining decomposed into 9+1.
-Source eigenvalue summability chain COMPLETE (0 sorry). The 9 Level0 sub-sorry are all
-"heat semigroup → generic API wiring" — no new mathematical content.
+Paper 2 χ₀<0: Level0 10 sub-sorry + HeatRegularity 1 sorry + Tower 5 sorry = **16 total**.
+Session progress: original 11 sorry → 4 filled (slab, positivity, source eigenvalue summability
+chain incl. H2 cert) + remaining decomposed into 10 named concrete sub-sorry.
+
+### Single key blocker: heat semigroup joint C² (1 sorry)
+`heatSemigroup_jointContDiff_two` in IntervalHeatSemigroupHighRegularity.lean needs
+global iteratedFDeriv bound. Route: smooth cutoff (restartSmoothCutoff pattern from
+IntervalResolverSpectralJointC2Cutoff.lean) + norm_iteratedFDeriv_mul_le (Leibniz).
+Once proved, unlocks sub-sorry 3B → 3C/3D (resolver joint C²) → 2A-core → 1A → 2A.
+
+### Sub-sorry that DON'T depend on joint C²:
+- 2A-agree: definitional unfolding (mechanical, pattern at ChemDivSpatialC2:102-111)
+- 3E: resolver positivity floor (needs heat nonneg preservation)
+- 3F: flux time fderiv bridge (Clairaut inner commute)
 
 ### Paper 2 χ₀<0 sorry breakdown
 
