@@ -29,6 +29,7 @@ import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
 import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
 import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
 import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 import Mathlib.Analysis.Calculus.SmoothSeries
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -799,7 +800,9 @@ open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
 open ShenWork.IntervalResolverJointC2PhysicalConcrete
   (PhysicalResolverJointC2Data coupledChemical_jointContDiffAt_two
    resolverTimeCoeff)
-open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverSourceCoeff)
+open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverCoeff
+  intervalNeumannResolverSourceCoeff)
+open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 
 noncomputable section
 
@@ -810,70 +813,38 @@ bounded continuous initial data `u₀`), the resolver time-coefficients
 `resolverTimeCoeff p u k t = wₖ · cosineCoeffs(ν·(S(t)u₀)^γ, k)` are `C²` in
 time with summable bounded-weight joint majorants.
 
-This is the key sub-piece that connects:
-- heat semigroup smoothing (exponential coefficient decay, C⁴ in x for t > 0),
-- positivity floor of S(t)u₀ for t > 0 (heat kernel positivity-preserving),
-- rpow chain rule ν·u^γ under the floor → source slice time derivatives,
-- IBP `(kπ)⁻²` decay of each time-derivative slice (Neumann C²-in-x),
-- bounded-weight joint majorant summability (wₖ·Es cancellation).
-
-Sorry'd: building `FlooredSourceTimeData` for the heat semigroup requires
-specifying the two time-derivative slices s₁, s₂ of `ν·S(t)u₀^γ` via the rpow
-chain rule, proving their joint continuity, space-C²-Neumann regularity, and
-uniform `(kπ)⁻²` envelopes.  Each sub-piece is finite and non-circular. -/
+**Proof route (committed chain):**
+1. `heatSemigroup_flooredSourceTimeData` builds the `FlooredSourceTimeData`
+   (6 sorry'd fields, all finite and non-circular).
+2. `physicalSourceTimeC2_of_floored` converts to `PhysicalSourceTimeC2`
+   (needs summability hypotheses, sorry'd here).
+3. `physicalResolverJointC2Data_of_floor` converts to `PhysicalResolverJointC2Data`. -/
 theorem heatSemigroup_level0_resolverJointC2Data
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀) :
     ∃ Bt : ℕ → ℕ → ℝ,
       PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
-  -- Existentially introduce the bound family; each field sorry'd separately.
-  -- The concrete `Bt` will combine:
-  --   • `intervalNeumannResolverWeight p k` (elliptic weight ≤ 1/μ),
-  --   • eigenvalue decay `(kπ)⁻²` from IBP of `C²`-in-`x` Neumann source slices,
-  --   • rpow chain-rule envelopes for the time-derivative slices s₁, s₂.
-  -- Placeholder witness `Bt i k = wₖ * 1` (each field sorry'd, so any ℝ works).
-  -- Final form: `Bt i k = wₖ · Es i k` via `physicalResolverJointC2Data_of_floor`
-  -- once `FlooredSourceTimeData` for the heat semigroup is built.
+  -- Step 1: Build the FlooredSourceTimeData via the heat semigroup constructor.
   set u := conjugatePicardIter p u₀ 0
-  refine ⟨fun _i k => intervalNeumannResolverWeight p k,
-    ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
-  case coeff_contDiff =>
-    -- Factor: `resolverTimeCoeff p u k = wₖ * srcTimeCoeff p u k` (const × src).
-    -- `wₖ` is constant in `t`, so `ContDiff ℝ 2` reduces to `srcTimeCoeff` alone.
-    -- `srcTimeCoeff` is `C²` via heat semigroup smoothing + rpow chain rule under
-    -- the positivity floor; the full discharge needs `FlooredSourceTimeData` for the
-    -- heat semigroup (the two time-derivative slices + space-C²-Neumann envelopes).
-    intro k
-    have hrw : resolverTimeCoeff p u k =
-        fun t => intervalNeumannResolverWeight p k * srcTimeCoeff p u k t := by
-      funext t; exact resolverTimeCoeff_eq_weight_smul p u k t
-    rw [hrw]
-    exact contDiff_const.mul (by
-      -- `ContDiff ℝ 2 (srcTimeCoeff p u k)` for the heat semigroup base iterate.
-      -- Proved by `srcTimeCoeff_contDiff H k` once `FlooredSourceTimeData p u s₁ s₂`
-      -- is constructed.  Needs: floor positivity of S(t)u₀, rpow chain rule for
-      -- s₁ = ν·γ·u^{γ-1}·∂ₜu and s₂ via product rule, joint slab continuity of
-      -- each slice, space-C²-Neumann regularity, and (kπ)⁻² envelopes — all finite
-      -- and non-circular.
-      sorry)
-  case coeff_bound =>
-    -- `‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k`.
-    -- With `Bt i k = wₖ · Es i k` and the factorization
-    -- `∂ₜⁱ (wₖ · src) = wₖ · ∂ₜⁱ src`, this reduces to `‖∂ₜⁱ src‖ ≤ Es i k`
-    -- which is `FlooredSourceTimeData.src_bound`.
-    intro i k t hi; sorry
-  case value_summable =>
-    -- `Summable (boundedWeightJointMajorant Bt m)` for `m ≤ 2`.
-    -- `boundedWeightJointMajorant Bt m k = ∑ i in range (m+1), C(m,i) · Bt i k · valueCosWeight (m-i) k`.
-    -- Each summand has `wₖ · (kπ)⁻²ⁱ · envelope_i(k)`, and the elliptic weight
-    -- `wₖ ≤ 1/μ` combined with `(kπ)⁻²` IBP decay yields summability.
-    intro m hm; sorry
-  case grad_summable =>
-    -- `Summable (boundedWeightJointGradMajorant Bt m)` for `m ≤ 2`.
-    -- Same as value_summable but with an extra `λ_k = (kπ)²` eigenvalue
-    -- factor; the `(kπ)⁻²` IBP decay absorbs it, leaving summability.
-    intro m hm; sorry
+  have hFSTD := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+    hu₀_bound hu₀_cont (p := p)
+  -- Step 2: Convert to PhysicalSourceTimeC2 via the floored producer.
+  -- The summability hypotheses (value and gradient majorants) need to be established;
+  -- they follow from the (kπ)⁻² IBP decay in the builtEs envelope combined with
+  -- the elliptic weight wₖ = 1/(μ+λ_k).
+  set Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
+  have hSTC2 : ShenWork.IntervalResolverJointC2Physical.PhysicalSourceTimeC2 p u Es :=
+    ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored hFSTD
+      (by -- value_summable: ∀ m ≤ 2, Summable (boundedWeightJointMajorant (wₖ·Es) m)
+          -- Each summand has wₖ · (kπ)⁻² · envelope, and the weight
+          -- wₖ = 1/(μ+λ_k) ≤ 1/μ combined with (kπ)⁻² decay gives summability.
+          intro m hm; sorry)
+      (by -- grad_summable: ∀ m ≤ 2, Summable (boundedWeightJointGradMajorant (wₖ·Es) m)
+          -- Same with an extra eigenvalue factor absorbed by (kπ)⁻² decay.
+          intro m hm; sorry)
+  -- Step 3: Convert to PhysicalResolverJointC2Data via the floor producer.
+  exact ⟨_, ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2⟩
 
 /-- **Joint `ContDiffAt ℝ 2`** of the resolver coupled concentration at the heat
 semigroup base iterate `conjugatePicardIter p u₀ 0`, at any interior space
