@@ -1,194 +1,289 @@
-# Q623 / cron1: C²-Neumann ⇒ eigenvalue-weighted cosine-coefficient summability?
+# Q660 / cron1: NeumannTower construction helpers
 
 ## Verdict
 
-I did **not** find a theorem in `Shen_work` proving the reverse direction
+Yes, the repo has a real `NeumannTower` infrastructure and construction helpers, but the existing helper layer is aimed at **depth 3 / C⁶** and **depth 4 / C⁸**, not a dedicated depth-1 constructor for the power source `ν * u^γ`.
+
+For your immediate goal, the reusable pieces are:
 
 ```lean
-ContDiffOn ℝ 2 f (Set.Icc (0 : ℝ) 1)
-  + Neumann endpoint data
-  ⟹
-Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
+ShenWork.IntervalIBPCoeffExtraction.NeumannTower
+ShenWork.Paper2.NeumannTowerOfC6.gTower
+ShenWork.Paper2.NeumannTowerOfC6.gTower_step
+ShenWork.Paper2.NeumannTowerOfC6.deriv_gTower
+ShenWork.Paper2.NeumannTowerOfC6.contDiff_gTower
+ShenWork.Paper2.NeumannTowerOfC6.continuous_deriv_gTower
+ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
+ShenWork.Paper2.NeumannTowerOfC8.neumannTower_four_of_contDiff_eight
+ShenWork.Paper2.ChiNegUnconditionalClose.neumannTower_gTower_three_of_contDiff_six
 ```
 
-Searches for variants of
-
-```text
-eigenvalue summable C2
-H2 eigenvalue summable
-contDiff_two implies eigenvalue summable
-closedC2 eigenvalue summable
-of_contDiffOn eigenvalue Summable cosineCoeffs
-```
-
-turn up only the **forward** APIs and weaker decay APIs, not the desired reverse theorem.
-
-Also, analytically, the proposed reverse is not valid from bare `C²` alone.  The repo's existing C²/weak-H² route gives only quadratic coefficient decay
-
-```text
-|a_k| ≤ C / (kπ)^2
-```
-
-so
-
-```text
-λ_k |a_k| ≲ constant
-```
-
-which is not summable.  To get `∑ λ_k |a_k| < ∞`, one needs stronger input, for example a Sobolev/coefficient condition such as `H^σ` with `σ > 5/2`, or a genuinely stronger smoothness/analytic/exponential-decay theorem.
-
-## What the repo **does** have
-
-### 1. Forward direction: eigenvalue-ℓ¹ ⇒ C² cosine series
-
-The eigenvalue-ℓ¹ space file explicitly identifies the membership predicate as the hypothesis consumed by `cosineCoeffSeries_contDiff_two`:
+I did **not** find a theorem named `neumannTower_of...`, nor a depth-1 helper specialized to
 
 ```lean
-/-- Eigenvalue-ℓ¹ membership: `Σ_n λ_n |a_n|` converges. -/
-def MemEig (a : ℕ → ℝ) : Prop :=
-  Summable (fun n => unitIntervalCosineEigenvalue n * |a n|)
+fun x => p.ν * intervalDomainLift u x ^ p.γ
+```
+
+or to `u = heat semigroup` / `conjugatePicardIter ... 0`.
+
+## Important shape mismatch
+
+The repo's `NeumannTower g j` structure does **not** require `ContDiff ℝ 2 (g j)` at the top level.  It requires the tower fields only for `i < j`:
+
+```lean
+structure NeumannTower (g : ℕ → ℝ → ℝ) (j : ℕ) : Prop where
+  step : ∀ i, i < j → g (i + 1) = deriv (deriv (g i))
+  contDiff : ∀ i, i < j → ContDiffOn ℝ 2 (g i) (Set.Icc (0 : ℝ) 1)
+  tend0 : ∀ i, i < j →
+    Filter.Tendsto (deriv (g i)) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0)
+  tend1 : ∀ i, i < j →
+    Filter.Tendsto (deriv (g i)) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  bc0 : ∀ i, i < j → deriv (g i) 0 = 0
+  bc1 : ∀ i, i < j → deriv (g i) 1 = 0
 ```
 
 Location:
 
-- `ShenWork/PDE/EigenvalueL1Space.lean:71-73`
+- `ShenWork/Paper2/IntervalIBPCoeffExtraction.lean:45-56`
 
-The same file header says this is exactly the hypothesis that the committed `cosineCoeffSeries_contDiff_two` engine consumes to produce a `C²` cosine series:
+So for `j = 1`, the structure only asks for C²/Neumann data of `g 0`, plus the step `g 1 = deriv (deriv (g 0))`.  It does **not** ask for `ContDiff ℝ 2 (g 1)` or Neumann data for `g 1`.
 
-- `ShenWork/PDE/EigenvalueL1Space.lean:12-19`
+If you want the stronger package you described — both `g 0` and `g 1` are C²-Neumann — that is strictly more than `NeumannTower g 1` in the current structure.  You can either carry those as extra fields, or build a depth-2 tower by also defining `g 2 = deriv (deriv (g 1))` and providing the `i = 1` step/BCs.
 
-So the repo already treats eigenvalue-ℓ¹ as the **input** side of C² construction, not as a consequence of C².
+## Core IBP consumer API
 
-### 2. C²/weak-H² ⇒ quadratic decay, not eigenvalue-ℓ¹
-
-`IntervalMildSourceDecayHelper.lean` has the relevant weak-H²/C² bridge.  It packages closed C² + Neumann data into a weak `H²_N` certificate:
+`IntervalIBPCoeffExtraction.lean` gives the coefficient-extraction engine:
 
 ```lean
-noncomputable def intervalWeakH2Neumann_of_contDiffOn
-    {g : ℝ → ℝ}
-    (hgC2 : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
-    (htend0 : Filter.Tendsto (deriv g) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
-    (htend1 : Filter.Tendsto (deriv g) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
-    (hbc0 : deriv g 0 = 0) (hbc1 : deriv g 1 = 0) :
-    IntervalWeakH2Neumann g
+theorem rawCoeff_step (n : ℕ) {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) {i : ℕ} (hi : i < j) :
+    rawCoeff n (g (i + 1)) = -((n : ℝ) * Real.pi) ^ 2 * rawCoeff n (g i)
 ```
-
-Location:
-
-- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:76-92`
-
-But the conclusion extracted from weak `H²_N` is only:
 
 ```lean
-theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay
-    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) :
-    ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ, 1 ≤ k →
-      |cosineCoeffs f k| ≤ C / ((k : ℝ) * Real.pi) ^ 2
+theorem rawCoeff_iterate (n : ℕ) {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) :
+    rawCoeff n (g j) = (-((n : ℝ) * Real.pi) ^ 2) ^ j * rawCoeff n (g 0)
 ```
-
-Location:
-
-- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:190-193`
-
-This is the reverse-ish result present in the repo, and it is strictly weaker than `Summable (λ_k |a_k|)`.
-
-### 3. Closed C² positive slice ⇒ `SourceCoeffQuadraticDecay`
-
-The concrete power-source route similarly produces only quadratic decay:
 
 ```lean
-def sourceCoeffQuadraticDecay_of_closedC2_neumann_slice
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
-    (hN0 : Filter.Tendsto (deriv (intervalDomainLift u))
-      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
-    (hN1 : Filter.Tendsto (deriv (intervalDomainLift u))
-      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift u x) :
-    SourceCoeffQuadraticDecay p u
+theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
+    |cosineCoeffs (g 0) n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
 ```
-
-Location:
-
-- `ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean:51-59`
-
-Inside, it builds a weak-H² certificate and then calls `intervalWeakH2Neumann_cosineCoeff_quadratic_decay`:
-
-- `ShenWork/PDE/IntervalCoupledRegularityBootstrap.lean:73-93`
-
-So this is exactly the `C² ⇒ O(k⁻²)` theorem, not `C² ⇒ eigenvalue-ℓ¹`.
-
-### 4. Representation/eigenvalue-summable ⇒ weak-H² for power source
-
-The power-source adapter goes the other way: it assumes eigenvalue summability of a profile representation and then constructs weak-H² for `ν*u^γ`:
-
-```lean
-noncomputable def intervalWeakH2Neumann_of_eigenvalue_summable
-    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
-    {w : intervalDomainPoint → ℝ}
-    (hagree : Set.EqOn (intervalDomainLift w)
-        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
-    IntervalWeakH2Neumann (fun x : ℝ => ν * intervalDomainLift w x ^ γ)
-```
-
-Location:
-
-- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:71-79`
-
-Again: eigenvalue summability is an assumption, not derived from C².
-
-### 5. Stronger available route: `MemHSigma σ`, `σ > 5/2` ⇒ eigenvalue-ℓ¹
-
-The closest positive result to the desired conclusion is in `IntervalCosineSobolevEmbedding.lean`:
-
-```lean
-theorem memHSigma_summable_eigenvalue_abs {σ : ℝ} (hσ : 5 / 2 < σ) {b : ℕ → ℝ}
-    (hb : MemHSigma σ b) :
-    Summable fun n => unitIntervalCosineEigenvalue n * |b n|
-```
-
-Location:
-
-- `ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean:111-121`
-
-The file header explains the mechanism: Cauchy–Schwarz/AM–GM gives
-
-```text
-Σ λ_n |b_n| ≤ 1/2 Σ (1+λ_n)^σ b_n² + 1/2 Σ λ_n²/(1+λ_n)^σ,
-```
-
-and the dual weight is summable exactly for `σ > 5/2`.
 
 Locations:
 
-- `ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean:15-24`
-- `ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean:107-121`
+- `rawCoeff_step`: `ShenWork/Paper2/IntervalIBPCoeffExtraction.lean:61-67`
+- `rawCoeff_iterate`: `ShenWork/Paper2/IntervalIBPCoeffExtraction.lean:71-87`
+- `cosineCoeffs_decay`: `ShenWork/Paper2/IntervalIBPCoeffExtraction.lean:127-139`
 
-This is likely the correct coefficient-space replacement for the invalid `C² ⇒ eigenvalue-ℓ¹` route.
+For your depth-1 case, `cosineCoeffs_decay` with `j = 1` gives the quadratic decay bound for `g 0` from a bound on the raw coefficient of `g 1`.
 
-## Consequence for the heat-semigroup resolver-source goal
+## Generic even-derivative tower helper
 
-For
-
-```lean
-f x = p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 s) x ^ p.γ
-```
-
-at `s > 0`, proving `f` is merely `C²` with Neumann data will only feed the existing quadratic-decay machinery.  It will not discharge
+`IntervalNeumannTowerOfC6.lean` defines the reusable even-derivative tower:
 
 ```lean
-Summable (fun k => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
+/-- The even-derivative tower of `f`: `gTower f i = ∂ₓ^{2i} f`. -/
+def gTower (f : ℝ → ℝ) (i : ℕ) : ℝ → ℝ := deriv^[2 * i] f
 ```
 
-by any theorem I found.
+with the key equations:
 
-The viable Lean routes are instead:
+```lean
+theorem gTower_zero (f : ℝ → ℝ) : gTower f 0 = f
 
-1. prove a stronger coefficient-space statement, e.g. `MemHSigma σ` for the source coefficients with `σ > 5/2`, then apply `memHSigma_summable_eigenvalue_abs`; or
-2. prove the actual heat/analytic/exponential-decay statement directly for the source coefficients of `ν*(S(s)u₀)^γ`; or
-3. prove a higher-regularity coefficient-decay theorem strong enough to imply `∑ λ_k |a_k| < ∞`.
+theorem gTower_step (f : ℝ → ℝ) (i : ℕ) :
+    gTower f (i + 1) = deriv (deriv (gTower f i))
 
-The current repo has route (1)'s summability core, but I did not find a completed theorem applying it to the nonlinear resolver source at the level-0 heat semigroup.
+theorem deriv_gTower (f : ℝ → ℝ) (i : ℕ) :
+    deriv (gTower f i) = deriv^[2 * i + 1] f
+```
+
+Locations:
+
+- `gTower`: `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:36-37`
+- `gTower_zero`: `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:39-40`
+- `gTower_step`: `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:42-48`
+- `deriv_gTower`: `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:50-55`
+
+It also has regularity helpers:
+
+```lean
+theorem contDiff_gTower {f : ℝ → ℝ} {i : ℕ} (hf : ContDiff ℝ (2 + 2 * i : ℕ) f) :
+    ContDiff ℝ 2 (gTower f i)
+
+theorem continuous_deriv_gTower {f : ℝ → ℝ} {i : ℕ}
+    (hf : ContDiff ℝ (2 * i + 1 : ℕ) f) :
+    Continuous (deriv (gTower f i))
+```
+
+Locations:
+
+- `contDiff_gTower`: `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:57-61`
+- `continuous_deriv_gTower`: `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:63-71`
+
+These are exactly the low-level helpers you want for a custom depth-1 tower.
+
+## Existing high-depth constructors
+
+### Depth 3 from global C⁶
+
+`IntervalNeumannTowerOfC6.lean` has:
+
+```lean
+theorem neumannTower_three_of_contDiff_six
+    {f : ℝ → ℝ}
+    (hf : ContDiff ℝ (6 : ℕ) f)
+    (hN0 : ∀ i, i < 3 → deriv (gTower f i) 0 = 0)
+    (hN1 : ∀ i, i < 3 → deriv (gTower f i) 1 = 0) :
+    ∃ g, g 0 = f ∧ NeumannTower g 3
+```
+
+Location:
+
+- `ShenWork/Paper2/IntervalNeumannTowerOfC6.lean:77-82`
+
+### Depth 4 from global C⁸
+
+`IntervalNeumannTowerOfC8.lean` has:
+
+```lean
+theorem neumannTower_four_of_contDiff_eight
+    {f : ℝ → ℝ}
+    (hf : ContDiff ℝ (8 : ℕ) f)
+    (hN0 : ∀ i, i < 4 → deriv (gTower f i) 0 = 0)
+    (hN1 : ∀ i, i < 4 → deriv (gTower f i) 1 = 0) :
+    NeumannTower (gTower f) 4
+```
+
+Location:
+
+- `ShenWork/Paper2/IntervalNeumannTowerOfC8.lean:39-44`
+
+### Explicit depth-3 witness on `gTower f`
+
+`IntervalChiNegUnconditionalClose.lean` exposes the C⁶ constructor in a more convenient non-existential form:
+
+```lean
+theorem neumannTower_gTower_three_of_contDiff_six
+    {f : ℝ → ℝ} (hf : ContDiff ℝ (6 : ℕ) f)
+    (hN0 : ∀ i, i < 3 → deriv (gTower f i) 0 = 0)
+    (hN1 : ∀ i, i < 3 → deriv (gTower f i) 1 = 0) :
+    NeumannTower (gTower f) 3
+```
+
+Location:
+
+- `ShenWork/Paper2/IntervalChiNegUnconditionalClose.lean:58-62`
+
+This is probably the best pattern to copy for a custom depth-1 helper.
+
+## Parity helpers for boundary conditions
+
+`IntervalSourceRepresentative.lean` has the doubly-even parity infrastructure.  The key packaged theorem is:
+
+```lean
+theorem higherNeumannCompatibility_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) :
+    (∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
+      (∀ i, i < 3 → deriv (gTower f i) 1 = 0)
+```
+
+Location:
+
+- `ShenWork/Paper2/IntervalSourceRepresentative.lean:126-131`
+
+It is depth-3-shaped, but for depth 1 you can use it and restrict to `i < 1`, or use the simpler pointwise lemmas:
+
+```lean
+theorem gTower_deriv_zero_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) (i : ℕ) :
+    deriv (gTower f i) 0 = 0
+
+theorem gTower_deriv_one_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) (i : ℕ) :
+    deriv (gTower f i) 1 = 0
+```
+
+Locations:
+
+- `gTower_deriv_zero_of_doublyEven`: `ShenWork/Paper2/IntervalSourceRepresentative.lean:104-108`
+- `gTower_deriv_one_of_doublyEven`: `ShenWork/Paper2/IntervalSourceRepresentative.lean:113-117`
+
+For the heat semigroup cosine representative, doubly-even parity is likely the clean way to discharge the endpoint `deriv(g i)(0/1)=0` facts.
+
+## Suggested depth-1 helper to add
+
+I found no existing theorem with this exact shape, but it should be a small specialization of the C⁶/C⁸ pattern:
+
+```lean
+import ShenWork.Paper2.IntervalNeumannTowerOfC6
+
+open Set Filter Topology
+open ShenWork.IntervalIBPCoeffExtraction (NeumannTower)
+open ShenWork.Paper2.NeumannTowerOfC6
+  (gTower gTower_step contDiff_gTower continuous_deriv_gTower)
+
+namespace ShenWork.Paper2.NeumannTowerOfC6
+
+noncomputable section
+
+/-- Depth-1 Neumann tower from global C² plus endpoint Neumann data. -/
+theorem neumannTower_gTower_one_of_contDiff_two
+    {f : ℝ → ℝ}
+    (hf : ContDiff ℝ (2 : ℕ) f)
+    (hN0 : deriv f 0 = 0)
+    (hN1 : deriv f 1 = 0) :
+    NeumannTower (gTower f) 1 := by
+  have hcd0 : ContDiff ℝ 2 (gTower f 0) := by
+    simpa using hf
+  have hcont0 : Continuous (deriv (gTower f 0)) := by
+    have h1 : ContDiff ℝ (1 : ℕ) f := hf.of_le (by norm_num)
+    simpa [gTower] using (continuous_deriv_gTower (f := f) (i := 0) h1)
+  refine
+    { step := fun i hi => ?_
+      contDiff := fun i hi => ?_
+      tend0 := fun i hi => ?_
+      tend1 := fun i hi => ?_
+      bc0 := fun i hi => ?_
+      bc1 := fun i hi => ?_ }
+  · have hi0 : i = 0 := Nat.eq_zero_of_lt_succ hi
+    subst i
+    exact gTower_step f 0
+  · have hi0 : i = 0 := Nat.eq_zero_of_lt_succ hi
+    subst i
+    exact hcd0.contDiffOn
+  · have hi0 : i = 0 := Nat.eq_zero_of_lt_succ hi
+    subst i
+    have hT : Tendsto (deriv (gTower f 0)) (nhds 0)
+        (nhds (deriv (gTower f 0) 0)) := hcont0.continuousAt
+    simpa [gTower, hN0] using hT.mono_left nhdsWithin_le_nhds
+  · have hi0 : i = 0 := Nat.eq_zero_of_lt_succ hi
+    subst i
+    have hT : Tendsto (deriv (gTower f 0)) (nhds 1)
+        (nhds (deriv (gTower f 0) 1)) := hcont0.continuousAt
+    simpa [gTower, hN1] using hT.mono_left nhdsWithin_le_nhds
+  · have hi0 : i = 0 := Nat.eq_zero_of_lt_succ hi
+    subst i
+    simpa [gTower] using hN0
+  · have hi0 : i = 0 := Nat.eq_zero_of_lt_succ hi
+    subst i
+    simpa [gTower] using hN1
+
+end
+end ShenWork.Paper2.NeumannTowerOfC6
+```
+
+If you also need `ContDiff ℝ 2 (gTower f 1)`, prove separately from `hf4 : ContDiff ℝ (4 : ℕ) f` using:
+
+```lean
+have hg1C2 : ContDiff ℝ 2 (gTower f 1) :=
+  contDiff_gTower (f := f) (i := 1) (hf4.of_le (by norm_num))
+```
+
+For your intended `f = fun x => p.ν * u x ^ p.γ`, with `u = S(s)u₀` and `s > 0`, this suggests a clean two-step plan:
+
+1. build the global smooth representative `f` and prove `ContDiff ℝ 4 f` plus endpoint Neumann data for `f` (and, if needed, for `gTower f 1`);
+2. feed `hf.of_le` and the endpoint BCs into the depth-1 helper above, while using `contDiff_gTower` for the extra `g 1` C² fact.
