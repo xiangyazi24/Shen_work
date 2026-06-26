@@ -1,170 +1,244 @@
-# Q767 / cron1: verify `coupledChemical_grad_jointContDiffAt_two`
+# Q769 / cron1: support-aware cutoff left endpoint check
 
 Repo inspected: `xiangyazi24/Shen_work`.
 Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
 
 ## Verdict
 
-Yes. `sub-sorry 3D` has an existing producer:
+Yes, for the **value** of the one-sided cutoff:
 
 ```lean
-coupledChemical_grad_jointContDiffAt_two
+φ := smoothRightCutoff (c / 2) c
 ```
 
-It is defined in:
+repo theorem
+
+```lean
+smoothRightCutoff_eq_zero_of_le
+```
+
+does give:
+
+```lean
+φ t = 0
+```
+
+for every
+
+```lean
+t ≤ c / 2
+```
+
+provided
+
+```lean
+hc : 0 < c
+```
+
+because `c / 2 < c` follows by `linarith`.
+
+The direct instantiation is:
+
+```lean
+have hc_half : c / 2 < c := by linarith [hc]
+have hφ_zero : smoothRightCutoff (c / 2) c t = 0 :=
+  smoothRightCutoff_eq_zero_of_le (c' := c / 2) (c := c) hc_half ht
+```
+
+So the cutoff is **exactly zero on the closed half-line** `(-∞, c/2]`, not merely approaching zero.
+
+## Where this is defined
+
+File:
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
 ```
 
-and it **does require**:
+Definition/comment:
 
 ```lean
-H : PhysicalResolverJointC2Data p u Bt
+/-- Smooth right cutoff equal to `0` on `(-∞, c']` and `1` on `[c, ∞)`. -/
+def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
+  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
 ```
 
-plus the interior spatial-point hypothesis:
+Relevant lemmas:
 
 ```lean
-hx : x ∈ Ioo (0 : ℝ) 1
+theorem smoothRightCutoff_eq_zero_of_le {c' c t : ℝ} (hc : c' < c)
+    (ht : t ≤ c') :
+    smoothRightCutoff c' c t = 0 := by
+  apply Real.smoothTransition.zero_of_nonpos
+  exact mul_nonpos_of_nonneg_of_nonpos
+    (inv_nonneg.2 (sub_pos.2 hc).le) (sub_nonpos.2 ht)
 ```
-
-It does **not** require `DuhamelSourceTimeC2Coeff`; it uses the bounded-weight physical resolver data.
-
-## Exact theorem statement
 
 ```lean
-/-- **Physical producer of `hgradv_c2`** — joint `ContDiffAt ℝ 2` of the spatial
- derivative `∂ₓ v` of the lifted coupled concentration, via the bounded-weight
- gradient assembler. -/
-theorem coupledChemical_grad_jointContDiffAt_two
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x) := by
-  ...
+theorem smoothRightCutoff_eq_one_of_ge {c' c t : ℝ} (hc : c' < c)
+    (ht : c ≤ t) :
+    smoothRightCutoff c' c t = 1
 ```
-
-## Hypotheses
-
-The theorem has these explicit hypotheses/parameters:
 
 ```lean
-{p : CM2Params}
-{u : ℝ → intervalDomainPoint → ℝ}
-{Bt : ℕ → ℕ → ℝ}
-(H : PhysicalResolverJointC2Data p u Bt)
-{s x : ℝ}
-(hx : x ∈ Ioo (0 : ℝ) 1)
+theorem smoothRightCutoff_eventually_eq_one {c' c s : ℝ}
+    (hc : c' < c) (hs : c < s) :
+    smoothRightCutoff c' c =ᶠ[𝓝 s] fun _ : ℝ => 1
 ```
 
-The output is:
+## Important nuance: values vs. derivatives
 
-```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ =>
-    deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-  (s, x)
-```
-
-This is exactly the factor-Joint-C² field for the resolver gradient:
-
-```lean
-hgradv_c2 :
-  ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x)
-```
-
-Modulo the unused slab membership, it can be supplied as:
-
-```lean
-fun x hx s _hs => coupledChemical_grad_jointContDiffAt_two H hx
-```
-
-## What `PhysicalResolverJointC2Data` contains
-
-In the same file, `PhysicalResolverJointC2Data` is the bounded-weight resolver regularity package:
-
-```lean
-structure PhysicalResolverJointC2Data
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Bt : ℕ → ℕ → ℝ) : Prop where
-  /-- Each coefficient is `C²` in time. -/
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-  /-- Three-time-order coefficient bounds. -/
-  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-  /-- The bounded-weight **value** joint majorant is summable. -/
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant Bt m)
-  /-- The bounded-weight **gradient** joint majorant is summable. -/
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant Bt m)
-```
-
-`coupledChemical_grad_jointContDiffAt_two` uses especially:
-
-```lean
-H.coeff_contDiff
-H.coeff_bound
-H.grad_summable
-```
-
-via:
-
-```lean
-boundedWeightJointGradSeries_contDiff_two H.coeff_contDiff
-  (fun i k t hi => H.coeff_bound i k t hi) H.grad_summable
-```
-
-It also uses `H.value_summable 2 le_rfl` internally to justify the termwise spatial derivative equality by obtaining eigenvalue-weighted summability of the value coefficients.
-
-## Where it is used
-
-`coupledChemical_grad_jointContDiffAt_two` is used in:
+The statement
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+φ(t) = 0 for t ≤ c/2
 ```
 
-inside the time-bridge proof:
+is directly proved by `smoothRightCutoff_eq_zero_of_le`.
+
+The stronger statement
+
+```text
+all derivatives of φ are 0 for t ≤ c/2
+```
+
+is **not directly provided** by that theorem.
+
+What is immediately easy in Lean is the strict-left version:
 
 ```lean
-coupledChemDivFlux_timeBridge_of_physicalJointC2
+if ht : t < c / 2 then
+  smoothRightCutoff (c / 2) c =ᶠ[𝓝 t] fun _ : ℝ => 0
 ```
 
-where it supplies the eventual-near-`x` `hgradv` input:
+because `{u | u < c/2}` is an open neighborhood of `t`, and on that neighborhood the `≤` lemma applies. Then:
 
 ```lean
-filter_upwards [hopen] with y hy using coupledChemical_grad_jointContDiffAt_two H hy
+Filter.EventuallyEq.iteratedFDeriv
 ```
 
-This confirms the graph correction: `3D` is a direct child of `PhysicalResolverJointC2Data`, parallel to `3C`, not something that has to be manually derived by differentiating `3C`.
-
-## Practical close for sub-sorry 3D
-
-If the local context contains:
+can show:
 
 ```lean
-H : PhysicalResolverJointC2Data p u Bt
+iteratedFDeriv ℝ k (smoothRightCutoff (c / 2) c) t = 0
 ```
 
-then a slab-shaped `3D` goal closes with:
+for all `k` when `t < c / 2`.
+
+At the endpoint
 
 ```lean
-intro x hx s hs
-exact coupledChemical_grad_jointContDiffAt_two H hx
+t = c / 2
 ```
 
-or point-free:
+there is no full neighborhood of `t` on which the cutoff is identically zero; the transition begins immediately to the right. Mathematically, because `Real.smoothTransition` is smooth and flat on the left side, its derivatives at the endpoint should be zero, but the repo does **not** appear to have a ready-made lemma that says:
 
 ```lean
-fun x hx s _hs => coupledChemical_grad_jointContDiffAt_two H hx
+iteratedFDeriv ℝ k (smoothRightCutoff (c / 2) c) (c / 2) = 0
 ```
 
-The `s ∈ Metric.ball τ δ` hypothesis is unused by this theorem.
+Searches for `smoothRightCutoff iteratedFDeriv zero_of_le` only found the cutoff files, not a derivative-vanishing theorem.
+
+## Consequence for the support-aware proof
+
+Do not split the proof as:
+
+```lean
+q.1 ≤ c / 2  -- all derivatives of G vanish
+```
+
+unless you first add/prove the endpoint derivative-flatness lemma.
+
+A safer split is:
+
+```lean
+by_cases hleft : q.1 < c / 2
+```
+
+### Case 1: `q.1 < c / 2`
+
+Here, `G = smoothRightCutoff (c/2) c ∘ fst` is locally equal to `0`, so every iterated derivative of `G` is zero. This is exactly the easy `EventuallyEq.iteratedFDeriv` route.
+
+### Case 2: `¬ q.1 < c / 2`, hence `c / 2 ≤ q.1`
+
+Here the heat factor has the desired exponential tail:
+
+```lean
+Real.exp (-q.1 * λ_n) ≤ Real.exp (-(c / 2) * λ_n)
+```
+
+because `0 ≤ λ_n` and `c/2 ≤ q.1`.
+
+In this case, do **not** need derivative-zero at the endpoint. Use boundedness of the cutoff derivatives instead. For that, the repo currently has a bound-majorant pattern for `restartSmoothCutoff`, but not for `smoothRightCutoff`. So either:
+
+1. add a `smoothRightCutoffDerivMajorant_spec`; or
+2. prove a local `∃ C, ∀ t, ‖iteratedFDeriv ℝ i (smoothRightCutoff (c/2) c) t‖ ≤ C` directly for `i ≤ 2`.
+
+This avoids the endpoint issue completely: the endpoint `q.1 = c/2` belongs to the positive-time-tail case and is handled by bounded cutoff derivatives plus the equality
+
+```lean
+exp (-(c / 2) * λ_n)
+```
+
+for the heat factor.
+
+## Recommended product-bound split
+
+For the Leibniz summands after
+
+```lean
+norm_iteratedFDeriv_mul_le hG hH q hk'
+```
+
+use:
+
+```lean
+by_cases hleft : q.1 < c / 2
+```
+
+* If `hleft`, prove the whole product derivative is zero by local equality of the product `G * H` to `0`. This avoids even needing separate derivative facts for `G`.
+* If `¬ hleft`, have:
+
+  ```lean
+  have hq_ge : c / 2 ≤ q.1 := le_of_not_gt hleft
+  ```
+
+  and use the exponential bound for `H`, together with a cutoff-derivative bound for `G`.
+
+This is cleaner than trying to prove `all derivatives of G are zero for t ≤ c/2`.
+
+## If you still want derivative-zero on the left
+
+The strict-left lemma should be easy to add:
+
+```lean
+theorem smoothRightCutoff_iteratedFDeriv_eq_zero_of_lt
+    {c' c t : ℝ} (hc : c' < c) (ht : t < c') (k : ℕ) :
+    iteratedFDeriv ℝ k (smoothRightCutoff c' c) t = 0 := by
+  have hzero : smoothRightCutoff c' c =ᶠ[𝓝 t] fun _ : ℝ => 0 := by
+    filter_upwards [(isOpen_lt continuous_id continuous_const).mem_nhds ht] with u hu
+    exact smoothRightCutoff_eq_zero_of_le hc (le_of_lt hu)
+  have hderiv := Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hzero k
+  simpa using hderiv.self_of_nhds
+```
+
+For the composed version `G q = smoothRightCutoff (c/2) c q.1`, use the open neighborhood
+
+```lean
+{p : ℝ × ℝ | p.1 < c / 2}
+```
+
+and the same eventual-equality pattern. The repo already uses this exact style for the compact restart cutoff in:
+
+```lean
+cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_left
+```
+
+in `IntervalResolverSpectralJointC2Concrete.lean`.
+
+## Bottom line
+
+* `smoothRightCutoff_eq_zero_of_le` **does** give exact value zero for `φ(t)` at all `t ≤ c/2`.
+* It does **not**, by itself, give derivative-zero at the endpoint `t = c/2`.
+* For Lean, prefer splitting on `q.1 < c/2` versus `c/2 ≤ q.1`; use local-zero on the strict-left case and exponential decay on the complement.
+* This avoids needing a delicate endpoint-flatness lemma for `smoothRightCutoff`.
