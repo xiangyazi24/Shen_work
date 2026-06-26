@@ -1,156 +1,187 @@
-# Q766 (cron2): projection bounds for `iteratedFDeriv` of `fst`/`snd` factors
+# Q768 (cron2): Sub-sorry 3A, eventual source continuity
 
 Static repo inspection only; I did not run a Lean build.
 
 ## Answer
 
-Yes.  The repo already has exactly the projection lemmas you want.
+Yes: if you can prove the per-slice statement for **all** `s`, then the `∀ᶠ s in 𝓝 τ` field is immediate.
 
-File:
-
-```text
-ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean
-```
-
-Namespace:
+The Lean shape should be one of:
 
 ```lean
-ShenWork.IntervalResolverSpectralJointC2CutoffBounds
+have hsrc_all : ∀ s : ℝ,
+    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1) := by
+  ...
+
+have hsrc_ev :
+    ∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1) :=
+  Filter.Eventually.of_forall hsrc_all
 ```
 
-The names are:
+or equivalently:
 
 ```lean
-norm_iteratedFDeriv_comp_fst_le
-norm_iteratedFDeriv_comp_snd_le
+filter_upwards with s using hsrc_all s
 ```
 
-Exact shapes:
+I did **not** find repo uses of a lowercase `Filter.eventually_of_forall`; existing code uses the constructor form:
 
 ```lean
-/-- Projection bound for functions depending only on the first coordinate. -/
-theorem norm_iteratedFDeriv_comp_fst_le
-    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
-    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
-    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.1) q‖ ≤
-      ‖iteratedFDeriv ℝ k g q.1‖
+Filter.Eventually.of_forall
 ```
 
-and
+So I would use that spelling.
+
+If you only prove the positive-time statement,
 
 ```lean
-/-- Projection bound for functions depending only on the second coordinate. -/
-theorem norm_iteratedFDeriv_comp_snd_le
-    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
-    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
-    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.2) q‖ ≤
-      ‖iteratedFDeriv ℝ k g q.2‖
+∀ s, 0 < s → ContinuousOn ...
 ```
 
-Implementation detail: both lemmas are proved by composing with the continuous linear projections
+then that only gives the eventual statement at `τ > 0`, via `Ioi_mem_nhds` / a positive neighborhood. It does **not** handle arbitrary `τ`, especially `τ ≤ 0`. For the global `CoupledChemDivFluxJointC2Hyp` / FAC slab shape, `τ` is arbitrary, so an all-`s` proof, or a separate nonpositive-time branch, is needed.
+
+For your proposed heat route, the all-`s` reduction is sound **provided** the actual Level0 trajectory really is the zeroed heat semigroup for `s ≤ 0` in the relevant definition. Then the structure is:
 
 ```lean
-ContinuousLinearMap.fst ℝ ℝ ℝ
-ContinuousLinearMap.snd ℝ ℝ ℝ
+have hsrc_all : ∀ s : ℝ,
+    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1) := by
+  intro s
+  by_cases hs : 0 < s
+  · -- heat smoothing: S(s)u₀ smooth, resolver smooth/regular, chemDiv source continuous
+    ...
+  · -- nonpositive-time branch: u s = 0, resolver/source simplify to 0
+    ...
+
+exact Filter.Eventually.of_forall hsrc_all
 ```
 
-then using:
+## Does the repo already have a per-slice continuity producer for `coupledChemDivSourceLift`?
+
+I did **not** find a named direct theorem of the form:
 
 ```lean
-L.iteratedFDeriv_comp_right hg q hk
-ContinuousMultilinearMap.norm_compContinuousLinearMap_le
+∀ s, ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
 ```
 
-and finally simplifying with:
+or
 
 ```lean
-ContinuousLinearMap.norm_fst
-ContinuousLinearMap.norm_snd
+ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
 ```
 
-## Existing use patterns
+Searches for `coupledChemDivSourceLift_continuousOn`, `coupledChemDivSourceLift ContinuousOn`, and quoted `ContinuousOn (coupledChemDivSourceLift` turned up mostly structures/assemblers where this is still an **input field**, not a producer.
 
-The lemmas are already used in the resolver bounded-weight and cutoff proofs.
-
-Example value-side resolver pattern:
+The key definition is:
 
 ```lean
-have hcoeffNorm :
-    ‖iteratedFDeriv ℝ (i - j)
-      (fun q : ℝ × ℝ =>
-        localRestartCoeff a₀ a (q.1 - offset) n) q‖ ≤
-    ‖iteratedFDeriv ℝ (i - j)
-      (fun t : ℝ => localRestartCoeff a₀ a (t - offset) n) q.1‖ :=
-  norm_iteratedFDeriv_comp_fst_le hcoeff₀ hijTop q
-```
-
-File:
-
-```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
-```
-
-Example cosine/space pattern:
-
-```lean
-have hcosNorm :
-    ‖iteratedFDeriv ℝ (k - i)
-      (fun q : ℝ × ℝ => cosineMode n q.2) q‖ ≤
-    valueCosWeight (k - i) n := by
-  exact (norm_iteratedFDeriv_comp_snd_le hcos₀ hkiTop q).trans
-    (cosineMode_iteratedFDeriv_bound n (k - i) q.2 (by omega))
+def coupledChemDivSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (fun x => intervalDomainChemotaxisDiv p (u s)
+      (coupledChemicalConcentration p u s) x)
 ```
 
 File:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
 ```
 
-There is also a generic bounded-weight mode-term use:
+And the FAC local slab package still carries the 3A field explicitly:
 
 ```lean
-have htime :
-    ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => c n q.1) q‖ ≤ Bt i n :=
-  (norm_iteratedFDeriv_comp_fst_le hc hiTop q).trans (hBt i (le_trans hik hkNat))
-
-have hspace :
-    ‖iteratedFDeriv ℝ (k - i) (fun q : ℝ × ℝ => cosineMode n q.2) q‖ ≤
-      valueCosWeight (k - i) n :=
-  (norm_iteratedFDeriv_comp_snd_le hcos₀ hkiTop q).trans
-    (cosineMode_iteratedFDeriv_bound n (k - i) q.2 (by omega))
+(∀ᶠ s in 𝓝 τ,
+  ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
 ```
 
 File:
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
+ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
 ```
 
-## Relevance to `heatTerm`
-
-For the heat term split, these are the right tools for the one-coordinate factors:
-
-```lean
-fun q : ℝ × ℝ => Real.exp (-q.1 * unitIntervalCosineEigenvalue n)
-```
-
-via `norm_iteratedFDeriv_comp_fst_le`, and
-
-```lean
-fun q : ℝ × ℝ => cosineMode n q.2
-```
-
-via `norm_iteratedFDeriv_comp_snd_le` plus the already-existing:
-
-```lean
-cosineMode_iteratedFDeriv_bound
-```
-
-from:
+Likewise, the global chain-rule / flux packages carry the same source-continuity field as part of their local slab data, rather than deriving it internally:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+ShenWork/PDE/IntervalChemDivTimeDerivative.lean
+ShenWork/PDE/IntervalChemDivOuterCommute.lean
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
 ```
 
-So the repository does have the projection-bound infrastructure needed to reduce the mixed `ℝ²` derivative bounds to one-dimensional `t` and `x` derivative bounds.
+## Nearby partial tools
+
+The closest per-slice spatial regularity tool is:
+
+```lean
+chemDivLift_contDiffOn_two_of_global
+```
+
+File:
+
+```text
+ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+```
+
+It proves:
+
+```lean
+ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1)
+```
+
+from global `C⁴` of the lifted `u` and `v` profiles plus positivity of `1+v`. This immediately implies continuity via `.continuousOn`, but it is stated for the per-slice `chemDivLift p u v`, not directly for `coupledChemDivSourceLift p u s`. You would still need the bridge/unfolding step identifying the slice
+
+```lean
+coupledChemDivSourceLift p u s
+```
+
+with the corresponding `chemDivLift p (u s) (coupledChemicalConcentration p u s)` on `Icc 0 1`.
+
+Other nearby tools consume continuity as a hypothesis rather than producing it, e.g.
+
+```lean
+coupledChemDivSource_zeroCoeff_of_uniformSup
+```
+
+in
+
+```text
+ShenWork/PDE/IntervalChemDivFluxFACSourceDecay.lean
+```
+
+requires:
+
+```lean
+hcont : ∀ s, 0 ≤ s →
+  ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
+```
+
+## Practical conclusion
+
+For sub-sorry 3A, the fastest Lean shape is probably not to build a new “eventual” proof directly. Prove an all-slices lemma first:
+
+```lean
+theorem level0_coupledChemDivSourceLift_continuousOn_all_s
+    ... :
+    ∀ s : ℝ,
+      ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+        (Icc (0 : ℝ) 1) := by
+  intro s
+  by_cases hs : 0 < s
+  · -- positive smoothing route
+  · -- nonpositive zero route
+```
+
+Then the FAC/FluxJointC2Hyp 3A field is just:
+
+```lean
+exact Filter.Eventually.of_forall level0_coupledChemDivSourceLift_continuousOn_all_s
+```
+
+or inline:
+
+```lean
+filter_upwards with s
+exact level0_coupledChemDivSourceLift_continuousOn_all_s s
+```
