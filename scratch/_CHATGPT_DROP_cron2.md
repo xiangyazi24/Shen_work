@@ -1,69 +1,307 @@
-# Q872 (cron2) — concrete `Bt` witness for heat-level `PhysicalResolverJointC2Data`
+# Q876 (cron2) — existing `FlooredSourceTimeData` constructions?
 
 Static repo inspection only; I did **not** run Lean.
 
 ## Short answer
 
-For the committed physical route, the final witness should still be
+The repo has **one real constructor** of `FlooredSourceTimeData`:
 
 ```lean
-Bt i k = intervalNeumannResolverWeight p k * Es i k
+ShenWork.IntervalFlooredSourceTimeDataIterate.flooredSourceTimeData_of_iterate
 ```
 
-where `Es` is the **source-side** time/coefficient envelope for
+but it is **not** an instantiated witness for a specific named trajectory such as
+`picardIter`, `conjugatePicardIter`, a heat semigroup level, or a mild solution.
+It is a generic/residual constructor:
 
 ```lean
-srcTimeCoeff p u k t
-  = (intervalNeumannResolverSourceCoeff p (u t) k).re
-  = cosineCoeffs (fun x => p.ν * intervalDomainLift (u t) x ^ p.γ) k
+theorem flooredSourceTimeData_of_iterate
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
+    (H : IterateSourceTimeData p u du d2u) :
+    FlooredSourceTimeData p u (srcSlice1 p u du) (srcSlice2 p u du d2u)
 ```
 
-Do **not** bake a second resolver weight into `Es`.  If you use
-`physicalResolverJointC2Data_of_floor`, `Es` is source-side only and the theorem
-itself multiplies by `intervalNeumannResolverWeight p k`.
+So the answer to “does the repo already have an actual `FlooredSourceTimeData`
+witness for a concrete trajectory?” is: **not that I found**.
 
-For now, yes: you can use a dummy explicit `Bt` while all four fields are `sorry`.
-But do **not** literally write an opaque `fun _ _ => by sorry` witness.  Use an
-explicit placeholder with the intended final shape, so later simplification and
-summability goals are readable.
+It has the **right abstraction layer** (`IterateSourceTimeData`) and the bridge
+from that abstraction to `FlooredSourceTimeData`, but the hard trajectory-specific
+input `IterateSourceTimeData p u du d2u` is still a residual/hypothesis elsewhere.
 
-The best temporary placeholder is something like:
+## Search results inspected
+
+Searches performed:
+
+```text
+FlooredSourceTimeData
+flooredSourceTimeData_of
+flooredSourceTimeData_of_iterate
+IterateSourceTimeData
+FlooredSourceTimeData picardIter
+FlooredSourceTimeData conjugatePicardIter
+FlooredSourceTimeData heatSemigroup_level0_resolverJointC2Data
+flooredSource
+```
+
+Relevant files returned:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
+ShenWork.lean
+```
+
+Only the first three contain substantive construction/consumer logic.  The heat
+file only mentions `FlooredSourceTimeData` as a future/blocked route for the heat
+semigroup resolver data.
+
+## Definitions and constructors found
+
+### 1. `FlooredSourceTimeData` itself
+
+File:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+Definition:
 
 ```lean
-refine ⟨fun _i k => intervalNeumannResolverWeight p k, ?coeff_contDiff,
-  ?coeff_bound, ?value_summable, ?grad_summable⟩
+structure FlooredSourceTimeData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
+  d0 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s) ∧
+    ContinuousOn (Function.uncurry s₁) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+  d1 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (s₁ s) (Icc (0:ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => s₁ r x) (s₂ s x) s) ∧
+    ContinuousOn (Function.uncurry s₂) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
+    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0:ℝ) 1)
+  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
+    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
+    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Iio 1] 1) (𝓝 0) ∧
+    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0 = 0 ∧
+    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 1 = 0
+  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ,
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
+  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ) (k : ℕ), 1 ≤ k →
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
 ```
 
-That is exactly the shape currently in `IntervalHeatSemigroupHighRegularity.lean`:
+This is the generic source-side bundle.  It is not tied to a concrete trajectory.
+
+### 2. Generic bridge from `FlooredSourceTimeData` to `PhysicalSourceTimeC2`
+
+Same file:
 
 ```lean
-refine ⟨fun _i k => intervalNeumannResolverWeight p k,
-  ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
+theorem physicalSourceTimeC2_of_floored
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
+    (H : FlooredSourceTimeData p u s₁ s₂)
+    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant
+        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
+    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
+    PhysicalSourceTimeC2 p u (builtEs H)
 ```
 
-This is fine as a **pure placeholder** because all fields are still sorry'd.  It is
-not the final mathematically honest envelope.
+This is also generic.  It consumes `FlooredSourceTimeData`; it does not produce one.
 
-## Critical correction: global vs positive-window data
+### 3. `IterateSourceTimeData`
 
-The current structure field is global in time:
+File:
+
+```text
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+```
+
+This file defines the explicit first and second source time-derivative slices:
 
 ```lean
-coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-  ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+def srcSlice1 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (du : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * du t x
+
+def srcSlice2 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (du d2u : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * p.γ * (p.γ - 1) * (intervalDomainLift (u t) x) ^ (p.γ - 1 - 1)
+      * (du t x) ^ (2 : ℕ)
+    + p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * d2u t x
 ```
 
-So a bound of the form
+Then it defines the residual/source-data structure:
 
 ```lean
-C_i * intervalNeumannResolverWeight p k * ... * exp (-c * λ_k)
+structure IterateSourceTimeData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (du d2u : ℝ → ℝ → ℝ)
+    : Prop where
+  floor : ∀ t : ℝ, ∀ x ∈ Ioo (0:ℝ) 1, 0 < intervalDomainLift (u t) x
+  time1 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => intervalDomainLift (u r) x) (du s x) s) ∧
+    ContinuousOn (Function.uncurry (srcSlice1 p u du))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+  time2 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice1 p u du s) (Icc (0:ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => intervalDomainLift (u r) x) (du s x) s ∧
+      HasDerivAt (fun r => du r x) (d2u s x) s) ∧
+    ContinuousOn (Function.uncurry (srcSlice2 p u du d2u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
+    ContDiffOn ℝ 2
+      ((sliceFam (srcSlice p u) (srcSlice1 p u du) (srcSlice2 p u du d2u) i) t)
+      (Icc (0:ℝ) 1)
+  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
+    Tendsto (deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
+      (srcSlice2 p u du d2u) i) t)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
+    Tendsto (deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
+      (srcSlice2 p u du d2u) i) t)) (𝓝[Iio 1] 1) (𝓝 0) ∧
+    deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
+      (srcSlice2 p u du d2u) i) t) 0 = 0 ∧
+    deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
+      (srcSlice2 p u du d2u) i) t) 1 = 0
+  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ,
+    |cosineCoeffs ((sliceFam (srcSlice p u) (srcSlice1 p u du)
+      (srcSlice2 p u du d2u) i) t) 0| ≤ D
+  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ) (k : ℕ), 1 ≤ k →
+    |cosineCoeffs ((sliceFam (srcSlice p u) (srcSlice1 p u du)
+      (srcSlice2 p u du d2u) i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
 ```
 
-is only honest for `t ≥ c` (or on `[c,T]`).  It cannot be used as a global
-`PhysicalResolverJointC2Data` witness for the original heat semigroup unless the
-theorem is localized or the coefficients are cut off in time.
+Again, this is not a concrete witness.  It is a residual bundle: if you can prove
+these fields for a trajectory `u`, then the constructor below produces
+`FlooredSourceTimeData`.
 
-This matters because the current heat theorem has no `c`/`T` in the data theorem:
+### 4. The only `flooredSourceTimeData_of_*` theorem found
+
+File:
+
+```text
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+```
+
+Signature:
+
+```lean
+theorem flooredSourceTimeData_of_iterate
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
+    (H : IterateSourceTimeData p u du d2u) :
+    FlooredSourceTimeData p u (srcSlice1 p u du) (srcSlice2 p u du d2u)
+```
+
+The proof is real and explicit: it fills `d0` using `hasDerivAt_srcSlice`, fills
+`d1` using `hasDerivAt_srcSlice1`, and passes through `sliceC2`, `sliceNeumann`,
+`zerothBound`, and `laplBound` from `H`.
+
+So this is a genuine constructor, but only from the residual structure
+`IterateSourceTimeData`.
+
+### 5. End-to-end consumer from `IterateSourceTimeData`
+
+Same file has:
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_iterate
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
+    (H : IterateSourceTimeData p u du d2u)
+    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant
+        (fun i k => intervalNeumannResolverWeight p k *
+          builtEs (flooredSourceTimeData_of_iterate H) i k) m))
+    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => intervalNeumannResolverWeight p k *
+          builtEs (flooredSourceTimeData_of_iterate H) i k) m))
+    (other : ... ) :
+    CoupledChemDivFluxFactorJointC2Inputs p u
+```
+
+This confirms the intended pipeline:
+
+```lean
+IterateSourceTimeData
+  → flooredSourceTimeData_of_iterate
+  → physicalSourceTimeC2_of_floored
+  → coupledChemDivFluxFactorJointC2Inputs_of_floor
+```
+
+But it still starts from the residual `IterateSourceTimeData`; it does not build
+that residual for a named trajectory.
+
+## What about a mild solution?
+
+File:
+
+```text
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+```
+
+This file is very explicit that a bare `GradientMildSolutionData` does **not** carry
+the time-`C²`/space-`C²` regularity needed for `IterateSourceTimeData`.
+
+It defines:
+
+```lean
+structure ChemDivSolutionRegularityResidual
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
+  du : ℝ → ℝ → ℝ
+  d2u : ℝ → ℝ → ℝ
+  hiter : IterateSourceTimeData p u du d2u
+  hval : ... builtEs (flooredSourceTimeData_of_iterate hiter) ...
+  hgrad : ... builtEs (flooredSourceTimeData_of_iterate hiter) ...
+  other : ...
+  Cchem : ℝ
+  ...
+```
+
+Then it proves:
+
+```lean
+noncomputable def coupledChemDivSource_timeC1On_of_gradientSolution
+    (D : GradientMildSolutionData p u₀)
+    (R : ChemDivSolutionRegularityResidual p D.u) :
+    DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs p D.u) 0 D.T
+```
+
+So the mild-solution path also does **not** construct `FlooredSourceTimeData` from
+`GradientMildSolutionData` alone.  It requires the residual `R`, whose field
+`hiter` already contains `IterateSourceTimeData`.
+
+The file comments state the same design point: `GradientMildSolutionData` carries
+only continuity/measurability/bounds/positivity, not the time-`C²` and space-`C²`
+parabolic regularity demanded by `IterateSourceTimeData`.
+
+## What about Picard / heat level?
+
+I found no theorem of the form:
+
+```lean
+FlooredSourceTimeData p (picardIter p u₀ n) ...
+FlooredSourceTimeData p (conjugatePicardIter p u₀ n) ...
+FlooredSourceTimeData p (conjugatePicardIter p u₀ 0) ...
+IterateSourceTimeData p (picardIter p u₀ n) ...
+IterateSourceTimeData p (conjugatePicardIter p u₀ 0) ...
+```
+
+Searches for `FlooredSourceTimeData picardIter` and
+`FlooredSourceTimeData conjugatePicardIter` only led to
+`IntervalHeatSemigroupHighRegularity.lean`, where the heat-level resolver theorem
+still has sorry'd fields and comments that building `FlooredSourceTimeData` for
+the heat semigroup is a missing sub-piece.
+
+The relevant heat theorem is:
 
 ```lean
 theorem heatSemigroup_level0_resolverJointC2Data
@@ -71,194 +309,25 @@ theorem heatSemigroup_level0_resolverJointC2Data
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀) :
     ∃ Bt : ℕ → ℕ → ℝ,
-      PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt
+      PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
+  -- fields sorry'd
 ```
 
-but the proposed `exp(-c λ_k)` envelope depends on a positive left edge `c`.
-For arbitrary continuous `u₀`, the original heat coefficients do not have a
-uniform summable smoothing envelope for all `t : ℝ`.
-
-So before trying to fill the fields honestly, choose one of these two routes:
-
-1. **Local/cutoff route**: prove `PhysicalResolverJointC2Data` for a cutoff resolver
-   coefficient family, then use eventual equality near `(s₀,x₀)`, exactly as
-   `heatSemigroup_jointContDiffAt_two` does for the heat series.
-2. **Window-local structure route**: introduce a localized variant of the source /
-   resolver data whose `coeff_bound` only quantifies `t ∈ Icc c T`.
-
-Do not try to prove the current global theorem with a `c`-dependent heat smoothing
-majorant for the original, uncutoff heat semigroup.
-
-## What concrete `Es` should look like
-
-There are two reasonable future-fillable shapes.
-
-### Option A: source-side polynomial decay from IBP / spatial smoothness
-
-This is the cleaner Lean route if you package uniform spatial regularity of the
-source time-derivative slices.
-
-For each time order `i = 0,1,2`, prove a source-side theorem of the form:
-
-```lean
-∃ C_i, 0 ≤ C_i ∧ ∀ t ∈ Icc c T, ∀ k,
-  ‖iteratedFDeriv ℝ i (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖
-    ≤ C_i / (1 + unitIntervalNeumannSpectrum.eigenvalue k)^2
-```
-
-Then set:
-
-```lean
-Es i k = C_i / (1 + unitIntervalNeumannSpectrum.eigenvalue k)^2
-Bt i k = intervalNeumannResolverWeight p k * Es i k
-```
-
-Why I prefer `(1+λ_k)^(-2)` over just `(1+λ_k)^(-1)`:
-
-* For the **value** majorant, the worst spatial factor is `valueCosWeight 2 k = λ_k`,
-  and the resolver weight gives `λ_k * w_k ≤ 1`, so even `Es ∈ ℓ¹` is enough.
-* For the **gradient** majorant at order 2, the repo explicitly expands the worst
-  term as
-
-  ```lean
-  |kπ| * λ_k * Bt 0 k + 2 * λ_k * Bt 1 k + |kπ| * Bt 2 k
-  ```
-
-  so after `Bt = w_k * Es`, the first term is roughly `|kπ| * Es 0 k`.
-  If `Es 0 k ~ 1/λ_k`, this behaves like `1/k` and is not summable.  With
-  `Es 0 k ~ 1/λ_k^2`, it behaves like `1/k^3`, which is summable.
-
-So for the resolver **gradient** joint C² field, source-side C² decay
-`(kπ)^(-2)` is not enough by itself; use source-side C⁴/IBP decay or an exponential
-envelope.
-
-A compact code skeleton for the final shape:
-
-```lean
-noncomputable def heatSourceEsShape
-    (C : ℕ → ℝ) : ℕ → ℕ → ℝ :=
-  fun i k => C i / (1 + unitIntervalNeumannSpectrum.eigenvalue k)^2
-
-noncomputable def heatResolverBtShape
-    (p : CM2Params) (C : ℕ → ℝ) : ℕ → ℕ → ℝ :=
-  fun i k => intervalNeumannResolverWeight p k * heatSourceEsShape C i k
-```
-
-Then the intended final proof is:
-
-```lean
-obtain ⟨C, hCnonneg, Hsrc⟩ := heat_level0_physicalSourceTimeC2_data_on ...
-let Es := heatSourceEsShape C
-have H : PhysicalSourceTimeC2 p (conjugatePicardIter p u₀ 0) Es := by
-  -- src_contDiff, src_bound, value_summable, grad_summable
-  -- all source-side; no resolver algebra here.
-  ...
-exact ⟨fun i k => intervalNeumannResolverWeight p k * Es i k,
-  physicalResolverJointC2Data_of_floor H⟩
-```
-
-Again: if the data is only valid on `[c,T]`, this exact global `PhysicalSourceTimeC2`
-call is too strong.  Use a cutoff/globalized source coefficient or make a localized
-version.
-
-### Option B: exponential heat envelope
-
-Your proposed form is also acceptable as a **window/cutoff** envelope:
-
-```lean
-Es i k = C_i * (1 + λ_k)^N * Real.exp (-(c / 2) * λ_k)
-Bt i k = intervalNeumannResolverWeight p k * Es i k
-```
-
-Use a polynomial times exponential, not necessarily a negative power times
-exponential.  The exponential already gives summability after all value/gradient
-weights.  This shape matches the cutoff-heat-series style better: derivative
-bounds usually produce polynomial factors `(1+λ_k)^N`, and the positive time
-cutoff contributes `exp (-(c/2) λ_k)`.
-
-For the nonlinear source `ν·S(t)u₀^γ`, proving a direct modewise exponential
-coefficient bound for the composed source may be more painful than proving high
-spatial regularity and doing repeated IBP.  So I would only choose this route if
-you are already building a full analytic/cutoff source-series majorant.
-
-## What not to do
-
-Do **not** set:
-
-```lean
-Bt i k = C_i * w_k * (1 + λ_k)^(-1) * exp (-c * λ_k)
-```
-
-inside a proof that later calls:
-
-```lean
-physicalResolverJointC2Data_of_floor
-```
-
-unless you mean this as the **final `Bt`**, not `Es`.  The producer already applies
-`w_k`, so source-side data should be:
-
-```lean
-Es i k = C_i * (1 + λ_k)^(-1) * exp (-c * λ_k)
-```
-
-and the resulting resolver data has:
-
-```lean
-Bt i k = w_k * Es i k
-```
-
-Also, `(1+λ)^(-1)` without the exponential is too weak for the gradient joint-C²
-summability, as explained above.
-
-## Practical recommendation
-
-For the current sorry-driven implementation:
-
-```lean
--- Fine as temporary witness while every field is sorry'd.
-refine ⟨fun _i k => intervalNeumannResolverWeight p k,
-  ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
-```
-
-or, if you want a placeholder closer to the final summability proof:
-
-```lean
-refine ⟨fun _i k =>
-    intervalNeumannResolverWeight p k /
-      (1 + unitIntervalNeumannSpectrum.eigenvalue k)^2,
-  ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
-```
-
-The second one is better as a future proof shape, but it requires importing/opening
-`unitIntervalNeumannSpectrum` and later adding constants `C_i`; without constants it
-will not be the actual bound.
-
-For the honest final proof, I would not handroll `PhysicalResolverJointC2Data`.
-Instead, build a heat-level source-side package:
-
-```lean
-heatSemigroup_level0_physicalSourceTimeC2Data_on
-```
-
-or a cutoff/globalized equivalent, then finish with the existing theorem:
-
-```lean
-physicalResolverJointC2Data_of_floor
-```
-
-That keeps the resolver proof purely algebraic: the only hard work is proving the
-source-side `Es` bounds and the two summability fields.
+Its comments say the final form should go through `FlooredSourceTimeData` /
+`physicalResolverJointC2Data_of_floor`, but this has not yet been implemented as a
+concrete heat-level `FlooredSourceTimeData` witness.
 
 ## Bottom line
 
-* **Temporary:** yes, use an explicit dummy `Bt`; the current `fun _i k => w_k` is
-  okay while all fields are sorry'd.
-* **Final direct `Bt`:** `Bt = w_k * Es`, never more complicated than that at the
-  resolver layer.
-* **Best simple `Es`:** use a source-side C⁴/IBP envelope like
-  `C_i / (1+λ_k)^2`, not merely `C_i / (1+λ_k)`, because `grad_summable` has the
-  extra `|kπ|` factor.
-* **If using `exp(-c λ_k)`:** localize/cut off first.  The current global
-  `PhysicalResolverJointC2Data` field cannot honestly use a positive-window
-  envelope for all `t : ℝ`.
+* **Exists:** `flooredSourceTimeData_of_iterate`.
+* **Nature:** generic/residual constructor from `IterateSourceTimeData p u du d2u`.
+* **Does not exist / not found:** an actual instantiated `FlooredSourceTimeData`
+  witness for `picardIter`, `conjugatePicardIter`, the heat base iterate
+  `conjugatePicardIter p u₀ 0`, or a `GradientMildSolutionData` solution.
+* **Mild-solution consumer:** `IntervalChemDivWinDischarge.lean` explicitly packages
+  the missing regularity as `ChemDivSolutionRegularityResidual`, whose `hiter` field
+  is already an `IterateSourceTimeData`; it does not derive that field.
+
+For cron2/Level0, this means the missing object is still a **heat-level / positive-window
+instantiation of `IterateSourceTimeData` or directly of `FlooredSourceTimeData`**.
+The repo has the bridge once that object exists, but not the object itself.
