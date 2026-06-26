@@ -1,4 +1,4 @@
-# Q840 / cron1: is `3A-sub` still reachable after `level0_chemDiv_envelope_summable` restructuring?
+# Q849 / cron1: compact maximum for `2A-sup`
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -6,106 +6,134 @@ Source ref inspected: `main`
 
 Branch written: `chatgpt-scratch`
 
-## Grep result
+## Verdict
 
-Command requested:
+Yes.  The pinned Mathlib has exactly:
 
-```bash
-grep -n "hcont_slices\|3A-sub" ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+```lean
+IsCompact.exists_isMaxOn
 ```
 
-Result on current `main` content:
+in
 
 ```text
-# hcont_slices: no matches
-960-ish: sorry -- [SUB-SORRY 3A-sub: requires upstream weakening of ContinuousOn to IntervalIntegrable ...]
-1038-ish: sorry -- [SUB-SORRY 3A-sub: per-slab continuity, τ ≤ 0 case ...]
+Mathlib/Topology/Order/Compact.lean
 ```
 
-So: **`hcont_slices` is gone**, but **`3A-sub` is still present and reachable**.
-
-## Precise verdict
-
-The restructuring eliminated the old envelope-path need for per-slice
+Its statement is:
 
 ```lean
-ContinuousOn (coupledChemDivSourceLift ...) (Icc 0 1)
+theorem IsCompact.exists_isMaxOn [ClosedIciTopology α] {s : Set β}
+    (hs : IsCompact s) (ne_s : s.Nonempty) {f : β → α}
+    (hf : ContinuousOn f s) : ∃ x ∈ s, IsMaxOn f s x
 ```
 
-inside `level0_chemDiv_envelope_summable`.
+So for a real-valued continuous function on a compact box, this is the right theorem.
 
-`hSup` now asks for:
+## Repo precedent
 
-```lean
-IntervalIntegrable (coupledChemDivSourceLift ...) volume 0 1
-```
-
-plus a pointwise `Icc` sup bound, not `ContinuousOn`.  The theorem then obtains
-
-```lean
-hint_slices, hsup_slices
-```
-
-from `hSup`, and the zero-mode coefficient estimate uses:
-
-```lean
-cosineCoeffs_abs_le_of_integrable_bounded
-  (hint_slices s hs) hMsupnn (hsup_slices s hs) 0
-```
-
-This confirms that the **envelope** no longer needs `hcont_slices` or per-slice `ContinuousOn` of the actual zero-extension source.
-
-## Why `3A-sub` is still reachable
-
-`3A-sub` survived in the **time-derivative data** theorem, not in the envelope theorem.
-
-Specifically, in `level0_chemDiv_timeDerivData`, the proof builds
-
-```lean
-hfluxC2 : CoupledChemDivFluxJointC2Hyp p (conjugatePicardIter p u₀ 0)
-```
-
-by applying
-
-```lean
-coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-```
-
-The first field `F1` is still the per-slab source-continuity field:
-
-```lean
-∀ᶠ s in 𝓝 τ,
-  ContinuousOn (coupledChemDivSourceLift p (...) s) (Icc 0 1)
-```
-
-and that field is exactly where the positive-time `3A-sub` sorry remains.
-
-The comments in the file explicitly say this is still a boundary obstruction, and the proposed fix is to weaken the upstream structures from closed-interval `ContinuousOn` to `IntervalIntegrable` / dominated-convergence-style hypotheses.
-
-## Dependency path
-
-The remaining reachable path is:
+The repo already uses the exact pattern in:
 
 ```text
-level0_chemDiv_timeDerivData
-  → hfluxC2 : CoupledChemDivFluxJointC2Hyp
-    → F1 per-slab source continuity
-      → SUB-SORRY 3A-sub
-  → coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
-  → hchain.exists_local_slab
-  → hjointcont / hderiv / DuhamelSourceTimeC1On time-derivative data
+ShenWork/Wiener/EWA/ResolverSliceWindowBounds.lean
 ```
 
-So `3A-sub` is not dead code.  It is no longer needed for the **coefficient envelope**, but it is still needed for the **chain-rule / coefficient time-derivative route**.
-
-## Practical conclusion
-
-The architectural restructuring solved the envelope-side boundary obstruction, but not the time-derivative-side one.
-
-The next fix should target the structures feeding `CoupledChemDivLocalChainRule`: weaken the F1/source-continuity requirement from
+There, it sets a compact box
 
 ```lean
-ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)
+W ×ˢ Set.Icc (0 : ℝ) 1
 ```
 
-to an integrability/a.e. or smooth-representative formulation sufficient for the time-Leibniz integral step.  Until that upstream weakening happens, `3A-sub` remains reachable from `level0_chemDiv_timeDerivData`.
+proves compactness by
+
+```lean
+have hKcompact : IsCompact (W ×ˢ Set.Icc (0 : ℝ) 1) :=
+  (isCompact_Icc).prod isCompact_Icc
+```
+
+proves nonemptiness, then obtains the max by:
+
+```lean
+obtain ⟨q₁, _, hq₁max⟩ := hKcompact.exists_isMaxOn hKne hFcont
+```
+
+and uses the `IsMaxOn` proof directly as:
+
+```lean
+exact hq₁max (Set.mem_prod.mpr ⟨hσ, hx⟩)
+```
+
+That is exactly the shape needed for `[c,T] × [0,1]`.
+
+## Suggested `2A-sup` compact-bound skeleton
+
+For the smooth representative, do this over the closed compact box:
+
+```lean
+set K : Set (ℝ × ℝ) := Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1
+set G : ℝ × ℝ → ℝ := fun q => |smoothRep q.1 q.2|
+
+have hKcompact : IsCompact K := by
+  simpa [K] using (isCompact_Icc.prod isCompact_Icc)
+
+have hKne : K.Nonempty := by
+  refine ⟨(c, 0), ?_⟩
+  exact Set.mem_prod.mpr ⟨Set.left_mem_Icc.mpr hcT, by norm_num⟩
+
+have hGcont : ContinuousOn G K := by
+  -- from joint continuity of `smoothRep`, composed with `abs`
+  -- e.g. `exact hSmooth.continuousOn.abs` or a small `simpa [G]` variant
+  ...
+
+obtain ⟨qmax, hqmax_mem, hqmax⟩ := hKcompact.exists_isMaxOn hKne hGcont
+
+refine ⟨G qmax, ?_, ?_⟩
+· exact abs_nonneg _
+· intro s hs x hx
+  -- For the smooth representative itself:
+  have hle_smooth : |smoothRep s x| ≤ G qmax := by
+    simpa [G] using hqmax (Set.mem_prod.mpr ⟨hs, hx⟩)
+  ...
+```
+
+For `2A-sup`, the last `...` splits on the spatial point:
+
+```lean
+by_cases hxIoo : x ∈ Set.Ioo (0 : ℝ) 1
+```
+
+* Interior: rewrite `coupledChemDivSourceLift ... s x` to `smoothRep s x`, using the interior agreement (`coupledChemDivSourceLift_eq_deriv_fluxLift_interior` plus the definition of the smooth representative).
+* Boundary: from `x ∈ Icc 0 1` and `¬ x ∈ Ioo 0 1`, derive `x = 0 ∨ x = 1`; then use the endpoint fact that the zero-extension derivative/source value is `0`, so the absolute value is `0 ≤ G qmax`.
+
+A useful boundary splitter is:
+
+```lean
+have hx_boundary : x = 0 ∨ x = 1 := by
+  rcases hx with ⟨hx0, hx1⟩
+  rw [Set.mem_Ioo, not_and_or, not_lt, not_lt] at hxIoo
+  rcases hxIoo with hxle0 | hxge1
+  · exact Or.inl (le_antisymm hxle0 hx0)
+  · exact Or.inr (le_antisymm hx1 hxge1)
+```
+
+## Important caveat
+
+The compact maximum theorem gives a max for a **continuous** function on the **closed box**.  For this route, apply it to the smooth representative's absolute value:
+
+```lean
+G(s,x) = |smoothRep s x|
+```
+
+not to `|coupledChemDivSourceLift ... s x|`, because the latter is exactly the closed-boundary discontinuous object.
+
+## Answer to the route
+
+Your 5-step route is right, with this Lean-side wording:
+
+1. Prove joint `ContinuousOn` of `smoothRep` on `Set.Icc c T ×ˢ Set.Icc 0 1`.
+2. Apply `IsCompact.exists_isMaxOn` to `G q = |smoothRep q.1 q.2|` over that compact box.
+3. Interior points: transfer by source/smooth-representative agreement on `Ioo 0 1`.
+4. Boundary points: prove/consume the endpoint lemma that `coupledChemDivSourceLift ... s 0 = 0` and `... s 1 = 0`.
+5. Use the max value `G qmax` as `Msup`.
+
+This is also aligned with the current `hSup` comment in `IntervalConjugateLevel0BFormSourceOn.lean`: `2A-sup` is now a sup-bound problem, not a `ContinuousOn` problem for the actual source lift.
