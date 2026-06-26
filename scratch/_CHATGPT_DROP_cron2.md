@@ -1,395 +1,372 @@
-# Q733 (cron2): Mathlib / Shen_work search for `contDiff_tsum` mixed-product bounds
+# Q737 (cron2): smooth cutoff pattern for `contDiff_tsum`
 
-Static repo inspection only; I did not run a Lean build.  Mathlib files below were inspected at tag/ref `v4.29.1` where possible.
+Static repo inspection only; I did not run a Lean build.
 
 ## Executive verdict
 
-Yes: Mathlib v4.29.1 has exactly the kind of **norm bound** needed for products, though not phrased as a special “separate variables mixed partials factor” theorem.
+The repo has a fully explicit smooth-cutoff infrastructure for the resolver restart-series `contDiff_tsum` route.
 
-The key theorem is:
+The cutoff is **not** built from `SmoothBumpFunction`.  It is built explicitly from Mathlib’s
 
 ```lean
-norm_iteratedFDeriv_mul_le
+Real.smoothTransition
 ```
 
-from:
+via a one-sided cutoff:
+
+```lean
+def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
+  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
+```
+
+and then a compact two-sided bump
+
+```lean
+restartSmoothCutoff offset s t
+```
+
+as a product of two `smoothRightCutoff`s, one on the left and one applied to `-t` on the right.
+
+I found **no existing heat-semigroup-specific** theorem of the form “heat semigroup + cutoff → `contDiff_tsum`.”  The closest existing code is the resolver restart homogeneous tail, which already uses the compact cutoff support to reduce global bounds to a positive compact restart-time slab and then bounds homogeneous factors by an exponential with the positive left edge `τmin`.
+
+So for heat level 0, the recommended path is: copy/adapt the existing `restartSmoothCutoff` pattern and the `cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound` style, replacing `localRestartCoeff` by the homogeneous heat coefficient `Real.exp (-t * λ_n) * a₀ n`.
+
+## 1. Smooth cutoff infrastructure
+
+### File
 
 ```text
-Mathlib/Analysis/Calculus/ContDiff/Bounds.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
 ```
 
-It states, for scalar/normed-ring product:
+This file imports:
 
 ```lean
-theorem norm_iteratedFDeriv_mul_le
-    {f : E → A} {g : E → A} {N : WithTop ℕ∞}
-    (hf : ContDiff 𝕜 N f) (hg : ContDiff 𝕜 N g)
-    (x : E) {n : ℕ} (hn : n ≤ N) :
-    ‖iteratedFDeriv 𝕜 n (fun y => f y * g y) x‖ ≤
-      ∑ i ∈ Finset.range (n + 1),
-        (n.choose i : ℝ) * ‖iteratedFDeriv 𝕜 i f x‖ *
-          ‖iteratedFDeriv 𝕜 (n - i) g x‖
+import Mathlib.Analysis.SpecialFunctions.SmoothTransition
 ```
 
-There is also the more general bilinear version:
+and defines the one-sided cutoff:
 
 ```lean
-ContinuousLinearMap.norm_iteratedFDeriv_le_of_bilinear
+/-- Smooth right cutoff equal to `0` on `(-∞, c']` and `1` on `[c, ∞)`. -/
+def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
+  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
 ```
 
-and the within-set versions:
+It proves:
 
 ```lean
-ContinuousLinearMap.norm_iteratedFDerivWithin_le_of_bilinear
-norm_iteratedFDerivWithin_mul_le
+smoothRightCutoff_contDiff
+smoothRightCutoff_eq_zero_of_le
+smoothRightCutoff_eq_one_of_ge
+smoothRightCutoff_eventually_eq_one
 ```
 
-So for
+So the primitive cutoff is explicit `Real.smoothTransition`, not a bundled `SmoothBumpFunction`.
 
-```lean
-f_n q = a n * Real.exp (-q.1 * λ n) * Real.cos ((n : ℝ) * Real.pi * q.2)
-```
+## 2. `cutoffValueTerm`
 
-you do **not** need to prove a custom mixed-partial factorization theorem.  Use:
-
-1. `norm_iteratedFDeriv_mul_le` for the product;
-2. a first-coordinate projection bound for the time factor;
-3. a second-coordinate projection bound for the spatial cosine factor;
-4. explicit 1D bounds for `iteratedFDeriv` of `t ↦ a_n * exp(-t λ_n)` and `x ↦ cos(nπx)`.
-
-Shen_work already has exactly this pattern for terms of the form
-
-```lean
-fun q : ℝ × ℝ => c n q.1 * cosineMode n q.2
-```
-
-in:
+### File
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
 ```
 
-The relevant theorem is:
+Definition:
 
 ```lean
-theorem boundedWeightJointTerm_iteratedFDeriv_le
+/-- Cutoff-localized value term. -/
+def cutoffValueTerm
+    (φ : ℝ → ℝ) (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (offset : ℝ)
+    (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => φ q.1 * localRestartCoeff a₀ a (q.1 - offset) n *
+    cosineMode n q.2
 ```
 
-It calls `norm_iteratedFDeriv_mul_le`, then uses projection lemmas for `q.1` and `q.2`, then feeds the resulting majorant to `contDiff_tsum` in
+The same file also defines:
 
 ```lean
-theorem boundedWeightJointSeries_contDiff_two
+/-- Cutoff-localized gradient term. -/
+def cutoffGradTerm (φ : ℝ → ℝ) (gradTerm : ℕ → ℝ × ℝ → ℝ)
+    (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => φ q.1 * gradTerm n q
 ```
 
-This is probably the best template for your new heat-semigroup term.
+The generic `contDiff_tsum` wrapper is:
 
-## Mathlib results found
+```lean
+theorem resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
+```
 
-### 1. General bilinear product bound
+It takes:
+
+* an arbitrary cutoff `φ : ℝ → ℝ`,
+* `hφ_one : φ =ᶠ[𝓝 s] fun _ => 1`,
+* termwise `ContDiff` for the cutoff value and gradient terms,
+* summable majorants for `vValue` and `vGrad`,
+* iterated derivative bounds for the cutoff terms,
+* a gradient eventual-equality input.
+
+Then it applies `contDiff_tsum` globally and transfers the result back to the original local series using `EventuallyEq` near `(s,x)`.
+
+## 3. How the compact cutoff is constructed
+
+### File
+
+```text
+ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+```
+
+It first defines four edges around the target time `s` and `offset`:
+
+```lean
+def restartCutoffLeftOuter (offset s : ℝ) : ℝ :=
+  offset + (s - offset) / 4
+
+def restartCutoffLeft (offset s : ℝ) : ℝ :=
+  offset + (s - offset) / 3
+
+def restartCutoffRight (offset s : ℝ) : ℝ :=
+  s + (s - offset) / 3
+
+def restartCutoffRightOuter (offset s : ℝ) : ℝ :=
+  s + (s - offset) / 2
+```
+
+Then the two-sided cutoff is:
+
+```lean
+/-- Concrete two-sided smooth cutoff supported in a compact slab around the
+ target time and equal to one near the target time. -/
+def restartSmoothCutoff (offset s : ℝ) : ℝ → ℝ :=
+  fun t =>
+    smoothRightCutoff (restartCutoffLeftOuter offset s)
+        (restartCutoffLeft offset s) t *
+      smoothRightCutoff (-(restartCutoffRightOuter offset s))
+        (-(restartCutoffRight offset s)) (-t)
+```
+
+The file proves the ordering of those edges, plus:
+
+```lean
+restartSmoothCutoff_contDiff
+restartSmoothCutoff_eventually_eq_one
+restartSmoothCutoff_eq_zero_of_le_left
+restartSmoothCutoff_eq_zero_of_right_le
+restartSmoothCutoff_eq_one_of_mem_core
+restartSmoothCutoff_hasCompactSupport
+restartSmoothCutoff_iteratedFDeriv_bound_exists
+restartCutoffDerivMajorant
+restartCutoffDerivMajorant_spec
+```
+
+Key facts:
+
+* `restartSmoothCutoff_eventually_eq_one hτ` gives `φ = 1` near the target `s`.
+* `restartSmoothCutoff_eq_zero_of_le_left` and `_of_right_le` give zero outside the compact slab.
+* `restartSmoothCutoff_hasCompactSupport` packages compact support.
+* `restartCutoffDerivMajorant_spec` gives global bounds on the derivatives of the cutoff itself.
+
+## 4. Concrete cutoff + `contDiff_tsum` instantiation
+
+### Generic no-cutoff assembler
 
 File:
 
 ```text
-Mathlib/Analysis/Calculus/ContDiff/Bounds.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Assemble.lean
 ```
 
-Relevant theorem:
+This has the direct non-cutoff skeleton:
 
 ```lean
-theorem ContinuousLinearMap.norm_iteratedFDeriv_le_of_bilinear
-    (B : E →L[𝕜] F →L[𝕜] G)
-    {f : D → E} {g : D → F} {N : WithTop ℕ∞}
-    (hf : ContDiff 𝕜 N f) (hg : ContDiff 𝕜 N g)
-    (x : D) {n : ℕ} (hn : n ≤ N) :
-    ‖iteratedFDeriv 𝕜 n (fun y => B (f y) (g y)) x‖ ≤
-      ‖B‖ * ∑ i ∈ Finset.range (n + 1),
-        (n.choose i : ℝ) * ‖iteratedFDeriv 𝕜 i f x‖ *
-          ‖iteratedFDeriv 𝕜 (n - i) g x‖
+def resolverSpectralValueTerm ... :=
+  fun q => localRestartCoeff a₀ a (q.1 - offset) n * cosineMode n q.2
 ```
 
-This is the direct abstract version of the desired Leibniz/mixed-order estimate.
-
-### 2. Multiplication-specialized bound
-
-Same file:
+and:
 
 ```lean
-theorem norm_iteratedFDeriv_mul_le
-    {f : E → A} {g : E → A} {N : WithTop ℕ∞}
-    (hf : ContDiff 𝕜 N f) (hg : ContDiff 𝕜 N g)
-    (x : E) {n : ℕ} (hn : n ≤ N) :
-    ‖iteratedFDeriv 𝕜 n (fun y => f y * g y) x‖ ≤
-      ∑ i ∈ Finset.range (n + 1),
-        (n.choose i : ℝ) * ‖iteratedFDeriv 𝕜 i f x‖ *
-          ‖iteratedFDeriv 𝕜 (n - i) g x‖
+theorem resolverSpectralJointC2At_of_contDiff_tsum
 ```
 
-This is usually the one to use for real-valued terms.
+It simply assumes termwise `ContDiff`, summability, and bounds, then calls `contDiff_tsum` for the value and gradient series.
 
-The theorem is derived from multiplication as a continuous bilinear map:
-
-```lean
-ContinuousLinearMap.mul 𝕜 A : A →L[𝕜] A →L[𝕜] A
-```
-
-with operator norm at most `1`.
-
-### 3. Finite product bound
-
-Same file also has:
-
-```lean
-norm_iteratedFDeriv_prod_le
-```
-
-for products over a finite set.  This is useful if the term is a product of more than two factors, but for your heat-cosine mode the binary product theorem is simpler.
-
-### 4. `contDiff_tsum`
+### Cutoff wrapper
 
 File:
 
 ```text
-Mathlib/Analysis/Calculus/SmoothSeries.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
 ```
 
-Relevant theorem:
+The cutoff wrapper:
 
 ```lean
-theorem contDiff_tsum
-    (hf : ∀ i, ContDiff 𝕜 N (f i))
-    (hv : ∀ k : ℕ, (k : ℕ∞) ≤ N → Summable (v k))
-    (h'f : ∀ (k : ℕ) (i : α) (x : E), k ≤ N →
-      ‖iteratedFDeriv 𝕜 k (f i) x‖ ≤ v k i) :
-    ContDiff 𝕜 N fun x => ∑' i, f i x
+resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
 ```
 
-There are also:
+is the local version that inserts `φ`, proves the cutoff series is globally `ContDiff`, and transfers back to the original series near the target because `φ = 1` there.
 
-```lean
-iteratedFDeriv_tsum
-iteratedFDeriv_tsum_apply
-contDiff_tsum_of_eventually
-```
-
-The important point: `contDiff_tsum` wants **summable uniform bounds** `v k i` for each derivative order `k ≤ N`, uniform in the base point `x`.  Merely proving `ContDiff` of each term is not enough.
-
-## Shen_work examples found
-
-### 1. Exact product-bound template: bounded-weight resolver joint term
+### Concrete restart instantiation
 
 File:
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
 ```
 
-Definitions:
+This file instantiates the generic cutoff wrapper with:
 
 ```lean
-def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => c n q.1 * cosineMode n q.2
+φ := restartSmoothCutoff offset s
 ```
+
+The final theorem is:
 
 ```lean
-def boundedWeightJointMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
-  ∑ i ∈ Finset.range (k + 1),
-    (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
+/-- Concrete cutoff instantiation of the generic producer. -/
+theorem resolverSpectralJointC2At_of_restartSmoothCutoff
+    {a₀ : ℕ → ℝ} {M : ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
+    (hτ : 0 < s - offset) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    (src : DuhamelSourceTimeC2Coeff a) :
+    ResolverSpectralJointC2At a₀ a offset s x :=
+  resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
+    (φ := restartSmoothCutoff offset s)
+    (gradTerm := resolverSpectralConcreteGradTerm a₀ a offset)
+    (vValue := concreteRestartValueMajorant a₀ src offset s hτ)
+    (vGrad := concreteRestartGradMajorant a₀ src offset s hτ)
+    (restartSmoothCutoff_eventually_eq_one hτ)
+    (cutoffValueTerm_restartSmoothCutoff_contDiff src)
+    (concreteRestartValueMajorant_summable hτ ha₀ src)
+    (cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src)
+    (cutoffGradTerm_restartSmoothCutoff_contDiff src)
+    (concreteRestartGradMajorant_summable hτ ha₀ src)
+    (cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src)
+    (resolverSpectralGradSeries_eventuallyEq_concreteGradTerm hτ ha₀ src)
 ```
 
-Key theorem:
+This is the full “smooth cutoff + global `contDiff_tsum` + local equality” pattern.
+
+## 5. How the bounds use compact support / positive slab
+
+The concrete file defines:
 
 ```lean
-theorem boundedWeightJointTerm_iteratedFDeriv_le
-    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ} {n k : ℕ} {q : ℝ × ℝ}
-    (hc : ContDiff ℝ (2 : ℕ∞) (c n)) (hk : (k : ℕ∞) ≤ (2 : ℕ∞))
-    (hBt : ∀ i, i ≤ 2 → ‖iteratedFDeriv ℝ i (c n) q.1‖ ≤ Bt i n) :
-    ‖iteratedFDeriv ℝ k (boundedWeightJointTerm c n) q‖ ≤
-      boundedWeightJointMajorant Bt k n
+def restartSlabMin (offset s : ℝ) : ℝ :=
+  restartCutoffLeftOuter offset s - offset
+
+def restartSlabMax (offset s : ℝ) : ℝ :=
+  restartCutoffRightOuter offset s - offset
 ```
 
-Inside the proof, it does exactly this:
+and proves:
 
 ```lean
-have hprod := norm_iteratedFDeriv_mul_le hcj hcos q hkTop
+restartSlabMin_pos
+restartSlabMin_le_of_mem_support_slab
+restartSlabMax_ge_of_mem_support_slab
 ```
 
-then bounds the time factor via `norm_iteratedFDeriv_comp_fst_le` and the spatial factor via `norm_iteratedFDeriv_comp_snd_le` plus `cosineMode_iteratedFDeriv_bound`.
+This is the exact mechanism that prevents bad behavior outside the positive-time region: on the support of the cutoff, restart time `t - offset` is bounded below by `restartSlabMin offset s > 0`.  Outside that support, the cutoffed term has derivative zero by eventual equality to `0`.
 
-The assembler is:
+For the homogeneous/restart heat tail, the relevant majorant is:
 
 ```lean
-theorem boundedWeightJointSeries_contDiff_two ... :
-    ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q) :=
-  contDiff_tsum ...
+def restartHomogeneousCubeMajorant
+    (a₀ : ℕ → ℝ) (τmin : ℝ) (n : ℕ) : ℝ :=
+  unitIntervalCosineEigenvalue n *
+    (unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (Real.exp (-τmin * unitIntervalCosineEigenvalue n) * |a₀ n|)))
 ```
 
-This is the exact pattern to copy.
+and it is summable when `0 < τmin` and `|a₀ n| ≤ M`:
 
-### 2. Projection helper lemmas
+```lean
+theorem restartHomogeneousCubeMajorant_summable
+```
 
-File:
+This is close to the heat-semigroup need: replace raw `Real.exp (-t λ_n)` by the uniform positive-slab bound `Real.exp (-τmin λ_n)`.
+
+The global bound lemmas split into:
+
+* zero outside the cutoff support:
+  ```lean
+  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_left
+  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_right
+  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_left
+  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_right
+  ```
+* bounds inside the support slab:
+  ```lean
+  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
+  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
+  ```
+* global bounds by case split on left/outside/right:
+  ```lean
+  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound
+  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound
+  ```
+
+## 6. Existing “heat semigroup + cutoff → contDiff_tsum” combination?
+
+I searched for combinations involving heat terms and cutoff terms, including:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean
+unitIntervalCosineHeatValue restartSmoothCutoff
+heatValue contDiff_tsum cutoff
+smoothRightCutoff heat
 ```
 
-Useful lemmas:
+I did **not** find a dedicated theorem that directly proves heat semigroup joint smoothness using this cutoff pattern.
+
+The existing cutoff machinery is resolver/restart-specific:
+
+* `cutoffValueTerm` uses `localRestartCoeff a₀ a (q.1 - offset) n`, not raw `Real.exp (-q.1 * λ_n) * a₀ n`.
+* `restartCoeffCoreMajorant` combines homogeneous restart, Duhamel, source envelopes, and derivative envelopes.
+* The homogeneous part already contains the exact exponential-positive-slab idea via `restartHomogeneousCubeMajorant`.
+
+So for a heat-only proof, there is no ready-made final theorem, but there is a very close blueprint.
+
+## 7. Suggested heat-level adaptation
+
+For heat semigroup level 0, define a heat-specific cutoff term, something like:
 
 ```lean
-theorem norm_iteratedFDeriv_comp_fst_le
-    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
-    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
-    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.1) q‖ ≤
-      ‖iteratedFDeriv ℝ k g q.1‖
+def heatCutoffValueTerm
+    (φ : ℝ → ℝ) (a₀ : ℕ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => φ q.1 * (Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * a₀ n) *
+    cosineMode n q.2
 ```
 
-```lean
-theorem norm_iteratedFDeriv_comp_snd_le
-    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
-    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
-    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.2) q‖ ≤
-      ‖iteratedFDeriv ℝ k g q.2‖
-```
+Then copy the resolver pattern:
 
-These are not generic Mathlib names; they are Shen_work helper lemmas built from `ContinuousLinearMap.fst/snd` and `iteratedFDeriv_comp_right`.
-
-### 3. Another direct product-bound example
-
-Same file has:
-
-```lean
-theorem cutoffValueTerm_leibniz_bound
-```
-
-It rewrites a cutoff value term as a product and then does:
-
-```lean
-norm_iteratedFDeriv_mul_le hG hH q hk'
-```
-
-This is a compact small example of using the Mathlib product bound.
-
-### 4. A simple fixed-time heat-series `contDiff_tsum` example
-
-File:
-
-```text
-ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
-```
-
-The theorem
-
-```lean
-theorem unitIntervalCosineHeatValue_contDiff_seven
-```
-
-uses `contDiff_tsum` for the fixed-time spatial heat series.  Since `t` is fixed there, it avoids mixed `(t,x)` derivatives and only bounds spatial derivatives:
-
-```lean
-let v : ℕ → ℕ → ℝ := fun k n =>
-  |(n : ℝ) * Real.pi| ^ k *
-    Real.exp (-t * unitIntervalCosineEigenvalue n) * |M|
-```
-
-This is useful for the purely spatial heat-value route, but for joint `(t,x)` smoothness the `IntervalResolverJointC2Physical` pattern is closer.
-
-## About the proposed “simpler approach”
-
-> Since each `f_n` is `ContDiff ℝ ⊤`, can I just use `norm_iteratedFDeriv_le_of_bound` or similar?
-
-Not by itself.
-
-`ContDiff` gives smoothness of each term and continuity of each iterated derivative, but `contDiff_tsum` needs a **summable uniform majorant**:
-
-```lean
-∀ k i x, ‖iteratedFDeriv ℝ k (f i) x‖ ≤ v k i
-```
-
-with `Summable (v k)`.
-
-For the full domain `ℝ × ℝ`, the heat factor
-
-```lean
-Real.exp (-t * λ_n)
-```
-
-is not uniformly bounded in `t`, because it blows up as `t → -∞` when `λ_n > 0`.  So a global-on-`ℝ×ℝ` summable majorant for the heat terms is generally false unless you insert a cutoff or restrict the time domain.
-
-On a positive slab, e.g.
-
-```lean
-t ∈ Icc c T,  0 < c
-```
-
-you can use
-
-```lean
-Real.exp (-t * λ_n) ≤ Real.exp (-c * λ_n)
-```
-
-and get a summable majorant of the form, schematically,
-
-```lean
-|a_n| * ∑ i ∈ Finset.range (k+1),
-  (k.choose i : ℝ) * λ_n^i * Real.exp (-c * λ_n) * |nπ|^(k-i)
-```
-
-or any cruder summable polynomial-times-exponential bound.
-
-If the term is cutoff-supported in time, another route is compact-support/compactness: Shen_work uses this style for `restartSmoothCutoff_iteratedFDeriv_bound_exists`, deriving a bound on each cutoff derivative from `ContDiff.continuous_iteratedFDeriv` plus compact support.  But for the raw heat kernel on all `ℝ`, explicit positive-time exponential bounds are the right route.
-
-## Recommended implementation route for your term
-
-For each mode, define or rewrite into:
-
-```lean
-G n q := a n * Real.exp (-q.1 * λ n)
-H n q := cosineMode n q.2
-f n q := G n q * H n q
-```
-
-Then:
-
-```lean
-have hG : ContDiff ℝ N (G n) := by fun_prop
-have hH : ContDiff ℝ N (H n) := by
-  have hcos : ContDiff ℝ N (cosineMode n) := by
-    unfold cosineMode; fun_prop
-  exact hcos.comp contDiff_snd
-
-have hprod := norm_iteratedFDeriv_mul_le hG hH q hk
-```
-
-For a cleaner bound, follow the repo’s existing abstraction:
-
-```lean
-norm_iteratedFDeriv_comp_fst_le
-norm_iteratedFDeriv_comp_snd_le
-cosineMode_iteratedFDeriv_bound
-```
-
-and build a majorant analogous to:
-
-```lean
-boundedWeightJointMajorant Bt k n
-```
-
-For the heat term on `t ≥ c`, take the time derivative bound roughly as:
-
-```lean
-Bt i n := |a n| * λ_n^i * Real.exp (-c * λ_n)
-```
-
-Then the joint majorant is:
-
-```lean
-∑ i ∈ Finset.range (k+1),
-  (k.choose i : ℝ) * Bt i n * valueCosWeight (k-i) n
-```
-
-and `contDiff_tsum` consumes exactly this shape.
+1. Use `restartSmoothCutoff offset s` with `offset` chosen so the support slab has positive left edge.  For a target `s > 0`, `offset := 0` works if the left edge is positive; in the existing construction, `restartCutoffLeftOuter 0 s = s/4`, so the support stays in positive time.
+2. Prove termwise `ContDiff` via:
+   ```lean
+   restartSmoothCutoff_contDiff.comp contDiff_fst
+   ```
+   plus `fun_prop` for the exponential and cosine factors.
+3. Prove zero outside the cutoff support with the existing:
+   ```lean
+   restartSmoothCutoff_eq_zero_of_le_left
+   restartSmoothCutoff_eq_zero_of_right_le
+   ```
+4. On the support, use the positive lower bound:
+   ```lean
+   restartSlabMin offset s ≤ q.1 - offset
+   ```
+   and hence, for heat time `q.1`, a bound like:
+   ```lean
+   Real.exp (-q.1 * λ_n) ≤ Real.exp (-(restartSlabMin offset s) * λ_n)
+   ```
+   when `λ_n ≥ 0`.
+5. Use Mathlib/Shen_work product bounds (`norm_iteratedFDeriv_mul_le`) exactly as in the resolver cutoff proof.
+6. Feed the resulting summable majorant into `resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum` if your target can be cast into that abstraction, or into a new heat-specific analogue of that wrapper.
 
 ## Bottom line
 
-Use `norm_iteratedFDeriv_mul_le`; do not try to prove a new mixed partial formula unless you need exact equality.  Shen_work already contains the needed blueprint in `IntervalResolverJointC2Physical.boundedWeightJointTerm_iteratedFDeriv_le` and `boundedWeightJointSeries_contDiff_two`.
+The smooth cutoff pattern is fully landed for resolver restart series.  The bump is explicit `Real.smoothTransition`-based, not `SmoothBumpFunction`.  `cutoffValueTerm` is defined in `IntervalResolverSpectralJointC2Cutoff.lean`.  The concrete compact cutoff `restartSmoothCutoff` is in `IntervalResolverSpectralJointC2Concrete.lean`, and the final concrete producer is `resolverSpectralJointC2At_of_restartSmoothCutoff`.
+
+I found no existing heat-semigroup-specific cutoff+`contDiff_tsum` theorem, but the resolver code gives a direct implementation template, and its homogeneous restart majorant already encodes the key positive-slab exponential bound needed for heat semigroup terms.
