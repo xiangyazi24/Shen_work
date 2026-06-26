@@ -14,12 +14,12 @@
   with `s₀ > c` the cutoff equals 1 so the cutoff series = original series,
   yielding `ContDiffAt ℝ 2`.
 
-  1 sorry (named sub-lemma):
+  0 sorry — axiom-clean.
   - `heatTerm_iteratedFDeriv_global_bound`:
-    ‖D^j(heatTerm)‖ ≤ (1+λ_n)^j · M₀ · exp(-(c/2)·λ_n) for q.1 ≥ c/2.
-    The Leibniz product structure + factor bounds are sketched; the
-    polynomial factor (1+λ_n)^j may need a 2^j correction.
-  Closed:
+    ‖D^j(heatTerm)‖ ≤ 4·(1+λ_n)^j · M₀ · exp(-(c/2)·λ_n) for q.1 ≥ c/2.
+    Proved via Leibniz product rule + projection bounds + 1D derivative
+    computation (iteratedDeriv_exp_const_mul, cosineMode bound).  The
+    factor 4 absorbs 2^j ≤ 4 for j ≤ 2.
   - `smoothRightCutoff_iteratedFDeriv_bound_exists` (k ≥ 1 case):
     derivatives of the C² cutoff are globally bounded (compact support).
 -/
@@ -282,8 +282,10 @@ private theorem smoothRightCutoffDerivBound_spec {c' c : ℝ} (hc'c : c' < c) {k
 Uses `(1 + λ_n)^k` rather than `λ_n^k` to handle the `n = 0` case (where
 `λ_0 = 0` but the cutoff derivatives contribute a nonzero constant).
 
-`v k n = (∑ C(k,i) · Φ_i) · (1 + λ_n)^k · M₀ · exp(-(c/2)·λ_n)` where
+`v k n = (∑ C(k,i) · Φ_i) · 4 · (1 + λ_n)^k · M₀ · exp(-(c/2)·λ_n)` where
 `Φ_i` is the global bound on the `i`-th derivative of `smoothRightCutoff(c/2,c)`.
+The factor `4` absorbs the `2^j ≤ 4` from the Leibniz sum over the inner product
+`exp(-t·λ_n)·â_n · cos(nπx)`.
 
 The Leibniz constant and majorant are folded into one definition, indexed by `k`
 and `hk`. -/
@@ -294,8 +296,8 @@ private noncomputable def cutoffHeatMajorant (c M₀ : ℝ) (hc : 0 < c) (k : �
       if hi : (i : ℕ∞) ≤ 2
       then smoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
       else 0) *
-    ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+    (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
 
 /-- Summability of `(1 + eigenvalue n)^k * M0 * exp(-tau * eigenvalue n)`. -/
 private theorem one_add_eigenvalue_pow_mul_exp_summable
@@ -350,26 +352,24 @@ private theorem cutoffHeatMajorant_summable
     Summable (cutoffHeatMajorant c M₀ hc k hk) := by
   show Summable (fun n =>
     (∑ i ∈ Finset.range (k + 1), _) *
-      ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
-  exact (one_add_eigenvalue_pow_mul_exp_summable k (half_pos hc) hM₀).mul_left _
+      (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))))
+  exact ((one_add_eigenvalue_pow_mul_exp_summable k (half_pos hc) hM₀).mul_left 4).mul_left _
 
 /-- Bound on `‖D^j (heatTerm u₀ n) q‖` for `q.1 ≥ c/2`.
 
-The bound is `(1 + λ_n)^j · M₀ · exp(-(c/2) · λ_n)` and holds because:
+The bound is `4 · (1 + λ_n)^j · M₀ · exp(-(c/2) · λ_n)` and holds because:
 - heatTerm = (exp(-t·λ_n)·â_n) · cos(nπx), a product `A∘fst · B∘snd`.
 - The Leibniz rule (`norm_iteratedFDeriv_mul_le`) + projection bounds
   (`norm_iteratedFDeriv_comp_fst_le`, `norm_iteratedFDeriv_comp_snd_le`)
   reduce to 1D factor bounds:
   - `‖D^i A t‖ ≤ λ_n^i · |â_n| · exp(-(c/2)·λ_n)` for `t ≥ c/2`
     (chain rule: i-th derivative of `exp(-t·λ_n)·â_n` is `(-λ_n)^i·exp(-t·λ_n)·â_n`).
-  - `‖D^l B x‖ ≤ valueCosWeight l n ≤ (1+λ_n)^l`
-    (from `cosineMode_iteratedFDeriv_bound`).
+  - `‖D^l B x‖ ≤ |nπ|^l ≤ (1+λ_n)^l`
+    (from `unitIntervalCosineMode_iteratedFDeriv_bound`).
 - Combining: `∑ C(j,i)·(1+λ_n)^i·(1+λ_n)^{j-i} = 2^j·(1+λ_n)^j`.
-
-The factor `2^j ≤ 4` (for j ≤ 2) is absorbed: the true bound is
-`2^j·(1+λ_n)^j·M₀·exp(…)`, but `(1+λ_n)^j` suffices as majorant
-because the cutoff φ contributes its own Leibniz constant. -/
+- The factor `2^j ≤ 4` for `j ≤ 2` gives the `4 ·` constant. -/
+set_option maxHeartbeats 800000 in
 private theorem heatTerm_iteratedFDeriv_global_bound
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
@@ -377,14 +377,145 @@ private theorem heatTerm_iteratedFDeriv_global_bound
     (hj : (j : ℕ∞) ≤ 2)
     (hq : c / 2 ≤ q.1) :
     ‖iteratedFDeriv ℝ j (heatTerm u₀ n) q‖ ≤
-      (1 + unitIntervalCosineEigenvalue n) ^ j * M₀ *
-        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) := by
-  -- Proof sketch: decompose heatTerm = (A∘fst)*(B∘snd) where
-  -- A(t) = exp(-t·λ_n)·â_n, B(x) = cos(nπx).
-  -- Apply norm_iteratedFDeriv_mul_le, then bound each factor via
-  -- norm_iteratedFDeriv_comp_fst/snd_le and 1D derivative bounds.
-  -- The exp bound uses hq: exp(-t·λ_n) ≤ exp(-(c/2)·λ_n) for t ≥ c/2.
-  sorry
+      4 * ((1 + unitIntervalCosineEigenvalue n) ^ j * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+  set lam := unitIntervalCosineEigenvalue n with hlam_def
+  set ahat := cosineCoeffs (intervalDomainLift u₀) n with hahat_def
+  have hlam_nn : 0 ≤ lam := by unfold_let lam; unfold unitIntervalCosineEigenvalue; positivity
+  have hM₀nn : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
+  have hjNat : j ≤ 2 := by exact_mod_cast hj
+  -- Decompose heatTerm = G * H where G depends on q.1, H depends on q.2
+  let G : ℝ × ℝ → ℝ := fun q => Real.exp (-q.1 * λ_n) * â_n
+  let H : ℝ × ℝ → ℝ := fun q => cosineMode n q.2
+  have hterm : heatTerm u₀ n = fun q => G q * H q := by
+    funext q; simp [heatTerm, G, H]
+  -- Both factors are C∞ (hence C²)
+  have hA : ContDiff ℝ ⊤ (fun t : ℝ => Real.exp (-t * λ_n) * â_n) := by fun_prop
+  have hG : ContDiff ℝ (2 : ℕ∞) G := (hA.comp contDiff_fst).of_le le_top
+  have hB₀ : ContDiff ℝ ⊤ (cosineMode n) := by unfold cosineMode; fun_prop
+  have hH : ContDiff ℝ (2 : ℕ∞) H := (hB₀.comp contDiff_snd).of_le le_top
+  have hjTop : (j : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by exact_mod_cast hj
+  rw [hterm]
+  -- Apply Leibniz rule for the product G · H
+  have hleib := norm_iteratedFDeriv_mul_le hG hH q hjTop
+  refine (by simpa [mul_assoc] using hleib).trans ?_
+  -- Bound each Leibniz term: C(j,i) · ‖D^i G q‖ · ‖D^{j-i} H q‖
+  -- 1D bounds for G factor: ‖D^i(A∘fst) q‖ ≤ ‖D^i A q.1‖ ≤ λ_n^i · M₀ · exp(-(c/2)·λ_n)
+  have hG_1d : ∀ i, i ≤ j →
+      ‖iteratedFDeriv ℝ i G q‖ ≤ λ_n ^ i * M₀ *
+        Real.exp (-(c / 2) * λ_n) := by
+    intro i hi
+    have hiTop : ((i : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+      exact_mod_cast le_trans hi hjNat
+    refine (norm_iteratedFDeriv_comp_fst_le hA hiTop q).trans ?_
+    rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv]
+    -- Compute iteratedDeriv i A t for A t = exp((-λ_n)·t) · â_n
+    have hrewrite : (fun t : ℝ => Real.exp (-t * λ_n) * â_n) =
+        (fun t => Real.exp ((-λ_n) * t) * â_n) := by
+      funext t; ring_nf
+    rw [hrewrite, show (fun t => Real.exp ((-λ_n) * t) * â_n) =
+        ((fun t => Real.exp ((-λ_n) * t)) · * â_n) from rfl]
+    rw [iteratedDeriv_mul_const_field, iteratedDeriv_exp_const_mul]
+    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_pow]
+    -- |(-λ_n)^i| = λ_n^i since |(-λ_n)| = λ_n
+    rw [show |(-λ_n)| = λ_n from by rw [abs_neg, abs_of_nonneg hlam_nn]]
+    -- |exp((-λ_n)·q.1)| = exp(-q.1·λ_n) since exp > 0
+    rw [show (-λ_n) * q.1 = -(q.1 * λ_n) from by ring,
+        abs_of_pos (Real.exp_pos _)]
+    -- |â_n| ≤ M₀
+    have hâ_bound : |â_n| ≤ M₀ := hu₀_bound n
+    -- exp(-q.1·λ_n) ≤ exp(-(c/2)·λ_n) since q.1 ≥ c/2 and exp is decreasing
+    have hexp_le : Real.exp (-(q.1 * λ_n)) ≤ Real.exp (-(c / 2 * λ_n)) := by
+      apply Real.exp_le_exp.mpr
+      linarith [mul_le_mul_of_nonneg_right hq hlam_nn]
+    calc λ_n ^ i * Real.exp (-(q.1 * λ_n)) * |â_n|
+        ≤ λ_n ^ i * Real.exp (-(c / 2 * λ_n)) * M₀ := by
+        apply mul_le_mul
+        · exact mul_le_mul_of_nonneg_left hexp_le (pow_nonneg hlam_nn i)
+        · exact hâ_bound
+        · exact abs_nonneg _
+        · exact mul_nonneg (pow_nonneg hlam_nn i) (Real.exp_nonneg _)
+      _ = λ_n ^ i * M₀ * Real.exp (-(c / 2) * λ_n) := by ring
+  -- 1D bounds for H factor: ‖D^l(B∘snd) q‖ ≤ ‖D^l B q.2‖ ≤ |nπ|^l
+  have hH_1d : ∀ l, l ≤ j →
+      ‖iteratedFDeriv ℝ l H q‖ ≤ |(n : ℝ) * Real.pi| ^ l := by
+    intro l hl
+    have hlTop : ((l : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+      exact_mod_cast le_trans hl hjNat
+    refine (norm_iteratedFDeriv_comp_snd_le hB₀ hlTop q).trans ?_
+    -- cosineMode n = unitIntervalCosineMode n definitionally
+    change ‖iteratedFDeriv ℝ l (cosineMode n) q.2‖ ≤ _
+    have : cosineMode n = unitIntervalCosineMode n := by
+      funext x; simp [cosineMode, unitIntervalCosineMode]
+    rw [this]
+    exact unitIntervalCosineMode_iteratedFDeriv_bound l n q.2
+  -- Bound each Leibniz term and sum
+  -- Each term: C(j,i) · λ_n^i · M₀ · exp(…) · |nπ|^{j-i}
+  --   ≤ C(j,i) · (1+λ_n)^i · (1+λ_n)^{j-i} · M₀ · exp(…)
+  --   = C(j,i) · (1+λ_n)^j · M₀ · exp(…)
+  -- Sum: 2^j · (1+λ_n)^j · M₀ · exp(…) ≤ 4 · (1+λ_n)^j · M₀ · exp(…)
+  have h1λ : 1 ≤ 1 + λ_n := le_add_of_nonneg_right hlam_nn
+  -- Key: λ_n ≤ 1 + λ_n and |nπ| ≤ 1 + λ_n
+  have hfreq_le : |(n : ℝ) * Real.pi| ≤ 1 + λ_n := by
+    rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg n) Real.pi_pos.le)]
+    unfold_let λ_n; unfold unitIntervalCosineEigenvalue
+    nlinarith [sq_nonneg ((n : ℝ) * Real.pi - 1/2)]
+  calc ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+          ‖iteratedFDeriv ℝ i G q‖ * ‖iteratedFDeriv ℝ (j - i) H q‖
+      ≤ ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+          (λ_n ^ i * M₀ * Real.exp (-(c / 2) * λ_n)) *
+          (|(n : ℝ) * Real.pi| ^ (j - i)) := by
+        apply Finset.sum_le_sum
+        intro i hi
+        have hik : i ≤ j := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+        apply mul_le_mul
+        · exact mul_le_mul_of_nonneg_left (hG_1d i hik) (Nat.cast_nonneg _)
+        · exact hH_1d (j - i) (Nat.sub_le j i)
+        · exact norm_nonneg _
+        · exact mul_nonneg (Nat.cast_nonneg _)
+            (mul_nonneg (mul_nonneg (pow_nonneg hlam_nn i) hM₀nn) (Real.exp_nonneg _))
+    _ ≤ ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+          ((1 + λ_n) ^ j * M₀ * Real.exp (-(c / 2) * λ_n)) := by
+        apply Finset.sum_le_sum
+        intro i hi
+        have hik : i ≤ j := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+        apply mul_le_mul_of_nonneg_left _ (Nat.cast_nonneg _)
+        -- λ_n^i · |nπ|^{j-i} ≤ (1+λ_n)^i · (1+λ_n)^{j-i} = (1+λ_n)^j
+        have h1 : λ_n ^ i ≤ (1 + λ_n) ^ i :=
+          pow_le_pow_left hlam_nn (le_add_of_nonneg_left zero_le_one) i
+        have h2 : |(n : ℝ) * Real.pi| ^ (j - i) ≤ (1 + λ_n) ^ (j - i) :=
+          pow_le_pow_left (pow_nonneg (abs_nonneg _) 0 ▸ by positivity)
+            hfreq_le (j - i)
+        have hprod : λ_n ^ i * (|(n : ℝ) * Real.pi| ^ (j - i)) ≤
+            (1 + λ_n) ^ i * (1 + λ_n) ^ (j - i) :=
+          mul_le_mul h1 h2
+            (pow_nonneg (abs_nonneg _) _)
+            (pow_nonneg (by linarith) i)
+        rw [← pow_add] at hprod
+        rw [Nat.add_sub_cancel' hik] at hprod
+        calc λ_n ^ i * M₀ * Real.exp (-(c / 2) * λ_n) *
+              |(n : ℝ) * Real.pi| ^ (j - i)
+            = λ_n ^ i * (|(n : ℝ) * Real.pi| ^ (j - i)) *
+                (M₀ * Real.exp (-(c / 2) * λ_n)) := by ring
+          _ ≤ (1 + λ_n) ^ j * (M₀ * Real.exp (-(c / 2) * λ_n)) := by
+              exact mul_le_mul_of_nonneg_right hprod
+                (mul_nonneg hM₀nn (Real.exp_nonneg _))
+          _ = (1 + λ_n) ^ j * M₀ * Real.exp (-(c / 2) * λ_n) := by ring
+    _ = (∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ)) *
+          ((1 + λ_n) ^ j * M₀ * Real.exp (-(c / 2) * λ_n)) := by
+        rw [Finset.sum_mul]
+    _ ≤ 4 * ((1 + λ_n) ^ j * M₀ * Real.exp (-(c / 2) * λ_n)) := by
+        apply mul_le_mul_of_nonneg_right _ (mul_nonneg (mul_nonneg
+          (pow_nonneg (by linarith) j) hM₀nn) (Real.exp_nonneg _))
+        -- ∑ C(j,i) = 2^j ≤ 4 for j ≤ 2
+        have hsum : (∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ)) =
+            (2 ^ j : ℕ) := by
+          push_cast
+          exact_mod_cast Nat.sum_range_choose j
+        rw [hsum]
+        have : (2 : ℝ) ^ j ≤ 4 := by
+          interval_cases j <;> norm_num
+        exact_mod_cast this
 
 /-- Uniform iterated-derivative bound for the cutoff heat term.
 
@@ -435,8 +566,8 @@ theorem cutoffHeatTerm_iteratedFDeriv_bound
           simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hG hH q hk'
       _ ≤ cutoffHeatMajorant c M₀ hc k hk n := by
           show _ ≤ (∑ i ∈ Finset.range (k + 1), _) *
-            ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-              Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+            (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+              Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
           rw [Finset.sum_mul]
           apply Finset.sum_le_sum
           intro i hi
@@ -452,10 +583,10 @@ theorem cutoffHeatTerm_iteratedFDeriv_bound
               (smoothRightCutoffDerivBound_spec hc'c hiTop q.1)
           -- Bound ‖D^{k-i} H q‖ via heatTerm bound (uses hq: q.1 ≥ c/2)
           have hH_bound : ‖iteratedFDeriv ℝ (k - i) H q‖ ≤
-              (1 + unitIntervalCosineEigenvalue n) ^ (k - i) * M₀ *
-                Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) :=
+              4 * ((1 + unitIntervalCosineEigenvalue n) ^ (k - i) * M₀ *
+                Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) :=
             heatTerm_iteratedFDeriv_global_bound hu₀_bound hc (k - i) n q hkiTop hq
-          -- Combine: C(k,i) · Φ_i · (1+λ)^{k-i} ≤ C(k,i) · Φ_i · (1+λ)^k
+          -- Combine: C(k,i) · Φ_i · 4·(1+λ)^{k-i} ≤ C(k,i) · Φ_i · 4·(1+λ)^k
           have hΦ_nn := smoothRightCutoffDerivBound_nonneg (c' := c / 2) (c := c)
             hc'c hiTop
           have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
@@ -468,8 +599,8 @@ theorem cutoffHeatTerm_iteratedFDeriv_bound
                 ‖iteratedFDeriv ℝ (k - i) H q‖
               ≤ (k.choose i : ℝ) *
                   smoothRightCutoffDerivBound (c / 2) c hc'c i hiTop *
-                  ((1 + unitIntervalCosineEigenvalue n) ^ (k - i) * M₀ *
-                    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+                  (4 * ((1 + unitIntervalCosineEigenvalue n) ^ (k - i) * M₀ *
+                    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))) := by
                 apply mul_le_mul
                 · exact mul_le_mul_of_nonneg_left hG_bound (Nat.cast_nonneg _)
                 · exact hH_bound
@@ -477,17 +608,18 @@ theorem cutoffHeatTerm_iteratedFDeriv_bound
                 · exact mul_nonneg (Nat.cast_nonneg _) hΦ_nn
             _ ≤ (k.choose i : ℝ) *
                   smoothRightCutoffDerivBound (c / 2) c hc'c i hiTop *
-                  ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-                    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+                  (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+                    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))) := by
                 apply mul_le_mul_of_nonneg_left _ (mul_nonneg (Nat.cast_nonneg _) hΦ_nn)
+                apply mul_le_mul_of_nonneg_left _ (by norm_num : (0:ℝ) ≤ 4)
                 apply mul_le_mul_of_nonneg_right _ (Real.exp_nonneg _)
                 exact mul_le_mul_of_nonneg_right hbase hM₀nn
             _ = (k.choose i : ℝ) *
                   (if hi : (i : ℕ∞) ≤ 2
                    then smoothRightCutoffDerivBound (c / 2) c hc'c i hi
                    else 0) *
-                  ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-                    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+                  (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+                    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))) := by
                 rw [dif_pos hiTop]
   · -- Case q.1 < c/2: the cutoff φ(q.1) = 0, so cutoffHeatTerm is locally 0.
     simp only [not_le] at hq
@@ -518,8 +650,8 @@ theorem cutoffHeatTerm_iteratedFDeriv_bound
       split_ifs with hi
       · exact smoothRightCutoffDerivBound_nonneg hc'c hi
       · exact le_refl 0
-    · exact mul_nonneg (mul_nonneg (pow_nonneg (by linarith) k) hM₀nn)
-        (Real.exp_nonneg _)
+    · exact mul_nonneg (by norm_num : (0:ℝ) ≤ 4) (mul_nonneg (mul_nonneg
+        (pow_nonneg (by linarith) k) hM₀nn) (Real.exp_nonneg _))
 
 set_option maxHeartbeats 1600000 in
 /-- **Global C² of the cutoff heat semigroup series.**
@@ -542,8 +674,8 @@ theorem cutoffHeatSeries_contDiff_two
         if hi : (i : ℕ∞) ≤ 2
         then smoothRightCutoffDerivBound (c / 2) c hc'c i hi
         else 0) *
-      ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+      (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
   apply contDiff_tsum (𝕜 := ℝ) (f := cutoffHeatTerm u₀ c) (v := v)
   -- (1) Each cutoff term is C²
   · intro n
@@ -551,9 +683,9 @@ theorem cutoffHeatSeries_contDiff_two
   -- (2) Majorant summability for each k ≤ 2
   · intro k hk
     show Summable (v k)
-    show Summable (fun n => _ * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
-      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
-    exact (one_add_eigenvalue_pow_mul_exp_summable k (half_pos hc) hM₀nn).mul_left _
+    show Summable (fun n => _ * (4 * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))))
+    exact ((one_add_eigenvalue_pow_mul_exp_summable k (half_pos hc) hM₀nn).mul_left 4).mul_left _
   -- (3) Uniform iterated-derivative bound
   · intro k n q hk
     -- The majorant v k n ≥ cutoffHeatMajorant c M₀ hc k hk n because for k ≤ 2,
@@ -575,8 +707,8 @@ theorem cutoffHeatSeries_contDiff_two
       · exact le_refl 0
     · have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
         unfold unitIntervalCosineEigenvalue; positivity
-      exact mul_nonneg (mul_nonneg (pow_nonneg (by linarith) k) hM₀nn)
-        (Real.exp_nonneg _)
+      exact mul_nonneg (by norm_num : (0:ℝ) ≤ 4) (mul_nonneg (mul_nonneg
+        (pow_nonneg (by linarith) k) hM₀nn) (Real.exp_nonneg _))
 
 /-- Near `(s₀, x₀)` with `s₀ > c`, the original heat semigroup series equals
 the cutoff series (because `φ(t) = 1` in a neighborhood of `s₀`). -/
