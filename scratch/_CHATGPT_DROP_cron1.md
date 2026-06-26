@@ -1,222 +1,260 @@
-# Q730 / cron1: is sub-sorry 1A the same as joint continuity?
+# Q739 / cron1: smooth cutoff search for `heatSemigroup_jointContDiff_two`
 
-Repo inspected: `xiangyazi24/Shen_work`.  Scratch write target: branch `chatgpt-scratch`.
+Repo inspected: `xiangyazi24/Shen_work`.
+Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
 
 ## Verdict
 
-Sub-sorry 1A is **not solved by the abstract `IntervalWeakH2Neumann` certificate alone**.  It is essentially a **joint-continuity/compactness argument for a canonical second-derivative representative**.
+Yes, the repo already has the cutoff machinery needed for the pattern, but not exactly under the name or exact properties in the prompt.
 
-More precisely:
-
-* If sub-sorry 2A means joint continuity of the **source value**
-
-```lean
-(s,x) ↦ coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x
-```
-
-then 1A is **not the same**.  1A needs the same type of compactness argument, but for the **second spatial derivative** of the chemDiv source representative:
+* I found **no repo-local hits** for `SmoothBumpFunction` or `smoothBump`.
+* The one-sided cutoff matching “zero to the left, one to the right” is:
 
 ```lean
-(s,x) ↦ deriv (deriv F_s) x
+ShenWork.IntervalResolverSpectralJointC2Cutoff.smoothRightCutoff
 ```
 
-where `F_s` is the classical chemDiv-source representative.
-
-* If sub-sorry 2A means joint continuity of this **second derivative field**, then yes: sub-sorry 1A is just the compactness corollary of that statement.
-
-The clean route is:
+It is defined in `ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean` as:
 
 ```lean
-have hJ : ContinuousOn G (Icc c T ×ˢ Icc (0 : ℝ) 1)
--- where G (s,x) = deriv (deriv F_s) x
-have hbd : ∃ C, 0 ≤ C ∧ ∀ s ∈ Icc c T, ∀ x ∈ Icc 0 1, |G (s,x)| ≤ C :=
-  -- compactness of `Icc c T ×ˢ Icc 0 1` plus continuity of `|G|`
+def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
+  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
 ```
 
-Then transfer from `G` to the proof-dependent field:
+The available lemmas are:
 
 ```lean
-(hH2_per_slice s hs).secondDeriv x = G (s,x)
+smoothRightCutoff_contDiff :
+  ContDiff ℝ (2 : ℕ∞) (smoothRightCutoff c' c)
+
+smoothRightCutoff_eq_zero_of_le
+  (hc : c' < c) (ht : t ≤ c') :
+  smoothRightCutoff c' c t = 0
+
+smoothRightCutoff_eq_one_of_ge
+  (hc : c' < c) (ht : c ≤ t) :
+  smoothRightCutoff c' c t = 1
+
+smoothRightCutoff_eventually_eq_one
+  (hc : c' < c) (hs : c < s) :
+  smoothRightCutoff c' c =ᶠ[𝓝 s] fun _ : ℝ => 1
 ```
 
-or avoid mentioning `hH2_per_slice.secondDeriv` until after choosing the same canonical `G` in the H² certificate.
+So, with `c' = c / 2`, `hc : c / 2 < c` follows from `0 < c`, and the cutoff is zero on `(-∞, c/2]` and one on `[c, ∞)`. This matches “support in `[c/2, ∞)`” in the weak support sense: the function is zero to the left of `c/2`.
 
-## Why the abstract H² certificate does not give 1A
+However, `smoothRightCutoff (c/2) c` is **not compactly supported**. A function equal to `1` on all `[c, ∞)` cannot have compact support. I did not find a `HasCompactSupport` lemma for `smoothRightCutoff`.
 
-`IntervalWeakH2Neumann` is defined in:
+## Compact cutoff already used by the resolver files
 
-```text
-ShenWork/PDE/IntervalMildSourceDecayHelper.lean
-```
-
-as:
+The compactly supported cutoff is the two-sided one in `ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`:
 
 ```lean
-structure IntervalWeakH2Neumann (f : ℝ → ℝ) where
-  secondDeriv : ℝ → ℝ
-  second_intervalIntegrable : IntervalIntegrable secondDeriv volume (0 : ℝ) 1
-  second_abs_integral_bound :
-    ∃ B : ℝ, 0 ≤ B ∧ ∫ x in (0 : ℝ)..1, |secondDeriv x| ≤ B
-  weak_cosine_laplacian : ∀ k : ℕ,
-    (∫ x in (0 : ℝ)..1,
-        Real.cos ((k : ℝ) * Real.pi * x) * secondDeriv x) =
-      -((k : ℝ) * Real.pi) ^ 2 *
-        ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
+def restartSmoothCutoff (offset s : ℝ) : ℝ → ℝ :=
+  fun t =>
+    smoothRightCutoff (restartCutoffLeftOuter offset s)
+        (restartCutoffLeft offset s) t *
+      smoothRightCutoff (-(restartCutoffRightOuter offset s))
+        (-(restartCutoffRight offset s)) (-t)
 ```
 
-So the structure only gives:
+It is supported in the compact slab
 
 ```lean
-∃ B, 0 ≤ B ∧ ∫ |secondDeriv| ≤ B
+Icc (restartCutoffLeftOuter offset s) (restartCutoffRightOuter offset s)
 ```
 
-**per slice**.  It does not give a uniform-in-`s` bound, and it does not say `secondDeriv` is continuous, canonical, or definitionally equal to a classical derivative unless you know how the certificate was built.
+and is equal to `1` near `s`, not on all `[c, ∞)`.
 
-Therefore there is no shortcut from:
+Useful lemmas found there:
 
 ```lean
-hH2_per_slice : ∀ s ∈ Icc c T,
-  IntervalWeakH2Neumann (... s)
+restartSmoothCutoff_contDiff :
+  ContDiff ℝ (2 : ℕ∞) (restartSmoothCutoff offset s)
+
+restartSmoothCutoff_eventually_eq_one
+  (hτ : 0 < s - offset) :
+  restartSmoothCutoff offset s =ᶠ[𝓝 s] fun _ : ℝ => 1
+
+restartSmoothCutoff_eq_zero_of_le_left
+  (hτ : 0 < s - offset)
+  (ht : t ≤ restartCutoffLeftOuter offset s) :
+  restartSmoothCutoff offset s t = 0
+
+restartSmoothCutoff_eq_zero_of_right_le
+  (hτ : 0 < s - offset)
+  (ht : restartCutoffRightOuter offset s ≤ t) :
+  restartSmoothCutoff offset s t = 0
+
+restartSmoothCutoff_eq_one_of_mem_core
+  (hτ : 0 < s - offset)
+  (ht_left : restartCutoffLeft offset s ≤ t)
+  (ht_right : t ≤ restartCutoffRight offset s) :
+  restartSmoothCutoff offset s t = 1
+
+restartSmoothCutoff_hasCompactSupport
+  (hτ : 0 < s - offset) :
+  HasCompactSupport (restartSmoothCutoff offset s)
+
+restartCutoffDerivMajorant_spec
+  (hτ : 0 < s - offset)
+  (hk : (k : ℕ∞) ≤ (2 : ℕ∞)) (t : ℝ) :
+  ‖iteratedFDeriv ℝ k (restartSmoothCutoff offset s) t‖ ≤
+    restartCutoffDerivMajorant offset s hτ k
 ```
 
-to:
+This is the stronger reusable cutoff if the proof wants compact support and automatic bounded derivatives.
+
+## Generic cutoff theorem in `IntervalResolverSpectralJointC2Cutoff.lean`
+
+The generic theorem is:
 
 ```lean
-∃ C, 0 ≤ C ∧ ∀ s ∈ Icc c T, ∀ x ∈ Icc 0 1,
-  |(hH2_per_slice s hs).secondDeriv x| ≤ C
-```
-
-without extra uniform information.
-
-## The constructor path does choose a canonical second derivative
-
-The constructor in `IntervalMildSourceDecayHelper.lean` is:
-
-```lean
-noncomputable def intervalWeakH2Neumann_of_contDiffOn
-    {g : ℝ → ℝ}
-    (hgC2 : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
+theorem resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
+    (φ : ℝ → ℝ) (gradTerm : ℕ → ℝ × ℝ → ℝ)
+    (vValue vGrad : ℕ → ℕ → ℝ)
     ... :
-    IntervalWeakH2Neumann g where
-  secondDeriv := deriv (deriv g)
-  second_intervalIntegrable := ...
-  second_abs_integral_bound := by
-    refine ⟨∫ x in (0 : ℝ)..1, |deriv (deriv g) x|, ?_, le_rfl⟩
-  weak_cosine_laplacian := ...
+    ResolverSpectralJointC2At a₀ a offset s x
 ```
 
-So if `hH2_per_slice s hs` is built directly by this constructor, then the `secondDeriv` is exactly the classical expression `deriv (deriv g)`.
-
-In the heat/chemDiv path, the file:
-
-```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-```
-
-builds:
+Its important hypotheses are:
 
 ```lean
-set F := deriv (chemFluxFun p.β U_cos V_cos)
-have hF_H2 : IntervalWeakH2Neumann F :=
-  intervalWeakH2Neumann_of_contDiffOn hF_C2on htend0 htend1 hbc0 hbc1
+hφ_one : φ =ᶠ[𝓝 s] fun _ : ℝ => 1
+
+hValueTerm :
+  ∀ n : ℕ,
+    ContDiff ℝ (2 : ℕ∞) (cutoffValueTerm φ a₀ a offset n)
+
+hValueSumm :
+  ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) → Summable (vValue k)
+
+hValueBound :
+  ∀ (k n : ℕ) (q : ℝ × ℝ), (k : ℕ∞) ≤ (2 : ℕ∞) →
+    ‖iteratedFDeriv ℝ k (cutoffValueTerm φ a₀ a offset n) q‖ ≤
+      vValue k n
+
+hGradTerm :
+  ∀ n : ℕ, ContDiff ℝ (2 : ℕ∞) (cutoffGradTerm φ gradTerm n)
+
+hGradSumm :
+  ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) → Summable (vGrad k)
+
+hGradBound :
+  ∀ (k n : ℕ) (q : ℝ × ℝ), (k : ℕ∞) ≤ (2 : ℕ∞) →
+    ‖iteratedFDeriv ℝ k (cutoffGradTerm φ gradTerm n) q‖ ≤
+      vGrad k n
+
+hGradEq :
+  resolverSpectralGradSeries a₀ a offset =ᶠ[𝓝 (s, x)]
+    fun q : ℝ × ℝ => ∑' n : ℕ, gradTerm n q
 ```
 
-Then it transfers to `chemDivLift p u v` using the **same** second derivative:
+The proof then does exactly the advertised pattern:
+
+1. Pulls `hφ_one` back to `(s, x)` via `continuous_fst.continuousAt`.
+2. Applies `contDiff_tsum` to the cutoff value series.
+3. Applies `contDiff_tsum` to the cutoff gradient series.
+4. Uses eventual equality of `φ q.1 = 1` to identify the cutoff series with the original local series near `(s, x)`.
+5. Returns `ContDiffAt` via `congr_of_eventuallyEq`.
+
+## Leibniz helper lemmas already present
+
+`ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean` packages the `norm_iteratedFDeriv_mul_le` step:
 
 ```lean
-exact {
-  secondDeriv := hF_H2.secondDeriv
-  second_intervalIntegrable := hF_H2.second_intervalIntegrable
-  second_abs_integral_bound := hF_H2.second_abs_integral_bound
-  weak_cosine_laplacian := ... }
+cutoffValueTerm_leibniz_bound
+cutoffGradTerm_leibniz_bound
 ```
 
-Thus in this specific path, the abstract proof-dependent field is really the canonical classical field:
+These are resolver-specific, but the pattern is reusable. The same file also has useful projection bounds:
 
 ```lean
-(hH2_per_slice s hs).secondDeriv = deriv (deriv F_s)
+norm_iteratedFDeriv_comp_fst_le
+norm_iteratedFDeriv_comp_snd_le
 ```
 
-up to unfolding/reconstructing the same local witness `F_s`.
+## Concrete instantiation used by the resolver proof
 
-## Why proof-dependence matters
-
-The term:
+The final concrete theorem is in `IntervalResolverSpectralJointC2Concrete.lean`:
 
 ```lean
-(hH2_per_slice s hs).secondDeriv
+theorem resolverSpectralJointC2At_of_restartSmoothCutoff
+    {a₀ : ℕ → ℝ} {M : ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
+    (hτ : 0 < s - offset) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    (src : DuhamelSourceTimeC2Coeff a) :
+    ResolverSpectralJointC2At a₀ a offset s x :=
+  resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
+    (φ := restartSmoothCutoff offset s)
+    (gradTerm := resolverSpectralConcreteGradTerm a₀ a offset)
+    (vValue := concreteRestartValueMajorant a₀ src offset s hτ)
+    (vGrad := concreteRestartGradMajorant a₀ src offset s hτ)
+    ...
 ```
 
-is proof-dependent because it depends on the actual `IntervalWeakH2Neumann` value returned by `hH2_per_slice s hs`.  Another proof of the same proposition could choose a different weak second derivative representative, as long as it satisfies the weak IBP identity and integrability fields.
-
-So for Lean, it is usually better not to prove compactness directly about that opaque field unless you have a definitional equation for it.  Better options:
-
-1. **Expose the canonical representative** `G s x := deriv (deriv F_s) x` and prove joint continuity/boundedness for `G`.
-2. Build `hH2_per_slice` from `G`, so that `secondDeriv` is definitionally `G s` or at least easily reducible to it.
-3. Prove a lemma for the specific constructor path:
+The concrete proof supplies:
 
 ```lean
-(hH2_per_slice s hs).secondDeriv x = deriv (deriv F_s) x
+restartSmoothCutoff_eventually_eq_one hτ
+cutoffValueTerm_restartSmoothCutoff_contDiff src
+concreteRestartValueMajorant_summable hτ ha₀ src
+cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src
+cutoffGradTerm_restartSmoothCutoff_contDiff src
+concreteRestartGradMajorant_summable hτ ha₀ src
+cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src
+resolverSpectralGradSeries_eventuallyEq_concreteGradTerm hτ ha₀ src
 ```
 
-then rewrite before compactness/bounding.
-
-## Is there a shortcut?
-
-There are only two real shortcuts:
-
-### Shortcut A: prove uniform L¹ bound directly
-
-Sub-sorry 1A is stronger than needed for `hL1_uniform`.  The actual consumer only needs:
+So the actual hypotheses for the concrete cutoff instantiation are:
 
 ```lean
-∃ B, 0 ≤ B ∧ ∀ s ∈ Icc c T,
-  ∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x| ≤ B
+hτ   : 0 < s - offset
+ha₀  : ∀ n, |a₀ n| ≤ M
+src  : DuhamelSourceTimeC2Coeff a
 ```
 
-So you can skip pointwise boundedness if you can prove a uniform integral estimate directly, for example by spectral estimates or an analytic inequality.  But that still needs a uniform handle on the chosen `secondDeriv`; the abstract per-slice `second_abs_integral_bound` is not uniform.
+The cutoff-specific hypothesis is just `hτ : 0 < s - offset`.
 
-### Shortcut B: prove continuity of the integral map
+## Application note for `heatSemigroup_jointContDiff_two`
 
-Instead of a pointwise bound, prove:
+The current theorem in `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` claims global
 
 ```lean
-ContinuousOn
-  (fun s => ∫ x in (0 : ℝ)..1, |G s x|)
-  (Icc c T)
+ContDiff ℝ 2 (fun q : ℝ × ℝ => ∑' k, exp(-q.1 * λ_k) * â_k * cos(kπq.2))
 ```
 
-Then compactness of `Icc c T` gives a uniform bound on the integral.  This is weaker than pointwise compactness on `[c,T]×[0,1]`, but in practice it still requires enough joint continuity/dominated convergence infrastructure for `G`.
+from `hc : 0 < c`, and the sorry comment itself says the global uniform bound fails outside the slab `t ≥ c`.
 
-## Practical recommendation
+The cutoff pattern proves a **local** statement, i.e. `ContDiffAt` near `(s₀, x₀)` with `s₀ > c`, not the global uncutoff `ContDiff` statement as currently written.
 
-For this proof, treat 1A as the **second-derivative analogue** of the joint-continuity compactness argument, not as a consequence of the already-existing source-value continuity.
+Best reuse options:
 
-The best Lean design is to introduce a canonical closed-slab representative:
+1. For a one-sided positive-time cutoff, use
 
 ```lean
-def chemDivSecondDerivRep (s x : ℝ) : ℝ :=
-  deriv (deriv (deriv (chemFluxFun p.β (U_cos s) (V_cos s)))) x
+φ := smoothRightCutoff (c / 2) c
 ```
 
-or whatever the exact `F_s` unfolding is, prove:
+This gives `φ = 0` on `t ≤ c/2` and `φ = 1` on `t ≥ c`; it is not compactly supported, but `φ(t) * exp(-t λ_n)` is globally bounded by the positive-time exponential tail plus a compact transition interval.
+
+2. For the closest existing compact-support pattern, use a local two-sided cutoff around the target time:
 
 ```lean
-ContinuousOn (Function.uncurry chemDivSecondDerivRep)
-  (Icc c T ×ˢ Icc (0 : ℝ) 1)
+φ := restartSmoothCutoff c s₀
 ```
 
-then compactness gives:
+with hypothesis
 
 ```lean
-∃ C, 0 ≤ C ∧ ∀ s ∈ Icc c T, ∀ x ∈ Icc 0 1,
-  |chemDivSecondDerivRep s x| ≤ C
+hτ : 0 < s₀ - c
 ```
 
-and finally connect it to the H² certificate by construction/equality:
+This gives compact support, bounded cutoff derivatives via `restartCutoffDerivMajorant_spec`, and `φ =ᶠ[𝓝 s₀] 1` via `restartSmoothCutoff_eventually_eq_one hτ`. Then prove the cutoff heat series is `ContDiff ℝ 2` by `contDiff_tsum`, and transfer to the original heat series by eventual equality near `(s₀, x₀)`.
+
+If the goal remains the global theorem `heatSemigroup_jointContDiff_two` as currently stated, the cutoff argument does not close that exact statement. It should instead close or replace the downstream local theorem:
 
 ```lean
-(hH2_per_slice s hs).secondDeriv x = chemDivSecondDerivRep s x
+heatSemigroup_jointContDiffAt_two
 ```
 
-Bottom line: **no free shortcut from `IntervalWeakH2Neumann`; 1A is basically the joint-continuity+compactness task for the second derivative.**  It is analogous to 2A, but at a higher derivative level and with proof-dependence that should be eliminated by using a canonical representative.
+or the global theorem should be refactored into a slab/local statement.
