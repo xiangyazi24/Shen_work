@@ -277,11 +277,135 @@ theorem level0_chemDiv_envelope_summable
           apply intervalResolverLiftR_contDiff_four
           sorry
         · -- Positivity: 0 < 1 + V x.
-          -- The resolver V ≥ 0 (source ν*u^γ ≥ 0 gives nonneg resolvent),
-          -- so 1 + V x > 0.
-          -- SORRY: needs the resolver nonnegativity infrastructure for the
-          -- lifted cosine series (resolverR_pos_of_representation + lift bridge).
-          sorry
+          -- Route: V ≥ 0 everywhere (resolver nonnegativity + period-2/even
+          -- reduction to [0,1]), so 1 + V x ≥ 1 > 0.
+          intro x
+          suffices hVnn : 0 ≤ V x by linarith
+          -- Abbreviate the profile at time s.
+          set w := conjugatePicardIter p u₀ 0 s with hw_def
+          -- ── ContinuousOn of the lift on [0,1] ──
+          -- From hU_C4 + hU_agree: U_cos is C⁴ hence continuous, and
+          -- intervalDomainLift w = U_cos on [0,1].
+          have hcont_on : ContinuousOn (intervalDomainLift w) (Icc (0:ℝ) 1) :=
+            hU_C4.continuous.continuousOn.congr (fun y hy => hU_agree y hy)
+          -- ── Continuity of w on the subtype ──
+          have hw_cont : Continuous w := by
+            have hrestr : Set.restrict (Icc (0:ℝ) 1) (intervalDomainLift w) = w := by
+              funext ⟨z, hz⟩
+              show intervalDomainLift w z = w ⟨z, hz⟩
+              rw [intervalDomainLift, dif_pos hz]
+            rw [← hrestr]
+            exact continuousOn_iff_continuous_restrict.mp hcont_on
+          -- ── Nonnegativity of w ──
+          have hw_nonneg : ∀ z : intervalDomainPoint, 0 ≤ w z := by
+            intro ⟨z, hz⟩
+            -- _hpos gives 0 < intervalDomainLift w z on [0,1].
+            -- On [0,1], intervalDomainLift w z = w ⟨z, hz⟩.
+            have hlift : intervalDomainLift w z = w ⟨z, hz⟩ :=
+              dif_pos hz
+            have h := _hpos s hs z hz
+            rw [hlift] at h
+            exact le_of_lt h
+          -- ── Resolver nonneg on [0,1] ──
+          have hR_nonneg : ∀ (yp : intervalDomainPoint),
+              0 ≤ intervalNeumannResolverR p w yp := by
+            intro yp
+            -- Construct clip and nonneg continuous source f.
+            set clip : ℝ → intervalDomainPoint := fun z =>
+              ⟨max 0 (min z 1), le_max_left 0 _,
+                max_le (by norm_num) (min_le_right z 1)⟩
+            have hclip_cont : Continuous clip :=
+              Continuous.subtype_mk
+                (continuous_const.max (continuous_id.min continuous_const)) _
+            have hcont_src : Continuous
+                (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) :=
+              continuous_const.mul (hw_cont.rpow_const (fun z => Or.inr p.hγ.le))
+            set f : ℝ → ℝ :=
+              (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) ∘ clip
+            have hf_cont : Continuous f := hcont_src.comp hclip_cont
+            have hf_nonneg : ∀ z, 0 ≤ f z := fun z =>
+              mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+            have hf_coeff : ∀ k, cosineCoeffs f k =
+                (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re := by
+              intro k
+              have hsrc_eq :
+                  (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re =
+                  cosineCoeffs (fun z => p.ν * intervalDomainLift w z ^ p.γ) k := by
+                simp [cosineCoeffs, ShenWork.PDE.intervalNeumannResolverSourceCoeff,
+                  Complex.ofReal_re]
+              rw [hsrc_eq]
+              exact ShenWork.Paper2.cosineCoeffs_congr_on_Icc (fun z hz => by
+                simp only [f, Function.comp, clip]
+                have hclip_eq : max 0 (min z 1) = z := by
+                  rw [min_eq_left hz.2, max_eq_right hz.1]
+                simp only [hclip_eq, intervalDomainLift,
+                  dif_pos (Set.mem_Icc.mpr hz)]) k
+            have hâ : Summable (fun k => (cosineCoeffs f k) ^ 2) := by
+              open ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+                ShenWork.IntervalResolverPositivity in
+              have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+              simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+              exact h.congr (fun k => by rw [hf_coeff])
+            open ShenWork.IntervalResolverPositivity in
+            exact intervalNeumannResolverR_nonneg_of_nonneg_source
+              hf_cont hf_nonneg hf_coeff hâ yp
+          -- ── Reduce x to [0,1] via even + reflect_one ──
+          have hV_even : ∀ z, V (-z) = V z :=
+            intervalResolverLiftR_even p w
+          have hV_reflect : ∀ z, V (2 - z) = V z :=
+            intervalResolverLiftR_reflect_one p w
+          -- V(x+2) = V(x): from V(x+2) = V(2-(-x)) = V(-x) = V(x)
+          have hV_periodic : ∀ z, V (z + 2) = V z := fun z => by
+            have h1 : V (z + 2) = V (2 - (-z)) := by congr 1; ring
+            rw [h1, hV_reflect, hV_even]
+          -- V(x-2) = V(x): from V(x-2) = V(-(2-x)) = V(2-x) = V(x)
+          have hV_sub_two : ∀ z, V (z - 2) = V z := fun z => by
+            have h1 : V (z - 2) = V (-(2 - z)) := by congr 1; ring
+            rw [h1, hV_even, hV_reflect]
+          -- Integer shift: V(x + 2m) = V(x) by induction on m
+          have hV_shift : ∀ (m : ℤ) (z : ℝ), V (z + 2 * m) = V z := by
+            intro m z
+            induction m using Int.induction_on with
+            | zero => simp
+            | succ n ih =>
+              have hcast : z + 2 * (↑(↑n + 1 : ℤ) : ℝ) =
+                  (z + 2 * (↑(↑n : ℤ) : ℝ)) + 2 := by push_cast; ring
+              rw [hcast, hV_periodic, ih]
+            | pred n ih =>
+              have hcast : z + 2 * (↑(-↑n - 1 : ℤ) : ℝ) =
+                  (z + 2 * (↑(-↑n : ℤ) : ℝ)) - 2 := by push_cast; ring
+              rw [hcast, hV_sub_two, ih]
+          -- Reduce x to y ∈ [-1,1] via round, then |y| ∈ [0,1] via evenness
+          set m₀ : ℤ := round (x / 2)
+          set y : ℝ := x - 2 * m₀
+          have hVxy : V x = V y := by
+            rw [show x = y + 2 * m₀ from by simp [y]]
+            exact hV_shift m₀ y
+          have hyabs : |y| ∈ Icc (0 : ℝ) 1 := by
+            constructor
+            · exact abs_nonneg _
+            · have hround : |x / 2 - m₀| ≤ 1 / 2 := abs_sub_round (x / 2)
+              rw [show y = 2 * (x / 2 - m₀) from by simp [y]; ring,
+                abs_mul, abs_of_nonneg (by norm_num : (0:ℝ) ≤ 2)]
+              nlinarith [hround]
+          have hVy : V y = V |y| := by
+            by_cases hnn : 0 ≤ y
+            · rw [abs_of_nonneg hnn]
+            · rw [not_le] at hnn
+              rw [abs_of_neg hnn, ← hV_even]
+          -- V |y| = R p w ⟨|y|, hyabs⟩ (cosineMode = unitIntervalCosineMode by rfl)
+          rw [hVxy, hVy]
+          -- Goal: 0 ≤ V |y|.  Bridge to intervalNeumannResolverR via tsum match.
+          have hV_eq_R : V |y| = intervalNeumannResolverR p w ⟨|y|, hyabs⟩ := by
+            -- V = intervalResolverLiftR p w (from hV_def + w = conj...)
+            change intervalResolverLiftR p w |y| =
+              intervalNeumannResolverR p w ⟨|y|, hyabs⟩
+            -- Both unfold to tsum over cosine coeffs (cosineMode = unitIntervalCosineMode)
+            unfold intervalResolverLiftR intervalNeumannResolverR
+            exact tsum_congr (fun k => by
+              rw [unitIntervalCosineMode_eq_cosineMode])
+          rw [hV_eq_R]
+          exact hR_nonneg ⟨|y|, hyabs⟩
         · -- Agreement on [0,1]: intervalDomainLift (coupledChemicalConcentration …) = V
           -- Chain: coupledChemicalConcentration = intervalNeumannResolverR (def) →
           -- lift on [0,1] = subtype value (def of intervalDomainLift) →
@@ -508,8 +632,15 @@ theorem level0_chemDiv_timeDerivData
     have hmem : (s, x) ∈ Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1 :=
       mem_prod.2 ⟨⟨by linarith, by linarith⟩, hx⟩
     -- The target set is contained in the local slab
-    exact ContinuousWithinAt.mono (hcont.continuousWithinAt hmem)
-      (by sorry) -- slab inclusion: [c,T] ⊂ [s-δ, s+δ] needs δ ≥ max(s-c, T-s)
+    have h_slab_nhds : Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1 ∈
+        𝓝[Icc c T ×ˢ Icc (0 : ℝ) 1] (s, x) := by
+      rw [mem_nhdsWithin]
+      exact ⟨Ioo (s - δ) (s + δ) ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨by linarith, by linarith⟩, Set.mem_univ _⟩,
+        fun ⟨_, _⟩ ⟨h_in_U, h_in_target⟩ =>
+          ⟨Ioo_subset_Icc_self h_in_U.1, h_in_target.2⟩⟩
+    exact (hcont.continuousWithinAt hmem).mono_of_mem_nhdsWithin h_slab_nhds
   -- Step 3: HasDerivWithinAt from the chain rule (HasDerivAt → HasDerivWithinAt).
   set adot := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot
     p (conjugatePicardIter p u₀ 0) with hadot_def

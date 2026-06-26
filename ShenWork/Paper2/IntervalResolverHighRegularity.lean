@@ -199,12 +199,66 @@ theorem intervalResolverLiftR_periodic
   unfold intervalResolverLiftR
   exact tsum_congr (fun k => by rw [cosineMode_add_two])
 
--- Axiom audit: only `intervalResolverLiftR_contDiff_four` should use `sorry`.
+/-! ## Global nonnegativity from [0,1] nonnegativity + symmetry + periodicity -/
+
+/-- The lifted resolver is `Function.Periodic` with period `2`. -/
+theorem intervalResolverLiftR_periodic_fun
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) :
+    Function.Periodic (intervalResolverLiftR p u) 2 :=
+  intervalResolverLiftR_periodic p u
+
+/-- **Global nonnegativity** of the lifted resolver cosine series from
+nonnegativity on `[0,1]`.
+
+The argument uses three symmetries:
+- Period 2: `f(x+2) = f(x)` → reduces arbitrary `x` to `[0,2)`.
+- Reflection about 1: `f(2-x) = f(x)` → reduces `[1,2)` to `(0,1]`.
+Combined: every `x ∈ ℝ` maps to some `x' ∈ [0,1]` with `f(x) = f(x')`. -/
+theorem intervalResolverLiftR_nonneg_of_nonneg_on_Icc
+    (p : CM2Params) (u : intervalDomainPoint → ℝ)
+    (hnn : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalResolverLiftR p u x)
+    (x : ℝ) :
+    0 ≤ intervalResolverLiftR p u x := by
+  set V := intervalResolverLiftR p u with hV
+  have hper := intervalResolverLiftR_periodic_fun p u
+  have hsymm := intervalResolverLiftR_reflect_one p u
+  set n := ⌊x / 2⌋ with hn_def
+  set r := x - n * 2 with hr_def
+  have hrV : V x = V r := by
+    show V x = V (x - ↑n * 2)
+    exact (hper.sub_int_mul_eq n).symm
+  have hr_lo : 0 ≤ r := by
+    have := Int.floor_le (x / 2)
+    linarith
+  have hr_hi : r < 2 := by
+    have := Int.lt_floor_add_one (x / 2)
+    linarith
+  rw [hrV]
+  by_cases hr1 : r ≤ 1
+  · exact hnn r ⟨hr_lo, hr1⟩
+  · simp only [not_le] at hr1
+    have : V r = V (2 - r) := (hsymm r).symm
+    rw [this]
+    exact hnn (2 - r) ⟨by linarith, by linarith⟩
+
+/-- **Global strict positivity** of `1 + V` where `V` is the lifted resolver
+cosine series, from nonnegativity on `[0,1]`. -/
+theorem intervalResolverLiftR_one_add_pos_of_nonneg_on_Icc
+    (p : CM2Params) (u : intervalDomainPoint → ℝ)
+    (hnn : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalResolverLiftR p u x)
+    (x : ℝ) :
+    (0 : ℝ) < 1 + intervalResolverLiftR p u x :=
+  lt_of_lt_of_le one_pos (le_add_of_nonneg_right
+    (intervalResolverLiftR_nonneg_of_nonneg_on_Icc p u hnn x))
+
+-- Axiom audit
 #print axioms resolverCoeff_eigenWeighted_le_source
 #print axioms resolverCoeff_eigenSq_summable_of_sourceEigenL1
 #print axioms intervalResolverLiftR_contDiff_four
 #print axioms intervalResolverLiftR_even
 #print axioms intervalResolverLiftR_reflect_one
 #print axioms intervalResolverLiftR_periodic
+#print axioms intervalResolverLiftR_nonneg_of_nonneg_on_Icc
+#print axioms intervalResolverLiftR_one_add_pos_of_nonneg_on_Icc
 
 end ShenWork.Paper2.IntervalResolverHighRegularity
