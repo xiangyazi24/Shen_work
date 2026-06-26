@@ -1,434 +1,393 @@
-# Q760 / cron1: dependency graph check for Level0 sub-sorries
+# Q765 / cron1: factor bounds for `cutoffHeatTerm_iteratedFDeriv_bound`
 
 Repo inspected: `xiangyazi24/Shen_work`.
 Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
 
 ## Verdict
 
-The proposed graph is **directionally right**, but it is **too linear**. The committed code supports a DAG with shared upstreams, not a single chain where every later node follows from the immediately previous one.
-
-The most important corrections are:
-
-1. `3D` is not implemented as “differentiate `3C`.” It is a sibling theorem from the same `PhysicalResolverJointC2Data` package, using the gradient majorant.
-2. `PhysicalResolverJointC2Data` is not obtained from `3B` alone. It comes from `PhysicalSourceTimeC2` through `physicalResolverJointC2Data_of_floor`; producing `PhysicalSourceTimeC2` for the heat trajectory is its own source-coefficient/time-regularity task.
-3. `2A-core` is not merely “joint continuity of flux.” In the Level0 file it is joint continuity of the **smooth representative of the chemDiv source**, namely the spatial derivative of the flux representative:
-
-   ```lean
-   fun q => deriv
-     (ChemDivSpatialC2.chemFluxFun p.β U_cos(q.1) V_cos(q.1)) q.2
-   ```
-
-4. `1A` is not a formal consequence of `2A-core`. It needs a **higher-order/second-derivative representative** and compactness. It shares the same smooth-representative route, but at one higher spatial-derivative level.
-5. `3G` does not depend on `3F`. Both are downstream of shared physical/iterate/representative data. `3G` is closed by `chemDivMixedTimeDeriv_jointContinuousOn_closed` once a `ChemDivMixedTimeDerivClosedRepr` is available; producing that representative is a separate witness-data route.
-6. The heat semigroup `ContDiffAt` theorem is positive-time/local: `heatSemigroup_jointContDiffAt_two` needs `c < s₀`. If the target is literally the global `CoupledChemDivFluxJointC2Hyp.exists_local_slab : ∀ τ`, there is a positive-window mismatch to resolve. For the Level0 use on `[c,T]` with `c>0`, this is fine after window-localizing the chain-rule package.
-
-## Confirmed heat-semigroup lane
-
-Current file:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-```
-
-The file now uses the cutoff plan and explicitly says §2 has exactly one sorry: the cutoff heat term derivative bound.
-
-The remaining sorry is:
+The repo has the projection/Leibniz machinery you want, but it does **not** currently have a ready-made derivative majorant for the one-sided cutoff
 
 ```lean
-theorem cutoffHeatTerm_iteratedFDeriv_bound
-    ... :
-    ‖iteratedFDeriv ℝ k (cutoffHeatTerm u₀ c n) q‖ ≤
-      (2 * k + 1) ^ k *
-        (unitIntervalCosineEigenvalue n ^ k * M₀ *
-          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
-  ...
-  sorry
+smoothRightCutoff (c / 2) c
 ```
 
-Then the dependency is committed as:
+It has that majorant only for the two-sided compact cutoff:
 
 ```lean
-cutoffHeatTerm_iteratedFDeriv_bound
-  → cutoffHeatSeries_contDiff_two
-  → heatSeries_eventuallyEq_cutoff
-  → heatSemigroup_jointContDiffAt_two
+restartSmoothCutoff offset s
 ```
 
-The final theorem is:
+Also, the requested independent global H-factor bound
 
 ```lean
-theorem heatSemigroup_jointContDiffAt_two
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
+∀ q, ‖iteratedFDeriv ℝ j (heatTerm u₀ n) q‖ ≤ bound_H j n
 ```
 
-So the first part of your graph is correct **for positive-time points**:
-
-```text
-Leibniz/cutoff bound
-  → heatSemigroup_jointContDiffAt_two
-  → sub-sorry 3B, after matching the Level0 heat representation
-```
-
-Caveat: `3B` inside `CoupledChemDivFluxFactorJointC2Inputs` is a slab field `∀ τ, ∃ δ, ...`; the heat theorem only gives positive-time local `ContDiffAt`. In the Level0 window `[c,T]` this should be handled by choosing/localizing around points with `s>0`, not by claiming a global all-time heat theorem.
-
-## Physical resolver lane
-
-Current file:
-
-```text
-ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
-```
-
-The relevant source-side package is:
+with a positive-time exponential tail such as `exp (-(c/2) λ_n)` is false for `heatTerm` alone, because `heatTerm` grows like `exp (-t λ_n)` as `t → -∞`. The proof of `cutoffHeatTerm_iteratedFDeriv_bound` should be **support-aware**: bound each Leibniz summand
 
 ```lean
-structure PhysicalSourceTimeC2
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Es : ℕ → ℕ → ℝ) : Prop where
-  src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
-  src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
+‖D^i G q‖ * ‖D^(k-i) H q‖
 ```
 
-Producer:
+using the fact that `D^i G q` or `G q` vanishes outside the relevant positive-time/transition region.
+
+## Search results
+
+### Found: `restartCutoffDerivMajorant_spec`
+
+Location:
+
+```text
+ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+```
+
+Relevant definitions/theorems:
 
 ```lean
-theorem physicalResolverJointC2Data_of_floor
-    (H : PhysicalSourceTimeC2 p u Es) :
-    PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k)
+theorem restartSmoothCutoff_iteratedFDeriv_bound_exists
+    {offset s : ℝ} (hτ : 0 < s - offset)
+    (k : ℕ) (hk : (k : ℕ∞) ≤ (2 : ℕ∞)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ t : ℝ, ‖iteratedFDeriv ℝ k (restartSmoothCutoff offset s) t‖ ≤ C
 ```
-
-Thus the accurate edge is:
-
-```text
-PhysicalSourceTimeC2 for the heat trajectory
-  → physicalResolverJointC2Data_of_floor
-  → PhysicalResolverJointC2Data
-```
-
-not:
-
-```text
-3B alone → PhysicalResolverJointC2Data
-```
-
-For the heat trajectory, `PhysicalSourceTimeC2` itself should be derived from heat/floor/source coefficient estimates, but it is not just the same theorem as `heatSemigroup_jointContDiffAt_two`.
-
-## Resolver C² fields: 3C and 3D
-
-Current file:
-
-```text
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
-```
-
-The physical data package is:
 
 ```lean
-structure PhysicalResolverJointC2Data
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Bt : ℕ → ℕ → ℝ) : Prop where
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant Bt m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant Bt m)
+noncomputable def restartCutoffDerivMajorant
+    (offset s : ℝ) (hτ : 0 < s - offset) (k : ℕ) : ℝ :=
+  if hk : (k : ℕ∞) ≤ (2 : ℕ∞) then
+    Classical.choose
+      (restartSmoothCutoff_iteratedFDeriv_bound_exists
+        (offset := offset) (s := s) hτ k hk)
+  else 0
 ```
-
-From it:
 
 ```lean
-theorem coupledChemical_jointContDiffAt_two
-    (H : PhysicalResolverJointC2Data p u Bt) (hx : x ∈ Ioo 0 1) :
-    ContDiffAt ℝ 2
-      (fun q => intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-      (s, x)
+theorem restartCutoffDerivMajorant_spec
+    {offset s : ℝ} (hτ : 0 < s - offset) {k : ℕ}
+    (hk : (k : ℕ∞) ≤ (2 : ℕ∞)) (t : ℝ) :
+    ‖iteratedFDeriv ℝ k (restartSmoothCutoff offset s) t‖ ≤
+      restartCutoffDerivMajorant offset s hτ k
 ```
 
-and:
+This is good reusable infrastructure, but it is for `restartSmoothCutoff`, not for `smoothRightCutoff`.
+
+### Found: `smoothRightCutoff` basic lemmas, but no derivative majorant
+
+Location:
+
+```text
+ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
+```
+
+Found lemmas:
 
 ```lean
-theorem coupledChemical_grad_jointContDiffAt_two
-    (H : PhysicalResolverJointC2Data p u Bt) (hx : x ∈ Ioo 0 1) :
-    ContDiffAt ℝ 2
-      (fun q => deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x)
+def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
+  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
 ```
-
-So the corrected dependency is:
-
-```text
-PhysicalResolverJointC2Data
-  ├─→ 3C via coupledChemical_jointContDiffAt_two
-  └─→ 3D via coupledChemical_grad_jointContDiffAt_two
-```
-
-`3D` is morally the gradient version of `3C`, but in Lean it is produced directly from `grad_summable`, not by differentiating the statement of `3C`.
-
-## Flux factor lane and 2A-core
-
-Current file:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-```
-
-`CoupledChemDivFluxFactorJointC2Inputs` has exactly the seven slab fields:
-
-1. per-slab source continuity,
-2. joint C² of `u`,
-3. joint C² of `v`,
-4. joint C² of `∂ₓv`,
-5. positivity `0 < 1+v`,
-6. time fderiv bridge,
-7. mixed time-derivative continuity.
-
-The flux C² step is:
 
 ```lean
-coupledChemDivFlux_contDiffAt_of_factorJointC2
-  (hu_c2 x hx s hs) (hv_c2 x hx s hs) (hgradv_c2 x hx s hs)
-  (hbase x hx s hs)
+theorem smoothRightCutoff_contDiff {c' c : ℝ} :
+    ContDiff ℝ (2 : ℕ∞) (smoothRightCutoff c' c)
 ```
-
-So the intended flux-factor part is correct in this form:
-
-```text
-3B + 3C + 3D + 3E
-  → joint C² of Function.uncurry (coupledChemDivFluxLift p u)
-```
-
-But in the Level0 `2A-core` comment, the target is not merely the flux value; it is:
 
 ```lean
-ContinuousOn
-  (fun q => deriv
-    (ChemDivSpatialC2.chemFluxFun p.β U_cos(q.1) V_cos(q.1)) q.2)
-  (Icc c T ×ˢ Icc 0 1)
+theorem smoothRightCutoff_eq_zero_of_le {c' c t : ℝ} (hc : c' < c)
+    (ht : t ≤ c') :
+    smoothRightCutoff c' c t = 0
 ```
-
-That is the smooth representative for the chemDiv **source** `∂ₓ flux`. Therefore:
-
-```text
-3B + 3C + 3D + 3E
-  → flux C² / composition machinery
-  → 2A-core, after using the smooth representative and derivative/continuity transfer
-```
-
-rather than simply:
-
-```text
-3B+3C+3D → joint continuity of flux
-```
-
-## 1A is stronger than 2A-core
-
-The Level0 file states `SUB-SORRY 1A` as a uniform pointwise bound on the second derivative, obtained from joint continuity of the second derivative on the compact slab. Its comment requires:
-
-```text
-(a1) heat semigroup jointly C⁴
-(a2) resolver jointly C⁴
-(a3) chemDiv flux composition C² jointly
-(a4) secondDeriv agrees with deriv(deriv(flux))
-```
-
-So this edge in the proposed graph is too optimistic:
-
-```text
-2A-core → 1A
-```
-
-A better graph is:
-
-```text
-higher-order heat/resolver/flux representative data
-  → joint continuity of secondDeriv_s(x)
-  → compactness
-  → 1A
-```
-
-`1A` and `2A-core` share the smooth-representative strategy, but `1A` is not just “the second derivative of 2A-core” unless the higher-order version of the representative has already been proved.
-
-## 3F
-
-Current file:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
-```
-
-The bridge theorem is exactly:
 
 ```lean
-theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_c2 : ∀ x ∈ Ioo 0 1, ∀ s : ℝ,
-      ContDiffAt ℝ 2
-        (fun q => intervalDomainLift (u q.1) q.2) (s, x))
-    (hbase : ∀ s x : ℝ,
-      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x)
-    (hx : x ∈ Ioo 0 1) :
-    (fun y => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-      (fun y => fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-        (s, y) (1, 0))
+theorem smoothRightCutoff_eq_one_of_ge {c' c t : ℝ} (hc : c' < c)
+    (ht : c ≤ t) :
+    smoothRightCutoff c' c t = 1
 ```
-
-It uses:
-
-```text
-PhysicalResolverJointC2Data
-  → coupledChemical_jointContDiffAt_two
-  → coupledChemical_grad_jointContDiffAt_two
-  → coupledChemical_innerCommute_of_physicalJointC2
-```
-
-plus `hu_c2` and the floor. So the graph entry for `3F` is correct if expanded as:
-
-```text
-PhysicalResolverJointC2Data + 3B/hu_c2 + 3E/floor
-  → coupledChemDivFlux_timeBridge_of_physicalJointC2
-  → 3F
-```
-
-## 3G
-
-Current file:
-
-```text
-ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
-```
-
-The continuity theorem is:
 
 ```lean
-theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
-    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1)
+theorem smoothRightCutoff_eventually_eq_one {c' c s : ℝ}
+    (hc : c' < c) (hs : c < s) :
+    smoothRightCutoff c' c =ᶠ[𝓝 s] fun _ : ℝ => 1
 ```
 
-and:
+Searches for `smoothRightCutoff.*deriv.*bound`, `smoothTransition bound iteratedFDeriv`, and related terms did not reveal a repo theorem of the form:
 
 ```lean
-def ChemDivMixedTimeDerivClosedRepr ... : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc 0 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
+∀ t, ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤ C
 ```
 
-So this part is correct:
+or a named `smoothRightCutoffDerivMajorant`.
+
+### Found: projection helpers
+
+Location:
 
 ```text
-ChemDivMixedTimeDerivClosedRepr
-  → chemDivMixedTimeDeriv_jointContinuousOn_closed
-  → 3G
+ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean
 ```
 
-But `3G` should **not** be downstream of `3F`. The representative route is separate. The highest-level producer found earlier is:
+The exact projection helpers exist:
 
 ```lean
-ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
+theorem norm_iteratedFDeriv_comp_fst_le
+    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
+    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
+    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.1) q‖ ≤
+      ‖iteratedFDeriv ℝ k g q.1‖
 ```
-
-which requires:
-
-```text
-PhysicalResolverJointC2Data
-+ IteratePicardJointC2Data
-+ iterate gradient summability
-+ floor for the resolver value series
-+ boundary agreement at x=0,1
-```
-
-So the more accurate edge is:
-
-```text
-PhysicalResolverJointC2Data + iterate joint data + HuGrad + floor + boundary
-  → ChemDivMixedTimeDerivClosedRepr
-  → 3G
-```
-
-`3F` and `3G` are siblings: they share upstream physical/heat/floor data but neither one is a prerequisite for the other.
-
-## Independent / side branches
-
-Your “independent” list is mostly right, with wording caveats:
-
-### `2A-agree`
-
-Correct. It is the agreement between `coupledChemDivSourceLift` and the smooth flux-derivative representative on `[0,1]`. The Level0 file describes it as unfolding plus the heat/resolver representation agreements. It is independent of the analytic `2A-core` continuity proof, though it still uses the representation equalities.
-
-### `3A`
-
-Mostly independent from the factor C²/Clairaut pipeline. It is the per-slab source continuity field. But analytically it still relies on the same heat/resolver smoothness and chemDiv composition facts; it is not independent of the heat trajectory itself.
-
-### `3E`
-
-Correct as a side branch. Current committed route is positivity/floor from nonnegative continuous `u` and resolver positivity:
 
 ```lean
-coupledChemical_floor_pos_of_nonneg_continuous
+theorem norm_iteratedFDeriv_comp_snd_le
+    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
+    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
+    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.2) q‖ ≤
+      ‖iteratedFDeriv ℝ k g q.2‖
 ```
 
-It is not downstream of `3C`/`3D`.
+Same file also has the resolver-side Leibniz wrappers:
 
-## Corrected DAG
+```lean
+cutoffValueTerm_leibniz_bound
+cutoffGradTerm_leibniz_bound
+```
 
-A better dependency graph is:
+For the current heat proof, the raw Mathlib lemma is already used:
+
+```lean
+norm_iteratedFDeriv_mul_le hG hH q hk'
+```
+
+but the projection helpers are still useful for reducing `G = φ ∘ fst` and the cosine part of `H` to one-dimensional bounds.
+
+## Existing template for the H factor
+
+A very relevant template is in:
 
 ```text
-A. Heat local joint C²
-   cutoff/Leibniz bound (only remaining sorry in HeatRegularity)
-     → cutoffHeatSeries_contDiff_two
-     → heatSemigroup_jointContDiffAt_two
-     → 3B / hu_c2  [positive-time local]
-
-B. Resolver physical joint C²
-   PhysicalSourceTimeC2 for the heat trajectory
-     → physicalResolverJointC2Data_of_floor
-     → PhysicalResolverJointC2Data
-        ├─→ 3C via coupledChemical_jointContDiffAt_two
-        ├─→ 3D via coupledChemical_grad_jointContDiffAt_two
-        └─→ inner commute for 3F via coupledChemical_innerCommute_of_physicalJointC2
-
-C. Flux/source joint continuity
-   3B + 3C + 3D + 3E
-     → flux joint C² / smooth composition
-     → 2A-core (joint continuity of ∂ₓ flux representative)
-   2A-agree is a separate representation-unfolding agreement.
-
-D. Uniform second-derivative bound
-   higher-order heat/resolver/flux representative data (C⁴-level, not merely 2A-core)
-     → joint continuity of second derivative on compact slab
-     → 1A
-   1B then follows from 1A by integral bound.
-
-E. Flux time bridge
-   PhysicalResolverJointC2Data + 3B/hu_c2 + 3E/floor
-     → coupledChemDivFlux_timeBridge_of_physicalJointC2
-     → 3F
-
-F. Mixed time-derivative continuity
-   PhysicalResolverJointC2Data + IteratePicardJointC2Data + HuGrad + floor + boundary
-     → ChemDivMixedTimeDerivClosedRepr
-     → chemDivMixedTimeDeriv_jointContinuousOn_closed
-     → 3G
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
 ```
 
-## Final answer
+It defines separated joint terms:
 
-The proposed graph is **not wrong as a high-level intuition**, but it should be adjusted before using it as a Lean closure plan. The main fixes are: make `3C` and `3D` parallel children of `PhysicalResolverJointC2Data`; do not treat `PhysicalResolverJointC2Data` as a consequence of `3B` alone; do not treat `1A` as a consequence of `2A-core` alone; and do not put `3G` after `3F`. `3F` and `3G` are separate branches sharing upstream physical/heat/floor data.
+```lean
+def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => c n q.1 * cosineMode n q.2
+```
+
+and proves:
+
+```lean
+theorem boundedWeightJointTerm_iteratedFDeriv_le
+    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ} {n k : ℕ} {q : ℝ × ℝ}
+    (hc : ContDiff ℝ (2 : ℕ∞) (c n)) (hk : (k : ℕ∞) ≤ (2 : ℕ∞))
+    (hBt : ∀ i, i ≤ 2 → ‖iteratedFDeriv ℝ i (c n) q.1‖ ≤ Bt i n) :
+    ‖iteratedFDeriv ℝ k (boundedWeightJointTerm c n) q‖ ≤
+      boundedWeightJointMajorant Bt k n
+```
+
+This theorem already does exactly the mixed `(t,x)` Leibniz/projection work:
+
+* uses `norm_iteratedFDeriv_mul_le`,
+* projects the time coefficient via `norm_iteratedFDeriv_comp_fst_le`,
+* projects the cosine factor via `norm_iteratedFDeriv_comp_snd_le`,
+* bounds the cosine derivatives by `cosineMode_iteratedFDeriv_bound`.
+
+For the heat term, one could set:
+
+```lean
+cHeat : ℕ → ℝ → ℝ :=
+  fun n t => Real.exp (-t * unitIntervalCosineEigenvalue n) *
+    cosineCoeffs (intervalDomainLift u₀) n
+```
+
+Then:
+
+```lean
+heatTerm u₀ n = boundedWeightJointTerm cHeat n
+```
+
+The missing heat-specific piece would be a coefficient derivative bound for `cHeat n`, **under the condition `q.1 ≥ c/2`**:
+
+```lean
+‖iteratedFDeriv ℝ i (cHeat n) q.1‖ ≤
+  unitIntervalCosineEigenvalue n ^ i * M₀ *
+    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)
+```
+
+This is true only in the positive-time region `q.1 ≥ c/2`; it is not true globally.
+
+## Important correction: the H factor has no global q-independent bound
+
+For `n > 0` and a nonzero coefficient, the value term itself satisfies:
+
+```lean
+heatTerm u₀ n (t, x)
+  = Real.exp (-t * unitIntervalCosineEigenvalue n) * â_n * cosineMode n x
+```
+
+As `t → -∞`, `Real.exp (-t * λ_n)` grows without bound. Therefore no global bound of the form
+
+```lean
+∀ q, ‖iteratedFDeriv ℝ j (heatTerm u₀ n) q‖ ≤
+  C_j * λ_n^j * M₀ * exp (-(c/2) * λ_n)
+```
+
+can hold for `H` alone.
+
+The cutoff proof must use the support/constant-region behavior of `G`:
+
+* if `q.1 ≤ c/2`, then `G q = 0`; for positive derivative orders, `D^i G q` should also vanish because the cutoff is locally constant zero to the left;
+* if `q.1 ≥ c`, then `G q = 1`; for positive derivative orders, `D^i G q` should vanish because the cutoff is locally constant one to the right;
+* if `c/2 ≤ q.1 ≤ c`, then `H` is bounded by the positive-time tail `exp (-(c/2) λ_n)`, and `D^i G` is bounded because this is a compact transition region.
+
+So the target should be a product-term bound, not two completely independent global factor bounds.
+
+## What is missing for G
+
+There is no one-sided analogue of:
+
+```lean
+restartCutoffDerivMajorant_spec
+```
+
+for:
+
+```lean
+smoothRightCutoff (c / 2) c
+```
+
+A useful local addition would be something like:
+
+```lean
+noncomputable def smoothRightCutoffDerivMajorant
+    (c' c : ℝ) (hc : c' < c) (k : ℕ) : ℝ := ...
+```
+
+with:
+
+```lean
+theorem smoothRightCutoffDerivMajorant_nonneg ... :
+  0 ≤ smoothRightCutoffDerivMajorant c' c hc k
+```
+
+```lean
+theorem smoothRightCutoffDerivMajorant_spec
+    (hc : c' < c) (hk : (k : ℕ∞) ≤ (2 : ℕ∞)) (t : ℝ) :
+  ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤
+    smoothRightCutoffDerivMajorant c' c hc k
+```
+
+For `k = 0`, use the range of `Real.smoothTransition` (`nonneg` and `le_one`) to get bound `1`. The repo uses these Mathlib lemmas in `IntervalTimeSoftClamp.lean` for the related soft-clamp profile:
+
+```lean
+Real.smoothTransition.nonneg
+Real.smoothTransition.le_one
+```
+
+For `k > 0`, prove compact support of the derivative using local constancy of `smoothRightCutoff` outside `[c', c]`, then copy the pattern from:
+
+```lean
+restartSmoothCutoff_iteratedFDeriv_bound_exists
+```
+
+namely:
+
+```lean
+have hcont : Continuous
+    (fun t => iteratedFDeriv ℝ k (smoothRightCutoff c' c) t) :=
+  smoothRightCutoff_contDiff.continuous_iteratedFDeriv ...
+
+have hcomp : HasCompactSupport
+    (fun t => iteratedFDeriv ℝ k (smoothRightCutoff c' c) t) := ...
+
+rcases hcont.bounded_above_of_compact_support hcomp with ⟨C, hC⟩
+```
+
+The support proof for `k > 0` should use eventual equality to the constants `0` and `1` on the left/right, then `Filter.EventuallyEq.iteratedFDeriv` to show the derivative is zero off the transition interval.
+
+## What to use for H
+
+Use the resolver physical-term template rather than proving a custom mixed-partial bound from scratch.
+
+Suggested helper shape:
+
+```lean
+def heatCoeffTime (u₀ : intervalDomainPoint → ℝ) (n : ℕ) : ℝ → ℝ :=
+  fun t => Real.exp (-t * unitIntervalCosineEigenvalue n) *
+    cosineCoeffs (intervalDomainLift u₀) n
+```
+
+Then prove:
+
+```lean
+heatTerm u₀ n =
+  ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm
+    (fun n t => heatCoeffTime u₀ n t) n
+```
+
+and reuse:
+
+```lean
+boundedWeightJointTerm_iteratedFDeriv_le
+```
+
+with a region-local `hBt` when `q.1 ≥ c/2`.
+
+For spatial cosine bounds, the repo already has:
+
+```lean
+cosineMode_iteratedFDeriv_bound
+```
+
+in `IntervalResolverSpectralJointC2Concrete.lean`:
+
+```lean
+theorem cosineMode_iteratedFDeriv_bound
+    (n m : ℕ) (y : ℝ) (hm : m ≤ 2) :
+    ‖iteratedFDeriv ℝ m (cosineMode n) y‖ ≤ valueCosWeight m n
+```
+
+There is also a more general older cosine bound in:
+
+```text
+ShenWork/Paper2/IntervalCD6CosineModeBounds.lean
+```
+
+```lean
+theorem unitIntervalCosineMode_iteratedFDeriv_bound
+    (k n : ℕ) (x : ℝ) :
+    ‖iteratedFDeriv ℝ k (unitIntervalCosineMode n) x‖ ≤
+      |(n : ℝ) * Real.pi| ^ k
+```
+
+## Recommended proof plan for the current sorry
+
+Avoid trying to prove standalone global `H` bounds. After `norm_iteratedFDeriv_mul_le`, prove each summand by cases on `q.1`:
+
+```lean
+by_cases hleft : q.1 ≤ c / 2
+```
+
+* In the left region, show the Leibniz summand is zero:
+  * for `i = 0`, `G q = 0` by `smoothRightCutoff_eq_zero_of_le`;
+  * for `i > 0`, use local constancy of `G` near `q` and `EventuallyEq.iteratedFDeriv` to show `iteratedFDeriv i G q = 0`.
+
+Then in the complement `c/2 < q.1`, split:
+
+```lean
+by_cases hright : c ≤ q.1
+```
+
+* In the right region, for `i = 0`, use `‖G q‖ = 1` and the positive-time `H` bound with `q.1 ≥ c`; for `i > 0`, show `D^i G q = 0` by local constancy one.
+* In the transition region `c/2 < q.1 < c`, use:
+  * `smoothRightCutoffDerivMajorant_spec` once added for `G`, or a local compact-transition bound;
+  * the positive-time `H` bound with `q.1 ≥ c/2`.
+
+This matches the current mathematical comment but fixes the formal issue: `H` is not globally bounded; only the Leibniz products are globally bounded because the cutoff kills or localizes the bad negative-time region.
+
+## Bottom line
+
+* `restartCutoffDerivMajorant_spec` exists and is useful as a pattern, but only for `restartSmoothCutoff`.
+* No direct derivative majorant for `smoothRightCutoff` currently exists.
+* `norm_iteratedFDeriv_comp_fst_le` and `norm_iteratedFDeriv_comp_snd_le` exist exactly where expected.
+* `boundedWeightJointTerm_iteratedFDeriv_le` is the best existing pattern for the H mixed `(t,x)` derivative bound.
+* The current proof should be adjusted from independent global `G` and `H` bounds to support-aware Leibniz summand bounds.
