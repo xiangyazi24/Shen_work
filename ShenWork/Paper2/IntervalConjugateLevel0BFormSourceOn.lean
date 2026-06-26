@@ -703,13 +703,25 @@ theorem level0_chemDiv_envelope_summable
       --
       -- 4. Nonnegativity: C ≥ 0 is immediate (norm bound on a compact set).
       --
-      -- Blocking sub-goals:
-      --   (i)  Joint C² of the uncurried chemDiv flux on [c,T]×ℝ (needs joint
-      --        smoothness of heat semigroup + resolver in the cosine-series form).
-      --   (ii) Commutation of deriv² with the continuous s-parameter (needs
-      --        ContDiff ℝ 2 (F_s) uniformly + parameter-dependence lemmas).
-      --   (iii) IsCompact.bddAbove_image for the L¹ norm map s ↦ ∫|f''_s| on [c,T].
-      sorry
+      -- ── Sub-sorry decomposition ──
+      -- SUB-SORRY 1A: Uniform pointwise bound on the second derivative.
+      -- Content: joint continuity of (s,x) ↦ secondDeriv_s(x) on compact
+      -- [c,T]×[0,1] gives a uniform pointwise bound.
+      -- Requires:
+      --   (a1) heat semigroup s ↦ S(s)u₀ jointly C⁴ for s ∈ [c,T] (c > 0)
+      --   (a2) resolver inherits joint C⁴ via spectral/cosine-series route
+      --   (a3) chemDiv flux composition is C² jointly in (s,x)
+      --   (a4) secondDeriv agrees with deriv(deriv(flux)) by definition
+      have hunif_ptwise : ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
+          ∀ x ∈ Icc (0 : ℝ) 1, |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
+        sorry -- [SUB-SORRY 1A: joint continuity + compactness → ptwise bound]
+      obtain ⟨C, hCnn, hptwise⟩ := hunif_ptwise
+      -- SUB-SORRY 1B: L¹ bound from pointwise bound.
+      -- ∫₀¹ |f''(x)| dx ≤ ∫₀¹ C dx = C on [0,1].
+      have hL1_from_ptwise : ∀ s (hs : s ∈ Icc c T),
+          (∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x|) ≤ C := by
+        sorry -- [SUB-SORRY 1B: integral monotonicity + measure of [0,1] = 1]
+      exact ⟨C, hCnn, hL1_from_ptwise⟩
     obtain ⟨B, hBnn, hL1⟩ := hL1_uniform
     exact ⟨B, hBnn, fun s hs => ⟨hH2_per_slice s hs, hL1 s hs⟩⟩
   -- ── Sub-goal 2: uniform sup bound and continuity of chemDiv source slices ──
@@ -748,14 +760,48 @@ theorem level0_chemDiv_envelope_summable
     --    Then |source(s)(x)| ≤ Msup for all (s,x) ∈ [c,T] × [0,1].
     --    Msup ≥ 0 because |·| ≥ 0.
     --
-    -- Blocking sub-goals (each 10-20 lines of new wiring):
-    --   (i)   Per-slice C¹ of the chemDiv flux from heat semigroup smoothness
-    --         (needs chain: heatSemigroup_contDiff_four → resolver C² → flux C¹ →
-    --         deriv(flux) continuous on [0,1]).
-    --   (ii)  Joint continuity of (s,x) ↦ flux(s)(x) on [c,T]×[0,1]
-    --         (needs s-parameter continuity of the cosine series in C¹ topology).
-    --   (iii) IsCompact.exists_isMaxOn / bddAbove_image for the norm function.
-    sorry
+    -- ── Sub-sorry decomposition ──
+    -- SUB-SORRY 2A: Joint continuity of the chemDiv source on [c,T]×[0,1].
+    -- This is the hard analytic content. Per-slice continuity and the sup
+    -- bound both follow from this via compactness.
+    -- Requires:
+    --   (i)  s ↦ S(s)u₀ continuous in C² topology for s ≥ c > 0
+    --   (ii) chemDiv composition continuous in C¹ topology of its inputs
+    have hjoint_source_cont :
+        ContinuousOn
+          (Function.uncurry
+            (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
+          (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+      sorry -- [SUB-SORRY 2A: joint continuity of chemDiv source]
+    -- SUB-SORRY 2B (can be discharged from 2A): per-slice continuity.
+    have hcont_slices : ∀ s ∈ Icc c T,
+        ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+          (Icc (0 : ℝ) 1) := by
+      intro s hs
+      exact ContinuousOn.uncurry_left s hs hjoint_source_cont
+    -- SUB-SORRY 2C (can be discharged from 2A): sup bound via compactness.
+    have hKcompact : IsCompact (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
+      isCompact_Icc.prod isCompact_Icc
+    have hFnorm_cont : ContinuousOn
+        (fun sx => ‖Function.uncurry
+          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) sx‖)
+        (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
+      hjoint_source_cont.norm
+    obtain ⟨Msup_raw, hMsup_raw⟩ := hKcompact.bddAbove_image hFnorm_cont
+    -- Extract pointwise bound and nonnegativity
+    have hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+        |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup_raw := by
+      intro s hs x hx
+      have : ‖Function.uncurry
+          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) (s, x)‖ ≤ Msup_raw :=
+        hMsup_raw (Set.mem_image_of_mem _ ⟨hs, hx⟩)
+      simp [Function.uncurry, Real.norm_eq_abs] at this
+      exact this
+    have hMsup_nn : 0 ≤ Msup_raw := by
+      have hmem : (c, (0 : ℝ)) ∈ Icc c T ×ˢ Icc (0 : ℝ) 1 :=
+        ⟨left_mem_Icc.mpr _hcT, left_mem_Icc.mpr (by norm_num)⟩
+      exact le_trans (norm_nonneg _) (hMsup_raw (Set.mem_image_of_mem _ hmem))
+    exact ⟨Msup_raw, hMsup_nn, hcont_slices, hbd⟩
   -- ── Extract and build envelope ──
   obtain ⟨B, hBnn, hH2_data⟩ := hH2
   obtain ⟨Msup, hMsupnn, hcont_slices, hsup_slices⟩ := hSup
@@ -856,7 +902,41 @@ theorem level0_chemDiv_timeDerivData
   -- LocalChainRule is already committed infrastructure.
   have hfluxC2 : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
       p (conjugatePicardIter p u₀ 0) := by
-    sorry
+    -- Decompose via coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs.
+    -- The FactorJointC2Inputs structure requires 7 fields per slab.
+    -- Each field is sorry'd individually as a concrete sub-goal.
+    apply ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+    refine ⟨fun τ => ?_⟩
+    -- We need a single δ > 0 with all 7 fields.
+    -- Sorry the existence of such a δ with all fields at once.
+    refine ⟨1, one_pos, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · -- F1: per-slab source continuity.
+      -- For s near τ, coupledChemDivSourceLift p u s is continuous on [0,1].
+      -- Follows from: S(s)u₀ is C∞ for s > 0, resolver is C∞, chemDiv is
+      -- a smooth composition, intervalDomainLift preserves continuity on [0,1].
+      sorry -- [SUB-SORRY 3A: per-slab source continuity]
+    · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
+      -- The heat semigroup is jointly C∞ for s > 0 (standard PDE result).
+      -- The cosine-series representation converges in C^k for any k when s > 0.
+      sorry -- [SUB-SORRY 3B: heat semigroup joint C²]
+    · -- F3: joint C² of resolver value v(s,x).
+      -- The resolver v = (I - p.dv·Δ)⁻¹(u) inherits joint smoothness from u
+      -- via the spectral/cosine-series representation.
+      sorry -- [SUB-SORRY 3C: resolver joint C²]
+    · -- F4: joint C² of gradient ∂ₓv(s,x).
+      -- Follows from F3 + one more derivative in x.
+      sorry -- [SUB-SORRY 3D: resolver gradient joint C²]
+    · -- F5: positivity 0 < 1 + v(s,x).
+      -- The resolver is nonneg (from nonneg u and elliptic maximum principle),
+      -- so 1 + v > 0.
+      sorry -- [SUB-SORRY 3E: resolver positivity floor]
+    · -- F6: time fderiv bridge.
+      -- The flux time derivative agrees with fderiv of the uncurried flux in
+      -- the time direction.  Requires the Clairaut inner commute.
+      sorry -- [SUB-SORRY 3F: flux time fderiv bridge]
+    · -- F7: time-derivative continuity on the slab [τ-1, τ+1] × [0,1].
+      -- The mixed time-derivative of the chemDiv source is jointly continuous.
+      sorry -- [SUB-SORRY 3G: time-derivative joint continuity on slab]
   have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
       p (conjugatePicardIter p u₀ 0) :=
     ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
