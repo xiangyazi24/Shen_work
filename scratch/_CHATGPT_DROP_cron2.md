@@ -1,314 +1,277 @@
-# Q740 (cron2): Level0 heat nonnegativity / resolver floor for sub-sorry 3E
+# Q744 (cron2): `CoupledChemDivFluxJointC2Hyp` at `τ ≤ 0`
 
 Static repo inspection only; I did not run a Lean build.
 
 ## Executive verdict
 
-The target as stated
+`CoupledChemDivFluxJointC2Hyp` is a genuinely **global** package:
 
 ```lean
-∀ x ∈ Ioo 0 1, ∀ s ∈ Metric.ball τ 1,
-  0 < 1 + intervalDomainLift
-    (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s) x
+structure CoupledChemDivFluxJointC2Hyp
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    ...
 ```
 
-is **not safely dischargeable from the landed positive-time heat/resolver lemmas unless the ball is known to stay in positive time**.
+So if you construct this exact structure, Lean requires fields for **every** `τ : ℝ`, including `τ ≤ 0`.  The fields are not vacuous at `τ ≤ 0`: `Metric.ball τ δ` contains `τ` itself, and the closed slab `Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1` is nonempty.  Choosing `δ = 1` does not make the obligations trivial.
 
-The reason: `conjugatePicardIter p u₀ 0 s` is **not** piecewise `u₀` at `s = 0`, nor is it clamped to `u₀`/zero by the Picard definition.  It is definitionally the full Neumann heat propagator for every real `s`:
+For the heat-level-0 situation, `δ = 1` at `τ ≤ 0` is especially suspect because:
 
-```lean
-conjugatePicardIter p u₀ 0 s x
-= intervalFullSemigroupOperator s (intervalDomainLift u₀) x.1
-```
+* for `τ` near `0`, the ball crosses the bad `t = 0` wall;
+* the concrete full heat semigroup has the degenerate value `S(0)f = 0`, not `f`;
+* positive-time smoothing/positivity lemmas generally require `0 < s`;
+* the current comments claiming “S(s)u₀ is jointly C∞ for s > 0” do not justify a slab crossing `s = 0` or negative times.
 
-The landed positivity lemmas for the heat propagator require `0 < s`.  There is also an explicit repo warning/theorem that the concrete propagator at `s = 0` is **not** the identity: `intervalFullSemigroupOperator 0 f x = 0` for every `f` and `x`.
+The downstream target in `level0_chemDiv_timeDerivData` is only on `[c,T]` with `0 < c`, so **mathematically the `τ ≤ 0` parts should be unnecessary**.  But the current code routes through global structures and even defines a global `hderiv_global : ∀ s n, HasDerivAt ...`, which calls `hchain.exists_local_slab s` for arbitrary `s`.  That current route makes the `τ ≤ 0` obligations syntactically part of the proof.
 
-So if sub-sorry 3E is using `Metric.ball τ 1`, the proof needs a hypothesis like `1 < τ` or should choose a smaller radius, e.g. `δ := τ / 2` when `0 < τ`, so that `s ∈ Metric.ball τ δ` implies `0 < s`.  This matches the positive-time nature of the heat and resolver positivity infrastructure.
+Recommended fix: do **not** try to prove a global `CoupledChemDivFluxJointC2Hyp` for the heat semigroup unless you really want to solve the wall/negative-time behavior.  Instead, prove a positive-window/local version, or inline the chain-rule argument only for `s ∈ Icc c T`, choosing local radii inside positive time such as `δ ≤ s / 2`.  If you leave `sorry`s, you can of course put a `by sorry` branch for `τ ≤ 0`, but that is a real axiom placeholder, not a trivial/degenerate slab.
 
-## Question 1: what is `conjugatePicardIter p u₀ 0 s` for `s ≤ 0`?
+## Definition: global nature of `CoupledChemDivFluxJointC2Hyp`
 
-Definition is in:
+File:
 
 ```text
-ShenWork/Paper2/IntervalConjugatePicard.lean
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
 ```
 
-The relevant lines are:
+The structure is:
 
 ```lean
-/-- B-form Picard iteration:
-`u₀(t,x) = S(t)u₀(x)`, `u_{n+1} = Φᴮ(u_n)`. -/
-def conjugatePicardIter (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
-    ℕ → (ℝ → intervalDomainPoint → ℝ)
-  | 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-  | n + 1 => fun t x =>
-      intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
+structure CoupledChemDivFluxJointC2Hyp
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      ContDiffAt ℝ 2
+        (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      (fun r : ℝ => deriv (coupledChemDivFluxLift p u r) x) =ᶠ[𝓝 s]
+        (fun r : ℝ =>
+          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+            (r, x) (0, 1))) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
+        (fun y : ℝ =>
+          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+            (s, y) (1, 0))) ∧
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-So level 0 has **no conditional branch** for `t = 0` or `t < 0`.  It is just `intervalFullSemigroupOperator t (intervalDomainLift u₀)` at all real times.
+The five/final fields are real analytic content.  They are not logically vacuous for `τ ≤ 0`.
 
-The full semigroup operator is defined in:
+## How `FluxJointC2Hyp` is consumed
 
-```text
-ShenWork/PDE/IntervalNeumannFullKernel.lean
-```
-
-as:
+Same file:
 
 ```lean
-def intervalFullSemigroupOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
-  ∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1
-```
-
-and the kernel is built from the real-line heat kernel:
-
-```lean
-def intervalNeumannFullKernel (t x y : ℝ) : ℝ :=
-  ∑' k : ℤ, (heatKernel t (x - y + 2 * k) + heatKernel t (x + y + 2 * k))
-```
-
-Thus, at `s = 0`, the definition does **not** give `u₀`.  The repo has an explicit negative/degeneracy result:
-
-```text
-ShenWork/PDE/IntervalSemigroupAtZero.lean
-```
-
-It states:
-
-```lean
-theorem intervalFullSemigroupOperator_zero (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator 0 f x = 0
-```
-
-The file comments say the intended `S 0 = id` value statement is false for the concrete definition: `heatKernel 0 x = 0`, hence `intervalNeumannFullKernel 0 x y = 0`, hence the propagator value is `0` for every `f` and `x`.
-
-For `s < 0`, I found no special branch and no named theorem simplifying `intervalFullSemigroupOperator s f x`.  The positivity infrastructure I found is all stated for `0 < s`, so negative times should be avoided in this sub-sorry.
-
-## Question 2: does heat level 0 satisfy `u(s) ≥ 0` for all `s`, including `s ≤ 0`?
-
-What is landed:
-
-### Positive time
-
-There is a full Neumann propagator positivity theorem in:
-
-```text
-ShenWork/PDE/IntervalResolverPositivity.lean
-```
-
-```lean
-theorem intervalFullSemigroupOperator_nonneg {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
-    0 ≤ intervalFullSemigroupOperator t f x
-```
-
-There is also the weaker-on-support variant in:
-
-```text
-ShenWork/PDE/IntervalFullKernelLowerBound.lean
-```
-
-```lean
-theorem intervalFullSemigroupOperator_nonneg_of_nonneg_on_Icc {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → 0 ≤ f y) (x : ℝ) :
-    0 ≤ intervalFullSemigroupOperator t f x
-```
-
-For strictly positive initial data, there is a stronger positive-time theorem in:
-
-```text
-ShenWork/Paper2/IntervalBFormNegPartStrictPosBarrier.lean
-```
-
-```lean
-theorem intervalFullSemigroupOperator_pos_of_positiveInitialDatum
-    {u₀ : intervalDomainPoint → ℝ}
-    (hu₀ : PositiveInitialDatum intervalDomain u₀)
-    {t : ℝ} (ht : 0 < t) (x : ℝ) :
-    0 < intervalFullSemigroupOperator t (intervalDomainLift u₀) x
-```
-
-This theorem is exactly what `IntervalConjugateLevel0BFormSourceOn.lean` uses to prove heat-level positivity on positive windows:
-
-```lean
-theorem level0_heat_pos_of_data ... :
-    ∀ σ ∈ Icc c _D.T, ∀ x ∈ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x := by
-  ...
-  exact ShenWork.Paper2.BFormPositiveDatumNegPart.intervalFullSemigroupOperator_pos_of_positiveInitialDatum
-    hu₀ hσpos x
-```
-
-### At `s = 0`
-
-The concrete full semigroup is zero at `s = 0`:
-
-```lean
-intervalFullSemigroupOperator 0 f x = 0
-```
-
-so the level-0 iterate at `s = 0` is not `u₀`; it is zero pointwise after unfolding the semigroup operator.  That is nonnegative, but it is a degenerate artifact of the concrete `heatKernel 0` definition, not the mathematical identity `S(0)=Id`.
-
-### Negative time
-
-I found no theorem proving `0 ≤ intervalFullSemigroupOperator s (intervalDomainLift u₀) x` for `s < 0`, nor a theorem simplifying it to zero.  Existing heat-kernel and full-kernel positivity lemmas require `0 < t`.
-
-Therefore, for sub-sorry 3E, the safe proof route is to ensure all `s` in the slab are positive.
-
-## Resolver positivity connection
-
-The resolver positivity theorem you mention exists in:
-
-```text
-ShenWork/PDE/IntervalResolverPositivity.lean
-```
-
-The closed-domain theorem is:
-
-```lean
-theorem intervalNeumannResolverR_nonneg_of_nonneg_source {p : CM2Params}
-    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
-    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
-    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
-    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
-    (xp : intervalDomainPoint) :
-    0 ≤ intervalNeumannResolverR p u xp
-```
-
-So to prove
-
-```lean
-0 < 1 + intervalDomainLift
-  (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s) x
-```
-
-on `x ∈ Ioo 0 1`, the intended route is:
-
-1. use positive-time heat positivity to show
-   ```lean
-   0 ≤ conjugatePicardIter p u₀ 0 s y
-   ```
-   for `0 < s`;
-2. infer the resolver source `ν · u^γ` is nonnegative;
-3. apply `intervalNeumannResolverR_nonneg_of_nonneg_source`;
-4. rewrite `coupledChemicalConcentration p u s` to the interval resolver;
-5. conclude `0 < 1 + v` from `0 ≤ v`.
-
-This route is valid on positive-time slabs.  It is not available as-is on a ball that may include `s ≤ 0`.
-
-## Question 3: existing heat/nonnegativity infrastructure found
-
-Searches run included:
-
-```text
-nonneg heat
-heat nonneg
-conjugatePicardIter nonneg
-intervalFullSemigroupOperator_nonneg
-intervalFullSemigroupOperator_pos_of_positiveInitialDatum
-intervalNeumannResolverR_nonneg_of_nonneg_source
-```
-
-Relevant landed facts:
-
-### `HeatSemigroup.lean`
-
-```lean
-lemma heatKernel_nonneg {t : ℝ} (ht : 0 < t) (x : ℝ) :
-  0 ≤ heatKernel t x
-```
-
-```lean
-lemma heatKernel_pos {t : ℝ} (ht : 0 < t) (x : ℝ) :
-  0 < heatKernel t x
-```
-
-Again, both require `0 < t`.
-
-### `IntervalResolverPositivity.lean`
-
-```lean
-theorem intervalFullSemigroupOperator_nonneg {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
-    0 ≤ intervalFullSemigroupOperator t f x
-```
-
-```lean
-theorem intervalNeumannResolverR_nonneg_of_nonneg_source ... :
-    0 ≤ intervalNeumannResolverR p u xp
-```
-
-### `IntervalFullKernelLowerBound.lean`
-
-```lean
-theorem intervalFullSemigroupOperator_nonneg_of_nonneg_on_Icc {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → 0 ≤ f y) (x : ℝ) :
-    0 ≤ intervalFullSemigroupOperator t f x
-```
-
-```lean
-theorem intervalFullSemigroupOperator_lower_bound {t : ℝ} (ht : 0 < t) ... :
-    c ≤ intervalFullSemigroupOperator t f x
-```
-
-### `IntervalBFormNegPartStrictPosBarrier.lean`
-
-```lean
-theorem intervalFullSemigroupOperator_pos_of_nonneg_nonzero
-    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
-    (hf_cont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
-    (hf_nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f y)
-    (hf_pos_somewhere : ∃ y₀ ∈ Set.Icc (0 : ℝ) 1, 0 < f y₀)
-    (x : ℝ) :
-    0 < intervalFullSemigroupOperator t f x
-```
-
-```lean
-theorem intervalFullSemigroupOperator_pos_of_positiveInitialDatum
-    {u₀ : intervalDomainPoint → ℝ}
-    (hu₀ : PositiveInitialDatum intervalDomain u₀)
-    {t : ℝ} (ht : 0 < t) (x : ℝ) :
-    0 < intervalFullSemigroupOperator t (intervalDomainLift u₀) x
-```
-
-### `IntervalConjugatePicard.lean`
-
-The general Picard iterate nonnegativity theorem exists, but it is also on the positive horizon:
-
-```lean
-theorem conjugatePicardIter_ball ... :
-  ... ∧
-  (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-    0 ≤ conjugatePicardIter p u₀ n t x) ∧
+theorem coupledChemDivOuterCommuteAtoms_of_fluxJointC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (H : CoupledChemDivFluxJointC2Hyp p u) :
+    CoupledChemDivOuterCommuteAtoms p u := by
+  refine ⟨fun τ => ?_⟩
+  rcases H.exists_local_slab τ with
+    ⟨δ, hδ, hsource_cont, hflux_c2, hspatial, htime, htime_cont⟩
   ...
 ```
 
-### `IntervalConjugateLevel0BFormSourceOn.lean`
-
-For level 0, the file has a positive-window extraction:
+Then:
 
 ```lean
-theorem level0_heat_pos_of_data ... :
-  ∀ σ ∈ Icc c _D.T, ∀ x ∈ Icc (0 : ℝ) 1,
-    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x
+theorem coupledChemDivLocalChainRule_of_fluxJointC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (H : CoupledChemDivFluxJointC2Hyp p u) :
+    CoupledChemDivLocalChainRule p u :=
+  coupledChemDivLocalChainRule_of_outerCommuteAtoms
+    (coupledChemDivOuterCommuteAtoms_of_fluxJointC2 H)
 ```
 
-This uses `0 < c` to derive `0 < σ`.
+So the global `∀ τ` is preserved into `CoupledChemDivLocalChainRule`.
 
-## Bottom line for sub-sorry 3E
+## How `CoupledChemDivLocalChainRule` is used
 
-The currently stated radius `Metric.ball τ 1` is the suspicious part.  To use existing heat/resolver positivity infrastructure, make the slab positive-time:
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivTimeDerivative.lean
+```
+
+`CoupledChemDivLocalChainRule` is also global:
 
 ```lean
-∃ δ > 0, ∀ s ∈ Metric.ball τ δ, 0 < s
+structure CoupledChemDivLocalChainRule
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    ...
 ```
 
-usually with:
+The global source-time-C¹ producer uses it globally:
 
 ```lean
-δ := τ / 2
+theorem coupledChemDivCoeff_hasDerivAt_of_fields
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (F : CoupledChemDivTimeC1Fields p u) (s : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+      (coupledChemDivAdot p u s n) s := by
+  rcases F.hchain.exists_local_slab s with
+    ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
+  exact
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
+      ...
 ```
 
-when `0 < τ`.
+And `coupledChemDivSource_timeC1_of_fields` builds a global:
 
-Then use positive-time heat positivity + resolver positivity.  If the structure forces `δ = 1` for arbitrary `τ`, then the goal is too strong for the landed infrastructure and may be false/unsupported whenever the ball crosses `s ≤ 0`.
+```lean
+DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u)
+```
+
+by proving `∀ s n, HasDerivAt ...`.
+
+File:
+
+```text
+ShenWork/Wiener/EWA/ChemDivAdot.lean
+```
+
+The same global pattern appears there:
+
+```lean
+theorem coupledChemDivCoeff_hasDerivAt_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) (s : ℝ) (n : ℕ) :
+    HasDerivAt ... := by
+  rcases hchain.exists_local_slab s with
+    ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
+  ...
+```
+
+Then the windowed derivative theorem restricts that global `HasDerivAt` to `[0,T]` via `.hasDerivWithinAt`.
+
+## Current Level0 code path
+
+File:
+
+```text
+ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+```
+
+Inside `level0_chemDiv_timeDerivData`, the target is windowed:
+
+```lean
+∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
+  (∀ s ∈ Icc c T, ∀ n,
+    HasDerivWithinAt
+      (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
+      (adot s n) (Icc c T) s) ∧
+  ...
+```
+
+with `0 < c`.
+
+But the current proof attempts to build a global `CoupledChemDivFluxJointC2Hyp`:
+
+```lean
+have hfluxC2 : CoupledChemDivFluxJointC2Hyp
+    p (conjugatePicardIter p u₀ 0) := by
+  apply coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+  refine ⟨fun τ => ?_⟩
+  refine ⟨1, one_pos, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+```
+
+That is where the `τ ≤ 0` problem enters.
+
+The proof later uses `hchain.exists_local_slab` only at positive-window points for the joint-continuity step:
+
+```lean
+intro ⟨s, x⟩ hsx
+obtain ⟨hs, hx⟩ := mem_prod.1 hsx
+rcases hchain.exists_local_slab s with ⟨δ, hδ, _, _, hcont⟩
+```
+
+Here `s ∈ Icc c T`, so `s ≥ c > 0`.
+
+However, it also introduces:
+
+```lean
+have hderiv_global : ∀ s n,
+    HasDerivAt
+      (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
+      (adot s n) s := by
+  intro s n
+  rcases hchain.exists_local_slab s with ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
+  ...
+```
+
+That statement calls `hchain.exists_local_slab s` for arbitrary `s : ℝ`.  So in the current proof skeleton, the global `τ ≤ 0` fields are not merely hidden in the structure: they are also forced by `hderiv_global`, even though the final target only uses `s ∈ Icc c T`.
+
+This can be refactored.  Instead of proving `hderiv_global : ∀ s n`, prove only:
+
+```lean
+have hderiv : ∀ s ∈ Icc c T, ∀ n,
+    HasDerivWithinAt ... (Icc c T) s := by
+  intro s hs n
+  -- now `0 < s` follows from `hc` and `hs.1`
+  -- obtain a positive-time local slab at `s`, with δ ≤ s/2, and apply the same local theorem
+```
+
+Then the proof only queries slabs at positive `s`.
+
+## Can `τ ≤ 0` be filled with a trivial/degenerate slab?
+
+### If using `sorry`
+
+Yes, syntactically you can branch on `τ ≤ 0` and put `sorry` there.  Lean will accept it.  But that is not a trivial proof; it is an axiom placeholder for nontrivial or possibly false regularity across/near the `t = 0` wall.
+
+### Without `sorry`
+
+No, not by just choosing `δ = 1`.
+
+Reasons:
+
+1. `Metric.ball τ 1` is nonempty and contains `τ`.
+2. If `τ = 0`, every `δ > 0` crosses positive and nonpositive times.
+3. The concrete heat semigroup has `S(0)f = 0`, not `f`, so continuity/smoothness through `0` is not automatic and is generally suspect for nonzero data.
+4. The intended heat smoothness facts are positive-time facts.
+5. `ContinuousOn (Function.uncurry (...)) (Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1)` is a real closed-slab continuity statement; it is not vacuous.
+
+For `τ < 0`, a degenerate/zero route might be possible if one proves that the concrete heat semigroup and all relevant derived fields are identically zero on a sufficiently small negative-time slab.  But that is not currently landed in the files I inspected, and it would still fail to cover `τ = 0` without a real wall argument.
+
+## Recommended route
+
+Do not use the global `CoupledChemDivFluxJointC2Hyp` as the Level0 heat proof vehicle unless you are prepared to solve all-time regularity.
+
+Instead, introduce a positive-window/local version, e.g. conceptually:
+
+```lean
+structure CoupledChemDivFluxJointC2HypOn
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c T : ℝ) : Prop where
+  exists_local_slab_on : ∀ τ ∈ Icc c T, ∃ δ : ℝ, 0 < δ ∧
+    δ ≤ τ / 2 ∧
+    -- same local fields, with balls/slabs now contained in positive time
+```
+
+or do not introduce a structure at all: inline the local slab proof inside `level0_chemDiv_timeDerivData` for each `s ∈ Icc c T`.
+
+The key local-radius move is:
+
+```lean
+have hs_pos : 0 < s := lt_of_lt_of_le hc hs.1
+let δ := min 1 (s / 2)
+```
+
+or similar, so that `r ∈ Metric.ball s δ` implies `0 < r`.
+
+Then apply the positive-time heat/resolver regularity facts only where they are valid.
+
+## Bottom line
+
+* `CoupledChemDivFluxJointC2Hyp` requires nontrivial data for all `τ : ℝ`.
+* The existing conversion to `CoupledChemDivLocalChainRule` preserves the global `∀ τ`.
+* Some existing consumers (`coupledChemDivCoeff_hasDerivAt_of_fields`, `coupledChemDivCoeff_hasDerivAt_of_chainRule`) explicitly call `exists_local_slab s` for arbitrary `s` to produce global `HasDerivAt`.
+* In the current Level0 proof, the final target is only `[c,T]` with `0 < c`, but the skeleton unnecessarily creates global packages and a global derivative theorem.
+* A `τ ≤ 0` branch with `δ = 1` is not mathematically trivial.  It can be `sorry`ed, but that is a real placeholder, not a safe degenerate slab.
+* Best fix: refactor to a positive-window/local chain-rule proof and avoid constructing `CoupledChemDivFluxJointC2Hyp` globally for heat level 0.
