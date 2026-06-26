@@ -6,14 +6,20 @@
   `cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable`.
 
   ## §1 (Spatial regularity): 0 sorry — axiom-clean.
-  ## §2 (Joint (t,x) C² regularity): 1 sorry — iterated-derivative majorant bound.
+  ## §2 (Joint (t,x) C² regularity via smooth time cutoff):
+  Uses `smoothRightCutoff` to localize in time.  The cutoff term
+  `φ(t) · exp(-t λ_n) · â_n · cos(nπx)` has globally bounded iterated
+  derivatives (φ kills the t < 0 blow-up, exponential decay handles t → ∞).
+  `contDiff_tsum` gives `ContDiff ℝ 2` of the cutoff series; near points
+  with `s₀ > c` the cutoff equals 1 so the cutoff series = original series,
+  yielding `ContDiffAt ℝ 2`.
 
-  The sorry in §2 is the uniform-in-(t,x) iterated-derivative bound that
-  `contDiff_tsum` requires globally.  On the slab `t ≥ c` the bound holds;
-  a future revision should use `ContDiffOn` or a smooth time cutoff.
+  1 sorry: the uniform iterated-derivative bound for the cutoff heat term
+  (Leibniz product rule computation).
 -/
 import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
 import ShenWork.Paper2.ChemMildC1etaComm
+import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
 import Mathlib.Analysis.Calculus.SmoothSeries
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
