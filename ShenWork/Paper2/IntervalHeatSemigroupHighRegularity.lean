@@ -27,6 +27,8 @@ import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
 import ShenWork.Paper2.ChemMildC1etaComm
 import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
 import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
+import ShenWork.Paper2.IntervalConjugatePicard
 import Mathlib.Analysis.Calculus.SmoothSeries
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -755,3 +757,107 @@ theorem heatSemigroup_jointContDiffAt_two
 end
 
 end ShenWork.Paper2.HeatSemigroupJointRegularity
+
+/-! ## §3: Joint `(t,x)` C² regularity of the *resolver* coupled concentration
+at the heat semigroup base iterate (level 0)
+
+The coupled chemical concentration `v(s,x) = coupledChemicalConcentration p u s x`
+(where `u = conjugatePicardIter p u₀ 0 = S(t)u₀`, the heat semigroup) is
+`ContDiffAt ℝ 2` at `(s₀, x₀)` for `s₀ > c > 0` and `x₀ ∈ (0,1)`.
+
+**Route.**  The resolver concentration has cosine series
+`v(s,x) = ∑' k, resolverTimeCoeff p u k s · cos(kπx)` where
+`resolverTimeCoeff p u k s = wₖ · srcTimeCoeff p u k s` with the constant
+elliptic weight `wₖ = 1/(μ+λ_k)`.  The existing infrastructure chain
+
+  `PhysicalResolverJointC2Data  →  coupledChemical_jointContDiffAt_two`
+
+delivers `ContDiffAt ℝ 2` of the uncurried lifted concentration from the
+bounded-weight time-coefficient data.  For the heat semigroup base iterate the
+source `ν·S(t)u₀^γ` is smooth in time (exponential coefficient decay) and `C²`
+in space (heat smoothing + rpow chain rule under the positivity floor), giving
+the source cosine coefficients `(kπ)⁻²` decay at each of the three time orders
+`0,1,2`.
+
+The sorry'd sub-pieces are:
+* `heatSemigroup_level0_resolverJointC2Data` — building the
+  `PhysicalResolverJointC2Data` for the heat semigroup base iterate, which
+  requires the floor positivity, the time-Leibniz chain on the source slices,
+  and the `(kπ)⁻²` spatial decay envelopes.  This is the upstream infrastructure
+  that connects the heat semigroup smoothing to the floored source time-`C²`
+  data (`FlooredSourceTimeData`).
+-/
+
+namespace ShenWork.Paper2.HeatResolverJointRegularity
+
+open Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+  (PhysicalResolverJointC2Data coupledChemical_jointContDiffAt_two
+   resolverTimeCoeff)
+
+noncomputable section
+
+/-- **Physical resolver joint-C² data for the heat semigroup base iterate.**
+
+For `u = conjugatePicardIter p u₀ 0 = S(t)u₀` (the heat semigroup applied to
+bounded continuous initial data `u₀`), the resolver time-coefficients
+`resolverTimeCoeff p u k t = wₖ · cosineCoeffs(ν·(S(t)u₀)^γ, k)` are `C²` in
+time with summable bounded-weight joint majorants.
+
+This is the key sub-piece that connects:
+- heat semigroup smoothing (exponential coefficient decay, C⁴ in x for t > 0),
+- positivity floor of S(t)u₀ for t > 0 (heat kernel positivity-preserving),
+- rpow chain rule ν·u^γ under the floor → source slice time derivatives,
+- IBP `(kπ)⁻²` decay of each time-derivative slice (Neumann C²-in-x),
+- bounded-weight joint majorant summability (wₖ·Es cancellation).
+
+Sorry'd: building `FlooredSourceTimeData` for the heat semigroup requires
+specifying the two time-derivative slices s₁, s₂ of `ν·S(t)u₀^γ` via the rpow
+chain rule, proving their joint continuity, space-C²-Neumann regularity, and
+uniform `(kπ)⁻²` envelopes.  Each sub-piece is finite and non-circular. -/
+theorem heatSemigroup_level0_resolverJointC2Data
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀) :
+    ∃ Bt : ℕ → ℕ → ℝ,
+      PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
+  sorry
+
+/-- **Joint `ContDiffAt ℝ 2`** of the resolver coupled concentration at the heat
+semigroup base iterate `conjugatePicardIter p u₀ 0`, at any interior space
+point `x₀ ∈ (0,1)` and positive time `s₀ > c > 0`.
+
+This single theorem unlocks the 3 remaining Level0 sorry in the FAC chain:
+- SUB-SORRY 3C (resolver joint C²)
+- SUB-SORRY 3D (resolver gradient joint C²)
+- SUB-SORRY 3E (resolver positivity floor) — via the `PhysicalResolverJointC2Data`.
+
+**Proof route:**  Existentially extract `PhysicalResolverJointC2Data` from
+`heatSemigroup_level0_resolverJointC2Data`, then apply the committed
+bounded-weight assembler `coupledChemical_jointContDiffAt_two`. -/
+theorem heatResolverJointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
+  -- `_hc` and `_hs₀` are retained in the API for downstream callers that pass
+  -- a time-positivity witness; the bounded-weight route via
+  -- `PhysicalResolverJointC2Data` is globally valid (no time cutoff needed).
+  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
+    (p := p) hu₀_bound hu₀_cont
+  exact coupledChemical_jointContDiffAt_two hBt hx₀
+
+#print axioms heatResolverJointContDiffAt_two
+
+end
+
+end ShenWork.Paper2.HeatResolverJointRegularity
