@@ -1,157 +1,173 @@
-# Q822 (cron2) — `intervalDomainLift` eventual equality near an interior point
+# Q825 (cron2) — from pointwise `ContDiffAt` to `ContinuousOn` for 2A-core
 
-Static repo inspection only; I did not run a local Lean build.
+Static Mathlib/repo inspection only; I did not run a local Lean build.
 
 ## Short answer
 
-Yes. The repo already has the exact product-neighborhood pattern you want.
+Mathlib has the direct global/on-set lemmas:
 
-Best reference:
+```lean
+theorem ContDiffOn.continuousOn (h : ContDiffOn 𝕜 n f s) : ContinuousOn f s
+
+theorem ContDiff.continuous (h : ContDiff 𝕜 n f) : Continuous f
+
+theorem ContDiff.contDiffOn (h : ContDiff 𝕜 n f) : ContDiffOn 𝕜 n f s
+
+theorem ContDiffAt.continuousAt (h : ContDiffAt 𝕜 n f x) : ContinuousAt f x
+```
+
+I did **not** find a separately named theorem like `ContDiffAt_forall_to_ContinuousOn`.  But you do not need one: `ContinuousOn f S` is definitionally the pointwise `ContinuousWithinAt` statement, and `ContinuousAt.continuousWithinAt` bridges from the pointwise `ContDiffAt` result.
+
+For a closed rectangle/set `S`, if you have pointwise global-at regularity,
+
+```lean
+hΦ : ∀ q ∈ S, ContDiffAt ℝ 2 Φ q
+```
+
+then the bridge is just:
+
+```lean
+have hΦ_cont : ContinuousOn Φ S := by
+  intro q hq
+  exact (hΦ q hq).continuousAt.continuousWithinAt
+```
+
+That is the bridge you want for 2A-core.
+
+## If you can package the proof as `ContDiffOn`
+
+If instead you can prove:
+
+```lean
+hΦ : ContDiffOn ℝ 1 Φ S
+```
+
+or even
+
+```lean
+hΦ : ContDiffOn ℝ 0 Φ S
+```
+
+then use Mathlib’s direct theorem:
+
+```lean
+exact hΦ.continuousOn
+```
+
+For a global `ContDiff` proof:
+
+```lean
+hΦ : ContDiff ℝ 1 Φ
+```
+
+you can use either:
+
+```lean
+exact hΦ.contDiffOn.continuousOn
+```
+
+or:
+
+```lean
+exact hΦ.continuous.continuousOn
+```
+
+The first route is often better in this codebase because the calculus facts are already phrased in the `ContDiff*` API.
+
+## Recommended shape for sub-sorry 2A-core
+
+Let
+
+```lean
+R : Set (ℝ × ℝ) := Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1
+Φ : ℝ × ℝ → ℝ := fun q => deriv (chemFluxFun β (U q.1) (V q.1)) q.2
+```
+
+or whatever the exact unfolded smooth-flux-derivative expression is.
+
+If the local chain-rule work gives:
+
+```lean
+hΦ_at : ∀ q ∈ R, ContDiffAt ℝ 0 Φ q
+-- or `ContDiffAt ℝ 1 Φ q`, or `ContDiffAt ℝ 2 Φ q`
+```
+
+then close the `ContinuousOn` goal by:
+
+```lean
+exact fun q hq => (hΦ_at q hq).continuousAt.continuousWithinAt
+```
+
+If the local chain-rule work gives `ContDiffAt ℝ 1` or `ContDiffAt ℝ 2`, no `of_le` is needed because `ContDiffAt.continuousAt` works for any order `n`.
+
+If your proof naturally produces a within-at statement on the rectangle,
+
+```lean
+hΦ_within : ∀ q ∈ R, ContDiffWithinAt ℝ 0 Φ R q
+```
+
+then use the even more direct within-at route:
+
+```lean
+exact fun q hq => (hΦ_within q hq).continuousWithinAt
+```
+
+## Why this fits `[c,T] × [0,1]`
+
+The fact that the goal is `ContinuousOn` on the closed rectangle is not a problem.  You do **not** need the rectangle to be open.  A `ContDiffAt` proof at every point of the rectangle is stronger than what `ContinuousOn` asks for, including at boundary points.  At a boundary point, `ContinuousAt Φ q` immediately implies `ContinuousWithinAt Φ R q`.
+
+So the strategy is:
 
 ```text
-ShenWork/PDE/IntervalIteratePicardJointC2.lean
+joint C² U and V
+  → pointwise ContDiffAt / local C¹ of the rational flux expression Φ
+  → ContDiffAt.continuousAt at each q
+  → ContinuousAt.continuousWithinAt
+  → ContinuousOn Φ R
 ```
 
-The theorem is:
+For this sub-sorry, the last bridge should not be the hard part; it is a three-line proof.
 
-```lean
-theorem iterate_lift_jointContDiffAt_two
-    {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : IteratePicardJointC2Data u c Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x) := by
-  have hseries : ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' k : ℕ, boundedWeightJointTerm c k q) :=
-    boundedWeightJointSeries_contDiff_two H.coeff_contDiff
-      (fun i k t hi => H.coeff_bound i k t hi) H.value_summable
-  refine (hseries.contDiffAt).congr_of_eventuallyEq ?_
-  have hmem : {q : ℝ × ℝ | q.2 ∈ Ioo (0 : ℝ) 1} ∈ 𝓝 (s, x) :=
-    (isOpen_Ioo.preimage continuous_snd).mem_nhds hx
-  filter_upwards [hmem] with q hq
-  have he := H.lift_eq_series (t := q.1) (x := q.2) (Ioo_subset_Icc_self hq)
-  simpa [boundedWeightJointTerm] using he
-```
+## Relevant Mathlib locations checked
 
-This is the clean template for sub-sorry 3B.  It does **not** separately prove
-
-```lean
-intervalDomainLift (u q.1) q.2 = (u q.1) ⟨q.2, _⟩
-```
-
-as an intermediate target.  Instead it keeps the proof nondependent by using the already-packaged slice agreement
-
-```lean
-H.lift_eq_series : ∀ {t x : ℝ}, x ∈ Icc (0 : ℝ) 1 →
-  intervalDomainLift (u t) x = ∑' k : ℕ, c k t * cosineMode k x
-```
-
-and then makes that agreement eventual near `(s,x)` by restricting only the second coordinate to `Ioo 0 1`.
-
-## Why this is the right pattern for 3B
-
-Your target has the same left-hand side:
-
-```lean
-fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2
-```
-
-The existing proof turns a global or per-time `EqOn ... (Icc 0 1)` statement into an eventual equality at `(s,x)` by:
-
-```lean
-have hmem : {q : ℝ × ℝ | q.2 ∈ Ioo (0 : ℝ) 1} ∈ 𝓝 (s, x) :=
-  (isOpen_Ioo.preimage continuous_snd).mem_nhds hx
-filter_upwards [hmem] with q hq
-have hxIcc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq
--- apply the slice EqOn at time q.1 and space q.2
-```
-
-Then it applies `ContDiffAt.congr_of_eventuallyEq` in the orientation from Q816:
-
-```lean
-refine (hseries.contDiffAt).congr_of_eventuallyEq ?_
-```
-
-where the proof obligation is:
-
-```lean
-(fun q => intervalDomainLift (u q.1) q.2)
-  =ᶠ[𝓝 (s,x)]
-(fun q => cosine-series q.1 q.2)
-```
-
-## Adapting it to `hagree_zero`
-
-For level 0, `hagree_zero` in
+Mathlib source checked:
 
 ```text
-ShenWork/Paper2/IntervalPicardIterateRepresentation.lean
+leanprover-community/mathlib4 @ 11b908e5cdd941b2d54b1b2ab55d069f5d8281d4
+Mathlib/Analysis/Calculus/ContDiff/Defs.lean
+Mathlib/Topology/ContinuousOn.lean
 ```
 
-has the fixed-time shape:
+Useful facts found:
 
 ```lean
-theorem hagree_zero ... {σ M₀ : ℝ} (hσ : 0 < σ) ... :
-  Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
-    (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
-    (Set.Icc (0 : ℝ) 1)
+-- ContDiffWithinAt gives ContinuousWithinAt
+theorem ContDiffWithinAt.continuousWithinAt
+    (h : ContDiffWithinAt 𝕜 n f s x) : ContinuousWithinAt f s x
+
+-- ContDiffOn gives ContinuousOn
+theorem ContDiffOn.continuousOn
+    (h : ContDiffOn 𝕜 n f s) : ContinuousOn f s
+
+-- ContDiffAt gives ContinuousAt
+theorem ContDiffAt.continuousAt
+    (h : ContDiffAt 𝕜 n f x) : ContinuousAt f x
+
+-- Global ContDiff can be restricted to any set
+theorem ContDiff.contDiffOn
+    (h : ContDiff 𝕜 n f) : ContDiffOn 𝕜 n f s
+
+-- Global ContDiff gives Continuous
+theorem ContDiff.continuous
+    (h : ContDiff 𝕜 n f) : Continuous f
 ```
 
-So if your 3B point has `hs : 0 < s`, add a time-neighborhood restriction as well:
+And `ContinuousOn` is used as the pointwise-within statement:
 
 ```lean
-have htime : {q : ℝ × ℝ | 0 < q.1} ∈ 𝓝 (s, x) :=
-  (isOpen_Ioi.preimage continuous_fst).mem_nhds hs
-have hspace : {q : ℝ × ℝ | q.2 ∈ Ioo (0 : ℝ) 1} ∈ 𝓝 (s, x) :=
-  (isOpen_Ioo.preimage continuous_snd).mem_nhds hx
-filter_upwards [htime, hspace] with q hq_time hq_space
-have hxIcc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq_space
-have heqon :=
-  ShenWork.IntervalPicardIterateRepresentation.hagree_zero
-    p u₀ (σ := q.1) (M₀ := M₀) hq_time hu₀_cont hu₀_bound
-have he := heqon q.2 hxIcc
--- `he` is the pointwise equality needed for the eventual equality.
+theorem ContinuousOn.continuousWithinAt (hf : ContinuousOn f s) (hx : x ∈ s) :
+    ContinuousWithinAt f s x :=
+  hf x hx
 ```
 
-Depending on whether your `u` is definitionally `picardIter p u₀ 0` or a local alias/wrapper such as `conjugatePicardIter p u₀ 0`, the final line will be some `simpa [...] using he`, possibly unfolding the level-0 wrapper and the series term definition.
-
-## Supporting examples in the repo
-
-There are two other useful patterns:
-
-1. `IntervalLiftEndpointDeriv.lean` has exterior-neighborhood eventual equalities for the lift:
-
-```lean
-theorem lift_eventuallyEq_zero_Iio
-    (f : intervalDomainPoint → ℝ) {x : ℝ} (hx : x < 0) :
-    intervalDomainLift f =ᶠ[nhds x] (fun _ => (0 : ℝ)) := by
-  have hmem : Set.Iio (0 : ℝ) ∈ nhds x := isOpen_Iio.mem_nhds hx
-  filter_upwards [hmem] with z hz
-  have hzn : z ∉ Set.Icc (0 : ℝ) 1 := by
-    intro hcon; exact absurd hcon.1 (not_le.2 hz)
-  exact lift_eq_zero_of_not_mem f hzn
-```
-
-and similarly for `Ioi 1`.  This is the same `open set ∈ nhds` + `filter_upwards` style, but for the outside branch of `intervalDomainLift`.
-
-2. `IntervalPicardLimitTimeNhd.lean` has a time-neighborhood spectral-agreement proof that uses an open time neighborhood, then unfolds the lift at a subtype point with `dif_pos`:
-
-```lean
-filter_upwards [hopen.mem_nhds hmem] with s hs
-...
-have hx1 : x.1 ∈ Set.Icc (0:ℝ) 1 := x.2
-have hlift : u s x = intervalDomainLift (u s) x.1 := by
-  simp only [intervalDomainLift, hx1, dif_pos, Subtype.eta]
-rw [hlift, heqon hx1]
-```
-
-This is not the full product-neighborhood proof, but it is a useful example of the `dif_pos`/`EqOn` bridge around `intervalDomainLift`.
-
-## Recommendation for sub-sorry 3B
-
-Use `IntervalIteratePicardJointC2.iterate_lift_jointContDiffAt_two` as the direct model.  For level 0, the main difference is that `hagree_zero` needs a positive time hypothesis, so include the extra eventual restriction
-
-```lean
-{q : ℝ × ℝ | 0 < q.1} ∈ 𝓝 (s,x)
-```
-
-via `continuous_fst`.  Avoid proving a separate dependent-subtype equality unless you absolutely need it; the existing successful pattern goes directly from `intervalDomainLift` to the cosine representative by applying the `EqOn` theorem on `Icc` after shrinking spatially to `Ioo`.
+So the pointwise proof by `intro q hq` is idiomatic.
