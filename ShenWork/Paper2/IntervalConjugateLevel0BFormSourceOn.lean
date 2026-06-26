@@ -275,7 +275,63 @@ theorem level0_chemDiv_envelope_summable
           --   (c) Assembling the depth-1 NeumannTower structure
           --   (d) Uniform rawCoeff bound for the top level g 1
           apply intervalResolverLiftR_contDiff_four
-          sorry
+          -- Goal: Summable (fun k => λ_k * |(resolverSourceCoeff p w k).re|)
+          -- where w = conjugatePicardIter p u₀ 0 s.
+          --
+          -- Step 1: rewrite source coeff .re to cosineCoeffs of ν·lift(w)^γ.
+          set w := conjugatePicardIter p u₀ 0 s
+          have hre_eq : ∀ k,
+              (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re
+                = cosineCoeffs (fun x => p.ν * intervalDomainLift w x ^ p.γ) k := by
+            intro k
+            simp only [ShenWork.PDE.intervalNeumannResolverSourceCoeff, cosineCoeffs,
+              Complex.ofReal_re]
+          simp_rw [hre_eq]
+          -- Step 2: eigenvalue-summable coefficients for the heat semigroup.
+          have hbc_sum : Summable (fun n =>
+              unitIntervalCosineEigenvalue n *
+                |Real.exp (-s * unitIntervalCosineEigenvalue n) *
+                  heatCoeff u₀ n|) :=
+            ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
+              hs_pos _hu₀_bound
+          -- Step 3: agreement of lift(w) with the cosine series on [0,1].
+          have hagree_w : Set.EqOn (intervalDomainLift w)
+              (fun x => ∑' k, (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k x) (Set.Icc (0 : ℝ) 1) :=
+            ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+              p u₀ hs_pos _hu₀_cont _hu₀_bound
+          -- Step 4: positivity on [0,1].
+          have hpos_w : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+              0 < intervalDomainLift w x :=
+            _hpos s hs
+          -- Step 5: build IntervalWeakH2Neumann for ν · lift(w)^γ.
+          --   This uses: eigenvalue summability of heat coefficients →
+          --   cosine series is C² → ν·u^γ is C² by chain rule (rpow + pos) →
+          --   Neumann BCs from junk-value at endpoints.
+          have hf_H2 :
+              ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+                (fun x => p.ν * intervalDomainLift w x ^ p.γ) :=
+            ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
+              p.hν p.hγ hbc_sum hagree_w hpos_w
+          -- Step 6: build IntervalWeakH2Neumann for hf_H2.secondDeriv.
+          --   This is the "depth-2" certificate: (ν·u^γ)'' is itself C² with
+          --   Neumann BCs.  Requires C⁴ of ν·u^γ (from C⁴ of the heat
+          --   semigroup cosine series hU_C4 + chain rule + positivity) and
+          --   third-derivative Neumann vanishing at endpoints.
+          --   Each sub-fact is a concrete, well-defined mathematical statement.
+          have hf''_H2 :
+              ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+                hf_H2.secondDeriv := by
+            -- secondDeriv = deriv (deriv (ν·lift(w)^γ)) is C² on [0,1]
+            -- because ν·U_cos^γ is C⁴ (U_cos is C⁴ from hU_C4, γ-power of
+            -- positive C⁴ function is C⁴ by chain rule).
+            -- Neumann BCs: deriv(secondDeriv)(0) = 0 and deriv(secondDeriv)(1) = 0
+            -- because all odd derivatives of the cosine series vanish at 0 and 1
+            -- (evenness about 0, symmetry about 1).
+            sorry
+          -- Step 7: quartic decay → eigenvalue-weighted summability.
+          exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
+            hf_H2 hf''_H2
         · -- Positivity: 0 < 1 + V x.
           -- Route: V ≥ 0 everywhere (resolver nonnegativity + period-2/even
           -- reduction to [0,1]), so 1 + V x ≥ 1 > 0.
