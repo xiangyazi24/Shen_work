@@ -192,15 +192,18 @@ theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
     -- And |∫ cos(kπx) hf''.secondDeriv(x) dx| ≤ B₂
     -- So (kπ)² |raw_f''| ≤ B₂, hence |raw_f''| ≤ B₂/(kπ)²
     have hlap2 := hf''.weak_cosine_laplacian k
-    -- hlap2 : ∫ cos(kπx) hf''.secondDeriv(x) = -(kπ)² · ∫ cos(kπx) hf.secondDeriv(x)
-    --       = -(kπ)² · raw_f''
-    have habs_lap2 : |-(((k : ℝ) * Real.pi) ^ 2 * raw_f'')| ≤ B₂ := by
-      have := weak_laplacianCoeff_abs_le_of_bound hf'' hB₂ k
-      simp only [raw_f''] at hlap2
-      rwa [hlap2] at this
-    rw [abs_neg, abs_mul, abs_of_pos hlam_pos] at habs_lap2
-    exact div_le_of_le_mul₀ (abs_nonneg _) hlam_pos.le habs_lap2 |>.symm ▸
-      le_div_iff₀ hlam_pos |>.mpr habs_lap2 |>.symm ▸ le_div_iff₀ hlam_pos |>.mpr habs_lap2
+    -- From weak_laplacianCoeff_abs_le_of_bound applied to hf'':
+    --   |∫ cos(kπx) hf''.secondDeriv(x) dx| ≤ B₂
+    -- From hlap2: that integral = -(kπ)² · raw_f''
+    -- So (kπ)² |raw_f''| ≤ B₂, hence |raw_f''| ≤ B₂/(kπ)²
+    have hcoeff_bound := weak_laplacianCoeff_abs_le_of_bound hf'' hB₂ k
+    rw [hlap2] at hcoeff_bound
+    rw [show -(((k : ℝ) * Real.pi) ^ 2) *
+        ∫ x in (0:ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * hf.secondDeriv x =
+      -(((k : ℝ) * Real.pi) ^ 2 * raw_f'') from by ring] at hcoeff_bound
+    rw [abs_neg, abs_mul, abs_of_pos hlam_pos] at hcoeff_bound
+    rw [le_div_iff₀ hlam_pos, mul_comm]
+    exact hcoeff_bound
   -- |raw_f| ≤ B₂/(kπ)⁴
   have hraw_f_bound : |raw_f| ≤ B₂ / ((k : ℝ) * Real.pi) ^ 4 := by
     rw [hraw_rel, abs_mul, abs_neg,
@@ -229,7 +232,7 @@ theorem intervalWeakH4Neumann_eigenvalue_L1_summable
     (((Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)).mul_left
       (2 * B₂ / Real.pi ^ 2))
   by_cases hk : k = 0
-  · simp [unitIntervalCosineEigenvalue]
+  · subst hk; simp [unitIntervalCosineEigenvalue, Nat.cast_zero]
   · have hk1 : 1 ≤ k := Nat.one_le_iff_ne_zero.mpr hk
     have hk_pos : (0 : ℝ) < (k : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk1
     show unitIntervalCosineEigenvalue k * |cosineCoeffs f k| ≤
@@ -242,7 +245,6 @@ theorem intervalWeakH4Neumann_eigenvalue_L1_summable
           rw [mul_pow]
           have hk2 : (k : ℝ) ^ 2 ≠ 0 := by positivity
           have hpi2 : Real.pi ^ 2 ≠ 0 := by positivity
-          field_simp
-          ring
+          field_simp; try ring
 
 end ShenWork.IntervalSourceDecayQuantitative
