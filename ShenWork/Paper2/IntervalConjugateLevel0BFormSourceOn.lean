@@ -972,46 +972,80 @@ theorem level0_chemDiv_timeDerivData
     apply ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
     refine ⟨fun τ => ?_⟩
     -- We need a single δ > 0 with all 7 fields.
-    -- Sorry the existence of such a δ with all fields at once.
-    refine ⟨1, one_pos, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · -- F1: per-slab source continuity.
-      -- For s near τ, coupledChemDivSourceLift p u s is continuous on [0,1].
-      -- Follows from: S(s)u₀ is C∞ for s > 0, resolver is C∞, chemDiv is
-      -- a smooth composition, intervalDomainLift preserves continuity on [0,1].
-      -- The source coupledChemDivSourceLift is defined as intervalDomainLift
-      -- composed with the chemotaxis divergence, which is a smooth function.
-      -- For any s in a neighborhood of τ, this composition is continuous on [0,1].
-      exact Filter.Eventually.of_forall (fun s =>
-        sorry) -- [SUB-SORRY 3A-sub: per-slab continuity proof
-                -- This is a genuine analytic fact: coupledChemDivSourceLift p u s
-                -- is continuous on [0,1] for all s (or at least for s in any given
-                -- neighborhood). Proof strategy: it's defined as intervalDomainLift
-                -- of a smooth function (chemDiv source), which preserves continuity.
-                -- The full proof requires: smooth data of u(s) → smooth chDivSource
-                -- → continuous on [0,1]. This is wired up in the above theorem
-                -- hjoint_source_cont once it becomes available.]
-    · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
-      -- The heat semigroup is jointly C∞ for s > 0 (standard PDE result).
-      -- The cosine-series representation converges in C^k for any k when s > 0.
-      sorry -- [SUB-SORRY 3B: heat semigroup joint C²]
-    · -- F3: joint C² of resolver value v(s,x).
-      -- The resolver v = (I - p.dv·Δ)⁻¹(u) inherits joint smoothness from u
-      -- via the spectral/cosine-series representation.
-      sorry -- [SUB-SORRY 3C: resolver joint C²]
-    · -- F4: joint C² of gradient ∂ₓv(s,x).
-      -- Follows from F3 + one more derivative in x.
-      sorry -- [SUB-SORRY 3D: resolver gradient joint C²]
-    · -- F5: positivity 0 < 1 + v(s,x).
-      -- The resolver is nonneg (from nonneg u and elliptic maximum principle),
-      -- so 1 + v > 0.
-      sorry -- [SUB-SORRY 3E: resolver positivity floor]
-    · -- F6: time fderiv bridge.
-      -- The flux time derivative agrees with fderiv of the uncurried flux in
-      -- the time direction.  Requires the Clairaut inner commute.
-      sorry -- [SUB-SORRY 3F: flux time fderiv bridge]
-    · -- F7: time-derivative continuity on the slab [τ-1, τ+1] × [0,1].
-      -- The mixed time-derivative of the chemDiv source is jointly continuous.
-      sorry -- [SUB-SORRY 3G: time-derivative joint continuity on slab]
+    -- For τ > 0, use δ = min 1 (τ/2) to keep Metric.ball τ δ ⊆ (0, ∞).
+    -- For τ ≤ 0, use δ = 1 (degenerate case: S(t) = 0 convention for t ≤ 0).
+    by_cases hτ : 0 < τ
+    · -- ── τ > 0 (meaningful case) ──
+      refine ⟨min 1 (τ / 2), by positivity, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · -- F1: per-slab source continuity.
+        exact Filter.Eventually.of_forall (fun s =>
+          sorry) -- [SUB-SORRY 3A-sub: per-slab continuity proof]
+      · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
+        -- Proved via heatSemigroup_jointContDiffAt_two (0 sorry, axiom-clean)
+        -- + ContDiffAt.congr_of_eventuallyEq bridging through
+        --   heatSlice_profile_eq_heatValue (cosine-series agreement on Icc 0 1).
+        intro x hx s hs
+        -- Every s in the ball satisfies s > τ/2 > 0.
+        have hs_pos : τ / 2 < s := by
+          rw [Metric.mem_ball, Real.dist_eq] at hs
+          have hδ_le : min 1 (τ / 2) ≤ τ / 2 := min_le_right _ _
+          linarith [abs_lt.mp (lt_of_lt_of_le hs hδ_le)]
+        have hs_pos' : 0 < s := by linarith
+        -- Step 1: The cosine-series representative is ContDiffAt ℝ 2 at (s, x).
+        -- Use c = τ/4; then 0 < c < τ/2 < s.
+        have hc_pos : (0 : ℝ) < τ / 4 := by linarith
+        have hcs : τ / 4 < s := by linarith
+        have hcosine_c2 : ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ =>
+              ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+                cosineCoeffs (intervalDomainLift u₀) k) *
+                cosineMode k q.2)
+            (s, x) :=
+          ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+            _hu₀_bound hc_pos hcs
+        -- Step 2: Near (s, x), the cosine series = intervalDomainLift (S(·)u₀) ·.
+        -- Since s > 0 and x ∈ Ioo 0 1, a product neighborhood Ioi 0 ×ˢ Ioo 0 1
+        -- is in 𝓝 (s, x), and on this set the two functions agree pointwise
+        -- (by heatSlice_profile_eq_heatValue).
+        have hev : (fun q : ℝ × ℝ =>
+            ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+              cosineCoeffs (intervalDomainLift u₀) k) *
+              cosineMode k q.2) =ᶠ[𝓝 (s, x)]
+            (fun q : ℝ × ℝ =>
+              intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) := by
+          have hset : Ioi (0 : ℝ) ×ˢ Ioo (0 : ℝ) 1 ∈ 𝓝 (s, x) :=
+            IsOpen.mem_nhds (isOpen_Ioi.prod isOpen_Ioo) ⟨hs_pos', hx⟩
+          filter_upwards [hset] with q ⟨hq1, hq2⟩
+          -- hq1 : 0 < q.1, hq2 : q.2 ∈ Ioo 0 1
+          have hq2_cc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq2
+          -- The intervalDomainLift of the heat semigroup equals the cosine
+          -- heat value on Icc 0 1 (heatSlice_profile_eq_heatValue).
+          rw [ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
+            p (mem_Ioi.mp hq1) _hu₀_cont _hu₀_bound hq2_cc]
+          -- Bridge unitIntervalCosineHeatValue to the tsum form.
+          simp only [unitIntervalCosineHeatValue,
+            unitIntervalCosineHeatPointWeight,
+            unitIntervalCosineMode_eq_cosineMode,
+            heatCoeff]
+          congr 1; ext k; ring
+        exact hcosine_c2.congr_of_eventuallyEq hev
+      · sorry -- [SUB-SORRY 3C: resolver joint C²]
+      · sorry -- [SUB-SORRY 3D: resolver gradient joint C²]
+      · sorry -- [SUB-SORRY 3E: resolver positivity floor]
+      · sorry -- [SUB-SORRY 3F: flux time fderiv bridge]
+      · sorry -- [SUB-SORRY 3G: time-derivative joint continuity on slab]
+    · -- ── τ ≤ 0 (degenerate case: S(t) = 0 convention for t ≤ 0) ──
+      refine ⟨1, one_pos, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · sorry -- [SUB-SORRY 3A-sub: per-slab continuity, τ ≤ 0 case]
+      · sorry -- [SUB-SORRY 3B-neg: heat semigroup joint C², τ ≤ 0 case
+                --   (S(t) = 0 for t ≤ 0; for t > 0 near 0 the function jumps,
+                --   but this branch is never reached in practice because the
+                --   downstream use is on [c,T] with c > 0)]
+      · sorry -- [SUB-SORRY 3C: resolver joint C², τ ≤ 0 case]
+      · sorry -- [SUB-SORRY 3D: resolver gradient joint C², τ ≤ 0 case]
+      · sorry -- [SUB-SORRY 3E: resolver positivity floor, τ ≤ 0 case]
+      · sorry -- [SUB-SORRY 3F: flux time fderiv bridge, τ ≤ 0 case]
+      · sorry -- [SUB-SORRY 3G: time-derivative joint continuity, τ ≤ 0 case]
   have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
       p (conjugatePicardIter p u₀ 0) :=
     ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
