@@ -7,16 +7,24 @@ Paper 2 χ₀<0: Level0 10 sub-sorry + HeatRegularity 1 sorry + Tower 5 sorry = 
 Session progress: original 11 sorry → 4 filled (slab, positivity, source eigenvalue summability
 chain incl. H2 cert) + remaining decomposed into 10 named concrete sub-sorry.
 
-### Single key blocker: heat semigroup joint C² (1 sorry)
-`heatSemigroup_jointContDiff_two` in IntervalHeatSemigroupHighRegularity.lean needs
-global iteratedFDeriv bound. Route: smooth cutoff (restartSmoothCutoff pattern from
-IntervalResolverSpectralJointC2Cutoff.lean) + norm_iteratedFDeriv_mul_le (Leibniz).
-Once proved, unlocks sub-sorry 3B → 3C/3D (resolver joint C²) → 2A-core → 1A → 2A.
+### Single key blocker: cutoffHeatTerm_iteratedFDeriv_bound (1 sorry)
+In IntervalHeatSemigroupHighRegularity.lean. The cutoff approach is LANDED:
+smoothRightCutoff kills t < 0, contDiff_tsum gives global C² of cutoff series,
+eventual equality gives ContDiffAt at positive times. Only the Leibniz product
+rule bound for ‖iteratedFDeriv k (φ·exp·â·cos)‖ remains.
+Pattern: cutoffValueTerm_leibniz_bound (IntervalResolverSpectralJointC2CutoffBounds.lean:52)
+uses norm_iteratedFDeriv_mul_le (Mathlib Leibniz rule).
+Once proved → heatSemigroup_jointContDiffAt_two fully sorry-free →
+unlocks sub-sorry 3B → 3C/3D → 2A-core → 1A.
 
-### Sub-sorry that DON'T depend on joint C²:
-- 2A-agree: definitional unfolding (mechanical, pattern at ChemDivSpatialC2:102-111)
-- 3E: resolver positivity floor (needs heat nonneg preservation)
-- 3F: flux time fderiv bridge (Clairaut inner commute)
+### Sub-sorry with existing producers (found by cron analysis):
+- 3F: coupledChemDivFlux_timeBridge_of_physicalJointC2 EXISTS (IntervalChemDivFACCommuteDischarge)
+- 3G: chemDivMixedTimeDeriv_jointContinuousOn_closed EXISTS (IntervalChemDivTimeDerivClosed)
+  Both need upstream PhysicalResolverJointC2Data → needs PhysicalSourceTimeC2 → needs heat wiring.
+
+### Sub-sorry independent of joint C²:
+- 2A-agree: definitional unfolding (coupledChemDivSourceLift_eq_deriv_fluxLift_interior exists)
+- 3E: resolver positivity floor (τ > 0: nonneg source → nonneg resolver; τ ≤ 0: degenerate/sorry)
 
 ### Paper 2 χ₀<0 sorry breakdown
 
