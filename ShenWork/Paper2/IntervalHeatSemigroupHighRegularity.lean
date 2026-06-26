@@ -834,7 +834,7 @@ theorem heatSemigroup_level0_resolverJointC2Data
   -- they follow from the (kπ)⁻² IBP decay in the builtEs envelope combined with
   -- the elliptic weight wₖ = 1/(μ+λ_k).
   set Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
-  have hSTC2 : ShenWork.IntervalResolverJointC2Physical.PhysicalSourceTimeC2 p u Es :=
+  have hSTC2 : ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2 p u Es :=
     ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored hFSTD
       (by -- value_summable: ∀ m ≤ 2, Summable (boundedWeightJointMajorant (wₖ·Es) m)
           -- Each summand has wₖ · (kπ)⁻² · envelope, and the weight
