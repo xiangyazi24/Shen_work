@@ -1,266 +1,78 @@
-# Q696 / cron1: parity-chain lemmas for depth-2 Neumann BC of `ν * U^γ`
+# Q704 / cron1: `DoublyEven` closure under constants and cosine series
 
 Repo inspected: `xiangyazi24/Shen_work`.  Scratch write target: branch `chatgpt-scratch`.
 
 ## Verdict
 
-Yes, the repo has useful parity-chain infrastructure, but the best reusable material is **not** the local `deriv_even_odd` / `deriv_odd_even` helpers in `IntervalChemDivSpatialC2.lean`.  The strongest reusable file is:
+There is **no named** theorem:
+
+```lean
+DoublyEven.const_mul
+DoublyEven.smul
+DoublyEven.tsum
+```
+
+in the repo.
+
+But for the concrete target `ν * f x ^ γ`, you usually do **not** need a separate constant-multiplication lemma.  The existing theorem
+
+```lean
+DoublyEven.comp
+```
+
+already covers the whole expression in one step:
+
+```lean
+have hsrc_de : DoublyEven (fun x => ν * f x ^ γ) :=
+  DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hf
+```
+
+where:
+
+```lean
+hf : DoublyEven f
+```
+
+This avoids constructing `DoublyEven (fun x => f x ^ γ)` and then multiplying by a constant.  Positivity of `f` is needed for differentiability/`ContDiff` of the real power, but **not** for the parity equality itself.
+
+If you do want a local constant-multiplication closure lemma, it is a one-liner from `DoublyEven.comp`:
+
+```lean
+theorem DoublyEven.const_mul {c : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
+    DoublyEven (fun x => c * f x) :=
+  DoublyEven.comp (fun y : ℝ => c * y) hf
+```
+
+or, using the existing product closure:
+
+```lean
+have hconst : DoublyEven (fun _ : ℝ => c) where
+  about0 := by intro x; rfl
+  about1 := by intro x; rfl
+
+have hcf : DoublyEven (fun x => c * f x) :=
+  hconst.mul hf
+```
+
+## 1. Search for `DoublyEven.const_mul` / `DoublyEven.smul`
+
+Searches run:
+
+```text
+DoublyEven.const_mul
+DoublyEven.smul
+DoublyEven constant
+```
+
+Result: **no hits**.
+
+The available exported closure lemmas are in:
 
 ```text
 ShenWork/Paper2/IntervalSourceRepresentative.lean
 ```
 
-It defines endpoint parity abstractions:
-
-```lean
-def EvenAboutZero (f : ℝ → ℝ) : Prop := ∀ x : ℝ, f (-x) = f x
-
-def EvenAboutOne (f : ℝ → ℝ) : Prop := ∀ x : ℝ, f (2 - x) = f x
-
-structure DoublyEven (f : ℝ → ℝ) : Prop where
-  about0 : EvenAboutZero f
-  about1 : EvenAboutOne f
-```
-
-and proves odd iterated-derivative vanishing at both endpoints:
-
-```lean
-theorem iteratedDeriv_odd_evenAboutZero_eq_zero
-    {f : ℝ → ℝ} (hf : EvenAboutZero f) {n : ℕ} (hn : Odd n) :
-    iteratedDeriv n f 0 = 0
-```
-
-```lean
-theorem iteratedDeriv_odd_evenAboutOne_eq_zero
-    {f : ℝ → ℝ} (hf : EvenAboutOne f) {n : ℕ} (hn : Odd n) :
-    iteratedDeriv n f 1 = 0
-```
-
-For a third derivative target, instantiate with `n = 3`.
-
-## Recommended route for `ν * U^γ`
-
-If you have cosine-series parity hypotheses:
-
-```lean
-hU0 : ∀ x, U (-x) = U x
-hU1 : ∀ x, U (2 - x) = U x
-```
-
-then make the source doubly even by closure under composition/product:
-
-```lean
-open ShenWork.Paper2.SourceRepresentative
-
-have hUde : DoublyEven U where
-  about0 := hU0
-  about1 := hU1
-
--- Positivity is needed for differentiability/C⁴ of `U^γ`, but not for parity.
-have hpow_de : DoublyEven (fun x => U x ^ γ) :=
-  DoublyEven.comp (fun y : ℝ => y ^ γ) hUde
-
-have hconst_de : DoublyEven (fun _ : ℝ => ν) where
-  about0 := by intro x; rfl
-  about1 := by intro x; rfl
-
-have hsrc_de : DoublyEven (fun x => ν * U x ^ γ) :=
-  hconst_de.mul hpow_de
-```
-
-Then endpoint vanishing of the third iterated derivative is:
-
-```lean
-have hthird0_iter : iteratedDeriv 3 (fun x => ν * U x ^ γ) 0 = 0 :=
-  iteratedDeriv_odd_evenAboutZero_eq_zero hsrc_de.about0 ⟨1, by norm_num⟩
-
-have hthird1_iter : iteratedDeriv 3 (fun x => ν * U x ^ γ) 1 = 0 :=
-  iteratedDeriv_odd_evenAboutOne_eq_zero hsrc_de.about1 ⟨1, by norm_num⟩
-```
-
-If the goal is literally:
-
-```lean
-deriv (deriv (deriv (fun x => ν * U x ^ γ))) 0 = 0
-```
-
-then convert from `iteratedDeriv 3` using the standard unfolding:
-
-```lean
-simpa [iteratedDeriv_eq_iterate, Function.iterate_succ, Function.iterate_zero]
-  using hthird0_iter
-```
-
-and similarly at `1`.
-
-For the Neumann-tower/depth-index shape, use the already-packaged theorem instead:
-
-```lean
-have hN0 : deriv (ShenWork.Paper2.NeumannTowerOfC6.gTower
-    (fun x => ν * U x ^ γ) 1) 0 = 0 :=
-  gTower_deriv_zero_of_doublyEven hsrc_de 1
-
-have hN1 : deriv (ShenWork.Paper2.NeumannTowerOfC6.gTower
-    (fun x => ν * U x ^ γ) 1) 1 = 0 :=
-  gTower_deriv_one_of_doublyEven hsrc_de 1
-```
-
-Here `i = 1` corresponds to `2*i+1 = 3`, i.e. the third derivative in the `gTower` formulation.
-
-## 1. `deriv_even_odd`, `deriv_odd_even`
-
-Search hits:
-
-```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-ShenWork/Paper2/IntervalSourceRepresentative.lean   -- for `deriv_odd_even` search only, via comments/related derivative parity
-```
-
-In `IntervalChemDivSpatialC2.lean`, the exact requested helpers occur inside:
-
-```lean
-noncomputable def chemDivSource_weakH2_of_cosineRep ... :
-    IntervalWeakH2Neumann (chemDivLift p u v) := by
-```
-
-They are **local `have`s**, not exported theorem names:
-
-```lean
--- Parity helper: derivative of even C¹ function is odd
-have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
-    ∀ x, deriv g (-x) = -(deriv g x) := by
-  intro g _hg heven x
-  have h1 := deriv_comp_neg (f := g) (x := x)
-  rw [show (fun x => g (-x)) = g from funext heven] at h1; linarith
-```
-
-```lean
--- Parity helper: derivative of odd C¹ function is even
-have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
-    ∀ x, deriv g (-x) = deriv g x := by
-  intro g _hg hodd x
-  have h1 := deriv_comp_neg (f := g) (x := x)
-  rw [show (fun x => g (-x)) = fun x => -(g x) from funext hodd] at h1
-  simp [deriv_neg] at h1; linarith
-```
-
-These are useful proof patterns, but because they are local, they cannot be referenced elsewhere without refactoring.
-
-## 2. `odd_zero`
-
-Also in `IntervalChemDivSpatialC2.lean`, again only local inside `chemDivSource_weakH2_of_cosineRep`:
-
-```lean
--- Odd function vanishes at 0
-have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
-  intro g hodd; have h := hodd 0; rw [neg_zero] at h; linarith
-```
-
-The reusable replacement is stronger:
-
-```lean
-iteratedDeriv_odd_evenAboutZero_eq_zero
-```
-
-from `IntervalSourceRepresentative.lean`, which handles all odd orders, not just a function that is already odd.
-
-## 3. Existing x=1 Neumann BC from shift symmetry
-
-There are two relevant patterns.
-
-### Local first-derivative pattern in `IntervalChemDivSpatialC2.lean`
-
-Inside `chemDivSource_weakH2_of_cosineRep`, the file proves endpoint `1` Neumann BC for a function `F` satisfying `F (2-x) = F x` by using `deriv_comp_const_sub`:
-
-```lean
-have hbc1 : deriv F 1 = 0 := by
-  have h1 := deriv_comp_const_sub (f := F) (a := 2) (x := 1)
-  rw [show (fun x => F (2 - x)) = F from funext hF_symm1] at h1
-  have : (2 : ℝ) - 1 = 1 := by norm_num
-  rw [this] at h1; linarith
-```
-
-The same proof also uses `deriv_comp_const_sub` to show antisymmetry of `V_cos'` about `1` and symmetry of `F` about `1`:
-
-```lean
-have hdv_antisymm1 : ∀ x, deriv V_cos (2 - x) = -(deriv V_cos x) := by
-  intro x
-  have h1 := deriv_comp_const_sub (f := V_cos) (a := 2) (x := x)
-  rw [show (fun x => V_cos (2 - x)) = V_cos from funext hv_symm1] at h1; linarith
-```
-
-### Reusable all-odd-orders pattern in `IntervalSourceRepresentative.lean`
-
-This is the better theorem for third derivatives:
-
-```lean
-theorem iteratedDeriv_odd_evenAboutOne_eq_zero
-    {f : ℝ → ℝ} (hf : EvenAboutOne f) {n : ℕ} (hn : Odd n) :
-    iteratedDeriv n f 1 = 0 := by
-  have hfun : (fun x : ℝ => f (2 - x)) = f := funext hf
-  have hkey := congrFun (iteratedDeriv_comp_const_sub n f (2 : ℝ)) (1 : ℝ)
-  simp only [hfun, hn.neg_one_pow] at hkey
-  norm_num at hkey
-  linarith [hkey]
-```
-
-So for `x = 1`, do **not** redo the one-derivative `deriv_comp_const_sub` proof if your goal can be expressed with `iteratedDeriv` or `gTower`; use this theorem.
-
-## 4. Is there a theorem showing `deriv (deriv (deriv f)) 0 = 0` from `f` even?
-
-I did **not** find a theorem with that exact literal conclusion.
-
-But the repo has a stronger reusable theorem:
-
-```lean
-iteratedDeriv_odd_evenAboutZero_eq_zero
-```
-
-For `n = 3`, it gives:
-
-```lean
-iteratedDeriv 3 f 0 = 0
-```
-
-from:
-
-```lean
-hf : EvenAboutZero f
-```
-
-This is mathematically the same third-derivative vanishing, and it should convert to the literal `deriv (deriv (deriv f)) 0 = 0` form by unfolding `iteratedDeriv_eq_iterate`.
-
-The repo also has `gTower` packaging, which is likely closer to the depth-2 Neumann BC target:
-
-```lean
-theorem deriv_gTower_eq_iteratedDeriv (f : ℝ → ℝ) (i : ℕ) :
-    deriv (gTower f i) = iteratedDeriv (2 * i + 1) f
-```
-
-```lean
-theorem gTower_deriv_zero_of_doublyEven
-    {f : ℝ → ℝ} (hf : DoublyEven f) (i : ℕ) :
-    deriv (gTower f i) 0 = 0
-```
-
-```lean
-theorem gTower_deriv_one_of_doublyEven
-    {f : ℝ → ℝ} (hf : DoublyEven f) (i : ℕ) :
-    deriv (gTower f i) 1 = 0
-```
-
-```lean
-theorem higherNeumannCompatibility_of_doublyEven
-    {f : ℝ → ℝ} (hf : DoublyEven f) :
-    (∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
-      (∀ i, i < 3 → deriv (gTower f i) 1 = 0)
-```
-
-For the third derivative, use `i = 1`.
-
-## Other useful closure lemmas
-
-`IntervalSourceRepresentative.lean` also has:
+The relevant API is:
 
 ```lean
 theorem DoublyEven.add {f g : ℝ → ℝ} (hf : DoublyEven f) (hg : DoublyEven g) :
@@ -277,35 +89,241 @@ theorem DoublyEven.comp {f : ℝ → ℝ} (g : ℝ → ℝ) (hf : DoublyEven f) 
     DoublyEven (fun x => g (f x))
 ```
 
+For `ν * f(x)^γ`, use:
+
 ```lean
-theorem DoublyEven.deriv_deriv {f : ℝ → ℝ} (hf : DoublyEven f) :
-    DoublyEven (deriv (deriv f))
+DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hf
 ```
 
-For `ν * U^γ`, the important one is `DoublyEven.comp` with `g := fun y => y ^ γ`; positivity is not required for the parity equality itself.
+For just constant multiplication, use:
 
-## Search summary
-
-Searched terms:
-
-```text
-deriv_even_odd
-deriv_odd_even
-odd_zero
-deriv_comp_const_sub
-iteratedDeriv_odd_evenAboutZero_eq_zero
-higherNeumannCompatibility_of_doublyEven
-EvenAboutZero
-iteratedDeriv_comp_const_sub
-third derivative vanishes
+```lean
+DoublyEven.comp (fun y : ℝ => ν * y) hf
 ```
 
-Main files found:
+## 2. Search for `DoublyEven.tsum` / infinite-series closure
+
+Searches run:
 
 ```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-ShenWork/Paper2/IntervalSourceRepresentative.lean
+DoublyEven.tsum
+tsum_congr DoublyEven
+doublyEven_cosineSeries
+DoublyEven
+```
+
+Result: there is **no generic** theorem of the form:
+
+```lean
+DoublyEven.tsum
+```
+
+or:
+
+```lean
+(∀ n, DoublyEven (F n)) → DoublyEven (fun x => ∑' n, F n x)
+```
+
+But there is a **specific cosine-series theorem**, which is exactly what is needed for Neumann cosine representatives:
+
+```text
 ShenWork/Paper2/IntervalSourceC6Representative.lean
 ```
 
-`IntervalSourceC6Representative.lean` consumes the reusable parity package for cosine-series source representatives: it proves `doublyEven_cosineSeries` and then uses `higherNeumannCompatibility_of_doublyEven` to discharge the source `hSrcN0`/`hSrcN1` fields.
+```lean
+theorem doublyEven_cosineSeries (c : ℕ → ℝ) :
+    DoublyEven (fun x => ∑' n, c n * cosineMode n x) where
+  about0 := fun x => by
+    refine tsum_congr (fun n => ?_)
+    have := (doublyEven_cos n).about0 x
+    simp only [cosineMode]; rw [this]
+  about1 := fun x => by
+    refine tsum_congr (fun n => ?_)
+    have := (doublyEven_cos n).about1 x
+    simp only [cosineMode]; rw [this]
+```
+
+This theorem uses:
+
+```lean
+theorem doublyEven_cos (n : ℕ) :
+    DoublyEven (fun x : ℝ => Real.cos (n * Real.pi * x))
+```
+
+from `IntervalSourceRepresentative.lean`.
+
+So for a cosine representative:
+
+```lean
+Ucos := fun x => ∑' n, c n * cosineMode n x
+```
+
+you can write:
+
+```lean
+have hUcos_de : DoublyEven (fun x => ∑' n, c n * cosineMode n x) :=
+  ShenWork.Paper2.SourceC6Representative.doublyEven_cosineSeries c
+```
+
+Then:
+
+```lean
+have hsource_de : DoublyEven (fun x => ν * (∑' n, c n * cosineMode n x) ^ γ) :=
+  DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hUcos_de
+```
+
+## 3. Heat-semigroup cosine series and `DoublyEven`
+
+Searches run:
+
+```text
+heatSemigroup DoublyEven
+heatEWA DoublyEven
+conjugatePicardIter DoublyEven
+intervalFullSemigroupOperator DoublyEven
+heatCoeff cosineMode doublyEven
+heatCoeff cosineMode hU_even
+```
+
+Result: I found **no direct theorem** named or shaped like:
+
+```lean
+DoublyEven (fun x => intervalFullSemigroupOperator t ... x)
+```
+
+or:
+
+```lean
+DoublyEven (fun x => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+```
+
+However, there are two usable pieces.
+
+### A. Direct cosine-series parity theorem
+
+`doublyEven_cosineSeries` applies to **any** coefficient family.  For the heat semigroup cosine representative:
+
+```lean
+U_cos := fun x => ∑' k,
+  (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
+```
+
+use:
+
+```lean
+have hUcos_de : DoublyEven U_cos := by
+  simpa [U_cos] using
+    ShenWork.Paper2.SourceC6Representative.doublyEven_cosineSeries
+      (fun k => Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k)
+```
+
+Then the nonlinear source representative is immediate:
+
+```lean
+have hsrc_de : DoublyEven (fun x => p.ν * U_cos x ^ p.γ) :=
+  DoublyEven.comp (fun y : ℝ => p.ν * y ^ p.γ) hUcos_de
+```
+
+### B. Heat-slice agreement with the cosine series
+
+For the level-0 heat trajectory, the repo has:
+
+```text
+ShenWork/Paper2/IntervalPicardIterateRepresentation.lean
+```
+
+```lean
+theorem hagree_zero
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
+      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1)
+```
+
+This gives agreement on `[0,1]` between the interval-domain heat slice and its global cosine representative.  The global representative is `DoublyEven` by `doublyEven_cosineSeries`.
+
+Important nuance: `intervalDomainLift` is the zero-extension outside `[0,1]`, so it is generally **not** the global doubly-even object.  The **cosine-series representative** is the global doubly-even object, and `hagree_zero` transfers facts back to the interval slice on `[0,1]`.
+
+### C. Local manual heat parity already appears in `IntervalConjugateLevel0BFormSourceOn.lean`
+
+Inside the level-0 heat-semigroup construction, the file sets:
+
+```lean
+set U_cos := fun x => ∑' k,
+  (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
+    cosineMode k x
+```
+
+and locally proves:
+
+```lean
+have hU_even : ∀ x, U_cos (-x) = U_cos x := by
+  intro x; simp only [hU_cos_def]
+  exact tsum_congr (fun k => by congr 1; exact cosineMode_neg' k x)
+```
+
+```lean
+have hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x := by
+  intro x
+  rw [show (2 : ℝ) - x = (-x) + 2 from by ring]
+  simp only [hU_cos_def]
+  rw [show (fun k => (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+        heatCoeff u₀ k) * cosineMode k ((-x) + 2)) =
+      (fun k => (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+        heatCoeff u₀ k) * cosineMode k (-x)) from
+    funext (fun k => by congr 1; exact cosineMode_add_two' k (-x))]
+  exact hU_even x
+```
+
+This is effectively the `DoublyEven` proof for the heat cosine representative, but it is local/manual and not packaged as a theorem.
+
+## Recommended tiny additions, if you want them
+
+The repo already has enough to proceed, but these wrappers would make later proofs cleaner.
+
+```lean
+namespace ShenWork.Paper2.SourceRepresentative
+
+noncomputable section
+
+/-- Constant multiplication preserves double-even parity. -/
+theorem DoublyEven.const_mul {c : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
+    DoublyEven (fun x => c * f x) :=
+  DoublyEven.comp (fun y : ℝ => c * y) hf
+
+/-- Constant-right multiplication preserves double-even parity. -/
+theorem DoublyEven.mul_const {c : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
+    DoublyEven (fun x => f x * c) := by
+  simpa [mul_comm] using hf.const_mul (c := c)
+
+/-- Power followed by constant multiplication preserves double-even parity. -/
+theorem DoublyEven.const_mul_rpow {ν γ : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
+    DoublyEven (fun x => ν * f x ^ γ) :=
+  DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hf
+
+end
+
+end ShenWork.Paper2.SourceRepresentative
+```
+
+For a heat representative wrapper:
+
+```lean
+open ShenWork.Paper2.SourceRepresentative
+open ShenWork.Paper2.SourceC6Representative
+open ShenWork.CosineSpectrum
+
+noncomputable def heatCosRepr (u₀ : intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  fun x => ∑' k,
+    (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
+
+theorem heatCosRepr_doublyEven (u₀ : intervalDomainPoint → ℝ) (s : ℝ) :
+    DoublyEven (heatCosRepr u₀ s) := by
+  simpa [heatCosRepr] using
+    doublyEven_cosineSeries
+      (fun k => Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k)
+```
+
+The only caveat is import placement: `heatCoeff` and `unitIntervalCosineEigenvalue` need the same imports/open namespaces used by the level-0 heat files.
