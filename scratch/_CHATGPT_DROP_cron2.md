@@ -1,187 +1,118 @@
-# Q768 (cron2): Sub-sorry 3A, eventual source continuity
+# Q774 (cron2): nonpositive-time full Neumann semigroup
 
 Static repo inspection only; I did not run a Lean build.
 
 ## Answer
 
-Yes: if you can prove the per-slice statement for **all** `s`, then the `∀ᶠ s in 𝓝 τ` field is immediate.
-
-The Lean shape should be one of:
+The repo does have the key **kernel-level** fact:
 
 ```lean
-have hsrc_all : ∀ s : ℝ,
-    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1) := by
-  ...
-
-have hsrc_ev :
-    ∀ᶠ s in 𝓝 τ,
-      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1) :=
-  Filter.Eventually.of_forall hsrc_all
-```
-
-or equivalently:
-
-```lean
-filter_upwards with s using hsrc_all s
-```
-
-I did **not** find repo uses of a lowercase `Filter.eventually_of_forall`; existing code uses the constructor form:
-
-```lean
-Filter.Eventually.of_forall
-```
-
-So I would use that spelling.
-
-If you only prove the positive-time statement,
-
-```lean
-∀ s, 0 < s → ContinuousOn ...
-```
-
-then that only gives the eventual statement at `τ > 0`, via `Ioi_mem_nhds` / a positive neighborhood. It does **not** handle arbitrary `τ`, especially `τ ≤ 0`. For the global `CoupledChemDivFluxJointC2Hyp` / FAC slab shape, `τ` is arbitrary, so an all-`s` proof, or a separate nonpositive-time branch, is needed.
-
-For your proposed heat route, the all-`s` reduction is sound **provided** the actual Level0 trajectory really is the zeroed heat semigroup for `s ≤ 0` in the relevant definition. Then the structure is:
-
-```lean
-have hsrc_all : ∀ s : ℝ,
-    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1) := by
-  intro s
-  by_cases hs : 0 < s
-  · -- heat smoothing: S(s)u₀ smooth, resolver smooth/regular, chemDiv source continuous
-    ...
-  · -- nonpositive-time branch: u s = 0, resolver/source simplify to 0
-    ...
-
-exact Filter.Eventually.of_forall hsrc_all
-```
-
-## Does the repo already have a per-slice continuity producer for `coupledChemDivSourceLift`?
-
-I did **not** find a named direct theorem of the form:
-
-```lean
-∀ s, ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
-```
-
-or
-
-```lean
-ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
-```
-
-Searches for `coupledChemDivSourceLift_continuousOn`, `coupledChemDivSourceLift ContinuousOn`, and quoted `ContinuousOn (coupledChemDivSourceLift` turned up mostly structures/assemblers where this is still an **input field**, not a producer.
-
-The key definition is:
-
-```lean
-def coupledChemDivSourceLift (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
-  intervalDomainLift
-    (fun x => intervalDomainChemotaxisDiv p (u s)
-      (coupledChemicalConcentration p u s) x)
+theorem heatKernel_of_nonpos {t : ℝ} (ht : t ≤ 0) (x : ℝ) :
+    heatKernel t x = 0
 ```
 
 File:
 
 ```text
-ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
+ShenWork/PDE/IntervalFullKernelSDependentMeasurable.lean
 ```
 
-And the FAC local slab package still carries the 3A field explicitly:
+The comment there says explicitly that Lean’s `Real.sqrt` returns `0` on nonpositive inputs, so the prefactor `1 / sqrt(4πt)` is `0`.  In Lean, real division by zero is totalized, so this avoids any complex/undefined issue.
+
+The proof is:
 
 ```lean
-(∀ᶠ s in 𝓝 τ,
-  ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+unfold heatKernel
+have h4t : 4 * Real.pi * t ≤ 0 :=
+  mul_nonpos_of_nonneg_of_nonpos (by positivity) ht
+rw [Real.sqrt_eq_zero'.mpr h4t]
+simp
 ```
 
-File:
+So for `s ≤ 0`, every image Gaussian in the full Neumann kernel is zero.
+
+## Did I find `intervalFullSemigroupOperator_nonpos`?
+
+I did **not** find a named, ready-made theorem with any of the requested operator-level names:
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
+intervalFullSemigroupOperator.*nonpos
+semigroupOperator.*le_zero
+S_nonpos
 ```
 
-Likewise, the global chain-rule / flux packages carry the same source-continuity field as part of their local slab data, rather than deriving it internally:
+The closest confirmed primitive is the kernel theorem above, plus existing code patterns that use it to make lattice summands all zero in the nonpositive-time branch.
 
-```text
-ShenWork/PDE/IntervalChemDivTimeDerivative.lean
-ShenWork/PDE/IntervalChemDivOuterCommute.lean
-ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-```
-
-## Nearby partial tools
-
-The closest per-slice spatial regularity tool is:
+For example, in `IntervalMildPicard.lean`, the joint-measurability proof for the full kernel has the branch:
 
 ```lean
-chemDivLift_contDiffOn_two_of_global
+have hzero : (fun k : ℤ => g k q) = fun _ : ℤ => (0 : ℝ) := by
+  funext k
+  simp [hg_def, ShenWork.IntervalNeumannFullKernel.heatKernel_of_nonpos ht]
+rw [hzero]
+exact summable_zero
 ```
 
-File:
-
-```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-```
-
-It proves:
+and `IntervalFullKernelSDependentMeasurable.lean` has the same pattern for the `(t - s) ≤ 0` branch:
 
 ```lean
-ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1)
+have hz : (fun k : ℤ => g k w) = fun _ : ℤ => (0 : ℝ) := by
+  funext k
+  simp only [hg_def, heatKernel_of_nonpos hτ, add_zero]
+rw [hz]
+exact summable_zero
 ```
 
-from global `C⁴` of the lifted `u` and `v` profiles plus positivity of `1+v`. This immediately implies continuity via `.continuousOn`, but it is stated for the per-slice `chemDivLift p u v`, not directly for `coupledChemDivSourceLift p u s`. You would still need the bridge/unfolding step identifying the slice
+So the repo already treats the full-kernel lattice summand as zero for nonpositive time, but I did not locate a public lemma directly stating:
 
 ```lean
-coupledChemDivSourceLift p u s
+intervalFullSemigroupOperator s f x = 0
 ```
 
-with the corresponding `chemDivLift p (u s) (coupledChemicalConcentration p u s)` on `Icc 0 1`.
+for `s ≤ 0`.
 
-Other nearby tools consume continuity as a hypothesis rather than producing it, e.g.
+## What you can prove if needed
+
+The missing operator-level lemma should be straightforward from `heatKernel_of_nonpos`:
 
 ```lean
-coupledChemDivSource_zeroCoeff_of_uniformSup
+theorem intervalNeumannFullKernel_of_nonpos {t x y : ℝ} (ht : t ≤ 0) :
+    intervalNeumannFullKernel t x y = 0 := by
+  unfold intervalNeumannFullKernel
+  have hzero :
+      (fun k : ℤ => heatKernel t (x - y + 2 * k) +
+        heatKernel t (x + y + 2 * k)) = fun _ => (0 : ℝ) := by
+    funext k
+    simp [heatKernel_of_nonpos ht]
+  rw [hzero]
+  simp
 ```
 
-in
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFACSourceDecay.lean
-```
-
-requires:
+Then:
 
 ```lean
-hcont : ∀ s, 0 ≤ s →
-  ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
+theorem intervalFullSemigroupOperator_of_nonpos {t : ℝ} (ht : t ≤ 0)
+    (f : ℝ → ℝ) (x : ℝ) :
+    intervalFullSemigroupOperator t f x = 0 := by
+  unfold intervalFullSemigroupOperator
+  simp [intervalNeumannFullKernel_of_nonpos ht]
 ```
 
-## Practical conclusion
+The exact final `simp` may need the namespace-qualified theorem name, but mathematically this is the direct route: kernel zero pointwise → integrand zero → integral zero.
 
-For sub-sorry 3A, the fastest Lean shape is probably not to build a new “eventual” proof directly. Prove an all-slices lemma first:
+## Consequence for Level0
+
+If the Level0 identity is really:
 
 ```lean
-theorem level0_coupledChemDivSourceLift_continuousOn_all_s
-    ... :
-    ∀ s : ℝ,
-      ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
-        (Icc (0 : ℝ) 1) := by
-  intro s
-  by_cases hs : 0 < s
-  · -- positive smoothing route
-  · -- nonpositive zero route
+conjugatePicardIter p u₀ 0 s = picardIter p u₀ 0 s
+picardIter p u₀ 0 s x = intervalFullSemigroupOperator s (intervalDomainLift u₀) x
 ```
 
-Then the FAC/FluxJointC2Hyp 3A field is just:
+then for `s ≤ 0`, the intended result should be:
 
 ```lean
-exact Filter.Eventually.of_forall level0_coupledChemDivSourceLift_continuousOn_all_s
+conjugatePicardIter p u₀ 0 s x = 0
 ```
 
-or inline:
-
-```lean
-filter_upwards with s
-exact level0_coupledChemDivSourceLift_continuousOn_all_s s
-```
+but the repo support I confirmed is one level below that: `heatKernel_of_nonpos` and the all-zero full-kernel lattice-summand pattern. I did not find a named all-in-one theorem `intervalFullSemigroupOperator_nonpos` / `S_nonpos` to cite directly.
