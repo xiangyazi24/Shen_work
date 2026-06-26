@@ -1,4 +1,4 @@
-# Q865 / cron1: wire `heatResolverJointContDiffAt_two` into Level0 2A-sup?
+# Q870 / cron1: differentiating source cosine coefficients under the integral
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -6,320 +6,379 @@ Branch written: `chatgpt-scratch`
 
 Refs inspected:
 
-- `main` for `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` and `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`.
-- `chatgpt-scratch` for the existing physical resolver joint-C² producer file `ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean`.
+- `main` for `ShenWork/Paper2/IntervalMildPicardRegularity.lean`.
+- `main` for `ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean`.
+- `main` for `ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean`.
+- `main` for `ShenWork/Wiener/EWA/SourcePowerCoeffDeriv.lean`.
 
-Note: the connector returned `404` for `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` at `chatgpt-scratch`, so the Level0 diagnosis below is based on the `main` snapshot. The requested scratch file itself was updated on `chatgpt-scratch`.
+The requested scratch file itself was updated on `chatgpt-scratch`.
 
 ## Verdict
 
-**Yes — wire it now**, but do not wire only the theorem
+Yes.  The repo has exactly the theorem you are looking for.
+
+The generic differentiate-under-the-cosine-coefficient theorem is:
 
 ```lean
-heatResolverJointContDiffAt_two
+ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
 ```
 
-as if it were sufficient by itself.
+in:
 
-The wiring is mathematically correct and it is a good idea to do it now, even though the upstream theorem still contains sorry through
-
-```lean
-heatSemigroup_level0_resolverJointC2Data
+```text
+ShenWork/Paper2/IntervalMildPicardRegularity.lean
 ```
 
-The sorry will propagate, but the downstream Level0 wiring becomes honest and testable.
-
-However, there are two important caveats:
-
-1. `heatResolverJointContDiffAt_two` gives joint `C²` only for the resolver **value** `v`.
-2. The flux composition theorem also needs joint `C²` for the resolver **spatial gradient** `∂ₓv`.
-
-So the immediate wiring should first expose a tiny heat-level gradient wrapper, then use both wrappers in `2A-sup`.
-
-## Why value-only is not enough
-
-The existing flux factor theorem is:
+It is already used to prove:
 
 ```lean
-theorem coupledChemDivFlux_contDiffAt_of_factorJointC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
-    (hu : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
-    (hv : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-      (s, x))
-    (hgradv : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1))
-          q.2)
-      (s, x))
-    (hbase : 0 <
-      1 + intervalDomainLift (coupledChemicalConcentration p u s) x) :
-    ContDiffAt ℝ 2
-      (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff
 ```
 
-Thus `heatResolverJointContDiffAt_two` supplies `hv`, but **not** `hgradv`.
+in:
 
-The good news: the lower-level theorem already exists:
-
-```lean
-theorem coupledChemical_grad_jointContDiffAt_two
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x)
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
 ```
 
-So add the heat-level wrapper:
+So for `coeff_contDiff`, the best route is **not** to reprove the integral differentiation directly.  Use the existing pattern:
 
 ```lean
-namespace ShenWork.Paper2.HeatResolverJointRegularity
-
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (PhysicalResolverJointC2Data coupledChemical_grad_jointContDiffAt_two)
-
-/-- Joint `ContDiffAt ℝ 2` of the resolver spatial-gradient factor at the heat
-semigroup base iterate.  This is the gradient companion to
-`heatResolverJointContDiffAt_two`. -/
-theorem heatResolverGradJointContDiffAt_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      deriv (intervalDomainLift (coupledChemicalConcentration p
-        (conjugatePicardIter p u₀ 0) q.1)) q.2) (s₀, x₀) := by
-  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu₀_bound hu₀_cont
-  exact coupledChemical_grad_jointContDiffAt_two hBt hx₀
-
-end ShenWork.Paper2.HeatResolverJointRegularity
+FlooredSourceTimeData
+  → srcTimeCoeff_deriv
+  → cosS1_deriv
+  → cosS2_continuous
+  → srcTimeCoeff_contDiff
 ```
 
-This wrapper is pure wiring. It has the same upstream sorry dependency as `heatResolverJointContDiffAt_two`.
-
-## What `2A-sup` currently needs
-
-Inside `level0_chemDiv_envelope_summable`, the relevant target is currently:
+For the heat semigroup, your real task is therefore to build the `FlooredSourceTimeData` inputs, or a positive-window analogue of them, for
 
 ```lean
-have hsup_bound : ∃ (Msup : ℝ), 0 ≤ Msup ∧
-    ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup := by
+u := conjugatePicardIter p u₀ 0
+```
+
+not to prove a new `cosineCoeffs` Leibniz theorem.
+
+## Exact generic theorem
+
+The theorem is documented as the time-Leibniz rule for cosine coefficients.  It rewrites `cosineCoeffs` as a real interval integral and then applies `intervalIntegral_hasDerivAt_time_of_local` with a dominated-convergence bound from slab continuity.
+
+```lean
+/-- **Time-Leibniz for cosine coefficients.**
+
+If `f : ℝ → ℝ → ℝ` satisfies:
+1. `f(s,·)` is continuous on `[0,1]` for `s` near `τ`,
+2. Each spatial point `x ∈ (0,1)` has `HasDerivAt (fun s => f s x) (f' s x) s`
+   for all `s ∈ Metric.ball τ δ`,
+3. `f'` is jointly continuous on `[τ-δ, τ+δ] × [0,1]`,
+
+then `HasDerivAt (fun s => cosineCoeffs (f s) n) (cosineCoeffs (f' τ) n) τ`. -/
+theorem cosineCoeffs_hasDerivAt_of_smooth_param
+    {f f' : ℝ → ℝ → ℝ} {τ δ : ℝ} {n : ℕ} (hδ : 0 < δ)
+    (hf_cont : ∀ᶠ s in 𝓝 τ, ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
+    (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      ∀ s ∈ Metric.ball τ δ,
+        HasDerivAt (fun r => f r x) (f' s x) s)
+    (h_cont_deriv : ContinuousOn (Function.uncurry f')
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivAt (fun s => cosineCoeffs (f s) n)
+      (cosineCoeffs (f' τ) n) τ
+```
+
+The file also has the integral identity it uses:
+
+```lean
+theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
+    cosineCoeffs f n =
+      (if n = 0 then 1 else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
+```
+
+So this theorem is exactly the formal version of your calculation:
+
+```text
+∂ₜ cosineCoeff(f t) = cosineCoeff(∂ₜ f t)
+```
+
+under local continuity / dominated-convergence hypotheses.
+
+## Existing `srcTimeCoeff` wrapper
+
+The source time coefficient is defined in `IntervalPhysicalResolverDataConcrete.lean`:
+
+```lean
+def srcTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
+    ℕ → ℝ → ℝ :=
+  fun k t => (intervalNeumannResolverSourceCoeff p (u t) k).re
+```
+
+Then `IntervalPhysicalSourceTimeC2Concrete.lean` proves the identity:
+
+```lean
+theorem srcTimeCoeff_eq_cosineCoeffs
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
+    srcTimeCoeff p u k t = cosineCoeffs (srcSlice p u t) k
+```
+
+where:
+
+```lean
+def srcSlice (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * intervalDomainLift (u t) x ^ p.γ
+```
+
+This is precisely your
+
+```text
+ν · S(t)u₀(x)^γ
+```
+
+slice when `u = conjugatePicardIter p u₀ 0`.
+
+## How `srcTimeCoeff_contDiff` is proved
+
+`FlooredSourceTimeData` packages the two time-derivative slices:
+
+```lean
+structure FlooredSourceTimeData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
+  d0 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s) ∧
+    ContinuousOn (Function.uncurry s₁) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+
+  d1 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (s₁ s) (Icc (0:ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => s₁ r x) (s₂ s x) s) ∧
+    ContinuousOn (Function.uncurry s₂) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+
   ...
-  sorry -- [SUB-SORRY 2A-core / 2A-sup]
 ```
 
-The comments around that sorry are already the right proof plan:
-
-- boundary values are zero via `hbdry_zero`;
-- interior values agree with the smooth flux-divergence representative;
-- the uniform bound comes from compactness once the representative is jointly continuous on `[c,T] × [0,1]`.
-
-So yes, `heatSemigroup_jointContDiffAt_two` plus `heatResolverJointContDiffAt_two` plus the gradient companion above are exactly the missing inputs for the interior flux-continuity part.
-
-## The correct wiring shape
-
-For `s ∈ Icc c T` and `x ∈ Ioo 0 1`:
+Then the file proves, privately:
 
 ```lean
-have hs_pos : 0 < s := lt_of_lt_of_le hc hs.1
-have hs_gt_c : c < s := lt_of_lt_of_le hc hs.1 -- if the theorem wants strict `c < s`
+private theorem srcTimeCoeff_deriv
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
+    Differentiable ℝ (srcTimeCoeff p u k) ∧
+    deriv (srcTimeCoeff p u k) = fun t => cosineCoeffs (s₁ t) k
 ```
 
-Actually, if `s = c`, then `c < s` is false.  For points at the left endpoint of the window, use a smaller cutoff parameter, for example `c / 2`:
+The core line is exactly:
 
 ```lean
-have hc2 : 0 < c / 2 := by positivity
-have hs_gt_c2 : c / 2 < s := by nlinarith [hc, hs.1]
+have hH := cosineCoeffs_hasDerivAt_of_smooth_param (f := srcSlice p u)
+  (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hcont hdiff hcd
 ```
 
-Then:
+Then it proves, again privately:
 
 ```lean
-have hu_series : ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-    ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-      cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s, x) :=
-  ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-    (u₀ := u₀) (M₀ := M₀) _hu₀_bound hc2 hs_gt_c2
+private theorem cosS1_deriv
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
+    Differentiable ℝ (fun t => cosineCoeffs (s₁ t) k) ∧
+    deriv (fun t => cosineCoeffs (s₁ t) k) = fun t => cosineCoeffs (s₂ t) k
 ```
 
-Then convert the heat series to the lifted base iterate using the existing level-0 agreement theorem, as already used elsewhere in the file:
+with:
 
 ```lean
-ShenWork.IntervalPicardIterateRepresentation.hagree_zero
-  p u₀ hs_pos _hu₀_cont _hu₀_bound
+exact cosineCoeffs_hasDerivAt_of_smooth_param (f := s₁) (f' := s₂)
+  (τ := t) (δ := δ) (n := k) hδ hcont hdiff hcd
 ```
 
-That gives the needed `hu`.
-
-For the resolver value:
+Finally it proves:
 
 ```lean
-have hv : ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-    intervalDomainLift (coupledChemicalConcentration p
-      (conjugatePicardIter p u₀ 0) q.1) q.2) (s, x) :=
-  ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
-    (p := p) (u₀ := u₀) (M₀ := M₀)
-    _hu₀_bound _hu₀_cont hc2 hs_gt_c2 hx
+theorem srcTimeCoeff_contDiff
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
+    ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
 ```
 
-For the resolver gradient, after adding the companion wrapper:
+by combining:
 
 ```lean
-have hgradv : ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-    deriv (intervalDomainLift (coupledChemicalConcentration p
-      (conjugatePicardIter p u₀ 0) q.1)) q.2) (s, x) :=
-  ShenWork.Paper2.HeatResolverJointRegularity.heatResolverGradJointContDiffAt_two
-    (p := p) (u₀ := u₀) (M₀ := M₀)
-    _hu₀_bound _hu₀_cont hc2 hs_gt_c2 hx
+srcTimeCoeff_deriv H k
+cosS1_deriv H k
+cosS2_continuous H k
+contDiff_succ_iff_deriv
 ```
 
-For denominator positivity, use the resolver nonnegativity route already in the repo, or expose a heat-level floor wrapper.  The target needed by flux composition is:
+So the exact reusable theorem for your current `coeff_contDiff` field is:
 
 ```lean
-have hbase :
-    0 < 1 + intervalDomainLift (coupledChemicalConcentration p
-      (conjugatePicardIter p u₀ 0) s) x := by
-  -- resolver nonnegativity from continuous/nonnegative heat slice, then `1 + v > 0`
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff
 ```
 
-Then:
+## What this means for the heat semigroup base iterate
+
+For
 
 ```lean
-have hflux_c2 : ContDiffAt ℝ 2
-    (Function.uncurry (coupledChemDivFluxLift p
-      (conjugatePicardIter p u₀ 0))) (s, x) :=
-  ShenWork.IntervalCoupledRegularityBootstrap
-    .coupledChemDivFlux_contDiffAt_of_factorJointC2
-      hu hv hgradv hbase
+u := conjugatePicardIter p u₀ 0
 ```
 
-From this, the spatial derivative representative is continuous near `(s,x)`:
+one should define explicit time-derivative slices on the positive-time region:
 
 ```lean
-fun q : ℝ × ℝ =>
-  fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p
-    (conjugatePicardIter p u₀ 0))) q (0, 1)
+U  t x := intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
+Ut t x := ∂ₜ U t x
+Utt t x := ∂ₜ² U t x
+
+s₁ t x := p.ν * p.γ * (U t x) ^ (p.γ - 1) * Ut t x
+
+s₂ t x := p.ν * p.γ *
+  ((p.γ - 1) * (U t x) ^ (p.γ - 2) * (Ut t x)^2
+    + (U t x) ^ (p.γ - 1) * Utt t x)
 ```
 
-This is the representative for the interior source value.
-
-## Important endpoint caveat
-
-Do **not** claim that the actual `coupledChemDivSourceLift` is `ContinuousOn` on the closed rectangle.  The comments in `IntervalConjugateLevel0BFormSourceOn.lean` are right: the zero-extension at the boundary can make closed-interval continuity false.
-
-For `2A-sup`, you only need a bound, not closed-set continuity of the lifted source itself.
-
-So prove the bound using a continuous **representative** `G` on the compact rectangle, plus the already-proved boundary-zero fact:
+Then prove the two `FlooredSourceTimeData` derivative fields on a positive-time slab:
 
 ```lean
-G (q : ℝ × ℝ) :=
-  fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p
-    (conjugatePicardIter p u₀ 0))) q (0, 1)
+HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s
+HasDerivAt (fun r => s₁ r x) (s₂ s x) s
 ```
 
-Then show:
+These are pointwise `rpow` chain-rule facts using positivity of the heat semigroup on the slab.  Once those are in place, the coefficient part is automatic by `srcTimeCoeff_contDiff`.
+
+## Important caution: global vs positive-window
+
+`FlooredSourceTimeData` as currently written is global in time:
 
 ```lean
-ContinuousOn G (Icc c T ×ˢ Icc (0 : ℝ) 1)
+d0 : ∀ τ : ℝ, ...
+d1 : ∀ τ : ℝ, ...
 ```
 
-and use compactness:
+For the heat semigroup with the hard zero-extension at `t ≤ 0`, global `FlooredSourceTimeData` is likely the wrong target because of the `τ = 0` obstruction.  For Level0 on `[c,T]`, the cleaner route is a positive-window analogue:
 
 ```lean
-have hK : IsCompact (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
-  isCompact_Icc.prod isCompact_Icc
-
-have hGabs : ContinuousOn (fun q => |G q|) (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
-  hGcont.abs
-
-obtain ⟨qmax, hqmax, hmax⟩ :=
-  hK.exists_isMaxOn (Icc c T ×ˢ Icc (0 : ℝ) 1) (fun q => |G q|) ?nonempty hGabs
-
-let Msup := |G qmax|
+FlooredSourceTimeDataOn p u s₁ s₂ c T
 ```
 
-For `x ∈ Ioo 0 1`, use the interior agreement between `coupledChemDivSourceLift` and `G`.  For `x = 0` or `x = 1`, use `hbdry_zero`.
-
-## One more subtlety: closed compactness needs a closed representative
-
-The currently exported theorem `heatResolverJointContDiffAt_two` has the hypothesis
+or directly a positive-window version of:
 
 ```lean
-hx₀ : x₀ ∈ Ioo 0 1
+PhysicalSourceTimeC2
 ```
 
-This is enough for interior agreement but **not by itself** enough to prove a continuous representative on the closed rectangle, because compactness includes `x = 0` and `x = 1`.
+The under-integral theorem itself is local in `τ` and works perfectly on positive slabs.  The global packaging is the thing that can be too strong.
 
-There are two ways around this:
+## Specialized power-source helper already exists
 
-### Option A: expose global resolver-series representatives
+There is also a more specialized theorem in:
 
-This is the cleanest for `2A-sup`.
+```text
+ShenWork/Wiener/EWA/SourcePowerCoeffDeriv.lean
+```
 
-From the same upstream data used in `heatResolverJointContDiffAt_two`, expose theorem(s) for the actual series representative before the `intervalDomainLift` congruence restriction to `Ioo`:
+It defines:
 
 ```lean
-heatResolverSeriesContDiff_two
-heatResolverGradSeriesContDiff_two
+def adotPow (p : CM2Params) (v : ℝ → intervalDomainPoint → ℝ)
+    (vdotL : ℝ → ℝ → ℝ) (σ : ℝ) (k : ℕ) : ℝ :=
+  cosineCoeffs
+    (fun x => p.ν * p.γ * (intervalDomainLift (v σ) x) ^ (p.γ - 1) * vdotL σ x) k
 ```
 
-These should follow directly from:
+and proves:
 
 ```lean
-heatSemigroup_level0_resolverJointC2Data
-boundedWeightJointSeries_contDiff_two
-boundedWeightJointGradSeries_contDiff_two
+theorem hasDerivAt_powerCoeff_of_inputs {p : CM2Params}
+    {v : ℝ → intervalDomainPoint → ℝ} {vdotL : ℝ → ℝ → ℝ} {σ δ : ℝ} (k : ℕ)
+    (hδ : 0 < δ)
+    (hf_cont : ∀ᶠ s in 𝓝 σ,
+      ContinuousOn (fun x => p.ν * (intervalDomainLift (v s) x) ^ p.γ)
+        (Set.Icc (0 : ℝ) 1))
+    (hslice : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball σ δ,
+      HasDerivAt (fun r => intervalDomainLift (v r) x) (vdotL s x) s)
+    (hpos : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball σ δ,
+      0 < intervalDomainLift (v s) x)
+    (hderivcont : ContinuousOn
+      (Function.uncurry
+        (fun s x => p.ν * p.γ * (intervalDomainLift (v s) x) ^ (p.γ - 1) * vdotL s x))
+      (Set.Icc (σ - δ) (σ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivAt
+      (fun r => cosineCoeffs
+        (fun x => p.ν * (intervalDomainLift (v r) x) ^ p.γ) k)
+      (adotPow p v vdotL σ k) σ
 ```
 
-Then build `G` from the series representatives and get `ContinuousOn G` on the closed rectangle.  Interior agreement identifies `G` with `coupledChemDivSourceLift`; boundary values are handled by `hbdry_zero`.
+This is just the first-derivative version of your target, specialized to the power source.  It is useful because it applies `cosineCoeffs_hasDerivAt_of_smooth_param` with an **opaque** variable `v`, avoiding `whnf`/`isDefEq` blowups.
 
-### Option B: prove local boundedness near endpoints separately
+For your heat-level `src_contDiff`, you can copy this tactic style:
 
-This is more awkward.  Interior pointwise `ContDiffAt` plus boundary-zero values does not by itself imply a uniform bound near the boundary.  You need a representative continuous up to the endpoint or a direct endpoint-neighborhood estimate.
+1. set `v : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0`;
+2. keep `v` opaque while applying the coefficient-differentiation engine;
+3. supply the heat-specific facts only as hypotheses/lemmas about `v`;
+4. unfold back only at the boundary of the theorem.
 
-So I recommend Option A.
+## Recommended path for `coeff_contDiff`
 
-## Recommended implementation order
+For the current physical resolver data field:
 
-Do this now, in this order:
+```lean
+coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞)
+  (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k)
+```
 
-1. Add `heatResolverGradJointContDiffAt_two` next to `heatResolverJointContDiffAt_two`.
-2. Add, if needed for compactness, global representative wrappers for resolver value and gradient series. These are also pure wiring from `PhysicalResolverJointC2Data`.
-3. In `level0_chemDiv_envelope_summable`, replace the `2A-sup` sorry by:
-   - existing `hbdry_zero` for endpoints;
-   - `hu`, `hv`, `hgradv`, `hbase` on interior;
-   - `coupledChemDivFlux_contDiffAt_of_factorJointC2`;
-   - continuity of the spatial derivative representative;
-   - compactness bound on `Icc c T ×ˢ Icc 0 1`;
-   - interior agreement + boundary-zero to bound the actual `coupledChemDivSourceLift`.
+use the already committed resolver/source factorization:
+
+```lean
+resolverTimeCoeff p u k t = intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+```
+
+Then reduce to:
+
+```lean
+ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+```
+
+via:
+
+```lean
+srcTimeCoeff_contDiff H k
+```
+
+where `H` is `FlooredSourceTimeData p u s₁ s₂`, or its positive-window equivalent.
+
+If staying with the current global structure, the Lean shape is:
+
+```lean
+have hsrc : ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k) :=
+  ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff H k
+
+have hresolver : ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k) := by
+  have : resolverTimeCoeff p u k =
+      fun t => intervalNeumannResolverWeight p k * srcTimeCoeff p u k t := by
+    funext t
+    exact ShenWork.IntervalPhysicalResolverDataConcrete
+      .resolverTimeCoeff_eq_weight_smul p u k t
+  rw [this]
+  exact contDiff_const.mul hsrc
+```
+
+But the stronger architectural suggestion is still: build this on a positive window, not globally through `t = 0`.
 
 ## Bottom line
 
-Yes, wire it now.  The wiring will be logically correct and will isolate the remaining upstream sorry exactly where it belongs: the construction of heat-level physical resolver/source joint-`C²` data.
+The repo already has the theorem and the wrapper:
 
-But wire it as:
+- Generic under-integral engine:
+  ```lean
+  cosineCoeffs_hasDerivAt_of_smooth_param
+  ```
+- Source-coefficient `C²` wrapper:
+  ```lean
+  srcTimeCoeff_contDiff
+  ```
+- Specialized first-derivative power-source helper:
+  ```lean
+  hasDerivAt_powerCoeff_of_inputs
+  ```
 
-```lean
-heatSemigroup_jointContDiffAt_two
-+ heatResolverJointContDiffAt_two
-+ heatResolverGradJointContDiffAt_two   -- tiny wrapper needed
-+ resolver/floor positivity
-→ coupledChemDivFlux_contDiffAt_of_factorJointC2
-→ continuity of the spatial derivative representative
-→ compactness bound for representative
-→ interior agreement + boundary-zero
-→ hsup_bound
-```
-
-Do **not** rely on value-only `heatResolverJointContDiffAt_two`, and do **not** try to prove `ContinuousOn coupledChemDivSourceLift` on the closed interval.  Use a smooth representative for the compact bound and the actual lifted source only for interior agreement plus boundary-zero.
+So do not write a new dominated-convergence proof.  Prove the heat source time-slice data (`s₁`, `s₂`, positivity, continuity on positive slabs), then call `srcTimeCoeff_contDiff`.  If Lean starts reducing `conjugatePicardIter` too aggressively, copy the `SourcePowerCoeffDeriv.lean` approach: make the time-dependent slice an opaque local variable and pass all analytic inputs explicitly.
