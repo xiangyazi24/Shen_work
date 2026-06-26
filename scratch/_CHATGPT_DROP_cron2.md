@@ -1,201 +1,324 @@
-# Q666 (cron2): `chemDivSource_weakH2_of_cosineRep` positivity hypothesis
+# Q679 (cron2): quartic decay of cosine coefficients for C⁴ Neumann functions
 
 Static repo inspection only; I did not run a Lean build.
 
 ## Executive verdict
 
-The simplest fix is **not** to modify `V_cos` by `max`, and probably not to rewrite the whole proof to a genuinely local `ContDiffOn` version.
-
-Instead, weaken the public hypothesis of
+Yes, the repo already has the **general iterated IBP engine** you want.  It is not named `depth_2` or `iterated_decay`, but it is present as:
 
 ```lean
-chemDivSource_weakH2_of_cosineRep
+ShenWork.IntervalIBPCoeffExtraction.cosineCoeffs_decay
 ```
 
-from global positivity
+in
+
+```text
+ShenWork/Paper2/IntervalIBPCoeffExtraction.lean
+```
+
+It proves the arbitrary-depth statement:
 
 ```lean
-(hv_cos_pos : ∀ x, (0 : ℝ) < 1 + V_cos x)
+theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n)
+    {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) {M : ℝ}
+    (hM : |rawCoeff n (g j)| ≤ M) :
+    |cosineCoeffs (g 0) n| ≤
+      2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
 ```
 
-to interval positivity
+So for quartic decay, set `j := 2`.  If `g 0 = f`, `g 1 = f''`, `g 2 = f''''`, and you can bound
 
 ```lean
-(hv_cos_pos_Icc : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + V_cos x)
+|rawCoeff k (g 2)| ≤ B
 ```
 
-**but then immediately recover the old global `hv_cos_pos` inside the proof using the already-required symmetry hypotheses**
+then the existing theorem gives exactly
 
 ```lean
-(hv_even : ∀ x, V_cos (-x) = V_cos x)
-(hv_symm1 : ∀ x, V_cos (2 - x) = V_cos x)
+|cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 4
 ```
 
-Those hypotheses imply period `2` and fold every `x : ℝ` into `[0,1]`.  So for the theorem as currently shaped, `[0,1]` positivity plus symmetry is enough to supply the old global positivity proof term and leave the rest of the proof essentially unchanged.
+for `k ≥ 1`.
 
-In particular, if `V_cos = intervalResolverLiftR p u`, the concern “it may go below `-1` outside `[0,1]`” should not happen once it is known nonnegative on `[0,1]`: `intervalResolverLiftR` is a cosine-series extension with period `2` and reflection symmetry.
+## Existing infrastructure found
 
-## Why not `max(resolver, 0)` outside `[0,1]`?
+### 1. `IntervalWeakH2Neumann` gives only the one-step/quadratic form
 
-Do **not** use
+The quantitative one-round theorem is in `ShenWork/PDE/IntervalSourceDecayQuantitative.lean`:
 
 ```lean
-max (intervalResolverLiftR p u x) 0
+theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) {B : ℝ}
+    (hB : (∫ x in (0:ℝ)..1, |hf.secondDeriv x|) ≤ B) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 2
 ```
 
-as the global `V_cos` replacement.  It is not a good Lean/analysis fix here:
+This is a good theorem, but it is not the cleanest way to get quartic decay in this repo, because the arbitrary-depth IBP theorem already exists.
 
-1. It will generally not be `C⁴` at the gluing/contact set.
-2. It may fail the even/reflection hypotheses unless the modification is built symmetrically and periodically.
-3. Even if made symmetric, a `max` clamp creates only low regularity.  The theorem needs `hv_cos : ContDiff ℝ 4 V_cos`.
-4. A smooth cutoff/gluing construction preserving agreement, positivity, `C⁴`, evenness, and reflection is far more work than needed.
+### 2. `NeumannTower` is the repo’s intended iteration abstraction
 
-## Why not fully localize the ContDiff proof?
-
-It is mathematically true that the flux only needs positivity on `[0,1]` if the target is only `ContDiffOn`/weak-`H²` on `[0,1]`.  But the current proof is not written that way.
-
-Current code in `ShenWork/Paper2/IntervalChemDivSpatialC2.lean` has:
+`IntervalIBPCoeffExtraction.lean` defines:
 
 ```lean
-theorem chemFlux_contDiff_three
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
-    (hβnn : 0 ≤ β) :
-    ContDiff ℝ 3 (chemFluxFun β u v)
+structure NeumannTower (g : ℕ → ℝ → ℝ) (j : ℕ) : Prop where
+  step : ∀ i, i < j → g (i + 1) = deriv (deriv (g i))
+  contDiff : ∀ i, i < j → ContDiffOn ℝ 2 (g i) (Set.Icc (0 : ℝ) 1)
+  tend0 : ∀ i, i < j →
+    Filter.Tendsto (deriv (g i)) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0)
+  tend1 : ∀ i, i < j →
+    Filter.Tendsto (deriv (g i)) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  bc0 : ∀ i, i < j → deriv (g i) 0 = 0
+  bc1 : ∀ i, i < j → deriv (g i) 1 = 0
 ```
 
-and then:
+The engine then proves:
 
 ```lean
-theorem chemFluxDeriv_contDiff_two
-    ...
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) ... :
-    ContDiff ℝ 2 (deriv (chemFluxFun β u v))
+rawCoeff_step
+rawCoeff_iterate
+rawCoeff_decay
+cosineCoeffs_decay
 ```
 
-`chemDivSource_weakH2_of_cosineRep` uses those global facts to get:
+The file header says explicitly that it generalizes the `C²` Neumann quadratic decay to arbitrary even order `2j` by iterating the eigenfunction integration-by-parts identity.
+
+### 3. There are C6/C8 tower producers, but I did not find a C4/depth-2 wrapper
+
+The repo has:
 
 ```lean
-have hF_C2 : ContDiff ℝ 2 F := ...
-have hF_C2on : ContDiffOn ℝ 2 F (Icc (0 : ℝ) 1) := hF_C2.contDiffOn
-have hF'_cont : Continuous (deriv F) := ...
+ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
+ShenWork.Paper2.NeumannTowerOfC8.neumannTower_four_of_contDiff_eight
 ```
 
-and it also uses global C¹ parity helpers to prove the endpoint Neumann facts.
+in:
 
-A true local rewrite would require replacing those global facts with `ContDiffOn`/`ContinuousOn` statements and reworking the endpoint parity arguments locally near `0` and `1`.  That is doable but more invasive.
+```text
+ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
+ShenWork/Paper2/IntervalNeumannTowerOfC8.lean
+```
 
-## Minimal patch shape
-
-Add a small folding lemma, either generic or `intervalResolverLiftR`-specific.
-
-### Generic lemma shape
-
-Something like:
+The C6 file defines the reusable even-derivative tower:
 
 ```lean
-lemma pos_global_of_pos_Icc_of_even_reflect_one
-    {V : ℝ → ℝ}
-    (hposI : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + V x)
-    (heven : ∀ x, V (-x) = V x)
-    (hreflect : ∀ x, V (2 - x) = V x) :
-    ∀ x, (0 : ℝ) < 1 + V x := by
-  -- 1. derive period 2:
-  --    V (x + 2) = V x, from `hreflect (-x)` and `heven x`.
-  -- 2. fold arbitrary x modulo period 2 to y ∈ [0,2].
-  -- 3. if y ≤ 1, use hposI y.
-  -- 4. if 1 ≤ y ≤ 2, use `hreflect y` to replace y by 2-y ∈ [0,1].
+def gTower (f : ℝ → ℝ) (i : ℕ) : ℝ → ℝ := deriv^[2 * i] f
 ```
 
-Then modify `chemDivSource_weakH2_of_cosineRep` like this:
+with helpers:
 
 ```lean
-noncomputable def chemDivSource_weakH2_of_cosineRep
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    {U_cos V_cos : ℝ → ℝ}
-    (hu_cos : ContDiff ℝ 4 U_cos)
-    (hv_cos : ContDiff ℝ 4 V_cos)
-    (hv_cos_pos_Icc : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + V_cos x)
-    (h_agree_u : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift u x = U_cos x)
-    (h_agree_v : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift v x = V_cos x)
-    (hu_even : ∀ x, U_cos (-x) = U_cos x)
-    (hv_even : ∀ x, V_cos (-x) = V_cos x)
-    (hu_symm1 : ∀ x, U_cos (2 - x) = U_cos x)
-    (hv_symm1 : ∀ x, V_cos (2 - x) = V_cos x) :
-    IntervalWeakH2Neumann (chemDivLift p u v) := by
-  have hv_cos_pos : ∀ x, (0 : ℝ) < 1 + V_cos x :=
-    pos_global_of_pos_Icc_of_even_reflect_one hv_cos_pos_Icc hv_even hv_symm1
-  -- rest of the existing proof remains the same
+gTower_zero
+gTower_step
+deriv_gTower
+contDiff_gTower
+continuous_deriv_gTower
 ```
 
-This changes the caller obligation from impossible/global to the natural interval-domain fact, while preserving the existing global proof downstream.
-
-### `intervalResolverLiftR`-specific route
-
-If you do not want to touch `chemDivSource_weakH2_of_cosineRep`, prove the global `hv_cos_pos` at the call site for
+The C8 file reuses these.  I did **not** find a named:
 
 ```lean
-V_cos := intervalResolverLiftR p u
+neumannTower_two_of_contDiff_four
 ```
 
-from these facts already in the repo:
+or a dedicated quartic-decay theorem.  But adding one should be a very small clone/specialization of the C6 producer.
+
+## Cleanest build
+
+Add a lightweight C4 wrapper, probably in a new file such as:
+
+```text
+ShenWork/Paper2/IntervalNeumannTowerOfC4.lean
+```
+
+or directly in the file where you need the estimate.
+
+### Step 1: depth-2 tower from C4 + Neumann chain
+
+Reuse `gTower` from `IntervalNeumannTowerOfC6.lean`:
 
 ```lean
-theorem intervalResolverLiftR_even
-    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
-    intervalResolverLiftR p u (-x) = intervalResolverLiftR p u x
+import ShenWork.Paper2.IntervalNeumannTowerOfC6
 
-theorem intervalResolverLiftR_reflect_one
-    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
-    intervalResolverLiftR p u (2 - x) = intervalResolverLiftR p u x
+open Set Filter Topology
+open ShenWork.IntervalIBPCoeffExtraction (NeumannTower)
+open ShenWork.Paper2.NeumannTowerOfC6
+  (gTower gTower_zero gTower_step deriv_gTower contDiff_gTower continuous_deriv_gTower)
 
-theorem intervalResolverLiftR_periodic
-    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
-    intervalResolverLiftR p u (x + 2) = intervalResolverLiftR p u x
+namespace ShenWork.Paper2.NeumannTowerOfC4
+
+noncomputable section
+
+theorem neumannTower_two_of_contDiff_four
+    {f : ℝ → ℝ}
+    (hf : ContDiff ℝ (4 : ℕ) f)
+    (hN0 : ∀ i, i < 2 → deriv (gTower f i) 0 = 0)
+    (hN1 : ∀ i, i < 2 → deriv (gTower f i) 1 = 0) :
+    NeumannTower (gTower f) 2 := by
+  have hcd : ∀ i, i < 2 → ContDiff ℝ 2 (gTower f i) := by
+    intro i hi
+    refine contDiff_gTower (hf.of_le ?_)
+    have : (2 + 2 * i : ℕ) ≤ 4 := by omega
+    exact_mod_cast this
+  have hcont : ∀ i, i < 2 → Continuous (deriv (gTower f i)) := by
+    intro i hi
+    refine continuous_deriv_gTower (hf.of_le ?_)
+    have : (2 * i + 1 : ℕ) ≤ 4 := by omega
+    exact_mod_cast this
+  refine
+    { step := fun i _ => gTower_step f i
+      contDiff := fun i hi => (hcd i hi).contDiffOn
+      tend0 := fun i hi => ?_
+      tend1 := fun i hi => ?_
+      bc0 := hN0
+      bc1 := hN1 }
+  · have hc := (hcont i hi).continuousAt (x := (0 : ℝ))
+    have hT : Tendsto (deriv (gTower f i)) (nhds 0)
+        (nhds (deriv (gTower f i) 0)) := hc
+    rw [hN0 i hi] at hT
+    exact hT.mono_left nhdsWithin_le_nhds
+  · have hc := (hcont i hi).continuousAt (x := (1 : ℝ))
+    have hT : Tendsto (deriv (gTower f i)) (nhds 1)
+        (nhds (deriv (gTower f i) 1)) := hc
+    rw [hN1 i hi] at hT
+    exact hT.mono_left nhdsWithin_le_nhds
+
+end
+
+end ShenWork.Paper2.NeumannTowerOfC4
 ```
 
-and the interval-domain positivity theorem:
+The boundary hypotheses mean:
+
+- `i = 0`: `deriv (gTower f 0) = f'`, so `f'(0)=f'(1)=0`.
+- `i = 1`: `deriv (gTower f 1) = (f'')' = f'''`, so `f'''(0)=f'''(1)=0`.
+
+This matches your C4 Neumann assumptions exactly.
+
+### Step 2: quartic coefficient decay wrapper
+
+If you have a uniform bound on the top raw coefficient:
 
 ```lean
-theorem intervalNeumannResolverR_nonneg_of_nonneg_source ...
-    (xp : intervalDomainPoint) :
-    0 ≤ intervalNeumannResolverR p u xp
+hM : ∀ k, 1 ≤ k → |rawCoeff k (gTower f 2)| ≤ M
 ```
 
-You will also likely want the missing thin bridge lemma:
+then the wrapper is just:
 
 ```lean
-lemma intervalResolverLiftR_eq_intervalNeumannResolverR_on_Icc
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
-    intervalResolverLiftR p u x = intervalNeumannResolverR p u ⟨x, hx⟩ := by
-  unfold intervalResolverLiftR intervalNeumannResolverR
-  -- should be `tsum_congr`; `cosineMode` and `unitIntervalCosineMode` are the same cos mode.
+import ShenWork.Paper2.IntervalIBPCoeffExtraction
+import ShenWork.Paper2.IntervalNeumannTowerOfC4
+
+open ShenWork.IntervalIBPCoeffExtraction (rawCoeff cosineCoeffs_decay)
+open ShenWork.Paper2.NeumannTowerOfC6 (gTower gTower_zero)
+open ShenWork.Paper2.NeumannTowerOfC4 (neumannTower_two_of_contDiff_four)
+
+theorem cosineCoeffs_quartic_decay_of_contDiff_four
+    {f : ℝ → ℝ} {M : ℝ}
+    (hf : ContDiff ℝ (4 : ℕ) f)
+    (hN0 : ∀ i, i < 2 → deriv (gTower f i) 0 = 0)
+    (hN1 : ∀ i, i < 2 → deriv (gTower f i) 1 = 0)
+    (hM : ∀ k, 1 ≤ k → |rawCoeff k (gTower f 2)| ≤ M) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * M / ((k : ℝ) * Real.pi) ^ 4 := by
+  intro k hk
+  have H := neumannTower_two_of_contDiff_four hf hN0 hN1
+  have hdecay := cosineCoeffs_decay k hk H (hM k hk)
+  simpa [gTower_zero, show (2 * 2 : ℕ) = 4 by norm_num] using hdecay
 ```
 
-Then:
+This is the cleanest exact answer to the requested estimate.
+
+### Step 3: if your bound is an L¹ bound on `f''''`
+
+Usually you will have something like:
 
 ```lean
-have hposI : ∀ x ∈ Icc (0 : ℝ) 1,
-    (0 : ℝ) < 1 + intervalResolverLiftR p u x := by
-  intro x hx
-  rw [intervalResolverLiftR_eq_intervalNeumannResolverR_on_Icc hx]
-  have hR : 0 ≤ intervalNeumannResolverR p u ⟨x, hx⟩ :=
-    intervalNeumannResolverR_nonneg_of_nonneg_source hf_cont hf_nonneg hf_coeff hâ ⟨x, hx⟩
-  linarith
-
-have hpos_global : ∀ x, (0 : ℝ) < 1 + intervalResolverLiftR p u x :=
-  pos_global_of_pos_Icc_of_even_reflect_one hposI
-    (intervalResolverLiftR_even p u)
-    (intervalResolverLiftR_reflect_one p u)
+hB : (∫ x in (0:ℝ)..1, |gTower f 2 x|) ≤ B
 ```
 
-## Recommended answer
+Then prove the top raw coefficient bound by `|cos| ≤ 1`:
 
-**Best/simple fix:** weaken the `chemDivSource_weakH2_of_cosineRep` API to interval positivity, but internally reconstruct the old global positivity from `hv_even` + `hv_symm1`.  This avoids the impossible caller obligation while avoiding a large proof rewrite.
+```lean
+have hTop : ∀ k, 1 ≤ k → |rawCoeff k (gTower f 2)| ≤ B := by
+  intro k hk
+  unfold rawCoeff
+  -- use `intervalIntegral.abs_integral_le_integral_abs`
+  -- then `|cos * gTower f 2| ≤ |gTower f 2|`
+  -- then `hB`
+```
 
-**Second-best:** keep the API and prove global positivity at the `intervalResolverLiftR` call site using `intervalResolverLiftR_even`, `intervalResolverLiftR_reflect_one`, `intervalResolverLiftR_periodic`, and the bridge to `intervalNeumannResolverR_nonneg_of_nonneg_source` on `[0,1]`.
+The resulting quartic bound is:
 
-**Do not clamp with `max` outside `[0,1]`.**  It breaks the high-regularity/symmetry route and creates a harder smooth-extension problem than the one you are trying to solve.
+```lean
+|cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 4
+```
+
+This matches the constant pattern of the weak-H² theorem: one normalized coefficient factor `2`, and two IBP steps.
+
+## About the proposed “iterate `IntervalWeakH2Neumann`” route
+
+Your proposed argument is mathematically sound:
+
+1. Build `IntervalWeakH2Neumann f` with `secondDeriv = f''`.
+2. Build `IntervalWeakH2Neumann f''` with `secondDeriv = f''''`.
+3. Apply quadratic decay to `f''`:
+
+   ```lean
+   |cosineCoeffs f'' k| ≤ 2B / (kπ)^2
+   ```
+
+4. Use the weak-laplacian identity for `f`:
+
+   ```lean
+   cosineCoeffs f'' k = -((k:ℝ) * Real.pi)^2 * cosineCoeffs f k
+   ```
+
+   for `k ≥ 1`, up to the same positive-mode normalization factor, which cancels.
+
+5. Divide by `(kπ)^2` to get quartic decay.
+
+But in this repo, the `NeumannTower` abstraction is already exactly this iteration packaged generically.  Using it avoids duplicating raw-coefficient/normalization algebra and should be much shorter.
+
+## Existing “higher-depth” examples to copy
+
+For code style, copy these files:
+
+```text
+ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
+ShenWork/Paper2/IntervalNeumannTowerOfC8.lean
+ShenWork/Paper2/IntervalEigenCubeTailFromTower.lean
+ShenWork/Paper2/IntervalEigenCubeSummability.lean
+```
+
+The `IntervalEigenCubeTailFromTower.lean` file is especially useful because it shows how to consume `cosineCoeffs_decay` and convert an IBP denominator into eigenvalue-weighted bounds.  Its depth is `j = 3`; your quartic estimate is just `j = 2`.
+
+## Search-result summary
+
+Requested searches:
+
+```text
+IntervalWeakH2Neumann
+NeumannTower
+depth_2
+iterated_decay
+contDiff_four
+cosineCoeffs_decay
+```
+
+Findings:
+
+- `IntervalWeakH2Neumann`: one-step weak-H² machinery exists in `IntervalMildSourceDecayHelper.lean` and quantitative explicit-constant decay in `IntervalSourceDecayQuantitative.lean`.
+- `NeumannTower`: the arbitrary-depth iteration abstraction exists in `IntervalIBPCoeffExtraction.lean`.
+- `cosineCoeffs_decay`: landed arbitrary-depth normalized coefficient decay theorem, exactly the right tool.
+- `depth_2` / `iterated_decay`: no direct hits.
+- C6/C8 tower producers exist; no C4/depth-2 producer found.
+
+## Bottom line
+
+Do **not** build this by manually iterating `IntervalWeakH2Neumann` unless you specifically need that interface.  The clean repo-native fix is:
+
+1. add `neumannTower_two_of_contDiff_four` as a small C4 clone of the C6/C8 producers;
+2. call `IntervalIBPCoeffExtraction.cosineCoeffs_decay` with `j = 2`;
+3. prove the top-level raw coefficient bound from either `∫ |f''''| ≤ B` or a sup bound on `f''''`.
