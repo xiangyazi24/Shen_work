@@ -1,405 +1,306 @@
-# Q714 / cron1: joint `C²` of the heat semigroup cosine series
+# Q717 / cron1: producers of `PhysicalResolverJointC2Data`
 
 Repo inspected: `xiangyazi24/Shen_work`.  Scratch write target: branch `chatgpt-scratch`.
 
-Target shape:
-
-```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ =>
-    ∑' k, a k * Real.exp (-q.1 * unitIntervalCosineEigenvalue k) * cosineMode k q.2)
-  (s, x)
-```
-
-for `0 < s` and `x ∈ Ioo 0 1`.
-
 ## Verdict
 
-The repo has strong **generic joint-series `C²` infrastructure**, especially:
+Yes, the repo has an existing producer of `PhysicalResolverJointC2Data` for an arbitrary trajectory `u`, but it is **generic** and requires source-side physical time-`C²` data.  I did **not** find a heat-semigroup-specific producer for
 
 ```lean
-boundedWeightJointSeries_contDiff_two
+PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt
 ```
 
-and the exact Mathlib tool is:
+or for the equivalent level-0 heat trajectory.
 
-```lean
-contDiff_tsum
-```
-
-from:
+The main producer is:
 
 ```text
-Mathlib/Analysis/Calculus/SmoothSeries.lean
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
 ```
-
-But I did **not** find a completed theorem specifically giving
 
 ```lean
-ContDiffAt ℝ 2 (fun (s,x) => U s x) (s₀,x₀)
+theorem physicalResolverJointC2Data_of_floor
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
+    (H : PhysicalSourceTimeC2 p u Es) :
+    PhysicalResolverJointC2Data p u
+      (fun i k => intervalNeumannResolverWeight p k * Es i k)
 ```
 
-for the heat semigroup’s uncurried two-variable cosine series.  The repo has fixed-time spatial smoothness of heat slices and private heat-series **joint continuity** proofs, but not the exact public joint `ContDiffAt ℝ 2` theorem for the heat value series.
+This is the only direct theorem I found whose conclusion is `PhysicalResolverJointC2Data ...`.  It is not tied to heat; it works for any trajectory `u` once you provide:
 
-The practical route is therefore one of:
+```lean
+H : PhysicalSourceTimeC2 p u Es
+```
 
-1. package the heat coefficients into the existing bounded-weight joint-series API, with a **local positive-time cutoff/local slab** so the exponential majorants are summable uniformly near `s₀`; or
-2. prove a direct local `contDiff_tsum` theorem on a box `Ioo c d ×ˢ univ` with `0 < c < s₀ < d`, then take `.contDiffAt` at `(s₀,x₀)`.
+The resolver coefficient bound is then built by factoring the constant elliptic weight:
 
-## 1. Existing `boundedWeightJointSeries_contDiff_two` / joint `C²` cosine-series tools
+```lean
+resolverTimeCoeff p u k t = intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+```
 
-The main generic file is:
+and transferring `ContDiff ℝ 2` plus three-order coefficient bounds from `srcTimeCoeff` to `resolverTimeCoeff`.
+
+## Structure definition and consumers
+
+The structure itself is defined in:
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
 ```
-
-It defines the mode term:
 
 ```lean
-def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => c n q.1 * cosineMode n q.2
-```
-
-and the joint majorant:
-
-```lean
-def boundedWeightJointMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
-  ∑ i ∈ Finset.range (k + 1),
-    (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
-```
-
-The key theorem is:
-
-```lean
-theorem boundedWeightJointSeries_contDiff_two
-    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (hc : ∀ n, ContDiff ℝ (2 : ℕ∞) (c n))
-    (hBt : ∀ (i n : ℕ) (t : ℝ), i ≤ 2 → ‖iteratedFDeriv ℝ i (c n) t‖ ≤ Bt i n)
-    (hsumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant Bt k)) :
-    ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q)
-```
-
-It is implemented directly by Mathlib `contDiff_tsum`:
-
-```lean
-contDiff_tsum
-  (𝕜 := ℝ) (f := boundedWeightJointTerm c)
-  (v := boundedWeightJointMajorant Bt)
-  ...
-```
-
-The same file also has the spatial-gradient analogue:
-
-```lean
-theorem boundedWeightJointGradSeries_contDiff_two ... :
-    ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointGradTerm c n q)
-```
-
-### Existing consumer for arbitrary Picard iterate data
-
-```text
-ShenWork/PDE/IntervalIteratePicardJointC2.lean
-```
-
-has the exact kind of `ContDiffAt` producer for an abstract cosine-series iterate:
-
-```lean
-structure IteratePicardJointC2Data
-    (u : ℝ → intervalDomainPoint → ℝ) (c : ℕ → ℝ → ℝ) (Bt : ℕ → ℕ → ℝ) : Prop where
-  lift_eq_series : ∀ {t x : ℝ}, x ∈ Icc (0 : ℝ) 1 →
-    intervalDomainLift (u t) x = ∑' k : ℕ, c k t * cosineMode k x
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (c k)
+structure PhysicalResolverJointC2Data
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Bt : ℕ → ℕ → ℝ) : Prop where
+  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
   coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
+    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
   value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
     Summable (boundedWeightJointMajorant Bt m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant Bt m)
 ```
 
-and:
+The same file mostly **consumes** the structure to produce resolver joint regularity:
 
 ```lean
-theorem iterate_lift_jointContDiffAt_two
-    (H : IteratePicardJointC2Data u c Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+theorem coupledChemical_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) ... :
     ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
 ```
-
-This is very close structurally, but it is **not specialized to the heat semigroup coefficients**.  To use it for heat, you still need to instantiate the data with
 
 ```lean
-c k t = a k * Real.exp (-t * unitIntervalCosineEigenvalue k)
+theorem coupledChemical_grad_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) ... :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
 ```
 
-and supply coefficient bounds/summability.
+These are consumers, not producers of the data bundle.
 
-### Important caveat for heat
+## Direct producer: `physicalResolverJointC2Data_of_floor`
 
-`boundedWeightJointSeries_contDiff_two` is a **global** `ContDiff` theorem, so the bound
+File:
+
+```text
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+```
+
+The upstream source-side structure is:
 
 ```lean
-∀ t, ‖∂ₜ^i c k t‖ ≤ Bt i k
+structure PhysicalSourceTimeC2
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Es : ℕ → ℕ → ℝ) : Prop where
+  src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+  src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
+  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointMajorant
+      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant
+      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
 ```
 
-must hold for all real `t`.  For heat coefficients `exp(-t λ_k)`, that global bound is false/summability-hostile as `t → -∞`.
-
-For an interior point `s₀ > 0`, the natural proof is local:
+The producer:
 
 ```lean
-choose c0 d0 with 0 < c0 < s₀ < d0
+theorem physicalResolverJointC2Data_of_floor
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
+    (H : PhysicalSourceTimeC2 p u Es) :
+    PhysicalResolverJointC2Data p u
+      (fun i k => intervalNeumannResolverWeight p k * Es i k) where
+  coeff_contDiff k := by
+    have : resolverTimeCoeff p u k =
+        fun t => intervalNeumannResolverWeight p k * srcTimeCoeff p u k t := by
+      funext t; exact resolverTimeCoeff_eq_weight_smul p u k t
+    rw [this]
+    exact contDiff_const.mul (H.src_contDiff k)
+  coeff_bound i k t hi :=
+    resolverTimeCoeff_bound p u H.src_contDiff H.src_bound i k t hi
+  value_summable := H.value_summable
+  grad_summable := H.grad_summable
 ```
 
-and use the uniform bound on `t ∈ Ioo c0 d0`:
+This exactly fills the four fields requested in the question:
+
+1. `coeff_contDiff`: from `H.src_contDiff k` and constant multiplication by `intervalNeumannResolverWeight p k`.
+2. `coeff_bound`: from `resolverTimeCoeff_bound`, i.e. the source bound multiplied by the resolver weight.
+3. `value_summable`: copied from `H.value_summable`.
+4. `grad_summable`: copied from `H.grad_summable`.
+
+## Source-side producer feeding it
+
+There is a source-side producer in:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+It proves `PhysicalSourceTimeC2` from floored source time data plus summability assumptions:
 
 ```lean
-|∂ₜ^i (a k * exp(-t λ_k))| ≤ |a k| * λ_k^i * exp(-c0 * λ_k)
+theorem physicalSourceTimeC2_of_floored
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
+    (H : FlooredSourceTimeData p u s₁ s₂)
+    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant
+        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
+    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
+    PhysicalSourceTimeC2 p u (builtEs H)
 ```
 
-This points to either a localized `contDiffOn_tsum` proof, or a smooth cutoff/local-restart trick to fit a global `contDiff_tsum` theorem.
+Therefore the existing generic pipeline is:
 
-## 2. Existing heat semigroup uncurried `ContDiffAt` theorem?
+```lean
+FlooredSourceTimeData p u s₁ s₂
++ source weighted value/gradient summability
+  ⟹ PhysicalSourceTimeC2 p u (builtEs H)
+  ⟹ PhysicalResolverJointC2Data p u (fun i k => w_k * builtEs H i k)
+```
+
+where the second implication is `physicalResolverJointC2Data_of_floor`.
+
+## End-to-end wrappers that use the producer internally
+
+Also in `IntervalPhysicalResolverDataConcrete.lean`:
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_floor
+    (H : PhysicalSourceTimeC2 p u Es)
+    (other : ...) :
+    CoupledChemDivFluxFactorJointC2Inputs p u :=
+  ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemDivFluxFactorJointC2Inputs_of_physical
+    (physicalResolverJointC2Data_of_floor H) other
+```
+
+This is not itself a `PhysicalResolverJointC2Data` result, but it internally calls the producer and then consumes the result.
+
+In:
+
+```text
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+```
+
+there is the more concrete iterate pipeline:
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_iterate
+    (H : IterateSourceTimeData p u du d2u)
+    (hval : ...)
+    (hgrad : ...)
+    (other : ...) :
+    CoupledChemDivFluxFactorJointC2Inputs p u :=
+  ShenWork.IntervalPhysicalResolverDataConcrete.coupledChemDivFluxFactorJointC2Inputs_of_floor
+    (physicalSourceTimeC2_of_floored (flooredSourceTimeData_of_iterate H) hval hgrad)
+    other
+```
+
+This is an end-to-end factor-input producer, but it does **not** expose `PhysicalResolverJointC2Data` as its conclusion.
+
+## Files that only consume `PhysicalResolverJointC2Data`
+
+Search hits included several consumers.  Important examples:
+
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+```
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
+    (H : PhysicalResolverJointC2Data p u Bt)
+    ... :
+    CoupledChemDivFluxFactorJointC2Inputs p u
+```
+
+```text
+ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
+```
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+    (H : PhysicalResolverJointC2Data p u Bt)
+    ... :
+    CoupledChemDivFluxFactorJointC2Inputs p u
+```
+
+```text
+ShenWork/PDE/IntervalChemDivMixedReprWitness.lean
+```
+
+This file consumes `PhysicalResolverJointC2Data` in its mixed-representative witness machinery; its header says the `v`-side continuous representatives come from bounded-weight value/grad/time joint series, with `PhysicalResolverJointC2Data` providing the resolver-side input.
+
+```text
+ShenWork/PDE/IntervalIterateGradMajorant.lean
+```
+
+```lean
+theorem chemDivMixedClosedRepr_of_iterateGradSummable
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (Hu : IteratePicardJointC2Data u c Btu)
+    ... :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+These are all consumers, not producers.
+
+## Heat-semigroup status
 
 Searches run:
 
 ```text
-heat semigroup ContDiffAt
-heatValue ContDiffAt
-unitIntervalCosineHeatValue ContDiff
-heatCoeff ContDiffAt ℝ 2
-conjugatePicardIter ContDiffAt ℝ 2 fun q
-jointContDiffAt heat
-HeatSmoothness ContDiffAt
+PhysicalResolverJointC2Data
+PhysicalResolverJointC2Data p u
+physicalResolverJointC2Data_of
+PhysicalSourceTimeC2 PhysicalResolverJointC2Data
+physicalResolverJointC2Data_of_floor conjugatePicardIter
+physicalSourceTimeC2_of_floored conjugatePicardIter
+PhysicalResolverJointC2Data conjugatePicardIter
+level0 PhysicalResolverJointC2Data
 ```
 
-I did **not** find an exported theorem directly stating joint two-variable heat semigroup regularity:
+I found no heat-level specialization.
+
+So for the heat semigroup `u t = conjugatePicardIter p u₀ 0 t`, the nearest existing route is to instantiate the generic source-side package:
 
 ```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => unitIntervalCosineHeatValue q.1 a q.2)
-  (s, x)
+PhysicalSourceTimeC2 p (conjugatePicardIter p u₀ 0) Es
 ```
 
-or:
+then feed it to:
 
 ```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
-  (s, x)
+physicalResolverJointC2Data_of_floor
 ```
 
-### What exists instead: fixed-time spatial heat smoothness
-
-```text
-ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
-```
-
-has:
+Concretely, the missing heat-specific work is exactly to prove the `PhysicalSourceTimeC2` inputs for
 
 ```lean
-theorem unitIntervalCosineHeatValue_contDiff_seven
-    {t : ℝ} (ht : 0 < t) {a : ℕ → ℝ} {M : ℝ}
-    (hM : ∀ n, |a n| ≤ M) :
-    ContDiff ℝ 7 (fun x => unitIntervalCosineHeatValue t a x)
+srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t
+  = cosineCoeffs (fun x => p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ^ p.γ) k
 ```
 
-This is a **fixed-time spatial** theorem.  It uses `contDiff_tsum` with majorant
+namely:
+
+* `src_contDiff`: `t ↦ srcTimeCoeff ... k t` is `ContDiff ℝ 2` on the intended domain/window;
+* `src_bound`: three-order source coefficient bounds;
+* weighted bounded-majorant summability for value and gradient.
+
+The global version of these fields is stronger than a positive-window heat statement because the existing structures quantify over all `t : ℝ`.  For heat smoothing, a positive-window/localized version may be more natural unless the repo already has a global extension/cutoff convention for these heat coefficients.
+
+## Bottom line
+
+There is one direct generic producer:
 
 ```lean
-|(n : ℝ) * Real.pi| ^ k * Real.exp (-t * unitIntervalCosineEigenvalue n) * |M|
+physicalResolverJointC2Data_of_floor
 ```
 
-and the summability lemma:
-
-```lean
-frequency_pow_mul_exp_summable k ht
-```
-
-It proves high spatial smoothness of the slice `x ↦ S(t)u₀(x)`, but it does not give joint `(t,x)` `ContDiffAt`.
-
-### What exists instead: private heat-series joint continuity
-
-```text
-ShenWork/Wiener/EWA/SourceJointRegularity.lean
-```
-
-has private heat-leg joint-continuity lemmas, e.g.
-
-```lean
-private theorem heatValueSeries_jointContinuousOn (u₀cos : ℕ → ℝ) {Mu0 : ℝ}
-    (hu0bd : ∀ n, |u₀cos n| ≤ Mu0) :
-    ContinuousOn
-      (fun q : ℝ × ℝ =>
-        ∑' n, Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * u₀cos n * cosineMode n q.2)
-      (Ioi (0 : ℝ) ×ˢ univ)
-```
-
-and a private time-derivative analogue:
-
-```lean
-private theorem heatDerivSeries_jointContinuousOn ...
-```
-
-These are only `ContinuousOn`, not `ContDiffAt ℝ 2`, and they are private.
-
-```text
-ShenWork/Wiener/EWA/SourceJointRegularityOn.lean
-```
-
-reproduces the same heat-leg helpers as private theorems because the original ones are private.
-
-## 3. Exact Mathlib tool: `contDiff_tsum`
-
-At the pinned Mathlib rev from the repo manifest (`v4.29.1`, commit `5e932f97...`), the theorem is in:
-
-```text
-Mathlib/Analysis/Calculus/SmoothSeries.lean
-```
-
-The exact theorem is:
-
-```lean
-theorem contDiff_tsum
-    (hf : ∀ i, ContDiff 𝕜 N (f i))
-    (hv : ∀ k : ℕ, (k : ℕ∞) ≤ N → Summable (v k))
-    (h'f : ∀ (k : ℕ) (i : α) (x : E), k ≤ N →
-      ‖iteratedFDeriv 𝕜 k (f i) x‖ ≤ v k i) :
-    ContDiff 𝕜 N fun x => ∑' i, f i x
-```
-
-There is also:
-
-```lean
-theorem iteratedFDeriv_tsum ...
-```
-
-and:
-
-```lean
-theorem contDiff_tsum_of_eventually ...
-```
-
-I did **not** find a `contDiffAt_tsum` theorem in the repo search.  The standard route is:
-
-```lean
-have h : ContDiff ℝ (2 : ℕ∞) (fun q => ∑' n, term n q) :=
-  contDiff_tsum ...
-exact h.contDiffAt
-```
-
-or, for a local domain, prove `ContDiffOn`/local `ContinuousOn` on a neighborhood and then use the corresponding local API/convert to `ContDiffAt` if available.
-
-## 4. Other `contDiff_tsum` usages worth knowing
-
-### Resolver restart assembly
-
-```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Assemble.lean
-```
-
-has:
-
-```lean
-theorem resolverSpectralJointC2At_of_contDiff_tsum ... :
-    ResolverSpectralJointC2At a₀ a offset s x := by
-  have hValue : ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ =>
-        ∑' n : ℕ, resolverSpectralValueTerm a₀ a offset n q) :=
-    contDiff_tsum ...
-  have hGrad : ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' n : ℕ, gradTerm n q) :=
-    contDiff_tsum ...
-  refine ⟨?_, ?_⟩
-  · simpa [resolverSpectralSeries, resolverSpectralValueTerm] using
-      hValue.contDiffAt
-  · exact hGrad.contDiffAt.congr_of_eventuallyEq hGradEq
-```
-
-This is the cleanest pattern for “prove global/local series `ContDiff`, then take `.contDiffAt` and use eventual equality”.
-
-### Fixed-time high spatial heat smoothness
-
-```text
-ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
-```
-
-uses:
-
-```lean
-contDiff_tsum
-  (f := fun n x => unitIntervalCosineHeatPointWeight t x n * a n)
-  (v := v) (N := (7 : ℕ∞)) ...
-```
-
-This is useful for the spatial part of heat, but not enough for the requested two-variable `(s,x)` theorem.
-
-## Recommended theorem to add
-
-A useful target theorem would be local-positive-time, not global-in-time:
-
-```lean
-theorem heatCosineSeries_contDiffAt_two
-    {a : ℕ → ℝ} {M s x : ℝ}
-    (hs : 0 < s)
-    (ha : ∀ k, |a k| ≤ M) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        ∑' k,
-          Real.exp (-q.1 * unitIntervalCosineEigenvalue k) * a k * cosineMode k q.2)
-      (s, x) := by
-  -- choose c = s/2, local box `Ioo c (s+1) ×ˢ univ`
-  -- use `contDiff_tsum` or a localized version with majorants
-  --   |a k| * λ_k^i * |kπ|^j * exp(-c λ_k)
-  -- for i+j ≤ 2; summability follows from exponential decay.
-  -- take `.contDiffAt` at `(s,x)`.
-```
-
-For the interval-domain heat level:
-
-```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => intervalDomainLift (picardIter p u₀ 0 q.1) q.2)
-  (s, x)
-```
-
-with `x ∈ Ioo 0 1`, combine the cosine-series theorem with the existing interior agreement theorem:
-
-```lean
-ShenWork.IntervalPicardIterateRepresentation.hagree_zero
-```
-
-or its definitional representation for `conjugatePicardIter p u₀ 0`, using eventual equality on the open spatial neighborhood `Ioo 0 1`.
-
-## Search summary
-
-Searches run:
-
-```text
-contDiff_tsum
-contDiffAt_tsum
-jointSeries contDiff
-JointSeries_contDiff
-boundedWeight contDiff
-heat semigroup ContDiffAt
-heatValue ContDiffAt
-unitIntervalCosineHeatValue ContDiff
-heatCoeff ContDiffAt ℝ 2
-conjugatePicardIter ContDiffAt ℝ 2 fun q
-jointContDiffAt heat
-HeatSmoothness ContDiffAt
-```
-
-Key files found:
-
-```text
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
-ShenWork/PDE/IntervalIteratePicardJointC2.lean
-ShenWork/PDE/IntervalResolverSpectralJointC2Assemble.lean
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
-ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
-ShenWork/Wiener/EWA/SourceJointRegularity.lean
-ShenWork/Wiener/EWA/SourceJointRegularityOn.lean
-Mathlib/Analysis/Calculus/SmoothSeries.lean
-```
+There is no discovered direct heat-semigroup producer.  To package heat, use the existing producer after proving or adapting a heat-specific `PhysicalSourceTimeC2`/`FlooredSourceTimeData` package and the two bounded-weight summability fields.
