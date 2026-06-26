@@ -312,12 +312,36 @@ theorem level0_chemDiv_envelope_summable
     -- From compactness of [c,T] and continuity of the second-derivative norm.
     have hL1_uniform : ∃ (B : ℝ), 0 ≤ B ∧ ∀ s (hs : s ∈ Icc c T),
         (∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x|) ≤ B := by
+      -- SORRY: uniform L¹(|f''|) bound on [c,T] (>30 lines of new infrastructure).
+      --
+      -- Mathematical argument (each step is valid but needs infrastructure):
+      --
+      -- 1. Per-slice identity: (hH2_per_slice s hs).secondDeriv = deriv(deriv F_s)
+      --    where F_s = deriv(chemFluxFun p.β U_cos(s) V_cos(s)), the classical C²
+      --    second derivative of the chemDiv cosine representative at time s.
+      --
+      -- 2. Joint continuity: The map (s,x) ↦ deriv²(F_s)(x) is continuous on
+      --    [c,T] × [0,1]. This follows from:
+      --    (a) The heat semigroup s ↦ S(s)u₀ is jointly C∞ for s > 0 (standard).
+      --    (b) The resolver inherits joint smoothness via elliptic regularity.
+      --    (c) The chemDiv flux composition is smooth in both variables.
+      --    (d) Derivatives commute with the continuous parameter dependence.
+      --    Each sub-step (a)-(d) needs 10-20 lines of wiring through the codebase's
+      --    spectral/cosine-series infrastructure.
+      --
+      -- 3. Compactness bound: A jointly continuous function on [c,T]×[0,1] is
+      --    bounded: ∃ C, ∀ (s,x) ∈ [c,T]×[0,1], |deriv²(F_s)(x)| ≤ C.
+      --    Then ∫₀¹ |deriv²(F_s)(x)| dx ≤ C · 1 = C for all s ∈ [c,T].
+      --
+      -- 4. Nonnegativity: C ≥ 0 is immediate (norm bound on a compact set).
+      --
+      -- Blocking sub-goals:
+      --   (i)  Joint C² of the uncurried chemDiv flux on [c,T]×ℝ (needs joint
+      --        smoothness of heat semigroup + resolver in the cosine-series form).
+      --   (ii) Commutation of deriv² with the continuous s-parameter (needs
+      --        ContDiff ℝ 2 (F_s) uniformly + parameter-dependence lemmas).
+      --   (iii) IsCompact.bddAbove_image for the L¹ norm map s ↦ ∫|f''_s| on [c,T].
       sorry
-      -- Proof sketch: for each s, (hH2_per_slice s hs).secondDeriv is the
-      -- classical second derivative of the chemDiv source (deriv²(flux) for the
-      -- cosine representative). On the compact set [c,T], the second derivative
-      -- is jointly continuous in (s,x), hence the L¹ norm is continuous in s on
-      -- [c,T], hence bounded on the compact set.
     obtain ⟨B, hBnn, hL1⟩ := hL1_uniform
     exact ⟨B, hBnn, fun s hs => ⟨hH2_per_slice s hs, hL1 s hs⟩⟩
   -- ── Sub-goal 2: uniform sup bound and continuity of chemDiv source slices ──
@@ -327,9 +351,43 @@ theorem level0_chemDiv_envelope_summable
           (Icc (0 : ℝ) 1)) ∧
       (∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
         |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup) := by
+    -- SORRY: sup bound + continuity of chemDiv source slices (>30 lines).
+    --
+    -- Mathematical argument:
+    --
+    -- 1. Per-slice continuity on [0,1]:
+    --    coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s
+    --      = intervalDomainLift (intervalDomainChemotaxisDiv p u_s v_s)
+    --    where u_s = S(s)u₀ (heat semigroup) and v_s = resolver(u_s).
+    --    For s ∈ [c,T] with c > 0:
+    --    (a) u_s is C∞ on [0,1] (heat semigroup exponential smoothing).
+    --    (b) v_s is C∞ on [0,1] (elliptic resolver of smooth source).
+    --    (c) chemotaxisDiv = ∂_x(u · v' / (1+v)^β) is a smooth composition,
+    --        hence continuous on [0,1].
+    --    (d) intervalDomainLift agrees with the smooth function on [0,1],
+    --        so ContinuousOn (... s) (Icc 0 1) holds.
+    --
+    -- 2. Joint continuity on [c,T] × [0,1]:
+    --    The uncurried map (s,x) ↦ chemDivSourceLift p (S(·)u₀) s x is
+    --    continuous on [c,T] × [0,1] because:
+    --    (a) s ↦ S(s)u₀ is continuous in the C² topology for s ≥ c > 0.
+    --    (b) The chemDiv composition is continuous in the C¹ topology of its inputs.
+    --    (c) Therefore (s,x) ↦ source(s)(x) is jointly continuous.
+    --
+    -- 3. Compactness sup bound:
+    --    [c,T] × [0,1] is compact, the jointly continuous function achieves
+    --    its sup and inf. Set Msup = max(|sup|, |inf|).
+    --    Then |source(s)(x)| ≤ Msup for all (s,x) ∈ [c,T] × [0,1].
+    --    Msup ≥ 0 because |·| ≥ 0.
+    --
+    -- Blocking sub-goals (each 10-20 lines of new wiring):
+    --   (i)   Per-slice C¹ of the chemDiv flux from heat semigroup smoothness
+    --         (needs chain: heatSemigroup_contDiff_four → resolver C² → flux C¹ →
+    --         deriv(flux) continuous on [0,1]).
+    --   (ii)  Joint continuity of (s,x) ↦ flux(s)(x) on [c,T]×[0,1]
+    --         (needs s-parameter continuity of the cosine series in C¹ topology).
+    --   (iii) IsCompact.exists_isMaxOn / bddAbove_image for the norm function.
     sorry
-    -- Proof sketch (>20 lines): u bounded by M, v bounded (resolver of bounded u),
-    -- chemDiv source = deriv(u · v' / (1+v)^β) bounded on [0,1] × [c,T].
   -- ── Extract and build envelope ──
   obtain ⟨B, hBnn, hH2_data⟩ := hH2
   obtain ⟨Msup, hMsupnn, hcont_slices, hsup_slices⟩ := hSup
