@@ -1,169 +1,269 @@
-# Q834 (cron2) — exact use of `hSup` and whether `cosineCoeffs_abs_le_of_continuous_bounded` needs continuity
+# Q841 (cron2) — fastest path after Level0 is sorry-free: Tower’s 5 sorries
 
 Static repo inspection only; I did not run a local Lean build.
 
 ## Short answer
 
-In `level0_chemDiv_envelope_summable`, the `hSup` result is used only for the **zeroth-mode coefficient bound** in the final envelope construction.
+Once Level0 is clean, only **two** Tower sorries are close to pure wiring:
 
-After
-
-```lean
-obtain ⟨Msup, hMsupnn, hcont_slices, hsup_slices⟩ := hSup
+```text
+Line 60  zero base case       mostly wiring, but needs a wrapper / extra assumptions threaded
+Line 73  logistic successor   wiring if the restart representation inputs are already available
 ```
 
-these fields are used here:
+The other three are not pure wiring:
 
-```lean
-by_cases hn : n = 0
-· -- mode 0
-  subst hn
-  ...
-  exact le_trans
-    (cosineCoeffs_abs_le_of_continuous_bounded
-      (hcont_slices s hs) hMsupnn
-      (hsup_slices s hs) 0)
-    hCenv_ge_2Msup
-· -- mode k ≥ 1
-  ...
-  intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound h2s hBs n hk
+```text
+Line 77   chemDiv successor   needs real new iterate-level chemDiv infrastructure
+Line 92   limit passage       theorem exists, but the convergence/common-bound hypotheses are new infrastructure
+Line 111  extension to [0,T]  definitely new endpoint-extension lemma/data
 ```
 
-The positive-mode branch uses only the `hH2_data` / `h2s hBs` quadratic-decay route.  It does **not** use `hSup`.
+Fastest path:
 
-So `hSup` contributes exactly:
-
-```lean
-hMsupnn     : 0 ≤ Msup
-hcont_slices : ∀ s ∈ Icc c T,
-  ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s) (Icc 0 1)
-hsup_slices : ∀ s ∈ Icc c T, ∀ x ∈ Icc 0 1,
-  |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup
+```text
+A. Fix the Tower signature/API first: thread `hα1 : 1 ≤ p.α` and enough level-0 bounds.
+B. Close line 60 with a Level0 wrapper.
+C. Close line 73 by adapting the existing endpoint-inclusive logistic recursion.
+D. Do line 77 as the main analytic generalization: Level0 chemDiv → arbitrary iterate chemDiv.
+E. Do line 92 using `duhamelSourceTimeC1On_of_uniform_limit`, after adding coefficient/adot convergence and common-bound lemmas.
+F. Do line 111 last: new [c,T]→[0,T] endpoint extension lemma; not automatic from positive windows.
 ```
 
-and all three are passed to `cosineCoeffs_abs_le_of_continuous_bounded` for `n = 0`.
+## Tower file facts
 
-## Signature found
-
-In `ShenWork/Paper2/IntervalMildPicardRegularity.lean`:
+`IntervalConjugateBFormSourceTower.lean` has the five sorries exactly as listed:
 
 ```lean
-theorem cosineCoeffs_abs_le_of_continuous_bounded
-    {f : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1))
-    {B : ℝ} (hB : 0 ≤ B)
-    (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
-    ∀ n, |cosineCoeffs f n| ≤ 2 * B
+| zero =>
+  intro c hc hcT
+  sorry
+...
+have _hlog : DuhamelSourceTimeC1On ... := by
+  sorry
+...
+have _hchem : DuhamelSourceTimeC1On ... := by
+  sorry
+...
+noncomputable def conjBFormSourceTimeC1On_limit ... := by
+  sorry
+...
+noncomputable def hsrcBDirect_of_data ... := by
+  sorry
 ```
 
-So the committed theorem **does** require `ContinuousOn`, by signature.
+The file comments already say the base should call Level0, the logistic successor should use the successor recursion, the chemDiv successor is a genuine gap, the limit should use `duhamelSourceTimeC1On_of_uniform_limit`, and the final step is an endpoint extension.
 
-But in its proof, continuity is used only to prove interval integrability:
+## 1. Line 60 — zero base case
+
+Classification: **mostly pure wiring, but current API/signature is not enough for a one-line fill.**
+
+The intended target is:
 
 ```lean
-have hint : IntervalIntegrable (fun x : ℝ => (f x : ℂ)) volume (0 : ℝ) 1 := by
-  apply ContinuousOn.intervalIntegrable
-  rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+DuhamelSourceTimeC1On
+  (bFormSourceCoeffs p (conjugatePicardIter p u₀ 0)) c DB.T
 ```
 
-After that, the proof uses the coefficient estimate by an integral norm and the pointwise bound.  Thus, mathematically and proof-theoretically, continuity is stronger than necessary.
-
-## Existing weaker ingredients
-
-The file already has a weaker-looking zeroth-mode lemma chain:
+The candidate theorem exists:
 
 ```lean
-theorem cosineCoeffs_zero_abs_le_integral_abs
-    (f : ℝ → ℝ) :
-    |cosineCoeffs f 0| ≤ ∫ x in (0 : ℝ)..1, |f x|
+level0_bFormSource_duhamelSourceTimeC1On_auto
 ```
 
-and then:
+but its actual signature requires:
 
 ```lean
-theorem cosineCoeffs_zero_abs_le_of_bound
-    {f : ℝ → ℝ} {B : ℝ} (_hB : 0 ≤ B)
-    (hcont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
-    (hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
-    |cosineCoeffs f 0| ≤ B
+hc : 0 < c
+hcT : c < T
+hα : 1 ≤ p.α
+ha : 0 ≤ p.a
+hb : 0 ≤ p.b
+hu₀_cont : Continuous u₀
+hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀
+hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc 0 1, 0 < intervalDomainLift (...) x
+hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc 0 1, intervalDomainLift (...) x ≤ M
+hG1, hG2, hUdot : uniform heat derivative bounds
 ```
 
-Again, `cosineCoeffs_zero_abs_le_of_bound` uses `ContinuousOn` only to obtain `IntervalIntegrable f volume 0 1`.
-
-## Recommended weaker replacement
-
-For the actual mode-0 use in `level0_chemDiv_envelope_summable`, you only need a zeroth-mode lemma, not the all-mode `≤ 2 * B` lemma.  A good replacement is:
+The Tower skeleton currently has only `p`, `DB`, `huPaper`, `hu₀pos`, and `Hinf` in scope.  It can get `ha` and `hb` from `p.ha` and `p.hb`, and Level0 has helpers for heat positivity/sup from data:
 
 ```lean
-theorem cosineCoeffs_zero_abs_le_of_intervalIntegrable_bound
-    {f : ℝ → ℝ} {B : ℝ}
-    (hf_int : IntervalIntegrable f volume (0 : ℝ) 1)
-    (_hB : 0 ≤ B)
-    (hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
-    |cosineCoeffs f 0| ≤ B := by
-  calc
-    |cosineCoeffs f 0|
-        ≤ ∫ x in (0 : ℝ)..1, |f x| :=
-          cosineCoeffs_zero_abs_le_integral_abs f
-    _ ≤ ∫ _ in (0 : ℝ)..1, B := by
-        apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
-          (hf_int.norm) intervalIntegrable_const
-        intro x hx
-        exact hbd x (by
-          simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hx)
-    _ = B := by simp
+level0_heat_pos_of_data
+level0_heat_sup_of_data
 ```
 
-Then the mode-0 branch can become:
+But the Tower signature does **not** visibly carry `hα1 : 1 ≤ p.α`; `CM2Params` only has `p.hα : 0 < p.α`.  Also, the current Level0 file does not expose a single wrapper extracting all of `hu₀_cont`, `hu₀_bound`, `hG1`, `hG2`, and `hUdot` from `DB`/`huPaper`/`Hinf`.
+
+So line 60 is fast, but the fastest implementation is to first add a wrapper:
 
 ```lean
-have hzero := cosineCoeffs_zero_abs_le_of_intervalIntegrable_bound
-  (hf_int s hs) hMsupnn (hsup_slices s hs)
--- gives |cosineCoeffs source 0| ≤ Msup
-exact le_trans hzero ?_
+theorem level0_bFormSource_duhamelSourceTimeC1On_auto_of_data
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (DB : ConjugateMildExistenceData p u₀)
+    (huPaper : PaperPositiveInitialDatum intervalDomain u₀)
+    (hu₀pos : PositiveInitialDatum intervalDomain u₀)
+    (Hinf : ConjugatePicardInfThresholdData p u₀ DB.T)
+    (hα1 : 1 ≤ p.α)
+    {c : ℝ} (hc : 0 < c) (hcT : c < DB.T) :
+    DuhamelSourceTimeC1On
+      (bFormSourceCoeffs p (conjugatePicardIter p u₀ 0)) c DB.T := ...
 ```
 
-Since your envelope has `Cenv = 2 * max B Msup`, this is even stronger than the current `≤ 2 * Msup` route.
+Then Tower line 60 becomes one call.
 
-If you want to keep the same `2 * B` shape for all modes, the all-mode weaker version is also straightforward:
+Verdict: **pure wiring after a small API/signature wrapper.**
+
+## 2. Line 73 — logistic successor
+
+Classification: **mostly wiring, but not a one-liner.**
+
+The useful existing theorem is:
 
 ```lean
-theorem cosineCoeffs_abs_le_of_intervalIntegrable_bounded
-    {f : ℝ → ℝ} (hf_int : IntervalIntegrable (fun x : ℝ => (f x : ℂ)) volume (0 : ℝ) 1)
-    {B : ℝ} (hB : 0 ≤ B)
-    (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
-    ∀ n, |cosineCoeffs f n| ≤ 2 * B := by
-  -- same proof as `cosineCoeffs_abs_le_of_continuous_bounded`, replacing
-  -- the `ContinuousOn.intervalIntegrable` block by `hf_int`.
+sourceTimeC1On_succ_of_sourceTimeC1On
 ```
 
-## If the bound is only on `Ioo 0 1`
-
-A pure `∀ x ∈ Ioo 0 1, |f x| ≤ B` bound is not directly accepted by the current proof because `intervalIntegral.integral_mono_on` asks for a pointwise bound on `Set.uIcc 0 1`.  But endpoints are measure zero, so there are two clean options:
-
-1. Prove endpoint bounds separately and upgrade to an `Icc` bound.  In this file’s zero-extension situation, endpoint values are often `0`, so `0 ≤ B` suffices.
-
-2. Prove an a.e. version using a.e. domination on the interval; then an `Ioo` bound is enough because `{0,1}` is null.  This is slightly more measure-theoretic but conceptually the weakest statement.
-
-For your stated replacement — “L∞ bound on `Ioo 0 1` + integrability” — the Lean-friendly version is probably: integrability plus an a.e. bound on `(0,1)`/`[0,1]`.  If you also have endpoint-zero facts, converting to an `Icc` pointwise bound is simpler.
-
-## What this means for `hSup`
-
-If you keep the current lemma, `hSup` must provide `ContinuousOn` because the theorem demands it.
-
-If you add the weaker interval-integrable/L∞ zeroth-mode lemma, then the `ContinuousOn` component of `hSup` is unnecessary for the final envelope construction.  You would only need:
+Its signature is endpoint-inclusive and already designed for this job.  It consumes:
 
 ```lean
-∃ Msup, 0 ≤ Msup ∧
-  (∀ s ∈ Icc c T, IntervalIntegrable
-      (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s) volume 0 1) ∧
-  (∀ s ∈ Icc c T, ∀ x ∈ Icc 0 1,
-      |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup)
+src : DuhamelSourceTimeC1On a 0 W
+hshift : MapsTo (fun s => s - offset) (Icc lo hi) (Icc aτ W)
+bc, hbsum, hagree
+hpos, hub, hG1, hG2
+hrestart
+hC2cont
+hprofile_joint
 ```
 
-or, with an a.e. version, integrability plus an a.e. bound.
+and returns the successor logistic source package:
 
-However, note that the current construction of `hSup` obtains the bound from compactness of a jointly continuous source on `[c,T]×[0,1]`.  If you remove continuity from `hSup`, you still need some other way to produce the uniform `Msup` and integrability.  The positive-mode envelope does not need it; only the zeroth mode does.
+```lean
+DuhamelSourceTimeC1On
+  (fun s k => cosineCoeffs (logisticLifted p (w s)) k) lo hi
+```
 
-## Verdict
+For Tower line 73, the predecessor package from `ih` is for the **B-form source coefficients** of level `n`.  That is the right source family for the conjugate restart formula, but you have to shift it to a `0 W` source using `DuhamelSourceTimeC1On.shift_zero`, choose the offset (likely `c/2`), prove the interval map facts, and supply the restart representation of `conjugatePicardIter p u₀ (n+1)` over `[c,T]`.
 
-`cosineCoeffs_abs_le_of_continuous_bounded` requires `ContinuousOn` syntactically, but not essentially.  Continuity is only a convenient way to get interval integrability.  For sub-sorry 2A / `hSup`, you can weaken the zeroth-mode path to `IntervalIntegrable + L∞ bound` and avoid proving per-slice `ContinuousOn` solely for `cosineCoeffs_abs_le_of_continuous_bounded`.
+There is existing non-conjugate source tower machinery (`IntervalPicardSourceTower`) that already carries representation/summability/positivity/G1/G2/source packages, and there is conjugate cosine-series infrastructure in `IntervalConjugateCosineSeries.lean`.  So this should be an adapter/wiring task if the conjugate restart representation theorem is already available in the right shape.  If not, the missing piece is a small representation adapter, not new analysis.
+
+Verdict: **wiring + restart-representation adapter.**
+
+## 3. Line 77 — chemDiv successor
+
+Classification: **new infrastructure; this is the main analytic blocker after Level0.**
+
+Closing Level0 only proves the chemDiv source package for
+
+```lean
+u := conjugatePicardIter p u₀ 0
+```
+
+The successor needs the same type of package for
+
+```lean
+u := conjugatePicardIter p u₀ (n + 1)
+```
+
+That requires an iterate-level version of the Level0 chemDiv work:
+
+```text
+iterate representation / joint regularity of u
+resolver value and gradient joint regularity for v = coupledChemicalConcentration p u
+joint flux/source regularity
+uniform H² / coefficient envelope on [c,T]
+time-derivative coefficient data and bounds
+```
+
+The existing physical resolver lane gives reusable pieces, but the iterate-level data package has to be built and threaded.  This is not discharged merely by Level0 being clean.
+
+Verdict: **real new infrastructure; hardest Tower item.**
+
+## 4. Line 92 — limit passage
+
+Classification: **existing theorem, but nontrivial new hypotheses; not pure wiring.**
+
+The theorem exists and is sorry-free:
+
+```lean
+def duhamelSourceTimeC1On_of_uniform_limit
+    {a : ℝ → ℕ → ℝ} {aSeq : ℕ → ℝ → ℕ → ℝ} {lo hi : ℝ}
+    (hconv : ∀ s ∈ Icc lo hi, ∀ k,
+      Tendsto (fun n => aSeq n s k) atTop (nhds (a s k)))
+    (hderiv_each : ∀ n, ∀ s ∈ Icc lo hi, ∀ k,
+      HasDerivWithinAt (fun r => aSeq n r k) (adotSeq n s k) (Icc lo hi) s)
+    (hadot_unif : ∀ k, TendstoUniformlyOn (fun n s => adotSeq n s k)
+      (fun s => adot s k) atTop (Icc lo hi))
+    (hadot_cont : ∀ k, ContinuousOn (fun s => adot s k) (Icc lo hi))
+    (henv_summable : Summable envelope)
+    (henv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |aSeq n s k| ≤ envelope k)
+    (hderiv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |adotSeq n s k| ≤ D) :
+    DuhamelSourceTimeC1On a lo hi
+```
+
+The Tower gives `hderiv_each` for every iterate once the full iterate tower is closed.  But it does **not** automatically give:
+
+```text
+coefficient convergence of bFormSourceCoeffs(iter n) → bFormSourceCoeffs(limit)
+uniform convergence of adotSeq → adot on [c,T]
+a common summable envelope independent of n
+a common derivative bound independent of n
+continuity of the limiting adot
+```
+
+Those are real convergence/uniformity lemmas, presumably from geometric convergence plus Lipschitz estimates for `bFormSourceCoeffs` and its time derivative.  They are not pure API wiring.
+
+Verdict: **use existing theorem, but add convergence/common-bound infrastructure.**
+
+## 5. Line 111 — extension from positive windows to `[0,T]`
+
+Classification: **new endpoint-extension lemma; not pure wiring.**
+
+`DuhamelSourceTimeC1On a 0 T` requires all fields on `Icc 0 T`, including:
+
+```lean
+hderiv : ∀ s ∈ Icc 0 T, ∀ n,
+  HasDerivWithinAt (fun r => a r n) (adot s n) (Icc 0 T) s
+hadotcont : ∀ n, ContinuousOn (fun s => adot s n) (Icc 0 T)
+henv_bound : ∀ s ∈ Icc 0 T, ∀ n, |a s n| ≤ envelope n
+hderivBound : ∀ s ∈ Icc 0 T, ∀ n, |adot s n| ≤ derivBound
+```
+
+Having packages on every `[c,T]`, `c > 0`, does not by itself prove the endpoint `s = 0` derivative or continuity of `adot` at `0`.  The Tower comment says the coefficients are defined to be `0` at `s = 0`, but that only helps the value/envelope field.  The derivative field at `0` still needs a right-derivative proof, or the endpoint-extension lemma must explicitly assume/prove the needed `s → 0+` limits.
+
+So the final theorem should not be attempted until you have a reusable lemma with a shape like:
+
+```lean
+theorem DuhamelSourceTimeC1On.extend_zero_of_pos_windows
+    (hposWin : ∀ c, 0 < c → c < T, DuhamelSourceTimeC1On a c T)
+    (hval0 : ∀ k, a 0 k = 0)
+    (hadot0 : ...)
+    (hderiv0 : ∀ k, HasDerivWithinAt (fun r => a r k) (adot0 k) (Icc 0 T) 0)
+    (hadot_cont_zero : ...)
+    (henv0_bound : ...)
+    (uniformEnvelopeAndDerivBound : ...) :
+    DuhamelSourceTimeC1On a 0 T
+```
+
+This is not just `restrict`; `restrict_hi` only shrinks the upper endpoint and `shift_zero` shifts a closed window.  Neither creates the missing lower endpoint from a family of positive lower endpoints.
+
+Verdict: **new endpoint infrastructure; do last.**
+
+## Practical priority order
+
+1. **Patch the Tower assumptions/wrapper layer.** Add `hα1 : 1 ≤ p.α` to the Tower theorem signatures, or prove it from a stronger existing assumption. Add a Level0-from-data wrapper so line 60 is a one-line call.
+2. **Close line 60.** This is the quickest visible win once Level0 is clean.
+3. **Close line 73.** Use `sourceTimeC1On_succ_of_sourceTimeC1On`; spend time only on interval-shift and conjugate restart-representation adapters.
+4. **Build iterate chemDiv package.** Generalize the Level0 chemDiv source data to arbitrary iterates using the existing joint-C²/resolver lanes. This closes line 77.
+5. **Build limit convergence package.** Then line 92 is an application of `duhamelSourceTimeC1On_of_uniform_limit`.
+6. **Build lower-endpoint extension.** Then line 111 closes.
+
+## Final classification table
+
+| Tower sorry | Pure wiring after Level0? | Needs new infrastructure? | Notes |
+|---|---:|---:|---|
+| Line 60 zero base | Yes, after wrapper/signature fix | Small API wrapper only | `level0_bFormSource_duhamelSourceTimeC1On_auto` exists but needs many args, incl. `1 ≤ p.α`. |
+| Line 73 logistic successor | Mostly | Small adapter if restart representation not in exact shape | Existing `sourceTimeC1On_succ_of_sourceTimeC1On` is the right theorem. |
+| Line 77 chemDiv successor | No | Yes, major | Level0 clean does not give chemDiv TimeC1On for arbitrary iterates. |
+| Line 92 limit passage | No | Yes, medium/major | The theorem exists; convergence/common-envelope hypotheses still need proof. |
+| Line 111 extension to `[0,T]` | No | Yes, endpoint lemma | Positive-window packages do not automatically give derivative/`adot` continuity at `0`. |
