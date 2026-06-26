@@ -1,241 +1,347 @@
-# Q741 (cron2): per-slice agreement for `coupledChemDivSourceLift`
+# Q756 (cron2): cutoff heat-term Leibniz bound pattern
 
-Static repo inspection only; I did not run a Lean build.
+Static repository inspection only; I did not run a Lean build.
 
 ## Executive answer
 
-I did **not** find a ready-made theorem with the exact Level0 `2A-agree` shape:
+The existing resolver-lane theorem to copy is:
 
 ```lean
-∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-  coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x =
-    deriv (chemFluxFun p.β U_cos_s V_cos_s) x
+ShenWork.IntervalResolverSpectralJointC2CutoffBounds.cutoffValueTerm_leibniz_bound
 ```
-
-The closest coupled-specific theorem is:
-
-```lean
-coupledChemDivSourceLift_eq_deriv_fluxLift_interior
-```
-
-in:
-
-```text
-ShenWork/PDE/IntervalChemDivOuterCommute.lean
-```
-
-but it is only an **interior** statement and only identifies the source with the derivative of the built-in coupled flux:
-
-```lean
-theorem coupledChemDivSourceLift_eq_deriv_fluxLift_interior
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
-    (hx : x ∈ Ioo (0 : ℝ) 1) :
-    coupledChemDivSourceLift p u s x =
-      deriv (coupledChemDivFluxLift p u s) x := by
-  have hxIcc : x ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hx
-  unfold coupledChemDivSourceLift intervalDomainChemotaxisDiv
-    coupledChemDivFluxLift
-  simp only [intervalDomainLift, hxIcc, dif_pos]
-```
-
-Searches for:
-
-```text
-coupledChemDivSourceLift_eq
-chemDivSourceLift agree
-chemDivSource Icc
-```
-
-did not turn up an exact closed-interval/cosine-representative agreement lemma.  So for `2A-agree`, you probably need to unfold manually or add a small helper lemma.
-
-## Current `2A-agree` target is still a sorry
-
-In:
-
-```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-```
-
-there is already the exact pending target:
-
-```lean
-have hF_agree : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
-    Function.uncurry
-      (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) q =
-    deriv
-      (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
-        (fun x => ∑' k, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-          heatCoeff u₀ k) * cosineMode k x)
-        (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
-      q.2 := by
-  sorry -- [SUB-SORRY 2A-agree: per-slice agreement ...]
-```
-
-So the repo itself confirms this exact agreement has not yet been packaged.
-
-## Relevant definitions
-
-### `coupledChemDivSourceLift`
 
 File:
 
 ```text
-ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean
 ```
+
+It is the direct `norm_iteratedFDeriv_mul_le` wrapper for a separated cutoff value term.  It rewrites
 
 ```lean
-/-- Lifted chemotaxis-divergence source with the elliptic resolver substituted. -/
-def coupledChemDivSourceLift (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
-  intervalDomainLift
-    (fun x => intervalDomainChemotaxisDiv p (u s)
-      (coupledChemicalConcentration p u s) x)
+cutoffValueTerm φ a₀ a offset n
 ```
 
-### `coupledChemDivFluxLift`
+as the product
+
+```lean
+G q * H q
+```
+
+where
+
+```lean
+G q = φ q.1 * localRestartCoeff a₀ a (q.1 - offset) n
+H q = cosineMode n q.2
+```
+
+and proves
+
+```lean
+‖iteratedFDeriv ℝ k (cutoffValueTerm φ a₀ a offset n) q‖ ≤
+  ∑ i ∈ Finset.range (k + 1), (k.choose i : ℝ) *
+    ‖iteratedFDeriv ℝ i
+      (fun q : ℝ × ℝ =>
+        φ q.1 * localRestartCoeff a₀ a (q.1 - offset) n) q‖ *
+    ‖iteratedFDeriv ℝ (k - i)
+      (fun q : ℝ × ℝ => cosineMode n q.2) q‖
+```
+
+The proof is very short: establish the definitional equality to `G * H`, cast `hk : (k : ℕ∞) ≤ 2` to the `WithTop` shape expected by mathlib, then call:
+
+```lean
+norm_iteratedFDeriv_mul_le hG hH q hk'
+```
+
+There is also the gradient analogue:
+
+```lean
+ShenWork.IntervalResolverSpectralJointC2CutoffBounds.cutoffGradTerm_leibniz_bound
+```
+
+which splits
+
+```lean
+cutoffGradTerm φ gradTerm n = fun q => φ q.1 * gradTerm n q
+```
+
+and applies the same `norm_iteratedFDeriv_mul_le` pattern.
+
+## Full concrete value-term pattern
+
+The theorem that actually computes the bound into a summable majorant is:
+
+```lean
+ShenWork.IntervalResolverSpectralJointC2Concrete.cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
+```
 
 File:
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxChain.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
 ```
+
+Rough type:
 
 ```lean
-/-- Lifted chemotactic flux before the outer spatial derivative. -/
-def coupledChemDivFluxLift (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (s y : ℝ) : ℝ :=
-  let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
-  intervalDomainLift (u s) y * deriv v y / (1 + v y) ^ p.β
+theorem cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ} {offset s : ℝ}
+    (hτ : 0 < s - offset) (src : DuhamelSourceTimeC2Coeff a)
+    {n k : ℕ} {q : ℝ × ℝ}
+    (hL : restartCutoffLeftOuter offset s ≤ q.1)
+    (hR : q.1 ≤ restartCutoffRightOuter offset s)
+    (hk : (k : ℕ∞) ≤ (2 : ℕ∞)) :
+    ‖iteratedFDeriv ℝ k
+      (cutoffValueTerm (restartSmoothCutoff offset s) a₀ a offset n) q‖ ≤
+      concreteRestartValueMajorant a₀ src offset s hτ k n
 ```
 
-### `chemFluxFun`
+This is the closest complete template for the heat sorry.
 
-File:
+It decomposes the value term in two Leibniz layers:
 
-```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-```
+1. **Outer product**
 
-```lean
-/-- The chemotaxis flux function whose spatial derivative is the chemDiv source.
-`φ(y) = lift(u)(y) · deriv(lift(v))(y) / (1 + lift(v)(y))^β` -/
-def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
-  u y * deriv v y / (1 + v y) ^ β
-```
-
-So after unfolding, `coupledChemDivFluxLift p u s` is definitionally the same flux shape as
-
-```lean
-chemFluxFun p.β
-  (intervalDomainLift (u s))
-  (intervalDomainLift (coupledChemicalConcentration p u s))
-```
-
-## Existing pattern: `IntervalChemDivSpatialC2.lean`
-
-The pattern you cited is real and useful, but it is for the non-coupled `chemDivLift`, not directly for `coupledChemDivSourceLift`:
-
-```lean
-theorem chemDivLift_contDiffOn_two_of_global
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    (hu : ContDiff ℝ 4 (intervalDomainLift u))
-    (hv : ContDiff ℝ 4 (intervalDomainLift v))
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
-    ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
-  have hglobal := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
-  have h_eq : ∀ x ∈ Icc (0 : ℝ) 1,
-      chemDivLift p u v x =
-        deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
-    intro x hx
-    unfold chemDivLift intervalDomainLift
-    rw [dif_pos hx]
-    unfold intervalDomainChemotaxisDiv
-    unfold chemFluxFun
-    rfl
-  exact hglobal.contDiffOn.congr h_eq
-```
-
-This is the right manual-unfolding style to copy for the coupled version.
-
-## Another nearby theorem: EWA eval agreement
-
-There is also a stronger-looking but different theorem in:
-
-```text
-ShenWork/Wiener/EWA/ChemDivEval.lean
-```
-
-```lean
-theorem evalST_chemDivEWA_eq_coupledChemDivSourceLift ...
-    (hx : x ∈ Set.Ioo (0 : ℝ) 1) (hxIcc : x ∈ Set.Icc (0 : ℝ) 1)
-    ... :
-    evalST τ (x : WA.Circ) (chemDivEWA μ ν γ hμ p U)
-      = ((coupledChemDivSourceLift p u τ.1 x : ℝ) : ℂ)
-```
-
-This theorem is not the Level0 `U_cos/V_cos` agreement.  It is an EWA synthesis/eval bridge, interior-only, and it requires `hgrad`, `h_flux_nbhd`, and `h_flux_diff` hypotheses.  However, its comments and final proof step are useful: it explicitly documents that
-
-```lean
-coupledChemicalConcentration p u s = intervalNeumannResolverR p (u s)
-```
-
-is definitional, and its final step is:
-
-```lean
-rw [coupledChemDivSourceLift, intervalDomainLift, dif_pos hxIcc]
-rfl
-```
-
-So again, the route is unfolding, not a prepackaged Level0 agreement lemma.
-
-## Suggested proof strategy for `2A-agree`
-
-For each `q = (s,x)` with `s ∈ Icc c T` and `x ∈ Icc 0 1`:
-
-1. Set
    ```lean
-   u := conjugatePicardIter p u₀ 0
-   w := u s
-   V := coupledChemicalConcentration p u s
+   cutoffValueTerm = (φ * localRestartCoeff) * cosineMode
    ```
-2. Unfold the left-hand side:
-   ```lean
-   rw [coupledChemDivSourceLift, intervalDomainLift, dif_pos hx]
-   unfold intervalDomainChemotaxisDiv
-   ```
-   This should expose the derivative of the flux built from
-   ```lean
-   intervalDomainLift w
-   intervalDomainLift V
-   ```
-3. Unfold the flux side:
-   ```lean
-   unfold ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun
-   ```
-4. Use the heat agreement and resolver agreement to replace the lifted fields with the smooth representatives.
 
-Important caveat: replacing inside `deriv` is not justified by mere pointwise equality at `x`.  For interior points `x ∈ Ioo 0 1`, agreement on `Icc 0 1` gives agreement on a neighborhood of `x`, so `Filter.EventuallyEq.deriv_eq` is the clean way to rewrite under `deriv`:
+   This is handled by `cutoffValueTerm_leibniz_bound`.
+
+2. **Inner product**
+
+   ```lean
+   φ * localRestartCoeff
+   ```
+
+   Inside the proof, it calls `norm_iteratedFDeriv_mul_le hφ hcoeff q hiTop` again to bound
+
+   ```lean
+   ‖iteratedFDeriv ℝ i
+     (fun q => restartSmoothCutoff offset s q.1 *
+       localRestartCoeff a₀ a (q.1 - offset) n) q‖
+   ```
+
+   by a second Leibniz sum over `j ≤ i`.
+
+So the final finite expression is a nested binomial sum: outer split index `i`, inner split index `j`.
+
+## How the product of cutoff derivative bound and exponential/cosine bound is computed
+
+The concrete value majorant is:
 
 ```lean
-have hflux_ev :
-    (chemFluxFun p.β (intervalDomainLift w) (intervalDomainLift V))
-      =ᶠ[𝓝 x]
-    (chemFluxFun p.β U_cos V_cos) := by
-  filter_upwards [Ioo_mem_nhds hx_interior] with y hy
-  -- use hU_agree y (Ioo_subset_Icc_self hy)
-  -- use hV_agree y (Ioo_subset_Icc_self hy)
-
-rw [Filter.EventuallyEq.deriv_eq hflux_ev]
+def concreteRestartValueMajorant
+    (a₀ : ℕ → ℝ) {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC2Coeff a)
+    (offset s : ℝ) (hτ : 0 < s - offset) (k n : ℕ) : ℝ :=
+  concreteRestartValueLeibnizConstant offset s hτ k *
+    restartCoeffCoreMajorant a₀ src
+      (restartSlabMin offset s) (restartSlabMax offset s) n
 ```
 
-For endpoints `x = 0` or `x = 1`, agreement only on `Icc 0 1` is not enough to rewrite a full derivative under `deriv`; Lean’s `deriv` is two-sided.  To close the stated `Icc` target at endpoints, you need one of:
+The finite cutoff/Leibniz constant is:
 
-* a stronger global/neighborhood agreement between `intervalDomainLift ...` and the cosine representatives near the endpoints;
-* an endpoint-specific lemma using the even/reflection extension machinery;
-* or prove the agreement on `Ioo 0 1` first and extend to endpoints by continuity, if both sides are already known continuous on `Icc 0 1`.
+```lean
+def concreteRestartValueLeibnizConstant
+    (offset s : ℝ) (hτ : 0 < s - offset) (k : ℕ) : ℝ :=
+  ∑ i ∈ Finset.range (k + 1), (k.choose i : ℝ) *
+    ∑ j ∈ Finset.range (i + 1), (i.choose j : ℝ) *
+      restartCutoffDerivMajorant offset s hτ j
+```
 
-The existing `chemDivLift_contDiffOn_two_of_global` avoids this endpoint issue because it does **not** replace `intervalDomainLift u/v` by a different representative under `deriv`; it unfolds to the exact same functions.
+The `n`-dependent analytic payload is entirely pushed into:
 
-## Bottom line
+```lean
+restartCoeffCoreMajorant a₀ src τmin τmax n
+```
 
-There is no exact landed `coupledChemDivSourceLift` agreement lemma for your `U_cos/V_cos` representative.  Use manual unfolding, with `coupledChemDivSourceLift_eq_deriv_fluxLift_interior` as a helpful interior shortcut.  For the closed-interval endpoint cases in the current `Icc` statement, be careful: rewriting inside `deriv` needs neighborhood/eventual agreement, not just pointwise agreement on `[0,1]`.
+and the proof shows each inner product term is bounded by
+
+```lean
+restartCutoffDerivMajorant offset s hτ j *
+  restartCoeffCoreMajorant a₀ src τmin τmax n
+```
+
+up to binomial coefficients.
+
+The key supporting lemmas are:
+
+```lean
+restartCutoffDerivMajorant_spec
+```
+
+for the cutoff derivative bound, via
+
+```lean
+norm_iteratedFDeriv_comp_fst_le
+```
+
+and
+
+```lean
+cosineMode_iteratedFDeriv_bound
+```
+
+for the cosine derivative bound, via
+
+```lean
+norm_iteratedFDeriv_comp_snd_le
+```
+
+and
+
+```lean
+shiftedLocalRestartCoeff_valueWeight_le_core
+```
+
+for the coefficient/cosine-weight product:
+
+```lean
+‖iteratedFDeriv ℝ r
+  (fun u : ℝ => localRestartCoeff a₀ a (u - offset) n) t‖ *
+  valueCosWeight m n ≤
+  restartCoeffCoreMajorant a₀ src τmin τmax n
+```
+
+Here
+
+```lean
+def valueCosWeight (m n : ℕ) : ℝ :=
+  match m with
+  | 0 => 1
+  | 1 => |(n : ℝ) * Real.pi|
+  | _ => unitIntervalCosineEigenvalue n
+```
+
+So the cosine derivative contribution is absorbed into `valueCosWeight`, and then `shiftedLocalRestartCoeff_valueWeight_le_core` absorbs the coefficient derivative times `valueCosWeight` into the common core majorant.
+
+## What `restartCoeffCoreMajorant` decomposes into
+
+The core majorant is:
+
+```lean
+def restartCoeffCoreMajorant
+    (a₀ : ℕ → ℝ) {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (τmin τmax : ℝ) (n : ℕ) : ℝ :=
+  restartCoeffZeroModeMajorant a₀ src τmax n +
+    4 * restartCoeffCubeMajorant a₀ src τmin n +
+      src.sourceEigenEnvelope n + src.sourceEigenSqEnvelope n +
+        src.adotEigenEnvelope n
+```
+
+For the homogeneous/exponential part, the relevant sub-majorant is:
+
+```lean
+def restartHomogeneousCubeMajorant
+    (a₀ : ℕ → ℝ) (τmin : ℝ) (n : ℕ) : ℝ :=
+  unitIntervalCosineEigenvalue n *
+    (unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (Real.exp (-τmin * unitIntervalCosineEigenvalue n) * |a₀ n|)))
+```
+
+and
+
+```lean
+def restartCoeffCubeMajorant
+    (a₀ : ℕ → ℝ) {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (τmin : ℝ) (n : ℕ) : ℝ :=
+  restartHomogeneousCubeMajorant a₀ τmin n + src.sourceEigenSqEnvelope n
+```
+
+This is the resolver version of “exponential decay eats the polynomial/eigenvalue weights.”  It uses a positive left edge `τmin`, giving the exponential factor
+
+```lean
+Real.exp (-τmin * unitIntervalCosineEigenvalue n)
+```
+
+and then puts enough powers of `λ_n` in front to dominate all coefficient/cosine derivative combinations up to order 2.
+
+## Translation to `cutoffHeatTerm_iteratedFDeriv_bound`
+
+The heat term currently is:
+
+```lean
+def cutoffHeatTerm (u₀ : intervalDomainPoint → ℝ)
+    (c : ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => smoothRightCutoff (c / 2) c q.1 *
+    ((Real.exp (-q.1 * unitIntervalCosineEigenvalue n) *
+      cosineCoeffs (intervalDomainLift u₀) n) * cosineMode n q.2)
+```
+
+and the remaining sorry is:
+
+```lean
+theorem cutoffHeatTerm_iteratedFDeriv_bound
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (hc : 0 < c) (k n : ℕ) (q : ℝ × ℝ)
+    (hk : (k : ℕ∞) ≤ 2) :
+    ‖iteratedFDeriv ℝ k (cutoffHeatTerm u₀ c n) q‖ ≤
+      (2 * k + 1) ^ k *
+        (unitIntervalCosineEigenvalue n ^ k * M₀ *
+          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+  sorry
+```
+
+The existing resolver proof suggests the robust route should introduce heat analogues of:
+
+```lean
+restartCutoffDerivMajorant
+concreteRestartValueLeibnizConstant
+concreteRestartValueMajorant
+```
+
+For heat, the “coefficient core” would be a direct exponential majorant, roughly:
+
+```lean
+heatCoeffCoreMajorant c M₀ k n :=
+  unitIntervalCosineEigenvalue n ^ k * M₀ *
+    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)
+```
+
+but the cutoff part should probably be a finite constant depending on the cutoff derivative bounds for `smoothRightCutoff (c/2) c`, analogous to:
+
+```lean
+∑ i, (k.choose i) * ∑ j, (i.choose j) * cutoffDerivMajorant c j
+```
+
+rather than a magic universal constant.  The resolver lane deliberately keeps the cutoff derivative contribution in `restartCutoffDerivMajorant ... j` and only multiplies the summable `n`-majorant by a finite constant.
+
+That is the main implementation lesson: do not try to make the cutoff derivative bound disappear.  Split by `norm_iteratedFDeriv_mul_le`, bound all cutoff-only derivatives by a finite `c`-dependent constant, bound the exp/coefficient/cos derivative product by the summable heat exponential majorant, then multiply finite constant × summable core exactly like `concreteRestartValueMajorant`.
+
+## Theorem names to inspect/copy
+
+Primary:
+
+```lean
+cutoffValueTerm_leibniz_bound
+cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
+concreteRestartValueLeibnizConstant
+concreteRestartValueMajorant
+```
+
+Supporting:
+
+```lean
+restartCutoffDerivMajorant
+restartCutoffDerivMajorant_spec
+norm_iteratedFDeriv_comp_fst_le
+norm_iteratedFDeriv_comp_snd_le
+cosineMode_iteratedFDeriv_bound
+valueCosWeight
+shiftedLocalRestartCoeff_valueWeight_le_core
+restartCoeffCoreMajorant
+restartHomogeneousCubeMajorant
+restartCoeffCubeMajorant
+```
+
+Gradient-side parallel pattern:
+
+```lean
+cutoffGradTerm_leibniz_bound
+cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
+concreteRestartGradLeibnizConstant
+concreteRestartGradMajorant
+resolverSpectralConcreteGradTerm_iteratedFDeriv_bound_of_mem_slab
+```
