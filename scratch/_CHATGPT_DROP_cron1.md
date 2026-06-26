@@ -1,186 +1,346 @@
-# Q682 / cron1: `cosineCoeffs` real-integral bridge and weak-H² Laplacian coefficient identity
+# Q688 / cron1: `CoupledChemDivFluxJointC2Hyp` producers and heat-semigroup difficulty
+
+Repo/branch inspected: `xiangyazi24/Shen_work`, branch `chatgpt-scratch`.
 
 ## Verdict
 
-Yes — the repo already has reusable lemmas relating `cosineCoeffs` to the real interval integral
+There is **no completed exported theorem/def for a specific trajectory** such as the heat semigroup that constructs
 
 ```lean
-∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
+CoupledChemDivFluxJointC2Hyp p (conjugatePicardIter p u₀ 0)
 ```
 
-For positive modes, the best public lemma is:
+or the equivalent level-0 Picard heat trajectory.
+
+There **is** one explicit heat-semigroup/level-0 construction site, but it is a **local `have ... := by sorry`** inside `level0_chemDiv_timeDerivData`:
 
 ```lean
-ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
+have hfluxC2 : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
+    p (conjugatePicardIter p u₀ 0) := by
+  sorry
 ```
 
-Signature/location:
+File:
+
+```text
+ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+```
+
+That file states that `conjugatePicardIter p u₀ 0` is definitionally the level-0 heat-semigroup trajectory (`picardIter p u₀ 0`, i.e. `intervalFullSemigroupOperator t (intervalDomainLift u₀)`). So this is the relevant specific-trajectory example, but it is not discharged.
+
+## 1. Theorem/def sites that produce `CoupledChemDivFluxJointC2Hyp`
+
+### Completed generic producer
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
 
 ```lean
-/-- For a real-valued `f`, the positive-mode cosine coefficient equals
-`2 * ∫₀¹ cos(nπx) * f(x) dx`. -/
-theorem cosineCoeffs_pos_eq_integral {f : ℝ → ℝ} {n : ℕ} (hn : n ≠ 0) :
-    cosineCoeffs f n =
-      2 * ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
+theorem coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (H : CoupledChemDivFluxFactorJointC2Inputs p u) :
+    CoupledChemDivFluxJointC2Hyp p u := by
+  ...
 ```
 
-- `ShenWork/Paper2/IntervalMildPicardRegularity.lean:417-431`
+This is a real completed producer, but it is **generic in `u`**. It consumes `CoupledChemDivFluxFactorJointC2Inputs p u` and packages the five `exists_local_slab` fields of `CoupledChemDivFluxJointC2Hyp`.
 
-There is also a uniform all-modes public lemma:
+Important detail: this theorem derives the spatial partial bridge internally from joint differentiability of the flux. It does not ask the caller to provide field (c) directly.
+
+### Completed residual wrapper
+
+```text
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+```
 
 ```lean
-theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
-    cosineCoeffs f n =
-      (if n = 0 then 1 else 2) *
-        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
+theorem fluxJointC2Hyp_of_residual {u : ℝ → intervalDomainPoint → ℝ}
+    (R : ChemDivSolutionRegularityResidual p u) :
+    CoupledChemDivFluxJointC2Hyp p u :=
+  coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+    (ShenWork.IntervalFlooredSourceTimeDataIterate.coupledChemDivFluxFactorJointC2Inputs_of_iterate
+      R.hiter R.hval R.hgrad R.other)
 ```
 
-- `ShenWork/Paper2/IntervalMildPicardRegularity.lean:433-442`
+This is also completed, but still **not a specific trajectory construction**. It works for arbitrary `u` once the large residual package `ChemDivSolutionRegularityResidual p u` is supplied.
 
-And a raw-coefficient public wrapper:
+The residual explicitly contains the remaining hard/non-free data: iterate time-`C²`/space-`C²`, source summability, the FAC slab `other`, chem-div source decay/H² envelopes, and `adot` continuity/bounds.
+
+### Definition site, not a producer
+
+```text
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+```
+
+This file defines the structure:
 
 ```lean
-/-- `cosineCoeffs f n = 2 · rawCoeff n f` for `n ≥ 1`. -/
-theorem cosineCoeffs_eq_two_rawCoeff {f : ℝ → ℝ} {n : ℕ} (hn : 1 ≤ n) :
-    cosineCoeffs f n = 2 * rawCoeff n f
+structure CoupledChemDivFluxJointC2Hyp
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ...
 ```
 
-- `ShenWork/Paper2/IntervalSourceC6Representative.lean:146-151`
-
-## Private helper matching the exact pattern
-
-`IntervalMildSourceDecayHelper.lean` has a private helper with exactly the normalization you need:
+It then **consumes** `CoupledChemDivFluxJointC2Hyp` to produce:
 
 ```lean
-private theorem cosineCoeffs_eq_two_raw_integral
-    {f : ℝ → ℝ} {k : ℕ} (hk : k ≠ 0) :
-    cosineCoeffs f k =
-      2 * ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x := by
-  simp only [cosineCoeffs, unitIntervalNeumannCosineCoeff, if_neg hk]
-  rw [unitIntervalCosineRawCoeff]
-  have hcast :
-      (fun x : ℝ =>
-          (Real.cos ((k : ℝ) * Real.pi * x) : ℂ) * ((f x : ℝ) : ℂ)) =
-        fun x : ℝ =>
-          ((Real.cos ((k : ℝ) * Real.pi * x) * f x : ℝ) : ℂ) := by
-    funext x
-    push_cast
-    ring
-  rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re]
+coupledChemDivOuterCommuteAtoms_of_fluxJointC2
+coupledChemDivLocalChainRule_of_fluxJointC2
+coupledChemDivSource_timeC1_of_fluxJointC2
 ```
 
-- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:127-141`
+Those are consumers/wiring theorems, not constructors of the hypothesis.
 
-Since it is `private`, use the public `cosineCoeffs_pos_eq_integral` instead.
+## 2. `sorry` sites that produce `CoupledChemDivFluxJointC2Hyp`
 
-## The exact desired identity is not completed as a reusable theorem
+The only direct `sorry` I found that produces the structure for a specific trajectory is in:
 
-I did **not** find a completed theorem named like
+```text
+ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+```
+
+Inside:
 
 ```lean
-cosineCoeffs_secondDeriv_eq_neg_eigenvalue_mul
+theorem level0_chemDiv_timeDerivData ... :
+  ∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ), ... := by
 ```
 
-or a completed theorem directly proving
+there is:
 
 ```lean
-cosineCoeffs hf.secondDeriv k = -((k : ℝ) * Real.pi)^2 * cosineCoeffs f k
+have hfluxC2 : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
+    p (conjugatePicardIter p u₀ 0) := by
+  sorry
 ```
 
-from `hf : IntervalWeakH2Neumann f`.
+The surrounding comment says the intended route is:
 
-However, `IntervalSourceDecayQuantitative.lean` has the exact local pattern inline and comments spelling out the identity.  In the quadratic decay proof it unfolds `cosineCoeffs` to the real integral and proves:
+```text
+FluxJointC2Hyp → OuterCommuteAtoms → LocalChainRule
+```
+
+and says the `FluxJointC2Hyp` carries the five fields:
+
+1. per-slab source continuity,
+2. joint `C²` of the uncurried flux,
+3. spatial `fderiv` bridge,
+4. time `fderiv` bridge,
+5. time-derivative continuity.
+
+The comment also says that for the heat semigroup these should follow because `S(t)u₀` is jointly smooth for `t > 0`, the resolver inherits regularity by the spectral route, and the flux is a smooth composition. The `sorry` covers that heat-semigroup-specific wiring.
+
+Related but not direct `CoupledChemDivFluxJointC2Hyp` sorries in the same file include the envelope/time-derivative infrastructure for the level-0 chem-div source. Those support the final level-0 source package, but the direct `CoupledChemDivFluxJointC2Hyp` construction is the `hfluxC2` sorry above.
+
+## 3. Files importing `IntervalChemDivOuterCommuteProducer` and producing the structure
+
+Direct import grep for:
 
 ```lean
-have hcoeff : cosineCoeffs f k = 2 * raw := by
-  -- replicate the (private) helper identity: for k ≠ 0,
-  -- `cosineCoeffs f k = 2·∫₀¹ cos(kπx)·f(x) dx`
-  simp only [ShenWork.IntervalNeumannFullKernel.cosineCoeffs,
-    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
-    if_neg hk_ne,
-    ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
-  have hcast : ... := by
-    funext x
-    push_cast
-    ring
-  rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re, hraw_def]
+import ShenWork.PDE.IntervalChemDivOuterCommuteProducer
 ```
 
-- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean:98-113`
+found these relevant files:
 
-Below that, the file has an attempted depth-2/quartic decay lemma whose comments state precisely your target step:
+### Produces `CoupledChemDivFluxJointC2Hyp`
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
+
+It imports `IntervalChemDivOuterCommuteProducer` and exports the completed generic constructor:
 
 ```lean
--- So cosineCoeffs(f'') k = -(kπ)² * cosineCoeffs(f) k
+coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
 ```
 
-but the lemma body is unfinished with `sorry`.
+### Imports it but does not directly produce `CoupledChemDivFluxJointC2Hyp`
 
-- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean:140-162`
-- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean:166-173`
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+```
 
-So: the ingredients exist, but the reusable identity should be added.
-
-## Suggested theorem to add
-
-This should be a very small lemma, using only `hf.weak_cosine_laplacian` plus the public positive-mode normalization lemma:
+This imports `IntervalChemDivOuterCommuteProducer`, but its main output is only:
 
 ```lean
-import ShenWork.PDE.IntervalMildSourceDecayHelper
-import ShenWork.Paper2.IntervalMildPicardRegularity
-
-open MeasureTheory
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
-
-namespace ShenWork.PDE.IntervalMildSourceDecayHelper
-
-noncomputable section
-
-/-- Weak-H² Neumann Laplacian identity at normalized positive cosine coefficients. -/
-theorem intervalWeakH2Neumann_cosineCoeffs_secondDeriv_eq
-    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) {k : ℕ} (hk : 1 ≤ k) :
-    cosineCoeffs hf.secondDeriv k =
-      -((k : ℝ) * Real.pi) ^ 2 * cosineCoeffs f k := by
-  have hk_ne : k ≠ 0 := by omega
-  rw [ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
-        (f := hf.secondDeriv) (n := k) hk_ne,
-      ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
-        (f := f) (n := k) hk_ne]
-  rw [hf.weak_cosine_laplacian k]
-  ring
-
-end
-end ShenWork.PDE.IntervalMildSourceDecayHelper
+CoupledChemDivFluxFactorJointC2Inputs p u
 ```
 
-If `rw` does not find the exact integral subterm, use explicit `have` bindings:
+via:
 
 ```lean
-  have hsd := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
-    (f := hf.secondDeriv) (n := k) hk_ne
-  have hf0 := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
-    (f := f) (n := k) hk_ne
-  rw [hsd, hf0, hf.weak_cosine_laplacian k]
-  ring
+coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
 ```
 
-## Why this proves your desired statement
+It discharges the time-partial bridge field physically from `PhysicalResolverJointC2Data`, but it does not itself call `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs`.
 
-`IntervalWeakH2Neumann` contains exactly the raw integral identity:
+### Aggregator only
+
+```text
+ShenWork.lean
+```
+
+This is an import aggregator, not a producer.
+
+## Nearby indirect producers of factor inputs
+
+These do **not** directly return `CoupledChemDivFluxJointC2Hyp`, but they are the upstream path into the generic producer.
+
+```text
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+```
 
 ```lean
-weak_cosine_laplacian : ∀ k : ℕ,
-  (∫ x in (0 : ℝ)..1,
-      Real.cos ((k : ℝ) * Real.pi * x) * secondDeriv x) =
-    -((k : ℝ) * Real.pi) ^ 2 *
-      ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
+theorem coupledChemDivFluxFactorJointC2Inputs_of_iterate ... :
+  CoupledChemDivFluxFactorJointC2Inputs p u := ...
 ```
 
-- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:6-15`
+This turns honest iterate time-`C²`/space-`C²` source data plus summability plus an `other` slab into the factor inputs.
 
-The positive-mode lemma turns both raw integrals into normalized coefficients with the same factor `2`, and `ring` cancels/distributes that factor:
+```text
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+```
 
 ```lean
-2 * (-(kπ)^2 * raw_f) = -(kπ)^2 * (2 * raw_f)
+theorem coupledChemDivFluxFactorJointC2Inputs_of_floor ... :
+  CoupledChemDivFluxFactorJointC2Inputs p u := ...
 ```
+
+This discharges the resolver value/gradient joint-`C²` factor inputs from physical source-time-`C²` data.
+
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+```
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged ... :
+  CoupledChemDivFluxFactorJointC2Inputs p u := ...
+```
+
+This discharges the time-partial bridge using the resolver inner commute.
+
+```text
+ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
+```
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged ... :
+  CoupledChemDivFluxFactorJointC2Inputs p u := ...
+```
+
+This discharges the closed-slab continuity of `coupledChemDivTimeDerivativeLift` from a spectral representative `Gmix`.
+
+## 4. Which `exists_local_slab` fields are hardest?
+
+For the five fields listed in the question:
+
+### (a) Source continuity
+
+```lean
+∀ᶠ s in nhds τ,
+  ContinuousOn (chemDivSourceLift ...) (Icc 0 1)
+```
+
+This is usually lower-order. It is often carried as `hsource`, `hsrc`, or part of `other`. It still requires continuity of the chem-div source slice, but it is not the main obstruction once the heat semigroup/resolver regularity is available.
+
+### (b) Joint `C²` of the uncurried flux
+
+```lean
+ContDiffAt ℝ 2 (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
+```
+
+This is the **hardest field for the heat semigroup**.
+
+Reason: the completed generic proof reduces it to joint `C²` of the factors:
+
+```lean
+u,
+resolved value v = coupledChemicalConcentration p u,
+resolved gradient ∂ₓv,
+positivity of 1 + v.
+```
+
+The algebraic part is already done by:
+
+```lean
+coupledChemDivFlux_contDiffAt_of_factorJointC2
+```
+
+using product/quotient/`rpow` calculus. The hard part is not the final algebra; it is proving the resolver-side joint `C²` facts, especially joint `C²` of the gradient factor `∂ₓv`, for the heat semigroup trajectory by the spectral/elliptic route.
+
+This matches comments in the repo: the factor-input file says the committed resolver API exposes joint continuity and fixed-time spatial `C²`, while the remaining analytic target is joint `C²` of `v` and `∂ₓv`. The level-0 heat-semigroup file also marks the heat-specific `FluxJointC2Hyp` wiring as the `sorry`.
+
+### (c) Spatial fderiv bridge
+
+```lean
+spatial derivative = fderiv(0,1)
+```
+
+This is comparatively easy/formal. In the completed generic producer it is derived from joint differentiability of the flux using:
+
+```lean
+real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
+```
+
+So once (b) is available, (c) follows by a small Fréchet-derivative path argument.
+
+### (d) Time fderiv bridge
+
+```lean
+time derivative = fderiv(1,0)
+```
+
+This is genuinely nontrivial, but the repo has a dedicated route for it.
+
+The relevant theorem is:
+
+```lean
+coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+```
+
+and the physically discharged version is:
+
+```lean
+coupledChemDivFlux_timeBridge_of_physicalJointC2
+```
+
+This needs the chain rule for the explicit flux time derivative and the resolver inner commute
+
+```text
+∂ₜ∂ₓv = ∂ₓ∂ₜv
+```
+
+which is produced from physical resolver joint `C²`. Thus (d) is hard, but it is more of a bridge/commute wiring problem once the resolver joint `C²` data is in hand.
+
+### (e) Closed-slab continuity of the time-derivative lift
+
+```lean
+ContinuousOn (Function.uncurry timeDerivative) on the slab
+```
+
+This is also a serious field because it is on the **closed** slab, including spatial endpoints. The repo isolates it in:
+
+```text
+ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
+```
+
+via:
+
+```lean
+ChemDivMixedTimeDerivClosedRepr
+chemDivMixedTimeDeriv_jointContinuousOn_closed
+coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+```
+
+So (e) is the main boundary/closed-slab continuity problem. It becomes manageable once one has a globally continuous spectral representative `Gmix` agreeing with the mixed time-derivative lift on the closed spatial domain.
+
+## Bottom line on heat semigroup
+
+For the heat semigroup, the hardest sub-condition is **(b) joint `C²` of the uncurried flux**, because it contains the real resolver regularity burden: prove joint `C²` of the resolved value and especially the resolved spatial gradient along the heat trajectory, then pass through the flux product/quotient/`rpow` expression.
+
+The next-hardest fields are:
+
+1. **(e)** closed-slab continuity of the mixed time-derivative lift, because endpoint continuity needs a spectral representative on the closed slab;
+2. **(d)** time fderiv bridge, because it needs the time chain rule plus resolver inner commute.
+
+Field **(c)** is formal once (b) is available, and field **(a)** is lower-order compared with the resolver joint-regularity and closed-slab mixed-derivative tasks.
