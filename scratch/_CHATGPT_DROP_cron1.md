@@ -1,4 +1,4 @@
-# Q832 / cron1: `integral_congr_ae` for `cosineCoeffs`
+# Q835 / cron1: boundary-bypass plan for chem-div `hSup`
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -8,133 +8,159 @@ Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-Yes.  For this boundary obstruction, the useful Mathlib theorem is already available as
+Yes — this is the right approach.
+
+The important correction is: do **not** ask for `ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)` just to bound the zeroth coefficient.  That is exactly the false/brittle endpoint requirement.  Instead, ask for a smooth representative `smoothRep s : ℝ → ℝ` which:
+
+1. agrees with the actual source on `Ioo 0 1`,
+2. is `ContinuousOn` on `Icc 0 1`, and
+3. is uniformly bounded on `Icc 0 1`.
+
+Then transfer the coefficient by `cosineCoeffs_congr_on_Ioo` and apply the existing bounded-continuous coefficient estimate to `smoothRep s`.
+
+## Why this matches the current repo
+
+The current zero-mode discharge is the theorem
 
 ```lean
-intervalIntegral.integral_congr_ae
-```
-
-and the repo already has the exact cosine-coefficient helper you want:
-
-```lean
-ShenWork.EWA.cosineCoeffs_congr_on_Ioo
+theorem coupledChemDivSource_zeroCoeff_of_uniformSup
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (B Msup : ℝ) (hMsup : 0 ≤ Msup)
+    (hcont : ∀ s, 0 ≤ s →
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+    (hsup : ∀ s, 0 ≤ s → ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p u s x| ≤ Msup) :
+    ∀ s, 0 ≤ s →
+      |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ 2 * max B Msup
 ```
 
 in
 
 ```text
+ShenWork/PDE/IntervalChemDivFluxFACSourceDecay.lean
+```
+
+It calls
+
+```lean
+cosineCoeffs_abs_le_of_continuous_bounded
+```
+
+on the **actual** `coupledChemDivSourceLift`.  That is the part to replace.
+
+The bound lemma itself is fine.  It only needs `ContinuousOn f (Icc 0 1)` and a pointwise `Icc` bound for whatever `f` you feed it:
+
+```lean
+theorem cosineCoeffs_abs_le_of_continuous_bounded
+    {f : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    {B : ℝ} (hB : 0 ≤ B)
+    (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
+    ∀ n, |cosineCoeffs f n| ≤ 2 * B
+```
+
+So feed it `smoothRep s`, not `coupledChemDivSourceLift p u s`.
+
+## Suggested replacement theorem shape
+
+Something like this is the right local helper:
+
+```lean
+theorem coupledChemDivSource_zeroCoeff_of_uniformSmoothRepSup
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (B Msup : ℝ) (hMsup : 0 ≤ Msup)
+    (smoothRep : ℝ → ℝ → ℝ)
+    (hrep_cont : ∀ s, 0 ≤ s →
+      ContinuousOn (smoothRep s) (Icc (0 : ℝ) 1))
+    (hrep_sup : ∀ s, 0 ≤ s → ∀ x ∈ Icc (0 : ℝ) 1,
+      |smoothRep s x| ≤ Msup)
+    (hrep_agree : ∀ s, 0 ≤ s → ∀ x ∈ Ioo (0 : ℝ) 1,
+      coupledChemDivSourceLift p u s x = smoothRep s x) :
+    ∀ s, 0 ≤ s →
+      |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ 2 * max B Msup := by
+  intro s hs
+  have hcoeff :
+      cosineCoeffs (coupledChemDivSourceLift p u s) 0 =
+        cosineCoeffs (smoothRep s) 0 :=
+    ShenWork.EWA.cosineCoeffs_congr_on_Ioo
+      (fun x hx => hrep_agree s hs x hx) 0
+  rw [hcoeff]
+  have hzero : |cosineCoeffs (smoothRep s) 0| ≤ 2 * Msup :=
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      (hrep_cont s hs) hMsup (hrep_sup s hs) 0
+  refine le_trans hzero ?_
+  have hmax : Msup ≤ max B Msup := le_max_right B Msup
+  nlinarith
+```
+
+If the target constant can be sharpened, replace the last use of
+`cosineCoeffs_abs_le_of_continuous_bounded` with `cosineCoeffs_zero_abs_le_of_bound`; that gives `≤ Msup` for mode `0`.  But the existing consumer target is already `≤ 2 * max B Msup`, so the all-modes bounded-continuous lemma is enough and matches the current code style.
+
+## How to get `hrep_agree`
+
+`coupledChemDivSourceLift_eq_deriv_fluxLift_interior` already gives the first half:
+
+```lean
+coupledChemDivSourceLift p u s x = deriv (coupledChemDivFluxLift p u s) x
+```
+
+for `x ∈ Ioo 0 1`.
+
+So if your `smoothRep s` is the smooth representative for
+
+```lean
+deriv (coupledChemDivFluxLift p u s)
+```
+
+then `hrep_agree` should be only the interior derivative-identification lemma.  Crucially, you no longer need to extend this agreement to endpoints for coefficient purposes.
+
+## Positive modes
+
+For `k ≥ 1`, keep using the existing H²/quadratic-decay route.  The current theorem
+
+```lean
+coupledChemDivSource_quadraticDecay_of_uniformH2
+```
+
+already outputs
+
+```lean
+|cosineCoeffs (coupledChemDivSourceLift p u s) k| ≤
+  2 * max B Msup / ((k : ℝ) * Real.pi) ^ 2
+```
+
+from `IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)` plus the second-derivative `L¹` bound.  If in a refactor the H² certificate is instead built for `smoothRep s`, then use the same `cosineCoeffs_congr_on_Ioo` transfer for positive modes too.  But with the theorem as currently written, only the zero-mode/sup-bound leg needs the smooth-representative replacement.
+
+## Dependency caveat
+
+`cosineCoeffs_congr_on_Ioo` currently lives in
+
+```text
 ShenWork/Wiener/EWA/NonCircularCoeffBridge.lean
 ```
 
-The theorem is:
+under namespace `ShenWork.EWA`.  That file is EWA-facing and imports a lot.  If importing it from the PDE/Paper2 source-decay layer creates dependency-direction trouble, do **not** force that import.  Move or duplicate just the small lemma into a lower-level coefficient utility file near
 
 ```lean
-theorem cosineCoeffs_congr_on_Ioo {f g : ℝ → ℝ}
-    (hfg : ∀ x ∈ Set.Ioo (0:ℝ) 1, f x = g x) (k : ℕ) :
-    cosineCoeffs f k = cosineCoeffs g k := by
-  rw [cosineCoeffs_eq_factor_mul_integral, cosineCoeffs_eq_factor_mul_integral]
-  congr 1
-  apply intervalIntegral.integral_congr_ae
-  -- bad set is contained in `{1}` and is null
-  ...
+cosineCoeffs_eq_factor_mul_integral
 ```
 
-So for **pointwise** interior agreement, use it directly:
+in `IntervalMildPicardRegularity.lean`, or create a tiny low-level file such as `IntervalCosineCoeffCongr.lean`.  The proof is only the already-proved endpoint-null `intervalIntegral.integral_congr_ae` argument.
+
+## Bottom line
+
+Change `hSup`/zero-mode input from:
 
 ```lean
-have hcoeff : cosineCoeffs f k = cosineCoeffs g k :=
-  ShenWork.EWA.cosineCoeffs_congr_on_Ioo hfg k
+ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)
+∧ ∀ x ∈ Icc 0 1, |coupledChemDivSourceLift p u s x| ≤ Msup
 ```
 
-This is exactly the endpoint-null argument: after rewriting `cosineCoeffs` as the real interval integral, the proof applies `intervalIntegral.integral_congr_ae`; since Lean interval integrals over `0..1` use `Set.uIoc 0 1 = Set.Ioc 0 1`, agreement on `Ioo 0 1` leaves only the endpoint `{1}` as a possible bad set, and that singleton has measure zero.
-
-## Search results
-
-### `intervalIntegral.integral_congr_ae`
-
-Found and already used in the repo in `NonCircularCoeffBridge.lean` inside `cosineCoeffs_congr_on_Ioo`.
-
-### `cosineCoeffs_congr`
-
-Two relevant repo helpers exist:
+to:
 
 ```lean
-ShenWork.EWA.cosineCoeffs_congr_on_Ioo
+ContinuousOn (smoothRep s) (Icc 0 1)
+∧ ∀ x ∈ Icc 0 1, |smoothRep s x| ≤ Msup
+∧ EqOn (coupledChemDivSourceLift p u s) (smoothRep s) (Ioo 0 1)
 ```
 
-This is the one for the boundary obstruction.
-
-```lean
-ShenWork.EWA.cosineCoeffs_congr_on_Icc
-```
-
-This stricter `[0,1]` pointwise version is in `ShenWork/Wiener/EWA/SourceInversion.lean`; it uses `intervalIntegral.integral_congr`, not the a.e. theorem, so it does **not** solve the open-interval endpoint issue by itself.
-
-### `cosineCoeffs_eq_factor_mul_integral`
-
-The needed real-integral rewrite is in
-
-```text
-ShenWork/Paper2/IntervalMildPicardRegularity.lean
-```
-
-as
-
-```lean
-theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
-    cosineCoeffs f n =
-      (if n = 0 then 1 else 2) *
-        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
-```
-
-For `k ≥ 1`, this specializes to the expected
-
-```lean
-cosineCoeffs f k = 2 * ∫ x in (0 : ℝ)..1,
-  Real.cos ((k : ℝ) * Real.pi * x) * f x
-```
-
-## If the hypothesis is genuinely a.e. on `Ioo`
-
-The committed `cosineCoeffs_congr_on_Ioo` assumes pointwise equality on `Ioo`.  If your current hypothesis is instead
-
-```lean
-hfg : f =ᵐ[volume.restrict (Set.Ioo (0:ℝ) 1)] g
-```
-
-then use the same proof pattern, but feed `integral_congr_ae` the a.e. equality directly.  The local helper should be along these lines:
-
-```lean
-theorem cosineCoeffs_congr_ae_Ioo {f g : ℝ → ℝ}
-    (hfg : f =ᵐ[volume.restrict (Set.Ioo (0:ℝ) 1)] g) (k : ℕ) :
-    cosineCoeffs f k = cosineCoeffs g k := by
-  rw [cosineCoeffs_eq_factor_mul_integral, cosineCoeffs_eq_factor_mul_integral]
-  congr 1
-  apply intervalIntegral.integral_congr_ae
-  -- target: weighted integrands equal a.e. on `volume.restrict (Set.uIoc 0 1)`
-  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
-  -- Mathlib has the endpoint-null rewrite used nearby in interval-integrability lemmas:
-  -- `restrict_Ioo_eq_restrict_Ioc`, so `Ioc 0 1` can be replaced by `Ioo 0 1`.
-  rw [← restrict_Ioo_eq_restrict_Ioc]
-  exact hfg.mono (by
-    intro x hx
-    rw [hx])
-```
-
-I did not run Lean here, so treat the last snippet as a proof skeleton.  The already-committed pointwise `Ioo` helper is stronger evidence that the endpoint/boundary obstruction is not mathematical; the only remaining detail is matching your exact equality hypothesis (`EqOn` vs `=ᵐ[volume.restrict ...]`).
-
-## Practical recommendation
-
-For the cosine coefficient bound, first try importing the existing helper:
-
-```lean
-import ShenWork.Wiener.EWA.NonCircularCoeffBridge
-```
-
-and use:
-
-```lean
-ShenWork.EWA.cosineCoeffs_congr_on_Ioo
-```
-
-If that import is too heavy or creates dependency direction problems, move/duplicate only the small lemma `cosineCoeffs_congr_on_Ioo` into a lower-level coefficient utility file near `cosineCoeffs_eq_factor_mul_integral`.
+Then the actual source coefficient bound follows by congruence, and the endpoint obstruction disappears rather than being pushed elsewhere.
