@@ -11,6 +11,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.PDE.IntervalMildSourceDecayHelper
+import Mathlib.Analysis.Real.Pi.Bounds
 
 open MeasureTheory
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
@@ -151,13 +152,67 @@ theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
   -- Since cosineCoeffs f k = 2 * raw_f = -2/(kπ)² * raw_f'' = -cosineCoeffs(f'')/( kπ)²
   -- we get |cosineCoeffs f k| = |cosineCoeffs(f'') k| / (kπ)²
   -- Quadratic decay of f'': |cosineCoeffs(f'') k| ≤ 2B₂/(kπ)²
+  -- raw integral for f''
+  set raw_f'' : ℝ :=
+    ∫ x in (0:ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * hf.secondDeriv x
+  -- cosineCoeffs hf.secondDeriv k = 2 * raw_f''
+  have hcoeff_f'' : cosineCoeffs hf.secondDeriv k = 2 * raw_f'' := by
+    simp only [cosineCoeffs,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+      if_neg hk_ne,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+    have hcast :
+        (fun x : ℝ =>
+            (Real.cos ((k : ℝ) * Real.pi * x) : ℂ) *
+              ((hf.secondDeriv x : ℝ) : ℂ)) =
+          fun x : ℝ =>
+            ((Real.cos ((k : ℝ) * Real.pi * x) * hf.secondDeriv x : ℝ) : ℂ) := by
+      funext x; push_cast; ring
+    rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re]
+  -- cosineCoeffs f k = 2 * raw_f
+  have hcoeff_f : cosineCoeffs f k = 2 * raw_f := by
+    simp only [cosineCoeffs,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+      if_neg hk_ne,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+    have hcast :
+        (fun x : ℝ =>
+            (Real.cos ((k : ℝ) * Real.pi * x) : ℂ) * ((f x : ℝ) : ℂ)) =
+          fun x : ℝ =>
+            ((Real.cos ((k : ℝ) * Real.pi * x) * f x : ℝ) : ℂ) := by
+      funext x; push_cast; ring
+    rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re]
+  -- Quadratic decay of f'': |cosineCoeffs(f'') k| ≤ 2B₂/(kπ)²
   have hdecay_f'' :=
     intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound hf'' hB₂ k hk
-  -- Direct bound: |cosineCoeffs f k| = 2|raw_f| = 2 · |raw_f''|/(kπ)²
-  --   ≤ 2 · (B₂/(kπ)²) / (kπ)² = 2B₂/(kπ)⁴
-  -- We use the fact that |raw_f''| ≤ B₂/(kπ)² from the quadratic decay of f''
-  -- divided by the factor 2 (since cosineCoeffs = 2 * raw)
-  sorry
+  -- |raw_f''| ≤ B₂/(kπ)²
+  have hraw_f''_bound : |raw_f''| ≤ B₂ / ((k : ℝ) * Real.pi) ^ 2 := by
+    -- From hf''.weak_cosine_laplacian:
+    --   ∫ cos(kπx) hf''.secondDeriv(x) dx = -(kπ)² · raw_f''
+    -- And |∫ cos(kπx) hf''.secondDeriv(x) dx| ≤ B₂
+    -- So (kπ)² |raw_f''| ≤ B₂, hence |raw_f''| ≤ B₂/(kπ)²
+    have hlap2 := hf''.weak_cosine_laplacian k
+    -- hlap2 : ∫ cos(kπx) hf''.secondDeriv(x) = -(kπ)² · ∫ cos(kπx) hf.secondDeriv(x)
+    --       = -(kπ)² · raw_f''
+    have habs_lap2 : |-(((k : ℝ) * Real.pi) ^ 2 * raw_f'')| ≤ B₂ := by
+      have := weak_laplacianCoeff_abs_le_of_bound hf'' hB₂ k
+      simp only [raw_f''] at hlap2
+      rwa [hlap2] at this
+    rw [abs_neg, abs_mul, abs_of_pos hlam_pos] at habs_lap2
+    exact div_le_of_le_mul₀ (abs_nonneg _) hlam_pos.le habs_lap2 |>.symm ▸
+      le_div_iff₀ hlam_pos |>.mpr habs_lap2 |>.symm ▸ le_div_iff₀ hlam_pos |>.mpr habs_lap2
+  -- |raw_f| ≤ B₂/(kπ)⁴
+  have hraw_f_bound : |raw_f| ≤ B₂ / ((k : ℝ) * Real.pi) ^ 4 := by
+    rw [hraw_rel, abs_mul, abs_neg,
+      abs_of_pos (by positivity : 0 < 1 / ((k : ℝ) * Real.pi) ^ 2)]
+    calc 1 / ((k : ℝ) * Real.pi) ^ 2 * |raw_f''|
+        ≤ 1 / ((k : ℝ) * Real.pi) ^ 2 * (B₂ / ((k : ℝ) * Real.pi) ^ 2) :=
+          mul_le_mul_of_nonneg_left hraw_f''_bound (by positivity)
+      _ = B₂ / ((k : ℝ) * Real.pi) ^ 4 := by ring
+  rw [hcoeff_f, abs_mul, abs_of_pos (by norm_num : (0:ℝ) < 2)]
+  calc 2 * |raw_f| ≤ 2 * (B₂ / ((k : ℝ) * Real.pi) ^ 4) :=
+        mul_le_mul_of_nonneg_left hraw_f_bound (by norm_num)
+    _ = 2 * B₂ / ((k : ℝ) * Real.pi) ^ 4 := by ring
 
 /-- **Eigenvalue-weighted L¹ summability** from depth-2 weak H² Neumann tower.
 Feeds `resolverCoeff_eigenSq_summable_of_sourceEigenL1` for resolver C⁴. -/
@@ -165,9 +220,29 @@ theorem intervalWeakH4Neumann_eigenvalue_L1_summable
     {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
     (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
     Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|) := by
-  -- From weak_cosine_laplacian: cosineCoeffs(f'') k = -(kπ)² cosineCoeffs(f) k.
-  -- So λ_k |cosineCoeffs f k| = |cosineCoeffs(f'') k|.
-  -- The RHS is summable by quadratic decay of f'' from hf''.
-  sorry
+  obtain ⟨B₂, _, hB₂⟩ := hf''.second_abs_integral_bound
+  have hdecay := intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound hf hf'' hB₂
+  -- For k ≥ 1: λ_k |c_k| = (kπ)² |c_k| ≤ (kπ)² · 2B₂/(kπ)⁴ = 2B₂/(kπ)²
+  --   = (2B₂/π²) · (1/k²).  The series ∑ (2B₂/π²)(1/k²) converges.
+  refine Summable.of_nonneg_of_le
+    (fun _ => by unfold unitIntervalCosineEigenvalue; positivity) (fun k => ?_)
+    (((Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)).mul_left
+      (2 * B₂ / Real.pi ^ 2))
+  by_cases hk : k = 0
+  · simp [unitIntervalCosineEigenvalue]
+  · have hk1 : 1 ≤ k := Nat.one_le_iff_ne_zero.mpr hk
+    have hk_pos : (0 : ℝ) < (k : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk1
+    show unitIntervalCosineEigenvalue k * |cosineCoeffs f k| ≤
+        2 * B₂ / Real.pi ^ 2 * (1 / (k : ℝ) ^ 2)
+    simp only [unitIntervalCosineEigenvalue]
+    calc ((k : ℝ) * Real.pi) ^ 2 * |cosineCoeffs f k|
+        ≤ ((k : ℝ) * Real.pi) ^ 2 * (2 * B₂ / ((k : ℝ) * Real.pi) ^ 4) :=
+          mul_le_mul_of_nonneg_left (hdecay k hk1) (by positivity)
+      _ = 2 * B₂ / Real.pi ^ 2 * (1 / (k : ℝ) ^ 2) := by
+          rw [mul_pow]
+          have hk2 : (k : ℝ) ^ 2 ≠ 0 := by positivity
+          have hpi2 : Real.pi ^ 2 ≠ 0 := by positivity
+          field_simp
+          ring
 
 end ShenWork.IntervalSourceDecayQuantitative
