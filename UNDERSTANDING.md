@@ -25,10 +25,24 @@ Session progress: 11→9 sorry (slab inclusion + resolver positivity filled).
 - `IntervalConjugateLevel0BFormSourceOn.lean`: slab inclusion fix via
   ContinuousWithinAt.mono_of_mem_nhdsWithin; resolver positivity via nonneg source
   → nonneg resolver on [0,1] → global nonneg by symmetry.
-- `IntervalSourceDecayQuantitative.lean`: depth-2 quartic decay framework
-  (intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound,
-  intervalWeakH4Neumann_eigenvalue_L1_summable) — sorry'd, reduces to
-  cosineCoeffs(f'') k = -(kπ)² cosineCoeffs(f) k identity.
+- `IntervalSourceDecayQuantitative.lean`: depth-2 quartic decay + eigenvalue L¹
+  summability — FULLY PROVED (0 sorry, axiom-clean, build verified on uisai2).
+  `intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound`: |c_k| ≤ 2B/(kπ)⁴
+  `intervalWeakH4Neumann_eigenvalue_L1_summable`: Summable (λ_k |c_k|)
+  Both proved via depth-2 IBP identity cosineCoeffs(f'') = -(kπ)² cosineCoeffs(f).
+
+### FluxJointC2Hyp route (from ChatGPT analysis Q684/Q688)
+The shortest path to CoupledChemDivFluxJointC2Hyp for the heat semigroup is:
+  Physical source-time-C² data + summability
+  → IntervalPhysicalResolverDataConcrete → CoupledChemDivFluxFactorJointC2Inputs
+  → coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs → FluxJointC2Hyp
+Hardest field: (b) joint C² of uncurried flux (resolver joint C² burden).
+Second: (e) time-derivative ContinuousOn (spectral representative on closed slab).
+
+### NeumannTower for source eigenvalue summability (line 278)
+Existing tool: IntervalIBPCoeffExtraction.lean has NeumannTower + cosineCoeffs_decay.
+Need: build NeumannTower at depth j=2 for ν·u^γ where u = heat semigroup.
+Requires: C⁴ of ν·u^γ (chain rule) + depth-2 Neumann BCs (u' and u''' vanish at endpoints).
 
 ### Paper 1 (traveling waves): SORRY-FREE, unconditional infrastructure landed.
 ### Paper 2 χ₀=0: `intervalDomain_theorem_1_1_chiZero_unconditional` — UNCONDITIONAL, axiom-clean.
