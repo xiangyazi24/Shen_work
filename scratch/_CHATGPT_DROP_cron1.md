@@ -1,236 +1,192 @@
-# Q704 / cron1: `DoublyEven` closure under constants and cosine series
+# Q708 / cron1: joint continuity of heat-level chemDiv source
 
 Repo inspected: `xiangyazi24/Shen_work`.  Scratch write target: branch `chatgpt-scratch`.
 
 ## Verdict
 
-There is **no named** theorem:
+I did **not** find a completed theorem with the exact target:
 
 ```lean
-DoublyEven.const_mul
-DoublyEven.smul
-DoublyEven.tsum
+ContinuousOn
+  (Function.uncurry
+    (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
+  (Icc c T ×ˢ Icc (0 : ℝ) 1)
 ```
 
-in the repo.
+or the equivalent uncurried heat-level chemDiv-source statement.
 
-But for the concrete target `ν * f x ^ γ`, you usually do **not** need a separate constant-multiplication lemma.  The existing theorem
+The closest heat-level file is:
+
+```text
+ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+```
+
+Inside `level0_chemDiv_envelope_summable`, the desired joint continuity is explicitly described as part of a `sorry` block.  The local subgoal `hSup` only concludes per-slice continuity plus a uniform sup bound:
 
 ```lean
-DoublyEven.comp
+have hSup : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+    (∀ s ∈ Icc c T,
+      ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+        (Icc (0 : ℝ) 1)) ∧
+    (∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup) := by
+  -- SORRY: sup bound + continuity of chemDiv source slices (>30 lines).
+  ...
+  sorry
 ```
 
-already covers the whole expression in one step:
+The comments in that block say the uncurried map
 
-```lean
-have hsrc_de : DoublyEven (fun x => ν * f x ^ γ) :=
-  DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hf
+```text
+(s,x) ↦ chemDivSourceLift p (S(·)u₀) s x
 ```
 
-where:
+should be continuous on `[c,T] × [0,1]`, but the repo does not appear to have a standalone completed theorem for it.
 
-```lean
-hf : DoublyEven f
-```
-
-This avoids constructing `DoublyEven (fun x => f x ^ γ)` and then multiplying by a constant.  Positivity of `f` is needed for differentiability/`ContDiff` of the real power, but **not** for the parity equality itself.
-
-If you do want a local constant-multiplication closure lemma, it is a one-liner from `DoublyEven.comp`:
-
-```lean
-theorem DoublyEven.const_mul {c : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
-    DoublyEven (fun x => c * f x) :=
-  DoublyEven.comp (fun y : ℝ => c * y) hf
-```
-
-or, using the existing product closure:
-
-```lean
-have hconst : DoublyEven (fun _ : ℝ => c) where
-  about0 := by intro x; rfl
-  about1 := by intro x; rfl
-
-have hcf : DoublyEven (fun x => c * f x) :=
-  hconst.mul hf
-```
-
-## 1. Search for `DoublyEven.const_mul` / `DoublyEven.smul`
+## 1. Search for `coupledChemDivSourceLift.*ContinuousOn` / `continuousOn.*chemDivSource`
 
 Searches run:
 
 ```text
-DoublyEven.const_mul
-DoublyEven.smul
-DoublyEven constant
+coupledChemDivSourceLift ContinuousOn
+continuousOn chemDivSource
+Function.uncurry coupledChemDivSourceLift ContinuousOn
+chemDivSource_joint
+jointContinuous chemDivSource
 ```
 
-Result: **no hits**.
+### What exists
 
-The available exported closure lemmas are in:
+Several structures and residual bundles carry **per-slice** continuity assumptions such as:
+
+```lean
+∀ᶠ s in 𝓝 τ,
+  ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)
+```
+
+Examples:
 
 ```text
-ShenWork/Paper2/IntervalSourceRepresentative.lean
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
 ```
 
-The relevant API is:
+These are not uncurried joint-continuity producers.  They either consume the field or include it in an `other`/residual package.
 
-```lean
-theorem DoublyEven.add {f g : ℝ → ℝ} (hf : DoublyEven f) (hg : DoublyEven g) :
-    DoublyEven (fun x => f x + g x)
-```
-
-```lean
-theorem DoublyEven.mul {f g : ℝ → ℝ} (hf : DoublyEven f) (hg : DoublyEven g) :
-    DoublyEven (fun x => f x * g x)
-```
-
-```lean
-theorem DoublyEven.comp {f : ℝ → ℝ} (g : ℝ → ℝ) (hf : DoublyEven f) :
-    DoublyEven (fun x => g (f x))
-```
-
-For `ν * f(x)^γ`, use:
-
-```lean
-DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hf
-```
-
-For just constant multiplication, use:
-
-```lean
-DoublyEven.comp (fun y : ℝ => ν * y) hf
-```
-
-## 2. Search for `DoublyEven.tsum` / infinite-series closure
-
-Searches run:
+### Useful but not joint source continuity
 
 ```text
-DoublyEven.tsum
-tsum_congr DoublyEven
-doublyEven_cosineSeries
-DoublyEven
+ShenWork/PDE/IntervalChemDivFluxFACSourceDecay.lean
 ```
 
-Result: there is **no generic** theorem of the form:
+has:
 
 ```lean
-DoublyEven.tsum
+def chemDivSource_weakH2_of_spatialC2
+    (hC2 : ContDiffOn ℝ 2 (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+    ... :
+    IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)
 ```
 
-or:
+and:
 
 ```lean
-(∀ n, DoublyEven (F n)) → DoublyEven (fun x => ∑' n, F n x)
+theorem coupledChemDivSource_zeroCoeff_of_uniformSup
+    (hcont : ∀ s, 0 ≤ s →
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+    (hsup : ∀ s, 0 ≤ s → ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p u s x| ≤ Msup) :
+    ∀ s, 0 ≤ s →
+      |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ 2 * max B Msup
 ```
 
-But there is a **specific cosine-series theorem**, which is exactly what is needed for Neumann cosine representatives:
+Again, this is per-slice continuity/sup-boundedness, not `ContinuousOn (Function.uncurry source)`.
+
+## 2. Joint continuity result for the heat semigroup cosine series
+
+There **is** a heat-series joint-continuity proof pattern, but it is private to EWA joint-regularity files, not exported as a public heat semigroup theorem.
+
+### Global/non-windowed EWA file
 
 ```text
-ShenWork/Paper2/IntervalSourceC6Representative.lean
+ShenWork/Wiener/EWA/SourceJointRegularity.lean
 ```
+
+has a private theorem:
 
 ```lean
-theorem doublyEven_cosineSeries (c : ℕ → ℝ) :
-    DoublyEven (fun x => ∑' n, c n * cosineMode n x) where
-  about0 := fun x => by
-    refine tsum_congr (fun n => ?_)
-    have := (doublyEven_cos n).about0 x
-    simp only [cosineMode]; rw [this]
-  about1 := fun x => by
-    refine tsum_congr (fun n => ?_)
-    have := (doublyEven_cos n).about1 x
-    simp only [cosineMode]; rw [this]
+private theorem heatValueSeries_jointContinuousOn (u₀cos : ℕ → ℝ) {Mu0 : ℝ}
+    (hu0bd : ∀ n, |u₀cos n| ≤ Mu0) :
+    ContinuousOn
+      (fun q : ℝ × ℝ =>
+        ∑' n, Real.exp (-q.1 * unitIntervalCosineEigenvalue n) *
+          u₀cos n * cosineMode n q.2)
+      (Ioi (0 : ℝ) ×ˢ univ)
 ```
 
-This theorem uses:
+It proves joint continuity by `continuousOn_tsum` on local boxes `Ioo c (p.1+1) ×ˢ univ`, using the heat-trace majorant
 
 ```lean
-theorem doublyEven_cos (n : ℕ) :
-    DoublyEven (fun x : ℝ => Real.cos (n * Real.pi * x))
+unitIntervalCosineHeatTrace_single_exp_summable hc
 ```
 
-from `IntervalSourceRepresentative.lean`.
-
-So for a cosine representative:
+and the per-mode continuity of
 
 ```lean
-Ucos := fun x => ∑' n, c n * cosineMode n x
+(t,x) ↦ exp(-t λ_n) * u₀cos n * cosineMode n x.
 ```
 
-you can write:
+The same file also has a private time-derivative heat-leg theorem:
 
 ```lean
-have hUcos_de : DoublyEven (fun x => ∑' n, c n * cosineMode n x) :=
-  ShenWork.Paper2.SourceC6Representative.doublyEven_cosineSeries c
+private theorem heatDerivSeries_jointContinuousOn ... :
+  ContinuousOn
+    (fun q : ℝ × ℝ =>
+      ∑' n, -(unitIntervalCosineEigenvalue n) *
+        Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * u₀cos n * cosineMode n q.2)
+    (Ioi (0 : ℝ) ×ˢ univ)
 ```
 
-Then:
-
-```lean
-have hsource_de : DoublyEven (fun x => ν * (∑' n, c n * cosineMode n x) ^ γ) :=
-  DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hUcos_de
-```
-
-## 3. Heat-semigroup cosine series and `DoublyEven`
-
-Searches run:
+### Windowed EWA file
 
 ```text
-heatSemigroup DoublyEven
-heatEWA DoublyEven
-conjugatePicardIter DoublyEven
-intervalFullSemigroupOperator DoublyEven
-heatCoeff cosineMode doublyEven
-heatCoeff cosineMode hU_even
+ShenWork/Wiener/EWA/SourceJointRegularityOn.lean
 ```
 
-Result: I found **no direct theorem** named or shaped like:
+reproduces those private heat-leg helpers because the original ones are private:
 
 ```lean
-DoublyEven (fun x => intervalFullSemigroupOperator t ... x)
+private theorem heatValueSeries_jointContinuousOn' ...
+private theorem heatDerivSeries_jointContinuousOn' ...
 ```
 
-or:
+The file comments explicitly say:
+
+```text
+The heat leg depends only on the initial data bound ... so we reproduce the heat-leg helpers here (they are private in the original).
+```
+
+### What this means for the level-0 heat source
+
+For the heat semigroup representative
 
 ```lean
-DoublyEven (fun x => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+fun q : ℝ × ℝ =>
+  ∑' k,
+    Real.exp (-q.1 * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k * cosineMode k q.2
 ```
 
-However, there are two usable pieces.
+the needed proof pattern already exists.  But because the theorem is `private`, you cannot call it directly outside the file.  You would either refactor/export it or copy the `continuousOn_tsum` local-box proof.
 
-### A. Direct cosine-series parity theorem
-
-`doublyEven_cosineSeries` applies to **any** coefficient family.  For the heat semigroup cosine representative:
-
-```lean
-U_cos := fun x => ∑' k,
-  (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
-```
-
-use:
-
-```lean
-have hUcos_de : DoublyEven U_cos := by
-  simpa [U_cos] using
-    ShenWork.Paper2.SourceC6Representative.doublyEven_cosineSeries
-      (fun k => Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k)
-```
-
-Then the nonlinear source representative is immediate:
-
-```lean
-have hsrc_de : DoublyEven (fun x => p.ν * U_cos x ^ p.γ) :=
-  DoublyEven.comp (fun y : ℝ => p.ν * y ^ p.γ) hUcos_de
-```
-
-### B. Heat-slice agreement with the cosine series
-
-For the level-0 heat trajectory, the repo has:
+### Heat-slice representation exists separately
 
 ```text
 ShenWork/Paper2/IntervalPicardIterateRepresentation.lean
 ```
+
+has the level-0 agreement theorem:
 
 ```lean
 theorem hagree_zero
@@ -242,88 +198,142 @@ theorem hagree_zero
       (Set.Icc (0 : ℝ) 1)
 ```
 
-This gives agreement on `[0,1]` between the interval-domain heat slice and its global cosine representative.  The global representative is `DoublyEven` by `doublyEven_cosineSeries`.
+This gives agreement of the physical heat slice with the cosine representative on `[0,1]`, but it is not itself a joint-continuity theorem.
 
-Important nuance: `intervalDomainLift` is the zero-extension outside `[0,1]`, so it is generally **not** the global doubly-even object.  The **cosine-series representative** is the global doubly-even object, and `hagree_zero` transfers facts back to the interval slice on `[0,1]`.
+## 3. `BoundedWeightJointSeries` / joint-continuity tools
 
-### C. Local manual heat parity already appears in `IntervalConjugateLevel0BFormSourceOn.lean`
+Yes: the repo has a substantial bounded-weight joint-series API, mainly for the resolver.
 
-Inside the level-0 heat-semigroup construction, the file sets:
-
-```lean
-set U_cos := fun x => ∑' k,
-  (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
-    cosineMode k x
+```text
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
 ```
 
-and locally proves:
+defines:
 
 ```lean
-have hU_even : ∀ x, U_cos (-x) = U_cos x := by
-  intro x; simp only [hU_cos_def]
-  exact tsum_congr (fun k => by congr 1; exact cosineMode_neg' k x)
+def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => c n q.1 * cosineMode n q.2
 ```
 
 ```lean
-have hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x := by
-  intro x
-  rw [show (2 : ℝ) - x = (-x) + 2 from by ring]
-  simp only [hU_cos_def]
-  rw [show (fun k => (Real.exp (-s * unitIntervalCosineEigenvalue k) *
-        heatCoeff u₀ k) * cosineMode k ((-x) + 2)) =
-      (fun k => (Real.exp (-s * unitIntervalCosineEigenvalue k) *
-        heatCoeff u₀ k) * cosineMode k (-x)) from
-    funext (fun k => by congr 1; exact cosineMode_add_two' k (-x))]
-  exact hU_even x
+def boundedWeightJointMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
+  ∑ i ∈ Finset.range (k + 1),
+    (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
 ```
 
-This is effectively the `DoublyEven` proof for the heat cosine representative, but it is local/manual and not packaged as a theorem.
-
-## Recommended tiny additions, if you want them
-
-The repo already has enough to proceed, but these wrappers would make later proofs cleaner.
+and the key assembler:
 
 ```lean
-namespace ShenWork.Paper2.SourceRepresentative
-
-noncomputable section
-
-/-- Constant multiplication preserves double-even parity. -/
-theorem DoublyEven.const_mul {c : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
-    DoublyEven (fun x => c * f x) :=
-  DoublyEven.comp (fun y : ℝ => c * y) hf
-
-/-- Constant-right multiplication preserves double-even parity. -/
-theorem DoublyEven.mul_const {c : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
-    DoublyEven (fun x => f x * c) := by
-  simpa [mul_comm] using hf.const_mul (c := c)
-
-/-- Power followed by constant multiplication preserves double-even parity. -/
-theorem DoublyEven.const_mul_rpow {ν γ : ℝ} {f : ℝ → ℝ} (hf : DoublyEven f) :
-    DoublyEven (fun x => ν * f x ^ γ) :=
-  DoublyEven.comp (fun y : ℝ => ν * y ^ γ) hf
-
-end
-
-end ShenWork.Paper2.SourceRepresentative
+theorem boundedWeightJointSeries_contDiff_two
+    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (hc : ∀ n, ContDiff ℝ (2 : ℕ∞) (c n))
+    (hBt : ∀ (i n : ℕ) (t : ℝ), i ≤ 2 → ‖iteratedFDeriv ℝ i (c n) t‖ ≤ Bt i n)
+    (hsumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant Bt k)) :
+    ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q)
 ```
 
-For a heat representative wrapper:
+It also has the gradient analogue:
 
 ```lean
-open ShenWork.Paper2.SourceRepresentative
-open ShenWork.Paper2.SourceC6Representative
-open ShenWork.CosineSpectrum
-
-noncomputable def heatCosRepr (u₀ : intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
-  fun x => ∑' k,
-    (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
-
-theorem heatCosRepr_doublyEven (u₀ : intervalDomainPoint → ℝ) (s : ℝ) :
-    DoublyEven (heatCosRepr u₀ s) := by
-  simpa [heatCosRepr] using
-    doublyEven_cosineSeries
-      (fun k => Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k)
+theorem boundedWeightJointGradSeries_contDiff_two ... :
+    ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointGradTerm c n q)
 ```
 
-The only caveat is import placement: `heatCoeff` and `unitIntervalCosineEigenvalue` need the same imports/open namespaces used by the level-0 heat files.
+The concrete resolver connector is:
+
+```text
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
+```
+
+It uses those assemblers to prove:
+
+```lean
+theorem coupledChemical_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
+```
+
+and:
+
+```lean
+theorem coupledChemical_grad_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
+```
+
+These are important upstream facts for proving joint regularity of the flux/source, but they do **not** directly give a closed-slab `ContinuousOn` theorem for the chemDiv source.
+
+## Related EWA joint-continuity infrastructure
+
+The EWA source-form solution has public joint-continuity theorems, but these are for the **solution synthesis** and its time/spatial derivative series, not directly for `coupledChemDivSourceLift`.
+
+```text
+ShenWork/Wiener/EWA/SourceJointRegularity.lean
+```
+
+exports:
+
+```lean
+theorem fullSourceCoeff_jointSolutionClosed ... :
+  ContinuousOn
+    (Function.uncurry (fun (t : ℝ) (x : ℝ) =>
+      ∑' n, fullSourceCoeff p u u₀cos t n * cosineMode n x))
+    (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1)
+```
+
+and:
+
+```lean
+theorem fullSourceCoeffDot_jointTimeDerivClosed ... :
+  ContinuousOn
+    (Function.uncurry (fun (t : ℝ) (x : ℝ) =>
+      ∑' n, fullSourceCoeffDot p u u₀cos t n * cosineMode n x))
+    (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1)
+```
+
+```text
+ShenWork/Wiener/EWA/SourceSpatialJointRegularity.lean
+```
+
+exports spatial-derivative joint continuity of the source-form solution synthesis:
+
+```lean
+theorem fullSourceCoeff_jointGradClosed ... :
+  ContinuousOn (Function.uncurry (fun t x =>
+    deriv (fun y => ∑' n,
+      fullSourceCoeff p u u₀cos t n * cosineMode n y) x))
+    (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1)
+```
+
+and:
+
+```lean
+theorem fullSourceCoeff_jointGrad2Closed ...
+```
+
+These show the general method for joint spatial regularity of cosine synthesis, but they are not a heat-level chemDiv-source composition theorem.
+
+## Practical conclusion
+
+For the requested heat-semigroup chemDiv source on `[c,T]×[0,1]`, the repo currently seems to have the **components**, not the final packaged theorem:
+
+1. heat cosine series joint-continuity proof pattern via private `heatValueSeries_jointContinuousOn` / `heatValueSeries_jointContinuousOn'`;
+2. resolver value/gradient joint `C²` via `boundedWeightJointSeries_contDiff_two` and `boundedWeightJointGradSeries_contDiff_two`;
+3. flux/source per-slice regularity infrastructure (`chemDivSource_weakH2_of_spatialC2`, `IntervalChemDivSpatialC2.lean`);
+4. an explicit level-0 `sorry` block saying the missing work is to wire heat semigroup smoothness + resolver smoothness + chemDiv composition into joint continuity and compact sup bounds.
+
+So the answer to the main question is:
+
+```text
+No, I did not find an existing theorem directly proving ContinuousOn of the uncurried heat-level chemDiv source on [c,T]×[0,1].
+```
+
+The closest reusable pieces are the private heat-series joint-continuity lemmas and the bounded-weight resolver joint-`C²` assemblers.
