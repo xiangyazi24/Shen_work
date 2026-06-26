@@ -1,244 +1,148 @@
-# Q769 / cron1: support-aware cutoff left endpoint check
+# Q773 / cron1: per-slice ContinuousOn for coupledChemDivSourceLift
 
-Repo inspected: `xiangyazi24/Shen_work`.
-Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
+Repo inspected: xiangyazi24/Shen_work
+Branch: chatgpt-scratch
+Question: is there already a theorem discharging
+
+  forall s,
+    ContinuousOn
+      (coupledChemDivSourceLift p (conjugatePicardIter p u0 0) s)
+      (Set.Icc (0 : Real) 1)
+
+from smoothness of the heat slice and its elliptic resolver?
 
 ## Verdict
 
-Yes, for the **value** of the one-sided cutoff:
+I did not find a direct committed theorem of the form
 
-```lean
-φ := smoothRightCutoff (c / 2) c
-```
+  u/v spatial regularity ->
+  ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc 0 1)
 
-repo theorem
+nor a theorem specialized to
 
-```lean
-smoothRightCutoff_eq_zero_of_le
-```
+  coupledChemDivSourceLift p (conjugatePicardIter p u0 0) s.
 
-does give:
+The current code mostly carries this closed-slice continuity as an input field in the flux-C2 / outer-commute packages.
 
-```lean
-φ t = 0
-```
+The closest reusable theorem is slice-level, not coupled-level:
 
-for every
+  ShenWork.Paper2.ChemDivSpatialC2.chemDivLift_contDiffOn_two_of_global
 
-```lean
-t ≤ c / 2
-```
+It proves
 
-provided
+  ContDiffOn Real 2 (chemDivLift p u v) (Set.Icc (0 : Real) 1)
 
-```lean
-hc : 0 < c
-```
+from stronger hypotheses:
 
-because `c / 2 < c` follows by `linarith`.
+  ContDiff Real 4 (intervalDomainLift u)
+  ContDiff Real 4 (intervalDomainLift v)
+  forall x, 0 < 1 + intervalDomainLift v x
 
-The direct instantiation is:
+So if those strong fixed-slice hypotheses are available, the desired continuity follows by
 
-```lean
-have hc_half : c / 2 < c := by linarith [hc]
-have hφ_zero : smoothRightCutoff (c / 2) c t = 0 :=
-  smoothRightCutoff_eq_zero_of_le (c' := c / 2) (c := c) hc_half ht
-```
+  hC2.continuousOn
 
-So the cutoff is **exactly zero on the closed half-line** `(-∞, c/2]`, not merely approaching zero.
+and then by unfolding/simpa using
 
-## Where this is defined
+  coupledChemDivSourceLift
+  ShenWork.IntervalBFormSpectral.chemDivLift
 
-File:
+with
 
-```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
-```
+  v := coupledChemicalConcentration p (conjugatePicardIter p u0 0) s.
 
-Definition/comment:
+## Relevant hits
 
-```lean
-/-- Smooth right cutoff equal to `0` on `(-∞, c']` and `1` on `[c, ∞)`. -/
-def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
-  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
-```
+1. Definition of coupledChemDivSourceLift
 
-Relevant lemmas:
+File: ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
 
-```lean
-theorem smoothRightCutoff_eq_zero_of_le {c' c t : ℝ} (hc : c' < c)
-    (ht : t ≤ c') :
-    smoothRightCutoff c' c t = 0 := by
-  apply Real.smoothTransition.zero_of_nonpos
-  exact mul_nonpos_of_nonneg_of_nonpos
-    (inv_nonneg.2 (sub_pos.2 hc).le) (sub_nonpos.2 ht)
-```
+  def coupledChemDivSourceLift (p : CM2Params)
+      (u : Real -> intervalDomainPoint -> Real) (s : Real) : Real -> Real :=
+    intervalDomainLift
+      (fun x => intervalDomainChemotaxisDiv p (u s)
+        (coupledChemicalConcentration p u s) x)
 
-```lean
-theorem smoothRightCutoff_eq_one_of_ge {c' c t : ℝ} (hc : c' < c)
-    (ht : c ≤ t) :
-    smoothRightCutoff c' c t = 1
-```
+2. Definition of chemDivLift
 
-```lean
-theorem smoothRightCutoff_eventually_eq_one {c' c s : ℝ}
-    (hc : c' < c) (hs : c < s) :
-    smoothRightCutoff c' c =ᶠ[𝓝 s] fun _ : ℝ => 1
-```
+File: ShenWork/Paper2/IntervalBFormSpectralHchem.lean
 
-## Important nuance: values vs. derivatives
+  def chemDivLift (p : CM2Params) (u v : intervalDomainPoint -> Real) : Real -> Real :=
+    intervalDomainLift (fun x => intervalDomainChemotaxisDiv p u v x)
 
-The statement
+Thus a fixed coupled slice is definitionally the corresponding chemDivLift slice.
 
-```text
-φ(t) = 0 for t ≤ c/2
-```
+3. Closest closed-Icc theorem
 
-is directly proved by `smoothRightCutoff_eq_zero_of_le`.
+File: ShenWork/Paper2/IntervalChemDivSpatialC2.lean
 
-The stronger statement
+  theorem chemDivLift_contDiffOn_two_of_global
+      {p : CM2Params} {u v : intervalDomainPoint -> Real}
+      (hu : ContDiff Real 4 (intervalDomainLift u))
+      (hv : ContDiff Real 4 (intervalDomainLift v))
+      (hv_pos : forall x, 0 < 1 + intervalDomainLift v x) :
+      ContDiffOn Real 2 (chemDivLift p u v) (Set.Icc (0 : Real) 1)
 
-```text
-all derivatives of φ are 0 for t ≤ c/2
-```
+This is the best theorem to use if closed-interval continuity is required and global C4 of the lifted slice is in hand.
 
-is **not directly provided** by that theorem.
+4. Interior-only continuity theorem
 
-What is immediately easy in Lean is the strict-left version:
+File: ShenWork/Paper2/IntervalBankChemSliceFix.lean
 
-```lean
-if ht : t < c / 2 then
-  smoothRightCutoff (c / 2) c =ᶠ[𝓝 t] fun _ : ℝ => 0
-```
+  theorem chemDivLift_continuousOn_Ioo
+      {p : CM2Params} {u v : intervalDomainPoint -> Real}
+      (hC2 : ContDiffOn Real 2 (chemDivLift p u v) (Set.Icc (0 : Real) 1)) :
+      ContinuousOn (chemDivLift p u v) (Set.Ioo (0 : Real) 1)
 
-because `{u | u < c/2}` is an open neighborhood of `t`, and on that neighborhood the `≤` lemma applies. Then:
+This is only Ioo, not the requested closed Icc. The comments in that file warn that endpoint behavior of the extension is delicate, so do not silently replace an Icc target with Ioo unless the consumer is endpoint-insensitive.
 
-```lean
-Filter.EventuallyEq.iteratedFDeriv
-```
+5. The desired continuity is carried as a field
 
-can show:
+Files where the source continuity appears as an assumption/input:
 
-```lean
-iteratedFDeriv ℝ k (smoothRightCutoff (c / 2) c) t = 0
-```
+- ShenWork/PDE/IntervalChemDivOuterCommute.lean
+  CoupledChemDivOuterCommuteAtoms.exists_local_slab contains:
 
-for all `k` when `t < c / 2`.
+    forall eventually s in nhds tau,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc (0 : Real) 1)
 
-At the endpoint
+- ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+  CoupledChemDivFluxJointC2Hyp carries the same field.
 
-```lean
-t = c / 2
-```
+- ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+  CoupledChemDivFluxFactorJointC2Inputs carries the same field.
 
-there is no full neighborhood of `t` on which the cutoff is identically zero; the transition begins immediately to the right. Mathematically, because `Real.smoothTransition` is smooth and flat on the left side, its derivatives at the endpoint should be zero, but the repo does **not** appear to have a ready-made lemma that says:
+- ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
+  FACLocalSlabInputs carries the same field.
 
-```lean
-iteratedFDeriv ℝ k (smoothRightCutoff (c / 2) c) (c / 2) = 0
-```
+These producers propagate the source-continuity input; they do not prove it from factor C2.
 
-Searches for `smoothRightCutoff iteratedFDeriv zero_of_le` only found the cutoff files, not a derivative-vanishing theorem.
+6. Sub-goal 3A location
 
-## Consequence for the support-aware proof
+File: ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
 
-Do not split the proof as:
+The current 3A hole is the first field while constructing
 
-```lean
-q.1 ≤ c / 2  -- all derivatives of G vanish
-```
+  CoupledChemDivFluxJointC2Hyp p (conjugatePicardIter p u0 0)
 
-unless you first add/prove the endpoint derivative-flatness lemma.
+and asks for the local/eventual form:
 
-A safer split is:
+  forall eventually s in nhds tau,
+    ContinuousOn
+      (coupledChemDivSourceLift p (conjugatePicardIter p u0 0) s)
+      (Set.Icc (0 : Real) 1)
 
-```lean
-by_cases hleft : q.1 < c / 2
-```
+A stronger theorem for all positive s would discharge it on positive windows, provided the local neighborhood stays inside s > 0. The global structure is indexed by arbitrary tau, so if only heat smoothing for s > 0 is available, a positive-window/on version may be cleaner.
 
-### Case 1: `q.1 < c / 2`
+## Practical route
 
-Here, `G = smoothRightCutoff (c/2) c ∘ fst` is locally equal to `0`, so every iterated derivative of `G` is zero. This is exactly the easy `EventuallyEq.iteratedFDeriv` route.
+For fixed s > 0, try:
 
-### Case 2: `¬ q.1 < c / 2`, hence `c / 2 ≤ q.1`
+1. Prove C4 of the heat cosine representative and resolver representative.
+2. If those facts can be stated for intervalDomainLift itself, apply
+   chemDivLift_contDiffOn_two_of_global and finish with .continuousOn.
+3. If they are only smooth representative facts, follow the cosine-representative pattern in
+   chemDivSource_weakH2_of_cosineRep and be careful about endpoints.
 
-Here the heat factor has the desired exponential tail:
-
-```lean
-Real.exp (-q.1 * λ_n) ≤ Real.exp (-(c / 2) * λ_n)
-```
-
-because `0 ≤ λ_n` and `c/2 ≤ q.1`.
-
-In this case, do **not** need derivative-zero at the endpoint. Use boundedness of the cutoff derivatives instead. For that, the repo currently has a bound-majorant pattern for `restartSmoothCutoff`, but not for `smoothRightCutoff`. So either:
-
-1. add a `smoothRightCutoffDerivMajorant_spec`; or
-2. prove a local `∃ C, ∀ t, ‖iteratedFDeriv ℝ i (smoothRightCutoff (c/2) c) t‖ ≤ C` directly for `i ≤ 2`.
-
-This avoids the endpoint issue completely: the endpoint `q.1 = c/2` belongs to the positive-time-tail case and is handled by bounded cutoff derivatives plus the equality
-
-```lean
-exp (-(c / 2) * λ_n)
-```
-
-for the heat factor.
-
-## Recommended product-bound split
-
-For the Leibniz summands after
-
-```lean
-norm_iteratedFDeriv_mul_le hG hH q hk'
-```
-
-use:
-
-```lean
-by_cases hleft : q.1 < c / 2
-```
-
-* If `hleft`, prove the whole product derivative is zero by local equality of the product `G * H` to `0`. This avoids even needing separate derivative facts for `G`.
-* If `¬ hleft`, have:
-
-  ```lean
-  have hq_ge : c / 2 ≤ q.1 := le_of_not_gt hleft
-  ```
-
-  and use the exponential bound for `H`, together with a cutoff-derivative bound for `G`.
-
-This is cleaner than trying to prove `all derivatives of G are zero for t ≤ c/2`.
-
-## If you still want derivative-zero on the left
-
-The strict-left lemma should be easy to add:
-
-```lean
-theorem smoothRightCutoff_iteratedFDeriv_eq_zero_of_lt
-    {c' c t : ℝ} (hc : c' < c) (ht : t < c') (k : ℕ) :
-    iteratedFDeriv ℝ k (smoothRightCutoff c' c) t = 0 := by
-  have hzero : smoothRightCutoff c' c =ᶠ[𝓝 t] fun _ : ℝ => 0 := by
-    filter_upwards [(isOpen_lt continuous_id continuous_const).mem_nhds ht] with u hu
-    exact smoothRightCutoff_eq_zero_of_le hc (le_of_lt hu)
-  have hderiv := Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hzero k
-  simpa using hderiv.self_of_nhds
-```
-
-For the composed version `G q = smoothRightCutoff (c/2) c q.1`, use the open neighborhood
-
-```lean
-{p : ℝ × ℝ | p.1 < c / 2}
-```
-
-and the same eventual-equality pattern. The repo already uses this exact style for the compact restart cutoff in:
-
-```lean
-cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_left
-```
-
-in `IntervalResolverSpectralJointC2Concrete.lean`.
-
-## Bottom line
-
-* `smoothRightCutoff_eq_zero_of_le` **does** give exact value zero for `φ(t)` at all `t ≤ c/2`.
-* It does **not**, by itself, give derivative-zero at the endpoint `t = c/2`.
-* For Lean, prefer splitting on `q.1 < c/2` versus `c/2 ≤ q.1`; use local-zero on the strict-left case and exponential decay on the complement.
-* This avoids needing a delicate endpoint-flatness lemma for `smoothRightCutoff`.
+Bottom line: no direct per-slice coupled ContinuousOn theorem was found. The closest theorem is
+chemDivLift_contDiffOn_two_of_global; the continuity field used by sub-goal 3A is currently assumed/carried by the local packages.
