@@ -1,148 +1,168 @@
-# Q773 / cron1: per-slice ContinuousOn for coupledChemDivSourceLift
+# Q780 / cron1: cutoff iteratedFDeriv bound
 
 Repo inspected: xiangyazi24/Shen_work
-Branch: chatgpt-scratch
-Question: is there already a theorem discharging
+Branch written: chatgpt-scratch
+Question: for
 
-  forall s,
-    ContinuousOn
-      (coupledChemDivSourceLift p (conjugatePicardIter p u0 0) s)
-      (Set.Icc (0 : Real) 1)
+  phi := smoothRightCutoff (c / 2) c
 
-from smoothness of the heat slice and its elliptic resolver?
+find whether there is a Mathlib/repo route to
+
+  exists B, 0 <= B and forall t,
+    norm (iteratedFDeriv Real k phi t) <= B.
 
 ## Verdict
 
-I did not find a direct committed theorem of the form
+There is no obvious one-shot repo theorem of the exact general form
 
-  u/v spatial regularity ->
-  ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc 0 1)
+  ContDiff Real infinity f + HasCompactSupport f
+    -> exists B, forall x, norm (iteratedFDeriv Real k f x) <= B.
 
-nor a theorem specialized to
+But the needed Mathlib pieces do exist and are already used in the repo:
 
-  coupledChemDivSourceLift p (conjugatePicardIter p u0 0) s.
+1. HasCompactSupport.iteratedFDeriv
+2. Continuous.bounded_above_of_compact_support
+3. ContDiff.continuous_iteratedFDeriv
 
-The current code mostly carries this closed-slice continuity as an input field in the flux-C2 / outer-commute packages.
+The cleanest committed model is not the one-sided cutoff, but the two-sided restart cutoff:
 
-The closest reusable theorem is slice-level, not coupled-level:
+  ShenWork.IntervalResolverSpectralJointC2Concrete.restartSmoothCutoff_iteratedFDeriv_bound_exists
 
-  ShenWork.Paper2.ChemDivSpatialC2.chemDivLift_contDiffOn_two_of_global
+It proves, for k <= 2,
 
-It proves
+  exists C, 0 <= C and forall t,
+    norm (iteratedFDeriv Real k (restartSmoothCutoff offset s) t) <= C.
 
-  ContDiffOn Real 2 (chemDivLift p u v) (Set.Icc (0 : Real) 1)
+The proof pattern is exactly:
 
-from stronger hypotheses:
+  have hcont : Continuous (fun t => iteratedFDeriv Real k (restartSmoothCutoff offset s) t) :=
+    restartSmoothCutoff_contDiff.continuous_iteratedFDeriv ...
 
-  ContDiff Real 4 (intervalDomainLift u)
-  ContDiff Real 4 (intervalDomainLift v)
-  forall x, 0 < 1 + intervalDomainLift v x
+  have hcomp : HasCompactSupport
+      (fun t => iteratedFDeriv Real k (restartSmoothCutoff offset s) t) :=
+    (restartSmoothCutoff_hasCompactSupport htau).iteratedFDeriv k
 
-So if those strong fixed-slice hypotheses are available, the desired continuity follows by
+  rcases hcont.bounded_above_of_compact_support hcomp with <C, hC>
 
-  hC2.continuousOn
+and then replaces C by max C 0 for a nonnegative bound.
 
-and then by unfolding/simpa using
+So: Mathlib gives the compact-support derivative machinery and the boundedness extraction; the repo has a working example.
 
-  coupledChemDivSourceLift
-  ShenWork.IntervalBFormSpectral.chemDivLift
+## Important distinction: smoothRightCutoff itself is not compactly supported
 
-with
+The repo definition is in
 
-  v := coupledChemicalConcentration p (conjugatePicardIter p u0 0) s.
+  ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
 
-## Relevant hits
+  def smoothRightCutoff (c' c : Real) : Real -> Real :=
+    fun t => Real.smoothTransition ((c - c')^{-1} * (t - c'))
 
-1. Definition of coupledChemDivSourceLift
+The same file proves:
 
-File: ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
+  smoothRightCutoff_eq_zero_of_le : t <= c' -> smoothRightCutoff c' c t = 0
+  smoothRightCutoff_eq_one_of_ge  : c <= t  -> smoothRightCutoff c' c t = 1
+  smoothRightCutoff_eventually_eq_one
 
-  def coupledChemDivSourceLift (p : CM2Params)
-      (u : Real -> intervalDomainPoint -> Real) (s : Real) : Real -> Real :=
-    intervalDomainLift
-      (fun x => intervalDomainChemotaxisDiv p (u s)
-        (coupledChemicalConcentration p u s) x)
+Therefore smoothRightCutoff has no HasCompactSupport, because it is eventually 1 on the right.
 
-2. Definition of chemDivLift
+## Existing partial theorem for the exact one-sided need
 
-File: ShenWork/Paper2/IntervalBFormSpectralHchem.lean
+On main, the file
 
-  def chemDivLift (p : CM2Params) (u v : intervalDomainPoint -> Real) : Real -> Real :=
-    intervalDomainLift (fun x => intervalDomainChemotaxisDiv p u v x)
+  ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 
-Thus a fixed coupled slice is definitionally the corresponding chemDivLift slice.
+has a private theorem with the exact intended statement, currently only for k <= 2:
 
-3. Closest closed-Icc theorem
+  private theorem smoothRightCutoff_iteratedFDeriv_bound_exists
+      (c' c : Real) (k : Nat) (hk : (k : ENat) <= 2) :
+      exists B, 0 <= B and forall t,
+        norm (iteratedFDeriv Real k (smoothRightCutoff c' c) t) <= B
 
-File: ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+Its k = 0 branch is already implemented using:
 
-  theorem chemDivLift_contDiffOn_two_of_global
-      {p : CM2Params} {u v : intervalDomainPoint -> Real}
-      (hu : ContDiff Real 4 (intervalDomainLift u))
-      (hv : ContDiff Real 4 (intervalDomainLift v))
-      (hv_pos : forall x, 0 < 1 + intervalDomainLift v x) :
-      ContDiffOn Real 2 (chemDivLift p u v) (Set.Icc (0 : Real) 1)
+  norm_iteratedFDeriv_zero
+  Real.smoothTransition.nonneg
+  Real.smoothTransition.le_one
 
-This is the best theorem to use if closed-interval continuity is required and global C4 of the lifted slice is in hand.
+The k >= 1 branch is still a sorry. The comments state the intended route: smoothRightCutoff is locally constant outside [c', c], so its positive-order derivatives have support inside [c', c], hence compact support, hence bounded.
 
-4. Interior-only continuity theorem
+So, if you are trying to close that exact sub-sorry, the theorem skeleton is already there, but not fully proved.
 
-File: ShenWork/Paper2/IntervalBankChemSliceFix.lean
+## Best proof route for the one-sided cutoff
 
-  theorem chemDivLift_continuousOn_Ioo
-      {p : CM2Params} {u v : intervalDomainPoint -> Real}
-      (hC2 : ContDiffOn Real 2 (chemDivLift p u v) (Set.Icc (0 : Real) 1)) :
-      ContinuousOn (chemDivLift p u v) (Set.Ioo (0 : Real) 1)
+For phi := smoothRightCutoff c' c with c' < c:
 
-This is only Ioo, not the requested closed Icc. The comments in that file warn that endpoint behavior of the extension is delicate, so do not silently replace an Icc target with Ioo unless the consumer is endpoint-insensitive.
+### Case k = 0
 
-5. The desired continuity is carried as a field
+Use the already-working branch:
 
-Files where the source continuity appears as an assumption/input:
+  norm_iteratedFDeriv_zero
+  Real.smoothTransition.nonneg
+  Real.smoothTransition.le_one
 
-- ShenWork/PDE/IntervalChemDivOuterCommute.lean
-  CoupledChemDivOuterCommuteAtoms.exists_local_slab contains:
+This gives B = 1.
 
-    forall eventually s in nhds tau,
-      ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc (0 : Real) 1)
+### Case k > 0
 
-- ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-  CoupledChemDivFluxJointC2Hyp carries the same field.
+Do not try to prove HasCompactSupport phi. Instead prove compact support of the derivative field:
 
-- ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-  CoupledChemDivFluxFactorJointC2Inputs carries the same field.
+  HasCompactSupport (fun t => iteratedFDeriv Real k phi t)
 
-- ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
-  FACLocalSlabInputs carries the same field.
+with support contained in Set.Icc c' c.
 
-These producers propagate the source-continuity input; they do not prove it from factor C2.
+The missing local facts are:
 
-6. Sub-goal 3A location
+- for t < c', phi is eventually equal near t to the constant 0;
+- for c < t, phi is eventually equal near t to the constant 1;
+- for positive k, the k-th iterated derivative of a locally constant function is zero.
 
-File: ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+Once that support fact is obtained, the bound is exactly the restartSmoothCutoff proof pattern:
 
-The current 3A hole is the first field while constructing
+  have hcont : Continuous (fun t => iteratedFDeriv Real k phi t) :=
+    hphi_contDiff.continuous_iteratedFDeriv ...
+  have hcomp : HasCompactSupport (fun t => iteratedFDeriv Real k phi t) := ...
+  rcases hcont.bounded_above_of_compact_support hcomp with <B, hB>
+  exact <max B 0, le_max_right B 0, fun t => (hB t).trans (le_max_left B 0)>
 
-  CoupledChemDivFluxJointC2Hyp p (conjugatePicardIter p u0 0)
+### Alternative route avoiding HasCompactSupport
 
-and asks for the local/eventual form:
+Prove directly:
 
-  forall eventually s in nhds tau,
-    ContinuousOn
-      (coupledChemDivSourceLift p (conjugatePicardIter p u0 0) s)
-      (Set.Icc (0 : Real) 1)
+1. the derivative is continuous;
+2. it is zero outside Set.Icc c' c;
+3. it is bounded on Set.Icc c' c by compactness of isCompact_Icc.
 
-A stronger theorem for all positive s would discharge it on positive windows, provided the local neighborhood stays inside s > 0. The global structure is indexed by arbitrary tau, so if only heat smoothing for s > 0 is available, a positive-window/on version may be cleaner.
+This may be easier if the event/local-constant-to-zero iteratedFDeriv lemma is easier to state pointwise than as HasCompactSupport.
 
-## Practical route
+## Reusable theorem already available for two-sided cutoff
 
-For fixed s > 0, try:
+If the downstream proof can use the two-sided cutoff instead of the one-sided right cutoff, use the committed theorem directly:
 
-1. Prove C4 of the heat cosine representative and resolver representative.
-2. If those facts can be stated for intervalDomainLift itself, apply
-   chemDivLift_contDiffOn_two_of_global and finish with .continuousOn.
-3. If they are only smooth representative facts, follow the cosine-representative pattern in
-   chemDivSource_weakH2_of_cosineRep and be careful about endpoints.
+  restartSmoothCutoff_iteratedFDeriv_bound_exists
 
-Bottom line: no direct per-slice coupled ContinuousOn theorem was found. The closest theorem is
-chemDivLift_contDiffOn_two_of_global; the continuity field used by sub-goal 3A is currently assumed/carried by the local packages.
+or the packaged majorant:
+
+  restartCutoffDerivMajorant
+  restartCutoffDerivMajorant_spec
+
+These are in
+
+  ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+
+and avoid the one-sided non-compact-support issue because restartSmoothCutoff itself has compact support.
+
+## Bottom line
+
+Mathlib does have the useful ingredients:
+
+  HasCompactSupport.iteratedFDeriv
+  Continuous.bounded_above_of_compact_support
+
+The repo has a fully working pattern for compactly supported restartSmoothCutoff.
+
+For smoothRightCutoff itself:
+
+- HasCompactSupport smoothRightCutoff is false.
+- k = 0 is bounded by 1.
+- k > 0 should be bounded by proving the k-th derivative is supported in [c', c].
+- The exact one-sided theorem exists as a private skeleton in IntervalHeatSemigroupHighRegularity.lean, but its k >= 1 branch is currently still sorry.
