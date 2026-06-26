@@ -8,16 +8,20 @@ Session progress: original 11 sorry → 9 sorry. Infrastructure files ALL 0 sorr
 heatSemigroup_jointContDiffAt_two FULLY PROVED (the key blocker).
 FluxJointC2Hyp sub-sorry 3B-3G ALL FILLED.
 
-### Remaining 4 Level0 sorry (all "last mile" wiring):
-- 1A (line 717): joint pointwise bound of secondDeriv via compactness
-  Route: joint C² of flux → deriv is C¹ → secondDeriv continuous → compact bounded
-- 2A-core (line 809): joint continuity of smooth flux derivative
-  Route: ContDiffAt.mul/.div/.rpow_const_of_ne on jointly C² factors U,V,deriv V
-  Pattern: coupledChemDivFlux_contDiffAt_of_factorJointC2 (same calculus, different inputs)
-- 2A-agree (line 830): per-slice agreement of chemDivSourceLift with smooth representative
-  Route: coupledChemDivSourceLift_eq_deriv_fluxLift_interior (interior) + continuity extension
-- 3A-sub (line 982): per-slab source continuity
-  Route: chemDivLift_contDiffOn_two_of_global → ContinuousOn for s > 0; degenerate for s ≤ 0
+### Remaining 3 Level0 sorry (all blocked on resolver joint C²):
+- 1A (line 755): joint pointwise bound of secondDeriv via compactness
+- 2A-sup (line 804): uniform sup bound for coupledChemDivSourceLift
+- 3A-sub (line 989): per-slab source continuity (upstream ContinuousOn weakening needed)
+
+ALL THREE share the same blocker: resolver joint C² is proved INSIDE
+FluxJointC2Hyp (sub-sorry 3C was filled via coupledChemical_jointContDiffAt_two +
+PhysicalResolverJointC2Data), but NOT available as a standalone theorem for the
+envelope construction.
+
+### NEXT SESSION PRIORITY 1: build heatResolverJointContDiffAt_two
+Mirror heatSemigroup_jointContDiffAt_two: cutoff resolver series + 
+boundedWeightJointSeries_contDiff_two + eventual equality.
+This single theorem unlocks all 3 remaining Level0 sorry.
 
 ### 0-sorry infrastructure landed this session:
 - IntervalSourceDecayQuantitative: quartic decay + eigenvalue L¹ summability
