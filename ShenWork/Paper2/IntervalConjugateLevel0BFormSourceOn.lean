@@ -247,13 +247,34 @@ theorem level0_chemDiv_envelope_summable
         set V := intervalResolverLiftR p (conjugatePicardIter p u₀ 0 s) with hV_def
         refine ⟨V, ?_, ?_, ?_, ?_, ?_⟩
         · -- C⁴: from intervalResolverLiftR_contDiff_four.
-          -- Needs eigenvalue-weighted ℓ¹ summability of the source coefficients
-          -- (ν * u^γ for u = heat semigroup at s > 0).
-          -- The heat semigroup at s > 0 has exponential coefficient decay, so
-          -- ν * u^γ (with u C∞) has rapidly decaying cosine coefficients,
-          -- giving ∑ λ_k |â_k.re| < ∞.
+          -- Needs: Summable (fun k => λ_k * |(â_k).re|) where â_k =
+          -- intervalNeumannResolverSourceCoeff p (S(s)u₀) k, i.e. the cosine
+          -- coefficients of ν * (lift (S(s)u₀))^γ.
+          --
+          -- Route (>50 lines of new infrastructure, sorry'd per task spec):
+          --
+          -- 1. Heat semigroup C⁴: u := S(s)u₀ is C⁴ for s > 0
+          --    (heatSemigroup_contDiff_four, already available).
+          -- 2. Source C⁴: ν*u^γ is C⁴ on [0,1] by chain rule (u C⁴ + u > 0).
+          --    Neumann BCs: deriv(ν*u^γ) vanishes at 0,1 because deriv(u) = 0
+          --    at 0,1 (cosine series) and deriv(ν*u^γ) = ν*γ*u^{γ-1}*u'.
+          -- 3. Depth-1 NeumannTower for ν*u^γ:
+          --    g 0 = ν*u^γ (C⁴, Neumann), g 1 = (ν*u^γ)'' (C², Neumann).
+          --    The Neumann BC for g 1 = (ν*u^γ)'' needs (ν*u^γ)''' = 0 at 0,1.
+          --    This holds because all odd derivatives of the cosine series vanish
+          --    at the endpoints (symmetry about 0 and 1).
+          -- 4. cosineCoeffs_decay at j=1: |cosineCoeffs(ν*u^γ) k| ≤ C/(kπ)⁴
+          --    for k ≥ 1.
+          -- 5. Then λ_k |â_k| = (kπ)² · C/(kπ)⁴ = C/(kπ)² which is summable
+          --    (p-series with p=2 > 1).
+          -- 6. The k=0 term is finite (bounded source gives bounded integral).
+          --
+          -- Blocking sub-goals (each ~15–25 lines):
+          --   (a) C⁴ chain rule for x ↦ ν*u(x)^γ from ContDiff ℝ 4 u + u > 0
+          --   (b) Third-derivative Neumann vanishing at endpoints for the source
+          --   (c) Assembling the depth-1 NeumannTower structure
+          --   (d) Uniform rawCoeff bound for the top level g 1
           apply intervalResolverLiftR_contDiff_four
-          -- SORRY: source eigenvalue-weighted summability (H² + IBP of ν*u^γ)
           sorry
         · -- Positivity: 0 < 1 + V x.
           -- The resolver V ≥ 0 (source ν*u^γ ≥ 0 gives nonneg resolvent),
