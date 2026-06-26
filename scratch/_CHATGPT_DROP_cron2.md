@@ -1,116 +1,46 @@
-# Q793 (cron2) — `cosineMode_iteratedFDeriv_bound` and `valueCosWeight`
+# Q789 (cron2) — boundedWeightJointTerm derivative bound for heatTerm reuse
 
 Static repo inspection only; I did not run a Lean build.
 
-File inspected:
+## Search result
+
+The theorem is in:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
 ```
 
-## `valueCosWeight`
-
-Exact definition:
+Exact theorem name:
 
 ```lean
-def valueCosWeight (m n : ℕ) : ℝ :=
-  match m with
-  | 0 => 1
-  | 1 => |(n : ℝ) * Real.pi|
-  | _ => unitIntervalCosineEigenvalue n
+boundedWeightJointTerm_iteratedFDeriv_le
 ```
 
-There is also the nonnegativity helper:
+I did **not** find it under a name like `norm_iteratedFDeriv_boundedWeightJointTerm_le`; the actual name is the one above.
+
+## Definitions around it
 
 ```lean
-theorem valueCosWeight_nonneg (m n : ℕ) :
-    0 ≤ valueCosWeight m n := by
-  ...
+def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => c n q.1 * cosineMode n q.2
 ```
 
-Interpretation for the value cosine factor `cosineMode n y`:
-
-```text
-m = 0 : bound by 1
-m = 1 : bound by |nπ|
-m = 2 : bound by λ_n = unitIntervalCosineEigenvalue n = (nπ)^2
-```
-
-The wildcard case `_` is used as “order ≥ 2”, but every theorem here is constrained by `m ≤ 2`, so it is effectively the `m = 2` case.
-
-## `cosineMode_iteratedFDeriv_bound`
-
-Exact signature and bound:
+This is exactly the same separated structure as the heat term:
 
 ```lean
-theorem cosineMode_iteratedFDeriv_bound
-    (n m : ℕ) (y : ℝ) (hm : m ≤ 2) :
-    ‖iteratedFDeriv ℝ m (cosineMode n) y‖ ≤ valueCosWeight m n := by
-  ...
+heatTerm u₀ n q =
+  (Real.exp (-q.1 * unitIntervalCosineEigenvalue n) *
+    cosineCoeffs (intervalDomainLift u₀) n) * cosineMode n q.2
 ```
 
-The proof splits by `interval_cases m`:
+with coefficient family
 
 ```lean
-m = 0:
-  ‖cosineMode n y‖ ≤ 1
-
-m = 1:
-  ‖D cos(nπy)‖ ≤ |nπ|
-  using cosineMode_deriv and Real.abs_sin_le_one
-
-m = 2:
-  ‖D² cos(nπy)‖ ≤ unitIntervalCosineEigenvalue n
-  using cosineMode_second_deriv and Real.abs_cos_le_one
+c n t = Real.exp (-t * unitIntervalCosineEigenvalue n) *
+  cosineCoeffs (intervalDomainLift u₀) n
 ```
 
-The relevant part of the proof is:
-
-```lean
-theorem cosineMode_iteratedFDeriv_bound
-    (n m : ℕ) (y : ℝ) (hm : m ≤ 2) :
-    ‖iteratedFDeriv ℝ m (cosineMode n) y‖ ≤ valueCosWeight m n := by
-  interval_cases m
-  · rw [norm_iteratedFDeriv_zero]
-    unfold cosineMode valueCosWeight
-    exact Real.abs_cos_le_one _
-  · rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv]
-    simp [valueCosWeight, cosineMode_deriv]
-    calc (n : ℝ) * |Real.pi| * |Real.sin ((n : ℝ) * Real.pi * y)|
-        ≤ (n : ℝ) * |Real.pi| * 1 := by
-          exact mul_le_mul_of_nonneg_left (Real.abs_sin_le_one _)
-            (mul_nonneg (Nat.cast_nonneg _) (abs_nonneg _))
-      _ = (n : ℝ) * |Real.pi| := by ring
-  · rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv]
-    have hiter : iteratedDeriv 2 (cosineMode n) y =
-        deriv (fun z : ℝ => deriv (cosineMode n) z) y := by
-      norm_num [iteratedDeriv_succ']
-    rw [hiter, cosineMode_second_deriv]
-    rw [Real.norm_eq_abs]
-    have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
-      unfold unitIntervalCosineEigenvalue
-      positivity
-    calc |-(((n : ℝ) * Real.pi) ^ 2 * cosineMode n y)|
-        = unitIntervalCosineEigenvalue n * |cosineMode n y| := by
-          rw [abs_neg, abs_mul,
-            abs_of_nonneg (sq_nonneg ((n : ℝ) * Real.pi))]
-          rfl
-      _ ≤ unitIntervalCosineEigenvalue n * 1 := by
-          exact mul_le_mul_of_nonneg_left
-            (by unfold cosineMode; exact Real.abs_cos_le_one _) hlam
-      _ = valueCosWeight 2 n := by
-          simp [valueCosWeight]
-```
-
-## How `valueCosWeight` is used in the separated-product bound
-
-For a separated mode term
-
-```lean
-boundedWeightJointTerm c n q = c n q.1 * cosineMode n q.2
-```
-
-the product-bound majorant is packaged in `IntervalResolverJointC2Physical.lean` as:
+The theorem’s majorant is:
 
 ```lean
 def boundedWeightJointMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
@@ -118,7 +48,9 @@ def boundedWeightJointMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
     (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
 ```
 
-The theorem using it is:
+where `Bt i n` is the bound for the `i`-th time derivative of the scalar coefficient, and `valueCosWeight (k - i) n` bounds the `(k-i)`-th spatial derivative of `cosineMode n`.
+
+## Exact theorem signature
 
 ```lean
 theorem boundedWeightJointTerm_iteratedFDeriv_le
@@ -130,7 +62,48 @@ theorem boundedWeightJointTerm_iteratedFDeriv_le
   ...
 ```
 
-Inside the proof, after `norm_iteratedFDeriv_mul_le`, the cosine/spatial side is bounded exactly by `valueCosWeight`:
+## Proof ingredients confirmed
+
+Inside the proof, it first builds the separated `ContDiff` facts:
+
+```lean
+have hcj : ContDiff ℝ (2 : ℕ∞) (fun q : ℝ × ℝ => c n q.1) :=
+  hc.comp contDiff_fst
+
+have hcos₀ : ContDiff ℝ (2 : ℕ∞) (cosineMode n) := by
+  unfold cosineMode; fun_prop
+
+have hcos : ContDiff ℝ (2 : ℕ∞) (fun q : ℝ × ℝ => cosineMode n q.2) :=
+  hcos₀.comp contDiff_snd
+```
+
+Then it applies the product Leibniz estimate:
+
+```lean
+have hprod := norm_iteratedFDeriv_mul_le hcj hcos q hkTop
+```
+
+and rewrites it to the separated summation:
+
+```lean
+have hprod' :
+    ‖iteratedFDeriv ℝ k (boundedWeightJointTerm c n) q‖ ≤
+      ∑ i ∈ Finset.range (k + 1), (k.choose i : ℝ) *
+        ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => c n q.1) q‖ *
+        ‖iteratedFDeriv ℝ (k - i) (fun q : ℝ × ℝ => cosineMode n q.2) q‖ := by
+  simpa [boundedWeightJointTerm] using hprod
+```
+
+The time side is bounded using `norm_iteratedFDeriv_comp_fst_le` plus the supplied coefficient bound `hBt`:
+
+```lean
+have htime :
+    ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => c n q.1) q‖ ≤ Bt i n :=
+  (norm_iteratedFDeriv_comp_fst_le hc hiTop q).trans
+    (hBt i (le_trans hik hkNat))
+```
+
+The cosine/spatial side is bounded using `norm_iteratedFDeriv_comp_snd_le` plus `cosineMode_iteratedFDeriv_bound`:
 
 ```lean
 have hspace :
@@ -141,79 +114,70 @@ have hspace :
     (cosineMode_iteratedFDeriv_bound n (k - i) q.2 (by omega))
 ```
 
-The time/coefficient side is bounded by `Bt i n`:
-
-```lean
-have htime :
-    ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => c n q.1) q‖ ≤ Bt i n :=
-  (norm_iteratedFDeriv_comp_fst_le hc hiTop q).trans
-    (hBt i (le_trans hik hkNat))
-```
-
 Then each Leibniz summand is bounded by:
 
 ```lean
 (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
 ```
 
-and summing over `i ∈ Finset.range (k + 1)` gives `boundedWeightJointMajorant Bt k n`.
+and summing gives `boundedWeightJointMajorant Bt k n`.
 
-## How this appears in `IntervalResolverSpectralJointC2Concrete.lean`
+## Direct reuse for `heatTerm`
 
-The concrete value-side cutoff proof uses the same mechanism.  In
-
-```lean
-cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
-```
-
-a cosine derivative factor is first bounded by:
+For `heatTerm_iteratedFDeriv_global_bound`, the most direct reuse is:
 
 ```lean
-have hcosNorm :
-    ‖iteratedFDeriv ℝ (k - i)
-      (fun q : ℝ × ℝ => cosineMode n q.2) q‖ ≤
-    valueCosWeight (k - i) n := by
-  exact (norm_iteratedFDeriv_comp_snd_le hcos₀ hkiTop q).trans
-    (cosineMode_iteratedFDeriv_bound n (k - i) q.2 (by omega))
+private def heatCoeff (u₀ : intervalDomainPoint → ℝ) (n : ℕ) (t : ℝ) : ℝ :=
+  Real.exp (-t * unitIntervalCosineEigenvalue n) *
+    cosineCoeffs (intervalDomainLift u₀) n
 ```
 
-Then the coefficient derivative and the cosine weight are paired:
+Then prove the definitional identification:
 
 ```lean
-have hcore :
-    ‖iteratedFDeriv ℝ (i - j)
-      (fun t : ℝ => localRestartCoeff a₀ a (t - offset) n) q.1‖ *
-      valueCosWeight (k - i) n ≤
-    restartCoeffCoreMajorant a₀ src
-      (restartSlabMin offset s) (restartSlabMax offset s) n := by
-  exact shiftedLocalRestartCoeff_valueWeight_le_core src
-    hτnonneg hτmin hτmax (by omega)
+have hterm : heatTerm u₀ n =
+    ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm
+      (fun n t => heatCoeff u₀ n t) n := by
+  funext q
+  simp [heatTerm, heatCoeff,
+    ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm]
 ```
 
-So `valueCosWeight` is the spatial-frequency budget for the cosine factor.  The separated-product proof moves all `x`-derivative growth into this weight, then proves the coefficient side times this weight is controlled by the relevant mode majorant.
-
-## Relevance to `heatTerm`
-
-For the heat term
+Use `boundedWeightJointTerm_iteratedFDeriv_le` with
 
 ```lean
-heatTerm u₀ n q =
-  (Real.exp (-q.1 * unitIntervalCosineEigenvalue n) *
-    cosineCoeffs (intervalDomainLift u₀) n) * cosineMode n q.2
+Bt i n = unitIntervalCosineEigenvalue n ^ i * M₀ *
+  Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)
 ```
 
-the same bound pattern is:
+provided you have the required scalar coefficient derivative bound:
+
+```lean
+∀ i, i ≤ 2 →
+  ‖iteratedFDeriv ℝ i (fun t => heatCoeff u₀ n t) q.1‖ ≤ Bt i n
+```
+
+That coefficient bound is valid only in the positive-time/cutoff-support branch where
+
+```lean
+c / 2 ≤ q.1
+```
+
+because otherwise `exp(-q.1 * λ_n)` can grow for negative `q.1`.
+
+## Practical conclusion
+
+The repo already has the exact separated-product machinery needed for the heat term.  The theorem to reuse is:
+
+```lean
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm_iteratedFDeriv_le
+```
+
+It packages the result as the finite Leibniz majorant:
 
 ```lean
 ∑ i ∈ Finset.range (k + 1),
   (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
 ```
 
-where `Bt i n` bounds the `i`-th time derivative of
-
-```lean
-fun t => Real.exp (-t * unitIntervalCosineEigenvalue n) *
-  cosineCoeffs (intervalDomainLift u₀) n
-```
-
-This is the repo-native separated-product formulation.  Collapsing the finite sum into a single `(1 + λ_n)^k` expression is an extra algebraic majorization step, not what `cosineMode_iteratedFDeriv_bound` itself provides.
+rather than directly as a collapsed `(1 + λ_n)^k` bound.  If the heat file wants the collapsed bound, add a separate finite-sum majorization lemma after applying this theorem.
