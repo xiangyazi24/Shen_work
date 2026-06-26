@@ -827,15 +827,35 @@ theorem level0_chemDiv_envelope_summable
                 heatCoeff u₀ k) * cosineMode k x)
               (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
             q.2 := by
-        sorry -- [SUB-SORRY 2A-agree: per-slice agreement of chemDivSourceLift
-               --  with the smooth flux derivative on [0,1].
-               --  Route: unfold coupledChemDivSourceLift = intervalDomainLift(chemotaxisDiv)
-               --  On Icc 0 1, intervalDomainLift f x = f ⟨x, hx⟩.
-               --  chemotaxisDiv = deriv(flux) where flux uses intervalDomainLift u, v.
-               --  On [0,1], intervalDomainLift (S(s)u₀) = U_cos(s) (hagree_zero).
-               --  On [0,1], intervalDomainLift (resolver(S(s)u₀)) = V_cos(s) (resolver agree).
-               --  Therefore chemDivSourceLift s x = deriv(chemFluxFun β U_cos(s) V_cos(s)) x.
-               --  Pattern: IntervalChemDivSpatialC2.lean:102-111 (chemDivLift_contDiffOn_two).]
+        -- ── Decomposition: interior + boundary ──
+        -- On Ioo 0 1 (interior), agreement follows from definitional unfolding
+        -- + EventuallyEq.deriv_eq (the two flux functions agree in a nhd).
+        -- At x = 0, 1 (boundary), the zero-extension intervalDomainLift makes
+        -- deriv(flux_using_lift)(0) = 0 (non-differentiable, Lean default)
+        -- while deriv(flux_using_smooth)(0) ≠ 0 in general.  The overall
+        -- agreement on Icc 0 1 is therefore OBSTRUCTED at the boundary.
+        --
+        -- RESOLUTION: the outer hjoint_source_cont proof should either
+        --   (a) use ContinuousOn on Ioo 0 1 (dense interior suffices for
+        --       coefficient integrals), or
+        --   (b) redefine coupledChemDivSourceLift to use the smooth cosine
+        --       representative deriv(chemFluxFun β U_cos V_cos) directly,
+        --       which IS globally continuous.
+        -- For now, this sorry captures the residual.
+        sorry -- [SUB-SORRY 2A-agree: boundary obstruction at x=0,1.
+               --  Interior (Ioo 0 1) proof sketch:
+               --    intro q hq; obtain ⟨hs, hx⟩ := mem_prod.mp hq
+               --    have hx_int : q.2 ∈ Ioo 0 1 := ...
+               --    rw [show Function.uncurry ... q = coupledChemDivSourceLift ... q.1 q.2 from rfl]
+               --    rw [coupledChemDivSourceLift_eq_deriv_fluxLift_interior hx_int]
+               --    exact Filter.EventuallyEq.deriv_eq (flux_agree_nhd ...)
+               --  where flux_agree_nhd uses hagree_zero + resolver pointwise agreement
+               --  to show coupledChemDivFluxLift = chemFluxFun β U_cos V_cos near x.
+               --
+               --  Boundary (x=0,1): the intervalDomainLift zero-extension makes
+               --  flux_using_lift(y) = 0 for y < 0 but flux_using_smooth(y) ≠ 0,
+               --  so deriv at 0 disagrees.  Fix requires redefining
+               --  coupledChemDivSourceLift or working on Ioo 0 1.]
       exact hF_cont.congr hF_agree
     -- SUB-SORRY 2B (can be discharged from 2A): per-slice continuity.
     have hcont_slices : ∀ s ∈ Icc c T,
@@ -978,8 +998,35 @@ theorem level0_chemDiv_timeDerivData
     · -- ── τ > 0 (meaningful case) ──
       refine ⟨min 1 (τ / 2), lt_min one_pos (half_pos hτ), ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · -- F1: per-slab source continuity.
+        -- Goal: ∀ᶠ s in 𝓝 τ, ContinuousOn (coupledChemDivSourceLift p (...) s) (Icc 0 1).
+        --
+        -- On Ioo 0 1 (interior), the source agrees with deriv(chemFluxFun β U_cos V_cos),
+        -- which is C² globally from chemFluxDeriv_contDiff_two (heat C⁴ + resolver C⁴ +
+        -- positivity), hence continuous.
+        --
+        -- However, ContinuousOn on the CLOSED interval Icc 0 1 is OBSTRUCTED:
+        -- coupledChemDivSourceLift uses intervalDomainLift (zero-extension), so at x = 0:
+        --   coupledChemDivSourceLift ... 0 = deriv(flux_using_zero_ext)(0) = 0
+        --     (non-differentiable due to zero-extension jump → Lean default 0)
+        --   but lim_{x→0+} coupledChemDivSourceLift ... x = deriv(flux_smooth)(0) ≠ 0
+        --     (U_cos(0) * V_cos''(0) / (1 + V_cos(0))^β)
+        -- This discontinuity at the boundary is an artifact of the intervalDomainLift
+        -- zero-extension convention.
+        --
+        -- RESOLUTION: redefine coupledChemDivSourceLift to use the smooth cosine-series
+        -- representative directly, or work with ContinuousOn on Ioo 0 1.  The downstream
+        -- consumer (CoupledChemDivOuterCommuteAtoms) only uses the source on Ioo 0 1 for
+        -- the commute step, so the interior version suffices mathematically.
         exact Filter.Eventually.of_forall (fun s =>
-          sorry) -- [SUB-SORRY 3A-sub: per-slab continuity proof]
+          sorry) -- [SUB-SORRY 3A-sub: boundary obstruction — same as 2A-agree.
+                 --  Interior ContinuousOn (Ioo 0 1) proof:
+                 --    have hs_pos : 0 < s := by linarith [hs_in_ball τ (min 1 (τ/2)) s ...]
+                 --    have hU_C4 := heatSemigroup_contDiff_four _hu₀_bound hs_pos
+                 --    have hV_C4 := intervalResolverLiftR_contDiff_four (summability ...)
+                 --    have hV_pos : ∀ x, 0 < 1 + V_cos x := (resolver positivity ...)
+                 --    have hsmooth := chemFluxDeriv_contDiff_two hU_C4 hV_C4 hV_pos p.hβ
+                 --    exact hsmooth.continuous.continuousOn.mono Ioo_subset_Icc_self
+                 --  Fix: redefine source or weaken to Ioo 0 1.]
       · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
         -- Proved via heatSemigroup_jointContDiffAt_two (0 sorry, axiom-clean)
         -- + ContDiffAt.congr_of_eventuallyEq bridging through
