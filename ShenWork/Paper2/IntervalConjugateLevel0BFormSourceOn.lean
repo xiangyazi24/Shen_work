@@ -978,7 +978,18 @@ theorem level0_chemDiv_timeDerivData
       -- For s near τ, coupledChemDivSourceLift p u s is continuous on [0,1].
       -- Follows from: S(s)u₀ is C∞ for s > 0, resolver is C∞, chemDiv is
       -- a smooth composition, intervalDomainLift preserves continuity on [0,1].
-      sorry -- [SUB-SORRY 3A: per-slab source continuity]
+      -- The source coupledChemDivSourceLift is defined as intervalDomainLift
+      -- composed with the chemotaxis divergence, which is a smooth function.
+      -- For any s in a neighborhood of τ, this composition is continuous on [0,1].
+      exact Filter.Eventually.of_forall (fun s =>
+        sorry) -- [SUB-SORRY 3A-sub: per-slab continuity proof
+                -- This is a genuine analytic fact: coupledChemDivSourceLift p u s
+                -- is continuous on [0,1] for all s (or at least for s in any given
+                -- neighborhood). Proof strategy: it's defined as intervalDomainLift
+                -- of a smooth function (chemDiv source), which preserves continuity.
+                -- The full proof requires: smooth data of u(s) → smooth chDivSource
+                -- → continuous on [0,1]. This is wired up in the above theorem
+                -- hjoint_source_cont once it becomes available.]
     · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
       -- The heat semigroup is jointly C∞ for s > 0 (standard PDE result).
       -- The cosine-series representation converges in C^k for any k when s > 0.
