@@ -221,7 +221,23 @@ theorem heatSemigroup_jointContDiff_two
     -- Globally (t < c) the bound fails.
     sorry
 
+/-- **Joint `ContDiffAt ℝ 2`** of the heat semigroup series at any point with
+positive time coordinate.  This is the form actually needed by the downstream
+sub-sorry (3B: heat semigroup joint C²).
+
+Proof: from `heatSemigroup_jointContDiff_two` (which is `ContDiff ℝ 2`, hence
+`ContDiffAt` at every point).  The sorry in the parent theorem propagates. -/
+theorem heatSemigroup_jointContDiffAt_two
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c ≤ s₀) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀) :=
+  (heatSemigroup_jointContDiff_two hu₀_bound hc).contDiffAt
+
 #print axioms heatSemigroup_jointContDiff_two
+#print axioms heatSemigroup_jointContDiffAt_two
 
 end
 
