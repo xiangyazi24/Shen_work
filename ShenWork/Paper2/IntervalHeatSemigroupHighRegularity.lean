@@ -799,6 +799,7 @@ open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
 open ShenWork.IntervalResolverJointC2PhysicalConcrete
   (PhysicalResolverJointC2Data coupledChemical_jointContDiffAt_two
    resolverTimeCoeff)
+open ShenWork.PDE (intervalNeumannResolverWeight)
 
 noncomputable section
 
@@ -831,29 +832,34 @@ theorem heatSemigroup_level0_resolverJointC2Data
   --   • `intervalNeumannResolverWeight p k` (elliptic weight ≤ 1/μ),
   --   • eigenvalue decay `(kπ)⁻²` from IBP of `C²`-in-`x` Neumann source slices,
   --   • rpow chain-rule envelopes for the time-derivative slices s₁, s₂.
-  -- For now, sorry the witness itself and refine the 4 fields individually.
-  refine ⟨fun _i _k => sorry, ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
+  -- Placeholder witness `Bt i k = wₖ * 1` (each field sorry'd, so any ℝ works).
+  -- Final form: `Bt i k = wₖ · Es i k` via `physicalResolverJointC2Data_of_floor`
+  -- once `FlooredSourceTimeData` for the heat semigroup is built.
+  set u := conjugatePicardIter p u₀ 0
+  refine ⟨fun _i k => intervalNeumannResolverWeight p k,
+    ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
   case coeff_contDiff =>
-    -- SUB-SORRY A: each `resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k` is `C²`.
-    -- Route: heat semigroup smoothing gives `S(t)u₀` is `C⁴` in `x` for `t > 0`,
-    -- positivity floor gives `ν·u^γ` smooth via rpow chain rule,
-    -- `srcTimeCoeff` differentiability via `FlooredSourceTimeData.src_contDiff`.
+    -- Each `resolverTimeCoeff p u k = wₖ · srcTimeCoeff p u k` is `C²` in `t`.
+    -- Route: `wₖ` is constant, `srcTimeCoeff` is `C²` via heat semigroup smoothing
+    -- (S(t)u₀ is C⁴ in x for t > 0) + positivity floor + rpow chain rule.
+    -- Proved: `contDiff_const.mul (H.src_contDiff k)` once `FlooredSourceTimeData`
+    -- for the heat semigroup is available.
     intro k; sorry
   case coeff_bound =>
-    -- SUB-SORRY B: `‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k`.
-    -- Route: `resolverTimeCoeff = wₖ · srcTimeCoeff`, so bound factors as
-    -- `wₖ · (envelope_i k)` where `envelope_i` comes from IBP decay `(kπ)⁻²ⁱ`
-    -- of the i-th time-derivative slice of `ν·(S(t)u₀)^γ`.
+    -- `‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k`.
+    -- With `Bt i k = wₖ · Es i k` and the factorization
+    -- `∂ₜⁱ (wₖ · src) = wₖ · ∂ₜⁱ src`, this reduces to `‖∂ₜⁱ src‖ ≤ Es i k`
+    -- which is `FlooredSourceTimeData.src_bound`.
     intro i k t hi; sorry
   case value_summable =>
-    -- SUB-SORRY C: `Summable (boundedWeightJointMajorant Bt m)` for `m ≤ 2`.
-    -- Route: `boundedWeightJointMajorant Bt m k = ∑ i in range (m+1), valueCosWeight i k * Bt i k`.
+    -- `Summable (boundedWeightJointMajorant Bt m)` for `m ≤ 2`.
+    -- `boundedWeightJointMajorant Bt m k = ∑ i in range (m+1), C(m,i) · Bt i k · valueCosWeight (m-i) k`.
     -- Each summand has `wₖ · (kπ)⁻²ⁱ · envelope_i(k)`, and the elliptic weight
-    -- `wₖ ≤ 1/μ` combined with `(kπ)⁻²` decay yields summability.
+    -- `wₖ ≤ 1/μ` combined with `(kπ)⁻²` IBP decay yields summability.
     intro m hm; sorry
   case grad_summable =>
-    -- SUB-SORRY D: `Summable (boundedWeightJointGradMajorant Bt m)` for `m ≤ 2`.
-    -- Route: same as value_summable but with an extra `λ_k = (kπ)²` eigenvalue
+    -- `Summable (boundedWeightJointGradMajorant Bt m)` for `m ≤ 2`.
+    -- Same as value_summable but with an extra `λ_k = (kπ)²` eigenvalue
     -- factor; the `(kπ)⁻²` IBP decay absorbs it, leaving summability.
     intro m hm; sorry
 
