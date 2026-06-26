@@ -1,253 +1,241 @@
-# Q752 (cron2): windowed chem-div chain rule / FluxJointC2Hyp search
+# Q741 (cron2): per-slice agreement for `coupledChemDivSourceLift`
 
-Static repository inspection only; I did not run a Lean build.
+Static repo inspection only; I did not run a Lean build.
 
-## Search verdict
+## Executive answer
 
-Requested searches:
-
-- `CoupledChemDivLocalChainRuleOn` — no hit.
-- `FluxJointC2HypOn` — no hit.
-- `chainRule.*window` / `chainRule window` — hits only nearby/global chem-div files and generic windowed infrastructure, not a chem-div `On` structure.
-- `chainRule.*Icc` / `chainRule Icc` — same: global chem-div structures plus endpoint/windowed coefficient-time lemmas.
-
-## Answers
-
-### 1. Windowed/`On` version of `CoupledChemDivLocalChainRule`?
-
-**No, not as a named chem-div structure.**
-
-The committed chem-div chain-rule package is global:
+I did **not** find a ready-made theorem with the exact Level0 `2A-agree` shape:
 
 ```lean
-structure CoupledChemDivLocalChainRule
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    ...
+∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+  coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x =
+    deriv (chemFluxFun p.β U_cos_s V_cos_s) x
 ```
 
-Location:
+The closest coupled-specific theorem is:
+
+```lean
+coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+```
+
+in:
 
 ```text
-ShenWork/PDE/IntervalChemDivTimeDerivative.lean
+ShenWork/PDE/IntervalChemDivOuterCommute.lean
 ```
 
-The pointwise wrapper is also global:
+but it is only an **interior** statement and only identifies the source with the derivative of the built-in coupled flux:
 
 ```lean
-theorem coupledChemDivLocalChainRule_of_pointwiseChainAtoms
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (A : CoupledChemDivPointwiseChainAtoms p u) :
-    CoupledChemDivLocalChainRule p u
+theorem coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
+    (hx : x ∈ Ioo (0 : ℝ) 1) :
+    coupledChemDivSourceLift p u s x =
+      deriv (coupledChemDivFluxLift p u s) x := by
+  have hxIcc : x ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hx
+  unfold coupledChemDivSourceLift intervalDomainChemotaxisDiv
+    coupledChemDivFluxLift
+  simp only [intervalDomainLift, hxIcc, dif_pos]
 ```
 
-Location:
+Searches for:
 
 ```text
-ShenWork/PDE/IntervalChemDivLocalChainRule.lean
+coupledChemDivSourceLift_eq
+chemDivSourceLift agree
+chemDivSource Icc
 ```
 
-I did not find `CoupledChemDivLocalChainRuleOn`, nor a variant parameterized by `lo hi` / `Icc lo hi`.
+did not turn up an exact closed-interval/cosine-representative agreement lemma.  So for `2A-agree`, you probably need to unfold manually or add a small helper lemma.
 
-### 2. Windowed version of `CoupledChemDivFluxJointC2Hyp`?
+## Current `2A-agree` target is still a sorry
 
-**No, not as a named chem-div structure.**
-
-The primitive flux joint-`C²` package is also global:
-
-```lean
-structure CoupledChemDivFluxJointC2Hyp
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    ...
-```
-
-Location:
-
-```text
-ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-```
-
-The factor input structure feeding it is global too:
-
-```lean
-structure CoupledChemDivFluxFactorJointC2Inputs
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    ...
-```
-
-Location:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-```
-
-The residual wrapper in the window-discharge file also keeps a global field:
-
-```lean
-other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-  ...
-```
-
-Location:
-
-```text
-ShenWork/Paper2/IntervalChemDivWinDischarge.lean
-```
-
-So the current committed chem-div route is: global factor inputs → global `CoupledChemDivFluxJointC2Hyp` → global `CoupledChemDivOuterCommuteAtoms` → global `CoupledChemDivLocalChainRule` → global `DuhamelSourceTimeC1`, then optionally forget/restrict to `DuhamelSourceTimeC1On`.
-
-### 3. Pattern where the chain rule is used directly without going through global `FluxJointC2Hyp`?
-
-**Yes.** The cleanest pattern is in:
-
-```text
-ShenWork/Wiener/EWA/ChemDivAdot.lean
-```
-
-It consumes `hchain : CoupledChemDivLocalChainRule p u` directly, without requiring a `CoupledChemDivFluxJointC2Hyp` argument:
-
-```lean
-theorem coupledChemDivCoeff_hasDerivAt_of_chainRule
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (hchain : CoupledChemDivLocalChainRule p u) (s : ℝ) (n : ℕ) :
-    HasDerivAt
-      (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
-      (coupledChemDivAdot p u s n) s := by
-  rcases hchain.exists_local_slab s with
-    ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
-  exact
-    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
-      (f := coupledChemDivSourceLift p u)
-      (f' := coupledChemDivTimeDerivativeLift p u)
-      (τ := s) (δ := δ) (n := n) hδ hf_cont hdiff hcont_deriv
-```
-
-The same file then derives the window-within form needed by final consumers:
-
-```lean
-theorem chemDivAdot_hasDerivWithinAt_of_chainRule
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (hchain : CoupledChemDivLocalChainRule p u) :
-    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
-      HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
-        (coupledChemDivAdot p u s n) (Set.Icc 0 T) s
-```
-
-and packages the derivative + continuity legs as:
-
-```lean
-theorem chemDivAdot_deriv_legs_of_smoothness
-    (hchain : CoupledChemDivLocalChainRule p u)
-    (hjointcont : ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
-    ...
-```
-
-That is a real direct-chain-rule pattern. It still assumes the **global** `CoupledChemDivLocalChainRule`, but it does not go through `FluxJointC2Hyp` at the use site.
-
-There is also an inline use in:
+In:
 
 ```text
 ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
 ```
 
-After building
+there is already the exact pending target:
 
 ```lean
-have hchain : CoupledChemDivLocalChainRule
-    p (conjugatePicardIter p u₀ 0) :=
-  coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
+have hF_agree : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
+    Function.uncurry
+      (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) q =
+    deriv
+      (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
+        (fun x => ∑' k, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+          heatCoeff u₀ k) * cosineMode k x)
+        (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
+      q.2 := by
+  sorry -- [SUB-SORRY 2A-agree: per-slice agreement ...]
 ```
 
-it directly calls `hchain.exists_local_slab s` to produce coefficient `HasDerivAt` via `cosineCoeffs_hasDerivAt_of_smooth_param`. However, that local inline pattern still obtains `hchain` from the global `hfluxC2` route.
+So the repo itself confirms this exact agreement has not yet been packaged.
 
-## Important nearby windowed infrastructure
+## Relevant definitions
 
-There **is** a generic endpoint/windowed cosine-coefficient chain-rule lemma:
+### `coupledChemDivSourceLift`
+
+File:
 
 ```text
-ShenWork/Paper2/IntervalMildPicardRegularityEndpoint2.lean
+ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
 ```
 
 ```lean
-theorem cosineCoeffs_hasDerivWithinAt_of_smooth_param
-    {f f' : ℝ → ℝ → ℝ} {a' W : ℝ} {n : ℕ} (ha'W : a' ≤ W)
-    {σ : ℝ} (hσ : σ ∈ Set.Icc a' W)
-    (hf_cont : ∀ s ∈ Set.Icc a' W,
-      ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
-    (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Set.Icc a' W,
-      HasDerivWithinAt (fun r => f r x) (f' s x) (Set.Icc a' W) s)
-    (h_cont_deriv : ContinuousOn (Function.uncurry f')
-      (Set.Icc a' W ×ˢ Set.Icc (0 : ℝ) 1)) :
-    HasDerivWithinAt (fun s => cosineCoeffs (f s) n)
-      (cosineCoeffs (f' σ) n) (Set.Icc a' W) σ
+/-- Lifted chemotaxis-divergence source with the elliptic resolver substituted. -/
+def coupledChemDivSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (fun x => intervalDomainChemotaxisDiv p (u s)
+      (coupledChemicalConcentration p u s) x)
 ```
 
-This is almost exactly the coefficient-level engine a hypothetical `CoupledChemDivLocalChainRuleOn` should use.
+### `coupledChemDivFluxLift`
 
-A concrete use pattern is in:
+File:
 
 ```text
-ShenWork/Paper2/IntervalPicardLevel0SourceTimeC1On.lean
+ShenWork/PDE/IntervalChemDivFluxChain.lean
 ```
-
-The theorem `heatSourceCoeff_hasDerivWithinAt` builds window-local coefficient derivatives by supplying:
-
-- per-slice source continuity on `Icc c T`,
-- pointwise `HasDerivWithinAt` on `Icc c T`,
-- joint continuity of the derivative field on `Icc c T ×ˢ Icc 0 1`,
-
-then calls `IntervalMildPicardRegularityEndpoint2.cosineCoeffs_hasDerivWithinAt_of_smooth_param`.
-
-This is the best existing template for a chem-div windowed chain-rule path.
-
-## Practical recommendation
-
-The repo does **not** already contain the requested chem-div windowed structures. If the goal is to avoid proving anything at `τ ≤ 0`, the clean new abstraction would be a small direct package, not necessarily a full `FluxJointC2HypOn`:
 
 ```lean
-structure CoupledChemDivLocalChainRuleOn
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (lo hi : ℝ) : Prop where
-  hlohi : lo ≤ hi
-  source_cont : ∀ s ∈ Set.Icc lo hi,
-    ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc (0 : ℝ) 1)
-  diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Set.Icc lo hi,
-    HasDerivWithinAt
-      (fun r => coupledChemDivSourceLift p u r x)
-      (coupledChemDivTimeDerivativeLift p u s x)
-      (Set.Icc lo hi) s
-  deriv_cont : ContinuousOn
-    (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-    (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)
+/-- Lifted chemotactic flux before the outer spatial derivative. -/
+def coupledChemDivFluxLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s y : ℝ) : ℝ :=
+  let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
+  intervalDomainLift (u s) y * deriv v y / (1 + v y) ^ p.β
 ```
 
-Then prove:
+### `chemFluxFun`
+
+File:
+
+```text
+ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+```
 
 ```lean
-theorem coupledChemDivCoeff_hasDerivWithinAt_of_chainRuleOn
-    (hchain : CoupledChemDivLocalChainRuleOn p u lo hi) :
-    ∀ s ∈ Set.Icc lo hi, ∀ n,
-      HasDerivWithinAt
-        (fun r => coupledChemDivSourceCoeffs p u r n)
-        (coupledChemDivAdot p u s n)
-        (Set.Icc lo hi) s := by
-  -- call IntervalMildPicardRegularityEndpoint2.cosineCoeffs_hasDerivWithinAt_of_smooth_param
+/-- The chemotaxis flux function whose spatial derivative is the chemDiv source.
+`φ(y) = lift(u)(y) · deriv(lift(v))(y) / (1 + lift(v)(y))^β` -/
+def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
+  u y * deriv v y / (1 + v y) ^ β
 ```
 
-That would match the existing `DuhamelSourceTimeC1On` endpoint design and avoid the global `τ ≤ 0` obligations entirely.
-
-If the objective is minimal disruption to the current code, your fallback is valid: keep the existing global `CoupledChemDivFluxJointC2Hyp` target and split `τ`:
+So after unfolding, `coupledChemDivFluxLift p u s` is definitionally the same flux shape as
 
 ```lean
-by_cases hτ : 0 < τ
-· -- real positive-time proof; choose δ small enough, e.g. δ ≤ τ / 2, so the slab stays in `Ioi 0`
-  ...
-· -- τ ≤ 0 branch
-  sorry
+chemFluxFun p.β
+  (intervalDomainLift (u s))
+  (intervalDomainLift (coupledChemicalConcentration p u s))
 ```
 
-This is syntactically the shortest way to preserve the current global pipeline. The nonpositive branch is not degenerate or vacuous, though; it is a real placeholder for behavior outside the positive time window.
+## Existing pattern: `IntervalChemDivSpatialC2.lean`
+
+The pattern you cited is real and useful, but it is for the non-coupled `chemDivLift`, not directly for `coupledChemDivSourceLift`:
+
+```lean
+theorem chemDivLift_contDiffOn_two_of_global
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
+    (hu : ContDiff ℝ 4 (intervalDomainLift u))
+    (hv : ContDiff ℝ 4 (intervalDomainLift v))
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + intervalDomainLift v x) :
+    ContDiffOn ℝ 2 (chemDivLift p u v) (Icc (0 : ℝ) 1) := by
+  have hglobal := chemFluxDeriv_contDiff_two hu hv hv_pos p.hβ
+  have h_eq : ∀ x ∈ Icc (0 : ℝ) 1,
+      chemDivLift p u v x =
+        deriv (chemFluxFun p.β (intervalDomainLift u) (intervalDomainLift v)) x := by
+    intro x hx
+    unfold chemDivLift intervalDomainLift
+    rw [dif_pos hx]
+    unfold intervalDomainChemotaxisDiv
+    unfold chemFluxFun
+    rfl
+  exact hglobal.contDiffOn.congr h_eq
+```
+
+This is the right manual-unfolding style to copy for the coupled version.
+
+## Another nearby theorem: EWA eval agreement
+
+There is also a stronger-looking but different theorem in:
+
+```text
+ShenWork/Wiener/EWA/ChemDivEval.lean
+```
+
+```lean
+theorem evalST_chemDivEWA_eq_coupledChemDivSourceLift ...
+    (hx : x ∈ Set.Ioo (0 : ℝ) 1) (hxIcc : x ∈ Set.Icc (0 : ℝ) 1)
+    ... :
+    evalST τ (x : WA.Circ) (chemDivEWA μ ν γ hμ p U)
+      = ((coupledChemDivSourceLift p u τ.1 x : ℝ) : ℂ)
+```
+
+This theorem is not the Level0 `U_cos/V_cos` agreement.  It is an EWA synthesis/eval bridge, interior-only, and it requires `hgrad`, `h_flux_nbhd`, and `h_flux_diff` hypotheses.  However, its comments and final proof step are useful: it explicitly documents that
+
+```lean
+coupledChemicalConcentration p u s = intervalNeumannResolverR p (u s)
+```
+
+is definitional, and its final step is:
+
+```lean
+rw [coupledChemDivSourceLift, intervalDomainLift, dif_pos hxIcc]
+rfl
+```
+
+So again, the route is unfolding, not a prepackaged Level0 agreement lemma.
+
+## Suggested proof strategy for `2A-agree`
+
+For each `q = (s,x)` with `s ∈ Icc c T` and `x ∈ Icc 0 1`:
+
+1. Set
+   ```lean
+   u := conjugatePicardIter p u₀ 0
+   w := u s
+   V := coupledChemicalConcentration p u s
+   ```
+2. Unfold the left-hand side:
+   ```lean
+   rw [coupledChemDivSourceLift, intervalDomainLift, dif_pos hx]
+   unfold intervalDomainChemotaxisDiv
+   ```
+   This should expose the derivative of the flux built from
+   ```lean
+   intervalDomainLift w
+   intervalDomainLift V
+   ```
+3. Unfold the flux side:
+   ```lean
+   unfold ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun
+   ```
+4. Use the heat agreement and resolver agreement to replace the lifted fields with the smooth representatives.
+
+Important caveat: replacing inside `deriv` is not justified by mere pointwise equality at `x`.  For interior points `x ∈ Ioo 0 1`, agreement on `Icc 0 1` gives agreement on a neighborhood of `x`, so `Filter.EventuallyEq.deriv_eq` is the clean way to rewrite under `deriv`:
+
+```lean
+have hflux_ev :
+    (chemFluxFun p.β (intervalDomainLift w) (intervalDomainLift V))
+      =ᶠ[𝓝 x]
+    (chemFluxFun p.β U_cos V_cos) := by
+  filter_upwards [Ioo_mem_nhds hx_interior] with y hy
+  -- use hU_agree y (Ioo_subset_Icc_self hy)
+  -- use hV_agree y (Ioo_subset_Icc_self hy)
+
+rw [Filter.EventuallyEq.deriv_eq hflux_ev]
+```
+
+For endpoints `x = 0` or `x = 1`, agreement only on `Icc 0 1` is not enough to rewrite a full derivative under `deriv`; Lean’s `deriv` is two-sided.  To close the stated `Icc` target at endpoints, you need one of:
+
+* a stronger global/neighborhood agreement between `intervalDomainLift ...` and the cosine representatives near the endpoints;
+* an endpoint-specific lemma using the even/reflection extension machinery;
+* or prove the agreement on `Ioo 0 1` first and extend to endpoints by continuity, if both sides are already known continuous on `Icc 0 1`.
+
+The existing `chemDivLift_contDiffOn_two_of_global` avoids this endpoint issue because it does **not** replace `intervalDomainLift u/v` by a different representative under `deriv`; it unfolds to the exact same functions.
+
+## Bottom line
+
+There is no exact landed `coupledChemDivSourceLift` agreement lemma for your `U_cos/V_cos` representative.  Use manual unfolding, with `coupledChemDivSourceLift_eq_deriv_fluxLift_interior` as a helpful interior shortcut.  For the closed-interval endpoint cases in the current `Icc` statement, be careful: rewriting inside `deriv` needs neighborhood/eventual agreement, not just pointwise agreement on `[0,1]`.
