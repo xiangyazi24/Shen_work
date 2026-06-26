@@ -1,205 +1,146 @@
-# Q661 (cron2): resolver nonnegativity / `1 + R > 0`
+# Q666 (cron2): `chemDivSource_weakH2_of_cosineRep` positivity hypothesis
 
-Static repo inspection only; I did not run a Lean build.  I inspected the current default branch via the GitHub connector and wrote this report to `chatgpt-scratch`.
+Static repo inspection only; I did not run a Lean build.
 
 ## Executive verdict
 
-Yes: the repo **does prove `R(u) ≥ 0` on `[0,1]`**, but not by coefficient positivity.  The landed proof is the heat-Laplace / positivity-preserving semigroup route in
+The simplest fix is **not** to modify `V_cos` by `max`, and probably not to rewrite the whole proof to a genuinely local `ContDiffOn` version.
 
-```text
-ShenWork/PDE/IntervalResolverPositivity.lean
-```
-
-The main closed-domain theorem is:
+Instead, weaken the public hypothesis of
 
 ```lean
-theorem intervalNeumannResolverR_nonneg_of_nonneg_source {p : CM2Params}
-    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
-    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
-    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
-    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
-    (xp : intervalDomainPoint) :
-    0 ≤ intervalNeumannResolverR p u xp
+chemDivSource_weakH2_of_cosineRep
 ```
 
-There is also an interior version:
+from global positivity
 
 ```lean
-theorem intervalNeumannResolverR_nonneg_interior {p : CM2Params}
-    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
-    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
-    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
-    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
-    {xp : intervalDomainPoint} (hx : xp.1 ∈ Set.Ioo (0 : ℝ) 1) :
-    0 ≤ intervalNeumannResolverR p u xp
+(hv_cos_pos : ∀ x, (0 : ℝ) < 1 + V_cos x)
 ```
 
-So for the interval-domain resolver, the proof is already there.  From the closed-domain theorem, the denominator target follows immediately:
+to interval positivity
 
 ```lean
-have hR : 0 ≤ intervalNeumannResolverR p u xp :=
-  intervalNeumannResolverR_nonneg_of_nonneg_source hf_cont hf_nonneg hf_coeff hâ xp
-have h1R : 0 < 1 + intervalNeumannResolverR p u xp := by linarith
+(hv_cos_pos_Icc : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + V_cos x)
 ```
 
-## Important caveat: not “nonnegative coefficients”
-
-Your correction is right: nonnegative cosine coefficients do **not** imply the reconstructed function is nonnegative, and the repo does not try to prove positivity that way.
-
-The landed theorem assumes a **pointwise nonnegative continuous source representative**:
+**but then immediately recover the old global `hv_cos_pos` inside the proof using the already-required symmetry hypotheses**
 
 ```lean
-hf_nonneg : ∀ y, 0 ≤ f y
+(hv_even : ∀ x, V_cos (-x) = V_cos x)
+(hv_symm1 : ∀ x, V_cos (2 - x) = V_cos x)
 ```
 
-plus the coefficient identification
+Those hypotheses imply period `2` and fold every `x : ℝ` into `[0,1]`.  So for the theorem as currently shaped, `[0,1]` positivity plus symmetry is enough to supply the old global positivity proof term and leave the rest of the proof essentially unchanged.
+
+In particular, if `V_cos = intervalResolverLiftR p u`, the concern “it may go below `-1` outside `[0,1]`” should not happen once it is known nonnegative on `[0,1]`: `intervalResolverLiftR` is a cosine-series extension with period `2` and reflection symmetry.
+
+## Why not `max(resolver, 0)` outside `[0,1]`?
+
+Do **not** use
 
 ```lean
-hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re
+max (intervalResolverLiftR p u x) 0
 ```
 
-and square-summability of the source coefficients:
+as the global `V_cos` replacement.  It is not a good Lean/analysis fix here:
+
+1. It will generally not be `C⁴` at the gluing/contact set.
+2. It may fail the even/reflection hypotheses unless the modification is built symmetrically and periodically.
+3. Even if made symmetric, a `max` clamp creates only low regularity.  The theorem needs `hv_cos : ContDiff ℝ 4 V_cos`.
+4. A smooth cutoff/gluing construction preserving agreement, positivity, `C⁴`, evenness, and reflection is far more work than needed.
+
+## Why not fully localize the ContDiff proof?
+
+It is mathematically true that the flux only needs positivity on `[0,1]` if the target is only `ContDiffOn`/weak-`H²` on `[0,1]`.  But the current proof is not written that way.
+
+Current code in `ShenWork/Paper2/IntervalChemDivSpatialC2.lean` has:
 
 ```lean
-hâ : Summable (fun k => (cosineCoeffs f k) ^ 2)
-```
-
-This is the correct maximum-principle/positive-kernel analogue, not a coefficientwise positivity argument.
-
-## How the repo proves it
-
-The file header in `IntervalResolverPositivity.lean` says the route explicitly: use the positivity-preserving heat-Laplace representation
-
-```text
-R(u) = ∫₀^∞ e^{-μt} S(t)(ν u^γ) dt
-```
-
-implemented through finite truncations and a spectral limit.
-
-Key landed pieces:
-
-```lean
-theorem intervalFullSemigroupOperator_nonneg
-    {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
-    0 ≤ intervalFullSemigroupOperator t f x
-```
-
-```lean
-theorem unitIntervalCosineHeatValue_nonneg_of_continuous
-    {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
-    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
-    0 ≤ unitIntervalCosineHeatValue t (cosineCoeffs f) x
-```
-
-```lean
-theorem laplaceHeatTrunc_nonneg
-    {p : CM2Params} {f : ℝ → ℝ} (hf_cont : Continuous f)
-    (hf_nonneg : ∀ y, 0 ≤ f y)
-    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) {T : ℝ} (hT : 0 ≤ T) :
-    0 ≤ ∫ t in (0:ℝ)..T,
-      Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t (cosineCoeffs f) x
-```
-
-```lean
-theorem laplaceHeatTrunc_tendsto
-    {p : CM2Params} {â : ℕ → ℝ}
-    (hâ : Summable (fun n => (â n) ^ 2)) (x : ℝ) :
-    Filter.Tendsto
-      (fun T => ∫ t in (0:ℝ)..T,
-        Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t â x)
-      Filter.atTop
-      (nhds (∑' k, â k * unitIntervalCosineMode k x
-        / (p.μ + unitIntervalCosineEigenvalue k)))
-```
-
-The theorem `intervalNeumannResolverR_nonneg_interior` reconstructs `R(u)` as this spectral target and passes nonnegativity to the limit via closedness of `Ici 0`.  The closed-domain theorem extends from `(0,1)` to `[0,1]` by continuity of the reconstructed resolver cosine series.
-
-## Strict positivity is also present
-
-If you want a positive lower bound rather than merely `R ≥ 0`, there is a stronger file:
-
-```text
-ShenWork/Paper2/IntervalDomainResolverStrictPos.lean
-```
-
-It proves:
-
-```lean
-theorem intervalNeumannResolverR_ge_of_source_ge {p : CM2Params}
-    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ} {c₀ : ℝ}
-    (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
-    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
-    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
-    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
-    (xp : intervalDomainPoint) :
-    c₀ / p.μ ≤ intervalNeumannResolverR p u xp
+theorem chemFlux_contDiff_three
+    {β : ℝ} {u v : ℝ → ℝ}
+    (hu : ContDiff ℝ 4 u)
+    (hv : ContDiff ℝ 4 v)
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
+    (hβnn : 0 ≤ β) :
+    ContDiff ℝ 3 (chemFluxFun β u v)
 ```
 
 and then:
 
 ```lean
-theorem intervalNeumannResolverR_pos_of_source_ge {p : CM2Params}
-    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ} {c₀ : ℝ}
-    (hc₀ : 0 < c₀) (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
-    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
-    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
-    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
-    (xp : intervalDomainPoint) :
-    0 < intervalNeumannResolverR p u xp
+theorem chemFluxDeriv_contDiff_two
+    ...
+    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) ... :
+    ContDiff ℝ 2 (deriv (chemFluxFun β u v))
 ```
 
-The most directly usable representation-based strict theorem is:
+`chemDivSource_weakH2_of_cosineRep` uses those global facts to get:
 
 ```lean
-theorem resolverR_pos_of_representation (p : CM2Params)
-    {u : intervalDomainPoint → ℝ} {cs : ℝ → ℝ} {m M : ℝ}
-    (hcs_cont : Continuous cs)
-    (hagree : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift u x = cs x)
-    (hm_pos : 0 < m)
-    (hcs_lb : ∀ x ∈ Set.Icc (0:ℝ) 1, m ≤ cs x)
-    (hcs_ub : ∀ x ∈ Set.Icc (0:ℝ) 1, cs x ≤ M)
-    (hsrc_coeff : ∀ k, cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k
-        = (intervalNeumannResolverSourceCoeff p u k).re)
-    (hâ : Summable (fun k =>
-        (cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k) ^ 2))
-    (hĝ : Summable (fun k =>
-        (cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ - p.ν * m ^ p.γ) k) ^ 2))
-    (xp : intervalDomainPoint) :
-    0 < intervalNeumannResolverR p u xp
+have hF_C2 : ContDiff ℝ 2 F := ...
+have hF_C2on : ContDiffOn ℝ 2 F (Icc (0 : ℝ) 1) := hF_C2.contDiffOn
+have hF'_cont : Continuous (deriv F) := ...
 ```
 
-This is stronger than needed for `0 < 1 + R`, but useful if your source has a positive lower floor.
+and it also uses global C¹ parity helpers to prove the endpoint Neumann facts.
 
-## Relation to `intervalResolverLiftR p u x` on all `x : ℝ`
+A true local rewrite would require replacing those global facts with `ContDiffOn`/`ContinuousOn` statements and reworking the endpoint parity arguments locally near `0` and `1`.  That is doable but more invasive.
 
-The theorem above is for:
+## Minimal patch shape
+
+Add a small folding lemma, either generic or `intervalResolverLiftR`-specific.
+
+### Generic lemma shape
+
+Something like:
 
 ```lean
-intervalNeumannResolverR p u xp
+lemma pos_global_of_pos_Icc_of_even_reflect_one
+    {V : ℝ → ℝ}
+    (hposI : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + V x)
+    (heven : ∀ x, V (-x) = V x)
+    (hreflect : ∀ x, V (2 - x) = V x) :
+    ∀ x, (0 : ℝ) < 1 + V x := by
+  -- 1. derive period 2:
+  --    V (x + 2) = V x, from `hreflect (-x)` and `heven x`.
+  -- 2. fold arbitrary x modulo period 2 to y ∈ [0,2].
+  -- 3. if y ≤ 1, use hposI y.
+  -- 4. if 1 ≤ y ≤ 2, use `hreflect y` to replace y by 2-y ∈ [0,1].
 ```
 
-where
+Then modify `chemDivSource_weakH2_of_cosineRep` like this:
 
 ```lean
-xp : intervalDomainPoint  -- i.e. x ∈ [0,1]
+noncomputable def chemDivSource_weakH2_of_cosineRep
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
+    {U_cos V_cos : ℝ → ℝ}
+    (hu_cos : ContDiff ℝ 4 U_cos)
+    (hv_cos : ContDiff ℝ 4 V_cos)
+    (hv_cos_pos_Icc : ∀ x ∈ Icc (0 : ℝ) 1, (0 : ℝ) < 1 + V_cos x)
+    (h_agree_u : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift u x = U_cos x)
+    (h_agree_v : ∀ x ∈ Icc (0 : ℝ) 1, intervalDomainLift v x = V_cos x)
+    (hu_even : ∀ x, U_cos (-x) = U_cos x)
+    (hv_even : ∀ x, V_cos (-x) = V_cos x)
+    (hu_symm1 : ∀ x, U_cos (2 - x) = U_cos x)
+    (hv_symm1 : ∀ x, V_cos (2 - x) = V_cos x) :
+    IntervalWeakH2Neumann (chemDivLift p u v) := by
+  have hv_cos_pos : ∀ x, (0 : ℝ) < 1 + V_cos x :=
+    pos_global_of_pos_Icc_of_even_reflect_one hv_cos_pos_Icc hv_even hv_symm1
+  -- rest of the existing proof remains the same
 ```
 
-Your target mentions the ambient lifted series:
+This changes the caller obligation from impossible/global to the natural interval-domain fact, while preserving the existing global proof downstream.
+
+### `intervalResolverLiftR`-specific route
+
+If you do not want to touch `chemDivSource_weakH2_of_cosineRep`, prove the global `hv_cos_pos` at the call site for
 
 ```lean
-intervalResolverLiftR p u x
+V_cos := intervalResolverLiftR p u
 ```
 
-from `ShenWork/Paper2/IntervalResolverHighRegularity.lean`:
-
-```lean
-def intervalResolverLiftR (p : CM2Params) (u : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun x => ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x
-```
-
-That file states in the docstring that this agrees with `intervalNeumannResolverR` on `[0,1]`, but I did **not** find a named theorem packaging that agreement.  It does provide symmetry/periodicity lemmas:
+from these facts already in the repo:
 
 ```lean
 theorem intervalResolverLiftR_even
@@ -215,51 +156,46 @@ theorem intervalResolverLiftR_periodic
     intervalResolverLiftR p u (x + 2) = intervalResolverLiftR p u x
 ```
 
-So: the repo proves `R(u) ≥ 0` on `[0,1]`, and the lift is even/periodic, but I did **not** find a ready-made theorem
+and the interval-domain positivity theorem:
 
 ```lean
-∀ x : ℝ, 0 ≤ intervalResolverLiftR p u x
+theorem intervalNeumannResolverR_nonneg_of_nonneg_source ...
+    (xp : intervalDomainPoint) :
+    0 ≤ intervalNeumannResolverR p u xp
 ```
 
-nor a ready-made theorem
-
-```lean
-∀ x : ℝ, 0 < 1 + intervalResolverLiftR p u x
-```
-
-To get the all-real lifted version, likely add two thin bridge lemmas:
-
-1. agreement on `[0,1]`:
+You will also likely want the missing thin bridge lemma:
 
 ```lean
 lemma intervalResolverLiftR_eq_intervalNeumannResolverR_on_Icc
-    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
     intervalResolverLiftR p u x = intervalNeumannResolverR p u ⟨x, hx⟩ := by
-  -- unfold both; `cosineMode` vs `unitIntervalCosineMode` should be definitional/`rfl`-level
+  unfold intervalResolverLiftR intervalNeumannResolverR
+  -- should be `tsum_congr`; `cosineMode` and `unitIntervalCosineMode` are the same cos mode.
 ```
 
-2. reduce arbitrary `x : ℝ` to a representative in `[0,1]` using period `2` and reflection about `1`, then apply the closed-domain nonnegativity theorem.
-
-For the immediate interval-domain denominator, however, no all-real lift theorem is needed:
+Then:
 
 ```lean
-have hR : 0 ≤ intervalNeumannResolverR p u xp :=
-  intervalNeumannResolverR_nonneg_of_nonneg_source hf_cont hf_nonneg hf_coeff hâ xp
-have hden : 0 < 1 + intervalNeumannResolverR p u xp := by linarith
+have hposI : ∀ x ∈ Icc (0 : ℝ) 1,
+    (0 : ℝ) < 1 + intervalResolverLiftR p u x := by
+  intro x hx
+  rw [intervalResolverLiftR_eq_intervalNeumannResolverR_on_Icc hx]
+  have hR : 0 ≤ intervalNeumannResolverR p u ⟨x, hx⟩ :=
+    intervalNeumannResolverR_nonneg_of_nonneg_source hf_cont hf_nonneg hf_coeff hâ ⟨x, hx⟩
+  linarith
+
+have hpos_global : ∀ x, (0 : ℝ) < 1 + intervalResolverLiftR p u x :=
+  pos_global_of_pos_Icc_of_even_reflect_one hposI
+    (intervalResolverLiftR_even p u)
+    (intervalResolverLiftR_reflect_one p u)
 ```
 
-## Search-result summary
+## Recommended answer
 
-Requested searches:
+**Best/simple fix:** weaken the `chemDivSource_weakH2_of_cosineRep` API to interval positivity, but internally reconstruct the old global positivity from `hv_even` + `hv_symm1`.  This avoids the impossible caller obligation while avoiding a large proof rewrite.
 
-```text
-resolverR_nonneg
-intervalNeumannResolverR_nonneg
-resolver_pos
-resolver_ge_zero
-```
+**Second-best:** keep the API and prove global positivity at the `intervalResolverLiftR` call site using `intervalResolverLiftR_even`, `intervalResolverLiftR_reflect_one`, `intervalResolverLiftR_periodic`, and the bridge to `intervalNeumannResolverR_nonneg_of_nonneg_source` on `[0,1]`.
 
-Findings:
-
-- `resolverR_nonneg` / `intervalNeumannResolverR_nonneg` lead to `ShenWork/PDE/IntervalResolverPositivity.lean` and its theorems `intervalNeumannResolverR_nonneg_interior` / `intervalNeumannResolverR_nonneg_of_nonneg_source`.
-- `resolver_pos` / `resolver_ge_zero` did not return exact theorem-name hits, but the strict lower-bound file is `ShenWork/Paper2/IntervalDomainResolverStrictPos.lean` with `intervalNeumannResolverR_ge_of_source_ge`, `intervalNeumannResolverR_pos_of_source_ge`, and `resolverR_pos_of_representation`.
+**Do not clamp with `max` outside `[0,1]`.**  It breaks the high-regularity/symmetry route and creates a harder smooth-extension problem than the one you are trying to solve.
