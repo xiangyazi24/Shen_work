@@ -1,138 +1,188 @@
-# Q805 / cron1: `valueCosWeight` vs `(1 + λₙ)^m`
+# Q815 / cron1: heat level-0 lift vs cosine-series representative
 
 Repo inspected: `xiangyazi24/Shen_work`
-Ref inspected for source files: `chatgpt-scratch`
+Source refs inspected:
+- `chatgpt-scratch` for `IntervalPicardIterateRepresentation.lean` and scratch write target.
+- `main` for the current `IntervalConjugateLevel0BFormSourceOn.lean` and `IntervalHeatSemigroupHighRegularity.lean` state.  Note: fetching `IntervalConjugateLevel0BFormSourceOn.lean` on `chatgpt-scratch` returned 404, so the Level0 usage below is from `main`.
 Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-I did **not** find an existing lemma named
+Yes, the agreement lemma you want already exists.  The name is:
 
 ```lean
-valueCosWeight_le_one_add_eigenvalue_pow
+ShenWork.IntervalPicardIterateRepresentation.hagree_zero
 ```
 
-or an obvious already-factored equivalent for
+It gives exactly the level-0 heat-slice cosine-series agreement on `[0,1]`, packaged as `Set.EqOn`:
 
 ```lean
-valueCosWeight m n ≤ (1 + unitIntervalCosineEigenvalue n) ^ m
+theorem hagree_zero
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
+      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1)
 ```
 
-with `m ≤ 2`.
-
-The result is true and should be cheap to add near `valueCosWeight_nonneg` in
-`ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`.
-
-## What already exists nearby
-
-In `ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`:
+and
 
 ```lean
-def valueCosWeight (m n : ℕ) : ℝ :=
-  match m with
-  | 0 => 1
-  | 1 => |(n : ℝ) * Real.pi|
-  | _ => unitIntervalCosineEigenvalue n
-
-theorem valueCosWeight_nonneg (m n : ℕ) :
-    0 ≤ valueCosWeight m n := by
-  ...
-
-theorem cosineMode_iteratedFDeriv_bound
-    (n m : ℕ) (y : ℝ) (hm : m ≤ 2) :
-    ‖iteratedFDeriv ℝ m (cosineMode n) y‖ ≤ valueCosWeight m n := by
-  ...
+iterateReprCoeff p u₀ 0 σ k
+  = Real.exp (-σ * unitIntervalCosineEigenvalue k)
+      * cosineCoeffs (intervalDomainLift u₀) k
 ```
 
-So the file has the weight definition and nonnegativity, but not the desired
-`≤ (1 + λₙ)^m` packaging.
+by the definition of `iterateReprCoeff`.
 
-## Closest existing proof pattern
-
-`ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` already uses the
-same inequality pattern inside `heatTerm_iteratedFDeriv_global_bound`, but it is
-local, not reusable as a `valueCosWeight` lemma.  In particular it proves a local
-frequency bound
+So for your RHS using `heatCoeff u₀ k`, use the existing abbrev
 
 ```lean
-have hfreq_le : |(n : ℝ) * Real.pi| ≤ 1 + λ_n := by
-  rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg n) Real.pi_pos.le)]
-  unfold_let λ_n; unfold unitIntervalCosineEigenvalue
-  nlinarith [sq_nonneg ((n : ℝ) * Real.pi - 1/2)]
+abbrev heatCoeff (u₀ : intervalDomainPoint → ℝ) : ℕ → ℝ :=
+  cosineCoeffs (intervalDomainLift u₀)
 ```
 
-and then uses
+from `IntervalPicardLevel0SourceTimeC1On.lean`, and `simpa [iterateReprCoeff, heatCoeff]` should align the RHS.
+
+## Answer to the three search questions
+
+### 1. Agreement lemma on `Icc 0 1`?
+
+Yes: `hagree_zero`.  Strictly, it is stated for `picardIter p u₀ 0 σ`, not for `conjugatePicardIter p u₀ 0 σ`, but the level-0 branches are definitionally the same heat semigroup slice:
 
 ```lean
-λ_n ^ i * |(n : ℝ) * Real.pi| ^ (j - i)
-  ≤ (1 + λ_n) ^ i * (1 + λ_n) ^ (j - i)
-  = (1 + λ_n) ^ j
+picardIter p u₀ 0
+  = fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+
+conjugatePicardIter p u₀ 0
+  = fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
 ```
 
-to get the `2^j · (1 + λ_n)^j` Leibniz sum.
+The current Level0 file already relies on this: it uses `hagree_zero` to prove an agreement whose LHS is written with `conjugatePicardIter p u₀ 0 s`.
 
-There is also a private summability helper in that same file:
+### 2. `hagree_zero` or similar?
+
+Yes.  `hagree_zero` is the relevant lemma.  I did not find a better/directly named lemma matching `intervalDomainLift.*cosineSeries.*agree`; the repo convention here is the `hagree_*` family from `IntervalPicardIterateRepresentation.lean`.
+
+Also nearby:
 
 ```lean
-private theorem one_add_eigenvalue_pow_mul_exp_summable
-    (m : ℕ) {τ M₀ : ℝ} (hτ : 0 < τ) (hM₀ : 0 ≤ M₀) :
-    Summable (fun n : ℕ =>
-      (1 + unitIntervalCosineEigenvalue n) ^ m * M₀ *
-        Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by
-  ...
+hbsum_zero
+hagree_succ
 ```
 
-That helps with the final summability majorant, but it does not imply the
-`valueCosWeight` pointwise bound directly.
+but for the level-0 heat slice, `hagree_zero` is the one to use.
 
-## Suggested lemma
+### 3. Does the Level0 file already use `hagree_zero`?
 
-A useful local addition near `valueCosWeight_nonneg`:
+Yes.  In `IntervalConjugateLevel0BFormSourceOn.lean`, the current file uses:
 
 ```lean
-theorem valueCosWeight_le_one_add_eigenvalue_pow
-    (m n : ℕ) (hm : m ≤ 2) :
-    valueCosWeight m n ≤ (1 + unitIntervalCosineEigenvalue n) ^ m := by
-  interval_cases m
-  · simp [valueCosWeight]
-  · have hfreq_le : |(n : ℝ) * Real.pi| ≤
-        1 + unitIntervalCosineEigenvalue n := by
-      rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg n) Real.pi_pos.le)]
-      unfold unitIntervalCosineEigenvalue
-      nlinarith [sq_nonneg ((n : ℝ) * Real.pi - 1 / 2)]
-    simpa [valueCosWeight] using hfreq_le
-  · simp [valueCosWeight]
-    have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
-      unfold unitIntervalCosineEigenvalue
-      positivity
-    nlinarith [sq_nonneg (unitIntervalCosineEigenvalue n)]
+have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
+    intervalDomainLift (conjugatePicardIter p u₀ 0 s) x = U_cos x := by
+  intro x hx
+  exact ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+    p u₀ hs_pos _hu₀_cont _hu₀_bound hx
 ```
 
-Potential tiny adjustment: if `nlinarith` wants the square expanded in the last
-case, replace the final line with a short `calc` through `1 + λ ≤ (1 + λ)^2`, or
-set `lam := unitIntervalCosineEigenvalue n` first and use `nlinarith` on `lam`.
-
-## Consequence for the proposed heat-term bound
-
-For `j ≤ 2` and `i ≤ j`, the needed factor estimate is exactly:
+and later:
 
 ```lean
-λ_n ^ i * valueCosWeight (j - i) n
-  ≤ (1 + λ_n) ^ i * (1 + λ_n) ^ (j - i)
-  = (1 + λ_n) ^ j
+have hagree_w : Set.EqOn (intervalDomainLift w)
+    (fun x => ∑' k, (Real.exp (-s * unitIntervalCosineEigenvalue k) *
+      heatCoeff u₀ k) * cosineMode k x) (Set.Icc (0 : ℝ) 1) :=
+  ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+    p u₀ hs_pos _hu₀_cont _hu₀_bound
 ```
 
-where the new lemma handles the `valueCosWeight (j - i) n` part, since
-`j - i ≤ j ≤ 2`.  The remaining steps are standard nonnegativity plus
-`pow_add`/`Nat.add_sub_cancel'`.
+So the exact bridge from conjugate level-0 lift to heat cosine series is already being used in that file.
 
-Summing over the Leibniz terms gives
+## Wiring `heatSemigroup_jointContDiffAt_two`
+
+The new joint regularity theorem is here:
 
 ```lean
-∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) * (1 + λ_n)^j
-  = 2^j * (1 + λ_n)^j
-  ≤ 4 * (1 + λ_n)^j
+ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
 ```
 
-for `j ≤ 2`.  If the target bound is allowed to keep `2^j` instead of absorbing
-it into `4`, the proof is even cleaner.
+Its target is the cosine-series representative:
+
+```lean
+ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+  ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+    cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
+```
+
+The Level0 file currently opens only:
+
+```lean
+open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
+```
+
+so either add/open the joint namespace:
+
+```lean
+open ShenWork.Paper2.HeatSemigroupJointRegularity
+  (heatSemigroup_jointContDiffAt_two)
+```
+
+or call the theorem fully qualified.
+
+## Suggested bridge shape
+
+For an interior spatial basepoint `hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1`, define:
+
+```lean
+let U_lift : ℝ × ℝ → ℝ := fun q =>
+  intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2
+
+let U_series : ℝ × ℝ → ℝ := fun q =>
+  ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
+    cosineMode k q.2
+```
+
+Then:
+
+```lean
+have hU_series_C2 : ContDiffAt ℝ 2 U_series (s₀, x₀) := by
+  -- with hs₀ : c < s₀, hc : 0 < c
+  simpa [U_series, ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff] using
+    ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+      (u₀ := u₀) (M₀ := M₀) _hu₀_bound hc hs₀
+```
+
+Build the event-level agreement from `hagree_zero`:
+
+```lean
+have hU_lift_eq_series : U_lift =ᶠ[𝓝 (s₀, x₀)] U_series := by
+  -- Need two neighborhood facts:
+  --   (a) q.1 > 0 near s₀, since 0 < c < s₀;
+  --   (b) q.2 ∈ Icc 0 1 near x₀, since x₀ ∈ Ioo 0 1.
+  filter_upwards [/* time-neighborhood q.1 > 0 */,
+                  /* space-neighborhood q.2 ∈ Icc 0 1 */] with q hq_time hq_x
+  have h := ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+    p u₀ hq_time _hu₀_cont _hu₀_bound hq_x
+  -- `h` is for `picardIter`; unfold/simpa level-0 definitions to rewrite
+  -- `conjugatePicardIter` to the same heat slice.
+  simpa [U_lift, U_series,
+    ShenWork.IntervalConjugatePicard.conjugatePicardIter,
+    ShenWork.IntervalMildPicard.picardIter,
+    ShenWork.IntervalPicardIterateRepresentation.iterateReprCoeff,
+    ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff] using h
+```
+
+Finally transfer:
+
+```lean
+exact hU_series_C2.congr_of_eventuallyEq hU_lift_eq_series
+```
+
+The orientation above matches the pattern already used in
+`heatSemigroup_jointContDiffAt_two`: `h.congr_of_eventuallyEq hEq` transfers from the current smooth representative to the left side of `hEq`.
+
+## Important endpoint caveat
+
+This `ContDiffAt` transfer is an **interior** bridge.  `hagree_zero` is `EqOn Icc`, but an ordinary neighborhood of `(s₀, 0)` or `(s₀, 1)` contains spatial points outside `[0,1]`; there the zero-extension `intervalDomainLift` is generally `0`, while the cosine-series representative is the even/periodic heat representative.  So for plain `ContDiffAt` you want `x₀ ∈ Ioo 0 1`.
+
+At endpoints, use a within-set statement (`ContDiffWithinAt`/`ContDiffOn`) or switch to the globally even cosine representative rather than the zero-extension.
