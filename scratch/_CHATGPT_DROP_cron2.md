@@ -1,226 +1,158 @@
-# Q828 (cron2) — 2A-core, smooth cosine-representative flux derivative
+# Q833 (cron2) — endpoint values for the `secondDeriv` bound in sub-sorry 1A
 
 Static repo inspection only; I did not run a local Lean build.
 
 ## Short answer
 
-Yes, the repo applies `chemFlux_contDiff_three` / `chemFluxDeriv_contDiff_two` to cosine representatives, but only in the **fixed-time spatial** sense.  I did **not** find a committed theorem giving the full joint `(s,x)` regularity of
+Yes, the strategy is correct, with one Lean-level nuance.
+
+For the power-source `IntervalWeakH2Neumann` route, the `secondDeriv` field is indeed the concrete classical expression
 
 ```lean
-fun q : ℝ × ℝ => chemFluxFun β (U_cos q.1) (V_cos q.1) q.2
+deriv (deriv g)
 ```
 
-or of its spatial derivative.  For 2A-core, the correct move is to clone/adapt the existing joint flux infrastructure from the coupled/lifted lane, not to try to reuse `chemFlux_contDiff_three` directly.
+when the structure is built by
 
-## What exists: fixed-time cosine-representative flux regularity
+```lean
+intervalWeakH2Neumann_of_contDiffOn
+```
 
-In
+because that constructor sets:
+
+```lean
+secondDeriv := deriv (deriv g)
+```
+
+and `intervalWeakH2Neumann_of_eigenvalue_summable` finishes by calling that constructor for
+
+```lean
+g := fun x : ℝ => ν * intervalDomainLift w x ^ γ
+```
+
+So for `hH2_per_slice` built along this route, the endpoint goal is really about `deriv (deriv g) 0` and `deriv (deriv g) 1`.
+
+The nuance is: `deriv (deriv g) 0 = 0` is not merely a one-line consequence of `deriv` being zero when non-differentiable.  There are two cases.  If `deriv g` is not differentiable at the endpoint, `deriv_zero_of_not_differentiableAt` gives zero.  If it is differentiable, you still need the one-sided constant-zero argument to force the derivative to be zero.  The repo already has exactly this argument packaged for interval lifts.
+
+## Endpoint lemmas already in the repo
+
+On branch `chatgpt-scratch`, the file
 
 ```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+ShenWork/PDE/IntervalLiftEndpointDeriv.lean
 ```
 
-we have:
+proves for any subtype profile:
 
 ```lean
-def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
-  u y * deriv v y / (1 + v y) ^ β
+theorem lift_deriv2_eq_zero_at_zero (f : intervalDomainPoint → ℝ) :
+    deriv (deriv (intervalDomainLift f)) 0 = 0
+
+theorem lift_deriv2_eq_zero_at_one (f : intervalDomainPoint → ℝ) :
+    deriv (deriv (intervalDomainLift f)) 1 = 0
 ```
 
-and the fixed-spatial calculus lemmas:
+and the exact bound-shaped corollaries:
 
 ```lean
-theorem chemFlux_contDiff_three
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
-    (hβnn : 0 ≤ β) :
-    ContDiff ℝ 3 (chemFluxFun β u v)
+theorem lift_deriv2_abs_le_at_zero
+    (f : intervalDomainPoint → ℝ) {B : ℝ} (hB : 0 ≤ B) :
+    |deriv (deriv (intervalDomainLift f)) 0| ≤ B
 
-theorem chemFluxDeriv_contDiff_two
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u) (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x) (hβnn : 0 ≤ β) :
-    ContDiff ℝ 2 (deriv (chemFluxFun β u v))
+theorem lift_deriv2_abs_le_at_one
+    (f : intervalDomainPoint → ℝ) {B : ℝ} (hB : 0 ≤ B) :
+    |deriv (deriv (intervalDomainLift f)) 1| ≤ B
 ```
 
-The cosine-representative consumer is:
+So boundary values are indeed automatically bounded by any nonnegative constant once the source is rewritten as an `intervalDomainLift`.
+
+## How to apply this to `ν · u^γ`
+
+For
 
 ```lean
-noncomputable def chemDivSource_weakH2_of_cosineRep
-    {p : CM2Params} {u v : intervalDomainPoint → ℝ}
-    {U_cos V_cos : ℝ → ℝ}
-    (hu_cos : ContDiff ℝ 4 U_cos)
-    (hv_cos : ContDiff ℝ 4 V_cos)
-    (hv_cos_pos : ∀ x, (0 : ℝ) < 1 + V_cos x)
-    ... :
-    IntervalWeakH2Neumann (chemDivLift p u v) := by
-  set F := deriv (chemFluxFun p.β U_cos V_cos)
-  have hF_C2 : ContDiff ℝ 2 F :=
-    chemFluxDeriv_contDiff_two hu_cos hv_cos hv_cos_pos p.hβ
+g := fun x : ℝ => ν * intervalDomainLift w x ^ γ
+```
+
+do not try to prove the endpoint second derivative bound from scratch.  Rewrite `g` as a zero-extension:
+
+```lean
+let f : intervalDomainPoint → ℝ := fun y => ν * w y ^ γ
+have hg_lift : g = intervalDomainLift f := by
+  funext x
+  by_cases hx : x ∈ Set.Icc (0 : ℝ) 1
+  · simp [g, f, intervalDomainLift, hx]
+  · simp [g, f, intervalDomainLift, hx, Real.zero_rpow hγ.ne']
+```
+
+Then the endpoint cases are:
+
+```lean
+-- x = 0
+simpa [g, hg_lift] using
+  ShenWork.IntervalLiftEndpointDeriv.lift_deriv2_abs_le_at_zero f hC_nonneg
+
+-- x = 1
+simpa [g, hg_lift] using
+  ShenWork.IntervalLiftEndpointDeriv.lift_deriv2_abs_le_at_one f hC_nonneg
+```
+
+You may need to orient the rewrite manually, e.g.
+
+```lean
+rw [hg_lift]
+exact ShenWork.IntervalLiftEndpointDeriv.lift_deriv2_abs_le_at_zero f hC_nonneg
+```
+
+inside an endpoint branch.
+
+## Splitting `x ∈ Icc 0 1`
+
+The robust proof shape is:
+
+```lean
+rcases lt_or_eq_of_le hx.1 with hx0 | rfl
+· rcases lt_or_eq_of_le hx.2 with hx1 | rfl
+  · -- interior: x ∈ Ioo 0 1
+    have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
+    -- use eventual equality with the smooth cosine representative
+    -- then compactness / joint continuity gives `≤ C`
+  · -- x = 1
+    -- rewrite source as intervalDomainLift f; use lift_deriv2_abs_le_at_one
+· -- x = 0
+  -- rewrite source as intervalDomainLift f; use lift_deriv2_abs_le_at_zero
+```
+
+This matches your proposed decomposition:
+
+```text
+Icc 0 1 = Ioo 0 1 ∪ {0,1}
+```
+
+Interior points are controlled by joint continuity/compactness of the smooth representative; endpoint points are controlled by the zero-extension endpoint lemmas.
+
+## Important caveat: check which H² constructor produced `secondDeriv`
+
+For the power source built by `intervalWeakH2Neumann_of_eigenvalue_summable`, the above applies directly: its `secondDeriv` is `deriv (deriv g)` for the zero-extended `g`.
+
+For `chemDivSource_weakH2_of_cosineRep`, the repo deliberately builds the H² certificate with the smooth representative’s second derivative instead:
+
+```lean
+set F := deriv (chemFluxFun p.β U_cos V_cos)
+have hF_H2 : IntervalWeakH2Neumann F := ...
+exact {
+  secondDeriv := hF_H2.secondDeriv
   ...
+}
 ```
 
-So: **yes**, `chemFlux_contDiff_three` is used on `U_cos`, `V_cos`, but it is for one frozen time `s`, with `U_cos V_cos : ℝ → ℝ`.
+In that case the boundary issue is different: the `secondDeriv` is not the zero-extension’s `deriv (deriv ...)`; it is the representative derivative selected for the weak H² certificate.  Your Q833 statement sounds like the power-source `ν · u^γ` case in sub-sorry 1A, so the zero-extension endpoint lemmas are the right tool.
 
-`IntervalConjugateLevel0BFormSourceOn.lean` also builds exactly this fixed-time setup: it defines
+## Verdict
 
-```lean
-set U_cos := fun x => ∑' k,
-  (Real.exp (-s * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
-```
+Your mathematical split is correct.  The Lean-safe statement is:
 
-then proves `hU_C4 : ContDiff ℝ 4 U_cos` via `heatSemigroup_contDiff_four`, proves agreement with the level-0 lift using `hagree_zero`, and introduces a `V_cos` resolver representative package with `ContDiff ℝ 4 V_cos`, positivity, agreement, and parity fields.  Again, this is per fixed `s`, not joint in `s`.
+* On `Ioo 0 1`, transfer to the smooth cosine representative and use joint continuity plus compactness.
+* At `0` and `1`, first rewrite `ν * intervalDomainLift w x ^ γ` as `intervalDomainLift (fun y => ν * w y ^ γ) x`, then use `lift_deriv2_abs_le_at_zero` / `lift_deriv2_abs_le_at_one`.
 
-## What exists for joint regularity: the lifted coupled-flux lane
-
-The useful joint template is in
-
-```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-```
-
-The core theorem is:
-
-```lean
-theorem coupledChemDivFlux_contDiffAt_of_factorJointC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
-    (hu : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
-    (hv : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-      (s, x))
-    (hgradv : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x))
-    (hbase : 0 <
-      1 + intervalDomainLift (coupledChemicalConcentration p u s) x) :
-    ContDiffAt ℝ 2
-      (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
-```
-
-This is exactly the product/quotient/rpow argument you want, but for the lifted coupled flux, not the smooth representatives.  The proof constructs
-
-```lean
-1 + v,  (1+v)^β,  u * gradv / (1+v)^β
-```
-
-using `ContDiffAt.add`, `ContDiffAt.rpow_const_of_ne`, `ContDiffAt.mul`, and `ContDiffAt.div`.
-
-The same file also has the fixed-time spatial derivative bridge:
-
-```lean
-theorem real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
-    {F : ℝ × ℝ → ℝ} {s x : ℝ}
-    (hF : DifferentiableAt ℝ F (s, x)) :
-    deriv (fun y : ℝ => F (s, y)) x =
-      fderiv ℝ F (s, x) (0, 1)
-```
-
-This is the bridge from `deriv (chemFluxFun β (U_cos s) (V_cos s)) x` to the spatial Fréchet partial of the joint function.
-
-## Existing resolver gradient joint regularity is a separate field
-
-One important correction to the route as stated: from joint `C²` of `V(s,x)` alone, the spatial derivative `V_x(s,x)` is only joint `C¹` by the usual derivative-loses-one principle.  To get flux `ContDiffAt ℝ 2` from the rational formula, the existing coupled theorem assumes the gradient factor itself is joint `C²`:
-
-```lean
-hgradv : ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => deriv (... q.1) q.2) (s, x)
-```
-
-That is not derived from `hv` in the flux theorem; it is supplied separately.
-
-In the resolver physical lane, this separate gradient regularity is produced by:
-
-```lean
-theorem coupledChemical_grad_jointContDiffAt_two
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x)
-```
-
-It uses a separate bounded-weight gradient assembler and an eventual equality that rewrites the derivative of the lifted resolver to the gradient cosine series.
-
-For the smooth representative version, you want the same data shape: joint regularity of `U`, joint regularity of `V`, and joint regularity of `V_x`.  If you only have `U,V : C²_joint`, then you can still prove the flux is `C¹_joint`, which is enough for continuity of the spatial derivative; but you should not expect `Φ : C²_joint` unless `V_x` is also `C²_joint` (or `V` is joint `C³` with the right API).
-
-## Recommended 2A-core lemma shape
-
-Define the smooth representative joint flux:
-
-```lean
-def smoothChemFluxJoint (β : ℝ) (U V : ℝ → ℝ → ℝ) : ℝ × ℝ → ℝ :=
-  fun q => chemFluxFun β (U q.1) (V q.1) q.2
-```
-
-Then prove a representative analogue of `coupledChemDivFlux_contDiffAt_of_factorJointC2`:
-
-```lean
-theorem smoothChemFluxJoint_contDiffAt_of_factor
-    {β : ℝ} {U V : ℝ → ℝ → ℝ} {s x : ℝ}
-    (hU : ContDiffAt ℝ 1 (fun q : ℝ × ℝ => U q.1 q.2) (s, x))
-    (hV : ContDiffAt ℝ 1 (fun q : ℝ × ℝ => V q.1 q.2) (s, x))
-    (hVx : ContDiffAt ℝ 1 (fun q : ℝ × ℝ => deriv (V q.1) q.2) (s, x))
-    (hbase : 0 < 1 + V s x) :
-    ContDiffAt ℝ 1 (smoothChemFluxJoint β U V) (s, x) := by
-  -- same proof as `coupledChemDivFlux_contDiffAt_of_factorJointC2`, with order 1
-  -- unfold `smoothChemFluxJoint`, `chemFluxFun`
-  -- build `1 + V`, `(1 + V)^β`, then `(U * Vx) / denom`
-```
-
-Use order `2` instead of order `1` if you really have `hVx : ContDiffAt ℝ 2 ...`; but for mere continuity of the chemDiv source, order `1` is enough.
-
-Then convert the spatial derivative to a continuous function on the rectangle.  Let
-
-```lean
-R : Set (ℝ × ℝ) := Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1
-Φ : ℝ × ℝ → ℝ := smoothChemFluxJoint β U V
-Ψ : ℝ × ℝ → ℝ := fun q => deriv (chemFluxFun β (U q.1) (V q.1)) q.2
-ΨF : ℝ × ℝ → ℝ := fun q => fderiv ℝ Φ q (0, 1)
-```
-
-From `hΦ : ∀ q ∈ R, ContDiffAt ℝ 1 Φ q`, prove continuity of `ΨF` pointwise using `fderiv_right` at order zero:
-
-```lean
-have hΨF_cont : ContinuousOn ΨF R := by
-  intro q hq
-  let ex : ℝ × ℝ := (0, 1)
-  let evalEx : (ℝ × ℝ →L[ℝ] ℝ) →L[ℝ] ℝ :=
-    (ContinuousLinearMap.apply ℝ ℝ) ex
-  have hfd : ContDiffAt ℝ 0 (fun q => fderiv ℝ Φ q) q :=
-    (hΦ q hq).fderiv_right (m := 0) (n := 1) (by norm_num)
-  exact (evalEx.continuous.continuousAt.comp q hfd.continuousAt).continuousWithinAt
-```
-
-Then identify `Ψ` and `ΨF` on `R` using the repo theorem:
-
-```lean
-have hΨ_eq : ∀ q ∈ R, Ψ q = ΨF q := by
-  intro q hq
-  rcases q with ⟨s, x⟩
-  have hd : DifferentiableAt ℝ Φ (s, x) :=
-    (hΦ (s, x) hq).differentiableAt (by norm_num)
-  simpa [Φ, Ψ, ΨF, smoothChemFluxJoint] using
-    ShenWork.IntervalCoupledRegularityBootstrap
-      .real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
-        (F := Φ) hd
-```
-
-Finally:
-
-```lean
-exact hΨF_cont.congr hΨ_eq
-```
-
-(or do the `intro q hq` version manually if `ContinuousOn.congr` inference is annoying).
-
-## Bottom line
-
-* `chemFlux_contDiff_three` is already applied to cosine representatives, but only for fixed `s` / spatial regularity.
-* The repo does **not** appear to have a joint `(s,x)` cosine-representative theorem for `deriv (chemFluxFun β (U_cos s) (V_cos s)) x`.
-* The right source to copy is `coupledChemDivFlux_contDiffAt_of_factorJointC2` plus `real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt`.
-* For 2A-core `ContinuousOn`, proving joint `C¹` of the smooth flux representative is enough; proving joint `C²` is stronger and requires a separately joint-`C²` gradient factor `V_x`, just as the coupled lane explicitly assumes/produces `hgradv_c2`.
+Do not rely on “`deriv` is zero when non-differentiable” alone as the proof explanation for the second derivative.  The repo endpoint lemmas already handle both differentiable and non-differentiable cases for `deriv (deriv (intervalDomainLift f))`.
