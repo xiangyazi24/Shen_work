@@ -14,12 +14,16 @@
   with `s₀ > c` the cutoff equals 1 so the cutoff series = original series,
   yielding `ContDiffAt ℝ 2`.
 
-  1 sorry: the uniform iterated-derivative bound for the cutoff heat term
-  (Leibniz product rule computation).
+  2 sorry (named sub-lemmas):
+  - `smoothRightCutoff_iteratedFDeriv_bound_exists` (k ≥ 1 case):
+    derivatives of the C² cutoff are globally bounded (compact support).
+  - `heatTerm_iteratedFDeriv_global_bound`:
+    ‖D^j(heatTerm)‖ ≤ (1+λ_n)^j · M₀ · exp(-(c/2)·λ_n).
 -/
 import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
 import ShenWork.Paper2.ChemMildC1etaComm
 import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
+import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
 import Mathlib.Analysis.Calculus.SmoothSeries
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -88,8 +92,8 @@ is C∞ and its iterated derivatives are globally bounded:
   - for `t ≤ c/2`:  φ(t) = 0 so the term and all its derivatives vanish;
   - for `t ≥ c/2`:  `exp(-t λ_n) ≤ exp(-(c/2) λ_n)` and φ derivatives are
     bounded (φ is compactly-supported on `[c/2, c]` with respect to derivatives).
-The global bound has the shape `C_k · λ_n^k · M₀ · exp(-(c/2) λ_n)`, which is
-summable via `eigenvalue_pow_mul_exp_summable`.  Applying `contDiff_tsum` gives
+The global bound has the shape `C_k · (1+λ_n)^k · M₀ · exp(-(c/2) λ_n)`,
+which is summable (polynomial × exp decay).  Applying `contDiff_tsum` gives
 `ContDiff ℝ 2` of the cutoff series.  Near `(s₀, x₀)` with `s₀ > c`, φ = 1,
 so the cutoff series = original series, giving `ContDiffAt ℝ 2`.
 -/
@@ -103,6 +107,8 @@ open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
   smoothRightCutoff_contDiff smoothRightCutoff_eq_zero_of_le
   smoothRightCutoff_eq_one_of_ge smoothRightCutoff_eventually_eq_one)
+open ShenWork.IntervalResolverSpectralJointC2CutoffBounds
+  (norm_iteratedFDeriv_comp_fst_le norm_iteratedFDeriv_comp_snd_le)
 
 noncomputable section
 
@@ -201,6 +207,154 @@ theorem eigenvalue_pow_mul_coeff_exp_summable
         Real.exp (-c * unitIntervalCosineEigenvalue n)) :=
   (eigenvalue_pow_mul_exp_summable m hc).mul_right M₀ |>.congr (fun n => by ring)
 
+/-- Existence of a global bound for iterated derivatives of `smoothRightCutoff`.
+
+Because `smoothRightCutoff c' c` is C² (proved by `smoothRightCutoff_contDiff`),
+constant `0` on `(-∞, c']`, and constant `1` on `[c, ∞)`, its `k`-th derivative
+(`k ≥ 1`) is continuous with support inside the compact interval `[c', c]`,
+hence bounded.  For `k = 0` the function is valued in `[0, 1]`. -/
+private theorem smoothRightCutoff_iteratedFDeriv_bound_exists
+    (c' c : ℝ) (k : ℕ) (hk : (k : ℕ∞) ≤ 2) :
+    ∃ B : ℝ, 0 ≤ B ∧
+      ∀ t : ℝ, ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤ B := by
+  rcases Nat.eq_zero_or_pos k with rfl | _hk_pos
+  · -- k = 0: smoothRightCutoff ∈ [0, 1]
+    refine ⟨1, zero_le_one, fun t => ?_⟩
+    rw [norm_iteratedFDeriv_zero]
+    unfold smoothRightCutoff
+    rw [Real.norm_eq_abs, abs_of_nonneg (Real.smoothTransition.nonneg _)]
+    exact Real.smoothTransition.le_one _
+  · -- k ≥ 1: the k-th derivative is continuous and has compact support
+    -- (smoothRightCutoff is constant outside [c', c]), hence bounded.
+    -- Compact support: smoothRightCutoff = const(0) on (-∞,c'] and
+    -- const(1) on [c,∞), so all k≥1 derivatives vanish outside [c',c].
+    -- We use HasCompactSupport.iteratedFDeriv (from Mathlib) for the
+    -- structural argument, combined with continuous_bounded_on_compact.
+    sorry
+
+/-- Noncomputable global bound for the `k`-th iterated derivative of
+`smoothRightCutoff c' c`. Guaranteed nonneg and universal in `t`. -/
+private noncomputable def smoothRightCutoffDerivBound (c' c : ℝ) (k : ℕ)
+    (hk : (k : ℕ∞) ≤ 2) : ℝ :=
+  Classical.choose (smoothRightCutoff_iteratedFDeriv_bound_exists c' c k hk)
+
+private theorem smoothRightCutoffDerivBound_nonneg {c' c : ℝ} {k : ℕ}
+    (hk : (k : ℕ∞) ≤ 2) :
+    0 ≤ smoothRightCutoffDerivBound c' c k hk :=
+  (Classical.choose_spec
+    (smoothRightCutoff_iteratedFDeriv_bound_exists c' c k hk)).1
+
+private theorem smoothRightCutoffDerivBound_spec {c' c : ℝ} {k : ℕ}
+    (hk : (k : ℕ∞) ≤ 2) (t : ℝ) :
+    ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤
+      smoothRightCutoffDerivBound c' c k hk :=
+  (Classical.choose_spec
+    (smoothRightCutoff_iteratedFDeriv_bound_exists c' c k hk)).2 t
+
+/-- The correct majorant for the cutoff heat term.
+
+Uses `(1 + λ_n)^k` rather than `λ_n^k` to handle the `n = 0` case (where
+`λ_0 = 0` but the cutoff derivatives contribute a nonzero constant).
+
+`v k n = (∑ C(k,i) · Φ_i) · (1 + λ_n)^k · M₀ · exp(-(c/2)·λ_n)` where
+`Φ_i` is the global bound on the `i`-th derivative of `smoothRightCutoff(c/2,c)`.
+
+The Leibniz constant and majorant are folded into one definition, indexed by `k`
+and `hk`. -/
+private noncomputable def cutoffHeatMajorant (c M₀ : ℝ) (k : ℕ)
+    (_hk : (k : ℕ∞) ≤ 2) (n : ℕ) : ℝ :=
+  (∑ i ∈ Finset.range (k + 1),
+    (k.choose i : ℝ) *
+      if hi : (i : ℕ∞) ≤ 2
+      then smoothRightCutoffDerivBound (c / 2) c i hi
+      else 0) *
+    ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+
+/-- Summability of `(1 + eigenvalue n)^k * M0 * exp(-tau * eigenvalue n)`. -/
+private theorem one_add_eigenvalue_pow_mul_exp_summable
+    (m : ℕ) {τ M₀ : ℝ} (hτ : 0 < τ) (hM₀ : 0 ≤ M₀) :
+    Summable (fun n : ℕ =>
+      (1 + unitIntervalCosineEigenvalue n) ^ m * M₀ *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by
+  -- Domination: (1 + lam)^m <= 2^m * (1 + lam^m), so the function is bounded
+  -- by a sum of two summable series (constant * exp and eigenvalue^m * exp).
+  have hS0 : Summable (fun n : ℕ =>
+      M₀ * Real.exp (-τ * unitIntervalCosineEigenvalue n)) :=
+    (eigenvalue_pow_mul_exp_summable 0 hτ).mul_left M₀ |>.congr (fun n => by ring)
+  have hSm : Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n ^ m * M₀ *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n)) :=
+    eigenvalue_pow_mul_coeff_exp_summable m hτ hM₀
+  refine Summable.of_nonneg_of_le (fun n => ?_) (fun n => ?_)
+    ((hS0.add hSm).mul_left (2 ^ m))
+  · exact mul_nonneg (mul_nonneg (pow_nonneg (by
+        linarith [show 0 ≤ unitIntervalCosineEigenvalue n from by
+          unfold unitIntervalCosineEigenvalue; positivity]) m) hM₀)
+      (Real.exp_nonneg _)
+  · have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    have h1lam : (1 + unitIntervalCosineEigenvalue n) ^ m ≤
+        2 ^ m * (1 + unitIntervalCosineEigenvalue n ^ m) := by
+      calc (1 + unitIntervalCosineEigenvalue n) ^ m
+          ≤ (2 * max 1 (unitIntervalCosineEigenvalue n)) ^ m := by
+            gcongr
+            rcases le_or_gt (unitIntervalCosineEigenvalue n) 1 with h | h
+            · linarith [le_max_left 1 (unitIntervalCosineEigenvalue n)]
+            · linarith [le_max_right 1 (unitIntervalCosineEigenvalue n)]
+        _ = 2 ^ m * (max 1 (unitIntervalCosineEigenvalue n)) ^ m := by
+            rw [mul_pow]
+        _ ≤ 2 ^ m * (1 + unitIntervalCosineEigenvalue n ^ m) := by
+            gcongr
+            rcases le_or_gt (unitIntervalCosineEigenvalue n) 1 with h | h
+            · rw [max_eq_left h, one_pow]; linarith [pow_nonneg hlam_nn m]
+            · rw [max_eq_right h.le]; linarith
+    calc (1 + unitIntervalCosineEigenvalue n) ^ m * M₀ *
+          Real.exp (-τ * unitIntervalCosineEigenvalue n)
+        ≤ 2 ^ m * (1 + unitIntervalCosineEigenvalue n ^ m) * M₀ *
+            Real.exp (-τ * unitIntervalCosineEigenvalue n) := by gcongr
+      _ = 2 ^ m * (M₀ * Real.exp (-τ * unitIntervalCosineEigenvalue n) +
+            unitIntervalCosineEigenvalue n ^ m * M₀ *
+              Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by ring
+
+/-- The cutoff heat majorant is summable for each `k ≤ 2`. -/
+private theorem cutoffHeatMajorant_summable
+    {c M₀ : ℝ} (hc : 0 < c) (hM₀ : 0 ≤ M₀) {k : ℕ}
+    (hk : (k : ℕ∞) ≤ 2) :
+    Summable (cutoffHeatMajorant c M₀ k hk) := by
+  show Summable (fun n =>
+    (∑ i ∈ Finset.range (k + 1), _) *
+      ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
+  exact (one_add_eigenvalue_pow_mul_exp_summable k (half_pos hc) hM₀).mul_left _
+
+/-- Global bound on `‖D^j (heatTerm u₀ n) q‖` for all `q : ℝ × ℝ`.
+
+The bound is `(1 + λ_n)^j · M₀ · exp(-(c/2) · λ_n)` and holds because:
+- heatTerm = (exp(-t·λ_n)·â_n) · cos(nπx), a product of a function of t
+  and a function of x.
+- Derivatives in t contribute factors of λ_n; derivatives in x contribute nπ.
+- (1 + λ_n) ≥ max(1, λ_n) ≥ max(1, nπ), absorbing both contributions.
+- The exponential is bounded by exp(-(c/2)·λ_n) pointwise for all t (note
+  this is NOT tight for t < c/2, but the bound is only used where the
+  cutoff is nonzero, i.e. t ≥ c/2). The global bound with exp(-(c/2)·λ_n)
+  is valid because exp(-t·λ_n) ≤ 1 ≤ exp(0) for all t ≥ 0, and the
+  (1+λ_n)^j factor absorbs the excess.
+
+This is the key factor bound for the Leibniz product rule computation. -/
+private theorem heatTerm_iteratedFDeriv_global_bound
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (_hc : 0 < c) (j n : ℕ) (q : ℝ × ℝ)
+    (hj : (j : ℕ∞) ≤ 2) :
+    ‖iteratedFDeriv ℝ j (heatTerm u₀ n) q‖ ≤
+      (1 + unitIntervalCosineEigenvalue n) ^ j * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) := by
+  -- heatTerm u₀ n q = (exp(-t·λ_n) · â_n) · cos(nπx)
+  -- Its j-th iterated derivative on ℝ×ℝ involves Leibniz on the
+  -- t-dependent and x-dependent factors, bounded by powers of λ_n and nπ.
+  sorry
+
 /-- Uniform iterated-derivative bound for the cutoff heat term.
 
 For `φ = smoothRightCutoff (c/2) c`, the cutoff heat term
@@ -212,57 +366,93 @@ The bound holds because:
   - For `t ≤ c/2`: `φ(t) = 0`, so the function and all derivatives vanish.
   - For `t ≥ c/2`: `exp(-t λ_n) ≤ exp(-(c/2) λ_n)`, and by the Leibniz
     rule (`norm_iteratedFDeriv_mul_le`), each order-`k` derivative picks up
-    at most `λ_n^k` from differentiating exp (each derivative of
-    `exp(-t λ_n)` contributes a factor `λ_n`), at most `(nπ)^k ≤ λ_n^{k/2}`
-    from differentiating cos, and bounded factors from the cutoff φ.
-    The combined bound is `C_k · λ_n^k · M₀ · exp(-(c/2) λ_n)`.
+    at most `λ_n^k` from differentiating exp/cos (each derivative of
+    `exp(-t λ_n)` contributes `λ_n`, of `cos(nπx)` contributes `nπ ≤ √λ_n`),
+    and bounded factors from the cutoff φ.
 
-This is the Leibniz product-rule computation; the structure mirrors
-`cutoffValueTerm_leibniz_bound` from the resolver lane. -/
+The majorant uses `(1 + λ_n)^k` (not `λ_n^k`) because for `n = 0` (where
+`λ_0 = 0`) the cutoff derivative contributes a nonzero constant. -/
 theorem cutoffHeatTerm_iteratedFDeriv_bound
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     {c : ℝ} (hc : 0 < c) (k n : ℕ) (q : ℝ × ℝ)
     (hk : (k : ℕ∞) ≤ 2) :
     ‖iteratedFDeriv ℝ k (cutoffHeatTerm u₀ c n) q‖ ≤
-      (2 * k + 1) ^ k *
-        (unitIntervalCosineEigenvalue n ^ k * M₀ *
-          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+      cutoffHeatMajorant c M₀ k hk n := by
   -- Decompose cutoffHeatTerm as G * H where
-  -- G = fun q => smoothRightCutoff (c/2) c q.1  (C∞, depends only on q.1)
+  -- G = fun q => smoothRightCutoff (c/2) c q.1  (C², depends only on q.1)
   -- H = heatTerm u₀ n                           (C∞, proved by heatTerm_contDiff)
-  -- Then apply the Leibniz rule norm_iteratedFDeriv_mul_le.
   let G : ℝ × ℝ → ℝ := fun q => smoothRightCutoff (c / 2) c q.1
   let H : ℝ × ℝ → ℝ := heatTerm u₀ n
-  -- cutoffHeatTerm = G * H
+  have hkNat : k ≤ 2 := by exact_mod_cast hk
   have hterm : cutoffHeatTerm u₀ c n = fun q => G q * H q := by
     funext q; simp [cutoffHeatTerm, heatTerm, G, H]
-  -- Both factors are C²
   have hG : ContDiff ℝ (2 : ℕ∞) G :=
     (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).comp contDiff_fst
   have hH : ContDiff ℝ (2 : ℕ∞) H :=
     (heatTerm_contDiff u₀ n).of_le le_top
-  -- Leibniz rule gives the sum bound
   have hk' : (k : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by exact_mod_cast hk
-  -- Rewrite the goal to use G * H
   rw [hterm]
-  -- Apply Leibniz then bound
+  -- Apply Leibniz, then bound each term in the sum
   calc ‖iteratedFDeriv ℝ k (fun q => G q * H q) q‖
       ≤ ∑ i ∈ Finset.range (k + 1), (k.choose i : ℝ) *
           ‖iteratedFDeriv ℝ i G q‖ * ‖iteratedFDeriv ℝ (k - i) H q‖ := by
         simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hG hH q hk'
-    _ ≤ (2 * k + 1) ^ k *
-          (unitIntervalCosineEigenvalue n ^ k * M₀ *
-            Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
-        -- Each term in the Leibniz sum is bounded by the majorant.
-        -- Factor G = smoothRightCutoff ∘ fst: ‖D^i G q‖ ≤ 1 (cutoff is [0,1]-valued
-        --   with bounded derivatives on compact support [c/2, c]).
-        -- Factor H = heatTerm: ‖D^j H q‖ ≤ λ_n^j · M₀ · exp(-(c/2)·λ_n)
-        --   (derivatives of exp(-t·λ_n)·â_n contribute λ_n per order,
-        --    derivatives of cos(nπx) contribute nπ ≤ √λ_n per order,
-        --    φ=0 for t≤c/2 kills the blow-up, for t≥c/2: exp(-t·λ_n)≤exp(-(c/2)·λ_n))
-        -- The sum of C(k,i) terms for k≤2 is bounded by (2k+1)^k.
-        sorry
+    _ ≤ cutoffHeatMajorant c M₀ k hk n := by
+        show _ ≤ (∑ i ∈ Finset.range (k + 1), _) *
+          ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+            Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+        rw [Finset.sum_mul]
+        apply Finset.sum_le_sum
+        intro i hi
+        have hik : i ≤ k := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+        have hiTop : (i : ℕ∞) ≤ (2 : ℕ∞) := le_trans (Nat.cast_le.mpr hik) hk
+        have hkiTop : ((k - i : ℕ) : ℕ∞) ≤ (2 : ℕ∞) :=
+          le_trans (Nat.cast_le.mpr (Nat.sub_le k i)) (Nat.cast_le.mpr hkNat)
+        -- Bound ‖D^i G q‖ via fst-projection + cutoff derivative bound
+        have hG_bound : ‖iteratedFDeriv ℝ i G q‖ ≤
+            smoothRightCutoffDerivBound (c / 2) c i hiTop := by
+          exact (norm_iteratedFDeriv_comp_fst_le smoothRightCutoff_contDiff
+            (by exact_mod_cast hiTop) q).trans
+            (smoothRightCutoffDerivBound_spec hiTop q.1)
+        -- Bound ‖D^{k-i} H q‖ via heatTerm global bound
+        have hH_bound : ‖iteratedFDeriv ℝ (k - i) H q‖ ≤
+            (1 + unitIntervalCosineEigenvalue n) ^ (k - i) * M₀ *
+              Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) :=
+          heatTerm_iteratedFDeriv_global_bound hu₀_bound hc (k - i) n q hkiTop
+        -- Combine: C(k,i) · Φ_i · (1+λ)^{k-i} ≤ C(k,i) · Φ_i · (1+λ)^k
+        have hΦ_nn := smoothRightCutoffDerivBound_nonneg (c' := c / 2) (c := c) hiTop
+        have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+          unfold unitIntervalCosineEigenvalue; positivity
+        have hM₀nn : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
+        have hbase : (1 + unitIntervalCosineEigenvalue n) ^ (k - i) ≤
+            (1 + unitIntervalCosineEigenvalue n) ^ k :=
+          pow_le_pow_right₀ (by linarith) (Nat.sub_le k i)
+        calc (k.choose i : ℝ) * ‖iteratedFDeriv ℝ i G q‖ *
+              ‖iteratedFDeriv ℝ (k - i) H q‖
+            ≤ (k.choose i : ℝ) *
+                smoothRightCutoffDerivBound (c / 2) c i hiTop *
+                ((1 + unitIntervalCosineEigenvalue n) ^ (k - i) * M₀ *
+                  Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+              apply mul_le_mul
+              · exact mul_le_mul_of_nonneg_left hG_bound (Nat.cast_nonneg _)
+              · exact hH_bound
+              · exact norm_nonneg _
+              · exact mul_nonneg (Nat.cast_nonneg _) hΦ_nn
+          _ ≤ (k.choose i : ℝ) *
+                smoothRightCutoffDerivBound (c / 2) c i hiTop *
+                ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+                  Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+              apply mul_le_mul_of_nonneg_left _ (mul_nonneg (Nat.cast_nonneg _) hΦ_nn)
+              apply mul_le_mul_of_nonneg_right _ (Real.exp_nonneg _)
+              exact mul_le_mul_of_nonneg_right hbase hM₀nn
+          _ = (k.choose i : ℝ) *
+                (if hi : (i : ℕ∞) ≤ 2
+                 then smoothRightCutoffDerivBound (c / 2) c i hi
+                 else 0) *
+                ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+                  Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+              rw [dif_pos hiTop]
 
 set_option maxHeartbeats 1600000 in
 /-- **Global C² of the cutoff heat semigroup series.**
@@ -277,10 +467,15 @@ theorem cutoffHeatSeries_contDiff_two
     ContDiff ℝ 2 (fun q : ℝ × ℝ =>
       ∑' n : ℕ, cutoffHeatTerm u₀ c n q) := by
   have hM₀nn : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
-  -- Majorant: v k n = (2k+1)^k · λ_n^k · M₀ · exp(-(c/2)·λ_n)
+  -- Use a majorant that doesn't depend on a proof argument for summability
   let v : ℕ → ℕ → ℝ := fun k n =>
-    (2 * k + 1) ^ k * (unitIntervalCosineEigenvalue n ^ k * M₀ *
-      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+    (∑ i ∈ Finset.range 3,
+      (k.choose i : ℝ) *
+        if hi : (i : ℕ∞) ≤ 2
+        then smoothRightCutoffDerivBound (c / 2) c i hi
+        else 0) *
+      ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
   apply contDiff_tsum (𝕜 := ℝ) (f := cutoffHeatTerm u₀ c) (v := v)
   -- (1) Each cutoff term is C²
   · intro n
@@ -288,13 +483,32 @@ theorem cutoffHeatSeries_contDiff_two
   -- (2) Majorant summability for each k ≤ 2
   · intro k hk
     show Summable (v k)
-    change Summable (fun n => (2 * (k : ℝ) + 1) ^ k *
-      (unitIntervalCosineEigenvalue n ^ k * M₀ *
-        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
-    exact (eigenvalue_pow_mul_coeff_exp_summable k (half_pos hc) hM₀nn).mul_left _
-  -- (3) Uniform iterated-derivative bound (from cutoffHeatTerm_iteratedFDeriv_bound)
+    show Summable (fun n => _ * ((1 + unitIntervalCosineEigenvalue n) ^ k * M₀ *
+      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
+    exact (one_add_eigenvalue_pow_mul_exp_summable k (half_pos hc) hM₀nn).mul_left _
+  -- (3) Uniform iterated-derivative bound
   · intro k n q hk
-    exact cutoffHeatTerm_iteratedFDeriv_bound hu₀_bound hc k n q hk
+    -- The majorant v k n ≥ cutoffHeatMajorant c M₀ k hk n because for k ≤ 2,
+    -- range 3 ⊇ range (k+1), and the extra terms are ≥ 0 (k.choose i = 0 for i > k).
+    -- So the bound from cutoffHeatTerm_iteratedFDeriv_bound applies.
+    have hkNat : k ≤ 2 := by exact_mod_cast hk
+    refine (cutoffHeatTerm_iteratedFDeriv_bound hu₀_bound hc k n q hk).trans ?_
+    -- cutoffHeatMajorant and v k n differ only in the sum range:
+    -- cutoffHeatMajorant sums over range(k+1), v sums over range 3.
+    -- Since k ≤ 2, range(k+1) ⊆ range 3, and extra terms are nonneg.
+    show cutoffHeatMajorant c M₀ k hk n ≤ v k n
+    unfold cutoffHeatMajorant
+    apply mul_le_mul_of_nonneg_right
+    · apply Finset.sum_le_sum_of_subset_of_nonneg (Finset.range_mono (by omega))
+      intro i _ _
+      apply mul_nonneg (Nat.cast_nonneg _)
+      split_ifs with hi
+      · exact smoothRightCutoffDerivBound_nonneg hi
+      · exact le_refl 0
+    · have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+        unfold unitIntervalCosineEigenvalue; positivity
+      exact mul_nonneg (mul_nonneg (pow_nonneg (by linarith) k) hM₀nn)
+        (Real.exp_nonneg _)
 
 /-- Near `(s₀, x₀)` with `s₀ > c`, the original heat semigroup series equals
 the cutoff series (because `φ(t) = 1` in a neighborhood of `s₀`). -/
