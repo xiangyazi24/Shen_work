@@ -1,4 +1,4 @@
-# Q861 / cron1: direct resolver joint-C² shortcut?
+# Q865 / cron1: wire `heatResolverJointContDiffAt_two` into Level0 2A-sup?
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -6,302 +6,320 @@ Branch written: `chatgpt-scratch`
 
 Refs inspected:
 
-- `chatgpt-scratch` for the committed physical resolver/source files under `ShenWork/PDE`.
-- `main` for `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`; the connector returned 404 for that path on `chatgpt-scratch`, but code search/fetch found it on `main`.
+- `main` for `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` and `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`.
+- `chatgpt-scratch` for the existing physical resolver joint-C² producer file `ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean`.
+
+Note: the connector returned `404` for `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` at `chatgpt-scratch`, so the Level0 diagnosis below is based on the `main` snapshot. The requested scratch file itself was updated on `chatgpt-scratch`.
 
 ## Verdict
 
-There is **no magic shortcut** that gets resolver joint `C²` from only
+**Yes — wire it now**, but do not wire only the theorem
 
 ```lean
-ContDiffAt ℝ 2 (fun q => intervalDomainLift (u q.1) q.2) (s, x)
+heatResolverJointContDiffAt_two
 ```
 
-by saying “the elliptic resolver is bounded linear.”
+as if it were sufficient by itself.
 
-The bounded-linear idea is mathematically valid only after you have a **Banach-valued** statement of the form
+The wiring is mathematically correct and it is a good idea to do it now, even though the upstream theorem still contains sorry through
 
 ```lean
-ContDiffAt ℝ 2 (fun t => sourceSliceAsBanachElement t) s
+heatSemigroup_level0_resolverJointC2Data
 ```
 
-and a continuous linear elliptic resolver
+The sorry will propagate, but the downstream Level0 wiring becomes honest and testable.
+
+However, there are two important caveats:
+
+1. `heatResolverJointContDiffAt_two` gives joint `C²` only for the resolver **value** `v`.
+2. The flux composition theorem also needs joint `C²` for the resolver **spatial gradient** `∂ₓv`.
+
+So the immediate wiring should first expose a tiny heat-level gradient wrapper, then use both wrappers in `2A-sup`.
+
+## Why value-only is not enough
+
+The existing flux factor theorem is:
 
 ```lean
-R : E →L[ℝ] F
+theorem coupledChemDivFlux_contDiffAt_of_factorJointC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
+    (hu : ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
+    (hv : ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
+      (s, x))
+    (hgradv : ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1))
+          q.2)
+      (s, x))
+    (hbase : 0 <
+      1 + intervalDomainLift (coupledChemicalConcentration p u s) x) :
+    ContDiffAt ℝ 2
+      (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
 ```
 
-plus an evaluation/uncurrying theorem turning a `C²` curve in `F` into joint `(t,x)` `C²`.  The current repo is not organized that way.  It is organized coefficient-by-coefficient / cosine-series-first.
+Thus `heatResolverJointContDiffAt_two` supplies `hv`, but **not** `hgradv`.
 
-So the direct resolver cutoff approach does **not** avoid source coefficient time-`C²`; it merely moves where that obligation appears.
-
-The fastest route is:
+The good news: the lower-level theorem already exists:
 
 ```lean
-source coefficient time-C² + bounded-weight summability
-  → PhysicalSourceTimeC2
-  → PhysicalResolverJointC2Data
-  → coupledChemical_jointContDiffAt_two
+theorem coupledChemical_grad_jointContDiffAt_two
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
 ```
 
-or a **positive-window** variant of that route if global time data is blocked at `t = 0`.
-
-## What the repo already has
-
-### 1. The bounded-weight resolver series assembler already exists
-
-`ShenWork/PDE/IntervalResolverJointC2Physical.lean` defines the generic bounded-weight joint series:
+So add the heat-level wrapper:
 
 ```lean
-def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => c n q.1 * cosineMode n q.2
+namespace ShenWork.Paper2.HeatResolverJointRegularity
 
- theorem boundedWeightJointSeries_contDiff_two
-    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (hc : ∀ n, ContDiff ℝ (2 : ℕ∞) (c n))
-    (hBt : ∀ (i n : ℕ) (t : ℝ), i ≤ 2 →
-      ‖iteratedFDeriv ℝ i (c n) t‖ ≤ Bt i n)
-    (hsumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant Bt k)) :
-    ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+  (PhysicalResolverJointC2Data coupledChemical_grad_jointContDiffAt_two)
+
+/-- Joint `ContDiffAt ℝ 2` of the resolver spatial-gradient factor at the heat
+semigroup base iterate.  This is the gradient companion to
+`heatResolverJointContDiffAt_two`. -/
+theorem heatResolverGradJointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      deriv (intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1)) q.2) (s₀, x₀) := by
+  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
+    (p := p) hu₀_bound hu₀_cont
+  exact coupledChemical_grad_jointContDiffAt_two hBt hx₀
+
+end ShenWork.Paper2.HeatResolverJointRegularity
 ```
 
-This is already the “resolver series directly by `contDiff_tsum`” approach.  It does not use the old spectral `λ²`/`λ³` ladder.
+This wrapper is pure wiring. It has the same upstream sorry dependency as `heatResolverJointContDiffAt_two`.
 
-### 2. The physical resolver data structure already packages exactly the needed assumptions
+## What `2A-sup` currently needs
 
-`ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean` defines:
+Inside `level0_chemDiv_envelope_summable`, the relevant target is currently:
 
 ```lean
-structure PhysicalResolverJointC2Data
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Bt : ℕ → ℕ → ℝ) : Prop where
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant Bt m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant Bt m)
+have hsup_bound : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+    ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup := by
+  ...
+  sorry -- [SUB-SORRY 2A-core / 2A-sup]
+```
+
+The comments around that sorry are already the right proof plan:
+
+- boundary values are zero via `hbdry_zero`;
+- interior values agree with the smooth flux-divergence representative;
+- the uniform bound comes from compactness once the representative is jointly continuous on `[c,T] × [0,1]`.
+
+So yes, `heatSemigroup_jointContDiffAt_two` plus `heatResolverJointContDiffAt_two` plus the gradient companion above are exactly the missing inputs for the interior flux-continuity part.
+
+## The correct wiring shape
+
+For `s ∈ Icc c T` and `x ∈ Ioo 0 1`:
+
+```lean
+have hs_pos : 0 < s := lt_of_lt_of_le hc hs.1
+have hs_gt_c : c < s := lt_of_lt_of_le hc hs.1 -- if the theorem wants strict `c < s`
+```
+
+Actually, if `s = c`, then `c < s` is false.  For points at the left endpoint of the window, use a smaller cutoff parameter, for example `c / 2`:
+
+```lean
+have hc2 : 0 < c / 2 := by positivity
+have hs_gt_c2 : c / 2 < s := by nlinarith [hc, hs.1]
 ```
 
 Then:
 
 ```lean
-theorem coupledChemical_jointContDiffAt_two
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
+have hu_series : ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+    ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+      cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s, x) :=
+  ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+    (u₀ := u₀) (M₀ := M₀) _hu₀_bound hc2 hs_gt_c2
 ```
 
-So the direct resolver joint-`C²` theorem already exists.  The unresolved part is producing `PhysicalResolverJointC2Data` for the heat-semigroup iterate.
-
-### 3. The constant elliptic weight transfer already exists
-
-`ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean` proves the exact coefficient factorization:
+Then convert the heat series to the lifted base iterate using the existing level-0 agreement theorem, as already used elsewhere in the file:
 
 ```lean
-theorem resolverTimeCoeff_eq_weight_smul
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
-    resolverTimeCoeff p u k t =
-      intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+  p u₀ hs_pos _hu₀_cont _hu₀_bound
 ```
 
-and packages the source-to-resolver transfer:
+That gives the needed `hu`.
+
+For the resolver value:
 
 ```lean
-theorem physicalResolverJointC2Data_of_floor
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (H : PhysicalSourceTimeC2 p u Es) :
-    PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k)
+have hv : ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+    intervalDomainLift (coupledChemicalConcentration p
+      (conjugatePicardIter p u₀ 0) q.1) q.2) (s, x) :=
+  ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
+    (p := p) (u₀ := u₀) (M₀ := M₀)
+    _hu₀_bound _hu₀_cont hc2 hs_gt_c2 hx
 ```
 
-This is precisely the observation that `1/(μ+λ_k)` is a constant scalar in time, so all time derivatives transfer mechanically:
+For the resolver gradient, after adding the companion wrapper:
 
 ```lean
-∂ₜⁱ resolverTimeCoeff = wₖ • ∂ₜⁱ srcTimeCoeff
+have hgradv : ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+    deriv (intervalDomainLift (coupledChemicalConcentration p
+      (conjugatePicardIter p u₀ 0) q.1)) q.2) (s, x) :=
+  ShenWork.Paper2.HeatResolverJointRegularity.heatResolverGradJointContDiffAt_two
+    (p := p) (u₀ := u₀) (M₀ := M₀)
+    _hu₀_bound _hu₀_cont hc2 hs_gt_c2 hx
 ```
 
-### 4. The source-side data is the real work
-
-`ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean` defines `FlooredSourceTimeData` and proves:
+For denominator positivity, use the resolver nonnegativity route already in the repo, or expose a heat-level floor wrapper.  The target needed by flux composition is:
 
 ```lean
-theorem srcTimeCoeff_contDiff
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
-    ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
-
- theorem srcTimeCoeff_bound
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) (t : ℝ) (hi : i ≤ 2) :
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k
-
- theorem physicalSourceTimeC2_of_floored
-    (H : FlooredSourceTimeData p u s₁ s₂)
-    (hval : ...)
-    (hgrad : ...) :
-    PhysicalSourceTimeC2 p u (builtEs H)
+have hbase :
+    0 < 1 + intervalDomainLift (coupledChemicalConcentration p
+      (conjugatePicardIter p u₀ 0) s) x := by
+  -- resolver nonnegativity from continuous/nonnegative heat slice, then `1 + v > 0`
 ```
 
-This is where the nonlinear source
+Then:
 
 ```lean
-g(t,x) = ν * u(t,x)^γ
+have hflux_c2 : ContDiffAt ℝ 2
+    (Function.uncurry (coupledChemDivFluxLift p
+      (conjugatePicardIter p u₀ 0))) (s, x) :=
+  ShenWork.IntervalCoupledRegularityBootstrap
+    .coupledChemDivFlux_contDiffAt_of_factorJointC2
+      hu hv hgradv hbase
 ```
 
-is differentiated in time.  The resolver weight does not make this disappear.
-
-## Why the proposed direct cutoff still loops back
-
-Suppose you define
+From this, the spatial derivative representative is continuous near `(s,x)`:
 
 ```lean
-def cutoffResolverTerm ... k : ℝ × ℝ → ℝ :=
-  fun q => φ q.1 * resolverTimeCoeff p u k q.1 * cosineMode k q.2
+fun q : ℝ × ℝ =>
+  fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p
+    (conjugatePicardIter p u₀ 0))) q (0, 1)
 ```
 
-and try to use `contDiff_tsum`.  You still need, for each mode and each `i ≤ 2`, a bound of the form
+This is the representative for the interior source value.
+
+## Important endpoint caveat
+
+Do **not** claim that the actual `coupledChemDivSourceLift` is `ContinuousOn` on the closed rectangle.  The comments in `IntervalConjugateLevel0BFormSourceOn.lean` are right: the zero-extension at the boundary can make closed-interval continuity false.
+
+For `2A-sup`, you only need a bound, not closed-set continuity of the lifted source itself.
+
+So prove the bound using a continuous **representative** `G` on the compact rectangle, plus the already-proved boundary-zero fact:
 
 ```lean
-‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+G (q : ℝ × ℝ) :=
+  fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p
+    (conjugatePicardIter p u₀ 0))) q (0, 1)
 ```
 
-on the cutoff support.
-
-But
+Then show:
 
 ```lean
-resolverTimeCoeff p u k t = wₖ * srcTimeCoeff p u k t
+ContinuousOn G (Icc c T ×ˢ Icc (0 : ℝ) 1)
 ```
 
-so this becomes exactly
+and use compactness:
 
 ```lean
-‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
+have hK : IsCompact (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
+  isCompact_Icc.prod isCompact_Icc
+
+have hGabs : ContinuousOn (fun q => |G q|) (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
+  hGcont.abs
+
+obtain ⟨qmax, hqmax, hmax⟩ :=
+  hK.exists_isMaxOn (Icc c T ×ˢ Icc (0 : ℝ) 1) (fun q => |G q|) ?nonempty hGabs
+
+let Msup := |G qmax|
 ```
 
-for the source coefficient.  That is precisely `PhysicalSourceTimeC2.src_contDiff` plus `PhysicalSourceTimeC2.src_bound`, or a windowed analogue of those fields.
+For `x ∈ Ioo 0 1`, use the interior agreement between `coupledChemDivSourceLift` and `G`.  For `x = 0` or `x = 1`, use `hbdry_zero`.
 
-So the cutoff helps with **localizing away from `t = 0`**, but it does not remove the source coefficient differentiability problem.
+## One more subtlety: closed compactness needs a closed representative
 
-## Why `heatSemigroup_jointContDiffAt_two` is not enough by composition
-
-`heatSemigroup_jointContDiffAt_two` proves scalar joint regularity of the uncurried heat series:
+The currently exported theorem `heatResolverJointContDiffAt_two` has the hypothesis
 
 ```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => ∑' k, exp(-q.1 * λ_k) * û₀_k * cos(kπq.2))
-  (s₀, x₀)
+hx₀ : x₀ ∈ Ioo 0 1
 ```
 
-That is not the same as a Banach-valued theorem:
+This is enough for interior agreement but **not by itself** enough to prove a continuous representative on the closed rectangle, because compactness includes `x = 0` and `x = 1`.
+
+There are two ways around this:
+
+### Option A: expose global resolver-series representatives
+
+This is the cleanest for `2A-sup`.
+
+From the same upstream data used in `heatResolverJointContDiffAt_two`, expose theorem(s) for the actual series representative before the `intervalDomainLift` congruence restriction to `Ioo`:
 
 ```lean
-ContDiffAt ℝ 2 (fun t => S(t)u₀) s₀
+heatResolverSeriesContDiff_two
+heatResolverGradSeriesContDiff_two
 ```
 
-with codomain `C²`, `H^σ`, or some cosine-coefficient Banach space.
-
-To use the bounded-linear resolver composition route, you would need all of the following infrastructure:
-
-1. A Banach/function-space model `E` for the source slices.
-2. A theorem that `t ↦ ν * (S(t)u₀)^γ` is `C²` as an `E`-valued map on a positive-time neighborhood.
-3. A continuous linear map `R : E →L[ℝ] F` implementing the elliptic Neumann resolver.
-4. A theorem that a `C²` curve into `F` gives joint `(t,x)` `C²` after uncurrying/evaluation.
-5. For the flux lane, an analogous statement for `x ↦ deriv (R(source_t)) x`, or enough regularity in `F` so derivative evaluation is continuous.
-
-None of that is currently the active infrastructure in this repo.  Proving it would likely be heavier than finishing the coefficient-route obligations.
-
-Also, `R` is linear in the **source** `g`, not in `u`.  The actual map is
+These should follow directly from:
 
 ```lean
-u ↦ R (ν * u^γ)
+heatSemigroup_level0_resolverJointC2Data
+boundedWeightJointSeries_contDiff_two
+boundedWeightJointGradSeries_contDiff_two
 ```
 
-so even abstractly the nonlinear Nemytskii map `u ↦ ν*u^γ` under the positivity floor must still be proved `C²`.
+Then build `G` from the series representatives and get `ContinuousOn G` on the closed rectangle.  Interior agreement identifies `G` with `coupledChemDivSourceLift`; boundary values are handled by `hbdry_zero`.
 
-## The useful shortcut that remains
+### Option B: prove local boundedness near endpoints separately
 
-The good shortcut is not “use bounded linearity from scalar `ContDiffAt`.”
+This is more awkward.  Interior pointwise `ContDiffAt` plus boundary-zero values does not by itself imply a uniform bound near the boundary.  You need a representative continuous up to the endpoint or a direct endpoint-neighborhood estimate.
 
-The good shortcut is:
+So I recommend Option A.
 
-> Avoid the old spectral `DuhamelSourceTimeC2Coeff` / eigen-cube ladder.  Use the existing bounded-weight physical route, and only prove the source-side three-time-order data on the positive time window actually needed downstream.
+## Recommended implementation order
 
-Concretely, either:
+Do this now, in this order:
 
-### Option A: prove `PhysicalSourceTimeC2` directly
-
-If you can produce source coefficient `ContDiff`/bounds directly for the heat semigroup, skip the explicit `FlooredSourceTimeData` wrapper and prove:
-
-```lean
-PhysicalSourceTimeC2 p (conjugatePicardIter p u₀ 0) Es
-```
-
-Then use:
-
-```lean
-physicalResolverJointC2Data_of_floor
-coupledChemical_jointContDiffAt_two
-```
-
-This skips one packaging layer but not the mathematical source time-`C²` content.
-
-### Option B: make a positive-window version
-
-This is probably the better path if global `FlooredSourceTimeData` is blocked by the hard zero-extension at `t = 0`.
-
-Define a local/windowed variant, for example:
-
-```lean
-PhysicalSourceTimeC2On p u Es c T
-PhysicalResolverJointC2DataOn p u Bt c T
-```
-
-with all time-regularity and bounds only on a compact positive slab, say `t ∈ Icc c T`, with `0 < c`.
-
-Then prove a windowed assembler using a cutoff whose support is contained in the positive slab.  This uses the same idea as `heatSemigroup_jointContDiffAt_two`: the cutoff makes the global `contDiff_tsum` proof possible, while the coefficients only need to be controlled on the positive support.
-
-That avoids the `τ = 0` obstruction from global `FlooredSourceTimeData`, while still reusing the bounded-weight resolver majorant.
-
-## Caveat: value vs gradient
-
-For `coupledChemical_jointContDiffAt_two` itself, the value-series majorant is the important one.
-
-For the FAC input package, the repo also needs the gradient lane:
-
-```lean
-coupledChemical_grad_jointContDiffAt_two
-```
-
-That uses `boundedWeightJointGradMajorant`, not just `boundedWeightJointMajorant`.  Do not assume the value majorant automatically gives the gradient majorant.  The gradient lane carries one extra spatial derivative of the cosine mode, so its summability must be checked separately.  On a positive heat window this should come from heat smoothing/exponential decay, but it is a distinct obligation.
+1. Add `heatResolverGradJointContDiffAt_two` next to `heatResolverJointContDiffAt_two`.
+2. Add, if needed for compactness, global representative wrappers for resolver value and gradient series. These are also pure wiring from `PhysicalResolverJointC2Data`.
+3. In `level0_chemDiv_envelope_summable`, replace the `2A-sup` sorry by:
+   - existing `hbdry_zero` for endpoints;
+   - `hu`, `hv`, `hgradv`, `hbase` on interior;
+   - `coupledChemDivFlux_contDiffAt_of_factorJointC2`;
+   - continuity of the spatial derivative representative;
+   - compactness bound on `Icc c T ×ˢ Icc 0 1`;
+   - interior agreement + boundary-zero to bound the actual `coupledChemDivSourceLift`.
 
 ## Bottom line
 
-The bounded-linear resolver shortcut is mathematically reasonable in an abstract Banach-space development, but in this repo it is **not** the shortest Lean path.
+Yes, wire it now.  The wiring will be logically correct and will isolate the remaining upstream sorry exactly where it belongs: the construction of heat-level physical resolver/source joint-`C²` data.
 
-The current code already has the right shortcut:
-
-```lean
-PhysicalSourceTimeC2
-  → physicalResolverJointC2Data_of_floor
-  → coupledChemical_jointContDiffAt_two
-```
-
-The remaining hard point is not the elliptic resolver.  The remaining hard point is proving, preferably on a positive time window, that the source coefficients of
+But wire it as:
 
 ```lean
-ν * (S(t)u₀)^γ
+heatSemigroup_jointContDiffAt_two
++ heatResolverJointContDiffAt_two
++ heatResolverGradJointContDiffAt_two   -- tiny wrapper needed
++ resolver/floor positivity
+→ coupledChemDivFlux_contDiffAt_of_factorJointC2
+→ continuity of the spatial derivative representative
+→ compactness bound for representative
+→ interior agreement + boundary-zero
+→ hsup_bound
 ```
 
-are `C²` in `t` with the summable envelopes required by the bounded-weight value/gradient majorants.
-
-So I would **not** start a new bounded-linear-map composition layer.  I would either:
-
-1. directly prove `PhysicalSourceTimeC2` for the heat base iterate on the positive window, bypassing only the `FlooredSourceTimeData` packaging, or
-2. introduce `PhysicalSourceTimeC2On` / `PhysicalResolverJointC2DataOn` and a cutoff-localized version of the existing bounded-weight assembler.
-
-That is the real simplification.
+Do **not** rely on value-only `heatResolverJointContDiffAt_two`, and do **not** try to prove `ContinuousOn coupledChemDivSourceLift` on the closed interval.  Use a smooth representative for the compact bound and the actual lifted source only for interior agreement plus boundary-zero.
