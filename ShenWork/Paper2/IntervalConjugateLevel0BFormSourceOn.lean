@@ -801,27 +801,101 @@ theorem level0_chemDiv_envelope_summable
     have hsup_bound : ∃ (Msup : ℝ), 0 ≤ Msup ∧
         ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
           |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup := by
-      sorry -- [SUB-SORRY 2A-sup: uniform sup bound for coupledChemDivSourceLift.
-             --  Proof outline:
-             --  (1) The smooth cosine-series representative F(s,x) is jointly continuous
-             --      on [c,T] × [0,1] (sub-sorry 2A-core, unchanged from before).
-             --  (2) Compactness: [c,T] × [0,1] compact → F bounded → ∃ M_F, |F(s,x)| ≤ M_F.
-             --  (3) For x ∈ Ioo 0 1: coupledChemDivSourceLift ... s x = F(s,x) (interior
-             --      agreement via EventuallyEq.deriv_eq, no boundary obstruction).
-             --      Hence |coupledChemDivSourceLift ... s x| ≤ M_F.
-             --  (4) For x = 0 or x = 1: coupledChemDivSourceLift ... s x is
-             --      intervalDomainLift (chemDiv ...) x = (chemDiv ...) ⟨x, hx⟩.
-             --      This is the derivative of the flux evaluated at the subtype point,
-             --      which is bounded because the subtype-level function is C² on [0,1].
-             --      Alternatively: on [0,1], intervalDomainLift f x = f ⟨x, hx⟩,
-             --      and f is the chemDiv of smooth functions (u_s, v_s both C∞ for s > 0),
-             --      so f ⟨0, ...⟩ and f ⟨1, ...⟩ are finite and uniformly bounded
-             --      on [c,T] by continuity in s.
-             --  (5) Set Msup := max(M_F, boundary_sup).  Then Msup ≥ 0 and bounds all.
-             --
-             --  Note: the key difference from the old approach is that we never claim
-             --  ContinuousOn for coupledChemDivSourceLift on Icc 0 1 — only the
-             --  pointwise sup bound, which holds without continuity at {0,1}.]
+      -- ── Strategy: boundary-is-zero + interior = C² representative ──
+      -- For each s ∈ [c,T], the C² representative F_s := deriv(chemFluxFun β U V)
+      -- is globally C² → continuous, hence bounded on [0,1] per slice.
+      -- On Ioo 0 1, coupledChemDivSourceLift agrees with F_s.
+      -- At {0,1}, coupledChemDivSourceLift = deriv(flux) where the flux
+      -- vanishes on (-∞,0) and (1,∞) (intervalDomainLift factor = 0),
+      -- so deriv = 0 at boundary by the left/right-derivative-is-0 argument.
+      -- The per-slice bound exists; the uniform bound over s ∈ [c,T] requires
+      -- joint continuity of F_s in s (sorry'd — same obstacle as sub-sorry 1A).
+      --
+      -- Boundary-is-zero helper: deriv of flux at endpoint = 0.
+      -- The flux φ(y) = intervalDomainLift(u s)(y) * (…) is 0 for y ∉ [0,1]
+      -- because intervalDomainLift = 0 there.  At y = 0 (resp. y = 1),
+      -- either the flux is not differentiable (→ deriv = 0 by convention)
+      -- or it is differentiable and the left (resp. right) derivative is 0
+      -- (from φ ≡ 0 on Iio 0 resp. Ioi 1), forcing deriv = 0 by uniqueness.
+      have hbdry_zero : ∀ s, ∀ endpoint ∈ ({0, 1} : Set ℝ),
+          coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s endpoint = 0 := by
+        intro s endpoint hep
+        rcases hep with rfl | rfl
+        · -- endpoint = 0
+          show intervalDomainLift _ 0 = 0
+          simp only [intervalDomainLift,
+            show (0 : ℝ) ∈ Icc (0 : ℝ) 1 from ⟨le_refl _, by norm_num⟩, dif_pos]
+          show ShenWork.IntervalDomain.intervalDomainChemotaxisDiv p
+            (conjugatePicardIter p u₀ 0 s) (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s) ⟨0, ⟨le_refl _, by norm_num⟩⟩ = 0
+          unfold ShenWork.IntervalDomain.intervalDomainChemotaxisDiv
+          -- Goal: deriv(flux)(0) = 0 where flux uses intervalDomainLift
+          set flux := fun y => intervalDomainLift (conjugatePicardIter p u₀ 0 s) y *
+            deriv (intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s)) y /
+            (1 + intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s) y) ^ p.β
+          show deriv flux 0 = 0
+          by_cases hd : DifferentiableAt ℝ flux 0
+          · have hflux_left : flux =ᶠ[nhdsWithin 0 (Iio 0)] (fun _ => 0) := by
+              filter_upwards [self_mem_nhdsWithin] with y (hy : y < 0)
+              show flux y = 0
+              have : intervalDomainLift (conjugatePicardIter p u₀ 0 s) y = 0 :=
+                dif_neg (show ¬(y ∈ Icc (0 : ℝ) 1) from fun h => absurd h.1 (not_le.mpr hy))
+              simp only [flux, this, zero_mul, zero_div]
+            have hflux0 : flux 0 = 0 := by
+              have htleft : Filter.Tendsto flux
+                  (nhdsWithin 0 (Iio 0)) (nhds (flux 0)) :=
+                hd.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+              exact tendsto_nhds_unique (htleft.congr' hflux_left) tendsto_const_nhds
+            exact UniqueDiffWithinAt.eq_deriv _ (uniqueDiffWithinAt_Iio 0)
+              (hd.hasDerivAt.hasDerivWithinAt)
+              ((hasDerivWithinAt_const (0 : ℝ) (Iio 0) (0 : ℝ)).congr_of_eventuallyEq
+                hflux_left hflux0)
+          · exact deriv_zero_of_not_differentiableAt hd
+        · -- endpoint = 1 (symmetric argument)
+          show intervalDomainLift _ 1 = 0
+          simp only [intervalDomainLift,
+            show (1 : ℝ) ∈ Icc (0 : ℝ) 1 from ⟨by norm_num, le_refl _⟩, dif_pos]
+          show ShenWork.IntervalDomain.intervalDomainChemotaxisDiv p
+            (conjugatePicardIter p u₀ 0 s) (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s) ⟨1, ⟨by norm_num, le_refl _⟩⟩ = 0
+          unfold ShenWork.IntervalDomain.intervalDomainChemotaxisDiv
+          set flux := fun y => intervalDomainLift (conjugatePicardIter p u₀ 0 s) y *
+            deriv (intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s)) y /
+            (1 + intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) s) y) ^ p.β
+          show deriv flux 1 = 0
+          by_cases hd : DifferentiableAt ℝ flux 1
+          · have hflux_right : flux =ᶠ[nhdsWithin 1 (Ioi 1)] (fun _ => 0) := by
+              filter_upwards [self_mem_nhdsWithin] with y (hy : (1 : ℝ) < y)
+              show flux y = 0
+              have : intervalDomainLift (conjugatePicardIter p u₀ 0 s) y = 0 :=
+                dif_neg (show ¬(y ∈ Icc (0 : ℝ) 1) from fun h => absurd h.2 (not_le.mpr hy))
+              simp only [flux, this, zero_mul, zero_div]
+            have hflux1 : flux 1 = 0 := by
+              have htright : Filter.Tendsto flux
+                  (nhdsWithin 1 (Ioi 1)) (nhds (flux 1)) :=
+                hd.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+              exact tendsto_nhds_unique (htright.congr' hflux_right) tendsto_const_nhds
+            exact UniqueDiffWithinAt.eq_deriv _ (uniqueDiffWithinAt_Ioi 1)
+              (hd.hasDerivAt.hasDerivWithinAt)
+              ((hasDerivWithinAt_const (1 : ℝ) (Ioi 1) (0 : ℝ)).congr_of_eventuallyEq
+                hflux_right hflux1)
+          · exact deriv_zero_of_not_differentiableAt hd
+      -- Uniform bound: sorry'd (requires joint continuity of C² representative).
+      -- The per-slice bound is guaranteed (C² → continuous → bounded on compact
+      -- per slice), and the boundary values are 0 (proved above). The uniform
+      -- bound over s ∈ [c,T] needs the joint map (s,x) ↦ F_s(x) to be
+      -- continuous, which follows from joint smoothness of the heat semigroup
+      -- and resolver in (s,x) for s ≥ c > 0.
+      sorry -- [SUB-SORRY 2A-core: uniform sup bound over s ∈ [c,T].
+             --  hbdry_zero proves boundary values are 0 (no boundary obstruction).
+             --  Interior values equal the C² representative F_s, bounded per slice.
+             --  Missing: uniform bound of ‖F_s‖_{C⁰[0,1]} over s ∈ [c,T],
+             --  which requires joint continuity of (s,x) ↦ F_s(x).
+             --  Same joint-continuity obstacle as sub-sorry 1A.]
     obtain ⟨Msup, hMsup_nn, hbd⟩ := hsup_bound
     -- IntervalIntegrable from sup bound: coupledChemDivSourceLift is bounded by Msup
     -- on Icc 0 1 and equals 0 outside.  We derive IntervalIntegrable by domination
