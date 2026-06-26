@@ -322,13 +322,165 @@ theorem level0_chemDiv_envelope_summable
           have hf''_H2 :
               ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
                 hf_H2.secondDeriv := by
-            -- secondDeriv = deriv (deriv (ν·lift(w)^γ)) is C² on [0,1]
-            -- because ν·U_cos^γ is C⁴ (U_cos is C⁴ from hU_C4, γ-power of
-            -- positive C⁴ function is C⁴ by chain rule).
-            -- Neumann BCs: deriv(secondDeriv)(0) = 0 and deriv(secondDeriv)(1) = 0
-            -- because all odd derivatives of the cosine series vanish at 0 and 1
-            -- (evenness about 0, symmetry about 1).
-            sorry
+            -- ── Step 6a: U_cos > 0 everywhere (period 2 + [0,1] positivity) ──
+            -- Pattern from intervalResolverLiftR_nonneg_of_nonneg_on_Icc:
+            -- period 2 reduces to [0,2), symm1 reduces [1,2) to (0,1].
+            have hU_period_fun : Function.Periodic U_cos 2 := by
+              intro x; show U_cos (x + 2) = U_cos x
+              simp only [hU_cos_def]
+              exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
+            have hU_pos_all : ∀ x, 0 < U_cos x := by
+              have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+                intro y hy; rw [← hU_agree y hy]; exact hpos_w y hy
+              intro x
+              -- Step 1: reduce to [0,∞) using evenness
+              have hx_abs : U_cos x = U_cos |x| := by
+                rcases le_or_lt 0 x with h | h
+                · rw [abs_of_nonneg h]
+                · rw [abs_of_neg h]; exact (hU_even x).symm
+              rw [hx_abs]
+              -- Step 2: reduce |x| to [0,2) using period 2
+              set n := ⌊|x| / 2⌋ with hn_def
+              set r := |x| - n * 2 with hr_def
+              have hrV : U_cos |x| = U_cos r :=
+                (hU_period_fun.sub_int_mul_eq n).symm
+              have hr_lo : 0 ≤ r := by
+                have := Int.floor_le (|x| / 2); linarith
+              have hr_hi : r < 2 := by
+                have := Int.lt_floor_add_one (|x| / 2); linarith
+              rw [hrV]
+              -- Step 3: if r ∈ [0,1], done; if r ∈ (1,2), use symm1
+              by_cases hr1 : r ≤ 1
+              · exact hU_pos_Icc r ⟨hr_lo, hr1⟩
+              · push_neg at hr1
+                rw [hU_symm1 r]
+                exact hU_pos_Icc (2 - r) ⟨by linarith, by linarith⟩
+            -- ── Step 6b: g_smooth := ν * U_cos ^ γ is C⁴ ──
+            have hU_ne : ∀ x, U_cos x ≠ 0 := fun x => ne_of_gt (hU_pos_all x)
+            set g_smooth := fun x => p.ν * U_cos x ^ p.γ with hg_smooth_def
+            have hg_C4 : ContDiff ℝ 4 g_smooth := by
+              show ContDiff ℝ 4 (fun x => p.ν * U_cos x ^ p.γ)
+              exact contDiff_const.mul (hU_C4.rpow_const_of_ne hU_ne)
+            -- ── Step 6c: g_smooth is even and symmetric about 1 ──
+            have hg_even : ∀ x, g_smooth (-x) = g_smooth x := by
+              intro x; simp only [hg_smooth_def, hU_even]
+            have hg_symm1 : ∀ x, g_smooth (2 - x) = g_smooth x := by
+              intro x; simp only [hg_smooth_def, hU_symm1]
+            -- ── Step 6d: deriv(deriv(g_smooth)) is C² ──
+            have hg_C3 : ContDiff ℝ 3 (deriv g_smooth) := hg_C4.deriv'
+            have hg_C2_dd : ContDiff ℝ 2 (deriv (deriv g_smooth)) := hg_C3.deriv'
+            have hg_C2_dd_on : ContDiffOn ℝ 2 (deriv (deriv g_smooth)) (Icc (0 : ℝ) 1) :=
+              hg_C2_dd.contDiffOn
+            -- ── Step 6e: Parity helpers (from ChemDivSpatialC2 pattern) ──
+            have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+                (∀ x, g (-x) = g x) → ∀ x, deriv g (-x) = -(deriv g x) := by
+              intro g _hg heven x
+              have h1 := deriv_comp_neg (f := g) (x := x)
+              rw [show (fun x => g (-x)) = g from funext heven] at h1; linarith
+            have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
+              intro g hodd; have h := hodd 0; rw [neg_zero] at h; linarith
+            have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+                (∀ x, g (-x) = -(g x)) → ∀ x, deriv g (-x) = deriv g x := by
+              intro g _hg hodd x
+              have h1 := deriv_comp_neg (f := g) (x := x)
+              rw [show (fun x => g (-x)) = fun x => -(g x) from funext hodd] at h1
+              simp [deriv_neg] at h1; linarith
+            -- ── Step 6f: Parity chain: g even → g' odd → g'' even → g''' odd ──
+            have hg'_odd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) :=
+              deriv_even_odd (hg_C4.of_le (by norm_num)) hg_even
+            have hg''_even : ∀ x, deriv (deriv g_smooth) (-x) = deriv (deriv g_smooth) x :=
+              deriv_odd_even (hg_C3.of_le (by norm_num)) hg'_odd
+            have hg'''_odd : ∀ x, deriv (deriv (deriv g_smooth)) (-x) =
+                -(deriv (deriv (deriv g_smooth)) x) :=
+              deriv_even_odd (hg_C2_dd.of_le (by norm_num)) hg''_even
+            -- ── Step 6g: Neumann BCs for g''' at 0 ──
+            have hbc30 : deriv (deriv (deriv g_smooth)) 0 = 0 :=
+              odd_zero hg'''_odd
+            -- ── Step 6h: Neumann BC for g''' at 1 via symmetry about 1 ──
+            -- g_smooth(2-x) = g_smooth(x) → deriv(g_smooth)(2-x) = deriv(g_smooth)(x) ... (antisymm)
+            -- → g''(2-x) = g''(x) (symm) → g'''(2-x) = -g'''(x) (antisymm) → g'''(1) = 0
+            have hg'_antisymm1 : ∀ x, deriv g_smooth (2 - x) = -(deriv g_smooth x) := by
+              intro x
+              have h1 := deriv_comp_const_sub (f := g_smooth) (a := 2) (x := x)
+              rw [show (fun x => g_smooth (2 - x)) = g_smooth from funext hg_symm1] at h1
+              linarith
+            have hg''_symm1 : ∀ x, deriv (deriv g_smooth) (2 - x) =
+                deriv (deriv g_smooth) x := by
+              intro x
+              have h1 := deriv_comp_const_sub (f := deriv g_smooth) (a := 2) (x := x)
+              rw [show (fun x => deriv g_smooth (2 - x)) =
+                  fun x => -(deriv g_smooth x) from funext hg'_antisymm1] at h1
+              simp [deriv_neg] at h1; linarith
+            have hbc31 : deriv (deriv (deriv g_smooth)) 1 = 0 := by
+              have h1 := deriv_comp_const_sub (f := deriv (deriv g_smooth)) (a := 2) (x := 1)
+              rw [show (fun x => deriv (deriv g_smooth) (2 - x)) =
+                  deriv (deriv g_smooth) from funext hg''_symm1] at h1
+              have : (2 : ℝ) - 1 = 1 := by norm_num
+              rw [this] at h1; linarith
+            -- ── Step 6i: Tendsto for g''' at endpoints ──
+            have hg'''_cont : Continuous (deriv (deriv (deriv g_smooth))) :=
+              hg_C2_dd.continuous_deriv (by norm_num)
+            have htend30 : Filter.Tendsto (deriv (deriv (deriv g_smooth)))
+                (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+              conv_rhs => rw [← hbc30]
+              exact hg'''_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+            have htend31 : Filter.Tendsto (deriv (deriv (deriv g_smooth)))
+                (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+              conv_rhs => rw [← hbc31]
+              exact hg'''_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+            -- ── Step 6j: Build IntervalWeakH2Neumann for deriv(deriv(g_smooth)) ──
+            have h_smooth_H2 :
+                ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+                  (deriv (deriv g_smooth)) :=
+              ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+                hg_C2_dd_on htend30 htend31 hbc30 hbc31
+            -- ── Step 6k: Transfer to hf_H2.secondDeriv via (0,1)-agreement ──
+            -- hf_H2.secondDeriv = deriv (deriv (fun x => ν * lift(w)(x)^γ))
+            -- On (0,1), lift(w) = U_cos (from hU_agree), so the two agree on (0,1).
+            -- Integrals over [0,1] are insensitive to endpoint values (measure zero).
+            -- hf_H2.secondDeriv agrees with deriv(deriv(g_smooth)) on (0,1)
+            -- because hf_H2.secondDeriv = deriv(deriv(ν*lift(w)^γ)) and
+            -- lift(w) = U_cos on [0,1] (so the source functions agree near each
+            -- interior point, hence their second derivatives agree).
+            have h_src_agree_near : ∀ x ∈ Ioo (0 : ℝ) 1,
+                (fun z => p.ν * intervalDomainLift w z ^ p.γ) =ᶠ[nhds x]
+                g_smooth := by
+              intro x hmem
+              filter_upwards [isOpen_Ioo.mem_nhds hmem] with z hz
+              show p.ν * intervalDomainLift w z ^ p.γ = p.ν * U_cos z ^ p.γ
+              rw [hU_agree z ⟨hz.1.le, hz.2.le⟩]
+            have h_dd_agree : ∀ x ∈ Ioo (0 : ℝ) 1,
+                deriv (deriv (fun z => p.ν * intervalDomainLift w z ^ p.γ)) x =
+                deriv (deriv g_smooth) x := by
+              intro x hmem
+              exact ((h_src_agree_near x hmem).deriv.deriv).eq_of_nhds
+            have h_ioo_agree : ∀ x ∈ Ioo (0 : ℝ) 1,
+                hf_H2.secondDeriv x = deriv (deriv g_smooth) x := by
+              intro x hmem
+              -- hf_H2.secondDeriv is definitionally
+              -- deriv (deriv (fun x => p.ν * intervalDomainLift w x ^ p.γ))
+              -- via intervalWeakH2Neumann_of_contDiffOn
+              change deriv (deriv (fun z => p.ν * intervalDomainLift w z ^ p.γ)) x =
+                  deriv (deriv g_smooth) x
+              exact h_dd_agree x hmem
+            exact {
+              secondDeriv := h_smooth_H2.secondDeriv
+              second_intervalIntegrable := h_smooth_H2.second_intervalIntegrable
+              second_abs_integral_bound := h_smooth_H2.second_abs_integral_bound
+              weak_cosine_laplacian := fun k => by
+                rw [show (∫ x in (0:ℝ)..1,
+                        Real.cos (↑k * Real.pi * x) * hf_H2.secondDeriv x) =
+                      ∫ x in (0:ℝ)..1,
+                        Real.cos (↑k * Real.pi * x) * deriv (deriv g_smooth) x from by
+                  refine intervalIntegral.integral_congr_ae ?_
+                  have hne : ∀ᵐ s ∂MeasureTheory.volume, s ≠ (1 : ℝ) := by
+                    rw [MeasureTheory.ae_iff,
+                      show {s : ℝ | ¬s ≠ 1} = {1} from by ext; simp [eq_comm]]
+                    exact Real.volume_singleton
+                  filter_upwards [hne] with y hyne hy_mem
+                  rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hy_mem
+                  rw [h_ioo_agree y ⟨hy_mem.1, lt_of_le_of_ne hy_mem.2 hyne⟩]]
+                exact h_smooth_H2.weak_cosine_laplacian k }
           -- Step 7: quartic decay → eigenvalue-weighted summability.
           exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
             hf_H2 hf''_H2
