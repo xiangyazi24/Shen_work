@@ -228,14 +228,41 @@ theorem cutoffHeatTerm_iteratedFDeriv_bound
       (2 * k + 1) ^ k *
         (unitIntervalCosineEigenvalue n ^ k * M₀ *
           Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
-  -- The analytic Leibniz bound: decompose φ · (exp · coeff) · cos via
-  -- norm_iteratedFDeriv_mul_le, then bound each factor.
-  -- φ(t) = 0 for t ≤ c/2 kills the blow-up region.
-  -- For t ≥ c/2: exp(-t λ_n) ≤ exp(-(c/2) λ_n).
-  -- Derivatives of exp(-t λ_n) w.r.t. t: each contributes factor λ_n.
-  -- Derivatives of cos(nπx) w.r.t. x: each contributes factor nπ ≤ √λ_n.
-  -- φ derivatives: bounded (C² with compact support in [c/2, c]).
-  sorry
+  -- Decompose cutoffHeatTerm as G * H where
+  -- G = fun q => smoothRightCutoff (c/2) c q.1  (C∞, depends only on q.1)
+  -- H = heatTerm u₀ n                           (C∞, proved by heatTerm_contDiff)
+  -- Then apply the Leibniz rule norm_iteratedFDeriv_mul_le.
+  let G : ℝ × ℝ → ℝ := fun q => smoothRightCutoff (c / 2) c q.1
+  let H : ℝ × ℝ → ℝ := heatTerm u₀ n
+  -- cutoffHeatTerm = G * H
+  have hterm : cutoffHeatTerm u₀ c n = fun q => G q * H q := by
+    funext q; simp [cutoffHeatTerm, heatTerm, G, H]
+  -- Both factors are C²
+  have hG : ContDiff ℝ (2 : ℕ∞) G :=
+    (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).comp contDiff_fst
+  have hH : ContDiff ℝ (2 : ℕ∞) H :=
+    (heatTerm_contDiff u₀ n).of_le le_top
+  -- Leibniz rule gives the sum bound
+  have hk' : (k : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by exact_mod_cast hk
+  -- Rewrite the goal to use G * H
+  rw [hterm]
+  -- Apply Leibniz then bound
+  calc ‖iteratedFDeriv ℝ k (fun q => G q * H q) q‖
+      ≤ ∑ i ∈ Finset.range (k + 1), (k.choose i : ℝ) *
+          ‖iteratedFDeriv ℝ i G q‖ * ‖iteratedFDeriv ℝ (k - i) H q‖ := by
+        simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hG hH q hk'
+    _ ≤ (2 * k + 1) ^ k *
+          (unitIntervalCosineEigenvalue n ^ k * M₀ *
+            Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+        -- Each term in the Leibniz sum is bounded by the majorant.
+        -- Factor G = smoothRightCutoff ∘ fst: ‖D^i G q‖ ≤ 1 (cutoff is [0,1]-valued
+        --   with bounded derivatives on compact support [c/2, c]).
+        -- Factor H = heatTerm: ‖D^j H q‖ ≤ λ_n^j · M₀ · exp(-(c/2)·λ_n)
+        --   (derivatives of exp(-t·λ_n)·â_n contribute λ_n per order,
+        --    derivatives of cos(nπx) contribute nπ ≤ √λ_n per order,
+        --    φ=0 for t≤c/2 kills the blow-up, for t≥c/2: exp(-t·λ_n)≤exp(-(c/2)·λ_n))
+        -- The sum of C(k,i) terms for k≤2 is bounded by (2k+1)^k.
+        sorry
 
 set_option maxHeartbeats 1600000 in
 /-- **Global C² of the cutoff heat semigroup series.**
