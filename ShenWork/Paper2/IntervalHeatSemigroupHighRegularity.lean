@@ -799,7 +799,7 @@ open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
 open ShenWork.IntervalResolverJointC2PhysicalConcrete
   (PhysicalResolverJointC2Data coupledChemical_jointContDiffAt_two
    resolverTimeCoeff)
-open ShenWork.PDE (intervalNeumannResolverWeight)
+open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverSourceCoeff)
 
 noncomputable section
 
@@ -839,12 +839,24 @@ theorem heatSemigroup_level0_resolverJointC2Data
   refine ⟨fun _i k => intervalNeumannResolverWeight p k,
     ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
   case coeff_contDiff =>
-    -- Each `resolverTimeCoeff p u k = wₖ · srcTimeCoeff p u k` is `C²` in `t`.
-    -- Route: `wₖ` is constant, `srcTimeCoeff` is `C²` via heat semigroup smoothing
-    -- (S(t)u₀ is C⁴ in x for t > 0) + positivity floor + rpow chain rule.
-    -- Proved: `contDiff_const.mul (H.src_contDiff k)` once `FlooredSourceTimeData`
-    -- for the heat semigroup is available.
-    intro k; sorry
+    -- Factor: `resolverTimeCoeff p u k = wₖ * srcTimeCoeff p u k` (const × src).
+    -- `wₖ` is constant in `t`, so `ContDiff ℝ 2` reduces to `srcTimeCoeff` alone.
+    -- `srcTimeCoeff` is `C²` via heat semigroup smoothing + rpow chain rule under
+    -- the positivity floor; the full discharge needs `FlooredSourceTimeData` for the
+    -- heat semigroup (the two time-derivative slices + space-C²-Neumann envelopes).
+    intro k
+    have hrw : resolverTimeCoeff p u k =
+        fun t => intervalNeumannResolverWeight p k * srcTimeCoeff p u k t := by
+      funext t; exact resolverTimeCoeff_eq_weight_smul p u k t
+    rw [hrw]
+    exact contDiff_const.mul (by
+      -- `ContDiff ℝ 2 (srcTimeCoeff p u k)` for the heat semigroup base iterate.
+      -- Proved by `srcTimeCoeff_contDiff H k` once `FlooredSourceTimeData p u s₁ s₂`
+      -- is constructed.  Needs: floor positivity of S(t)u₀, rpow chain rule for
+      -- s₁ = ν·γ·u^{γ-1}·∂ₜu and s₂ via product rule, joint slab continuity of
+      -- each slice, space-C²-Neumann regularity, and (kπ)⁻² envelopes — all finite
+      -- and non-circular.
+      sorry)
   case coeff_bound =>
     -- `‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k`.
     -- With `Bt i k = wₖ · Es i k` and the factorization
