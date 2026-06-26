@@ -385,7 +385,7 @@ theorem level0_chemDiv_envelope_summable
               intro g _hg hodd x
               have h1 := deriv_comp_neg (f := g) (x := x)
               rw [show (fun x => g (-x)) = fun x => -(g x) from funext hodd] at h1
-              simp [deriv_neg] at h1; linarith
+              simp at h1; linarith
             -- ── Step 6f: Parity chain: g even → g' odd → g'' even → g''' odd ──
             have hg'_odd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) :=
               deriv_even_odd (hg_C4.of_le (by norm_num)) hg_even
@@ -411,7 +411,7 @@ theorem level0_chemDiv_envelope_summable
               have h1 := deriv_comp_const_sub (f := deriv g_smooth) (a := 2) (x := x)
               rw [show (fun x => deriv g_smooth (2 - x)) =
                   fun x => -(deriv g_smooth x) from funext hg'_antisymm1] at h1
-              simp [deriv_neg] at h1; linarith
+              simp at h1; linarith
             have hbc31 : deriv (deriv (deriv g_smooth)) 1 = 0 := by
               have h1 := deriv_comp_const_sub (f := deriv (deriv g_smooth)) (a := 2) (x := 1)
               rw [show (fun x => deriv (deriv g_smooth) (2 - x)) =
@@ -435,59 +435,88 @@ theorem level0_chemDiv_envelope_summable
                   (deriv (deriv g_smooth)) :=
               ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
                 hg_C2_dd_on htend30 htend31 hbc30 hbc31
-            -- ── Step 6k: Transfer to hf_H2.secondDeriv via (0,1)-agreement ──
-            -- hf_H2.secondDeriv = deriv (deriv (fun x => ν * lift(w)(x)^γ))
-            -- On (0,1), lift(w) = U_cos (from hU_agree), so the two agree on (0,1).
-            -- Integrals over [0,1] are insensitive to endpoint values (measure zero).
-            -- hf_H2.secondDeriv agrees with deriv(deriv(g_smooth)) on (0,1)
-            -- because hf_H2.secondDeriv = deriv(deriv(ν*lift(w)^γ)) and
-            -- lift(w) = U_cos on [0,1] (so the source functions agree near each
-            -- interior point, hence their second derivatives agree).
-            have h_src_agree_near : ∀ x ∈ Ioo (0 : ℝ) 1,
-                (fun z => p.ν * intervalDomainLift w z ^ p.γ) =ᶠ[nhds x]
-                g_smooth := by
-              intro x hmem
-              filter_upwards [isOpen_Ioo.mem_nhds hmem] with z hz
-              show p.ν * intervalDomainLift w z ^ p.γ = p.ν * U_cos z ^ p.γ
-              rw [hU_agree z ⟨hz.1.le, hz.2.le⟩]
-            have h_dd_agree : ∀ x ∈ Ioo (0 : ℝ) 1,
-                deriv (deriv (fun z => p.ν * intervalDomainLift w z ^ p.γ)) x =
-                deriv (deriv g_smooth) x := by
-              intro x hmem
-              exact ((h_src_agree_near x hmem).deriv.deriv).eq_of_nhds
-            -- Reduce hf_H2.secondDeriv to its constructor form.
-            -- hf_H2 = intervalWeakH2Neumann_of_eigenvalue_summable ...
-            --        = intervalWeakH2Neumann_of_contDiffOn ...
-            -- .secondDeriv = deriv (deriv (fun x => ν * lift(w)(x) ^ γ))
-            have hf_H2_unfold : hf_H2.secondDeriv =
-                deriv (deriv (fun z => p.ν * intervalDomainLift w z ^ p.γ)) := by
-              -- Force definitional unfolding through the two constructor layers
-              delta ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
-              delta ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-              rfl
-            have h_ioo_agree : ∀ x ∈ Ioo (0 : ℝ) 1,
-                hf_H2.secondDeriv x = deriv (deriv g_smooth) x := by
-              intro x hmem
-              rw [hf_H2_unfold]
-              exact h_dd_agree x hmem
+            -- ── Step 6k: Build IntervalWeakH2Neumann hf_H2.secondDeriv ──
+            -- Use h_smooth_H2 for integrability/bound (4th smooth deriv), and
+            -- derive the weak_cosine_laplacian ALGEBRAICALLY from:
+            --   (A) hf_H2.weak_cosine_laplacian  (IBP for ν·lift^γ → hf_H2.secondDeriv)
+            --   (B) h_smooth_H2.weak_cosine_laplacian (IBP for g_smooth'' → 4th smooth)
+            --   (C) integral agreement: ∫ cos·(ν·lift^γ) = ∫ cos·g_smooth on [0,1]
+            -- Chain: (B) gives ∫cos·4th = -(kπ)²·∫cos·g_smooth''
+            --        (A) gives ∫cos·hf_H2.sd = -(kπ)²·∫cos·(ν·lift^γ)
+            --        (C) gives ∫cos·(ν·lift^γ) = ∫cos·g_smooth
+            --        smooth depth-1 IBP: ∫cos·g_smooth'' = -(kπ)²·∫cos·g_smooth
+            --        → ∫cos·hf_H2.sd = -(kπ)²·∫cos·g_smooth = ∫cos·g_smooth''
+            --        → -(kπ)²·∫cos·hf_H2.sd = (kπ)⁴·∫cos·g_smooth = -(kπ)²·∫cos·g_smooth'' = ∫cos·4th
+            -- Agreement of ν·lift^γ with g_smooth on [0,1]:
+            have h_src_Icc : ∀ x ∈ Icc (0 : ℝ) 1,
+                (fun z => p.ν * intervalDomainLift w z ^ p.γ) x = g_smooth x := by
+              intro x hx
+              show p.ν * intervalDomainLift w x ^ p.γ = p.ν * U_cos x ^ p.γ
+              rw [hU_agree x hx]
+            -- Cosine integral agreement
+            have h_cos_int_eq : ∀ k : ℕ,
+                (∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) *
+                  (fun z => p.ν * intervalDomainLift w z ^ p.γ) x) =
+                ∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) * g_smooth x :=
+              fun k => intervalIntegral.integral_congr (fun x hx => by
+                rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+                rw [h_src_Icc x hx])
+            -- The depth-1 IBP for g_smooth:
+            -- ∫cos·g_smooth'' = -(kπ)²·∫cos·g_smooth
+            -- This is from intervalCosineLaplacianCoeff_eq_of_contDiffOn applied to g_smooth
+            have hg_C2_on : ContDiffOn ℝ 2 g_smooth (Icc (0:ℝ) 1) :=
+              (hg_C4.of_le (by norm_num)).contDiffOn
+            have hg'_bc0 : deriv g_smooth 0 = 0 := odd_zero hg'_odd
+            have hg'_bc1 : deriv g_smooth 1 = 0 := by
+              have := hg'_antisymm1 1
+              rw [show (2:ℝ) - 1 = 1 from by norm_num] at this; linarith
+            have hg'_cont : Continuous (deriv g_smooth) :=
+              hg_C4.continuous_deriv (by norm_num)
+            have hg'_tend0 : Filter.Tendsto (deriv g_smooth)
+                (nhdsWithin (0:ℝ) (Ioi 0)) (nhds 0) := by
+              conv_rhs => rw [← hg'_bc0]
+              exact hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+            have hg'_tend1 : Filter.Tendsto (deriv g_smooth)
+                (nhdsWithin (1:ℝ) (Iio 1)) (nhds 0) := by
+              conv_rhs => rw [← hg'_bc1]
+              exact hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+            have h_depth1_ibp : ∀ k : ℕ,
+                (∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) *
+                  deriv (deriv g_smooth) x) =
+                -(↑k * Real.pi) ^ 2 *
+                  ∫ x in (0:ℝ)..1, Real.cos (↑k * Real.pi * x) * g_smooth x :=
+              fun k => ShenWork.IntervalEllipticCharacterization.intervalCosineLaplacianCoeff_eq_of_contDiffOn
+                k hg_C2_on hg'_tend0 hg'_tend1 hg'_bc0 hg'_bc1
             exact {
               secondDeriv := h_smooth_H2.secondDeriv
               second_intervalIntegrable := h_smooth_H2.second_intervalIntegrable
               second_abs_integral_bound := h_smooth_H2.second_abs_integral_bound
               weak_cosine_laplacian := fun k => by
-                rw [show (∫ x in (0:ℝ)..1,
-                        Real.cos (↑k * Real.pi * x) * hf_H2.secondDeriv x) =
-                      ∫ x in (0:ℝ)..1,
-                        Real.cos (↑k * Real.pi * x) * deriv (deriv g_smooth) x from by
-                  refine intervalIntegral.integral_congr_ae ?_
-                  have hne : ∀ᵐ s ∂MeasureTheory.volume, s ≠ (1 : ℝ) := by
-                    rw [MeasureTheory.ae_iff,
-                      show {s : ℝ | ¬s ≠ 1} = {1} from by ext; simp [eq_comm]]
-                    exact Real.volume_singleton
-                  filter_upwards [hne] with y hyne hy_mem
-                  rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hy_mem
-                  rw [h_ioo_agree y ⟨hy_mem.1, lt_of_le_of_ne hy_mem.2 hyne⟩]]
-                exact h_smooth_H2.weak_cosine_laplacian k }
+                -- Goal: ∫cos·4th_smooth = -(kπ)²·∫cos·hf_H2.secondDeriv
+                -- From h_smooth_H2.weak_cosine_laplacian k:
+                --   ∫cos·4th_smooth = -(kπ)²·∫cos·g_smooth''    ...(B)
+                -- From hf_H2.weak_cosine_laplacian k:
+                --   ∫cos·hf_H2.sd = -(kπ)²·∫cos·(ν·lift^γ)     ...(A)
+                -- From h_cos_int_eq:
+                --   ∫cos·(ν·lift^γ) = ∫cos·g_smooth              ...(C)
+                -- From h_depth1_ibp:
+                --   ∫cos·g_smooth'' = -(kπ)²·∫cos·g_smooth       ...(D)
+                -- Substituting (C) into (A): ∫cos·hf_H2.sd = -(kπ)²·∫cos·g_smooth
+                -- Substituting into goal RHS: -(kπ)²·∫cos·hf_H2.sd = (kπ)⁴·∫cos·g_smooth
+                -- And (D) into (B): ∫cos·4th = -(kπ)²·(-(kπ)²·∫cos·g_smooth) = (kπ)⁴·∫cos·g_smooth
+                -- So LHS = RHS.
+                have hA := hf_H2.weak_cosine_laplacian k
+                have hB := h_smooth_H2.weak_cosine_laplacian k
+                have hC := h_cos_int_eq k
+                have hD := h_depth1_ibp k
+                -- Substitute (C) into (A)
+                rw [hC] at hA
+                -- Now hA: ∫cos·hf_H2.sd = -(kπ)²·∫cos·g_smooth
+                -- Substitute (D) into (B)
+                rw [hD] at hB
+                -- Now hB: ∫cos·4th = -(kπ)²·(-(kπ)²·∫cos·g_smooth)
+                -- Goal: ∫cos·4th = -(kπ)²·∫cos·hf_H2.sd
+                rw [hA]; exact hB }
           -- Step 7: quartic decay → eigenvalue-weighted summability.
           exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
             hf_H2 hf''_H2
