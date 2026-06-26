@@ -1,192 +1,395 @@
-# Q731 (cron2): Tower base / limit / extension machinery
+# Q733 (cron2): Mathlib / Shen_work search for `contDiff_tsum` mixed-product bounds
 
-Static repo inspection only; I did not run a Lean build or `#print axioms`.
+Static repo inspection only; I did not run a Lean build.  Mathlib files below were inspected at tag/ref `v4.29.1` where possible.
 
 ## Executive verdict
 
-### Line 60 base case
+Yes: Mathlib v4.29.1 has exactly the kind of **norm bound** needed for products, though not phrased as a special “separate variables mixed partials factor” theorem.
 
-`level0_bFormSource_duhamelSourceTimeC1On_auto` **exists** in:
+The key theorem is:
+
+```lean
+norm_iteratedFDeriv_mul_le
+```
+
+from:
 
 ```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+Mathlib/Analysis/Calculus/ContDiff/Bounds.lean
 ```
 
-Namespace:
+It states, for scalar/normed-ring product:
 
 ```lean
-ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+theorem norm_iteratedFDeriv_mul_le
+    {f : E → A} {g : E → A} {N : WithTop ℕ∞}
+    (hf : ContDiff 𝕜 N f) (hg : ContDiff 𝕜 N g)
+    (x : E) {n : ℕ} (hn : n ≤ N) :
+    ‖iteratedFDeriv 𝕜 n (fun y => f y * g y) x‖ ≤
+      ∑ i ∈ Finset.range (n + 1),
+        (n.choose i : ℝ) * ‖iteratedFDeriv 𝕜 i f x‖ *
+          ‖iteratedFDeriv 𝕜 (n - i) g x‖
 ```
 
-However, there are two important caveats.
-
-1. The local body of `level0_bFormSource_duhamelSourceTimeC1On_auto` is wiring, but it is **not transitively sorry-free yet**.  The file explicitly says this self-contained variant “Uses sorry,” because it constructs `Level0ChemDivSourceData` internally from:
+There is also the more general bilinear version:
 
 ```lean
-level0_chemDiv_envelope_summable
-level0_chemDiv_timeDerivData
+ContinuousLinearMap.norm_iteratedFDeriv_le_of_bilinear
 ```
 
-and the file comments say these are the two Level0 chemDiv residuals.
-
-2. The Tower comment’s suggested call
+and the within-set versions:
 
 ```lean
-exact level0_bFormSource_duhamelSourceTimeC1On_auto p DB hu₀pos hc hcT.le
+ContinuousLinearMap.norm_iteratedFDerivWithin_le_of_bilinear
+norm_iteratedFDerivWithin_mul_le
 ```
 
-is **not the current signature** of the theorem I found.  The current theorem takes the raw Level0 window hypotheses:
+So for
 
 ```lean
-noncomputable def level0_bFormSource_duhamelSourceTimeC1On_auto
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {c T M G1 G2 Udot M₀ : ℝ}
-    (hc : 0 < c) (hcT : c < T)
-    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
-    (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M)
-    (hG1 : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |deriv (intervalDomainLift (conjugatePicardIter p u₀ 0 σ)) x| ≤ G1)
-    (hG2 : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |deriv (deriv (intervalDomainLift (conjugatePicardIter p u₀ 0 σ))) x| ≤ G2)
-    (hUdot : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondValue
-        σ (heatCoeff u₀) x| ≤ Udot) :
-    DuhamelSourceTimeC1On
-      (bFormSourceCoeffs p (conjugatePicardIter p u₀ 0)) c T :=
-  level0_bFormSource_duhamelSourceTimeC1On p hc hcT hα ha hb hu₀_cont hu₀_bound
-    hpos hub hG1 hG2 hUdot
-    (level0ChemDivSourceData p hc hcT.le hu₀_cont hu₀_bound hpos hub)
+f_n q = a n * Real.exp (-q.1 * λ n) * Real.cos ((n : ℝ) * Real.pi * q.2)
 ```
 
-There are helper theorems immediately below it:
+you do **not** need to prove a custom mixed-partial factorization theorem.  Use:
+
+1. `norm_iteratedFDeriv_mul_le` for the product;
+2. a first-coordinate projection bound for the time factor;
+3. a second-coordinate projection bound for the spatial cosine factor;
+4. explicit 1D bounds for `iteratedFDeriv` of `t ↦ a_n * exp(-t λ_n)` and `x ↦ cos(nπx)`.
+
+Shen_work already has exactly this pattern for terms of the form
 
 ```lean
-level0_heat_pos_of_data
-level0_heat_sup_of_data
+fun q : ℝ × ℝ => c n q.1 * cosineMode n q.2
 ```
 
-which extract the heat-level positivity and sup bounds from `ConjugateMildExistenceData`/`PositiveInitialDatum`, but I did **not** find a convenience wrapper with the exact `p DB hu₀pos hc hcT.le` signature in the current file.
+in:
 
-So: line 60 is **morally pure wiring once Level0 is complete**, but the current repo still needs either:
+```text
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
+```
 
-* a wrapper matching the Tower comment, or
-* an explicit call passing the raw arguments (`hα`, `ha`, `hb`, `hu₀_cont`, coefficient bound, `hpos`, `hub`, `hG1`, `hG2`, `hUdot`).
+The relevant theorem is:
 
-## Line 92 limit passage
+```lean
+theorem boundedWeightJointTerm_iteratedFDeriv_le
+```
 
-`duhamelSourceTimeC1On_of_uniform_limit` **exists**.
+It calls `norm_iteratedFDeriv_mul_le`, then uses projection lemmas for `q.1` and `q.2`, then feeds the resulting majorant to `contDiff_tsum` in
+
+```lean
+theorem boundedWeightJointSeries_contDiff_two
+```
+
+This is probably the best template for your new heat-semigroup term.
+
+## Mathlib results found
+
+### 1. General bilinear product bound
 
 File:
 
 ```text
-ShenWork/Paper2/IntervalMildPicardLimitRegularityOn.lean
+Mathlib/Analysis/Calculus/ContDiff/Bounds.lean
 ```
 
-Namespace:
+Relevant theorem:
 
 ```lean
-ShenWork.IntervalMildPicardLimitRegularityOn
+theorem ContinuousLinearMap.norm_iteratedFDeriv_le_of_bilinear
+    (B : E →L[𝕜] F →L[𝕜] G)
+    {f : D → E} {g : D → F} {N : WithTop ℕ∞}
+    (hf : ContDiff 𝕜 N f) (hg : ContDiff 𝕜 N g)
+    (x : D) {n : ℕ} (hn : n ≤ N) :
+    ‖iteratedFDeriv 𝕜 n (fun y => B (f y) (g y)) x‖ ≤
+      ‖B‖ * ∑ i ∈ Finset.range (n + 1),
+        (n.choose i : ℝ) * ‖iteratedFDeriv 𝕜 i f x‖ *
+          ‖iteratedFDeriv 𝕜 (n - i) g x‖
 ```
 
-The file header explicitly says:
+This is the direct abstract version of the desired Leibniz/mixed-order estimate.
 
-```text
-No `sorry`/`admit`/custom `axiom`.
-```
+### 2. Multiplication-specialized bound
 
-The main theorem is:
+Same file:
 
 ```lean
-def duhamelSourceTimeC1On_of_uniform_limit
-    {a : ℝ → ℕ → ℝ} {aSeq : ℕ → ℝ → ℕ → ℝ}
-    {lo hi : ℝ}
-    (hconv : ∀ s ∈ Icc lo hi, ∀ k, Tendsto (fun n => aSeq n s k) atTop (nhds (a s k)))
-    {adotSeq : ℕ → ℝ → ℕ → ℝ}
-    (hderiv_each : ∀ n, ∀ s ∈ Icc lo hi, ∀ k,
-      HasDerivWithinAt (fun r => aSeq n r k) (adotSeq n s k) (Icc lo hi) s)
-    {adot : ℝ → ℕ → ℝ}
-    (hadot_unif : ∀ k, TendstoUniformlyOn (fun n s => adotSeq n s k)
-      (fun s => adot s k) atTop (Icc lo hi))
-    (hadot_cont : ∀ k, ContinuousOn (fun s => adot s k) (Icc lo hi))
-    {envelope : ℕ → ℝ}
-    (henv_summable : Summable envelope)
-    (henv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |aSeq n s k| ≤ envelope k)
-    {D : ℝ}
-    (hderiv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |adotSeq n s k| ≤ D) :
-    DuhamelSourceTimeC1On a lo hi
+theorem norm_iteratedFDeriv_mul_le
+    {f : E → A} {g : E → A} {N : WithTop ℕ∞}
+    (hf : ContDiff 𝕜 N f) (hg : ContDiff 𝕜 N g)
+    (x : E) {n : ℕ} (hn : n ≤ N) :
+    ‖iteratedFDeriv 𝕜 n (fun y => f y * g y) x‖ ≤
+      ∑ i ∈ Finset.range (n + 1),
+        (n.choose i : ℝ) * ‖iteratedFDeriv 𝕜 i f x‖ *
+          ‖iteratedFDeriv 𝕜 (n - i) g x‖
 ```
 
-This matches the Tower line 92 comment well: it needs iterate packages on `[c,T]`, pointwise coefficient convergence, uniform derivative convergence, a common summable envelope, and a common derivative bound.
+This is usually the one to use for real-valued terms.
 
-## Line 111 extension to `[0,T]`
+The theorem is derived from multiplication as a continuous bilinear map:
 
-I found `DuhamelSourceTimeC1On` restriction/shift utilities, but I did **not** find a completed theorem that extends from “for all `c > 0`, `DuhamelSourceTimeC1On a c T`” down to `DuhamelSourceTimeC1On a 0 T`.
+```lean
+ContinuousLinearMap.mul 𝕜 A : A →L[𝕜] A →L[𝕜] A
+```
+
+with operator norm at most `1`.
+
+### 3. Finite product bound
+
+Same file also has:
+
+```lean
+norm_iteratedFDeriv_prod_le
+```
+
+for products over a finite set.  This is useful if the term is a product of more than two factors, but for your heat-cosine mode the binary product theorem is simpler.
+
+### 4. `contDiff_tsum`
 
 File:
 
 ```text
-ShenWork/PDE/IntervalDuhamelSourceTimeC1On.lean
+Mathlib/Analysis/Calculus/SmoothSeries.lean
 ```
 
-Existing machinery:
+Relevant theorem:
 
 ```lean
-structure DuhamelSourceTimeC1On (a : ℝ → ℕ → ℝ) (lo hi : ℝ) where
-  adot : ℝ → ℕ → ℝ
-  hderiv : ∀ s ∈ Set.Icc lo hi, ∀ n,
-    HasDerivWithinAt (fun r => a r n) (adot s n) (Set.Icc lo hi) s
-  hadotcont : ∀ n, ContinuousOn (fun s => adot s n) (Set.Icc lo hi)
-  envelope : ℕ → ℝ
-  henv_summable : Summable envelope
-  henv_bound : ∀ s ∈ Set.Icc lo hi, ∀ n, |a s n| ≤ envelope n
-  derivBound : ℝ
-  hderivBound : ∀ s ∈ Set.Icc lo hi, ∀ n, |adot s n| ≤ derivBound
+theorem contDiff_tsum
+    (hf : ∀ i, ContDiff 𝕜 N (f i))
+    (hv : ∀ k : ℕ, (k : ℕ∞) ≤ N → Summable (v k))
+    (h'f : ∀ (k : ℕ) (i : α) (x : E), k ≤ N →
+      ‖iteratedFDeriv 𝕜 k (f i) x‖ ≤ v k i) :
+    ContDiff 𝕜 N fun x => ∑' i, f i x
+```
+
+There are also:
+
+```lean
+iteratedFDeriv_tsum
+iteratedFDeriv_tsum_apply
+contDiff_tsum_of_eventually
+```
+
+The important point: `contDiff_tsum` wants **summable uniform bounds** `v k i` for each derivative order `k ≤ N`, uniform in the base point `x`.  Merely proving `ContDiff` of each term is not enough.
+
+## Shen_work examples found
+
+### 1. Exact product-bound template: bounded-weight resolver joint term
+
+File:
+
+```text
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
+```
+
+Definitions:
+
+```lean
+def boundedWeightJointTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => c n q.1 * cosineMode n q.2
 ```
 
 ```lean
-def DuhamelSourceTimeC1.toOn {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
-    (lo hi : ℝ) (hlo : 0 ≤ lo) : DuhamelSourceTimeC1On a lo hi
+def boundedWeightJointMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
+  ∑ i ∈ Finset.range (k + 1),
+    (k.choose i : ℝ) * Bt i n * valueCosWeight (k - i) n
+```
+
+Key theorem:
+
+```lean
+theorem boundedWeightJointTerm_iteratedFDeriv_le
+    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ} {n k : ℕ} {q : ℝ × ℝ}
+    (hc : ContDiff ℝ (2 : ℕ∞) (c n)) (hk : (k : ℕ∞) ≤ (2 : ℕ∞))
+    (hBt : ∀ i, i ≤ 2 → ‖iteratedFDeriv ℝ i (c n) q.1‖ ≤ Bt i n) :
+    ‖iteratedFDeriv ℝ k (boundedWeightJointTerm c n) q‖ ≤
+      boundedWeightJointMajorant Bt k n
+```
+
+Inside the proof, it does exactly this:
+
+```lean
+have hprod := norm_iteratedFDeriv_mul_le hcj hcos q hkTop
+```
+
+then bounds the time factor via `norm_iteratedFDeriv_comp_fst_le` and the spatial factor via `norm_iteratedFDeriv_comp_snd_le` plus `cosineMode_iteratedFDeriv_bound`.
+
+The assembler is:
+
+```lean
+theorem boundedWeightJointSeries_contDiff_two ... :
+    ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q) :=
+  contDiff_tsum ...
+```
+
+This is the exact pattern to copy.
+
+### 2. Projection helper lemmas
+
+File:
+
+```text
+ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean
+```
+
+Useful lemmas:
+
+```lean
+theorem norm_iteratedFDeriv_comp_fst_le
+    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
+    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
+    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.1) q‖ ≤
+      ‖iteratedFDeriv ℝ k g q.1‖
 ```
 
 ```lean
-def DuhamelSourceTimeC1On.shift_zero {a : ℝ → ℕ → ℝ} {offset W : ℝ}
-    (src : DuhamelSourceTimeC1On a offset (offset + W)) :
-    DuhamelSourceTimeC1On (fun s n => a (offset + s) n) 0 W
+theorem norm_iteratedFDeriv_comp_snd_le
+    {g : ℝ → ℝ} {N : WithTop ℕ∞} (hg : ContDiff ℝ N g)
+    {k : ℕ} (hk : (k : ℕ∞) ≤ N) (q : ℝ × ℝ) :
+    ‖iteratedFDeriv ℝ k (fun q : ℝ × ℝ => g q.2) q‖ ≤
+      ‖iteratedFDeriv ℝ k g q.2‖
 ```
+
+These are not generic Mathlib names; they are Shen_work helper lemmas built from `ContinuousLinearMap.fst/snd` and `iteratedFDeriv_comp_right`.
+
+### 3. Another direct product-bound example
+
+Same file has:
 
 ```lean
-def DuhamelSourceTimeC1On.restrict_hi {a : ℝ → ℕ → ℝ} {lo hi hi' : ℝ}
-    (src : DuhamelSourceTimeC1On a lo hi) (hhi' : hi' ≤ hi) :
-    DuhamelSourceTimeC1On a lo hi'
+theorem cutoffValueTerm_leibniz_bound
 ```
 
-Also available:
+It rewrites a cutoff value term as a product and then does:
 
 ```lean
-DuhamelSourceTimeC1On.const_mul
-DuhamelSourceTimeC1On.add
+norm_iteratedFDeriv_mul_le hG hH q hk'
 ```
 
-I did **not** find:
+This is a compact small example of using the Mathlib product bound.
+
+### 4. A simple fixed-time heat-series `contDiff_tsum` example
+
+File:
+
+```text
+ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
+```
+
+The theorem
 
 ```lean
-DuhamelSourceTimeC1On.restrict_lo
-DuhamelSourceTimeC1On.extend_lo
-DuhamelSourceTimeC1On.extend_zero
-DuhamelSourceTimeC1On_of_forall_pos_lo
+theorem unitIntervalCosineHeatValue_contDiff_seven
 ```
 
-or any named theorem that packages the Tower line 111 step.
+uses `contDiff_tsum` for the fixed-time spatial heat series.  Since `t` is fixed there, it avoids mixed `(t,x)` derivatives and only bounds spatial derivatives:
 
-So line 111 still appears to need a new endpoint-extension lemma or a direct construction at `lo = 0`.  The existing restriction machinery only goes from a larger closed window to a smaller upper endpoint (and shifts `[offset, offset+W]` to `[0,W]`); it does not lower the left endpoint from `c` to `0`.
+```lean
+let v : ℕ → ℕ → ℝ := fun k n =>
+  |(n : ℝ) * Real.pi| ^ k *
+    Real.exp (-t * unitIntervalCosineEigenvalue n) * |M|
+```
+
+This is useful for the purely spatial heat-value route, but for joint `(t,x)` smoothness the `IntervalResolverJointC2Physical` pattern is closer.
+
+## About the proposed “simpler approach”
+
+> Since each `f_n` is `ContDiff ℝ ⊤`, can I just use `norm_iteratedFDeriv_le_of_bound` or similar?
+
+Not by itself.
+
+`ContDiff` gives smoothness of each term and continuity of each iterated derivative, but `contDiff_tsum` needs a **summable uniform majorant**:
+
+```lean
+∀ k i x, ‖iteratedFDeriv ℝ k (f i) x‖ ≤ v k i
+```
+
+with `Summable (v k)`.
+
+For the full domain `ℝ × ℝ`, the heat factor
+
+```lean
+Real.exp (-t * λ_n)
+```
+
+is not uniformly bounded in `t`, because it blows up as `t → -∞` when `λ_n > 0`.  So a global-on-`ℝ×ℝ` summable majorant for the heat terms is generally false unless you insert a cutoff or restrict the time domain.
+
+On a positive slab, e.g.
+
+```lean
+t ∈ Icc c T,  0 < c
+```
+
+you can use
+
+```lean
+Real.exp (-t * λ_n) ≤ Real.exp (-c * λ_n)
+```
+
+and get a summable majorant of the form, schematically,
+
+```lean
+|a_n| * ∑ i ∈ Finset.range (k+1),
+  (k.choose i : ℝ) * λ_n^i * Real.exp (-c * λ_n) * |nπ|^(k-i)
+```
+
+or any cruder summable polynomial-times-exponential bound.
+
+If the term is cutoff-supported in time, another route is compact-support/compactness: Shen_work uses this style for `restartSmoothCutoff_iteratedFDeriv_bound_exists`, deriving a bound on each cutoff derivative from `ContDiff.continuous_iteratedFDeriv` plus compact support.  But for the raw heat kernel on all `ℝ`, explicit positive-time exponential bounds are the right route.
+
+## Recommended implementation route for your term
+
+For each mode, define or rewrite into:
+
+```lean
+G n q := a n * Real.exp (-q.1 * λ n)
+H n q := cosineMode n q.2
+f n q := G n q * H n q
+```
+
+Then:
+
+```lean
+have hG : ContDiff ℝ N (G n) := by fun_prop
+have hH : ContDiff ℝ N (H n) := by
+  have hcos : ContDiff ℝ N (cosineMode n) := by
+    unfold cosineMode; fun_prop
+  exact hcos.comp contDiff_snd
+
+have hprod := norm_iteratedFDeriv_mul_le hG hH q hk
+```
+
+For a cleaner bound, follow the repo’s existing abstraction:
+
+```lean
+norm_iteratedFDeriv_comp_fst_le
+norm_iteratedFDeriv_comp_snd_le
+cosineMode_iteratedFDeriv_bound
+```
+
+and build a majorant analogous to:
+
+```lean
+boundedWeightJointMajorant Bt k n
+```
+
+For the heat term on `t ≥ c`, take the time derivative bound roughly as:
+
+```lean
+Bt i n := |a n| * λ_n^i * Real.exp (-c * λ_n)
+```
+
+Then the joint majorant is:
+
+```lean
+∑ i ∈ Finset.range (k+1),
+  (k.choose i : ℝ) * Bt i n * valueCosWeight (k-i) n
+```
+
+and `contDiff_tsum` consumes exactly this shape.
 
 ## Bottom line
 
-* **Line 60:** `level0_bFormSource_duhamelSourceTimeC1On_auto` exists.  Its local body is wiring, but it transitively depends on the Level0 chemDiv sorries.  Also, the exact `p DB hu₀pos hc hcT.le` wrapper suggested by the Tower comment is not the theorem signature I found.
-* **Line 92:** `duhamelSourceTimeC1On_of_uniform_limit` exists and is explicitly documented as sorry-free.
-* **Line 111:** restriction/shift machinery exists (`toOn`, `shift_zero`, `restrict_hi`), but I found no completed extension-to-left-endpoint / `[c,T]`-to-`[0,T]` theorem.
+Use `norm_iteratedFDeriv_mul_le`; do not try to prove a new mixed partial formula unless you need exact equality.  Shen_work already contains the needed blueprint in `IntervalResolverJointC2Physical.boundedWeightJointTerm_iteratedFDeriv_le` and `boundedWeightJointSeries_contDiff_two`.
