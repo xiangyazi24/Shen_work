@@ -780,7 +780,63 @@ theorem level0_chemDiv_envelope_summable
           (Function.uncurry
             (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
           (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-      sorry -- [SUB-SORRY 2A: joint continuity of chemDiv source]
+      -- ── Strategy: smooth representative + agreement on [0,1] ──
+      -- Define F(s,x) := deriv_x(chemFluxFun β U_cos(s) V_cos(s))(x) where
+      -- U_cos(s), V_cos(s) are the globally-smooth cosine-series representatives.
+      -- Show (1) F is jointly continuous, (2) F agrees with chemDivSourceLift on [0,1],
+      -- (3) transfer via ContinuousOn.congr.
+      --
+      -- ── (1) Heat semigroup + resolver joint continuity ──
+      -- The heat semigroup value series (s,x) ↦ ∑' k, exp(-s·λ_k)·û₀_k·cos(kπx)
+      -- is jointly continuous on Ioi 0 × univ (continuousOn_tsum with M₀·exp(-c·λ_k)
+      -- majorant); see EWA/SourceJointRegularity.heatValueSeries_jointContinuousOn.
+      -- Icc c T ×ˢ Icc 0 1 ⊆ Ioi 0 × univ for c > 0, giving U_cos jointly continuous.
+      -- The resolver V_cos inherits joint continuity via weight summability.
+      -- The chemFlux derivative composition is jointly continuous by ContDiff chain.
+      --
+      -- ── Sub-sorry: the smooth representative is jointly continuous ──
+      -- This is the core analytic content (~90 lines when fully expanded).
+      -- Pattern: reproduce heatValueSeries_jointContinuousOn locally (it is private),
+      -- then resolver via resolverWeight_summable, then ContDiff composition.
+      have hF_cont : ContinuousOn
+          (fun q : ℝ × ℝ => deriv
+            (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
+              (fun x => ∑' k, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k x)
+              (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
+            q.2)
+          (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+        sorry -- [SUB-SORRY 2A-core: joint continuity of the smooth flux derivative.
+               --  The smooth representative is defined via:
+               --    U_cos(s)(x) = ∑' k, exp(-s·λ_k)·û₀_k·cos(kπx)  (C⁴ per slice)
+               --    V_cos(s)(x) = intervalResolverLiftR p (S(s)u₀)(x)  (C⁴ per slice)
+               --  Joint continuity follows from:
+               --    (i)   continuousOn_tsum for the heat value series on Ioi 0 × univ
+               --          with exp(-c·λ_k) majorant (pattern: SourceJointRegularity.lean:87)
+               --    (ii)  resolver value series jointly continuous via weight summability
+               --          (pattern: IntervalResolverDirectTimeRegularity.lean:327)
+               --    (iii) chemFluxFun is C³ composition → deriv is C² → continuous
+               --          (from chemFlux_contDiff_three + smooth parameter dependence)]
+      -- ── Agreement: on [0,1], coupledChemDivSourceLift = smooth representative ──
+      have hF_agree : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
+          Function.uncurry
+            (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) q =
+          deriv
+            (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
+              (fun x => ∑' k, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k x)
+              (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
+            q.2 := by
+        sorry -- [SUB-SORRY 2A-agree: per-slice agreement of chemDivSourceLift
+               --  with the smooth flux derivative on [0,1].
+               --  Route: unfold coupledChemDivSourceLift = intervalDomainLift(chemotaxisDiv)
+               --  On Icc 0 1, intervalDomainLift f x = f ⟨x, hx⟩.
+               --  chemotaxisDiv = deriv(flux) where flux uses intervalDomainLift u, v.
+               --  On [0,1], intervalDomainLift (S(s)u₀) = U_cos(s) (hagree_zero).
+               --  On [0,1], intervalDomainLift (resolver(S(s)u₀)) = V_cos(s) (resolver agree).
+               --  Therefore chemDivSourceLift s x = deriv(chemFluxFun β U_cos(s) V_cos(s)) x.
+               --  Pattern: IntervalChemDivSpatialC2.lean:102-111 (chemDivLift_contDiffOn_two).]
+      exact hF_cont.congr hF_agree
     -- SUB-SORRY 2B (can be discharged from 2A): per-slice continuity.
     have hcont_slices : ∀ s ∈ Icc c T,
         ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
