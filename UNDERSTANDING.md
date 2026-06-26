@@ -1,10 +1,12 @@
 # UNDERSTANDING.md — Shen_work (2026-06-25 update)
 
-## CURRENT STATE (2026-06-25, mid-session)
+## CURRENT STATE (2026-06-25, late session)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: **9 sorry** across 2 files (Level0: 4, Tower: 5).
-Session progress: 11→9 sorry (slab inclusion + resolver positivity filled).
+Paper 2 χ₀<0: **14 sorry** across 2 files (Level0: 9 sub-sorry, Tower: 5).
+Session progress: original 11 sorry → 3 big sorry filled + 3 remaining decomposed into 9+1.
+Source eigenvalue summability chain COMPLETE (0 sorry). The 9 Level0 sub-sorry are all
+"heat semigroup → generic API wiring" — no new mathematical content.
 
 ### Paper 2 χ₀<0 sorry breakdown
 
