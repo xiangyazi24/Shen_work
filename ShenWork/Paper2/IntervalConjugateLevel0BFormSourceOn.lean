@@ -720,7 +720,15 @@ theorem level0_chemDiv_envelope_summable
       -- ∫₀¹ |f''(x)| dx ≤ ∫₀¹ C dx = C on [0,1].
       have hL1_from_ptwise : ∀ s (hs : s ∈ Icc c T),
           (∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x|) ≤ C := by
-        sorry -- [SUB-SORRY 1B: integral monotonicity + measure of [0,1] = 1]
+        intro s hs
+        calc ∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x|
+            ≤ ∫ _ in (0 : ℝ)..1, C := by
+              apply intervalIntegral.integral_mono_on (by norm_num)
+                (hH2_per_slice s hs).second_intervalIntegrable.norm
+                (intervalIntegrable_const)
+                (fun x hx => by rw [Real.norm_eq_abs]; exact hptwise s hs x
+                  (Set.Icc_subset_Icc_left (by norm_num) hx))
+          _ = C := by simp
       exact ⟨C, hCnn, hL1_from_ptwise⟩
     obtain ⟨B, hBnn, hL1⟩ := hL1_uniform
     exact ⟨B, hBnn, fun s hs => ⟨hH2_per_slice s hs, hL1 s hs⟩⟩
