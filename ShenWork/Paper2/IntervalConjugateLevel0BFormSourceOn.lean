@@ -335,9 +335,9 @@ theorem level0_chemDiv_envelope_summable
               intro x
               -- Step 1: reduce to [0,∞) using evenness
               have hx_abs : U_cos x = U_cos |x| := by
-                rcases le_or_lt 0 x with h | h
+                by_cases h : 0 ≤ x
                 · rw [abs_of_nonneg h]
-                · rw [abs_of_neg h]; exact (hU_even x).symm
+                · rw [abs_of_neg (not_le.mp h)]; exact (hU_even x).symm
               rw [hx_abs]
               -- Step 2: reduce |x| to [0,2) using period 2
               set n := ⌊|x| / 2⌋ with hn_def
@@ -353,7 +353,8 @@ theorem level0_chemDiv_envelope_summable
               by_cases hr1 : r ≤ 1
               · exact hU_pos_Icc r ⟨hr_lo, hr1⟩
               · push_neg at hr1
-                rw [hU_symm1 r]
+                have : U_cos r = U_cos (2 - r) := (hU_symm1 r).symm
+                rw [this]
                 exact hU_pos_Icc (2 - r) ⟨by linarith, by linarith⟩
             -- ── Step 6b: g_smooth := ν * U_cos ^ γ is C⁴ ──
             have hU_ne : ∀ x, U_cos x ≠ 0 := fun x => ne_of_gt (hU_pos_all x)
@@ -454,14 +455,20 @@ theorem level0_chemDiv_envelope_summable
                 deriv (deriv g_smooth) x := by
               intro x hmem
               exact ((h_src_agree_near x hmem).deriv.deriv).eq_of_nhds
+            -- Reduce hf_H2.secondDeriv to its constructor form.
+            -- hf_H2 = intervalWeakH2Neumann_of_eigenvalue_summable ...
+            --        = intervalWeakH2Neumann_of_contDiffOn ...
+            -- .secondDeriv = deriv (deriv (fun x => ν * lift(w)(x) ^ γ))
+            have hf_H2_unfold : hf_H2.secondDeriv =
+                deriv (deriv (fun z => p.ν * intervalDomainLift w z ^ p.γ)) := by
+              -- Force definitional unfolding through the two constructor layers
+              delta ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
+              delta ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+              rfl
             have h_ioo_agree : ∀ x ∈ Ioo (0 : ℝ) 1,
                 hf_H2.secondDeriv x = deriv (deriv g_smooth) x := by
               intro x hmem
-              -- hf_H2.secondDeriv is definitionally
-              -- deriv (deriv (fun x => p.ν * intervalDomainLift w x ^ p.γ))
-              -- via intervalWeakH2Neumann_of_contDiffOn
-              change deriv (deriv (fun z => p.ν * intervalDomainLift w z ^ p.γ)) x =
-                  deriv (deriv g_smooth) x
+              rw [hf_H2_unfold]
               exact h_dd_agree x hmem
             exact {
               secondDeriv := h_smooth_H2.secondDeriv
