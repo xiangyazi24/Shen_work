@@ -1,210 +1,243 @@
-# Q782 / cron1: C^k compact-support iteratedFDeriv bound
+# Q788 / cron1: smoothRightCutoff derivative-bound search
 
 Repo inspected: xiangyazi24/Shen_work
-Mathlib ref inspected: leanprover-community/mathlib4 v4.29.1
+Mathlib inspected: leanprover-community/mathlib4 v4.29.1
 Branch written: chatgpt-scratch
 
-Question: for f : Real -> Real, if f is C^k and its relevant support is compact, how to prove
+Question: for the sub-sorry in `IntervalHeatSemigroupHighRegularity.lean`, prove/bank
 
   exists B, 0 <= B and forall t,
-    norm (iteratedFDeriv Real k f t) <= B
+    norm (iteratedFDeriv Real k (smoothRightCutoff c' c) t) <= B
 
-and how to use this for smoothRightCutoff (c / 2) c, whose positive-order derivatives are supported in [c / 2, c]?
+with k = 0 by range [0,1], and k >= 1 by continuity + compact support / compact interval.
 
-## Verdict
+## Search verdict
 
-Mathlib v4.29.1 has the route. The most direct theorem names are:
+I did **not** find repo lemmas named like:
 
-1. Compact-set boundedness of a continuous normed-valued function:
+  smoothRightCutoff_le_one
+  smoothRightCutoff_range
+  smoothRightCutoff_support
+  smoothRightCutoff_hasCompactSupport
 
-   IsCompact.exists_bound_of_continuousOn
+The repo currently has only the basic one-sided cutoff API in
 
-   Statement shape:
+  ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
 
-     lemma IsCompact.exists_bound_of_continuousOn
-         [TopologicalSpace alpha] {s : Set alpha} (hs : IsCompact s)
-         {f : alpha -> E} (hf : ContinuousOn f s) :
-         exists C, forall x in s, norm (f x) <= C
-
-2. Compact-support boundedness of a continuous function:
-
-   Continuous.bounded_above_of_compact_support
-
-   Statement shape:
-
-     lemma Continuous.bounded_above_of_compact_support
-         (hf : Continuous f) (h : HasCompactSupport f) :
-         exists C, forall x, norm (f x) <= C
-
-3. Compact support is preserved by iterated Frechet derivatives:
-
-   HasCompactSupport.iteratedFDeriv
-
-   Statement shape:
-
-     theorem HasCompactSupport.iteratedFDeriv
-         (hf : HasCompactSupport f) (n : Nat) :
-         HasCompactSupport (iteratedFDeriv k n f)
-
-4. C^n gives continuity of iteratedFDeriv up to order n:
-
-   ContDiff.continuous_iteratedFDeriv
-
-   Statement shape:
-
-     theorem ContDiff.continuous_iteratedFDeriv
-         {m : Nat} (hm : m <= n) (hf : ContDiff k n f) :
-         Continuous fun x => iteratedFDeriv k m f x
-
-So if f itself has HasCompactSupport and is C^k, the proof is short:
+namely:
 
 ```lean
-theorem compactSupport_iteratedFDeriv_bound
-    {f : Real -> Real} {k : Nat}
-    (hf : ContDiff Real (k : ENat) f)
-    (hcs : HasCompactSupport f) :
-    exists B : Real, 0 <= B /\
-      forall t : Real, norm (iteratedFDeriv Real k f t) <= B := by
-  have hcont : Continuous (fun t : Real => iteratedFDeriv Real k f t) :=
-    hf.continuous_iteratedFDeriv (by exact_mod_cast le_rfl)
-  have hcsD : HasCompactSupport
-      (fun t : Real => iteratedFDeriv Real k f t) :=
-    hcs.iteratedFDeriv k
-  rcases hcont.bounded_above_of_compact_support hcsD with <C, hC>
-  exact <max C 0, le_max_right C 0,
-    fun t => (hC t).trans (le_max_left C 0)>
+def smoothRightCutoff (c' c : Real) : Real -> Real :=
+  fun t => Real.smoothTransition ((c - c')^{-1} * (t - c'))
+
+theorem smoothRightCutoff_contDiff :
+  ContDiff Real (2 : ENat) (smoothRightCutoff c' c)
+
+theorem smoothRightCutoff_eq_zero_of_le :
+  c' < c -> t <= c' -> smoothRightCutoff c' c t = 0
+
+theorem smoothRightCutoff_eq_one_of_ge :
+  c' < c -> c <= t -> smoothRightCutoff c' c t = 1
+
+theorem smoothRightCutoff_eventually_eq_one :
+  c' < c -> c < s -> smoothRightCutoff c' c = eventuallyEq (nhds s) (fun _ => 1)
 ```
 
-This is the cleanest general answer to the compact-support question.
-
-## If support is only contained in a compact set K
-
-If you already have support containment rather than HasCompactSupport, use the compact-set theorem:
+So: no named `smoothRightCutoff_le_one` was found, but it is a one-liner from Mathlib:
 
 ```lean
-have hcontK : ContinuousOn
-    (fun t : Real => norm (iteratedFDeriv Real k f t)) K :=
-  (hcont.norm).continuousOn
-obtain <B0, hB0> := hK.exists_bound_of_continuousOn hcontK
+theorem smoothRightCutoff_nonneg (c' c t : Real) :
+    0 <= smoothRightCutoff c' c t := by
+  unfold smoothRightCutoff
+  exact Real.smoothTransition.nonneg _
+
+theorem smoothRightCutoff_le_one (c' c t : Real) :
+    smoothRightCutoff c' c t <= 1 := by
+  unfold smoothRightCutoff
+  exact Real.smoothTransition.le_one _
 ```
 
-This gives the bound on K. For t outside K, use the hypothesis that the derivative is zero there. Then take max B0 0 if you need a nonnegative B.
+This matches the existing k = 0 branch in `IntervalHeatSemigroupHighRegularity.lean`, which unfolds `smoothRightCutoff` and uses:
 
-Equivalently, if your derivative field has HasCompactSupport, skip K and use:
+  Real.smoothTransition.nonneg
+  Real.smoothTransition.le_one
+
+## Current sub-sorry location
+
+On `main`, `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` has the private theorem:
+
+```lean
+private theorem smoothRightCutoff_iteratedFDeriv_bound_exists
+    (c' c : Real) (k : Nat) (hk : (k : ENat) <= 2) :
+    exists B : Real, 0 <= B and
+      forall t : Real,
+        norm (iteratedFDeriv Real k (smoothRightCutoff c' c) t) <= B := by
+  rcases Nat.eq_zero_or_pos k with rfl | _hk_pos
+  · -- k = 0: implemented
+  · -- k >= 1: sorry
+```
+
+The implemented k = 0 branch returns B = 1 and uses `norm_iteratedFDeriv_zero`, `Real.smoothTransition.nonneg`, and `Real.smoothTransition.le_one`.
+
+The k >= 1 branch comment says the derivative is continuous and supported inside `[c', c]`, but the current comment also mentions `HasCompactSupport.iteratedFDeriv`; that theorem exists, but it is **not directly applicable to `smoothRightCutoff` itself**, because `smoothRightCutoff` is eventually 1 on the right and therefore is not compactly supported.
+
+## Mathlib facts found
+
+### 1. HasCompactSupport.iteratedFDeriv exists
+
+In Mathlib v4.29.1:
+
+```lean
+theorem HasCompactSupport.iteratedFDeriv
+    (hf : HasCompactSupport f) (n : Nat) :
+    HasCompactSupport (iteratedFDeriv k n f)
+```
+
+Also nearby:
+
+```lean
+theorem Filter.EventuallyEq.iteratedFDeriv
+    (h : f1 = eventuallyEq (nhds x) f2) (n : Nat) :
+    iteratedFDeriv k n f1 = eventuallyEq (nhds x) iteratedFDeriv k n f2
+```
+
+The first theorem propagates compact support from the original function. It helps for the two-sided restart cutoff, but **not** for the one-sided `smoothRightCutoff`.
+
+### 2. Positive iterated derivative of a constant is zero
+
+Mathlib has:
+
+```lean
+theorem iteratedFDeriv_const_of_ne {n : Nat} (hn : n != 0) (c : F) :
+    iteratedFDeriv k n (fun _ : E => c) = 0
+```
+
+and the successor form:
+
+```lean
+theorem iteratedFDeriv_succ_const (n : Nat) (c : F) :
+    iteratedFDeriv k (n + 1) (fun _ : E => c) = 0
+```
+
+This is exactly what is needed after `Filter.EventuallyEq.iteratedFDeriv` reduces the cutoff to a local constant.
+
+### 3. Compact boundedness options
+
+Mathlib has both:
+
+```lean
+IsCompact.exists_bound_of_continuousOn
+```
+
+for bounding a continuous function on a compact set, and:
+
+```lean
+Continuous.bounded_above_of_compact_support
+```
+
+for bounding a continuous compactly supported function globally.
+
+For this one-sided cutoff, the compact-interval route is probably cleaner than constructing a `HasCompactSupport` object for the derivative field.
+
+## Recommended route for k >= 1
+
+Use a padded compact interval, e.g.
+
+```lean
+K := Set.Icc (c' - 1) (c + 1)
+```
+
+This avoids needing to prove behavior exactly at `c'` and `c`: endpoints lie inside K, and outside K one is strictly in a constant region.
+
+Sketch:
+
+```lean
+have hcont : Continuous
+    (fun t : Real => iteratedFDeriv Real k (smoothRightCutoff c' c) t) :=
+  smoothRightCutoff_contDiff.continuous_iteratedFDeriv hk
+
+have hnorm_cont : ContinuousOn
+    (fun t : Real => norm (iteratedFDeriv Real k (smoothRightCutoff c' c) t))
+    (Set.Icc (c' - 1) (c + 1)) :=
+  hcont.norm.continuousOn
+
+obtain <B0, hB0> :=
+  isCompact_Icc.exists_bound_of_continuousOn hnorm_cont
+```
+
+Then for arbitrary `t`:
+
+```lean
+by_cases ht : t in Set.Icc (c' - 1) (c + 1)
+· exact (hB0 t ht).trans (le_max_left B0 0)
+· -- outside padded compact, t < c' or c < t
+  -- prove local eventual equality to constant 0 or 1, then positive-order derivative is zero
+```
+
+For the left side, add the missing local lemma:
+
+```lean
+theorem smoothRightCutoff_eventually_eq_zero {c' c s : Real}
+    (hc : c' < c) (hs : s < c') :
+    smoothRightCutoff c' c = eventuallyEq (nhds s) (fun _ : Real => 0) := by
+  filter_upwards [Iio_mem_nhds hs] with t ht
+  exact smoothRightCutoff_eq_zero_of_le hc (le_of_lt ht)
+```
+
+For the right side, use the existing:
+
+```lean
+smoothRightCutoff_eventually_eq_one hc hs
+```
+
+Then:
+
+```lean
+have hlocD := Filter.EventuallyEq.iteratedFDeriv Real hloc k
+have hD_eq_at_t := hlocD.eq_of_nhds
+-- rewrite by hD_eq_at_t, then use iteratedFDeriv_const_of_ne hk_ne 0 or 1
+```
+
+Because `k >= 1`, `iteratedFDeriv_const_of_ne` closes the constant derivative side.
+
+Finally return:
+
+```lean
+<max B0 0, le_max_right B0 0, ...>
+```
+
+## Alternative: derivative-field compact support
+
+If you really want the exact support statement, prove directly:
+
+```lean
+HasCompactSupport
+  (fun t => iteratedFDeriv Real k (smoothRightCutoff c' c) t)
+```
+
+by showing its support is contained in `Set.Icc c' c`. Do **not** try to use
+
+```lean
+(HasCompactSupport smoothRightCutoff).iteratedFDeriv k
+```
+
+because the premise is false.
+
+The direct support proof uses the same local-constant logic:
+
+- if `t < c'`, the cutoff is locally equal to 0;
+- if `c < t`, the cutoff is locally equal to 1;
+- positive iterated derivatives of constants are zero.
+
+Then apply:
 
 ```lean
 hcont.bounded_above_of_compact_support hDerivCompactSupport
 ```
 
-## Existing repo pattern
-
-The exact compact-support/continuous route is already used in the repo for the two-sided restart cutoff:
-
-File:
-
-  ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
-
-Theorem:
-
-  restartSmoothCutoff_iteratedFDeriv_bound_exists
-
-Key proof pattern:
-
-```lean
-have hcont : Continuous
-    (fun t : Real => iteratedFDeriv Real k (restartSmoothCutoff offset s) t) :=
-  restartSmoothCutoff_contDiff.continuous_iteratedFDeriv ...
-
-have hcomp : HasCompactSupport
-    (fun t : Real => iteratedFDeriv Real k (restartSmoothCutoff offset s) t) :=
-  (restartSmoothCutoff_hasCompactSupport htau).iteratedFDeriv k
-
-rcases hcont.bounded_above_of_compact_support hcomp with <C, hC>
-```
-
-Then it returns max C 0 as the nonnegative bound.
-
-## smoothRightCutoff-specific note
-
-For
-
-  phi := smoothRightCutoff (c / 2) c
-
-HasCompactSupport phi is false: smoothRightCutoff is eventually 1 on the right.
-
-For k = 0, the bound is B = 1, using:
-
-  norm_iteratedFDeriv_zero
-  Real.smoothTransition.nonneg
-  Real.smoothTransition.le_one
-
-For k >= 1, the right target is not HasCompactSupport phi, but:
-
-  HasCompactSupport (fun t => iteratedFDeriv Real k phi t)
-
-or equivalently support containment in Set.Icc (c / 2) c.
-
-Mathlib has the local-congruence tool that should help prove the derivative is zero off the transition interval:
-
-  Filter.EventuallyEq.iteratedFDeriv
-
-If phi is eventually equal near t to a constant function, then its iteratedFDeriv is eventually equal near t to the iteratedFDeriv of that constant. For t < c / 2 use local equality with 0; for c < t use local equality with 1. For positive k, the positive iterated derivative of a constant is zero.
-
-The repo already has the one-sided theorem skeleton in:
-
-  ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-
-Private theorem:
-
-  smoothRightCutoff_iteratedFDeriv_bound_exists
-
-The k = 0 branch is implemented. The k >= 1 branch is still a sorry. The comments there state exactly this plan: the cutoff is constant outside [c', c], so positive-order derivatives vanish outside [c', c], and continuity on compact gives boundedness.
-
-## Recommended proof route for the sub-sorry
-
-For the one-sided cutoff positive derivative bound, there are two viable routes.
-
-### Route A: derive HasCompactSupport of the derivative field
-
-1. Prove off-interval vanishing:
-
-   for t < c / 2 or c < t,
-   iteratedFDeriv Real k phi t = 0.
-
-   Use eventual equality to constants plus Filter.EventuallyEq.iteratedFDeriv.
-
-2. Package that as:
-
-   HasCompactSupport (fun t => iteratedFDeriv Real k phi t)
-
-   with compact support inside Icc (c / 2) c.
-
-3. Apply:
-
-   hcont.bounded_above_of_compact_support hcomp
-
-### Route B: stay on Icc and patch outside
-
-1. hcont := smoothRightCutoff_contDiff.continuous_iteratedFDeriv ...
-2. apply IsCompact.exists_bound_of_continuousOn to isCompact_Icc and hcont.norm.continuousOn.
-3. use off-interval derivative-zero to reduce every t outside Icc (c / 2) c to 0.
-4. return max B 0.
-
-Route B avoids constructing a HasCompactSupport object and may be easier if the current goal already has the explicit support interval [c / 2, c].
-
 ## Bottom line
 
-Yes: Mathlib has the exact boundedness-from-compact-continuity theorem:
-
-  IsCompact.exists_bound_of_continuousOn
-
-and also the more direct compact-support theorem:
-
-  Continuous.bounded_above_of_compact_support
-
-Together with:
-
-  ContDiff.continuous_iteratedFDeriv
-  HasCompactSupport.iteratedFDeriv
-
-this proves the standard C^k compact-support derivative bound. For smoothRightCutoff, first prove the positive-order derivative field is supported in [c / 2, c], because the cutoff itself is not compactly supported.
+- No repo `smoothRightCutoff_le_one`/`range`/`support` lemma was found.
+- Add `smoothRightCutoff_le_one` and `smoothRightCutoff_nonneg` as one-liners if desired.
+- `HasCompactSupport.iteratedFDeriv` exists in Mathlib, but it does not apply to one-sided `smoothRightCutoff` because the cutoff itself is not compactly supported.
+- For the sub-sorry, the robust route is: bound the continuous derivative on a padded compact interval `[c' - 1, c + 1]`, and outside that interval use local equality to constants plus `Filter.EventuallyEq.iteratedFDeriv` and `iteratedFDeriv_const_of_ne`.
