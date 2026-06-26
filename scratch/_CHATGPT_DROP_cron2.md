@@ -1,232 +1,394 @@
-# Q709 (cron2): logistic successor search for `IntervalConjugateBFormSourceTower.lean`
+# Q726 (cron2): `coupledChemDivSourceLift` continuity search
 
 Static repo inspection only; I did not run a Lean build.
 
-## Executive answer
+## Executive verdict
 
-For line 73, the **generic logistic successor infrastructure exists**, but I did **not** find a conjugate/B-form-specific `_succ` wrapper that directly proves
+I did **not** find a landed theorem that directly proves the heat-level-0 target
 
 ```lean
-DuhamelSourceTimeC1On
-  (coupledLogisticSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T
+ContinuousOn
+  (Function.uncurry
+    (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
+  (Icc c T ×ˢ Icc (0 : ℝ) 1)
 ```
 
-from the level-`n` B-form predecessor package.
+or the corresponding per-slice statement for the concrete heat trajectory.
 
-So line 73 is not already solved by one landed theorem with the exact target.  It looks like a small wrapper/wiring lemma still needs to be written, using the generic successor lemma plus the B-form cosine-series representation.  The likely work is **wiring**, not new chemDiv-style analytic infrastructure, assuming the needed window facts/representation/integrability/source bridge are already available from `DB`/`Hinf`/existing bridge files.
+What I found is:
 
-## 1. `intervalConjugateDuhamelMap_cosineSeries`
+1. The exact joint target is already isolated in `IntervalConjugateLevel0BFormSourceOn.lean` as `SUB-SORRY 2A`:
 
-Yes, it exists.
+```lean
+have hjoint_source_cont :
+    ContinuousOn
+      (Function.uncurry
+        (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+  sorry -- [SUB-SORRY 2A: joint continuity of chemDiv source]
+```
+
+2. That file already shows how to get per-slice continuity from the joint statement:
+
+```lean
+have hcont_slices : ∀ s ∈ Icc c T,
+    ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+      (Icc (0 : ℝ) 1) := by
+  intro s hs
+  exact ContinuousOn.uncurry_left s hs hjoint_source_cont
+```
+
+3. The exact per-slab source-continuity field required by the FAC / local-chain-rule path exists in several `IntervalCoupledRegularityBootstrap` structures, but it is carried as an **input field**, not produced for heat level 0.
+
+4. I found generic helper theorems that **consume** per-slice continuity of `coupledChemDivSourceLift` to get coefficient bounds, and helper theorems that give **coefficient time-continuity**, but not source-lift spatial/joint continuity itself.
+
+So for `[c,T] × [0,1]`, this is still a real lemma to prove. It is not already packaged elsewhere.
+
+## Definition check
+
+`coupledChemDivSourceLift` is defined in:
+
+```text
+ShenWork/PDE/IntervalCoupledSourceTimeC1.lean
+```
+
+as:
+
+```lean
+/-- Lifted chemotaxis-divergence source with the elliptic resolver substituted. -/
+def coupledChemDivSourceLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ) : ℝ → ℝ :=
+  intervalDomainLift
+    (fun x => intervalDomainChemotaxisDiv p (u s)
+      (coupledChemicalConcentration p u s) x)
+```
+
+and
+
+```lean
+def coupledChemDivSourceCoeffs (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) : ℝ → ℕ → ℝ :=
+  fun s n => cosineCoeffs (coupledChemDivSourceLift p u s) n
+```
+
+So your target is exactly continuity of the lifted spatial source slice, not merely continuity of the coefficient family.
+
+Side note: level 0 of the B-form/conjugate Picard iterate is not defined as a clamp to `u₀`; it is definitionally
+
+```lean
+| 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+```
+
+in `ShenWork/Paper2/IntervalConjugatePicard.lean`.
+
+## Search results by requested pattern
+
+### 1. `ContinuousOn.*coupledChemDivSourceLift`
+
+Hits are mostly structure fields / hypotheses.
+
+Important `IntervalCoupledRegularityBootstrap` occurrences:
+
+#### `CoupledChemDivPointwiseChainAtoms`
 
 File:
 
 ```text
-ShenWork/Paper2/IntervalConjugateCosineSeries.lean
+ShenWork/PDE/IntervalChemDivLocalChainRule.lean
 ```
 
-Namespace:
+Field:
 
 ```lean
-ShenWork.IntervalConjugateCosineSeries
-```
-
-The theorem is:
-
-```lean
-theorem intervalConjugateDuhamelMap_cosineSeries
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {u : ℝ → intervalDomainPoint → ℝ} {t x M₀ : ℝ}
-    (ht : 0 < t) (hx : x ∈ Set.Icc (0 : ℝ) 1)
-    (hu₀_cont : Continuous (intervalDomainLift u₀))
-    (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀)
-    (hsrcB : DuhamelSourceTimeC1 (bFormSourceCoeffs p u))
-    (hB_int : IntervalIntegrable
-      (fun s : ℝ => intervalConjugateKernelOperator (t - s)
-        (chemFluxLifted p (u s)) x) volume 0 t)
-    (hlog_int : IntervalIntegrable
-      (fun s : ℝ => intervalFullSemigroupOperator (t - s)
-        (logisticLifted p (u s)) x) volume 0 t)
-    (hsource_bridge : ∀ s ∈ Set.Ioo (0 : ℝ) t,
-      (-p.χ₀) * intervalConjugateKernelOperator (t - s)
-          (chemFluxLifted p (u s)) x
-        + intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x
-        = unitIntervalCosineHeatValue (t - s) (bFormSourceCoeffs p u s) x) :
-    intervalConjugateDuhamelMap p u₀ u t ⟨x, hx⟩ =
-      ∑' n : ℕ,
-        localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
-          (bFormSourceCoeffs p u) t n * cosineMode n x
-```
-
-This is exactly the B-form restart/cosine representation you want for
-
-```lean
-conjugatePicardIter p u₀ (n + 1)
-```
-
-because `conjugatePicardIter` has successor clause
-
-```lean
-| n + 1 => fun t x =>
-    intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
-```
-
-One import note: `IntervalConjugateBFormSourceTower.lean` currently imports `IntervalBankInfAndLogSrcWiring`, but the theorem itself lives in `IntervalConjugateCosineSeries.lean`; line 73 will likely need that import, directly or indirectly.
-
-## 2. `sourceTimeC1On_succ`
-
-I did **not** find an exact standalone symbol named
-
-```lean
-sourceTimeC1On_succ
-```
-
-The landed theorem is named:
-
-```lean
-sourceTimeC1On_succ_of_sourceTimeC1On
-```
-
-File:
-
-```text
-ShenWork/Paper2/IntervalPicardSourceTimeC1OnRecursion.lean
-```
-
-Namespace:
-
-```lean
-ShenWork.IntervalPicardSourceTimeC1OnRecursion
-```
-
-Its target is generic in the produced profile `w`:
-
-```lean
-DuhamelSourceTimeC1On
-  (fun s k => cosineCoeffs (logisticLifted p (w s)) k) lo hi
-```
-
-It consumes:
-
-```lean
-src : DuhamelSourceTimeC1On a 0 W
-```
-
-plus the shifted-window map, restart representation, positivity, upper bound, G1/G2 bounds, slice continuity, and joint profile continuity.
-
-The ordinary Picard tower already uses this theorem successfully in:
-
-```text
-ShenWork/Paper2/IntervalPicardSourceTower.lean
-```
-
-inside its successor construction `srcOn1`.  That usage is the best template for line 73: it shifts the predecessor source to `[0,W]`, builds the restart representation, proves profile joint continuity, and then calls `sourceTimeC1On_succ_of_sourceTimeC1On`.
-
-## 3. `conjLogSourceTimeC1On_level0` and `_succ`
-
-`conjLogSourceTimeC1On_level0` exists.
-
-File:
-
-```text
-ShenWork/Paper2/IntervalConjugateIterSourceTower.lean
-```
-
-It defines:
-
-```lean
-abbrev ConjLogSourceTimeC1On
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (n : ℕ) (c T : ℝ) :=
-  DuhamelSourceTimeC1On
-    (fun s k => cosineCoeffs (logisticLifted p (conjugatePicardIter p u₀ n s)) k)
-    c T
-```
-
-and the level-0 producer:
-
-```lean
-noncomputable def conjLogSourceTimeC1On_level0 ... :
-  ConjLogSourceTimeC1On p u₀ 0 c T :=
-  level0Source_timeC1On ...
-```
-
-I did **not** find a `conjLogSourceTimeC1On_succ` / `_succ` version.  Searching `conjLogSourceTimeC1On` only turned up the level-0/base file plus the level-0 B-form wrapper file.
-
-There is also a level-0 restatement in terms of `coupledLogisticSourceCoeffs`:
-
-```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-```
-
-```lean
-noncomputable def level0_logisticSource_timeC1On ... :
-  DuhamelSourceTimeC1On
-    (coupledLogisticSourceCoeffs p (conjugatePicardIter p u₀ 0)) c T :=
-  conjLogSourceTimeC1On_level0 ...
-```
-
-But I did not find the analogous successor restatement.
-
-## 4. Theorem producing `DuhamelSourceTimeC1On` for `coupledLogisticSourceCoeffs` at level `n+1` from level `n`
-
-I did **not** find a direct theorem with this shape for conjugate/B-form iterates:
-
-```lean
-DuhamelSourceTimeC1On
-  (coupledLogisticSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c T
-```
-
-from
-
-```lean
-DuhamelSourceTimeC1On
-  (bFormSourceCoeffs p (conjugatePicardIter p u₀ n)) ...
-```
-
-or from the tower IH.
-
-What does exist:
-
-1. `intervalConjugateDuhamelMap_cosineSeries`, which can give the local restart representation of the B-form successor using `bFormSourceCoeffs p (conjugatePicardIter p u₀ n)`.
-
-2. `sourceTimeC1On_succ_of_sourceTimeC1On`, which can turn a restart representation plus a predecessor `DuhamelSourceTimeC1On a 0 W` package into logistic-source `TimeC1On` for the successor profile.
-
-3. Definitional bridge:
-
-```lean
-coupledLogisticSourceCoeffs p u s k
-= cosineCoeffs (logisticLifted p (u s)) k
-```
-
-because `coupledLogisticSourceCoeffs` unfolds through `coupledLogisticSourceLift`, and `logisticLifted p w` is `intervalDomainLift (intervalLogisticSource p w)`.
-
-So the missing landed theorem is probably a wrapper like:
-
-```lean
-noncomputable def conjLogSourceTimeC1On_succ_of_bFormSourceTimeC1On
+structure CoupledChemDivPointwiseChainAtoms
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
     ...
-    (hpred : DuhamelSourceTimeC1On
-      (bFormSourceCoeffs p (conjugatePicardIter p u₀ n)) ...)
-    ... :
-    DuhamelSourceTimeC1On
-      (coupledLogisticSourceCoeffs p
-        (conjugatePicardIter p u₀ (n + 1))) c T := by
-  -- shift hpred to [0,W]
-  -- obtain restart representation from intervalConjugateDuhamelMap_cosineSeries
-  -- feed representation/positivity/bounds/joint-continuity into
-  --   sourceTimeC1On_succ_of_sourceTimeC1On
-  -- finish by simpa [coupledLogisticSourceCoeffs, coupledLogisticSourceLift,
-  --   ShenWork.IntervalGradientDuhamelMap.logisticLifted]
 ```
 
-## Verdict for line 73
+The producer `coupledChemDivLocalChainRule_of_pointwiseChainAtoms` just forwards this field; it does not prove it.
 
-Line 73 is **not** pure one-line reuse of an existing conjugate successor lemma.  But the hard logistic successor theorem already exists in generic form.  The missing piece is a conjugate/B-form wrapper that:
+#### `CoupledChemDivLocalChainRule`
 
-1. shifts the IH source package;
-2. uses `intervalConjugateDuhamelMap_cosineSeries` to prove the restart representation for `conjugatePicardIter ... (n+1)`;
-3. supplies the existing window facts required by `sourceTimeC1On_succ_of_sourceTimeC1On`;
-4. rewrites from `cosineCoeffs (logisticLifted ...)` to `coupledLogisticSourceCoeffs`.
+File:
 
-So: **mostly wiring, but not already packaged**.
+```text
+ShenWork/PDE/IntervalChemDivTimeDerivative.lean
+```
+
+Field:
+
+```lean
+structure CoupledChemDivLocalChainRule
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    ...
+```
+
+Again, this is an input package.
+
+#### `CoupledChemDivOuterCommuteAtoms`
+
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivOuterCommute.lean
+```
+
+Field:
+
+```lean
+structure CoupledChemDivOuterCommuteAtoms
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    ...
+```
+
+This file also has the useful interior identity:
+
+```lean
+theorem coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
+    (hx : x ∈ Ioo (0 : ℝ) 1) :
+    coupledChemDivSourceLift p u s x =
+      deriv (coupledChemDivFluxLift p u s) x
+```
+
+That identifies the source with the spatial derivative of the flux on the open interval, but it does not by itself give closed-interval continuity.
+
+#### `CoupledChemDivFluxJointC2Hyp`
+
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+```
+
+Field:
+
+```lean
+structure CoupledChemDivFluxJointC2Hyp
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    ...
+```
+
+The producer `coupledChemDivOuterCommuteAtoms_of_fluxJointC2` passes it through.
+
+#### `CoupledChemDivFluxFactorJointC2Inputs`
+
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
+
+Field:
+
+```lean
+structure CoupledChemDivFluxFactorJointC2Inputs
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
+  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    ...
+```
+
+The theorem `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` passes this field through as `hsource_cont_slab`.
+
+#### `FACLocalSlabInputs`
+
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
+```
+
+Contains the same source-continuity input:
+
+```lean
+(∀ᶠ s in 𝓝 τ,
+  ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+```
+
+The FAC producer again passes this through; it does not prove source continuity.
+
+#### `ChemDivSolutionRegularityResidual`
+
+File:
+
+```text
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+```
+
+Its `other` field contains the same per-slab source-continuity input.  This is explicitly part of the residual package.
+
+### 2. `continuousOn.*chemDivSource`
+
+Relevant helpers found:
+
+#### `chemDivSource_weakH2_of_spatialC2`
+
+File:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxFACSourceDecay.lean
+```
+
+```lean
+def chemDivSource_weakH2_of_spatialC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s : ℝ}
+    (hC2 : ContDiffOn ℝ 2 (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+    ... :
+    IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)
+```
+
+This consumes `ContDiffOn ℝ 2` of the source slice.  Since `ContDiffOn` implies continuity, it is a possible route, but the theorem does not produce `hC2`.
+
+#### `coupledChemDivSource_zeroCoeff_of_uniformSup`
+
+Same file:
+
+```lean
+theorem coupledChemDivSource_zeroCoeff_of_uniformSup
+    ...
+    (hcont : ∀ s, 0 ≤ s →
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1))
+    (hsup : ∀ s, 0 ≤ s → ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p u s x| ≤ Msup) :
+    ∀ s, 0 ≤ s →
+      |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ 2 * max B Msup
+```
+
+This is a consumer of continuity + sup bound, not a continuity producer.
+
+#### `chemDiv_earlyPoly_of_liftRegularity`
+
+File:
+
+```text
+ShenWork/Wiener/EWA/ChemDivUncond.lean
+```
+
+```lean
+theorem chemDiv_earlyPoly_of_liftRegularity
+    ...
+    (hLiftCont : ∀ s ∈ Set.Icc (0 : ℝ) τ₀,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc (0 : ℝ) 1))
+    (hLiftBd : ∀ s ∈ Set.Icc (0 : ℝ) τ₀, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p u s x| ≤ M) :
+    ∀ s ∈ Set.Icc (0 : ℝ) τ₀, ∀ n,
+      |coupledChemDivSourceCoeffs p u s n| ≤ (2 * M) * (1 + (n : ℝ))
+```
+
+Again, it consumes per-slice source continuity.
+
+### 3. `chemDivSourceLift.*continuous`
+
+The closest landed result is **coefficient** continuity, not source-lift continuity.
+
+File:
+
+```text
+ShenWork/Wiener/EWA/ChemDivGcont.lean
+```
+
+```lean
+theorem chemDiv_coeff_continuous_of_chainRule
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) (n : ℕ) :
+    Continuous (fun s => coupledChemDivSourceCoeffs p u s n)
+```
+
+and
+
+```lean
+theorem chemDiv_coeff_timeContinuous
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u) :
+    ∀ n, Continuous (fun s => coupledChemDivSourceCoeffs p u s n)
+```
+
+This helps with per-mode coefficient time-continuity, but it does not prove
+
+```lean
+ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)
+```
+
+or
+
+```lean
+ContinuousOn (Function.uncurry (coupledChemDivSourceLift p u)) (... ×ˢ ...)
+```
+
+### 4. Theorems in `IntervalCoupledRegularityBootstrap` about source continuity
+
+Found `IntervalCoupledRegularityBootstrap` items are mostly wrappers that carry source continuity as a hypothesis:
+
+```lean
+CoupledChemDivPointwiseChainAtoms
+CoupledChemDivLocalChainRule
+CoupledChemDivOuterCommuteAtoms
+CoupledChemDivFluxJointC2Hyp
+CoupledChemDivFluxFactorJointC2Inputs
+FACLocalSlabInputs
+```
+
+The useful non-continuity identity is:
+
+```lean
+coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+```
+
+which may be useful in proving the source is continuous on `(0,1)` from differentiability/smoothness of the flux, but it does not handle endpoint continuity or joint continuity by itself.
+
+## What this means for heat level 0
+
+For your immediate target on a positive window `[c,T]`, the repo already has the exact local target as the Level0 sub-sorry:
+
+```lean
+hjoint_source_cont :
+  ContinuousOn
+    (Function.uncurry
+      (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
+    (Icc c T ×ˢ Icc (0 : ℝ) 1)
+```
+
+Once this is proved, per-slice continuity follows immediately by:
+
+```lean
+ContinuousOn.uncurry_left s hs hjoint_source_cont
+```
+
+But I did not find a reusable theorem already proving this from heat semigroup smoothing + resolver regularity + chemDiv composition.
+
+Suggested proof route from existing pieces:
+
+1. Prove a classical/joint regularity statement for the heat-level fields on `[c,T] × [0,1]`:
+   * `u(s,x) = intervalDomainLift (conjugatePicardIter p u₀ 0 s) x`,
+   * `v(s,x) = intervalDomainLift (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s) x`,
+   * `∂ₓv(s,x)` and enough spatial derivatives.
+2. Express the chemDiv source as the spatial derivative of the flux on the interior using:
+   ```lean
+   coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+   ```
+3. Handle endpoint continuity separately, probably via the same even/reflect/Neumann boundary machinery already used in the Level0 file for weak-H²/source-decay.
+4. Package the result as the joint statement `hjoint_source_cont`; per-slice and sup-bound consumers are already wired.
+
+## Bottom line
+
+No direct landed theorem found for heat-level-0 joint or per-slice continuity of `coupledChemDivSourceLift`.
+
+The exact statement is already isolated as `SUB-SORRY 2A` in `IntervalConjugateLevel0BFormSourceOn.lean`; all other discovered occurrences either:
+
+* carry source continuity as a field/hypothesis, or
+* consume it to get coefficient bounds, or
+* prove only coefficient time-continuity.
