@@ -976,7 +976,7 @@ theorem level0_chemDiv_timeDerivData
     -- For τ ≤ 0, use δ = 1 (degenerate case: S(t) = 0 convention for t ≤ 0).
     by_cases hτ : 0 < τ
     · -- ── τ > 0 (meaningful case) ──
-      refine ⟨min 1 (τ / 2), by positivity, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨min 1 (τ / 2), lt_min one_pos (half_pos hτ), ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · -- F1: per-slab source continuity.
         exact Filter.Eventually.of_forall (fun s =>
           sorry) -- [SUB-SORRY 3A-sub: per-slab continuity proof]
@@ -987,9 +987,10 @@ theorem level0_chemDiv_timeDerivData
         intro x hx s hs
         -- Every s in the ball satisfies s > τ/2 > 0.
         have hs_pos : τ / 2 < s := by
-          rw [Metric.mem_ball, Real.dist_eq] at hs
-          have hδ_le : min 1 (τ / 2) ≤ τ / 2 := min_le_right _ _
-          linarith [abs_lt.mp (lt_of_lt_of_le hs hδ_le)]
+          have hdist := Metric.mem_ball.mp hs
+          rw [Real.dist_eq] at hdist
+          have hlt := lt_of_lt_of_le hdist (min_le_right 1 (τ / 2))
+          linarith [(abs_lt.mp hlt).1]
         have hs_pos' : 0 < s := by linarith
         -- Step 1: The cosine-series representative is ContDiffAt ℝ 2 at (s, x).
         -- Use c = τ/4; then 0 < c < τ/2 < s.
@@ -1015,20 +1016,27 @@ theorem level0_chemDiv_timeDerivData
               intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) := by
           have hset : Ioi (0 : ℝ) ×ˢ Ioo (0 : ℝ) 1 ∈ 𝓝 (s, x) :=
             IsOpen.mem_nhds (isOpen_Ioi.prod isOpen_Ioo) ⟨hs_pos', hx⟩
-          filter_upwards [hset] with q ⟨hq1, hq2⟩
-          -- hq1 : 0 < q.1, hq2 : q.2 ∈ Ioo 0 1
+          filter_upwards [hset] with q hq
+          obtain ⟨hq1, hq2⟩ := Set.mem_prod.mp hq
+          -- hq1 : q.1 ∈ Ioi 0 (i.e. 0 < q.1), hq2 : q.2 ∈ Ioo 0 1
+          have hq1' : 0 < q.1 := hq1
           have hq2_cc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq2
-          -- The intervalDomainLift of the heat semigroup equals the cosine
-          -- heat value on Icc 0 1 (heatSlice_profile_eq_heatValue).
-          rw [ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
-            p (mem_Ioi.mp hq1) _hu₀_cont _hu₀_bound hq2_cc]
-          -- Bridge unitIntervalCosineHeatValue to the tsum form.
-          simp only [unitIntervalCosineHeatValue,
-            unitIntervalCosineHeatPointWeight,
-            unitIntervalCosineMode_eq_cosineMode,
-            heatCoeff]
-          congr 1; ext k; ring
-        exact hcosine_c2.congr_of_eventuallyEq hev
+          -- RHS: intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2
+          --    = unitIntervalCosineHeatValue q.1 (heatCoeff u₀) q.2
+          -- (by heatSlice_profile_eq_heatValue; conjugatePicardIter 0 = picardIter 0
+          -- definitionally, so exact matches).
+          -- LHS: ∑' k, (exp * coeff) * cos = ∑' k, (exp * cos) * coeff
+          -- (by ring in each summand).
+          symm
+          trans (unitIntervalCosineHeatValue q.1 (heatCoeff u₀) q.2)
+          · exact ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
+              p hq1' _hu₀_cont _hu₀_bound hq2_cc
+          · simp only [unitIntervalCosineHeatValue,
+              unitIntervalCosineHeatPointWeight,
+              unitIntervalCosineMode_eq_cosineMode,
+              heatCoeff]
+            congr 1; ext k; ring
+        exact hcosine_c2.congr_of_eventuallyEq hev.symm
       · sorry -- [SUB-SORRY 3C: resolver joint C²]
       · sorry -- [SUB-SORRY 3D: resolver gradient joint C²]
       · sorry -- [SUB-SORRY 3E: resolver positivity floor]
