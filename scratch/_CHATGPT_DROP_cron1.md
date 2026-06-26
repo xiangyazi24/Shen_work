@@ -1,4 +1,4 @@
-# Q852 / cron1: direct resolver joint `C²` vs `PhysicalResolverJointC2Data`
+# Q859 / cron1: can heat `FlooredSourceTimeData` be built by `τ > 0` vs `τ ≤ 0`?
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -8,195 +8,117 @@ Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-Yes, **in principle** you can feed resolver coefficients directly to
+Not as stated.
+
+The case split works for two open regions:
 
 ```lean
-boundedWeightJointSeries_contDiff_two
+τ > 0
+τ < 0
 ```
 
-and get joint `C²` of the resolver cosine series without first constructing
+but it does **not** solve the global `FlooredSourceTimeData` obligation because the structure quantifies over **all** `τ : ℝ`, including `τ = 0`.
+
+At `τ = 0`, every metric ball `Metric.ball 0 δ` contains positive and negative times.  The heat-kernel convention gives zero for nonpositive time, while for positive time the heat semigroup is the genuine smoothing of `u₀`.  So the time profile is a hard zero-extension through `t = 0`, not a smooth extension.  The `d0` / `d1` fields require local `HasDerivAt` data for every `s ∈ Metric.ball τ δ`; at `τ = 0`, that includes `s = 0`, where the hard zero-extension is generally not differentiable unless the positive-time right germ is also zero.
+
+So the split should be:
 
 ```lean
-PhysicalResolverJointC2Data
+τ > 0     -- choose δ < τ/2, all times positive
+τ < 0     -- choose δ < -τ/2, all times negative, zero branch
+τ = 0     -- obstruction; not trivial
 ```
 
-as a named object.
+The `τ = 0` branch is the problem.
 
-But this is mostly a packaging shortcut, not a mathematical shortcut.  The fields you must prove for the direct call are essentially the fields of `PhysicalResolverJointC2Data`:
+## Why the structure blocks this
+
+`FlooredSourceTimeData` has global local-in-time fields:
 
 ```lean
-∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-∀ i k t, i ≤ 2 → ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-∀ m ≤ 2, Summable (boundedWeightJointMajorant Bt m)
+d0 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+  (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc 0 1)) ∧
+  (∀ x ∈ Ioo 0 1, ∀ s ∈ Metric.ball τ δ,
+    HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s) ∧
+  ContinuousOn (Function.uncurry s₁) (Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1)
 ```
 
-and, if you also need the spatial-gradient resolver field, the gradient analogue:
+and similarly for `d1`.  Because this is `∀ τ`, the proof must pass through `τ = 0`.
+
+The later fields are also global in `t`:
 
 ```lean
-∀ m ≤ 2, Summable (boundedWeightJointGradMajorant Bt m)
+sliceC2      : ∀ i ≤ 2, ∀ t, ContDiffOn ℝ 2 ... (Icc 0 1)
+sliceNeumann : ∀ i ≤ 2, ∀ t, ...
+zerothBound  : ∀ i ≤ 2, ∃ D, ∀ t, |cosineCoeffs ... 0| ≤ D
+laplBound    : ∀ i ≤ 2, ∃ M, ∀ t k, 1 ≤ k → |cosineCoeffs ... k| ≤ M / (kπ)^2
 ```
 
-So: **yes, direct feeding works**, but **no, it does not avoid the coefficient-time-`C²` and summable-majorant work**.  It only avoids naming the bundle.
+For a heat semigroup from rough bounded initial data, the uniform `laplBound` over **all** `t > 0` is also suspect near `t = 0`; positive-time smoothing gives `C∞` for each fixed `t > 0`, but the spatial `C²` constants typically blow up as `t ↓ 0`.  On a fixed positive window `[c,T]`, this is fine; globally from `0` it is not.
 
-## What the repo already has
+## The zero convention is real, but it does not make `τ = 0` smooth
 
-The generic assembler is exactly available:
+The repo has the zero-time convention for the kernel:
 
 ```lean
-theorem boundedWeightJointSeries_contDiff_two
-    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (hc : ∀ n, ContDiff ℝ (2 : ℕ∞) (c n))
-    (hBt : ∀ (i n : ℕ) (t : ℝ), i ≤ 2 →
-      ‖iteratedFDeriv ℝ i (c n) t‖ ≤ Bt i n)
-    (hsumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant Bt k)) :
-    ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q)
+theorem heatKernel_of_nonpos {t : ℝ} (ht : t ≤ 0) (x : ℝ) :
+    heatKernel t x = 0
 ```
 
-The concrete resolver coefficient family is also already defined:
+and the interval full kernel uses that convention in the nonpositive-time branch.  This makes the `τ < 0` branch trivial if the whole local ball stays negative.  It does **not** imply differentiability through `τ = 0`.
+
+The same issue is already visible elsewhere in the repo: `level0_chemDiv_timeDerivData` has a `τ ≤ 0` branch comment saying the branch is never reached in practice because downstream uses `c > 0`, and that the heat semigroup jumps near `0` under the zero convention.
+
+## What is reachable by case split
+
+For `τ > 0`:
 
 ```lean
-def resolverTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
-    ℕ → ℝ → ℝ :=
-  fun k t => (intervalNeumannResolverCoeff p (u t) k).re
+choose δ := min 1 (τ / 2)
 ```
 
-and the repo already proves that this is just the source coefficient multiplied by the constant elliptic weight:
+Then `s ∈ Metric.ball τ δ` implies `0 < s`, so the positive-time heat semigroup regularity applies.  This is the correct branch for the actual `[c,T]` use.
+
+For `τ < 0`:
 
 ```lean
-theorem resolverTimeCoeff_eq_weight_smul
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
-    resolverTimeCoeff p u k t =
-      intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+choose δ := min 1 ((-τ) / 2)
 ```
 
-So your formula
+Then `s ∈ Metric.ball τ δ` implies `s < 0`, so the zero branch applies.  The source slice and its time derivatives can be taken as zero.
+
+For `τ = 0`:
+
+no positive `δ` avoids positive times.  Unless the theorem is weakened/localized, or the trajectory is replaced by a smooth-in-time extension, this branch remains blocked.
+
+## Recommended fix
+
+Do not try to prove global `FlooredSourceTimeData` for the hard-zero-extended heat semigroup unless the data are specially trivial.
+
+Use one of these instead:
+
+### Option A: make a windowed structure
+
+Define a positive-window analogue, e.g.
 
 ```lean
-resolver coeff = source coeff / (μ + λ_k)
+FlooredSourceTimeDataOn p u s₁ s₂ c T
 ```
 
-is already committed as `resolverTimeCoeff_eq_weight_smul`, with
-`intervalNeumannResolverWeight p k = 1 / (μ + λ_k)`.
+where all local `τ` obligations are only for `τ ∈ Icc c T` with `0 < c`, and all uniform bounds are only over `t ∈ Icc c T`.  Then the `τ > 0` branch is the only branch needed.
 
-## Existing direct physical resolver route
+This matches the actual level-0 consumer, which works on `[c,T]`.
 
-The file
+### Option B: build a smooth positive-time extension
 
-```text
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
-```
+Replace the hard-zero extension by a smooth extension in time that agrees with the heat semigroup on `[c,T]` and is smooth/floored on all of `ℝ`.  This is more work.  A naive zero cutoff may reintroduce `rpow`/floor trouble at the cutoff interface unless the function is arranged carefully.
 
-already does the direct resolver-series assembly from `PhysicalResolverJointC2Data`:
+### Option C: bypass `FlooredSourceTimeData` for level 0
 
-```lean
-theorem coupledChemical_jointContDiffAt_two
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo 0 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
-```
+For the heat semigroup, prove the resolver/source coefficient `ContDiffAt` and summable majorants directly on the positive window, as in the direct-resolver route.  This avoids the global `∀ τ` surface entirely.
 
-Its proof is literally:
+## Bottom line
 
-```lean
-have hseries : ContDiff ℝ (2 : ℕ∞)
-    (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, boundedWeightJointTerm (resolverTimeCoeff p u) k q) :=
-  boundedWeightJointSeries_contDiff_two H.coeff_contDiff
-    (fun i k t hi => H.coeff_bound i k t hi) H.value_summable
-```
+The proposed `τ > 0` / `τ ≤ 0` split is **not sufficient**.  It hides the actual hard case `τ = 0` inside `τ ≤ 0`.
 
-and then it uses the already-proved series equality on `[0,1]`.
-
-The gradient version is also already committed:
-
-```lean
-theorem coupledChemical_grad_jointContDiffAt_two
-    (H : PhysicalResolverJointC2Data p u Bt) ... :
-    ContDiffAt ℝ 2
-      (fun q => deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x)
-```
-
-That one feeds the gradient bounded-weight series assembler and uses `H.grad_summable`.
-
-## What this means for the proposed shortcut
-
-If your immediate goal is only:
-
-```lean
-ContDiffAt ℝ 2
-  (fun q => intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s,x)
-```
-
-then a local theorem can inline `boundedWeightJointSeries_contDiff_two` and avoid constructing the `PhysicalResolverJointC2Data` value.
-
-But if your goal is the FAC/chem-div infrastructure, building `PhysicalResolverJointC2Data` is probably still the best interface, because downstream already consumes it for:
-
-```lean
-coupledChemical_jointContDiffAt_two
-coupledChemical_grad_jointContDiffAt_two
-coupledChemical_innerCommute_of_physicalJointC2
-coupledChemDivFlux_timeBridge_of_physicalJointC2
-```
-
-Bypassing the structure means you will likely re-prove or locally duplicate these consumers.
-
-## The real gap does not disappear
-
-The hard part is not the resolver series assembly.  The hard part is proving, for the heat semigroup source coefficients, the source/resolver coefficient hypotheses:
-
-1. `t ↦ srcTimeCoeff p u k t` or `t ↦ resolverTimeCoeff p u k t` is `ContDiff ℝ 2`,
-2. its first two time derivatives are the expected cosine coefficients of explicit time-derivative slices,
-3. those slices have uniform zeroth-mode bounds and `(kπ)⁻²` decay,
-4. after multiplying by the elliptic weight, the value and gradient bounded-weight majorants are summable.
-
-This is exactly why `FlooredSourceTimeData` exists.  It packages the time-Leibniz chain, joint continuity of the derivative slices, space-`C²` Neumann regularity of the three time-order slices, and the zeroth/Laplacian coefficient bounds.
-
-So proving resolver coefficient `C²` directly is equivalent to proving a lighter, resolver-specific version of `FlooredSourceTimeData` / `PhysicalSourceTimeC2`.
-
-## Important local/global caveat
-
-`boundedWeightJointSeries_contDiff_two` is a **global** `ContDiff` theorem for the uncut series.  For the heat semigroup on a positive window `[c,T]`, raw exponential coefficients are well-behaved only after localizing away from `t = 0` / negative time.  The heat semigroup joint-regularity file solves this with a smooth time cutoff.
-
-So for a heat-semigroup standalone theorem, there are two viable designs:
-
-### Option A: produce `PhysicalResolverJointC2Data` under a globally smooth/cutoff coefficient family
-
-This fits the existing consumer API but may require defining a cutoff heat trajectory or proving enough global-in-time bounds.
-
-### Option B: prove a positive-window/local resolver theorem directly
-
-This is likely shorter for level 0:
-
-```lean
-theorem heatResolver_jointContDiffAt_two_direct
-    {c T : ℝ} (hc : 0 < c) ...
-    {s x : ℝ} (hs : c < s) (hx : x ∈ Ioo (0:ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p
-          (conjugatePicardIter p u₀ 0) q.1) q.2) (s, x) := by
-  -- use cutoff/localized resolver coefficients
-  -- feed boundedWeightJointSeries_contDiff_two to the cutoff series
-  -- use eventual equality near `(s,x)` to return to the real resolver series
-```
-
-This mirrors `heatSemigroup_jointContDiffAt_two`: prove global `ContDiff` of a cutoff series, then use eventual equality near positive `s`.
-
-## Recommendation
-
-For a standalone heat-semigroup result, do **not** route through `DuhamelSourceTimeC2Coeff` or the old eigen-cube ladder.
-
-The shortest robust plan is:
-
-1. Define the heat-level resolver coefficient family, preferably reusing
-   `resolverTimeCoeff p (conjugatePicardIter p u₀ 0)`.
-2. Prove a heat/window coefficient package:
-   `ContDiff`/`ContDiffAt` in time up to order 2 plus bounded-weight summable majorants.
-3. Feed that package directly to `boundedWeightJointSeries_contDiff_two` (value) and `boundedWeightJointGradSeries_contDiff_two` (gradient), using a cutoff if the theorem is local on `s > c`.
-4. If downstream wants existing FAC lemmas, wrap the same package as `PhysicalResolverJointC2Data`; otherwise inline the assembler in a local direct theorem.
-
-Bottom line: **direct feeding is technically valid and may be the right level-0 shortcut, but it does not eliminate the source coefficient time-`C²` problem.  It replaces `FlooredSourceTimeData` with an equivalent heat-specific coefficient package.**
+A correct proof can split into `τ > 0`, `τ < 0`, and `τ = 0`; the first two are plausible, but the third is generally false for the hard-zero-extended heat semigroup.  For the heat level-0 use, the right move is to work on a positive window `[c,T]` or use a smooth extension/cutoff, not a global `FlooredSourceTimeData` over all real times.
