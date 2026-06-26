@@ -1,372 +1,314 @@
-# Q737 (cron2): smooth cutoff pattern for `contDiff_tsum`
+# Q740 (cron2): Level0 heat nonnegativity / resolver floor for sub-sorry 3E
 
 Static repo inspection only; I did not run a Lean build.
 
 ## Executive verdict
 
-The repo has a fully explicit smooth-cutoff infrastructure for the resolver restart-series `contDiff_tsum` route.
-
-The cutoff is **not** built from `SmoothBumpFunction`.  It is built explicitly from Mathlib’s
+The target as stated
 
 ```lean
-Real.smoothTransition
+∀ x ∈ Ioo 0 1, ∀ s ∈ Metric.ball τ 1,
+  0 < 1 + intervalDomainLift
+    (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s) x
 ```
 
-via a one-sided cutoff:
+is **not safely dischargeable from the landed positive-time heat/resolver lemmas unless the ball is known to stay in positive time**.
+
+The reason: `conjugatePicardIter p u₀ 0 s` is **not** piecewise `u₀` at `s = 0`, nor is it clamped to `u₀`/zero by the Picard definition.  It is definitionally the full Neumann heat propagator for every real `s`:
 
 ```lean
-def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
-  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
+conjugatePicardIter p u₀ 0 s x
+= intervalFullSemigroupOperator s (intervalDomainLift u₀) x.1
 ```
 
-and then a compact two-sided bump
+The landed positivity lemmas for the heat propagator require `0 < s`.  There is also an explicit repo warning/theorem that the concrete propagator at `s = 0` is **not** the identity: `intervalFullSemigroupOperator 0 f x = 0` for every `f` and `x`.
 
-```lean
-restartSmoothCutoff offset s t
-```
+So if sub-sorry 3E is using `Metric.ball τ 1`, the proof needs a hypothesis like `1 < τ` or should choose a smaller radius, e.g. `δ := τ / 2` when `0 < τ`, so that `s ∈ Metric.ball τ δ` implies `0 < s`.  This matches the positive-time nature of the heat and resolver positivity infrastructure.
 
-as a product of two `smoothRightCutoff`s, one on the left and one applied to `-t` on the right.
+## Question 1: what is `conjugatePicardIter p u₀ 0 s` for `s ≤ 0`?
 
-I found **no existing heat-semigroup-specific** theorem of the form “heat semigroup + cutoff → `contDiff_tsum`.”  The closest existing code is the resolver restart homogeneous tail, which already uses the compact cutoff support to reduce global bounds to a positive compact restart-time slab and then bounds homogeneous factors by an exponential with the positive left edge `τmin`.
-
-So for heat level 0, the recommended path is: copy/adapt the existing `restartSmoothCutoff` pattern and the `cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound` style, replacing `localRestartCoeff` by the homogeneous heat coefficient `Real.exp (-t * λ_n) * a₀ n`.
-
-## 1. Smooth cutoff infrastructure
-
-### File
+Definition is in:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
+ShenWork/Paper2/IntervalConjugatePicard.lean
 ```
 
-This file imports:
+The relevant lines are:
 
 ```lean
-import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+/-- B-form Picard iteration:
+`u₀(t,x) = S(t)u₀(x)`, `u_{n+1} = Φᴮ(u_n)`. -/
+def conjugatePicardIter (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℕ → (ℝ → intervalDomainPoint → ℝ)
+  | 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+  | n + 1 => fun t x =>
+      intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
 ```
 
-and defines the one-sided cutoff:
+So level 0 has **no conditional branch** for `t = 0` or `t < 0`.  It is just `intervalFullSemigroupOperator t (intervalDomainLift u₀)` at all real times.
 
-```lean
-/-- Smooth right cutoff equal to `0` on `(-∞, c']` and `1` on `[c, ∞)`. -/
-def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
-  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
-```
-
-It proves:
-
-```lean
-smoothRightCutoff_contDiff
-smoothRightCutoff_eq_zero_of_le
-smoothRightCutoff_eq_one_of_ge
-smoothRightCutoff_eventually_eq_one
-```
-
-So the primitive cutoff is explicit `Real.smoothTransition`, not a bundled `SmoothBumpFunction`.
-
-## 2. `cutoffValueTerm`
-
-### File
+The full semigroup operator is defined in:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
+ShenWork/PDE/IntervalNeumannFullKernel.lean
 ```
 
-Definition:
+as:
 
 ```lean
-/-- Cutoff-localized value term. -/
-def cutoffValueTerm
-    (φ : ℝ → ℝ) (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (offset : ℝ)
-    (n : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => φ q.1 * localRestartCoeff a₀ a (q.1 - offset) n *
-    cosineMode n q.2
+def intervalFullSemigroupOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1
 ```
 
-The same file also defines:
+and the kernel is built from the real-line heat kernel:
 
 ```lean
-/-- Cutoff-localized gradient term. -/
-def cutoffGradTerm (φ : ℝ → ℝ) (gradTerm : ℕ → ℝ × ℝ → ℝ)
-    (n : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => φ q.1 * gradTerm n q
+def intervalNeumannFullKernel (t x y : ℝ) : ℝ :=
+  ∑' k : ℤ, (heatKernel t (x - y + 2 * k) + heatKernel t (x + y + 2 * k))
 ```
 
-The generic `contDiff_tsum` wrapper is:
-
-```lean
-theorem resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-```
-
-It takes:
-
-* an arbitrary cutoff `φ : ℝ → ℝ`,
-* `hφ_one : φ =ᶠ[𝓝 s] fun _ => 1`,
-* termwise `ContDiff` for the cutoff value and gradient terms,
-* summable majorants for `vValue` and `vGrad`,
-* iterated derivative bounds for the cutoff terms,
-* a gradient eventual-equality input.
-
-Then it applies `contDiff_tsum` globally and transfers the result back to the original local series using `EventuallyEq` near `(s,x)`.
-
-## 3. How the compact cutoff is constructed
-
-### File
+Thus, at `s = 0`, the definition does **not** give `u₀`.  The repo has an explicit negative/degeneracy result:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+ShenWork/PDE/IntervalSemigroupAtZero.lean
 ```
 
-It first defines four edges around the target time `s` and `offset`:
+It states:
 
 ```lean
-def restartCutoffLeftOuter (offset s : ℝ) : ℝ :=
-  offset + (s - offset) / 4
-
-def restartCutoffLeft (offset s : ℝ) : ℝ :=
-  offset + (s - offset) / 3
-
-def restartCutoffRight (offset s : ℝ) : ℝ :=
-  s + (s - offset) / 3
-
-def restartCutoffRightOuter (offset s : ℝ) : ℝ :=
-  s + (s - offset) / 2
+theorem intervalFullSemigroupOperator_zero (f : ℝ → ℝ) (x : ℝ) :
+    intervalFullSemigroupOperator 0 f x = 0
 ```
 
-Then the two-sided cutoff is:
+The file comments say the intended `S 0 = id` value statement is false for the concrete definition: `heatKernel 0 x = 0`, hence `intervalNeumannFullKernel 0 x y = 0`, hence the propagator value is `0` for every `f` and `x`.
 
-```lean
-/-- Concrete two-sided smooth cutoff supported in a compact slab around the
- target time and equal to one near the target time. -/
-def restartSmoothCutoff (offset s : ℝ) : ℝ → ℝ :=
-  fun t =>
-    smoothRightCutoff (restartCutoffLeftOuter offset s)
-        (restartCutoffLeft offset s) t *
-      smoothRightCutoff (-(restartCutoffRightOuter offset s))
-        (-(restartCutoffRight offset s)) (-t)
-```
+For `s < 0`, I found no special branch and no named theorem simplifying `intervalFullSemigroupOperator s f x`.  The positivity infrastructure I found is all stated for `0 < s`, so negative times should be avoided in this sub-sorry.
 
-The file proves the ordering of those edges, plus:
+## Question 2: does heat level 0 satisfy `u(s) ≥ 0` for all `s`, including `s ≤ 0`?
 
-```lean
-restartSmoothCutoff_contDiff
-restartSmoothCutoff_eventually_eq_one
-restartSmoothCutoff_eq_zero_of_le_left
-restartSmoothCutoff_eq_zero_of_right_le
-restartSmoothCutoff_eq_one_of_mem_core
-restartSmoothCutoff_hasCompactSupport
-restartSmoothCutoff_iteratedFDeriv_bound_exists
-restartCutoffDerivMajorant
-restartCutoffDerivMajorant_spec
-```
+What is landed:
 
-Key facts:
+### Positive time
 
-* `restartSmoothCutoff_eventually_eq_one hτ` gives `φ = 1` near the target `s`.
-* `restartSmoothCutoff_eq_zero_of_le_left` and `_of_right_le` give zero outside the compact slab.
-* `restartSmoothCutoff_hasCompactSupport` packages compact support.
-* `restartCutoffDerivMajorant_spec` gives global bounds on the derivatives of the cutoff itself.
-
-## 4. Concrete cutoff + `contDiff_tsum` instantiation
-
-### Generic no-cutoff assembler
-
-File:
+There is a full Neumann propagator positivity theorem in:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Assemble.lean
+ShenWork/PDE/IntervalResolverPositivity.lean
 ```
-
-This has the direct non-cutoff skeleton:
 
 ```lean
-def resolverSpectralValueTerm ... :=
-  fun q => localRestartCoeff a₀ a (q.1 - offset) n * cosineMode n q.2
+theorem intervalFullSemigroupOperator_nonneg {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalFullSemigroupOperator t f x
 ```
 
-and:
-
-```lean
-theorem resolverSpectralJointC2At_of_contDiff_tsum
-```
-
-It simply assumes termwise `ContDiff`, summability, and bounds, then calls `contDiff_tsum` for the value and gradient series.
-
-### Cutoff wrapper
-
-File:
+There is also the weaker-on-support variant in:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
+ShenWork/PDE/IntervalFullKernelLowerBound.lean
 ```
-
-The cutoff wrapper:
 
 ```lean
-resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
+theorem intervalFullSemigroupOperator_nonneg_of_nonneg_on_Icc {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalFullSemigroupOperator t f x
 ```
 
-is the local version that inserts `φ`, proves the cutoff series is globally `ContDiff`, and transfers back to the original series near the target because `φ = 1` there.
-
-### Concrete restart instantiation
-
-File:
+For strictly positive initial data, there is a stronger positive-time theorem in:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+ShenWork/Paper2/IntervalBFormNegPartStrictPosBarrier.lean
 ```
-
-This file instantiates the generic cutoff wrapper with:
 
 ```lean
-φ := restartSmoothCutoff offset s
+theorem intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    0 < intervalFullSemigroupOperator t (intervalDomainLift u₀) x
 ```
 
-The final theorem is:
+This theorem is exactly what `IntervalConjugateLevel0BFormSourceOn.lean` uses to prove heat-level positivity on positive windows:
 
 ```lean
-/-- Concrete cutoff instantiation of the generic producer. -/
-theorem resolverSpectralJointC2At_of_restartSmoothCutoff
-    {a₀ : ℕ → ℝ} {M : ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
-    (hτ : 0 < s - offset) (ha₀ : ∀ n, |a₀ n| ≤ M)
-    (src : DuhamelSourceTimeC2Coeff a) :
-    ResolverSpectralJointC2At a₀ a offset s x :=
-  resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-    (φ := restartSmoothCutoff offset s)
-    (gradTerm := resolverSpectralConcreteGradTerm a₀ a offset)
-    (vValue := concreteRestartValueMajorant a₀ src offset s hτ)
-    (vGrad := concreteRestartGradMajorant a₀ src offset s hτ)
-    (restartSmoothCutoff_eventually_eq_one hτ)
-    (cutoffValueTerm_restartSmoothCutoff_contDiff src)
-    (concreteRestartValueMajorant_summable hτ ha₀ src)
-    (cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src)
-    (cutoffGradTerm_restartSmoothCutoff_contDiff src)
-    (concreteRestartGradMajorant_summable hτ ha₀ src)
-    (cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src)
-    (resolverSpectralGradSeries_eventuallyEq_concreteGradTerm hτ ha₀ src)
+theorem level0_heat_pos_of_data ... :
+    ∀ σ ∈ Icc c _D.T, ∀ x ∈ Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x := by
+  ...
+  exact ShenWork.Paper2.BFormPositiveDatumNegPart.intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+    hu₀ hσpos x
 ```
 
-This is the full “smooth cutoff + global `contDiff_tsum` + local equality” pattern.
+### At `s = 0`
 
-## 5. How the bounds use compact support / positive slab
-
-The concrete file defines:
+The concrete full semigroup is zero at `s = 0`:
 
 ```lean
-def restartSlabMin (offset s : ℝ) : ℝ :=
-  restartCutoffLeftOuter offset s - offset
-
-def restartSlabMax (offset s : ℝ) : ℝ :=
-  restartCutoffRightOuter offset s - offset
+intervalFullSemigroupOperator 0 f x = 0
 ```
 
-and proves:
+so the level-0 iterate at `s = 0` is not `u₀`; it is zero pointwise after unfolding the semigroup operator.  That is nonnegative, but it is a degenerate artifact of the concrete `heatKernel 0` definition, not the mathematical identity `S(0)=Id`.
 
-```lean
-restartSlabMin_pos
-restartSlabMin_le_of_mem_support_slab
-restartSlabMax_ge_of_mem_support_slab
-```
+### Negative time
 
-This is the exact mechanism that prevents bad behavior outside the positive-time region: on the support of the cutoff, restart time `t - offset` is bounded below by `restartSlabMin offset s > 0`.  Outside that support, the cutoffed term has derivative zero by eventual equality to `0`.
+I found no theorem proving `0 ≤ intervalFullSemigroupOperator s (intervalDomainLift u₀) x` for `s < 0`, nor a theorem simplifying it to zero.  Existing heat-kernel and full-kernel positivity lemmas require `0 < t`.
 
-For the homogeneous/restart heat tail, the relevant majorant is:
+Therefore, for sub-sorry 3E, the safe proof route is to ensure all `s` in the slab are positive.
 
-```lean
-def restartHomogeneousCubeMajorant
-    (a₀ : ℕ → ℝ) (τmin : ℝ) (n : ℕ) : ℝ :=
-  unitIntervalCosineEigenvalue n *
-    (unitIntervalCosineEigenvalue n *
-      (unitIntervalCosineEigenvalue n *
-        (Real.exp (-τmin * unitIntervalCosineEigenvalue n) * |a₀ n|)))
-```
+## Resolver positivity connection
 
-and it is summable when `0 < τmin` and `|a₀ n| ≤ M`:
-
-```lean
-theorem restartHomogeneousCubeMajorant_summable
-```
-
-This is close to the heat-semigroup need: replace raw `Real.exp (-t λ_n)` by the uniform positive-slab bound `Real.exp (-τmin λ_n)`.
-
-The global bound lemmas split into:
-
-* zero outside the cutoff support:
-  ```lean
-  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_left
-  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_right
-  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_left
-  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_eq_zero_of_right
-  ```
-* bounds inside the support slab:
-  ```lean
-  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
-  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound_of_mem_slab
-  ```
-* global bounds by case split on left/outside/right:
-  ```lean
-  cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound
-  cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound
-  ```
-
-## 6. Existing “heat semigroup + cutoff → contDiff_tsum” combination?
-
-I searched for combinations involving heat terms and cutoff terms, including:
+The resolver positivity theorem you mention exists in:
 
 ```text
-unitIntervalCosineHeatValue restartSmoothCutoff
-heatValue contDiff_tsum cutoff
-smoothRightCutoff heat
+ShenWork/PDE/IntervalResolverPositivity.lean
 ```
 
-I did **not** find a dedicated theorem that directly proves heat semigroup joint smoothness using this cutoff pattern.
-
-The existing cutoff machinery is resolver/restart-specific:
-
-* `cutoffValueTerm` uses `localRestartCoeff a₀ a (q.1 - offset) n`, not raw `Real.exp (-q.1 * λ_n) * a₀ n`.
-* `restartCoeffCoreMajorant` combines homogeneous restart, Duhamel, source envelopes, and derivative envelopes.
-* The homogeneous part already contains the exact exponential-positive-slab idea via `restartHomogeneousCubeMajorant`.
-
-So for a heat-only proof, there is no ready-made final theorem, but there is a very close blueprint.
-
-## 7. Suggested heat-level adaptation
-
-For heat semigroup level 0, define a heat-specific cutoff term, something like:
+The closed-domain theorem is:
 
 ```lean
-def heatCutoffValueTerm
-    (φ : ℝ → ℝ) (a₀ : ℕ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => φ q.1 * (Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * a₀ n) *
-    cosineMode n q.2
+theorem intervalNeumannResolverR_nonneg_of_nonneg_source {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
+    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 ≤ intervalNeumannResolverR p u xp
 ```
 
-Then copy the resolver pattern:
+So to prove
 
-1. Use `restartSmoothCutoff offset s` with `offset` chosen so the support slab has positive left edge.  For a target `s > 0`, `offset := 0` works if the left edge is positive; in the existing construction, `restartCutoffLeftOuter 0 s = s/4`, so the support stays in positive time.
-2. Prove termwise `ContDiff` via:
+```lean
+0 < 1 + intervalDomainLift
+  (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s) x
+```
+
+on `x ∈ Ioo 0 1`, the intended route is:
+
+1. use positive-time heat positivity to show
    ```lean
-   restartSmoothCutoff_contDiff.comp contDiff_fst
+   0 ≤ conjugatePicardIter p u₀ 0 s y
    ```
-   plus `fun_prop` for the exponential and cosine factors.
-3. Prove zero outside the cutoff support with the existing:
-   ```lean
-   restartSmoothCutoff_eq_zero_of_le_left
-   restartSmoothCutoff_eq_zero_of_right_le
-   ```
-4. On the support, use the positive lower bound:
-   ```lean
-   restartSlabMin offset s ≤ q.1 - offset
-   ```
-   and hence, for heat time `q.1`, a bound like:
-   ```lean
-   Real.exp (-q.1 * λ_n) ≤ Real.exp (-(restartSlabMin offset s) * λ_n)
-   ```
-   when `λ_n ≥ 0`.
-5. Use Mathlib/Shen_work product bounds (`norm_iteratedFDeriv_mul_le`) exactly as in the resolver cutoff proof.
-6. Feed the resulting summable majorant into `resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum` if your target can be cast into that abstraction, or into a new heat-specific analogue of that wrapper.
+   for `0 < s`;
+2. infer the resolver source `ν · u^γ` is nonnegative;
+3. apply `intervalNeumannResolverR_nonneg_of_nonneg_source`;
+4. rewrite `coupledChemicalConcentration p u s` to the interval resolver;
+5. conclude `0 < 1 + v` from `0 ≤ v`.
 
-## Bottom line
+This route is valid on positive-time slabs.  It is not available as-is on a ball that may include `s ≤ 0`.
 
-The smooth cutoff pattern is fully landed for resolver restart series.  The bump is explicit `Real.smoothTransition`-based, not `SmoothBumpFunction`.  `cutoffValueTerm` is defined in `IntervalResolverSpectralJointC2Cutoff.lean`.  The concrete compact cutoff `restartSmoothCutoff` is in `IntervalResolverSpectralJointC2Concrete.lean`, and the final concrete producer is `resolverSpectralJointC2At_of_restartSmoothCutoff`.
+## Question 3: existing heat/nonnegativity infrastructure found
 
-I found no existing heat-semigroup-specific cutoff+`contDiff_tsum` theorem, but the resolver code gives a direct implementation template, and its homogeneous restart majorant already encodes the key positive-slab exponential bound needed for heat semigroup terms.
+Searches run included:
+
+```text
+nonneg heat
+heat nonneg
+conjugatePicardIter nonneg
+intervalFullSemigroupOperator_nonneg
+intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+intervalNeumannResolverR_nonneg_of_nonneg_source
+```
+
+Relevant landed facts:
+
+### `HeatSemigroup.lean`
+
+```lean
+lemma heatKernel_nonneg {t : ℝ} (ht : 0 < t) (x : ℝ) :
+  0 ≤ heatKernel t x
+```
+
+```lean
+lemma heatKernel_pos {t : ℝ} (ht : 0 < t) (x : ℝ) :
+  0 < heatKernel t x
+```
+
+Again, both require `0 < t`.
+
+### `IntervalResolverPositivity.lean`
+
+```lean
+theorem intervalFullSemigroupOperator_nonneg {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalFullSemigroupOperator t f x
+```
+
+```lean
+theorem intervalNeumannResolverR_nonneg_of_nonneg_source ... :
+    0 ≤ intervalNeumannResolverR p u xp
+```
+
+### `IntervalFullKernelLowerBound.lean`
+
+```lean
+theorem intervalFullSemigroupOperator_nonneg_of_nonneg_on_Icc {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalFullSemigroupOperator t f x
+```
+
+```lean
+theorem intervalFullSemigroupOperator_lower_bound {t : ℝ} (ht : 0 < t) ... :
+    c ≤ intervalFullSemigroupOperator t f x
+```
+
+### `IntervalBFormNegPartStrictPosBarrier.lean`
+
+```lean
+theorem intervalFullSemigroupOperator_pos_of_nonneg_nonzero
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    (hf_nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f y)
+    (hf_pos_somewhere : ∃ y₀ ∈ Set.Icc (0 : ℝ) 1, 0 < f y₀)
+    (x : ℝ) :
+    0 < intervalFullSemigroupOperator t f x
+```
+
+```lean
+theorem intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    0 < intervalFullSemigroupOperator t (intervalDomainLift u₀) x
+```
+
+### `IntervalConjugatePicard.lean`
+
+The general Picard iterate nonnegativity theorem exists, but it is also on the positive horizon:
+
+```lean
+theorem conjugatePicardIter_ball ... :
+  ... ∧
+  (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    0 ≤ conjugatePicardIter p u₀ n t x) ∧
+  ...
+```
+
+### `IntervalConjugateLevel0BFormSourceOn.lean`
+
+For level 0, the file has a positive-window extraction:
+
+```lean
+theorem level0_heat_pos_of_data ... :
+  ∀ σ ∈ Icc c _D.T, ∀ x ∈ Icc (0 : ℝ) 1,
+    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x
+```
+
+This uses `0 < c` to derive `0 < σ`.
+
+## Bottom line for sub-sorry 3E
+
+The currently stated radius `Metric.ball τ 1` is the suspicious part.  To use existing heat/resolver positivity infrastructure, make the slab positive-time:
+
+```lean
+∃ δ > 0, ∀ s ∈ Metric.ball τ δ, 0 < s
+```
+
+usually with:
+
+```lean
+δ := τ / 2
+```
+
+when `0 < τ`.
+
+Then use positive-time heat positivity + resolver positivity.  If the structure forces `δ = 1` for arbitrary `τ`, then the goal is too strong for the landed infrastructure and may be false/unsupported whenever the ball crosses `s ≤ 0`.
