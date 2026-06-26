@@ -166,9 +166,18 @@ private theorem cosineCoeffs_abs_le_of_integrable_bounded
     (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
     ∀ n, |cosineCoeffs f n| ≤ 2 * B := by
   intro n
+  -- The complex-valued IntervalIntegrable is needed by the primitive
+  -- unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm.
+  -- It follows from the real-valued one because Complex.ofReal is
+  -- a continuous (isometric) embedding.
   have hint : IntervalIntegrable (fun x : ℝ => (f x : ℂ))
       volume (0 : ℝ) 1 := by
-    exact hf.mono_fun (eventually_of_forall fun x => by simp [Complex.norm_real, Real.norm_eq_abs])
+    apply IntervalIntegrable.mono_fun hf
+    · -- AEStronglyMeasurable of Complex.ofReal ∘ f from f's measurability
+      exact (Complex.continuous_ofReal.comp_aestronglyMeasurable
+        hf.aestronglyMeasurable)
+    · exact eventually_of_forall fun x => by
+        simp [Complex.norm_real, Real.norm_eq_abs]
   have hcoeff :=
     ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm
       hint n
@@ -819,19 +828,36 @@ theorem level0_chemDiv_envelope_summable
              --  ContinuousOn for coupledChemDivSourceLift on Icc 0 1 — only the
              --  pointwise sup bound, which holds without continuity at {0,1}.]
     obtain ⟨Msup, hMsup_nn, hbd⟩ := hsup_bound
-    -- IntervalIntegrable from boundedness: a function bounded by Msup on [0,1] is
-    -- integrable (bounded + measurable on a finite interval).
+    -- IntervalIntegrable from sup bound: coupledChemDivSourceLift is bounded by Msup
+    -- on Icc 0 1 and equals 0 outside.  We derive IntervalIntegrable by domination
+    -- against the constant function Msup (which is trivially IntervalIntegrable).
     have hint_slices : ∀ s ∈ Icc c T,
         IntervalIntegrable (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
           volume 0 1 := by
       intro s hs
+      -- Use mono_fun: the constant Msup is IntervalIntegrable, and our function's norm
+      -- is ≤ Msup a.e. on Ι 0 1.  The only auxiliary is AEStronglyMeasurable.
       apply IntervalIntegrable.mono_fun intervalIntegrable_const
-      · exact eventually_of_forall fun x => by
-          rw [Real.norm_eq_abs]
-          by_cases hx : x ∈ Icc (0 : ℝ) 1
-          · exact hbd s hs x hx
-          · simp [coupledChemDivSourceLift, intervalDomainLift, dif_neg hx, abs_zero]
-            exact hMsup_nn
+      · -- AEStronglyMeasurable of coupledChemDivSourceLift on Ι 0 1:
+        -- On Ioo 0 1 (= Ioc 0 1 a.e.), the function agrees with the jointly smooth
+        -- cosine-series representative, hence is continuous and measurable.
+        -- intervalDomainLift is piecewise (measurable set Icc 0 1, smooth inner fn, 0),
+        -- hence measurable globally.
+        sorry -- [SUB-SORRY 2B-meas: AEStronglyMeasurable of coupledChemDivSourceLift.
+               --  Route: intervalDomainLift is Measurable (Measurable.piecewise on
+               --    MeasurableSet Icc 0 1 with measurable inner fn and 0 outside),
+               --    hence AEStronglyMeasurable on any restriction.
+               --  This is a generic property of intervalDomainLift, not specific to
+               --  chemDiv; could be factored into a standalone lemma.]
+      · -- Norm domination: ‖source(x)‖ ≤ ‖Msup‖ = Msup a.e. on Ι 0 1
+        apply eventually_of_forall
+        intro x
+        rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg hMsup_nn]
+        by_cases hx : x ∈ Icc (0 : ℝ) 1
+        · exact hbd s hs x hx
+        · simp only [coupledChemDivSourceLift, intervalDomainLift, dif_neg hx,
+            abs_zero]
+          exact hMsup_nn
     exact ⟨Msup, hMsup_nn, hint_slices, hbd⟩
   -- ── Extract and build envelope ──
   obtain ⟨B, hBnn, hH2_data⟩ := hH2

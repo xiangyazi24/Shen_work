@@ -11,7 +11,6 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.PDE.IntervalMildSourceDecayHelper
-import Mathlib.Analysis.Real.Pi.Bounds
 
 open MeasureTheory
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
@@ -198,9 +197,9 @@ theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
     -- So (kπ)² |raw_f''| ≤ B₂, hence |raw_f''| ≤ B₂/(kπ)²
     have hcoeff_bound := weak_laplacianCoeff_abs_le_of_bound hf'' hB₂ k
     rw [hlap2] at hcoeff_bound
-    rw [show -(((k : ℝ) * Real.pi) ^ 2) *
-        ∫ x in (0:ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * hf.secondDeriv x =
-      -(((k : ℝ) * Real.pi) ^ 2 * raw_f'') from by ring] at hcoeff_bound
+    -- hcoeff_bound : |-(kπ)² * ∫ cos * f''| ≤ B₂
+    -- The integral is definitionally raw_f'', but need to normalize the neg
+    simp only [neg_mul] at hcoeff_bound
     rw [abs_neg, abs_mul, abs_of_pos hlam_pos] at hcoeff_bound
     rw [le_div_iff₀ hlam_pos, mul_comm]
     exact hcoeff_bound
@@ -232,10 +231,10 @@ theorem intervalWeakH4Neumann_eigenvalue_L1_summable
     (((Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)).mul_left
       (2 * B₂ / Real.pi ^ 2))
   by_cases hk : k = 0
-  · subst hk; simp [unitIntervalCosineEigenvalue, Nat.cast_zero]
+  · subst hk; simp [unitIntervalCosineEigenvalue]
   · have hk1 : 1 ≤ k := Nat.one_le_iff_ne_zero.mpr hk
     have hk_pos : (0 : ℝ) < (k : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk1
-    show unitIntervalCosineEigenvalue k * |cosineCoeffs f k| ≤
+    change unitIntervalCosineEigenvalue k * |cosineCoeffs f k| ≤
         2 * B₂ / Real.pi ^ 2 * (1 / (k : ℝ) ^ 2)
     simp only [unitIntervalCosineEigenvalue]
     calc ((k : ℝ) * Real.pi) ^ 2 * |cosineCoeffs f k|
