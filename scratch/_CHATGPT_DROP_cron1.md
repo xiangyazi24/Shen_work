@@ -1,354 +1,398 @@
-# Q745 / cron1: flux time fderiv bridge search
+# Q751 / cron1: `coupledChemDivTimeDerivativeLift` closed-slab continuity
 
 Repo inspected: `xiangyazi24/Shen_work`.
 Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
 
 ## Verdict
 
-Yes. The repo already has the relevant flux time-derivative definition, a committed time bridge theorem with exactly the target eventual-equality shape, and a generic Clairaut/commutation lemma that is instantiated for the flux in the outer-commute producer.
-
-The most directly relevant theorem for sub-sorry 3F is:
+Yes. The repo already has the closed-slab joint-continuity theorem for sub-sorry 3G:
 
 ```lean
-theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_c2 : ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
-    (hbase : ∀ s : ℝ, ∀ x : ℝ,
-      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x)
-    {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
-    (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-      (fun y : ℝ =>
-        fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0))
+theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
+    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
 Location:
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
 ```
 
-This theorem has the exact conclusion needed by sub-sorry 3F, except it is pointwise in `{s x}` and takes `hx`; the slab-shaped field is obtained by:
+So if sub-sorry 3G has a local hypothesis
 
 ```lean
-fun x hx s _hs =>
-  coupledChemDivFlux_timeBridge_of_physicalJointC2 H hu_c2 hbase hx
+hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-That exact pattern is already used in the same file inside:
+then the close is just:
 
 ```lean
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
+exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
 ```
 
-## 1. Definition of `coupledChemDivFluxTimeDerivativeLift`
+If the local context has the lower-level physical/iterate data instead, the repo also has constructors for `hrepr`; see the closure route below.
 
-Defined in:
+## 1. `chemDivMixedTimeDeriv_jointContinuousOn_closed` or similar
+
+Found exact theorem:
+
+```lean
+theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
+    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+```
+
+It appears in:
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxChain.lean
+ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
 ```
 
-Definition:
+The proof is a clean transfer from a globally continuous representative `Gmix`: it obtains
 
 ```lean
-def coupledChemDivFluxTimeDerivativeLift (p : CM2Params)
-    (u : ℝ → intervalDomainPoint → ℝ) (s y : ℝ) : ℝ :=
-  let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
-  let vt : ℝ → ℝ := coupledChemicalTimeDerivativeLift p u s
-  ShenWork.Paper2.PicardLimitK1.slopeSlice u s y * deriv v y /
-      (1 + v y) ^ p.β +
-    intervalDomainLift (u s) y * deriv vt y / (1 + v y) ^ p.β -
-    p.β * intervalDomainLift (u s) y * deriv v y * vt y /
-      (1 + v y) ^ (p.β + 1)
+⟨Gmix, hGmix_cont, hagree⟩ := H
 ```
 
-Same file also proves the pointwise chain-rule lemma:
+sets
 
 ```lean
-theorem coupledChemDivFlux_hasDerivAt_time
-    ... :
-    HasDerivAt (fun r => coupledChemDivFluxLift p u r y)
-      (coupledChemDivFluxTimeDerivativeLift p u s y) s
+S := Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1
 ```
 
-Hypotheses for `coupledChemDivFlux_hasDerivAt_time`:
+then proves pointwise agreement on `S` and uses `ContinuousWithinAt.congr_of_eventuallyEq`.
+
+This is exactly the requested target:
 
 ```lean
-hu : HasDerivAt (fun r => intervalDomainLift (u r) y)
-  (ShenWork.Paper2.PicardLimitK1.slopeSlice u s y) s
-
-hgv : HasDerivAt
-  (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
-  (deriv (coupledChemicalTimeDerivativeLift p u s) y) s
-
-hv : HasDerivAt
-  (fun r => intervalDomainLift (coupledChemicalConcentration p u r) y)
-  (coupledChemicalTimeDerivativeLift p u s y) s
-
-hbase : 0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) y
+ContinuousOn (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+  (Icc (τ-δ) (τ+δ) ×ˢ Icc 0 1)
 ```
 
-So the explicit flux time derivative is already the algebraic derivative candidate, and the repo already has the product/quotient/rpow `HasDerivAt` proof that this candidate differentiates the fixed-space flux slice.
+No theorem named `coupledChemDivTimeDerivative_jointContinuousOn_closed` was found; the committed name is `chemDivMixedTimeDeriv_jointContinuousOn_closed`.
 
-## 2. Existing Clairaut / commutation lemmas for the flux
+## 2. `ChemDivMixedTimeDerivClosedRepr` and what it provides
 
-### Generic time partial bridge
-
-Located in:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxTimeBridge.lean
-```
+Defined in the same file:
 
 ```lean
-theorem real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
-    {F : ℝ × ℝ → ℝ} {s x : ℝ}
-    (hF : DifferentiableAt ℝ F (s, x)) :
-    deriv (fun r : ℝ => F (r, x)) s =
-      fderiv ℝ F (s, x) (1, 0)
+def ChemDivMixedTimeDerivClosedRepr
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
+  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
+    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
 ```
 
-This is the direct `∂ₜ` slice = Fréchet directional derivative bridge.
-
-### Generic spatial bridge
-
-Located in:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-```
+So `ChemDivMixedTimeDerivClosedRepr` itself is the closed-slab representative datum: a globally continuous `Gmix` agreeing with the committed mixed time-derivative lift on the closed time-space slab. It provides the requested `ContinuousOn` only when fed to:
 
 ```lean
-theorem real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
-    {F : ℝ × ℝ → ℝ} {s x : ℝ}
-    (hF : DifferentiableAt ℝ F (s, x)) :
-    deriv (fun y : ℝ => F (s, y)) x =
-      fderiv ℝ F (s, x) (0, 1)
+chemDivMixedTimeDeriv_jointContinuousOn_closed
 ```
 
-### Generic Clairaut bridge
+There are several constructor layers for this representative.
 
-Located in:
-
-```text
-ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-```
-
-```lean
-theorem real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
-    {F Ft : ℝ → ℝ → ℝ} {s x : ℝ}
-    (hF : ContDiffAt ℝ 2 (Function.uncurry F) (s, x))
-    (hspatial :
-      (fun r : ℝ => deriv (F r) x) =ᶠ[𝓝 s]
-        (fun r : ℝ => fderiv ℝ (Function.uncurry F) (r, x) (0, 1)))
-    (htime :
-      (fun y : ℝ => Ft s y) =ᶠ[𝓝 x]
-        (fun y : ℝ => fderiv ℝ (Function.uncurry F) (s, y) (1, 0))) :
-    HasDerivAt (fun r : ℝ => deriv (F r) x) (deriv (Ft s) x) s
-```
-
-This lemma uses `hF.isSymmSndFDerivAt` from `Mathlib.Analysis.Calculus.FDeriv.Symmetric` to identify the two second Fréchet derivatives.
-
-### Flux instantiation of the Clairaut bridge
-
-Also in:
-
-```text
-ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-```
-
-```lean
-theorem coupledChemDivOuterCommuteAtoms_of_fluxJointC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (H : CoupledChemDivFluxJointC2Hyp p u) :
-    CoupledChemDivOuterCommuteAtoms p u
-```
-
-Inside this theorem, the generic Clairaut bridge is instantiated as:
-
-```lean
-real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
-  (F := coupledChemDivFluxLift p u)
-  (Ft := coupledChemDivFluxTimeDerivativeLift p u)
-  (hflux_c2 x hx s hs) (hspatial x hx s hs) (htime x hx s hs)
-```
-
-and it produces:
-
-```lean
-HasDerivAt
-  (fun r => deriv (coupledChemDivFluxLift p u r) x)
-  (deriv (coupledChemDivFluxTimeDerivativeLift p u s) x) s
-```
-
-So: there is no theorem named literally `Clairaut.*flux`, but the flux Clairaut/commutation route is committed under `coupledChemDivOuterCommuteAtoms_of_fluxJointC2`, using the generic `real_twoVar_clairaut_hasDerivAt_of_fderiv_partials`.
-
-## 3. The FactorJointC2Inputs / resolver time-bridge pattern
-
-The factor pipeline currently has two relevant layers.
-
-### A. The older factor package still contains the bridge as a field
+### Constructor from explicit continuous representatives
 
 In:
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+ShenWork/PDE/IntervalChemDivMixedReprConstruct.lean
 ```
 
-`CoupledChemDivFluxFactorJointC2Inputs.exists_local_slab` has this field:
+The file defines:
 
 ```lean
-∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-  (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-    (fun y : ℝ =>
-      fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-        (s, y) (1, 0))
+def mixedAlgebra ... : ℝ × ℝ → ℝ
 ```
 
-The producer `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` just names this field as `htime_deriv_fderiv_bridge := htime` and passes it into `CoupledChemDivFluxJointC2Hyp`.
+and a bundle:
 
-Likewise, in:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
+```lean
+structure ChemDivMixedReprData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) where
+  Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc : ℝ × ℝ → ℝ
+  cont_Uc : Continuous Uc
+  cont_Utc : Continuous Utc
+  cont_Utxc : Continuous Utxc
+  cont_Uxc : Continuous Uxc
+  cont_Vc : Continuous Vc
+  cont_Vxc : Continuous Vxc
+  cont_Vxxc : Continuous Vxxc
+  cont_Vtc : Continuous Vtc
+  cont_Vtxc : Continuous Vtxc
+  cont_Vtxxc : Continuous Vtxxc
+  floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
+  agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+    coupledChemDivTimeDerivativeLift p u t x =
+      mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
 ```
 
-`FACLocalSlabInputs` still has the same time-bridge field explicitly, and `coupledChemDivFluxFactorJointC2Inputs_of_FACInputs` passes it through as `htime_bridge`.
+Then:
 
-### B. The newer physical discharge removes this bridge hypothesis
+```lean
+theorem chemDivMixedTimeDerivClosedRepr_of_data
+    (D : ChemDivMixedReprData p u τ δ) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+This theorem proves `Continuous` for `mixedAlgebra` from the ten continuous reps plus the floor, then uses `D.agree` for slab equality.
+
+### Constructor from witness data
 
 In:
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+ShenWork/PDE/IntervalChemDivMixedReprWitness.lean
 ```
 
-The theorem:
+Found:
 
 ```lean
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
+def witnessData
+    (W : ChemDivMixedReprWitnessData p u τ δ) :
+    ChemDivMixedReprData p u τ δ
 ```
 
-has an `other` hypothesis that no longer includes the flux time bridge. Its `other` fields are only:
+and:
 
 ```lean
-∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-  (∀ᶠ s in 𝓝 τ,
-    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-  (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
-  ContinuousOn
-    (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-    (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+theorem chemDivMixedTimeDerivClosedRepr_of_witness
+    (W : ChemDivMixedReprWitnessData p u τ δ) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-Then it fills the missing time-bridge field by:
+The same file defines the spectral/time-series reps for the resolver `d_t` legs:
 
 ```lean
-exact coupledChemDivFlux_timeBridge_of_physicalJointC2 H hu_c2 hbase hx
+def resolverDtValue (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : ℝ × ℝ → ℝ
+
+def resolverDtGrad (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : ℝ × ℝ → ℝ
+
+def resolverDtGrad2 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : ℝ × ℝ → ℝ
 ```
 
-This is the pattern to reuse for sub-sorry 3F.
+with continuity lemmas:
 
-### C. How the resolver supplies the residual inner commute `hgv`
+```lean
+resolverDtValue_continuous
+resolverDtGrad_continuous
+resolverDtGrad2_continuous
+```
 
-Also in:
+and the closed-slab equality of the committed `coupledChemicalTimeDerivativeLift` with the resolver `d_t` cosine series:
+
+```lean
+resolver_timeDeriv_eq_series
+```
+
+### Constructor from physical resolver + iterate data
+
+Still in:
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+ShenWork/PDE/IntervalChemDivMixedReprWitness.lean
 ```
 
-The theorem:
+Found:
 
 ```lean
-theorem coupledChemical_innerCommute_of_physicalJointC2
+theorem chemDivMixedTimeDerivClosedRepr_of_mkWitness
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ}
+    {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (Hu : IteratePicardJointC2Data u c Btu)
+    (Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
+    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+    (bdry : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
+      coupledChemDivTimeDerivativeLift p u t x =
+        mixedAlgebra p.β (valueSeriesRep c) (iterateDtValue c) (iterateDtGrad c)
+          (gradSeriesRep c) (valueSeriesRep (resolverTimeCoeff p u))
+          (gradSeriesRep (resolverTimeCoeff p u))
+          (grad2SeriesRep (resolverTimeCoeff p u)) (resolverDtValue p u)
+          (resolverDtGrad p u) (resolverDtGrad2 p u) (t, x)) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-produces:
+This reduces the representative to:
+
+* `PhysicalResolverJointC2Data p u Bt`
+* iterate `IteratePicardJointC2Data u c Btu`
+* order-2 iterate gradient summability
+* a global floor for the resolver value series
+* endpoint/boundary agreement on `{0,1}`
+
+### Capstone with iterate gradient summability field
+
+In:
+
+```text
+ShenWork/PDE/IntervalIterateGradMajorant.lean
+```
+
+Found:
 
 ```lean
-HasDerivAt
-  (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
-  (deriv (coupledChemicalTimeDerivativeLift p u s) y) s
+theorem chemDivMixedClosedRepr_of_iterateGradSummable
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ}
+    {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (Hu : IteratePicardJointC2Data u c Btu)
+    (HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant Btu m))
+    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+    (bdry : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
+      coupledChemDivTimeDerivativeLift p u t x =
+        mixedAlgebra p.β (valueSeriesRep c) (iterateDtValue c) (iterateDtGrad c)
+          (gradSeriesRep c) (valueSeriesRep (resolverTimeCoeff p u))
+          (gradSeriesRep (resolverTimeCoeff p u))
+          (grad2SeriesRep (resolverTimeCoeff p u)) (resolverDtValue p u)
+          (resolverDtGrad p u) (resolverDtGrad2 p u) (t, x)) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-from physical resolver joint C²:
+This is likely the highest-level available constructor for `hrepr` before entering the FAC factor pipeline.
+
+## 3. Any theorem giving `ContinuousOn` of the time derivative of the chemDiv source?
+
+There are two relevant meanings.
+
+### A. Joint continuity of the pointwise source time derivative field
+
+The pointwise chain-rule field is:
 
 ```lean
-H : PhysicalResolverJointC2Data p u Bt
+coupledChemDivTimeDerivativeLift p u : ℝ → ℝ → ℝ
 ```
 
-It sets:
+The theorem that gives its joint closed-slab `ContinuousOn` is exactly:
 
 ```lean
-F : ℝ → ℝ → ℝ := fun r => intervalDomainLift (coupledChemicalConcentration p u r)
+chemDivMixedTimeDeriv_jointContinuousOn_closed
 ```
 
-then uses:
+from `IntervalChemDivTimeDerivClosed.lean`, provided `ChemDivMixedTimeDerivClosedRepr` is available.
+
+This field also appears as an explicit hypothesis/field in older packages:
 
 ```lean
-coupledChemical_jointContDiffAt_two H hy
-real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
-real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
-real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
+CoupledChemDivLocalChainRule.exists_local_slab
+CoupledChemDivPointwiseChainAtoms.exists_local_slab
+FACLocalSlabInputs
+CoupledChemDivFluxFactorJointC2Inputs
 ```
 
-So the resolver time bridge pattern is:
+Those packages do not prove the continuity by themselves; they store or pass it. The `IntervalChemDivTimeDerivClosed.lean` route is the committed theorem that discharges it from the representative.
 
-1. Use `coupledChemical_jointContDiffAt_two H hy` for joint C² of `v`.
-2. Use `coupledChemical_grad_jointContDiffAt_two H hy` for joint C² of `∂ₓ v` when proving flux C².
-3. Convert time and spatial slice derivatives to Fréchet partials using the two `real_twoVar_*_eq_fderiv_of_differentiableAt` lemmas.
-4. Apply `real_twoVar_clairaut_hasDerivAt_of_fderiv_partials` to produce the inner commute `hgv`.
-5. Feed `hgv` plus `hu`, `hv`, `hgradv`, and positivity into `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`.
-6. For the FAC slab, use `coupledChemDivFlux_timeBridge_of_physicalJointC2` directly.
+### B. Continuity of coefficient time derivatives `coupledChemDivAdot`
 
-## Practical closure route for sub-sorry 3F
+In:
 
-If the local context contains:
+```text
+ShenWork/Wiener/EWA/ChemDivAdot.lean
+```
+
+Found:
 
 ```lean
-H : PhysicalResolverJointC2Data p u Bt
-hu_c2 : ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-  ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
-hbase : ∀ s : ℝ, ∀ x : ℝ,
-  0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x
+theorem chemDivAdot_continuousOn_of_jointCont
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n) (Set.Icc (0 : ℝ) T)
 ```
 
-then the sub-sorry shape
+This is not the same as the requested 3G target; it is downstream. It consumes joint continuity of `coupledChemDivTimeDerivativeLift` and produces per-mode coefficient continuity. The same file also packages:
 
 ```lean
-∀ x ∈ Ioo 0 1, ∀ s ∈ Metric.ball τ δ,
-  (fun y => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[nhds x]
-  (fun y => fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0))
+theorem chemDivAdot_deriv_legs_of_smoothness
+    (hchain : CoupledChemDivLocalChainRule p u)
+    (hjointcont : ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    (∀ s ∈ Set.Icc (0 : ℝ) T, ∀ n,
+      HasDerivWithinAt (fun r => coupledChemDivSourceCoeffs p u r n)
+        (coupledChemDivAdot p u s n) (Set.Icc 0 T) s)
+    ∧ (∀ n, ContinuousOn (fun s => coupledChemDivAdot p u s n)
+        (Set.Icc (0 : ℝ) T))
 ```
 
-should close with:
+So `ChemDivAdot.lean` gives coefficient continuity once the requested 3G-style joint continuity is already supplied.
+
+## Factor pipeline use
+
+`IntervalChemDivTimeDerivClosed.lean` also provides the FAC-facing theorem:
 
 ```lean
-intro x hx s hs
-exact coupledChemDivFlux_timeBridge_of_physicalJointC2
-  (p := p) (u := u) (H := H) hu_c2 hbase hx
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (hu_cont : ∀ s : ℝ, Continuous (u s))
+    (hu_nonneg : ∀ s : ℝ, ∀ x : intervalDomainPoint, 0 ≤ u s x)
+    (other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+      (∀ᶠ s in 𝓝 τ,
+        ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+      (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
+        ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
+      ChemDivMixedTimeDerivClosedRepr p u τ δ) :
+    CoupledChemDivFluxFactorJointC2Inputs p u
 ```
 
-The `hs` ball membership is unused by this theorem.
-
-If the context does **not** have global `hu_c2`/`hbase` in exactly that shape, use the lower-level theorem:
+This wraps the prior `coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged` and fills the formerly open `htime_cont` field by:
 
 ```lean
-coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
 ```
 
-and supply eventual-near-`x` versions of:
+## Practical closure route for sub-sorry 3G
+
+### Case 1: local context already has the representative
 
 ```lean
-hu      : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2 lifted-u at (s,y)
-hv      : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2 lifted-v at (s,y)
-hgradv  : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2 lifted-∂ₓv at (s,y)
-hbase   : ∀ᶠ y in 𝓝 x, 0 < 1 + v(s,y)
-hgv     : ∀ᶠ y in 𝓝 x, HasDerivAt (fun r => ∂ₓv(r,y)) (∂ₓ∂ₜv(s,y)) s
+-- hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ
+exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
 ```
 
-The physical resolver theorem `coupledChemical_innerCommute_of_physicalJointC2` is the committed way to build `hgv`.
+### Case 2: local context has physical + iterate witness data
+
+If the context has:
+
+```lean
+H      : PhysicalResolverJointC2Data p u Bt
+Hu     : IteratePicardJointC2Data u c Btu
+HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+           Summable (boundedWeightJointGradMajorant Btu m)
+hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q
+bdry   : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
+           coupledChemDivTimeDerivativeLift p u t x =
+             mixedAlgebra p.β (valueSeriesRep c) (iterateDtValue c) (iterateDtGrad c)
+               (gradSeriesRep c) (valueSeriesRep (resolverTimeCoeff p u))
+               (gradSeriesRep (resolverTimeCoeff p u))
+               (grad2SeriesRep (resolverTimeCoeff p u)) (resolverDtValue p u)
+               (resolverDtGrad p u) (resolverDtGrad2 p u) (t, x)
+```
+
+then close by building `hrepr` first:
+
+```lean
+have hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ :=
+  ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
+    H Hu HuGrad hfloor bdry
+exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
+```
+
+### Case 3: local context is assembling FAC factor inputs
+
+Prefer the already-committed wrapper:
+
+```lean
+coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+```
+
+It expects the `other` slab package to contain `ChemDivMixedTimeDerivClosedRepr p u τ δ` instead of the raw `ContinuousOn` field, and it discharges `htime_cont` internally.
