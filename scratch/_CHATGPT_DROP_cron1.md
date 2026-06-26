@@ -1,209 +1,186 @@
-# Q678 / cron1: Mathlib lemma for polynomial × exponential decay summability
+# Q682 / cron1: `cosineCoeffs` real-integral bridge and weak-H² Laplacian coefficient identity
 
 ## Verdict
 
-The Mathlib lemma you want is:
+Yes — the repo already has reusable lemmas relating `cosineCoeffs` to the real interval integral
 
 ```lean
-Real.summable_pow_mul_exp_neg_nat_mul
+∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
 ```
 
-Exact signature in Mathlib:
+For positive modes, the best public lemma is:
 
 ```lean
-lemma summable_pow_mul_exp_neg_nat_mul (k : ℕ) {r : ℝ} (hr : 0 < r) :
-    Summable fun n : ℕ ↦ n ^ k * exp (-r * n)
+ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
 ```
 
-Location:
-
-- `Mathlib/Analysis/SpecialFunctions/Exp.lean:178-182`
-
-There is **not** a direct `exp (-α * n^2)` lemma in the form I found.  The standard route is exactly what `Shen_work` already does: reduce the Gaussian tail to a linear exponential tail using
+Signature/location:
 
 ```lean
-(n : ℝ) ≤ (n : ℝ)^2
+/-- For a real-valued `f`, the positive-mode cosine coefficient equals
+`2 * ∫₀¹ cos(nπx) * f(x) dx`. -/
+theorem cosineCoeffs_pos_eq_integral {f : ℝ → ℝ} {n : ℕ} (hn : n ≠ 0) :
+    cosineCoeffs f n =
+      2 * ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
 ```
 
-for `n : ℕ`, then apply `Real.summable_pow_mul_exp_neg_nat_mul`.
+- `ShenWork/Paper2/IntervalMildPicardRegularity.lean:417-431`
 
-## Existing `Shen_work` pattern
-
-`ShenWork/Paper2/IntervalCD6Tail.lean` has a private helper doing precisely this for arbitrary natural eigenvalue powers:
+There is also a uniform all-modes public lemma:
 
 ```lean
-private theorem eigenvalue_pow_mul_exp_summable
-    (m : ℕ) {τ : ℝ} (hτ : 0 < τ) :
-    Summable (fun n : ℕ =>
-      unitIntervalCosineEigenvalue n ^ m *
-        Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by
-  have hc : 0 < τ * Real.pi ^ 2 := by positivity
-  have hbase : Summable (fun n : ℕ =>
-      Real.pi ^ (2 * m) * ((n : ℝ) ^ (2 * m) *
-        Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ)))) := by
-    simpa [mul_assoc] using
-      (Real.summable_pow_mul_exp_neg_nat_mul (2 * m) hc).mul_left
-        (Real.pi ^ (2 * m))
-  ...
+theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
+    cosineCoeffs f n =
+      (if n = 0 then 1 else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
 ```
 
-Location:
+- `ShenWork/Paper2/IntervalMildPicardRegularity.lean:433-442`
 
-- `ShenWork/Paper2/IntervalCD6Tail.lean:17-28`
-
-The comparison part later proves
+And a raw-coefficient public wrapper:
 
 ```lean
-Real.exp (-τ * unitIntervalCosineEigenvalue n)
-  ≤ Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ))
+/-- `cosineCoeffs f n = 2 · rawCoeff n f` for `n ≥ 1`. -/
+theorem cosineCoeffs_eq_two_rawCoeff {f : ℝ → ℝ} {n : ℕ} (hn : 1 ≤ n) :
+    cosineCoeffs f n = 2 * rawCoeff n f
 ```
 
-from
+- `ShenWork/Paper2/IntervalSourceC6Representative.lean:146-151`
+
+## Private helper matching the exact pattern
+
+`IntervalMildSourceDecayHelper.lean` has a private helper with exactly the normalization you need:
 
 ```lean
-(n : ℝ) ≤ (n : ℝ)^2
+private theorem cosineCoeffs_eq_two_raw_integral
+    {f : ℝ → ℝ} {k : ℕ} (hk : k ≠ 0) :
+    cosineCoeffs f k =
+      2 * ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x := by
+  simp only [cosineCoeffs, unitIntervalNeumannCosineCoeff, if_neg hk]
+  rw [unitIntervalCosineRawCoeff]
+  have hcast :
+      (fun x : ℝ =>
+          (Real.cos ((k : ℝ) * Real.pi * x) : ℂ) * ((f x : ℝ) : ℂ)) =
+        fun x : ℝ =>
+          ((Real.cos ((k : ℝ) * Real.pi * x) * f x : ℝ) : ℂ) := by
+    funext x
+    push_cast
+    ring
+  rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re]
 ```
 
-and `unitIntervalCosineEigenvalue n = (n : ℝ)^2 * Real.pi^2`.
+- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:127-141`
 
-Location:
+Since it is `private`, use the public `cosineCoeffs_pos_eq_integral` instead.
 
-- `ShenWork/Paper2/IntervalCD6Tail.lean:34-65`
+## The exact desired identity is not completed as a reusable theorem
 
-So the repo-local pattern is already a template for your proof.
-
-## Other related Mathlib lemma
-
-Immediately above the polynomial-times-exponential lemma, Mathlib also has:
+I did **not** find a completed theorem named like
 
 ```lean
-lemma summable_exp_nat_mul_iff {a : ℝ} :
-    Summable (fun n : ℕ ↦ exp (n * a)) ↔ a < 0
+cosineCoeffs_secondDeriv_eq_neg_eigenvalue_mul
 ```
 
-and
+or a completed theorem directly proving
 
 ```lean
-lemma summable_exp_nat_mul_of_ge {c : ℝ} (hc : c < 0) {f : ℕ → ℝ} (hf : ∀ i, i ≤ f i) :
-    Summable fun i : ℕ ↦ exp (c * f i)
+cosineCoeffs hf.secondDeriv k = -((k : ℝ) * Real.pi)^2 * cosineCoeffs f k
 ```
 
-Locations:
+from `hf : IntervalWeakH2Neumann f`.
 
-- `Mathlib/Analysis/SpecialFunctions/Exp.lean:163-176`
-
-These help for pure exponential tails.  For polynomial times exponential, `Real.summable_pow_mul_exp_neg_nat_mul` is the one to use.
-
-## Proof route for your `MemHSigma` lemma
-
-Target:
+However, `IntervalSourceDecayQuantitative.lean` has the exact local pattern inline and comments spelling out the identity.  In the quadratic decay proof it unfolds `cosineCoeffs` to the real integral and proves:
 
 ```lean
-MemHSigma σ a :=
-  Summable (fun k => (1 + ((k : ℝ) * Real.pi)^2)^σ * (a k)^2)
+have hcoeff : cosineCoeffs f k = 2 * raw := by
+  -- replicate the (private) helper identity: for k ≠ 0,
+  -- `cosineCoeffs f k = 2·∫₀¹ cos(kπx)·f(x) dx`
+  simp only [ShenWork.IntervalNeumannFullKernel.cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+    if_neg hk_ne,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  have hcast : ... := by
+    funext x
+    push_cast
+    ring
+  rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re, hraw_def]
 ```
 
-Assume:
+- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean:98-113`
+
+Below that, the file has an attempted depth-2/quartic decay lemma whose comments state precisely your target step:
 
 ```lean
-hσ : 0 ≤ σ
-hα : 0 < α
-hC : 0 ≤ C
-ha : ∀ k, |a k| ≤ C * Real.exp (-α * (k : ℝ)^2)
+-- So cosineCoeffs(f'') k = -(kπ)² * cosineCoeffs(f) k
 ```
 
-Then:
+but the lemma body is unfinished with `sorry`.
+
+- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean:140-162`
+- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean:166-173`
+
+So: the ingredients exist, but the reusable identity should be added.
+
+## Suggested theorem to add
+
+This should be a very small lemma, using only `hf.weak_cosine_laplacian` plus the public positive-mode normalization lemma:
 
 ```lean
-(a k)^2 ≤ C^2 * Real.exp (-(2 * α) * (k : ℝ)^2)
+import ShenWork.PDE.IntervalMildSourceDecayHelper
+import ShenWork.Paper2.IntervalMildPicardRegularity
+
+open MeasureTheory
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
+
+namespace ShenWork.PDE.IntervalMildSourceDecayHelper
+
+noncomputable section
+
+/-- Weak-H² Neumann Laplacian identity at normalized positive cosine coefficients. -/
+theorem intervalWeakH2Neumann_cosineCoeffs_secondDeriv_eq
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) {k : ℕ} (hk : 1 ≤ k) :
+    cosineCoeffs hf.secondDeriv k =
+      -((k : ℝ) * Real.pi) ^ 2 * cosineCoeffs f k := by
+  have hk_ne : k ≠ 0 := by omega
+  rw [ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
+        (f := hf.secondDeriv) (n := k) hk_ne,
+      ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
+        (f := f) (n := k) hk_ne]
+  rw [hf.weak_cosine_laplacian k]
+  ring
+
+end
+end ShenWork.PDE.IntervalMildSourceDecayHelper
 ```
 
-because squaring `exp (-α k²)` gives `exp (-2α k²)`.
-
-For the polynomial weight, choose a natural `m` with `σ ≤ m`, e.g. via Archimedean ceiling.  Since the base is at least `1`,
+If `rw` does not find the exact integral subterm, use explicit `have` bindings:
 
 ```lean
-(1 + ((k : ℝ) * Real.pi)^2)^σ ≤
-  (1 + ((k : ℝ) * Real.pi)^2)^m
+  have hsd := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
+    (f := hf.secondDeriv) (n := k) hk_ne
+  have hf0 := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_pos_eq_integral
+    (f := f) (n := k) hk_ne
+  rw [hsd, hf0, hf.weak_cosine_laplacian k]
+  ring
 ```
 
-Then bound the integer-power weight by a constant multiple of a natural polynomial in `k`, for example something like
+## Why this proves your desired statement
+
+`IntervalWeakH2Neumann` contains exactly the raw integral identity:
 
 ```lean
-(1 + ((k : ℝ) * Real.pi)^2)^m ≤ A * ((k : ℝ) + 1)^(2*m)
+weak_cosine_laplacian : ∀ k : ℕ,
+  (∫ x in (0 : ℝ)..1,
+      Real.cos ((k : ℝ) * Real.pi * x) * secondDeriv x) =
+    -((k : ℝ) * Real.pi) ^ 2 *
+      ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
 ```
 
-or reindex/tail-split and use `k^(2*m)` for `k ≥ 1`.
+- `ShenWork/PDE/IntervalMildSourceDecayHelper.lean:6-15`
 
-Finally compare
+The positive-mode lemma turns both raw integrals into normalized coefficients with the same factor `2`, and `ring` cancels/distributes that factor:
 
 ```lean
-((k : ℝ) + 1)^(2*m) * Real.exp (-(2*α) * (k : ℝ)^2)
+2 * (-(kπ)^2 * raw_f) = -(kπ)^2 * (2 * raw_f)
 ```
-
-or its tail reindex to a constant multiple of
-
-```lean
-(k : ℝ)^N * Real.exp (-r * (k : ℝ))
-```
-
-with `r > 0`, and apply:
-
-```lean
-Real.summable_pow_mul_exp_neg_nat_mul N hr
-```
-
-## Minimal Lean skeleton
-
-For the Gaussian-to-linear-exponential part, copy this style from `IntervalCD6Tail`:
-
-```lean
-have hc : 0 < (2 * α) := by positivity
-have hbase : Summable (fun n : ℕ =>
-    (n : ℝ)^N * Real.exp (-(2 * α) * (n : ℝ))) := by
-  simpa [mul_assoc] using
-    Real.summable_pow_mul_exp_neg_nat_mul N hc
-
-refine Summable.of_nonneg_of_le (fun n => ?_) (fun n => ?_) hbase
-· positivity
-· have hn_sq_ge : (n : ℝ) ≤ (n : ℝ)^2 := by
-    rcases Nat.eq_zero_or_pos n with hn | hn
-    · subst n; norm_num
-    · exact le_self_pow₀ (by exact_mod_cast hn) (by norm_num)
-  have hexp_le :
-      Real.exp (-(2 * α) * (n : ℝ)^2) ≤
-        Real.exp (-(2 * α) * (n : ℝ)) := by
-    apply Real.exp_le_exp.mpr
-    nlinarith [mul_nonneg (by positivity : 0 ≤ 2 * α) hn_sq_ge]
-  -- finish by multiplying by the polynomial bound with nonnegative factors
-```
-
-The exact `nlinarith` line may need sign care.  The repo pattern avoids ambiguity by writing the exponent as `-(τ * Real.pi^2) * (n : ℝ)` and proving the exponential comparison with `Real.exp_le_exp.mpr`; see `IntervalCD6Tail.lean:43-48`.
-
-## Bottom line
-
-Use:
-
-```lean
-Real.summable_pow_mul_exp_neg_nat_mul
-```
-
-There is no need to invent a p-series proof.  The cleanest `Shen_work` implementation is to factor your argument into two lemmas:
-
-```lean
-theorem summable_poly_mul_exp_neg_sq
-    (N : ℕ) {α : ℝ} (hα : 0 < α) :
-    Summable (fun n : ℕ => (n : ℝ)^N * Real.exp (-α * (n : ℝ)^2))
-```
-
-proved by comparison to `Real.summable_pow_mul_exp_neg_nat_mul N hα`, then:
-
-```lean
-theorem memHSigma_of_exp_sq_bound
-    {σ α C : ℝ} (hσ : 0 ≤ σ) (hα : 0 < α) (hC : 0 ≤ C)
-    {a : ℕ → ℝ}
-    (ha : ∀ k, |a k| ≤ C * Real.exp (-α * (k : ℝ)^2)) :
-    MemHSigma σ a
-```
-
-using a natural `N` large enough to dominate the real-power Sobolev weight.
