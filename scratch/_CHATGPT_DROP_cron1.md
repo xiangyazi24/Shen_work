@@ -1,260 +1,354 @@
-# Q739 / cron1: smooth cutoff search for `heatSemigroup_jointContDiff_two`
+# Q745 / cron1: flux time fderiv bridge search
 
 Repo inspected: `xiangyazi24/Shen_work`.
 Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
 
 ## Verdict
 
-Yes, the repo already has the cutoff machinery needed for the pattern, but not exactly under the name or exact properties in the prompt.
+Yes. The repo already has the relevant flux time-derivative definition, a committed time bridge theorem with exactly the target eventual-equality shape, and a generic Clairaut/commutation lemma that is instantiated for the flux in the outer-commute producer.
 
-* I found **no repo-local hits** for `SmoothBumpFunction` or `smoothBump`.
-* The one-sided cutoff matching “zero to the left, one to the right” is:
+The most directly relevant theorem for sub-sorry 3F is:
 
 ```lean
-ShenWork.IntervalResolverSpectralJointC2Cutoff.smoothRightCutoff
+theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (hu_c2 : ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
+      ContDiffAt ℝ 2
+        (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
+    (hbase : ∀ s : ℝ, ∀ x : ℝ,
+      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x)
+    {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+    (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
+      (fun y : ℝ =>
+        fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0))
 ```
 
-It is defined in `ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean` as:
+Location:
 
-```lean
-def smoothRightCutoff (c' c : ℝ) : ℝ → ℝ :=
-  fun t => Real.smoothTransition ((c - c')⁻¹ * (t - c'))
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
 ```
 
-The available lemmas are:
+This theorem has the exact conclusion needed by sub-sorry 3F, except it is pointwise in `{s x}` and takes `hx`; the slab-shaped field is obtained by:
 
 ```lean
-smoothRightCutoff_contDiff :
-  ContDiff ℝ (2 : ℕ∞) (smoothRightCutoff c' c)
-
-smoothRightCutoff_eq_zero_of_le
-  (hc : c' < c) (ht : t ≤ c') :
-  smoothRightCutoff c' c t = 0
-
-smoothRightCutoff_eq_one_of_ge
-  (hc : c' < c) (ht : c ≤ t) :
-  smoothRightCutoff c' c t = 1
-
-smoothRightCutoff_eventually_eq_one
-  (hc : c' < c) (hs : c < s) :
-  smoothRightCutoff c' c =ᶠ[𝓝 s] fun _ : ℝ => 1
+fun x hx s _hs =>
+  coupledChemDivFlux_timeBridge_of_physicalJointC2 H hu_c2 hbase hx
 ```
 
-So, with `c' = c / 2`, `hc : c / 2 < c` follows from `0 < c`, and the cutoff is zero on `(-∞, c/2]` and one on `[c, ∞)`. This matches “support in `[c/2, ∞)`” in the weak support sense: the function is zero to the left of `c/2`.
-
-However, `smoothRightCutoff (c/2) c` is **not compactly supported**. A function equal to `1` on all `[c, ∞)` cannot have compact support. I did not find a `HasCompactSupport` lemma for `smoothRightCutoff`.
-
-## Compact cutoff already used by the resolver files
-
-The compactly supported cutoff is the two-sided one in `ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`:
+That exact pattern is already used in the same file inside:
 
 ```lean
-def restartSmoothCutoff (offset s : ℝ) : ℝ → ℝ :=
-  fun t =>
-    smoothRightCutoff (restartCutoffLeftOuter offset s)
-        (restartCutoffLeft offset s) t *
-      smoothRightCutoff (-(restartCutoffRightOuter offset s))
-        (-(restartCutoffRight offset s)) (-t)
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
 ```
 
-It is supported in the compact slab
+## 1. Definition of `coupledChemDivFluxTimeDerivativeLift`
 
-```lean
-Icc (restartCutoffLeftOuter offset s) (restartCutoffRightOuter offset s)
+Defined in:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxChain.lean
 ```
 
-and is equal to `1` near `s`, not on all `[c, ∞)`.
-
-Useful lemmas found there:
+Definition:
 
 ```lean
-restartSmoothCutoff_contDiff :
-  ContDiff ℝ (2 : ℕ∞) (restartSmoothCutoff offset s)
-
-restartSmoothCutoff_eventually_eq_one
-  (hτ : 0 < s - offset) :
-  restartSmoothCutoff offset s =ᶠ[𝓝 s] fun _ : ℝ => 1
-
-restartSmoothCutoff_eq_zero_of_le_left
-  (hτ : 0 < s - offset)
-  (ht : t ≤ restartCutoffLeftOuter offset s) :
-  restartSmoothCutoff offset s t = 0
-
-restartSmoothCutoff_eq_zero_of_right_le
-  (hτ : 0 < s - offset)
-  (ht : restartCutoffRightOuter offset s ≤ t) :
-  restartSmoothCutoff offset s t = 0
-
-restartSmoothCutoff_eq_one_of_mem_core
-  (hτ : 0 < s - offset)
-  (ht_left : restartCutoffLeft offset s ≤ t)
-  (ht_right : t ≤ restartCutoffRight offset s) :
-  restartSmoothCutoff offset s t = 1
-
-restartSmoothCutoff_hasCompactSupport
-  (hτ : 0 < s - offset) :
-  HasCompactSupport (restartSmoothCutoff offset s)
-
-restartCutoffDerivMajorant_spec
-  (hτ : 0 < s - offset)
-  (hk : (k : ℕ∞) ≤ (2 : ℕ∞)) (t : ℝ) :
-  ‖iteratedFDeriv ℝ k (restartSmoothCutoff offset s) t‖ ≤
-    restartCutoffDerivMajorant offset s hτ k
+def coupledChemDivFluxTimeDerivativeLift (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s y : ℝ) : ℝ :=
+  let v : ℝ → ℝ := intervalDomainLift (coupledChemicalConcentration p u s)
+  let vt : ℝ → ℝ := coupledChemicalTimeDerivativeLift p u s
+  ShenWork.Paper2.PicardLimitK1.slopeSlice u s y * deriv v y /
+      (1 + v y) ^ p.β +
+    intervalDomainLift (u s) y * deriv vt y / (1 + v y) ^ p.β -
+    p.β * intervalDomainLift (u s) y * deriv v y * vt y /
+      (1 + v y) ^ (p.β + 1)
 ```
 
-This is the stronger reusable cutoff if the proof wants compact support and automatic bounded derivatives.
-
-## Generic cutoff theorem in `IntervalResolverSpectralJointC2Cutoff.lean`
-
-The generic theorem is:
+Same file also proves the pointwise chain-rule lemma:
 
 ```lean
-theorem resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
-    (φ : ℝ → ℝ) (gradTerm : ℕ → ℝ × ℝ → ℝ)
-    (vValue vGrad : ℕ → ℕ → ℝ)
+theorem coupledChemDivFlux_hasDerivAt_time
     ... :
-    ResolverSpectralJointC2At a₀ a offset s x
+    HasDerivAt (fun r => coupledChemDivFluxLift p u r y)
+      (coupledChemDivFluxTimeDerivativeLift p u s y) s
 ```
 
-Its important hypotheses are:
+Hypotheses for `coupledChemDivFlux_hasDerivAt_time`:
 
 ```lean
-hφ_one : φ =ᶠ[𝓝 s] fun _ : ℝ => 1
+hu : HasDerivAt (fun r => intervalDomainLift (u r) y)
+  (ShenWork.Paper2.PicardLimitK1.slopeSlice u s y) s
 
-hValueTerm :
-  ∀ n : ℕ,
-    ContDiff ℝ (2 : ℕ∞) (cutoffValueTerm φ a₀ a offset n)
+hgv : HasDerivAt
+  (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
+  (deriv (coupledChemicalTimeDerivativeLift p u s) y) s
 
-hValueSumm :
-  ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) → Summable (vValue k)
+hv : HasDerivAt
+  (fun r => intervalDomainLift (coupledChemicalConcentration p u r) y)
+  (coupledChemicalTimeDerivativeLift p u s y) s
 
-hValueBound :
-  ∀ (k n : ℕ) (q : ℝ × ℝ), (k : ℕ∞) ≤ (2 : ℕ∞) →
-    ‖iteratedFDeriv ℝ k (cutoffValueTerm φ a₀ a offset n) q‖ ≤
-      vValue k n
-
-hGradTerm :
-  ∀ n : ℕ, ContDiff ℝ (2 : ℕ∞) (cutoffGradTerm φ gradTerm n)
-
-hGradSumm :
-  ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) → Summable (vGrad k)
-
-hGradBound :
-  ∀ (k n : ℕ) (q : ℝ × ℝ), (k : ℕ∞) ≤ (2 : ℕ∞) →
-    ‖iteratedFDeriv ℝ k (cutoffGradTerm φ gradTerm n) q‖ ≤
-      vGrad k n
-
-hGradEq :
-  resolverSpectralGradSeries a₀ a offset =ᶠ[𝓝 (s, x)]
-    fun q : ℝ × ℝ => ∑' n : ℕ, gradTerm n q
+hbase : 0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) y
 ```
 
-The proof then does exactly the advertised pattern:
+So the explicit flux time derivative is already the algebraic derivative candidate, and the repo already has the product/quotient/rpow `HasDerivAt` proof that this candidate differentiates the fixed-space flux slice.
 
-1. Pulls `hφ_one` back to `(s, x)` via `continuous_fst.continuousAt`.
-2. Applies `contDiff_tsum` to the cutoff value series.
-3. Applies `contDiff_tsum` to the cutoff gradient series.
-4. Uses eventual equality of `φ q.1 = 1` to identify the cutoff series with the original local series near `(s, x)`.
-5. Returns `ContDiffAt` via `congr_of_eventuallyEq`.
+## 2. Existing Clairaut / commutation lemmas for the flux
 
-## Leibniz helper lemmas already present
+### Generic time partial bridge
 
-`ShenWork/PDE/IntervalResolverSpectralJointC2CutoffBounds.lean` packages the `norm_iteratedFDeriv_mul_le` step:
+Located in:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxTimeBridge.lean
+```
 
 ```lean
-cutoffValueTerm_leibniz_bound
-cutoffGradTerm_leibniz_bound
+theorem real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
+    {F : ℝ × ℝ → ℝ} {s x : ℝ}
+    (hF : DifferentiableAt ℝ F (s, x)) :
+    deriv (fun r : ℝ => F (r, x)) s =
+      fderiv ℝ F (s, x) (1, 0)
 ```
 
-These are resolver-specific, but the pattern is reusable. The same file also has useful projection bounds:
+This is the direct `∂ₜ` slice = Fréchet directional derivative bridge.
+
+### Generic spatial bridge
+
+Located in:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
 
 ```lean
-norm_iteratedFDeriv_comp_fst_le
-norm_iteratedFDeriv_comp_snd_le
+theorem real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
+    {F : ℝ × ℝ → ℝ} {s x : ℝ}
+    (hF : DifferentiableAt ℝ F (s, x)) :
+    deriv (fun y : ℝ => F (s, y)) x =
+      fderiv ℝ F (s, x) (0, 1)
 ```
 
-## Concrete instantiation used by the resolver proof
+### Generic Clairaut bridge
 
-The final concrete theorem is in `IntervalResolverSpectralJointC2Concrete.lean`:
+Located in:
+
+```text
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+```
 
 ```lean
-theorem resolverSpectralJointC2At_of_restartSmoothCutoff
-    {a₀ : ℕ → ℝ} {M : ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
-    (hτ : 0 < s - offset) (ha₀ : ∀ n, |a₀ n| ≤ M)
-    (src : DuhamelSourceTimeC2Coeff a) :
-    ResolverSpectralJointC2At a₀ a offset s x :=
-  resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-    (φ := restartSmoothCutoff offset s)
-    (gradTerm := resolverSpectralConcreteGradTerm a₀ a offset)
-    (vValue := concreteRestartValueMajorant a₀ src offset s hτ)
-    (vGrad := concreteRestartGradMajorant a₀ src offset s hτ)
-    ...
+theorem real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
+    {F Ft : ℝ → ℝ → ℝ} {s x : ℝ}
+    (hF : ContDiffAt ℝ 2 (Function.uncurry F) (s, x))
+    (hspatial :
+      (fun r : ℝ => deriv (F r) x) =ᶠ[𝓝 s]
+        (fun r : ℝ => fderiv ℝ (Function.uncurry F) (r, x) (0, 1)))
+    (htime :
+      (fun y : ℝ => Ft s y) =ᶠ[𝓝 x]
+        (fun y : ℝ => fderiv ℝ (Function.uncurry F) (s, y) (1, 0))) :
+    HasDerivAt (fun r : ℝ => deriv (F r) x) (deriv (Ft s) x) s
 ```
 
-The concrete proof supplies:
+This lemma uses `hF.isSymmSndFDerivAt` from `Mathlib.Analysis.Calculus.FDeriv.Symmetric` to identify the two second Fréchet derivatives.
+
+### Flux instantiation of the Clairaut bridge
+
+Also in:
+
+```text
+ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
+```
 
 ```lean
-restartSmoothCutoff_eventually_eq_one hτ
-cutoffValueTerm_restartSmoothCutoff_contDiff src
-concreteRestartValueMajorant_summable hτ ha₀ src
-cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src
-cutoffGradTerm_restartSmoothCutoff_contDiff src
-concreteRestartGradMajorant_summable hτ ha₀ src
-cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src
-resolverSpectralGradSeries_eventuallyEq_concreteGradTerm hτ ha₀ src
+theorem coupledChemDivOuterCommuteAtoms_of_fluxJointC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (H : CoupledChemDivFluxJointC2Hyp p u) :
+    CoupledChemDivOuterCommuteAtoms p u
 ```
 
-So the actual hypotheses for the concrete cutoff instantiation are:
+Inside this theorem, the generic Clairaut bridge is instantiated as:
 
 ```lean
-hτ   : 0 < s - offset
-ha₀  : ∀ n, |a₀ n| ≤ M
-src  : DuhamelSourceTimeC2Coeff a
+real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
+  (F := coupledChemDivFluxLift p u)
+  (Ft := coupledChemDivFluxTimeDerivativeLift p u)
+  (hflux_c2 x hx s hs) (hspatial x hx s hs) (htime x hx s hs)
 ```
 
-The cutoff-specific hypothesis is just `hτ : 0 < s - offset`.
-
-## Application note for `heatSemigroup_jointContDiff_two`
-
-The current theorem in `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` claims global
+and it produces:
 
 ```lean
-ContDiff ℝ 2 (fun q : ℝ × ℝ => ∑' k, exp(-q.1 * λ_k) * â_k * cos(kπq.2))
+HasDerivAt
+  (fun r => deriv (coupledChemDivFluxLift p u r) x)
+  (deriv (coupledChemDivFluxTimeDerivativeLift p u s) x) s
 ```
 
-from `hc : 0 < c`, and the sorry comment itself says the global uniform bound fails outside the slab `t ≥ c`.
+So: there is no theorem named literally `Clairaut.*flux`, but the flux Clairaut/commutation route is committed under `coupledChemDivOuterCommuteAtoms_of_fluxJointC2`, using the generic `real_twoVar_clairaut_hasDerivAt_of_fderiv_partials`.
 
-The cutoff pattern proves a **local** statement, i.e. `ContDiffAt` near `(s₀, x₀)` with `s₀ > c`, not the global uncutoff `ContDiff` statement as currently written.
+## 3. The FactorJointC2Inputs / resolver time-bridge pattern
 
-Best reuse options:
+The factor pipeline currently has two relevant layers.
 
-1. For a one-sided positive-time cutoff, use
+### A. The older factor package still contains the bridge as a field
+
+In:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
+
+`CoupledChemDivFluxFactorJointC2Inputs.exists_local_slab` has this field:
 
 ```lean
-φ := smoothRightCutoff (c / 2) c
+∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+  (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
+    (fun y : ℝ =>
+      fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+        (s, y) (1, 0))
 ```
 
-This gives `φ = 0` on `t ≤ c/2` and `φ = 1` on `t ≥ c`; it is not compactly supported, but `φ(t) * exp(-t λ_n)` is globally bounded by the positive-time exponential tail plus a compact transition interval.
+The producer `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` just names this field as `htime_deriv_fderiv_bridge := htime` and passes it into `CoupledChemDivFluxJointC2Hyp`.
 
-2. For the closest existing compact-support pattern, use a local two-sided cutoff around the target time:
+Likewise, in:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
+```
+
+`FACLocalSlabInputs` still has the same time-bridge field explicitly, and `coupledChemDivFluxFactorJointC2Inputs_of_FACInputs` passes it through as `htime_bridge`.
+
+### B. The newer physical discharge removes this bridge hypothesis
+
+In:
+
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+```
+
+The theorem:
 
 ```lean
-φ := restartSmoothCutoff c s₀
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
 ```
 
-with hypothesis
+has an `other` hypothesis that no longer includes the flux time bridge. Its `other` fields are only:
 
 ```lean
-hτ : 0 < s₀ - c
+∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+  (∀ᶠ s in 𝓝 τ,
+    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+  (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
+  ContinuousOn
+    (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+    (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-This gives compact support, bounded cutoff derivatives via `restartCutoffDerivMajorant_spec`, and `φ =ᶠ[𝓝 s₀] 1` via `restartSmoothCutoff_eventually_eq_one hτ`. Then prove the cutoff heat series is `ContDiff ℝ 2` by `contDiff_tsum`, and transfer to the original heat series by eventual equality near `(s₀, x₀)`.
-
-If the goal remains the global theorem `heatSemigroup_jointContDiff_two` as currently stated, the cutoff argument does not close that exact statement. It should instead close or replace the downstream local theorem:
+Then it fills the missing time-bridge field by:
 
 ```lean
-heatSemigroup_jointContDiffAt_two
+exact coupledChemDivFlux_timeBridge_of_physicalJointC2 H hu_c2 hbase hx
 ```
 
-or the global theorem should be refactored into a slab/local statement.
+This is the pattern to reuse for sub-sorry 3F.
+
+### C. How the resolver supplies the residual inner commute `hgv`
+
+Also in:
+
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+```
+
+The theorem:
+
+```lean
+theorem coupledChemical_innerCommute_of_physicalJointC2
+```
+
+produces:
+
+```lean
+HasDerivAt
+  (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
+  (deriv (coupledChemicalTimeDerivativeLift p u s) y) s
+```
+
+from physical resolver joint C²:
+
+```lean
+H : PhysicalResolverJointC2Data p u Bt
+```
+
+It sets:
+
+```lean
+F : ℝ → ℝ → ℝ := fun r => intervalDomainLift (coupledChemicalConcentration p u r)
+```
+
+then uses:
+
+```lean
+coupledChemical_jointContDiffAt_two H hy
+real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
+real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
+real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
+```
+
+So the resolver time bridge pattern is:
+
+1. Use `coupledChemical_jointContDiffAt_two H hy` for joint C² of `v`.
+2. Use `coupledChemical_grad_jointContDiffAt_two H hy` for joint C² of `∂ₓ v` when proving flux C².
+3. Convert time and spatial slice derivatives to Fréchet partials using the two `real_twoVar_*_eq_fderiv_of_differentiableAt` lemmas.
+4. Apply `real_twoVar_clairaut_hasDerivAt_of_fderiv_partials` to produce the inner commute `hgv`.
+5. Feed `hgv` plus `hu`, `hv`, `hgradv`, and positivity into `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`.
+6. For the FAC slab, use `coupledChemDivFlux_timeBridge_of_physicalJointC2` directly.
+
+## Practical closure route for sub-sorry 3F
+
+If the local context contains:
+
+```lean
+H : PhysicalResolverJointC2Data p u Bt
+hu_c2 : ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
+  ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
+hbase : ∀ s : ℝ, ∀ x : ℝ,
+  0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x
+```
+
+then the sub-sorry shape
+
+```lean
+∀ x ∈ Ioo 0 1, ∀ s ∈ Metric.ball τ δ,
+  (fun y => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[nhds x]
+  (fun y => fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0))
+```
+
+should close with:
+
+```lean
+intro x hx s hs
+exact coupledChemDivFlux_timeBridge_of_physicalJointC2
+  (p := p) (u := u) (H := H) hu_c2 hbase hx
+```
+
+The `hs` ball membership is unused by this theorem.
+
+If the context does **not** have global `hu_c2`/`hbase` in exactly that shape, use the lower-level theorem:
+
+```lean
+coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+```
+
+and supply eventual-near-`x` versions of:
+
+```lean
+hu      : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2 lifted-u at (s,y)
+hv      : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2 lifted-v at (s,y)
+hgradv  : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2 lifted-∂ₓv at (s,y)
+hbase   : ∀ᶠ y in 𝓝 x, 0 < 1 + v(s,y)
+hgv     : ∀ᶠ y in 𝓝 x, HasDerivAt (fun r => ∂ₓv(r,y)) (∂ₓ∂ₜv(s,y)) s
+```
+
+The physical resolver theorem `coupledChemical_innerCommute_of_physicalJointC2` is the committed way to build `hgv`.
