@@ -155,6 +155,40 @@ The construction below sorry's the individual regularity estimates.  Each sorry
 represents a substantial but straightforward derivation from the heat semigroup's
 known regularity properties. -/
 
+/-- Cosine coefficient bound from integrability + sup bound (no ContinuousOn needed).
+This is the integrable-function analogue of `cosineCoeffs_abs_le_of_continuous_bounded`.
+Since `cosineCoeffs f n` is defined via `∫₀¹ f(x) cos(nπx) dx`, the bound
+`|cosineCoeffs f n| ≤ 2 * B` only needs `IntervalIntegrable f` and `∀ x ∈ Icc 0 1, |f x| ≤ B`.
+The proof delegates to the primitive `unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm`. -/
+private theorem cosineCoeffs_abs_le_of_integrable_bounded
+    {f : ℝ → ℝ} (hf : IntervalIntegrable f volume 0 1)
+    {B : ℝ} (hB : 0 ≤ B)
+    (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
+    ∀ n, |cosineCoeffs f n| ≤ 2 * B := by
+  intro n
+  have hint : IntervalIntegrable (fun x : ℝ => (f x : ℂ))
+      volume (0 : ℝ) 1 := by
+    exact hf.mono_fun (eventually_of_forall fun x => by simp [Complex.norm_real, Real.norm_eq_abs])
+  have hcoeff :=
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm
+      hint n
+  have hnorm_le : ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ ≤ B := by
+    have hmono : ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ ≤
+        ∫ x in (0 : ℝ)..1, B := by
+      apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+        (hint.norm) (intervalIntegrable_const)
+      intro x hx
+      have : ‖(f x : ℂ)‖ = |f x| := by
+        rw [Complex.norm_real, Real.norm_eq_abs]
+      rw [this]
+      exact hfb x hx
+    calc
+      ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ ≤ ∫ x in (0 : ℝ)..1, B := hmono
+      _ = B := by simp
+  calc |cosineCoeffs f n|
+      ≤ 2 * ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ := hcoeff
+    _ ≤ 2 * B := by linarith
+
 /-- Summable envelope for the chemDiv source coefficients of the heat semigroup
 on a positive window.  The heat semigroup's exponential spatial decay gives
 the chemDiv source (which involves products and compositions of C∞ functions)
@@ -735,162 +769,75 @@ theorem level0_chemDiv_envelope_summable
   -- ── Sub-goal 2: uniform sup bound and continuity of chemDiv source slices ──
   have hSup : ∃ (Msup : ℝ), 0 ≤ Msup ∧
       (∀ s ∈ Icc c T,
-        ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
-          (Icc (0 : ℝ) 1)) ∧
+        IntervalIntegrable (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+          volume 0 1) ∧
       (∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
         |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup) := by
-    -- SORRY: sup bound + continuity of chemDiv source slices (>30 lines).
+    -- ── Strategy (boundary-obstruction-free) ──
+    -- The smooth cosine-series representative F(s,x) := deriv(chemFluxFun β U_cos V_cos)(x)
+    -- is jointly continuous on [c,T] × [0,1] (from joint C² regularity of heat semigroup
+    -- + resolver + flux composition).  On [c,T] × [0,1] it achieves a finite sup Msup
+    -- by compactness.  On the interior Ioo 0 1, coupledChemDivSourceLift agrees with F
+    -- pointwise.  At boundary {0,1}, coupledChemDivSourceLift may disagree (the
+    -- intervalDomainLift zero-extension makes deriv = 0 at boundary, while F can be
+    -- nonzero), but |coupledChemDivSourceLift ... s 0| = |0| ≤ Msup trivially (or equals
+    -- |f ⟨0, ...⟩| which is bounded by the smooth representative's sup on the closed set).
     --
-    -- Mathematical argument:
+    -- Thus the sup bound holds for coupledChemDivSourceLift on ALL of Icc 0 1 (interior
+    -- by agreement with F, boundary by direct evaluation).  IntervalIntegrable follows
+    -- from the sup bound (bounded measurable on a finite interval).
     --
-    -- 1. Per-slice continuity on [0,1]:
-    --    coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s
-    --      = intervalDomainLift (intervalDomainChemotaxisDiv p u_s v_s)
-    --    where u_s = S(s)u₀ (heat semigroup) and v_s = resolver(u_s).
-    --    For s ∈ [c,T] with c > 0:
-    --    (a) u_s is C∞ on [0,1] (heat semigroup exponential smoothing).
-    --    (b) v_s is C∞ on [0,1] (elliptic resolver of smooth source).
-    --    (c) chemotaxisDiv = ∂_x(u · v' / (1+v)^β) is a smooth composition,
-    --        hence continuous on [0,1].
-    --    (d) intervalDomainLift agrees with the smooth function on [0,1],
-    --        so ContinuousOn (... s) (Icc 0 1) holds.
+    -- This avoids the ContinuousOn requirement on Icc 0 1, which is FALSE for
+    -- coupledChemDivSourceLift due to boundary discontinuity.  The old sub-sorries
+    -- 2A-agree (boundary obstruction) and the ContinuousOn clause are eliminated.
     --
-    -- 2. Joint continuity on [c,T] × [0,1]:
-    --    The uncurried map (s,x) ↦ chemDivSourceLift p (S(·)u₀) s x is
-    --    continuous on [c,T] × [0,1] because:
-    --    (a) s ↦ S(s)u₀ is continuous in the C² topology for s ≥ c > 0.
-    --    (b) The chemDiv composition is continuous in the C¹ topology of its inputs.
-    --    (c) Therefore (s,x) ↦ source(s)(x) is jointly continuous.
-    --
-    -- 3. Compactness sup bound:
-    --    [c,T] × [0,1] is compact, the jointly continuous function achieves
-    --    its sup and inf. Set Msup = max(|sup|, |inf|).
-    --    Then |source(s)(x)| ≤ Msup for all (s,x) ∈ [c,T] × [0,1].
-    --    Msup ≥ 0 because |·| ≥ 0.
-    --
-    -- ── Sub-sorry decomposition ──
-    -- SUB-SORRY 2A: Joint continuity of the chemDiv source on [c,T]×[0,1].
-    -- This is the hard analytic content. Per-slice continuity and the sup
-    -- bound both follow from this via compactness.
-    -- Requires:
-    --   (i)  s ↦ S(s)u₀ continuous in C² topology for s ≥ c > 0
-    --   (ii) chemDiv composition continuous in C¹ topology of its inputs
-    have hjoint_source_cont :
-        ContinuousOn
-          (Function.uncurry
-            (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)))
-          (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-      -- ── Strategy: smooth representative + agreement on [0,1] ──
-      -- Define F(s,x) := deriv_x(chemFluxFun β U_cos(s) V_cos(s))(x) where
-      -- U_cos(s), V_cos(s) are the globally-smooth cosine-series representatives.
-      -- Show (1) F is jointly continuous, (2) F agrees with chemDivSourceLift on [0,1],
-      -- (3) transfer via ContinuousOn.congr.
-      --
-      -- ── (1) Heat semigroup + resolver joint continuity ──
-      -- The heat semigroup value series (s,x) ↦ ∑' k, exp(-s·λ_k)·û₀_k·cos(kπx)
-      -- is jointly continuous on Ioi 0 × univ (continuousOn_tsum with M₀·exp(-c·λ_k)
-      -- majorant); see EWA/SourceJointRegularity.heatValueSeries_jointContinuousOn.
-      -- Icc c T ×ˢ Icc 0 1 ⊆ Ioi 0 × univ for c > 0, giving U_cos jointly continuous.
-      -- The resolver V_cos inherits joint continuity via weight summability.
-      -- The chemFlux derivative composition is jointly continuous by ContDiff chain.
-      --
-      -- ── Sub-sorry: the smooth representative is jointly continuous ──
-      -- This is the core analytic content (~90 lines when fully expanded).
-      -- Pattern: reproduce heatValueSeries_jointContinuousOn locally (it is private),
-      -- then resolver via resolverWeight_summable, then ContDiff composition.
-      have hF_cont : ContinuousOn
-          (fun q : ℝ × ℝ => deriv
-            (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
-              (fun x => ∑' k, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-                heatCoeff u₀ k) * cosineMode k x)
-              (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
-            q.2)
-          (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-        sorry -- [SUB-SORRY 2A-core: joint continuity of the smooth flux derivative.
-               --  The smooth representative is defined via:
-               --    U_cos(s)(x) = ∑' k, exp(-s·λ_k)·û₀_k·cos(kπx)  (C⁴ per slice)
-               --    V_cos(s)(x) = intervalResolverLiftR p (S(s)u₀)(x)  (C⁴ per slice)
-               --  Joint continuity follows from:
-               --    (i)   continuousOn_tsum for the heat value series on Ioi 0 × univ
-               --          with exp(-c·λ_k) majorant (pattern: SourceJointRegularity.lean:87)
-               --    (ii)  resolver value series jointly continuous via weight summability
-               --          (pattern: IntervalResolverDirectTimeRegularity.lean:327)
-               --    (iii) chemFluxFun is C³ composition → deriv is C² → continuous
-               --          (from chemFlux_contDiff_three + smooth parameter dependence)]
-      -- ── Agreement: on [0,1], coupledChemDivSourceLift = smooth representative ──
-      have hF_agree : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
-          Function.uncurry
-            (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) q =
-          deriv
-            (ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun p.β
-              (fun x => ∑' k, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-                heatCoeff u₀ k) * cosineMode k x)
-              (intervalResolverLiftR p (conjugatePicardIter p u₀ 0 q.1)))
-            q.2 := by
-        -- ── Decomposition: interior + boundary ──
-        -- On Ioo 0 1 (interior), agreement follows from definitional unfolding
-        -- + EventuallyEq.deriv_eq (the two flux functions agree in a nhd).
-        -- At x = 0, 1 (boundary), the zero-extension intervalDomainLift makes
-        -- deriv(flux_using_lift)(0) = 0 (non-differentiable, Lean default)
-        -- while deriv(flux_using_smooth)(0) ≠ 0 in general.  The overall
-        -- agreement on Icc 0 1 is therefore OBSTRUCTED at the boundary.
-        --
-        -- RESOLUTION: the outer hjoint_source_cont proof should either
-        --   (a) use ContinuousOn on Ioo 0 1 (dense interior suffices for
-        --       coefficient integrals), or
-        --   (b) redefine coupledChemDivSourceLift to use the smooth cosine
-        --       representative deriv(chemFluxFun β U_cos V_cos) directly,
-        --       which IS globally continuous.
-        -- For now, this sorry captures the residual.
-        sorry -- [SUB-SORRY 2A-agree: boundary obstruction at x=0,1.
-               --  Interior (Ioo 0 1) proof sketch:
-               --    intro q hq; obtain ⟨hs, hx⟩ := mem_prod.mp hq
-               --    have hx_int : q.2 ∈ Ioo 0 1 := ...
-               --    rw [show Function.uncurry ... q = coupledChemDivSourceLift ... q.1 q.2 from rfl]
-               --    rw [coupledChemDivSourceLift_eq_deriv_fluxLift_interior hx_int]
-               --    exact Filter.EventuallyEq.deriv_eq (flux_agree_nhd ...)
-               --  where flux_agree_nhd uses hagree_zero + resolver pointwise agreement
-               --  to show coupledChemDivFluxLift = chemFluxFun β U_cos V_cos near x.
-               --
-               --  Boundary (x=0,1): the intervalDomainLift zero-extension makes
-               --  flux_using_lift(y) = 0 for y < 0 but flux_using_smooth(y) ≠ 0,
-               --  so deriv at 0 disagrees.  Fix requires redefining
-               --  coupledChemDivSourceLift or working on Ioo 0 1.]
-      exact hF_cont.congr hF_agree
-    -- SUB-SORRY 2B (can be discharged from 2A): per-slice continuity.
-    have hcont_slices : ∀ s ∈ Icc c T,
-        ContinuousOn (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
-          (Icc (0 : ℝ) 1) := by
+    -- SUB-SORRY 2A-sup: uniform sup bound on [c,T] × [0,1].
+    -- Content: smooth representative jointly continuous on compact → bounded.
+    -- coupledChemDivSourceLift bounded by max(smooth rep sup, 0) on Icc 0 1.
+    have hsup_bound : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+        ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+          |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup := by
+      sorry -- [SUB-SORRY 2A-sup: uniform sup bound for coupledChemDivSourceLift.
+             --  Proof outline:
+             --  (1) The smooth cosine-series representative F(s,x) is jointly continuous
+             --      on [c,T] × [0,1] (sub-sorry 2A-core, unchanged from before).
+             --  (2) Compactness: [c,T] × [0,1] compact → F bounded → ∃ M_F, |F(s,x)| ≤ M_F.
+             --  (3) For x ∈ Ioo 0 1: coupledChemDivSourceLift ... s x = F(s,x) (interior
+             --      agreement via EventuallyEq.deriv_eq, no boundary obstruction).
+             --      Hence |coupledChemDivSourceLift ... s x| ≤ M_F.
+             --  (4) For x = 0 or x = 1: coupledChemDivSourceLift ... s x is
+             --      intervalDomainLift (chemDiv ...) x = (chemDiv ...) ⟨x, hx⟩.
+             --      This is the derivative of the flux evaluated at the subtype point,
+             --      which is bounded because the subtype-level function is C² on [0,1].
+             --      Alternatively: on [0,1], intervalDomainLift f x = f ⟨x, hx⟩,
+             --      and f is the chemDiv of smooth functions (u_s, v_s both C∞ for s > 0),
+             --      so f ⟨0, ...⟩ and f ⟨1, ...⟩ are finite and uniformly bounded
+             --      on [c,T] by continuity in s.
+             --  (5) Set Msup := max(M_F, boundary_sup).  Then Msup ≥ 0 and bounds all.
+             --
+             --  Note: the key difference from the old approach is that we never claim
+             --  ContinuousOn for coupledChemDivSourceLift on Icc 0 1 — only the
+             --  pointwise sup bound, which holds without continuity at {0,1}.]
+    obtain ⟨Msup, hMsup_nn, hbd⟩ := hsup_bound
+    -- IntervalIntegrable from boundedness: a function bounded by Msup on [0,1] is
+    -- integrable (bounded + measurable on a finite interval).
+    have hint_slices : ∀ s ∈ Icc c T,
+        IntervalIntegrable (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+          volume 0 1 := by
       intro s hs
-      exact ContinuousOn.uncurry_left s hs hjoint_source_cont
-    -- SUB-SORRY 2C (can be discharged from 2A): sup bound via compactness.
-    have hKcompact : IsCompact (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
-      isCompact_Icc.prod isCompact_Icc
-    have hFnorm_cont : ContinuousOn
-        (fun sx => ‖Function.uncurry
-          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) sx‖)
-        (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
-      hjoint_source_cont.norm
-    obtain ⟨Msup_raw, hMsup_raw⟩ := hKcompact.bddAbove_image hFnorm_cont
-    -- Extract pointwise bound and nonnegativity
-    have hbd : ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-        |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup_raw := by
-      intro s hs x hx
-      have : ‖Function.uncurry
-          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)) (s, x)‖ ≤ Msup_raw :=
-        hMsup_raw (Set.mem_image_of_mem _ ⟨hs, hx⟩)
-      simp [Function.uncurry, Real.norm_eq_abs] at this
-      exact this
-    have hMsup_nn : 0 ≤ Msup_raw := by
-      have hmem : (c, (0 : ℝ)) ∈ Icc c T ×ˢ Icc (0 : ℝ) 1 :=
-        ⟨left_mem_Icc.mpr _hcT, left_mem_Icc.mpr (by norm_num)⟩
-      exact le_trans (norm_nonneg _) (hMsup_raw (Set.mem_image_of_mem _ hmem))
-    exact ⟨Msup_raw, hMsup_nn, hcont_slices, hbd⟩
+      apply IntervalIntegrable.mono_fun intervalIntegrable_const
+      · exact eventually_of_forall fun x => by
+          rw [Real.norm_eq_abs]
+          by_cases hx : x ∈ Icc (0 : ℝ) 1
+          · exact hbd s hs x hx
+          · simp [coupledChemDivSourceLift, intervalDomainLift, dif_neg hx, abs_zero]
+            exact hMsup_nn
+    exact ⟨Msup, hMsup_nn, hint_slices, hbd⟩
   -- ── Extract and build envelope ──
   obtain ⟨B, hBnn, hH2_data⟩ := hH2
-  obtain ⟨Msup, hMsupnn, hcont_slices, hsup_slices⟩ := hSup
+  obtain ⟨Msup, hMsupnn, hint_slices, hsup_slices⟩ := hSup
   -- Envelope: Cenv / (max 1 k)² where Cenv = 2 · max B Msup.
-  -- k=0: Cenv ≥ 2Msup ≥ |c₀| (from cosineCoeffs_abs_le_of_continuous_bounded).
+  -- k=0: Cenv ≥ 2Msup ≥ |c₀| (from cosineCoeffs_abs_le_of_integrable_bounded).
   -- k≥1: Cenv/k² ≥ Cenv/(kπ)² ≥ 2B/(kπ)² ≥ |cₖ| (from H² quadratic decay, π≥1).
   set Cenv := 2 * max B Msup with hCenv_def
   have hCenv_nn : 0 ≤ Cenv := mul_nonneg (by norm_num) (hBnn.trans (le_max_left _ _))
@@ -901,7 +848,7 @@ theorem level0_chemDiv_envelope_summable
   -- Summability: Cenv / (max 1 k)² is summable (bounded by Cenv/k² for k≥1).
   -- Coefficient bound: mode 0 from sup bound, mode k≥1 from H² quadratic decay.
   -- The complete calculation uses hH2_data for quadratic decay and
-  -- hcont_slices/hsup_slices for the zeroth mode.
+  -- hint_slices/hsup_slices for the zeroth mode.
   exact ⟨fun k => Cenv / (max 1 (k : ℝ)) ^ 2,
     by
       -- Summability of Cenv/(max 1 k)²: comparison with 1/k² series.
@@ -921,10 +868,9 @@ theorem level0_chemDiv_envelope_summable
       · -- mode 0: |c₀| ≤ 2·Msup ≤ Cenv = Cenv/(max 1 0)²
         subst hn; simp only [Nat.cast_zero, max_eq_left
           (by norm_num : (0 : ℝ) ≤ 1), one_pow, div_one]
-        open ShenWork.IntervalMildPicardRegularity in
         exact le_trans
-          (cosineCoeffs_abs_le_of_continuous_bounded
-            (hcont_slices s hs) hMsupnn
+          (cosineCoeffs_abs_le_of_integrable_bounded
+            (hint_slices s hs) hMsupnn
             (hsup_slices s hs) 0)
           hCenv_ge_2Msup
       · -- mode k≥1: |cₖ| ≤ 2B/(kπ)² ≤ Cenv/(kπ)² ≤ Cenv/k²
@@ -1000,33 +946,35 @@ theorem level0_chemDiv_timeDerivData
       · -- F1: per-slab source continuity.
         -- Goal: ∀ᶠ s in 𝓝 τ, ContinuousOn (coupledChemDivSourceLift p (...) s) (Icc 0 1).
         --
-        -- On Ioo 0 1 (interior), the source agrees with deriv(chemFluxFun β U_cos V_cos),
-        -- which is C² globally from chemFluxDeriv_contDiff_two (heat C⁴ + resolver C⁴ +
-        -- positivity), hence continuous.
+        -- BOUNDARY OBSTRUCTION (same root cause as the old 2A-agree, now fixed in
+        -- level0_chemDiv_envelope_summable by switching to IntervalIntegrable):
+        -- coupledChemDivSourceLift uses intervalDomainLift (zero-extension), so at
+        -- x = 0,1 the deriv is 0 (Lean default for non-differentiable) while the
+        -- smooth representative's deriv is nonzero.  ContinuousOn on Icc 0 1 is FALSE.
         --
-        -- However, ContinuousOn on the CLOSED interval Icc 0 1 is OBSTRUCTED:
-        -- coupledChemDivSourceLift uses intervalDomainLift (zero-extension), so at x = 0:
-        --   coupledChemDivSourceLift ... 0 = deriv(flux_using_zero_ext)(0) = 0
-        --     (non-differentiable due to zero-extension jump → Lean default 0)
-        --   but lim_{x→0+} coupledChemDivSourceLift ... x = deriv(flux_smooth)(0) ≠ 0
-        --     (U_cos(0) * V_cos''(0) / (1 + V_cos(0))^β)
-        -- This discontinuity at the boundary is an artifact of the intervalDomainLift
-        -- zero-extension convention.
+        -- FIX REQUIRED (upstream infrastructure change):
+        -- The ContinuousOn on Icc 0 1 is baked into the chain:
+        --   CoupledChemDivFluxJointC2Hyp (F1 field, line 130 of IntervalChemDivOuterCommuteProducer)
+        --   → CoupledChemDivOuterCommuteAtoms (line 37 of IntervalChemDivOuterCommute)
+        --   → CoupledChemDivPointwiseChainAtoms (line 21 of IntervalChemDivLocalChainRule)
+        --   → CoupledChemDivLocalChainRule (line 82 of IntervalChemDivTimeDerivative)
         --
-        -- RESOLUTION: redefine coupledChemDivSourceLift to use the smooth cosine-series
-        -- representative directly, or work with ContinuousOn on Ioo 0 1.  The downstream
-        -- consumer (CoupledChemDivOuterCommuteAtoms) only uses the source on Ioo 0 1 for
-        -- the commute step, so the interior version suffices mathematically.
+        -- The downstream consumers only use ContinuousOn for the interchange
+        --   ∂ₜ ∫₀¹ f(s,x) cos(nπx) dx = ∫₀¹ ∂ₜf(s,x) cos(nπx) dx,
+        -- which needs IntervalIntegrable (not ContinuousOn) + dominated convergence.
+        -- Fix: weaken ContinuousOn (Icc 0 1) to IntervalIntegrable in all 4 structures.
+        -- This is ~4 files × ~5 lines each = mechanical but cross-cutting.
         exact Filter.Eventually.of_forall (fun s =>
-          sorry) -- [SUB-SORRY 3A-sub: boundary obstruction — same as 2A-agree.
-                 --  Interior ContinuousOn (Ioo 0 1) proof:
+          sorry) -- [SUB-SORRY 3A-sub: requires upstream weakening of ContinuousOn to
+                 --  IntervalIntegrable in CoupledChemDivFluxJointC2Hyp.F1 and downstream.
+                 --  Interior ContinuousOn (Ioo 0 1) IS provable:
                  --    have hs_pos : 0 < s := by linarith [hs_in_ball τ (min 1 (τ/2)) s ...]
                  --    have hU_C4 := heatSemigroup_contDiff_four _hu₀_bound hs_pos
                  --    have hV_C4 := intervalResolverLiftR_contDiff_four (summability ...)
                  --    have hV_pos : ∀ x, 0 < 1 + V_cos x := (resolver positivity ...)
                  --    have hsmooth := chemFluxDeriv_contDiff_two hU_C4 hV_C4 hV_pos p.hβ
                  --    exact hsmooth.continuous.continuousOn.mono Ioo_subset_Icc_self
-                 --  Fix: redefine source or weaken to Ioo 0 1.]
+                 --  IntervalIntegrable follows from sup bound (see hSup fix above).]
       · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
         -- Proved via heatSemigroup_jointContDiffAt_two (0 sorry, axiom-clean)
         -- + ContDiffAt.congr_of_eventuallyEq bridging through
@@ -1091,7 +1039,10 @@ theorem level0_chemDiv_timeDerivData
       · sorry -- [SUB-SORRY 3G: time-derivative joint continuity on slab]
     · -- ── τ ≤ 0 (degenerate case: S(t) = 0 convention for t ≤ 0) ──
       refine ⟨1, one_pos, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · sorry -- [SUB-SORRY 3A-sub: per-slab continuity, τ ≤ 0 case]
+      · sorry -- [SUB-SORRY 3A-sub: per-slab continuity, τ ≤ 0 case.
+                --  Same boundary obstruction as τ > 0 case; same fix needed
+                --  (weaken ContinuousOn to IntervalIntegrable in upstream structures).
+                --  This branch is never reached in practice (downstream uses c > 0).]
       · sorry -- [SUB-SORRY 3B-neg: heat semigroup joint C², τ ≤ 0 case
                 --   (S(t) = 0 for t ≤ 0; for t > 0 near 0 the function jumps,
                 --   but this branch is never reached in practice because the
