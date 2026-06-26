@@ -1,174 +1,140 @@
-# Q829 / cron1: generic smooth-representative `ContDiffAt` for `chemFluxFun`
+# Q832 / cron1: `integral_congr_ae` for `cosineCoeffs`
 
 Repo inspected: `xiangyazi24/Shen_work`
+
 Source ref inspected: `main`
+
 Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-There is **not** an already-factored generic smooth-representative lemma of the exact form
+Yes.  For this boundary obstruction, the useful Mathlib theorem is already available as
 
 ```lean
-ContDiffAt ℝ 2 (fun q => chemFluxFun β (U q.1) (V q.1) q.2) (s, x)
+intervalIntegral.integral_congr_ae
 ```
 
-or named something like `smoothChemFlux_contDiffAt...` / `chemFlux_contDiffAt...` that I found.
-
-But the repo already demonstrates the exact Mathlib calculus methods you need in the coupled/lifted theorem:
+and the repo already has the exact cosine-coefficient helper you want:
 
 ```lean
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFlux_contDiffAt_of_factorJointC2
+ShenWork.EWA.cosineCoeffs_congr_on_Ioo
 ```
 
-File:
+in
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+ShenWork/Wiener/EWA/NonCircularCoeffBridge.lean
 ```
 
-That proof uses:
+The theorem is:
 
 ```lean
-(contDiffAt_const (c := (1 : ℝ))).add hv
-hbase_fun.rpow_const_of_ne (ne_of_gt hbase)
-(hu.mul hgradv).div hden hden_ne
+theorem cosineCoeffs_congr_on_Ioo {f g : ℝ → ℝ}
+    (hfg : ∀ x ∈ Set.Ioo (0:ℝ) 1, f x = g x) (k : ℕ) :
+    cosineCoeffs f k = cosineCoeffs g k := by
+  rw [cosineCoeffs_eq_factor_mul_integral, cosineCoeffs_eq_factor_mul_integral]
+  congr 1
+  apply intervalIntegral.integral_congr_ae
+  -- bad set is contained in `{1}` and is null
+  ...
 ```
 
-So for Route A, build the generic smooth-representative lemma directly from Mathlib using the same proof skeleton.  You do **not** need new analytic infrastructure for the product/quotient/rpow part.
+So for **pointwise** interior agreement, use it directly:
 
-## `chemFluxFun` definition check
+```lean
+have hcoeff : cosineCoeffs f k = cosineCoeffs g k :=
+  ShenWork.EWA.cosineCoeffs_congr_on_Ioo hfg k
+```
 
-Yes.  In
+This is exactly the endpoint-null argument: after rewriting `cosineCoeffs` as the real interval integral, the proof applies `intervalIntegral.integral_congr_ae`; since Lean interval integrals over `0..1` use `Set.uIoc 0 1 = Set.Ioc 0 1`, agreement on `Ioo 0 1` leaves only the endpoint `{1}` as a possible bad set, and that singleton has measure zero.
+
+## Search results
+
+### `intervalIntegral.integral_congr_ae`
+
+Found and already used in the repo in `NonCircularCoeffBridge.lean` inside `cosineCoeffs_congr_on_Ioo`.
+
+### `cosineCoeffs_congr`
+
+Two relevant repo helpers exist:
+
+```lean
+ShenWork.EWA.cosineCoeffs_congr_on_Ioo
+```
+
+This is the one for the boundary obstruction.
+
+```lean
+ShenWork.EWA.cosineCoeffs_congr_on_Icc
+```
+
+This stricter `[0,1]` pointwise version is in `ShenWork/Wiener/EWA/SourceInversion.lean`; it uses `intervalIntegral.integral_congr`, not the a.e. theorem, so it does **not** solve the open-interval endpoint issue by itself.
+
+### `cosineCoeffs_eq_factor_mul_integral`
+
+The needed real-integral rewrite is in
 
 ```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+ShenWork/Paper2/IntervalMildPicardRegularity.lean
 ```
 
-`chemFluxFun` unfolds exactly as desired:
+as
 
 ```lean
-/-- The chemotaxis flux function whose spatial derivative is the chemDiv source.
-`φ(y) = lift(u)(y) · deriv(lift(v))(y) / (1 + lift(v)(y))^β` -/
-def chemFluxFun (β : ℝ) (u v : ℝ → ℝ) (y : ℝ) : ℝ :=
-  u y * deriv v y / (1 + v y) ^ β
+theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
+    cosineCoeffs f n =
+      (if n = 0 then 1 else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x
 ```
 
-Therefore:
+For `k ≥ 1`, this specializes to the expected
 
 ```lean
-chemFluxFun β (U q.1) (V q.1) q.2
+cosineCoeffs f k = 2 * ∫ x in (0 : ℝ)..1,
+  Real.cos ((k : ℝ) * Real.pi * x) * f x
 ```
 
-is definitionally:
+## If the hypothesis is genuinely a.e. on `Ioo`
+
+The committed `cosineCoeffs_congr_on_Ioo` assumes pointwise equality on `Ioo`.  If your current hypothesis is instead
 
 ```lean
-U q.1 q.2 * deriv (V q.1) q.2 / (1 + V q.1 q.2) ^ β
+hfg : f =ᵐ[volume.restrict (Set.Ioo (0:ℝ) 1)] g
 ```
 
-## Existing non-generic theorem as template
-
-The coupled theorem has hypotheses hard-wired to `intervalDomainLift`:
+then use the same proof pattern, but feed `integral_congr_ae` the a.e. equality directly.  The local helper should be along these lines:
 
 ```lean
-(hu : ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x))
-(hv : ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ =>
-    intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-  (s, x))
-(hgradv : ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ =>
-    deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-  (s, x))
+theorem cosineCoeffs_congr_ae_Ioo {f g : ℝ → ℝ}
+    (hfg : f =ᵐ[volume.restrict (Set.Ioo (0:ℝ) 1)] g) (k : ℕ) :
+    cosineCoeffs f k = cosineCoeffs g k := by
+  rw [cosineCoeffs_eq_factor_mul_integral, cosineCoeffs_eq_factor_mul_integral]
+  congr 1
+  apply intervalIntegral.integral_congr_ae
+  -- target: weighted integrands equal a.e. on `volume.restrict (Set.uIoc 0 1)`
+  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  -- Mathlib has the endpoint-null rewrite used nearby in interval-integrability lemmas:
+  -- `restrict_Ioo_eq_restrict_Ioc`, so `Ioc 0 1` can be replaced by `Ioo 0 1`.
+  rw [← restrict_Ioo_eq_restrict_Ioc]
+  exact hfg.mono (by
+    intro x hx
+    rw [hx])
 ```
 
-and concludes:
+I did not run Lean here, so treat the last snippet as a proof skeleton.  The already-committed pointwise `Ioo` helper is stronger evidence that the endpoint/boundary obstruction is not mathematical; the only remaining detail is matching your exact equality hypothesis (`EqOn` vs `=ᵐ[volume.restrict ...]`).
+
+## Practical recommendation
+
+For the cosine coefficient bound, first try importing the existing helper:
 
 ```lean
-ContDiffAt ℝ 2
-  (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
+import ShenWork.Wiener.EWA.NonCircularCoeffBridge
 ```
 
-So it is not directly usable for `U_cos`/`V_cos`, but its proof is exactly the generic proof you want.
-
-## Suggested generic lemma
-
-A local lemma should be short:
+and use:
 
 ```lean
-theorem smoothChemFlux_contDiffAt_of_factorJointC2
-    {β : ℝ} {U V : ℝ → ℝ → ℝ} {s x : ℝ}
-    (hU : ContDiffAt ℝ 2 (fun q : ℝ × ℝ => U q.1 q.2) (s, x))
-    (hV : ContDiffAt ℝ 2 (fun q : ℝ × ℝ => V q.1 q.2) (s, x))
-    (hgradV : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => deriv (V q.1) q.2) (s, x))
-    (hbase : 0 < 1 + V s x) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun β (U q.1) (V q.1) q.2)
-      (s, x) := by
-  unfold ShenWork.Paper2.ChemDivSpatialC2.chemFluxFun
-  have hbase_fun : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => 1 + V q.1 q.2) (s, x) := by
-    simpa using (contDiffAt_const (c := (1 : ℝ))).add hV
-  have hden : ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => (1 + V q.1 q.2) ^ β) (s, x) :=
-    hbase_fun.rpow_const_of_ne (ne_of_gt hbase)
-  have hden_ne : (1 + V s x) ^ β ≠ 0 :=
-    ne_of_gt (Real.rpow_pos_of_pos hbase β)
-  exact (hU.mul hgradV).div hden hden_ne
+ShenWork.EWA.cosineCoeffs_congr_on_Ioo
 ```
 
-If the final `exact` leaves a definitional mismatch because of pair simplification, use:
-
-```lean
-  simpa using (hU.mul hgradV).div hden hden_ne
-```
-
-or keep the `unfold chemFluxFun` before the denominator proof as shown.
-
-## Existing spatial-only smooth-representative lemmas
-
-`IntervalChemDivSpatialC2.lean` has one-variable/global spatial lemmas:
-
-```lean
-theorem chemFlux_contDiff_three
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
-    (hβnn : 0 ≤ β) :
-    ContDiff ℝ 3 (chemFluxFun β u v)
-```
-
-The proof uses the same algebraic ingredients:
-
-```lean
-have hprod : ContDiff ℝ 3 (fun y => u y * deriv v y) := hu3.mul hv3
-have h1v : ContDiff ℝ 3 (fun y => 1 + v y) := contDiff_const.add hv3'
-exact h1v.rpow_const_of_ne (fun x => ne_of_gt (hv_pos x))
-exact hprod.div hdenom (fun x => hdenom_pos x)
-```
-
-and it also has:
-
-```lean
-theorem chemFluxDeriv_contDiff_two ... :
-  ContDiff ℝ 2 (deriv (chemFluxFun β u v))
-```
-
-Those are useful confirmation, but they are not the joint `(s,x)` lemma required for `2A-core`.
-
-## Practical answer
-
-Use Mathlib directly, copying the existing coupled theorem proof style.  The exact standard method names are already working in this repo:
-
-```lean
-ContDiffAt.add
-ContDiffAt.mul
-ContDiffAt.div
-ContDiffAt.rpow_const_of_ne
-contDiffAt_const
-```
-
-The generic smooth-representative lemma should be a small local lemma, not a new hard analytic subproblem.
+If that import is too heavy or creates dependency direction problems, move/duplicate only the small lemma `cosineCoeffs_congr_on_Ioo` into a lower-level coefficient utility file near `cosineCoeffs_eq_factor_mul_integral`.
