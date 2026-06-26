@@ -1,332 +1,311 @@
-# Q691 / cron1: `ContDiff ℝ 4 (fun x => ν * u x ^ γ)` via `Real.rpow`
+# Q696 / cron1: parity-chain lemmas for depth-2 Neumann BC of `ν * U^γ`
 
-Repo target: `xiangyazi24/Shen_work`.  Scratch write target: branch `chatgpt-scratch`.
+Repo inspected: `xiangyazi24/Shen_work`.  Scratch write target: branch `chatgpt-scratch`.
 
 ## Verdict
 
-Yes: the Mathlib chain works for `n = 4`.
-
-For global functions, the most direct lemma is:
-
-```lean
-ContDiff.rpow_const_of_ne
-```
-
-It preserves the **same arbitrary order** `n : WithTop ℕ∞`, so it applies directly to `n = 4`.
-
-A minimal proof of the requested fact is:
-
-```lean
-theorem contDiff_four_const_mul_rpow_of_pos
-    {ν γ : ℝ} {u : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hpos : ∀ x, 0 < u x) :
-    ContDiff ℝ 4 (fun x => ν * u x ^ γ) := by
-  have hpow : ContDiff ℝ 4 (fun x => u x ^ γ) :=
-    hu.rpow_const_of_ne (p := γ) (fun x => ne_of_gt (hpos x))
-  exact contDiff_const.mul hpow
-```
-
-For the project parameters this specializes to:
-
-```lean
-have hsrcC4 : ContDiff ℝ 4 (fun x => p.ν * u x ^ p.γ) := by
-  have hpow : ContDiff ℝ 4 (fun x => u x ^ p.γ) :=
-    hu.rpow_const_of_ne (p := p.γ) (fun x => ne_of_gt (hpos x))
-  exact contDiff_const.mul hpow
-```
-
-The required Mathlib import is usually already present indirectly in this repo, but the direct import is:
-
-```lean
-import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
-```
-
-## 1. Existing repo chain-rule examples for `rpow` composition
-
-### C² global helper in `IntervalCkComposition.lean`
-
-File:
+Yes, the repo has useful parity-chain infrastructure, but the best reusable material is **not** the local `deriv_even_odd` / `deriv_odd_even` helpers in `IntervalChemDivSpatialC2.lean`.  The strongest reusable file is:
 
 ```text
-ShenWork/Paper2/IntervalCkComposition.lean
+ShenWork/Paper2/IntervalSourceRepresentative.lean
 ```
 
-Relevant theorem:
+It defines endpoint parity abstractions:
 
 ```lean
-theorem contDiff_two_rpow_of_pos {u : ℝ → ℝ} (hu : ContDiff ℝ 2 u) {c : ℝ}
-    (hc : 0 < c) (hupos : ∀ x, c ≤ u x) (m : ℝ) :
-    ContDiff ℝ 2 (fun x => (u x) ^ m) := by
-  rw [contDiff_iff_contDiffAt]
-  intro x
-  have hupt : u x ≠ 0 := by have := hupos x; linarith
-  exact (Real.contDiffAt_rpow_const_of_ne (p := m) hupt).comp x hu.contDiffAt
+def EvenAboutZero (f : ℝ → ℝ) : Prop := ∀ x : ℝ, f (-x) = f x
+
+def EvenAboutOne (f : ℝ → ℝ) : Prop := ∀ x : ℝ, f (2 - x) = f x
+
+structure DoublyEven (f : ℝ → ℝ) : Prop where
+  about0 : EvenAboutZero f
+  about1 : EvenAboutOne f
 ```
 
-This is the closest existing repo theorem to the desired statement, but it is only `C²`, and it assumes a uniform lower bound `c ≤ u x` instead of just pointwise positivity.
-
-The same file also has:
+and proves odd iterated-derivative vanishing at both endpoints:
 
 ```lean
-theorem contDiff_two_one_add_rpow_neg {v : ℝ → ℝ} (hv : ContDiff ℝ 2 v)
-    (hvnn : ∀ x, 0 ≤ v x) (β : ℝ) :
-    ContDiff ℝ 2 (fun x => (1 + v x) ^ (-β)) := by
-  have hbase : ContDiff ℝ 2 (fun x => 1 + v x) := contDiff_const.add hv
-  rw [contDiff_iff_contDiffAt]
-  intro x
-  have hbasept : (1 + v x) ≠ 0 := by have := hvnn x; positivity
-  exact (Real.contDiffAt_rpow_const_of_ne (p := -β) hbasept).comp x hbase.contDiffAt
+theorem iteratedDeriv_odd_evenAboutZero_eq_zero
+    {f : ℝ → ℝ} (hf : EvenAboutZero f) {n : ℕ} (hn : Odd n) :
+    iteratedDeriv n f 0 = 0
 ```
 
-### C³ flux denominator in `IntervalChemDivSpatialC2.lean`
+```lean
+theorem iteratedDeriv_odd_evenAboutOne_eq_zero
+    {f : ℝ → ℝ} (hf : EvenAboutOne f) {n : ℕ} (hn : Odd n) :
+    iteratedDeriv n f 1 = 0
+```
 
-File:
+For a third derivative target, instantiate with `n = 3`.
+
+## Recommended route for `ν * U^γ`
+
+If you have cosine-series parity hypotheses:
+
+```lean
+hU0 : ∀ x, U (-x) = U x
+hU1 : ∀ x, U (2 - x) = U x
+```
+
+then make the source doubly even by closure under composition/product:
+
+```lean
+open ShenWork.Paper2.SourceRepresentative
+
+have hUde : DoublyEven U where
+  about0 := hU0
+  about1 := hU1
+
+-- Positivity is needed for differentiability/C⁴ of `U^γ`, but not for parity.
+have hpow_de : DoublyEven (fun x => U x ^ γ) :=
+  DoublyEven.comp (fun y : ℝ => y ^ γ) hUde
+
+have hconst_de : DoublyEven (fun _ : ℝ => ν) where
+  about0 := by intro x; rfl
+  about1 := by intro x; rfl
+
+have hsrc_de : DoublyEven (fun x => ν * U x ^ γ) :=
+  hconst_de.mul hpow_de
+```
+
+Then endpoint vanishing of the third iterated derivative is:
+
+```lean
+have hthird0_iter : iteratedDeriv 3 (fun x => ν * U x ^ γ) 0 = 0 :=
+  iteratedDeriv_odd_evenAboutZero_eq_zero hsrc_de.about0 ⟨1, by norm_num⟩
+
+have hthird1_iter : iteratedDeriv 3 (fun x => ν * U x ^ γ) 1 = 0 :=
+  iteratedDeriv_odd_evenAboutOne_eq_zero hsrc_de.about1 ⟨1, by norm_num⟩
+```
+
+If the goal is literally:
+
+```lean
+deriv (deriv (deriv (fun x => ν * U x ^ γ))) 0 = 0
+```
+
+then convert from `iteratedDeriv 3` using the standard unfolding:
+
+```lean
+simpa [iteratedDeriv_eq_iterate, Function.iterate_succ, Function.iterate_zero]
+  using hthird0_iter
+```
+
+and similarly at `1`.
+
+For the Neumann-tower/depth-index shape, use the already-packaged theorem instead:
+
+```lean
+have hN0 : deriv (ShenWork.Paper2.NeumannTowerOfC6.gTower
+    (fun x => ν * U x ^ γ) 1) 0 = 0 :=
+  gTower_deriv_zero_of_doublyEven hsrc_de 1
+
+have hN1 : deriv (ShenWork.Paper2.NeumannTowerOfC6.gTower
+    (fun x => ν * U x ^ γ) 1) 1 = 0 :=
+  gTower_deriv_one_of_doublyEven hsrc_de 1
+```
+
+Here `i = 1` corresponds to `2*i+1 = 3`, i.e. the third derivative in the `gTower` formulation.
+
+## 1. `deriv_even_odd`, `deriv_odd_even`
+
+Search hits:
 
 ```text
 ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+ShenWork/Paper2/IntervalSourceRepresentative.lean   -- for `deriv_odd_even` search only, via comments/related derivative parity
 ```
 
-Relevant theorem:
+In `IntervalChemDivSpatialC2.lean`, the exact requested helpers occur inside:
 
 ```lean
-theorem chemFlux_contDiff_three
-    {β : ℝ} {u v : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hv : ContDiff ℝ 4 v)
-    (hv_pos : ∀ x, (0 : ℝ) < 1 + v x)
-    (hβnn : 0 ≤ β) :
-    ContDiff ℝ 3 (chemFluxFun β u v) := by
-  ...
-  have hdenom : ContDiff ℝ 3 (fun y => (1 + v y) ^ β) := by
-    have h1v : ContDiff ℝ 3 (fun y => 1 + v y) := contDiff_const.add hv3'
-    exact h1v.rpow_const_of_ne (fun x => ne_of_gt (hv_pos x))
-  exact hprod.div hdenom (fun x => hdenom_pos x)
+noncomputable def chemDivSource_weakH2_of_cosineRep ... :
+    IntervalWeakH2Neumann (chemDivLift p u v) := by
 ```
 
-This uses the exact same global `ContDiff.rpow_const_of_ne` API, but at order `3`, after degrading `v : C⁴` to `C³` because the final flux target is `C³`.
+They are **local `have`s**, not exported theorem names:
 
-### C² flux package in `IntervalChemDivFluxJointC2Producer.lean`
+```lean
+-- Parity helper: derivative of even C¹ function is odd
+have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = g x) →
+    ∀ x, deriv g (-x) = -(deriv g x) := by
+  intro g _hg heven x
+  have h1 := deriv_comp_neg (f := g) (x := x)
+  rw [show (fun x => g (-x)) = g from funext heven] at h1; linarith
+```
 
-File:
+```lean
+-- Parity helper: derivative of odd C¹ function is even
+have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g → (∀ x, g (-x) = -(g x)) →
+    ∀ x, deriv g (-x) = deriv g x := by
+  intro g _hg hodd x
+  have h1 := deriv_comp_neg (f := g) (x := x)
+  rw [show (fun x => g (-x)) = fun x => -(g x) from funext hodd] at h1
+  simp [deriv_neg] at h1; linarith
+```
+
+These are useful proof patterns, but because they are local, they cannot be referenced elsewhere without refactoring.
+
+## 2. `odd_zero`
+
+Also in `IntervalChemDivSpatialC2.lean`, again only local inside `chemDivSource_weakH2_of_cosineRep`:
+
+```lean
+-- Odd function vanishes at 0
+have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
+  intro g hodd; have h := hodd 0; rw [neg_zero] at h; linarith
+```
+
+The reusable replacement is stronger:
+
+```lean
+iteratedDeriv_odd_evenAboutZero_eq_zero
+```
+
+from `IntervalSourceRepresentative.lean`, which handles all odd orders, not just a function that is already odd.
+
+## 3. Existing x=1 Neumann BC from shift symmetry
+
+There are two relevant patterns.
+
+### Local first-derivative pattern in `IntervalChemDivSpatialC2.lean`
+
+Inside `chemDivSource_weakH2_of_cosineRep`, the file proves endpoint `1` Neumann BC for a function `F` satisfying `F (2-x) = F x` by using `deriv_comp_const_sub`:
+
+```lean
+have hbc1 : deriv F 1 = 0 := by
+  have h1 := deriv_comp_const_sub (f := F) (a := 2) (x := 1)
+  rw [show (fun x => F (2 - x)) = F from funext hF_symm1] at h1
+  have : (2 : ℝ) - 1 = 1 := by norm_num
+  rw [this] at h1; linarith
+```
+
+The same proof also uses `deriv_comp_const_sub` to show antisymmetry of `V_cos'` about `1` and symmetry of `F` about `1`:
+
+```lean
+have hdv_antisymm1 : ∀ x, deriv V_cos (2 - x) = -(deriv V_cos x) := by
+  intro x
+  have h1 := deriv_comp_const_sub (f := V_cos) (a := 2) (x := x)
+  rw [show (fun x => V_cos (2 - x)) = V_cos from funext hv_symm1] at h1; linarith
+```
+
+### Reusable all-odd-orders pattern in `IntervalSourceRepresentative.lean`
+
+This is the better theorem for third derivatives:
+
+```lean
+theorem iteratedDeriv_odd_evenAboutOne_eq_zero
+    {f : ℝ → ℝ} (hf : EvenAboutOne f) {n : ℕ} (hn : Odd n) :
+    iteratedDeriv n f 1 = 0 := by
+  have hfun : (fun x : ℝ => f (2 - x)) = f := funext hf
+  have hkey := congrFun (iteratedDeriv_comp_const_sub n f (2 : ℝ)) (1 : ℝ)
+  simp only [hfun, hn.neg_one_pow] at hkey
+  norm_num at hkey
+  linarith [hkey]
+```
+
+So for `x = 1`, do **not** redo the one-derivative `deriv_comp_const_sub` proof if your goal can be expressed with `iteratedDeriv` or `gTower`; use this theorem.
+
+## 4. Is there a theorem showing `deriv (deriv (deriv f)) 0 = 0` from `f` even?
+
+I did **not** find a theorem with that exact literal conclusion.
+
+But the repo has a stronger reusable theorem:
+
+```lean
+iteratedDeriv_odd_evenAboutZero_eq_zero
+```
+
+For `n = 3`, it gives:
+
+```lean
+iteratedDeriv 3 f 0 = 0
+```
+
+from:
+
+```lean
+hf : EvenAboutZero f
+```
+
+This is mathematically the same third-derivative vanishing, and it should convert to the literal `deriv (deriv (deriv f)) 0 = 0` form by unfolding `iteratedDeriv_eq_iterate`.
+
+The repo also has `gTower` packaging, which is likely closer to the depth-2 Neumann BC target:
+
+```lean
+theorem deriv_gTower_eq_iteratedDeriv (f : ℝ → ℝ) (i : ℕ) :
+    deriv (gTower f i) = iteratedDeriv (2 * i + 1) f
+```
+
+```lean
+theorem gTower_deriv_zero_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) (i : ℕ) :
+    deriv (gTower f i) 0 = 0
+```
+
+```lean
+theorem gTower_deriv_one_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) (i : ℕ) :
+    deriv (gTower f i) 1 = 0
+```
+
+```lean
+theorem higherNeumannCompatibility_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) :
+    (∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
+      (∀ i, i < 3 → deriv (gTower f i) 1 = 0)
+```
+
+For the third derivative, use `i = 1`.
+
+## Other useful closure lemmas
+
+`IntervalSourceRepresentative.lean` also has:
+
+```lean
+theorem DoublyEven.add {f g : ℝ → ℝ} (hf : DoublyEven f) (hg : DoublyEven g) :
+    DoublyEven (fun x => f x + g x)
+```
+
+```lean
+theorem DoublyEven.mul {f g : ℝ → ℝ} (hf : DoublyEven f) (hg : DoublyEven g) :
+    DoublyEven (fun x => f x * g x)
+```
+
+```lean
+theorem DoublyEven.comp {f : ℝ → ℝ} (g : ℝ → ℝ) (hf : DoublyEven f) :
+    DoublyEven (fun x => g (f x))
+```
+
+```lean
+theorem DoublyEven.deriv_deriv {f : ℝ → ℝ} (hf : DoublyEven f) :
+    DoublyEven (deriv (deriv f))
+```
+
+For `ν * U^γ`, the important one is `DoublyEven.comp` with `g := fun y => y ^ γ`; positivity is not required for the parity equality itself.
+
+## Search summary
+
+Searched terms:
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+deriv_even_odd
+deriv_odd_even
+odd_zero
+deriv_comp_const_sub
+iteratedDeriv_odd_evenAboutZero_eq_zero
+higherNeumannCompatibility_of_doublyEven
+EvenAboutZero
+iteratedDeriv_comp_const_sub
+third derivative vanishes
 ```
 
-Relevant snippet:
-
-```lean
-have hden : ContDiffAt ℝ 2
-    (fun q : ℝ × ℝ =>
-      (1 + intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-        ^ p.β)
-    (s, x) :=
-  hbase_fun.rpow_const_of_ne (ne_of_gt hbase)
-```
-
-Again, same lemma family, here pointwise `ContDiffAt` and order `2`.
-
-### C¹/ODE examples in `ODEUniqueness.lean`
-
-File:
+Main files found:
 
 ```text
-ShenWork/PDE/ODEUniqueness.lean
+ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+ShenWork/Paper2/IntervalSourceRepresentative.lean
+ShenWork/Paper2/IntervalSourceC6Representative.lean
 ```
 
-Relevant snippets:
-
-```lean
-have hpow : ContDiffOn ℝ 1 (fun u : ℝ => u ^ p.α) (Icc m M) :=
-  contDiffOn_fun_id.rpow_const_of_ne fun u hu =>
-    ne_of_gt (lt_of_lt_of_le hm hu.1)
-```
-
-and the same pattern for `bernoulliDecayVectorField_contDiffOn_Icc`.
-
-This is an on-set/state-interval version, not the global `C⁴` source theorem.
-
-### Continuity-only rpow use in `SourcePerSliceClose.lean`
-
-File on the current indexed repo:
-
-```text
-ShenWork/Wiener/EWA/SourcePerSliceClose.lean
-```
-
-Relevant snippet:
-
-```lean
-have hpow : ContinuousOn
-    (Function.uncurry (fun (s : ℝ) (x : ℝ) =>
-      (intervalDomainLift (realSlice u_star s) x) ^ (p.γ - 1)))
-    (Icc a b ×ˢ Icc (0 : ℝ) 1) := by
-  refine ContinuousOn.rpow_const hVal ?_
-  ...
-```
-
-This is only `ContinuousOn`, not `ContDiff`, but it is another example of the positivity/rpow idiom.
-
-## 2. Exact Mathlib lemma and order preservation
-
-The repo’s `lake-manifest.json` on `chatgpt-scratch` pins Mathlib:
-
-```text
-mathlib rev: 5e932f97dd25535344f80f9dd8da3aab83df0fe6
-inputRev: v4.29.1
-```
-
-At that pinned Mathlib rev, in:
-
-```text
-Mathlib/Analysis/SpecialFunctions/Pow/Deriv.lean
-```
-
-there is the scalar outer-map lemma:
-
-```lean
-theorem Real.contDiffAt_rpow_const_of_ne {x p : ℝ} {n : WithTop ℕ∞} (h : x ≠ 0) :
-    ContDiffAt ℝ n (fun x => x ^ p) x :=
-  (contDiffAt_rpow_of_ne (x, p) h).comp x (contDiffAt_id.prodMk contDiffAt_const)
-```
-
-and the composed-function lemmas:
-
-```lean
-theorem ContDiffAt.rpow_const_of_ne (hf : ContDiffAt ℝ n f x) (h : f x ≠ 0) :
-    ContDiffAt ℝ n (fun x => f x ^ p) x :=
-  hf.rpow contDiffAt_const h
-```
-
-```lean
-theorem ContDiffOn.rpow_const_of_ne (hf : ContDiffOn ℝ n f s) (h : ∀ x ∈ s, f x ≠ 0) :
-    ContDiffOn ℝ n (fun x => f x ^ p) s :=
-  fun x hx => (hf x hx).rpow_const_of_ne (h x hx)
-```
-
-```lean
-theorem ContDiff.rpow_const_of_ne (hf : ContDiff ℝ n f) (h : ∀ x, f x ≠ 0) :
-    ContDiff ℝ n fun x => f x ^ p :=
-  hf.rpow contDiff_const h
-```
-
-The important point is that in all these `of_ne` lemmas:
-
-```lean
-{n : WithTop ℕ∞}
-```
-
-is arbitrary and the conclusion has the same `n`. Therefore the lemma preserves any finite order, including `4`, and also works for `⊤` if the input has `ContDiff ℝ ⊤`.
-
-There is also a different family:
-
-```lean
-ContDiff.rpow_const_of_le
-```
-
-with `{m : ℕ}` and hypothesis `↑m ≤ p`. That one is for the base possibly hitting zero. It is not needed here because the hypothesis is `u x > 0`, hence `u x ≠ 0` everywhere.
-
-## 3. Existing theorem for `C⁴` of `ν*u^γ` from `u : C⁴` + positivity?
-
-I did **not** find a completed theorem in the repo whose conclusion is exactly or essentially:
-
-```lean
-ContDiff ℝ 4 (fun x => ν * u x ^ γ)
-```
-
-from
-
-```lean
-hu : ContDiff ℝ 4 u
-hpos : ∀ x, 0 < u x
-```
-
-The repo has lower-order/general analogues (`contDiff_two_rpow_of_pos`) and related flux lemmas (`chemFlux_contDiff_three`) but not the exact C⁴ source-power theorem.
-
-There is, however, a comment marking this exact fact as an intended/blocking subgoal in:
-
-```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-```
-
-Inside the resolver-C⁴ `sorry` block it says:
-
-```text
-Source C⁴: ν*u^γ is C⁴ on [0,1] by chain rule (u C⁴ + u > 0).
-```
-
-and lists as a blocking sub-goal:
-
-```text
-(a) C⁴ chain rule for x ↦ ν*u(x)^γ from ContDiff ℝ 4 u + u > 0
-```
-
-So the exact theorem appears to be **missing**, but it should be a very small wrapper around Mathlib’s `ContDiff.rpow_const_of_ne`, as shown above.
-
-## 4. Recommended reusable theorem to add
-
-For a global real function:
-
-```lean
-theorem contDiff_four_const_mul_rpow_of_pos
-    {ν γ : ℝ} {u : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hpos : ∀ x, 0 < u x) :
-    ContDiff ℝ 4 (fun x => ν * u x ^ γ) := by
-  have hpow : ContDiff ℝ 4 (fun x => u x ^ γ) :=
-    hu.rpow_const_of_ne (p := γ) (fun x => ne_of_gt (hpos x))
-  exact contDiff_const.mul hpow
-```
-
-For the chemotaxis source coefficient shape:
-
-```lean
-theorem contDiff_four_nu_mul_gamma_source_of_pos
-    (p : CM2Params) {u : ℝ → ℝ}
-    (hu : ContDiff ℝ 4 u)
-    (hpos : ∀ x, 0 < u x) :
-    ContDiff ℝ 4 (fun x => p.ν * u x ^ p.γ) := by
-  have hpow : ContDiff ℝ 4 (fun x => u x ^ p.γ) :=
-    hu.rpow_const_of_ne (p := p.γ) (fun x => ne_of_gt (hpos x))
-  exact contDiff_const.mul hpow
-```
-
-If the goal is on a set instead of globally, use the on-set version:
-
-```lean
-have hpow : ContDiffOn ℝ 4 (fun x => u x ^ γ) s :=
-  hu.rpow_const_of_ne (p := γ) (fun x hx => ne_of_gt (hpos x hx))
-exact contDiffOn_const.mul hpow
-```
-
-where:
-
-```lean
-hu   : ContDiffOn ℝ 4 u s
-hpos : ∀ x ∈ s, 0 < u x
-```
-
-## Search terms checked
-
-I searched for:
-
-```text
-ContDiff.rpow
-rpow_const_of_ne
-contDiff_rpow
-Real.rpow
-Real.contDiffAt_rpow_const_of_ne
-ContDiff ℝ 4 rpow
-p.ν * ContDiff ℝ 4
-ν*u^γ ContDiff
-srcSlice ContDiff ℝ 4
-```
-
-Summary of hits:
-
-* `ContDiff.rpow`: no literal repo hit.
-* `rpow_const_of_ne`: many hits; the useful Lean examples are listed above.
-* `contDiff_rpow`: no repo hit.
-* `Real.rpow`: many broad hits, mostly unrelated or continuity/derivative uses.
-* Exact `C⁴` theorem for `ν*u^γ`: not found; only the blocking-comment in `IntervalConjugateLevel0BFormSourceOn.lean` and lower-order analogues.
+`IntervalSourceC6Representative.lean` consumes the reusable parity package for cosine-series source representatives: it proves `doublyEven_cosineSeries` and then uses `higherNeumannCompatibility_of_doublyEven` to discharge the source `hSrcN0`/`hSrcN1` fields.
