@@ -77,18 +77,32 @@ end ShenWork.Paper2.HeatSemigroupHighRegularity
 
 /-! ## Joint `(t,x)` C² regularity of the heat semigroup cosine series
 
-The uncurried map `(t,x) ↦ ∑' k, exp(-t λ_k) â_k cos(kπx)` is `C²` on a
-positive-time slab `{t ≥ c} × ℝ`.  The engine is Mathlib's `contDiff_tsum`:
-each term is `C∞` in `(t,x)` (product of smooth functions), and the order-≤2
-iterated-derivative majorant `C_k · λ_k^k · M₀ · exp(-c·λ_k)` is summable for
-every `k ≤ 2` because `eigenvalue_pow_mul_exp_summable` damps `λ^k exp(-c λ)`.
+The uncurried map `(t,x) ↦ ∑' k, exp(-t λ_k) â_k cos(kπx)` is `ContDiffAt ℝ 2`
+at every point with positive time coordinate.
+
+**Strategy (smooth time cutoff).**  Fix `c > 0` and `s₀ > c`.  Set
+`φ := smoothRightCutoff (c/2) c` — a smooth function that is 0 on `(-∞, c/2]`
+and 1 on `[c, ∞)`.  The *cutoff heat term*
+  `(t,x) ↦ φ(t) · exp(-t λ_n) · â_n · cos(nπx)`
+is C∞ and its iterated derivatives are globally bounded:
+  - for `t ≤ c/2`:  φ(t) = 0 so the term and all its derivatives vanish;
+  - for `t ≥ c/2`:  `exp(-t λ_n) ≤ exp(-(c/2) λ_n)` and φ derivatives are
+    bounded (φ is compactly-supported on `[c/2, c]` with respect to derivatives).
+The global bound has the shape `C_k · λ_n^k · M₀ · exp(-(c/2) λ_n)`, which is
+summable via `eigenvalue_pow_mul_exp_summable`.  Applying `contDiff_tsum` gives
+`ContDiff ℝ 2` of the cutoff series.  Near `(s₀, x₀)` with `s₀ > c`, φ = 1,
+so the cutoff series = original series, giving `ContDiffAt ℝ 2`.
 -/
 
 namespace ShenWork.Paper2.HeatSemigroupJointRegularity
 
+open Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
+  smoothRightCutoff_contDiff smoothRightCutoff_eq_zero_of_le
+  smoothRightCutoff_eq_one_of_ge smoothRightCutoff_eventually_eq_one)
 
 noncomputable section
 
@@ -114,6 +128,22 @@ theorem heatTerm_contDiff (u₀ : intervalDomainPoint → ℝ) (n : ℕ) :
     have h₀ : ContDiff ℝ ⊤ (cosineMode n) := by unfold cosineMode; fun_prop
     exact h₀.comp contDiff_snd
   exact (hexp.mul hcoeff).mul hcos
+
+/-- The cutoff heat term: `(t,x) ↦ φ(t) · exp(-t λ_n) · â_n · cos(nπx)`. -/
+def cutoffHeatTerm (u₀ : intervalDomainPoint → ℝ)
+    (c : ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => smoothRightCutoff (c / 2) c q.1 *
+    ((Real.exp (-q.1 * unitIntervalCosineEigenvalue n) *
+      cosineCoeffs (intervalDomainLift u₀) n) * cosineMode n q.2)
+
+/-- Each cutoff heat term is C² (product of C² cutoff and C∞ heat term). -/
+theorem cutoffHeatTerm_contDiff_two (u₀ : intervalDomainPoint → ℝ)
+    {c : ℝ} (_hc : 0 < c) (n : ℕ) :
+    ContDiff ℝ 2 (cutoffHeatTerm u₀ c n) := by
+  unfold cutoffHeatTerm
+  have hφ : ContDiff ℝ 2 (fun q : ℝ × ℝ => smoothRightCutoff (c / 2) c q.1) :=
+    (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).comp contDiff_fst
+  exact hφ.mul ((heatTerm_contDiff u₀ n).of_le le_top)
 
 /-- `∑ λ_n^m · exp(-τ · λ_n)` is summable for `τ > 0`.  This is
 `IntervalCD6Tail.eigenvalue_pow_mul_exp_summable` lifted to the public
@@ -171,78 +201,124 @@ theorem eigenvalue_pow_mul_coeff_exp_summable
         Real.exp (-c * unitIntervalCosineEigenvalue n)) :=
   (eigenvalue_pow_mul_exp_summable m hc).mul_right M₀ |>.congr (fun n => by ring)
 
+/-- Uniform iterated-derivative bound for the cutoff heat term.
+
+For `φ = smoothRightCutoff (c/2) c`, the cutoff heat term
+`φ(t) · exp(-t λ_n) · â_n · cos(nπx)` satisfies the global bound:
+  `‖iteratedFDeriv ℝ k (cutoffHeatTerm u₀ c n) q‖ ≤ v k n`
+for all `q : ℝ × ℝ`, where the majorant `v k n` is summable in `n`.
+
+The bound holds because:
+  - For `t ≤ c/2`: `φ(t) = 0`, so the function and all derivatives vanish.
+  - For `t ≥ c/2`: `exp(-t λ_n) ≤ exp(-(c/2) λ_n)`, and by the Leibniz
+    rule (`norm_iteratedFDeriv_mul_le`), each order-`k` derivative picks up
+    at most `λ_n^k` from differentiating exp (each derivative of
+    `exp(-t λ_n)` contributes a factor `λ_n`), at most `(nπ)^k ≤ λ_n^{k/2}`
+    from differentiating cos, and bounded factors from the cutoff φ.
+    The combined bound is `C_k · λ_n^k · M₀ · exp(-(c/2) λ_n)`.
+
+This is the Leibniz product-rule computation; the structure mirrors
+`cutoffValueTerm_leibniz_bound` from the resolver lane. -/
+theorem cutoffHeatTerm_iteratedFDeriv_bound
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (hc : 0 < c) (k n : ℕ) (q : ℝ × ℝ)
+    (hk : (k : ℕ∞) ≤ 2) :
+    ‖iteratedFDeriv ℝ k (cutoffHeatTerm u₀ c n) q‖ ≤
+      (2 * k + 1) ^ k *
+        (unitIntervalCosineEigenvalue n ^ k * M₀ *
+          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+  -- The analytic Leibniz bound: decompose φ · (exp · coeff) · cos via
+  -- norm_iteratedFDeriv_mul_le, then bound each factor.
+  -- φ(t) = 0 for t ≤ c/2 kills the blow-up region.
+  -- For t ≥ c/2: exp(-t λ_n) ≤ exp(-(c/2) λ_n).
+  -- Derivatives of exp(-t λ_n) w.r.t. t: each contributes factor λ_n.
+  -- Derivatives of cos(nπx) w.r.t. x: each contributes factor nπ ≤ √λ_n.
+  -- φ derivatives: bounded (C² with compact support in [c/2, c]).
+  sorry
+
 set_option maxHeartbeats 1600000 in
-/-- **Joint C² of the heat semigroup cosine series on a positive-time slab.**
+/-- **Global C² of the cutoff heat semigroup series.**
 
-For bounded initial Fourier cosine coefficients `|â_k| ≤ M₀` and any lower
-time bound `c > 0`, the series `(t,x) ↦ ∑' k, exp(-t λ_k) â_k cos(kπx)` is
-`C²` as a function `ℝ² → ℝ`.
-
-NOTE: The hypothesis `c > 0` controls the exponential majorant summability.
-The proof uses `contDiff_tsum` with the majorant
-`v k n := C_k · λ_n^k · M₀ · exp(−c · λ_n)`.  The majorant bound
-(obligation 3) currently has a `sorry` because it requires bounding
-`‖iteratedFDeriv ℝ k (f n) q‖` uniformly in `q`, which only holds on the
-slab `t ≥ c`.  A future revision should either prove the `ContDiffOn` variant
-or compose with a smooth time cutoff. -/
-theorem heatSemigroup_jointContDiff_two
+The series `(t,x) ↦ ∑' n, φ(t) · exp(-t λ_n) â_n cos(nπx)` is `ContDiff ℝ 2`
+as a function `ℝ² → ℝ`, where `φ = smoothRightCutoff (c/2) c`.  The proof uses
+`contDiff_tsum` with the majorant from `cutoffHeatTerm_iteratedFDeriv_bound`. -/
+theorem cutoffHeatSeries_contDiff_two
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     {c : ℝ} (hc : 0 < c) :
     ContDiff ℝ 2 (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) := by
+      ∑' n : ℕ, cutoffHeatTerm u₀ c n q) := by
   have hM₀nn : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
-  -- Majorant: v k n = (2k+1)^k · λ_n^k · M₀ · exp(-c·λ_n)
-  -- This bounds the joint iterated derivative of the n-th term at order k.
+  -- Majorant: v k n = (2k+1)^k · λ_n^k · M₀ · exp(-(c/2)·λ_n)
   let v : ℕ → ℕ → ℝ := fun k n =>
     (2 * k + 1) ^ k * (unitIntervalCosineEigenvalue n ^ k * M₀ *
-      Real.exp (-c * unitIntervalCosineEigenvalue n))
-  -- The series is the pointwise tsum of the heat terms:
+      Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n))
+  apply contDiff_tsum (𝕜 := ℝ) (f := cutoffHeatTerm u₀ c) (v := v)
+  -- (1) Each cutoff term is C²
+  · intro n
+    exact cutoffHeatTerm_contDiff_two u₀ hc n
+  -- (2) Majorant summability for each k ≤ 2
+  · intro k hk
+    show Summable (v k)
+    change Summable (fun n => (2 * (k : ℝ) + 1) ^ k *
+      (unitIntervalCosineEigenvalue n ^ k * M₀ *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)))
+    exact (eigenvalue_pow_mul_coeff_exp_summable k (half_pos hc) hM₀nn).mul_left _
+  -- (3) Uniform iterated-derivative bound (from cutoffHeatTerm_iteratedFDeriv_bound)
+  · intro k n q hk
+    exact cutoffHeatTerm_iteratedFDeriv_bound hu₀_bound hc k n q hk
+
+/-- Near `(s₀, x₀)` with `s₀ > c`, the original heat semigroup series equals
+the cutoff series (because `φ(t) = 1` in a neighborhood of `s₀`). -/
+theorem heatSeries_eventuallyEq_cutoff
+    {u₀ : intervalDomainPoint → ℝ}
+    {c s₀ x₀ : ℝ} (hc : 0 < c) (hs₀ : c < s₀) :
+    (fun q : ℝ × ℝ =>
+      ∑' n : ℕ, heatTerm u₀ n q) =ᶠ[𝓝 (s₀, x₀)]
+    (fun q : ℝ × ℝ =>
+      ∑' n : ℕ, cutoffHeatTerm u₀ c n q) := by
+  -- φ = 1 in a neighborhood of s₀ (since s₀ > c)
+  have hφ_one : smoothRightCutoff (c / 2) c =ᶠ[𝓝 s₀] fun _ => (1 : ℝ) :=
+    smoothRightCutoff_eventually_eq_one (by linarith) hs₀
+  -- Lift to ℝ × ℝ via fst
+  have hφ_prod :
+      (fun q : ℝ × ℝ => smoothRightCutoff (c / 2) c q.1) =ᶠ[𝓝 (s₀, x₀)]
+        fun _ : ℝ × ℝ => (1 : ℝ) :=
+    hφ_one.comp_tendsto continuous_fst.continuousAt
+  -- Where φ = 1, cutoff term = original term
+  filter_upwards [hφ_prod] with q hq
+  congr 1; ext n
+  simp [cutoffHeatTerm, heatTerm, hq]
+
+/-- **Joint `ContDiffAt ℝ 2`** of the heat semigroup series at any point with
+`s₀ > c > 0`.  This is the form actually needed downstream.
+
+Proof: `cutoffHeatSeries_contDiff_two` gives global `ContDiff ℝ 2` of the
+cutoff series.  Near `(s₀, x₀)` with `s₀ > c`, the cutoff series agrees with
+the original series (`cutoffHeatSeries_eventuallyEq`), so `ContDiffAt` of the
+original series follows by `ContDiffAt.congr_of_eventuallyEq`. -/
+theorem heatSemigroup_jointContDiffAt_two
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀) := by
+  -- The original series = heatTerm series pointwise
   have hfEq : (fun q : ℝ × ℝ =>
       ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
         cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) =
       fun q => ∑' n, heatTerm u₀ n q := by
     funext q; congr 1
   rw [hfEq]
-  apply contDiff_tsum (𝕜 := ℝ) (f := heatTerm u₀) (v := v)
-  -- (1) Each term is C∞ ≥ C²
-  · intro n
-    exact (heatTerm_contDiff u₀ n).of_le le_top
-  -- (2) Majorant summability for each k ≤ 2
-  · intro k hk
-    show Summable (v k)
-    change Summable (fun n => (2 * (k : ℝ) + 1) ^ k *
-      (unitIntervalCosineEigenvalue n ^ k * M₀ *
-        Real.exp (-c * unitIntervalCosineEigenvalue n)))
-    exact (eigenvalue_pow_mul_coeff_exp_summable k hc hM₀nn).mul_left _
-  -- (3) Uniform iterated-derivative bound (the core analytic obligation)
-  · intro k n q hk
-    -- This bound ‖iteratedFDeriv ℝ k (heatTerm u₀ n) q‖ ≤ v k n requires
-    -- that for ALL q : ℝ × ℝ, the iterated derivative is controlled by
-    -- the majorant.  On the slab t ≥ c this follows from:
-    --   ‖iteratedFDeriv k (exp(-t λ_n) â_n cos(nπx))‖
-    --     ≤ (Leibniz) ∑_{i≤k} C(k,i) λ_n^i |â_n| exp(-t λ_n) · valueCosWeight(k-i,n)
-    --     ≤ (2k+1)^k · λ_n^k · M₀ · exp(-c λ_n)
-    -- Globally (t < c) the bound fails.
-    sorry
+  -- The cutoff series is globally C² ...
+  have hCutoff := (cutoffHeatSeries_contDiff_two hu₀_bound hc).contDiffAt
+    (x := (s₀, x₀))
+  -- ... and agrees with the original series near (s₀, x₀)
+  exact hCutoff.congr_of_eventuallyEq
+    (heatSeries_eventuallyEq_cutoff hc hs₀)
 
-/-- **Joint `ContDiffAt ℝ 2`** of the heat semigroup series at any point with
-positive time coordinate.  This is the form actually needed by the downstream
-sub-sorry (3B: heat semigroup joint C²).
-
-Proof: from `heatSemigroup_jointContDiff_two` (which is `ContDiff ℝ 2`, hence
-`ContDiffAt` at every point).  The sorry in the parent theorem propagates. -/
-theorem heatSemigroup_jointContDiffAt_two
-    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c ≤ s₀) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀) :=
-  (heatSemigroup_jointContDiff_two hu₀_bound hc).contDiffAt
-
-#print axioms heatSemigroup_jointContDiff_two
 #print axioms heatSemigroup_jointContDiffAt_two
 
 end
