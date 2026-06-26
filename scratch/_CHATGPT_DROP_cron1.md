@@ -1,353 +1,434 @@
-# Q757 / cron1: `ChemDivMixedTimeDerivClosedRepr` definition and producers
+# Q760 / cron1: dependency graph check for Level0 sub-sorries
 
 Repo inspected: `xiangyazi24/Shen_work`.
 Scratch write target: branch `chatgpt-scratch`, file `scratch/_CHATGPT_DROP_cron1.md`.
 
 ## Verdict
 
-`ChemDivMixedTimeDerivClosedRepr` is **not a structure**. It is a `def ... : Prop` containing an existential closed-slab representative:
+The proposed graph is **directionally right**, but it is **too linear**. The committed code supports a DAG with shared upstreams, not a single chain where every later node follows from the immediately previous one.
 
-```lean
-def ChemDivMixedTimeDerivClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
+The most important corrections are:
+
+1. `3D` is not implemented as “differentiate `3C`.” It is a sibling theorem from the same `PhysicalResolverJointC2Data` package, using the gradient majorant.
+2. `PhysicalResolverJointC2Data` is not obtained from `3B` alone. It comes from `PhysicalSourceTimeC2` through `physicalResolverJointC2Data_of_floor`; producing `PhysicalSourceTimeC2` for the heat trajectory is its own source-coefficient/time-regularity task.
+3. `2A-core` is not merely “joint continuity of flux.” In the Level0 file it is joint continuity of the **smooth representative of the chemDiv source**, namely the spatial derivative of the flux representative:
+
+   ```lean
+   fun q => deriv
+     (ChemDivSpatialC2.chemFluxFun p.β U_cos(q.1) V_cos(q.1)) q.2
+   ```
+
+4. `1A` is not a formal consequence of `2A-core`. It needs a **higher-order/second-derivative representative** and compactness. It shares the same smooth-representative route, but at one higher spatial-derivative level.
+5. `3G` does not depend on `3F`. Both are downstream of shared physical/iterate/representative data. `3G` is closed by `chemDivMixedTimeDeriv_jointContinuousOn_closed` once a `ChemDivMixedTimeDerivClosedRepr` is available; producing that representative is a separate witness-data route.
+6. The heat semigroup `ContDiffAt` theorem is positive-time/local: `heatSemigroup_jointContDiffAt_two` needs `c < s₀`. If the target is literally the global `CoupledChemDivFluxJointC2Hyp.exists_local_slab : ∀ τ`, there is a positive-window mismatch to resolve. For the Level0 use on `[c,T]` with `c>0`, this is fine after window-localizing the chain-rule package.
+
+## Confirmed heat-semigroup lane
+
+Current file:
+
+```text
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 ```
 
-Location:
+The file now uses the cutoff plan and explicitly says §2 has exactly one sorry: the cutoff heat term derivative bound.
+
+The remaining sorry is:
+
+```lean
+theorem cutoffHeatTerm_iteratedFDeriv_bound
+    ... :
+    ‖iteratedFDeriv ℝ k (cutoffHeatTerm u₀ c n) q‖ ≤
+      (2 * k + 1) ^ k *
+        (unitIntervalCosineEigenvalue n ^ k * M₀ *
+          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) := by
+  ...
+  sorry
+```
+
+Then the dependency is committed as:
+
+```lean
+cutoffHeatTerm_iteratedFDeriv_bound
+  → cutoffHeatSeries_contDiff_two
+  → heatSeries_eventuallyEq_cutoff
+  → heatSemigroup_jointContDiffAt_two
+```
+
+The final theorem is:
+
+```lean
+theorem heatSemigroup_jointContDiffAt_two
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
+```
+
+So the first part of your graph is correct **for positive-time points**:
+
+```text
+Leibniz/cutoff bound
+  → heatSemigroup_jointContDiffAt_two
+  → sub-sorry 3B, after matching the Level0 heat representation
+```
+
+Caveat: `3B` inside `CoupledChemDivFluxFactorJointC2Inputs` is a slab field `∀ τ, ∃ δ, ...`; the heat theorem only gives positive-time local `ContDiffAt`. In the Level0 window `[c,T]` this should be handled by choosing/localizing around points with `s>0`, not by claiming a global all-time heat theorem.
+
+## Physical resolver lane
+
+Current file:
+
+```text
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+```
+
+The relevant source-side package is:
+
+```lean
+structure PhysicalSourceTimeC2
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Es : ℕ → ℕ → ℝ) : Prop where
+  src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+  src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
+  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointMajorant
+      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant
+      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
+```
+
+Producer:
+
+```lean
+theorem physicalResolverJointC2Data_of_floor
+    (H : PhysicalSourceTimeC2 p u Es) :
+    PhysicalResolverJointC2Data p u
+      (fun i k => intervalNeumannResolverWeight p k * Es i k)
+```
+
+Thus the accurate edge is:
+
+```text
+PhysicalSourceTimeC2 for the heat trajectory
+  → physicalResolverJointC2Data_of_floor
+  → PhysicalResolverJointC2Data
+```
+
+not:
+
+```text
+3B alone → PhysicalResolverJointC2Data
+```
+
+For the heat trajectory, `PhysicalSourceTimeC2` itself should be derived from heat/floor/source coefficient estimates, but it is not just the same theorem as `heatSemigroup_jointContDiffAt_two`.
+
+## Resolver C² fields: 3C and 3D
+
+Current file:
+
+```text
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
+```
+
+The physical data package is:
+
+```lean
+structure PhysicalResolverJointC2Data
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Bt : ℕ → ℕ → ℝ) : Prop where
+  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointMajorant Bt m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant Bt m)
+```
+
+From it:
+
+```lean
+theorem coupledChemical_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) (hx : x ∈ Ioo 0 1) :
+    ContDiffAt ℝ 2
+      (fun q => intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
+      (s, x)
+```
+
+and:
+
+```lean
+theorem coupledChemical_grad_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) (hx : x ∈ Ioo 0 1) :
+    ContDiffAt ℝ 2
+      (fun q => deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
+```
+
+So the corrected dependency is:
+
+```text
+PhysicalResolverJointC2Data
+  ├─→ 3C via coupledChemical_jointContDiffAt_two
+  └─→ 3D via coupledChemical_grad_jointContDiffAt_two
+```
+
+`3D` is morally the gradient version of `3C`, but in Lean it is produced directly from `grad_summable`, not by differentiating the statement of `3C`.
+
+## Flux factor lane and 2A-core
+
+Current file:
+
+```text
+ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
+```
+
+`CoupledChemDivFluxFactorJointC2Inputs` has exactly the seven slab fields:
+
+1. per-slab source continuity,
+2. joint C² of `u`,
+3. joint C² of `v`,
+4. joint C² of `∂ₓv`,
+5. positivity `0 < 1+v`,
+6. time fderiv bridge,
+7. mixed time-derivative continuity.
+
+The flux C² step is:
+
+```lean
+coupledChemDivFlux_contDiffAt_of_factorJointC2
+  (hu_c2 x hx s hs) (hv_c2 x hx s hs) (hgradv_c2 x hx s hs)
+  (hbase x hx s hs)
+```
+
+So the intended flux-factor part is correct in this form:
+
+```text
+3B + 3C + 3D + 3E
+  → joint C² of Function.uncurry (coupledChemDivFluxLift p u)
+```
+
+But in the Level0 `2A-core` comment, the target is not merely the flux value; it is:
+
+```lean
+ContinuousOn
+  (fun q => deriv
+    (ChemDivSpatialC2.chemFluxFun p.β U_cos(q.1) V_cos(q.1)) q.2)
+  (Icc c T ×ˢ Icc 0 1)
+```
+
+That is the smooth representative for the chemDiv **source** `∂ₓ flux`. Therefore:
+
+```text
+3B + 3C + 3D + 3E
+  → flux C² / composition machinery
+  → 2A-core, after using the smooth representative and derivative/continuity transfer
+```
+
+rather than simply:
+
+```text
+3B+3C+3D → joint continuity of flux
+```
+
+## 1A is stronger than 2A-core
+
+The Level0 file states `SUB-SORRY 1A` as a uniform pointwise bound on the second derivative, obtained from joint continuity of the second derivative on the compact slab. Its comment requires:
+
+```text
+(a1) heat semigroup jointly C⁴
+(a2) resolver jointly C⁴
+(a3) chemDiv flux composition C² jointly
+(a4) secondDeriv agrees with deriv(deriv(flux))
+```
+
+So this edge in the proposed graph is too optimistic:
+
+```text
+2A-core → 1A
+```
+
+A better graph is:
+
+```text
+higher-order heat/resolver/flux representative data
+  → joint continuity of secondDeriv_s(x)
+  → compactness
+  → 1A
+```
+
+`1A` and `2A-core` share the smooth-representative strategy, but `1A` is not just “the second derivative of 2A-core” unless the higher-order version of the representative has already been proved.
+
+## 3F
+
+Current file:
+
+```text
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+```
+
+The bridge theorem is exactly:
+
+```lean
+theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (hu_c2 : ∀ x ∈ Ioo 0 1, ∀ s : ℝ,
+      ContDiffAt ℝ 2
+        (fun q => intervalDomainLift (u q.1) q.2) (s, x))
+    (hbase : ∀ s x : ℝ,
+      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x)
+    (hx : x ∈ Ioo 0 1) :
+    (fun y => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
+      (fun y => fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+        (s, y) (1, 0))
+```
+
+It uses:
+
+```text
+PhysicalResolverJointC2Data
+  → coupledChemical_jointContDiffAt_two
+  → coupledChemical_grad_jointContDiffAt_two
+  → coupledChemical_innerCommute_of_physicalJointC2
+```
+
+plus `hu_c2` and the floor. So the graph entry for `3F` is correct if expanded as:
+
+```text
+PhysicalResolverJointC2Data + 3B/hu_c2 + 3E/floor
+  → coupledChemDivFlux_timeBridge_of_physicalJointC2
+  → 3F
+```
+
+## 3G
+
+Current file:
 
 ```text
 ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
 ```
 
-So its “fields,” after `rcases H with ⟨Gmix, hGmix_cont, hagree⟩`, are:
-
-```lean
-Gmix       : ℝ × ℝ → ℝ
-hGmix_cont : Continuous Gmix
-hagree     : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-               coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
-```
-
-This is exactly the hypothesis consumed by:
+The continuity theorem is:
 
 ```lean
 theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
     (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
     ContinuousOn
       (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1)
 ```
 
-## Note on the comment vs. actual definition
-
-The docstring says agreement on the time window `Ioo (τ-δ) (τ+δ)`, but the actual definition uses the **closed** interval:
+and:
 
 ```lean
-∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1, ...
+def ChemDivMixedTimeDerivClosedRepr ... : Prop :=
+  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
+    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc 0 1,
+      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
 ```
 
-For sub-sorry 3G, the actual `Icc` version is the one that matters.
-
-## Existing producers
-
-There are producers, but I did **not** find an unconditional theorem of the form
-
-```lean
-∀ p u τ δ, ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-or anything that produces it for an arbitrary trajectory without additional analytic data. The producers all require witness/regularity inputs.
-
-### 1. Producer from `ChemDivMixedReprData`
-
-Location:
+So this part is correct:
 
 ```text
-ShenWork/PDE/IntervalChemDivMixedReprConstruct.lean
+ChemDivMixedTimeDerivClosedRepr
+  → chemDivMixedTimeDeriv_jointContinuousOn_closed
+  → 3G
 ```
 
-The structure:
+But `3G` should **not** be downstream of `3F`. The representative route is separate. The highest-level producer found earlier is:
 
 ```lean
-structure ChemDivMixedReprData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) where
-  Uc : ℝ × ℝ → ℝ
-  Utc : ℝ × ℝ → ℝ
-  Utxc : ℝ × ℝ → ℝ
-  Uxc : ℝ × ℝ → ℝ
-  Vc : ℝ × ℝ → ℝ
-  Vxc : ℝ × ℝ → ℝ
-  Vxxc : ℝ × ℝ → ℝ
-  Vtc : ℝ × ℝ → ℝ
-  Vtxc : ℝ × ℝ → ℝ
-  Vtxxc : ℝ × ℝ → ℝ
-  cont_Uc : Continuous Uc
-  cont_Utc : Continuous Utc
-  cont_Utxc : Continuous Utxc
-  cont_Uxc : Continuous Uxc
-  cont_Vc : Continuous Vc
-  cont_Vxc : Continuous Vxc
-  cont_Vxxc : Continuous Vxxc
-  cont_Vtc : Continuous Vtc
-  cont_Vtxc : Continuous Vtxc
-  cont_Vtxxc : Continuous Vtxxc
-  floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
-  agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-    coupledChemDivTimeDerivativeLift p u t x =
-      mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
+ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
 ```
 
-Producer:
-
-```lean
-theorem chemDivMixedTimeDerivClosedRepr_of_data
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (D : ChemDivMixedReprData p u τ δ) :
-    ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-What it does: sets
-
-```lean
-Gmix := mixedAlgebra p.β D.Uc D.Utc D.Utxc D.Uxc D.Vc D.Vxc D.Vxxc
-          D.Vtc D.Vtxc D.Vtxxc
-```
-
-proves `Continuous Gmix` from the ten `Continuous` fields and `floor`, then uses `D.agree` for the closed-slab equality.
-
-### 2. Producer from `ChemDivMixedReprWitnessData`
-
-Location:
+which requires:
 
 ```text
-ShenWork/PDE/IntervalChemDivMixedReprWitness.lean
+PhysicalResolverJointC2Data
++ IteratePicardJointC2Data
++ iterate gradient summability
++ floor for the resolver value series
++ boundary agreement at x=0,1
 ```
 
-There is a stronger witness structure:
-
-```lean
-structure ChemDivMixedReprWitnessData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) where
-```
-
-Its fields include the same ten representatives and their continuities:
-
-```lean
-Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc : ℝ × ℝ → ℝ
-cont_Uc cont_Utc cont_Utxc cont_Uxc : Continuous ...
-cont_Vc cont_Vxc cont_Vxxc cont_Vtc cont_Vtxc cont_Vtxxc : Continuous ...
-floor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
-```
-
-plus closed-slab value agreement fields:
-
-```lean
-Uc_eq  : Uc  (t, x) = intervalDomainLift (u t) x
-Utc_eq : Utc (t, x) = ShenWork.Paper2.PicardLimitK1.slopeSlice u t x
-Vc_eq  : Vc  (t, x) = intervalDomainLift (coupledChemicalConcentration p u t) x
-Vtc_eq : Vtc (t, x) = coupledChemicalTimeDerivativeLift p u t x
-```
-
-plus interior `HasDerivAt` fields:
-
-```lean
-hUx    : HasDerivAt (fun y => intervalDomainLift (u t) y) (Uxc (t, x)) x
-hUtx   : HasDerivAt (fun y => slopeSlice u t y) (Utxc (t, x)) x
-hVx    : HasDerivAt (fun y => intervalDomainLift (coupledChemicalConcentration p u t) y) (Vxc (t, x)) x
-hVxx   : HasDerivAt (fun y => deriv (intervalDomainLift (coupledChemicalConcentration p u t)) y) (Vxxc (t, x)) x
-hVtx   : HasDerivAt (fun y => coupledChemicalTimeDerivativeLift p u t y) (Vtxc (t, x)) x
-hVtxx  : HasDerivAt (fun y => deriv (coupledChemicalTimeDerivativeLift p u t) y) (Vtxxc (t, x)) x
-```
-
-plus interior derivative-value agreement:
-
-```lean
-Vxc_eq  : Vxc (t, x) = deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x
-Vtxc_eq : Vtxc (t, x) = deriv (coupledChemicalTimeDerivativeLift p u t) x
-```
-
-and the endpoint/boundary leg:
-
-```lean
-boundary_agree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
-  coupledChemDivTimeDerivativeLift p u t x =
-    mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
-```
-
-The file derives the closed-slab `agree` field by splitting `x ∈ Icc 0 1` into endpoints and interior:
-
-```lean
-theorem witness_agree
-    (W : ChemDivMixedReprWitnessData p u τ δ)
-    (t : ℝ) (ht : t ∈ Icc (τ - δ) (τ + δ)) (x : ℝ) (hx : x ∈ Icc (0 : ℝ) 1) :
-    coupledChemDivTimeDerivativeLift p u t x =
-      mixedAlgebra p.β W.Uc W.Utc W.Utxc W.Uxc W.Vc W.Vxc W.Vxxc
-        W.Vtc W.Vtxc W.Vtxxc (t, x)
-```
-
-Then it packages witness data into `ChemDivMixedReprData`:
-
-```lean
-def witnessData
-    (W : ChemDivMixedReprWitnessData p u τ δ) :
-    ChemDivMixedReprData p u τ δ
-```
-
-Producer:
-
-```lean
-theorem chemDivMixedTimeDerivClosedRepr_of_witness
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (W : ChemDivMixedReprWitnessData p u τ δ) :
-    ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-Implementation:
-
-```lean
-chemDivMixedTimeDerivClosedRepr_of_data (witnessData W)
-```
-
-### 3. Producer from physical resolver + iterate data
-
-Location:
+So the more accurate edge is:
 
 ```text
-ShenWork/PDE/IntervalChemDivMixedReprWitness.lean
+PhysicalResolverJointC2Data + iterate joint data + HuGrad + floor + boundary
+  → ChemDivMixedTimeDerivClosedRepr
+  → 3G
 ```
 
-Producer:
+`3F` and `3G` are siblings: they share upstream physical/heat/floor data but neither one is a prerequisite for the other.
+
+## Independent / side branches
+
+Your “independent” list is mostly right, with wording caveats:
+
+### `2A-agree`
+
+Correct. It is the agreement between `coupledChemDivSourceLift` and the smooth flux-derivative representative on `[0,1]`. The Level0 file describes it as unfolding plus the heat/resolver representation agreements. It is independent of the analytic `2A-core` continuity proof, though it still uses the representation equalities.
+
+### `3A`
+
+Mostly independent from the factor C²/Clairaut pipeline. It is the per-slab source continuity field. But analytically it still relies on the same heat/resolver smoothness and chemDiv composition facts; it is not independent of the heat trajectory itself.
+
+### `3E`
+
+Correct as a side branch. Current committed route is positivity/floor from nonnegative continuous `u` and resolver positivity:
 
 ```lean
-theorem chemDivMixedTimeDerivClosedRepr_of_mkWitness
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ}
-    {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (Hu : IteratePicardJointC2Data u c Btu)
-    (Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
-    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
-    (bdry : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
-      coupledChemDivTimeDerivativeLift p u t x =
-        mixedAlgebra p.β (valueSeriesRep c) (iterateDtValue c) (iterateDtGrad c)
-          (gradSeriesRep c) (valueSeriesRep (resolverTimeCoeff p u))
-          (gradSeriesRep (resolverTimeCoeff p u))
-          (grad2SeriesRep (resolverTimeCoeff p u)) (resolverDtValue p u)
-          (resolverDtGrad p u) (resolverDtGrad2 p u) (t, x)) :
-    ChemDivMixedTimeDerivClosedRepr p u τ δ
+coupledChemical_floor_pos_of_nonneg_continuous
 ```
 
-Implementation:
+It is not downstream of `3C`/`3D`.
 
-```lean
-chemDivMixedTimeDerivClosedRepr_of_witness (mkWitnessData H Hu Hg2u hfloor bdry)
-```
+## Corrected DAG
 
-This is a meaningful trajectory-level producer, but it is **not unconditional**: it requires resolver physical joint C² data, iterate joint C² data, iterate order-2 gradient summability, a global floor for the resolver value series, and endpoint boundary agreement.
-
-### 4. Capstone producer using iterate gradient summability field
-
-Location:
+A better dependency graph is:
 
 ```text
-ShenWork/PDE/IntervalIterateGradMajorant.lean
+A. Heat local joint C²
+   cutoff/Leibniz bound (only remaining sorry in HeatRegularity)
+     → cutoffHeatSeries_contDiff_two
+     → heatSemigroup_jointContDiffAt_two
+     → 3B / hu_c2  [positive-time local]
+
+B. Resolver physical joint C²
+   PhysicalSourceTimeC2 for the heat trajectory
+     → physicalResolverJointC2Data_of_floor
+     → PhysicalResolverJointC2Data
+        ├─→ 3C via coupledChemical_jointContDiffAt_two
+        ├─→ 3D via coupledChemical_grad_jointContDiffAt_two
+        └─→ inner commute for 3F via coupledChemical_innerCommute_of_physicalJointC2
+
+C. Flux/source joint continuity
+   3B + 3C + 3D + 3E
+     → flux joint C² / smooth composition
+     → 2A-core (joint continuity of ∂ₓ flux representative)
+   2A-agree is a separate representation-unfolding agreement.
+
+D. Uniform second-derivative bound
+   higher-order heat/resolver/flux representative data (C⁴-level, not merely 2A-core)
+     → joint continuity of second derivative on compact slab
+     → 1A
+   1B then follows from 1A by integral bound.
+
+E. Flux time bridge
+   PhysicalResolverJointC2Data + 3B/hu_c2 + 3E/floor
+     → coupledChemDivFlux_timeBridge_of_physicalJointC2
+     → 3F
+
+F. Mixed time-derivative continuity
+   PhysicalResolverJointC2Data + IteratePicardJointC2Data + HuGrad + floor + boundary
+     → ChemDivMixedTimeDerivClosedRepr
+     → chemDivMixedTimeDeriv_jointContinuousOn_closed
+     → 3G
 ```
 
-Producer:
+## Final answer
 
-```lean
-theorem chemDivMixedClosedRepr_of_iterateGradSummable
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ}
-    {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (Hu : IteratePicardJointC2Data u c Btu)
-    (HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant Btu m))
-    (hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
-    (bdry : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ ({0, 1} : Set ℝ),
-      coupledChemDivTimeDerivativeLift p u t x =
-        mixedAlgebra p.β (valueSeriesRep c) (iterateDtValue c) (iterateDtGrad c)
-          (gradSeriesRep c) (valueSeriesRep (resolverTimeCoeff p u))
-          (gradSeriesRep (resolverTimeCoeff p u))
-          (grad2SeriesRep (resolverTimeCoeff p u)) (resolverDtValue p u)
-          (resolverDtGrad p u) (resolverDtGrad2 p u) (t, x)) :
-    ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-Implementation:
-
-```lean
-chemDivMixedTimeDerivClosedRepr_of_mkWitness H Hu
-  (iterate_Hg2u_of_gradSummable HuGrad) hfloor bdry
-```
-
-This appears to be the highest-level committed producer for `ChemDivMixedTimeDerivClosedRepr`.
-
-## FAC wrapper that consumes the representative
-
-Location:
-
-```text
-ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
-```
-
-The FAC wrapper:
-
-```lean
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_cont : ∀ s : ℝ, Continuous (u s))
-    (hu_nonneg : ∀ s : ℝ, ∀ x : intervalDomainPoint, 0 ≤ u s x)
-    (other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-      (∀ᶠ s in 𝓝 τ,
-        ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-      (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-        ContDiffAt ℝ 2 (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
-      ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    CoupledChemDivFluxFactorJointC2Inputs p u
-```
-
-This does not produce `ChemDivMixedTimeDerivClosedRepr`; it expects it in `other`, then internally calls:
-
-```lean
-chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
-```
-
-## Practical closure routes
-
-### If sub-sorry 3G already has `Hrepr`
-
-```lean
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed Hrepr
-```
-
-### If it has `ChemDivMixedReprData`
-
-```lean
-have Hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ :=
-  ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data D
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed Hrepr
-```
-
-### If it has `ChemDivMixedReprWitnessData`
-
-```lean
-have Hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ :=
-  ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_witness W
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed Hrepr
-```
-
-### If it has physical resolver + iterate data
-
-```lean
-have Hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ :=
-  ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
-    H Hu HuGrad hfloor bdry
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed Hrepr
-```
-
-## Bottom line
-
-`ChemDivMixedTimeDerivClosedRepr` is an existential representative datum: a continuous `Gmix` plus closed-slab equality with `coupledChemDivTimeDerivativeLift`. The repo has multiple producers, culminating in `chemDivMixedClosedRepr_of_iterateGradSummable`, but no producer for a completely arbitrary trajectory without the honest physical resolver/iterate/floor/boundary data.
+The proposed graph is **not wrong as a high-level intuition**, but it should be adjusted before using it as a Lean closure plan. The main fixes are: make `3C` and `3D` parallel children of `PhysicalResolverJointC2Data`; do not treat `PhysicalResolverJointC2Data` as a consequence of `3B` alone; do not treat `1A` as a consequence of `2A-core` alone; and do not put `3G` after `3F`. `3F` and `3G` are separate branches sharing upstream physical/heat/floor data.
