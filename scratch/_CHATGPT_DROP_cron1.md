@@ -1,4 +1,4 @@
-# Q849 / cron1: compact maximum for `2A-sup`
+# Q852 / cron1: direct resolver joint `C²` vs `PhysicalResolverJointC2Data`
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -8,132 +8,195 @@ Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-Yes.  The pinned Mathlib has exactly:
+Yes, **in principle** you can feed resolver coefficients directly to
 
 ```lean
-IsCompact.exists_isMaxOn
+boundedWeightJointSeries_contDiff_two
 ```
 
-in
+and get joint `C²` of the resolver cosine series without first constructing
+
+```lean
+PhysicalResolverJointC2Data
+```
+
+as a named object.
+
+But this is mostly a packaging shortcut, not a mathematical shortcut.  The fields you must prove for the direct call are essentially the fields of `PhysicalResolverJointC2Data`:
+
+```lean
+∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+∀ i k t, i ≤ 2 → ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+∀ m ≤ 2, Summable (boundedWeightJointMajorant Bt m)
+```
+
+and, if you also need the spatial-gradient resolver field, the gradient analogue:
+
+```lean
+∀ m ≤ 2, Summable (boundedWeightJointGradMajorant Bt m)
+```
+
+So: **yes, direct feeding works**, but **no, it does not avoid the coefficient-time-`C²` and summable-majorant work**.  It only avoids naming the bundle.
+
+## What the repo already has
+
+The generic assembler is exactly available:
+
+```lean
+theorem boundedWeightJointSeries_contDiff_two
+    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (hc : ∀ n, ContDiff ℝ (2 : ℕ∞) (c n))
+    (hBt : ∀ (i n : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i (c n) t‖ ≤ Bt i n)
+    (hsumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant Bt k)) :
+    ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointTerm c n q)
+```
+
+The concrete resolver coefficient family is also already defined:
+
+```lean
+def resolverTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
+    ℕ → ℝ → ℝ :=
+  fun k t => (intervalNeumannResolverCoeff p (u t) k).re
+```
+
+and the repo already proves that this is just the source coefficient multiplied by the constant elliptic weight:
+
+```lean
+theorem resolverTimeCoeff_eq_weight_smul
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
+    resolverTimeCoeff p u k t =
+      intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+```
+
+So your formula
+
+```lean
+resolver coeff = source coeff / (μ + λ_k)
+```
+
+is already committed as `resolverTimeCoeff_eq_weight_smul`, with
+`intervalNeumannResolverWeight p k = 1 / (μ + λ_k)`.
+
+## Existing direct physical resolver route
+
+The file
 
 ```text
-Mathlib/Topology/Order/Compact.lean
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
 ```
 
-Its statement is:
+already does the direct resolver-series assembly from `PhysicalResolverJointC2Data`:
 
 ```lean
-theorem IsCompact.exists_isMaxOn [ClosedIciTopology α] {s : Set β}
-    (hs : IsCompact s) (ne_s : s.Nonempty) {f : β → α}
-    (hf : ContinuousOn f s) : ∃ x ∈ s, IsMaxOn f s x
+theorem coupledChemical_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo 0 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
 ```
 
-So for a real-valued continuous function on a compact box, this is the right theorem.
-
-## Repo precedent
-
-The repo already uses the exact pattern in:
-
-```text
-ShenWork/Wiener/EWA/ResolverSliceWindowBounds.lean
-```
-
-There, it sets a compact box
+Its proof is literally:
 
 ```lean
-W ×ˢ Set.Icc (0 : ℝ) 1
+have hseries : ContDiff ℝ (2 : ℕ∞)
+    (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, boundedWeightJointTerm (resolverTimeCoeff p u) k q) :=
+  boundedWeightJointSeries_contDiff_two H.coeff_contDiff
+    (fun i k t hi => H.coeff_bound i k t hi) H.value_summable
 ```
 
-proves compactness by
+and then it uses the already-proved series equality on `[0,1]`.
+
+The gradient version is also already committed:
 
 ```lean
-have hKcompact : IsCompact (W ×ˢ Set.Icc (0 : ℝ) 1) :=
-  (isCompact_Icc).prod isCompact_Icc
+theorem coupledChemical_grad_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) ... :
+    ContDiffAt ℝ 2
+      (fun q => deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
 ```
 
-proves nonemptiness, then obtains the max by:
+That one feeds the gradient bounded-weight series assembler and uses `H.grad_summable`.
+
+## What this means for the proposed shortcut
+
+If your immediate goal is only:
 
 ```lean
-obtain ⟨q₁, _, hq₁max⟩ := hKcompact.exists_isMaxOn hKne hFcont
+ContDiffAt ℝ 2
+  (fun q => intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s,x)
 ```
 
-and uses the `IsMaxOn` proof directly as:
+then a local theorem can inline `boundedWeightJointSeries_contDiff_two` and avoid constructing the `PhysicalResolverJointC2Data` value.
+
+But if your goal is the FAC/chem-div infrastructure, building `PhysicalResolverJointC2Data` is probably still the best interface, because downstream already consumes it for:
 
 ```lean
-exact hq₁max (Set.mem_prod.mpr ⟨hσ, hx⟩)
+coupledChemical_jointContDiffAt_two
+coupledChemical_grad_jointContDiffAt_two
+coupledChemical_innerCommute_of_physicalJointC2
+coupledChemDivFlux_timeBridge_of_physicalJointC2
 ```
 
-That is exactly the shape needed for `[c,T] × [0,1]`.
+Bypassing the structure means you will likely re-prove or locally duplicate these consumers.
 
-## Suggested `2A-sup` compact-bound skeleton
+## The real gap does not disappear
 
-For the smooth representative, do this over the closed compact box:
+The hard part is not the resolver series assembly.  The hard part is proving, for the heat semigroup source coefficients, the source/resolver coefficient hypotheses:
+
+1. `t ↦ srcTimeCoeff p u k t` or `t ↦ resolverTimeCoeff p u k t` is `ContDiff ℝ 2`,
+2. its first two time derivatives are the expected cosine coefficients of explicit time-derivative slices,
+3. those slices have uniform zeroth-mode bounds and `(kπ)⁻²` decay,
+4. after multiplying by the elliptic weight, the value and gradient bounded-weight majorants are summable.
+
+This is exactly why `FlooredSourceTimeData` exists.  It packages the time-Leibniz chain, joint continuity of the derivative slices, space-`C²` Neumann regularity of the three time-order slices, and the zeroth/Laplacian coefficient bounds.
+
+So proving resolver coefficient `C²` directly is equivalent to proving a lighter, resolver-specific version of `FlooredSourceTimeData` / `PhysicalSourceTimeC2`.
+
+## Important local/global caveat
+
+`boundedWeightJointSeries_contDiff_two` is a **global** `ContDiff` theorem for the uncut series.  For the heat semigroup on a positive window `[c,T]`, raw exponential coefficients are well-behaved only after localizing away from `t = 0` / negative time.  The heat semigroup joint-regularity file solves this with a smooth time cutoff.
+
+So for a heat-semigroup standalone theorem, there are two viable designs:
+
+### Option A: produce `PhysicalResolverJointC2Data` under a globally smooth/cutoff coefficient family
+
+This fits the existing consumer API but may require defining a cutoff heat trajectory or proving enough global-in-time bounds.
+
+### Option B: prove a positive-window/local resolver theorem directly
+
+This is likely shorter for level 0:
 
 ```lean
-set K : Set (ℝ × ℝ) := Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1
-set G : ℝ × ℝ → ℝ := fun q => |smoothRep q.1 q.2|
-
-have hKcompact : IsCompact K := by
-  simpa [K] using (isCompact_Icc.prod isCompact_Icc)
-
-have hKne : K.Nonempty := by
-  refine ⟨(c, 0), ?_⟩
-  exact Set.mem_prod.mpr ⟨Set.left_mem_Icc.mpr hcT, by norm_num⟩
-
-have hGcont : ContinuousOn G K := by
-  -- from joint continuity of `smoothRep`, composed with `abs`
-  -- e.g. `exact hSmooth.continuousOn.abs` or a small `simpa [G]` variant
-  ...
-
-obtain ⟨qmax, hqmax_mem, hqmax⟩ := hKcompact.exists_isMaxOn hKne hGcont
-
-refine ⟨G qmax, ?_, ?_⟩
-· exact abs_nonneg _
-· intro s hs x hx
-  -- For the smooth representative itself:
-  have hle_smooth : |smoothRep s x| ≤ G qmax := by
-    simpa [G] using hqmax (Set.mem_prod.mpr ⟨hs, hx⟩)
-  ...
+theorem heatResolver_jointContDiffAt_two_direct
+    {c T : ℝ} (hc : 0 < c) ...
+    {s x : ℝ} (hs : c < s) (hx : x ∈ Ioo (0:ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p
+          (conjugatePicardIter p u₀ 0) q.1) q.2) (s, x) := by
+  -- use cutoff/localized resolver coefficients
+  -- feed boundedWeightJointSeries_contDiff_two to the cutoff series
+  -- use eventual equality near `(s,x)` to return to the real resolver series
 ```
 
-For `2A-sup`, the last `...` splits on the spatial point:
+This mirrors `heatSemigroup_jointContDiffAt_two`: prove global `ContDiff` of a cutoff series, then use eventual equality near positive `s`.
 
-```lean
-by_cases hxIoo : x ∈ Set.Ioo (0 : ℝ) 1
-```
+## Recommendation
 
-* Interior: rewrite `coupledChemDivSourceLift ... s x` to `smoothRep s x`, using the interior agreement (`coupledChemDivSourceLift_eq_deriv_fluxLift_interior` plus the definition of the smooth representative).
-* Boundary: from `x ∈ Icc 0 1` and `¬ x ∈ Ioo 0 1`, derive `x = 0 ∨ x = 1`; then use the endpoint fact that the zero-extension derivative/source value is `0`, so the absolute value is `0 ≤ G qmax`.
+For a standalone heat-semigroup result, do **not** route through `DuhamelSourceTimeC2Coeff` or the old eigen-cube ladder.
 
-A useful boundary splitter is:
+The shortest robust plan is:
 
-```lean
-have hx_boundary : x = 0 ∨ x = 1 := by
-  rcases hx with ⟨hx0, hx1⟩
-  rw [Set.mem_Ioo, not_and_or, not_lt, not_lt] at hxIoo
-  rcases hxIoo with hxle0 | hxge1
-  · exact Or.inl (le_antisymm hxle0 hx0)
-  · exact Or.inr (le_antisymm hx1 hxge1)
-```
+1. Define the heat-level resolver coefficient family, preferably reusing
+   `resolverTimeCoeff p (conjugatePicardIter p u₀ 0)`.
+2. Prove a heat/window coefficient package:
+   `ContDiff`/`ContDiffAt` in time up to order 2 plus bounded-weight summable majorants.
+3. Feed that package directly to `boundedWeightJointSeries_contDiff_two` (value) and `boundedWeightJointGradSeries_contDiff_two` (gradient), using a cutoff if the theorem is local on `s > c`.
+4. If downstream wants existing FAC lemmas, wrap the same package as `PhysicalResolverJointC2Data`; otherwise inline the assembler in a local direct theorem.
 
-## Important caveat
-
-The compact maximum theorem gives a max for a **continuous** function on the **closed box**.  For this route, apply it to the smooth representative's absolute value:
-
-```lean
-G(s,x) = |smoothRep s x|
-```
-
-not to `|coupledChemDivSourceLift ... s x|`, because the latter is exactly the closed-boundary discontinuous object.
-
-## Answer to the route
-
-Your 5-step route is right, with this Lean-side wording:
-
-1. Prove joint `ContinuousOn` of `smoothRep` on `Set.Icc c T ×ˢ Set.Icc 0 1`.
-2. Apply `IsCompact.exists_isMaxOn` to `G q = |smoothRep q.1 q.2|` over that compact box.
-3. Interior points: transfer by source/smooth-representative agreement on `Ioo 0 1`.
-4. Boundary points: prove/consume the endpoint lemma that `coupledChemDivSourceLift ... s 0 = 0` and `... s 1 = 0`.
-5. Use the max value `G qmax` as `Msup`.
-
-This is also aligned with the current `hSup` comment in `IntervalConjugateLevel0BFormSourceOn.lean`: `2A-sup` is now a sup-bound problem, not a `ContinuousOn` problem for the actual source lift.
+Bottom line: **direct feeding is technically valid and may be the right level-0 shortcut, but it does not eliminate the source coefficient time-`C²` problem.  It replaces `FlooredSourceTimeData` with an equivalent heat-specific coefficient package.**
