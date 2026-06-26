@@ -826,7 +826,36 @@ theorem heatSemigroup_level0_resolverJointC2Data
     (hu₀_cont : Continuous u₀) :
     ∃ Bt : ℕ → ℕ → ℝ,
       PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
-  sorry
+  -- Existentially introduce the bound family; each field sorry'd separately.
+  -- The concrete `Bt` will combine:
+  --   • `intervalNeumannResolverWeight p k` (elliptic weight ≤ 1/μ),
+  --   • eigenvalue decay `(kπ)⁻²` from IBP of `C²`-in-`x` Neumann source slices,
+  --   • rpow chain-rule envelopes for the time-derivative slices s₁, s₂.
+  -- For now, sorry the witness itself and refine the 4 fields individually.
+  refine ⟨fun _i _k => sorry, ?coeff_contDiff, ?coeff_bound, ?value_summable, ?grad_summable⟩
+  case coeff_contDiff =>
+    -- SUB-SORRY A: each `resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k` is `C²`.
+    -- Route: heat semigroup smoothing gives `S(t)u₀` is `C⁴` in `x` for `t > 0`,
+    -- positivity floor gives `ν·u^γ` smooth via rpow chain rule,
+    -- `srcTimeCoeff` differentiability via `FlooredSourceTimeData.src_contDiff`.
+    intro k; sorry
+  case coeff_bound =>
+    -- SUB-SORRY B: `‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k`.
+    -- Route: `resolverTimeCoeff = wₖ · srcTimeCoeff`, so bound factors as
+    -- `wₖ · (envelope_i k)` where `envelope_i` comes from IBP decay `(kπ)⁻²ⁱ`
+    -- of the i-th time-derivative slice of `ν·(S(t)u₀)^γ`.
+    intro i k t hi; sorry
+  case value_summable =>
+    -- SUB-SORRY C: `Summable (boundedWeightJointMajorant Bt m)` for `m ≤ 2`.
+    -- Route: `boundedWeightJointMajorant Bt m k = ∑ i in range (m+1), valueCosWeight i k * Bt i k`.
+    -- Each summand has `wₖ · (kπ)⁻²ⁱ · envelope_i(k)`, and the elliptic weight
+    -- `wₖ ≤ 1/μ` combined with `(kπ)⁻²` decay yields summability.
+    intro m hm; sorry
+  case grad_summable =>
+    -- SUB-SORRY D: `Summable (boundedWeightJointGradMajorant Bt m)` for `m ≤ 2`.
+    -- Route: same as value_summable but with an extra `λ_k = (kπ)²` eigenvalue
+    -- factor; the `(kπ)⁻²` IBP decay absorbs it, leaving summability.
+    intro m hm; sorry
 
 /-- **Joint `ContDiffAt ℝ 2`** of the resolver coupled concentration at the heat
 semigroup base iterate `conjugatePicardIter p u₀ 0`, at any interior space
