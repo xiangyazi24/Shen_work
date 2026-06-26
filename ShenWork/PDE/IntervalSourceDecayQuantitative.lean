@@ -114,4 +114,60 @@ theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
         mul_le_mul_of_nonneg_left hraw_bound (by norm_num)
     _ = 2 * B / ((k : ℝ) * Real.pi) ^ 2 := by ring
 
+/-! ## Depth-2 quartic decay from iterated weak H² Neumann -/
+
+/-- **Quartic coefficient decay** from a depth-2 weak H² Neumann tower:
+if `f` and `f''` both carry `IntervalWeakH2Neumann` certificates, then
+`|cosineCoeffs f k| ≤ 2·B₂ / (kπ)⁴` for `k ≥ 1`, where `B₂` is an `L¹`
+bound on the fourth derivative `f⁴`.
+
+**Proof.** Depth-1 identity: `cosineCoeffs(f) k = -cosineCoeffs(f'') k / (kπ)²`.
+Depth-1 quadratic decay of `f''`: `|cosineCoeffs(f'') k| ≤ 2B₂/(kπ)²`.
+Substitute: `|cosineCoeffs(f) k| ≤ 2B₂/(kπ)⁴`. -/
+theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv)
+    {B₂ : ℝ} (hB₂ : (∫ x in (0:ℝ)..1, |hf''.secondDeriv x|) ≤ B₂) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B₂ / ((k : ℝ) * Real.pi) ^ 4 := by
+  intro k hk
+  have hk_ne : k ≠ 0 := by omega
+  have hk_pos : (0 : ℝ) < (k : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk
+  have hlam_pos : 0 < ((k : ℝ) * Real.pi) ^ 2 := by positivity
+  have hlam_ne : ((k : ℝ) * Real.pi) ^ 2 ≠ 0 := ne_of_gt hlam_pos
+  -- From the weak cosine Laplacian identity:
+  -- ∫ cos(kπx) f''(x) dx = -(kπ)² ∫ cos(kπx) f(x) dx
+  -- For k ≥ 1, cosineCoeffs g k = 2 * ∫ cos(kπx) g(x) dx
+  -- So cosineCoeffs(f'') k = -(kπ)² * cosineCoeffs(f) k
+  -- Hence |cosineCoeffs f k| = |cosineCoeffs(f'') k| / (kπ)²
+  have hweak := hf.weak_cosine_laplacian k
+  -- Extract: cosineCoeffs f k = -cosineCoeffs(f'') k / (kπ)²
+  -- Both cosineCoeffs are 2 * raw, so the factor 2 cancels
+  set raw_f : ℝ := ∫ x in (0:ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
+  have hraw_rel : raw_f = -(1 / ((k : ℝ) * Real.pi) ^ 2) *
+      ∫ x in (0:ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * hf.secondDeriv x := by
+    have := hweak; field_simp [hlam_ne] at this ⊢; linarith
+  -- |cosineCoeffs f k| ≤ |cosineCoeffs(f'') k| / (kπ)²
+  -- Since cosineCoeffs f k = 2 * raw_f = -2/(kπ)² * raw_f'' = -cosineCoeffs(f'')/( kπ)²
+  -- we get |cosineCoeffs f k| = |cosineCoeffs(f'') k| / (kπ)²
+  -- Quadratic decay of f'': |cosineCoeffs(f'') k| ≤ 2B₂/(kπ)²
+  have hdecay_f'' :=
+    intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound hf'' hB₂ k hk
+  -- Direct bound: |cosineCoeffs f k| = 2|raw_f| = 2 · |raw_f''|/(kπ)²
+  --   ≤ 2 · (B₂/(kπ)²) / (kπ)² = 2B₂/(kπ)⁴
+  -- We use the fact that |raw_f''| ≤ B₂/(kπ)² from the quadratic decay of f''
+  -- divided by the factor 2 (since cosineCoeffs = 2 * raw)
+  sorry
+
+/-- **Eigenvalue-weighted L¹ summability** from depth-2 weak H² Neumann tower.
+Feeds `resolverCoeff_eigenSq_summable_of_sourceEigenL1` for resolver C⁴. -/
+theorem intervalWeakH4Neumann_eigenvalue_L1_summable
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
+    Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|) := by
+  -- From weak_cosine_laplacian: cosineCoeffs(f'') k = -(kπ)² cosineCoeffs(f) k.
+  -- So λ_k |cosineCoeffs f k| = |cosineCoeffs(f'') k|.
+  -- The RHS is summable by quadratic decay of f'' from hf''.
+  sorry
+
 end ShenWork.IntervalSourceDecayQuantitative
