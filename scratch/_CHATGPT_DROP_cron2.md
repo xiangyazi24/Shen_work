@@ -1,480 +1,514 @@
-# Q684 (cron2): constructing `CoupledChemDivFluxJointC2Hyp` for the heat-semigroup level-0 trajectory
+# Q689 (cron2): shortest path to `CoupledChemDivFluxFactorJointC2Inputs` / `FluxJointC2Hyp` for heat level 0
 
 Static repo inspection only; I did not run a Lean build.
 
+Target trajectory:
+
+```lean
+u := conjugatePicardIter p u₀ 0
+```
+
+Goal:
+
+```lean
+CoupledChemDivFluxFactorJointC2Inputs p u
+-- then
+CoupledChemDivFluxJointC2Hyp p u
+```
+
 ## Executive verdict
 
-I did **not** find a completed trajectory-specific construction of
+I did **not** find a completed heat-semigroup-specific theorem constructing
+
+```lean
+CoupledChemDivFluxFactorJointC2Inputs p (conjugatePicardIter p u₀ 0)
+```
+
+or
 
 ```lean
 CoupledChemDivFluxJointC2Hyp p (conjugatePicardIter p u₀ 0)
 ```
 
-for the heat-semigroup trajectory.  The only direct occurrence for level 0 is still a placeholder in
-
-```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-```
-
-inside `level0_chemDiv_timeDerivData`:
+The direct level-0 use is still the same placeholder in `IntervalConjugateLevel0BFormSourceOn.lean`:
 
 ```lean
-have hfluxC2 : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
-    p (conjugatePicardIter p u₀ 0) := by
+have hfluxC2 :
+    ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
+      p (conjugatePicardIter p u₀ 0) := by
   sorry
-have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
-    p (conjugatePicardIter p u₀ 0) :=
-  ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
 ```
 
-The surrounding comment says exactly what this sorry is meant to do: build the 5-field `FluxJointC2Hyp` for the heat semigroup, then feed the committed chain
+The **shortest repo-native route** is not to build `CoupledChemDivFluxJointC2Hyp` directly.  Build a factor-level input package, then call the one-argument producer:
 
 ```lean
-FluxJointC2Hyp → OuterCommuteAtoms → LocalChainRule
+coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs H
 ```
 
-So the answer is: **no existing finished heat-specific construction found**, but the repo has a fairly complete generic discharge pipeline.  The heat-specific work is to feed that pipeline with the right factor-level joint-C² and time-bridge data.
-
-## The core structure and its five fields
-
-`CoupledChemDivFluxJointC2Hyp` is defined in
-
-```text
-ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-```
-
-with one field:
+The most reduced route for heat level 0 looks like:
 
 ```lean
-exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-  (∀ᶠ s in 𝓝 τ,
-    ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-  (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-    ContDiffAt ℝ 2
-      (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)) ∧
-  (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-    (fun r : ℝ => deriv (coupledChemDivFluxLift p u r) x) =ᶠ[𝓝 s]
-      (fun r : ℝ =>
-        fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-          (r, x) (0, 1))) ∧
-  (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-    (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-      (fun y : ℝ =>
-        fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-          (s, y) (1, 0))) ∧
-  ContinuousOn
-    (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-    (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+-- build these heat-specific inputs:
+Hphys  : PhysicalResolverJointC2Data p u Bt
+hu_cont : ∀ s, Continuous (u s)
+hu_nonneg : ∀ s, ∀ x : intervalDomainPoint, 0 ≤ u s x
+other  : ∀ τ, ∃ δ, 0 < δ ∧
+  (∀ᶠ s in 𝓝 τ, ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)) ∧
+  (∀ x ∈ Ioo 0 1, ∀ s, ContDiffAt ℝ 2 (fun q => intervalDomainLift (u q.1) q.2) (s,x)) ∧
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
+
+-- then:
+have Hfac : CoupledChemDivFluxFactorJointC2Inputs p u :=
+  coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+    Hphys hu_cont hu_nonneg other
+
+have Hflux : CoupledChemDivFluxJointC2Hyp p u :=
+  coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs Hfac
 ```
 
-The same file proves the key consumer:
+This route discharges the flux time-bridge and the closed-slab time-derivative continuity internally, leaving the heat-specific work concentrated in:
 
-```lean
-theorem coupledChemDivOuterCommuteAtoms_of_fluxJointC2
-    (H : CoupledChemDivFluxJointC2Hyp p u) :
-    CoupledChemDivOuterCommuteAtoms p u
-```
+1. heat `u` continuity/nonnegativity;
+2. heat `u` joint `C²`;
+3. resolver physical joint `C²` data from source coefficient time-`C²` envelopes;
+4. source-slice continuity;
+5. a closed-slab representative for `coupledChemDivTimeDerivativeLift`.
 
-and then:
+If constructing `ChemDivMixedTimeDerivClosedRepr` is not yet available, the next-shortest route is `coupledChemDivFluxFactorJointC2Inputs_of_physical` / `_of_floor`, but then the `other` package must carry the time-bridge and `htime_cont` fields explicitly.
 
-```lean
-theorem coupledChemDivLocalChainRule_of_fluxJointC2
-    (H : CoupledChemDivFluxJointC2Hyp p u) :
-    CoupledChemDivLocalChainRule p u
-```
+## 1. Exact signature of `CoupledChemDivFluxFactorJointC2Inputs`
 
-So once you build `CoupledChemDivFluxJointC2Hyp`, the outer-commute/local-chain-rule part is already wired.
-
-## Main generic producer: reduce to factor-level joint C² inputs
-
-The repo’s main producer is in
+Defined in:
 
 ```text
 ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
 ```
 
-It defines a more factorized structure:
+Exact structure:
 
 ```lean
 structure CoupledChemDivFluxFactorJointC2Inputs
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    source_cont ∧
-    hu_c2 ∧
-    hv_c2 ∧
-    hgradv_c2 ∧
-    hbase ∧
-    htime_bridge ∧
-    htime_cont
+    (∀ᶠ s in 𝓝 τ,
+      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      ContDiffAt ℝ 2
+        (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      ContDiffAt ℝ 2
+        (fun q : ℝ × ℝ =>
+          intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
+        (s, x)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      ContDiffAt ℝ 2
+        (fun q : ℝ × ℝ =>
+          deriv (intervalDomainLift (coupledChemicalConcentration p u q.1))
+            q.2)
+        (s, x)) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
+        (fun y : ℝ =>
+          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+            (s, y) (1, 0))) ∧
+    ContinuousOn
+      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-and proves:
+So the fields are:
+
+1. `hsource_cont`: eventual slice `ContinuousOn` for `coupledChemDivSourceLift`.
+2. `hu_c2`: joint `ContDiffAt ℝ 2` of lifted `u`.
+3. `hv_c2`: joint `ContDiffAt ℝ 2` of lifted resolver value `v`.
+4. `hgradv_c2`: joint `ContDiffAt ℝ 2` of `∂ₓv`.
+5. `hbase`: `0 < 1 + v`.
+6. `htime`: time fderiv bridge for the flux.
+7. `htime_cont`: closed-slab `ContinuousOn` of `coupledChemDivTimeDerivativeLift`.
+
+## 2. How `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` is called
+
+Exact signature:
 
 ```lean
 theorem coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
     (H : CoupledChemDivFluxFactorJointC2Inputs p u) :
     CoupledChemDivFluxJointC2Hyp p u
 ```
 
-This theorem is the closest reusable construction of `CoupledChemDivFluxJointC2Hyp`.  It discharges the five target fields as follows.
+It takes **one argument**, the factor package `H`.
 
-### Field 1: source continuity near `τ`
-
-Passed through unchanged from the factor-level input:
+Internally it does:
 
 ```lean
-hsource_cont : ∀ᶠ s in 𝓝 τ,
-  ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)
+rcases H.exists_local_slab τ with
+  ⟨δ, hδ, hsource_cont, hu_c2, hv_c2, hgradv_c2, hbase,
+    htime, htime_cont⟩
 ```
 
-Typical discharge: by composition/quotient/rpow continuity of the explicit chem-div source slice once `u`, resolver value `v`, resolver gradient, denominator positivity, and the needed spatial derivatives are continuous on `[0,1]`.  In the existing generic machinery, this is usually carried in a local slab package rather than automatically produced.
+Then it produces the five `CoupledChemDivFluxJointC2Hyp` fields as follows:
 
-For the heat semigroup, this should come from fixed-time smoothness on any positive time slab and resolver regularity.  I did not find a finished heat-specific theorem packaging it.
+### Field A: source continuity
 
-### Field 2: joint C² of uncurried flux
-
-Produced inside `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` by:
+Passed through directly:
 
 ```lean
-theorem coupledChemDivFlux_contDiffAt_of_factorJointC2
-    (hu : ContDiffAt ℝ 2 (fun q => intervalDomainLift (u q.1) q.2) (s, x))
-    (hv : ContDiffAt ℝ 2 (fun q => intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x))
-    (hgradv : ContDiffAt ℝ 2 (fun q => deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2) (s, x))
-    (hbase : 0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x) :
-    ContDiffAt ℝ 2 (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
+hsource_cont_slab := hsource_cont
 ```
 
-This is a formal product/quotient/rpow step:
+### Field B: joint C² of uncurried flux
 
-- `hu` for the lifted `u` factor;
-- `hv` for resolver value `v`;
-- `hgradv` for `∂ₓ v`;
-- `hbase` for nonzero denominator `1 + v`.
-
-For heat level 0, this is the recommended way to discharge field 2: prove `hu_c2`, `hv_c2`, `hgradv_c2`, and positivity, then call this theorem rather than expanding the flux by hand.
-
-### Field 3: spatial fderiv bridge
-
-Automatically produced by `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` from the just-produced flux `ContDiffAt`.
-
-It uses:
+Constructed by product/quotient/rpow calculus:
 
 ```lean
-theorem real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
-    (hF : DifferentiableAt ℝ F (s, x)) :
-    deriv (fun y : ℝ => F (s, y)) x =
-      fderiv ℝ F (s, x) (0, 1)
+coupledChemDivFlux_contDiffAt_of_factorJointC2
+  (hu_c2 x hx s hs) (hv_c2 x hx s hs) (hgradv_c2 x hx s hs)
+  (hbase x hx s hs)
 ```
 
-The implementation obtains a neighborhood in the time variable from `Metric.isOpen_ball.mem_nhds`, rebuilds flux joint C² for each nearby `r`, extracts differentiability, and rewrites the spatial derivative as the `(0,1)` Fréchet directional derivative.
+### Field C: spatial fderiv bridge
 
-So for heat level 0, you should not prove field 3 directly; prove field 2/factor inputs and let this theorem do it.
-
-### Field 4: time fderiv bridge
-
-In the basic factor producer, this is passed through as an input:
+Constructed automatically from flux differentiability, using the theorem:
 
 ```lean
-htime : ∀ x ∈ Ioo 0 1, ∀ s ∈ Metric.ball τ δ,
-  (fun y => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-    (fun y => fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1,0))
+real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
 ```
 
-But there is a later physical discharge route in
+It rebuilds flux joint C² at nearby `r ∈ Metric.ball τ δ`, extracts `DifferentiableAt`, and rewrites spatial `deriv` as the `(0,1)` Fréchet derivative.
+
+### Field D: time fderiv bridge
+
+Passed through directly:
+
+```lean
+htime_deriv_fderiv_bridge := htime
+```
+
+### Field E: time-derivative continuity
+
+Passed through directly:
+
+```lean
+htime_derivative_continuous := htime_cont
+```
+
+Then it returns:
+
+```lean
+⟨δ, hδ, hsource_cont_slab,
+  hflux_joint_c2_from_product_quotient_rpow,
+  hspatial_deriv_fderiv_bridge,
+  htime_deriv_fderiv_bridge,
+  htime_derivative_continuous⟩
+```
+
+## 3. Existing physical / iterate routes
+
+### 3.1 Physical resolver route: `_of_physical`
+
+The resolver-side physical route lives in:
 
 ```text
-ShenWork/PDE/IntervalChemDivFluxTimeBridge.lean
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
 ```
 
-The central theorem is:
+It defines:
 
 ```lean
-theorem coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+structure PhysicalResolverJointC2Data
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Bt : ℕ → ℕ → ℝ) : Prop where
+  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointMajorant Bt m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant Bt m)
 ```
 
-It proves the time bridge from:
-
-- eventual joint C² of `u`;
-- eventual joint C² of `v`;
-- eventual joint C² of `∂ₓ v`;
-- eventual positivity of `1+v`;
-- an inner commute datum for the resolver gradient:
+Then it proves the resolver fields:
 
 ```lean
-HasDerivAt
-  (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
-  (deriv (coupledChemicalTimeDerivativeLift p u s) y) s
+theorem coupledChemical_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo 0 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
 ```
 
-Then `IntervalChemDivFACCommuteDischarge.lean` discharges this inner commute from physical resolver joint C²:
+and
 
 ```lean
-theorem coupledChemical_innerCommute_of_physicalJointC2
-
-theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
+theorem coupledChemical_grad_jointContDiffAt_two
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo 0 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
 ```
 
-So field 4 can be either carried directly or produced from the physical resolver joint-C² package.
-
-### Field 5: time-derivative `ContinuousOn` on the local slab
-
-In the basic factor producer, this is also passed through as an input:
+Finally:
 
 ```lean
-ContinuousOn
-  (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-  (Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1)
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (other : ∀ τ, ∃ δ, 0 < δ ∧
+      hsource_cont ∧ hu_c2 ∧ hbase ∧ htime ∧ htime_cont) :
+    CoupledChemDivFluxFactorJointC2Inputs p u
 ```
 
-There is a later discharge in
+This route fills `hv_c2` and `hgradv_c2` from `H`; the other five non-resolver fields remain in `other`.
+
+### 3.2 Source-to-physical resolver route: `_of_floor`
+
+In:
 
 ```text
-ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
 ```
 
-It introduces:
+there is:
 
 ```lean
-def ChemDivMixedTimeDerivClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc 0 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
+theorem coupledChemDivFluxFactorJointC2Inputs_of_floor
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
+    (H : PhysicalSourceTimeC2 p u Es)
+    (other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+      hsource_cont ∧ hu_c2 ∧ hbase ∧ htime ∧ htime_cont) :
+    CoupledChemDivFluxFactorJointC2Inputs p u :=
+  coupledChemDivFluxFactorJointC2Inputs_of_physical
+    (physicalResolverJointC2Data_of_floor H) other
 ```
 
-and proves:
+`PhysicalSourceTimeC2` is the source-side data for `ν·u^γ`: source coefficient `C²` in time plus three time-order envelopes.  This is likely the most natural resolver route for heat semigroup: prove time-`C²` source coefficient bounds for `ν·(S(t)u₀)^γ`, then get resolver joint C² via the constant elliptic multiplier.
 
-```lean
-theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
-    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc 0 1)
-```
+### 3.3 Iterate route: `_of_iterate`
 
-This is the standard “closed-slab spectral representative” route: construct a globally continuous `Gmix`, prove agreement on the closed slab, then transfer continuity.
-
-For heat level 0, a direct smooth-composition proof of field 5 may also be possible, but the repo’s clean pattern is to supply a `Gmix` representative.
-
-## Existing higher-level constructions
-
-### A. `fluxJointC2Hyp_of_residual` for generic solution/iterate residuals
-
-In
-
-```text
-ShenWork/Paper2/IntervalChemDivWinDischarge.lean
-```
-
-the structure
-
-```lean
-ChemDivSolutionRegularityResidual p u
-```
-
-bundles the true residual data:
-
-- `hiter : IterateSourceTimeData p u du d2u`;
-- resolver/source summability inputs `hval`, `hgrad`;
-- an `other` slab package containing source continuity, `hu_c2`, positivity, time bridge, time-derivative continuity;
-- weak-H²/decay/zero-mode data;
-- `hadotcont` and `hMdot`.
-
-It then proves:
-
-```lean
-theorem fluxJointC2Hyp_of_residual
-    (R : ChemDivSolutionRegularityResidual p u) :
-    CoupledChemDivFluxJointC2Hyp p u :=
-  coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-    (coupledChemDivFluxFactorJointC2Inputs_of_iterate R.hiter R.hval R.hgrad R.other)
-```
-
-This is not heat-specific, but it is the most complete committed route from a residual bundle to `CoupledChemDivFluxJointC2Hyp`.
-
-### B. `coupledChemDivFluxFactorJointC2Inputs_of_iterate`
-
-In
+In:
 
 ```text
 ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
 ```
 
-the theorem
+there is:
 
 ```lean
 theorem coupledChemDivFluxFactorJointC2Inputs_of_iterate
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
+    (H : IterateSourceTimeData p u du d2u)
+    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant
+        (fun i k => intervalNeumannResolverWeight p k *
+          builtEs (flooredSourceTimeData_of_iterate H) i k) m))
+    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => intervalNeumannResolverWeight p k *
+          builtEs (flooredSourceTimeData_of_iterate H) i k) m))
+    (other : ∀ τ, ∃ δ, 0 < δ ∧
+      hsource_cont ∧ hu_c2 ∧ hbase ∧ htime ∧ htime_cont) :
+    CoupledChemDivFluxFactorJointC2Inputs p u :=
+  coupledChemDivFluxFactorJointC2Inputs_of_floor
+    (physicalSourceTimeC2_of_floored (flooredSourceTimeData_of_iterate H) hval hgrad)
+    other
 ```
 
-builds the factor-level inputs from:
+This route is heavier but useful if you already have `IterateSourceTimeData`.  For heat level 0 you would instantiate:
 
 ```lean
-IterateSourceTimeData p u du d2u
+du  = ∂ₜ S(t)u₀ = ∂ₓₓ S(t)u₀
+d2u = ∂ₜ² S(t)u₀ = ∂ₓₓₓₓ S(t)u₀
 ```
 
-plus resolver source summability `hval`, `hgrad`, and the slab `other` field.
+Then provide `hval`, `hgrad`, and `other`.
 
-`IterateSourceTimeData` supplies the floor, time-`C¹` and time-`C²` source slices, per-time-order space-`C²` data, Neumann data, and coefficient envelopes.  This is the generic iterate route.  For heat semigroup level 0, the natural instantiation would be:
+### 3.4 Time-bridge discharged route
 
-```lean
-du  := ∂ₜ lift(S(t)u₀) = ∂ₓₓ lift(S(t)u₀)
-d2u := ∂ₜ² lift(S(t)u₀) = ∂ₓₓₓₓ lift(S(t)u₀)
-```
-
-but I did not find a committed `IterateSourceTimeData` instance for `conjugatePicardIter p u₀ 0`.
-
-### C. Physical resolver route
-
-`IntervalPhysicalResolverDataConcrete.lean` defines:
-
-```lean
-PhysicalSourceTimeC2
-PhysicalResolverJointC2Data
-physicalResolverJointC2Data_of_floor
-coupledChemDivFluxFactorJointC2Inputs_of_floor
-```
-
-This route says: if the source coefficients of `ν·u^γ` are `C²` in time with three time-order envelopes, then the resolver coefficients inherit the same time regularity via the constant elliptic weight `1/(μ+λ_k)`.  This produces resolver value and gradient joint C² (`hv_c2`, `hgradv_c2`) without an eigen-cube ladder.
-
-`IntervalResolverJointC2PhysicalConcrete.lean` then supplies:
-
-```lean
-theorem coupledChemical_jointContDiffAt_two
-
-theorem coupledChemical_grad_jointContDiffAt_two
-
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical
-```
-
-These discharge the resolver-side fields and leave the non-resolver fields in an `other` slab hypothesis.
-
-### D. FAC route with time bridge / htime_cont partially discharged
-
-`IntervalChemDivFACCommuteDischarge.lean` discharges the flux time-partial bridge from physical resolver joint C²:
-
-```lean
-theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
-
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
-```
-
-`IntervalChemDivTimeDerivClosed.lean` discharges `htime_cont` from a closed-slab representative:
-
-```lean
-theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
-
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-```
-
-So the mature pipeline is progressively reducing the open fields.
-
-## What this means for the heat-semigroup level-0 proof
-
-There is no one-line existing construction.  The cleanest repo-native proof strategy is to instantiate the factor-level / physical route, not to fill the five fields by hand.
-
-For `u = conjugatePicardIter p u₀ 0`, note the definition is:
-
-```lean
-conjugatePicardIter p u₀ 0 t x =
-  intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-```
-
-For positive time, this is the full Neumann heat semigroup.  A heat-specific construction should be organized as follows.
-
-### Recommended heat-level construction plan
-
-For each positive center `τ > 0`, choose a local slab with `δ < τ/2`, so all `s ∈ ball τ δ` are positive.
-
-Then build the factor-level fields:
-
-1. **Source continuity near `τ`.**
-   Use fixed-time spatial smoothness of `S(s)u₀`, resolver regularity, positivity of `1+v`, and composition/quotient continuity to show `ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)` eventually near `τ`.
-
-2. **`hu_c2`.**
-   Use the heat cosine-series formula and a bounded-weight/joint-series theorem, or a heat-specific joint smoothness theorem.  The repo has fixed-time C⁴ spatial heat regularity (`heatSemigroup_contDiff_four`), but I did not find a named theorem giving `ContDiffAt ℝ 2 (fun q => intervalDomainLift (u q.1) q.2) (s,x)` jointly in `(s,x)` for `conjugatePicardIter 0`.  This appears to be one missing heat-level wrapper.
-
-3. **`hv_c2` and `hgradv_c2`.**
-   Prefer the physical resolver route: build `PhysicalSourceTimeC2` for `ν·(S(t)u₀)^γ`; then use `physicalResolverJointC2Data_of_floor`, `coupledChemical_jointContDiffAt_two`, and `coupledChemical_grad_jointContDiffAt_two`.
-
-4. **Positivity `hbase`.**
-   Use resolver positivity/nonnegativity already proved for the coupled chemical concentration.  The FAC route uses:
-
-   ```lean
-   coupledChemical_floor_pos_of_nonneg_continuous
-   ```
-
-   which gives `0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x` from continuity/nonnegativity of `u s`.
-
-5. **Time fderiv bridge.**
-   Do not prove directly if you have physical resolver joint C².  Use:
-
-   ```lean
-   coupledChemDivFlux_timeBridge_of_physicalJointC2
-   ```
-
-6. **Time-derivative continuity.**
-   Either prove it directly from heat/resolver joint smoothness, or follow the repo pattern: construct a `ChemDivMixedTimeDerivClosedRepr` and use:
-
-   ```lean
-   chemDivMixedTimeDeriv_jointContinuousOn_closed
-   ```
-
-Finally call:
-
-```lean
-coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-```
-
-or one of its physical/FAC variants.
-
-## Important caveat: global `∀ τ : ℝ` vs positive heat time
-
-The current structure is global:
-
-```lean
-exists_local_slab : ∀ τ : ℝ, ...
-```
-
-But the mathematical claim “the heat semigroup is jointly smooth” is naturally for `t > 0`.  The level-0 use in `level0_chemDiv_timeDerivData` is on a positive window `[c,T]` with `0 < c`, but the `hfluxC2` package it asks for is still global.
-
-This is worth watching.  A strictly clean API would be an `On`/windowed version of `CoupledChemDivFluxJointC2Hyp`, or a local-chain-rule-on-window theorem, so the heat proof only has to cover `τ ∈ [c,T]` or `τ > 0`.  Otherwise the heat-specific proof must also handle `τ ≤ 0` according to how `intervalFullSemigroupOperator` behaves there, which is not the core analytic target.
-
-## Search-result summary
-
-Searches performed around:
+In:
 
 ```text
-CoupledChemDivFluxJointC2Hyp
-exists_local_slab CoupledChemDivFluxJointC2Hyp
-CoupledChemDivLocalChainRule p conjugatePicardIter
-CoupledChemDivFluxJointC2Hyp p conjugatePicardIter
-coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-coupledChemDivFluxFactorJointC2Inputs_of_iterate
-coupledChemDivFluxFactorJointC2Inputs_of_physical
+ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
 ```
 
-Findings:
+there is:
 
-- No completed direct theorem for `CoupledChemDivFluxJointC2Hyp p (conjugatePicardIter p u₀ 0)`.
-- The direct level-0 attempt exists only as the `hfluxC2 := by sorry` placeholder in `IntervalConjugateLevel0BFormSourceOn.lean`.
-- The repo’s committed construction pattern is:
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (hu_cont : ∀ s : ℝ, Continuous (u s))
+    (hu_nonneg : ∀ s : ℝ, ∀ x : intervalDomainPoint, 0 ≤ u s x)
+    (other : ∀ τ, ∃ δ, 0 < δ ∧
+      hsource_cont ∧
+      (∀ x ∈ Ioo 0 1, ∀ s, hu_c2_at s x) ∧
+      htime_cont) :
+    CoupledChemDivFluxFactorJointC2Inputs p u
+```
 
-  ```lean
-  CoupledChemDivFluxFactorJointC2Inputs
-    → CoupledChemDivFluxJointC2Hyp
-    → CoupledChemDivOuterCommuteAtoms
-    → CoupledChemDivLocalChainRule
-  ```
+This internally creates:
 
-- For Picard/mild/solution-level uses, the repo mostly carries a residual bundle (`ChemDivSolutionRegularityResidual`) and uses `fluxJointC2Hyp_of_residual` rather than constructing the heat-semigroup case directly.
+```lean
+hbase : ∀ s x, 0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x
+```
 
-## Bottom line
+via resolver nonnegativity:
 
-For the heat-semigroup level-0 trajectory, the simplest aligned fix is to add a heat-specific producer of the **factor-level inputs** (or a positive-window variant of them), then reuse the existing bridge.  The fields should be discharged in the same way the generic pipeline does:
+```lean
+coupledChemical_floor_pos_of_nonneg_continuous
+```
 
-- source continuity: local smooth composition;
-- flux joint C²: `coupledChemDivFlux_contDiffAt_of_factorJointC2`;
-- spatial bridge: automatic via `real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt` inside the factor producer;
-- time bridge: `coupledChemDivFlux_timeBridge_of_physicalJointC2` once resolver physical joint C² is available;
-- time-derivative continuity: `ChemDivMixedTimeDerivClosedRepr` → `chemDivMixedTimeDeriv_jointContinuousOn_closed`, or a direct heat-specific smoothness proof.
+and internally creates the time fderiv bridge using:
+
+```lean
+coupledChemDivFlux_timeBridge_of_physicalJointC2
+```
+
+This is shorter than `_of_physical` if you can prove `hu_cont`, `hu_nonneg`, and global `hu_c2`.
+
+### 3.5 Time-bridge + `htime_cont` discharged route
+
+In:
+
+```text
+ShenWork/PDE/IntervalChemDivTimeDerivClosed.lean
+```
+
+there is the shortest mature route:
+
+```lean
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (hu_cont : ∀ s : ℝ, Continuous (u s))
+    (hu_nonneg : ∀ s : ℝ, ∀ x : intervalDomainPoint, 0 ≤ u s x)
+    (other : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
+      (∀ᶠ s in 𝓝 τ,
+        ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)) ∧
+      (∀ x ∈ Ioo 0 1, ∀ s : ℝ,
+        ContDiffAt ℝ 2 (fun q => intervalDomainLift (u q.1) q.2) (s, x)) ∧
+      ChemDivMixedTimeDerivClosedRepr p u τ δ) :
+    CoupledChemDivFluxFactorJointC2Inputs p u
+```
+
+This internally calls `_physical_commuteDischarged`, and internally turns
+
+```lean
+ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+into `htime_cont` via:
+
+```lean
+chemDivMixedTimeDeriv_jointContinuousOn_closed
+```
+
+For heat level 0, this is probably the best target if you can build `H : PhysicalResolverJointC2Data` directly.
+
+## 4. `ChemDivSolutionRegularityResidual` and `fluxJointC2Hyp_of_residual`
+
+Defined in:
+
+```text
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+```
+
+The residual contains:
+
+```lean
+structure ChemDivSolutionRegularityResidual
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
+  du : ℝ → ℝ → ℝ
+  d2u : ℝ → ℝ → ℝ
+  hiter : IterateSourceTimeData p u du d2u
+  hval : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointMajorant ...)
+  hgrad : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointGradMajorant ...)
+  other : ∀ τ, ∃ δ, 0 < δ ∧
+    hsource_cont ∧ hu_c2 ∧ hbase ∧ htime ∧ htime_cont
+  Cchem : ℝ
+  hCchem : 0 ≤ Cchem
+  hH2 : ∀ s, 0 ≤ s → IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)
+  hdecay : ∀ s, 0 ≤ s → ∀ k, 1 ≤ k →
+    |cosineCoeffs (coupledChemDivSourceLift p u s) k| ≤ Cchem / ((k:ℝ) * Real.pi)^2
+  hzero : ∀ s, 0 ≤ s → |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ Cchem
+  hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n)
+  MchemDot : ℝ
+  hMdot : ∀ s, 0 ≤ s → ∀ n, |coupledChemDivAdot p u s n| ≤ MchemDot
+```
+
+And yes, it has:
+
+```lean
+theorem fluxJointC2Hyp_of_residual {u : ℝ → intervalDomainPoint → ℝ}
+    (R : ChemDivSolutionRegularityResidual p u) :
+    CoupledChemDivFluxJointC2Hyp p u :=
+  coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+    (coupledChemDivFluxFactorJointC2Inputs_of_iterate
+      R.hiter R.hval R.hgrad R.other)
+```
+
+This is a complete route to `FluxJointC2Hyp`, but it is **overkill** if your only goal is `FluxJointC2Hyp`: the residual also carries weak-H²/decay/zero/adot continuity/uniform coefficient bounds needed later for `DuhamelSourceTimeC1`.
+
+## Shortest path from heat semigroup regularity to `FluxJointC2Hyp`
+
+For heat level 0, I would avoid the full `ChemDivSolutionRegularityResidual` unless later consumers also need the chem-div source time-C¹ package.  The shortest focused path is:
+
+### Preferred target
+
+Construct:
+
+```lean
+Hphys : PhysicalResolverJointC2Data p u Bt
+hu_cont : ∀ s, Continuous (u s)
+hu_nonneg : ∀ s, ∀ x, 0 ≤ u s x
+other : ∀ τ, ∃ δ, 0 < δ ∧
+  (∀ᶠ s in 𝓝 τ, ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)) ∧
+  (∀ x ∈ Ioo 0 1, ∀ s, ContDiffAt ℝ 2 (fun q => intervalDomainLift (u q.1) q.2) (s,x)) ∧
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+Then:
+
+```lean
+have Hfac : CoupledChemDivFluxFactorJointC2Inputs p u :=
+  coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+    Hphys hu_cont hu_nonneg other
+
+have Hflux : CoupledChemDivFluxJointC2Hyp p u :=
+  coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs Hfac
+```
+
+### What remains heat-specific
+
+For `u = conjugatePicardIter p u₀ 0`, the remaining heat-specific facts are:
+
+1. `hu_cont`: each heat slice is continuous.
+2. `hu_nonneg`: heat semigroup preserves nonnegativity, assuming the relevant initial data positivity/nonnegativity.
+3. `hu_c2`: joint `ContDiffAt ℝ 2` of `(t,x) ↦ intervalDomainLift (S(t)u₀) x`.  The repo has fixed-time C⁴ spatial heat regularity (`heatSemigroup_contDiff_four`) but I did not find a named joint `ContDiffAt` heat wrapper.
+4. `Hphys`: resolver coefficient physical joint C².  For heat this should come from source coefficient time-C² envelopes for `ν·(S(t)u₀)^γ` plus elliptic weight; either prove `PhysicalResolverJointC2Data` directly or first prove `PhysicalSourceTimeC2` and use `physicalResolverJointC2Data_of_floor`.
+5. `hsource_cont`: continuity of `coupledChemDivSourceLift` near `τ`, by smooth composition.
+6. `ChemDivMixedTimeDerivClosedRepr`: a continuous closed-slab representative of the mixed time-derivative.  For heat, this should be built from the explicit smooth heat/resolver series representation.
+
+### If global `∀ τ` causes pain
+
+All current structures are global in `τ : ℝ`.  Heat semigroup smoothness is naturally for `t > 0`; in the level-0 use you only need a positive window `[c,T]` with `0 < c`.  If `τ ≤ 0` is obstructive, the clean API fix is a windowed/positive-time version of `CoupledChemDivFluxFactorJointC2Inputs` or `CoupledChemDivFluxJointC2Hyp`, analogous to the repo’s other `...On` patterns.  Otherwise the heat proof must explain what happens at nonpositive `τ` for `intervalFullSemigroupOperator`.
+
+## Search summary
+
+Searches performed:
+
+```text
+CoupledChemDivFluxFactorJointC2Inputs
+coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+coupledChemDivFluxFactorJointC2Inputs_of_physical
+coupledChemDivFluxFactorJointC2Inputs_of_iterate
+ChemDivSolutionRegularityResidual fluxJointC2Hyp_of_residual
+```
+
+Results:
+
+- Exact factor structure and producer are in `IntervalChemDivFluxJointC2Producer.lean`.
+- `_of_physical` is in `IntervalResolverJointC2PhysicalConcrete.lean`; `_of_floor` is in `IntervalPhysicalResolverDataConcrete.lean`.
+- `_of_iterate` is in `IntervalFlooredSourceTimeDataIterate.lean`.
+- `ChemDivSolutionRegularityResidual` and `fluxJointC2Hyp_of_residual` are in `IntervalChemDivWinDischarge.lean`.
+- No completed heat-level constructor was found.
