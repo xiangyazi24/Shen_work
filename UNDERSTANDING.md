@@ -1,12 +1,23 @@
 # UNDERSTANDING.md — Shen_work (2026-06-25 update)
 
-## CURRENT STATE (2026-06-26, end of long session)
+## CURRENT STATE (2026-06-26, session handoff)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: Level0 10 sub-sorry + HeatRegularity 2 sorry + Tower 5 sorry = **17 total**.
-Session progress: original 11 sorry → 4 filled (slab, positivity, source eigenvalue summability
-chain incl. H2 cert) + remaining decomposed into 10 named sub-sorry + heat cutoff Leibniz
-main theorem PROVED (2 sub-sorry for factor bounds remain).
+Paper 2 χ₀<0: Level0 4 sorry + Tower 5 sorry = **9 total**.
+Session progress: original 11 sorry → 9 sorry. Infrastructure files ALL 0 sorry.
+heatSemigroup_jointContDiffAt_two FULLY PROVED (the key blocker).
+FluxJointC2Hyp sub-sorry 3B-3G ALL FILLED.
+
+### Remaining 4 Level0 sorry (all "last mile" wiring):
+- 1A (line 717): joint pointwise bound of secondDeriv via compactness
+  Route: joint C² of flux → deriv is C¹ → secondDeriv continuous → compact bounded
+- 2A-core (line 809): joint continuity of smooth flux derivative
+  Route: ContDiffAt.mul/.div/.rpow_const_of_ne on jointly C² factors U,V,deriv V
+  Pattern: coupledChemDivFlux_contDiffAt_of_factorJointC2 (same calculus, different inputs)
+- 2A-agree (line 830): per-slice agreement of chemDivSourceLift with smooth representative
+  Route: coupledChemDivSourceLift_eq_deriv_fluxLift_interior (interior) + continuity extension
+- 3A-sub (line 982): per-slab source continuity
+  Route: chemDivLift_contDiffOn_two_of_global → ContinuousOn for s > 0; degenerate for s ≤ 0
 
 ### 0-sorry infrastructure landed this session:
 - IntervalSourceDecayQuantitative: quartic decay + eigenvalue L¹ summability
