@@ -1,21 +1,37 @@
 # UNDERSTANDING.md — Shen_work (2026-06-25 update)
 
-## CURRENT STATE (2026-06-25, end of session)
+## CURRENT STATE (2026-06-25, mid-session)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: 8 sorry across 2 NEW infrastructure files (Tower: 5, Level0: 3).
-All 8 sorry trace to **chemDiv adot** (time derivative of chemDiv coefficients for heat semigroup).
-The chemDiv H2 regularity chain is **FULLY PROVED** (IntervalChemDivSpatialC2.lean: 0 sorry).
+Paper 2 χ₀<0: **9 sorry** across 2 files (Level0: 4, Tower: 5).
+Session progress: 11→9 sorry (slab inclusion + resolver positivity filled).
+
+### Paper 2 χ₀<0 sorry breakdown
+
+**IntervalConjugateLevel0BFormSourceOn.lean (4 sorry):**
+1. Line 278: Source eigenvalue summability — `Summable (λ_k |sourceCoeff_k|)`.
+   Route: depth-2 IBP via `intervalWeakH4Neumann_eigenvalue_L1_summable` (sorry'd
+   in IntervalSourceDecayQuantitative.lean, reduces to cosineCoeffs-Laplacian identity).
+2. Line 468: L1 uniform bound — joint continuity of deriv²(chemDiv) on [c,T]×[0,1] + compactness.
+3. Line 514: Sup bound + per-slice continuity — same joint continuity difficulty.
+4. Line 615: CoupledChemDivFluxJointC2Hyp — 5 fields of regularity for heat semigroup trajectory.
+
+**IntervalConjugateBFormSourceTower.lean (5 sorry):** All downstream of Level0.
+
+### Infrastructure built this session (sorry-free, axiom-clean)
+- `IntervalResolverHighRegularity.lean`: global resolver nonneg from [0,1] via
+  period-2 + even + reflect-one (intervalResolverLiftR_nonneg_of_nonneg_on_Icc),
+  plus `0 < 1 + V(x)` wrapper.
+- `IntervalConjugateLevel0BFormSourceOn.lean`: slab inclusion fix via
+  ContinuousWithinAt.mono_of_mem_nhdsWithin; resolver positivity via nonneg source
+  → nonneg resolver on [0,1] → global nonneg by symmetry.
+- `IntervalSourceDecayQuantitative.lean`: depth-2 quartic decay framework
+  (intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound,
+  intervalWeakH4Neumann_eigenvalue_L1_summable) — sorry'd, reduces to
+  cosineCoeffs(f'') k = -(kπ)² cosineCoeffs(f) k identity.
 
 ### Paper 1 (traveling waves): SORRY-FREE, unconditional infrastructure landed.
-### Paper 2 (bounded-domain existence): Two unconditional theorems proved:
-  - **χ₀ = 0**: `intervalDomain_theorem_1_1_chiZero_unconditional` — UNCONDITIONAL, axiom-clean.
-  - **χ₀ < 0**: `paper2_theorem_1_1_general_chi_bform` — conditional on `hlocal` + `hUniform`.
-    All barriers to satisfiability resolved (A: DuhamelSourceTimeC1On, B: Hinf windowed
-    retype 63cc68e, C: hchemIoo b84ddb3). BFormBankedInputs has NO false fields.
-    **Remaining production task**: fill `hlogSrc` and `hchemSrc` (DuhamelSourceTimeC1On for
-    logistic/chem-div source coefficients of `conjugatePicardLimit`).
-    Route: iterate TimeC1On induction (χ₀-independent, sorry-free) + windowed G2.5 limit passage.
+### Paper 2 χ₀=0: `intervalDomain_theorem_1_1_chiZero_unconditional` — UNCONDITIONAL, axiom-clean.
 ### Paper 3 (long-time dynamics): SORRY-FREE, linear dichotomy unconditional.
 
 ### χ₀ < 0 PRODUCTION FRONTIER
