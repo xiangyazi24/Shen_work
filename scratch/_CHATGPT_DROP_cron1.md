@@ -1,107 +1,138 @@
-# Q801 / cron1: handoff sorry-count verification
+# Q805 / cron1: `valueCosWeight` vs `(1 + λₙ)^m`
 
 Repo inspected: `xiangyazi24/Shen_work`
-Ref inspected for source files: `main`
+Ref inspected for source files: `chatgpt-scratch`
 Branch written: `chatgpt-scratch`
 
 ## Verdict
 
-The proposed handoff is **substantively accurate for the five named Paper-2 χ₀<0 files** if “sorry count” means actual proof-hole `sorry` terms:
-
-| File | Actual proof-hole `sorry` count | Status |
-|---|---:|---|
-| `ShenWork/PDE/IntervalSourceDecayQuantitative.lean` | 0 | accurate |
-| `ShenWork/Paper2/IntervalResolverHighRegularity.lean` | 0 | accurate |
-| `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` | 1 | accurate |
-| `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` | 10 | accurate |
-| `ShenWork/Paper2/IntervalConjugateBFormSourceTower.lean` | 5 | accurate |
-
-Total actual proof-hole `sorry` count across these five files: **16**.
-
-## Important caveat about `rg -c 'sorry'`
-
-A literal
-
-```bash
-rg -c 'sorry' <file>
-```
-
-counts comments and docstrings too. Several of these files intentionally contain comments such as “No `sorry`”, “sorry-free”, “sorry’d”, or “SUB-SORRY ...”. Therefore literal `rg -c 'sorry'` is not the same as actual proof-hole count.
-
-Examples:
-
-- `IntervalSourceDecayQuantitative.lean` has **0 actual proof-hole sorries**, but its header contains `No sorry/admit/custom axiom`, so a literal lowercase `rg -c 'sorry'` would not be zero.
-- `IntervalHeatSemigroupHighRegularity.lean` has **1 actual proof-hole sorry**, but its header also says `0 sorry` / `1 sorry`, so literal `rg -c 'sorry'` overcounts.
-- `IntervalConjugateLevel0BFormSourceOn.lean` has **10 actual proof-hole sorries**, but it has many explanatory comments containing lowercase `sorry`, so literal `rg -c 'sorry'` overcounts substantially.
-- `IntervalConjugateBFormSourceTower.lean` has **5 actual proof-hole sorries**, but comments contain additional lowercase `sorry` words.
-
-So the handoff statement is accurate as a proof-hole inventory, not as literal `rg -c` output.
-
-## Evidence by file
-
-### 1. `IntervalSourceDecayQuantitative.lean`
-
-Fetched file header says `No sorry/admit/custom axiom`, and inspection showed no proof-hole `sorry` terms. It does contain the word `sorry` in that header comment, so literal `rg -c 'sorry'` would see at least that comment line.
-
-Status: **0 actual proof-hole sorries**.
-
-### 2. `IntervalResolverHighRegularity.lean`
-
-Fetched file showed the resolver high-regularity implementation and no proof-hole `sorry` terms in the inspected source. A targeted GitHub search for `"IntervalResolverHighRegularity.lean" "sorry"` did not return the file itself, only `UNDERSTANDING.md`.
-
-Status: **0 actual proof-hole sorries**.
-
-### 3. `IntervalHeatSemigroupHighRegularity.lean`
-
-The current file header says there is **1 sorry**, named:
+I did **not** find an existing lemma named
 
 ```lean
-heatTerm_iteratedFDeriv_global_bound
+valueCosWeight_le_one_add_eigenvalue_pow
 ```
 
-The earlier `smoothRightCutoff_iteratedFDeriv_bound_exists` gap is now closed. The remaining actual proof-hole is:
+or an obvious already-factored equivalent for
 
 ```lean
-private theorem heatTerm_iteratedFDeriv_global_bound ... := by
+valueCosWeight m n ≤ (1 + unitIntervalCosineEigenvalue n) ^ m
+```
+
+with `m ≤ 2`.
+
+The result is true and should be cheap to add near `valueCosWeight_nonneg` in
+`ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`.
+
+## What already exists nearby
+
+In `ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`:
+
+```lean
+def valueCosWeight (m n : ℕ) : ℝ :=
+  match m with
+  | 0 => 1
+  | 1 => |(n : ℝ) * Real.pi|
+  | _ => unitIntervalCosineEigenvalue n
+
+theorem valueCosWeight_nonneg (m n : ℕ) :
+    0 ≤ valueCosWeight m n := by
   ...
-  sorry
+
+theorem cosineMode_iteratedFDeriv_bound
+    (n m : ℕ) (y : ℝ) (hm : m ≤ 2) :
+    ‖iteratedFDeriv ℝ m (cosineMode n) y‖ ≤ valueCosWeight m n := by
+  ...
 ```
 
-Status: **1 actual proof-hole sorry**.
+So the file has the weight definition and nonnegativity, but not the desired
+`≤ (1 + λₙ)^m` packaging.
 
-### 4. `IntervalConjugateLevel0BFormSourceOn.lean`
+## Closest existing proof pattern
 
-Actual proof-hole sorries found:
+`ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` already uses the
+same inequality pattern inside `heatTerm_iteratedFDeriv_global_bound`, but it is
+local, not reusable as a `valueCosWeight` lemma.  In particular it proves a local
+frequency bound
 
-1. `SUB-SORRY 1A`: uniform pointwise bound on the second derivative.
-2. `SUB-SORRY 2A-core`: joint continuity of the smooth flux derivative.
-3. `SUB-SORRY 2A-agree`: agreement of `coupledChemDivSourceLift` with the smooth representative.
-4. `SUB-SORRY 3A`: per-slab/per-slice source continuity.
-5. `SUB-SORRY 3B`: heat semigroup joint C².
-6. `SUB-SORRY 3C`: resolver joint C².
-7. `SUB-SORRY 3D`: resolver gradient joint C².
-8. `SUB-SORRY 3E`: resolver positivity floor.
-9. `SUB-SORRY 3F`: flux time fderiv bridge.
-10. `SUB-SORRY 3G`: time-derivative joint continuity on slab.
+```lean
+have hfreq_le : |(n : ℝ) * Real.pi| ≤ 1 + λ_n := by
+  rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg n) Real.pi_pos.le)]
+  unfold_let λ_n; unfold unitIntervalCosineEigenvalue
+  nlinarith [sq_nonneg ((n : ℝ) * Real.pi - 1/2)]
+```
 
-Status: **10 actual proof-hole sorries**.
+and then uses
 
-### 5. `IntervalConjugateBFormSourceTower.lean`
+```lean
+λ_n ^ i * |(n : ℝ) * Real.pi| ^ (j - i)
+  ≤ (1 + λ_n) ^ i * (1 + λ_n) ^ (j - i)
+  = (1 + λ_n) ^ j
+```
 
-Actual proof-hole sorries found:
+to get the `2^j · (1 + λ_n)^j` Leibniz sum.
 
-1. Level-0 base case in `conjBFormSourceTimeC1OnUpTo_all`.
-2. Successor logistic TimeC1On wiring.
-3. Successor chemDiv TimeC1On gap.
-4. Limit passage `conjBFormSourceTimeC1On_limit`.
-5. Extension to `[0,T]` in `hsrcBDirect_of_data`.
+There is also a private summability helper in that same file:
 
-Status: **5 actual proof-hole sorries**.
+```lean
+private theorem one_add_eigenvalue_pow_mul_exp_summable
+    (m : ℕ) {τ M₀ : ℝ} (hτ : 0 < τ) (hM₀ : 0 ≤ M₀) :
+    Summable (fun n : ℕ =>
+      (1 + unitIntervalCosineEigenvalue n) ^ m * M₀ *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by
+  ...
+```
 
-## Broader Paper 1 / Paper 2 χ₀=0 / Paper 3 claim
+That helps with the final summability majorant, but it does not imply the
+`valueCosWeight` pointwise bound directly.
 
-I did not complete a full folder-wide proof-hole audit for every file in Papers 1, 2 χ₀=0, and 3 from this connector-only check.
+## Suggested lemma
 
-A broad GitHub search for lowercase `sorry` in `ShenWork/Paper1` returns several files, but at least the first inspected hit (`IntervalP1PerStepFixedSource.lean`) was comment-only (`sorry-free` in the header). This means a literal folder-wide `rg -c 'sorry'` will definitely overcount comments. A precise folder-wide proof-hole audit should use a local checkout and either inspect real `sorry` syntax or use a more targeted pattern than raw `rg -c 'sorry'`.
+A useful local addition near `valueCosWeight_nonneg`:
 
-For the requested handoff scope, the five named-file proof-hole status and total **16** are accurate.
+```lean
+theorem valueCosWeight_le_one_add_eigenvalue_pow
+    (m n : ℕ) (hm : m ≤ 2) :
+    valueCosWeight m n ≤ (1 + unitIntervalCosineEigenvalue n) ^ m := by
+  interval_cases m
+  · simp [valueCosWeight]
+  · have hfreq_le : |(n : ℝ) * Real.pi| ≤
+        1 + unitIntervalCosineEigenvalue n := by
+      rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg n) Real.pi_pos.le)]
+      unfold unitIntervalCosineEigenvalue
+      nlinarith [sq_nonneg ((n : ℝ) * Real.pi - 1 / 2)]
+    simpa [valueCosWeight] using hfreq_le
+  · simp [valueCosWeight]
+    have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue
+      positivity
+    nlinarith [sq_nonneg (unitIntervalCosineEigenvalue n)]
+```
+
+Potential tiny adjustment: if `nlinarith` wants the square expanded in the last
+case, replace the final line with a short `calc` through `1 + λ ≤ (1 + λ)^2`, or
+set `lam := unitIntervalCosineEigenvalue n` first and use `nlinarith` on `lam`.
+
+## Consequence for the proposed heat-term bound
+
+For `j ≤ 2` and `i ≤ j`, the needed factor estimate is exactly:
+
+```lean
+λ_n ^ i * valueCosWeight (j - i) n
+  ≤ (1 + λ_n) ^ i * (1 + λ_n) ^ (j - i)
+  = (1 + λ_n) ^ j
+```
+
+where the new lemma handles the `valueCosWeight (j - i) n` part, since
+`j - i ≤ j ≤ 2`.  The remaining steps are standard nonnegativity plus
+`pow_add`/`Nat.add_sub_cancel'`.
+
+Summing over the Leibniz terms gives
+
+```lean
+∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) * (1 + λ_n)^j
+  = 2^j * (1 + λ_n)^j
+  ≤ 4 * (1 + λ_n)^j
+```
+
+for `j ≤ 2`.  If the target bound is allowed to keep `2^j` instead of absorbing
+it into `4`, the proof is even cleaner.
