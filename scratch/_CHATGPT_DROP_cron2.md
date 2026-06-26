@@ -1,217 +1,265 @@
-# Q620 (cron2): eigenvalue-weighted summability for `u^γ`
+# Q661 (cron2): resolver nonnegativity / `1 + R > 0`
 
-Static repo inspection only; I did not run a Lean build.
+Static repo inspection only; I did not run a Lean build.  I inspected the current default branch via the GitHub connector and wrote this report to `chatgpt-scratch`.
 
-## Verdict
+## Executive verdict
 
-I did **not** find a repo theorem of the requested shape:
-
-```lean
--- schematic target, not found
-(Summable (fun k => unitIntervalCosineEigenvalue k * |cosineCoeffs u k|)) ->
-  Summable (fun k => unitIntervalCosineEigenvalue k *
-    |cosineCoeffs (fun x => u x ^ γ) k|)
-```
-
-Nor did I find a theorem under the requested search names:
+Yes: the repo **does prove `R(u) ≥ 0` on `[0,1]`**, but not by coefficient positivity.  The landed proof is the heat-Laplace / positivity-preserving semigroup route in
 
 ```text
-power_summable
-rpow_summable
-source_eigenvalue
-u_gamma_summable
+ShenWork/PDE/IntervalResolverPositivity.lean
 ```
 
-The repo has several nearby pieces, but they stop short of this exact eigenvalue-weighted summability closure for the nonlinear power source.
-
-## What exists
-
-### 1. The exact eigenvalue-`ℓ¹` predicate exists
-
-`ShenWork/PDE/EigenvalueL1Space.lean` defines:
+The main closed-domain theorem is:
 
 ```lean
-def MemEig (a : ℕ → ℝ) : Prop :=
-  Summable (fun n => unitIntervalCosineEigenvalue n * |a n|)
+theorem intervalNeumannResolverR_nonneg_of_nonneg_source {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
+    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 ≤ intervalNeumannResolverR p u xp
 ```
 
-The nearby closure lemmas I found are linear only:
+There is also an interior version:
 
 ```lean
-memEig_zero
-memEig_add
-memEig_neg
-memEig_smul
+theorem intervalNeumannResolverR_nonneg_interior {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
+    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    {xp : intervalDomainPoint} (hx : xp.1 ∈ Set.Ioo (0 : ℝ) 1) :
+    0 ≤ intervalNeumannResolverR p u xp
 ```
 
-I did **not** find `memEig_mul`, `memEig_rpow`, `memEig_power`, or a nonlinear functional-calculus theorem for `MemEig`.
-
-### 2. `intervalResolverLiftR_contDiff_four` needs exactly source eigenvalue-`ℓ¹`
-
-`ShenWork/Paper2/IntervalResolverHighRegularity.lean` has the desired high-regularity consumer:
+So for the interval-domain resolver, the proof is already there.  From the closed-domain theorem, the denominator target follows immediately:
 
 ```lean
-theorem intervalResolverLiftR_contDiff_four
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    ContDiff ℝ 4 (intervalResolverLiftR p u)
+have hR : 0 ≤ intervalNeumannResolverR p u xp :=
+  intervalNeumannResolverR_nonneg_of_nonneg_source hf_cont hf_nonneg hf_coeff hâ xp
+have h1R : 0 < 1 + intervalNeumannResolverR p u xp := by linarith
 ```
 
-The previous lemma is:
+## Important caveat: not “nonnegative coefficients”
+
+Your correction is right: nonnegative cosine coefficients do **not** imply the reconstructed function is nonnegative, and the repo does not try to prove positivity that way.
+
+The landed theorem assumes a **pointwise nonnegative continuous source representative**:
 
 ```lean
-theorem resolverCoeff_eigenSq_summable_of_sourceEigenL1
-    (hsrc : Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        (unitIntervalCosineEigenvalue k *
-          |(intervalNeumannResolverCoeff p u k).re|))
+hf_nonneg : ∀ y, 0 ≤ f y
 ```
 
-So the missing input is exactly:
+plus the coefficient identification
 
 ```lean
-Summable (fun k => unitIntervalCosineEigenvalue k *
-  |(intervalNeumannResolverSourceCoeff p u k).re|)
+hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re
 ```
 
-and `resolverSourceCoeff_re_eq_cosineCoeffs` identifies this real part with
+and square-summability of the source coefficients:
 
 ```lean
-cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k
+hâ : Summable (fun k => (cosineCoeffs f k) ^ 2)
 ```
 
-### 3. The repo has weak-`H²` / quadratic decay for `u^γ`, not eigenvalue-`ℓ¹`
+This is the correct maximum-principle/positive-kernel analogue, not a coefficientwise positivity argument.
 
-The main nearby theorem is in `ShenWork/PDE/IntervalMildSourceDecayHelper.lean`:
+## How the repo proves it
 
-```lean
-noncomputable def intervalWeakH2Neumann_of_eigenvalue_summable
-    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
-    {w : intervalDomainPoint → ℝ}
-    (hagree : Set.EqOn (intervalDomainLift w)
-        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
-    IntervalWeakH2Neumann (fun x : ℝ => ν * intervalDomainLift w x ^ γ)
-```
-
-Then the generic weak-`H²` theorem gives only:
-
-```lean
-∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ, 1 ≤ k →
-  |cosineCoeffs f k| ≤ C / ((k : ℝ) * Real.pi) ^ 2
-```
-
-This is **not** enough for eigenvalue-weighted summability: multiplying by
-`λ_k = ((k : ℝ) * Real.pi)^2` leaves only a uniform constant bound, not a summable tail.
-
-### 4. `IntervalResolverPowerDecay.lean` produces the R-Hvsrc-1 quadratic envelope
-
-`ShenWork/Paper2/IntervalResolverPowerDecay.lean` is explicitly about:
+The file header in `IntervalResolverPositivity.lean` says the route explicitly: use the positivity-preserving heat-Laplace representation
 
 ```text
-R-Hvsrc-1: window-uniform quadratic decay for the power source ν·u^γ
+R(u) = ∫₀^∞ e^{-μt} S(t)(ν u^γ) dt
 ```
 
-The key producer is:
+implemented through finite truncations and a spectral limit.
+
+Key landed pieces:
 
 ```lean
-theorem powerSource_window_uniform_decay
-    ...
-    (hbsum : ∀ σ ∈ Set.Icc c' d',
-      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
-    ... :
-    ∃ C : ℝ, 0 ≤ C ∧
-      (∀ σ ∈ Set.Icc c' d', ∀ k : ℕ, 1 ≤ k →
-        |cosineCoeffs (fun x => ν * intervalDomainLift (w σ) x ^ γ) k|
-          ≤ C / ((k : ℝ) * Real.pi) ^ 2) ∧
-      (∀ σ ∈ Set.Icc c' d',
-        |cosineCoeffs (fun x => ν * intervalDomainLift (w σ) x ^ γ) 0| ≤ C)
+theorem intervalFullSemigroupOperator_nonneg
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalFullSemigroupOperator t f x
 ```
-
-This is very close semantically, but it deliberately produces a **quadratic coefficient decay** package, not an eigenvalue-weighted summability package.  It is the right input for the existing weak-`H²`/Duhamel-source machinery, but not for `intervalResolverLiftR_contDiff_four`.
-
-### 5. The clamped resolver-source witness consumes quadratic decay, not source eigenvalue-`ℓ¹`
-
-`ShenWork/Paper2/IntervalResolverSourceClampedWitness.lean` consumes:
 
 ```lean
-hdecay : ∀ σ ∈ Set.Icc c' d', ∀ k : ℕ, 1 ≤ k →
-  |cosineCoeffs (fun x => p.ν * intervalDomainLift (w σ) x ^ p.γ) k|
-    ≤ C / ((k : ℝ) * Real.pi) ^ 2
-ha0 : ∀ σ ∈ Set.Icc c' d',
-  |cosineCoeffs (fun x => p.ν * intervalDomainLift (w σ) x ^ p.γ) 0| ≤ C
+theorem unitIntervalCosineHeatValue_nonneg_of_continuous
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    0 ≤ unitIntervalCosineHeatValue t (cosineCoeffs f) x
 ```
-
-Similarly, `IntervalDomainLogisticWeakH2Adapter.powerSource_duhamelSourceTimeC1_of_representation` consumes the weak-`H²` adapter plus carried `hdecay`/`ha0`.  Again: it is quadratic-decay infrastructure, not the requested eigenvalue-summability closure.
-
-### 6. EWA/Wiener side has a power functional calculus, but not the interval `cosineCoeffs` theorem
-
-The closest nonlinear functional-calculus result is in `ShenWork/Wiener/EWA/WienerLevy.lean` and `ShenWork/Wiener/EWA/Flux.lean`:
 
 ```lean
-theorem realPow_eval_EWA :
-  ∃ F : EWA T 1, ∀ τ x,
-    evalST τ x (incl F) = ((evalST τ x (incl f)).re ^ γ : ℝ)
+theorem laplaceHeatTrunc_nonneg
+    {p : CM2Params} {f : ℝ → ℝ} (hf_cont : Continuous f)
+    (hf_nonneg : ∀ y, 0 ≤ f y)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) {T : ℝ} (hT : 0 ≤ T) :
+    0 ≤ ∫ t in (0:ℝ)..T,
+      Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t (cosineCoeffs f) x
 ```
-
-and the concrete wrapper:
 
 ```lean
-def realPowEWA (f : EWA T 1) (γ : ℝ) : EWA T 1 :=
-  f ^ (Nat.floor γ + 1) * FnegEWA f ((Nat.floor γ + 1 : ℝ) - γ)
+theorem laplaceHeatTrunc_tendsto
+    {p : CM2Params} {â : ℕ → ℝ}
+    (hâ : Summable (fun n => (â n) ^ 2)) (x : ℝ) :
+    Filter.Tendsto
+      (fun T => ∫ t in (0:ℝ)..T,
+        Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t â x)
+      Filter.atTop
+      (nhds (∑' k, â k * unitIntervalCosineMode k x
+        / (p.μ + unitIntervalCosineEigenvalue k)))
 ```
 
-Then `vFieldEWA` resolves `ν·u^γ` inside EWA:
+The theorem `intervalNeumannResolverR_nonneg_interior` reconstructs `R(u)` as this spectral target and passes nonnegativity to the limit via closedness of `Ici 0`.  The closed-domain theorem extends from `(0,1)` to `[0,1]` by continuity of the reconstructed resolver cosine series.
+
+## Strict positivity is also present
+
+If you want a positive lower bound rather than merely `R ≥ 0`, there is a stronger file:
+
+```text
+ShenWork/Paper2/IntervalDomainResolverStrictPos.lean
+```
+
+It proves:
 
 ```lean
-def vFieldEWA (μ ν γ : ℝ) (hμ : 0 < μ) (u : EWA T 1) : EWA T 3 :=
-  GWA.gResolver μ hμ ((ν : ℂ) • realPowEWA u γ)
+theorem intervalNeumannResolverR_ge_of_source_ge {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ} {c₀ : ℝ}
+    (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
+    (xp : intervalDomainPoint) :
+    c₀ / p.μ ≤ intervalNeumannResolverR p u xp
 ```
 
-This is the conceptual weighted-Wiener/power route, but I did not find a bridge theorem saying that a real interval profile with `MemEig (cosineCoeffs u)` implies `MemEig (cosineCoeffs (u^γ))` via `realPowEWA`.
-
-## Bottom line for `intervalResolverLiftR_contDiff_four`
-
-`intervalResolverLiftR_contDiff_four` wants source eigenvalue-`ℓ¹`:
+and then:
 
 ```lean
-Summable (fun k => λ_k * |cosineCoeffs (ν * u^γ) k|)
+theorem intervalNeumannResolverR_pos_of_source_ge {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ} {c₀ : ℝ}
+    (hc₀ : 0 < c₀) (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 < intervalNeumannResolverR p u xp
 ```
 
-The current interval-side power-source infrastructure gives only:
+The most directly usable representation-based strict theorem is:
 
 ```lean
-|cosineCoeffs (ν * u^γ) k| ≤ C / λ_k
+theorem resolverR_pos_of_representation (p : CM2Params)
+    {u : intervalDomainPoint → ℝ} {cs : ℝ → ℝ} {m M : ℝ}
+    (hcs_cont : Continuous cs)
+    (hagree : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift u x = cs x)
+    (hm_pos : 0 < m)
+    (hcs_lb : ∀ x ∈ Set.Icc (0:ℝ) 1, m ≤ cs x)
+    (hcs_ub : ∀ x ∈ Set.Icc (0:ℝ) 1, cs x ≤ M)
+    (hsrc_coeff : ∀ k, cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k
+        = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k =>
+        (cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k) ^ 2))
+    (hĝ : Summable (fun k =>
+        (cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ - p.ν * m ^ p.γ) k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 < intervalNeumannResolverR p u xp
 ```
 
-for `k ≥ 1`, plus a zeroth-mode bound.  That is enough for weak-`H²` / quadratic decay consumers, but it does **not** imply `∑ λ_k |coeff_k| < ∞`.
+This is stronger than needed for `0 < 1 + R`, but useful if your source has a positive lower floor.
 
-So the answer is: **No, not currently as a direct repo theorem.**  The missing lemma is a real gap if the plan is to feed `intervalResolverLiftR_contDiff_four` from an input assumption `∑ λ_k |û_k| < ∞`.
+## Relation to `intervalResolverLiftR p u x` on all `x : ℝ`
 
-## Suggested theorem to add
-
-A useful target would be something like:
+The theorem above is for:
 
 ```lean
-theorem powerSource_memEig_of_memEig
-    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
-    {w : intervalDomainPoint → ℝ}
-    (hagree : Set.EqOn (intervalDomainLift w)
-        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
-    Summable (fun k => unitIntervalCosineEigenvalue k *
-      |cosineCoeffs (fun x => ν * intervalDomainLift w x ^ γ) k|)
+intervalNeumannResolverR p u xp
 ```
 
-But the existing weak-`H²` proof will not prove this; it loses exactly one summability order.  A plausible route is to use a weighted-Wiener algebra / functional-calculus argument: show `MemEig` is closed under positive real powers, with a coefficient bridge back to interval `cosineCoeffs`.  The EWA `realPowEWA` machinery suggests this is mathematically aligned with existing code, but the direct interval `MemEig` closure theorem does not appear to be present.
+where
 
-Alternative route: prove stronger regularity of `ν·u^γ` (for example `C⁴`/higher Neumann with summable top derivative coefficients) and extract eigenvalue-`ℓ¹`; the repo has higher-tail infrastructure such as `IntervalEigenCubeSummability.lean`, but that route requires much stronger `C⁸`-style source data and is not the requested implication from only `∑ λ_k |û_k| < ∞`.
+```lean
+xp : intervalDomainPoint  -- i.e. x ∈ [0,1]
+```
+
+Your target mentions the ambient lifted series:
+
+```lean
+intervalResolverLiftR p u x
+```
+
+from `ShenWork/Paper2/IntervalResolverHighRegularity.lean`:
+
+```lean
+def intervalResolverLiftR (p : CM2Params) (u : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun x => ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re * cosineMode k x
+```
+
+That file states in the docstring that this agrees with `intervalNeumannResolverR` on `[0,1]`, but I did **not** find a named theorem packaging that agreement.  It does provide symmetry/periodicity lemmas:
+
+```lean
+theorem intervalResolverLiftR_even
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    intervalResolverLiftR p u (-x) = intervalResolverLiftR p u x
+
+theorem intervalResolverLiftR_reflect_one
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    intervalResolverLiftR p u (2 - x) = intervalResolverLiftR p u x
+
+theorem intervalResolverLiftR_periodic
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (x : ℝ) :
+    intervalResolverLiftR p u (x + 2) = intervalResolverLiftR p u x
+```
+
+So: the repo proves `R(u) ≥ 0` on `[0,1]`, and the lift is even/periodic, but I did **not** find a ready-made theorem
+
+```lean
+∀ x : ℝ, 0 ≤ intervalResolverLiftR p u x
+```
+
+nor a ready-made theorem
+
+```lean
+∀ x : ℝ, 0 < 1 + intervalResolverLiftR p u x
+```
+
+To get the all-real lifted version, likely add two thin bridge lemmas:
+
+1. agreement on `[0,1]`:
+
+```lean
+lemma intervalResolverLiftR_eq_intervalNeumannResolverR_on_Icc
+    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
+    intervalResolverLiftR p u x = intervalNeumannResolverR p u ⟨x, hx⟩ := by
+  -- unfold both; `cosineMode` vs `unitIntervalCosineMode` should be definitional/`rfl`-level
+```
+
+2. reduce arbitrary `x : ℝ` to a representative in `[0,1]` using period `2` and reflection about `1`, then apply the closed-domain nonnegativity theorem.
+
+For the immediate interval-domain denominator, however, no all-real lift theorem is needed:
+
+```lean
+have hR : 0 ≤ intervalNeumannResolverR p u xp :=
+  intervalNeumannResolverR_nonneg_of_nonneg_source hf_cont hf_nonneg hf_coeff hâ xp
+have hden : 0 < 1 + intervalNeumannResolverR p u xp := by linarith
+```
+
+## Search-result summary
+
+Requested searches:
+
+```text
+resolverR_nonneg
+intervalNeumannResolverR_nonneg
+resolver_pos
+resolver_ge_zero
+```
+
+Findings:
+
+- `resolverR_nonneg` / `intervalNeumannResolverR_nonneg` lead to `ShenWork/PDE/IntervalResolverPositivity.lean` and its theorems `intervalNeumannResolverR_nonneg_interior` / `intervalNeumannResolverR_nonneg_of_nonneg_source`.
+- `resolver_pos` / `resolver_ge_zero` did not return exact theorem-name hits, but the strict lower-bound file is `ShenWork/Paper2/IntervalDomainResolverStrictPos.lean` with `intervalNeumannResolverR_ge_of_source_ge`, `intervalNeumannResolverR_pos_of_source_ge`, and `resolverR_pos_of_representation`.
