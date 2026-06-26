@@ -18,10 +18,16 @@ FluxJointC2Hyp (sub-sorry 3C was filled via coupledChemical_jointContDiffAt_two 
 PhysicalResolverJointC2Data), but NOT available as a standalone theorem for the
 envelope construction.
 
-### NEXT SESSION PRIORITY 1: build heatResolverJointContDiffAt_two
-Mirror heatSemigroup_jointContDiffAt_two: cutoff resolver series + 
-boundedWeightJointSeries_contDiff_two + eventual equality.
-This single theorem unlocks all 3 remaining Level0 sorry.
+### NEXT PRIORITY: fill 5 PhysicalResolverJointC2Data sub-sorry
+In IntervalHeatSemigroupHighRegularity.lean (heatSemigroup_level0_resolverJointC2Data):
+- Bt witness (existential bound family)
+- SUB-SORRY A: coeff_contDiff (resolverTimeCoeff C² in t)
+- SUB-SORRY B: coeff_bound (iteratedFDeriv ≤ Bt)
+- SUB-SORRY C: value_summable (boundedWeightJointMajorant)
+- SUB-SORRY D: grad_summable (boundedWeightJointGradMajorant)
+Each needs heat semigroup source coefficient time-C² + elliptic weight decay.
+Once filled → heatResolverJointContDiffAt_two becomes 0 sorry →
+unlocks all 3 Level0 sorry (1A, 2A-sup via joint continuity + compactness).
 
 ### 0-sorry infrastructure landed this session:
 - IntervalSourceDecayQuantitative: quartic decay + eigenvalue L¹ summability
