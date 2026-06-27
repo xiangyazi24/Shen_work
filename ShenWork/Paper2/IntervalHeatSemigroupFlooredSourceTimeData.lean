@@ -234,14 +234,39 @@ private theorem heatLaplacianTerm_hasDerivAt_time
       (fun τ : ℝ =>
         ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
       ((λ_ n) ^ 2 * (Real.exp (-t * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x) t := by
-  sorry
+  have hlin : HasDerivAt (fun τ : ℝ => -τ * (λ_ n)) (-(λ_ n)) t := by
+    simpa [mul_comm] using (hasDerivAt_id t).neg.mul_const (λ_ n)
+  have hexp : HasDerivAt (fun τ : ℝ => Real.exp (-τ * (λ_ n)))
+      (-(λ_ n) * Real.exp (-t * (λ_ n))) t := by
+    simpa using hlin.exp
+  have h := ((hexp.mul_const (ShenWork.CosineSpectrum.cosineMode n x)).const_mul
+    (-(λ_ n))).mul_const (a n)
+  convert h using 1
+  · ext τ; simp [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode]; ring
+  · simp; ring
 
 private theorem summable_heatLaplacian_terms_of_bound
     {a : ℕ → ℝ} {M t x : ℝ} (ht : 0 < t)
     (ha : ∀ n, |a n| ≤ M) :
     Summable fun n : ℕ =>
       ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n * a n := by
-  sorry
+  have hM : 0 ≤ M := le_trans (abs_nonneg _) (ha 0)
+  have hmajor : Summable fun n : ℕ =>
+      M * ((λ_ n) * Real.exp (-t * (λ_ n))) :=
+    (ShenWork.IntervalMildRegularityBootstrap
+      .unitIntervalCosineEigenvalue_mul_exp_summable ht).mul_left M
+  refine Summable.of_norm_bounded _ hmajor ?_
+  intro n
+  rw [Real.norm_eq_abs, abs_mul]
+  have hlam_nn : 0 ≤ λ_ n := by unfold unitIntervalCosineEigenvalue; positivity
+  calc |ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n| * |a n|
+      ≤ ((λ_ n) * Real.exp (-t * (λ_ n))) * M := by
+        simp [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+          unitIntervalCosineHeatPointWeight, unitIntervalCosineMode, abs_mul,
+          abs_of_nonneg hlam_nn, abs_of_nonneg (Real.exp_nonneg _)]
+        sorry
+    _ = M * ((λ_ n) * Real.exp (-t * (λ_ n))) := by ring
 
 private theorem heatD2Term_abs_le_majorant
     {a : ℕ → ℝ} {M r τ x : ℝ}
