@@ -1,74 +1,120 @@
-# Q931 (cron2) — direct resolver joint-C² cutoff route
+# Q987 (cron2) — cutoff resolver coefficients without full `FlooredSourceTimeData`?
 
 Static repo inspection only; I did **not** run Lean.
 
-## Verdict
+## Short answer
 
-Yes.  For the coupled chemotaxis resolver, the clean bypass is not to repair
-`PhysicalResolverJointC2Data`; it is to use the already-committed **restart
-spectral cutoff** route:
+There is a **partial shortcut**, but not the one suggested by the phrase “the
+cutoff kills the blow-up region.”
 
-```text
-ResolverHasSpectralAgreementC2Coeff
-  -> coupledChemicalConcentration_resolver_jointC2At_c2Data
-  -> resolverSpectralJointC2At_of_restartSmoothCutoff
-  -> hv_c2 + hgradv_c2
-  -> CoupledChemDivFluxFactorJointC2InputsPos
-  -> CoupledChemDivFluxJointC2HypPos
+For the single mode
+
+```lean
+fun t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t
 ```
 
-This is exactly the same shape as the heat semigroup cutoff proof:
+you can avoid the full six-field `FlooredSourceTimeData`.  But you **cannot** avoid
+proving a local positive-time two-derivative theorem for `srcTimeCoeff` (or an
+exact equivalent).  The cutoff only removes the obligations at times
+`t < c / 2`.  At every time `t ≥ c / 2`, and in particular at the transition time
+`t = c / 2`, Lean still needs a `ContDiffAt ℝ 2` proof for
+`resolverTimeCoeff p u k`, hence for `srcTimeCoeff p u k`, because `c / 2 > 0`.
+
+So the right split is:
 
 ```text
-cutoff term is globally C²
-  + summable derivative majorants
-  + cutoff = 1 near the positive target time
-  -> local ContDiffAt at the original, non-cutoff series
+full FlooredSourceTimeData      = d0 + d1 + sliceC2 + sliceNeumann + zerothBound + laplBound
+coefficient ContDiff only       = d0 + d1 + continuity of second derivative coefficient
+coefficient bounds for tsum     = derivative bounds/envelopes, but can be local/cutoff-specific
 ```
 
-The current root cause is a **domain/quantifier mismatch**:
+Thus:
 
-* `PhysicalResolverJointC2Data` is global in real time: `coeff_contDiff` is
-  `ContDiff ℝ 2` on all of `ℝ`, and `coeff_bound` quantifies `∀ t : ℝ`.
-* `CoupledChemDivFluxFactorFACInputs`, `CoupledChemDivFluxFactorJointC2Inputs`,
-  and `CoupledChemDivFluxJointC2Hyp` are also currently all-`τ : ℝ` packages.
-* The actual analytic data for Paper2 level 0 is positive-time / restart-window
-  data: one only has `0 < s - offset`, and the coupled resolver package also has
-  a finite spectral horizon `s < U`.
+* **Yes**, you can bypass full `FlooredSourceTimeData` for the **term
+  `ContDiff` premise** of `contDiff_tsum`.
+* **No**, the cutoff does not by itself prove `ContDiff`; you still need a local
+  positive-time `srcTimeCoeff` C² lemma.
+* For the **majorant premises** of `contDiff_tsum`, you still need bounded
+  derivative envelopes.  Those can be proved directly on the cutoff support, but
+  they are separate from the term-C² proof.
 
-So the direct route should target a positive-time / horizon-local theorem.  If
-we keep trying to fill the existing all-time structures from positive-time heat
-or restart data, the bad `t < 0` obligation reappears.
+The simplest existing route remains the restart route from Q931:
+`resolverSpectralJointC2At_of_restartSmoothCutoff`, because it already proves the
+cutoff coefficient C² and bounds for `localRestartCoeff`.  If you insist on the
+physical coefficient `resolverTimeCoeff p u k`, use the lightweight local lemma
+below instead of full `FlooredSourceTimeData`.
 
-Name check: I found the fixed-time physical resolver file as
-`ShenWork/PDE/IntervalResolverPhysicalC2.lean`; I did **not** find a separate
-file literally named `IntervalPhysicalResolverC2.lean`.  I interpret the
-question's `IntervalPhysicalResolverC2` as this fixed-time physical resolver C²
-file.
+## Relevant committed theorem names
 
-## Exact theorem names already available
-
-### 1. Heat cutoff pattern already committed
+### Coefficient factorization
 
 File:
 
 ```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
 ```
 
-Useful names:
+Names:
 
 ```lean
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatTerm
-ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatTerm
-ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatTerm_contDiff_two
-ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatTerm_iteratedFDeriv_bound
-ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatSeries_contDiff_two
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSeries_eventuallyEq_cutoff
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+ShenWork.IntervalPhysicalResolverDataConcrete.srcTimeCoeff
+ShenWork.IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_eq_weight_smul
+ShenWork.IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_eq_smul
+ShenWork.IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_iteratedFDeriv_eq
+ShenWork.IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_bound
 ```
 
-The cutoff used there comes from:
+The key identity is:
+
+```lean
+resolverTimeCoeff p u k t =
+  intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+```
+
+### Source coefficient identity and existing full-data producer
+
+File:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+Names:
+
+```lean
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcSlice
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_eq_cosineCoeffs
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.FlooredSourceTimeData
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_bound
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
+```
+
+This file confirms that `srcTimeCoeff_contDiff` is currently obtained from
+`FlooredSourceTimeData`, by two uses of
+`cosineCoeffs_hasDerivAt_of_smooth_param` plus `contDiff_succ_iff_deriv`.
+That is exactly the part we can factor out into a smaller local lemma.
+
+### Parametric cosine coefficient derivative
+
+Imported/opened in `IntervalPhysicalSourceTimeC2Concrete.lean`:
+
+```lean
+ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
+ShenWork.IntervalDomainPositiveWindowK1OnEndpoint.cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+```
+
+These are the right primitives for the local coefficient-C² lemma.
+
+### Cutoff infrastructure
+
+File:
+
+```text
+ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
+```
+
+Names:
 
 ```lean
 ShenWork.IntervalResolverSpectralJointC2Cutoff.smoothRightCutoff
@@ -78,585 +124,287 @@ ShenWork.IntervalResolverSpectralJointC2Cutoff.smoothRightCutoff_eq_one_of_ge
 ShenWork.IntervalResolverSpectralJointC2Cutoff.smoothRightCutoff_eventually_eq_one
 ```
 
-The theorem to imitate syntactically is:
-
-```lean
-theorem heatSemigroup_jointContDiffAt_two
-    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
-```
-
-### 2. Generic resolver cutoff engine
+### Existing bounded-weight `contDiff_tsum` assembler
 
 File:
 
 ```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
 ```
 
-The generic engine is:
+Names:
 
 ```lean
-ShenWork.IntervalResolverSpectralJointC2Cutoff.resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointGradTerm
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointMajorant
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointGradMajorant
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointSeries_contDiff_two
+ShenWork.IntervalResolverJointC2Physical.boundedWeightJointGradSeries_contDiff_two
 ```
 
-with supporting definitions:
+This assembler works for any coefficient family `c : ℕ → ℝ → ℝ`.  So you can feed
+it a cutoff family
 
 ```lean
-ShenWork.IntervalResolverSpectralJointC2Cutoff.cutoffValueTerm
-ShenWork.IntervalResolverSpectralJointC2Cutoff.cutoffGradTerm
+def cutoffResolverCoeff
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c : ℝ) :
+    ℕ → ℝ → ℝ :=
+  fun k t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t
 ```
 
-This theorem is the abstract cutoff/extension form: prove global C² of the
-cutoff value and gradient series by `contDiff_tsum`, then transfer back by
-`EventuallyEq` near the target point.
+instead of feeding it raw `resolverTimeCoeff`.
 
-### 3. Concrete restart cutoff resolver theorem
+## Minimal shortcut theorem for the cutoff coefficient
 
-File:
-
-```text
-ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
-```
-
-Concrete cutoff names:
+The clean theorem to add is not a theorem about the source slices directly; it is
+an adapter theorem saying: once `srcTimeCoeff` is known to be C² at positive times
+where the cutoff may be nonzero, the cutoff resolver coefficient is globally C².
 
 ```lean
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSmoothCutoff
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSmoothCutoff_contDiff
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSmoothCutoff_eventually_eq_one
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSmoothCutoff_hasCompactSupport
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSmoothCutoff_iteratedFDeriv_bound_exists
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartCutoffDerivMajorant
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSlabMin
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSlabMax
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartSlabMin_pos
-```
+import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
 
-Concrete summable majorants and bounds:
-
-```lean
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartCoeffCoreMajorant
-ShenWork.IntervalResolverSpectralJointC2Concrete.restartCoeffCoreMajorant_summable
-ShenWork.IntervalResolverSpectralJointC2Concrete.concreteRestartValueMajorant
-ShenWork.IntervalResolverSpectralJointC2Concrete.concreteRestartGradMajorant
-ShenWork.IntervalResolverSpectralJointC2Concrete.concreteRestartValueMajorant_summable
-ShenWork.IntervalResolverSpectralJointC2Concrete.concreteRestartGradMajorant_summable
-ShenWork.IntervalResolverSpectralJointC2Concrete.cutoffValueTerm_restartSmoothCutoff_contDiff
-ShenWork.IntervalResolverSpectralJointC2Concrete.cutoffGradTerm_restartSmoothCutoff_contDiff
-ShenWork.IntervalResolverSpectralJointC2Concrete.cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound
-ShenWork.IntervalResolverSpectralJointC2Concrete.cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound
-```
-
-Final theorem to use:
-
-```lean
-ShenWork.IntervalResolverSpectralJointC2Concrete.resolverSpectralJointC2At_of_restartSmoothCutoff
-```
-
-The exact application shape already used in the repo is:
-
-```lean
-exact resolverSpectralJointC2At_of_restartSmoothCutoff
-  (a₀ := a₀) (M := M) (a := a)
-  (offset := offset) (s := s) (x := x)
-  hτoffset ha₀ src
-```
-
-### 4. Coupled resolver transfer layer
-
-Files:
-
-```text
-ShenWork/PDE/IntervalResolverJointC2.lean
-ShenWork/PDE/IntervalResolverJointC2C2Coeff.lean
-ShenWork/PDE/IntervalCoupledResolverJointC2.lean
-```
-
-Core spectral target and transfer names:
-
-```lean
-ShenWork.IntervalResolverJointC2.ResolverSpectralJointC2At
-ShenWork.IntervalResolverJointC2.resolver_jointC2At_of_spectralAgreement
-ShenWork.IntervalResolverJointC2.resolver_value_eventuallyEq_spectralSeries_of_agreement
-ShenWork.IntervalResolverJointC2.resolver_grad_eventuallyEq_spectralGradSeries_of_agreement
-ShenWork.IntervalResolverJointC2.resolver_value_contDiffAt_of_spectral_eventuallyEq
-ShenWork.IntervalResolverJointC2.resolver_grad_contDiffAt_of_spectral_eventuallyEq
-```
-
-C²-coefficient spectral agreement package:
-
-```lean
-ShenWork.IntervalResolverJointC2.ResolverHasSpectralAgreementC2Coeff
-ShenWork.IntervalResolverJointC2.resolver_jointC2At_of_spectralAgreement_c2Data
-```
-
-Coupled theorem to use:
-
-```lean
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration_resolver_jointC2At_c2Data
-```
-
-This theorem returns both required resolver factor facts:
-
-```lean
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ =>
-    intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-  (s, x)
-∧
-ContDiffAt ℝ 2
-  (fun q : ℝ × ℝ =>
-    deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-  (s, x)
-```
-
-### 5. FAC / flux assembly layer
-
-Files:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean
-ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean
-ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean
-```
-
-Already committed names:
-
-```lean
-ShenWork.IntervalCoupledRegularityBootstrap.FACLocalSlabInputs
-ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorFACInputs
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemical_floor_pos_of_nonneg_continuous
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxFactorJointC2Inputs_of_FACInputs
-```
-
-The theorem `coupledChemDivFluxFactorJointC2Inputs_of_FACInputs` already performs
-the direct resolver cutoff assembly, but its input is still all-`τ : ℝ`.  The body
-is the proof to clone/refactor to positive-time domains.
-
-Flux factor and joint-hyp names:
-
-```lean
-ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorJointC2Inputs
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFlux_contDiffAt_of_factorJointC2
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivOuterCommuteAtoms_of_factorJointC2Inputs
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivSource_timeC1_of_factorJointC2Inputs
-```
-
-The committed object corresponding to “`coupledChemDivFluxJointC2`” appears to be
-`CoupledChemDivFluxJointC2Hyp`, produced by
-`coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs`.
-
-## Minimal Paper2 target theorem for positive-time-only domains
-
-Create a Paper2 wrapper file, for example:
-
-```lean
-import ShenWork.PDE.IntervalChemDivFluxFactorFAC
-import ShenWork.PDE.IntervalChemDivFluxJointC2Producer
-import ShenWork.PDE.IntervalChemDivOuterCommuteProducer
-import ShenWork.PDE.IntervalCoupledResolverJointC2
-import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
-
-open Set Filter Topology
+open Filter Topology Set
 open ShenWork.IntervalDomain
-open ShenWork.IntervalResolverJointC2
-open ShenWork.IntervalResolverSpectralJointC2Concrete
-open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.PDE
+open ShenWork.IntervalResolverSpectralJointC2Cutoff
+open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
+open ShenWork.IntervalPhysicalResolverDataConcrete
 
 noncomputable section
 
-namespace ShenWork.Paper2.Cron2DirectResolver
-```
+namespace ShenWork.Paper2.Cron2CutoffResolverCoeff
 
-First define a positive-time FAC input wrapper.  This is the same as the existing
-`CoupledChemDivFluxFactorFACInputs`, except the slab provider is restricted to
-`0 < τ` and `τ < U`.
+/-- Cut off the resolver coefficient in time, killing the nonpositive/near-zero
+region before feeding the coefficient family to `contDiff_tsum`. -/
+def cutoffResolverCoeff
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c : ℝ)
+    (k : ℕ) : ℝ → ℝ :=
+  fun t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t
 
-```lean
-structure CoupledChemDivFluxFactorFACInputsPos
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  resolver_package :
-    ∃ U : ℝ,
-      0 < U ∧
-      ResolverHasSpectralAgreementC2Coeff U
-        (coupledChemicalConcentration p u) ∧
-      ∀ τ : ℝ, 0 < τ → τ < U → ∃ δ : ℝ,
-        FACLocalSlabInputs p u U τ δ
-```
-
-Then define the positive-time output factor package.  This is the positive-domain
-version of `CoupledChemDivFluxFactorJointC2Inputs`: it has the same factor fields
-but only for `τ ∈ (0,U)`.  I recommend including the `htime_window` field in the
-output package too, because downstream positive-domain theorems will need to know
-that their local slab remains inside `(0,U)`.
-
-```lean
-structure CoupledChemDivFluxFactorJointC2InputsPos
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (U : ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, 0 < τ → τ < U → ∃ δ : ℝ, 0 < δ ∧
-    (∀ s : ℝ, s ∈ Metric.ball τ δ → 0 < s ∧ s < U) ∧
-    (∀ᶠ s in 𝓝 τ,
-      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-        (s, x)) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          deriv (intervalDomainLift
-            (coupledChemicalConcentration p u q.1)) q.2)
-        (s, x)) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-        (fun y : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (s, y) (1, 0))) ∧
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
-```
-
-The minimal direct theorem to prove in Paper2 is:
-
-```lean
-theorem coupledChemDivFluxFactorJointC2InputsPos_of_FACInputsPos
+/-- Adapter: local positive-time C² of `srcTimeCoeff` on `[c/2,∞)` is enough to
+make the cutoff resolver coefficient globally C².  The branch `t < c/2` is
+locally zero; the branch `t ≥ c/2` uses the constant-weight identity
+`resolverTimeCoeff = wₖ • srcTimeCoeff`. -/
+theorem cutoffResolverCoeff_contDiff_two_of_srcTimeCoeff_contDiffAt
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (H : CoupledChemDivFluxFactorFACInputsPos p u) :
-    ∃ U : ℝ, CoupledChemDivFluxFactorJointC2InputsPos p u U := by
-  rcases H.resolver_package with ⟨U, hUpos, HRc2, hslabs⟩
-  refine ⟨U, ?_⟩
-  refine ⟨fun τ hτ0 hτU => ?_⟩
-  rcases hslabs τ hτ0 hτU with
-    ⟨δ, hδ, htime_window, hsource, hu_cont, hu_nonneg, hu_c2,
-      htime_bridge, htime_cont⟩
+    {c : ℝ} (hc : 0 < c) (k : ℕ)
+    (hsrc : ∀ τ : ℝ, c / 2 ≤ τ →
+      ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) τ) :
+    ContDiff ℝ (2 : ℕ∞) (cutoffResolverCoeff p u c k) := by
+  -- Skeleton; exact names for the final `congr_of_eventuallyEq` direction may need
+  -- minor adjustment.
+  rw [contDiff_iff_contDiffAt]
+  intro τ
+  by_cases hτlt : τ < c / 2
+  · -- Locally left of `c/2`, the cutoff is identically zero.
+    have hzero : cutoffResolverCoeff p u c k =ᶠ[𝓝 τ] fun _ : ℝ => 0 := by
+      filter_upwards [Iio_mem_nhds hτlt] with t ht
+      have hφ : smoothRightCutoff (c / 2) c t = 0 := by
+        exact smoothRightCutoff_eq_zero_of_le (by linarith) (le_of_lt ht)
+      simp [cutoffResolverCoeff, hφ]
+    -- `fun _ => 0` is C², transfer by eventual equality.
+    exact (contDiffAt_const : ContDiffAt ℝ (2 : ℕ∞) (fun _ : ℝ => (0 : ℝ)) τ)
+      |>.congr_of_eventuallyEq hzero.symm
+  · -- At and to the right of `c/2`, `τ` is positive and the source coefficient is C².
+    have hτle : c / 2 ≤ τ := le_of_not_gt hτlt
+    have hres : ContDiffAt ℝ (2 : ℕ∞) (resolverTimeCoeff p u k) τ := by
+      rw [resolverTimeCoeff_eq_smul]
+      exact (hsrc τ hτle).const_smul (intervalNeumannResolverWeight p k)
+    have hφ : ContDiffAt ℝ (2 : ℕ∞) (smoothRightCutoff (c / 2) c) τ :=
+      smoothRightCutoff_contDiff.contDiffAt
+    simpa [cutoffResolverCoeff] using hφ.mul hres
 
-  have hresolver_c2 :
-      ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-        ContDiffAt ℝ 2
-          (fun q : ℝ × ℝ =>
-            intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-          (s, x) ∧
-        ContDiffAt ℝ 2
-          (fun q : ℝ × ℝ =>
-            deriv (intervalDomainLift
-              (coupledChemicalConcentration p u q.1)) q.2)
-          (s, x) := by
-    intro x hx s hs
-    rcases htime_window s hs with ⟨hs0, hsU⟩
-    exact coupledChemicalConcentration_resolver_jointC2At_c2Data
-      (p := p) (u := u) (U := U) (s := s) (x := x)
-      HRc2 hs0 hsU hx
-      (by
-        intro a₀ M _hM ha₀ a src offset hτoffset _hagree
-        exact resolverSpectralJointC2At_of_restartSmoothCutoff
-          (a₀ := a₀) (M := M) (a := a)
-          (offset := offset) (s := s) (x := x)
-          hτoffset ha₀ src)
-
-  refine ⟨δ, hδ, htime_window, hsource, hu_c2,
-    (fun x hx s hs => (hresolver_c2 x hx s hs).1),
-    (fun x hx s hs => (hresolver_c2 x hx s hs).2),
-    ?_, htime_bridge, htime_cont⟩
-  intro x _hx s _hs
-  exact coupledChemical_floor_pos_of_nonneg_continuous hu_cont hu_nonneg s x
+end ShenWork.Paper2.Cron2CutoffResolverCoeff
 ```
 
-Then define a positive-domain version of `CoupledChemDivFluxJointC2Hyp`.  It is
-literally the existing `CoupledChemDivFluxJointC2Hyp` with
+This theorem is the actual shortcut for the **term ContDiff** part.  It avoids
+constructing the full `PhysicalResolverJointC2Data` and avoids full
+`FlooredSourceTimeData`.  It does **not** avoid local source-coefficient C².
+
+## Minimal local source-coefficient C² lemma
+
+The missing hypothesis `hsrc` above should be supplied by a lightweight local
+positive-time lemma.  It should not require the full six fields of
+`FlooredSourceTimeData`; only the first two derivative-slice fields and continuity
+of the second derivative slice are needed.
+
+Recommended target:
 
 ```lean
-∀ τ : ℝ, ∃ δ : ℝ, ...
-```
-
-replaced by
-
-```lean
-∀ τ : ℝ, 0 < τ → τ < U → ∃ δ : ℝ, ...
-```
-
-and, preferably, with the same `htime_window` slab-retention field.
-
-```lean
-structure CoupledChemDivFluxJointC2HypPos
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (U : ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, 0 < τ → τ < U → ∃ δ : ℝ, 0 < δ ∧
-    (∀ s : ℝ, s ∈ Metric.ball τ δ → 0 < s ∧ s < U) ∧
-    (∀ᶠ s in 𝓝 τ,
-      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+structure LocalSourceTimeC2At
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) (τ : ℝ) : Prop where
+  d0 : ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0 : ℝ) 1)) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      ContDiffAt ℝ 2
-        (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)) ∧
+      HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s) ∧
+    ContinuousOn (Function.uncurry s₁)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+  d1 : ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ s in 𝓝 τ, ContinuousOn (s₁ s) (Icc (0 : ℝ) 1)) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun r : ℝ => deriv (coupledChemDivFluxLift p u r) x) =ᶠ[𝓝 s]
-        (fun r : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (r, x) (0, 1))) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-        (fun y : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (s, y) (1, 0))) ∧
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+      HasDerivAt (fun r => s₁ r x) (s₂ s x) s) ∧
+    ContinuousOn (Function.uncurry s₂)
       (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-The positive analogue of the existing assembler is a mechanical clone of
-`coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs`:
+Then prove:
 
 ```lean
-theorem coupledChemDivFluxJointC2HypPos_of_factorJointC2InputsPos
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {U : ℝ}
-    (H : CoupledChemDivFluxFactorJointC2InputsPos p u U) :
-    CoupledChemDivFluxJointC2HypPos p u U := by
-  refine ⟨fun τ hτ0 hτU => ?_⟩
-  rcases H.exists_local_slab τ hτ0 hτU with
-    ⟨δ, hδ, htime_window, hsource_cont, hu_c2, hv_c2, hgradv_c2,
-      hbase, htime, htime_cont⟩
-  have hflux_joint_c2_from_product_quotient_rpow :
-      ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-        ContDiffAt ℝ 2
-          (Function.uncurry (coupledChemDivFluxLift p u)) (s, x) :=
-    fun x hx s hs =>
-      coupledChemDivFlux_contDiffAt_of_factorJointC2
-        (hu_c2 x hx s hs) (hv_c2 x hx s hs) (hgradv_c2 x hx s hs)
-        (hbase x hx s hs)
-  -- The rest is copied from `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs`:
-  -- build the spatial-deriv/fderiv bridge by differentiability of the flux C² fact,
-  -- reuse `htime`, and reuse `htime_cont`.
+theorem srcTimeCoeff_contDiffAt_two_of_localSourceTimeC2At
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {s₁ s₂ : ℝ → ℝ → ℝ} {τ : ℝ}
+    (H : LocalSourceTimeC2At p u s₁ s₂ τ) (k : ℕ) :
+    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) τ := by
+  -- Proof route:
+  -- 1. From `H.d0`, use `cosineCoeffs_hasDerivAt_of_smooth_param` to show
+  --      HasDerivAt (srcTimeCoeff p u k) (cosineCoeffs (s₁ τ) k) τ.
+  --    More generally, get the derivative formula locally near τ.
+  -- 2. From `H.d1`, use the same primitive for
+  --      HasDerivAt (fun t => cosineCoeffs (s₁ t) k)
+  --        (cosineCoeffs (s₂ τ) k) τ.
+  -- 3. Use `cosineCoeffs_continuousOn_of_jointContinuousOn_Icc` on the `s₂` slab
+  --    to get continuity at τ of `fun t => cosineCoeffs (s₂ t) k`.
+  -- 4. Assemble via the same pattern already committed in
+  --    `srcTimeCoeff_contDiff`:
+  --      `contDiff_one_iff_deriv`
+  --      then `contDiff_succ_iff_deriv` / local `ContDiffAt` analogue.
   sorry
 ```
 
-Capstone theorem:
+If the local `ContDiffAt` assembly lemmas are awkward, prove a slightly stronger
+open-neighborhood version:
 
 ```lean
-theorem coupledChemDivFluxJointC2HypPos_of_FACInputsPos
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    (H : CoupledChemDivFluxFactorFACInputsPos p u) :
-    ∃ U : ℝ, CoupledChemDivFluxJointC2HypPos p u U := by
-  rcases coupledChemDivFluxFactorJointC2InputsPos_of_FACInputsPos
-      (p := p) (u := u) H with ⟨U, HF⟩
-  exact ⟨U, coupledChemDivFluxJointC2HypPos_of_factorJointC2InputsPos HF⟩
+theorem srcTimeCoeff_contDiffOn_Ioo_of_sourceTimeC2On
+    ... :
+    ContDiffOn ℝ (2 : ℕ∞) (srcTimeCoeff p u k) (Ioo a b)
 ```
 
-Important: if the final target remains the old all-time
-`CoupledChemDivFluxFactorJointC2Inputs` or `CoupledChemDivFluxJointC2Hyp`, then a
-positive-time-only proof cannot inhabit it without reintroducing the bad all-real
-obligation.  Either refactor those structures or introduce parallel `...Pos` /
-`...On (Ioo 0 U)` structures and use them downstream.
+then use `.contDiffAt` with `IsOpen.mem_nhds` when `τ ∈ Ioo a b`.  This is often
+less painful than using `ContDiffAt` derivative-recursion lemmas directly.
 
-## Step list to assemble the flux package from the direct route
-
-1. Obtain the positive FAC package:
-
-   ```lean
-   Hpos : CoupledChemDivFluxFactorFACInputsPos p u
-   ```
-
-2. Extract the resolver spectral package and local slab provider:
-
-   ```lean
-   rcases Hpos.resolver_package with ⟨U, hUpos, HRc2, hslabs⟩
-   ```
-
-3. For a target time `τ` in the positive horizon, get a local slab:
-
-   ```lean
-   rcases hslabs τ hτ0 hτU with
-     ⟨δ, hδ, htime_window, hsource, hu_cont, hu_nonneg, hu_c2,
-       htime_bridge, htime_cont⟩
-   ```
-
-4. For each `s ∈ Metric.ball τ δ`, use the slab window:
-
-   ```lean
-   rcases htime_window s hs with ⟨hs0, hsU⟩
-   ```
-
-5. Apply the coupled resolver transfer:
-
-   ```lean
-   have hpair := coupledChemicalConcentration_resolver_jointC2At_c2Data
-     (p := p) (u := u) (U := U) (s := s) (x := x)
-     HRc2 hs0 hsU hx
-     (by
-       intro a₀ M _hM ha₀ a src offset hτoffset _hagree
-       exact resolverSpectralJointC2At_of_restartSmoothCutoff
-         (a₀ := a₀) (M := M) (a := a)
-         (offset := offset) (s := s) (x := x)
-         hτoffset ha₀ src)
-   ```
-
-6. Split the pair into the two factor fields:
-
-   ```lean
-   hv_c2     := fun x hx s hs => (hresolver_c2 x hx s hs).1
-   hgradv_c2 := fun x hx s hs => (hresolver_c2 x hx s hs).2
-   ```
-
-7. Discharge the denominator floor with the existing positivity theorem:
-
-   ```lean
-   coupledChemical_floor_pos_of_nonneg_continuous hu_cont hu_nonneg s x
-   ```
-
-8. Build `CoupledChemDivFluxFactorJointC2InputsPos`.
-
-9. Apply the positive clone of
-   `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs`.  Its key inner step is
-   already available:
-
-   ```lean
-   coupledChemDivFlux_contDiffAt_of_factorJointC2
-     (hu_c2 x hx s hs) (hv_c2 x hx s hs) (hgradv_c2 x hx s hs)
-     (hbase x hx s hs)
-   ```
-
-10. If downstream needs outer-commute or source-time-C¹, clone the existing
-    producers to positive-domain packages:
-
-    ```lean
-    coupledChemDivOuterCommuteAtoms_of_factorJointC2Inputs
-    coupledChemDivSource_timeC1_of_factorJointC2Inputs
-    ```
-
-    but with the same `∀ τ, 0 < τ → τ < U → ...` shape.  Do not feed
-    positive-time data into the old all-time structures.
-
-## What changes are needed to `IntervalResolverPhysicalC2` assumptions?
-
-None.
-
-The committed file is:
-
-```text
-ShenWork/PDE/IntervalResolverPhysicalC2.lean
-```
-
-It is a fixed-time **spatial** C² result.  Its main theorems are:
+For the heat semigroup level-0 case, choose the slices already documented in
+`IntervalHeatSemigroupFlooredSourceTimeData.lean`:
 
 ```lean
-ShenWork.IntervalResolverPhysicalC2.resolverR_eigenWeighted_le_source
-ShenWork.IntervalResolverPhysicalC2.resolverR_eigenWeighted_summable_of_sourceL1
-ShenWork.IntervalResolverPhysicalC2.resolverR_contDiff_two_of_source_l1
-ShenWork.IntervalResolverPhysicalC2.resolverR_contDiffOn_Icc_of_source_l1
+s₁ := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀)
+s₂ := srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)
 ```
 
-These assumptions should not be changed for the direct joint-C² route.  The
-positive-time issue is not a fixed-time elliptic issue; it is a joint-time domain
-issue.  `IntervalResolverPhysicalC2` can remain the spatial elliptic bootstrap
-from source coefficient `ℓ¹` data.
+and prove the local data only for `τ ≥ c/2`.  Since `0 < c`, every such `τ` is
+positive, and the local ball can be chosen inside `(0,∞)`.  This avoids all the
+`t ≤ 0` obligations that make global `FlooredSourceTimeData` annoying.
 
-Also, do not weaken `PhysicalResolverJointC2Data` to positive-time unless you want
-to build a second abstraction parallel to the restart cutoff route.  For this
-Q931 route, it is simpler to bypass `PhysicalResolverJointC2Data` entirely and
-consume:
+## How this plugs into `contDiff_tsum`
+
+Define the cutoff coefficient family:
 
 ```lean
-ResolverHasSpectralAgreementC2Coeff U (coupledChemicalConcentration p u)
+def cutoffResolverCoeffFamily
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c : ℝ) :
+    ℕ → ℝ → ℝ :=
+  fun k t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t
 ```
 
-plus positive local slab data.
-
-## What changes are needed versus existing `coupledChemDivFluxJointC2Inputs` assumptions?
-
-There are three relevant committed packages:
+Then feed it to the existing bounded-weight assemblers:
 
 ```lean
-CoupledChemDivFluxFactorFACInputs
-CoupledChemDivFluxFactorJointC2Inputs
-CoupledChemDivFluxJointC2Hyp
+have hValueSeries : ContDiff ℝ (2 : ℕ∞)
+    (fun q : ℝ × ℝ =>
+      ∑' k : ℕ,
+        boundedWeightJointTerm (cutoffResolverCoeffFamily p u c) k q) :=
+  boundedWeightJointSeries_contDiff_two
+    (hc := fun k => cutoffResolverCoeff_contDiff_two_of_srcTimeCoeff_contDiffAt
+      (p := p) (u := u) (c := c) hc k hsrc)
+    hBt_cut
+    hBt_cut_summable
+
+have hGradSeries : ContDiff ℝ (2 : ℕ∞)
+    (fun q : ℝ × ℝ =>
+      ∑' k : ℕ,
+        boundedWeightJointGradTerm (cutoffResolverCoeffFamily p u c) k q) :=
+  boundedWeightJointGradSeries_contDiff_two
+    (hc := fun k => cutoffResolverCoeff_contDiff_two_of_srcTimeCoeff_contDiffAt
+      (p := p) (u := u) (c := c) hc k hsrc)
+    hBt_cut
+    hBt_cut_grad_summable
 ```
 
-The required change is the same for all of them: replace all-time local slabs by
-positive-time / horizon-local slabs.
-
-### Current problematic shape
+Near any target `s₀ > c`, use:
 
 ```lean
-∀ τ : ℝ, ∃ δ : ℝ, ...
+smoothRightCutoff_eventually_eq_one (by linarith : c / 2 < c) hs₀
 ```
 
-For `CoupledChemDivFluxFactorFACInputs`, the current field is:
+to transfer the cutoff series back to the original resolver series by eventual
+equality, exactly like `heatSeries_eventuallyEq_cutoff` and
+`heatSemigroup_jointContDiffAt_two` do.
+
+## Important caveat: term C² is not enough for `contDiff_tsum`
+
+`contDiff_tsum` needs three things:
 
 ```lean
-resolver_package :
-  ∃ U : ℝ,
-    ResolverHasSpectralAgreementC2Coeff U
-      (coupledChemicalConcentration p u) ∧
-    ∀ τ : ℝ, ∃ δ : ℝ, FACLocalSlabInputs p u U τ δ
+1. ∀ k, ContDiff ℝ 2 (cutoff term k)
+2. ∀ derivative order i ≤ 2, a summable majorant
+3. pointwise derivative bounds by that majorant
 ```
 
-But `FACLocalSlabInputs` itself requires:
+The shortcut above only solves item 1.  Items 2 and 3 still need cutoff-specific
+bounds for
 
 ```lean
-∀ s : ℝ, s ∈ Metric.ball τ δ → 0 < s ∧ s < U
+iteratedFDeriv ℝ i
+  (fun t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t)
 ```
 
-That cannot hold for arbitrary `τ : ℝ`; it can only hold for `τ ∈ (0,U)`.
+For those bounds, you again need formulas or estimates for the first two time
+derivatives of `srcTimeCoeff` on the support where the cutoff is nonzero.  You do
+not need full `FlooredSourceTimeData`, but you do need a bound package equivalent
+to the `src_bound` part of `PhysicalSourceTimeC2` restricted to the positive
+cutoff region.
 
-### Correct positive-domain shape
+If using the one-sided `smoothRightCutoff (c/2) c`, the support is unbounded to
+`+∞`; your majorants must be uniform for all `t ≥ c/2`.  For local-at-`s₀`
+regularity, a two-sided compact restart cutoff is often easier because all bounds
+are only needed on a compact positive slab.  This is exactly why the existing
+restart theorem is attractive.
+
+## Best practical recommendation
+
+For the direct physical coefficient lane:
+
+1. Add `LocalSourceTimeC2At` or `PositiveSourceTimeC2On` with only `d0`, `d1`, and
+   continuity of the second derivative slice.
+2. Prove `srcTimeCoeff_contDiffAt_two_of_localSourceTimeC2At` by copying the
+   coefficient part of `srcTimeCoeff_contDiff`, not the whole `FlooredSourceTimeData`.
+3. Prove `cutoffResolverCoeff_contDiff_two_of_srcTimeCoeff_contDiffAt` as the
+   zero-left/product-right adapter.
+4. Separately prove cutoff derivative bounds/envelopes for `hBt_cut`.
+5. Feed `cutoffResolverCoeffFamily` to
+   `boundedWeightJointSeries_contDiff_two` and
+   `boundedWeightJointGradSeries_contDiff_two`.
+6. Transfer back near `s₀ > c` using `smoothRightCutoff_eventually_eq_one`.
+
+For the fastest route to close the resolver joint-C² target, do not build this
+new lane unless you specifically need the physical coefficient family.  Use the
+already committed restart path:
 
 ```lean
-resolver_package :
-  ∃ U : ℝ,
-    0 < U ∧
-    ResolverHasSpectralAgreementC2Coeff U
-      (coupledChemicalConcentration p u) ∧
-    ∀ τ : ℝ, 0 < τ → τ < U → ∃ δ : ℝ,
-      FACLocalSlabInputs p u U τ δ
+coupledChemicalConcentration_resolver_jointC2At_c2Data
+  HRc2 hs0 hsU hx
+  (by
+    intro a₀ M _hM ha₀ a src offset hτoffset _hagree
+    exact resolverSpectralJointC2At_of_restartSmoothCutoff
+      (a₀ := a₀) (M := M) (a := a)
+      (offset := offset) (s := s) (x := x)
+      hτoffset ha₀ src)
 ```
 
-For `CoupledChemDivFluxFactorJointC2Inputs` and `CoupledChemDivFluxJointC2Hyp`,
-use the same replacement:
-
-```lean
-exists_local_slab :
-  ∀ τ : ℝ, 0 < τ → τ < U → ∃ δ : ℝ, ...
-```
-
-### What remains as assumptions in the FAC input?
-
-Keep only the non-resolver fields in `FACLocalSlabInputs`:
-
-```lean
-0 < δ
-∀ s ∈ Metric.ball τ δ, 0 < s ∧ s < U
-∀ᶠ s in 𝓝 τ, ContinuousOn (coupledChemDivSourceLift p u s) (Icc 0 1)
-∀ s, Continuous (u s)
-∀ s, ∀ x, 0 ≤ u s x
-hu_c2
-htime_bridge
-htime_cont
-```
-
-The direct route internally proves the three fields that should **not** be
-FAC assumptions:
-
-```lean
-hv_c2
-hgradv_c2
-hbase
-```
-
-### Bottom line
-
-* `IntervalResolverPhysicalC2`: no assumption changes.
-* `PhysicalResolverJointC2Data`: bypass; do not use for this positive-time Paper2 route.
-* `CoupledChemDivFluxFactorFACInputs`: change `∀ τ` to `∀ τ, 0 < τ → τ < U →`.
-* `CoupledChemDivFluxFactorJointC2Inputs` / `CoupledChemDivFluxJointC2Hyp`: either
-  refactor similarly or create `...Pos` / `...On` versions.  Without this change,
-  the direct positive-time proof cannot typecheck against the old all-time target.
+That path already has the coefficient C² and `contDiff_tsum` bounds for the
+cutoff/restart coefficients.  It is the real shortcut.  The physical cutoff lane
+is a smaller refactor of `FlooredSourceTimeData`, not a complete replacement for
+the two time-derivative source calculus.
