@@ -1,12 +1,39 @@
 # UNDERSTANDING.md — Shen_work (2026-06-25 update)
 
-## CURRENT STATE (2026-06-26, session handoff)
+## CURRENT STATE (2026-06-26 night session, automode)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: Level0 4 sorry + Tower 5 sorry = **9 total**.
-Session progress: original 11 sorry → 9 sorry. Infrastructure files ALL 0 sorry.
-heatSemigroup_jointContDiffAt_two FULLY PROVED (the key blocker).
-FluxJointC2Hyp sub-sorry 3B-3G ALL FILLED.
+Paper 2 χ₀<0: Level0 **5 sorry** + Tower 5 sorry = **10 total**.
+Session progress: Level0 15 sorry → 5 sorry (10 eliminated via architectural fix).
+
+### What this session did (8 commits):
+1. **F1 upstream weakening** (c2dfd86, e766768): ContinuousOn → IntervalIntegrable
+   in 6 structures + consumer + 6 downstream callers. Boundary obstruction resolved.
+2. **Architectural fix** (9dd3a4b): eliminated by_cases hτ : 0 < τ (τ ≤ 0 branch
+   was mathematically impossible — heat semigroup discontinuous at t=0).
+   15 sorry → 5 sorry.
+3. **New infrastructure** (cfcb6de, 365db15, be5bf6b, 4a6740e):
+   - variation-of-constants identity for localRestartCoeff
+   - direct resolver inner commute WITHOUT PhysicalResolverJointC2Data
+   - ResolverHasSpectralAgreementC2Coeff assembly (4 sorry)
+   - Level0 ChemDivMixedTimeDerivClosedRepr skeleton (for 3G)
+
+### Remaining 5 Level0 sorry:
+- **1A** (line ~755): uniform ptwise bound of secondDeriv via joint continuity + compactness
+- **2A-sup** (line ~893): uniform sup bound for coupledChemDivSourceLift
+- **3A**: IntervalIntegrable from interior smoothness + sup bound (provable, no obstruction)
+- **3C+3D+3F** (combined): chain rule HasDerivAt — blocked on resolver joint C² + bridge
+- **3G**: time-derivative joint continuity on slab — blocked on mixed repr witnesses
+
+### Root cause resolution status:
+1. ~~Resolver C² scope mismatch~~: bypassed via restart cutoff (resolverSpectralJointC2At_of_restartSmoothCutoff). Assembly in IntervalResolverLevel0SpectralC2Coeff (4 internal sorry for spectral data).
+2. ~~F1 boundary obstruction~~: RESOLVED (ContinuousOn → IntervalIntegrable).
+3. ~~τ ≤ 0 impossible branch~~: ELIMINATED (architectural fix).
+
+### Deepest remaining piece:
+DuhamelSourceTimeC2Coeff for artificial restart source (srcC2 sorry in
+IntervalResolverLevel0SpectralC2Coeff.lean). Needs λ-weighted envelopes
+for the resolver coefficient derivatives at positive time.
 
 ### Remaining 3 Level0 sorry (all blocked on resolver joint C²):
 - 1A (line 755): joint pointwise bound of secondDeriv via compactness
