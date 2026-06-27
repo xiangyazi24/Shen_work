@@ -26,19 +26,31 @@ Session progress: Level0 15 sorry → 5 sorry (10 eliminated via architectural f
 - **3G**: time-derivative joint continuity on slab — blocked on mixed repr witnesses
 
 ### Root cause resolution status:
-1. ~~Resolver C² scope mismatch~~: PIVOTED to Option (A) — weaken FlooredSourceTimeData
-   floor to positive-time-only. This makes PhysicalSourceTimeC2 → PhysicalResolverJointC2Data
-   chain work with EXISTING quadratic decay (no DuhamelSourceTimeC2Coeff needed).
-   The Option (B) infrastructure (variation-of-constants, direct resolver inner commute,
-   ResolverLevel0SpectralC2Coeff) is BONUS — co-exists as alternative route.
-2. ~~F1 boundary obstruction~~: RESOLVED (ContinuousOn → IntervalIntegrable).
-3. ~~τ ≤ 0 impossible branch~~: ELIMINATED (architectural fix).
+1. ~~Resolver C² scope mismatch~~: RESOLVED via Option B — direct cutoff resolver C²
+   (IntervalHeatResolverJointC2.lean, 5 sorry, build-verified on uisai2).
+   Option A (floor-weakening) also landed (4000f01) as backup.
+   Option B infrastructure: variation-of-constants (0 sorry), direct inner commute (0 sorry),
+   ResolverLevel0SpectralC2Coeff (assembly skeleton), Level0HeatMixedRepr (3G scaffold).
+2. ~~F1 boundary obstruction~~: RESOLVED (ContinuousOn → IntervalIntegrable, 12+ files).
+3. ~~τ ≤ 0 impossible branch~~: ELIMINATED (9dd3a4b, 15→5 sorry).
 
-### Current bottleneck:
-Option (A) FlooredSourceTimeData floor-weakening — Opus subagent in flight.
-Changes ~5 files: weaken `∀ t : ℝ` → `∀ t, 0 < t →` in 6 structure fields.
-Once landed → FlooredSourceTimeData fillable → PhysicalResolverJointC2Data →
-all existing 3C/3D/3F/3G producers fire → Level0 closes → Tower cascades.
+### Current state (end of 2026-06-26 night session):
+Level0: **8 sorry** (from 15). Full project build-verified on uisai2 (3640 jobs).
+34 commits, 25+ ChatGPT rounds, 10 subagents.
+
+### Per-sorry closure map (Q1090 + Q1102):
+- **3C+3D+3F** (chain rule HasDerivAt): CLOSES from direct resolver C² + inner commute
+- **3E/positivity**: CLOSES with existing coupledChemical_floor_pos wiring
+- **3A** (IntervalIntegrable): FILLED (9566859), 2 sub-sorry remain
+- **3G** (time-deriv continuity): via Level0HeatMixedRepr scaffold (Q1102 confirmed no IteratePicardJointC2Data needed)
+- **1A** (secondDeriv uniform bound): NEEDS WORK — joint continuity of cosine representative on closed slab
+- **2A-sup** (source sup bound): NEEDS WORK — closed-slab source representative
+
+### Next session priorities:
+1. Fill 5 analytic sorry in IntervalHeatResolverJointC2.lean (per-term ContDiff + majorant)
+2. Wire 3C+3D+3F from direct resolver C² (Q1066 has exact proof body)
+3. Wire 3G from Level0HeatMixedRepr (fill 12 sorry for 10 smooth representatives)
+4. Close 1A + 2A-sup from joint continuity + compactness
 
 ### Remaining 3 Level0 sorry (all blocked on resolver joint C²):
 - 1A (line 755): joint pointwise bound of secondDeriv via compactness
