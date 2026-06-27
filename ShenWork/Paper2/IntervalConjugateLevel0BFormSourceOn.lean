@@ -1253,7 +1253,22 @@ theorem level0_chemDiv_timeDerivData
             funext hg'_odd] at h
           simp [deriv_neg] at h; linarith
         have hg''_symm1 : ∀ x, deriv (deriv g_smooth) (2 - x) = deriv (deriv g_smooth) x := by
-          sorry -- [follows from g_smooth(2-x) = g_smooth(x) → same symmetry for 2nd deriv]
+          -- deriv g_smooth is odd about 1: deriv g(2-x) = -deriv g(x)
+          -- (from g(2-x) = g(x) + chain rule with (2-·) gives factor -1)
+          have hg'_symm1 : ∀ x, deriv g_smooth (2 - x) = -(deriv g_smooth x) := by
+            intro x
+            have h := deriv.scomp x (hg_C4.differentiable (by norm_num)).differentiableAt
+              (differentiableAt_const 2 |>.sub differentiableAt_id)
+            rw [show g_smooth ∘ (fun x => 2 - x) = g_smooth from funext hg_symm1] at h
+            simp [deriv_const_sub] at h; linarith
+          -- deriv(deriv g)(2-x) = deriv(deriv g)(x) since deriv g is odd about 1 → deriv(deriv g) even about 1
+          intro x
+          have h := deriv.scomp x
+            ((hg_C4.differentiable (by norm_num)).deriv (by norm_num)).differentiableAt
+            (differentiableAt_const 2 |>.sub differentiableAt_id)
+          rw [show deriv g_smooth ∘ (fun x => 2 - x) = fun x => -(deriv g_smooth x) from
+            funext hg'_symm1] at h
+          simp [deriv_neg, deriv_const_sub] at h; linarith
         have hg''_bc0 : deriv (deriv (deriv g_smooth)) 0 = 0 := by
           -- deriv(deriv g_smooth) is even → its derivative is odd → 0 at 0
           have hodd : ∀ x, deriv (deriv (deriv g_smooth)) (-x) = -(deriv (deriv (deriv g_smooth)) x) := by
@@ -1263,7 +1278,24 @@ theorem level0_chemDiv_timeDerivData
               funext hg''_even] at h; linarith
           have h0 := hodd 0; rw [neg_zero] at h0; linarith
         have hg''_bc1 : deriv (deriv (deriv g_smooth)) 1 = 0 := by
-          sorry -- [same shifted even trick as hg_bc1]
+          -- deriv(deriv g) is even about 1 (hg''_symm1), so deriv(deriv(deriv g)) is odd about 1 → 0 at 1
+          set h2 := fun x => deriv (deriv g_smooth) (1 + x)
+          have hh2_even : ∀ x, h2 (-x) = h2 x := by
+            intro x; simp only [h2]
+            rw [show (1 : ℝ) + -x = 2 - (1 + x) from by ring]; exact hg''_symm1 (1 + x)
+          have hh2'_odd : ∀ x, deriv h2 (-x) = -(deriv h2 x) := by
+            intro x
+            have h := deriv_comp_neg (f := h2) (x := x)
+            rw [show (fun x => h2 (-x)) = h2 from funext hh2_even] at h; linarith
+          have hh2'_zero : deriv h2 0 = 0 := by
+            have h0 := hh2'_odd 0; rw [neg_zero] at h0; linarith
+          have hchain : deriv h2 0 = deriv (deriv (deriv g_smooth)) 1 := by
+            have := deriv.scomp (0 : ℝ)
+              ((hg_C4.differentiable (by norm_num)).deriv (by norm_num)).differentiableAt
+              (differentiableAt_id.const_add 1)
+            simp only [h2, Function.comp] at this ⊢
+            rw [this, deriv_const_add, deriv_id', mul_one]
+          linarith [hh2'_zero, hchain]
         have hg'''_cont : Continuous (deriv (deriv (deriv g_smooth))) :=
           hg_C4.continuous_deriv (by norm_num : 1 ≤ 4) |>.iterate_deriv 2
             |> sorry -- [need ContDiff 3 → continuous deriv^3]
