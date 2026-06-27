@@ -1,10 +1,19 @@
-# UNDERSTANDING.md — Shen_work (2026-06-27 night session update)
+# UNDERSTANDING.md — Shen_work (2026-06-28 automode session)
 
-## CURRENT STATE (2026-06-27 night session)
+## CURRENT STATE (2026-06-28)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: Level0 **5 sorry** + Tower 5 sorry + FlooredSourceTimeData 5 sorry +
-IntervalPhysicalSourceTimeC2Concrete 2 sorry = infrastructure chain.
+Paper 2 χ₀<0: **42 sorry** across 8 files (was 43; hresolver_series filled).
+
+### Architecture decision: DIRECT CUTOFF PATH is critical
+Direct cutoff (IntervalHeatResolverJointC2, 5 sorry) bypasses
+ResolverLevel0SpectralC2Coeff (DuhamelSourceTimeC2Coeff is 16+ fields, no producer)
+and HeatSemigroupHighRegularity (FlooredSourceTimeData hyps are on separate path).
+
+### 2026-06-28 progress:
+- **hresolver_series FILLED** (310bc27): cosine reconstruction via coupledChemical_lift_eq_series
+- **heatSemigroup_pos_of_pos ADDED** (571ab1d): S(t)u₀ > 0 from u₀ > 0 via lower bound
+- Codex grinding heatLevel0_srcTimeCoeff_contDiffAt_two (adding hfloor chain)
 
 ### 2026-06-27 night session progress:
 - **hfloor hypothesis added** to heatSemigroup_flooredSourceTimeData (heat positivity at t > 0)
