@@ -26,14 +26,19 @@ Session progress: Level0 15 sorry → 5 sorry (10 eliminated via architectural f
 - **3G**: time-derivative joint continuity on slab — blocked on mixed repr witnesses
 
 ### Root cause resolution status:
-1. ~~Resolver C² scope mismatch~~: bypassed via restart cutoff (resolverSpectralJointC2At_of_restartSmoothCutoff). Assembly in IntervalResolverLevel0SpectralC2Coeff (4 internal sorry for spectral data).
+1. ~~Resolver C² scope mismatch~~: PIVOTED to Option (A) — weaken FlooredSourceTimeData
+   floor to positive-time-only. This makes PhysicalSourceTimeC2 → PhysicalResolverJointC2Data
+   chain work with EXISTING quadratic decay (no DuhamelSourceTimeC2Coeff needed).
+   The Option (B) infrastructure (variation-of-constants, direct resolver inner commute,
+   ResolverLevel0SpectralC2Coeff) is BONUS — co-exists as alternative route.
 2. ~~F1 boundary obstruction~~: RESOLVED (ContinuousOn → IntervalIntegrable).
 3. ~~τ ≤ 0 impossible branch~~: ELIMINATED (architectural fix).
 
-### Deepest remaining piece:
-DuhamelSourceTimeC2Coeff for artificial restart source (srcC2 sorry in
-IntervalResolverLevel0SpectralC2Coeff.lean). Needs λ-weighted envelopes
-for the resolver coefficient derivatives at positive time.
+### Current bottleneck:
+Option (A) FlooredSourceTimeData floor-weakening — Opus subagent in flight.
+Changes ~5 files: weaken `∀ t : ℝ` → `∀ t, 0 < t →` in 6 structure fields.
+Once landed → FlooredSourceTimeData fillable → PhysicalResolverJointC2Data →
+all existing 3C/3D/3F/3G producers fire → Level0 closes → Tower cascades.
 
 ### Remaining 3 Level0 sorry (all blocked on resolver joint C²):
 - 1A (line 755): joint pointwise bound of secondDeriv via compactness
