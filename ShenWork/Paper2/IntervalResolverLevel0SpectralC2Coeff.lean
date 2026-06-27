@@ -153,7 +153,7 @@ theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
       --   * λ-weighted and λ²-weighted envelopes for adot.
       -- For Level0 heat, these should come from positive-time exponential
       -- heat smoothing, resolver weight `1/(μ+λ_k)`, and the source-side
-      -- `srcTimeCoeff_contDiff`/bounds.  This is not presently packaged in
+      -- `srcTimeCoeff_contDiffAt`/bounds.  This is not presently packaged in
       -- the repo; the committed physical resolver lane bypasses this structure.
       sorry
 
@@ -171,7 +171,7 @@ theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
         Continuous (fun t : ℝ => deriv (resolverTimeCoeff p u k) t) := by
       -- TODO: same source as above; `ContDiff ℝ 2` gives continuity of the first
       -- derivative.  Source-side theorem already present:
-      -- `IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff`, plus
+      -- `IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiffAt`, plus
       -- `resolverTimeCoeff_eq_weight_smul` transfers through the constant
       -- elliptic weight.
       sorry

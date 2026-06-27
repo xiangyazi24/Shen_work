@@ -151,21 +151,25 @@ theorem flooredSourceTimeData_of_iterate
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
     (H : IterateSourceTimeData p u du d2u) :
     FlooredSourceTimeData p u (srcSlice1 p u du) (srcSlice2 p u du d2u) where
-  d0 τ := by
+  d0 τ _hτ := by
     obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.time1 τ
     refine ⟨δ, hδ, hcont, ?_, hcd⟩
     intro x hx s hs
     exact hasDerivAt_srcSlice (H.floor s x hx) (hdiff x hx s hs)
-  d1 τ := by
+  d1 τ _hτ := by
     obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.time2 τ
     refine ⟨δ, hδ, hcont, ?_, hcd⟩
     intro x hx s hs
     obtain ⟨h1, h2⟩ := hdiff x hx s hs
     exact hasDerivAt_srcSlice1 (H.floor s x hx) h1 h2
-  sliceC2 := H.sliceC2
-  sliceNeumann := H.sliceNeumann
-  zerothBound := H.zerothBound
-  laplBound := H.laplBound
+  sliceC2 i hi t _ht := H.sliceC2 i hi t
+  sliceNeumann i hi t _ht := H.sliceNeumann i hi t
+  zerothBound i hi := by
+    obtain ⟨D, hD, hb⟩ := H.zerothBound i hi
+    exact ⟨D, hD, fun t _ht => hb t⟩
+  laplBound i hi := by
+    obtain ⟨M, hM, hb⟩ := H.laplBound i hi
+    exact ⟨M, hM, fun t _ht k hk => hb t k hk⟩
 
 /-- **End-to-end FAC resolver-`C²` discharge for the concrete iterate.**  The
 honest iterate datum + the source-`ℓ¹` bounded-weight summability + the committed
