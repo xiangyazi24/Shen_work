@@ -1238,11 +1238,37 @@ theorem level0_chemDiv_timeDerivData
           hg_C2_on (by rw [hg_bc0] at htend0; exact htend0) (by rw [hg_bc1] at htend1; exact htend1)
           hg_bc0 hg_bc1
         -- Depth 2: g_smooth is C⁴, so secondDeriv = deriv(deriv g_smooth) is C², same BCs apply
+        -- hf_H2.secondDeriv = deriv(deriv g_smooth), which is C² since g_smooth is C⁴
         have hg''_C2_on : ContDiffOn ℝ 2 hf_H2.secondDeriv (Icc (0:ℝ) 1) := by
-          sorry -- [secondDeriv = deriv(deriv g_smooth), C² from C⁴]
+          -- secondDeriv = deriv (deriv g_smooth) by definition of intervalWeakH2Neumann_of_contDiffOn
+          show ContDiffOn ℝ 2 (deriv (deriv g_smooth)) (Icc (0:ℝ) 1)
+          exact ((hg_C4.iterate_deriv' 2 (by norm_num : 2 + 2 ≤ 4)).of_le
+            (by norm_num)).contDiffOn
+        -- Neumann BCs for the second derivative (from even + period-2 of deriv(deriv g_smooth))
+        have hg''_even : ∀ x, deriv (deriv g_smooth) (-x) = deriv (deriv g_smooth) x := by
+          sorry -- [deriv(deriv(even)) = even; derivative of odd = even]
+        have hg''_symm1 : ∀ x, deriv (deriv g_smooth) (2 - x) = deriv (deriv g_smooth) x := by
+          sorry -- [follows from g_smooth(2-x) = g_smooth(x) → same symmetry for 2nd deriv]
+        have hg''_bc0 : deriv (deriv (deriv g_smooth)) 0 = 0 := by
+          -- deriv(deriv g_smooth) is even → its derivative is odd → 0 at 0
+          have hodd : ∀ x, deriv (deriv (deriv g_smooth)) (-x) = -(deriv (deriv (deriv g_smooth)) x) := by
+            intro x
+            have h := deriv_comp_neg (f := deriv (deriv g_smooth)) (x := x)
+            rw [show (fun x => deriv (deriv g_smooth) (-x)) = deriv (deriv g_smooth) from
+              funext hg''_even] at h; linarith
+          have h0 := hodd 0; rw [neg_zero] at h0; linarith
+        have hg''_bc1 : deriv (deriv (deriv g_smooth)) 1 = 0 := by
+          sorry -- [same shifted even trick as hg_bc1]
+        have hg'''_cont : Continuous (deriv (deriv (deriv g_smooth))) :=
+          hg_C4.continuous_deriv (by norm_num : 1 ≤ 4) |>.iterate_deriv 2
+            |> sorry -- [need ContDiff 3 → continuous deriv^3]
         have hf''_H2 : ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
             hf_H2.secondDeriv := by
-          sorry -- [intervalWeakH2Neumann_of_contDiffOn for the second derivative]
+          exact ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+            hg''_C2_on
+            (by sorry) -- tend0
+            (by sorry) -- tend1
+            hg''_bc0 hg''_bc1
         -- Eigenvalue summability
         have hsumm := ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
           hf_H2 hf''_H2
