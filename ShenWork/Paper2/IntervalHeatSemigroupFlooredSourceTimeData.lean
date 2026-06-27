@@ -202,7 +202,31 @@ local notation "λ_" n => unitIntervalCosineEigenvalue n
 private theorem unitIntervalCosineEigenvalue_sq_exp_summable
     {r : ℝ} (hr : 0 < r) :
     Summable fun n : ℕ => (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) := by
-  sorry
+  set ρ : ℝ := r * Real.pi ^ 2
+  have hρ : 0 < ρ := by positivity
+  have hbase : Summable fun n : ℕ =>
+      Real.pi ^ 4 * ((n : ℝ) ^ 4 * Real.exp (-ρ * (n : ℝ))) := by
+    simpa using
+      (Real.summable_pow_mul_exp_neg_nat_mul 4 (r := ρ) hρ).mul_left (Real.pi ^ 4)
+  refine Summable.of_nonneg_of_le (fun n => ?_) (fun n => ?_) hbase
+  · exact mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+  · have hn_sq_ge : (n : ℝ) ≤ (n : ℝ) ^ 2 := by
+      by_cases hn : n = 0
+      · subst n; norm_num
+      · nlinarith [Nat.pos_of_ne_zero hn, show (1 : ℝ) ≤ (n : ℝ) from
+          by exact_mod_cast Nat.succ_le_of_lt (Nat.pos_of_ne_zero hn)]
+    have hlam_eq : (λ_ n) = (n : ℝ) ^ 2 * Real.pi ^ 2 := by
+      unfold unitIntervalCosineEigenvalue; ring
+    have hlam_sq_eq : (λ_ n) ^ 2 = (n : ℝ) ^ 4 * Real.pi ^ 4 := by
+      rw [hlam_eq]; ring
+    have hexp_le : Real.exp (-r * (λ_ n)) ≤ Real.exp (-ρ * (n : ℝ)) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith [mul_le_mul_of_nonneg_left hn_sq_ge hρ.le]
+    calc (λ_ n) ^ 2 * Real.exp (-r * (λ_ n))
+        = ((n : ℝ) ^ 4 * Real.pi ^ 4) * Real.exp (-r * (λ_ n)) := by rw [hlam_sq_eq]
+      _ ≤ ((n : ℝ) ^ 4 * Real.pi ^ 4) * Real.exp (-ρ * (n : ℝ)) :=
+          mul_le_mul_of_nonneg_left hexp_le (by positivity)
+      _ = Real.pi ^ 4 * ((n : ℝ) ^ 4 * Real.exp (-ρ * (n : ℝ))) := by ring
 
 private theorem heatLaplacianTerm_hasDerivAt_time
     (a : ℕ → ℝ) (x t : ℝ) (n : ℕ) :
