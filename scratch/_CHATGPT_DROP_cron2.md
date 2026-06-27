@@ -1,448 +1,310 @@
-# Q1484 (cron2) — `grad_summable` needs quartic source decay
+# Q1507 (cron2) — bridge from heat cosine series to `intervalDomainLift (conjugatePicardIter … 0 t)`
 
 Static GitHub-connector response only. I did **not** run Lean locally, and I did **not** use Python, code-interpreter, sandbox, or `/mnt/data`.
 
 ## Bottom line
 
-Your diagnosis is correct: the current `builtEs` constructed from `FlooredSourceTimeData.laplBound` has only `(kπ)⁻²` decay, and that is **not sufficient** for the source-side `grad_summable` obligation
+The bridge already exists. For the level-0 heat slice, use:
 
 ```lean
-Summable (boundedWeightJointGradMajorant
-  (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)
+ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
 ```
 
-at `m = 2`.
+It states, on `x ∈ Icc 0 1`, that the lifted level-0 heat iterate equals the cosine heat value:
 
-The best fix is **not** to try to prove the old `builtEs` goal. That goal is false by asymptotics. The correct route is to strengthen the source envelope used by `PhysicalSourceTimeC2`: add a quartic-decay field to `FlooredSourceTimeData` (or equivalently introduce a new `builtEs4` and use that instead of the old `builtEs`). In the current API, a pure “direct bypass” of `builtEs` is not type-correct unless it replaces the envelope `Es` used to build `PhysicalSourceTimeC2`.
+```lean
+intervalDomainLift (picardIter p u₀ 0 σ) x =
+  unitIntervalCosineHeatValue σ (heatCoeff u₀) x
+```
 
-## What the repo currently says
+where
 
-The relevant source-side structure is in:
+```lean
+heatCoeff u₀ = cosineCoeffs (intervalDomainLift u₀)
+```
+
+Internally this theorem uses the better subtype-continuity bridge:
+
+```lean
+ShenWork.IntervalSpectralSubtypeAdapter
+  .intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+```
+
+That is the right theorem for positive initial data on `[0,1]`, because it avoids requiring global continuity of the zero extension `intervalDomainLift u₀`.
+
+For `conjugatePicardIter p u₀ 0`, the level-0 definition is the same heat semigroup slice: `conjugatePicardIter p u₀ 0` is definitionally the pure heat semigroup, and the repo explicitly records the level-0 conjugate/nonconjugate coefficient equalities by `rfl` in `IntervalConjugateLevel0BFormSourceOn.lean`.
+
+So the route is:
 
 ```text
-ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+intervalDomainLift (conjugatePicardIter p u₀ 0 t)
+  = intervalFullSemigroupOperator t (intervalDomainLift u₀)       -- by level-0 definition, on Icc
+  = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift u₀))
+                                                                  -- subtype adapter / heatSlice_profile_eq_heatValue
+  = the cosine series used by heatSemigroup_contDiff_four          -- definitional unfolding
 ```
 
-There, `FlooredSourceTimeData` contains:
+## Exact lemmas found
 
-```lean
-zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, 0 < t →
-  |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
+### 1. Subtype-continuity bridge, closed interval version
 
-laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
-  |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
-```
-
-and `builtEs` is exactly the zeroth-mode bound at `k = 0`, otherwise the `(kπ)⁻²` `laplBound` envelope:
-
-```lean
-def builtEs
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) : ℝ :=
-  if hi : i ≤ 2 then
-    (if k = 0 then Classical.choose (H.zerothBound i hi)
-     else Classical.choose (H.laplBound i hi) / ((k:ℝ) * Real.pi) ^ 2)
-  else 0
-```
-
-Then `physicalSourceTimeC2_of_floored` requires both value and gradient summability for exactly this envelope:
-
-```lean
-(hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-  Summable (boundedWeightJointMajorant
-    (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
-(hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-  Summable (boundedWeightJointGradMajorant
-    (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
-```
-
-So the current theorem does **not** derive `grad_summable`; it asks for it as a hypothesis. The remaining `sorry` in `IntervalHeatSemigroupHighRegularity.lean` currently has a misleading comment saying the gradient summability follows from `(kπ)⁻²` plus the elliptic weight. That comment is wrong.
-
-## The divergent term
-
-The gradient majorant is defined in:
+File:
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
+ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean
 ```
 
-as
+The theorem is:
 
 ```lean
-def boundedWeightJointGradMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
-  ∑ i ∈ Finset.range (k + 1),
-    (k.choose i : ℝ) * Bt i n * gradCosWeight (k - i) n
+theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+    {t : ℝ} (ht : 0 < t) {f : intervalDomainPoint → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift f) n| ≤ M)
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalFullSemigroupOperator t (intervalDomainLift f) x =
+      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
 ```
 
-The repo already expands the `m = 2` case in:
+This is the safest low-level bridge. It was added precisely because the older closed-interval spectral identity requires `Continuous (intervalDomainLift f)`, which is false for positive boundary data. The adapter proves the identity by passing through `intervalDomainConstExtend f`, which is globally continuous and agrees with `intervalDomainLift f` on `[0,1]`.
+
+### 2. Underlying full-kernel clean identity
+
+File:
 
 ```text
-ShenWork/PDE/IntervalIterateGradMajorant.lean
+ShenWork/PDE/IntervalFullKernelSpectralClean.lean
 ```
 
-as
+The lower-level theorem is:
 
 ```lean
-boundedWeightJointGradMajorant Bt 2 k
-  = |(k : ℝ) * Real.pi| * unitIntervalCosineEigenvalue k * Bt 0 k
-    + 2 * (unitIntervalCosineEigenvalue k * Bt 1 k)
-    + |(k : ℝ) * Real.pi| * Bt 2 k
+theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M) {x : ℝ}
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalFullSemigroupOperator t f x =
+      unitIntervalCosineHeatValue t (cosineCoeffs f) x
 ```
 
-For the source/resolver envelope, `Bt i k = w_k * builtEs H i k`, where
+Do **not** use this directly with `f = intervalDomainLift u₀` unless you actually have global continuity of that lift. For positive boundary data, use the subtype adapter above.
 
-```lean
-w_k = intervalNeumannResolverWeight p k ≈ 1 / (kπ)^2.
-```
+### 3. Already-packaged level-0 heat profile bridge
 
-With the current `builtEs H 0 k = O((kπ)⁻²)`, the worst `m = 2`, `i = 0` term is
+File:
 
 ```text
-|kπ| * λ_k * w_k * builtEs H 0 k
-  ≈ |kπ| * (kπ)^2 * (kπ)^-2 * (kπ)^-2
-  = O(k^-1),
+ShenWork/Paper2/IntervalPicardLevel0SourceTimeC1On.lean
 ```
 
-so the series diverges. Equivalently, using your notation:
+The theorem is:
+
+```lean
+theorem heatSlice_profile_eq_heatValue
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    {σ x M₀ : ℝ} (hσ : 0 < σ) (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalDomainLift (picardIter p u₀ 0 σ) x =
+      unitIntervalCosineHeatValue σ (heatCoeff u₀) x
+```
+
+Its proof is exactly the bridge you want:
+
+```lean
+have hlift : intervalDomainLift (picardIter p u₀ 0 σ) x =
+    intervalFullSemigroupOperator σ (intervalDomainLift u₀) x := by
+  simp only [intervalDomainLift, picardIter, dif_pos hx]
+rw [hlift]
+exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+  hσ hu₀_cont hu₀_bound hx
+```
+
+This is the best theorem to reuse if your target has `picardIter p u₀ 0`.
+
+### 4. Conjugate level-0 is definitionally the same base heat slice
+
+File:
 
 ```text
-wk * builtEs * gradCosWeight(2,k)
-  = O(k^-2) * O(k^-2) * O(k^3)
-  = O(k^-1).
+ShenWork/Paper2/IntervalConjugatePicard.lean
 ```
 
-Thus the old `hgrad` target for `builtEs` is not merely hard; it is mathematically false.
-
-## What other `grad_summable` proofs do
-
-The repo pattern is already the right one: gradient summability is treated as an honest stronger leg, not something obtained from value summability.
-
-In `IntervalIterateGradMajorant.lean`, the comment explicitly says the order-2 gradient majorant carries one extra `|kπ|` weight and cannot be supplied by the committed value majorant. The file provides:
+Definition:
 
 ```lean
-theorem grad2_summable_of_components {Bt : ℕ → ℕ → ℝ}
-    (h0 : Summable (fun k : ℕ =>
-      |(k : ℝ) * Real.pi| * unitIntervalCosineEigenvalue k * Bt 0 k))
-    (h1 : Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * Bt 1 k))
-    (h2 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Bt 2 k)) :
-    Summable (boundedWeightJointGradMajorant Bt 2)
+def conjugatePicardIter (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℕ → (ℝ → intervalDomainPoint → ℝ)
+  | 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+  | n + 1 => fun t x =>
+      intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
 ```
 
-In `IntervalIterateGradSummableFromSourceL1.lean`, the proof goes further and expands all `m ≤ 2` cases into explicit weighted summability assumptions:
-
-```lean
-theorem iterate_gradSummable_of_weightedBtuSummable {Btu : ℕ → ℕ → ℝ}
-    (s0 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Btu 0 k))
-    (s1a : Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * Btu 0 k))
-    (s1 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Btu 1 k))
-    (s2a : Summable (fun k : ℕ =>
-      |(k : ℝ) * Real.pi| * unitIntervalCosineEigenvalue k * Btu 0 k))
-    (s2b : Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * Btu 1 k))
-    (s2c : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Btu 2 k)) :
-    ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant Btu m)
-```
-
-So there is no existing repo pattern where an order-2 gradient majorant is honestly proved from only an order-2 value/Laplacian envelope. The pattern is: expand the gradient weights and feed stronger weighted summability.
-
-## Existing quartic tool
-
-The repo already has the right analytic lemma in:
+File:
 
 ```text
-ShenWork/PDE/IntervalSourceDecayQuantitative.lean
+ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
 ```
 
-namely:
+The file comments and theorems record the important fact:
 
 ```lean
-theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
-    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
-    (hf'' : IntervalWeakH2Neumann hf.secondDeriv)
-    {B₂ : ℝ} (hB₂ : (∫ x in (0:ℝ)..1, |hf''.secondDeriv x|) ≤ B₂) :
-    ∀ k : ℕ, 1 ≤ k →
-      |cosineCoeffs f k| ≤ 2 * B₂ / ((k : ℝ) * Real.pi) ^ 4
+conjugatePicardIter p u₀ 0
 ```
 
-and also:
+is definitionally the level-0 heat slice, and several level-0 coefficient equalities close by `rfl`, for example:
 
 ```lean
-theorem intervalWeakH4Neumann_eigenvalue_L1_summable
-    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
-    (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
-    Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
+theorem conjChemDivCoeffs_level0_eq (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (s : ℝ) (k : ℕ) :
+    coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s k =
+    coupledChemDivSourceCoeffs p (picardIter p u₀ 0) s k := by
+  rfl
 ```
 
-For the current source-side `builtEs` problem, the first theorem is the more directly useful one because it gives an explicit uniform quartic coefficient envelope.
+So if your goal mentions `conjugatePicardIter p u₀ 0`, either unfold it directly or `simpa` through the packaged `picardIter` lemma if Lean accepts the definitional equality.
 
-## Recommendation
+## How this plugs into `hsliceC2`
 
-Extend `FlooredSourceTimeData` with a `quartBound` field and make the envelope used by `PhysicalSourceTimeC2` quartic on nonzero modes.
+For the profile component, the proof should not try to reason from the kernel directly. First build a global `ContDiff` fact for the cosine series, then transfer it to the lifted profile by equality on `Icc 0 1`.
 
-Do **not** leave `builtEs` as the `(kπ)⁻²` envelope and try to “bypass” it only inside `hgrad`: the type of `hgrad` is about the specific function `fun i k => w_k * builtEs H i k`. If `builtEs` remains quadratic, the goal is false. A bypass is only viable if it introduces a different envelope, say `builtEs4`, and uses `PhysicalSourceTimeC2 p u builtEs4`; that is essentially the same design as extending `FlooredSourceTimeData` with quartic data.
-
-The least disruptive patch is:
-
-1. Keep `laplBound` for the existing C²/IBP bookkeeping.
-2. Add `quartBound` for each time-slice `i ≤ 2`.
-3. Redefine `builtEs` to use `quartBound` for `k ≥ 1`, or define a new `builtEs4` and migrate `physicalSourceTimeC2_of_floored` callers to it.
-4. Prove `value_summable` and `grad_summable` from the quartic envelope using `λ_k * w_k ≤ 1`, `w_k ≤ 1 / μ`, and p-series comparisons.
-5. Update `IterateSourceTimeData` and `heatSemigroup_flooredSourceTimeData` constructors to carry/pass the new quartic bound.
-
-## Patch shape
-
-A direct structural patch looks like this.
+Skeleton:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.PDE.IntervalSourceDecayQuantitative
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.PDE.IntervalSpectralSubtypeAdapter
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+
+open Set Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
+open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff heatSlice_profile_eq_heatValue)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
+open ShenWork.IntervalSpectralSubtypeAdapter
+  (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont)
 
 noncomputable section
 
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
+namespace ShenWork.Paper2.HeatSemigroupProfileBridge
 
-structure FlooredSourceTimeData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
-  d0 : ∀ τ : ℝ, 0 < τ → ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s) ∧
-    ContinuousOn (Function.uncurry s₁) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
-  d1 : ∀ τ : ℝ, 0 < τ → ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ, ContinuousOn (s₁ s) (Icc (0:ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt (fun r => s₁ r x) (s₂ s x) s) ∧
-    ContinuousOn (Function.uncurry s₂) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
-  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
-    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0:ℝ) 1)
-  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
-    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
-    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Iio 1] 1) (𝓝 0) ∧
-    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0 = 0 ∧
-    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 1 = 0
-  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, 0 < t →
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
-  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
-  /-- New field: the nonzero-mode quartic envelope needed by `grad_summable`. -/
-  quartBound : ∀ i : ℕ, i ≤ 2 → ∃ Q : ℝ, 0 ≤ Q ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ Q / ((k:ℝ) * Real.pi) ^ 4
+/-- Bridge `heatSemigroup_contDiff_four` to the lifted level-0 conjugate heat profile.
+This is the profile part needed before applying the `rpow`/product chain for
+`srcSlice`, `srcSlice1`, `srcSlice2`. -/
+theorem conjugateLevel0_profile_contDiffOn_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
+    (ht : 0 < t)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    ContDiffOn ℝ 2
+      (fun x : ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+      (Icc (0 : ℝ) 1) := by
+  -- 1. The cosine heat series is globally C⁴, hence globally C².
+  have hseries4 : ContDiff ℝ 4
+      (fun x => ∑' k,
+        (Real.exp (-t * unitIntervalCosineEigenvalue k) *
+          cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x) :=
+    heatSemigroup_contDiff_four hu₀_bound ht
 
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+  have hseries2 : ContDiff ℝ 2
+      (fun x => unitIntervalCosineHeatValue t (heatCoeff u₀) x) := by
+    -- `unitIntervalCosineHeatValue` is definitionally the same cosine series.
+    -- The exact simp set may need the local imports/namespaces in your file.
+    simpa [heatCoeff, unitIntervalCosineHeatValue,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatPointWeight,
+      unitIntervalCosineEigenvalue, cosineMode] using
+      hseries4.of_le (by norm_num : (2 : ℕ∞) ≤ 4)
+
+  -- 2. On `[0,1]`, the lifted conjugate level-0 profile is the heat value.
+  have heq : Set.EqOn
+      (fun x : ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+      (fun x : ℝ => unitIntervalCosineHeatValue t (heatCoeff u₀) x)
+      (Icc (0 : ℝ) 1) := by
+    intro x hx
+    -- Either use direct unfolding of `conjugatePicardIter`, or route through
+    -- `heatSlice_profile_eq_heatValue` if the target has `picardIter`.
+    have hlift : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
+        intervalFullSemigroupOperator t (intervalDomainLift u₀) x := by
+      simp [conjugatePicardIter, intervalDomainLift, hx]
+    rw [hlift]
+    exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+      ht hu₀_cont hu₀_bound hx
+
+  -- 3. Transfer `ContDiffOn` across equality on the target set.
+  exact hseries2.contDiffOn.congr (fun x hx => (heq x hx).symm)
+
+end ShenWork.Paper2.HeatSemigroupProfileBridge
 ```
 
-Then either replace `builtEs` or introduce `builtEs4`. If you want the smallest API churn, redefine `builtEs` itself:
+If Lean has trouble simplifying `unitIntervalCosineHeatValue`, avoid the definitional unfold and use the already-proved C² theorem for heat values instead:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-/-- Quartic source envelope: zeroth mode handled separately, nonzero modes use the
-new `quartBound`.  This is the envelope that can honestly feed both value and
-order-2 gradient majorants after the elliptic resolver weight is folded in. -/
-def builtEs
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) : ℝ :=
-  if hi : i ≤ 2 then
-    if hk : k = 0 then
-      Classical.choose (H.zerothBound i hi)
-    else
-      Classical.choose (H.quartBound i hi) / ((k : ℝ) * Real.pi) ^ 4
-  else 0
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+have hseries2 : ContDiff ℝ 2
+    (fun x => unitIntervalCosineHeatValue t (heatCoeff u₀) x) :=
+  (ShenWork.IntervalDomainRegularityBootstrap
+    .unitIntervalCosineHeatValue_contDiff_two ht hu₀_bound)
 ```
 
-Then `srcTimeCoeff_bound` should use `quartBound` in the nonzero case:
+This gives only `C²`, but `hsliceC2` only asks for `ContDiffOn ℝ 2`, so it is enough for the profile. Use `heatSemigroup_contDiff_four` only when you actually need the fourth-spatial-derivative/H4 tower.
 
-```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
+## Existing proof pattern to copy
 
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
--- In the existing proof of `srcTimeCoeff_bound`, replace the nonzero-mode branch by:
---
---   · rw [if_neg (Nat.pos_iff_ne_zero.mp hk)]
---     exact (Classical.choose_spec (H.quartBound i hi)).2 t ht k hk
---
--- The zeroth-mode branch remains unchanged.
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
-```
-
-If you want to preserve the old quadratic `builtEs` for other users, use this naming instead:
-
-```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-/-- Old quadratic envelope, useful only for value/C² bookkeeping. -/
-def builtEs2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) : ℝ :=
-  if hi : i ≤ 2 then
-    if k = 0 then Classical.choose (H.zerothBound i hi)
-    else Classical.choose (H.laplBound i hi) / ((k:ℝ) * Real.pi) ^ 2
-  else 0
-
-/-- New quartic envelope, required for `grad_summable`. -/
-def builtEs4
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) : ℝ :=
-  if hi : i ≤ 2 then
-    if k = 0 then Classical.choose (H.zerothBound i hi)
-    else Classical.choose (H.quartBound i hi) / ((k:ℝ) * Real.pi) ^ 4
-  else 0
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
-```
-
-The latter is slightly cleaner mathematically but requires changing callers of `physicalSourceTimeC2_of_floored` to use `builtEs4`, or adding a parallel theorem `physicalSourceTimeC2_of_floored_quartic`.
-
-## Summability proof plan for the quartic envelope
-
-Let
-
-```lean
-Bt i k = intervalNeumannResolverWeight p k * builtEs4 H i k.
-```
-
-For `k ≥ 1`, the quartic bound gives
+The closest already-written pattern is in:
 
 ```text
-builtEs4 H i k ≤ Q_i / (kπ)^4 = Q_i / λ_k^2.
+ShenWork/Paper2/IntervalHomogeneousG2Base.lean
 ```
 
-Use the existing resolver-weight facts:
+Inside `hG2base_of_gate`, the proof constructs a local equality:
 
 ```lean
-ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one
-ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu
+have hEq : intervalDomainLift (picardIter p u₀ 0 σ) =ᶠ[nhds x]
+    (fun y => unitIntervalCosineHeatValue σ a y) := by
+  filter_upwards [hmem] with y hy
+  have hyIcc : y ∈ Set.Icc (0:ℝ) 1 := ⟨hy.1.le, hy.2.le⟩
+  have hlift : intervalDomainLift (picardIter p u₀ 0 σ) y
+      = intervalFullSemigroupOperator σ (intervalDomainLift u₀) y := by
+    simp only [intervalDomainLift, picardIter, dif_pos hyIcc]
+  rw [hlift]
+  exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+    hσ hu₀_cont hu₀_bound hyIcc
 ```
 
-The hardest `m = 2` gradient pieces become:
+Then it differentiates through that local equality:
+
+```lean
+have hd2 : deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x
+    = deriv (deriv (fun y => unitIntervalCosineHeatValue σ a y)) x :=
+  (hEq.deriv).deriv_eq
+```
+
+For `hsliceC2`, you do not need the local derivative-transfer version if you are proving `ContDiffOn`; use `Set.EqOn` on `Icc` and `ContDiffOn.congr` instead.
+
+## What not to use
+
+There is an older/diagnostic file:
 
 ```text
-i = 0: |kπ| * λ_k * w_k * Q_0 / λ_k^2
-       ≤ |kπ| * Q_0 / λ_k^2
-       = O(k^-3)
-
-i = 1: λ_k * w_k * Q_1 / λ_k^2
-       ≤ Q_1 / λ_k^2
-       = O(k^-4)
-
-i = 2: |kπ| * w_k * Q_2 / λ_k^2
-       ≤ (1/μ) * |kπ| * Q_2 / λ_k^2
-       = O(k^-3)
+ShenWork/PDE/IntervalSemigroupSpectralForm.lean
 ```
 
-All are summable. The `m = 0` and `m = 1` cases are easier.
-
-This should be packaged as a generic helper, analogous to the iterate-side helper in `IntervalIterateGradSummableFromSourceL1.lean`:
+It warns that a literal bridge for the two-term `normalizedZerothReflectionKernel` is false. That warning is about the older two-term kernel route, not the current full-kernel route. For the present goal, use:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-open ShenWork.PDE (intervalNeumannResolverWeight)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointMajorant boundedWeightJointGradMajorant)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (eigenvalue_mul_resolverWeight_le_one resolverWeight_le_inv_mu)
-
-/-- Sketch theorem: quartic source envelope plus elliptic resolver weight gives all
-bounded-weight gradient majorant summability for orders `m ≤ 2`.
-
-Implementation should split `m = 0,1,2`, expand the finite sums as in
-`IntervalIterateGradSummableFromSourceL1.lean`, handle `k = 0` separately, and
-compare the positive modes to `C * (1 / (k : ℝ)^3)` or `C * (1 / (k : ℝ)^4)`. -/
-theorem weighted_quartic_builtEs_grad_summable
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) :
-    ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant
-        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m) := by
-  intro m hm
-  -- Proof shape:
-  --   1. `have hm2 : m ≤ 2 := by exact_mod_cast hm`.
-  --   2. `interval_cases m`.
-  --   3. Expand `boundedWeightJointGradMajorant` for m = 0,1,2.
-  --   4. For each component, split k = 0 / k ≥ 1.
-  --   5. Use `Classical.choose_spec (H.quartBound i hi)` to get the constant Q_i.
-  --   6. Use `eigenvalue_mul_resolverWeight_le_one p k` for terms with a λ_k factor.
-  --   7. Use `resolverWeight_le_inv_mu p k` for terms without enough λ cancellation.
-  --   8. Compare to `Real.summable_one_div_nat_pow` with p = 3 or p = 4.
-  sorry
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+IntervalFullKernelSpectralClean.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
 ```
 
-The corresponding value summability helper is easier, because the value majorant has at most `λ_k` spatial growth, not `|kπ| * λ_k`.
-
-## Constructor updates needed
-
-Adding `quartBound` to `FlooredSourceTimeData` will force updates in at least these places:
-
-```text
-ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
-ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-```
-
-For the iterate-side wrapper, extend `IterateSourceTimeData` with a matching field:
+or, better for subtype data:
 
 ```lean
-quartBound : ∀ i : ℕ, i ≤ 2 → ∃ Q : ℝ, 0 ≤ Q ∧ ∀ (t : ℝ) (k : ℕ), 1 ≤ k →
-  |cosineCoeffs ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-    (srcSlice2 p u du d2u) i) t) k| ≤ Q / ((k:ℝ) * Real.pi) ^ 4
+IntervalSpectralSubtypeAdapter.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
 ```
 
-and pass it through in `flooredSourceTimeData_of_iterate`:
+and the packaged level-0 theorem:
 
 ```lean
-quartBound i hi := by
-  obtain ⟨Q, hQ, hb⟩ := H.quartBound i hi
-  exact ⟨Q, hQ, fun t _ht k hk => hb t k hk⟩
+IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
 ```
 
-For the heat-semigroup level-0 constructor, add an input `hquartBound` next to `hlaplBound` and assign it to the new field.
+## Answer to the concrete question
 
-The actual source of `hquartBound` should be the existing H4 route:
-
-```lean
-ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
-```
-
-applied to each time-derivative slice `i = 0,1,2` at positive time. Analytically, this means each slice needs a uniform-in-positive-time weak-H4 Neumann tower / fourth-derivative L¹ envelope. That is exactly the missing regularity strength; `sliceC2 + sliceNeumann + laplBound` is not enough.
-
-## Final answer to the design question
-
-Extend `FlooredSourceTimeData` with `quartBound` and make the physical source envelope quartic for nonzero modes. That is the cleanest and most type-compatible repair.
-
-A “direct O(k⁻⁴) bypass” is only acceptable if it means replacing the envelope passed to `PhysicalSourceTimeC2` by a quartic envelope (`builtEs4`). It should **not** mean keeping the old quadratic `builtEs` and trying to prove `hgrad` anyway.
-
-So the recommended patch is:
-
-```text
-FlooredSourceTimeData.laplBound    -- keep: C² / old bookkeeping
-FlooredSourceTimeData.quartBound   -- add: H4 / gradient summability
-builtEs or builtEs4                -- use quartBound for k ≥ 1
-physicalSourceTimeC2_of_floored    -- consume quartic envelope
-heatSemigroup_level0_resolverJointC2Data.grad_summable
-                                   -- prove from quartic, not laplacian
-```
-
-This matches the repo’s existing philosophy: gradient summability is an honest stronger leg, just as `IntervalIterateGradMajorant.lean` and `IntervalIterateGradSummableFromSourceL1.lean` already encode on the iterate side.
+Yes: the bridge exists. The highest-level bridge is `heatSlice_profile_eq_heatValue`; the lower-level bridge is `intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont`. There does not need to be a separate theorem named `unitIntervalCosineHeatValue_eq_cosineCoeffSeries`, because `unitIntervalCosineHeatValue` is already the cosine series expression by definition. Use equality on `Icc 0 1` to transport `ContDiffOn` from the cosine heat value/series to `intervalDomainLift (conjugatePicardIter p u₀ 0 t)`.
