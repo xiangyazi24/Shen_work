@@ -1,8 +1,8 @@
-# Q1082 / cron1 — revised route assessment after Q1076 setback
+# Q1090 / cron1 — remaining Level0 sorries after direct heat-Level0 resolver joint C²
 
 Repo inspected: `xiangyazi24/Shen_work`
 
-Commit inspected: `4000f01e726fd00b7eb365893810377bb4ac245c`
+Current `IntervalConjugateLevel0BFormSourceOn.lean` blob inspected: `d4ae918c6d7276e32cd5c230c3cf47cb1ffa32ff`
 
 Branch written: `chatgpt-scratch`
 
@@ -14,693 +14,410 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Executive answer
 
-**Shortest implementable route: Option B.**
-
-The main reason is that the current physical-data route is still global in time. After `4000f01`, `FlooredSourceTimeData` became positive-time local for the derivative/slab fields, but the consumer chain still wants global coefficient regularity and global time-uniform envelopes. That leaves the old `t ↓ 0` blow-up problem in a new place.
-
-The best route is therefore to bypass the global `PhysicalSourceTimeC2` / `PhysicalResolverJointC2Data` structures for Level0 and prove the exact positive-time local resolver facts directly:
-
-```text
-at target (s₀,x₀), s₀ > 0, x₀ ∈ (0,1):
-  ContDiffAt ℝ 2 (resolver value series) (s₀,x₀)
-  ContDiffAt ℝ 2 (resolver spatial-gradient series) (s₀,x₀)
-```
-
-using a smooth time cutoff and `contDiff_tsum`, exactly like `heatSemigroup_jointContDiffAt_two` does for the heat series. This avoids all global `∀ t > 0` uniform bounds and avoids proving actual global `ContDiff ℝ 2` across `t = 0`.
-
-Very compact ranking:
-
-```text
-B   shortest / most local / fewest structure changes
-A′  medium-large; becomes B plus rewiring of all physical-data consumers
-C   not viable literally under current definitions; global PhysicalResolverJointC2Data has the same t=0/global-bound problem
-```
-
-## What I found in the requested files
-
-### 1. `IntervalPhysicalSourceTimeC2Concrete.lean`: `physicalSourceTimeC2_of_floored`
-
-The post-`4000f01` file has more than just the six `FlooredSourceTimeData` holes upstream. The consumer itself still has sorries.
-
-Relevant skeleton:
+With the hypothesized **direct non-FSTD heat-Level0 resolver joint C²** facts:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
+ContDiffAt ℝ 2
+  (fun q => intervalDomainLift
+    (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) q.1) q.2)
+  (s₀, x₀)
 
-open Filter Topology Set
-open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverSourceCoeff)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-/-- Positive-time coefficient C²-at theorem. -/
-theorem srcTimeCoeff_contDiffAt
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
-    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t := by
-  sorry
-
-/-- Identification of second iterated derivative at positive time. -/
-private theorem srcTimeCoeff_iteratedDeriv2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
-    iteratedDeriv 2 (srcTimeCoeff p u k) t = cosineCoeffs (s₂ t) k := by
-  sorry
-
-/-- The physical producer still wants global PhysicalSourceTimeC2. -/
-theorem physicalSourceTimeC2_of_floored
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂)
-    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant
-        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
-    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant
-        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
-    PhysicalSourceTimeC2 p u (builtEs H) where
-  src_contDiff k := by
-    -- positive-time data → global ContDiff on ℝ
-    sorry
-  src_bound i k t hi := by
-    -- t > 0 from FlooredSourceTimeData; t ≤ 0 needs separate envelope
-    sorry
-  value_summable := hval
-  grad_summable := hgrad
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+ContDiffAt ℝ 2
+  (fun q => deriv (intervalDomainLift
+    (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) q.1)) q.2)
+  (s₀, x₀)
 ```
 
-Important interpretation:
-
-* The two internal sorries `srcTimeCoeff_contDiffAt` and `srcTimeCoeff_iteratedDeriv2` are local positive-time proof assembly. They are finite work.
-* The two sorries inside `physicalSourceTimeC2_of_floored` are the serious structural issue: the target `PhysicalSourceTimeC2` is still global. It asks for `ContDiff ℝ 2` and global coefficient bounds for all `t : ℝ`, not merely `t > 0` or `t ∈ [c,T]`.
-* Even if A′ changes `zerothBound`/`laplBound` to window-local, this producer can no longer return the existing `PhysicalSourceTimeC2` without changing its type or adding an extension argument.
-
-Also, in `IntervalHeatSemigroupHighRegularity.lean`, the call to `physicalSourceTimeC2_of_floored` still supplies two additional sorries for the value and gradient summability hypotheses:
-
-```lean
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointRegularity
-
--- Inside heatSemigroup_level0_resolverJointC2Data:
---
--- have hSTC2 : PhysicalSourceTimeC2 p u Es :=
---   physicalSourceTimeC2_of_floored hFSTD
---     (by intro m hm; sorry)  -- value_summable
---     (by intro m hm; sorry)  -- grad_summable
-
-end ShenWork.Paper2.HeatResolverJointRegularity
-```
-
-So the current FSTD route has, after the six heat-file sorries, at least these further proof obligations:
-
-```text
-srcTimeCoeff_contDiffAt       local positive-time assembly
-srcTimeCoeff_iteratedDeriv2   local positive-time derivative identification
-physicalSourceTimeC2.src_contDiff   global ContDiff extension over ℝ
-physicalSourceTimeC2.src_bound      global bound over all t
-hval / hgrad summability in heatSemigroup_level0_resolverJointC2Data
-```
-
-### 2. `IntervalResolverJointC2PhysicalConcrete.lean`: what `PhysicalResolverJointC2Data` needs
-
-The structure itself is simple and strong:
-
-```lean
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-
-noncomputable section
-
-namespace ShenWork.IntervalResolverJointC2PhysicalConcrete
-
-structure PhysicalResolverJointC2Data
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Bt : ℕ → ℕ → ℝ) : Prop where
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant Bt m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant Bt m)
-
-end ShenWork.IntervalResolverJointC2PhysicalConcrete
-```
-
-Beyond `PhysicalSourceTimeC2`, the conversion is complete. In `IntervalPhysicalResolverDataConcrete.lean`, `physicalResolverJointC2Data_of_floor` just transfers source coefficient regularity and bounds through the constant elliptic weight:
-
-```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-
-open Filter Topology Set
-open ShenWork.PDE (intervalNeumannResolverWeight)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (PhysicalResolverJointC2Data)
-open ShenWork.IntervalDomain (intervalDomainPoint)
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalResolverDataConcrete
-
-theorem physicalResolverJointC2Data_of_floor
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (H : PhysicalSourceTimeC2 p u Es) :
-    PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) where
-  coeff_contDiff k := by
-    have : resolverTimeCoeff p u k =
-        fun t => intervalNeumannResolverWeight p k * srcTimeCoeff p u k t := by
-      funext t; exact resolverTimeCoeff_eq_weight_smul p u k t
-    rw [this]
-    exact contDiff_const.mul (H.src_contDiff k)
-  coeff_bound i k t hi :=
-    resolverTimeCoeff_bound p u H.src_contDiff H.src_bound i k t hi
-  value_summable := H.value_summable
-  grad_summable := H.grad_summable
-
-end ShenWork.IntervalPhysicalResolverDataConcrete
-```
-
-Conclusion: **there is no hidden work after `PhysicalSourceTimeC2`.** The bottleneck is that `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data` are global structures.
-
-### 3. `IntervalHeatSemigroupHighRegularity.lean`: `heatResolverJointContDiffAt_two`
-
-This theorem is **not independent**. It goes through the FlooredSourceTimeData route:
-
-```lean
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (PhysicalResolverJointC2Data coupledChemical_jointContDiffAt_two resolverTimeCoeff)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointRegularity
-
-theorem heatSemigroup_level0_resolverJointC2Data
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀) :
-    ∃ Bt : ℕ → ℕ → ℝ,
-      PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
-  set u := conjugatePicardIter p u₀ 0
-  have hFSTD := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
-    hu₀_bound hu₀_cont (p := p)
-  set Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
-  have hSTC2 : ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2 p u Es :=
-    ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored hFSTD
-      (by intro m hm; sorry)
-      (by intro m hm; sorry)
-  exact ⟨_, ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2⟩
-
-theorem heatResolverJointContDiffAt_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      intervalDomainLift (coupledChemicalConcentration p
-        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
-  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu₀_bound hu₀_cont
-  exact coupledChemical_jointContDiffAt_two hBt hx₀
-
-end ShenWork.Paper2.HeatResolverJointRegularity
-```
-
-So it is only a wrapper over the current global physical-data route. It does **not** solve the Q1076 issue independently.
-
-## Option A′ — weaken `zerothBound`/`laplBound` to `[c,T]`
-
-### Verdict
-
-**Not the shortest. Medium-large structural refactor.**
-
-A′ fixes the two Q1076 blockers in the heat FSTD file, but it breaks the current consumer shape. The current `builtEs H` is global:
-
-```lean
-builtEs H i k : ℝ
-```
-
-It is chosen from global fields:
-
-```lean
-H.zerothBound i hi : ∃ D, 0 ≤ D ∧ ∀ t, 0 < t → ... ≤ D
-H.laplBound i hi   : ∃ M, 0 ≤ M ∧ ∀ t, 0 < t → ... ≤ M/(kπ)^2
-```
-
-If these become window-local, `builtEs` must become window-local too:
-
-```lean
-builtEsOn H c T i k : ℝ
-```
-
-Then `srcTimeCoeff_bound`, `PhysicalSourceTimeC2`, and `PhysicalResolverJointC2Data` can no longer remain the existing global structures.
-
-### Files likely touched
-
-```text
-ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
-  - change FlooredSourceTimeData bound fields or add FlooredSourceTimeDataOn
-  - replace builtEs with builtEsOn
-  - replace physicalSourceTimeC2_of_floored or add physicalSourceTimeC2On_of_flooredOn
-
-ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
-  - add PhysicalSourceTimeC2On → resolver data on a window, or abandon global conversion
-
-ShenWork/PDE/IntervalResolverJointC2Physical.lean
-  - add local/window version of boundedWeightJointSeries_contDiff_two, or use cutoff
-
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
-  - add coupledChemical_jointContDiffAt_two_of_window/local data
-  - same for gradient
-
-ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
-  - fill positive-window source data
-
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-  - rewrite heatSemigroup_level0_resolverJointC2Data / heatResolverJointContDiffAt_two
-
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-  - import/use new local resolver theorem
-```
-
-### New lemmas needed
-
-```text
-1. Window-local zeroth and laplacian bounds for slice_i, i=0,1,2.
-2. Window-local source coefficient derivative bound:
-   ∀ t ∈ Icc c T, ‖∂ₜ^i srcTimeCoeff k t‖ ≤ builtEsOn c T i k.
-3. Window-local summability of bounded-weight majorants.
-4. A local `contDiffAt` resolver-series assembler, since current generic assembler wants global coefficient ContDiff and global Bt.
-5. Local value and gradient resolver producers.
-```
-
-### Effort estimate
-
-```text
-Files:        6-7 existing files, possibly 1-2 new files
-New lemmas:   ~12-18, including local variants of existing global structures
-Risk:         high structural churn; easy to chase definitions across consumers
-```
-
-A′ is mathematically coherent, but once the data is window-local, the proof wants a local cutoff/tendsto series assembler anyway. That is essentially Option B with extra structure rewiring.
-
-## Option B — bypass FSTD and prove direct resolver joint C² by cutoff + `contDiff_tsum`
-
-### Verdict
-
-**Shortest route.**
-
-Do not build `PhysicalSourceTimeC2`. Do not build `PhysicalResolverJointC2Data`. Do not prove global bounds. Prove the local theorem Level0 actually needs:
-
-```lean
-import ShenWork.PDE.IntervalResolverJointC2Physical
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
-import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
-import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
-import ShenWork.Paper2.IntervalConjugatePicard
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointTerm boundedWeightJointGradTerm boundedWeightJointMajorant
-   boundedWeightJointGradMajorant)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (resolverTimeCoeff)
-open ShenWork.IntervalResolverSpectralJointC2Cutoff
-  (smoothRightCutoff)
-
-noncomputable section
-
-namespace ShenWork.Paper2.Level0DirectResolverJointC2
-
--- Target theorem 1: resolver value joint C², local in positive time.
-theorem level0_resolver_value_jointContDiffAt_two_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s₀ x₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Ioo (0 : ℝ) 1)
-    -- plus whatever floor/positive datum hypothesis is required
-    :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p
-          (conjugatePicardIter p u₀ 0) q.1) q.2)
-      (s₀, x₀) := by
-  sorry
-
--- Target theorem 2: resolver gradient joint C², local in positive time.
-theorem level0_resolver_grad_jointContDiffAt_two_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s₀ x₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Ioo (0 : ℝ) 1)
-    -- plus floor/positive datum
-    :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p
-          (conjugatePicardIter p u₀ 0) q.1)) q.2)
-      (s₀, x₀) := by
-  sorry
-
-end ShenWork.Paper2.Level0DirectResolverJointC2
-```
-
-### Why this is shorter
-
-The direct proof is exactly the local shape of the current heat proof:
-
-```text
-1. choose a positive time window around s₀;
-2. multiply the resolver coefficient family by a smooth cutoff φ(t) that is 1 near s₀;
-3. prove the cutoff resolver series is globally ContDiff ℝ 2 by contDiff_tsum;
-4. transfer back to the real resolver near (s₀,x₀) by eventuallyEq;
-5. transfer from the cosine series to intervalDomainLift(coupledChemicalConcentration ...) on x ∈ (0,1).
-```
-
-This avoids every global `t ↓ 0` problem because all estimates are made on the cutoff support, a compact positive-time interval.
-
-### New lemmas needed
-
-The core local lemmas are finite and do not require changing global structures:
-
-```text
-B1. Local positive-window heat floor / positivity input.
-    If the existing Level0 caller has PositiveInitialDatum, thread it. Otherwise add an explicit floor hypothesis.
-
-B2. Local source coefficient time derivatives for
-      a_k(t) = cosineCoeffs (fun x => p.ν * (S(t)u₀ x)^p.γ) k
-    on the cutoff support, orders 0,1,2.
-    This can be done by differentiating the smooth heat representative under the integral.
-
-B3. Local coefficient decay / majorants for a_k, a'_k, a''_k.
-    This is where the now-available arbitrary-depth NeumannTower / depth-3 IBP is useful.
-    The gradient resolver joint C² needs stronger decay than the value-only theorem.
-
-B4. Cutoff coefficient family:
-      c_k(t) = φ(t) * intervalNeumannResolverWeight p k * a_k(t)
-    has global ContDiff ℝ 2 and global summable majorants because φ has compact support
-    inside positive time.
-
-B5. `contDiff_tsum` for the value series:
-      ∑ c_k(t) cos(kπx)
-
-B6. `contDiff_tsum` for the gradient series:
-      ∑ c_k(t) deriv(cos(kπx))
-
-B7. Eventual equality near s₀ because φ = 1.
-
-B8. Series agreement with the actual resolver on `[0,1]` / interior.
-```
-
-The generic infrastructure already exists for most of the series assembly:
-
-```text
-IntervalResolverJointC2Physical.lean
-  - boundedWeightJointTerm
-  - boundedWeightJointMajorant
-  - boundedWeightJointSeries_contDiff_two
-  - boundedWeightJointGradTerm / grad majorant / grad assembler
-
-IntervalResolverSpectralJointC2Cutoff.lean
-  - smooth cutoff/restart cutoff machinery
-
-IntervalHeatSemigroupHighRegularity.lean
-  - heatSemigroup_jointContDiffAt_two pattern
-```
-
-The direct proof can either reuse the existing generic bounded-weight assembler with cutoff-patched coefficient families, or make a small local copy specialized to the Level0 resolver coefficients. Reuse is preferable.
-
-### Files likely touched
-
-```text
-New file (preferred):
-  ShenWork/Paper2/IntervalLevel0DirectResolverJointC2.lean
-
-Possibly new helper file:
-  ShenWork/Paper2/IntervalLevel0HeatSourceCoeffLocalBounds.lean
-
-Small consumer change:
-  ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-    - import direct resolver theorem
-    - use direct value/grad C² theorem in the 3C/3D proof body
-    - use direct Clairaut inner commute or a direct analogue of coupledChemical_innerCommute_of_physicalJointC2
-```
-
-### Effort estimate
-
-```text
-Files:        1-2 new files + 1 consumer import/use
-New lemmas:   ~8-12, mostly local/cutoff coefficient bounds and transfer lemmas
-Risk:         medium; analytic proof work, but little structure churn
-```
-
-### Important small addition for 3F
-
-If we bypass `PhysicalResolverJointC2Data`, then `coupledChemical_innerCommute_of_physicalJointC2` is not directly available. But its proof pattern is reusable. Add a direct local lemma:
+for all `s₀ > 0`, `x₀ ∈ Ioo 0 1`, plus the listed existing pieces:
 
 ```lean
 import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.Paper2.IntervalLevel0DirectResolverJointC2
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemicalConcentration coupledChemicalTimeDerivativeLift)
-
-noncomputable section
-
-namespace ShenWork.Paper2.Level0DirectResolverJointC2
-
--- Direct analogue of coupledChemical_innerCommute_of_physicalJointC2.
-theorem level0_coupledChemical_innerCommute_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s y : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs : c < s) (hy : y ∈ Ioo (0 : ℝ) 1)
-    -- plus floor/positive datum
-    :
-    HasDerivAt
-      (fun r => deriv (intervalDomainLift
-        (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r)) y)
-      (deriv (coupledChemicalTimeDerivativeLift p
-        (conjugatePicardIter p u₀ 0) s) y) s := by
-  -- Same proof skeleton as coupledChemical_innerCommute_of_physicalJointC2,
-  -- replacing `coupledChemical_jointContDiffAt_two H hy` with
-  -- `level0_resolver_value_jointContDiffAt_two_direct ... hy`.
-  sorry
-
-end ShenWork.Paper2.Level0DirectResolverJointC2
-```
-
-That closes the 3F ingredient without ever manufacturing global `PhysicalResolverJointC2Data`.
-
-## Option C — build `PhysicalResolverJointC2Data` directly for heat Level0
-
-### Verdict
-
-**Not viable literally under the current structure; not shortest even if localized.**
-
-The literal structure is global:
-
-```lean
-coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
-coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 → ... ≤ Bt i k
-```
-
-For `u = conjugatePicardIter p u₀ 0` with only `_hu₀_cont` and `_hu₀_bound`, positive-time heat smoothing does not imply global `ContDiff ℝ 2` through `t = 0`, and it does not imply global time-uniform derivative bounds. The same `t ↓ 0` issue that killed Q1076’s global `zerothBound/laplBound` reappears here.
-
-If C is interpreted as “construct a local/positive-window variant of `PhysicalResolverJointC2Data` directly,” then it collapses into Option B plus extra structure definitions. If C is interpreted literally as the existing `PhysicalResolverJointC2Data`, it is blocked unless the initial data assumptions are strengthened significantly or the actual resolver coefficient functions are globally regularized, which would no longer be data about the real `resolverTimeCoeff`.
-
-### Files likely touched if literal C is attempted
-
-```text
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
-  - impossible/global data target remains unchanged
-
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-  - replace heatSemigroup_level0_resolverJointC2Data body
-
-Possibly many heat-source files
-  - prove global C² source coefficient regularity through t=0
-  - prove global Bt bounds all t
-```
-
-### Effort estimate
-
-```text
-Files:        unclear; at least 3, likely more
-New lemmas:   would require global regularity/bounds that are false under current assumptions
-Risk:         very high / blocked
-```
-
-### If C is localized
-
-A localized C would define something like:
-
-```lean
-structure PhysicalResolverJointC2DataOn
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (c T : ℝ) (Bt : ℕ → ℕ → ℝ) : Prop where
-  coeff_contDiffOn : ∀ k, ContDiffOn ℝ (2 : ℕ∞) (resolverTimeCoeff p u k) (Icc c T)
-  coeff_boundOn : ∀ i k t, i ≤ 2 → t ∈ Icc c T →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
-  value_summable : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointMajorant Bt m)
-  grad_summable : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointGradMajorant Bt m)
-```
-
-But then the consumer still needs a local `contDiffAt` assembler with cutoff or local-to-global transfer. That is Option B with more wrapping.
-
-## Side-by-side option table
-
-| Option | Short verdict | Files to change | New lemmas | Main blocker / risk |
-|---|---:|---:|---:|---|
-| **A′** window-local `zerothBound/laplBound` | Coherent but not shortest | 6-7 files | ~12-18 | Existing `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data` are global; must introduce local versions or a cutoff assembler anyway. |
-| **B** direct resolver `ContDiffAt` by cutoff + `contDiff_tsum` | **Shortest** | 1-2 new files + 1 consumer | ~8-12 | Need local source coefficient derivative/decay bounds and floor; no global structure churn. |
-| **C** direct global `PhysicalResolverJointC2Data` | Not viable literally | 3+ files | false/global facts | Existing structure requires global `ContDiff ℝ 2` and global bounds through `t = 0`; same blow-up problem. |
-
-## Recommended implementation plan
-
-Do **Option B** in a new file and keep it laser-focused on the Level0 consumer.
-
-Suggested file:
-
-```text
-ShenWork/Paper2/IntervalLevel0DirectResolverJointC2.lean
-```
-
-Suggested theorem list:
-
-```lean
-import ShenWork.PDE.IntervalResolverJointC2Physical
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
-import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
-import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
-import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalLevel0DirectResolverCommute
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
 
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain
 open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemicalConcentration coupledChemicalTimeDerivativeLift)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointTerm boundedWeightJointGradTerm boundedWeightJointMajorant
-   boundedWeightJointGradMajorant)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (resolverTimeCoeff)
-
-noncomputable section
-
-namespace ShenWork.Paper2.Level0DirectResolverJointC2
-
--- 1. Local cutoff source coefficient family for heat Level0.
-def level0ResolverCoeffCutoff
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (s₀ : ℝ) : ℕ → ℝ → ℝ :=
-  fun k t =>
-    -- φ(t) * resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
-    sorry
-
--- 2. Global C² of cutoff coefficient family.
-theorem level0ResolverCoeffCutoff_contDiff_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs₀ : c < s₀) :
-    ∀ k, ContDiff ℝ (2 : ℕ∞) (level0ResolverCoeffCutoff p u₀ s₀ k) := by
-  sorry
-
--- 3. Summable value and gradient majorants for the cutoff coefficient family.
-theorem level0ResolverCoeffCutoff_value_summable
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs₀ : c < s₀) :
-    ∃ Bt : ℕ → ℕ → ℝ,
-      (∀ i k t, i ≤ 2 →
-        ‖iteratedFDeriv ℝ i (level0ResolverCoeffCutoff p u₀ s₀ k) t‖ ≤ Bt i k) ∧
-      (∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointMajorant Bt m)) ∧
-      (∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointGradMajorant Bt m)) := by
-  sorry
-
--- 4. Value resolver joint C² by contDiff_tsum + eventual equality.
-theorem level0_resolver_value_jointContDiffAt_two_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s₀ x₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs₀ : c < s₀) (hx₀ : x₀ ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p
-          (conjugatePicardIter p u₀ 0) q.1) q.2)
-      (s₀, x₀) := by
-  sorry
-
--- 5. Gradient resolver joint C² by the gradient bounded-weight assembler.
-theorem level0_resolver_grad_jointContDiffAt_two_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s₀ x₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs₀ : c < s₀) (hx₀ : x₀ ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p
-          (conjugatePicardIter p u₀ 0) q.1)) q.2)
-      (s₀, x₀) := by
-  sorry
-
--- 6. Direct inner commute for 3F, copied from the physical proof pattern.
-theorem level0_coupledChemical_innerCommute_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c s y : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hc : 0 < c) (hs : c < s) (hy : y ∈ Ioo (0 : ℝ) 1) :
-    HasDerivAt
-      (fun r => deriv (intervalDomainLift
-        (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r)) y)
-      (deriv (coupledChemicalTimeDerivativeLift p
-        (conjugatePicardIter p u₀ 0) s) y) s := by
-  sorry
-
-end ShenWork.Paper2.Level0DirectResolverJointC2
+open ShenWork.Paper2.Level0DirectResolverCommute
 ```
 
-This gives Level0 the local resolver facts it needs for 3C/3D/3F, without pretending that global positive-time coefficient bounds are available.
+**only the combined 3C+3D+3F chain-rule `HasDerivAt` sorry closes automatically.**
 
-## Bottom line
+The 3E positivity sub-sorries also become short wiring if the existing heat-slice continuity/nonnegativity facts are supplied to `coupledChemical_floor_pos_of_nonneg_continuous`, but that is a positivity/initial-data wiring issue, not a consequence of direct resolver C² itself.
 
-A′ is a valid redesign if the goal is to preserve a structured physical-source data pipeline, but it is not the shortest. It requires localizing multiple global structures and consumers.
+The envelope/H² compactness holes and 3G do **not** close automatically from direct resolver joint C². They need additional analytic work: higher spatial regularity / weak-H² envelope machinery for `level0_chemDiv_envelope_summable`, and a closed-slab mixed time-derivative representative for `3G`.
 
-C is blocked if interpreted literally because `PhysicalResolverJointC2Data` is global in time and therefore inherits the same near-zero problem.
+Compact verdict:
 
-B is the shortest practical implementation: prove the resolver value/gradient `ContDiffAt` directly at positive target times using the already-existing cutoff/`contDiff_tsum` pattern, and add a direct local inner-commute lemma for 3F.
+| # | Sorry site | Verdict after direct resolver joint C² | Why |
+|---:|---|---|---|
+| 1 | `SUB-SORRY 1A` uniform pointwise bound of `hH2_per_slice.secondDeriv` | **NEEDS WORK** | Needs uniform compact-slab control of second derivative of the weak-H² source representative; direct resolver C² is not enough. |
+| 2 | `SUB-SORRY 2A-core` uniform sup bound of `coupledChemDivSourceLift` | **NEEDS WORK** | Needs compact-slab joint continuity/boundedness of the source representative on `[c,T]×[0,1]`; direct C² helps but does not automatically supply the closed-slab source bound. |
+| 3 | `3A` local integrability subhole: `hV_C4` for `V_cos` | **NEEDS WORK** | Current proof asks for resolver spatial `C⁴`; direct resolver joint `C²` does not prove that. Can be avoided by rewriting 3A, but not automatic. |
+| 4 | `3A` local integrability subhole: `hV_pos` for `1+V_cos>0` | **CLOSES** with positivity wiring | Use resolver nonnegativity / `coupledChemical_floor_pos_of_nonneg_continuous`; no direct C² needed. |
+| 5 | `3E-bdd` inside `hbase` | **CLOSES** with positivity wiring | Replace local boundedness/continuity derivation by already available heat continuity / floor path. Current exact subproof still needs wiring. |
+| 6 | `3E-nonneg` inside `hbase` | **CLOSES** with positivity wiring | Needs nonnegative/positive initial datum propagated by heat semigroup; not resolver C². |
+| 7 | combined `SORRY 3C+3D+3F` chain-rule `HasDerivAt` | **CLOSES** | Direct resolver value/gradient C² + direct inner commute + existing flux time bridge produce the pointwise source chain rule. |
+| 8 | `SORRY 3G` closed-slab continuity of `coupledChemDivTimeDerivativeLift` | **NEEDS WORK** | Requires closed-slab mixed time-derivative continuity/representative; direct pointwise resolver C² and inner commute are not enough. |
+
+## Actual remaining `sorry` sites and detailed verdicts
+
+### 1. `SUB-SORRY 1A`: uniform pointwise bound for the weak-H² second derivative
+
+Current site:
+
+```lean
+-- inside level0_chemDiv_envelope_summable
+have hL1_uniform : ∃ (B : ℝ), 0 ≤ B ∧ ∀ s (hs : s ∈ Icc c T),
+    (∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x|) ≤ B := by
+  ...
+  have hunif_ptwise : ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
+      ∀ x ∈ Icc (0 : ℝ) 1,
+        |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
+    sorry -- [SUB-SORRY 1A: joint continuity + compactness → ptwise bound]
+```
+
+Verdict: **NEEDS WORK**.
+
+Direct resolver joint C² gives local information about:
+
+```lean
+v(t,x)      := intervalDomainLift (coupledChemicalConcentration p u t) x
+∂ₓv(t,x)   := deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x
+```
+
+up to joint order two at interior points. This is exactly enough for the flux chain rule in 3C/3D/3F, but this envelope proof is about a **uniform weak-H² source envelope**. It needs control of the source representative’s second derivative on the compact slab.
+
+The source is schematically:
+
+```text
+source = ∂ₓ( u * ∂ₓv / (1+v)^β )
+```
+
+A weak-H² source certificate involves two more spatial derivatives of `source`, hence several higher spatial derivatives of `u` and `v` than the direct value/gradient joint-C² facts provide. The existing proof already signals this by building `IntervalWeakH2Neumann` and then uniformly bounding `hH2_per_slice.secondDeriv`.
+
+What work is needed:
+
+```text
+- identify `hH2_per_slice.secondDeriv` with a classical second derivative of the source representative;
+- prove joint continuity / boundedness of that representative on `[c,T] × [0,1]`;
+- likely use a stronger direct resolver spatial regularity theorem than C², or a NeumannTower/depth-IBP route for the chem-div source;
+- then apply compactness to get the uniform bound.
+```
+
+So this does **not** close automatically.
+
+### 2. `SUB-SORRY 2A-core`: uniform sup bound for `coupledChemDivSourceLift`
+
+Current site:
+
+```lean
+-- inside level0_chemDiv_envelope_summable
+have hSup : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+    (∀ s ∈ Icc c T,
+      IntervalIntegrable (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
+        volume 0 1) ∧
+    (∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup) := by
+  ...
+  have hsup_bound : ∃ (Msup : ℝ), 0 ≤ Msup ∧
+      ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+        |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup := by
+    ...
+    sorry -- [SUB-SORRY 2A-core: uniform sup bound over s ∈ [c,T].]
+```
+
+Verdict: **NEEDS WORK**.
+
+This is weaker than 1A, and direct resolver C² is relevant, but it still does not close automatically. The needed statement is a closed-slab bound for the source itself, including endpoint handling for the zero-extension `intervalDomainLift`.
+
+Direct resolver joint C² gives interior smoothness. To close this one, still prove:
+
+```text
+- an interior representative for the source as `deriv(flux)`;
+- joint continuity / boundedness on `[c,T]×Ioo(0,1)`;
+- endpoint values are controlled (the file already proves `hbdry_zero`);
+- compactness or a closed representative to obtain a uniform `Msup`.
+```
+
+This is likely much easier than 1A and may be attacked using direct C² plus the endpoint zero lemma already present, but it is not automatic from the C² theorem alone.
+
+### 3. `3A` local integrability: `hV_C4` for `V_cos`
+
+Current site in `hlocal_slab`, Field 1:
+
+```lean
+-- Field 1: IntervalIntegrable of source near s
+set V_cos := intervalResolverLiftR p (conjugatePicardIter p u₀ 0 r) with hV_cos_def
+have hV_C4 : ContDiff ℝ 4 V_cos := by
+  apply intervalResolverLiftR_contDiff_four
+  sorry -- [KNOWN GAP: eigenvalue-weighted ℓ¹ summability of resolver source.
+         --  Same obstacle as line 315; needs depth-1 NeumannTower.]
+```
+
+Verdict: **NEEDS WORK**.
+
+Direct resolver joint C² does **not** imply `ContDiff ℝ 4 V_cos`. The current local-integrability proof is overpowered: for `IntervalIntegrable` of the source, it tries to build a C⁴ resolver cosine representative and then use a smooth flux representative.
+
+There are two possible ways forward:
+
+```text
+A. keep the current proof: then prove the eigenvalue-weighted source summability / resolver C⁴ fact;
+B. rewrite Field 1 (3A) to use weaker regularity: direct resolver C² + gradient C² should be enough to show the chem-div source is continuous/measurable on the interior and bounded on compact subintervals, then transfer to IntervalIntegrable with endpoint handling.
+```
+
+Either way, direct C² does not simply fill this exact hole.
+
+### 4. `3A` local integrability: `hV_pos` for `1 + V_cos > 0`
+
+Current site in `hlocal_slab`, Field 1:
+
+```lean
+have hV_pos : ∀ x, (0 : ℝ) < 1 + V_cos x := by
+  apply IntervalResolverHighRegularity.intervalResolverLiftR_one_add_pos_of_nonneg_on_Icc
+  intro x hx
+  sorry -- [KNOWN GAP: resolver nonnegativity on [0,1] at time r.
+         --  Same infrastructure as lines 591-690; needs
+         --  intervalNeumannResolverR_nonneg_of_nonneg_source.]
+```
+
+Verdict: **CLOSES** with positivity wiring.
+
+This is not closed by direct resolver C², but it is closed by the existing positivity path named in the prompt, provided the heat slice nonnegativity/continuity facts are in scope:
+
+```lean
+import ShenWork.PDE.IntervalChemDivFluxFactorFAC
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalCoupledRegularityBootstrap
+
+-- Existing shape:
+#check coupledChemical_floor_pos_of_nonneg_continuous
+```
+
+The current `hV_pos` target is phrased for the periodic/even lifted cosine representative `V_cos`; the proof still needs the standard bridge:
+
+```text
+V_cos agrees with intervalDomainLift(coupledChemicalConcentration ...) on [0,1]
+resolver nonnegativity on [0,1]
+periodic/even/reflection argument gives global `0 < 1 + V_cos x`
+```
+
+But analytically, no new resolver-C² theorem is needed. This is a short positivity/nonnegativity wiring task.
+
+### 5. `3E-bdd`: boundedness for heat-slice continuity inside `hbase`
+
+Current site inside the local `hbase` proof:
+
+```lean
+have hLift_bdd : ∃ M' : ℝ, 0 ≤ M' ∧ ∀ y, |intervalDomainLift u₀ y| ≤ M' :=
+  sorry -- [3E-bdd: u₀ continuous on compact intervalDomainPoint →
+        --  bounded range; needs haveI CompactSpace + isCompact_range.bddAbove]
+```
+
+Verdict: **CLOSES** with positivity wiring, but not from direct resolver C².
+
+This is just an auxiliary proof needed by the current route to show `Continuous (conjugatePicardIter p u₀ 0 r)`. It can be handled in two ways:
+
+```text
+1. keep the current route and prove boundedness of `intervalDomainLift u₀` from compactness/continuity;
+2. better: replace the whole local `hbase` proof by the existing floor lemma
+   `coupledChemical_floor_pos_of_nonneg_continuous`, after supplying heat-slice
+   continuity and nonnegativity.
+```
+
+Since the prompt explicitly includes the existing positivity/floor lemma, this is a closing/wiring item rather than a remaining analytic blocker.
+
+### 6. `3E-nonneg`: initial nonnegativity for heat-slice nonnegativity inside `hbase`
+
+Current site:
+
+```lean
+have h_r_nonneg : ∀ x' : intervalDomainPoint,
+    0 ≤ conjugatePicardIter p u₀ 0 r x' := by
+  intro x'
+  simp only [conjugatePicardIter]
+  apply ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg hr_pos'
+  intro y
+  unfold intervalDomainLift
+  split_ifs with hy
+  · sorry -- [3E-nonneg: need 0 ≤ u₀ ⟨y,hy⟩;
+          --  available when outer caller has PositiveInitialDatum or u₀ ≥ 0]
+  · norm_num
+```
+
+Verdict: **CLOSES** with positivity/initial-data wiring, but not from direct resolver C².
+
+The file already has a final interface with `PositiveInitialDatum`, and `level0_heat_pos_of_data` later proves strict heat positivity on `[c,T]`. For this local ball proof, use the global nonnegativity/positivity of the heat semigroup for positive time, or add/pass the needed nonnegativity hypothesis explicitly.
+
+No resolver-C² work is needed.
+
+### 7. Combined `SORRY 3C+3D+3F`: pointwise source chain rule `HasDerivAt`
+
+Current site:
+
+```lean
+sorry -- [SORRY 3C+3D+3F: chain rule HasDerivAt.
+       --  Heat semigroup u joint C² is PROVED above (_hu_c2_bridged).
+       --  3E positivity (hbase) is PROVED above.
+       --  Blocked on:
+       --    3C — resolver v joint C² (restart cutoff infrastructure)
+       --    3D — resolver ∇v joint C² (same)
+       --    3F — flux time fderiv bridge (resolver inner commute)]
+```
+
+Verdict: **CLOSES**.
+
+This is the one hole that the direct resolver joint C² route is designed to close automatically.
+
+The replacement proof uses:
+
+```lean
+import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
+import ShenWork.Paper2.IntervalLevel0DirectResolverCommute
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.Paper2.Level0DirectResolverCommute
+```
+
+Proof map:
+
+```text
+F2/u joint C²:
+  already in local context as `_hu_c2_bridged`, or from
+  heatSemigroup_jointContDiffAt_two.
+
+3C/v joint C²:
+  direct resolver value joint C² theorem at `(r,x)`.
+
+3D/∂ₓv joint C²:
+  direct resolver gradient joint C² theorem at `(r,x)`.
+
+Inner commute:
+  coupledChemical_innerCommute_of_directJointC2
+  using direct value C² at `(r,x)` and eventually in time near `r`.
+
+3F time bridge:
+  coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+  using u/v/∂ₓv C², floor positivity, and the inner commute.
+
+Outer commute / source bridge:
+  real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
+  plus `coupledChemDivSourceLift_eq_deriv_fluxLift_interior` and
+  `coupledChemDivTimeDerivativeLift_eq_deriv_fluxTimeDerivative`.
+```
+
+Skeleton of the local replacement:
+
+```lean
+import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
+import ShenWork.Paper2.IntervalLevel0DirectResolverCommute
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.Paper2.Level0DirectResolverCommute
+
+-- Inside the existing `intro x hx r hr` branch:
+-- let u := conjugatePicardIter p u₀ 0
+-- have hu := _hu_c2_bridged
+-- have hv := direct resolver value joint C² at (r,x)
+-- have hgradv := direct resolver gradient joint C² at (r,x)
+-- have hgv := coupledChemical_innerCommute_of_directJointC2 hv hv_time
+-- have htime := coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt ...
+-- have houter := real_twoVar_clairaut_hasDerivAt_of_fderiv_partials ...
+-- simpa [source=deriv flux, timeDerivative=deriv fluxTimeDerivative] using houter
+```
+
+No new analytic theorem is required beyond the direct resolver value/gradient C² and the direct inner-commute theorem named in the prompt.
+
+### 8. `SORRY 3G`: closed-slab continuity of `coupledChemDivTimeDerivativeLift`
+
+Current site:
+
+```lean
+· -- Field 3: ContinuousOn of time derivative on closed slab.
+  -- Needs resolver time-derivative closed-slab representative.
+  sorry -- [SORRY 3G: time-derivative joint continuity on slab.
+         --  Needs the resolver spectral route to produce ContinuousOn
+         --  for coupledChemDivTimeDerivativeLift on a closed slab
+         --  around s > 0.  Provable once resolver time-regularity is
+         --  committed.]
+```
+
+Verdict: **NEEDS WORK**.
+
+Direct resolver joint C² at interior points plus inner commute gives pointwise `HasDerivAt` and local differentiability information. It does **not** give the closed-slab continuity target:
+
+```lean
+ContinuousOn
+  (Function.uncurry
+    (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
+  (Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1)
+```
+
+The target includes the closed spatial endpoints `0` and `1`, and it concerns the full mixed time-derivative lift, not only value/gradient resolver C² at interior points.
+
+Needed work:
+
+```text
+- produce a closed-slab representative for `coupledChemDivTimeDerivativeLift`;
+- show it agrees with the committed lift on `[s-δ,s+δ]×[0,1]`;
+- prove global/closed-slab continuity, including endpoint behavior.
+```
+
+This is exactly the role of the separate closed-representative route, e.g. a theorem like:
+
+```lean
+chemDivMixedTimeDeriv_jointContinuousOn_closed
+```
+
+when supplied with a heat-Level0 `ChemDivMixedTimeDerivClosedRepr`. Without that representative, 3G does not close automatically.
+
+## Dependency graph after direct resolver C²
+
+The useful graph is:
+
+```text
+Direct resolver value C² + direct resolver gradient C²
+  ├─ closes 3C / 3D
+  ├─ with direct inner commute + flux time bridge closes 3F
+  └─ helps, but does not itself close:
+       - 3A integrability
+       - envelope compactness / weak-H² uniform bounds
+       - 3G closed-slab mixed derivative continuity
+```
+
+The remaining non-automatic work splits cleanly into three work packages:
+
+```text
+Package E: envelope / coefficient envelope
+  - SUB-SORRY 1A
+  - SUB-SORRY 2A-core
+  - likely rewrite or strengthen the weak-H² source representative proof
+
+Package I: local integrability 3A
+  - hV_C4 or replacement proof avoiding C4
+  - hV_pos positivity wiring
+
+Package G: closed-slab time-derivative continuity
+  - 3G via closed mixed-time representative
+```
+
+## Recommended next patch order
+
+1. **Patch 3C+3D+3F first.** This should be a direct replacement using the facts in the prompt.
+2. **Patch 3E/hbase and `hV_pos` positivity wiring.** These are short once heat nonnegativity/continuity is available.
+3. **Patch or rewrite 3A.** Prefer a direct integrability proof from C²/interior regularity rather than forcing resolver `C⁴`.
+4. **Patch 3G via closed-slab representative.** This is independent of the envelope proof.
+5. **Return to `level0_chemDiv_envelope_summable`.** This remains the largest analytic block; direct resolver C² alone is not enough for its weak-H² uniform compactness claims.
+
+## Final answer
+
+After direct heat-Level0 resolver joint C², **not all Level0 sorries close**.
+
+The combined 3C+3D+3F chain-rule `HasDerivAt` closes. Positivity sub-sorries close with the existing floor/nonnegativity wiring. Everything tied to source integrability, weak-H² coefficient envelopes, compact uniform bounds, and closed-slab mixed time-derivative continuity still needs additional proof work.
