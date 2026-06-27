@@ -1,260 +1,284 @@
-# Q1518 (cron1) -- `FlooredSourceTimeData` time domain and bound issue
+# Q1532 (cron1) -- consumers of `FlooredSourceTimeData.zerothBound/laplBound`
 
 Repository: `xiangyazi24/Shen_work`  
-Branch: `chatgpt-scratch`  
+Committed on branch: `chatgpt-scratch`  
 Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 ## Method
 
-Connector-only repository inspection. I did not run Lean locally and did not edit any Lean source file. I inspected the target branch `chatgpt-scratch`, because that is the branch requested for the git-drop.
+Connector-only inspection. I did not run Lean locally and did not use Python/sandbox.
 
-Relevant files inspected:
+GitHub code search queries used:
+
+```text
+H.zerothBound H.laplBound
+zerothBound laplBound FlooredSourceTimeData
+```
+
+The default/indexed repo matches the Q1532 premise: `FlooredSourceTimeData` has positive-time fields `∀ t, 0 < t → ...`. The delivery branch `chatgpt-scratch` still has the older all-real-time version from Q1518, so this report focuses on the current indexed/default code surface and notes the branch mismatch.
+
+## Counts
+
+Exact direct reads of `H.zerothBound` / `H.laplBound` are in **2 files**:
 
 ```text
 ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
 ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
 ```
 
-## Short answer
-
-On the requested branch `chatgpt-scratch`, `FlooredSourceTimeData` does **not** merely require uniform bounds for all `t > 0`. It requires a stronger, all-real-time domain:
-
-* `d0 : ∀ τ : ℝ, ...`
-* `d1 : ∀ τ : ℝ, ...`
-* `sliceC2 : ... ∀ t : ℝ, ...`
-* `sliceNeumann : ... ∀ t : ℝ, ...`
-* `zerothBound : ... ∀ t : ℝ, ...`
-* `laplBound : ... ∀ (t : ℝ) (k : ℕ), ...`
-
-So the current target-branch structure is **global on all of `ℝ`**, not positive-time-only, and definitely not windowed-away-from-zero.
-
-`flooredSourceTimeData_of_iterate` does **not** handle the `t → 0+` blow-up by using windowed bounds. It simply assumes all-real-time bounds in the input `IterateSourceTimeData` and forwards them unchanged into `FlooredSourceTimeData`.
-
-Thus the present `chatgpt-scratch` version resolves the issue only by pushing the hard/impossible uniform-bound obligation upstream into `IterateSourceTimeData`; it does not solve it locally.
-
-## Exact `FlooredSourceTimeData` signatures on `chatgpt-scratch`
-
-In `ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean`, the structure is:
-
-```lean
-structure FlooredSourceTimeData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
-  /-- `∂ₜ srcSlice = s₁` pointwise in `x ∈ (0,1)`, locally in `t`. -/
-  d0 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s) ∧
-    ContinuousOn (Function.uncurry s₁) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
-
-  /-- `∂ₜ s₁ = s₂` pointwise in `x ∈ (0,1)`, locally in `t`. -/
-  d1 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ, ContinuousOn (s₁ s) (Icc (0:ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt (fun r => s₁ r x) (s₂ s x) s) ∧
-    ContinuousOn (Function.uncurry s₂) (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
-
-  /-- Each time-derivative slice is space-`C²` on `[0,1]` (under the floor). -/
-  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
-    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0:ℝ) 1)
-
-  /-- Neumann endpoint data of each time-derivative slice (for IBP decay). -/
-  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
-    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
-    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Iio 1] 1) (𝓝 0) ∧
-    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0 = 0 ∧
-    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 1 = 0
-
-  /-- Uniform-in-`t` zeroth-mode and Laplacian envelopes per time order. -/
-  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ,
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
-
-  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ) (k : ℕ), 1 ≤ k →
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
-```
-
-There is no `0 < τ` hypothesis in `d0`/`d1`, and no `0 < t` hypothesis in `sliceC2`, `sliceNeumann`, `zerothBound`, or `laplBound` on this branch.
-
-## Exact `IterateSourceTimeData` signatures
-
-In `ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean`, the input structure is also all-real-time:
-
-```lean
-structure IterateSourceTimeData
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (du d2u : ℝ → ℝ → ℝ)
-    : Prop where
-  floor : ∀ t : ℝ, ∀ x ∈ Ioo (0:ℝ) 1, 0 < intervalDomainLift (u t) x
-
-  time1 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt (fun r => intervalDomainLift (u r) x) (du s x) s) ∧
-    ContinuousOn (Function.uncurry (srcSlice1 p u du))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
-
-  time2 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ, ContinuousOn (srcSlice1 p u du s) (Icc (0:ℝ) 1)) ∧
-    (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      HasDerivAt (fun r => intervalDomainLift (u r) x) (du s x) s ∧
-      HasDerivAt (fun r => du r x) (d2u s x) s) ∧
-    ContinuousOn (Function.uncurry (srcSlice2 p u du d2u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
-
-  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
-    ContDiffOn ℝ 2
-      ((sliceFam (srcSlice p u) (srcSlice1 p u du) (srcSlice2 p u du d2u) i) t)
-      (Icc (0:ℝ) 1)
-
-  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
-    Tendsto (deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-      (srcSlice2 p u du d2u) i) t)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
-    Tendsto (deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-      (srcSlice2 p u du d2u) i) t)) (𝓝[Iio 1] 1) (𝓝 0) ∧
-    deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-      (srcSlice2 p u du d2u) i) t) 0 = 0 ∧
-    deriv ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-      (srcSlice2 p u du d2u) i) t) 1 = 0
-
-  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ,
-    |cosineCoeffs ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-      (srcSlice2 p u du d2u) i) t) 0| ≤ D
-
-  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ) (k : ℕ), 1 ≤ k →
-    |cosineCoeffs ((sliceFam (srcSlice p u) (srcSlice1 p u du)
-      (srcSlice2 p u du d2u) i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
-```
-
-So even the iterate-side data is not windowed or positive-time-only. It asks for global envelopes before `flooredSourceTimeData_of_iterate` is called.
-
-## What `flooredSourceTimeData_of_iterate` actually does
-
-The producer is just a field-forwarding bridge plus the pointwise chain/product-rule wrappers:
-
-```lean
-theorem flooredSourceTimeData_of_iterate
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
-    (H : IterateSourceTimeData p u du d2u) :
-    FlooredSourceTimeData p u (srcSlice1 p u du) (srcSlice2 p u du d2u) where
-  d0 τ := by
-    obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.time1 τ
-    refine ⟨δ, hδ, hcont, ?_, hcd⟩
-    intro x hx s hs
-    exact hasDerivAt_srcSlice (H.floor s x hx) (hdiff x hx s hs)
-  d1 τ := by
-    obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.time2 τ
-    refine ⟨δ, hδ, hcont, ?_, hcd⟩
-    intro x hx s hs
-    obtain ⟨h1, h2⟩ := hdiff x hx s hs
-    exact hasDerivAt_srcSlice1 (H.floor s x hx) h1 h2
-  sliceC2 := H.sliceC2
-  sliceNeumann := H.sliceNeumann
-  zerothBound := H.zerothBound
-  laplBound := H.laplBound
-```
-
-Therefore:
-
-* There is **no window parameter** like `ε`, `τ₀`, `a`, `T`, or `0 < c` in the bound fields.
-* There is **no localized statement** like `∀ t ∈ Icc a T`.
-* There is **no positive-time guard** like `0 < t`.
-* There is **no proof inside this producer** that bounds the heat-derived `λ_k`/`λ_k²` weighted coefficients near `t = 0+`.
-
-The constructor handles the problem only by requiring `H.zerothBound` and `H.laplBound` to have already solved it globally.
-
-## Downstream confirms the all-time interpretation
-
-`IntervalPhysicalSourceTimeC2Concrete.lean` also uses the fields globally.
-
-The source coefficient regularity theorem is global:
-
-```lean
-theorem srcTimeCoeff_contDiff
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
-    ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k) := by
-```
-
-The source bound theorem quantifies over arbitrary `t : ℝ`:
-
-```lean
-theorem srcTimeCoeff_bound
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) (t : ℝ) (hi : i ≤ 2) :
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k := by
-```
-
-And `physicalSourceTimeC2_of_floored` forwards this as:
-
-```lean
-src_contDiff k := srcTimeCoeff_contDiff H k
-src_bound i k t hi := srcTimeCoeff_bound H i k t hi
-```
-
-So downstream currently expects global `PhysicalSourceTimeC2` data on all time, not merely positive-time-local data.
-
-## Mathematical diagnosis
-
-For heat smoothing from rough/merely bounded cosine coefficients, the coefficients of time derivatives contain factors like
+Only **1 file directly reads fields from a `FlooredSourceTimeData` value**:
 
 ```text
-λ_k * exp(-t λ_k) * a_k
-λ_k^2 * exp(-t λ_k) * a_k
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
 ```
 
-For each fixed `t > 0`, the exponential wins and the sums are fine. On a window `[a, T]` with `a > 0`, they are uniformly controlled by majorants such as `λ_k^m exp(-a λ_k)`. But as `a → 0+`, the constants blow up unless the initial data already has corresponding spatial regularity/weighted coefficient bounds.
+`IntervalFlooredSourceTimeDataIterate.lean` reads same-named fields from `IterateSourceTimeData` and forwards them into a `FlooredSourceTimeData`; it is an upstream adapter/producer.
 
-Thus a uniform-in-`t > 0` bound for `i = 1, 2` is generally false for the heat-semoothing-only route. The `chatgpt-scratch` structure is even stronger than that: it asks for uniform-in-`t : ℝ` bounds.
-
-Defining `du` or `d2u` to be `0` for `t ≤ 0` would not fix the obstruction, because the blow-up is from the right limit `t → 0+`.
-
-## Practical consequence for the proof plan
-
-The current `chatgpt-scratch` version cannot honestly discharge the heat-smoothing base-iterate source time data for `i = 1, 2` from mere positive-time smoothing plus bounded initial cosine coefficients. The obstruction is not in `flooredSourceTimeData_of_iterate`; it is in the shape of the structures it connects:
+A broader grep for `zerothBound laplBound FlooredSourceTimeData` returns **5 files**:
 
 ```text
-IterateSourceTimeData.zerothBound/laplBound
-      ↓ forwarded unchanged
-FlooredSourceTimeData.zerothBound/laplBound
-      ↓ used to build all-time builtEs
-PhysicalSourceTimeC2.src_bound
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
+UNDERSTANDING.md
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 ```
 
-The bridge is correct as a bridge, but the assumptions are too strong for the intended heat-smoothing proof.
+Relevant Lean files are the first, third, and fourth. `UNDERSTANDING.md` is documentation. `IntervalHeatSemigroupHighRegularity.lean` is not a field consumer; it imports the heat-semigroup floored-source file and contains positive-time cutoff/window regularity infrastructure.
 
-## Suggested repair direction
+## Direct / relevant occurrences
 
-There are two coherent ways forward.
+### `ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean`
 
-### Option A: change the data to positive-time/windowed data
+Field signatures are positive-time global, not windowed:
 
-Use local positive-time windows. The bound fields should depend on a positive lower time cutoff, e.g. one of these shapes:
+```text
+IntervalPhysicalSourceTimeC2Concrete.lean:104-107
+```
 
 ```lean
--- window lower-bound style
-zerothBoundWindow : ∀ i : ℕ, i ≤ 2 → ∀ a T : ℝ, 0 < a → a ≤ T →
-  ∃ D : ℝ, 0 ≤ D ∧ ∀ t ∈ Icc a T,
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
-
-laplBoundWindow : ∀ i : ℕ, i ≤ 2 → ∀ a T : ℝ, 0 < a → a ≤ T →
-  ∃ M : ℝ, 0 ≤ M ∧ ∀ t ∈ Icc a T, ∀ k : ℕ, 1 ≤ k →
-    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤
-      M / ((k : ℝ) * Real.pi) ^ 2
+zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, 0 < t →
+  |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
+laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
+  |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
 ```
 
-or, equivalently, a local-at-`τ > 0` version with `δ ≤ τ/2`, so every local slab stays away from zero.
+Direct field read in `builtEs`:
 
-But this is not just a local edit: downstream `PhysicalSourceTimeC2` currently wants a global `src_bound i k t hi`, so the physical structure or theorem consuming it must also become local/windowed/positive-time.
+```text
+IntervalPhysicalSourceTimeC2Concrete.lean:247-252
+```
 
-### Option B: keep global bounds but strengthen hypotheses drastically
+```lean
+if hi : i ≤ 2 then
+  (if k = 0 then Classical.choose (H.zerothBound i hi)
+   else Classical.choose (H.laplBound i hi) / ((k:ℝ) * Real.pi) ^ 2)
+else 0
+```
 
-If the goal is to keep the current global `PhysicalSourceTimeC2` shape, then the initial data/iterate hypotheses must include enough regularity to make the `λ_k`, `λ_k²` weighted time-derivative source coefficients uniformly bounded up to `t = 0`. That is a much stronger assumption than heat smoothing for arbitrary continuous/bounded-coefficient data.
+This extracts one time-independent constant for each `(i,k)` envelope. If the bound becomes window-dependent, `builtEs` must also become window-dependent, e.g. `builtEsOn H c T ...`.
 
-For the current intended heat-smoothing route, Option A is the natural fix.
+Direct field use in `srcTimeCoeff_bound`:
+
+```text
+IntervalPhysicalSourceTimeC2Concrete.lean:257-268
+```
+
+```lean
+theorem srcTimeCoeff_bound ... (t : ℝ) (hi : i ≤ 2) (ht : 0 < t) :
+  ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k := by
+...
+  · exact (Classical.choose_spec (H.zerothBound i hi)).2 t ht
+  · exact (Classical.choose_spec (H.laplBound i hi)).2 t ht k hk
+```
+
+This is the decisive direct consumer. It asks for arbitrary positive `t`; it is not tied to a fixed `[c,T]` window.
+
+`physicalSourceTimeC2_of_floored` tries to produce global `PhysicalSourceTimeC2`:
+
+```text
+IntervalPhysicalSourceTimeC2Concrete.lean:276-293
+```
+
+```lean
+PhysicalSourceTimeC2 p u (builtEs H) where
+  src_contDiff k := by
+    -- positive-time data gives ContDiffAt at every t > 0; global extension is separate
+    sorry
+  src_bound i k t hi := by
+    -- t > 0 uses srcTimeCoeff_bound; t ≤ 0 needs a separate envelope argument
+    sorry
+```
+
+So the downstream target is still global in `t`, not windowed.
+
+### `ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean`
+
+This file is an adapter from `IterateSourceTimeData` to `FlooredSourceTimeData`.
+
+Upstream same-named fields are currently all-time:
+
+```text
+IntervalFlooredSourceTimeDataIterate.lean:139-144
+```
+
+```lean
+zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, ...
+laplBound   : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ) (k : ℕ), ...
+```
+
+Forwarding site:
+
+```text
+IntervalFlooredSourceTimeDataIterate.lean:167-171
+```
+
+```lean
+zerothBound i hi := by
+  obtain ⟨D, hD, hb⟩ := H.zerothBound i hi
+  exact ⟨D, hD, fun t _ht => hb t⟩
+laplBound i hi := by
+  obtain ⟨M, hM, hb⟩ := H.laplBound i hi
+  exact ⟨M, hM, fun t _ht k hk => hb t k hk⟩
+```
+
+This will need to change if `FlooredSourceTimeData` becomes windowed. Also, unless `IterateSourceTimeData` is weakened/windowed too, the same singular `t → 0+` problem has just moved upstream.
+
+This file also depends on `builtEs (flooredSourceTimeData_of_iterate H)` in summability hypotheses:
+
+```text
+IntervalFlooredSourceTimeDataIterate.lean:181-188
+```
+
+That is not a direct field read, but it depends on `builtEs`, which currently uses time-independent constants chosen from the Floored fields.
+
+### `ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean`
+
+This is a heat-semigroup producer of `FlooredSourceTimeData`, not a downstream field reader.
+
+It currently takes positive-time global bound hypotheses:
+
+```text
+IntervalHeatSemigroupFlooredSourceTimeData.lean:650-684
+```
+
+and assigns them directly:
+
+```text
+IntervalHeatSemigroupFlooredSourceTimeData.lean:692-693
+```
+
+```lean
+zerothBound := hzerothBound
+laplBound := hlaplBound
+```
+
+This is exactly where the heat-semigroup route asks for the impossible uniform-in-all-positive-time envelopes for `i = 1,2`.
+
+## Downstream time-domain consumers
+
+These files do not directly read `FlooredSourceTimeData.zerothBound/laplBound`, but they determine whether windowing is a safe drop-in replacement.
+
+### `ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean`
+
+`PhysicalSourceTimeC2` is global in `t`:
+
+```text
+IntervalPhysicalResolverDataConcrete.lean:107-114
+```
+
+```lean
+src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+  ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
+```
+
+`resolverTimeCoeff_bound` also expects a global source bound:
+
+```text
+IntervalPhysicalResolverDataConcrete.lean:145-156
+```
+
+`physicalResolverJointC2Data_of_floor` forwards `H.src_bound` into resolver coefficient bounds:
+
+```text
+IntervalPhysicalResolverDataConcrete.lean:165-177
+```
+
+### `ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean`
+
+`PhysicalResolverJointC2Data` is global in `t`:
+
+```text
+IntervalResolverJointC2PhysicalConcrete.lean:90-94
+```
+
+```lean
+coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+  ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+```
+
+Joint series assemblers consume arbitrary-time coefficient bounds:
+
+```text
+IntervalResolverJointC2PhysicalConcrete.lean:122-127
+IntervalResolverJointC2PhysicalConcrete.lean:145-149
+IntervalResolverJointC2PhysicalConcrete.lean:172-174
+```
+
+Examples:
+
+```lean
+(fun i k t hi => H.coeff_bound i k t hi)
+...
+have h0 := H.coeff_bound 0 k q.1 (by norm_num)
+```
+
+Again, this is not expressed as a fixed `[c,T]` window.
+
+## Safety verdict for Fix Option A
+
+Changing only `FlooredSourceTimeData.zerothBound/laplBound` to windowed fields is **not safe as a local/drop-in edit**.
+
+Reason: the direct consumer `srcTimeCoeff_bound` is quantified over arbitrary positive time:
+
+```lean
+(t : ℝ) (ht : 0 < t)
+```
+
+and the downstream structures are global:
+
+```lean
+∀ (i k : ℕ) (t : ℝ), i ≤ 2 → ...
+```
+
+So the consumers do **not** currently only evaluate at a fixed positive-time window `[c,T]`.
+
+Windowing is mathematically right, but it must be propagated through the API:
+
+```text
+FlooredSourceTimeData
+  -> builtEs
+  -> PhysicalSourceTimeC2
+  -> PhysicalResolverJointC2Data
+  -> bounded-weight joint series / FAC producers
+```
+
+A safe shape would add a windowed envelope, e.g.
+
+```lean
+zerothBoundOn : ∀ i, i ≤ 2 → ∀ c T, 0 < c → c ≤ T →
+  ∃ D, 0 ≤ D ∧ ∀ t ∈ Icc c T, ...
+
+laplBoundOn : ∀ i, i ≤ 2 → ∀ c T, 0 < c → c ≤ T →
+  ∃ M, 0 ≤ M ∧ ∀ t ∈ Icc c T, ∀ k, 1 ≤ k → ...
+```
+
+then replace `builtEs` by a windowed `builtEsOn H c T ...`, and replace the global `src_bound`/`coeff_bound` surfaces by windowed or positive-time-local versions.
+
+For local regularity at a positive time `τ`, one can choose a window such as `c = τ / 2` and `T = τ + δ`, but the current structures do not carry this window.
 
 ## Final answer
 
-`flooredSourceTimeData_of_iterate` does **not** use windowed bounds. It simply forwards the all-time `IterateSourceTimeData.zerothBound` and `IterateSourceTimeData.laplBound` fields into `FlooredSourceTimeData`.
-
-On `chatgpt-scratch`, `FlooredSourceTimeData` does **not** require `∀ t > 0`; it requires `∀ t : ℝ`. The same is true for the iterate-side input data and the downstream `src_bound` theorem.
-
-So the suspected `t → 0+` blow-up is a real structural obstruction in this branch, unless the plan is to add stronger initial regularity assumptions. The honest heat-smoothing approach needs a positive-time/windowed version of these data structures and corresponding downstream consumers.
+Direct Floored bound consumption is concentrated in one file, but the downstream API is global. Therefore Fix Option A is viable only as an API-wide windowing refactor, not as a field-signature-only patch.
