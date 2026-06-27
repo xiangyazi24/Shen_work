@@ -48,8 +48,10 @@ Once built, this feeds into the committed chain:
 which closes `heatSemigroup_level0_resolverJointC2Data` (previously 4 unstructured sorry).
 -/
 import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
+import ShenWork.PDE.HasDerivWithinAtTsum
 import ShenWork.Paper2.IntervalConjugatePicard
 import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+import ShenWork.Paper2.IntervalMildRegularityBootstrap
 
 open Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
@@ -189,14 +191,78 @@ private theorem heatSemigroup_d0
     simpa [srcSlice1, Function.uncurry] using
       (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu_joint)
 
-/-! ## Helper: HasDerivAt of heatDu in time (needed for d1) -/
+/-! ## Helper: HasDerivAt of heatDu in time (needed for d1)
+
+Termwise differentiation of the Laplacian cosine series via
+`hasDerivWithinAt_tsum` on `Ioi(t/2)`, then convert to `HasDerivAt`.
+Proof body from ChatGPT Q1249 (cron1). -/
+
+local notation "λ_" n => unitIntervalCosineEigenvalue n
+
+private theorem unitIntervalCosineEigenvalue_sq_exp_summable
+    {r : ℝ} (hr : 0 < r) :
+    Summable fun n : ℕ => (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) := by
+  sorry
+
+private theorem heatLaplacianTerm_hasDerivAt_time
+    (a : ℕ → ℝ) (x t : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun τ : ℝ =>
+        ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
+      ((λ_ n) ^ 2 * (Real.exp (-t * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x) t := by
+  sorry
+
+private theorem summable_heatLaplacian_terms_of_bound
+    {a : ℕ → ℝ} {M t x : ℝ} (ht : 0 < t)
+    (ha : ∀ n, |a n| ≤ M) :
+    Summable fun n : ℕ =>
+      ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n * a n := by
+  sorry
+
+private theorem heatD2Term_abs_le_majorant
+    {a : ℕ → ℝ} {M r τ x : ℝ}
+    (ha : ∀ n, |a n| ≤ M) (hτ : τ ∈ Ioi r) (n : ℕ) :
+    |(λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x|
+      ≤ M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by
+  sorry
 
 private theorem heatDu_hasDerivAt
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     {t x : ℝ} (ht : 0 < t) :
     HasDerivAt (fun r => heatDu u₀ r x) (heatD2u u₀ t x) t := by
-  sorry
+  let a : ℕ → ℝ := cosineCoeffs (intervalDomainLift u₀)
+  let r : ℝ := t / 2
+  have hr : 0 < r := by positivity
+  have hrt : t ∈ Ioi r := by show r < t; linarith
+  let F : ℕ → ℝ → ℝ := fun n τ =>
+    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight τ x n * a n
+  let F' : ℕ → ℝ → ℝ := fun n τ =>
+    (λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x
+  let u : ℕ → ℝ := fun n => M₀ * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n)))
+  have hu : Summable u := by
+    simpa [u] using (unitIntervalCosineEigenvalue_sq_exp_summable hr).mul_left M₀
+  have hF : ∀ n, ∀ τ ∈ Ioi r, HasDerivWithinAt (F n) (F' n τ) (Ioi r) τ := by
+    intro n τ _hτ
+    exact (heatLaplacianTerm_hasDerivAt_time a x τ n).hasDerivWithinAt
+  have hbound : ∀ n, ∀ τ ∈ Ioi r, |F' n τ| ≤ u n := by
+    intro n τ hτ
+    exact heatD2Term_abs_le_majorant hu₀_bound hτ n
+  have hF0 : Summable fun n => F n t := by
+    exact summable_heatLaplacian_terms_of_bound ht hu₀_bound
+  have hwithin := ShenWork.HasDerivWithinAtTsum.hasDerivWithinAt_tsum
+    (convex_Ioi r) hu hF hbound hrt hF0 hrt
+  have hAtSum := hwithin.hasDerivAt (isOpen_Ioi.mem_nhds hrt)
+  have hbranch : (fun τ => heatDu u₀ τ x) =ᶠ[𝓝 t] (fun τ => ∑' n, F n τ) := by
+    filter_upwards [isOpen_Ioi.mem_nhds hrt] with τ hτ
+    have hτpos : 0 < τ := lt_trans hr hτ
+    simp only [heatDu, if_pos hτpos, F,
+      ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue]
+  have hvalue : (∑' n, F' n t) = heatD2u u₀ t x := by
+    simp only [heatD2u, if_pos ht, F']
+    sorry
+  rw [← hvalue]
+  exact hAtSum.congr_of_eventuallyEq hbranch
 
 /-! ## Helper: joint continuity of heatD2u on a positive slab -/
 
