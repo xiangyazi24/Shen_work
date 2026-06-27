@@ -119,7 +119,7 @@ private theorem srcTimeCoeff_hasDerivAt
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (srcTimeCoeff p u k) (cosineCoeffs (s₁ t) k) t := by
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d0 t ht
-  have hint : ∀ᶠ s in 𝓝 t, IntervalIntegrable (srcSlice p u s) volume (0 : ℝ) 1 :=
+  have hint : ∀ᶠ s in 𝓝 t, IntervalIntegrable (srcSlice p u s) MeasureTheory.volume (0 : ℝ) 1 :=
     hcont.mono fun s hs => hs.intervalIntegrable
   have hH := cosineCoeffs_hasDerivAt_of_smooth_param (f := srcSlice p u)
     (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hint hdiff hcd
@@ -133,7 +133,7 @@ private theorem cosS1_hasDerivAt
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (fun s => cosineCoeffs (s₁ s) k) (cosineCoeffs (s₂ t) k) t := by
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d1 t ht
-  have hint : ∀ᶠ s in 𝓝 t, IntervalIntegrable (s₁ s) volume (0 : ℝ) 1 :=
+  have hint : ∀ᶠ s in 𝓝 t, IntervalIntegrable (s₁ s) MeasureTheory.volume (0 : ℝ) 1 :=
     hcont.mono fun s hs => hs.intervalIntegrable
   exact cosineCoeffs_hasDerivAt_of_smooth_param (f := s₁) (f' := s₂)
     (τ := t) (δ := δ) (n := k) hδ hint hdiff hcd
