@@ -1,10 +1,10 @@
-# Q1435 (cron1) — `cron1`
+# Q1440 (cron1) — `cron2`
 
 Repository: `xiangyazi24/Shen_work`
 
 Branch updated: `chatgpt-scratch`
 
-Target file:
+Target file required by user:
 
 ```text
 scratch/_CHATGPT_DROP_cron1.md
@@ -15,10 +15,18 @@ scratch/_CHATGPT_DROP_cron1.md
 The user prompt body was only:
 
 ```text
-Q1435 (cron1): cron1
+Q1440 (cron1): cron2
 ```
 
-There is no Lean theorem statement, file path, line number, error message, proof obligation, or search target in the prompt.  I therefore treat this as a **cron1 status/dispatch drop**, not as a request to invent or modify production Lean code.
+The delivery instruction explicitly requires writing to:
+
+```text
+scratch/_CHATGPT_DROP_cron1.md
+```
+
+So I updated the `cron1` scratch file even though the prompt body says `cron2`.  I did **not** update `scratch/_CHATGPT_DROP_cron2.md` because the user gave a hard target path for this drop.
+
+There is no Lean theorem statement, source file, line number, build error, search target, or proof obligation in the prompt.  I therefore treat this as a status/dispatch drop and do not invent a production Lean task.
 
 Delivery constraints respected:
 
@@ -35,19 +43,24 @@ Repository-visible files inspected:
 
 ```text
 scratch/_CHATGPT_DROP_cron1.md
+scratch/_CHATGPT_DROP_cron2.md
 CHINEG_CHECKLIST.md
-THREE_PAPER_BOARD.md
 ShenWork/Paper2/IntervalChiNegUniformClose.lean
 ```
 
-I also searched the repository for:
+Repository searches performed:
 
 ```text
-Q1435 cron1
+Q1440 cron2
 chemDeflate_smallTime_le cosineCoeffs_integral_swap_ae
 ```
 
-Result: no `Q1435 cron1` hit; the two named crux lemmas only occur in `IntervalChiNegUniformClose.lean`, so they remain the connector-visible live named gaps.
+Search result summary:
+
+```text
+No repository hit for `Q1440 cron2`.
+The two named crux lemmas only appear in IntervalChiNegUniformClose.lean, so they remain connector-visible named gaps.
+```
 
 ## Branch status at drop time
 
@@ -55,7 +68,7 @@ GitHub compare result for `main...chatgpt-scratch` at this drop:
 
 ```text
 status: diverged
-ahead_by: 286
+ahead_by: 287
 behind_by: 388
 merge_base: 954c43ef4e696e78e5724f53b7ddab7c89be140a
 main/base commit: b30e7d6067d4f06e170f34cea61883e0896e54dc
@@ -63,36 +76,29 @@ main/base commit: b30e7d6067d4f06e170f34cea61883e0896e54dc
 
 So `chatgpt-scratch` remains an active scratch/status branch diverged from `main`.  This drop only overwrites this scratch markdown file.
 
-## Current best status summary
+## Note on `cron2`
 
-The latest connector-visible state agrees with Q1414's conclusion:
-
-```text
-χ₀<0 direct supersolution / hEhatH: done in the lane board.
-crux B / logistic-leg continuity: done in the lane board.
-hmean0: source-level closer exists in IntervalChiNegDatumBound.lean from the prior report.
-χ₀<0 crux A: localized to two named missing lemmas in IntervalChiNegUniformClose.lean.
-P1: still bottoms at RotheFloorOrbitDataResidual for the produced W.
-P3: still cascades from χ₀<0; no new P3-specific status found in this prompt.
-```
-
-Because the Q1435 prompt is content-free beyond `cron1`, the most useful drop is to restate the exact current action surface and avoid overclaiming.
-
-## χ₀<0 lane — live action surface
-
-Primary capstone:
+I inspected the existing `scratch/_CHATGPT_DROP_cron2.md`.  It currently records:
 
 ```text
-meanReach_H1_conjugate
+Q1415 (cron2) — no actionable prompt supplied
 ```
 
-Downstream target:
+and says the prior message contained only:
 
 ```text
-ChiNegDatumUniformConstruction p
+Q1415 (cron2): cron-shen2
 ```
 
-`CHINEG_CHECKLIST.md` records these as discharged:
+with no theorem/file/error/search target.  The current Q1440 prompt likewise gives only a bare label/body (`cron2`), but its delivery rule targets the cron1 scratch file.  Therefore this Q1440 drop is an honest “no concrete task supplied / status only” cron1 drop, not a cron2-file update.
+
+## Current cron-shen / χ₀<0 status surface
+
+The current connector-visible state remains the Q1435/Q1414 state.
+
+### Discharged / no longer the target
+
+According to `CHINEG_CHECKLIST.md`, the following are discharged or no longer the conceptual blocker:
 
 ```text
 hEhatH   — direct Duhamel-deflation supersolution route / memHSigma_deflate
@@ -103,34 +109,33 @@ hdecomp_pos τ=0 — decomp_tau0
 crux B   — valueOp_src_jointCont + logisticLeg_continuous_full
 ```
 
-`IntervalChiNegUniformClose.lean` is the most precise current crux-A file.  It derives:
+The earlier hmean0 issue has a source-level closer in:
 
 ```text
-Estar_explicit / Estar_memHSigma:
-  explicit supersolution sequence Estar := 2·(|û₀| + logE) ∈ H^σ.
-
-hlogI_cont_full:
-  logistic value-Duhamel integrated spatial continuity derived from logisticLeg_continuous_full.
+ShenWork/Paper2/IntervalChiNegDatumBound.lean
 ```
 
-It explicitly does **not** close crux A.  It names two remaining gaps.
+from the previous report.  I did not re-run Lean here, so I do not claim a fresh build result.
+
+### Live χ₀<0 crux A
+
+`ShenWork/Paper2/IntervalChiNegUniformClose.lean` is still the most precise current status artifact.  It derives:
+
+```text
+Estar_explicit / Estar_memHSigma
+hlogI_cont_full
+```
+
+and explicitly carries two unclosed pieces:
+
+```text
+1. chemDeflate_smallTime_le
+2. cosineCoeffs_integral_swap_ae
+```
+
+These remain the only connector-visible hits for the two names.
 
 ## Remaining gap 1 — `chemDeflate_smallTime_le`
-
-Current file verdict:
-
-```text
-The supersolution inequality does not close by simply saying T is small.
-```
-
-Reason:
-
-```text
-coreEnv C α Msup k = (C·Rbar α)·(1+λ_k)^(−α/2)·Msup k
-Rbar α = 2/(1−α)
-```
-
-The existing framework discards the elapsed-time factor into a time-independent majorant.  Thus it gives no shrinking factor for the chemotaxis Duhamel term.
 
 Named missing lemma:
 
@@ -138,58 +143,26 @@ Named missing lemma:
 chemDeflate_smallTime_le
 ```
 
-Intended content:
+Needed content:
 
 ```text
-A per-restart chemotaxis Duhamel estimate that keeps the elapsed-time factor:
+A per-restart chemotaxis Duhamel estimate that preserves the elapsed-time factor:
 
   |duhamelEnergyCoeff 1 Qsrc ρ k| ≤ c(ρ) · Msup k
 
 with c(ρ) → 0 as ρ → 0.
 ```
 
-This should feed the explicit supersolution inequality by providing a genuine small-time chem margin, instead of relying on `Rbar`.
-
-Worker guidance:
+Why it is needed:
 
 ```text
-Look below the uniform `trajectoryEnvelope_of_sourceEnvelope` / `coreEnv` abstraction.
-Prove a sharper local-in-time version for one short restart interval.
-Keep the s^((1−α)/2) factor; do not apply the existing engine_sfactor_le_Rbar step that discards it.
+The existing coreEnv / Rbar framework is uniform-in-time and discards the shrinking elapsed-time factor.
+Therefore it cannot prove the small-time chem margin in the explicit supersolution inequality.
 ```
 
-Acceptance:
-
-```text
-- The lemma produces an explicit c(ρ) with c(ρ) → 0.
-- It bounds the chemotaxis Duhamel coefficient modewise by c(ρ)·Msup k.
-- It is strong enough to close the supersolution inequality in IntervalChiNegUniformClose.
-- Relevant build is green and #print axioms is clean.
-```
+Do not prove it by simply invoking the existing `coreEnv` majorant; that is exactly the non-shrinking route documented as insufficient.
 
 ## Remaining gap 2 — `cosineCoeffs_integral_swap_ae`
-
-Current file verdict:
-
-```text
-hswap_log is not the same as crux B's hlogI_cont.
-```
-
-Reason:
-
-The existing swap lemma requires full closed-slab continuity of the integrand:
-
-```text
-(s,x) ↦ S(τ−s)(log(u s)) x
-```
-
-But under the repo convention:
-
-```text
-intervalFullSemigroupOperator 0 f = 0
-```
-
-this integrand jumps on the diagonal `s = τ`: value is `0`, while the left limit is `log(u τ)(x)` in general.  So full `ContinuousOn` of the closed slab is impossible.
 
 Named missing lemma:
 
@@ -197,106 +170,22 @@ Named missing lemma:
 cosineCoeffs_integral_swap_ae
 ```
 
-Intended content:
+Needed content:
 
 ```text
-A coefficient/time-integral swap that tolerates a Lebesgue-null diagonal discontinuity.
-Use off-diagonal continuity and an L∞ integrable majorant instead of full closed-slab ContinuousOn.
+A coefficient/time-integral swap that tolerates the Lebesgue-null diagonal discontinuity caused by the convention:
+
+  intervalFullSemigroupOperator 0 f = 0
 ```
 
-Worker guidance:
+Why it is needed:
 
 ```text
-Do not try to prove full closed-slab ContinuousOn; the S(0)=0 convention makes it false.
-Use an a.e. / null-set formulation for the diagonal.
-Feed it with crux B's off-diagonal continuity plus intervalFullSemigroupOperator_Linfty_bound.
+The existing closed-slab ContinuousOn swap is too strong: the integrand jumps on the diagonal s = τ.
+The proof should use off-diagonal continuity and an L∞ integrable majorant instead of full closed-slab continuity.
 ```
 
-Acceptance:
-
-```text
-- The swap applies despite the diagonal discontinuity.
-- It is sufficient to supply hswap_log for conjugateSlice_decomp_tauLift / TrajSeamDirect.
-- Relevant build is green and #print axioms is clean.
-```
-
-## hmean0 status
-
-The prior Q1414 report found that `IntervalChiNegDatumBound.lean` exists and contains:
-
-```lean
-theorem core_datum_bound ... : ∀ x : intervalDomainPoint, |u₀ x| ≤ C.M := by
-  ...
-
-theorem conjugateMildData_hmean0 ... :
-    |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M := by
-  ...
-```
-
-Interpretation remains:
-
-```text
-hmean0 should not be treated as an open conceptual gap.  The source-level closer exists.  It still needs build/axiom verification before the checklist is manually ticked, because this drop did not run Lean.
-```
-
-## P1 lane status
-
-The latest cross-paper board status from the prior inspection remains the best connector-visible P1 state:
-
-```text
-P1 admissible_closure / hin floor is discharged.
-P1 now carries only RotheFloorOrbitDataResidual for the produced W.
-```
-
-Current P1 target:
-
-```text
-RotheFloorOrbitDataResidual for the produced W
-```
-
-Meaning:
-
-```text
-- supply the untruncated source R = crossSource;
-- supply whole-line flux IBP / endpoint-source data;
-- connect the produced W from the step construction to the untruncated residual;
-- do not add another wrapper layer;
-- do not use the false pointwise RotheChemoMonotoneResidual route.
-```
-
-## P3 lane status
-
-No new P3-specific information was exposed by this Q1435 prompt or by the inspected files.  The practical status remains:
-
-```text
-P3 T2.2 cascades from χ₀<0.
-```
-
-Broad P3 should stay behind χ₀<0 unless a later prompt names a concrete P3 theorem or file.
-
-## Updated cron1 priority queue
-
-```text
-Priority 1 — χ₀<0 small-time chem estimate:
-  Prove chemDeflate_smallTime_le.
-
-Priority 2 — χ₀<0 null-diagonal Fubini swap:
-  Prove cosineCoeffs_integral_swap_ae.
-
-Priority 3 — χ₀<0 crux-A close:
-  Consume those two lemmas in IntervalChiNegUniformClose.
-
-Priority 4 — χ₀<0 checklist hygiene:
-  Verify IntervalChiNegDatumBound / hmean0 and update CHINEG_CHECKLIST.md if green.
-
-Priority 5 — P1 construction_neg:
-  Produce RotheFloorOrbitDataResidual for the produced W.
-
-Priority 6 — P3:
-  Keep broad T2.2 behind χ₀<0.
-```
-
-## Concrete next-worker prompt
+## Best next worker prompt
 
 ```text
 Read ShenWork/Paper2/IntervalChiNegUniformClose.lean.  Do not redo hEhatH/direct supersolution, hmean0, hvnn, hWsum, crux B, or the H^σ metric fixed-point route.  The live χ₀<0 crux A is exactly two named missing lemmas.
@@ -308,12 +197,50 @@ Second prove cosineCoeffs_integral_swap_ae: a coefficient/time-integral swap tol
 Acceptance: relevant build green, #print axioms clean, and IntervalChiNegUniformClose consumes both lemmas with no new conclusion-equivalent carried field.
 ```
 
-## Final status sentence
+## P1 / P3 context
 
-The Q1435 cron1 state is:
+No new P1 or P3 facts were exposed by the Q1440 prompt or the inspected files.
+
+Current carried context remains:
 
 ```text
-The prompt contains no new theorem body, so this is a status-only drop.  The current χ₀<0 frontier is still the two precise crux-A lemmas `chemDeflate_smallTime_le` and `cosineCoeffs_integral_swap_ae`; hmean0 has a source-level closer; P1 bottoms at RotheFloorOrbitDataResidual for produced W; broad wrapper work should stop.
+P1:
+  bottom is RotheFloorOrbitDataResidual for the produced W.
+
+P3:
+  broad T2.2 still cascades from χ₀<0.
+```
+
+Do not switch to broad P3 unless a later prompt names a concrete P3 theorem/file.
+
+## Updated priority queue
+
+```text
+Priority 1 — χ₀<0 small-time chem estimate:
+  chemDeflate_smallTime_le.
+
+Priority 2 — χ₀<0 null-diagonal Fubini swap:
+  cosineCoeffs_integral_swap_ae.
+
+Priority 3 — χ₀<0 crux-A close:
+  consume both lemmas in IntervalChiNegUniformClose.
+
+Priority 4 — χ₀<0 checklist/build hygiene:
+  verify IntervalChiNegDatumBound / hmean0 and update CHINEG_CHECKLIST.md if green.
+
+Priority 5 — P1 construction_neg:
+  RotheFloorOrbitDataResidual for produced W.
+
+Priority 6 — P3:
+  keep broad T2.2 behind χ₀<0.
+```
+
+## Final status sentence
+
+The Q1440 cron1/`cron2` state is:
+
+```text
+The prompt does not contain an actionable Lean task.  The required target path is cron1, so this file records an honest status-only drop.  The current χ₀<0 frontier remains the two precise crux-A lemmas `chemDeflate_smallTime_le` and `cosineCoeffs_integral_swap_ae`; hmean0 has a source-level closer; P1 remains at RotheFloorOrbitDataResidual for the produced W.
 ```
 
 ## Delivery note
