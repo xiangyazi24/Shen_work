@@ -119,8 +119,10 @@ private theorem srcTimeCoeff_hasDerivAt
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (srcTimeCoeff p u k) (cosineCoeffs (s₁ t) k) t := by
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d0 t ht
+  have hint : ∀ᶠ s in 𝓝 t, IntervalIntegrable (srcSlice p u s) volume (0 : ℝ) 1 :=
+    hcont.mono fun s hs => hs.intervalIntegrable
   have hH := cosineCoeffs_hasDerivAt_of_smooth_param (f := srcSlice p u)
-    (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hcont hdiff hcd
+    (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hint hdiff hcd
   have heq : (fun s => cosineCoeffs (srcSlice p u s) k) = srcTimeCoeff p u k := by
     funext s; exact (srcTimeCoeff_eq_cosineCoeffs p u k s).symm
   rw [heq] at hH; exact hH
@@ -131,8 +133,10 @@ private theorem cosS1_hasDerivAt
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (fun s => cosineCoeffs (s₁ s) k) (cosineCoeffs (s₂ t) k) t := by
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d1 t ht
+  have hint : ∀ᶠ s in 𝓝 t, IntervalIntegrable (s₁ s) volume (0 : ℝ) 1 :=
+    hcont.mono fun s hs => hs.intervalIntegrable
   exact cosineCoeffs_hasDerivAt_of_smooth_param (f := s₁) (f' := s₂)
-    (τ := t) (δ := δ) (n := k) hδ hcont hdiff hcd
+    (τ := t) (δ := δ) (n := k) hδ hint hdiff hcd
 
 /-- `t ↦ cosineCoeffs (s₂ t) k` is continuous at positive `t` (joint continuity
 of `s₂` ⇒ continuity of the cosine coefficient in `t`, via slab DCT). -/
