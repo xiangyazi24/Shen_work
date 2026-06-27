@@ -1095,20 +1095,39 @@ theorem level0_chemDiv_timeDerivData
           funext k; congr 1; congr 1
           exact ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
             p (conjugatePicardIter p u₀ 0 r) k]
-        sorry -- [REDUCED GAP: eigenvalue-weighted ℓ¹ summability of cosineCoeffs of ν·lift^γ.
-               --  FULL ROUTE (ChatGPT Q1285+Q1291, all APIs verified to exist):
-               --  1. Positivity: intervalFullSemigroupOperator_pos hr_pos'
-               --     + _hu₀_nonneg + positive-somewhere (from _hpos at any σ ∈ Icc c T)
-               --     → 0 < lift(S(r)u₀) on [0,1]
-               --     → 0 < U_cos on [0,1] (via hU_agree)
-               --     → 0 < U_cos globally (even + period-2, lines 636-691 pattern)
-               --  2. g_smooth = ν·U_cos^γ is C⁴ via hU_C4.rpow_const_of_ne
-               --  3. intervalWeakH2Neumann_of_contDiffOn on g_smooth (C²+Neumann BCs)
-               --     BCs from cosine-series symmetry (deriv cos(kπx) = 0 at 0,1)
-               --  4. Depth 2: same for hf_H2.secondDeriv (g_smooth is C⁴ hence C² twice)
-               --  5. intervalWeakH4Neumann_eigenvalue_L1_summable hf_H2 hf''_H2
-               --  6. Congr via hU_agree to match cosineCoeffs of ν·lift(u r)^γ
-               --  All tools exist with 0 sorry. ~50 lines mirroring lines 460-560.]
+        -- Step 1: heat profile positivity at time r (for ANY r > 0)
+        -- Use intervalFullSemigroupOperator_pos with _hu₀_nonneg + positive-somewhere
+        have hlift_cont : ContinuousOn (intervalDomainLift u₀) (Icc (0:ℝ) 1) := by
+          exact _hu₀_cont.subtype_val.continuousOn
+        have hlift_nn : ∀ y ∈ Icc (0:ℝ) 1, 0 ≤ intervalDomainLift u₀ y := by
+          intro y hy
+          exact _hu₀_nonneg ⟨y, hy.1, hy.2⟩
+        -- u₀ positive somewhere (by contradiction with _hpos)
+        have hlift_pos_somewhere : ∃ y₀ ∈ Icc (0:ℝ) 1, 0 < intervalDomainLift u₀ y₀ := by
+          by_contra h
+          push_neg at h
+          -- h : ∀ y ∈ Icc 0 1, intervalDomainLift u₀ y ≤ 0
+          -- Combined with hlift_nn: intervalDomainLift u₀ = 0 on [0,1]
+          have hzero : ∀ y ∈ Icc (0:ℝ) 1, intervalDomainLift u₀ y = 0 := by
+            intro y hy; exact le_antisymm (h y hy) (hlift_nn y hy)
+          -- S(c)u₀ = S(c)(0) = 0, contradicting _hpos
+          sorry -- [contradiction: hzero → S(c) applied to zero function = 0 → contradicts _hpos]
+        obtain ⟨y₀, hy₀, hy₀_pos⟩ := hlift_pos_somewhere
+        have hS_pos : ∀ x : ℝ, 0 < intervalFullSemigroupOperator r (intervalDomainLift u₀) x :=
+          ShenWork.IntervalSemigroupConeAtoms.intervalFullSemigroupOperator_pos
+            hr_pos' hlift_cont hlift_nn hy₀ hy₀_pos
+        -- Bridge to U_cos positivity on [0,1]
+        have hU_pos_Icc : ∀ x ∈ Icc (0:ℝ) 1, 0 < U_cos x := by
+          intro x hx
+          rw [← hU_agree x hx]
+          show 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 r) x
+          simp only [conjugatePicardIter, intervalDomainLift]
+          split_ifs with h
+          · exact hS_pos x
+          · sorry -- x ∉ Icc 0 1 case — contradicts hx
+        sorry -- [REMAINING: ~30 lines from U_cos positivity on [0,1] → global positivity
+               -- (even + period-2, lines 636-691 pattern) → g_smooth C⁴ → H2Neumann depth 2
+               -- → intervalWeakH4Neumann_eigenvalue_L1_summable → done]
       -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
       have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (coupledChemicalConcentration p
