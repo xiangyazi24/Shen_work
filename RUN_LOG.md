@@ -152,3 +152,30 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
 - end: <open>
 
 - avenue(a) in flight; Prop2.4 parallel brick was OVER-BUILD (already closed concretely) → trashed; real open Props = 2.1/2.2/2.3/2.5
+
+## Run 2026-06-26 night (automode, Level0+Tower sorry closure)
+- doctrine: DOCTRINE.md §2026-06-26 night (1ab48b4)
+- approval: automode (Xiang "统筹滚动 chatgpt, codex 也可以用了")
+- starting avenue: (a) F1 upstream weakening + (b) positive-time architectural fix
+- end: <open>
+
+### Progress (13 commits):
+- F1 upstream weakening DONE (c2dfd86 + e766768): ContinuousOn → IntervalIntegrable
+- Level0 architectural fix (9dd3a4b): eliminated impossible τ ≤ 0 branch, 15→5 sorry
+- variation-of-constants identity PROVED + build-verified on uisai2 (cfcb6de + build fixes)
+- direct resolver inner commute WITHOUT PhysicalResolverJointC2Data (365db15, 0 sorry)
+- ResolverHasSpectralAgreementC2Coeff assembly skeleton (be5bf6b, 5 sorry)
+- Level0 ChemDivMixedTimeDerivClosedRepr skeleton (4a6740e, 12 sorry)
+
+### ChatGPT: 11 rounds (Q1006 through Q1042), all 3 cron channels used
+### Subagents: 5 dispatched (2 Opus + 2 Sonnet + 1 Opus architectural)
+
+### Remaining 5 Level0 sorry:
+- 1A: uniform secondDeriv bound (needs joint continuity of cosine representative)
+- 2A-sup: uniform source sup bound (needs closed-slab continuous representative)
+- 3A: IntervalIntegrable (provable from interior smoothness, no structural obstruction)
+- 3C+3D+3F: chain rule HasDerivAt (blocked on resolver C² + srcC2 DuhamelSourceTimeC2Coeff)
+- 3G: time-derivative joint continuity (blocked on mixed repr witnesses)
+
+### Deepest remaining piece: DuhamelSourceTimeC2Coeff requires λ²-summable envelopes
+  → needs depth-3 IBP (sextic decay) for nonlinear source ν·u^γ at positive time
