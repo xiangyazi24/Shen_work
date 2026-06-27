@@ -131,9 +131,9 @@ theorem heatSemigroup_flooredSourceTimeData
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
       (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) where
   d0 τ hτ := by
-    set δ : ℝ := min 1 (τ / 2)
-    have hδ : 0 < δ := lt_min one_pos (half_pos hτ)
-    have hleft : 0 < τ - δ := by linarith [min_le_right (1 : ℝ) (τ / 2)]
+    let δ : ℝ := min 1 (τ / 2)
+    have hδ : (0 : ℝ) < δ := lt_min one_pos (half_pos hτ)
+    have hleft : (0 : ℝ) < τ - δ := by linarith [min_le_right (1 : ℝ) (τ / 2)]
     have hball_pos : ∀ s, s ∈ Metric.ball τ δ → 0 < s := by
       intro s hs
       rw [Metric.mem_ball, Real.dist_eq] at hs
