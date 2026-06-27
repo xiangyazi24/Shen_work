@@ -70,13 +70,9 @@ theorem localRestartCoeff_variation_of_constants
           (deriv c (η + s) + lam * c (η + s))) s := by
     intro s _hs
     have hkernel_arg : HasDerivAt (fun u : ℝ => -(ρ - u) * lam) lam s := by
-      have h1 : HasDerivAt (fun u : ℝ => u - ρ) (1 : ℝ) s := by
-        simpa using (hasDerivAt_id s).sub (hasDerivAt_const s ρ)
-      have h2 : HasDerivAt (fun u : ℝ => (u - ρ) * lam) (1 * lam : ℝ) s :=
-        h1.mul_const lam
-      convert h2 using 1
-      · ext u; ring
-      · ring
+      convert ((hasDerivAt_const s ρ).sub (hasDerivAt_id s)).neg.mul_const lam
+        using 1
+      ring
     have hkernel : HasDerivAt (fun u : ℝ => Real.exp (-(ρ - u) * lam))
         (Real.exp (-(ρ - s) * lam) * lam) s :=
       hkernel_arg.exp
