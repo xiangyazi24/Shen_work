@@ -205,7 +205,8 @@ theorem level0_chemDiv_envelope_summable
     (_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
     (_hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
+      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M)
+    (_hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
     ∃ (envelope : ℕ → ℝ),
       Summable envelope ∧
       ∀ s ∈ Icc c T, ∀ n,
@@ -1400,7 +1401,7 @@ noncomputable def level0ChemDivSourceData
     (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
     Level0ChemDivSourceData p u₀ c T :=
   -- Wire envelope data from level0_chemDiv_envelope_summable
-  let envData := level0_chemDiv_envelope_summable p hc hcT hu₀_cont hu₀_bound hpos hub
+  let envData := level0_chemDiv_envelope_summable p hc hcT hu₀_cont hu₀_bound hpos hub hu₀_nonneg
   let env := envData.choose
   let henv := envData.choose_spec
   -- Wire time-derivative data from level0_chemDiv_timeDerivData
