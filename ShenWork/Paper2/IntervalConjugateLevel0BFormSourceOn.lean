@@ -1140,9 +1140,30 @@ theorem level0_chemDiv_timeDerivData
           show 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 r) x
           simp only [intervalDomainLift, conjugatePicardIter, dif_pos hx]
           exact hS_pos x
-        sorry -- [REMAINING: ~30 lines from U_cos positivity on [0,1] → global positivity
-               -- (even + period-2, lines 636-691 pattern) → g_smooth C⁴ → H2Neumann depth 2
-               -- → intervalWeakH4Neumann_eigenvalue_L1_summable → done]
+        -- Global positivity of U_cos from [0,1] positivity via even + period-2
+        have hU_even : ∀ z, U_cos (-z) = U_cos z := by
+          intro z; simp only [hU_cos_def]
+          exact tsum_congr (fun k => by congr 1; exact cosineMode_neg' k z)
+        have hU_symm1 : ∀ z, U_cos (2 - z) = U_cos z := by
+          intro z; rw [show (2 : ℝ) - z = (-z) + 2 from by ring]
+          simp only [hU_cos_def]
+          rw [show (fun k => (Real.exp (-r * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k ((-z) + 2)) =
+              (fun k => (Real.exp (-r * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k (-z)) from
+            funext (fun k => by congr 1; exact cosineMode_add_two' k (-z))]
+          exact hU_even z
+        have hU_pos_all : ∀ z, 0 < U_cos z := by
+          sorry -- [~15 lines: reduce z to |y| ∈ [0,1] via round + even + period-2,
+                 -- then apply hU_pos_Icc. Pattern at lines 662-691 of this file.]
+        -- g_smooth = ν · U_cos^γ is C⁴
+        have hU_ne : ∀ z, U_cos z ≠ 0 := fun z => ne_of_gt (hU_pos_all z)
+        set g_smooth := fun x => p.ν * U_cos x ^ p.γ with hg_def
+        have hg_C4 : ContDiff ℝ 4 g_smooth :=
+          contDiff_const.mul (hU_C4.rpow_const_of_ne hU_ne)
+        sorry -- [~15 lines: build IntervalWeakH2Neumann depth 2 from C⁴ + Neumann BCs,
+               -- then intervalWeakH4Neumann_eigenvalue_L1_summable,
+               -- then congr via hU_agree to match cosineCoeffs of ν·lift(u r)^γ]
       -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
       have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (coupledChemicalConcentration p
