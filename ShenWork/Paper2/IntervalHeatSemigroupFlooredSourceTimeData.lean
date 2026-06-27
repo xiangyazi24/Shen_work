@@ -491,7 +491,8 @@ private theorem heatD2u_jointContinuousOn
 
 /-! ## Helper lemmas for d1 (split for heartbeat budget) -/
 
-set_option maxHeartbeats 800000 inprivate theorem heatSemigroup_d1_partA
+set_option maxHeartbeats 800000 in
+private theorem heatSemigroup_d1_partA
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
