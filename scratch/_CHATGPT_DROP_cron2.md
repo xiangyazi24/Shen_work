@@ -1,310 +1,325 @@
-# Q1507 (cron2) — bridge from heat cosine series to `intervalDomainLift (conjugatePicardIter … 0 t)`
+# Q1519 (cron2) — zeroth-mode bound for `srcSlice1 = νγ u^{γ-1} heatDu`
 
 Static GitHub-connector response only. I did **not** run Lean locally, and I did **not** use Python, code-interpreter, sandbox, or `/mnt/data`.
 
 ## Bottom line
 
-The bridge already exists. For the level-0 heat slice, use:
-
-```lean
-ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
-```
-
-It states, on `x ∈ Icc 0 1`, that the lifted level-0 heat iterate equals the cosine heat value:
-
-```lean
-intervalDomainLift (picardIter p u₀ 0 σ) x =
-  unitIntervalCosineHeatValue σ (heatCoeff u₀) x
-```
-
-where
-
-```lean
-heatCoeff u₀ = cosineCoeffs (intervalDomainLift u₀)
-```
-
-Internally this theorem uses the better subtype-continuity bridge:
-
-```lean
-ShenWork.IntervalSpectralSubtypeAdapter
-  .intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-```
-
-That is the right theorem for positive initial data on `[0,1]`, because it avoids requiring global continuity of the zero extension `intervalDomainLift u₀`.
-
-For `conjugatePicardIter p u₀ 0`, the level-0 definition is the same heat semigroup slice: `conjugatePicardIter p u₀ 0` is definitionally the pure heat semigroup, and the repo explicitly records the level-0 conjugate/nonconjugate coefficient equalities by `rfl` in `IntervalConjugateLevel0BFormSourceOn.lean`.
-
-So the route is:
+The observation
 
 ```text
-intervalDomainLift (conjugatePicardIter p u₀ 0 t)
-  = intervalFullSemigroupOperator t (intervalDomainLift u₀)       -- by level-0 definition, on Icc
-  = unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift u₀))
-                                                                  -- subtype adapter / heatSlice_profile_eq_heatValue
-  = the cosine series used by heatSemigroup_contDiff_four          -- definitional unfolding
+∫ heatDu = 0
 ```
 
-## Exact lemmas found
+is correct for the pure heat Laplacian: the zero mode is killed by `λ₀ = 0`.
 
-### 1. Subtype-continuity bridge, closed interval version
+But it does **not** prove the `i = 1` `zerothBound`, because the slice is not just `heatDu`; it is
 
-File:
+```lean
+srcSlice1 p u heatDu t x
+  = p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * heatDu t x
+```
+
+so the zeroth coefficient is the integral of a **weighted** Laplacian:
 
 ```text
-ShenWork/PDE/IntervalSpectralSubtypeAdapter.lean
+ν γ ∫₀¹ u(t,x)^(γ-1) · Δu(t,x) dx.
 ```
 
-The theorem is:
+The factor `u^(γ-1)` destroys the zero-mode cancellation unless it is constant, for example when `γ = 1`.
 
-```lean
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-    {t : ℝ} (ht : 0 < t) {f : intervalDomainPoint → ℝ} (hf : Continuous f)
-    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift f) n| ≤ M)
-    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalFullSemigroupOperator t (intervalDomainLift f) x =
-      unitIntervalCosineHeatValue t (cosineCoeffs (intervalDomainLift f)) x
-```
-
-This is the safest low-level bridge. It was added precisely because the older closed-interval spectral identity requires `Continuous (intervalDomainLift f)`, which is false for positive boundary data. The adapter proves the identity by passing through `intervalDomainConstExtend f`, which is globally continuous and agrees with `intervalDomainLift f` on `[0,1]`.
-
-### 2. Underlying full-kernel clean identity
-
-File:
+For smooth Neumann heat slices, the correct identity is instead
 
 ```text
-ShenWork/PDE/IntervalFullKernelSpectralClean.lean
+ν γ ∫ u^(γ-1) Δu
+  = -ν γ (γ - 1) ∫ u^(γ-2) |u_x|²,
 ```
 
-The lower-level theorem is:
+with the boundary term vanishing by the Neumann condition. Thus the zeroth mode is controlled by a weighted Dirichlet energy, not by the zero mode of `heatDu` alone.
 
-```lean
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
-    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
-    (hM : ∀ n, |cosineCoeffs f n| ≤ M) {x : ℝ}
-    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalFullSemigroupOperator t f x =
-      unitIntervalCosineHeatValue t (cosineCoeffs f) x
-```
+Consequently, a uniform bound over **all** `t > 0` is not available from the current weak hypotheses `hu₀_cont` and `hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀`. Near `t = 0+`, heat smoothing can make `‖∂ₓS(t)u₀‖₂²` blow up unless the initial datum carries additional `H¹`/energy/variation regularity. On a fixed positive window `t ≥ c > 0`, it is bounded by smoothing estimates; globally over `t > 0`, it needs an extra assumption or a weakened API.
 
-Do **not** use this directly with `f = intervalDomainLift u₀` unless you actually have global continuity of that lift. For positive boundary data, use the subtype adapter above.
+## What the repo currently has
 
-### 3. Already-packaged level-0 heat profile bridge
-
-File:
+In
 
 ```text
-ShenWork/Paper2/IntervalPicardLevel0SourceTimeC1On.lean
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
 ```
 
-The theorem is:
+`heatDu` is defined as the spectral Laplacian for positive time:
 
 ```lean
-theorem heatSlice_profile_eq_heatValue
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {σ x M₀ : ℝ} (hσ : 0 < σ) (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    intervalDomainLift (picardIter p u₀ 0 σ) x =
-      unitIntervalCosineHeatValue σ (heatCoeff u₀) x
+def heatDu (u₀ : intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  if 0 < t then
+    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplianValue
+      t (cosineCoeffs (intervalDomainLift u₀)) x
+  else 0
 ```
 
-Its proof is exactly the bridge you want:
+The actual file name is `unitIntervalCosineHeatLaplacianValue`; the important point is that `heatDu` is the spectral Laplacian.
+
+The same file proves the bridge:
 
 ```lean
-have hlift : intervalDomainLift (picardIter p u₀ 0 σ) x =
-    intervalFullSemigroupOperator σ (intervalDomainLift u₀) x := by
-  simp only [intervalDomainLift, picardIter, dif_pos hx]
-rw [hlift]
-exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-  hσ hu₀_cont hu₀_bound hx
+private theorem heatDu_eq_secondValue
+    (u₀ : intervalDomainPoint → ℝ) {t x : ℝ} (ht : 0 < t) :
+    heatDu u₀ t x =
+      ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondValue
+        t (cosineCoeffs (intervalDomainLift u₀)) x := by
+  ...
 ```
 
-This is the best theorem to reuse if your target has `picardIter p u₀ 0`.
+So `heatDu` is also the second spatial derivative of the cosine heat value.
 
-### 4. Conjugate level-0 is definitionally the same base heat slice
-
-File:
+In
 
 ```text
-ShenWork/Paper2/IntervalConjugatePicard.lean
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
 ```
 
-Definition:
+`srcSlice1` is exactly the nonlinear weighted expression:
 
 ```lean
-def conjugatePicardIter (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
-    ℕ → (ℝ → intervalDomainPoint → ℝ)
-  | 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-  | n + 1 => fun t x =>
-      intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
+def srcSlice1 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (du : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * du t x
 ```
 
-File:
+Therefore `hzerothBound` for `i = 1` is asking for a uniform bound on
+
+```lean
+|cosineCoeffs (fun x => p.ν * p.γ * u(t,x)^(p.γ - 1) * heatDu u₀ t x) 0|.
+```
+
+Since the normalized Neumann zeroth coefficient is just the unscaled integral mode, this is morally
 
 ```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+|ν γ ∫₀¹ u(t,x)^(γ-1) heatDu(t,x) dx|.
 ```
 
-The file comments and theorems record the important fact:
+## Why the zero-mode argument fails
 
-```lean
-conjugatePicardIter p u₀ 0
+The tempting argument is:
+
+```text
+heatDu(t,x) = ∑ₙ -λₙ e^{-tλₙ} aₙ cos(nπx).
+∫ heatDu = -λ₀ e^{-tλ₀} a₀ = 0.
 ```
 
-is definitionally the level-0 heat slice, and several level-0 coefficient equalities close by `rfl`, for example:
+This is right for `∫ heatDu`, but the needed term is
 
-```lean
-theorem conjChemDivCoeffs_level0_eq (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (s : ℝ) (k : ℕ) :
-    coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) s k =
-    coupledChemDivSourceCoeffs p (picardIter p u₀ 0) s k := by
-  rfl
+```text
+∫ u^(γ-1) heatDu.
 ```
 
-So if your goal mentions `conjugatePicardIter p u₀ 0`, either unfold it directly or `simpa` through the packaged `picardIter` lemma if Lean accepts the definitional equality.
+The function `u^(γ-1)` has its own nontrivial cosine expansion. Multiplying by it convolves modes; the integral of the product is not the zero mode of `heatDu`, but an inner product:
 
-## How this plugs into `hsliceC2`
+```text
+⟨u^(γ-1), Δu⟩.
+```
 
-For the profile component, the proof should not try to reason from the kernel directly. First build a global `ContDiff` fact for the cosine series, then transfer it to the lifted profile by equality on `Icc 0 1`.
+Only if `u^(γ-1)` is constant does this reduce to a constant times `∫ Δu = 0`.
 
-Skeleton:
+So:
+
+```text
+∫ heatDu = 0
+```
+
+but generally
+
+```text
+∫ u^(γ-1) heatDu ≠ 0.
+```
+
+## The correct identity
+
+Let
+
+```text
+u(t,x) = S(t)u₀(x),      heatDu = u_t = u_xx.
+```
+
+For smooth positive Neumann slices, integration by parts gives:
+
+```text
+∫₀¹ u^(γ-1) u_xx dx
+  = [u^(γ-1) u_x]₀¹ - (γ - 1)∫₀¹ u^(γ-2) (u_x)² dx.
+```
+
+The Neumann boundary term vanishes, so
+
+```text
+∫₀¹ u^(γ-1) u_xx dx
+  = -(γ - 1)∫₀¹ u^(γ-2) (u_x)² dx.
+```
+
+Thus
+
+```text
+cosineCoeffs(srcSlice1 ...) 0
+  = -ν γ (γ - 1) ∫₀¹ u^(γ-2) (u_x)² dx.
+```
+
+up to the exact repo normalization of `cosineCoeffs 0`, which is unscaled in this development.
+
+This gives two useful special cases:
+
+1. If `γ = 1`, the expression is exactly zero.
+2. If `γ > 1` and `u` has a uniform positive floor and a uniform `H¹` energy bound, the expression is uniformly bounded by the energy.
+
+But the repo’s current level-0 theorem only takes `hu₀_cont` and coefficient boundedness. That is not enough for a global `∀ t > 0` bound.
+
+## Why global uniform-in-`t > 0` is too strong from bounded coefficients alone
+
+From the coefficient bound alone,
 
 ```lean
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-import ShenWork.PDE.IntervalSpectralSubtypeAdapter
-import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+```
 
-open Set Filter Topology
+the heat derivative has size like
+
+```text
+∂ₓS(t)u₀ : coefficients ~ |kπ| e^{-t(kπ)^2} a_k.
+```
+
+If only `|a_k| ≤ M₀`, then the crude energy bound is
+
+```text
+∑ k² e^{-2t(kπ)^2} M₀²,
+```
+
+which diverges as `t → 0+` like a negative power of `t`. This is a smoothing bound on each window `[c,∞)`, not a uniform bound on `(0,∞)`.
+
+For a fixed datum with extra regularity, this may be finite; for merely continuous data, the Dirichlet energy of the heat trace can blow as `t → 0+`. Therefore `hzerothBound` as currently stated is analytically suspicious for `i = 1` and even more for `i = 2`.
+
+## What to prove instead
+
+There are three viable options.
+
+### Option A: weaken `zerothBound` to positive windows
+
+If downstream only needs bounds near a positive time `τ > 0`, the cleanest analytic API is local/windowed:
+
+```lean
+zerothBoundOn : ∀ i : ℕ, i ≤ 2 → ∀ c T : ℝ, 0 < c → c ≤ T →
+  ∃ D : ℝ, 0 ≤ D ∧ ∀ t ∈ Icc c T,
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
+```
+
+This is compatible with heat smoothing and compactness on `[c,T]`. It avoids false global-in-time uniformity at `t = 0+`.
+
+### Option B: keep global `zerothBound`, but add stronger initial regularity
+
+For `i = 1`, assume enough regularity to control the heat energy uniformly:
+
+```lean
+∃ E : ℝ, 0 ≤ E ∧ ∀ t > 0,
+  ∫ x in (0:ℝ)..1, (deriv (fun y => intervalDomainLift (conjugatePicardIter p u₀ 0 t) y) x)^2 ≤ E
+```
+
+or a spectral form like:
+
+```lean
+Summable (fun k => unitIntervalCosineEigenvalue k *
+  |cosineCoeffs (intervalDomainLift u₀) k| ^ 2)
+```
+
+Then the integration-by-parts route can bound `i = 1` globally, assuming the floor keeps `u^(γ-2)` controlled when needed.
+
+For `i = 2`, more regularity is needed because `srcSlice2` contains both `(heatDu)^2` and `heatD2u`.
+
+### Option C: handle only `γ = 1`
+
+If the model ever specializes to `γ = 1`, then
+
+```text
+srcSlice1 = ν * heatDu
+```
+
+and the zeroth mode is exactly zero. But the current API has general `p.γ`, so this does not solve the general theorem.
+
+## Lean proof skeleton for the useful identity
+
+The right lemma to add is not “zeroth mode of `heatDu` is zero” alone, but the weighted integration-by-parts identity. A possible target shape:
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
+import ShenWork.PDE.IntervalNeumannFullKernel
+import ShenWork.PDE.IntervalDomainRegularityBootstrap
+
+open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
-open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff heatSlice_profile_eq_heatValue)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
-open ShenWork.IntervalSpectralSubtypeAdapter
-  (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1)
+open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData (heatDu)
 
 noncomputable section
 
-namespace ShenWork.Paper2.HeatSemigroupProfileBridge
+namespace ShenWork.Paper2.HeatSemigroupFlooredSourceZeroth
 
-/-- Bridge `heatSemigroup_contDiff_four` to the lifted level-0 conjugate heat profile.
-This is the profile part needed before applying the `rpow`/product chain for
-`srcSlice`, `srcSlice1`, `srcSlice2`. -/
-theorem conjugateLevel0_profile_contDiffOn_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
+/-- Zeroth coefficient is the integral mode.  This is just unfolding the repo's
+normalization of `cosineCoeffs` at `0`. -/
+theorem cosineCoeffs_zero_eq_integral (f : ℝ → ℝ) :
+    cosineCoeffs f 0 = ∫ x in (0 : ℝ)..1, f x := by
+  -- unfold cosineCoeffs
+  -- unfold HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff
+  -- simp [HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  sorry
+
+/-- Pure heat Laplacian has zero zeroth mode.  This is true, but it is not the
+`srcSlice1` bound unless `γ = 1`. -/
+theorem heatDu_zeroth_mode_zero
+    {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
     (ht : 0 < t)
-    (hu₀_cont : Continuous u₀)
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    ContDiffOn ℝ 2
+    cosineCoeffs (fun x => heatDu u₀ t x) 0 = 0 := by
+  -- Route 1: rewrite `heatDu` to `unitIntervalCosineHeatSecondValue`.
+  -- Route 2: identify the zeroth cosine coefficient of the second-derivative series.
+  -- The k = 0 term carries `unitIntervalCosineEigenvalue 0 = 0`.
+  -- Alternatively prove by mass conservation of the Neumann heat semigroup.
+  sorry
+
+/-- The actual zeroth coefficient for `srcSlice1` is a weighted Laplacian inner
+product, not the zeroth mode of `heatDu`.  Under sufficient smoothness and Neumann
+BCs, integrate by parts to get the weighted energy identity. -/
+theorem srcSlice1_zeroth_eq_weighted_energy
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {t : ℝ}
+    (ht : 0 < t)
+    -- hypotheses to be supplied from heat semigroup high regularity:
+    (hC2 : ContDiffOn ℝ 2
       (fun x : ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
-      (Icc (0 : ℝ) 1) := by
-  -- 1. The cosine heat series is globally C⁴, hence globally C².
-  have hseries4 : ContDiff ℝ 4
-      (fun x => ∑' k,
-        (Real.exp (-t * unitIntervalCosineEigenvalue k) *
-          cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x) :=
-    heatSemigroup_contDiff_four hu₀_bound ht
+      (Icc (0 : ℝ) 1))
+    (hNeu0 : deriv (fun x : ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) 0 = 0)
+    (hNeu1 : deriv (fun x : ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) 1 = 0) :
+    cosineCoeffs
+      (fun x => srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t x) 0
+      = -p.ν * p.γ * (p.γ - 1) *
+          ∫ x in (0 : ℝ)..1,
+            (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 2) *
+              (deriv (fun y : ℝ => intervalDomainLift
+                (conjugatePicardIter p u₀ 0 t) y) x) ^ 2 := by
+  -- 1. rewrite zeroth coefficient as integral.
+  -- 2. rewrite `heatDu` as second spatial derivative / Laplacian of the heat profile.
+  -- 3. integrate by parts:
+  --      ∫ u^(γ-1) u_xx = [u^(γ-1)u_x]_0^1
+  --        - ∫ (γ-1)u^(γ-2)u_x^2.
+  -- 4. boundary term vanishes by Neumann.
+  sorry
 
-  have hseries2 : ContDiff ℝ 2
-      (fun x => unitIntervalCosineHeatValue t (heatCoeff u₀) x) := by
-    -- `unitIntervalCosineHeatValue` is definitionally the same cosine series.
-    -- The exact simp set may need the local imports/namespaces in your file.
-    simpa [heatCoeff, unitIntervalCosineHeatValue,
-      ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatPointWeight,
-      unitIntervalCosineEigenvalue, cosineMode] using
-      hseries4.of_le (by norm_num : (2 : ℕ∞) ≤ 4)
-
-  -- 2. On `[0,1]`, the lifted conjugate level-0 profile is the heat value.
-  have heq : Set.EqOn
-      (fun x : ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
-      (fun x : ℝ => unitIntervalCosineHeatValue t (heatCoeff u₀) x)
-      (Icc (0 : ℝ) 1) := by
-    intro x hx
-    -- Either use direct unfolding of `conjugatePicardIter`, or route through
-    -- `heatSlice_profile_eq_heatValue` if the target has `picardIter`.
-    have hlift : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
-        intervalFullSemigroupOperator t (intervalDomainLift u₀) x := by
-      simp [conjugatePicardIter, intervalDomainLift, hx]
-    rw [hlift]
-    exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-      ht hu₀_cont hu₀_bound hx
-
-  -- 3. Transfer `ContDiffOn` across equality on the target set.
-  exact hseries2.contDiffOn.congr (fun x hx => (heq x hx).symm)
-
-end ShenWork.Paper2.HeatSemigroupProfileBridge
+end ShenWork.Paper2.HeatSemigroupFlooredSourceZeroth
 ```
 
-If Lean has trouble simplifying `unitIntervalCosineHeatValue`, avoid the definitional unfold and use the already-proved C² theorem for heat values instead:
+The first lemma, `heatDu_zeroth_mode_zero`, is still useful as a sanity check and for the `γ = 1` specialization. But for general `γ`, the necessary lemma is `srcSlice1_zeroth_eq_weighted_energy` plus whatever energy bound you decide to assume/prove.
 
-```lean
-have hseries2 : ContDiff ℝ 2
-    (fun x => unitIntervalCosineHeatValue t (heatCoeff u₀) x) :=
-  (ShenWork.IntervalDomainRegularityBootstrap
-    .unitIntervalCosineHeatValue_contDiff_two ht hu₀_bound)
-```
+## Recommendation for the current `hzerothBound`
 
-This gives only `C²`, but `hsliceC2` only asks for `ContDiffOn ℝ 2`, so it is enough for the profile. Use `heatSemigroup_contDiff_four` only when you actually need the fourth-spatial-derivative/H4 tower.
+Do **not** discharge `i = 1` by claiming the integral is the zero mode of `heatDu`. That misses the nonlinear weight.
 
-## Existing proof pattern to copy
+Either:
 
-The closest already-written pattern is in:
+1. change `zerothBound` to a windowed positive-time bound, matching the local nature of the rest of `FlooredSourceTimeData`, or
+2. add an explicit global energy/regularity assumption on the initial data strong enough to control `∫u^{γ-2}|u_x|²` uniformly over `t > 0`.
 
-```text
-ShenWork/Paper2/IntervalHomogeneousG2Base.lean
-```
-
-Inside `hG2base_of_gate`, the proof constructs a local equality:
-
-```lean
-have hEq : intervalDomainLift (picardIter p u₀ 0 σ) =ᶠ[nhds x]
-    (fun y => unitIntervalCosineHeatValue σ a y) := by
-  filter_upwards [hmem] with y hy
-  have hyIcc : y ∈ Set.Icc (0:ℝ) 1 := ⟨hy.1.le, hy.2.le⟩
-  have hlift : intervalDomainLift (picardIter p u₀ 0 σ) y
-      = intervalFullSemigroupOperator σ (intervalDomainLift u₀) y := by
-    simp only [intervalDomainLift, picardIter, dif_pos hyIcc]
-  rw [hlift]
-  exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-    hσ hu₀_cont hu₀_bound hyIcc
-```
-
-Then it differentiates through that local equality:
-
-```lean
-have hd2 : deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x
-    = deriv (deriv (fun y => unitIntervalCosineHeatValue σ a y)) x :=
-  (hEq.deriv).deriv_eq
-```
-
-For `hsliceC2`, you do not need the local derivative-transfer version if you are proving `ContDiffOn`; use `Set.EqOn` on `Icc` and `ContDiffOn.congr` instead.
-
-## What not to use
-
-There is an older/diagnostic file:
-
-```text
-ShenWork/PDE/IntervalSemigroupSpectralForm.lean
-```
-
-It warns that a literal bridge for the two-term `normalizedZerothReflectionKernel` is false. That warning is about the older two-term kernel route, not the current full-kernel route. For the present goal, use:
-
-```lean
-IntervalFullKernelSpectralClean.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
-```
-
-or, better for subtype data:
-
-```lean
-IntervalSpectralSubtypeAdapter.intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
-```
-
-and the packaged level-0 theorem:
-
-```lean
-IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
-```
-
-## Answer to the concrete question
-
-Yes: the bridge exists. The highest-level bridge is `heatSlice_profile_eq_heatValue`; the lower-level bridge is `intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont`. There does not need to be a separate theorem named `unitIntervalCosineHeatValue_eq_cosineCoeffSeries`, because `unitIntervalCosineHeatValue` is already the cosine series expression by definition. Use equality on `Icc 0 1` to transport `ContDiffOn` from the cosine heat value/series to `intervalDomainLift (conjugatePicardIter p u₀ 0 t)`.
+For the current theorem as stated, with only continuous initial data and bounded coefficients, the global uniform `t > 0` `zerothBound` for `i = 1` is not justified.
