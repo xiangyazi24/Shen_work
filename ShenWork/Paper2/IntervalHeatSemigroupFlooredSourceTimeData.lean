@@ -427,7 +427,7 @@ private theorem heatD2u_jointContinuousOn
 
 /-! ## Helper: d1 proof body -/
 
-set_option maxHeartbeats 800000 in
+set_option maxHeartbeats 1600000 in
 theorem heatSemigroup_d1
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)

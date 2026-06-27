@@ -47,6 +47,14 @@ open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
 open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
 open ShenWork.IntervalPhysicalResolverDataConcrete
   (srcTimeCoeff resolverTimeCoeff_eq_weight_smul)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice srcTimeCoeff_eq_cosineCoeffs)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
+open ShenWork.IntervalMildPicardRegularity
+  (cosineCoeffs_hasDerivAt_of_smooth_param)
+open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
+  (cosineCoeffs_continuousOn_of_jointContinuousOn_Icc)
+open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+  (heatDu heatD2u heatSemigroup_d0 heatSemigroup_d1)
 open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
   smoothRightCutoff_contDiff smoothRightCutoff_eq_zero_of_le
   smoothRightCutoff_eq_one_of_ge smoothRightCutoff_eventually_eq_one)
@@ -83,12 +91,95 @@ The time derivatives can be computed via the chain rule + heat equation
 the second derivative's coefficients, gives `ContDiffAt ℝ 2`. -/
 theorem heatLevel0_srcTimeCoeff_contDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (_hu₀_cont : Continuous u₀)
-    {t : ℝ} (_ht : 0 < t) (k : ℕ) :
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
     ContDiffAt ℝ (2 : ℕ∞)
       (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  sorry
+  set s₁ := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀)
+  set s₂ := srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)
+  set f₀ := srcTimeCoeff p (conjugatePicardIter p u₀ 0) k
+  set f₁ := fun s => cosineCoeffs (s₁ s) k
+  set f₂ := fun s => cosineCoeffs (s₂ s) k
+  have hd0 : ∀ s ∈ Set.Ioi (0 : ℝ), HasDerivAt f₀ (f₁ s) s := by
+    intro s hs
+    obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
+      heatSemigroup_d0 (p := p) (u₀ := u₀) (M₀ := M₀)
+        hu₀_bound hu₀_cont hfloor s hs
+    have hH := cosineCoeffs_hasDerivAt_of_smooth_param
+      (f := srcSlice p (conjugatePicardIter p u₀ 0))
+      (f' := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+      (τ := s) (δ := δ) (n := k) hδ hcont hdiff hcd
+    have heq :
+        (fun r => cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) r) k) =
+          f₀ := by
+      funext r
+      simp [f₀, srcTimeCoeff_eq_cosineCoeffs]
+    rw [heq] at hH
+    simpa [f₁, s₁] using hH
+  have hd1 : ∀ s ∈ Set.Ioi (0 : ℝ), HasDerivAt f₁ (f₂ s) s := by
+    intro s hs
+    obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
+      heatSemigroup_d1 (p := p) (u₀ := u₀) (M₀ := M₀)
+        hu₀_bound hu₀_cont hfloor s hs
+    have hH := cosineCoeffs_hasDerivAt_of_smooth_param
+      (f := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+      (f' := srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀))
+      (τ := s) (δ := δ) (n := k) hδ hcont hdiff hcd
+    simpa [f₁, f₂, s₁, s₂] using hH
+  have hc2 : ∀ s ∈ Set.Ioi (0 : ℝ), ContinuousAt f₂ s := by
+    intro s hs
+    obtain ⟨δ, hδ, _, _, hcd⟩ :=
+      heatSemigroup_d1 (p := p) (u₀ := u₀) (M₀ := M₀)
+        hu₀_bound hu₀_cont hfloor s hs
+    have hcont_on :=
+      cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+        (f := srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀))
+        (c := s - δ) (T := s + δ) k hcd
+    have hsmem : s ∈ Set.Icc (s - δ) (s + δ) := ⟨by linarith, by linarith⟩
+    have hsub : Set.Icc (s - δ) (s + δ) ∈ 𝓝 s := by
+      apply Icc_mem_nhds <;> linarith
+    simpa [f₂, s₂] using (hcont_on s hsmem).continuousAt hsub
+  have hd0_on : DifferentiableOn ℝ f₀ (Set.Ioi 0) :=
+    fun s hs => (hd0 s hs).differentiableAt.differentiableWithinAt
+  have heq0 : Set.EqOn (deriv f₀) f₁ (Set.Ioi 0) :=
+    fun s hs => (hd0 s hs).deriv
+  have hd1_on : DifferentiableOn ℝ f₁ (Set.Ioi 0) :=
+    fun s hs => (hd1 s hs).differentiableAt.differentiableWithinAt
+  have heq1 : Set.EqOn (deriv f₁) f₂ (Set.Ioi 0) :=
+    fun s hs => (hd1 s hs).deriv
+  have hc2_on : ContinuousOn f₂ (Set.Ioi 0) :=
+    fun s hs => (hc2 s hs).continuousWithinAt
+  have hsmul0 : ContDiffOn ℝ 0
+      (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₂ s))
+      (Set.Ioi 0) := by
+    simpa using (contDiffOn_const (c := (1 : StrongDual ℝ ℝ))).smulRight
+      (contDiffOn_zero.mpr hc2_on)
+  have hfw1 : ContDiffOn ℝ 0
+      (fun s => fderivWithin ℝ f₁ (Set.Ioi 0) s) (Set.Ioi 0) :=
+    hsmul0.congr (fun s hs => by
+      rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+      have hsd : deriv f₁ s = f₂ s := heq1 hs
+      simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton, hsd] using
+        (toSpanSingleton_deriv (𝕜 := ℝ) (f := f₁) (x := s)).symm)
+  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
+    contDiffOn_succ_of_fderivWithin hd1_on (by nofun) hfw1
+  have hsmul1 : ContDiffOn ℝ 1
+      (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s))
+      (Set.Ioi 0) := by
+    simpa using (contDiffOn_const (c := (1 : StrongDual ℝ ℝ))).smulRight h0
+  have hfw0 : ContDiffOn ℝ 1
+      (fun s => fderivWithin ℝ f₀ (Set.Ioi 0) s) (Set.Ioi 0) :=
+    hsmul1.congr (fun s hs => by
+      rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+      have hsd : deriv f₀ s = f₁ s := heq0 hs
+      simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton, hsd] using
+        (toSpanSingleton_deriv (𝕜 := ℝ) (f := f₀) (x := s)).symm)
+  have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
+    contDiffOn_succ_of_fderivWithin hd0_on (by nofun) hfw0
+  simpa [f₀] using h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-! ### Layer 2: Resolver coefficient ContDiffAt by constant weight -/
 
@@ -99,11 +190,13 @@ theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {t : ℝ} (ht : 0 < t) (k : ℕ) :
     ContDiffAt ℝ (2 : ℕ∞)
       (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
   have hsrc := heatLevel0_srcTimeCoeff_contDiffAt_two
-    (p := p) hu₀_bound hu₀_cont ht k
+    (p := p) hu₀_bound hu₀_cont hfloor ht k
   have hEq : resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k =
       fun s => ShenWork.PDE.intervalNeumannResolverWeight p k *
         srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
@@ -120,6 +213,8 @@ theorem cutoffResolverCoeff_contDiff_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) (k : ℕ) :
     ContDiff ℝ 2 (fun t =>
       smoothRightCutoff (c / 2) c t * resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) := by
@@ -128,7 +223,7 @@ theorem cutoffResolverCoeff_contDiff_two
   by_cases ht : c / 2 ≤ t
   · have ht_pos : 0 < t := by linarith
     exact (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).contDiffAt.mul
-      (heatLevel0_resolverTimeCoeff_contDiffAt_two hu₀_bound hu₀_cont ht_pos k)
+      (heatLevel0_resolverTimeCoeff_contDiffAt_two hu₀_bound hu₀_cont hfloor ht_pos k)
   · push_neg at ht
     have hev : (fun t => smoothRightCutoff (c / 2) c t *
         resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) =ᶠ[𝓝 t]
@@ -148,9 +243,11 @@ theorem cutoffResolverTerm_contDiff_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) (k : ℕ) :
     ContDiff ℝ 2 (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) := by
-  have hcoef := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hc k
+  have hcoef := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
   have hcoef_q : ContDiff ℝ 2 (fun q : ℝ × ℝ =>
       smoothRightCutoff (c / 2) c q.1 *
         resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) :=
@@ -227,6 +324,8 @@ theorem cutoffResolverSeries_contDiff_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) :
     ContDiff ℝ 2 (fun q : ℝ × ℝ =>
       ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) := by
@@ -236,7 +335,7 @@ theorem cutoffResolverSeries_contDiff_two
     (v := fun j k => cutoffResolverMajorant p u₀ M₀ c hc j k)
   -- (1) Each cutoff term is C²
   · intro k
-    exact cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hc k
+    exact cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hfloor hc k
   -- (2) Majorant summability for each j ≤ 2
   · intro j hj
     exact cutoffResolverMajorant_summable hc hu₀_bound hu₀_cont hj
@@ -298,6 +397,8 @@ theorem heatResolver_jointContDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
     (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
     ContDiffAt ℝ 2
@@ -307,7 +408,7 @@ theorem heatResolver_jointContDiffAt_two
         (s₀, x₀) := by
   -- Step 1: The cutoff series is globally C²
   have hCutoff := (cutoffResolverSeries_contDiff_two (p := p)
-    hu₀_bound hu₀_cont hc).contDiffAt (x := (s₀, x₀))
+    hu₀_bound hu₀_cont hfloor hc).contDiffAt (x := (s₀, x₀))
   -- Step 2: Near (s₀, x₀), the cutoff series = resolver term series
   have hEqCutoff := resolverSeries_eventuallyEq_cutoff (p := p)
     (u := conjugatePicardIter p u₀ 0) hc hs₀ (x₀ := x₀)
@@ -333,6 +434,8 @@ theorem heatResolver_grad_jointContDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (_hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
     (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
     ContDiffAt ℝ 2
