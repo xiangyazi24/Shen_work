@@ -1,61 +1,54 @@
-# Q1252 (cron2) — filling `heatDu_hasDerivAt`
+# Q1267 (cron2) — joint `ContinuousOn` of `heatD2u` on a positive slab
 
 Static GitHub-connector inspection only. I did **not** run Lean locally.
 
 ## Answer
 
-Do **not** reuse
+You do **not** need a fresh Weierstrass M-test for `heatD2u`.
 
-```lean
-unitIntervalCosineHeatValue_hasDerivAt_time
-```
-
-with the naive modified coefficients
-
-```lean
-fun n => -unitIntervalCosineEigenvalue n * cosineCoeffs (intervalDomainLift u₀) n
-```
-
-because the theorem requires a bounded coefficient sequence, and bounded `aₙ` does **not** imply bounded `λₙ aₙ`.
-
-But you still do **not** need to reprove the whole `hasDerivAt_tsum_of_isPreconnected` argument.  Reuse the existing theorem with a **positive-time shift**.  At fixed `0 < t`, write, near `r = t`,
+The direct M-test you described is mathematically right:
 
 ```text
-heatDu u₀ r x
-  = ∑ n, -λₙ exp(-r λₙ) aₙ cos(nπx)
-  = unitIntervalCosineHeatValue (r - t/2)
-      (fun n => -λₙ exp(-(t/2)λₙ) aₙ) x.
+|λ_k^2 exp(-t λ_k) a_k cos(kπx)| ≤ |M| · λ_k^2 exp(-c λ_k),   t ∈ Icc c T,
 ```
 
-The shifted coefficient
+and the required summability is the expected exponential-tail/spectral-polynomial summability.  But the repo already has a stronger reusable continuity engine:
 
 ```lean
-bₙ = -λₙ * Real.exp (-(t / 2) * λₙ) * aₙ
+ShenWork.IntervalSemigroupNeumann.unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod
 ```
 
-**is bounded** from boundedness of `aₙ`, by the scalar spectral multiplier bound.  Then apply
+for
 
-```lean
-ShenWork.IntervalDuhamelClosedC2.unitIntervalCosineHeatValue_hasDerivAt_time
+```text
+unitIntervalCosineHeatSecondValue τ b x
+  = ∑ k, exp(-τ λ_k) · (-(kπ)^2 cos(kπx)) · b_k.
 ```
 
-at heat time `t / 2`, compose with `r ↦ r - t / 2`, and simplify the derivative series to `heatD2u`.
+To represent `heatD2u`, shift half of the positive lower time `c` into the coefficients.  Define
 
-So the correct answer is: **yes, reuse the existing heat-value theorem, but only after shifting half the heat time into the coefficients.**  A direct `hasDerivAt_tsum_of_isPreconnected` proof is valid but unnecessary.
-
-## Patch-style proof
-
-In `ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean`, add this import:
-
-```lean
-import ShenWork.Paper2.IntervalSpectralMultiplierBound
+```text
+b_k := -λ_k · exp(-(c/2) λ_k) · a_k.
 ```
 
-Then place the following helper block before the current `private theorem heatDu_hasDerivAt`, and replace the `sorry` body with the theorem below.
+Then, for `t ≥ c`,
+
+```text
+unitIntervalCosineHeatSecondValue (t - c/2) b x
+  = ∑ exp(-(t-c/2)λ_k) · (-λ_k cos(kπx)) · (-λ_k exp(-(c/2)λ_k) a_k)
+  = ∑ λ_k^2 exp(-tλ_k) a_k cos(kπx)
+  = heatD2u u₀ t x.
+```
+
+The shifted coefficient sequence `b` is bounded because `λ exp(-(c/2)λ)` is bounded for `c > 0`.  Therefore the existing `unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod` applies, and the map `(t,x) ↦ (t - c/2, x)` sends `Icc c T ×ˢ Icc 0 1` into `Ioi 0 ×ˢ univ`.
+
+## Drop-in proof
+
+In `ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean`, replace the current `sorry` body of `heatD2u_jointContinuousOn` with the final theorem below.  The helper definitions can go immediately above it.
 
 ```lean
 import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
-import ShenWork.Paper2.IntervalSpectralMultiplierBound
+import ShenWork.PDE.IntervalSemigroupNeumann
 
 open Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
@@ -67,182 +60,151 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 
-/-- The shifted coefficient sequence used to represent `heatDu` near a positive
-base time `t` as an ordinary heat-value series at time `r - t/2`. -/
-private abbrev heatDuShiftCoeff
-    (u₀ : intervalDomainPoint → ℝ) (t : ℝ) : ℕ → ℝ :=
+/-- Shifted coefficient sequence used to write `heatD2u` as a shifted
+`unitIntervalCosineHeatSecondValue`. -/
+private abbrev heatD2uSecondCoeff
+    (u₀ : intervalDomainPoint → ℝ) (c : ℝ) : ℕ → ℝ :=
   fun n => -unitIntervalCosineEigenvalue n *
-    Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n) *
+    Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) *
     cosineCoeffs (intervalDomainLift u₀) n
 
-/-- The shifted coefficients are bounded for `0 < t` when the original cosine
-coefficients are bounded.  This is the key reason the existing heat-value time
-lemma applies after shifting half the heat time into the coefficients. -/
-private theorem heatDuShiftCoeff_bound
-    {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (ht : 0 < t) :
-    ∀ n,
-      |heatDuShiftCoeff u₀ t n| ≤
-        ((1 : ℝ) ^ (1 : ℝ) * Real.exp (-(1 : ℝ))) *
-          ((1 : ℝ) * (t / 2)) ^ (-(1 : ℝ)) * |M₀| := by
+/-- For `0 < c`, the shifted coefficients
+`-λₙ exp(-(c/2)λₙ) aₙ` are bounded whenever the original coefficients `aₙ` are
+bounded. -/
+private theorem heatD2uSecondCoeff_bound
+    {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    ∀ n, |heatD2uSecondCoeff u₀ c n| ≤ |M₀| / (c / 2) := by
   intro n
+  have hc2 : 0 < c / 2 := half_pos hc
   have hλ_nonneg : 0 ≤ unitIntervalCosineEigenvalue n := by
-    dsimp [unitIntervalCosineEigenvalue]
+    simp [unitIntervalCosineEigenvalue]
     positivity
-  have hsmooth :=
-    ShenWork.Paper2.SpectralMultiplierBound.spectral_multiplier_bound_explicit
-      (θ := (1 : ℝ)) (d := (1 : ℝ)) (r := t / 2)
-      (lam := unitIntervalCosineEigenvalue n)
-      (by norm_num) (by norm_num) (half_pos ht) hλ_nonneg
-  have hλexp :
-      |(-unitIntervalCosineEigenvalue n *
-          Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n))| ≤
-        ((1 : ℝ) ^ (1 : ℝ) * Real.exp (-(1 : ℝ))) *
-          ((1 : ℝ) * (t / 2)) ^ (-(1 : ℝ)) := by
-    have hleft :
-        |(-unitIntervalCosineEigenvalue n *
-            Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n))| =
-          unitIntervalCosineEigenvalue n ^ (1 : ℝ) *
-            Real.exp (-((1 : ℝ) * (t / 2) * unitIntervalCosineEigenvalue n)) := by
-      rw [abs_mul, abs_neg, abs_of_nonneg hλ_nonneg,
-        abs_of_nonneg (Real.exp_nonneg _), Real.rpow_one]
-      congr 1
-      ring
-    rw [hleft]
-    exact hsmooth
+  have hλexp_nonneg :
+      0 ≤ unitIntervalCosineEigenvalue n *
+        Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) := by
+    positivity
+  have hλexp_bound :
+      unitIntervalCosineEigenvalue n *
+          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) ≤
+        1 / (c / 2) := by
+    rw [le_div_iff₀ hc2]
+    have hcx_nonneg : 0 ≤ (c / 2) * unitIntervalCosineEigenvalue n := by
+      exact mul_nonneg hc2.le hλ_nonneg
+    calc
+      unitIntervalCosineEigenvalue n *
+            Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) * (c / 2)
+          = ((c / 2) * unitIntervalCosineEigenvalue n) *
+              Real.exp (-((c / 2) * unitIntervalCosineEigenvalue n)) := by
+              ring
+      _ ≤ 1 := real_mul_exp_neg_le_one hcx_nonneg
   have hM : |cosineCoeffs (intervalDomainLift u₀) n| ≤ |M₀| :=
     le_trans (hu₀_bound n) (le_abs_self M₀)
-  have hfactor_nonneg :
-      0 ≤ ((1 : ℝ) ^ (1 : ℝ) * Real.exp (-(1 : ℝ))) *
-        ((1 : ℝ) * (t / 2)) ^ (-(1 : ℝ)) := by
+  have hdiv_nonneg : 0 ≤ 1 / (c / 2) := by
     positivity
   calc
-    |heatDuShiftCoeff u₀ t n|
-        = |(-unitIntervalCosineEigenvalue n *
-            Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n)) *
-              cosineCoeffs (intervalDomainLift u₀) n| := by
-            rfl
-    _ = |(-unitIntervalCosineEigenvalue n *
-            Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n))| *
-          |cosineCoeffs (intervalDomainLift u₀) n| := by
-            rw [abs_mul]
-    _ ≤ (((1 : ℝ) ^ (1 : ℝ) * Real.exp (-(1 : ℝ))) *
-          ((1 : ℝ) * (t / 2)) ^ (-(1 : ℝ))) * |M₀| :=
-            mul_le_mul hλexp hM (abs_nonneg _) hfactor_nonneg
-    _ = ((1 : ℝ) ^ (1 : ℝ) * Real.exp (-(1 : ℝ))) *
-          ((1 : ℝ) * (t / 2)) ^ (-(1 : ℝ)) * |M₀| := by
+    |heatD2uSecondCoeff u₀ c n|
+        = (unitIntervalCosineEigenvalue n *
+              Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n)) *
+            |cosineCoeffs (intervalDomainLift u₀) n| := by
+            rw [heatD2uSecondCoeff, abs_mul, abs_mul, abs_neg,
+              abs_of_nonneg hλ_nonneg, abs_of_nonneg (Real.exp_nonneg _)]
             ring
+    _ ≤ (1 / (c / 2)) * |M₀| :=
+          mul_le_mul hλexp_bound hM (abs_nonneg _) hdiv_nonneg
+    _ = |M₀| / (c / 2) := by ring
 
-/-- Near `t > 0`, `heatDu` is the heat-value series with the shifted bounded
-coefficients `heatDuShiftCoeff u₀ t` and heat time `r - t/2`. -/
-private theorem heatDu_eq_shiftedHeatValue_eventually
-    (u₀ : intervalDomainPoint → ℝ) {t x : ℝ} (ht : 0 < t) :
-    (fun r : ℝ => heatDu u₀ r x) =ᶠ[𝓝 t]
-      (fun r : ℝ =>
-        unitIntervalCosineHeatValue (r - t / 2) (heatDuShiftCoeff u₀ t) x) := by
-  filter_upwards [Metric.ball_mem_nhds t (t / 2) (half_pos ht)] with r hr
-  have hrpos : 0 < r := by
-    rw [Metric.mem_ball, Real.dist_eq] at hr
-    have hleft := (abs_lt.mp hr).1
-    linarith
-  simp only [heatDu, if_pos hrpos,
-    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue,
-    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
-    unitIntervalCosineHeatValue, unitIntervalCosineHeatPointWeight,
-    heatDuShiftCoeff]
-  congr 1
-  ext n
-  have hexp :
-      Real.exp (-(r - t / 2) * unitIntervalCosineEigenvalue n) *
-          Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n) =
-        Real.exp (-r * unitIntervalCosineEigenvalue n) := by
-    rw [← Real.exp_add]
-    congr 1
-    ring
-  rw [← mul_assoc, hexp]
-  ring
-
-/-- The derivative produced by the shifted heat-value theorem is exactly the
-explicit `heatD2u` series. -/
-private theorem shiftedHeatSecondValue_eq_heatD2u
-    (u₀ : intervalDomainPoint → ℝ) {t x : ℝ} (ht : 0 < t) :
-    unitIntervalCosineHeatSecondValue (t / 2) (heatDuShiftCoeff u₀ t) x =
+/-- Algebraic identification of the shifted `secondValue` series with `heatD2u`. -/
+private theorem shiftedSecondValue_eq_heatD2u
+    (u₀ : intervalDomainPoint → ℝ) {c t x : ℝ} (hc : 0 < c) (hct : c ≤ t) :
+    unitIntervalCosineHeatSecondValue (t - c / 2) (heatD2uSecondCoeff u₀ c) x =
       heatD2u u₀ t x := by
-  simp only [heatD2u, if_pos ht, heatDuShiftCoeff,
-    unitIntervalCosineHeatSecondValue,
-    unitIntervalCosineHeatSecondPointWeight,
+  have ht : 0 < t := lt_of_lt_of_le hc hct
+  simp only [heatD2u, if_pos ht, heatD2uSecondCoeff,
+    unitIntervalCosineHeatSecondValue, unitIntervalCosineHeatSecondPointWeight,
     unitIntervalCosineMode, ShenWork.CosineSpectrum.cosineMode]
   congr 1
   ext n
-  rw [show ((n : ℝ) * Real.pi) ^ 2 = unitIntervalCosineEigenvalue n by rfl]
+  have hλsq : ((n : ℝ) * Real.pi) ^ 2 = unitIntervalCosineEigenvalue n := by
+    simp [unitIntervalCosineEigenvalue]
+    ring
+  rw [hλsq]
   have hexp :
-      Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n) *
-          Real.exp (-(t / 2) * unitIntervalCosineEigenvalue n) =
+      Real.exp (-(t - c / 2) * unitIntervalCosineEigenvalue n) *
+          Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) =
         Real.exp (-t * unitIntervalCosineEigenvalue n) := by
     rw [← Real.exp_add]
     congr 1
     ring
-  rw [← mul_assoc, hexp]
-  ring
+  calc
+    Real.exp (-(t - c / 2) * unitIntervalCosineEigenvalue n) *
+          (-(unitIntervalCosineEigenvalue n) * Real.cos ((n : ℝ) * Real.pi * x)) *
+          (-(unitIntervalCosineEigenvalue n) *
+            Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) *
+            cosineCoeffs (intervalDomainLift u₀) n)
+        = unitIntervalCosineEigenvalue n ^ 2 *
+            (Real.exp (-(t - c / 2) * unitIntervalCosineEigenvalue n) *
+              Real.exp (-(c / 2) * unitIntervalCosineEigenvalue n) *
+              cosineCoeffs (intervalDomainLift u₀) n) *
+            Real.cos ((n : ℝ) * Real.pi * x) := by
+            ring
+    _ = unitIntervalCosineEigenvalue n ^ 2 *
+          (Real.exp (-t * unitIntervalCosineEigenvalue n) *
+            cosineCoeffs (intervalDomainLift u₀) n) *
+          Real.cos ((n : ℝ) * Real.pi * x) := by
+          rw [hexp]
+          ring
 
-/-- Time derivative of the heat-Laplacian slice. -/
-private theorem heatDu_hasDerivAt
-    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {t x : ℝ} (ht : 0 < t) :
-    HasDerivAt (fun r => heatDu u₀ r x) (heatD2u u₀ t x) t := by
+/-- Joint continuity of the explicit second time-derivative heat slice on a
+positive closed time slab. -/
+private theorem heatD2u_jointContinuousOn
+    {u₀ : intervalDomainPoint → ℝ} {M₀ c T : ℝ} (hc : 0 < c)
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    ContinuousOn (fun q : ℝ × ℝ => heatD2u u₀ q.1 q.2)
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
   classical
-  let b : ℕ → ℝ := heatDuShiftCoeff u₀ t
-  let Mb : ℝ :=
-    ((1 : ℝ) ^ (1 : ℝ) * Real.exp (-(1 : ℝ))) *
-      ((1 : ℝ) * (t / 2)) ^ (-(1 : ℝ)) * |M₀|
+  let b : ℕ → ℝ := heatD2uSecondCoeff u₀ c
+  let Mb : ℝ := |M₀| / (c / 2)
   have hb : ∀ n, |b n| ≤ Mb := by
-    simpa [b, Mb] using heatDuShiftCoeff_bound _hu₀_bound ht
-  have hheat :
-      HasDerivAt
-        (fun s : ℝ => unitIntervalCosineHeatValue s b x)
-        (unitIntervalCosineHeatSecondValue (t / 2) b x)
-        (t / 2) :=
-    ShenWork.IntervalDuhamelClosedC2.unitIntervalCosineHeatValue_hasDerivAt_time
-      (r := t / 2) (x := x) (a := b) (M := Mb) (half_pos ht) hb
-  have hshift : HasDerivAt (fun r : ℝ => r - t / 2) 1 t := by
-    simpa using (hasDerivAt_id t).sub_const (t / 2)
-  have hcomp :
-      HasDerivAt
-        (fun r : ℝ => unitIntervalCosineHeatValue (r - t / 2) b x)
-        (unitIntervalCosineHeatSecondValue (t / 2) b x) t := by
-    simpa using hheat.comp t hshift
-  have hEq :
-      (fun r : ℝ => heatDu u₀ r x) =ᶠ[𝓝 t]
-        (fun r : ℝ => unitIntervalCosineHeatValue (r - t / 2) b x) := by
-    simpa [b] using heatDu_eq_shiftedHeatValue_eventually u₀ (t := t) (x := x) ht
-  have hdu :
-      HasDerivAt (fun r : ℝ => heatDu u₀ r x)
-        (unitIntervalCosineHeatSecondValue (t / 2) b x) t :=
-    hcomp.congr_of_eventuallyEq hEq
-  refine hdu.congr_deriv ?_
-  simpa [b] using shiftedHeatSecondValue_eq_heatD2u u₀ (t := t) (x := x) ht
+    simpa [b, Mb] using heatD2uSecondCoeff_bound (u₀ := u₀) (M₀ := M₀)
+      (c := c) hc _hu₀_bound
+  have hsecond : ContinuousOn
+      (fun q : ℝ × ℝ => unitIntervalCosineHeatSecondValue q.1 b q.2)
+      (Ioi (0 : ℝ) ×ˢ univ) :=
+    ShenWork.IntervalSemigroupNeumann.unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod
+      (a := b) (M := Mb) hb
+  have hmap_cont : ContinuousOn
+      (fun q : ℝ × ℝ => (q.1 - c / 2, q.2))
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+    fun_prop
+  have hmap_mem : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
+      (q.1 - c / 2, q.2) ∈ Ioi (0 : ℝ) ×ˢ univ := by
+    intro q hq
+    obtain ⟨ht, _hx⟩ := mem_prod.mp hq
+    exact mem_prod.mpr ⟨by linarith [ht.1, half_pos hc], mem_univ _⟩
+  have hshifted : ContinuousOn
+      (fun q : ℝ × ℝ => unitIntervalCosineHeatSecondValue (q.1 - c / 2) b q.2)
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+    simpa using hsecond.comp hmap_cont hmap_mem
+  refine hshifted.congr ?_
+  intro q hq
+  obtain ⟨ht, _hx⟩ := mem_prod.mp hq
+  simpa [b] using shiftedSecondValue_eq_heatD2u u₀ (c := c) (t := q.1)
+    (x := q.2) hc ht.1
 
 end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 ```
 
-## Why this is preferable to the direct tsum route
+## Notes
 
-The direct route would differentiate the Laplacian series itself and require a local summable majorant for the `λₙ² exp(-τ λₙ) aₙ cos(nπx)` derivative terms. That is true for `τ ≥ t/2`, but it duplicates the exact machinery already encapsulated in `unitIntervalCosineHeatValue_hasDerivAt_time`.
-
-The shifted-coefficient representation packages the extra `λₙ` into a damped coefficient sequence:
+The existing `unitIntervalCosineHeatValue_continuousOn_Ioi_prod` can also be used, but then you would shift into coefficients
 
 ```lean
-bₙ = -λₙ * exp(-(t/2)λₙ) * aₙ
+fun k => unitIntervalCosineEigenvalue k ^ 2 *
+  Real.exp (-(c / 2) * unitIntervalCosineEigenvalue k) *
+  cosineCoeffs (intervalDomainLift u₀) k
 ```
 
-This is bounded, so the existing theorem applies without opening the `hasDerivAt_tsum_of_isPreconnected` box again.
+and represent `heatD2u` as a shifted `unitIntervalCosineHeatValue`.  That requires proving boundedness of `λ² exp(-(c/2)λ) a_k`.  Reusing `unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod` is slightly cleaner: the theorem already carries one `λ`, so the shifted coefficient only needs one damped eigenvalue factor.
 
-## Likely minor elaboration nits
-
-I expect the mathematical proof shape above to be the right one. If Lean complains, the likely points are only syntactic:
-
-1. `hcomp.congr_of_eventuallyEq hEq` may want `hEq.symm`, depending on the exact orientation of the local Mathlib lemma in this checkout.
-2. The two `ring` calls after `rw [← mul_assoc, hexp]` may need one extra `ring_nf` or a slightly more explicit `calc` if the products are associated differently after unfolding.
-3. If `unitIntervalCosineHeatValue` or `unitIntervalCosineHeatSecondValue` are not in scope in the target file, the broad `open ShenWork.HeatKernelGradientEstimates` and `open ShenWork.IntervalDomainRegularityBootstrap` lines above fix that.
+If you prefer the direct M-test route with `M * λ_k^2 * exp(-c λ_k)`, it is correct, but it duplicates the M-test already packaged in `unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod`.
