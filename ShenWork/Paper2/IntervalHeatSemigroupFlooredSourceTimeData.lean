@@ -242,8 +242,7 @@ theorem heatSemigroup_d0
         (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft _hu₀_bound
       exact hsecond.congr (fun q hq => by
         obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
-        exact (heatDu_eq_secondValue u₀ (x := q.2)
-          (lt_of_lt_of_le hleft hσ.1)).symm)
+        exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
     simpa [srcSlice1, Function.uncurry] using
       (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu_joint)
 
@@ -492,6 +491,7 @@ private theorem heatD2u_jointContinuousOn
 
 /-! ## Helper lemmas for d1 (split for heartbeat budget) -/
 
+set_option maxHeartbeats 800000 in
 private theorem heatSemigroup_d1_partA
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
@@ -522,8 +522,7 @@ private theorem heatSemigroup_d1_partA
     exact hsecond.congr (fun q hq => by
       obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
       simpa [heatCoeff] using
-        (heatDu_eq_secondValue u₀ (x := q.2)
-          (lt_of_lt_of_le hleft hσ.1)).symm)
+        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
   have hsrc1 : ContinuousOn
       (fun q : ℝ × ℝ =>
         p.ν * p.γ * (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1)
@@ -603,8 +602,7 @@ private theorem heatSemigroup_d1_partC
     exact hsecond.congr (fun q hq => by
       obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
       simpa [heatCoeff] using
-        (heatDu_eq_secondValue u₀ (x := q.2)
-          (lt_of_lt_of_le hleft hσ.1)).symm)
+        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
   exact ((((continuousOn_const.mul continuousOn_const).mul continuousOn_const).mul
       hpow2).mul (hdu_joint.pow 2)).add
     (((continuousOn_const.mul continuousOn_const).mul hpow1).mul
