@@ -420,3 +420,7 @@ import ShenWork.Paper2.IntervalChiNegH1EnergyDeriv
 import ShenWork.Paper2.IntervalChiNegGradSummable
 import ShenWork.Paper2.IntervalChiNegH1Final
 import ShenWork.Paper2.IntervalChiNegA3Slice
+import ShenWork.Paper2.IntervalRestartVariationOfConstants
+import ShenWork.Paper2.IntervalLevel0DirectResolverCommute
+import ShenWork.Paper2.IntervalResolverLevel0SpectralC2Coeff
+import ShenWork.Paper2.IntervalLevel0HeatMixedRepr

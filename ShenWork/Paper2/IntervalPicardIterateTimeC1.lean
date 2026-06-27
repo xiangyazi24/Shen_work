@@ -449,6 +449,7 @@ theorem logisticSource_adot_hasDerivAt
   -- convert per-slice ContinuousOn to IntervalIntegrable for the engine
   have hf_int : ∀ᶠ s in 𝓝 σ, IntervalIntegrable (f s) MeasureTheory.volume (0 : ℝ) 1 := by
     filter_upwards [hf_cont] with s hs
+    rw [← Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hs
     exact hs.intervalIntegrable
   -- (h_diff) pointwise HasDerivAt of f via the chain rule
   have h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball σ δ,
