@@ -1,4 +1,4 @@
-# Q1472 (cron1) -- heat semigroup floor and datum positivity
+# Q1471 (cron1) -- bounded-weight majorants and summability
 
 Repository: `xiangyazi24/Shen_work`
 Branch: `chatgpt-scratch`
@@ -8,7 +8,7 @@ Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 Connector-only repository search. I did not run Lean locally and did not edit Lean source.
 
-As in Q1473, direct fetch of `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` at `chatgpt-scratch` returned 404, but GitHub code search exposed the indexed snapshot:
+As in the immediately preceding cron drops, direct fetch of `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` at `chatgpt-scratch` returned 404, but GitHub code search exposed the indexed snapshot:
 
 ```text
 7db6d8e4b01d279823281613bb824200483faddd
@@ -16,229 +16,254 @@ As in Q1473, direct fetch of `ShenWork/Paper2/IntervalHeatSemigroupHighRegularit
 
 The names below are from that snapshot. This report is committed to `chatgpt-scratch`.
 
-## Finding
+## Definitions found
 
-Yes: if the intended proof of the line-832 floor is to use the existing theorem
-
-```lean
-ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
-```
-
-then `heatSemigroup_level0_resolverJointC2Data` should take an additional hypothesis
+The definitions are in:
 
 ```lean
-(hu0_pos : forall x : intervalDomainPoint, 0 < u0 x)
+import ShenWork.PDE.IntervalResolverJointC2Physical
+import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
 ```
 
-because the current theorem only has
+The value series term is:
 
 ```lean
-(hu0_bound : forall k, |cosineCoeffs (intervalDomainLift u0) k| <= M0)
-(hu0_cont : Continuous u0)
+def boundedWeightJointTerm (c : Nat -> Real -> Real) (n : Nat) : Real × Real -> Real :=
+  fun q => c n q.1 * cosineMode n q.2
 ```
 
-and those do not imply strict positivity of the heat slice. For arbitrary real `p.gamma`, strict positivity is also analytically needed for the `u^gamma` source-slice smoothness route.
-
-The local patch shape is:
+The value majorant is:
 
 ```lean
-import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
-
--- in heatSemigroup_level0_resolverJointC2Data, add:
---   (hu0_pos : forall x : intervalDomainPoint, 0 < u0 x)
-
-(hfloor := by
-  intro t ht x hx
-  exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
-    (p := p) hu0_cont hu0_pos (t := t) ht (x := x) hx)
+def boundedWeightJointMajorant (Bt : Nat -> Nat -> Real) (k n : Nat) : Real :=
+  sum i in Finset.range (k + 1),
+    (Nat.choose k i : Real) * Bt i n * valueCosWeight (k - i) n
 ```
 
-Then the immediate wrapper
+The gradient series term is:
 
 ```lean
-ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
+def boundedWeightJointGradTerm (c : Nat -> Real -> Real) (n : Nat) : Real × Real -> Real :=
+  fun q => c n q.1 * deriv (cosineMode n) q.2
 ```
 
-should also take `hu0_pos` and pass it into `heatSemigroup_level0_resolverJointC2Data`.
-
-## Why downstream does not currently supply this automatically
-
-### 1. `coupledChemical_jointContDiffAt_two`
-
-Located in:
+The gradient majorant is:
 
 ```lean
-ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
+def boundedWeightJointGradMajorant (Bt : Nat -> Nat -> Real) (k n : Nat) : Real :=
+  sum i in Finset.range (k + 1),
+    (Nat.choose k i : Real) * Bt i n * gradCosWeight (k - i) n
 ```
 
-The theorem
+The spatial weights are in `IntervalResolverSpectralJointC2Concrete`:
 
 ```lean
-ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
+def valueCosWeight (m n : Nat) : Real :=
+  match m with
+  | 0 => 1
+  | 1 => abs ((n : Real) * Real.pi)
+  | _ => unitIntervalCosineEigenvalue n
+
+def gradCosWeight (m n : Nat) : Real :=
+  match m with
+  | 0 => abs ((n : Real) * Real.pi)
+  | 1 => unitIntervalCosineEigenvalue n
+  | _ => abs ((n : Real) * Real.pi) * unitIntervalCosineEigenvalue n
 ```
 
-takes only:
+So `boundedWeightJointMajorant Bt m n` is exactly the Leibniz majorant for the joint order-`m` derivative of `c_n(t) cos(n pi x)`: choose `i` time derivatives on `c_n`, and `m-i` spatial derivatives on the cosine.
+
+Likewise `boundedWeightJointGradMajorant Bt m n` is the same Leibniz majorant after the extra spatial derivative in `deriv (cosineMode n)`.
+
+## What summability means concretely
+
+In `IntervalHeatSemigroupHighRegularity.lean`, the two sorry goals are fed to
 
 ```lean
-(H : PhysicalResolverJointC2Data p u Bt)
-(hx : x in Ioo 0 1)
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
 ```
 
-It is a resolver-series regularity assembler. It does not know anything about the original datum `u0`, and it has no positivity hypothesis that can produce
+with
 
 ```lean
-forall x, 0 < u0 x
+Bt i k = intervalNeumannResolverWeight p k * builtEs H i k
 ```
 
-So it cannot discharge the heat base floor.
-
-### 2. `resolver_jointC2At_of_spectralAgreement`
-
-The wrapper in
+where
 
 ```lean
-ShenWork.PDE.IntervalCoupledResolverJointC2
+intervalNeumannResolverWeight p k = 1 / (p.mu + lambda_k)
 ```
 
-is:
+and `builtEs` is:
 
 ```lean
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration_resolver_jointC2At
+def builtEs (H : FlooredSourceTimeData p u s1 s2) (i k : Nat) : Real :=
+  if hi : i <= 2 then
+    if k = 0 then Classical.choose (H.zerothBound i hi)
+    else Classical.choose (H.laplBound i hi) / (((k : Real) * Real.pi) ^ 2)
+  else 0
 ```
 
-It calls
+Thus for every fixed joint derivative order `m <= 2`, the value goal is:
 
 ```lean
-resolver_jointC2At_of_spectralAgreement
+Summable (fun n =>
+  sum i in range (m+1), choose(m,i) *
+    (w_n * Es_i(n)) * valueCosWeight (m-i) n)
 ```
 
-with spectral agreement, time-window facts, an interior-space witness, and a local spectral `hC2` producer. This path is independent of `u0` strict positivity. It is not a source of `hu0_pos`.
-
-The strengthened C2-coefficient path
+and the gradient goal is:
 
 ```lean
-resolver_jointC2At_of_spectralAgreement_c2Data
+Summable (fun n =>
+  sum i in range (m+1), choose(m,i) *
+    (w_n * Es_i(n)) * gradCosWeight (m-i) n)
 ```
 
-also only unpacks restart spectral data. It does not carry positivity of initial datum either.
+Zero mode `n = 0` is harmless: it is one term, and most gradient spatial weights vanish at `n=0`. The real question is the tail `n >= 1`.
 
-### 3. FAC chain
+Let
 
-The relevant FAC structure is:
+```text
+freq_n = abs ((n : Real) * pi)
+lambda_n = freq_n^2
+w_n = 1 / (mu + lambda_n)
+Es_i(n) <= M_i / freq_n^2   for n >= 1
+```
+
+Useful existing lemmas:
 
 ```lean
-ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorFACInputs
+ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one
+ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu
+ShenWork.IntervalResolverJointC2PhysicalConcrete.valueCosWeight_one_mul_resolverWeight_le
 ```
 
-and its slab predicate:
+For a clean proof one should also add a sharper frequency-weight lemma, since the existing `valueCosWeight_one_mul_resolverWeight_le` is too crude for summability:
 
 ```lean
-ShenWork.IntervalCoupledRegularityBootstrap.FACLocalSlabInputs
+-- suggested lemma, for n >= 1
+abs ((n : Real) * Real.pi) * intervalNeumannResolverWeight p n
+  <= 1 / abs ((n : Real) * Real.pi)
 ```
 
-`FACLocalSlabInputs` contains:
+because `mu + freq^2 >= freq^2`.
+
+## Value summability: should be provable from `(k*pi)^-2`
+
+For `m <= 2`, the possible value spatial weights are only:
+
+```text
+1, freq_n, lambda_n
+```
+
+The three tail estimates are:
+
+```text
+w_n * Es_i(n) * 1        <= C / freq_n^2
+w_n * Es_i(n) * freq_n   <= C / freq_n^3
+w_n * Es_i(n) * lambda_n <= C / freq_n^2
+```
+
+The last estimate uses `lambda_n * w_n <= 1`. Therefore each value summand is bounded by a constant multiple of `1 / freq_n^2`, hence by a constant multiple of `1 / n^2`. Since the sum over `i <= m` is finite, `boundedWeightJointMajorant (w*Es) m` is summable for every `m <= 2`.
+
+Skeleton:
 
 ```lean
-(forall s, Continuous (u s))
-(forall s, forall x : intervalDomainPoint, 0 <= u s x)
+-- For each fixed m <= 2:
+apply Summable.of_nonneg_of_le
+  (fun n => by positivity / use nonneg lemmas)
+  (fun n => by
+    -- split n = 0 and n >= 1
+    -- unfold boundedWeightJointMajorant
+    -- bound the finite sum by C_m * reciprocalSquareTerm n
+    -- use:
+    --   lambda_n * w_n <= 1
+    --   w_n <= 1 / mu
+    --   freq_n * w_n <= 1 / freq_n  (new lemma)
+    --   builtEs H i n <= M_i / freq_n^2 for n >= 1)
+  (reciprocalSquareTerm_summable.mul_left C_m)
 ```
 
-but not strict positivity of the original datum. The file explicitly says the resolver floor is not a carried input; it is proved from nonnegativity and continuity via
+## Gradient summability: the `m = 2` case is not covered by only `(k*pi)^-2`
 
-```lean
-ShenWork.IntervalCoupledRegularityBootstrap.coupledChemical_floor_pos_of_nonneg_continuous
+For the gradient majorant, the possible spatial weights are:
+
+```text
+freq_n, lambda_n, freq_n * lambda_n
 ```
 
-This gives strict positivity of `1 + v`, not strict positivity of `u0`.
+For `m = 0` and `m = 1`, `(k*pi)^-2` is enough:
 
-So the FAC package does not directly supply the `hu0_pos` needed by `heatSemigroup_pos_of_pos`.
-
-## Positivity structures found
-
-The requested structure exists here:
-
-```lean
-ShenWork.PDE.IntervalMildSourceDecayHelper.BoundedLipschitzPositiveOnUnit
+```text
+w_n * Es_i(n) * freq_n   <= C / freq_n^3
+w_n * Es_i(n) * lambda_n <= C / freq_n^2
 ```
 
-It has fields:
+But for `m = 2`, the `i = 0` term contains
 
-```lean
-m_pos : 0 < m
-lower_bound : forall x in Set.Icc 0 1, m <= u x
-bounded : exists M, forall x in Set.Icc 0 1, |u x| <= M
-lipschitz : exists K : R>=0, LipschitzOnWith K u (Set.Icc 0 1)
+```text
+w_n * Es_0(n) * (freq_n * lambda_n)
 ```
 
-But search only found it in `IntervalMildSourceDecayHelper.lean`; it is part of weak H2 / source coefficient decay packaging:
+Using `lambda_n * w_n <= 1`, this is only
 
-```lean
-PowerSourceH2NeumannData
-powerSourceH2NeumannData_of_source_contDiffOn
+```text
+<= Es_0(n) * freq_n <= C / freq_n
 ```
 
-I did not find it feeding `CoupledChemDivFluxFactorFACInputs` or `heatSemigroup_level0_resolverJointC2Data`.
+and `sum 1/n` diverges. More directly,
 
-Other strict-positive-datum bridges found:
-
-```lean
-ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_uniformFloor_of_continuous_pos
-ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_paperPositiveInitialDatum_of_continuous_pos
-ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_mildExistenceData_of_continuous_positiveDatum
-ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_gradientMildSolutionData_of_continuous_positiveDatum
+```text
+w_n * (M / freq_n^2) * (freq_n * lambda_n)
+  = M * freq_n * lambda_n / ((mu + lambda_n) * freq_n^2)
+  ~ M / freq_n.
 ```
 
-These show that `Continuous u0` plus `forall x, 0 < u0 x` is already a recognized route to a uniform floor / paper-positive datum.
+So the current `(k*pi)^-2` envelope is enough for `value_summable`, but not enough for `grad_summable` at joint order `m = 2` under this generic absolute-majorant assembler.
 
-There is also a cone route in
+This means the comment in `IntervalHeatSemigroupHighRegularity.lean` saying the gradient case is "same with an extra eigenvalue factor absorbed by `(k*pi)^-2` decay" is too optimistic for the `m=2, i=0` gradient term. The extra gradient derivative leaves one uncancelled frequency.
 
-```lean
-ShenWork.IntervalMildPicardConeData.coneGradientMildSolutionData_exists_with_data
+## Consequences / patch choices
+
+There are three honest options.
+
+### Option A: strengthen the source envelope for gradient `m = 2`
+
+Require enough decay for the `i = 0` source coefficients so that
+
+```text
+Summable (fun n => freq_n * Es_0(n))
 ```
 
-that assumes nonnegative datum plus positive somewhere and proves positive heat/Picard slices for positive times. That is weaker than `forall x, 0 < u0 x`, but it is not connected to the local `heatSemigroup_pos_of_pos` theorem used for the line-832 floor.
+For example `Es_0(n) = O(freq_n^(-3))` is enough. This would come from a stronger spatial regularity/IBP package for the zeroth source slice, not just closed `C^2` Neumann.
+
+### Option B: weaken the gradient target
+
+If the downstream FAC lane only needs fewer joint derivatives of `grad v`, then change the gradient assembler target from joint `C^2` of `grad v` to joint `C^1` where appropriate. For gradient orders `m <= 1`, the current `(k*pi)^-2` envelope is enough.
+
+### Option C: use a non-absolute/oscillatory argument
+
+The current theorem `boundedWeightJointGradSeries_contDiff_two` is based on `contDiff_tsum` with a nonnegative summable majorant. Under that theorem, the `1/freq_n` obstruction is real. Avoiding it would require a different convergence theorem using cancellation of sine/cosine series, not the existing bounded-majorant route.
 
 ## Recommendation
 
-For the current local gap, add `hu0_pos` to `heatSemigroup_level0_resolverJointC2Data` and to `heatResolverJointContDiffAt_two`, then discharge line 832 with `heatSemigroup_pos_of_pos`.
+Do not try to prove both sorrys from only the existing `builtEs` `(k*pi)^-2` envelope.
 
-This is the smallest honest patch because:
-
-1. the theorem is not semantically true for arbitrary sign-changing or zero-valued data when the source is `u^gamma` with real `gamma`;
-2. the existing proof theorem already requires strict positive initial datum;
-3. repository search did not find any downstream resolver/FAC API that can synthesize `hu0_pos` for this theorem;
-4. direct callers of `heatSemigroup_level0_resolverJointC2Data` appear local to `IntervalHeatSemigroupHighRegularity.lean`, so the API blast radius is small.
-
-If later the FAC chain wants compatibility with the cone route, the better abstraction would be to generalize the heat theorem with a direct floor hypothesis:
-
-```lean
-(hfloor : forall t, 0 < t -> forall x in Set.Icc (0:R) 1,
-  0 < intervalDomainLift (conjugatePicardIter p u0 0 t) x)
-```
-
-and then provide two corollaries:
-
-```lean
--- strict positive datum route
-..._of_posDatum (hu0_pos : forall x, 0 < u0 x)
-
--- cone/nonnegative-positive-somewhere route, if/when the needed heat positivity theorem is wired
-..._of_heatFloor hfloor
-```
-
-But for the concrete line-832 `sorry`, `hu0_pos` is the correct immediate missing hypothesis.
+Prove `value_summable` from the present data. For `grad_summable`, either strengthen the source-side envelope (at least enough to prove `Summable (fun n => freq_n * Es 0 n)`) or weaken the claimed gradient joint regularity. As the repo currently defines the majorant, `grad_summable` for `m = 2` is not a mechanical consequence of `FlooredSourceTimeData.laplBound`.
 
 ## Search log
 
 ```text
-BoundedLipschitzPositiveOnUnit
-coupledChemical_jointContDiffAt_two
-resolver_jointC2At_of_spectralAgreement
-IntervalChemDivFluxFactorFAC
-structure CoupledChemDivFluxFactorFACInputs
-heatSemigroup_level0_resolverJointC2Data
-heatResolverJointContDiffAt_two
-hu0_pos / hu₀_pos
-PositiveInitialDatum intervalDomain u0
-heatSemigroup_pos_of_pos
+boundedWeightJointMajorant
+boundedWeightJointGradMajorant
+def valueCosWeight
+gradCosWeight
+def builtEs
+PhysicalSourceTimeC2
+PhysicalResolverJointC2Data
+eigenvalue_mul_resolverWeight_le_one
+resolverWeight_le_inv_mu
+resolverWeight frequency
 ```
