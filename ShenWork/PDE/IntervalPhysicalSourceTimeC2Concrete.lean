@@ -215,10 +215,14 @@ private theorem srcTimeCoeff_iteratedDeriv2
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     iteratedDeriv 2 (srcTimeCoeff p u k) t = cosineCoeffs (s₂ t) k := by
-  -- iteratedDeriv 2 f t = deriv (iteratedDeriv 1 f) t.  In a neighborhood of t
-  -- (within Ioi 0), iteratedDeriv 1 f s = cosineCoeffs (s₁ s) k, so the deriv
-  -- at t = cosineCoeffs (s₂ t) k by cosS1_hasDerivAt.
-  sorry
+  rw [iteratedDeriv_succ]
+  have hnear :
+      (fun s => iteratedDeriv 1 (srcTimeCoeff p u k) s) =ᶠ[𝓝 t]
+        (fun s => cosineCoeffs (s₁ s) k) := by
+    filter_upwards [Ioi_mem_nhds ht] with s hs
+    exact srcTimeCoeff_iteratedDeriv1 H k hs
+  rw [Filter.EventuallyEq.deriv_eq hnear]
+  exact (cosS1_hasDerivAt H k ht).deriv
 
 /-- The `i`-th iterated time-derivative of `srcTimeCoeff k` equals
 `cosineCoeffs (sliceᵢ t) k` for `i ≤ 2` and `t > 0`. -/
