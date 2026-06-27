@@ -1,142 +1,136 @@
-# Q1254 (cron3): `heatLaplacianTerm_hasDerivAt_time`
+# Q1286 (cron3): eigenvalue summability tools
 
-## Target
+## Repo-state note
 
-In `ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean`, the local theorem currently has this shape:
+This note is committed to the requested branch `chatgpt-scratch`.  The code containing the target sorry in `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` is not present on the current `chatgpt-scratch` tree: that path 404s there.  The searched/default tree is `main` at `4745b057cf50749ed0945007f178b54c2b5178a3`; `chatgpt-scratch` is at `d496dddd0e5438dccbf350f69faafecf284b7a93` and is diverged from `main`.  The exact locations below are therefore for the default/indexed tree containing the line-1088 target.
 
-```lean
-local notation "λ_" n => unitIntervalCosineEigenvalue n
+## `intervalWeakH4Neumann_eigenvalue_L1_summable`
 
-private theorem heatLaplacianTerm_hasDerivAt_time
-    (a : ℕ → ℝ) (x t : ℝ) (n : ℕ) :
-    HasDerivAt
-      (fun τ : ℝ =>
-        ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
-      ((λ_ n) ^ 2 * (Real.exp (-t * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x) t := by
-  sorry
-```
-
-The proof is just the scalar chain rule for
+File:
 
 ```text
-τ ↦ -λ_n * exp(-τ λ_n) * cos(nπx) * a_n.
+ShenWork/PDE/IntervalSourceDecayQuantitative.lean
 ```
 
-The derivative is
+Starts at line 221 in the default/indexed tree.
+
+Namespace:
+
+```lean
+namespace ShenWork.IntervalSourceDecayQuantitative
+```
+
+Full name:
+
+```lean
+ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
+```
+
+Exact signature:
+
+```lean
+theorem intervalWeakH4Neumann_eigenvalue_L1_summable
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
+    Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|) := by
+```
+
+Adjacent input theorem in the same file:
+
+```lean
+theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv)
+    {B₂ : ℝ} (hB₂ : (∫ x in (0:ℝ)..1, |hf''.secondDeriv x|) ≤ B₂) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B₂ / ((k : ℝ) * Real.pi) ^ 4 := by
+```
+
+## `resolverSourceCoeff_re_eq_cosineCoeffs`
+
+File:
 
 ```text
-λ_n^2 * exp(-t λ_n) * cos(nπx) * a_n.
+ShenWork/Paper2/IntervalDomainLogisticWeakH2Adapter.lean
 ```
 
-## Replacement proof body
+Starts at line 185 in the default/indexed tree.
 
-Use this as the body of the theorem:
+Namespace:
 
 ```lean
-  let lam : ℝ := λ_ n
-
-  -- derivative of the linear exponent `τ ↦ -τ * lam`
-  have hlin : HasDerivAt (fun τ : ℝ => -τ * lam) (-lam) t := by
-    have hneg : HasDerivAt (fun τ : ℝ => -τ) (-1 : ℝ) t := by
-      simpa using (hasDerivAt_id t).neg
-    simpa [lam] using hneg.mul_const lam
-
-  -- derivative of `τ ↦ exp (-τ * lam)`
-  have hexp : HasDerivAt (fun τ : ℝ => Real.exp (-τ * lam))
-      ((-lam) * Real.exp (-t * lam)) t := by
-    simpa using hlin.exp
-
-  -- Multiply by the constants `cos(nπx)`, `-lam`, and `a n`.
-  have hterm :
-      HasDerivAt
-        (fun τ : ℝ =>
-          (-lam) * (Real.exp (-τ * lam) *
-            ShenWork.CosineSpectrum.cosineMode n x) * a n)
-        (((-lam) * (((-lam) * Real.exp (-t * lam)) *
-            ShenWork.CosineSpectrum.cosineMode n x)) * a n) t := by
-    simpa [mul_assoc] using
-      (((hexp.mul_const (ShenWork.CosineSpectrum.cosineMode n x)).const_mul (-lam)).mul_const (a n))
-
-  -- Unfold the Laplacian point-weight and normalize the algebra.
-  convert hterm using 1
-  · ext τ
-    simp [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
-      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
-      ShenWork.CosineSpectrum.cosineMode, lam]
-    ring
-  · simp [lam]
-    ring
+namespace ShenWork.IntervalDomainLogisticWeakH2Adapter
 ```
 
-## Full theorem snippet with imports
+Full name:
 
 ```lean
-import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
-import ShenWork.PDE.HasDerivWithinAtTsum
-import ShenWork.Paper2.IntervalConjugatePicard
-import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
-import ShenWork.Paper2.IntervalMildRegularityBootstrap
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam FlooredSourceTimeData)
-open ShenWork.IntervalFlooredSourceTimeDataIterate
-  (srcSlice1 srcSlice2 hasDerivAt_srcSlice hasDerivAt_srcSlice1)
-open ShenWork.IntervalPicardLevel0SourceTimeC1On
-  (heatCoeff heatSlice_field_hasDerivWithinAt heatSlice_profile_jointContinuousOn
-   heatSlice_secondValue_jointContinuousOn)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
-
-local notation "λ_" n => unitIntervalCosineEigenvalue n
-
-private theorem heatLaplacianTerm_hasDerivAt_time
-    (a : ℕ → ℝ) (x t : ℝ) (n : ℕ) :
-    HasDerivAt
-      (fun τ : ℝ =>
-        ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
-      ((λ_ n) ^ 2 * (Real.exp (-t * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x) t := by
-  let lam : ℝ := λ_ n
-
-  -- derivative of the linear exponent `τ ↦ -τ * lam`
-  have hlin : HasDerivAt (fun τ : ℝ => -τ * lam) (-lam) t := by
-    have hneg : HasDerivAt (fun τ : ℝ => -τ) (-1 : ℝ) t := by
-      simpa using (hasDerivAt_id t).neg
-    simpa [lam] using hneg.mul_const lam
-
-  -- derivative of `τ ↦ exp (-τ * lam)`
-  have hexp : HasDerivAt (fun τ : ℝ => Real.exp (-τ * lam))
-      ((-lam) * Real.exp (-t * lam)) t := by
-    simpa using hlin.exp
-
-  -- Multiply by the constants `cos(nπx)`, `-lam`, and `a n`.
-  have hterm :
-      HasDerivAt
-        (fun τ : ℝ =>
-          (-lam) * (Real.exp (-τ * lam) *
-            ShenWork.CosineSpectrum.cosineMode n x) * a n)
-        (((-lam) * (((-lam) * Real.exp (-t * lam)) *
-            ShenWork.CosineSpectrum.cosineMode n x)) * a n) t := by
-    simpa [mul_assoc] using
-      (((hexp.mul_const (ShenWork.CosineSpectrum.cosineMode n x)).const_mul (-lam)).mul_const (a n))
-
-  -- Unfold the Laplacian point-weight and normalize the algebra.
-  convert hterm using 1
-  · ext τ
-    simp [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
-      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
-      ShenWork.CosineSpectrum.cosineMode, lam]
-    ring
-  · simp [lam]
-    ring
-
-end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
 ```
 
-## Notes
+Exact signature:
 
-The proof deliberately differentiates only `Real.exp (-τ * lam)`. Everything else is constant in `τ`. The final `convert` is needed because the named point-weight unfolds to the same expression but with slightly different associativity and because the target derivative is written as `λ_n ^ 2 * (exp * a_n) * cos(nπx)` rather than `(-λ_n) * ((-λ_n) * exp * cos) * a_n`.
+```lean
+theorem resolverSourceCoeff_re_eq_cosineCoeffs
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
+    (ShenWork.PDE.intervalNeumannResolverSourceCoeff p u k).re
+      = cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k := by
+  simp only [ShenWork.PDE.intervalNeumannResolverSourceCoeff, cosineCoeffs,
+    Complex.ofReal_re]
+```
+
+## Import note
+
+`IntervalConjugateLevel0BFormSourceOn.lean` already imports `IntervalResolverHighRegularity`, which provides the consumer theorem `intervalResolverLiftR_contDiff_four`.  The two searched lemmas above are in separate modules.  If they are not already available transitively, add:
+
+```lean
+import ShenWork.PDE.IntervalSourceDecayQuantitative
+import ShenWork.Paper2.IntervalDomainLogisticWeakH2Adapter
+```
+
+## Use at the line-1088 gap
+
+After
+
+```lean
+have hV_C4 : ContDiff ℝ 4 V_cos := by
+  apply intervalResolverLiftR_contDiff_four
+```
+
+the remaining goal is the source eigenvalue L1 summability:
+
+```lean
+Summable (fun k : ℕ =>
+  unitIntervalCosineEigenvalue k *
+    |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
+        (conjugatePicardIter p u₀ 0 r) k).re|)
+```
+
+If the H4 certificates are for the lifted source itself, use:
+
+```lean
+have hsrc_cos : Summable (fun k : ℕ =>
+    unitIntervalCosineEigenvalue k *
+      |cosineCoeffs
+        (fun x : ℝ =>
+          p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 r) x ^ p.γ) k|) := by
+  exact
+    ShenWork.IntervalSourceDecayQuantitative
+      .intervalWeakH4Neumann_eigenvalue_L1_summable hsrcH2 hsrcH2_second
+
+simpa [
+  ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
+] using hsrc_cos
+```
+
+Here the expected certificate types are:
+
+```lean
+hsrcH2 :
+  IntervalWeakH2Neumann
+    (fun x : ℝ => p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 r) x ^ p.γ)
+
+hsrcH2_second : IntervalWeakH2Neumann hsrcH2.secondDeriv
+```
+
+If the smooth H4 certificate is instead built for `fun x => p.ν * U_cos x ^ p.γ`, the bridge lemma above is not enough by itself.  It rewrites only to the source built from `intervalDomainLift`.  You still need a coefficient-congruence lemma using `hU_agree` on `[0,1]` to identify the cosine coefficients of `intervalDomainLift ...` and `U_cos` before applying the resolver-source bridge.
