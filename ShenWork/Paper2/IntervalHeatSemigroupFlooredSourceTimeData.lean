@@ -490,46 +490,44 @@ theorem heatSemigroup_flooredSourceTimeData
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (_hu₀_cont : Continuous u₀)
     (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) :
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (hsliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
+      ContDiffOn ℝ 2 ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t)
+        (Icc (0:ℝ) 1))
+    (hsliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
+      Tendsto (deriv ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t))
+        (𝓝[Ioi 0] 0) (𝓝 0) ∧
+      Tendsto (deriv ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t))
+        (𝓝[Iio 1] 1) (𝓝 0) ∧
+      deriv ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t) 0 = 0 ∧
+      deriv ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t) 1 = 0)
+    (hzerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, 0 < t →
+      |cosineCoeffs ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t) 0| ≤ D)
+    (hlaplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
+      |cosineCoeffs ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t) k|
+        ≤ M / ((k:ℝ) * Real.pi) ^ 2) :
     FlooredSourceTimeData p (conjugatePicardIter p u₀ 0)
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
       (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) where
   d0 τ hτ := heatSemigroup_d0 _hu₀_bound _hu₀_cont hfloor τ hτ
   d1 τ hτ := heatSemigroup_d1 _hu₀_bound _hu₀_cont hfloor τ hτ
-  sliceC2 i hi t ht := by
-    -- OBLIGATION: ∀ i ≤ 2, ∀ t > 0, ContDiffOn ℝ 2 (slice_i t) [0,1]
-    -- For t > 0 and i = 0: srcSlice = ν·(S(t)u₀)^γ.  The heat semigroup gives C⁴
-    --   in space for t > 0 (from heatSemigroup_contDiff_four), and S(t)u₀ > 0 on (0,1)
-    --   (heat floor), so rpow is C² on [0,1].
-    -- For t > 0 and i = 1: srcSlice1 = ν·γ·u^{γ-1}·du where du is the spectral
-    --   Laplacian (also C² in space for t > 0).
-    -- For t > 0 and i = 2: srcSlice2 is a combination of u^{γ-2}·du² + u^{γ-1}·d2u,
-    --   both C² under the floor.
-    -- The old t ≤ 0 case is eliminated by the weakening.
-    sorry
-  sliceNeumann i hi t ht := by
-    -- OBLIGATION: ∀ i ≤ 2, ∀ t > 0, deriv (slice_i t) vanishes at 0 and 1
-    -- For the heat semigroup, the Neumann eigenfunction expansion guarantees
-    -- that the spatial derivatives of S(t)u₀ satisfy Neumann BCs (deriv cos(kπx)
-    -- vanishes at 0 and 1).  The chain/product rule through rpow preserves this
-    -- because deriv(u^γ) = γ·u^{γ-1}·u' and u' = 0 at the boundary.
-    sorry
-  zerothBound i hi := by
-    -- OBLIGATION: ∀ i ≤ 2, ∃ D ≥ 0, ∀ t > 0, |cosineCoeffs (slice_i t) 0| ≤ D
-    -- The zeroth cosine coefficient is the integral ∫₀¹ f(x) dx.
-    -- For the heat semigroup: S(t)u₀ is bounded by M₀ (coefficient bound gives
-    -- sup-norm bound via the cosine series), so srcSlice = ν·u^γ is bounded by
-    -- ν·M₀^γ.  Similarly for s₁ and s₂ (their integrals are bounded by products
-    -- of sup-norm bounds of u, du, d2u on [0,1]).
-    sorry
-  laplBound i hi := by
-    -- OBLIGATION: ∀ i ≤ 2, ∃ M ≥ 0, ∀ t > 0, ∀ k, 1 ≤ k →
-    --   |cosineCoeffs (slice_i t) k| ≤ M / (kπ)²
-    -- This is the IBP decay from the committed `cosineCoeff_decay`: when the
-    -- slice is C² on [0,1] with Neumann BCs, integration by parts twice gives
-    --   |â_k| ≤ (1/(kπ)²) · sup |Δ(slice)|
-    -- The uniform-in-positive-t Laplacian bound follows from the spatial C² data
-    -- and the uniform sup-norm bounds of the iterated Laplacian.
-    sorry
+  sliceC2 := hsliceC2
+  sliceNeumann := hsliceNeumann
+  zerothBound := hzerothBound
+  laplBound := hlaplBound
 
 end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData

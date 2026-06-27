@@ -828,7 +828,12 @@ theorem heatSemigroup_level0_resolverJointC2Data
   -- Step 1: Build the FlooredSourceTimeData via the heat semigroup constructor.
   set u := conjugatePicardIter p u₀ 0
   have hFSTD := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
-    hu₀_bound hu₀_cont (p := p) (hfloor := by intro t ht x hx; sorry)
+    hu₀_bound hu₀_cont (p := p)
+    (hfloor := by intro t ht x hx; sorry)
+    (hsliceC2 := by intro i hi t ht; sorry)
+    (hsliceNeumann := by intro i hi t ht; sorry)
+    (hzerothBound := by intro i hi; sorry)
+    (hlaplBound := by intro i hi; sorry)
   -- Step 2: Convert to PhysicalSourceTimeC2 via the floored producer.
   -- The summability hypotheses (value and gradient majorants) need to be established;
   -- they follow from the (kπ)⁻² IBP decay in the builtEs envelope combined with
