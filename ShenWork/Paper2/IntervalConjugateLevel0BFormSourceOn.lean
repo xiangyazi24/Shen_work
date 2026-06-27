@@ -1246,7 +1246,12 @@ theorem level0_chemDiv_timeDerivData
             (by norm_num)).contDiffOn
         -- Neumann BCs for the second derivative (from even + period-2 of deriv(deriv g_smooth))
         have hg''_even : ∀ x, deriv (deriv g_smooth) (-x) = deriv (deriv g_smooth) x := by
-          sorry -- [deriv(deriv(even)) = even; derivative of odd = even]
+          intro x
+          -- deriv g_smooth is odd (hg'_odd), so its derivative is even
+          have h := deriv_comp_neg (f := deriv g_smooth) (x := x)
+          rw [show (fun x => deriv g_smooth (-x)) = fun x => -(deriv g_smooth x) from
+            funext hg'_odd] at h
+          simp [deriv_neg] at h; linarith
         have hg''_symm1 : ∀ x, deriv (deriv g_smooth) (2 - x) = deriv (deriv g_smooth) x := by
           sorry -- [follows from g_smooth(2-x) = g_smooth(x) → same symmetry for 2nd deriv]
         have hg''_bc0 : deriv (deriv (deriv g_smooth)) 0 = 0 := by
