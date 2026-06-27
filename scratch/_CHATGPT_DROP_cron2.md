@@ -1,388 +1,338 @@
-# Q1117 (cron2) — `3E-nonneg` in `level0_chemDiv_timeDerivData`
+# Q1123 (cron2) — resolver-source eigenvalue summability
 
-Static inspection via the GitHub connector only. I did **not** run Lean locally.
+Static GitHub-connector inspection only; I did **not** run Lean locally.
 
-## Verdict
+## Bottom line
 
-Choose **Option A**: add the explicit hypothesis
-
-```lean
-(hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x)
-```
-
-to the chem-div time-derivative data path, and propagate it through the level-0 auto constructors.
-
-This is the cleaner Lean engineering choice because the current proof path is already deliberately using
+For the `hV_C4` hole under
 
 ```lean
-ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg
+have hV_C4 : ContDiff ℝ 4 V_cos := by
+  apply intervalResolverLiftR_contDiff_four
+  -- goal: Summable (fun k => λ_k * |(resolverSourceCoeff p w k).re|)
 ```
 
-which requires nonnegativity of the input function to the heat semigroup. Supplying `u₀ ≥ 0` makes the local gap a one-line proof. By contrast, Option B is mathematically valid but requires a separate compact-in-time tube argument, a shrink of the local `δ`, and care around the endpoints because `intervalDomainLift` is a zero extension and is not the right object for joint continuity at `x = 0,1` when the trace is positive.
-
-The downstream data already has `PositiveInitialDatum intervalDomain u₀`, and the repo already has a lemma deriving closed-interval nonnegativity from it:
-
-```text
-ShenWork.Paper2.BFormPositiveDatumNegPart.positiveInitialDatum_intervalDomainLift_nonneg
-```
-
-So Option A does not add a new mathematical assumption for the actual downstream use; it only exposes an assumption already available at the call site.
-
-## What I checked
-
-In `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`, the theorem signature for `level0_chemDiv_timeDerivData` currently includes continuity, coefficient boundedness, positive-window strict positivity, and a positive-window upper bound, but no initial nonnegativity hypothesis:
+use the depth-2 weak-H² route, but build the first certificate for the actual source with the **smooth** second derivative:
 
 ```lean
-(_hu₀_cont : Continuous u₀)
-(_hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-(_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
-(_hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-  intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M)
+secondDeriv := deriv (deriv g_smooth)
 ```
 
-The open proof obligation is exactly in the branch where `intervalDomainLift u₀ y = u₀ ⟨y, hy⟩`:
+This avoids the harder algebraic transfer from the zero-extension helper’s `secondDeriv`.
+
+Useful checked names:
 
 ```lean
-have h_r_nonneg : ∀ x' : intervalDomainPoint, 0 ≤ conjugatePicardIter p u₀ 0 r x' := by
-  intro x'
-  simp only [conjugatePicardIter]
-  apply ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg hr_pos'
-  intro y
-  unfold intervalDomainLift
-  split_ifs with hy
-  · sorry -- need 0 ≤ u₀ ⟨y,hy⟩
-  · norm_num
+ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
+ShenWork.Paper2.IntervalResolverHighRegularity.intervalResolverLiftR_contDiff_four
+ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
+ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
 ```
 
-The theorem is called directly by `level0ChemDivSourceData`. That constructor is then used by `level0_bFormSource_duhamelSourceTimeC1On_auto`. Code search found no compiled external use of `level0ChemDivSourceData`; `IntervalConjugateBFormSourceTower.lean` contains a future/commented level-0 call under a `sorry`.
-
-## Caller impact for Option A
-
-Current compiled impact is small:
-
-1. Add `hu₀_nonneg` to `level0_chemDiv_timeDerivData`.
-2. Add `hu₀_nonneg` to `level0ChemDivSourceData`, and pass it to `level0_chemDiv_timeDerivData`.
-3. Add `hu₀_nonneg` to `level0_bFormSource_duhamelSourceTimeC1On_auto`, and pass it to `level0ChemDivSourceData`.
-
-So the real caller changes are **two current call sites inside the same file**:
-
-```text
-level0ChemDivSourceData → level0_chemDiv_timeDerivData
-level0_bFormSource_duhamelSourceTimeC1On_auto → level0ChemDivSourceData
-```
-
-There is also **one future tower call** to adjust when the `sorry` in `IntervalConjugateBFormSourceTower.lean` is replaced. That tower already has
+Add these imports explicitly if not already available transitively:
 
 ```lean
-(hu₀pos : PositiveInitialDatum intervalDomain u₀)
+import ShenWork.Paper2.IntervalDomainLogisticWeakH2Adapter
+import ShenWork.PDE.IntervalSourceDecayQuantitative
 ```
 
-so it can derive the new argument locally.
+## Positivity prerequisite
 
-The explicit `chemData` constructor
-
-```lean
-level0_bFormSource_duhamelSourceTimeC1On ... (chemData : Level0ChemDivSourceData p u₀ c T)
-```
-
-should not need a signature change because it receives prebuilt chem-div data.
-
-## Option A patch shape
-
-The local `sorry` fill is this:
+Before the `hV_C4` proof, produce:
 
 ```lean
-import ShenWork.Paper2.IntervalConjugateIterSourceTower
-import ShenWork.Paper2.IntervalBFormSpectralHtime
-import ShenWork.Paper2.IntervalBFormNegPartStrictPosBarrier
-import ShenWork.Paper2.IntervalChemDivSpatialC2
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-import ShenWork.Paper2.IntervalResolverHighRegularity
-import ShenWork.PDE.IntervalChemDivTimeDerivative
-
-open MeasureTheory Set Filter
-open scoped Topology
-open ShenWork.IntervalDomain
-  (intervalDomainLift intervalDomainPoint intervalDomain)
-open ShenWork.IntervalNeumannFullKernel
-  (cosineCoeffs intervalFullSemigroupOperator)
-open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
-open ShenWork.IntervalMildPicard (picardIter)
-open ShenWork.IntervalConjugatePicard
-  (conjugatePicardIter ConjugateMildExistenceData)
-open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
-open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledLogisticSourceCoeffs coupledChemDivSourceCoeffs
-   coupledChemDivSourceLift coupledChemicalConcentration)
-open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1On)
-open ShenWork.Paper2.ConjugateIterSourceTower (conjLogSourceTimeC1On_level0)
-open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
-open ShenWork.Paper2 (PaperPositiveInitialDatum PositiveInitialDatum)
-open ShenWork.IntervalDomain (intervalDomain)
-open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
-open ShenWork.Paper2.ChemDivSpatialC2 (chemDivSource_weakH2_of_cosineRep)
-open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.Paper2.IntervalResolverHighRegularity
-  (intervalResolverLiftR intervalResolverLiftR_contDiff_four
-   intervalResolverLiftR_even intervalResolverLiftR_reflect_one)
-open ShenWork.PDE (intervalNeumannResolverR)
-
-noncomputable section
-
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-
--- Add this hypothesis to `level0_chemDiv_timeDerivData`:
---   (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x)
--- Then replace the 3E-nonneg block with:
-
-example
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {r : ℝ} (hr_pos' : 0 < r)
-    (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
-    ∀ x' : intervalDomainPoint, 0 ≤ conjugatePicardIter p u₀ 0 r x' := by
-  intro x'
-  simp only [conjugatePicardIter]
-  apply ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg hr_pos'
-  intro y
-  unfold intervalDomainLift
-  split_ifs with hy
-  · exact hu₀_nonneg ⟨y, hy⟩
-  · norm_num
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-```
-
-If Lean does not accept the exact line because of definitional elaboration around the subtype proof, this equivalent branch is usually more robust:
-
-```lean
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-
-open Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-
-noncomputable section
-
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-
-example
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {r : ℝ} (hr_pos' : 0 < r)
-    (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
-    ∀ x' : intervalDomainPoint, 0 ≤ conjugatePicardIter p u₀ 0 r x' := by
-  intro x'
-  simp only [conjugatePicardIter]
-  apply ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg hr_pos'
-  intro y
-  unfold intervalDomainLift
-  split_ifs with hy
-  · simpa using hu₀_nonneg ⟨y, hy⟩
-  · norm_num
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-```
-
-## Suggested propagation shape
-
-I would keep the low-level hypothesis exactly as pointwise nonnegativity, not as `PositiveInitialDatum`. That keeps `level0_chemDiv_timeDerivData` focused on the minimum fact needed by the heat-kernel positivity lemma.
-
-Sketch of the signature/call-site changes:
-
-```lean
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-
-open MeasureTheory Set Filter
-open scoped Topology
-open ShenWork.IntervalDomain
-  (intervalDomainLift intervalDomainPoint intervalDomain)
-open ShenWork.IntervalConjugatePicard
-  (conjugatePicardIter ConjugateMildExistenceData)
-open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
-open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
-open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledLogisticSourceCoeffs coupledChemDivSourceCoeffs)
-open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs bFormSource_duhamelSourceTimeC1On)
-
-noncomputable section
-
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-
--- In `level0_chemDiv_timeDerivData`:
---
--- theorem level0_chemDiv_timeDerivData
---     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---     {c T M M₀ : ℝ} (hc : 0 < c) (_hcT : c ≤ T)
---     (_hu₀_cont : Continuous u₀)
---     (_hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
---     (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x)
---     (_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
---       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
---     (_hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
---       intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
---     ...
-
--- In `level0ChemDivSourceData`:
---
--- noncomputable def level0ChemDivSourceData
---     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
---     {c T M M₀ : ℝ} (hc : 0 < c) (hcT : c ≤ T)
---     (hu₀_cont : Continuous u₀)
---     (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
---     (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x)
---     (hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
---       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
---     (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
---       intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
---     Level0ChemDivSourceData p u₀ c T :=
---   let envData := level0_chemDiv_envelope_summable p hc hcT hu₀_cont hu₀_bound hpos hub
---   ...
---   let tdData := level0_chemDiv_timeDerivData p hc hcT
---     hu₀_cont hu₀_bound hu₀_nonneg hpos hub
---   ...
-
--- In `level0_bFormSource_duhamelSourceTimeC1On_auto`, add the same
--- `hu₀_nonneg` parameter and pass it through:
---
---     (level0ChemDivSourceData p hc hcT.le hu₀_cont hu₀_bound
---       hu₀_nonneg hpos hub)
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-```
-
-## Deriving the new argument from `PositiveInitialDatum`
-
-For the tower/final consumer, derive pointwise nonnegativity from the existing lemma on the lift:
-
-```lean
-import ShenWork.Paper2.IntervalConjugateBFormSourceTower
-
-open Set
-open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainPoint intervalDomainLift)
-open ShenWork.Paper2 (PositiveInitialDatum)
-
-noncomputable section
-
-namespace ShenWork.Paper2.ConjugateBFormSourceTower
-
-example
-    {u₀ : intervalDomainPoint → ℝ}
-    (hu₀pos : PositiveInitialDatum intervalDomain u₀) :
-    ∀ x : intervalDomainPoint, 0 ≤ u₀ x := by
-  intro x
-  have hLift : 0 ≤ intervalDomainLift u₀ x.1 :=
+have hU_pos_Icc : ∀ x ∈ Icc (0 : ℝ) 1, 0 < U_cos x := by
+  -- envelope theorem, if the local time is in [c,T]:
+  --   intro x hx
+  --   have h := _hpos r hr_Icc x hx
+  --   rw [hU_agree x hx] at h
+  --   exact h
+  --
+  -- local-slab theorem, where r is only known positive:
+  --   add `(hu₀pos : PositiveInitialDatum intervalDomain u₀)` and use
+  --   intervalFullSemigroupOperator_pos_of_positiveInitialDatum.
+  intro x hx
+  rw [← hU_agree x hx]
+  simpa [intervalDomainLift, conjugatePicardIter, hx] using
     ShenWork.Paper2.BFormPositiveDatumNegPart
-      .positiveInitialDatum_intervalDomainLift_nonneg hu₀pos x.1 x.2
-  simpa [intervalDomainLift] using hLift
-
-end ShenWork.Paper2.ConjugateBFormSourceTower
+      .intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+        hu₀pos hr_pos' x
 ```
 
-That is the extra argument the future tower base can pass to `level0_bFormSource_duhamelSourceTimeC1On_auto` once the current `sorry` is replaced.
+If you do not want to pass `PositiveInitialDatum`, the minimal assumptions are `hu₀_nonneg : ∀ x, 0 ≤ u₀ x` plus `hu₀_pos_somewhere : ∃ x, 0 < u₀ x`. Nonnegativity alone does not give strict positivity.
 
-## Why Option B is not the clean route here
+## Pasteable proof body
 
-Option B is mathematically plausible, but the Lean route is significantly more involved than the local gap suggests.
-
-The key subtlety is that the current `hlocal_slab` proof takes
+This code is meant to be pasted **after** `apply intervalResolverLiftR_contDiff_four`; it assumes `hU_pos_Icc` is already in scope.
 
 ```lean
-r ∈ Metric.ball s δ
-```
+import ShenWork.Paper2.IntervalDomainLogisticWeakH2Adapter
+import ShenWork.PDE.IntervalSourceDecayQuantitative
 
-not
-
-```lean
-r ∈ Metric.ball s δ ∩ Icc c T
-```
-
-At an endpoint `s = c` or `s = T`, no open ball around `s` is contained in `[c,T]`, so `_hpos` cannot be used directly at `r`. The current `δ = min 1 (s / 2)` only guarantees `r > 0`, not `c ≤ r ≤ T`.
-
-To make Option B work, one has to prove a separate positive-time tube lemma around each `s ∈ Icc c T`:
-
-```lean
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-
-open Set Filter Topology
+open MeasureTheory Set Filter
 open scoped Topology
-open ShenWork.IntervalDomain
-  (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
 
-noncomputable section
+set w := conjugatePicardIter p u₀ 0 r with hw_def
+set b : ℕ → ℝ := fun n =>
+  Real.exp (-r * unitIntervalCosineEigenvalue n) * heatCoeff u₀ n with hb_def
 
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+have hbc_sum : Summable (fun n : ℕ => unitIntervalCosineEigenvalue n * |b n|) := by
+  simpa [b, hb_def] using
+    ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
+      hr_pos' _hu₀_bound
 
-/-- Statement shape for the Option B tube lemma.
+have hagree_w : Set.EqOn (intervalDomainLift w)
+    (fun x : ℝ => ∑' n : ℕ, b n * cosineMode n x) (Icc (0 : ℝ) 1) := by
+  intro x hx
+  simpa [w, hw_def, b, hb_def, hU_cos_def] using hU_agree x hx
 
-The proof should use joint continuity of
-`(t, x : intervalDomainPoint) ↦ conjugatePicardIter p u₀ 0 t x`, positivity at
-`time = s` from `_hpos`, compactness of `intervalDomainPoint`, and then shrink the
-main local `δ` by the produced radius.
--/
-theorem optionB_needed_heat_positive_tube_statement
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {c T M₀ : ℝ} (hc : 0 < c) (_hcT : c ≤ T)
-    (_hu₀_cont : Continuous u₀)
-    (_hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
-    {s : ℝ} (hs : s ∈ Icc c T) :
-    ∃ ρ : ℝ, 0 < ρ ∧ ρ ≤ s / 2 ∧
-      ∀ r ∈ Metric.ball s ρ,
-        ∀ x : intervalDomainPoint,
-          0 ≤ conjugatePicardIter p u₀ 0 r x := by
-  -- Proof route, not a recommended replacement for Option A:
-  -- 1. Define F : ℝ × intervalDomainPoint → ℝ by
-  --      F q = conjugatePicardIter p u₀ 0 q.1 q.2.
-  -- 2. Prove `ContinuousAt F (s, x)` for each subtype point x using
-  --      `heatSemigroup_jointContDiffAt_two` plus the same cosine-series bridge
-  --      already used in `level0_chemDiv_timeDerivData`.
-  -- 3. Get `0 < F (s, x)` from `_hpos s hs x.1 x.2`.
-  -- 4. Use compactness of `intervalDomainPoint` to turn the pointwise
-  --      neighborhoods into a uniform time radius ρ.
-  -- 5. Shrink ρ so `ρ ≤ s/2`, preserving the existing `r > 0` argument.
-  -- This is intentionally left as a statement sketch; the point is that this is
-  -- the extra infrastructure Option B requires.
-  sorry
+have hpos_w : ∀ x ∈ Icc (0 : ℝ) 1, 0 < intervalDomainLift w x := by
+  intro x hx
+  have hposU := hU_pos_Icc x hx
+  have h := hU_agree x hx
+  simpa [w, hw_def] using (h.symm ▸ hposU)
 
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+have cosineMode_neg' : ∀ k x, cosineMode k (-x) = cosineMode k x := by
+  intro k x
+  unfold cosineMode
+  rw [show (k : ℝ) * Real.pi * (-x) = -((k : ℝ) * Real.pi * x) from by ring,
+    Real.cos_neg]
+
+have cosineMode_add_two' : ∀ k x, cosineMode k (x + 2) = cosineMode k x := by
+  intro k x
+  unfold cosineMode
+  rw [show (k : ℝ) * Real.pi * (x + 2) =
+      (k : ℝ) * Real.pi * x + ((k : ℤ) : ℝ) * (2 * Real.pi) from by
+        push_cast; ring,
+    Real.cos_add_int_mul_two_pi _ (k : ℤ)]
+
+have hU_even : ∀ x, U_cos (-x) = U_cos x := by
+  intro x
+  simp only [hU_cos_def]
+  exact tsum_congr (fun k => by congr 1; exact cosineMode_neg' k x)
+
+have hU_period : Function.Periodic U_cos 2 := by
+  intro x
+  simp only [hU_cos_def]
+  exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
+
+have hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x := by
+  intro x
+  rw [show (2 : ℝ) - x = (-x) + 2 from by ring]
+  rw [hU_period (-x), hU_even x]
+
+have hU_pos_all : ∀ x : ℝ, 0 < U_cos x := by
+  intro x
+  set n : ℤ := ⌊x / 2⌋
+  set y : ℝ := x - n * 2
+  have hxy : U_cos x = U_cos y := by
+    show U_cos x = U_cos (x - ↑n * 2)
+    exact (hU_period.sub_int_mul_eq n).symm
+  have hy_lo : 0 ≤ y := by
+    have := Int.floor_le (x / 2); linarith
+  have hy_hi : y < 2 := by
+    have := Int.lt_floor_add_one (x / 2); linarith
+  rw [hxy]
+  by_cases hy1 : y ≤ 1
+  · exact hU_pos_Icc y ⟨hy_lo, hy1⟩
+  · simp only [not_le] at hy1
+    rw [(hU_symm1 y).symm]
+    exact hU_pos_Icc (2 - y) ⟨by linarith, by linarith⟩
+
+set g_smooth : ℝ → ℝ := fun x => p.ν * U_cos x ^ p.γ with hg_smooth_def
+
+have hg_C4 : ContDiff ℝ 4 g_smooth := by
+  show ContDiff ℝ 4 (fun x : ℝ => p.ν * U_cos x ^ p.γ)
+  exact contDiff_const.mul
+    (hU_C4.rpow_const_of_ne (fun x => ne_of_gt (hU_pos_all x)))
+
+have hg_C2_on : ContDiffOn ℝ 2 g_smooth (Icc (0 : ℝ) 1) :=
+  (hg_C4.of_le (by norm_num)).contDiffOn
+
+have hg_even : ∀ x, g_smooth (-x) = g_smooth x := by
+  intro x; simp only [hg_smooth_def, hU_even]
+
+have hg_symm1 : ∀ x, g_smooth (2 - x) = g_smooth x := by
+  intro x; simp only [hg_smooth_def, hU_symm1]
+
+have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+    (∀ x, g (-x) = g x) → ∀ x, deriv g (-x) = -(deriv g x) := by
+  intro g _hg heven x
+  have h1 := deriv_comp_neg (f := g) (x := x)
+  rw [show (fun x : ℝ => g (-x)) = g from funext heven] at h1
+  linarith
+
+have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+    (∀ x, g (-x) = -(g x)) → ∀ x, deriv g (-x) = deriv g x := by
+  intro g _hg hodd x
+  have h1 := deriv_comp_neg (f := g) (x := x)
+  rw [show (fun x : ℝ => g (-x)) = fun x : ℝ => -(g x) from funext hodd] at h1
+  simp [deriv_neg] at h1
+  linarith
+
+have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
+  intro g hodd
+  have h := hodd 0
+  rw [neg_zero] at h
+  linarith
+
+have hg'_odd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) :=
+  deriv_even_odd (hg_C4.of_le (by norm_num)) hg_even
+
+have hg'_bc0 : deriv g_smooth 0 = 0 := odd_zero hg'_odd
+
+have hg'_antisymm1 : ∀ x, deriv g_smooth (2 - x) = -(deriv g_smooth x) := by
+  intro x
+  have h1 := deriv_comp_const_sub (f := g_smooth) (a := 2) (x := x)
+  rw [show (fun x : ℝ => g_smooth (2 - x)) = g_smooth from funext hg_symm1] at h1
+  linarith
+
+have hg'_bc1 : deriv g_smooth 1 = 0 := by
+  have h := hg'_antisymm1 1
+  rw [show (2 : ℝ) - 1 = 1 from by norm_num] at h
+  linarith
+
+have hg'_cont : Continuous (deriv g_smooth) :=
+  hg_C4.continuous_deriv (by norm_num)
+
+have hg'_tend0 : Filter.Tendsto (deriv g_smooth)
+    (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+  conv_rhs => rw [← hg'_bc0]
+  exact hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+
+have hg'_tend1 : Filter.Tendsto (deriv g_smooth)
+    (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+  conv_rhs => rw [← hg'_bc1]
+  exact hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+
+have hg_H2 : IntervalWeakH2Neumann g_smooth :=
+  ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+    hg_C2_on hg'_tend0 hg'_tend1 hg'_bc0 hg'_bc1
+
+set f_lift : ℝ → ℝ := fun x => p.ν * intervalDomainLift w x ^ p.γ with hf_lift_def
+
+have h_src_Ioo : ∀ x ∈ Ioo (0 : ℝ) 1, f_lift x = g_smooth x := by
+  intro x hx
+  have hx_icc : x ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hx
+  have h := hagree_w hx_icc
+  simp only [f_lift, hf_lift_def, g_smooth, hg_smooth_def]
+  rw [h]
+
+have h_cos_src_eq : ∀ k : ℕ,
+    (∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f_lift x) =
+      ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * g_smooth x := by
+  intro k
+  refine intervalIntegral.integral_congr_ae ?_
+  have hne1 : ∀ᵐ x : ℝ ∂MeasureTheory.volume, x ≠ (1 : ℝ) := by
+    rw [MeasureTheory.ae_iff,
+      show {x : ℝ | ¬ x ≠ (1 : ℝ)} = ({1} : Set ℝ) from by ext x; simp [eq_comm]]
+    exact Real.volume_singleton
+  filter_upwards [hne1] with x hxne hxmem
+  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hxmem
+  have hx_ioo : x ∈ Ioo (0 : ℝ) 1 := ⟨hxmem.1, lt_of_le_of_ne hxmem.2 hxne⟩
+  rw [h_src_Ioo x hx_ioo]
+
+have hf_H2 : IntervalWeakH2Neumann f_lift where
+  secondDeriv := deriv (deriv g_smooth)
+  second_intervalIntegrable := by
+    simpa [ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn]
+      using hg_H2.second_intervalIntegrable
+  second_abs_integral_bound := by
+    simpa [ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn]
+      using hg_H2.second_abs_integral_bound
+  weak_cosine_laplacian := by
+    intro k
+    have h := hg_H2.weak_cosine_laplacian k
+    rw [h_cos_src_eq k]
+    simpa [ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn] using h
+
+have hg_C3 : ContDiff ℝ 3 (deriv g_smooth) := by
+  have h : ContDiff ℝ (3 + 1) g_smooth := by simpa using hg_C4
+  exact h.deriv'
+
+have hg_C2_dd : ContDiff ℝ 2 (deriv (deriv g_smooth)) := by
+  have h : ContDiff ℝ (2 + 1) (deriv g_smooth) := by simpa using hg_C3
+  exact h.deriv'
+
+have hg_C2_dd_on : ContDiffOn ℝ 2 (deriv (deriv g_smooth)) (Icc (0 : ℝ) 1) :=
+  hg_C2_dd.contDiffOn
+
+have hg''_even : ∀ x, deriv (deriv g_smooth) (-x) = deriv (deriv g_smooth) x :=
+  deriv_odd_even (hg_C3.of_le (by norm_num)) hg'_odd
+
+have hg'''_odd : ∀ x, deriv (deriv (deriv g_smooth)) (-x) =
+    -(deriv (deriv (deriv g_smooth)) x) :=
+  deriv_even_odd (hg_C2_dd.of_le (by norm_num)) hg''_even
+
+have hg'''_bc0 : deriv (deriv (deriv g_smooth)) 0 = 0 := odd_zero hg'''_odd
+
+have hg''_symm1 : ∀ x, deriv (deriv g_smooth) (2 - x) = deriv (deriv g_smooth) x := by
+  intro x
+  have h1 := deriv_comp_const_sub (f := deriv g_smooth) (a := 2) (x := x)
+  rw [show (fun x : ℝ => deriv g_smooth (2 - x)) =
+      fun x : ℝ => -(deriv g_smooth x) from funext hg'_antisymm1] at h1
+  simp [deriv_neg] at h1
+  linarith
+
+have hg'''_bc1 : deriv (deriv (deriv g_smooth)) 1 = 0 := by
+  have h1 := deriv_comp_const_sub (f := deriv (deriv g_smooth)) (a := 2) (x := 1)
+  rw [show (fun x : ℝ => deriv (deriv g_smooth) (2 - x)) =
+      deriv (deriv g_smooth) from funext hg''_symm1] at h1
+  rw [show (2 : ℝ) - 1 = 1 from by norm_num] at h1
+  linarith
+
+have hg'''_cont : Continuous (deriv (deriv (deriv g_smooth))) :=
+  hg_C2_dd.continuous_deriv (by norm_num)
+
+have hg'''_tend0 : Filter.Tendsto (deriv (deriv (deriv g_smooth)))
+    (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+  conv_rhs => rw [← hg'''_bc0]
+  exact hg'''_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+
+have hg'''_tend1 : Filter.Tendsto (deriv (deriv (deriv g_smooth)))
+    (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+  conv_rhs => rw [← hg'''_bc1]
+  exact hg'''_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+
+have hg_dd_H2 : IntervalWeakH2Neumann (deriv (deriv g_smooth)) :=
+  ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+    hg_C2_dd_on hg'''_tend0 hg'''_tend1 hg'''_bc0 hg'''_bc1
+
+have hf_dd_H2 : IntervalWeakH2Neumann hf_H2.secondDeriv := by
+  change IntervalWeakH2Neumann (deriv (deriv g_smooth))
+  exact hg_dd_H2
+
+have hsrc_cos_summable : Summable (fun k : ℕ =>
+    unitIntervalCosineEigenvalue k * |cosineCoeffs f_lift k|) :=
+  ShenWork.IntervalSourceDecayQuantitative
+    .intervalWeakH4Neumann_eigenvalue_L1_summable hf_H2 hf_dd_H2
+
+exact hsrc_cos_summable.congr (fun k => by
+  rw [ShenWork.IntervalDomainLogisticWeakH2Adapter
+    .resolverSourceCoeff_re_eq_cosineCoeffs p w k]
+  simp [f_lift, hf_lift_def])
 ```
 
-If that helper existed, the `hlocal_slab` proof would have to change from
+## If the `hf_H2` field unfolding resists
+
+Replace the `hf_H2` constructor’s two `simpa` field proofs by repeating the constructor term explicitly:
 
 ```lean
-refine ⟨min 1 (s / 2), lt_min one_pos (half_pos hs_pos), ?_, ?_, ?_⟩
+have htmp :=
+  ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+    hg_C2_on hg'_tend0 hg'_tend1 hg'_bc0 hg'_bc1
 ```
 
-to a shrunk radius, for example:
+then use `htmp.second_intervalIntegrable`, `htmp.second_abs_integral_bound`, and `htmp.weak_cosine_laplacian`. This is definitional cleanup only, not a new mathematical step.
 
-```lean
-obtain ⟨ρ, hρ_pos, hρ_le_half, hρ_tube⟩ :=
-  optionB_needed_heat_positive_tube_statement p hc _hcT
-    _hu₀_cont _hu₀_bound _hpos hs
+## Why this works
 
-refine ⟨min (min 1 (s / 2)) ρ, ?_, ?_, ?_, ?_⟩
-```
-
-and every place that currently uses `Metric.mem_ball.mp hr` with the old `min 1 (s/2)` would need minor monotonicity rewrites. Then the `h_r_nonneg` proof would become a lookup into the tube:
-
-```lean
-have h_r_nonneg : ∀ x' : intervalDomainPoint,
-    0 ≤ conjugatePicardIter p u₀ 0 r x' := by
-  intro x'
-  exact hρ_tube r hr_to_rho_ball x'
-```
-
-Two details make this longer in Lean than it looks on paper:
-
-* Per-slice continuity of `S(r)u₀` is not enough. The proof needs joint continuity in `(r,x)` to compare the `r`-slice to the `s`-slice uniformly over all `x`.
-* The joint-continuity object should be `ℝ × intervalDomainPoint → ℝ`, not the zero-extended `intervalDomainLift` as a function on `ℝ`, because the zero extension can be discontinuous at the endpoints when the boundary values are positive.
-
-## Final recommendation
-
-Use Option A now. It is local, faithful to the existing kernel-positivity route, and adds only the assumption already available from downstream `PositiveInitialDatum`.
-
-Option B is worth doing only if you strongly want the lower-level theorem to remain true for sign-changing `u₀` whose heat semigroup becomes positive on `[c,T]`. That is a strictly weaker theorem, but it costs a new compact tube lemma and a `δ` refactor. For this specific `3E-nonneg` hole, that is not the cleanest use of proof effort.
+`intervalResolverLiftR_contDiff_four` needs eigenvalue-weighted source coefficient summability. `intervalWeakH4Neumann_eigenvalue_L1_summable` gives that from `IntervalWeakH2Neumann f` plus `IntervalWeakH2Neumann f''`. The actual source and `g_smooth` agree on the interval interior, so their cosine integrals agree. Choosing the source certificate’s `secondDeriv` to be the smooth `g_smooth''` makes the depth-2 certificate exactly the C²/Neumann certificate for `g_smooth''`.
