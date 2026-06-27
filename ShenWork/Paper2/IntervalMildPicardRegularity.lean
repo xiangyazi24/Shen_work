@@ -535,12 +535,9 @@ theorem cosineCoeffs_hasDerivAt_of_smooth_param
       -- cos(nπ·) is continuous, so cos·f is IntervalIntegrable when f is.
       have hgs_int : IntervalIntegrable (g s) volume 0 1 :=
         hs.continuousOn_mul hcos_cont.continuousOn
-      -- IntervalIntegrable → AEStronglyMeasurable on uIoc ⊇ Ioo.
-      have hsub : Set.Ioo (0 : ℝ) 1 ⊆ Set.uIoc (0 : ℝ) 1 := by
-        rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
-        exact Set.Ioo_subset_Ioc_self
+      -- IntervalIntegrable → AEStronglyMeasurable on Ioc ⊇ Ioo.
       exact hgs_int.aestronglyMeasurable.mono_measure
-        (Measure.restrict_mono hsub le_rfl)
+        (Measure.restrict_mono Set.Ioo_subset_Ioc_self le_rfl)
     · -- (hF_int) IntervalIntegrable for g τ at the base point
       have hτ_int := hf_int.self_of_nhds
       exact hτ_int.continuousOn_mul hcos_cont.continuousOn
