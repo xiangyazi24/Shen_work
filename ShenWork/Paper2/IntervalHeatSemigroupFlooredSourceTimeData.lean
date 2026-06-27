@@ -273,7 +273,21 @@ private theorem heatD2Term_abs_le_majorant
     (ha : ∀ n, |a n| ≤ M) (hτ : τ ∈ Ioi r) (n : ℕ) :
     |(λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x|
       ≤ M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by
-  sorry
+  have hM : 0 ≤ M := le_trans (abs_nonneg _) (ha 0)
+  have hlam_nn : 0 ≤ (λ_ n) := by unfold unitIntervalCosineEigenvalue; positivity
+  have hcos : |ShenWork.CosineSpectrum.cosineMode n x| ≤ 1 := by
+    simp only [ShenWork.CosineSpectrum.cosineMode]; exact Real.abs_cos_le_one _
+  have hexp_mono : Real.exp (-τ * (λ_ n)) ≤ Real.exp (-r * (λ_ n)) := by
+    exact Real.exp_le_exp.mpr (by nlinarith [mem_Ioi.mp hτ])
+  calc |(λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x|
+      = (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * |a n| * |ShenWork.CosineSpectrum.cosineMode n x| := by
+        rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg _),
+          abs_of_nonneg (Real.exp_nonneg _)]; ring
+    _ ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M * 1 := by
+        gcongr; exact ha n
+    _ ≤ (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) * M := by
+        rw [mul_one]; gcongr; exact mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)
+    _ = M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by ring
 
 private theorem heatDu_hasDerivAt
     {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
