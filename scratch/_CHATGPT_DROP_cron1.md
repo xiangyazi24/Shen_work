@@ -1,4 +1,4 @@
-# Q1483 (cron1) -- caller trace for heat resolver positivity fix
+# Q1506 (cron1) -- quartic `PhysicalSourceTimeC2` skeleton
 
 Repository: `xiangyazi24/Shen_work`
 Branch: `chatgpt-scratch`
@@ -8,406 +8,320 @@ Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 Connector-only repository search. I did not run Lean locally and did not edit Lean source.
 
-As in the preceding cron drops, direct fetch of some files at branch `chatgpt-scratch` was incomplete, but GitHub code search exposed the indexed snapshot:
+Relevant files inspected:
 
 ```text
-7db6d8e4b01d279823281613bb824200483faddd
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
+ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean
+ShenWork/PDE/IntervalSourceDecayQuantitative.lean
 ```
 
-The `file:line` entries below are from that snapshot. This report is committed to `chatgpt-scratch`.
-
-## Bottom line
-
-Adding
+The important fact from the repo is:
 
 ```lean
-(hu0_pos : forall x : intervalDomainPoint, 0 < u0 x)
+ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
 ```
 
-is still the smallest local fix for `hfloor` in `heatSemigroup_level0_resolverJointC2Data`.
-
-Search result summary:
-
-* `heatResolverJointContDiffAt_two` has no code caller outside its defining file. Search found only `IntervalHeatSemigroupHighRegularity.lean` and `UNDERSTANDING.md`.
-* The FAC chain does **not** call `heatResolverJointContDiffAt_two`; it calls the generic physical resolver theorem `coupledChemical_jointContDiffAt_two H` from a supplied `PhysicalResolverJointC2Data`.
-* The generic FAC callers carry `hu_cont`, `hu_nonneg`, and a strict floor for `1 + v`; they do not carry `BoundedLipschitzPositiveOnUnit` or `forall x, 0 < u0 x`.
-* `BoundedLipschitzPositiveOnUnit` appears only in `IntervalMildSourceDecayHelper.lean` in this search; it is not wired into these call sites.
-
-So propagating `hu0_pos` through `heatSemigroup_level0_resolverJointC2Data` and `heatResolverJointContDiffAt_two` should have a tiny code blast radius.
-
-## Direct heat chain
-
-### `heatSemigroup_level0_resolverJointC2Data`
-
-File:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:822
-```
-
-Signature currently has only:
+with shape:
 
 ```lean
-(hu0_bound : forall k, |cosineCoeffs (intervalDomainLift u0) k| <= M0)
-(hu0_cont : Continuous u0)
+(hf : IntervalWeakH2Neumann f)
+(hf'' : IntervalWeakH2Neumann hf.secondDeriv)
+(hB2 : (∫ x in (0:ℝ)..1, |hf''.secondDeriv x|) <= B2)
+⊢ ∀ k, 1 <= k -> |cosineCoeffs f k| <= 2 * B2 / ((k : ℝ) * Real.pi) ^ 4
 ```
 
-The missing floor is exactly:
+## Placement warning
+
+The cleanest implementation should live in
 
 ```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:832
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
 ```
+
+right after the current `srcTimeCoeff_bound`, because the quartic proof wants the private helper
 
 ```lean
-(hfloor := by intro t ht x hx; sorry)
+srcTimeCoeff_iteratedDeriv_eq
 ```
 
-This is the spot to replace with:
+which identifies the `i`-th time derivative of `srcTimeCoeff` with the cosine coefficient of the `i`-th source slice for `i <= 2`, `t > 0`.
+
+If this skeleton is placed in another file, first make that helper public or restate it.
+
+## Core skeleton
 
 ```lean
-(hfloor := by
-  intro t ht x hx
-  exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
-    (p := p) hu0_cont hu0_pos (t := t) ht (x := x) hx)
+import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
+import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
+import ShenWork.PDE.IntervalSourceDecayQuantitative
+
+open Filter Topology Set MeasureTheory
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalResolverJointC2Physical
+  (boundedWeightJointMajorant boundedWeightJointGradMajorant)
+open ShenWork.IntervalResolverSpectralJointC2Concrete
+  (valueCosWeight gradCosWeight valueCosWeight_nonneg gradCosWeight_nonneg)
+open ShenWork.IntervalPhysicalResolverDataConcrete
+  (srcTimeCoeff PhysicalSourceTimeC2)
+open ShenWork.PDE (intervalNeumannResolverWeight)
+open ShenWork.PDE.IntervalMildSourceDecayHelper
+  (IntervalWeakH2Neumann)
+open ShenWork.IntervalSourceDecayQuantitative
+
+noncomputable section
+
+namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
+
+/-- Quartic source envelope.  `D i` controls the zero mode of time slice `i`;
+`Q i` controls the fourth-derivative `L1` bound of time slice `i`, so nonzero
+modes have `O((k*pi)^-4)` decay. -/
+def quarticEs (D Q : ℕ -> ℝ) (i k : ℕ) : ℝ :=
+  if hi : i <= 2 then
+    if k = 0 then D i
+    else 2 * Q i / (((k : ℝ) * Real.pi) ^ 4)
+  else 0
+
+/-- Positive-time quartic bound for the source time coefficients.
+
+Put this next to `srcTimeCoeff_bound` so the private lemma
+`srcTimeCoeff_iteratedDeriv_eq` is in scope. -/
+theorem srcTimeCoeff_quartic_bound_pos
+    {p : CM2Params} {u : ℝ -> intervalDomainPoint -> ℝ}
+    {s1 s2 : ℝ -> ℝ -> ℝ}
+    (H : FlooredSourceTimeData p u s1 s2)
+    (D Q : ℕ -> ℝ)
+    (hzero : ∀ i, i <= 2 -> ∀ t, 0 < t ->
+      |cosineCoeffs ((sliceFam (srcSlice p u) s1 s2 i) t) 0| <= D i)
+    (hH4 : ∀ i, i <= 2 -> ∀ t, 0 < t ->
+      ∃ hf : IntervalWeakH2Neumann ((sliceFam (srcSlice p u) s1 s2 i) t),
+      ∃ hf2 : IntervalWeakH2Neumann hf.secondDeriv,
+        (∫ x in (0:ℝ)..1, |hf2.secondDeriv x|) <= Q i)
+    (i k : ℕ) (t : ℝ) (hi : i <= 2) (ht : 0 < t) :
+    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ <= quarticEs D Q i k := by
+  rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv,
+    srcTimeCoeff_iteratedDeriv_eq H i k hi ht,
+    Real.norm_eq_abs, quarticEs, dif_pos hi]
+  by_cases hk : k = 0
+  · rw [if_pos hk]
+    subst k
+    exact hzero i hi t ht
+  · rw [if_neg hk]
+    have hk1 : 1 <= k := Nat.one_le_iff_ne_zero.mpr hk
+    rcases hH4 i hi t ht with ⟨hf, hf2, hB4⟩
+    exact intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
+      hf hf2 hB4 k hk1
 ```
 
-This requires adding `hu0_pos` to the theorem.
+The theorem above is the actual replacement for the old `builtEs`/quadratic tail in the positive-time branch.
 
-### `heatResolverJointContDiffAt_two`
+## Summability helper skeletons
 
-File:
+These are the algebra lemmas that make the new envelope work.  The main point is that, for `k >= 1`, the value spatial weights are at worst `lambda`, and the gradient spatial weights are at worst `freq * lambda`.  With quartic decay:
 
 ```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:866
+w_k * O(freq^-4) * lambda          = O(freq^-2)
+w_k * O(freq^-4) * (freq*lambda)  = O(freq^-3)
 ```
 
-This wrapper currently takes:
+both are summable.
 
 ```lean
-(hu0_bound : forall k, |cosineCoeffs (intervalDomainLift u0) k| <= M0)
-(hu0_cont : Continuous u0)
+private theorem weighted_quartic_value_summand_summable
+    {p : CM2Params} {D Q : ℕ -> ℝ}
+    (hD_nonneg : ∀ i, i <= 2 -> 0 <= D i)
+    (hQ_nonneg : ∀ i, i <= 2 -> 0 <= Q i)
+    (i j : ℕ) (hi : i <= 2) (hj : j <= 2) :
+    Summable (fun k : ℕ =>
+      intervalNeumannResolverWeight p k * quarticEs D Q i k * valueCosWeight j k) := by
+  -- Split k = 0 and k >= 1.
+  -- k = 0 is a single supported term.
+  -- For k >= 1, unfold `quarticEs` and `valueCosWeight`.
+  -- Cases j = 0,1,2:
+  --   j = 0:  w * (2Q/freq^4) * 1      <= C/freq^4
+  --   j = 1:  w * (2Q/freq^4) * freq   <= C/freq^3
+  --   j = 2:  w * (2Q/freq^4) * lambda <= C/freq^2
+  -- Use:
+  --   ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu
+  --   ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one
+  --   Real.summable_one_div_nat_pow for powers 2,3,4
+  -- Then combine zero-mode finite support + tail summability.
+  sorry
+
+private theorem weighted_quartic_grad_summand_summable
+    {p : CM2Params} {D Q : ℕ -> ℝ}
+    (hD_nonneg : ∀ i, i <= 2 -> 0 <= D i)
+    (hQ_nonneg : ∀ i, i <= 2 -> 0 <= Q i)
+    (i j : ℕ) (hi : i <= 2) (hj : j <= 2) :
+    Summable (fun k : ℕ =>
+      intervalNeumannResolverWeight p k * quarticEs D Q i k * gradCosWeight j k) := by
+  -- Split k = 0 and k >= 1.
+  -- For k >= 1, unfold `quarticEs` and `gradCosWeight`.
+  -- Cases j = 0,1,2:
+  --   j = 0:  w * (2Q/freq^4) * freq          <= C/freq^3 or better
+  --   j = 1:  w * (2Q/freq^4) * lambda        <= C/freq^2 or better
+  --   j = 2:  w * (2Q/freq^4) * freq*lambda   <= C/freq^3
+  -- The last line is the crucial fix: with quadratic `builtEs` it was only
+  -- O(freq^-1), but quartic gives O(freq^-3).
+  -- Use `lambda * w <= 1`, `w <= 1/mu`, and `Real.summable_one_div_nat_pow`.
+  sorry
+
+theorem quartic_value_summable
+    {p : CM2Params} {D Q : ℕ -> ℝ}
+    (hD_nonneg : ∀ i, i <= 2 -> 0 <= D i)
+    (hQ_nonneg : ∀ i, i <= 2 -> 0 <= Q i) :
+    ∀ m : ℕ, (m : ℕ∞) <= (2 : ℕ∞) ->
+      Summable (boundedWeightJointMajorant
+        (fun i k => intervalNeumannResolverWeight p k * quarticEs D Q i k) m) := by
+  intro m hm
+  have hmNat : m <= 2 := by exact_mod_cast hm
+  unfold boundedWeightJointMajorant
+  -- Finite sum in `i`; each summand is summable by
+  -- `weighted_quartic_value_summand_summable` with `j = m - i`.
+  -- The binomial coefficient is a scalar multiplier.
+  -- Suggested implementation: `Finset.induction_on` the range or use the repo's
+  -- existing finite-sum summability API if available.
+  refine Finset.summable_sum ?_
+  intro i hi_mem
+  have hi_le_m : i <= m := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi_mem)
+  have hi2 : i <= 2 := le_trans hi_le_m hmNat
+  have hj2 : m - i <= 2 := le_trans (Nat.sub_le m i) hmNat
+  exact (weighted_quartic_value_summand_summable
+    (p := p) (D := D) (Q := Q) hD_nonneg hQ_nonneg i (m - i) hi2 hj2).mul_left
+      (Nat.choose m i : ℝ)
+
+theorem quartic_grad_summable
+    {p : CM2Params} {D Q : ℕ -> ℝ}
+    (hD_nonneg : ∀ i, i <= 2 -> 0 <= D i)
+    (hQ_nonneg : ∀ i, i <= 2 -> 0 <= Q i) :
+    ∀ m : ℕ, (m : ℕ∞) <= (2 : ℕ∞) ->
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => intervalNeumannResolverWeight p k * quarticEs D Q i k) m) := by
+  intro m hm
+  have hmNat : m <= 2 := by exact_mod_cast hm
+  unfold boundedWeightJointGradMajorant
+  refine Finset.summable_sum ?_
+  intro i hi_mem
+  have hi_le_m : i <= m := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi_mem)
+  have hi2 : i <= 2 := le_trans hi_le_m hmNat
+  have hj2 : m - i <= 2 := le_trans (Nat.sub_le m i) hmNat
+  exact (weighted_quartic_grad_summand_summable
+    (p := p) (D := D) (Q := Q) hD_nonneg hQ_nonneg i (m - i) hi2 hj2).mul_left
+      (Nat.choose m i : ℝ)
 ```
 
-It calls `heatSemigroup_level0_resolverJointC2Data` here:
+If `Finset.summable_sum` is not the exact Mathlib name in this environment, replace those two blocks by an induction over `Finset.range (m+1)` and repeated `Summable.add` / `Summable.mul_left`.
 
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:878
-```
+## Direct `PhysicalSourceTimeC2` constructor with where fields
 
-and then calls the generic resolver assembler here:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:880
-```
+This is the direct constructor that bypasses `physicalSourceTimeC2_of_floored` and never uses `builtEs`.
 
 ```lean
-exact coupledChemical_jointContDiffAt_two hBt hx0
+/-- Direct quartic physical source-time data.  This is the replacement for
+`physicalSourceTimeC2_of_floored hFSTD ... ...` when the gradient summability
+needs quartic decay. -/
+theorem physicalSourceTimeC2_of_floored_quartic
+    {p : CM2Params} {u : ℝ -> intervalDomainPoint -> ℝ}
+    {s1 s2 : ℝ -> ℝ -> ℝ}
+    (H : FlooredSourceTimeData p u s1 s2)
+    (D Q : ℕ -> ℝ)
+    (hD_nonneg : ∀ i, i <= 2 -> 0 <= D i)
+    (hQ_nonneg : ∀ i, i <= 2 -> 0 <= Q i)
+    (hzero : ∀ i, i <= 2 -> ∀ t, 0 < t ->
+      |cosineCoeffs ((sliceFam (srcSlice p u) s1 s2 i) t) 0| <= D i)
+    (hH4 : ∀ i, i <= 2 -> ∀ t, 0 < t ->
+      ∃ hf : IntervalWeakH2Neumann ((sliceFam (srcSlice p u) s1 s2 i) t),
+      ∃ hf2 : IntervalWeakH2Neumann hf.secondDeriv,
+        (∫ x in (0:ℝ)..1, |hf2.secondDeriv x|) <= Q i)
+    -- Keep these two as explicit hypotheses until the all-real extension of
+    -- `srcTimeCoeff_contDiffAt` / `src_bound` is finished.
+    (hsrcC2 : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k))
+    (hsrc_nonpos : ∀ i k t, i <= 2 -> ¬ 0 < t ->
+      ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ <= quarticEs D Q i k) :
+    PhysicalSourceTimeC2 p u (quarticEs D Q) where
+  src_contDiff k := hsrcC2 k
+  src_bound i k t hi := by
+    by_cases ht : 0 < t
+    · exact srcTimeCoeff_quartic_bound_pos H D Q hzero hH4 i k t hi ht
+    · exact hsrc_nonpos i k t hi ht
+  value_summable m hm :=
+    quartic_value_summable (p := p) (D := D) (Q := Q) hD_nonneg hQ_nonneg m hm
+  grad_summable m hm :=
+    quartic_grad_summable (p := p) (D := D) (Q := Q) hD_nonneg hQ_nonneg m hm
 ```
 
-Therefore `heatResolverJointContDiffAt_two` should also take `hu0_pos` and pass it into `heatSemigroup_level0_resolverJointC2Data`.
+This is the requested `where`-field construction.  The two explicit hypotheses `hsrcC2` and `hsrc_nonpos` are deliberate: the existing `physicalSourceTimeC2_of_floored` still has corresponding all-real extension work in its own `src_contDiff` and `src_bound` fields.  The quartic change is orthogonal to that issue.
 
-### Who calls `heatResolverJointContDiffAt_two`?
+## How to use it in `IntervalHeatSemigroupHighRegularity.lean`
 
-Code search result:
-
-```text
-heatResolverJointContDiffAt_two
-```
-
-returned only:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-UNDERSTANDING.md
-```
-
-I found no Lean code caller outside the defining file. `UNDERSTANDING.md` mentions it as a documented route / option, not as a Lean call.
-
-Conclusion: adding `hu0_pos` to `heatResolverJointContDiffAt_two` should not require a cascade through other Lean files, unless unindexed/local branch files differ from the searched snapshot.
-
-## Direct callers of `coupledChemical_jointContDiffAt_two`
-
-### Definition
-
-File:
-
-```text
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean:116
-```
-
-The theorem is:
+In `heatSemigroup_level0_resolverJointC2Data`, replace:
 
 ```lean
-theorem coupledChemical_jointContDiffAt_two
-    {p : CM2Params} {u : Real -> intervalDomainPoint -> Real} {Bt : Nat -> Nat -> Real}
-    (H : PhysicalResolverJointC2Data p u Bt) {s x : Real} (hx : x in Ioo 0 1) :
-    ContDiffAt Real 2
-      (fun q : Real x Real =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
-```
-
-It has no positivity hypothesis. It consumes only `PhysicalResolverJointC2Data p u Bt` plus interior space `hx`.
-
-### Caller 1: heat wrapper
-
-File:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:880
-```
-
-Inside `heatResolverJointContDiffAt_two`:
-
-```lean
-exact coupledChemical_jointContDiffAt_two hBt hx0
-```
-
-This is the only direct bridge from the heat-level package to the generic resolver theorem.
-
-Current positivity at this wrapper: none, only `hu0_bound` and `hu0_cont`. This is the place where adding `hu0_pos` matters.
-
-### Caller 2: FAC commute discharge, inner commute theorem
-
-File:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:21
-```
-
-The theorem is:
-
-```lean
-theorem coupledChemical_innerCommute_of_physicalJointC2
-    {p : CM2Params} {u : Real -> intervalDomainPoint -> Real} {Bt : Nat -> Nat -> Real}
-    (H : PhysicalResolverJointC2Data p u Bt) {s y : Real} (hy : y in Ioo 0 1) : ...
-```
-
-It calls `coupledChemical_jointContDiffAt_two` at:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:30
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:38
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:50
-```
-
-Its inputs are only `H : PhysicalResolverJointC2Data p u Bt` and an interior-space point. No `u0`, no `hu0_pos`, no `BoundedLipschitzPositiveOnUnit`.
-
-### Caller 3: FAC time-bridge theorem
-
-File:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:68
-```
-
-The theorem is:
-
-```lean
-theorem coupledChemDivFlux_timeBridge_of_physicalJointC2
-    {p : CM2Params} {u : Real -> intervalDomainPoint -> Real} {Bt : Nat -> Nat -> Real}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_c2 : forall x in Ioo 0 1, forall s : Real,
-      ContDiffAt Real 2 (fun q => intervalDomainLift (u q.1) q.2) (s, x))
-    (hbase : forall s : Real, forall x : Real,
-      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x)
+set Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
+have hSTC2 : PhysicalSourceTimeC2 p u Es :=
+  ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored hFSTD
+    ...
     ...
 ```
 
-It calls:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:84
-  coupledChemical_jointContDiffAt_two H hy
-
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:85
-  coupledChemical_grad_jointContDiffAt_two H hy
-
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:88
-  coupledChemical_innerCommute_of_physicalJointC2 H hy
-```
-
-The positivity hypothesis here is only:
+by:
 
 ```lean
-hbase : forall s x, 0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x
+set Es4 := ShenWork.IntervalPhysicalSourceTimeC2Concrete.quarticEs D Q
+have hSTC2 : ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2 p u Es4 :=
+  ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored_quartic
+    hFSTD D Q hD_nonneg hQ_nonneg hzero hH4 hsrcC2 hsrc_nonpos
 ```
 
-That is a resolver-denominator floor, not strict positivity of the original datum `u0`.
-
-### Caller 4: physical FAC input producer
-
-File:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:99
-```
-
-The theorem is:
+Then the existing resolver step remains unchanged:
 
 ```lean
-theorem coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
-    {p : CM2Params} {u : Real -> intervalDomainPoint -> Real} {Bt : Nat -> Nat -> Real}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    (hu_cont : forall s : Real, Continuous (u s))
-    (hu_nonneg : forall s : Real, forall x : intervalDomainPoint, 0 <= u s x)
-    (other : ...)
+exact ⟨_, ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2⟩
 ```
 
-It constructs:
+because `physicalResolverJointC2Data_of_floor` only needs `PhysicalSourceTimeC2 p u Es`; it does not care how `Es` was produced.
+
+## Why quartic fixes `grad_summable`
+
+With quadratic `builtEs`, the worst gradient-majorant term at joint order `m = 2` is:
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:113
+w_k * O(freq^-2) * (freq * lambda) = O(freq^-1)
 ```
+
+which is not summable.
+
+With quartic `quarticEs`, the same term becomes:
+
+```text
+w_k * O(freq^-4) * (freq * lambda)
+```
+
+Using `lambda * w_k <= 1`, this is bounded by:
+
+```text
+O(freq^-3)
+```
+
+which is summable.  Value summability is easier: the worst value spatial weight is only `lambda`, giving `O(freq^-2)`.
+
+## Notes for implementation
+
+1. If Lean complains about `Finset.summable_sum`, use finite-set induction with `Summable.add`.
+2. If the nonzero-mode algebra is noisy, first prove small lemmas:
 
 ```lean
-hbase : forall s x,
-  0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x
+freq_mul_resolverWeight_le_inv_freq
+quartic_value_weight_le_inv_square
+quartic_grad_weight_le_inv_square_or_cube
 ```
 
-from:
+3. Do not route through `builtEs`; the whole point is to make the resolver envelope `Bt i k = w_k * quarticEs D Q i k`.
+4. The H4 tower should be supplied per time-order slice `i = 0,1,2`; otherwise the second time derivative source slice still lacks quartic decay.
 
-```lean
-coupledChemical_floor_pos_of_nonneg_continuous hu_cont hu_nonneg
-```
-
-and calls the time-bridge theorem at:
-
-```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:120
-```
-
-Again, the positivity in this caller is only nonnegativity of the evolving `u s` plus continuity, used to prove `1+v > 0`. It does not provide `forall x, 0 < u0 x`.
-
-## FAC input positivity package
-
-File:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean:21
-```
-
-`FACLocalSlabInputs` includes:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean:28
-  forall s, Continuous (u s)
-
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean:29
-  forall s, forall x : intervalDomainPoint, 0 <= u s x
-```
-
-The FAC package is:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean:49
-```
-
-and the resolver floor theorem is:
-
-```text
-ShenWork/PDE/IntervalChemDivFluxFactorFAC.lean:60
-```
-
-```lean
-theorem coupledChemical_floor_pos_of_nonneg_continuous
-    (hu_cont : forall s, Continuous (u s))
-    (hu_nonneg : forall s, forall x, 0 <= u s x)
-    (s x : Real) :
-    0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) x
-```
-
-So the FAC route deliberately carries nonnegativity and resolver denominator positivity, not strict initial-datum positivity.
-
-## `BoundedLipschitzPositiveOnUnit`
-
-Global search for:
-
-```text
-BoundedLipschitzPositiveOnUnit
-```
-
-found only:
-
-```text
-ShenWork/PDE/IntervalMildSourceDecayHelper.lean:38
-```
-
-The structure is:
-
-```lean
-structure BoundedLipschitzPositiveOnUnit (u : Real -> Real) (m : Real) where
-  m_pos : 0 < m
-  lower_bound : forall x in Set.Icc 0 1, m <= u x
-  bounded : exists M, forall x in Set.Icc 0 1, abs (u x) <= M
-  lipschitz : exists K : RealNN, LipschitzOnWith K u (Set.Icc 0 1)
-```
-
-It is used in the source-decay/H2 package, not in the heat resolver call chain above.
-
-## Comments / non-call references
-
-Search also found comment/doc references:
-
-```text
-ShenWork/PDE/IntervalIteratePicardJointC2.lean:21
-```
-
-This says the iterate u-side C2 assembly mirrors `coupledChemical_jointContDiffAt_two`, but it is not a caller.
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:46-48
-```
-
-This is a comment describing the chain ending in `coupledChemical_jointContDiffAt_two`, not a caller.
-
-```text
-UNDERSTANDING.md:114-128 approximately
-```
-
-This is architecture/status prose mentioning `coupledChemical_jointContDiffAt_two` and `heatResolverJointContDiffAt_two`, not Lean code.
-
-## Recommendation
-
-Patch only the heat-level API:
-
-```lean
-theorem heatSemigroup_level0_resolverJointC2Data
-    ...
-    (hu0_bound : ...)
-    (hu0_cont : Continuous u0)
-    (hu0_pos : forall x : intervalDomainPoint, 0 < u0 x) :
-    exists Bt, PhysicalResolverJointC2Data p (conjugatePicardIter p u0 0) Bt := by
-  ...
-  (hfloor := by
-    intro t ht x hx
-    exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
-      (p := p) hu0_cont hu0_pos (t := t) ht (x := x) hx)
-```
-
-and update the local wrapper:
-
-```lean
-theorem heatResolverJointContDiffAt_two
-    ...
-    (hu0_bound : ...)
-    (hu0_cont : Continuous u0)
-    (hu0_pos : forall x : intervalDomainPoint, 0 < u0 x)
-    ... := by
-  obtain <Bt, hBt> := heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu0_bound hu0_cont hu0_pos
-  exact coupledChemical_jointContDiffAt_two hBt hx0
-```
-
-No current Lean code caller outside `IntervalHeatSemigroupHighRegularity.lean` needs updating according to the search. The FAC callers are generic over `PhysicalResolverJointC2Data`; they should not receive `hu0_pos` unless a later theorem specializes them to the heat-semigroup level-0 data.
-
-## Search log
-
-```text
-heatResolverJointContDiffAt_two
-coupledChemical_jointContDiffAt_two
-coupledChemical_grad_jointContDiffAt_two
-BoundedLipschitzPositiveOnUnit
-FACLocalSlabInputs
-CoupledChemDivFluxFactorFACInputs
-heatSemigroup_level0_resolverJointC2Data
+end ShenWork.IntervalPhysicalSourceTimeC2Concrete
 ```
