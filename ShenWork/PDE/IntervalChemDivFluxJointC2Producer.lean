@@ -80,7 +80,7 @@ structure CoupledChemDivFluxFactorJointC2Inputs
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
     (∀ᶠ s in 𝓝 τ,
-      MeasureTheory.IntervalIntegrable (coupledChemDivSourceLift p u s)
+      IntervalIntegrable (coupledChemDivSourceLift p u s)
         MeasureTheory.volume (0 : ℝ) 1) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
       ContDiffAt ℝ 2
@@ -125,7 +125,7 @@ theorem coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
       htime, htime_cont⟩
   have hsource_cont_slab :
       ∀ᶠ s in 𝓝 τ,
-        MeasureTheory.IntervalIntegrable (coupledChemDivSourceLift p u s)
+        IntervalIntegrable (coupledChemDivSourceLift p u s)
           MeasureTheory.volume (0 : ℝ) 1 :=
     hsource_cont
   have hflux_joint_c2_from_product_quotient_rpow :

@@ -1032,7 +1032,7 @@ theorem level0_chemDiv_timeDerivData
   --   3G — time-derivative joint continuity on closed slab
   have hlocal_slab : ∀ s, s ∈ Icc c T → ∃ δ : ℝ, 0 < δ ∧
     (∀ᶠ r in 𝓝 s,
-      MeasureTheory.IntervalIntegrable
+      IntervalIntegrable
         (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
         MeasureTheory.volume (0 : ℝ) 1) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ r ∈ Metric.ball s δ,

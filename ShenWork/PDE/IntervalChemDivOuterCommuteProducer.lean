@@ -127,7 +127,7 @@ structure CoupledChemDivFluxJointC2Hyp
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
     (∀ᶠ s in 𝓝 τ,
-      MeasureTheory.IntervalIntegrable (coupledChemDivSourceLift p u s)
+      IntervalIntegrable (coupledChemDivSourceLift p u s)
         MeasureTheory.volume (0 : ℝ) 1) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
       ContDiffAt ℝ 2
@@ -157,7 +157,7 @@ theorem coupledChemDivOuterCommuteAtoms_of_fluxJointC2
     ⟨δ, hδ, hsource_cont, hflux_c2, hspatial, htime, htime_cont⟩
   have hsource_cont_slab :
       ∀ᶠ s in 𝓝 τ,
-        MeasureTheory.IntervalIntegrable (coupledChemDivSourceLift p u s)
+        IntervalIntegrable (coupledChemDivSourceLift p u s)
           MeasureTheory.volume (0 : ℝ) 1 :=
     hsource_cont
   have houter_commute :
