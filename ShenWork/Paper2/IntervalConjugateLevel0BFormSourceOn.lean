@@ -1011,133 +1011,117 @@ theorem level0_chemDiv_timeDerivData
           (adot s n) (Icc c T) s) ∧
       (∀ n, ContinuousOn (fun s => adot s n) (Icc c T)) ∧
       (∀ s ∈ Icc c T, ∀ n, |adot s n| ≤ Mdot) := by
-  -- Canonical adot: the cosine coefficients of the pointwise chain-rule field
-  -- coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) s.
-  -- The chain rule for ∂ₜ(∇·(u·χ(v)·∇v)) uses ∂ₜu = Δu (the heat equation).
+  -- Step 1: Positive-window local chain rule data.
   --
-  -- Step 1: CoupledChemDivLocalChainRule for the heat semigroup trajectory.
-  -- Wired through the committed chain:
+  -- RESTRUCTURED (June 2026): The old approach built CoupledChemDivFluxJointC2Hyp
+  -- (which requires ∀ τ : ℝ) then converted via
   --   FluxJointC2Hyp → OuterCommuteAtoms → LocalChainRule.
-  -- The FluxJointC2Hyp carries 5 fields (per-slab source continuity, joint C²
-  -- of uncurried flux, spatial/time fderiv bridges, time-derivative continuity).
-  -- For the heat semigroup each field holds because S(t)u₀ is jointly C∞ for
-  -- t > 0, the resolver inherits regularity via the spectral route, and the
-  -- flux is a smooth composition.  The sorry covers the heat-semigroup-specific
-  -- wiring of these 5 fields; the chain FluxJointC2Hyp → OuterCommuteAtoms →
-  -- LocalChainRule is already committed infrastructure.
-  have hfluxC2 : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp
-      p (conjugatePicardIter p u₀ 0) := by
-    -- Decompose via coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs.
-    -- The FactorJointC2Inputs structure requires 7 fields per slab.
-    -- Each field is sorry'd individually as a concrete sub-goal.
-    apply ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-    refine ⟨fun τ => ?_⟩
-    -- We need a single δ > 0 with all 7 fields.
-    -- For τ > 0, use δ = min 1 (τ/2) to keep Metric.ball τ δ ⊆ (0, ∞).
-    -- For τ ≤ 0, use δ = 1 (degenerate case: S(t) = 0 convention for t ≤ 0).
-    by_cases hτ : 0 < τ
-    · -- ── τ > 0 (meaningful case) ──
-      refine ⟨min 1 (τ / 2), lt_min one_pos (half_pos hτ), ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · -- F1: per-slab source IntervalIntegrable.
-        -- Goal: ∀ᶠ s in 𝓝 τ, IntervalIntegrable (coupledChemDivSourceLift p (...) s) volume 0 1.
-        --
-        -- UPSTREAM WEAKENING DONE: ContinuousOn (Icc 0 1) was weakened to
-        -- IntervalIntegrable in all 4 structures + the consumer
-        -- cosineCoeffs_hasDerivAt_of_smooth_param.  The boundary obstruction
-        -- (intervalDomainLift zero-extension makes ContinuousOn FALSE at x=0,1)
-        -- no longer applies: IntervalIntegrable only needs integrability on (0,1].
-        --
-        -- IntervalIntegrable IS provable from interior ContinuousOn + sup bound:
-        --   have hs_pos : 0 < s := by linarith [hs_in_ball τ (min 1 (τ/2)) s ...]
-        --   have hsmooth := chemFluxDeriv_contDiff_two (C4 factors) (resolver positivity)
-        --   have hcont_Ioo := hsmooth.continuous.continuousOn.mono Ioo_subset_Icc_self
-        --   -- ContinuousOn on Ioo 0 1 → IntervalIntegrable via sup bound
-        exact Filter.Eventually.of_forall (fun s =>
-          sorry) -- [SUB-SORRY 3A-sub: now provable — IntervalIntegrable from interior
-                 --  smoothness + sup bound.  No more structural obstruction.]
-      · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
-        -- Proved via heatSemigroup_jointContDiffAt_two (0 sorry, axiom-clean)
-        -- + ContDiffAt.congr_of_eventuallyEq bridging through
-        --   heatSlice_profile_eq_heatValue (cosine-series agreement on Icc 0 1).
-        intro x hx s hs
-        -- Every s in the ball satisfies s > τ/2 > 0.
-        have hs_pos : τ / 2 < s := by
-          have hdist := Metric.mem_ball.mp hs
-          rw [Real.dist_eq] at hdist
-          have hlt := lt_of_lt_of_le hdist (min_le_right 1 (τ / 2))
-          linarith [(abs_lt.mp hlt).1]
-        have hs_pos' : 0 < s := by linarith
-        -- Step 1: The cosine-series representative is ContDiffAt ℝ 2 at (s, x).
-        -- Use c = τ/4; then 0 < c < τ/2 < s.
-        have hc_pos : (0 : ℝ) < τ / 4 := by linarith
-        have hcs : τ / 4 < s := by linarith
-        have hcosine_c2 : ContDiffAt ℝ 2
-            (fun q : ℝ × ℝ =>
-              ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-                cosineCoeffs (intervalDomainLift u₀) k) *
-                cosineMode k q.2)
-            (s, x) :=
-          ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-            _hu₀_bound hc_pos hcs
-        -- Step 2: Near (s, x), the cosine series = intervalDomainLift (S(·)u₀) ·.
-        -- Since s > 0 and x ∈ Ioo 0 1, a product neighborhood Ioi 0 ×ˢ Ioo 0 1
-        -- is in 𝓝 (s, x), and on this set the two functions agree pointwise
-        -- (by heatSlice_profile_eq_heatValue).
-        have hev : (fun q : ℝ × ℝ =>
+  -- This forced a τ ≤ 0 branch with 7 sorry that are MATHEMATICALLY IMPOSSIBLE
+  -- to fill (heat semigroup S(t)u₀ is discontinuous at t=0, so joint C² fails
+  -- at τ=0 and no δ-ball around τ ≤ 0 avoids the singularity).
+  --
+  -- The fix: build local chain rule data DIRECTLY for each s ∈ Icc c T.
+  -- Since hc : 0 < c, every s ∈ Icc c T satisfies s ≥ c > 0, so all
+  -- positive-time infrastructure (joint smoothness, resolver regularity)
+  -- applies without needing a τ ≤ 0 degenerate case.
+  --
+  -- Remaining sorry (4 total, all genuinely provable for s > 0):
+  --   3C — resolver v joint C² (needs restart cutoff infrastructure)
+  --   3D — resolver ∇v joint C² (same)
+  --   3F — flux time fderiv bridge (needs resolver inner commute)
+  --   3G — time-derivative joint continuity on closed slab
+  have hlocal_slab : ∀ s, s ∈ Icc c T → ∃ δ : ℝ, 0 < δ ∧
+    (∀ᶠ r in 𝓝 s,
+      MeasureTheory.IntervalIntegrable
+        (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
+        MeasureTheory.volume (0 : ℝ) 1) ∧
+    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ r ∈ Metric.ball s δ,
+      HasDerivAt
+        (fun t => coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) t x)
+        (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) r x) r) ∧
+    ContinuousOn
+      (Function.uncurry
+        (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
+      (Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    intro s hs
+    have hs_pos : 0 < s := lt_of_lt_of_le hc hs.1
+    -- Use δ = min 1 (s/2) to keep Metric.ball s δ ⊆ Ioi 0.
+    refine ⟨min 1 (s / 2), lt_min one_pos (half_pos hs_pos), ?_, ?_, ?_⟩
+    · -- Field 1: IntervalIntegrable of source near s.
+      -- Provable from interior smoothness + sup bound: for r > 0, the source
+      -- coupledChemDivSourceLift is smooth on Ioo 0 1, hence IntervalIntegrable
+      -- on [0,1].  The boundary obstruction (intervalDomainLift zero-extension)
+      -- was resolved by the upstream weakening from ContinuousOn to
+      -- IntervalIntegrable.
+      exact Filter.Eventually.of_forall (fun r =>
+        sorry) -- [SORRY 3A: IntervalIntegrable from interior smoothness.
+               --  Provable with existing infrastructure; no structural obstruction.]
+    · -- Field 2: HasDerivAt of the source via pointwise chain rule.
+      -- This combines multiple ingredients:
+      --   (a) u(s,x) = intervalDomainLift(S(s)u₀)(x) is jointly C² — PROVED.
+      --   (b) v = resolver is jointly C² — SORRY 3C (needs restart cutoff).
+      --   (c) ∇v is jointly C² — SORRY 3D (same infrastructure).
+      --   (d) 1 + v > 0 (positivity floor) — provable from _hpos + continuity.
+      --   (e) Flux time fderiv bridge — SORRY 3F (needs resolver inner commute).
+      -- When (b)(c)(e) are filled, this is a routine chain-rule computation.
+      intro x hx r hr
+      -- r > 0 follows from ball containment in Ioi 0:
+      have hr_pos : s / 2 < r := by
+        have hdist := Metric.mem_ball.mp hr
+        rw [Real.dist_eq] at hdist
+        have hlt := lt_of_lt_of_le hdist (min_le_right 1 (s / 2))
+        linarith [(abs_lt.mp hlt).1]
+      have hr_pos' : 0 < r := by linarith
+      -- (a) Heat semigroup u joint C² at (r, x): PROVED.
+      -- Use c_local = s/4; then 0 < c_local < s/2 < r.
+      have hc_local_pos : (0 : ℝ) < s / 4 := by linarith
+      have hc_local_lt_r : s / 4 < r := by linarith
+      have _hu_c2 : ContDiffAt ℝ 2
+          (fun q : ℝ × ℝ =>
             ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
               cosineCoeffs (intervalDomainLift u₀) k) *
-              cosineMode k q.2) =ᶠ[𝓝 (s, x)]
-            (fun q : ℝ × ℝ =>
-              intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) := by
-          have hset : Ioi (0 : ℝ) ×ˢ Ioo (0 : ℝ) 1 ∈ 𝓝 (s, x) :=
-            IsOpen.mem_nhds (isOpen_Ioi.prod isOpen_Ioo) ⟨hs_pos', hx⟩
-          filter_upwards [hset] with q hq
-          obtain ⟨hq1, hq2⟩ := Set.mem_prod.mp hq
-          -- hq1 : q.1 ∈ Ioi 0 (i.e. 0 < q.1), hq2 : q.2 ∈ Ioo 0 1
-          have hq1' : 0 < q.1 := hq1
-          have hq2_cc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq2
-          -- RHS: intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2
-          --    = unitIntervalCosineHeatValue q.1 (heatCoeff u₀) q.2
-          -- (by heatSlice_profile_eq_heatValue; conjugatePicardIter 0 = picardIter 0
-          -- definitionally, so exact matches).
-          -- LHS: ∑' k, (exp * coeff) * cos = ∑' k, (exp * cos) * coeff
-          -- (by ring in each summand).
-          symm
-          trans (unitIntervalCosineHeatValue q.1 (heatCoeff u₀) q.2)
-          · exact ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
-              p hq1' _hu₀_cont _hu₀_bound hq2_cc
-          · simp only [unitIntervalCosineHeatValue,
-              unitIntervalCosineHeatPointWeight,
-              unitIntervalCosineMode_eq_cosineMode,
-              heatCoeff]
-            congr 1; ext k; ring
-        exact hcosine_c2.congr_of_eventuallyEq hev.symm
-      · sorry -- [SUB-SORRY 3C: resolver joint C²]
-      · sorry -- [SUB-SORRY 3D: resolver gradient joint C²]
-      · sorry -- [SUB-SORRY 3E: resolver positivity floor]
-      · sorry -- [SUB-SORRY 3F: flux time fderiv bridge]
-      · sorry -- [SUB-SORRY 3G: time-derivative joint continuity on slab]
-    · -- ── τ ≤ 0 (degenerate case: S(t) = 0 convention for t ≤ 0) ──
-      refine ⟨1, one_pos, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · sorry -- [SUB-SORRY 3A-sub: per-slab continuity, τ ≤ 0 case.
-                --  Same boundary obstruction as τ > 0 case; same fix needed
-                --  (weaken ContinuousOn to IntervalIntegrable in upstream structures).
-                --  This branch is never reached in practice (downstream uses c > 0).]
-      · sorry -- [SUB-SORRY 3B-neg: heat semigroup joint C², τ ≤ 0 case
-                --   (S(t) = 0 for t ≤ 0; for t > 0 near 0 the function jumps,
-                --   but this branch is never reached in practice because the
-                --   downstream use is on [c,T] with c > 0)]
-      · sorry -- [SUB-SORRY 3C: resolver joint C², τ ≤ 0 case]
-      · sorry -- [SUB-SORRY 3D: resolver gradient joint C², τ ≤ 0 case]
-      · sorry -- [SUB-SORRY 3E: resolver positivity floor, τ ≤ 0 case]
-      · sorry -- [SUB-SORRY 3F: flux time fderiv bridge, τ ≤ 0 case]
-      · sorry -- [SUB-SORRY 3G: time-derivative joint continuity, τ ≤ 0 case]
-  have hchain : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivLocalChainRule
-      p (conjugatePicardIter p u₀ 0) :=
-    ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivLocalChainRule_of_fluxJointC2 hfluxC2
+              cosineMode k q.2)
+          (r, x) :=
+        ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+          _hu₀_bound hc_local_pos hc_local_lt_r
+      -- Bridge: near (r, x), cosine series = intervalDomainLift (S(·)u₀)(·).
+      have _hu_c2_bridged : ContDiffAt ℝ 2
+          (fun q : ℝ × ℝ =>
+            intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
+          (r, x) := by
+        apply _hu_c2.congr_of_eventuallyEq
+        have hset : Ioi (0 : ℝ) ×ˢ Ioo (0 : ℝ) 1 ∈ 𝓝 (r, x) :=
+          IsOpen.mem_nhds (isOpen_Ioi.prod isOpen_Ioo) ⟨hr_pos', hx⟩
+        filter_upwards [hset] with q hq
+        obtain ⟨hq1, hq2⟩ := Set.mem_prod.mp hq
+        have hq1' : 0 < q.1 := hq1
+        have hq2_cc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq2
+        symm
+        trans (unitIntervalCosineHeatValue q.1 (heatCoeff u₀) q.2)
+        · exact ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
+            p hq1' _hu₀_cont _hu₀_bound hq2_cc
+        · simp only [unitIntervalCosineHeatValue,
+            unitIntervalCosineHeatPointWeight,
+            unitIntervalCosineMode_eq_cosineMode,
+            heatCoeff]
+          congr 1; ext k; ring
+      sorry -- [SORRY 3C+3D+3F: chain rule HasDerivAt.
+             --  Heat semigroup u joint C² is PROVED above (_hu_c2_bridged).
+             --  Blocked on:
+             --    3C — resolver v joint C² (restart cutoff infrastructure)
+             --    3D — resolver ∇v joint C² (same)
+             --    3F — flux time fderiv bridge (resolver inner commute)
+             --  Positivity (3E) is provable from _hpos + continuity.]
+    · -- Field 3: ContinuousOn of time derivative on closed slab.
+      -- Needs resolver time-derivative closed-slab representative.
+      sorry -- [SORRY 3G: time-derivative joint continuity on slab.
+             --  Needs the resolver spectral route to produce ContinuousOn
+             --  for coupledChemDivTimeDerivativeLift on a closed slab
+             --  around s > 0.  Provable once resolver time-regularity is
+             --  committed.]
   -- Step 2: Joint continuity of the chain-rule field on [c,T]×[0,1].
-  -- Derived FROM hchain: each τ ∈ [c,T] gives per-slab continuity on
-  -- Icc (τ-δ) (τ+δ) ×ˢ Icc 0 1 (from hchain.exists_local_slab).
+  -- Derived FROM hlocal_slab: each s ∈ [c,T] gives per-slab continuity on
+  -- Icc (s-δ) (s+δ) ×ˢ Icc 0 1 (from hlocal_slab s hs).
   -- ContinuousOn is local, so it suffices to check at each point.
   have hjointcont : ContinuousOn
       (Function.uncurry (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivTimeDerivativeLift
@@ -1145,8 +1129,8 @@ theorem level0_chemDiv_timeDerivData
       (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
     intro ⟨s, x⟩ hsx
     obtain ⟨hs, hx⟩ := mem_prod.1 hsx
-    -- Get the local slab from hchain at τ = s
-    rcases hchain.exists_local_slab s with ⟨δ, hδ, _, _, hcont⟩
+    -- Get the local slab from hlocal_slab at τ = s (s ∈ Icc c T, so s > 0)
+    rcases hlocal_slab s hs with ⟨δ, hδ, _, _, hcont⟩
     -- The point (s,x) is in the local slab Icc (s-δ) (s+δ) ×ˢ Icc 0 1
     have hmem : (s, x) ∈ Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1 :=
       mem_prod.2 ⟨⟨by linarith, by linarith⟩, hx⟩
@@ -1163,14 +1147,14 @@ theorem level0_chemDiv_timeDerivData
   -- Step 3: HasDerivWithinAt from the chain rule (HasDerivAt → HasDerivWithinAt).
   set adot := ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot
     p (conjugatePicardIter p u₀ 0) with hadot_def
-  have hderiv_global : ∀ s n,
+  have hderiv_global : ∀ s, s ∈ Icc c T → ∀ n,
       HasDerivAt
         (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
         (adot s n) s := by
-    intro s n
+    intro s hs n
     -- Inline the chain-rule → cosineCoeffs HasDerivAt step
     -- (reproduces coupledChemDivCoeff_hasDerivAt_of_chainRule from ChemDivAdot.lean)
-    rcases hchain.exists_local_slab s with ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
+    rcases hlocal_slab s hs with ⟨δ, hδ, hf_cont, hdiff, hcont_deriv⟩
     simpa only [coupledChemDivSourceCoeffs, hadot_def,
       ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivAdot] using
       ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
@@ -1182,8 +1166,8 @@ theorem level0_chemDiv_timeDerivData
       HasDerivWithinAt
         (fun r => coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ 0) r n)
         (adot s n) (Icc c T) s := by
-    intro s _ n
-    exact (hderiv_global s n).hasDerivWithinAt
+    intro s hs n
+    exact (hderiv_global s hs n).hasDerivWithinAt
   -- Step 4: ContinuousOn of adot from joint continuity.
   have hadotcont : ∀ n, ContinuousOn (fun s => adot s n) (Icc c T) := by
     intro n
