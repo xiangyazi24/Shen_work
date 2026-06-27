@@ -194,9 +194,11 @@ theorem srcTimeCoeff_contDiffAt
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) := by
     have : ContDiffOn ℝ (1 + 1 : ℕ∞) f₀ (Set.Ioi 0) :=
       contDiffOn_succ_of_fderivWithin hd0_on (by intro h; simp at h)
-        (ContDiffOn.congr (contDiffOn_const.smulRight h0) (fun s hs => by
-          rw [fderivWithin_of_isOpen isOpen_Ioi hs]
-          exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
+        (ContDiffOn.congr
+          ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).contDiff.comp_contDiffOn h0)
+          (fun s hs => by
+            rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+            exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
     exact_mod_cast this
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
