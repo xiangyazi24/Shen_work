@@ -179,3 +179,12 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
 
 ### Deepest remaining piece: DuhamelSourceTimeC2Coeff requires λ²-summable envelopes
   → needs depth-3 IBP (sextic decay) for nonlinear source ν·u^γ at positive time
+
+### Milestone: full build verified on uisai2 (3640 jobs, 0 code errors)
+### 29+ commits, 24+ ChatGPT rounds, 9+ subagents
+### Key decisions: Option B (direct cutoff resolver C²) after Option A setback
+### Sorry map after Q1090:
+  - 3C+3D+3F: CLOSES once direct resolver C² lands
+  - 3E/positivity: CLOSES with wiring
+  - 1A, 2A-sup, 3G: NEEDS WORK (higher spatial regularity / closed-slab representatives)
+  - 3A sub-sorry: NEEDS WORK (resolver C⁴ → rewrite to use C²)
