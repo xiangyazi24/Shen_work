@@ -1085,12 +1085,21 @@ theorem level0_chemDiv_timeDerivData
         with hV_cos_def
       have hV_C4 : ContDiff ℝ 4 V_cos := by
         apply intervalResolverLiftR_contDiff_four
-        sorry -- [KNOWN GAP: eigenvalue-weighted ℓ¹ summability of resolver source.
-               --  Route fully documented; needs ~50 lines mirroring lines 460-560 pattern.
-               --  Steps: g_smooth = ν·U_cos^γ (C⁴+positivity) → IntervalWeakH2Neumann depth 2
-               --  → intervalWeakH4Neumann_eigenvalue_L1_summable → bridge via
-               --  resolverSourceCoeff_re_eq_cosineCoeffs. All tools exist (0 sorry each).
-               --  U_cos and hU_C4 already in scope. Needs _hu₀_nonneg for positivity.]
+        -- Bridge: resolver source coeff = cosine coeff of ν·lift^γ
+        rw [show (fun k => unitIntervalCosineEigenvalue k *
+          |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
+            (conjugatePicardIter p u₀ 0 r) k).re|) =
+          (fun k => unitIntervalCosineEigenvalue k *
+            |cosineCoeffs (fun x => p.ν * intervalDomainLift
+              (conjugatePicardIter p u₀ 0 r) x ^ p.γ) k|) from by
+          funext k; congr 1; congr 1
+          exact ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
+            p (conjugatePicardIter p u₀ 0 r) k]
+        sorry -- [REDUCED GAP: eigenvalue-weighted ℓ¹ summability of cosineCoeffs of ν·lift^γ.
+               -- Need IntervalWeakH2Neumann depth 2 of ν·U_cos^γ (C⁴ + positivity)
+               -- → intervalWeakH4Neumann_eigenvalue_L1_summable.
+               -- Positivity at r: derive from _hu₀_nonneg + positive-somewhere
+               -- via intervalFullSemigroupOperator_pos (works for ALL r > 0).]
       -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
       have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (coupledChemicalConcentration p
