@@ -1003,7 +1003,8 @@ theorem level0_chemDiv_timeDerivData
     (_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
     (_hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
+      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M)
+    (_hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
     ∃ (adot : ℝ → ℕ → ℝ) (Mdot : ℝ),
       (∀ s ∈ Icc c T, ∀ n,
         HasDerivWithinAt
@@ -1244,8 +1245,7 @@ theorem level0_chemDiv_timeDerivData
           intro y
           unfold intervalDomainLift
           split_ifs with hy
-          · sorry -- [3E-nonneg: need 0 ≤ u₀ ⟨y,hy⟩;
-                  --  available when outer caller has PositiveInitialDatum or u₀ ≥ 0]
+          · exact _hu₀_nonneg ⟨y, hy⟩
           · norm_num
         -- resolver of a nonneg continuous slice is nonneg
         have h_resolver_nonneg :
@@ -1396,14 +1396,15 @@ noncomputable def level0ChemDivSourceData
     (hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
     (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M) :
+      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M)
+    (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
     Level0ChemDivSourceData p u₀ c T :=
   -- Wire envelope data from level0_chemDiv_envelope_summable
   let envData := level0_chemDiv_envelope_summable p hc hcT hu₀_cont hu₀_bound hpos hub
   let env := envData.choose
   let henv := envData.choose_spec
   -- Wire time-derivative data from level0_chemDiv_timeDerivData
-  let tdData := level0_chemDiv_timeDerivData p hc hcT hu₀_cont hu₀_bound hpos hub
+  let tdData := level0_chemDiv_timeDerivData p hc hcT hu₀_cont hu₀_bound hpos hub hu₀_nonneg
   let adot := tdData.choose
   let tdRest := tdData.choose_spec
   let Mdot := tdRest.choose
@@ -1528,12 +1529,13 @@ noncomputable def level0_bFormSource_duhamelSourceTimeC1On_auto
       |deriv (deriv (intervalDomainLift (conjugatePicardIter p u₀ 0 σ))) x| ≤ G2)
     (hUdot : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
       |ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondValue
-        σ (heatCoeff u₀) x| ≤ Udot) :
+        σ (heatCoeff u₀) x| ≤ Udot)
+    (hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x) :
     DuhamelSourceTimeC1On
       (bFormSourceCoeffs p (conjugatePicardIter p u₀ 0)) c T :=
   level0_bFormSource_duhamelSourceTimeC1On p hc hcT hα ha hb hu₀_cont hu₀_bound
     hpos hub hG1 hG2 hUdot
-    (level0ChemDivSourceData p hc hcT.le hu₀_cont hu₀_bound hpos hub)
+    (level0ChemDivSourceData p hc hcT.le hu₀_cont hu₀_bound hpos hub hu₀_nonneg)
 
 /-! ## Section 6: ConjugateMildExistenceData + PaperPositiveInitialDatum interface
 
