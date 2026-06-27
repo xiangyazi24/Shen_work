@@ -1,4 +1,4 @@
-# Q1379 (cron1) — `cron-shen2`
+# Q1381 (cron1) — `cron-shen3`
 
 Repository: `xiangyazi24/Shen_work`
 
@@ -12,13 +12,13 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Scope / method
 
-This is the second cron-shen status/dispatch drop.  The user prompt body was only:
+The user prompt body was only:
 
 ```text
-Q1379 (cron1): cron-shen2
+Q1381 (cron1): cron-shen3
 ```
 
-I found no repository hit for the literal token `cron-shen2`, so I interpret this as a follow-up to Q1378's `--status cron-shen`: update the cron-shen status report and sharpen the next actionable queue using the latest visible status artifacts.
+I found no repository hit for the literal token `cron-shen3`.  I therefore interpret this as the third follow-up status/dispatch drop in the cron-shen sequence, after Q1378 `cron-shen` and Q1379 `cron-shen2`.
 
 Delivery constraints respected:
 
@@ -38,7 +38,7 @@ scratch/_CHATGPT_DROP_cron1.md
 THREE_PAPER_BOARD.md
 ```
 
-The new information below comes mostly from the later entries of `THREE_PAPER_BOARD.md`, especially the 2026-06-23 χ₀<0 and P1 orbit-admissible closure entries.  These supersede the coarser Q1378 status.
+This drop supersedes Q1379 where the later tail of `THREE_PAPER_BOARD.md` gives a more precise endpoint: the unified local Cauchy frontier was sharpened again into concrete χ₀<0 Banach/interface facts and a direct supersolution route.
 
 ## Branch status at drop time
 
@@ -46,7 +46,7 @@ GitHub compare result for `main...chatgpt-scratch` at this drop:
 
 ```text
 status: diverged
-ahead_by: 278
+ahead_by: 279
 behind_by: 382
 merge_base: 954c43ef4e696e78e5724f53b7ddab7c89be140a
 main/base commit: 1a66ab08abbdef1370c8883e82795e76463c621a
@@ -54,206 +54,292 @@ main/base commit: 1a66ab08abbdef1370c8883e82795e76463c621a
 
 So `chatgpt-scratch` remains an active scratch/status branch diverged from `main`.  This drop only overwrites this scratch markdown file.
 
-## Important correction/refinement relative to Q1378
+## Latest live board correction
 
-Q1378 correctly identified the global state as “not a sorry-closing phase”, but it under-sharpened the most recent board endpoint because the later `THREE_PAPER_BOARD.md` entries contain a more advanced reduction.
+The latest visible `THREE_PAPER_BOARD.md` tail contains three important updates beyond the previous `cron-shen2` report.
 
-The latest visible board says:
+### 1. P1 `hin` floor discharged; P1 bottom sharpened
 
-```text
-P2 χ₀<0: reduced to a single carried input Hpersist; Hrestart is derived.
-P1 construction_neg: orbit-admissible closure is built; remaining bottom is the per-step RotheStepInput floor plus source endpoint data.
-P3: still cascades behind the P2/P1 frontier unless a narrow spectral/formula target is requested.
-```
-
-Thus the live status should now be read as:
+The board says:
 
 ```text
-Paper 2 χ₀<0: all specialized machinery landed; one faithful local-persistence/X_E frontier remains.
-Paper 1 χ≤0 construction: admissible closure exists; remaining floor is per-step analytic input, not more wrapper construction.
-Paper 1 stability / positive branch: still real frontiers.
-Paper 3 T2.2: still conditional on fractional-power/P2 cascade.
+P1 admissible_closure hin floor DISCHARGED (684e811, verified 8319 @HEAD):
+  rotheStepInput_of_residualProvider
+  + admissibleStep_of_residualProvider
+  build RotheStepInput from the landed orbit-residual chain.
 ```
 
-## Paper 2 χ₀ < 0 — current live bottom
+So the P1 state is no longer “need hin + hsrc for the strengthened admissible class.”  The `hin` floor has been discharged.
 
-The current target remains:
+Current P1 construction bottom:
+
+```text
+P1 now carries ONLY the per-step RotheFloorOrbitDataResidual for the PRODUCED W.
+```
+
+Meaning:
+
+```text
+- The closed solve gives only the TRUNCATED fixed point.
+- The remaining per-step frontier is the untruncated source R = crossSource plus whole-line flux IBP.
+- This feeds into construction_neg and is a genuine per-step frontier, not a wrapper artifact.
+```
+
+Updated P1 next target:
+
+```text
+Target: discharge RotheFloorOrbitDataResidual for the produced W.
+
+Core content:
+1. Untruncated source identity R = crossSource for the produced step.
+2. Whole-line flux IBP / source endpoint data needed by the non-truncated source.
+3. Bridge from the truncated fixed point solve to the untruncated residual only when the analytic data justify it.
+```
+
+Do not reopen:
+
+```text
+- admissible_closure
+- RotheStepInput hin
+- weighted-slope cancellation for 1 < m < 2
+- false pointwise RotheChemoMonotoneResidual as the main route
+```
+
+Those have either been discharged or explicitly superseded by the live route.
+
+### 2. Unified local Cauchy frontier was identified, then χ₀<0 got sharpened further
+
+The board first says both papers reached a unified honest state:
+
+```text
+ALL specialized mathematics of all 3 papers DERIVED/landed.
+Both χ₀<0 and P1 bottom out at the SAME standard per-step/local Cauchy frontier.
+P3 T2.2 cascades from χ₀<0.
+```
+
+Then it records a §2.6 stop finding:
+
+```text
+The local-existence frontier is the repo's deliberate abstract-carry.
+The conjugate mild map intervalConjugateDuhamelMap is a trajectory-space self-map, not a single-slice endomorphism.
+The repo deliberately bypasses BoundedContinuousFunction and carries local existence abstractly.
+```
+
+However, the later entry sharpens again:
+
+```text
+χ₀<0 concrete Banach machinery COMPLETE; final discharge = genuine PDE crux.
+```
+
+So the current status is not merely “abstract local existence, stop.”  The current live status is more precise: most concrete trajectory Banach machinery is now built, and the true remaining obstruction is a small set of real analysis/interface facts.
+
+### 3. χ₀<0 final discharge is no longer Hpersist in broad form; it is a concrete interface/supersolution package
+
+The board says the concrete χ₀<0 trajectory-BCF Banach machinery landed:
+
+```text
+✓ Traj CompleteSpace
+✓ concrete trajPhi
+✓ trajPhi_apply correspondence
+✓ ContractingWith wrapper
+✓ EnvBall completeness
+✓ non-circular readout by uniqueness
+✓ continuous_singular_duhamel DCT engine
+✓ joint kernel (τ,x)-continuity tower
+✓ candidate-generic MapsTo decomposition
+✓ precise reduction chiNeg_base_envelope_unconditional → {TrajSeam, hLip, hUfix, seed}
+```
+
+The remaining χ₀<0 discharge is localized to:
+
+```text
+(i)  Design mismatch: TrajSeam.henv wants bare sineEnv E_base, but genv outputs the gW-inflated envelope.
+(ii) Wiener ℓ¹-convolution-closure lemma for reflCircle Fourier coefficients of products.
+(iii) Box-generic resolver-relay + weight envelope, currently landed only for actual u.
+(iv) hLip = trajectory-metric K-contraction, needing singular-gradient Duhamel BCF continuity.
+```
+
+Then the very latest correction says the alleged derivative-loss obstruction is route-specific:
+
+```text
+The 5d798ef obstruction is a bare-sineEnv-interface artifact, not a χ₀<0 blocker.
+```
+
+The direct route uses the Duhamel kernel estimate already present in the codebase:
+
+```text
+hSigma_mode_duhamel_bound
+```
+
+and the key correction is:
+
+```text
+The Duhamel kernel already carries √λ.
+So chemDuhamel of M is bounded by C' * M_k / (1 + λ_k)^(σ/2).
+Hence if M ∈ H^σ, then M / (1 + λ)^(σ/2) is still in H^σ.
+Therefore the supersolution
+  Estar = |û₀| + C' * M / (1 + λ)^(σ/2) + logistic
+lies in H^σ by the direct route.
+```
+
+The board says the direct-route build was dispatched to:
+
+```text
+IntervalChiNegDirectSupersolution.lean
+```
+
+## Current best reading of the state
+
+### Paper 2, χ₀ < 0
+
+Current theorem dependency:
 
 ```text
 ChiNegDatumUniformConstruction p
 ```
 
-The latest board has now closed or assembled the previously named hard machinery:
+Current residual is **not** the old circular `hEdom`; not the false k=0 mean-conservation `hzero`; not the broad `Hpersist` label from the previous drop.
+
+Current residual is the concrete direct-route package:
 
 ```text
-✓ chemDuhamel_uniform_strict
-✓ base-E continuation
-✓ hdecomp/Hrestart algebraic restart
-✓ bridges / CarrySeam / mixed bridge
-✓ ladder / MemHSigma machinery
-✓ hvnn route reduced to/through Neumann resolver positivity infrastructure
-✓ k = 0 false hzero removed and replaced by direct mean control
-✓ C²-via-resolver / denominator envelope / flux envelope machinery
+A. Reframe the base envelope around the gW-inflated flux envelope, not the bare sineEnv interface.
+B. Prove/use the direct supersolution Estar ∈ H^σ via hSigma_mode_duhamel_bound.
+C. Prove the needed Wiener ℓ¹ convolution closure for product Fourier coefficients.
+D. Make resolver-relay/weight-envelope facts box-generic, not only actual-u-specific.
+E. Close hLip for the trajectory metric using singular-gradient Duhamel BCF continuity.
 ```
 
-The current χ₀<0 residual is a single carried input:
+The direct supersolution route is the highest-value next item because the board explicitly says it corrects both the producer stall and the earlier over-banking.
+
+Best next worker target for χ₀<0:
 
 ```text
-Hpersist:
-  |e^{−ρλ_k} u(r)_k| + |flLeg ρ k| ≤ (1 − |χ₀| δ) * Estar k
+File/route: IntervalChiNegDirectSupersolution.lean
+
+Goal:
+  Prove the direct H^σ supersolution route for the gW-inflated flux envelope M.
+
+Use:
+  hSigma_mode_duhamel_bound
+  duhamelModeCoeff = ∫ lam^(1/2) * exp(-λ(s-τ)) * F
+  the direct deflation M_k / (1+λ_k)^(σ/2)
+
+Avoid:
+  bare sineEnv pre-deflation
+  demanding M ∈ H^(σ+1)
+  false hzero mean conservation
+  circular hEdom domination
 ```
 
-Interpretation:
-
-`Hpersist` is the local-persistence / inflated-envelope margin in the `X_E` envelope lattice.  The board explicitly identifies it with the remaining local existence frontier in the universal Thm11 framework.  It is not the old circular all-τ domination `hEdom`: the non-circular baseTrajectoryEnvelope producer was landed and signature-verified to carry only short-time persistence, base-at-zero, and continuity inputs.
-
-What **not** to do next:
+Acceptance for this worker should be:
 
 ```text
-Do not revive the rejected circular base-E producer carrying hEdom = conclusion.
-Do not chase false mean-conservation hzero for k=0; mean evolves because of the logistic source.
-Do not claim χ₀<0 unconditional until Hpersist is discharged or explicitly carried as the faithful local-existence frontier.
+1. Direct supersolution Estar ∈ H^σ is proved for the gW-inflated flux envelope.
+2. The proof uses the direct Duhamel deflation, not the old sineEnv interface.
+3. Relevant module builds and #print axioms is clean.
+4. No new conclusion-equivalent carried field is introduced.
 ```
 
-Best next cron-shen dispatch for χ₀<0:
+### Paper 1, χ≤0 construction
+
+Current theorem dependency still flows through construction_neg / Paper1MainResultsData, but the latest board sharpens the bottom.
+
+Current residual:
 
 ```text
-Target: discharge Hpersist in the X_E envelope lattice.
-
-Route:
-1. Define/use the EnvOrderBox / X_E metric structure from cron1_q6 route.
-2. Reuse aeae3ec5's chem-leg strictness; do not reprove it.
-3. Prove heat + logistic legs preserve the inflated envelope margin.
-4. Package these as ContractingWith / local-persistence in X_E.
-5. Feed the resulting Hpersist into baseEnvelope_of_residualSupply.
-6. Conclude ChiNegDatumUniformConstruction only after the final bundle is consumed and axiom-checked.
+RotheFloorOrbitDataResidual for the produced W.
 ```
 
-Expected status if successful:
+This means:
 
 ```text
-P2 χ₀<0 becomes unconditional modulo only the standard global CMParams hypotheses.
+- admissible closure exists;
+- hin/RotheStepInput has been discharged through the residual provider;
+- remaining content is the untruncated source and whole-line flux IBP for the produced W;
+- the closed solve only gives the truncated fixed point, so this bridge is not automatic.
 ```
 
-## Paper 1 χ≤0 — construction_neg current live bottom
-
-The latest board says the orbit-admissible closure is built:
+Best next worker target for P1:
 
 ```text
-admissible_closure :
-  AdmissibleZ u Z →
-  Σ' W, RotheStepOutput u Z W ×' AdmissibleZ u W
+Target:
+  RotheFloorOrbitDataResidual for produced W.
+
+Goal:
+  connect the produced W from the truncated solve to the untruncated crossSource/whole-line flux IBP data required by the orbit residual.
+
+Avoid:
+  new wrapper residuals;
+  rebuilding admissible_closure;
+  relying on the false global pointwise chemo-monotonicity route.
 ```
 
-The board records this as verified/axiom-clean at commit `56c7666`, with the delicate `1 < m < 2` weighted-slope cancellation derived rather than carried.
-
-The new bottom is no longer “build another orbit wrapper”.  The remaining carried items are:
+Acceptance:
 
 ```text
-hin  : RotheStepInput
-hsrc : Green source endpoint limits / source datum
+1. RotheFloorOrbitDataResidual is produced for the actual W from the admissible step.
+2. The proof supplies the untruncated source R = crossSource and flux-IBP/endpoint data.
+3. construction_neg consumes it through the live producer chain.
+4. Relevant module builds and #print axioms is clean.
 ```
 
-Interpretation:
+### Paper 3
 
-The formal recursion over the strengthened admissible class is now available.  The real obstruction is the per-step analytic floor that produces `RotheStepInput` and the source endpoint data.  This is the same class of local-Cauchy/per-step frontier as χ₀<0's `Hpersist`, not a syntactic assembly gap.
-
-What **not** to do next:
+No new direct Paper 3 status appears in the latest board tail.  The practical state remains:
 
 ```text
-Do not add another `...Residual_of_data` or `...of_trap` wrapper.
-Do not chase the globally false pointwise RotheChemoMonotoneResidual route as the primary route.
-Do not treat the kinked upper barrier Ū as globally C²; the admissible class was strengthened exactly to avoid that false requirement.
+P3 T2.2 cascades from χ₀<0.
 ```
 
-Best next cron-shen dispatch for P1 construction_neg:
+Do not spend the next cron-shen slot on broad P3 unless explicitly requested.  If a P3 task is needed, choose a narrow confirmation task such as a `#print axioms`/statement audit for the T10 branch or one isolated fractional-power embedding lemma.
+
+## Updated priority queue after cron-shen3
 
 ```text
-Target: discharge the per-step RotheStepInput floor for the strengthened admissible class.
+Priority 1 — P2 χ₀<0 direct supersolution:
+  Work in/around IntervalChiNegDirectSupersolution.lean.
+  Prove Estar ∈ H^σ for the gW-inflated flux envelope using hSigma_mode_duhamel_bound.
+  This is the direct correction to the bare-sineEnv artifact.
 
-Route:
-1. Work directly at the `RotheStepInput` producer interface.
-2. Use the already built `admissible_closure`; do not rebuild closure invariants.
-3. Prove/source the Green endpoint limits `hsrc` for the trapped bounded continuous source.
-4. Feed `hin + hsrc` into the existing recursion and construction_neg route.
-5. Keep positive branch #5 separate but exploit sign-agnostic parts after #4 is stable.
-```
+Priority 2 — χ₀<0 box-generic analytic support:
+  Wiener ℓ¹ product convolution closure for reflCircle Fourier coefficients.
+  Box-generic resolver relay and weight-envelope facts.
+  hLip trajectory-metric contraction via singular-gradient Duhamel continuity.
 
-Expected status if successful:
-
-```text
-P1 construction_neg moves from faithful-conditional to fully discharged, modulo later stability/right-tail/positive-branch fronts tracked separately.
-```
-
-## Paper 1 remaining beyond construction_neg
-
-Even if the per-step floor closes, Paper 1 is not globally done.  The live board still leaves:
-
-```text
-#5 construction_pos — mirrors #4 with sign changes/sign-agnostic reuse.
-#7 stability — weighted orbital stability of traveling waves, genuinely hard.
-```
-
-The old `#6 cStarStar_spec` vacuity issue is resolved: strict `<` was refactored to `≤` at the degenerate boundary, with satisfiability proved by the board's report.  Do not reopen #6 unless a later build/audit contradicts it.
-
-## Paper 3 current status
-
-Current practical status:
-
-```text
-P3 T10 / nonpositive sensitivity positive-equilibrium stability: likely already unconditional, but still marked confirm in the board.
-P3 full T2.2: conditional on #8 fractional-power-embedding frontier.
-```
-
-Best next action:
-
-```text
-Do not prioritize broad P3 T2.2 before P2 χ₀<0 and P1 construction are cleaner.
-If a P3 task is needed, choose a narrow confirmation target:
-  - confirm #print axioms for T10, or
-  - isolate one fractional-power embedding lemma behind #8.
-```
-
-## Updated priority queue
-
-Use this queue for the next cron-shen dispatches:
-
-```text
-Priority 1 — P2 χ₀<0:
-  Discharge Hpersist via X_E EnvOrderBox / ContractingWith local persistence.
-
-Priority 2 — P1 construction_neg:
-  Discharge RotheStepInput + hsrc for the strengthened AdmissibleZ orbit.
-
-Priority 3 — P1 construction_pos:
-  Mirror the sign-agnostic construction machinery after Priority 2 stabilizes.
+Priority 3 — P1 construction_neg:
+  Produce RotheFloorOrbitDataResidual for the actual produced W, focusing on untruncated crossSource and whole-line flux IBP.
 
 Priority 4 — P3:
-  Confirm T10 axioms or isolate #8; do not make it the main campaign until P2/P1 local frontiers are resolved.
+  Keep broad T2.2 behind χ₀<0 unless explicitly requested.
 ```
 
-## Concrete handoff prompt for the next worker
+## Concrete next-worker prompts
 
-A concise next-worker prompt should be one of these, depending on which lane is chosen.
-
-For χ₀<0:
+### Prompt A — χ₀<0 direct supersolution
 
 ```text
-Read THREE_PAPER_BOARD.md latest 2026-06-23 entries.  Target the single remaining χ₀<0 input Hpersist in the X_E envelope lattice.  Reuse chemDuhamel_uniform_strict and the landed base-E/Hrestart/bridge/lattice machinery.  Do not carry hEdom or false k=0 mean conservation.  Produce the ContractingWith / EnvOrderBox local-persistence lemma that feeds baseEnvelope_of_residualSupply, then wire it into ChiNegDatumUniformConstruction.  Acceptance: full relevant lake build + #print axioms clean; no new carried conclusion-equivalent fields.
+Read the latest THREE_PAPER_BOARD.md tail around the 2026-06-23 correction on the bare-sineEnv interface artifact.  Work on the direct supersolution route in IntervalChiNegDirectSupersolution.lean.  Prove that the gW-inflated flux envelope M gives an H^σ supersolution Estar by using hSigma_mode_duhamel_bound / the direct Duhamel √λ kernel deflation, so the chem contribution is bounded by C' * M_k / (1+λ_k)^(σ/2).  Do not use the old bare sineEnv pre-deflation interface and do not require M ∈ H^(σ+1).  Acceptance: relevant lake build green, #print axioms clean, no new conclusion-equivalent carried fields.
 ```
 
-For P1 construction_neg:
+### Prompt B — χ₀<0 Fourier product support
 
 ```text
-Read THREE_PAPER_BOARD.md latest P1 2026-06-23 entries.  Use the verified admissible_closure for strengthened AdmissibleZ.  Target the remaining per-step inputs hin : RotheStepInput and hsrc : Green source endpoint limits.  Work directly at the RotheStepInput producer interface; do not add wrapper residual layers and do not rely on the false pointwise RotheChemoMonotoneResidual route.  Acceptance: construction_neg consumes the per-step floor through the live producer, with full relevant lake build + #print axioms clean.
+Build the missing Wiener ℓ¹ convolution-closure lemma needed for box-generic product bridges: reflCircle/Fourier ℓ¹ of a product from ℓ¹ factors, sufficient for the gW-inflated envelope route.  Keep it independent of actual u so it can feed box-generic TrajSeam/MapsTo, not only the landed actual-solution bridge.  Acceptance: theorem is reusable by the χ₀<0 MapsTo/TrajSeam route, relevant build green, #print axioms clean.
+```
+
+### Prompt C — P1 produced-W residual
+
+```text
+Read the latest THREE_PAPER_BOARD.md P1 entries.  The admissible_closure and hin/RotheStepInput floor are already discharged.  Target RotheFloorOrbitDataResidual for the produced W: supply the untruncated source R = crossSource plus whole-line flux IBP and endpoint/source data needed by the orbit residual.  Do not add another wrapper residual and do not rely on the false pointwise RotheChemoMonotoneResidual route.  Acceptance: construction_neg consumes the produced residual through the live producer chain, relevant build green, #print axioms clean.
 ```
 
 ## Final status sentence
 
-The current cron-shen state is:
+The cron-shen3 state is:
 
 ```text
-The repo is in a faithful-conditional frontier phase, not a sorry-closing phase.  P2 χ₀<0 has been narrowed to Hpersist, and P1 construction_neg has been narrowed to RotheStepInput+hsrc after admissible_closure.  The next useful work is to discharge those two local/per-step Cauchy-frontier inputs, not to add new wrappers or re-audit already closed denominator/bridge/mean fixes.
+The project is still in a faithful-conditional frontier phase, but the frontier is now much sharper.  P1 has discharged the admissible/hin floor and now needs RotheFloorOrbitDataResidual for the produced W.  P2 χ₀<0 has concrete trajectory-Banach machinery built; the main next target is the direct gW-inflated H^σ supersolution route, plus reusable Wiener ℓ¹ product closure and box-generic relay/Lip facts.  Broad wrapper work should stop.
 ```
 
 ## Delivery note
