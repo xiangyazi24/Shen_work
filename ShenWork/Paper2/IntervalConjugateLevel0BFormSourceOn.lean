@@ -1096,10 +1096,19 @@ theorem level0_chemDiv_timeDerivData
           exact ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
             p (conjugatePicardIter p u₀ 0 r) k]
         sorry -- [REDUCED GAP: eigenvalue-weighted ℓ¹ summability of cosineCoeffs of ν·lift^γ.
-               -- Need IntervalWeakH2Neumann depth 2 of ν·U_cos^γ (C⁴ + positivity)
-               -- → intervalWeakH4Neumann_eigenvalue_L1_summable.
-               -- Positivity at r: derive from _hu₀_nonneg + positive-somewhere
-               -- via intervalFullSemigroupOperator_pos (works for ALL r > 0).]
+               --  FULL ROUTE (ChatGPT Q1285+Q1291, all APIs verified to exist):
+               --  1. Positivity: intervalFullSemigroupOperator_pos hr_pos'
+               --     + _hu₀_nonneg + positive-somewhere (from _hpos at any σ ∈ Icc c T)
+               --     → 0 < lift(S(r)u₀) on [0,1]
+               --     → 0 < U_cos on [0,1] (via hU_agree)
+               --     → 0 < U_cos globally (even + period-2, lines 636-691 pattern)
+               --  2. g_smooth = ν·U_cos^γ is C⁴ via hU_C4.rpow_const_of_ne
+               --  3. intervalWeakH2Neumann_of_contDiffOn on g_smooth (C²+Neumann BCs)
+               --     BCs from cosine-series symmetry (deriv cos(kπx) = 0 at 0,1)
+               --  4. Depth 2: same for hf_H2.secondDeriv (g_smooth is C⁴ hence C² twice)
+               --  5. intervalWeakH4Neumann_eigenvalue_L1_summable hf_H2 hf''_H2
+               --  6. Congr via hU_agree to match cosineCoeffs of ν·lift(u r)^γ
+               --  All tools exist with 0 sorry. ~50 lines mirroring lines 460-560.]
       -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
       have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (coupledChemicalConcentration p
