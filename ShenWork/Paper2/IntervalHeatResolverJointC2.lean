@@ -35,6 +35,7 @@
   The wiring (contDiff_tsum + eventuallyEq transfer) is fully proved.
 -/
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
 import Mathlib.Analysis.Calculus.SmoothSeries
 
 open Filter Topology
@@ -44,6 +45,8 @@ open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
 open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
+open ShenWork.IntervalPhysicalResolverDataConcrete
+  (srcTimeCoeff resolverTimeCoeff_eq_weight_smul)
 open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
   smoothRightCutoff_contDiff smoothRightCutoff_eq_zero_of_le
   smoothRightCutoff_eq_one_of_ge smoothRightCutoff_eventually_eq_one)
@@ -66,23 +69,104 @@ def cutoffResolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
   fun q => smoothRightCutoff (c / 2) c q.1 *
     (resolverTimeCoeff p u k q.1 * cosineMode k q.2)
 
-/-! ### Per-term C² (sorry'd — analytic content) -/
+/-! ### Layer 1: Source coefficient ContDiffAt at positive time (analytic content) -/
 
-/-- Each cutoff resolver term is C² in `(t,x)`.
+/-- The source time coefficient `srcTimeCoeff p u k` is `ContDiffAt ℝ 2` at any
+positive time `t > 0` for the heat semigroup base iterate.
 
-**Proof route (sorry'd):**  The cutoff `φ` is C² (from `smoothRightCutoff_contDiff`).
-The resolver time coefficient `resolverTimeCoeff p u k` is C∞ on the support of φ
-(where t ≥ c/2 > 0): at positive time the heat semigroup `S(t)u₀` is smooth, the
-source `ν·(S(t)u₀)^γ` is smooth, and the cosine coefficient integral of a smooth
-function is smooth.  The elliptic weight `1/(μ+λ_k)` is a constant factor.
-`cosineMode k` is C∞.  Product of C²/C∞ functions is C². -/
-theorem cutoffResolverTerm_contDiff_two
+This is the deepest analytic content.  At positive time, the heat semigroup
+`S(t)u₀` is C∞, so the source `ν·(S(t)u₀)^γ` is smooth in `(t,x)`.
+The time derivatives can be computed via the chain rule + heat equation
+`∂ₜ S(t)u₀ = Δ S(t)u₀`.  Differentiating the cosine coefficient integral
+`∫₀¹ source(t,x) cos(kπx) dx` under the integral sign (via
+`cosineCoeffs_hasDerivAt_of_smooth_param`) twice, then checking continuity of
+the second derivative's coefficients, gives `ContDiffAt ℝ 2`. -/
+theorem heatLevel0_srcTimeCoeff_contDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (_hu₀_cont : Continuous u₀)
+    {t : ℝ} (_ht : 0 < t) (k : ℕ) :
+    ContDiffAt ℝ (2 : ℕ∞)
+      (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
+  sorry
+
+/-! ### Layer 2: Resolver coefficient ContDiffAt by constant weight -/
+
+/-- The resolver time coefficient is `ContDiffAt ℝ 2` at positive time.
+Follows from `srcTimeCoeff` being `ContDiffAt ℝ 2` and the constant-weight
+factorization `resolverTimeCoeff = wₖ · srcTimeCoeff`. -/
+theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    ContDiffAt ℝ (2 : ℕ∞)
+      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
+  have hsrc := heatLevel0_srcTimeCoeff_contDiffAt_two
+    (p := p) hu₀_bound hu₀_cont ht k
+  have hEq : resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k =
+      fun s => ShenWork.PDE.intervalNeumannResolverWeight p k *
+        srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
+    funext s; exact resolverTimeCoeff_eq_weight_smul p _ k s
+  rw [hEq]
+  exact contDiffAt_const.mul hsrc
+
+/-! ### Layer 3: Cutoff × resolverTimeCoeff is globally C² -/
+
+/-- The scalar cutoff resolver coefficient `φ(t) · resolverTimeCoeff(t)` is
+globally `ContDiff ℝ 2`.  For `t < c/2` the cutoff kills the term; for
+`t ≥ c/2 > 0` the resolver coefficient is `ContDiffAt ℝ 2`. -/
+theorem cutoffResolverCoeff_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {c : ℝ} (hc : 0 < c) (k : ℕ) :
+    ContDiff ℝ 2 (fun t =>
+      smoothRightCutoff (c / 2) c t * resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) := by
+  rw [contDiff_iff_contDiffAt]
+  intro t
+  by_cases ht : c / 2 ≤ t
+  · have ht_pos : 0 < t := by linarith
+    exact (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).contDiffAt.mul
+      (heatLevel0_resolverTimeCoeff_contDiffAt_two hu₀_bound hu₀_cont ht_pos k)
+  · push_neg at ht
+    have hev : (fun t => smoothRightCutoff (c / 2) c t *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) =ᶠ[𝓝 t]
+        fun _ => (0 : ℝ) := by
+      filter_upwards [Iio_mem_nhds ht] with s hs
+      have : smoothRightCutoff (c / 2) c s = 0 :=
+        smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)
+      simp [this]
+    exact contDiffAt_const.congr_of_eventuallyEq hev.symm
+
+/-! ### Layer 4: Per-term C² in (t,x) -/
+
+/-- Each cutoff resolver term is C² in `(t,x)`.
+Decomposition: `cutoffResolverTerm = (φ·resolverCoeff) ∘ fst * cosineMode ∘ snd`.
+The scalar part is globally C² (Layer 3), cosineMode is C∞. -/
+theorem cutoffResolverTerm_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
     {c : ℝ} (hc : 0 < c) (k : ℕ) :
     ContDiff ℝ 2 (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) := by
-  sorry
+  have hcoef := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hc k
+  have hcoef_q : ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      smoothRightCutoff (c / 2) c q.1 *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) :=
+    hcoef.comp contDiff_fst
+  have hcos : ContDiff ℝ 2 (cosineMode k) := by
+    unfold cosineMode; fun_prop
+  have hcos_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => cosineMode k q.2) :=
+    hcos.comp contDiff_snd
+  show ContDiff ℝ 2 (fun q => smoothRightCutoff (c / 2) c q.1 *
+    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1 * cosineMode k q.2))
+  conv => ext q; rw [show smoothRightCutoff (c / 2) c q.1 *
+    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1 * cosineMode k q.2) =
+    (smoothRightCutoff (c / 2) c q.1 *
+      resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) * cosineMode k q.2
+    from by ring]
+  exact hcoef_q.mul hcos_q
 
 /-! ### Summable majorant (sorry'd — analytic content) -/
 
@@ -94,11 +178,14 @@ The majorant shape is:
 where the resolver coefficient contribution decays as `1/(μ+λ_k)` times bounded
 source coefficients, giving overall summability from the elliptic weight. -/
 noncomputable def cutoffResolverMajorant (p : CM2Params)
-    (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ) (_hc : 0 < c)
+    (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ) (hc : 0 < c)
     (j k : ℕ) : ℝ :=
   -- Placeholder: the actual majorant would involve smoothRightCutoff derivative
   -- bounds, resolver coefficient bounds on [c/2, ∞), and cosineMode bounds.
   -- For now, define it abstractly so the wiring can proceed.
+  -- Suppress unused variable warnings:
+  let _ := p; let _ := u₀; let _ := M₀; let _ := c; let _ := hc
+  let _ := j; let _ := k
   Classical.choice inferInstance
 
 /-- The majorant is nonneg. -/
@@ -235,8 +322,8 @@ theorem heatResolver_jointContDiffAt_two
       ∑' k : ℕ, resolverTerm p (conjugatePicardIter p u₀ 0) k q) := by
     filter_upwards [hmem] with q hq
     exact resolverSeries_eq_lift_on_interior (Set.Ioo_subset_Icc_self hq)
-  -- Chain: cutoff series =ᶠ resolver series =ᶠ lift
-  exact hCutoff.congr_of_eventuallyEq (hEqCutoff.symm.trans hEqLift.symm)
+  -- Chain: lift =ᶠ resolver series =ᶠ cutoff series
+  exact hCutoff.congr_of_eventuallyEq (hEqLift.trans hEqCutoff)
 
 /-- **Joint `ContDiffAt ℝ 2`** of the spatial derivative `∂ₓ v` of the resolver
 coupled concentration at the heat semigroup base iterate.
