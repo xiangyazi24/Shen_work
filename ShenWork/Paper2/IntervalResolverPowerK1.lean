@@ -181,8 +181,7 @@ theorem hasDerivAt_powerCoeff (k : ℕ) :
       (fun x => p.ν * (intervalDomainLift (u s) x) ^ p.γ)
       MeasureTheory.volume (0:ℝ) 1 := by
     filter_upwards [hf_cont] with s hs
-    rw [← Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hs
-    exact hs.intervalIntegrable
+    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
   have h_diff : ∀ x ∈ Set.Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball σ δ,
       HasDerivAt (fun r => p.ν * (intervalDomainLift (u r) x) ^ p.γ)
         (resolverPowerDerivSlice p u s x) s := by

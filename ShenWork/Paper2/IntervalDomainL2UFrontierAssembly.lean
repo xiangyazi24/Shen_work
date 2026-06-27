@@ -364,8 +364,7 @@ theorem continuousOn_sq_integral_zero_eqOn_zero
   classical
   have hsqcont : ContinuousOn (fun y => (f y) ^ 2) (Set.Icc (0:ℝ) 1) := hf.pow 2
   have hint : IntervalIntegrable (fun y => (f y) ^ 2) volume 0 1 := by
-    rw [← Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hsqcont
-    exact hsqcont.intervalIntegrable
+    exact (hsqcont.mono (by rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)])).intervalIntegrable
   have hnn_ae : 0 ≤ᵐ[volume.restrict (Set.Ioc (0:ℝ) 1 ∪ Set.Ioc 1 0)]
       (fun y => (f y) ^ 2) :=
     Filter.Eventually.of_forall (fun y => by positivity)

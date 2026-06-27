@@ -1199,8 +1199,7 @@ theorem hasDerivAt_sourceCoeff (k : ℕ) :
       (logisticSourceFun p.a p.b p.α (intervalDomainLift (u s)))
       MeasureTheory.volume (0:ℝ) 1 := by
     filter_upwards [hf_cont] with s hs
-    rw [← Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hs
-    exact hs.intervalIntegrable
+    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
   have h_diff : ∀ x ∈ Set.Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball σ δ,
       HasDerivAt (fun r => logisticSourceFun p.a p.b p.α (intervalDomainLift (u r)) x)
         (sourceDerivSlice p u s x) s := by
