@@ -123,7 +123,12 @@ theorem coupledChemDivFluxFactorJointC2Inputs_of_FACInputs
               q.2)
           (s, x) :=
     fun x hx s hs => (hresolver_c2 x hx s hs).2
-  refine ⟨δ, hδ, hsource, hu_c2, hv_c2, hgradv_c2, ?_,
+  -- hsource : ContinuousOn ... (Icc 0 1), need IntervalIntegrable ... 0 1
+  have hsource_int : ∀ᶠ s in 𝓝 τ, IntervalIntegrable
+      (coupledChemDivSourceLift p u s) MeasureTheory.volume (0 : ℝ) 1 := by
+    filter_upwards [hsource] with s hs
+    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
+  refine ⟨δ, hδ, hsource_int, hu_c2, hv_c2, hgradv_c2, ?_,
     htime_bridge, htime_cont⟩
   intro x _ s _
   exact coupledChemical_floor_pos_of_nonneg_continuous hu_cont hu_nonneg s x
