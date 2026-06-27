@@ -1,286 +1,253 @@
-# Q1077 (cron2) — Does a `PhysicalResolverJointC2Data`-only 3G bridge exist?
+# Q1084 (cron2) — `heatResolverJointContDiffAt_two` and direct cutoff Option B
 
 Static GitHub-connector inspection only; I did **not** run Lean locally.
 
 ## Verdict
 
-No: I did **not** find an existing proved theorem of the shape
-
-```lean
-import ShenWork.PDE.IntervalChemDivMixedReprConstruct
-import ShenWork.PDE.IntervalChemDivMixedReprWitness
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-
-example
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {Bt : ℕ → ℕ → ℝ} {τ δ : ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) :
-    ChemDivMixedTimeDerivClosedRepr p u τ δ := by
-  -- No existing theorem found that closes this from H alone.
-  sorry
-```
-
-The committed bridge `chemDivMixedTimeDerivClosedRepr_of_mkWitness` still needs the u-side iterate data:
-
-```lean
-import ShenWork.PDE.IntervalChemDivMixedReprWitness
-
-open ShenWork.IntervalChemDivMixedReprWitness
-open ShenWork.IntervalIteratePicardJointC2
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.IntervalResolverJointC2Physical
-open ShenWork.IntervalChemDivMixedReprConstruct
-open ShenWork.IntervalCoupledRegularityBootstrap
-
-#check ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
--- {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ}
--- {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ} →
---   PhysicalResolverJointC2Data p u Bt →
---   IteratePicardJointC2Data u c Btu →
---   Summable (boundedWeightJointGradMajorant Btu 2) →
---   (∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q) →
---   boundary_agree →
---   ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-So the answer to the main question is: **no, not via the current witness bridge, and I found no wrapper that removes `IteratePicardJointC2Data`.**
-
-## Exact existing producers / wrappers found
-
-### 1. Generic data constructor
-
-```lean
-import ShenWork.PDE.IntervalChemDivMixedReprConstruct
-
-#check ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data
--- ChemDivMixedReprData p u τ δ →
---   ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-This is the lowest-level constructor.  It takes the full `ChemDivMixedReprData` bundle: ten continuous representatives, the global floor, and closed-slab agreement with `mixedAlgebra`.
-
-### 2. Witness-bundle constructor
-
-```lean
-import ShenWork.PDE.IntervalChemDivMixedReprWitness
-
-#check ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_witness
--- ChemDivMixedReprWitnessData p u τ δ →
---   ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-This only replaces `ChemDivMixedReprData` by the richer witness bundle.  It still does not take `PhysicalResolverJointC2Data` directly.
-
-### 3. Main spectral witness bridge
-
-```lean
-import ShenWork.PDE.IntervalChemDivMixedReprWitness
-
-#check ShenWork.IntervalChemDivMixedReprWitness.mkWitnessData
-#check ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
-```
-
-This is the direct bridge found in Q1067.  Its dependencies are exactly:
-
-```lean
-(H : PhysicalResolverJointC2Data p u Bt)
-(Hu : IteratePicardJointC2Data u c Btu)
-(Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
-(hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
-(bdry : ... boundary agreement ...)
-```
-
-It uses `H` for the resolver-side reps
+`heatResolverJointContDiffAt_two` **is already committed** in:
 
 ```text
-Vc, Vxc, Vxxc, Vtc, Vtxc, Vtxxc
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 ```
 
-but it uses `Hu` and `Hg2u` for the u-side reps
+But the committed theorem is **not** the direct cutoff-plus-`contDiff_tsum` Option B described in the prompt.  It is the existing *physical data* route:
 
 ```text
-Uc, Utc, Utxc, Uxc
+heatSemigroup_flooredSourceTimeData
+  → physicalSourceTimeC2_of_floored
+  → physicalResolverJointC2Data_of_floor
+  → heatSemigroup_level0_resolverJointC2Data
+  → coupledChemical_jointContDiffAt_two
+  → heatResolverJointContDiffAt_two
 ```
 
-That is the essential reason `PhysicalResolverJointC2Data` alone is insufficient for this theorem.
+So the answer to the key question is:
 
-### 4. Iterate-gradient wrapper
+* **As currently committed:** yes, `heatResolverJointContDiffAt_two` still needs the `FlooredSourceTimeData` lane through `heatSemigroup_level0_resolverJointC2Data`.
+* **For the proposed direct cutoff Option B:** no, it should bypass `FlooredSourceTimeData` entirely.  It still needs positive-time source coefficient regularity and summable bounded-weight majorants, but those should be proved locally/on the cutoff window, not packaged as global/all-time `FlooredSourceTimeData`.
 
-```lean
-import ShenWork.PDE.IntervalIterateGradMajorant
+## Exact current committed theorem
 
-#check ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
--- PhysicalResolverJointC2Data p u Bt →
--- IteratePicardJointC2Data u c Btu →
--- (∀ m ≤ 2, Summable (boundedWeightJointGradMajorant Btu m)) →
--- floor → boundary →
--- ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-This wrapper only packages the iterate gradient summability leg.  It still requires `IteratePicardJointC2Data`.
-
-### 5. Heat-Level0 direct skeleton
-
-```lean
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-#check ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0
-#check ShenWork.Paper2.Level0HeatMixedRepr.level0HeatCoeff
-#check ShenWork.Paper2.Level0HeatMixedRepr.level0HeatGmix
-```
-
-This file is important because it is the only thing I found that intentionally avoids passing `IteratePicardJointC2Data` into the mixed-repr bridge.  But it is **not** a `PhysicalResolverJointC2Data`-only wrapper.  It directly constructs cutoff-patched heat/resolver representatives and then feeds `chemDivMixedTimeDerivClosedRepr_of_data`.
-
-Its theorem signature is heat-specific:
-
-```lean
-{p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ τ : ℝ} →
-  0 < τ →
-  (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) →
-  Continuous u₀ →
-  ChemDivMixedTimeDerivClosedRepr
-    p (conjugatePicardIter p u₀ 0) τ (min (1 : ℝ) (τ / 2))
-```
-
-The implementation shown in the file is still a skeleton with `sorry`s for continuity, floor, and agreement of the ten cutoff reps.  It is a separate proof route, not an already-available wrapper around `PhysicalResolverJointC2Data`.
-
-## Search result for `IteratePicardJointC2Data`
-
-The structure is:
-
-```lean
-import ShenWork.PDE.IntervalIteratePicardJointC2
-
-#check ShenWork.IntervalIteratePicardJointC2.IteratePicardJointC2Data
-#check ShenWork.IntervalIteratePicardJointC2.iterate_lift_jointContDiffAt_two
-#check ShenWork.IntervalIteratePicardJointC2.iterate_hu_c2_slab
-```
-
-`IteratePicardJointC2Data u c Bt` requires:
-
-```lean
-lift_eq_series : ∀ {t x : ℝ}, x ∈ Icc (0 : ℝ) 1 →
-  intervalDomainLift (u t) x = ∑' k : ℕ, c k t * cosineMode k x
-
-coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (c k)
-
-coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-  ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
-
-value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-  Summable (boundedWeightJointMajorant Bt m)
-```
-
-I did **not** find a heat-Level0 constructor such as any of these names:
-
-```lean
-heatSemigroup_iteratePicardJointC2Data
-level0Heat_iteratePicardJointC2Data
-iteratePicardJointC2Data_level0
-IteratePicardJointC2Data.of_heatSemigroup
-```
-
-I also searched for the combination `IteratePicardJointC2Data level0HeatCoeff` and `IteratePicardJointC2Data conjugatePicardIter`; no direct constructor showed up.
-
-## Is `IteratePicardJointC2Data` trivially constructible for heat Level0?
-
-Not as the structure is currently typed.
-
-For Level0 the natural coefficient family is
-
-```lean
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-#check ShenWork.Paper2.Level0HeatMixedRepr.level0HeatCoeff
--- level0HeatCoeff u₀ k t =
---   Real.exp (-t * unitIntervalCosineEigenvalue k) *
---     cosineCoeffs (intervalDomainLift u₀) k
-```
-
-The heat semigroup does have local positive-time joint regularity:
+The current theorem body is already present and is short:
 
 ```lean
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
 
-#check ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-```
-
-but that theorem gives only `ContDiffAt ℝ 2` of the uncurried heat series at points with positive time.  It does **not** package the coefficient representation, global-in-time coefficient envelopes, and `boundedWeightJointMajorant` summability demanded by `IteratePicardJointC2Data`.
-
-Moreover, the raw heat coefficients are not globally uniformly bounded in time for negative `t`:
-
-```lean
--- For k > 0, λ_k > 0, so
---   exp (-t * λ_k)
--- blows up as t → -∞.
--- Thus a finite envelope Bt i k independent of t cannot bound
---   ‖iteratedFDeriv ℝ i (level0HeatCoeff u₀ k) t‖
--- for arbitrary u₀ and all t : ℝ.
-```
-
-That is why the heat regularity proof uses a positive-time cutoff to obtain local/global representatives near the desired slab, rather than trying to force the raw heat coefficient family into a global `IteratePicardJointC2Data` bundle.
-
-## Practical conclusion for 3G
-
-For the current committed bridges:
-
-```text
-PhysicalResolverJointC2Data alone is enough for the resolver V-side reps,
-but not enough for the u-side U, Ut, Utx, Ux reps.
-```
-
-So 3G cannot currently be closed by only applying a `PhysicalResolverJointC2Data` bridge.  One of these extra pieces is still needed:
-
-1. keep using `chemDivMixedTimeDerivClosedRepr_of_mkWitness`, and provide `IteratePicardJointC2Data` plus `Hg2u`, floor, and boundary; or
-2. finish the heat-specific direct route in `ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0`; or
-3. add a new positive-slab/cutoff witness theorem whose u-side assumptions are the heat-specific closed-slab representatives, not global `IteratePicardJointC2Data`.
-
-The shortest honest statement of the missing bridge would look closer to this than to an `H`-only theorem:
-
-```lean
-import ShenWork.PDE.IntervalChemDivMixedReprConstruct
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-import ShenWork.Paper2.IntervalConjugatePicard
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-open ShenWork.IntervalCoupledRegularityBootstrap
+open Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
 open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.IntervalConjugatePicard
+  (PhysicalResolverJointC2Data coupledChemical_jointContDiffAt_two resolverTimeCoeff)
 
--- Proposed shape, not found as an existing theorem:
-theorem level0_heat_mixedClosedRepr_of_physicalResolver_and_heatReps
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {Bt : ℕ → ℕ → ℝ} {τ δ : ℝ}
-    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
-    -- plus heat-specific closed-slab reps/continuity/agreement/floor/boundary data
-    : ChemDivMixedTimeDerivClosedRepr p (conjugatePicardIter p u₀ 0) τ δ := by
-  sorry
+noncomputable section
+
+namespace ShenWork.Paper2.HeatResolverJointRegularity
+
+/-- Current committed theorem: resolver joint `C²` at heat Level0.
+
+This theorem is committed, but it is not the direct cutoff proof.  It obtains
+`PhysicalResolverJointC2Data` from `heatSemigroup_level0_resolverJointC2Data`, then
+uses the generic physical assembler `coupledChemical_jointContDiffAt_two`. -/
+theorem heatResolverJointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
+  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
+    (p := p) hu₀_bound hu₀_cont
+  exact coupledChemical_jointContDiffAt_two hBt hx₀
+
+end ShenWork.Paper2.HeatResolverJointRegularity
 ```
 
-## Bottom line
+Notice the important diagnostic: `_hc` and `_hs₀` are unused.  A true cutoff proof would use them to choose the positive-time cutoff window.  The current theorem ignores them because it relies on globally packaged `PhysicalResolverJointC2Data`.
 
-Exact existing theorem names:
+## What `sorry` does the committed theorem have?
+
+The theorem body itself has no local `sorry`, but it depends on `heatSemigroup_level0_resolverJointC2Data`, which currently has two local `sorry` blocks for the summability hypotheses needed by `physicalSourceTimeC2_of_floored`:
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+
+noncomputable section
+
+namespace ShenWork.Paper2.HeatResolverJointRegularity
+
+/-- Upstream data producer used by the current `heatResolverJointContDiffAt_two`.
+The two local holes are exactly the `value_summable` and `grad_summable` inputs. -/
+theorem heatSemigroup_level0_resolverJointC2Data_excerpt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀) :
+    ∃ Bt : ℕ → ℕ → ℝ,
+      ShenWork.IntervalResolverJointC2PhysicalConcrete.PhysicalResolverJointC2Data
+        p (conjugatePicardIter p u₀ 0) Bt := by
+  set u := conjugatePicardIter p u₀ 0
+  have hFSTD :=
+    ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+      hu₀_bound hu₀_cont (p := p)
+  set Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
+  have hSTC2 :
+      ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2 p u Es :=
+    ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored hFSTD
+      (by
+        -- value_summable: ∀ m ≤ 2,
+        --   Summable (boundedWeightJointMajorant (wₖ·Es) m)
+        intro m hm
+        sorry)
+      (by
+        -- grad_summable: ∀ m ≤ 2,
+        --   Summable (boundedWeightJointGradMajorant (wₖ·Es) m)
+        intro m hm
+        sorry)
+  exact ⟨_,
+    ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2⟩
+
+end ShenWork.Paper2.HeatResolverJointRegularity
+```
+
+And `heatSemigroup_level0_resolverJointC2Data` calls `heatSemigroup_flooredSourceTimeData`, whose six fields are still sorry'd:
 
 ```text
-ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data
-ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_witness
-ShenWork.IntervalChemDivMixedReprWitness.mkWitnessData
-ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
-ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
-ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0
-ShenWork.IntervalIteratePicardJointC2.IteratePicardJointC2Data
-ShenWork.IntervalIteratePicardJointC2.iterate_lift_jointContDiffAt_two
-ShenWork.IntervalIteratePicardJointC2.iterate_hu_c2_slab
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+d0
+d1
+sliceC2
+sliceNeumann
+zerothBound
+laplBound
 ```
 
-No exact existing theorem found:
+Those six are the floor/source-slice obligations, while the two in `heatSemigroup_level0_resolverJointC2Data` are the weighted value/gradient summability obligations.  Therefore the current committed theorem should still be considered axiom-tainted through upstream `sorryAx`.
+
+## Direct cutoff Option B status
+
+I found no committed direct resolver cutoff theorem analogous to the heat semigroup chain:
 
 ```text
-PhysicalResolverJointC2Data p u Bt → ChemDivMixedTimeDerivClosedRepr p u τ δ
+heatTerm
+cutoffHeatTerm
+cutoffHeatTerm_contDiff_two
+cutoffHeatTerm_iteratedFDeriv_bound
+cutoffHeatSeries_contDiff_two
+heatSeries_eventuallyEq_cutoff
+heatSemigroup_jointContDiffAt_two
 ```
 
-and no heat-Level0 theorem found that constructs `IteratePicardJointC2Data` for `conjugatePicardIter p u₀ 0` / `level0HeatCoeff`.
+For the resolver, the closest already-committed reusable infrastructure is not a resolver cutoff theorem, but the generic bounded-weight physical assembler:
+
+```text
+IntervalResolverJointC2Physical.boundedWeightJointTerm
+IntervalResolverJointC2Physical.boundedWeightJointMajorant
+IntervalResolverJointC2Physical.boundedWeightJointTerm_contDiff
+IntervalResolverJointC2Physical.boundedWeightJointTerm_iteratedFDeriv_le
+IntervalResolverJointC2Physical.boundedWeightJointSeries_contDiff_two
+IntervalResolverJointC2PhysicalConcrete.coupledChemical_lift_eq_series
+IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
+```
+
+The direct cutoff proof should reuse this bounded-weight series machinery, but with **cutoff resolver coefficients** instead of demanding global `PhysicalResolverJointC2Data`.
+
+## What the direct route should look like
+
+A clean direct theorem should introduce a cutoff coefficient
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+import ShenWork.PDE.IntervalResolverJointC2Physical
+import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
+
+open Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
+open ShenWork.IntervalResolverJointC2Physical
+  (boundedWeightJointTerm boundedWeightJointMajorant boundedWeightJointSeries_contDiff_two)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+  (resolverTimeCoeff coupledChemical_lift_eq_series)
+open ShenWork.IntervalResolverSpectralJointC2Cutoff
+  (smoothRightCutoff smoothRightCutoff_eventually_eq_one)
+
+noncomputable section
+
+namespace ShenWork.Paper2.HeatResolverJointRegularity
+
+/-- Cut off the resolver coefficient in positive time. -/
+def cutoffResolverCoeff
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ) : ℕ → ℝ → ℝ :=
+  fun k t => smoothRightCutoff (c / 2) c t *
+    resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
+
+/-- The cutoff resolver series. -/
+def cutoffResolverSeries
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ) : ℝ × ℝ → ℝ :=
+  fun q => ∑' k : ℕ,
+    boundedWeightJointTerm (cutoffResolverCoeff p u₀ c) k q
+
+end ShenWork.Paper2.HeatResolverJointRegularity
+```
+
+Then prove these new local/windowed lemmas:
+
+```text
+cutoffResolverCoeff_contDiff_two
+  : ContDiff ℝ 2 (cutoffResolverCoeff p u₀ c k)
+
+cutoffResolverCoeff_iteratedFDeriv_bound
+  : ‖iteratedFDeriv ℝ i (cutoffResolverCoeff p u₀ c k) t‖ ≤ B i k
+
+cutoffResolverMajorant_summable
+  : ∀ m ≤ 2, Summable (boundedWeightJointMajorant B m)
+
+cutoffResolverSeries_contDiff_two
+  : ContDiff ℝ 2 (cutoffResolverSeries p u₀ c)
+
+resolverSeries_eventuallyEq_cutoff
+  : original resolver lift series =ᶠ[𝓝 (s₀, x₀)] cutoffResolverSeries p u₀ c
+
+heatResolverJointContDiffAt_two_direct
+  : ContDiffAt ℝ 2 (fun q => intervalDomainLift (coupledChemicalConcentration p
+      (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀)
+```
+
+The key observation is that the cutoff theorem only needs source/resolver coefficient regularity on the positive band where `smoothRightCutoff (c/2) c` is nonzero.  That means it should not require global `FlooredSourceTimeData`, and it should not require any `t = 0` uniform bound.
+
+## Source coefficient regularity input needed
+
+The proof still needs the following positive-time facts, but they should be built directly, not via `FlooredSourceTimeData`:
+
+1. `srcTimeCoeff p (conjugatePicardIter p u₀ 0) k` is `C²` on a positive-time neighborhood/window.
+2. `resolverTimeCoeff = intervalNeumannResolverWeight p k * srcTimeCoeff`, using the already-existing theorems:
+
+```text
+IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_eq_weight_smul
+IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_eq_smul
+IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_iteratedFDeriv_eq
+```
+
+3. The three time-order envelopes for the cutoff coefficient have summable bounded-weight majorants.  This is the same bounded-weight mechanism already used by `PhysicalResolverJointC2Data`; it is not the Duhamel/eigen-cube route.
+
+## Does it need `DuhamelSourceTimeC2Coeff`?
+
+No, not for this cutoff version.
+
+The file `IntervalResolverLevel0SpectralC2Coeff.lean` contains the variation-of-constants / `ResolverHasSpectralAgreementC2Coeff` route, but that is a different lane.  It has major unresolved obligations around `DuhamelSourceTimeC2Coeff`, coefficient derivatives, and spectral reconstruction.  The direct cutoff route should avoid that file and use the bounded-weight joint series route instead.
+
+## Final answer
+
+* `heatResolverJointContDiffAt_two` is committed.
+* It currently has no local `sorry`, but it is only a wrapper around `heatSemigroup_level0_resolverJointC2Data`, which still has two local summability `sorry`s and depends on the six-field `heatSemigroup_flooredSourceTimeData` producer.
+* Therefore the committed theorem is **not** the clean direct Option B proof.
+* A true direct cutoff proof can bypass `FlooredSourceTimeData` entirely, provided you add local positive-time resolver/source coefficient regularity and bounded-weight summability lemmas for the cutoff coefficients.
+* The best implementation path is to reuse `boundedWeightJointSeries_contDiff_two` with `cutoffResolverCoeff`, then transfer by eventual equality using `smoothRightCutoff_eventually_eq_one` and `coupledChemical_lift_eq_series`.
