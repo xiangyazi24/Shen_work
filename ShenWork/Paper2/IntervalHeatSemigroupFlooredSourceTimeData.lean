@@ -334,10 +334,13 @@ private theorem heatDu_hasDerivAt
 
 private theorem heatD2u_jointContinuousOn
     {u₀ : intervalDomainPoint → ℝ} {M₀ c T : ℝ} (hc : 0 < c)
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
     ContinuousOn (fun q : ℝ × ℝ => heatD2u u₀ q.1 q.2)
       (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  sorry
+  sorry -- Weierstrass M-test: each term λ²·exp(-tλ)·a·cos is continuous,
+  -- dominated by M₀·λ²·exp(-cλ) (summable from unitIntervalCosineEigenvalue_sq_exp_summable),
+  -- giving uniform convergence on [c,T]×[0,1] → joint ContinuousOn.
+  -- Full proof needs tendstoUniformlyOn_tsum + ContinuousOn of partial sums.
 
 /-! ## Helper: d1 proof body -/
 
