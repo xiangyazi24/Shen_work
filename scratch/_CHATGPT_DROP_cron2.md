@@ -1,211 +1,286 @@
-# Q1068 (cron2) — Level0 SORRY 3A: `IntervalIntegrable` from positive-time source regularity
+# Q1077 (cron2) — Does a `PhysicalResolverJointC2Data`-only 3G bridge exist?
 
 Static GitHub-connector inspection only; I did **not** run Lean locally.
 
 ## Verdict
 
-The local-neighborhood part of SORRY 3A is straightforward, but the current exported API does **not** yet contain the final source-slice representative lemma needed to close the hole as a standalone proof body.
-
-The current hole in `IntervalConjugateLevel0BFormSourceOn.lean` is:
+No: I did **not** find an existing proved theorem of the shape
 
 ```lean
-exact Filter.Eventually.of_forall (fun r =>
-  sorry) -- [SORRY 3A: IntervalIntegrable from interior smoothness.
-```
+import ShenWork.PDE.IntervalChemDivMixedReprConstruct
+import ShenWork.PDE.IntervalChemDivMixedReprWitness
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
 
-That should not be `Eventually.of_forall`: the proof only knows the selected neighborhood keeps `r > 0`. The correct outer wrapper is an `Eventually.of_mem` over the chosen ball `Metric.ball s (min 1 (s/2))`.
-
-What is missing is an exported lemma of the shape:
-
-```lean
-level0_chemDivSourceLift_intervalIntegrable_of_pos :
-  0 < r →
-  IntervalIntegrable
-    (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
-    volume 0 1
-```
-
-or, better, a source-representative lemma producing a closed-interval `C²` flux representative whose derivative agrees a.e. with `coupledChemDivSourceLift`.
-
-## Exact reusable integrability lemma
-
-This is the exact core proof that 3A wants. It avoids the false endpoint `ContinuousOn` requirement by proving integrability from a closed-interval `C²` representative and a.e. equality on `Ioc 0 1`, ignoring the singleton endpoint `{1}`.
-
-```lean
-import ShenWork.PDE.IntervalEllipticCharacterization
-
-open MeasureTheory Set Filter
-open scoped Topology
-
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-
-/-- If `f` agrees on the open interval with the ambient derivative of a closed-`Icc`
-`C²` representative `Q`, then `f` is interval-integrable on `[0,1]`.
-
-This is the endpoint-safe replacement for trying to prove `ContinuousOn f (Icc 0 1)`.
-The endpoint values of `f` may be the `intervalDomainLift` junk/zero-extension values;
-they are irrelevant for `IntervalIntegrable` because the interval measure ignores the
-single endpoint where `Ioc 0 1` is not open-interior. -/
-theorem intervalIntegrable_of_deriv_repr_ae
-    {f Q : ℝ → ℝ}
-    (hQ : ContDiffOn ℝ 2 Q (Set.Icc (0 : ℝ) 1))
-    (h_ioo : ∀ x ∈ Set.Ioo (0 : ℝ) 1, f x = deriv Q x) :
-    IntervalIntegrable f volume (0 : ℝ) 1 := by
-  have hQint : IntervalIntegrable (deriv Q) volume (0 : ℝ) 1 :=
-    ShenWork.IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two hQ
-  refine hQint.congr_ae ?_
-  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
-  refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
-  have hnull : volume ({(1 : ℝ)} : Set ℝ) = 0 := by simp
-  refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
-  intro x hx
-  simp only [Set.mem_setOf_eq] at hx
-  push_neg at hx
-  obtain ⟨hxIoc, hne⟩ := hx
-  simp only [Set.mem_singleton_iff]
-  by_contra hx1
-  have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 :=
-    ⟨hxIoc.1, lt_of_le_of_ne hxIoc.2 hx1⟩
-  exact hne (h_ioo x hxIoo).symm
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-```
-
-This proof mirrors the already-landed pattern in `IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two`: prove integrability for the closed representative, then transfer by `congr_ae` after throwing away the endpoint singleton.
-
-## Exact local replacement for SORRY 3A, assuming the positive-time helper is exported
-
-Once the source-slice helper exists, the local SORRY 3A replacement inside `hlocal_slab` should be:
-
-```lean
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-
-open MeasureTheory Set Filter
-open scoped Topology
-open ShenWork.IntervalDomain
-  (intervalDomainLift intervalDomainPoint intervalDomain)
-open ShenWork.IntervalConjugatePicard
-  (conjugatePicardIter ConjugateMildExistenceData)
 open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemDivSourceLift)
-open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
 
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-
--- Replacement for the first field after:
---   refine ⟨min 1 (s / 2), lt_min one_pos (half_pos hs_pos), ?_, ?_, ?_⟩
--- where the surrounding context contains:
---   p : CM2Params
---   u₀ : intervalDomainPoint → ℝ
---   c T M M₀ : ℝ
---   hc : 0 < c
---   _hu₀_cont : Continuous u₀
---   _hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀
---   s : ℝ
---   hs : s ∈ Icc c T
---   hs_pos : 0 < s
-
-    · -- Field 1: `IntervalIntegrable` of the source near `s`.
-      have hδ_pos : 0 < min (1 : ℝ) (s / 2) :=
-        lt_min one_pos (half_pos hs_pos)
-      exact Filter.Eventually.of_mem (Metric.ball_mem_nhds s hδ_pos) (fun r hr => by
-        have hr_gt_half : s / 2 < r := by
-          have hdist := Metric.mem_ball.mp hr
-          rw [Real.dist_eq] at hdist
-          have hlt := lt_of_lt_of_le hdist (min_le_right (1 : ℝ) (s / 2))
-          linarith [(abs_lt.mp hlt).1]
-        have hr_pos : 0 < r := by linarith
-        exact level0_chemDivSourceLift_intervalIntegrable_of_pos
-          (p := p) (u₀ := u₀) (M₀ := M₀)
-          _hu₀_cont _hu₀_bound hr_pos)
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+example
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {Bt : ℕ → ℕ → ℝ} {τ δ : ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt) :
+    ChemDivMixedTimeDerivClosedRepr p u τ δ := by
+  -- No existing theorem found that closes this from H alone.
+  sorry
 ```
 
-The important detail is the `Metric.ball_mem_nhds` wrapper. It proves the eventual slice only on the positive-time ball, instead of incorrectly asking for all `r : ℝ`.
-
-## The missing helper to export
-
-The exact helper that should be added/exported can be phrased through the reusable lemma above:
+The committed bridge `chemDivMixedTimeDerivClosedRepr_of_mkWitness` still needs the u-side iterate data:
 
 ```lean
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-import ShenWork.Paper2.IntervalChemDivSpatialC2
-import ShenWork.PDE.IntervalEllipticCharacterization
+import ShenWork.PDE.IntervalChemDivMixedReprWitness
 
-open MeasureTheory Set Filter
-open scoped Topology
-open ShenWork.IntervalDomain
-  (intervalDomainLift intervalDomainPoint intervalDomain)
-open ShenWork.IntervalConjugatePicard
-  (conjugatePicardIter)
+open ShenWork.IntervalChemDivMixedReprWitness
+open ShenWork.IntervalIteratePicardJointC2
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+open ShenWork.IntervalResolverJointC2Physical
+open ShenWork.IntervalChemDivMixedReprConstruct
 open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemDivSourceLift coupledChemicalConcentration)
-open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
-open ShenWork.Paper2.ChemDivSpatialC2
-  (chemFluxFun chemFluxDeriv_contDiff_two)
 
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-
-/-- Positive-time Level0 chem-div source slice integrability.
-
-This is the missing exported 3A helper.  Its proof should construct the smooth
-cosine representative `Q_r` for the chemotactic flux at time `r`, prove
-`ContDiffOn ℝ 2 Q_r (Icc 0 1)`, prove the open-interval agreement
-`coupledChemDivSourceLift ... r x = deriv Q_r x`, and then call
-`intervalIntegrable_of_deriv_repr_ae`. -/
-theorem level0_chemDivSourceLift_intervalIntegrable_of_pos
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ} {M₀ r : ℝ}
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (hr_pos : 0 < r) :
-    IntervalIntegrable
-      (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
-      volume (0 : ℝ) 1 := by
-  -- Required construction, not currently exported as a theorem:
-  --   ∃ Qr : ℝ → ℝ,
-  --     ContDiffOn ℝ 2 Qr (Icc 0 1) ∧
-  --     ∀ x ∈ Ioo 0 1,
-  --       coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r x = deriv Qr x
-  --
-  -- Once that representative theorem exists, the proof body is exactly:
-  --
-  --   obtain ⟨Qr, hQr_C2, hQr_agree⟩ :=
-  --     level0_chemDivSource_derivRepr_of_pos
-  --       (p := p) (u₀ := u₀) (M₀ := M₀)
-  --       hu₀_cont hu₀_bound hr_pos
-  --   exact intervalIntegrable_of_deriv_repr_ae hQr_C2 hQr_agree
-  --
-  -- This is not fillable from current exports: the closed representative theorem
-  -- `level0_chemDivSource_derivRepr_of_pos` does not exist yet.
-  admit
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+#check ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
+-- {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c : ℕ → ℝ → ℝ}
+-- {Bt Btu : ℕ → ℕ → ℝ} {τ δ : ℝ} →
+--   PhysicalResolverJointC2Data p u Bt →
+--   IteratePicardJointC2Data u c Btu →
+--   Summable (boundedWeightJointGradMajorant Btu 2) →
+--   (∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q) →
+--   boundary_agree →
+--   ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-Do **not** add the `admit`; the block above documents the missing exported theorem and the exact final two lines after it exists. The intended source representative theorem is the actual remaining work for 3A.
+So the answer to the main question is: **no, not via the current witness bridge, and I found no wrapper that removes `IteratePicardJointC2Data`.**
 
-## Why current exports do not close 3A by themselves
+## Exact existing producers / wrappers found
 
-1. `PhysicalResolverJointC2Data` gives interior joint `ContDiffAt ℝ 2` for the resolver value and gradient, but it does not itself package a closed-interval source representative or source-slice `IntervalIntegrable` theorem.
-
-2. `chemDivSource_weakH2_of_cosineRep` constructs `IntervalWeakH2Neumann (chemDivLift p u v)`, but `IntervalWeakH2Neumann` only stores integrability of `secondDeriv`; it does not expose `IntervalIntegrable` of the source slice itself.
-
-3. `level0_chemDiv_envelope_summable` internally builds an `hSup` package containing interval-integrability of slices on a fixed positive window `[c,T]`, but that information is not exported; the theorem result erases it into an envelope.
-
-4. The local 3A obligation is a full-neighborhood statement near `s`. At endpoints of `[c,T]`, the neighborhood cannot be kept inside `[c,T]`, so the proof must be genuinely positive-time-local, not merely a reuse of the `[c,T]` window hypotheses.
-
-## Minimal work item to make 3A close
-
-Add a small exported helper, preferably in `IntervalConjugateLevel0BFormSourceOn.lean` or a new Level0 source-integrability file imported by it:
+### 1. Generic data constructor
 
 ```lean
-level0_chemDivSource_derivRepr_of_pos :
-  0 < r →
-  ∃ Qr : ℝ → ℝ,
-    ContDiffOn ℝ 2 Qr (Icc (0 : ℝ) 1) ∧
-    ∀ x ∈ Ioo (0 : ℝ) 1,
-      coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r x = deriv Qr x
+import ShenWork.PDE.IntervalChemDivMixedReprConstruct
+
+#check ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data
+-- ChemDivMixedReprData p u τ δ →
+--   ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-Then `level0_chemDivSourceLift_intervalIntegrable_of_pos` is a two-line call to `intervalIntegrable_of_deriv_repr_ae`, and SORRY 3A closes with the `Metric.ball_mem_nhds` wrapper shown above.
+This is the lowest-level constructor.  It takes the full `ChemDivMixedReprData` bundle: ten continuous representatives, the global floor, and closed-slab agreement with `mixedAlgebra`.
+
+### 2. Witness-bundle constructor
+
+```lean
+import ShenWork.PDE.IntervalChemDivMixedReprWitness
+
+#check ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_witness
+-- ChemDivMixedReprWitnessData p u τ δ →
+--   ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+This only replaces `ChemDivMixedReprData` by the richer witness bundle.  It still does not take `PhysicalResolverJointC2Data` directly.
+
+### 3. Main spectral witness bridge
+
+```lean
+import ShenWork.PDE.IntervalChemDivMixedReprWitness
+
+#check ShenWork.IntervalChemDivMixedReprWitness.mkWitnessData
+#check ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
+```
+
+This is the direct bridge found in Q1067.  Its dependencies are exactly:
+
+```lean
+(H : PhysicalResolverJointC2Data p u Bt)
+(Hu : IteratePicardJointC2Data u c Btu)
+(Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
+(hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+(bdry : ... boundary agreement ...)
+```
+
+It uses `H` for the resolver-side reps
+
+```text
+Vc, Vxc, Vxxc, Vtc, Vtxc, Vtxxc
+```
+
+but it uses `Hu` and `Hg2u` for the u-side reps
+
+```text
+Uc, Utc, Utxc, Uxc
+```
+
+That is the essential reason `PhysicalResolverJointC2Data` alone is insufficient for this theorem.
+
+### 4. Iterate-gradient wrapper
+
+```lean
+import ShenWork.PDE.IntervalIterateGradMajorant
+
+#check ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
+-- PhysicalResolverJointC2Data p u Bt →
+-- IteratePicardJointC2Data u c Btu →
+-- (∀ m ≤ 2, Summable (boundedWeightJointGradMajorant Btu m)) →
+-- floor → boundary →
+-- ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+This wrapper only packages the iterate gradient summability leg.  It still requires `IteratePicardJointC2Data`.
+
+### 5. Heat-Level0 direct skeleton
+
+```lean
+import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
+
+#check ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0
+#check ShenWork.Paper2.Level0HeatMixedRepr.level0HeatCoeff
+#check ShenWork.Paper2.Level0HeatMixedRepr.level0HeatGmix
+```
+
+This file is important because it is the only thing I found that intentionally avoids passing `IteratePicardJointC2Data` into the mixed-repr bridge.  But it is **not** a `PhysicalResolverJointC2Data`-only wrapper.  It directly constructs cutoff-patched heat/resolver representatives and then feeds `chemDivMixedTimeDerivClosedRepr_of_data`.
+
+Its theorem signature is heat-specific:
+
+```lean
+{p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ τ : ℝ} →
+  0 < τ →
+  (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) →
+  Continuous u₀ →
+  ChemDivMixedTimeDerivClosedRepr
+    p (conjugatePicardIter p u₀ 0) τ (min (1 : ℝ) (τ / 2))
+```
+
+The implementation shown in the file is still a skeleton with `sorry`s for continuity, floor, and agreement of the ten cutoff reps.  It is a separate proof route, not an already-available wrapper around `PhysicalResolverJointC2Data`.
+
+## Search result for `IteratePicardJointC2Data`
+
+The structure is:
+
+```lean
+import ShenWork.PDE.IntervalIteratePicardJointC2
+
+#check ShenWork.IntervalIteratePicardJointC2.IteratePicardJointC2Data
+#check ShenWork.IntervalIteratePicardJointC2.iterate_lift_jointContDiffAt_two
+#check ShenWork.IntervalIteratePicardJointC2.iterate_hu_c2_slab
+```
+
+`IteratePicardJointC2Data u c Bt` requires:
+
+```lean
+lift_eq_series : ∀ {t x : ℝ}, x ∈ Icc (0 : ℝ) 1 →
+  intervalDomainLift (u t) x = ∑' k : ℕ, c k t * cosineMode k x
+
+coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (c k)
+
+coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+  ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
+
+value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+  Summable (boundedWeightJointMajorant Bt m)
+```
+
+I did **not** find a heat-Level0 constructor such as any of these names:
+
+```lean
+heatSemigroup_iteratePicardJointC2Data
+level0Heat_iteratePicardJointC2Data
+iteratePicardJointC2Data_level0
+IteratePicardJointC2Data.of_heatSemigroup
+```
+
+I also searched for the combination `IteratePicardJointC2Data level0HeatCoeff` and `IteratePicardJointC2Data conjugatePicardIter`; no direct constructor showed up.
+
+## Is `IteratePicardJointC2Data` trivially constructible for heat Level0?
+
+Not as the structure is currently typed.
+
+For Level0 the natural coefficient family is
+
+```lean
+import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
+
+#check ShenWork.Paper2.Level0HeatMixedRepr.level0HeatCoeff
+-- level0HeatCoeff u₀ k t =
+--   Real.exp (-t * unitIntervalCosineEigenvalue k) *
+--     cosineCoeffs (intervalDomainLift u₀) k
+```
+
+The heat semigroup does have local positive-time joint regularity:
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+
+#check ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+```
+
+but that theorem gives only `ContDiffAt ℝ 2` of the uncurried heat series at points with positive time.  It does **not** package the coefficient representation, global-in-time coefficient envelopes, and `boundedWeightJointMajorant` summability demanded by `IteratePicardJointC2Data`.
+
+Moreover, the raw heat coefficients are not globally uniformly bounded in time for negative `t`:
+
+```lean
+-- For k > 0, λ_k > 0, so
+--   exp (-t * λ_k)
+-- blows up as t → -∞.
+-- Thus a finite envelope Bt i k independent of t cannot bound
+--   ‖iteratedFDeriv ℝ i (level0HeatCoeff u₀ k) t‖
+-- for arbitrary u₀ and all t : ℝ.
+```
+
+That is why the heat regularity proof uses a positive-time cutoff to obtain local/global representatives near the desired slab, rather than trying to force the raw heat coefficient family into a global `IteratePicardJointC2Data` bundle.
+
+## Practical conclusion for 3G
+
+For the current committed bridges:
+
+```text
+PhysicalResolverJointC2Data alone is enough for the resolver V-side reps,
+but not enough for the u-side U, Ut, Utx, Ux reps.
+```
+
+So 3G cannot currently be closed by only applying a `PhysicalResolverJointC2Data` bridge.  One of these extra pieces is still needed:
+
+1. keep using `chemDivMixedTimeDerivClosedRepr_of_mkWitness`, and provide `IteratePicardJointC2Data` plus `Hg2u`, floor, and boundary; or
+2. finish the heat-specific direct route in `ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0`; or
+3. add a new positive-slab/cutoff witness theorem whose u-side assumptions are the heat-specific closed-slab representatives, not global `IteratePicardJointC2Data`.
+
+The shortest honest statement of the missing bridge would look closer to this than to an `H`-only theorem:
+
+```lean
+import ShenWork.PDE.IntervalChemDivMixedReprConstruct
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
+import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
+
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+open ShenWork.IntervalConjugatePicard
+
+-- Proposed shape, not found as an existing theorem:
+theorem level0_heat_mixedClosedRepr_of_physicalResolver_and_heatReps
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {Bt : ℕ → ℕ → ℝ} {τ δ : ℝ}
+    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
+    -- plus heat-specific closed-slab reps/continuity/agreement/floor/boundary data
+    : ChemDivMixedTimeDerivClosedRepr p (conjugatePicardIter p u₀ 0) τ δ := by
+  sorry
+```
+
+## Bottom line
+
+Exact existing theorem names:
+
+```text
+ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data
+ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_witness
+ShenWork.IntervalChemDivMixedReprWitness.mkWitnessData
+ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
+ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
+ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0
+ShenWork.IntervalIteratePicardJointC2.IteratePicardJointC2Data
+ShenWork.IntervalIteratePicardJointC2.iterate_lift_jointContDiffAt_two
+ShenWork.IntervalIteratePicardJointC2.iterate_hu_c2_slab
+ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+```
+
+No exact existing theorem found:
+
+```text
+PhysicalResolverJointC2Data p u Bt → ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+and no heat-Level0 theorem found that constructs `IteratePicardJointC2Data` for `conjugatePicardIter p u₀ 0` / `level0HeatCoeff`.
