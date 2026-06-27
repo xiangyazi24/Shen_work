@@ -1,284 +1,470 @@
-# Q1119 (cron3): resolver C⁴ source summability route
+# Q1162 (cron3): `FlooredSourceTimeData` heat-semigroup source-slice fields
 
 ## Verdict
 
-For the sorry at `IntervalConjugateLevel0BFormSourceOn.lean` around the `hV_C4` proof, the route is:
+The four fields are **not already proved as fields of**
+`HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData`.
+The target file itself still has the four `sorry`s for
 
-1. Reduce the resolver-source coefficient to the cosine coefficient of the power source
-   `x ↦ p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 r) x ^ p.γ`.
-2. Do **not** try to prove resolver regularity directly from the denominator at this call site. The current theorem `intervalResolverLiftR_contDiff_four` asks for the stronger source-side summability
-   `Summable (fun k => λ_k * |sourceCoeff_k|)`.
-3. Prove that summability by applying `IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable` to a depth-2 weak Neumann certificate for the power source.
-4. Build the two weak-H² certificates from the smooth cosine representative
-   `U_cos x = ∑' k, exp (-r * λ_k) * heatCoeff u₀ k * cosineMode k x`, then transfer the first certificate to the zero-extension source by `[0,1]` agreement.
+* `sliceC2`,
+* `sliceNeumann`,
+* `zerothBound`, and
+* `laplBound`.
 
-The main catch is not the IBP/summability theorem. The main catch is **positivity for the representative**. Since `p.γ` is only known positive as a real, not necessarily a natural/integer exponent, the global `ContDiff.rpow_const_of_ne` route needs `U_cos x ≠ 0` for all `x`. You get that from positivity on `[0,1]` plus cosine symmetry/periodicity. At the line-1084 local block, `r > 0` alone does not supply this positivity unless an appropriate heat-floor or positive-window hypothesis is available in scope.
+There is useful infrastructure, but it is only partial:
 
-## What `intervalResolverLiftR_contDiff_four` actually requires
+1. `IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable` already proves the **base power-source weak-H²/Neumann package** for a slice
+   `x ↦ ν * intervalDomainLift w x ^ γ`, assuming a cosine representation with
+   eigenvalue-weighted summability and strict positivity on `[0,1]`.
+2. `IntervalSourceDecayQuantitative.intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound` and `IntervalWeakH2Neumann_cosineCoeff_quadratic_decay` already prove the **IBP coefficient decay** once such a weak-H² Neumann package is available.
+3. `IntervalFlooredSourceTimeDataIterate.IterateSourceTimeData` already has the exact abstract shape needed to wire space-C², Neumann, zeroth, and `(kπ)⁻²` data into `FlooredSourceTimeData`, and `flooredSourceTimeData_of_iterate` performs that wiring.
+4. `IntervalPicardLevel0SourceTimeC1On` is mostly about the **logistic** level-0 source and time-C¹ on a positive window. It supplies useful heat-profile representation / continuity lemmas, but it does not prove these four `ν * (S(t)u₀)^γ` fields.
 
-In `ShenWork/Paper2/IntervalResolverHighRegularity.lean`, the theorem is:
+The larger issue is that `FlooredSourceTimeData` asks for **uniform-in-all-positive-time** constants for `zerothBound` and `laplBound`. With only `Continuous u₀` and bounded heat coefficients, those uniform global bounds are not available for the heat time-derivative slices near `t = 0`. So the current target is at least missing hypotheses, and for `i = 1,2` it is likely false as stated unless the data are strengthened or the fields are retyped/windowed.
 
-`intervalResolverLiftR_contDiff_four : Summable (fun k => unitIntervalCosineEigenvalue k * |(intervalNeumannResolverSourceCoeff p u k).re|) -> ContDiff ℝ 4 (intervalResolverLiftR p u)`.
+## What the target file currently asks for
 
-So the current API does **not** ask for the denominator-weighted sequence directly. Internally it uses the elliptic coefficient identity to prove
-
-`λ_k * |v̂_k.re| ≤ |â_k.re|`,
-
-and therefore
-
-`λ_k * (λ_k * |v̂_k.re|) ≤ λ_k * |â_k.re|`.
-
-That is exactly why source eigenvalue-weighted `ℓ¹` is sufficient for C⁴ of the resolver cosine series.
-
-Your observation about the denominator is mathematically correct: if one opened the resolver multiplier directly, the C⁴ target wants summability of
-
-`λ_k^2 / (p.μ + λ_k) * |â_k|`,
-
-and this is bounded by `λ_k * |â_k|` because `λ_k ≤ p.μ + λ_k`. That is what the current theorem already packages, but it packages it behind the stronger, cleaner hypothesis `Summable (λ_k * |â_k|)`. A weaker theorem could be added, but it would be a new API and is not necessary for this sorry.
-
-## Is `intervalWeakH4Neumann_eigenvalue_L1_summable` the right tool?
-
-Yes, for the existing API it is the right tool.
-
-The theorem in `ShenWork/PDE/IntervalSourceDecayQuantitative.lean` has exactly the needed shape after rewriting resolver-source coefficients:
-
-`intervalWeakH4Neumann_eigenvalue_L1_summable hf hf'' : Summable (fun k => λ_k * |cosineCoeffs f k|)`.
-
-Here:
-
-* `hf : IntervalWeakH2Neumann f`,
-* `hf'' : IntervalWeakH2Neumann hf.secondDeriv`,
-* `f` should be the resolver power source on the physical interval, i.e. `fun x => p.ν * intervalDomainLift w x ^ p.γ`, where `w = conjugatePicardIter p u₀ 0 r`.
-
-The repo already has the coefficient bridge in `IntervalDomainLogisticWeakH2Adapter.lean`:
-
-`resolverSourceCoeff_re_eq_cosineCoeffs p w k : (intervalNeumannResolverSourceCoeff p w k).re = cosineCoeffs (fun x => p.ν * intervalDomainLift w x ^ p.γ) k`.
-
-Use that theorem instead of reproving the `simp only` bridge inline.
-
-## How to build the depth-2 Neumann data
-
-There are two possible meanings of “NeumannTower” in this repository:
-
-* `IntervalIBPCoeffExtraction.NeumannTower g j`, a general tower used by higher-order coefficient extraction.
-* The two weak certificates consumed by `intervalWeakH4Neumann_eigenvalue_L1_summable`, namely `IntervalWeakH2Neumann f` and `IntervalWeakH2Neumann hf.secondDeriv`.
-
-For this sorry, you do **not** need the general `NeumannTower` structure. Build the two weak-H² certificates directly. This is shorter and aligns with the theorem you want to use.
-
-Recommended construction:
-
-1. Set `w := conjugatePicardIter p u₀ 0 r`.
-2. Set
-   `U_cos x := ∑' k, (Real.exp (-r * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x`.
-3. Use `heatSemigroup_contDiff_four _hu₀_bound hr_pos` to get `hU_C4 : ContDiff ℝ 4 U_cos`.
-4. Use `hagree_zero` to get `intervalDomainLift w = U_cos` on `[0,1]`.
-5. Prove `U_cos` is even and symmetric about `1`; equivalently, use the same `cosineMode_neg` / period-2 helpers already written earlier in the same file.
-6. From `[0,1]` positivity of `intervalDomainLift w` and `[0,1]` agreement, get positivity of `U_cos` on `[0,1]`; then use evenness + period 2/reflection to get `∀ x, 0 < U_cos x`.
-7. Define the smooth representative
-   `g_smooth := fun x => p.ν * U_cos x ^ p.γ`.
-8. Use global positivity and `hU_C4.rpow_const_of_ne` to show `hg_C4 : ContDiff ℝ 4 g_smooth`.
-9. Build `hf_smooth_H2 : IntervalWeakH2Neumann g_smooth` with `intervalWeakH2Neumann_of_contDiffOn`:
-   * `ContDiffOn ℝ 2 g_smooth (Icc 0 1)` comes from `hg_C4.of_le`.
-   * `deriv g_smooth 0 = 0` follows from evenness of `g_smooth`.
-   * `deriv g_smooth 1 = 0` follows from symmetry `g_smooth (2 - x) = g_smooth x`.
-   * the one-sided tendsto hypotheses follow from continuity of `deriv g_smooth`.
-10. Transfer this first certificate from `g_smooth` to the actual zero-extension source with `IntervalWeakH2Neumann.congr_on_Icc`. This is the important simplification: the transfer preserves the chosen `secondDeriv`, so the resulting `hf_H2.secondDeriv` is still definitionally the smooth `deriv (deriv g_smooth)`.
-11. Build `hf''_H2 : IntervalWeakH2Neumann hf_H2.secondDeriv` by applying `intervalWeakH2Neumann_of_contDiffOn` to `deriv (deriv g_smooth)`:
-   * `ContDiffOn ℝ 2 (deriv (deriv g_smooth)) (Icc 0 1)` comes from `hg_C4`.
-   * its derivative is `deriv (deriv (deriv g_smooth))`.
-   * this third derivative vanishes at `0` and `1` because `g_smooth` is even and symmetric about `1`; the parity chain is `g` even -> `g'` odd -> `g''` even -> `g'''` odd.
-   * the one-sided tendsto hypotheses follow from continuity of `g'''`.
-12. Apply `intervalWeakH4Neumann_eigenvalue_L1_summable hf_H2 hf''_H2`.
-13. Rewrite back through `resolverSourceCoeff_re_eq_cosineCoeffs` and feed `intervalResolverLiftR_contDiff_four`.
-
-This avoids the more complicated line-315 route where the first `IntervalWeakH2Neumann` is built directly for the zero-extension source and the second certificate then requires an algebraic reconstruction of the weak-Laplacian identity. That algebraic reconstruction works in principle, but it is self-inflicted. If the first certificate is built from `g_smooth` and only then transferred by `congr_on_Icc`, the second derivative remains the smooth representative’s second derivative.
-
-## The important positivity caveat at line 1084
-
-The local block around line 1084 proves integrability near a point `s` by taking a small ball around `s` and then an arbitrary `r` in that ball. It proves `hr_pos' : 0 < r`, but the visible code at that site does not by itself show
-
-`∀ x ∈ Icc (0 : ℝ) 1, 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 r) x`.
-
-If the surrounding theorem has only a window positivity assumption `_hpos : ∀ σ ∈ Icc c T, ...`, be careful: a metric ball around an endpoint `s ∈ Icc c T` can contain `r` outside `[c,T]`. For the C⁴ resolver-source proof, you need positivity of the heat profile at that actual `r`, not just positivity at `s`.
-
-There are three clean ways to resolve this:
-
-1. **Best if available:** use a heat-floor theorem from positive initial data. The repo has `IntervalConjugatePicardInfThreshold.intervalFullSemigroupOperator_ge_paperPositiveFloor`, which gives a positive lower bound for the heat semigroup at every `t > 0` from `PaperPositiveInitialDatum`. If the current theorem can access such a datum, this is the most robust source of `hpos_r`.
-2. **Window-local variant:** if you only need the proof for `r ∈ [c,T]`, shrink the eventual neighborhood to remain in the window and carry `r ∈ Icc c T`; then use `_hpos r hr_window`.
-3. **Add a local assumption/helper:** factor the resolver-source summability lemma so it explicitly takes `hpos_r : ∀ x ∈ Icc 0 1, 0 < intervalDomainLift w x`. Then each call site must supply that hypothesis honestly.
-
-I would not hide this inside `intervalResolverLiftR_contDiff_four`, because the resolver theorem should remain a spectral regularity theorem. Positivity is only needed to make the nonlinear source `ν * u^γ` smooth for real `γ`.
-
-## Suggested helper shape
-
-Below is the helper shape I would add before the main proof, or in a small adjacent file imported by `IntervalConjugateLevel0BFormSourceOn.lean`. It is intentionally factored around a single time `r` and a supplied positivity hypothesis.
+In `ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean`, the fields are:
 
 ```lean
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-import ShenWork.PDE.IntervalSourceDecayQuantitative
-import ShenWork.Paper2.IntervalDomainLogisticWeakH2Adapter
+structure FlooredSourceTimeData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
+  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
+    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0:ℝ) 1)
+  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
+    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
+    Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t)) (𝓝[Iio 1] 1) (𝓝 0) ∧
+    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0 = 0 ∧
+    deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 1 = 0
+  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, 0 < t →
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0| ≤ D
+  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
+```
 
-open MeasureTheory Set Filter
-open scoped Topology BigOperators
+In `ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean`, the theorem
+`heatSemigroup_flooredSourceTimeData` still fills all four of these with `sorry`.
+The comments there correctly describe the intended analytic route, but no proof is
+present.
+
+## Existing infrastructure, field by field
+
+### `sliceC2`
+
+**Partially covered for `i = 0`, not as the target field.**
+
+For the base source slice
+
+```lean
+srcSlice p (conjugatePicardIter p u₀ 0) t x
+  = p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ^ p.γ
+```
+
+`IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable`
+constructs an `IntervalWeakH2Neumann` package from:
+
+* eigenvalue-weighted summability of the heat coefficients,
+* agreement of the heat slice with its cosine series on `[0,1]`, and
+* strict positivity on `[0,1]`.
+
+Inside that proof it builds:
+
+```lean
+have hC2u : ContDiffOn ℝ 2 u (Set.Icc (0 : ℝ) 1) := ...
+have hC2g : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1) := ...
+```
+
+where `g x = ν * u x ^ γ`. But the returned structure does **not expose** `hC2g`; it only stores the weak second-derivative data. Therefore it cannot directly fill `FlooredSourceTimeData.sliceC2`. You either need to duplicate that small construction at the call site or refactor it into a helper that returns both the `ContDiffOn`/Neumann fields and the `IntervalWeakH2Neumann` certificate.
+
+For `i = 1,2`, I did not find an existing theorem proving `ContDiffOn ℝ 2` of
+
+```lean
+srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t
+srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t
+```
+
+The proof has to be added. It is straightforward analytically for each fixed `t > 0`: write the three smooth cosine representatives
+
+```lean
+U0 t x = ∑' n, exp (-t * λ_n)       * a_n * cos(nπx)
+U1 t x = ∑' n, (-λ_n) * exp (-t*λ_n) * a_n * cos(nπx)
+U2 t x = ∑' n, λ_n^2 * exp (-t*λ_n)  * a_n * cos(nπx)
+```
+
+and show they are spatial `C²`. Then use product/rpow closure under a positive lower bound for `U0 t`.
+
+Relevant already-proved tools:
+
+```lean
+ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_contDiff_four
+ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_eigenvalueSq_summable
+ShenWork.Paper2.HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable
+ShenWork.Paper2.HeatSemigroupJointRegularity.eigenvalue_pow_mul_coeff_exp_summable
+ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_contDiff_two
+```
+
+`heatSemigroup_contDiff_four` handles `U0`.  For `U1`, use `cosineCoeffSeries_contDiff_two` with coefficients `-λ_n * exp(-tλ_n) * a_n`; the needed summability is essentially `∑ λ_n^2 exp(-tλ_n)|a_n|`, already available from `heatSemigroup_eigenvalueSq_summable`. For `U2`, use coefficient sequence `λ_n^2 * exp(-tλ_n) * a_n`; `C²` needs an extra `λ_n`, so use an `m = 3` exponential majorant from `eigenvalue_pow_mul_exp_summable`/`eigenvalue_pow_mul_coeff_exp_summable`.
+
+### `sliceNeumann`
+
+**Partially covered for `i = 0`, not exposed as the target field.**
+
+Again, `intervalWeakH2Neumann_of_eigenvalue_summable` proves the endpoint data internally:
+
+```lean
+hbc0 : deriv g 0 = 0
+hbc1 : deriv g 1 = 0
+htend0 : Tendsto (deriv g) (nhdsWithin 0 (Ioi 0)) (nhds 0)
+htend1 : Tendsto (deriv g) (nhdsWithin 1 (Iio 1)) (nhds 0)
+```
+
+but only the final weak-H² package is returned. It cannot directly fill `sliceNeumann` without refactoring or duplicating the proof.
+
+For `i = 1,2`, no complete field proof appears elsewhere. The proof should be by cosine-series endpoint symmetry:
+
+* `U0' 0 = U0' 1 = 0`,
+* `U1' 0 = U1' 1 = 0`,
+* `U2' 0 = U2' 1 = 0`,
+
+because all three are cosine series with enough weighted summability to justify differentiating. Then differentiate the formulas
+
+```lean
+S0 = p.ν * U0 ^ p.γ
+S1 = p.ν * p.γ * U0 ^ (p.γ - 1) * U1
+S2 = p.ν * p.γ * (p.γ - 1) * U0 ^ (p.γ - 2) * U1^2
+   + p.ν * p.γ * U0 ^ (p.γ - 1) * U2
+```
+
+At the endpoints every product-rule term contains one of `U0'`, `U1'`, or `U2'`, so the derivative vanishes. The one-sided tendsto clauses then follow from continuity of those derivatives, once `S0`, `S1`, `S2` are `C¹` in space near the endpoints.
+
+### `zerothBound`
+
+**Not proved for these fields.**
+
+There are generic coefficient-bound tools, for example `cosineCoeffs_abs_le_of_continuous_bounded` in `IntervalMildPicardRegularity`, and there are logistic-specific/windowed estimates in `IntervalPicardLevel0SourceTimeC1On`, e.g.
+
+```lean
+heatSourceCoeff_abs_le
+```
+
+But these are for the logistic source/time derivative, not for the power source family
+`ν * (S(t)u₀)^γ`, `srcSlice1`, `srcSlice2`.
+
+For `i = 0`, a uniform positive-time zeroth bound is plausible from the heat semigroup sup bound and continuity/boundedness of `u₀` on the compact interval:
+
+```text
+|cosineCoeffs (ν * U0(t)^γ) 0| ≤ sup_x |ν * U0(t,x)^γ| ≤ ν * B^γ
+```
+
+provided `U0` is bounded uniformly in `t > 0`.
+
+For `i = 1,2`, a global bound for all `t > 0` is not supplied and is generally not available from merely continuous initial data. `U1 = ∂ₜS(t)u₀ = ΔS(t)u₀` and `U2 = ∂ₜ²S(t)u₀ = Δ²S(t)u₀` can blow up as `t ↓ 0`. Thus `zerothBound` for the time-derivative source slices is much stronger than positive-time smoothing.
+
+### `laplBound`
+
+**The IBP decay theorem exists; the uniform hypotheses do not.**
+
+Two usable engines exist:
+
+```lean
+ShenWork.IntervalSourceDecayQuantitative
+  .intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+
+ShenWork.IntervalCosineCoeffDecay.cosineCoeff_decay
+```
+
+The first consumes an `IntervalWeakH2Neumann f` plus an explicit bound on
+`∫₀¹ |f''|`. The second consumes the exposed `ContDiffOn`/Neumann data plus a uniform bound on the Laplacian coefficient. Both prove the desired `(kπ)⁻²` shape.
+
+For each fixed `t > 0`, the proof for `i = 0` is already almost wired:
+
+```lean
+import ShenWork.PDE.IntervalMildSourceDecayHelper
+import ShenWork.PDE.IntervalSourceDecayQuantitative
+import ShenWork.Paper2.IntervalPicardIterateRepresentation
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+
+open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
-open ShenWork.Paper2.HeatSemigroupHighRegularity (heatSemigroup_contDiff_four)
 
 noncomputable section
 
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 
-/-- Single-time resolver-source eigenvalue L¹ summability for the level-0 heat profile.
+-- Schematic: this is the per-time base-slice H² package already available.
+theorem basePowerSource_H2_at_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
+    (ht : 0 < t)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
+    (hpos : ∀ x ∈ Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) :
+    ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+      (fun x : ℝ =>
+        p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ^ p.γ) := by
+  have hsum : Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        |Real.exp (-t * unitIntervalCosineEigenvalue n) * heatCoeff u₀ n|) :=
+    ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
+      ht hu₀_bound
+  have hagree : Set.EqOn
+      (intervalDomainLift (conjugatePicardIter p u₀ 0 t))
+      (fun x => ∑' n : ℕ,
+        (Real.exp (-t * unitIntervalCosineEigenvalue n) * heatCoeff u₀ n) *
+          cosineMode n x)
+      (Icc (0 : ℝ) 1) :=
+    ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+      p u₀ ht hu₀_cont hu₀_bound
+  exact
+    ShenWork.PDE.IntervalMildSourceDecayHelper
+      .intervalWeakH2Neumann_of_eigenvalue_summable
+        p.hν p.hγ hsum hagree hpos
 
-This is the lemma that should discharge the `intervalResolverLiftR_contDiff_four`
-hypothesis.  The proof body should be filled with the route described above:
-build the smooth power-source representative `g_smooth := p.ν * U_cos ^ p.γ`,
-construct the two weak-H² Neumann certificates, apply
-`intervalWeakH4Neumann_eigenvalue_L1_summable`, and rewrite the resolver-source
-coefficient real part to `cosineCoeffs` using
-`resolverSourceCoeff_re_eq_cosineCoeffs`.
--/
-theorem level0_resolverSourceCoeff_eigenvalue_L1_summable
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ} {r M₀ : ℝ}
-    (hr_pos : 0 < r)
-    (hu₀_bound : ∀ k,
-      |ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff u₀ k| ≤ M₀)
-    (hpos_r : ∀ x ∈ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 r) x) :
-    Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
-          (conjugatePicardIter p u₀ 0 r) k).re|) := by
-  classical
+-- Given a uniform L¹ bound on the second derivative over a positive window,
+-- the existing quantitative theorem gives the `(kπ)^-2` bound.
+theorem basePowerSource_lapl_decay_from_uniform_H2_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ B c T : ℝ}
+    (hc : 0 < c)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
+    (hpos : ∀ t ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (hB : ∀ t ∈ Icc c T,
+      let H := basePowerSource_H2_at_time
+        (p := p) (u₀ := u₀) (M₀ := M₀) (t := t)
+        (lt_of_lt_of_le hc ‹t ∈ Icc c T›.1) hu₀_cont hu₀_bound
+        (hpos t ‹t ∈ Icc c T›)
+      (∫ x in (0 : ℝ)..1, |H.secondDeriv x|) ≤ B) :
+    ∀ t ∈ Icc c T, ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (fun x : ℝ =>
+          p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ^ p.γ) k|
+        ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 2 := by
+  intro t ht k hk
+  let H := basePowerSource_H2_at_time
+    (p := p) (u₀ := u₀) (M₀ := M₀) (t := t)
+    (lt_of_lt_of_le hc ht.1) hu₀_cont hu₀_bound (hpos t ht)
+  exact
+    ShenWork.IntervalSourceDecayQuantitative
+      .intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+        H (hB t ht) k hk
 
-  set w := conjugatePicardIter p u₀ 0 r
-  set U_cos : ℝ → ℝ := fun x => ∑' k : ℕ,
-    (Real.exp (-r * unitIntervalCosineEigenvalue k) *
-      ShenWork.IntervalPicardLevel0SourceTimeC1On.heatCoeff u₀ k) * cosineMode k x
-
-  have hU_C4 : ContDiff ℝ 4 U_cos := by
-    simpa [U_cos] using heatSemigroup_contDiff_four hu₀_bound hr_pos
-
-  have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
-      intervalDomainLift w x = U_cos x := by
-    intro x hx
-    -- Same theorem used at the existing call sites.
-    simpa [w, U_cos] using
-      ShenWork.IntervalPicardIterateRepresentation.hagree_zero
-        p u₀ hr_pos (by infer_instance) hu₀_bound hx
-
-  -- Prove these with the same cosine-mode parity/period helpers already used earlier
-  -- in `IntervalConjugateLevel0BFormSourceOn.lean`.
-  have hU_even : ∀ x, U_cos (-x) = U_cos x := by
-    -- `tsum_congr`, `cosineMode k (-x) = cosineMode k x`.
-    sorry
-
-  have hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x := by
-    -- Combine period two with evenness: `2 - x = -x + 2`.
-    sorry
-
-  have hU_period : Function.Periodic U_cos 2 := by
-    -- Direct `tsum_congr` from `cosineMode k (x + 2) = cosineMode k x`.
-    sorry
-
-  have hU_pos_all : ∀ x, 0 < U_cos x := by
-    -- Reduce arbitrary `x` to `[0,1]` using `hU_period`, `hU_even`, and `hU_symm1`;
-    -- on `[0,1]`, use `hU_agree` and `hpos_r`.
-    sorry
-
-  set g_smooth : ℝ → ℝ := fun x => p.ν * U_cos x ^ p.γ
-
-  have hg_C4 : ContDiff ℝ 4 g_smooth := by
-    have hne : ∀ x, U_cos x ≠ 0 := fun x => ne_of_gt (hU_pos_all x)
-    simpa [g_smooth] using
-      contDiff_const.mul (hU_C4.rpow_const_of_ne hne)
-
-  have hg_even : ∀ x, g_smooth (-x) = g_smooth x := by
-    intro x
-    simp [g_smooth, hU_even]
-
-  have hg_symm1 : ∀ x, g_smooth (2 - x) = g_smooth x := by
-    intro x
-    simp [g_smooth, hU_symm1]
-
-  have hf_smooth_H2 : IntervalWeakH2Neumann g_smooth := by
-    -- Use `intervalWeakH2Neumann_of_contDiffOn`.
-    -- Boundary data: `deriv g_smooth 0 = 0` from evenness,
-    -- and `deriv g_smooth 1 = 0` from symmetry about 1.
-    -- Tendsto data follows from continuity of `deriv g_smooth`.
-    sorry
-
-  have hsrc_agree : ∀ x ∈ Icc (0 : ℝ) 1,
-      g_smooth x = p.ν * intervalDomainLift w x ^ p.γ := by
-    intro x hx
-    simp [g_smooth, hU_agree x hx]
-
-  have hf_H2 : IntervalWeakH2Neumann
-      (fun x : ℝ => p.ν * intervalDomainLift w x ^ p.γ) := by
-    -- The adapter theorem is in `IntervalDomainLogisticWeakH2Adapter.lean`.
-    exact hf_smooth_H2.congr_on_Icc hsrc_agree
-
-  have hf''_H2 : IntervalWeakH2Neumann hf_H2.secondDeriv := by
-    -- Because `congr_on_Icc` preserves the `secondDeriv` field, this target is
-    -- definitionally the H² certificate for `deriv (deriv g_smooth)`.
-    -- Use `intervalWeakH2Neumann_of_contDiffOn` again.
-    -- Boundary data is `g_smooth''' 0 = 0` and `g_smooth''' 1 = 0`, obtained from
-    -- parity/symmetry: `g` even/symmetric => `g'` odd/antisymmetric =>
-    -- `g''` even/symmetric => `g'''` odd/antisymmetric.
-    sorry
-
-  have hcoeff_sum : Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |cosineCoeffs (fun x : ℝ => p.ν * intervalDomainLift w x ^ p.γ) k|) := by
-    exact ShenWork.IntervalSourceDecayQuantitative
-      .intervalWeakH4Neumann_eigenvalue_L1_summable hf_H2 hf''_H2
-
-  simpa [w] using hcoeff_sum.congr (fun k => by
-    rw [ShenWork.IntervalDomainLogisticWeakH2Adapter
-      .resolverSourceCoeff_re_eq_cosineCoeffs p w k])
-
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 ```
 
-Two notes about the skeleton:
+That sketch shows the correct wiring, but it also shows the missing hypothesis: a **uniform** bound `B`. The existing weak-H² constructor only gives a bound depending on `t` through `H.second_abs_integral_bound`; it does not produce a single `B` valid for all `t > 0`.
 
-* I used `by infer_instance` as a placeholder for the continuity argument in `hagree_zero` only because I did not re-check that exact local argument through Lean. In the existing file, the call passes `_hu₀_cont` and `_hu₀_bound`; the real helper should include `hu₀_cont : Continuous u₀` if `hagree_zero` requires it.
-* The proof should factor the parity lemmas rather than copy/paste them twice. The file already has local versions earlier; making public helper lemmas for heat cosine series evenness/periodicity/symmetry will make the line-1084 proof much smaller.
+## The key obstruction: global `∀ t > 0` bounds near `t = 0`
 
-## How the sorry should then close
+The comments in `IntervalHeatSemigroupFlooredSourceTimeData.lean` say “for `t > 0`, heat smoothing makes it work.” That is true for pointwise-in-time `sliceC2` and `sliceNeumann`, but it is not enough for the global `zerothBound` and `laplBound` fields.
 
-At the target site, after you have a proof of positivity for the actual time `r`, the replacement should be small:
+The current theorem has assumptions only:
 
 ```lean
-have hsrcL1 : Summable (fun k : ℕ =>
-    unitIntervalCosineEigenvalue k *
-      |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
-        (conjugatePicardIter p u₀ 0 r) k).re|) := by
-  exact level0_resolverSourceCoeff_eigenvalue_L1_summable
-    p hr_pos' _hu₀_bound hpos_r
-
-have hV_C4 : ContDiff ℝ 4 V_cos := by
-  simpa [hV_cos_def] using
-    intervalResolverLiftR_contDiff_four (p := p)
-      (u := conjugatePicardIter p u₀ 0 r) hsrcL1
+(_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+(_hu₀_cont : Continuous u₀)
 ```
 
-The only nontrivial missing input here is `hpos_r`. If the proof is still inside a neighborhood argument and `r` is not known to lie in the positive window, use a positive-time heat floor from the initial datum, or modify the neighborhood/window argument so that `r ∈ Icc c T` is available.
+No positive lower time cutoff `c > 0`, no high-regularity initial datum, and no global uniform bounds on `ΔS(t)u₀` or `Δ²S(t)u₀` as `t ↓ 0` are supplied.
 
-## Should a more direct denominator-weighted theorem be added?
+For the time-derivative slices:
 
-It is possible, but I would not do it first.
+```lean
+srcSlice1 = ν * γ * U0^(γ-1) * U1
+srcSlice2 = ν * γ * (γ-1) * U0^(γ-2) * U1^2
+          + ν * γ * U0^(γ-1) * U2
+```
 
-A direct theorem would look like:
+where
 
-`Summable (fun k => unitIntervalCosineEigenvalue k ^ 2 / (p.μ + unitIntervalCosineEigenvalue k) * |sourceCoeff k|) -> ContDiff ℝ 4 (intervalResolverLiftR p u)`.
+```lean
+U1 = ΔS(t)u₀
+U2 = Δ²S(t)u₀
+```
 
-That theorem is mathematically closer to the exact multiplier, but it does not remove the real nonlinear-analysis work. You still need a source coefficient decay strong enough to make that weighted series summable. Quartic decay of the power-source coefficients gives it immediately, and the existing `intervalWeakH4Neumann_eigenvalue_L1_summable` already packages precisely that decay in the source-side form expected by `intervalResolverLiftR_contDiff_four`.
+there is no reason for the zeroth cosine coefficients or the quadratic-decay constants to stay bounded uniformly as `t ↓ 0` for merely continuous `u₀`. This is exactly why other level-0 source infrastructure works on positive closed windows `[c,T]`, for example `IntervalPicardLevel0SourceTimeC1On.level0Source_timeC1On`, which takes `hc : 0 < c` and additional window bounds as hypotheses.
 
-So the efficient proof route is:
+So the likely correct design is one of:
 
-`C⁴ heat representative + positive power source -> two weak-H² Neumann certificates -> intervalWeakH4Neumann_eigenvalue_L1_summable -> intervalResolverLiftR_contDiff_four`.
+1. Retype these `zerothBound` / `laplBound` fields to be **local/windowed in time**, e.g. for each `τ > 0` produce a slab or for each `[c,T]` with `c > 0` produce constants.
+2. Strengthen initial data enough to control `U1`, `U2`, and the relevant source-slice second derivatives uniformly all the way to `t = 0`.
+3. For the existing `FlooredSourceTimeData`, add explicit global hypotheses giving exactly the required zeroth and Laplacian envelopes for all three slices.
 
-The direct denominator theorem is a nice optional refactor, not the shortest way to discharge this sorry.
+## Positivity caveat
+
+The question says “`S(t)u₀ > 0` on `[0,1]` from `_hu₀_nonneg + heat nonneg preservation.” Nonnegativity preservation only gives `0 ≤ S(t)u₀`. For real `γ`, the rpow chain rule needs nonzero/strict positivity of the base wherever powers like `γ - 1` or `γ - 2` occur.
+
+To get strict positivity from the existing heat machinery, use one of:
+
+* a closed-domain positive floor (`PaperPositiveInitialDatum.floor`) and a heat-floor theorem;
+* the strict propagator theorem `IntervalSemigroupConeAtoms.intervalFullSemigroupOperator_pos`, which requires the initial datum to be nonnegative on `[0,1]` and positive somewhere;
+* an explicit positive-window assumption `∀ t ∈ Icc c T, ∀ x ∈ Icc 0 1, 0 < ...`.
+
+The current `heatSemigroup_flooredSourceTimeData` signature does not contain any of these positivity hypotheses, so the rpow-based proofs are not available from its listed assumptions alone.
+
+## Recommended implementation path
+
+### Step 1: introduce a reusable exposed package
+
+Refactor the currently hidden proof content of
+`intervalWeakH2Neumann_of_eigenvalue_summable` into an exposed package:
+
+```lean
+import ShenWork.PDE.IntervalMildSourceDecayHelper
+
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+
+noncomputable section
+
+namespace ShenWork.PDE.IntervalMildSourceDecayHelper
+
+structure C2NeumannData (f : ℝ → ℝ) : Prop where
+  c2 : ContDiffOn ℝ 2 f (Icc (0 : ℝ) 1)
+  tend0 : Tendsto (deriv f) (𝓝[Ioi 0] 0) (𝓝 0)
+  tend1 : Tendsto (deriv f) (𝓝[Iio 1] 1) (𝓝 0)
+  bc0 : deriv f 0 = 0
+  bc1 : deriv f 1 = 0
+
+noncomputable def C2NeumannData.toWeakH2 {f : ℝ → ℝ}
+    (H : C2NeumannData f) : IntervalWeakH2Neumann f :=
+  intervalWeakH2Neumann_of_contDiffOn H.c2 H.tend0 H.tend1 H.bc0 H.bc1
+
+-- New helper to add: same proof as `intervalWeakH2Neumann_of_eigenvalue_summable`,
+-- but return `C2NeumannData` before converting it to `IntervalWeakH2Neumann`.
+noncomputable def powerSource_C2NeumannData_of_eigenvalue_summable
+    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
+    {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    {w : intervalDomainPoint → ℝ}
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Icc (0 : ℝ) 1))
+    (hpos : ∀ x ∈ Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
+    C2NeumannData (fun x : ℝ => ν * intervalDomainLift w x ^ γ) := by
+  -- Copy the `hC2g`, `htend0`, `htend1`, `hbc0`, `hbc1` construction
+  -- currently inside `intervalWeakH2Neumann_of_eigenvalue_summable`.
+  sorry
+
+end ShenWork.PDE.IntervalMildSourceDecayHelper
+```
+
+Then `sliceC2` and `sliceNeumann` for `i = 0` become direct projections from this package, and `laplBound` can use `toWeakH2` plus `IntervalSourceDecayQuantitative`.
+
+### Step 2: add heat-side C² representatives for `U1` and `U2`
+
+Add lemmas proving that the `heatDu` and `heatD2u` representatives are spatially `C²` at `t > 0`, and prove their endpoint derivatives vanish.
+
+Schematic shape:
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
+import ShenWork.Paper2.IntervalConjugatePicard
+
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalPicardLevel0SourceTimeC1On (heatCoeff)
+
+noncomputable section
+
+namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+
+-- Schematic helper for the first time derivative representative.
+theorem heatDu_contDiffOn_two
+    {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
+    (ht : 0 < t)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) :
+    ContDiffOn ℝ 2 (heatDu u₀ t) (Icc (0 : ℝ) 1) := by
+  -- unfold `heatDu`; the positive branch is
+  -- `unitIntervalCosineHeatLaplacianValue t (heatCoeff u₀)`.
+  -- Rewrite it as a cosine coefficient series with coefficients
+  -- `fun n => -unitIntervalCosineEigenvalue n * Real.exp (-t*λ_n) * heatCoeff u₀ n`.
+  -- Apply `cosineCoeffSeries_contDiff_two`; the needed summability is controlled by
+  -- `heatSemigroup_eigenvalueSq_summable`.
+  sorry
+
+-- Schematic helper for the second time derivative representative.
+theorem heatD2u_contDiffOn_two
+    {u₀ : intervalDomainPoint → ℝ} {M₀ t : ℝ}
+    (ht : 0 < t)
+    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀) :
+    ContDiffOn ℝ 2 (heatD2u u₀ t) (Icc (0 : ℝ) 1) := by
+  -- unfold `heatD2u`; positive branch is already a cosine series with coefficients
+  -- `λ_n^2 * exp(-tλ_n) * heatCoeff u₀ n`.
+  -- For `C²`, prove `∑ λ_n * |λ_n^2 exp(-tλ_n) a_n|`, dominated by
+  -- `M₀ * ∑ λ_n^3 exp(-tλ_n)`.
+  -- Use `HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable 3 ht`.
+  sorry
+
+end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+```
+
+### Step 3: prove `S0/S1/S2` C² and Neumann from `U0/U1/U2`
+
+With `U0`, `U1`, `U2` C² and endpoint derivative-zero, prove the source slices:
+
+```lean
+S0 t x = p.ν * U0 t x ^ p.γ
+S1 t x = p.ν * p.γ * U0 t x ^ (p.γ - 1) * U1 t x
+S2 t x = p.ν * p.γ * (p.γ - 1) * U0 t x ^ (p.γ - 2) * (U1 t x)^2
+       + p.ν * p.γ * U0 t x ^ (p.γ - 1) * U2 t x
+```
+
+are `ContDiffOn ℝ 2` and Neumann. This is mostly `ContDiffOn.mul`, `ContDiffOn.add`, and `ContDiffOn.rpow_const_of_ne`, plus endpoint product-rule calculations.
+
+### Step 4: fix the uniform-bound story
+
+Do **not** try to prove the existing global `zerothBound`/`laplBound` for `i = 1,2` from only positive-time smoothing. Either:
+
+* retype `FlooredSourceTimeData` to carry local/windowed bounds, or
+* add explicit assumptions / stronger initial data.
+
+On a positive window `[c,T]`, the proof is standard:
+
+1. build joint continuous representatives for each source slice and for its second spatial derivative on `[c,T] × [0,1]`;
+2. use compactness to get a uniform sup bound;
+3. use `cosineCoeffs_abs_le_of_continuous_bounded` for `zerothBound`;
+4. use `IntervalCosineCoeffDecay.exists_laplacianCoeff_bound` + `cosineCoeff_decay`, or the weak-H² quantitative theorem, for `laplBound`.
+
+The compact-bound pattern is:
+
+```lean
+import Mathlib.Topology.Order.Compact
+
+open Set Topology
+
+noncomputable section
+
+example {c T : ℝ} {F : ℝ × ℝ → ℝ}
+    (hF : ContinuousOn F (Icc c T ×ˢ Icc (0 : ℝ) 1)) :
+    ∃ B : ℝ, 0 ≤ B ∧ ∀ t ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+      |F (t, x)| ≤ B := by
+  have hK : IsCompact (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
+    isCompact_Icc.prod isCompact_Icc
+  obtain ⟨C, hC⟩ := hK.exists_bound_of_continuousOn hF
+  refine ⟨max C 0, le_max_right C 0, ?_⟩
+  intro t ht x hx
+  have hmem : (t, x) ∈ Icc c T ×ˢ Icc (0 : ℝ) 1 := by
+    exact mem_prod.mpr ⟨ht, hx⟩
+  have hnorm : ‖F (t, x)‖ ≤ C := hC (t, x) hmem
+  have habs : |F (t, x)| ≤ C := by
+    simpa [Real.norm_eq_abs] using hnorm
+  exact habs.trans (le_max_left C 0)
+```
+
+## Bottom line
+
+* `IntervalSourceDecayQuantitative.lean` gives the **decay engine**, not the four fields.
+* `IntervalPicardLevel0SourceTimeC1On.lean` gives useful heat/logistic windowed machinery, not the power-source `FlooredSourceTimeData` fields.
+* `IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable` covers the **base slice’s weak-H²/Neumann proof internally**, but it does not expose `sliceC2`/`sliceNeumann`, and it does not handle the first/second time-derivative slices.
+* `IntervalFlooredSourceTimeDataIterate.flooredSourceTimeData_of_iterate` is the right wiring abstraction, but its current input structure is all-time and still requires the same fields upstream.
+* The current global `∀ t > 0` `zerothBound`/`laplBound` requirements are too strong for merely continuous heat initial data, especially for `srcSlice1` and `srcSlice2` near `t = 0`. A positive-window/local retype or stronger initial-data hypotheses are needed.
