@@ -166,12 +166,13 @@ theorem heatSemigroup_flooredSourceTimeData
         (Function.uncurry (srcSlice p (conjugatePicardIter p u₀ 0)))
         (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
       simpa [srcSlice, Function.uncurry] using continuousOn_const.mul hpow
-    refine ⟨δ, hδ, ?d0a, ?d0b, ?d0c⟩
-    case d0a => -- (a) ContinuousOn of srcSlice near τ
+    use δ
+    refine ⟨hδ, ?_, ?_, ?_⟩
+    · -- (a) ContinuousOn of srcSlice near τ
       filter_upwards [Metric.ball_mem_nhds τ hδ] with s hs
       exact hsrc_joint.comp (continuousOn_const.prodMk continuousOn_id)
         (fun x hx => mem_prod.mpr ⟨hball_Icc s hs, hx⟩)
-    case d0b => -- (b) HasDerivAt of srcSlice = srcSlice1
+    · -- (b) HasDerivAt of srcSlice = srcSlice1
       intro x hx s hs
       have hs_pos := hball_pos s hs
       have hxIcc : x ∈ Icc (0:ℝ) 1 := Ioo_subset_Icc_self hx
@@ -181,8 +182,26 @@ theorem heatSemigroup_flooredSourceTimeData
         (Icc_mem_nhds (hball_Ioo s hs).1 (hball_Ioo s hs).2)
       rw [← heatDu_eq_secondValue u₀ hs_pos] at hderiv
       exact hasDerivAt_srcSlice (hfloor s hs_pos x hxIcc) hderiv
-    case d0c => -- (c) Joint ContinuousOn of srcSlice1 on slab
-      sorry
+    · -- (c) Joint ContinuousOn of srcSlice1 on slab
+      -- srcSlice1 p u du t x = p.ν * p.γ * (lift(u t) x)^(γ-1) * du t x
+      have hpow1 : ContinuousOn
+          (fun q : ℝ × ℝ =>
+            (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1))
+          (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+        hprofile.rpow_const (fun q hq => by
+          obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+          exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+      have hdu_joint : ContinuousOn
+          (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
+          (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+        have hsecond := heatSlice_secondValue_jointContinuousOn
+          (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft _hu₀_bound
+        refine hsecond.congr ?_
+        intro q hq
+        obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
+        exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm
+      simpa [srcSlice1, Function.uncurry] using
+        (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu_joint)
   d1 τ hτ := by
     -- OBLIGATION: ∃ δ > 0 such that:
     --   (a) s₁ is ContinuousOn [0,1] near τ
