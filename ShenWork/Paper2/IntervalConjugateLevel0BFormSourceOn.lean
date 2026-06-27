@@ -1193,9 +1193,37 @@ theorem level0_chemDiv_timeDerivData
         set g_smooth := fun x => p.ν * U_cos x ^ p.γ with hg_def
         have hg_C4 : ContDiff ℝ 4 g_smooth :=
           contDiff_const.mul (hU_C4.rpow_const_of_ne hU_ne)
-        sorry -- [~15 lines: build IntervalWeakH2Neumann depth 2 from C⁴ + Neumann BCs,
-               -- then intervalWeakH4Neumann_eigenvalue_L1_summable,
-               -- then congr via hU_agree to match cosineCoeffs of ν·lift(u r)^γ]
+        -- Build IntervalWeakH2Neumann depth 2, then eigenvalue summability
+        have hg_C2_on : ContDiffOn ℝ 2 g_smooth (Icc (0:ℝ) 1) :=
+          (hg_C4.of_le (by norm_num : (2 : ℕ∞) ≤ 4)).contDiffOn
+        have hg'_cont : Continuous (deriv g_smooth) :=
+          hg_C4.continuous_deriv (by norm_num)
+        -- Neumann BCs: deriv g_smooth vanishes at 0 and 1
+        -- g_smooth is even (composition of even U_cos with even rpow), so deriv is odd → 0 at 0
+        -- g_smooth(2-x) = g_smooth(x), so deriv at 1 = 0
+        have hg_bc0 : deriv g_smooth 0 = 0 := by
+          sorry -- [deriv of even function at 0 = 0; or chain rule deriv(ν·U^γ) = ν·γ·U^{γ-1}·U', U'(0) = 0]
+        have hg_bc1 : deriv g_smooth 1 = 0 := by
+          sorry -- [same via symmetry about 1: g_smooth(2-x) = g_smooth(x) → deriv at 1 = 0]
+        have htend0 := hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+        have htend1 := hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+        have hf_H2 := ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+          hg_C2_on (by rw [hg_bc0] at htend0; exact htend0) (by rw [hg_bc1] at htend1; exact htend1)
+          hg_bc0 hg_bc1
+        -- Depth 2: g_smooth is C⁴, so secondDeriv = deriv(deriv g_smooth) is C², same BCs apply
+        have hg''_C2_on : ContDiffOn ℝ 2 hf_H2.secondDeriv (Icc (0:ℝ) 1) := by
+          sorry -- [secondDeriv = deriv(deriv g_smooth), C² from C⁴]
+        have hf''_H2 : ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+            hf_H2.secondDeriv := by
+          sorry -- [intervalWeakH2Neumann_of_contDiffOn for the second derivative]
+        -- Eigenvalue summability
+        have hsumm := ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
+          hf_H2 hf''_H2
+        -- Bridge: cosineCoeffs g_smooth = cosineCoeffs (ν·lift(u r)^γ) on [0,1]
+        convert hsumm using 1
+        funext k; congr 1; congr 1
+        exact cosineCoeffs_congr_on_Icc (fun x hx => by
+          rw [hg_def, hU_agree x hx]) k
       -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
       have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (coupledChemicalConcentration p
