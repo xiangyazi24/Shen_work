@@ -1,4 +1,4 @@
-# Q1473 (cron1) -- rpow composition and heat Neumann search
+# Q1472 (cron1) -- heat semigroup floor and datum positivity
 
 Repository: `xiangyazi24/Shen_work`
 Branch: `chatgpt-scratch`
@@ -6,7 +6,9 @@ Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 ## Method
 
-Connector-only repository search. I did not change Lean source. Direct `fetch_file` of `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` at `chatgpt-scratch` returned 404, but GitHub code search exposed the file at indexed snapshot:
+Connector-only repository search. I did not run Lean locally and did not edit Lean source.
+
+As in Q1473, direct fetch of `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` at `chatgpt-scratch` returned 404, but GitHub code search exposed the indexed snapshot:
 
 ```text
 7db6d8e4b01d279823281613bb824200483faddd
@@ -14,209 +16,229 @@ Connector-only repository search. I did not change Lean source. Direct `fetch_fi
 
 The names below are from that snapshot. This report is committed to `chatgpt-scratch`.
 
-## Useful imports
+## Finding
+
+Yes: if the intended proof of the line-832 floor is to use the existing theorem
 
 ```lean
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+```
+
+then `heatSemigroup_level0_resolverJointC2Data` should take an additional hypothesis
+
+```lean
+(hu0_pos : forall x : intervalDomainPoint, 0 < u0 x)
+```
+
+because the current theorem only has
+
+```lean
+(hu0_bound : forall k, |cosineCoeffs (intervalDomainLift u0) k| <= M0)
+(hu0_cont : Continuous u0)
+```
+
+and those do not imply strict positivity of the heat slice. For arbitrary real `p.gamma`, strict positivity is also analytically needed for the `u^gamma` source-slice smoothness route.
+
+The local patch shape is:
+
+```lean
 import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
-import ShenWork.Paper2.IntervalMildPicardRegularity
-import ShenWork.Paper2.IntervalResolverPowerDecay
-import ShenWork.Paper2.IntervalCkComposition
-import ShenWork.PDE.IntervalSemigroupNeumann
-import ShenWork.PDE.IntervalCosineSliceRegularity
-import ShenWork.PDE.IntervalDuhamelClosedC2
+
+-- in heatSemigroup_level0_resolverJointC2Data, add:
+--   (hu0_pos : forall x : intervalDomainPoint, 0 < u0 x)
+
+(hfloor := by
+  intro t ht x hx
+  exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+    (p := p) hu0_cont hu0_pos (t := t) ht (x := x) hx)
 ```
 
-## Target obligations
-
-The target call is in:
+Then the immediate wrapper
 
 ```lean
-ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
 ```
 
-It invokes:
+should also take `hu0_pos` and pass it into `heatSemigroup_level0_resolverJointC2Data`.
+
+## Why downstream does not currently supply this automatically
+
+### 1. `coupledChemical_jointContDiffAt_two`
+
+Located in:
 
 ```lean
-ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
 ```
 
-The relevant fields are:
+The theorem
 
 ```lean
-hsliceC2 : forall i, i <= 2 -> forall t, 0 < t ->
-  ContDiffOn R 2 ((sliceFam srcSlice srcSlice1 srcSlice2 i) t) (Icc 0 1)
-
-hsliceNeumann : forall i, i <= 2 -> forall t, 0 < t ->
-  Tendsto (deriv ((sliceFam srcSlice srcSlice1 srcSlice2 i) t)) (nhdsWithin 0 (Ioi 0)) (nhds 0) /\
-  Tendsto (deriv ((sliceFam srcSlice srcSlice1 srcSlice2 i) t)) (nhdsWithin 1 (Iio 1)) (nhds 0) /\
-  deriv ((sliceFam srcSlice srcSlice1 srcSlice2 i) t) 0 = 0 /\
-  deriv ((sliceFam srcSlice srcSlice1 srcSlice2 i) t) 1 = 0
+ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
 ```
 
-The asked formula `srcSlice p u t x = p.nu * (intervalDomainLift (u t) x)^p.gamma` is the `i = 0` case. The actual obligation also includes `i = 1,2`.
-
-## rpow / ContDiffOn API found
-
-Core Mathlib names already used in this repo:
+takes only:
 
 ```lean
-ContDiffOn.rpow_const_of_ne
-ContinuousOn.rpow_const
-HasDerivAt.rpow_const
-Real.contDiffAt_rpow_const_of_ne
+(H : PhysicalResolverJointC2Data p u Bt)
+(hx : x in Ioo 0 1)
 ```
 
-Repo wrappers and patterns:
+It is a resolver-series regularity assembler. It does not know anything about the original datum `u0`, and it has no positivity hypothesis that can produce
 
 ```lean
-ShenWork.IntervalMildPicardRegularity.exists_pos_neighborhood_of_compact_positive
-ShenWork.IntervalMildPicardRegularity.contDiffOn_rpow_of_contDiff_pos
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_contDiffOn_of_contDiff_pos
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_contDiffOn_Icc
-
-ShenWork.Paper2.IntervalCkComposition.contDiff_two_rpow_of_pos
-ShenWork.Paper2.IntervalCkComposition.contDiff_two_one_add_rpow_neg
-ShenWork.Paper2.IntervalCkComposition.memHSigma_rpow_of_contDiff_two
-ShenWork.Paper2.IntervalCkComposition.memHSigma_one_add_rpow_neg_of_contDiff_two
-
-ShenWork.Paper2.ResolverPowerDecay.powerSourceFun_hasDerivAt
-ShenWork.Paper2.ResolverPowerDecay.Fp1_hasDerivAt
-ShenWork.Paper2.ResolverPowerDecay.deriv_powerSource_eq_Fp1
-ShenWork.Paper2.ResolverPowerDecay.secondDeriv_powerSource_eq_Fp2
-ShenWork.Paper2.ResolverPowerDecay.powerSourceFun_secondDeriv_abs_integral_le
-ShenWork.Paper2.ResolverPowerDecay.powerSourceFun_cosineCoeff_quadratic_decay_explicit
+forall x, 0 < u0 x
 ```
 
-Most directly relevant wrapper:
+So it cannot discharge the heat base floor.
+
+### 2. `resolver_jointC2At_of_spectralAgreement`
+
+The wrapper in
 
 ```lean
-theorem contDiffOn_rpow_of_contDiff_pos
-    {g : R -> R} {alpha : R} {U : Set R}
-    (hg : ContDiff R 2 g) (_hU : IsOpen U)
-    (hpos : forall x in U, 0 < g x) :
-    ContDiffOn R 2 (fun x => g x ^ alpha) U :=
-  hg.contDiffOn.rpow_const_of_ne (fun x hx => ne_of_gt (hpos x hx))
+ShenWork.PDE.IntervalCoupledResolverJointC2
 ```
 
-For a source of the form `nu * u^gamma`, the existing local pattern is in `IntervalResolverPowerDecay`: use `ContDiffOn.rpow_const_of_ne`, then `.const_smul nu`, then `.congr` to rewrite scalar multiplication as ordinary multiplication.
-
-For the zeroth source slice, the schematic proof shape is:
+is:
 
 ```lean
-have hpow : ContDiffOn R 2 (fun x => (intervalDomainLift (u t) x) ^ p.gamma) (Set.Icc 0 1) :=
-  hg.rpow_const_of_ne (fun x hx => ne_of_gt (hpos x hx))
-simpa [smul_eq_mul] using hpow.const_smul p.nu
+ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration_resolver_jointC2At
 ```
 
-## Heat semigroup regularity names
-
-Positive-time spatial smoothing in `IntervalHeatSemigroupHighRegularity.lean`:
+It calls
 
 ```lean
-ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_eigenvalueSq_summable
-ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_contDiff_four
+resolver_jointC2At_of_spectralAgreement
 ```
 
-`heatSemigroup_contDiff_four` is for the cosine-series representative of `S(t)u0`. It uses:
+with spectral agreement, time-window facts, an interior-space witness, and a local spectral `hC2` producer. This path is independent of `u0` strict positivity. It is not a source of `hu0_pos`.
+
+The strengthened C2-coefficient path
 
 ```lean
-ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
+resolver_jointC2At_of_spectralAgreement_c2Data
 ```
 
-Joint positive-time C2 names in the same file:
+also only unpacks restart spectral data. It does not carry positivity of initial datum either.
+
+### 3. FAC chain
+
+The relevant FAC structure is:
 
 ```lean
-ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatSeries_contDiff_two
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSeries_eventuallyEq_cutoff
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorFACInputs
 ```
 
-Level 0 of the conjugate Picard iterate is exactly the heat semigroup:
+and its slab predicate:
 
 ```lean
-ShenWork.IntervalConjugatePicard.conjugatePicardIter
--- 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u0) x.1
+ShenWork.IntervalCoupledRegularityBootstrap.FACLocalSlabInputs
 ```
 
-## Neumann API found
-
-Core cosine-series endpoint lemmas:
+`FACLocalSlabInputs` contains:
 
 ```lean
-ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_contDiff_two
-ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_deriv_at_zero
-ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_deriv_at_one
+(forall s, Continuous (u s))
+(forall s, forall x : intervalDomainPoint, 0 <= u s x)
 ```
 
-Heat-value / full semigroup endpoint bridge:
+but not strict positivity of the original datum. The file explicitly says the resolver floor is not a carried input; it is proved from nonnegativity and continuity via
 
 ```lean
-ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
-ShenWork.IntervalSemigroupNeumann.unitIntervalCosineHeatValue_eq_cosineCoeffSeries
-ShenWork.IntervalSemigroupNeumann.unitIntervalCosineHeatValue_deriv_at_zero
-ShenWork.IntervalSemigroupNeumann.unitIntervalCosineHeatValue_deriv_at_one
-ShenWork.IntervalSemigroupNeumann.deriv_eq_left_of_eqOn_Ioo_of_contDiff
-ShenWork.IntervalSemigroupNeumann.deriv_eq_right_of_eqOn_Ioo_of_contDiff
-ShenWork.IntervalSemigroupNeumann.intervalFullSemigroupOperator_neumann_at_zero
-ShenWork.IntervalSemigroupNeumann.intervalFullSemigroupOperator_neumann_at_one
-ShenWork.IntervalSemigroupNeumann.intervalFullSemigroupOperator_neumann_limit_left
-ShenWork.IntervalSemigroupNeumann.intervalFullSemigroupOperator_neumann_limit_right
+ShenWork.IntervalCoupledRegularityBootstrap.coupledChemical_floor_pos_of_nonneg_continuous
 ```
 
-Zero-extension / slice bridge names:
+This gives strict positivity of `1 + v`, not strict positivity of `u0`.
+
+So the FAC package does not directly supply the `hu0_pos` needed by `heatSemigroup_pos_of_pos`.
+
+## Positivity structures found
+
+The requested structure exists here:
 
 ```lean
-ShenWork.IntervalCosineSliceRegularity.intervalDomainLift_deriv_left_endpoint_zero_of_ne
-ShenWork.IntervalCosineSliceRegularity.intervalDomainLift_deriv_right_endpoint_zero_of_ne
-ShenWork.IntervalCosineSliceRegularity.intervalDomainCosineSlice_conjunct7
-ShenWork.IntervalCosineSliceRegularity.intervalDomainCosineSlice_contDiffOn_Ioo
-ShenWork.IntervalCosineSliceRegularity.intervalDomainCosineSlice_neumann_limit_left
-ShenWork.IntervalCosineSliceRegularity.intervalDomainCosineSlice_neumann_limit_right
+ShenWork.PDE.IntervalMildSourceDecayHelper.BoundedLipschitzPositiveOnUnit
 ```
 
-Positive-slice endpoint wrappers:
+It has fields:
 
 ```lean
-ShenWork.IntervalSemigroupNeumann.mildSolution_neumann_deriv_zero_of_pos
-ShenWork.IntervalSemigroupNeumann.mildSolution_neumann_deriv_one_of_pos
-ShenWork.IntervalSemigroupNeumann.mildSolution_neumann_of_positive_time
+m_pos : 0 < m
+lower_bound : forall x in Set.Icc 0 1, m <= u x
+bounded : exists M, forall x in Set.Icc 0 1, |u x| <= M
+lipschitz : exists K : R>=0, LipschitzOnWith K u (Set.Icc 0 1)
 ```
 
-Composed-source Neumann patterns:
+But search only found it in `IntervalMildSourceDecayHelper.lean`; it is part of weak H2 / source coefficient decay packaging:
 
 ```lean
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_deriv_zero_at_zero
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_deriv_zero_at_one
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_tendsto_deriv_left
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_tendsto_deriv_right
-ShenWork.IntervalMildPicardRegularity.logisticSourceFun_intervalWeakH2Neumann
-ShenWork.EWA.realSlice_logSource_C2Neumann
+PowerSourceH2NeumannData
+powerSourceH2NeumannData_of_source_contDiffOn
 ```
 
-For the power source, I found endpoint derivative and second-derivative machinery, but not standalone names `powerSourceFun_tendsto_deriv_left/right`. The one-sided endpoint-limit proof is effectively inside `powerSourceFun_cosineCoeff_quadratic_decay_explicit`: it builds continuity of `Fp1`, identifies `deriv (fun y => nu * u y ^ gamma)` with `Fp1`, and obtains the two `Tendsto` facts from `ContinuousOn.continuousWithinAt` plus endpoint derivative equalities.
+I did not find it feeding `CoupledChemDivFluxFactorFACInputs` or `heatSemigroup_level0_resolverJointC2Data`.
 
-Suggested extraction before closing `hsliceNeumann`:
+Other strict-positive-datum bridges found:
 
 ```lean
-powerSourceFun_deriv_zero_at_zero
-powerSourceFun_deriv_zero_at_one
-powerSourceFun_tendsto_deriv_left
-powerSourceFun_tendsto_deriv_right
+ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_uniformFloor_of_continuous_pos
+ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_paperPositiveInitialDatum_of_continuous_pos
+ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_mildExistenceData_of_continuous_positiveDatum
+ShenWork.Paper2.IntervalMildExistenceAssembly.intervalDomain_gradientMildSolutionData_of_continuous_positiveDatum
 ```
 
-Then `hsliceNeumann` for `i = 0` should follow the same shape as `realSlice_logSource_C2Neumann`, replacing the logistic-source lemmas with the extracted power-source lemmas and using the heat semigroup Neumann lemmas for the underlying profile.
+These show that `Continuous u0` plus `forall x, 0 < u0 x` is already a recognized route to a uniform floor / paper-positive datum.
+
+There is also a cone route in
+
+```lean
+ShenWork.IntervalMildPicardConeData.coneGradientMildSolutionData_exists_with_data
+```
+
+that assumes nonnegative datum plus positive somewhere and proves positive heat/Picard slices for positive times. That is weaker than `forall x, 0 < u0 x`, but it is not connected to the local `heatSemigroup_pos_of_pos` theorem used for the line-832 floor.
+
+## Recommendation
+
+For the current local gap, add `hu0_pos` to `heatSemigroup_level0_resolverJointC2Data` and to `heatResolverJointContDiffAt_two`, then discharge line 832 with `heatSemigroup_pos_of_pos`.
+
+This is the smallest honest patch because:
+
+1. the theorem is not semantically true for arbitrary sign-changing or zero-valued data when the source is `u^gamma` with real `gamma`;
+2. the existing proof theorem already requires strict positive initial datum;
+3. repository search did not find any downstream resolver/FAC API that can synthesize `hu0_pos` for this theorem;
+4. direct callers of `heatSemigroup_level0_resolverJointC2Data` appear local to `IntervalHeatSemigroupHighRegularity.lean`, so the API blast radius is small.
+
+If later the FAC chain wants compatibility with the cone route, the better abstraction would be to generalize the heat theorem with a direct floor hypothesis:
+
+```lean
+(hfloor : forall t, 0 < t -> forall x in Set.Icc (0:R) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u0 0 t) x)
+```
+
+and then provide two corollaries:
+
+```lean
+-- strict positive datum route
+..._of_posDatum (hu0_pos : forall x, 0 < u0 x)
+
+-- cone/nonnegative-positive-somewhere route, if/when the needed heat positivity theorem is wired
+..._of_heatFloor hfloor
+```
+
+But for the concrete line-832 `sorry`, `hu0_pos` is the correct immediate missing hypothesis.
 
 ## Search log
 
 ```text
-IntervalHeatSemigroupHighRegularity
-ContDiffOn.rpow
-rpow_const ContDiffOn
-rpow_const_of_ne
-continuousOn.rpow_const
-intervalFullSemigroupOperator_neumann_at_zero
-cosineCoeffSeries_deriv_at_zero
-heatSemigroup_flooredSourceTimeData hsliceC2 hsliceNeumann
-conjugatePicardIter 0 intervalFullSemigroupOperator
+BoundedLipschitzPositiveOnUnit
+coupledChemical_jointContDiffAt_two
+resolver_jointC2At_of_spectralAgreement
+IntervalChemDivFluxFactorFAC
+structure CoupledChemDivFluxFactorFACInputs
+heatSemigroup_level0_resolverJointC2Data
+heatResolverJointContDiffAt_two
+hu0_pos / hu₀_pos
+PositiveInitialDatum intervalDomain u0
+heatSemigroup_pos_of_pos
 ```
