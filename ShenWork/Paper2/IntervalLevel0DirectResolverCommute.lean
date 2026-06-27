@@ -1,6 +1,3 @@
-theorem coupledChemical_innerCommute_of_physicalJointC2
-```
-```lean
 import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
 
 open ShenWork.IntervalDomain
