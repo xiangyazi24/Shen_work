@@ -1,311 +1,219 @@
-# Q1032 (cron2/cron3) — audit of 1A and 2A-sup after `hfluxC2`
+# Q1035 (cron2/cron3) — can 1A and 2A-sup be proved directly from `hlocal_slab`?
 
 Static repo inspection only; I did **not** run Lean.
 
-I read:
+I read `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean` at ref `9dd3a4b`, focusing on:
 
-- `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`, especially the block around the 1A and 2A-sup sorries.
-- `ShenWork/PDE/IntervalChemDivOuterCommuteProducer.lean` for `CoupledChemDivFluxJointC2Hyp`.
-- `ShenWork/PDE/IntervalChemDivFluxJointC2Producer.lean` for the factor-input shape.
-- `ShenWork/Paper2/IntervalChemDivSpatialC2.lean` for how the per-slice `IntervalWeakH2Neumann.secondDeriv` is actually built.
-- Existing compact-boundedness patterns in the repo, especially `IntervalConjugateLevel0BFormSourceOn.lean`'s `hMdot` block and `IntervalPicardIterateBddProducer.lean`.
+- the 1A block inside `hL1_uniform`, around the `hunif_ptwise` sorry;
+- the 2A-sup block inside `hSup`, around `hbdry_zero` and `hsup_bound`;
+- the new positive-window `hlocal_slab` inside `level0_chemDiv_timeDerivData`.
 
 ## Executive verdict
 
-No: proving `hfluxC2 : CoupledChemDivFluxJointC2Hyp p u` is **not by itself all the infrastructure needed** for 1A and 2A-sup.
+No.  The new `hlocal_slab` is the right replacement for the old global `CoupledChemDivFluxJointC2Hyp` in the **time-C¹ coefficient chain**.  It avoids the impossible `τ ≤ 0` branch and gives exactly what `cosineCoeffs_hasDerivAt_of_smooth_param` needs later.
 
-The Mathlib compactness/boundedness part is already available and already used in the repo.  The real missing piece is an analytic bridge:
+But `hlocal_slab` does **not** directly close 1A or 2A-sup.
 
-```text
-local/interior flux joint C²
-  ⟹ closed-slab continuous representative for the chemDiv source
-  ⟹ closed-slab continuous representative for the weak-H² secondDeriv
-```
-
-For 2A-sup, `hfluxC2` gets close but still does not directly close the goal because compactness needs a continuous function on a compact **closed** slab, while the raw lift has endpoint/junk-derivative behavior.  The existing `hbdry_zero` solves endpoint values, but one still needs an interior agreement + closed representative theorem.
-
-For 1A, the gap is larger: `hfluxC2` gives joint `C²` of the **flux**
+The reason is simple: `hlocal_slab` packages local **time-chain-rule** data for the chemDiv source and closed-slab continuity of the **time derivative field**
 
 ```lean
-Function.uncurry (coupledChemDivFluxLift p u)
+coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)
 ```
 
-on the interior.  But the weak-H² `secondDeriv` in 1A is the second derivative of the **source** `chemDiv = ∂ₓ flux`, i.e. it corresponds to a third spatial derivative of the flux representative.  So flux joint `C²` is not enough to bound `secondDeriv`; one needs the per-slice C⁴/cosine-representative route already used in `IntervalChemDivSpatialC2.lean`, plus joint-in-time continuity of that representative.
-
-## Current shape of the relevant goals
-
-In `IntervalConjugateLevel0BFormSourceOn.lean`, 1A is inside the uniform L¹ bound for the weak-H² second derivative:
+whereas 1A and 2A-sup need closed-slab boundedness of either:
 
 ```lean
-have hunif_ptwise : ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
-    ∀ x ∈ Icc (0 : ℝ) 1, |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
-  sorry -- [SUB-SORRY 1A: joint continuity + compactness → ptwise bound]
+coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0)
 ```
 
-2A-sup is the uniform source sup bound:
+or the weak-H² `secondDeriv` selected by `hH2_per_slice`.
+
+The compactness/Mathlib part is not the problem; it is already present.  The missing piece is still a closed-slab continuous **source representative** and, for 1A, a closed-slab continuous **H² second-derivative representative**.
+
+## What `hlocal_slab` gives after `9dd3a4b`
+
+In `level0_chemDiv_timeDerivData`, the new local package is:
 
 ```lean
-have hsup_bound : ∃ (Msup : ℝ), 0 ≤ Msup ∧
-    ∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s x| ≤ Msup := by
+have hlocal_slab : ∀ s, s ∈ Icc c T → ∃ δ : ℝ, 0 < δ ∧
+  (∀ᶠ r in 𝓝 s,
+    MeasureTheory.IntervalIntegrable
+      (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
+      MeasureTheory.volume (0 : ℝ) 1) ∧
+  (∀ x ∈ Ioo (0 : ℝ) 1, ∀ r ∈ Metric.ball s δ,
+    HasDerivAt
+      (fun t => coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) t x)
+      (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) r x) r) ∧
+  ContinuousOn
+    (Function.uncurry
+      (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
+    (Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1)
+```
+
+The file then derives a global-window continuity fact from this:
+
+```lean
+have hjointcont : ContinuousOn
+    (Function.uncurry (coupledChemDivTimeDerivativeLift
+      p (conjugatePicardIter p u₀ 0)))
+    (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
   ...
-  have hbdry_zero : ∀ s, ∀ endpoint ∈ ({0, 1} : Set ℝ),
-      coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s endpoint = 0 := by
-    ...
-  sorry -- [SUB-SORRY 2A-core]
 ```
 
-After 2A-sup, the file already has the integrability bridge:
+That `hjointcont` is for the **time derivative field**.  It is later used exactly where it belongs: to prove `ContinuousOn (fun s => adot s n)` and a uniform coefficient derivative bound `hMdot` by compactness of the time-derivative field.
+
+It does not assert that the source itself is jointly continuous on the closed slab, nor that the H² second derivative is jointly continuous.
+
+## Q1. Does `hlocal_slab` directly imply joint continuity on `[c,T] × [0,1]`?
+
+Only for the field it explicitly carries:
 
 ```lean
-apply IntervalIntegrable.mono_fun' (intervalIntegrable_const (c := Msup))
-...
+Function.uncurry (coupledChemDivTimeDerivativeLift p u)
 ```
 
-so for 2A, the only real issue is the sup bound.
+The file already derives this as `hjointcont`.
 
-## What `hfluxC2` actually gives
-
-`CoupledChemDivFluxJointC2Hyp` currently has this shape:
+It does **not** directly imply joint continuity of:
 
 ```lean
-structure CoupledChemDivFluxJointC2Hyp
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
-  exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
-    (∀ᶠ s in 𝓝 τ,
-      MeasureTheory.IntervalIntegrable (coupledChemDivSourceLift p u s)
-        MeasureTheory.volume (0 : ℝ) 1) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      ContDiffAt ℝ 2
-        (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun r : ℝ => deriv (coupledChemDivFluxLift p u r) x) =ᶠ[𝓝 s]
-        (fun r : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (r, x) (0, 1))) ∧
-    (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-        (fun y : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (s, y) (1, 0))) ∧
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
+Function.uncurry (fun s x => coupledChemDivSourceLift p u s x)
 ```
 
-This is designed for the **time chain rule** and outer-commute step, not for the weak-H² envelope bound.  It provides:
+or of a smooth representative of that source.
 
-1. source interval integrability near each `τ`,
-2. interior joint `C²` of the flux,
-3. spatial/time bridge fields for Clairaut,
-4. closed-slab continuity of the **time derivative** field `coupledChemDivTimeDerivativeLift`.
-
-It does **not** directly provide:
+The second field of `hlocal_slab`,
 
 ```lean
-ContinuousOn (fun q => sourceRepresentative q) (Icc c T ×ˢ Icc 0 1)
+HasDerivAt
+  (fun t => coupledChemDivSourceLift p u t x)
+  (coupledChemDivTimeDerivativeLift p u r x) r
 ```
 
-nor
+is only time differentiability at each fixed interior `x`.  It gives time-continuity pointwise in `x` for interior `x`, but it gives neither spatial continuity nor joint continuity on the closed set.  It also does not address endpoint behavior of `intervalDomainLift`.
 
-```lean
-ContinuousOn (fun q => secondDerivRepresentative q) (Icc c T ×ˢ Icc 0 1)
-```
+So the answer is: **no, not directly**.  It proves the right `hjointcont` for coefficient time-C¹; it does not give the source closed-slab continuity needed for 2A-sup.
 
-which are the facts needed for 2A-sup and 1A respectively.
-
-## Q1. Does `hfluxC2` directly give the joint continuity needed for 1A?
+## Q2. Can 1A be proved from `hlocal_slab` alone?
 
 No.
 
-There are two separate gaps.
-
-### Gap 1: order of differentiability
-
-1A bounds
+1A bounds:
 
 ```lean
-(hH2_per_slice s hs).secondDeriv x
+|(hH2_per_slice s hs).secondDeriv x|
 ```
 
-where `hH2_per_slice s hs : IntervalWeakH2Neumann (...)`.  The structure `IntervalWeakH2Neumann` has a field
-
-```lean
-secondDeriv : ℝ → ℝ
-```
-
-and the constructor in `IntervalChemDivSpatialC2.lean` builds it from the cosine representative as follows:
+where `hH2_per_slice s hs` is an `IntervalWeakH2Neumann` certificate for the chemDiv source.  In `IntervalChemDivSpatialC2.lean`, the per-slice H² datum is built by the cosine-representative route:
 
 ```lean
 set F := deriv (chemFluxFun p.β U_cos V_cos)
 ...
-have hF_H2 : IntervalWeakH2Neumann F :=
-  intervalWeakH2Neumann_of_contDiffOn hF_C2on ...
-...
-exact {
-  secondDeriv := hF_H2.secondDeriv
-  ...
-}
+secondDeriv := hF_H2.secondDeriv
 ```
 
-Since `F = deriv (chemFluxFun ...)` is the chemDiv source, `secondDeriv` is essentially
+So this `secondDeriv` is the second spatial derivative of the chemDiv source representative `F`, equivalently a third spatial derivative of the flux representative.
+
+`hlocal_slab` only gives:
+
+1. eventual interval integrability of the source;
+2. time `HasDerivAt` of the source at interior points;
+3. closed-slab continuity of the source's time derivative.
+
+It gives no closed-slab representative for the selected `secondDeriv`, and it gives no higher spatial regularity field from which to derive it.  The 1A comments in the file are still accurate: one needs joint-in-time control of the smooth cosine representative and its relevant spatial derivatives, e.g.
 
 ```lean
-deriv (deriv F)
+∃ G2 : ℝ × ℝ → ℝ,
+  ContinuousOn G2 (Icc c T ×ˢ Icc (0 : ℝ) 1) ∧
+  ∀ s (hs : s ∈ Icc c T), ∀ x ∈ Icc (0 : ℝ) 1,
+    (hH2_per_slice s hs).secondDeriv x = G2 (s, x)
 ```
 
-so it is the second spatial derivative of the source, i.e. the third spatial derivative of the flux.
+Once such a `G2` exists, 1A is compactness-only.  But `hlocal_slab` alone does not construct `G2`.
 
-But `hfluxC2` only gives
+## Q3. Does `hlocal_slab + hbdry_zero` suffice for 2A-sup?
+
+Still no.
+
+The existing `hbdry_zero` is useful and removes the endpoint-value problem:
 
 ```lean
-ContDiffAt ℝ 2 (Function.uncurry (coupledChemDivFluxLift p u)) (s, x)
+have hbdry_zero : ∀ s, ∀ endpoint ∈ ({0, 1} : Set ℝ),
+  coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s endpoint = 0
 ```
 
-for the flux.  That is enough to speak about the flux's second derivative, not the source's second derivative.  For 1A, one needs a source-`C²`/flux-`C³` closed representative.  The fixed-time file `IntervalChemDivSpatialC2.lean` obtains that by asking for global `C⁴` representatives of `U_cos` and `V_cos`, then using
+But for a uniform bound on all of
 
 ```lean
-chemFluxDeriv_contDiff_two
-chemDivSource_weakH2_of_cosineRep
+Icc c T ×ˢ Icc 0 1
 ```
 
-So 1A needs the **joint-in-time version** of that fixed-time cosine-representative route, not merely `hfluxC2`.
+one still needs a uniform interior bound.  `hlocal_slab` gives time differentiability of the source at each interior point, not a compact-domain continuous source representative.
 
-### Gap 2: identifying the exact `secondDeriv` field
-
-Even if one has a continuous function
+The right missing lemma is a closed-slab source representative, for example:
 
 ```lean
-G2 : ℝ × ℝ → ℝ
+structure ChemDivSourceClosedRepr
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c T : ℝ) : Prop where
+  Gsrc : ℝ × ℝ → ℝ
+  cont : ContinuousOn Gsrc (Icc c T ×ˢ Icc (0 : ℝ) 1)
+  agree_int : ∀ s ∈ Icc c T, ∀ x ∈ Ioo (0 : ℝ) 1,
+    coupledChemDivSourceLift p u s x = Gsrc (s, x)
+  bdry_zero : ∀ s ∈ Icc c T, ∀ x ∈ ({0, 1} : Set ℝ),
+    coupledChemDivSourceLift p u s x = 0
 ```
 
-intended to be the second derivative of the source, Lean still needs an agreement theorem such as
+For heat Level0, `Gsrc` should be the smooth cosine-series representative
 
 ```lean
-∀ s ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-  (hH2_per_slice s hs).secondDeriv x = G2 (s, x)
+Gsrc (s, x) = deriv (chemFluxFun p.β U_cos(s, ·) V_cos(s, ·)) x
 ```
 
-or at least a bound transfer theorem.  This is not supplied by `hfluxC2`.
+or a `mixedAlgebra`-style explicit representative for the source.  It should be proved continuous on the closed positive-time slab from joint smoothness of heat and resolver representatives.  Then:
 
-The recommended 1A bridge is therefore a new lemma with a shape like:
+- interior bound transfers by `agree_int`;
+- boundary bound transfers by `bdry_zero`;
+- compactness gives the uniform `Msup`.
 
-```lean
-lemma level0_chemDiv_H2_secondDeriv_uniform_bound
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {c T M₀ : ℝ}
-    (hc : 0 < c) (hcT : c ≤ T)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    -- joint closed-slab cosine representatives for U, V and enough derivatives:
-    (HG2 : ∃ G2 : ℝ × ℝ → ℝ,
-      ContinuousOn G2 (Icc c T ×ˢ Icc (0 : ℝ) 1) ∧
-      ∀ s (hs : s ∈ Icc c T), ∀ x ∈ Icc (0 : ℝ) 1,
-        (hH2_per_slice s hs).secondDeriv x = G2 (s, x)) :
-    ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
-      ∀ x ∈ Icc (0 : ℝ) 1,
-        |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
-  ... -- compactness only
-```
+So `hlocal_slab + hbdry_zero` is not enough; it lacks the `Gsrc` closed representative and agreement theorem.
 
-The compactness part of this lemma is routine; building `G2` is the missing analytic bridge.
+## Q4. Existing Mathlib infrastructure for compact boundedness
 
-## Q2. Does `hfluxC2` give the interior uniform sup bound for 2A-sup?
+Yes.  This part is already available and already used in the repo.
 
-It gives the **right kind of interior regularity**, but not a direct closed-slab compact bound.
+### Pattern A: `IsCompact.bddAbove_image`
 
-For 2A-sup, the source is the first spatial derivative of the flux:
+The current file already uses this pattern in the `hMdot` proof:
 
 ```lean
-coupledChemDivSourceLift p u s x
-```
-
-On `x ∈ Ioo 0 1`, `hfluxC2` plus its spatial bridge can identify this with the spatial derivative of the flux representative.  Since `hfluxC2` has `ContDiffAt ℝ 2` of the flux, it is enough to obtain local interior continuity of the source.
-
-But compactness requires a continuous function on a compact set.  The interior slab
-
-```lean
-Icc c T ×ˢ Ioo 0 1
-```
-
-is not compact.  The raw lift is not the desired continuous closed representative at `x = 0,1`.  The file has already proved endpoint values are zero via `hbdry_zero`, which removes the boundary obstruction for the **bound**, but Lean still needs a uniform interior bound.
-
-The clean bridge is a closed representative for the source:
-
-```lean
-∃ Gsrc : ℝ × ℝ → ℝ,
-  ContinuousOn Gsrc (Icc c T ×ˢ Icc (0 : ℝ) 1) ∧
-  (∀ s ∈ Icc c T, ∀ x ∈ Ioo (0 : ℝ) 1,
-    coupledChemDivSourceLift p u s x = Gsrc (s, x)) ∧
-  (∀ s ∈ Icc c T, ∀ x ∈ ({0,1} : Set ℝ),
-    coupledChemDivSourceLift p u s x = 0)
-```
-
-Then compactness bounds `Gsrc`; the interior bound transfers by agreement; endpoint bound is `0 ≤ C` using `hbdry_zero`.
-
-This is analogous to the `ChemDivMixedTimeDerivClosedRepr` pattern, but for the source rather than the time-derivative field.
-
-### Code skeleton for 2A-sup once `Gsrc` exists
-
-```lean
--- K is compact.
 set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1
 have hKcompact : IsCompact K := isCompact_Icc.prod isCompact_Icc
-
--- Suppose we have a closed-slab representative of the source.
-rcases hGsrc with ⟨Gsrc, hGsrc_cont, hGsrc_int, hbdry_zero⟩
-
--- Bound `|Gsrc|` on K.
-have hGabs_cont : ContinuousOn (fun q : ℝ × ℝ => |Gsrc q|) K :=
-  hGsrc_cont.abs
-
-obtain ⟨B, hB_upper⟩ := hKcompact.bddAbove_image hGabs_cont
-
-have hB_nonneg : 0 ≤ B := by
-  have hmem : (c, (0 : ℝ)) ∈ K :=
-    ⟨left_mem_Icc.mpr hcT, left_mem_Icc.mpr (by norm_num : (0 : ℝ) ≤ 1)⟩
-  exact le_trans (abs_nonneg (Gsrc (c, 0)))
-    (hB_upper (Set.mem_image_of_mem _ hmem))
-
-refine ⟨B, hB_nonneg, ?_⟩
-intro s hs x hx
-rcases eq_or_lt_of_le hx.1 with hx0 | hx0
-· -- x = 0
-  subst x
-  rw [hbdry_zero s hs 0 (by simp)]
-  exact hB_nonneg
-rcases eq_or_lt_of_le hx.2 with hx1 | hx1
-· -- x = 1
-  subst x
-  rw [hbdry_zero s hs 1 (by simp)]
-  exact hB_nonneg
-· -- interior
-  have hxIoo : x ∈ Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
-  rw [hGsrc_int s hs x hxIoo]
-  exact hB_upper (Set.mem_image_of_mem _ ⟨hs, hx⟩)
+have hFcont_norm : ContinuousOn (fun p => ‖Function.uncurry F p‖) K :=
+  hjointcont.norm
+obtain ⟨B_sup, hB_sup⟩ := hKcompact.bddAbove_image hFcont_norm
 ```
 
-This is precisely the correct closure pattern for 2A-sup.  `hfluxC2` can help prove `hGsrc_int`, but it does not itself package `Gsrc`.
-
-## Q3. Existing Mathlib compact-boundedness theorems
-
-Yes.  The repo already uses two good patterns.
-
-### Pattern A: `IsCompact.exists_isMaxOn`
-
-This is used in `IntervalPicardIterateBddProducer.exists_datum_source_coeff_bound`:
+Then pointwise extraction is:
 
 ```lean
-have hcompact : IsCompact (Set.Icc (0 : ℝ) 1) := isCompact_Icc
-have habs_cont : ContinuousOn
-    (fun x => |logisticSourceFun p.a p.b p.α (intervalDomainLift u₀) x|)
-    (Set.Icc (0 : ℝ) 1) := hcontSrc.abs
-obtain ⟨x₀, hx₀mem, hx₀⟩ := hcompact.exists_isMaxOn
-  (Set.nonempty_Icc.mpr (by norm_num)) habs_cont
-exact ⟨|logisticSourceFun p.a p.b p.α (intervalDomainLift u₀) x₀|,
-  fun x hx => hx₀ hx⟩
+have hmem : (s, x) ∈ K := ⟨hs, hx⟩
+have : ‖Function.uncurry F (s, x)‖ ≤ B_sup :=
+  hB_sup (Set.mem_image_of_mem _ hmem)
 ```
 
-For a product compact set:
+This works directly for `Gsrc` or `G2` once those continuous representatives exist.
+
+### Pattern B: `IsCompact.exists_isMaxOn`
+
+The repo also uses:
+
+```lean
+hcompact.exists_isMaxOn hnonempty hcont
+```
+
+for example in `IntervalPicardIterateBddProducer.exists_datum_source_coeff_bound`, where it bounds a continuous source on `Icc 0 1`.
+
+For a product slab, the pattern is:
 
 ```lean
 set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1
@@ -321,104 +229,99 @@ intro s hs x hx
 exact hmax ⟨hs, hx⟩
 ```
 
-### Pattern B: `IsCompact.bddAbove_image`
+## Compactness-only code for 2A-sup after `Gsrc`
 
-This is already used in `IntervalConjugateLevel0BFormSourceOn.lean`'s `hMdot` block:
+Once a source representative exists, the 2A-sup core should look like this:
 
 ```lean
+-- Suppose:
+-- Hsrc.Gsrc      : ℝ × ℝ → ℝ
+-- Hsrc.cont      : ContinuousOn Hsrc.Gsrc K
+-- Hsrc.agree_int : source = Gsrc on interior
+-- Hsrc.bdry_zero : source = 0 at x = 0,1
+
 set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1
 have hKcompact : IsCompact K := isCompact_Icc.prod isCompact_Icc
-have hFcont_norm : ContinuousOn (fun p => ‖Function.uncurry F p‖) K :=
-  hjointcont.norm
-obtain ⟨B_sup, hB_sup⟩ := hKcompact.bddAbove_image hFcont_norm
-```
+have hGabs_cont : ContinuousOn (fun q : ℝ × ℝ => |Hsrc.Gsrc q|) K :=
+  Hsrc.cont.abs
 
-Then it extracts the pointwise bound by:
+obtain ⟨B, hB_upper⟩ := hKcompact.bddAbove_image hGabs_cont
 
-```lean
-have hmem : (s, x) ∈ K := ⟨hs, hx⟩
-have : ‖Function.uncurry F (s, x)‖ ≤ B_sup :=
-  hB_sup (Set.mem_image_of_mem _ hmem)
-```
+have hB_nonneg : 0 ≤ B := by
+  have hmem : (c, (0 : ℝ)) ∈ K :=
+    ⟨left_mem_Icc.mpr hcT, left_mem_Icc.mpr (by norm_num : (0 : ℝ) ≤ 1)⟩
+  exact le_trans (abs_nonneg (Hsrc.Gsrc (c, 0)))
+    (hB_upper (Set.mem_image_of_mem _ hmem))
 
-and proves nonnegativity of `B_sup` by evaluating at `(c,0)`.
-
-This exact pattern should be used for both 1A and 2A-sup once the right closed-slab representatives are available.
-
-## Minimal missing lemmas
-
-To close 1A and 2A-sup cleanly, I would add two representative/bound lemmas.
-
-### 2A source representative
-
-```lean
-/-- Closed-slab continuous representative of the chemDiv source on a positive Level0 window. -/
-structure ChemDivSourceClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c T : ℝ) : Prop where
-  Gsrc : ℝ × ℝ → ℝ
-  cont : ContinuousOn Gsrc (Icc c T ×ˢ Icc (0 : ℝ) 1)
-  agree_int : ∀ s ∈ Icc c T, ∀ x ∈ Ioo (0 : ℝ) 1,
-    coupledChemDivSourceLift p u s x = Gsrc (s, x)
-  bdry_zero : ∀ s ∈ Icc c T, ∀ x ∈ ({0,1} : Set ℝ),
-    coupledChemDivSourceLift p u s x = 0
-```
-
-Then 2A-sup is compactness-only.
-
-### 1A second-derivative representative
-
-```lean
-/-- Closed-slab continuous representative of the weak-H² second derivative selected
-by `chemDivSource_weakH2_of_cosineRep`. -/
-structure ChemDivH2SecondClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (c T : ℝ)
-    (hH2 : ∀ s, s ∈ Icc c T → IntervalWeakH2Neumann (coupledChemDivSourceLift p u s)) : Prop where
-  G2 : ℝ × ℝ → ℝ
-  cont : ContinuousOn G2 (Icc c T ×ˢ Icc (0 : ℝ) 1)
-  agree : ∀ s (hs : s ∈ Icc c T), ∀ x ∈ Icc (0 : ℝ) 1,
-    (hH2 s hs).secondDeriv x = G2 (s, x)
-```
-
-Then 1A is compactness-only:
-
-```lean
-rcases H2repr with ⟨G2, hG2cont, hG2agree⟩
-set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1
-have hKcompact : IsCompact K := isCompact_Icc.prod isCompact_Icc
-have hAbsCont : ContinuousOn (fun q => |G2 q|) K := hG2cont.abs
-obtain ⟨q₀, hq₀K, hmax⟩ := hKcompact.exists_isMaxOn
-  (by refine ⟨(c,0), ?_⟩; exact ⟨left_mem_Icc.mpr hcT, left_mem_Icc.mpr (by norm_num)⟩)
-  hAbsCont
-refine ⟨|G2 q₀|, abs_nonneg _, ?_⟩
+refine ⟨B, hB_nonneg, ?_⟩
 intro s hs x hx
-rw [hG2agree s hs x hx]
+rcases eq_or_lt_of_le hx.1 with hx0 | hx0
+· subst x
+  rw [Hsrc.bdry_zero s hs 0 (by simp)]
+  exact hB_nonneg
+rcases eq_or_lt_of_le hx.2 with hx1 | hx1
+· subst x
+  rw [Hsrc.bdry_zero s hs 1 (by simp)]
+  exact hB_nonneg
+· have hxIoo : x ∈ Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
+  rw [Hsrc.agree_int s hs x hxIoo]
+  exact hB_upper (Set.mem_image_of_mem _ ⟨hs, hx⟩)
+```
+
+## Compactness-only code for 1A after `G2`
+
+Once the H² second-derivative representative exists:
+
+```lean
+-- Suppose:
+-- H2repr.G2    : ℝ × ℝ → ℝ
+-- H2repr.cont  : ContinuousOn H2repr.G2 K
+-- H2repr.agree : (hH2_per_slice s hs).secondDeriv x = H2repr.G2 (s,x)
+
+set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1
+have hKcompact : IsCompact K := isCompact_Icc.prod isCompact_Icc
+have hAbsCont : ContinuousOn (fun q : ℝ × ℝ => |H2repr.G2 q|) K :=
+  H2repr.cont.abs
+have hKnonempty : K.Nonempty := by
+  refine ⟨(c, 0), ?_⟩
+  exact ⟨left_mem_Icc.mpr hcT, left_mem_Icc.mpr (by norm_num : (0 : ℝ) ≤ 1)⟩
+
+obtain ⟨q₀, hq₀K, hmax⟩ := hKcompact.exists_isMaxOn hKnonempty hAbsCont
+refine ⟨|H2repr.G2 q₀|, abs_nonneg _, ?_⟩
+intro s hs x hx
+rw [H2repr.agree s hs x hx]
 exact hmax ⟨hs, hx⟩
 ```
 
-## Final answers to the questions
+## Direct answers
 
-### 1. Once `hfluxC2` is proved, does it directly give the joint continuity needed for 1A?
+### 1. Does `hlocal_slab` directly imply joint continuity on the closed compact set?
 
-No.  It gives interior joint `C²` of the flux, but 1A needs a uniform bound on the weak-H² `secondDeriv` of the source.  That is essentially a second derivative of `chemDiv = ∂ₓ flux`, so it needs a higher-order closed representative and an agreement theorem with the specific `secondDeriv` field.  Existing fixed-time infrastructure (`chemDivSource_weakH2_of_cosineRep`, `chemFluxDeriv_contDiff_two`) is useful, but the joint-in-time closed-slab representative is not currently packaged.
-
-### 2. For 2A-sup, does `hfluxC2` give the interior uniform sup bound?
-
-It gives the right interior differentiability input, but not the finished uniform bound.  With `hbdry_zero`, the remaining bridge is a closed-slab continuous source representative `Gsrc` agreeing with `coupledChemDivSourceLift` on the interior.  Once `Gsrc` exists, compactness gives the bound immediately.  `hfluxC2` alone does not provide `Gsrc`, and its closed-slab continuity field is for `coupledChemDivTimeDerivativeLift`, not for the source.
-
-### 3. Are there existing Mathlib theorems directly applicable?
-
-Yes.  Use either:
+No.  It directly implies joint continuity on the closed compact set only for
 
 ```lean
-IsCompact.exists_isMaxOn
+coupledChemDivTimeDerivativeLift
 ```
 
-or
+and the file already derives `hjointcont` for that.  It does not imply joint continuity of the source or of the H² second derivative.
 
-```lean
-IsCompact.bddAbove_image
-```
+### 2. Can 1A be proved from `hlocal_slab` alone?
 
-The repo already uses both patterns.  The current `IntervalConjugateLevel0BFormSourceOn.lean` uses `isCompact_Icc.prod isCompact_Icc`, `ContinuousOn.norm`, and `hKcompact.bddAbove_image` in the `hMdot` block.  `IntervalPicardIterateBddProducer.lean` uses `hcompact.exists_isMaxOn` to bound a continuous function on `[0,1]`.
+No.  1A needs a closed-slab continuous representative for `(hH2_per_slice s hs).secondDeriv`.  `hlocal_slab` has no field identifying or controlling this `secondDeriv`, and it does not carry the higher spatial regularity needed to build it.
 
-So the compactness machinery is present and directly usable.  The remaining work is analytic packaging of the correct closed representatives and agreement lemmas, not Mathlib boundedness.
+### 3. Does `hlocal_slab + hbdry_zero` suffice for 2A-sup?
+
+No.  `hbdry_zero` handles endpoints, but the interior still needs a uniform bound.  `hlocal_slab` gives time differentiability at each interior point, not closed-slab source continuity or boundedness.  Add a closed-slab source representative `Gsrc`; then `hbdry_zero + Gsrc + compactness` suffices.
+
+### 4. Is there existing Mathlib infrastructure for continuous-on-compact implies bounded?
+
+Yes.  Use either `IsCompact.bddAbove_image` or `IsCompact.exists_isMaxOn`.  Both patterns are already present in the repo.  The current file already uses `isCompact_Icc.prod isCompact_Icc` plus `hKcompact.bddAbove_image` in the `hMdot` block; `IntervalPicardIterateBddProducer.lean` uses `exists_isMaxOn`.
+
+## Bottom line
+
+`hlocal_slab` is sufficient for the time-coefficient derivative route (`hderiv`, `hadotcont`, and `hMdot`).  It is not sufficient for 1A or 2A-sup.  Those should be closed by adding two representative lemmas:
+
+1. `ChemDivSourceClosedRepr` for the source itself;
+2. `ChemDivH2SecondClosedRepr` for the chosen weak-H² `secondDeriv`.
+
+After those are available, 1A and 2A-sup are compactness exercises using existing Mathlib/repo patterns.
