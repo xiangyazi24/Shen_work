@@ -1122,22 +1122,40 @@ theorem level0_chemDiv_timeDerivData
           have hcont_on := hU_C4.continuous.continuousOn.congr
             (fun y hy => (hU_agree y hy).symm)
           rw [← continuousOn_iff_continuous_restrict] at hcont_on
-          sorry -- [continuity of w from ContinuousOn of lift — mechanical]
+          rw [hrestr] at hcont_on; exact hcont_on
         set clip : ℝ → intervalDomainPoint := fun z =>
           ⟨max 0 (min z 1), le_max_left 0 _, max_le (by norm_num) (min_le_right z 1)⟩
         have hclip_cont : Continuous clip :=
           Continuous.subtype_mk (continuous_const.max (continuous_id.min continuous_const)) _
         have hcont_src : Continuous (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) :=
-          sorry -- [continuous_const.mul (hw_cont.rpow_const ...)]
+          continuous_const.mul (hw_cont.rpow_const (fun z => Or.inr p.hγ.le))
         set f : ℝ → ℝ := (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) ∘ clip
         have hf_cont : Continuous f := sorry -- hcont_src.comp hclip_cont
         have hf_nonneg : ∀ z, 0 ≤ f z := fun z =>
           mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
         have hf_coeff : ∀ k, cosineCoeffs f k =
             (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re := by
-          sorry -- [cosineCoeffs_congr_on_Icc, same as lines 611-625]
+          intro k
+          have hsrc_eq :
+              (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re =
+              cosineCoeffs (fun z => p.ν * intervalDomainLift w z ^ p.γ) k := by
+            simp [cosineCoeffs, ShenWork.PDE.intervalNeumannResolverSourceCoeff,
+              Complex.ofReal_re]
+          rw [hsrc_eq]
+          exact ShenWork.Paper2.cosineCoeffs_congr_on_Icc (fun z hz => by
+            simp only [f, Function.comp, clip]
+            have hclip_eq : max 0 (min z 1) = z := by
+              rw [min_eq_left hz.2, max_eq_right hz.1]
+            simp only [hclip_eq, intervalDomainLift,
+              dif_pos (Set.mem_Icc.mpr hz)]) k
         have hâ : Summable (fun k => (cosineCoeffs f k) ^ 2) := by
-          sorry -- [resolverSourceCoeff_re_sq_summable_of_continuousOn]
+          open ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+            ShenWork.IntervalResolverPositivity in
+          have hcont_on := hU_C4.continuous.continuousOn.congr
+            (fun y hy => (hU_agree y hy).symm)
+          have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+          simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+          exact h.congr (fun k => by rw [hf_coeff])
         exact ShenWork.IntervalResolverPositivity.intervalNeumannResolverR_nonneg_of_nonneg_source
           hf_cont hf_nonneg hf_coeff hâ ⟨x, hx⟩
       -- ── Flux C³ → deriv(flux) continuous → IntervalIntegrable ──
