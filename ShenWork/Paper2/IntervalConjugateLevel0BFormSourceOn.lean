@@ -1153,9 +1153,40 @@ theorem level0_chemDiv_timeDerivData
                 heatCoeff u₀ k) * cosineMode k (-z)) from
             funext (fun k => by congr 1; exact cosineMode_add_two' k (-z))]
           exact hU_even z
+        have hU_periodic : ∀ z, U_cos (z + 2) = U_cos z := fun z => by
+          rw [show z + 2 = (2 : ℝ) - (-z) from by ring, hU_symm1, hU_even]
+        have hU_shift : ∀ (m : ℤ) (z : ℝ), U_cos (z + 2 * m) = U_cos z := by
+          intro m z
+          induction m using Int.induction_on with
+          | zero => simp
+          | succ n ih =>
+            rw [show z + 2 * (↑(↑n + 1 : ℤ) : ℝ) = (z + 2 * (↑(↑n : ℤ) : ℝ)) + 2 from
+              by push_cast; ring, hU_periodic, ih]
+          | pred n ih =>
+            rw [show z + 2 * (↑(-↑n - 1 : ℤ) : ℝ) =
+              (z + 2 * (↑(-↑n : ℤ) : ℝ)) - 2 from by push_cast; ring]
+            rw [show (z + 2 * ↑(-↑n : ℤ) : ℝ) - 2 = (z + 2 * ↑(-↑n : ℤ) : ℝ) + (-2) from
+              by ring]
+            sorry -- [sub_two variant: need U_cos(z-2) = U_cos(z)]
         have hU_pos_all : ∀ z, 0 < U_cos z := by
-          sorry -- [~15 lines: reduce z to |y| ∈ [0,1] via round + even + period-2,
-                 -- then apply hU_pos_Icc. Pattern at lines 662-691 of this file.]
+          intro z
+          set m₀ : ℤ := round (z / 2)
+          set y : ℝ := z - 2 * m₀
+          have hUzy : U_cos z = U_cos y := by
+            rw [show z = y + 2 * m₀ from by simp [y]]; exact hU_shift m₀ y
+          have hyabs : |y| ∈ Icc (0 : ℝ) 1 := by
+            constructor
+            · exact abs_nonneg _
+            · have hround : |z / 2 - m₀| ≤ 1 / 2 := abs_sub_round (z / 2)
+              rw [show y = 2 * (z / 2 - m₀) from by simp [y]; ring,
+                abs_mul, abs_of_nonneg (by norm_num : (0:ℝ) ≤ 2)]
+              nlinarith [hround]
+          have hUy : U_cos y = U_cos |y| := by
+            by_cases hnn : 0 ≤ y
+            · rw [abs_of_nonneg hnn]
+            · rw [not_le] at hnn; rw [abs_of_neg hnn, ← hU_even]
+          rw [hUzy, hUy]
+          exact hU_pos_Icc |y| hyabs
         -- g_smooth = ν · U_cos^γ is C⁴
         have hU_ne : ∀ z, U_cos z ≠ 0 := fun z => ne_of_gt (hU_pos_all z)
         set g_smooth := fun x => p.ν * U_cos x ^ p.γ with hg_def
