@@ -107,6 +107,25 @@ brick (3 over-builds this session from skipping this). Reduced core was 13/24 wi
 (SourceReducedCoreWire); Hv/h_flux_diff/h_src_cont_log already closed; residual = (a')(b')(c').
 
 ---
+## [2026-06-26 night] Level0+Tower sorry closure — Option (B) cutoff route
+
+### Goal
+Close all 9 remaining sorry in Paper 2 χ₀<0 (Level0 + Tower).
+
+### Root causes (two independent obstacles)
+1. Resolver C² scope mismatch: `FlooredSourceTimeData` unfillable (S(0)=0).
+   Fix: bypass via restart cutoff (`resolverSpectralJointC2At_of_restartSmoothCutoff`).
+2. F1 boundary obstruction: `ContinuousOn (Icc 0 1)` false for zero-extension.
+   Fix: weaken to `IntervalIntegrable` (ChatGPT Q1006 confirmed feasibility).
+
+### Avenues
+(a) F1 upstream weakening — 4 structures + 1 consumer theorem
+(b) Level0 hfluxC2 via restart cutoff (FAC route or inline)
+(c) Level0 sorry 1A + 2A-sup from joint continuity + compactness
+(d) Tower cascade (base + successor + limit)
+
+---
+
 ## [2026-06-25] hlogSrc/hchemSrc production — the LAST frontier
 
 ### State
