@@ -197,7 +197,7 @@ theorem srcTimeCoeff_contDiffAt
     have hfderiv_eq : Set.EqOn (fderiv ℝ f₀) (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)) (Set.Ioi 0) :=
       fun s hs => (hd0 s hs).hasFDerivAt.fderiv
     exact ContDiffOn.congr
-      ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).contDiff.comp_contDiffOn h0)
+      ((ContinuousLinearMap.smulRightL (1 : ℝ →L[ℝ] ℝ)).contDiff.comp_contDiffOn h0)
       (fun s hs => (hfderiv_eq hs).symm)
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
