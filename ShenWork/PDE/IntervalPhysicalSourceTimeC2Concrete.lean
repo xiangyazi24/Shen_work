@@ -119,12 +119,8 @@ private theorem srcTimeCoeff_hasDerivAt
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (srcTimeCoeff p u k) (cosineCoeffs (s₁ t) k) t := by
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d0 t ht
-  have hcont_int : ∀ᶠ s in 𝓝 t,
-      IntervalIntegrable (srcSlice p u s) MeasureTheory.volume (0 : ℝ) 1 := by
-    filter_upwards [hcont] with s hs
-    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
   have hH := cosineCoeffs_hasDerivAt_of_smooth_param (f := srcSlice p u)
-    (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hcont_int hdiff hcd
+    (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hcont hdiff hcd
   have heq : (fun s => cosineCoeffs (srcSlice p u s) k) = srcTimeCoeff p u k := by
     funext s; exact (srcTimeCoeff_eq_cosineCoeffs p u k s).symm
   rw [heq] at hH; exact hH
@@ -135,12 +131,8 @@ private theorem cosS1_hasDerivAt
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     HasDerivAt (fun s => cosineCoeffs (s₁ s) k) (cosineCoeffs (s₂ t) k) t := by
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d1 t ht
-  have hcont_int : ∀ᶠ s in 𝓝 t,
-      IntervalIntegrable (s₁ s) MeasureTheory.volume (0 : ℝ) 1 := by
-    filter_upwards [hcont] with s hs
-    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
   exact cosineCoeffs_hasDerivAt_of_smooth_param (f := s₁) (f' := s₂)
-    (τ := t) (δ := δ) (n := k) hδ hcont_int hdiff hcd
+    (τ := t) (δ := δ) (n := k) hδ hcont hdiff hcd
 
 /-- `t ↦ cosineCoeffs (s₂ t) k` is continuous at positive `t` (joint continuity
 of `s₂` ⇒ continuity of the cosine coefficient in `t`, via slab DCT). -/
@@ -183,14 +175,11 @@ theorem srcTimeCoeff_contDiffAt
     fun s hs => (hd1 s hs).deriv
   have hc2_on : ContinuousOn f₂ (Set.Ioi 0) :=
     fun s hs => (hc2 s hs).continuousWithinAt
-  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) := by
-    rw [show (1 : ℕ∞) = 0 + 1 from rfl, contDiffOn_succ_iff_fderiv_of_isOpen isOpen_Ioi]
-    refine ⟨hd1_on, by intro h; exact absurd h (by simp), ?_⟩
-    have : Set.EqOn (fderiv ℝ f₁) (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₂ s)) (Set.Ioi 0) :=
-      fun s hs => (hd1 s hs).hasFDerivAt.fderiv
-    exact (contDiffOn_zero.mpr (ContinuousOn.congr
-      ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
-      (fun s hs => (this hs).symm)))
+  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
+    contDiffOn_succ_of_fderivWithin hd1_on (by nofun)
+      (ContDiffOn.congr (contDiffOn_zero.mpr
+        ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).continuous.comp_continuousOn hc2_on))
+        (fun s hs => ((hd1 s hs).hasFDerivAt.fderiv).symm))
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
     contDiffOn_succ_of_fderivWithin hd0_on (by nofun)
       (ContDiffOn.congr
