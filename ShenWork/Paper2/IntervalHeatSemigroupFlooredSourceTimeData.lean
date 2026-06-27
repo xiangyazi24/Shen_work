@@ -166,8 +166,7 @@ theorem heatSemigroup_flooredSourceTimeData
         (Function.uncurry (srcSlice p (conjugatePicardIter p u₀ 0)))
         (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
       simpa [srcSlice, Function.uncurry] using continuousOn_const.mul hpow
-    use δ
-    refine ⟨hδ, ?_, ?_, ?_⟩
+    refine ⟨δ, hδ, ?_, ?_, ?_⟩
     · -- (a) ContinuousOn of srcSlice near τ
       filter_upwards [Metric.ball_mem_nhds τ hδ] with s hs
       exact hsrc_joint.comp (continuousOn_const.prodMk continuousOn_id)
