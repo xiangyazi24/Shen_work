@@ -110,10 +110,9 @@ theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
     intro s _hs _hsT x
     have hlift := ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_lift_eq_series
       (p := p) (u := u) (t := s) (x := x.1) x.2
-    simp only [intervalDomainLift, x.2, dif_pos,
+    simp only [ShenWork.IntervalDomain.intervalDomainLift, dif_pos x.2,
       ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm] at hlift
-    convert hlift using 1
-    congr 1; ext k; rfl
+    exact hlift
 
   have hmake : ∀ t₀ : ℝ, 0 < t₀ → t₀ < T →
       ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
