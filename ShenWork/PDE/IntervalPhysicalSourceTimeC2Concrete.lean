@@ -178,12 +178,14 @@ theorem srcTimeCoeff_contDiffAt
   have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
     contDiffOn_succ_of_fderivWithin hd1_on (by nofun)
       (ContDiffOn.congr (contDiffOn_zero.mpr
-        ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).continuous.comp_continuousOn hc2_on))
-        (fun s hs => ((hd1 s hs).hasFDerivAt.fderiv).symm))
+        ((ContinuousLinearMap.toSpanSingleton ℝ).continuous.comp_continuousOn hc2_on))
+        (fun s hs => by
+          rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+          exact ((hd1 s hs).hasFDerivAt.fderiv).symm))
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
     contDiffOn_succ_of_fderivWithin hd0_on (by nofun)
       (ContDiffOn.congr
-        ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).contDiff.comp_contDiffOn h0)
+        ((ContinuousLinearMap.toSpanSingleton ℝ).contDiff.comp_contDiffOn h0)
         (fun s hs => by
           rw [fderivWithin_of_isOpen isOpen_Ioi hs]
           exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
