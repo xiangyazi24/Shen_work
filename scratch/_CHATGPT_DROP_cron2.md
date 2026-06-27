@@ -1,593 +1,531 @@
-# Q1036 (cron2) — exact wiring audit for Tower's 5 sorries after Level0
+# Q1038 (cron2/cron1) — coefficient decay of `ν·(S(t)u₀)^γ` at positive time
 
 Static repo inspection only; I did **not** run Lean.
 
 I read:
 
-- `ShenWork/Paper2/IntervalConjugateBFormSourceTower.lean`
-- `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`
-- `ShenWork/Paper2/IntervalPicardSourceTimeC1OnRecursion.lean`
-- `ShenWork/Paper2/IntervalConjugateCosineSeries.lean`
-- `ShenWork/Paper2/IntervalMildPicardLimitRegularityOn.lean`
-- `ShenWork/PDE/IntervalDuhamelSourceTimeC1On.lean`
-- `ShenWork/Paper2/IntervalChiNegFinalClose.lean`
-- `ShenWork/Paper2/IntervalBFormSpectralHtime.lean`
+- `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`
+- `ShenWork/PDE/IntervalSourceDecayQuantitative.lean`
+- `ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean`
+- `ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean`
+- `ShenWork/PDE/IntervalDuhamelSourceTimeC2Coeff.lean`
+- `ShenWork/PDE/IntervalResolverSpectralTimeC2.lean`
+- `ShenWork/Paper2/IntervalResolverLevel0SpectralC2Coeff.lean`
+- `ShenWork/Paper2/IntervalSpatialC6Certificate.lean`
+- `ShenWork/Paper2/IntervalCD6HeatSmoothness.lean`
 
 ## Executive verdict
 
-Once Level0 is 0-sorry, Tower's first sorry is close, but the Tower is **not** five `exact`s away.
-
-The committed theorem names exist for the advertised pieces, but the current Tower skeleton is missing several wiring hypotheses/packages:
-
-1. The Level0 theorem `level0_bFormSource_duhamelSourceTimeC1On_auto` is committed, but its actual signature is **not** the short call in the Tower comment.
-2. The logistic successor theorem is committed and sorry-free, but the Tower needs a conjugate restart/cosine representation package and shifted predecessor package before it can call it.
-3. The chemDiv successor is the genuine remaining analytic wall; it needs a successor-level analogue of Level0 chemDiv C²/source/H²/time-derivative infrastructure.
-4. The limit-passage theorem is committed and sorry-free, but the convergence/common-envelope hypotheses are not produced by the Tower skeleton.
-5. The extension from all `[c,T]`, `c>0`, to `[0,T]` is **not trivial** and may be false for the current zero-at-0 `conjugatePicardLimit` unless a new endpoint-regularity/patch theorem is proved.
-
-## Tower sorries in `IntervalConjugateBFormSourceTower.lean`
-
-The current skeleton is:
+For the **linear heat profile**
 
 ```lean
-noncomputable def conjBFormSourceTimeC1OnUpTo_all ... :
-    ∀ n, ConjBFormSourceTimeC1OnUpTo p u₀ n DB.T := by
-  intro n
-  induction n with
-  | zero =>
-    intro c hc hcT
-    sorry
-  | succ n ih =>
-    intro c hc hcT
-    have _hpred := ih (c / 2) (by linarith) (by linarith)
-    have _hlog : DuhamelSourceTimeC1On
-        (coupledLogisticSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T := by
-      sorry
-    have _hchem : DuhamelSourceTimeC1On
-        (coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T := by
-      sorry
-    exact ShenWork.IntervalBFormSpectral.bFormSource_duhamelSourceTimeC1On _hlog _hchem
+u(t,x) = S(t)u₀ = ∑ k, exp(-t λ_k) û₀_k cos(kπx),
 ```
 
-Then:
+the repo has exponential heat-tail summability and finite high spatial regularity at positive time.
+
+For the **nonlinear source**
 
 ```lean
-noncomputable def conjBFormSourceTimeC1On_limit ... :
-    DuhamelSourceTimeC1On
-      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) c DB.T := by
-  sorry
+srcSlice p u t x = p.ν * intervalDomainLift (u t) x ^ p.γ
+```
+
+where `u = conjugatePicardIter p u₀ 0`, the repo does **not** currently prove exponential coefficient decay.  Existing source-decay infrastructure is polynomial/IBP based:
+
+- depth 1 weak-H² gives quadratic decay `(kπ)⁻²`;
+- depth 2 weak-H² tower gives quartic decay `(kπ)⁻⁴`;
+- there is no committed depth 3 / sextic coefficient-decay theorem that would give `(kπ)⁻⁶`.
+
+So:
+
+1. Mathematically, exponential decay of `ν·(S(t)u₀)^γ` is plausible/true under a positive floor and an analytic-strip argument, because heat smoothing makes `S(t)u₀` real analytic for `t>0` and `rpow` is analytic on a positive range.  But this is **not in the repo**.
+2. From the existing Lean infrastructure, the safe route is finite-order Sobolev/IBP, not exponential.
+3. For `DuhamelSourceTimeC2Coeff`, λ²-weighted source envelopes require at least **sextic** coefficient decay, i.e. depth-3 IBP / H⁶-type Neumann data for each relevant time-order slice.  Quadratic and quartic are insufficient for λ² summability.
+4. However, note an important route distinction: `PhysicalSourceTimeC2Concrete` deliberately avoids `DuhamelSourceTimeC2Coeff`.  It needs only `(kπ)⁻²` source-side envelopes because the elliptic resolver weight `wₖ = 1/(μ+λₖ)` is folded in and cancels the spectral growth.  So the physical resolver lane may be fillable with existing-style H² data; the older/alternate `DuhamelSourceTimeC2Coeff` lane needs new stronger analysis.
+
+## What the repo currently proves for the heat semigroup
+
+`IntervalHeatSemigroupHighRegularity.lean` has:
+
+```lean
+theorem heatSemigroup_eigenvalueSq_summable
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {t : ℝ} (ht : 0 < t) :
+    Summable (fun k => unitIntervalCosineEigenvalue k ^ 2 *
+      |Real.exp (-t * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k|)
 ```
 
 and:
 
 ```lean
-noncomputable def hsrcBDirect_of_data ... :
-    DuhamelSourceTimeC1On
-      (bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)) 0 DB.T := by
+theorem heatSemigroup_contDiff_four
+    ... {t : ℝ} (ht : 0 < t) :
+    ContDiff ℝ 4 (fun x => ∑' k,
+      (Real.exp (-t * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x)
+```
+
+It also exposes the general exponential tail summability:
+
+```lean
+theorem eigenvalue_pow_mul_exp_summable
+    (m : ℕ) {τ : ℝ} (hτ : 0 < τ) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n ^ m *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n))
+```
+
+and the coefficient-weighted version:
+
+```lean
+theorem eigenvalue_pow_mul_coeff_exp_summable
+    (m : ℕ) {M₀ c : ℝ} (hc : 0 < c) (_hM₀ : 0 ≤ M₀) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n ^ m * M₀ *
+        Real.exp (-c * unitIntervalCosineEigenvalue n))
+```
+
+Those are statements about the **linear heat coefficients**.
+
+The same file also proves cutoff-based joint `C²` of the heat semigroup series, but again for the linear heat terms.
+
+`IntervalCD6HeatSmoothness.lean` and `IntervalSpatialC6Certificate.lean` push finite heat smoothness further:
+
+```lean
+theorem unitIntervalCosineHeatValue_contDiff_seven
+    {t : ℝ} (ht : 0 < t) {a : ℕ → ℝ} {M : ℝ}
+    (hM : ∀ n, |a n| ≤ M) :
+    ContDiff ℝ 7 (fun x => unitIntervalCosineHeatValue t a x)
+```
+
+and:
+
+```lean
+theorem cosineCoeffSeries_contDiff_six_of_eigenvalue_cube_summable
+    {b : ℕ → ℝ}
+    (hb : Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n * |b n|)))) :
+    ContDiff ℝ 6 (fun x : ℝ => ∑' n : ℕ, b n * cosineMode n x)
+```
+
+These are useful finite-regularity tools, but they still do not prove exponential decay of the nonlinear source coefficients.
+
+## What `srcTimeCoeff` is
+
+In `IntervalPhysicalResolverDataConcrete.lean`:
+
+```lean
+def srcTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
+    ℕ → ℝ → ℝ :=
+  fun k t => (intervalNeumannResolverSourceCoeff p (u t) k).re
+```
+
+The file comments identify this as the `k`-th cosine coefficient of the chemotaxis source
+
+```lean
+x ↦ p.ν * u(t,x)^p.γ
+```
+
+and `IntervalPhysicalSourceTimeC2Concrete.lean` makes the identity explicit:
+
+```lean
+def srcSlice (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * intervalDomainLift (u t) x ^ p.γ
+
+theorem srcTimeCoeff_eq_cosineCoeffs
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
+    srcTimeCoeff p u k t = cosineCoeffs (srcSlice p u t) k
+```
+
+So all decay questions about `srcTimeCoeff p u k t` are exactly decay questions about cosine coefficients of the nonlinear spatial slice `x ↦ ν·u(t,x)^γ`.
+
+## Existing source-decay infrastructure
+
+`IntervalSourceDecayQuantitative.lean` has the weak-H² quantitative theorem:
+
+```lean
+theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) {B : ℝ}
+    (hB : (∫ x in (0:ℝ)..1, |hf.secondDeriv x|) ≤ B) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 2
+```
+
+and depth-2 / H⁴-style quartic decay:
+
+```lean
+theorem intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv)
+    {B₂ : ℝ} (hB₂ : (∫ x in (0:ℝ)..1, |hf''.secondDeriv x|) ≤ B₂) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B₂ / ((k : ℝ) * Real.pi) ^ 4
+```
+
+It also proves:
+
+```lean
+theorem intervalWeakH4Neumann_eigenvalue_L1_summable
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
+    Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
+```
+
+This is λ¹ summability, not λ² summability.
+
+I did **not** find a committed sextic/depth-3 coefficient-decay theorem of the form:
+
+```lean
+|cosineCoeffs f k| ≤ C / ((k : ℝ) * Real.pi) ^ 6
+```
+
+or:
+
+```lean
+Summable (fun k => unitIntervalCosineEigenvalue k ^ 2 * |cosineCoeffs f k|)
+```
+
+from an H⁶ Neumann tower.
+
+## Route distinction: physical lane vs `DuhamelSourceTimeC2Coeff` lane
+
+This is crucial.
+
+### Physical resolver lane
+
+`IntervalPhysicalSourceTimeC2Concrete.lean` explicitly says it builds source-side `C²`-in-time / `(kπ)⁻²`-spatial data and does **not** route through `DuhamelSourceTimeC2Coeff` or an eigen-cube ladder.
+
+Its central structure is:
+
+```lean
+structure FlooredSourceTimeData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
+  d0 : ...
+  d1 : ...
+  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
+    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0:ℝ) 1)
+  sliceNeumann : ...
+  zerothBound : ...
+  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ) (k : ℕ), 1 ≤ k →
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤ M / ((k:ℝ) * Real.pi) ^ 2
+```
+
+Then:
+
+```lean
+def builtEs ...
+```
+
+uses only the zeroth-mode bound and `(kπ)⁻²` bound, and:
+
+```lean
+theorem physicalSourceTimeC2_of_floored
+    (H : FlooredSourceTimeData p u s₁ s₂)
+    (hval : ∀ m ≤ 2, Summable (boundedWeightJointMajorant
+      (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
+    (hgrad : ∀ m ≤ 2, Summable (boundedWeightJointGradMajorant
+      (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
+    PhysicalSourceTimeC2 p u (builtEs H)
+```
+
+This route can work with quadratic decay because the resolver weight is folded in:
+
+```lean
+wₖ = 1 / (μ + λₖ)
+```
+
+and the weighted majorants see `wₖ·Es` rather than `Es` alone.
+
+### `DuhamelSourceTimeC2Coeff` lane
+
+`IntervalResolverSpectralTimeC2.lean` defines:
+
+```lean
+structure DuhamelSourceTimeC2Coeff (a : ℝ → ℕ → ℝ) where
+  toTimeC1 : DuhamelSourceTimeC1 a
+  sourceEigenEnvelope : ℕ → ℝ
+  sourceEigen_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n * |a s n| ≤ sourceEigenEnvelope n
+  sourceEigenSqEnvelope : ℕ → ℝ
+  sourceEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n * |a s n|) ≤ sourceEigenSqEnvelope n
+  adotEigenEnvelope : ℕ → ℝ
+  adotEigen_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n * |toTimeC1.adot s n| ≤ adotEigenEnvelope n
+  adotEigenSqEnvelope : ℕ → ℝ
+  adotEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n * |toTimeC1.adot s n|) ≤ adotEigenSqEnvelope n
+```
+
+So yes: this route requires λ²-summable envelopes for the source family `a` and its time derivative `adot`.
+
+In `IntervalResolverLevel0SpectralC2Coeff.lean`, the Level0 spectral-C2 agreement theorem has a `srcC2` sorry:
+
+```lean
+have srcC2 : DuhamelSourceTimeC2Coeff a := by
+  -- TODO: build the strengthened source package for
+  --   a ρ k = c'_k(offset+ρ) + λ_k c_k(offset+ρ),
+  -- where c_k(t) = resolverTimeCoeff p u k t.
+  -- Required fields:
+  --   * DuhamelSourceTimeC1 a: ...
+  --   * λ-weighted and λ²-weighted envelopes for a;
+  --   * λ-weighted and λ²-weighted envelopes for adot.
+  -- For Level0 heat, these should come from positive-time exponential
+  -- heat smoothing, resolver weight `1/(μ+λ_k)`, and the source-side
+  -- `srcTimeCoeff_contDiff`/bounds.  This is not presently packaged in
+  -- the repo; the committed physical resolver lane bypasses this structure.
   sorry
 ```
 
-## Sorry #1 — Level0 base case
+That comment is accurate.
 
-### Committed theorem name
+## Q1. Does `ν·u(t)^γ` still have exponential coefficient decay?
 
-The Level0 export currently is:
+Mathematically: likely yes, under a positive floor and analytic-strip control.
+
+At positive time, `S(t)u₀` is real analytic in space.  If it is bounded below by a positive constant on the real interval, then in a sufficiently small complex strip it stays away from zero; the map `z ↦ z^γ` can be defined with a holomorphic branch there.  Therefore `ν·(S(t)u₀)^γ` is analytic in a strip, which implies exponential cosine coefficient decay.
+
+But in the current repo: no, this is not available as a theorem.  The repo has:
 
 ```lean
-ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_bFormSource_duhamelSourceTimeC1On_auto
+heatSemigroup_eigenvalueSq_summable
+heatSemigroup_contDiff_four
+heatSemigroup_jointContDiffAt_two
+unitIntervalCosineHeatValue_contDiff_seven
 ```
 
-File:
+for the linear heat series, and polynomial IBP decay for nonlinear source slices.  It does not have a real/complex analytic composition theorem for `Real.rpow` under a positive floor, nor an exponential coefficient-decay theorem for `srcTimeCoeff p (conjugatePicardIter p u₀ 0)`.
+
+So for Lean, answer: **not currently proved; only polynomial finite-order decay is available for the nonlinear source.**
+
+## Q2. If nonlinear source only has polynomial decay, how get λ² summability?
+
+Need higher spatial regularity than H²/H⁴.
+
+Let `λ_k = (kπ)^2`.  Suppose
+
+```lean
+|a_k| ≤ C / (kπ)^(2j)
+```
+
+from depth-`j` integration by parts.  Then
 
 ```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+λ_k^2 |a_k| ~ (kπ)^4 · C/(kπ)^(2j)
+              = C/(kπ)^(2j-4).
 ```
 
-There is also the lower-level constructor:
-
-```lean
-ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_bFormSource_duhamelSourceTimeC1On
-```
-
-which takes an explicit:
-
-```lean
-chemData : Level0ChemDivSourceData p u₀ c T
-```
-
-and combines it via:
-
-```lean
-ShenWork.IntervalBFormSpectral.bFormSource_duhamelSourceTimeC1On
-```
-
-from:
+The series over `k` converges iff
 
 ```text
-ShenWork/Paper2/IntervalBFormSpectralHtime.lean
+2j - 4 > 1,
 ```
 
-### Important signature mismatch
-
-The Tower comment says:
-
-```lean
-exact level0_bFormSource_duhamelSourceTimeC1On_auto p DB hu₀pos hc hcT.le
-```
-
-That is **not** the actual committed signature.  The actual theorem is:
-
-```lean
-noncomputable def level0_bFormSource_duhamelSourceTimeC1On_auto
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    {c T M G1 G2 Udot M₀ : ℝ}
-    (hc : 0 < c) (hcT : c < T)
-    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x)
-    (hub : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x ≤ M)
-    (hG1 : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |deriv (intervalDomainLift (conjugatePicardIter p u₀ 0 σ)) x| ≤ G1)
-    (hG2 : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |deriv (deriv (intervalDomainLift (conjugatePicardIter p u₀ 0 σ))) x| ≤ G2)
-    (hUdot : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      |ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondValue
-        σ (heatCoeff u₀) x| ≤ Udot) :
-    DuhamelSourceTimeC1On
-      (bFormSourceCoeffs p (conjugatePicardIter p u₀ 0)) c T
-```
-
-So the exact line #1 cannot yet be a one-liner from `(DB, huPaper, hu₀pos, Hinf)` unless a DB-wrapper theorem is added.
-
-### Existing helper names
-
-These Level0 helper names are committed:
-
-```lean
-ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_heat_pos_of_data
-ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_heat_sup_of_data
-```
-
-They supply `hpos` and `hub`.  But I did **not** find a committed wrapper extracting all of:
-
-```lean
-hα : 1 ≤ p.α
-hu₀_cont
-hu₀_bound
-hG1
-hG2
-hUdot
-```
-
-from the Tower arguments.
-
-Also note: `CM2Params` has `p.hα : 0 < p.α`, not `1 ≤ p.α`.  So the Tower theorem either needs an extra hypothesis `hα : 1 ≤ p.α`, or a different upstream structure must supply it.
-
-### Exact base-case wiring after adding/exposing missing inputs
-
-Once those inputs are available, line #1 should be:
-
-```lean
-  | zero =>
-    intro c hc hcT
-    exact ShenWork.Paper2.ConjugateLevel0BFormSourceOn
-      .level0_bFormSource_duhamelSourceTimeC1On_auto
-        (p := p) (u₀ := u₀) (T := DB.T)
-        (hc := hc) (hcT := hcT)
-        hα p.ha p.hb
-        hu₀_cont hu₀_bound
-        (ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_heat_pos_of_data
-          DB hu₀pos hc hcT.le)
-        (ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_heat_sup_of_data
-          DB hc hcT.le)
-        hG1 hG2 hUdot
-```
-
-where `hα`, `hu₀_cont`, `hu₀_bound`, `hG1`, `hG2`, `hUdot` must be supplied by a new wrapper or added to the Tower inputs.
-
-### Status
-
-`level0_bFormSource_duhamelSourceTimeC1On_auto` is already committed.  It is not currently sorry-free because it calls `level0ChemDivSourceData`, which calls the Level0 chemDiv infrastructure still being closed.  Once Level0 is 0-sorry, this theorem should become clean, but the Tower base still needs the argument-wrapper mismatch fixed.
-
-## Sorry #2 — logistic successor
-
-### Exact committed theorem names
-
-The recursion theorem is:
-
-```lean
-ShenWork.IntervalPicardSourceTimeC1OnRecursion.sourceTimeC1On_succ_of_sourceTimeC1On
-```
-
-File:
+so:
 
 ```text
-ShenWork/Paper2/IntervalPicardSourceTimeC1OnRecursion.lean
+j ≥ 3.
 ```
 
-The theorem is committed and the file header says no `sorry`/`admit`/custom axiom.
+Therefore:
 
-The conjugate cosine-series representation theorem is:
+- quadratic decay (`j=1`, `(kπ)⁻²`) is not enough;
+- quartic decay (`j=2`, `(kπ)⁻⁴`) is still not enough for λ², since `λ²·(kπ)⁻⁴ ~ constant`;
+- sextic decay (`j=3`, `(kπ)⁻⁶`) is enough, since `λ²·(kπ)⁻⁶ ~ (kπ)⁻²`, summable.
+
+So if avoiding analytic/exponential estimates, the minimal integer-depth IBP route is depth 3 / H⁶ Neumann data for every coefficient family that must satisfy a λ² envelope.
+
+The repo currently has depth-1 and depth-2 source-decay results, but I did not find the depth-3 sextic theorem.  It would need a new lemma, e.g.
 
 ```lean
-ShenWork.IntervalConjugateCosineSeries.intervalConjugateDuhamelMap_cosineSeries
+theorem intervalWeakH6Neumann_cosineCoeff_sextic_decay_of_bound
+    {f : ℝ → ℝ}
+    (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv)
+    (hf'''' : IntervalWeakH2Neumann hf''.secondDeriv)
+    {B₃ : ℝ}
+    (hB₃ : (∫ x in (0:ℝ)..1, |hf''''.secondDeriv x|) ≤ B₃) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B₃ / ((k : ℝ) * Real.pi) ^ 6
 ```
 
-File:
+and then:
+
+```lean
+theorem intervalWeakH6Neumann_eigenvalueSq_L1_summable ... :
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        (unitIntervalCosineEigenvalue k * |cosineCoeffs f k|))
+```
+
+## Q3. What about the derivative `∂ₜ(ν·u^γ)`?
+
+For heat Level0:
 
 ```text
-ShenWork/Paper2/IntervalConjugateCosineSeries.lean
+∂ₜ(ν·u^γ) = ν·γ·u^(γ-1)·∂ₜu
+           = ν·γ·u^(γ-1)·Δu.
 ```
 
-The file header also says no `sorry`/`admit`/custom axioms.
+This is worse than the zero-th time source because `Δu` contains two spatial derivatives of heat.  However heat smoothing at positive time still gives arbitrary finite spatial regularity, and analytically it still has exponential coefficient decay if the same analytic-strip route is developed.
 
-### What they actually are
+For the polynomial/IBP route, each time derivative costs heat regularity:
 
-`sourceTimeC1On_succ_of_sourceTimeC1On` is not a theorem specifically about conjugate iterates.  It is a generic endpoint-inclusive successor logistic source package.  It consumes:
-
-```lean
-src : DuhamelSourceTimeC1On a 0 W
-```
-
-plus a shifted restart representation:
-
-```lean
-hrestart : ∀ s ∈ Icc lo hi, ∀ x : intervalDomainPoint,
-  intervalDomainLift (w s) x.1 =
-    ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1
-```
-
-and per-window data:
-
-```lean
-hbsum, hagree, hpos, hub, hG1, hG2, hC2cont, hprofile_joint
-```
-
-`intervalConjugateDuhamelMap_cosineSeries` proves the B-form conjugate Duhamel map has the cosine restart form, but it itself requires several nontrivial inputs:
-
-```lean
-hsrcB : DuhamelSourceTimeC1 (bFormSourceCoeffs p u)
-hB_int : IntervalIntegrable ... chemFlux Duhamel leg
-hlog_int : IntervalIntegrable ... logistic Duhamel leg
-hsource_bridge : ∀ s ∈ Ioo 0 t, ... = unitIntervalCosineHeatValue ...
-```
-
-The source-bridge can be reduced using committed theorems in:
+- `s₀ = ν·u^γ` requires enough spatial derivatives of `u` to show `s₀ ∈ H⁶_N` if λ² envelopes are needed.
+- `s₁ = ν·γ·u^(γ-1)·Δu` requires enough spatial derivatives of both `u` and `Δu`; in practice this means `u` needs at least two more derivatives than the target regularity of `s₁`.
+- `s₂ = ∂ₜ²(ν·u^γ)` contains terms like
 
 ```text
-ShenWork/Paper2/IntervalChiNegFinalClose.lean
+ν·γ·(γ-1)·u^(γ-2)·(Δu)^2 + ν·γ·u^(γ-1)·Δ²u,
 ```
 
-especially:
+so it needs still more heat regularity.
 
-```lean
-ShenWork.Paper2.IntervalChiNegFinalClose.source_bridge_slice_of_sliceC1
-ShenWork.Paper2.IntervalChiNegFinalClose.divMode_of_sliceC1
-```
+Because heat Level0 is smooth for `t ≥ c > 0`, this is mathematically fine for any finite order.  But the repo only has selected finite-order pieces wired.  Existing `FlooredSourceTimeData` in `IntervalPhysicalSourceTimeC2Concrete.lean` only asks for space `C²`/Neumann data for `s₀,s₁,s₂`, giving `(kπ)⁻²` envelopes, because that physical lane only needs those after the resolver weight.
 
-but these still require per-slice `C¹` data of the chemotaxis flux and continuity/bounds.
+For `DuhamelSourceTimeC2Coeff`, the analogous data would have to be upgraded to H⁶/depth-3 for `a` and `adot`, or to exponential estimates.
 
-### Is sorry #2 just `ih + intervalConjugateDuhamelMap_cosineSeries + sourceTimeC1On_succ`?
+## Q4. Minimal regularity for λ²-summable envelopes
 
-Not directly.
-
-The predecessor package from the Tower is:
-
-```lean
-_hpred : DuhamelSourceTimeC1On
-  (bFormSourceCoeffs p (conjugatePicardIter p u₀ n)) (c/2) DB.T
-```
-
-To feed `sourceTimeC1On_succ_of_sourceTimeC1On`, one first needs to shift it to zero:
-
-```lean
-DuhamelSourceTimeC1On.shift_zero
-```
-
-from:
+For cosine coefficients on `[0,1]` with Neumann IBP in even orders:
 
 ```text
-ShenWork/PDE/IntervalDuhamelSourceTimeC1On.lean
+H² depth 1  → |a_k| = O(k⁻²)
+H⁴ depth 2  → |a_k| = O(k⁻⁴)
+H⁶ depth 3  → |a_k| = O(k⁻⁶)
 ```
 
-A typical setup would be:
-
-```lean
-let offset : ℝ := c / 2
-let W : ℝ := DB.T - c / 2
-have hpred_shifted : DuhamelSourceTimeC1On
-    (fun ρ k => bFormSourceCoeffs p (conjugatePicardIter p u₀ n) (offset + ρ) k)
-    0 W := by
-  -- from `_hpred`, after rewriting `DB.T = offset + W`
-  simpa [offset, W] using _hpred.shift_zero
-```
-
-Then set:
-
-```lean
-w := conjugatePicardIter p u₀ (n + 1)
-a₀ := cosineCoeffs (intervalDomainLift u₀)
-a  := fun ρ k => bFormSourceCoeffs p (conjugatePicardIter p u₀ n) (offset + ρ) k
-lo := c
-hi := DB.T
-```
-
-But the Tower still needs the representation and regularity inputs for `w`.  Those are not produced by `ih` alone.  They require a conjugate analogue of the canonical `TowerLevel` carrier from `IntervalPicardSourceTower.lean`, or at least a window-local package containing:
-
-```lean
-bc, hbsum, hagree, hpos, hub, hG1, hG2, hrestart, hC2cont, hprofile_joint
-```
-
-So the exact successor logistic wiring is possible with the committed theorem, but the current Tower skeleton is missing the carrier fields needed to call it.
-
-## Sorry #3 — chemDiv successor
-
-This is the genuine analytic wall.
-
-The Tower comment says:
-
-```lean
-sorry -- Needs chemDiv C² for iterate n+1 (same gap as level 0)
-```
-
-That is accurate in spirit, but the successor case is not literally closed by the Level0 theorem.  Level0 uses heat semigroup smoothing for:
-
-```lean
-u = conjugatePicardIter p u₀ 0 = S(t)u₀
-```
-
-For successor levels:
-
-```lean
-u = conjugatePicardIter p u₀ (n + 1)
-```
-
-one must get positive-time spatial and time regularity from the B-form Duhamel restart representation driven by the predecessor B-form source.
-
-So #3 needs the **same category of chemDiv infrastructure** as Level0:
-
-- resolver value joint regularity,
-- resolver gradient joint regularity,
-- positivity floor for `1 + v`,
-- flux/source chain rule,
-- closed-slab source representative for uniform sup/envelope,
-- H²/second-derivative representative for quadratic decay,
-- time-derivative coefficient package.
-
-But it must be generalized from heat Level0 to arbitrary conjugate iterate successor windows.  The canonical logistic tower has a robust carrier design in:
+Since `λ_k² ~ k⁴`, λ² summability requires:
 
 ```text
-ShenWork/Paper2/IntervalPicardSourceTower.lean
+∑ k⁴ |a_k| < ∞.
 ```
 
-with `TowerLevel`, `SourceWin`, `srcOn`, `srcBdd`, etc.  The conjugate B-form Tower currently does not carry an analogous per-level analytic package.  Therefore #3 is **not** solved by Level0 becoming 0-sorry.
-
-Expected missing theorem shape:
-
-```lean
-conjugateIter_chemDivSourceTimeC1On_succ
-  : predecessor B-form TimeC1On / restart representation / window regularity
-    → DuhamelSourceTimeC1On
-        (coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ (n+1))) c DB.T
-```
-
-I did not find such a committed theorem.
-
-## Sorry #4 — limit passage
-
-### Exact committed theorem name
-
-The theorem is:
-
-```lean
-ShenWork.IntervalMildPicardLimitRegularityOn.duhamelSourceTimeC1On_of_uniform_limit
-```
-
-File:
+The minimal integer IBP depth is depth 3:
 
 ```text
-ShenWork/Paper2/IntervalMildPicardLimitRegularityOn.lean
+k⁴ · k⁻⁶ = k⁻²,
 ```
 
-Its file header says no `sorry`/`admit`/custom axioms.
+and `∑ k⁻²` converges.
 
-Its signature is:
+So yes: depth-`j` IBP giving `(kπ)^(-2j)` is sufficient for λ² at `j=3`.  It is also essentially the minimal finite-depth Neumann IBP route.
 
-```lean
-def duhamelSourceTimeC1On_of_uniform_limit
-    {a : ℝ → ℕ → ℝ} {aSeq : ℕ → ℝ → ℕ → ℝ}
-    {lo hi : ℝ}
-    (hconv : ∀ s ∈ Icc lo hi, ∀ k,
-      Tendsto (fun n => aSeq n s k) atTop (nhds (a s k)))
-    {adotSeq : ℕ → ℝ → ℕ → ℝ}
-    (hderiv_each : ∀ n, ∀ s ∈ Icc lo hi, ∀ k,
-      HasDerivWithinAt (fun r => aSeq n r k) (adotSeq n s k) (Icc lo hi) s)
-    {adot : ℝ → ℕ → ℝ}
-    (hadot_unif : ∀ k, TendstoUniformlyOn (fun n s => adotSeq n s k)
-      (fun s => adot s k) atTop (Icc lo hi))
-    (hadot_cont : ∀ k, ContinuousOn (fun s => adot s k) (Icc lo hi))
-    {envelope : ℕ → ℝ}
-    (henv_summable : Summable envelope)
-    (henv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |aSeq n s k| ≤ envelope k)
-    {D : ℝ}
-    (hderiv_bound : ∀ n, ∀ s ∈ Icc lo hi, ∀ k, |adotSeq n s k| ≤ D) :
-    DuhamelSourceTimeC1On a lo hi
-```
-
-### Is Tower #4 just an exact call?
-
-No.  The theorem is committed and sorry-free, but the Tower must still prove all its hypotheses for:
-
-```lean
-aSeq n := bFormSourceCoeffs p (conjugatePicardIter p u₀ n)
-a      := bFormSourceCoeffs p (conjugatePicardLimit p u₀ DB.T)
-```
-
-The current Tower gives iterate packages, but it does not produce:
-
-```lean
-hconv
-hadot_unif
-hadot_cont
-common envelope
-common derivative bound
-```
-
-The comments point toward `conjugatePicardIter_geometric + Lipschitz of bFormSourceCoeffs`, but I did not find a committed theorem packaging these exact hypotheses for the B-form source.
-
-Expected missing theorem shape:
-
-```lean
-conjugateBFormSource_limit_inputs
-  : ... →
-    -- all hypotheses of duhamelSourceTimeC1On_of_uniform_limit for bFormSourceCoeffs
-```
-
-Without that package, #4 is not just `exact duhamelSourceTimeC1On_of_uniform_limit ...`.
-
-## Sorry #5 — extension `[c,T] → [0,T]`
-
-This is **not** truly trivial in the current definitions.
-
-The relevant structure is:
-
-```lean
-structure DuhamelSourceTimeC1On (a : ℝ → ℕ → ℝ) (lo hi : ℝ) where
-  adot : ℝ → ℕ → ℝ
-  hderiv : ∀ s ∈ Icc lo hi, ∀ n,
-    HasDerivWithinAt (fun r => a r n) (adot s n) (Icc lo hi) s
-  hadotcont : ∀ n, ContinuousOn (fun s => adot s n) (Icc lo hi)
-  envelope : ℕ → ℝ
-  henv_summable : Summable envelope
-  henv_bound : ∀ s ∈ Icc lo hi, ∀ n, |a s n| ≤ envelope n
-  derivBound : ℝ
-  hderivBound : ∀ s ∈ Icc lo hi, ∀ n, |adot s n| ≤ derivBound
-```
-
-At `s = 0`, this requires a one-sided derivative within `[0,T]` and continuity of `adot` at `0`.
-
-Knowing only that coefficients are `0` at `s=0` is not enough.  One must prove something like:
-
-```lean
-HasDerivWithinAt (fun r => a r n) (adot 0 n) (Icc 0 T) 0
-ContinuousWithinAt (fun s => adot s n) (Icc 0 T) 0
-```
-
-and compatible envelope/derivative bounds at `0`.
-
-Moreover, `conjugatePicardLimit` is defined by:
-
-```lean
-if 0 < t ∧ t ≤ T then limUnder ... else 0
-```
-
-so at `t=0` the profile is forced to `0`.  But as `t → 0+`, the positive-time limit is expected to approach the initial datum/semigroup trace, not necessarily `0`.  The B-form source coefficients at `0` may therefore be discontinuous from the right.  If so, a `DuhamelSourceTimeC1On ... 0 T` statement is not just nontrivial; it may be false without a patched source definition or stronger vanishing-at-zero theorem.
-
-The committed utilities in:
+If the route needs λ³ envelopes, then depth 4 / H⁸ would be needed, since
 
 ```text
-ShenWork/PDE/IntervalDuhamelSourceTimeC1On.lean
+λ³ · k⁻⁸ ~ k⁶ · k⁻⁸ = k⁻².
 ```
 
-include:
+The `DuhamelSourceTimeC2Coeff` structure itself asks λ² for `a` and `adot`, but downstream local restart coefficient cube summability can involve λ³ of restart coefficients.  The committed `IntervalSpatialC6Certificate.lean` consumes `DuhamelSourceTimeC2Coeff` to get C⁶ of Duhamel/restart series, rather than asking source coefficients directly for λ³.
+
+## Does existing infrastructure fill `srcC2`?
+
+For the `PhysicalSourceTimeC2`/physical resolver lane: maybe yes in spirit, with existing-style H² infrastructure, because it was designed to bypass the λ²/eigen-cube ladder.
+
+For the `DuhamelSourceTimeC2Coeff` lane in Q1034 / `IntervalResolverLevel0SpectralC2Coeff.lean`: no, not from the currently committed source-decay infrastructure.
+
+The `srcC2` sorry there requires a strengthened package for
 
 ```lean
-DuhamelSourceTimeC1.toOn
-DuhamelSourceTimeC1On.shift_zero
-DuhamelSourceTimeC1On.restrict_hi
-DuhamelSourceTimeC1On.const_mul
-DuhamelSourceTimeC1On.add
+a ρ k = deriv (resolverTimeCoeff p u k) (offset + ρ)
+        + λ_k * resolverTimeCoeff p u k (offset + ρ)
 ```
 
-but I did not find a theorem extending positive windows all the way to lower endpoint `0`.
-
-So #5 should not be treated as trivial.  The safer route is one of:
-
-1. keep the final consumer positive-window only (`∀ c>0, DuhamelSourceTimeC1On ... c T`), or
-2. define/use a patched source that is actually time-C¹ at `0`, or
-3. prove a genuine endpoint theorem showing the right derivative and `adot` continuity at `0` for the current source.
-
-## Exact answer list
-
-### 1. Base theorem name and status
-
-Committed theorem:
+with λ and λ² envelopes for `a` and its time derivative.  Since
 
 ```lean
-ShenWork.Paper2.ConjugateLevel0BFormSourceOn.level0_bFormSource_duhamelSourceTimeC1On_auto
+resolverTimeCoeff p u k t = intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
 ```
 
-File:
+and `intervalNeumannResolverWeight p k ~ 1/λ_k`, this source `a` is roughly a combination of
 
 ```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+srcTimeCoeff,  λ⁻¹·∂ₜ srcTimeCoeff,
 ```
 
-Status: committed, but currently inherits Level0 chemDiv sorries; once Level0 is 0-sorry, this theorem should be clean.  However it is not directly callable with the short Tower comment signature; extra hypotheses/wrapper are needed.
-
-### 2. Logistic successor theorem names and status
-
-Committed theorem:
-
-```lean
-ShenWork.IntervalPicardSourceTimeC1OnRecursion.sourceTimeC1On_succ_of_sourceTimeC1On
-```
-
-File:
+and its derivative uses
 
 ```text
-ShenWork/Paper2/IntervalPicardSourceTimeC1OnRecursion.lean
+∂ₜ srcTimeCoeff,  λ⁻¹·∂ₜ² srcTimeCoeff.
 ```
 
-Committed cosine-series representation theorem:
+Thus λ² envelopes for `a` still require, at minimum, strong λ²/λ-weighted control of the nonlinear source coefficient families and their time derivatives.  The existing quadratic `(kπ)⁻²` source bounds are not enough, and the quartic theorem gives only λ¹ summability.
+
+## Recommended route
+
+There are two viable routes.
+
+### Route A — stay on the physical resolver lane
+
+Use:
 
 ```lean
-ShenWork.IntervalConjugateCosineSeries.intervalConjugateDuhamelMap_cosineSeries
+IntervalPhysicalSourceTimeC2Concrete.FlooredSourceTimeData
+IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
+IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor
 ```
 
-File:
+This avoids `DuhamelSourceTimeC2Coeff` and only needs the source-side `(kπ)⁻²` envelopes after the elliptic weight.  This is the route the repo comments currently recommend.
 
-```text
-ShenWork/Paper2/IntervalConjugateCosineSeries.lean
-```
+### Route B — complete the older `DuhamelSourceTimeC2Coeff` lane
 
-Status: both committed and their files state no `sorry`/`admit`/custom axioms.  But Tower #2 still needs shifted predecessor source packaging and conjugate successor representation/regularity facts before these theorems can be called.
+Then add new analysis:
 
-### 3. ChemDiv successor infrastructure
+1. Either exponential coefficient decay of `srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t` and its first two time derivatives, uniformly on positive windows, via an analytic-strip argument for `ν·(S(t)u₀)^γ`.
+2. Or depth-3 IBP/H⁶ Neumann source data for each relevant time-order slice, plus a sextic decay theorem and λ²-summability theorem.
 
-No committed one-line theorem found.  This needs a successor-level analogue of Level0 chemDiv C²/time-C¹ infrastructure.  It is the same class of analysis as Level0 — resolver joint regularity, chemDiv flux/source regularity, closed representatives, H² envelope, time derivative — but generalized from heat Level0 to arbitrary conjugate iterates using the restart/Duhamel representation.
-
-### 4. Limit passage theorem and status
-
-Committed theorem:
+Concrete missing theorem family for the polynomial route:
 
 ```lean
-ShenWork.IntervalMildPicardLimitRegularityOn.duhamelSourceTimeC1On_of_uniform_limit
+intervalWeakH6Neumann_cosineCoeff_sextic_decay_of_bound
+intervalWeakH6Neumann_eigenvalueSq_L1_summable
+level0_srcSlice_timeOrder_H6_neumann  -- for s₀, s₁, s₂ or for `a`, `adot`
 ```
 
-File:
+For the exponential route, missing theorem family:
+
+```lean
+level0_srcTimeCoeff_exp_decay
+level0_srcTimeCoeff_timeDeriv_exp_decay
+level0_srcTimeCoeff_timeDeriv2_exp_decay
+```
+
+uniformly on `t ∈ Icc c T`.
+
+## Direct answers
+
+### 1. Is `ν·u^γ` exponential like `u`, or only polynomial?
+
+Mathematically it should be exponential at positive time under a positive floor, but the repo does not prove that.  Existing committed source-decay infrastructure gives only polynomial IBP decay for the nonlinear source.
+
+### 2. If only polynomial, how get λ²-summability?
+
+Need depth-3 / H⁶ Neumann data giving sextic decay `(kπ)⁻⁶`, or stronger.  H²/quadratic is not enough; H⁴/quartic is not enough for λ².  H⁶/sextic is enough.
+
+### 3. What about `∂ₜ(ν·u^γ)`?
+
+It contains `u^{γ-1} Δu`, so it costs additional heat spatial derivatives.  Heat smoothing supplies arbitrary finite regularity at positive time mathematically, but the repo does not currently package H⁶/depth-3 coefficient decay for this time-derivative slice.  The second time derivative is worse again because it contains `(Δu)^2` and `Δ²u` terms.
+
+### 4. Minimal spatial regularity?
+
+For λ²-summable source coefficients, depth-3 IBP / H⁶ Neumann data is the minimal integer-depth route:
 
 ```text
-ShenWork/Paper2/IntervalMildPicardLimitRegularityOn.lean
+|a_k| ≤ C/(kπ)^6  ⇒  λ_k² |a_k| ≤ C' / k²  ⇒ summable.
 ```
 
-Status: committed and file header says no `sorry`/`admit`/custom axioms.  But Tower still must prove its convergence, uniform derivative convergence, common envelope, and common derivative-bound hypotheses for `bFormSourceCoeffs`.
+So yes, depth-`j` IBP giving `(kπ)^(-2j)` is sufficient for `j=3`.  The repo has depth 1 and depth 2, but not the required depth 3 theorem.
 
-### 5. Extension `[c,T] → [0,T]`
+## Bottom line for Q1034
 
-No committed theorem found.  It is not trivial from “coefficients are zero at `s=0`.”  The `DuhamelSourceTimeC1On` structure requires one-sided differentiability and continuity of the derivative field at `0`.  Given the current zero-outside/zero-at-0 definition of `conjugatePicardLimit`, this endpoint extension may be false unless a patched source or additional endpoint regularity theorem is introduced.
+`srcC2` for the `DuhamelSourceTimeC2Coeff` route is **not fillable from existing infrastructure alone**.  It needs new analysis: either exponential nonlinear-source coefficient decay, or a new depth-3/H⁶ polynomial-decay chain for the nonlinear source and its time derivatives.
 
-## Bottom-line wiring plan
-
-After Level0 is 0-sorry, the Tower still needs the following new wrappers/packages:
-
-1. `level0_bFormSource_duhamelSourceTimeC1On_of_DB` or equivalent wrapper extracting all arguments for `level0_bFormSource_duhamelSourceTimeC1On_auto`.
-2. A conjugate successor representation/regularity package feeding `sourceTimeC1On_succ_of_sourceTimeC1On`.
-3. A successor chemDiv source TimeC1On theorem for `conjugatePicardIter (n+1)`.
-4. A B-form source limit-input package feeding `duhamelSourceTimeC1On_of_uniform_limit`.
-5. A genuine endpoint-0 theorem or a revised final target avoiding `lo = 0`.
-
-So the exact answer is: Level0 0-sorry closes only the Level0 analytic wall; it does **not** automatically close all five Tower sorries.
+But if the goal is resolver joint C² for FAC/Level0, the repo already has a different intended route: `PhysicalSourceTimeC2` + elliptic resolver weight.  That route deliberately avoids `DuhamelSourceTimeC2Coeff` and may be the better route to finish.
