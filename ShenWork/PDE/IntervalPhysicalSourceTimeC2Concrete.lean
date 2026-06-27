@@ -164,11 +164,30 @@ theorem srcTimeCoeff_contDiffAt
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
     (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
     ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t := by
-  -- In the open set Ioi 0 containing t, srcTimeCoeff has HasDerivAt data at every
-  -- point (srcTimeCoeff_hasDerivAt), that derivative has HasDerivAt data
-  -- (cosS1_hasDerivAt), and the second derivative is continuous (cosS2_continuousAt).
-  -- Assembly: contDiffAt from the two layers of HasDerivAt + continuity.
-  sorry
+  set f₀ := srcTimeCoeff p u k
+  set f₁ := fun s => cosineCoeffs (s₁ s) k
+  set f₂ := fun s => cosineCoeffs (s₂ s) k
+  have hd0 : ∀ s ∈ Set.Ioi (0 : ℝ), HasDerivAt f₀ (f₁ s) s :=
+    fun s hs => srcTimeCoeff_hasDerivAt H k hs
+  have hd1 : ∀ s ∈ Set.Ioi (0 : ℝ), HasDerivAt f₁ (f₂ s) s :=
+    fun s hs => cosS1_hasDerivAt H k hs
+  have hc2 : ∀ s ∈ Set.Ioi (0 : ℝ), ContinuousAt f₂ s :=
+    fun s hs => cosS2_continuousAt H k hs
+  have hd0_on : DifferentiableOn ℝ f₀ (Set.Ioi 0) :=
+    fun s hs => (hd0 s hs).differentiableAt.differentiableWithinAt
+  have heq0 : Set.EqOn (deriv f₀) f₁ (Set.Ioi 0) :=
+    fun s hs => (hd0 s hs).deriv
+  have hd1_on : DifferentiableOn ℝ f₁ (Set.Ioi 0) :=
+    fun s hs => (hd1 s hs).differentiableAt.differentiableWithinAt
+  have heq1 : Set.EqOn (deriv f₁) f₂ (Set.Ioi 0) :=
+    fun s hs => (hd1 s hs).deriv
+  have hc2_on : ContinuousOn f₂ (Set.Ioi 0) :=
+    fun s hs => (hc2 s hs).continuousWithinAt
+  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
+    contDiffOn_succ_of_deriv_of_open isOpen_Ioi hd1_on
+      ((contDiffOn_zero.mpr hc2_on).congr heq1.symm)
+  exact (contDiffOn_succ_of_deriv_of_open isOpen_Ioi hd0_on
+    (h0.congr heq0.symm)).contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
 private theorem srcTimeCoeff_iteratedDeriv1
