@@ -1,34 +1,33 @@
-# Q1084 (cron2) — `heatResolverJointContDiffAt_two` and direct cutoff Option B
+# Q1083 (cron2) — does `heatResolverJointContDiffAt_two` already exist?
 
-Static GitHub-connector inspection only; I did **not** run Lean locally.
+Static GitHub-connector inspection only; I did **not** run Lean locally.  I used GitHub code/file search plus direct file fetches from the connected repo.
 
-## Verdict
+## Short answer
 
-`heatResolverJointContDiffAt_two` **is already committed** in:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-```
-
-But the committed theorem is **not** the direct cutoff-plus-`contDiff_tsum` Option B described in the prompt.  It is the existing *physical data* route:
+Yes.  The exact theorem exists:
 
 ```text
-heatSemigroup_flooredSourceTimeData
-  → physicalSourceTimeC2_of_floored
-  → physicalResolverJointC2Data_of_floor
-  → heatSemigroup_level0_resolverJointC2Data
-  → coupledChemical_jointContDiffAt_two
-  → heatResolverJointContDiffAt_two
+ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
 ```
 
-So the answer to the key question is:
+It is in:
 
-* **As currently committed:** yes, `heatResolverJointContDiffAt_two` still needs the `FlooredSourceTimeData` lane through `heatSemigroup_level0_resolverJointC2Data`.
-* **For the proposed direct cutoff Option B:** no, it should bypass `FlooredSourceTimeData` entirely.  It still needs positive-time source coefficient regularity and summable bounded-weight majorants, but those should be proved locally/on the cutoff window, not packaged as global/all-time `FlooredSourceTimeData`.
+```text
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:861
+```
 
-## Exact current committed theorem
+The theorem itself has **0 local `sorry`** in its body, but it is **upstream-sorry-tainted**: it calls `heatSemigroup_level0_resolverJointC2Data`, which has 2 local `sorry`s, and that producer calls `heatSemigroup_flooredSourceTimeData`, which has 6 local `sorry`s.  So the known upstream sorry count on this route is **8**.
 
-The current theorem body is already present and is short:
+## Search report
+
+| Query | Result |
+|---|---|
+| `heatResolverJointContDiffAt_two` | Found in `IntervalHeatSemigroupHighRegularity.lean` and mentioned in `UNDERSTANDING.md`. |
+| `heatResolver_jointContDiffAt` | No result found by GitHub connector search. |
+| `resolver jointContDiffAt two` / resolver-ish joint C² names | Relevant hits are the generic physical producers `coupledChemical_jointContDiffAt_two` and `coupledChemical_grad_jointContDiffAt_two`, plus the Level0 wrapper `heatResolverJointContDiffAt_two`. |
+| Theorem in `IntervalHeatSemigroupHighRegularity.lean` giving resolver joint C² | `heatResolverJointContDiffAt_two` at line 861. |
+
+## Exact theorem in `IntervalHeatSemigroupHighRegularity.lean`
 
 ```lean
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
@@ -45,11 +44,9 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatResolverJointRegularity
 
-/-- Current committed theorem: resolver joint `C²` at heat Level0.
+#check heatResolverJointContDiffAt_two
 
-This theorem is committed, but it is not the direct cutoff proof.  It obtains
-`PhysicalResolverJointC2Data` from `heatSemigroup_level0_resolverJointC2Data`, then
-uses the generic physical assembler `coupledChemical_jointContDiffAt_two`. -/
+/-- Current committed theorem, copied from the inspected file. -/
 theorem heatResolverJointContDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
@@ -59,6 +56,9 @@ theorem heatResolverJointContDiffAt_two
     ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
       intervalDomainLift (coupledChemicalConcentration p
         (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
+  -- `_hc` and `_hs₀` are retained in the API for downstream callers that pass
+  -- a time-positivity witness; the bounded-weight route via
+  -- `PhysicalResolverJointC2Data` is globally valid (no time cutoff needed).
   obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
     (p := p) hu₀_bound hu₀_cont
   exact coupledChemical_jointContDiffAt_two hBt hx₀
@@ -66,11 +66,37 @@ theorem heatResolverJointContDiffAt_two
 end ShenWork.Paper2.HeatResolverJointRegularity
 ```
 
-Notice the important diagnostic: `_hc` and `_hs₀` are unused.  A true cutoff proof would use them to choose the positive-time cutoff window.  The current theorem ignores them because it relies on globally packaged `PhysicalResolverJointC2Data`.
+Line map from the inspected file:
 
-## What `sorry` does the committed theorem have?
+```text
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:735
+  theorem heatSemigroup_jointContDiffAt_two
 
-The theorem body itself has no local `sorry`, but it depends on `heatSemigroup_level0_resolverJointC2Data`, which currently has two local `sorry` blocks for the summability hypotheses needed by `physicalSourceTimeC2_of_floored`:
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:822
+  theorem heatSemigroup_level0_resolverJointC2Data
+
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:842
+  sorry  -- value_summable for physicalSourceTimeC2_of_floored
+
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:845
+  sorry  -- grad_summable for physicalSourceTimeC2_of_floored
+
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:861
+  theorem heatResolverJointContDiffAt_two
+
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:877
+  #print axioms heatResolverJointContDiffAt_two
+```
+
+## What are the `sorry`s?
+
+### Local body of `heatResolverJointContDiffAt_two`
+
+No local `sorry` in the theorem body.  The theorem just extracts `PhysicalResolverJointC2Data` from `heatSemigroup_level0_resolverJointC2Data` and applies the generic physical producer `coupledChemical_jointContDiffAt_two`.
+
+### Upstream producer: `heatSemigroup_level0_resolverJointC2Data`
+
+This is the immediate dependency of `heatResolverJointContDiffAt_two` and has 2 local `sorry`s:
 
 ```lean
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
@@ -83,22 +109,20 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatResolverJointRegularity
 
-/-- Upstream data producer used by the current `heatResolverJointContDiffAt_two`.
-The two local holes are exactly the `value_summable` and `grad_summable` inputs. -/
-theorem heatSemigroup_level0_resolverJointC2Data_excerpt
+#check heatSemigroup_level0_resolverJointC2Data
+
+/-- Excerpt: the two direct `sorry`s in the current upstream data producer. -/
+theorem heatSemigroup_level0_resolverJointC2Data_sorry_excerpt
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀) :
     ∃ Bt : ℕ → ℕ → ℝ,
-      ShenWork.IntervalResolverJointC2PhysicalConcrete.PhysicalResolverJointC2Data
-        p (conjugatePicardIter p u₀ 0) Bt := by
+      PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
   set u := conjugatePicardIter p u₀ 0
-  have hFSTD :=
-    ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
-      hu₀_bound hu₀_cont (p := p)
+  have hFSTD := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+    hu₀_bound hu₀_cont (p := p)
   set Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
-  have hSTC2 :
-      ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2 p u Es :=
+  have hSTC2 : ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2 p u Es :=
     ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored hFSTD
       (by
         -- value_summable: ∀ m ≤ 2,
@@ -110,144 +134,114 @@ theorem heatSemigroup_level0_resolverJointC2Data_excerpt
         --   Summable (boundedWeightJointGradMajorant (wₖ·Es) m)
         intro m hm
         sorry)
-  exact ⟨_,
-    ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2⟩
+  exact ⟨_, ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2⟩
 
 end ShenWork.Paper2.HeatResolverJointRegularity
 ```
 
-And `heatSemigroup_level0_resolverJointC2Data` calls `heatSemigroup_flooredSourceTimeData`, whose six fields are still sorry'd:
+The two direct holes are:
+
+1. `value_summable`: prove `∀ m ≤ 2, Summable (boundedWeightJointMajorant (wₖ·Es) m)`.
+2. `grad_summable`: prove `∀ m ≤ 2, Summable (boundedWeightJointGradMajorant (wₖ·Es) m)`.
+
+### Upstream source-time floor producer: `heatSemigroup_flooredSourceTimeData`
+
+`heatSemigroup_level0_resolverJointC2Data` calls `heatSemigroup_flooredSourceTimeData`.  That theorem currently has 6 local `sorry`s:
 
 ```text
-d0
-d1
-sliceC2
-sliceNeumann
-zerothBound
-laplBound
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:103
+  theorem heatSemigroup_flooredSourceTimeData
+
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:117
+  sorry  -- d0
+
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:125
+  sorry  -- d1
+
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:136
+  sorry  -- sliceC2
+
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:143
+  sorry  -- sliceNeumann
+
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:151
+  sorry  -- zerothBound
+
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean:160
+  sorry  -- laplBound
 ```
 
-Those six are the floor/source-slice obligations, while the two in `heatSemigroup_level0_resolverJointC2Data` are the weighted value/gradient summability obligations.  Therefore the current committed theorem should still be considered axiom-tainted through upstream `sorryAx`.
-
-## Direct cutoff Option B status
-
-I found no committed direct resolver cutoff theorem analogous to the heat semigroup chain:
-
-```text
-heatTerm
-cutoffHeatTerm
-cutoffHeatTerm_contDiff_two
-cutoffHeatTerm_iteratedFDeriv_bound
-cutoffHeatSeries_contDiff_two
-heatSeries_eventuallyEq_cutoff
-heatSemigroup_jointContDiffAt_two
-```
-
-For the resolver, the closest already-committed reusable infrastructure is not a resolver cutoff theorem, but the generic bounded-weight physical assembler:
-
-```text
-IntervalResolverJointC2Physical.boundedWeightJointTerm
-IntervalResolverJointC2Physical.boundedWeightJointMajorant
-IntervalResolverJointC2Physical.boundedWeightJointTerm_contDiff
-IntervalResolverJointC2Physical.boundedWeightJointTerm_iteratedFDeriv_le
-IntervalResolverJointC2Physical.boundedWeightJointSeries_contDiff_two
-IntervalResolverJointC2PhysicalConcrete.coupledChemical_lift_eq_series
-IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
-```
-
-The direct cutoff proof should reuse this bounded-weight series machinery, but with **cutoff resolver coefficients** instead of demanding global `PhysicalResolverJointC2Data`.
-
-## What the direct route should look like
-
-A clean direct theorem should introduce a cutoff coefficient
+The six fields are:
 
 ```lean
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.PDE.IntervalResolverJointC2Physical
-import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointTerm boundedWeightJointMajorant boundedWeightJointSeries_contDiff_two)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (resolverTimeCoeff coupledChemical_lift_eq_series)
-open ShenWork.IntervalResolverSpectralJointC2Cutoff
-  (smoothRightCutoff smoothRightCutoff_eventually_eq_one)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
+open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData (heatDu heatD2u)
 
 noncomputable section
 
-namespace ShenWork.Paper2.HeatResolverJointRegularity
+namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 
-/-- Cut off the resolver coefficient in positive time. -/
-def cutoffResolverCoeff
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ) : ℕ → ℝ → ℝ :=
-  fun k t => smoothRightCutoff (c / 2) c t *
-    resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
+#check heatSemigroup_flooredSourceTimeData
 
-/-- The cutoff resolver series. -/
-def cutoffResolverSeries
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ) : ℝ × ℝ → ℝ :=
-  fun q => ∑' k : ℕ,
-    boundedWeightJointTerm (cutoffResolverCoeff p u₀ c) k q
+/-- Shape of the six-field producer; each field is currently sorry'd in the file. -/
+example
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (_hu₀_cont : Continuous u₀) :
+    ShenWork.IntervalPhysicalSourceTimeC2Concrete.FlooredSourceTimeData
+      p (conjugatePicardIter p u₀ 0)
+      (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+      (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) := by
+  exact heatSemigroup_flooredSourceTimeData _hu₀_bound _hu₀_cont
 
-end ShenWork.Paper2.HeatResolverJointRegularity
+end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 ```
 
-Then prove these new local/windowed lemmas:
+## Generic resolver joint-C² producers found
+
+The Level0 theorem is a wrapper over generic producers in `IntervalResolverJointC2PhysicalConcrete.lean`:
 
 ```text
-cutoffResolverCoeff_contDiff_two
-  : ContDiff ℝ 2 (cutoffResolverCoeff p u₀ c k)
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean:116
+  theorem coupledChemical_jointContDiffAt_two
 
-cutoffResolverCoeff_iteratedFDeriv_bound
-  : ‖iteratedFDeriv ℝ i (cutoffResolverCoeff p u₀ c k) t‖ ≤ B i k
-
-cutoffResolverMajorant_summable
-  : ∀ m ≤ 2, Summable (boundedWeightJointMajorant B m)
-
-cutoffResolverSeries_contDiff_two
-  : ContDiff ℝ 2 (cutoffResolverSeries p u₀ c)
-
-resolverSeries_eventuallyEq_cutoff
-  : original resolver lift series =ᶠ[𝓝 (s₀, x₀)] cutoffResolverSeries p u₀ c
-
-heatResolverJointContDiffAt_two_direct
-  : ContDiffAt ℝ 2 (fun q => intervalDomainLift (coupledChemicalConcentration p
-      (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀)
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean:138
+  theorem coupledChemical_grad_jointContDiffAt_two
 ```
 
-The key observation is that the cutoff theorem only needs source/resolver coefficient regularity on the positive band where `smoothRightCutoff (c/2) c` is nonzero.  That means it should not require global `FlooredSourceTimeData`, and it should not require any `t = 0` uniform bound.
+These are the value and gradient resolver joint-C² producers from `PhysicalResolverJointC2Data`.
 
-## Source coefficient regularity input needed
+```lean
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
 
-The proof still needs the following positive-time facts, but they should be built directly, not via `FlooredSourceTimeData`:
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
 
-1. `srcTimeCoeff p (conjugatePicardIter p u₀ 0) k` is `C²` on a positive-time neighborhood/window.
-2. `resolverTimeCoeff = intervalNeumannResolverWeight p k * srcTimeCoeff`, using the already-existing theorems:
+#check coupledChemical_jointContDiffAt_two
+#check coupledChemical_grad_jointContDiffAt_two
+```
+
+The value theorem is what `heatResolverJointContDiffAt_two` applies.  There is **not** currently a separate heat-Level0 gradient wrapper named something like `heatResolverGradJointContDiffAt_two` in `IntervalHeatSemigroupHighRegularity.lean`; instead, once `Bt, hBt` are available from `heatSemigroup_level0_resolverJointC2Data`, the gradient version follows directly by applying `coupledChemical_grad_jointContDiffAt_two hBt hx₀`.
+
+## Bottom line
+
+`heatResolverJointContDiffAt_two` already exists, but it is not an axiom-clean direct cutoff proof.  It is a wrapper around `PhysicalResolverJointC2Data`:
 
 ```text
-IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_eq_weight_smul
-IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_eq_smul
-IntervalPhysicalResolverDataConcrete.resolverTimeCoeff_iteratedFDeriv_eq
+heatResolverJointContDiffAt_two
+  depends on heatSemigroup_level0_resolverJointC2Data
+    has 2 local sorries: value_summable, grad_summable
+    depends on heatSemigroup_flooredSourceTimeData
+      has 6 local sorries: d0, d1, sliceC2, sliceNeumann, zerothBound, laplBound
 ```
 
-3. The three time-order envelopes for the cutoff coefficient have summable bounded-weight majorants.  This is the same bounded-weight mechanism already used by `PhysicalResolverJointC2Data`; it is not the Duhamel/eigen-cube route.
+So the accurate count is:
 
-## Does it need `DuhamelSourceTimeC2Coeff`?
-
-No, not for this cutoff version.
-
-The file `IntervalResolverLevel0SpectralC2Coeff.lean` contains the variation-of-constants / `ResolverHasSpectralAgreementC2Coeff` route, but that is a different lane.  It has major unresolved obligations around `DuhamelSourceTimeC2Coeff`, coefficient derivatives, and spectral reconstruction.  The direct cutoff route should avoid that file and use the bounded-weight joint series route instead.
-
-## Final answer
-
-* `heatResolverJointContDiffAt_two` is committed.
-* It currently has no local `sorry`, but it is only a wrapper around `heatSemigroup_level0_resolverJointC2Data`, which still has two local summability `sorry`s and depends on the six-field `heatSemigroup_flooredSourceTimeData` producer.
-* Therefore the committed theorem is **not** the clean direct Option B proof.
-* A true direct cutoff proof can bypass `FlooredSourceTimeData` entirely, provided you add local positive-time resolver/source coefficient regularity and bounded-weight summability lemmas for the cutoff coefficients.
-* The best implementation path is to reuse `boundedWeightJointSeries_contDiff_two` with `cutoffResolverCoeff`, then transfer by eventual equality using `smoothRightCutoff_eventually_eq_one` and `coupledChemical_lift_eq_series`.
+```text
+local sorries in heatResolverJointContDiffAt_two: 0
+known upstream sorries on its current route: 8
+```
