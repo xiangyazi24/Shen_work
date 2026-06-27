@@ -1,316 +1,437 @@
-# Q1273 (cron2) — `src_bound` for nonpositive time
+# Q1285 (cron2) — filling `intervalResolverLiftR_contDiff_four` at line 1088
 
 Static GitHub-connector inspection only. I did **not** run Lean locally.
 
-## Short answer
+## Exact theorem names found
 
-For an **arbitrary** trajectory `u : ℝ → intervalDomainPoint → ℝ`, `srcTimeCoeff p u k t` is **not** automatically constant for `t ≤ 0`.  By definition it is just
+The requested route exists, but with one naming correction.
 
-```lean
-srcTimeCoeff p u k t = (intervalNeumannResolverSourceCoeff p (u t) k).re
-```
-
-so it depends on whatever value `u t` has.
-
-For the specific level-0 heat seed
+There is **no separate structure named** `IntervalWeakH4Neumann` in the indexed source I found.  The H⁴ route is encoded as a depth-2 weak-H² tower:
 
 ```lean
-u = ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0
+ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann f
+ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann hf.secondDeriv
 ```
 
-then yes: on nonpositive time the concrete full semigroup vanishes, so the heat seed is the zero interval function.  Consequently the source slice is the zero function, and
+The exact summability theorem is:
 
 ```lean
-srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t = 0
+ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
 ```
 
-for every `k` and `t ≤ 0`.
-
-Thus, on the open negative half-line `t < 0`, the coefficient is locally constant zero and all time derivatives are zero.  The bound is the trivial one:
-
-```text
-‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ = 0 ≤ builtEs H i k.
-```
-
-The right-hand inequality is just nonnegativity of `builtEs`, from the nonnegative chosen constants in `H.zerothBound` and `H.laplBound`.
-
-However, there is an important caveat at exactly `t = 0`: being constant on `t ≤ 0` does **not** give a two-sided neighborhood of constancy at `0`.  The concrete semigroup has `S 0 f = 0`, while the positive-time heat semigroup usually tends to `f` as `t → 0⁺`.  So the zero-before-zero extension is generally **not** globally `ContDiff ℝ 2` at `0` unless additional flatness/compatibility assumptions force the right jets to vanish.  This means the global `src_contDiff : ContDiff ℝ 2 ...` obligation cannot honestly be closed from positive-time floor data plus “constant for `t ≤ 0`” alone.
-
-## What I found in the repo
-
-### 1. `srcTimeCoeff` definition
-
-In `ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean`, the definition is:
+with signature:
 
 ```lean
-def srcTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
-    ℕ → ℝ → ℝ :=
-  fun k t => (intervalNeumannResolverSourceCoeff p (u t) k).re
+theorem intervalWeakH4Neumann_eigenvalue_L1_summable
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
+    (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
+    Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|)
 ```
 
-`intervalNeumannResolverSourceCoeff` is the Neumann cosine coefficient of the source
+The other exact names are:
 
 ```lean
-p.ν * intervalDomainLift u x ^ p.γ
+ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
+ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
+ShenWork.Paper2.IntervalResolverHighRegularity.intervalResolverLiftR_contDiff_four
 ```
 
-from `ShenWork/PDE/IntervalNeumannEllipticResolverR.lean`.
-
-So the question “is it constant at `t ≤ 0`?” reduces entirely to what `u t` is for `t ≤ 0`.
-
-### 2. `conjugatePicardIter` level 0
-
-In `ShenWork/Paper2/IntervalConjugatePicard.lean`, level 0 is exactly the pure full-semigroup heat trajectory:
+`intervalResolverLiftR_contDiff_four` expects:
 
 ```lean
-def conjugatePicardIter (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
-    ℕ → (ℝ → intervalDomainPoint → ℝ)
-  | 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-  | n + 1 => fun t x =>
-      intervalConjugateDuhamelMap p u₀ (conjugatePicardIter p u₀ n) t x
+Summable (fun k : ℕ =>
+  unitIntervalCosineEigenvalue k *
+    |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p u k).re|)
 ```
 
-Therefore, for level 0, it is enough to understand `intervalFullSemigroupOperator t f` at nonpositive `t`.
-
-### 3. Full semigroup definition
-
-In `ShenWork/PDE/IntervalNeumannFullKernel.lean`:
+The bridge is exactly:
 
 ```lean
-def intervalNeumannFullKernel (t x y : ℝ) : ℝ :=
-  ∑' k : ℤ, (heatKernel t (x - y + 2 * k) + heatKernel t (x + y + 2 * k))
-
-/-- The full periodised-image Neumann heat propagator on `[0,1]`. -/
-def intervalFullSemigroupOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
-  ∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1
+(intervalNeumannResolverSourceCoeff p u k).re
+  = cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k
 ```
 
-The heat kernel is the concrete formula from `ShenWork/PDE/HeatSemigroup.lean`:
+## Important obstruction in the current line-1088 context
+
+The proof route needs strict positivity of the heat profile at the positive time `r`:
 
 ```lean
-def heatKernel (t : ℝ) (x : ℝ) : ℝ :=
-  1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t))
+hpos_w : ∀ x ∈ Icc (0 : ℝ) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 r) x
 ```
 
-For `t ≤ 0`, `4 * Real.pi * t ≤ 0`, hence `Real.sqrt (4 * Real.pi * t) = 0`, and Lean’s real division convention gives `1 / 0 = 0`.  Hence the prefactor is zero and `heatKernel t x = 0` for all `x`.
-
-The repo already proves the `t = 0` special case in `ShenWork/PDE/IntervalSemigroupAtZero.lean`:
+This is required by
 
 ```lean
-theorem intervalNeumannFullKernel_zero (x y : ℝ) :
-    intervalNeumannFullKernel 0 x y = 0 := by
-  unfold intervalNeumannFullKernel
-  simp [heatKernel_zero]
-
-/-- **The actual value of the propagator at time `0`.**
-`intervalFullSemigroupOperator 0 f x = 0` for every `f`, `x`. -/
-theorem intervalFullSemigroupOperator_zero (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator 0 f x = 0 := by
-  unfold intervalFullSemigroupOperator
-  simp [intervalNeumannFullKernel_zero]
+intervalWeakH2Neumann_of_eigenvalue_summable p.hν p.hγ hbc_sum hagree_w hpos_w
 ```
 
-I did not find an existing lemma named like `intervalFullSemigroupOperator_nonpos`; add the nonpositive variant by the same definitional argument.
-
-## The useful nonpositive-time atoms
-
-The first atom should live near `IntervalSemigroupAtZero.lean` or `IntervalNeumannFullKernel.lean`.
+and also by the `ContDiff ℝ 4` chain rule for
 
 ```lean
-import ShenWork.PDE.IntervalSemigroupAtZero
-import ShenWork.PDE.IntervalNeumannFullKernel
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.IntervalNeumannFullKernel
-
-noncomputable section
-
-namespace ShenWork.IntervalNeumannFullKernel
-
-/-- With the concrete Lean definition of `heatKernel`, the kernel is zero for
-nonpositive time.  This is a definitional extension convention, not the analytic
-heat kernel at positive time. -/
-lemma heatKernel_eq_zero_of_nonpos {t x : ℝ} (ht : t ≤ 0) :
-    heatKernel t x = 0 := by
-  unfold heatKernel
-  have harg : 4 * Real.pi * t ≤ 0 := by
-    nlinarith [Real.pi_pos, ht]
-  rw [Real.sqrt_eq_zero_of_nonpos harg]
-  simp
-
-/-- The full periodised Neumann kernel is zero for nonpositive time. -/
-lemma intervalNeumannFullKernel_eq_zero_of_nonpos {t x y : ℝ} (ht : t ≤ 0) :
-    intervalNeumannFullKernel t x y = 0 := by
-  unfold intervalNeumannFullKernel
-  simp [heatKernel_eq_zero_of_nonpos ht]
-
-/-- The full semigroup operator is zero for nonpositive time. -/
-lemma intervalFullSemigroupOperator_eq_zero_of_nonpos {t : ℝ} (ht : t ≤ 0)
-    (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator t f x = 0 := by
-  unfold intervalFullSemigroupOperator
-  simp [intervalNeumannFullKernel_eq_zero_of_nonpos ht]
-
-end ShenWork.IntervalNeumannFullKernel
+g_smooth x = p.ν * U_cos x ^ p.γ
 ```
 
-Then, for the source coefficient of the level-0 heat seed:
+because `Real.rpow` with arbitrary `0 < γ` is smooth only away from zero.
+
+At line 1088, the local variable `r` is merely in a ball around `s` and is proved positive (`hr_pos' : 0 < r`).  The available hypothesis
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.PDE.IntervalSemigroupAtZero
-import ShenWork.Paper2.IntervalConjugatePicard
-
-open Filter Topology Set MeasureTheory
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
-open ShenWork.IntervalPhysicalResolverDataConcrete
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-/-- Nonnegativity of the constructed envelope. -/
-lemma builtEs_nonneg
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) {i k : ℕ} (hi : i ≤ 2) :
-    0 ≤ builtEs H i k := by
-  rw [builtEs, dif_pos hi]
-  by_cases hk : k = 0
-  · simp [hk, (Classical.choose_spec (H.zerothBound i hi)).1]
-  · have hM : 0 ≤ Classical.choose (H.laplBound i hi) :=
-      (Classical.choose_spec (H.laplBound i hi)).1
-    have hden : 0 ≤ ((k : ℝ) * Real.pi) ^ 2 := sq_nonneg _
-    simp [hk, div_nonneg hM hden]
-
-/-- For the level-0 heat seed, `srcTimeCoeff` is zero at nonpositive time.  The
-last `simp` step is the zero-source cosine coefficient simplification: the
-source is `p.ν * 0 ^ p.γ = 0`, since `p.hγ : 0 < p.γ`. -/
-lemma srcTimeCoeff_heat_seed_eq_zero_of_nonpos
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (k : ℕ)
-    {t : ℝ} (ht : t ≤ 0) :
-    srcTimeCoeff p (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0) k t = 0 := by
-  unfold srcTimeCoeff ShenWork.IntervalConjugatePicard.conjugatePicardIter
-  have hzero_slice :
-      (fun x : intervalDomainPoint =>
-        intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1) = fun _ => 0 := by
-    funext x
-    exact ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_eq_zero_of_nonpos
-      ht (intervalDomainLift u₀) x.1
-  rw [hzero_slice]
-  unfold ShenWork.PDE.intervalNeumannResolverSourceCoeff
-  -- This should close by unfolding `unitIntervalNeumannCosineCoeff` /
-  -- `unitIntervalCosineRawCoeff` and simplifying the zero source.
-  -- If `simp` does not find the real-power lemma automatically, add:
-  --   simp [intervalDomainLift, Real.zero_rpow (ne_of_gt p.hγ)]
-  simp [intervalDomainLift, Real.zero_rpow (ne_of_gt p.hγ)]
-
-/-- On `t < 0`, the level-0 source coefficient is locally zero. -/
-lemma srcTimeCoeff_heat_seed_eventuallyEq_zero_of_neg
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (k : ℕ)
-    {t : ℝ} (ht : t < 0) :
-    (fun r => srcTimeCoeff p (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0) k r)
-      =ᶠ[𝓝 t] fun _ => 0 := by
-  filter_upwards [Iio_mem_nhds ht] with r hr
-  exact srcTimeCoeff_heat_seed_eq_zero_of_nonpos p u₀ k (le_of_lt hr)
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x
 ```
 
-With the eventuallly-zero lemma, the derivative bound for `t < 0` is conceptually immediate: split `i = 0,1,2`, rewrite the function locally to the constant zero function using `EventuallyEq.deriv_eq` / the corresponding `fderiv` eventuallly-equal lemma, and finish with `builtEs_nonneg`.
+cannot be applied to this `r` unless the ball is also known to stay inside `Icc c T`.  For `s = T`, no ordinary `𝓝 s` ball stays inside `Iic T`, so this is not just a small missing `linarith`; it is a genuine quantifier issue.
 
-Schematically:
+So the proof below is the exact line-1088 proof **once you have** a local strict positivity fact for `r`.  The cleanest way is to add an upstream hypothesis such as
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.PDE.IntervalSemigroupAtZero
-import ShenWork.Paper2.IntervalConjugatePicard
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalPhysicalResolverDataConcrete
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-/-- Negative-time bound for the level-0 heat seed: all relevant time derivatives
-vanish because the source coefficient is locally constant zero. -/
-lemma srcTimeCoeff_heat_seed_bound_of_neg
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p
-      (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0) s₁ s₂)
-    (i k : ℕ) {t : ℝ} (hi : i ≤ 2) (ht : t < 0) :
-    ‖iteratedFDeriv ℝ i
-        (srcTimeCoeff p (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0) k) t‖
-      ≤ builtEs H i k := by
-  -- Use `srcTimeCoeff_heat_seed_eventuallyEq_zero_of_neg p u₀ k ht`.
-  -- Then split `i` by `interval_cases i`.
-  -- Each case reduces to the corresponding derivative of `fun _ => 0`, hence norm `0`.
-  -- Finish with:
-  exact le_trans (by
-    -- placeholder for the local-zero derivative calculation
-    -- target: norm(...) ≤ 0
-    sorry) (builtEs_nonneg H hi)
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+(hu₀_pos : PositiveInitialDatum intervalDomain u₀)
 ```
 
-The only nontrivial bookkeeping in the last theorem is the Mathlib API for turning local equality into equality of `iteratedFDeriv` for `i = 0,1,2`.  Since `hi : i ≤ 2`, the robust route is simply:
+and derive `hpos_w` by
 
 ```lean
-interval_cases i
+ShenWork.Paper2.BFormPositiveDatumNegPart.intervalFullSemigroupOperator_pos_of_positiveInitialDatum
 ```
 
-and handle the three cases directly.
+which is already imported by `IntervalBFormNegPartStrictPosBarrier`.
 
-## What happens at `t = 0`
+If the theorem statement must remain unchanged, the current context is missing this strict-positive-time bridge.  `_hu₀_nonneg` alone only gives nonnegativity, not strict positivity, and is not enough for arbitrary real `γ > 0`.
 
-Do **not** rely on “constant for `t ≤ 0`” to close global `ContDiff ℝ 2` at `0`.
+## Drop-in proof for the line-1088 `sorry`, assuming `hpos_w`
 
-The repo already documents the degeneracy in `IntervalSemigroupAtZero.lean`: the concrete kernel gives
+Replace
 
 ```lean
-intervalFullSemigroupOperator 0 f x = 0
+      have hV_C4 : ContDiff ℝ 4 V_cos := by
+        apply intervalResolverLiftR_contDiff_four
+        sorry
 ```
 
-for every `f`, while the genuine heat semigroup should satisfy only the one-sided approximate identity as `t → 0⁺`.  Therefore, unless the right-hand positive-time coefficient has matching zero value/first derivative/second derivative at `0`, the zero extension is not globally `C²` at `0`.
+with the following.  The first block constructs `hpos_w`; choose one of the two versions.
 
-For `src_bound` alone:
+### Version A: if you add `hu₀_pos : PositiveInitialDatum intervalDomain u₀`
 
-* for `t < 0`, the bound is honestly `0 ≤ builtEs H i k`;
-* for `t = 0`, the zeroth-order value is also zero for the heat seed, so the `i = 0` bound is again `0 ≤ builtEs H 0 k`;
-* for `i = 1,2` at `t = 0`, a proof based only on Lean’s fallback value for derivatives at nondifferentiable points would be analytically misleading, and it would not solve `src_contDiff` anyway.
+```lean
+      have hV_C4 : ContDiff ℝ 4 V_cos := by
+        apply intervalResolverLiftR_contDiff_four
+        -- Goal:
+        --   Summable (fun k => λ_k * |(intervalNeumannResolverSourceCoeff p w k).re|)
+        set w := conjugatePicardIter p u₀ 0 r with hw_def
 
-## Recommended fix
+        -- Rewrite resolver-source coefficients as cosine coefficients of ν·lift(w)^γ.
+        have hre_eq : ∀ k,
+            (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re =
+              cosineCoeffs (fun x => p.ν * intervalDomainLift w x ^ p.γ) k := by
+          intro k
+          simpa using
+            ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
+              p w k
+        simp_rw [hre_eq]
 
-There are three honest options.
+        -- Heat coefficients at positive time r have eigenvalue-weighted ℓ¹ summability.
+        have hbc_sum : Summable (fun n =>
+            unitIntervalCosineEigenvalue n *
+              |Real.exp (-r * unitIntervalCosineEigenvalue n) * heatCoeff u₀ n|) :=
+          ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
+            hr_pos' _hu₀_bound
 
-### Option A — positive-time physical source data
+        -- Agreement of the heat seed with the cosine representative on [0,1].
+        have hagree_w : Set.EqOn (intervalDomainLift w)
+            (fun x => ∑' k, (Real.exp (-r * unitIntervalCosineEigenvalue k) *
+              heatCoeff u₀ k) * cosineMode k x) (Set.Icc (0 : ℝ) 1) := by
+          intro x hx
+          simpa [w] using
+            ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+              p u₀ hr_pos' _hu₀_cont _hu₀_bound hx
 
-Change the consumer structure so that the source coefficient regularity/bounds are only required on `Ioi 0`, or on positive slabs.  This matches the actual `FlooredSourceTimeData` in the positive-time version of `IntervalPhysicalSourceTimeC2Concrete.lean`.
+        -- Strict positivity of the positive-time heat seed.
+        have hpos_w : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+            0 < intervalDomainLift w x := by
+          intro x hx
+          rw [hw_def]
+          -- On [0,1], the subtype lift is the semigroup value.
+          simp only [conjugatePicardIter, intervalDomainLift, dif_pos hx]
+          exact ShenWork.Paper2.BFormPositiveDatumNegPart
+            .intervalFullSemigroupOperator_pos_of_positiveInitialDatum
+              hu₀_pos hr_pos' x
 
-This is the cleanest if downstream PDE arguments only use `t > 0`.
+        -- First weak-H² Neumann certificate for ν·lift(w)^γ.
+        have hf_H2 :
+            ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+              (fun x => p.ν * intervalDomainLift w x ^ p.γ) :=
+          ShenWork.PDE.IntervalMildSourceDecayHelper
+            .intervalWeakH2Neumann_of_eigenvalue_summable
+              p.hν p.hγ hbc_sum hagree_w hpos_w
 
-### Option B — add a genuine global extension hypothesis
+        -- Local cosine-mode parity helpers.
+        have cosineMode_neg' : ∀ (k : ℕ) (x : ℝ),
+            cosineMode k (-x) = cosineMode k x := by
+          intro k x
+          unfold cosineMode
+          rw [show (k : ℝ) * Real.pi * (-x) =
+              -((k : ℝ) * Real.pi * x) from by ring, Real.cos_neg]
+        have cosineMode_add_two' : ∀ (k : ℕ) (x : ℝ),
+            cosineMode k (x + 2) = cosineMode k x := by
+          intro k x
+          unfold cosineMode
+          rw [show (k : ℝ) * Real.pi * (x + 2) =
+                (k : ℝ) * Real.pi * x + ((k : ℤ) : ℝ) * (2 * Real.pi) from by
+                push_cast; ring,
+              Real.cos_add_int_mul_two_pi _ (k : ℤ)]
 
-If `PhysicalSourceTimeC2` must remain global on all `ℝ`, add explicit hypotheses saying that the coefficient extension is globally `C²` and satisfies the global envelope.  Positive-time floor data plus semigroup zero at `t ≤ 0` is insufficient at `0`.
+        -- U_cos is even and symmetric about 1.
+        have hU_even : ∀ x, U_cos (-x) = U_cos x := by
+          intro x
+          simp only [hU_cos_def]
+          exact tsum_congr (fun k => by congr 1; exact cosineMode_neg' k x)
+        have hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x := by
+          intro x
+          rw [show (2 : ℝ) - x = (-x) + 2 from by ring]
+          simp only [hU_cos_def]
+          rw [show (fun k => (Real.exp (-r * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k ((-x) + 2)) =
+              (fun k => (Real.exp (-r * unitIntervalCosineEigenvalue k) *
+                heatCoeff u₀ k) * cosineMode k (-x)) from
+              funext (fun k => by congr 1; exact cosineMode_add_two' k (-x))]
+          exact hU_even x
 
-### Option C — prove a flat-at-zero extension, not the current semigroup value
+        -- Build the second weak-H² certificate for hf_H2.secondDeriv.
+        have hf''_H2 :
+            ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+              hf_H2.secondDeriv := by
+          -- U_cos > 0 globally by period/even/reflection reduction to [0,1].
+          have hU_period_fun : Function.Periodic U_cos 2 := by
+            intro x
+            show U_cos (x + 2) = U_cos x
+            simp only [hU_cos_def]
+            exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
+          have hU_pos_all : ∀ x, 0 < U_cos x := by
+            have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+              intro y hy
+              rw [← hU_agree y hy]
+              simpa [w] using hpos_w y hy
+            intro x
+            have hx_abs : U_cos x = U_cos |x| := by
+              by_cases h : 0 ≤ x
+              · rw [abs_of_nonneg h]
+              · rw [abs_of_neg (not_le.mp h)]
+                exact (hU_even x).symm
+            rw [hx_abs]
+            set n := ⌊|x| / 2⌋ with hn_def
+            set rr := |x| - n * 2 with hrr_def
+            have hrrV : U_cos |x| = U_cos rr :=
+              (hU_period_fun.sub_int_mul_eq n).symm
+            have hrr_lo : 0 ≤ rr := by
+              have := Int.floor_le (|x| / 2)
+              linarith
+            have hrr_hi : rr < 2 := by
+              have := Int.lt_floor_add_one (|x| / 2)
+              linarith
+            rw [hrrV]
+            by_cases hrr1 : rr ≤ 1
+            · exact hU_pos_Icc rr ⟨hrr_lo, hrr1⟩
+            · push_neg at hrr1
+              have : U_cos rr = U_cos (2 - rr) := (hU_symm1 rr).symm
+              rw [this]
+              exact hU_pos_Icc (2 - rr) ⟨by linarith, by linarith⟩
 
-Replace the raw concrete semigroup value at `t = 0` by a separately defined smooth cutoff/extension in time whose first two jets match at `0`.  This is a different object from the current `intervalFullSemigroupOperator`, whose definition gives `S 0 = 0`.
+          -- g_smooth := ν * U_cos^γ is globally C⁴.
+          have hU_ne : ∀ x, U_cos x ≠ 0 := fun x => ne_of_gt (hU_pos_all x)
+          set g_smooth := fun x => p.ν * U_cos x ^ p.γ with hg_smooth_def
+          have hg_C4 : ContDiff ℝ 4 g_smooth := by
+            show ContDiff ℝ 4 (fun x => p.ν * U_cos x ^ p.γ)
+            exact contDiff_const.mul (hU_C4.rpow_const_of_ne hU_ne)
 
-## Bottom line
+          -- g_smooth inherits evenness and symmetry about 1.
+          have hg_even : ∀ x, g_smooth (-x) = g_smooth x := by
+            intro x
+            simp only [hg_smooth_def, hU_even]
+          have hg_symm1 : ∀ x, g_smooth (2 - x) = g_smooth x := by
+            intro x
+            simp only [hg_smooth_def, hU_symm1]
 
-For the level-0 heat seed and `t < 0`, the missing `src_bound` branch is trivial:
+          -- C² regularity for g_smooth''.
+          have hg_C3 : ContDiff ℝ 3 (deriv g_smooth) := hg_C4.deriv'
+          have hg_C2_dd : ContDiff ℝ 2 (deriv (deriv g_smooth)) := hg_C3.deriv'
+          have hg_C2_dd_on :
+              ContDiffOn ℝ 2 (deriv (deriv g_smooth)) (Icc (0 : ℝ) 1) :=
+            hg_C2_dd.contDiffOn
 
-```text
-srcTimeCoeff = 0 locally, so all derivatives through order 2 are 0,
-and 0 ≤ builtEs H i k.
+          -- Parity helpers.
+          have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+              (∀ x, g (-x) = g x) → ∀ x, deriv g (-x) = -(deriv g x) := by
+            intro g _hg heven x
+            have h1 := deriv_comp_neg (f := g) (x := x)
+            rw [show (fun x => g (-x)) = g from funext heven] at h1
+            linarith
+          have odd_zero : ∀ {g : ℝ → ℝ},
+              (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
+            intro g hodd
+            have h := hodd 0
+            rw [neg_zero] at h
+            linarith
+          have deriv_odd_even : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+              (∀ x, g (-x) = -(g x)) → ∀ x, deriv g (-x) = deriv g x := by
+            intro g _hg hodd x
+            have h1 := deriv_comp_neg (f := g) (x := x)
+            rw [show (fun x => g (-x)) = fun x => -(g x) from funext hodd] at h1
+            simp at h1
+            linarith
+
+          -- g even → g' odd → g'' even → g''' odd.
+          have hg'_odd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) :=
+            deriv_even_odd (hg_C4.of_le (by norm_num)) hg_even
+          have hg''_even : ∀ x,
+              deriv (deriv g_smooth) (-x) = deriv (deriv g_smooth) x :=
+            deriv_odd_even (hg_C3.of_le (by norm_num)) hg'_odd
+          have hg'''_odd : ∀ x,
+              deriv (deriv (deriv g_smooth)) (-x) =
+                -(deriv (deriv (deriv g_smooth)) x) :=
+            deriv_even_odd (hg_C2_dd.of_le (by norm_num)) hg''_even
+
+          -- Neumann data for g''' at endpoints.
+          have hbc30 : deriv (deriv (deriv g_smooth)) 0 = 0 :=
+            odd_zero hg'''_odd
+          have hg'_antisymm1 : ∀ x,
+              deriv g_smooth (2 - x) = -(deriv g_smooth x) := by
+            intro x
+            have h1 := deriv_comp_const_sub (f := g_smooth) (a := 2) (x := x)
+            rw [show (fun x => g_smooth (2 - x)) = g_smooth from funext hg_symm1] at h1
+            linarith
+          have hg''_symm1 : ∀ x,
+              deriv (deriv g_smooth) (2 - x) = deriv (deriv g_smooth) x := by
+            intro x
+            have h1 := deriv_comp_const_sub (f := deriv g_smooth) (a := 2) (x := x)
+            rw [show (fun x => deriv g_smooth (2 - x)) =
+                fun x => -(deriv g_smooth x) from funext hg'_antisymm1] at h1
+            simp at h1
+            linarith
+          have hbc31 : deriv (deriv (deriv g_smooth)) 1 = 0 := by
+            have h1 := deriv_comp_const_sub (f := deriv (deriv g_smooth)) (a := 2) (x := 1)
+            rw [show (fun x => deriv (deriv g_smooth) (2 - x)) =
+                deriv (deriv g_smooth) from funext hg''_symm1] at h1
+            have : (2 : ℝ) - 1 = 1 := by norm_num
+            rw [this] at h1
+            linarith
+
+          have hg'''_cont : Continuous (deriv (deriv (deriv g_smooth))) :=
+            hg_C2_dd.continuous_deriv (by norm_num)
+          have htend30 : Filter.Tendsto (deriv (deriv (deriv g_smooth)))
+              (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+            conv_rhs => rw [← hbc30]
+            exact hg'''_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+          have htend31 : Filter.Tendsto (deriv (deriv (deriv g_smooth)))
+              (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+            conv_rhs => rw [← hbc31]
+            exact hg'''_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+
+          -- Weak-H² certificate for g_smooth''.
+          have h_smooth_H2 :
+              ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
+                (deriv (deriv g_smooth)) :=
+            ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
+              hg_C2_dd_on htend30 htend31 hbc30 hbc31
+
+          -- Agreement of the lift source with g_smooth on [0,1].
+          have h_src_Icc : ∀ x ∈ Icc (0 : ℝ) 1,
+              (fun z => p.ν * intervalDomainLift w z ^ p.γ) x = g_smooth x := by
+            intro x hx
+            show p.ν * intervalDomainLift w x ^ p.γ = p.ν * U_cos x ^ p.γ
+            rw [hU_agree x hx]
+          have h_cos_int_eq : ∀ k : ℕ,
+              (∫ x in (0 : ℝ)..1,
+                  Real.cos ((k : ℝ) * Real.pi * x) *
+                    (fun z => p.ν * intervalDomainLift w z ^ p.γ) x) =
+                ∫ x in (0 : ℝ)..1,
+                  Real.cos ((k : ℝ) * Real.pi * x) * g_smooth x :=
+            fun k => intervalIntegral.integral_congr (fun x hx => by
+              rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hx
+              rw [h_src_Icc x hx])
+
+          -- Depth-1 smooth IBP for g_smooth.
+          have hg_C2_on : ContDiffOn ℝ 2 g_smooth (Icc (0 : ℝ) 1) :=
+            (hg_C4.of_le (by norm_num)).contDiffOn
+          have hg'_bc0 : deriv g_smooth 0 = 0 := odd_zero hg'_odd
+          have hg'_bc1 : deriv g_smooth 1 = 0 := by
+            have := hg'_antisymm1 1
+            rw [show (2 : ℝ) - 1 = 1 from by norm_num] at this
+            linarith
+          have hg'_cont : Continuous (deriv g_smooth) :=
+            hg_C4.continuous_deriv (by norm_num)
+          have hg'_tend0 : Filter.Tendsto (deriv g_smooth)
+              (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
+            conv_rhs => rw [← hg'_bc0]
+            exact hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+          have hg'_tend1 : Filter.Tendsto (deriv g_smooth)
+              (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
+            conv_rhs => rw [← hg'_bc1]
+            exact hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+          have h_depth1_ibp : ∀ k : ℕ,
+              (∫ x in (0 : ℝ)..1,
+                  Real.cos ((k : ℝ) * Real.pi * x) *
+                    deriv (deriv g_smooth) x) =
+                -((k : ℝ) * Real.pi) ^ 2 *
+                  ∫ x in (0 : ℝ)..1,
+                    Real.cos ((k : ℝ) * Real.pi * x) * g_smooth x :=
+            fun k =>
+              ShenWork.IntervalEllipticCharacterization
+                .intervalCosineLaplacianCoeff_eq_of_contDiffOn
+                  k hg_C2_on hg'_tend0 hg'_tend1 hg'_bc0 hg'_bc1
+
+          -- Transfer h_smooth_H2 from g_smooth'' to hf_H2.secondDeriv by the
+          -- cosine-laplacian algebra.
+          exact {
+            secondDeriv := h_smooth_H2.secondDeriv
+            second_intervalIntegrable := h_smooth_H2.second_intervalIntegrable
+            second_abs_integral_bound := h_smooth_H2.second_abs_integral_bound
+            weak_cosine_laplacian := fun k => by
+              have hA := hf_H2.weak_cosine_laplacian k
+              have hB := h_smooth_H2.weak_cosine_laplacian k
+              have hC := h_cos_int_eq k
+              have hD := h_depth1_ibp k
+              rw [hC] at hA
+              rw [hD] at hB
+              rw [hA]
+              exact hB }
+
+        -- Depth-2 weak-H² tower gives eigenvalue-weighted ℓ¹ summability.
+        exact ShenWork.IntervalSourceDecayQuantitative
+          .intervalWeakH4Neumann_eigenvalue_L1_summable
+            hf_H2 hf''_H2
 ```
 
-For `t = 0`, that same observation gives the zeroth-order bound, but it does **not** justify global `ContDiff ℝ 2` or the higher-order two-sided derivative story.  The global all-`ℝ` obligations need either a positive-time reformulation or an explicit flat/global extension hypothesis.
+### Version B: if you keep the old theorem statement
+
+With the exact current local context, replace the `hpos_w` block above by a new local hypothesis/lemma.  The missing lemma shape is:
+
+```lean
+have hpos_w : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+    0 < intervalDomainLift w x := by
+  -- Not derivable from `_hu₀_nonneg` alone.
+  -- Need either `hu₀_pos : PositiveInitialDatum intervalDomain u₀`, or a theorem
+  -- proving strict positivity of `S(r)u₀` from the already-carried `_hpos` window.
+  sorry
+```
+
+I do **not** recommend hiding this as a local `sorry`: it is the real missing assumption.  The rest of the block is the same as the already-completed per-slice proof earlier in `IntervalConjugateLevel0BFormSourceOn.lean` (the `hV_data` / C⁴ branch inside `level0_chemDiv_envelope_summable`).
+
+## Why the proof pattern is correct
+
+1. `intervalResolverLiftR_contDiff_four` reduces resolver C⁴ to source eigenvalue-weighted ℓ¹ summability.
+2. `resolverSourceCoeff_re_eq_cosineCoeffs` rewrites the resolver source coefficients to the cosine coefficients of `x ↦ p.ν * intervalDomainLift w x ^ p.γ`.
+3. `intervalWeakH2Neumann_of_eigenvalue_summable` builds the first weak-H² certificate for that source from the heat cosine representation, eigenvalue-weighted summability of heat coefficients, agreement on `[0,1]`, and strict positivity.
+4. The C⁴ smooth representative `g_smooth = p.ν * U_cos^p.γ` plus even/endpoint symmetry builds `IntervalWeakH2Neumann hf_H2.secondDeriv`.
+5. `intervalWeakH4Neumann_eigenvalue_L1_summable hf_H2 hf''_H2` gives exactly the summability required by `intervalResolverLiftR_contDiff_four`.
+
+## Minimal edit I recommend
+
+Strengthen `level0_chemDiv_timeDerivData` with:
+
+```lean
+(hu₀_pos : PositiveInitialDatum intervalDomain u₀)
+```
+
+Then the proof above is the intended fill for line 1088.  If you do not want to add `hu₀_pos`, add a lemma deriving strict positive heat for all `r > 0` from the existing assumptions; the current repo has the forward theorem from `PositiveInitialDatum`, but I did not find a theorem deriving it from `_hu₀_nonneg` plus the window `_hpos`.
