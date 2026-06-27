@@ -1,4 +1,4 @@
-# Q1002 / cron1
+# Q1027 / cron1 — `localRestartCoeff` variation-of-constants identity
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -10,136 +10,195 @@ Target drop file:
 scratch/_CHATGPT_DROP_cron1.md
 ```
 
-## What I treated `cron1` as
+## Goal
 
-The prompt body only names `cron1`, without a separate mathematical theorem, Lean symbol, or file path. I therefore treated this as a cron-style status/audit drop for the repo’s existing `cron1` thread rather than as a request to edit Lean code.
-
-The strongest `cron1`-relevant facts visible in the current branch are about faithfulness and over-strong frontier hypotheses in the Paper 2/Paper 3/Paper 1 orchestration notes.
-
-## Repository facts checked
-
-### 1. `hSupNormDeriv` is still an over-strong / false predicate if read literally
-
-`ShenWork/Paper2/IntervalHsupNormProof.lean` contains the repo’s own integrity note: the unconditional predicate
+Prove the scalar mode variation-of-constants identity for the restart coefficient. For a fixed mode `n`, set
 
 ```text
-IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioo 0 D.T)
+λ = unitIntervalCosineEigenvalue n
 ```
 
-claims non-positive derivative of the sup norm on the whole interior time interval. The note explains why this is false for flat positive data below carrying capacity: with `χ₀ = 0`, the solution is spatially constant and follows the logistic ODE
+and define
 
 ```text
-u'(t) = u(t) * (a - b * u(t)^α),
+a₀ = c η
+a ρ = deriv c (η + ρ) + λ * c (η + ρ)
 ```
 
-which is positive when `0 < u < (a / b)^(1 / α)`. So the sup norm initially increases, contradicting unconditional derivative non-positivity.
-
-The same file correctly records the faithful replacement: use conditional above-capacity decay, and use a separate pure-heat non-increase fact for the `a = 0 ∧ b = 0` case. The constructor `nonposOn_of_locally_eq` is a reusable honest helper, not a proof of the false unconditional field.
-
-### 2. Downstream code currently discards `hSupNormDeriv` in the local bridge
-
-`ShenWork/Paper2/IntervalDomainEndToEnd.lean` destructures the per-datum frontier as
+Then
 
 ```text
-obtain ⟨D, S, hTimeNhd, hResolverData, _hSupNormDeriv,
-  hVpos, hInitialApproach, hpde_u⟩ := hPerDatum u₀ hu₀
+localRestartCoeff (fun _ => a₀) (fun ρ _ => a ρ) ρ n = c (η + ρ)
 ```
 
-and then calls `gradientMildClassicalFrontierCoreData_of_perDatum` without using `_hSupNormDeriv`.
+for `0 ≤ ρ`.
 
-So there are two distinct facts:
-
-1. As a proposition, the field is still too strong / false for admissible small logistic data.
-2. In this bridge, it is not semantically used after destructuring.
-
-That means the faithful cleanup remains: remove the field from `PerDatumSpectralFrontier` or replace it by the two true consumer-specific statements. Merely leaving it as an unused hypothesis still makes the existential per-datum frontier harder or impossible to inhabit.
-
-### 3. The current global campaign notes locate the χ₀ < 0 Paper 2 core at direct parabolic regularity, not at a bookkeeping leaf
-
-`BANK_CHECKLIST.md` records that earlier `cron1` / `cron1c` work found several global or closed-at-zero packages to be over-strong for the weak mild limit. The corrected object is positive-time/windowed regularity plus integrable singular behavior near zero.
-
-Later notes sharpen the status further: the χ₀ < 0 route is reduced to a direct parabolic C² bootstrap for the gradient fixed point, breaking the circular route that tries to obtain a source package from regularity that itself depends on such a package.
-
-The most honest summary is:
-
-```text
-Gradient mild fixed point + L∞/positive-time smoothing
-  -> direct H^σ / C² bootstrap for u and the chemotaxis flux
-  -> IterateSourceTimeData / source regularity window
-  -> end gate for χ₀ < 0 classical solution
-```
-
-The danger to avoid is using `ResolverHasSpectralAgreement` or any source-C¹ package as an input to prove the same source-C¹ regularity. That is the circularity the notes explicitly identify.
-
-## Practical recommendation
-
-For the next Lean edits, I would not spend effort proving the existing all-time or unconditional sup-norm derivative predicate. It is mathematically false in the logistic-below-capacity regime.
-
-The safe cleanup order is:
-
-1. **Remove or refactor `hSupNormDeriv` from `PerDatumSpectralFrontier`.** Since `hMildLocal_of_perDatum` already discards it, this should be a low-risk interface simplification. It removes an unsatisfiable inhabitance burden.
-2. **Introduce the true max-principle outputs where actually consumed.** Use conditional above-capacity decay for the logistic comparison, and pure-heat non-increase for the zero-reaction case.
-3. **Keep the χ₀ < 0 regularity route positive-time/windowed.** Any global-in-time or closed-at-zero source-C¹ statement should be treated as suspect unless it explicitly accounts for the near-zero singularity.
-4. **For the real χ₀ < 0 core, focus on the direct heat-kernel/B-form smoothing bootstrap.** The target is to produce the needed positive-time C² / time-regularity data from the fixed point without passing through the circular source-package route.
-
-## Minimal Lean-facing sketch for the cleanup
-
-This is not a full patch, but it shows the intended direction. The exact tuple destructuring must be adjusted wherever `PerDatumSpectralFrontier` is unpacked.
+I inspected the repo definitions:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainThm11Assembly
-import ShenWork.Paper2.IntervalRegularityFrontierWiring
-import ShenWork.Paper2.IntervalDomainRestartExtension
-import ShenWork.Paper2.IntervalMildPicardRegularity
+noncomputable def localRestartCoeff
+    (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (τ : ℝ) (n : ℕ) : ℝ :=
+  Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n +
+    duhamelSpectralCoeff a τ n
+```
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalGradientDuhamelMap
-open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildPicardRegularity
-open ShenWork.IntervalMildToClassical
-open ShenWork.IntervalMildToLocalExistence
-open ShenWork.IntervalMildRegularityBootstrap
-  (HasRestartCosineRepresentations)
-open ShenWork.IntervalMildTimeDerivContinuity
-  (HasTimeNeighborhoodSpectralAgreement)
-open ShenWork.IntervalResolverDirectTimeRegularity
-  (HasResolverDirectSpectralData)
-open ShenWork.Paper2
-open ShenWork.Paper2.RegularityFrontierWiring
-open ShenWork.Paper2.RestartExtension
-open ShenWork.Paper2.Theorem11Assembly
+and
+
+```lean
+noncomputable def duhamelSpectralCoeff (a : ℝ → ℕ → ℝ) (t : ℝ) (n : ℕ) : ℝ :=
+  ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * a s n
+```
+
+The proof below uses the fundamental theorem of calculus on
+
+```text
+F(s) = exp (-(ρ - s) * λ) * c (η + s)
+```
+
+instead of doing integration by parts explicitly. This is algebraically the same argument, but it has one practical advantage: it never divides by `λ`, so it also covers the zero mode `n = 0`.
+
+Because this delivery was connector-only, I did not run `lake build`; the code is written directly against the inspected repo signatures and already-used interval FTC lemma style.
+
+## Lean theorem
+
+```lean
+import ShenWork.PDE.IntervalSourceCoefficientTimeC1
+import Mathlib.Analysis.Calculus.ParametricIntegral
+import Mathlib.Tactic
+
+open MeasureTheory intervalIntegral
 
 noncomputable section
 
-namespace ShenWork.Paper2.EndToEnd
+namespace ShenWork.Paper2.RestartVariationOfConstants
 
-/-- Proposed faithful per-datum frontier shape: remove the globally false and
-currently discarded `IntervalDomainSupNormDerivativeNonposOn` field. The actual
-maximum-principle facts should live at their real consumers, with the correct
-conditional hypotheses. -/
-def PerDatumSpectralFrontierNoFalseSupNorm
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    (D : GradientMildSolutionData p u₀) : Prop :=
-  ∃ _S : GradientMildHalfStepLogisticSourceData D,
-  HasTimeNeighborhoodSpectralAgreement D.T D.u ∧
-  HasResolverDirectSpectralData D.T
-    (mildChemicalConcentration p D.u) p ∧
-  (∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
-    0 < mildChemicalConcentration p D.u t x) ∧
-  (∀ ε, 0 < ε →
-    ∃ δ > 0, ∀ t, 0 < t → t < δ →
-      ∀ x : intervalDomainPoint,
-        |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
-  (∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
-    intervalDomain.timeDeriv D.u t x =
-      intervalDomain.laplacian (D.u t) x
-        - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
-            (mildChemicalConcentration p D.u t) x
-        + D.u t x * (p.a - p.b * (D.u t x) ^ p.α))
+open ShenWork.IntervalDuhamelClosedC2 (duhamelSpectralCoeff)
+open ShenWork.IntervalSourceCoefficientTimeC1 (localRestartCoeff)
 
-end ShenWork.Paper2.EndToEnd
+/-- Variation of constants for one local restart coefficient.
+
+For a fixed mode `n`, let `λ = unitIntervalCosineEigenvalue n`.  If
+`c` is `C¹` in the concrete Lean-friendly sense that every derivative
+`deriv c t` is realised by `HasDerivAt` and `deriv c` is continuous, then
+restarting from `c η` and forcing with
+
+`ρ ↦ deriv c (η + ρ) + λ * c (η + ρ)`
+
+recovers the shifted coefficient `ρ ↦ c (η + ρ)`.
+
+The proof applies the interval FTC to
+`F s = exp (-(ρ - s) * λ) * c (η + s)`.  This avoids division by `λ`, so
+it includes the zero mode. -/
+theorem localRestartCoeff_variation_of_constants
+    {c : ℝ → ℝ}
+    (hc_deriv : ∀ t : ℝ, HasDerivAt c (deriv c t) t)
+    (hc_deriv_cont : Continuous (fun t : ℝ => deriv c t))
+    (η ρ : ℝ) (hρ : 0 ≤ ρ) (n : ℕ) :
+    localRestartCoeff
+      (fun _ : ℕ => c η)
+      (fun s _ : ℕ =>
+        deriv c (η + s) + unitIntervalCosineEigenvalue n * c (η + s))
+      ρ n = c (η + ρ) := by
+  set lam : ℝ := unitIntervalCosineEigenvalue n
+  set F : ℝ → ℝ := fun s => Real.exp (-(ρ - s) * lam) * c (η + s)
+
+  have hc_cont : Continuous c :=
+    continuous_iff_continuousAt.2 (fun t => (hc_deriv t).continuousAt)
+
+  have hF_cont : ContinuousOn F (Set.Icc (0 : ℝ) ρ) := by
+    have hF_cont_global : Continuous F := by
+      dsimp [F]
+      exact (Real.continuous_exp.comp (by fun_prop)).mul
+        (hc_cont.comp (continuous_const.add continuous_id))
+    exact hF_cont_global.continuousOn
+
+  have hintegrand_cont : Continuous (fun s : ℝ =>
+      Real.exp (-(ρ - s) * lam) *
+        (deriv c (η + s) + lam * c (η + s))) := by
+    have hk : Continuous (fun s : ℝ => Real.exp (-(ρ - s) * lam)) := by
+      fun_prop
+    have hdc : Continuous (fun s : ℝ => deriv c (η + s)) :=
+      hc_deriv_cont.comp (continuous_const.add continuous_id)
+    have hcs : Continuous (fun s : ℝ => c (η + s)) :=
+      hc_cont.comp (continuous_const.add continuous_id)
+    exact hk.mul (hdc.add (continuous_const.mul hcs))
+
+  have hintegrand_int : IntervalIntegrable (fun s : ℝ =>
+      Real.exp (-(ρ - s) * lam) *
+        (deriv c (η + s) + lam * c (η + s))) volume (0 : ℝ) ρ :=
+    hintegrand_cont.intervalIntegrable 0 ρ
+
+  have hF_deriv : ∀ s ∈ Set.Ioo (0 : ℝ) ρ,
+      HasDerivAt F
+        (Real.exp (-(ρ - s) * lam) *
+          (deriv c (η + s) + lam * c (η + s))) s := by
+    intro s _hs
+    have hkernel_arg : HasDerivAt (fun u : ℝ => -(ρ - u) * lam) lam s := by
+      have hsub : HasDerivAt (fun u : ℝ => ρ - u) (-1 : ℝ) s := by
+        simpa using (hasDerivAt_const s ρ).sub (hasDerivAt_id s)
+      have hneg : HasDerivAt (fun u : ℝ => -(ρ - u)) (1 : ℝ) s := by
+        simpa using hsub.neg
+      simpa using hneg.mul_const lam
+    have hkernel : HasDerivAt (fun u : ℝ => Real.exp (-(ρ - u) * lam))
+        (Real.exp (-(ρ - s) * lam) * lam) s :=
+      hkernel_arg.exp
+    have hshift : HasDerivAt (fun u : ℝ => η + u) (1 : ℝ) s := by
+      simpa using (hasDerivAt_const s η).add (hasDerivAt_id s)
+    have hc_shift : HasDerivAt (fun u : ℝ => c (η + u))
+        (deriv c (η + s)) s := by
+      simpa using (hc_deriv (η + s)).comp s hshift
+    have hprod := hkernel.mul hc_shift
+    convert hprod using 1 <;> ring
+
+  have hFTC :
+      (∫ s in (0 : ℝ)..ρ,
+        Real.exp (-(ρ - s) * lam) *
+          (deriv c (η + s) + lam * c (η + s))) =
+        F ρ - F 0 :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le
+      (a := (0 : ℝ)) (b := ρ)
+      (f := F)
+      (f' := fun s : ℝ =>
+        Real.exp (-(ρ - s) * lam) *
+          (deriv c (η + s) + lam * c (η + s)))
+      hρ hF_cont hF_deriv hintegrand_int
+
+  have hIntegral :
+      (∫ s in (0 : ℝ)..ρ,
+        Real.exp (-(ρ - s) * lam) *
+          (deriv c (η + s) + lam * c (η + s))) =
+        c (η + ρ) - Real.exp (-ρ * lam) * c η := by
+    rw [hFTC]
+    simp [F]
+    ring
+
+  unfold localRestartCoeff duhamelSpectralCoeff
+  change Real.exp (-ρ * lam) * c η +
+      (∫ s in (0 : ℝ)..ρ,
+        Real.exp (-(ρ - s) * lam) *
+          (deriv c (η + s) + lam * c (η + s))) =
+      c (η + ρ)
+  rw [hIntegral]
+  ring
+
+end ShenWork.Paper2.RestartVariationOfConstants
 ```
 
-## Bottom line
+## Notes
 
-`cron1`’s actionable conclusion is faithfulness-oriented: do not try to prove the global/unconditional sup-norm derivative field. It is false as stated. Since the current bridge discards it, the best next move is to delete or refactor that field and keep the genuine maximum-principle estimates at their actual consumers. The remaining χ₀ < 0 difficulty is not this discarded field; it is the direct positive-time parabolic C²/bootstrap regularity of the gradient fixed point, avoiding the documented source-package circularity.
+The statement packages `C¹` as two Lean assumptions:
+
+```lean
+(hc_deriv : ∀ t : ℝ, HasDerivAt c (deriv c t) t)
+(hc_deriv_cont : Continuous (fun t : ℝ => deriv c t))
+```
+
+This avoids relying on whatever local API is most convenient for extracting `HasDerivAt` from `ContDiff ℝ 1 c`, while still stating exactly the differentiability and derivative-continuity needed for the interval FTC proof.
+
+The final theorem uses the source sequence
+
+```lean
+fun s _ : ℕ => deriv c (η + s) + unitIntervalCosineEigenvalue n * c (η + s)
+```
+
+which matches the fixed-mode mathematical statement. A modewise variant can replace `_` by `m` and `unitIntervalCosineEigenvalue n` by `unitIntervalCosineEigenvalue m`; the proof is identical after unfolding at mode `n`.
