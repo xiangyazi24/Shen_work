@@ -192,13 +192,13 @@ theorem srcTimeCoeff_contDiffAt
       ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
       (fun s hs => (this hs).symm)))
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) := by
-    rw [show (2 : ℕ∞) = 1 + 1 from rfl, contDiffOn_succ_iff_fderiv_of_isOpen isOpen_Ioi]
-    refine ⟨hd0_on, by intro h; exact absurd h (by simp), ?_⟩
-    have hfderiv_eq : Set.EqOn (fderiv ℝ f₀) (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)) (Set.Ioi 0) :=
-      fun s hs => (hd0 s hs).hasFDerivAt.fderiv
-    exact ContDiffOn.congr
-      ((ContinuousLinearMap.smulRightL (1 : ℝ →L[ℝ] ℝ)).contDiff.comp_contDiffOn h0)
-      (fun s hs => (hfderiv_eq hs).symm)
+    have heq_deriv : Set.EqOn (derivWithin f₀ (Set.Ioi 0)) f₁ (Set.Ioi 0) := by
+      intro s hs
+      rw [derivWithin_of_isOpen isOpen_Ioi hs]
+      exact heq0 hs
+    rw [show (2 : ℕ∞) = 1 + 1 from by norm_cast]
+    exact contDiffOn_succ_of_derivWithin isOpen_Ioi.uniqueDiffOn hd0_on
+      (fun _ _ => isOpen_Ioi) (h0.congr heq_deriv.symm)
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
