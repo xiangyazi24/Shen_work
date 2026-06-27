@@ -25,11 +25,13 @@ Paper 2 χ₀<0: Level0 **5 sorry** + Tower 5 sorry = **10 total**.
 | 3C+3D+3F (chain rule) | 1253 | direct resolver C² + inner commute | BLOCKED on resolver C² |
 | 3G (time-deriv continuity) | 1262 | Level0HeatMixedRepr scaffold | separate path |
 
-### Key blocker: heatLevel0_srcTimeCoeff_contDiffAt_two
-The single deep analytic sorry: prove srcTimeCoeff is ContDiffAt ℝ 2 at positive time.
-Route (from Q1116): apply cosineCoeffs_hasDerivAt_of_smooth_param twice to
-f₀(τ,x) = ν·(S(τ)u₀)^γ, then cosineCoeffs_continuousOn_of_jointContinuousOn for f₂.
-Waiting for ChatGPT Q1122 (cron1) to deliver the proof skeleton.
+### MILESTONE: srcTimeCoeff_contDiffAt FILLED (127dcce, build-verified)
+The assembly theorem connecting HasDerivAt×2 + ContinuousAt → ContDiffAt ℝ 2.
+Key API: contDiffOn_succ_of_fderivWithin + ContDiffOn.smulRight (with StrongDual) +
+smulRight_one_eq_toSpanSingleton + toSpanSingleton_deriv bridge.
+IntervalPhysicalSourceTimeC2Concrete: 4 → 3 sorry.
+Sub-lemmas (srcTimeCoeff_hasDerivAt, cosS1_hasDerivAt, cosS2_continuousAt) all sorry-free.
+Also fixed: pass ContinuousOn (not IntervalIntegrable) to cosineCoeffs_hasDerivAt_of_smooth_param.
 
 ### What this session did (8 commits):
 1. **F1 upstream weakening** (c2dfd86, e766768): ContinuousOn → IntervalIntegrable
