@@ -1130,7 +1130,7 @@ theorem level0_chemDiv_timeDerivData
         have hcont_src : Continuous (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) :=
           continuous_const.mul (hw_cont.rpow_const (fun z => Or.inr p.hγ.le))
         set f : ℝ → ℝ := (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) ∘ clip
-        have hf_cont : Continuous f := sorry -- hcont_src.comp hclip_cont
+        have hf_cont : Continuous f := hcont_src.comp hclip_cont
         have hf_nonneg : ∀ z, 0 ≤ f z := fun z =>
           mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
         have hf_coeff : ∀ k, cosineCoeffs f k =
