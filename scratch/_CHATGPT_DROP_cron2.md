@@ -1,241 +1,314 @@
-# Q1291 (cron2/cron3) — exact `intervalWeakH2Neumann_of_contDiffOn` signature
+# Q1293 (cron2) — global positivity pattern for `U_cos`
 
 Static GitHub-connector inspection only. I did **not** run Lean locally.
 
-## Exact location
+## The exact pattern in the file
 
-The theorem/definition is in:
+The relevant block is the `hU_pos_all` pattern.  In the current indexed file it appears in the `hf''_H2` construction, right after `hU_even` and `hU_symm1` have been built.
 
-```lean
-ShenWork/PDE/IntervalMildSourceDecayHelper.lean
-```
-
-namespace:
-
-```lean
-ShenWork.PDE.IntervalMildSourceDecayHelper
-```
-
-The structure it builds is:
-
-```lean
-structure IntervalWeakH2Neumann (f : ℝ → ℝ) where
-  secondDeriv : ℝ → ℝ
-  second_intervalIntegrable : IntervalIntegrable secondDeriv volume (0 : ℝ) 1
-  second_abs_integral_bound :
-    ∃ B : ℝ, 0 ≤ B ∧ ∫ x in (0 : ℝ)..1, |secondDeriv x| ≤ B
-  weak_cosine_laplacian : ∀ k : ℕ,
-    (∫ x in (0 : ℝ)..1,
-        Real.cos ((k : ℝ) * Real.pi * x) * secondDeriv x) =
-      -((k : ℝ) * Real.pi) ^ 2 *
-        ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x
-```
-
-## Exact signature
-
-Yes: `intervalWeakH2Neumann_of_contDiffOn` takes `ContDiffOn ℝ 2 g (Icc 0 1)` and endpoint Neumann data.  The exact signature is:
-
-```lean
-noncomputable def intervalWeakH2Neumann_of_contDiffOn
-    {g : ℝ → ℝ}
-    (hgC2 : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
-    (htend0 : Filter.Tendsto (deriv g) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
-    (htend1 : Filter.Tendsto (deriv g) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
-    (hbc0 : deriv g 0 = 0) (hbc1 : deriv g 1 = 0) :
-    IntervalWeakH2Neumann g
-```
-
-Internally it sets:
-
-```lean
-secondDeriv := deriv (deriv g)
-```
-
-and proves the weak cosine-laplacian identity using:
-
-```lean
-intervalCosineLaplacianCoeff_eq_of_contDiffOn k hgC2 htend0 htend1 hbc0 hbc1
-```
-
-## Power-source wrapper
-
-There is also a specialized wrapper for exactly your shape `ν * u^γ`:
-
-```lean
-noncomputable def powerSource_intervalWeakH2Neumann
-    {ν γ : ℝ} {u : ℝ → ℝ}
-    (hgC2 : ContDiffOn ℝ 2 (fun x : ℝ => ν * u x ^ γ) (Set.Icc (0 : ℝ) 1))
-    (htend0 : Filter.Tendsto (deriv (fun x : ℝ => ν * u x ^ γ))
-      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
-    (htend1 : Filter.Tendsto (deriv (fun x : ℝ => ν * u x ^ γ))
-      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
-    (hbc0 : deriv (fun x : ℝ => ν * u x ^ γ) 0 = 0)
-    (hbc1 : deriv (fun x : ℝ => ν * u x ^ γ) 1 = 0) :
-    IntervalWeakH2Neumann (fun x : ℝ => ν * u x ^ γ) :=
-  intervalWeakH2Neumann_of_contDiffOn hgC2 htend0 htend1 hbc0 hbc1
-```
-
-So for `f = p.ν * U_cos^p.γ`, you can use either the generic constructor with `g := f`, or the wrapper with `u := U_cos`, `ν := p.ν`, `γ := p.γ`.
-
-## How to build it from `U_cos : ContDiff ℝ 4`
-
-Assume you have:
-
-```lean
-hU_C4      : ContDiff ℝ 4 U_cos
-hU_pos_all : ∀ x, 0 < U_cos x
-```
-
-Then define the smooth representative:
-
-```lean
-set f : ℝ → ℝ := fun x => p.ν * U_cos x ^ p.γ with hf_def
-```
-
-Global C⁴, hence closed-interval C²:
-
-```lean
-have hU_ne : ∀ x, U_cos x ≠ 0 := fun x => ne_of_gt (hU_pos_all x)
-
-have hf_C4 : ContDiff ℝ 4 f := by
-  rw [hf_def]
-  exact contDiff_const.mul (hU_C4.rpow_const_of_ne hU_ne)
-
-have hf_C2_on : ContDiffOn ℝ 2 f (Icc (0 : ℝ) 1) :=
-  (hf_C4.of_le (by norm_num : (2 : ℕ∞) ≤ 4)).contDiffOn
-```
-
-Now the constructor still needs the Neumann endpoint data for `deriv f`:
-
-```lean
-hftend0 : Filter.Tendsto (deriv f) (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0)
-hftend1 : Filter.Tendsto (deriv f) (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0)
-hfbc0   : deriv f 0 = 0
-hfbc1   : deriv f 1 = 0
-```
-
-If `f` is global C⁴, the `Tendsto` fields follow from continuity of `deriv f` once you have the endpoint equalities:
-
-```lean
-have hf'_cont : Continuous (deriv f) :=
-  hf_C4.continuous_deriv (by norm_num)
-
-have hftend0 : Filter.Tendsto (deriv f)
-    (nhdsWithin (0 : ℝ) (Ioi 0)) (nhds 0) := by
-  conv_rhs => rw [← hfbc0]
-  exact hf'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
-
-have hftend1 : Filter.Tendsto (deriv f)
-    (nhdsWithin (1 : ℝ) (Iio 1)) (nhds 0) := by
-  conv_rhs => rw [← hfbc1]
-  exact hf'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
-```
-
-Then the weak-H² certificate is:
-
-```lean
-have hf_H2 : ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann f :=
-  ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-    hf_C2_on hftend0 hftend1 hfbc0 hfbc1
-```
-
-or, without naming `f`, using the wrapper:
-
-```lean
-have hf_H2 :
-    ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
-      (fun x : ℝ => p.ν * U_cos x ^ p.γ) :=
-  ShenWork.PDE.IntervalMildSourceDecayHelper.powerSource_intervalWeakH2Neumann
-    (ν := p.ν) (γ := p.γ) (u := U_cos)
-    hf_C2_on hftend0 hftend1 hfbc0 hfbc1
-```
-
-## Endpoint equalities for `f = p.ν * U_cos^p.γ`
-
-The constructor does **not** prove endpoint equalities for you.  You must provide:
-
-```lean
-deriv (fun x => p.ν * U_cos x ^ p.γ) 0 = 0
-deriv (fun x => p.ν * U_cos x ^ p.γ) 1 = 0
-```
-
-There are two good ways.
-
-### Route A: chain-rule from `deriv U_cos 0 = 0`, `deriv U_cos 1 = 0`
-
-If you already have endpoint Neumann data for `U_cos`, use the derivative formula:
-
-```text
-deriv (ν * U^γ) = ν * (γ * U^(γ-1) * deriv U)
-```
-
-Then the endpoint derivative vanishes because `deriv U_cos` vanishes.
-
-This is mathematically direct, but in Lean it may require a few `HasDerivAt` chain-rule lines with `Real.hasDerivAt_rpow_const` or the `ContDiff` derivative API.
-
-### Route B: parity/symmetry, usually easier here
-
-Since `U_cos` is a cosine series, it is even about `0` and symmetric about `1`:
+The ingredients are:
 
 ```lean
 hU_even  : ∀ x, U_cos (-x) = U_cos x
 hU_symm1 : ∀ x, U_cos (2 - x) = U_cos x
 ```
 
-Then `f = ν * U_cos^γ` inherits both:
+and first a period-2 fact is derived:
 
 ```lean
-have hf_even : ∀ x, f (-x) = f x := by
-  intro x
-  simp [hf_def, hU_even]
-
-have hf_symm1 : ∀ x, f (2 - x) = f x := by
-  intro x
-  simp [hf_def, hU_symm1]
+have hU_period_fun : Function.Periodic U_cos 2 := by
+  intro x; show U_cos (x + 2) = U_cos x
+  simp only [hU_cos_def]
+  exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
 ```
 
-From evenness, `deriv f` is odd, so `deriv f 0 = 0`; from symmetry about `1`, `deriv f (2 - x) = - deriv f x`, so `deriv f 1 = 0`.  This is the same pattern already used in `IntervalConjugateLevel0BFormSourceOn.lean` for `g_smooth` and its higher derivatives.
-
-A reusable local helper style:
+Then the code proves positivity on `[0,1]`:
 
 ```lean
-have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
-    (∀ x, g (-x) = g x) → ∀ x, deriv g (-x) = -(deriv g x) := by
-  intro g _hg heven x
-  have h1 := deriv_comp_neg (f := g) (x := x)
-  rw [show (fun x => g (-x)) = g from funext heven] at h1
-  linarith
-
-have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
-  intro g hodd
-  have h := hodd 0
-  rw [neg_zero] at h
-  linarith
-
-have hf'_odd : ∀ x, deriv f (-x) = -(deriv f x) :=
-  deriv_even_odd (hf_C4.of_le (by norm_num)) hf_even
-
-have hfbc0 : deriv f 0 = 0 :=
-  odd_zero hf'_odd
-
-have hf'_antisymm1 : ∀ x, deriv f (2 - x) = -(deriv f x) := by
-  intro x
-  have h1 := deriv_comp_const_sub (f := f) (a := 2) (x := x)
-  rw [show (fun x => f (2 - x)) = f from funext hf_symm1] at h1
-  linarith
-
-have hfbc1 : deriv f 1 = 0 := by
-  have h := hf'_antisymm1 1
-  rw [show (2 : ℝ) - 1 = 1 from by norm_num] at h
-  linarith
+have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+  intro y hy
+  rw [← hU_agree y hy]
+  exact hpos_w y hy
 ```
+
+In the original per-slice use, `hpos_w` was obtained from the window hypothesis:
+
+```lean
+have hpos_w : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+    0 < intervalDomainLift w x :=
+  _hpos s hs
+```
+
+So the old source of positivity is:
+
+```lean
+_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x
+```
+
+The global positivity reduction then proceeds as follows:
+
+```lean
+have hU_pos_all : ∀ x, 0 < U_cos x := by
+  have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+    intro y hy
+    rw [← hU_agree y hy]
+    exact hpos_w y hy
+  intro x
+  -- Step 1: reduce to [0,∞) using evenness
+  have hx_abs : U_cos x = U_cos |x| := by
+    by_cases h : 0 ≤ x
+    · rw [abs_of_nonneg h]
+    · rw [abs_of_neg (not_le.mp h)]
+      exact (hU_even x).symm
+  rw [hx_abs]
+  -- Step 2: reduce |x| to [0,2) using period 2
+  set n := ⌊|x| / 2⌋ with hn_def
+  set r := |x| - n * 2 with hr_def
+  have hrV : U_cos |x| = U_cos r :=
+    (hU_period_fun.sub_int_mul_eq n).symm
+  have hr_lo : 0 ≤ r := by
+    have := Int.floor_le (|x| / 2)
+    linarith
+  have hr_hi : r < 2 := by
+    have := Int.lt_floor_add_one (|x| / 2)
+    linarith
+  rw [hrV]
+  -- Step 3: if r ∈ [0,1], done; if r ∈ (1,2), use symmetry about 1
+  by_cases hr1 : r ≤ 1
+  · exact hU_pos_Icc r ⟨hr_lo, hr1⟩
+  · push_neg at hr1
+    have : U_cos r = U_cos (2 - r) := (hU_symm1 r).symm
+    rw [this]
+    exact hU_pos_Icc (2 - r) ⟨by linarith, by linarith⟩
+```
+
+That is the exact mechanism:
+
+1. prove positivity on `[0,1]`;
+2. use evenness to replace `x` by `|x|`;
+3. use period 2 to reduce `|x|` to `r = |x| - 2⌊|x|/2⌋ ∈ [0,2)`;
+4. if `r ≤ 1`, use the `[0,1]` positivity;
+5. if `1 < r < 2`, reflect by `x ↦ 2 - x` to land in `[0,1]`.
+
+## For a different `r` not necessarily in `Icc c T`
+
+Do **not** try to use `_hpos r`; that requires `r ∈ Icc c T` and fails for the local ball near `T`.
+
+Instead, replace only the `[0,1]` seed:
+
+```lean
+have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := ...
+```
+
+Everything after that — the evenness/period-2/reflection reduction — is unchanged.
+
+For a positive time `r` with
+
+```lean
+hr_pos' : 0 < r
+```
+
+and
+
+```lean
+U_cos x = ∑' k,
+  (Real.exp (-r * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) * cosineMode k x
+```
+
+use the heat-semigroup positivity theorem to build positivity on `[0,1]`.
+
+The exact primitive is:
+
+```lean
+ShenWork.IntervalSemigroupConeAtoms.intervalFullSemigroupOperator_pos
+```
+
+with signature:
+
+```lean
+theorem intervalFullSemigroupOperator_pos
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    (hf_nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f y)
+    {y₀ : ℝ} (hy₀ : y₀ ∈ Set.Icc (0 : ℝ) 1) (hf_pos : 0 < f y₀)
+    (x : ℝ) :
+    0 < intervalFullSemigroupOperator t f x
+```
+
+There is also a convenient wrapper:
+
+```lean
+ShenWork.Paper2.BFormPositiveDatumNegPart
+  .intervalFullSemigroupOperator_pos_of_nonneg_nonzero
+```
+
+with signature:
+
+```lean
+theorem intervalFullSemigroupOperator_pos_of_nonneg_nonzero
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    (hf_nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f y)
+    (hf_pos_somewhere : ∃ y₀ ∈ Set.Icc (0 : ℝ) 1, 0 < f y₀)
+    (x : ℝ) :
+    0 < intervalFullSemigroupOperator t f x
+```
+
+## Drop-in pattern for arbitrary positive `r`
+
+Assume you have already derived:
+
+```lean
+hLift_cont : ContinuousOn (intervalDomainLift u₀) (Icc (0 : ℝ) 1)
+hLift_nonneg : ∀ y ∈ Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u₀ y
+hLift_pos_somewhere : ∃ y₀ ∈ Icc (0 : ℝ) 1, 0 < intervalDomainLift u₀ y₀
+```
+
+Then for any `r > 0`, define:
+
+```lean
+have hheat_pos_global : ∀ r : ℝ, 0 < r → ∀ x : ℝ,
+    0 < intervalFullSemigroupOperator r (intervalDomainLift u₀) x := by
+  intro r hr x
+  exact ShenWork.Paper2.BFormPositiveDatumNegPart
+    .intervalFullSemigroupOperator_pos_of_nonneg_nonzero
+      hr hLift_cont hLift_nonneg hLift_pos_somewhere x
+```
+
+Now in the local `r` block:
+
+```lean
+set w := conjugatePicardIter p u₀ 0 r with hw_def
+
+set U_cos := fun x => ∑' k,
+  (Real.exp (-r * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
+    cosineMode k x with hU_cos_def
+
+have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
+    intervalDomainLift (conjugatePicardIter p u₀ 0 r) x = U_cos x :=
+  fun x hx => ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+    p u₀ hr_pos' _hu₀_cont _hu₀_bound hx
+
+-- Positivity on [0,1], using heat positivity instead of `_hpos r`.
+have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+  intro y hy
+  rw [← hU_agree y hy]
+  simp only [conjugatePicardIter, intervalDomainLift, dif_pos hy]
+  exact hheat_pos_global r hr_pos' y
+```
+
+Then paste the existing global-reduction block unchanged:
+
+```lean
+have hU_period_fun : Function.Periodic U_cos 2 := by
+  intro x
+  show U_cos (x + 2) = U_cos x
+  simp only [hU_cos_def]
+  exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
+
+have hU_pos_all : ∀ x, 0 < U_cos x := by
+  intro x
+  have hx_abs : U_cos x = U_cos |x| := by
+    by_cases h : 0 ≤ x
+    · rw [abs_of_nonneg h]
+    · rw [abs_of_neg (not_le.mp h)]
+      exact (hU_even x).symm
+  rw [hx_abs]
+  set n := ⌊|x| / 2⌋ with hn_def
+  set q := |x| - n * 2 with hq_def
+  have hqU : U_cos |x| = U_cos q :=
+    (hU_period_fun.sub_int_mul_eq n).symm
+  have hq_lo : 0 ≤ q := by
+    have := Int.floor_le (|x| / 2)
+    linarith
+  have hq_hi : q < 2 := by
+    have := Int.lt_floor_add_one (|x| / 2)
+    linarith
+  rw [hqU]
+  by_cases hq1 : q ≤ 1
+  · exact hU_pos_Icc q ⟨hq_lo, hq1⟩
+  · push_neg at hq1
+    have : U_cos q = U_cos (2 - q) := (hU_symm1 q).symm
+    rw [this]
+    exact hU_pos_Icc (2 - q) ⟨by linarith, by linarith⟩
+```
+
+## How to get `hLift_pos_somewhere` under the current hypotheses
+
+In `level0_chemDiv_timeDerivData`, the available hypotheses are:
+
+```lean
+_hu₀_cont : Continuous u₀
+_hu₀_nonneg : ∀ x : intervalDomainPoint, 0 ≤ u₀ x
+_hpos : ∀ σ ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 σ) x
+```
+
+Use `_hpos` only at `σ = c` to prove `u₀` is positive somewhere.  Since `_hcT : c ≤ T`, we have `c ∈ Icc c T`.  If `intervalDomainLift u₀` were zero on `[0,1]`, then `S(c)u₀` would be zero, contradicting `_hpos c`.
+
+Skeleton:
+
+```lean
+have hLift_cont : ContinuousOn (intervalDomainLift u₀) (Icc (0 : ℝ) 1) := by
+  rw [continuousOn_iff_continuous_restrict]
+  have hrestr : Set.restrict (Icc (0 : ℝ) 1) (intervalDomainLift u₀) = u₀ := by
+    funext ⟨z, hz⟩
+    show intervalDomainLift u₀ z = u₀ ⟨z, hz⟩
+    rw [intervalDomainLift, dif_pos hz]
+  rw [hrestr]
+  exact _hu₀_cont
+
+have hLift_nonneg : ∀ y ∈ Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u₀ y := by
+  intro y hy
+  rw [intervalDomainLift, dif_pos hy]
+  exact _hu₀_nonneg ⟨y, hy⟩
+
+have hLift_pos_somewhere : ∃ y₀ ∈ Icc (0 : ℝ) 1,
+    0 < intervalDomainLift u₀ y₀ := by
+  by_contra hnone
+  push_neg at hnone
+  have hzero_lift : ∀ y ∈ Icc (0 : ℝ) 1, intervalDomainLift u₀ y = 0 := by
+    intro y hy
+    exact le_antisymm (not_lt.mp (hnone y hy)) (hLift_nonneg y hy)
+  have hhalf : ((1 : ℝ) / 2) ∈ Icc (0 : ℝ) 1 := by
+    constructor <;> norm_num
+  have hSc_pos :
+      0 < intervalFullSemigroupOperator c (intervalDomainLift u₀) ((1 : ℝ) / 2) := by
+    have h := _hpos c ⟨le_rfl, _hcT⟩ ((1 : ℝ) / 2) hhalf
+    simpa [conjugatePicardIter, intervalDomainLift, hhalf] using h
+  have hSc_zero :
+      intervalFullSemigroupOperator c (intervalDomainLift u₀) ((1 : ℝ) / 2) = 0 := by
+    unfold intervalFullSemigroupOperator
+    have hzero_ae :
+        (fun y => intervalNeumannFullKernel c ((1 : ℝ) / 2) y * intervalDomainLift u₀ y)
+          =ᵐ[intervalMeasure 1] fun _ => 0 := by
+      unfold intervalMeasure intervalSet
+      rw [ae_restrict_iff' measurableSet_Icc]
+      exact Filter.Eventually.of_forall fun y hy => by
+        rw [hzero_lift y hy, mul_zero]
+    rw [integral_congr_ae hzero_ae]
+    simp
+  rw [hSc_zero] at hSc_pos
+  exact (lt_irrefl (0 : ℝ) hSc_pos).elim
+```
+
+After that, the `hheat_pos_global` block above gives positivity for every positive `r`, with no need for `r ∈ Icc c T`.
 
 ## Bottom line
 
-Yes.  `intervalWeakH2Neumann_of_contDiffOn` takes:
+The old pattern uses `_hpos` only to get `hU_pos_Icc`; the global part is pure symmetry:
 
-1. `ContDiffOn ℝ 2 f (Icc 0 1)`,
-2. right-endpoint/left-endpoint one-sided tendsto of `deriv f` to `0`,
-3. point endpoint equalities `deriv f 0 = 0`, `deriv f 1 = 0`.
+```text
+[0,1] positivity + evenness + period 2 + reflection about 1 ⇒ positivity on all ℝ.
+```
 
-For your `f = p.ν * U_cos^p.γ`, `U_cos : ContDiff ℝ 4` plus positivity gives `f : ContDiff ℝ 4`, hence `ContDiffOn ℝ 2 f (Icc 0 1)`.  You still need to provide the Neumann endpoint data, best obtained from the cosine-series evenness and reflection-about-1 symmetry.
+For a different `r`, keep the symmetry block exactly the same.  Replace the `[0,1]` seed with:
+
+```lean
+rw [← hU_agree y hy]
+simp [conjugatePicardIter, intervalDomainLift, dif_pos hy]
+exact hheat_pos_global r hr_pos' y
+```
+
+where `hheat_pos_global` is obtained from `intervalFullSemigroupOperator_pos` / `intervalFullSemigroupOperator_pos_of_nonneg_nonzero` applied to the initial datum.
