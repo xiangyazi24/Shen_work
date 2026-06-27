@@ -179,19 +179,27 @@ theorem srcTimeCoeff_contDiffAt
       (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₂ s)) (Set.Ioi 0) := by
     simpa using (contDiffOn_const (c := (1 : StrongDual ℝ ℝ))).smulRight
       (contDiffOn_zero.mpr hc2_on)
+  have hfw1 : ContDiffOn ℝ 0
+      (fun s => fderivWithin ℝ f₁ (Set.Ioi 0) s) (Set.Ioi 0) :=
+    hsmul0.congr (fun s hs => by
+      rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+      have hsd : deriv f₁ s = f₂ s := heq1 hs
+      simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton, hsd] using
+        (toSpanSingleton_deriv (𝕜 := ℝ) (f := f₁) (x := s)).symm)
   have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
-    contDiffOn_succ_of_fderivWithin hd1_on (by nofun)
-      (hsmul0.congr (fun s hs => by
-        rw [fderivWithin_of_isOpen isOpen_Ioi hs]
-        exact ((hd1 s hs).hasFDerivAt.fderiv).symm))
+    contDiffOn_succ_of_fderivWithin hd1_on (by nofun) hfw1
   have hsmul1 : ContDiffOn ℝ 1
       (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)) (Set.Ioi 0) := by
     simpa using (contDiffOn_const (c := (1 : StrongDual ℝ ℝ))).smulRight h0
+  have hfw0 : ContDiffOn ℝ 1
+      (fun s => fderivWithin ℝ f₀ (Set.Ioi 0) s) (Set.Ioi 0) :=
+    hsmul1.congr (fun s hs => by
+      rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+      have hsd : deriv f₀ s = f₁ s := heq0 hs
+      simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton, hsd] using
+        (toSpanSingleton_deriv (𝕜 := ℝ) (f := f₀) (x := s)).symm)
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
-    contDiffOn_succ_of_fderivWithin hd0_on (by nofun)
-      (hsmul1.congr (fun s hs => by
-        rw [fderivWithin_of_isOpen isOpen_Ioi hs]
-        exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
+    contDiffOn_succ_of_fderivWithin hd0_on (by nofun) hfw0
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
