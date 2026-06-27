@@ -1,4 +1,4 @@
-# Q1391 (cron1) — `cron-shen`
+# Q1414 (cron1) — `cron-shen`
 
 Repository: `xiangyazi24/Shen_work`
 
@@ -15,10 +15,10 @@ scratch/_CHATGPT_DROP_cron1.md
 The user prompt body was only:
 
 ```text
-Q1391 (cron1): cron-shen
+Q1414 (cron1): cron-shen
 ```
 
-There is still no specific Lean theorem, error message, file line, or requested proof in the prompt.  I therefore interpret this as another cron-shen status/dispatch drop, continuing Q1378/Q1379/Q1381, and I refresh the report using the latest repository-visible status artifacts.
+There is no specific Lean theorem, error message, line number, or requested proof in the prompt.  I therefore interpret this as another cron-shen status/dispatch drop, continuing the previous cron-shen status sequence, and I refresh the report from the latest repository-visible files on `chatgpt-scratch`.
 
 Delivery constraints respected:
 
@@ -35,18 +35,20 @@ Files/status artifacts inspected for this drop:
 
 ```text
 scratch/_CHATGPT_DROP_cron1.md
-THREE_PAPER_BOARD.md
 CHINEG_CHECKLIST.md
-RUN_LOG.md
-ShenWork/Paper2/IntervalChiNegDirectSupersolution.lean
+THREE_PAPER_BOARD.md
+ShenWork.lean
+ShenWork/Paper2/IntervalChiNegDatumBound.lean
+ShenWork/Paper2/IntervalChiNegUniformEnvelope.lean
+ShenWork/Paper2/IntervalChiNegUniformClose.lean
 ```
 
-Important source ordering:
+Important source ordering for this drop:
 
 ```text
-CHINEG_CHECKLIST.md is now the most precise live tracker for the χ₀<0 lane.
+IntervalChiNegDatumBound.lean and IntervalChiNegUniformClose.lean are now more concrete than the older checklist prose.
+CHINEG_CHECKLIST.md remains the live lane board, but its “hmean0 closing/in flight” line is partially superseded by the checked-in hmean0 closer file.
 THREE_PAPER_BOARD.md remains the cross-paper board and is still best for P1/P3 context.
-IntervalChiNegDirectSupersolution.lean confirms that the direct supersolution route exists in code.
 ```
 
 ## Branch status at drop time
@@ -63,27 +65,38 @@ main/base commit: 8432432508519d1720c8b51fa566d72466eb1708
 
 So `chatgpt-scratch` remains an active scratch/status branch diverged from `main`.  This drop only overwrites this scratch markdown file.
 
-## High-level update since Q1381
+## High-level update since Q1391
 
-Q1381 said the next χ₀<0 target was the direct gW-inflated H^σ supersolution route.  That is now **superseded** by the checklist/code state:
+Q1391 said:
 
 ```text
-hEhatH / direct supersolution route is DISCHARGED.
-crux B / source-generic semigroup joint continuity is DONE.
 hmean0 is closing / in flight.
 After hmean0, χ₀<0 is conditional on only crux A.
 ```
 
-The new main live χ₀<0 frontier is:
+The repository-visible state now sharpens that:
 
 ```text
-CRUX A:
-  the uniform-in-time H^σ flux envelope g/gl.
+hmean0 closer exists as a source file:
+  ShenWork/Paper2/IntervalChiNegDatumBound.lean
+
+Crux A has a partial close file:
+  ShenWork/Paper2/IntervalChiNegUniformClose.lean
+
+That file derives two pieces but explicitly carries two remaining gaps:
+  1. chemDeflate_smallTime_le
+  2. cosineCoeffs_integral_swap_ae
 ```
 
-This is the circularity where the box-extend induction needs `genv` per restart, but `genv_of_trajectoryEnvelope_uncond` wants the global coordinatewise envelope rather than a partial `BoundUpTo r`.  The checklist describes the needed fix as a uniform flux bound **without** the global `genv`, i.e. the uniform a-priori estimate.
+Thus the current χ₀<0 frontier is no longer just “hmean0 + crux A”.  It is:
 
-## χ₀<0 lane — current precise status
+```text
+χ₀<0: hmean0 closer is present; crux A is localized to the missing small-time chem Duhamel shrink and a null-diagonal Fubini swap.
+```
+
+I did **not** run Lean, so I report repository-visible source/checklist status only.  The source files include `#print axioms` commands, but I did not execute them.
+
+## χ₀<0 lane — precise current state
 
 Target capstone:
 
@@ -97,110 +110,218 @@ and downstream:
 ChiNegDatumUniformConstruction p
 ```
 
-### Discharged / banked according to `CHINEG_CHECKLIST.md`
+### Already discharged / banked according to the lane board
 
-The checklist records the following as discharged:
+`CHINEG_CHECKLIST.md` records these as discharged:
 
 ```text
-hEhatH   — supersolution H^σ via direct Duhamel-deflation route, memHSigma_deflate (aa8fe53)
-hWsum    — reflCircle ℓ¹ of W=lift(u)·denom via reflCircle_mul_fourier_summable (820b383)
-hvnn     — resolver positivity via carrySeam_hvnn / cone / resolverValue_nonneg (820b383)
+hEhatH   — direct Duhamel-deflation supersolution route / memHSigma_deflate
+hWsum    — reflCircle ℓ¹ of W=lift(u)·denom
+hvnn     — resolver positivity via cone / resolverValue_nonneg
 hmean    — k=0 mean bound
 hdecomp_pos τ=0 — decomp_tau0
 ```
 
-The direct supersolution file exists and encodes the intended route:
+It also records crux B as done:
+
+```text
+valueOp_src_jointCont + logisticLeg_continuous_full
+```
+
+The checked-in root file `ShenWork.lean` imports the relevant late-stage files:
 
 ```lean
--- File: ShenWork/Paper2/IntervalChiNegDirectSupersolution.lean
+import ShenWork.Paper2.IntervalChiNegDirectSupersolution
+import ShenWork.Paper2.IntervalChiNegValueOpCont
+import ShenWork.Paper2.IntervalChiNegDatumBound
+import ShenWork.Paper2.IntervalChiNegUniformEnvelope
+import ShenWork.Paper2.IntervalChiNegUniformClose
+```
 
-theorem memHSigma_deflate {σ : ℝ} (hσ : 0 ≤ σ) {M : ℕ → ℝ}
-    (hM : MemHSigma σ M) :
-    MemHSigma σ (fun k => M k / (1 + lam k) ^ (σ / 2)) := by
+### hmean0 status: closer exists
+
+`ShenWork/Paper2/IntervalChiNegDatumBound.lean` contains the hmean0 closer.  The file explains the route:
+
+```text
+conjugate_hmean0_of_datumBound reduces hmean0 to:
+  Continuous u₀
+  + datum sup-bound ∀ x, |u₀ x| ≤ M
+```
+
+Then it derives the datum bound from the existence core:
+
+```lean
+theorem core_datum_bound {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀) (C : ConjugateMildExistenceCore p u₀) :
+    ∀ x : intervalDomainPoint, |u₀ x| ≤ C.M := by
   ...
-
-def chemDuhamel_direct ... :
-    TrajectoryHSigmaEnvelope (σ + α) t
-      (fun s k => duhamelEnergyCoeff 1 (fun k τ => sineCoeffs (Q τ) k) s k) :=
-  trajectoryEnvelope_of_sourceEnvelope ...
-
-def trajEnvelope_chiNeg_direct ... :
-    TrajectoryHSigmaEnvelope (σ + α) t (fun τ => cosineCoeffs (u τ)) :=
-  trajLadder_step_meanFixed ...
 ```
 
-The file also contains `#print axioms` commands for these three declarations.  I did not run Lean in this drop, so I am only reporting what is in the repository-visible source and checklist.
+and closes the capstone value:
 
-### Direct supersolution route — current interpretation
+```lean
+theorem conjugateMildData_hmean0 (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum ShenWork.IntervalDomain.intervalDomain u₀) :
+    |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M := by
+  ...
+```
 
-The direct route bypasses the old bare-sineEnv artifact:
+Interpretation:
 
 ```text
-Wrong/obsolete interface:
-  force M under bare sineEnv Estar = √λ·Estar/(1+λ), causing a fake +1 derivative demand.
-
-Correct/direct interface:
-  the Duhamel kernel already carries √λ, and hSigma_mode_duhamel_bound gives direct deflation.
+hmean0 should no longer be treated as an open/in-flight conceptual gap.  The source-level closer exists and is imported by ShenWork.lean.  A final build/axiom confirmation is still needed before marking it banked in the checklist, because this drop did not run Lean.
 ```
 
-Core message:
+### Crux A status: partial close, two precise remaining gaps
+
+`ShenWork/Paper2/IntervalChiNegUniformClose.lean` is now the most precise status artifact for crux A.  It says the file derives:
 
 ```text
-If M ∈ H^σ, the chemotaxis Duhamel contribution is controlled by
-  C' * M_k / (1 + λ_k)^(σ/2),
-which stays in H^σ.
+1. Estar_explicit / Estar_memHSigma:
+   explicit supersolution sequence Estar := 2·(|û₀| + logE) ∈ H^σ.
+   This avoids the previous H^σ metric/fixed-point approach.
+
+2. hlogI_cont_full:
+   the logistic value-Duhamel integrated spatial continuity, derived from crux B's logisticLeg_continuous_full.
 ```
 
-So Q1381's “Priority 1 direct supersolution” should now be considered done/banked unless a later build contradicts it.
+The corresponding source declarations are:
 
-### Current χ₀<0 residual surface
+```lean
+def Estar_explicit (û₀abs logE : ℕ → ℝ) : ℕ → ℝ :=
+  fun k => 2 * (û₀abs k + logE k)
 
-The checklist has an older open-list section, but its latest end-to-end section supersedes it.  The current actionable residuals are:
+theorem Estar_memHSigma {σ : ℝ} {û₀abs logE : ℕ → ℝ}
+    (hû₀ : MemHSigma σ û₀abs) (hlogE : MemHSigma σ logE) :
+    MemHSigma σ (Estar_explicit û₀abs logE) :=
+  memHSigma_smul 2 (memHSigma_add hû₀ hlogE)
+
+theorem hlogI_cont_full {t : ℝ} (ht0 : 0 ≤ t) {Lsrc : ℝ → ℝ → ℝ} {CL : ℝ}
+    (hCL : 0 ≤ CL) (hL_meas : Measurable (Function.uncurry Lsrc))
+    (hL_cont : Continuous (Function.uncurry Lsrc))
+    (hL_int : ∀ s, Integrable (Lsrc s) (intervalMeasure 1))
+    (hL_bound : ∀ s y, |Lsrc s y| ≤ CL) :
+    Continuous (fun z : ↥(Set.Icc (0 : ℝ) t) × intervalDomainPoint =>
+      ∫ s in (0 : ℝ)..(z.1.1),
+        intervalFullSemigroupOperator (z.1.1 - s) (Lsrc s) z.2.1) :=
+  logisticLeg_continuous_full ht0 hCL hL_meas hL_cont hL_int hL_bound
+```
+
+But the file explicitly carries two real gaps.
+
+#### Remaining gap 1: `chemDeflate_smallTime_le`
+
+The file says the supersolution inequality does **not** close from the existing Gronwall-free uniform majorant, because the existing `coreEnv`/`Rbar` framework discards the elapsed-time smallness.  The existing uniform engine gives a time-independent `Rbar α`, not a shrinking `T` factor.
+
+Named missing lemma:
+
+```lean
+chemDeflate_smallTime_le
+```
+
+Intended meaning:
 
 ```text
-hmean0 — wiring/in flight:
-  cosine→mean bridge is built; datum bound |u₀ x|≤M is closing via Core.hbase_ball and t→0⁺ strong-continuity.
-  The checklist names a262631a as in flight.  Do not assume complete until committed/verified.
-
-CRUX A — the genuine deep PDE frontier:
-  uniform-in-time H^σ flux envelope g/gl.
-  The box-extend induction needs genv per restart, but genv wants a global coordinatewise envelope.
-  The circularity must be broken by a uniform flux bound without the global genv.
+A δ-shrinking per-restart chemotaxis Duhamel bound
+  |duhamelEnergyCoeff 1 Qsrc ρ k| ≤ c(ρ) · Msup k
+with c(ρ) → 0 as ρ → 0,
+keeping the s^((1−α)/2) factor instead of discarding it into Rbar.
 ```
 
-`crux B` is now listed as done:
+This is the main mathematical repair needed for the explicit supersolution inequality.
+
+Do **not** claim it from the existing `coreEnv` / `trajectoryEnvelope_of_sourceEnvelope` uniform majorant, because `IntervalChiNegUniformClose.lean` documents that this route has no small-time shrink.
+
+#### Remaining gap 2: `cosineCoeffs_integral_swap_ae`
+
+The file says `hswap_log` is **not** the same as crux B's integrated continuity.  Crux B gives `hlogI_cont`, but `hswap_log` requires swapping cosine coefficients through the time integral.
+
+The existing `cosineCoeffs_integral_swap'` requires full closed-slab `ContinuousOn` of the integrand:
 
 ```text
-valueOp_src_jointCont + logisticLeg_continuous_full (092bee5), axiom-clean.
+(s,x) ↦ S(τ−s)(log(u s)) x
 ```
 
-### Best next χ₀<0 dispatch
-
-Use this order:
+This fails at the diagonal `s=τ` under the repo convention:
 
 ```text
-1. Check/finish hmean0.
-   - If a262631a or successor is committed and verified, mark hmean0 closed.
-   - If not, finish the datum bound |u₀ x|≤M from Core.hbase_ball + t→0⁺ strong-continuity.
-
-2. Attack CRUX A directly.
-   - Target: uniform-in-time H^σ flux envelope g/gl.
-   - Avoid: restarting the direct supersolution route; it is already discharged.
-   - Avoid: BCF/trajBanach closed-box continuity at τ=0; checklist says that approach is unsatisfiable/vacuous because the semigroup convention jumps at τ=0.
-   - Use: direct domination / TrajectoryHSigmaEnvelope structure; no BCF self-map at τ=0.
-
-3. After CRUX A, wire the final chiNeg H¹ envelope into ChiNegDatumUniformConstruction.
+intervalFullSemigroupOperator 0 f = 0
 ```
 
-Concrete next-worker prompt for χ₀<0:
+so the integrand jumps from the left limit `log(u τ)(x)` to value `0` on the diagonal.
+
+Named missing lemma:
+
+```lean
+cosineCoeffs_integral_swap_ae
+```
+
+Intended meaning:
 
 ```text
-Read CHINEG_CHECKLIST.md latest entries.  Do not redo hEhatH/direct supersolution, hvnn, hWsum, or crux B; they are listed as discharged.  First determine whether hmean0 from a262631a or a successor is committed/verified.  If not, finish hmean0 by extracting |u₀ x|≤M from Core.hbase_ball plus the t→0⁺ strong-continuity limit.  Then target CRUX A: produce the uniform-in-time H^σ flux envelope g/gl without assuming the global coordinatewise envelope needed by genv.  The box-extend induction needs a restart-local uniform flux bound; do not use the vacuous BCF/trajBanach τ=0 route.  Acceptance: relevant build green, #print axioms clean, and chiNeg_H1/meanReach_H1_conjugate carries only the faithful initial/parameter hypotheses plus no hidden conclusion-equivalent envelope assumption.
+A Fubini / coefficient-integral swap tolerating the Lebesgue-null diagonal discontinuity,
+using integrability and an L∞ majorant rather than full closed-slab continuity.
 ```
 
-## P1 lane — current status from `THREE_PAPER_BOARD.md`
+This should close `hswap_log` from off-diagonal continuity plus `intervalFullSemigroupOperator_Linfty_bound`.
 
-The latest cross-paper board still gives the P1 endpoint from Q1381:
+### Relation to `IntervalChiNegUniformEnvelope.lean`
+
+`IntervalChiNegUniformEnvelope.lean` documents an older/parallel attempted route through an H^σ sequence fixed point.  It derives only:
+
+```lean
+Tsup
+Tsup_memHSigma
+```
+
+and explains why the rest is not closed:
+
+```text
+- no H^σ MetricSpace / CompleteSpace / contraction metric;
+- domination still needs the actual mild Duhamel identity / parabolic representation bridge.
+```
+
+`IntervalChiNegUniformClose.lean` is the more actionable current file because it moved away from the H^σ metric fixed-point attempt and localized the remaining gap to `chemDeflate_smallTime_le` plus `cosineCoeffs_integral_swap_ae`.
+
+## Best next χ₀<0 dispatch
+
+The next useful worker should **not** redo hEhatH, hmean0, crux B, or the H^σ fixed-point metric attempt.
+
+Use this queue:
+
+```text
+Priority 1:
+  Prove chemDeflate_smallTime_le.
+
+Priority 2:
+  Prove cosineCoeffs_integral_swap_ae.
+
+Priority 3:
+  Wire these two into IntervalChiNegUniformClose / crux A.
+
+Priority 4:
+  Update CHINEG_CHECKLIST.md to mark hmean0 closed if the build verifies IntervalChiNegDatumBound.lean.
+
+Priority 5:
+  Wire chiNeg_H1 / meanReach_H1_conjugate into ChiNegDatumUniformConstruction after crux A closes.
+```
+
+Concrete worker prompt:
+
+```text
+Read ShenWork/Paper2/IntervalChiNegUniformClose.lean and CHINEG_CHECKLIST.md.  Do not redo hEhatH/direct supersolution, hmean0, hvnn, hWsum, crux B, or the H^σ metric fixed-point attempt.  The live χ₀<0 crux A is now exactly two missing lemmas:
+
+1. chemDeflate_smallTime_le: a per-restart chemotaxis Duhamel estimate that keeps the elapsed-time factor c(ρ)→0 instead of using the Rbar uniform majorant.  This must bound |duhamelEnergyCoeff 1 Qsrc ρ k| by c(ρ)·Msup k and feed the explicit supersolution inequality.
+
+2. cosineCoeffs_integral_swap_ae: a coefficient/time-integral swap tolerating the null diagonal discontinuity caused by intervalFullSemigroupOperator 0 f = 0.  Use off-diagonal continuity plus an L∞ integrable majorant, not full closed-slab ContinuousOn.
+
+Acceptance: relevant build green, #print axioms clean, no new conclusion-equivalent carried field, and IntervalChiNegUniformClose consumes both lemmas to remove its two CARRIED items.
+```
+
+## P1 lane status
+
+The cross-paper board still says the P1 construction lane has discharged the admissible/hin floor:
 
 ```text
 P1 admissible_closure hin floor DISCHARGED (684e811, verified 8319 @HEAD).
@@ -210,75 +331,74 @@ P1 now carries ONLY the per-step RotheFloorOrbitDataResidual for the PRODUCED W.
 Meaning:
 
 ```text
-- admissible_closure is built;
-- RotheStepInput/hin was discharged through the residual provider;
-- the remaining per-step frontier is not another wrapper;
-- the closed solve gives the truncated fixed point, while the residual needs the untruncated source R=crossSource plus whole-line flux IBP/source data.
+- admissible_closure is not the target;
+- RotheStepInput/hin is not the target;
+- the remaining P1 per-step content is the untruncated source R=crossSource plus whole-line flux IBP/source data for the produced W.
 ```
 
-Current P1 next target:
+P1 worker prompt remains:
 
 ```text
-RotheFloorOrbitDataResidual for the produced W.
-```
-
-Concrete P1 worker prompt:
-
-```text
-Read the latest THREE_PAPER_BOARD.md P1 entries.  Do not rebuild admissible_closure or RotheStepInput/hin; they are listed as discharged.  Target RotheFloorOrbitDataResidual for the produced W.  Supply the untruncated source R=crossSource and whole-line flux IBP / endpoint-source data required by the orbit residual.  Do not add another residual wrapper and do not use the false pointwise RotheChemoMonotoneResidual route.  Acceptance: construction_neg consumes the produced residual through the live producer chain, relevant build green, #print axioms clean.
+Target RotheFloorOrbitDataResidual for the produced W.  Supply the untruncated source R=crossSource and whole-line flux IBP / endpoint-source data required by the orbit residual.  Do not add another residual wrapper and do not use the false pointwise RotheChemoMonotoneResidual route.  Acceptance: construction_neg consumes the produced residual through the live producer chain, relevant build green, #print axioms clean.
 ```
 
 ## P3 lane
 
-No newer P3-specific update appears in the inspected latest status artifacts.  The current practical state remains:
+No newer P3-specific update appeared in the inspected files.  The practical state remains:
 
 ```text
 P3 T2.2 cascades from χ₀<0.
 ```
 
-Do not prioritize broad P3 unless explicitly requested.  A narrow P3 task would be reasonable only if it asks for a specific spectral/fractional-power lemma or an axiom audit of a known target.
+Do not prioritize broad P3 unless explicitly requested.
 
-## Updated priority queue after Q1391
+## Updated priority queue after Q1414
 
 ```text
-Priority 1 — χ₀<0 hmean0 sanity/closure:
-  Verify whether a262631a or successor landed; if not, finish the datum-bound extraction.
+Priority 1 — χ₀<0 chem small-time lemma:
+  chemDeflate_smallTime_le.
 
-Priority 2 — χ₀<0 CRUX A:
-  Uniform-in-time H^σ flux envelope g/gl, avoiding the global-genv circularity.
+Priority 2 — χ₀<0 null-diagonal Fubini swap:
+  cosineCoeffs_integral_swap_ae.
 
-Priority 3 — P1 construction_neg:
-  RotheFloorOrbitDataResidual for the produced W: untruncated source + whole-line flux IBP/source endpoint data.
+Priority 3 — χ₀<0 crux A close:
+  consume both lemmas in IntervalChiNegUniformClose.
 
-Priority 4 — final χ₀<0 wiring:
-  After crux A, wire chiNeg_H1 / meanReach_H1_conjugate into ChiNegDatumUniformConstruction.
+Priority 4 — χ₀<0 checklist/build hygiene:
+  verify IntervalChiNegDatumBound / hmean0 and update CHINEG_CHECKLIST.md if green.
 
-Priority 5 — P3:
-  Keep broad T2.2 behind χ₀<0 unless explicitly requested.
+Priority 5 — P1 construction_neg:
+  RotheFloorOrbitDataResidual for produced W.
+
+Priority 6 — P3:
+  keep broad T2.2 behind χ₀<0.
 ```
 
 ## What should be considered stale now
 
 ```text
-Stale: Q1381 priority to build IntervalChiNegDirectSupersolution.lean from scratch.
-Current: the file exists and hEhatH is listed discharged.
+Stale: “hmean0 is in flight” as an open conceptual blocker.
+Current: IntervalChiNegDatumBound.lean contains the hmean0 closer; verify/build before ticking the board.
 
-Stale: broad Hpersist label as the only χ₀<0 issue.
-Current: the live residual is hmean0-in-flight plus CRUX A uniform-in-time H^σ flux envelope.
+Stale: “crux A is just uniform-in-time H^σ flux envelope g/gl” without substructure.
+Current: IntervalChiNegUniformClose localizes crux A to chemDeflate_smallTime_le and cosineCoeffs_integral_swap_ae.
 
-Stale: BCF/trajBanach closed-box continuity route at τ=0.
-Current: checklist says it is vacuous/unsatisfiable under the repo's τ=0 semigroup convention; direct TrajectoryHSigmaEnvelope domination is the live route.
+Stale: H^σ Banach fixed-point metric route as the next main attack.
+Current: UniformEnvelope records that route as blocked; UniformClose gives the live direct route.
 
-Stale: P1 hin/RotheStepInput as the current bottom.
-Current: hin discharged; P1 bottom is RotheFloorOrbitDataResidual for produced W.
+Stale: full-slab ContinuousOn for hswap_log.
+Current: impossible under S(0)=0 convention; need an a.e./null-diagonal swap.
+
+Stale: P1 hin/RotheStepInput as current bottom.
+Current: P1 bottom is RotheFloorOrbitDataResidual for produced W.
 ```
 
 ## Final status sentence
 
-The Q1391 cron-shen state is:
+The Q1414 cron-shen state is:
 
 ```text
-The χ₀<0 direct supersolution route has landed; crux B is done; hmean0 is in flight; after hmean0 the only listed χ₀<0 core is CRUX A, the uniform-in-time H^σ flux envelope g/gl.  P1 has discharged admissible_closure/hin and now bottoms at RotheFloorOrbitDataResidual for the produced W.  Broad wrapper work and the old BCF τ=0 route should stop.
+χ₀<0 hEhatH/direct supersolution and crux B are done; hmean0 closer exists in IntervalChiNegDatumBound.lean; crux A is now precisely two missing lemmas, chemDeflate_smallTime_le and cosineCoeffs_integral_swap_ae.  P1 still bottoms at RotheFloorOrbitDataResidual for the produced W.  Broad wrapper work and the old H^σ metric / closed-slab continuity routes should stop.
 ```
 
 ## Delivery note
