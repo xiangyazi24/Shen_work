@@ -1213,13 +1213,25 @@ theorem level0_chemDiv_timeDerivData
         have hg_bc0 : deriv g_smooth 0 = 0 := by
           have h0 := hg'_odd 0; rw [neg_zero] at h0; linarith
         have hg_bc1 : deriv g_smooth 1 = 0 := by
-          -- g_smooth(2-x) = g_smooth(x) means g_smooth is symmetric about 1.
-          -- The shifted function h(x) = g_smooth(1+x) is even: h(-x) = g_smooth(1-x) = g_smooth(2-(1+x))...
-          -- Simpler: use odd_zero on hg'_odd shifted by 1.
-          -- Actually: from hg_symm1 and hg_periodic, g_smooth(1+x) = g_smooth(1-x).
-          -- So g_smooth ∘ (1+·) is even, hence its derivative is odd, hence 0 at 0.
-          -- deriv(g_smooth ∘ (1+·)) 0 = deriv g_smooth 1 · 1 = deriv g_smooth 1.
-          sorry
+          -- g_smooth(1+x) = g_smooth(1-x) from hg_symm1: g(2-(1-x)) = g(1+x) and g(2-z) = g(z)
+          set h := fun x => g_smooth (1 + x) with hh_def
+          have hh_even : ∀ x, h (-x) = h x := by
+            intro x; simp only [hh_def]
+            rw [show (1 : ℝ) + -x = 2 - (1 + x) from by ring]; exact hg_symm1 (1 + x)
+          have hh'_odd : ∀ x, deriv h (-x) = -(deriv h x) := by
+            intro x
+            have h1 := deriv_comp_neg (f := h) (x := x)
+            rw [show (fun x => h (-x)) = h from funext hh_even] at h1; linarith
+          have hh'_zero : deriv h 0 = 0 := by
+            have h0 := hh'_odd 0; rw [neg_zero] at h0; linarith
+          -- deriv h 0 = deriv g_smooth (1+0) · 1 = deriv g_smooth 1
+          have hchain : deriv h 0 = deriv g_smooth 1 := by
+            have := deriv.scomp (0 : ℝ)
+              (hg_C4.differentiable (by norm_num)).differentiableAt
+              (differentiableAt_id.const_add 1)
+            simp only [hh_def, Function.comp] at this ⊢
+            rw [this, deriv_const_add, deriv_id', mul_one]
+          linarith [hh'_zero, hchain]
         have htend0 := hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
         have htend1 := hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
         have hf_H2 := ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
