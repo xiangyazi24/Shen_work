@@ -107,12 +107,13 @@ theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
   have hresolver_series : ∀ s : ℝ, 0 < s → s < T → ∀ x : intervalDomainPoint,
       coupledChemicalConcentration p u s x =
         ∑' k : ℕ, resolverTimeCoeff p u k s * cosineMode k x.1 := by
-    -- TODO: unfold `coupledChemicalConcentration`, `resolverTimeCoeff`, then use
-    -- the existing resolver cosine-series theorem.  The closed-interval lift
-    -- version already appears in
-    -- `IntervalResolverJointC2PhysicalConcrete.coupledChemical_lift_eq_series`;
-    -- this is the pointwise subtype version.
-    sorry
+    intro s _hs _hsT x
+    have hlift := ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_lift_eq_series
+      (p := p) (u := u) (t := s) (x := x.1) x.2
+    simp only [intervalDomainLift, x.2, dif_pos,
+      ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm] at hlift
+    convert hlift using 1
+    congr 1; ext k; rfl
 
   have hmake : ∀ t₀ : ℝ, 0 < t₀ → t₀ < T →
       ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
