@@ -260,12 +260,15 @@ private theorem summable_heatLaplacian_terms_of_bound
   intro n
   rw [Real.norm_eq_abs, abs_mul]
   have hlam_nn : 0 ≤ λ_ n := by unfold unitIntervalCosineEigenvalue; positivity
+  have hcos : |Real.cos ((n : ℝ) * Real.pi * x)| ≤ 1 := Real.abs_cos_le_one _
   calc |ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n| * |a n|
-      ≤ ((λ_ n) * Real.exp (-t * (λ_ n))) * M := by
-        simp [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+      ≤ ((λ_ n) * Real.exp (-t * (λ_ n)) * 1) * M := by
+        simp only [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
           unitIntervalCosineHeatPointWeight, unitIntervalCosineMode, abs_mul,
-          abs_of_nonneg hlam_nn, abs_of_nonneg (Real.exp_nonneg _)]
-        sorry
+          abs_of_nonneg hlam_nn, abs_of_nonneg (Real.exp_nonneg _), abs_neg]
+        gcongr
+        · exact hcos
+        · exact ha n
     _ = M * ((λ_ n) * Real.exp (-t * (λ_ n))) := by ring
 
 private theorem heatD2Term_abs_le_majorant
@@ -322,8 +325,8 @@ private theorem heatDu_hasDerivAt
     simp only [heatDu, if_pos hτpos, F,
       ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue]
   have hvalue : (∑' n, F' n t) = heatD2u u₀ t x := by
-    simp only [heatD2u, if_pos ht, F']
-    sorry
+    simp only [heatD2u, if_pos ht, F', ShenWork.CosineSpectrum.cosineMode]
+    congr 1; ext n; ring
   rw [← hvalue]
   exact hAtSum.congr_of_eventuallyEq hbranch
 
