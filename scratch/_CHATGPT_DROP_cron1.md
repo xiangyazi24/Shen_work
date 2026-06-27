@@ -1,4 +1,4 @@
-# Q1031 / cron1 — assemble `ResolverHasSpectralAgreementC2Coeff` for heat Level0 via variation of constants
+# Q1034 / cron1 — `DuhamelSourceTimeC2Coeff` for the heat Level0 restart source
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -10,328 +10,224 @@ Target drop file:
 scratch/_CHATGPT_DROP_cron1.md
 ```
 
-## Repository facts checked
+## Verdict
 
-I inspected the requested structures and coefficient definitions.
+For heat Level0, the `srcC2 : DuhamelSourceTimeC2Coeff a` obligation is **mechanical only after** proving a positive-time high-order coefficient-tail package for the nonlinear source and its first two time derivatives.
 
-`ResolverHasSpectralAgreementC2Coeff` is in:
+It is not a hard variation-of-constants problem. The variation-of-constants identity solves the restart algebra. The load-bearing part is the λ-weighted summability required by `DuhamelSourceTimeC2Coeff`.
 
-```text
-ShenWork/PDE/IntervalResolverJointC2C2Coeff.lean
-```
+It is also not automatic from the already-committed physical C2/quadratic-decay lane. The current physical resolver route intentionally bypasses `DuhamelSourceTimeC2Coeff`; that route gives enough bounded-weight data for physical joint C2, but not the spectral λ² envelope package.
 
-Its payload is:
+## 1. Exact fields
 
-```lean
-structure ResolverHasSpectralAgreementC2Coeff
-    (T : ℝ) (v : ℝ → intervalDomainPoint → ℝ) : Prop where
-  toSpectralAgreement :
-    ShenWork.IntervalResolverTimeRegularity.ResolverHasSpectralAgreement T v
-  exists_c2_data : ∀ t₀, 0 < t₀ → t₀ < T →
-    ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
-      (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC2Coeff a) (offset : ℝ),
-      (0 < t₀ - offset) ∧
-      (∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
-        v s x = ∑' n, localRestartCoeff a₀ a (s - offset) n *
-          cosineMode n x.1)
-```
-
-The weaker resolver agreement is in:
+`DuhamelSourceTimeC2Coeff` is in:
 
 ```text
-ShenWork/Paper2/IntervalResolverTimeRegularity.lean
+ShenWork/PDE/IntervalResolverSpectralTimeC2.lean
 ```
 
-and has the same restart-series shape, but only asks for `DuhamelSourceTimeC1 a`.
+Its fields are:
 
-The concrete resolver coefficient is in:
+```lean
+import ShenWork.PDE.IntervalResolverSpectralTimeC2
+
+open ShenWork.IntervalResolverSpectralTimeC2
+
+-- Structure fields, summarized from the repo:
+-- structure DuhamelSourceTimeC2Coeff (a : ℝ → ℕ → ℝ) where
+--   toTimeC1 : DuhamelSourceTimeC1 a
+--   sourceEigenEnvelope : ℕ → ℝ
+--   sourceEigen_nonneg : ∀ n, 0 ≤ sourceEigenEnvelope n
+--   sourceEigen_summable : Summable sourceEigenEnvelope
+--   sourceEigen_bound : ∀ s, 0 ≤ s → ∀ n,
+--     λ n * |a s n| ≤ sourceEigenEnvelope n
+--   sourceEigenSqEnvelope : ℕ → ℝ
+--   sourceEigenSq_nonneg : ∀ n, 0 ≤ sourceEigenSqEnvelope n
+--   sourceEigenSq_summable : Summable sourceEigenSqEnvelope
+--   sourceEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+--     λ n * (λ n * |a s n|) ≤ sourceEigenSqEnvelope n
+--   adotEigenEnvelope : ℕ → ℝ
+--   adotEigen_nonneg : ∀ n, 0 ≤ adotEigenEnvelope n
+--   adotEigen_summable : Summable adotEigenEnvelope
+--   adotEigen_bound : ∀ s, 0 ≤ s → ∀ n,
+--     λ n * |toTimeC1.adot s n| ≤ adotEigenEnvelope n
+--   adotEigenSqEnvelope : ℕ → ℝ
+--   adotEigenSq_nonneg : ∀ n, 0 ≤ adotEigenSqEnvelope n
+--   adotEigenSq_summable : Summable adotEigenSqEnvelope
+--   adotEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+--     λ n * (λ n * |toTimeC1.adot s n|) ≤ adotEigenSqEnvelope n
+-- where λ n = unitIntervalCosineEigenvalue n.
+```
+
+The nested `toTimeC1 : DuhamelSourceTimeC1 a` contributes:
+
+```lean
+import ShenWork.PDE.IntervalDuhamelClosedC2
+
+-- structure DuhamelSourceTimeC1 (a : ℝ → ℕ → ℝ) where
+--   adot : ℝ → ℕ → ℝ
+--   hderiv : ∀ s n, HasDerivAt (fun r => a r n) (adot s n) s
+--   hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n)
+--   envelope : ℕ → ℝ
+--   henv_summable : Summable envelope
+--   henv_bound : ∀ s, 0 ≤ s → ∀ n, |a s n| ≤ envelope n
+--   derivBound : ℝ
+--   hderivBound : ∀ s, 0 ≤ s → ∀ n, |adot s n| ≤ derivBound
+```
+
+Important correction: `DuhamelSourceTimeC2Coeff` does **not** explicitly require an `addot` field or `HasDerivAt` of `adot`. It requires `a` to be C1 through `toTimeC1`, then λ/λ² summable envelopes for `a` and for `toTimeC1.adot`.
+
+## 2. How to get the fields for `a_k = c_k' + λ_k c_k`
+
+Let
 
 ```text
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
+η      = t₀ / 2,
+λ_k    = unitIntervalCosineEigenvalue k,
+c_k(t) = resolverTimeCoeff p (heatLevel0 p u₀) k t,
+a_k(ρ) = c_k'(η + ρ) + λ_k c_k(η + ρ).
 ```
 
-```lean
-def resolverTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
-    ℕ → ℝ → ℝ :=
-  fun k t => (intervalNeumannResolverCoeff p (u t) k).re
-```
-
-The concrete source coefficient and the constant elliptic factorization are in:
+Use
 
 ```text
-ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+adot_k(ρ) = c_k''(η + ρ) + λ_k c_k'(η + ρ).
 ```
 
-```lean
-def srcTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
-    ℕ → ℝ → ℝ :=
-  fun k t => (intervalNeumannResolverSourceCoeff p (u t) k).re
-
-theorem resolverTimeCoeff_eq_weight_smul
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
-    resolverTimeCoeff p u k t =
-      intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
-```
-
-The relevant source-side positive-time regularity theorem exists in:
+Then the C1 fields are routine:
 
 ```text
-ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+toTimeC1.adot      := adot
+toTimeC1.hderiv    := chain rule for c_k' + λ_k c_k
+toTimeC1.hadotcont := continuity of c_k'' and c_k'
 ```
 
-```lean
-theorem srcTimeCoeff_contDiff
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
-    ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+The envelope fields become a bookkeeping exercise once positive-time bounds are available. If, uniformly for `ρ ≥ 0`,
+
+```text
+|c_k(η+ρ)|  ≤ C0(k),
+|c_k'(η+ρ)| ≤ C1(k),
+|c_k''(η+ρ)|≤ C2(k),
 ```
 
-I did **not** find a ready-made theorem named `resolverTimeCoeff_contDiff`, nor a ready-made `DuhamelSourceTimeC2Coeff` package for the resolver restart source. The physical resolver route intentionally bypasses `DuhamelSourceTimeC2Coeff` and uses `PhysicalResolverJointC2Data` instead. Therefore, for this requested spectral C2Coeff assembly, the real missing inputs are:
+then define
 
-1. coefficient C¹ / derivative continuity for each `resolverTimeCoeff p u k`, or a positive-window version compatible with the variation-of-constants theorem;
-2. bounded initial restart coefficients `a₀ k = resolverTimeCoeff p u k (t₀/2)`;
-3. `DuhamelSourceTimeC2Coeff` for the restart source
-   `ρ ↦ deriv (resolverTimeCoeff p u k) (t₀/2+ρ) + λ_k * resolverTimeCoeff p u k (t₀/2+ρ)`;
-4. the cosine reconstruction of the resolver value series.
-
-The code below isolates exactly those points as `sorry`, and uses the committed variation-of-constants lemma for the actual restart identity.
-
-One caveat: I did not find `IntervalRestartVariationOfConstants.lean` on `chatgpt-scratch`, and GitHub did not resolve the cited short ref `cfcb6de` through the connector. The import below assumes the new file is available in the repo as:
-
-```lean
-import ShenWork.Paper2.IntervalRestartVariationOfConstants
+```text
+A(k) := C1(k) + λ_k * C0(k)   -- bounds |a_k|
+D(k) := C2(k) + λ_k * C1(k)   -- bounds |adot_k|
 ```
 
-with theorem namespace:
+and use:
 
-```lean
-ShenWork.Paper2.RestartVariationOfConstants.localRestartCoeff_variation_of_constants
+```text
+toTimeC1.envelope     := A
+sourceEigenEnvelope   := λ_k * A(k)
+sourceEigenSqEnvelope := λ_k * (λ_k * A(k))
+adotEigenEnvelope     := λ_k * D(k)
+adotEigenSqEnvelope   := λ_k * (λ_k * D(k))
 ```
 
-## Lean code
+The scalar `toTimeC1.derivBound` is any uniform bound for `D(k)` over all `k`; positive-time polynomial-exponential tails give such a bound.
+
+A resolver-weight optimized version is often cleaner. Write
+
+```text
+c_k(t) = w_k * b_k(t),
+w_k = 1 / (μ + Λ_k),
+b_k(t) = srcTimeCoeff p u k t.
+```
+
+If `B0, B1, B2` bound `b_k, b_k', b_k''` on `t ≥ η`, then
+
+```text
+|a_k|    ≤ w_k * (B1(k) + λ_k * B0(k)),
+|adot_k| ≤ w_k * (B2(k) + λ_k * B1(k)).
+```
+
+Using the elliptic estimate `λ_k * w_k ≤ 1` (modulo the repo’s two eigenvalue names), sufficient envelopes are:
+
+```text
+sourceEigenEnvelope   ≤ B1 + λ B0
+sourceEigenSqEnvelope ≤ λ B1 + λ² B0
+adotEigenEnvelope     ≤ B2 + λ B1
+adotEigenSqEnvelope   ≤ λ B2 + λ² B1
+```
+
+Thus a strong but simple source-side target is:
+
+```text
+∀ i ∈ {0,1,2}, Summable (fun k => λ_k^2 * B_i(k)).
+```
+
+For heat Level0 this is plausible because positive time gives exponential decay. For a merely C2 source it is false in general.
+
+## 3. Are the λ-weighted envelope fields the hard part?
+
+Yes. The differentiability fields are mechanical from positive-time C2/C∞ coefficient regularity. The λ and λ² summability fields are the real content.
+
+The repo already contains an audit showing the obstruction: committed quadratic source decay
+
+```text
+|a_k| ≤ C / (kπ)^2
+```
+
+only gives a constant tail after one eigenvalue weight and a growing `C * λ_k` tail after two eigenvalue weights. That is not summable. This is recorded in:
+
+```text
+ShenWork/Paper2/IntervalClampedK1SourceC2CoeffEnvelope.lean
+ShenWork/Paper2/IntervalClampedK1SourceCubicBootstrap.lean
+```
+
+So `DuhamelSourceTimeC2Coeff` is stronger than the physical C2/quadratic-decay data.
+
+For heat Level0, the missing input should be a positive-window exponential tail lemma for the nonlinear source and its time derivatives. Existing useful infrastructure includes:
+
+```text
+ShenWork/PDE/IntervalResolverSpectralTimeC2.lean
+  eigenvalue_sq_mul_exp_summable
+  eigenvalue_cube_mul_exp_summable
+
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
+  heatSemigroup_eigenvalueSq_summable
+  heatSemigroup_contDiff_four
+  HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable
+  HeatSemigroupJointRegularity.eigenvalue_pow_mul_coeff_exp_summable
+
+ShenWork/Paper2/IntervalCD6Tail.lean
+  eigenvalue_fourth_mul_exp_summable
+  eigenvalue_fifth_mul_exp_summable
+  eigenvalue_sixth_mul_exp_summable
+  eigenvalue_seventh_mul_exp_summable
+
+ShenWork/PDE/IntervalDuhamelSourceTimeC2Coeff.lean
+  duhamelSourceTimeC2Coeff_mul_weight
+  duhamelSourceTimeC2Coeff_resolver_weight
+```
+
+## Recommended next target
+
+Do not try to solve `srcC2` directly from `PhysicalSourceTimeC2`. Prove a positive-window tail package for the heat Level0 resolver coefficients or source coefficients, then instantiate `DuhamelSourceTimeC2Coeff` from those tails.
+
+The clean target is:
 
 ```lean
-import ShenWork.Paper2.IntervalRestartVariationOfConstants
-import ShenWork.PDE.IntervalResolverJointC2C2Coeff
+import ShenWork.PDE.IntervalResolverSpectralTimeC2
 import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.PDE.IntervalCoupledRegularityBootstrap
-import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
 
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint)
-open ShenWork.IntervalSourceCoefficientTimeC1 (localRestartCoeff)
-open ShenWork.IntervalResolverSpectralTimeC2 (DuhamelSourceTimeC2Coeff)
-open ShenWork.IntervalResolverJointC2 (ResolverHasSpectralAgreementC2Coeff)
-open ShenWork.IntervalResolverTimeRegularity (ResolverHasSpectralAgreement)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.CosineSpectrum (cosineMode)
-
-noncomputable section
-
-namespace ShenWork.Paper2.ResolverLevel0SpectralC2Coeff
-
-/-- Level-0 trajectory used in the B-form Picard construction: the heat semigroup
-iterate `conjugatePicardIter p u₀ 0`. -/
-abbrev heatLevel0 (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
-    ℝ → intervalDomainPoint → ℝ :=
-  conjugatePicardIter p u₀ 0
-
-/-- Restart offset for a positive interior time `t₀`: the positive half-time
-`t₀ / 2`. -/
-def halfOffset (t₀ : ℝ) : ℝ :=
-  t₀ / 2
-
-/-- Initial coefficients at the restart offset. -/
-def level0ResolverRestartA0
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (t₀ : ℝ) : ℕ → ℝ :=
-  fun k => resolverTimeCoeff p (heatLevel0 p u₀) k (halfOffset t₀)
-
-/-- Restart source coefficients generated by the scalar ODE
-`c' = a - λ c` for `c(t) = resolverTimeCoeff p (heatLevel0 p u₀) k t`.
-
-The `k`-th source is
-`deriv c_k(offset + ρ) + λ_k c_k(offset + ρ)`. -/
-def level0ResolverRestartSource
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (t₀ : ℝ) : ℝ → ℕ → ℝ :=
-  fun ρ k =>
-    deriv (resolverTimeCoeff p (heatLevel0 p u₀) k) (halfOffset t₀ + ρ) +
-      unitIntervalCosineEigenvalue k *
-        resolverTimeCoeff p (heatLevel0 p u₀) k (halfOffset t₀ + ρ)
-
-/-- The coefficient-level variation-of-constants identity specialized to the
-level-0 resolver coefficient family.
-
-This is the concrete step requested in the prompt: after restarting at
-`offset = t₀/2`, the local restart coefficient recovers
-`resolverTimeCoeff ... k s` for `s` near `t₀`, provided `s ≥ offset`.
-The only analytic inputs are the C¹ facts needed to invoke
-`localRestartCoeff_variation_of_constants` for the scalar function
-`t ↦ resolverTimeCoeff p (heatLevel0 p u₀) k t`. -/
-theorem level0Resolver_localRestartCoeff_eq
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (t₀ s : ℝ)
-    (hs : halfOffset t₀ ≤ s)
-    (k : ℕ)
-    (hderiv : ∀ t : ℝ,
-      HasDerivAt (resolverTimeCoeff p (heatLevel0 p u₀) k)
-        (deriv (resolverTimeCoeff p (heatLevel0 p u₀) k) t) t)
-    (hderiv_cont : Continuous
-      (fun t : ℝ => deriv (resolverTimeCoeff p (heatLevel0 p u₀) k) t)) :
-    localRestartCoeff
-        (level0ResolverRestartA0 p u₀ t₀)
-        (level0ResolverRestartSource p u₀ t₀)
-        (s - halfOffset t₀) k =
-      resolverTimeCoeff p (heatLevel0 p u₀) k s := by
-  have hρ : 0 ≤ s - halfOffset t₀ := sub_nonneg.mpr hs
-  have hvoc :=
-    ShenWork.Paper2.RestartVariationOfConstants.localRestartCoeff_variation_of_constants
-      (c := resolverTimeCoeff p (heatLevel0 p u₀) k)
-      hderiv hderiv_cont
-      (halfOffset t₀) (s - halfOffset t₀) hρ k
-  have hηρ : halfOffset t₀ + (s - halfOffset t₀) = s := by ring
-  simpa [level0ResolverRestartA0, level0ResolverRestartSource, hηρ]
-    using hvoc
-
-/-- Assemble the strengthened spectral-agreement package for the heat Level0
-resolver from the variation-of-constants identity.
-
-The proof deliberately keeps four analytic inputs as `sorry` blocks:
-
-* `ha0_bound`: uniform bound for the restart initial coefficients at `t₀/2`;
-* `srcC2`: the strengthened `DuhamelSourceTimeC2Coeff` package for the restart
-  source. This is the largest missing bridge, because the existing physical
-  resolver route bypasses the spectral λ²/λ³ ladder;
-* `hcoeff_deriv` / `hcoeff_deriv_cont`: scalar C¹ facts for each
-  `resolverTimeCoeff`; these should follow from the positive-time source C² data
-  and the constant elliptic weight factorization;
-* `hresolver_series`: cosine reconstruction of the concrete resolver value.
-
-Everything else is bookkeeping plus the variation-of-constants identity. -/
-theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {T : ℝ} (_hT : 0 < T) :
-    ResolverHasSpectralAgreementC2Coeff T
-      (coupledChemicalConcentration p (heatLevel0 p u₀)) := by
-  let u : ℝ → intervalDomainPoint → ℝ := heatLevel0 p u₀
-
-  /- Cosine reconstruction of the concrete elliptic resolver.
-     This should be obtained from `intervalNeumannResolverR` /
-     `resolverR_eq_cosineSeries` and the definition of `resolverTimeCoeff`. -/
-  have hresolver_series : ∀ s : ℝ, 0 < s → s < T → ∀ x : intervalDomainPoint,
-      coupledChemicalConcentration p u s x =
-        ∑' k : ℕ, resolverTimeCoeff p u k s * cosineMode k x.1 := by
-    -- TODO: unfold `coupledChemicalConcentration`, `resolverTimeCoeff`, then use
-    -- the existing resolver cosine-series theorem.  The closed-interval lift
-    -- version already appears in
-    -- `IntervalResolverJointC2PhysicalConcrete.coupledChemical_lift_eq_series`;
-    -- this is the pointwise subtype version.
-    sorry
-
-  have hmake : ∀ t₀ : ℝ, 0 < t₀ → t₀ < T →
-      ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
-        (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC2Coeff a) (offset : ℝ),
-        (0 < t₀ - offset) ∧
-        (∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
-          coupledChemicalConcentration p u s x =
-            ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1) := by
-    intro t₀ ht₀ ht₀T
-    let offset : ℝ := halfOffset t₀
-    let a₀ : ℕ → ℝ := level0ResolverRestartA0 p u₀ t₀
-    let a : ℝ → ℕ → ℝ := level0ResolverRestartSource p u₀ t₀
-
-    have hoff_pos : 0 < offset := by
-      dsimp [offset, halfOffset]
-      linarith
-
-    have hτ₀ : 0 < t₀ - offset := by
-      dsimp [offset, halfOffset]
-      linarith
-
-    obtain ⟨M, hM, ha₀⟩ :
-        ∃ M : ℝ, 0 ≤ M ∧ ∀ n : ℕ, |a₀ n| ≤ M := by
-      -- TODO: bound the resolver coefficients at the fixed positive time
-      -- `offset = t₀/2`.  For Level0 heat this should follow from the resolver
-      -- cosine coefficient square/decay estimate plus `offset > 0` heat smoothing.
-      -- A crude bound such as a finite sup/envelope at the positive time suffices.
-      sorry
-
-    have srcC2 : DuhamelSourceTimeC2Coeff a := by
-      -- TODO: build the strengthened source package for
-      --   a ρ k = c'_k(offset+ρ) + λ_k c_k(offset+ρ),
-      -- where c_k(t) = resolverTimeCoeff p u k t.
-      -- Required fields:
-      --   * DuhamelSourceTimeC1 a: HasDerivAt in ρ, continuous adot,
-      --     ℓ¹ envelope for a, uniform bound for adot;
-      --   * λ-weighted and λ²-weighted envelopes for a;
-      --   * λ-weighted and λ²-weighted envelopes for adot.
-      -- For Level0 heat, these should come from positive-time exponential
-      -- heat smoothing, resolver weight `1/(μ+λ_k)`, and the source-side
-      -- `srcTimeCoeff_contDiff`/bounds.  This is not presently packaged in
-      -- the repo; the committed physical resolver lane bypasses this structure.
-      sorry
-
-    have hcoeff_deriv : ∀ k : ℕ, ∀ t : ℝ,
-        HasDerivAt (resolverTimeCoeff p u k)
-          (deriv (resolverTimeCoeff p u k) t) t := by
-      -- TODO: derive from positive-time `ContDiff` of resolver coefficients.
-      -- If the heat Level0 coefficient family is only smooth on `(0,∞)`, then
-      -- either use its smooth positive-time extension or replace the VOC lemma
-      -- by a local/windowed variant.  The current VOC lemma has a global C¹
-      -- hypothesis, so this block supplies exactly that interface.
-      sorry
-
-    have hcoeff_deriv_cont : ∀ k : ℕ,
-        Continuous (fun t : ℝ => deriv (resolverTimeCoeff p u k) t) := by
-      -- TODO: same source as above; `ContDiff ℝ 2` gives continuity of the first
-      -- derivative.  Source-side theorem already present:
-      -- `IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff`, plus
-      -- `resolverTimeCoeff_eq_weight_smul` transfers through the constant
-      -- elliptic weight.
-      sorry
-
-    have hagree : ∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
-        coupledChemicalConcentration p u s x =
-          ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1 := by
-      have hnear_time : Set.Ioo (0 : ℝ) T ∩ Set.Ioi offset ∈ 𝓝 t₀ := by
-        exact Filter.inter_mem
-          (isOpen_Ioo.mem_nhds ⟨ht₀, ht₀T⟩)
-          (isOpen_Ioi.mem_nhds (by
-            dsimp [offset, halfOffset]
-            linarith))
-      filter_upwards [hnear_time] with s hs x
-      have hs0 : 0 < s := hs.1.1
-      have hsT : s < T := hs.1.2
-      have hsoff : offset ≤ s := le_of_lt hs.2
-      have hcoeff_eq : ∀ k : ℕ,
-          localRestartCoeff a₀ a (s - offset) k = resolverTimeCoeff p u k s := by
-        intro k
-        have h := level0Resolver_localRestartCoeff_eq
-          (p := p) (u₀ := u₀) (t₀ := t₀) (s := s) hsoff k
-          (hcoeff_deriv k) (hcoeff_deriv_cont k)
-        simpa [u, a₀, a, offset] using h
-      have hsum :
-          (∑' k : ℕ, localRestartCoeff a₀ a (s - offset) k * cosineMode k x.1) =
-            ∑' k : ℕ, resolverTimeCoeff p u k s * cosineMode k x.1 := by
-        apply tsum_congr
-        intro k
-        rw [hcoeff_eq k]
-      rw [hresolver_series s hs0 hsT x, ← hsum]
-
-    exact ⟨a₀, M, hM, ha₀, a, srcC2, offset, hτ₀, hagree⟩
-
-  refine ⟨?toSpectralAgreement, hmake⟩
-  refine { exists_data := ?_ }
-  intro t₀ ht₀ ht₀T
-  rcases hmake t₀ ht₀ ht₀T with
-    ⟨a₀, M, hM, ha₀, a, srcC2, offset, hτ₀, hagree⟩
-  exact ⟨a₀, M, hM, ha₀, a, srcC2.toTimeC1, offset, hτ₀, hagree⟩
-
-end ShenWork.Paper2.ResolverLevel0SpectralC2Coeff
+/-
+Target lemma shape:
+Given η > 0 and u = conjugatePicardIter p u₀ 0, construct envelopes C0 C1 C2 such that
+  |c_k(t)|  ≤ C0 k,
+  |c_k'(t)| ≤ C1 k,
+  |c_k''(t)|≤ C2 k
+for all t ≥ η, and all weighted tails needed for
+  A = C1 + λ*C0,
+  D = C2 + λ*C1
+are summable.
+Then fill DuhamelSourceTimeC2Coeff for
+  a ρ k = c_k'(η+ρ) + λ_k*c_k(η+ρ).
+-/
 ```
 
-## Bottom line
-
-The variation-of-constants part is now cleanly isolated in
-`level0Resolver_localRestartCoeff_eq`: it proves that the restart coefficients recover the original `resolverTimeCoeff` at nearby times.
-
-The remaining real work is not the restart algebra. It is packaging Level0 heat smoothing into `DuhamelSourceTimeC2Coeff` for the artificial restart source `c' + λc`. The repo already has a stronger-looking physical route for joint C² resolver regularity, but that route explicitly bypasses `DuhamelSourceTimeC2Coeff`; therefore this spectral C2Coeff assembly needs a new bridge from positive-time heat regularity to the λ/λ² source and derivative envelopes required by `DuhamelSourceTimeC2Coeff`.
+Bottom line: `srcC2` is **mechanical packaging after exponential positive-time tails**; the λ² envelope tails are the real missing lemma, and existing repo infrastructure supplies the polynomial-exponential summability backend but not the full nonlinear Level0 source-tail package in one ready-made theorem.
