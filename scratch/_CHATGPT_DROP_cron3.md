@@ -1,352 +1,327 @@
-# Q1072 (cron3): Tower sorry #3 chemDiv successor cascade
+# Q1079 (cron3): PhysicalResolverJointC2Data for heat Level0 after Option A `4000f01`
 
-## Short verdict
+## Verdict
 
-Tower sorry #3 does **not** close automatically from the Level0 result.
-
-`IntervalFlooredSourceTimeDataIterate.lean` does provide the iterate-level analogue of `FlooredSourceTimeData`: the structure `IterateSourceTimeData` and the producer `flooredSourceTimeData_of_iterate`. It also provides the iterate-to-FAC wrapper `coupledChemDivFluxFactorJointC2Inputs_of_iterate`.
-
-But the current tower induction in `IntervalConjugateBFormSourceTower.lean` only carries the predecessor B-form source `DuhamelSourceTimeC1On`. It does **not** carry the much stronger iterate regularity residual needed for chemDiv at level `n+1`: `IterateSourceTimeData`, weighted source summability `hval/hgrad`, FAC slab data, weak-H²/decay/zeroth bounds, and `adot` continuity/bounds.
-
-So the exact closure sequence is known, but the tower must be strengthened to produce/pass a residual for each iterate. Level0 does not imply the successor automatically.
-
-## Imports for the mapped call sequence
+`PhysicalResolverJointC2Data` is constructed **directly** from `PhysicalSourceTimeC2` by:
 
 ```lean
-import ShenWork.Paper2.IntervalConjugateBFormSourceTower
-import ShenWork.Paper2.IntervalChemDivWinDischarge
-import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
+ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor
+```
+
+There is no additional intermediate structure between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`. The only intermediate object is the coefficient-bound function:
+
+```lean
+Bt := fun i k => intervalNeumannResolverWeight p k * Es i k
+```
+
+where `Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD`.
+
+However, after `4000f01`, the source-side producer `physicalSourceTimeC2_of_floored` is **not fully closed**: it contains new/remaining `sorry`s caused by the positive-time retyping. In addition, the heat-Level0 wrapper `heatSemigroup_level0_resolverJointC2Data` still has two summability sorries (`hval` and `hgrad`).
+
+So the exact chain is:
+
+```text
+heatSemigroup_flooredSourceTimeData
+  → hFSTD : FlooredSourceTimeData p (conjugatePicardIter p u₀ 0) ...
+  → Es := builtEs hFSTD
+  → physicalSourceTimeC2_of_floored hFSTD hval hgrad
+  → hSTC2 : PhysicalSourceTimeC2 p (conjugatePicardIter p u₀ 0) Es
+  → physicalResolverJointC2Data_of_floor hSTC2
+  → PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0)
+       (fun i k => intervalNeumannResolverWeight p k * Es i k)
+```
+
+## Imports for the mapped construction
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
 import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
 import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-import ShenWork.PDE.IntervalChemDivFluxJointC2Producer
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.PDE.IntervalChemDivMixedReprWitness
-import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
 ```
 
-## The tower target
-
-In `ShenWork/Paper2/IntervalConjugateBFormSourceTower.lean`, the successor case has:
+## Exact construction skeleton
 
 ```lean
-have _hchem : DuhamelSourceTimeC1On
-    (coupledChemDivSourceCoeffs p (conjugatePicardIter p u₀ (n + 1))) c DB.T := by
-  sorry -- Needs chemDiv C² for iterate n+1 (same gap as level 0)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+
+noncomputable section
+
+namespace ScratchTrace
+
+/-- Exact post-Option-A constructor path for heat Level0 resolver physical joint C² data. -/
+theorem heatLevel0_physicalResolverJointC2Data_trace
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    -- still needed: weighted source majorant summability for the built `Es`
+    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (ShenWork.IntervalResolverJointC2Physical.boundedWeightJointMajorant
+        (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
+          ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs
+            (ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+              (p := p) hu₀_bound hu₀_cont) i k) m))
+    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (ShenWork.IntervalResolverJointC2Physical.boundedWeightJointGradMajorant
+        (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
+          ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs
+            (ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+              (p := p) hu₀_bound hu₀_cont) i k) m)) :
+    ∃ Bt : ℕ → ℕ → ℝ,
+      ShenWork.IntervalResolverJointC2PhysicalConcrete.PhysicalResolverJointC2Data
+        p (conjugatePicardIter p u₀ 0) Bt := by
+  -- Step 1: heat Level0 source-side floored data.
+  let hFSTD :=
+    ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+      (p := p) hu₀_bound hu₀_cont
+
+  -- Step 2: built source envelope from the FlooredSourceTimeData.
+  let Es : ℕ → ℕ → ℝ :=
+    ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
+
+  -- Step 3: source-time C² package.
+  have hSTC2 :
+      ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2
+        p (conjugatePicardIter p u₀ 0) Es := by
+    simpa [Es, hFSTD] using
+      ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
+        hFSTD hval hgrad
+
+  -- Step 4: direct physical resolver joint C² constructor.
+  refine ⟨fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k * Es i k, ?_⟩
+  exact ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2
+
+end ScratchTrace
 ```
 
-Let
+This skeleton is exactly what `IntervalHeatSemigroupHighRegularity.lean` is already doing, except that the file keeps the `hval`/`hgrad` summability proofs as local `sorry`s.
+
+## Where `PhysicalResolverJointC2Data` is defined
+
+The structure is in `IntervalResolverJointC2PhysicalConcrete.lean`:
 
 ```lean
-let uS : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ (n + 1)
+structure PhysicalResolverJointC2Data
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Bt : ℕ → ℕ → ℝ) : Prop where
+  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointMajorant Bt m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant Bt m)
 ```
 
-The minimal exact replacement, once the iterate-level residual exists, is:
+The **constructor theorem** is in `IntervalPhysicalResolverDataConcrete.lean`:
 
 ```lean
-have R : ShenWork.IntervalChemDivWinDischarge.ChemDivSolutionRegularityResidual p uS := by
-  -- this is the genuine successor regularity residual, not supplied by `ih`
-  -- fields: hiter, hval, hgrad, other, H2/decay/zero, hadotcont/Mdot
-  exact ?Rsucc
-
-have hglob : ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
-    (coupledChemDivSourceCoeffs p uS) :=
-  ShenWork.IntervalChemDivWinDischarge.coupledChemDivSource_duhamelSourceTimeC1_of_residual
-    (p := p) (u := uS) R
-
-exact ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1.toOn
-  hglob c DB.T (le_of_lt hc)
+theorem physicalResolverJointC2Data_of_floor
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
+    (H : PhysicalSourceTimeC2 p u Es) :
+    PhysicalResolverJointC2Data p u
+      (fun i k => intervalNeumannResolverWeight p k * Es i k)
 ```
 
-That is the shortest call sequence for the tower sorry **if** the iterate residual has already been produced.
-
-## Expanded exact theorem-call sequence inside `R`
-
-The current residual wrapper in `IntervalChemDivWinDischarge.lean` expands as follows.
-
-### Step 0: residual data for the specific iterate
-
-For `uS := conjugatePicardIter p u₀ (n + 1)`, you need:
+It is direct. It uses:
 
 ```lean
-R : ChemDivSolutionRegularityResidual p uS
+resolverTimeCoeff_eq_weight_smul
+resolverTimeCoeff_bound
 ```
 
-Its fields include:
+and then copies:
 
 ```lean
-R.du       : ℝ → ℝ → ℝ
-R.d2u      : ℝ → ℝ → ℝ
-R.hiter    : IterateSourceTimeData p uS R.du R.d2u
-R.hval     : ∀ m, (m : ℕ∞) ≤ 2 → Summable (... builtEs ...)
-R.hgrad    : ∀ m, (m : ℕ∞) ≤ 2 → Summable (... builtEs ...)
-R.other    : FAC-style local slab data
-R.hH2      : ∀ s, 0 ≤ s → IntervalWeakH2Neumann (coupledChemDivSourceLift p uS s)
-R.hdecay   : ∀ s, 0 ≤ s → ∀ k, 1 ≤ k → |cosineCoeffs ... k| ≤ R.Cchem / ((k:ℝ) * π)^2
-R.hzero    : ∀ s, 0 ≤ s → |cosineCoeffs ... 0| ≤ R.Cchem
-R.hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p uS s n)
-R.hMdot    : ∀ s, 0 ≤ s → ∀ n, |coupledChemDivAdot p uS s n| ≤ R.MchemDot
+value_summable := H.value_summable
+grad_summable  := H.grad_summable
 ```
 
-This is the data the current tower induction does not carry.
+## How `IntervalHeatSemigroupHighRegularity` uses it
 
-### Step 1: iterate source data to floored source data
+The heat-Level0 wrapper is:
 
 ```lean
-have Hfloor :
-    ShenWork.IntervalPhysicalSourceTimeC2Concrete.FlooredSourceTimeData
-      p uS
-      (ShenWork.IntervalFlooredSourceTimeDataIterate.srcSlice1 p uS R.du)
-      (ShenWork.IntervalFlooredSourceTimeDataIterate.srcSlice2 p uS R.du R.d2u) :=
-  ShenWork.IntervalFlooredSourceTimeDataIterate.flooredSourceTimeData_of_iterate
-    (p := p) (u := uS) (du := R.du) (d2u := R.d2u) R.hiter
+ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
 ```
 
-This is the iterate analogue of the Level0 `FlooredSourceTimeData` construction.
-
-### Step 2: floored source data to physical source-time C²
+Its body is already the exact chain:
 
 ```lean
-have Hsrc :
-    ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2
-      p uS (ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs Hfloor) :=
-  ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
-    Hfloor R.hval R.hgrad
+set u := conjugatePicardIter p u₀ 0
+have hFSTD := heatSemigroup_flooredSourceTimeData hu₀_bound hu₀_cont (p := p)
+set Es := builtEs hFSTD
+have hSTC2 : PhysicalSourceTimeC2 p u Es :=
+  physicalSourceTimeC2_of_floored hFSTD
+    (by intro m hm; sorry)   -- value_summable
+    (by intro m hm; sorry)   -- grad_summable
+exact ⟨_, physicalResolverJointC2Data_of_floor hSTC2⟩
 ```
 
-Caveat from current `main`: after the positive-time weakening, this file still has local sorries in the positive-time-to-global assembly (`srcTimeCoeff_contDiffAt`, `srcTimeCoeff_iteratedDeriv2`, and the `src_contDiff` / `src_bound` fields of `physicalSourceTimeC2_of_floored`). If by “Option A lands” we mean those are also filled or the downstream structures are retyped positive-time, then this call is the intended one.
-
-### Step 3: physical source-time C² to physical resolver joint C²
+Then the public consumer theorem is:
 
 ```lean
-have Hres :
-    ShenWork.IntervalResolverJointC2PhysicalConcrete.PhysicalResolverJointC2Data
-      p uS
-      (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
-        ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs Hfloor i k) :=
-  ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor
-    Hsrc
+ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
 ```
 
-This is automatic once `Hsrc` exists.
-
-### Step 4: factor-level FAC inputs
-
-The current residual route uses:
+It does:
 
 ```lean
-have Hfac : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorJointC2Inputs p uS :=
-  ShenWork.IntervalFlooredSourceTimeDataIterate.coupledChemDivFluxFactorJointC2Inputs_of_iterate
-    (p := p) (u := uS) (du := R.du) (d2u := R.d2u)
-    R.hiter R.hval R.hgrad R.other
+obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
+  (p := p) hu₀_bound hu₀_cont
+exact coupledChemical_jointContDiffAt_two hBt hx₀
 ```
 
-Internally this is:
+So `heatResolverJointContDiffAt_two` uses `PhysicalResolverJointC2Data` only through:
 
 ```lean
-flooredSourceTimeData_of_iterate R.hiter
-  |> physicalSourceTimeC2_of_floored ... R.hval R.hgrad
-  |> physicalResolverJointC2Data_of_floor
-  |> coupledChemDivFluxFactorJointC2Inputs_of_physical
+ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
 ```
 
-and it discharges the resolver value/gradient joint C² fields physically. The non-resolver slab fields still come from `R.other`.
+There is no spectral `DuhamelSourceTimeC2Coeff` step on this route.
 
-### Step 4′: modern htime-discharged alternative
+## Does `physicalSourceTimeC2_of_floored` have new/remaining sorries after `4000f01`?
 
-If you do not want to carry the old stronger `R.other` with time bridge and mixed-continuity already inside it, use the newer split route instead:
+Yes. At ref `4000f01`, `IntervalPhysicalSourceTimeC2Concrete.lean` has four relevant `sorry`s in the `physicalSourceTimeC2_of_floored` section.
+
+### 1. `srcTimeCoeff_contDiffAt`
 
 ```lean
-have Hrepr :
-    ShenWork.IntervalCoupledRegularityBootstrap.ChemDivMixedTimeDerivClosedRepr p uS τ δ :=
-  ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
-    (p := p) (u := uS)
-    Hres
-    Hu              -- IteratePicardJointC2Data uS cCoeff Btu
-    Hg2u            -- Summable (boundedWeightJointGradMajorant Btu 2)
-    hfloor          -- ∀ q, 0 < 1 + valueSeriesRep (resolverTimeCoeff p uS) q
-    bdry            -- endpoint algebra agreement
-
-have Hfac' : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorJointC2Inputs p uS :=
-  ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-    Hres hu_cont hu_nonneg other'
+theorem srcTimeCoeff_contDiffAt
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
+    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t := by
+  sorry
 ```
 
-where `other'` supplies only:
+What it needs:
+
+* use `srcTimeCoeff_hasDerivAt H k ht` for the first derivative at positive times;
+* use `cosS1_hasDerivAt H k ht` for the second derivative at positive times;
+* use `cosS2_continuousAt H k ht` for continuity of the second derivative;
+* assemble local `ContDiffAt ℝ 2` on the open neighborhood inside `Ioi 0`.
+
+This is local calculus / positive-time assembly, not new PDE analysis.
+
+### 2. `srcTimeCoeff_iteratedDeriv2`
 
 ```lean
-source_continuity ∧ hu_c2 ∧ ChemDivMixedTimeDerivClosedRepr p uS τ δ
+private theorem srcTimeCoeff_iteratedDeriv2
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
+    iteratedDeriv 2 (srcTimeCoeff p u k) t = cosineCoeffs (s₂ t) k := by
+  sorry
 ```
 
-This route is cleaner, but it requires extra iterate-side data `Hu`, `Hg2u`, `hfloor`, and `bdry`. It is not currently the wrapper used by `ChemDivSolutionRegularityResidual`.
+What it needs:
 
-### Step 5: factor-level FAC inputs to flux joint C²
+* show near `t` (inside `Ioi 0`) that
+  `iteratedDeriv 1 (srcTimeCoeff p u k) s = cosineCoeffs (s₁ s) k`
+  using `srcTimeCoeff_hasDerivAt H k hs`;
+* then take `deriv` at `t` and use `cosS1_hasDerivAt H k ht`.
+
+Again, this is a local positive-time derivative bookkeeping proof.
+
+### 3. `src_contDiff` field inside `physicalSourceTimeC2_of_floored`
 
 ```lean
-have Hflux : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp p uS :=
-  ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
-    Hfac
+src_contDiff k := by
+  -- The positive-time data gives ContDiffAt at every t > 0 via
+  -- srcTimeCoeff_contDiffAt.  Extension to global ContDiff on ℝ
+  -- follows from the structure of srcTimeCoeff (defined on all ℝ).
+  sorry
 ```
 
-or simply:
+What it needs:
+
+This is the real type mismatch introduced by positive-time weakening. `PhysicalSourceTimeC2` still asks for global:
 
 ```lean
-have Hflux : ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxJointC2Hyp p uS :=
-  ShenWork.IntervalChemDivWinDischarge.fluxJointC2Hyp_of_residual
-    (p := p) (u := uS) R
+∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
 ```
 
-### Step 6: flux joint C² plus H²/decay/adot data to global chemDiv TimeC1
+but `FlooredSourceTimeData` now supplies only positive-time information. To fill this without retyping, one must prove global `ContDiff` by separately handling `t ≤ 0` from the concrete definition of `srcTimeCoeff`. The alternative is to retype `PhysicalSourceTimeC2.src_contDiff` to positive-time, e.g. `∀ k t, 0 < t → ContDiffAt ... t`, which would match the new `FlooredSourceTimeData` more honestly.
 
-Expanded call:
+### 4. `src_bound` field inside `physicalSourceTimeC2_of_floored`
 
 ```lean
-have hglob : ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
-    (coupledChemDivSourceCoeffs p uS) :=
-  ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivSource_timeC1_of_fluxJointC2
-    R.Cchem R.hCchem R.hH2 R.hdecay R.hzero
-    Hflux
-    R.hadotcont R.MchemDot R.hMdot
+src_bound i k t hi := by
+  -- For t > 0: srcTimeCoeff_bound H i k t hi ht.
+  -- For t ≤ 0: separate envelope argument from the definition of srcTimeCoeff.
+  sorry
 ```
 
-Wrapper call:
+What it needs:
+
+For `t > 0`, this is already:
 
 ```lean
-have hglob : ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
-    (coupledChemDivSourceCoeffs p uS) :=
-  ShenWork.IntervalChemDivWinDischarge.coupledChemDivSource_duhamelSourceTimeC1_of_residual
-    (p := p) (u := uS) R
+srcTimeCoeff_bound H i k t hi ht
 ```
 
-### Step 7: global chemDiv TimeC1 to tower window `[c, DB.T]`
+For `t ≤ 0`, the current global `PhysicalSourceTimeC2` type still demands a bound:
 
 ```lean
-have hchem : DuhamelSourceTimeC1On
-    (coupledChemDivSourceCoeffs p uS) c DB.T :=
-  ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1.toOn
-    hglob c DB.T (le_of_lt hc)
+‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k
 ```
 
-This is exactly the target of Tower sorry #3.
+so it needs either a separate nonpositive-time envelope proof, or the same positive-time retyping of `PhysicalSourceTimeC2.src_bound`.
 
-## Answers to the three questions
+## Remaining sorries in the heat-Level0 wrapper
 
-### 1. Does `IntervalFlooredSourceTimeDataIterate` provide the iterate-level analogue?
-
-Yes. The structure is:
+Even if `physicalSourceTimeC2_of_floored` is fixed, `heatSemigroup_level0_resolverJointC2Data` still needs the two weighted summability proofs:
 
 ```lean
-ShenWork.IntervalFlooredSourceTimeDataIterate.IterateSourceTimeData
+hval : ∀ m ≤ 2,
+  Summable (boundedWeightJointMajorant
+    (fun i k => intervalNeumannResolverWeight p k * builtEs hFSTD i k) m)
+
+hgrad : ∀ m ≤ 2,
+  Summable (boundedWeightJointGradMajorant
+    (fun i k => intervalNeumannResolverWeight p k * builtEs hFSTD i k) m)
 ```
 
-and the conversion theorem is:
+The comments say these should follow from the `(kπ)⁻²` decay in `builtEs` plus the elliptic weight:
 
 ```lean
-ShenWork.IntervalFlooredSourceTimeDataIterate.flooredSourceTimeData_of_iterate
+wₖ = intervalNeumannResolverWeight p k = 1 / (p.μ + λ_k)
 ```
 
-The file also provides the direct iterate-to-factor wrapper:
+Useful existing lemmas include:
 
 ```lean
-ShenWork.IntervalFlooredSourceTimeDataIterate.coupledChemDivFluxFactorJointC2Inputs_of_iterate
+ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one
+ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu
+ShenWork.IntervalResolverJointC2PhysicalConcrete.valueCosWeight_one_mul_resolverWeight_le
 ```
 
-So the iterate-level analogue exists.
+The target is finite because `builtEs` has a zeroth-mode constant and a `(kπ)⁻²` bound for `k ≥ 1`, while the worst value/gradient weights are absorbed by the elliptic factor and the declared majorant structure.
 
-### 2. After Option A weakening, does the iterate version also become fillable?
+## Answer to the critical question
 
-Only conditionally.
-
-The **conversion** `IterateSourceTimeData → FlooredSourceTimeData` is mechanical after positive-time weakening. In current `main`, `FlooredSourceTimeData` is already positive-time in `d0`, `d1`, `sliceC2`, `sliceNeumann`, `zerothBound`, and `laplBound`; `flooredSourceTimeData_of_iterate` has already been adjusted with unused positive-time arguments such as `d0 τ _hτ` and `sliceC2 i hi t _ht`.
-
-But the structure `IterateSourceTimeData` itself still asks for actual iterate regularity data:
+`PhysicalResolverJointC2Data` is **directly** constructed from `PhysicalSourceTimeC2` by:
 
 ```lean
-floor
-time1
-time2
-sliceC2
-sliceNeumann
-zerothBound
-laplBound
+physicalResolverJointC2Data_of_floor
 ```
 
-There is no theorem in the fetched files that constructs these fields for `conjugatePicardIter p u₀ (n+1)` from only the predecessor B-form source `TimeC1On`. To make it fillable, the induction must supply positive-time parabolic regularity for the iterate, including the `du/d2u` fields and the spatial C²/Neumann/decay bounds.
-
-Also, in current `main`, `physicalSourceTimeC2_of_floored` still contains source-coefficient positive-time-to-global sorries. So even after the signature weakening, this part must be completed or the downstream `PhysicalSourceTimeC2` type must be retyped positive-time as well.
-
-### 3. Is Level0 → iterate `n+1` automatic by induction?
-
-No. The current induction hypothesis in `conjBFormSourceTimeC1OnUpTo_all` is only:
+No additional named structure sits in between. The exact bridge is:
 
 ```lean
-ih : ConjBFormSourceTimeC1OnUpTo p u₀ n DB.T
+PhysicalSourceTimeC2 p u Es
+  → PhysicalResolverJointC2Data p u
+      (fun i k => intervalNeumannResolverWeight p k * Es i k)
 ```
 
-which means:
+The post-`4000f01` blockers are not between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`; they are **upstream**:
+
+1. the six heat-Level0 `FlooredSourceTimeData` sorries in `heatSemigroup_flooredSourceTimeData`;
+2. the four positive-time-to-global sorries in `physicalSourceTimeC2_of_floored` and its helpers;
+3. the two `hval/hgrad` bounded-weight summability sorries in `heatSemigroup_level0_resolverJointC2Data`.
+
+Once those are supplied, the resolver construction is one theorem call:
 
 ```lean
-∀ c, 0 < c → c < DB.T →
-  DuhamelSourceTimeC1On (bFormSourceCoeffs p (conjugatePicardIter p u₀ n)) c DB.T
+ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2
 ```
-
-This is far weaker than the residual needed for chemDiv at `n+1`. It does not contain:
-
-```lean
-IterateSourceTimeData p (conjugatePicardIter p u₀ (n+1)) du d2u
-weighted hval/hgrad for builtEs
-FAC other / or htime-discharged source-continuity + hu_c2 + mixed repr
-IntervalWeakH2Neumann for coupledChemDivSourceLift
-quadratic decay / zeroth coefficient bounds
-hadotcont and Mdot for coupledChemDivAdot
-```
-
-Therefore each iterate needs separate work, or better: strengthen the tower induction to carry a richer invariant, e.g.
-
-```lean
-∀ n, ChemDivSolutionRegularityResidual p (conjugatePicardIter p u₀ n)
-```
-
-or a decomposed version containing:
-
-```lean
-IterateSourceTimeData
-IteratePicardJointC2Data
-weighted hval/hgrad
-source continuity
-ChemDivMixedTimeDerivClosedRepr data
-H²/decay/adot bounds
-```
-
-Then Tower sorry #3 becomes a short wrapper call to `coupledChemDivSource_duhamelSourceTimeC1_of_residual` followed by `DuhamelSourceTimeC1.toOn`.
-
-## Practical replacement shape for the tower file
-
-The current successor branch should not try to derive chemDiv from `ih` alone. The honest target is to add a stronger induction/residual hypothesis. With such a residual in scope:
-
-```lean
--- In the successor branch:
-let uS : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ (n + 1)
-
-have Rchem : ShenWork.IntervalChemDivWinDischarge.ChemDivSolutionRegularityResidual p uS := by
-  -- supplied by strengthened tower induction / generic successor regularity theorem
-  exact ?Rchem_succ
-
-have hchemGlob : ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
-    (coupledChemDivSourceCoeffs p uS) :=
-  ShenWork.IntervalChemDivWinDischarge.coupledChemDivSource_duhamelSourceTimeC1_of_residual
-    (p := p) (u := uS) Rchem
-
-have _hchem : DuhamelSourceTimeC1On
-    (coupledChemDivSourceCoeffs p uS) c DB.T :=
-  ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1.toOn
-    hchemGlob c DB.T (le_of_lt hc)
-```
-
-That is the exact theorem-call closure once the real iterate-level regularity invariant exists.
-
-## Final answer
-
-* `IntervalFlooredSourceTimeDataIterate` **does** provide the iterate-level analogue.
-* Option A makes the positive-time **conversion** plausible/mechanical, but does not create the actual `IterateSourceTimeData` or the extra summability/FAC/H²/adot data.
-* The cascade is not automatic from Level0. The tower induction must be strengthened to carry a chemDiv regularity residual for every iterate, or each iterate must be proved separately by a generic successor theorem.
