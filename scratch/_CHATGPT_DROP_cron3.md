@@ -1,327 +1,280 @@
-# Q1079 (cron3): PhysicalResolverJointC2Data for heat Level0 after Option A `4000f01`
+# Q1096 (cron3): Is `IteratePicardJointC2Data` trivial for heat Level0?
 
 ## Verdict
 
-`PhysicalResolverJointC2Data` is constructed **directly** from `PhysicalSourceTimeC2` by:
+No — not as currently typed.
+
+`IteratePicardJointC2Data` is **not** merely “`u` has joint `C²` plus a summable majorant.” It is a stronger, coefficient-level package that *implies* joint `C²` via `iterate_lift_jointContDiffAt_two`. It requires:
+
+1. exact cosine-series reconstruction of the lifted iterate slice;
+2. a chosen coefficient family `c k t` that is globally `ContDiff ℝ 2` in `t`;
+3. global-in-time coefficient derivative bounds `Bt i k`;
+4. summability of the bounded-weight joint majorants built from those `Bt`.
+
+For heat Level0, a **positive-time/windowed analogue** is very natural and should be easy from the explicit heat coefficients and heat kernel exponential summability. But the current global structure is not trivially inhabited for `u = conjugatePicardIter p u₀ 0`.
+
+The main reason: the natural heat coefficients
 
 ```lean
-ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor
+c k t = Real.exp (-t * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k
 ```
 
-There is no additional intermediate structure between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`. The only intermediate object is the coefficient-bound function:
+are smooth in `t`, but their global-in-time bounds fail as `t → -∞`, and the exact reconstruction is only available/true in the current infrastructure at positive time. The theorem `heatSemigroup_jointContDiffAt_two` gives only a local positive-time `ContDiffAt` result for the **summed series**; it does not produce the coefficient-level fields required by `IteratePicardJointC2Data`.
+
+## The structure definition
+
+From `ShenWork/PDE/IntervalIteratePicardJointC2.lean`:
 
 ```lean
-Bt := fun i k => intervalNeumannResolverWeight p k * Es i k
-```
-
-where `Es := ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD`.
-
-However, after `4000f01`, the source-side producer `physicalSourceTimeC2_of_floored` is **not fully closed**: it contains new/remaining `sorry`s caused by the positive-time retyping. In addition, the heat-Level0 wrapper `heatSemigroup_level0_resolverJointC2Data` still has two summability sorries (`hval` and `hgrad`).
-
-So the exact chain is:
-
-```text
-heatSemigroup_flooredSourceTimeData
-  → hFSTD : FlooredSourceTimeData p (conjugatePicardIter p u₀ 0) ...
-  → Es := builtEs hFSTD
-  → physicalSourceTimeC2_of_floored hFSTD hval hgrad
-  → hSTC2 : PhysicalSourceTimeC2 p (conjugatePicardIter p u₀ 0) Es
-  → physicalResolverJointC2Data_of_floor hSTC2
-  → PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0)
-       (fun i k => intervalNeumannResolverWeight p k * Es i k)
-```
-
-## Imports for the mapped construction
-
-```lean
-import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-```
-
-## Exact construction skeleton
-
-```lean
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-
-noncomputable section
-
-namespace ScratchTrace
-
-/-- Exact post-Option-A constructor path for heat Level0 resolver physical joint C² data. -/
-theorem heatLevel0_physicalResolverJointC2Data_trace
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    -- still needed: weighted source majorant summability for the built `Es`
-    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (ShenWork.IntervalResolverJointC2Physical.boundedWeightJointMajorant
-        (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
-          ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs
-            (ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
-              (p := p) hu₀_bound hu₀_cont) i k) m))
-    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (ShenWork.IntervalResolverJointC2Physical.boundedWeightJointGradMajorant
-        (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
-          ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs
-            (ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
-              (p := p) hu₀_bound hu₀_cont) i k) m)) :
-    ∃ Bt : ℕ → ℕ → ℝ,
-      ShenWork.IntervalResolverJointC2PhysicalConcrete.PhysicalResolverJointC2Data
-        p (conjugatePicardIter p u₀ 0) Bt := by
-  -- Step 1: heat Level0 source-side floored data.
-  let hFSTD :=
-    ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
-      (p := p) hu₀_bound hu₀_cont
-
-  -- Step 2: built source envelope from the FlooredSourceTimeData.
-  let Es : ℕ → ℕ → ℝ :=
-    ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
-
-  -- Step 3: source-time C² package.
-  have hSTC2 :
-      ShenWork.IntervalPhysicalResolverDataConcrete.PhysicalSourceTimeC2
-        p (conjugatePicardIter p u₀ 0) Es := by
-    simpa [Es, hFSTD] using
-      ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
-        hFSTD hval hgrad
-
-  -- Step 4: direct physical resolver joint C² constructor.
-  refine ⟨fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k * Es i k, ?_⟩
-  exact ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2
-
-end ScratchTrace
-```
-
-This skeleton is exactly what `IntervalHeatSemigroupHighRegularity.lean` is already doing, except that the file keeps the `hval`/`hgrad` summability proofs as local `sorry`s.
-
-## Where `PhysicalResolverJointC2Data` is defined
-
-The structure is in `IntervalResolverJointC2PhysicalConcrete.lean`:
-
-```lean
-structure PhysicalResolverJointC2Data
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Bt : ℕ → ℕ → ℝ) : Prop where
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+structure IteratePicardJointC2Data
+    (u : ℝ → intervalDomainPoint → ℝ) (c : ℕ → ℝ → ℝ) (Bt : ℕ → ℕ → ℝ) : Prop where
+  /-- The iterate slice equals its cosine series on `[0,1]`. -/
+  lift_eq_series : ∀ {t x : ℝ}, x ∈ Icc (0 : ℝ) 1 →
+    intervalDomainLift (u t) x = ∑' k : ℕ, c k t * cosineMode k x
+  /-- Each coefficient is `C²` in time (the honest iterate time-`C²` leg). -/
+  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (c k)
+  /-- Three-time-order coefficient bounds. -/
   coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+    ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
+  /-- The bounded-weight VALUE joint majorant is summable (orders `0,1,2`). -/
   value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
     Summable (boundedWeightJointMajorant Bt m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant Bt m)
 ```
 
-The **constructor theorem** is in `IntervalPhysicalResolverDataConcrete.lean`:
+It is then consumed by:
 
 ```lean
-theorem physicalResolverJointC2Data_of_floor
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (H : PhysicalSourceTimeC2 p u Es) :
-    PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k)
+theorem iterate_lift_jointContDiffAt_two
+    (H : IteratePicardJointC2Data u c Bt) (hx : x ∈ Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
 ```
 
-It is direct. It uses:
+and by the slab version:
 
 ```lean
-resolverTimeCoeff_eq_weight_smul
-resolverTimeCoeff_bound
+theorem iterate_hu_c2_slab
+    (H : IteratePicardJointC2Data u c Bt) :
+    ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
+      ContDiffAt ℝ 2
+        (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
 ```
 
-and then copies:
+So the data structure is upstream of joint `C²`; it is not a consequence of the joint `C²` theorem.
+
+## Natural heat Level0 choice of `c`
+
+For heat Level0,
 
 ```lean
-value_summable := H.value_summable
-grad_summable  := H.grad_summable
+u := conjugatePicardIter p u₀ 0
 ```
 
-## How `IntervalHeatSemigroupHighRegularity` uses it
-
-The heat-Level0 wrapper is:
+and `conjugatePicardIter` is definitionally:
 
 ```lean
-ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+conjugatePicardIter p u₀ 0 =
+  fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
 ```
 
-Its body is already the exact chain:
+The natural coefficient family is:
 
 ```lean
-set u := conjugatePicardIter p u₀ 0
-have hFSTD := heatSemigroup_flooredSourceTimeData hu₀_bound hu₀_cont (p := p)
-set Es := builtEs hFSTD
-have hSTC2 : PhysicalSourceTimeC2 p u Es :=
-  physicalSourceTimeC2_of_floored hFSTD
-    (by intro m hm; sorry)   -- value_summable
-    (by intro m hm; sorry)   -- grad_summable
-exact ⟨_, physicalResolverJointC2Data_of_floor hSTC2⟩
+cHeat (u₀ : intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) : ℝ :=
+  Real.exp (-t * unitIntervalCosineEigenvalue k) *
+    cosineCoeffs (intervalDomainLift u₀) k
 ```
 
-Then the public consumer theorem is:
+This is also the `n = 0` branch of:
 
 ```lean
-ShenWork.Paper2.HeatResolverJointRegularity.heatResolverJointContDiffAt_two
+ShenWork.IntervalPicardIterateRepresentation.iterateReprCoeff p u₀ 0 t k
 ```
 
-It does:
+## Field-by-field status for heat Level0
+
+### 1. `lift_eq_series`
+
+**Positive-time fillable:** yes.
+
+Existing theorem:
 
 ```lean
-obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
-  (p := p) hu₀_bound hu₀_cont
-exact coupledChemical_jointContDiffAt_two hBt hx₀
+ShenWork.IntervalPicardIterateRepresentation.hagree_zero
 ```
 
-So `heatResolverJointContDiffAt_two` uses `PhysicalResolverJointC2Data` only through:
+Shape:
 
 ```lean
-ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
+theorem hagree_zero
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
+      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1)
 ```
 
-There is no spectral `DuhamelSourceTimeC2Coeff` step on this route.
+For B-form Level0, `conjugatePicardIter p u₀ 0` is the same heat semigroup form, so the same spectral identity / subtype adapter route applies.
 
-## Does `physicalSourceTimeC2_of_floored` have new/remaining sorries after `4000f01`?
+**But as currently typed:** not trivial. `IteratePicardJointC2Data.lift_eq_series` is quantified over all `t : ℝ`, not just `0 < t`. The existing `hagree_zero` requires `0 < σ`. At `t = 0`, exact pointwise reconstruction of an arbitrary continuous initial datum from its cosine series is not automatically available. At `t < 0`, the semigroup convention/definition is not the positive heat series. Thus this field is not globally trivial.
 
-Yes. At ref `4000f01`, `IntervalPhysicalSourceTimeC2Concrete.lean` has four relevant `sorry`s in the `physicalSourceTimeC2_of_floored` section.
+### 2. `coeff_contDiff`
 
-### 1. `srcTimeCoeff_contDiffAt`
+**For the explicit heat coefficients:** yes, this part is trivial/smooth.
+
+For
 
 ```lean
-theorem srcTimeCoeff_contDiffAt
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
-    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t := by
-  sorry
+cHeat k t = Real.exp (-t * unitIntervalCosineEigenvalue k) * û₀ k
 ```
 
-What it needs:
-
-* use `srcTimeCoeff_hasDerivAt H k ht` for the first derivative at positive times;
-* use `cosS1_hasDerivAt H k ht` for the second derivative at positive times;
-* use `cosS2_continuousAt H k ht` for continuity of the second derivative;
-* assemble local `ContDiffAt ℝ 2` on the open neighborhood inside `Ioi 0`.
-
-This is local calculus / positive-time assembly, not new PDE analysis.
-
-### 2. `srcTimeCoeff_iteratedDeriv2`
+one should prove:
 
 ```lean
-private theorem srcTimeCoeff_iteratedDeriv2
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
-    iteratedDeriv 2 (srcTimeCoeff p u k) t = cosineCoeffs (s₂ t) k := by
-  sorry
+∀ k, ContDiff ℝ (2 : ℕ∞) (cHeat u₀ k)
 ```
 
-What it needs:
+by `fun_prop` / smoothness of `exp` and multiplication by constants.
 
-* show near `t` (inside `Ioi 0`) that
-  `iteratedDeriv 1 (srcTimeCoeff p u k) s = cosineCoeffs (s₁ s) k`
-  using `srcTimeCoeff_hasDerivAt H k hs`;
-* then take `deriv` at `t` and use `cosS1_hasDerivAt H k ht`.
+**But:** this field alone is not enough, and the coefficient family must still be the one satisfying `lift_eq_series` for all `t`. If one instead chooses a zero/cutoff coefficient family to match the nonpositive-time semigroup convention, global `ContDiff` at `t = 0` becomes nontrivial and can fail for rough initial data.
 
-Again, this is a local positive-time derivative bookkeeping proof.
+### 3. `coeff_bound`
 
-### 3. `src_contDiff` field inside `physicalSourceTimeC2_of_floored`
+**Positive-window fillable:** yes.
+
+For `t ≥ τ₀ > 0`, explicit derivatives have shape:
 
 ```lean
-src_contDiff k := by
-  -- The positive-time data gives ContDiffAt at every t > 0 via
-  -- srcTimeCoeff_contDiffAt.  Extension to global ContDiff on ℝ
-  -- follows from the structure of srcTimeCoeff (defined on all ℝ).
-  sorry
+∂ₜ^i cHeat k t = (-λ_k)^i * Real.exp (-t * λ_k) * û₀ k
 ```
 
-What it needs:
-
-This is the real type mismatch introduced by positive-time weakening. `PhysicalSourceTimeC2` still asks for global:
+so a bound is available from:
 
 ```lean
-∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+|∂ₜ^i cHeat k t| ≤ λ_k^i * M₀ * Real.exp (-τ₀ * λ_k)
 ```
 
-but `FlooredSourceTimeData` now supplies only positive-time information. To fill this without retyping, one must prove global `ContDiff` by separately handling `t ≤ 0` from the concrete definition of `srcTimeCoeff`. The alternative is to retype `PhysicalSourceTimeC2.src_contDiff` to positive-time, e.g. `∀ k t, 0 < t → ContDiffAt ... t`, which would match the new `FlooredSourceTimeData` more honestly.
+This is exactly the kind of bound used in `IntervalHeatSemigroupHighRegularity.lean`, where cutoff heat terms are bounded by an exponential majorant.
 
-### 4. `src_bound` field inside `physicalSourceTimeC2_of_floored`
+**But as currently typed:** not globally fillable with the natural heat coefficients. The field requires:
 
 ```lean
-src_bound i k t hi := by
-  -- For t > 0: srcTimeCoeff_bound H i k t hi ht.
-  -- For t ≤ 0: separate envelope argument from the definition of srcTimeCoeff.
-  sorry
+∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+  ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
 ```
 
-What it needs:
+with no `0 < t` or window assumption. For `cHeat k t = exp(-tλ_k) û₀k`, this is unbounded as `t → -∞` for every `k > 0` with nonzero coefficient. Therefore no finite global `Bt i k` exists for the natural coefficients.
 
-For `t > 0`, this is already:
+A smooth right cutoff can produce global bounds, and `IntervalHeatSemigroupHighRegularity.lean` does exactly that for local `ContDiffAt`; but then the cutoff coefficients only agree with the heat series near a chosen positive-time window, not globally for every `t`.
+
+### 4. `value_summable`
+
+**Positive-window/cutoff fillable:** yes.
+
+The relevant existing heat summability lemmas include:
 
 ```lean
-srcTimeCoeff_bound H i k t hi ht
+ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_eigenvalueSq_summable
+ShenWork.Paper2.HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable
+ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatSeries_contDiff_two
 ```
 
-For `t ≤ 0`, the current global `PhysicalSourceTimeC2` type still demands a bound:
+For a positive lower time `τ₀`, the exponential majorant gives summability of all required value weights for orders `≤ 2`. This is routine heat-kernel/eigenvalue exponential decay.
+
+**But as currently typed:** it depends on the global `Bt` from `coeff_bound`; since global `Bt` is not available for the natural heat coefficients, `value_summable` is not an immediate global field.
+
+## Relation to `heatSemigroup_jointContDiffAt_two`
+
+The theorem:
 
 ```lean
-‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k
+ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
 ```
 
-so it needs either a separate nonpositive-time envelope proof, or the same positive-time retyping of `PhysicalSourceTimeC2.src_bound`.
-
-## Remaining sorries in the heat-Level0 wrapper
-
-Even if `physicalSourceTimeC2_of_floored` is fixed, `heatSemigroup_level0_resolverJointC2Data` still needs the two weighted summability proofs:
+has shape:
 
 ```lean
-hval : ∀ m ≤ 2,
-  Summable (boundedWeightJointMajorant
-    (fun i k => intervalNeumannResolverWeight p k * builtEs hFSTD i k) m)
-
-hgrad : ∀ m ≤ 2,
-  Summable (boundedWeightJointGradMajorant
-    (fun i k => intervalNeumannResolverWeight p k * builtEs hFSTD i k) m)
+theorem heatSemigroup_jointContDiffAt_two
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
 ```
 
-The comments say these should follow from the `(kπ)⁻²` decay in `builtEs` plus the elliptic weight:
+This is a **local positive-time conclusion** for the summed heat series. It is proved by constructing a smooth cutoff series and showing it agrees near `(s₀,x₀)`. It does not expose a global coefficient family `c`, a global majorant `Bt`, or the exact `lift_eq_series` field for all `t`.
+
+Therefore, `heatSemigroup_jointContDiffAt_two` cannot directly fill `IteratePicardJointC2Data`. The construction direction is the opposite:
+
+```text
+coefficient family + coefficient bounds + summable majorant + series agreement
+  → IteratePicardJointC2Data
+  → iterate_lift_jointContDiffAt_two
+  → hu_c2 slab
+```
+
+`heatSemigroup_jointContDiffAt_two` is closer to the output `hu_c2`, not the input data.
+
+## What would make heat Level0 easy?
+
+A positive-time/windowed variant would be straightforward:
 
 ```lean
-wₖ = intervalNeumannResolverWeight p k = 1 / (p.μ + λ_k)
+structure IteratePicardJointC2DataOn
+    (u : ℝ → intervalDomainPoint → ℝ) (c : ℕ → ℝ → ℝ)
+    (Bt : ℕ → ℕ → ℝ) (lo hi : ℝ) : Prop where
+  lift_eq_series : ∀ {t x : ℝ}, t ∈ Icc lo hi → x ∈ Icc (0 : ℝ) 1 →
+    intervalDomainLift (u t) x = ∑' k, c k t * cosineMode k x
+  coeff_contDiffOn : ∀ k, ContDiffOn ℝ 2 (c k) (Icc lo hi)
+  coeff_bound : ∀ i k t, i ≤ 2 → t ∈ Icc lo hi →
+    ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
+  value_summable : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointMajorant Bt m)
 ```
 
-Useful existing lemmas include:
+For heat Level0 on a window `0 < lo ≤ hi`, choose:
 
 ```lean
-ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one
-ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu
-ShenWork.IntervalResolverJointC2PhysicalConcrete.valueCosWeight_one_mul_resolverWeight_le
+c k t = Real.exp (-t * unitIntervalCosineEigenvalue k) *
+  cosineCoeffs (intervalDomainLift u₀) k
+
+Bt i k = unitIntervalCosineEigenvalue k ^ i * M₀ *
+  Real.exp (-lo * unitIntervalCosineEigenvalue k)
 ```
 
-The target is finite because `builtEs` has a zeroth-mode constant and a `(kπ)⁻²` bound for `k ≥ 1`, while the worst value/gradient weights are absorbed by the elliptic factor and the declared majorant structure.
+Then:
 
-## Answer to the critical question
+* `lift_eq_series` comes from `hagree_zero` / heat spectral identity;
+* `coeff_contDiffOn` is smoothness of exponential;
+* `coeff_bound` is the explicit derivative formula plus `t ≥ lo`;
+* `value_summable` follows from `eigenvalue_pow_mul_exp_summable` / `heatSemigroup_eigenvalueSq_summable`.
 
-`PhysicalResolverJointC2Data` is **directly** constructed from `PhysicalSourceTimeC2` by:
+This would be the honest positive-time form needed by 3G for Level0.
 
-```lean
-physicalResolverJointC2Data_of_floor
-```
+## Answer to the prompt questions
 
-No additional named structure sits in between. The exact bridge is:
+### Is `IteratePicardJointC2Data` essentially just “u has joint C² + summable majorant”?
 
-```lean
-PhysicalSourceTimeC2 p u Es
-  → PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k)
-```
+No. It is a coefficient-level sufficient condition for joint `C²`. It includes exact series reconstruction and per-mode time-regularity/bounds. The theorem `iterate_lift_jointContDiffAt_two` derives joint `C²` from it.
 
-The post-`4000f01` blockers are not between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`; they are **upstream**:
+### Can it be constructed from `heatSemigroup_jointContDiffAt_two` + heat kernel eigenvalue summability?
 
-1. the six heat-Level0 `FlooredSourceTimeData` sorries in `heatSemigroup_flooredSourceTimeData`;
-2. the four positive-time-to-global sorries in `physicalSourceTimeC2_of_floored` and its helpers;
-3. the two `hval/hgrad` bounded-weight summability sorries in `heatSemigroup_level0_resolverJointC2Data`.
+Not directly. `heatSemigroup_jointContDiffAt_two` is too weak and points in the wrong direction: it is a local `ContDiffAt` theorem for the already-summed series. To build `IteratePicardJointC2Data`, use the explicit heat coefficients and spectral identity directly. Heat kernel eigenvalue summability is useful for `coeff_bound`/`value_summable`, but the current global structure still blocks the natural construction outside positive time.
 
-Once those are supplied, the resolver construction is one theorem call:
+### Field-by-field heat Level0 status
 
-```lean
-ShenWork.IntervalPhysicalResolverDataConcrete.physicalResolverJointC2Data_of_floor hSTC2
-```
+| Field | Heat Level0 status |
+|---|---|
+| `lift_eq_series` | Fillable on `t > 0` by `hagree_zero` / heat spectral identity; not global as typed. |
+| `coeff_contDiff` | Trivial for explicit heat coefficients `exp(-tλ) û₀`; problematic if coefficients are altered to match nonpositive-time semigroup convention. |
+| `coeff_bound` | Fillable on positive windows using exponential decay; false globally for explicit heat coefficients because of `t → -∞`. |
+| `value_summable` | Fillable on positive windows via `eigenvalue_pow_mul_exp_summable`; not an immediate global field without global `Bt`. |
+
+## Bottom line
+
+For 3G, heat Level0 does not get `IteratePicardJointC2Data` “for free” from `heatSemigroup_jointContDiffAt_two`. The right fix is either:
+
+1. add a positive-windowed/positive-time version of `IteratePicardJointC2Data` and build it from explicit heat coefficients; or
+2. use a smooth-cutoff coefficient family local to the target positive slab, mirroring `heatSemigroup_jointContDiffAt_two`.
+
+The current global `IteratePicardJointC2Data` is stronger than needed for positive-time 3G and is not trivially constructible for heat Level0.
