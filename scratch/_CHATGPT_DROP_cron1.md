@@ -1,297 +1,166 @@
-# Q1116 / cron1 — proof strategy for `cutoffResolverTerm_contDiff_two`
+# Q1122 / cron1 — `heatLevel0_srcTimeCoeff_contDiffAt_two`
 
-Repo inspected: `xiangyazi24/Shen_work`
-
-Files inspected:
-
-```text
-ShenWork/Paper2/IntervalHeatResolverJointC2.lean
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-ShenWork/Paper2/IntervalMildPicardRegularity.lean
-ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
-ShenWork/PDE/IntervalUnderIntegralLeibniz.lean
-```
+Repo: `xiangyazi24/Shen_work`
 
 Branch written: `chatgpt-scratch`
 
-Target drop file:
+Target file updated by this drop:
 
 ```text
 scratch/_CHATGPT_DROP_cron1.md
 ```
 
-## Executive answer
-
-The cleanest route is **not** to try to make `fun_prop` see through `resolverTimeCoeff` directly, and not to prove `ContDiff` of the full `(t,x)` term by expanding all integrals inline.
-
-Instead, split the proof into a scalar coefficient lemma and then use the same product decomposition as the heat proof:
-
-```lean
-cutoffResolverTerm p u c k q
-  = (smoothRightCutoff (c/2) c q.1 * resolverTimeCoeff p u k q.1)
-      * cosineMode k q.2
-```
-
-Then prove:
-
-```lean
-ContDiff ℝ 2 (fun t => smoothRightCutoff (c/2) c t * resolverTimeCoeff p u k t)
-```
-
-as a **one-dimensional scalar lemma**, and the final `(t,x)` theorem becomes routine:
-
-```lean
-have hcoef_q : ContDiff ℝ 2
-    (fun q : ℝ × ℝ => smoothRightCutoff (c / 2) c q.1 * resolverTimeCoeff p u k q.1) :=
-  hcoef.comp contDiff_fst
-
-have hcos_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => cosineMode k q.2) := by
-  have hcos : ContDiff ℝ 2 (cosineMode k) := by
-    unfold cosineMode
-    fun_prop
-  exact hcos.comp contDiff_snd
-
-simpa [cutoffResolverTerm, mul_assoc] using hcoef_q.mul hcos_q
-```
-
-The scalar coefficient lemma is where all analytic content lives. For that scalar lemma, use the repo’s existing `cosineCoeffs_hasDerivAt_of_smooth_param` twice, not a nonexistent one-shot `ContDiff` theorem for parameterized `cosineCoeffs`.
-
-## Direct answers to the three questions
-
-### 1. Is there a theorem that `cosineCoeffs` of a smooth function is smooth in parameters?
-
-Not as a single ready-made theorem of the exact shape you need.
-
-What exists in the repo is the correct **one-derivative Leibniz brick**:
-
-```lean
-import ShenWork.Paper2.IntervalMildPicardRegularity
-
-open MeasureTheory Filter Topology
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-
-#check ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
-```
-
-It has the shape:
-
-```lean
-theorem cosineCoeffs_hasDerivAt_of_smooth_param
-    {f f' : ℝ → ℝ → ℝ} {τ δ : ℝ} {n : ℕ} (hδ : 0 < δ)
-    (hf_int : ∀ᶠ s in 𝓝 τ, IntervalIntegrable (f s) volume (0 : ℝ) 1)
-    (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
-      ∀ s ∈ Metric.ball τ δ,
-        HasDerivAt (fun r => f r x) (f' s x) s)
-    (h_cont_deriv : ContinuousOn (Function.uncurry f')
-      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
-    HasDerivAt (fun s => cosineCoeffs (f s) n)
-      (cosineCoeffs (f' τ) n) τ
-```
-
-There is also the continuity bridge:
-
-```lean
-import ShenWork.Paper2.IntervalDomainPositiveWindowK1OnEndpoint
-
-open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
-
-#check cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
-```
-
-So the intended stack is:
+Files inspected for this answer:
 
 ```text
-f₀(t,x) = ν * heat(t,x)^γ
-f₁(t,x) = ∂ₜ f₀(t,x)
-f₂(t,x) = ∂ₜ f₁(t,x)
-
-cosineCoeffs_hasDerivAt_of_smooth_param f₀ f₁  ==> derivative of coeff₀ is coeff₁
-cosineCoeffs_hasDerivAt_of_smooth_param f₁ f₂  ==> derivative of coeff₁ is coeff₂
-cosineCoeffs_continuousOn_of_jointContinuousOn_Icc f₂ ==> coeff₂ continuous
-assemble ContDiffAt ℝ 2 for srcTimeCoeff
-multiply by constant resolver weight ==> ContDiffAt ℝ 2 for resolverTimeCoeff
-multiply by cutoff ==> ContDiff ℝ 2 for cutoff resolver coefficient
-multiply by cos(kπx) composed with snd ==> ContDiff ℝ 2 in (t,x)
+ShenWork/Paper2/IntervalHeatResolverJointC2.lean
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
+ShenWork/Paper2/IntervalPicardLevel0SourceTimeC1On.lean
+ShenWork/Paper2/IntervalMildPicardRegularity.lean
+ShenWork/Paper2/IntervalDomainPositiveWindowK1OnEndpoint.lean
+ShenWork/Paper2/IntervalConjugatePicard.lean
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 ```
 
-This is exactly what `IntervalPhysicalSourceTimeC2Concrete.lean` started to do through `FlooredSourceTimeData`: it proves/uses `srcTimeCoeff_hasDerivAt`, `cosS1_hasDerivAt`, and `cosS2_continuousAt`, then has a still-sorry `srcTimeCoeff_contDiffAt`. For the direct resolver route, copy that logic but feed it direct heat positive-time data instead of `FlooredSourceTimeData`.
+## Executive answer
 
-### 2. Should I bypass this and prove `ContDiff` of the cutoff resolver term as a function of `(t,x)` directly?
+For the concrete source used by `srcTimeCoeff`, do **not** hand-code the first derivative from scratch.  The repo already has the right formulas under the names
 
-No, not inline.
+```lean
+srcSlice1 p u du
+srcSlice2 p u du d2u
+```
 
-You should bypass `FlooredSourceTimeData`, but **not** bypass the scalar coefficient layer. The full `(t,x)` term is a product of a time-only coefficient and a space-only cosine. Proving it directly makes every goal harder because you carry product projections and interval-integral differentiability through a two-variable term.
+from `ShenWork.PDE.IntervalFlooredSourceTimeDataIterate`.
 
-Use this factorization:
+For the level-0 heat semigroup, instantiate these with
+
+```lean
+u   := conjugatePicardIter p u₀ 0
+du  := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatDu u₀
+d2u := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatD2u u₀
+```
+
+Then the first source-time derivative slice is exactly
+
+```lean
+fun τ x =>
+  p.ν * p.γ *
+    (intervalDomainLift (conjugatePicardIter p u₀ 0 τ) x) ^ (p.γ - 1) *
+    ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatDu u₀ τ x
+```
+
+Mathematically, on positive time this is
+
+```text
+f₁(τ,x) = ν · γ · (S(τ)u₀(x))^(γ-1) · ΔS(τ)u₀(x).
+```
+
+The second derivative slice is the repo’s `srcSlice2`:
+
+```text
+f₂(τ,x)
+  = ν·γ·(γ-1)·(S(τ)u₀(x))^(γ-2)·(ΔS(τ)u₀(x))²
+    + ν·γ·(S(τ)u₀(x))^(γ-1)·Δ²S(τ)u₀(x).
+```
+
+In Lean, prefer the exact existing spelling
+
+```lean
+srcSlice2 p (conjugatePicardIter p u₀ 0)
+  (heatDu u₀) (heatD2u u₀)
+```
+
+because it uses `p.γ - 1 - 1` rather than asking `ring`/`linarith` to normalize `p.γ - 2`.
+
+## The shortest replacement, if the `FlooredSourceTimeData` producer is acceptable
+
+There is already a public assembly theorem in `IntervalPhysicalSourceTimeC2Concrete.lean`:
+
+```lean
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiffAt
+```
+
+and a level-0 heat producer in `IntervalHeatSemigroupFlooredSourceTimeData.lean`:
+
+```lean
+ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+```
+
+If those are available in your branch, the target theorem can be closed by delegating to them:
 
 ```lean
 import ShenWork.Paper2.IntervalHeatResolverJointC2
+import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
+import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 
-open Filter Topology
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open MeasureTheory Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-open ShenWork.IntervalResolverSpectralJointC2Cutoff
-  (smoothRightCutoff smoothRightCutoff_contDiff)
-open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalPhysicalResolverDataConcrete (srcTimeCoeff)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete (FlooredSourceTimeData srcTimeCoeff_contDiffAt)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
+open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData (heatDu heatD2u heatSemigroup_flooredSourceTimeData)
 
 noncomputable section
 
 namespace ShenWork.Paper2.HeatResolverJointC2Direct
 
-/-- The scalar cutoff coefficient. -/
-def cutoffResolverCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (c : ℝ) (k : ℕ) : ℝ → ℝ :=
-  fun t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t
-
-/-- This is the right analytic target. -/
-theorem cutoffResolverCoeff_contDiff_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀) (hc : 0 < c) (k : ℕ) :
-    ContDiff ℝ 2
-      (cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k) := by
-  -- prove this by local ContDiffAt cases in t:
-  --   t < c/2: cutoff is locally zero;
-  --   t ≥ c/2: t is positive, so resolverTimeCoeff is ContDiffAt ℝ 2;
-  -- then assemble with ContDiffAt / ContDiff.
-  sorry
-
-/-- Once the scalar coefficient is known, the `(t,x)` term is mechanical. -/
-theorem cutoffResolverTerm_contDiff_two_from_coeff
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀) (hc : 0 < c) (k : ℕ) :
-    ContDiff ℝ 2
-      (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) := by
-  have hcoef : ContDiff ℝ 2
-      (cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k) :=
-    cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hc k
-  have hcoef_q : ContDiff ℝ 2 (fun q : ℝ × ℝ =>
-      cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k q.1) :=
-    hcoef.comp contDiff_fst
-  have hcos : ContDiff ℝ 2 (cosineMode k) := by
-    unfold cosineMode
-    fun_prop
-  have hcos_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => cosineMode k q.2) :=
-    hcos.comp contDiff_snd
-  simpa [cutoffResolverCoeff, cutoffResolverTerm, mul_assoc] using hcoef_q.mul hcos_q
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
-```
-
-This is the closest analogue of `cutoffHeatTerm_contDiff_two` that still respects the fact that the resolver coefficient is not elementary.
-
-### 3. Can I decompose the resolver term like the heat term using `ContDiff.mul` and `fun_prop`?
-
-Yes, but only **after** you prove the scalar resolver coefficient is `ContDiff`.
-
-For the heat term, everything is elementary:
-
-```lean
-exp(-t * λ) * ahat * cosineMode k x
-```
-
-so `fun_prop` closes the term-level smoothness.
-
-For the resolver term, this part is not elementary:
-
-```lean
-resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
-```
-
-Lean will not unfold through:
-
-```text
-intervalNeumannResolverCoeff
-intervalNeumannResolverSourceCoeff
-cosineCoeffs
-interval integral
-Real.rpow of heat profile
-```
-
-and discover smoothness automatically. You need a lemma of this shape:
-
-```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.Paper2.IntervalMildPicardRegularity
-
-open Filter Topology MeasureTheory
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-open ShenWork.IntervalPhysicalResolverDataConcrete
-  (srcTimeCoeff resolverTimeCoeff_eq_weight_smul)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
-
-/-- Direct positive-time C² of the source coefficient, avoiding FlooredSourceTimeData. -/
-theorem heatLevel0_srcTimeCoeff_contDiffAt_two
+/-- Direct closure through the existing heat-level-0 `FlooredSourceTimeData` package. -/
+theorem heatLevel0_srcTimeCoeff_contDiffAt_two_via_floored
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
     {t : ℝ} (ht : 0 < t) (k : ℕ) :
     ContDiffAt ℝ (2 : ℕ∞)
       (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  -- Define direct heat source slices:
-  --   f₀ τ x = p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 τ) x ^ p.γ
-  --   f₁ τ x = p.ν * p.γ * heat(t,x)^(p.γ-1) * heatDu τ x
-  --   f₂ τ x = ... heatD2u ...
-  -- Pick δ > 0 with Metric.ball t δ ⊆ Ioi 0.
-  -- Prove:
-  --   HasDerivAt (fun r => f₀ r x) (f₁ s x) s for x∈Ioo, s∈ball
-  --   ContinuousOn (uncurry f₁) on slab
-  -- and apply cosineCoeffs_hasDerivAt_of_smooth_param.
-  -- Repeat f₁ -> f₂, then use coefficient continuity of f₂.
-  -- Finally assemble ContDiffAt ℝ 2.
-  sorry
-
-/-- Resolver coefficient C² follows by constant elliptic weight. -/
-theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    {t : ℝ} (ht : 0 < t) (k : ℕ) :
-    ContDiffAt ℝ (2 : ℕ∞)
-      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  have hsrc := heatLevel0_srcTimeCoeff_contDiffAt_two
-    (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont ht k
-  have hEq : resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k =
-      (fun t => ShenWork.PDE.intervalNeumannResolverWeight p k *
-        srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t) := by
-    funext t
-    exact resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k t
-  rw [hEq]
-  exact contDiffAt_const.mul hsrc
+  let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
+  let s₁ : ℝ → ℝ → ℝ := srcSlice1 p u (heatDu u₀)
+  let s₂ : ℝ → ℝ → ℝ := srcSlice2 p u (heatDu u₀) (heatD2u u₀)
+  have H : FlooredSourceTimeData p u s₁ s₂ := by
+    dsimp [u, s₁, s₂]
+    exact heatSemigroup_flooredSourceTimeData
+      (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont
+  simpa [u] using srcTimeCoeff_contDiffAt H k ht
 
 end ShenWork.Paper2.HeatResolverJointC2Direct
 ```
 
-Then `cutoffResolverCoeff_contDiff_two` is a localization wrapper around `heatLevel0_resolverTimeCoeff_contDiffAt_two`.
+That is the cleanest proof if your branch treats `heatSemigroup_flooredSourceTimeData` and `srcTimeCoeff_contDiffAt` as trusted/filled infrastructure.  If you want the local proof to visibly apply `cosineCoeffs_hasDerivAt_of_smooth_param`, use the skeleton below.
 
-## Recommended lemma stack
+## Explicit `HasDerivAt` proof for `srcTimeCoeff`
 
-Implement in this order.
-
-### Lemma 1: direct source coefficient `ContDiffAt` at positive time
-
-This is the real analytic core. It replaces the FSTD-dependent `srcTimeCoeff_contDiffAt`.
+This is the exact application of
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+cosineCoeffs_hasDerivAt_of_smooth_param
+```
+
+to the source slice `f₀ = srcSlice p u` and derivative slice `f₁ = srcSlice1 p u (heatDu u₀)`.
+
+```lean
+import ShenWork.Paper2.IntervalHeatResolverJointC2
+import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
+import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalDomainPositiveWindowK1OnEndpoint
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
 
 open MeasureTheory Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.IntervalPhysicalResolverDataConcrete (srcTimeCoeff)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete
+  (srcSlice FlooredSourceTimeData srcTimeCoeff_eq_cosineCoeffs)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
+open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+  (heatDu heatD2u heatSemigroup_flooredSourceTimeData)
 open ShenWork.IntervalMildPicardRegularity
   (cosineCoeffs_hasDerivAt_of_smooth_param)
 open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
@@ -301,205 +170,347 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatResolverJointC2Direct
 
-theorem heatLevel0_srcTimeCoeff_contDiffAt_two
+private abbrev heatLevel0U (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℝ → intervalDomainPoint → ℝ :=
+  conjugatePicardIter p u₀ 0
+
+private abbrev heatLevel0F₁ (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℝ → ℝ → ℝ :=
+  srcSlice1 p (heatLevel0U p u₀) (heatDu u₀)
+
+private abbrev heatLevel0F₂ (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
+    ℝ → ℝ → ℝ :=
+  srcSlice2 p (heatLevel0U p u₀) (heatDu u₀) (heatD2u u₀)
+
+/-- Source time-data package specialized to the heat semigroup base iterate. -/
+private theorem heatLevel0_flooredSourceTimeData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀) :
+    FlooredSourceTimeData p (heatLevel0U p u₀)
+      (heatLevel0F₁ p u₀) (heatLevel0F₂ p u₀) := by
+  simpa [heatLevel0U, heatLevel0F₁, heatLevel0F₂] using
+    heatSemigroup_flooredSourceTimeData
+      (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont
+
+/-- First application of `cosineCoeffs_hasDerivAt_of_smooth_param`:
+`d/dt srcTimeCoeff = cosineCoeffs f₁`. -/
+private theorem heatLevel0_srcTimeCoeff_hasDerivAt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    HasDerivAt
+      (srcTimeCoeff p (heatLevel0U p u₀) k)
+      (cosineCoeffs (heatLevel0F₁ p u₀ t) k)
+      t := by
+  classical
+  have H := heatLevel0_flooredSourceTimeData
+    (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont
+  obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d0 t ht
+
+  -- This is the `hf_int` argument requested in the question.
+  -- It comes from eventual `ContinuousOn` of the source slice in `H.d0`.
+  have hf_int : ∀ᶠ s in 𝓝 t,
+      IntervalIntegrable (srcSlice p (heatLevel0U p u₀) s)
+        volume (0 : ℝ) 1 := by
+    filter_upwards [hcont] with s hs
+    exact (hs.mono (by
+      rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
+
+  -- `hdiff` is exactly the `h_diff` argument requested:
+  --   ∀ x ∈ Ioo 0 1, ∀ s ∈ ball t δ,
+  --     HasDerivAt (fun r => srcSlice p u r x) (f₁ s x) s.
+  -- `hcd` is exactly the requested `h_cont_deriv`:
+  --   ContinuousOn (uncurry f₁) ((t-δ,t+δ) × [0,1]).
+  have hcoeff := cosineCoeffs_hasDerivAt_of_smooth_param
+    (f := srcSlice p (heatLevel0U p u₀))
+    (f' := heatLevel0F₁ p u₀)
+    (τ := t) (δ := δ) (n := k)
+    hδ hf_int hdiff hcd
+
+  have heq :
+      (fun s => cosineCoeffs (srcSlice p (heatLevel0U p u₀) s) k) =
+        srcTimeCoeff p (heatLevel0U p u₀) k := by
+    funext s
+    exact (srcTimeCoeff_eq_cosineCoeffs p (heatLevel0U p u₀) k s).symm
+  rw [heq] at hcoeff
+  exact hcoeff
+
+/-- Second application of `cosineCoeffs_hasDerivAt_of_smooth_param`:
+`d/dt cosineCoeffs f₁ = cosineCoeffs f₂`. -/
+private theorem heatLevel0_srcCoeff1_hasDerivAt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    HasDerivAt
+      (fun s => cosineCoeffs (heatLevel0F₁ p u₀ s) k)
+      (cosineCoeffs (heatLevel0F₂ p u₀ t) k)
+      t := by
+  classical
+  have H := heatLevel0_flooredSourceTimeData
+    (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont
+  obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d1 t ht
+
+  have hf_int : ∀ᶠ s in 𝓝 t,
+      IntervalIntegrable (heatLevel0F₁ p u₀ s) volume (0 : ℝ) 1 := by
+    filter_upwards [hcont] with s hs
+    exact (hs.mono (by
+      rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
+
+  exact cosineCoeffs_hasDerivAt_of_smooth_param
+    (f := heatLevel0F₁ p u₀)
+    (f' := heatLevel0F₂ p u₀)
+    (τ := t) (δ := δ) (n := k)
+    hδ hf_int hdiff hcd
+
+/-- Continuity of the second source-coefficient derivative. -/
+private theorem heatLevel0_srcCoeff2_continuousAt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    ContinuousAt (fun s => cosineCoeffs (heatLevel0F₂ p u₀ s) k) t := by
+  classical
+  have H := heatLevel0_flooredSourceTimeData
+    (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont
+  obtain ⟨δ, hδ, _hcont, _hdiff, hcd⟩ := H.d1 t ht
+
+  have hcont_on :=
+    cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+      (f := heatLevel0F₂ p u₀)
+      (c := t - δ) (T := t + δ) k hcd
+  have htmem : t ∈ Icc (t - δ) (t + δ) := by
+    constructor <;> linarith
+  have hsub : Icc (t - δ) (t + δ) ∈ 𝓝 t := by
+    apply Icc_mem_nhds <;> linarith
+  exact (hcont_on t htmem).continuousAt hsub
+
+/-- Pure calculus assembly lemma.  This is not heat-specific.
+
+Use `contDiffAt_succ_iff` / `ContDiffAt.deriv` style lemmas here.  I am leaving
+this as a hard sublemma because the question was specifically about the
+`cosineCoeffs_hasDerivAt_of_smooth_param` application. -/
+private theorem contDiffAt_two_of_hasDerivAt_chain
+    {f f₁ f₂ : ℝ → ℝ} {t : ℝ} {U : Set ℝ}
+    (hUopen : IsOpen U) (htU : t ∈ U)
+    (hf : ∀ s ∈ U, HasDerivAt f (f₁ s) s)
+    (hf₁ : ∀ s ∈ U, HasDerivAt f₁ (f₂ s) s)
+    (hf₂ : ContinuousOn f₂ U) :
+    ContDiffAt ℝ (2 : ℕ∞) f t := by
+  -- Standard route:
+  -- 1. Prove `ContDiffOn ℝ 1 f U` from `hf` and continuity of `f₁`.
+  -- 2. Prove `ContDiffOn ℝ 1 f₁ U` from `hf₁` and `hf₂`.
+  -- 3. Use `contDiffAt_succ_iff` twice, or a local `ContDiffOn` theorem.
+  -- For `ℝ → ℝ`, `HasDerivAt` can be converted to `HasFDerivAt` by `.hasFDerivAt`.
+  sorry
+
+/-- Local direct proof skeleton for the target theorem.
+
+The only hard sublemma left here is the generic calculus assembly lemma above.
+The two coefficient differentiations and the second-derivative continuity are
+shown explicitly. -/
+theorem heatLevel0_srcTimeCoeff_contDiffAt_two_skeleton
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
     {t : ℝ} (ht : 0 < t) (k : ℕ) :
     ContDiffAt ℝ (2 : ℕ∞)
       (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  sorry
+  let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
+  let f₁ : ℝ → ℝ := fun s => cosineCoeffs (srcSlice1 p u (heatDu u₀) s) k
+  let f₂ : ℝ → ℝ := fun s => cosineCoeffs (srcSlice2 p u (heatDu u₀) (heatD2u u₀) s) k
+
+  refine contDiffAt_two_of_hasDerivAt_chain
+    (f := srcTimeCoeff p u k) (f₁ := f₁) (f₂ := f₂)
+    (U := Ioi (0 : ℝ)) isOpen_Ioi ht ?_ ?_ ?_
+  · intro s hs
+    have hspos : 0 < s := hs
+    simpa [u, f₁, heatLevel0U, heatLevel0F₁] using
+      heatLevel0_srcTimeCoeff_hasDerivAt
+        (p := p) (u₀ := u₀) (M₀ := M₀)
+        hu₀_bound hu₀_cont hspos k
+  · intro s hs
+    have hspos : 0 < s := hs
+    simpa [u, f₁, f₂, heatLevel0U, heatLevel0F₁, heatLevel0F₂] using
+      heatLevel0_srcCoeff1_hasDerivAt
+        (p := p) (u₀ := u₀) (M₀ := M₀)
+        hu₀_bound hu₀_cont hspos k
+  · intro s hs
+    have hspos : 0 < s := hs
+    exact (by
+      simpa [u, f₂, heatLevel0U, heatLevel0F₂] using
+        (heatLevel0_srcCoeff2_continuousAt
+          (p := p) (u₀ := u₀) (M₀ := M₀)
+          hu₀_bound hu₀_cont hspos k)).continuousWithinAt
 
 end ShenWork.Paper2.HeatResolverJointC2Direct
 ```
 
-Inside this lemma, use:
+## Where each requested hypothesis comes from
+
+### `hf_int`
+
+For the first coefficient differentiation, `H.d0 t ht` supplies
+
+```lean
+hcont : ∀ᶠ s in 𝓝 t,
+  ContinuousOn (srcSlice p u s) (Icc (0:ℝ) 1)
+```
+
+where
+
+```lean
+H : FlooredSourceTimeData p u s₁ s₂
+```
+
+Then convert `ContinuousOn` on `[0,1]` to interval integrability exactly as in `IntervalPhysicalSourceTimeC2Concrete.lean`:
+
+```lean
+have hf_int : ∀ᶠ s in 𝓝 t,
+    IntervalIntegrable (srcSlice p u s) volume (0 : ℝ) 1 := by
+  filter_upwards [hcont] with s hs
+  exact (hs.mono (by
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
+```
+
+For the second differentiation, use `H.d1 t ht`, where the corresponding eventual continuity is for `s₁ s`, and the same conversion gives
+
+```lean
+IntervalIntegrable (s₁ s) volume 0 1.
+```
+
+### `h_diff`
+
+For the first differentiation, `H.d0 t ht` gives exactly:
+
+```lean
+∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball t δ,
+  HasDerivAt (fun r => srcSlice p u r x) (s₁ s x) s
+```
+
+For the second differentiation, `H.d1 t ht` gives exactly:
+
+```lean
+∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball t δ,
+  HasDerivAt (fun r => s₁ r x) (s₂ s x) s
+```
+
+Under the hood, the relevant generic chain-rule lemmas are in `IntervalFlooredSourceTimeDataIterate.lean`:
+
+```lean
+srcSlice1
+srcSlice2
+hasDerivAt_srcSlice
+hasDerivAt_srcSlice1
+flooredSourceTimeData_of_iterate
+```
+
+For your heat-level-0 case, the missing analytic content is the heat PDE identity
 
 ```text
-cosineCoeffs_hasDerivAt_of_smooth_param f₀ f₁
-cosineCoeffs_hasDerivAt_of_smooth_param f₁ f₂
-cosineCoeffs_continuousOn_of_jointContinuousOn_Icc f₂
+∂τ intervalDomainLift (conjugatePicardIter p u₀ 0 τ) x
+  = heatDu u₀ τ x
+  = ΔS(τ)u₀(x)
 ```
 
-and assemble via `contDiffAt_succ_iff` / a local helper patterned after the still-sorry `srcTimeCoeff_contDiffAt` in `IntervalPhysicalSourceTimeC2Concrete.lean`.
-
-### Lemma 2: resolver coefficient `ContDiffAt` from source coefficient `ContDiffAt`
-
-This should be short.
-
-```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-
-open ShenWork.IntervalPhysicalResolverDataConcrete
-  (srcTimeCoeff resolverTimeCoeff_eq_weight_smul)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
-
-theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    {t : ℝ} (ht : 0 < t) (k : ℕ) :
-    ContDiffAt ℝ (2 : ℕ∞)
-      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  have hsrc := heatLevel0_srcTimeCoeff_contDiffAt_two
-    (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont ht k
-  have hEq : resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k =
-      fun t => ShenWork.PDE.intervalNeumannResolverWeight p k *
-        srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t := by
-    funext t
-    exact resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k t
-  rw [hEq]
-  exact contDiffAt_const.mul hsrc
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
-```
-
-### Lemma 3: cutoff scalar coefficient is global `ContDiff`
-
-This is the clean localization wrapper.
-
-```lean
-import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
-
-open Filter Topology
-open ShenWork.IntervalResolverSpectralJointC2Cutoff
-  (smoothRightCutoff smoothRightCutoff_contDiff smoothRightCutoff_eventually_eq_one)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
-
-def cutoffResolverCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (c : ℝ) (k : ℕ) : ℝ → ℝ :=
-  fun t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t
-
-theorem cutoffResolverCoeff_contDiff_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀) (hc : 0 < c) (k : ℕ) :
-    ContDiff ℝ 2
-      (cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k) := by
-  -- Suggested proof structure:
-  -- rw [contDiff_iff_contDiffAt]
-  -- intro t
-  -- by_cases htpos : 0 < t
-  -- · product of smooth cutoff and heatLevel0_resolverTimeCoeff_contDiffAt_two htpos
-  -- · if t < c/2, cutoff is locally zero; use eventuallyEq to const 0
-  --   if t = c/2, then c/2 > 0, so use the positive-time coefficient lemma.
-  -- A slightly cleaner split is by `t < c / 2`, `t = c / 2`, `c / 2 < t`.
-  sorry
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
-```
-
-Important detail: because `c/2 > 0`, the boundary point `t = c/2` is still a positive time. So even though the cutoff begins to turn on there, the resolver coefficient is smooth in a neighborhood of that point. For `t < c/2`, the cutoff is locally zero, so no coefficient regularity is needed.
-
-### Lemma 4: the existing term theorem becomes mechanical
-
-Replace the current `cutoffResolverTerm_contDiff_two` body by a one-line product proof using the scalar lemma.
-
-```lean
-import ShenWork.Paper2.IntervalHeatResolverJointC2
-
-open Filter Topology
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-open ShenWork.CosineSpectrum (cosineMode)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
-
-theorem cutoffResolverTerm_contDiff_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    {c : ℝ} (hc : 0 < c) (k : ℕ) :
-    ContDiff ℝ 2 (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) := by
-  have hcoef : ContDiff ℝ 2
-      (cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k) :=
-    cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hc k
-  have hcoef_q : ContDiff ℝ 2 (fun q : ℝ × ℝ =>
-      cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k q.1) :=
-    hcoef.comp contDiff_fst
-  have hcos : ContDiff ℝ 2 (cosineMode k) := by
-    unfold cosineMode
-    fun_prop
-  have hcos_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => cosineMode k q.2) :=
-    hcos.comp contDiff_snd
-  simpa [cutoffResolverCoeff, cutoffResolverTerm, mul_assoc] using hcoef_q.mul hcos_q
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
-```
-
-This is exactly the heat proof’s product style, except the time coefficient smoothness is hidden behind `cutoffResolverCoeff_contDiff_two` instead of `fun_prop`.
-
-## Why not expand `resolverTimeCoeff` in `cutoffResolverTerm_contDiff_two`?
-
-Expanding it too early produces goals involving:
+and similarly
 
 ```text
-intervalNeumannResolverCoeff
-intervalNeumannResolverSourceCoeff
-Complex.re
-cosineCoeffs
-intervalIntegral
-Real.rpow
-intervalDomainLift (conjugatePicardIter p u₀ 0 t)
+∂τ heatDu u₀ τ x = heatD2u u₀ τ x = Δ²S(τ)u₀(x).
 ```
 
-all inside a two-variable product. That is the worst possible proof shape. The existing repo already separated the hard part into time-Leibniz lemmas for cosine coefficients; use that separation.
+The repo’s `IntervalHeatSemigroupFlooredSourceTimeData.lean` is exactly the intended location for those heat-specific obligations: its fields `d0` and `d1` are stated precisely in the shape consumed by `cosineCoeffs_hasDerivAt_of_smooth_param`.
 
-The correct abstraction boundary is:
-
-```text
-positive-time heat source coefficient is ContDiffAt ℝ 2 in t
-        ↓ constant resolver weight
-positive-time resolver coefficient is ContDiffAt ℝ 2 in t
-        ↓ smooth cutoff localization
-cutoff resolver scalar coefficient is global ContDiff ℝ 2 in t
-        ↓ product with cosineMode ∘ snd
-cutoff resolver term is global ContDiff ℝ 2 in (t,x)
-```
-
-## Concrete recommendation for `IntervalHeatResolverJointC2.lean`
-
-Add these helpers before the current `cutoffResolverTerm_contDiff_two`:
+The closest already-proved first-derivative analogue is in `IntervalPicardLevel0SourceTimeC1On.lean`:
 
 ```lean
--- 1. Direct positive-time source coefficient C².
-theorem heatLevel0_srcTimeCoeff_contDiffAt_two ... :
-  ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  sorry
-
--- 2. Direct positive-time resolver coefficient C².
-theorem heatLevel0_resolverTimeCoeff_contDiffAt_two ... :
-  ContDiffAt ℝ (2 : ℕ∞) (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  -- weight * source coefficient
-  ...
-
--- 3. Scalar cutoff resolver coefficient.
-def cutoffResolverCoeff ... :=
-  fun t => smoothRightCutoff (c/2) c t * resolverTimeCoeff p u k t
-
-theorem cutoffResolverCoeff_contDiff_two ... :
-  ContDiff ℝ 2 (cutoffResolverCoeff p (conjugatePicardIter p u₀ 0) c k) := by
-  sorry
+heatSlice_field_hasDerivWithinAt
+heatSourceDot_jointContinuousOn
+heatSourceCoeff_hasDerivWithinAt
 ```
 
-Then replace `cutoffResolverTerm_contDiff_two` with the product proof above.
+That file is for the logistic source, not the concrete `ν·u^γ` source, but the pattern is the same: prove the heat-slice time derivative first, chain through the nonlinear source, then apply the cosine-coefficient Leibniz lemma.
+
+### `h_cont_deriv`
+
+For the first differentiation, `H.d0 t ht` gives exactly:
+
+```lean
+ContinuousOn (Function.uncurry s₁)
+  (Icc (t - δ) (t + δ) ×ˢ Icc (0:ℝ) 1)
+```
+
+For the second differentiation, `H.d1 t ht` gives exactly:
+
+```lean
+ContinuousOn (Function.uncurry s₂)
+  (Icc (t - δ) (t + δ) ×ˢ Icc (0:ℝ) 1)
+```
+
+Then the continuity of the coefficient of `s₂` is supplied by
+
+```lean
+cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+```
+
+from `IntervalDomainPositiveWindowK1OnEndpoint.lean`, as shown in `heatLevel0_srcCoeff2_continuousAt` above.
+
+## Notes on `intervalDomainLift` and level 0
+
+`conjugatePicardIter` level 0 is definitionally the heat semigroup:
+
+```lean
+conjugatePicardIter p u₀ 0
+  = fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+```
+
+So when proving the heat PDE identity directly, the useful local rewrite on `x ∈ Icc 0 1` is essentially:
+
+```lean
+simp [intervalDomainLift, conjugatePicardIter, hx]
+```
+
+or, if you route through the older `picardIter` heat-slice lemmas, use the already-existing level-0 definitional equalities in `IntervalConjugateLevel0BFormSourceOn.lean` as the model.  The important point is that the time derivative should be proved for the heat representation and then transported through `srcSlice1`; do not try to make `fun_prop` discover this through `intervalDomainLift` and `intervalFullSemigroupOperator` automatically.
+
+## Recommended implementation order
+
+1. In `IntervalHeatSemigroupFlooredSourceTimeData.lean`, fill or expose the heat-specific `d0` field:
+   - local positive-time slab, e.g. choose `δ ≤ t / 2`,
+   - heat field derivative `HasDerivAt (fun r => intervalDomainLift (conjugatePicardIter p u₀ 0 r) x) (heatDu u₀ s x) s`,
+   - chain through `hasDerivAt_srcSlice`,
+   - prove joint continuity of `srcSlice1` from heat profile continuity, `heatDu` continuity, and positivity/floor.
+
+2. Fill or expose the `d1` field similarly:
+   - derivative of `heatDu` is `heatD2u`,
+   - chain through `hasDerivAt_srcSlice1`,
+   - prove joint continuity of `srcSlice2`.
+
+3. Use the `heatLevel0_srcTimeCoeff_hasDerivAt` and `heatLevel0_srcCoeff1_hasDerivAt` snippets above.  These are direct, low-risk applications of the existing cosine coefficient Leibniz theorem.
+
+4. Assemble `ContDiffAt ℝ 2` either by the public `srcTimeCoeff_contDiffAt H k ht` theorem or by a small generic calculus lemma like `contDiffAt_two_of_hasDerivAt_chain`.
 
 ## Bottom line
 
-There is no magic `fun_prop` path through `resolverTimeCoeff`. The proof should be layered.
+The formula for `f₁` is:
 
-Use the existing repo theorem `cosineCoeffs_hasDerivAt_of_smooth_param` to prove a scalar positive-time `ContDiffAt` theorem for the source coefficient, transfer it to `resolverTimeCoeff` by the constant elliptic weight, localize it with the smooth cutoff, and only then use `ContDiff.mul`/`fun_prop` for the elementary `(t,x)` product.
+```text
+ν·γ·(S(τ)u₀)^(γ-1)·ΔS(τ)u₀.
+```
 
-That is the cleanest Lean route and the closest faithful analogue of `cutoffHeatTerm_contDiff_two`.
+In Lean, use:
+
+```lean
+srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀)
+```
+
+The exact proof that applies `cosineCoeffs_hasDerivAt_of_smooth_param` is `heatLevel0_srcTimeCoeff_hasDerivAt` above.  Its three supplied arguments are not mysterious:
+
+```text
+hf_int        ← H.d0 eventual ContinuousOn, converted to IntervalIntegrable
+h_diff        ← H.d0 pointwise HasDerivAt field
+h_cont_deriv  ← H.d0 joint ContinuousOn field
+```
+
+and the second derivative layer is identical with `H.d1` and `srcSlice2`.
