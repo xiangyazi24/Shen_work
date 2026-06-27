@@ -192,7 +192,7 @@ theorem srcTimeCoeff_contDiffAt
       ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
       (fun s hs => (this hs).symm)))
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
-    contDiffOn_succ_of_fderivWithin hd0_on (by omega)
+    contDiffOn_succ_of_fderivWithin hd0_on (by nofun)
       (ContDiffOn.congr
         ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).contDiff.comp_contDiffOn h0)
         (fun s hs => by
