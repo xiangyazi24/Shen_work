@@ -123,6 +123,11 @@ theorem hasDerivAt_powerCoeff_of_inputs {p : CM2Params}
       HasDerivAt (fun r => p.ν * (intervalDomainLift (v r) x) ^ p.γ)
         (p.ν * p.γ * (intervalDomainLift (v s) x) ^ (p.γ - 1) * vdotL s x) s :=
     fun x hx s hs => hasDerivAt_powerLiftSlice (hslice x hx s hs) (hpos x hx s hs)
+  -- convert per-slice ContinuousOn to IntervalIntegrable for the engine
+  have hf_int : ∀ᶠ s in 𝓝 σ, IntervalIntegrable
+      (fun x => p.ν * (intervalDomainLift (v s) x) ^ p.γ) MeasureTheory.volume (0 : ℝ) 1 := by
+    filter_upwards [hf_cont] with s hs
+    exact hs.intervalIntegrable
   -- the engine's derivative target is `cosineCoeffs (f' σ) k = adotPow … σ k`.
   change HasDerivAt
       (fun r => cosineCoeffs
@@ -132,7 +137,7 @@ theorem hasDerivAt_powerCoeff_of_inputs {p : CM2Params}
   exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
     (f := fun r x => p.ν * (intervalDomainLift (v r) x) ^ p.γ)
     (f' := fun s x => p.ν * p.γ * (intervalDomainLift (v s) x) ^ (p.γ - 1) * vdotL s x)
-    (τ := σ) (n := k) hδ hf_cont h_diff hderivcont
+    (τ := σ) (n := k) hδ hf_int h_diff hderivcont
 
 /-! ### K1(i) instantiated at `realSlice u_star`.
 

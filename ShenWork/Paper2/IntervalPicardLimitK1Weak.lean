@@ -1195,6 +1195,11 @@ theorem hasDerivAt_sourceCoeff (k : ℕ) :
         (Set.Icc (0:ℝ) 1) := by
     refine Filter.eventually_of_mem (isOpen_Ioo.mem_nhds L.hσ_mem) (fun s hs => ?_)
     exact L.logisticSlice_continuousOn hs
+  have hf_int : ∀ᶠ s in 𝓝 σ, IntervalIntegrable
+      (logisticSourceFun p.a p.b p.α (intervalDomainLift (u s)))
+      MeasureTheory.volume (0:ℝ) 1 := by
+    filter_upwards [hf_cont] with s hs
+    exact hs.intervalIntegrable
   have h_diff : ∀ x ∈ Set.Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball σ δ,
       HasDerivAt (fun r => logisticSourceFun p.a p.b p.α (intervalDomainLift (u r)) x)
         (sourceDerivSlice p u s x) s := by
@@ -1206,7 +1211,7 @@ theorem hasDerivAt_sourceCoeff (k : ℕ) :
   have hmain := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
     (f := fun r => logisticSourceFun p.a p.b p.α (intervalDomainLift (u r)))
     (f' := sourceDerivSlice p u) (τ := σ) (n := k)
-    hδ hf_cont h_diff h_cont_deriv
+    hδ hf_int h_diff h_cont_deriv
   exact hmain
 
 end LocalRestartWeak

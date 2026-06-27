@@ -446,6 +446,10 @@ theorem logisticSource_adot_hasDerivAt
     apply ContinuousOn.sub continuousOn_const
     apply ContinuousOn.mul continuousOn_const
     exact ContinuousOn.rpow_const hgc (fun x hx => Or.inl (hpos' x hx))
+  -- convert per-slice ContinuousOn to IntervalIntegrable for the engine
+  have hf_int : ∀ᶠ s in 𝓝 σ, IntervalIntegrable (f s) MeasureTheory.volume (0 : ℝ) 1 := by
+    filter_upwards [hf_cont] with s hs
+    exact hs.intervalIntegrable
   -- (h_diff) pointwise HasDerivAt of f via the chain rule
   have h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball σ δ,
       HasDerivAt (fun r => f r x) (f' s x) s := by
@@ -494,7 +498,7 @@ theorem logisticSource_adot_hasDerivAt
       ((continuousOn_const).sub (continuousOn_const.mul hpowjoint))
   -- assemble via the time-Leibniz rule
   have hkey := cosineCoeffs_hasDerivAt_of_smooth_param (f := f) (f' := f')
-    (τ := σ) (δ := δ) (n := k) hδ hf_cont h_diff h_cont_deriv
+    (τ := σ) (δ := δ) (n := k) hδ hf_int h_diff h_cont_deriv
   simpa only [hfdef, hf'def] using hkey
 
 /-- The logistic derivative coefficient `L'(z) = a − b(1+α)z^α` is bounded by

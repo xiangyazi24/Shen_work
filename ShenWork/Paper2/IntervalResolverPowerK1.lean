@@ -177,6 +177,11 @@ theorem hasDerivAt_powerCoeff (k : ℕ) :
         (Set.Icc (0:ℝ) 1) := continuousOn_const.mul hpow
     refine hbody.congr (fun x hx => ?_)
     rw [L.lift_eq_valueSeries hs hx]
+  have hf_int : ∀ᶠ s in 𝓝 σ, IntervalIntegrable
+      (fun x => p.ν * (intervalDomainLift (u s) x) ^ p.γ)
+      MeasureTheory.volume (0:ℝ) 1 := by
+    filter_upwards [hf_cont] with s hs
+    exact hs.intervalIntegrable
   have h_diff : ∀ x ∈ Set.Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball σ δ,
       HasDerivAt (fun r => p.ν * (intervalDomainLift (u r) x) ^ p.γ)
         (resolverPowerDerivSlice p u s x) s := by
@@ -188,7 +193,7 @@ theorem hasDerivAt_powerCoeff (k : ℕ) :
   exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
     (f := fun r x => p.ν * (intervalDomainLift (u r) x) ^ p.γ)
     (f' := resolverPowerDerivSlice p u) (τ := σ) (n := k)
-    hδ hf_cont h_diff h_cont_deriv
+    hδ hf_int h_diff h_cont_deriv
 
 end ShenWork.Paper2.PicardLimitK1Weak.LocalRestartWeak
 
