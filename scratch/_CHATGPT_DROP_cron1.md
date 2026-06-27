@@ -1,4 +1,4 @@
-# Q1378 (cron1) — `--status cron-shen`
+# Q1379 (cron1) — `cron-shen2`
 
 Repository: `xiangyazi24/Shen_work`
 
@@ -12,209 +12,250 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Scope / method
 
-This is a **status-only git-drop** for the cron-shen workstream.  I used the GitHub connector only, as requested.
-
-No Python / code-interpreter / sandbox file was used.  No local or remote Lean build was run in this drop.  No production Lean source file was modified.
-
-Inspected repository-visible status artifacts:
+This is the second cron-shen status/dispatch drop.  The user prompt body was only:
 
 ```text
-DOCTRINE.md
-RUN_LOG.md
-THREE_PAPER_BOARD.md
-docs/CHECKLIST.md
-HANDOFF.md
-scratch/_CHATGPT_DROP_cron1.md
-scratch/_CHATGPT_DROP_cron2.md
-scratch/_CHATGPT_DROP_cron3.md
+Q1379 (cron1): cron-shen2
 ```
 
-The most current status source among these is `THREE_PAPER_BOARD.md`; `DOCTRINE.md` explicitly points to it as the live numbered board for the active run.  `HANDOFF.md` / `docs/CHECKLIST.md` are useful background, but parts of them are older than the later June 22–23 board entries.
+I found no repository hit for the literal token `cron-shen2`, so I interpret this as a follow-up to Q1378's `--status cron-shen`: update the cron-shen status report and sharpen the next actionable queue using the latest visible status artifacts.
 
-## Branch / repository status
+Delivery constraints respected:
 
-GitHub compare result for `main...chatgpt-scratch`:
+```text
+GitHub connector only.
+No Python / code-interpreter.
+No /mnt/data writes.
+No sandbox link.
+No Lean/source-code modifications.
+No local or remote lake build run by this drop.
+```
+
+Files/status artifacts inspected for this drop:
+
+```text
+scratch/_CHATGPT_DROP_cron1.md
+THREE_PAPER_BOARD.md
+```
+
+The new information below comes mostly from the later entries of `THREE_PAPER_BOARD.md`, especially the 2026-06-23 χ₀<0 and P1 orbit-admissible closure entries.  These supersede the coarser Q1378 status.
+
+## Branch status at drop time
+
+GitHub compare result for `main...chatgpt-scratch` at this drop:
 
 ```text
 status: diverged
-ahead_by: 277
-behind_by: 381
+ahead_by: 278
+behind_by: 382
 merge_base: 954c43ef4e696e78e5724f53b7ddab7c89be140a
-main/base commit: aac26705c0bb4249ae4bed950ed807336a000923
+main/base commit: 1a66ab08abbdef1370c8883e82795e76463c621a
 ```
 
-So `chatgpt-scratch` is an active scratch/status branch, not a branch currently aligned with `main`.
+So `chatgpt-scratch` remains an active scratch/status branch diverged from `main`.  This drop only overwrites this scratch markdown file.
 
-The previous `scratch/_CHATGPT_DROP_cron1.md` existed and recorded a prior missing-payload status for Q1359.  This drop overwrites it with the requested `--status cron-shen` report.
+## Important correction/refinement relative to Q1378
 
-## Executive status
+Q1378 correctly identified the global state as “not a sorry-closing phase”, but it under-sharpened the most recent board endpoint because the later `THREE_PAPER_BOARD.md` entries contain a more advanced reduction.
 
-The project is **not in a “close sorries” phase**.  The current board reports the codebase as sorry-free in the relevant sense, while the real remaining work is to discharge **conditional hypothesis bundles** so the paper headlines become unconditional and pass the playbook/vacuity audit.
-
-High-level state:
+The latest visible board says:
 
 ```text
-Paper 2, χ₀ = 0:     achieved as unconditional.
-Paper 2, χ₀ < 0:     conditional; main remaining engine is ChiNegDatumUniformConstruction.
-Paper 1:             conditional; Paper1MainResultsData still open.
-Paper 3:             partial/unconditional fragments exist; full T2.2 still conditional on frontier #8.
+P2 χ₀<0: reduced to a single carried input Hpersist; Hrestart is derived.
+P1 construction_neg: orbit-admissible closure is built; remaining bottom is the per-step RotheStepInput floor plus source endpoint data.
+P3: still cascades behind the P2/P1 frontier unless a narrow spectral/formula target is requested.
 ```
 
-The important correction from the board is that the remaining work is **not** merely syntactic Lean cleanup.  It is the genuine analytic discharge of named frontiers, with a strict rule that satisfiable carried bundles are acceptable only when honestly labeled; unsatisfiable/vacuous bundles must be rejected.
-
-## Current numbered frontier board
-
-The live numbered registry identifies the remaining / active atoms as follows.
-
-### Closed / banked core pieces
-
-From the June 22–23 board, the following important pieces are already banked and should not be re-opened unless a later build disproves them:
+Thus the live status should now be read as:
 
 ```text
-C1  H1-grad Neumann heat gradient t^{-1/2} bound.
-C2  UniformBootstrapStep mild-only step.
-C3  trajectory propagator + genv/glenv wiring + σ-ladder step.
-C4  conjugate hmap + per-τ k≠0 helpers.
-C5  four false fields fixed.
-C6  structure validated sound.
-C7  repo sorry-free status recorded.
-#6  P1 cStarStar_spec vacuity fixed by strict < → ≤ at the degenerate boundary.
-#1D denom/Nemytskii envelope closed.
-#1E gW membership + assembly closed.
-#1F DenomUniformEnvelope closed.
-P1 #4 several wrapper/assembly layers closed down to the irreducible non-diagonal per-step atoms.
+Paper 2 χ₀<0: all specialized machinery landed; one faithful local-persistence/X_E frontier remains.
+Paper 1 χ≤0 construction: admissible closure exists; remaining floor is per-step analytic input, not more wrapper construction.
+Paper 1 stability / positive branch: still real frontiers.
+Paper 3 T2.2: still conditional on fractional-power/P2 cascade.
 ```
 
-### Paper 2, χ₀ < 0 — main active engine
+## Paper 2 χ₀ < 0 — current live bottom
 
-Target headline dependency:
+The current target remains:
 
 ```text
 ChiNegDatumUniformConstruction p
 ```
 
-Current state:
+The latest board has now closed or assembled the previously named hard machinery:
 
 ```text
-#1 analytic denominator / flux-factor core: closed at the hard subatoms #1D/#1E/#1F.
-σ-ladder engine: assembled, but not fully unconditional.
-Remaining bottom:
-  (C2) mkBundle: σ-uniform TrajStepBridges family.
-  (C1) τ-uniform base TrajectoryHSigmaEnvelope σ₀ > 1/2.
-  #3  per-τ ∀k fields at the joint-continuity interface, including k = 0 mode.
+✓ chemDuhamel_uniform_strict
+✓ base-E continuation
+✓ hdecomp/Hrestart algebraic restart
+✓ bridges / CarrySeam / mixed bridge
+✓ ladder / MemHSigma machinery
+✓ hvnn route reduced to/through Neumann resolver positivity infrastructure
+✓ k = 0 false hzero removed and replaced by direct mean control
+✓ C²-via-resolver / denominator envelope / flux envelope machinery
+```
+
+The current χ₀<0 residual is a single carried input:
+
+```text
+Hpersist:
+  |e^{−ρλ_k} u(r)_k| + |flLeg ρ k| ≤ (1 − |χ₀| δ) * Estar k
 ```
 
 Interpretation:
 
-The denominator-envelope analytic core is no longer the blocker.  The bottom has shifted to the time-continuation / trajectory-envelope closure plus the remaining per-τ seam/interface wiring.  This is still genuine PDE work, not a Mathlib naming issue.
+`Hpersist` is the local-persistence / inflated-envelope margin in the `X_E` envelope lattice.  The board explicitly identifies it with the remaining local existence frontier in the universal Thm11 framework.  It is not the old circular all-τ domination `hEdom`: the non-circular baseTrajectoryEnvelope producer was landed and signature-verified to carry only short-time persistence, base-at-zero, and continuity inputs.
 
-Recommended next dispatch for χ₀ < 0:
+What **not** to do next:
 
 ```text
-1. Wire the σ-uniform TrajStepBridges family from already-landed fixed-σ fields.
-2. Attack the τ-uniform base TrajectoryHSigmaEnvelope σ₀ > 1/2 continuation closure.
-3. Close the #3 k=0 / per-τ joint-continuity fields.
-4. Only then claim ChiNegDatumUniformConstruction.
+Do not revive the rejected circular base-E producer carrying hEdom = conclusion.
+Do not chase false mean-conservation hzero for k=0; mean evolves because of the logistic source.
+Do not claim χ₀<0 unconditional until Hpersist is discharged or explicitly carried as the faithful local-existence frontier.
 ```
 
-Do **not** reintroduce the circular base-envelope producer pattern where `hEdom` is assumed to build the flux envelope and then re-derived.  The board explicitly rejected that as circular.
-
-### Paper 1 — traveling-wave existence
-
-Target headline dependency:
+Best next cron-shen dispatch for χ₀<0:
 
 ```text
-Paper1MainResultsData cStarStarFn
+Target: discharge Hpersist in the X_E envelope lattice.
+
+Route:
+1. Define/use the EnvOrderBox / X_E metric structure from cron1_q6 route.
+2. Reuse aeae3ec5's chem-leg strictness; do not reprove it.
+3. Prove heat + logistic legs preserve the inflated envelope margin.
+4. Package these as ContractingWith / local-persistence in X_E.
+5. Feed the resulting Hpersist into baseEnvelope_of_residualSupply.
+6. Conclude ChiNegDatumUniformConstruction only after the final bundle is consumed and axiom-checked.
 ```
 
-Current state:
+Expected status if successful:
 
 ```text
-#6 cStarStar_spec: resolved/fixed; no longer a vacuity blocker.
-#4 construction_neg: reduced to irreducible per-step non-diagonal crossSource analysis.
-#5 construction_pos: mirrors #4, sign-agnostic.
-#7 stability: full weighted orbital stability remains open.
+P2 χ₀<0 becomes unconditional modulo only the standard global CMParams hypotheses.
 ```
 
-Current irreducible #4 bottom:
+## Paper 1 χ≤0 — construction_neg current live bottom
+
+The latest board says the orbit-admissible closure is built:
 
 ```text
-#4-A  RotheStepFluxData_of_trap:
-      the ~14-field whole-line integrability / decay / folding package behind
-      crossStepSelfMap_apply_eq_crossImplicitMap.
+admissible_closure :
+  AdmissibleZ u Z →
+  Σ' W, RotheStepOutput u Z W ×' AdmissibleZ u W
+```
 
-#4-B  crossSource_antitone_of_lowerPinned_orbit plus source identity hR:
-      non-diagonal antitone/source identity for distinct u, Z, W.
+The board records this as verified/axiom-clean at commit `56c7666`, with the delicate `1 < m < 2` weighted-slope cancellation derived rather than carried.
 
-#4-C  per-step crossSource_tendsto_atBot / atTop for distinct u, Z, W:
-      only diagonal versions are already landed.
+The new bottom is no longer “build another orbit wrapper”.  The remaining carried items are:
 
-#4-D  remaining at-max / range / chem / antitone elliptic regularity packets.
+```text
+hin  : RotheStepInput
+hsrc : Green source endpoint limits / source datum
 ```
 
 Interpretation:
 
-Stop adding more wrapper structures around `RotheFloorResidual`, `RotheFloorStepData`, or `RotheFloorOrbitDataResidual`.  The board already diagnosed this as repackaging.  The next useful work is to attack the four named non-diagonal analytic atoms directly.
+The formal recursion over the strengthened admissible class is now available.  The real obstruction is the per-step analytic floor that produces `RotheStepInput` and the source endpoint data.  This is the same class of local-Cauchy/per-step frontier as χ₀<0's `Hpersist`, not a syntactic assembly gap.
 
-Recommended next dispatch for P1:
+What **not** to do next:
 
 ```text
-1. Target #4-A through the WaveStepFluxId / crossStepSelfMap_apply_eq_crossImplicitMap path.
-2. In parallel, prove #4-B source identity/antitone; first audit whether hR is definitional/rfl.
-3. Then #4-C distinct-triple endpoint limits.
-4. Then #4-D regularity/range/chem packets.
-5. Keep #7 orbital stability separate; it is a genuinely hard later frontier.
+Do not add another `...Residual_of_data` or `...of_trap` wrapper.
+Do not chase the globally false pointwise RotheChemoMonotoneResidual route as the primary route.
+Do not treat the kinked upper barrier Ū as globally C²; the admissible class was strengthened exactly to avoid that false requirement.
 ```
 
-### Paper 3 — long-time dynamics
-
-Current state:
+Best next cron-shen dispatch for P1 construction_neg:
 
 ```text
-P3 T10 / nonpositive sensitivity positive-equilibrium stability: likely unconditional according to the board, but marked “confirm”.
-P3 full Theorem 2.2: conditional on #8, the fractional-power-embedding frontier.
+Target: discharge the per-step RotheStepInput floor for the strengthened admissible class.
+
+Route:
+1. Work directly at the `RotheStepInput` producer interface.
+2. Use the already built `admissible_closure`; do not rebuild closure invariants.
+3. Prove/source the Green endpoint limits `hsrc` for the trapped bounded continuous source.
+4. Feed `hin + hsrc` into the existing recursion and construction_neg route.
+5. Keep positive branch #5 separate but exploit sign-agnostic parts after #4 is stable.
 ```
 
-Recommended next dispatch for P3:
+Expected status if successful:
 
 ```text
-Do not prioritize #8 before the Paper 2 χ₀≤0 boundedness story is stable.
-Treat #8 as cascading from P2, unless a narrow spectral/formula subtarget is explicitly requested.
+P1 construction_neg moves from faithful-conditional to fully discharged, modulo later stability/right-tail/positive-branch fronts tracked separately.
 ```
 
-## Relation to recent cron scratch drops
+## Paper 1 remaining beyond construction_neg
 
-The current cron scratch files are route/status drops, not production changes.
+Even if the per-step floor closes, Paper 1 is not globally done.  The live board still leaves:
 
 ```text
-scratch/_CHATGPT_DROP_cron2.md
+#5 construction_pos — mirrors #4 with sign changes/sign-agnostic reuse.
+#7 stability — weighted orbital stability of traveling waves, genuinely hard.
 ```
 
-contains the Q1336 gradient-joint-ContDiff audit.  Its conclusion is that the current `ContDiffAt ℝ 2` spatial-gradient theorem cannot be obtained by differentiating the value `ContDiffAt ℝ 2` theorem; that route loses one derivative.  The correct route is a direct gradient-series/cutoff proof using the bounded-weight gradient infrastructure.
+The old `#6 cStarStar_spec` vacuity issue is resolved: strict `<` was refactored to `≤` at the degenerate boundary, with satisfiability proved by the board's report.  Do not reopen #6 unless a later build/audit contradicts it.
+
+## Paper 3 current status
+
+Current practical status:
 
 ```text
-scratch/_CHATGPT_DROP_cron3.md
+P3 T10 / nonpositive sensitivity positive-equilibrium stability: likely already unconditional, but still marked confirm in the board.
+P3 full T2.2: conditional on #8 fractional-power-embedding frontier.
 ```
 
-contains the Q1331 cutoff-resolver-majorant audit.  Its conclusion is that the majorant must be a finite Leibniz convolution of cutoff-derivative bounds with the existing bounded-weight joint majorant based on `builtEs H`; a collapsed eigenvalue-power majorant loses the necessary cancellation.
-
-Those two route drops are relevant for Paper-2 regularity plumbing, but they do not by themselves change the global board status above.
-
-## Practical next action list
-
-If the next job is to push cron-shen toward headline closure, the highest-value queue is:
+Best next action:
 
 ```text
-A. P2 χ₀<0:
-   close C2 TrajStepBridges mkBundle, then C1 base trajectory-envelope continuation, then #3 k=0/per-τ interface.
+Do not prioritize broad P3 T2.2 before P2 χ₀<0 and P1 construction are cleaner.
+If a P3 task is needed, choose a narrow confirmation target:
+  - confirm #print axioms for T10, or
+  - isolate one fractional-power embedding lemma behind #8.
+```
 
-B. P1:
-   attack RotheFloorOrbitDataResidual directly via #4-A/#4-B/#4-C/#4-D; avoid another wrapper layer.
+## Updated priority queue
 
-C. P3:
-   keep #8 queued behind the P2 boundedness pipeline unless the requested task is a narrow spectral/formula lemma.
+Use this queue for the next cron-shen dispatches:
+
+```text
+Priority 1 — P2 χ₀<0:
+  Discharge Hpersist via X_E EnvOrderBox / ContractingWith local persistence.
+
+Priority 2 — P1 construction_neg:
+  Discharge RotheStepInput + hsrc for the strengthened AdmissibleZ orbit.
+
+Priority 3 — P1 construction_pos:
+  Mirror the sign-agnostic construction machinery after Priority 2 stabilizes.
+
+Priority 4 — P3:
+  Confirm T10 axioms or isolate #8; do not make it the main campaign until P2/P1 local frontiers are resolved.
+```
+
+## Concrete handoff prompt for the next worker
+
+A concise next-worker prompt should be one of these, depending on which lane is chosen.
+
+For χ₀<0:
+
+```text
+Read THREE_PAPER_BOARD.md latest 2026-06-23 entries.  Target the single remaining χ₀<0 input Hpersist in the X_E envelope lattice.  Reuse chemDuhamel_uniform_strict and the landed base-E/Hrestart/bridge/lattice machinery.  Do not carry hEdom or false k=0 mean conservation.  Produce the ContractingWith / EnvOrderBox local-persistence lemma that feeds baseEnvelope_of_residualSupply, then wire it into ChiNegDatumUniformConstruction.  Acceptance: full relevant lake build + #print axioms clean; no new carried conclusion-equivalent fields.
+```
+
+For P1 construction_neg:
+
+```text
+Read THREE_PAPER_BOARD.md latest P1 2026-06-23 entries.  Use the verified admissible_closure for strengthened AdmissibleZ.  Target the remaining per-step inputs hin : RotheStepInput and hsrc : Green source endpoint limits.  Work directly at the RotheStepInput producer interface; do not add wrapper residual layers and do not rely on the false pointwise RotheChemoMonotoneResidual route.  Acceptance: construction_neg consumes the per-step floor through the live producer, with full relevant lake build + #print axioms clean.
+```
+
+## Final status sentence
+
+The current cron-shen state is:
+
+```text
+The repo is in a faithful-conditional frontier phase, not a sorry-closing phase.  P2 χ₀<0 has been narrowed to Hpersist, and P1 construction_neg has been narrowed to RotheStepInput+hsrc after admissible_closure.  The next useful work is to discharge those two local/per-step Cauchy-frontier inputs, not to add new wrappers or re-audit already closed denominator/bridge/mean fixes.
 ```
 
 ## Delivery note
 
-This drop only updates `scratch/_CHATGPT_DROP_cron1.md` on `chatgpt-scratch`.  It intentionally does not modify Lean files or claim any new build/audit result.
+This commit only updates `scratch/_CHATGPT_DROP_cron1.md` on `chatgpt-scratch`.  It does not modify Lean source and does not claim any new build result.
