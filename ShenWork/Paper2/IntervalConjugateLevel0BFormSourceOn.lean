@@ -1105,13 +1105,56 @@ theorem level0_chemDiv_timeDerivData
             unitIntervalCosineMode_eq_cosineMode,
             heatCoeff]
           congr 1; ext k; ring
+      -- (d) 1 + v > 0 at (r, x) [SUB-SORRY 3E: filled here]
+      have hbase : 0 < 1 + intervalDomainLift
+          (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r) x := by
+        have hx_Icc : x ∈ Set.Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hx
+        -- r-slice continuity: S(r)u₀ is continuous in x' (r > 0)
+        have h_r_cont : Continuous (conjugatePicardIter p u₀ 0 r) := by
+          simp only [conjugatePicardIter]
+          have hLift_meas : AEStronglyMeasurable (intervalDomainLift u₀)
+              (intervalMeasure 1) :=
+            ShenWork.IntervalDuhamelIntegrability
+              .intervalDomainLift_aestronglyMeasurable_of_continuous _hu₀_cont
+          have hLift_bdd : ∃ M' : ℝ, 0 ≤ M' ∧ ∀ y, |intervalDomainLift u₀ y| ≤ M' :=
+            sorry -- [3E-bdd: u₀ continuous on compact intervalDomainPoint →
+                  --  bounded range; needs haveI CompactSpace + isCompact_range.bddAbove]
+          obtain ⟨M', hM'_nn, hM'_bdd⟩ := hLift_bdd
+          exact (ShenWork.IntervalDuhamelIntegrability
+              .intervalFullSemigroupOperator_continuous_of_bounded
+              hr_pos' hM'_nn hM'_bdd hLift_meas).comp continuous_subtype_val
+        -- r-slice nonnegativity: 0 ≤ S(r)u₀(x') (needs u₀ ≥ 0)
+        have h_r_nonneg : ∀ x' : intervalDomainPoint, 0 ≤ conjugatePicardIter p u₀ 0 r x' := by
+          intro x'
+          simp only [conjugatePicardIter]
+          apply ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg hr_pos'
+          intro y
+          unfold intervalDomainLift
+          split_ifs with hy
+          · sorry -- [3E-nonneg: need 0 ≤ u₀ ⟨y,hy⟩;
+                  --  available when outer caller has PositiveInitialDatum or u₀ ≥ 0]
+          · norm_num
+        -- resolver of a nonneg continuous slice is nonneg
+        have h_resolver_nonneg :
+            0 ≤ coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r ⟨x, hx_Icc⟩ :=
+          ShenWork.IntervalCoupledRegularityBootstrap.coupledChemical_nonneg (p := p)
+            (T := 1) (u := fun _ => conjugatePicardIter p u₀ 0 r)
+            (fun _ _ _ => h_r_nonneg) (fun _ _ _ => h_r_cont)
+            (by norm_num : 0 < (1 / 2 : ℝ))
+            (by norm_num : (1 / 2 : ℝ) < 1)
+            ⟨x, hx_Icc⟩
+        -- intervalDomainLift at hx_Icc evaluates to the subtype value
+        rw [show intervalDomainLift (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r) x
+            = coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r ⟨x, hx_Icc⟩
+            from by unfold intervalDomainLift; exact dif_pos hx_Icc]
+        linarith [h_resolver_nonneg]
       sorry -- [SORRY 3C+3D+3F: chain rule HasDerivAt.
              --  Heat semigroup u joint C² is PROVED above (_hu_c2_bridged).
+             --  3E positivity (hbase) is PROVED above.
              --  Blocked on:
              --    3C — resolver v joint C² (restart cutoff infrastructure)
              --    3D — resolver ∇v joint C² (same)
-             --    3F — flux time fderiv bridge (resolver inner commute)
-             --  Positivity (3E) is provable from _hpos + continuity.]
+             --    3F — flux time fderiv bridge (resolver inner commute)]
     · -- Field 3: ContinuousOn of time derivative on closed slab.
       -- Needs resolver time-derivative closed-slab representative.
       sorry -- [SORRY 3G: time-derivative joint continuity on slab.
