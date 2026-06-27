@@ -1100,9 +1100,46 @@ theorem level0_chemDiv_timeDerivData
       have hV_pos : ∀ x, (0 : ℝ) < 1 + V_cos x := by
         apply IntervalResolverHighRegularity.intervalResolverLiftR_one_add_pos_of_nonneg_on_Icc
         intro x hx
-        sorry -- [KNOWN GAP: resolver nonnegativity on [0,1] at time r.
-               --  Same infrastructure as lines 591-690; needs
-               --  intervalNeumannResolverR_nonneg_of_nonneg_source.]
+        -- Bridge: intervalResolverLiftR = intervalNeumannResolverR on [0,1]
+        have hLR : intervalResolverLiftR p (conjugatePicardIter p u₀ 0 r) x =
+            intervalNeumannResolverR p (conjugatePicardIter p u₀ 0 r) ⟨x, hx⟩ := by
+          unfold intervalResolverLiftR intervalNeumannResolverR
+          exact tsum_congr (fun k => by rw [unitIntervalCosineMode_eq_cosineMode])
+        rw [hLR]
+        -- Resolver nonneg from nonneg source (same chain as lines 590-691)
+        set w := conjugatePicardIter p u₀ 0 r
+        have hw_nonneg : ∀ z : intervalDomainPoint, 0 ≤ w z := by
+          intro z; simp only [w, conjugatePicardIter]
+          apply ShenWork.IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg hr_pos'
+          intro y; unfold intervalDomainLift; split_ifs with hy
+          · exact _hu₀_nonneg ⟨y, hy⟩
+          · norm_num
+        have hw_cont : Continuous w := by
+          have hrestr : Set.restrict (Icc (0 : ℝ) 1) (intervalDomainLift w) =
+              (fun z : ↥(Icc (0 : ℝ) 1) => w ⟨z.1, z.2⟩) := by
+            funext ⟨z, hz⟩; show intervalDomainLift w z = w ⟨z, hz⟩
+            rw [intervalDomainLift, dif_pos hz]
+          have hcont_on := hU_C4.continuous.continuousOn.congr
+            (fun y hy => (hU_agree y hy).symm)
+          rw [← continuousOn_iff_continuous_restrict] at hcont_on
+          sorry -- [continuity of w from ContinuousOn of lift — mechanical]
+        set clip : ℝ → intervalDomainPoint := fun z =>
+          ⟨max 0 (min z 1), le_max_left 0 _, max_le (by norm_num) (min_le_right z 1)⟩
+        have hclip_cont : Continuous clip :=
+          Continuous.subtype_mk (continuous_const.max (continuous_id.min continuous_const)) _
+        have hcont_src : Continuous (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) :=
+          sorry -- [continuous_const.mul (hw_cont.rpow_const ...)]
+        set f : ℝ → ℝ := (fun z : intervalDomainPoint => p.ν * (w z) ^ p.γ) ∘ clip
+        have hf_cont : Continuous f := sorry -- hcont_src.comp hclip_cont
+        have hf_nonneg : ∀ z, 0 ≤ f z := fun z =>
+          mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+        have hf_coeff : ∀ k, cosineCoeffs f k =
+            (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re := by
+          sorry -- [cosineCoeffs_congr_on_Icc, same as lines 611-625]
+        have hâ : Summable (fun k => (cosineCoeffs f k) ^ 2) := by
+          sorry -- [resolverSourceCoeff_re_sq_summable_of_continuousOn]
+        exact ShenWork.IntervalResolverPositivity.intervalNeumannResolverR_nonneg_of_nonneg_source
+          hf_cont hf_nonneg hf_coeff hâ ⟨x, hx⟩
       -- ── Flux C³ → deriv(flux) continuous → IntervalIntegrable ──
       have hint_F : IntervalIntegrable
           (deriv (ChemDivSpatialC2.chemFluxFun p.β U_cos V_cos))
