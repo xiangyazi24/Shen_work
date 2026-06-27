@@ -1,13 +1,3 @@
-noncomputable def localRestartCoeff
-    (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (τ : ℝ) (n : ℕ) : ℝ :=
-  Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n +
-    duhamelSpectralCoeff a τ n
-```
-```lean
-noncomputable def duhamelSpectralCoeff (a : ℝ → ℕ → ℝ) (t : ℝ) (n : ℕ) : ℝ :=
-  ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * a s n
-```
-```lean
 import ShenWork.PDE.IntervalSourceCoefficientTimeC1
 import Mathlib.Analysis.Calculus.ParametricIntegral
 import Mathlib.Tactic
@@ -128,10 +118,3 @@ theorem localRestartCoeff_variation_of_constants
   ring
 
 end ShenWork.Paper2.RestartVariationOfConstants
-```
-```lean
-(hc_deriv : ∀ t : ℝ, HasDerivAt c (deriv c t) t)
-(hc_deriv_cont : Continuous (fun t : ℝ => deriv c t))
-```
-```lean
-fun s _ : ℕ => deriv c (η + s) + unitIntervalCosineEigenvalue n * c (η + s)
