@@ -235,8 +235,8 @@ theorem heatResolver_jointContDiffAt_two
       ∑' k : ℕ, resolverTerm p (conjugatePicardIter p u₀ 0) k q) := by
     filter_upwards [hmem] with q hq
     exact resolverSeries_eq_lift_on_interior (Set.Ioo_subset_Icc_self hq)
-  -- Chain: lift =ᶠ resolver series =ᶠ cutoff series, and cutoff series is C²
-  exact hCutoff.congr_of_eventuallyEq (hEqCutoff.symm.trans hEqLift).symm
+  -- Chain: cutoff series =ᶠ resolver series =ᶠ lift
+  exact hCutoff.congr_of_eventuallyEq (hEqCutoff.symm.trans hEqLift.symm)
 
 /-- **Joint `ContDiffAt ℝ 2`** of the spatial derivative `∂ₓ v` of the resolver
 coupled concentration at the heat semigroup base iterate.
