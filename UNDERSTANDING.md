@@ -1,10 +1,35 @@
-# UNDERSTANDING.md — Shen_work (2026-06-25 update)
+# UNDERSTANDING.md — Shen_work (2026-06-27 update)
 
-## CURRENT STATE (2026-06-26 night session, automode)
+## CURRENT STATE (2026-06-27 session)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
 Paper 2 χ₀<0: Level0 **5 sorry** + Tower 5 sorry = **10 total**.
-Session progress: Level0 15 sorry → 5 sorry (10 eliminated via architectural fix).
+
+### 2026-06-27 session progress:
+- **3E-bdd filled** (b661bcd): intervalDomainLift u₀ bounded from Continuous u₀ on compact
+- **3E-nonneg filled** (388ca89): added hu₀_nonneg hypothesis, propagated to callers
+- **cutoffResolverTerm_contDiff_two decomposed** (7bb2f45): 4-layer structure —
+  srcTimeCoeff ContDiffAt → resolverTimeCoeff ContDiffAt → cutoff global C² → (t,x) C²
+  Single remaining sorry: heatLevel0_srcTimeCoeff_contDiffAt_two
+- Level0: 7 → 5 sorry (3E-bdd and 3E-nonneg eliminated)
+- ChatGPT Q1116-Q1122: resolver C² strategy, eigenvalue summability route, hu₀_nonneg design
+- IntervalHeatResolverJointC2.lean: build-verified on uisai2 (axioms: propext/sorryAx/choice/sound)
+
+### Per-sorry status (Level0, 5 remaining):
+| Sorry | Line | Route | Status |
+|-------|------|-------|--------|
+| 1A (secondDeriv uniform bound) | 755 | joint C² on closed slab + compactness | BLOCKED on resolver C² |
+| 2A-sup (uniform sup bound) | 893 | smooth representative + compactness | BLOCKED on resolver C² |
+| eigenvalue summability | 1086 | depth-2 NeumannTower for ν·(S(r)u₀)^γ | ChatGPT route ready (Q1119) |
+| resolver nonneg | 1101 | need S(r)u₀ ≥ 0 → source nonneg → resolver nonneg | needs hu₀_nonneg (same as 3E) |
+| 3C+3D+3F (chain rule) | 1253 | direct resolver C² + inner commute | BLOCKED on resolver C² |
+| 3G (time-deriv continuity) | 1262 | Level0HeatMixedRepr scaffold | separate path |
+
+### Key blocker: heatLevel0_srcTimeCoeff_contDiffAt_two
+The single deep analytic sorry: prove srcTimeCoeff is ContDiffAt ℝ 2 at positive time.
+Route (from Q1116): apply cosineCoeffs_hasDerivAt_of_smooth_param twice to
+f₀(τ,x) = ν·(S(τ)u₀)^γ, then cosineCoeffs_continuousOn_of_jointContinuousOn for f₂.
+Waiting for ChatGPT Q1122 (cron1) to deliver the proof skeleton.
 
 ### What this session did (8 commits):
 1. **F1 upstream weakening** (c2dfd86, e766768): ContinuousOn → IntervalIntegrable
