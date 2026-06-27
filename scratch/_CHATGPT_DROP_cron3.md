@@ -1,280 +1,387 @@
-# Q1096 (cron3): Is `IteratePicardJointC2Data` trivial for heat Level0?
+# Q1102 (cron3): 3G without `IteratePicardJointC2Data`?
 
 ## Verdict
 
-No — not as currently typed.
-
-`IteratePicardJointC2Data` is **not** merely “`u` has joint `C²` plus a summable majorant.” It is a stronger, coefficient-level package that *implies* joint `C²` via `iterate_lift_jointContDiffAt_two`. It requires:
-
-1. exact cosine-series reconstruction of the lifted iterate slice;
-2. a chosen coefficient family `c k t` that is globally `ContDiff ℝ 2` in `t`;
-3. global-in-time coefficient derivative bounds `Bt i k`;
-4. summability of the bounded-weight joint majorants built from those `Bt`.
-
-For heat Level0, a **positive-time/windowed analogue** is very natural and should be easy from the explicit heat coefficients and heat kernel exponential summability. But the current global structure is not trivially inhabited for `u = conjugatePicardIter p u₀ 0`.
-
-The main reason: the natural heat coefficients
+Yes, the alternative route is viable, and the repo already contains a Level0-specific scaffold for exactly this approach:
 
 ```lean
-c k t = Real.exp (-t * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k
+ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0
 ```
 
-are smooth in `t`, but their global-in-time bounds fail as `t → -∞`, and the exact reconstruction is only available/true in the current infrastructure at positive time. The theorem `heatSemigroup_jointContDiffAt_two` gives only a local positive-time `ContDiffAt` result for the **summed series**; it does not produce the coefficient-level fields required by `IteratePicardJointC2Data`.
+in
 
-## The structure definition
-
-From `ShenWork/PDE/IntervalIteratePicardJointC2.lean`:
-
-```lean
-structure IteratePicardJointC2Data
-    (u : ℝ → intervalDomainPoint → ℝ) (c : ℕ → ℝ → ℝ) (Bt : ℕ → ℕ → ℝ) : Prop where
-  /-- The iterate slice equals its cosine series on `[0,1]`. -/
-  lift_eq_series : ∀ {t x : ℝ}, x ∈ Icc (0 : ℝ) 1 →
-    intervalDomainLift (u t) x = ∑' k : ℕ, c k t * cosineMode k x
-  /-- Each coefficient is `C²` in time (the honest iterate time-`C²` leg). -/
-  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (c k)
-  /-- Three-time-order coefficient bounds. -/
-  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
-  /-- The bounded-weight VALUE joint majorant is summable (orders `0,1,2`). -/
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant Bt m)
+```text
+ShenWork/Paper2/IntervalLevel0HeatMixedRepr.lean
 ```
 
-It is then consumed by:
+This route avoids constructing `IteratePicardJointC2Data` for heat Level0. It instead builds the 3G object directly:
 
 ```lean
-theorem iterate_lift_jointContDiffAt_two
-    (H : IteratePicardJointC2Data u c Bt) (hx : x ∈ Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
+ChemDivMixedTimeDerivClosedRepr p (conjugatePicardIter p u₀ 0) τ δ
 ```
 
-and by the slab version:
+by supplying a `ChemDivMixedReprData` bundle to:
 
 ```lean
-theorem iterate_hu_c2_slab
-    (H : IteratePicardJointC2Data u c Bt) :
-    ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, x)
+ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data
 ```
 
-So the data structure is upstream of joint `C²`; it is not a consequence of the joint `C²` theorem.
-
-## Natural heat Level0 choice of `c`
-
-For heat Level0,
+Then the existing theorem
 
 ```lean
-u := conjugatePicardIter p u₀ 0
+ShenWork.IntervalCoupledRegularityBootstrap.chemDivMixedTimeDeriv_jointContinuousOn_closed
 ```
 
-and `conjugatePicardIter` is definitionally:
+turns that representative into the desired closed-slab `ContinuousOn` of:
 
 ```lean
-conjugatePicardIter p u₀ 0 =
-  fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+Function.uncurry (coupledChemDivTimeDerivativeLift p u)
 ```
 
-The natural coefficient family is:
+So the answer is: **yes, prove 3G by direct representative construction, not through `IteratePicardJointC2Data`.**
+
+## Why this avoids `IteratePicardJointC2Data`
+
+The current `IteratePicardJointC2Data` route exists to manufacture the u-side representatives:
 
 ```lean
-cHeat (u₀ : intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) : ℝ :=
-  Real.exp (-t * unitIntervalCosineEigenvalue k) *
-    cosineCoeffs (intervalDomainLift u₀) k
+valueSeriesRep c
+iterateDtValue c
+iterateDtGrad c
+gradSeriesRep c
 ```
 
-This is also the `n = 0` branch of:
+from an abstract coefficient family `c`. For heat Level0, the coefficient family is explicit:
 
 ```lean
-ShenWork.IntervalPicardIterateRepresentation.iterateReprCoeff p u₀ 0 t k
+def level0HeatCoeff (u₀ : intervalDomainPoint → ℝ) : ℕ → ℝ → ℝ :=
+  fun k t =>
+    Real.exp (-t * unitIntervalCosineEigenvalue k) *
+      cosineCoeffs (intervalDomainLift u₀) k
 ```
 
-## Field-by-field status for heat Level0
+So you can use the heat coefficients directly, add a positive-time cutoff, and prove continuity of the ten smooth representative fields directly.
 
-### 1. `lift_eq_series`
+## Existing Level0 scaffold
 
-**Positive-time fillable:** yes.
+`IntervalLevel0HeatMixedRepr.lean` defines the direct route.
 
-Existing theorem:
+### Canonical positive slab and cutoff
 
 ```lean
-ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+def canonicalSlabLeft (τ : ℝ) : ℝ :=
+  τ - min 1 (τ / 2)
+
+lemma canonicalSlabLeft_pos {τ : ℝ} (hτ : 0 < τ) :
+    0 < canonicalSlabLeft τ
+
+def level0SlabCutoff (τ : ℝ) : ℝ → ℝ :=
+  smoothRightCutoff (canonicalSlabLeft τ / 4) (canonicalSlabLeft τ / 2)
+
+lemma level0SlabCutoff_eq_one_on_slab {τ t : ℝ} (hτ : 0 < τ)
+    (ht : t ∈ Icc (τ - min (1 : ℝ) (τ / 2)) (τ + min (1 : ℝ) (τ / 2))) :
+    level0SlabCutoff τ t = 1
+```
+
+### Smooth representative
+
+```lean
+def cutoffRep (τ : ℝ) (F : ℝ × ℝ → ℝ) : ℝ × ℝ → ℝ :=
+  fun q => level0SlabCutoff τ q.1 * F q
+```
+
+The proposed Level0 `Gmix` is:
+
+```lean
+def level0HeatGmix (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (τ : ℝ) :
+    ℝ × ℝ → ℝ :=
+  let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
+  let cH : ℕ → ℝ → ℝ := level0HeatCoeff u₀
+  mixedAlgebra p.β
+    (cutoffRep τ (valueSeriesRep cH))
+    (cutoffRep τ (iterateDtValue cH))
+    (cutoffRep τ (iterateDtGrad cH))
+    (cutoffRep τ (gradSeriesRep cH))
+    (cutoffRep τ (valueSeriesRep (resolverTimeCoeff p u)))
+    (cutoffRep τ (gradSeriesRep (resolverTimeCoeff p u)))
+    (cutoffRep τ (grad2SeriesRep (resolverTimeCoeff p u)))
+    (cutoffRep τ (resolverDtValue p u))
+    (cutoffRep τ (resolverDtGrad p u))
+    (cutoffRep τ (resolverDtGrad2 p u))
+```
+
+### Main direct theorem target
+
+```lean
+theorem chemDivMixedTimeDerivClosedRepr_level0
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ τ : ℝ}
+    (hτ : 0 < τ)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀) :
+    ChemDivMixedTimeDerivClosedRepr
+      p (conjugatePicardIter p u₀ 0) τ (min (1 : ℝ) (τ / 2))
+```
+
+The file already sets up all ten representatives and then calls:
+
+```lean
+chemDivMixedTimeDerivClosedRepr_of_data D
+```
+
+not
+
+```lean
+chemDivMixedTimeDerivClosedRepr_of_mkWitness
+```
+
+So it bypasses `IteratePicardJointC2Data`.
+
+## Current remaining work in the direct Level0 file
+
+The theorem is scaffolded but not complete. The remaining `sorry`s are exactly the direct-representative obligations:
+
+### Continuity of the ten representatives
+
+```lean
+hUc    : Continuous Uc
+hUtc   : Continuous Utc
+hUtxc  : Continuous Utxc
+hUxc   : Continuous Uxc
+hVc    : Continuous Vc
+hVxc   : Continuous Vxc
+hVxxc  : Continuous Vxxc
+hVtc   : Continuous Vtc
+hVtxc  : Continuous Vtxc
+hVtxxc : Continuous Vtxxc
+```
+
+These are heat/resolver cosine-series continuity proofs with a time cutoff.
+
+### Denominator floor
+
+```lean
+hfloor : ∀ q : ℝ × ℝ, 0 < 1 + Vc q
+```
+
+The intended proof is: outside the active positive-time region the cutoff makes the representative harmless; on the slab, use resolver positivity and agreement with the actual elliptic resolver. This may require a clean lemma about the cutoff range/nonnegativity, depending on how `smoothRightCutoff` is packaged.
+
+### Closed-slab agreement
+
+```lean
+hagree : ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+  coupledChemDivTimeDerivativeLift p u t x =
+    mixedAlgebra p.β Uc Utc Utxc Uxc Vc Vxc Vxxc Vtc Vtxc Vtxxc (t, x)
+```
+
+On the slab, `level0SlabCutoff_eq_one_on_slab` reduces every representative to the raw spectral series. Then:
+
+* interior `x ∈ Ioo 0 1`: use the product/quotient/rpow chain rule giving `mixedAlgebra`;
+* endpoints `x = 0,1`: use Neumann/sine-series endpoint vanishing to match the zero-extension/junk derivative behavior.
+
+This is exactly the split already implemented abstractly by `witness_agree` in `IntervalChemDivMixedReprWitness.lean`, but here it must be redone with heat-specific reps rather than `IteratePicardJointC2Data`.
+
+## Existing joint-continuity theorems found
+
+### Heat value/time-derivative series
+
+The exact names exist in `ShenWork/Wiener/EWA/SourceJointRegularity.lean`, but they are **private**:
+
+```lean
+private theorem heatValueSeries_jointContinuousOn
+private theorem heatDerivSeries_jointContinuousOn
+```
+
+They prove joint continuity on:
+
+```lean
+Ioi (0 : ℝ) ×ˢ univ
+```
+
+for:
+
+```lean
+(t,x) ↦ ∑' n, exp(-tλ_n) * u₀cos n * cosineMode n x
+(t,x) ↦ ∑' n, -λ_n * exp(-tλ_n) * u₀cos n * cosineMode n x
+```
+
+Since they are private, they cannot be imported directly. But their proof pattern is exactly reusable: local `continuousOn_tsum` on a box `Ioo c (t₀+1) ×ˢ univ` with exponential majorants.
+
+### Duhamel value/time-derivative series
+
+These are public in `ShenWork/PDE/IntervalSourceCoefficientTimeC1.lean` under namespace `ShenWork.IntervalSourceCoefficientTimeC1`:
+
+```lean
+theorem duhamelSeries_jointContinuousOn
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (τ : ℝ) (x : ℝ) =>
+          ∑' n, duhamelSpectralCoeff a τ n * cosineMode n x))
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ)
+```
+
+```lean
+theorem duhamelDerivSeries_jointContinuousOn
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (τ : ℝ) (x : ℝ) =>
+          ∑' n, (a τ n - unitIntervalCosineEigenvalue n *
+            duhamelSpectralCoeff a τ n) * cosineMode n x))
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ)
+```
+
+These are useful for restart/Duhamel lanes, but heat Level0 can use the simpler heat exponential coefficients directly.
+
+### Restart derivative series
+
+No theorem literally named `restartSeries_jointContinuousOn` was found. The relevant public theorem is:
+
+```lean
+ShenWork.IntervalRestartDerivJointContinuity.restartDerivField_continuousOn_joint
 ```
 
 Shape:
 
 ```lean
-theorem hagree_zero
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    Set.EqOn (intervalDomainLift (picardIter p u₀ 0 σ))
-      (fun x => ∑' k, iterateReprCoeff p u₀ 0 σ k * cosineMode k x)
-      (Set.Icc (0 : ℝ) 1)
+theorem restartDerivField_continuousOn_joint
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    ContinuousOn
+      (fun p : ℝ × ℝ =>
+        ∑' n, (a p.1 n - unitIntervalCosineEigenvalue n *
+          localRestartCoeff a₀ a p.1 n) * cosineMode n p.2)
+      (Ioi (0 : ℝ) ×ˢ univ)
 ```
 
-For B-form Level0, `conjugatePicardIter p u₀ 0` is the same heat semigroup form, so the same spectral identity / subtype adapter route applies.
-
-**But as currently typed:** not trivial. `IteratePicardJointC2Data.lift_eq_series` is quantified over all `t : ℝ`, not just `0 < t`. The existing `hagree_zero` requires `0 < σ`. At `t = 0`, exact pointwise reconstruction of an arbitrary continuous initial datum from its cosine series is not automatically available. At `t < 0`, the semigroup convention/definition is not the positive heat series. Thus this field is not globally trivial.
-
-### 2. `coeff_contDiff`
-
-**For the explicit heat coefficients:** yes, this part is trivial/smooth.
-
-For
+This gives joint continuity of the **time-derivative field** of a restart series. It combines:
 
 ```lean
-cHeat k t = Real.exp (-t * unitIntervalCosineEigenvalue k) * û₀ k
+duhamelDerivSeries_continuousOn
+homDerivSeries_continuousOn
 ```
 
-one should prove:
+So for future non-Level0 restart legs, this is the theorem to use for the time derivative; for the value series, use homogeneous heat value + `duhamelSeries_jointContinuousOn` or prove/export a value analogue.
+
+### Generic continuous cosine-series reps
+
+`IntervalChemDivMixedReprWitness.lean` also has generic global `continuous_tsum` helpers:
 
 ```lean
-∀ k, ContDiff ℝ (2 : ℕ∞) (cHeat u₀ k)
+theorem valueSeriesRep_continuous
+    (hcont : ∀ k, Continuous (c k))
+    (hb : ∀ k t, |c k t| ≤ B0 k)
+    (hsum : Summable B0) :
+    Continuous (valueSeriesRep c)
 ```
-
-by `fun_prop` / smoothness of `exp` and multiplication by constants.
-
-**But:** this field alone is not enough, and the coefficient family must still be the one satisfying `lift_eq_series` for all `t`. If one instead chooses a zero/cutoff coefficient family to match the nonpositive-time semigroup convention, global `ContDiff` at `t = 0` becomes nontrivial and can fail for rough initial data.
-
-### 3. `coeff_bound`
-
-**Positive-window fillable:** yes.
-
-For `t ≥ τ₀ > 0`, explicit derivatives have shape:
 
 ```lean
-∂ₜ^i cHeat k t = (-λ_k)^i * Real.exp (-t * λ_k) * û₀ k
+theorem gradSeriesRep_continuous
+    (hcont : ∀ k, Continuous (c k))
+    (hb : ∀ k t, |c k t| ≤ B0 k)
+    (hsum : Summable (fun k => |(k : ℝ) * Real.pi| * B0 k)) :
+    Continuous (gradSeriesRep c)
 ```
-
-so a bound is available from:
 
 ```lean
-|∂ₜ^i cHeat k t| ≤ λ_k^i * M₀ * Real.exp (-τ₀ * λ_k)
+theorem grad2SeriesRep_continuous
+    (hcont : ∀ k, Continuous (c k))
+    (hb : ∀ k t, |c k t| ≤ B0 k)
+    (hsum : Summable (fun k => unitIntervalCosineEigenvalue k * B0 k)) :
+    Continuous (grad2SeriesRep c)
 ```
 
-This is exactly the kind of bound used in `IntervalHeatSemigroupHighRegularity.lean`, where cutoff heat terms are bounded by an exponential majorant.
+These require a **global** envelope `B0`. For raw heat coefficients no such envelope exists on all `ℝ` because of `t → -∞`, but after multiplying by the `level0SlabCutoff`, a cutoff-specific version of these lemmas is exactly the right tool/pattern.
 
-**But as currently typed:** not globally fillable with the natural heat coefficients. The field requires:
+## Exact viable proof architecture for Level0 3G
 
-```lean
-∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-  ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
-```
-
-with no `0 < t` or window assumption. For `cHeat k t = exp(-tλ_k) û₀k`, this is unbounded as `t → -∞` for every `k > 0` with nonzero coefficient. Therefore no finite global `Bt i k` exists for the natural coefficients.
-
-A smooth right cutoff can produce global bounds, and `IntervalHeatSemigroupHighRegularity.lean` does exactly that for local `ContDiffAt`; but then the cutoff coefficients only agree with the heat series near a chosen positive-time window, not globally for every `t`.
-
-### 4. `value_summable`
-
-**Positive-window/cutoff fillable:** yes.
-
-The relevant existing heat summability lemmas include:
-
-```lean
-ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_eigenvalueSq_summable
-ShenWork.Paper2.HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable
-ShenWork.Paper2.HeatSemigroupJointRegularity.cutoffHeatSeries_contDiff_two
-```
-
-For a positive lower time `τ₀`, the exponential majorant gives summability of all required value weights for orders `≤ 2`. This is routine heat-kernel/eigenvalue exponential decay.
-
-**But as currently typed:** it depends on the global `Bt` from `coeff_bound`; since global `Bt` is not available for the natural heat coefficients, `value_summable` is not an immediate global field.
-
-## Relation to `heatSemigroup_jointContDiffAt_two`
-
-The theorem:
-
-```lean
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-```
-
-has shape:
-
-```lean
-theorem heatSemigroup_jointContDiffAt_two
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k q.2) (s₀, x₀)
-```
-
-This is a **local positive-time conclusion** for the summed heat series. It is proved by constructing a smooth cutoff series and showing it agrees near `(s₀,x₀)`. It does not expose a global coefficient family `c`, a global majorant `Bt`, or the exact `lift_eq_series` field for all `t`.
-
-Therefore, `heatSemigroup_jointContDiffAt_two` cannot directly fill `IteratePicardJointC2Data`. The construction direction is the opposite:
+The direct route should be:
 
 ```text
-coefficient family + coefficient bounds + summable majorant + series agreement
-  → IteratePicardJointC2Data
-  → iterate_lift_jointContDiffAt_two
-  → hu_c2 slab
+1. Define heat coefficient cH := level0HeatCoeff u₀.
+2. Define cutoffRep τ F := level0SlabCutoff τ q.1 * F q.
+3. Define the ten representatives:
+   Uc,Utc,Utxc,Uxc,Vc,Vxc,Vxxc,Vtc,Vtxc,Vtxxc.
+4. Prove all ten are Continuous:
+   - u-side by heat exponential coefficient estimates + cutoff;
+   - v-side by resolverTimeCoeff = elliptic weight * source coefficient, or from
+     PhysicalResolverJointC2Data if already available;
+   - time-derivative reps by differentiating the coefficient families.
+5. Prove floor `∀ q, 0 < 1 + Vc q`.
+6. Prove closed-slab agreement using `level0SlabCutoff_eq_one_on_slab` and
+   interior/boundary split.
+7. Package `ChemDivMixedReprData`.
+8. Call `chemDivMixedTimeDerivClosedRepr_of_data`.
+9. Call `chemDivMixedTimeDeriv_jointContinuousOn_closed` wherever the old 3G
+   `ContinuousOn` field is needed.
 ```
 
-`heatSemigroup_jointContDiffAt_two` is closer to the output `hu_c2`, not the input data.
-
-## What would make heat Level0 easy?
-
-A positive-time/windowed variant would be straightforward:
+The key Lean shape is already in the file:
 
 ```lean
-structure IteratePicardJointC2DataOn
-    (u : ℝ → intervalDomainPoint → ℝ) (c : ℕ → ℝ → ℝ)
-    (Bt : ℕ → ℕ → ℝ) (lo hi : ℝ) : Prop where
-  lift_eq_series : ∀ {t x : ℝ}, t ∈ Icc lo hi → x ∈ Icc (0 : ℝ) 1 →
-    intervalDomainLift (u t) x = ∑' k, c k t * cosineMode k x
-  coeff_contDiffOn : ∀ k, ContDiffOn ℝ 2 (c k) (Icc lo hi)
-  coeff_bound : ∀ i k t, i ≤ 2 → t ∈ Icc lo hi →
-    ‖iteratedFDeriv ℝ i (c k) t‖ ≤ Bt i k
-  value_summable : ∀ m, (m : ℕ∞) ≤ 2 → Summable (boundedWeightJointMajorant Bt m)
+let D : ChemDivMixedReprData p u τ δ :=
+  { Uc := Uc
+    Utc := Utc
+    Utxc := Utxc
+    Uxc := Uxc
+    Vc := Vc
+    Vxc := Vxc
+    Vxxc := Vxxc
+    Vtc := Vtc
+    Vtxc := Vtxc
+    Vtxxc := Vtxxc
+    cont_Uc := hUc
+    cont_Utc := hUtc
+    cont_Utxc := hUtxc
+    cont_Uxc := hUxc
+    cont_Vc := hVc
+    cont_Vxc := hVxc
+    cont_Vxxc := hVxxc
+    cont_Vtc := hVtc
+    cont_Vtxc := hVtxc
+    cont_Vtxxc := hVtxxc
+    floor := hfloor
+    agree := hagree }
+
+exact chemDivMixedTimeDerivClosedRepr_of_data D
 ```
 
-For heat Level0 on a window `0 < lo ≤ hi`, choose:
+## Is the boundary part viable?
 
-```lean
-c k t = Real.exp (-t * unitIntervalCosineEigenvalue k) *
-  cosineCoeffs (intervalDomainLift u₀) k
+Yes, but it is not automatic from continuity. The boundary equality must be proved as an algebraic endpoint fact:
 
-Bt i k = unitIntervalCosineEigenvalue k ^ i * M₀ *
-  Real.exp (-lo * unitIntervalCosineEigenvalue k)
-```
+* the smooth sine-series gradient reps vanish at `x = 0,1`;
+* the zero-extension derivative/junk convention makes the committed `coupledChemDivTimeDerivativeLift` boundary value match;
+* the remaining cosine-series value reps agree with the actual fields on `[0,1]` because the cutoff is one on the slab.
 
-Then:
-
-* `lift_eq_series` comes from `hagree_zero` / heat spectral identity;
-* `coeff_contDiffOn` is smoothness of exponential;
-* `coeff_bound` is the explicit derivative formula plus `t ≥ lo`;
-* `value_summable` follows from `eigenvalue_pow_mul_exp_summable` / `heatSemigroup_eigenvalueSq_summable`.
-
-This would be the honest positive-time form needed by 3G for Level0.
-
-## Answer to the prompt questions
-
-### Is `IteratePicardJointC2Data` essentially just “u has joint C² + summable majorant”?
-
-No. It is a coefficient-level sufficient condition for joint `C²`. It includes exact series reconstruction and per-mode time-regularity/bounds. The theorem `iterate_lift_jointContDiffAt_two` derives joint `C²` from it.
-
-### Can it be constructed from `heatSemigroup_jointContDiffAt_two` + heat kernel eigenvalue summability?
-
-Not directly. `heatSemigroup_jointContDiffAt_two` is too weak and points in the wrong direction: it is a local `ContDiffAt` theorem for the already-summed series. To build `IteratePicardJointC2Data`, use the explicit heat coefficients and spectral identity directly. Heat kernel eigenvalue summability is useful for `coeff_bound`/`value_summable`, but the current global structure still blocks the natural construction outside positive time.
-
-### Field-by-field heat Level0 status
-
-| Field | Heat Level0 status |
-|---|---|
-| `lift_eq_series` | Fillable on `t > 0` by `hagree_zero` / heat spectral identity; not global as typed. |
-| `coeff_contDiff` | Trivial for explicit heat coefficients `exp(-tλ) û₀`; problematic if coefficients are altered to match nonpositive-time semigroup convention. |
-| `coeff_bound` | Fillable on positive windows using exponential decay; false globally for explicit heat coefficients because of `t → -∞`. |
-| `value_summable` | Fillable on positive windows via `eigenvalue_pow_mul_exp_summable`; not an immediate global field without global `Bt`. |
+So “zero-extension kills it” is the right intuition, but the formal proof should use the smooth representative and endpoint sine/Neumann facts rather than relying only on raw `deriv` simplification.
 
 ## Bottom line
 
-For 3G, heat Level0 does not get `IteratePicardJointC2Data` “for free” from `heatSemigroup_jointContDiffAt_two`. The right fix is either:
+For heat Level0, 3G **can** be proved without `IteratePicardJointC2Data`. The repo already has the intended file:
 
-1. add a positive-windowed/positive-time version of `IteratePicardJointC2Data` and build it from explicit heat coefficients; or
-2. use a smooth-cutoff coefficient family local to the target positive slab, mirroring `heatSemigroup_jointContDiffAt_two`.
+```lean
+ShenWork.Paper2.Level0HeatMixedRepr.chemDivMixedTimeDerivClosedRepr_level0
+```
 
-The current global `IteratePicardJointC2Data` is stronger than needed for positive-time 3G and is not trivially constructible for heat Level0.
+It is currently a scaffold with the correct architecture and remaining analytic sorries. The most useful existing theorem names are:
+
+```lean
+-- public Duhamel/restart derivative tools
+ShenWork.IntervalSourceCoefficientTimeC1.duhamelSeries_jointContinuousOn
+ShenWork.IntervalSourceCoefficientTimeC1.duhamelDerivSeries_jointContinuousOn
+ShenWork.IntervalRestartDerivJointContinuity.restartDerivField_continuousOn_joint
+
+-- private heat templates in EWA, reusable/exportable if desired
+ShenWork.EWA.heatValueSeries_jointContinuousOn      -- private
+ShenWork.EWA.heatDerivSeries_jointContinuousOn      -- private
+
+-- generic rep constructors/continuity tools
+ShenWork.IntervalChemDivMixedReprWitness.valueSeriesRep_continuous
+ShenWork.IntervalChemDivMixedReprWitness.gradSeriesRep_continuous
+ShenWork.IntervalChemDivMixedReprWitness.grad2SeriesRep_continuous
+ShenWork.IntervalChemDivMixedReprConstruct.chemDivMixedTimeDerivClosedRepr_of_data
+ShenWork.IntervalCoupledRegularityBootstrap.chemDivMixedTimeDeriv_jointContinuousOn_closed
+```
+
+No existing theorem named exactly `restartSeries_jointContinuousOn` was found; use `restartDerivField_continuousOn_joint` for derivative fields, and compose heat-value + Duhamel-value joint continuity for restart values if needed.
