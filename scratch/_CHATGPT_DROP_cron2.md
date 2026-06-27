@@ -1,553 +1,483 @@
-# Q1012 (cron2) — Level0 sub-sorry 3F/3G without `PhysicalResolverJointC2Data`
+# Q1018 (cron2) — `ResolverHasSpectralAgreementC2Coeff` for heat Level0 resolver
 
 Static repo inspection only; I did **not** run Lean.
 
-## Verdict
+## Executive verdict
 
-Yes, both 3F and 3G can be discharged for the **positive-time heat semigroup Level0 branch** without `PhysicalResolverJointC2Data`.
+There is **no existing completed constructor** in the repo that directly produces
 
-But the exact split is important:
+```lean
+ResolverHasSpectralAgreementC2Coeff U
+  (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0))
+```
 
-* **3F is not obtained from flux joint-C² alone.**  There is an existing time analogue of the spatial fderiv bridge, but it identifies
-  `deriv (fun r => coupledChemDivFluxLift p u r y) s` with the `(1,0)` Fréchet partial.  The LHS in 3F is the **explicit formula** `coupledChemDivFluxTimeDerivativeLift p u s y`, so you still need the existing time-chain lemma showing that this explicit formula is the actual time derivative of the flux slice.
-* **3G does not need the physical resolver chain.**  It can be proved either directly from a joint-continuous closed-slab representative of `coupledChemDivTimeDerivativeLift`, or from a sufficiently strong joint-C²/closed-slab smooth representative of the flux time derivative.  The committed generic producer is `chemDivMixedTimeDeriv_jointContinuousOn_closed`, which only needs `ChemDivMixedTimeDerivClosedRepr`; the physical-chain theorem is only one way to manufacture that representative.
+for the heat semigroup Level0 resolver.
 
-For Level0, the shortest no-physical route is:
+The closest existing infrastructure is:
+
+1. `ResolverHasSpectralAgreementC2Coeff` itself, in
+   `ShenWork/PDE/IntervalResolverJointC2C2Coeff.lean`.
+2. A K1 packaging constructor:
+   `resolverHasSpectralAgreementC2Coeff_of_localRestartC2` and
+   `resolverHasSpectralAgreementC2Coeff_of_sourceFields`, in
+   `ShenWork/Paper2/IntervalResolverSpectralAgreementC2CoeffFromK1.lean`.
+3. A K1 constructor for **parabolic solution trajectories**:
+   `resolverHasSpectralAgreement_of_ledger_of_subtypeCont`, in
+   `ShenWork/Paper2/IntervalResolverSpectralAgreementFromK1.lean`.
+4. A completed C2Coeff package for **shifted linear heat coefficients**:
+   `shiftedHeatCoeff_c2Coeff`, in
+   `ShenWork/Paper2/IntervalPicardLimitK1C2Heat.lean`.
+
+But none of these directly handles the nonlinear elliptic resolver trajectory
+
+```lean
+v t = coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) t
+```
+
+whose elliptic source coefficients are
+
+```lean
+cosineCoeffs (fun x => p.ν * (S(t)u₀ x)^p.γ) k
+```
+
+The existing K1 route is also not a clean fit for the χ₀<0 Level0 resolver target: `resolverHasSpectralAgreement_of_ledger_of_subtypeCont` assumes `hχ0 : p.χ₀ = 0` and constructs spectral restart data for a Picard/parabolic trajectory satisfying the gradient Duhamel equation, not for the static elliptic resolver of `ν u^γ`.
+
+## What `ResolverHasSpectralAgreementC2Coeff` really asks for
+
+From `IntervalResolverJointC2C2Coeff.lean`:
+
+```lean
+structure ResolverHasSpectralAgreementC2Coeff
+    (T : ℝ) (v : ℝ → intervalDomainPoint → ℝ) : Prop where
+  toSpectralAgreement :
+    ShenWork.IntervalResolverTimeRegularity.ResolverHasSpectralAgreement T v
+  exists_c2_data : ∀ t₀, 0 < t₀ → t₀ < T →
+    ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
+      (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC2Coeff a) (offset : ℝ),
+      (0 < t₀ - offset) ∧
+      (∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
+        v s x = ∑' n, localRestartCoeff a₀ a (s - offset) n *
+          cosineMode n x.1)
+```
+
+So the strengthened record is not just “`v` has cosine coefficients”.  It wants a **local parabolic restart representation** of `v`, plus a `DuhamelSourceTimeC2Coeff` package for the restart forcing `a`.
+
+For an arbitrary smooth coefficient family
+
+```lean
+c n t := cosine coefficient of v(t)
+```
+
+one can mathematically manufacture a restart representation by setting, at a local offset `η < t₀`,
+
+```lean
+a₀ n := c n η
+a ρ n := deriv (fun t => c n t) (η + ρ)
+         + unitIntervalCosineEigenvalue n * c n (η + ρ)
+```
+
+Then `localRestartCoeff a₀ a (t - η) n` solves the scalar ODE
 
 ```text
-heat semigroup positive-time joint smoothness
-+ resolver restart/cutoff joint C² (`resolverSpectralJointC2At_of_restartSmoothCutoff`)
-+ direct resolver inner commute from value C² / time fderiv bridge
-+ `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`
-+ direct closed-slab mixed representative for Level0
+C' = a - λ C,    C(0) = a₀,
 ```
 
-This avoids `PhysicalResolverJointC2Data` completely.
+and therefore should equal `c n t`.  But I did **not** find a generic committed constructor that packages this “arbitrary C¹ coefficient family → local restart representation” into `ResolverHasSpectralAgreement` / `ResolverHasSpectralAgreementC2Coeff`.
 
-## What the inspected files say
+That generic constructor would be a useful shortcut target.
 
-### `IntervalChemDivFluxJointC2Producer.lean` lines 117–175
+## Q1. Simplest way to construct `ResolverHasSpectralAgreement` for heat Level0 resolver
 
-The producer
+### For the heat semigroup **u itself**
+
+If the target were simply
 
 ```lean
-coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+v := conjugatePicardIter p u₀ 0   -- i.e. S(t)u₀
 ```
 
-builds `CoupledChemDivFluxJointC2Hyp` from `CoupledChemDivFluxFactorJointC2Inputs`.  Inside it:
-
-1. It derives flux joint-C² from factor joint-C²:
+then the simplest construction is direct: the heat coefficient
 
 ```lean
-have hflux_joint_c2_from_product_quotient_rpow :
-    ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      ContDiffAt ℝ 2
-        (Function.uncurry (coupledChemDivFluxLift p u)) (s, x) :=
-  fun x hx s hs =>
-    coupledChemDivFlux_contDiffAt_of_factorJointC2
-      (hu_c2 x hx s hs) (hv_c2 x hx s hs) (hgradv_c2 x hx s hs)
-      (hbase x hx s hs)
+c n t = Real.exp (-t * λ n) * heatCoeff u₀ n
 ```
 
-2. It constructs only the **spatial** deriv/fderiv bridge internally:
+has a restart representation with source `a = 0` from any positive offset, or equivalently as a shifted homogeneous heat coefficient.  The file
 
-```lean
-have hspatial_deriv_fderiv_bridge :
-    ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun r : ℝ => deriv (coupledChemDivFluxLift p u r) x) =ᶠ[𝓝 s]
-        (fun r : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (r, x) (0, 1)) :=
-  fun x hx s hs => by
-    ...
-    simpa [Function.uncurry] using
-      real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt hdiff_r
+```text
+ShenWork/Paper2/IntervalPicardLimitK1C2Heat.lean
 ```
 
-3. It does **not** construct 3F.  It simply forwards the input field `htime`:
+already has the relevant linear heat coefficient C2Coeff package:
 
 ```lean
-have htime_deriv_fderiv_bridge :
-    ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-      (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-        (fun y : ℝ =>
-          fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-            (s, y) (1, 0)) :=
-  htime
+shiftedHeatCoeff_timeC1
+shiftedHeatCoeff_sourceC2CoeffFields
+shiftedHeatCoeff_c2Coeff
 ```
 
-So sub-sorry 3F is exactly the missing `htime` field of `CoupledChemDivFluxFactorJointC2Inputs`.
+This is for **linear shifted heat coefficients**.
 
-### `IntervalChemDivFluxTimeBridge.lean`
+### For the elliptic resolver **v = resolver(ν·u^γ)**
 
-This file already has the time mirror theorem:
+For the actual Level0 target,
 
 ```lean
-theorem real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
-    {F : ℝ × ℝ → ℝ} {s x : ℝ}
-    (hF : DifferentiableAt ℝ F (s, x)) :
-    deriv (fun r : ℝ => F (r, x)) s =
-      fderiv ℝ F (s, x) (1, 0)
+v := coupledChemicalConcentration p (conjugatePicardIter p u₀ 0)
 ```
 
-It also has the actual 3F-style producer:
+the repo does **not** contain a direct constructor.
+
+The K1 constructor
 
 ```lean
-theorem coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s x : ℝ}
-    (hu : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (s, y))
-    (hv : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-      (s, y))
-    (hgradv : ∀ᶠ y in 𝓝 x, ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1))
-          q.2)
-      (s, y))
-    (hbase : ∀ᶠ y in 𝓝 x,
-      0 < 1 + intervalDomainLift (coupledChemicalConcentration p u s) y)
-    (hgv : ∀ᶠ y in 𝓝 x, HasDerivAt
-      (fun r => deriv
-        (intervalDomainLift (coupledChemicalConcentration p u r)) y)
-      (deriv (coupledChemicalTimeDerivativeLift p u s) y) s) :
-    (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-      (fun y : ℝ =>
-        fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
-          (s, y) (1, 0))
+resolverHasSpectralAgreement_of_ledger_of_subtypeCont
 ```
 
-This theorem proves 3F by combining:
-
-* `slopeSlice_hasDerivAt_of_jointC2` for the `u` time factor;
-* `coupledChemicalTimeDeriv_hasDerivAt_of_jointC2` for the `v` time factor;
-* `coupledChemDivFlux_hasDerivAt_time` for the explicit flux time derivative formula;
-* `real_twoVar_time_deriv_eq_fderiv_of_differentiableAt` to identify the actual time derivative with the `(1,0)` Fréchet partial.
-
-Thus 3F should be discharged with this theorem, not by reproving the algebra.
-
-### `IntervalChemDivFACCommuteDischarge.lean`
-
-The physical producer currently does exactly the right logical thing, but its source of resolver C² is `PhysicalResolverJointC2Data`:
+is not the right direct tool: it assumes `hχ0 : p.χ₀ = 0` and builds local restart data for a parabolic/Picard trajectory satisfying a Duhamel equation.  The elliptic resolver is instead a static-in-space operator at each time:
 
 ```lean
-theorem coupledChemical_innerCommute_of_physicalJointC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt) {s y : ℝ} (hy : y ∈ Ioo (0 : ℝ) 1) :
-    HasDerivAt
-      (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
-      (deriv (coupledChemicalTimeDerivativeLift p u s) y) s
+v̂_k(t) = sourcê_k(t) / (p.μ + λ_k)
 ```
 
-and then:
+where
 
 ```lean
-theorem coupledChemDivFlux_timeBridge_of_physicalJointC2 ... :
-  (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u s y) =ᶠ[𝓝 x]
-    (fun y : ℝ =>
-      fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0))
+sourcê_k(t) = cosineCoeffs (fun x => p.ν * (S(t)u₀ x)^p.γ) k.
 ```
 
-For Level0, clone these proofs but replace every call to
+So the simplest honest route is a **new direct coefficient-family constructor** for the resolver coefficients:
 
 ```lean
-coupledChemical_jointContDiffAt_two H hy
-coupledChemical_grad_jointContDiffAt_two H hy
-```
+import ShenWork.PDE.IntervalResolverJointC2C2Coeff
+import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalPicardLevel0SourceTimeC1On
 
-by the direct restart/cutoff resolver joint-C² facts.
-
-### `IntervalChemDivTimeDerivClosed.lean`
-
-This file already separates 3G into a physical-free core and a physical-chain convenience wrapper.
-
-The physical-free core is:
-
-```lean
-def ChemDivMixedTimeDerivClosedRepr
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
-```
-
-and:
-
-```lean
-theorem chemDivMixedTimeDeriv_jointContinuousOn_closed
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (H : ChemDivMixedTimeDerivClosedRepr p u τ δ) :
-    ContinuousOn
-      (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
-```
-
-The physical-chain theorem
-
-```lean
-coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-```
-
-is only a wrapper that uses `PhysicalResolverJointC2Data` to help build the hypotheses.  It is not needed if Level0 supplies `ChemDivMixedTimeDerivClosedRepr` directly.
-
-## Answer to the three questions
-
-### 1. Can 3F be proved directly from joint C² of the flux?
-
-**Not from flux joint-C² alone.**
-
-Flux joint-C² plus the existing theorem
-
-```lean
-real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
-```
-
-gives:
-
-```lean
-deriv (fun r => coupledChemDivFluxLift p u r y) s =
-  fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0)
-```
-
-But 3F needs:
-
-```lean
-coupledChemDivFluxTimeDerivativeLift p u s y =
-  fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u)) (s, y) (1, 0)
-```
-
-eventually near `x`.  The explicit formula `coupledChemDivFluxTimeDerivativeLift` is **not definitionally** `deriv (fun r => coupledChemDivFluxLift p u r y) s`; it is a product/quotient/rpow formula.  Therefore one must also prove the chain-rule fact:
-
-```lean
-HasDerivAt (fun r => coupledChemDivFluxLift p u r y)
-  (coupledChemDivFluxTimeDerivativeLift p u s y) s
-```
-
-The existing shortest theorem for exactly this is:
-
-```lean
-coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
-```
-
-So the practical answer is:
-
-* There **is** an analogous time fderiv theorem: `real_twoVar_time_deriv_eq_fderiv_of_differentiableAt`.
-* 3F should be proved via `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`, not just by applying the time fderiv theorem to flux C².
-* This route avoids `PhysicalResolverJointC2Data` if `hu`, `hv`, `hgradv`, `hbase`, and `hgv` are supplied directly.
-
-### 2. Can 3G be proved from joint C² of the time-derivative? Or does it need the physical resolver chain?
-
-3G does **not** need the physical resolver chain.
-
-The exact 3G target is already a continuity statement:
-
-```lean
-ContinuousOn (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
-  (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
-```
-
-So any direct proof of joint continuity of this function on the closed slab suffices.  A stronger `ContDiffOn` / joint-C² theorem for the time-derivative would certainly imply it, but that is more than necessary.
-
-The shortest committed abstraction is:
-
-```lean
-chemDivMixedTimeDeriv_jointContinuousOn_closed
-```
-
-which only requires:
-
-```lean
-ChemDivMixedTimeDerivClosedRepr p u τ δ
-```
-
-For Level0 positive time, prove this representative directly from explicit heat and resolver spectral series on the positive slab.  This is exactly the intended non-physical route.
-
-## Shortest no-physical route for Level0 positive-time branch
-
-Let
-
-```lean
-u := conjugatePicardIter p u₀ 0
-δ := min 1 (τ / 2)
-```
-
-in the branch `hτ : 0 < τ`.  For any `s ∈ Metric.ball τ δ`, we have:
-
-```lean
-τ / 2 < s
-0 < s
-```
-
-For any `t ∈ Icc (τ - δ) (τ + δ)`, we also have `0 < t` because `δ ≤ τ/2`, so the whole closed slab stays in positive time.
-
-### Step A — keep the existing F2 heat joint-C² proof
-
-The existing proof in `IntervalConjugateLevel0BFormSourceOn.lean` already proves F2 by:
-
-```lean
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-```
-
-plus eventual equality between the heat cosine series and
-
-```lean
-fun q => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2
-```
-
-on `Ioi 0 ×ˢ Ioo 0 1`.
-
-### Step B — prove resolver value/gradient C² directly by restart/cutoff
-
-For each `s` and `x`, define a local pair:
-
-```lean
-have hresolver_pair :
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-      (s, x) ∧
-    ContDiffAt ℝ 2
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-      (s, x) := by
-  exact coupledChemicalConcentration_resolver_jointC2At_c2Data
-    (p := p) (u := u) (U := U) (s := s) (x := x)
-    HRc2 hs_pos hsU hx
-    (by
-      intro a₀ M _hM ha₀ a src offset hτoffset _hagree
-      exact resolverSpectralJointC2At_of_restartSmoothCutoff
-        (a₀ := a₀) (M := M) (a := a)
-        (offset := offset) (s := s) (x := x)
-        hτoffset ha₀ src)
-```
-
-This uses the same restart/cutoff theorem from Q931/Q987 and avoids `PhysicalResolverJointC2Data`.
-
-If the Level0 file does not yet expose `HRc2 : ResolverHasSpectralAgreementC2Coeff U (coupledChemicalConcentration p u)`, make that the upstream Level0 resolver package target.  It is the correct positive-time spectral package, unlike `PhysicalResolverJointC2Data`.
-
-### Step C — prove resolver inner commute directly
-
-Add a direct clone of `coupledChemical_innerCommute_of_physicalJointC2` that takes value C² (and optionally gradient C²) as arguments instead of `PhysicalResolverJointC2Data`.
-
-Minimal theorem shape:
-
-```lean
-import ShenWork.PDE.IntervalChemDivFluxTimeBridge
-import ShenWork.PDE.IntervalCoupledResolverJointC2
-import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
-
-open Set Filter Topology
+open Filter Topology Set
 open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.IntervalResolverJointC2
+open ShenWork.IntervalResolverSpectralTimeC2
+open ShenWork.IntervalSourceCoefficientTimeC1
+open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
+open ShenWork.IntervalPhysicalResolverDataConcrete
 
 noncomputable section
 
-namespace ShenWork.Paper2.Level0DirectFluxBridge
+namespace ShenWork.Paper2.Level0ResolverSpectralAgreement
 
-/-- Direct resolver inner commute from local resolver value joint-C².
-This is `coupledChemical_innerCommute_of_physicalJointC2` with the physical data
-removed. -/
-theorem coupledChemical_innerCommute_of_directJointC2
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s y : ℝ}
-    (hy : y ∈ Ioo (0 : ℝ) 1)
-    (hv_all : ∀ z ∈ Ioo (0 : ℝ) 1,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-        (s, z))
-    (hv_time_near : ∀ᶠ r in 𝓝 s,
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-        (r, y)) :
-    HasDerivAt
-      (fun r => deriv (intervalDomainLift (coupledChemicalConcentration p u r)) y)
-      (deriv (coupledChemicalTimeDerivativeLift p u s) y) s := by
-  let F : ℝ → ℝ → ℝ :=
-    fun r => intervalDomainLift (coupledChemicalConcentration p u r)
-  have hFC2 : ContDiffAt ℝ 2 (Function.uncurry F) (s, y) := by
-    simpa [F, Function.uncurry] using hv_all y hy
+/-- Coefficients of the Level0 elliptic resolver. -/
+def level0ResolverCoeff
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : ℕ → ℝ → ℝ :=
+  resolverTimeCoeff p (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0)
 
-  have hspatial :
-      (fun r : ℝ => deriv (F r) y) =ᶠ[𝓝 s]
-        (fun r : ℝ => fderiv ℝ (Function.uncurry F) (r, y) (0, 1)) := by
-    filter_upwards [hv_time_near] with r hr
-    have hdiff : DifferentiableAt ℝ (Function.uncurry F) (r, y) := by
-      simpa [F, Function.uncurry] using hr.differentiableAt (by norm_num)
-    simpa [F, Function.uncurry] using
-      real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt hdiff
+/-- Artificial parabolic restart source for the resolver coefficient family. -/
+def level0ResolverRestartSource
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (offset : ℝ) :
+    ℝ → ℕ → ℝ :=
+  fun ρ k =>
+    deriv (level0ResolverCoeff p u₀ k) (offset + ρ) +
+      unitIntervalCosineEigenvalue k * level0ResolverCoeff p u₀ k (offset + ρ)
 
-  have htime :
-      (fun z : ℝ => coupledChemicalTimeDerivativeLift p u s z) =ᶠ[𝓝 y]
-        (fun z : ℝ => fderiv ℝ (Function.uncurry F) (s, z) (1, 0)) := by
-    filter_upwards [isOpen_Ioo.mem_nhds hy] with z hz
-    have hdiff : DifferentiableAt ℝ (Function.uncurry F) (s, z) := by
-      simpa [F, Function.uncurry] using (hv_all z hz).differentiableAt (by norm_num)
-    have := real_twoVar_time_deriv_eq_fderiv_of_differentiableAt hdiff
-    simpa [coupledChemicalTimeDerivativeLift, F, Function.uncurry] using this
-
-  simpa [F] using
-    real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
-      (F := F) (Ft := coupledChemicalTimeDerivativeLift p u)
-      hFC2 hspatial htime
-
-end ShenWork.Paper2.Level0DirectFluxBridge
-```
-
-For the Level0 positive branch, `hv_all` and `hv_time_near` come from the same restart/cutoff resolver theorem.  For `hv_time_near`, use the neighborhood `Metric.ball τ δ ∈ 𝓝 s` and the fact that every `r` in that ball is positive.
-
-### Step D — prove 3F using the existing flux time bridge
-
-Inside the 3F subgoal, use:
-
-```lean
-have hopen : Ioo (0 : ℝ) 1 ∈ 𝓝 x := isOpen_Ioo.mem_nhds hx
-refine coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
-  (hu := ?_) (hv := ?_) (hgradv := ?_) (hbase := ?_) (hgv := ?_)
-```
-
-Fill the five eventual inputs as follows:
-
-```lean
-· filter_upwards [hopen] with y hy
-  exact hu_c2 y hy s hs
-
-· filter_upwards [hopen] with y hy
-  exact (hresolver_pair_at y hy s hs).1
-
-· filter_upwards [hopen] with y hy
-  exact (hresolver_pair_at y hy s hs).2
-
-· filter_upwards [hopen] with y hy
-  exact hbase y hy s hs
-
-· filter_upwards [hopen] with y hy
-  exact coupledChemical_innerCommute_of_directJointC2
-    (p := p) (u := u) (s := s) (y := y) hy
-    (hv_all := fun z hz => (hresolver_pair_at z hz s hs).1)
-    (hv_time_near := by
-      have hball_nhds : Metric.ball τ δ ∈ 𝓝 s :=
-        Metric.isOpen_ball.mem_nhds hs
-      filter_upwards [hball_nhds] with r hr
-      exact (hresolver_pair_at y hy r hr).1)
-```
-
-Here `hresolver_pair_at` is the local helper that packages direct restart/cutoff resolver value/gradient C² for any `s ∈ ball τ δ` and `x ∈ Ioo 0 1`.
-
-This is the shortest 3F route.  It uses:
-
-```lean
-real_twoVar_time_deriv_eq_fderiv_of_differentiableAt
-coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
-resolverSpectralJointC2At_of_restartSmoothCutoff
-```
-
-and no physical resolver data.
-
-### Step E — prove 3G by a direct Level0 mixed representative
-
-Use the physical-free core from `IntervalChemDivTimeDerivClosed.lean`:
-
-```lean
-chemDivMixedTimeDeriv_jointContinuousOn_closed
-```
-
-So the Level0 3G subgoal should be reduced to:
-
-```lean
-have hrepr : ChemDivMixedTimeDerivClosedRepr p u τ δ := by
-  exact level0_chemDivMixedTimeDerivClosedRepr
-    (p := p) (u₀ := u₀) (τ := τ) (δ := δ) hτ -- plus bounds/spectral package
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
-```
-
-Add the Level0-specific target:
-
-```lean
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.PDE.IntervalChemDivMixedReprConstruct
-import ShenWork.PDE.IntervalCoupledResolverJointC2
-import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-
-open Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalChemDivMixedReprConstruct
-
-noncomputable section
-
-namespace ShenWork.Paper2.Level0DirectMixed
-
-/-- Level0 positive-time closed-slab representative for the mixed time derivative.
-This is the 3G replacement for the physical resolver chain. -/
-theorem level0_chemDivMixedTimeDerivClosedRepr
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {τ δ : ℝ}
-    (hτ : 0 < τ)
-    (hδ_pos : 0 < δ)
-    (hδ_le : δ ≤ τ / 2)
-    -- plus the Level0 heat coefficient bounds/continuity and resolver spectral package
-    -- e.g. `_hu₀_cont`, `_hu₀_bound`, `HRc2`, and the summability data needed to build
-    -- the closed-slab representatives below
+/-- Direct positive-time local restart C2 package for the Level0 elliptic resolver.
+This is the missing constructor. -/
+theorem level0_resolverHasSpectralAgreementC2Coeff_direct
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {U : ℝ}
+    -- positive horizon and heat-level hypotheses go here
     :
-    ChemDivMixedTimeDerivClosedRepr p (conjugatePicardIter p u₀ 0) τ δ := by
-  -- Route:
-  -- 1. Since `δ ≤ τ/2`, every t in `Icc (τ-δ) (τ+δ)` satisfies `0 < t`.
-  -- 2. Build globally continuous representatives for:
-  --      U, Ut, Utx, Ux,
-  --      V, Vx, Vxx, Vt, Vtx, Vtxx.
-  --    For U-side use explicit heat cosine series and its t/x derivatives.
-  --    For V-side use the resolver restart/spectral series on this positive slab.
-  -- 3. Package them as `ChemDivMixedReprData`.
-  -- 4. Apply `chemDivMixedTimeDerivClosedRepr_of_data`.
+    ResolverHasSpectralAgreementC2Coeff U
+      (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration
+        p (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0)) := by
+  -- For each t₀ ∈ (0,U), choose offset = t₀ / 2.
+  -- a₀ := level0ResolverCoeff p u₀ · offset
+  -- a  := level0ResolverRestartSource p u₀ offset
+  -- prove DuhamelSourceTimeC2Coeff a from positive-time heat smoothing
+  -- prove variation-of-constants identity for each coefficient
+  -- prove cosine-series agreement for v on a neighborhood of t₀
   sorry
 
-end ShenWork.Paper2.Level0DirectMixed
+end ShenWork.Paper2.Level0ResolverSpectralAgreement
 ```
 
-This is better than trying to push through `PhysicalResolverJointC2Data`: it targets exactly what 3G needs, i.e. closed-slab continuity of the already-defined mixed time derivative.
+This avoids the K1 tower, but it requires proving the missing coefficient C2/bounds for the nonlinear source.
 
-## Why 3G should not be proved merely from pointwise restart `ContDiffAt`
+## Q2. What is `DuhamelSourceTimeC2Coeff` for the heat semigroup source? Existing theorem?
 
-The direct restart theorem
+For Level0 resolver, the natural elliptic source coefficients are
 
 ```lean
-resolverSpectralJointC2At_of_restartSmoothCutoff
+a_src t k := cosineCoeffs
+  (fun x => p.ν * (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)^p.γ) k
 ```
 
-is an **interior pointwise** joint-C² statement.  It is perfect for 3C, 3D, and the interior 3F bridge.
-
-But 3G is on the **closed spatial slab**:
+For `t > 0`, these are mathematically smooth in time because `S(t)u₀` is heat-smoothed.  But I found **no completed theorem** in the repo giving
 
 ```lean
-Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1
+DuhamelSourceTimeC2Coeff a_src
 ```
 
-and `coupledChemDivTimeDerivativeLift` contains outer `deriv` in `x`, so endpoint/junk-value behavior matters.  That is why `IntervalChemDivTimeDerivClosed.lean` uses the representative formulation: construct a globally continuous `Gmix` and prove equality on the closed slab.  For Level0, use the explicit heat/resolver cosine-series representatives, including the sine-series endpoint facts, to get the closed-slab equality.
+or the equivalent `SourceC2CoeffFields` for this nonlinear source.
 
-## Final recommended patch plan
+What exists:
 
-1. In a new small helper file, add `coupledChemical_innerCommute_of_directJointC2` as above.  This is the physical-free clone of `coupledChemical_innerCommute_of_physicalJointC2`.
-2. In `IntervalConjugateLevel0BFormSourceOn.lean`, define a local helper in the positive branch:
+### Existing `DuhamelSourceTimeC2Coeff` API
+
+`IntervalResolverSpectralTimeC2.lean` defines:
 
 ```lean
-hresolver_pair_at :
-  ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
-    ContDiffAt ℝ 2 resolverValue (s, x) ∧
-    ContDiffAt ℝ 2 resolverGrad (s, x)
+structure DuhamelSourceTimeC2Coeff (a : ℝ → ℕ → ℝ) where
+  toTimeC1 : DuhamelSourceTimeC1 a
+  sourceEigenEnvelope : ℕ → ℝ
+  sourceEigen_summable : Summable sourceEigenEnvelope
+  sourceEigen_bound : ∀ s, 0 ≤ s → ∀ n,
+    λ n * |a s n| ≤ sourceEigenEnvelope n
+  sourceEigenSqEnvelope : ℕ → ℝ
+  sourceEigenSq_summable : Summable sourceEigenSqEnvelope
+  sourceEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+    λ n * (λ n * |a s n|) ≤ sourceEigenSqEnvelope n
+  adotEigenEnvelope : ℕ → ℝ
+  adotEigen_summable : Summable adotEigenEnvelope
+  adotEigen_bound : ∀ s, 0 ≤ s → ∀ n,
+    λ n * |toTimeC1.adot s n| ≤ adotEigenEnvelope n
+  adotEigenSqEnvelope : ℕ → ℝ
+  adotEigenSq_summable : Summable adotEigenSqEnvelope
+  adotEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+    λ n * (λ n * |toTimeC1.adot s n|) ≤ adotEigenSqEnvelope n
 ```
 
-using `coupledChemicalConcentration_resolver_jointC2At_c2Data` plus `resolverSpectralJointC2At_of_restartSmoothCutoff`.
+So the source must carry λ and λ² summable envelopes for both the coefficient and its time derivative.
 
-3. Fill 3C and 3D from `hresolver_pair_at`.
-4. Fill 3E from `coupledChemical_floor_pos_of_nonneg_continuous` (or the existing resolver positivity route), using the heat semigroup slice continuity/nonnegativity.
-5. Fill 3F with `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`, where `hgv` is supplied by `coupledChemical_innerCommute_of_directJointC2` and `hresolver_pair_at`.
-6. Add the Level0 target `level0_chemDivMixedTimeDerivClosedRepr` and fill 3G by:
+### Existing completed heat C2Coeff theorem is only linear
+
+`IntervalPicardLimitK1C2Heat.lean` proves:
 
 ```lean
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed
-  (level0_chemDivMixedTimeDerivClosedRepr ...)
+shiftedHeatCoeff_c2Coeff
 ```
 
-This path uses the already-committed restart/cutoff resolver regularity and the already-committed flux time bridge.  It completely avoids `PhysicalResolverJointC2Data` and therefore avoids the unfillable global `FlooredSourceTimeData`/`S(0)>0` obstruction.
+for
+
+```lean
+shiftedHeatCoeff ε a₀ s n = exp (-(ε+s) * λ n) * a₀ n.
+```
+
+This is excellent for homogeneous heat coefficients, but it is not the nonlinear chemotaxis source `ν·(S(t)u₀)^γ`.
+
+### Existing Level0 source theorem is C1On and logistic, not chem C2Coeff
+
+`IntervalPicardLevel0SourceTimeC1On.lean` provides:
+
+```lean
+level0Source_timeC1On
+level0Source_shiftedTimeC1On
+```
+
+These are for the logistic source family
+
+```lean
+cosineCoeffs (logisticLifted p (picardIter p u₀ 0 s)) k
+```
+
+and provide `DuhamelSourceTimeC1On`, not `DuhamelSourceTimeC2Coeff`.  They are not the elliptic chem source `ν·u^γ`.
+
+### Existing physical source route is blocked globally
+
+`IntervalPhysicalSourceTimeC2Concrete.lean` has a route from `FlooredSourceTimeData` to physical source C2 data, and `IntervalHeatSemigroupFlooredSourceTimeData.lean` tries to build that for Level0.  But that is the global/all-time route with the known `S(0)`/floor obstruction and sorry'd obligations.  It is not a completed positive-time `DuhamelSourceTimeC2Coeff` theorem.
+
+Conclusion: the desired heat semigroup nonlinear source C2Coeff theorem is **not currently committed**.
+
+## Q3. Is there a shortcut avoiding the full K1 tower?
+
+Mathematically, yes.  In the repo, not yet as a completed theorem.
+
+The shortcut is to avoid K1/local-Picard restart and construct `ResolverHasSpectralAgreementC2Coeff` directly from the explicit positive-time coefficient family of the elliptic resolver.
+
+For a target time `t₀ > 0`, choose:
+
+```lean
+offset := t₀ / 2
+a₀ n := resolverTimeCoeff p u n offset
+a ρ n := deriv (resolverTimeCoeff p u n) (offset + ρ)
+       + unitIntervalCosineEigenvalue n * resolverTimeCoeff p u n (offset + ρ)
+```
+
+Then prove:
+
+```lean
+resolverTimeCoeff p u n s = localRestartCoeff a₀ a (s - offset) n
+```
+
+near `t₀` by variation of constants.
+
+This is much more direct than the K1 tower.  It needs four local ingredients:
+
+1. `∀ n`, `resolverTimeCoeff p u n` is C² on a positive neighborhood.
+2. The artificial restart source `a` has `DuhamelSourceTimeC2Coeff`.
+3. The resolver cosine series agrees with `coupledChemicalConcentration` on the closed interval / interior neighborhood.
+4. The resolver coefficient series has enough summability for the representation and eventual equality.
+
+For heat Level0, all four are mathematically true from heat smoothing and elliptic weights.  But the nonlinear source estimates are not currently packaged.  In particular, proving `DuhamelSourceTimeC2Coeff a` still requires λ² envelopes for the nonlinear source and its time derivative.
+
+The audit file
+
+```text
+ShenWork/Paper2/IntervalChiNegResolverC2SourceAudit.lean
+```
+
+matches this conclusion: the heat-factor route closes coefficient families already carrying an `exp(-ε λ)` factor, but not the actual clamped/nonlinear source family; closing resolver-C2 requires either a new direct positive-Duhamel/heat-factor producer or a higher-regularity bootstrap producing `sourceEigenEnvelope`, `sourceEigenSqEnvelope`, and the matching `adot` envelopes.
+
+So the shortcut is the right design target, but it is a new proof, not just an application of an existing theorem.
+
+## Q4. Minimal K1 inputs for `resolverHasSpectralAgreementC2Coeff_of_localRestartC2`
+
+Strictly, the theorem in `IntervalResolverSpectralAgreementC2CoeffFromK1.lean` needs only:
+
+```lean
+theorem resolverHasSpectralAgreementC2Coeff_of_localRestartC2
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (H : ResolverHasSpectralAgreement T u)
+    (mkL : ∀ σ, 0 < σ → σ < T → LocalRestartC2 p u T σ) :
+    ResolverHasSpectralAgreementC2Coeff T u
+```
+
+Equivalently, using the source-fields wrapper:
+
+```lean
+theorem resolverHasSpectralAgreementC2Coeff_of_sourceFields
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (H : ResolverHasSpectralAgreement T u)
+    (mkL : ∀ σ, 0 < σ → σ < T → LocalRestart p u T σ)
+    (fields : ∀ σ (hσ0 : 0 < σ) (hσT : σ < T),
+      SourceC2CoeffFields (mkL σ hσ0 hσT).srcC) :
+    ResolverHasSpectralAgreementC2Coeff T u
+```
+
+So the minimal abstract inputs are:
+
+```lean
+H      : ResolverHasSpectralAgreement T u
+mkL    : ∀ σ, 0 < σ → σ < T → LocalRestart p u T σ
+fields : ∀ σ hσ0 hσT, SourceC2CoeffFields (mkL σ hσ0 hσT).srcC
+```
+
+If you build `mkL` using the existing K1 ledger constructor `localRestart_of_ledger`, the concrete input list expands to:
+
+```lean
+hχ0       : p.χ₀ = 0
+hα        : 1 ≤ p.α
+ha        : 0 ≤ p.a
+hb        : 0 ≤ p.b
+hu₀_cont  : Continuous (intervalDomainLift u₀)
+hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+hfix      : ∀ s, 0 < s → s < T → ∀ x, (hx : x ∈ Icc 0 1) →
+              intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x,hx⟩
+hsrc0     : DuhamelSourceL1ContOn
+              (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T
+bc        : ℝ → ℕ → ℝ
+hbsum     : ∀ σ, 0 < σ → σ < T →
+              Summable (fun n => λ n * |bc σ n|)
+hagree    : ∀ σ, 0 < σ → σ < T →
+              EqOn (intervalDomainLift (u σ))
+                (fun x => ∑' n, bc σ n * cosineMode n x) (Icc 0 1)
+hpost     : ∀ σ, 0 < σ → σ < T → ∀ x ∈ Icc 0 1,
+              0 < intervalDomainLift (u σ) x
+hubt      : ∀ σ, 0 < σ → σ < T → ∀ x ∈ Icc 0 1,
+              intervalDomainLift (u σ) x ≤ Msup
+hG1t      : ∀ a' b', 0 < a' → b' < T → ∃ G1,
+              ∀ σ ∈ Icc a' b', ∀ x ∈ Icc 0 1,
+                |deriv (intervalDomainLift (u σ)) x| ≤ G1
+hG2t      : ∀ a' b', 0 < a' → b' < T → ∃ G2,
+              ∀ σ ∈ Icc a' b', ∀ x ∈ Icc 0 1,
+                |deriv (deriv (intervalDomainLift (u σ))) x| ≤ G2
+adott     : ℝ → ℕ → ℝ
+hderivt   : ∀ σ, 0 < σ → σ < T → ∀ k,
+              HasDerivAt
+                (fun r => cosineCoeffs
+                  (logisticSourceFun p.a p.b p.α (intervalDomainLift (u r))) k)
+                (adott σ k) σ
+hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Ioo 0 T)
+hMdott    : ∀ a' b', 0 < a' → b' < T → ∃ Mdot,
+              ∀ σ ∈ Icc a' b', ∀ k, |adott σ k| ≤ Mdot
+hLc       : ∀ t, 0 < t → t < T →
+              ∀ s, 0 < s → s ≤ t → Continuous (logisticLifted p (u s))
+```
+
+and then, for C2:
+
+```lean
+fields : ∀ σ hσ0 hσT,
+  SourceC2CoeffFields (localRestart_of_ledger ... hσ0 hσT).srcC
+```
+
+But this is the K1 parabolic/logistic tower, not the shortest route for the Level0 elliptic resolver.
+
+## Recommended route for Level0 3C/3D
+
+For the Level0 resolver, I would not try to force the existing K1 constructor.
+
+The shortest sound target is a new positive-time, resolver-specific constructor:
+
+```lean
+import ShenWork.PDE.IntervalResolverJointC2C2Coeff
+import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+import ShenWork.PDE.IntervalResolverSpectralTimeC2
+import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+
+open Filter Topology Set
+open ShenWork.IntervalDomain
+open ShenWork.IntervalResolverJointC2
+open ShenWork.IntervalResolverSpectralTimeC2
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
+
+noncomputable section
+
+namespace ShenWork.Paper2.Level0ResolverC2Coeff
+
+/-- Missing local positive-time source-C2 package for the nonlinear heat-smoothed
+chemotaxis source.  This is the real analytic core. -/
+theorem level0_chemSource_DuhamelSourceTimeC2Coeff_local
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {offset : ℝ}
+    (hoff : 0 < offset)
+    -- plus heat coefficient bound, positivity/floor on the local window, etc.
+    :
+    DuhamelSourceTimeC2Coeff
+      (fun ρ k => cosineCoeffs
+        (fun x => p.ν *
+          (intervalDomainLift
+            (ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0 (offset + ρ)) x) ^ p.γ)
+        k) := by
+  -- Prove from positive-time heat smoothing:
+  -- source λ and λ² coefficient envelopes,
+  -- adot λ and λ² envelopes.
+  sorry
+
+/-- Direct local restart C2 data for the Level0 elliptic resolver. -/
+theorem level0_resolver_localRestartC2
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {U σ : ℝ}
+    (hσ0 : 0 < σ) (hσU : σ < U)
+    -- plus heat bounds/floor/summability data
+    :
+    -- either produce `LocalRestartC2` if you choose to reuse the K1 type,
+    -- or directly produce the `exists_c2_data` witness required by
+    -- `ResolverHasSpectralAgreementC2Coeff`.
+    True := by
+  -- offset := σ / 2
+  -- a₀ := resolver coefficients at offset
+  -- a := resolverCoeff' + λ * resolverCoeff
+  -- srcC2 := DuhamelSourceTimeC2Coeff for a
+  -- prove local restart representation by variation-of-constants
+  trivial
+
+end ShenWork.Paper2.Level0ResolverC2Coeff
+```
+
+This is smaller and more semantically correct than the full K1 tower.  The genuinely missing theorem is the local positive-time C2 coefficient/envelope package for the nonlinear heat-smoothed source (or equivalently for the artificial parabolic source of the resolver coefficient family).
+
+## Bottom line
+
+* Existing K1 C2 constructors package already-existing local restarts; they do **not** directly construct the heat Level0 elliptic resolver package.
+* `IntervalPicardLevel0SourceTimeC1On.lean` gives a positive-window C1 package for the logistic Level0 source, not a `DuhamelSourceTimeC2Coeff` for `ν·(S(t)u₀)^γ`.
+* `IntervalPicardLimitK1C2Heat.lean` gives C2Coeff for shifted **linear heat coefficients**, not the nonlinear chemotaxis source.
+* The mathematically shortest route is a new direct positive-time constructor for the resolver coefficient family; the hard part is proving λ/λ² source and `adot` envelopes for `ν·(S(t)u₀)^γ` on a positive window.
