@@ -222,7 +222,12 @@ theorem coupledChemDivFluxFactorJointC2Inputs_of_physical
     CoupledChemDivFluxFactorJointC2Inputs p u := by
   refine ⟨fun τ => ?_⟩
   rcases other τ with ⟨δ, hδ, hsrc, hu_c2, hbase, htime, htime_cont⟩
-  exact ⟨δ, hδ, hsrc, hu_c2,
+  have hsrc_int : ∀ᶠ s in 𝓝 τ, IntervalIntegrable
+      (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivSourceLift p u s)
+      MeasureTheory.volume (0 : ℝ) 1 := by
+    filter_upwards [hsrc] with s hs
+    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
+  exact ⟨δ, hδ, hsrc_int, hu_c2,
     (fun x hx s _ => coupledChemical_jointContDiffAt_two H hx),
     (fun x hx s _ => coupledChemical_grad_jointContDiffAt_two H hx),
     hbase, htime, htime_cont⟩
