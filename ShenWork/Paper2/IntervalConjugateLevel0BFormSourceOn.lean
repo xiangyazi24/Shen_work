@@ -1165,9 +1165,10 @@ theorem level0_chemDiv_timeDerivData
           | pred n ih =>
             rw [show z + 2 * (↑(-↑n - 1 : ℤ) : ℝ) =
               (z + 2 * (↑(-↑n : ℤ) : ℝ)) - 2 from by push_cast; ring]
-            rw [show (z + 2 * ↑(-↑n : ℤ) : ℝ) - 2 = (z + 2 * ↑(-↑n : ℤ) : ℝ) + (-2) from
-              by ring]
-            sorry -- [sub_two variant: need U_cos(z-2) = U_cos(z)]
+            have hsub2 : ∀ w, U_cos (w - 2) = U_cos w := fun w => by
+              have := hU_periodic (w - 2)
+              rwa [show w - 2 + 2 = w from by ring] at this
+            exact hsub2 _ ▸ ih
         have hU_pos_all : ∀ z, 0 < U_cos z := by
           intro z
           set m₀ : ℤ := round (z / 2)
