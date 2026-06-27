@@ -1111,7 +1111,16 @@ theorem level0_chemDiv_timeDerivData
           have hzero : ∀ y ∈ Icc (0:ℝ) 1, intervalDomainLift u₀ y = 0 := by
             intro y hy; exact le_antisymm (h y hy) (hlift_nn y hy)
           -- S(c)u₀ = S(c)(0) = 0, contradicting _hpos
-          sorry -- [contradiction: hzero → S(c) applied to zero function = 0 → contradicts _hpos]
+          -- S(c)(f) where f=0 on [0,1]: the lift is 0 on [0,1], so S(c)f = ∫K·0 = 0
+          -- But _hpos says S(c)(lift u₀) > 0 at some point, contradiction
+          have hc_mem : c ∈ Icc c T := ⟨le_refl _, _hcT⟩
+          have hval := _hpos c hc_mem ⟨1/2, by norm_num, by norm_num⟩
+            (by constructor <;> norm_num)
+          -- intervalDomainLift (conjugatePicardIter p u₀ 0 c) (1/2) > 0
+          simp only [intervalDomainLift, conjugatePicardIter,
+            dif_pos (show (1:ℝ)/2 ∈ Icc (0:ℝ) 1 by constructor <;> norm_num)] at hval
+          -- But S(c)(lift u₀)(1/2) = ∫ K·(lift u₀) = ∫ K·0 = 0 since lift u₀ = 0 on [0,1]
+          sorry -- [need: if ∀ y ∈ Icc 0 1, f y = 0, then ∫ K(c,x,y)·f(y) = 0]
         obtain ⟨y₀, hy₀, hy₀_pos⟩ := hlift_pos_somewhere
         have hS_pos : ∀ x : ℝ, 0 < intervalFullSemigroupOperator r (intervalDomainLift u₀) x :=
           ShenWork.IntervalSemigroupConeAtoms.intervalFullSemigroupOperator_pos
@@ -1121,10 +1130,8 @@ theorem level0_chemDiv_timeDerivData
           intro x hx
           rw [← hU_agree x hx]
           show 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 r) x
-          simp only [conjugatePicardIter, intervalDomainLift]
-          split_ifs with h
-          · exact hS_pos x
-          · sorry -- x ∉ Icc 0 1 case — contradicts hx
+          simp only [intervalDomainLift, conjugatePicardIter, dif_pos hx]
+          exact hS_pos x
         sorry -- [REMAINING: ~30 lines from U_cos positivity on [0,1] → global positivity
                -- (even + period-2, lines 636-691 pattern) → g_smooth C⁴ → H2Neumann depth 2
                -- → intervalWeakH4Neumann_eigenvalue_L1_summable → done]
