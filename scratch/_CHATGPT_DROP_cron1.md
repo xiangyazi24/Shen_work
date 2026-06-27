@@ -1,4 +1,4 @@
-# Q1308 / cron1 — reusable cosine positivity reduction
+# Q1311 / cron1 — `deriv g_smooth 0 = 0` for an even cosine series power
 
 Repo: `xiangyazi24/Shen_work`
 
@@ -12,215 +12,227 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Executive answer
 
-I did **not** find an existing generic helper named like
+Do **not** prove this by differentiating the `tsum` unless you specifically need the derivative formula for another reason.  In the current file, the shortest Lean route is already the pattern being used elsewhere:
 
 ```lean
-cosineSeriesPositive_of_Icc
-heatSemigroup_cosine_pos_all
+even + differentiable/ContDiff 1  ⟹  derivative is odd  ⟹  derivative at 0 is 0
 ```
 
-or a general theorem of the form
+For your concrete
 
 ```lean
-(∀ y ∈ Icc (0 : ℝ) 1, 0 < f y) → (∀ x : ℝ, 0 < f x)
+set g_smooth := fun x => p.ν * U_cos x ^ p.γ with hg_smooth_def
 ```
 
-that abstracts only the symmetry/periodicity argument for an arbitrary real-valued `f`.
-
-What exists are **specialized all-real-line reductions** for heat/resolver cosine syntheses:
-
-1. `ShenWork.EWA.cosineHeatValue_ge_floor_all`
-   in
-   ```text
-   ShenWork/Wiener/EWA/HeatFloor.lean
-   ```
-   It proves the heat cosine value floor for all `x : ℝ` from a global source floor.  The final step is exactly the period-2 plus evenness reduction to `[0,1]`.
-
-2. `ShenWork.EWA.cosineHeatValue_ge_floor_Icc_all`
-   in
-   ```text
-   ShenWork/Wiener/EWA/HeatFloorIcc.lean
-   ```
-   This is the closest existing named theorem to your desired pattern, but it is specialized to `unitIntervalCosineHeatValue t (cosineCoeffs u₀)` and proves a `δ ≤ ...` floor, not arbitrary positivity of a function.
-
-3. `ShenWork.EWA.resolverSynthesis_nonneg_all`
-   in
-   ```text
-   ShenWork/Wiener/EWA/SourceResolverFloor.lean
-   ```
-   This proves nonnegativity of a resolver cosine synthesis for all real `x`, again by the same period-2/evenness reduction.
-
-The local block in
-
-```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
-```
-
-around the `V` positivity/nonnegativity step is **not currently factored out**; it repeats the argument locally:
-
-- derive `V (z + 2) = V z`,
-- derive `V (z - 2) = V z`,
-- build integer shifts `V (z + 2*m) = V z`,
-- choose `m₀ := round (x / 2)`,
-- set `y := x - 2*m₀`,
-- show `|y| ∈ Icc 0 1`,
-- use evenness to replace `V y` by `V |y|`,
-- apply interval-domain nonnegativity.
-
-For your current `U_cos` use case, the existing local code already has the right ingredients:
+you already prove
 
 ```lean
-have hU_period_fun : Function.Periodic U_cos 2 := by
-  intro x; show U_cos (x + 2) = U_cos x
-  simp only [hU_cos_def]
-  exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
-
-have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
-  intro y hy
-  rw [← hU_agree y hy]
-  exact hpos_w y hy
+have hg_C4 : ContDiff ℝ 4 g_smooth := ...
+have hg_even : ∀ x, g_smooth (-x) = g_smooth x := by
+  intro x
+  simp only [hg_smooth_def, hU_even]
 ```
 
-and `hU_even : ∀ x, U_cos (-x) = U_cos x` is already in scope.  So the clean reusable abstraction is a small generic lemma.
+Then the endpoint boundary condition is simply:
 
-## Recommended reusable helper
+```lean
+have hg'_bc0 : deriv g_smooth 0 = 0 := by
+  have hodd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) := by
+    intro x
+    have h1 := deriv_comp_neg (f := g_smooth) (x := x)
+    rw [show (fun x => g_smooth (-x)) = g_smooth from funext hg_even] at h1
+    linarith
+  have h0 := hodd 0
+  rw [neg_zero] at h0
+  linarith
+```
 
-This is the helper I would extract.  It uses only:
+This avoids the chain rule, avoids the `rpow` derivative API, and avoids any `hasDerivAt_tsum` / uniform summability obligation.  It is exactly the same mathematical fact: an even `C¹` function has zero derivative at the origin.
 
-- evenness,
-- period `2`,
-- positivity on `Icc 0 1`.
+## Reusable helper to add/extract
 
-It does **not** need cosine-specific APIs except for how the caller proves `heven` and `hperiod`.
+This helper is the right abstraction to put near the other Paper2 parity utilities, or locally in `IntervalConjugateLevel0BFormSourceOn.lean` if you want minimal surgery.
 
 ```lean
 import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
 
-open Set
+open Set Filter
+open scoped Topology
 
 noncomputable section
 
 namespace ShenWork.Paper2
 
-/-- Reduce positivity of an even period-`2` real function to the fundamental interval
-`[0,1]`.
+/-- Derivative of an even real function is odd.
 
-This is the reusable skeleton currently duplicated by the heat/resolver floor proofs and
-by the local `U_cos`/`V_cos` blocks in `IntervalConjugateLevel0BFormSourceOn.lean`.
-
-The proof first sends `x` to `|x|`, then subtracts an integral multiple of `2` to land
-in `[0,2)`, and finally reflects the part in `(1,2)` back into `[0,1]`.  The reflection
-`f (2 - r) = f r` is derived from evenness plus period `2`.
--/
-theorem pos_all_of_pos_Icc01_even_periodic_two {f : ℝ → ℝ}
-    (heven : ∀ x : ℝ, f (-x) = f x)
-    (hperiod : Function.Periodic f 2)
-    (hpos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < f y) :
-    ∀ x : ℝ, 0 < f x := by
-  have hreflect : ∀ z : ℝ, f (2 - z) = f z := by
-    intro z
-    calc
-      f (2 - z) = f (-z + 2) := by congr 1; ring
-      _ = f (-z) := hperiod (-z)
-      _ = f z := heven z
+The `ContDiff` hypothesis is mathematically the differentiability guarantee.  The proof uses
+Mathlib's `deriv_comp_neg`; the hypothesis is not syntactically consumed because `deriv` is
+Lean's total derivative operator, but keep it in the theorem statement so callers record the
+real analytic reason this rewrite is valid in the intended setting. -/
+theorem deriv_even_odd_of_contDiff_one {g : ℝ → ℝ}
+    (_hg : ContDiff ℝ 1 g)
+    (heven : ∀ x : ℝ, g (-x) = g x) :
+    ∀ x : ℝ, deriv g (-x) = -(deriv g x) := by
   intro x
-  -- Step 1: reduce to `[0,∞)` by evenness.
-  have hx_abs : f x = f |x| := by
-    by_cases h : 0 ≤ x
-    · rw [abs_of_nonneg h]
-    · rw [abs_of_neg (not_le.mp h)]
-      exact (heven x).symm
-  rw [hx_abs]
-  -- Step 2: reduce `|x|` to `[0,2)` by subtracting an integral period.
-  set n : ℤ := ⌊|x| / 2⌋ with hn_def
-  set r : ℝ := |x| - n * 2 with hr_def
-  have hrV : f |x| = f r :=
-    (hperiod.sub_int_mul_eq n).symm
-  have hr_lo : 0 ≤ r := by
-    have := Int.floor_le (|x| / 2)
-    linarith
-  have hr_hi : r < 2 := by
-    have := Int.lt_floor_add_one (|x| / 2)
-    linarith
-  rw [hrV]
-  -- Step 3: if `r ≤ 1`, use the interval positivity.  Otherwise reflect across `1`.
-  by_cases hr1 : r ≤ 1
-  · exact hpos_Icc r ⟨hr_lo, hr1⟩
-  · push_neg at hr1
-    rw [← hreflect r]
-    exact hpos_Icc (2 - r) ⟨by linarith, by linarith⟩
+  have h1 := deriv_comp_neg (f := g) (x := x)
+  rw [show (fun x : ℝ => g (-x)) = g from funext heven] at h1
+  linarith
+
+/-- An even `C¹` real function has zero derivative at `0`. -/
+theorem deriv_even_at_zero_eq_zero {g : ℝ → ℝ}
+    (hg : ContDiff ℝ 1 g)
+    (heven : ∀ x : ℝ, g (-x) = g x) :
+    deriv g 0 = 0 := by
+  have hodd := deriv_even_odd_of_contDiff_one hg heven
+  have h0 := hodd 0
+  rw [neg_zero] at h0
+  linarith
 
 end ShenWork.Paper2
 ```
 
-## Use it at the current `U_cos` site
-
-Inside `IntervalConjugateLevel0BFormSourceOn.lean`, the local block can collapse to:
+Then your local proof becomes just:
 
 ```lean
-have hU_period_fun : Function.Periodic U_cos 2 := by
+have hg'_bc0 : deriv g_smooth 0 = 0 :=
+  ShenWork.Paper2.deriv_even_at_zero_eq_zero
+    (hg_C4.of_le (by norm_num)) hg_even
+```
+
+## Directly for `U_cos` itself
+
+If what you need is explicitly `U_cos' 0 = 0`, use the same helper before forming `g_smooth`:
+
+```lean
+have hU'_zero : deriv U_cos 0 = 0 :=
+  ShenWork.Paper2.deriv_even_at_zero_eq_zero
+    (hU_C4.of_le (by norm_num)) hU_even
+```
+
+This is stronger and cleaner than proving a termwise derivative formula.  The cosine-series content is used only to prove `hU_even` and `hU_C4`; once those are available, the boundary derivative is a pure parity fact.
+
+If `hU_even` is not already in scope, for a raw cosine synthesis of the form
+
+```lean
+U_cos x = ∑' k, a k * cosineMode k x
+```
+
+you usually prove it by `tsum_congr` and `cos(-θ)=cos θ`:
+
+```lean
+have hU_even : ∀ x, U_cos (-x) = U_cos x := by
   intro x
-  show U_cos (x + 2) = U_cos x
   simp only [hU_cos_def]
   exact tsum_congr (fun k => by
     congr 1
-    exact cosineMode_add_two' k x)
-
-have hU_pos_all : ∀ x, 0 < U_cos x := by
-  have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
-    intro y hy
-    rw [← hU_agree y hy]
-    exact hpos_w y hy
-  exact ShenWork.Paper2.pos_all_of_pos_Icc01_even_periodic_two
-    hU_even hU_period_fun hU_pos_Icc
+    unfold ShenWork.CosineSpectrum.cosineMode
+    rw [show (k : ℝ) * Real.pi * (-x) = -((k : ℝ) * Real.pi * x) by ring]
+    rw [Real.cos_neg])
 ```
 
-This is strictly cleaner than the current local `floor`/`r` block, and it should also be usable for any future cosine synthesis once you prove `Function.Periodic f 2` and evenness.
+The exact unfolding name may be `hU_cos_def` in your local block, as in the surrounding `U_cos` proof.
 
-## If you want the exact round-based variant
+## Why the `tsum` derivative route is the wrong local proof
 
-The `V` block uses `round (x / 2)` rather than `floor (|x| / 2)`.  A second helper matching that block exactly would take an integer-shift theorem directly:
+The repo already has the per-mode facts in `ShenWork/PDE/CosineSpectrum.lean`:
 
 ```lean
-theorem pos_all_of_pos_Icc01_even_intShift_two {f : ℝ → ℝ}
-    (heven : ∀ x : ℝ, f (-x) = f x)
-    (hshift : ∀ (m : ℤ) (z : ℝ), f (z + 2 * m) = f z)
-    (hpos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < f y) :
-    ∀ x : ℝ, 0 < f x := by
-  intro x
-  set m₀ : ℤ := round (x / 2)
-  set y : ℝ := x - 2 * m₀
-  have hxy : f x = f y := by
-    rw [show x = y + 2 * m₀ from by simp [y]]
-    exact hshift m₀ y
-  have hyabs : |y| ∈ Icc (0 : ℝ) 1 := by
-    constructor
-    · exact abs_nonneg _
-    · have hround : |x / 2 - m₀| ≤ 1 / 2 := abs_sub_round (x / 2)
-      rw [show y = 2 * (x / 2 - m₀) from by simp [y]; ring,
-        abs_mul, abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 2)]
-      nlinarith [hround]
-  have hy : f y = f |y| := by
-    by_cases hnn : 0 ≤ y
-    · rw [abs_of_nonneg hnn]
-    · rw [not_le] at hnn
-      rw [abs_of_neg hnn, ← heven]
-  rw [hxy, hy]
-  exact hpos_Icc |y| hyabs
+theorem ShenWork.CosineSpectrum.cosineMode_hasDerivAt (n : ℕ) (x : ℝ) :
+    HasDerivAt (cosineMode n)
+      (-((n : ℝ) * Real.pi) *
+        Real.sin ((n : ℝ) * Real.pi * x)) x
+
+theorem ShenWork.CosineSpectrum.cosineMode_deriv (n : ℕ) (x : ℝ) :
+    deriv (cosineMode n) x =
+      -((n : ℝ) * Real.pi) *
+        Real.sin ((n : ℝ) * Real.pi * x)
+
+theorem ShenWork.CosineSpectrum.cosineMode_neumann_left (n : ℕ) :
+    deriv (cosineMode n) 0 = 0
 ```
 
-This variant matches lines 636--691 of `IntervalConjugateLevel0BFormSourceOn.lean` more closely, but the `Function.Periodic`/`floor` helper is usually the nicer one for `U_cos`, because you already have `hU_period_fun : Function.Periodic U_cos 2`.
-
-## Bottom line
-
-There is **no currently reusable generic helper** for arbitrary `U_cos` positivity.  The closest reusable named theorems are specialized:
+So, termwise, every cosine mode has zero derivative at `0`.  For a single term:
 
 ```lean
-ShenWork.EWA.cosineHeatValue_ge_floor_all
-ShenWork.EWA.cosineHeatValue_ge_floor_Icc_all
-ShenWork.EWA.resolverSynthesis_nonneg_all
+have hterm0 : ∀ k, deriv (fun x : ℝ => a k * ShenWork.CosineSpectrum.cosineMode k x) 0 = 0 := by
+  intro k
+  have h := (ShenWork.CosineSpectrum.cosineMode_hasDerivAt k 0).const_mul (a k)
+  simpa [ShenWork.CosineSpectrum.cosineMode] using h.deriv
 ```
 
-For the present proof, add/extract `pos_all_of_pos_Icc01_even_periodic_two` and replace the local `hU_pos_all` derivation with a one-line call.  The same reduction skeleton can also eliminate future copies of the `round`/`abs` period-2 argument.
+But to conclude
+
+```lean
+deriv (fun x => ∑' k, a k * cosineMode k x) 0 = ∑' k, 0
+```
+
+you need a `HasDerivAt.tsum` / `hasDerivAt_tsum` theorem plus a summable dominating family for derivatives in a neighborhood of `0`.  That is exactly the kind of termwise-differentiation obligation that the repo tries to avoid unless it is genuinely needed.  Here it is unnecessary because parity gives the endpoint derivative for free once you have global `C¹` and evenness.
+
+## Patch at the current `g_smooth` site
+
+In `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`, the local block currently has helpers like this:
+
+```lean
+have deriv_even_odd : ∀ {g : ℝ → ℝ}, ContDiff ℝ 1 g →
+    (∀ x, g (-x) = g x) → ∀ x, deriv g (-x) = -(deriv g x) := by
+  intro g _hg heven x
+  have h1 := deriv_comp_neg (f := g) (x := x)
+  rw [show (fun x => g (-x)) = g from funext heven] at h1
+  linarith
+
+have odd_zero : ∀ {g : ℝ → ℝ}, (∀ x, g (-x) = -(g x)) → g 0 = 0 := by
+  intro g hodd
+  have h := hodd 0
+  rw [neg_zero] at h
+  linarith
+```
+
+Then it proves higher endpoint facts by:
+
+```lean
+have hg'_odd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) :=
+  deriv_even_odd (hg_C4.of_le (by norm_num)) hg_even
+```
+
+For the first derivative boundary value, just add:
+
+```lean
+have hg'_bc0 : deriv g_smooth 0 = 0 :=
+  odd_zero hg'_odd
+```
+
+or use the reusable helper above directly.
+
+## Minimal answer
+
+For `U_cos`:
+
+```lean
+have hU'_zero : deriv U_cos 0 = 0 := by
+  have hodd : ∀ x, deriv U_cos (-x) = -(deriv U_cos x) := by
+    intro x
+    have h1 := deriv_comp_neg (f := U_cos) (x := x)
+    rw [show (fun x => U_cos (-x)) = U_cos from funext hU_even] at h1
+    linarith
+  have h0 := hodd 0
+  rw [neg_zero] at h0
+  linarith
+```
+
+For `g_smooth`:
+
+```lean
+have hg'_bc0 : deriv g_smooth 0 = 0 := by
+  have hodd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) := by
+    intro x
+    have h1 := deriv_comp_neg (f := g_smooth) (x := x)
+    rw [show (fun x => g_smooth (-x)) = g_smooth from funext hg_even] at h1
+    linarith
+  have h0 := hodd 0
+  rw [neg_zero] at h0
+  linarith
+```
+
+This is the robust Lean proof.  The `tsum` derivative computation is mathematically true under the right summability hypotheses, but it is the wrong proof obligation here.
 
 No local `lake build` was run; this drop was produced through the GitHub connector only.
