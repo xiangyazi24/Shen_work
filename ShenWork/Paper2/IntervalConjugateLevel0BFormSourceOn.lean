@@ -1086,17 +1086,11 @@ theorem level0_chemDiv_timeDerivData
       have hV_C4 : ContDiff ℝ 4 V_cos := by
         apply intervalResolverLiftR_contDiff_four
         sorry -- [KNOWN GAP: eigenvalue-weighted ℓ¹ summability of resolver source.
-               --  ROUTE (Q1119/Q1123): build g_smooth = ν · U_cos^γ (C⁴ from hU_C4 +
-               --  global positivity from _hu₀_nonneg → S(r)u₀ ≥ 0 → cosine symmetry).
-               --  Then: IntervalWeakH2Neumann at depth 2 (Neumann BC from cosine symmetry)
-               --  → intervalWeakH4Neumann_eigenvalue_L1_summable
-               --  → bridge via resolverSourceCoeff_re_eq_cosineCoeffs.
-               --  Key tools: intervalWeakH2Neumann_of_contDiffOn,
-               --  intervalWeakH4Neumann_eigenvalue_L1_summable (0 sorry),
-               --  resolverSourceCoeff_re_eq_cosineCoeffs.
-               --  Positivity needs: intervalFullSemigroupOperator_nonneg hr_pos' +
-               --  _hu₀_nonneg → S(r)u₀ ≥ 0 on [0,1] → U_cos > 0 on [0,1] (via hU_agree)
-               --  → global positivity via cosine even + period-2 (lines 636-691 pattern).]
+               --  Route fully documented; needs ~50 lines mirroring lines 460-560 pattern.
+               --  Steps: g_smooth = ν·U_cos^γ (C⁴+positivity) → IntervalWeakH2Neumann depth 2
+               --  → intervalWeakH4Neumann_eigenvalue_L1_summable → bridge via
+               --  resolverSourceCoeff_re_eq_cosineCoeffs. All tools exist (0 sorry each).
+               --  U_cos and hU_C4 already in scope. Needs _hu₀_nonneg for positivity.]
       -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
       have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
           intervalDomainLift (coupledChemicalConcentration p
