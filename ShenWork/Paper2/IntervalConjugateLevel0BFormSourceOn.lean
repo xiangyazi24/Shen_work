@@ -1038,38 +1038,23 @@ theorem level0_chemDiv_timeDerivData
     by_cases hτ : 0 < τ
     · -- ── τ > 0 (meaningful case) ──
       refine ⟨min 1 (τ / 2), lt_min one_pos (half_pos hτ), ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · -- F1: per-slab source continuity.
-        -- Goal: ∀ᶠ s in 𝓝 τ, ContinuousOn (coupledChemDivSourceLift p (...) s) (Icc 0 1).
+      · -- F1: per-slab source IntervalIntegrable.
+        -- Goal: ∀ᶠ s in 𝓝 τ, IntervalIntegrable (coupledChemDivSourceLift p (...) s) volume 0 1.
         --
-        -- BOUNDARY OBSTRUCTION (same root cause as the old 2A-agree, now fixed in
-        -- level0_chemDiv_envelope_summable by switching to IntervalIntegrable):
-        -- coupledChemDivSourceLift uses intervalDomainLift (zero-extension), so at
-        -- x = 0,1 the deriv is 0 (Lean default for non-differentiable) while the
-        -- smooth representative's deriv is nonzero.  ContinuousOn on Icc 0 1 is FALSE.
+        -- UPSTREAM WEAKENING DONE: ContinuousOn (Icc 0 1) was weakened to
+        -- IntervalIntegrable in all 4 structures + the consumer
+        -- cosineCoeffs_hasDerivAt_of_smooth_param.  The boundary obstruction
+        -- (intervalDomainLift zero-extension makes ContinuousOn FALSE at x=0,1)
+        -- no longer applies: IntervalIntegrable only needs integrability on (0,1].
         --
-        -- FIX REQUIRED (upstream infrastructure change):
-        -- The ContinuousOn on Icc 0 1 is baked into the chain:
-        --   CoupledChemDivFluxJointC2Hyp (F1 field, line 130 of IntervalChemDivOuterCommuteProducer)
-        --   → CoupledChemDivOuterCommuteAtoms (line 37 of IntervalChemDivOuterCommute)
-        --   → CoupledChemDivPointwiseChainAtoms (line 21 of IntervalChemDivLocalChainRule)
-        --   → CoupledChemDivLocalChainRule (line 82 of IntervalChemDivTimeDerivative)
-        --
-        -- The downstream consumers only use ContinuousOn for the interchange
-        --   ∂ₜ ∫₀¹ f(s,x) cos(nπx) dx = ∫₀¹ ∂ₜf(s,x) cos(nπx) dx,
-        -- which needs IntervalIntegrable (not ContinuousOn) + dominated convergence.
-        -- Fix: weaken ContinuousOn (Icc 0 1) to IntervalIntegrable in all 4 structures.
-        -- This is ~4 files × ~5 lines each = mechanical but cross-cutting.
+        -- IntervalIntegrable IS provable from interior ContinuousOn + sup bound:
+        --   have hs_pos : 0 < s := by linarith [hs_in_ball τ (min 1 (τ/2)) s ...]
+        --   have hsmooth := chemFluxDeriv_contDiff_two (C4 factors) (resolver positivity)
+        --   have hcont_Ioo := hsmooth.continuous.continuousOn.mono Ioo_subset_Icc_self
+        --   -- ContinuousOn on Ioo 0 1 → IntervalIntegrable via sup bound
         exact Filter.Eventually.of_forall (fun s =>
-          sorry) -- [SUB-SORRY 3A-sub: requires upstream weakening of ContinuousOn to
-                 --  IntervalIntegrable in CoupledChemDivFluxJointC2Hyp.F1 and downstream.
-                 --  Interior ContinuousOn (Ioo 0 1) IS provable:
-                 --    have hs_pos : 0 < s := by linarith [hs_in_ball τ (min 1 (τ/2)) s ...]
-                 --    have hU_C4 := heatSemigroup_contDiff_four _hu₀_bound hs_pos
-                 --    have hV_C4 := intervalResolverLiftR_contDiff_four (summability ...)
-                 --    have hV_pos : ∀ x, 0 < 1 + V_cos x := (resolver positivity ...)
-                 --    have hsmooth := chemFluxDeriv_contDiff_two hU_C4 hV_C4 hV_pos p.hβ
-                 --    exact hsmooth.continuous.continuousOn.mono Ioo_subset_Icc_self
-                 --  IntervalIntegrable follows from sup bound (see hSup fix above).]
+          sorry) -- [SUB-SORRY 3A-sub: now provable — IntervalIntegrable from interior
+                 --  smoothness + sup bound.  No more structural obstruction.]
       · -- F2: joint C² of u(s,x) = intervalDomainLift (S(s)u₀) x.
         -- Proved via heatSemigroup_jointContDiffAt_two (0 sorry, axiom-clean)
         -- + ContDiffAt.congr_of_eventuallyEq bridging through

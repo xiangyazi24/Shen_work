@@ -485,7 +485,7 @@ dominated convergence bound. -/
 /-- **Time-Leibniz for cosine coefficients.**
 
 If `f : ℝ → ℝ → ℝ` satisfies:
-1. `f(s,·)` is continuous on `[0,1]` for `s` near `τ`,
+1. `f(s,·)` is interval-integrable on `[0,1]` for `s` near `τ`,
 2. Each spatial point `x ∈ (0,1)` has `HasDerivAt (fun s => f s x) (f' s x) s`
    for all `s ∈ Metric.ball τ δ`,
 3. `f'` is jointly continuous on `[τ-δ, τ+δ] × [0,1]`,
@@ -493,7 +493,7 @@ If `f : ℝ → ℝ → ℝ` satisfies:
 then `HasDerivAt (fun s => cosineCoeffs (f s) n) (cosineCoeffs (f' τ) n) τ`. -/
 theorem cosineCoeffs_hasDerivAt_of_smooth_param
     {f f' : ℝ → ℝ → ℝ} {τ δ : ℝ} {n : ℕ} (hδ : 0 < δ)
-    (hf_cont : ∀ᶠ s in 𝓝 τ, ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
+    (hf_int : ∀ᶠ s in 𝓝 τ, IntervalIntegrable (f s) volume (0 : ℝ) 1)
     (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       ∀ s ∈ Metric.ball τ δ,
         HasDerivAt (fun r => f r x) (f' s x) s)
@@ -531,16 +531,19 @@ theorem cosineCoeffs_hasDerivAt_of_smooth_param
       (∫ x in (0 : ℝ)..1, g' τ x) τ := by
     apply ShenWork.IntervalUnderIntegralLeibniz.intervalIntegral_hasDerivAt_time_of_local hδ
     · -- (hF_meas) AEStronglyMeasurable for g s
-      filter_upwards [hf_cont] with s hs
-      have : ContinuousOn (g s) (Set.Ioo (0 : ℝ) 1) :=
-        ContinuousOn.mul hcos_cont.continuousOn (hs.mono Set.Ioo_subset_Icc_self)
-      exact this.aestronglyMeasurable measurableSet_Ioo
+      filter_upwards [hf_int] with s hs
+      -- cos(nπ·) is continuous, so cos·f is IntervalIntegrable when f is.
+      have hgs_int : IntervalIntegrable (g s) volume 0 1 :=
+        hs.continuousOn_mul hcos_cont.continuousOn
+      -- IntervalIntegrable → AEStronglyMeasurable on uIoc ⊇ Ioo.
+      have hsub : Set.Ioo (0 : ℝ) 1 ⊆ Set.uIoc (0 : ℝ) 1 := by
+        rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+        exact Set.Ioo_subset_Ioc_self
+      exact hgs_int.aestronglyMeasurable.mono_measure
+        (Measure.restrict_mono hsub le_rfl)
     · -- (hF_int) IntervalIntegrable for g τ at the base point
-      have hτ_cont := hf_cont.self_of_nhds
-      have : ContinuousOn (g τ) (Set.uIcc (0 : ℝ) 1) := by
-        rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
-        exact ContinuousOn.mul hcos_cont.continuousOn hτ_cont
-      exact this.intervalIntegrable
+      have hτ_int := hf_int.self_of_nhds
+      exact hτ_int.continuousOn_mul hcos_cont.continuousOn
     · -- (hF'_meas) AEStronglyMeasurable for g' τ
       have hf'τ_cont : ContinuousOn (f' τ) (Set.Icc (0 : ℝ) 1) := by
         -- f'(τ, ·) = (uncurry f') ∘ (Prod.mk τ), which is continuous on Icc 0 1

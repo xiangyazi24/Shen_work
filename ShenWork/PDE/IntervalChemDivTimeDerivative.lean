@@ -79,7 +79,8 @@ structure CoupledChemDivLocalChainRule
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   exists_local_slab : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧
     (∀ᶠ s in 𝓝 τ,
-      ContinuousOn (coupledChemDivSourceLift p u s) (Icc (0 : ℝ) 1)) ∧
+      MeasureTheory.IntervalIntegrable (coupledChemDivSourceLift p u s)
+        MeasureTheory.volume (0 : ℝ) 1) ∧
     (∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
       HasDerivAt
         (fun r => coupledChemDivSourceLift p u r x)
