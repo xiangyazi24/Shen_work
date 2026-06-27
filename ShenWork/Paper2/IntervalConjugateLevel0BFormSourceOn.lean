@@ -1053,9 +1053,111 @@ theorem level0_chemDiv_timeDerivData
       -- on [0,1].  The boundary obstruction (intervalDomainLift zero-extension)
       -- was resolved by the upstream weakening from ContinuousOn to
       -- IntervalIntegrable.
-      exact Filter.Eventually.of_forall (fun r =>
-        sorry) -- [SORRY 3A: IntervalIntegrable from interior smoothness.
-               --  Provable with existing infrastructure; no structural obstruction.]
+      -- Strategy: restrict to a ball where r > 0, build C⁴ cosine-series
+      -- representatives U_cos (heat) and V_cos (resolver), show the flux
+      -- deriv(chemFluxFun) is continuous → IntervalIntegrable, then transfer
+      -- to coupledChemDivSourceLift via ae-agreement on Ioo 0 1.
+      apply Filter.eventually_of_mem
+        (Metric.ball_mem_nhds s (lt_min one_pos (half_pos hs_pos)))
+      intro r hr
+      -- r > s/2 > 0 from ball containment (same pattern as Field 2)
+      have hr_pos : s / 2 < r := by
+        have hdist := Metric.mem_ball.mp hr
+        rw [Real.dist_eq] at hdist
+        have hlt := lt_of_lt_of_le hdist (min_le_right 1 (s / 2))
+        linarith [(abs_lt.mp hlt).1]
+      have hr_pos' : 0 < r := by linarith
+      -- ── C⁴ cosine-series representatives at time r ──
+      -- U_cos: heat semigroup cosine series, globally C⁴ for r > 0
+      set U_cos := fun x => ∑' k,
+        (Real.exp (-r * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k) *
+          cosineMode k x with hU_cos_def
+      have hU_C4 : ContDiff ℝ 4 U_cos :=
+        heatSemigroup_contDiff_four _hu₀_bound hr_pos'
+      have hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
+          intervalDomainLift (conjugatePicardIter p u₀ 0 r) x = U_cos x :=
+        fun x hx => ShenWork.IntervalPicardIterateRepresentation.hagree_zero
+          p u₀ hr_pos' _hu₀_cont _hu₀_bound hx
+      -- V_cos: resolver cosine series (= intervalResolverLiftR) at time r
+      set V_cos := intervalResolverLiftR p (conjugatePicardIter p u₀ 0 r)
+        with hV_cos_def
+      have hV_C4 : ContDiff ℝ 4 V_cos := by
+        apply intervalResolverLiftR_contDiff_four
+        sorry -- [KNOWN GAP: eigenvalue-weighted ℓ¹ summability of resolver source.
+               --  Same obstacle as line 315; needs depth-1 NeumannTower.]
+      -- V_cos agrees with intervalDomainLift (coupledChemicalConcentration …) on [0,1]
+      have hV_agree : ∀ x ∈ Icc (0 : ℝ) 1,
+          intervalDomainLift (coupledChemicalConcentration p
+            (conjugatePicardIter p u₀ 0) r) x = V_cos x := by
+        intro x hx
+        show intervalDomainLift (intervalNeumannResolverR p
+          (conjugatePicardIter p u₀ 0 r)) x =
+          intervalResolverLiftR p (conjugatePicardIter p u₀ 0 r) x
+        simp only [intervalDomainLift, dif_pos hx]; rfl
+      -- 1 + V_cos > 0 globally (from resolver nonnegativity + periodicity/symmetry)
+      have hV_pos : ∀ x, (0 : ℝ) < 1 + V_cos x := by
+        apply IntervalResolverHighRegularity.intervalResolverLiftR_one_add_pos_of_nonneg_on_Icc
+        intro x hx
+        sorry -- [KNOWN GAP: resolver nonnegativity on [0,1] at time r.
+               --  Same infrastructure as lines 591-690; needs
+               --  intervalNeumannResolverR_nonneg_of_nonneg_source.]
+      -- ── Flux C³ → deriv(flux) continuous → IntervalIntegrable ──
+      have hint_F : IntervalIntegrable
+          (deriv (ChemDivSpatialC2.chemFluxFun p.β U_cos V_cos))
+          volume (0 : ℝ) 1 :=
+        (ChemDivSpatialC2.chemFluxDeriv_contDiff_two hU_C4 hV_C4 hV_pos p.hβ)
+          .continuous.intervalIntegrable 0 1
+      -- ── AE bridge: source agrees with deriv(flux) on Ioo 0 1 ──
+      -- On Ioo 0 1, the lift-based and cosine-based flux functions agree near
+      -- any interior point, so their derivatives (= the source and F) agree.
+      have h_ioo_eq : ∀ x ∈ Ioo (0 : ℝ) 1,
+          deriv (ChemDivSpatialC2.chemFluxFun p.β U_cos V_cos) x =
+            coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r x := by
+        intro x ⟨hx0, hx1⟩
+        have hx_icc : x ∈ Icc (0 : ℝ) 1 := ⟨hx0.le, hx1.le⟩
+        -- Unfold source to deriv of lift-based flux at x
+        have hcdl :
+            coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r x =
+              deriv (fun y => intervalDomainLift (conjugatePicardIter p u₀ 0 r) y *
+                deriv (intervalDomainLift (coupledChemicalConcentration p
+                  (conjugatePicardIter p u₀ 0) r)) y /
+                (1 + intervalDomainLift (coupledChemicalConcentration p
+                  (conjugatePicardIter p u₀ 0) r) y) ^ p.β) x := by
+          unfold coupledChemDivSourceLift intervalDomainLift
+          rw [dif_pos hx_icc]
+          unfold ShenWork.IntervalDomain.intervalDomainChemotaxisDiv; rfl
+        rw [hcdl]
+        -- The two derivatives agree because the flux functions agree near x
+        apply Filter.EventuallyEq.deriv_eq
+        have hmem : x ∈ Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
+        have hu_eq : intervalDomainLift (conjugatePicardIter p u₀ 0 r)
+            =ᶠ[nhds x] U_cos := by
+          filter_upwards [isOpen_Ioo.mem_nhds hmem] with z hz
+          exact hU_agree z ⟨hz.1.le, hz.2.le⟩
+        have hv_eq : intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) r) =ᶠ[nhds x] V_cos := by
+          filter_upwards [isOpen_Ioo.mem_nhds hmem] with z hz
+          exact hV_agree z ⟨hz.1.le, hz.2.le⟩
+        have hdv_eq : deriv (intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) r)) =ᶠ[nhds x] deriv V_cos :=
+          hv_eq.deriv
+        filter_upwards [hu_eq, hv_eq, hdv_eq] with y hu_y hv_y hdv_y
+        simp only [ChemDivSpatialC2.chemFluxFun]
+        rw [hu_y, hv_y, hdv_y]
+      -- ── Transfer: source IntervalIntegrable via ae-agreement ──
+      -- F and source agree on Ioo 0 1; the difference Ioc 0 1 \ Ioo 0 1 = {1}
+      -- has volume zero, so they agree ae on Ι 0 1 = Ioc 0 1.
+      have h_ae : deriv (ChemDivSpatialC2.chemFluxFun p.β U_cos V_cos)
+          =ᵐ[volume.restrict (Ι (0 : ℝ) 1)]
+          coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r := by
+        have hrestr : volume.restrict (Ι (0 : ℝ) 1) =
+            volume.restrict (Ioo (0 : ℝ) 1) := by
+          rw [uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+          exact (Measure.restrict_congr_set Ioo_ae_eq_Ioc).symm
+        rw [hrestr]
+        exact (ae_restrict_iff' measurableSet_Ioo).mpr
+          (ae_of_all volume fun x hx => h_ioo_eq x hx)
+      exact hint_F.congr_ae h_ae
     · -- Field 2: HasDerivAt of the source via pointwise chain rule.
       -- This combines multiple ingredients:
       --   (a) u(s,x) = intervalDomainLift(S(s)u₀)(x) is jointly C² — PROVED.

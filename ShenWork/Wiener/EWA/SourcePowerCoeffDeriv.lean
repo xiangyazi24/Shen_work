@@ -127,6 +127,7 @@ theorem hasDerivAt_powerCoeff_of_inputs {p : CM2Params}
   have hf_int : ∀ᶠ s in 𝓝 σ, IntervalIntegrable
       (fun x => p.ν * (intervalDomainLift (v s) x) ^ p.γ) MeasureTheory.volume (0 : ℝ) 1 := by
     filter_upwards [hf_cont] with s hs
+    rw [← Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hs
     exact hs.intervalIntegrable
   -- the engine's derivative target is `cosineCoeffs (f' σ) k = adotPow … σ k`.
   change HasDerivAt
