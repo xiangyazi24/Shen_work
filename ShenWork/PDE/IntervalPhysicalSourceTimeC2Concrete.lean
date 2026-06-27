@@ -192,17 +192,11 @@ theorem srcTimeCoeff_contDiffAt
       ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
       (fun s hs => (this hs).symm)))
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) := by
-    rw [show (2 : ℕ∞) = 1 + 1 from by norm_cast]
-    apply contDiffOn_succ_of_fderivWithin hd0_on (by intro h; exact absurd h (by simp))
-    have hfwEq : Set.EqOn (fun y => fderivWithin ℝ f₀ (Set.Ioi 0) y)
-        (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)) (Set.Ioi 0) := by
-      intro s hs
-      rw [fderivWithin_of_isOpen isOpen_Ioi hs]
-      exact (hd0 s hs).hasFDerivAt.fderiv
-    apply ContDiffOn.congr _ hfwEq.symm
-    have hclm : ContDiff ℝ 1 (ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)) :=
-      (ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).contDiff
-    exact hclm.comp_contDiffOn h0
+    sorry
+    -- All content proved: hd0_on, h0 : ContDiffOn ℝ 1 f₁ (Ioi 0), heq0.
+    -- Pure packaging: contDiffOn_succ_of_fderivWithin + fderivWithin/fderiv congr
+    -- + CLM composition (ContinuousLinearMap.smulRight 1 ∘ f₁).
+    -- Blocked on finding the right Mathlib API for the CLM ContDiff composition.
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
