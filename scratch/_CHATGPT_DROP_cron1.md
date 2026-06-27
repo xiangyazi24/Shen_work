@@ -1,4 +1,4 @@
-# Q1037 / cron2 — concrete route for 1A uniform `secondDeriv` bound
+# Q1045 / cron1 — NeumannTower / higher-depth IBP audit
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -10,307 +10,425 @@ Target drop file:
 scratch/_CHATGPT_DROP_cron1.md
 ```
 
-## Answer
+## Executive answer
 
-Use route **(a)**, with one important refinement:
+Yes, the repo now has a **generic finite-depth `NeumannTower` infrastructure** for arbitrary depth `j`, plus arbitrary-`j` coefficient decay. It is not located in `IntervalSourceDecayQuantitative.lean`; it is in:
 
-> Build a canonical closed-slab cosine representative for the chemDiv expression, prove joint continuity of its classical second spatial derivative on `[c,T] × [0,1]`, and tie the `hH2_per_slice.secondDeriv` field definitionally or by a small equality lemma to that canonical derivative.
+```text
+ShenWork/Paper2/IntervalIBPCoeffExtraction.lean
+```
 
-Do **not** try route (b) as the primary path. `ContDiffAt` on the open interior is not enough for the compact bound on `[c,T] × [0,1]`, and it does not control the endpoint behavior of the `IntervalWeakH2Neumann.secondDeriv`. The existing code already warns that boundary behavior of `coupledChemDivSourceLift` is delicate because of `intervalDomainLift`; the safe object is the smooth cosine representative, not the raw lifted interval source.
+The key declarations are:
 
-## What the current code does
+```lean
+ShenWork.IntervalIBPCoeffExtraction.NeumannTower
+ShenWork.IntervalIBPCoeffExtraction.rawCoeff_step
+ShenWork.IntervalIBPCoeffExtraction.rawCoeff_iterate
+ShenWork.IntervalIBPCoeffExtraction.rawCoeff_decay
+ShenWork.IntervalIBPCoeffExtraction.cosineCoeffs_decay
+```
 
-In `IntervalChemDivSpatialC2.lean`, the key constructor is:
+The arbitrary-depth theorem is:
+
+```lean
+theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
+    |cosineCoeffs (g 0) n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
+```
+
+So the generic IBP part exists for any finite `j`, provided a `NeumannTower g j` and a top-coefficient bound are supplied.
+
+However, the repo does **not** yet have a fully generic producer
+
+```text
+ContDiff ℝ (2*j) f + odd-Neumann boundary chain up to depth j
+  ⟹ ∃ g, g 0 = f ∧ NeumannTower g j
+```
+
+for arbitrary symbolic `j`. Instead, it has concrete producers for depth 3 and depth 4:
+
+```lean
+-- ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
+ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
+
+-- ShenWork/Paper2/IntervalNeumannTowerOfC8.lean
+ShenWork.Paper2.NeumannTowerOfC8.neumannTower_four_of_contDiff_eight
+```
+
+Those are enough for the current DuhamelSourceTimeC2Coeff/eigen-tail tasks, but they are not a fully arbitrary-depth constructor.
+
+## What `IntervalSourceDecayQuantitative.lean` contains
+
+The requested file:
+
+```text
+ShenWork/PDE/IntervalSourceDecayQuantitative.lean
+```
+
+contains the older quantitative weak-H2 Neumann bound. It does **not** define `NeumannTower`, `intervalWeakH4Neumann`, or a depth-j tower.
+
+Its main theorem is:
+
+```lean
+ShenWork.IntervalSourceDecayQuantitative.intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+```
+
+with shape:
+
+```lean
+theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) {B : ℝ}
+    (hB : (∫ x in (0:ℝ)..1, |hf.secondDeriv x|) ≤ B) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 2
+```
+
+This is depth `j = 1` in the `NeumannTower` language: two spatial derivatives, quadratic decay. The file also has:
+
+```lean
+ShenWork.IntervalSourceDecayQuantitative.weak_laplacianCoeff_abs_le_of_bound
+```
+
+which is the quantitative bound on the top weak-Laplacian cosine integral.
+
+I found no declarations named:
+
+```text
+intervalWeakH4Neumann
+intervalWeakH6Neumann
+```
+
+by repo search. Higher-order decay is handled by `NeumannTower`, not by `intervalWeakH4Neumann` / `intervalWeakH6Neumann` structures.
+
+## 1. Does a generic NeumannTower exist at arbitrary depth?
+
+Yes, at the IBP extraction level.
+
+File:
+
+```text
+ShenWork/Paper2/IntervalIBPCoeffExtraction.lean
+```
+
+Core structure:
+
+```lean
+structure NeumannTower (g : ℕ → ℝ → ℝ) (j : ℕ) : Prop where
+  step : ∀ i, i < j → g (i + 1) = deriv (deriv (g i))
+  contDiff : ∀ i, i < j → ContDiffOn ℝ 2 (g i) (Set.Icc (0 : ℝ) 1)
+  tend0 : ∀ i, i < j →
+    Filter.Tendsto (deriv (g i)) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0)
+  tend1 : ∀ i, i < j →
+    Filter.Tendsto (deriv (g i)) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  bc0 : ∀ i, i < j → deriv (g i) 0 = 0
+  bc1 : ∀ i, i < j → deriv (g i) 1 = 0
+```
+
+Arbitrary-depth decay theorem:
+
+```lean
+theorem rawCoeff_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
+    |rawCoeff n (g 0)| ≤ M / ((n : ℝ) * Real.pi) ^ (2 * j)
+```
+
+Normalized coefficient form:
+
+```lean
+theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
+    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
+    |cosineCoeffs (g 0) n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
+```
+
+Therefore:
+
+```text
+NeumannTower depth j + top raw coefficient bound
+  ⟹ |cosineCoeffs (g 0) n| ≤ 2M / (nπ)^(2j).
+```
+
+The gap is not IBP iteration. The gap is producing the tower and top bound for the concrete nonlinear source.
+
+## 2. If only depth 2 existed, what would need to be added for depth 3?
+
+The premise is outdated: depth 3 already exists.
+
+File:
+
+```text
+ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
+```
+
+Key definitions/theorems:
+
+```lean
+ShenWork.Paper2.NeumannTowerOfC6.gTower
+ShenWork.Paper2.NeumannTowerOfC6.gTower_step
+ShenWork.Paper2.NeumannTowerOfC6.deriv_gTower
+ShenWork.Paper2.NeumannTowerOfC6.contDiff_gTower
+ShenWork.Paper2.NeumannTowerOfC6.continuous_deriv_gTower
+ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
+```
+
+The producer is:
+
+```lean
+theorem neumannTower_three_of_contDiff_six
+    {f : ℝ → ℝ}
+    (hf : ContDiff ℝ (6 : ℕ) f)
+    (hN0 : ∀ i, i < 3 → deriv (gTower f i) 0 = 0)
+    (hN1 : ∀ i, i < 3 → deriv (gTower f i) 1 = 0) :
+    ∃ g, g 0 = f ∧ NeumannTower g 3
+```
+
+Here:
+
+```lean
+def gTower (f : ℝ → ℝ) (i : ℕ) : ℝ → ℝ := deriv^[2 * i] f
+```
+
+So for depth 3 one needs exactly:
+
+```text
+f ∈ C⁶ globally,
+∂ₓ f(0)=∂ₓ f(1)=0,
+∂ₓ³ f(0)=∂ₓ³ f(1)=0,
+∂ₓ⁵ f(0)=∂ₓ⁵ f(1)=0,
+plus a top raw coefficient bound for ∂ₓ⁶ f.
+```
+
+The bridge from depth 3 tower to eigen-cube pointwise bounds is in:
+
+```text
+ShenWork/Paper2/IntervalEigenCubeTailFromTower.lean
+```
+
+The exact bridge theorem is:
+
+```lean
+ShenWork.Paper2.EigenCubeTailFromTower.SourceEigenCubeTailFields_of_neumannTower
+```
+
+and the per-mode lemma is:
+
+```lean
+ShenWork.Paper2.EigenCubeTailFromTower.eigenCube_bound_of_tower
+```
+
+with content:
+
+```text
+depth-3 tower + top raw coefficient bound
+  ⟹ λ_n^3 * |cosineCoeffs f n| ≤ 2M  for n ≥ 1.
+```
+
+For `DuhamelSourceTimeC2Coeff`, the field `sourceEigenSqEnvelope` only needs λ² summability, not a λ³ pointwise bound. Depth 3 is enough:
+
+```text
+|c_n| ≤ 2M / (nπ)^6
+λ_n² |c_n| = (nπ)^4 |c_n| ≤ 2M / (nπ)^2,
+```
+
+and `∑ 1/n²` converges. The repo has the generic `cosineCoeffs_decay` needed for this; it just does not appear to have a dedicated theorem named exactly `sourceEigenSqEnvelope_of_neumannTower_three`. That would be a small wrapper around `cosineCoeffs_decay` at `j = 3` plus the p-series summability lemma.
+
+The repo also has depth 4:
+
+```text
+ShenWork/Paper2/IntervalNeumannTowerOfC8.lean
+```
+
+```lean
+ShenWork.Paper2.NeumannTowerOfC8.neumannTower_four_of_contDiff_eight
+```
+
+This produces a depth-4 tower from global C8 plus odd derivatives through order 7 vanishing at endpoints. It is used for eigen-cube **summability** in:
+
+```text
+ShenWork/Paper2/IntervalEigenCubeSummability.lean
+```
+
+with:
+
+```lean
+ShenWork.Paper2.EigenCubeSummability.cubeEnvelope
+ShenWork.Paper2.EigenCubeSummability.cubeEnvelope_summable
+ShenWork.Paper2.EigenCubeSummability.eigenCube_envelope_bound_of_tower
+ShenWork.Paper2.EigenCubeSummability.eigenCube_envelope_full
+ShenWork.Paper2.EigenCubeSummability.sourceEigenCubeTailFields_of_sourceC8
+```
+
+This file explains the stronger fact:
+
+```text
+C8 / depth 4 gives |c_n| ≤ 2M/(nπ)^8,
+therefore λ_n^3 |c_n| ≤ 2M/(nπ)^2,
+which is summable.
+```
+
+## 3. Does the repo have C6 Neumann regularity for `ν·u^γ`, with `u = S(t)u₀`?
+
+Mathematically, yes: at positive time the heat Level0 profile is smooth, and with positivity the nonlinear source is smooth.
+
+In the repo, the answer is more precise:
+
+### What exists for the heat semigroup itself
+
+Files:
+
+```text
+ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
+ShenWork/Paper2/IntervalSpatialC6Certificate.lean
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
+```
+
+Theorems:
+
+```lean
+ShenWork.Paper2.CD6HeatSmoothness.unitIntervalCosineHeatValue_contDiff_seven
+ShenWork.Paper2.SpatialC6Certificate.unitIntervalCosineHeatValue_contDiff_six
+ShenWork.Paper2.SpatialC6Certificate.intervalDomainLift_contDiffOn_six_of_eqOn_heatValue
+ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_contDiff_four
+ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+```
+
+So the linear heat representative has at least C6/C7 spatial regularity in committed code.
+
+### What exists for source C6 representatives
+
+Files:
+
+```text
+ShenWork/Paper2/IntervalSourceC6Representative.lean
+ShenWork/Paper2/IntervalChiNegUnconditionalClose.lean
+```
+
+Theorems:
+
+```lean
+ShenWork.Paper2.SourceC6Representative.sourceEigenCubeTailFields_of_weightThree
+ShenWork.Paper2.ChiNegUnconditionalClose.sourceEigenCubeTailFields_of_sourceRegularity
+ShenWork.Paper2.ChiNegUnconditionalClose.neumannTower_gTower_three_of_contDiff_six
+```
+
+These do not directly prove from first principles that
+
+```text
+x ↦ ν * (S(t)u₀ x)^γ
+```
+
+is C6-Neumann. Instead:
+
+* `sourceEigenCubeTailFields_of_sourceRegularity` takes smooth C6 representatives `fSrc` / `fAdot`, coefficient identifications, odd-derivative Neumann vanishing, and top coefficient bounds as hypotheses, then derives `SourceEigenCubeTailFields`.
+* `sourceEigenCubeTailFields_of_weightThree` builds C6 cosine-series representatives from an already-supplied eigen-cube summability input (`DuhamelSourceSpatialWeightThree` / weight-three envelope). That is a useful non-sorry bridge, but it is not the same as deriving C6 of the concrete nonlinear source from heat smoothing.
+
+### What exists for the concrete chemDiv / source path
+
+The concrete path currently wired from smooth inputs is mostly C2/H2:
+
+```text
+ShenWork/Paper2/IntervalChemDivSpatialC2.lean
+```
+
+Key theorem:
 
 ```lean
 ShenWork.Paper2.ChemDivSpatialC2.chemDivSource_weakH2_of_cosineRep
 ```
 
-It takes global cosine representatives `U_cos` and `V_cos`, proves C2 for
+It produces:
 
 ```lean
-F := deriv (chemFluxFun p.β U_cos V_cos)
+IntervalWeakH2Neumann (chemDivLift p u v)
 ```
 
-then builds:
+from global C4 cosine representatives for `u` and `v`. That is a depth-1 weak-H2 object, feeding quadratic decay.
 
-```lean
-hF_H2 : IntervalWeakH2Neumann F :=
-  ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-    hF_C2on htend0 htend1 hbc0 hbc1
+The concrete physical source time C2 file:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
 ```
 
-The structure `IntervalWeakH2Neumann` stores:
+has:
 
 ```lean
-secondDeriv : ℝ → ℝ
-second_intervalIntegrable : IntervalIntegrable secondDeriv volume 0 1
-second_abs_integral_bound : ∃ B ≥ 0, ∫₀¹ |secondDeriv| ≤ B
-weak_cosine_laplacian : ...
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_bound
+ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
 ```
 
-and `intervalWeakH2Neumann_of_contDiffOn` sets:
+This is time-C2/source-envelope infrastructure, not a C6-Neumann spatial tower for `ν·(S(t)u₀)^γ`.
+
+Therefore, for the concrete nonlinear Level0 source, the repo’s directly wired regularity is still essentially the C2/H2 lane (`chemDivSource_weakH2_of_cosineRep`) plus newer abstract/high-order tower bridges. I did not find a theorem of the form:
 
 ```lean
-secondDeriv := deriv (deriv g)
+-- not found under this name/shape
+heatLevel0_powerSource_neumannTower_three
+heatLevel0_powerSource_contDiff_six_neumann
+sourceTimeCoeff_C6Neumann_of_heatLevel0
 ```
 
-Thus, for the H2 object produced from the cosine representative, the stored second derivative is the classical `deriv (deriv F)`, i.e. the second derivative of chemDiv / the third derivative of the flux representative.
+or any `intervalWeakH4Neumann` / `intervalWeakH6Neumann` structure.
 
-In `IntervalConjugateLevel0BFormSourceOn.lean`, the current `hH2_per_slice` block already calls `chemDivSource_weakH2_of_cosineRep`, then 1A is exactly:
+## Practical conclusion for `DuhamelSourceTimeC2Coeff`
 
-```lean
-have hunif_ptwise : ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
-    ∀ x ∈ Icc (0 : ℝ) 1, |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
-  sorry -- [SUB-SORRY 1A: joint continuity + compactness → ptwise bound]
+For `DuhamelSourceTimeC2Coeff`, depth 3 is the right minimum if you want λ²-summable envelopes from spatial IBP:
+
+```text
+j = 3 gives |c_k| ≤ C/(kπ)^6,
+λ_k² |c_k| ≤ C/(kπ)^2,
+∑ λ_k² |c_k| < ∞.
 ```
 
-So the missing thing is not another per-slice H2 proof. It is the closed-slab joint continuity and the equality between the H2 field and the canonical representative derivative.
+The repo has the generic theorem to prove this (`IntervalIBPCoeffExtraction.cosineCoeffs_decay`) and a C6-to-depth3 tower producer (`NeumannTowerOfC6.neumannTower_three_of_contDiff_six`). What still must be supplied for the heat Level0 nonlinear source is the concrete C6-Neumann representative package:
 
-## Concrete route
+```text
+ContDiff ℝ 6 fSrc,
+odd derivative boundary chain through orders 1, 3, 5,
+top raw coefficient / L1 bound for ∂ₓ⁶ fSrc,
+coefficient identification a_k = cosineCoeffs fSrc k,
+and the same for adot.
+```
 
-### Step 1: Stop hiding the representatives behind per-slice `choose`
+The repo’s depth-4/C8 route (`IntervalEigenCubeSummability.lean`) is stronger and is used when one needs eigen-cube **summable** envelopes (`λ³|c_k| ≤ C/(kπ)^2`). For plain `DuhamelSourceTimeC2Coeff` λ² summability, depth 3 should suffice.
 
-Define canonical representatives for Level0:
+## Lean-facing wrapper that is still missing
+
+The natural small wrapper for the C2Coeff route would be:
 
 ```lean
-import ShenWork.Paper2.IntervalChemDivSpatialC2
-import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-import ShenWork.Paper2.IntervalResolverHighRegularity
+import ShenWork.Paper2.IntervalIBPCoeffExtraction
+import Mathlib.Analysis.PSeries
 
-open Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalIBPCoeffExtraction
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.Paper2.ChemDivSpatialC2
-  (chemFluxFun chemDivSource_weakH2_of_cosineRep)
-open ShenWork.Paper2.IntervalResolverHighRegularity
-  (intervalResolverLiftR intervalResolverLiftR_contDiff_four
-   intervalResolverLiftR_even intervalResolverLiftR_reflect_one)
-open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
-open ShenWork.CosineSpectrum (cosineMode)
 
 noncomputable section
 
-namespace ShenWork.Paper2.Level0ChemDivSecondDerivRoute
+namespace ShenWork.Paper2.MissingC2CoeffDepth3Wrapper
 
-/-- Canonical heat cosine representative for `conjugatePicardIter p u₀ 0`. -/
-def level0Ucos (u₀ : intervalDomainPoint → ℝ) (s x : ℝ) : ℝ :=
-  ∑' k : ℕ,
-    (Real.exp (-s * unitIntervalCosineEigenvalue k) *
-      cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x
-
-/-- Canonical resolver cosine representative for the Level0 heat iterate. -/
-def level0Vcos (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (s x : ℝ) : ℝ :=
-  intervalResolverLiftR p (conjugatePicardIter p u₀ 0 s) x
-
-/-- Canonical chemDiv representative on the slab. -/
-def level0ChemDivRep (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (s x : ℝ) : ℝ :=
-  deriv (chemFluxFun p.β (level0Ucos u₀ s) (level0Vcos p u₀ s)) x
-
-/-- Canonical second derivative stored in the H2 certificate. -/
-def level0ChemDivSecondRep (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (s x : ℝ) : ℝ :=
-  deriv (deriv (level0ChemDivRep p u₀ s)) x
-
-end ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-```
-
-This avoids proof-dependent `Classical.choose` representatives when proving the uniform bound. You can still use the same per-slice data to build `IntervalWeakH2Neumann`; just make the reps explicit.
-
-### Step 2: Prove closed-slab joint continuity of `level0ChemDivSecondRep`
-
-This is the actual 1A theorem:
-
-```lean
-namespace ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-
-/-- Main analytic input for 1A: the classical second derivative of the smooth
-cosine representative is jointly continuous on the closed positive-time slab. -/
-theorem level0ChemDivSecondRep_continuousOn_Icc
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c T : ℝ}
-    (hc : 0 < c) (hcT : c ≤ T)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hVpos : ∀ s ∈ Icc c T, ∀ x : ℝ,
-      0 < 1 + level0Vcos p u₀ s x) :
-    ContinuousOn
-      (fun q : ℝ × ℝ => level0ChemDivSecondRep p u₀ q.1 q.2)
-      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  -- Route:
-  -- 1. U side: generalize/use the cutoff cosine-series theorem.
-  --    Existing nearby theorem:
-  --      HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-  --    For this 1A target, use the same cutoff-tsum proof at order 4, not order 2:
-  --      desired: level0Ucos_contDiffOn_four_Icc.
-  --
-  -- 2. V side: use the resolver cosine representative, not intervalDomainLift.
-  --    Per-slice C4 theorem already exists:
-  --      IntervalResolverHighRegularity.intervalResolverLiftR_contDiff_four
-  --    The closed-slab joint version should be proved by the same spectral/cutoff
-  --    route as the heat theorem, using the positive-time heat source tails.
-  --      desired: level0Vcos_contDiffOn_four_Icc.
-  --
-  -- 3. Mixed algebra:
-  --    From joint C4 of U and V and hVpos, prove the flux
-  --      (s,x) ↦ U(s,x) * ∂x V(s,x) / (1+V(s,x))^β
-  --    is joint C3, hence its x-derivative is joint C2 and its x-second derivative
-  --    is continuous. This is the joint analogue of existing one-slice theorems:
-  --      ChemDivSpatialC2.chemFlux_contDiff_three
-  --      ChemDivSpatialC2.chemFluxDeriv_contDiff_two
-  --
-  -- Suggested new theorem name:
-  --      chemDivSecondRep_continuousOn_of_jointC4
-  --
-  -- The proof should use ContDiffOn.mul, ContDiffOn.div, rpow_const_of_ne,
-  -- and continuity of spatial derivatives obtained from ContDiffOn of the
-  -- uncurried representative.
+/-- Suggested wrapper: depth-3 Neumann tower gives a summable λ² envelope.
+This is not claiming to be committed under this exact name; it is the next small
+lemma to add for `DuhamelSourceTimeC2Coeff`. -/
+theorem sourceEigenSq_summable_of_neumannTower_three
+    {f : ℝ → ℝ} {g : ℕ → ℝ → ℝ} (hg0 : g 0 = f)
+    (H : NeumannTower g 3) {M : ℝ} (hM : 0 ≤ M)
+    (hTop : ∀ n, 1 ≤ n → |rawCoeff n (g 3)| ≤ M) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n * |cosineCoeffs f n|)) := by
+  -- Proof route:
+  -- * n = 0 is zero because λ₀ = 0.
+  -- * for n ≥ 1, use `cosineCoeffs_decay n hn H (hTop n hn)` at j = 3.
+  -- * multiply by λ² = (nπ)^4 to get ≤ 2M / (nπ)^2.
+  -- * conclude by the p = 2 series.
   sorry
 
-end ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-```
-
-The existing theorem `HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two` is only order 2, so it is not the final tool for 1A. It is the template: copy its cutoff-tsum route and raise the order to 4. Per-slice `heatSemigroup_contDiff_four` and `intervalResolverLiftR_contDiff_four` confirm the required spatial order is mathematically available.
-
-### Step 3: Tie `hH2_per_slice.secondDeriv` to the canonical representative
-
-Do not attempt to prove continuity of
-
-```lean
-fun q => (hH2_per_slice q.1 ?).secondDeriv q.2
-```
-
-directly. It is proof dependent because `hs : s ∈ Icc c T` is an argument and the current construction locally builds representatives.
-
-Instead prove a bridge lemma for the explicit H2 constructor:
-
-```lean
-namespace ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-
-/-- If the Level0 H2 certificate is built from the canonical cosine reps, its
-stored `secondDeriv` is the canonical classical second derivative. -/
-theorem level0_hH2_secondDeriv_eq
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {s : ℝ}
-    (H : IntervalWeakH2Neumann
-      (ShenWork.IntervalBFormSpectral.chemDivLift p
-        (conjugatePicardIter p u₀ 0 s)
-        (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s)))
-    -- In the real patch, replace this abstract `H` by the actual expression
-    -- returned by `chemDivSource_weakH2_of_cosineRep` with
-    -- `U_cos = level0Ucos u₀ s` and `V_cos = level0Vcos p u₀ s`.
-    : H.secondDeriv = H.secondDeriv := by
-  -- With the real H2 expression, this is essentially:
-  --   unfold chemDivSource_weakH2_of_cosineRep
-  --   unfold IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-  --   rfl
-  -- because `intervalWeakH2Neumann_of_contDiffOn` sets
-  --   secondDeriv := deriv (deriv g)
-  -- and `chemDivSource_weakH2_of_cosineRep` uses `g = F = deriv flux`.
-  rfl
-
-end ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-```
-
-In the actual patch, make the theorem state the concrete expression, not the trivial abstract form above. The important point is that the equality should be by unfolding the two constructors, not by analysis.
-
-### Step 4: Compactness gives the 1A bound
-
-Once you have `ContinuousOn` for the canonical `level0ChemDivSecondRep`, the bound is a standard compactness lemma already used elsewhere in the repo:
-
-```lean
-(isCompact_Icc.prod isCompact_Icc).exists_bound_of_continuousOn hcont
-```
-
-Concrete target:
-
-```lean
-namespace ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-
-/-- 1A target: uniform pointwise bound for the second derivative stored in the
-per-slice H2 data. -/
-theorem level0_hH2_secondDeriv_uniform_bound
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c T : ℝ}
-    (hc : 0 < c) (hcT : c ≤ T)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hVpos : ∀ s ∈ Icc c T, ∀ x : ℝ,
-      0 < 1 + level0Vcos p u₀ s x)
-    (hH2_per_slice : ∀ s, s ∈ Icc c T →
-      IntervalWeakH2Neumann
-        (ShenWork.IntervalBFormSpectral.chemDivLift p
-          (conjugatePicardIter p u₀ 0 s)
-          (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) s)))
-    (hH2_second_eq : ∀ s (hs : s ∈ Icc c T),
-      (hH2_per_slice s hs).secondDeriv = level0ChemDivSecondRep p u₀ s) :
-    ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
-      ∀ x ∈ Icc (0 : ℝ) 1, |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
-  have hcont := level0ChemDivSecondRep_continuousOn_Icc
-    (p := p) (u₀ := u₀) (M₀ := M₀) hc hcT hu₀_bound hu₀_cont hVpos
-  have hcont_abs : ContinuousOn
-      (fun q : ℝ × ℝ => |level0ChemDivSecondRep p u₀ q.1 q.2|)
-      (Icc c T ×ˢ Icc (0 : ℝ) 1) := hcont.abs
-  obtain ⟨C, hCbound⟩ :=
-    (isCompact_Icc.prod isCompact_Icc).exists_bound_of_continuousOn hcont_abs
-  refine ⟨max C 0, le_max_right C 0, ?_⟩
-  intro s hs x hx
-  have hb := hCbound (s, x) ⟨hs, hx⟩
-  rw [hH2_second_eq s hs]
-  -- `hb` is a norm bound on the abs-valued function; simplify to a scalar abs bound.
-  have : |level0ChemDivSecondRep p u₀ s x| ≤ C := by
-    simpa [Real.norm_eq_abs, abs_abs] using hb
-  exact this.trans (le_max_left C 0)
-
-end ShenWork.Paper2.Level0ChemDivSecondDerivRoute
-```
-
-After this theorem, the existing 1B block in `IntervalConjugateLevel0BFormSourceOn.lean` already converts the pointwise bound to the uniform L1 bound:
-
-```lean
-∫ x in (0 : ℝ)..1, |(hH2_per_slice s hs).secondDeriv x| ≤ C
-```
-
-using `intervalIntegral.integral_mono_on` and `(hH2_per_slice s hs).second_intervalIntegrable.norm`.
-
-## Why not route (b)?
-
-Route (b) would try to use interior `ContDiffAt` for the raw flux or raw chemDiv source. That is the wrong object for 1A because:
-
-1. the desired compact set is closed, `[c,T] × [0,1]`;
-2. `coupledChemDivSourceLift` can have boundary artifacts from `intervalDomainLift`;
-3. `IntervalWeakH2Neumann.secondDeriv` is attached to the smooth representative used in the weak-H2 proof, not automatically to the raw interior `ContDiffAt` object;
-4. compactness on `Ioo 0 1` is unavailable.
-
-So the closed-slab representative route is the robust path.
-
-## Minimal theorem-name checklist
-
-Use existing:
-
-```text
-ChemDivSpatialC2.chemDivSource_weakH2_of_cosineRep
-ChemDivSpatialC2.chemFlux_contDiff_three
-ChemDivSpatialC2.chemFluxDeriv_contDiff_two
-PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
-HeatSemigroupHighRegularity.heatSemigroup_contDiff_four
-HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two   -- template, order 2 only
-IntervalResolverHighRegularity.intervalResolverLiftR_contDiff_four
-IntervalResolverHighRegularity.intervalResolverLiftR_even
-IntervalResolverHighRegularity.intervalResolverLiftR_reflect_one
-(isCompact_Icc.prod isCompact_Icc).exists_bound_of_continuousOn
-```
-
-Add or generalize:
-
-```text
-level0Ucos_contDiffOn_four_Icc
-level0Vcos_contDiffOn_four_Icc
-chemDivSecondRep_continuousOn_of_jointC4
-level0_hH2_secondDeriv_eq
-level0_hH2_secondDeriv_uniform_bound
+end ShenWork.Paper2.MissingC2CoeffDepth3Wrapper
 ```
 
 ## Bottom line
 
-The simplest route is **(a)**: prove joint continuity of the classical second derivative of the smooth cosine-series chemDiv representative on the closed slab, then use compactness. The only extra engineering is to make the per-slice H2 construction use explicit canonical reps, or prove a small unfolding lemma showing its `secondDeriv` field is the canonical `deriv (deriv (deriv flux))`. Route (b) is not recommended because it loses endpoint control and does not naturally identify the `IntervalWeakH2Neumann.secondDeriv` field.
+1. **Generic depth-j IBP exists**: `IntervalIBPCoeffExtraction.NeumannTower` plus `cosineCoeffs_decay` works for arbitrary finite `j`.
+2. **Depth 3 is already implemented** from C6 data: `IntervalNeumannTowerOfC6.neumannTower_three_of_contDiff_six`. Depth 4 from C8 also exists.
+3. **Concrete nonlinear Level0 C6-Neumann regularity is not fully wired as a direct theorem from `u = S(t)u₀`**. The repo has heat C6/C7, source C6/C8 representative bridges, and tower/eigen-tail bridges; but the current concrete chemDiv/source path that starts from heat Level0 still visibly bottoms out at C2/H2 unless the high-order source representative hypotheses/envelopes are supplied.
