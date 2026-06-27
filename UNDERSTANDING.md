@@ -480,3 +480,11 @@ HANDOFF/horizon-retype-status.md header for the live ledger):
 - restartData_of_inputs + hasRestartData_of_subtypeCont (restart packaging)
 Discharged today beyond the 10-list: Hu_of_reduced (subtype variant),
 hpde_u (surrogate retype killed the false lift-continuity field).
+
+### Option A SETBACK (Q1076): floor-weakening alone insufficient
+FlooredSourceTimeData's 6 sorry are NOT trivially fillable after weakening:
+- d0-d1: need positivity floor (0 < u(t,x)) for rpow chain rule
+- zerothBound/laplBound: need UNIFORM bounds ∀ t > 0, but source derivatives
+  blow up as t → 0 for merely continuous initial data
+NEXT: further weaken zerothBound/laplBound to per-compact-window (∀ t ∈ [c,T]),
+or restructure the consumer chain to accept window-local data directly.
