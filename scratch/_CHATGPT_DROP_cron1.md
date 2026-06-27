@@ -1,4 +1,4 @@
-# Q1287 / cron1 — exact `intervalResolverLiftR_contDiff_four` signature and line-1087 argument
+# Q1288 / cron1 — `intervalNeumannResolverWeight` signature and bounds
 
 Repo: `xiangyazi24/Shen_work`
 
@@ -10,334 +10,284 @@ Target file updated by this drop:
 scratch/_CHATGPT_DROP_cron1.md
 ```
 
-## Search result
+## Executive answer
 
-The theorem is in:
-
-```text
-ShenWork/Paper2/IntervalResolverHighRegularity.lean
-```
-
-Namespace:
-
-```lean
-namespace ShenWork.Paper2.IntervalResolverHighRegularity
-```
-
-The target caller is in:
+`intervalNeumannResolverWeight` is defined in:
 
 ```text
-ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
+ShenWork/PDE/IntervalNeumannEllipticResolverR.lean
 ```
 
-around the block:
+namespace:
 
 ```lean
-have hV_C4 : ContDiff ℝ 4 V_cos := by
-  apply intervalResolverLiftR_contDiff_four
+namespace ShenWork.PDE
+```
+
+Exact definition:
+
+```lean
+/-- The real "resolver weight" `wₖ = 1 / (p.μ + λ_k)`.  This is the modulus of
+the diagonal resolvent multiplier (all data here are real). -/
+def intervalNeumannResolverWeight (p : CM2Params) (k : ℕ) : ℝ :=
+  1 / (p.μ + unitIntervalNeumannSpectrum.eigenvalue k)
+```
+
+So its exact type is:
+
+```lean
+intervalNeumannResolverWeight : CM2Params → ℕ → ℝ
+```
+
+Fully qualified name:
+
+```lean
+ShenWork.PDE.intervalNeumannResolverWeight
+```
+
+## Basic local lemmas in the defining file
+
+Same file:
+
+```text
+ShenWork/PDE/IntervalNeumannEllipticResolverR.lean
+```
+
+### Positive denominator
+
+```lean
+/-- The denominator `p.μ + λ_k` is strictly positive. -/
+lemma intervalNeumannResolver_denom_pos (p : CM2Params) (k : ℕ) :
+    0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue k := by
+  have hlam : 0 ≤ unitIntervalNeumannSpectrum.eigenvalue k :=
+    unitIntervalNeumannSpectrum_eigenvalue_nonneg k
+  linarith [p.hμ]
+```
+
+### Nonnegativity of the weight
+
+```lean
+/-- The resolver weight is nonnegative. -/
+lemma intervalNeumannResolverWeight_nonneg (p : CM2Params) (k : ℕ) :
+    0 ≤ intervalNeumannResolverWeight p k :=
+  le_of_lt (by
+    rw [intervalNeumannResolverWeight]
+    exact div_pos one_pos (intervalNeumannResolver_denom_pos p k))
+```
+
+### Square summability
+
+```lean
+/-- **The squared resolver weight is summable** (decay `~ 1/k⁴`).  This is the
+genuine `ℓ²`-convergence of the multiplier sequence that powers the
+absolute-convergence embedding; proved by comparison with the convergent
+`p`-series `∑ 1/k⁴`. -/
+lemma intervalNeumannResolverWeight_sq_summable (p : CM2Params) :
+    Summable fun k : ℕ => (intervalNeumannResolverWeight p k) ^ 2 := by
   ...
-  sorry
 ```
 
-## Exact signature
+## Bounds found by search
 
-```lean
-/-- **The lifted resolver cosine series is C⁴** when the source coefficients
-have eigenvalue-weighted ℓ¹ summability.
+I did not find a theorem literally named `intervalNeumannResolverWeight_le` or `intervalNeumannResolverWeight_bound`.
 
-Route: eigenvalue-weighted ℓ¹ of source ⟹ eigenvalue-squared summability
-of resolver (via `resolverCoeff_eigenSq_summable_of_sourceEigenL1`) ⟹ C⁴
-(via `cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable`).
-
-The C⁴ engine (`contDiff_tsum_of_eventually` with eigenvalue⁴ majorant) is
-the standard cosine-series smoothing tool from
-`IntervalParabolicDuhamelGainNonCircular`. -/
-theorem intervalResolverLiftR_contDiff_four
-    {p : CM2Params} {u : intervalDomainPoint → ℝ}
-    (hsrc : Summable (fun k : ℕ =>
-      unitIntervalCosineEigenvalue k *
-        |(intervalNeumannResolverSourceCoeff p u k).re|)) :
-    ContDiff ℝ 4 (intervalResolverLiftR p u) := by
-  unfold intervalResolverLiftR
-  exact ShenWork.Paper2.ParabolicDuhamelGainNonCircular.cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
-    (resolverCoeff_eigenSq_summable_of_sourceEigenL1 hsrc)
-```
-
-So it has exactly one explicit hypothesis:
-
-```lean
-hsrc : Summable (fun k : ℕ =>
-  unitIntervalCosineEigenvalue k *
-    |(intervalNeumannResolverSourceCoeff p u k).re|)
-```
-
-No positivity, continuity, or C⁴ hypothesis is passed directly to `intervalResolverLiftR_contDiff_four`.  Those are only used upstream to prove `hsrc`.
-
-## What goal remains after `apply intervalResolverLiftR_contDiff_four`
-
-At line ~1087, local variables are effectively:
-
-```lean
-r : ℝ
-hr_pos' : 0 < r
-U_cos : ℝ → ℝ
-hU_C4 : ContDiff ℝ 4 U_cos
-hU_agree : ∀ x ∈ Icc (0 : ℝ) 1,
-  intervalDomainLift (conjugatePicardIter p u₀ 0 r) x = U_cos x
-V_cos := intervalResolverLiftR p (conjugatePicardIter p u₀ 0 r)
-```
-
-After:
-
-```lean
-apply intervalResolverLiftR_contDiff_four
-```
-
-the goal is:
-
-```lean
-⊢ Summable (fun k : ℕ =>
-    unitIntervalCosineEigenvalue k *
-      |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
-          (conjugatePicardIter p u₀ 0 r) k).re|)
-```
-
-The current target file already starts the right reduction:
-
-```lean
-rw [show (fun k => unitIntervalCosineEigenvalue k *
-  |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
-    (conjugatePicardIter p u₀ 0 r) k).re|) =
-  (fun k => unitIntervalCosineEigenvalue k *
-    |cosineCoeffs (fun x => p.ν * intervalDomainLift
-      (conjugatePicardIter p u₀ 0 r) x ^ p.γ) k|) from by
-  funext k; congr 1; congr 1
-  exact ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
-    p (conjugatePicardIter p u₀ 0 r) k]
-```
-
-After that `rw`, the goal is exactly:
-
-```lean
-⊢ Summable (fun k : ℕ =>
-    unitIntervalCosineEigenvalue k *
-      |cosineCoeffs
-        (fun x => p.ν * intervalDomainLift
-          (conjugatePicardIter p u₀ 0 r) x ^ p.γ) k|)
-```
-
-## Exact bridge signature used in the target block
-
-File:
+The main pointwise bound is named differently:
 
 ```text
-ShenWork/Paper2/IntervalDomainLogisticWeakH2Adapter.lean
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
 ```
 
-Signature:
+namespace:
 
 ```lean
-/-- The resolver source coefficient's real part IS the cosine coefficient of the
-power source `ν·u^γ` (both are `unitIntervalNeumannCosineCoeff` of the same lifted
-function). -/
-theorem resolverSourceCoeff_re_eq_cosineCoeffs
-    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
-    (ShenWork.PDE.intervalNeumannResolverSourceCoeff p u k).re
-      = cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k := by
-  simp only [ShenWork.PDE.intervalNeumannResolverSourceCoeff, cosineCoeffs,
-    Complex.ofReal_re]
+namespace ShenWork.IntervalResolverJointC2PhysicalConcrete
 ```
 
-## The argument that fills the sorry
-
-The argument is a proof of eigenvalue-weighted L¹ summability of the power-source coefficients.  Once you have the depth-2 weak-H² tower
+### Bound by `1 / p.μ`
 
 ```lean
-hf_H2 :
-  ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
-    (fun x : ℝ => p.ν * intervalDomainLift
-      (conjugatePicardIter p u₀ 0 r) x ^ p.γ)
-
-hf''_H2 :
-  ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
-    hf_H2.secondDeriv
+/-- `valueCosWeight m n · wₙ ≤ valueCosWeight m n / μ`-style: `wₙ ≤ 1/μ`. -/
+theorem resolverWeight_le_inv_mu (p : CM2Params) (n : ℕ) :
+    intervalNeumannResolverWeight p n ≤ 1 / p.μ := by
+  unfold intervalNeumannResolverWeight
+  apply div_le_div_of_nonneg_left one_pos.le p.hμ
+  linarith [ShenWork.PDE.ResolventEstimate.unitIntervalNeumannSpectrum_eigenvalue_nonneg n]
 ```
 
-the exact argument is:
+Fully qualified name:
 
 ```lean
-exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
-  hf_H2 hf''_H2
+ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu
 ```
 
-This is the whole argument **after** the existing `rw [show ... resolverSourceCoeff_re_eq_cosineCoeffs ...]` in the target file.
+This is usually the theorem you want when proving a crude uniform multiplier bound.
 
-## Exact summability theorem used
+### Eigenvalue-weighted bound `λₙ wₙ ≤ 1`
 
-File:
-
-```text
-ShenWork/PDE/IntervalSourceDecayQuantitative.lean
-```
-
-Signature:
+Same file:
 
 ```lean
-/-- **Eigenvalue-weighted L¹ summability** from depth-2 weak H² Neumann tower.
-Feeds `resolverCoeff_eigenSq_summable_of_sourceEigenL1` for resolver C⁴. -/
-theorem intervalWeakH4Neumann_eigenvalue_L1_summable
-    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f)
-    (hf'' : IntervalWeakH2Neumann hf.secondDeriv) :
-    Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * |cosineCoeffs f k|) := by
-  obtain ⟨B₂, _, hB₂⟩ := hf''.second_abs_integral_bound
-  have hdecay := intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound hf hf'' hB₂
-  -- ... p-series comparison ...
+/-- **Bounded elliptic multiplier on the eigenvalue weight.** `λ_n · wₙ ≤ 1`. -/
+theorem eigenvalue_mul_resolverWeight_le_one (p : CM2Params) (n : ℕ) :
+    unitIntervalNeumannSpectrum.eigenvalue n * intervalNeumannResolverWeight p n ≤ 1 := by
+  have hpos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue n :=
+    ShenWork.PDE.intervalNeumannResolver_denom_pos p n
+  have hlam : 0 ≤ unitIntervalNeumannSpectrum.eigenvalue n :=
+    ShenWork.PDE.ResolventEstimate.unitIntervalNeumannSpectrum_eigenvalue_nonneg n
+  unfold intervalNeumannResolverWeight
+  rw [mul_one_div, div_le_one hpos]
+  linarith [p.hμ]
 ```
 
-## Minimal replacement pattern at line 1087
-
-If the target block already has `hf_H2` and `hf''_H2` in scope, replace the sorry by:
+Fully qualified name:
 
 ```lean
-        exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
-          hf_H2 hf''_H2
+ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one
 ```
 
-In full local shape:
+This is the sharp bound for canceling one spatial eigenvalue with the elliptic resolvent.
+
+### First spatial weight bound
+
+Same file:
 
 ```lean
-      have hV_C4 : ContDiff ℝ 4 V_cos := by
-        apply intervalResolverLiftR_contDiff_four
-        rw [show (fun k => unitIntervalCosineEigenvalue k *
-          |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p
-            (conjugatePicardIter p u₀ 0 r) k).re|) =
-          (fun k => unitIntervalCosineEigenvalue k *
-            |cosineCoeffs (fun x => p.ν * intervalDomainLift
-              (conjugatePicardIter p u₀ 0 r) x ^ p.γ) k|) from by
-          funext k
-          congr 1
-          congr 1
-          exact ShenWork.IntervalDomainLogisticWeakH2Adapter.resolverSourceCoeff_re_eq_cosineCoeffs
-            p (conjugatePicardIter p u₀ 0 r) k]
-        exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
-          hf_H2 hf''_H2
+/-- `valueCosWeight 1 n = |nπ|` and `λ_n = (nπ)²`, so `|nπ| = √λ_n`; the AM–GM
+bound `|nπ|·wₙ = |nπ|/(μ+(nπ)²) ≤ 1/(2√μ) ≤ 1/μ + 1` is what we need.  Here we
+take the crude majorant `valueCosWeight 1 n · wₙ ≤ |nπ|/μ` (the order-1 envelope
+is taken already `(nπ)`-decaying in the hypothesis, so the crude bound suffices). -/
+theorem valueCosWeight_one_mul_resolverWeight_le (p : CM2Params) (n : ℕ) :
+    valueCosWeight 1 n * intervalNeumannResolverWeight p n ≤
+      |(n : ℝ) * Real.pi| / p.μ := by
+  have hw : intervalNeumannResolverWeight p n ≤ 1 / p.μ := resolverWeight_le_inv_mu p n
+  have hvc : valueCosWeight 1 n = |(n : ℝ) * Real.pi| := rfl
+  rw [hvc]
+  calc |(n : ℝ) * Real.pi| * intervalNeumannResolverWeight p n
+      ≤ |(n : ℝ) * Real.pi| * (1 / p.μ) :=
+        mul_le_mul_of_nonneg_left hw (abs_nonneg _)
+    _ = |(n : ℝ) * Real.pi| / p.μ := by rw [mul_one_div]
 ```
 
-## What supplies `hf_H2`
-
-The first weak-H² certificate can be built from the heat cosine representation using the existing power-source adapter in:
-
-```text
-ShenWork/PDE/IntervalMildSourceDecayHelper.lean
-```
-
-Exact signature:
+Fully qualified name:
 
 ```lean
-/-- Construct `IntervalWeakH2Neumann` for a source `g = ν * u ^ γ` from
-eigenvalue-summable cosine coefficients of the profile `u` and strict
-positivity.  Route: `cosineCoeffSeries_contDiff_two` → `ContDiffOn ℝ 2` of `u`
-→ chain rule (`rpow_const_of_ne` for positivity) → `ContDiffOn ℝ 2` of `g`
-→ Neumann limits from the cosine series derivatives at endpoints
-→ `intervalWeakH2Neumann_of_contDiffOn`. -/
-noncomputable def intervalWeakH2Neumann_of_eigenvalue_summable
-    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ)
-    {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
-    {w : intervalDomainPoint → ℝ}
-    (hagree : Set.EqOn (intervalDomainLift w)
-        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift w x) :
-    IntervalWeakH2Neumann (fun x : ℝ => ν * intervalDomainLift w x ^ γ)
+ShenWork.IntervalResolverJointC2PhysicalConcrete.valueCosWeight_one_mul_resolverWeight_le
 ```
 
-At line ~1087 instantiate it with:
+## Inline use in another file
+
+`ShenWork/PDE/IntervalDuhamelSourceTimeC2Coeff.lean` contains the weighted source package:
 
 ```lean
-let b : ℕ → ℝ := fun k => Real.exp (-r * unitIntervalCosineEigenvalue k) * heatCoeff u₀ k
-let w : intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0 r
-
-have hbc_sum : Summable (fun n : ℕ => unitIntervalCosineEigenvalue n * |b n|) := by
-  simpa [b] using
-    ShenWork.IntervalSemigroupNeumann.heatCoeff_eigenvalue_summable
-      hr_pos' _hu₀_bound
-
-have hagree_w : Set.EqOn (intervalDomainLift w)
-    (fun x => ∑' n : ℕ, b n * cosineMode n x) (Icc (0 : ℝ) 1) := by
-  intro x hx
-  simpa [w, b] using hU_agree x hx
-
-have hpos_w : ∀ x ∈ Icc (0 : ℝ) 1, 0 < intervalDomainLift w x := by
-  -- This is the positivity input.  In this line-1087 block, the comment says to
-  -- derive it from `_hu₀_nonneg` + positive-somewhere via
-  -- `intervalFullSemigroupOperator_pos`, valid for all `r > 0`.
-  -- If a heat-floor/strict-positivity lemma is already in scope, use it here.
-  sorry
-
-have hf_H2 : ShenWork.PDE.IntervalMildSourceDecayHelper.IntervalWeakH2Neumann
-    (fun x : ℝ => p.ν * intervalDomainLift w x ^ p.γ) :=
-  ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
-    p.hν p.hγ hbc_sum hagree_w hpos_w
+/-- The concrete elliptic resolver multiplier preserves
+`DuhamelSourceTimeC2Coeff`. -/
+def duhamelSourceTimeC2Coeff_resolver_weight
+    (p : CM2Params) {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) :
+    DuhamelSourceTimeC2Coeff
+      (fun s n => intervalNeumannResolverWeight p n * a s n) :=
+  duhamelSourceTimeC2Coeff_mul_weight src
+    (intervalNeumannResolverWeight p) (div_nonneg zero_le_one p.hμ.le) (fun n => by
+      rw [abs_of_nonneg (intervalNeumannResolverWeight_nonneg p n)]
+      unfold intervalNeumannResolverWeight
+      apply one_div_le_one_div_of_le p.hμ
+      linarith [unitIntervalNeumannSpectrum_eigenvalue_nonneg n])
 ```
 
-## What supplies `hf''_H2`
-
-This is the actual depth-2 part.  The intended construction is:
-
-1. Use `hU_C4` plus strict positivity of `U_cos` to define
+This proves the same bound inline:
 
 ```lean
-g_smooth : ℝ → ℝ := fun x => p.ν * U_cos x ^ p.γ
+|intervalNeumannResolverWeight p n| ≤ 1 / p.μ
 ```
 
-and prove
+using nonnegativity plus the definition.  If you already import `IntervalResolverJointC2PhysicalConcrete`, prefer the named theorem:
 
 ```lean
-hg_C4 : ContDiff ℝ 4 g_smooth
+ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu p n
 ```
 
-by
+## Useful import/open block
+
+For direct use:
 
 ```lean
-contDiff_const.mul (hU_C4.rpow_const_of_ne hU_ne)
+import ShenWork.PDE.IntervalNeumannEllipticResolverR
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
+
+open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverWeight_nonneg
+  intervalNeumannResolverWeight_sq_summable intervalNeumannResolver_denom_pos)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+  (resolverWeight_le_inv_mu eigenvalue_mul_resolverWeight_le_one
+   valueCosWeight_one_mul_resolverWeight_le)
 ```
 
-2. Use evenness and reflection symmetry of `U_cos` to prove odd derivatives of `g_smooth` vanish at `0` and `1`, giving an `IntervalWeakH2Neumann` certificate for `deriv (deriv g_smooth)`.
+## Common proof snippets
 
-3. Transfer that certificate to `hf_H2.secondDeriv` by reusing the same fourth-derivative integrability and proving the weak cosine Laplacian identity from:
+### Show the weight is nonnegative
 
 ```lean
-hf_H2.weak_cosine_laplacian k
-h_smooth_H2.weak_cosine_laplacian k
-intervalCosineLaplacianCoeff_eq_of_contDiffOn k ... g_smooth ...
+have hw_nonneg : 0 ≤ ShenWork.PDE.intervalNeumannResolverWeight p n :=
+  ShenWork.PDE.intervalNeumannResolverWeight_nonneg p n
 ```
 
-There is already a long block doing exactly this earlier in the same file around the previous `hV_data` branch.  The line-1087 hole should be filled by factoring that block into a local helper that returns:
+### Bound the weight by `1 / μ`
 
 ```lean
-hf_H2 : IntervalWeakH2Neumann (fun x => p.ν * intervalDomainLift w x ^ p.γ)
-hf''_H2 : IntervalWeakH2Neumann hf_H2.secondDeriv
+have hw_le : ShenWork.PDE.intervalNeumannResolverWeight p n ≤ 1 / p.μ :=
+  ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu p n
 ```
 
-Then the `intervalResolverLiftR_contDiff_four` argument is one line, as above.
-
-## Concise answer
-
-`intervalResolverLiftR_contDiff_four` needs only:
+### Bound the absolute value
 
 ```lean
-Summable (fun k => unitIntervalCosineEigenvalue k *
-  |(intervalNeumannResolverSourceCoeff p u k).re|)
+have h_abs_weight : |ShenWork.PDE.intervalNeumannResolverWeight p n| ≤ 1 / p.μ := by
+  rw [abs_of_nonneg (ShenWork.PDE.intervalNeumannResolverWeight_nonneg p n)]
+  exact ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu p n
 ```
 
-At `IntervalConjugateLevel0BFormSourceOn.lean` line ~1087, after rewriting by
-`resolverSourceCoeff_re_eq_cosineCoeffs`, fill the sorry with:
+### Cancel one eigenvalue
 
 ```lean
-exact ShenWork.IntervalSourceDecayQuantitative.intervalWeakH4Neumann_eigenvalue_L1_summable
-  hf_H2 hf''_H2
+have hλw : unitIntervalNeumannSpectrum.eigenvalue n *
+    ShenWork.PDE.intervalNeumannResolverWeight p n ≤ 1 :=
+  ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one p n
 ```
 
-where `hf_H2` is the weak-H² certificate for `ν · lift(w)^γ`, and `hf''_H2` is the depth-2 weak-H² certificate for `hf_H2.secondDeriv`.
+### Summability of squared weights
+
+```lean
+have hwsq : Summable fun k : ℕ =>
+    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2 :=
+  ShenWork.PDE.intervalNeumannResolverWeight_sq_summable p
+```
+
+## Summary
+
+The exact definition is:
+
+```lean
+def intervalNeumannResolverWeight (p : CM2Params) (k : ℕ) : ℝ :=
+  1 / (p.μ + unitIntervalNeumannSpectrum.eigenvalue k)
+```
+
+The most useful named bound is:
+
+```lean
+theorem resolverWeight_le_inv_mu (p : CM2Params) (n : ℕ) :
+  intervalNeumannResolverWeight p n ≤ 1 / p.μ
+```
+
+in namespace:
+
+```lean
+ShenWork.IntervalResolverJointC2PhysicalConcrete
+```
+
+The eigenvalue-canceling bound is:
+
+```lean
+theorem eigenvalue_mul_resolverWeight_le_one (p : CM2Params) (n : ℕ) :
+  unitIntervalNeumannSpectrum.eigenvalue n * intervalNeumannResolverWeight p n ≤ 1
+```
 
 No local `lake build` was run; this drop was produced through the GitHub connector only.
