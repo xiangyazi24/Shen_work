@@ -130,7 +130,7 @@ theorem heatSemigroup_flooredSourceTimeData
     FlooredSourceTimeData p (conjugatePicardIter p u₀ 0)
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
       (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) where
-  d0 τ hτ := ⟨min 1 (τ / 2), lt_min one_pos (half_pos hτ), by sorry, by sorry, by sorry⟩
+  d0 τ hτ := by sorry
   d1 τ hτ := by
     -- OBLIGATION: ∃ δ > 0 such that:
     --   (a) s₁ is ContinuousOn [0,1] near τ
