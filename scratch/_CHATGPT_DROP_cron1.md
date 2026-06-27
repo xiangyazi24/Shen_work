@@ -1,4 +1,4 @@
-# Q1045 / cron1 — NeumannTower / higher-depth IBP audit
+# Q1052 / cron3 — applying `cosineCoeffs_decay` at depth 3 to `ν · u^γ`, `u = S(t)u₀`
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -12,97 +12,40 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Executive answer
 
-Yes, the repo now has a **generic finite-depth `NeumannTower` infrastructure** for arbitrary depth `j`, plus arbitrary-`j` coefficient decay. It is not located in `IntervalSourceDecayQuantitative.lean`; it is in:
+Yes, `cosineCoeffs_decay` at depth `j = 3` can be applied to the nonlinear source
 
 ```text
-ShenWork/Paper2/IntervalIBPCoeffExtraction.lean
+f(x) = ν · u(x)^γ
 ```
 
-The key declarations are:
+for a positive-time heat cosine representative `u = S(t)u₀`, **provided** the source is packaged as a global smooth cosine/Neumann representative and the depth-3 Neumann boundary chain is supplied.
 
-```lean
-ShenWork.IntervalIBPCoeffExtraction.NeumannTower
-ShenWork.IntervalIBPCoeffExtraction.rawCoeff_step
-ShenWork.IntervalIBPCoeffExtraction.rawCoeff_iterate
-ShenWork.IntervalIBPCoeffExtraction.rawCoeff_decay
-ShenWork.IntervalIBPCoeffExtraction.cosineCoeffs_decay
-```
-
-The arbitrary-depth theorem is:
-
-```lean
-theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
-    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
-    |cosineCoeffs (g 0) n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
-```
-
-So the generic IBP part exists for any finite `j`, provided a `NeumannTower g j` and a top-coefficient bound are supplied.
-
-However, the repo does **not** yet have a fully generic producer
+The important correction is:
 
 ```text
-ContDiff ℝ (2*j) f + odd-Neumann boundary chain up to depth j
-  ⟹ ∃ g, g 0 = f ∧ NeumannTower g j
+Depth 3 does NOT require f''(0)=f''(1)=0 or f⁽⁴⁾(0)=f⁽⁴⁾(1)=0.
 ```
 
-for arbitrary symbolic `j`. Instead, it has concrete producers for depth 3 and depth 4:
-
-```lean
--- ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
-ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
-
--- ShenWork/Paper2/IntervalNeumannTowerOfC8.lean
-ShenWork.Paper2.NeumannTowerOfC8.neumannTower_four_of_contDiff_eight
-```
-
-Those are enough for the current DuhamelSourceTimeC2Coeff/eigen-tail tasks, but they are not a fully arbitrary-depth constructor.
-
-## What `IntervalSourceDecayQuantitative.lean` contains
-
-The requested file:
+It requires the Neumann conditions on the tower levels:
 
 ```text
-ShenWork/PDE/IntervalSourceDecayQuantitative.lean
+(g₀)' = f'      vanishes at 0 and 1,
+(g₁)' = f'''    vanishes at 0 and 1,
+(g₂)' = f'''''  vanishes at 0 and 1,
 ```
 
-contains the older quantitative weak-H2 Neumann bound. It does **not** define `NeumannTower`, `intervalWeakH4Neumann`, or a depth-j tower.
-
-Its main theorem is:
-
-```lean
-ShenWork.IntervalSourceDecayQuantitative.intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
-```
-
-with shape:
-
-```lean
-theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
-    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) {B : ℝ}
-    (hB : (∫ x in (0:ℝ)..1, |hf.secondDeriv x|) ≤ B) :
-    ∀ k : ℕ, 1 ≤ k →
-      |cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 2
-```
-
-This is depth `j = 1` in the `NeumannTower` language: two spatial derivatives, quadratic decay. The file also has:
-
-```lean
-ShenWork.IntervalSourceDecayQuantitative.weak_laplacianCoeff_abs_le_of_bound
-```
-
-which is the quantitative bound on the top weak-Laplacian cosine integral.
-
-I found no declarations named:
+where
 
 ```text
-intervalWeakH4Neumann
-intervalWeakH6Neumann
+g₀ = f,
+g₁ = f'',
+g₂ = f⁽⁴⁾,
+g₃ = f⁽⁶⁾.
 ```
 
-by repo search. Higher-order decay is handled by `NeumannTower`, not by `intervalWeakH4Neumann` / `intervalWeakH6Neumann` structures.
+For heat cosine representatives, the clean proof is by **double-even parity**: a Neumann cosine series is even about `0` and even about `1`; post-composition `x ↦ ν · x^γ` preserves that parity on the positive range; all odd spatial derivatives of a doubly-even function vanish at the endpoints. The repo already has the abstract parity lemma for this.
 
-## 1. Does a generic NeumannTower exist at arbitrary depth?
-
-Yes, at the IBP extraction level.
+## 1. Hypotheses of `cosineCoeffs_decay`
 
 File:
 
@@ -110,7 +53,7 @@ File:
 ShenWork/Paper2/IntervalIBPCoeffExtraction.lean
 ```
 
-Core structure:
+The structure is:
 
 ```lean
 structure NeumannTower (g : ℕ → ℝ → ℝ) (j : ℕ) : Prop where
@@ -124,15 +67,7 @@ structure NeumannTower (g : ℕ → ℝ → ℝ) (j : ℕ) : Prop where
   bc1 : ∀ i, i < j → deriv (g i) 1 = 0
 ```
 
-Arbitrary-depth decay theorem:
-
-```lean
-theorem rawCoeff_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
-    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
-    |rawCoeff n (g 0)| ≤ M / ((n : ℝ) * Real.pi) ^ (2 * j)
-```
-
-Normalized coefficient form:
+The coefficient decay theorem is:
 
 ```lean
 theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
@@ -140,39 +75,25 @@ theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j
     |cosineCoeffs (g 0) n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
 ```
 
-Therefore:
+So `cosineCoeffs_decay` itself does **not** directly ask for `C^{2j}`. It asks for:
 
-```text
-NeumannTower depth j + top raw coefficient bound
-  ⟹ |cosineCoeffs (g 0) n| ≤ 2M / (nπ)^(2j).
-```
+1. a tower `g` of depth `j`;
+2. `g (i+1) = deriv (deriv (g i))` for each `i < j`;
+3. `ContDiffOn ℝ 2 (g i)` on `[0,1]` for each `i < j`;
+4. Neumann endpoint tendsto and endpoint equalities for `deriv (g i)` for each `i < j`;
+5. a top raw coefficient bound `|rawCoeff n (g j)| ≤ M`.
 
-The gap is not IBP iteration. The gap is producing the tower and top bound for the concrete nonlinear source.
+A separate producer turns global `C^{2j}` plus odd-derivative boundary conditions into such a tower.
 
-## 2. If only depth 2 existed, what would need to be added for depth 3?
-
-The premise is outdated: depth 3 already exists.
-
-File:
+For depth 3, the relevant producer is:
 
 ```text
 ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
 ```
 
-Key definitions/theorems:
-
 ```lean
-ShenWork.Paper2.NeumannTowerOfC6.gTower
-ShenWork.Paper2.NeumannTowerOfC6.gTower_step
-ShenWork.Paper2.NeumannTowerOfC6.deriv_gTower
-ShenWork.Paper2.NeumannTowerOfC6.contDiff_gTower
-ShenWork.Paper2.NeumannTowerOfC6.continuous_deriv_gTower
-ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
-```
+def gTower (f : ℝ → ℝ) (i : ℕ) : ℝ → ℝ := deriv^[2 * i] f
 
-The producer is:
-
-```lean
 theorem neumannTower_three_of_contDiff_six
     {f : ℝ → ℝ}
     (hf : ContDiff ℝ (6 : ℕ) f)
@@ -181,254 +102,230 @@ theorem neumannTower_three_of_contDiff_six
     ∃ g, g 0 = f ∧ NeumannTower g 3
 ```
 
-Here:
+This is the exact depth-3 constructor to use for a global source representative `f`.
+
+## 2. Can we build a depth-3 tower for `ν · u^γ`?
+
+Yes, if `u` is represented by the global heat cosine representative and is positive on the global representative range.
+
+Take:
 
 ```lean
-def gTower (f : ℝ → ℝ) (i : ℕ) : ℝ → ℝ := deriv^[2 * i] f
+import ShenWork.Paper2.IntervalIBPCoeffExtraction
+import ShenWork.Paper2.IntervalNeumannTowerOfC6
+import ShenWork.Paper2.IntervalSourceRepresentative
+
+open ShenWork.Paper2.NeumannTowerOfC6 (gTower neumannTower_three_of_contDiff_six)
+open ShenWork.Paper2.SourceRepresentative (DoublyEven higherNeumannCompatibility_of_doublyEven)
+
+noncomputable section
+
+namespace ShenWork.Paper2.PowerSourceDepth3Route
+
+/-- The global source representative.  In the concrete heat Level0 use case,
+`U` is the global Neumann heat cosine series representative. -/
+def powerSourceRep (ν γ : ℝ) (U : ℝ → ℝ) : ℝ → ℝ :=
+  fun x => ν * U x ^ γ
+
+/-- Exact inputs needed to build the depth-3 tower for `ν · U^γ`. -/
+theorem powerSource_neumannTower_three_inputs
+    {ν γ : ℝ} {U : ℝ → ℝ}
+    (hC6 : ContDiff ℝ (6 : ℕ) (powerSourceRep ν γ U))
+    (hDE : DoublyEven (powerSourceRep ν γ U)) :
+    ∃ g, g 0 = powerSourceRep ν γ U ∧
+      ShenWork.IntervalIBPCoeffExtraction.NeumannTower g 3 := by
+  rcases higherNeumannCompatibility_of_doublyEven hDE with ⟨hN0, hN1⟩
+  exact neumannTower_three_of_contDiff_six hC6 hN0 hN1
+
+end ShenWork.Paper2.PowerSourceDepth3Route
 ```
 
-So for depth 3 one needs exactly:
+For the actual heat Level0 source, the remaining facts to instantiate the theorem are:
 
 ```text
-f ∈ C⁶ globally,
-∂ₓ f(0)=∂ₓ f(1)=0,
-∂ₓ³ f(0)=∂ₓ³ f(1)=0,
-∂ₓ⁵ f(0)=∂ₓ⁵ f(1)=0,
-plus a top raw coefficient bound for ∂ₓ⁶ f.
+hC6 : ContDiff ℝ 6 (fun x => ν * U(x)^γ)
+hDE : DoublyEven (fun x => ν * U(x)^γ)
 ```
 
-The bridge from depth 3 tower to eigen-cube pointwise bounds is in:
+The first is analytic smoothness; the second is parity.
+
+### Does `u^γ` inherit Neumann BCs?
+
+For the first Neumann condition, yes:
+
+```text
+(u^γ)' = γ · u^(γ-1) · u'
+```
+
+so at an endpoint `u' = 0` implies `(u^γ)' = 0`, assuming the usual positivity/smoothness hypotheses for real powers.
+
+But depth 3 needs more than the first derivative. It needs:
+
+```text
+(ν·u^γ)'     = 0,
+(ν·u^γ)'''   = 0,
+(ν·u^γ)''''' = 0
+```
+
+at `x = 0` and `x = 1`.
+
+You do **not** need `(ν·u^γ)''` or `(ν·u^γ)⁽⁴⁾` to vanish. Those are the even tower levels, not the Neumann boundary data. The `NeumannTower` asks for `deriv (g i)` to vanish, and since `g i = f^(2i)`, those are odd derivatives of `f`.
+
+The easiest way to prove all of them is not to expand Faà di Bruno formulas. Use parity:
+
+```text
+U is a Neumann cosine series
+  ⟹ U is DoublyEven
+  ⟹ ν · U^γ is DoublyEven
+  ⟹ all odd derivatives vanish at 0 and 1
+  ⟹ hN0/hN1 for depth 3.
+```
+
+Repo support is in:
+
+```text
+ShenWork/Paper2/IntervalSourceRepresentative.lean
+```
+
+Relevant names:
+
+```lean
+ShenWork.Paper2.SourceRepresentative.DoublyEven
+ShenWork.Paper2.SourceRepresentative.DoublyEven.comp
+ShenWork.Paper2.SourceRepresentative.gTower_deriv_zero_of_doublyEven
+ShenWork.Paper2.SourceRepresentative.gTower_deriv_one_of_doublyEven
+ShenWork.Paper2.SourceRepresentative.higherNeumannCompatibility_of_doublyEven
+```
+
+`higherNeumannCompatibility_of_doublyEven` gives exactly:
+
+```lean
+(∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
+(∀ i, i < 3 → deriv (gTower f i) 1 = 0)
+```
+
+for any doubly-even `f`.
+
+## 3. Does heat semigroup Neumann imply source Neumann?
+
+At the level of the first endpoint derivative, yes. But the robust depth-3 statement is:
+
+```text
+The global heat cosine representative U is doubly even.
+The source f = ν · U^γ is doubly even because DoublyEven is closed under post-composition
+and scalar multiplication/product-style constructions.
+Therefore f', f''', and f''''' vanish at both endpoints.
+```
+
+The repo proves the key abstract fact:
+
+```lean
+theorem higherNeumannCompatibility_of_doublyEven
+    {f : ℝ → ℝ} (hf : DoublyEven f) :
+    (∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
+      (∀ i, i < 3 → deriv (gTower f i) 1 = 0)
+```
+
+This avoids doing individual chain-rule endpoint computations.
+
+For `u = S(t)u₀`, the global heat representative is the cosine series, so it is even about `0` and `1`. If it is positive on `[0,1]`, the symmetry/periodicity of the cosine representative extends positivity globally. Then real-power composition is smooth and parity-preserving.
+
+## 4. Exact depth-3 NeumannTower inputs for `ν · u^γ`
+
+Let:
+
+```lean
+U : ℝ → ℝ          -- global heat cosine representative at fixed positive time
+f : ℝ → ℝ := fun x => p.ν * U x ^ p.γ
+```
+
+To build a depth-3 tower using the committed producer, you need exactly:
+
+```lean
+-- File: ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
+hfC6 : ContDiff ℝ (6 : ℕ) f
+
+hN0 : ∀ i, i < 3 → deriv (gTower f i) 0 = 0
+hN1 : ∀ i, i < 3 → deriv (gTower f i) 1 = 0
+```
+
+Then:
+
+```lean
+obtain ⟨g, hg0, Htower⟩ :=
+  ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
+    hfC6 hN0 hN1
+```
+
+To apply `cosineCoeffs_decay` at depth 3 for a mode `n`, additionally need:
+
+```lean
+hn : 1 ≤ n
+hTop : |ShenWork.IntervalIBPCoeffExtraction.rawCoeff n (g 3)| ≤ M
+```
+
+Then:
+
+```lean
+have hdecay :
+    |ShenWork.IntervalNeumannFullKernel.cosineCoeffs f n| ≤
+      2 * M / ((n : ℝ) * Real.pi) ^ (2 * 3) :=
+  ShenWork.IntervalIBPCoeffExtraction.cosineCoeffs_decay
+    n hn Htower hTop
+```
+
+For a uniform envelope over all modes, you need a uniform top coefficient bound, usually from a uniform bound on the sixth derivative:
+
+```text
+∀ n, 1 ≤ n → |rawCoeff n (g 3)| ≤ M.
+```
+
+Since `g 3 = f⁽⁶⁾`, this follows from a bound on `f⁽⁶⁾` on `[0,1]`:
+
+```text
+|rawCoeff n (f⁽⁶⁾)| ≤ ∫₀¹ |f⁽⁶⁾(x)| dx ≤ M.
+```
+
+For positive-time heat, `M` should come from compactness/joint continuity on a positive time slab if a uniform-in-time envelope is needed.
+
+## Existing repo bridge for this exact shape
+
+The repo already uses this pattern in:
 
 ```text
 ShenWork/Paper2/IntervalEigenCubeTailFromTower.lean
 ```
 
-The exact bridge theorem is:
-
-```lean
-ShenWork.Paper2.EigenCubeTailFromTower.SourceEigenCubeTailFields_of_neumannTower
-```
-
-and the per-mode lemma is:
+The per-mode bridge is:
 
 ```lean
 ShenWork.Paper2.EigenCubeTailFromTower.eigenCube_bound_of_tower
 ```
 
-with content:
-
-```text
-depth-3 tower + top raw coefficient bound
-  ⟹ λ_n^3 * |cosineCoeffs f n| ≤ 2M  for n ≥ 1.
-```
-
-For `DuhamelSourceTimeC2Coeff`, the field `sourceEigenSqEnvelope` only needs λ² summability, not a λ³ pointwise bound. Depth 3 is enough:
-
-```text
-|c_n| ≤ 2M / (nπ)^6
-λ_n² |c_n| = (nπ)^4 |c_n| ≤ 2M / (nπ)^2,
-```
-
-and `∑ 1/n²` converges. The repo has the generic `cosineCoeffs_decay` needed for this; it just does not appear to have a dedicated theorem named exactly `sourceEigenSqEnvelope_of_neumannTower_three`. That would be a small wrapper around `cosineCoeffs_decay` at `j = 3` plus the p-series summability lemma.
-
-The repo also has depth 4:
-
-```text
-ShenWork/Paper2/IntervalNeumannTowerOfC8.lean
-```
+and the packaged bridge is:
 
 ```lean
-ShenWork.Paper2.NeumannTowerOfC8.neumannTower_four_of_contDiff_eight
+ShenWork.Paper2.EigenCubeTailFromTower.SourceEigenCubeTailFields_of_neumannTower
 ```
 
-This produces a depth-4 tower from global C8 plus odd derivatives through order 7 vanishing at endpoints. It is used for eigen-cube **summability** in:
+These use a depth-3 tower to get λ³ pointwise control:
 
 ```text
-ShenWork/Paper2/IntervalEigenCubeSummability.lean
+λ_n^3 · |cosineCoeffs f n| ≤ 2M.
 ```
 
-with:
-
-```lean
-ShenWork.Paper2.EigenCubeSummability.cubeEnvelope
-ShenWork.Paper2.EigenCubeSummability.cubeEnvelope_summable
-ShenWork.Paper2.EigenCubeSummability.eigenCube_envelope_bound_of_tower
-ShenWork.Paper2.EigenCubeSummability.eigenCube_envelope_full
-ShenWork.Paper2.EigenCubeSummability.sourceEigenCubeTailFields_of_sourceC8
-```
-
-This file explains the stronger fact:
+For `DuhamelSourceTimeC2Coeff`, λ²-summability is weaker: depth 3 gives
 
 ```text
-C8 / depth 4 gives |c_n| ≤ 2M/(nπ)^8,
-therefore λ_n^3 |c_n| ≤ 2M/(nπ)^2,
+|cosineCoeffs f n| ≤ C/(nπ)^6,
+λ_n² |cosineCoeffs f n| ≤ C/(nπ)^2,
+```
+
 which is summable.
-```
-
-## 3. Does the repo have C6 Neumann regularity for `ν·u^γ`, with `u = S(t)u₀`?
-
-Mathematically, yes: at positive time the heat Level0 profile is smooth, and with positivity the nonlinear source is smooth.
-
-In the repo, the answer is more precise:
-
-### What exists for the heat semigroup itself
-
-Files:
-
-```text
-ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
-ShenWork/Paper2/IntervalSpatialC6Certificate.lean
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-```
-
-Theorems:
-
-```lean
-ShenWork.Paper2.CD6HeatSmoothness.unitIntervalCosineHeatValue_contDiff_seven
-ShenWork.Paper2.SpatialC6Certificate.unitIntervalCosineHeatValue_contDiff_six
-ShenWork.Paper2.SpatialC6Certificate.intervalDomainLift_contDiffOn_six_of_eqOn_heatValue
-ShenWork.Paper2.HeatSemigroupHighRegularity.heatSemigroup_contDiff_four
-ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
-```
-
-So the linear heat representative has at least C6/C7 spatial regularity in committed code.
-
-### What exists for source C6 representatives
-
-Files:
-
-```text
-ShenWork/Paper2/IntervalSourceC6Representative.lean
-ShenWork/Paper2/IntervalChiNegUnconditionalClose.lean
-```
-
-Theorems:
-
-```lean
-ShenWork.Paper2.SourceC6Representative.sourceEigenCubeTailFields_of_weightThree
-ShenWork.Paper2.ChiNegUnconditionalClose.sourceEigenCubeTailFields_of_sourceRegularity
-ShenWork.Paper2.ChiNegUnconditionalClose.neumannTower_gTower_three_of_contDiff_six
-```
-
-These do not directly prove from first principles that
-
-```text
-x ↦ ν * (S(t)u₀ x)^γ
-```
-
-is C6-Neumann. Instead:
-
-* `sourceEigenCubeTailFields_of_sourceRegularity` takes smooth C6 representatives `fSrc` / `fAdot`, coefficient identifications, odd-derivative Neumann vanishing, and top coefficient bounds as hypotheses, then derives `SourceEigenCubeTailFields`.
-* `sourceEigenCubeTailFields_of_weightThree` builds C6 cosine-series representatives from an already-supplied eigen-cube summability input (`DuhamelSourceSpatialWeightThree` / weight-three envelope). That is a useful non-sorry bridge, but it is not the same as deriving C6 of the concrete nonlinear source from heat smoothing.
-
-### What exists for the concrete chemDiv / source path
-
-The concrete path currently wired from smooth inputs is mostly C2/H2:
-
-```text
-ShenWork/Paper2/IntervalChemDivSpatialC2.lean
-```
-
-Key theorem:
-
-```lean
-ShenWork.Paper2.ChemDivSpatialC2.chemDivSource_weakH2_of_cosineRep
-```
-
-It produces:
-
-```lean
-IntervalWeakH2Neumann (chemDivLift p u v)
-```
-
-from global C4 cosine representatives for `u` and `v`. That is a depth-1 weak-H2 object, feeding quadratic decay.
-
-The concrete physical source time C2 file:
-
-```text
-ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
-```
-
-has:
-
-```lean
-ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_contDiff
-ShenWork.IntervalPhysicalSourceTimeC2Concrete.srcTimeCoeff_bound
-ShenWork.IntervalPhysicalSourceTimeC2Concrete.physicalSourceTimeC2_of_floored
-```
-
-This is time-C2/source-envelope infrastructure, not a C6-Neumann spatial tower for `ν·(S(t)u₀)^γ`.
-
-Therefore, for the concrete nonlinear Level0 source, the repo’s directly wired regularity is still essentially the C2/H2 lane (`chemDivSource_weakH2_of_cosineRep`) plus newer abstract/high-order tower bridges. I did not find a theorem of the form:
-
-```lean
--- not found under this name/shape
-heatLevel0_powerSource_neumannTower_three
-heatLevel0_powerSource_contDiff_six_neumann
-sourceTimeCoeff_C6Neumann_of_heatLevel0
-```
-
-or any `intervalWeakH4Neumann` / `intervalWeakH6Neumann` structure.
-
-## Practical conclusion for `DuhamelSourceTimeC2Coeff`
-
-For `DuhamelSourceTimeC2Coeff`, depth 3 is the right minimum if you want λ²-summable envelopes from spatial IBP:
-
-```text
-j = 3 gives |c_k| ≤ C/(kπ)^6,
-λ_k² |c_k| ≤ C/(kπ)^2,
-∑ λ_k² |c_k| < ∞.
-```
-
-The repo has the generic theorem to prove this (`IntervalIBPCoeffExtraction.cosineCoeffs_decay`) and a C6-to-depth3 tower producer (`NeumannTowerOfC6.neumannTower_three_of_contDiff_six`). What still must be supplied for the heat Level0 nonlinear source is the concrete C6-Neumann representative package:
-
-```text
-ContDiff ℝ 6 fSrc,
-odd derivative boundary chain through orders 1, 3, 5,
-top raw coefficient / L1 bound for ∂ₓ⁶ fSrc,
-coefficient identification a_k = cosineCoeffs fSrc k,
-and the same for adot.
-```
-
-The repo’s depth-4/C8 route (`IntervalEigenCubeSummability.lean`) is stronger and is used when one needs eigen-cube **summable** envelopes (`λ³|c_k| ≤ C/(kπ)^2`). For plain `DuhamelSourceTimeC2Coeff` λ² summability, depth 3 should suffice.
-
-## Lean-facing wrapper that is still missing
-
-The natural small wrapper for the C2Coeff route would be:
-
-```lean
-import ShenWork.Paper2.IntervalIBPCoeffExtraction
-import Mathlib.Analysis.PSeries
-
-open ShenWork.IntervalIBPCoeffExtraction
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-
-noncomputable section
-
-namespace ShenWork.Paper2.MissingC2CoeffDepth3Wrapper
-
-/-- Suggested wrapper: depth-3 Neumann tower gives a summable λ² envelope.
-This is not claiming to be committed under this exact name; it is the next small
-lemma to add for `DuhamelSourceTimeC2Coeff`. -/
-theorem sourceEigenSq_summable_of_neumannTower_three
-    {f : ℝ → ℝ} {g : ℕ → ℝ → ℝ} (hg0 : g 0 = f)
-    (H : NeumannTower g 3) {M : ℝ} (hM : 0 ≤ M)
-    (hTop : ∀ n, 1 ≤ n → |rawCoeff n (g 3)| ≤ M) :
-    Summable (fun n : ℕ =>
-      unitIntervalCosineEigenvalue n *
-        (unitIntervalCosineEigenvalue n * |cosineCoeffs f n|)) := by
-  -- Proof route:
-  -- * n = 0 is zero because λ₀ = 0.
-  -- * for n ≥ 1, use `cosineCoeffs_decay n hn H (hTop n hn)` at j = 3.
-  -- * multiply by λ² = (nπ)^4 to get ≤ 2M / (nπ)^2.
-  -- * conclude by the p = 2 series.
-  sorry
-
-end ShenWork.Paper2.MissingC2CoeffDepth3Wrapper
-```
 
 ## Bottom line
 
-1. **Generic depth-j IBP exists**: `IntervalIBPCoeffExtraction.NeumannTower` plus `cosineCoeffs_decay` works for arbitrary finite `j`.
-2. **Depth 3 is already implemented** from C6 data: `IntervalNeumannTowerOfC6.neumannTower_three_of_contDiff_six`. Depth 4 from C8 also exists.
-3. **Concrete nonlinear Level0 C6-Neumann regularity is not fully wired as a direct theorem from `u = S(t)u₀`**. The repo has heat C6/C7, source C6/C8 representative bridges, and tower/eigen-tail bridges; but the current concrete chemDiv/source path that starts from heat Level0 still visibly bottoms out at C2/H2 unless the high-order source representative hypotheses/envelopes are supplied.
+1. `cosineCoeffs_decay` needs a `NeumannTower g j` and a top raw-coefficient bound. The tower encodes the `C^{2j}`-Neumann chain, but the theorem itself consumes the tower, not raw `C^{2j}` assumptions.
+2. For depth 3, use `neumannTower_three_of_contDiff_six`. It needs global `ContDiff ℝ 6 f` and vanishing of `f'`, `f'''`, `f'''''` at both endpoints.
+3. For `f = ν · (S(t)u₀)^γ`, first derivative Neumann follows by chain rule from `u' = 0`, but depth 3 needs all odd derivatives through 5. The repo’s intended proof is parity: the heat cosine representative is doubly even, `ν · u^γ` is doubly even, and `higherNeumannCompatibility_of_doublyEven` gives all required endpoint vanishings.
+4. The exact extra input after the tower is a top bound on `rawCoeff n (g 3)`, equivalently a uniform L1/sup bound for the sixth derivative representative.
