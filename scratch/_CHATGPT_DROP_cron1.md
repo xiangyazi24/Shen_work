@@ -1,4 +1,4 @@
-# Q1239 / cron1 — `srcSlice1` joint continuity on a closed slab
+# Q1249 / cron1 — `HasDerivAt` of `heatDu` in time
 
 Repo: `xiangyazi24/Shen_work`
 
@@ -10,212 +10,294 @@ Target file updated by this drop:
 scratch/_CHATGPT_DROP_cron1.md
 ```
 
-## Search result
+## Summary
 
-I searched for both requested shapes:
-
-```text
-srcSlice1_continuousOn
-ContinuousOn uncurry srcSlice1
-srcSlice1
-```
-
-What I found:
-
-* I did **not** find a named theorem `srcSlice1_continuousOn`.
-* `srcSlice1` is defined in:
+The requested proof should live in:
 
 ```text
-ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
 ```
 
-as
+and should be inserted after `heatD2u` / after the existing `heatDu_eq_secondValue` bridge.  It differentiates
 
 ```lean
-def srcSlice1 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (du : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
-  p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * du t x
+heatDu u₀ t x
 ```
 
-* The same file already has the consumer field in `IterateSourceTimeData.time1`:
+at positive `t` by working on the open one-sided neighborhood
 
 ```lean
-ContinuousOn (Function.uncurry (srcSlice1 p u du))
-  (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1)
+Set.Ioi (t / 2)
 ```
 
-* The in-repo proof pattern exists, but it is not factored under the name you want.  The closest pattern is the usual:
+where the `if 0 < r then ... else 0` branch of `heatDu` is definitionally the Laplacian cosine series.  The core step is exactly the repo lemma:
 
 ```lean
-hprofile_joint.rpow_const ...
+ShenWork.HasDerivWithinAtTsum.hasDerivWithinAt_tsum
 ```
 
-followed by product/constant continuity.  For example, `IntervalPicardSourceTimeC1OnRecursion.lean` proves continuity of a source-derivative expression using `rpow_const` on the positive lifted profile and then closes by multiplying continuous factors.  On `main`, `IntervalHeatSemigroupFlooredSourceTimeData.lean` also has an inline `d0`/`srcSlice1` continuity proof of exactly this algebraic form.
-
-## Recommended lemma
-
-Add this lemma in the namespace where `srcSlice1` is defined, ideally immediately after `srcSlice1` in:
-
-```text
-ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
-```
-
-The proof is pure continuity algebra: continuity of the lifted profile gives continuity of the power by `rpow_const`; positivity supplies the nonzero-base side-condition for `rpow_const`; then multiply by the continuous `du` factor and the two constants `p.ν`, `p.γ`.
-
-The positivity hypothesis must be on the same **closed** slab as the conclusion.  If you only have positivity on `Ioo (0:ℝ) 1`, that is enough for an interior slab, but not for this exact `Icc c T ×ˢ Icc 0 1` target unless you separately prove endpoint positivity or use a different theorem that exploits a positive exponent.
+from `ShenWork/PDE/HasDerivWithinAtTsum.lean`, applied to the terms
 
 ```lean
-import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
+F n τ  = unitIntervalCosineHeatLaplacianPointWeight τ x n * a n
+F' n τ = λ_n^2 * (Real.exp (-τ * λ_n) * a n) * cosineMode n x
+```
 
-open Filter Topology Set
+with majorant
+
+```lean
+u n = M₀ * (λ_n^2 * Real.exp (-(t / 2) * λ_n)).
+```
+
+The only helper not already named in the nearby files is the elementary summability of `λ_n^2 * exp (-r λ_n)` for `r > 0`; it is proved from `Real.summable_pow_mul_exp_neg_nat_mul 4` exactly like the existing `unitIntervalCosineEigenvalue_mul_exp_summable` proof.
+
+## Pasteable proof block
+
+Standalone check imports are included below.  If pasting directly into `IntervalHeatSemigroupFlooredSourceTimeData.lean`, add the two imports and then paste the declarations inside the existing namespace; do **not** keep the self-import line.
+
+```lean
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
+import ShenWork.PDE.HasDerivWithinAtTsum
+import ShenWork.Paper2.IntervalMildRegularityBootstrap
+
+open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.RegularityBootstrap
 
 noncomputable section
 
-namespace ShenWork.IntervalFlooredSourceTimeDataIterate
+namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 
-/-- Joint continuity of the first source time-derivative slice from joint
-continuity of the lifted iterate and of the time derivative `du`, under
-positivity of the lifted iterate on the same closed slab.
+local notation "λ_" n => unitIntervalCosineEigenvalue n
 
-This is the direct abstraction of
+/-- Heat smoothing supplies the quadratic polynomial weight needed for the
+second time derivative of the heat semigroup:
+`∑ λₙ² exp (-r λₙ) < ∞`, for every `r > 0`. -/
+private theorem unitIntervalCosineEigenvalue_sq_exp_summable
+    {r : ℝ} (hr : 0 < r) :
+    Summable fun n : ℕ =>
+      (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) := by
+  set ρ : ℝ := r * Real.pi ^ 2 with hρdef
+  have hρpos : 0 < ρ := by
+    rw [hρdef]
+    positivity
+  have hbase : Summable fun n : ℕ =>
+      Real.pi ^ 4 * ((n : ℝ) ^ 4 * Real.exp (-ρ * (n : ℝ))) := by
+    simpa using
+      (Real.summable_pow_mul_exp_neg_nat_mul 4 (r := ρ) hρpos).mul_left
+        (Real.pi ^ 4)
+  refine Summable.of_nonneg_of_le (fun n => ?_) (fun n => ?_) hbase
+  · exact mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+  · have hn_sq_ge : (n : ℝ) ≤ (n : ℝ) ^ 2 := by
+      by_cases hn : n = 0
+      · subst n
+        norm_num
+      · have hn0 : (0 : ℝ) ≤ n := by positivity
+        have hn1 : (1 : ℝ) ≤ n := by
+          exact_mod_cast Nat.succ_le_of_lt (Nat.pos_of_ne_zero hn)
+        have hmul : 0 ≤ (n : ℝ) * ((n : ℝ) - 1) :=
+          mul_nonneg hn0 (sub_nonneg.mpr hn1)
+        nlinarith
+    have hlam_eq : (λ_ n) = (n : ℝ) ^ 2 * Real.pi ^ 2 := by
+      unfold unitIntervalCosineEigenvalue
+      ring
+    have hlam_sq_eq : (λ_ n) ^ 2 = (n : ℝ) ^ 4 * Real.pi ^ 4 := by
+      rw [hlam_eq]
+      ring
+    have hexp_le :
+        Real.exp (-r * (λ_ n)) ≤ Real.exp (-ρ * (n : ℝ)) := by
+      apply Real.exp_le_exp.mpr
+      have hmul : ρ * (n : ℝ) ≤ ρ * (n : ℝ) ^ 2 :=
+        mul_le_mul_of_nonneg_left hn_sq_ge hρpos.le
+      rw [hlam_eq, hρdef] at hmul ⊢
+      nlinarith
+    calc
+      (λ_ n) ^ 2 * Real.exp (-r * (λ_ n))
+          = ((n : ℝ) ^ 4 * Real.pi ^ 4) *
+              Real.exp (-r * (λ_ n)) := by rw [hlam_sq_eq]
+      _ ≤ ((n : ℝ) ^ 4 * Real.pi ^ 4) *
+              Real.exp (-ρ * (n : ℝ)) :=
+            mul_le_mul_of_nonneg_left hexp_le (by positivity)
+      _ = Real.pi ^ 4 * ((n : ℝ) ^ 4 * Real.exp (-ρ * (n : ℝ))) := by
+            ring
 
-`srcSlice1 p u du t x = p.ν * p.γ * (lift (u t) x) ^ (p.γ - 1) * du t x`.
--/
-theorem srcSlice1_continuousOn_of_posOn
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du : ℝ → ℝ → ℝ}
-    {c T : ℝ}
-    (hlift : ContinuousOn
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2)
-      (Icc c T ×ˢ Icc (0 : ℝ) 1))
-    (hdu : ContinuousOn (Function.uncurry du)
-      (Icc c T ×ˢ Icc (0 : ℝ) 1))
-    (hpos : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (u q.1) q.2) :
-    ContinuousOn (Function.uncurry (srcSlice1 p u du))
-      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  have hpow1 : ContinuousOn
-      (fun q : ℝ × ℝ =>
-        (intervalDomainLift (u q.1) q.2) ^ (p.γ - 1))
-      (Icc c T ×ˢ Icc (0 : ℝ) 1) :=
-    hlift.rpow_const (fun q hq => Or.inl (ne_of_gt (hpos q hq)))
-  simpa [srcSlice1, Function.uncurry] using
-    (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu)
+/-- One differentiated Laplacian-weighted heat cosine term. -/
+private theorem heatLaplacianTerm_hasDerivAt_time
+    (a : ℕ → ℝ) (x t : ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun τ : ℝ =>
+        unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
+      ((λ_ n) ^ 2 * (Real.exp (-t * (λ_ n)) * a n) * cosineMode n x) t := by
+  let lam : ℝ := λ_ n
+  have hlin : HasDerivAt (fun τ : ℝ => -τ * lam) (-lam) t := by
+    have h := (hasDerivAt_id t).neg.mul_const lam
+    simpa [lam] using h
+  have hexp : HasDerivAt (fun τ : ℝ => Real.exp (-τ * lam))
+      (-lam * Real.exp (-t * lam)) t := by
+    simpa using hlin.exp
+  have h := ((hexp.mul_const (cosineMode n x)).const_mul (-lam)).mul_const (a n)
+  convert h using 1
+  · ext τ
+    simp [unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, lam]
+    ring
+  · simp [lam]
+    ring
 
-/-- Same continuity lemma, but with slab positivity written in separated
-`time`/`space` form.  This is usually the most convenient form in the PDE files. -/
-theorem srcSlice1_continuousOn
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du : ℝ → ℝ → ℝ}
-    {c T : ℝ}
-    (hlift : ContinuousOn
-      (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2)
-      (Icc c T ×ˢ Icc (0 : ℝ) 1))
-    (hdu : ContinuousOn (Function.uncurry du)
-      (Icc c T ×ˢ Icc (0 : ℝ) 1))
-    (hpos : ∀ t ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (u t) x) :
-    ContinuousOn (Function.uncurry (srcSlice1 p u du))
-      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  refine srcSlice1_continuousOn_of_posOn
-    (p := p) (u := u) (du := du) (c := c) (T := T) hlift hdu ?_
-  intro q hq
-  obtain ⟨ht, hx⟩ := Set.mem_prod.mp hq
-  exact hpos q.1 ht q.2 hx
+/-- Bounded coefficients give a summable base series for the heat Laplacian. -/
+private theorem summable_heatLaplacian_terms_of_bound
+    {a : ℕ → ℝ} {M t x : ℝ} (ht : 0 < t)
+    (ha : ∀ n, |a n| ≤ M) :
+    Summable fun n : ℕ =>
+      unitIntervalCosineHeatLaplacianPointWeight t x n * a n := by
+  have hM : 0 ≤ M := le_trans (abs_nonneg _) (ha 0)
+  have hmajor : Summable fun n : ℕ =>
+      M * ((λ_ n) * Real.exp (-t * (λ_ n))) :=
+    (ShenWork.IntervalMildRegularityBootstrap
+      .unitIntervalCosineEigenvalue_mul_exp_summable ht).mul_left M
+  refine Summable.of_norm_bounded hmajor ?_
+  intro n
+  have hlam_nonneg : 0 ≤ λ_ n := by
+    unfold unitIntervalCosineEigenvalue
+    positivity
+  have hcos : |cosineMode n x| ≤ 1 := by
+    simp only [cosineMode]
+    exact Real.abs_cos_le_one _
+  rw [Real.norm_eq_abs]
+  calc
+    |unitIntervalCosineHeatLaplacianPointWeight t x n * a n|
+        = (λ_ n) * Real.exp (-t * (λ_ n)) * |cosineMode n x| * |a n| := by
+          simp [unitIntervalCosineHeatLaplacianPointWeight,
+            unitIntervalCosineHeatPointWeight, abs_mul,
+            abs_of_nonneg hlam_nonneg, abs_of_nonneg (Real.exp_nonneg _)]
+          ring
+    _ ≤ (λ_ n) * Real.exp (-t * (λ_ n)) * 1 * M := by
+          gcongr
+          exact hcos
+          exact ha n
+    _ = M * ((λ_ n) * Real.exp (-t * (λ_ n))) := by
+          ring
 
-end ShenWork.IntervalFlooredSourceTimeDataIterate
+/-- The differentiated heat-Laplacian term is dominated on `Ioi r` by the
+positive-time majorant at `r`. -/
+private theorem heatD2Term_abs_le_majorant
+    {a : ℕ → ℝ} {M r τ x : ℝ}
+    (ha : ∀ n, |a n| ≤ M) (hτ : τ ∈ Set.Ioi r) (n : ℕ) :
+    |(λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * cosineMode n x|
+      ≤ M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by
+  have hM : 0 ≤ M := le_trans (abs_nonneg _) (ha 0)
+  have hlam_nonneg : 0 ≤ λ_ n := by
+    unfold unitIntervalCosineEigenvalue
+    positivity
+  have hcos : |cosineMode n x| ≤ 1 := by
+    simp only [cosineMode]
+    exact Real.abs_cos_le_one _
+  have hexp_mono : Real.exp (-τ * (λ_ n)) ≤ Real.exp (-r * (λ_ n)) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith
+  calc
+    |(λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * cosineMode n x|
+        = (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * |a n| * |cosineMode n x| := by
+          rw [abs_mul, abs_mul, abs_mul,
+            abs_of_nonneg (sq_nonneg (λ_ n)),
+            abs_of_nonneg (Real.exp_nonneg _)]
+          ring
+    _ ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M * 1 := by
+          gcongr
+          exact ha n
+          exact hcos
+    _ = M * ((λ_ n) ^ 2 * Real.exp (-τ * (λ_ n))) := by
+          ring
+    _ ≤ M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by
+          exact mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg (λ_ n))) hM
+
+/-- Positive-time derivative of `heatDu`: `∂ₜ ΔS(t)u₀ = Δ²S(t)u₀`.
+
+This is the missing `d1` heat-time atom.  The proof differentiates the
+Laplian cosine series term-by-term on `Ioi (t / 2)` using
+`HasDerivWithinAtTsum.hasDerivWithinAt_tsum`, then converts the within-set
+result to `HasDerivAt` because `Ioi (t / 2)` is a neighborhood of `t`. -/
+private theorem heatDu_hasDerivAt
+    (u₀ : intervalDomainPoint → ℝ) {M₀ t x : ℝ} (ht : 0 < t)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    HasDerivAt (fun r : ℝ => heatDu u₀ r x) (heatD2u u₀ t x) t := by
+  let a : ℕ → ℝ := cosineCoeffs (intervalDomainLift u₀)
+  let r : ℝ := t / 2
+  have hr : 0 < r := by
+    dsimp [r]
+    positivity
+  have hrt : t ∈ Set.Ioi r := by
+    dsimp [r]
+    linarith
+  let F : ℕ → ℝ → ℝ := fun n τ =>
+    unitIntervalCosineHeatLaplacianPointWeight τ x n * a n
+  let F' : ℕ → ℝ → ℝ := fun n τ =>
+    (λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * cosineMode n x
+  let u : ℕ → ℝ := fun n =>
+    M₀ * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n)))
+  have hu : Summable u := by
+    simpa [u] using
+      (unitIntervalCosineEigenvalue_sq_exp_summable (r := r) hr).mul_left M₀
+  have hF : ∀ n, ∀ τ ∈ Set.Ioi r,
+      HasDerivWithinAt (F n) (F' n τ) (Set.Ioi r) τ := by
+    intro n τ _hτ
+    exact (heatLaplacianTerm_hasDerivAt_time a x τ n).hasDerivWithinAt
+  have hbound : ∀ n, ∀ τ ∈ Set.Ioi r, |F' n τ| ≤ u n := by
+    intro n τ hτ
+    simpa [F', u, a] using
+      heatD2Term_abs_le_majorant
+        (a := a) (M := M₀) (r := r) (τ := τ) (x := x)
+        (by simpa [a] using hu₀_bound) hτ n
+  have hF0 : Summable fun n : ℕ => F n t := by
+    simpa [F, a] using
+      summable_heatLaplacian_terms_of_bound
+        (a := a) (M := M₀) (t := t) (x := x) ht
+        (by simpa [a] using hu₀_bound)
+  have hwithin :
+      HasDerivWithinAt (fun τ : ℝ => ∑' n : ℕ, F n τ)
+        (∑' n : ℕ, F' n t) (Set.Ioi r) t :=
+    ShenWork.HasDerivWithinAtTsum.hasDerivWithinAt_tsum
+      (convex_Ioi r) hu hF hbound hrt hF0 hrt
+  have hAtSum :
+      HasDerivAt (fun τ : ℝ => ∑' n : ℕ, F n τ)
+        (∑' n : ℕ, F' n t) t :=
+    hwithin.hasDerivAt (isOpen_Ioi.mem_nhds hrt)
+  have hbranch :
+      (fun τ : ℝ => heatDu u₀ τ x) =ᶠ[𝓝 t]
+        (fun τ : ℝ => ∑' n : ℕ, F n τ) := by
+    filter_upwards [isOpen_Ioi.mem_nhds hrt] with τ hτ
+    have hτpos : 0 < τ := lt_trans hr hτ
+    simp [heatDu, F, a,
+      ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue, hτpos]
+  have hvalue : (∑' n : ℕ, F' n t) = heatD2u u₀ t x := by
+    simp [heatD2u, F', a, ht]
+  simpa [hvalue] using hAtSum.congr_of_eventuallyEq hbranch
+
+end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 ```
 
-If this is inserted directly into `ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean`, do **not** keep the self-import line.  The import line above is for a standalone scratch/check file.
+## Use inside `d1`
 
-## How to use it in the slab proof
-
-Given a local slab
+After importing/opening `hasDerivAt_srcSlice1`, the time derivative subgoal in `d1` should be:
 
 ```lean
-K = Icc c T ×ˢ Icc (0 : ℝ) 1
+have hdu2 : HasDerivAt (fun r : ℝ => heatDu u₀ r x) (heatD2u u₀ s x) s :=
+  heatDu_hasDerivAt u₀ (t := s) (x := x) hs_pos _hu₀_bound
+
+exact hasDerivAt_srcSlice1
+  (hfloor s hs_pos x hxIcc)
+  hderiv_lift
+  hdu2
 ```
 
-and hypotheses
+where `hderiv_lift` is the already-used first heat derivative proof from `heatSlice_field_hasDerivWithinAt`, converted from the positive slab to `HasDerivAt` exactly as in the existing `d0` proof.
 
-```lean
-hlift : ContinuousOn
-  (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2)
-  (Icc c T ×ˢ Icc (0 : ℝ) 1)
+## Notes
 
-hdu : ContinuousOn (Function.uncurry du)
-  (Icc c T ×ˢ Icc (0 : ℝ) 1)
-
-hpos : ∀ t ∈ Icc c T, ∀ x ∈ Icc (0 : ℝ) 1,
-  0 < intervalDomainLift (u t) x
-```
-
-close the target by:
-
-```lean
-exact srcSlice1_continuousOn
-  (p := p) (u := u) (du := du) (c := c) (T := T)
-  hlift hdu hpos
-```
-
-If your continuity hypothesis for the lifted profile is stated with `Function.uncurry`, first normalize it:
-
-```lean
-have hlift' : ContinuousOn
-    (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2)
-    (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  simpa [Function.uncurry] using hlift
-```
-
-If your positivity is already q-shaped, use the `_of_posOn` lemma directly:
-
-```lean
-exact srcSlice1_continuousOn_of_posOn
-  (p := p) (u := u) (du := du) (c := c) (T := T)
-  hlift hdu hpos
-```
-
-## Why this is the right side-condition
-
-The only nontrivial side condition is the real-power continuity side-condition.  For
-
-```lean
-(fun q : ℝ × ℝ => (intervalDomainLift (u q.1) q.2) ^ (p.γ - 1))
-```
-
-`rpow_const` asks for a nonzero base at every point of the continuity set, or a separate positive-exponent route.  Since the exponent is `p.γ - 1` and may not be known positive in the local proof, the robust route is:
-
-```lean
-Or.inl (ne_of_gt (hpos q hq))
-```
-
-That is exactly why the lemma assumes strict positivity of `lift(u)` on the slab.
-
-## Heat-level call shape
-
-For the heat semigroup base case, the proof context often has a positive lower time endpoint `hc : 0 < c` and a floor of the form
-
-```lean
-hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
-  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
-```
-
-Then instantiate the separated positivity argument as:
-
-```lean
-have hsrc1_joint : ContinuousOn
-    (Function.uncurry
-      (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀)))
-    (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  refine srcSlice1_continuousOn
-    (p := p) (u := conjugatePicardIter p u₀ 0) (du := heatDu u₀)
-    (c := c) (T := T)
-    hprofile hdu_joint ?_
-  intro t ht x hx
-  exact hfloor t (lt_of_lt_of_le hc ht.1) x hx
-```
-
-This removes the duplicated inline proof of `srcSlice1` continuity and makes `IterateSourceTimeData.time1` easier to fill.
-
-## Build note
-
-I did not run a local `lake build`; this task was completed through the GitHub connector only.  The theorem body above is aligned with the existing in-repo `rpow_const`/product-continuity pattern and with the inline `srcSlice1` continuity proof already present on `main`.
+* The proof is intentionally on `Ioi (t / 2)`, not on all of `ℝ`, because the `heatDu` definition is branchy and the heat series representation is only the active branch near positive `t`.
+* The base summability `hF0` is only the Laplacian series at time `t`; it uses the existing repo lemma `IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable` and bounded coefficients.
+* The derivative majorant uses the stronger quadratic summability helper `unitIntervalCosineEigenvalue_sq_exp_summable` at the lower endpoint `t / 2`.
+* I did not run a local `lake build`; this drop was produced through the GitHub connector only.
