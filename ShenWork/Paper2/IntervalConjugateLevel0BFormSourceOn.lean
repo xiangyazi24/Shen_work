@@ -1120,7 +1120,15 @@ theorem level0_chemDiv_timeDerivData
           simp only [intervalDomainLift, conjugatePicardIter,
             dif_pos (show (1:ℝ)/2 ∈ Icc (0:ℝ) 1 by constructor <;> norm_num)] at hval
           -- But S(c)(lift u₀)(1/2) = ∫ K·(lift u₀) = ∫ K·0 = 0 since lift u₀ = 0 on [0,1]
-          sorry -- [need: if ∀ y ∈ Icc 0 1, f y = 0, then ∫ K(c,x,y)·f(y) = 0]
+          -- S(c)(lift u₀)(1/2) = ∫ K(c,1/2,y)·(lift u₀)(y) d(vol|[0,1])
+          -- But lift u₀ = 0 on [0,1] (from hzero), so the integral is 0
+          have hS_zero : intervalFullSemigroupOperator c (intervalDomainLift u₀) (1/2) = 0 := by
+            simp only [intervalFullSemigroupOperator]
+            apply MeasureTheory.integral_eq_zero_of_ae
+            apply (MeasureTheory.ae_restrict_iff' measurableSet_Icc).mpr
+            filter_upwards with y hy
+            rw [hzero y hy, mul_zero]
+          linarith
         obtain ⟨y₀, hy₀, hy₀_pos⟩ := hlift_pos_somewhere
         have hS_pos : ∀ x : ℝ, 0 < intervalFullSemigroupOperator r (intervalDomainLift u₀) x :=
           ShenWork.IntervalSemigroupConeAtoms.intervalFullSemigroupOperator_pos
