@@ -1,4 +1,4 @@
-# Q1134 / cron1 — `ContDiffOn.smulRight` API for scalar derivative CLMs
+# Q1142 / cron1 — `toSpanSingleton`, `fderivWithin`, and `ContDiffOn` on `Ioi 0`
 
 Repo: `xiangyazi24/Shen_work`
 
@@ -18,153 +18,243 @@ The project pins Mathlib to Lean/Mathlib `v4.29.1`, with Mathlib rev:
 5e932f97dd25535344f80f9dd8da3aab83df0fe6
 ```
 
-from `lake-manifest.json`.
-
-Mathlib files checked at that pinned rev:
+Relevant Mathlib files checked:
 
 ```text
 Mathlib/Analysis/Calculus/ContDiff/Comp.lean
 Mathlib/Analysis/Calculus/ContDiff/Defs.lean
+Mathlib/Analysis/Calculus/ContDiff/Deriv.lean
 Mathlib/Analysis/Calculus/Deriv/Basic.lean
 Mathlib/Analysis/Calculus/FDeriv/Basic.lean
-Mathlib/Analysis/Normed/Operator/Bilinear.lean
 Mathlib/Topology/Algebra/Module/ContinuousLinearMap/Basic.lean
 ```
 
-The relevant API is:
+The short answer is: **use `ContinuousLinearMap.toSpanSingletonCLE`**, or equivalently use `ContDiffOn.smulRight` plus `ContinuousLinearMap.smulRight_one_eq_toSpanSingleton`.
+
+There is no need to make `ContinuousLinearMap.toSpanSingleton ℝ` itself look like a `ContinuousLinearMap`.  Mathlib packages that map as a continuous linear equivalence:
 
 ```lean
-ContDiffOn.smulRight
+(ContinuousLinearMap.toSpanSingletonCLE : ℝ ≃L[ℝ] (ℝ →L[ℝ] ℝ))
 ```
 
-not `ContDiffOn.clm_comp`.  `clm_comp` is for composing two CLM-valued families; your expression is a rank-one/smulRight family produced from a constant dual functional and a scalar-valued `C¹` function.
+This is the direct left-composition object for `ContDiffOn`.
 
-## Exact answer for the subgoal
+## Exact term for the `ContDiffOn 0` `toSpanSingleton` goal
 
-Given:
+Given
 
 ```lean
-h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0)
+hc2_on : ContinuousOn f₂ (Set.Ioi (0 : ℝ))
 ```
 
-the exact term I would use is:
+use:
 
 ```lean
-have hsmul :
-    ContDiffOn ℝ 1
-      (fun s : ℝ => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s))
+have h2_toSpan :
+    ContDiffOn ℝ 0
+      (fun s : ℝ => ContinuousLinearMap.toSpanSingleton ℝ (f₂ s))
       (Set.Ioi (0 : ℝ)) := by
-  simpa using
+  simpa [Function.comp_def] using
+    (((ContinuousLinearMap.toSpanSingletonCLE : ℝ ≃L[ℝ] (ℝ →L[ℝ] ℝ))).comp_contDiffOn_iff.mpr
+      (show ContDiffOn ℝ 0 f₂ (Set.Ioi (0 : ℝ)) from
+        contDiffOn_zero.mpr hc2_on))
+```
+
+This is the cleanest answer to the blocker.  `toSpanSingletonCLE` is the bundled continuous linear equivalence whose forward map is `fun x => ContinuousLinearMap.toSpanSingleton ℝ x`.
+
+## Exact term for the `ContDiffOn 1` `toSpanSingleton` goal
+
+Given
+
+```lean
+h1_on : ContDiffOn ℝ 1 f₁ (Set.Ioi (0 : ℝ))
+```
+
+use:
+
+```lean
+have h1_toSpan :
+    ContDiffOn ℝ 1
+      (fun s : ℝ => ContinuousLinearMap.toSpanSingleton ℝ (f₁ s))
+      (Set.Ioi (0 : ℝ)) := by
+  simpa [Function.comp_def] using
+    (((ContinuousLinearMap.toSpanSingletonCLE : ℝ ≃L[ℝ] (ℝ →L[ℝ] ℝ))).comp_contDiffOn_iff.mpr
+      h1_on)
+```
+
+## Equivalent `smulRight` version
+
+The same two goals can also be proved using `ContDiffOn.smulRight`, since
+
+```lean
+(1 : ℝ →L[ℝ] ℝ).smulRight x = ContinuousLinearMap.toSpanSingleton ℝ x
+```
+
+by `ContinuousLinearMap.smulRight_one_eq_toSpanSingleton`.
+
+For `ContDiffOn 0`:
+
+```lean
+have h2_toSpan_smulRight :
+    ContDiffOn ℝ 0
+      (fun s : ℝ => ContinuousLinearMap.toSpanSingleton ℝ (f₂ s))
+      (Set.Ioi (0 : ℝ)) := by
+  simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton] using
+    ((contDiffOn_const :
+        ContDiffOn ℝ 0 (fun _ : ℝ => (1 : StrongDual ℝ ℝ))
+          (Set.Ioi (0 : ℝ))).smulRight
+      (show ContDiffOn ℝ 0 f₂ (Set.Ioi (0 : ℝ)) from
+        contDiffOn_zero.mpr hc2_on))
+```
+
+For `ContDiffOn 1`:
+
+```lean
+have h1_toSpan_smulRight :
+    ContDiffOn ℝ 1
+      (fun s : ℝ => ContinuousLinearMap.toSpanSingleton ℝ (f₁ s))
+      (Set.Ioi (0 : ℝ)) := by
+  simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton] using
     ((contDiffOn_const :
         ContDiffOn ℝ 1 (fun _ : ℝ => (1 : StrongDual ℝ ℝ))
-          (Set.Ioi (0 : ℝ))).smulRight h0)
+          (Set.Ioi (0 : ℝ))).smulRight h1_on)
 ```
 
-The key is that `ContDiffOn.smulRight` has the shape:
+I would use the `toSpanSingletonCLE` version when the target is literally `toSpanSingleton`, and the `smulRight` version when your local derivative model is already written as `ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) ...`.
+
+## Full `fderivWithin` proof skeleton from `hd0`, `hd1`, `hc2_on`
+
+This follows your intended two-step `contDiffOn_succ_of_fderivWithin` route.
 
 ```lean
-theorem ContDiffOn.smulRight
-    {f : E → StrongDual 𝕜 F} {g : E → G}
-    (hf : ContDiffOn 𝕜 n f s) (hg : ContDiffOn 𝕜 n g s) :
-    ContDiffOn 𝕜 n (fun x => (f x).smulRight (g x)) s
-```
-
-So instantiate:
-
-```lean
-f := fun _ : ℝ => (1 : StrongDual ℝ ℝ)
-g := f₁
-```
-
-Since `StrongDual ℝ ℝ` is definitionally `ℝ →L[ℝ] ℝ`, the result is definitionally the same as your target using
-
-```lean
-ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)
-```
-
-## Full local theorem for your situation
-
-Here is the complete pattern for your three hypotheses:
-
-```lean
-import Mathlib.Analysis.Calculus.ContDiff.Comp
-import Mathlib.Analysis.Calculus.ContDiff.Defs
-import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Calculus.ContDiff.Deriv
 
 open Set
 open scoped Topology ContDiff
 
-example {f₀ f₁ : ℝ → ℝ}
-    (h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi (0 : ℝ)))
-    (hd0_on : DifferentiableOn ℝ f₀ (Set.Ioi (0 : ℝ)))
-    (heq0 : Set.EqOn (deriv f₀) f₁ (Set.Ioi (0 : ℝ))) :
+example {f₀ f₁ f₂ : ℝ → ℝ}
+    (hd0 : ∀ s ∈ Set.Ioi (0 : ℝ), HasDerivAt f₀ (f₁ s) s)
+    (hd1 : ∀ s ∈ Set.Ioi (0 : ℝ), HasDerivAt f₁ (f₂ s) s)
+    (hc2_on : ContinuousOn f₂ (Set.Ioi (0 : ℝ))) :
     ContDiffOn ℝ 2 f₀ (Set.Ioi (0 : ℝ)) := by
-  -- This is the requested API step.
-  have hsmul :
-      ContDiffOn ℝ 1
-        (fun x : ℝ => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ x))
-        (Set.Ioi (0 : ℝ)) := by
-    simpa using
-      ((contDiffOn_const :
-          ContDiffOn ℝ 1 (fun _ : ℝ => (1 : StrongDual ℝ ℝ))
-            (Set.Ioi (0 : ℝ))).smulRight h0)
+  let U : Set ℝ := Set.Ioi (0 : ℝ)
+  have hUopen : IsOpen U := by
+    simpa [U] using (isOpen_Ioi : IsOpen (Set.Ioi (0 : ℝ)))
 
-  -- Convert the `deriv f₀ = f₁` equality into the CLM-valued `fderivWithin` equality.
-  have hfderiv :
-      ContDiffOn ℝ 1
-        (fun x : ℝ => fderivWithin ℝ f₀ (Set.Ioi (0 : ℝ)) x)
-        (Set.Ioi (0 : ℝ)) := by
-    refine hsmul.congr ?_
+  -- First prove `f₁` is `C¹` on `U`.
+  have h1_on : ContDiffOn ℝ 1 f₁ U := by
+    have hd1_on : DifferentiableOn ℝ f₁ U := by
+      intro x hx
+      exact (hd1 x (by simpa [U] using hx)).differentiableAt.differentiableWithinAt
+
+    have h2_toSpan :
+        ContDiffOn ℝ 0
+          (fun x : ℝ => ContinuousLinearMap.toSpanSingleton ℝ (f₂ x)) U := by
+      simpa [U, Function.comp_def] using
+        (((ContinuousLinearMap.toSpanSingletonCLE : ℝ ≃L[ℝ] (ℝ →L[ℝ] ℝ))).comp_contDiffOn_iff.mpr
+          (show ContDiffOn ℝ 0 f₂ (Set.Ioi (0 : ℝ)) from
+            contDiffOn_zero.mpr hc2_on))
+
+    have hfd1 :
+        ContDiffOn ℝ 0
+          (fun x : ℝ => fderivWithin ℝ f₁ U x) U := by
+      refine h2_toSpan.congr ?_
+      intro x hx
+      rw [fderivWithin_of_isOpen hUopen hx]
+      rw [← toSpanSingleton_deriv (𝕜 := ℝ) (f := f₁) (x := x)]
+      congr
+      exact (hd1 x (by simpa [U] using hx)).deriv
+
+    simpa using
+      (contDiffOn_succ_of_fderivWithin
+        (𝕜 := ℝ) (f := f₁) (s := U) (n := (0 : WithTop ℕ∞))
+        hd1_on (by simp) hfd1)
+
+  -- Now prove `f₀` is `C²` on `U`.
+  have hd0_on : DifferentiableOn ℝ f₀ U := by
     intro x hx
-    rw [fderivWithin_of_isOpen isOpen_Ioi hx]
-    have hxderiv : deriv f₀ x = f₁ x := heq0 hx
-    simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton, hxderiv] using
-      (toSpanSingleton_deriv (𝕜 := ℝ) (f := f₀) (x := x)).symm
+    exact (hd0 x (by simpa [U] using hx)).differentiableAt.differentiableWithinAt
 
-  -- `n = 1`, so the analytic side condition in `contDiffOn_succ_of_fderivWithin`
-  -- is impossible and is discharged by `simp`.
-  simpa using
-    (contDiffOn_succ_of_fderivWithin
-      (𝕜 := ℝ) (f := f₀) (s := Set.Ioi (0 : ℝ))
-      (n := (1 : WithTop ℕ∞))
-      hd0_on (by simp) hfderiv)
-```
-
-## If you specifically want the `smulRightL` version
-
-Your attempt with `ContinuousLinearMap.smulRightL (1 : ℝ →L[ℝ] ℝ)` was close, but the argument order is different.  At the pinned Mathlib rev, `smulRightL` is the continuous trilinear map:
-
-```lean
-ContinuousLinearMap.smulRightL :
-  StrongDual 𝕜 E →L[𝕜] F →L[𝕜] E →L[𝕜] F
-```
-
-So for this case, first specialize the three explicit parameters and then apply it to the constant dual functional:
-
-```lean
-have hsmul_alt :
-    ContDiffOn ℝ 1
-      (fun x : ℝ => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ x))
-      (Set.Ioi (0 : ℝ)) := by
-  simpa using
-    ((ContinuousLinearMap.smulRightL ℝ ℝ ℝ (1 : StrongDual ℝ ℝ)).contDiff.comp_contDiffOn h0)
-```
-
-I would still use the `ContDiffOn.smulRight` version in production: it is shorter, clearer, and exactly matches the API theorem in `ContDiff/Comp.lean`.
-
-## Minimal drop-in replacement
-
-For just the subgoal in your existing proof, this should be enough:
-
-```lean
-  have h_fderiv_model :
+  have h1_toSpan :
       ContDiffOn ℝ 1
-        (fun s : ℝ => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s))
-        (Set.Ioi (0 : ℝ)) := by
-    simpa using
-      ((contDiffOn_const :
-          ContDiffOn ℝ 1 (fun _ : ℝ => (1 : StrongDual ℝ ℝ))
-            (Set.Ioi (0 : ℝ))).smulRight h0)
+        (fun x : ℝ => ContinuousLinearMap.toSpanSingleton ℝ (f₁ x)) U := by
+    simpa [U, Function.comp_def] using
+      (((ContinuousLinearMap.toSpanSingletonCLE : ℝ ≃L[ℝ] (ℝ →L[ℝ] ℝ))).comp_contDiffOn_iff.mpr
+        h1_on)
+
+  have hfd0 :
+      ContDiffOn ℝ 1
+        (fun x : ℝ => fderivWithin ℝ f₀ U x) U := by
+    refine h1_toSpan.congr ?_
+    intro x hx
+    rw [fderivWithin_of_isOpen hUopen hx]
+    rw [← toSpanSingleton_deriv (𝕜 := ℝ) (f := f₀) (x := x)]
+    congr
+    exact (hd0 x (by simpa [U] using hx)).deriv
+
+  simpa [U] using
+    (contDiffOn_succ_of_fderivWithin
+      (𝕜 := ℝ) (f := f₀) (s := U) (n := (1 : WithTop ℕ∞))
+      hd0_on (by simp) hfd0)
 ```
 
-Then use `ContDiffOn.congr` to replace this model by `fderivWithin ℝ f₀ (Set.Ioi 0)` on the open set, as in the full theorem above.
+The key conversion inside the `congr` blocks is:
+
+```lean
+rw [fderivWithin_of_isOpen hUopen hx]
+rw [← toSpanSingleton_deriv (𝕜 := ℝ) (f := f₁) (x := x)]
+congr
+exact (hd1 x hx).deriv
+```
+
+and similarly for `f₀`.  This avoids using `HasDerivAt.hasFDerivAt.fderiv` directly; it uses the stable scalar derivative theorem
+
+```lean
+toSpanSingleton_deriv :
+  ContinuousLinearMap.toSpanSingleton 𝕜 (deriv f x) = fderiv 𝕜 f x
+```
+
+plus `HasDerivAt.deriv`.
+
+## Even shorter one-dimensional route
+
+Since your domain is open and the functions are scalar one-dimensional, `Mathlib/Analysis/Calculus/ContDiff/Deriv.lean` gives:
+
+```lean
+contDiffOn_succ_iff_deriv_of_isOpen
+```
+
+This avoids `fderivWithin` and `toSpanSingleton` entirely.  The intended shape is:
+
+```lean
+have h1_on : ContDiffOn ℝ 1 f₁ (Set.Ioi (0 : ℝ)) := by
+  rw [show (1 : WithTop ℕ∞) = (0 : WithTop ℕ∞) + 1 by rfl,
+      contDiffOn_succ_iff_deriv_of_isOpen isOpen_Ioi]
+  refine ⟨?_, by simp, ?_⟩
+  · intro x hx
+    exact (hd1 x hx).differentiableAt.differentiableWithinAt
+  · -- `deriv f₁ = f₂` on `Ioi 0`, so this is `ContDiffOn ℝ 0 f₂`.
+    exact (contDiffOn_zero.mpr hc2_on).congr
+      (fun x hx => (hd1 x hx).deriv.symm)
+```
+
+Then repeat once more for `f₀`, using `h1_on` as the derivative-side `ContDiffOn ℝ 1` input.  This is often the simplest proof in one-dimensional scalar problems.
+
+## Bottom line
+
+For the exact target you asked about, use either:
+
+```lean
+(((ContinuousLinearMap.toSpanSingletonCLE : ℝ ≃L[ℝ] (ℝ →L[ℝ] ℝ))).comp_contDiffOn_iff.mpr
+  (contDiffOn_zero.mpr hc2_on))
+```
+
+with `simpa [Function.comp_def]`, or the equivalent `smulRight` proof:
+
+```lean
+((contDiffOn_const :
+    ContDiffOn ℝ 0 (fun _ : ℝ => (1 : StrongDual ℝ ℝ)) (Set.Ioi (0 : ℝ))).smulRight
+  (contDiffOn_zero.mpr hc2_on))
+```
+
+with `simpa [ContinuousLinearMap.smulRight_one_eq_toSpanSingleton]`.
