@@ -1,309 +1,450 @@
-# Q1330 (cron2) — `PhysicalSourceTimeC2` global obstruction vs direct cutoff path
+# Q1336 (cron2/cron3) — gradient version of `heatResolver_jointContDiffAt_two`
 
 Static GitHub-connector inspection only. I did **not** run Lean locally.
 
 ## Short answer
 
-Yes: for the heat-level resolver joint-`C²` goal, bypass `IntervalPhysicalSourceTimeC2Concrete.lean` and focus on the direct cutoff path in
+Route **A** is the right route.  Route **B** is too weak for the theorem as stated.
+
+The theorem goal is:
 
 ```lean
-ShenWork/Paper2/IntervalHeatResolverJointC2.lean
+ContDiffAt ℝ 2
+  (fun q : ℝ × ℝ =>
+    deriv (intervalDomainLift (coupledChemicalConcentration p
+      (conjugatePicardIter p u₀ 0) q.1)) q.2)
+  (s₀, x₀)
 ```
 
-The `src_contDiff` obligation in `PhysicalSourceTimeC2` asks for an all-`ℝ` statement:
+If you start from the value theorem
 
 ```lean
-src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+heatResolver_jointContDiffAt_two :
+  ContDiffAt ℝ 2 (fun q => intervalDomainLift (v q.1) q.2) (s₀, x₀)
 ```
 
-but the honest heat-level data available in the positive-time version is only:
+then applying `ContDiffAt.fderiv` loses one derivative.  At best it gives `ContDiffAt ℝ 1` of the full Fréchet derivative, hence `ContDiffAt ℝ 1` of the spatial component of the derivative.  It does **not** give `ContDiffAt ℝ 2` of the spatial derivative.
+
+So Route B can prove a downgraded theorem:
 
 ```lean
-srcTimeCoeff_contDiffAt ... {t : ℝ} (ht : 0 < t) :
-  ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t
+ContDiffAt ℝ 1
+  (fun q => deriv (intervalDomainLift (v q.1)) q.2)
+  (s₀, x₀)
 ```
 
-That is exactly what the direct cutoff route consumes: it proves positive-time `ContDiffAt`, multiplies by a smooth cutoff that vanishes below `c/2`, and then obtains global `ContDiff` for the **cutoff coefficient**, not for the raw coefficient.
+but not the current `ContDiffAt ℝ 2` goal.  To prove the current goal without losing an order, you need a direct gradient series proof: cutoff + `contDiff_tsum` for the gradient terms.
 
-So the direct cutoff path is the right critical path.  Do not try to close global `src_contDiff` for the raw physical source unless you first retype the structure to a positive-time/windowed/cutoff version.
+## Existing infrastructure found
 
-## What I found in the files
+### 1. Current direct cutoff value route
 
-### 1. `PhysicalSourceTimeC2` is all-time
-
-In `ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean`, the structure has:
+In `ShenWork/Paper2/IntervalHeatResolverJointC2.lean`, the value route already has:
 
 ```lean
-structure PhysicalSourceTimeC2
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Es : ℕ → ℕ → ℝ) : Prop where
-  /-- Each source coefficient is `C²` in time (`u^γ` smooth under the floor). -/
-  src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
-  /-- Three-time-order source coefficient bounds. -/
-  src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
+def resolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (k : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => resolverTimeCoeff p u k q.1 * cosineMode k q.2
+
+
+def cutoffResolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (c : ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => smoothRightCutoff (c / 2) c q.1 *
+    (resolverTimeCoeff p u k q.1 * cosineMode k q.2)
 ```
 
-So both `src_contDiff` and `src_bound` quantify over all real time.
-
-### 2. The positive-time physical producer cannot honestly fill this as stated
-
-In the positive-time version of `IntervalPhysicalSourceTimeC2Concrete.lean`, the data structure is explicitly positive-time:
+and:
 
 ```lean
-structure FlooredSourceTimeData ... where
-  d0 : ∀ τ : ℝ, 0 < τ → ∃ δ : ℝ, ...
-  d1 : ∀ τ : ℝ, 0 < τ → ∃ δ : ℝ, ...
-  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t →
-    ContDiffOn ℝ 2 ...
-  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, 0 < t → ...
-  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, 0 < t → ...
-  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ t : ℝ, 0 < t → ...
+theorem cutoffResolverSeries_contDiff_two :
+  ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+    ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q)
 ```
 
-and the proved regularity theorem is positive-time only:
+Then `heatResolver_jointContDiffAt_two` transfers this cutoff series to the actual lifted resolver value by eventual equality.
+
+### 2. Current gradient theorem is only a placeholder
+
+The gradient theorem currently says:
 
 ```lean
-theorem srcTimeCoeff_contDiffAt
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
-    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t
-```
-
-The later producer still tries to build:
-
-```lean
-PhysicalSourceTimeC2 p u (builtEs H)
-```
-
-which requires global `ContDiff ℝ 2` and global bounds.  That is a type mismatch.  The comment saying “extension to global ContDiff on ℝ follows from the structure of srcTimeCoeff” is not a proof; for heat smoothing it is the false step.
-
-### 3. The direct cutoff path intentionally avoids this global raw-coefficient demand
-
-`ShenWork/Paper2/IntervalHeatResolverJointC2.lean` is explicitly the direct route.  It has:
-
-```lean
-theorem heatLevel0_srcTimeCoeff_contDiffAt_two
-    ... {t : ℝ} (_ht : 0 < t) (k : ℕ) :
-    ContDiffAt ℝ (2 : ℕ∞)
-      (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
+theorem heatResolver_grad_jointContDiffAt_two ... :
+  ContDiffAt ℝ 2
+    (fun q : ℝ × ℝ =>
+      deriv (intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1)) q.2)
+    (s₀, x₀) := by
+  -- comments...
   sorry
 ```
 
-Then it proves resolver coefficient positive-time `ContDiffAt` by the constant elliptic weight:
+The comments already point to the true remaining work:
 
 ```lean
-theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
-    ... {t : ℝ} (ht : 0 < t) (k : ℕ) :
-    ContDiffAt ℝ (2 : ℕ∞)
-      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-  have hsrc := heatLevel0_srcTimeCoeff_contDiffAt_two ... ht k
-  ...
-  exact contDiffAt_const.mul hsrc
+-- The full proof needs the interchange of tsum and deriv (from summability
+-- of the gradient series) and the cutoff+contDiff_tsum on the gradient series.
 ```
 
-Then it multiplies by a cutoff:
+That is Route A.
+
+### 3. Generic gradient assembler already exists
+
+The repo already has generic gradient-series infrastructure in
 
 ```lean
-theorem cutoffResolverCoeff_contDiff_two
-    ... {c : ℝ} (hc : 0 < c) (k : ℕ) :
-    ContDiff ℝ 2 (fun t =>
-      smoothRightCutoff (c / 2) c t *
-        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t)
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
 ```
 
-For `t ≥ c/2`, this uses positive-time `ContDiffAt`; for `t < c/2`, the cutoff is identically zero nearby.  This is exactly the correct way to globalize a positive-time regularity fact.
-
-The main consumer is:
+The key definitions/theorems are:
 
 ```lean
-theorem heatResolver_jointContDiffAt_two
-    ... {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+def boundedWeightJointGradTerm (c : ℕ → ℝ → ℝ) (n : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => c n q.1 * deriv (cosineMode n) q.2
+
+
+def boundedWeightJointGradMajorant (Bt : ℕ → ℕ → ℝ) (k n : ℕ) : ℝ :=
+  ∑ i ∈ Finset.range (k + 1),
+    (k.choose i : ℝ) * Bt i n * gradCosWeight (k - i) n
+
+
+theorem boundedWeightJointGradTerm_contDiff
+    {c : ℕ → ℝ → ℝ} (n : ℕ) (hc : ContDiff ℝ (2 : ℕ∞) (c n)) :
+    ContDiff ℝ (2 : ℕ∞) (boundedWeightJointGradTerm c n)
+
+
+theorem boundedWeightJointGradSeries_contDiff_two
+    {c : ℕ → ℝ → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (hc : ∀ n, ContDiff ℝ (2 : ℕ∞) (c n))
+    (hBt : ∀ (i n : ℕ) (t : ℝ), i ≤ 2 → ‖iteratedFDeriv ℝ i (c n) t‖ ≤ Bt i n)
+    (hsumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant Bt k)) :
+    ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' n : ℕ, boundedWeightJointGradTerm c n q)
+```
+
+This is exactly the gradient analogue of the value assembler.
+
+### 4. The physical route already proves the eventual-equality pattern for gradients
+
+In `ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean`, the theorem
+
+```lean
+coupledChemical_grad_jointContDiffAt_two
+```
+
+uses:
+
+```lean
+boundedWeightJointGradSeries_contDiff_two
+```
+
+then proves that the actual spatial derivative equals the gradient series near interior points.  Its key local bridge is:
+
+```lean
+have hval : (fun y : ℝ =>
+      intervalDomainLift (coupledChemicalConcentration p u q.1) y) =ᶠ[𝓝 q.2]
+    fun y : ℝ =>
+      ∑' k : ℕ, boundedWeightJointTerm (resolverTimeCoeff p u) k (q.1, y) := by
+  filter_upwards [hopen] with y hy
+  exact coupledChemical_lift_eq_series (Ioo_subset_Icc_self hy)
+
+rw [Filter.EventuallyEq.deriv_eq hval]
+
+have hgrad := cosineCoeffSeries_grad_hasDerivAt heig q.2
+...
+rw [hrw, hgrad.deriv]
+exact tsum_congr (fun k => by simp [boundedWeightJointGradTerm, hb, cosineMode_deriv])
+```
+
+This is the proof pattern to copy for the direct cutoff theorem.
+
+## Recommended direct cutoff implementation
+
+Add a gradient cutoff term, its majorant, and a gradient cutoff series theorem.
+
+### 1. Define the raw/cutoff gradient terms
+
+Use the existing direct file’s `resolverTerm` shape, but replace `cosineMode` by `deriv cosineMode`:
+
+```lean
+/-- The `k`-th spatial-gradient resolver term:
+`(t,x) ↦ resolverTimeCoeff_k(t) · ∂ₓ cos(kπx)`. -/
+def resolverGradTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (k : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => resolverTimeCoeff p u k q.1 * deriv (cosineMode k) q.2
+
+/-- The cutoff spatial-gradient resolver term. -/
+def cutoffResolverGradTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (c : ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => smoothRightCutoff (c / 2) c q.1 *
+    (resolverTimeCoeff p u k q.1 * deriv (cosineMode k) q.2)
+```
+
+### 2. Prove each cutoff gradient term is C²
+
+This is mechanically parallel to `cutoffResolverTerm_contDiff_two`.  You can avoid re-proving coefficient regularity by reusing:
+
+```lean
+cutoffResolverCoeff_contDiff_two
+```
+
+from the current file, because
+
+```lean
+fun t => smoothRightCutoff (c / 2) c t * resolverTimeCoeff ... k t
+```
+
+is already globally `ContDiff ℝ 2`.  Then multiply by `deriv (cosineMode k)` composed with `snd`.
+
+Skeleton:
+
+```lean
+private theorem cosineModeDeriv_contDiff_two (k : ℕ) :
+    ContDiff ℝ (2 : ℕ∞) (fun x : ℝ => deriv (cosineMode k) x) := by
+  have hEq : (fun x : ℝ => deriv (cosineMode k) x) =
+      fun x : ℝ => -((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x) := by
+    funext x
+    rw [cosineMode_deriv]
+  rw [hEq]
+  fun_prop
+
+ theorem cutoffResolverGradTerm_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {c : ℝ} (hc : 0 < c) (k : ℕ) :
+    ContDiff ℝ 2
+      (cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k) := by
+  have hcoef := cutoffResolverCoeff_contDiff_two
+    (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont hc k
+  have hcoef_q : ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      smoothRightCutoff (c / 2) c q.1 *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) :=
+    hcoef.comp contDiff_fst
+  have hgradcos_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => deriv (cosineMode k) q.2) :=
+    (cosineModeDeriv_contDiff_two k).comp contDiff_snd
+  show ContDiff ℝ 2 (fun q =>
+    smoothRightCutoff (c / 2) c q.1 *
+      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1 *
+        deriv (cosineMode k) q.2))
+  conv => ext q; ring
+  exact hcoef_q.mul hgradcos_q
+```
+
+### 3. Add gradient majorants
+
+You need gradient weights, not merely the value weights.  Either add separate gradient majorants or replace the existing value majorant by something large enough to dominate both value and gradient terms.
+
+Cleanest:
+
+```lean
+noncomputable def cutoffResolverGradMajorant
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ) (hc : 0 < c)
+    (j k : ℕ) : ℝ :=
+  -- analytic majorant using gradCosWeight instead of valueCosWeight
+  Classical.choice inferInstance
+
+ theorem cutoffResolverGradMajorant_nonneg ... : 0 ≤ cutoffResolverGradMajorant ... := by
+  sorry
+
+ theorem cutoffResolverGradMajorant_summable ... :
+    Summable (cutoffResolverGradMajorant p u₀ M₀ c hc j) := by
+  sorry
+
+ theorem cutoffResolverGradTerm_iteratedFDeriv_bound ... :
+    ‖iteratedFDeriv ℝ j
+      (cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k) q‖ ≤
+      cutoffResolverGradMajorant p u₀ M₀ c hc j k := by
+  sorry
+```
+
+These are the same analytic obligations as the value majorant, except with `gradCosWeight` / derivatives of `deriv cosineMode`.
+
+### 4. Prove global C² of the cutoff gradient series
+
+```lean
+theorem cutoffResolverGradSeries_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k ≤ M₀) -- typo fixed below
+    (hu₀_cont : Continuous u₀)
+    {c : ℝ} (hc : 0 < c) :
+    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+  apply contDiff_tsum
+    (𝕜 := ℝ)
+    (f := cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c)
+    (v := fun j k => cutoffResolverGradMajorant p u₀ M₀ c hc j k)
+  · intro k
+    exact cutoffResolverGradTerm_contDiff_two hu₀_bound hu₀_cont hc k
+  · intro j hj
+    exact cutoffResolverGradMajorant_summable hc hu₀_bound hu₀_cont hj
+  · intro j k q hj
+    exact cutoffResolverGradTerm_iteratedFDeriv_bound hu₀_bound hu₀_cont hc j k q hj
+```
+
+Correct the typo in the first hypothesis:
+
+```lean
+(hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+```
+
+### 5. Eventual equality to the actual gradient
+
+Use the physical-route pattern.  At an interior point, first show locally in `x` that the lift equals the value series, then take `deriv` of that eventual equality, then rewrite derivative of the series as the gradient series using `cosineCoeffSeries_grad_hasDerivAt`.
+
+For the raw gradient series:
+
+```lean
+theorem resolverGradSeries_eq_lift_deriv_on_interior
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {t x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1)
+    (heig : Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k * |resolverTimeCoeff p u k t|)) :
+    deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x =
+      ∑' k : ℕ, resolverGradTerm p u k (t, x) := by
+  have hopen : Ioo (0 : ℝ) 1 ∈ 𝓝 x := isOpen_Ioo.mem_nhds hx
+  have hval : (fun y : ℝ => intervalDomainLift (coupledChemicalConcentration p u t) y)
+      =ᶠ[𝓝 x]
+      fun y : ℝ => ∑' k : ℕ, resolverTerm p u k (t, y) := by
+    filter_upwards [hopen] with y hy
+    exact resolverSeries_eq_lift_on_interior (Set.Ioo_subset_Icc_self hy)
+  rw [Filter.EventuallyEq.deriv_eq hval]
+  set b : ℕ → ℝ := fun k => resolverTimeCoeff p u k t with hb
+  have hgrad := cosineCoeffSeries_grad_hasDerivAt heig x
+  have hrw : (fun y : ℝ => ∑' k : ℕ, resolverTerm p u k (t, y)) =
+      fun y : ℝ => ∑' k : ℕ, b k * cosineMode k y := by
+    funext y
+    exact tsum_congr (fun k => by simp [resolverTerm, hb])
+  rw [hrw, hgrad.deriv]
+  exact tsum_congr (fun k => by simp [resolverGradTerm, hb, cosineMode_deriv])
+```
+
+You still need the `heig` summability.  In the physical route this is derived from `H.value_summable 2 le_rfl`.  In the direct route, make it one of the analytic consequences of the same coefficient estimates used by the cutoff majorant, e.g.:
+
+```lean
+theorem resolverCoeff_eigen_summable_at_positive_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    {t : ℝ} (ht : 0 < t) :
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        |resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t|) := by
+  -- same elliptic-weight + source coefficient H4/IBP route as the value/grad majorants
+  sorry
+```
+
+Then the final theorem is:
+
+```lean
+theorem heatResolver_grad_jointContDiffAt_two ... :
     ContDiffAt ℝ 2
       (fun q : ℝ × ℝ =>
-        intervalDomainLift (coupledChemicalConcentration p
-          (conjugatePicardIter p u₀ 0) q.1) q.2)
-      (s₀, x₀)
+        deriv (intervalDomainLift (coupledChemicalConcentration p
+          (conjugatePicardIter p u₀ 0) q.1)) q.2)
+      (s₀, x₀) := by
+  -- 1. cutoff gradient series globally C²
+  have hCutoff :=
+    (cutoffResolverGradSeries_contDiff_two (p := p)
+      hu₀_bound hu₀_cont hc).contDiffAt (x := (s₀, x₀))
+
+  -- 2. actual gradient = raw gradient series near interior points
+  have hmem : {q : ℝ × ℝ | q.2 ∈ Set.Ioo (0 : ℝ) 1 ∧ c < q.1} ∈ 𝓝 (s₀, x₀) := by
+    -- product neighborhood from `hx₀` and `hs₀`
+    -- use `(isOpen_Ioo.preimage continuous_snd)` and `Ioi_mem_nhds hs₀`
+    sorry
+
+  have hEqGradRaw :
+      (fun q : ℝ × ℝ => deriv (intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1)) q.2)
+      =ᶠ[𝓝 (s₀, x₀)]
+      (fun q : ℝ × ℝ =>
+        ∑' k : ℕ, resolverGradTerm p (conjugatePicardIter p u₀ 0) k q) := by
+    filter_upwards [hmem] with q hq
+    exact resolverGradSeries_eq_lift_deriv_on_interior hq.1
+      (resolverCoeff_eigen_summable_at_positive_time
+        hu₀_bound hu₀_cont (lt_trans hs₀ hq.2))
+
+  -- 3. raw gradient series = cutoff gradient series near `s₀` because cutoff = 1
+  have hEqCutoffGrad :
+      (fun q : ℝ × ℝ =>
+        ∑' k : ℕ, resolverGradTerm p (conjugatePicardIter p u₀ 0) k q)
+      =ᶠ[𝓝 (s₀, x₀)]
+      (fun q : ℝ × ℝ =>
+        ∑' k : ℕ, cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+    have hc'c : c / 2 < c := by linarith
+    have hφ_one : smoothRightCutoff (c / 2) c =ᶠ[𝓝 s₀] fun _ => (1 : ℝ) :=
+      smoothRightCutoff_eventually_eq_one hc'c hs₀
+    have hφ_prod :
+        (fun q : ℝ × ℝ => smoothRightCutoff (c / 2) c q.1) =ᶠ[𝓝 (s₀, x₀)]
+          fun _ : ℝ × ℝ => (1 : ℝ) :=
+      hφ_one.comp_tendsto continuous_fst.continuousAt
+    filter_upwards [hφ_prod] with q hq
+    congr 1
+    ext k
+    simp [cutoffResolverGradTerm, resolverGradTerm, hq]
+
+  exact hCutoff.congr_of_eventuallyEq (hEqGradRaw.trans hEqCutoffGrad)
 ```
 
-This path does not need `PhysicalSourceTimeC2`; it imports `IntervalPhysicalResolverDataConcrete` for the coefficient definitions and the constant-weight identity, not for the all-time physical producer.
+## Why Route B is tempting but wrong for the current theorem
 
-## Recommendation
-
-### Critical path
-
-Focus on these two direct-cutoff obligations:
+The value function is
 
 ```lean
-heatLevel0_srcTimeCoeff_contDiffAt_two
-cutoffResolverMajorant_summable / cutoffResolverTerm_iteratedFDeriv_bound
+F q = intervalDomainLift (v q.1) q.2
 ```
 
-This closes the direct route:
+If
 
 ```lean
-heatLevel0_srcTimeCoeff_contDiffAt_two
-  → heatLevel0_resolverTimeCoeff_contDiffAt_two
-  → cutoffResolverCoeff_contDiff_two
-  → cutoffResolverTerm_contDiff_two
-  → cutoffResolverSeries_contDiff_two
-  → heatResolver_jointContDiffAt_two
+hF : ContDiffAt ℝ 2 F q₀
 ```
 
-Do **not** spend effort trying to prove global `ContDiff ℝ 2` of the raw `srcTimeCoeff` unless the structure is retyped.
-
-### If the physical route is still desired
-
-Retype it.  Good options:
+then
 
 ```lean
-structure PhysicalSourceTimeC2On
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Es : ℕ → ℕ → ℝ) (c T : ℝ) : Prop where
-  src_contDiffAt : ∀ k t, t ∈ Ioo c T →
-    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t
-  src_bound : ∀ i k t, i ≤ 2 → t ∈ Ioo c T →
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
-  ...
+hF.fderiv : ContDiffAt ℝ 1 (fderiv ℝ F) q₀
 ```
 
-or a cutoff version:
+up to the exact Mathlib spelling.  The spatial derivative is the second component of `fderiv ℝ F q`, so after composing with a continuous linear projection you get only:
 
 ```lean
-structure PhysicalSourceTimeC2Cutoff
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Es : ℕ → ℕ → ℝ) (c : ℝ) : Prop where
-  cutoff_src_contDiff : ∀ k,
-    ContDiff ℝ (2 : ℕ∞)
-      (fun t => smoothRightCutoff (c / 2) c t * srcTimeCoeff p u k t)
-  cutoff_src_bound : ...
+ContDiffAt ℝ 1 (fun q => fderiv ℝ F q (0,1)) q₀
 ```
 
-The direct cutoff file is already implementing the second idea at resolver-coefficient level.
-
-## About `src_bound` for `t ≤ 0`
-
-There are two different conventions to separate.
-
-### A. Concrete current `intervalFullSemigroupOperator` value at `t = 0`
-
-The repo has `ShenWork/PDE/IntervalSemigroupAtZero.lean`, which proves:
+and after proving
 
 ```lean
-theorem intervalFullSemigroupOperator_zero (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator 0 f x = 0
+fderiv ℝ F q (0,1) = deriv (fun x => intervalDomainLift (v q.1) x) q.2
 ```
 
-The file also explains the reason: with the concrete `heatKernel` definition,
+locally, you still have only `ContDiffAt ℝ 1` for the gradient.
+
+To get `ContDiffAt ℝ 2` of the gradient from a value theorem, you would need a value theorem at order `3`:
 
 ```lean
-heatKernel 0 x = 0
+ContDiffAt ℝ 3 F q₀
 ```
 
-so the full Neumann kernel at `t = 0` is identically zero.  Thus, for the current concrete `conjugatePicardIter` level 0 definition,
+not the current order `2` theorem.
+
+## Final recommendation
+
+Use Route A.
+
+Reuse the existing generic gradient infrastructure:
 
 ```lean
-conjugatePicardIter p u₀ 0 t x =
-  intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+boundedWeightJointGradTerm
+boundedWeightJointGradMajorant
+boundedWeightJointGradSeries_contDiff_two
 ```
 
-at `t = 0` the slice is zero, not `u₀`.
-
-For `t < 0`, the same degeneracy should be true by the same `Real.sqrt_eq_zero_of_nonpos` mechanism, but I did not find a named theorem in the inspected files.  A useful atom would be:
+and the existing physical-route bridge pattern in
 
 ```lean
-lemma intervalFullSemigroupOperator_eq_zero_of_nonpos
-    {t : ℝ} (ht : t ≤ 0) (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator t f x = 0 := by
-  -- prove heatKernel t _ = 0 from sqrt_eq_zero_of_nonpos (4πt ≤ 0),
-  -- then intervalNeumannFullKernel t x y = 0, then simp the integral.
-  sorry
+coupledChemical_grad_jointContDiffAt_two
 ```
 
-If you prove this atom, then for level 0 and `t ≤ 0`:
-
-```lean
-srcSlice p (conjugatePicardIter p u₀ 0) t x = 0
-```
-
-because `p.γ > 0` and `0 ^ p.γ = 0`.  Then all source coefficients are zero.  For `src_bound`, the nonpositive-time branch is trivial:
-
-```lean
-0 ≤ builtEs H i k
-```
-
-provided you have a small lemma proving `builtEs_nonneg` from the nonnegative `Classical.choose_spec` bounds.
-
-However, this does **not** fix global `src_contDiff` at `0`: the positive-time right limit is generally the source of `u₀`, while the value at zero is zero in the concrete kernel convention.  So global `ContDiff` still fails generically.
-
-### B. Intended mathematical convention `S(0)u₀ = u₀`, or a clamped `t ≤ 0` extension
-
-If you intentionally redefine/extend the heat level so that for `t ≤ 0`
-
-```lean
-u t = u₀
-```
-
-then the source slice for `t ≤ 0` is indeed
-
-```lean
-fun x => p.ν * intervalDomainLift u₀ x ^ p.γ
-```
-
-In that convention, the bound for `i = 0` needs **new initial-source spatial data**.  It is not supplied by the positive-time `FlooredSourceTimeData` fields.
-
-The right assumptions would be something like:
-
-```lean
-def initialSource (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun x => p.ν * intervalDomainLift u₀ x ^ p.γ
-
-hinitC2 : ContDiffOn ℝ 2 (initialSource p u₀) (Icc (0 : ℝ) 1)
-hinitNeu :
-  Tendsto (deriv (initialSource p u₀)) (𝓝[Ioi 0] 0) (𝓝 0) ∧
-  Tendsto (deriv (initialSource p u₀)) (𝓝[Iio 1] 1) (𝓝 0) ∧
-  deriv (initialSource p u₀) 0 = 0 ∧
-  deriv (initialSource p u₀) 1 = 0
-hinit0 : |cosineCoeffs (initialSource p u₀) 0| ≤ Dinit
-hinitLap : ∀ k, 1 ≤ k →
-  |cosineCoeffs (initialSource p u₀) k| ≤ Minit / ((k : ℝ) * Real.pi) ^ 2
-```
-
-Then enlarge the envelope:
-
-```lean
-Dnew i = max Dpositive_i Dinit   -- for i = 0
-Mnew i = max Mpositive_i Minit   -- for i = 0
-```
-
-For `i = 1,2`, if the extension is constant for `t < 0`, the derivatives are zero on `t < 0`; but at `t = 0` the derivatives generally do not exist or do not match the right derivatives unless you impose compatibility/flatness.  So an all-`ℝ` `src_bound` based on `iteratedFDeriv` at `t = 0` is still not honest unless the extension is smoothed/cut off.
-
-## What bound works at `t ≤ 0`?
-
-If using the current concrete kernel convention and proving `S(t)=0` for `t≤0`, the bound is:
-
-```lean
-‖iteratedFDeriv ℝ i (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ = 0
-```
-
-away from the transition, so use:
-
-```lean
-0 ≤ builtEs H i k
-```
-
-But this still leaves differentiability at `0` broken.
-
-If using the intended `S(0)u₀ = u₀` / constant-left extension, the `i=0` bound is a separate initial-source coefficient bound.  There is no bound from the existing positive-time `H` alone.  You need to add an initial regularity/bound hypothesis or choose a cutoff/windowed structure.
-
-## Final verdict
-
-The direct cutoff path is the right path for the heat-level resolver joint-`C²` theorem.  `PhysicalSourceTimeC2` is over-strong for this use case because it asks for global raw coefficient `ContDiff ℝ 2` and global raw coefficient bounds.  The direct path only needs positive-time `ContDiffAt` and uses the cutoff to globalize safely.
-
-So:
-
-```text
-Bypass PhysicalSourceTimeC2 for the heat-level direct resolver proof.
-Focus on IntervalHeatResolverJointC2.lean.
-Retype PhysicalSourceTimeC2 only if a later consumer genuinely needs it.
-```
+Do **not** try to obtain the current `ContDiffAt ℝ 2` gradient theorem from the value `ContDiffAt ℝ 2` theorem.  That loses one derivative and can only prove a `ContDiffAt ℝ 1` gradient theorem unless you first upgrade the value theorem to `ContDiffAt ℝ 3`.
