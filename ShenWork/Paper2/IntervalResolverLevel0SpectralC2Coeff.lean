@@ -112,7 +112,7 @@ theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
       (p := p) (u := u) (t := s) (x := x.1) x.2
     have hlift_eq : ShenWork.IntervalDomain.intervalDomainLift
         (coupledChemicalConcentration p u s) x.1 = coupledChemicalConcentration p u s x := by
-      simp [ShenWork.IntervalDomain.intervalDomainLift, x.2]
+      simp [ShenWork.IntervalDomain.intervalDomainLift]
     rw [hlift_eq] at hlift
     simpa [ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm] using hlift
 
