@@ -55,7 +55,7 @@ import ShenWork.Paper2.IntervalMildRegularityBootstrap
 import ShenWork.Paper2.IntervalDuhamelIntegrability
 
 open Filter Topology Set MeasureTheory
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam FlooredSourceTimeData)
@@ -110,7 +110,6 @@ theorem heatSemigroup_pos_of_pos
       simp [intervalDomainLift, xmin.2]
     calc c = intervalDomainLift u₀ xmin.1 := by
           rw [hxmin_lift]
-          rfl
       _ ≤ |intervalDomainLift u₀ xmin.1| := le_abs_self _
       _ ≤ B := hlift_bound xmin.1
   have hlift_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1) :=
@@ -168,7 +167,7 @@ private theorem heatDu_eq_secondValue
 
 /-! ## Helper: d0 proof body (extracted to avoid where-syntax elaboration issues) -/
 
-set_option maxHeartbeats 1600000 in
+set_option maxHeartbeats 8000000 in
 theorem heatSemigroup_d0
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
@@ -297,9 +296,18 @@ private theorem heatLaplacianTerm_hasDerivAt_time
     simpa [mul_comm] using hlin.exp
   have h := ((hexp.mul_const (ShenWork.CosineSpectrum.cosineMode n x)).const_mul
     (-(λ_ n))).mul_const (a n)
-  simpa [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
-    unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
-    ShenWork.CosineSpectrum.cosineMode, mul_assoc, mul_left_comm, mul_comm] using h
+  have h' : HasDerivAt
+      (fun y => -(a n * ((λ_ n) *
+        (Real.cos (x * (Real.pi * (n : ℝ))) * Real.exp (-(y * (λ_ n)))))))
+      (a n * ((λ_ n) * ((λ_ n) *
+        (Real.cos (x * (Real.pi * (n : ℝ))) * Real.exp (-(t * (λ_ n))))))) t := by
+    simpa [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
+      ShenWork.CosineSpectrum.cosineMode, mul_assoc, mul_left_comm, mul_comm] using h
+  convert h' using 1
+  · funext y
+    ring
+  · ring
 
 private theorem summable_heatLaplacian_terms_of_bound
     {a : ℕ → ℝ} {M t x : ℝ} (ht : 0 < t)
@@ -313,17 +321,27 @@ private theorem summable_heatLaplacian_terms_of_bound
   refine Summable.of_norm_bounded
     (g := fun n : ℕ => M * ((λ_ n) * Real.exp (-t * (λ_ n)))) hmajor ?_
   intro n
-  rw [Real.norm_eq_abs, abs_mul]
   have hlam_nn : 0 ≤ λ_ n := by unfold unitIntervalCosineEigenvalue; positivity
   have hcos : |Real.cos ((n : ℝ) * Real.pi * x)| ≤ 1 := Real.abs_cos_le_one _
+  have hA_nonneg : 0 ≤ (λ_ n) * Real.exp (-t * (λ_ n)) :=
+    mul_nonneg hlam_nn (Real.exp_nonneg _)
+  rw [Real.norm_eq_abs, abs_mul]
   calc |ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n| * |a n|
-      ≤ ((λ_ n) * Real.exp (-t * (λ_ n)) * 1) * M := by
+      = ((λ_ n) * Real.exp (-t * (λ_ n)) * |Real.cos ((n : ℝ) * Real.pi * x)|) *
+          |a n| := by
         simp only [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
           unitIntervalCosineHeatPointWeight, unitIntervalCosineMode, abs_mul,
           abs_of_nonneg hlam_nn, abs_of_nonneg (Real.exp_nonneg _), abs_neg]
-        gcongr
-        · exact hcos
-        · exact ha n
+        ring
+      _ ≤ ((λ_ n) * Real.exp (-t * (λ_ n)) * 1) * M := by
+        calc ((λ_ n) * Real.exp (-t * (λ_ n)) * |Real.cos ((n : ℝ) * Real.pi * x)|) *
+              |a n|
+            ≤ ((λ_ n) * Real.exp (-t * (λ_ n)) * 1) * |a n| := by
+              exact mul_le_mul_of_nonneg_right
+                (mul_le_mul_of_nonneg_left hcos hA_nonneg) (abs_nonneg _)
+          _ ≤ ((λ_ n) * Real.exp (-t * (λ_ n)) * 1) * M := by
+              exact mul_le_mul_of_nonneg_left (ha n)
+                (mul_nonneg hA_nonneg zero_le_one)
     _ = M * ((λ_ n) * Real.exp (-t * (λ_ n))) := by ring
 
 private theorem heatD2Term_abs_le_majorant
@@ -344,9 +362,21 @@ private theorem heatD2Term_abs_le_majorant
         rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg _),
           abs_of_nonneg (Real.exp_nonneg _)]; ring
     _ ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M * 1 := by
-        gcongr; exact ha n
+        have hA_nonneg : 0 ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) :=
+          mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+        calc (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * |a n| *
+                |ShenWork.CosineSpectrum.cosineMode n x|
+            ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M *
+                |ShenWork.CosineSpectrum.cosineMode n x| := by
+              exact mul_le_mul_of_nonneg_right
+                (mul_le_mul_of_nonneg_left (ha n) hA_nonneg) (abs_nonneg _)
+          _ ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M * 1 := by
+              exact mul_le_mul_of_nonneg_left hcos
+                (mul_nonneg hA_nonneg hM)
     _ ≤ (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) * M := by
-        rw [mul_one]; gcongr; exact mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)
+        rw [mul_one]
+        exact mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)) hM
     _ = M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by ring
 
 private theorem heatDu_hasDerivAt
@@ -386,7 +416,6 @@ private theorem heatDu_hasDerivAt
       ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue]
   have hvalue : (∑' n, F' n t) = heatD2u u₀ t x := by
     simp only [heatD2u, if_pos ht, F', ShenWork.CosineSpectrum.cosineMode]
-    congr 1; ext n; ring
   rw [← hvalue]
   exact hAtSum.congr_of_eventuallyEq hbranch
 
@@ -487,11 +516,12 @@ private theorem heatSemigroup_d1_partA
   have hdu_joint : ContinuousOn
       (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
       (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
-    exact (heatSlice_secondValue_jointContinuousOn
-      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound).congr
-      (fun q hq => by
-        obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
-        exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+    have hsecond := heatSlice_secondValue_jointContinuousOn
+      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound
+    exact hsecond.congr (fun q hq => by
+      obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
+      simpa [heatCoeff] using
+        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
   have hsrc1 : ContinuousOn
       (fun q : ℝ × ℝ =>
         p.ν * p.γ * (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1)
@@ -549,20 +579,29 @@ private theorem heatSemigroup_d1_partC
       (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
     simpa [Function.uncurry] using heatSlice_profile_jointContinuousOn p
       (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_cont hu₀_bound
-  have hpow1 := hprofile.rpow_const (fun q hq => by
-    obtain ⟨hσ, hx⟩ := mem_prod.mp hq
-    exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
-  have hpow2 := hprofile.rpow_const (p := p.γ - 1 - 1) (fun q hq => by
-    obtain ⟨hσ, hx⟩ := mem_prod.mp hq
-    exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+  have hpow1 : ContinuousOn
+      (fun q : ℝ × ℝ =>
+        (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+    hprofile.rpow_const (fun q hq => by
+      obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+      exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+  have hpow2 : ContinuousOn
+      (fun q : ℝ × ℝ =>
+        (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1 - 1))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+    hprofile.rpow_const (fun q hq => by
+      obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+      exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
   have hdu_joint : ContinuousOn
       (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
       (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
-    exact (heatSlice_secondValue_jointContinuousOn
-      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound).congr
-      (fun q hq => by
-        obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
-        exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+    have hsecond := heatSlice_secondValue_jointContinuousOn
+      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound
+    exact hsecond.congr (fun q hq => by
+      obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
+      simpa [heatCoeff] using
+        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
   exact ((((continuousOn_const.mul continuousOn_const).mul continuousOn_const).mul
       hpow2).mul (hdu_joint.pow 2)).add
     (((continuousOn_const.mul continuousOn_const).mul hpow1).mul
