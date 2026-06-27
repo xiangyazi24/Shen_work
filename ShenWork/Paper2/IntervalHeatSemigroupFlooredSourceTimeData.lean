@@ -56,7 +56,7 @@ open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam FlooredSourceTimeData)
-open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2 hasDerivAt_srcSlice)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2 hasDerivAt_srcSlice hasDerivAt_srcSlice1)
 open ShenWork.IntervalPicardLevel0SourceTimeC1On
   (heatCoeff heatSlice_field_hasDerivWithinAt heatSlice_profile_jointContinuousOn
    heatSlice_secondValue_jointContinuousOn)
@@ -189,6 +189,100 @@ private theorem heatSemigroup_d0
     simpa [srcSlice1, Function.uncurry] using
       (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu_joint)
 
+/-! ## Helper: HasDerivAt of heatDu in time (needed for d1) -/
+
+private theorem heatDu_hasDerivAt
+    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {t x : ℝ} (ht : 0 < t) :
+    HasDerivAt (fun r => heatDu u₀ r x) (heatD2u u₀ t x) t := by
+  sorry
+
+/-! ## Helper: joint continuity of heatD2u on a positive slab -/
+
+private theorem heatD2u_jointContinuousOn
+    {u₀ : intervalDomainPoint → ℝ} {M₀ c T : ℝ} (hc : 0 < c)
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    ContinuousOn (fun q : ℝ × ℝ => heatD2u u₀ q.1 q.2)
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+  sorry
+
+/-! ## Helper: d1 proof body -/
+
+private theorem heatSemigroup_d1
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (_hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (τ : ℝ) (hτ : 0 < τ) :
+    ∃ δ : ℝ, 0 < δ ∧
+      (∀ᶠ s in 𝓝 τ, ContinuousOn
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) s) (Icc (0:ℝ) 1)) ∧
+      (∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+        HasDerivAt (fun r => srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) r x)
+          (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) s x) s) ∧
+      ContinuousOn
+        (Function.uncurry (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)))
+        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1) := by
+  set δ : ℝ := min 1 (τ / 2) with hδdef
+  have hδ : 0 < δ := lt_min one_pos (half_pos hτ)
+  have hleft : 0 < τ - δ := by
+    have := min_le_right (1 : ℝ) (τ / 2); linarith
+  have hball_pos : ∀ s, s ∈ Metric.ball τ δ → 0 < s := by
+    intro s hs; rw [Metric.mem_ball, Real.dist_eq] at hs
+    linarith [(abs_lt.mp hs).1, min_le_right (1 : ℝ) (τ / 2)]
+  have hball_Icc : ∀ s, s ∈ Metric.ball τ δ → s ∈ Icc (τ - δ) (τ + δ) := by
+    intro s hs; rw [Metric.mem_ball, Real.dist_eq] at hs
+    exact ⟨by linarith [(abs_lt.mp hs).1], by linarith [(abs_lt.mp hs).2]⟩
+  have hball_Ioo : ∀ s, s ∈ Metric.ball τ δ → s ∈ Ioo (τ - δ) (τ + δ) := by
+    intro s hs; rw [Metric.mem_ball, Real.dist_eq] at hs
+    exact ⟨by linarith [(abs_lt.mp hs).1], by linarith [(abs_lt.mp hs).2]⟩
+  -- Reuse d0's joint continuity proof for srcSlice1 as part (a)
+  have hprofile : ContinuousOn
+      (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    simpa [Function.uncurry] using heatSlice_profile_jointContinuousOn p
+      (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft _hu₀_cont _hu₀_bound
+  have hpow1 : ContinuousOn
+      (fun q : ℝ × ℝ =>
+        (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+    hprofile.rpow_const (fun q hq => by
+      obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+      exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+  have hdu_joint : ContinuousOn
+      (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    have hsecond := heatSlice_secondValue_jointContinuousOn
+      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft _hu₀_bound
+    exact hsecond.congr (fun q hq => by
+      obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
+      exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+  have hsrc1_joint : ContinuousOn
+      (Function.uncurry (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀)))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    simpa [srcSlice1, Function.uncurry] using
+      (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu_joint)
+  refine ⟨δ, hδ, ?_, ?_, ?_⟩
+  · -- (a) ContinuousOn of srcSlice1 near τ
+    filter_upwards [Metric.ball_mem_nhds τ hδ] with s hs
+    exact hsrc1_joint.comp (continuousOn_const.prodMk continuousOn_id)
+      (fun x hx => mem_prod.mpr ⟨hball_Icc s hs, hx⟩)
+  · -- (b) HasDerivAt of srcSlice1 = srcSlice2
+    intro x hx s hs
+    have hs_pos := hball_pos s hs
+    have hxIcc : x ∈ Icc (0:ℝ) 1 := Ioo_subset_Icc_self hx
+    have hderiv_within := heatSlice_field_hasDerivWithinAt p
+      (c := τ - δ) (T := τ + δ) hleft (hball_Icc s hs) _hu₀_cont _hu₀_bound hxIcc
+    have hderiv := hderiv_within.hasDerivAt
+      (Icc_mem_nhds (hball_Ioo s hs).1 (hball_Ioo s hs).2)
+    rw [← heatDu_eq_secondValue u₀ hs_pos] at hderiv
+    exact ShenWork.IntervalFlooredSourceTimeDataIterate.hasDerivAt_srcSlice1
+      (hfloor s hs_pos x hxIcc) hderiv (heatDu_hasDerivAt _hu₀_bound hs_pos)
+  · -- (c) Joint ContinuousOn of srcSlice2 on slab
+    sorry
+
 /-! ## The main construction -/
 
 /-- **`FlooredSourceTimeData` for the heat semigroup base iterate.**
@@ -211,14 +305,7 @@ theorem heatSemigroup_flooredSourceTimeData
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
       (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) where
   d0 τ hτ := heatSemigroup_d0 _hu₀_bound _hu₀_cont hfloor τ hτ
-  d1 τ hτ := by
-    -- OBLIGATION: ∃ δ > 0 such that:
-    --   (a) s₁ is ContinuousOn [0,1] near τ
-    --   (b) HasDerivAt (s₁ · x) (s₂ · x) for x ∈ (0,1)
-    --   (c) s₂ is jointly ContinuousOn on a slab
-    -- Now ONLY for τ > 0: uses product/chain rule under the heat floor + the heat
-    -- equation for the second time derivative.
-    sorry
+  d1 τ hτ := heatSemigroup_d1 _hu₀_bound _hu₀_cont hfloor τ hτ
   sliceC2 i hi t ht := by
     -- OBLIGATION: ∀ i ≤ 2, ∀ t > 0, ContDiffOn ℝ 2 (slice_i t) [0,1]
     -- For t > 0 and i = 0: srcSlice = ν·(S(t)u₀)^γ.  The heat semigroup gives C⁴
