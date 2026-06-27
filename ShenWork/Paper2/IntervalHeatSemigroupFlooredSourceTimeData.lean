@@ -67,6 +67,53 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 
+/-! ## Heat semigroup positivity from positive initial data -/
+
+/-- The heat semigroup applied to strictly positive continuous initial data is
+strictly positive for all `t > 0` and `x ∈ [0,1]`.
+
+Proof: continuous `u₀ > 0` on compact `intervalDomainPoint` has `inf u₀ > 0`,
+so `intervalDomainLift u₀ ≥ inf u₀` on `[0,1]`; the semigroup lower bound
+`intervalFullSemigroupOperator_lower_bound` then gives `S(t)(lift u₀)(x) ≥ inf u₀ > 0`. -/
+theorem heatSemigroup_pos_of_pos
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    {t : ℝ} (ht : 0 < t) {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
+    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
+  haveI : CompactSpace intervalDomainPoint := isCompact_iff_compactSpace.mp isCompact_Icc
+  haveI : Nonempty intervalDomainPoint := ⟨⟨0, left_mem_Icc.mpr zero_le_one⟩⟩
+  obtain ⟨xmin, _, hmin⟩ := IsCompact.exists_isMinOn isCompact_univ
+    Set.univ_nonempty hu₀_cont.continuousOn
+  set c := u₀ xmin
+  have hc_pos : 0 < c := hu₀_pos xmin
+  obtain ⟨xmax, _, hmax⟩ := IsCompact.exists_isMaxOn isCompact_univ
+    Set.univ_nonempty hu₀_cont.abs.continuousOn
+  set B := |u₀ xmax|
+  have hlift_lower : ∀ y, y ∈ Icc (0 : ℝ) 1 → c ≤ intervalDomainLift u₀ y := by
+    intro y hy; unfold intervalDomainLift; rw [dif_pos hy]
+    exact hmin (Set.mem_univ ⟨y, hy⟩)
+  have hlift_bound : ∀ y, |intervalDomainLift u₀ y| ≤ B := by
+    intro y; unfold intervalDomainLift
+    split_ifs with hy
+    · exact hmax (Set.mem_univ ⟨y, hy⟩)
+    · simp [abs_zero, abs_nonneg]
+  have hcB : c ≤ B := by
+    calc c ≤ |c| := le_abs_self c
+      _ = |u₀ xmin| := rfl
+      _ = intervalDomainLift u₀ xmin.1 := by
+          unfold intervalDomainLift; rw [dif_pos xmin.2]
+      _ ≤ |intervalDomainLift u₀ xmin.1| := le_abs_self _
+      _ ≤ B := hlift_bound xmin.1
+  have hlift_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1) :=
+    ShenWork.IntervalDuhamelIntegrability
+      .intervalDomainLift_aestronglyMeasurable_of_continuous hu₀_cont
+  simp only [conjugatePicardIter]; unfold intervalDomainLift; rw [dif_pos hx]
+  calc (0 : ℝ) < c := hc_pos
+    _ ≤ intervalFullSemigroupOperator t (intervalDomainLift u₀) x :=
+        ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_lower_bound
+          ht hc_pos.le hcB hlift_meas hlift_lower hlift_bound x
+
 /-! ## Time derivatives of the heat semigroup iterate
 
 For the heat semigroup `u t x = S(t)u₀(x.1)`, the time derivative is the
@@ -113,7 +160,7 @@ private theorem heatDu_eq_secondValue
 
 /-! ## Helper: d0 proof body (extracted to avoid where-syntax elaboration issues) -/
 
-private theorem heatSemigroup_d0
+theorem heatSemigroup_d0
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (_hu₀_cont : Continuous u₀)
@@ -380,7 +427,7 @@ private theorem heatD2u_jointContinuousOn
 
 /-! ## Helper: d1 proof body -/
 
-private theorem heatSemigroup_d1
+theorem heatSemigroup_d1
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (_hu₀_cont : Continuous u₀)
