@@ -192,12 +192,12 @@ theorem srcTimeCoeff_contDiffAt
       ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
       (fun s hs => (this hs).symm)))
   have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) := by
-    rw [show (2 : ℕ∞) = 1 + 1 from rfl, contDiffOn_succ_iff_fderiv_of_isOpen isOpen_Ioi]
-    refine ⟨hd0_on, by intro h; exact absurd h (by simp), ?_⟩
-    apply ContDiffOn.congr (contDiffOn_const.smulRight h0)
-    intro s hs
-    rw [fderivWithin_of_isOpen isOpen_Ioi hs]
-    exact ((hd0 s hs).hasFDerivAt.fderiv).symm
+    have : ContDiffOn ℝ (1 + 1 : ℕ∞) f₀ (Set.Ioi 0) :=
+      contDiffOn_succ_of_fderivWithin hd0_on (by intro h; simp at h)
+        (ContDiffOn.congr (contDiffOn_const.smulRight h0) (fun s hs => by
+          rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+          exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
+    exact_mod_cast this
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
