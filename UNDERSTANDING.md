@@ -1,9 +1,26 @@
-# UNDERSTANDING.md — Shen_work (2026-06-27 update)
+# UNDERSTANDING.md — Shen_work (2026-06-27 night session update)
 
-## CURRENT STATE (2026-06-27 session)
+## CURRENT STATE (2026-06-27 night session)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
-Paper 2 χ₀<0: Level0 **5 sorry** + Tower 5 sorry = **10 total**.
+Paper 2 χ₀<0: Level0 **5 sorry** + Tower 5 sorry + FlooredSourceTimeData 5 sorry +
+IntervalPhysicalSourceTimeC2Concrete 2 sorry = infrastructure chain.
+
+### 2026-06-27 night session progress:
+- **hfloor hypothesis added** to heatSemigroup_flooredSourceTimeData (heat positivity at t > 0)
+- **heatDu_eq_secondValue bridge** — LaplacianValue = SecondValue by ring (definitional bridge)
+- **d0 FILLED** (extracted as heatSemigroup_d0, pending build verify):
+  - d0(a): heat profile joint continuity → rpow → srcSlice ContinuousOn
+  - d0(b): HasDerivWithinAt → HasDerivAt via Icc_mem_nhds + hasDerivAt_srcSlice under floor
+  - d0(c): rpow^(γ-1) × heatDu joint continuity from profile + secondValue
+- **srcTimeCoeff_iteratedDeriv2 FILLED** (build-verified):
+  iteratedDeriv_succ + EventuallyEq.deriv_eq on Ioi 0 + cosS1_hasDerivAt.deriv
+- ChatGPT Q1224-Q1231: bridge verification, srcTimeCoeff proof, API discovery
+
+### Learned: where-syntax ⟨⟩ elaboration pitfall
+The `where` syntax for structure fields prevents `refine ⟨...⟩` from determining
+the expected type when `have`-bindings are present. Fix: extract the proof into a
+separate private theorem and call it from the `where` block.
 
 ### 2026-06-27 session progress:
 - **3E-bdd filled** (b661bcd): intervalDomainLift u₀ bounded from Continuous u₀ on compact
