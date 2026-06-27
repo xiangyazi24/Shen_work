@@ -1,4 +1,4 @@
-# Q1062 / cron1 — Level0 `hlocal_slab` vs `PhysicalResolverJointC2Data` producers
+# Q1066 / cron1 — exact Level0 proof body for SORRY 3C+3D+3F
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -12,329 +12,304 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Executive answer
 
-**No: `coupledChemDivFluxJointC2Hyp_of_FACInputs` does not close Level0's `hlocal_slab` automatically in the current post-`9dd3a4b` / `7f0f703` shape.**
-
-The reason is structural, not mathematical: the current `IntervalConjugateLevel0BFormSourceOn.lean` no longer constructs a `CoupledChemDivFluxJointC2Hyp` and then routes through the old source-time-C¹ wrappers. Instead, `level0_chemDiv_timeDerivData` constructs the exact positive-time local slab inline:
-
-```text
-hlocal_slab : ∀ s, s ∈ Icc c T → ∃ δ > 0,
-  (∀ᶠ r in 𝓝 s, IntervalIntegrable (coupledChemDivSourceLift ... r) volume 0 1) ∧
-  (∀ x ∈ Ioo 0 1, ∀ r ∈ Metric.ball s δ,
-    HasDerivAt (fun t => coupledChemDivSourceLift ... t x)
-      (coupledChemDivTimeDerivativeLift ... r x) r) ∧
-  ContinuousOn (Function.uncurry (coupledChemDivTimeDerivativeLift ...))
-    (Icc (s - δ) (s + δ) ×ˢ Icc 0 1)
-```
-
-So existing physical resolver producers can be used, but only if they are explicitly threaded into this direct `hlocal_slab` proof, or if a new positive-window wrapper is introduced that returns exactly this slab. Merely making `PhysicalResolverJointC2Data` available will not cause Lean to find and apply the old flux-joint route.
-
-The most precise answer is:
-
-```text
-PhysicalResolverJointC2Data closes the resolver-side analytic content for 3C/3D and
-supplies the inner commute needed for 3F.
-
-It does not itself close 3A, and it does not by itself provide the closed-slab
-mixed time-derivative continuity required for 3G.
-
-3G is closed by `chemDivMixedTimeDeriv_jointContinuousOn_closed` once a
-`ChemDivMixedTimeDerivClosedRepr` witness is available; for heat Level0 the intended
-witness is `chemDivMixedTimeDerivClosedRepr_level0`, but that witness currently has
-its own proof obligations.
-```
-
-## Current file shape that matters
-
-In the current `ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean`, the relevant theorem is:
+The exact replacement should use the **local** bridge
 
 ```lean
-level0_chemDiv_timeDerivData
+coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
 ```
 
-Inside it, Step 1 constructs:
+rather than the global convenience wrapper
 
 ```lean
-have hlocal_slab : ∀ s, s ∈ Icc c T → ∃ δ : ℝ, 0 < δ ∧ ... := by
-  intro s hs
-  have hs_pos : 0 < s := lt_of_lt_of_le hc hs.1
-  refine ⟨min 1 (s / 2), lt_min one_pos (half_pos hs_pos), ?_, ?_, ?_⟩
+coupledChemDivFlux_timeBridge_of_physicalJointC2
 ```
 
-The three holes are exactly the local-slab fields later consumed by:
+inside the current `IntervalConjugateLevel0BFormSourceOn.lean` block.
+
+Reason: the current Level0 `hlocal_slab` branch has only a pointwise/local heat fact
 
 ```lean
-ShenWork.IntervalMildPicardRegularity.cosineCoeffs_hasDerivAt_of_smooth_param
+_hu_c2_bridged : ContDiffAt ℝ 2
+  (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
+  (r, x)
 ```
 
-That means the useful target is not `DuhamelSourceTimeC1`, and not even necessarily `CoupledChemDivFluxJointC2Hyp`; the useful target is the three fields of `hlocal_slab` itself.
-
-One additional observation from the current file: although the comment says 3E positivity is proved, the current code still contains two nested 3E-style sorries inside the local `hbase` proof:
-
-```text
-[3E-bdd]    u₀ continuous on compact intervalDomainPoint → bounded range
-[3E-nonneg] need 0 ≤ u₀ ⟨y,hy⟩
-```
-
-Those are not resolved by `PhysicalResolverJointC2Data` either. They are separate heat/initial-datum facts.
-
-## Map from `hlocal_slab` sorries to available producers
-
-| Current hole | Exact local need | Existing producer | Does `PhysicalResolverJointC2Data` close it? | Wiring needed |
-|---|---|---|---|---|
-| **3A** | `∀ᶠ r in 𝓝 s, IntervalIntegrable (coupledChemDivSourceLift p u r) volume 0 1` | None of the listed physical resolver producers. In the flux-joint wrappers this is an input field, not an output. | **No.** | Need a separate positive-time source-integrability lemma, probably from heat smoothness / weak-H² per slice / bounded measurable source. |
-| **3C** | Joint `C²` of `v = coupledChemicalConcentration p u`: `ContDiffAt ℝ 2 (fun q => intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (r,x)` | `coupledChemical_jointContDiffAt_two` | **Yes. Directly**, once `Hphys : PhysicalResolverJointC2Data p u Bt` is in scope. | Add/pass `Hphys`; apply producer at `hx : x ∈ Ioo 0 1`. |
-| **3D** | Joint `C²` of `∂ₓv`: `ContDiffAt ℝ 2 (fun q => deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2) (r,x)` | `coupledChemical_grad_jointContDiffAt_two` | **Yes. Directly**, once `Hphys` is in scope. | Add/pass `Hphys`; apply producer at `hx`. |
-| **3F** | Chain-rule / outer commute giving `HasDerivAt (fun t => coupledChemDivSourceLift p u t x) (coupledChemDivTimeDerivativeLift p u r x) r` | `coupledChemical_innerCommute_of_physicalJointC2` supplies the resolver inner commute. Then use the existing flux time bridge / flux joint C² / outer commute chain. | **Partly.** `PhysicalResolverJointC2Data` supplies the missing resolver commute, but not the whole source `HasDerivAt` by itself. | Assemble with `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`, `coupledChemDivFlux_contDiffAt_of_factorJointC2`, and the outer-commute bridge, or build a local factor-joint wrapper. |
-| **3G** | `ContinuousOn (Function.uncurry (coupledChemDivTimeDerivativeLift p u)) (Icc (s-δ) (s+δ) ×ˢ Icc 0 1)` | `chemDivMixedTimeDeriv_jointContinuousOn_closed` | **Not from `PhysicalResolverJointC2Data` alone.** | Need `ChemDivMixedTimeDerivClosedRepr p u s δ`; for heat Level0 the intended theorem is `chemDivMixedTimeDerivClosedRepr_level0`. |
-
-## About `coupledChemDivFluxJointC2Hyp_of_FACInputs`
-
-The exact current producer name in the repo is:
+and a pointwise positivity fact
 
 ```lean
-coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
+hbase : 0 < 1 + intervalDomainLift
+  (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r) x
 ```
 
-and the FAC route is:
+whereas `coupledChemDivFlux_timeBridge_of_physicalJointC2` asks for global hypotheses
 
-```text
-CoupledChemDivFluxFactorFACInputs
-  -- coupledChemDivFluxFactorJointC2Inputs_of_FACInputs -->
-CoupledChemDivFluxFactorJointC2Inputs
-  -- coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs -->
-CoupledChemDivFluxJointC2Hyp
-  -- coupledChemDivOuterCommuteAtoms_of_fluxJointC2 -->
-CoupledChemDivOuterCommuteAtoms
-  -- coupledChemDivLocalChainRule_of_outerCommuteAtoms -->
-CoupledChemDivLocalChainRule
+```lean
+hu_c2 : ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s : ℝ, ContDiffAt ... (s, x)
+hbase : ∀ s : ℝ, ∀ x : ℝ, 0 < 1 + intervalDomainLift ... x
 ```
 
-That route is still mathematically relevant for 3F, but it is not the route currently used by Level0. Also, the current FAC-local source input still has the older `ContinuousOn (coupledChemDivSourceLift ...) (Icc 0 1)` flavor in some wrappers, while the Level0 file deliberately weakened the local source field to `IntervalIntegrable` because the zero-extension boundary behavior obstructs closed-interval source continuity.
+Those global hypotheses are deliberately not available after the positive-time weakening. The proof below stays local: it reconstructs the needed positive-time heat `u` joint-C² near `(r,x)`, obtains 3C/3D from `PhysicalResolverJointC2Data`, obtains the resolver inner commute from `coupledChemical_innerCommute_of_physicalJointC2`, derives the required eventual floor from `hbase` and `hv_c2.continuousAt`, and then applies the existing Clairaut bridge.
 
-Therefore, using the old global FAC wrapper as-is risks reintroducing exactly the global / boundary / nonpositive-time problem that commit `9dd3a4b` avoided. The safer path is either:
+## Required import
 
-1. fill `hlocal_slab` directly, using the physical producers only for the resolver subfacts, or
-2. add a new positive-window / integrability-weakened wrapper that returns exactly the `hlocal_slab` fields.
-
-## Recommended minimal wiring
-
-The cleanest local change is to make `level0_chemDiv_timeDerivData` accept or construct the physical resolver datum for the heat Level0 iterate:
+Add this import to `IntervalConjugateLevel0BFormSourceOn.lean` if it is not already present:
 
 ```lean
 import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.Paper2.Level0HeatMixedRepr
-
--- Suggested shape only: thread this datum into `level0_chemDiv_timeDerivData`
--- or build it immediately before `hlocal_slab` once Option A is committed.
---
--- {Bt : ℕ → ℕ → ℝ}
--- (Hphys : PhysicalResolverJointC2Data
---   p (conjugatePicardIter p u₀ 0) Bt)
 ```
 
-Then the 3C and 3D local facts become one-liners at each `r,x`:
+`IntervalChemDivFACCommuteDischarge` imports the physical resolver producers and the flux time bridge chain.
+
+## Required hypothesis name
+
+The proof body below assumes that the Level0 theorem has a physical resolver datum in scope named `Hphys`:
 
 ```lean
-import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.Paper2.Level0HeatMixedRepr
-
--- inside the `intro x hx r hr` branch of `hlocal_slab`
--- abbreviate the Level0 heat iterate
-let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
-
-have hv_c2 : ContDiffAt ℝ 2
-    (fun q : ℝ × ℝ =>
-      intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
-    (r, x) := by
-  simpa [u] using
-    coupledChemical_jointContDiffAt_two
-      (p := p) (u := u) (H := Hphys) (s := r) (x := x) hx
-
-have hgradv_c2 : ContDiffAt ℝ 2
-    (fun q : ℝ × ℝ =>
-      deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
-    (r, x) := by
-  simpa [u] using
-    coupledChemical_grad_jointContDiffAt_two
-      (p := p) (u := u) (H := Hphys) (s := r) (x := x) hx
+{Bt : ℕ → ℕ → ℝ}
+(Hphys : ShenWork.IntervalResolverJointC2PhysicalConcrete.PhysicalResolverJointC2Data
+  p (conjugatePicardIter p u₀ 0) Bt)
 ```
 
-For 3F, use the physical datum for the inner resolver commute, then feed the existing flux bridge / outer commute machinery. The important point is that `coupledChemical_innerCommute_of_physicalJointC2` is the missing resolver-side atom, not the whole 3F proof by itself:
+If the actual hypothesis has a different name, rename `Hphys` in the body.
+
+## Exact replacement body for the 3C+3D+3F sorry
+
+This is intended to replace exactly the combined sorry immediately after the local `hbase` proof in the `intro x hx r hr` branch.
 
 ```lean
-import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
+      let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
+      change HasDerivAt
+        (fun t : ℝ => coupledChemDivSourceLift p u t x)
+        (coupledChemDivTimeDerivativeLift p u r x) r
 
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.Paper2.Level0HeatMixedRepr
+      have hbase_u : 0 < 1 + intervalDomainLift
+          (coupledChemicalConcentration p u r) x := by
+        simpa [u] using hbase
 
-let u : ℝ → intervalDomainPoint → ℝ := conjugatePicardIter p u₀ 0
+      have hu_c2_rx : ContDiffAt ℝ 2
+          (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (r, x) := by
+        simpa [u] using _hu_c2_bridged
 
--- Inner commute supplied by the physical resolver C² data:
-have hgv_at : HasDerivAt
-    (fun t => deriv (intervalDomainLift (coupledChemicalConcentration p u t)) x)
-    (deriv (coupledChemicalTimeDerivativeLift p u r) x) r := by
-  simpa [u] using
-    coupledChemical_innerCommute_of_physicalJointC2
-      (p := p) (u := u) (H := Hphys) (s := r) (y := x) hx
+      -- Positive-time heat joint-C² at any nearby interior point.  This is the
+      -- same bridge as `_hu_c2_bridged`, repackaged for the local-event uses
+      -- needed by the spatial and time partial bridges.
+      have hu_c2_at : ∀ {t y : ℝ}, 0 < t → y ∈ Ioo (0 : ℝ) 1 →
+          ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (t, y) := by
+        intro t y ht hy
+        have ht_half_pos : (0 : ℝ) < t / 2 := half_pos ht
+        have ht_half_lt : t / 2 < t := by linarith
+        have hseries : ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ =>
+              ∑' k : ℕ, (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+                cosineCoeffs (intervalDomainLift u₀) k) *
+                cosineMode k q.2)
+            (t, y) :=
+          ShenWork.Paper2.HeatSemigroupJointRegularity.heatSemigroup_jointContDiffAt_two
+            _hu₀_bound ht_half_pos ht_half_lt
+        apply hseries.congr_of_eventuallyEq
+        have hset : Ioi (0 : ℝ) ×ˢ Ioo (0 : ℝ) 1 ∈ 𝓝 (t, y) :=
+          IsOpen.mem_nhds (isOpen_Ioi.prod isOpen_Ioo) ⟨ht, hy⟩
+        filter_upwards [hset] with q hq
+        obtain ⟨hq1, hq2⟩ := Set.mem_prod.mp hq
+        have hq1' : 0 < q.1 := hq1
+        have hq2_cc : q.2 ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self hq2
+        symm
+        trans (unitIntervalCosineHeatValue q.1 (heatCoeff u₀) q.2)
+        · simpa [u] using
+            ShenWork.IntervalPicardLevel0SourceTimeC1On.heatSlice_profile_eq_heatValue
+              p hq1' _hu₀_cont _hu₀_bound hq2_cc
+        · simp only [unitIntervalCosineHeatValue,
+            unitIntervalCosineHeatPointWeight,
+            unitIntervalCosineMode_eq_cosineMode,
+            heatCoeff]
+          congr 1
+          ext k
+          ring
 
--- To turn this into the source HasDerivAt, do NOT stop here.
--- Feed it with:
---   * heat-side joint C² for u near x,
---   * `hv_c2` and `hgradv_c2` above,
---   * local floor `0 < 1 + v`,
---   * `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`, and
---   * the outer-commute bridge from `IntervalChemDivOuterCommuteProducer`.
---
--- Conceptual endpoint:
---
--- have hsource_deriv : HasDerivAt
---     (fun t => coupledChemDivSourceLift p u t x)
---     (coupledChemDivTimeDerivativeLift p u r x) r := by
---   -- source = spatial derivative of flux on Ioo 0 1
---   -- time derivative of spatial derivative = spatial derivative of time derivative
---   -- via `real_twoVar_clairaut_hasDerivAt_of_fderiv_partials`
---   -- and the time bridge above.
---   ...
+      -- 3C: resolver value joint C² from PhysicalResolverJointC2Data.
+      have hv_c2 : ContDiffAt ℝ 2
+          (fun q : ℝ × ℝ =>
+            intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
+          (r, x) := by
+        simpa [u] using
+          (ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
+            (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+            (s := r) (x := x) hx)
+
+      -- 3D: resolver spatial-gradient joint C² from PhysicalResolverJointC2Data.
+      have hgradv_c2 : ContDiffAt ℝ 2
+          (fun q : ℝ × ℝ =>
+            deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+          (r, x) := by
+        simpa [u] using
+          (ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
+            (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+            (s := r) (x := x) hx)
+
+      -- Joint C² of the lifted flux at `(r,x)` from u/v/∂ₓv C² and the floor.
+      have hflux_c2 : ContDiffAt ℝ 2
+          (Function.uncurry (coupledChemDivFluxLift p u)) (r, x) :=
+        ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFlux_contDiffAt_of_factorJointC2
+          hu_c2_rx hv_c2 hgradv_c2 hbase_u
+
+      -- The pointwise floor `hbase` gives an eventual-in-space floor by continuity
+      -- of the resolver value at `(r,x)`.
+      have hbase_event_y : ∀ᶠ y in 𝓝 x,
+          0 < 1 + intervalDomainLift (coupledChemicalConcentration p u r) y := by
+        have hv_slice_cont : ContinuousAt
+            (fun y : ℝ => intervalDomainLift (coupledChemicalConcentration p u r) y) x := by
+          have hpath : ContinuousAt (fun y : ℝ => (r, y)) x :=
+            (continuousAt_const : ContinuousAt (fun _ : ℝ => r) x).prod continuousAt_id
+          simpa [Function.comp_def] using hv_c2.continuousAt.comp x hpath
+        have hden_cont : ContinuousAt
+            (fun y : ℝ => 1 + intervalDomainLift (coupledChemicalConcentration p u r) y) x := by
+          simpa using (continuousAt_const.add hv_slice_cont)
+        simpa only [Set.mem_Ioi] using hden_cont (isOpen_Ioi.mem_nhds hbase_u)
+
+      -- The same floor, now eventual in time at fixed `x`; this is needed for the
+      -- spatial derivative / fderiv bridge around `r`.
+      have hbase_event_t : ∀ᶠ t in 𝓝 r,
+          0 < 1 + intervalDomainLift (coupledChemicalConcentration p u t) x := by
+        have hv_time_cont : ContinuousAt
+            (fun t : ℝ => intervalDomainLift (coupledChemicalConcentration p u t) x) r := by
+          have hpath : ContinuousAt (fun t : ℝ => (t, x)) r :=
+            continuousAt_id.prod
+              (continuousAt_const : ContinuousAt (fun _ : ℝ => x) r)
+          simpa [Function.comp_def] using hv_c2.continuousAt.comp r hpath
+        have hden_cont : ContinuousAt
+            (fun t : ℝ => 1 + intervalDomainLift (coupledChemicalConcentration p u t) x) r := by
+          simpa using (continuousAt_const.add hv_time_cont)
+        simpa only [Set.mem_Ioi] using hden_cont (isOpen_Ioi.mem_nhds hbase_u)
+
+      -- Spatial derivative of a fixed-time flux slice equals the `(0,1)` fderiv
+      -- of the uncurried flux, eventually in the time variable.
+      have hspatial :
+          (fun t : ℝ => deriv (coupledChemDivFluxLift p u t) x) =ᶠ[𝓝 r]
+            (fun t : ℝ =>
+              fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+                (t, x) (0, 1)) := by
+        have ht_pos_event : Ioi (0 : ℝ) ∈ 𝓝 r := isOpen_Ioi.mem_nhds hr_pos'
+        filter_upwards [hbase_event_t, ht_pos_event] with t htbase htpos
+        have htpos' : 0 < t := htpos
+        have hu_t : ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (t, x) :=
+          hu_c2_at htpos' hx
+        have hv_t : ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ =>
+              intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
+            (t, x) := by
+          simpa [u] using
+            (ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
+              (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+              (s := t) (x := x) hx)
+        have hgradv_t : ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ =>
+              deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+            (t, x) := by
+          simpa [u] using
+            (ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
+              (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+              (s := t) (x := x) hx)
+        have hflux_t : ContDiffAt ℝ 2
+            (Function.uncurry (coupledChemDivFluxLift p u)) (t, x) :=
+          ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFlux_contDiffAt_of_factorJointC2
+            hu_t hv_t hgradv_t htbase
+        have hdiff_t : DifferentiableAt ℝ
+            (Function.uncurry (coupledChemDivFluxLift p u)) (t, x) :=
+          hflux_t.differentiableAt (by norm_num)
+        simpa [Function.uncurry] using
+          ShenWork.IntervalCoupledRegularityBootstrap.real_twoVar_spatial_deriv_eq_fderiv_of_differentiableAt
+            hdiff_t
+
+      -- Eventual local inputs for the time-partial bridge.  These are the local
+      -- version of the hypotheses packaged globally by
+      -- `coupledChemDivFlux_timeBridge_of_physicalJointC2`.
+      have hu_event : ∀ᶠ y in 𝓝 x,
+          ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ => intervalDomainLift (u q.1) q.2) (r, y) := by
+        filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+        exact hu_c2_at hr_pos' hy
+
+      have hv_event : ∀ᶠ y in 𝓝 x,
+          ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ =>
+              intervalDomainLift (coupledChemicalConcentration p u q.1) q.2)
+            (r, y) := by
+        filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+        simpa [u] using
+          (ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_jointContDiffAt_two
+            (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+            (s := r) (x := y) hy)
+
+      have hgradv_event : ∀ᶠ y in 𝓝 x,
+          ContDiffAt ℝ 2
+            (fun q : ℝ × ℝ =>
+              deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+            (r, y) := by
+        filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+        simpa [u] using
+          (ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
+            (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+            (s := r) (x := y) hy)
+
+      have hgv_event : ∀ᶠ y in 𝓝 x,
+          HasDerivAt
+            (fun t : ℝ =>
+              deriv (intervalDomainLift (coupledChemicalConcentration p u t)) y)
+            (deriv (coupledChemicalTimeDerivativeLift p u r) y) r := by
+        filter_upwards [isOpen_Ioo.mem_nhds hx] with y hy
+        simpa [u] using
+          (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemical_innerCommute_of_physicalJointC2
+            (p := p) (u := conjugatePicardIter p u₀ 0) (H := Hphys)
+            (s := r) (y := y) hy)
+
+      -- 3F: the explicit flux time derivative equals the `(1,0)` fderiv partial,
+      -- eventually in space.
+      have htime :
+          (fun y : ℝ => coupledChemDivFluxTimeDerivativeLift p u r y) =ᶠ[𝓝 x]
+            (fun y : ℝ =>
+              fderiv ℝ (Function.uncurry (coupledChemDivFluxLift p u))
+                (r, y) (1, 0)) :=
+        ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+          (p := p) (u := u) (s := r) (x := x)
+          (hu := hu_event) (hv := hv_event) (hgradv := hgradv_event)
+          (hbase := hbase_event_y) (hgv := hgv_event)
+
+      -- Outer commute: ∂ₜ∂ₓ flux = ∂ₓ∂ₜ flux, by the committed Clairaut bridge.
+      have houter : HasDerivAt
+          (fun t : ℝ => deriv (coupledChemDivFluxLift p u t) x)
+          (deriv (coupledChemDivFluxTimeDerivativeLift p u r) x) r :=
+        ShenWork.IntervalCoupledRegularityBootstrap.real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
+          (F := coupledChemDivFluxLift p u)
+          (Ft := coupledChemDivFluxTimeDerivativeLift p u)
+          hflux_c2 hspatial htime
+
+      -- Convert back from flux notation to the source/time-derivative notation.
+      have hsource_eq :
+          (fun t : ℝ => coupledChemDivSourceLift p u t x) =
+            fun t : ℝ => deriv (coupledChemDivFluxLift p u t) x := by
+        funext t
+        exact ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivSourceLift_eq_deriv_fluxLift_interior
+          (p := p) (u := u) (s := t) (x := x) hx
+
+      simpa [hsource_eq,
+        ShenWork.IntervalCoupledRegularityBootstrap.coupledChemDivTimeDerivativeLift_eq_deriv_fluxTimeDerivative]
+        using houter
 ```
 
-For 3G, the direct closure is the closed-representative theorem, not the physical resolver C² theorem:
+## Why this is the right local body
 
-```lean
-import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.Paper2.Level0HeatMixedRepr
-
--- In the third field of `hlocal_slab`, where δ is `min 1 (s / 2)`:
-have hcoeff_bound : ∀ k,
-    |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀ := by
-  -- `heatCoeff` is the Level0 cosine coefficient abbreviation.
-  simpa [heatCoeff] using _hu₀_bound
-
-have hrepr : ChemDivMixedTimeDerivClosedRepr
-    p (conjugatePicardIter p u₀ 0) s (min (1 : ℝ) (s / 2)) := by
-  exact chemDivMixedTimeDerivClosedRepr_level0
-    (p := p) (u₀ := u₀) (M₀ := M₀) (τ := s)
-    hs_pos hcoeff_bound _hu₀_cont
-
-exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
-```
-
-Caveat: `chemDivMixedTimeDerivClosedRepr_level0` currently records the intended Level0 heat witness but itself still contains analytic sorries for continuity/agreement of the ten spectral representatives. So 3G is structurally mapped, but it is only completely closed once that witness theorem is completed or accepted as the available producer.
-
-## What should *not* be done
-
-Do not expect a global `CoupledChemDivFluxJointC2Hyp` route to solve the current Level0 slab silently. It will not, because:
-
-1. the current Level0 code does not call it;
-2. `PhysicalResolverJointC2Data` is not currently an argument/local fact of `level0_chemDiv_timeDerivData`;
-3. the old global wrapper shape wants all-time slabs, while the Level0 proof intentionally works only at positive `s ≥ c > 0`;
-4. 3A is source integrability and is an input to the flux-joint/factor route, not an output of resolver joint C²;
-5. 3G needs a closed mixed-time representative, not just resolver value/gradient joint C².
-
-## Best next patch shape
-
-I would make a small positive-window helper theorem whose conclusion is exactly the direct slab shape. That keeps the post-`9dd3a4b` design and avoids resurrecting the nonpositive-time branch:
-
-```lean
-import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
-
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.IntervalCoupledRegularityBootstrap
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open ShenWork.Paper2.Level0HeatMixedRepr
-
--- Suggested new helper; statement shape, not a drop-in completed proof.
-theorem level0_hlocal_slab_of_physicalResolverJointC2
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {c T M₀ : ℝ} {Bt : ℕ → ℕ → ℝ}
-    (hc : 0 < c) (hu₀_cont : Continuous u₀)
-    (hu₀_bound : ∀ k, |heatCoeff u₀ k| ≤ M₀)
-    (Hphys : PhysicalResolverJointC2Data
-      p (conjugatePicardIter p u₀ 0) Bt)
-    -- separate non-resolver facts still needed:
-    (hsource_int_pos : ∀ r, 0 < r →
-      IntervalIntegrable
-        (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
-        volume 0 1)
-    (hfloor_pos : ∀ r, 0 < r → ∀ x ∈ Ioo (0 : ℝ) 1,
-      0 < 1 + intervalDomainLift
-        (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) r) x) :
-    ∀ s, s ∈ Icc c T → ∃ δ : ℝ, 0 < δ ∧
-      (∀ᶠ r in 𝓝 s,
-        IntervalIntegrable
-          (coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) r)
-          volume 0 1) ∧
-      (∀ x ∈ Ioo (0 : ℝ) 1, ∀ r ∈ Metric.ball s δ,
-        HasDerivAt
-          (fun t => coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) t x)
-          (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) r x)
-          r) ∧
-      ContinuousOn
-        (Function.uncurry
-          (coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0)))
-        (Icc (s - δ) (s + δ) ×ˢ Icc (0 : ℝ) 1) := by
-  -- choose δ = min 1 (s/2), exactly as current Level0 does;
-  -- 3A from `hsource_int_pos` and positivity of the ball;
-  -- 3C/3D from `coupledChemical_jointContDiffAt_two` and
-  --   `coupledChemical_grad_jointContDiffAt_two`;
-  -- 3F from physical inner commute + flux time bridge + outer commute;
-  -- 3G from `chemDivMixedTimeDeriv_jointContinuousOn_closed` applied to the
-  --   Level0 closed representative.
-  sorry
-```
-
-Then `level0_chemDiv_timeDerivData` can call this helper for `hlocal_slab`, and the later `hjointcont`, `hderiv_global`, `hadotcont`, and `hMdot` code can remain essentially unchanged.
-
-## Bottom line
-
-`PhysicalResolverJointC2Data` is still very useful after `9dd3a4b`, but it is not an automatic drop-in closer for the current direct Level0 `hlocal_slab`.
-
-Use it as follows:
+This body maps the combined sorry exactly as follows:
 
 ```text
-3C  := coupledChemical_jointContDiffAt_two Hphys
-3D  := coupledChemical_grad_jointContDiffAt_two Hphys
-3F  := coupledChemical_innerCommute_of_physicalJointC2 Hphys
-       + existing flux bridge / outer commute assembly
-3G  := chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
-       where hrepr is the Level0 heat mixed closed representative
-3A  := separate positive-time IntervalIntegrable lemma; not produced by Hphys
+3C := coupledChemical_jointContDiffAt_two Hphys
+3D := coupledChemical_grad_jointContDiffAt_two Hphys
+3F := coupledChemical_innerCommute_of_physicalJointC2 Hphys
+      + coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt
+      + real_twoVar_clairaut_hasDerivAt_of_fderiv_partials
 ```
 
-So the answer to the core question is:
+The already-proved `_hu_c2_bridged` is used at the base point `(r,x)`, and the helper `hu_c2_at` repeats the same heat bridge for neighboring positive-time/interior points needed by the `=ᶠ` bridge hypotheses. The already-proved `hbase` is used twice: once directly for flux joint C² at `(r,x)`, and twice through continuity to obtain the eventual floor in space and in time.
 
-```text
-No, not automatically.
-Yes, the PhysicalResolverJointC2Data-based producers can still be used,
-but only by explicitly threading Hphys into the direct positive-time hlocal_slab proof
-or by adding a new positive-window/integrability-weakened wrapper whose conclusion is
-exactly that slab.
-```
+The proof intentionally does **not** invoke `coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs` or the FAC wrapper, because those packages target older/global slab shapes. The current Level0 code wants only this direct positive-time `HasDerivAt` field.
