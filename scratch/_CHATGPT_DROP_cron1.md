@@ -1,4 +1,4 @@
-# Q1052 / cron3 — applying `cosineCoeffs_decay` at depth 3 to `ν · u^γ`, `u = S(t)u₀`
+# Q1058 / cron2 — cascade from positive-time `FlooredSourceTimeData` to Level0 3C/3D
 
 Repo inspected: `xiangyazi24/Shen_work`
 
@@ -12,320 +12,343 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Executive answer
 
-Yes, `cosineCoeffs_decay` at depth `j = 3` can be applied to the nonlinear source
+The **mathematical / structural chain exists**, and there is **no additional mathematical gap between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`**. That part is already a completed mechanical bridge:
 
 ```text
-f(x) = ν · u(x)^γ
+PhysicalSourceTimeC2
+  -- physicalResolverJointC2Data_of_floor -->
+PhysicalResolverJointC2Data
+  -- coupledChemical_jointContDiffAt_two --> 3C / hv_c2
+  -- coupledChemical_grad_jointContDiffAt_two --> 3D / hgradv_c2
 ```
 
-for a positive-time heat cosine representative `u = S(t)u₀`, **provided** the source is packaged as a global smooth cosine/Neumann representative and the depth-3 Neumann boundary chain is supplied.
+However, in the current committed files there are two important caveats:
 
-The important correction is:
+1. `heatSemigroup_level0_resolverJointC2Data` still has **two summability sorries** when calling `physicalSourceTimeC2_of_floored`: `hval` and `hgrad`. These are not between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`; they are inputs needed to obtain `PhysicalSourceTimeC2` from `FlooredSourceTimeData`.
+2. If `FlooredSourceTimeData` is weakened from global `∀ t` / `∀ τ` to positive-time-only `∀ t, 0 < t → ...`, then the downstream types in `IntervalPhysicalSourceTimeC2Concrete.lean` are currently still **global**. So either those downstream structures must also be localized to positive time, or one must keep/provide a global extension package. Merely weakening `FlooredSourceTimeData` alone will break the current global proofs of `srcTimeCoeff_contDiff` and `physicalSourceTimeC2_of_floored`.
+
+So the best precise answer is:
 
 ```text
-Depth 3 does NOT require f''(0)=f''(1)=0 or f⁽⁴⁾(0)=f⁽⁴⁾(1)=0.
+FSTD positive-time fills the 6 analytic fields, but the existing chain works as-is only
+if either:
+  A. FSTD still provides global coefficient regularity via a harmless extension, or
+  B. PhysicalSourceTimeC2 / PhysicalResolverJointC2Data / bounded-weight assemblers are
+     localized to positive-time neighborhoods.
+
+Once a compatible PhysicalSourceTimeC2 is obtained, the rest of the cascade to 3C/3D
+is already complete. No hidden gap exists after PhysicalSourceTimeC2.
 ```
 
-It requires the Neumann conditions on the tower levels:
-
-```text
-(g₀)' = f'      vanishes at 0 and 1,
-(g₁)' = f'''    vanishes at 0 and 1,
-(g₂)' = f'''''  vanishes at 0 and 1,
-```
-
-where
-
-```text
-g₀ = f,
-g₁ = f'',
-g₂ = f⁽⁴⁾,
-g₃ = f⁽⁶⁾.
-```
-
-For heat cosine representatives, the clean proof is by **double-even parity**: a Neumann cosine series is even about `0` and even about `1`; post-composition `x ↦ ν · x^γ` preserves that parity on the positive range; all odd spatial derivatives of a doubly-even function vanish at the endpoints. The repo already has the abstract parity lemma for this.
-
-## 1. Hypotheses of `cosineCoeffs_decay`
+## 1. Current `FlooredSourceTimeData` shape and positive-time issue
 
 File:
 
 ```text
-ShenWork/Paper2/IntervalIBPCoeffExtraction.lean
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+Current structure fields are global:
+
+```lean
+structure FlooredSourceTimeData
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) : Prop where
+  d0 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧ ...
+  d1 : ∀ τ : ℝ, ∃ δ : ℝ, 0 < δ ∧ ...
+  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ,
+    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0:ℝ) 1)
+  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t : ℝ, ...
+  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ ∀ t : ℝ, ...
+  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ ∀ t k, ...
+```
+
+The dependent lemmas also use global time:
+
+```lean
+private theorem srcTimeCoeff_deriv
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
+    Differentiable ℝ (srcTimeCoeff p u k) ∧
+    deriv (srcTimeCoeff p u k) = fun t => cosineCoeffs (s₁ t) k
+```
+
+```lean
+private theorem cosS1_deriv
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
+    Differentiable ℝ (fun t => cosineCoeffs (s₁ t) k) ∧
+    deriv (fun t => cosineCoeffs (s₁ t) k) = fun t => cosineCoeffs (s₂ t) k
+```
+
+```lean
+theorem srcTimeCoeff_contDiff
+    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) :
+    ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
+```
+
+Thus, if `FlooredSourceTimeData` is literally changed to positive-time only, these lemmas need to become positive-time/local versions, for example:
+
+```text
+srcTimeCoeff_contDiffAt_of_pos
+srcTimeCoeff_bound_of_pos
+physicalSourceTimeC2On_of_flooredOn
+PhysicalResolverJointC2DataOn
+coupledChemical_jointContDiffAt_two_of_physicalOn
+```
+
+or else the Level0 coefficient families must be extended smoothly to nonpositive time so the old global `ContDiff ℝ 2` conclusions remain true.
+
+## 2. `FlooredSourceTimeData → PhysicalSourceTimeC2`
+
+File:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+The producer exists:
+
+```lean
+theorem physicalSourceTimeC2_of_floored
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
+    (H : FlooredSourceTimeData p u s₁ s₂)
+    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant
+        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
+    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
+    PhysicalSourceTimeC2 p u (builtEs H)
+```
+
+So `FlooredSourceTimeData` alone is not enough. It also needs the value/gradient majorant summability hypotheses `hval` and `hgrad`.
+
+This producer fills:
+
+```lean
+src_contDiff k := srcTimeCoeff_contDiff H k
+src_bound i k t hi := srcTimeCoeff_bound H i k t hi
+value_summable := hval
+grad_summable := hgrad
+```
+
+Therefore, after positive-time weakening, the two impacted facts are exactly the global `src_contDiff` and global `src_bound` conclusions. If the target is only positive-time 3C/3D, these can be localized.
+
+## 3. `PhysicalSourceTimeC2 → PhysicalResolverJointC2Data`
+
+File:
+
+```text
+ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+```
+
+The bridge is complete:
+
+```lean
+theorem physicalResolverJointC2Data_of_floor
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
+    (H : PhysicalSourceTimeC2 p u Es) :
+    PhysicalResolverJointC2Data p u
+      (fun i k => intervalNeumannResolverWeight p k * Es i k)
+```
+
+This uses:
+
+```lean
+resolverTimeCoeff_eq_weight_smul
+resolverTimeCoeff_iteratedFDeriv_eq
+resolverTimeCoeff_bound
+```
+
+and then simply passes through:
+
+```lean
+value_summable := H.value_summable
+grad_summable := H.grad_summable
+```
+
+There is no additional gap here. The constant elliptic resolver weight is already handled.
+
+## 4. `PhysicalResolverJointC2Data → 3C / 3D`
+
+File:
+
+```text
+ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
 ```
 
 The structure is:
 
 ```lean
-structure NeumannTower (g : ℕ → ℝ → ℝ) (j : ℕ) : Prop where
-  step : ∀ i, i < j → g (i + 1) = deriv (deriv (g i))
-  contDiff : ∀ i, i < j → ContDiffOn ℝ 2 (g i) (Set.Icc (0 : ℝ) 1)
-  tend0 : ∀ i, i < j →
-    Filter.Tendsto (deriv (g i)) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0)
-  tend1 : ∀ i, i < j →
-    Filter.Tendsto (deriv (g i)) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
-  bc0 : ∀ i, i < j → deriv (g i) 0 = 0
-  bc1 : ∀ i, i < j → deriv (g i) 1 = 0
+structure PhysicalResolverJointC2Data
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (Bt : ℕ → ℕ → ℝ) : Prop where
+  coeff_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (resolverTimeCoeff p u k)
+  coeff_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i (resolverTimeCoeff p u k) t‖ ≤ Bt i k
+  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointMajorant Bt m)
+  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant Bt m)
 ```
 
-The coefficient decay theorem is:
+The value-side theorem for 3C is complete:
 
 ```lean
-theorem cosineCoeffs_decay (n : ℕ) (hn : 1 ≤ n) {g : ℕ → ℝ → ℝ} {j : ℕ}
-    (H : NeumannTower g j) {M : ℝ} (hM : |rawCoeff n (g j)| ≤ M) :
-    |cosineCoeffs (g 0) n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ (2 * j)
+theorem coupledChemical_jointContDiffAt_two
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p u q.1) q.2) (s, x)
 ```
 
-So `cosineCoeffs_decay` itself does **not** directly ask for `C^{2j}`. It asks for:
+The gradient-side theorem for 3D is also complete:
 
-1. a tower `g` of depth `j`;
-2. `g (i+1) = deriv (deriv (g i))` for each `i < j`;
-3. `ContDiffOn ℝ 2 (g i)` on `[0,1]` for each `i < j`;
-4. Neumann endpoint tendsto and endpoint equalities for `deriv (g i)` for each `i < j`;
-5. a top raw coefficient bound `|rawCoeff n (g j)| ≤ M`.
+```lean
+theorem coupledChemical_grad_jointContDiffAt_two
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt) {s x : ℝ} (hx : x ∈ Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+      (fun q : ℝ × ℝ =>
+        deriv (intervalDomainLift (coupledChemicalConcentration p u q.1)) q.2)
+      (s, x)
+```
 
-A separate producer turns global `C^{2j}` plus odd-derivative boundary conditions into such a tower.
-
-For depth 3, the relevant producer is:
+These use the generic assemblers in:
 
 ```text
-ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
+ShenWork/PDE/IntervalResolverJointC2Physical.lean
 ```
 
 ```lean
-def gTower (f : ℝ → ℝ) (i : ℕ) : ℝ → ℝ := deriv^[2 * i] f
-
-theorem neumannTower_three_of_contDiff_six
-    {f : ℝ → ℝ}
-    (hf : ContDiff ℝ (6 : ℕ) f)
-    (hN0 : ∀ i, i < 3 → deriv (gTower f i) 0 = 0)
-    (hN1 : ∀ i, i < 3 → deriv (gTower f i) 1 = 0) :
-    ∃ g, g 0 = f ∧ NeumannTower g 3
+boundedWeightJointSeries_contDiff_two
+boundedWeightJointGradSeries_contDiff_two
 ```
 
-This is the exact depth-3 constructor to use for a global source representative `f`.
+Those assemblers are already proved. So, once `PhysicalResolverJointC2Data` is in hand, 3C and 3D are done.
 
-## 2. Can we build a depth-3 tower for `ν · u^γ`?
-
-Yes, if `u` is represented by the global heat cosine representative and is positive on the global representative range.
-
-Take:
+There is also an FAC-level wrapper:
 
 ```lean
-import ShenWork.Paper2.IntervalIBPCoeffExtraction
-import ShenWork.Paper2.IntervalNeumannTowerOfC6
-import ShenWork.Paper2.IntervalSourceRepresentative
-
-open ShenWork.Paper2.NeumannTowerOfC6 (gTower neumannTower_three_of_contDiff_six)
-open ShenWork.Paper2.SourceRepresentative (DoublyEven higherNeumannCompatibility_of_doublyEven)
-
-noncomputable section
-
-namespace ShenWork.Paper2.PowerSourceDepth3Route
-
-/-- The global source representative.  In the concrete heat Level0 use case,
-`U` is the global Neumann heat cosine series representative. -/
-def powerSourceRep (ν γ : ℝ) (U : ℝ → ℝ) : ℝ → ℝ :=
-  fun x => ν * U x ^ γ
-
-/-- Exact inputs needed to build the depth-3 tower for `ν · U^γ`. -/
-theorem powerSource_neumannTower_three_inputs
-    {ν γ : ℝ} {U : ℝ → ℝ}
-    (hC6 : ContDiff ℝ (6 : ℕ) (powerSourceRep ν γ U))
-    (hDE : DoublyEven (powerSourceRep ν γ U)) :
-    ∃ g, g 0 = powerSourceRep ν γ U ∧
-      ShenWork.IntervalIBPCoeffExtraction.NeumannTower g 3 := by
-  rcases higherNeumannCompatibility_of_doublyEven hDE with ⟨hN0, hN1⟩
-  exact neumannTower_three_of_contDiff_six hC6 hN0 hN1
-
-end ShenWork.Paper2.PowerSourceDepth3Route
+theorem coupledChemDivFluxFactorJointC2Inputs_of_physical
+    (H : PhysicalResolverJointC2Data p u Bt)
+    (other : ... non-resolver FAC fields ...) :
+    CoupledChemDivFluxFactorJointC2Inputs p u
 ```
 
-For the actual heat Level0 source, the remaining facts to instantiate the theorem are:
+It fills the resolver fields by:
+
+```lean
+(fun x hx s _ => coupledChemical_jointContDiffAt_two H hx)
+(fun x hx s _ => coupledChemical_grad_jointContDiffAt_two H hx)
+```
+
+and leaves the non-resolver FAC fields in `other`. So 3C/3D specifically are covered.
+
+## 5. Heat Level0 top-level theorem
+
+File:
 
 ```text
-hC6 : ContDiff ℝ 6 (fun x => ν * U(x)^γ)
-hDE : DoublyEven (fun x => ν * U(x)^γ)
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
 ```
 
-The first is analytic smoothness; the second is parity.
-
-### Does `u^γ` inherit Neumann BCs?
-
-For the first Neumann condition, yes:
-
-```text
-(u^γ)' = γ · u^(γ-1) · u'
-```
-
-so at an endpoint `u' = 0` implies `(u^γ)' = 0`, assuming the usual positivity/smoothness hypotheses for real powers.
-
-But depth 3 needs more than the first derivative. It needs:
-
-```text
-(ν·u^γ)'     = 0,
-(ν·u^γ)'''   = 0,
-(ν·u^γ)''''' = 0
-```
-
-at `x = 0` and `x = 1`.
-
-You do **not** need `(ν·u^γ)''` or `(ν·u^γ)⁽⁴⁾` to vanish. Those are the even tower levels, not the Neumann boundary data. The `NeumannTower` asks for `deriv (g i)` to vanish, and since `g i = f^(2i)`, those are odd derivatives of `f`.
-
-The easiest way to prove all of them is not to expand Faà di Bruno formulas. Use parity:
-
-```text
-U is a Neumann cosine series
-  ⟹ U is DoublyEven
-  ⟹ ν · U^γ is DoublyEven
-  ⟹ all odd derivatives vanish at 0 and 1
-  ⟹ hN0/hN1 for depth 3.
-```
-
-Repo support is in:
-
-```text
-ShenWork/Paper2/IntervalSourceRepresentative.lean
-```
-
-Relevant names:
+The intended Level0 theorem is:
 
 ```lean
-ShenWork.Paper2.SourceRepresentative.DoublyEven
-ShenWork.Paper2.SourceRepresentative.DoublyEven.comp
-ShenWork.Paper2.SourceRepresentative.gTower_deriv_zero_of_doublyEven
-ShenWork.Paper2.SourceRepresentative.gTower_deriv_one_of_doublyEven
-ShenWork.Paper2.SourceRepresentative.higherNeumannCompatibility_of_doublyEven
+theorem heatSemigroup_level0_resolverJointC2Data
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀) :
+    ∃ Bt : ℕ → ℕ → ℝ,
+      PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt
 ```
 
-`higherNeumannCompatibility_of_doublyEven` gives exactly:
+It already has exactly the cascade:
 
 ```lean
-(∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
-(∀ i, i < 3 → deriv (gTower f i) 1 = 0)
-```
-
-for any doubly-even `f`.
-
-## 3. Does heat semigroup Neumann imply source Neumann?
-
-At the level of the first endpoint derivative, yes. But the robust depth-3 statement is:
-
-```text
-The global heat cosine representative U is doubly even.
-The source f = ν · U^γ is doubly even because DoublyEven is closed under post-composition
-and scalar multiplication/product-style constructions.
-Therefore f', f''', and f''''' vanish at both endpoints.
-```
-
-The repo proves the key abstract fact:
-
-```lean
-theorem higherNeumannCompatibility_of_doublyEven
-    {f : ℝ → ℝ} (hf : DoublyEven f) :
-    (∀ i, i < 3 → deriv (gTower f i) 0 = 0) ∧
-      (∀ i, i < 3 → deriv (gTower f i) 1 = 0)
-```
-
-This avoids doing individual chain-rule endpoint computations.
-
-For `u = S(t)u₀`, the global heat representative is the cosine series, so it is even about `0` and `1`. If it is positive on `[0,1]`, the symmetry/periodicity of the cosine representative extends positivity globally. Then real-power composition is smooth and parity-preserving.
-
-## 4. Exact depth-3 NeumannTower inputs for `ν · u^γ`
-
-Let:
-
-```lean
-U : ℝ → ℝ          -- global heat cosine representative at fixed positive time
-f : ℝ → ℝ := fun x => p.ν * U x ^ p.γ
-```
-
-To build a depth-3 tower using the committed producer, you need exactly:
-
-```lean
--- File: ShenWork/Paper2/IntervalNeumannTowerOfC6.lean
-hfC6 : ContDiff ℝ (6 : ℕ) f
-
-hN0 : ∀ i, i < 3 → deriv (gTower f i) 0 = 0
-hN1 : ∀ i, i < 3 → deriv (gTower f i) 1 = 0
+have hFSTD := HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData ...
+set Es := IntervalPhysicalSourceTimeC2Concrete.builtEs hFSTD
+have hSTC2 : PhysicalSourceTimeC2 p u Es :=
+  physicalSourceTimeC2_of_floored hFSTD
+    (by intro m hm; sorry)  -- value_summable
+    (by intro m hm; sorry)  -- grad_summable
+exact ⟨_, physicalResolverJointC2Data_of_floor hSTC2⟩
 ```
 
 Then:
 
 ```lean
-obtain ⟨g, hg0, Htower⟩ :=
-  ShenWork.Paper2.NeumannTowerOfC6.neumannTower_three_of_contDiff_six
-    hfC6 hN0 hN1
+theorem heatResolverJointContDiffAt_two ... :
+    ContDiffAt ℝ 2 (fun q => intervalDomainLift
+      (coupledChemicalConcentration p (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
+  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data ...
+  exact coupledChemical_jointContDiffAt_two hBt hx₀
 ```
 
-To apply `cosineCoeffs_decay` at depth 3 for a mode `n`, additionally need:
+This closes 3C. For 3D, one uses the same extracted `hBt` with:
 
 ```lean
-hn : 1 ≤ n
-hTop : |ShenWork.IntervalIBPCoeffExtraction.rawCoeff n (g 3)| ≤ M
+coupledChemical_grad_jointContDiffAt_two hBt hx₀
 ```
 
-Then:
+or the FAC wrapper `coupledChemDivFluxFactorJointC2Inputs_of_physical`.
+
+## Remaining gaps / no-gaps classification
+
+### No further gap after `PhysicalSourceTimeC2`
+
+Complete mechanical bridge:
+
+```text
+PhysicalSourceTimeC2
+  -> PhysicalResolverJointC2Data
+  -> coupledChemical_jointContDiffAt_two
+  -> coupledChemical_grad_jointContDiffAt_two
+```
+
+### Remaining gap before `PhysicalSourceTimeC2`
+
+The two summability inputs to `physicalSourceTimeC2_of_floored` remain as sorries in `heatSemigroup_level0_resolverJointC2Data`:
 
 ```lean
-have hdecay :
-    |ShenWork.IntervalNeumannFullKernel.cosineCoeffs f n| ≤
-      2 * M / ((n : ℝ) * Real.pi) ^ (2 * 3) :=
-  ShenWork.IntervalIBPCoeffExtraction.cosineCoeffs_decay
-    n hn Htower hTop
+hval  : ∀ m ≤ 2, Summable (boundedWeightJointMajorant (w * builtEs H) m)
+hgrad : ∀ m ≤ 2, Summable (boundedWeightJointGradMajorant (w * builtEs H) m)
 ```
 
-For a uniform envelope over all modes, you need a uniform top coefficient bound, usually from a uniform bound on the sixth derivative:
+The comments say they should follow from `(kπ)⁻²` decay in `builtEs` and the elliptic weight `wₖ = 1/(μ+λₖ)`.
+
+### API gap if `FlooredSourceTimeData` is positive-time-only
+
+The current chain uses global `ContDiff ℝ 2` and bounds in the intermediate structures. If `FlooredSourceTimeData` is changed to only positive-time fields, then the following must be adjusted or replaced:
 
 ```text
-∀ n, 1 ≤ n → |rawCoeff n (g 3)| ≤ M.
+srcTimeCoeff_deriv
+cosS1_deriv
+cosS2_continuous
+srcTimeCoeff_contDiff
+srcTimeCoeff_bound
+physicalSourceTimeC2_of_floored
+PhysicalSourceTimeC2
+PhysicalResolverJointC2Data
+boundedWeightJointSeries_contDiff_two / boundedWeightJointGradSeries_contDiff_two callers
 ```
 
-Since `g 3 = f⁽⁶⁾`, this follows from a bound on `f⁽⁶⁾` on `[0,1]`:
+The minimal engineering options are:
 
-```text
-|rawCoeff n (f⁽⁶⁾)| ≤ ∫₀¹ |f⁽⁶⁾(x)| dx ≤ M.
-```
-
-For positive-time heat, `M` should come from compactness/joint continuity on a positive time slab if a uniform-in-time envelope is needed.
-
-## Existing repo bridge for this exact shape
-
-The repo already uses this pattern in:
-
-```text
-ShenWork/Paper2/IntervalEigenCubeTailFromTower.lean
-```
-
-The per-mode bridge is:
-
-```lean
-ShenWork.Paper2.EigenCubeTailFromTower.eigenCube_bound_of_tower
-```
-
-and the packaged bridge is:
-
-```lean
-ShenWork.Paper2.EigenCubeTailFromTower.SourceEigenCubeTailFields_of_neumannTower
-```
-
-These use a depth-3 tower to get λ³ pointwise control:
-
-```text
-λ_n^3 · |cosineCoeffs f n| ≤ 2M.
-```
-
-For `DuhamelSourceTimeC2Coeff`, λ²-summability is weaker: depth 3 gives
-
-```text
-|cosineCoeffs f n| ≤ C/(nπ)^6,
-λ_n² |cosineCoeffs f n| ≤ C/(nπ)^2,
-```
-
-which is summable.
+1. **Local positive-time route:** create `PhysicalSourceTimeC2On` / `PhysicalResolverJointC2DataOn` with `ContDiffAt` or local neighborhood hypotheses around `s₀ > 0`. This matches 3C/3D exactly.
+2. **Global extension route:** define the Level0 source coefficient package with a smooth cutoff/extension to nonpositive time so the old global `ContDiff ℝ 2` APIs remain valid. Then the existing chain works unchanged.
 
 ## Bottom line
 
-1. `cosineCoeffs_decay` needs a `NeumannTower g j` and a top raw-coefficient bound. The tower encodes the `C^{2j}`-Neumann chain, but the theorem itself consumes the tower, not raw `C^{2j}` assumptions.
-2. For depth 3, use `neumannTower_three_of_contDiff_six`. It needs global `ContDiff ℝ 6 f` and vanishing of `f'`, `f'''`, `f'''''` at both endpoints.
-3. For `f = ν · (S(t)u₀)^γ`, first derivative Neumann follows by chain rule from `u' = 0`, but depth 3 needs all odd derivatives through 5. The repo’s intended proof is parity: the heat cosine representative is doubly even, `ν · u^γ` is doubly even, and `higherNeumannCompatibility_of_doublyEven` gives all required endpoint vanishings.
-4. The exact extra input after the tower is a top bound on `rawCoeff n (g 3)`, equivalently a uniform L1/sup bound for the sixth derivative representative.
+If the six Level0 `FlooredSourceTimeData` obligations are made fillable by weakening them to positive time, the downstream **mathematical cascade to 3C/3D is valid**, but the current global APIs will need a matching localization or smooth extension.
+
+There are **no additional gaps between `PhysicalSourceTimeC2` and `PhysicalResolverJointC2Data`**. The only remaining proof obligations in the committed top-level Level0 chain are:
+
+```text
+1. value_summable for builtEs with resolver weight,
+2. grad_summable for builtEs with resolver weight,
+3. API localization/global-extension if FlooredSourceTimeData becomes positive-time-only.
+```
+
+Once these are handled, `heatSemigroup_level0_resolverJointC2Data` yields `PhysicalResolverJointC2Data`, and 3C/3D follow by the already committed `coupledChemical_jointContDiffAt_two` and `coupledChemical_grad_jointContDiffAt_two`.
