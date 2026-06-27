@@ -1218,9 +1218,20 @@ theorem level0_chemDiv_timeDerivData
               (intervalMeasure 1) :=
             ShenWork.IntervalDuhamelIntegrability
               .intervalDomainLift_aestronglyMeasurable_of_continuous _hu₀_cont
-          have hLift_bdd : ∃ M' : ℝ, 0 ≤ M' ∧ ∀ y, |intervalDomainLift u₀ y| ≤ M' :=
-            sorry -- [3E-bdd: u₀ continuous on compact intervalDomainPoint →
-                  --  bounded range; needs haveI CompactSpace + isCompact_range.bddAbove]
+          have hLift_bdd : ∃ M' : ℝ, 0 ≤ M' ∧ ∀ y, |intervalDomainLift u₀ y| ≤ M' := by
+            haveI : CompactSpace intervalDomainPoint :=
+              isCompact_iff_compactSpace.mp isCompact_Icc
+            have habs_cont : Continuous (fun x : intervalDomainPoint => |u₀ x|) :=
+              _hu₀_cont.abs
+            haveI : Nonempty intervalDomainPoint :=
+              ⟨⟨0, left_mem_Icc.mpr zero_le_one⟩⟩
+            obtain ⟨xmax, _, hmax⟩ := IsCompact.exists_isMaxOn isCompact_univ
+              Set.univ_nonempty habs_cont.continuousOn
+            refine ⟨|u₀ xmax|, abs_nonneg _, fun y => ?_⟩
+            unfold intervalDomainLift
+            split_ifs with hy
+            · exact hmax (Set.mem_univ ⟨y, hy⟩)
+            · simp only [abs_zero]; exact abs_nonneg _
           obtain ⟨M', hM'_nn, hM'_bdd⟩ := hLift_bdd
           exact (ShenWork.IntervalDuhamelIntegrability
               .intervalFullSemigroupOperator_continuous_of_bounded
