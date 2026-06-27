@@ -1,319 +1,331 @@
-# Q1060 + Q1051 (cron2) — closed reps and Option A floor weakening
+# Q1067 (cron2) — Level0 SORRY 3G: closed-slab time-derivative continuity
 
-Static GitHub-connector inspection only; I did **not** run Lean.
+Static GitHub-connector inspection only; I did **not** run Lean locally.
 
-I treated the pasted prompt as two questions:
+## Verdict
 
-1. **Q1060:** whether `PhysicalResolverJointC2Data` and its 3F/3G producers also provide the closed-slab continuous representatives needed for 1A and 2A-sup.
-2. **Q1051:** whether weakening `IterateSourceTimeData.floor` from all-time positivity to positive-time positivity is really an ~11-file one-line Option A that makes the heat-base `FlooredSourceTimeData` and downstream `PhysicalResolverJointC2Data` fillable.
-
----
-
-## Executive verdict
-
-### Q1060
-
-**No.** `PhysicalResolverJointC2Data` does not by itself provide the closed-slab continuous representatives needed for 1A and 2A-sup.
-
-It gives interior resolver joint `C²` and, through `IntervalChemDivFACCommuteDischarge.lean`, discharges the **flux time-partial bridge**. But the closed-slab representative required for `htime_cont` is still a separate datum/proof lane. In `IntervalChemDivTimeDerivClosed.lean`, the key object is explicitly:
+The existing bridge is **not** a theorem of the shape
 
 ```lean
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open Set Filter Topology
-
-noncomputable section
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-#check ChemDivMixedTimeDerivClosedRepr
-#check chemDivMixedTimeDeriv_jointContinuousOn_closed
-#check coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
-
-end ShenWork.IntervalCoupledRegularityBootstrap
+PhysicalResolverJointC2Data p u Bt →
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-`chemDivMixedTimeDeriv_jointContinuousOn_closed` transfers continuity from a representative `Gmix`; it does not construct `Gmix` from `PhysicalResolverJointC2Data` alone.
+by itself.
 
-There are later representative producers, but they require extra inputs. `IntervalChemDivMixedReprConstruct.lean` isolates a `ChemDivMixedReprData` bundle of ten globally continuous representatives, and `IntervalChemDivMixedReprWitness.lean` / `IntervalIterateGradMajorant.lean` assemble such a witness from:
+The direct producer in the files requested is:
+
+```lean
+ShenWork.IntervalChemDivMixedReprWitness.chemDivMixedTimeDerivClosedRepr_of_mkWitness
+```
+
+It consumes
+
+```lean
+(H      : PhysicalResolverJointC2Data p u Bt)
+(Hu     : IteratePicardJointC2Data u c Btu)
+(Hg2u   : Summable (boundedWeightJointGradMajorant Btu 2))
+(hfloor : ∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q)
+(bdry   : endpoint boundary agreement for mixedAlgebra)
+```
+
+and returns
+
+```lean
+ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+The cleaner capstone wrapper found by searching for this bridge is:
+
+```lean
+ShenWork.IntervalIterateGradMajorant.chemDivMixedClosedRepr_of_iterateGradSummable
+```
+
+It consumes `PhysicalResolverJointC2Data`, `IteratePicardJointC2Data`, an iterate gradient-summability provider
+
+```lean
+HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+  Summable (boundedWeightJointGradMajorant Btu m)
+```
+
+plus `hfloor` and `bdry`, then internally calls
+
+```lean
+chemDivMixedTimeDerivClosedRepr_of_mkWitness H Hu
+  (iterate_Hg2u_of_gradSummable HuGrad) hfloor bdry
+```
+
+Once the `ChemDivMixedTimeDerivClosedRepr` is obtained, the 3G `ContinuousOn` goal is closed by:
+
+```lean
+ShenWork.IntervalCoupledRegularityBootstrap.chemDivMixedTimeDeriv_jointContinuousOn_closed
+```
+
+So: **3G closes immediately if the Level0 local context already has the resolver data plus the u-side iterate/heat witness, iterate gradient summability, floor, and boundary agreement. It does not close from `PhysicalResolverJointC2Data` alone.**
+
+## Exact drop-in proof for SORRY 3G using the capstone bridge
+
+This is the replacement for the Field 3 `sorry` in the `hlocal_slab` block after the `refine ⟨min 1 (s / 2), ...⟩`, assuming the following local names are available:
+
+```lean
+Hphys : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt
+Hu    : IteratePicardJointC2Data (conjugatePicardIter p u₀ 0) cH Btu
+HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+  Summable (boundedWeightJointGradMajorant Btu m)
+hfloor : ∀ q : ℝ × ℝ,
+  0 < 1 + valueSeriesRep
+    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)) q
+hbdry : ∀ t ∈ Icc (s - min (1 : ℝ) (s / 2)) (s + min (1 : ℝ) (s / 2)),
+  ∀ x ∈ ({0, 1} : Set ℝ),
+    coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) t x =
+      mixedAlgebra p.β (valueSeriesRep cH) (iterateDtValue cH) (iterateDtGrad cH)
+        (gradSeriesRep cH)
+        (valueSeriesRep (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+        (gradSeriesRep (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+        (grad2SeriesRep (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+        (resolverDtValue p (conjugatePicardIter p u₀ 0))
+        (resolverDtGrad p (conjugatePicardIter p u₀ 0))
+        (resolverDtGrad2 p (conjugatePicardIter p u₀ 0)) (t, x)
+```
+
+Full import context and a standalone theorem:
 
 ```lean
 import ShenWork.PDE.IntervalIterateGradMajorant
+import ShenWork.Paper2.IntervalConjugatePicard
 
 open Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalResolverJointC2Physical (boundedWeightJointGradMajorant)
-open ShenWork.IntervalIteratePicardJointC2 (IteratePicardJointC2Data)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (PhysicalResolverJointC2Data resolverTimeCoeff)
+open ShenWork.IntervalDomain
+open ShenWork.IntervalConjugatePicard
 open ShenWork.IntervalCoupledRegularityBootstrap
 open ShenWork.IntervalChemDivMixedReprConstruct
 open ShenWork.IntervalChemDivMixedReprWitness
-open ShenWork.IntervalIterateGradMajorant
+open ShenWork.IntervalResolverJointC2Physical
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+  (PhysicalResolverJointC2Data resolverTimeCoeff)
+open ShenWork.IntervalIteratePicardJointC2
+  (IteratePicardJointC2Data)
 
 noncomputable section
 
-namespace ShenWork.IntervalIterateGradMajorant
+namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
 
-#check chemDivMixedClosedRepr_of_iterateGradSummable
+/-- The Level0 3G closed-slab continuity proof, once the mixed-representative
+witness inputs have been built. -/
+theorem level0_sorry_3G_from_mixed_repr_bridge
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {Bt Btu : ℕ → ℕ → ℝ} {cH : ℕ → ℝ → ℝ} {s : ℝ}
+    (Hphys : PhysicalResolverJointC2Data
+      p (conjugatePicardIter p u₀ 0) Bt)
+    (Hu : IteratePicardJointC2Data
+      (conjugatePicardIter p u₀ 0) cH Btu)
+    (HuGrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant Btu m))
+    (hfloor : ∀ q : ℝ × ℝ,
+      0 < 1 + valueSeriesRep
+        (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)) q)
+    (hbdry : ∀ t ∈ Icc (s - min (1 : ℝ) (s / 2))
+        (s + min (1 : ℝ) (s / 2)),
+      ∀ x ∈ ({0, 1} : Set ℝ),
+        coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) t x =
+          mixedAlgebra p.β
+            (valueSeriesRep cH)
+            (iterateDtValue cH)
+            (iterateDtGrad cH)
+            (gradSeriesRep cH)
+            (valueSeriesRep
+              (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+            (gradSeriesRep
+              (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+            (grad2SeriesRep
+              (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+            (resolverDtValue p (conjugatePicardIter p u₀ 0))
+            (resolverDtGrad p (conjugatePicardIter p u₀ 0))
+            (resolverDtGrad2 p (conjugatePicardIter p u₀ 0))
+            (t, x)) :
+    ContinuousOn
+      (Function.uncurry
+        (coupledChemDivTimeDerivativeLift p
+          (conjugatePicardIter p u₀ 0)))
+      (Icc (s - min (1 : ℝ) (s / 2))
+          (s + min (1 : ℝ) (s / 2)) ×ˢ Icc (0 : ℝ) 1) := by
+  have hrepr :
+      ChemDivMixedTimeDerivClosedRepr
+        p (conjugatePicardIter p u₀ 0) s (min (1 : ℝ) (s / 2)) :=
+    ShenWork.IntervalIterateGradMajorant
+      .chemDivMixedClosedRepr_of_iterateGradSummable
+        (H := Hphys)
+        (Hu := Hu)
+        (HuGrad := HuGrad)
+        (hfloor := hfloor)
+        (bdry := hbdry)
+  exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
 
-end ShenWork.IntervalIterateGradMajorant
+end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
 ```
 
-That route consumes not just `PhysicalResolverJointC2Data`, but also iterate joint-`C²`, iterate gradient majorant summability, a resolver-representative floor, and a boundary equality. Thus the closed-representative work is **separate** from the bare physical resolver joint-`C²` data.
-
-For 1A and 2A-sup, Q1032’s warning still applies: an interior `FluxJointC2Hyp` gives joint `C²` on the interior, but a compact uniform bound needs a continuous representative on the closed slab, including endpoint behavior. The existing `Gmix` lane may be reusable, but 1A’s `secondDeriv` bound and 2A-sup’s source sup bound still need their own closed-representative bridge for the exact fields they bound.
-
-### Q1051
-
-I do **not** confirm the “~11 files, each ~1 line” claim from the repo surface I inspected.
-
-The actual `IterateSourceTimeData.floor` code surface I found is small, but weakening the field is **not** a pure one-line change as typed, because the producer still targets all-time `FlooredSourceTimeData`. After weakening, the existing proof calls need a proof that the local time `s` is positive, and the current target quantifies over arbitrary `τ : ℝ` and `s ∈ Metric.ball τ δ`.
-
-Also, the heat semigroup six obligations in `IntervalHeatSemigroupFlooredSourceTimeData.lean` do **not** become fillable merely by weakening `IterateSourceTimeData.floor`, because that file directly targets all-time `FlooredSourceTimeData`, including `t = 0`.
-
----
-
-## Q1060 — detailed trace
-
-### What `PhysicalResolverJointC2Data` gives
-
-In `IntervalResolverJointC2PhysicalConcrete.lean`, `PhysicalResolverJointC2Data` is a coefficient regularity/summability package. It yields:
+Inside the existing `hlocal_slab` proof, this reduces to the shorter drop-in block:
 
 ```lean
-import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-
-noncomputable section
-
-namespace ShenWork.IntervalResolverJointC2PhysicalConcrete
-
-#check PhysicalResolverJointC2Data
-#check coupledChemical_jointContDiffAt_two
-#check coupledChemical_grad_jointContDiffAt_two
-
-end ShenWork.IntervalResolverJointC2PhysicalConcrete
+    · -- Field 3: ContinuousOn of time derivative on closed slab.
+      have hrepr :
+          ChemDivMixedTimeDerivClosedRepr
+            p (conjugatePicardIter p u₀ 0) s (min (1 : ℝ) (s / 2)) :=
+        ShenWork.IntervalIterateGradMajorant
+          .chemDivMixedClosedRepr_of_iterateGradSummable
+            (H := Hphys)
+            (Hu := Hu)
+            (HuGrad := HuGrad)
+            (hfloor := hfloor)
+            (bdry := hbdry)
+      exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
 ```
 
-Those two producer theorems are interior: they require `x ∈ Ioo 0 1`. They are enough for the local Clairaut/time-bridge work, but they are not closed-slab representative theorems.
+## If the Level0 context has only `Hg2u`, not `HuGrad`
 
-### What `IntervalChemDivFACCommuteDischarge.lean` discharges
-
-`IntervalChemDivFACCommuteDischarge.lean` proves:
+Use the lower-level producer directly:
 
 ```lean
-import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
+import ShenWork.PDE.IntervalChemDivMixedReprWitness
+import ShenWork.Paper2.IntervalConjugatePicard
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
 open Set Filter Topology
-
-noncomputable section
-
-namespace ShenWork.IntervalCoupledRegularityBootstrap
-
-#check coupledChemical_innerCommute_of_physicalJointC2
-#check coupledChemDivFlux_timeBridge_of_physicalJointC2
-#check coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
-
-end ShenWork.IntervalCoupledRegularityBootstrap
-```
-
-The important point is that `coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged` still takes an `other` bundle containing:
-
-* eventual closed-slice source continuity;
-* u-side Picard joint `C²`;
-* closed-slab continuity of `Function.uncurry (coupledChemDivTimeDerivativeLift p u)`.
-
-So 3F discharges the flux time bridge, not all closed-representative obligations.
-
-### What `IntervalChemDivTimeDerivClosed.lean` discharges
-
-`IntervalChemDivTimeDerivClosed.lean` defines the representative requirement:
-
-```lean
-import ShenWork.PDE.IntervalChemDivTimeDerivClosed
-
 open ShenWork.IntervalDomain
+open ShenWork.IntervalConjugatePicard
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.IntervalChemDivMixedReprConstruct
+open ShenWork.IntervalChemDivMixedReprWitness
+open ShenWork.IntervalResolverJointC2Physical
 open ShenWork.IntervalResolverJointC2PhysicalConcrete
-open Set Filter Topology
+  (PhysicalResolverJointC2Data resolverTimeCoeff)
+open ShenWork.IntervalIteratePicardJointC2
+  (IteratePicardJointC2Data)
 
 noncomputable section
 
-namespace ShenWork.IntervalCoupledRegularityBootstrap
+namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
 
-example (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
-  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
-    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
-      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
+/-- Same 3G proof, using the lower-level witness bridge when `Hg2u` is already
+available. -/
+theorem level0_sorry_3G_from_mkWitness
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {Bt Btu : ℕ → ℕ → ℝ} {cH : ℕ → ℝ → ℝ} {s : ℝ}
+    (Hphys : PhysicalResolverJointC2Data
+      p (conjugatePicardIter p u₀ 0) Bt)
+    (Hu : IteratePicardJointC2Data
+      (conjugatePicardIter p u₀ 0) cH Btu)
+    (Hg2u : Summable (boundedWeightJointGradMajorant Btu 2))
+    (hfloor : ∀ q : ℝ × ℝ,
+      0 < 1 + valueSeriesRep
+        (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)) q)
+    (hbdry : ∀ t ∈ Icc (s - min (1 : ℝ) (s / 2))
+        (s + min (1 : ℝ) (s / 2)),
+      ∀ x ∈ ({0, 1} : Set ℝ),
+        coupledChemDivTimeDerivativeLift p (conjugatePicardIter p u₀ 0) t x =
+          mixedAlgebra p.β
+            (valueSeriesRep cH)
+            (iterateDtValue cH)
+            (iterateDtGrad cH)
+            (gradSeriesRep cH)
+            (valueSeriesRep
+              (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+            (gradSeriesRep
+              (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+            (grad2SeriesRep
+              (resolverTimeCoeff p (conjugatePicardIter p u₀ 0)))
+            (resolverDtValue p (conjugatePicardIter p u₀ 0))
+            (resolverDtGrad p (conjugatePicardIter p u₀ 0))
+            (resolverDtGrad2 p (conjugatePicardIter p u₀ 0))
+            (t, x)) :
+    ContinuousOn
+      (Function.uncurry
+        (coupledChemDivTimeDerivativeLift p
+          (conjugatePicardIter p u₀ 0)))
+      (Icc (s - min (1 : ℝ) (s / 2))
+          (s + min (1 : ℝ) (s / 2)) ×ˢ Icc (0 : ℝ) 1) := by
+  have hrepr :
+      ChemDivMixedTimeDerivClosedRepr
+        p (conjugatePicardIter p u₀ 0) s (min (1 : ℝ) (s / 2)) :=
+    ShenWork.IntervalChemDivMixedReprWitness
+      .chemDivMixedTimeDerivClosedRepr_of_mkWitness
+        (H := Hphys)
+        (Hu := Hu)
+        (Hg2u := Hg2u)
+        (hfloor := hfloor)
+        (bdry := hbdry)
+  exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
 
-end ShenWork.IntervalCoupledRegularityBootstrap
+end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
 ```
 
-Then `chemDivMixedTimeDeriv_jointContinuousOn_closed` converts this representative into the closed-slab `ContinuousOn`. This is a separate assumption/producer input, not a corollary of `PhysicalResolverJointC2Data` alone.
+## How this maps to the files
 
----
-
-## Q1051 — exact file surface and cascade
-
-### Files found
-
-I cannot verify an 11-file list. The relevant files I found are:
-
-```text
-ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
-ShenWork/Paper2/IntervalChemDivWinDischarge.lean
-ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean  (read from main)
-```
-
-Additional search hits were comments/docs:
-
-```text
-ShenWork/PDE/IntervalIteratePicardJointC2.lean
-ShenWork/Paper2/IntervalBootstrapDecomp.lean
-ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean
-UNDERSTANDING.md
-BANK_CHECKLIST.md
-```
-
-The exact `H.floor` use I found was only in `ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean`.
-
-### Why the field weakening is not enough
-
-Current shape:
+`IntervalChemDivTimeDerivClosed.lean` defines `ChemDivMixedTimeDerivClosedRepr` and proves:
 
 ```lean
-import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-
-noncomputable section
-
-namespace ShenWork.IntervalFlooredSourceTimeDataIterate
-
--- Current field shape inside `IterateSourceTimeData`:
-example (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
-  ∀ t : ℝ, ∀ x ∈ Ioo (0 : ℝ) 1, 0 < intervalDomainLift (u t) x
-
--- Proposed positive-time field shape:
-example (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
-  ∀ t : ℝ, 0 < t → ∀ x ∈ Ioo (0 : ℝ) 1,
-    0 < intervalDomainLift (u t) x
-
-end ShenWork.IntervalFlooredSourceTimeDataIterate
+chemDivMixedTimeDeriv_jointContinuousOn_closed :
+  ChemDivMixedTimeDerivClosedRepr p u τ δ →
+  ContinuousOn
+    (Function.uncurry (coupledChemDivTimeDerivativeLift p u))
+    (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
 ```
 
-But `flooredSourceTimeData_of_iterate` currently uses the floor as:
+`IntervalChemDivMixedReprConstruct.lean` proves:
 
 ```lean
-import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-
-noncomputable section
-
-namespace ShenWork.IntervalFlooredSourceTimeDataIterate
-
--- Existing proof pattern:
---   exact hasDerivAt_srcSlice (H.floor s x hx) (hdiff x hx s hs)
---   exact hasDerivAt_srcSlice1 (H.floor s x hx) h1 h2
---
--- After weakening, those calls need:
---   have hspos : 0 < s := ?_
---   exact hasDerivAt_srcSlice (H.floor s hspos x hx) (hdiff x hx s hs)
---   exact hasDerivAt_srcSlice1 (H.floor s hspos x hx) h1 h2
-
-end ShenWork.IntervalFlooredSourceTimeDataIterate
+chemDivMixedTimeDerivClosedRepr_of_data :
+  ChemDivMixedReprData p u τ δ →
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-The missing `hspos : 0 < s` is not available from the current all-time `FlooredSourceTimeData` target. Its `d0` and `d1` fields quantify over every `τ : ℝ`; for `τ ≤ 0`, the local ball cannot be made entirely positive without changing the target.
-
-### Why the six heat-base obligations do not become fillable as typed
-
-`IntervalHeatSemigroupFlooredSourceTimeData.lean` directly targets:
+`IntervalChemDivMixedReprWitness.lean` proves the bridge from the honest witness bundle:
 
 ```lean
-import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam FlooredSourceTimeData)
-open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
-
-#check heatSemigroup_flooredSourceTimeData
-
-end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+chemDivMixedTimeDerivClosedRepr_of_witness :
+  ChemDivMixedReprWitnessData p u τ δ →
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-That theorem returns an all-time `FlooredSourceTimeData`, not an `IterateSourceTimeData`. The heat smoothing lemmas I saw in `IntervalHeatSemigroupHighRegularity.lean` are positive-time statements, e.g. `heatSemigroup_contDiff_four` requires `0 < t`, and the joint cutoff argument is local around `s₀ > c > 0`.
-
-Thus the six heat obligations are plausible on a positive window `[c,T]`, `0 < c`, but not as all-time obligations for merely continuous `u₀`. At `t = 0`, the heat slice is just `u₀`; it need not be spatial `C²`, satisfy the Neumann derivative data, or have the uniform Laplacian bounds needed for the `(kπ)⁻²` envelope.
-
----
-
-## Direct answers to Q1051’s numbered questions
-
-### 1. Exact 11 files?
-
-Not verified. I found the real code surface listed above, not 11 files. The exact `H.floor` use appears only in `IntervalFlooredSourceTimeDataIterate.lean`.
-
-### 2. One-line or cascading?
-
-Cascading. The immediate break is that positive-time-only `floor` requires an `0 < s` proof inside `flooredSourceTimeData_of_iterate`, but the current all-time target does not provide one.
-
-### 3. Would the six heat sorries become fillable?
-
-Not as typed. They become plausible only after a positive-window retyping or stronger initial-data assumptions. The current all-time `FlooredSourceTimeData` still hits `t = 0`.
-
-### 4. Would this fill `PhysicalResolverJointC2Data` and close 3C/3D directly?
-
-Not directly as typed. A positive-window Option A route could avoid the VOC / `DuhamelSourceTimeC2Coeff` route for positive-time consumers, but it needs a windowed source/resolver package and downstream consumer wiring. Merely weakening `IterateSourceTimeData.floor` does not fill the current all-time `FlooredSourceTimeData` gate.
-
----
-
-## Recommended route
-
-The safe version of Option A is not just a field weakening. It is a positive-window split:
+and the useful producer from resolver/iterate data:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam)
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-/-- Schematic positive-window replacement for the all-time source package. -/
-structure FlooredSourceTimeDataOn
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (s₁ s₂ : ℝ → ℝ → ℝ) (c T : ℝ) : Prop where
-  hc : 0 < c
-  hct : c ≤ T
-  d0 : ∀ τ ∈ Icc c T, ∃ δ : ℝ, 0 < δ ∧ True
-  d1 : ∀ τ ∈ Icc c T, ∃ δ : ℝ, 0 < δ ∧ True
-  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t ∈ Icc c T,
-    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0 : ℝ) 1)
-  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t ∈ Icc c T, True
-  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ True
-  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ True
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+chemDivMixedTimeDerivClosedRepr_of_mkWitness :
+  PhysicalResolverJointC2Data p u Bt →
+  IteratePicardJointC2Data u c Btu →
+  Summable (boundedWeightJointGradMajorant Btu 2) →
+  (∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q) →
+  boundary agreement →
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
 ```
 
-Then prove the six heat obligations on `[c,T]` using positive-time heat smoothing, add a windowed physical resolver producer, and feed only positive-time FAC consumers. Separately, close 1A and 2A-sup by proving closed-slab representatives for the exact fields their compactness bounds consume.
+`IntervalIterateGradMajorant.lean` adds the wrapper:
+
+```lean
+chemDivMixedClosedRepr_of_iterateGradSummable :
+  PhysicalResolverJointC2Data p u Bt →
+  IteratePicardJointC2Data u c Btu →
+  (∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
+    Summable (boundedWeightJointGradMajorant Btu m)) →
+  (∀ q : ℝ × ℝ, 0 < 1 + valueSeriesRep (resolverTimeCoeff p u) q) →
+  boundary agreement →
+  ChemDivMixedTimeDerivClosedRepr p u τ δ
+```
+
+## Bottom line for 3G
+
+The exact 3G proof is just:
+
+```lean
+have hrepr : ChemDivMixedTimeDerivClosedRepr
+    p (conjugatePicardIter p u₀ 0) s (min (1 : ℝ) (s / 2)) :=
+  ShenWork.IntervalIterateGradMajorant
+    .chemDivMixedClosedRepr_of_iterateGradSummable
+      (H := Hphys)
+      (Hu := Hu)
+      (HuGrad := HuGrad)
+      (hfloor := hfloor)
+      (bdry := hbdry)
+exact chemDivMixedTimeDeriv_jointContinuousOn_closed hrepr
+```
+
+provided `Hphys`, `Hu`, `HuGrad`, `hfloor`, and `hbdry` are actually in the Level0 local context. If only `PhysicalResolverJointC2Data` is available, then 3G is **not** closed yet; the missing work is exactly the Level0 construction of the u-side heat witness, the iterate gradient summability leg, the global floor for the chosen representative, and the endpoint boundary agreement.
