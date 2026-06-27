@@ -337,10 +337,46 @@ private theorem heatD2u_jointContinuousOn
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
     ContinuousOn (fun q : ℝ × ℝ => heatD2u u₀ q.1 q.2)
       (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
-  sorry -- Weierstrass M-test: each term λ²·exp(-tλ)·a·cos is continuous,
-  -- dominated by M₀·λ²·exp(-cλ) (summable from unitIntervalCosineEigenvalue_sq_exp_summable),
-  -- giving uniform convergence on [c,T]×[0,1] → joint ContinuousOn.
-  -- Full proof needs tendstoUniformlyOn_tsum + ContinuousOn of partial sums.
+  have hM₀ : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
+  -- On the slab, all times are positive, so the if-branch of heatD2u is active
+  have hcongr : ∀ q ∈ Icc c T ×ˢ Icc (0 : ℝ) 1,
+      heatD2u u₀ q.1 q.2 =
+        ∑' k : ℕ, unitIntervalCosineEigenvalue k ^ 2 *
+          (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+            cosineCoeffs (intervalDomainLift u₀) k) *
+          ShenWork.CosineSpectrum.cosineMode k q.2 := by
+    intro q hq
+    have hpos : 0 < q.1 := lt_of_lt_of_le hc (mem_prod.mp hq).1.1
+    simp only [heatD2u, if_pos hpos]
+  refine (ContinuousOn.congr ?_ hcongr)
+  apply continuousOn_tsum
+  · intro k
+    exact ((((Real.continuous_exp.comp
+      (continuous_id.neg.mul continuous_const)).mul continuous_const).const_mul _).comp
+        continuous_fst).mul
+      ((ShenWork.CosineSpectrum.cosineMode_continuous k).comp continuous_snd)
+      |>.continuousOn
+  · exact (unitIntervalCosineEigenvalue_sq_exp_summable hc).mul_left M₀
+  · intro k q hq
+    have hpos : 0 < q.1 := lt_of_lt_of_le hc (mem_prod.mp hq).1.1
+    have hexp_mono : Real.exp (-q.1 * (λ_ k)) ≤ Real.exp (-c * (λ_ k)) := by
+      exact Real.exp_le_exp.mpr (by nlinarith [(mem_prod.mp hq).1.1])
+    have hlam_nn : 0 ≤ (λ_ k) := by unfold unitIntervalCosineEigenvalue; positivity
+    rw [Real.norm_eq_abs]
+    calc |(λ_ k) ^ 2 * (Real.exp (-q.1 * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k) *
+            ShenWork.CosineSpectrum.cosineMode k q.2|
+        = (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) *
+            |cosineCoeffs (intervalDomainLift u₀) k| *
+            |ShenWork.CosineSpectrum.cosineMode k q.2| := by
+          rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg _),
+            abs_of_nonneg (Real.exp_nonneg _)]; ring
+      _ ≤ (λ_ k) ^ 2 * Real.exp (-c * (λ_ k)) * M₀ * 1 := by
+          gcongr
+          · exact mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)
+          · exact hu₀_bound k
+          · exact abs_le.mpr ⟨by linarith [Real.neg_one_le_cos ((k : ℝ) * Real.pi * q.2)],
+              Real.cos_le_one _⟩
+      _ = M₀ * ((λ_ k) ^ 2 * Real.exp (-c * (λ_ k))) := by ring
 
 /-! ## Helper: d1 proof body -/
 
