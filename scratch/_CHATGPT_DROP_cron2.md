@@ -1,639 +1,319 @@
-# Q1046 + Q1042 (cron2) — resolver-C² shortcut and uniform `secondDeriv` bound bridge
+# Q1060 + Q1051 (cron2) — closed reps and Option A floor weakening
 
-Static repo inspection only; I did **not** run Lean.
+Static GitHub-connector inspection only; I did **not** run Lean.
 
-I treated the pasted message as two tasks and answered both here:
+I treated the pasted prompt as two questions:
 
-1. **Q1046** — whether `srcC2 : DuhamelSourceTimeC2Coeff a` can be bypassed in `IntervalResolverLevel0SpectralC2Coeff.lean`.
-2. **Q1042** — how to prove the uniform bound on the H² `secondDeriv` once a joint-in-time continuous closed representative exists.
-
-Files read / searched:
-
-- `ShenWork/PDE/IntervalResolverSpectralJointC2Concrete.lean`, around `resolverSpectralJointC2At_of_restartSmoothCutoff`.
-- `ShenWork/PDE/IntervalResolverSpectralJointC2Cutoff.lean`, especially `resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum`.
-- `ShenWork/Paper2/IntervalResolverLevel0SpectralC2Coeff.lean`.
-- `ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean` and `IntervalPhysicalSourceTimeC2Concrete.lean`.
-- `ShenWork/Paper2/IntervalChemDivSpatialC2.lean`.
-- Searches for `tsum_cos_jointContinuousOn`, `cosineCoeffSeries_continuousOn`, `continuousOn_tsum`, `duhamelSeries_jointContinuousOn`.
-- `ShenWork/PDE/IntervalSourceCoefficientTimeC1.lean`.
-- `ShenWork/Wiener/EWA/SourceJointRegularity.lean`.
-- `ShenWork/Paper2/IntervalParabolicDuhamelGainNonCircular.lean`.
+1. **Q1060:** whether `PhysicalResolverJointC2Data` and its 3F/3G producers also provide the closed-slab continuous representatives needed for 1A and 2A-sup.
+2. **Q1051:** whether weakening `IterateSourceTimeData.floor` from all-time positivity to positive-time positivity is really an ~11-file one-line Option A that makes the heat-base `FlooredSourceTimeData` and downstream `PhysicalResolverJointC2Data` fillable.
 
 ---
 
-# Q1046 — Is there a shortcut avoiding `DuhamelSourceTimeC2Coeff`?
-
 ## Executive verdict
 
-Yes, but with an important qualification.
+### Q1060
 
-There is a genuine shortcut **if you are willing to bypass the current `ResolverHasSpectralAgreementC2Coeff` path**.  The current theorem
+**No.** `PhysicalResolverJointC2Data` does not by itself provide the closed-slab continuous representatives needed for 1A and 2A-sup.
+
+It gives interior resolver joint `C²` and, through `IntervalChemDivFACCommuteDischarge.lean`, discharges the **flux time-partial bridge**. But the closed-slab representative required for `htime_cont` is still a separate datum/proof lane. In `IntervalChemDivTimeDerivClosed.lean`, the key object is explicitly:
 
 ```lean
-resolverHasSpectralAgreementC2Coeff_heatLevel0
+import ShenWork.PDE.IntervalChemDivTimeDerivClosed
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+open Set Filter Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+#check ChemDivMixedTimeDerivClosedRepr
+#check chemDivMixedTimeDeriv_jointContinuousOn_closed
+#check coupledChemDivFluxFactorJointC2Inputs_of_physical_htimeDischarged
+
+end ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
-has, by definition, a field requiring:
+`chemDivMixedTimeDeriv_jointContinuousOn_closed` transfers continuity from a representative `Gmix`; it does not construct `Gmix` from `PhysicalResolverJointC2Data` alone.
+
+There are later representative producers, but they require extra inputs. `IntervalChemDivMixedReprConstruct.lean` isolates a `ChemDivMixedReprData` bundle of ten globally continuous representatives, and `IntervalChemDivMixedReprWitness.lean` / `IntervalIterateGradMajorant.lean` assemble such a witness from:
 
 ```lean
-srcC2 : DuhamelSourceTimeC2Coeff a
-```
-
-So if the goal is literally to fill the existing `srcC2` hole inside that theorem, then no: the structure demands the full package.
-
-But if the real goal is the consumer output — resolver joint `C²` of the concrete heat-Level0 resolver — then yes: one can bypass `DuhamelSourceTimeC2Coeff` entirely and prove the two `ContDiffAt` conclusions directly by a cutoff + `contDiff_tsum` argument for the concrete resolver coefficient series.
-
-This is not just a speculative idea.  The repo already has the generic theorem that shows exactly what data is needed:
-
-```lean
-ShenWork.IntervalResolverSpectralJointC2Cutoff
-  .resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-```
-
-and the concrete restart theorem simply feeds it with data derived from `DuhamelSourceTimeC2Coeff`:
-
-```lean
-ShenWork.IntervalResolverSpectralJointC2Concrete
-  .resolverSpectralJointC2At_of_restartSmoothCutoff
-```
-
-So the shortcut is: **feed the generic cutoff/tsum theorem directly with heat-Level0 resolver terms and heat-specific majorants**, rather than first forcing the data through the restart-source `DuhamelSourceTimeC2Coeff` interface.
-
-## What the consumer actually uses
-
-The concrete restart theorem is:
-
-```lean
-theorem resolverSpectralJointC2At_of_restartSmoothCutoff
-    {a₀ : ℕ → ℝ} {M : ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
-    (hτ : 0 < s - offset) (ha₀ : ∀ n, |a₀ n| ≤ M)
-    (src : DuhamelSourceTimeC2Coeff a) :
-    ResolverSpectralJointC2At a₀ a offset s x :=
-  resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-    (φ := restartSmoothCutoff offset s)
-    (gradTerm := resolverSpectralConcreteGradTerm a₀ a offset)
-    (vValue := concreteRestartValueMajorant a₀ src offset s hτ)
-    (vGrad := concreteRestartGradMajorant a₀ src offset s hτ)
-    (restartSmoothCutoff_eventually_eq_one hτ)
-    (cutoffValueTerm_restartSmoothCutoff_contDiff src)
-    (concreteRestartValueMajorant_summable hτ ha₀ src)
-    (cutoffValueTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src)
-    (cutoffGradTerm_restartSmoothCutoff_contDiff src)
-    (concreteRestartGradMajorant_summable hτ ha₀ src)
-    (cutoffGradTerm_restartSmoothCutoff_iteratedFDeriv_bound hτ src)
-    (resolverSpectralGradSeries_eventuallyEq_concreteGradTerm hτ ha₀ src)
-```
-
-The underlying generic theorem is:
-
-```lean
-theorem resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum
-    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ} {offset s x : ℝ}
-    (φ : ℝ → ℝ) (gradTerm : ℕ → ℝ × ℝ → ℝ)
-    (vValue vGrad : ℕ → ℕ → ℝ)
-    (hφ_one : φ =ᶠ[𝓝 s] fun _ : ℝ => 1)
-    (hValueTerm : ∀ n : ℕ,
-      ContDiff ℝ (2 : ℕ∞) (cutoffValueTerm φ a₀ a offset n))
-    (hValueSumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) → Summable (vValue k))
-    (hValueBound : ∀ (k n : ℕ) (q : ℝ × ℝ), (k : ℕ∞) ≤ (2 : ℕ∞) →
-      ‖iteratedFDeriv ℝ k (cutoffValueTerm φ a₀ a offset n) q‖ ≤ vValue k n)
-    (hGradTerm : ∀ n : ℕ, ContDiff ℝ (2 : ℕ∞) (cutoffGradTerm φ gradTerm n))
-    (hGradSumm : ∀ k : ℕ, (k : ℕ∞) ≤ (2 : ℕ∞) → Summable (vGrad k))
-    (hGradBound : ∀ (k n : ℕ) (q : ℝ × ℝ), (k : ℕ∞) ≤ (2 : ℕ∞) →
-      ‖iteratedFDeriv ℝ k (cutoffGradTerm φ gradTerm n) q‖ ≤ vGrad k n)
-    (hGradEq :
-      resolverSpectralGradSeries a₀ a offset =ᶠ[𝓝 (s, x)]
-        fun q : ℝ × ℝ => ∑' n : ℕ, gradTerm n q) :
-    ResolverSpectralJointC2At a₀ a offset s x
-```
-
-So the real consumer data are exactly the seven items in the prompt:
-
-1. value term `ContDiff ℝ 2`,
-2. value majorant summability,
-3. value derivative bounds,
-4. gradient term `ContDiff ℝ 2`,
-5. gradient majorant summability,
-6. gradient derivative bounds,
-7. eventual equality of the gradient series.
-
-`DuhamelSourceTimeC2Coeff` is one **sufficient package** for producing those seven items, not logically the only possible route.
-
-## Why the current generic theorem cannot be reused literally for direct heat coefficients
-
-One subtlety: `resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum` is still expressed in the restart coefficient language:
-
-```lean
-cutoffValueTerm φ a₀ a offset n
-```
-
-where the coefficient is:
-
-```lean
-localRestartCoeff a₀ a (q.1 - offset) n
-```
-
-If we use the direct heat-Level0 elliptic coefficient
-
-```lean
-ck t := intervalNeumannResolverWeight p k *
-  srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t
-```
-
-then this is not definitionally a `localRestartCoeff`.  We have two options:
-
-1. **VOC route:** still prove a local variation-of-constants identity identifying `localRestartCoeff a₀ a` with `ck`; this is exactly the current `IntervalResolverLevel0SpectralC2Coeff.lean` design and leads back to needing a strong package for `a`.
-2. **Direct-series route:** clone the generic cutoff theorem with an arbitrary coefficient family `ck : ℕ → ℝ → ℝ`, and conclude the actual `ContDiffAt` statements for the direct resolver series rather than `ResolverSpectralJointC2At a₀ a offset s x`.
-
-The true shortcut is option 2.
-
-## Suggested direct theorem shape
-
-The direct target should bypass `ResolverHasSpectralAgreementC2Coeff` and produce the final local regularity directly:
-
-```lean
-import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.PDE.IntervalIterateGradMajorant
 
 open Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.IntervalPhysicalResolverDataConcrete (srcTimeCoeff)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalResolverJointC2Physical (boundedWeightJointGradMajorant)
+open ShenWork.IntervalIteratePicardJointC2 (IteratePicardJointC2Data)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete (PhysicalResolverJointC2Data resolverTimeCoeff)
+open ShenWork.IntervalCoupledRegularityBootstrap
+open ShenWork.IntervalChemDivMixedReprConstruct
+open ShenWork.IntervalChemDivMixedReprWitness
+open ShenWork.IntervalIterateGradMajorant
 
 noncomputable section
 
-namespace ShenWork.Paper2.Level0ResolverDirectC2
+namespace ShenWork.IntervalIterateGradMajorant
 
-abbrev heatLevel0 (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) :
-    ℝ → intervalDomainPoint → ℝ :=
-  ShenWork.IntervalConjugatePicard.conjugatePicardIter p u₀ 0
+#check chemDivMixedClosedRepr_of_iterateGradSummable
 
-/-- Direct elliptic resolver coefficient for heat Level0. -/
-def level0ResolverCoeff (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (k : ℕ) (t : ℝ) : ℝ :=
-  ShenWork.PDE.intervalNeumannResolverWeight p k *
-    srcTimeCoeff p (heatLevel0 p u₀) k t
-
-/-- Direct value summand with a time cutoff. -/
-def cutoffLevel0ResolverValueTerm
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (φ : ℝ → ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => φ q.1 * level0ResolverCoeff p u₀ k q.1 * cosineMode k q.2
-
-/-- Direct gradient summand with a time cutoff. -/
-def cutoffLevel0ResolverGradTerm
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (φ : ℝ → ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => φ q.1 * level0ResolverCoeff p u₀ k q.1 *
-    (-(k : ℝ) * Real.pi * Real.sin ((k : ℝ) * Real.pi * q.2))
-
-/-- A direct majorant package for the heat-Level0 resolver series.
-
-This is the exact data consumed by `contDiff_tsum`; it replaces the large
-`DuhamelSourceTimeC2Coeff` restart package. -/
-structure Level0ResolverDirectC2Majorants
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (s : ℝ) : Prop where
-  φ : ℝ → ℝ
-  hφ_one : φ =ᶠ[𝓝 s] fun _ : ℝ => 1
-  vValue : ℕ → ℕ → ℝ
-  vGrad : ℕ → ℕ → ℝ
-  valueTerm_c2 : ∀ k,
-    ContDiff ℝ (2 : ℕ∞) (cutoffLevel0ResolverValueTerm p u₀ φ k)
-  valueSumm : ∀ j : ℕ, (j : ℕ∞) ≤ (2 : ℕ∞) → Summable (vValue j)
-  valueBound : ∀ (j k : ℕ) (q : ℝ × ℝ), (j : ℕ∞) ≤ (2 : ℕ∞) →
-    ‖iteratedFDeriv ℝ j (cutoffLevel0ResolverValueTerm p u₀ φ k) q‖ ≤ vValue j k
-  gradTerm_c2 : ∀ k,
-    ContDiff ℝ (2 : ℕ∞) (cutoffLevel0ResolverGradTerm p u₀ φ k)
-  gradSumm : ∀ j : ℕ, (j : ℕ∞) ≤ (2 : ℕ∞) → Summable (vGrad j)
-  gradBound : ∀ (j k : ℕ) (q : ℝ × ℝ), (j : ℕ∞) ≤ (2 : ℕ∞) →
-    ‖iteratedFDeriv ℝ j (cutoffLevel0ResolverGradTerm p u₀ φ k) q‖ ≤ vGrad j k
-
-/-- Direct heat-Level0 resolver joint `C²` from direct coefficient majorants.
-This is the shortcut theorem: no `DuhamelSourceTimeC2Coeff`. -/
-theorem level0Resolver_direct_jointC2At_of_majorants
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {s x : ℝ}
-    (H : Level0ResolverDirectC2Majorants p u₀ s)
-    (hValueAgree :
-      (fun q : ℝ × ℝ =>
-        intervalDomainLift
-          (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration
-            p (heatLevel0 p u₀) q.1) q.2)
-        =ᶠ[𝓝 (s, x)]
-        fun q => ∑' k, level0ResolverCoeff p u₀ k q.1 * cosineMode k q.2)
-    (hGradAgree :
-      (fun q : ℝ × ℝ =>
-        deriv (intervalDomainLift
-          (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration
-            p (heatLevel0 p u₀) q.1)) q.2)
-        =ᶠ[𝓝 (s, x)]
-        fun q => ∑' k, level0ResolverCoeff p u₀ k q.1 *
-          (-(k : ℝ) * Real.pi * Real.sin ((k : ℝ) * Real.pi * q.2))) :
-    ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift
-            (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration
-              p (heatLevel0 p u₀) q.1) q.2) (s, x) ∧
-      ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          deriv (intervalDomainLift
-            (ShenWork.IntervalCoupledRegularityBootstrap.coupledChemicalConcentration
-              p (heatLevel0 p u₀) q.1)) q.2) (s, x) := by
-  -- Same proof as `resolverSpectralJointC2At_of_smooth_cutoff_contDiff_tsum`,
-  -- but with direct coefficients instead of `localRestartCoeff`.
-  have hφ_prod : (fun q : ℝ × ℝ => H.φ q.1) =ᶠ[𝓝 (s, x)] fun _ => 1 :=
-    H.hφ_one.comp_tendsto continuous_fst.continuousAt
-  have hValue : ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' k, cutoffLevel0ResolverValueTerm p u₀ H.φ k q) :=
-    contDiff_tsum
-      (𝕜 := ℝ)
-      (f := fun k : ℕ => cutoffLevel0ResolverValueTerm p u₀ H.φ k)
-      (v := H.vValue) H.valueTerm_c2 H.valueSumm H.valueBound
-  have hGrad : ContDiff ℝ (2 : ℕ∞)
-      (fun q : ℝ × ℝ => ∑' k, cutoffLevel0ResolverGradTerm p u₀ H.φ k q) :=
-    contDiff_tsum
-      (𝕜 := ℝ)
-      (f := fun k : ℕ => cutoffLevel0ResolverGradTerm p u₀ H.φ k)
-      (v := H.vGrad) H.gradTerm_c2 H.gradSumm H.gradBound
-  have hValueCutEq :
-      (fun q : ℝ × ℝ =>
-        ∑' k, level0ResolverCoeff p u₀ k q.1 * cosineMode k q.2)
-        =ᶠ[𝓝 (s, x)]
-        fun q => ∑' k, cutoffLevel0ResolverValueTerm p u₀ H.φ k q := by
-    filter_upwards [hφ_prod] with q hq
-    simp [cutoffLevel0ResolverValueTerm, hq]
-  have hGradCutEq :
-      (fun q : ℝ × ℝ =>
-        ∑' k, level0ResolverCoeff p u₀ k q.1 *
-          (-(k : ℝ) * Real.pi * Real.sin ((k : ℝ) * Real.pi * q.2)))
-        =ᶠ[𝓝 (s, x)]
-        fun q => ∑' k, cutoffLevel0ResolverGradTerm p u₀ H.φ k q := by
-    filter_upwards [hφ_prod] with q hq
-    simp [cutoffLevel0ResolverGradTerm, hq]
-  exact
-    ⟨hValue.contDiffAt.congr_of_eventuallyEq (hValueAgree.trans hValueCutEq),
-     hGrad.contDiffAt.congr_of_eventuallyEq (hGradAgree.trans hGradCutEq)⟩
-
-end ShenWork.Paper2.Level0ResolverDirectC2
+end ShenWork.IntervalIterateGradMajorant
 ```
 
-This is the clean direct shortcut pattern.  It is not meant as a drop-in replacement for the current `srcC2` line; it is a replacement for the surrounding consumer path.
+That route consumes not just `PhysicalResolverJointC2Data`, but also iterate joint-`C²`, iterate gradient majorant summability, a resolver-representative floor, and a boundary equality. Thus the closed-representative work is **separate** from the bare physical resolver joint-`C²` data.
 
-## Does the shortcut still need the same λ²-summable data?
+For 1A and 2A-sup, Q1032’s warning still applies: an interior `FluxJointC2Hyp` gives joint `C²` on the interior, but a compact uniform bound needs a continuous representative on the closed slab, including endpoint behavior. The existing `Gmix` lane may be reusable, but 1A’s `secondDeriv` bound and 2A-sup’s source sup bound still need their own closed-representative bridge for the exact fields they bound.
 
-Not literally the same package.
+### Q1051
 
-The full `DuhamelSourceTimeC2Coeff` structure is strong because the restart coefficient
+I do **not** confirm the “~11 files, each ~1 line” claim from the repo surface I inspected.
 
-```lean
-c_k(τ) = localRestartCoeff a₀ a τ k
-```
+The actual `IterateSourceTimeData.floor` code surface I found is small, but weakening the field is **not** a pure one-line change as typed, because the producer still targets all-time `FlooredSourceTimeData`. After weakening, the existing proof calls need a proof that the local time `s` is positive, and the current target quantifies over arbitrary `τ : ℝ` and `s ∈ Metric.ball τ δ`.
 
-satisfies the scalar ODE:
-
-```text
-c'_k = a_k - λ_k c_k,
-c''_k = adot_k - λ_k a_k + λ_k² c_k.
-```
-
-So the generic restart proof asks for λ- and λ²-weighted envelopes for `a` and `adot` to control the value and gradient series after differentiating in time and space.
-
-For the **direct elliptic resolver coefficient**
-
-```lean
-v_k(t) = (1 / (μ + λ_k)) * srcTimeCoeff p u k t,
-```
-
-the elliptic weight is built in from the start.  Direct `contDiff_tsum` asks for summability of the actual derivatives of `v_k(t)` times the spatial frequency factors.  Schematically, for the gradient field, the worst spatial part is closer to
-
-```text
-λ_k^(3/2) * |v_k(t)| ≈ λ_k^(1/2) * |srcCoeff_k(t)|,
-```
-
-not `λ_k² * |srcCoeff_k(t)|`.
-
-This is exactly why the repo has the physical lane:
-
-```lean
-PhysicalSourceTimeC2
-physicalSourceTimeC2_of_floored
-physicalResolverJointC2Data_of_floor
-```
-
-in `IntervalPhysicalResolverDataConcrete.lean` and `IntervalPhysicalSourceTimeC2Concrete.lean`.  That route folds the resolver weight
-
-```lean
-intervalNeumannResolverWeight p k = 1 / (p.μ + λ_k)
-```
-
-into the majorants and explicitly says it bypasses the `DuhamelSourceTimeC2Coeff` / eigen-cube ladder.
-
-So:
-
-- If you use **direct elliptic coefficients** or the **physical resolver lane**, you do not need the exact `DuhamelSourceTimeC2Coeff` fields.
-- You still need the analytic content of term `C²` and summable majorants for the concrete resolver series.
-- If you prove exponential decay of the nonlinear source coefficients on a positive time slab, these majorants are easy.
-- If you use only polynomial IBP, the needed depth is lower than the full restart `DuhamelSourceTimeC2Coeff` lane, because the elliptic weight cancels spatial growth.
-
-## Practical recommendation for Q1046
-
-For filling `IntervalResolverLevel0SpectralC2Coeff.lean` specifically, there are two choices:
-
-### Choice A: keep the current theorem shape
-
-Then you must fill:
-
-```lean
-srcC2 : DuhamelSourceTimeC2Coeff a
-```
-
-No shortcut inside that structure.
-
-### Choice B: replace the theorem path
-
-Add a new direct theorem, e.g.
-
-```lean
-level0Resolver_direct_jointC2At_of_majorants
-```
-
-or use the already-existing physical resolver lane:
-
-```lean
-physicalSourceTimeC2_of_floored
-physicalResolverJointC2Data_of_floor
-```
-
-Then wire the Level0 FAC/inner-commute proof from this direct local `ContDiffAt` data instead of from `ResolverHasSpectralAgreementC2Coeff`.
-
-This is the real shortcut.  It avoids the full `DuhamelSourceTimeC2Coeff`, but it requires a local rewrite of the consumer path.
+Also, the heat semigroup six obligations in `IntervalHeatSemigroupFlooredSourceTimeData.lean` do **not** become fillable merely by weakening `IterateSourceTimeData.floor`, because that file directly targets all-time `FlooredSourceTimeData`, including `t = 0`.
 
 ---
 
-# Q1042 — uniform bound of `secondDeriv` from joint continuity
+## Q1060 — detailed trace
 
-## Executive verdict
+### What `PhysicalResolverJointC2Data` gives
 
-The compactness bridge is straightforward and should be added as a small generic lemma.
-
-But the hard part is still producing the closed-slab jointly continuous representative `G2` and proving it agrees with the specific `secondDeriv` selected by:
+In `IntervalResolverJointC2PhysicalConcrete.lean`, `PhysicalResolverJointC2Data` is a coefficient regularity/summability package. It yields:
 
 ```lean
-chemDivSource_weakH2_of_cosineRep
+import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
+
+open Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+
+noncomputable section
+
+namespace ShenWork.IntervalResolverJointC2PhysicalConcrete
+
+#check PhysicalResolverJointC2Data
+#check coupledChemical_jointContDiffAt_two
+#check coupledChemical_grad_jointContDiffAt_two
+
+end ShenWork.IntervalResolverJointC2PhysicalConcrete
 ```
 
-The repo has many examples of `continuousOn_tsum`, but I did not find a generic theorem named like:
+Those two producer theorems are interior: they require `x ∈ Ioo 0 1`. They are enough for the local Clairaut/time-bridge work, but they are not closed-slab representative theorems.
+
+### What `IntervalChemDivFACCommuteDischarge.lean` discharges
+
+`IntervalChemDivFACCommuteDischarge.lean` proves:
 
 ```lean
-tsum_cos_jointContinuousOn
-cosine_series_continuousOn_compact
+import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+open Set Filter Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+#check coupledChemical_innerCommute_of_physicalJointC2
+#check coupledChemDivFlux_timeBridge_of_physicalJointC2
+#check coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged
+
+end ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
-Instead, existing files use `continuousOn_tsum` directly:
+The important point is that `coupledChemDivFluxFactorJointC2Inputs_of_physical_commuteDischarged` still takes an `other` bundle containing:
 
-- `SourceJointRegularity.lean` has private heat-leg joint continuity theorems:
-  - `heatValueSeries_jointContinuousOn`
-  - `heatDerivSeries_jointContinuousOn`
-- `IntervalSourceCoefficientTimeC1.lean` has public restart/Duhamel joint-continuity theorems:
-  - `duhamelSeries_jointContinuousOn`
-  - `duhamelDerivSeries_jointContinuousOn`
-  - `homogeneousSeries_jointContinuousOn`
-  - `restartSeries_jointContinuousOn`
-- `IntervalResolverSpectralJointC2Cutoff.lean` uses `contDiff_tsum` in the generic resolver C² cutoff theorem.
+* eventual closed-slice source continuity;
+* u-side Picard joint `C²`;
+* closed-slab continuity of `Function.uncurry (coupledChemDivTimeDerivativeLift p u)`.
 
-So for Q1042, the compactness part can be closed now by a generic lemma.  The missing analytic lemma is a `G2` producer.
+So 3F discharges the flux time bridge, not all closed-representative obligations.
 
-## Important correction: which representative is relevant for 1A?
+### What `IntervalChemDivTimeDerivClosed.lean` discharges
 
-For the Level0 1A sorry, the per-slice H² datum comes from:
+`IntervalChemDivTimeDerivClosed.lean` defines the representative requirement:
 
 ```lean
-chemDivSource_weakH2_of_cosineRep
+import ShenWork.PDE.IntervalChemDivTimeDerivClosed
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+open Set Filter Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalCoupledRegularityBootstrap
+
+example (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (τ δ : ℝ) : Prop :=
+  ∃ Gmix : ℝ × ℝ → ℝ, Continuous Gmix ∧
+    ∀ t ∈ Icc (τ - δ) (τ + δ), ∀ x ∈ Icc (0 : ℝ) 1,
+      coupledChemDivTimeDerivativeLift p u t x = Gmix (t, x)
+
+end ShenWork.IntervalCoupledRegularityBootstrap
 ```
 
-in `IntervalChemDivSpatialC2.lean`.  Inside that theorem, the representative is:
+Then `chemDivMixedTimeDeriv_jointContinuousOn_closed` converts this representative into the closed-slab `ContinuousOn`. This is a separate assumption/producer input, not a corollary of `PhysicalResolverJointC2Data` alone.
 
-```lean
-set F := deriv (chemFluxFun p.β U_cos V_cos)
-```
+---
 
-and the H² second derivative is:
+## Q1051 — exact file surface and cascade
 
-```lean
-secondDeriv := hF_H2.secondDeriv
-```
+### Files found
 
-where `hF_H2` was built by:
-
-```lean
-intervalWeakH2Neumann_of_contDiffOn
-```
-
-Thus, concretely:
+I cannot verify an 11-file list. The relevant files I found are:
 
 ```text
-secondDeriv(s,x) = deriv (deriv F_s) x
-                 = ∂ₓ² [∂ₓ flux_s](x)
-                 = ∂ₓ³ flux_s(x),
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean  (read from main)
 ```
 
-with
+Additional search hits were comments/docs:
 
-```lean
-flux_s(y) = chemFluxFun p.β U_cos_s V_cos_s y.
+```text
+ShenWork/PDE/IntervalIteratePicardJointC2.lean
+ShenWork/Paper2/IntervalBootstrapDecomp.lean
+ShenWork/Paper2/IntervalCosineSobolevEmbedding.lean
+UNDERSTANDING.md
+BANK_CHECKLIST.md
 ```
 
-This is **not** merely the second derivative of the resolver source `ν·u^γ`.  The resolver source coefficients are relevant for `v`, but the chemDiv H² source is the spatial derivative of the chemotaxis flux.
+The exact `H.floor` use I found was only in `ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean`.
 
-So the needed `G2` is something like:
+### Why the field weakening is not enough
 
-```lean
-def chemDivH2SecondRepr
-    (p : CM2Params) (U V : ℝ → ℝ → ℝ) : ℝ × ℝ → ℝ :=
-  fun q =>
-    deriv (deriv (deriv (chemFluxFun p.β (U q.1) (V q.1)))) q.2
-```
-
-The proof of `ContinuousOn G2 ([c,T]×[0,1])` needs joint continuity of enough spatial derivatives of `U` and `V` up to the order used by this expression.  Fixed-time `ContDiff ℝ 4` is not enough by itself; it must be made uniform/joint in `s` on the positive slab.
-
-## Compactness bridge: concrete Lean code
-
-This is the lemma I would add near `IntervalConjugateLevel0BFormSourceOn.lean`, or in a small helper file imported by it.
+Current shape:
 
 ```lean
-import ShenWork.PDE.IntervalMildSourceDecayHelper
+import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
 
-open Set Topology MeasureTheory
-open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
+open Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
 
 noncomputable section
 
-namespace ShenWork.Paper2.Level0SecondDerivCompactBridge
+namespace ShenWork.IntervalFlooredSourceTimeDataIterate
 
-/-- Uniform bound for the selected weak-H² `secondDeriv` once it has a closed-slab
-jointly continuous representative.
+-- Current field shape inside `IterateSourceTimeData`:
+example (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∀ t : ℝ, ∀ x ∈ Ioo (0 : ℝ) 1, 0 < intervalDomainLift (u t) x
 
-This is exactly the compactness step needed by Level0 sub-sorry 1A.  The analytic
-work is isolated in `G2`, `hG2_cont`, and `hagree`. -/
-theorem uniform_secondDeriv_bound_of_closed_repr
-    {F : ℝ → ℝ → ℝ} {c T : ℝ}
-    (hcT : c ≤ T)
-    (H2 : ∀ s, s ∈ Icc c T → IntervalWeakH2Neumann (F s))
-    {G2 : ℝ × ℝ → ℝ}
-    (hG2_cont : ContinuousOn G2 (Icc c T ×ˢ Icc (0 : ℝ) 1))
-    (hagree : ∀ s (hs : s ∈ Icc c T), ∀ x ∈ Icc (0 : ℝ) 1,
-      (H2 s hs).secondDeriv x = G2 (s, x)) :
-    ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
-      ∀ x ∈ Icc (0 : ℝ) 1,
-        |(H2 s hs).secondDeriv x| ≤ C := by
-  classical
-  set K : Set (ℝ × ℝ) := Icc c T ×ˢ Icc (0 : ℝ) 1 with hKdef
-  have hKcompact : IsCompact K := by
-    rw [hKdef]
-    exact isCompact_Icc.prod isCompact_Icc
-  have hKnonempty : K.Nonempty := by
-    refine ⟨(c, (0 : ℝ)), ?_⟩
-    rw [hKdef]
-    exact mem_prod.mpr
-      ⟨left_mem_Icc.mpr hcT,
-       left_mem_Icc.mpr (by norm_num : (0 : ℝ) ≤ 1)⟩
-  have hAbsCont : ContinuousOn (fun q : ℝ × ℝ => |G2 q|) K := by
-    rw [hKdef]
-    exact hG2_cont.abs
-  obtain ⟨q0, hq0K, hmax⟩ := hKcompact.exists_isMaxOn hKnonempty hAbsCont
-  refine ⟨|G2 q0|, abs_nonneg _, ?_⟩
-  intro s hs x hx
-  rw [hagree s hs x hx]
-  have hqx : (s, x) ∈ K := by
-    rw [hKdef]
-    exact mem_prod.mpr ⟨hs, hx⟩
-  exact hmax hqx
+-- Proposed positive-time field shape:
+example (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∀ t : ℝ, 0 < t → ∀ x ∈ Ioo (0 : ℝ) 1,
+    0 < intervalDomainLift (u t) x
 
-end ShenWork.Paper2.Level0SecondDerivCompactBridge
+end ShenWork.IntervalFlooredSourceTimeDataIterate
 ```
 
-Then the 1A block becomes:
+But `flooredSourceTimeData_of_iterate` currently uses the floor as:
 
 ```lean
-have hunif_ptwise : ∃ C, 0 ≤ C ∧ ∀ s (hs : s ∈ Icc c T),
-    ∀ x ∈ Icc (0 : ℝ) 1, |(hH2_per_slice s hs).secondDeriv x| ≤ C := by
-  exact ShenWork.Paper2.Level0SecondDerivCompactBridge
-    .uniform_secondDeriv_bound_of_closed_repr
-      (F := fun s => coupledChemDivSourceLift p (conjugatePicardIter p u₀ 0) s)
-      (c := c) (T := T) hcT hH2_per_slice
-      hG2_cont hG2_agree
-```
+import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
 
-where the remaining analytic obligations are:
-
-```lean
-hG2_cont : ContinuousOn G2 (Icc c T ×ˢ Icc (0 : ℝ) 1)
-
-hG2_agree : ∀ s (hs : s ∈ Icc c T), ∀ x ∈ Icc (0 : ℝ) 1,
-  (hH2_per_slice s hs).secondDeriv x = G2 (s, x)
-```
-
-This is exactly the right decomposition: compactness is solved separately from the source/flux calculus.
-
-## Generic cosine-series joint-continuity skeleton
-
-Although no named `tsum_cos_jointContinuousOn` theorem was found, the repo repeatedly uses `continuousOn_tsum`.  A reusable helper can be added if desired:
-
-```lean
-import Mathlib.Analysis.Calculus.SmoothSeries
-import ShenWork.Paper2.IntervalConjugatePicard
-
-open Set Topology
-open ShenWork.CosineSpectrum (cosineMode)
+open Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
 
 noncomputable section
 
-namespace ShenWork.Paper2.CosineSeriesJointContinuity
+namespace ShenWork.IntervalFlooredSourceTimeDataIterate
 
-/-- Generic joint continuity of a cosine synthesis from a summable uniform majorant. -/
-theorem cosineSeries_jointContinuousOn_of_summable_bound
-    {K : Set (ℝ × ℝ)} {b : ℝ → ℕ → ℝ} {E : ℕ → ℝ}
-    (hterm : ∀ n, ContinuousOn
-      (fun q : ℝ × ℝ => b q.1 n * cosineMode n q.2) K)
-    (hE : Summable E)
-    (hbound : ∀ n, ∀ q ∈ K,
-      ‖b q.1 n * cosineMode n q.2‖ ≤ E n) :
-    ContinuousOn
-      (fun q : ℝ × ℝ => ∑' n, b q.1 n * cosineMode n q.2) K := by
-  exact continuousOn_tsum hterm hE hbound
+-- Existing proof pattern:
+--   exact hasDerivAt_srcSlice (H.floor s x hx) (hdiff x hx s hs)
+--   exact hasDerivAt_srcSlice1 (H.floor s x hx) h1 h2
+--
+-- After weakening, those calls need:
+--   have hspos : 0 < s := ?_
+--   exact hasDerivAt_srcSlice (H.floor s hspos x hx) (hdiff x hx s hs)
+--   exact hasDerivAt_srcSlice1 (H.floor s hspos x hx) h1 h2
 
-/-- Joint continuity of a second-spatial-derivative cosine synthesis.
-If `F(s,x) = ∑ b(s,n) cos(nπx)`, then formally
-`∂ₓ²F(s,x) = ∑ -λₙ b(s,n) cos(nπx)`. -/
-theorem cosineSeries_secondDeriv_jointContinuousOn_of_summable_bound
-    {K : Set (ℝ × ℝ)} {b : ℝ → ℕ → ℝ} {E : ℕ → ℝ}
-    (hterm : ∀ n, ContinuousOn
-      (fun q : ℝ × ℝ =>
-        (-(unitIntervalCosineEigenvalue n) * b q.1 n) * cosineMode n q.2) K)
-    (hE : Summable E)
-    (hbound : ∀ n, ∀ q ∈ K,
-      ‖(-(unitIntervalCosineEigenvalue n) * b q.1 n) * cosineMode n q.2‖ ≤ E n) :
-    ContinuousOn
-      (fun q : ℝ × ℝ => ∑' n,
-        (-(unitIntervalCosineEigenvalue n) * b q.1 n) * cosineMode n q.2) K := by
-  exact continuousOn_tsum hterm hE hbound
-
-end ShenWork.Paper2.CosineSeriesJointContinuity
+end ShenWork.IntervalFlooredSourceTimeDataIterate
 ```
 
-For the actual 1A `secondDeriv`, the coefficient-series route may not be the shortest route, because `secondDeriv` is tied to the `F := deriv (chemFluxFun ...)` representative chosen in `chemDivSource_weakH2_of_cosineRep`.  It may be cleaner to define `G2` by the chain-rule expression and prove `hG2_cont` from joint regularity of `U_cos`/`V_cos` and their spatial derivatives, instead of re-identifying it as a cosine series.
+The missing `hspos : 0 < s` is not available from the current all-time `FlooredSourceTimeData` target. Its `d0` and `d1` fields quantify over every `τ : ℝ`; for `τ ≤ 0`, the local ball cannot be made entirely positive without changing the target.
 
-## What repo theorem is closest?
+### Why the six heat-base obligations do not become fillable as typed
 
-The closest public reusable tools are:
+`IntervalHeatSemigroupFlooredSourceTimeData.lean` directly targets:
 
 ```lean
-continuousOn_tsum
-contDiff_tsum
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
+
+open Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam FlooredSourceTimeData)
+open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
+
+noncomputable section
+
+namespace ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
+
+#check heatSemigroup_flooredSourceTimeData
+
+end ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
 ```
 
-plus examples:
+That theorem returns an all-time `FlooredSourceTimeData`, not an `IterateSourceTimeData`. The heat smoothing lemmas I saw in `IntervalHeatSemigroupHighRegularity.lean` are positive-time statements, e.g. `heatSemigroup_contDiff_four` requires `0 < t`, and the joint cutoff argument is local around `s₀ > c > 0`.
+
+Thus the six heat obligations are plausible on a positive window `[c,T]`, `0 < c`, but not as all-time obligations for merely continuous `u₀`. At `t = 0`, the heat slice is just `u₀`; it need not be spatial `C²`, satisfy the Neumann derivative data, or have the uniform Laplacian bounds needed for the `(kπ)⁻²` envelope.
+
+---
+
+## Direct answers to Q1051’s numbered questions
+
+### 1. Exact 11 files?
+
+Not verified. I found the real code surface listed above, not 11 files. The exact `H.floor` use appears only in `IntervalFlooredSourceTimeDataIterate.lean`.
+
+### 2. One-line or cascading?
+
+Cascading. The immediate break is that positive-time-only `floor` requires an `0 < s` proof inside `flooredSourceTimeData_of_iterate`, but the current all-time target does not provide one.
+
+### 3. Would the six heat sorries become fillable?
+
+Not as typed. They become plausible only after a positive-window retyping or stronger initial-data assumptions. The current all-time `FlooredSourceTimeData` still hits `t = 0`.
+
+### 4. Would this fill `PhysicalResolverJointC2Data` and close 3C/3D directly?
+
+Not directly as typed. A positive-window Option A route could avoid the VOC / `DuhamelSourceTimeC2Coeff` route for positive-time consumers, but it needs a windowed source/resolver package and downstream consumer wiring. Merely weakening `IterateSourceTimeData.floor` does not fill the current all-time `FlooredSourceTimeData` gate.
+
+---
+
+## Recommended route
+
+The safe version of Option A is not just a field weakening. It is a positive-window split:
 
 ```lean
-ShenWork.IntervalSourceCoefficientTimeC1.duhamelSeries_jointContinuousOn
-ShenWork.IntervalSourceCoefficientTimeC1.duhamelDerivSeries_jointContinuousOn
-ShenWork.IntervalSourceCoefficientTimeC1.homogeneousSeries_jointContinuousOn
-ShenWork.IntervalSourceCoefficientTimeC1.restartSeries_jointContinuousOn
+import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
+import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+
+open Filter Topology Set
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam)
+
+noncomputable section
+
+namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
+
+/-- Schematic positive-window replacement for the all-time source package. -/
+structure FlooredSourceTimeDataOn
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (s₁ s₂ : ℝ → ℝ → ℝ) (c T : ℝ) : Prop where
+  hc : 0 < c
+  hct : c ≤ T
+  d0 : ∀ τ ∈ Icc c T, ∃ δ : ℝ, 0 < δ ∧ True
+  d1 : ∀ τ ∈ Icc c T, ∃ δ : ℝ, 0 < δ ∧ True
+  sliceC2 : ∀ i : ℕ, i ≤ 2 → ∀ t ∈ Icc c T,
+    ContDiffOn ℝ 2 ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0 : ℝ) 1)
+  sliceNeumann : ∀ i : ℕ, i ≤ 2 → ∀ t ∈ Icc c T, True
+  zerothBound : ∀ i : ℕ, i ≤ 2 → ∃ D : ℝ, 0 ≤ D ∧ True
+  laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧ True
+
+end ShenWork.IntervalPhysicalSourceTimeC2Concrete
 ```
 
-and the private examples in:
-
-```lean
-ShenWork.EWA.SourceJointRegularity.heatValueSeries_jointContinuousOn
-ShenWork.EWA.SourceJointRegularity.heatDerivSeries_jointContinuousOn
-```
-
-The theorem
-
-```lean
-ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
-  .cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
-```
-
-is useful in the reverse direction: joint continuity of a spatial field gives continuity of each cosine coefficient in time.  It does not synthesize joint continuity of a cosine series.
-
-## Bottom line for Q1042
-
-The compactness bridge is available with a small lemma, shown above.  The repo does not appear to have a single generic `tsum_cos_jointContinuousOn` theorem, but it has the Mathlib `continuousOn_tsum` pattern repeatedly instantiated.
-
-The remaining analytic task is to build the closed-slab representative:
-
-```lean
-G2(s,x) = ∂ₓ² [∂ₓ chemFluxFun p.β U_s V_s](x)
-```
-
-or an equivalent cosine-series representative, prove:
-
-```lean
-ContinuousOn G2 (Icc c T ×ˢ Icc 0 1)
-```
-
-and prove that this is exactly the `secondDeriv` field selected by `chemDivSource_weakH2_of_cosineRep`.
-
-That is the real 1A closure point; after that, the uniform bound is just compactness.
+Then prove the six heat obligations on `[c,T]` using positive-time heat smoothing, add a windowed physical resolver producer, and feed only positive-time FAC consumers. Separately, close 1A and 2A-sup by proving closed-slab representatives for the exact fields their compactness bounds consume.
