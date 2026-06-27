@@ -1201,10 +1201,25 @@ theorem level0_chemDiv_timeDerivData
         -- Neumann BCs: deriv g_smooth vanishes at 0 and 1
         -- g_smooth is even (composition of even U_cos with even rpow), so deriv is odd → 0 at 0
         -- g_smooth(2-x) = g_smooth(x), so deriv at 1 = 0
+        have hg_even : ∀ x, g_smooth (-x) = g_smooth x := by
+          intro x; simp only [hg_def, hU_even]
+        have hg_symm1 : ∀ x, g_smooth (2 - x) = g_smooth x := by
+          intro x; simp only [hg_def, hU_symm1]
+        have hg'_odd : ∀ x, deriv g_smooth (-x) = -(deriv g_smooth x) := by
+          intro x
+          have h := deriv_comp_neg (f := g_smooth) (x := x)
+          rw [show (fun x => g_smooth (-x)) = g_smooth from funext hg_even] at h
+          linarith
         have hg_bc0 : deriv g_smooth 0 = 0 := by
-          sorry -- [deriv of even function at 0 = 0; or chain rule deriv(ν·U^γ) = ν·γ·U^{γ-1}·U', U'(0) = 0]
+          have h0 := hg'_odd 0; rw [neg_zero] at h0; linarith
         have hg_bc1 : deriv g_smooth 1 = 0 := by
-          sorry -- [same via symmetry about 1: g_smooth(2-x) = g_smooth(x) → deriv at 1 = 0]
+          -- g_smooth(2-x) = g_smooth(x) means g_smooth is symmetric about 1.
+          -- The shifted function h(x) = g_smooth(1+x) is even: h(-x) = g_smooth(1-x) = g_smooth(2-(1+x))...
+          -- Simpler: use odd_zero on hg'_odd shifted by 1.
+          -- Actually: from hg_symm1 and hg_periodic, g_smooth(1+x) = g_smooth(1-x).
+          -- So g_smooth ∘ (1+·) is even, hence its derivative is odd, hence 0 at 0.
+          -- deriv(g_smooth ∘ (1+·)) 0 = deriv g_smooth 1 · 1 = deriv g_smooth 1.
+          sorry
         have htend0 := hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
         have htend1 := hg'_cont.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
         have hf_H2 := ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_contDiffOn
