@@ -121,7 +121,8 @@ private theorem srcTimeCoeff_hasDerivAt
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d0 t ht
   have hcont_int : ∀ᶠ s in 𝓝 t,
       IntervalIntegrable (srcSlice p u s) MeasureTheory.volume (0 : ℝ) 1 := by
-    filter_upwards [hcont] with s hs; exact hs.intervalIntegrable
+    filter_upwards [hcont] with s hs
+    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
   have hH := cosineCoeffs_hasDerivAt_of_smooth_param (f := srcSlice p u)
     (f' := s₁) (τ := t) (δ := δ) (n := k) hδ hcont_int hdiff hcd
   have heq : (fun s => cosineCoeffs (srcSlice p u s) k) = srcTimeCoeff p u k := by
@@ -136,7 +137,8 @@ private theorem cosS1_hasDerivAt
   obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ := H.d1 t ht
   have hcont_int : ∀ᶠ s in 𝓝 t,
       IntervalIntegrable (s₁ s) MeasureTheory.volume (0 : ℝ) 1 := by
-    filter_upwards [hcont] with s hs; exact hs.intervalIntegrable
+    filter_upwards [hcont] with s hs
+    exact (hs.mono (by rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)])).intervalIntegrable
   exact cosineCoeffs_hasDerivAt_of_smooth_param (f := s₁) (f' := s₂)
     (τ := t) (δ := δ) (n := k) hδ hcont_int hdiff hcd
 
