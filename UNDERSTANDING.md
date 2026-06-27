@@ -18,16 +18,22 @@ FluxJointC2Hyp (sub-sorry 3C was filled via coupledChemical_jointContDiffAt_two 
 PhysicalResolverJointC2Data), but NOT available as a standalone theorem for the
 envelope construction.
 
-### NEXT PRIORITY: fill 5 PhysicalResolverJointC2Data sub-sorry
-In IntervalHeatSemigroupHighRegularity.lean (heatSemigroup_level0_resolverJointC2Data):
-- Bt witness (existential bound family)
-- SUB-SORRY A: coeff_contDiff (resolverTimeCoeff C² in t)
-- SUB-SORRY B: coeff_bound (iteratedFDeriv ≤ Bt)
-- SUB-SORRY C: value_summable (boundedWeightJointMajorant)
-- SUB-SORRY D: grad_summable (boundedWeightJointGradMajorant)
-Each needs heat semigroup source coefficient time-C² + elliptic weight decay.
-Once filled → heatResolverJointContDiffAt_two becomes 0 sorry →
-unlocks all 3 Level0 sorry (1A, 2A-sup via joint continuity + compactness).
+### ROOT CAUSE: ∀ τ : ℝ scope mismatch (STRUCTURAL)
+IterateSourceTimeData.floor requires positivity ∀ t : ℝ, but S(0)=0 (Lean
+convention). The PhysicalResolverJointC2Data chain through FlooredSourceTimeData
+is UNFILLABLE for the raw heat semigroup.
+
+### NEXT SESSION OPTIONS (pick one):
+(A) Weaken IterateSourceTimeData.floor to ∀ t, 0 < t → positivity
+    (cross-cutting change across ~11 files, each ~1 line)
+(B) Bypass the chain entirely: prove heatResolverJointContDiffAt_two
+    DIRECTLY using cutoff approach (same as heatSemigroup_jointContDiffAt_two)
+    — needs ContDiff of cutoff resolver term, which needs srcTimeCoeff C²
+    for t > 0 (via cosineCoeffs_hasDerivAt_of_smooth_param)
+(C) Build a positive-window-only IterateSourceTimeDataOn structure
+
+Option (B) is the most self-contained. The existing cutoff heat semigroup
+proof is the template — adapt it for the resolver series.
 
 ### 0-sorry infrastructure landed this session:
 - IntervalSourceDecayQuantitative: quartic decay + eigenvalue L¹ summability
