@@ -60,7 +60,7 @@ theorem coupledChemical_innerCommute_of_directJointC2
         ∀ᶠ q in 𝓝 (s, y), ContDiffAt ℝ 2 (Function.uncurry F) q :=
       hFC2.eventually (by norm_num)
     have hpair_tendsto : Tendsto (fun z : ℝ => (s, z)) (𝓝 y) (𝓝 (s, y)) := by
-      simpa using (continuous_const.prod continuous_id).continuousAt
+      exact continuousAt_const.prod continuousAt_id
     have hFC2_y :
         ∀ᶠ z in 𝓝 y, ContDiffAt ℝ 2 (Function.uncurry F) (s, z) :=
       hpair_tendsto.eventually hFC2_eventually
@@ -76,6 +76,3 @@ theorem coupledChemical_innerCommute_of_directJointC2
       hFC2 hspatial htime
 
 end ShenWork.Paper2.Level0DirectResolverCommute
-```
-```lean
-hFC2.eventually (by norm_num)

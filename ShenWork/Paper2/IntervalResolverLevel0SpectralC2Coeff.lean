@@ -183,7 +183,8 @@ theorem resolverHasSpectralAgreementC2Coeff_heatLevel0
         exact Filter.inter_mem
           (isOpen_Ioo.mem_nhds ⟨ht₀, ht₀T⟩)
           (isOpen_Ioi.mem_nhds (by
-            dsimp [offset, halfOffset]
+            show halfOffset t₀ < t₀
+            simp only [halfOffset]
             linarith))
       filter_upwards [hnear_time] with s hs x
       have hs0 : 0 < s := hs.1.1
