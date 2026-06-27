@@ -175,14 +175,24 @@ theorem srcTimeCoeff_contDiffAt
     fun s hs => (hd1 s hs).deriv
   have hc2_on : ContinuousOn f₂ (Set.Ioi 0) :=
     fun s hs => (hc2 s hs).continuousWithinAt
-  -- All mathematical content proved above:
-  --   hd0 : HasDerivAt f₀ (f₁ s) s   for all s > 0
-  --   hd1 : HasDerivAt f₁ (f₂ s) s   for all s > 0
-  --   hc2 : ContinuousAt f₂ s        for all s > 0
-  -- Assembly: contDiffOn_succ_of_fderivWithin twice + toSpanSingleton CLM packaging.
-  -- The toSpanSingleton→ContinuousLinearMap dot-notation is blocked on Lean
-  -- elaboration (toSpanSingleton is a function, not a bundled CLM in Mathlib).
-  sorry
+  have hsmul0 : ContDiffOn ℝ 0
+      (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₂ s)) (Set.Ioi 0) := by
+    simpa using (contDiffOn_const (c := (1 : StrongDual ℝ ℝ))).smulRight
+      (contDiffOn_zero.mpr hc2_on)
+  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
+    contDiffOn_succ_of_fderivWithin hd1_on (by nofun)
+      (hsmul0.congr (fun s hs => by
+        rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+        exact ((hd1 s hs).hasFDerivAt.fderiv).symm))
+  have hsmul1 : ContDiffOn ℝ 1
+      (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)) (Set.Ioi 0) := by
+    simpa using (contDiffOn_const (c := (1 : StrongDual ℝ ℝ))).smulRight h0
+  have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
+    contDiffOn_succ_of_fderivWithin hd0_on (by nofun)
+      (hsmul1.congr (fun s hs => by
+        rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+        exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
+  exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
 private theorem srcTimeCoeff_iteratedDeriv1
