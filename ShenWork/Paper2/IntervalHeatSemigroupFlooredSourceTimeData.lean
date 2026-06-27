@@ -130,8 +130,7 @@ theorem heatSemigroup_flooredSourceTimeData
     FlooredSourceTimeData p (conjugatePicardIter p u₀ 0)
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
       (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) where
-  d0 := by
-    intro τ hτ
+  d0 τ hτ := by
     set δ : ℝ := min 1 (τ / 2)
     have hδ : 0 < δ := lt_min one_pos (half_pos hτ)
     have hleft : 0 < τ - δ := by linarith [min_le_right (1 : ℝ) (τ / 2)]
@@ -163,15 +162,15 @@ theorem heatSemigroup_flooredSourceTimeData
       exact hasDerivAt_srcSlice (hfloor s hs_pos x hxIcc) hderiv
     · -- (c) Joint ContinuousOn of srcSlice1 on slab
       sorry
-  d1 := by
-    -- OBLIGATION: ∀ τ > 0, ∃ δ > 0 such that:
+  d1 τ hτ := by
+    -- OBLIGATION: ∃ δ > 0 such that:
     --   (a) s₁ is ContinuousOn [0,1] near τ
     --   (b) HasDerivAt (s₁ · x) (s₂ · x) for x ∈ (0,1)
     --   (c) s₂ is jointly ContinuousOn on a slab
     -- Now ONLY for τ > 0: uses product/chain rule under the heat floor + the heat
     -- equation for the second time derivative.
     sorry
-  sliceC2 := by
+  sliceC2 i hi t ht := by
     -- OBLIGATION: ∀ i ≤ 2, ∀ t > 0, ContDiffOn ℝ 2 (slice_i t) [0,1]
     -- For t > 0 and i = 0: srcSlice = ν·(S(t)u₀)^γ.  The heat semigroup gives C⁴
     --   in space for t > 0 (from heatSemigroup_contDiff_four), and S(t)u₀ > 0 on (0,1)
@@ -182,14 +181,14 @@ theorem heatSemigroup_flooredSourceTimeData
     --   both C² under the floor.
     -- The old t ≤ 0 case is eliminated by the weakening.
     sorry
-  sliceNeumann := by
+  sliceNeumann i hi t ht := by
     -- OBLIGATION: ∀ i ≤ 2, ∀ t > 0, deriv (slice_i t) vanishes at 0 and 1
     -- For the heat semigroup, the Neumann eigenfunction expansion guarantees
     -- that the spatial derivatives of S(t)u₀ satisfy Neumann BCs (deriv cos(kπx)
     -- vanishes at 0 and 1).  The chain/product rule through rpow preserves this
     -- because deriv(u^γ) = γ·u^{γ-1}·u' and u' = 0 at the boundary.
     sorry
-  zerothBound := by
+  zerothBound i hi := by
     -- OBLIGATION: ∀ i ≤ 2, ∃ D ≥ 0, ∀ t > 0, |cosineCoeffs (slice_i t) 0| ≤ D
     -- The zeroth cosine coefficient is the integral ∫₀¹ f(x) dx.
     -- For the heat semigroup: S(t)u₀ is bounded by M₀ (coefficient bound gives
@@ -197,7 +196,7 @@ theorem heatSemigroup_flooredSourceTimeData
     -- ν·M₀^γ.  Similarly for s₁ and s₂ (their integrals are bounded by products
     -- of sup-norm bounds of u, du, d2u on [0,1]).
     sorry
-  laplBound := by
+  laplBound i hi := by
     -- OBLIGATION: ∀ i ≤ 2, ∃ M ≥ 0, ∀ t > 0, ∀ k, 1 ≤ k →
     --   |cosineCoeffs (slice_i t) k| ≤ M / (kπ)²
     -- This is the IBP decay from the committed `cosineCoeff_decay`: when the

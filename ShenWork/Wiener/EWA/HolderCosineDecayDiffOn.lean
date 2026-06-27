@@ -41,7 +41,7 @@ namespace ShenWork.Wiener.EWA
 `sin 0 = sin(nπ) = 0`,
 `∫₀¹ cos(nπx) g = −(1/(nπ)) ∫₀¹ (derivWithin g [0,1])(x) sin(nπx) dx`. -/
 theorem cos_integral_eq_neg_sine_integral_diffOn (g : ℝ → ℝ)
-    (hg : Continuous g) (hg' : DifferentiableOn ℝ g (Set.Icc (0:ℝ) 1))
+    (_hg : Continuous g) (hg' : DifferentiableOn ℝ g (Set.Icc (0:ℝ) 1))
     (hD_cont : Continuous (fun x => derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x)))
     {n : ℕ} (hn : 1 ≤ n) :
     (∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * g x) =
@@ -79,12 +79,13 @@ theorem cos_integral_eq_neg_sine_integral_diffOn (g : ℝ → ℝ)
         (fun x => derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x)) volume 0 1 :=
       hD_cont.intervalIntegrable _ _
     refine hDc_int.congr ?_
-    have hsub : Set.uIoc (0:ℝ) 1 ⊆ Set.Icc (0:ℝ) 1 := by
+    have : Set.uIoc (0:ℝ) 1 ⊆ Set.Icc (0:ℝ) 1 := by
       rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
       exact Set.Ioc_subset_Icc_self
     intro x hx
-    show derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x) = derivWithin g (Set.Icc (0:ℝ) 1) x
-    rw [clamp01_eq_self (hsub hx)]
+    change derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x) =
+      derivWithin g (Set.Icc (0:ℝ) 1) x
+    rw [clamp01_eq_self (this hx)]
   have hcos_int : IntervalIntegrable
       (fun x => Real.cos ((n : ℝ) * Real.pi * x)) volume 0 1 :=
     (Real.continuous_cos.comp (continuous_const.mul continuous_id)).intervalIntegrable _ _
@@ -118,104 +119,100 @@ theorem cos_integral_eq_neg_sine_integral_diffOn (g : ℝ → ℝ)
     ring
   rw [hcomm, hIBP, hpull]; ring
 
-/-- `clamp01` is `1`-Lipschitz: `|clamp01 x − clamp01 y| ≤ |x − y|`. -/
-private theorem clamp01_abs_sub_le (x y : ℝ) :
-    |ShenWork.Paper2.clamp01 x - ShenWork.Paper2.clamp01 y| ≤ |x - y| := by
-  have hlip : LipschitzWith 1 ShenWork.Paper2.clamp01 :=
-    ((LipschitzWith.id.const_min (1 : ℝ)).const_max (0 : ℝ))
-  have := hlip.dist_le_mul x y
-  simpa only [Real.dist_eq, NNReal.coe_one, one_mul] using this
+/-- **Main closed-interval decay bound.**  A function that is differentiable on
+`[0,1]`, with `η`-Hölder closed-interval derivative, has cosine coefficients decaying
+like `n^{-(1+η)}`.
 
-/-- The **clamp extension** of `derivWithin w (Icc 0 1)`: globally `η`-Hölder when
-`derivWithin w (Icc 0 1)` is `η`-Hölder on `[0,1]`, and agrees with `derivWithin w (Icc 0 1)`
-on `[0,1]`.  `clamp01` is `1`-Lipschitz, so the `[0,1]` modulus transports to all of `ℝ`. -/
-private noncomputable def Dclamp (w : ℝ → ℝ) : ℝ → ℝ :=
-  fun x => derivWithin w (Set.Icc (0:ℝ) 1) (ShenWork.Paper2.clamp01 x)
-
-private theorem Dclamp_holder {w : ℝ → ℝ} {η K : ℝ} (hη0 : 0 < η) (hK : 0 ≤ K)
-    (hHolder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
-       |derivWithin w (Set.Icc (0:ℝ) 1) x - derivWithin w (Set.Icc (0:ℝ) 1) y|
-         ≤ K * |x - y| ^ η) :
-    ∀ x y, |Dclamp w x - Dclamp w y| ≤ K * |x - y| ^ η := by
-  intro x y
-  have hbd := hHolder _ (ShenWork.Paper2.clamp01_mem x) _ (ShenWork.Paper2.clamp01_mem y)
-  refine hbd.trans ?_
-  have hclamp : |ShenWork.Paper2.clamp01 x - ShenWork.Paper2.clamp01 y| ^ η ≤ |x - y| ^ η :=
-    Real.rpow_le_rpow (abs_nonneg _) (clamp01_abs_sub_le x y) hη0.le
-  exact mul_le_mul_of_nonneg_left hclamp hK
-
-/-- **Decay bound, `DifferentiableOn` variant.**  A `w` that is differentiable on `[0,1]`
-with an `η`-Hölder `derivWithin` on `[0,1]` has cosine coefficients decaying like
-`n^{-(1+η)}`.  No Neumann condition: the cosine-IBP boundary term
-`[w·sin(nπx)/(nπ)]₀¹` already vanishes from `sin(nπ)=sin 0=0`. -/
-theorem holderCosineCoeff_decay_of_differentiableOn (w : ℝ → ℝ)
-    (hwc : Continuous w) (hw : DifferentiableOn ℝ w (Set.Icc (0:ℝ) 1))
+The derivative used in the sine-decay lemma is the clamped representative
+`x ↦ derivWithin g (Icc 0 1) (clamp01 x)`, so no global differentiability of `g` is
+required. -/
+theorem holderCosineCoeff_decay_diffOn (g : ℝ → ℝ)
+    (hg : Continuous g) (hg' : DifferentiableOn ℝ g (Set.Icc (0:ℝ) 1))
+    (hD_cont : Continuous (fun x => derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x)))
+    (_hNeumann : derivWithin g (Set.Icc (0:ℝ) 1) 0 = 0 ∧
+      derivWithin g (Set.Icc (0:ℝ) 1) 1 = 0)
     {η : ℝ} (hη0 : 0 < η) (hη1 : η ≤ 1) {K : ℝ} (hK : 0 ≤ K)
-    (hHolder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
-       |derivWithin w (Set.Icc (0:ℝ) 1) x - derivWithin w (Set.Icc (0:ℝ) 1) y|
-         ≤ K * |x - y| ^ η) :
+    (hHolder : ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
+      |derivWithin g (Set.Icc (0:ℝ) 1) x -
+        derivWithin g (Set.Icc (0:ℝ) 1) y| ≤ K * |x - y| ^ η) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ n : ℕ, 1 ≤ n →
-      |cosineCoeffs w n| ≤ C * (n : ℝ) ^ (-(1 + η)) := by
-  -- global `η`-Hölder clamp extension of `derivWithin w (Icc 0 1)`.
-  have hDholder : ∀ x y, |Dclamp w x - Dclamp w y| ≤ K * |x - y| ^ η :=
-    Dclamp_holder hη0 hK hHolder
-  have hD_cont0 : Continuous (Dclamp w) := continuous_of_holder hη0 hK hDholder
-  have hD_cont : Continuous (fun x => derivWithin w (Set.Icc (0:ℝ) 1)
-      (ShenWork.Paper2.clamp01 x)) := hD_cont0
-  set Cη : ℝ := (1 / 2) * (K + 2 * (|Dclamp w 0| + K * 2 ^ η)) with hCη
+      |cosineCoeffs g n| ≤ C * (n : ℝ) ^ (-(1 + η)) := by
+  classical
+  let D : ℝ → ℝ := fun x => derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x)
+  have hD_holder : ∀ x y : ℝ, |D x - D y| ≤ K * |x - y| ^ η := by
+    intro x y
+    have hxy := hHolder (clamp01 x) (clamp01 y) (clamp01_mem x) (clamp01_mem y)
+    have hclamp : |clamp01 x - clamp01 y| ≤ |x - y| := by
+      have hlip : LipschitzWith 1 clamp01 :=
+        ((LipschitzWith.id.const_min (1 : ℝ)).const_max (0 : ℝ))
+      have := hlip.dist_le_mul x y
+      simpa only [Real.dist_eq, NNReal.coe_one, one_mul] using this
+    have hp : |clamp01 x - clamp01 y| ^ η ≤ |x - y| ^ η :=
+      Real.rpow_le_rpow (abs_nonneg _) hclamp (le_of_lt hη0)
+    exact (hxy.trans (mul_le_mul_of_nonneg_left hp hK))
+  set Cη : ℝ := (1 / 2) * (K + 2 * (|D 0| + K * 2 ^ η)) with hCη
   have hCη_nonneg : 0 ≤ Cη := by
-    rw [hCη]; have : (0:ℝ) ≤ K * 2 ^ η := mul_nonneg hK (by positivity); positivity
+    rw [hCη]
+    have : (0:ℝ) ≤ K * 2 ^ η := mul_nonneg hK (by positivity)
+    positivity
   refine ⟨2 * Cη / Real.pi, by positivity, fun n hn => ?_⟩
   have hnpos : (0 : ℝ) < n := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hn
   have hπpos : (0 : ℝ) < Real.pi := Real.pi_pos
-  -- coefficient = `2 · (-(1/(nπ)) · S)` where `S = ∫₀¹ (derivWithin w) · sin`.
-  rw [cosineCoeffs_eq_two_mul_integral w hwc hn,
-    cos_integral_eq_neg_sine_integral_diffOn w hwc hw hD_cont hn]
-  -- replace `derivWithin w (Icc 0 1)` by `Dclamp w` inside the `[0,1]` integral.
-  have hSeq : (∫ x in (0 : ℝ)..1,
-        derivWithin w (Set.Icc (0:ℝ) 1) x * Real.sin ((n : ℝ) * Real.pi * x)) =
-      ∫ x in (0 : ℝ)..1, Dclamp w x * Real.sin ((n : ℝ) * Real.pi * x) := by
+  rw [cosineCoeffs_eq_two_mul_integral g hg hn,
+    cos_integral_eq_neg_sine_integral_diffOn g hg hg' hD_cont hn]
+  set S := ∫ x in (0 : ℝ)..1,
+    derivWithin g (Set.Icc (0:ℝ) 1) x * Real.sin ((n : ℝ) * Real.pi * x) with hSdef
+  set Sc := ∫ x in (0 : ℝ)..1, D x * Real.sin ((n : ℝ) * Real.pi * x) with hScdef
+  have hS_eq : S = Sc := by
+    rw [hSdef, hScdef]
     apply intervalIntegral.integral_congr
     intro x hx
-    rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
-    show derivWithin w (Set.Icc (0:ℝ) 1) x * _ = Dclamp w x * _
-    rw [show Dclamp w x = derivWithin w (Set.Icc (0:ℝ) 1) (ShenWork.Paper2.clamp01 x) from rfl,
-      ShenWork.Paper2.clamp01_eq_self hx]
-  rw [hSeq]
-  set S := ∫ x in (0 : ℝ)..1, Dclamp w x * Real.sin ((n : ℝ) * Real.pi * x) with hSdef
-  have hSbd : |S| ≤ Cη * (n : ℝ) ^ (-η) := by
-    rw [hSdef, hCη]
-    exact sine_integral_holder_decay (Dclamp w) hD_cont0 hη0 hη1 hK hDholder hn
-  have habs : |2 * (-(1 / ((n : ℝ) * Real.pi)) * S)| = (2 / ((n : ℝ) * Real.pi)) * |S| := by
+    have hxIcc : x ∈ Set.Icc (0:ℝ) 1 := by
+      rwa [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+    change derivWithin g (Set.Icc (0:ℝ) 1) x * Real.sin ((n : ℝ) * Real.pi * x) =
+      derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x) * Real.sin ((n : ℝ) * Real.pi * x)
+    rw [clamp01_eq_self hxIcc]
+  have hSbd : |Sc| ≤ Cη * (n : ℝ) ^ (-η) := by
+    rw [hCη]
+    exact sine_integral_holder_decay D hD_cont hη0 hη1 hK hD_holder hn
+  have habs :
+      |2 * (-(1 / ((n : ℝ) * Real.pi)) * S)| =
+        (2 / ((n : ℝ) * Real.pi)) * |S| := by
     rw [abs_mul, abs_mul, abs_neg]
     rw [abs_of_pos (show (0:ℝ) < 1 / ((n:ℝ) * Real.pi) by positivity)]
-    rw [show |(2:ℝ)| = 2 by norm_num]; ring
-  rw [habs]
+    rw [show |(2:ℝ)| = 2 by norm_num]
+    ring
+  rw [habs, hS_eq]
   have hrpow : (n : ℝ) ^ (-η) = (n : ℝ) ^ (-(1 + η)) * (n : ℝ) := by
     rw [show (-η : ℝ) = (-(1 + η)) + 1 by ring, Real.rpow_add hnpos, Real.rpow_one]
-  calc (2 / ((n : ℝ) * Real.pi)) * |S|
+  calc (2 / ((n : ℝ) * Real.pi)) * |Sc|
       ≤ (2 / ((n : ℝ) * Real.pi)) * (Cη * (n : ℝ) ^ (-η)) := by
-        apply mul_le_mul_of_nonneg_left hSbd; positivity
+        apply mul_le_mul_of_nonneg_left hSbd
+        positivity
     _ = 2 * Cη / Real.pi * (n : ℝ) ^ (-(1 + η)) := by
         rw [hrpow]
         have hnne : (n : ℝ) ≠ 0 := ne_of_gt hnpos
         have hπne : Real.pi ≠ 0 := ne_of_gt hπpos
         field_simp
 
-/-- **Summability, `DifferentiableOn` variant.**  Differentiable on `[0,1]` with an
-`η`-Hölder `derivWithin` on `[0,1]` ⟹ `Summable |cosineCoeffs w n|`.  NO Neumann. -/
-theorem holderCosineCoeff_summable_of_differentiableOn (w : ℝ → ℝ)
-    (hwc : Continuous w) (hw : DifferentiableOn ℝ w (Set.Icc (0:ℝ) 1))
+/-- **Closed-interval summability of cosine coefficients.**  This is the
+`DifferentiableOn (Icc 0 1)` replacement for `holderCosineCoeff_summable`. -/
+theorem holderCosineCoeff_summable_diffOn (g : ℝ → ℝ)
+    (hg : Continuous g) (hg' : DifferentiableOn ℝ g (Set.Icc (0:ℝ) 1))
+    (hD_cont : Continuous (fun x => derivWithin g (Set.Icc (0:ℝ) 1) (clamp01 x)))
+    (hNeumann : derivWithin g (Set.Icc (0:ℝ) 1) 0 = 0 ∧
+      derivWithin g (Set.Icc (0:ℝ) 1) 1 = 0)
     {η : ℝ} (hη0 : 0 < η) (hη1 : η ≤ 1) {K : ℝ} (hK : 0 ≤ K)
-    (hHolder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
-       |derivWithin w (Set.Icc (0:ℝ) 1) x - derivWithin w (Set.Icc (0:ℝ) 1) y|
-         ≤ K * |x - y| ^ η) :
-    Summable (fun n : ℕ => |cosineCoeffs w n|) := by
-  obtain ⟨C, hC0, hCbd⟩ :=
-    holderCosineCoeff_decay_of_differentiableOn w hwc hw hη0 hη1 hK hHolder
+    (hHolder : ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
+      |derivWithin g (Set.Icc (0:ℝ) 1) x -
+        derivWithin g (Set.Icc (0:ℝ) 1) y| ≤ K * |x - y| ^ η) :
+    Summable (fun n : ℕ => |cosineCoeffs g n|) := by
+  obtain ⟨C, _hC0, hCbd⟩ :=
+    holderCosineCoeff_decay_diffOn g hg hg' hD_cont hNeumann hη0 hη1 hK hHolder
   have hsummable_tail : Summable (fun n : ℕ => C * (n : ℝ) ^ (-(1 + η))) := by
     apply Summable.mul_left
-    rw [Real.summable_nat_rpow]; linarith
+    rw [Real.summable_nat_rpow]
+    linarith
   apply Summable.of_norm_bounded_eventually_nat hsummable_tail
   filter_upwards [Filter.eventually_ge_atTop 1] with n hn
   rw [Real.norm_eq_abs, abs_abs]
