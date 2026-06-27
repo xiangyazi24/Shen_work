@@ -460,13 +460,120 @@ private theorem heatD2u_jointContinuousOn
                   zero_le_one
       _ = M₀ * ((λ_ k) ^ 2 * Real.exp (-c * (λ_ k))) := by ring
 
-/-! ## Helper: d1 proof body -/
+/-! ## Helper lemmas for d1 (split for heartbeat budget) -/
 
-set_option maxHeartbeats 800000 in
+private theorem heatSemigroup_d1_partA
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {τ δ : ℝ} (hδ : 0 < δ) (hleft : 0 < τ - δ)
+    (hball_Icc : ∀ s, s ∈ Metric.ball τ δ → s ∈ Icc (τ - δ) (τ + δ)) :
+    ∀ᶠ s in 𝓝 τ, ContinuousOn
+      (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) s) (Icc (0:ℝ) 1) := by
+  have hprofile : ContinuousOn
+      (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    simpa [Function.uncurry] using heatSlice_profile_jointContinuousOn p
+      (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_cont hu₀_bound
+  have hpow1 : ContinuousOn
+      (fun q : ℝ × ℝ =>
+        (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1))
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+    hprofile.rpow_const (fun q hq => by
+      obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+      exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+  have hdu_joint : ContinuousOn
+      (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    exact (heatSlice_secondValue_jointContinuousOn
+      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound).congr
+      (fun q hq => by
+        obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
+        exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+  have hsrc1 : ContinuousOn
+      (fun q : ℝ × ℝ =>
+        p.ν * p.γ * (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1)
+        * heatDu u₀ q.1 q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+    ((continuousOn_const.mul continuousOn_const).mul hpow1).mul hdu_joint
+  filter_upwards [Metric.ball_mem_nhds τ hδ] with s hs
+  exact hsrc1.comp (continuousOn_const.prodMk continuousOn_id)
+    (fun x hx => mem_prod.mpr ⟨hball_Icc s hs, hx⟩)
+
+set_option maxHeartbeats 400000 in
+private theorem heatSemigroup_d1_partB
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {τ δ : ℝ} (hleft : 0 < τ - δ)
+    (hball_pos : ∀ s, s ∈ Metric.ball τ δ → 0 < s)
+    (hball_Icc : ∀ s, s ∈ Metric.ball τ δ → s ∈ Icc (τ - δ) (τ + δ))
+    (hball_Ioo : ∀ s, s ∈ Metric.ball τ δ → s ∈ Ioo (τ - δ) (τ + δ)) :
+    ∀ x ∈ Ioo (0:ℝ) 1, ∀ s ∈ Metric.ball τ δ,
+      HasDerivAt (fun r => srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) r x)
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) s x) s := by
+  intro x hx s hs
+  have hs_pos := hball_pos s hs
+  have hxIcc : x ∈ Icc (0:ℝ) 1 := Ioo_subset_Icc_self hx
+  have hderiv_within := heatSlice_field_hasDerivWithinAt p
+    (c := τ - δ) (T := τ + δ) hleft (hball_Icc s hs) hu₀_cont hu₀_bound hxIcc
+  have hderiv := hderiv_within.hasDerivAt
+    (Icc_mem_nhds (hball_Ioo s hs).1 (hball_Ioo s hs).2)
+  rw [← heatDu_eq_secondValue u₀ hs_pos] at hderiv
+  exact ShenWork.IntervalFlooredSourceTimeDataIterate.hasDerivAt_srcSlice1
+    (hfloor s hs_pos x hxIcc) hderiv (heatDu_hasDerivAt hu₀_bound hs_pos)
+
+set_option maxHeartbeats 400000 in
+private theorem heatSemigroup_d1_partC
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {τ δ : ℝ} (hleft : 0 < τ - δ) :
+    ContinuousOn
+      (fun q : ℝ × ℝ =>
+        p.ν * p.γ * (p.γ - 1) *
+          (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1 - 1) *
+          (heatDu u₀ q.1 q.2) ^ (2 : ℕ) +
+        p.ν * p.γ *
+          (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1) *
+          heatD2u u₀ q.1 q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+  have hprofile : ContinuousOn
+      (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    simpa [Function.uncurry] using heatSlice_profile_jointContinuousOn p
+      (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_cont hu₀_bound
+  have hpow1 := hprofile.rpow_const (fun q hq => by
+    obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+    exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+  have hpow2 := hprofile.rpow_const (p := p.γ - 1 - 1) (fun q hq => by
+    obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+    exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+  have hdu_joint : ContinuousOn
+      (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
+      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
+    exact (heatSlice_secondValue_jointContinuousOn
+      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound).congr
+      (fun q hq => by
+        obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
+        exact (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+  exact ((((continuousOn_const.mul continuousOn_const).mul continuousOn_const).mul
+      hpow2).mul (hdu_joint.pow 2)).add
+    (((continuousOn_const.mul continuousOn_const).mul hpow1).mul
+      (heatD2u_jointContinuousOn hleft hu₀_bound))
+
+/-! ## d1: assembly from parts -/
+
 theorem heatSemigroup_d1
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (_hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
     (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     (τ : ℝ) (hτ : 0 < τ) :
@@ -479,7 +586,7 @@ theorem heatSemigroup_d1
       ContinuousOn
         (Function.uncurry (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)))
         (Icc (τ - δ) (τ + δ) ×ˢ Icc (0:ℝ) 1) := by
-  set δ : ℝ := min 1 (τ / 2) with hδdef
+  set δ : ℝ := min 1 (τ / 2)
   have hδ : 0 < δ := lt_min one_pos (half_pos hτ)
   have hleft : 0 < τ - δ := by
     have := min_le_right (1 : ℝ) (τ / 2); linarith
@@ -492,78 +599,10 @@ theorem heatSemigroup_d1
   have hball_Ioo : ∀ s, s ∈ Metric.ball τ δ → s ∈ Ioo (τ - δ) (τ + δ) := by
     intro s hs; rw [Metric.mem_ball, Real.dist_eq] at hs
     exact ⟨by linarith [(abs_lt.mp hs).1], by linarith [(abs_lt.mp hs).2]⟩
-  -- Reuse d0's joint continuity proof for srcSlice1 as part (a)
-  have hprofile : ContinuousOn
-      (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
-    simpa [Function.uncurry] using heatSlice_profile_jointContinuousOn p
-      (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft _hu₀_cont _hu₀_bound
-  have hpow1 : ContinuousOn
-      (fun q : ℝ × ℝ =>
-        (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-    hprofile.rpow_const (fun q hq => by
-      obtain ⟨hσ, hx⟩ := mem_prod.mp hq
-      exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
-  have hdu_joint : ContinuousOn
-      (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
-    have hsecond := heatSlice_secondValue_jointContinuousOn
-      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft _hu₀_bound
-    exact hsecond.congr (fun q hq => by
-      obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
-      simpa [heatCoeff] using
-        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
-  have hsrc1_joint : ContinuousOn
-      (fun q : ℝ × ℝ =>
-        p.ν * p.γ * (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1)
-        * heatDu u₀ q.1 q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-    ((continuousOn_const.mul continuousOn_const).mul hpow1).mul hdu_joint
-  refine ⟨δ, hδ, ?_, ?_, ?_⟩
-  · -- (a) ContinuousOn of srcSlice1 near τ
-    filter_upwards [Metric.ball_mem_nhds τ hδ] with s hs
-    exact hsrc1_joint.comp (continuousOn_const.prodMk continuousOn_id)
-      (fun x hx => mem_prod.mpr ⟨hball_Icc s hs, hx⟩)
-  · -- (b) HasDerivAt of srcSlice1 = srcSlice2
-    intro x hx s hs
-    have hs_pos := hball_pos s hs
-    have hxIcc : x ∈ Icc (0:ℝ) 1 := Ioo_subset_Icc_self hx
-    have hderiv_within := heatSlice_field_hasDerivWithinAt p
-      (c := τ - δ) (T := τ + δ) hleft (hball_Icc s hs) _hu₀_cont _hu₀_bound hxIcc
-    have hderiv := hderiv_within.hasDerivAt
-      (Icc_mem_nhds (hball_Ioo s hs).1 (hball_Ioo s hs).2)
-    rw [← heatDu_eq_secondValue u₀ hs_pos] at hderiv
-    exact ShenWork.IntervalFlooredSourceTimeDataIterate.hasDerivAt_srcSlice1
-      (hfloor s hs_pos x hxIcc) hderiv (heatDu_hasDerivAt _hu₀_bound hs_pos)
-  · -- (c) Joint ContinuousOn of srcSlice2 on slab
-    -- srcSlice2 = ν·γ·(γ-1)·lift^(γ-2)·du² + ν·γ·lift^(γ-1)·d2u
-    have hpow2 : ContinuousOn
-        (fun q : ℝ × ℝ =>
-          (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1 - 1))
-        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-      hprofile.rpow_const (fun q hq => by
-        obtain ⟨hσ, hx⟩ := mem_prod.mp hq
-        exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
-    have hdu_sq : ContinuousOn
-        (fun q : ℝ × ℝ => (heatDu u₀ q.1 q.2) ^ (2 : ℕ))
-        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-      hdu_joint.pow 2
-    have hd2u_joint : ContinuousOn
-        (fun q : ℝ × ℝ => heatD2u u₀ q.1 q.2)
-        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-      heatD2u_jointContinuousOn hleft _hu₀_bound
-    show ContinuousOn (fun q : ℝ × ℝ =>
-        p.ν * p.γ * (p.γ - 1) *
-          (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1 - 1) *
-          (heatDu u₀ q.1 q.2) ^ (2 : ℕ) +
-        p.ν * p.γ *
-          (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1) *
-          heatD2u u₀ q.1 q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1)
-    exact ((((continuousOn_const.mul continuousOn_const).mul continuousOn_const).mul
-        hpow2).mul hdu_sq).add
-      (((continuousOn_const.mul continuousOn_const).mul hpow1).mul hd2u_joint)
+  exact ⟨δ, hδ,
+    heatSemigroup_d1_partA hu₀_bound hu₀_cont hfloor hδ hleft hball_Icc,
+    heatSemigroup_d1_partB hu₀_bound hu₀_cont hfloor hleft hball_pos hball_Icc hball_Ioo,
+    heatSemigroup_d1_partC hu₀_bound hu₀_cont hfloor hleft⟩
 
 /-! ## The main construction -/
 
