@@ -1,4 +1,4 @@
-# Q1303 / cron1 — zero input for `intervalFullSemigroupOperator`
+# Q1308 / cron1 — reusable cosine positivity reduction
 
 Repo: `xiangyazi24/Shen_work`
 
@@ -12,223 +12,215 @@ scratch/_CHATGPT_DROP_cron1.md
 
 ## Executive answer
 
-Yes, there is a theorem named `intervalFullSemigroupOperator_zero`, but it is **not** the lemma you need for positive time.  It is the degenerate time-zero statement:
+I did **not** find an existing generic helper named like
 
 ```lean
-ShenWork.IntervalSemigroupAtZero.intervalFullSemigroupOperator_zero
-  (f : ℝ → ℝ) (x : ℝ) :
-  intervalFullSemigroupOperator 0 f x = 0
+cosineSeriesPositive_of_Icc
+heatSemigroup_cosine_pos_all
 ```
 
-from:
+or a general theorem of the form
+
+```lean
+(∀ y ∈ Icc (0 : ℝ) 1, 0 < f y) → (∀ x : ℝ, 0 < f x)
+```
+
+that abstracts only the symmetry/periodicity argument for an arbitrary real-valued `f`.
+
+What exists are **specialized all-real-line reductions** for heat/resolver cosine syntheses:
+
+1. `ShenWork.EWA.cosineHeatValue_ge_floor_all`
+   in
+   ```text
+   ShenWork/Wiener/EWA/HeatFloor.lean
+   ```
+   It proves the heat cosine value floor for all `x : ℝ` from a global source floor.  The final step is exactly the period-2 plus evenness reduction to `[0,1]`.
+
+2. `ShenWork.EWA.cosineHeatValue_ge_floor_Icc_all`
+   in
+   ```text
+   ShenWork/Wiener/EWA/HeatFloorIcc.lean
+   ```
+   This is the closest existing named theorem to your desired pattern, but it is specialized to `unitIntervalCosineHeatValue t (cosineCoeffs u₀)` and proves a `δ ≤ ...` floor, not arbitrary positivity of a function.
+
+3. `ShenWork.EWA.resolverSynthesis_nonneg_all`
+   in
+   ```text
+   ShenWork/Wiener/EWA/SourceResolverFloor.lean
+   ```
+   This proves nonnegativity of a resolver cosine synthesis for all real `x`, again by the same period-2/evenness reduction.
+
+The local block in
 
 ```text
-ShenWork/PDE/IntervalSemigroupAtZero.lean
+ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
 ```
 
-For your argument, where `c > 0` and `f` vanishes on `Icc 0 1`, you need a **zero-input-on-the-support** lemma:
+around the `V` positivity/nonnegativity step is **not currently factored out**; it repeats the argument locally:
+
+- derive `V (z + 2) = V z`,
+- derive `V (z - 2) = V z`,
+- build integer shifts `V (z + 2*m) = V z`,
+- choose `m₀ := round (x / 2)`,
+- set `y := x - 2*m₀`,
+- show `|y| ∈ Icc 0 1`,
+- use evenness to replace `V y` by `V |y|`,
+- apply interval-domain nonnegativity.
+
+For your current `U_cos` use case, the existing local code already has the right ingredients:
 
 ```lean
-∀ y ∈ Icc (0 : ℝ) 1, f y = 0
-→ intervalFullSemigroupOperator c f x = 0
+have hU_period_fun : Function.Periodic U_cos 2 := by
+  intro x; show U_cos (x + 2) = U_cos x
+  simp only [hU_cos_def]
+  exact tsum_congr (fun k => by congr 1; exact cosineMode_add_two' k x)
+
+have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+  intro y hy
+  rw [← hU_agree y hy]
+  exact hpos_w y hy
 ```
 
-This is easier and more direct than using any spectral theorem.  `intervalFullSemigroupOperator` is defined as an integral against
+and `hU_even : ∀ x, U_cos (-x) = U_cos x` is already in scope.  So the clean reusable abstraction is a small generic lemma.
 
-```lean
-intervalMeasure 1 = volume.restrict (Icc 0 1)
-```
+## Recommended reusable helper
 
-so values of `f` outside `[0,1]` are ignored.  Continuity is not needed for this lemma.
+This is the helper I would extract.  It uses only:
 
-## Definitions found
+- evenness,
+- period `2`,
+- positivity on `Icc 0 1`.
 
-From:
-
-```text
-ShenWork/PDE/IntervalNeumannFullKernel.lean
-```
-
-```lean
-/-- The full periodised-image Neumann heat propagator on `[0,1]`. -/
-def intervalFullSemigroupOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
-  ∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1
-```
-
-From:
-
-```text
-ShenWork/PDE/IntervalDomain.lean
-```
-
-```lean
-def intervalSet (L : ℝ) : Set ℝ := Set.Icc 0 L
-
-def intervalMeasure (L : ℝ) : Measure ℝ :=
-  volume.restrict (intervalSet L)
-```
-
-From:
-
-```text
-ShenWork/PDE/IntervalSemigroupAtZero.lean
-```
-
-```lean
-/-- **The actual value of the propagator at time `0`.**
-`intervalFullSemigroupOperator 0 f x = 0` for every `f`, `x` — the kernel is
-identically zero, so the defining integral is the integral of the zero
-integrand. -/
-theorem intervalFullSemigroupOperator_zero (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator 0 f x = 0 := by
-  unfold intervalFullSemigroupOperator
-  simp [intervalNeumannFullKernel_zero]
-```
-
-Again: that theorem is about `t = 0`, not about `S(c) 0` for positive `c`.
-
-## Lemma to add/use
-
-Add this local lemma near the positivity-by-contradiction code in
-`IntervalConjugateLevel0BFormSourceOn.lean`, or put it in a nearby support namespace.
+It does **not** need cosine-specific APIs except for how the caller proves `heven` and `hperiod`.
 
 ```lean
 import ShenWork.Paper2.IntervalConjugateLevel0BFormSourceOn
 
-open MeasureTheory Set Filter
-open scoped Topology
-open ShenWork.IntervalDomain (intervalMeasure intervalSet intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel
-  (intervalFullSemigroupOperator intervalNeumannFullKernel)
+open Set
 
 noncomputable section
 
-namespace ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+namespace ShenWork.Paper2
 
-/-- If the input vanishes on `[0,1]`, then the full Neumann propagator vanishes.
+/-- Reduce positivity of an even period-`2` real function to the fundamental interval
+`[0,1]`.
 
-No continuity assumption is needed: `intervalFullSemigroupOperator` integrates
-against `intervalMeasure 1 = volume.restrict (Icc 0 1)`, so the integrand is
-zero almost everywhere for that restricted measure. -/
-theorem intervalFullSemigroupOperator_eq_zero_of_eq_zero_on_Icc
-    (t : ℝ) (f : ℝ → ℝ) (x : ℝ)
-    (hf_zero : ∀ y ∈ Icc (0 : ℝ) 1, f y = 0) :
-    intervalFullSemigroupOperator t f x = 0 := by
-  unfold intervalFullSemigroupOperator
-  have hae :
-      (fun y : ℝ => intervalNeumannFullKernel t x y * f y)
-        =ᵐ[intervalMeasure 1] (fun _ : ℝ => 0) := by
-    unfold intervalMeasure intervalSet
-    exact MeasureTheory.ae_restrict_of_forall_mem measurableSet_Icc
-      (fun y hy => by
-        rw [hf_zero y hy, mul_zero])
-  calc
-    (∫ y, intervalNeumannFullKernel t x y * f y ∂ intervalMeasure 1)
-        = ∫ y, (0 : ℝ) ∂ intervalMeasure 1 := by
-          exact integral_congr_ae hae
-    _ = 0 := by simp
+This is the reusable skeleton currently duplicated by the heat/resolver floor proofs and
+by the local `U_cos`/`V_cos` blocks in `IntervalConjugateLevel0BFormSourceOn.lean`.
 
-end ShenWork.Paper2.ConjugateLevel0BFormSourceOn
+The proof first sends `x` to `|x|`, then subtracts an integral multiple of `2` to land
+in `[0,2)`, and finally reflects the part in `(1,2)` back into `[0,1]`.  The reflection
+`f (2 - r) = f r` is derived from evenness plus period `2`.
+-/
+theorem pos_all_of_pos_Icc01_even_periodic_two {f : ℝ → ℝ}
+    (heven : ∀ x : ℝ, f (-x) = f x)
+    (hperiod : Function.Periodic f 2)
+    (hpos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < f y) :
+    ∀ x : ℝ, 0 < f x := by
+  have hreflect : ∀ z : ℝ, f (2 - z) = f z := by
+    intro z
+    calc
+      f (2 - z) = f (-z + 2) := by congr 1; ring
+      _ = f (-z) := hperiod (-z)
+      _ = f z := heven z
+  intro x
+  -- Step 1: reduce to `[0,∞)` by evenness.
+  have hx_abs : f x = f |x| := by
+    by_cases h : 0 ≤ x
+    · rw [abs_of_nonneg h]
+    · rw [abs_of_neg (not_le.mp h)]
+      exact (heven x).symm
+  rw [hx_abs]
+  -- Step 2: reduce `|x|` to `[0,2)` by subtracting an integral period.
+  set n : ℤ := ⌊|x| / 2⌋ with hn_def
+  set r : ℝ := |x| - n * 2 with hr_def
+  have hrV : f |x| = f r :=
+    (hperiod.sub_int_mul_eq n).symm
+  have hr_lo : 0 ≤ r := by
+    have := Int.floor_le (|x| / 2)
+    linarith
+  have hr_hi : r < 2 := by
+    have := Int.lt_floor_add_one (|x| / 2)
+    linarith
+  rw [hrV]
+  -- Step 3: if `r ≤ 1`, use the interval positivity.  Otherwise reflect across `1`.
+  by_cases hr1 : r ≤ 1
+  · exact hpos_Icc r ⟨hr_lo, hr1⟩
+  · push_neg at hr1
+    rw [← hreflect r]
+    exact hpos_Icc (2 - r) ⟨by linarith, by linarith⟩
+
+end ShenWork.Paper2
 ```
 
-If namespace/import pressure is annoying, the same proof can be used fully-qualified:
+## Use it at the current `U_cos` site
+
+Inside `IntervalConjugateLevel0BFormSourceOn.lean`, the local block can collapse to:
 
 ```lean
-have hS_zero : intervalFullSemigroupOperator c f x = 0 := by
-  unfold intervalFullSemigroupOperator
-  have hae :
-      (fun y : ℝ => intervalNeumannFullKernel c x y * f y)
-        =ᵐ[ShenWork.IntervalDomain.intervalMeasure 1] (fun _ : ℝ => 0) := by
-    unfold ShenWork.IntervalDomain.intervalMeasure ShenWork.IntervalDomain.intervalSet
-    exact MeasureTheory.ae_restrict_of_forall_mem measurableSet_Icc
-      (fun y hy => by
-        rw [hf_zero y hy, mul_zero])
-  calc
-    (∫ y, intervalNeumannFullKernel c x y * f y
-        ∂ ShenWork.IntervalDomain.intervalMeasure 1)
-        = ∫ y, (0 : ℝ) ∂ ShenWork.IntervalDomain.intervalMeasure 1 := by
-          exact integral_congr_ae hae
-    _ = 0 := by simp
+have hU_period_fun : Function.Periodic U_cos 2 := by
+  intro x
+  show U_cos (x + 2) = U_cos x
+  simp only [hU_cos_def]
+  exact tsum_congr (fun k => by
+    congr 1
+    exact cosineMode_add_two' k x)
+
+have hU_pos_all : ∀ x, 0 < U_cos x := by
+  have hU_pos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < U_cos y := by
+    intro y hy
+    rw [← hU_agree y hy]
+    exact hpos_w y hy
+  exact ShenWork.Paper2.pos_all_of_pos_Icc01_even_periodic_two
+    hU_even hU_period_fun hU_pos_Icc
 ```
 
-## How to use it in your contradiction
+This is strictly cleaner than the current local `floor`/`r` block, and it should also be usable for any future cosine synthesis once you prove `Function.Periodic f 2` and evenness.
 
-Suppose in the contradiction branch you have:
+## If you want the exact round-based variant
+
+The `V` block uses `round (x / 2)` rather than `floor (|x| / 2)`.  A second helper matching that block exactly would take an integer-shift theorem directly:
 
 ```lean
-hzero_on : ∀ y ∈ Icc (0 : ℝ) 1, intervalDomainLift u₀ y = 0
+theorem pos_all_of_pos_Icc01_even_intShift_two {f : ℝ → ℝ}
+    (heven : ∀ x : ℝ, f (-x) = f x)
+    (hshift : ∀ (m : ℤ) (z : ℝ), f (z + 2 * m) = f z)
+    (hpos_Icc : ∀ y ∈ Icc (0 : ℝ) 1, 0 < f y) :
+    ∀ x : ℝ, 0 < f x := by
+  intro x
+  set m₀ : ℤ := round (x / 2)
+  set y : ℝ := x - 2 * m₀
+  have hxy : f x = f y := by
+    rw [show x = y + 2 * m₀ from by simp [y]]
+    exact hshift m₀ y
+  have hyabs : |y| ∈ Icc (0 : ℝ) 1 := by
+    constructor
+    · exact abs_nonneg _
+    · have hround : |x / 2 - m₀| ≤ 1 / 2 := abs_sub_round (x / 2)
+      rw [show y = 2 * (x / 2 - m₀) from by simp [y]; ring,
+        abs_mul, abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 2)]
+      nlinarith [hround]
+  have hy : f y = f |y| := by
+    by_cases hnn : 0 ≤ y
+    · rw [abs_of_nonneg hnn]
+    · rw [not_le] at hnn
+      rw [abs_of_neg hnn, ← heven]
+  rw [hxy, hy]
+  exact hpos_Icc |y| hyabs
 ```
 
-Then for the known positive window time `s` and point `1/2`:
+This variant matches lines 636--691 of `IntervalConjugateLevel0BFormSourceOn.lean` more closely, but the `Function.Periodic`/`floor` helper is usually the nicer one for `U_cos`, because you already have `hU_period_fun : Function.Periodic U_cos 2`.
+
+## Bottom line
+
+There is **no currently reusable generic helper** for arbitrary `U_cos` positivity.  The closest reusable named theorems are specialized:
 
 ```lean
-have hhalf : ((1 : ℝ) / 2) ∈ Icc (0 : ℝ) 1 := by
-  constructor <;> norm_num
-
-have hS_zero :
-    intervalFullSemigroupOperator s (intervalDomainLift u₀) ((1 : ℝ) / 2) = 0 :=
-  intervalFullSemigroupOperator_eq_zero_of_eq_zero_on_Icc
-    s (intervalDomainLift u₀) ((1 : ℝ) / 2) hzero_on
-
-have hlift_zero :
-    intervalDomainLift (conjugatePicardIter p u₀ 0 s) ((1 : ℝ) / 2) = 0 := by
-  simp [conjugatePicardIter, intervalDomainLift, hhalf, hS_zero]
-
-have hpos_half := _hpos s hs ((1 : ℝ) / 2) hhalf
-rw [hlift_zero] at hpos_half
-exact (lt_irrefl (0 : ℝ)) hpos_half
+ShenWork.EWA.cosineHeatValue_ge_floor_all
+ShenWork.EWA.cosineHeatValue_ge_floor_Icc_all
+ShenWork.EWA.resolverSynthesis_nonneg_all
 ```
 
-This avoids trying to rewrite the whole input function globally as zero.  You only need the on-`Icc` vanishing, which is exactly what the restricted measure sees.
-
-## If the input is globally zero
-
-There is also a route through scalar linearity if you truly have `f = fun _ => 0` globally.  The file
-
-```text
-ShenWork/PDE/IntervalSemigroupConeAtoms.lean
-```
-
-has:
-
-```lean
-theorem intervalFullSemigroupOperator_const_mul
-    (t c : ℝ) (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator t (fun y => c * f y) x
-      = c * intervalFullSemigroupOperator t f x
-```
-
-Then with `c = 0`:
-
-```lean
-have hS0_global : intervalFullSemigroupOperator t (fun _ : ℝ => 0) x = 0 := by
-  simpa using
-    ShenWork.IntervalSemigroupConeAtoms.intervalFullSemigroupOperator_const_mul
-      t 0 (fun _ : ℝ => 1) x
-```
-
-But for your actual `lift u₀`, the restricted-measure lemma above is the correct one.
-
-## Minimal answer
-
-There is `intervalFullSemigroupOperator_zero`, but it is only:
-
-```lean
-intervalFullSemigroupOperator 0 f x = 0
-```
-
-For `f = 0` on `[0,1]` and arbitrary time `c`, prove:
-
-```lean
-intervalFullSemigroupOperator c f x = 0
-```
-
-by unfolding the definition and using AE equality on
-
-```lean
-intervalMeasure 1 = volume.restrict (Icc 0 1)
-```
-
-as in `intervalFullSemigroupOperator_eq_zero_of_eq_zero_on_Icc` above.
+For the present proof, add/extract `pos_all_of_pos_Icc01_even_periodic_two` and replace the local `hU_pos_all` derivation with a one-line call.  The same reduction skeleton can also eliminate future copies of the `round`/`abs` period-2 argument.
 
 No local `lake build` was run; this drop was produced through the GitHub connector only.
