@@ -413,7 +413,26 @@ private theorem heatSemigroup_d1
     exact ShenWork.IntervalFlooredSourceTimeDataIterate.hasDerivAt_srcSlice1
       (hfloor s hs_pos x hxIcc) hderiv (heatDu_hasDerivAt _hu₀_bound hs_pos)
   · -- (c) Joint ContinuousOn of srcSlice2 on slab
-    sorry
+    -- srcSlice2 = ν·γ·(γ-1)·lift^(γ-2)·du² + ν·γ·lift^(γ-1)·d2u
+    have hpow2 : ContinuousOn
+        (fun q : ℝ × ℝ =>
+          (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1 - 1))
+        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+      hprofile.rpow_const (fun q hq => by
+        obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+        exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+    have hdu_sq : ContinuousOn
+        (fun q : ℝ × ℝ => (heatDu u₀ q.1 q.2) ^ (2 : ℕ))
+        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+      hdu_joint.pow 2
+    have hd2u_joint : ContinuousOn
+        (fun q : ℝ × ℝ => heatD2u u₀ q.1 q.2)
+        (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
+      heatD2u_jointContinuousOn hleft _hu₀_bound
+    simpa [srcSlice2, Function.uncurry] using
+      ((((continuousOn_const.mul continuousOn_const).mul continuousOn_const).mul
+        hpow2).mul hdu_sq).add
+      (((continuousOn_const.mul continuousOn_const).mul hpow1).mul hd2u_joint)
 
 /-! ## The main construction -/
 
