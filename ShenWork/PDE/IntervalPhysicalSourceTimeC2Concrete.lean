@@ -191,15 +191,13 @@ theorem srcTimeCoeff_contDiffAt
     exact (contDiffOn_zero.mpr (ContinuousOn.congr
       ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
       (fun s hs => (this hs).symm)))
-  have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) := by
-    have : ContDiffOn ℝ (1 + 1 : ℕ∞) f₀ (Set.Ioi 0) :=
-      contDiffOn_succ_of_fderivWithin hd0_on (by intro h; simp at h)
-        (ContDiffOn.congr
-          ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).contDiff.comp_contDiffOn h0)
-          (fun s hs => by
-            rw [fderivWithin_of_isOpen isOpen_Ioi hs]
-            exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
-    exact_mod_cast this
+  have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) :=
+    contDiffOn_succ_of_fderivWithin hd0_on (by omega)
+      (ContDiffOn.congr
+        ((ContinuousLinearMap.toSpanSingleton ℝ (F := ℝ)).contDiff.comp_contDiffOn h0)
+        (fun s hs => by
+          rw [fderivWithin_of_isOpen isOpen_Ioi hs]
+          exact ((hd0 s hs).hasFDerivAt.fderiv).symm))
   exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
