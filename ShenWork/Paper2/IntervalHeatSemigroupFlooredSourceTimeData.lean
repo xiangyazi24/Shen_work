@@ -146,10 +146,7 @@ theorem heatSemigroup_flooredSourceTimeData
       intro s hs
       rw [Metric.mem_ball, Real.dist_eq] at hs
       exact ⟨by linarith [(abs_lt.mp hs).1], by linarith [(abs_lt.mp hs).2]⟩
-    refine ⟨δ, hδ, ?_, ?_, ?_⟩
-    · -- (a) ContinuousOn of srcSlice near τ
-      sorry
-    · -- (b) HasDerivAt of srcSlice = srcSlice1
+    exact ⟨δ, hδ, by sorry, by
       intro x hx s hs
       have hs_pos := hball_pos s hs
       have hxIcc : x ∈ Icc (0:ℝ) 1 := Ioo_subset_Icc_self hx
@@ -159,9 +156,7 @@ theorem heatSemigroup_flooredSourceTimeData
       have hsIoo := hball_Ioo s hs
       have hderiv := hderiv_within.hasDerivAt (Icc_mem_nhds hsIoo.1 hsIoo.2)
       rw [← heatDu_eq_secondValue u₀ hs_pos] at hderiv
-      exact hasDerivAt_srcSlice (hfloor s hs_pos x hxIcc) hderiv
-    · -- (c) Joint ContinuousOn of srcSlice1 on slab
-      sorry
+      exact hasDerivAt_srcSlice (hfloor s hs_pos x hxIcc) hderiv, by sorry⟩
   d1 τ hτ := by
     -- OBLIGATION: ∃ δ > 0 such that:
     --   (a) s₁ is ContinuousOn [0,1] near τ
