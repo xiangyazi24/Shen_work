@@ -243,9 +243,9 @@ theorem heatSemigroup_d0
       exact hsecond.congr (fun q hq => by
         obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
         simpa [heatCoeff] using
-          (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+          heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1))
     simpa [srcSlice1, Function.uncurry] using
-      (continuousOn_const.mul continuousOn_const).mul (hpow1.mul hdu_joint)
+      ((continuousOn_const.mul continuousOn_const).mul hpow1).mul hdu_joint
 
 /-! ## Helper: HasDerivAt of heatDu in time (needed for d1)
 
@@ -290,25 +290,19 @@ private theorem heatLaplacianTerm_hasDerivAt_time
       (fun τ : ℝ =>
         ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
       ((λ_ n) ^ 2 * (Real.exp (-t * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x) t := by
-  have hlin : HasDerivAt (fun τ : ℝ => -τ * (λ_ n)) (-(λ_ n)) t := by
-    simpa [mul_comm] using (hasDerivAt_id t).neg.mul_const (λ_ n)
-  have hexp : HasDerivAt (fun τ : ℝ => Real.exp (-τ * (λ_ n)))
-      (-(λ_ n) * Real.exp (-t * (λ_ n))) t := by
-    simpa [mul_comm] using hlin.exp
-  have h := ((hexp.mul_const (ShenWork.CosineSpectrum.cosineMode n x)).const_mul
-    (-(λ_ n))).mul_const (a n)
-  have h' : HasDerivAt
-      (fun y => -(a n * ((λ_ n) *
-        (Real.cos (x * (Real.pi * (n : ℝ))) * Real.exp (-(y * (λ_ n)))))))
-      (a n * ((λ_ n) * ((λ_ n) *
-        (Real.cos (x * (Real.pi * (n : ℝ))) * Real.exp (-(t * (λ_ n))))))) t := by
-    simpa [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
-      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
-      ShenWork.CosineSpectrum.cosineMode, mul_assoc, mul_left_comm, mul_comm] using h
-  convert h' using 1
+  have h :=
+    (ShenWork.RegularityBootstrap.unitIntervalCosineHeatTerm_hasTimeDerivAt_laplacian
+      t x a n).const_mul (-(λ_ n))
+  convert h using 1
   · funext y
+    simp only [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
+      ShenWork.CosineSpectrum.cosineMode]
     ring
-  · ring
+  · simp only [ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
+      ShenWork.CosineSpectrum.cosineMode]
+    ring
 
 private theorem summable_heatLaplacian_terms_of_bound
     {a : ℕ → ℝ} {M t x : ℝ} (ht : 0 < t)
@@ -319,8 +313,7 @@ private theorem summable_heatLaplacian_terms_of_bound
   have hmajor : Summable fun n : ℕ =>
       M * ((λ_ n) * Real.exp (-t * (λ_ n))) :=
     (unitIntervalCosineEigenvalue_mul_exp_summable ht).mul_left M
-  refine Summable.of_norm_bounded
-    (g := fun n : ℕ => M * ((λ_ n) * Real.exp (-t * (λ_ n)))) hmajor ?_
+  refine Summable.of_norm_bounded hmajor ?_
   intro n
   have hlam_nn : 0 ≤ λ_ n := by unfold unitIntervalCosineEigenvalue; positivity
   have hcos : |Real.cos ((n : ℝ) * Real.pi * x)| ≤ 1 := Real.abs_cos_le_one _
@@ -343,7 +336,7 @@ private theorem summable_heatLaplacian_terms_of_bound
           _ ≤ ((λ_ n) * Real.exp (-t * (λ_ n)) * 1) * M := by
               exact mul_le_mul_of_nonneg_left (ha n)
                 (mul_nonneg hA_nonneg zero_le_one)
-    _ = M * ((λ_ n) * Real.exp (-t * (λ_ n))) := by ring
+      _ = M * ((λ_ n) * Real.exp (-t * (λ_ n))) := by ring
 
 private theorem heatD2Term_abs_le_majorant
     {a : ℕ → ℝ} {M r τ x : ℝ}
@@ -357,27 +350,31 @@ private theorem heatD2Term_abs_le_majorant
   have hexp_mono : Real.exp (-τ * (λ_ n)) ≤ Real.exp (-r * (λ_ n)) := by
     have hmul : r * (λ_ n) ≤ τ * (λ_ n) :=
       mul_le_mul_of_nonneg_right (le_of_lt (mem_Ioi.mp hτ)) hlam_nn
-    exact Real.exp_le_exp.mpr (by nlinarith)
+    exact Real.exp_le_exp.mpr (by linarith)
+  have hAτ_nonneg : 0 ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) :=
+    mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+  have hAr_nonneg : 0 ≤ (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) :=
+    mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+  have hA_le : (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) ≤
+      (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) :=
+    mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)
   calc |(λ_ n) ^ 2 * (Real.exp (-τ * (λ_ n)) * a n) * ShenWork.CosineSpectrum.cosineMode n x|
       = (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * |a n| * |ShenWork.CosineSpectrum.cosineMode n x| := by
         rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg _),
           abs_of_nonneg (Real.exp_nonneg _)]; ring
     _ ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M * 1 := by
-        have hA_nonneg : 0 ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) :=
-          mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
         calc (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * |a n| *
                 |ShenWork.CosineSpectrum.cosineMode n x|
             ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M *
                 |ShenWork.CosineSpectrum.cosineMode n x| := by
               exact mul_le_mul_of_nonneg_right
-                (mul_le_mul_of_nonneg_left (ha n) hA_nonneg) (abs_nonneg _)
+                (mul_le_mul_of_nonneg_left (ha n) hAτ_nonneg) (abs_nonneg _)
           _ ≤ (λ_ n) ^ 2 * Real.exp (-τ * (λ_ n)) * M * 1 := by
               exact mul_le_mul_of_nonneg_left hcos
-                (mul_nonneg hA_nonneg hM)
-    _ ≤ (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) * M := by
-        rw [mul_one]
+                (mul_nonneg hAτ_nonneg hM)
+    _ ≤ (λ_ n) ^ 2 * Real.exp (-r * (λ_ n)) * M * 1 := by
         exact mul_le_mul_of_nonneg_right
-          (mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)) hM
+          (mul_le_mul_of_nonneg_right hA_le hM) zero_le_one
     _ = M * ((λ_ n) ^ 2 * Real.exp (-r * (λ_ n))) := by ring
 
 private theorem heatDu_hasDerivAt
@@ -406,7 +403,8 @@ private theorem heatDu_hasDerivAt
     intro n τ hτ
     exact heatD2Term_abs_le_majorant hu₀_bound hτ n
   have hF0 : Summable fun n => F n t := by
-    exact summable_heatLaplacian_terms_of_bound ht hu₀_bound
+    simpa [F, a] using summable_heatLaplacian_terms_of_bound
+      (t := t) (x := x) ht hu₀_bound
   have hwithin := ShenWork.HasDerivWithinAtTsum.hasDerivWithinAt_tsum
     (convex_Ioi r) hu hF hbound hrt hF0 hrt
   have hAtSum := hwithin.hasDerivAt (isOpen_Ioi.mem_nhds hrt)
@@ -416,7 +414,7 @@ private theorem heatDu_hasDerivAt
     simp only [heatDu, if_pos hτpos, F, a,
       ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue]
   have hvalue : (∑' n, F' n t) = heatD2u u₀ t x := by
-    simp only [heatD2u, if_pos ht, F', ShenWork.CosineSpectrum.cosineMode]
+    simp only [heatD2u, if_pos ht, F', a, ShenWork.CosineSpectrum.cosineMode]
   rw [← hvalue]
   exact hAtSum.congr_of_eventuallyEq hbranch
 
@@ -438,100 +436,93 @@ private theorem heatD2u_jointContinuousOn
     intro q hq
     have hpos : 0 < q.1 := lt_of_lt_of_le hc (mem_prod.mp hq).1.1
     simp only [heatD2u, if_pos hpos]
-  refine (ContinuousOn.congr ?_ hcongr)
-  apply continuousOn_tsum
-  · intro k
-    have hcos : Continuous (fun y : ℝ => ShenWork.CosineSpectrum.cosineMode k y) := by
-      unfold ShenWork.CosineSpectrum.cosineMode
-      fun_prop
-    exact ((((Real.continuous_exp.comp
-      (continuous_id.neg.mul continuous_const)).mul continuous_const).const_mul _).comp
-        continuous_fst).mul
-      (hcos.comp continuous_snd)
-      |>.continuousOn
-  · exact (unitIntervalCosineEigenvalue_sq_exp_summable hc).mul_left M₀
-  · intro k q hq
-    have hpos : 0 < q.1 := lt_of_lt_of_le hc (mem_prod.mp hq).1.1
-    have hlam_nn : 0 ≤ (λ_ k) := by unfold unitIntervalCosineEigenvalue; positivity
-    have hexp_mono : Real.exp (-q.1 * (λ_ k)) ≤ Real.exp (-c * (λ_ k)) := by
-      have hmul : c * (λ_ k) ≤ q.1 * (λ_ k) :=
-        mul_le_mul_of_nonneg_right (mem_prod.mp hq).1.1 hlam_nn
-      exact Real.exp_le_exp.mpr (by nlinarith)
-    have hcos : |ShenWork.CosineSpectrum.cosineMode k q.2| ≤ 1 := by
-      unfold ShenWork.CosineSpectrum.cosineMode
-      exact Real.abs_cos_le_one _
-    have hA_nonneg :
-        0 ≤ (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) :=
-      mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
-    rw [Real.norm_eq_abs]
-    calc |(λ_ k) ^ 2 * (Real.exp (-q.1 * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k) *
-            ShenWork.CosineSpectrum.cosineMode k q.2|
-        = (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) *
-            |cosineCoeffs (intervalDomainLift u₀) k| *
-            |ShenWork.CosineSpectrum.cosineMode k q.2| := by
-          rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg _),
-            abs_of_nonneg (Real.exp_nonneg _)]; ring
-      _ ≤ (λ_ k) ^ 2 * Real.exp (-c * (λ_ k)) * M₀ * 1 := by
-          calc (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) *
-                  |cosineCoeffs (intervalDomainLift u₀) k| *
-                  |ShenWork.CosineSpectrum.cosineMode k q.2|
-              ≤ (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) * M₀ *
-                  |ShenWork.CosineSpectrum.cosineMode k q.2| := by
-                exact mul_le_mul_of_nonneg_right
-                  (mul_le_mul_of_nonneg_left (hu₀_bound k) hA_nonneg)
-                  (abs_nonneg _)
-            _ ≤ (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) * M₀ * 1 := by
-                exact mul_le_mul_of_nonneg_left hcos
-                  (mul_nonneg hA_nonneg hM₀)
-            _ ≤ (λ_ k) ^ 2 * Real.exp (-c * (λ_ k)) * M₀ * 1 := by
-                exact mul_le_mul_of_nonneg_right
-                  (mul_le_mul_of_nonneg_right
-                    (mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)) hM₀)
-                  zero_le_one
-      _ = M₀ * ((λ_ k) ^ 2 * Real.exp (-c * (λ_ k))) := by ring
+  have hseries : ContinuousOn
+      (fun q : ℝ × ℝ =>
+        ∑' k : ℕ, unitIntervalCosineEigenvalue k ^ 2 *
+          (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+            cosineCoeffs (intervalDomainLift u₀) k) *
+          ShenWork.CosineSpectrum.cosineMode k q.2)
+      (Icc c T ×ˢ Icc (0 : ℝ) 1) := by
+    apply continuousOn_tsum
+    · intro k
+      have hterm : Continuous (fun q : ℝ × ℝ =>
+          unitIntervalCosineEigenvalue k ^ 2 *
+            (Real.exp (-q.1 * unitIntervalCosineEigenvalue k) *
+              cosineCoeffs (intervalDomainLift u₀) k) *
+            ShenWork.CosineSpectrum.cosineMode k q.2) := by
+        unfold ShenWork.CosineSpectrum.cosineMode
+        fun_prop
+      exact hterm.continuousOn
+    · exact (unitIntervalCosineEigenvalue_sq_exp_summable hc).mul_left M₀
+    · intro k q hq
+      have hpos : 0 < q.1 := lt_of_lt_of_le hc (mem_prod.mp hq).1.1
+      have hlam_nn : 0 ≤ (λ_ k) := by unfold unitIntervalCosineEigenvalue; positivity
+      have hexp_mono : Real.exp (-q.1 * (λ_ k)) ≤ Real.exp (-c * (λ_ k)) := by
+        have hmul : c * (λ_ k) ≤ q.1 * (λ_ k) :=
+          mul_le_mul_of_nonneg_right (mem_prod.mp hq).1.1 hlam_nn
+        exact Real.exp_le_exp.mpr (by linarith)
+      have hcos : |ShenWork.CosineSpectrum.cosineMode k q.2| ≤ 1 := by
+        unfold ShenWork.CosineSpectrum.cosineMode
+        exact Real.abs_cos_le_one _
+      have hA_nonneg :
+          0 ≤ (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) :=
+        mul_nonneg (sq_nonneg _) (Real.exp_nonneg _)
+      have hA_bound :
+          (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) ≤
+            (λ_ k) ^ 2 * Real.exp (-c * (λ_ k)) :=
+        mul_le_mul_of_nonneg_left hexp_mono (sq_nonneg _)
+      rw [Real.norm_eq_abs]
+      calc |(λ_ k) ^ 2 *
+              (Real.exp (-q.1 * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k) *
+              ShenWork.CosineSpectrum.cosineMode k q.2|
+          = (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) *
+              |cosineCoeffs (intervalDomainLift u₀) k| *
+              |ShenWork.CosineSpectrum.cosineMode k q.2| := by
+            rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg (sq_nonneg _),
+              abs_of_nonneg (Real.exp_nonneg _)]; ring
+        _ ≤ (λ_ k) ^ 2 * Real.exp (-c * (λ_ k)) * M₀ * 1 := by
+            calc (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) *
+                    |cosineCoeffs (intervalDomainLift u₀) k| *
+                    |ShenWork.CosineSpectrum.cosineMode k q.2|
+                ≤ (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) * M₀ *
+                    |ShenWork.CosineSpectrum.cosineMode k q.2| := by
+                  exact mul_le_mul_of_nonneg_right
+                    (mul_le_mul_of_nonneg_left (hu₀_bound k) hA_nonneg)
+                    (abs_nonneg _)
+              _ ≤ (λ_ k) ^ 2 * Real.exp (-q.1 * (λ_ k)) * M₀ * 1 := by
+                  exact mul_le_mul_of_nonneg_left hcos
+                    (mul_nonneg hA_nonneg hM₀)
+              _ ≤ (λ_ k) ^ 2 * Real.exp (-c * (λ_ k)) * M₀ * 1 := by
+                  exact mul_le_mul_of_nonneg_right
+                    (mul_le_mul_of_nonneg_right hA_bound hM₀)
+                    zero_le_one
+        _ = M₀ * ((λ_ k) ^ 2 * Real.exp (-c * (λ_ k))) := by ring
+  exact hseries.congr hcongr
 
 /-! ## Helper lemmas for d1 (split for heartbeat budget) -/
 
-set_option maxHeartbeats 800000 inprivate theorem heatSemigroup_d1_partA
+set_option maxHeartbeats 0 in
+private theorem heatSemigroup_d1_partA
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
     (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {τ δ : ℝ} (hδ : 0 < δ) (hleft : 0 < τ - δ)
-    (hball_Icc : ∀ s, s ∈ Metric.ball τ δ → s ∈ Icc (τ - δ) (τ + δ)) :
+    (_hball_Icc : ∀ s, s ∈ Metric.ball τ δ → s ∈ Icc (τ - δ) (τ + δ)) :
     ∀ᶠ s in 𝓝 τ, ContinuousOn
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) s) (Icc (0:ℝ) 1) := by
-  have hprofile : ContinuousOn
-      (fun q : ℝ × ℝ => intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
-    simpa [Function.uncurry] using heatSlice_profile_jointContinuousOn p
-      (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_cont hu₀_bound
-  have hpow1 : ContinuousOn
-      (fun q : ℝ × ℝ =>
-        (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1))
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-    hprofile.rpow_const (fun q hq => by
-      obtain ⟨hσ, hx⟩ := mem_prod.mp hq
-      exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
-  have hdu_joint : ContinuousOn
-      (fun q : ℝ × ℝ => heatDu u₀ q.1 q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) := by
-    have hsecond := heatSlice_secondValue_jointContinuousOn
-      (u₀ := u₀) (c := τ - δ) (T := τ + δ) (M₀ := M₀) hleft hu₀_bound
-    exact hsecond.congr (fun q hq => by
-      obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
-      simpa [heatCoeff] using
-        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
-  have hsrc1 : ContinuousOn
-      (fun q : ℝ × ℝ =>
-        p.ν * p.γ * (intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1)
-        * heatDu u₀ q.1 q.2)
-      (Icc (τ - δ) (τ + δ) ×ˢ Icc (0 : ℝ) 1) :=
-    ((continuousOn_const.mul continuousOn_const).mul hpow1).mul hdu_joint
-  filter_upwards [Metric.ball_mem_nhds τ hδ] with s hs
-  exact hsrc1.comp (continuousOn_const.prodMk continuousOn_id)
-    (fun x hx => mem_prod.mpr ⟨hball_Icc s hs, hx⟩)
+  have hδ_ltτ : δ < τ := sub_pos.mp hleft
+  have hτ : 0 < τ := lt_trans hδ hδ_ltτ
+  obtain ⟨δ₀, hδ₀, _hsrc, _hderiv, hsrc1_joint⟩ :=
+    heatSemigroup_d0 hu₀_bound hu₀_cont hfloor τ hτ
+  have hball_Icc₀ : ∀ s, s ∈ Metric.ball τ δ₀ → s ∈ Icc (τ - δ₀) (τ + δ₀) := by
+    intro s hs
+    rw [Metric.mem_ball, Real.dist_eq] at hs
+    exact ⟨by linarith [(abs_lt.mp hs).1], by linarith [(abs_lt.mp hs).2]⟩
+  filter_upwards [Metric.ball_mem_nhds τ hδ₀] with s hs
+  exact hsrc1_joint.comp (continuousOn_const.prodMk continuousOn_id)
+    (fun x hx => mem_prod.mpr ⟨hball_Icc₀ s hs, hx⟩)
 
 set_option maxHeartbeats 1600000 in
 private theorem heatSemigroup_d1_partB
@@ -602,7 +593,7 @@ private theorem heatSemigroup_d1_partC
     exact hsecond.congr (fun q hq => by
       obtain ⟨hσ, _hx⟩ := mem_prod.mp hq
       simpa [heatCoeff] using
-        (heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1)).symm)
+        heatDu_eq_secondValue u₀ (lt_of_lt_of_le hleft hσ.1))
   exact ((((continuousOn_const.mul continuousOn_const).mul continuousOn_const).mul
       hpow2).mul (hdu_joint.pow 2)).add
     (((continuousOn_const.mul continuousOn_const).mul hpow1).mul
