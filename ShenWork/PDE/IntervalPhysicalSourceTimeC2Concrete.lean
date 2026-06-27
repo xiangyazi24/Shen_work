@@ -183,11 +183,23 @@ theorem srcTimeCoeff_contDiffAt
     fun s hs => (hd1 s hs).deriv
   have hc2_on : ContinuousOn f₂ (Set.Ioi 0) :=
     fun s hs => (hc2 s hs).continuousWithinAt
-  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) :=
-    contDiffOn_succ_of_deriv_of_open isOpen_Ioi hd1_on
-      ((contDiffOn_zero.mpr hc2_on).congr heq1.symm)
-  exact (contDiffOn_succ_of_deriv_of_open isOpen_Ioi hd0_on
-    (h0.congr heq0.symm)).contDiffAt (Ioi_mem_nhds ht)
+  have h0 : ContDiffOn ℝ 1 f₁ (Set.Ioi 0) := by
+    rw [show (1 : ℕ∞) = 0 + 1 from rfl, contDiffOn_succ_iff_fderiv_of_isOpen isOpen_Ioi]
+    refine ⟨hd1_on, by intro h; exact absurd h (by simp), ?_⟩
+    have : Set.EqOn (fderiv ℝ f₁) (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₂ s)) (Set.Ioi 0) :=
+      fun s hs => (hd1 s hs).hasFDerivAt.fderiv
+    exact (contDiffOn_zero.mpr (ContinuousOn.congr
+      ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).continuous.comp_continuousOn hc2_on)
+      (fun s hs => (this hs).symm)))
+  have h1 : ContDiffOn ℝ 2 f₀ (Set.Ioi 0) := by
+    rw [show (2 : ℕ∞) = 1 + 1 from rfl, contDiffOn_succ_iff_fderiv_of_isOpen isOpen_Ioi]
+    refine ⟨hd0_on, by intro h; exact absurd h (by simp), ?_⟩
+    have hfderiv_eq : Set.EqOn (fderiv ℝ f₀) (fun s => ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ) (f₁ s)) (Set.Ioi 0) :=
+      fun s hs => (hd0 s hs).hasFDerivAt.fderiv
+    exact ContDiffOn.congr
+      ((ContinuousLinearMap.smulRight (1 : ℝ →L[ℝ] ℝ)).contDiff.comp_contDiffOn h0)
+      (fun s hs => (hfderiv_eq hs).symm)
+  exact h1.contDiffAt (Ioi_mem_nhds ht)
 
 /-- `iteratedDeriv 1 (srcTimeCoeff k) t = cosineCoeffs (s₁ t) k` for `t > 0`. -/
 private theorem srcTimeCoeff_iteratedDeriv1
