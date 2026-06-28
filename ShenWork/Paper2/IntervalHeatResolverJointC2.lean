@@ -830,11 +830,39 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight
                   -- |(-eigenvalue * heatPointWeight) * c_n| ≤ M₀ * (eigenvalue * exp(-(c+1)*eigval))
                   rw [abs_mul, abs_mul, abs_neg]
-                  -- eigenvalue * |heatPointWeight| * |c_n| ≤ M₀ * eigenvalue * exp(-(c+1)*eigval)
-                  -- |heatPointWeight| ≤ exp(-t*eigval) (since |cos| ≤ 1)
-                  -- |c_n| ≤ M₀ (hu₀_bound)
-                  -- exp(-t*eigval) ≤ exp(-(c+1)*eigval) (t ≥ c+1, exp monotone)
-                  sorry
+                  -- Goal shape after abs_mul + abs_neg:
+                  -- |unitIntervalCosineEigenvalue n| * |heatPointWeight t x n| * |c_n|
+                  -- ≤ M₀ * (unitIntervalCosineEigenvalue n * exp(-(c+1)*eigenvalue n))
+                  -- Since eigenvalue ≥ 0: |eigenvalue| = eigenvalue
+                  -- |heatPointWeight| = |exp(-t*eigval) * cos(nπx)| ≤ exp(-t*eigval)
+                  -- ≤ exp(-(c+1)*eigval)  (t ≥ c+1)
+                  -- |c_n| ≤ M₀
+                  -- Product: eigenvalue * exp(-(c+1)*eigval) * M₀ = M₀ * eigenvalue * exp(...)
+                  calc |unitIntervalCosineEigenvalue n| *
+                        |unitIntervalCosineHeatPointWeight t x n| *
+                        |cosineCoeffs (intervalDomainLift u₀) n|
+                      ≤ unitIntervalCosineEigenvalue n *
+                          Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) * M₀ := by
+                        have heig_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+                          unfold unitIntervalCosineEigenvalue; positivity
+                        rw [abs_of_nonneg heig_nn]
+                        have hpw_le : |unitIntervalCosineHeatPointWeight t x n| ≤
+                            Real.exp (-t * unitIntervalCosineEigenvalue n) := by
+                          unfold unitIntervalCosineHeatPointWeight
+                          rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+                          exact mul_le_of_le_one_right (Real.exp_nonneg _)
+                            (Real.abs_cos_le_one _)
+                        have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤
+                            Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) :=
+                          Real.exp_le_exp_of_le (by nlinarith [heig_nn])
+                        have hc_le : |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀ :=
+                          hu₀_bound n
+                        calc _ ≤ unitIntervalCosineEigenvalue n *
+                                  Real.exp (-t * unitIntervalCosineEigenvalue n) * M₀ := by
+                              gcongr
+                            _ ≤ _ := by gcongr
+                    _ = M₀ * (unitIntervalCosineEigenvalue n *
+                          Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) := by ring
                 · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
                   rw [tsum_mul_left]
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
