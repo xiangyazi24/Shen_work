@@ -1,150 +1,117 @@
-# Q1576 (cron2) — callers of `coupledChemical_jointContDiffAt_two`
+# Q1590 (cron2) — direct IBP route for `cutoffResolverMajorant_summable`
 
 Static GitHub-connector response only. I did **not** run Lean locally, and I did **not** use Python, code-interpreter, sandbox, or `/mnt/data`.
 
-I searched the repo through the GitHub connector for the exact token:
+## Bottom line
+
+The no-`PhysicalResolverJointC2Data` route is viable, but the decay cannot be extracted from `cutoffResolverCoeff_contDiff_two` as a black box.
+
+`cutoffResolverCoeff_contDiff_two` proves time regularity of the scalar coefficient
+
+```lean
+fun t => smoothRightCutoff (c / 2) c t *
+  resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
+```
+
+This is a `t`-only `ContDiff ℝ 2` statement. It does not imply spatial `IntervalWeakH2Neumann` for
+
+```lean
+fun x => p.ν * intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ^ p.γ
+```
+
+Scalar time smoothness for each `k` carries no uniform-in-`k` decay information.
+
+The correct direct route is:
 
 ```text
-coupledChemical_jointContDiffAt_two
+spatial C2 of source slice + Neumann endpoint data
+  -> IntervalWeakH2Neumann
+  -> quadratic cosine coefficient decay
+  -> resolver weight w_k = O(k^-2)
+  -> summable cutoff majorant for joint orders j <= 2.
 ```
 
-The code-search hit files were:
+## Existing API to use
+
+The repo already has the needed H2 package:
+
+```lean
+IntervalWeakH2Neumann
+intervalWeakH2Neumann_of_contDiffOn
+intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound
+```
+
+The constructor `intervalWeakH2Neumann_of_contDiffOn` needs spatial `ContDiffOn ℝ 2` on `[0,1]` plus first-derivative Neumann endpoint data. Then `intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound` gives
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean
-ShenWork/PDE/IntervalIteratePicardJointC2.lean
-ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
-ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
-UNDERSTANDING.md
+|cosineCoeffs f k| <= 2 B / (k*pi)^2,  k >= 1.
 ```
 
-Only two Lean files contain real theorem applications/callers. The other hits are definition, comments, docs, or `open` references.
+This is the IBP decay you want.
 
-## Actual callers
+## What direct data is needed
 
-### `ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean`
+For `D^j(cutoffResolverTerm_k)` with `j <= 2`, Leibniz terms use time derivatives of the source coefficient up to order `2`. So the direct replacement for `PhysicalResolverJointC2Data` should prove H2 Neumann, uniformly for `t >= c/2`, for the three source time slices:
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:30
+m = 0: srcSlice  p u t
+m = 1: srcSlice1 p u (heatDu u0) t
+m = 2: srcSlice2 p u (heatDu u0) (heatD2u u0) t
 ```
 
-Used in `coupledChemical_innerCommute_of_physicalJointC2` to obtain the initial value `C²` input for the Clairaut bridge:
-
-```lean
-have hFC2 : ContDiffAt ℝ 2 (Function.uncurry F) (s, y) :=
-  coupledChemical_jointContDiffAt_two H hy
-```
+More explicitly, add three lemmas of this form:
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:38
+exists Bm >= 0 such that for all t >= c/2,
+there is Hm : IntervalWeakH2Neumann(sourceSlice_m t)
+and integral |Hm.secondDeriv| <= Bm.
 ```
 
-Used in the same theorem for the spatial bridge at `(r,y)`:
-
-```lean
-have hgr : ContDiffAt ℝ 2 (Function.uncurry F) (r, y) :=
-  coupledChemical_jointContDiffAt_two H hy
-```
+Then apply the quadratic-decay theorem to get envelopes
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:50
+E_m(k) = O(k^-2)
 ```
 
-Used in the same theorem for the time bridge at `(s,z)`:
+for all three source coefficient time slices.
 
-```lean
-have hgr : ContDiffAt ℝ 2 (Function.uncurry F) (s, z) :=
-  coupledChemical_jointContDiffAt_two H hz
-```
+## Why H2 is enough
+
+The resolver coefficient has the elliptic weight
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:84
+w_k = 1/(mu + lambda_k) = O(k^-2).
 ```
 
-Used in `coupledChemDivFlux_timeBridge_of_physicalJointC2` to supply the `hv` input to `coupledChemDivFlux_timeBridge_of_innerTimeHasDerivAt`:
-
-```lean
-filter_upwards [hopen] with y hy using coupledChemical_jointContDiffAt_two H hy
-```
-
-### `ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean`
+The spatial part of a joint derivative contributes at worst order `2` in the cosine mode:
 
 ```text
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:885
+valueCosWeight 0 k = O(1)
+valueCosWeight 1 k = O(k)
+valueCosWeight 2 k = O(k^2)
 ```
 
-Used in the old heat-level wrapper `heatResolverJointContDiffAt_two` after first extracting `PhysicalResolverJointC2Data`:
-
-```lean
-exact coupledChemical_jointContDiffAt_two hBt hx₀
-```
-
-## Non-caller hits
-
-`ShenWork/PDE/IntervalResolverJointC2PhysicalConcrete.lean` contains the theorem definition itself, not a caller.
-
-`ShenWork/PDE/IntervalIteratePicardJointC2.lean`, `ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean`, and `UNDERSTANDING.md` only mention the name in comments or documentation.
-
-`ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean` also has documentation and an `open ... (coupledChemical_jointContDiffAt_two ...)` reference; the only actual application I found there is line 885.
-
-## Rewiring verdict
-
-For the **heat Level0 lane**, yes: the old heat wrapper call at `IntervalHeatSemigroupHighRegularity.lean:885` can be replaced by the direct theorem
-
-```lean
-ShenWork.Paper2.HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
-```
-
-with the heat positivity floor supplied from `heatSemigroup_pos_of_pos`.
-
-Do **not** blindly rewrite the generic FAC lemmas in `IntervalChemDivFACCommuteDischarge.lean`. Those theorems are polymorphic in arbitrary
-
-```lean
-u : ℝ → intervalDomainPoint → ℝ
-```
-
-and assume
-
-```lean
-H : PhysicalResolverJointC2Data p u Bt
-```
-
-The direct theorem is heat-specific: it applies to
-
-```lean
-u = conjugatePicardIter p u₀ 0
-```
-
-not to arbitrary `u`.
-
-The correct FAC move is to keep the generic physical-route lemmas and add heat-specific direct analogues, for example:
-
-```lean
-coupledChemical_innerCommute_of_heatDirect
-coupledChemDivFlux_timeBridge_of_heatDirect
-coupledChemDivFluxFactorJointC2Inputs_of_heatDirect
-```
-
-The heat-specific inner commute should copy the proof shape of `coupledChemical_innerCommute_of_physicalJointC2`, but replace the three value-`C²` calls with `heatResolver_jointContDiffAt_two`. The one important local edit is the spatial bridge: the physical proof uses all `r`, but the direct proof is positive-time/local. Use an eventual neighborhood `r ∈ Ioi c` around `s` with `c < s`, then call the direct theorem at `(r,y)`.
-
-For the FAC flux time bridge, value `C²` alone is not enough. The bridge also needs:
-
-```lean
-hgradv : ContDiffAt ℝ 2 (spatial derivative of v)
-hgv    : inner commute ∂ₜ∂ₓv = ∂ₓ∂ₜv
-```
-
-So a full direct FAC rewire needs direct replacements for value `C²`, gradient `C²`, and the inner commute. If `heatResolver_grad_jointContDiffAt_two` is also genuinely direct/sorry-free in your branch, then the heat Level0 FAC path can avoid `PhysicalResolverJointC2Data` entirely. If only the value theorem is direct, then only the `hv` leg is freed.
-
-## Final list
-
-Actual callers of `coupledChemical_jointContDiffAt_two`:
+Combining with H2 decay gives, in the worst case,
 
 ```text
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:30
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:38
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:50
-ShenWork/PDE/IntervalChemDivFACCommuteDischarge.lean:84
-ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean:885
+O(k^2) * O(k^-2) * O(k^-2) = O(k^-2),
 ```
+
+which is summable. The zero mode is handled separately as a finite term.
+
+So H2 is enough for the bounded-weight value `C2` majorant. H4 is not needed for this specific value-series `cutoffResolverMajorant_summable`; H4 is needed for stronger spectral/eigenvalue-weighted routes such as resolver `C4` or `lambda_k * |sourceCoeff_k|` summability.
+
+## Minimal lemma chain
+
+Use this implementation order:
+
+1. Prove spatial H2 Neumann certificates for `srcSlice`, `srcSlice1`, and `srcSlice2` on `t >= c/2`.
+2. Prove uniform `L1` bounds on their weak second derivatives on the same halfline.
+3. Apply `intervalWeakH2Neumann_cosineCoeff_quadratic_decay_of_bound` to get direct coefficient envelopes `E_m(k)`.
+4. Prove time-derivative bounds for the cutoff resolver coefficient by Leibniz: derivatives can hit the cutoff and the source coefficient; each term is bounded by `cutoffDerivBound * w_k * E_m(k)`.
+5. Prove the `iSup` majorant is bounded by a concrete finite sum of `valueCosWeight ell k * w_k * E_m(k)` with `ell <= 2`.
+6. Prove summability term-by-term using the `O(k^-2)` worst-case estimate.
+
+## Final answer
+
+Do not try to derive IBP decay from `cutoffResolverCoeff_contDiff_two`. Instead, extract the spatial regularity facts that underlie the source slices directly: spatial `C2`, Neumann endpoint data, and uniform `L1` bounds. That gives `IntervalWeakH2Neumann` and the quadratic IBP decay without `PhysicalResolverJointC2Data`. This is the right direct replacement for the majorant summability proof.
