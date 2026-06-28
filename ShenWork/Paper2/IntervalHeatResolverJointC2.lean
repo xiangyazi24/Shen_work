@@ -737,12 +737,21 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           -- |deriv R(t)| needs eigenvalue damping — sorry'd
           have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
               |deriv R t| ≤ B_R' := by
-            -- deriv R = w_k * deriv srcTimeCoeff
-            -- deriv srcTimeCoeff = cosineCoeffs(srcSlice1(t), k) from d0 HasDerivAt
-            -- |cosineCoeffs(srcSlice1, k)| ≤ 2·νγ·M_sup^{γ-1}·M₀·C_Δ/(c+1)²
-            -- from cosineCoeffs_abs_le_of_continuous_bounded + L∞ contraction +
-            -- unitIntervalCosineHeatSecondPointWeight_abs_le
-            sorry
+            -- Step A: bound cosineCoeffs(srcSlice1(t), k) for t > c+1 (eigenvalue damping)
+            have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
+                |cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k| ≤ Bsrc := by
+              sorry -- ContinuousOn of srcSlice1 + L∞ bound via eigenvalue damping
+            obtain ⟨Bsrc, hBsrc⟩ := hBsrc
+            set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
+            refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
+            have ht_pos : 0 < t := by linarith
+            -- Step B: deriv R(t) = w_k * cosineCoeffs(srcSlice1(t), k) from HasDerivAt
+            -- resolverTimeCoeff = w_k * srcTimeCoeff (resolverTimeCoeff_eq_weight_smul)
+            -- HasDerivAt srcTimeCoeff (cosineCoeffs(srcSlice1(t), k)) t from d0
+            -- → deriv srcTimeCoeff t = cosineCoeffs(srcSlice1(t), k)
+            -- → deriv R t = w_k * cosineCoeffs(srcSlice1(t), k)
+            -- → |deriv R t| ≤ |w_k| * |cosineCoeffs(srcSlice1(t), k)| ≤ |w_k| * Bsrc
+            sorry -- HasDerivAt assembly from heatSemigroup_d0
           obtain ⟨B_R', hB_R'⟩ := hR_deriv_bounded
           refine ⟨B_R', fun t ht => ?_⟩
           -- ‖iteratedFDeriv ℝ 1 A t‖ = |deriv A t|
