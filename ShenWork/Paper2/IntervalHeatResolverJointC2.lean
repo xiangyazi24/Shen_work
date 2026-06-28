@@ -783,7 +783,23 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             hA2_cont.continuousOn
         have hA2_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
             ‖iteratedFDeriv ℝ 2 A t‖ ≤ B := by
-          sorry -- tail: A'' for t > c, bounded by eigenvalue damping
+          set R := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
+          have hR_deriv2_bounded : ∃ B_R'' : ℝ, ∀ t : ℝ, c + 1 < t →
+              |iteratedDeriv 2 R t| ≤ B_R'' := by
+            sorry -- eigenvalue damping for second time derivative of resolverTimeCoeff
+          obtain ⟨B_R'', hB_R''⟩ := hR_deriv2_bounded
+          refine ⟨B_R'', fun t ht => ?_⟩
+          rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
+          -- A = R near t (φ=1 for t > c)
+          have hev : A =ᶠ[𝓝 t] R := by
+            filter_upwards [Ioi_mem_nhds (show c < t by linarith)] with s hs
+            show smoothRightCutoff (c / 2) c s * R s = R s
+            rw [smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) (le_of_lt hs)]
+            exact one_mul _
+          -- iteratedDeriv 2 A = iteratedDeriv 2 R near t
+          have hev2 := Filter.EventuallyEq.iteratedDeriv hev 2
+          rw [hev2.eq_of_nhds]
+          exact hB_R'' t ht
         obtain ⟨B2_tail, hB2_tail⟩ := hA2_tail
         refine ⟨max (max 0 B2_compact) B2_tail, fun t => ?_⟩
         by_cases ht_left : t < c / 2
