@@ -1030,10 +1030,232 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
                     |srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀)
                       (heatD2u u₀) t x| ≤ Bpt := by
-                -- srcSlice2 = ν·γ·(γ-1)·u^{γ-2}·(heatDu)² + ν·γ·u^{γ-1}·heatD2u
-                -- Uniform bound: u ∈ [inf u₀, M_sup], |heatDu| ≤ CΔ,
-                -- |heatD2u| ≤ CΔ₂ (eigenvalue damping). Assembly ~25 lines.
-                sorry
+                -- Step 1: Bound |heatDu u₀ t x| ≤ CΔ for t > c+1 (eigenvalue damping)
+                have hDu_bound : ∃ CΔ : ℝ, 0 ≤ CΔ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
+                    |heatDu u₀ t x| ≤ CΔ := by
+                  have heig_summ :=
+                    ShenWork.IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable
+                      (show 0 < c + 1 by linarith)
+                  let maj_sum := M₀ * ∑' n,
+                    unitIntervalCosineEigenvalue n *
+                      Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)
+                  refine ⟨maj_sum, ?_, fun t ht x => ?_⟩
+                  · exact mul_nonneg (le_trans (abs_nonneg _) (hu₀_bound 0))
+                      (tsum_nonneg fun n => mul_nonneg
+                        (by unfold unitIntervalCosineEigenvalue; positivity)
+                        (Real.exp_nonneg _))
+                  · have ht_pos : 0 < t := by linarith
+                    simp only [heatDu, if_pos ht_pos]
+                    unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue
+                    refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_) (heig_summ.mul_left M₀)).trans ?_
+                    · unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight
+                      rw [abs_mul, abs_mul, abs_neg]
+                      calc |unitIntervalCosineEigenvalue n| *
+                            |unitIntervalCosineHeatPointWeight t x n| *
+                            |cosineCoeffs (intervalDomainLift u₀) n|
+                          ≤ unitIntervalCosineEigenvalue n *
+                              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) * M₀ := by
+                            have heig_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+                              unfold unitIntervalCosineEigenvalue; positivity
+                            rw [abs_of_nonneg heig_nn]
+                            have hpw_le : |unitIntervalCosineHeatPointWeight t x n| ≤
+                                Real.exp (-t * unitIntervalCosineEigenvalue n) := by
+                              unfold unitIntervalCosineHeatPointWeight
+                              rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+                              exact mul_le_of_le_one_right (Real.exp_nonneg _)
+                                (Real.abs_cos_le_one _)
+                            have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤
+                                Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) :=
+                              Real.exp_le_exp_of_le (by nlinarith [heig_nn])
+                            have hc_le : |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀ :=
+                              hu₀_bound n
+                            calc _ ≤ unitIntervalCosineEigenvalue n *
+                                      Real.exp (-t * unitIntervalCosineEigenvalue n) * M₀ :=
+                                  mul_le_mul
+                                    (mul_le_mul_of_nonneg_left hpw_le heig_nn) hc_le
+                                    (abs_nonneg _)
+                                    (mul_nonneg heig_nn (Real.exp_nonneg _))
+                              _ ≤ _ :=
+                                  mul_le_mul_of_nonneg_right
+                                    (mul_le_mul_of_nonneg_left hexp_le heig_nn)
+                                    (le_trans (abs_nonneg _) hc_le)
+                        _ = M₀ * (unitIntervalCosineEigenvalue n *
+                              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) := by ring
+                    · rw [tsum_mul_left]
+                obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
+                -- Step 2: Bound |heatD2u u₀ t x| ≤ CΔ₂ for t > c+1
+                have hD2u_bound : ∃ CΔ₂ : ℝ, 0 ≤ CΔ₂ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
+                    |heatD2u u₀ t x| ≤ CΔ₂ := by
+                  have heig2_summ :=
+                    ShenWork.Paper2.HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable
+                      2 (show 0 < c + 1 by linarith)
+                  let maj2 := M₀ * ∑' n,
+                    unitIntervalCosineEigenvalue n ^ 2 *
+                      Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)
+                  refine ⟨maj2, ?_, fun t ht x => ?_⟩
+                  · exact mul_nonneg (le_trans (abs_nonneg _) (hu₀_bound 0))
+                      (tsum_nonneg fun n => mul_nonneg
+                        (pow_nonneg (by unfold unitIntervalCosineEigenvalue; positivity) _)
+                        (Real.exp_nonneg _))
+                  · have ht_pos : 0 < t := by linarith
+                    simp only [heatD2u, if_pos ht_pos]
+                    -- Goal: |∑' k, eigval² * (exp * coeff) * cos| ≤ maj2
+                    refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_)
+                      (heig2_summ.mul_left M₀)).trans ?_
+                    · -- |eigval² * (exp * coeff) * cos| ≤ eigval² * exp(-(c+1)*eigval) * M₀
+                      rw [show unitIntervalCosineEigenvalue n ^ 2 *
+                        (Real.exp (-t * unitIntervalCosineEigenvalue n) *
+                          cosineCoeffs (intervalDomainLift u₀) n) *
+                        ShenWork.CosineSpectrum.cosineMode n x =
+                        unitIntervalCosineEigenvalue n ^ 2 *
+                        (Real.exp (-t * unitIntervalCosineEigenvalue n) *
+                          ShenWork.CosineSpectrum.cosineMode n x) *
+                        cosineCoeffs (intervalDomainLift u₀) n from by ring]
+                      rw [abs_mul]
+                      have heig_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+                        unfold unitIntervalCosineEigenvalue; positivity
+                      have heig2_nn : 0 ≤ unitIntervalCosineEigenvalue n ^ 2 :=
+                        pow_nonneg heig_nn _
+                      have hexp_cos_le : |Real.exp (-t * unitIntervalCosineEigenvalue n) *
+                          ShenWork.CosineSpectrum.cosineMode n x| ≤
+                          Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := by
+                        rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+                        calc Real.exp (-t * unitIntervalCosineEigenvalue n) *
+                              |ShenWork.CosineSpectrum.cosineMode n x|
+                            ≤ Real.exp (-t * unitIntervalCosineEigenvalue n) * 1 := by
+                              apply mul_le_mul_of_nonneg_left _ (Real.exp_nonneg _)
+                              exact Real.abs_cos_le_one _
+                          _ = Real.exp (-t * unitIntervalCosineEigenvalue n) := mul_one _
+                          _ ≤ Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) :=
+                              Real.exp_le_exp_of_le (by nlinarith [heig_nn])
+                      calc |unitIntervalCosineEigenvalue n ^ 2 *
+                            (Real.exp (-t * unitIntervalCosineEigenvalue n) *
+                              ShenWork.CosineSpectrum.cosineMode n x)| *
+                            |cosineCoeffs (intervalDomainLift u₀) n|
+                          ≤ (unitIntervalCosineEigenvalue n ^ 2 *
+                              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) * M₀ := by
+                            rw [abs_mul, abs_of_nonneg heig2_nn]
+                            exact mul_le_mul
+                              (mul_le_mul_of_nonneg_left hexp_cos_le heig2_nn)
+                              (hu₀_bound n) (abs_nonneg _)
+                              (mul_nonneg heig2_nn (Real.exp_nonneg _))
+                        _ = M₀ * (unitIntervalCosineEigenvalue n ^ 2 *
+                              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) := by ring
+                    · rw [tsum_mul_left]
+                obtain ⟨CΔ₂, hCΔ₂_nn, hD2u⟩ := hD2u_bound
+                -- Step 3: compact domain infrastructure (min/max, lift bounds, rpow)
+                haveI : CompactSpace intervalDomainPoint :=
+                  isCompact_iff_compactSpace.mp isCompact_Icc
+                haveI : Nonempty intervalDomainPoint :=
+                  ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
+                obtain ⟨xmin, _, hmin⟩ := IsCompact.exists_isMinOn isCompact_univ
+                  Set.univ_nonempty hu₀_cont.continuousOn
+                have hm₀ : 0 < u₀ xmin := hu₀_pos xmin
+                obtain ⟨xmax, _, hmax⟩ := IsCompact.exists_isMaxOn isCompact_univ
+                  Set.univ_nonempty hu₀_cont.norm.continuousOn
+                have hlift_lo : ∀ y, y ∈ Set.Icc (0:ℝ) 1 →
+                    u₀ xmin ≤ intervalDomainLift u₀ y := by
+                  intro y hy; unfold intervalDomainLift; rw [dif_pos hy]
+                  exact hmin (Set.mem_univ (⟨y, hy⟩ : intervalDomainPoint))
+                have hlift_hi : ∀ y, |intervalDomainLift u₀ y| ≤ ‖u₀ xmax‖ := by
+                  intro y; unfold intervalDomainLift; split_ifs with hy
+                  · exact Real.norm_eq_abs _ ▸ hmax (Set.mem_univ (⟨y, hy⟩ : intervalDomainPoint))
+                  · exact (le_of_eq abs_zero).trans (norm_nonneg _)
+                have hminmax : u₀ xmin ≤ ‖u₀ xmax‖ :=
+                  (le_abs_self _).trans (Real.norm_eq_abs _ ▸ hmax (Set.mem_univ xmin))
+                have hlift_m := ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous hu₀_cont
+                -- rpow bounds on compact [inf u₀, ‖u₀‖_∞]
+                -- R₁ bounds u^{γ-1}
+                obtain ⟨u_R₁, hu_R₁, hR₁max⟩ := isCompact_Icc.exists_isMaxOn
+                  (Set.nonempty_Icc.mpr hminmax)
+                  (continuousOn_id.rpow_const
+                    (fun u hu => Or.inl (ne_of_gt (lt_of_lt_of_le hm₀ hu.1))))
+                have hR₁_nn : 0 ≤ u_R₁ ^ (p.γ - 1) :=
+                  Real.rpow_nonneg (le_of_lt (lt_of_lt_of_le hm₀ hu_R₁.1)) _
+                -- R₂ bounds u^{γ-2} = u^{γ-1-1}
+                obtain ⟨u_R₂, hu_R₂, hR₂max⟩ := isCompact_Icc.exists_isMaxOn
+                  (Set.nonempty_Icc.mpr hminmax)
+                  (continuousOn_id.rpow_const
+                    (fun u hu => Or.inl (ne_of_gt (lt_of_lt_of_le hm₀ hu.1))))
+                have hR₂_nn : 0 ≤ u_R₂ ^ (p.γ - 1 - 1) :=
+                  Real.rpow_nonneg (le_of_lt (lt_of_lt_of_le hm₀ hu_R₂.1)) _
+                -- Step 4: assemble Bpt = term1_bound + term2_bound
+                -- term1_bound = |ν·γ·(γ-1)| · R₂ · CΔ²
+                -- term2_bound = ν·γ · R₁ · CΔ₂
+                set B₁ := |p.ν * p.γ * (p.γ - 1)| * (u_R₂ ^ (p.γ - 1 - 1)) * CΔ ^ 2
+                set B₂ := p.ν * p.γ * (u_R₁ ^ (p.γ - 1)) * CΔ₂
+                refine ⟨B₁ + B₂,
+                  add_nonneg (mul_nonneg (mul_nonneg (abs_nonneg _) hR₂_nn)
+                    (sq_nonneg _))
+                    (mul_nonneg (mul_nonneg (mul_nonneg (le_of_lt p.hν) (le_of_lt p.hγ))
+                      hR₁_nn) hCΔ₂_nn),
+                  fun t ht x hx => ?_⟩
+                have ht_pos : 0 < t := by linarith
+                have hdef : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
+                    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                      t (intervalDomainLift u₀) x := by
+                  unfold intervalDomainLift; rw [dif_pos hx]; rfl
+                have hlo : u₀ xmin ≤
+                    intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
+                  rw [hdef]
+                  exact ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_lower_bound
+                    ht_pos hm₀.le hminmax hlift_m hlift_lo hlift_hi x
+                have hhi : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ≤
+                    ‖u₀ xmax‖ := by
+                  rw [hdef]
+                  exact le_of_abs_le (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+                    ht_pos (norm_nonneg _) hlift_hi x)
+                have hvp : 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
+                  lt_of_lt_of_le hm₀ hlo
+                -- rpow bounds
+                have hpow1_le :
+                    (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1)
+                      ≤ u_R₁ ^ (p.γ - 1) :=
+                  hR₁max ⟨hlo, hhi⟩
+                have hpow2_le :
+                    (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1 - 1)
+                      ≤ u_R₂ ^ (p.γ - 1 - 1) :=
+                  hR₂max ⟨hlo, hhi⟩
+                -- Triangle inequality on srcSlice2 = term1 + term2
+                simp only [srcSlice2]
+                calc |p.ν * p.γ * (p.γ - 1) *
+                        (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1 - 1) *
+                        (heatDu u₀ t x) ^ (2 : ℕ) +
+                      p.ν * p.γ *
+                        (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1) *
+                        heatD2u u₀ t x|
+                    ≤ |p.ν * p.γ * (p.γ - 1) *
+                        (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1 - 1) *
+                        (heatDu u₀ t x) ^ (2 : ℕ)| +
+                      |p.ν * p.γ *
+                        (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1) *
+                        heatD2u u₀ t x| := abs_add _ _
+                  _ ≤ B₁ + B₂ := by
+                      apply add_le_add
+                      · -- Term 1: |ν·γ·(γ-1)·u^{γ-2}·(du)²| ≤ |ν·γ·(γ-1)| · R₂ · CΔ²
+                        rw [show p.ν * p.γ * (p.γ - 1) *
+                            (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1 - 1) *
+                            (heatDu u₀ t x) ^ (2 : ℕ) =
+                          (p.ν * p.γ * (p.γ - 1)) *
+                            ((intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1 - 1) *
+                              (heatDu u₀ t x) ^ (2 : ℕ)) from by ring]
+                        rw [abs_mul]
+                        apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+                        rw [abs_mul, abs_of_nonneg (Real.rpow_nonneg (le_of_lt hvp) _)]
+                        have hdu_sq : |heatDu u₀ t x| ^ 2 ≤ CΔ ^ 2 :=
+                          sq_le_sq' (by linarith [abs_nonneg (heatDu u₀ t x), hDu t ht x])
+                            (hDu t ht x)
+                        rw [show |(heatDu u₀ t x) ^ (2 : ℕ)| = |heatDu u₀ t x| ^ 2 from by
+                          rw [pow_two, abs_mul, pow_two]]
+                        exact mul_le_mul hpow2_le hdu_sq (sq_nonneg _) hR₂_nn
+                      · -- Term 2: |ν·γ·u^{γ-1}·d2u| ≤ ν·γ · R₁ · CΔ₂
+                        rw [abs_mul, abs_of_nonneg (mul_nonneg (mul_nonneg (le_of_lt p.hν)
+                          (le_of_lt p.hγ)) (Real.rpow_nonneg (le_of_lt hvp) _))]
+                        exact mul_le_mul
+                          (mul_le_mul_of_nonneg_left hpow1_le
+                            (mul_nonneg (le_of_lt p.hν) (le_of_lt p.hγ)))
+                          (hD2u t ht x) (abs_nonneg _)
+                          (mul_nonneg (mul_nonneg (le_of_lt p.hν) (le_of_lt p.hγ)) hR₁_nn)
               refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
               obtain ⟨δ₁, hδ₁, _, _, hcd1⟩ :=
