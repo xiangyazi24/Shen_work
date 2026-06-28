@@ -1,4 +1,8 @@
 /-
+  DEAD CODE: This file is not imported by any other file in the repo.
+  Its sorry terms are not on any critical path.
+-/
+/-
   ShenWork/Paper2/IntervalConjugateLevel0BFormSourceOn.lean
 
   B-form source `DuhamelSourceTimeC1On` for the conjugate Picard level 0

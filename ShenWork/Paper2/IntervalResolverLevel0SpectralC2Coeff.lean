@@ -1,3 +1,7 @@
+/-
+  DEAD CODE: This file is not imported by any other file in the repo.
+  Its sorry terms are not on any critical path.
+-/
 import ShenWork.Paper2.IntervalRestartVariationOfConstants
 import ShenWork.PDE.IntervalResolverJointC2C2Coeff
 import ShenWork.PDE.IntervalPhysicalResolverDataConcrete

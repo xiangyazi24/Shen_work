@@ -1,3 +1,7 @@
+/-
+  DEAD CODE: This file is not imported by any other file in the repo.
+  Its sorry terms are not on any critical path.
+-/
 import ShenWork.PDE.IntervalChemDivMixedReprConstruct
 import ShenWork.PDE.IntervalChemDivMixedReprWitness
 import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
