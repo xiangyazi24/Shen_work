@@ -514,7 +514,7 @@ private theorem bddAbove_range_of_left_mid_tail
     · push_neg at hqb
       exact (htail q hqb).trans ((le_max_right Cmid Ctail).trans (le_max_right 0 _))
 
-set_option maxHeartbeats 800000 in
+set_option maxHeartbeats 3200000 in
 /-- BddAbove of the cutoff resolver term iteratedFDeriv norm, proved directly
 from the product structure A(t) · B(x) without PhysicalResolverJointC2Data.
 Uses: left zero (cutoff), mid compact (compactness in t × cosine bound in x),
