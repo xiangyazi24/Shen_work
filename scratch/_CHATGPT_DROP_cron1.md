@@ -1,4 +1,4 @@
-# Q1541 (cron1) -- finite-sum cutoff resolver majorant
+# Q1552 (cron1) -- half-line source coefficient boundedness for iSup majorant
 
 Repository: `xiangyazi24/Shen_work`  
 Branch: `chatgpt-scratch`  
@@ -6,292 +6,280 @@ Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 ## Short answer
 
-Yes. The right `cutoffResolverMajorant` should be a **finite Leibniz sum**. In fact it should be a two-layer finite sum:
-
-1. Leibniz for the scalar time factor
-
-```text
-smoothRightCutoff(t) * resolverTimeCoeff_k(t)
-```
-
-2. Leibniz for multiplying that scalar time factor by the spatial mode
-
-```text
-cos(k*pi*x)
-```
-
-The source/resolver coefficient envelope only needs to hold on `Set.Ici (c/2)`, because for `t < c/2` the cutoff term is locally zero, and for `t >= c/2` we are away from `0`.
-
-The important design point: do **not** define the final majorant only as an opaque `Classical.choice`. Define it from explicit ingredients:
-
-```text
-cutoff derivative bounds
-source coefficient derivative envelope on [c/2, infinity)
-resolver weight abs value
-spatial cosine derivative powers
-```
-
-Then summability is transparent from quartic source coefficient decay plus the elliptic resolver weight.
-
-## Repo context
-
-The current direct file already defines
+I did **not** find an existing theorem that directly states:
 
 ```lean
-def cutoffResolverTerm ... :=
-  fun q => smoothRightCutoff (c / 2) c q.1 *
-    (resolverTimeCoeff p u k q.1 * cosineMode k q.2)
+BddAbove ((fun t : ℝ => |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|) '' Set.Ici c)
 ```
 
-and has a placeholder `cutoffResolverMajorant` plus sorry lemmas for nonnegativity, summability, and the derivative bound.
-
-The existing `cutoffValueTerm_leibniz_bound` in `IntervalResolverSpectralJointC2CutoffBounds.lean` is exactly the pattern to reuse: it bounds the iterated derivative of a product by a finite sum over `Finset.range (k + 1)` with binomial coefficients.
-
-## Concrete Lean code: reusable finite-sum majorant
-
-This is the definition I would add near the current placeholder in `IntervalHeatResolverJointC2.lean` or in a small helper file imported by it.
+or a direct half-line bound for
 
 ```lean
-import ShenWork.Paper2.IntervalHeatResolverJointC2
-import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
-import ShenWork.PDE.IntervalSourceDecayQuantitative
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-open ShenWork.IntervalPhysicalResolverDataConcrete (srcTimeCoeff)
-open ShenWork.IntervalResolverSpectralJointC2Cutoff
-  (smoothRightCutoff)
-open ShenWork.CosineSpectrum (cosineMode)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
-
-/-- A noncomputable global bound for the `r`-th time derivative of the cutoff
-`φ(t) = smoothRightCutoff (c/2) c t`.
-
-For proofs, show this really bounds all `t` by splitting:
-* `t <= c/2`: the cutoff is locally zero;
-* `c/2 <= t <= c`: compactness/continuity;
-* `c <= t`: the cutoff is locally one, so higher derivatives vanish and order `0`
-  is bounded by `1`.
-
-The `max 1` handles the zeroth derivative on `[c, infinity)`. -/
-noncomputable def smoothRightCutoffDerivBound (c : ℝ) (r : ℕ) : ℝ :=
-  max 1
-    (sSup ((fun t : ℝ =>
-      ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖) ''
-        Set.Icc (c / 2) c))
-
-/-- A noncomputable envelope for the `r`-th time derivative of the source
-coefficient on the positive-time half-line `[c/2, infinity)`.  This is the
-formal version of “source coefficient envelope on `[c/2, infinity)`”.
-
-For the actual summability proof, one should prove this envelope has quartic mode
-decay for `r <= 2`, using positive-time heat smoothing + H4 Neumann/IBP. -/
-noncomputable def srcTimeCoeffIciEnvelope
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ)
-    (r k : ℕ) : ℝ :=
-  max 0
-    (sSup ((fun t : ℝ =>
-      ‖iteratedFDeriv ℝ r
-        (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖) ''
-          Set.Ici (c / 2)))
-
-/-- Spatial derivative bound for the value mode `cos(k*pi*x)`.
-The `r`-th spatial derivative is bounded by `(k*pi)^r` in absolute value. -/
-def cosineModeDerivMajorant (r k : ℕ) : ℝ :=
-  ((k : ℝ) * |Real.pi|) ^ r
-
-/-- Spatial derivative bound for the gradient mode.  Since the gradient already
-contains one `x`-derivative, the `r`-th extra derivative costs `(k*pi)^(r+1)`. -/
-def cosineGradModeDerivMajorant (r k : ℕ) : ℝ :=
-  ((k : ℝ) * |Real.pi|) ^ (r + 1)
-
-/-- Majorant for the `m`-th derivative of the scalar time coefficient
-
-`φ(t) * resolverTimeCoeff_k(t)`.
-
-This is the first Leibniz finite sum.  The resolver coefficient is
-`w_k * srcTimeCoeff_k`, so its envelope is
-`|w_k| * srcTimeCoeffIciEnvelope`. -/
-noncomputable def cutoffResolverCoeffMajorant
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ)
-    (m k : ℕ) : ℝ :=
-  ∑ a in Finset.range (m + 1),
-    (m.choose a : ℝ) *
-      smoothRightCutoffDerivBound c a *
-      (|ShenWork.PDE.intervalNeumannResolverWeight p k| *
-        srcTimeCoeffIciEnvelope p u₀ c (m - a) k)
-
-/-- Value-side majorant for the full cutoff resolver term
-
-`φ(t) * resolverTimeCoeff_k(t) * cos(k*pi*x)`.
-
-This is the second Leibniz finite sum, splitting total joint order `j` between the
-scalar time coefficient and the spatial cosine mode. -/
-noncomputable def cutoffResolverValueMajorant
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ)
-    (_hc : 0 < c) (j k : ℕ) : ℝ :=
-  let _ := M₀
-  ∑ b in Finset.range (j + 1),
-    (j.choose b : ℝ) *
-      cutoffResolverCoeffMajorant p u₀ c b k *
-      cosineModeDerivMajorant (j - b) k
-
-/-- Gradient-side majorant.  Same scalar coefficient part, but the spatial factor
-has one extra `k*pi`. -/
-noncomputable def cutoffResolverGradMajorant
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ)
-    (_hc : 0 < c) (j k : ℕ) : ℝ :=
-  let _ := M₀
-  ∑ b in Finset.range (j + 1),
-    (j.choose b : ℝ) *
-      cutoffResolverCoeffMajorant p u₀ c b k *
-      cosineGradModeDerivMajorant (j - b) k
-
-/-- If the current file wants the existing single name `cutoffResolverMajorant`,
-use the value-side majorant as the drop-in replacement. -/
-noncomputable def cutoffResolverMajorant
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ)
-    (hc : 0 < c) (j k : ℕ) : ℝ :=
-  cutoffResolverValueMajorant p u₀ M₀ c hc j k
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
+|cosineCoeffs (fun x => p.ν * (S(t)u₀(x)) ^ p.γ) k|
 ```
 
-## Variant: better proof interface with an explicit envelope structure
+on `[c, ∞)`.
 
-The `sSup` definitions above are concrete but may be annoying to prove summable from directly.  The cleaner proof-facing API is to parameterize the finite sum by an envelope record:
+What exists is close but not exactly this:
+
+1. **Closed-window compactness templates**: prove a coefficient bound on `Set.Icc a b` from joint continuity on `Set.Icc a b ×ˢ Set.Icc 0 1`.
+2. **Cosine coefficient absolute-value bound**: `cosineCoeffs_abs_le_of_continuous_bounded` is used as the final step once a spatial slice is continuous and uniformly bounded.
+3. **Heat semigroup L∞ contraction**: `intervalFullSemigroupOperator_Linfty_bound` gives a direct all-positive-time spatial sup bound for `S(t)u₀` from an initial sup bound.
+4. **Positive-time continuity of `srcTimeCoeff`**: the `FlooredSourceTimeData`/direct route gives local positive-time continuity/ContDiff, not half-line boundedness.
+
+So for the iSup majorant BddAbove proof, the best route is probably **not** “continuity + decay to infinity” as the first attack. The simpler route for the zeroth source coefficient is:
+
+```text
+L∞ contraction of S(t)u₀ for all t > 0
+→ uniform bound on ν*(S(t)u₀)^γ for all t ≥ c/2
+→ cosineCoeffs_abs_le_of_continuous_bounded
+→ coefficient is uniformly bounded on [c/2,∞)
+```
+
+For time derivatives of the coefficient (`j = 1,2`), use the analogous positive-time heat smoothing estimates on `[c/2,∞)`: `du` and `d2u` have uniform bounds there because the heat multipliers are bounded by the same exponential at `c/2`.  That is the real analytic content needed for the derivative part of the cutoff majorant.
+
+## Search results / relevant files
+
+### No direct half-line source coefficient theorem found
+
+Search queries tried:
+
+```text
+cosineCoeffs source t >= c infinity bound srcTimeCoeff Ici Ioi
+srcTimeCoeff_bound srcTimeCoeff_contDiff cosineCoeffs srcSlice bound
+Ici infinity BddAbove cosineCoeffs
+BddAbove cosineCoeffs source
+ν u^γ cosineCoeffs chem source bound p.ν p.γ
+```
+
+These did not return a theorem with the needed half-line shape.
+
+### The source coefficient identity exists
+
+`ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean:58-66`:
 
 ```lean
-structure SrcCoeffIciEnvelope
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (c : ℝ) : Prop where
-  E : ℕ → ℕ → ℝ
-  nonneg : ∀ r k, 0 ≤ E r k
-  bound : ∀ r k t, (r : ℕ∞) ≤ (2 : ℕ∞) → c / 2 ≤ t →
+/-- The concrete chemotaxis source slice `x ↦ p.ν · u(t,x)^γ` at time `t`. -/
+def srcSlice (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * intervalDomainLift (u t) x ^ p.γ
+
+/-- The committed identity `srcTimeCoeff p u k t = cosineCoeffs (srcSlice p u t) k`. -/
+theorem srcTimeCoeff_eq_cosineCoeffs
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
+    srcTimeCoeff p u k t = cosineCoeffs (srcSlice p u t) k := by
+```
+
+This is the rewrite needed to move from `resolverTimeCoeff = w_k * srcTimeCoeff` to a source cosine coefficient.
+
+### Heat semigroup L∞ contraction exists
+
+`ShenWork/PDE/IntervalFullKernelSupBound.lean:52-56`:
+
+```lean
+/-- **Full-kernel `L∞→L∞` (sup) bound.**  `|intervalFullSemigroupOperator t f x| ≤ M`
+whenever `|f| ≤ M`. -/
+theorem intervalFullSemigroupOperator_Linfty_bound {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalFullSemigroupOperator t f x| ≤ M := by
+```
+
+This is likely the shortest path for bounding the **zeroth** source coefficient uniformly for all `t ≥ c/2`.
+
+### Existing compact-window coefficient-bound template
+
+`ShenWork/Wiener/EWA/SourcePowerCoeffDerivComplete.lean:190-205` proves a window-uniform bound from compactness:
+
+```lean
+theorem powerCoeff_bound_of_inputs {p : CM2Params}
+    {v : ℝ → intervalDomainPoint → ℝ} {vdotL : ℝ → ℝ → ℝ} {a' b' : ℝ}
+    (hslabcont : ContinuousOn (Function.uncurry (gPow p v vdotL))
+      (Set.Icc a' b' ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∃ Mdot, ∀ σ ∈ Set.Icc a' b', ∀ k, |adotPow p v vdotL σ k| ≤ Mdot := by
+  set K := Set.Icc a' b' ×ˢ Set.Icc (0 : ℝ) 1 with hKdef
+  have hKcompact : IsCompact K := isCompact_Icc.prod isCompact_Icc
+  obtain ⟨B, hB⟩ := hKcompact.bddAbove_image hslabcont.norm
+  set B' := max B 0 with hB'def
+  ...
+  exact cosineCoeffs_abs_le_of_continuous_bounded hsec hB'nn ... k
+```
+
+This is **not half-line**, but it is the right closed-window compactness pattern.
+
+### Existing coefficient continuity on closed windows
+
+`ShenWork/Paper2/IntervalDomainPositiveWindowK1OnEndpoint.lean:32-37`:
+
+```lean
+theorem cosineCoeffs_continuousOn_of_jointContinuousOn_Icc
+    {f : ℝ → ℝ → ℝ} {c T : ℝ} (k : ℕ)
+    (hf : ContinuousOn (Function.uncurry f)
+      (Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn (fun σ => cosineCoeffs (f σ) k) (Set.Icc c T) := by
+```
+
+Again: closed-window, not half-line.
+
+### Existing positive-time coefficient regularity, but not half-line boundedness
+
+`IntervalHeatResolverJointC2.lean` proves/uses positive-time local regularity of `srcTimeCoeff` and `resolverTimeCoeff`; this is local, not a half-line bound. The key theorem shape is:
+
+```lean
+theorem heatLevel0_srcTimeCoeff_contDiffAt_two ... {t : ℝ} (ht : 0 < t) (k : ℕ) :
+  ContDiffAt ℝ (2 : ℕ∞)
+    (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t
+```
+
+and then
+
+```lean
+theorem heatLevel0_resolverTimeCoeff_contDiffAt_two ... {t : ℝ} (ht : 0 < t) (k : ℕ) :
+  ContDiffAt ℝ (2 : ℕ∞)
+    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t
+```
+
+These are enough for local continuity on every positive point, but not enough alone for `BddAbove` on `[c/2,∞)`.
+
+## Does continuity plus decay at infinity imply boundedness?
+
+Mathematically: **yes**.
+
+Lean route:
+
+```lean
+lemma bddAbove_image_Ici_of_continuousOn_tendsto
+    {f : ℝ → ℝ} {c L : ℝ}
+    (hf : ContinuousOn f (Set.Ici c))
+    (hlim : Tendsto f atTop (𝓝 L)) :
+    BddAbove (f '' Set.Ici c) := by
+  -- choose R ≥ c such that for t ≥ R, |f t - L| ≤ 1
+  -- tail bound: f t ≤ |L| + 1
+  -- compact part: f '' Icc c R is BddAbove by compactness
+  -- union the two bounds
+  sorry
+```
+
+For norm-valued nonnegative target:
+
+```lean
+lemma bddAbove_norm_image_Ici_of_continuousOn_tendsto
+    {f : ℝ → E} [NormedAddCommGroup E] {c : ℝ}
+    (hf : ContinuousOn f (Set.Ici c))
+    (hlim : Tendsto f atTop (𝓝 0)) :
+    BddAbove ((fun t => ‖f t‖) '' Set.Ici c) := by
+  -- same split; tail bound ≤ 1, compact part by continuity of norm ∘ f
+  sorry
+```
+
+But two warnings:
+
+1. `FlooredSourceTimeData.d0`/the local direct route gives local continuity/ContDiffAt at positive times. It does **not** by itself give a `Tendsto` statement as `t → ∞`.
+2. For `k = 0`, the source coefficient does not necessarily decay to `0`; it tends to a finite constant if `S(t)u₀` tends to its mean. Finite limit is still enough for boundedness.
+
+So the statement “continuity + decay” is correct only after proving the missing `atTop` limit. The repo search did not reveal that theorem for this source coefficient.
+
+## Better route for this BddAbove proof
+
+For the iSup majorant, avoid requiring an `atTop` source-coefficient limit if possible.
+
+### Zeroth source coefficient (`r = 0`)
+
+Use L∞ contraction:
+
+```text
+|u₀| ≤ U0
+⇒ |S(t)u₀(x)| ≤ U0                      for all t > 0, x
+⇒ 0 ≤ S(t)u₀(x) ≤ U0                    using positivity
+⇒ |p.ν * (S(t)u₀(x))^p.γ| ≤ p.ν * U0^p.γ
+⇒ |cosineCoeffs (srcSlice p u t) k| ≤ 2 * p.ν * U0^p.γ
+```
+
+This gives a uniform bound for all `t ≥ c/2` immediately, no compactness-at-infinity needed.
+
+Relevant available theorem:
+
+```lean
+intervalFullSemigroupOperator_Linfty_bound
+```
+
+Relevant coefficient endpoint:
+
+```lean
+cosineCoeffs_abs_le_of_continuous_bounded
+```
+
+### First and second time derivatives (`r = 1,2`)
+
+Use heat smoothing on the half-line:
+
+```text
+for t ≥ c/2:
+λ^m exp(-t λ) ≤ λ^m exp(-(c/2) λ)
+```
+
+So `du`, `d2u`, and the source derivative slices have uniform spatial sup/H4/coeff bounds on `[c/2,∞)`. This is the half-line analogue of the cutoff estimates already used in the heat regularity file.
+
+This is better than compactness plus decay because it directly gives explicit mode-wise summable majorants.
+
+## Recommended theorem to add
+
+Add a simple half-line coefficient boundedness lemma for any jointly bounded source slice:
+
+```lean
+theorem cosineCoeffs_bddAbove_Ici_of_uniform_spatial_bound
+    {f : ℝ → ℝ → ℝ} {c B : ℝ} (hB : 0 ≤ B)
+    (hcont : ∀ t ∈ Set.Ici c, ContinuousOn (f t) (Set.Icc (0 : ℝ) 1))
+    (hbd : ∀ t ∈ Set.Ici c, ∀ x ∈ Set.Icc (0 : ℝ) 1, |f t x| ≤ B)
+    (k : ℕ) :
+    BddAbove ((fun t : ℝ => |cosineCoeffs (f t) k|) '' Set.Ici c) := by
+  refine ⟨2 * B, ?_⟩
+  rintro y ⟨t, ht, rfl⟩
+  exact cosineCoeffs_abs_le_of_continuous_bounded (hcont t ht) hB (hbd t ht) k
+```
+
+Then instantiate `f t = srcSlice p (conjugatePicardIter p u₀ 0) t` using L∞ contraction.
+
+For the resolver coefficient:
+
+```lean
+theorem resolverTimeCoeff_bddAbove_Ici_of_src_bound
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c B : ℝ}
+    (hB : 0 ≤ B)
+    (hsrc : ∀ t ∈ Set.Ici c, |srcTimeCoeff p u k t| ≤ B) :
+    BddAbove ((fun t : ℝ => |resolverTimeCoeff p u k t|) '' Set.Ici c) := by
+  refine ⟨|ShenWork.PDE.intervalNeumannResolverWeight p k| * B, ?_⟩
+  rintro y ⟨t, ht, rfl⟩
+  rw [resolverTimeCoeff_eq_weight_smul]
+  -- abs_mul + hsrc
+  sorry
+```
+
+## For the original set over `q : ℝ × ℝ`
+
+The target is:
+
+```lean
+BddAbove
+  ((fun q : ℝ × ℝ =>
+    ‖iteratedFDeriv ℝ j (cutoffResolverTerm p u c k) q‖) '' Set.univ)
+```
+
+For `q.1 < c/2`, the cutoff term is locally zero, so the norm is `0`.
+
+For `q.1 ≥ c/2`, use the finite Leibniz majorant from Q1541. The needed coefficient envelopes should be stated over `Set.Ici (c/2)`:
+
+```lean
+∀ r ≤ 2, BddAbove
+  ((fun t : ℝ =>
     ‖iteratedFDeriv ℝ r
-      (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤ E r k
-  quartic : ∀ r, (r : ℕ∞) ≤ (2 : ℕ∞) →
-    ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ, 1 ≤ k →
-      E r k ≤ C / ((k : ℝ) * Real.pi) ^ 4
+      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖) '' Set.Ici (c/2))
 ```
 
-Then define the majorant from `H.E` instead of from `srcTimeCoeffIciEnvelope`:
+Then the product/cosine finite sum gives the desired `BddAbove` over all `q`.
 
-```lean
-noncomputable def cutoffResolverCoeffMajorantOfEnvelope
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {c : ℝ}
-    (H : SrcCoeffIciEnvelope p u₀ c) (m k : ℕ) : ℝ :=
-  ∑ a in Finset.range (m + 1),
-    (m.choose a : ℝ) *
-      smoothRightCutoffDerivBound c a *
-      (|ShenWork.PDE.intervalNeumannResolverWeight p k| * H.E (m - a) k)
+## Final verdict
 
-noncomputable def cutoffResolverValueMajorantOfEnvelope
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {c : ℝ}
-    (H : SrcCoeffIciEnvelope p u₀ c) (j k : ℕ) : ℝ :=
-  ∑ b in Finset.range (j + 1),
-    (j.choose b : ℝ) *
-      cutoffResolverCoeffMajorantOfEnvelope H b k *
-      cosineModeDerivMajorant (j - b) k
-
-noncomputable def cutoffResolverGradMajorantOfEnvelope
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {c : ℝ}
-    (H : SrcCoeffIciEnvelope p u₀ c) (j k : ℕ) : ℝ :=
-  ∑ b in Finset.range (j + 1),
-    (j.choose b : ℝ) *
-      cutoffResolverCoeffMajorantOfEnvelope H b k *
-      cosineGradModeDerivMajorant (j - b) k
-```
-
-This version is usually better for Lean: first prove `SrcCoeffIciEnvelope` from heat smoothing on `[c/2, infinity)`, then the majorant proof is mostly algebraic.
-
-## Why this is summable
-
-For `r <= 2`, the intended envelope proof gives
-
-```text
-src envelope E r k = O(k^-4)
-```
-
-The resolver weight contributes
-
-```text
-|w_k| = 1 / (mu + lambda_k) = O(k^-2)
-```
-
-so the scalar resolver coefficient envelope is
-
-```text
-O(k^-6)
-```
-
-For value-side joint order `j <= 2`, the spatial cosine derivative contributes at worst
-
-```text
-(k*pi)^j = O(k^j)
-```
-
-so the value majorant is
-
-```text
-O(k^(j-6))
-```
-
-which is summable for `j <= 2`.  For the gradient side there is one extra spatial factor, so it is
-
-```text
-O(k^(j-5))
-```
-
-also summable for `j <= 2`.
-
-The mode `k = 0` should be handled separately by `summable_nat_add_iff` / finite-prefix splitting / direct finite singleton handling; the asymptotic proof is for `k >= 1`.
-
-## Proof outline for `cutoffResolverTerm_iteratedFDeriv_bound`
-
-1. Rewrite
-
-```lean
-cutoffResolverTerm p u c k =
-  fun q =>
-    (smoothRightCutoff (c/2) c q.1 * resolverTimeCoeff p u k q.1) *
-      cosineMode k q.2
-```
-
-2. Apply `norm_iteratedFDeriv_mul_le` or mimic `cutoffValueTerm_leibniz_bound` to get the outer finite sum over `b <= j`.
-
-3. Bound the scalar time coefficient derivative by another `norm_iteratedFDeriv_mul_le` over `a <= b`.
-
-4. For `q.1 < c/2`, use local zero of the cutoff term.  For `q.1 >= c/2`, use the source envelope on `Set.Ici (c/2)` and the constant resolver factorization.
-
-5. Use
-
-```lean
-‖D^r (cos(k*pi*x))‖ ≤ ((k : ℝ) * |Real.pi|)^r
-```
-
-and for the gradient version use exponent `r+1`.
-
-## Recommended replacement
-
-Replace the placeholder
-
-```lean
-noncomputable def cutoffResolverMajorant ... := Classical.choice inferInstance
-```
-
-with the finite value-side definition above.  If the direct route later needs both value and gradient regularity, keep both:
-
-```lean
-cutoffResolverValueMajorant
-cutoffResolverGradMajorant
-```
-
-and feed the correct one to the corresponding `contDiff_tsum` call.
-
-This is compatible with the existing cutoff route: the cutoff term is already `φ(t) * resolverTimeCoeff(t) * cos(kπx)`, and the repo already has the product-derivative finite-sum pattern in `cutoffValueTerm_leibniz_bound`.
+* I did not find a direct existing half-line theorem bounding the source cosine coefficients on `[c,∞)`.
+* The repo has strong closed-window compactness templates and the needed coefficient-boundedness lemma.
+* `FlooredSourceTimeData.d0`/local ContDiff gives continuity at positive times, but continuity alone does not give half-line boundedness.
+* Continuity plus a proven finite limit at infinity would give boundedness by compact `[c,R]` plus tail `[R,∞)`, but the source `atTop` limit theorem appears absent.
+* The most direct route is to prove uniform spatial bounds on `[c/2,∞)` using `intervalFullSemigroupOperator_Linfty_bound`, then apply `cosineCoeffs_abs_le_of_continuous_bounded`. For derivative coefficients, use the standard heat multiplier estimate with lower time cutoff `c/2`.
