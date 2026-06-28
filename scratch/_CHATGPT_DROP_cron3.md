@@ -1,131 +1,94 @@
-# Q1650 (cron3): summability note
+# Q1665 (cron3): IBP
 
 ## Status
 
-The prompt only exposed a local path, `/tmp/q_cron3_summable.txt`. That path is not a GitHub repository path, and I followed the delivery rule not to use the sandbox or local filesystem. A GitHub repository search for the literal name `q_cron3_summable` returned no matches.
-
-I therefore inspected the relevant repository-side summability file found by searching for `summable`:
+I could not read the local prompt file through the GitHub connector. I searched the repository for `q_cron3_ibp` and found no match. The repository-side IBP material is in:
 
 ```text
-ShenWork/Paper2/IntervalChiNegGradSummable.lean
+ShenWork/PDE/IntervalDuhamelClosedC2.lean
 ```
 
-That file is on `main`; the `chatgpt-scratch` branch is being used only for this requested drop file.
+## Answer
 
-## Repository-grounded answer
-
-The per-slice gradient summability result is already organized in `IntervalChiNegGradSummable.lean` as four theorems:
+The IBP step is already proved. Use:
 
 ```lean
-gradSummable_heat
-gradSummable_duhamel
-gradSummable_slice
-gradSummable_slice_consumes
+duhamelCoeff_eigenvalue_mul
 ```
 
-The intended consumer-facing theorem is:
+This is the scalar coefficient identity for the Duhamel term. It takes:
 
 ```lean
-ShenWork.Paper2.IntervalChiNegGradSummable.gradSummable_slice_consumes
+hda       : ∀ s, HasDerivAt a (adot s) s
+hadotcont : Continuous adot
 ```
 
-It proves the downstream hypothesis shape
+and proves the integration-by-parts formula for the kernel `Real.exp (-(t - s) * lam)`.
+
+The proof differentiates:
 
 ```lean
-Summable (fun n : ℕ =>
-  unitIntervalCosineEigenvalue n *
-    |cosineCoeffs (intervalDomainLift (u τ)) n|)
+fun s => a s * Real.exp (-(t - s) * lam)
 ```
 
-from the fixed-time assumptions:
+then applies:
 
 ```lean
-hτ      : 0 < τ
-hM0     : ∀ k, |uhat0 k| ≤ M₀
-srcChem : DuhamelSourceTimeC1
-  (fun s n => Real.sqrt (lam n) * sineCoeffs (conjQ p u s) n)
-srcLog  : DuhamelSourceTimeC1
-  (fun s n => Real.sqrt (lam n) * conjFl p u n s)
-hdecomp : ∀ k, cosineCoeffs (intervalDomainLift (u τ)) k = ...
+intervalIntegral.integral_eq_sub_of_hasDerivAt
 ```
 
-So if a later file is stuck on this summability hypothesis, the intended shape is:
+and rearranges the two resulting integrals.
 
-```lean
-exact ShenWork.Paper2.IntervalChiNegGradSummable.gradSummable_slice_consumes
-  hτ hM0 srcChem srcLog hdecomp
-```
+## Dependency chain
 
-If the goal is written with `lam` instead of `unitIntervalCosineEigenvalue`, use `gradSummable_slice` directly, or close the definitional mismatch with `rfl` / `simpa` after unfolding the local notation.
-
-## Why this is the right route
-
-The heat leg is easy. For fixed `τ > 0`, the exponential factor `Real.exp (-(τ * lam k))` beats the eigenvalue weight `lam k`. In Lean this is packaged by:
-
-```lean
-heatCoeff_eigenvalue_summable
-```
-
-and wrapped by:
-
-```lean
-gradSummable_heat
-```
-
-The Duhamel leg is the genuine point. It is not proved from the mild decomposition alone. It uses the time-integration-by-parts theorem:
+For weighted Duhamel coefficient summability, the intended theorem is:
 
 ```lean
 duhamelSpectralCoeff_eigenvalue_summable
 ```
 
-through the bridge:
+It applies `duhamelCoeff_eigenvalue_mul` mode-by-mode with:
 
 ```lean
-duhamelEnergyCoeff_eq_duhamelSpectralCoeff_divMode
+lam  := unitIntervalCosineEigenvalue n
+a    := fun s => a s n
+adot := fun s => src.adot s n
 ```
 
-The bridge identifies:
+The required hypothesis is:
 
 ```lean
-duhamelEnergyCoeff 1 F τ k
+src : DuhamelSourceTimeC1 a
 ```
 
-with the spectral coefficient for the divergence-weighted source:
+The final closed-C2 consumer is:
 
 ```lean
-fun s n => Real.sqrt (lam n) * F n s
+intervalDuhamelTerm_closedC2_of_timeC1_source
 ```
 
-Therefore the real analytic input is the source package:
+So the route is:
 
-```lean
-DuhamelSourceTimeC1 (fun s n => Real.sqrt (lam n) * F n s)
+```text
+DuhamelSourceTimeC1 a
+  -> duhamelCoeff_eigenvalue_mul
+  -> duhamelSpectralCoeff_eigenvalue_summable
+  -> intervalDuhamelTerm_closedC2_of_timeC1_source
 ```
 
-For the slice theorem, there are two such source packages: one for the chemotaxis term and one for the `conjFl` term. Once those packages and the mild decomposition `hdecomp` are supplied, the final assembly is just the triangle inequality plus `Summable.add` and `Summable.mul_left`.
-
-## Minimal import/check block
+## Minimal check block
 
 ```lean
-import ShenWork.Paper2.IntervalChiNegGradSummable
+import ShenWork.PDE.IntervalDuhamelClosedC2
 
-open MeasureTheory
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.Paper2.HSigmaScale (lam)
-open ShenWork.Paper2.BFormHSigmaDuhamelEnergy (duhamelEnergyCoeff)
-open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
-open ShenWork.Paper2.IntervalDivergenceModeIdentity (sineCoeffs)
-open ShenWork.Paper2.IntervalDecompTauLift (conjQ conjFl)
+open MeasureTheory Filter Topology
+open ShenWork.IntervalDuhamelClosedC2
 
-#check ShenWork.Paper2.IntervalChiNegGradSummable.gradSummable_heat
-#check ShenWork.Paper2.IntervalChiNegGradSummable.gradSummable_duhamel
-#check ShenWork.Paper2.IntervalChiNegGradSummable.gradSummable_slice
-#check ShenWork.Paper2.IntervalChiNegGradSummable.gradSummable_slice_consumes
+#check duhamelCoeff_eigenvalue_mul
+#check duhamelSpectralCoeff_eigenvalue_summable
+#check intervalDuhamelTerm_closedC2_of_timeC1_source
 ```
 
 ## Bottom line
 
-Use `gradSummable_slice_consumes` for the downstream reconstruction consumer. The only non-wiring assumptions are the two divergence-weighted `DuhamelSourceTimeC1` source packages and the landed decomposition `hdecomp`. Those are honest analytic inputs, not mechanical simplification obligations.
-
-Because the local prompt file was unavailable through the GitHub connector, I could not verify whether Q1650 asked about a more specific line number or error message.
+Do not reprove the IBP algebra in downstream files. It is landed. The real remaining task is to construct the relevant `DuhamelSourceTimeC1` package for the concrete coefficient family.
