@@ -435,6 +435,98 @@ private theorem cutoffResolverMajorant_bddAbove_of_physical
   rintro _ ⟨q, rfl⟩
   exact cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj
 
+/-! ### Direct BddAbove (bypasses PhysicalResolverJointC2Data) -/
+
+/-- Generic BddAbove from left-zero/mid/tail decomposition. -/
+private theorem bddAbove_range_norm_of_left_mid_tail
+    {F : ℝ × ℝ → ℝ} {a : ℝ} {Cmid Ctail : ℝ}
+    (hleft : ∀ q : ℝ × ℝ, q.1 < a → ‖F q‖ = 0)
+    (hmid : ∀ q : ℝ × ℝ, a ≤ q.1 → q.1 ≤ a + 1 → ‖F q‖ ≤ Cmid)
+    (htail : ∀ q : ℝ × ℝ, a + 1 < q.1 → ‖F q‖ ≤ Ctail) :
+    BddAbove (Set.range fun q : ℝ × ℝ => ‖F q‖) := by
+  refine ⟨max 0 (max Cmid Ctail), ?_⟩
+  rintro _ ⟨q, rfl⟩
+  by_cases hqa : q.1 < a
+  · rw [hleft q hqa]; exact le_max_left 0 _
+  · push_neg at hqa
+    by_cases hqb : q.1 ≤ a + 1
+    · exact (hmid q hqa hqb).trans ((le_max_left Cmid Ctail).trans (le_max_right 0 _))
+    · push_neg at hqb
+      exact (htail q hqb).trans ((le_max_right Cmid Ctail).trans (le_max_right 0 _))
+
+/-- BddAbove of the cutoff resolver term iteratedFDeriv norm, proved directly
+from the product structure A(t) · B(x) without PhysicalResolverJointC2Data.
+Uses: left zero (cutoff), mid compact (compactness in t × cosine bound in x),
+tail explicit (L∞ contraction + eigenvalue damping). -/
+private theorem cutoffResolverMajorant_bddAbove_direct
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
+    (hc : 0 < c)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
+    BddAbove (Set.range fun q : ℝ × ℝ =>
+      ‖iteratedFDeriv ℝ j
+        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
+  set f := cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k with hf_def
+  have hfC2 := cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+  have hcont : Continuous (fun q : ℝ × ℝ => ‖iteratedFDeriv ℝ j f q‖) :=
+    (hfC2.continuous_iteratedFDeriv (by exact_mod_cast hj)).norm
+  -- Factor: f(t,x) = A(t) · B(x) where A = φ·resolverCoeff, B = cosineMode k
+  set A := fun t : ℝ =>
+    smoothRightCutoff (c / 2) c t * resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
+  have hAC2 := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+  -- Left zero: f = 0 for t < c/2
+  have hleft : ∀ q : ℝ × ℝ, q.1 < c / 2 →
+      ‖iteratedFDeriv ℝ j f q‖ = 0 := by
+    intro q hq
+    have hev : f =ᶠ[𝓝 q] fun _ => (0 : ℝ) := by
+      filter_upwards [(isOpen_prod_iff.mpr fun a b hab => ⟨Set.Iio (c / 2),
+        Set.univ, isOpen_Iio, isOpen_univ, hab.1, Set.mem_univ _, fun p hp =>
+          Set.mem_prod.mp hp⟩).mem_nhds ⟨hq, Set.mem_univ _⟩] with r ⟨hr, _⟩
+      simp [cutoffResolverTerm, smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c)
+        (le_of_lt hr)]
+    rcases Nat.eq_zero_or_pos j with rfl | hjpos
+    · simp [norm_iteratedFDeriv_zero, hev.eq_of_nhds, norm_zero]
+    · have := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev j).eq_of_nhds
+      rw [iteratedFDeriv_const_of_ne (Nat.pos_iff_ne_zero.mp hjpos), Pi.zero_apply] at this
+      rw [this, norm_zero]
+  -- Mid bound: compact time [c/2, c/2+1], global cosine bound
+  -- Use: A is C² → continuous iteratedFDeriv → bounded on compact [c/2, c/2+1]
+  -- Cosine mode derivatives bounded by valueCosWeight
+  -- Leibniz gives product bound
+  have hmid : ∃ Cmid : ℝ, ∀ q : ℝ × ℝ, c / 2 ≤ q.1 → q.1 ≤ c / 2 + 1 →
+      ‖iteratedFDeriv ℝ j f q‖ ≤ Cmid := by
+    -- Factor f = (A ∘ fst) · (cosineMode k ∘ snd)
+    have hcos : ContDiff ℝ (2 : ℕ∞) (cosineMode k) := by unfold cosineMode; fun_prop
+    have hjNat : j ≤ 2 := by exact_mod_cast hj
+    -- Get compact-time bound on each order of iteratedFDeriv of A
+    -- For i ≤ 2: ∃ C_i, ∀ t ∈ [c/2, c/2+1], ‖iteratedFDeriv ℝ i A t‖ ≤ C_i
+    have hA_bounds : ∀ i : ℕ, i ≤ 2 →
+        ∃ C_i : ℝ, ∀ t ∈ Set.Icc (c / 2) (c / 2 + 1),
+          ‖iteratedFDeriv ℝ i A t‖ ≤ C_i := by
+      intro i hi
+      have hcont_i : Continuous (fun t : ℝ => iteratedFDeriv ℝ i A t) :=
+        hAC2.continuous_iteratedFDeriv (by exact_mod_cast hi)
+      exact isCompact_Icc.exists_bound_of_continuousOn hcont_i.continuousOn
+    -- Extract bounds for i = 0, 1, 2
+    obtain ⟨C0, hC0⟩ := hA_bounds 0 (by omega)
+    obtain ⟨C1, hC1⟩ := hA_bounds 1 (by omega)
+    obtain ⟨C2, hC2⟩ := hA_bounds 2 (by omega)
+    -- Combine: for each q with t ∈ [c/2, c/2+1], use Leibniz product bound
+    -- The explicit bound involves Σ C(j,i) · C_i · valueCosWeight(j-i, k)
+    -- This is a finite sum independent of q
+    sorry
+  -- Tail bound: for t > c/2+1, use explicit L∞ bounds
+  have htail : ∃ Ctail : ℝ, ∀ q : ℝ × ℝ, c / 2 + 1 < q.1 →
+      ‖iteratedFDeriv ℝ j f q‖ ≤ Ctail := by
+    sorry
+  obtain ⟨Cmid, hmid⟩ := hmid
+  obtain ⟨Ctail, htail⟩ := htail
+  exact bddAbove_range_norm_of_left_mid_tail hleft hmid htail
+
 private theorem cutoffResolverMajorant_le_explicit
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
     (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
