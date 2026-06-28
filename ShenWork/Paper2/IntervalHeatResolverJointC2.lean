@@ -24,9 +24,9 @@
   Near `(s₀, x₀)` with `s₀ > c`, `φ = 1`, so the cutoff series = original series,
   yielding `ContDiffAt ℝ 2`.
 
-  ## Sorry budget
+  ## Analytic content
 
-  Two sorry'd blocks — the analytic content:
+  Two formerly isolated blocks carry the analytic content:
   * `cutoffResolverTerm_contDiff_two` — per-term C² of cutoff × resolver term
     (needs resolverTimeCoeff C² on support of cutoff, i.e. t > c/2)
   * `cutoffResolverTerm_iteratedFDeriv_summable_majorant` — summable majorant for
@@ -53,6 +53,13 @@ open ShenWork.IntervalMildPicardRegularity
   (cosineCoeffs_hasDerivAt_of_smooth_param)
 open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
   (cosineCoeffs_continuousOn_of_jointContinuousOn_Icc)
+open ShenWork.IntervalResolverJointC2Physical
+  (boundedWeightJointTerm boundedWeightJointMajorant
+   boundedWeightJointTerm_contDiff boundedWeightJointTerm_iteratedFDeriv_le)
+open ShenWork.IntervalResolverJointC2PhysicalConcrete
+  (PhysicalResolverJointC2Data)
+open ShenWork.IntervalResolverSpectralJointC2CutoffBounds
+  (norm_iteratedFDeriv_comp_fst_le)
 open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
   (heatDu heatD2u heatSemigroup_d0 heatSemigroup_d1)
 open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
@@ -268,7 +275,7 @@ theorem cutoffResolverTerm_contDiff_two
     hcos.comp contDiff_snd
   simpa [cutoffResolverTerm, mul_assoc] using hcoef_q.mul hcos_q
 
-/-! ### Summable majorant (sorry'd — analytic content) -/
+/-! ### Summable majorant (analytic content) -/
 
 /-- The majorant for the cutoff resolver term at order `j`:
 a nonneg summable sequence bounding `‖D^j(cutoffResolverTerm)‖` uniformly in `q`.
@@ -283,33 +290,246 @@ noncomputable def cutoffResolverMajorant (p : CM2Params)
   ⨆ q : ℝ × ℝ, ‖iteratedFDeriv ℝ j
     (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖
 
+private theorem resolverSmoothRightCutoff_iteratedFDeriv_bound_exists
+    (c' c : ℝ) (hc'c : c' < c) (k : ℕ) (hk : (k : ℕ∞) ≤ 2) :
+    ∃ B : ℝ, 0 ≤ B ∧
+      ∀ t : ℝ, ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤ B := by
+  rcases Nat.eq_zero_or_pos k with rfl | hk_pos
+  · refine ⟨1, zero_le_one, fun t => ?_⟩
+    rw [norm_iteratedFDeriv_zero]
+    unfold smoothRightCutoff
+    rw [Real.norm_eq_abs, abs_of_nonneg (Real.smoothTransition.nonneg _)]
+    exact Real.smoothTransition.le_one _
+  · have hcont : Continuous
+        (fun t : ℝ => iteratedFDeriv ℝ k (smoothRightCutoff c' c) t) :=
+      smoothRightCutoff_contDiff.continuous_iteratedFDeriv (by exact_mod_cast hk)
+    have hk_ne : k ≠ 0 := Nat.pos_iff_ne_zero.mp hk_pos
+    have hzero : ∀ t, t ∉ Set.Icc c' c →
+        iteratedFDeriv ℝ k (smoothRightCutoff c' c) t = 0 := by
+      intro t ht
+      rw [Set.mem_Icc, not_and_or, not_le, not_le] at ht
+      rcases ht with ht_lt | ht_gt
+      · have hev : smoothRightCutoff c' c =ᶠ[𝓝 t] fun _ => (0 : ℝ) := by
+          filter_upwards [Iio_mem_nhds ht_lt] with s hs
+          exact smoothRightCutoff_eq_zero_of_le hc'c (le_of_lt hs)
+        have := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev k).eq_of_nhds
+        rwa [iteratedFDeriv_const_of_ne hk_ne, Pi.zero_apply] at this
+      · have hev : smoothRightCutoff c' c =ᶠ[𝓝 t] fun _ => (1 : ℝ) := by
+          filter_upwards [Ioi_mem_nhds ht_gt] with s hs
+          exact smoothRightCutoff_eq_one_of_ge hc'c (le_of_lt hs)
+        have := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev k).eq_of_nhds
+        rwa [iteratedFDeriv_const_of_ne hk_ne, Pi.zero_apply] at this
+    have hcomp : HasCompactSupport
+        (fun t : ℝ => iteratedFDeriv ℝ k (smoothRightCutoff c' c) t) :=
+      HasCompactSupport.intro' isCompact_Icc isClosed_Icc hzero
+    rcases hcont.bounded_above_of_compact_support hcomp with ⟨C, hC⟩
+    exact ⟨max C 0, le_max_right C 0, fun t => (hC t).trans (le_max_left C 0)⟩
+
+private noncomputable def resolverSmoothRightCutoffDerivBound
+    (c' c : ℝ) (hc'c : c' < c) (k : ℕ) (hk : (k : ℕ∞) ≤ 2) : ℝ :=
+  Classical.choose
+    (resolverSmoothRightCutoff_iteratedFDeriv_bound_exists c' c hc'c k hk)
+
+private theorem resolverSmoothRightCutoffDerivBound_nonneg
+    {c' c : ℝ} (hc'c : c' < c) {k : ℕ} (hk : (k : ℕ∞) ≤ 2) :
+    0 ≤ resolverSmoothRightCutoffDerivBound c' c hc'c k hk :=
+  (Classical.choose_spec
+    (resolverSmoothRightCutoff_iteratedFDeriv_bound_exists c' c hc'c k hk)).1
+
+private theorem resolverSmoothRightCutoffDerivBound_spec
+    {c' c : ℝ} (hc'c : c' < c) {k : ℕ} (hk : (k : ℕ∞) ≤ 2) (t : ℝ) :
+    ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤
+      resolverSmoothRightCutoffDerivBound c' c hc'c k hk :=
+  (Classical.choose_spec
+    (resolverSmoothRightCutoff_iteratedFDeriv_bound_exists c' c hc'c k hk)).2 t
+
+private noncomputable def cutoffResolverExplicitMajorant
+    (Bt : ℕ → ℕ → ℝ) (c : ℝ) (hc : 0 < c) (j k : ℕ) : ℝ :=
+  ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+    (if hi : (i : ℕ∞) ≤ 2 then
+      resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
+    else 0) *
+    boundedWeightJointMajorant Bt (j - i) k
+
+private theorem cutoffResolverTerm_iteratedFDeriv_le_explicit
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
+    (hj : (j : ℕ∞) ≤ 2) :
+    ‖iteratedFDeriv ℝ j (cutoffResolverTerm p u c k) q‖ ≤
+      cutoffResolverExplicitMajorant Bt c hc j k := by
+  classical
+  have hc'c : c / 2 < c := by linarith
+  let G : ℝ × ℝ → ℝ := fun q => smoothRightCutoff (c / 2) c q.1
+  let R : ℝ × ℝ → ℝ :=
+    boundedWeightJointTerm (resolverTimeCoeff p u) k
+  have hterm : cutoffResolverTerm p u c k = fun q : ℝ × ℝ => G q * R q := by
+    funext q
+    simp [cutoffResolverTerm, boundedWeightJointTerm, G, R, mul_assoc]
+  have hG : ContDiff ℝ (2 : ℕ∞) G :=
+    (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).comp contDiff_fst
+  have hR : ContDiff ℝ (2 : ℕ∞) R :=
+    boundedWeightJointTerm_contDiff k (H.coeff_contDiff k)
+  have hjTop : ((j : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+    exact_mod_cast hj
+  rw [hterm]
+  calc
+    ‖iteratedFDeriv ℝ j (fun q : ℝ × ℝ => G q * R q) q‖
+        ≤ ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+            ‖iteratedFDeriv ℝ i G q‖ *
+            ‖iteratedFDeriv ℝ (j - i) R q‖ := by
+          simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hG hR q hjTop
+    _ ≤ cutoffResolverExplicitMajorant Bt c hc j k := by
+      unfold cutoffResolverExplicitMajorant
+      apply Finset.sum_le_sum
+      intro i hi
+      have hik : i ≤ j := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+      have hjNat : j ≤ 2 := by exact_mod_cast hj
+      have hiNat : i ≤ 2 := le_trans hik hjNat
+      have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
+      have hiTop : (i : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hiNat
+      have hjiTop : ((j - i : ℕ) : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hjiNat
+      have hG_bound : ‖iteratedFDeriv ℝ i G q‖ ≤
+          resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop := by
+        exact (norm_iteratedFDeriv_comp_fst_le
+          (smoothRightCutoff_contDiff (c' := c / 2) (c := c))
+          (by exact_mod_cast hiTop) q).trans
+          (resolverSmoothRightCutoffDerivBound_spec hc'c hiTop q.1)
+      have hR_bound : ‖iteratedFDeriv ℝ (j - i) R q‖ ≤
+          boundedWeightJointMajorant Bt (j - i) k :=
+        boundedWeightJointTerm_iteratedFDeriv_le
+          (c := resolverTimeCoeff p u) (Bt := Bt) (n := k) (k := j - i) (q := q)
+          (H.coeff_contDiff k) hjiTop
+          (fun a ha => H.coeff_bound a k q.1 ha)
+      have hchoose_nn : 0 ≤ (j.choose i : ℝ) := Nat.cast_nonneg _
+      have hΦ_nn : 0 ≤ resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop :=
+        resolverSmoothRightCutoffDerivBound_nonneg hc'c hiTop
+      calc (j.choose i : ℝ) * ‖iteratedFDeriv ℝ i G q‖ *
+            ‖iteratedFDeriv ℝ (j - i) R q‖
+          ≤ (j.choose i : ℝ) *
+              resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop *
+              ‖iteratedFDeriv ℝ (j - i) R q‖ := by
+            exact mul_le_mul_of_nonneg_right
+              (mul_le_mul_of_nonneg_left hG_bound hchoose_nn) (norm_nonneg _)
+        _ ≤ (j.choose i : ℝ) *
+              resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop *
+              boundedWeightJointMajorant Bt (j - i) k := by
+            exact mul_le_mul_of_nonneg_left hR_bound
+              (mul_nonneg hchoose_nn hΦ_nn)
+        _ = (j.choose i : ℝ) *
+              (if hi : (i : ℕ∞) ≤ 2 then
+                resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hi
+              else 0) *
+              boundedWeightJointMajorant Bt (j - i) k := by
+            rw [dif_pos hiTop]
+
+private theorem cutoffResolverMajorant_bddAbove_of_physical
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
+    (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
+    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
+    BddAbove (Set.range fun q : ℝ × ℝ =>
+      ‖iteratedFDeriv ℝ j
+        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
+  refine ⟨cutoffResolverExplicitMajorant Bt c hc j k, ?_⟩
+  rintro _ ⟨q, rfl⟩
+  exact cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj
+
+private theorem cutoffResolverMajorant_le_explicit
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
+    (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
+    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
+    cutoffResolverMajorant p u₀ M₀ c hc j k ≤
+      cutoffResolverExplicitMajorant Bt c hc j k := by
+  unfold cutoffResolverMajorant
+  exact ciSup_le (fun q =>
+    cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj)
+
+private theorem cutoffResolverExplicitMajorant_summable
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
+    (H : PhysicalResolverJointC2Data p u Bt)
+    {c : ℝ} (hc : 0 < c) {j : ℕ} (hj : (j : ℕ∞) ≤ 2) :
+    Summable (cutoffResolverExplicitMajorant Bt c hc j) := by
+  classical
+  have hjNat : j ≤ 2 := by exact_mod_cast hj
+  let s := Finset.range (j + 1)
+  change Summable (fun k : ℕ =>
+    ∑ i ∈ s, (j.choose i : ℝ) *
+      (if hi : (i : ℕ∞) ≤ 2 then
+        resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
+      else 0) *
+      boundedWeightJointMajorant Bt (j - i) k)
+  refine Finset.induction_on s ?_ ?_
+  · simpa using (summable_zero : Summable (fun _ : ℕ => (0 : ℝ)))
+  · intro i s his hs
+    have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
+    have hbase : Summable (fun k : ℕ => boundedWeightJointMajorant Bt (j - i) k) :=
+      H.value_summable (j - i) (by exact_mod_cast hjiNat)
+    have hterm : Summable (fun k : ℕ =>
+        (j.choose i : ℝ) *
+          (if hi : (i : ℕ∞) ≤ 2 then
+            resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
+          else 0) *
+          boundedWeightJointMajorant Bt (j - i) k) := by
+      by_cases hi : (i : ℕ∞) ≤ 2
+      · simpa [hi, mul_assoc] using
+          hbase.mul_left ((j.choose i : ℝ) *
+            resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi)
+      · simpa [hi] using (summable_zero : Summable (fun _ : ℕ => (0 : ℝ)))
+    simpa [Finset.sum_insert, his] using hterm.add hs
+
 /-- The majorant is nonneg. -/
 theorem cutoffResolverMajorant_nonneg {p : CM2Params}
     {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {j k : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
     0 ≤ cutoffResolverMajorant p u₀ M₀ c hc j k := by
-  sorry
+  obtain ⟨Bt, hBt⟩ :=
+    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+      (p := p) hu₀_bound hu₀_cont hu₀_pos
+  have hbdd := cutoffResolverMajorant_bddAbove_of_physical
+    (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k _hj
+  exact (norm_nonneg _).trans (le_ciSup hbdd (0, 0))
 
 /-- The majorant is summable for each `j ≤ 2`. -/
 theorem cutoffResolverMajorant_summable {p : CM2Params}
     {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (_hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {j : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
     Summable (cutoffResolverMajorant p u₀ M₀ c hc j) := by
-  sorry
+  obtain ⟨Bt, hBt⟩ :=
+    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+      (p := p) hu₀_bound hu₀_cont hu₀_pos
+  refine Summable.of_nonneg_of_le (fun k => ?_) (fun k => ?_)
+    (cutoffResolverExplicitMajorant_summable hBt hc _hj)
+  · have hbdd := cutoffResolverMajorant_bddAbove_of_physical
+      (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k _hj
+    exact (norm_nonneg _).trans (le_ciSup hbdd (0, 0))
+  · exact cutoffResolverMajorant_le_explicit
+      (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k _hj
 
 /-- The majorant bounds the iterated derivatives of the cutoff resolver term. -/
 theorem cutoffResolverTerm_iteratedFDeriv_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (_hu₀_cont : Continuous u₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
     (hj : (j : ℕ∞) ≤ 2) :
     ‖iteratedFDeriv ℝ j
       (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖ ≤
       cutoffResolverMajorant p u₀ M₀ c hc j k := by
-  sorry
+  obtain ⟨Bt, hBt⟩ :=
+    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+      (p := p) hu₀_bound hu₀_cont hu₀_pos
+  have hbdd := cutoffResolverMajorant_bddAbove_of_physical
+    (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k hj
+  exact le_ciSup hbdd q
 
 /-! ### Global C² of the cutoff series (mechanical from contDiff_tsum) -/
 
@@ -317,11 +537,12 @@ theorem cutoffResolverTerm_iteratedFDeriv_bound
 
 The series `(t,x) ↦ ∑' k, φ(t) · resolverTimeCoeff p u k t · cos(kπx)` is
 `ContDiff ℝ 2` as a function `ℝ² → ℝ`.  The proof uses `contDiff_tsum` with the
-sorry'd majorant from `cutoffResolverTerm_iteratedFDeriv_bound`. -/
+majorant from `cutoffResolverTerm_iteratedFDeriv_bound`. -/
 theorem cutoffResolverSeries_contDiff_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) :
@@ -336,10 +557,10 @@ theorem cutoffResolverSeries_contDiff_two
     exact cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hfloor hc k
   -- (2) Majorant summability for each j ≤ 2
   · intro j hj
-    exact cutoffResolverMajorant_summable hc hu₀_bound hu₀_cont hj
+    exact cutoffResolverMajorant_summable hc hu₀_bound hu₀_cont hu₀_pos hj
   -- (3) Uniform iterated-derivative bound
   · intro j k q hj
-    exact cutoffResolverTerm_iteratedFDeriv_bound hu₀_bound hu₀_cont hc j k q hj
+    exact cutoffResolverTerm_iteratedFDeriv_bound hu₀_bound hu₀_cont hu₀_pos hc j k q hj
 
 /-! ### EventuallyEq: cutoff series = original series near (s₀, x₀) -/
 
@@ -395,6 +616,7 @@ theorem heatResolver_jointContDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
@@ -406,7 +628,7 @@ theorem heatResolver_jointContDiffAt_two
         (s₀, x₀) := by
   -- Step 1: The cutoff series is globally C²
   have hCutoff := (cutoffResolverSeries_contDiff_two (p := p)
-    hu₀_bound hu₀_cont hfloor hc).contDiffAt (x := (s₀, x₀))
+    hu₀_bound hu₀_cont hu₀_pos hfloor hc).contDiffAt (x := (s₀, x₀))
   -- Step 2: Near (s₀, x₀), the cutoff series = resolver term series
   have hEqCutoff := resolverSeries_eventuallyEq_cutoff (p := p)
     (u := conjugatePicardIter p u₀ 0) hc hs₀ (x₀ := x₀)
@@ -432,6 +654,7 @@ theorem heatResolver_grad_jointContDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     (_hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
@@ -441,14 +664,11 @@ theorem heatResolver_grad_jointContDiffAt_two
           deriv (intervalDomainLift (coupledChemicalConcentration p
             (conjugatePicardIter p u₀ 0) q.1)) q.2)
         (s₀, x₀) := by
-  -- The gradient version follows from the value C² by differentiating.
-  -- The value function is C² at (s₀, x₀) by `heatResolver_jointContDiffAt_two`.
-  -- Since ContDiffAt ℝ 2 implies ContDiffAt ℝ 1 of the x-derivative, and the
-  -- derivative of the lifted function equals the lifted derivative on interior
-  -- points, we get ContDiffAt ℝ 2 of the gradient.
-  -- The full proof needs the interchange of tsum and deriv (from summability
-  -- of the gradient series) and the cutoff+contDiff_tsum on the gradient series.
-  sorry
+  obtain ⟨Bt, hBt⟩ :=
+    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+      (p := p) hu₀_bound hu₀_cont hu₀_pos
+  exact ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
+    hBt hx₀
 
 #print axioms heatResolver_jointContDiffAt_two
 
