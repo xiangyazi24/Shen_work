@@ -888,13 +888,21 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   isCompact_iff_compactSpace.mp isCompact_Icc
                 haveI : Nonempty intervalDomainPoint :=
                   ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
-                -- Upper bound M_s
-                obtain ⟨x_max, _, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
-                  Set.univ_nonempty (hu₀_cont.norm.continuousOn)
-                set M_s := ‖u₀ x_max‖
-                -- rpow bound: u^{γ-1} on (0, M_s] — use M_s^{|γ-1|} as crude bound
-                -- (valid since u ∈ (0, M_s] and rpow is monotone/antimonotone)
-                -- Bpt = νγ * max(1, M_s^{|γ-1|}) * CΔ — crude but correct
+                -- Product bound: |srcSlice1| = νγ u^{γ-1} |heatDu| ≤ νγ R CΔ
+                -- R bounds u^{γ-1} uniformly via L∞ + min principle + rpow on compact
+                -- For each t > c+1 and x ∈ [0,1]: srcSlice1(t) is continuous on [0,1]
+                -- (from d1) → bounded for EACH t. And the bound is UNIFORM because
+                -- u ∈ [inf u₀, ‖u₀‖_∞] (min/max principle) and |heatDu| ≤ CΔ.
+                -- The rpow factor u^{γ-1} is bounded on the compact positive interval.
+                -- Rather than proving all this explicitly, use the per-t continuity:
+                -- For EACH t > c+1: srcSlice1(t) is continuous on compact [0,1] → bounded
+                -- by some B(t). Then note B(t) ≤ νγ * R * CΔ (uniform).
+                -- SHORTCUT: use the fact that all 3 non-constant factors are uniformly bounded.
+                -- Factor 1: u^{γ-1} — bounded because u ∈ (0, M] and u is continuous on [0,1]
+                -- Factor 2: heatDu — bounded by CΔ
+                -- Product is bounded by νγ * (per-t rpow max) * CΔ, and the per-t max is
+                -- uniform because u's range is contained in a fixed compact set.
+                -- For now: sorry this 25-line product bound (the LAST analytical sorry)
                 sorry
               refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
