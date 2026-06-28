@@ -438,12 +438,12 @@ private theorem cutoffResolverMajorant_bddAbove_of_physical
 /-! ### Direct BddAbove (bypasses PhysicalResolverJointC2Data) -/
 
 /-- Generic BddAbove from left-zero/mid/tail decomposition. -/
-private theorem bddAbove_range_norm_of_left_mid_tail
-    {F : ℝ × ℝ → ℝ} {a : ℝ} {Cmid Ctail : ℝ}
-    (hleft : ∀ q : ℝ × ℝ, q.1 < a → ‖F q‖ = 0)
-    (hmid : ∀ q : ℝ × ℝ, a ≤ q.1 → q.1 ≤ a + 1 → ‖F q‖ ≤ Cmid)
-    (htail : ∀ q : ℝ × ℝ, a + 1 < q.1 → ‖F q‖ ≤ Ctail) :
-    BddAbove (Set.range fun q : ℝ × ℝ => ‖F q‖) := by
+private theorem bddAbove_range_of_left_mid_tail
+    {g : ℝ × ℝ → ℝ} {a : ℝ} {Cmid Ctail : ℝ}
+    (hleft : ∀ q : ℝ × ℝ, q.1 < a → g q = 0)
+    (hmid : ∀ q : ℝ × ℝ, a ≤ q.1 → q.1 ≤ a + 1 → g q ≤ Cmid)
+    (htail : ∀ q : ℝ × ℝ, a + 1 < q.1 → g q ≤ Ctail) :
+    BddAbove (Set.range g) := by
   refine ⟨max 0 (max Cmid Ctail), ?_⟩
   rintro _ ⟨q, rfl⟩
   by_cases hqa : q.1 < a
@@ -483,13 +483,16 @@ private theorem cutoffResolverMajorant_bddAbove_direct
       ‖iteratedFDeriv ℝ j f q‖ = 0 := by
     intro q hq
     have hev : f =ᶠ[𝓝 q] fun _ => (0 : ℝ) := by
-      filter_upwards [(isOpen_prod_iff.mpr fun a b hab => ⟨Set.Iio (c / 2),
-        Set.univ, isOpen_Iio, isOpen_univ, hab.1, Set.mem_univ _, fun p hp =>
-          Set.mem_prod.mp hp⟩).mem_nhds ⟨hq, Set.mem_univ _⟩] with r ⟨hr, _⟩
-      simp [cutoffResolverTerm, smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c)
-        (le_of_lt hr)]
+      have hmem : (Set.Iio (c / 2)) ×ˢ (Set.univ : Set ℝ) ∈ 𝓝 q :=
+        (isOpen_Iio.prod isOpen_univ).mem_nhds ⟨hq, Set.mem_univ _⟩
+      filter_upwards [hmem] with r hr
+      obtain ⟨hr1, _⟩ := Set.mem_prod.mp hr
+      show cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k r = 0
+      unfold cutoffResolverTerm
+      rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hr1)]
+      ring
     rcases Nat.eq_zero_or_pos j with rfl | hjpos
-    · simp [norm_iteratedFDeriv_zero, hev.eq_of_nhds, norm_zero]
+    · rw [norm_iteratedFDeriv_zero, hev.eq_of_nhds, norm_zero]
     · have := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev j).eq_of_nhds
       rw [iteratedFDeriv_const_of_ne (Nat.pos_iff_ne_zero.mp hjpos), Pi.zero_apply] at this
       rw [this, norm_zero]
@@ -525,7 +528,13 @@ private theorem cutoffResolverMajorant_bddAbove_direct
     sorry
   obtain ⟨Cmid, hmid⟩ := hmid
   obtain ⟨Ctail, htail⟩ := htail
-  exact bddAbove_range_norm_of_left_mid_tail hleft hmid htail
+  have hleft' : ∀ q : ℝ × ℝ, q.1 < c / 2 →
+      (fun q => ‖iteratedFDeriv ℝ j f q‖) q = 0 := hleft
+  have hmid' : ∀ q : ℝ × ℝ, c / 2 ≤ q.1 → q.1 ≤ c / 2 + 1 →
+      (fun q => ‖iteratedFDeriv ℝ j f q‖) q ≤ Cmid := hmid
+  have htail' : ∀ q : ℝ × ℝ, c / 2 + 1 < q.1 →
+      (fun q => ‖iteratedFDeriv ℝ j f q‖) q ≤ Ctail := htail
+  exact bddAbove_range_of_left_mid_tail hleft' hmid' htail'
 
 private theorem cutoffResolverMajorant_le_explicit
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
