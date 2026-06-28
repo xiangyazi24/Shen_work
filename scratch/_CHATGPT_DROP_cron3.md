@@ -1,325 +1,277 @@
-# Q1508 (cron3): `cosineCoeffs` normalization and `hu₀_bound` vs sup norm
-
-## Search scope
-
-Searched `xiangyazi24/Shen_work` for:
-
-```text
-def cosineCoeffs
-def unitIntervalNeumannCosineCoeff
-unitIntervalCosineRawCoeff
-cosineCoeffs_pos_eq_integral
-cosineCoeffs_zero_eq_integral
-cosineCoeffs_eq_factor_mul_integral
-hu₀_bound M₀ intervalDomainLift u₀
-|cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
-cosineCoeffs_abs_le_of_continuous_bounded
-cosineCoeffs_dist_le_of_sup
-BddAbove (Set.range fun x => |u₀ x|)
-```
-
-The indexed/default tree searched by the GitHub connector is commit `7db6d8e4b01d279823281613bb824200483faddd` for the relevant hits.
+# Q1520 (cron3): `laplBound` for `i = 1` and the `t → 0+` obstruction
 
 ## Short answer
 
-`cosineCoeffs` uses the **normalized Neumann cosine coefficients**:
-
-```text
-cosineCoeffs f 0 = ∫₀¹ f(x) dx
-cosineCoeffs f k = 2 * ∫₀¹ cos(kπx) * f(x) dx   for k ≥ 1
-```
-
-So positive modes carry the factor `2`; the zeroth mode does not.
-
-The hypothesis
+No: from the current heat-level-0 hypotheses, the bound
 
 ```lean
+∀ t > 0, ∀ k ≥ 1,
+  |cosineCoeffs (slice1 t) k| ≤ M / ((k : ℝ) * Real.pi)^2
+```
+
+cannot be proved with one finite `M` uniform over all `t > 0`.
+
+The integration-by-parts idea is correct for each fixed positive time, and also uniformly on every positive slab `t ≥ τ > 0`.  But the constant obtained from
+
+```text
+|ĉ_k(f)| ≤ 2 * ∫₀¹ |f''(x)| dx / (kπ)^2
+```
+
+is controlled by `∫ |slice1_xx(t,x)| dx`.  For the heat semigroup this quantity is generally singular as `t → 0+`, unless the initial datum carries extra high spatial regularity.  Heat smoothing gives smoothness for every `t > 0`; it does not give a uniform-in-`t` high-derivative bound down to `0`.
+
+So `laplBound i=1` is a genuine analytic obstruction if `FlooredSourceTimeData` keeps the current global-positive-time form.  It is not just a convolution bookkeeping problem.
+
+## Relevant repo facts inspected
+
+The searched tree for the relevant source files is the indexed/default tree at commit
+
+```text
+7db6d8e4b01d279823281613bb824200483faddd
+```
+
+The main heat-level-0 file is:
+
+```text
+ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
+```
+
+It defines
+
+```lean
+def heatDu (u₀ : intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  if 0 < t then
+    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue
+      t (cosineCoeffs (intervalDomainLift u₀)) x
+  else 0
+```
+
+so for positive time `heatDu = Δ S(t)u₀`.
+
+It also defines
+
+```lean
+def heatD2u (u₀ : intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  if 0 < t then
+    ∑' k : ℕ, unitIntervalCosineEigenvalue k ^ 2 *
+      (Real.exp (-t * unitIntervalCosineEigenvalue k) *
+        cosineCoeffs (intervalDomainLift u₀) k) *
+      ShenWork.CosineSpectrum.cosineMode k x
+  else 0
+```
+
+so for positive time `heatD2u = Δ² S(t)u₀`.
+
+The source derivative slice is imported from
+
+```text
+ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
+```
+
+where
+
+```lean
+def srcSlice1 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (du : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
+  p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * du t x
+```
+
+Thus, for the heat base iterate,
+
+```text
+slice1(t,x) = p.ν * p.γ * v(t,x)^(p.γ - 1) * Δv(t,x),
+where v(t,x) = S(t)u₀(x).
+```
+
+The current `heatSemigroup_flooredSourceTimeData` theorem still takes the global Laplacian coefficient envelope as an input:
+
+```lean
+(hlaplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧
+  ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
+    |cosineCoeffs ((sliceFam ... i) t) k|
+      ≤ M / ((k:ℝ) * Real.pi) ^ 2)
+```
+
+That is the problematic quantifier: `∃ M` comes before `∀ t > 0`.
+
+The existing positive-time derivative proofs already use local positive-time majorants.  For example, `heatDu_hasDerivAt` sets `r := t / 2`; the summable majorant depends on this positive lower cutoff.  This is exactly the right local-in-time shape, but it is not uniform as `t ↓ 0`.
+
+## Why the product is worse than “derivatives up to order 2”
+
+Let
+
+```text
+v(t,x) = S(t)u₀(x),
+α = γ - 1,
+w(t,x) = heatDu(t,x) = Δv(t,x) = v_xx(t,x).
+```
+
+Ignoring the harmless constant `νγ`,
+
+```text
+slice1 = v^α * w = v^α * v_xx.
+```
+
+Then
+
+```text
+∂ₓ²(v^α w)
+  = α(α-1) v^(α-2) (v_x)^2 w
+    + α v^(α-1) v_xx w
+    + 2α v^(α-1) v_x w_x
+    + v^α w_xx.
+```
+
+Since `w = v_xx`, this is
+
+```text
+∂ₓ²(v^α v_xx)
+  = α(α-1) v^(α-2) (v_x)^2 v_xx
+    + α v^(α-1) (v_xx)^2
+    + 2α v^(α-1) v_x v_xxx
+    + v^α v_xxxx.
+```
+
+So the second spatial derivative of `slice1` needs spatial derivatives of `v` up to order `4`, not just order `2`.  In spectral terms, the last term contains
+
+```text
+Δ² S(t)u₀ = ∑ λ_n^2 e^{-λ_n t} a_n cos(nπx).
+```
+
+This is finite for each `t > 0`, but the bound obtained from spectral decay depends on a positive lower time cutoff.
+
+## Why no uniform bound follows as `t → 0+`
+
+Assume only the current kind of heat-level-0 data:
+
+```lean
+hu₀_cont  : Continuous u₀
 hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+hfloor    : ∀ t > 0, ... 0 < S(t)u₀
 ```
 
-is a **uniform coefficient bound**, not a pointwise/sup-norm bound.  It does **not** imply
-
-```lean
-∀ x ∈ Icc 0 1, |intervalDomainLift u₀ x| ≤ M₀
-```
-
-and the repo does not appear to use it that way in the searched places.
-
-The direction present in the repo is the opposite:
+These give positive-time smoothing, but not a finite bound for
 
 ```text
-sup bound on f  ==>  coefficient bound on cosineCoeffs f k
+sup_{t>0} ∫₀¹ |∂ₓ²(v^(γ-1) Δv)(t,x)| dx.
 ```
 
-via `cosineCoeffs_abs_le_of_continuous_bounded` / `cosineCoeffs_dist_le_of_sup`.
-
-A separate sup-norm datum is carried under names like `Msup`, `hubt`, or `BddAbove (Set.range fun x => |u₀ x|)`.  Do not identify `M₀` from `hu₀_bound` with the sup norm unless there is a separate theorem producing that specific `M₀` from a sup bound.
-
-## Exact definitions
-
-### `cosineCoeffs`
-
-File:
+A model obstruction is an initial datum with a positive floor and a slowly decaying but absolutely summable cosine tail, for example schematically
 
 ```text
-ShenWork/PDE/IntervalNeumannFullKernel.lean
+u₀(x) = c + ε ∑_{n≥1} n^{-2} cos(nπx),   c > 0, ε small.
 ```
 
-Definition:
-
-```lean
-/-- The cosine coefficients used on the spectral side: the normalized Neumann cosine
-coefficients (zeroth mode unscaled, positive modes carrying the factor `2`). -/
-def cosineCoeffs (f : ℝ → ℝ) : ℕ → ℝ :=
-  fun n => ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff
-    (fun x => (f x : ℂ)) n
-```
-
-The comment is explicit: zeroth mode unscaled, positive modes carry `2`.
-
-### Raw coefficient and normalized coefficient
-
-File:
+This is continuous and positive for small `ε`; its cosine coefficients are uniformly bounded.  But
 
 ```text
-ShenWork/PDE/HeatKernelGradientEstimates.lean
+Δ² S(t)u₀(0)
+  ~ ε ∑_{n≥1} (nπ)^4 n^{-2} e^{-(nπ)^2 t}
+  = ε π^4 ∑_{n≥1} n^2 e^{-π² n² t},
 ```
 
-Definitions:
+which diverges as `t → 0+`.  The product factor `v^(γ-1)` remains bounded below and above on the positive floor, so the `v^α v_xxxx` contribution cannot be controlled uniformly from the current assumptions.
 
-```lean
-/-- Raw, unnormalized cosine coefficient on the unit interval. -/
-def unitIntervalCosineRawCoeff (f : ℝ → ℂ) (n : ℕ) : ℂ :=
-  ∫ x in (0 : ℝ)..1,
-    (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * f x
-
-/-- Neumann cosine coefficients normalized for the unnormalized basis
-`1, cos(πx), cos(2πx), ...`.  The zeroth mode is unscaled and all positive
-cosine modes carry the usual factor `2`. -/
-def unitIntervalNeumannCosineCoeff (f : ℝ → ℂ) (n : ℕ) : ℝ :=
-  if n = 0 then (unitIntervalCosineRawCoeff f 0).re
-  else 2 * (unitIntervalCosineRawCoeff f n).re
-```
-
-So the normalization is exactly:
+Even with smoother-looking estimates, the heat-kernel constants have the same issue.  Bounds of the form
 
 ```text
-n = 0: raw real integral
-n > 0: 2 * raw real integral
+||∂ₓ^m S(t)u₀|| ≤ C_m(t) * ||u₀||
 ```
 
-## Real integral lemmas already in the repo
-
-File:
+have `C_m(t)` singular as `t ↓ 0`.  Spectral estimates with `|a_n| ≤ M₀` similarly use sums such as
 
 ```text
-ShenWork/Paper2/IntervalMildPicardRegularity.lean
+∑ n^m e^{-c n² t},
 ```
 
-Zeroth mode:
+which are finite for `t > 0` but blow up as `t → 0+`.
 
-```lean
-/-- The zeroth cosine coefficient equals `∫₀¹ f(x) dx` (no factor of 2). -/
-theorem cosineCoeffs_zero_eq_integral (f : ℝ → ℝ) :
-    cosineCoeffs f 0 =
-      (∫ x in (0 : ℝ)..1, f x) := by
-```
-
-Positive modes:
-
-```lean
-/-- For a real-valued `f`, the positive-mode cosine coefficient equals
-`2 * ∫₀¹ cos(nπx) * f(x) dx`. -/
-theorem cosineCoeffs_pos_eq_integral {f : ℝ → ℝ} {n : ℕ} (hn : n ≠ 0) :
-    cosineCoeffs f n =
-      2 * ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x := by
-```
-
-Uniform factor form:
-
-```lean
-/-- Uniform formula: `cosineCoeffs f n = c(n) * ∫₀¹ cos(nπx) * f(x) dx`
-where `c(0) = 1` and `c(n) = 2` for `n ≥ 1`. -/
-theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
-    cosineCoeffs f n =
-      (if n = 0 then 1 else 2) *
-        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x := by
-```
-
-This is the theorem to use whenever a proof needs to unfold the real normalization safely.
-
-## What `hu₀_bound` actually means in the code
-
-In heat-semigroup regularity files, `hu₀_bound` is used as a coefficient bound, e.g.
-
-```lean
-theorem heatSemigroup_eigenvalueSq_summable
-    {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    {t : ℝ} (ht : 0 < t) :
-    Summable (fun k => unitIntervalCosineEigenvalue k ^ 2 *
-      |Real.exp (-t * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k|) := by
-```
-
-The proof uses `hu₀_bound k` exactly to dominate the coefficient in the exponentially damped heat trace:
-
-```lean
-unitIntervalCosineEigenvalue k ^ 2 *
-  (Real.exp (-t * unitIntervalCosineEigenvalue k) *
-    |cosineCoeffs (intervalDomainLift u₀) k|)
-≤ unitIntervalCosineEigenvalue k ^ 2 *
-  (Real.exp (-t * unitIntervalCosineEigenvalue k) * M₀)
-```
-
-It does not infer any pointwise bound on `u₀`.
-
-Same pattern in `IntervalPicardIterateRepresentation.lean`:
-
-```lean
-theorem hbsum_zero
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {σ M₀ : ℝ} (hσ : 0 < σ)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ 0 σ k|) :=
-  hom_eig_summable (M₁ := M₀) hσ hu₀_bound
-```
-
-Again: coefficient heat trace, not pointwise sup.
-
-## Does `|a_k| ≤ M₀` imply `|u₀(x)| ≤ M₀`?
-
-No.
-
-With this normalization, take the simple cosine polynomial on `[0,1]`:
+Therefore the IBP proof gives
 
 ```text
-f(x) = M₀ * (1 + cos(πx)),   M₀ > 0.
+∀ τ > 0, ∃ Mτ, ∀ t ≥ τ, ∀ k ≥ 1,
+  |cosineCoeffs(slice1(t), k)| ≤ Mτ / (kπ)^2,
 ```
 
-Then:
+not the stronger
 
 ```text
-a₀ = ∫₀¹ M₀(1 + cos πx) dx = M₀,
-a₁ = 2∫₀¹ M₀(1 + cos πx) cos πx dx = M₀,
-a_k = 0 for k ≥ 2,
+∃ M, ∀ t > 0, ∀ k ≥ 1,
+  |cosineCoeffs(slice1(t), k)| ≤ M / (kπ)^2.
 ```
 
-so `∀ k, |a_k| ≤ M₀`, but
+## What would make the global bound true?
+
+There are two honest options.
+
+### Option A: weaken `laplBound` to a local positive-time/slab bound
+
+This is the best match for the existing heat-semigroup proof architecture.  Replace the global field by something like:
+
+```lean
+laplBound_local :
+  ∀ i : ℕ, i ≤ 2 → ∀ τ : ℝ, 0 < τ →
+    ∃ M : ℝ, 0 ≤ M ∧
+      ∀ t : ℝ, τ ≤ t → ∀ k : ℕ, 1 ≤ k →
+        |cosineCoeffs ((sliceFam s₀ s₁ s₂ i) t) k| ≤
+          M / ((k : ℝ) * Real.pi)^2
+```
+
+or, even closer to the `d0`/`d1` style:
+
+```lean
+laplBound_near :
+  ∀ i : ℕ, i ≤ 2 → ∀ τ : ℝ, 0 < τ →
+    ∃ δ M : ℝ, 0 < δ ∧ 0 ≤ M ∧
+      (∀ t ∈ Metric.ball τ δ, ∀ k : ℕ, 1 ≤ k →
+        |cosineCoeffs ((sliceFam s₀ s₁ s₂ i) t) k| ≤
+          M / ((k : ℝ) * Real.pi)^2)
+```
+
+Then the proof is feasible: choose a positive lower cutoff, say `r = τ / 2`, dominate all heat traces by sums with `e^{-r λ_n}`, and use the existing summability lemmas.  This mirrors what the current positive-time differentiability code already does with `r := t / 2`.
+
+This also aligns with the cutoff resolver strategy: if a later proof only needs regularity near a fixed `s₀ > 0`, or on the support of a cutoff that vanishes near `0`, then local positive-time bounds are exactly enough.
+
+### Option B: keep global `∀ t > 0`, but add initial spatial regularity
+
+If the structure really needs one `M` for all positive time, then the theorem needs extra assumptions on `u₀` beyond continuity and bounded cosine coefficients.
+
+A sufficient kind of assumption would be something like:
 
 ```text
-sup_{x∈[0,1]} |f(x)| = f(0) = 2M₀ > M₀.
+u₀ has enough spatial regularity that
+  ∂ₓ²(u₀^(γ-1) Δu₀) ∈ L¹(0,1),
+with compatible Neumann boundary behavior,
+and the heat-smoothed nonlinear expression converges/bounds to it as t → 0+.
 ```
 
-This is even nonnegative.  So the attempted implication fails in exactly the setting used for positive/nonnegative initial data.
-
-## What direction the repo proves/uses instead
-
-### Sup bound implies coefficient bound
-
-The repo uses a coefficient bound from a pointwise bound in several places.  For example, `IntervalPicardLimitBddHcontP.lean` derives a datum-side source coefficient bound from a real sup bound:
-
-```lean
-have hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1, |intervalDomainLift u₀ x| ≤ B := by
-  intro x hx
-  simp only [intervalDomainLift, dif_pos hx]
-  exact le_csSup hbdd ⟨⟨x, hx⟩, rfl⟩
-...
-have := cosineCoeffs_abs_le_of_continuous_bounded hcontSrc hMa_nn hsrcbd k
-```
-
-This is the correct direction:
+A clean formal sufficient package would be stronger but easier to use:
 
 ```text
-B bounds |profile| on [0,1]
-  ⇒ source pointwise bound
-  ⇒ coefficient bound, with a factor 2 for positive modes.
+u₀ ∈ C⁴([0,1]),
+Neumann/compatibility conditions as needed,
+0 < c ≤ u₀(x),
+and all derivatives up to order 4 are bounded.
 ```
 
-### Sup-distance controls coefficient-distance
+Then `v = S(t)u₀` has derivatives up to order 4 uniformly down to `t = 0`, and the product formula above gives a uniform `L¹` bound for `slice1_xx`.
 
-`IntervalPicardLimitCoeffConv.lean` proves the Lipschitz version:
+But that is a different theorem.  It is not derivable from the current heat-level-0 assumptions.
 
-```lean
-/-- **The cosine functional is `2`-Lipschitz in the sup norm.**  If `g, h` are
-continuous on `[0,1]` and `|g x − h x| ≤ B` there, then
-`|cosineCoeffs g k − cosineCoeffs h k| ≤ 2·B`. -/
-theorem cosineCoeffs_dist_le_of_sup {g h : ℝ → ℝ}
-    (hg : ContinuousOn g (Set.Icc (0 : ℝ) 1))
-    (hh : ContinuousOn h (Set.Icc (0 : ℝ) 1))
-    {B : ℝ} (hB : 0 ≤ B)
-    (hsup : ∀ x ∈ Set.Icc (0 : ℝ) 1, |g x - h x| ≤ B) (k : ℕ) :
-    |cosineCoeffs g k - cosineCoeffs h k| ≤ 2 * B := by
+## Lean-facing recommendation
+
+Do not try to prove the current global `hlaplBound` for `i = 1` from the existing hypotheses.
+
+The minimal honest fix is to change the `FlooredSourceTimeData` Laplacian coefficient envelope from global-positive-time to local-positive-time.  Then prove the `i = 1` obligation on a slab by:
+
+1. Fix `τ > 0` and choose `r = τ / 2`.
+2. Establish bounds for `v`, `v_x`, `v_xx`, `v_xxx`, `v_xxxx` on `t ≥ τ` using spectral majorants with `e^{-r λ_n}`.
+3. Use the product formula for `∂ₓ²(v^(γ-1) v_xx)` plus the positive floor for the `rpow` factors.
+4. Conclude `∫ |slice1_xx| ≤ Mτ`.
+5. Apply the Neumann IBP cosine-coefficient estimate to get the `(kπ)⁻²` envelope.
+
+Classify this obligation as:
+
+```text
+genuine analytic obstruction for the current global statement;
+mechanical/wirable after changing the field to local-positive-time, or after adding C⁴-type initial data.
 ```
-
-This again goes from sup control to coefficient control, not inverse.
-
-## Separate sup-norm hypotheses / constants
-
-The repo carries sup bounds separately.
-
-### `Msup` / `hubt` in patched source windows
-
-In `IntervalPicardLimitBddProducer.lean`, the per-window bound explicitly takes:
-
-```lean
-{Msup : ℝ}
-...
-(hubt : ∀ σ, 0 < σ → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-  intervalDomainLift (u σ) x ≤ Msup)
-```
-
-and uses it to form constants like:
-
-```lean
-max (2 * B_log p.a p.b p.α Msup G1 G2)
-    (Msup * (p.a + p.b * Msup ^ p.α))
-```
-
-That is a genuine slice sup bound, separate from coefficient `M₀`.
-
-### Datum sup bound via `BddAbove (range |u₀|)`
-
-In `IntervalPicardLimitBddHcontP.lean`, the datum-side coefficient bound has hypotheses:
-
-```lean
-theorem datum_source_coeff_bound (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    (hcont : Continuous u₀)
-    (hbdd : BddAbove (Set.range fun x => |u₀ x|))
-    (hpos : ∀ x, x ∈ intervalDomain.inside → 0 < u₀ x) :
-    ∀ k, |cosineCoeffs (logisticLifted p u₀) k| ≤ datumBound p u₀ := by
-```
-
-The concrete sup constant is:
-
-```lean
-noncomputable def datumBound (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : ℝ :=
-  2 * (sSup (Set.range fun x => |u₀ x|)
-        * (p.a + p.b * (sSup (Set.range fun x => |u₀ x|)) ^ p.α))
-```
-
-Again: this is a separate sup-norm/boundedness assumption, used to produce a coefficient bound for the initial logistic source.  It is not recovered from `hu₀_bound`.
-
-## Practical guidance
-
-If a target needs `|u₀(x)| ≤ M` or `intervalDomainLift u₀ x ≤ M`, do **not** try to use
-
-```lean
-hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
-```
-
-unless the target only needs a spectral heat-trace coefficient bound after exponential damping.
-
-For pointwise/sup estimates, look for or add one of:
-
-```lean
--- direct pointwise bound
-∀ x ∈ Set.Icc (0 : ℝ) 1, |intervalDomainLift u₀ x| ≤ M
-
--- subtype version
-∀ x : intervalDomainPoint, |u₀ x| ≤ M
-
--- existential boundedness
-BddAbove (Set.range fun x : intervalDomainPoint => |u₀ x|)
-```
-
-Then use the existing sup-to-coeff direction (`cosineCoeffs_abs_le_of_continuous_bounded` / `cosineCoeffs_dist_le_of_sup`) when a coefficient bound is needed.
