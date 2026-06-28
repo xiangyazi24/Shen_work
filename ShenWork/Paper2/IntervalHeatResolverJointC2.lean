@@ -898,15 +898,13 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   · exact Real.norm_eq_abs _ ▸ hx_max (Set.mem_univ ⟨y, ‹_›⟩)
                   · simp [abs_of_nonneg, hM_s_nn]
                 -- Step 2: upper bound u(t,x) ≤ M_s
-                have hupper : ∀ t : ℝ, 0 < t → ∀ x : ℝ,
+                have hupper : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
                     intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ≤ M_s := by
-                  intro t ht x
+                  intro t ht x hx
                   have hdef : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
                       ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
                         t (intervalDomainLift u₀) x := by
-                    unfold intervalDomainLift; split
-                    · rw [dif_pos ‹_›]
-                    · rfl
+                    unfold intervalDomainLift; rw [dif_pos hx]
                   rw [hdef]
                   exact le_of_abs_le
                     (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
