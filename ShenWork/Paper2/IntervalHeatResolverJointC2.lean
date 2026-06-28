@@ -558,15 +558,18 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
           have hiTop' : (i : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hiNat
           have hjiTop : ((j - i : ℕ) : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hjiNat
+          have hiCast : ((i : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+            exact_mod_cast hiNat
+          have hjiCast : (((j - i : ℕ) : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+            exact_mod_cast hjiNat
           have hA_fst_bound : ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => A q.1) q‖ ≤ C_max := by
-            have := norm_iteratedFDeriv_comp_fst_le hAC2 hiTop' q
-            exact this.trans (hC_max i hiNat q.1 ⟨hq_lo, hq_hi⟩)
+            exact (norm_iteratedFDeriv_comp_fst_le hAC2 hiCast q).trans
+              (hC_max i hiNat q.1 ⟨hq_lo, hq_hi⟩)
           have hB_snd_bound : ‖iteratedFDeriv ℝ (j - i)
               (fun q : ℝ × ℝ => cosineMode k q.2) q‖ ≤
               ShenWork.IntervalResolverSpectralJointC2Concrete.valueCosWeight (j - i) k := by
-            have := ShenWork.IntervalResolverSpectralJointC2CutoffBounds.norm_iteratedFDeriv_comp_snd_le
-              hcos hjiTop q
-            exact this.trans
+            exact (ShenWork.IntervalResolverSpectralJointC2CutoffBounds.norm_iteratedFDeriv_comp_snd_le
+              hcos hjiCast q).trans
               (ShenWork.IntervalResolverSpectralJointC2Concrete.cosineMode_iteratedFDeriv_bound
                 k (j - i) q.2 hjiNat)
           exact mul_le_mul
