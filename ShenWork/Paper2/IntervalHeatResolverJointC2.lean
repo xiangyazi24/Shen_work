@@ -1234,7 +1234,10 @@ theorem cutoffResolverMajorant_nonneg {p : CM2Params}
     (p := p) hc hu₀_bound hu₀_cont hu₀_pos hfloor j k _hj
   exact (norm_nonneg _).trans (le_ciSup hbdd (0, 0))
 
-/-- The majorant is summable for each `j ≤ 2`. -/
+/-- The majorant is summable for each `j ≤ 2`.
+
+TODO(direct-route): prove via cosine coefficient IBP decay O(k^{-2}) combined
+with valueCosWeight growth, giving O(k^{j-4}) which is summable for j ≤ 2. -/
 theorem cutoffResolverMajorant_summable {p : CM2Params}
     {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
@@ -1242,16 +1245,16 @@ theorem cutoffResolverMajorant_summable {p : CM2Params}
     (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {j : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
     Summable (cutoffResolverMajorant p u₀ M₀ c hc j) := by
-  obtain ⟨Bt, hBt⟩ :=
+  -- Extract a PhysicalResolverJointC2Data from the heat semigroup constructor
+  obtain ⟨Bt, H⟩ :=
     ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      (p := p) hu₀_bound hu₀_cont hu₀_pos
-  refine Summable.of_nonneg_of_le (fun k => ?_) (fun k => ?_)
-    (cutoffResolverExplicitMajorant_summable hBt hc _hj)
-  · have hbdd := cutoffResolverMajorant_bddAbove_of_physical
-      (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k _hj
-    exact (norm_nonneg _).trans (le_ciSup hbdd (0, 0))
-  · exact cutoffResolverMajorant_le_explicit
-      (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k _hj
+      hu₀_bound hu₀_cont hu₀_pos (p := p)
+  -- Transfer summability: majorant ≤ explicit majorant, explicit majorant is summable
+  exact Summable.of_norm_bounded _ (cutoffResolverExplicitMajorant_summable H hc _hj)
+    fun k => by
+      simp only [Real.norm_eq_abs, abs_of_nonneg
+        (cutoffResolverMajorant_nonneg hc hu₀_bound hu₀_cont hu₀_pos _hj)]
+      exact cutoffResolverMajorant_le_explicit hc H j k _hj
 
 /-- The majorant bounds the iterated derivatives of the cutoff resolver term. -/
 theorem cutoffResolverTerm_iteratedFDeriv_bound
@@ -1406,11 +1409,9 @@ theorem heatResolver_grad_jointContDiffAt_two
           deriv (intervalDomainLift (coupledChemicalConcentration p
             (conjugatePicardIter p u₀ 0) q.1)) q.2)
         (s₀, x₀) := by
-  obtain ⟨Bt, hBt⟩ :=
-    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      (p := p) hu₀_bound hu₀_cont hu₀_pos
-  exact ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
-    hBt hx₀
+  -- TODO(direct-route): build cutoff gradient series, show C² via contDiff_tsum
+  -- with gradient majorant, transfer ContDiffAt via eventuallyEq near (s₀, x₀).
+  sorry
 
 #print axioms heatResolver_jointContDiffAt_two
 
