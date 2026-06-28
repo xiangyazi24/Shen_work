@@ -879,11 +879,9 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               -- with B = νγ * M_sup^{γ-1} * CΔ
               -- ContinuousOn: from smoothness of each factor at t > 0 (sorry'd)
               -- Pointwise bound: from hSt_le + rpow + hDu (sorry'd)
-              -- M_sup not in scope here; use existential with sorry
-              refine ⟨_, fun t ht => ?_⟩
-              have ht_pos : 0 < t := by linarith
-              -- ContinuousOn + pointwise bound → cosineCoeffs bound
-              -- For now, sorry these sub-goals
+              -- Same pattern as i=0: cosineCoeffs_abs_le_of_continuous_bounded
+              -- srcSlice1 = νγ * u^{γ-1} * heatDu, bounded by νγ * sup(u)^{γ-1} * CΔ
+              -- ContinuousOn from heat semigroup smoothness + rpow + heatDu continuity
               sorry
             obtain ⟨Bsrc, hBsrc⟩ := hBsrc
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
