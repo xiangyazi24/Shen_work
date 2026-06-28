@@ -888,21 +888,35 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   isCompact_iff_compactSpace.mp isCompact_Icc
                 haveI : Nonempty intervalDomainPoint :=
                   ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
-                -- Product bound: |srcSlice1| = νγ u^{γ-1} |heatDu| ≤ νγ R CΔ
-                -- R bounds u^{γ-1} uniformly via L∞ + min principle + rpow on compact
-                -- For each t > c+1 and x ∈ [0,1]: srcSlice1(t) is continuous on [0,1]
-                -- (from d1) → bounded for EACH t. And the bound is UNIFORM because
-                -- u ∈ [inf u₀, ‖u₀‖_∞] (min/max principle) and |heatDu| ≤ CΔ.
-                -- The rpow factor u^{γ-1} is bounded on the compact positive interval.
-                -- Rather than proving all this explicitly, use the per-t continuity:
-                -- For EACH t > c+1: srcSlice1(t) is continuous on compact [0,1] → bounded
-                -- by some B(t). Then note B(t) ≤ νγ * R * CΔ (uniform).
-                -- SHORTCUT: use the fact that all 3 non-constant factors are uniformly bounded.
-                -- Factor 1: u^{γ-1} — bounded because u ∈ (0, M] and u is continuous on [0,1]
-                -- Factor 2: heatDu — bounded by CΔ
-                -- Product is bounded by νγ * (per-t rpow max) * CΔ, and the per-t max is
-                -- uniform because u's range is contained in a fixed compact set.
-                -- For now: sorry this 25-line product bound (the LAST analytical sorry)
+                -- Step 1: compact sup M_s for u₀
+                obtain ⟨x_max, _, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
+                  Set.univ_nonempty (hu₀_cont.norm.continuousOn)
+                set M_s := ‖u₀ x_max‖
+                have hM_s_nn : 0 ≤ M_s := norm_nonneg _
+                have hlift_le : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M_s := by
+                  intro y; unfold intervalDomainLift; split
+                  · exact Real.norm_eq_abs _ ▸ hx_max (Set.mem_univ ⟨y, ‹_›⟩)
+                  · simp [abs_of_nonneg, hM_s_nn]
+                -- Step 2: upper bound u(t,x) ≤ M_s
+                have hupper : ∀ t : ℝ, 0 < t → ∀ x : ℝ,
+                    intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ≤ M_s := by
+                  intro t ht x
+                  have hdef : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
+                      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                        t (intervalDomainLift u₀) x := by
+                    unfold intervalDomainLift; split
+                    · rw [dif_pos ‹_›]
+                    · rfl
+                  rw [hdef]
+                  exact le_of_abs_le
+                    (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+                      ht hM_s_nn hlift_le x)
+                -- Step 3: srcSlice1 bound from product
+                -- |srcSlice1| = |νγ u^{γ-1} heatDu|
+                -- ≤ νγ * u^{γ-1} * CΔ (all positive factors except heatDu)
+                -- u^{γ-1} bounded: u > 0 (hfloor), u ≤ M_s (hupper)
+                -- Bound u^{γ-1} by max(1, M_s)^{|γ-1|} * max(1, 1) — crude but uniform
+                -- OR: just sorry this last step
                 sorry
               refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
