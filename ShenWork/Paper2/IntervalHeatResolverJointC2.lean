@@ -629,13 +629,24 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             |ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
               t (intervalDomainLift u₀) x| ≤ M_sup :=
           fun t ht x =>
-            ShenWork.PDE.IntervalFullKernelSupBound.intervalFullSemigroupOperator_Linfty_bound
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
               ht hM_sup_nn hlift_le x
-        -- Remaining: connect S(t)u₀ bound → srcSlice bound → srcTimeCoeff bound
-        -- → resolverTimeCoeff bound → A bound. This chain needs
-        -- ContinuousOn of srcSlice on [0,1] (for cosineCoeffs_abs_le_of_continuous_bounded)
-        -- and the definitional unfolding of srcTimeCoeff, resolverTimeCoeff.
-        -- For now we have the L∞ pieces; the assembly is sorry'd.
+        -- ContinuousOn of S(t)u₀ on [0,1] for t > 0
+        have hSt_cont : ∀ t : ℝ, 0 < t →
+            ContinuousOn (fun x => ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              t (intervalDomainLift u₀) x) (Set.Icc (0:ℝ) 1) :=
+          fun t ht => ShenWork.IntervalDuhamelIntegrability.continuousOn_intervalFullSemigroupOperator_of_bounded
+            ht hlift_le
+        -- The bound: for ALL t, |A(t)| ≤ w_k * 2ν * M_sup^γ
+        -- For t ≤ c/2: A = 0 (cutoff)
+        -- For t > c/2 > 0: chain through srcSlice → cosineCoeffs → resolverTimeCoeff
+        -- srcSlice(t,x) = ν * u(t,x)^γ, |srcSlice| ≤ ν * M_sup^γ on [0,1]
+        -- cosineCoeffs bound: |c_k| ≤ 2 * ν * M_sup^γ
+        -- resolverTimeCoeff = w_k * srcTimeCoeff
+        -- A = φ * resolverTimeCoeff, |φ| ≤ 1
+        -- This chain requires ContinuousOn of srcSlice which follows from
+        -- ContinuousOn of S(t)u₀ + rpow continuity + positivity.
+        -- The full assembly is non-trivial but all ingredients are available.
         sorry
       · -- i = 1: A'(t) is bounded
         -- For t ≤ c/2: A'(t) = 0
