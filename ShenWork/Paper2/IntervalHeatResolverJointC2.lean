@@ -1229,7 +1229,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                         (heatDu u₀ t x) ^ (2 : ℕ)| +
                       |p.ν * p.γ *
                         (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1) *
-                        heatD2u u₀ t x| := abs_add _ _
+                        heatD2u u₀ t x| := abs_add_le _ _
                   _ ≤ B₁ + B₂ := by
                       apply add_le_add
                       · -- Term 1: |ν·γ·(γ-1)·u^{γ-2}·(du)²| ≤ |ν·γ·(γ-1)| · R₂ · CΔ²
