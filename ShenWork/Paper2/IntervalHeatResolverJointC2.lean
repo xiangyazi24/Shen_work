@@ -880,15 +880,18 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               -- ContinuousOn: from smoothness of each factor at t > 0 (sorry'd)
               -- Pointwise bound: from hSt_le + rpow + hDu (sorry'd)
               -- ContinuousOn from d1, pointwise bound from L∞ + hDu
-              refine ⟨(0 : ℝ), fun t ht => ?_⟩ -- dummy witness, sorry fills actual bound
               set u := conjugatePicardIter p u₀ 0
               have ht_pos : 0 < t := by linarith
-              -- ContinuousOn of srcSlice1(t) on [0,1] from d1
+              -- ContinuousOn of srcSlice1(t) from d1
               obtain ⟨_, _, hcont_s1, _, _⟩ :=
                 heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht_pos
               have hsrc1_cont : ContinuousOn (srcSlice1 p u (heatDu u₀) t) (Set.Icc (0:ℝ) 1) :=
                 hcont_s1.self_of_nhds
-              -- Pointwise bound + cosineCoeffs_abs_le_of_continuous_bounded
+              -- srcSlice1 continuous on compact [0,1] → bounded for THIS t
+              -- But need uniform in t > c+1 — get from hDu + L∞
+              -- |srcSlice1(t,x)| = |νγ u^{γ-1} heatDu| ≤ νγ * (rpow bound) * CΔ
+              -- rpow bound depends on u ∈ [inf u₀, M_sup] — fixed interval
+              -- For now sorry the pointwise bound; ContinuousOn IS proved
               sorry
             obtain ⟨Bsrc, hBsrc⟩ := hBsrc
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
