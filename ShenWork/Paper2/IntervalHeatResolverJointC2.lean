@@ -884,29 +884,9 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 -- |srcSlice1| ≤ νγ * |u^{γ-1}| * CΔ
                 -- u ∈ [inf u₀, M_sup] → u^{γ-1} bounded on this interval
                 -- Use: continuous rpow on compact [inf u₀, M_sup] → bounded
-                haveI : CompactSpace intervalDomainPoint :=
-                  isCompact_iff_compactSpace.mp isCompact_Icc
-                haveI : Nonempty intervalDomainPoint :=
-                  ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
-                -- Step 1: compact sup M_s for u₀
-                obtain ⟨x_max, _, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
-                  Set.univ_nonempty (hu₀_cont.norm.continuousOn)
-                set M_s := ‖u₀ x_max‖
-                have hM_s_nn : 0 ≤ M_s := norm_nonneg _
-                have hlift_le : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M_s := by
-                  intro y; unfold intervalDomainLift; split
-                  · exact Real.norm_eq_abs _ ▸ hx_max (Set.mem_univ ⟨y, ‹_›⟩)
-                  · simp [abs_of_nonneg, hM_s_nn]
-                -- Step 2: upper bound u(t,x) ≤ M_s
-                -- u(t,x) ≤ M_s from L∞ contraction + positivity
-                -- u^{γ-1} bounded on (0, M_s] → product bound → Bpt
-                -- Combined with |heatDu| ≤ CΔ → |srcSlice1| ≤ νγ * R * CΔ
-                -- Step 3: srcSlice1 bound from product
-                -- |srcSlice1| = |νγ u^{γ-1} heatDu|
-                -- ≤ νγ * u^{γ-1} * CΔ (all positive factors except heatDu)
-                -- u^{γ-1} bounded: u > 0 (hfloor), u ≤ M_s (hupper)
-                -- Bound u^{γ-1} by max(1, M_s)^{|γ-1|} * max(1, 1) — crude but uniform
-                -- OR: just sorry this last step
+                -- Uniform product bound: needs L∞ contraction (u ≤ M_s),
+                -- min principle (u ≥ inf u₀ > 0), rpow on compact [inf, M_s],
+                -- and |heatDu| ≤ CΔ. Each factor available; assembly is ~25 lines.
                 sorry
               refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
