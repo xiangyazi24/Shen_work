@@ -820,10 +820,17 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 have ht_pos : 0 < t := by linarith
                 -- Unfold heatDu at positive time
                 simp only [heatDu, if_pos ht_pos]
-                -- Goal: |unitIntervalCosineHeatLaplacianValue t c x| ≤ maj_sum
                 -- LaplacianValue = Σ' n, LaplacianPointWeight * c_n
-                -- |Σ'| ≤ Σ' |term| ≤ Σ' eigenvalue * exp(-(c+1)*eigenvalue) * M₀ = maj_sum
-                sorry
+                unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue
+                -- Goal: |Σ' n, LaplacianPointWeight(t,x,n) * c_n| ≤ maj_sum
+                -- Apply abs_tsum bound
+                refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_) (heig_summ.mul_left M₀)).trans ?_
+                · -- |LaplacianPointWeight * c_n| ≤ M₀ * eigenvalue * exp(-(c+1)*eigenvalue)
+                  unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight
+                  -- = |-eigenvalue * heatPointWeight * c_n|
+                  sorry -- term-by-term bound: |cos| ≤ 1, |c_n| ≤ M₀, exp monotone
+                · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
+                  sorry -- tsum_mul_left rearrangement
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
             -- Bound |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
