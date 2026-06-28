@@ -785,7 +785,13 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             -- Step A: bound cosineCoeffs(srcSlice1(t), k) for t > c+1 (eigenvalue damping)
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
                 |cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k| ≤ Bsrc := by
-              sorry -- ContinuousOn of srcSlice1 + L∞ bound via eigenvalue damping
+              -- srcSlice1(t,x) = νγ * u^{γ-1} * heatDu
+              -- |srcSlice1| ≤ νγ * M_sup^{γ-1} * |heatDu|
+              -- |heatDu(t,x)| bounded for t > c+1 via eigenvalue damping
+              -- Then cosineCoeffs_abs_le_of_continuous_bounded gives the k-uniform bound
+              -- The heatDu bound uses unitIntervalCosineHeatSecondPointWeight_abs_le
+              -- (heatDu = unitIntervalCosineHeatSecondValue at positive time)
+              sorry -- eigenvalue damping: |heatDu| ≤ C_Δ + srcSlice1 sup bound + ContinuousOn
             obtain ⟨Bsrc, hBsrc⟩ := hBsrc
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
             refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
