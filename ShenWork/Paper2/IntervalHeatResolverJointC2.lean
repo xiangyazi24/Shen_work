@@ -1239,7 +1239,8 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                           (p.ν * p.γ * (p.γ - 1)) *
                             ((intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1 - 1) *
                               (heatDu u₀ t x) ^ (2 : ℕ)) from by ring]
-                        rw [abs_mul]
+                        rw [abs_mul, show B₁ = |p.ν * p.γ * (p.γ - 1)| *
+                          (u_R₂ ^ (p.γ - 1 - 1) * CΔ ^ 2) from by ring]
                         apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
                         rw [abs_mul, abs_of_nonneg (Real.rpow_nonneg (le_of_lt hvp) _)]
                         have hdu_sq : |heatDu u₀ t x| ^ 2 ≤ CΔ ^ 2 :=
@@ -1476,7 +1477,7 @@ theorem cutoffResolverMajorant_summable {p : CM2Params}
     ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
       hu₀_bound hu₀_cont hu₀_pos (p := p)
   -- Transfer summability: majorant ≤ explicit majorant, explicit majorant is summable
-  exact Summable.of_norm_bounded _ (cutoffResolverExplicitMajorant_summable H hc _hj)
+  exact Summable.of_norm_bounded (cutoffResolverExplicitMajorant_summable H hc _hj)
     fun k => by
       simp only [Real.norm_eq_abs, abs_of_nonneg
         (cutoffResolverMajorant_nonneg hc hu₀_bound hu₀_cont hu₀_pos _hj)]
