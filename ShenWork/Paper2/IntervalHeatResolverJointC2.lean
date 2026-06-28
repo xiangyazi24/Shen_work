@@ -673,11 +673,15 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               (le_of_lt (hfloor t ht_pos x hx)) _))]
             apply mul_le_mul_of_nonneg_left _ (le_of_lt p.hν)
             apply Real.rpow_le_rpow (le_of_lt (hfloor t ht_pos x hx))
-            · -- |S(t)u₀(x)| ≤ M_sup → S(t)u₀(x) ≤ M_sup (since positive)
-              have := hSt_le t ht_pos x
-              rw [conjugatePicardIter, intervalDomainLift] at *
-              simp only [hx, dite_true] at *
-              exact le_of_abs_le this
+            · -- S(t)u₀(x) ≤ M_sup from L∞ contraction + positivity
+              -- intervalDomainLift(u t)(x) = u t ⟨x,hx⟩ = S(t)(lift u₀)(x) for x ∈ [0,1]
+              have hdef : intervalDomainLift (u t) x =
+                  ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                    t (intervalDomainLift u₀) x := by
+                show (if hx' : x ∈ Set.Icc (0:ℝ) 1 then u t ⟨x, hx'⟩ else 0) = _
+                rw [dif_pos hx]
+              rw [hdef]
+              exact le_of_abs_le (hSt_le t ht_pos x)
             · exact le_of_lt p.hγ
           -- ContinuousOn of srcSlice on [0,1]
           have hsrc_cont : ContinuousOn (srcSlice p u t) (Set.Icc (0:ℝ) 1) := by
@@ -688,7 +692,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               have := ShenWork.IntervalDuhamelIntegrability.continuousOn_intervalFullSemigroupOperator_of_bounded
                 ht_pos hlift_le
               exact this.congr fun x hx => by
-                simp [intervalDomainLift, conjugatePicardIter, hx]
+                show ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                    t (intervalDomainLift u₀) x =
+                  intervalDomainLift (u t) x
+                symm
+                show (if hx' : x ∈ Set.Icc (0:ℝ) 1 then u t ⟨x, hx'⟩ else 0) = _
+                rw [dif_pos hx]
             · intro x hx
               exact Or.inl (ne_of_gt (hfloor t ht_pos x hx))
           -- Apply cosineCoeffs_abs_le_of_continuous_bounded
