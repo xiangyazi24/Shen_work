@@ -896,16 +896,14 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 have hlift_lo : ∀ y, y ∈ Set.Icc (0:ℝ) 1 →
                     u₀ xmin ≤ intervalDomainLift u₀ y := by
                   intro y hy; unfold intervalDomainLift; rw [dif_pos hy]
-                  exact hmin (Set.mem_univ ⟨y, hy⟩)
+                  exact hmin (Set.mem_univ (⟨y, hy⟩ : intervalDomainPoint))
                 have hlift_hi : ∀ y, |intervalDomainLift u₀ y| ≤ ‖u₀ xmax‖ := by
                   intro y; unfold intervalDomainLift; split_ifs with hy
-                  · exact Real.norm_eq_abs _ ▸ hmax (Set.mem_univ ⟨y, hy⟩)
+                  · exact Real.norm_eq_abs _ ▸ hmax (Set.mem_univ (⟨y, hy⟩ : intervalDomainPoint))
                   · exact (le_of_eq abs_zero).trans (norm_nonneg _)
                 have hminmax : u₀ xmin ≤ ‖u₀ xmax‖ :=
                   (le_abs_self _).trans (Real.norm_eq_abs _ ▸ hmax (Set.mem_univ xmin))
-                have hlift_m :=
-                  ShenWork.IntervalDuhamelIntegrability
-                    .intervalDomainLift_aestronglyMeasurable_of_continuous hu₀_cont
+                have hlift_m := ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous hu₀_cont
                 -- max of u^{γ-1} on compact [inf u₀, ‖u₀‖_∞]
                 obtain ⟨u_R, hu_R, hRmax⟩ := isCompact_Icc.exists_isMaxOn
                   (Set.nonempty_Icc.mpr hminmax)
