@@ -695,9 +695,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
                     t (intervalDomainLift u₀) x =
                   intervalDomainLift (u t) x := by
-                intro x hx
-                unfold intervalDomainLift
-                rw [dif_pos hx]
+                intro x hx; unfold intervalDomainLift; simp only [dif_pos hx, u]; rfl
               exact this.congr heq
             · intro x hx
               exact Or.inl (ne_of_gt (hfloor t ht_pos x hx))
