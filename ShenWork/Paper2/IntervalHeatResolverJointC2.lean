@@ -880,7 +880,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               -- ContinuousOn: from smoothness of each factor at t > 0 (sorry'd)
               -- Pointwise bound: from hSt_le + rpow + hDu (sorry'd)
               -- ContinuousOn from d1, pointwise bound from L∞ + hDu
-              refine ⟨_, fun t ht => ?_⟩
+              refine ⟨(0 : ℝ), fun t ht => ?_⟩ -- dummy witness, sorry fills actual bound
               set u := conjugatePicardIter p u₀ 0
               have ht_pos : 0 < t := by linarith
               -- ContinuousOn of srcSlice1(t) on [0,1] from d1
