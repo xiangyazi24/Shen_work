@@ -926,16 +926,13 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 have hlo : u₀ xmin ≤
                     intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
                   rw [hdef]
-                  exact ShenWork.IntervalNeumannFullKernel
-                    .intervalFullSemigroupOperator_lower_bound
+                  exact ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_lower_bound
                     ht_pos hm₀.le hminmax hlift_m hlift_lo hlift_hi x
                 have hhi : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ≤
                     ‖u₀ xmax‖ := by
                   rw [hdef]
-                  exact le_of_abs_le
-                    (ShenWork.IntervalNeumannFullKernel
-                      .intervalFullSemigroupOperator_Linfty_bound
-                      ht_pos (norm_nonneg _) hlift_hi x)
+                  exact le_of_abs_le (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+                    ht_pos (norm_nonneg _) hlift_hi x)
                 have hvp : 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
                   lt_of_lt_of_le hm₀ hlo
                 -- rpow bound: u^{γ-1} ≤ R
