@@ -6,19 +6,19 @@ Target report file: `scratch/_CHATGPT_DROP_cron1.md`
 
 ## Scope and caveat
 
-The prompt was:
+The prompt was only:
 
 ```text
 Q1803 (cron1): cron1 /tmp/q_cron1_Rderiv.txt
 ```
 
-The local file `/tmp/q_cron1_Rderiv.txt` was not present in the runtime I can inspect, and it is not readable through the GitHub connector. I therefore used the repository state and the file name `Rderiv` to identify the relevant live gap.
+The local file `/tmp/q_cron1_Rderiv.txt` was not present in the runtime I can inspect, and it is not readable through the GitHub connector. I used the repository state and the name `Rderiv` to identify the intended gap.
 
-I did **not** use Python, `/mnt/data`, the sandbox, or any sandbox link. I did not run Lean locally.
+I did **not** use Python, `/mnt/data`, the sandbox, or a sandbox link. I did not run Lean locally.
 
 ## Inferred target
 
-The relevant gap is in:
+The relevant live gap is in:
 
 ```text
 ShenWork/Paper2/IntervalHeatResolverJointC2.lean
@@ -30,7 +30,7 @@ inside:
 private theorem cutoffResolverMajorant_bddAbove_direct
 ```
 
-in the `i = 1` tail branch:
+at the `i = 1` tail block:
 
 ```lean
 have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
@@ -45,9 +45,9 @@ have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
 
 ## Verdict
 
-The right fix is **not** to use `ContDiffAt` opaquely.  The current file already proves the source coefficient `ContDiffAt` theorem by constructing the exact first derivative internally.  Extract that internal `hd0` proof as a named `HasDerivAt` lemma, then transfer it across the constant elliptic resolver weight.
+The direct `Rderiv` route should be split into two pieces:
 
-The core derivative identity should be:
+1. Extract the exact derivative formula for the resolver coefficient:
 
 ```lean
 deriv (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t =
@@ -58,11 +58,13 @@ deriv (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t =
 
 for `0 < t`.
 
-After that, `hR_deriv_bounded` is a bounded-coefficient estimate for the coefficient of `srcSlice1`, not a new resolver regularity problem.
+2. Prove one reusable tail estimate for the coefficient of `srcSlice1`.
 
-## Minimal helper sequence
+Do **not** try to close this by using `ContDiffAt` opaquely.  The exact derivative is already constructed inside `heatLevel0_srcTimeCoeff_contDiffAt_two`; it should be exposed as a named `HasDerivAt` lemma and then transferred through `resolverTimeCoeff_eq_weight_smul`.
 
-Add these helpers near the existing Layer 1 / Layer 2 block in `IntervalHeatResolverJointC2.lean`, just before `heatLevel0_srcTimeCoeff_contDiffAt_two` or immediately after it.
+## Extract the source and resolver derivative lemmas
+
+Add these near the existing Layer 1 / Layer 2 block in `IntervalHeatResolverJointC2.lean`.
 
 ```lean
 import ShenWork.Paper2.IntervalHeatResolverJointC2
@@ -74,7 +76,8 @@ open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
 open ShenWork.IntervalPhysicalResolverDataConcrete
   (srcTimeCoeff resolverTimeCoeff_eq_weight_smul)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice srcTimeCoeff_eq_cosineCoeffs)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete
+  (srcSlice srcTimeCoeff_eq_cosineCoeffs)
 open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1)
 open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
   (heatDu heatSemigroup_d0)
@@ -143,7 +146,7 @@ theorem heatLevel0_resolverTimeCoeff_hasDerivAt
   rw [hEq]
   simpa using hsrc.const_mul (ShenWork.PDE.intervalNeumannResolverWeight p k)
 
-/-- Convenient `deriv`-rewrite form for the tail estimate. -/
+/-- Convenient `deriv` rewrite form for the tail estimate. -/
 theorem heatLevel0_resolverTimeCoeff_deriv_eq
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
@@ -162,13 +165,11 @@ theorem heatLevel0_resolverTimeCoeff_deriv_eq
 end ShenWork.Paper2.HeatResolverJointC2Direct
 ```
 
-The first lemma is almost literally lines from the existing proof of `heatLevel0_srcTimeCoeff_contDiffAt_two`; extracting it is low risk and avoids re-proving `ContDiffAt` machinery.
+The first lemma is almost copied from the internal `hd0` portion of `heatLevel0_srcTimeCoeff_contDiffAt_two`, so it is a low-risk extraction.
 
-## The missing bound should be factored once
+## Factor the analytic bound once
 
-Do not inline all of the heat-Laplacian estimate inside `hR_deriv_bounded`.  Add one source-side tail helper.
-
-Suggested shape:
+The remaining analytic content is a tail bound for `srcSlice1` coefficients.  The clean shape is:
 
 ```lean
 import ShenWork.Paper2.IntervalHeatResolverJointC2
@@ -178,22 +179,19 @@ open Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice)
 open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1)
 open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData (heatDu)
 
 namespace ShenWork.Paper2.HeatResolverJointC2Direct
 
-/-- Uniform bound for the heat Laplacian tail.  This is the reusable form of the
-`unitIntervalCosineHeatSecondPointWeight_abs_le` argument.
+/-- Uniform bound for the heat Laplacian tail.
 
-Implementation notes:
-* unfold `heatDu` at `0 < t`;
-* rewrite it to `unitIntervalCosineHeatSecondValue` or make the existing private
-  `heatDu_eq_secondValue` public;
-* use `unitIntervalCosineHeatSecondPointWeight_abs_le`;
-* use `reciprocalSquareTerm_summable` and the coefficient bound `hu₀_bound`;
-* replace `t` by the lower bound `c + 1` in the denominator. -/
+Implementation route:
+* unfold `heatDu` at positive time;
+* expose or locally reproduce the private `heatDu_eq_secondValue` bridge;
+* use `IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondPointWeight_abs_le`;
+* use `IntervalDomainRegularityBootstrap.reciprocalSquareTerm_summable`;
+* lower-bound `t` by `c + 1` in the denominator. -/
 private theorem heatDu_tail_linf_bound
     {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
     (hc : 0 < c)
@@ -201,23 +199,17 @@ private theorem heatDu_tail_linf_bound
     ∃ CΔ : ℝ, 0 ≤ CΔ ∧
       ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0 : ℝ) 1,
         |heatDu u₀ t x| ≤ CΔ := by
-  -- Concrete constant:
+  -- A good concrete constant is:
   --   CΔ = |M₀| * (4 / ((c + 1)^2 * Real.pi^2)) *
   --          (∑' n, IntervalDomainRegularityBootstrap.reciprocalSquareTerm n)
-  -- The proof is a standard `abs_tsum_le_tsum_abs` / `Summable.of_norm_bounded`
-  -- argument using `unitIntervalCosineHeatSecondPointWeight_abs_le`.
-  -- If this is painful because `heatDu_eq_secondValue` is private, make that lemma
-  -- public in `IntervalHeatSemigroupFlooredSourceTimeData.lean`.
+  -- The proof is an M-test / `abs_tsum_le_tsum_abs` argument.
   sorry
 
-/-- Uniform bound for `(S(t)u₀)^(γ-1)` on the whole positive-time tail.
+/-- Uniform bound for `(S(t)u₀)^(γ-1)`.
 
-This helper is safer than writing `M_sup^(γ-1)` directly, because `CM2Params` only
-assumes `0 < γ`, not `1 ≤ γ`.  Use compact min/max of the positive continuous
-initial datum and the Neumann heat semigroup comparison principle:
-
-* `m₀ ≤ S(t)u₀(x) ≤ M₀sup` for all `t > 0`, `x ∈ [0,1]`;
-* then bound `r ↦ r^(γ-1)` on `[m₀, M₀sup]` by a finite constant. -/
+This helper should use compact min/max of the strictly positive continuous initial
+profile plus Neumann heat comparison.  It is safer than using only `M_sup^(γ-1)`,
+because `CM2Params` assumes `0 < γ`, not `1 ≤ γ`. -/
 private theorem heatLevel0_rpow_gamma_sub_one_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (hu₀_cont : Continuous u₀)
@@ -225,13 +217,11 @@ private theorem heatLevel0_rpow_gamma_sub_one_bound
     ∃ Cpow : ℝ, 0 ≤ Cpow ∧
       ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0 : ℝ) 1,
         (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1) ≤ Cpow := by
-  -- Use min/max of `u₀` on compact `intervalDomainPoint`, then the heat semigroup
-  -- lower/upper comparison bounds.  For the final rpow bound, either split on
-  -- `0 ≤ p.γ - 1` or use compactness of `[m₀, Msup]` and continuity of `rpow` on
-  -- positive reals.
+  -- Get `m₀ ≤ S(t)u₀(x) ≤ M₀sup` for all positive time, then bound
+  -- `r ↦ r^(p.γ - 1)` on `[m₀, M₀sup]`.
   sorry
 
-/-- Source first-time-derivative coefficient bound on the tail. -/
+/-- Bound the source first time-derivative coefficient on the positive-time tail. -/
 private theorem heatLevel0_srcTimeCoeff_deriv_tail_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
     (hc : 0 < c)
@@ -258,26 +248,23 @@ private theorem heatLevel0_srcTimeCoeff_deriv_tail_bound
       |srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t x| ≤ Csrc := by
     intro x hx
     unfold srcSlice1
-    -- Target after unfolding:
-    -- |ν * γ * u^(γ-1) * heatDu| ≤ ν * γ * Cpow * CΔ.
-    -- Use `hCpow t ht_pos x hx` and `hCΔ t ht x hx`.
-    nlinarith [p.hν, p.hγ, hCpow_nonneg, hCΔ_nonneg,
-      hCpow t ht_pos x hx, hCΔ t ht x hx]
+    -- Use `hCpow t ht_pos x hx` and `hCΔ t ht x hx` after `abs_mul`.
+    -- The final arithmetic is multiplicative monotonicity with nonnegative factors.
+    sorry
   have hsrc_cont : ContinuousOn
       (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t)
       (Set.Icc (0 : ℝ) 1) := by
-    -- This is available from the `hcd` field returned by `heatSemigroup_d0` at `t`.
-    -- Take the time-slice of the joint continuity of `Function.uncurry srcSlice1`.
-    -- Alternatively package this as a small helper next to `heatSemigroup_d0`.
+    -- Take the time-slice of the joint continuity `hcd` returned by
+    -- `heatSemigroup_d0` at time `t`.
     sorry
   exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
     hsrc_cont hCsrc_nonneg hsrc_bound k
 
-/-- The exact helper needed by the local `hR_deriv_bounded` block. -/
+/-- The exact `Rderiv` helper needed by the local tail proof. -/
 private theorem heatLevel0_resolverTimeCoeff_deriv_tail_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
     (hc : 0 < c)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k ≤ M₀)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
     (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
@@ -299,23 +286,9 @@ private theorem heatLevel0_resolverTimeCoeff_deriv_tail_bound
 end ShenWork.Paper2.HeatResolverJointC2Direct
 ```
 
-There is a small typo to avoid in the final theorem statement above: the line
+## Drop-in replacement for the local block
 
-```lean
-(hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k ≤ M₀)
-```
-
-must be:
-
-```lean
-(hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-```
-
-I left the theorem body in the file as a patch skeleton because the two reusable analytic estimates should be separate lemmas, not hidden inside `hR_deriv_bounded`.
-
-## Drop-in replacement for the local `hR_deriv_bounded`
-
-Once the helper above exists, replace the current `sorry` block by:
+Once `heatLevel0_resolverTimeCoeff_deriv_tail_bound` exists, the local `hR_deriv_bounded` becomes:
 
 ```lean
 have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
@@ -326,7 +299,7 @@ have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
       hc hu₀_bound hu₀_cont hu₀_pos hfloor k
 ```
 
-Then the existing wrapper in `hA1_tail` is correct:
+The existing wrapper after this is right:
 
 ```lean
 obtain ⟨B_R', hB_R'⟩ := hR_deriv_bounded
@@ -342,40 +315,25 @@ rw [Filter.EventuallyEq.deriv_eq hev]
 exact hB_R' t ht
 ```
 
-## Why this is the right decomposition
-
-The direct proof has three logically distinct jobs:
-
-1. **Derivative identification**: `R' = w_k * coeff(srcSlice1)`.  This is already present implicitly in `heatLevel0_srcTimeCoeff_contDiffAt_two`; extract it.
-2. **Tail boundedness of `srcSlice1`**: use heat semigroup comparison for `u^(γ-1)` and the spectral second-derivative bound for `heatDu`.
-3. **Cutoff localization**: on `t > c + 1`, `smoothRightCutoff (c/2) c = 1` near `t`, so `A' = R'` by `EventuallyEq.deriv_eq`.
-
-Only item 2 is analytic.  Items 1 and 3 are mechanical Lean infrastructure and should be named separately.
-
 ## Important correction to the old comment
 
-The comment saying
+The old comment says:
 
 ```text
 ‖srcSlice1(t)‖∞ ≤ νγ·M_sup^{γ-1}·‖Δu(t)‖∞
 ```
 
-is only automatically safe if `1 ≤ γ` or if a uniform positive lower bound is also carried.  `CM2Params` has only `0 < γ`.  Therefore the robust helper should bound `u^(γ-1)` using both the compact positive lower bound and upper bound for the heat semigroup, not just `M_sup`.
+That is only safe if `1 ≤ γ`, or if a uniform positive lower bound for `S(t)u₀` is also carried.  `CM2Params` only has `0 < γ`.  The robust bound should use both a compact positive lower bound and an upper bound for the heat semigroup, then bound `r^(γ-1)` on that positive compact interval.
 
 ## Bottom line
 
-For `Q1803/Rderiv`, add the exposed derivative lemmas:
+For `Q1803/Rderiv`, add:
 
 ```lean
 heatLevel0_srcTimeCoeff_hasDerivAt
 heatLevel0_resolverTimeCoeff_hasDerivAt
 heatLevel0_resolverTimeCoeff_deriv_eq
-```
-
-then close the local `hR_deriv_bounded` via a single tail estimate:
-
-```lean
 heatLevel0_resolverTimeCoeff_deriv_tail_bound
 ```
 
-This keeps `cutoffResolverMajorant_bddAbove_direct` from becoming an unmaintainable proof containing derivative extraction, heat-kernel summability, rpow lower-bound bookkeeping, and cutoff localization all at once.
+Then `hR_deriv_bounded` is one `simpa [R]` call, and the `hA1_tail` proof remains the existing cutoff-localization argument.
