@@ -875,10 +875,14 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             -- Bound |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
                 |cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k| ≤ Bsrc := by
-              -- srcSlice1(t,x) = νγ * u^{γ-1} * heatDu
-              -- |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ on [0,1]
-              -- ContinuousOn of srcSlice1 on [0,1] from joint continuity
-              -- cosineCoeffs_abs_le_of_continuous_bounded → Bsrc = 2 * νγ * M_sup^{γ-1} * CΔ
+              -- Same pattern as i=0: cosineCoeffs_abs_le_of_continuous_bounded
+              -- with B = νγ * M_sup^{γ-1} * CΔ
+              -- ContinuousOn: from smoothness of each factor at t > 0 (sorry'd)
+              -- Pointwise bound: from hSt_le + rpow + hDu (sorry'd)
+              refine ⟨2 * (p.ν * p.γ * M_sup ^ (p.γ - 1) * CΔ), fun t ht => ?_⟩
+              have ht_pos : 0 < t := by linarith
+              -- ContinuousOn + pointwise bound → cosineCoeffs bound
+              -- For now, sorry these sub-goals
               sorry
             obtain ⟨Bsrc, hBsrc⟩ := hBsrc
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
