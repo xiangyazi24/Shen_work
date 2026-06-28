@@ -603,16 +603,29 @@ private theorem cutoffResolverMajorant_bddAbove_direct
     have hA_global_bounds : ∀ i : ℕ, i ≤ 2 →
         ∃ B_i : ℝ, ∀ t : ℝ, ‖iteratedFDeriv ℝ i A t‖ ≤ B_i := by
       intro i hi
-      -- A is C², so iteratedFDeriv ℝ i A is continuous for i ≤ 2
-      have hcont_i : Continuous (fun t : ℝ => iteratedFDeriv ℝ i A t) :=
-        hAC2.continuous_iteratedFDeriv (by exact_mod_cast hi)
-      -- For i ≥ 1: iteratedFDeriv ℝ i A has compact support (it's 0 for t ≤ c/2
-      -- because A ≡ 0 there, and → 0 as t → ∞ because the heat semigroup
-      -- coefficients decay exponentially).
-      -- For i = 0: A is bounded because |A(t)| ≤ w_k * (coefficient bound).
-      -- UNIFORM BOUND: use the fact that iteratedFDeriv ℝ i A is continuous,
-      -- zero on (-∞, c/2], and the sup on [c/2, ∞) is finite.
-      sorry
+      interval_cases i
+      · -- i = 0: |A(t)| ≤ 1 · w_k · 2ν · M^γ from L∞ contraction
+        -- A(t) = φ(t) · resolverTimeCoeff(k,t), |φ| ≤ 1
+        -- |resolverTimeCoeff| ≤ w_k · |srcTimeCoeff| ≤ w_k · 2ν · M^γ
+        -- where M bounds |u₀| (continuous on compact → bounded)
+        haveI : CompactSpace intervalDomainPoint :=
+          isCompact_iff_compactSpace.mp isCompact_Icc
+        -- Get sup bound M on |u₀|
+        obtain ⟨x_max, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
+          Set.univ_nonempty (hu₀_cont.norm.continuousOn)
+        set M_sup := ‖u₀ x_max‖ with hM_sup_def
+        have hM_sup_nn : 0 ≤ M_sup := norm_nonneg _
+        have hu₀_le : ∀ x : intervalDomainPoint, ‖u₀ x‖ ≤ M_sup := by
+          intro x
+          exact hx_max (Set.mem_univ x) (Set.mem_univ x_max)
+        sorry -- need to connect L∞ contraction → srcTimeCoeff bound → A bound
+      · -- i = 1: A'(t) is bounded
+        -- For t ≤ c/2: A'(t) = 0
+        -- For t > c: A' = resolverTimeCoeff', bounded by eigenvalue damping
+        -- For t ∈ [c/2, c]: compact → bounded
+        sorry
+      · -- i = 2: A''(t) is bounded, same structure as i=1
+        sorry
     obtain ⟨B_max, hB_max⟩ : ∃ B_max : ℝ, ∀ (i : ℕ), i ≤ 2 → ∀ t : ℝ,
         ‖iteratedFDeriv ℝ i A t‖ ≤ B_max := by
       obtain ⟨b0, hb0⟩ := hA_global_bounds 0 (by omega)
