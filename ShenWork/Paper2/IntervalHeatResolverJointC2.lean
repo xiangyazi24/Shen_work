@@ -588,11 +588,13 @@ theorem cutoffResolverMajorant_nonneg {p : CM2Params}
     (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {j k : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
     0 ≤ cutoffResolverMajorant p u₀ M₀ c hc j k := by
-  obtain ⟨Bt, hBt⟩ :=
-    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      (p := p) hu₀_bound hu₀_cont hu₀_pos
-  have hbdd := cutoffResolverMajorant_bddAbove_of_physical
-    (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k _hj
+  have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
+    fun t ht x hx =>
+      ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+        hu₀_cont hu₀_pos ht hx
+  have hbdd := cutoffResolverMajorant_bddAbove_direct
+    (p := p) hc hu₀_bound hu₀_cont hu₀_pos hfloor j k _hj
   exact (norm_nonneg _).trans (le_ciSup hbdd (0, 0))
 
 /-- The majorant is summable for each `j ≤ 2`. -/
@@ -625,11 +627,13 @@ theorem cutoffResolverTerm_iteratedFDeriv_bound
     ‖iteratedFDeriv ℝ j
       (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖ ≤
       cutoffResolverMajorant p u₀ M₀ c hc j k := by
-  obtain ⟨Bt, hBt⟩ :=
-    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      (p := p) hu₀_bound hu₀_cont hu₀_pos
-  have hbdd := cutoffResolverMajorant_bddAbove_of_physical
-    (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k hj
+  have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
+    fun t ht x hx =>
+      ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+        hu₀_cont hu₀_pos ht hx
+  have hbdd := cutoffResolverMajorant_bddAbove_direct
+    (p := p) hc hu₀_bound hu₀_cont hu₀_pos hfloor j k hj
   exact le_ciSup hbdd q
 
 /-! ### Global C² of the cutoff series (mechanical from contDiff_tsum) -/
