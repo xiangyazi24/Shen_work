@@ -728,7 +728,16 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             hA1_cont.continuousOn
         have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
             ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
-          sorry -- tail: A' = resolverTimeCoeff' for t > c, bounded by eigenvalue damping
+          -- A = φ * resolverTimeCoeff. Use 1D Leibniz: A' = φ'*R + φ*R'.
+          -- φ' bounded (resolverSmoothRightCutoffDerivBound_spec), R bounded (i=0 bound).
+          -- φ bounded (≤1), R' bounded (THIS is the hard part — needs eigenvalue damping).
+          -- For R' = resolverTimeCoeff': for t > c+1 > 0, srcTimeCoeff is C²
+          -- (heatLevel0_srcTimeCoeff_contDiffAt_two), so srcTimeCoeff' is continuous.
+          -- srcTimeCoeff'(t) = cosineCoeffs(srcSlice1(t), k) from d0 (HasDerivAt).
+          -- |cosineCoeffs(srcSlice1(t), k)| ≤ 2·‖srcSlice1(t)‖_∞
+          -- ‖srcSlice1(t)‖_∞ ≤ νγ·M_sup^{γ-1}·‖Δu(t)‖_∞
+          -- ‖Δu(t)‖_∞ ≤ M₀·(4/((c+1)²π²))·Σ(1/n²) from unitIntervalCosineHeatSecondPointWeight_abs_le
+          sorry
         obtain ⟨B1_tail, hB1_tail⟩ := hA1_tail
         refine ⟨max (max 0 B1_compact) B1_tail, fun t => ?_⟩
         by_cases ht_left : t < c / 2
