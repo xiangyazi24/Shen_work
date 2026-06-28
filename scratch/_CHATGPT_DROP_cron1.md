@@ -1,271 +1,262 @@
-# Q1564 (cron1) -- source coefficient decay / boundedness at infinity
+# Q1575 (cron1) -- can old heat resolver theorem delegate to direct route?
 
 Repository: `xiangyazi24/Shen_work`  
-Branch: `chatgpt-scratch`  
+Branch committed: `chatgpt-scratch`  
 Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
-## Short answer
+## Note on inspection branch
 
-I did **not** find an existing theorem in the repo proving
-
-```lean
-Tendsto
-  (fun t => srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t)
-  atTop (𝓝 0)
-```
-
-for `k >= 1`, nor a theorem proving
-
-```lean
-S(t)u₀ → mean(u₀)
-```
-
-uniformly as `t → ∞`.
-
-So the proposed route
+The delivery target is `chatgpt-scratch`.  The connector could not fetch
 
 ```text
-continuity on [c,∞) + vanishing at infinity -> bounded
+ShenWork/Paper2/IntervalHeatResolverJointC2.lean
 ```
 
-is mathematically valid, but it requires a new `atTop` theorem that does not appear to exist yet.
+from `chatgpt-scratch`, so I inspected the indexed/default repo files.  The analysis below is therefore about the current/default code surface returned by GitHub search.  The scratch answer itself is committed to `chatgpt-scratch` as requested.
 
-For the immediate `BddAbove` proof, the shorter route is still the one from Q1552:
+## Executive answer
+
+At the type/signature level: **yes**, the old route theorem
+
+```lean
+HeatResolverJointRegularity.heatResolverJointContDiffAt_two
+```
+
+can be proved by delegating to the direct theorem
+
+```lean
+HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
+```
+
+because the old theorem has all inputs needed to manufacture the direct theorem's extra `hfloor` hypothesis:
+
+```lean
+hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
+```
+
+from `hu₀_cont` and `hu₀_pos`, using
+
+```lean
+HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+```
+
+and the old theorem already carries `hc : 0 < c`, `hs₀ : c < s₀`, and `hx₀ : x₀ ∈ Ioo 0 1`.
+
+But there are two important caveats.
+
+1. **Import cycle:** currently `IntervalHeatResolverJointC2.lean` imports `IntervalHeatSemigroupHighRegularity.lean`.  Therefore `IntervalHeatSemigroupHighRegularity.lean` cannot simply import the direct file and delegate to it without creating a cycle.
+
+2. **Current direct file still depends on the old physical route in the fetched code.**  In the fetched current/default file, the direct majorant and gradient proof extract
+
+```lean
+HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+```
+
+from the old route.  So if that is still true in the branch being built, then delegating the old theorem to the direct theorem would be circular and would not remove the old-route sorry burden.  If the new 0-sorry direct route has been refactored to avoid this dependency, then the wrapper below is the right replacement after resolving the import placement.
+
+## Exact signatures
+
+### Direct theorem
+
+Current/default `IntervalHeatResolverJointC2.lean` has:
+
+```lean
+theorem heatResolver_jointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2
+        (fun q : ℝ × ℝ =>
+          intervalDomainLift (coupledChemicalConcentration p
+            (conjugatePicardIter p u₀ 0) q.1) q.2)
+        (s₀, x₀)
+```
+
+### Old theorem
+
+Current/default `IntervalHeatSemigroupHighRegularity.lean` has:
+
+```lean
+theorem heatResolverJointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀)
+```
+
+So the conclusions match exactly, and the old route has enough inputs to call the direct theorem.
+
+## Concrete wrapper proof
+
+If the import cycle is solved, the old theorem can be replaced by:
+
+```lean
+import ShenWork.Paper2.IntervalHeatResolverJointC2
+
+namespace ShenWork.Paper2.HeatResolverJointRegularity
+
+open Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
+
+/-- Old route theorem delegated to the direct cutoff resolver theorem. -/
+theorem heatResolverJointContDiffAt_two_directWrapper
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
+      intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
+  have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
+    intro t ht x hx
+    exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+      (p := p) hu₀_cont hu₀_pos ht hx
+  exact ShenWork.Paper2.HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
+    (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hu₀_pos hfloor hc hs₀ hx₀
+
+end ShenWork.Paper2.HeatResolverJointRegularity
+```
+
+To use this as the actual old theorem body, put the body in a place where the direct theorem is already available without import cycle.  Do **not** add
+
+```lean
+import ShenWork.Paper2.IntervalHeatResolverJointC2
+```
+
+at the top of `IntervalHeatSemigroupHighRegularity.lean` while `IntervalHeatResolverJointC2.lean` imports `IntervalHeatSemigroupHighRegularity.lean`.
+
+## How to resolve the import-cycle issue
+
+There are three workable approaches.
+
+### Option A: move the old wrapper out of the old file
+
+Create a new downstream adapter file, for example:
 
 ```text
-L∞ contraction of heat semigroup
-→ uniform spatial bound on ν*(S(t)u₀)^γ for all t >= c
-→ cosine coefficient bound
-→ resolverTimeCoeff bounded via resolverTimeCoeff = w_k * srcTimeCoeff
+ShenWork/Paper2/IntervalHeatResolverJointC2Adapter.lean
 ```
 
-This avoids proving long-time convergence altogether.
-
-## Search summary
-
-I searched for variants of:
-
-```text
-srcTimeCoeff atTop Tendsto infinity decay
-intervalFullSemigroupOperator atTop Tendsto mean average
-heat semigroup tendsto atTop mean constant cosine
-cosineCoeffs constant zero k >= 1
-Tendsto atTop intervalFullSemigroupOperator cosineKernel exp_neg
-```
-
-No direct source-coefficient decay theorem or heat-semigroup-to-mean theorem turned up.
-
-The closest heat-semigroup material found was in `IntervalSemigroupNeumann.lean`, which proves coefficient summability and Neumann boundary facts for positive time, but not an `atTop` limit. Example:
+that imports both files and proves a new name, e.g.
 
 ```lean
-theorem heatCoeff_eigenvalue_summable {t : ℝ} (ht : 0 < t)
-    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) :
-    Summable (fun n => unitIntervalCosineEigenvalue n *
-      |Real.exp (-t * unitIntervalCosineEigenvalue n) * a n|)
+heatResolverJointContDiffAt_two_of_direct
 ```
 
-and
+This avoids cycles, but it does not replace callers that refer to the old exact theorem name.
+
+### Option B: move the direct theorem lower
+
+Split the direct route into a lower file that does **not** import `IntervalHeatSemigroupHighRegularity.lean`.  Then `IntervalHeatSemigroupHighRegularity.lean` can import that lower direct file and define the old theorem by delegation.
+
+This is the clean replacement if callers must keep the exact old theorem name.
+
+### Option C: stop using the old theorem name
+
+If the FAC chain does not actually call `heatResolverJointContDiffAt_two`, update the relevant Level0/FAC caller to import and use the direct theorem directly, or better, use a direct package that provides both value and gradient C² fields.
+
+## Important caveat: the fetched direct theorem is not independent yet
+
+In the fetched current/default `IntervalHeatResolverJointC2.lean`, the majorant and gradient still depend on old-route `PhysicalResolverJointC2Data`:
 
 ```lean
-theorem unitIntervalCosineHeatValue_eq_cosineCoeffSeries
-    (t : ℝ) (a : ℕ → ℝ) :
-    unitIntervalCosineHeatValue t a =
-      fun x => ∑' n, (Real.exp (-t * unitIntervalCosineEigenvalue n) * a n) *
-        cosineMode n x
+obtain ⟨Bt, hBt⟩ :=
+  ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+    (p := p) hu₀_bound hu₀_cont hu₀_pos
 ```
 
-These are useful ingredients for proving convergence, but they are not the convergence theorem itself.
-
-## Existing identities that matter
-
-`srcTimeCoeff` is already identified with the cosine coefficient of the source slice:
+This appears in `cutoffResolverMajorant_summable` and `cutoffResolverTerm_iteratedFDeriv_bound`.  The gradient theorem also ends by applying
 
 ```lean
-def srcSlice (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
-  p.ν * intervalDomainLift (u t) x ^ p.γ
-
-theorem srcTimeCoeff_eq_cosineCoeffs
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
-    srcTimeCoeff p u k t = cosineCoeffs (srcSlice p u t) k := by
+ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two hBt hx₀
 ```
 
-The resolver coefficient is already factored as a constant elliptic weight times the source coefficient:
+after extracting the same old-route data.
+
+Therefore, under the fetched code, delegating old theorem to direct theorem would be circular.  It only becomes a real solution if the new 0-sorry direct route has removed this dependency and proves both value and gradient from cutoff/`contDiff_tsum` directly.
+
+## Does the FAC chain actually need `heatResolverJointContDiffAt_two`?
+
+I do **not** see direct code-search consumers of the old theorem name outside `IntervalHeatSemigroupHighRegularity.lean` and documentation.
+
+The actual FAC/resolver C² chain has two main surfaces.
+
+### Physical resolver route
+
+`IntervalChemDivFACCommuteDischarge.lean` uses `PhysicalResolverJointC2Data` and then calls:
 
 ```lean
-resolverTimeCoeff p u k t = intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
+coupledChemical_jointContDiffAt_two H hy
+coupledChemical_grad_jointContDiffAt_two H hy
 ```
 
-So any source coefficient bound immediately gives a resolver coefficient bound.
+So this route needs a `PhysicalResolverJointC2Data` package, not the old standalone `heatResolverJointContDiffAt_two` theorem.
 
-## Continuity + vanishing at infinity route
+### Spectral C2 data route
 
-This route is logically sound.  The reusable lemma should be independent of PDE content:
+`IntervalChemDivFluxFactorFAC.lean` uses:
 
 ```lean
-lemma bddAbove_norm_image_Ici_of_tendsto_atTop
-    {E : Type*} [NormedAddCommGroup E]
-    {f : ℝ → E} {c : ℝ}
-    (hf : ContinuousOn f (Set.Ici c))
-    (hlim : Tendsto f atTop (𝓝 0)) :
-    BddAbove ((fun t : ℝ => ‖f t‖) '' Set.Ici c) := by
-  classical
-  -- choose R with ‖f t‖ ≤ 1 on t ≥ R
-  -- use compactness on Icc c (max c R)
-  -- union compact part and tail part
-  sorry
+coupledChemicalConcentration_resolver_jointC2At_c2Data
 ```
 
-A scalar version for absolute values:
+from `IntervalCoupledResolverJointC2.lean`, taking a `ResolverHasSpectralAgreementC2Coeff` package and a local spectral-series producer.  This route also does not call the old standalone theorem by name.
+
+So the FAC chain generally needs **both value and gradient C²** at the resolver, supplied either by:
 
 ```lean
-lemma bddAbove_abs_image_Ici_of_tendsto_atTop
-    {f : ℝ → ℝ} {c L : ℝ}
-    (hf : ContinuousOn f (Set.Ici c))
-    (hlim : Tendsto f atTop (𝓝 L)) :
-    BddAbove ((fun t : ℝ => |f t|) '' Set.Ici c) := by
-  -- apply the norm version to fun t => f t - L, then add |L|
-  sorry
+coupledChemical_jointContDiffAt_two / coupledChemical_grad_jointContDiffAt_two
 ```
 
-Then for `k >= 1`, if you prove
+from `PhysicalResolverJointC2Data`, or by
 
 ```lean
-Tendsto
-  (fun t => srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t)
-  atTop (𝓝 0)
+coupledChemicalConcentration_resolver_jointC2At_c2Data
 ```
 
-and positive-time continuity on `Set.Ici c`, boundedness follows immediately.
+from a spectral C2 package.
 
-For `k = 0`, the target limit should not be `0` in general.  It should be
+A standalone value-only theorem `heatResolverJointContDiffAt_two` is not enough for the full FAC fields unless paired with the gradient theorem.
 
-```text
-∫_0^1 ν * mean(u₀)^γ dx = ν * mean(u₀)^γ
-```
+## Recommendation
 
-or its normalized cosine-coefficient version.  But finite limit is enough for boundedness.
+If the new direct route is truly independent and axiom-clean:
 
-## What is missing for the decay route
-
-To prove the `k >= 1` decay theorem, you need a long-time theorem roughly like:
+1. Keep `IntervalHeatResolverJointC2.lean` as the direct value+gradient provider.
+2. Add a small Level0-specific FAC adapter that uses:
 
 ```lean
-theorem heatLevel0_tendsto_mean_uniform
-    {u₀ : intervalDomainPoint → ℝ} ... :
-    Tendsto
-      (fun t => fun x => intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
-      atTop
-      (𝓝 (fun x => mean_u₀))
+HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
+HeatResolverJointC2Direct.heatResolver_grad_jointContDiffAt_two
 ```
 
-or a coefficient-series version:
+for the `hv_c2` and `hgradv_c2` FAC fields.
 
-```lean
-Tendsto
-  (fun t => Real.exp (-t * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k)
-  atTop (𝓝 0)
-```
+3. Do not try to route through `PhysicalResolverJointC2Data` unless you also want to discharge the old source-time-C² / `FlooredSourceTimeData` chain.
 
-for `k >= 1`, plus enough summability to pass through the nonlinear map `u ↦ ν*u^γ` and the cosine coefficient. I did not find that in the repo.
-
-For the constant-mode statement, one would also need a lemma that positive cosine modes of a constant vanish:
-
-```lean
-lemma cosineCoeffs_const_pos (A : ℝ) {k : ℕ} (hk : 1 ≤ k) :
-    cosineCoeffs (fun _ : ℝ => A) k = 0 := by
-  -- use cosineCoeffs_eq_factor_mul_integral and ∫ cos(kπx) over 0..1 = 0
-  sorry
-```
-
-I did not find an existing named theorem for this either.
-
-## Recommended route for the current `BddAbove` goal
-
-For regime 3 (`q.1 > c`, cutoff = 1), avoid the long-time limit unless you specifically need decay.  For boundedness of
-
-```lean
-‖iteratedFDeriv ℝ j (cutoffResolverTerm p u c k) q‖
-```
-
-it is enough to bound finitely many factors from the Leibniz expansion.
-
-For the zeroth resolver coefficient:
-
-```text
-|resolverTimeCoeff_k(t)|
-  = |w_k| * |srcTimeCoeff_k(t)|
-  ≤ |w_k| * Csrc
-```
-
-where `Csrc` comes from a uniform spatial bound on `srcSlice`.
-
-Available theorem:
-
-```lean
-theorem intervalFullSemigroupOperator_Linfty_bound {t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
-    |intervalFullSemigroupOperator t f x| ≤ M
-```
-
-This gives `|S(t)u₀(x)| ≤ U0` for all `t > 0`; then positivity gives `0 ≤ S(t)u₀(x) ≤ U0`; then
-
-```text
-|ν*(S(t)u₀(x))^γ| ≤ ν * U0^γ
-```
-
-and the existing coefficient-bound lemma gives
-
-```lean
-|cosineCoeffs (srcSlice p u t) k| ≤ 2 * (p.ν * U0^p.γ)
-```
-
-uniformly in `t >= c`.
-
-For the derivative factors appearing when `j = 1,2`, use the lower-time cutoff `c` in heat multiplier estimates:
-
-```text
-λ^m exp(-tλ) ≤ λ^m exp(-cλ),  t >= c
-```
-
-This is the same analytic mechanism as the cutoff majorant route. It gives finite half-line envelopes for `D_t^a resolverTimeCoeff_k` without needing an atTop convergence theorem.
-
-## Concrete lemma shape to add now
-
-The following local utility is enough to turn a uniform spatial bound into the half-line coefficient `BddAbove` needed for iSup:
-
-```lean
-theorem srcCoeff_bddAbove_Ici_of_uniform_source_bound
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
-    {c B : ℝ} (hB : 0 ≤ B)
-    (hcont : ∀ t ∈ Set.Ici c,
-      ContinuousOn (srcSlice p u t) (Set.Icc (0 : ℝ) 1))
-    (hbd : ∀ t ∈ Set.Ici c, ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      |srcSlice p u t x| ≤ B)
-    (k : ℕ) :
-    BddAbove ((fun t : ℝ => |srcTimeCoeff p u k t|) '' Set.Ici c) := by
-  refine ⟨2 * B, ?_⟩
-  rintro y ⟨t, ht, rfl⟩
-  rw [srcTimeCoeff_eq_cosineCoeffs]
-  exact cosineCoeffs_abs_le_of_continuous_bounded (hcont t ht) hB (hbd t ht) k
-```
-
-Then the resolver version is one line after `resolverTimeCoeff_eq_weight_smul`:
-
-```lean
-theorem resolverCoeff_bddAbove_Ici_of_srcCoeff_bddAbove
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {c B : ℝ}
-    (hsrc : ∀ t ∈ Set.Ici c, |srcTimeCoeff p u k t| ≤ B) :
-    BddAbove ((fun t : ℝ => |resolverTimeCoeff p u k t|) '' Set.Ici c) := by
-  refine ⟨|ShenWork.PDE.intervalNeumannResolverWeight p k| * B, ?_⟩
-  rintro y ⟨t, ht, rfl⟩
-  rw [resolverTimeCoeff_eq_weight_smul]
-  rw [abs_mul]
-  exact mul_le_mul_of_nonneg_left (hsrc t ht) (abs_nonneg _)
-```
+If callers require the exact old name `HeatResolverJointRegularity.heatResolverJointContDiffAt_two`, first break the import cycle by moving the direct theorem to a lower file, then replace the old theorem body with the wrapper above.
 
 ## Final verdict
 
-* No existing `srcTimeCoeff` decay-at-infinity theorem found.
-* No existing `S(t)u₀ → mean(u₀)` theorem found.
-* Yes, continuity on `[c,∞)` plus finite limit/vanishing at infinity gives `BddAbove`; this is a valid generic lemma.
-* But for the current iSup majorant, do not depend on atTop decay unless necessary. Use heat-semigroup `L∞` contraction for coefficient boundedness and heat multiplier estimates for coefficient derivative boundedness.
+* Typewise, old `heatResolverJointContDiffAt_two` can delegate to direct `heatResolver_jointContDiffAt_two`; `hfloor` is derivable from `hu₀_cont + hu₀_pos`.
+* Filewise, direct import currently points from direct file to old file, so old file cannot import direct without a cycle.
+* In the fetched code, direct theorem still depends on old physical-route data in majorant/gradient pieces; if still true, delegation is circular and not a real fix.
+* FAC does not appear to need the old theorem name directly. It needs resolver value+gradient C², usually through `PhysicalResolverJointC2Data` or `ResolverHasSpectralAgreementC2Coeff`; a Level0 direct adapter using both direct theorems is the cleanest way to bypass the old route.
