@@ -198,6 +198,51 @@ theorem heatLevel0_srcTimeCoeff_contDiffAt_two
     contDiffOn_succ_of_fderivWithin hd0_on (by nofun) hfw0
   simpa [f₀] using h1.contDiffAt (Ioi_mem_nhds ht)
 
+/-! ### Layer 1b: HasDerivAt of source/resolver coefficients (for derivative bounds) -/
+
+/-- `HasDerivAt` of `srcTimeCoeff` at positive time — extracted from d0. -/
+theorem heatLevel0_srcTimeCoeff_hasDerivAt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    HasDerivAt (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k)
+      (cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k) t := by
+  obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
+    heatSemigroup_d0 (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont hfloor t ht
+  have hint : ∀ᶠ r in 𝓝 t, IntervalIntegrable
+      (srcSlice p (conjugatePicardIter p u₀ 0) r) MeasureTheory.volume (0 : ℝ) 1 :=
+    hcont.mono fun r hr => (Set.uIcc_of_le (zero_le_one (α := ℝ)) ▸ hr).intervalIntegrable
+  have hH := cosineCoeffs_hasDerivAt_of_smooth_param
+    (f := srcSlice p (conjugatePicardIter p u₀ 0))
+    (f' := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+    (τ := t) (δ := δ) (n := k) hδ hint hdiff hcd
+  have heq : (fun r => cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) r) k) =
+      srcTimeCoeff p (conjugatePicardIter p u₀ 0) k := by
+    funext r; simp [srcTimeCoeff_eq_cosineCoeffs]
+  rw [heq] at hH; simpa using hH
+
+/-- `deriv` of `resolverTimeCoeff` at positive time = w_k × cosineCoeffs(srcSlice1). -/
+theorem heatLevel0_resolverTimeCoeff_deriv_eq
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    deriv (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t =
+      ShenWork.PDE.intervalNeumannResolverWeight p k *
+        cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k := by
+  have hsrc := heatLevel0_srcTimeCoeff_hasDerivAt hu₀_bound hu₀_cont hfloor ht k
+  have hEq : resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k = fun s =>
+      ShenWork.PDE.intervalNeumannResolverWeight p k *
+        srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
+    funext s; exact resolverTimeCoeff_eq_weight_smul p _ k s
+  rw [hEq]
+  exact (hsrc.const_mul _).deriv
+
 /-! ### Layer 2: Resolver coefficient ContDiffAt by constant weight -/
 
 /-- The resolver time coefficient is `ContDiffAt ℝ 2` at positive time.
@@ -745,13 +790,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
             refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
             have ht_pos : 0 < t := by linarith
-            -- Step B: deriv R(t) = w_k * cosineCoeffs(srcSlice1(t), k) from HasDerivAt
-            -- resolverTimeCoeff = w_k * srcTimeCoeff (resolverTimeCoeff_eq_weight_smul)
-            -- HasDerivAt srcTimeCoeff (cosineCoeffs(srcSlice1(t), k)) t from d0
-            -- → deriv srcTimeCoeff t = cosineCoeffs(srcSlice1(t), k)
-            -- → deriv R t = w_k * cosineCoeffs(srcSlice1(t), k)
-            -- → |deriv R t| ≤ |w_k| * |cosineCoeffs(srcSlice1(t), k)| ≤ |w_k| * Bsrc
-            sorry -- HasDerivAt assembly from heatSemigroup_d0
+            -- deriv R(t) = w_k * cosineCoeffs(srcSlice1(t), k) from HasDerivAt
+            rw [show deriv R t = deriv (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t
+              from rfl]
+            rw [heatLevel0_resolverTimeCoeff_deriv_eq hu₀_bound hu₀_cont hfloor ht_pos k]
+            rw [abs_mul]
+            exact mul_le_mul_of_nonneg_left (hBsrc t ht) (abs_nonneg _)
           obtain ⟨B_R', hB_R'⟩ := hR_deriv_bounded
           refine ⟨B_R', fun t ht => ?_⟩
           -- ‖iteratedFDeriv ℝ 1 A t‖ = |deriv A t|
