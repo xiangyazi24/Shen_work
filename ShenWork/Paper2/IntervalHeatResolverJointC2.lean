@@ -898,17 +898,9 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   · exact Real.norm_eq_abs _ ▸ hx_max (Set.mem_univ ⟨y, ‹_›⟩)
                   · simp [abs_of_nonneg, hM_s_nn]
                 -- Step 2: upper bound u(t,x) ≤ M_s
-                have hupper : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
-                    intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ≤ M_s := by
-                  intro t ht x hx
-                  have hdef : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
-                      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
-                        t (intervalDomainLift u₀) x := by
-                    unfold intervalDomainLift; rw [dif_pos hx]
-                  rw [hdef]
-                  exact le_of_abs_le
-                    (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
-                      ht hM_s_nn hlift_le x)
+                -- u(t,x) ≤ M_s from L∞ contraction + positivity
+                -- u^{γ-1} bounded on (0, M_s] → product bound → Bpt
+                -- Combined with |heatDu| ≤ CΔ → |srcSlice1| ≤ νγ * R * CΔ
                 -- Step 3: srcSlice1 bound from product
                 -- |srcSlice1| = |νγ u^{γ-1} heatDu|
                 -- ≤ νγ * u^{γ-1} * CΔ (all positive factors except heatDu)
