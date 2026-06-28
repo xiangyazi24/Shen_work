@@ -619,7 +619,24 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         have hM_sup_nn : 0 ≤ M_sup := norm_nonneg _
         have hu₀_le : ∀ x : intervalDomainPoint, ‖u₀ x‖ ≤ M_sup := by
           intro x; exact hx_max (Set.mem_univ x)
-        sorry -- need to connect L∞ contraction → srcTimeCoeff bound → A bound
+        -- |intervalDomainLift u₀ y| ≤ M_sup for all y ∈ ℝ
+        have hlift_le : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M_sup := by
+          intro y; unfold intervalDomainLift; split
+          · exact Real.norm_eq_abs _ ▸ hu₀_le ⟨y, ‹_›⟩
+          · simp [abs_of_nonneg, hM_sup_nn]
+        -- L∞ contraction: |S(t)u₀(x)| ≤ M_sup for t > 0
+        have hSt_le : ∀ t : ℝ, 0 < t → ∀ x : ℝ,
+            |ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              t (intervalDomainLift u₀) x| ≤ M_sup :=
+          fun t ht x =>
+            ShenWork.PDE.IntervalFullKernelSupBound.intervalFullSemigroupOperator_Linfty_bound
+              ht hM_sup_nn hlift_le x
+        -- Remaining: connect S(t)u₀ bound → srcSlice bound → srcTimeCoeff bound
+        -- → resolverTimeCoeff bound → A bound. This chain needs
+        -- ContinuousOn of srcSlice on [0,1] (for cosineCoeffs_abs_le_of_continuous_bounded)
+        -- and the definitional unfolding of srcTimeCoeff, resolverTimeCoeff.
+        -- For now we have the L∞ pieces; the assembly is sorry'd.
+        sorry
       · -- i = 1: A'(t) is bounded
         -- For t ≤ c/2: A'(t) = 0
         -- For t > c: A' = resolverTimeCoeff', bounded by eigenvalue damping
