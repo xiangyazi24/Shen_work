@@ -78,10 +78,8 @@ private theorem abs_tsum_le_tsum_of_abs_le
     |∑' n, f n| ≤ ∑' n, g n := by
   have hf : Summable f :=
     Summable.of_norm_bounded hg fun n => by simpa [Real.norm_eq_abs] using hfg n
-  calc |∑' n, f n| = ‖∑' n, f n‖ := (Real.norm_eq_abs _).symm
-    _ ≤ ∑' n, ‖f n‖ := norm_tsum_le_tsum_norm hf
-    _ = ∑' n, |f n| := by congr 1; ext n; exact Real.norm_eq_abs _
-    _ ≤ ∑' n, g n := tsum_le_tsum (fun n => hfg n) (by simpa [Real.norm_eq_abs] using hf.norm) hg
+  calc |∑' n, f n| ≤ ∑' n, |f n| := abs_tsum_le_tsum_abs hf
+    _ ≤ ∑' n, g n := tsum_le_tsum hfg (hf.norm.congr fun n => Real.norm_eq_abs _) hg
 
 /-! ### Definitions -/
 
