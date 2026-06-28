@@ -830,7 +830,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   -- = |-eigenvalue * heatPointWeight * c_n|
                   sorry -- term-by-term bound: |cos| ≤ 1, |c_n| ≤ M₀, exp monotone
                 · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
-                  sorry -- tsum_mul_left rearrangement
+                  rw [tsum_mul_left]
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
             -- Bound |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
