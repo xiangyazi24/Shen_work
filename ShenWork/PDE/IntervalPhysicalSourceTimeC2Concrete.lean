@@ -267,12 +267,18 @@ theorem srcTimeCoeff_bound
   · rw [if_neg (Nat.pos_iff_ne_zero.mp hk)]
     exact (Classical.choose_spec (H.laplBound i hi)).2 t ht k hk
 
-/-- **The honest physical producer of `PhysicalSourceTimeC2`.**  Under the floored
-source time-data `FlooredSourceTimeData` (floor positivity + committed space-`C²`
-Neumann regularity + the iterate time-`C²` Leibniz chain), together with the
-source-`ℓ¹` bounded-weight majorant summability of `w·builtEs`, the concrete
-chemotaxis source satisfies `PhysicalSourceTimeC2 p u (builtEs H)`.  NO eigen-cube
-ladder, NO `DuhamelSourceTimeC2Coeff`, NO resolver-C2/FAC field assumed. -/
+/-- **DEAD CODE — structurally blocked, superseded by the direct cutoff route
+in `IntervalHeatResolverJointC2.lean`.**
+
+The `src_contDiff` and `src_bound` fields require global (all t ∈ ℝ) regularity,
+but `srcTimeCoeff` has a jump discontinuity at t = 0 (from Lean's `tsum` convention
+for non-absolutely-convergent Fourier series). The direct cutoff route bypasses
+this by windowing to t ≥ c/2 where the cutoff kills the t = 0 singularity.
+
+This theorem is retained only because `heatSemigroup_level0_resolverJointC2Data`
+(IntervalHeatSemigroupHighRegularity.lean) still calls it via the 2 remaining
+old-route consumers in IntervalHeatResolverJointC2.lean (lines 1246, 1410).
+Once those are replaced by the direct route, this theorem can be deleted. -/
 theorem physicalSourceTimeC2_of_floored
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
     (H : FlooredSourceTimeData p u s₁ s₂)
@@ -283,15 +289,8 @@ theorem physicalSourceTimeC2_of_floored
       Summable (boundedWeightJointGradMajorant
         (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
     PhysicalSourceTimeC2 p u (builtEs H) where
-  src_contDiff k := by
-    -- The positive-time data gives ContDiffAt at every t > 0 via
-    -- srcTimeCoeff_contDiffAt.  Extension to global ContDiff on ℝ
-    -- follows from the structure of srcTimeCoeff (defined on all ℝ).
-    sorry
-  src_bound i k t hi := by
-    -- For t > 0: srcTimeCoeff_bound H i k t hi ht.
-    -- For t ≤ 0: separate envelope argument from the definition of srcTimeCoeff.
-    sorry
+  src_contDiff k := by sorry -- DEAD: structurally blocked at t = 0
+  src_bound i k t hi := by sorry -- DEAD: structurally blocked at t = 0
   value_summable := hval
   grad_summable := hgrad
 
