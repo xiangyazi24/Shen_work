@@ -1,4 +1,4 @@
-# Q1752 (cron1) -- fill the `i = 1` tail subgoal
+# Q1783 (cron1/cron2) -- truncated Picard bound proof
 
 Repository: `xiangyazi24/Shen_work`  
 Committed branch: `chatgpt-scratch`  
@@ -9,115 +9,223 @@ Target report file: `scratch/_CHATGPT_DROP_cron1.md`
 The prompt was:
 
 ```text
-Q1752 (cron1): cron1 /tmp/q_cron1_i1fill.txt
+Q1783 (cron1): cron2 /tmp/q_cron2_bound.txt
 ```
 
-The local file `/tmp/q_cron1_i1fill.txt` is not accessible through the GitHub connector. I inferred the target from `ShenWork/Paper2/IntervalHeatResolverJointC2.lean`, where the `i = 1` branch has:
+The local file `/tmp/q_cron2_bound.txt` is not accessible through the GitHub connector. I used the connector only and inferred the target from the current `cron2` files in the repository. I did **not** use Python, `/mnt/data`, the sandbox, or any sandbox link. I did not run Lean locally.
 
-```lean
-have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
-    ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
-  sorry -- tail: A' = resolverTimeCoeff' for t > c, bounded by eigenvalue damping
+The relevant file is:
+
+```text
+ShenWork/Paper2/IntervalBFormCron2TruncatedPicard.lean
 ```
 
-I used the GitHub connector only. I did not use Python, `/mnt/data`, the sandbox, or any sandbox link. I did not run Lean locally.
-
-## Replacement code
-
-Replace the `hA1_tail` sorry block with this:
+The relevant bound lane is:
 
 ```lean
-        have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
-            ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
-          obtain ⟨Bt, Hphys⟩ :=
-            ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-              (p := p) (u₀ := u₀) (M₀ := M₀)
-              hu₀_bound hu₀_cont hu₀_pos
-          refine ⟨Bt 1 k, fun t ht => ?_⟩
-          have hc'c : c / 2 < c := by linarith
-          have ht_c : c < t := by linarith
-          have hev : A =ᶠ[𝓝 t]
-              fun s : ℝ => resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
-            filter_upwards [Ioi_mem_nhds ht_c] with s hs
-            show smoothRightCutoff (c / 2) c s *
-                resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s =
-              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
-            rw [smoothRightCutoff_eq_one_of_ge hc'c (le_of_lt hs)]
-            ring
-          have hderiv_eq :
-              iteratedFDeriv ℝ 1 A t =
-                iteratedFDeriv ℝ 1
-                  (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
-            exact (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 1).eq_of_nhds
-          rw [hderiv_eq]
-          exact Hphys.coeff_bound 1 k t (by norm_num)
+truncatedConjugatePicardLimit_bounded
+TruncatedConjugateMildSolutionData.hbound
+truncatedConjugateMildSolution_exists_from_data
 ```
 
-## Why this is the right fill
+## Short answer
 
-On the tail `c + 1 < t`, we have `c < t`. Hence there is a neighborhood of `t` contained in `Ioi c`. On that neighborhood, the right cutoff is identically `1`:
+For the bound on the truncated Picard limit, do **not** try to use uniform convergence. The clean proof is pointwise:
+
+1. Fix `t`, `0 < t`, `t ≤ T`, and `x`.
+2. Let `a n := truncatedConjugatePicardIter p u₀ n t x`.
+3. Use the geometric difference estimate to prove `a` is Cauchy.
+4. Extract `L` with `hL : Tendsto a atTop (nhds L)`.
+5. Unfold `truncatedConjugatePicardLimit`; it is `L` by `hL.limUnder_eq`.
+6. Transfer the uniform iterate ball bound through the limit using:
 
 ```lean
-smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) (le_of_lt hs)
+le_of_tendsto (hL.abs) (Eventually.of_forall ...)
 ```
 
-Therefore the local time factor
+This is exactly the right tool: a pointwise limit of values bounded by `M` is bounded by `M`.
+
+## Concrete proof of the limit bound
+
+If the local file has a sorry for this theorem, use this proof body:
 
 ```lean
-A s = smoothRightCutoff (c / 2) c s *
-  resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
+
+open Filter Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalMildPicard
+
+noncomputable section
+
+namespace ShenWork.Paper2.BFormPositiveDatumNegPart
+
+ theorem truncatedConjugatePicardLimit_bounded
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ M : ℝ} (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |truncatedConjugatePicardIter p u₀ (n + 1) t x
+        - truncatedConjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀)
+    (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |truncatedConjugatePicardIter p u₀ n t x| ≤ M) :
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |truncatedConjugatePicardLimit p u₀ T t x| ≤ M := by
+  intro t ht htT x
+  unfold truncatedConjugatePicardLimit
+  simp only [ht, htT, and_self, ite_true]
+  set a := fun m => truncatedConjugatePicardIter p u₀ m t x
+  have hcauchy : CauchySeq a :=
+    real_cauchySeq_of_geometric_bound hK hK_nn hC₀
+      (fun n => hbound n t ht htT x)
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+  rw [hL.limUnder_eq]
+  exact le_of_tendsto (hL.abs)
+    (Eventually.of_forall (fun n => hball n t ht htT x))
+
+end ShenWork.Paper2.BFormPositiveDatumNegPart
 ```
 
-is eventually equal near `t` to the raw resolver coefficient. Then:
+In the current repository, this theorem is already present in this form. If your local branch has a proof failure, the likely missing imports are the same imports already used by `IntervalBFormCron2TruncatedPicard.lean`, especially the `IntervalMildPicard` import for:
 
 ```lean
-Filter.EventuallyEq.iteratedFDeriv
+real_cauchySeq_of_geometric_bound
+cauchySeq_tendsto_of_complete
 ```
 
-rewrites `iteratedFDeriv ℝ 1 A t` to the first iterated derivative of the raw resolver coefficient. The needed bound is exactly:
+## Concrete `hbound` field fill
+
+Inside:
 
 ```lean
-Hphys.coeff_bound 1 k t (by norm_num)
+def truncatedConjugateMildSolutionData_of_data
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : TruncatedConjugateMildExistenceData p u₀) :
+    TruncatedConjugateMildSolutionData p u₀ := by
+  ...
 ```
 
-from:
+once you have:
 
 ```lean
-PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt
+  have hgeom := truncatedConjugatePicardIter_geometric p u₀ D.hK_nn hball
+    hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
 ```
 
-## Shorter variant if `Bt, Hphys` are extracted before `hA_global_bounds`
-
-If you move this once above `hA_global_bounds`:
+fill the `hbound` field by:
 
 ```lean
-    obtain ⟨Bt, Hphys⟩ :=
-      ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-        (p := p) (u₀ := u₀) (M₀ := M₀)
-        hu₀_bound hu₀_cont hu₀_pos
+    hbound := truncatedConjugatePicardLimit_bounded p u₀ D.hK D.hK_nn D.hC₀
+      (fun n => hgeom n) hball
 ```
 
-then the `hA1_tail` proof can start directly with:
+The complete structure tail should look like:
 
 ```lean
-          refine ⟨Bt 1 k, fun t ht => ?_⟩
+  exact {
+    T := D.T
+    hT := D.hT
+    M := D.M
+    hM := D.hM
+    u := truncatedConjugatePicardLimit p u₀ D.T
+    hmild := truncatedConjugatePicardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn
+      D.hC₀ D.hM (fun n => hgeom n) hball hcont_iterates hcont_limit
+      hmeas_iterates hmeas_limit D.hcontr
+    hbound := truncatedConjugatePicardLimit_bounded p u₀ D.hK D.hK_nn D.hC₀
+      (fun n => hgeom n) hball
+    hcont := hcont_limit
+    hmeas := hmeas_limit
+  }
 ```
 
-and omit the local `obtain`.
+## Why `hgeom` has the right type
 
-## Same pattern for `i = 2`
-
-The next tail sorry for `i = 2` is filled by the same proof, replacing `1` by `2` and using:
+The bound theorem expects:
 
 ```lean
-Hphys.coeff_bound 2 k t (by norm_num)
+hbound : ∀ n t, 0 < t → t ≤ T → ∀ x,
+  |truncatedConjugatePicardIter p u₀ (n + 1) t x
+    - truncatedConjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+```
+
+Inside `truncatedConjugateMildSolutionData_of_data`, `hgeom` has exactly this shape after it is defined as:
+
+```lean
+  have hgeom := truncatedConjugatePicardIter_geometric p u₀ D.hK_nn hball
+    hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
+```
+
+Therefore `(fun n => hgeom n)` is accepted as the first proof argument after `D.hC₀`.
+
+## If Lean complains about `and_self`
+
+The line:
+
+```lean
+simp only [ht, htT, and_self, ite_true]
+```
+
+is intended to reduce:
+
+```lean
+if 0 < t ∧ t ≤ T then ... else 0
+```
+
+If it does not fire in a slightly different local goal, replace it by:
+
+```lean
+have hwindow : 0 < t ∧ t ≤ T := ⟨ht, htT⟩
+simp only [hwindow, if_true]
+```
+
+or:
+
+```lean
+rw [if_pos ⟨ht, htT⟩]
+```
+
+immediately after unfolding `truncatedConjugatePicardLimit`.
+
+## If Lean complains about `le_of_tendsto`
+
+The intended final step is:
+
+```lean
+  exact le_of_tendsto (hL.abs)
+    (Eventually.of_forall (fun n => hball n t ht htT x))
+```
+
+Here:
+
+```lean
+hL.abs : Tendsto (fun n => |a n|) atTop (nhds |L|)
+```
+
+and:
+
+```lean
+Eventually.of_forall (fun n => hball n t ht htT x)
+```
+
+is the eventual bound `|a n| ≤ M`. If elaboration fails, spell out the function:
+
+```lean
+  have hlim_abs : Tendsto (fun n => |a n|) atTop (nhds |L|) := hL.abs
+  have hev_bound : ∀ᶠ n in atTop, |a n| ≤ M :=
+    Eventually.of_forall (fun n => hball n t ht htT x)
+  exact le_of_tendsto hlim_abs hev_bound
 ```
 
 ## Bottom line
 
-The `i = 1` tail is not a manual eigenvalue-damping calculation at this location. It is a local-cutoff rewrite plus the packaged physical coefficient bound:
+The cron2 bound is a standard closed-ball-under-limit argument. The Picard iterates are already uniformly in the `M` ball, and the geometric estimate gives pointwise convergence. So the limit bound is just:
 
 ```text
-cutoff = 1 near t  ⇒  A locally equals resolverTimeCoeff
-PhysicalResolverJointC2Data.coeff_bound 1  ⇒  first derivative bound
+bounded sequence + convergent sequence ⇒ bounded limit
+```
+
+formalized as:
+
+```lean
+le_of_tendsto (hL.abs) (Eventually.of_forall ...)
 ```
