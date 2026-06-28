@@ -664,8 +664,37 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           rw [srcTimeCoeff_eq_cosineCoeffs p u k t]
           -- Goal: |cosineCoeffs (srcSlice p u t) k| ≤ 2 * p.ν * M_sup ^ p.γ
           have ht_pos : 0 < t := by linarith
-          -- srcSlice bound and ContinuousOn
-          sorry
+          -- Pointwise bound: |srcSlice(t,x)| ≤ ν * M_sup^γ on [0,1]
+          have hsrc_bound : ∀ x ∈ Set.Icc (0:ℝ) 1,
+              |srcSlice p u t x| ≤ p.ν * M_sup ^ p.γ := by
+            intro x hx
+            unfold srcSlice
+            rw [abs_of_nonneg (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg
+              (le_of_lt (hfloor t ht_pos x hx)) _))]
+            apply mul_le_mul_of_nonneg_left _ (le_of_lt p.hν)
+            apply Real.rpow_le_rpow (le_of_lt (hfloor t ht_pos x hx))
+            · -- |S(t)u₀(x)| ≤ M_sup → S(t)u₀(x) ≤ M_sup (since positive)
+              have := hSt_le t ht_pos x
+              rw [conjugatePicardIter, intervalDomainLift] at *
+              simp only [hx, dite_true] at *
+              exact le_of_abs_le this
+            · exact le_of_lt p.hγ
+          -- ContinuousOn of srcSlice on [0,1]
+          have hsrc_cont : ContinuousOn (srcSlice p u t) (Set.Icc (0:ℝ) 1) := by
+            unfold srcSlice
+            apply ContinuousOn.mul continuousOn_const
+            apply ContinuousOn.rpow_const
+            · -- ContinuousOn of intervalDomainLift(u t) on [0,1]
+              have := ShenWork.IntervalDuhamelIntegrability.continuousOn_intervalFullSemigroupOperator_of_bounded
+                ht_pos hlift_le
+              exact this.congr fun x hx => by
+                simp [intervalDomainLift, conjugatePicardIter, hx]
+            · intro x hx
+              exact Or.inl (ne_of_gt (hfloor t ht_pos x hx))
+          -- Apply cosineCoeffs_abs_le_of_continuous_bounded
+          exact (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+            hsrc_cont (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg hM_sup_nn _))
+            hsrc_bound k).trans (by ring_nf)
         obtain ⟨B_tail, hB_tail⟩ := hA_tail
         refine ⟨max (max 0 B_compact) B_tail, fun t => ?_⟩
         rw [norm_iteratedFDeriv_zero, Real.norm_eq_abs]
