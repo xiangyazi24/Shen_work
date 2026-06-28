@@ -753,7 +753,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             filter_upwards [Ioi_mem_nhds (show c < t by linarith)] with s hs
             show smoothRightCutoff (c / 2) c s * R s = R s
             rw [smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) (le_of_lt hs)]
-            one_mul
+            exact one_mul _
           rw [Filter.EventuallyEq.deriv_eq hev]
           exact hB_R' t ht
         obtain ⟨B1_tail, hB1_tail⟩ := hA1_tail
