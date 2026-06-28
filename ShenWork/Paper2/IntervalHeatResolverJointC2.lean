@@ -631,23 +631,43 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           fun t ht x =>
             ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
               ht hM_sup_nn hlift_le x
-        -- ContinuousOn of S(t)u₀ on [0,1] for t > 0
-        have hSt_cont : ∀ t : ℝ, 0 < t →
-            ContinuousOn (fun x => ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
-              t (intervalDomainLift u₀) x) (Set.Icc (0:ℝ) 1) :=
-          fun t ht => ShenWork.IntervalDuhamelIntegrability.continuousOn_intervalFullSemigroupOperator_of_bounded
-            ht hlift_le
-        -- The bound: for ALL t, |A(t)| ≤ w_k * 2ν * M_sup^γ
-        -- For t ≤ c/2: A = 0 (cutoff)
-        -- For t > c/2 > 0: chain through srcSlice → cosineCoeffs → resolverTimeCoeff
-        -- srcSlice(t,x) = ν * u(t,x)^γ, |srcSlice| ≤ ν * M_sup^γ on [0,1]
-        -- cosineCoeffs bound: |c_k| ≤ 2 * ν * M_sup^γ
-        -- resolverTimeCoeff = w_k * srcTimeCoeff
-        -- A = φ * resolverTimeCoeff, |φ| ≤ 1
-        -- This chain requires ContinuousOn of srcSlice which follows from
-        -- ContinuousOn of S(t)u₀ + rpow continuity + positivity.
-        -- The full assembly is non-trivial but all ingredients are available.
-        sorry
+        -- For i=0: ‖iteratedFDeriv ℝ 0 A t‖ = |A t|
+        -- Split: t ≤ c/2 → A=0, t > c/2 → bound from L∞ chain
+        -- Use compact [c/2, c/2+1] for the transition + L∞ tail for t > c/2+1
+        -- SIMPLIFICATION: just use compact bound on [c/2, c/2+2] combined with
+        -- A=0 on the left. For t > c/2+2: use L∞ bound.
+        have hA_cont : Continuous A := hAC2.continuous
+        -- Compact bound on [c/2, c/2+2]
+        obtain ⟨B_compact, hB_compact⟩ := (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
+          hA_cont.continuousOn
+        -- L∞ tail bound: for t > 0, |S(t)u₀(x)| ≤ M_sup → srcSlice bounded → srcTimeCoeff bounded
+        -- For the tail, we need ContinuousOn of srcSlice on [0,1] + |srcSlice| ≤ ν * M_sup^γ
+        -- ContinuousOn follows from hSt_cont + rpow continuity at positive values
+        -- For now, we sorry the tail bound and combine with the compact bound
+        have hA_tail : ∃ B_tail : ℝ, ∀ t : ℝ, c / 2 + 2 < t →
+            |A t| ≤ B_tail := by
+          sorry -- needs: srcSlice ContinuousOn + bound → cosineCoeffs bound → resolverTimeCoeff bound → A bound
+        obtain ⟨B_tail, hB_tail⟩ := hA_tail
+        refine ⟨max (max 0 B_compact) B_tail, fun t => ?_⟩
+        rw [norm_iteratedFDeriv_zero, Real.norm_eq_abs]
+        by_cases ht_left : t < c / 2
+        · -- t < c/2: A = 0
+          have : A t = 0 := by
+            show smoothRightCutoff (c / 2) c t *
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t = 0
+            rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt ht_left)]
+            ring
+          simp [this, le_max_left]
+        · push_neg at ht_left
+          by_cases ht_mid : t ≤ c / 2 + 2
+          · -- c/2 ≤ t ≤ c/2+2: compact bound
+            have : |A t| ≤ B_compact := by
+              rw [← Real.norm_eq_abs]
+              exact hB_compact t ⟨ht_left, ht_mid⟩
+            exact this.trans ((le_max_right 0 B_compact).trans (le_max_left _ B_tail))
+          · -- t > c/2+2: tail bound
+            push_neg at ht_mid
+            exact (hB_tail t ht_mid).trans (le_max_right _ B_tail)
       · -- i = 1: A'(t) is bounded
         -- For t ≤ c/2: A'(t) = 0
         -- For t > c: A' = resolverTimeCoeff', bounded by eigenvalue damping
