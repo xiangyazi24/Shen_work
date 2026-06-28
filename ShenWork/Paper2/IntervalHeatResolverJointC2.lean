@@ -826,10 +826,14 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 -- Apply abs_tsum bound
                 refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_) (heig_summ.mul_left M₀)).trans ?_
                 · -- |LaplacianPointWeight(t,x,n) * c_n| ≤ M₀ * eigenvalue(n) * exp(-(c+1)*eigval)
-                  -- LaplacianPointWeight = -eigenvalue * exp(-t*eigenvalue) * cos(nπx)
-                  -- |...| ≤ eigenvalue * exp(-t*eigval) * |cos(nπx)| * |c_n|
-                  --      ≤ eigenvalue * exp(-(c+1)*eigval) * 1 * M₀
-                  -- Uses: |cos| ≤ 1, |c_n| ≤ M₀, exp monotone (t ≥ c+1 → -t ≤ -(c+1))
+                  -- Unfold: LaplacianPointWeight = -eigenvalue * (exp * cos)
+                  unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight
+                  -- |(-eigenvalue * heatPointWeight) * c_n| ≤ M₀ * (eigenvalue * exp(-(c+1)*eigval))
+                  rw [abs_mul, abs_mul, abs_neg]
+                  -- eigenvalue * |heatPointWeight| * |c_n| ≤ M₀ * eigenvalue * exp(-(c+1)*eigval)
+                  -- |heatPointWeight| ≤ exp(-t*eigval) (since |cos| ≤ 1)
+                  -- |c_n| ≤ M₀ (hu₀_bound)
+                  -- exp(-t*eigval) ≤ exp(-(c+1)*eigval) (t ≥ c+1, exp monotone)
                   sorry
                 · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
                   rw [tsum_mul_left]
