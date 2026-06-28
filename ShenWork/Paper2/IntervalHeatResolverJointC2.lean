@@ -678,8 +678,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               have hdef : intervalDomainLift (u t) x =
                   ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
                     t (intervalDomainLift u₀) x := by
-                show (if hx' : x ∈ Set.Icc (0:ℝ) 1 then u t ⟨x, hx'⟩ else 0) = _
-                rw [dif_pos hx]
+                unfold intervalDomainLift; rw [dif_pos hx]; simp only [u]; rfl
               rw [hdef]
               exact le_of_abs_le (hSt_le t ht_pos x)
             · exact le_of_lt p.hγ
