@@ -689,7 +689,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]; ring
           rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 1).eq_of_nhds,
             iteratedFDeriv_const_of_ne (by norm_num : (1 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
-          exact le_trans (le_refl (0 : ℝ)) (le_max_left _ _)
+          exact le_trans (le_max_left (0 : ℝ) _) (le_max_left _ _)
         · simp only [not_lt] at ht_left
           by_cases ht_mid : t ≤ c / 2 + 2
           · exact (hB1_compact t ⟨ht_left, ht_mid⟩).trans
@@ -716,7 +716,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]; ring
           rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 2).eq_of_nhds,
             iteratedFDeriv_const_of_ne (by norm_num : (2 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
-          exact le_trans (le_refl (0 : ℝ)) (le_max_left _ _)
+          exact le_trans (le_max_left (0 : ℝ) _) (le_max_left _ _)
         · simp only [not_lt] at ht_left
           by_cases ht_mid : t ≤ c / 2 + 2
           · exact (hB2_compact t ⟨ht_left, ht_mid⟩).trans
