@@ -1,4 +1,4 @@
-# Q1622 (cron1) -- `BddAbove` for cutoff resolver majorants
+# Q1626 (cron1) -- cron2 tail bound
 
 Repository: `xiangyazi24/Shen_work`  
 Committed branch: `chatgpt-scratch`  
@@ -9,284 +9,258 @@ Target report file: `scratch/_CHATGPT_DROP_cron1.md`
 The prompt was:
 
 ```text
-Q1622 (cron1): cron1 /tmp/q_cron1_bddabove.txt
+Q1626 (cron1): cron2 /tmp/q_cron2_tail.txt
 ```
 
-The local file `/tmp/q_cron1_bddabove.txt` is not accessible through the GitHub connector. I therefore interpreted the task from the filename and from the current repository state as the `BddAbove` question around the cutoff resolver majorant in:
+The local file `/tmp/q_cron2_tail.txt` is not accessible through the GitHub connector. I therefore inferred the intended task from the repository itself. The strongest match is the cron2 truncated-Picard tail theorem in:
 
 ```text
-ShenWork/Paper2/IntervalHeatResolverJointC2.lean
+ShenWork/Paper2/IntervalBFormCron2TruncatedPicard.lean
+```
+
+This file begins:
+
+```lean
+/-
+  Truncated B-form Picard fixed point for the cron2 negative-part route.
+...
+-/
+import ShenWork.Paper2.IntervalBFormNegativePartCron2
+```
+
+and contains the theorem:
+
+```lean
+truncatedConjugatePicardIter_pointwise_tail_bound
 ```
 
 I used the GitHub connector only. I did **not** use Python, the sandbox, `/mnt/data`, or a sandbox download link.
 
-One branch wrinkle: fetching `ShenWork/Paper2/IntervalHeatResolverJointC2.lean` at ref `chatgpt-scratch` returned `Not Found`, so the source inspection below is for the repository default branch. The report itself is committed on `chatgpt-scratch`, as requested.
-
 ## Short answer
 
-For the cutoff resolver majorant, the right proof of `BddAbove` is **not** compactness of the full domain and not a hypothetical theorem like `Continuous.bddAbove_range`. The right proof is an **explicit global majorant**.
+The cron2 tail bound is already present on the default branch and the proof is the right one. It is a direct copy/adaptation of the existing B-form Picard tail proof in `IntervalConjugatePicard.lean`, with `conjugatePicardIter` replaced by `truncatedConjugatePicardIter` and `conjugatePicardLimit` replaced by `truncatedConjugatePicardLimit`.
 
-The current default-branch file already implements exactly that route:
+The theorem proves:
 
 ```lean
-private theorem cutoffResolverMajorant_bddAbove_of_physical
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
-    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
-    BddAbove (Set.range fun q : ℝ × ℝ =>
-      ‖iteratedFDeriv ℝ j
-        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
-  refine ⟨cutoffResolverExplicitMajorant Bt c hc j k, ?_⟩
-  rintro _ ⟨q, rfl⟩
-  exact cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj
+|truncatedConjugatePicardIter p u₀ n t x
+    - truncatedConjugatePicardLimit p u₀ T t x|
+  ≤ K ^ n * C₀ / (1 - K)
 ```
 
-That is the correct pattern: exhibit a finite real bound `cutoffResolverExplicitMajorant Bt c hc j k`, then prove every value in the range is below it.
-
-## Why compactness is the wrong global proof
-
-The range is over all
+under the geometric step estimate
 
 ```lean
-q : ℝ × ℝ
+|truncatedConjugatePicardIter p u₀ (m + 1) t x
+    - truncatedConjugatePicardIter p u₀ m t x| ≤ K ^ m * C₀
 ```
 
-so no compactness lemma applies directly to the whole range. A continuous function on `ℝ × ℝ` can be unbounded. A compact rectangle such as
+for `0 < t`, `t ≤ T`, `0 ≤ K`, and `K < 1`.
 
-```lean
-Set.Icc (c / 2) c ×ˢ Set.Icc (-R) R
+There is no off-by-one error: since the first omitted step from iterate `n` is the increment from `n` to `n+1`, the tail starts at `m = n`, so the bound is
+
+```text
+Σ_{r≥0} K^(n+r) C₀ = K^n C₀ / (1-K)
 ```
 
-only bounds the middle strip with `|x| ≤ R`; it does not bound the whole domain.
+not `K^(n+1) C₀ / (1-K)`.
 
-In this resolver/heat context, the full-domain bound comes from structure:
+## The committed proof pattern
 
-1. derivatives of the cutoff factor in `t` are globally bounded;
-2. resolver coefficient terms are controlled by `PhysicalResolverJointC2Data`;
-3. cosine-mode spatial derivatives are globally bounded by the bounded-weight machinery;
-4. the product derivative is bounded by a finite Leibniz sum.
-
-So compactness is useful only for the cutoff derivative support, not for the full resolver term.
-
-## Where compact support is legitimately used
-
-The file uses compact support only for derivatives of the smooth cutoff itself. The local lemma is:
+The theorem in `IntervalBFormCron2TruncatedPicard.lean` is:
 
 ```lean
-private theorem resolverSmoothRightCutoff_iteratedFDeriv_bound_exists
-    (c' c : ℝ) (hc'c : c' < c) (k : ℕ) (hk : (k : ℕ∞) ≤ 2) :
-    ∃ B : ℝ, 0 ≤ B ∧
-      ∀ t : ℝ, ‖iteratedFDeriv ℝ k (smoothRightCutoff c' c) t‖ ≤ B := by
-  ...
+theorem truncatedConjugatePicardIter_pointwise_tail_bound
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ : ℝ} (hK : K < 1) (hK_nn : 0 ≤ K) (_hC₀ : 0 ≤ C₀)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+      ∀ x : intervalDomainPoint,
+        |truncatedConjugatePicardIter p u₀ (n + 1) t x
+          - truncatedConjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀)
+    (t : ℝ) (ht : 0 < t) (htT : t ≤ T)
+    (x : intervalDomainPoint) (n : ℕ) :
+    |truncatedConjugatePicardIter p u₀ n t x
+        - truncatedConjugatePicardLimit p u₀ T t x|
+      ≤ K ^ n * C₀ / (1 - K) := by
+  set a := fun m => truncatedConjugatePicardIter p u₀ m t x
+  set d := fun m => K ^ m * C₀
+  have hdist : ∀ m, dist (a m) (a m.succ) ≤ d m := by
+    intro m
+    rw [Real.dist_eq, abs_sub_comm]
+    exact hbound m t ht htT x
+  have hd_sum : Summable d :=
+    Summable.mul_right C₀ (summable_geometric_of_lt_one hK_nn hK)
+  have hcauchy : CauchySeq a := cauchySeq_of_dist_le_of_summable d hdist hd_sum
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+  have hlim_eq : truncatedConjugatePicardLimit p u₀ T t x = L := by
+    unfold truncatedConjugatePicardLimit
+    simp only [ht, htT, and_self, ite_true]
+    exact hL.limUnder_eq
+  rw [hlim_eq, ← Real.dist_eq]
+  calc dist (a n) L ≤ ∑' m, d (n + m) :=
+        dist_le_tsum_of_dist_le_of_tendsto d hdist hd_sum hL n
+    _ = K ^ n * C₀ / (1 - K) := by
+        simp_rw [d, pow_add, mul_assoc]
+        rw [tsum_mul_left, tsum_mul_right, tsum_geometric_of_lt_one hK_nn hK]
+        ring
 ```
 
-For `k = 0`, the cutoff itself is bounded by `1`. For `k > 0`, the derivative is zero off `Set.Icc c' c`, so the proof builds a `HasCompactSupport` witness and applies:
+This is the correct proof. The important helper is:
 
 ```lean
-hcont.bounded_above_of_compact_support hcomp
+dist_le_tsum_of_dist_le_of_tendsto
 ```
 
-This is correct because the function being bounded is now a one-variable cutoff derivative with compact support. It would be wrong to apply this reasoning to the whole product term on `ℝ × ℝ`.
+which converts a summable step-distance bound into a distance-to-limit tail bound.
 
-## The explicit-majorant chain in the current file
+## Why the proof works
 
-The current file has the following architecture.
-
-### 1. Define the raw and cutoff resolver terms
+Fix `t`, `x`, and define:
 
 ```lean
-import ShenWork.Paper2.IntervalHeatResolverJointC2
+a m := truncatedConjugatePicardIter p u₀ m t x
+d m := K ^ m * C₀
+```
+
+The hypothesis `hbound` gives:
+
+```lean
+dist (a m) (a (m+1)) ≤ d m
+```
+
+because `Real.dist_eq` rewrites distance to absolute value, and `abs_sub_comm` fixes the order. Since `0 ≤ K` and `K < 1`, the geometric series `∑ K^m` is summable, hence `d` is summable:
+
+```lean
+have hd_sum : Summable d :=
+  Summable.mul_right C₀ (summable_geometric_of_lt_one hK_nn hK)
+```
+
+Then the generic metric-space lemma gives a Cauchy sequence:
+
+```lean
+have hcauchy : CauchySeq a := cauchySeq_of_dist_le_of_summable d hdist hd_sum
+```
+
+Completeness of `ℝ` gives a limit `L`:
+
+```lean
+obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+```
+
+The definition of `truncatedConjugatePicardLimit` on the active time window `(0,T]` is `atTop.limUnder`, so the proof identifies it with the actual limit:
+
+```lean
+unfold truncatedConjugatePicardLimit
+simp only [ht, htT, and_self, ite_true]
+exact hL.limUnder_eq
+```
+
+Finally:
+
+```lean
+dist (a n) L ≤ ∑' m, d (n + m)
+```
+
+and the right-hand side is evaluated by:
+
+```lean
+simp_rw [d, pow_add, mul_assoc]
+rw [tsum_mul_left, tsum_mul_right, tsum_geometric_of_lt_one hK_nn hK]
+ring
+```
+
+This proves exactly `K^n*C₀/(1-K)`.
+
+## Uniform convergence downstream
+
+The file then uses the pointwise tail theorem to prove uniform convergence on the time-space window:
+
+```lean
+theorem truncatedConjugatePicardIter_uniform_convergence
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ : ℝ} (_hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K)
+    (hC₀ : 0 ≤ C₀)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
+      ∀ x : intervalDomainPoint,
+        |truncatedConjugatePicardIter p u₀ (n + 1) t x
+          - truncatedConjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀) :
+    ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, ∀ t, 0 < t → t ≤ T →
+      ∀ x : intervalDomainPoint,
+        |truncatedConjugatePicardIter p u₀ n t x
+          - truncatedConjugatePicardLimit p u₀ T t x| < ε := by
+```
+
+The proof uses the scalar fact:
+
+```lean
+private theorem truncated_geometric_tail_tendsto_zero {K C₀ : ℝ}
+    (hK : K < 1) (hK_nn : 0 ≤ K) :
+    Tendsto (fun n => K ^ n * C₀ / (1 - K)) atTop (nhds 0)
+```
+
+Then it chooses `N` from that convergence. The crucial point is that the tail bound is independent of `t` and `x`, so the same `N` works uniformly for all `t ∈ (0,T]` and all `x`.
+
+## Exact relationship to the older non-truncated proof
+
+`IntervalConjugatePicard.lean` already contains the same lemma in the non-truncated B-form setting:
+
+```lean
+theorem conjugatePicardIter_pointwise_tail_bound
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ : ℝ} (hK : K < 1) (hK_nn : 0 ≤ K) (_hC₀ : 0 ≤ C₀)
+    ... :
+    |conjugatePicardIter p u₀ n t x - conjugatePicardLimit p u₀ T t x|
+      ≤ K ^ n * C₀ / (1 - K)
+```
+
+The cron2 theorem is the same proof with these substitutions:
+
+```text
+conjugatePicardIter       ↦ truncatedConjugatePicardIter
+conjugatePicardLimit      ↦ truncatedConjugatePicardLimit
+intervalConjugateDuhamelMap ↦ truncatedConjugateDuhamelMap
+```
+
+No new analytic PDE facts are involved in the tail proof itself. The only inputs are:
+
+```lean
+hK    : K < 1
+hK_nn : 0 ≤ K
+hbound : geometric step estimate
+```
+
+## Minimal standalone import snippet
+
+If the theorem needs to be referenced from another file, the import is:
+
+```lean
+import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
 
 open Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalMildPicard
 
 noncomputable section
 
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
+namespace ShenWork.Paper2.BFormPositiveDatumNegPart
 
-/-- Raw resolver term. -/
-def resolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (k : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => resolverTimeCoeff p u k q.1 * cosineMode k q.2
+-- Available theorem:
+#check truncatedConjugatePicardIter_pointwise_tail_bound
+#check truncatedConjugatePicardIter_uniform_convergence
+#check truncatedConjugatePicardLimit_bounded
+#check truncatedConjugatePicardLimit_hasContinuousSlices
 
-/-- Cutoff resolver term. -/
-def cutoffResolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (c : ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
-  fun q => smoothRightCutoff (c / 2) c q.1 *
-    (resolverTimeCoeff p u k q.1 * cosineMode k q.2)
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
-```
-
-### 2. Define an explicit finite-sum majorant
-
-The key definition is:
-
-```lean
-private noncomputable def cutoffResolverExplicitMajorant
-    (Bt : ℕ → ℕ → ℝ) (c : ℝ) (hc : 0 < c) (j k : ℕ) : ℝ :=
-  ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
-    (if hi : (i : ℕ∞) ≤ 2 then
-      resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
-    else 0) *
-    boundedWeightJointMajorant Bt (j - i) k
-```
-
-This is exactly the finite Leibniz bound: choose `i` derivatives landing on the cutoff/time factor and `j-i` derivatives landing on the bounded-weight resolver/cosine term.
-
-### 3. Prove the pointwise explicit bound
-
-The pointwise theorem is:
-
-```lean
-private theorem cutoffResolverTerm_iteratedFDeriv_le_explicit
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
-    (hj : (j : ℕ∞) ≤ 2) :
-    ‖iteratedFDeriv ℝ j (cutoffResolverTerm p u c k) q‖ ≤
-      cutoffResolverExplicitMajorant Bt c hc j k := by
-  ...
-```
-
-The proof uses:
-
-```lean
-norm_iteratedFDeriv_mul_le
-norm_iteratedFDeriv_comp_fst_le
-boundedWeightJointTerm_iteratedFDeriv_le
-```
-
-This is the real work. Once this pointwise estimate is available, `BddAbove` is immediate.
-
-### 4. Use that pointwise bound to prove `BddAbove`
-
-The proof is just:
-
-```lean
-private theorem cutoffResolverMajorant_bddAbove_of_physical
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
-    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
-    BddAbove (Set.range fun q : ℝ × ℝ =>
-      ‖iteratedFDeriv ℝ j
-        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
-  refine ⟨cutoffResolverExplicitMajorant Bt c hc j k, ?_⟩
-  rintro _ ⟨q, rfl⟩
-  exact cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj
-```
-
-That is the whole `BddAbove` story.
-
-## Public wrapper if this is needed outside the file
-
-The current `cutoffResolverMajorant_bddAbove_of_physical` theorem is `private`, so code outside `IntervalHeatResolverJointC2.lean` cannot call it directly. The file already exposes the more useful public theorem:
-
-```lean
-theorem cutoffResolverTerm_iteratedFDeriv_bound
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
-    (hj : (j : ℕ∞) ≤ 2) :
-    ‖iteratedFDeriv ℝ j
-      (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖ ≤
-      cutoffResolverMajorant p u₀ M₀ c hc j k
-```
-
-Therefore, if another file needs the range-boundedness fact, add this public wrapper:
-
-```lean
-import ShenWork.Paper2.IntervalHeatResolverJointC2
-
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-
-noncomputable section
-
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
-
-/-- Public `BddAbove` wrapper for the cutoff resolver derivative range. -/
-theorem cutoffResolverTerm_iteratedFDeriv_range_bddAbove
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    (hc : 0 < c) (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
-    BddAbove (Set.range fun q : ℝ × ℝ =>
-      ‖iteratedFDeriv ℝ j
-        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
-  refine ⟨cutoffResolverMajorant p u₀ M₀ c hc j k, ?_⟩
-  rintro _ ⟨q, rfl⟩
-  exact cutoffResolverTerm_iteratedFDeriv_bound
-    (p := p) (u₀ := u₀) (M₀ := M₀)
-    hu₀_bound hu₀_cont hu₀_pos hc j k q hj
-
-end ShenWork.Paper2.HeatResolverJointC2Direct
-```
-
-This wrapper does not need to know about the private explicit majorant or `PhysicalResolverJointC2Data`; it packages the already-public bound into a `BddAbove` range statement.
-
-## How `ciSup` should be used here
-
-The noncomputable majorant is defined as:
-
-```lean
-noncomputable def cutoffResolverMajorant (p : CM2Params)
-    (u₀ : intervalDomainPoint → ℝ) (_M₀ c : ℝ) (hc : 0 < c)
-    (j k : ℕ) : ℝ :=
-  ⨆ q : ℝ × ℝ, ‖iteratedFDeriv ℝ j
-    (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖
-```
-
-For upper bounds on this `⨆`, use:
-
-```lean
-exact ciSup_le (fun q =>
-  cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj)
-```
-
-For pointwise bounds by the `⨆`, use:
-
-```lean
-have hbdd := cutoffResolverMajorant_bddAbove_of_physical
-  (p := p) (u₀ := u₀) (M₀ := M₀) hc H j k hj
-exact le_ciSup hbdd q
-```
-
-or, outside the file, avoid `le_ciSup` directly and use the public theorem:
-
-```lean
-exact cutoffResolverTerm_iteratedFDeriv_bound
-  (p := p) (u₀ := u₀) (M₀ := M₀)
-  hu₀_bound hu₀_cont hu₀_pos hc j k q hj
+end ShenWork.Paper2.BFormPositiveDatumNegPart
 ```
 
 ## Bottom line
 
-The correct answer to the `BddAbove` problem is:
+For the likely cron2 tail question:
 
 ```text
-Do not try to get global BddAbove from continuity or compactness of ℝ × ℝ.
-Use the explicit majorant theorem.
+The pointwise Picard tail bound is already proved correctly.
+It is a mechanical metric/geometric-series argument, not an analytic PDE gap.
+The formula is K^n*C₀/(1-K), with no off-by-one error.
+The proof should be reused as-is anywhere the truncated Picard tail estimate is needed.
 ```
-
-In the current default branch, this is already done by:
-
-```lean
-cutoffResolverTerm_iteratedFDeriv_le_explicit
-cutoffResolverMajorant_bddAbove_of_physical
-cutoffResolverMajorant_le_explicit
-cutoffResolverTerm_iteratedFDeriv_bound
-```
-
-If a downstream file needs a named public `BddAbove` lemma, add the small wrapper `cutoffResolverTerm_iteratedFDeriv_range_bddAbove` shown above.
