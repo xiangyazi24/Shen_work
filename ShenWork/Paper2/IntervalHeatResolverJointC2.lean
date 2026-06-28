@@ -804,10 +804,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               -- heatDu = Σ' -λ_n e^{-tλ_n} c_n cos(nπx) for t > 0
               -- |term_n| ≤ λ_n e^{-tλ_n} |c_n| ≤ M₀ λ_n e^{-(c+1)λ_n}
               -- Σ' majorant summable from unitIntervalCosineEigenvalue_mul_exp_summable
-              let eigval := ShenWork.HeatKernelGradientEstimates.unitIntervalCosineEigenvalue
-              have heig_summ := ShenWork.IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable
-                (show 0 < c + 1 by linarith)
-              let maj_sum := M₀ * ∑' n, eigval n * Real.exp (-(c + 1) * eigval n)
+              have heig_summ :=
+                ShenWork.IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable
+                  (show 0 < c + 1 by linarith)
+              let maj_sum := M₀ * ∑' n,
+                unitIntervalCosineEigenvalue n *
+                  Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)
               refine ⟨maj_sum, ?_, fun t ht x => ?_⟩
               · -- 0 ≤ CΔ
                 sorry
