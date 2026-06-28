@@ -579,7 +579,92 @@ private theorem cutoffResolverMajorant_bddAbove_direct
   -- Tail bound: for t > c/2+1, use explicit L∞ bounds
   have htail : ∃ Ctail : ℝ, ∀ q : ℝ × ℝ, c / 2 + 1 < q.1 →
       ‖iteratedFDeriv ℝ j f q‖ ≤ Ctail := by
-    sorry
+    -- Same Leibniz structure as hmid. The time part A is C², so
+    -- iteratedFDeriv is continuous on [c/2, ∞). We extend the compact bound
+    -- to [c/2, c/2+2] which covers all t ∈ (c/2+1, c/2+2]. For t > c/2+2,
+    -- we chain further compact intervals.
+    -- For now: use a SINGLE large compact interval [c/2, c/2+2] which
+    -- covers the boundary. For the true tail, we use the L∞ bound.
+    -- APPROACH: identical to hmid but on [c/2, c/2 + 2] for the compact bound,
+    -- combined with the observation that the hmid bound already covers [c/2, c/2+1]
+    -- and for t > c/2+1 the cutoff is 1 so A = resolverTimeCoeff.
+    -- The iteratedFDeriv of A is uniformly bounded because:
+    -- (i=0) |A(t)| ≤ w_k * 2ν*‖u₀‖^γ from L∞ contraction
+    -- (i≥1) |A^(i)(t)| is bounded from eigenvalue damping + max principle
+    -- These bounds are UNIFORM in t ≥ c/2 (not just on a compact set).
+    -- For a clean proof without eigenvalue damping infrastructure, we
+    -- observe: A is C², A(t) → L (finite limit), A'(t) → 0, A''(t) → 0
+    -- as t → ∞. A continuous function on [c/2, ∞) with a finite limit at ∞
+    -- is bounded. Same for A', A''.
+    -- For now, we use the compact argument on a SUFFICIENTLY LARGE interval.
+    have hcos : ContDiff ℝ (2 : ℕ∞) (cosineMode k) := by unfold cosineMode; fun_prop
+    have hjNat : j ≤ 2 := by exact_mod_cast hj
+    -- Uniform bound on A's iteratedFDeriv for all t (using continuous + zero-at-left + bounded-at-right)
+    have hA_global_bounds : ∀ i : ℕ, i ≤ 2 →
+        ∃ B_i : ℝ, ∀ t : ℝ, ‖iteratedFDeriv ℝ i A t‖ ≤ B_i := by
+      intro i hi
+      -- A is C², so iteratedFDeriv ℝ i A is continuous for i ≤ 2
+      have hcont_i : Continuous (fun t : ℝ => iteratedFDeriv ℝ i A t) :=
+        hAC2.continuous_iteratedFDeriv (by exact_mod_cast hi)
+      -- For i ≥ 1: iteratedFDeriv ℝ i A has compact support (it's 0 for t ≤ c/2
+      -- because A ≡ 0 there, and → 0 as t → ∞ because the heat semigroup
+      -- coefficients decay exponentially).
+      -- For i = 0: A is bounded because |A(t)| ≤ w_k * (coefficient bound).
+      -- UNIFORM BOUND: use the fact that iteratedFDeriv ℝ i A is continuous,
+      -- zero on (-∞, c/2], and the sup on [c/2, ∞) is finite.
+      sorry
+    obtain ⟨B_max, hB_max⟩ : ∃ B_max : ℝ, ∀ (i : ℕ), i ≤ 2 → ∀ t : ℝ,
+        ‖iteratedFDeriv ℝ i A t‖ ≤ B_max := by
+      obtain ⟨b0, hb0⟩ := hA_global_bounds 0 (by omega)
+      obtain ⟨b1, hb1⟩ := hA_global_bounds 1 (by omega)
+      obtain ⟨b2, hb2⟩ := hA_global_bounds 2 (by omega)
+      refine ⟨max b0 (max b1 b2), fun i hi t => ?_⟩
+      interval_cases i
+      · exact (hb0 t).trans (le_max_left _ _)
+      · exact (hb1 t).trans ((le_max_left _ _).trans (le_max_right _ _))
+      · exact (hb2 t).trans ((le_max_right _ _).trans (le_max_right _ _))
+    -- Same Leibniz assembly as hmid but with global bounds
+    have hAfst : ContDiff ℝ (2 : ℕ∞) (fun q : ℝ × ℝ => A q.1) :=
+      hAC2.comp contDiff_fst
+    have hBsnd : ContDiff ℝ (2 : ℕ∞) (fun q : ℝ × ℝ => cosineMode k q.2) :=
+      hcos.comp contDiff_snd
+    have hjTop : ((j : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+      exact_mod_cast hj
+    have hfactor : f = fun q : ℝ × ℝ => A q.1 * cosineMode k q.2 := by
+      funext q; simp [hf_def, cutoffResolverTerm, A, mul_assoc]
+    set Ctail := ∑ i ∈ Finset.range (j + 1),
+      (j.choose i : ℝ) * B_max *
+        ShenWork.IntervalResolverSpectralJointC2Concrete.valueCosWeight (j - i) k
+    refine ⟨Ctail, fun q _hq => ?_⟩
+    rw [hfactor]
+    calc ‖iteratedFDeriv ℝ j (fun q : ℝ × ℝ => A q.1 * cosineMode k q.2) q‖
+        ≤ ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+            ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => A q.1) q‖ *
+            ‖iteratedFDeriv ℝ (j - i) (fun q : ℝ × ℝ => cosineMode k q.2) q‖ := by
+          simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hAfst hBsnd q hjTop
+      _ ≤ Ctail := by
+          apply Finset.sum_le_sum
+          intro i hi
+          have hik : i ≤ j := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+          have hiNat : i ≤ 2 := le_trans hik hjNat
+          have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
+          have hiCast : ((i : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+            exact_mod_cast hiNat
+          have hjiCast : (((j - i : ℕ) : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+            exact_mod_cast hjiNat
+          have hA_fst_bound : ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => A q.1) q‖ ≤ B_max := by
+            exact (norm_iteratedFDeriv_comp_fst_le hAC2 hiCast q).trans (hB_max i hiNat q.1)
+          have hB_snd_bound : ‖iteratedFDeriv ℝ (j - i)
+              (fun q : ℝ × ℝ => cosineMode k q.2) q‖ ≤
+              ShenWork.IntervalResolverSpectralJointC2Concrete.valueCosWeight (j - i) k := by
+            exact (ShenWork.IntervalResolverSpectralJointC2CutoffBounds.norm_iteratedFDeriv_comp_snd_le
+              hcos hjiCast q).trans
+              (ShenWork.IntervalResolverSpectralJointC2Concrete.cosineMode_iteratedFDeriv_bound
+                k (j - i) q.2 hjiNat)
+          exact mul_le_mul
+            (mul_le_mul_of_nonneg_left hA_fst_bound (Nat.cast_nonneg _))
+            hB_snd_bound (norm_nonneg _)
+            (mul_nonneg (Nat.cast_nonneg _) (le_trans (norm_nonneg _) hA_fst_bound))
   obtain ⟨Cmid, hmid⟩ := hmid
   obtain ⟨Ctail, htail⟩ := htail
   have hleft' : ∀ q : ℝ × ℝ, q.1 < c / 2 →
