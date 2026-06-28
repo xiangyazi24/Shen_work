@@ -822,14 +822,18 @@ time with summable bounded-weight joint majorants.
 theorem heatSemigroup_level0_resolverJointC2Data
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀) :
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x) :
     ∃ Bt : ℕ → ℕ → ℝ,
       PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt := by
   -- Step 1: Build the FlooredSourceTimeData via the heat semigroup constructor.
   set u := conjugatePicardIter p u₀ 0
   have hFSTD := ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
     hu₀_bound hu₀_cont (p := p)
-    (hfloor := by intro t ht x hx; sorry)
+    (hfloor := by
+      intro t ht x hx
+      exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+        hu₀_cont hu₀_pos ht hx)
     (hsliceC2 := by intro i hi t ht; sorry)
     (hsliceNeumann := by intro i hi t ht; sorry)
     (hzerothBound := by intro i hi; sorry)
@@ -867,6 +871,7 @@ theorem heatResolverJointContDiffAt_two
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
     (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
     ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
@@ -876,7 +881,7 @@ theorem heatResolverJointContDiffAt_two
   -- a time-positivity witness; the bounded-weight route via
   -- `PhysicalResolverJointC2Data` is globally valid (no time cutoff needed).
   obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu₀_bound hu₀_cont
+    (p := p) hu₀_bound hu₀_cont hu₀_pos
   exact coupledChemical_jointContDiffAt_two hBt hx₀
 
 #print axioms heatResolverJointContDiffAt_two
