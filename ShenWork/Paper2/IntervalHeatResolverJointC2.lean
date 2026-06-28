@@ -728,16 +728,34 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             hA1_cont.continuousOn
         have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
             ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
-          -- A = φ * resolverTimeCoeff. Use 1D Leibniz: A' = φ'*R + φ*R'.
-          -- φ' bounded (resolverSmoothRightCutoffDerivBound_spec), R bounded (i=0 bound).
-          -- φ bounded (≤1), R' bounded (THIS is the hard part — needs eigenvalue damping).
-          -- For R' = resolverTimeCoeff': for t > c+1 > 0, srcTimeCoeff is C²
-          -- (heatLevel0_srcTimeCoeff_contDiffAt_two), so srcTimeCoeff' is continuous.
-          -- srcTimeCoeff'(t) = cosineCoeffs(srcSlice1(t), k) from d0 (HasDerivAt).
-          -- |cosineCoeffs(srcSlice1(t), k)| ≤ 2·‖srcSlice1(t)‖_∞
-          -- ‖srcSlice1(t)‖_∞ ≤ νγ·M_sup^{γ-1}·‖Δu(t)‖_∞
-          -- ‖Δu(t)‖_∞ ≤ M₀·(4/((c+1)²π²))·Σ(1/n²) from unitIntervalCosineHeatSecondPointWeight_abs_le
-          sorry
+          -- Use 1D Leibniz on A = φ * R where R = resolverTimeCoeff.
+          -- φ and φ' are bounded (cutoff). R is bounded (i=0 proof).
+          -- R' needs eigenvalue damping — sorry'd as the irreducible content.
+          set R := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
+          -- For t > c+1: A = R in a neighborhood (φ=1 for t > c)
+          -- So deriv A = deriv R, and we bound |deriv R|
+          -- |deriv R(t)| needs eigenvalue damping — sorry'd
+          have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
+              |deriv R t| ≤ B_R' := by
+            -- deriv R = w_k * deriv srcTimeCoeff
+            -- deriv srcTimeCoeff = cosineCoeffs(srcSlice1(t), k) from d0 HasDerivAt
+            -- |cosineCoeffs(srcSlice1, k)| ≤ 2·νγ·M_sup^{γ-1}·M₀·C_Δ/(c+1)²
+            -- from cosineCoeffs_abs_le_of_continuous_bounded + L∞ contraction +
+            -- unitIntervalCosineHeatSecondPointWeight_abs_le
+            sorry
+          obtain ⟨B_R', hB_R'⟩ := hR_deriv_bounded
+          refine ⟨B_R', fun t ht => ?_⟩
+          -- ‖iteratedFDeriv ℝ 1 A t‖ = |deriv A t|
+          rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv]
+          simp only [iteratedDeriv_succ', iteratedDeriv_zero, Real.norm_eq_abs]
+          -- deriv A = deriv R near t (from A = R near t via φ=1)
+          have hev : A =ᶠ[𝓝 t] R := by
+            filter_upwards [Ioi_mem_nhds (show c < t by linarith)] with s hs
+            show smoothRightCutoff (c / 2) c s * R s = R s
+            rw [smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) (le_of_lt hs)]
+            one_mul
+          rw [Filter.EventuallyEq.deriv_eq hev]
+          exact hB_R' t ht
         obtain ⟨B1_tail, hB1_tail⟩ := hA1_tail
         refine ⟨max (max 0 B1_compact) B1_tail, fun t => ?_⟩
         by_cases ht_left : t < c / 2
