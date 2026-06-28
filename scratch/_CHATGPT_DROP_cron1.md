@@ -1,4 +1,4 @@
-# Q1783 (cron1/cron2) -- truncated Picard bound proof
+# Q1793 (cron1) -- direct `hA1_tail` route
 
 Repository: `xiangyazi24/Shen_work`  
 Committed branch: `chatgpt-scratch`  
@@ -9,223 +9,227 @@ Target report file: `scratch/_CHATGPT_DROP_cron1.md`
 The prompt was:
 
 ```text
-Q1783 (cron1): cron2 /tmp/q_cron2_bound.txt
+Q1793 (cron1): cron1 /tmp/q_cron1_direct.txt
 ```
 
-The local file `/tmp/q_cron2_bound.txt` is not accessible through the GitHub connector. I used the connector only and inferred the target from the current `cron2` files in the repository. I did **not** use Python, `/mnt/data`, the sandbox, or any sandbox link. I did not run Lean locally.
-
-The relevant file is:
+The local file `/tmp/q_cron1_direct.txt` is not accessible through the GitHub connector. I used the connector only and inferred the target from the current direct proof in:
 
 ```text
-ShenWork/Paper2/IntervalBFormCron2TruncatedPicard.lean
+ShenWork/Paper2/IntervalHeatResolverJointC2.lean
 ```
 
-The relevant bound lane is:
+I did **not** use Python, `/mnt/data`, the sandbox, or any sandbox link. I did not run Lean locally.
+
+## Target in the current file
+
+The direct proof is inside:
 
 ```lean
-truncatedConjugatePicardLimit_bounded
-TruncatedConjugateMildSolutionData.hbound
-truncatedConjugateMildSolution_exists_from_data
+private theorem cutoffResolverMajorant_bddAbove_direct
+```
+
+in the local tail proof:
+
+```lean
+have hA_global_bounds : ∀ i : ℕ, i ≤ 2 →
+    ∃ B_i : ℝ, ∀ t : ℝ, ‖iteratedFDeriv ℝ i A t‖ ≤ B_i := by
+  intro i hi
+  interval_cases i
+```
+
+The `i = 0` branch is mostly direct and uses an `L∞` bound. The current `i = 1` branch stops at:
+
+```lean
+have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
+    ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
+  -- A = φ * resolverTimeCoeff. Use 1D Leibniz: A' = φ'*R + φ*R'.
+  -- φ' bounded (resolverSmoothRightCutoffDerivBound_spec), R bounded (i=0 bound).
+  -- φ bounded (≤1), R' bounded (THIS is the hard part — needs eigenvalue damping).
+  -- For R' = resolverTimeCoeff': for t > c+1 > 0, srcTimeCoeff is C²
+  -- (heatLevel0_srcTimeCoeff_contDiffAt_two), so srcTimeCoeff' is continuous.
+  -- srcTimeCoeff'(t) = cosineCoeffs(srcSlice1(t), k) from d0 (HasDerivAt).
+  -- |cosineCoeffs(srcSlice1(t), k)| ≤ 2·‖srcSlice1(t)‖_∞
+  -- ‖srcSlice1(t)‖_∞ ≤ νγ·M_sup^{γ-1}·‖Δu(t)‖_∞
+  -- ‖Δu(t)‖_∞ ≤ M₀·(4/((c+1)²π²))·Σ(1/n²) from unitIntervalCosineHeatSecondPointWeight_abs_le
+  sorry
 ```
 
 ## Short answer
 
-For the bound on the truncated Picard limit, do **not** try to use uniform convergence. The clean proof is pointwise:
-
-1. Fix `t`, `0 < t`, `t ≤ T`, and `x`.
-2. Let `a n := truncatedConjugatePicardIter p u₀ n t x`.
-3. Use the geometric difference estimate to prove `a` is Cauchy.
-4. Extract `L` with `hL : Tendsto a atTop (nhds L)`.
-5. Unfold `truncatedConjugatePicardLimit`; it is `L` by `hL.limUnder_eq`.
-6. Transfer the uniform iterate ball bound through the limit using:
+The direct route is possible for `i = 1`, but the current file is missing one clean helper:
 
 ```lean
-le_of_tendsto (hL.abs) (Eventually.of_forall ...)
+∀ t, c + 1 < t →
+  ‖iteratedFDeriv ℝ 1 (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤ B
 ```
 
-This is exactly the right tool: a pointwise limit of values bounded by `M` is bounded by `M`.
-
-## Concrete proof of the limit bound
-
-If the local file has a sorry for this theorem, use this proof body:
+or equivalently a source-side positive-time-lower-bound estimate for:
 
 ```lean
-import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
-
-open Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
-open ShenWork.IntervalMildPicard
-
-noncomputable section
-
-namespace ShenWork.Paper2.BFormPositiveDatumNegPart
-
- theorem truncatedConjugatePicardLimit_bounded
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    {T K C₀ M : ℝ} (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
-    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-      |truncatedConjugatePicardIter p u₀ (n + 1) t x
-        - truncatedConjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀)
-    (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-      |truncatedConjugatePicardIter p u₀ n t x| ≤ M) :
-    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-      |truncatedConjugatePicardLimit p u₀ T t x| ≤ M := by
-  intro t ht htT x
-  unfold truncatedConjugatePicardLimit
-  simp only [ht, htT, and_self, ite_true]
-  set a := fun m => truncatedConjugatePicardIter p u₀ m t x
-  have hcauchy : CauchySeq a :=
-    real_cauchySeq_of_geometric_bound hK hK_nn hC₀
-      (fun n => hbound n t ht htT x)
-  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
-  rw [hL.limUnder_eq]
-  exact le_of_tendsto (hL.abs)
-    (Eventually.of_forall (fun n => hball n t ht htT x))
-
-end ShenWork.Paper2.BFormPositiveDatumNegPart
+|cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k|
 ```
 
-In the current repository, this theorem is already present in this form. If your local branch has a proof failure, the likely missing imports are the same imports already used by `IntervalBFormCron2TruncatedPicard.lean`, especially the `IntervalMildPicard` import for:
+The local proof should **not** manually expand all spectral estimates inside `hA1_tail`. Add a named helper, then the tail proof is short.
+
+## Direct helper to add
+
+Add a helper with this shape near the direct proof, after `heatLevel0_resolverTimeCoeff_contDiffAt_two` / source coefficient lemmas are available:
 
 ```lean
-real_cauchySeq_of_geometric_bound
-cauchySeq_tendsto_of_complete
+private theorem heatLevel0_resolverTimeCoeff_deriv_bound_on_tail
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
+    (hc : 0 < c)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (k : ℕ) :
+    ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
+      ‖iteratedFDeriv ℝ 1
+        (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤ B := by
+  -- Proof outline:
+  -- 1. rewrite resolverTimeCoeff = resolverWeight * srcTimeCoeff;
+  -- 2. use const-smul derivative transfer;
+  -- 3. identify srcTimeCoeff' with cosineCoeffs(srcSlice1(t), k);
+  -- 4. bound cosineCoeffs by a uniform sup norm;
+  -- 5. bound srcSlice1 = νγ u^(γ-1) heatDu on t ≥ c+1;
+  -- 6. bound heatDu by the second-spatial heat-series estimate with lower time c+1.
+  sorry
 ```
 
-## Concrete `hbound` field fill
+This helper is the true direct analytic payload for `i = 1`.
 
-Inside:
+## Replacement for the local `hA1_tail` after adding that helper
+
+Once the helper above exists, the local `hA1_tail` block becomes:
 
 ```lean
-def truncatedConjugateMildSolutionData_of_data
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (D : TruncatedConjugateMildExistenceData p u₀) :
-    TruncatedConjugateMildSolutionData p u₀ := by
-  ...
+        have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
+            ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
+          obtain ⟨BR, hBR⟩ :=
+            heatLevel0_resolverTimeCoeff_deriv_bound_on_tail
+              (p := p) (u₀ := u₀) (M₀ := M₀) (c := c)
+              hc hu₀_bound hu₀_cont hu₀_pos hfloor k
+          refine ⟨BR, fun t ht => ?_⟩
+          have hc'c : c / 2 < c := by linarith
+          have ht_c : c < t := by linarith
+          have hev : A =ᶠ[𝓝 t]
+              fun s : ℝ => resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
+            filter_upwards [Ioi_mem_nhds ht_c] with s hs
+            show smoothRightCutoff (c / 2) c s *
+                resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s =
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+            rw [smoothRightCutoff_eq_one_of_ge hc'c (le_of_lt hs)]
+            ring
+          rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 1).eq_of_nhds]
+          exact hBR t ht
 ```
 
-once you have:
+This part is mechanical: the cutoff is locally `1` on the tail, so `A'` is the raw resolver coefficient derivative.
+
+## What the helper must prove directly
+
+The hard helper should follow this chain.
+
+First, use the constant elliptic weight:
 
 ```lean
-  have hgeom := truncatedConjugatePicardIter_geometric p u₀ D.hK_nn hball
-    hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
+resolverTimeCoeff p u k t =
+  intervalNeumannResolverWeight p k * srcTimeCoeff p u k t
 ```
 
-fill the `hbound` field by:
+from:
 
 ```lean
-    hbound := truncatedConjugatePicardLimit_bounded p u₀ D.hK D.hK_nn D.hC₀
-      (fun n => hgeom n) hball
+resolverTimeCoeff_eq_weight_smul
 ```
 
-The complete structure tail should look like:
+Then identify the source derivative at positive time. The already used `heatSemigroup_d0` gives the local time derivative of `srcSlice`, so the coefficient derivative should be:
 
 ```lean
-  exact {
-    T := D.T
-    hT := D.hT
-    M := D.M
-    hM := D.hM
-    u := truncatedConjugatePicardLimit p u₀ D.T
-    hmild := truncatedConjugatePicardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn
-      D.hC₀ D.hM (fun n => hgeom n) hball hcont_iterates hcont_limit
-      hmeas_iterates hmeas_limit D.hcontr
-    hbound := truncatedConjugatePicardLimit_bounded p u₀ D.hK D.hK_nn D.hC₀
-      (fun n => hgeom n) hball
-    hcont := hcont_limit
-    hmeas := hmeas_limit
-  }
+deriv (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t =
+  cosineCoeffs
+    (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k
 ```
 
-## Why `hgeom` has the right type
+for `0 < t`. If this exact theorem is not public, add a local theorem modeled on the private `srcTimeCoeff_hasDerivAt` proof in `IntervalPhysicalSourceTimeC2Concrete.lean`.
 
-The bound theorem expects:
+Finally, bound the coefficient by sup norm:
 
 ```lean
-hbound : ∀ n t, 0 < t → t ≤ T → ∀ x,
-  |truncatedConjugatePicardIter p u₀ (n + 1) t x
-    - truncatedConjugatePicardIter p u₀ n t x| ≤ K ^ n * C₀
+|cosineCoeffs f k| ≤ 2 * C
 ```
 
-Inside `truncatedConjugateMildSolutionData_of_data`, `hgeom` has exactly this shape after it is defined as:
+where `|f x| ≤ C` on `[0,1]`. The repo already uses:
 
 ```lean
-  have hgeom := truncatedConjugatePicardIter_geometric p u₀ D.hK_nn hball
-    hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
+ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
 ```
 
-Therefore `(fun n => hgeom n)` is accepted as the first proof argument after `D.hC₀`.
+in the `i = 0` branch.
 
-## If Lean complains about `and_self`
-
-The line:
+For `f = srcSlice1 ... t`, use:
 
 ```lean
-simp only [ht, htT, and_self, ite_true]
+srcSlice1 p u heatDu t x =
+  p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * heatDu u₀ t x
 ```
 
-is intended to reduce:
+and, on `t ≥ c + 1`, combine:
+
+```text
+|intervalDomainLift (u t) x| ≤ M_sup
+|heatDu u₀ t x| ≤ CΔ(c,M₀)
+```
+
+The second estimate is where the existing spectral bound enters. The repo has:
 
 ```lean
-if 0 < t ∧ t ≤ T then ... else 0
+ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondPointWeight_abs_le
 ```
 
-If it does not fire in a slightly different local goal, replace it by:
+which bounds the second spatial heat weight by a reciprocal-square summand. Together with `hu₀_bound` and `reciprocalSquareTerm_summable`, this gives a uniform bound for `heatDu` on any tail `t ≥ c + 1`.
+
+## Why the current inline proof is too large
+
+Trying to prove all of this inside `hA1_tail` causes a huge local goal with:
+
+```text
+cutoff algebra
+resolver/source coefficient rewriting
+coefficient derivative identification
+source-slice sup bound
+heat Laplacian spectral summability
+```
+
+all mixed together. That is brittle. The direct route should isolate the real analytic statement as the helper above, then keep `hA1_tail` as a short cutoff-localization proof.
+
+## Alternative if directness is not required
+
+If the goal is simply to close the file robustly, the already packaged physical route is much shorter:
 
 ```lean
-have hwindow : 0 < t ∧ t ≤ T := ⟨ht, htT⟩
-simp only [hwindow, if_true]
+obtain ⟨Bt, Hphys⟩ :=
+  ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+    (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hu₀_pos
 ```
 
-or:
+then use:
 
 ```lean
-rw [if_pos ⟨ht, htT⟩]
+Hphys.coeff_bound 1 k t (by norm_num)
 ```
 
-immediately after unfolding `truncatedConjugatePicardLimit`.
-
-## If Lean complains about `le_of_tendsto`
-
-The intended final step is:
-
-```lean
-  exact le_of_tendsto (hL.abs)
-    (Eventually.of_forall (fun n => hball n t ht htT x))
-```
-
-Here:
-
-```lean
-hL.abs : Tendsto (fun n => |a n|) atTop (nhds |L|)
-```
-
-and:
-
-```lean
-Eventually.of_forall (fun n => hball n t ht htT x)
-```
-
-is the eventual bound `|a n| ≤ M`. If elaboration fails, spell out the function:
-
-```lean
-  have hlim_abs : Tendsto (fun n => |a n|) atTop (nhds |L|) := hL.abs
-  have hev_bound : ∀ᶠ n in atTop, |a n| ≤ M :=
-    Eventually.of_forall (fun n => hball n t ht htT x)
-  exact le_of_tendsto hlim_abs hev_bound
-```
+on the tail after rewriting `A` locally to the raw resolver coefficient. But that is no longer the fully direct proof advertised by `cutoffResolverMajorant_bddAbove_direct`.
 
 ## Bottom line
 
-The cron2 bound is a standard closed-ball-under-limit argument. The Picard iterates are already uniformly in the `M` ball, and the geometric estimate gives pointwise convergence. So the limit bound is just:
-
-```text
-bounded sequence + convergent sequence ⇒ bounded limit
-```
-
-formalized as:
+For the direct proof, the next correct step is **not** another local tactic patch. Add the named helper:
 
 ```lean
-le_of_tendsto (hL.abs) (Eventually.of_forall ...)
+heatLevel0_resolverTimeCoeff_deriv_bound_on_tail
 ```
+
+prove it from source derivative identification plus the heat-Laplacian spectral sup bound, and then the `hA1_tail` block is a short `EventuallyEq.iteratedFDeriv` rewrite followed by that helper.
