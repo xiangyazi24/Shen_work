@@ -880,7 +880,22 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               obtain ⟨Bpt, hBpt_nn, hBpt⟩ : ∃ Bpt : ℝ, 0 ≤ Bpt ∧
                   ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
                     |srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t x| ≤ Bpt := by
-                sorry -- L∞ + lower bound + rpow on [inf u₀, M_sup] + hDu ≤ CΔ
+                -- srcSlice1 = νγ * u^{γ-1} * heatDu
+                -- |srcSlice1| ≤ νγ * |u^{γ-1}| * CΔ
+                -- u ∈ [inf u₀, M_sup] → u^{γ-1} bounded on this interval
+                -- Use: continuous rpow on compact [inf u₀, M_sup] → bounded
+                haveI : CompactSpace intervalDomainPoint :=
+                  isCompact_iff_compactSpace.mp isCompact_Icc
+                haveI : Nonempty intervalDomainPoint :=
+                  ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
+                -- Upper bound M_s
+                obtain ⟨x_max, _, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
+                  Set.univ_nonempty (hu₀_cont.norm.continuousOn)
+                set M_s := ‖u₀ x_max‖
+                -- rpow bound: u^{γ-1} on (0, M_s] — use M_s^{|γ-1|} as crude bound
+                -- (valid since u ∈ (0, M_s] and rpow is monotone/antimonotone)
+                -- Bpt = νγ * max(1, M_s^{|γ-1|}) * CΔ — crude but correct
+                sorry
               refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
               set u := conjugatePicardIter p u₀ 0
