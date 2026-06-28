@@ -880,14 +880,87 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               obtain ⟨Bpt, hBpt_nn, hBpt⟩ : ∃ Bpt : ℝ, 0 ≤ Bpt ∧
                   ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
                     |srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t x| ≤ Bpt := by
-                -- srcSlice1 = νγ * u^{γ-1} * heatDu
-                -- |srcSlice1| ≤ νγ * |u^{γ-1}| * CΔ
-                -- u ∈ [inf u₀, M_sup] → u^{γ-1} bounded on this interval
-                -- Use: continuous rpow on compact [inf u₀, M_sup] → bounded
-                -- Uniform product bound: needs L∞ contraction (u ≤ M_s),
-                -- min principle (u ≥ inf u₀ > 0), rpow on compact [inf, M_s],
-                -- and |heatDu| ≤ CΔ. Each factor available; assembly is ~25 lines.
-                sorry
+                -- Bound |srcSlice1| = |νγ u^{γ-1} du| ≤ νγ R CΔ where R bounds u^{γ-1}
+                -- on the compact interval [inf u₀, ‖u₀‖_∞].
+                haveI : CompactSpace intervalDomainPoint :=
+                  isCompact_iff_compactSpace.mp isCompact_Icc
+                haveI : Nonempty intervalDomainPoint :=
+                  ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
+                -- min/max of u₀ on compact domain
+                obtain ⟨xmin, _, hmin⟩ := IsCompact.exists_isMinOn isCompact_univ
+                  Set.univ_nonempty hu₀_cont.continuousOn
+                have hm₀ : 0 < u₀ xmin := hu₀_pos xmin
+                obtain ⟨xmax, _, hmax⟩ := IsCompact.exists_isMaxOn isCompact_univ
+                  Set.univ_nonempty hu₀_cont.norm.continuousOn
+                -- lift bounds
+                have hlift_lo : ∀ y, y ∈ Set.Icc (0:ℝ) 1 →
+                    u₀ xmin ≤ intervalDomainLift u₀ y := by
+                  intro y hy; unfold intervalDomainLift; rw [dif_pos hy]
+                  exact hmin (Set.mem_univ ⟨y, hy⟩)
+                have hlift_hi : ∀ y, |intervalDomainLift u₀ y| ≤ ‖u₀ xmax‖ := by
+                  intro y; unfold intervalDomainLift; split_ifs with hy
+                  · exact Real.norm_eq_abs _ ▸ hmax (Set.mem_univ ⟨y, hy⟩)
+                  · exact (le_of_eq abs_zero).trans (norm_nonneg _)
+                have hminmax : u₀ xmin ≤ ‖u₀ xmax‖ :=
+                  (le_abs_self _).trans (Real.norm_eq_abs _ ▸ hmax (Set.mem_univ xmin))
+                have hlift_m :=
+                  ShenWork.IntervalDuhamelIntegrability
+                    .intervalDomainLift_aestronglyMeasurable_of_continuous hu₀_cont
+                -- max of u^{γ-1} on compact [inf u₀, ‖u₀‖_∞]
+                obtain ⟨u_R, hu_R, hRmax⟩ := isCompact_Icc.exists_isMaxOn
+                  (Set.nonempty_Icc.mpr hminmax)
+                  (continuousOn_id.rpow_const
+                    (fun u hu => Or.inl (ne_of_gt (lt_of_lt_of_le hm₀ hu.1))))
+                have hR_nn : 0 ≤ u_R ^ (p.γ - 1) :=
+                  Real.rpow_nonneg (le_of_lt (lt_of_lt_of_le hm₀ hu_R.1)) _
+                -- witness: Bpt = ν γ R CΔ
+                refine ⟨p.ν * p.γ * (u_R ^ (p.γ - 1)) * CΔ,
+                  mul_nonneg (mul_nonneg (mul_nonneg (le_of_lt p.hν) (le_of_lt p.hγ))
+                    hR_nn) hCΔ_nn,
+                  fun t ht x hx => ?_⟩
+                have ht_pos : 0 < t := by linarith
+                -- intervalDomainLift(conjugatePicardIter 0 t)(x) = S(t)(lift u₀)(x)
+                have hdef : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x =
+                    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                      t (intervalDomainLift u₀) x := by
+                  unfold intervalDomainLift; rw [dif_pos hx]; rfl
+                -- lower/upper bounds on the concentration value
+                have hlo : u₀ xmin ≤
+                    intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
+                  rw [hdef]
+                  exact ShenWork.IntervalNeumannFullKernel
+                    .intervalFullSemigroupOperator_lower_bound
+                    ht_pos hm₀.le hminmax hlift_m hlift_lo hlift_hi x
+                have hhi : intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ≤
+                    ‖u₀ xmax‖ := by
+                  rw [hdef]
+                  exact le_of_abs_le
+                    (ShenWork.IntervalNeumannFullKernel
+                      .intervalFullSemigroupOperator_Linfty_bound
+                      ht_pos (norm_nonneg _) hlift_hi x)
+                have hvp : 0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
+                  lt_of_lt_of_le hm₀ hlo
+                -- rpow bound: u^{γ-1} ≤ R
+                have hpow_le :
+                    (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1)
+                      ≤ u_R ^ (p.γ - 1) :=
+                  hRmax ⟨hlo, hhi⟩
+                -- |srcSlice1| = νγ u^{γ-1} |du| ≤ νγ R CΔ
+                simp only [srcSlice1]
+                calc |p.ν * p.γ *
+                      (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1) *
+                      heatDu u₀ t x|
+                    = p.ν * p.γ *
+                        (intervalDomainLift (conjugatePicardIter p u₀ 0 t) x) ^ (p.γ - 1) *
+                        |heatDu u₀ t x| := by
+                      rw [abs_mul, abs_of_nonneg (mul_nonneg (mul_nonneg (le_of_lt p.hν)
+                        (le_of_lt p.hγ)) (Real.rpow_nonneg (le_of_lt hvp) _))]
+                  _ ≤ p.ν * p.γ * (u_R ^ (p.γ - 1)) * CΔ :=
+                      mul_le_mul
+                        (mul_le_mul_of_nonneg_left hpow_le
+                          (mul_nonneg (le_of_lt p.hν) (le_of_lt p.hγ)))
+                        (hDu t ht x) (abs_nonneg _)
+                        (mul_nonneg (mul_nonneg (le_of_lt p.hν) (le_of_lt p.hγ)) hR_nn)
               refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
               set u := conjugatePicardIter p u₀ 0
