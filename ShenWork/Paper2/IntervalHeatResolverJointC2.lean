@@ -670,7 +670,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             exact (hB_tail t ht_mid).trans (le_max_right _ B_tail)
       · -- i = 1: same compact+tail split as i=0
         have hA1_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 1 A t) :=
-          hAC2.continuous_iteratedFDeriv (by norm_num : (1 : ℕ∞) ≤ 2)
+          hAC2.continuous_iteratedFDeriv (by exact_mod_cast (by norm_num : (1 : ℕ) ≤ 2))
         obtain ⟨B1_compact, hB1_compact⟩ :=
           (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
             hA1_cont.continuousOn
@@ -698,7 +698,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             exact (hB1_tail t ht_mid).trans (le_max_right _ _)
       · -- i = 2: same compact+tail split
         have hA2_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 2 A t) :=
-          hAC2.continuous_iteratedFDeriv (by norm_num : (2 : ℕ∞) ≤ 2)
+          hAC2.continuous_iteratedFDeriv (by exact_mod_cast (by norm_num : (2 : ℕ) ≤ 2))
         obtain ⟨B2_compact, hB2_compact⟩ :=
           (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
             hA2_cont.continuousOn
