@@ -859,8 +859,14 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                           hu₀_bound n
                         calc _ ≤ unitIntervalCosineEigenvalue n *
                                   Real.exp (-t * unitIntervalCosineEigenvalue n) * M₀ := by
-                              gcongr
-                            _ ≤ _ := by gcongr
+                              exact mul_le_mul
+                                (mul_le_mul_of_nonneg_left hpw_le heig_nn) hc_le
+                                (abs_nonneg _)
+                                (mul_nonneg heig_nn (Real.exp_nonneg _))
+                            _ ≤ _ := by
+                              exact mul_le_mul_of_nonneg_right
+                                (mul_le_mul_of_nonneg_left hexp_le heig_nn)
+                                (le_trans (abs_nonneg _) hc_le)
                     _ = M₀ * (unitIntervalCosineEigenvalue n *
                           Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) := by ring
                 · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
