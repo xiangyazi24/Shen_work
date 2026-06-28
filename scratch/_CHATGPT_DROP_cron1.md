@@ -1,262 +1,311 @@
-# Q1575 (cron1) -- can old heat resolver theorem delegate to direct route?
+# Q1586 (cron1) -- which 39-sorry files are on the headline/FAC critical path?
 
 Repository: `xiangyazi24/Shen_work`  
 Branch committed: `chatgpt-scratch`  
 Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
-## Note on inspection branch
+## Method / caveat
 
-The delivery target is `chatgpt-scratch`.  The connector could not fetch
+Connector-only inspection.  I did not run Lean locally and did not use Python/sandbox.
+
+I used GitHub code search and `fetch_file` on the default/indexed repo.  The scratch file is committed to `chatgpt-scratch`, as requested.  The connector does not expose a full transitive import graph command, so the dependency verdict below is based on:
+
+* the direct imports of the candidate headline files;
+* GitHub search hits for each of the 7 suspicious file/module names;
+* inspection of the import lists of intermediate files where relevant.
+
+## What is the headline theorem?
+
+There is no obvious `main_theorem` name in the searched code.  The paper-level headline Prop is:
+
+```lean
+Theorem_1_1 intervalDomain p
+```
+
+The named closers are branch-specific.
+
+### χ₀ = 0 unconditional closer
+
+File:
 
 ```text
-ShenWork/Paper2/IntervalHeatResolverJointC2.lean
+ShenWork/Paper2/IntervalDomainTheorem11ChiZeroUnconditional.lean
 ```
 
-from `chatgpt-scratch`, so I inspected the indexed/default repo files.  The analysis below is therefore about the current/default code surface returned by GitHub search.  The scratch answer itself is committed to `chatgpt-scratch` as requested.
-
-## Executive answer
-
-At the type/signature level: **yes**, the old route theorem
+Headline theorem:
 
 ```lean
-HeatResolverJointRegularity.heatResolverJointContDiffAt_two
+theorem intervalDomain_theorem_1_1_chiZero_unconditional
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Theorem_1_1 intervalDomain p :=
 ```
 
-can be proved by delegating to the direct theorem
+This is explicitly documented as “Paper 2 Theorem 1.1 on the interval domain, unconditionally for χ₀ = 0.”
+
+Direct imports:
 
 ```lean
-HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
+import ShenWork.Paper2.IntervalDomainChiZeroUnconditionalLocalExistence
+import ShenWork.Paper2.IntervalDomainThm11Assembly
 ```
 
-because the old theorem has all inputs needed to manufacture the direct theorem's extra `hfloor` hypothesis:
+### χ₀ < 0 conditional / frontier closer
 
-```lean
-hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
-  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
-```
-
-from `hu₀_cont` and `hu₀_pos`, using
-
-```lean
-HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
-```
-
-and the old theorem already carries `hc : 0 < c`, `hs₀ : c < s₀`, and `hx₀ : x₀ ∈ Ioo 0 1`.
-
-But there are two important caveats.
-
-1. **Import cycle:** currently `IntervalHeatResolverJointC2.lean` imports `IntervalHeatSemigroupHighRegularity.lean`.  Therefore `IntervalHeatSemigroupHighRegularity.lean` cannot simply import the direct file and delegate to it without creating a cycle.
-
-2. **Current direct file still depends on the old physical route in the fetched code.**  In the fetched current/default file, the direct majorant and gradient proof extract
-
-```lean
-HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-```
-
-from the old route.  So if that is still true in the branch being built, then delegating the old theorem to the direct theorem would be circular and would not remove the old-route sorry burden.  If the new 0-sorry direct route has been refactored to avoid this dependency, then the wrapper below is the right replacement after resolving the import placement.
-
-## Exact signatures
-
-### Direct theorem
-
-Current/default `IntervalHeatResolverJointC2.lean` has:
-
-```lean
-theorem heatResolver_jointContDiffAt_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
-    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift (coupledChemicalConcentration p
-            (conjugatePicardIter p u₀ 0) q.1) q.2)
-        (s₀, x₀)
-```
-
-### Old theorem
-
-Current/default `IntervalHeatSemigroupHighRegularity.lean` has:
-
-```lean
-theorem heatResolverJointContDiffAt_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    {c : ℝ} (_hc : 0 < c) {s₀ x₀ : ℝ} (_hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      intervalDomainLift (coupledChemicalConcentration p
-        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀)
-```
-
-So the conclusions match exactly, and the old route has enough inputs to call the direct theorem.
-
-## Concrete wrapper proof
-
-If the import cycle is solved, the old theorem can be replaced by:
-
-```lean
-import ShenWork.Paper2.IntervalHeatResolverJointC2
-
-namespace ShenWork.Paper2.HeatResolverJointRegularity
-
-open Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-
-/-- Old route theorem delegated to the direct cutoff resolver theorem. -/
-theorem heatResolverJointContDiffAt_two_directWrapper
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
-    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
-      intervalDomainLift (coupledChemicalConcentration p
-        (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
-  have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
-    intro t ht x hx
-    exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
-      (p := p) hu₀_cont hu₀_pos ht hx
-  exact ShenWork.Paper2.HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
-    (p := p) (u₀ := u₀) (M₀ := M₀)
-    hu₀_bound hu₀_cont hu₀_pos hfloor hc hs₀ hx₀
-
-end ShenWork.Paper2.HeatResolverJointRegularity
-```
-
-To use this as the actual old theorem body, put the body in a place where the direct theorem is already available without import cycle.  Do **not** add
-
-```lean
-import ShenWork.Paper2.IntervalHeatResolverJointC2
-```
-
-at the top of `IntervalHeatSemigroupHighRegularity.lean` while `IntervalHeatResolverJointC2.lean` imports `IntervalHeatSemigroupHighRegularity.lean`.
-
-## How to resolve the import-cycle issue
-
-There are three workable approaches.
-
-### Option A: move the old wrapper out of the old file
-
-Create a new downstream adapter file, for example:
+File:
 
 ```text
-ShenWork/Paper2/IntervalHeatResolverJointC2Adapter.lean
+ShenWork/Wiener/EWA/SourceChiNegTheorem11.lean
 ```
 
-that imports both files and proves a new name, e.g.
+Headline theorem:
 
 ```lean
-heatResolverJointContDiffAt_two_of_direct
+theorem chiNeg_theorem_1_1 (p : CM2Params) (hchi : p.χ₀ < 0)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hU : ChiNegDatumUniformConstruction p) :
+    Theorem_1_1 intervalDomain p :=
 ```
 
-This avoids cycles, but it does not replace callers that refer to the old exact theorem name.
-
-### Option B: move the direct theorem lower
-
-Split the direct route into a lower file that does **not** import `IntervalHeatSemigroupHighRegularity.lean`.  Then `IntervalHeatSemigroupHighRegularity.lean` can import that lower direct file and define the old theorem by delegation.
-
-This is the clean replacement if callers must keep the exact old theorem name.
-
-### Option C: stop using the old theorem name
-
-If the FAC chain does not actually call `heatResolverJointContDiffAt_two`, update the relevant Level0/FAC caller to import and use the direct theorem directly, or better, use a direct package that provides both value and gradient C² fields.
-
-## Important caveat: the fetched direct theorem is not independent yet
-
-In the fetched current/default `IntervalHeatResolverJointC2.lean`, the majorant and gradient still depend on old-route `PhysicalResolverJointC2Data`:
+This file states that it reduces the χ₀<0 headline to one named analytic obligation:
 
 ```lean
-obtain ⟨Bt, hBt⟩ :=
-  ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu₀_bound hu₀_cont hu₀_pos
+ChiNegDatumUniformConstruction p
 ```
 
-This appears in `cutoffResolverMajorant_summable` and `cutoffResolverTerm_iteratedFDeriv_bound`.  The gradient theorem also ends by applying
+Direct imports:
 
 ```lean
-ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two hBt hx₀
+import ShenWork.Wiener.EWA.SourceReducedCore
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidual
 ```
 
-after extracting the same old-route data.
+### Older / residual χ₀ < 0 closer
 
-Therefore, under the fetched code, delegating old theorem to direct theorem would be circular.  It only becomes a real solution if the new 0-sorry direct route has removed this dependency and proves both value and gradient from cutoff/`contDiff_tsum` directly.
+File:
 
-## Does the FAC chain actually need `heatResolverJointContDiffAt_two`?
+```text
+ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean
+```
 
-I do **not** see direct code-search consumers of the old theorem name outside `IntervalHeatSemigroupHighRegularity.lean` and documentation.
-
-The actual FAC/resolver C² chain has two main surfaces.
-
-### Physical resolver route
-
-`IntervalChemDivFACCommuteDischarge.lean` uses `PhysicalResolverJointC2Data` and then calls:
+Theorem:
 
 ```lean
-coupledChemical_jointContDiffAt_two H hy
-coupledChemical_grad_jointContDiffAt_two H hy
+theorem theorem_1_1_intervalDomain_chiNeg_of_coupledFluxClassicalLocalExistenceResidual
+    (p : CM2Params) (hchi_neg : p.χ₀ < 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (_halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ)
+    (hExist : CoupledFluxClassicalLocalExistenceResidual p) :
+    Theorem_1_1 intervalDomain p :=
 ```
 
-So this route needs a `PhysicalResolverJointC2Data` package, not the old standalone `heatResolverJointContDiffAt_two` theorem.
+This is also a conditional closer; the open input is the classical local-existence residual.
 
-### Spectral C2 data route
-
-`IntervalChemDivFluxFactorFAC.lean` uses:
+Direct imports:
 
 ```lean
-coupledChemicalConcentration_resolver_jointC2At_c2Data
+import ShenWork.Paper2.IntervalDomainRestartLocalWiring
+import ShenWork.Paper2.IntervalLemma31Closure
+import ShenWork.PDE.IntervalLogisticLipschitz
+import ShenWork.PDE.IntervalNeumannEllipticResolverR
 ```
 
-from `IntervalCoupledResolverJointC2.lean`, taking a `ResolverHasSpectralAgreementC2Coeff` package and a local spectral-series producer.  This route also does not call the old standalone theorem by name.
+## Which of the 7 files are on the Paper 2 headline theorem import path?
 
-So the FAC chain generally needs **both value and gradient C²** at the resolver, supplied either by:
+For the two named paper-level headline files above:
+
+```text
+ShenWork/Paper2/IntervalDomainTheorem11ChiZeroUnconditional.lean
+ShenWork/Wiener/EWA/SourceChiNegTheorem11.lean
+```
+
+I found **no evidence that any of the 7 listed files are imported directly by the headline file**.
+
+More importantly, code search shows several of the 7 are not imported by any headline-chain file at all; they are root-build/working-front modules.
+
+### Summary table
+
+| file with sorries | imported by Paper 2 headline closer? | evidence / notes |
+|---|---:|---|
+| `IntervalLevel0HeatMixedRepr.lean` | No | Search for the module name only found `ShenWork.lean`, i.e. root build closure, not headline. |
+| `IntervalConjugateLevel0BFormSourceOn.lean` | No direct paper-headline import | Imported by `IntervalConjugateBFormSourceTower.lean`; the tower itself is not imported by the headline closers. |
+| `IntervalHeatSemigroupHighRegularity.lean` | No direct paper-headline import | Imported by old/direct working-front files (`IntervalLevel0HeatMixedRepr`, `IntervalHeatResolverDirectJointC2`, `IntervalHeatResolverJointC2`, `IntervalConjugateLevel0BFormSourceOn`), not by the named headline files. |
+| `IntervalConjugateBFormSourceTower.lean` | No | Search hit only itself + docs; no headline-chain importer found. |
+| `IntervalResolverLevel0SpectralC2Coeff.lean` | No | Search hit only `ShenWork.lean` for module import; it is a root-closure / working-front module. |
+| `IntervalHeatResolverDirectJointC2.lean` | No | Search hit only itself for the module name; not imported by the paper headline closers. |
+| `IntervalPhysicalSourceTimeC2Concrete.lean` | Not by paper headline closer; yes by FAC subheadline/working-front files | Imported by `IntervalFlooredSourceTimeDataIterate`, `IntervalHeatResolverJointC2`, `IntervalResolverLevel0SpectralC2Coeff`, `IntervalHeatSemigroupHighRegularity`, `IntervalHeatSemigroupFlooredSourceTimeData`, `IntervalChemDivWinDischarge`, and root `ShenWork.lean`. |
+
+## Why the 39 sorry files are probably not on the current paper-headline critical path
+
+The current χ₀<0 headline file `SourceChiNegTheorem11.lean` does **not** attempt to discharge the FAC source-regularity chain directly.  Instead, it packages the whole analytic frontier as:
 
 ```lean
-coupledChemical_jointContDiffAt_two / coupledChemical_grad_jointContDiffAt_two
+def ChiNegDatumUniformConstruction (p : CM2Params) : Prop := ...
 ```
 
-from `PhysicalResolverJointC2Data`, or by
+and proves:
 
 ```lean
-coupledChemicalConcentration_resolver_jointC2At_c2Data
+theorem chiNeg_theorem_1_1 ...
+    (hU : ChiNegDatumUniformConstruction p) :
+    Theorem_1_1 intervalDomain p := ...
 ```
 
-from a spectral C2 package.
+So the paper-level theorem is conditional on a single packaged construction.  The FAC/source-regularity files are not imported as the proof of that construction; the construction is an assumed Prop.
 
-A standalone value-only theorem `heatResolverJointContDiffAt_two` is not enough for the full FAC fields unless paired with the gradient theorem.
-
-## Recommendation
-
-If the new direct route is truly independent and axiom-clean:
-
-1. Keep `IntervalHeatResolverJointC2.lean` as the direct value+gradient provider.
-2. Add a small Level0-specific FAC adapter that uses:
+Similarly, `IntervalDomainThm11ChiNegResidual.lean` proves a conditional theorem from:
 
 ```lean
-HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
-HeatResolverJointC2Direct.heatResolver_grad_jointContDiffAt_two
+CoupledFluxClassicalLocalExistenceResidual p
 ```
 
-for the `hv_c2` and `hgradv_c2` FAC fields.
+It does not import the 7 FAC/direct-route files either.
 
-3. Do not try to route through `PhysicalResolverJointC2Data` unless you also want to discharge the old source-time-C² / `FlooredSourceTimeData` chain.
+## What is the FAC subheadline?
 
-If callers require the exact old name `HeatResolverJointRegularity.heatResolverJointContDiffAt_two`, first break the import cycle by moving the direct theorem to a lower file, then replace the old theorem body with the wrapper above.
+If by “headline FAC theorem” you mean the chem-div/FAC source regularity subpipeline, the relevant file is not the paper-level theorem file.  It is closer to:
 
-## Final verdict
+```text
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+```
 
-* Typewise, old `heatResolverJointContDiffAt_two` can delegate to direct `heatResolver_jointContDiffAt_two`; `hfloor` is derivable from `hu₀_cont + hu₀_pos`.
-* Filewise, direct import currently points from direct file to old file, so old file cannot import direct without a cycle.
-* In the fetched code, direct theorem still depends on old physical-route data in majorant/gradient pieces; if still true, delegation is circular and not a real fix.
-* FAC does not appear to need the old theorem name directly. It needs resolver value+gradient C², usually through `PhysicalResolverJointC2Data` or `ResolverHasSpectralAgreementC2Coeff`; a Level0 direct adapter using both direct theorems is the cleanest way to bypass the old route.
+Important objects there:
+
+```lean
+structure ChemDivSolutionRegularityResidual
+```
+
+```lean
+theorem fluxJointC2Hyp_of_residual
+```
+
+```lean
+noncomputable def coupledChemDivSource_duhamelSourceTimeC1_of_residual
+```
+
+```lean
+noncomputable def coupledChemDivSource_timeC1On_window_of_gradientSolution
+```
+
+This file is a FAC/source-time-C¹ discharge from an explicit residual bundle.  It imports:
+
+```lean
+import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
+import ShenWork.PDE.IntervalChemDivTimeDerivative
+import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
+import ShenWork.Paper2.IntervalMildPicard
+```
+
+Through `IntervalFlooredSourceTimeDataIterate`, it reaches:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+So for this **FAC subheadline**, among the 7 listed files, the clearly imported/critical file is:
+
+```text
+IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+The other 6 listed files are not imported by `IntervalChemDivWinDischarge.lean` according to the searched module references.
+
+## Critical-path verdict by target
+
+### Target A: actual Paper 2 headline theorem (`Theorem_1_1 intervalDomain p`)
+
+The named theorem files are:
+
+```text
+IntervalDomainTheorem11ChiZeroUnconditional.lean
+SourceChiNegTheorem11.lean
+IntervalDomainThm11ChiNegResidual.lean
+```
+
+For these theorem files, the 7 listed 39-sorry files are **not on the active import path**.  They are working-front/root-closure files, not required by the current conditional headline closers.
+
+### Target B: FAC/source-time-C¹ discharge subheadline
+
+The relevant file is:
+
+```text
+IntervalChemDivWinDischarge.lean
+```
+
+Among the 7 listed files, the only one clearly on this FAC subheadline path is:
+
+```text
+IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+This is because `ChemDivSolutionRegularityResidual.hval/hgrad` explicitly uses:
+
+```lean
+IntervalPhysicalSourceTimeC2Concrete.builtEs
+```
+
+and `fluxJointC2Hyp_of_residual` calls:
+
+```lean
+IntervalFlooredSourceTimeDataIterate.coupledChemDivFluxFactorJointC2Inputs_of_iterate
+```
+
+which goes through the physical source/resolver route.
+
+### Target C: old/direct heat-Level0 resolver route
+
+If the target is specifically the old/direct Level0 resolver C² route, then these files are relevant:
+
+```text
+IntervalHeatSemigroupHighRegularity.lean
+IntervalHeatResolverDirectJointC2.lean
+IntervalHeatResolverJointC2.lean
+IntervalResolverLevel0SpectralC2Coeff.lean
+IntervalLevel0HeatMixedRepr.lean
+```
+
+But that is **not** the current paper headline theorem.  It is a working-front / alternate resolver-C² route.
+
+## Recommended action
+
+Do not measure criticality from `ShenWork.lean`.  `ShenWork.lean` imports many “working-front modules added to the build closure,” so it makes orphan files look headline-critical when they are not.
+
+For paper-headline triage, use the theorem file import roots:
+
+```text
+ShenWork/Paper2/IntervalDomainTheorem11ChiZeroUnconditional.lean
+ShenWork/Wiener/EWA/SourceChiNegTheorem11.lean
+ShenWork/Paper2/IntervalDomainThm11ChiNegResidual.lean
+```
+
+Under that criterion, the 39 sorries in the 7 listed files are **not on the current paper-headline critical path**.
+
+For FAC-subheadline triage, use:
+
+```text
+ShenWork/Paper2/IntervalChemDivWinDischarge.lean
+```
+
+Under that criterion, the critical file among the 7 is:
+
+```text
+ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
+```
+
+The remaining six are on old/direct/Level0 working fronts unless a separate theorem file imports them explicitly.
+
+## Final answer
+
+The top-level theorem the paper claims is not named `main_theorem`; in this repo the Paper 2 headline is the Prop-valued conclusion:
+
+```lean
+Theorem_1_1 intervalDomain p
+```
+
+with named closers:
+
+```lean
+intervalDomain_theorem_1_1_chiZero_unconditional
+chiNeg_theorem_1_1
+```
+
+The 39 sorries across the 7 listed files are **not** on the active import path of those paper-level headline closers.  They are mainly FAC/direct-route working-front files.  If the target is the FAC/source-time-C¹ subheadline rather than the paper theorem, then `IntervalPhysicalSourceTimeC2Concrete.lean` is the one clearly on that subheadline path; the other six are not imported by that FAC discharge file.
