@@ -1,4 +1,4 @@
-# Q1705 (cron1) -- `srcSlice` / `srcTimeCoeff` positive-time obstruction
+# Q1716 (cron1) -- Laplacian / `laplBound` obstruction
 
 Repository: `xiangyazi24/Shen_work`  
 Committed branch: `chatgpt-scratch`  
@@ -9,279 +9,221 @@ Target report file: `scratch/_CHATGPT_DROP_cron1.md`
 The prompt I received was only:
 
 ```text
-Q1705 (cron1): cron1 /tmp/q_cron1_srcslice.txt
+Q1716 (cron1): cron1 /tmp/q_cron1_laplacian.txt
 ```
 
-The local file `/tmp/q_cron1_srcslice.txt` is not accessible through the GitHub connector. I used the connector only and inferred the target from the current `cron1` source-side C² thread in the repository. I did **not** use Python, the sandbox, `/mnt/data`, or a sandbox download link. I did not run Lean locally.
+The local file `/tmp/q_cron1_laplacian.txt` is not accessible through the GitHub connector. I used the connector only and inferred the target from the current `cron1` source-side Laplacian/envelope thread in the repository. I did **not** use Python, the sandbox, `/mnt/data`, or a sandbox download link. I did not run Lean locally.
 
 The relevant files are:
 
 ```text
 ShenWork/PDE/IntervalPhysicalSourceTimeC2Concrete.lean
-ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+ShenWork/PDE/IntervalCosineCoeffDecay.lean
+ShenWork/PDE/IntervalMildSourceDecayHelper.lean
 ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
 ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
-ShenWork/Paper2/IntervalConjugatePicard.lean
-ShenWork/PDE/IntervalNeumannFullKernel.lean
-ShenWork/PDE/HeatSemigroup.lean
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
+ShenWork/Paper2/IntervalMildPicardRegularity.lean
 ```
 
 ## Short answer
 
-The `srcSlice` definition itself is fine:
+The fixed-time Laplacian/IBP step is already essentially present. The current global `hlaplBound` obligation is the problem.
 
-```lean
-def srcSlice (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
-  p.ν * intervalDomainLift (u t) x ^ p.γ
+At fixed positive time, this route works:
+
+```text
+sliceC2 + sliceNeumann
+→ IntervalWeakH2Neumann
+→ intervalWeakH2Neumann_cosineCoeff_quadratic_decay
+→ |cosineCoeffs slice_t k| ≤ C_t / (kπ)^2, k ≥ 1
 ```
 
-and the committed bridge is:
+But the `FlooredSourceTimeData.laplBound` field asks for one constant `M` that works for **all** positive times:
 
 ```lean
-theorem srcTimeCoeff_eq_cosineCoeffs
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (k : ℕ) (t : ℝ) :
-    srcTimeCoeff p u k t = cosineCoeffs (srcSlice p u t) k
+laplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧
+  ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤
+      M / ((k:ℝ) * Real.pi) ^ 2
 ```
 
-The obstruction is not `srcSlice`; it is a quantifier mismatch.
+That is not a local Laplacian coefficient estimate. It is a uniform-in-`t>0` spatial `C²` envelope. For heat level 0 with only bounded/continuous positive initial data, that uniform envelope is generally false as `t ↓ 0`.
 
-`FlooredSourceTimeData` now carries only **positive-time** information:
+## Where the current sorry sits
+
+In `IntervalHeatSemigroupHighRegularity.lean`, the construction of physical resolver data has:
 
 ```lean
-sliceC2      : ∀ i ≤ 2, ∀ t, 0 < t → ...
-sliceNeumann : ∀ i ≤ 2, ∀ t, 0 < t → ...
-zerothBound  : ∀ i ≤ 2, ∃ D, 0 ≤ D ∧ ∀ t, 0 < t → ...
-laplBound    : ∀ i ≤ 2, ∃ M, 0 ≤ M ∧ ∀ t, 0 < t → ...
+have hFSTD :=
+  ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_flooredSourceTimeData
+    hu₀_bound hu₀_cont (p := p)
+    (hfloor := by
+      intro t ht x hx
+      exact ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+        hu₀_cont hu₀_pos ht hx)
+    (hsliceC2 := by intro i hi t ht; sorry)
+    (hsliceNeumann := by intro i hi t ht; sorry)
+    (hzerothBound := by intro i hi; sorry)
+    (hlaplBound := by intro i hi; sorry)
 ```
 
-but `PhysicalSourceTimeC2` still asks for **global-in-time** data:
+The `hlaplBound` subgoal after `intro i hi` is:
 
 ```lean
-src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
-src_bound    : ∀ i k t, i ≤ 2 →
-  ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
+∃ M : ℝ, 0 ≤ M ∧ ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
+  |cosineCoeffs ((sliceFam (srcSlice p (conjugatePicardIter p u₀ 0))
+    (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
+    (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀)) i) t) k|
+  ≤ M / ((k : ℝ) * Real.pi) ^ 2
 ```
 
-So `physicalSourceTimeC2_of_floored` cannot honestly close its current `src_contDiff` and `src_bound` fields from `FlooredSourceTimeData` as stated.
+That is a single global envelope over all `t > 0`.
 
-## The key point about `t ≤ 0`
+## What the existing Laplacian API gives
 
-For the **heat level-0 iterate** only,
+`IntervalCosineCoeffDecay.lean` contains the raw fixed-function ingredients:
 
 ```lean
-conjugatePicardIter p u₀ 0 t x
+theorem exists_laplacianCoeff_bound
+    {f : ℝ → ℝ} (hf : ContDiffOn ℝ 2 f (Set.Icc (0 : ℝ) 1)) :
+    ∃ M : ℝ, 0 ≤ M ∧ ∀ n : ℕ,
+      |∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * deriv (deriv f) x| ≤ M
 ```
 
-unfolds to:
+and:
 
 ```lean
-intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+theorem cosineCoeff_decay
+    {f : ℝ → ℝ} (hf : ContDiffOn ℝ 2 f (Set.Icc (0 : ℝ) 1))
+    (htend0 : Filter.Tendsto (deriv f) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (htend1 : Filter.Tendsto (deriv f) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
+    (hbc0 : deriv f 0 = 0) (hbc1 : deriv f 1 = 0)
+    {M : ℝ} (hMnonneg : 0 ≤ M)
+    (hMbound : ∀ n : ℕ,
+      |∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * deriv (deriv f) x| ≤ M)
+    {n : ℕ} (hn : 1 ≤ n) :
+    |∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x| ≤
+      M / ((n : ℝ) * Real.pi) ^ 2
 ```
 
-The heat kernel is defined without an `if 0 < t` guard:
+However, this is for a fixed `f`. The constant `M` comes from the fixed slice's second derivative, so if `f = slice_i t`, this produces `M_t`, not a single `M` for all positive `t`.
+
+There is also a more directly useful normalized-coefficient wrapper in `IntervalMildSourceDecayHelper.lean`:
 
 ```lean
-def heatKernel (t : ℝ) (x : ℝ) : ℝ :=
-  1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t))
+theorem intervalWeakH2Neumann_cosineCoeff_quadratic_decay
+    {f : ℝ → ℝ} (hf : IntervalWeakH2Neumann f) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ C / ((k : ℝ) * Real.pi) ^ 2
 ```
 
-In Lean, for `t ≤ 0`, the factor `Real.sqrt (4 * Real.pi * t)` is `0`; hence `1 / 0 = 0`, so the whole `heatKernel t x` term reduces to `0`. Therefore, for the heat level-0 iterate, one can prove:
+This theorem already accounts for the normalization of `cosineCoeffs`; for `k ≥ 1`, normalized coefficients carry the factor `2` relative to the raw integral. So prefer this wrapper rather than manually using `cosineCoeff_decay` unless you specifically need the raw integral theorem.
 
-```lean
-intervalFullSemigroupOperator t (intervalDomainLift u₀) x = 0
-```
+## Fixed-time lemma that should compile with minor namespace adjustments
 
-for `t ≤ 0`, and consequently:
-
-```lean
-srcSlice p (conjugatePicardIter p u₀ 0) t x = 0
-srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t = 0
-```
-
-for `t ≤ 0`, using `p.hγ : 0 < p.γ` to rewrite `0 ^ p.γ = 0`.
-
-But this does **not** solve `src_contDiff : ContDiff ℝ 2 ...` globally. At `t = 0`, the heat level-0 extension is generally discontinuous: from the left it is zero, while from the right it tends to the initial datum `u₀` (and hence the source tends to `ν·u₀^γ`). Unless `u₀` is specially zero, global `ContDiff` across `0` is false.
-
-So:
-
-* For `t < 0`, the source coefficient is locally zero, so derivative bounds are mechanical.
-* For `t > 0`, the existing `srcTimeCoeff_bound H i k t hi ht` applies.
-* At `t = 0`, global `ContDiff` is the real obstruction.
-* For **abstract** `u`, even the `t ≤ 0` zero fact is unavailable; it only holds after specializing to `u = conjugatePicardIter p u₀ 0`.
-
-## Nonpositive-time helper lemmas for heat level 0
-
-These are the helper lemmas I would add only if you specifically need to reason about the nonpositive half-line for the level-0 heat iterate. They are **not** enough to prove the current global `PhysicalSourceTimeC2`, but they explain the `srcSlice` behavior.
+This is the right local bridge from the current `sliceC2` and `sliceNeumann` fields to fixed-time coefficient decay:
 
 ```lean
 import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.PDE.IntervalNeumannFullKernel
-import ShenWork.Paper2.IntervalConjugatePicard
+import ShenWork.PDE.IntervalMildSourceDecayHelper
+import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 
 open Filter Topology Set MeasureTheory
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel
-  (cosineCoeffs intervalNeumannFullKernel intervalFullSemigroupOperator)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete
-  (srcSlice srcTimeCoeff_eq_cosineCoeffs)
-open ShenWork.IntervalPhysicalResolverDataConcrete (srcTimeCoeff)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice sliceFam)
+open ShenWork.PDE.IntervalMildSourceDecayHelper
+  (IntervalWeakH2Neumann intervalWeakH2Neumann_of_contDiffOn
+   intervalWeakH2Neumann_cosineCoeff_quadratic_decay)
 
-namespace ShenWork.Paper2.Cron1SrcSlice
+namespace ShenWork.Paper2.Cron1Laplacian
 
-lemma heatKernel_eq_zero_of_nonpos {t x : ℝ} (ht : t ≤ 0) :
-    heatKernel t x = 0 := by
-  unfold heatKernel
-  have hnonpos : 4 * Real.pi * t ≤ 0 := by
-    exact mul_nonpos_of_nonneg_of_nonpos (by positivity : 0 ≤ 4 * Real.pi) ht
-  rw [Real.sqrt_eq_zero_of_nonpos hnonpos]
-  simp
-
-lemma intervalNeumannFullKernel_eq_zero_of_nonpos {t x y : ℝ} (ht : t ≤ 0) :
-    intervalNeumannFullKernel t x y = 0 := by
-  unfold intervalNeumannFullKernel
-  simp [heatKernel_eq_zero_of_nonpos ht]
-
-lemma intervalFullSemigroupOperator_eq_zero_of_nonpos
-    {t : ℝ} (ht : t ≤ 0) (f : ℝ → ℝ) (x : ℝ) :
-    intervalFullSemigroupOperator t f x = 0 := by
-  unfold intervalFullSemigroupOperator
-  simp [intervalNeumannFullKernel_eq_zero_of_nonpos ht]
-
-lemma conjugatePicardIter_level0_eq_zero_of_nonpos
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    {t : ℝ} (ht : t ≤ 0) (x : intervalDomainPoint) :
-    conjugatePicardIter p u₀ 0 t x = 0 := by
-  simp [conjugatePicardIter,
-    intervalFullSemigroupOperator_eq_zero_of_nonpos ht]
-
-lemma intervalDomainLift_level0_eq_zero_of_nonpos
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    {t : ℝ} (ht : t ≤ 0) (x : ℝ) :
-    intervalDomainLift (conjugatePicardIter p u₀ 0 t) x = 0 := by
-  unfold intervalDomainLift
-  split_ifs with hx
-  · exact conjugatePicardIter_level0_eq_zero_of_nonpos p u₀ ht ⟨x, hx⟩
-  · rfl
-
-lemma srcSlice_level0_eq_zero_of_nonpos
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    {t : ℝ} (ht : t ≤ 0) (x : ℝ) :
-    srcSlice p (conjugatePicardIter p u₀ 0) t x = 0 := by
-  unfold srcSlice
-  rw [intervalDomainLift_level0_eq_zero_of_nonpos p u₀ ht x]
-  have hγne : p.γ ≠ 0 := ne_of_gt p.hγ
-  simp [Real.zero_rpow hγne]
-
-lemma srcTimeCoeff_level0_eq_zero_of_nonpos
-    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    {t : ℝ} (ht : t ≤ 0) (k : ℕ) :
-    srcTimeCoeff p (conjugatePicardIter p u₀ 0) k t = 0 := by
-  rw [srcTimeCoeff_eq_cosineCoeffs]
-  have hslice : srcSlice p (conjugatePicardIter p u₀ 0) t = fun _ => 0 := by
-    funext x
-    exact srcSlice_level0_eq_zero_of_nonpos p u₀ ht x
-  rw [hslice]
-  -- Depending on the local simp set, either `simp [cosineCoeffs]` closes this,
-  -- or unfold `cosineCoeffs`, `unitIntervalNeumannCosineCoeff`, and
-  -- `unitIntervalCosineRawCoeff`, then use integral of zero.
-  simp [cosineCoeffs]
-
-end ShenWork.Paper2.Cron1SrcSlice
-```
-
-Possible elaboration notes:
-
-* If `Real.sqrt_eq_zero_of_nonpos` has a slightly different local name in the current Mathlib, search for `sqrt_eq_zero_of_nonpos` / `Real.sqrt_eq_zero`.
-* If `simp [cosineCoeffs]` does not close the zero-coefficient lemma, unfold through `unitIntervalNeumannCosineCoeff` and `unitIntervalCosineRawCoeff`; the integrand is definitionally zero.
-
-## Why the generic theorem cannot use those lemmas
-
-The theorem with the current sorries is generic:
-
-```lean
-theorem physicalSourceTimeC2_of_floored
+/-- Fixed-time `C²` + Neumann endpoint data gives normalized cosine coefficient
+quadratic decay for that one slice.  The output constant depends on this fixed `t`. -/
+theorem slice_laplBound_fixed_time
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂)
-    ... :
-    PhysicalSourceTimeC2 p u (builtEs H) where
-  src_contDiff k := by
-    sorry
-  src_bound i k t hi := by
-    sorry
+    {i : ℕ} {t : ℝ} (hi : i ≤ 2)
+    (hC2 : ContDiffOn ℝ 2
+      ((sliceFam (srcSlice p u) s₁ s₂ i) t) (Icc (0 : ℝ) 1))
+    (hNeu :
+      Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t))
+        (𝓝[Ioi 0] 0) (𝓝 0) ∧
+      Tendsto (deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t))
+        (𝓝[Iio 1] 1) (𝓝 0) ∧
+      deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 0 = 0 ∧
+      deriv ((sliceFam (srcSlice p u) s₁ s₂ i) t) 1 = 0) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤
+        C / ((k : ℝ) * Real.pi) ^ 2 := by
+  let f : ℝ → ℝ := (sliceFam (srcSlice p u) s₁ s₂ i) t
+  have Hweak : IntervalWeakH2Neumann f :=
+    intervalWeakH2Neumann_of_contDiffOn
+      (g := f)
+      (by simpa [f] using hC2)
+      (by simpa [f] using hNeu.1)
+      (by simpa [f] using hNeu.2.1)
+      (by simpa [f] using hNeu.2.2.1)
+      (by simpa [f] using hNeu.2.2.2)
+  simpa [f] using intervalWeakH2Neumann_cosineCoeff_quadratic_decay Hweak
+
+end ShenWork.Paper2.Cron1Laplacian
 ```
 
-Here `u` is arbitrary. `FlooredSourceTimeData` only gives positive-time facts. It does **not** say that `u t = 0` for `t ≤ 0`, nor that `srcTimeCoeff p u k` is smooth across `0`. Therefore the nonpositive-time lemmas above cannot fill this generic theorem.
+Use this to confirm the local Laplacian/IBP wiring. It gives exactly the right fixed-time result, but it cannot be used directly to fill the current `hlaplBound`, because `hlaplBound` needs one `C` independent of `t`.
 
-A counterexample-shaped obstruction is: choose an arbitrary `u` whose positive-time behavior satisfies the positive-time fields but whose nonpositive-time behavior is discontinuous or unbounded. The current `FlooredSourceTimeData` fields do not control that behavior. Thus the current generic conclusion is stronger than the hypotheses.
+## Why current `hlaplBound` is too strong
 
-## Correct structural fix
-
-The clean fix is to make the source/resolver physical data positive-time/local, or to move the smooth cutoff into the coefficients before demanding global `ContDiff`.
-
-### Option A: positive-time physical source data
-
-Replace global source fields with positive-time fields:
+For `i = 0`, the slice is:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
-
-open Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointMajorant boundedWeightJointGradMajorant)
-open ShenWork.IntervalPhysicalResolverDataConcrete (srcTimeCoeff)
-
-namespace ShenWork.IntervalPhysicalSourceTimeC2Concrete
-
-structure PhysicalSourceTimeC2Pos
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Es : ℕ → ℕ → ℝ) : Prop where
-  src_contDiffAt_pos : ∀ k : ℕ, ∀ {t : ℝ}, 0 < t →
-    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t
-  src_bound_pos : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 → 0 < t →
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant
-      (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k * Es i k) m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant
-      (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k * Es i k) m)
-
-end ShenWork.IntervalPhysicalSourceTimeC2Concrete
+srcSlice p (conjugatePicardIter p u₀ 0) t x
+= p.ν * (S(t)u₀(x)) ^ p.γ
 ```
 
-Then the producer from `FlooredSourceTimeData` is honest and direct:
+For each fixed `t > 0`, heat smoothing makes this spatially smooth, so fixed-time `1/k²` decay is plausible and follows from `C²` + Neumann endpoint data.
+
+But as `t ↓ 0`, `S(t)u₀` tends back to `u₀`. Under the current hypotheses, `u₀` is only continuous and coefficient-bounded:
 
 ```lean
-theorem physicalSourceTimeC2Pos_of_floored
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
-    (H : FlooredSourceTimeData p u s₁ s₂)
-    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant
-        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
-    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant
-        (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
-    PhysicalSourceTimeC2Pos p u (builtEs H) where
-  src_contDiffAt_pos k ht := srcTimeCoeff_contDiffAt H k ht
-  src_bound_pos i k t hi ht := srcTimeCoeff_bound H i k t hi ht
-  value_summable := hval
-  grad_summable := hgrad
+hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+hu₀_cont  : Continuous u₀
+hu₀_pos   : ∀ x, 0 < u₀ x
 ```
 
-This matches the actual available theorem:
+There is no `C²` or Neumann regularity assumption on `u₀`, and no `(kπ)⁻²` coefficient decay assumption on `p.ν * u₀^p.γ`. A single `M` satisfying the current `hlaplBound` for all `t > 0` would force a uniform `1/k²` decay all the way down to time zero. That is not a consequence of continuous initial data.
+
+For `i = 1` and `i = 2`, the situation is even more singular: `heatDu` and `heatD2u` are spectral Laplacian / iterated Laplacian values. Their natural estimates contain factors like:
+
+```text
+λ_k * exp(-t λ_k)
+λ_k^2 * exp(-t λ_k)
+```
+
+These are bounded for each fixed lower time `t ≥ a > 0`, but not uniformly as `a ↓ 0` from only bounded coefficients. The file already uses positive lower-time slabs such as `Ioi (t/2)` in the `heatDu_hasDerivAt` proof, which is the correct analytic shape.
+
+So the present global-in-`t>0` `laplBound` field is not a mechanical missing proof. It is an overstrong specification.
+
+## What would make `hlaplBound` true
+
+Any one of the following structural changes would make the Laplacian envelope honest.
+
+### Option A: lower-time-local envelope
+
+Change the source data so the Laplacian envelope is allowed to depend on a positive lower time:
 
 ```lean
-srcTimeCoeff_contDiffAt H k ht
-srcTimeCoeff_bound H i k t hi ht
+laplBoundOnIci : ∀ a : ℝ, 0 < a → ∀ i : ℕ, i ≤ 2 →
+  ∃ M : ℝ, 0 ≤ M ∧ ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+    |cosineCoeffs ((sliceFam (srcSlice p u) s₁ s₂ i) t) k| ≤
+      M / ((k : ℝ) * Real.pi) ^ 2
 ```
 
-### Option B: cutoff the coefficient before asking for global `ContDiff`
+For the cutoff resolver proof with cutoff `smoothRightCutoff (c/2) c`, use `a = c/2`. This matches the actual smoothing estimates: once time is bounded away from zero, all spectral factors are uniformly controlled by exponential damping.
 
-If the downstream assembler really wants global `ContDiff ℝ 2`, do not use raw `srcTimeCoeff`. Use the cutoff coefficient:
+### Option B: cutoff-source coefficients
+
+Instead of putting global bounds on raw source coefficients, define a cutoff source coefficient:
 
 ```lean
 def cutoffSrcTimeCoeff
@@ -290,31 +232,56 @@ def cutoffSrcTimeCoeff
   fun t => smoothRightCutoff (c / 2) c t * srcTimeCoeff p u k t
 ```
 
-For `c > 0`, this coefficient is identically zero near `t ≤ c/2`, including a whole neighborhood of `0`. On `t > c/2`, all times are positive, so `srcTimeCoeff_contDiffAt` and `srcTimeCoeff_bound` apply. This is the same structural reason the cutoff resolver proof is the right route.
+Then global-in-time `ContDiff` and global derivative bounds are plausible because the coefficient is identically zero near `t ≤ c/2`, and all nonzero-time estimates happen at positive times bounded away from zero.
 
-This option is usually better for `contDiff_tsum`, because the global theorem is then true for the cutoff series even though the raw heat semigroup is not globally smooth at `t = 0`.
+This is the same reason the direct cutoff resolver term is the right construction path.
 
-## What not to do
+### Option C: strengthen initial data
 
-Do not try to prove:
+If the theorem is intended to be global from raw coefficients, then assume something like:
 
 ```lean
-ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k)
+∀ k : ℕ, 1 ≤ k →
+  |cosineCoeffs (fun x => p.ν * intervalDomainLift u₀ x ^ p.γ) k| ≤
+    M / ((k : ℝ) * Real.pi) ^ 2
 ```
 
-for the raw level-0 heat iterate on all of `ℝ`. The current definition makes the negative-time side zero and the positive-time side the heat semigroup source. At `t = 0`, this is not a smooth gluing in general.
+or a true `C²`/Neumann certificate for `u₀` and its source power. But that is a much stronger theorem than the current heat-level0 result from continuous positive data.
 
-Also do not try to fill the generic `physicalSourceTimeC2_of_floored` by unfolding `intervalFullSemigroupOperator`: that theorem is generic in `u`, so there is no semigroup definition to unfold.
+## Concrete patch recommendation
 
-## Recommended patch direction
+Do **not** try to close:
 
-For the current cron1 lane, the best patch is:
+```lean
+(hlaplBound := by intro i hi; sorry)
+```
 
-1. Keep `FlooredSourceTimeData` positive-time only.
-2. Replace the global `PhysicalSourceTimeC2` producer by a positive-time/local producer, or introduce a cutoff-source physical data structure.
-3. Use cutoff coefficients to feed any global `contDiff_tsum` assembler.
-4. Use the nonpositive-time zero lemmas only as auxiliary facts for the specialized heat level-0 iterate, not as the main proof of the generic source-data producer.
+under the current signature by calling `exists_laplacianCoeff_bound` inside `intro t ht`. That gives the wrong quantifier order:
+
+```lean
+∀ t > 0, ∃ M_t, ...
+```
+
+but the goal is:
+
+```lean
+∃ M, ∀ t > 0, ...
+```
+
+The correct immediate patch is to add the fixed-time lemma above, then refactor the data structure or cutoff assembler so it asks for one of the true statements:
+
+```lean
+∀ t > 0, ∃ M_t, ...
+```
+
+or:
+
+```lean
+∀ a > 0, ∃ M_a, ∀ t ≥ a, ...
+```
+
+For the current resolver cutoff proof, the second form is the useful one.
 
 ## Bottom line
 
-`srcSlice` is not the bug. The bug is that the producer has positive-time hypotheses but the target structure still demands global-in-time `ContDiff`/bounds. For heat level 0, the nonpositive side is zero, but the raw coefficient is generally not `C²` at `t = 0`. The honest formalization should either be positive-time/local, or should insert the smooth cutoff before making a global `ContDiff` claim.
+The Laplacian IBP theorem is already available; the problem is uniformity near `t = 0`. Fixed-time source coefficient decay is fine. Uniform-in-all-positive-time `laplBound` is not derivable from the current assumptions and should be replaced by a lower-time-local/cutoff version, or the initial-data assumptions must be strengthened.
