@@ -70,6 +70,19 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatResolverJointC2Direct
 
+/-! ### Utilities -/
+
+/-- Absolute tsum bound: `|Σ' f n| ≤ Σ' g n` when `|f n| ≤ g n` and `g` is summable. -/
+private theorem abs_tsum_le_tsum_of_abs_le
+    {f g : ℕ → ℝ} (hfg : ∀ n, |f n| ≤ g n) (hg : Summable g) :
+    |∑' n, f n| ≤ ∑' n, g n := by
+  have hf : Summable f :=
+    Summable.of_norm_bounded hg fun n => by simpa [Real.norm_eq_abs] using hfg n
+  calc |∑' n, f n| = ‖∑' n, f n‖ := (Real.norm_eq_abs _).symm
+    _ ≤ ∑' n, ‖f n‖ := norm_tsum_le_tsum_norm hf
+    _ = ∑' n, |f n| := by congr 1; ext n; exact Real.norm_eq_abs _
+    _ ≤ ∑' n, g n := tsum_le_tsum (fun n => hfg n) (by simpa [Real.norm_eq_abs] using hf.norm) hg
+
 /-! ### Definitions -/
 
 /-- The `k`-th term of the resolver series, as a function of `(t, x)`:
