@@ -811,8 +811,11 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 unitIntervalCosineEigenvalue n *
                   Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)
               refine ⟨maj_sum, ?_, fun t ht x => ?_⟩
-              · -- 0 ≤ CΔ
-                sorry
+              · -- 0 ≤ maj_sum = M₀ * Σ' eigenvalue * exp
+                exact mul_nonneg (le_trans (abs_nonneg _) (hu₀_bound 0))
+                  (tsum_nonneg fun n => mul_nonneg
+                    (by unfold unitIntervalCosineEigenvalue; positivity)
+                    (Real.exp_nonneg _))
               · -- |heatDu u₀ t x| ≤ CΔ for t > c+1
                 sorry
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
