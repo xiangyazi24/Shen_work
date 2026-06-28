@@ -692,12 +692,8 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               have := ShenWork.IntervalDuhamelIntegrability.continuousOn_intervalFullSemigroupOperator_of_bounded
                 ht_pos hlift_le
               exact this.congr fun x hx => by
-                show ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
-                    t (intervalDomainLift u₀) x =
-                  intervalDomainLift (u t) x
-                symm
-                show (if hx' : x ∈ Set.Icc (0:ℝ) 1 then u t ⟨x, hx'⟩ else 0) = _
-                rw [dif_pos hx]
+                change _ = intervalDomainLift (u t) x
+                unfold intervalDomainLift; rw [dif_pos hx]
             · intro x hx
               exact Or.inl (ne_of_gt (hfloor t ht_pos x hx))
           -- Apply cosineCoeffs_abs_le_of_continuous_bounded
