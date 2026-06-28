@@ -1467,7 +1467,11 @@ theorem cutoffResolverMajorant_summable {p : CM2Params}
     (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
     {j : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
     Summable (cutoffResolverMajorant p u₀ M₀ c hc j) := by
-  -- Extract a PhysicalResolverJointC2Data from the heat semigroup constructor
+  -- WARNING: This proof uses the OLD ROUTE (heatSemigroup_level0_resolverJointC2Data)
+  -- which depends on structurally-blocked sorry's in physicalSourceTimeC2_of_floored.
+  -- TODO: Replace with DIRECT ROUTE using IBP decay (IntervalWeakH2Neumann +
+  -- cosineCoeff_quadratic_decay) to get O(k^{-2}) source coefficient decay,
+  -- then explicit majorant summability without PhysicalResolverJointC2Data.
   obtain ⟨Bt, H⟩ :=
     ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
       hu₀_bound hu₀_cont hu₀_pos (p := p)
@@ -1631,9 +1635,15 @@ theorem heatResolver_grad_jointContDiffAt_two
           deriv (intervalDomainLift (coupledChemicalConcentration p
             (conjugatePicardIter p u₀ 0) q.1)) q.2)
         (s₀, x₀) := by
-  -- TODO(direct-route): build cutoff gradient series, show C² via contDiff_tsum
-  -- with gradient majorant, transfer ContDiffAt via eventuallyEq near (s₀, x₀).
-  sorry
+  -- WARNING: This proof uses the OLD ROUTE (heatSemigroup_level0_resolverJointC2Data)
+  -- which depends on structurally-blocked sorry's in physicalSourceTimeC2_of_floored.
+  -- TODO: Replace with DIRECT ROUTE using cutoff gradient series + contDiff_tsum
+  -- with quartic IBP decay (IntervalWeakH4Neumann) for gradient summability.
+  obtain ⟨Bt, H⟩ :=
+    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+      hu₀_bound hu₀_cont hu₀_pos (p := p)
+  exact ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
+    H hx₀
 
 #print axioms heatResolver_jointContDiffAt_two
 
