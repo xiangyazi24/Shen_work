@@ -1,4 +1,4 @@
-# Q2108 (cron1) — summability response for `/tmp/codex_summability.md`
+# Q2114 (cron1) — summability response for `/tmp/codex_summability.md`
 
 Repository: `xiangyazi24/Shen_work`  
 Committed branch: `chatgpt-scratch`  
@@ -12,56 +12,47 @@ The prompt references a local file:
 /tmp/codex_summability.md
 ```
 
-That path is not part of the GitHub repository and is not readable through the GitHub connector. The delivery rules also explicitly prohibit using Python, the sandbox, `/mnt/data`, or any local-file fallback. I therefore used only the GitHub connector.
+That path is not part of the GitHub repository and is not readable through the GitHub connector. The delivery rules explicitly prohibit using Python, code-interpreter, the sandbox, `/mnt/data`, or any local-file fallback. I therefore used only the GitHub connector.
 
-I searched the repository for `codex_summability`/`summability` context and found no repository file corresponding to `/tmp/codex_summability.md`. The visible repository context points to the same summability bottleneck in:
+A connector search for `codex_summability` in `xiangyazi24/Shen_work` found no repository file corresponding to that local `/tmp` path. The repository-visible summability issue is the same local bottleneck in:
 
 ```text
 ShenWork/Paper2/IntervalHeatResolverJointC2.lean
 ```
 
-namely the `hDu_bound` proof inside `cutoffResolverMajorant_bddAbove_direct`, around the line:
+inside the `hDu_bound` proof used in `cutoffResolverMajorant_bddAbove_direct`, where the fragile line is:
 
 ```lean
 refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_) (heig_summ.mul_left M₀)).trans ?_
 ```
 
-The robust fix is still: **do not ask Lean to infer the majorant sequence through `heig_summ.mul_left M₀` while the pointwise bound is being elaborated. Name the sequence being summed and name the majorant sequence.**
+The proof idea is mathematically correct, but the elaboration is brittle: Lean has to infer the hidden majorant `g : ℕ → ℝ` from `heig_summ.mul_left M₀` while the termwise proof is still changing shape under `rw [abs_mul, abs_mul, abs_neg]`, reassociation, and the final `tsum_mul_left` rewrite.
 
-## Recommended local proof shape
+## Deterministic fix
 
-The cleanest version avoids the final `tsum_mul_left` normalization entirely. Instead of choosing
-
-```lean
-maj_sum = M₀ * ∑' n, base n
-```
-
-choose the witness as
-
-```lean
-CΔ = ∑' n, maj n
-```
-
-where
+Name all three relevant objects:
 
 ```lean
 base n = λₙ * exp (-(c+1) * λₙ)
 maj n  = M₀ * base n
+CΔ     = ∑' n, maj n
 ```
 
-Then `abs_tsum_le_tsum_of_abs_le` closes directly with `(g := maj)` and `hmaj_summable`; no scalar-tsum rewrite is needed at the end.
-
-## Drop-in replacement for the `hDu_bound` block
-
-This block is meant to replace only the local proof of:
+Then call the local helper with explicit implicit arguments:
 
 ```lean
-have hDu_bound : ∃ CΔ : ℝ, 0 ≤ CΔ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
-    |heatDu u₀ t x| ≤ CΔ := by
-  ...
+exact abs_tsum_le_tsum_of_abs_le
+  (f := term) (g := maj) hterm_le hmaj_summable
 ```
 
-inside `cutoffResolverMajorant_bddAbove_direct`. The imports shown are the file-level imports already needed by the surrounding file.
+This avoids both hard parts:
+
+1. Lean no longer has to infer the majorant sequence from `heig_summ.mul_left M₀`.
+2. There is no final scalar-tsum normalization goal, because the witness is already `∑' maj`.
+
+## Drop-in replacement for the local `hDu_bound`
+
+Paste this where the current local proof of `hDu_bound` occurs. The imports below are the file-level imports already present or needed by the surrounding file; the actual replacement block begins at `have hDu_bound`.
 
 ```lean
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
@@ -100,7 +91,6 @@ noncomputable section
 
 namespace ShenWork.Paper2.HeatResolverJointC2Direct
 
--- Local replacement block, to be pasted where the existing `hDu_bound` proof occurs.
 have hDu_bound : ∃ CΔ : ℝ, 0 ≤ CΔ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
     |heatDu u₀ t x| ≤ CΔ := by
   have hc1 : 0 < c + 1 := by
@@ -135,7 +125,11 @@ have hDu_bound : ∃ CΔ : ℝ, 0 ≤ CΔ ∧ ∀ t : ℝ, c + 1 < t → ∀ x :
     dsimp [maj]
     exact mul_nonneg hM₀_nonneg (hbase_nonneg n)
 
-  refine ⟨CΔ, tsum_nonneg hmaj_nonneg, fun t ht x => ?_⟩
+  have hCΔ_nonneg : 0 ≤ CΔ := by
+    dsimp [CΔ]
+    exact tsum_nonneg hmaj_nonneg
+
+  refine ⟨CΔ, hCΔ_nonneg, fun t ht x => ?_⟩
 
   have ht_pos : 0 < t := by
     linarith
@@ -206,65 +200,76 @@ end ShenWork.Paper2.HeatResolverJointC2Direct
 end
 ```
 
-## Why this is better than the original line
+## If the `change` line does not match
 
-The original line:
+Depending on how much unfolding Lean performs before the local goal, this line:
 
 ```lean
-refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_) (heig_summ.mul_left M₀)).trans ?_
+change |∑' n : ℕ, term n| ≤ CΔ
 ```
 
-is mathematically fine, but elaboration is fragile because Lean must infer the hidden `g : ℕ → ℝ` from `heig_summ.mul_left M₀` while the pointwise goal is simultaneously being transformed by `rw [abs_mul, abs_mul, abs_neg]`, ring-normalization, and scalar reassociation.
-
-The replacement makes all of the hidden objects explicit:
+may fail because the expression is not syntactically the same as `term`. In that case, use the two-step explicit version:
 
 ```lean
-let base : ℕ → ℝ := fun n => λₙ * exp (-(c+1) * λₙ)
-let maj  : ℕ → ℝ := fun n => M₀ * base n
-have hmaj_summable : Summable maj := ...
-exact abs_tsum_le_tsum_of_abs_le (f := term) (g := maj) hterm_le hmaj_summable
+  change |∑' n : ℕ,
+    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n *
+      cosineCoeffs (intervalDomainLift u₀) n| ≤ CΔ
+
+  let term : ℕ → ℝ := fun n =>
+    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n *
+      cosineCoeffs (intervalDomainLift u₀) n
+
+  change |∑' n : ℕ, term n| ≤ CΔ
 ```
 
-That removes the majorant inference problem completely.
+Then keep the rest of the proof unchanged.
 
-## If you want to preserve the old witness `M₀ * ∑' base`
+## If `Real.exp_le_exp.mpr` is unavailable in this Mathlib snapshot
 
-If some downstream proof or readability reason prefers the old witness shape, keep `CΔ := M₀ * ∑' n, base n`, but still name `base` and `maj`. Then after applying `abs_tsum_le_tsum_of_abs_le`, close the final equality explicitly:
+The current source nearby already uses `Real.exp_le_exp_of_le`. If the `.mpr` form is rejected, replace the `hexp_le` proof with:
 
 ```lean
+    have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤
+        Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := by
+      apply Real.exp_le_exp_of_le
+      have hmul : (c + 1) * unitIntervalCosineEigenvalue n ≤
+          t * unitIntervalCosineEigenvalue n :=
+        mul_le_mul_of_nonneg_right (le_of_lt ht) heig_nn
+      linarith
+```
+
+This avoids a fragile `nlinarith [heig_nn]` on the negated product expression.
+
+## If you must keep the old witness shape
+
+If later code expects the witness to be exactly:
+
+```lean
+M₀ * ∑' n, base n
+```
+
+then keep the named `base`/`maj` setup but close the final step explicitly:
+
+```lean
+  let CΔ : ℝ := M₀ * ∑' n : ℕ, base n
+  ...
   calc
     |∑' n : ℕ, term n| ≤ ∑' n : ℕ, maj n := by
       exact abs_tsum_le_tsum_of_abs_le
         (f := term) (g := maj) hterm_le hmaj_summable
-    _ = M₀ * ∑' n : ℕ, base n := by
-      dsimp [maj]
+    _ = CΔ := by
+      dsimp [CΔ, maj]
       simpa using (tsum_mul_left M₀ base)
 ```
 
-If this Mathlib snapshot has the theorem oriented the other way, use:
+If orientation differs, use:
 
 ```lean
       simpa using (tsum_mul_left M₀ base).symm
 ```
 
-But the `CΔ := ∑' maj` version is preferable because it avoids orientation issues entirely.
-
-## Secondary small fix
-
-The exponential monotonicity proof should use `Real.exp_le_exp.mpr` plus an explicit multiplication inequality:
-
-```lean
-have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤
-    Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := by
-  apply Real.exp_le_exp.mpr
-  have hmul : (c + 1) * unitIntervalCosineEigenvalue n ≤
-      t * unitIntervalCosineEigenvalue n :=
-    mul_le_mul_of_nonneg_right (le_of_lt ht) heig_nn
-  linarith
-```
-
-This is more robust than asking `nlinarith` to solve the negated product inequality directly after `Real.exp_le_exp_of_le`.
+But for this local existential proof, `CΔ := ∑' n, maj n` is simpler and more deterministic.
 
 ## Bottom line
 
-Use the named-majorant version. It is a local proof-engineering patch: no mathematical content changes, no new theorem is required, and it avoids Lean's brittle summability metavariable inference at exactly the failing point.
+The fix is local proof engineering, not new analysis. The sequence `λₙ exp (-(c+1)λₙ)` is already summable; multiplying by `M₀` is already summable. The only problem is elaboration pressure from an anonymous majorant. Name the majorant, call `abs_tsum_le_tsum_of_abs_le` with `(f := term) (g := maj)`, and choose the existential constant as `∑' maj` to avoid any final `tsum_mul_left` orientation issue.
