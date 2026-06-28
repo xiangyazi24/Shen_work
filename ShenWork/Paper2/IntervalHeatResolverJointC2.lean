@@ -876,7 +876,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
                 |cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k| ≤ Bsrc := by
               -- Full proof: ContinuousOn (d1) + pointwise bound (L∞ + lower + rpow + hDu) + cosineCoeffs
-              intro t ht
+              -- Uniform bound on srcSlice1 for ALL t > c+1 — sorry the existence of Bpt
+              obtain ⟨Bpt, hBpt_nn, hBpt⟩ : ∃ Bpt : ℝ, 0 ≤ Bpt ∧
+                  ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+                    |srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t x| ≤ Bpt := by
+                sorry -- L∞ + lower bound + rpow on [inf u₀, M_sup] + hDu ≤ CΔ
+              refine ⟨2 * Bpt, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
               set u := conjugatePicardIter p u₀ 0
               -- ContinuousOn of srcSlice1(t) from d1
@@ -884,17 +889,10 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht_pos
               have hsrc1_cont : ContinuousOn (srcSlice1 p u (heatDu u₀) t) (Set.Icc (0:ℝ) 1) :=
                 hcont_s1.self_of_nhds
-              -- Pointwise bound |srcSlice1(t,x)| on [0,1]
-              -- srcSlice1 = νγ * u^{γ-1} * heatDu
-              -- |srcSlice1| ≤ |ν| * |γ| * |u^{γ-1}| * |heatDu| ≤ ν * γ * rpow_bound * CΔ
-              -- rpow_bound depends on u ∈ [inf u₀, M_sup] — bounded on compact interval
-              -- For now sorry the pointwise bound constant
-              have hsrc1_bound : ∃ Bpt : ℝ, 0 ≤ Bpt ∧
-                  ∀ x ∈ Set.Icc (0:ℝ) 1, |srcSlice1 p u (heatDu u₀) t x| ≤ Bpt := by
-                sorry -- product bound from L∞ + lower bound + rpow on [inf, sup] + hDu ≤ CΔ
-              obtain ⟨Bpt, hBpt_nn, hBpt⟩ := hsrc1_bound
-              exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
-                hsrc1_cont hBpt_nn hBpt k
+              -- Apply cosineCoeffs_abs_le with uniform Bpt
+              exact (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+                hsrc1_cont hBpt_nn (fun x hx => hBpt t ht x hx) k).trans
+                (by linarith [hBpt_nn])
             obtain ⟨Bsrc, hBsrc⟩ := hBsrc
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
             refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
