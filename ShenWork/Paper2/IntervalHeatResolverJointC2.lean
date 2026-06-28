@@ -789,16 +789,19 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             sorry -- eigenvalue damping for second time derivative of resolverTimeCoeff
           obtain ⟨B_R'', hB_R''⟩ := hR_deriv2_bounded
           refine ⟨B_R'', fun t ht => ?_⟩
-          rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
           -- A = R near t (φ=1 for t > c)
           have hev : A =ᶠ[𝓝 t] R := by
             filter_upwards [Ioi_mem_nhds (show c < t by linarith)] with s hs
             show smoothRightCutoff (c / 2) c s * R s = R s
             rw [smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) (le_of_lt hs)]
             exact one_mul _
-          -- iteratedDeriv 2 A = iteratedDeriv 2 R near t
-          have hev2 := Filter.EventuallyEq.iteratedDeriv hev 2
-          rw [hev2.eq_of_nhds]
+          -- iteratedFDeriv ℝ 2 A t = iteratedFDeriv ℝ 2 R t
+          have hev2 := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 2).eq_of_nhds
+          -- ‖iteratedFDeriv ℝ 2 A t‖ = ‖iteratedFDeriv ℝ 2 R t‖ = |iteratedDeriv 2 R t|
+          rw [show ‖iteratedFDeriv ℝ 2 A t‖ = ‖iteratedFDeriv ℝ 2 R t‖ from
+            congr_arg _ hev2]
+          rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
+          exact hB_R'' t ht
           exact hB_R'' t ht
         obtain ⟨B2_tail, hB2_tail⟩ := hA2_tail
         refine ⟨max (max 0 B2_compact) B2_tail, fun t => ?_⟩
