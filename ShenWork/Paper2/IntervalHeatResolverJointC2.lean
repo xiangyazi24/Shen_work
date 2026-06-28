@@ -638,13 +638,13 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         -- A=0 on the left. For t > c/2+2: use L∞ bound.
         have hA_cont : Continuous A := hAC2.continuous
         -- Compact bound on [c/2, c/2+2]
-        obtain ⟨B_compact, hB_compact⟩ := (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
+        obtain ⟨B_compact, hB_compact⟩ := (isCompact_Icc (a := c / 2) (b := c + 1)).exists_bound_of_continuousOn
           hA_cont.continuousOn
         -- L∞ tail bound: for t > 0, |S(t)u₀(x)| ≤ M_sup → srcSlice bounded → srcTimeCoeff bounded
         -- For the tail, we need ContinuousOn of srcSlice on [0,1] + |srcSlice| ≤ ν * M_sup^γ
         -- ContinuousOn follows from hSt_cont + rpow continuity at positive values
         -- For now, we sorry the tail bound and combine with the compact bound
-        have hA_tail : ∃ B_tail : ℝ, ∀ t : ℝ, c / 2 + 2 < t →
+        have hA_tail : ∃ B_tail : ℝ, ∀ t : ℝ, c + 1 < t →
             |A t| ≤ B_tail := by
           sorry -- needs: srcSlice ContinuousOn + bound → cosineCoeffs bound → resolverTimeCoeff bound → A bound
         obtain ⟨B_tail, hB_tail⟩ := hA_tail
@@ -659,7 +659,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             ring
           simp [this, le_max_left]
         · simp only [not_lt] at ht_left
-          by_cases ht_mid : t ≤ c / 2 + 2
+          by_cases ht_mid : t ≤ c + 1
           · -- c/2 ≤ t ≤ c/2+2: compact bound
             have : |A t| ≤ B_compact := by
               rw [← Real.norm_eq_abs]
@@ -672,9 +672,9 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         have hA1_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 1 A t) :=
           hAC2.continuous_iteratedFDeriv (by exact_mod_cast (by norm_num : (1 : ℕ) ≤ 2))
         obtain ⟨B1_compact, hB1_compact⟩ :=
-          (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
+          (isCompact_Icc (a := c / 2) (b := c + 1)).exists_bound_of_continuousOn
             hA1_cont.continuousOn
-        have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c / 2 + 2 < t →
+        have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
             ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
           sorry -- tail: A' = resolverTimeCoeff' for t > c, bounded by eigenvalue damping
         obtain ⟨B1_tail, hB1_tail⟩ := hA1_tail
@@ -691,7 +691,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             iteratedFDeriv_const_of_ne (by norm_num : (1 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
           exact le_trans (le_max_left (0 : ℝ) _) (le_max_left _ _)
         · simp only [not_lt] at ht_left
-          by_cases ht_mid : t ≤ c / 2 + 2
+          by_cases ht_mid : t ≤ c + 1
           · exact (hB1_compact t ⟨ht_left, ht_mid⟩).trans
               ((le_max_right (0 : ℝ) _).trans (le_max_left _ _))
           · simp only [not_le] at ht_mid
@@ -700,9 +700,9 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         have hA2_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 2 A t) :=
           hAC2.continuous_iteratedFDeriv (by exact_mod_cast (by norm_num : (2 : ℕ) ≤ 2))
         obtain ⟨B2_compact, hB2_compact⟩ :=
-          (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
+          (isCompact_Icc (a := c / 2) (b := c + 1)).exists_bound_of_continuousOn
             hA2_cont.continuousOn
-        have hA2_tail : ∃ B : ℝ, ∀ t : ℝ, c / 2 + 2 < t →
+        have hA2_tail : ∃ B : ℝ, ∀ t : ℝ, c + 1 < t →
             ‖iteratedFDeriv ℝ 2 A t‖ ≤ B := by
           sorry -- tail: A'' for t > c, bounded by eigenvalue damping
         obtain ⟨B2_tail, hB2_tail⟩ := hA2_tail
@@ -718,7 +718,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             iteratedFDeriv_const_of_ne (by norm_num : (2 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
           exact le_trans (le_max_left (0 : ℝ) _) (le_max_left _ _)
         · simp only [not_lt] at ht_left
-          by_cases ht_mid : t ≤ c / 2 + 2
+          by_cases ht_mid : t ≤ c + 1
           · exact (hB2_compact t ⟨ht_left, ht_mid⟩).trans
               ((le_max_right (0 : ℝ) _).trans (le_max_left _ _))
           · simp only [not_le] at ht_mid
