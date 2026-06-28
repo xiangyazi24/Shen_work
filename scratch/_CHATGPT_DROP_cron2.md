@@ -1,159 +1,223 @@
-# Q1533 (cron2) — bypassing `FlooredSourceTimeData` and going directly to `PhysicalSourceTimeC2`
+# Q1542 (cron2) — global half-line H4 majorant for `ν · (S(t)u₀)^γ`
 
 Static GitHub-connector response only. I did **not** run Lean locally, and I did **not** use Python, code-interpreter, sandbox, or `/mnt/data`.
 
 ## Bottom line
 
-Yes, `PhysicalSourceTimeC2` can be constructed **without** `FlooredSourceTimeData`, because it is an independent structure. `physicalResolverJointC2Data_of_floor` only needs a value
-
-```lean
-H : PhysicalSourceTimeC2 p u Es
-```
-
-and then produces
-
-```lean
-PhysicalResolverJointC2Data p u
-  (fun i k => intervalNeumannResolverWeight p k * Es i k)
-```
-
-But this does **not** make the blocker disappear. It only moves the burden from the `FlooredSourceTimeData` fields
-
-```lean
-zerothBound
-laplBound
-```
-
-to the direct `PhysicalSourceTimeC2` field
-
-```lean
-src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-  ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
-```
-
-with `Es` independent of `t`.
-
-`srcTimeCoeff_contDiffAt` or any local `ContDiffAt` proof is **not enough** for `src_bound`: differentiability gives existence/identification of the derivatives, not a uniform numerical envelope. So Option B is architecturally possible, but `heatSemigroup_contDiff_four + heatSemigroup_pos_of_pos` alone does not supply `PhysicalSourceTimeC2` as currently defined.
-
-The viable bypass is:
+Yes, for the **zeroth time-order source slice**
 
 ```text
-skip FlooredSourceTimeData
-prove PhysicalSourceTimeC2 directly from explicit heat-source coefficient formulas
+x ↦ ν · (S(t)u₀(x))^γ
 ```
 
-but it still requires explicit global/windowed coefficient envelopes for the source coefficient and its first two time derivatives.
+there should be a single finite bound
 
-## What `physicalResolverJointC2Data_of_floor` actually needs
+```text
+B₀(c) : ℝ
+```
+
+such that
+
+```text
+∀ t ≥ c/2,
+  ∫₀¹ |∂ₓ⁴ (ν · (S(t)u₀)^γ)| ≤ B₀(c).
+```
+
+The clean proof should **not** be “take a compact interval `[c/2,T]`, then use decay for `t ≥ T`.”  That is analytically true, but awkward in Lean. The better proof is direct: for every spatial derivative order `r`, the heat coefficients carry
+
+```text
+exp(-t λₙ) ≤ exp(-(c/2) λₙ)        when t ≥ c/2,
+```
+
+so all heat spatial derivatives have a uniform-in-`t ≥ c/2` spectral majorant. Then apply the explicit fourth-derivative chain rule for `z ↦ ν z^γ` under a uniform positive lower bound and a uniform upper bound for `u = S(t)u₀`.
+
+The caveat: this answers the `m = 0` quartic source slice. For the full direct route with
+
+```text
+m = 0, 1, 2
+```
+
+one needs the same kind of bound for the time-derivative slices
+
+```text
+s₀ = ν u^γ
+s₁ = ν γ u^(γ-1) Δu
+s₂ = ν γ(γ-1)u^(γ-2)(Δu)^2 + ν γ u^(γ-1) Δ²u.
+```
+
+To get **quartic coefficient decay** for `s_m`, you need an `L¹` bound on `∂ₓ⁴ s_m`. Since `∂ₜ^m u = Δ^m u`, this requires heat spatial derivatives up to order
+
+```text
+4 + 2m.
+```
+
+So:
+
+```text
+m = 0 needs heat derivatives up to order 4;
+m = 1 needs heat derivatives up to order 6;
+m = 2 needs heat derivatives up to order 8.
+```
+
+The current `heatSemigroup_contDiff_four` only covers the `m = 0` quartic source slice. The repo has a `unitIntervalCosineHeatValue_contDiff_seven` route, which should cover up to order 7; the `m = 2` quartic route wants a C8/general-order version.
+
+## Why the half-line bound is finite
+
+Let
+
+```text
+u(t,x) = S(t)u₀(x).
+```
+
+For `r ≥ 1`, the `r`-th spatial derivative has the spectral form
+
+```text
+∂ₓ^r u(t,x) = Σₙ e^{-tλₙ} aₙ · ∂ₓ^r cos(nπx)
+```
+
+and
+
+```text
+|∂ₓ^r cos(nπx)| ≤ |nπ|^r.
+```
+
+If `|aₙ| ≤ M₀` and `t ≥ c/2`, then
+
+```text
+|∂ₓ^r u(t,x)|
+  ≤ M₀ · Σₙ |nπ|^r · exp(-(c/2)λₙ),
+```
+
+and the sum is finite by the Gaussian/exponential tail lemma. This gives a constant
+
+```text
+G_r(c) := M₀ · Σₙ |nπ|^r · exp(-(c/2)λₙ)
+```
+
+such that
+
+```text
+∀ t ≥ c/2, ∀ x ∈ [0,1], |∂ₓ^r u(t,x)| ≤ G_r(c).
+```
+
+For `r = 0`, `u` itself does not decay to zero because the zeroth mode remains. It tends to the mean. Use the full-kernel `L∞ → L∞` contraction instead:
+
+```text
+|u(t,x)| ≤ M∞
+```
+
+where `M∞` is a bound for `|u₀|` on `[0,1]`.
+
+For negative powers in the real-rpow chain rule, use a quantitative positive lower bound. Since `u₀` is continuous and strictly positive on compact `[0,1]`, choose
+
+```text
+δ₀ := min_{x∈[0,1]} u₀(x) > 0.
+```
+
+The full Neumann heat semigroup preserves this lower bound, so
+
+```text
+δ₀ ≤ u(t,x)
+```
+
+for all `t > 0`, `x ∈ [0,1]`.
+
+Then every real power appearing in the chain rule
+
+```text
+u^(γ-j),  j = 1,2,3,4
+```
+
+is uniformly bounded on the range `δ₀ ≤ u ≤ M∞`.
+
+Finally, the fourth derivative formula is
+
+```text
+∂ₓ⁴(ν u^γ)
+ = νγ u^(γ-1) u₄
+ + 4νγ(γ-1) u^(γ-2) u₁u₃
+ + 3νγ(γ-1) u^(γ-2) u₂²
+ + 6νγ(γ-1)(γ-2) u^(γ-3) u₁²u₂
+ + νγ(γ-1)(γ-2)(γ-3) u^(γ-4) u₁⁴.
+```
+
+Here `u_j = ∂ₓʲu`. Bounding each `u_j` by `G_j(c)` and each power of `u` by a range constant gives a pointwise bound
+
+```text
+|∂ₓ⁴(ν u^γ)| ≤ C₄(c, p, M∞, δ₀, M₀).
+```
+
+Since the interval has length `1`, this also bounds the `L¹` integral:
+
+```text
+∫₀¹ |∂ₓ⁴(ν u^γ)| ≤ C₄(c, p, M∞, δ₀, M₀).
+```
+
+So the desired `B₀(c)` exists.
+
+## Repo lemmas/building blocks already present
+
+### 1. Spatial derivative mode bound and Gaussian tail summability
 
 File:
 
 ```text
-ShenWork/PDE/IntervalPhysicalResolverDataConcrete.lean
+ShenWork/Paper2/IntervalCD6CosineModeBounds.lean
 ```
 
-`PhysicalSourceTimeC2` is:
+Useful lemmas:
 
 ```lean
-structure PhysicalSourceTimeC2
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (Es : ℕ → ℕ → ℝ) : Prop where
-  src_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k)
-  src_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k
-  value_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointMajorant
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
-  grad_summable : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-    Summable (boundedWeightJointGradMajorant
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) m)
+theorem unitIntervalCosineMode_iteratedFDeriv_bound
+    (k n : ℕ) (x : ℝ) :
+    ‖iteratedFDeriv ℝ k (unitIntervalCosineMode n) x‖ ≤
+      |(n : ℝ) * Real.pi| ^ k
 ```
 
-Then `physicalResolverJointC2Data_of_floor` is just the constant-resolver-weight transport:
+and
 
 ```lean
-theorem physicalResolverJointC2Data_of_floor
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (H : PhysicalSourceTimeC2 p u Es) :
-    PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) where
-  coeff_contDiff k := by
-    have : resolverTimeCoeff p u k =
-        fun t => intervalNeumannResolverWeight p k * srcTimeCoeff p u k t := by
-      funext t; exact resolverTimeCoeff_eq_weight_smul p u k t
-    rw [this]
-    exact contDiff_const.mul (H.src_contDiff k)
-  coeff_bound i k t hi :=
-    resolverTimeCoeff_bound p u H.src_contDiff H.src_bound i k t hi
-  value_summable := H.value_summable
-  grad_summable := H.grad_summable
+theorem frequency_pow_mul_exp_summable
+    (k : ℕ) {τ : ℝ} (hτ : 0 < τ) :
+    Summable (fun n : ℕ =>
+      |(n : ℝ) * Real.pi| ^ k *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n))
 ```
 
-So it uses all four source fields and nothing from `FlooredSourceTimeData` directly.
+This is the main tail lemma for the bound
 
-The name `_of_floor` is misleading now: the theorem itself only consumes `PhysicalSourceTimeC2`; the floor was one old route for producing it.
+```text
+Σ |nπ|^r exp(-(c/2)λₙ) < ∞.
+```
 
-## Generic direct constructor
+### 2. Heat smoothness from bounded coefficients
 
-A useful tiny helper would make the bypass explicit:
+File:
+
+```text
+ShenWork/Paper2/IntervalCD6HeatSmoothness.lean
+```
+
+Existing theorem:
 
 ```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-
-open ShenWork.PDE (intervalNeumannResolverWeight)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointMajorant boundedWeightJointGradMajorant)
-
-noncomputable section
-
-namespace ShenWork.IntervalPhysicalResolverDataConcrete
-
-/-- Direct constructor: no `FlooredSourceTimeData`, no `builtEs`.
-The analytic work is entirely in `hsrcC2`, `hsrcB`, `hval`, and `hgrad`. -/
-theorem physicalSourceTimeC2_direct
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (hsrcC2 : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k))
-    (hsrcB : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-      ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k)
-    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant
-        (fun i k => intervalNeumannResolverWeight p k * Es i k) m))
-    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant
-        (fun i k => intervalNeumannResolverWeight p k * Es i k) m)) :
-    PhysicalSourceTimeC2 p u Es where
-  src_contDiff := hsrcC2
-  src_bound := hsrcB
-  value_summable := hval
-  grad_summable := hgrad
-
-/-- Direct resolver producer, bypassing `FlooredSourceTimeData`. -/
-theorem physicalResolverJointC2Data_direct
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (hsrcC2 : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k))
-    (hsrcB : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-      ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ Es i k)
-    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant
-        (fun i k => intervalNeumannResolverWeight p k * Es i k) m))
-    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant
-        (fun i k => intervalNeumannResolverWeight p k * Es i k) m)) :
-    PhysicalResolverJointC2Data p u
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) :=
-  physicalResolverJointC2Data_of_floor
-    (physicalSourceTimeC2_direct hsrcC2 hsrcB hval hgrad)
-
-end ShenWork.IntervalPhysicalResolverDataConcrete
+theorem unitIntervalCosineHeatValue_contDiff_seven
+    {t : ℝ} (ht : 0 < t) {a : ℕ → ℝ} {M : ℝ}
+    (hM : ∀ n, |a n| ≤ M) :
+    ContDiff ℝ 7 (fun x => unitIntervalCosineHeatValue t a x)
 ```
 
-This is probably worth adding, because it decouples the resolver path from the old `FlooredSourceTimeData` route. But it is only an API cleanup; it does not prove the missing analytic estimates.
+This confirms the repo already has the proof pattern for high-order heat smoothing. For `m = 2` quartic bounds, however, a C8/general-order extension would be needed.
 
-## Can `PhysicalSourceTimeC2` be built directly from heat semigroup C⁴?
+### 3. Positive-time C⁴ theorem already used
 
-Only partially.
+File:
 
-The relevant heat facts are:
+```text
+ShenWork/Paper2/IntervalHeatSemigroupHighRegularity.lean
+```
+
+Existing theorem:
 
 ```lean
 theorem heatSemigroup_contDiff_four
@@ -165,245 +229,253 @@ theorem heatSemigroup_contDiff_four
         cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x)
 ```
 
-and positivity:
+Also in this file:
 
 ```lean
-theorem heatSemigroup_pos_of_pos
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    {t : ℝ} (ht : 0 < t) {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
-    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
+theorem eigenvalue_pow_mul_exp_summable
+    (m : ℕ) {τ : ℝ} (hτ : 0 < τ) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n ^ m *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n))
 ```
 
-These are enough to prove **spatial** regularity of the positive-time heat profile and to justify the nonlinear chain rule in space:
+and private lemmas around the cutoff proof:
+
+```lean
+one_add_eigenvalue_pow_mul_exp_summable
+heatTerm_iteratedFDeriv_global_bound
+```
+
+These private lemmas show exactly the desired proof style, but they are private and only for joint derivatives up to order 2. For the direct source-bound route, make a public one-dimensional version for arbitrary spatial derivative order.
+
+### 4. Uniform upper and lower bounds for the heat semigroup
+
+Files:
 
 ```text
-u(t,·) is C⁴, positive ⇒ x ↦ ν u(t,x)^γ is C⁴/C².
+ShenWork/PDE/IntervalFullKernelSupBound.lean
+ShenWork/PDE/IntervalFullKernelLowerBound.lean
 ```
 
-That can feed coefficient decay of the zeroth time-order source coefficient (`i = 0`) on fixed positive windows, and perhaps quartic decay if you build the H⁴ route.
-
-But `PhysicalSourceTimeC2` needs **time** regularity and **time-derivative bounds** of the coefficient map
+Useful upper bound:
 
 ```lean
-srcTimeCoeff p u k : ℝ → ℝ
+theorem intervalFullSemigroupOperator_Linfty_bound {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalFullSemigroupOperator t f x| ≤ M
 ```
 
-where
+Useful lower bound:
 
 ```lean
-def srcTimeCoeff (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) :
-    ℕ → ℝ → ℝ :=
-  fun k t => (intervalNeumannResolverSourceCoeff p (u t) k).re
+theorem intervalFullSemigroupOperator_lower_bound {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {c B : ℝ} (hc : 0 ≤ c) (hcB : c ≤ B)
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    (hf_lower : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → c ≤ f y)
+    (hf_bound : ∀ y, |f y| ≤ B) (x : ℝ) :
+    c ≤ intervalFullSemigroupOperator t f x
 ```
 
-So `src_bound` is not just a spatial C⁴ statement. For `i = 1,2`, it is asking for bounds on
+`heatSemigroup_pos_of_pos` currently only exposes positivity, but its proof internally constructs exactly the quantitative compact minimum. For bounding real powers uniformly, expose that lower constant as a quantitative lemma rather than using only positivity.
+
+### 5. Chain-rule quantitative source-bound style
+
+File:
 
 ```text
-d/dt   cosineCoeff(ν u(t)^γ)
-d²/dt² cosineCoeff(ν u(t)^γ)
+ShenWork/PDE/IntervalLogisticSourceQuantBound.lean
 ```
 
-For the heat profile these derivatives are, morally,
+This is not the same nonlinear function, but it is the right style: define an explicit derivative formula and a bound constant, then prove a pointwise bound and integrate it. For `ν z^γ`, add the fourth-derivative analogue of this file.
 
-```text
-s₀ = ν u^γ
-s₁ = ν γ u^(γ-1) u_t = ν γ u^(γ-1) Δu
-s₂ = ν γ(γ-1)u^(γ-2)(Δu)^2 + ν γ u^(γ-1) Δ²u.
-```
+## The key lemma to add
 
-`heatSemigroup_contDiff_four` helps identify `Δu` and `Δ²u` spatially at a fixed positive time, but it does not by itself provide a global-in-`t` coefficient envelope for `s₁` and `s₂`.
-
-## Does `srcTimeCoeff_contDiffAt` give `src_bound`?
-
-No.
-
-In `IntervalPhysicalSourceTimeC2Concrete.lean`, the local theorem
+The missing single key lemma should be something like this:
 
 ```lean
-theorem srcTimeCoeff_contDiffAt
-    (H : FlooredSourceTimeData p u s₁ s₂) (k : ℕ) {t : ℝ} (ht : 0 < t) :
-    ContDiffAt ℝ (2 : ℕ∞) (srcTimeCoeff p u k) t
-```
-
-only proves local differentiability at a positive time. It is built from local derivative-under-integral facts:
-
-```lean
-srcTimeCoeff_hasDerivAt :
-  HasDerivAt (srcTimeCoeff p u k) (cosineCoeffs (s₁ t) k) t
-
-cosS1_hasDerivAt :
-  HasDerivAt (fun s => cosineCoeffs (s₁ s) k) (cosineCoeffs (s₂ t) k) t
-```
-
-The bound theorem is separate:
-
-```lean
-theorem srcTimeCoeff_bound
-    (H : FlooredSourceTimeData p u s₁ s₂) (i k : ℕ) (t : ℝ)
-    (hi : i ≤ 2) (ht : 0 < t) :
-    ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k
-```
-
-and it depends exactly on `H.zerothBound` and `H.laplBound`, via:
-
-```lean
-exact (Classical.choose_spec (H.zerothBound i hi)).2 t ht
-exact (Classical.choose_spec (H.laplBound i hi)).2 t ht k hk
-```
-
-So the repo already separates the two issues:
-
-```text
-srcTimeCoeff_contDiffAt  = local differentiability / derivative identity
-srcTimeCoeff_bound       = uniform envelope / coefficient decay
-```
-
-The former does not imply the latter.
-
-Also, if you bypass `FlooredSourceTimeData`, the existing `srcTimeCoeff_contDiffAt` is not directly usable anyway, because it requires `H : FlooredSourceTimeData p u s₁ s₂` and is currently in the old producer file. You would need to replicate its proof or extract a lower-level derivative-under-integral lemma.
-
-## The real obstruction in direct `PhysicalSourceTimeC2`
-
-If you try to construct `PhysicalSourceTimeC2` directly, the hard fields are:
-
-```lean
-hsrcB : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-  ‖iteratedFDeriv ℝ i (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤ Es i k
-```
-
-and the summability of `w_k * Es i k` against the value/gradient majorants.
-
-This is at least as strong as proving the old zeroth/laplacian bounds, because for positive time the identities are:
-
-```text
-∂ₜ⁰ srcTimeCoeff k = cosineCoeff(s₀(t)) k
-∂ₜ¹ srcTimeCoeff k = cosineCoeff(s₁(t)) k
-∂ₜ² srcTimeCoeff k = cosineCoeff(s₂(t)) k
-```
-
-So the old `zerothBound`/`laplBound` obligations reappear as the `k = 0` and `k ≥ 1` cases of `src_bound`, just without being named that way.
-
-Moreover, `PhysicalSourceTimeC2.src_bound` is global in `t : ℝ`, and `Es` has no time parameter. For the heat semigroup generated from merely continuous/bounded-coefficient initial data, heat smoothing constants blow as `t → 0+`. Thus a global uniform positive-time bound for `s₁`/`s₂` is generally not available without stronger initial regularity, a positive-time window, or an explicit cutoff/restart.
-
-There is also a global-continuity issue: `src_contDiff` asks for
-
-```lean
-ContDiff ℝ 2 (srcTimeCoeff p u k)
-```
-
-on all of `ℝ`, not just `Ioi 0`. The heat semigroup facts here are positive-time facts. If `intervalFullSemigroupOperator t` is zero for `t ≤ 0`, then at `t = 0` there is typically a jump from the zero extension to the positive initial source value. So global `ContDiff` at `0` is not expected for positive `u₀` unless the API is localized or cut off.
-
-## Best interpretation of Option B
-
-Option B is good as an **API bypass**:
-
-```text
-Do not build FlooredSourceTimeData.
-Build PhysicalSourceTimeC2 directly.
-Then apply physicalResolverJointC2Data_of_floor.
-```
-
-But it is not a proof shortcut from `heatSemigroup_contDiff_four + heatSemigroup_pos_of_pos` alone.
-
-The direct source theorem should have hypotheses that honestly state the missing direct heat-source coefficient bounds:
-
-```lean
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.Paper2.IntervalCD6CosineModeBounds
+import ShenWork.Paper2.IntervalCD6HeatSmoothness
+import ShenWork.PDE.IntervalFullKernelSupBound
+import ShenWork.PDE.IntervalFullKernelLowerBound
 import ShenWork.Paper2.IntervalHeatSemigroupFlooredSourceTimeData
 
-open Set Filter Topology
-open ShenWork.PDE (intervalNeumannResolverWeight)
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointMajorant boundedWeightJointGradMajorant)
-open ShenWork.IntervalPhysicalResolverDataConcrete
-  (PhysicalSourceTimeC2 PhysicalResolverJointC2Data srcTimeCoeff
-   physicalResolverJointC2Data_of_floor)
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift intervalMeasure)
+open ShenWork.IntervalNeumannFullKernel
+  (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
+open ShenWork.Paper2.CD6CosineModeBounds
 
 noncomputable section
 
-namespace ShenWork.Paper2.HeatSemigroupDirectPhysicalSource
+namespace ShenWork.Paper2.HeatSourceH4HalfLineBound
 
-/-- Honest direct route: bypass `FlooredSourceTimeData`, but keep the actual
-source-coefficient regularity/bound/summability obligations explicit. -/
-theorem heatSemigroup_physicalResolverJointC2Data_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {Es : ℕ → ℕ → ℝ}
-    (hsrcC2 : ∀ k,
-      ContDiff ℝ (2 : ℕ∞)
-        (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k))
-    (hsrcB : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
-      ‖iteratedFDeriv ℝ i
-        (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤ Es i k)
-    (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointMajorant
-        (fun i k => intervalNeumannResolverWeight p k * Es i k) m))
-    (hgrad : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
-      Summable (boundedWeightJointGradMajorant
-        (fun i k => intervalNeumannResolverWeight p k * Es i k) m)) :
-    PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0)
-      (fun i k => intervalNeumannResolverWeight p k * Es i k) := by
-  refine physicalResolverJointC2Data_of_floor ?H
-  exact {
-    src_contDiff := hsrcC2
-    src_bound := hsrcB
-    value_summable := hval
-    grad_summable := hgrad
-  }
+/-- Uniform spatial derivative bound for the heat trace on the half-line
+`t ≥ τ`.  This is the primitive spectral estimate needed for every later
+nonlinear source bound. -/
+theorem heatTrace_spatialDeriv_bound_on_Ici
+    {u₀ : intervalDomainPoint → ℝ} {M₀ τ : ℝ}
+    (hτ : 0 < τ)
+    (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀)
+    (r : ℕ) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ t : ℝ, τ ≤ t → ∀ x : ℝ,
+        ‖iteratedFDeriv ℝ r
+          (fun y : ℝ => unitIntervalCosineHeatValue t
+            (cosineCoeffs (intervalDomainLift u₀)) y) x‖ ≤ G := by
+  -- Expected construction:
+  --   G := |M₀| * ∑' n, |nπ|^r * exp(-τ λ_n)
+  -- Use:
+  --   frequency_pow_mul_exp_summable r hτ
+  --   unitIntervalCosineMode_iteratedFDeriv_bound r n x
+  --   exp(-tλ) ≤ exp(-τλ) for t ≥ τ.
+  sorry
 
-end ShenWork.Paper2.HeatSemigroupDirectPhysicalSource
+/-- Quantitative lower/upper range bound for the heat trace.
+Expose the constants used implicitly in `heatSemigroup_pos_of_pos`. -/
+theorem heatTrace_range_bound_on_pos_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x) :
+    ∃ δ M : ℝ, 0 < δ ∧ 0 ≤ M ∧ δ ≤ M ∧
+      ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0 : ℝ) 1,
+        δ ≤ intervalDomainLift (conjugatePicardIter p u₀ 0 t) x ∧
+        |intervalDomainLift (conjugatePicardIter p u₀ 0 t) x| ≤ M := by
+  -- Proof outline:
+  --   compact min/max of continuous u₀ on intervalDomainPoint;
+  --   lower: intervalFullSemigroupOperator_lower_bound;
+  --   upper: intervalFullSemigroupOperator_Linfty_bound;
+  --   bridge by unfolding conjugatePicardIter 0 and intervalDomainLift on Icc.
+  sorry
+
+/-- Fourth-derivative chain-rule bound for `x ↦ ν * g x ^ γ` from range and
+spatial derivative bounds on `g`.  This is the `ν z^γ` analogue of the style in
+`IntervalLogisticSourceQuantBound`. -/
+def B_pow4 (ν γ δ M G1 G2 G3 G4 : ℝ) : ℝ :=
+  |ν * γ| * max (δ ^ (γ - 1)) (M ^ (γ - 1)) * G4
+  + |4 * ν * γ * (γ - 1)| * max (δ ^ (γ - 2)) (M ^ (γ - 2)) * G1 * G3
+  + |3 * ν * γ * (γ - 1)| * max (δ ^ (γ - 2)) (M ^ (γ - 2)) * G2 ^ 2
+  + |6 * ν * γ * (γ - 1) * (γ - 2)| * max (δ ^ (γ - 3)) (M ^ (γ - 3)) * G1 ^ 2 * G2
+  + |ν * γ * (γ - 1) * (γ - 2) * (γ - 3)| * max (δ ^ (γ - 4)) (M ^ (γ - 4)) * G1 ^ 4
+
+/-- Main desired `m = 0` half-line H4 bound. -/
+theorem heatSource_pow_H4_L1_bound_on_Ici
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {M₀ c : ℝ}
+    (hc : 0 < c)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀) :
+    ∃ B : ℝ, 0 ≤ B ∧
+      ∀ t : ℝ, c / 2 ≤ t →
+        ∫ x in (0 : ℝ)..1,
+          |iteratedDeriv 4
+            (fun y : ℝ => p.ν *
+              (intervalDomainLift (conjugatePicardIter p u₀ 0 t) y) ^ p.γ) x| ≤ B := by
+  -- 1. get δ,M range bounds from `heatTrace_range_bound_on_pos_time`.
+  -- 2. get G1..G4 from `heatTrace_spatialDeriv_bound_on_Ici` with τ = c/2.
+  -- 3. prove pointwise `|D⁴(νu^γ)| ≤ B_pow4 ...` by the chain rule.
+  -- 4. integrate pointwise bound over interval length 1.
+  sorry
+
+end ShenWork.Paper2.HeatSourceH4HalfLineBound
 ```
 
-This cleanly bypasses `heatSemigroup_flooredSourceTimeData`. But the real next theorem is to prove `hsrcC2`, `hsrcB`, `hval`, and `hgrad` for a suitable envelope `Es`.
-
-## What direct heat proof would need
-
-A direct positive-time theorem should be windowed, something like:
+The constants in `B_pow4` are schematic: in Lean, the `max (δ^a) (M^a)` terms for real exponents need a small helper saying `z ↦ z^a` is bounded on `[δ,M]` when `0 < δ ≤ z ≤ M`. It may be cleaner to choose the power-bound constants existentially:
 
 ```lean
--- schematic only
-theorem heatSemigroup_sourceCoeff_bounds_on_window
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {c T M₀ : ℝ} (hc : 0 < c) (hcT : c ≤ T)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x, 0 < u₀ x)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
-    ∃ Es : ℕ → ℕ → ℝ,
-      (∀ i k t, i ≤ 2 → t ∈ Icc c T →
-        ‖iteratedFDeriv ℝ i
-          (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤ Es i k) ∧
-      ...summability of weighted majorants...
+∃ Cpow : Fin 4 → ℝ, ...
 ```
 
-On a window `t ∈ [c,T]`, heat smoothing constants are finite. Then `heatSemigroup_contDiff_four` plus the explicit heat time derivatives can plausibly give:
+rather than make `max` work for all signs of `γ-j` immediately.
+
+## Why this is better than compact-plus-tail in Lean
+
+The proposed proof avoids selecting a large `T`. For all `t ≥ c/2`, use the monotone exponential comparison:
 
 ```text
-s₀ = ν u^γ
-s₁ = νγu^(γ-1)Δu
-s₂ = νγ(γ-1)u^(γ-2)(Δu)^2 + νγu^(γ-1)Δ²u
+exp(-tλₙ) ≤ exp(-(c/2)λₙ).
 ```
 
-with coefficient decay and summability.
+Then all estimates are uniform on the whole half-line from the start. No `tendsto`, no “eventually decays,” no supremum-attainment theorem, no compact `[c/2,T]` split.
 
-But the existing `PhysicalSourceTimeC2` is not windowed. It asks for all `t : ℝ`, so the windowed theorem will not plug in unless you also introduce a windowed/local variant of `PhysicalSourceTimeC2` or a cutoff construction.
+## Relation to IBP coefficient decay
 
-## Answer to the key question
+Once the half-line H4 bound is available:
 
-> are `src_bound` estimates available from `srcTimeCoeff_contDiffAt`?
+```text
+∫₀¹ |∂ₓ⁴(νu^γ)| ≤ B₀(c),
+```
 
-No. `srcTimeCoeff_contDiffAt` gives only local `C²` in time. It does not give any bound on the size of `∂ₜⁱ srcTimeCoeff`, and in Lean it cannot synthesize an `Es i k` independent of `t`. The old proof of `srcTimeCoeff_bound` explicitly needs `zerothBound` and `laplBound`; direct construction needs an equivalent explicit envelope hypothesis/proof.
+combine it with the existing quartic-decay lemma:
 
-## Recommendation
+```lean
+ShenWork.IntervalSourceDecayQuantitative
+  .intervalWeakH4Neumann_cosineCoeff_quartic_decay_of_bound
+```
 
-Use Option B only in the following precise form:
+or a direct classical C4 IBP version, to get
 
-1. Add `physicalSourceTimeC2_direct` / `physicalResolverJointC2Data_direct` as API shims.
-2. Prove or assume direct source-coefficient envelopes `hsrcB` for the heat source, preferably on a positive time window.
-3. Do **not** expect `heatSemigroup_contDiff_four + heatSemigroup_pos_of_pos` to close global `PhysicalSourceTimeC2` by themselves.
-4. If the downstream consumer only needs local positive-time regularity, the more honest long-term fix is a windowed/local `PhysicalSourceTimeC2On` and a windowed resolver joint-C² assembler.
+```text
+|cosineCoeffs (νu(t)^γ) k| ≤ 2 * B₀(c) / ((kπ)^4),   k ≥ 1, t ≥ c/2.
+```
 
-So the direct bypass is valid as a design, but it does not eliminate the analytic blocker; it relocates it to the exact field `PhysicalSourceTimeC2.src_bound` and the two summability fields.
+This gives exactly the quartic envelope needed for the `m = 0` source coefficient majorant on the direct route.
+
+## Important caveat for `m = 1,2`
+
+For the direct route you originally want
+
+```text
+sup_{t ≥ c/2} |D_t^m srcTimeCoeff_k(t)|,   m = 0,1,2.
+```
+
+For `m = 1,2`, do not reuse only `B₀(c)`. You need analogous half-line H4 bounds for `s₁` and `s₂`:
+
+```text
+B₁(c) ≥ sup_{t≥c/2} ∫ |∂ₓ⁴ s₁(t)|,
+B₂(c) ≥ sup_{t≥c/2} ∫ |∂ₓ⁴ s₂(t)|.
+```
+
+Because
+
+```text
+s₁ contains Δu,
+s₂ contains Δ²u,
+```
+
+these require heat derivative bounds up to spatial orders `6` and `8` respectively. The existing `unitIntervalCosineHeatValue_contDiff_seven` is close but not enough for `m = 2`; a public arbitrary-order version of the heat derivative majorant would be the clean final tool.
+
+Suggested general lemma:
+
+```lean
+theorem heatTrace_spatialDeriv_bound_on_Ici_any_order
+    {u₀ : intervalDomainPoint → ℝ} {M₀ τ : ℝ}
+    (hτ : 0 < τ)
+    (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀)
+    (r : ℕ) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ t : ℝ, τ ≤ t → ∀ x : ℝ,
+        ‖iteratedFDeriv ℝ r
+          (fun y : ℝ => unitIntervalCosineHeatValue t
+            (cosineCoeffs (intervalDomainLift u₀)) y) x‖ ≤ G
+```
+
+This single lemma is the real engine. It uses `frequency_pow_mul_exp_summable` and handles every order, including the C8 needed for `m = 2`.
+
+## Answer to the question
+
+Yes, the half-line bound exists, but the key lemma is not currently a single named theorem in the repo. It should be added as a public half-line heat-derivative majorant, then combined with a fourth-derivative chain-rule bound for `ν z^γ` under uniform positive lower and upper bounds.
+
+The closest existing building blocks are:
+
+```text
+CD6CosineModeBounds.frequency_pow_mul_exp_summable
+CD6CosineModeBounds.unitIntervalCosineMode_iteratedFDeriv_bound
+CD6HeatSmoothness.unitIntervalCosineHeatValue_contDiff_seven
+IntervalFullKernelSupBound.intervalFullSemigroupOperator_Linfty_bound
+IntervalFullKernelLowerBound.intervalFullSemigroupOperator_lower_bound
+IntervalLogisticSourceQuantBound   -- proof style for quantitative chain-rule bounds
+```
+
+Do not rely on a compact-attainment argument. Use the direct spectral majorant with `exp(-(c/2)λ_n)`.
