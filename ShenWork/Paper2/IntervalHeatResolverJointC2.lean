@@ -108,10 +108,15 @@ theorem heatLevel0_srcTimeCoeff_contDiffAt_two
     obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
       heatSemigroup_d0 (p := p) (u₀ := u₀) (M₀ := M₀)
         hu₀_bound hu₀_cont hfloor s hs
+    have hint : ∀ᶠ r in 𝓝 s, IntervalIntegrable
+        (srcSlice p (conjugatePicardIter p u₀ 0) r)
+        MeasureTheory.volume (0 : ℝ) 1 :=
+      hcont.mono fun r hr =>
+        (Set.uIcc_of_le (zero_le_one (α := ℝ)) ▸ hr).intervalIntegrable
     have hH := cosineCoeffs_hasDerivAt_of_smooth_param
       (f := srcSlice p (conjugatePicardIter p u₀ 0))
       (f' := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
-      (τ := s) (δ := δ) (n := k) hδ hcont hdiff hcd
+      (τ := s) (δ := δ) (n := k) hδ hint hdiff hcd
     have heq :
         (fun r => cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) r) k) =
           f₀ := by
@@ -124,10 +129,15 @@ theorem heatLevel0_srcTimeCoeff_contDiffAt_two
     obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
       heatSemigroup_d1 (p := p) (u₀ := u₀) (M₀ := M₀)
         hu₀_bound hu₀_cont hfloor s hs
+    have hint : ∀ᶠ r in 𝓝 s, IntervalIntegrable
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) r)
+        MeasureTheory.volume (0 : ℝ) 1 :=
+      hcont.mono fun r hr =>
+        (Set.uIcc_of_le (zero_le_one (α := ℝ)) ▸ hr).intervalIntegrable
     have hH := cosineCoeffs_hasDerivAt_of_smooth_param
       (f := srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀))
       (f' := srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀))
-      (τ := s) (δ := δ) (n := k) hδ hcont hdiff hcd
+      (τ := s) (δ := δ) (n := k) hδ hint hdiff hcd
     simpa [f₁, f₂, s₁, s₂] using hH
   have hc2 : ∀ s ∈ Set.Ioi (0 : ℝ), ContinuousAt f₂ s := by
     intro s hs
@@ -232,7 +242,7 @@ theorem cutoffResolverCoeff_contDiff_two
       have : smoothRightCutoff (c / 2) c s = 0 :=
         smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)
       simp [this]
-    exact contDiffAt_const.congr_of_eventuallyEq hev.symm
+    exact contDiffAt_const.congr_of_eventuallyEq hev
 
 /-! ### Layer 4: Per-term C² in (t,x) -/
 
@@ -256,14 +266,7 @@ theorem cutoffResolverTerm_contDiff_two
     unfold cosineMode; fun_prop
   have hcos_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => cosineMode k q.2) :=
     hcos.comp contDiff_snd
-  show ContDiff ℝ 2 (fun q => smoothRightCutoff (c / 2) c q.1 *
-    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1 * cosineMode k q.2))
-  conv => ext q; rw [show smoothRightCutoff (c / 2) c q.1 *
-    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1 * cosineMode k q.2) =
-    (smoothRightCutoff (c / 2) c q.1 *
-      resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) * cosineMode k q.2
-    from by ring]
-  exact hcoef_q.mul hcos_q
+  simpa [cutoffResolverTerm, mul_assoc] using hcoef_q.mul hcos_q
 
 /-! ### Summable majorant (sorry'd — analytic content) -/
 
@@ -275,15 +278,10 @@ The majorant shape is:
 where the resolver coefficient contribution decays as `1/(μ+λ_k)` times bounded
 source coefficients, giving overall summability from the elliptic weight. -/
 noncomputable def cutoffResolverMajorant (p : CM2Params)
-    (u₀ : intervalDomainPoint → ℝ) (M₀ c : ℝ) (hc : 0 < c)
+    (u₀ : intervalDomainPoint → ℝ) (_M₀ c : ℝ) (hc : 0 < c)
     (j k : ℕ) : ℝ :=
-  -- Placeholder: the actual majorant would involve smoothRightCutoff derivative
-  -- bounds, resolver coefficient bounds on [c/2, ∞), and cosineMode bounds.
-  -- For now, define it abstractly so the wiring can proceed.
-  -- Suppress unused variable warnings:
-  let _ := p; let _ := u₀; let _ := M₀; let _ := c; let _ := hc
-  let _ := j; let _ := k
-  Classical.choice inferInstance
+  ⨆ q : ℝ × ℝ, ‖iteratedFDeriv ℝ j
+    (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖
 
 /-- The majorant is nonneg. -/
 theorem cutoffResolverMajorant_nonneg {p : CM2Params}
