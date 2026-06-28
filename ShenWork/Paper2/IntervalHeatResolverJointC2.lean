@@ -703,7 +703,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           -- Apply cosineCoeffs_abs_le_of_continuous_bounded
           exact (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
             hsrc_cont (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg hM_sup_nn _))
-            hsrc_bound k).trans (by ring_nf)
+            hsrc_bound k).trans (le_of_eq (by ring))
         obtain ⟨B_tail, hB_tail⟩ := hA_tail
         refine ⟨max (max 0 B_compact) B_tail, fun t => ?_⟩
         rw [norm_iteratedFDeriv_zero, Real.norm_eq_abs]
