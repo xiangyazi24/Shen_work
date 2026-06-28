@@ -668,13 +668,61 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           · -- t > c/2+2: tail bound
             push_neg at ht_mid
             exact (hB_tail t ht_mid).trans (le_max_right _ B_tail)
-      · -- i = 1: A'(t) is bounded
-        -- For t ≤ c/2: A'(t) = 0
-        -- For t > c: A' = resolverTimeCoeff', bounded by eigenvalue damping
-        -- For t ∈ [c/2, c]: compact → bounded
-        sorry
-      · -- i = 2: A''(t) is bounded, same structure as i=1
-        sorry
+      · -- i = 1: same compact+tail split as i=0
+        have hA1_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 1 A t) :=
+          hAC2.continuous_iteratedFDeriv (by norm_num : (1 : ℕ∞) ≤ 2)
+        obtain ⟨B1_compact, hB1_compact⟩ :=
+          (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
+            hA1_cont.continuousOn
+        have hA1_tail : ∃ B : ℝ, ∀ t : ℝ, c / 2 + 2 < t →
+            ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
+          sorry -- tail: A' = resolverTimeCoeff' for t > c, bounded by eigenvalue damping
+        obtain ⟨B1_tail, hB1_tail⟩ := hA1_tail
+        refine ⟨max (max 0 B1_compact) B1_tail, fun t => ?_⟩
+        by_cases ht_left : t < c / 2
+        · -- A' = 0 for t < c/2 (A ≡ 0 near t)
+          have hev : A =ᶠ[𝓝 t] fun _ => (0 : ℝ) := by
+            have hmem : Set.Iio (c / 2) ∈ 𝓝 t := Iio_mem_nhds ht_left
+            filter_upwards [hmem] with s hs
+            show smoothRightCutoff (c / 2) c s *
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s = 0
+            rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]; ring
+          rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 1).eq_of_nhds,
+            iteratedFDeriv_const_of_ne (by norm_num : (1 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
+          exact le_max_left 0 _
+        · push_neg at ht_left
+          by_cases ht_mid : t ≤ c / 2 + 2
+          · exact (hB1_compact t ⟨ht_left, ht_mid⟩).trans
+              ((le_max_right 0 _).trans (le_max_left _ _))
+          · push_neg at ht_mid
+            exact (hB1_tail t ht_mid).trans (le_max_right _ _)
+      · -- i = 2: same compact+tail split
+        have hA2_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 2 A t) :=
+          hAC2.continuous_iteratedFDeriv (by norm_num : (2 : ℕ∞) ≤ 2)
+        obtain ⟨B2_compact, hB2_compact⟩ :=
+          (isCompact_Icc (a := c / 2) (b := c / 2 + 2)).exists_bound_of_continuousOn
+            hA2_cont.continuousOn
+        have hA2_tail : ∃ B : ℝ, ∀ t : ℝ, c / 2 + 2 < t →
+            ‖iteratedFDeriv ℝ 2 A t‖ ≤ B := by
+          sorry -- tail: A'' for t > c, bounded by eigenvalue damping
+        obtain ⟨B2_tail, hB2_tail⟩ := hA2_tail
+        refine ⟨max (max 0 B2_compact) B2_tail, fun t => ?_⟩
+        by_cases ht_left : t < c / 2
+        · have hev : A =ᶠ[𝓝 t] fun _ => (0 : ℝ) := by
+            have hmem : Set.Iio (c / 2) ∈ 𝓝 t := Iio_mem_nhds ht_left
+            filter_upwards [hmem] with s hs
+            show smoothRightCutoff (c / 2) c s *
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s = 0
+            rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]; ring
+          rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 2).eq_of_nhds,
+            iteratedFDeriv_const_of_ne (by norm_num : (2 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
+          exact le_max_left 0 _
+        · push_neg at ht_left
+          by_cases ht_mid : t ≤ c / 2 + 2
+          · exact (hB2_compact t ⟨ht_left, ht_mid⟩).trans
+              ((le_max_right 0 _).trans (le_max_left _ _))
+          · push_neg at ht_mid
+            exact (hB2_tail t ht_mid).trans (le_max_right _ _)
     obtain ⟨B_max, hB_max⟩ : ∃ B_max : ℝ, ∀ (i : ℕ), i ≤ 2 → ∀ t : ℝ,
         ‖iteratedFDeriv ℝ i A t‖ ≤ B_max := by
       obtain ⟨b0, hb0⟩ := hA_global_bounds 0 (by omega)
