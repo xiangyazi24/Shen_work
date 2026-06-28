@@ -831,8 +831,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   -- ≤ eigenvalue * exp(-(c+1)*eigenvalue) * 1 * M₀
                   simp only [
                     ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
-                    ShenWork.RegularityBootstrap.unitIntervalCosineHeatPointWeight,
-                    ShenWork.RegularityBootstrap.unitIntervalCosineMode]
+                    ShenWork.RegularityBootstrap.unitIntervalCosineHeatPointWeight]
                   -- After unfold: |-eigenvalue * (exp * cos) * c_n| ≤ M₀ * eigenvalue * exp(-(c+1)*...)
                   sorry -- abs product bound: rearrange with abs_mul, abs_neg, abs_cos_le_one, hu₀_bound, exp monotone
                 · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
