@@ -1021,7 +1021,63 @@ private theorem cutoffResolverMajorant_bddAbove_direct
           set R := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
           have hR_deriv2_bounded : ∃ B_R'' : ℝ, ∀ t : ℝ, c + 1 < t →
               |iteratedDeriv 2 R t| ≤ B_R'' := by
-            sorry -- eigenvalue damping for second time derivative of resolverTimeCoeff
+            -- Bound |cosineCoeffs(srcSlice2, k)| uniformly for t > c+1
+            have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
+                |cosineCoeffs (srcSlice2 p (conjugatePicardIter p u₀ 0)
+                  (heatDu u₀) (heatD2u u₀) t) k| ≤ Bsrc := by
+              obtain ⟨Bpt, hBpt_nn, hBpt⟩ : ∃ Bpt : ℝ, 0 ≤ Bpt ∧
+                  ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+                    |srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀)
+                      (heatD2u u₀) t x| ≤ Bpt := by
+                -- srcSlice2 = ν·γ·(γ-1)·u^{γ-2}·(heatDu)² + ν·γ·u^{γ-1}·heatD2u
+                -- Uniform bound: u ∈ [inf u₀, M_sup], |heatDu| ≤ CΔ,
+                -- |heatD2u| ≤ CΔ₂ (eigenvalue damping). Assembly ~25 lines.
+                sorry
+              refine ⟨2 * Bpt, fun t ht => ?_⟩
+              have ht_pos : 0 < t := by linarith
+              obtain ⟨δ₁, hδ₁, _, _, hcd1⟩ :=
+                heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht_pos
+              have hsrc2_cont : ContinuousOn
+                  (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t)
+                  (Set.Icc (0:ℝ) 1) :=
+                hcd1.comp (continuous_const.prod_mk continuous_id).continuousOn
+                  (fun x hx => Set.mk_mem_prod ⟨by linarith, by linarith⟩ hx)
+              exact (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+                hsrc2_cont hBpt_nn (fun x hx => hBpt t ht x hx) k).trans
+                (by linarith [hBpt_nn])
+            obtain ⟨Bsrc, hBsrc⟩ := hBsrc
+            set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
+            -- iteratedDeriv 2 R t = w_k * cosineCoeffs(srcSlice2 t, k)
+            have hid2 : ∀ t : ℝ, 0 < t → iteratedDeriv 2 R t =
+                w_k * cosineCoeffs (srcSlice2 p (conjugatePicardIter p u₀ 0)
+                  (heatDu u₀) (heatD2u u₀) t) k := by
+              intro t ht_pos
+              have hRfun : R = fun s =>
+                  w_k * srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
+                funext s
+                exact resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k s
+              rw [hRfun, iteratedDeriv_const_mul_field]
+              congr 1
+              rw [iteratedDeriv_succ]
+              have hnear : (fun s => iteratedDeriv 1
+                  (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) s) =ᶠ[𝓝 t]
+                  fun s => cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0)
+                    (heatDu u₀) s) k := by
+                filter_upwards [Ioi_mem_nhds ht_pos] with s hs
+                rw [iteratedDeriv_one]
+                exact (heatLevel0_srcTimeCoeff_hasDerivAt hu₀_bound hu₀_cont hfloor hs k).deriv
+              rw [Filter.EventuallyEq.deriv_eq hnear]
+              obtain ⟨δ₁, hδ₁, hcont_s1, hdiff_s1, hcd_s2⟩ :=
+                heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht_pos
+              have hint : ∀ᶠ r in 𝓝 t, IntervalIntegrable
+                  (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) r)
+                  MeasureTheory.volume (0 : ℝ) 1 :=
+                hcont_s1.mono fun r hr =>
+                  (Set.uIcc_of_le (zero_le_one (α := ℝ)) ▸ hr).intervalIntegrable
+              exact (cosineCoeffs_hasDerivAt_of_smooth_param hδ₁ hint hdiff_s1 hcd_s2).deriv
+            refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
+            rw [hid2 t (by linarith : 0 < t), abs_mul]
+            exact mul_le_mul_of_nonneg_left (hBsrc t ht) (abs_nonneg _)
           obtain ⟨B_R'', hB_R''⟩ := hR_deriv2_bounded
           refine ⟨B_R'', fun t ht => ?_⟩
           -- A = R near t (φ=1 for t > c)
