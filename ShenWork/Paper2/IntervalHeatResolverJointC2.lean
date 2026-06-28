@@ -879,11 +879,16 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               -- with B = νγ * M_sup^{γ-1} * CΔ
               -- ContinuousOn: from smoothness of each factor at t > 0 (sorry'd)
               -- Pointwise bound: from hSt_le + rpow + hDu (sorry'd)
-              -- Same pattern as i=0: cosineCoeffs_abs_le_of_continuous_bounded
-              -- Need: ContinuousOn + pointwise bound of srcSlice1 on [0,1]
-              -- ContinuousOn: from heatSlice_secondValue_jointContinuousOn + rpow + product
-              -- Pointwise: |srcSlice1| ≤ νγ * sup(u)^{γ-1} * CΔ from hSt_le + hDu
-              -- For now sorry — needs heatDu ↔ secondValue bridge + product ContinuousOn assembly
+              -- ContinuousOn of srcSlice1 from d1, pointwise bound from L∞ + hDu
+              set u := conjugatePicardIter p u₀ 0
+              have ht_pos : 0 < t := by linarith
+              -- Step 1: ContinuousOn of srcSlice1(t) on [0,1] from d1
+              obtain ⟨_, _, hcont_s1, _, _⟩ :=
+                heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht_pos
+              have hsrc1_cont : ContinuousOn (srcSlice1 p u (heatDu u₀) t) (Set.Icc (0:ℝ) 1) :=
+                hcont_s1.self_of_nhds
+              -- Step 2: pointwise bound |srcSlice1(t,x)| ≤ B on [0,1]
+              -- Need M_sup for L∞ contraction — re-derive
               sorry
             obtain ⟨Bsrc, hBsrc⟩ := hBsrc
             set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
