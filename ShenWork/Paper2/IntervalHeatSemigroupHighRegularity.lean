@@ -877,12 +877,13 @@ theorem heatResolverJointContDiffAt_two
     ContDiffAt ℝ 2 (fun q : ℝ × ℝ =>
       intervalDomainLift (coupledChemicalConcentration p
         (conjugatePicardIter p u₀ 0) q.1) q.2) (s₀, x₀) := by
-  -- `_hc` and `_hs₀` are retained in the API for downstream callers that pass
-  -- a time-positivity witness; the bounded-weight route via
-  -- `PhysicalResolverJointC2Data` is globally valid (no time cutoff needed).
-  obtain ⟨Bt, hBt⟩ := heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu₀_bound hu₀_cont hu₀_pos
-  exact coupledChemical_jointContDiffAt_two hBt hx₀
+  have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
+    fun t ht x hx =>
+      ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+        hu₀_cont hu₀_pos ht hx
+  exact ShenWork.Paper2.HeatResolverJointC2Direct.heatResolver_jointContDiffAt_two
+    hu₀_bound hu₀_cont hfloor _hc _hs₀ hx₀
 
 #print axioms heatResolverJointContDiffAt_two
 
