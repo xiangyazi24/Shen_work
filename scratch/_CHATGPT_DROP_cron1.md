@@ -1,4 +1,4 @@
-# Q1651 (cron1) -- global bound gap in `cutoffResolverMajorant_bddAbove_direct`
+# Q1652 (cron1) -- cron2 derivative/cancellation issue
 
 Repository: `xiangyazi24/Shen_work`  
 Committed branch: `chatgpt-scratch`  
@@ -9,229 +9,291 @@ Target report file: `scratch/_CHATGPT_DROP_cron1.md`
 The prompt was:
 
 ```text
-Q1651 (cron1): cron1 /tmp/q_cron1_global.txt
+Q1652 (cron1): cron2 /tmp/q_cron2_deriv.txt
 ```
 
-The local file `/tmp/q_cron1_global.txt` is not accessible through the GitHub connector. I therefore inferred the target from the current cron1 boundedness thread. The relevant file is:
+The local file `/tmp/q_cron2_deriv.txt` is not accessible through the GitHub connector. I therefore inferred the target from the cron2 files currently in the repository. The relevant files are:
 
 ```text
-ShenWork/Paper2/IntervalHeatResolverJointC2.lean
+ShenWork/Paper2/IntervalBFormNegativePartCron2.lean
+ShenWork/Paper2/IntervalBFormCron2NegativePartEnergy.lean
+ShenWork/Paper2/IntervalBFormCron2RegularNegativePartEnergy.lean
 ```
 
-The current default-branch file has now filled the earlier `hmid` block, but the **global** remaining gap is in the `htail` block inside:
+The derivative issue is the treatment of:
 
 ```lean
-private theorem cutoffResolverMajorant_bddAbove_direct
+deriv (negativePartTest u t) x
 ```
 
-specifically this local subgoal:
+where:
 
 ```lean
-have hA_global_bounds : ∀ i : ℕ, i ≤ 2 →
-    ∃ B_i : ℝ, ∀ t : ℝ, ‖iteratedFDeriv ℝ i A t‖ ≤ B_i := by
-  ...
-  sorry
+def negativePartTest (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) : ℝ → ℝ :=
+  fun x => -negativePartLift (u t) x
 ```
+
+and the energy proof needs the chemotaxis cancellation against this derivative.
 
 I used the GitHub connector only. I did **not** use Python, the sandbox, `/mnt/data`, or a sandbox download link. I did not run Lean locally.
 
 ## Short answer
 
-Do **not** try to prove `hA_global_bounds` from `hAC2`/continuity alone. That is false in general: a `C²` function on `ℝ` can be unbounded. The comments in the file say “`A(t) → L`, `A'(t) → 0`, `A''(t) → 0`”, but those are not available as local hypotheses or committed lemmas in this proof.
-
-The cleanest way to close the global `BddAbove` obstruction is to bypass the direct left/mid/tail proof and use the already-proved physical-data route:
-
-```lean
-cutoffResolverMajorant_bddAbove_of_physical
-```
-
-That theorem already proves the required global `BddAbove` from `PhysicalResolverJointC2Data`, via the explicit uniform majorant:
-
-```lean
-cutoffResolverTerm_iteratedFDeriv_le_explicit
-```
-
-The file already imports the producer:
-
-```lean
-ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-```
-
-through `IntervalHeatSemigroupHighRegularity`, so the global bound can be obtained by extracting `Bt, hBt` and applying `cutoffResolverMajorant_bddAbove_of_physical`.
-
-## Recommended patch: replace the direct theorem body
-
-The most robust patch is to replace the entire body of `cutoffResolverMajorant_bddAbove_direct` with a call to the physical route. This closes both `hmid` and `htail` at once and avoids inventing uncommitted tail-limit lemmas.
-
-```lean
-private theorem cutoffResolverMajorant_bddAbove_direct
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hc : 0 < c)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    (_hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
-    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
-    BddAbove (Set.range fun q : ℝ × ℝ =>
-      ‖iteratedFDeriv ℝ j
-        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
-  obtain ⟨Bt, hBt⟩ :=
-    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      (p := p) (u₀ := u₀) (M₀ := M₀)
-      hu₀_bound hu₀_cont hu₀_pos
-  exact cutoffResolverMajorant_bddAbove_of_physical
-    (p := p) (u₀ := u₀) (M₀ := M₀) hc hBt j k hj
-```
-
-This is not mathematically weaker than the intended direct proof. It uses exactly the data that the global tail proof would need: uniform bounds for the resolver coefficient time derivatives. The only difference is that the bounds are supplied by the existing `PhysicalResolverJointC2Data` package instead of being reconstructed ad hoc inside the tail block.
-
-## Why the current `hA_global_bounds` plan is not justified
-
-The current local context has:
-
-```lean
-set A := fun t : ℝ =>
-  smoothRightCutoff (c / 2) c t *
-    resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
-have hAC2 := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
-```
-
-From this, Lean can prove:
-
-```lean
-Continuous (fun t => iteratedFDeriv ℝ i A t)
-```
-
-for `i ≤ 2`, but it cannot prove:
-
-```lean
-∃ B_i, ∀ t, ‖iteratedFDeriv ℝ i A t‖ ≤ B_i
-```
-
-because continuity on a noncompact domain is insufficient. The middle proof works because it restricts `t` to the compact interval:
-
-```lean
-Set.Icc (c / 2) (c / 2 + 1)
-```
-
-The global tail proof has no such compact interval.
-
-The comments in the file propose using decay/finite-limit facts:
+The cron2 derivative/cancellation route is already set up correctly. The key point is:
 
 ```text
-A(t) → L, A'(t) → 0, A''(t) → 0 as t → ∞.
+You do not need differentiability of negativePart at u = 0.
 ```
 
-That route would be analytically legitimate, but only if those asymptotic lemmas are already available for `resolverTimeCoeff` and its first two time derivatives. I did not find such local hypotheses in the proof. Without them, this route is a dead end.
+The cancellation is split by support:
 
-## If you insist on filling only `hA_global_bounds`
+* on `{0 < u}`, continuity makes `u_-` locally constant zero, so its classical derivative vanishes;
+* on `{u ≤ 0}`, the truncated chemotactic power/flux is zero because the positive part of `u` is zero.
 
-A more local proof can be written, but it should still use `PhysicalResolverJointC2Data`. The idea is:
-
-1. extract `Bt, H` from `heatSemigroup_level0_resolverJointC2Data`;
-2. use the one-dimensional product Leibniz bound for
-   ```lean
-   A = smoothRightCutoff (c / 2) c * resolverTimeCoeff ... k
-   ```
-3. bound cutoff derivatives by `resolverSmoothRightCutoffDerivBound_spec`;
-4. bound resolver coefficient derivatives by `H.coeff_bound`.
-
-The replacement for the `hA_global_bounds` sorry has this shape:
+For the weak energy proof, the project intentionally does **not** try to derive this from the weak PDE automatically. It packages the required Sobolev/a.e. chain-rule fact as a field:
 
 ```lean
-      obtain ⟨Bt, H⟩ :=
-        ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-          (p := p) (u₀ := u₀) (M₀ := M₀)
-          hu₀_bound hu₀_cont hu₀_pos
-      intro i hi
-      have hiTop : ((i : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
-        exact_mod_cast hi
-      have hiNat : i ≤ 2 := hi
-      have hc'c : c / 2 < c := by linarith
-      let Φ : ℕ → ℝ := fun r =>
-        if hr : (r : ℕ∞) ≤ 2 then
-          resolverSmoothRightCutoffDerivBound (c / 2) c hc'c r hr
-        else 0
-      refine ⟨∑ r ∈ Finset.range (i + 1),
-          (i.choose r : ℝ) * Φ r * Bt (i - r) k, ?_⟩
-      intro t
-      have hφ : ContDiff ℝ (2 : ℕ∞) (smoothRightCutoff (c / 2) c) :=
-        smoothRightCutoff_contDiff
-      have hR : ContDiff ℝ (2 : ℕ∞)
-          (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) :=
-        H.coeff_contDiff k
-      have hprod := norm_iteratedFDeriv_mul_le hφ hR t hiTop
-      change ‖iteratedFDeriv ℝ i
-          (fun t : ℝ => smoothRightCutoff (c / 2) c t *
-            resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) t‖ ≤ _
-      calc
-        ‖iteratedFDeriv ℝ i
-            (fun t : ℝ => smoothRightCutoff (c / 2) c t *
-              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) t‖
-            ≤ ∑ r ∈ Finset.range (i + 1), (i.choose r : ℝ) *
-                ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖ *
-                ‖iteratedFDeriv ℝ (i - r)
-                  (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ := by
-              simpa [mul_assoc] using hprod
-        _ ≤ ∑ r ∈ Finset.range (i + 1),
-              (i.choose r : ℝ) * Φ r * Bt (i - r) k := by
-              apply Finset.sum_le_sum
-              intro r hrange
-              have hri : r ≤ i := Nat.lt_succ_iff.mp (Finset.mem_range.mp hrange)
-              have hrNat : r ≤ 2 := le_trans hri hiNat
-              have hirNat : i - r ≤ 2 := le_trans (Nat.sub_le i r) hiNat
-              have hrTop : (r : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hrNat
-              have hcut : ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖ ≤ Φ r := by
-                simp [Φ, hrTop, resolverSmoothRightCutoffDerivBound_spec hc'c hrTop t]
-              have hres : ‖iteratedFDeriv ℝ (i - r)
-                    (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤
-                    Bt (i - r) k :=
-                H.coeff_bound (i - r) k t hirNat
-              have hchoose_nn : 0 ≤ (i.choose r : ℝ) := Nat.cast_nonneg _
-              have hcut_nn : 0 ≤ Φ r := by
-                have hn := norm_nonneg (iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t)
-                exact le_trans hn hcut
-              exact mul_le_mul
-                (mul_le_mul_of_nonneg_left hcut hchoose_nn)
-                hres
-                (norm_nonneg _)
-                (mul_nonneg hchoose_nn hcut_nn)
+neg_deriv_zero_on_pos :
+  ∀ t, 0 < t → t ≤ T →
+    ∀ᵐ x ∂ intervalMeasure 1,
+      0 < intervalDomainLift (u t) x →
+        deriv (negativePartLift (u t)) x = 0
 ```
 
-This is the direct proof that the current comments are gesturing toward, but notice that it still depends on `PhysicalResolverJointC2Data`; it does **not** follow from continuity or asymptotic handwaving.
+Then the actual flux cancellation is already proved from that field.
 
-The first patch, replacing the whole `cutoffResolverMajorant_bddAbove_direct` body, is much less brittle and should be preferred.
+## The pointwise scalar derivative lemma
 
-## Why this is not circular
-
-The physical route is already used later in the same file for summability:
+`IntervalBFormCron2NegativePartEnergy.lean` has the local positive-set derivative lemma:
 
 ```lean
-obtain ⟨Bt, hBt⟩ :=
-  ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-    (p := p) hu₀_bound hu₀_cont hu₀_pos
+/-- At a point where the slice is strictly positive, the negative part is
+locally constant zero, hence its classical derivative vanishes. -/
+lemma deriv_negativePartLift_eq_zero_of_pos
+    {u : ℝ → ℝ} {x : ℝ} (hu : ContinuousAt u x) (hpos : 0 < u x) :
+    deriv (fun y : ℝ => negativePart (u y)) x = 0 := by
+  have hmem : u x ∈ Set.Ioi (0 : ℝ) := hpos
+  have hnhds : Set.Ioi (0 : ℝ) ∈ 𝓝 (u x) :=
+    isOpen_Ioi.mem_nhds hmem
+  have hev_pos : ∀ᶠ y in 𝓝 x, u y ∈ Set.Ioi (0 : ℝ) :=
+    hu hnhds
+  have hev :
+      (fun y : ℝ => negativePart (u y)) =ᶠ[𝓝 x] (fun _ : ℝ => 0) :=
+    hev_pos.mono (fun y hy => negativePart_eq_zero_of_nonneg hy.le)
+  rw [hev.deriv_eq]
+  simp
 ```
 
-and then:
+This is the right proof. It avoids the nondifferentiability point of `negativePart` at `0`: when `0 < u x`, continuity gives a whole neighborhood where `u y > 0`, so `negativePart (u y) = 0` locally. When `u x ≤ 0`, the flux factor vanishes instead.
+
+The corresponding pointwise product cancellation is:
 
 ```lean
-cutoffResolverExplicitMajorant_summable hBt hc _hj
-cutoffResolverMajorant_le_explicit hc hBt j k _hj
+lemma truncatedChemotacticPower_mul_deriv_negativePartLift_eq_zero_of_continuousAt
+    (p : CM2Params) {u : ℝ → ℝ} {x : ℝ}
+    (hu : ContinuousAt u x) :
+    truncatedChemotacticPower p (u x)
+        * deriv (fun y : ℝ => negativePart (u y)) x = 0 := by
+  by_cases hpos : 0 < u x
+  · have hderiv := deriv_negativePartLift_eq_zero_of_pos hu hpos
+    simp [hderiv]
+  · have hflux :
+        truncatedChemotacticPower p (u x) = 0 :=
+      truncatedChemotacticPower_eq_zero_of_nonpos p (le_of_not_gt hpos)
+    simp [hflux]
 ```
 
-So using `hBt` to prove `BddAbove` is consistent with the file’s own architecture. It is not introducing a new dependency; it is reusing the same committed coefficient-bound package already used for the summable majorant.
+This is also the right proof: no derivative of `positivePart` or `negativePart` at the free boundary is needed.
+
+## The a.e. weak/Sobolev cancellation layer
+
+The weak energy proof does not use the pointwise classical derivative lemma directly. Instead it uses a more flexible a.e. lemma:
+
+```lean
+lemma truncatedChemFluxLifted_mul_negDeriv_eq_zero_ae
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {duNeg : ℝ → ℝ}
+    (hdu_zero_on_pos :
+      ∀ᵐ x ∂ intervalMeasure 1,
+        0 < intervalDomainLift w x → duNeg x = 0) :
+    (fun x => truncatedChemFluxLifted p w x * duNeg x)
+      =ᵐ[intervalMeasure 1] fun _ => 0 := by
+  filter_upwards [hdu_zero_on_pos] with x hx
+  by_cases hpos : 0 < intervalDomainLift w x
+  · simp [hx hpos]
+  · have hpp :
+        positivePart (intervalDomainLift w x) = 0 :=
+      positivePart_eq_zero_of_nonpos (le_of_not_gt hpos)
+    simp [truncatedChemFluxLifted, hpp]
+```
+
+and the integral version:
+
+```lean
+theorem truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {duNeg : ℝ → ℝ}
+    (hdu_zero_on_pos :
+      ∀ᵐ x ∂ intervalMeasure 1,
+        0 < intervalDomainLift w x → duNeg x = 0) :
+    (∫ x, truncatedChemFluxLifted p w x * duNeg x
+        ∂ intervalMeasure 1) = 0 := by
+  rw [MeasureTheory.integral_congr_ae
+    (truncatedChemFluxLifted_mul_negDeriv_eq_zero_ae
+      (p := p) (w := w) hdu_zero_on_pos)]
+  simp
+```
+
+This is the correct abstraction: `duNeg` can be either the classical derivative of `u_-` or the weak derivative representative. The lemma only needs `duNeg = 0` a.e. on `{u > 0}`.
+
+## The `deriv (negativePartTest u t)` sign issue
+
+In both `negativePart_half_energy_deriv_le` and its regular version, the chemotaxis term is:
+
+```lean
+(∫ x,
+  truncatedChemFluxLifted p (u t) x
+    * deriv (negativePartTest u t) x
+  ∂ intervalMeasure 1)
+```
+
+but the energy data field gives zero for:
+
+```lean
+deriv (negativePartLift (u t)) x
+```
+
+The bridge is exactly:
+
+```lean
+change deriv (-negativePartLift (u t)) x = 0
+rw [deriv.neg]
+simp [hx hpos]
+```
+
+This is correct because `negativePartTest u t` is definitionally `fun x => -negativePartLift (u t) x`. The theorem `deriv.neg` rewrites:
+
+```lean
+deriv (fun x => -f x) a = - deriv f a
+```
+
+Then `hx hpos : deriv (negativePartLift (u t)) x = 0`, so the derivative of the negative test is `-0 = 0`.
+
+The current code in `negativePart_half_energy_deriv_le` is:
+
+```lean
+  have hchem_neg :
+      (∫ x,
+        truncatedChemFluxLifted p (u t) x
+          * deriv (negativePartTest u t) x
+        ∂ intervalMeasure 1) = 0 := by
+    refine truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+      (p := p) (w := u t)
+      (duNeg := fun x => deriv (negativePartTest u t) x) ?_
+    filter_upwards [H.neg_deriv_zero_on_pos t ht htT] with x hx hpos
+    change deriv (-negativePartLift (u t)) x = 0
+    rw [deriv.neg]
+    simp [hx hpos]
+```
+
+and the regular version has the same block:
+
+```lean
+  have hchem_neg :
+      (∫ x,
+        truncatedChemFluxLifted p (u t) x
+          * deriv (negativePartTest u t) x
+        ∂ intervalMeasure 1) = 0 := by
+    refine truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+      (p := p) (w := u t)
+      (duNeg := fun x => deriv (negativePartTest u t) x) ?_
+    filter_upwards [H.neg_deriv_zero_on_pos t ht htT] with x hx hpos
+    change deriv (-negativePartLift (u t)) x = 0
+    rw [deriv.neg]
+    simp [hx hpos]
+```
+
+This is the exact Lean pattern to use.
+
+## More robust replacement if `simp [hx hpos]` is brittle
+
+If the last two lines ever become brittle because `simp` does not use `hx hpos` in the desired direction, replace them with this more explicit version:
+
+```lean
+    filter_upwards [H.neg_deriv_zero_on_pos t ht htT] with x hx hpos
+    have hx0 : deriv (negativePartLift (u t)) x = 0 := hx hpos
+    change deriv (-negativePartLift (u t)) x = 0
+    rw [deriv.neg, hx0, neg_zero]
+```
+
+or, if Lean wants the function written as a lambda:
+
+```lean
+    filter_upwards [H.neg_deriv_zero_on_pos t ht htT] with x hx hpos
+    have hx0 : deriv (negativePartLift (u t)) x = 0 := hx hpos
+    change deriv (fun y : ℝ => -negativePartLift (u t) y) x = 0
+    rw [deriv.neg, hx0, neg_zero]
+```
+
+This does exactly the same proof but avoids relying on `simp` to infer the instantiated hypothesis.
+
+## What not to try
+
+Do **not** try to prove the full weak field
+
+```lean
+neg_deriv_zero_on_pos :
+  ∀ t, 0 < t → t ≤ T →
+    ∀ᵐ x ∂ intervalMeasure 1,
+      0 < intervalDomainLift (u t) x →
+        deriv (negativePartLift (u t)) x = 0
+```
+
+from mere continuity of the slice in the weak energy core. In the weak/Sobolev route this is a chain-rule/support theorem for the negative-part representative, and the project correctly leaves it as explicit data in:
+
+```lean
+NegativePartEnergyEstimateData
+NegativePartEnergyEstimateRegularData
+```
+
+The pointwise classical lemma is useful when you have classical slices and actual classical derivatives. The energy core is deliberately more general and therefore requires the a.e. support condition as a field.
+
+## Minimal import/check snippet
+
+For a separate scratch Lean file, the relevant imports/checks are:
+
+```lean
+import ShenWork.Paper2.IntervalBFormCron2NegativePartEnergy
+import ShenWork.Paper2.IntervalBFormCron2RegularNegativePartEnergy
+
+open Filter Topology Set MeasureTheory
+open scoped Topology
+
+open ShenWork.IntervalDomain
+  (intervalDomain intervalDomainLift intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalConjugatePicard
+  (ConjugateMildExistenceData conjugatePicardLimit)
+
+noncomputable section
+
+namespace ShenWork.Paper2.BFormPositiveDatumNegPart
+
+#check deriv_negativePartLift_eq_zero_of_pos
+#check truncatedChemotacticPower_mul_deriv_negativePartLift_eq_zero_of_continuousAt
+#check truncatedChemFluxLifted_mul_negDeriv_eq_zero_ae
+#check truncatedChemFluxLifted_mul_negDeriv_integral_eq_zero
+#check negativePart_half_energy_deriv_le
+#check negativePart_half_energy_deriv_le_regular
+
+end ShenWork.Paper2.BFormPositiveDatumNegPart
+```
 
 ## Bottom line
 
-The global gap should be closed by the existing explicit-majorant/physical-data route, not by a new tail compactness or unproved finite-limit argument.
-
-Recommended final shape:
+The derivative step should be handled at the support-cancellation level:
 
 ```text
-cutoffResolverMajorant_bddAbove_direct
-  := obtain PhysicalResolverJointC2Data;
-     exact cutoffResolverMajorant_bddAbove_of_physical ...
+positive set: derivative of u_- is zero;
+nonpositive set: truncated flux is zero;
+test derivative: deriv(-u_-) = -deriv(u_-), so zero remains zero.
 ```
 
-This removes the fragile `hA_global_bounds` proof obligation entirely and gives the required global `BddAbove` immediately.
+The current code already implements this correctly. If a local proof involving `deriv (negativePartTest u t)` is failing, use the explicit `hx0` replacement above around `rw [deriv.neg, hx0, neg_zero]`.
