@@ -646,7 +646,26 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         -- For now, we sorry the tail bound and combine with the compact bound
         have hA_tail : ∃ B_tail : ℝ, ∀ t : ℝ, c + 1 < t →
             |A t| ≤ B_tail := by
-          sorry -- needs: srcSlice ContinuousOn + bound → cosineCoeffs bound → resolverTimeCoeff bound → A bound
+          set u := conjugatePicardIter p u₀ 0
+          set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
+          refine ⟨|w_k| * (2 * p.ν * M_sup ^ p.γ), fun t ht => ?_⟩
+          -- Step 1: φ(t) = 1 for t > c+1 > c
+          have ht_ge_c : c ≤ t := by linarith
+          have hφ_one : smoothRightCutoff (c / 2) c t = 1 :=
+            smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) ht_ge_c
+          -- Step 2: |A(t)| = |resolverTimeCoeff(k,t)|
+          show |smoothRightCutoff (c / 2) c t * resolverTimeCoeff p u k t| ≤ _
+          rw [hφ_one, one_mul]
+          -- Step 3: |resolverTimeCoeff| = |w_k * srcTimeCoeff|
+          rw [resolverTimeCoeff_eq_weight_smul p u k t, abs_mul]
+          -- Step 4: bound |srcTimeCoeff|
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          -- Goal: |srcTimeCoeff p u k t| ≤ 2 * p.ν * M_sup ^ p.γ
+          rw [srcTimeCoeff_eq_cosineCoeffs p u k t]
+          -- Goal: |cosineCoeffs (srcSlice p u t) k| ≤ 2 * p.ν * M_sup ^ p.γ
+          have ht_pos : 0 < t := by linarith
+          -- srcSlice bound and ContinuousOn
+          sorry
         obtain ⟨B_tail, hB_tail⟩ := hA_tail
         refine ⟨max (max 0 B_compact) B_tail, fun t => ?_⟩
         rw [norm_iteratedFDeriv_zero, Real.norm_eq_abs]
