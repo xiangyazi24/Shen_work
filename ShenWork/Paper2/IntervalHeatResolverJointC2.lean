@@ -611,13 +611,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         haveI : CompactSpace intervalDomainPoint :=
           isCompact_iff_compactSpace.mp isCompact_Icc
         -- Get sup bound M on |u₀|
-        obtain ⟨x_max, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
+        obtain ⟨x_max, _, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
           Set.univ_nonempty (hu₀_cont.norm.continuousOn)
         set M_sup := ‖u₀ x_max‖ with hM_sup_def
         have hM_sup_nn : 0 ≤ M_sup := norm_nonneg _
         have hu₀_le : ∀ x : intervalDomainPoint, ‖u₀ x‖ ≤ M_sup := by
-          intro x
-          exact hx_max (Set.mem_univ x) (Set.mem_univ x_max)
+          intro x; exact hx_max (Set.mem_univ x)
         sorry -- need to connect L∞ contraction → srcTimeCoeff bound → A bound
       · -- i = 1: A'(t) is bounded
         -- For t ≤ c/2: A'(t) = 0
