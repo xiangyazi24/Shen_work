@@ -816,7 +816,13 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                   (tsum_nonneg fun n => mul_nonneg
                     (by unfold unitIntervalCosineEigenvalue; positivity)
                     (Real.exp_nonneg _))
-              · -- |heatDu u₀ t x| ≤ CΔ for t > c+1
+              · -- |heatDu u₀ t x| ≤ maj_sum for t > c+1
+                have ht_pos : 0 < t := by linarith
+                -- Unfold heatDu at positive time
+                simp only [heatDu, if_pos ht_pos]
+                -- Goal: |unitIntervalCosineHeatLaplacianValue t c x| ≤ maj_sum
+                -- LaplacianValue = Σ' n, LaplacianPointWeight * c_n
+                -- |Σ'| ≤ Σ' |term| ≤ Σ' eigenvalue * exp(-(c+1)*eigenvalue) * M₀ = maj_sum
                 sorry
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
             -- Bound |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ
