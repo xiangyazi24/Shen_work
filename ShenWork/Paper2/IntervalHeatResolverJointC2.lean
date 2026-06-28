@@ -802,7 +802,6 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             congr_arg _ hev2]
           rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
           exact hB_R'' t ht
-          exact hB_R'' t ht
         obtain ⟨B2_tail, hB2_tail⟩ := hA2_tail
         refine ⟨max (max 0 B2_compact) B2_tail, fun t => ?_⟩
         by_cases ht_left : t < c / 2
