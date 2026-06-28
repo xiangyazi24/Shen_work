@@ -514,14 +514,64 @@ private theorem cutoffResolverMajorant_bddAbove_direct
       have hcont_i : Continuous (fun t : ℝ => iteratedFDeriv ℝ i A t) :=
         hAC2.continuous_iteratedFDeriv (by exact_mod_cast hi)
       exact isCompact_Icc.exists_bound_of_continuousOn hcont_i.continuousOn
-    -- Extract bounds for i = 0, 1, 2
-    obtain ⟨C0, hC0⟩ := hA_bounds 0 (by omega)
-    obtain ⟨C1, hC1⟩ := hA_bounds 1 (by omega)
-    obtain ⟨C2, hC2⟩ := hA_bounds 2 (by omega)
-    -- Combine: for each q with t ∈ [c/2, c/2+1], use Leibniz product bound
-    -- The explicit bound involves Σ C(j,i) · C_i · valueCosWeight(j-i, k)
-    -- This is a finite sum independent of q
-    sorry
+    -- For each i ≤ j ≤ 2, extract the compact-time bound C_i
+    -- and the cosine mode bound valueCosWeight(j-i, k)
+    -- Define Cmid as the Leibniz sum
+    -- We need A ∘ fst and cosineMode k ∘ snd to be C²
+    have hAfst : ContDiff ℝ (2 : ℕ∞) (fun q : ℝ × ℝ => A q.1) :=
+      hAC2.comp contDiff_fst
+    have hBsnd : ContDiff ℝ (2 : ℕ∞) (fun q : ℝ × ℝ => cosineMode k q.2) :=
+      hcos.comp contDiff_snd
+    have hjTop : ((j : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+      exact_mod_cast hj
+    -- The factoring: f = (A ∘ fst) * (cosineMode k ∘ snd)
+    have hfactor : f = fun q : ℝ × ℝ => A q.1 * cosineMode k q.2 := by
+      funext q; simp [hf_def, cutoffResolverTerm, A, mul_assoc]
+    -- Get a uniform C_max bounding all iteratedFDeriv orders of A on [c/2, c/2+1]
+    have ⟨C_max, hC_max⟩ : ∃ C_max : ℝ, ∀ (i : ℕ), i ≤ 2 →
+        ∀ t ∈ Set.Icc (c / 2) (c / 2 + 1),
+          ‖iteratedFDeriv ℝ i A t‖ ≤ C_max := by
+      obtain ⟨c0, hc0⟩ := hA_bounds 0 (by omega)
+      obtain ⟨c1, hc1⟩ := hA_bounds 1 (by omega)
+      obtain ⟨c2, hc2⟩ := hA_bounds 2 (by omega)
+      refine ⟨max c0 (max c1 c2), fun i hi t ht => ?_⟩
+      interval_cases i
+      · exact (hc0 t ht).trans (le_max_left _ _)
+      · exact (hc1 t ht).trans ((le_max_left _ _).trans (le_max_right _ _))
+      · exact (hc2 t ht).trans ((le_max_right _ _).trans (le_max_right _ _))
+    -- The explicit bound: Σ C(j,i) * C_max * valueCosWeight(j-i, k)
+    set Cmid := ∑ i ∈ Finset.range (j + 1),
+      (j.choose i : ℝ) * C_max *
+        ShenWork.IntervalResolverSpectralJointC2Concrete.valueCosWeight (j - i) k
+    refine ⟨Cmid, fun q hq_lo hq_hi => ?_⟩
+    rw [hfactor]
+    calc ‖iteratedFDeriv ℝ j (fun q : ℝ × ℝ => A q.1 * cosineMode k q.2) q‖
+        ≤ ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
+            ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => A q.1) q‖ *
+            ‖iteratedFDeriv ℝ (j - i) (fun q : ℝ × ℝ => cosineMode k q.2) q‖ := by
+          simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hAfst hBsnd q hjTop
+      _ ≤ Cmid := by
+          apply Finset.sum_le_sum
+          intro i hi
+          have hik : i ≤ j := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
+          have hiNat : i ≤ 2 := le_trans hik hjNat
+          have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
+          have hiTop' : (i : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hiNat
+          have hjiTop : ((j - i : ℕ) : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hjiNat
+          have hA_fst_bound : ‖iteratedFDeriv ℝ i (fun q : ℝ × ℝ => A q.1) q‖ ≤ C_max := by
+            exact (norm_iteratedFDeriv_comp_fst_le hAC2 (by exact_mod_cast hiTop') q).trans
+              (hC_max i hiNat q.1 ⟨hq_lo, hq_hi⟩)
+          have hB_snd_bound : ‖iteratedFDeriv ℝ (j - i)
+              (fun q : ℝ × ℝ => cosineMode k q.2) q‖ ≤
+              ShenWork.IntervalResolverSpectralJointC2Concrete.valueCosWeight (j - i) k := by
+            exact (ShenWork.IntervalResolverSpectralJointC2CutoffBounds.norm_iteratedFDeriv_comp_snd_le
+              hcos (by exact_mod_cast hjiTop) q).trans
+              (ShenWork.IntervalResolverSpectralJointC2Concrete.cosineMode_iteratedFDeriv_bound
+                k (j - i) q.2 hjiNat)
+          exact mul_le_mul
+            (mul_le_mul_of_nonneg_left hA_fst_bound (Nat.cast_nonneg _))
+            hB_snd_bound (norm_nonneg _)
+            (mul_nonneg (Nat.cast_nonneg _) (le_trans (norm_nonneg _) hA_fst_bound))
   -- Tail bound: for t > c/2+1, use explicit L∞ bounds
   have htail : ∃ Ctail : ℝ, ∀ q : ℝ × ℝ, c / 2 + 1 < q.1 →
       ‖iteratedFDeriv ℝ j f q‖ ≤ Ctail := by
