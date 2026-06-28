@@ -801,7 +801,18 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             -- Bound |heatDu u₀ t x| for t > c+1 via eigenvalue damping
             have hDu_bound : ∃ CΔ : ℝ, 0 ≤ CΔ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
                 |heatDu u₀ t x| ≤ CΔ := by
-              sorry -- tsum bound via unitIntervalCosineHeatSecondPointWeight_abs_le
+              -- heatDu = Σ' -λ_n e^{-tλ_n} c_n cos(nπx) for t > 0
+              -- |term_n| ≤ λ_n e^{-tλ_n} |c_n| ≤ M₀ λ_n e^{-(c+1)λ_n}
+              -- Σ' majorant summable from unitIntervalCosineEigenvalue_mul_exp_summable
+              set λ_ := ShenWork.HeatKernelGradientEstimates.unitIntervalCosineEigenvalue
+              have hλ_summ := ShenWork.IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable
+                (show 0 < c + 1 by linarith)
+              set maj_sum := M₀ * ∑' n, λ_ n * Real.exp (-(c + 1) * λ_ n)
+              refine ⟨maj_sum, ?_, fun t ht x => ?_⟩
+              · -- 0 ≤ CΔ
+                sorry
+              · -- |heatDu u₀ t x| ≤ CΔ for t > c+1
+                sorry
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
             -- Bound |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
