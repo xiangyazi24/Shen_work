@@ -658,15 +658,15 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt ht_left)]
             ring
           simp [this, le_max_left]
-        · push_neg at ht_left
+        · simp only [not_lt] at ht_left
           by_cases ht_mid : t ≤ c / 2 + 2
           · -- c/2 ≤ t ≤ c/2+2: compact bound
             have : |A t| ≤ B_compact := by
               rw [← Real.norm_eq_abs]
               exact hB_compact t ⟨ht_left, ht_mid⟩
-            exact this.trans ((le_max_right 0 B_compact).trans (le_max_left _ B_tail))
+            exact this.trans ((le_max_right (0 : ℝ) B_compact).trans (le_max_left _ B_tail))
           · -- t > c/2+2: tail bound
-            push_neg at ht_mid
+            simp only [not_le] at ht_mid
             exact (hB_tail t ht_mid).trans (le_max_right _ B_tail)
       · -- i = 1: same compact+tail split as i=0
         have hA1_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 1 A t) :=
@@ -689,12 +689,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]; ring
           rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 1).eq_of_nhds,
             iteratedFDeriv_const_of_ne (by norm_num : (1 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
-          exact le_max_left 0 _
-        · push_neg at ht_left
+          exact le_trans (le_refl (0 : ℝ)) (le_max_left _ _)
+        · simp only [not_lt] at ht_left
           by_cases ht_mid : t ≤ c / 2 + 2
           · exact (hB1_compact t ⟨ht_left, ht_mid⟩).trans
-              ((le_max_right 0 _).trans (le_max_left _ _))
-          · push_neg at ht_mid
+              ((le_max_right (0 : ℝ) _).trans (le_max_left _ _))
+          · simp only [not_le] at ht_mid
             exact (hB1_tail t ht_mid).trans (le_max_right _ _)
       · -- i = 2: same compact+tail split
         have hA2_cont : Continuous (fun t : ℝ => iteratedFDeriv ℝ 2 A t) :=
@@ -716,12 +716,12 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]; ring
           rw [(Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 2).eq_of_nhds,
             iteratedFDeriv_const_of_ne (by norm_num : (2 : ℕ) ≠ 0), Pi.zero_apply, norm_zero]
-          exact le_max_left 0 _
-        · push_neg at ht_left
+          exact le_trans (le_refl (0 : ℝ)) (le_max_left _ _)
+        · simp only [not_lt] at ht_left
           by_cases ht_mid : t ≤ c / 2 + 2
           · exact (hB2_compact t ⟨ht_left, ht_mid⟩).trans
-              ((le_max_right 0 _).trans (le_max_left _ _))
-          · push_neg at ht_mid
+              ((le_max_right (0 : ℝ) _).trans (le_max_left _ _))
+          · simp only [not_le] at ht_mid
             exact (hB2_tail t ht_mid).trans (le_max_right _ _)
     obtain ⟨B_max, hB_max⟩ : ∃ B_max : ℝ, ∀ (i : ℕ), i ≤ 2 → ∀ t : ℝ,
         ‖iteratedFDeriv ℝ i A t‖ ≤ B_max := by
