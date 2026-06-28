@@ -825,10 +825,16 @@ private theorem cutoffResolverMajorant_bddAbove_direct
                 -- Goal: |Σ' n, LaplacianPointWeight(t,x,n) * c_n| ≤ maj_sum
                 -- Apply abs_tsum bound
                 refine (abs_tsum_le_tsum_of_abs_le (fun n => ?_) (heig_summ.mul_left M₀)).trans ?_
-                · -- |LaplacianPointWeight * c_n| ≤ M₀ * eigenvalue * exp(-(c+1)*eigenvalue)
-                  unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight
-                  -- = |-eigenvalue * heatPointWeight * c_n|
-                  sorry -- term-by-term bound: |cos| ≤ 1, |c_n| ≤ M₀, exp monotone
+                · -- |LaplacianPointWeight(t,x,n) * c_n| ≤ M₀ * eigenvalue(n) * exp(-(c+1)*eigval)
+                  -- LaplacianPointWeight = -eigenvalue * exp(-t*eigenvalue) * cos(nπx)
+                  -- |...| = eigenvalue * exp(-t*eigenvalue) * |cos| * |c_n|
+                  -- ≤ eigenvalue * exp(-(c+1)*eigenvalue) * 1 * M₀
+                  simp only [
+                    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight,
+                    ShenWork.RegularityBootstrap.unitIntervalCosineHeatPointWeight,
+                    ShenWork.RegularityBootstrap.unitIntervalCosineMode]
+                  -- After unfold: |-eigenvalue * (exp * cos) * c_n| ≤ M₀ * eigenvalue * exp(-(c+1)*...)
+                  sorry -- abs product bound: rearrange with abs_mul, abs_neg, abs_cos_le_one, hu₀_bound, exp monotone
                 · -- Σ' (M₀ * eigenvalue * exp) = M₀ * Σ' eigenvalue * exp = maj_sum
                   rw [tsum_mul_left]
             obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
