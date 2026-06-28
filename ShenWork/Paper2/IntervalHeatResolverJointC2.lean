@@ -1041,7 +1041,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               have hsrc2_cont : ContinuousOn
                   (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t)
                   (Set.Icc (0:ℝ) 1) :=
-                hcd1.uncurry_left t ⟨by linarith, by linarith⟩
+                hcd1.uncurry_left t (by constructor <;> linarith)
               exact (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
                 hsrc2_cont hBpt_nn (fun x hx => hBpt t ht x hx) k).trans
                 (by linarith [hBpt_nn])
