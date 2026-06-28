@@ -691,9 +691,14 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             · -- ContinuousOn of intervalDomainLift(u t) on [0,1]
               have := ShenWork.IntervalDuhamelIntegrability.continuousOn_intervalFullSemigroupOperator_of_bounded
                 ht_pos hlift_le
-              exact this.congr fun x hx => by
-                change _ = intervalDomainLift (u t) x
-                unfold intervalDomainLift; rw [dif_pos hx]
+              have heq : ∀ x ∈ Set.Icc (0:ℝ) 1,
+                  ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                    t (intervalDomainLift u₀) x =
+                  intervalDomainLift (u t) x := by
+                intro x hx
+                unfold intervalDomainLift
+                rw [dif_pos hx]
+              exact this.congr heq
             · intro x hx
               exact Or.inl (ne_of_gt (hfloor t ht_pos x hx))
           -- Apply cosineCoeffs_abs_le_of_continuous_bounded
