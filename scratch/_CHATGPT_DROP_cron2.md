@@ -1,94 +1,157 @@
-# Q1706 (cron2): cron3 approach prompt
+# Q1719 (cron2): `i = 1` proof for `hA_global_bounds`
 
-GitHub-connector only. I did not read the local `/tmp/q_cron3_approach.txt` file and did not run Lean locally. Repository search for the literal filename found no target. The strongest repository match for “approach” is the initial-approach/initial-trace thread around:
+GitHub-connector only. I did not read the local `/tmp/q_cron2_i1proof.txt` file and did not run Lean locally. I inferred the target from `ShenWork/Paper2/IntervalHeatResolverJointC2.lean`: inside `cutoffResolverMajorant_bddAbove_direct`, the local proof
 
-```text
-ShenWork/Paper2/IntervalPicardIterateInitialApproach.lean
-ShenWork/Paper2/IntervalBFormInitialTrace.lean
+```lean
+have hA_global_bounds : ∀ i : ℕ, i ≤ 2 →
+    ∃ B_i : ℝ, ∀ t : ℝ, ‖iteratedFDeriv ℝ i A t‖ ≤ B_i := by
 ```
+
+still has the `i = 1` branch as a `sorry`.
 
 ## Bottom line
 
-The initial-approach route is already landed. Do **not** rebuild it by proving a global `ContinuousOn` statement at `t = 0`; that is the wrong shape for several semigroup conventions. Use the one-sided initial approach theorems already in the repository.
-
-For the χ₀ = 0 Picard iterate side, use:
+The `i = 1` branch is just the two-term Leibniz bound for
 
 ```lean
-ShenWork.IntervalPicardIterateInitialApproach.semigroup_initialApproach
-ShenWork.IntervalPicardIterateInitialApproach.gradientDuhamelMap_initialApproach_of_ball
-ShenWork.IntervalPicardIterateInitialApproach.picardIter_initialApproach
+A(t) = φ(t) * R(t)
 ```
 
-For the B-form/conjugate fixed-point side, use:
+where
 
 ```lean
-ShenWork.Paper2.BFormInitialTrace.intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
-ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
+φ t = smoothRightCutoff (c / 2) c t
+R t = resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
 ```
 
-The proof architecture is:
+Use the bound
 
-1. homogeneous heat leg: `S(t)u₀ → u₀` uniformly as `t → 0+`;
-2. Duhamel correction: bounded by `A * sqrt t + B * t`, hence small for small `t`;
-3. fixed-point transfer: rewrite by `hmild` and apply the map-level approach.
+```text
+‖A' t‖ ≤ Φ₀ * Bt 1 k + Φ₁ * Bt 0 k
+```
 
-## Minimal check block
+where `Φ₀` and `Φ₁` are the global cutoff derivative bounds and `Bt` comes from the physical resolver data.
+
+## Required setup before `hA_global_bounds`
+
+Add this before entering `hA_global_bounds`:
 
 ```lean
-import ShenWork.Paper2.IntervalPicardIterateInitialApproach
-import ShenWork.Paper2.IntervalBFormInitialTrace
-
-open MeasureTheory Filter Topology Set
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
-open ShenWork.IntervalMildPicard (picardIter)
-open ShenWork.IntervalConjugatePicard
-  (ConjugateMildExistenceData conjugatePicardLimit)
-
-#check ShenWork.IntervalPicardIterateInitialApproach.semigroup_initialApproach
-#check ShenWork.IntervalPicardIterateInitialApproach.gradientDuhamelMap_initialApproach_of_ball
-#check ShenWork.IntervalPicardIterateInitialApproach.picardIter_initialApproach
-#check ShenWork.Paper2.BFormInitialTrace.intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
-#check ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
+obtain ⟨Bt, Hphys⟩ :=
+  ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
+    (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hu₀_pos
 ```
 
-## How to consume it
-
-For a Picard iterate goal of the form
+Also, if possible, define `A` with a named equation:
 
 ```lean
-∀ ε, 0 < ε → ∃ δ > 0, ∀ s, 0 < s → s < δ →
-  ∀ y : intervalDomainPoint, |picardIter p u₀ n s y - u₀ y| < ε
+set A := fun t : ℝ =>
+  smoothRightCutoff (c / 2) c t *
+    resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
+  with hA_def
 ```
 
-use:
+If the file already has `set A := ...` without `with hA_def`, either add the `with hA_def`, or replace the `rw [hAeq]` line below by the corresponding `change`/`show` that unfolds the local `A`.
+
+## Replacement for the `i = 1` branch
+
+Replace the current
 
 ```lean
-exact ShenWork.IntervalPicardIterateInitialApproach.picardIter_initialApproach
-  p hχ0 hu₀_cont hTpos hM hball n
+      · -- i = 1: A'(t) is bounded
+        sorry
 ```
 
-For the conjugate fixed-point initial trace, use:
+with:
 
 ```lean
-exact ShenWork.Paper2.BFormInitialTrace.conjugatePicardLimit_initialTrace_of_conjugate_data
-  p hu₀_cont DB
+      · -- i = 1: finite Leibniz bound for A = φ * R
+        classical
+        have hc'c : c / 2 < c := by linarith
+        have h0Top : ((0 : ℕ) : ℕ∞) ≤ (2 : ℕ∞) := by norm_num
+        have h1TopNat : ((1 : ℕ) : ℕ∞) ≤ (2 : ℕ∞) := by norm_num
+        have h0Nat : (0 : ℕ) ≤ 2 := by norm_num
+        have h1Nat : (1 : ℕ) ≤ 2 := by norm_num
+        have h1TopWT : (((1 : ℕ) : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+          exact_mod_cast h1Nat
+
+        let φ : ℝ → ℝ := smoothRightCutoff (c / 2) c
+        let R : ℝ → ℝ :=
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
+
+        have hAeq : A = fun t : ℝ => φ t * R t := by
+          funext t
+          simp [hA_def, φ, R]
+
+        have hφC2 : ContDiff ℝ (2 : ℕ∞) φ := by
+          simpa [φ] using
+            (smoothRightCutoff_contDiff (c' := c / 2) (c := c))
+
+        have hRC2 : ContDiff ℝ (2 : ℕ∞) R := by
+          simpa [R] using Hphys.coeff_contDiff k
+
+        let Φ0 : ℝ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 0 h0Top
+        let Φ1 : ℝ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 1 h1TopNat
+        refine ⟨Φ0 * Bt 1 k + Φ1 * Bt 0 k, ?_⟩
+        intro t
+
+        have hφ0 : ‖iteratedFDeriv ℝ 0 φ t‖ ≤ Φ0 := by
+          dsimp [Φ0, φ]
+          exact resolverSmoothRightCutoffDerivBound_spec hc'c h0Top t
+        have hφ1 : ‖iteratedFDeriv ℝ 1 φ t‖ ≤ Φ1 := by
+          dsimp [Φ1, φ]
+          exact resolverSmoothRightCutoffDerivBound_spec hc'c h1TopNat t
+        have hR0 : ‖iteratedFDeriv ℝ 0 R t‖ ≤ Bt 0 k := by
+          dsimp [R]
+          exact Hphys.coeff_bound 0 k t h0Nat
+        have hR1 : ‖iteratedFDeriv ℝ 1 R t‖ ≤ Bt 1 k := by
+          dsimp [R]
+          exact Hphys.coeff_bound 1 k t h1Nat
+        have hΦ0_nonneg : 0 ≤ Φ0 := by
+          dsimp [Φ0]
+          exact resolverSmoothRightCutoffDerivBound_nonneg hc'c h0Top
+        have hΦ1_nonneg : 0 ≤ Φ1 := by
+          dsimp [Φ1]
+          exact resolverSmoothRightCutoffDerivBound_nonneg hc'c h1TopNat
+
+        rw [hAeq]
+        have hprod := norm_iteratedFDeriv_mul_le hφC2 hRC2 t h1TopWT
+        calc
+          ‖iteratedFDeriv ℝ 1 (fun t : ℝ => φ t * R t) t‖
+              ≤ ∑ r ∈ Finset.range (1 + 1), ((1 : ℕ).choose r : ℝ) *
+                  ‖iteratedFDeriv ℝ r φ t‖ *
+                  ‖iteratedFDeriv ℝ (1 - r) R t‖ := by
+                simpa [mul_assoc] using hprod
+          _ ≤ Φ0 * Bt 1 k + Φ1 * Bt 0 k := by
+            -- Expand the two terms r = 0 and r = 1.
+            rw [Finset.sum_range_succ, Finset.sum_range_succ]
+            simp only [Finset.sum_range_zero, zero_add, Nat.choose_self, Nat.choose_one_right,
+              Nat.cast_one, one_mul]
+            have hterm0 :
+                ‖iteratedFDeriv ℝ 0 φ t‖ * ‖iteratedFDeriv ℝ 1 R t‖ ≤
+                  Φ0 * Bt 1 k := by
+              exact mul_le_mul hφ0 hR1 (norm_nonneg _) hΦ0_nonneg
+            have hterm1 :
+                ‖iteratedFDeriv ℝ 1 φ t‖ * ‖iteratedFDeriv ℝ 0 R t‖ ≤
+                  Φ1 * Bt 0 k := by
+              exact mul_le_mul hφ1 hR0 (norm_nonneg _) hΦ1_nonneg
+            exact add_le_add hterm0 hterm1
 ```
 
-For a pointwise map-approach intermediate goal, use:
+## If the final `rw/simp` block is brittle
+
+If Lean does not like the explicit expansion of `Finset.range (1 + 1)`, keep the sum-form proof instead. Define
 
 ```lean
-exact ShenWork.Paper2.BFormInitialTrace.intervalConjugateDuhamelMap_initialApproach_of_conjugate_data
-  p hu₀_cont DB
+let B1 : ℝ := ∑ r ∈ Finset.range (1 + 1), ((1 : ℕ).choose r : ℝ) *
+  (if hr : (r : ℕ∞) ≤ (2 : ℕ∞) then
+    resolverSmoothRightCutoffDerivBound (c / 2) c hc'c r hr
+   else 0) * Bt (1 - r) k
 ```
 
-## Why this is the right route
+return `⟨B1, ...⟩`, and close with `Finset.sum_le_sum`. This is usually more robust than hand-simplifying the two terms.
 
-`semigroup_initialApproach` proves the homogeneous leg by clipping the continuous datum to a continuous real-line function and applying the interval semigroup uniform convergence theorem.
+## Caveat
 
-`gradientDuhamelMap_initialApproach_of_ball` handles the χ₀ = 0 Picard map: the chemotaxis correction vanishes, and the logistic Duhamel term is bounded by `t * C_L`.
-
-`intervalConjugateDuhamelMap_initialApproach_of_conjugate_data` handles the B-form map: the chemotaxis/conjugate correction is bounded by a `sqrt t` term and the logistic correction by a `t` term. The final `conjugatePicardLimit_initialTrace_of_conjugate_data` rewrites the fixed point by `hmild` and closes the `InitialTrace` field.
-
-## Warning
-
-Do not replace these with a closed-slab `ContinuousOn` claim including `t = 0` unless the map is definitionally compatible at `0`. Several files intentionally avoid a global `∀ τ : ℝ` or closed-slab-at-zero statement because the semigroup-side convention can jump at `τ = 0`. The safe statement is the one-sided initial trace: `0 < t` and `t < δ`.
+This is the same physical-data route as the previous `i = 0`/`i12` answers. If the theorem must remain purely direct, then `Hphys.coeff_bound` must be replaced by a new direct global bound for `resolverTimeCoeff` and its first time derivative. `ContDiff` alone cannot give global boundedness on the noncompact time axis.
