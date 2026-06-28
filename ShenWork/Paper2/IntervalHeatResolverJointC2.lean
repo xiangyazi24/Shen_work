@@ -879,7 +879,8 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               -- with B = νγ * M_sup^{γ-1} * CΔ
               -- ContinuousOn: from smoothness of each factor at t > 0 (sorry'd)
               -- Pointwise bound: from hSt_le + rpow + hDu (sorry'd)
-              refine ⟨2 * (p.ν * p.γ * M_sup ^ (p.γ - 1) * CΔ), fun t ht => ?_⟩
+              -- M_sup not in scope here; use existential with sorry
+              refine ⟨_, fun t ht => ?_⟩
               have ht_pos : 0 < t := by linarith
               -- ContinuousOn + pointwise bound → cosineCoeffs bound
               -- For now, sorry these sub-goals
