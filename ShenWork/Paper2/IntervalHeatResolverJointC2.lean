@@ -610,6 +610,8 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         -- where M bounds |u₀| (continuous on compact → bounded)
         haveI : CompactSpace intervalDomainPoint :=
           isCompact_iff_compactSpace.mp isCompact_Icc
+        haveI : Nonempty intervalDomainPoint :=
+          ⟨⟨0, Set.left_mem_Icc.mpr (by norm_num)⟩⟩
         -- Get sup bound M on |u₀|
         obtain ⟨x_max, _, hx_max⟩ := IsCompact.exists_isMaxOn isCompact_univ
           Set.univ_nonempty (hu₀_cont.norm.continuousOn)
