@@ -1,277 +1,484 @@
-# Q1520 (cron3): `laplBound` for `i = 1` and the `t → 0+` obstruction
+# Q1556 (cron3): hypothesis chain for `cutoffResolverTerm_contDiff_two`
 
 ## Short answer
 
-No: from the current heat-level-0 hypotheses, the bound
+Yes.  In the current `ShenWork/Paper2/IntervalHeatResolverJointC2.lean`, the proved direct-route theorem
 
 ```lean
-∀ t > 0, ∀ k ≥ 1,
-  |cosineCoeffs (slice1 t) k| ≤ M / ((k : ℝ) * Real.pi)^2
+theorem cutoffResolverTerm_contDiff_two
 ```
 
-cannot be proved with one finite `M` uniform over all `t > 0`.
+**does require `hfloor`** in its signature.
 
-The integration-by-parts idea is correct for each fixed positive time, and also uniformly on every positive slab `t ≥ τ > 0`.  But the constant obtained from
+The dependency is not accidental.  The per-term `C²` proof goes through
 
 ```text
-|ĉ_k(f)| ≤ 2 * ∫₀¹ |f''(x)| dx / (kπ)^2
+cutoffResolverTerm_contDiff_two
+  → cutoffResolverCoeff_contDiff_two
+  → heatLevel0_resolverTimeCoeff_contDiffAt_two
+  → heatLevel0_srcTimeCoeff_contDiffAt_two
+  → heatSemigroup_d0 / heatSemigroup_d1
+  → rpow chain/product rules for source slices
 ```
 
-is controlled by `∫ |slice1_xx(t,x)| dx`.  For the heat semigroup this quantity is generally singular as `t → 0+`, unless the initial datum carries extra high spatial regularity.  Heat smoothing gives smoothness for every `t > 0`; it does not give a uniform-in-`t` high-derivative bound down to `0`.
+and the `Real.rpow` chain/product rules need positivity of the heat profile.
 
-So `laplBound i=1` is a genuine analytic obstruction if `FlooredSourceTimeData` keeps the current global-positive-time form.  It is not just a convolution bookkeeping problem.
-
-## Relevant repo facts inspected
-
-The searched tree for the relevant source files is the indexed/default tree at commit
-
-```text
-7db6d8e4b01d279823281613bb824200483faddd
-```
-
-The main heat-level-0 file is:
-
-```text
-ShenWork/Paper2/IntervalHeatSemigroupFlooredSourceTimeData.lean
-```
-
-It defines
+Therefore, if the direct route is meant to be discharged from assumptions on `u₀`, it must carry either:
 
 ```lean
-def heatDu (u₀ : intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
-  if 0 < t then
-    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue
-      t (cosineCoeffs (intervalDomainLift u₀)) x
-  else 0
+hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+  0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
 ```
 
-so for positive time `heatDu = Δ S(t)u₀`.
-
-It also defines
+or, more naturally upstream,
 
 ```lean
-def heatD2u (u₀ : intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
-  if 0 < t then
-    ∑' k : ℕ, unitIntervalCosineEigenvalue k ^ 2 *
-      (Real.exp (-t * unitIntervalCosineEigenvalue k) *
-        cosineCoeffs (intervalDomainLift u₀) k) *
-      ShenWork.CosineSpectrum.cosineMode k x
-  else 0
+hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x
 ```
 
-so for positive time `heatD2u = Δ² S(t)u₀`.
-
-The source derivative slice is imported from
-
-```text
-ShenWork/PDE/IntervalFlooredSourceTimeDataIterate.lean
-```
-
-where
+and then derive `hfloor` using the existing theorem
 
 ```lean
-def srcSlice1 (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
-    (du : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
-  p.ν * p.γ * (intervalDomainLift (u t) x) ^ (p.γ - 1) * du t x
+heatSemigroup_pos_of_pos hu₀_cont hu₀_pos
 ```
 
-Thus, for the heat base iterate,
+from `IntervalHeatSemigroupFlooredSourceTimeData.lean`.
 
-```text
-slice1(t,x) = p.ν * p.γ * v(t,x)^(p.γ - 1) * Δv(t,x),
-where v(t,x) = S(t)u₀(x).
-```
+## Exact signatures checked
 
-The current `heatSemigroup_flooredSourceTimeData` theorem still takes the global Laplacian coefficient envelope as an input:
+### 1. `cutoffResolverTerm_contDiff_two` itself
+
+Current signature in `IntervalHeatResolverJointC2.lean`:
 
 ```lean
-(hlaplBound : ∀ i : ℕ, i ≤ 2 → ∃ M : ℝ, 0 ≤ M ∧
-  ∀ (t : ℝ), 0 < t → ∀ (k : ℕ), 1 ≤ k →
-    |cosineCoeffs ((sliceFam ... i) t) k|
-      ≤ M / ((k:ℝ) * Real.pi) ^ 2)
+theorem cutoffResolverTerm_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) (k : ℕ) :
+    ContDiff ℝ 2 (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) := by
+  have hcoef := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+  ...
 ```
 
-That is the problematic quantifier: `∃ M` comes before `∀ t > 0`.
+So the answer to the first question is directly **yes**: this theorem takes `hfloor`, and immediately passes it to `cutoffResolverCoeff_contDiff_two`.
 
-The existing positive-time derivative proofs already use local positive-time majorants.  For example, `heatDu_hasDerivAt` sets `r := t / 2`; the summable majorant depends on this positive lower cutoff.  This is exactly the right local-in-time shape, but it is not uniform as `t ↓ 0`.
+### 2. `cutoffResolverCoeff_contDiff_two`
 
-## Why the product is worse than “derivatives up to order 2”
-
-Let
-
-```text
-v(t,x) = S(t)u₀(x),
-α = γ - 1,
-w(t,x) = heatDu(t,x) = Δv(t,x) = v_xx(t,x).
-```
-
-Ignoring the harmless constant `νγ`,
-
-```text
-slice1 = v^α * w = v^α * v_xx.
-```
-
-Then
-
-```text
-∂ₓ²(v^α w)
-  = α(α-1) v^(α-2) (v_x)^2 w
-    + α v^(α-1) v_xx w
-    + 2α v^(α-1) v_x w_x
-    + v^α w_xx.
-```
-
-Since `w = v_xx`, this is
-
-```text
-∂ₓ²(v^α v_xx)
-  = α(α-1) v^(α-2) (v_x)^2 v_xx
-    + α v^(α-1) (v_xx)^2
-    + 2α v^(α-1) v_x v_xxx
-    + v^α v_xxxx.
-```
-
-So the second spatial derivative of `slice1` needs spatial derivatives of `v` up to order `4`, not just order `2`.  In spectral terms, the last term contains
-
-```text
-Δ² S(t)u₀ = ∑ λ_n^2 e^{-λ_n t} a_n cos(nπx).
-```
-
-This is finite for each `t > 0`, but the bound obtained from spectral decay depends on a positive lower time cutoff.
-
-## Why no uniform bound follows as `t → 0+`
-
-Assume only the current kind of heat-level-0 data:
+Current signature:
 
 ```lean
-hu₀_cont  : Continuous u₀
+theorem cutoffResolverCoeff_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) (k : ℕ) :
+    ContDiff ℝ 2 (fun t =>
+      smoothRightCutoff (c / 2) c t *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t) := by
+```
+
+Inside the positive-time branch:
+
+```lean
+by_cases ht : c / 2 ≤ t
+· have ht_pos : 0 < t := by linarith
+  exact (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).contDiffAt.mul
+    (heatLevel0_resolverTimeCoeff_contDiffAt_two hu₀_bound hu₀_cont hfloor ht_pos k)
+```
+
+So `hfloor` is needed exactly on the support where the cutoff is not locally zero.
+
+### 3. `heatLevel0_resolverTimeCoeff_contDiffAt_two`
+
+Current signature:
+
+```lean
+theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    ContDiffAt ℝ (2 : ℕ∞)
+      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
+```
+
+It immediately calls:
+
+```lean
+have hsrc := heatLevel0_srcTimeCoeff_contDiffAt_two
+  (p := p) hu₀_bound hu₀_cont hfloor ht k
+```
+
+The resolver coefficient itself is just a constant elliptic weight times the source time coefficient:
+
+```lean
+resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
+  = fun s => intervalNeumannResolverWeight p k *
+      srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+```
+
+So all positivity dependence comes from the source coefficient side.
+
+### 4. `heatLevel0_srcTimeCoeff_contDiffAt_two`
+
+Current signature includes the same `hfloor`:
+
+```lean
+theorem heatLevel0_srcTimeCoeff_contDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    ContDiffAt ℝ (2 : ℕ∞)
+      (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) t := by
+```
+
+It uses `hfloor` three times through the heat-semigroup source-slice lemmas:
+
+```lean
+obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
+  heatSemigroup_d0 (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hfloor s hs
+```
+
+```lean
+obtain ⟨δ, hδ, hcont, hdiff, hcd⟩ :=
+  heatSemigroup_d1 (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hfloor s hs
+```
+
+and again for continuity of the second source derivative coefficient:
+
+```lean
+obtain ⟨δ, hδ, _, _, hcd⟩ :=
+  heatSemigroup_d1 (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hfloor s hs
+```
+
+### 5. `heatSemigroup_d0` and `heatSemigroup_d1`
+
+Both source-slice lemmas require `hfloor`.
+
+`heatSemigroup_d0`:
+
+```lean
+theorem heatSemigroup_d0
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (_hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (τ : ℝ) (hτ : 0 < τ) :
+    ...
+```
+
+`heatSemigroup_d1`:
+
+```lean
+theorem heatSemigroup_d1
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (τ : ℝ) (hτ : 0 < τ) :
+    ...
+```
+
+In `d1`, the positivity is visibly used for `Real.rpow` continuity of powers such as
+
+```lean
+(intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1)
+```
+
+and
+
+```lean
+(intervalDomainLift (conjugatePicardIter p u₀ 0 q.1) q.2) ^ (p.γ - 1 - 1)
+```
+
+via code of the form:
+
+```lean
+hprofile.rpow_const (fun q hq => by
+  obtain ⟨hσ, hx⟩ := mem_prod.mp hq
+  exact Or.inl (ne_of_gt (hfloor q.1 (lt_of_lt_of_le hleft hσ.1) q.2 hx)))
+```
+
+So the floor is not cosmetic.  It is the condition that makes the nonlinear source `ν * u^γ` differentiable through `Real.rpow` along the heat profile.
+
+## Chain from `cutoffResolverSeries_contDiff_two`
+
+Current signature:
+
+```lean
+theorem cutoffResolverSeries_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) :
+    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+```
+
+It calls `contDiff_tsum` with three obligations:
+
+```lean
+-- (1) Each cutoff term is C²
+· intro k
+  exact cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+
+-- (2) Majorant summability for each j ≤ 2
+· intro j hj
+  exact cutoffResolverMajorant_summable hc hu₀_bound hu₀_cont hj
+
+-- (3) Uniform iterated-derivative bound
+· intro j k q hj
+  exact cutoffResolverTerm_iteratedFDeriv_bound hu₀_bound hu₀_cont hc j k q hj
+```
+
+Thus the **currently declared** hypotheses for `cutoffResolverSeries_contDiff_two` are:
+
+```lean
 hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
-hfloor    : ∀ t > 0, ... 0 < S(t)u₀
+hu₀_cont  : Continuous u₀
+hfloor    : ∀ t > 0, ∀ x ∈ [0,1], 0 < S(t)u₀(x)
+hc        : 0 < c
 ```
 
-These give positive-time smoothing, but not a finite bound for
+Only obligation (1) currently passes `hfloor` into its subproof.
 
-```text
-sup_{t>0} ∫₀¹ |∂ₓ²(v^(γ-1) Δv)(t,x)| dx.
-```
+## Majorant signatures are currently too weak
 
-A model obstruction is an initial datum with a positive floor and a slowly decaying but absolutely summable cosine tail, for example schematically
-
-```text
-u₀(x) = c + ε ∑_{n≥1} n^{-2} cos(nπx),   c > 0, ε small.
-```
-
-This is continuous and positive for small `ε`; its cosine coefficients are uniformly bounded.  But
-
-```text
-Δ² S(t)u₀(0)
-  ~ ε ∑_{n≥1} (nπ)^4 n^{-2} e^{-(nπ)^2 t}
-  = ε π^4 ∑_{n≥1} n^2 e^{-π² n² t},
-```
-
-which diverges as `t → 0+`.  The product factor `v^(γ-1)` remains bounded below and above on the positive floor, so the `v^α v_xxxx` contribution cannot be controlled uniformly from the current assumptions.
-
-Even with smoother-looking estimates, the heat-kernel constants have the same issue.  Bounds of the form
-
-```text
-||∂ₓ^m S(t)u₀|| ≤ C_m(t) * ||u₀||
-```
-
-have `C_m(t)` singular as `t ↓ 0`.  Spectral estimates with `|a_n| ≤ M₀` similarly use sums such as
-
-```text
-∑ n^m e^{-c n² t},
-```
-
-which are finite for `t > 0` but blow up as `t → 0+`.
-
-Therefore the IBP proof gives
-
-```text
-∀ τ > 0, ∃ Mτ, ∀ t ≥ τ, ∀ k ≥ 1,
-  |cosineCoeffs(slice1(t), k)| ≤ Mτ / (kπ)^2,
-```
-
-not the stronger
-
-```text
-∃ M, ∀ t > 0, ∀ k ≥ 1,
-  |cosineCoeffs(slice1(t), k)| ≤ M / (kπ)^2.
-```
-
-## What would make the global bound true?
-
-There are two honest options.
-
-### Option A: weaken `laplBound` to a local positive-time/slab bound
-
-This is the best match for the existing heat-semigroup proof architecture.  Replace the global field by something like:
+The two majorant lemmas currently **do not** take `hfloor`:
 
 ```lean
-laplBound_local :
-  ∀ i : ℕ, i ≤ 2 → ∀ τ : ℝ, 0 < τ →
-    ∃ M : ℝ, 0 ≤ M ∧
-      ∀ t : ℝ, τ ≤ t → ∀ k : ℕ, 1 ≤ k →
-        |cosineCoeffs ((sliceFam s₀ s₁ s₂ i) t) k| ≤
-          M / ((k : ℝ) * Real.pi)^2
+theorem cutoffResolverMajorant_summable {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (_hu₀_cont : Continuous u₀)
+    {j : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
+    Summable (cutoffResolverMajorant p u₀ M₀ c hc j) := by
+  sorry
 ```
-
-or, even closer to the `d0`/`d1` style:
 
 ```lean
-laplBound_near :
-  ∀ i : ℕ, i ≤ 2 → ∀ τ : ℝ, 0 < τ →
-    ∃ δ M : ℝ, 0 < δ ∧ 0 ≤ M ∧
-      (∀ t ∈ Metric.ball τ δ, ∀ k : ℕ, 1 ≤ k →
-        |cosineCoeffs ((sliceFam s₀ s₁ s₂ i) t) k| ≤
-          M / ((k : ℝ) * Real.pi)^2)
+theorem cutoffResolverTerm_iteratedFDeriv_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (_hu₀_cont : Continuous u₀)
+    {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
+    (hj : (j : ℕ∞) ≤ 2) :
+    ‖iteratedFDeriv ℝ j
+      (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖ ≤
+      cutoffResolverMajorant p u₀ M₀ c hc j k := by
+  sorry
 ```
 
-Then the proof is feasible: choose a positive lower cutoff, say `r = τ / 2`, dominate all heat traces by sums with `e^{-r λ_n}`, and use the existing summability lemmas.  This mirrors what the current positive-time differentiability code already does with `r := t / 2`.
+This is inconsistent with the real analytic path if those proofs estimate derivatives of the resolver coefficient by differentiating the nonlinear source coefficient `ν * (S(t)u₀)^γ`.
 
-This also aligns with the cutoff resolver strategy: if a later proof only needs regularity near a fixed `s₀ > 0`, or on the support of a cutoff that vanishes near `0`, then local positive-time bounds are exactly enough.
+Reason: the derivative formulas behind the resolver coefficient are the same formulas used by `heatLevel0_resolverTimeCoeff_contDiffAt_two`, and those formulas run through `heatSemigroup_d0/d1`, which require `hfloor`.
 
-### Option B: keep global `∀ t > 0`, but add initial spatial regularity
+So the honest signatures should be strengthened to something like:
 
-If the structure really needs one `M` for all positive time, then the theorem needs extra assumptions on `u₀` beyond continuity and bounded cosine coefficients.
+```lean
+theorem cutoffResolverMajorant_summable {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {j : ℕ} (hj : (j : ℕ∞) ≤ 2) :
+    Summable (cutoffResolverMajorant p u₀ M₀ c hc j) := by
+  ...
+```
 
-A sufficient kind of assumption would be something like:
+and
+
+```lean
+theorem cutoffResolverTerm_iteratedFDeriv_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
+    (hj : (j : ℕ∞) ≤ 2) :
+    ‖iteratedFDeriv ℝ j
+      (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖ ≤
+      cutoffResolverMajorant p u₀ M₀ c hc j k := by
+  ...
+```
+
+Then `cutoffResolverSeries_contDiff_two` should pass `hfloor` to all three `contDiff_tsum` obligations:
+
+```lean
+· intro k
+  exact cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+· intro j hj
+  exact cutoffResolverMajorant_summable hc hu₀_bound hu₀_cont hfloor hj
+· intro j k q hj
+  exact cutoffResolverTerm_iteratedFDeriv_bound hu₀_bound hu₀_cont hfloor hc j k q hj
+```
+
+### Stronger note: `hfloor` may not be enough for the majorant constants
+
+For pure pointwise `ContDiffAt`, pointwise positivity is enough.
+
+For global majorants of derivatives on the cutoff support, one may need a **quantitative uniform lower bound** for the heat profile, not merely pointwise positivity, especially when powers like `p.γ - 2` occur.
+
+The cleanest upstream assumption is therefore not just an abstract `hfloor`, but the original positive initial data:
+
+```lean
+hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x
+```
+
+Together with `hu₀_cont`, the existing theorem gives the floor:
+
+```lean
+theorem heatSemigroup_pos_of_pos
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    {t : ℝ} (ht : 0 < t) {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
+    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x
+```
+
+Its proof uses compactness of the interval to get a positive minimum of `u₀`, then the heat semigroup lower bound to preserve that floor.  This is exactly the kind of fact the majorant estimates should use if they need lower bounds for negative or fractional powers.
+
+## Main theorem hypothesis chain
+
+The current main theorem in `IntervalHeatResolverJointC2.lean` is:
+
+```lean
+theorem heatResolver_jointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 ...
+```
+
+It obtains the cutoff-series `ContDiffAt` by:
+
+```lean
+have hCutoff := (cutoffResolverSeries_contDiff_two (p := p)
+  hu₀_bound hu₀_cont hfloor hc).contDiffAt (x := (s₀, x₀))
+```
+
+So the full currently declared hypothesis chain for the value direct route is:
 
 ```text
-u₀ has enough spatial regularity that
-  ∂ₓ²(u₀^(γ-1) Δu₀) ∈ L¹(0,1),
-with compatible Neumann boundary behavior,
-and the heat-smoothed nonlinear expression converges/bounds to it as t → 0+.
+hu₀_bound  : uniform cosine coefficient bound for u₀
+hu₀_cont   : continuity of u₀
+hfloor     : positivity of S(t)u₀ for all t > 0 and x ∈ [0,1]
+hc         : cutoff threshold c is positive
+hs₀        : target time s₀ lies after the cutoff plateau, c < s₀
+hx₀        : target spatial point is interior, x₀ ∈ (0,1)
 ```
 
-A clean formal sufficient package would be stronger but easier to use:
+If we want the direct route stated only from initial-data hypotheses, replace `hfloor` at the public boundary by:
+
+```lean
+hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x
+```
+
+and set internally:
+
+```lean
+have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
+  intro t ht x hx
+  exact heatSemigroup_pos_of_pos hu₀_cont hu₀_pos ht hx
+```
+
+Then call the existing `heatResolver_jointContDiffAt_two`.
+
+## Gradient theorem
+
+The gradient theorem in the same file already has an `_hfloor` parameter:
+
+```lean
+theorem heatResolver_grad_jointContDiffAt_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (_hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
+    (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
+    ContDiffAt ℝ 2 ... := by
+  sorry
+```
+
+The parameter is named `_hfloor` only because the proof is still `sorry`; an honest gradient proof via the same resolver/source coefficient route should use it.  If the gradient proof uses a separate gradient cutoff series, its per-term and majorant lemmas should carry the same positivity assumptions.
+
+## Alternate/stale direct-route file
+
+There is also an older/alternate file:
 
 ```text
-u₀ ∈ C⁴([0,1]),
-Neumann/compatibility conditions as needed,
-0 < c ≤ u₀(x),
-and all derivatives up to order 4 are bounded.
+ShenWork/Paper2/IntervalHeatResolverDirectJointC2.lean
 ```
 
-Then `v = S(t)u₀` has derivatives up to order 4 uniformly down to `t = 0`, and the product formula above gives a uniform `L¹` bound for `slice1_xx`.
+In that file the placeholder direct-route signatures currently omit `hfloor`; for example:
 
-But that is a different theorem.  It is not derivable from the current heat-level-0 assumptions.
+```lean
+theorem cutoffResolverTerm_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
+    (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (_hu₀_cont : Continuous u₀) (_hc : 0 < c) (n : ℕ) :
+    ContDiff ℝ 2 (cutoffResolverTerm p u₀ c n) := by
+  sorry
+```
 
-## Lean-facing recommendation
+and the main theorem there also omits `hfloor` / `hu₀_pos`.
 
-Do not try to prove the current global `hlaplBound` for `i = 1` from the existing hypotheses.
+If that older file is still intended to be used, its signatures are too weak for the same reason.  It should be updated to match the newer `IntervalHeatResolverJointC2.lean` chain, or wrapped with `hu₀_pos` and `heatSemigroup_pos_of_pos`.
 
-The minimal honest fix is to change the `FlooredSourceTimeData` Laplacian coefficient envelope from global-positive-time to local-positive-time.  Then prove the `i = 1` obligation on a slab by:
+## Concrete recommendation
 
-1. Fix `τ > 0` and choose `r = τ / 2`.
-2. Establish bounds for `v`, `v_x`, `v_xx`, `v_xxx`, `v_xxxx` on `t ≥ τ` using spectral majorants with `e^{-r λ_n}`.
-3. Use the product formula for `∂ₓ²(v^(γ-1) v_xx)` plus the positive floor for the `rpow` factors.
-4. Conclude `∫ |slice1_xx| ≤ Mτ`.
-5. Apply the Neumann IBP cosine-coefficient estimate to get the `(kπ)⁻²` envelope.
+Use the following public hypothesis package for the direct heat-level-0 resolver route:
 
-Classify this obligation as:
+```lean
+(hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+(hu₀_cont  : Continuous u₀)
+(hu₀_pos   : ∀ x : intervalDomainPoint, 0 < u₀ x)
+```
+
+Then derive:
+
+```lean
+have hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+    0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x := by
+  intro t ht x hx
+  exact heatSemigroup_pos_of_pos hu₀_cont hu₀_pos ht hx
+```
+
+and feed `hfloor` into:
 
 ```text
-genuine analytic obstruction for the current global statement;
-mechanical/wirable after changing the field to local-positive-time, or after adding C⁴-type initial data.
+heatResolver_jointContDiffAt_two
+cutoffResolverSeries_contDiff_two
+cutoffResolverTerm_contDiff_two
+cutoffResolverCoeff_contDiff_two
+heatLevel0_resolverTimeCoeff_contDiffAt_two
+heatLevel0_srcTimeCoeff_contDiffAt_two
+heatSemigroup_d0 / heatSemigroup_d1
 ```
+
+Also strengthen the two currently-sorry majorant lemmas to take `hfloor` or, better, take `hu₀_pos` / a quantitative lower-floor package if the estimates need uniform control of fractional/negative powers.
