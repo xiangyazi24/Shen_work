@@ -5,14 +5,13 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after adding the Paper2 `χ₀ = 0` positive
-  solution-slice local-existence-free statement route, `lake build ShenWork`
-  completed successfully on `uisai2:/dev/shm/shen_verify`, **8980 jobs**.
-  The target build
-  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also completed
-  successfully, **3727 jobs**.  The new Paper2 positive solution-slice
-  Theorem 1.2/1.3 and χ₀=0/H2-source/logistic-source
-  main/local+main/statement wrappers' `#print axioms` output is
+- Last full remote build: after adding the Paper3 actual-linear-small
+  a-priori mainline/statement route, `lake build ShenWork` completed
+  successfully on `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target
+  build
+  `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
+  also completed successfully, **8382 jobs**.  The new actual-linear-small
+  sectorial/mainline/statement wrappers' `#print axioms` output is
   `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
@@ -194,7 +193,18 @@ Current headline status:
   `IntervalDomainPaper3StatementAprioriFrontierData`, uses
   `IntervalDomainSectorialMainlineAprioriFacts.to_coreExistence` to replace the
   small-data Cauchy fields by continuation plus mass/Lp/smoothing residuals,
-  while keeping the same pointwise lower-barrier persistence facts.
+  while keeping the same pointwise lower-barrier persistence facts.  The
+  actual-linear-small route is now wired one layer deeper through
+  `IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts`,
+  `IntervalDomainPaper3MainlineAprioriActualLinearSmallFrontierData`, and
+  `IntervalDomainPaper3StatementAprioriActualLinearSmallFrontierData` in
+  `IntervalDomainActualLinearStatementAssembly`: in the `m = 1`, `1 ≤ β`,
+  `0 < χ₀ < a/(μ*Theta_beta (β-1))` subregime it removes the pointwise
+  persistence package from the a-priori mainline by inserting
+  `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`.  The
+  remaining actual-linear-small statement residuals are the spectral orbit
+  bound, continuation/gluing, mass/Lp/smoothing route, compactness,
+  stability, and Proposition 1.x/Paper2 Theorem 1.3 packages.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
