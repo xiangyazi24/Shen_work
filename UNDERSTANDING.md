@@ -6,11 +6,11 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper2 positive solution-slice
-  bootstrap statement routes, `lake build ShenWork` completed successfully on
-  `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
-  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also completed
-  successfully, **3712 jobs**.  The new Paper2 positive solution-slice
-  Theorem 1.2/1.3 and χ₀=0/H2-source/logistic-source
+  section-2-thin statement routes, `lake build ShenWork` completed
+  successfully on `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target
+  build `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also
+  completed successfully, **3727 jobs**.  The new Paper2 positive
+  solution-slice Theorem 1.2/1.3 and χ₀=0/H2-source/logistic-source
   main/local+main/statement wrappers' `#print axioms` output is
   `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
@@ -101,9 +101,20 @@ Current headline status:
   `IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationBootstrapFrontierData`.
   These replace the carried `IntervalDomainPaper2Corollary21FrontierData`
   field by the smaller `Paper2BootstrapEstimateBranchData`; Corollary 2.1 is
-  produced from the nested positive solution-slice common data.  This is still
-  conditional, but no longer rests on the step-function counterexample premise,
-  including in the full statement-target wrappers.
+  produced from the nested positive solution-slice common data.  There is now a
+  further section-2-thin variant for each of these routes,
+  `IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinFrontierData`,
+  `IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationSection2ThinFrontierData`,
+  and
+  `IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationSection2ThinFrontierData`.
+  These replace the full `Paper2BootstrapEstimateBranchData` by
+  `IntervalDomainPaper2BootstrapEstimateThinFrontierData`, keeping only the
+  Lemma 2.6 / Lemma 2.7 / Proposition 2.2 / Proposition 2.3 branch frontiers;
+  Proposition 2.4 comes from the proved interval-domain mass estimate
+  `intervalDomain_Proposition_2_4`, and Proposition 2.5 comes from the nested
+  Theorem 1.2/1.3 data.  This is still conditional, but no longer rests on the
+  step-function counterexample premise, including in the full statement-target
+  wrappers.
   General
   χ₀ ≤ 0 is not a no-frontier headline yet:
   `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`
