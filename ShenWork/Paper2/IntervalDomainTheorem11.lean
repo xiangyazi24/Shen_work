@@ -527,6 +527,38 @@ abbrev IntervalDomainClassicalSolutionInterpolation
         ∃ Ceta,
           LpMassGradientInterpolationEstimate intervalDomain q eta Ceta T u
 
+/-- Solution-slice mass-gradient interpolation frontier with the positive
+constant required by the paper-level Lemma 4.1 statement. -/
+abbrev IntervalDomainClassicalSolutionPositiveInterpolation
+    (p : CM2Params) : Prop :=
+  ∀ {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+    IsPaper2ClassicalSolution intervalDomain p T u v →
+      ∀ eps, 0 < eps → ∀ q, 1 < q → ∃ Ceps > 0,
+        LpMassGradientInterpolationEstimate intervalDomain q eps Ceps T u
+
+/-- The positive-constant solution-slice interpolation frontier implies the
+weaker Corollary 2.1 slice interpolation frontier. -/
+theorem IntervalDomainClassicalSolutionInterpolation_of_positive
+    (p : CM2Params)
+    (hSlice : IntervalDomainClassicalSolutionPositiveInterpolation p) :
+    IntervalDomainClassicalSolutionInterpolation p := by
+  intro T u v hsol q hq eta heta
+  obtain ⟨Ceta, _hCeta_pos, hest⟩ := hSlice hsol eta heta q hq
+  exact ⟨Ceta, hest⟩
+
+/-- Lemma 4.1 on `intervalDomain` from a solution-slice interpolation
+frontier.
+
+This proves the actual paper statement, which is quantified over classical
+solution slices, without using the false global `IntervalDomainInterpolation`
+premise for arbitrary positive functions. -/
+theorem Lemma_4_1_intervalDomain_of_solution_interpolation_frontier
+    (p : CM2Params)
+    (hSlice : IntervalDomainClassicalSolutionPositiveInterpolation p) :
+    Lemma_4_1 intervalDomain p := by
+  intro _u₀ _hu₀ _T _hT _u _v hsol _htrace eps heps pExp hpExp
+  exact hSlice hsol eps heps pExp hpExp
+
 /-- H1.4 closure from a solution-slice interpolation frontier.
 
 This removes the false global `IntervalDomainInterpolation` interface from

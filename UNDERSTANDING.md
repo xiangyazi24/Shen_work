@@ -5,13 +5,14 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after the Paper2 solution-slice interpolation route
-  edit, `lake build ShenWork` completed successfully on
+- Last full remote build: after the Paper2 positive solution-slice
+  interpolation statement route edit, `lake build ShenWork` completed
+  successfully on
   `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
   `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also completed
-  successfully, **3712 jobs**.  The new Paper2 solution-slice Theorem 1.2/1.3
-  and χ₀=0 main/local+main wrappers' `#print axioms` output is
-  `[propext, Classical.choice, Quot.sound]`.
+  successfully, **3712 jobs**.  The new Paper2 positive solution-slice
+  Theorem 1.2/1.3 and χ₀=0 main/local+main/statement wrappers' `#print axioms`
+  output is `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -73,19 +74,23 @@ Current headline status:
   as literally stated
   (`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`),
   so any package containing it is a vacuous conditional until the statement is
-  repaired.  The current preferred χ₀=0 headline route avoids that false
-  global premise by using
-  `IntervalDomainClassicalSolutionInterpolation`, a solution-slice
-  mass-gradient interpolation residual.  The corresponding wrappers are
-  `IntervalDomainPaper2Theorem12And13SolutionInterpolationFrontierData`,
-  `IntervalDomainPaper2MainTheoremChiZeroSolutionInterpolationFrontierData`,
+  repaired.  The current preferred χ₀=0 headline and full-statement route
+  avoids that false global premise by using
+  `IntervalDomainClassicalSolutionPositiveInterpolation`, a solution-slice
+  mass-gradient interpolation residual with the positive constant needed by
+  Lemma 4.1.  It proves Lemma 4.1 via
+  `Lemma_4_1_intervalDomain_of_solution_interpolation_frontier`, drops the
+  positive-constant field for Corollary 2.1 via
+  `IntervalDomainClassicalSolutionInterpolation_of_positive`, and is exposed
+  by
+  `IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData`,
+  `IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationFrontierData`,
+  `IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationFrontierData`,
   and
-  `IntervalDomainPaper2LocalAndMainChiZeroSolutionInterpolationFrontierData`.
+  `IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationFrontierData`.
   This is still conditional, but no longer rests on the step-function
-  counterexample premise.  Full statement-target wrappers that include
-  `IntervalDomainPaper2AprioriTargets` still consume Lemma 4.1 through the
-  false global interpolation frontier and need a separate Lemma 4.1 repair
-  before they can be called honest.  General
+  counterexample premise, including in the full statement-target wrapper.
+  General
   χ₀ ≤ 0 is not a no-frontier headline yet:
   `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`
   and `IntervalDomainUniformLocalExistence`.  The B-form
