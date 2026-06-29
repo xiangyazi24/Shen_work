@@ -148,6 +148,52 @@ theorem paper3_proposition1Targets_of_paper2Theorem13DataFact
     Paper3Proposition1Targets D p C :=
   paper3_proposition1Targets_of_paper2Theorem13Data hData.out
 
+/-- Bridge Paper2 Theorem 1.2's `m = 1` global bounded branch to Paper3
+Proposition 1.4. -/
+theorem paper3_Proposition_1_4_of_Paper2_Theorem_1_2
+    {D : BoundedDomainData} {p : CM2Params}
+    (h12 : Paper2.Theorem_1_2 D p) :
+    Proposition_1_4 D p := by
+  intro hm hβ hcase hχ u₀ hu₀
+  have ha_nonneg : 0 ≤ p.a := by
+    rcases hcase with hzero | hpos
+    · simp [hzero.1]
+    · exact hpos.1
+  have hb_nonneg : 0 ≤ p.b := by
+    rcases hcase with hzero | hpos
+    · simp [hzero.2]
+    · exact hpos.2.le
+  exact (h12 ha_nonneg hb_nonneg hβ).2 hm hχ u₀ hu₀
+
+/-- Alternative frontier data for Paper3 Propositions 1.2--1.4 when
+Proposition 1.3 is supplied by Paper2 Theorem 1.3 and Proposition 1.4 is
+supplied by Paper2 Theorem 1.2. -/
+structure Paper3Proposition1FromPaper2TheoremsData
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound D p
+  theorem12 : Paper2.Theorem_1_2 D p
+  theorem13 : Paper2.Theorem_1_3 D p C
+
+/-- Assemble Paper3 Propositions 1.2--1.4, deriving Proposition 1.3 from
+Paper2 Theorem 1.3 and Proposition 1.4 from Paper2 Theorem 1.2. -/
+theorem paper3_proposition1Targets_of_paper2TheoremsData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FromPaper2TheoremsData D p C) :
+    Paper3Proposition1Targets D p C :=
+  ⟨Proposition_1_2_of_negativeSensitivityGlobalEventualBound
+      D p hData.negativeBound,
+    paper3_Proposition_1_3_of_Paper2_Theorem_1_3 hData.theorem13,
+    paper3_Proposition_1_4_of_Paper2_Theorem_1_2 hData.theorem12⟩
+
+/-- Instance-facing wrapper for the Paper2-Theorem-1.2/1.3 route to Paper3
+Propositions 1.2--1.4. -/
+theorem paper3_proposition1Targets_of_paper2TheoremsDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FromPaper2TheoremsData D p C)] :
+    Paper3Proposition1Targets D p C :=
+  paper3_proposition1Targets_of_paper2TheoremsData hData.out
+
 /-! ## Theorem 2.1 persistence targets -/
 
 /-- Paper3 Theorem 2.1 together with its four part statements from the same
@@ -585,6 +631,42 @@ theorem paper3_mainlineTargets_of_paper2Theorem13DataFact
       Fact (Paper3MainlineFromPaper2Theorem13Data D p S K N C1 C3)] :
     Paper3MainlineTargets D p S K N C1 C3 :=
   paper3_mainlineTargets_of_paper2Theorem13Data hData.out
+
+/-- Bundled generic Paper3 mainline frontier data using Paper2 Theorems
+1.2 and 1.3 to supply Paper3 Propositions 1.4 and 1.3. -/
+structure Paper3MainlineFromPaper2TheoremsData
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p) : Prop where
+  propositions : Paper3Proposition1FromPaper2TheoremsData D p C1
+  persistence : Paper3UniformPersistenceRawData D p C3
+  theorem22 : Paper3Theorem22BranchData D p S N C3
+  compactness : Paper3CompactnessRegularizationRawData D p K N C3
+  stability : Paper3Stability23To25BranchData D p N C3
+
+/-- Assemble the generic Paper3 mainline umbrella using the Paper2 Theorem
+1.2/1.3 route for Proposition 1.x. -/
+theorem paper3_mainlineTargets_of_paper2TheoremsData
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C1 : Paper2Constants p} {C3 : Paper3Constants D p}
+    (hData : Paper3MainlineFromPaper2TheoremsData D p S K N C1 C3) :
+    Paper3MainlineTargets D p S K N C1 C3 :=
+  ⟨paper3_proposition1Targets_of_paper2TheoremsData hData.propositions,
+    paper3_uniformPersistenceTargets_of_rawData hData.persistence,
+    paper3_Theorem_2_2_of_branchData hData.theorem22,
+    paper3_compactnessRegularizationTargets_of_rawData hData.compactness,
+    paper3_stability23To25Targets_of_branchData hData.stability⟩
+
+/-- Instance-facing generic Paper3 mainline wrapper using Paper2 Theorems
+1.2 and 1.3 for Proposition 1.x. -/
+theorem paper3_mainlineTargets_of_paper2TheoremsDataFact
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p)
+    [hData : Fact (Paper3MainlineFromPaper2TheoremsData D p S K N C1 C3)] :
+    Paper3MainlineTargets D p S K N C1 C3 :=
+  paper3_mainlineTargets_of_paper2TheoremsData hData.out
 
 end
 

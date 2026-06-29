@@ -6,14 +6,14 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper3 actual-linear-small
-  closed-energy/CEGrad/CERawGrad/CETerminal Moser mainline/statement route,
-  `lake build ShenWork` completed successfully on
-  `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target build
-  `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
+  closed-energy/CEGrad/CERawGrad/CETerminal/Paper2-proposition
+  Moser mainline/statement route, `lake build ShenWork` completed
+  successfully on `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target
+  build `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   also completed successfully, **8393 jobs**.  The actual-linear-small
   sectorial/a-priori/Moser/closed-energy-Moser/CEGrad/CERawGrad/CETerminal
-  mainline/statement
-  wrappers' `#print axioms` output is
+  mainline/statement wrappers, including the CETerminal/Paper2-proposition
+  wrapper, have `#print axioms` output
   `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
@@ -206,7 +206,13 @@ Current headline status:
   `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`.  The
   remaining actual-linear-small statement residuals are the spectral orbit
   bound, continuation/gluing, mass/Lp/smoothing route, compactness,
-  stability, and Proposition 1.x/Paper2 Theorem 1.3 packages.  A still thinner
+  stability, and Proposition 1.x packages.  The Proposition 1.x package now
+  has a Paper2-theorem route,
+  `IntervalDomainPaper3Proposition1FromPaper2TheoremsData`, which replaces the
+  Paper3 Proposition 1.3 and Proposition 1.4 existence-branch fields by Paper2
+  `Theorem_1_3` and `Theorem_1_2`; the remaining proposition inputs on that
+  route are the negative-sensitivity bound plus those two Paper2 headline
+  theorem inputs.  A still thinner
   Moser-ladder actual-linear-small route is exposed by
   `IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals`,
   `IntervalDomainSectorialMainlineMoserActualLinearSmallFacts`,
@@ -263,7 +269,14 @@ Current headline status:
   `IntervalDomainMoserPointwisePowerControlBefore`; the proved conversion uses
   constant `pSeq` / `rootBound` sequences to recover
   `IntervalDomainMoserQuantitativeEndpoint`.  The terminal pointwise estimate
-  remains a residual; the tower-packaging bridge is proved.
+  remains a residual; the tower-packaging bridge is proved.  The latest
+  CETerminal statement route also has a Paper2-proposition-input wrapper,
+  `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2FrontierData`,
+  with theorem
+  `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData`;
+  this leaves the mainline residuals unchanged and removes the duplicate
+  Paper3-side Proposition 1.3/1.4 existence branches by consuming Paper2
+  Theorems 1.3/1.2 instead.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors

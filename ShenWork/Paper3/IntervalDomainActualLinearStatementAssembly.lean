@@ -1239,6 +1239,54 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalFrontierData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Terminal route with Paper2 theorem proposition inputs -/
+
+/-- Full interval-domain Paper3 statement frontiers using the direct terminal
+pointwise endpoint input, with Paper3 Proposition 1.3 and Proposition 1.4
+routed through Paper2 Theorems 1.3 and 1.2. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2TheoremsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+terminal-endpoint Moser route and Paper2 theorem proposition inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2FrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+terminal-endpoint Moser route and Paper2 theorem proposition inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2FrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -1279,5 +1327,7 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData
 
 end ShenWork.Paper3

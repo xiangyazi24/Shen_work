@@ -121,6 +121,38 @@ theorem
   intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
     p C hData.out
 
+/-- Interval-domain Paper3 Proposition 1.x data with Proposition 1.4 routed
+through Paper2 Theorem 1.2 and Proposition 1.3 routed through Paper2 Theorem
+1.3. -/
+structure IntervalDomainPaper3Proposition1FromPaper2TheoremsData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p
+  theorem12 : Theorem_1_2 intervalDomain p
+  theorem13 : Theorem_1_3 intervalDomain p C
+
+/-- Assemble interval-domain Paper3 Propositions 1.2--1.4 using Paper2
+Theorems 1.2 and 1.3 for the existence branches. -/
+theorem
+    intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hData : IntervalDomainPaper3Proposition1FromPaper2TheoremsData p C) :
+    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
+  paper3_proposition1Targets_of_paper2TheoremsData
+    { negativeBound := hData.negativeBound
+      theorem12 := hData.theorem12
+      theorem13 := hData.theorem13 }
+
+/-- Instance-facing interval-domain Paper3 Proposition 1.x wrapper using
+Paper2 Theorems 1.2 and 1.3. -/
+theorem
+    intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    [hData :
+      Fact (IntervalDomainPaper3Proposition1FromPaper2TheoremsData p C)] :
+    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
+  intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
+    p C hData.out
+
 /-! ## Theorem 2.x and compactness targets -/
 
 /-- Concrete interval-domain Paper3 targets currently closed by the existing
