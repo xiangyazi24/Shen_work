@@ -6,6 +6,7 @@ import ShenWork.Paper2.IntervalLemma31Closure
   statement-layer branch-data wrappers.  It adds no analytic estimate.
 -/
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
+import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
 import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
 
@@ -270,6 +271,26 @@ theorem intervalDomainPaper2_Proposition_1_1_of_frontierDataFact
 
 /-! ## Theorem 1.1 statement targets -/
 
+/-- Interval-domain Paper 2 Theorem 1.1 in the proved `χ₀ = 0` regime.
+
+This entry point consumes no half-step frontier package; the local and uniform
+existence inputs are produced internally by
+`intervalDomain_theorem_1_1_chiZero_unconditional`. -/
+theorem intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Theorem_1_1 intervalDomain p :=
+  intervalDomain_theorem_1_1_chiZero_unconditional p hχ0 ha hb hα hγ
+
+/-- Instance-facing interval-domain Paper 2 Theorem 1.1 in the proved
+`χ₀ = 0` regime. -/
+theorem intervalDomainPaper2_Theorem_1_1_chiZero_unconditionalFact
+    (p : CM2Params) [hχ0 : Fact (p.χ₀ = 0)] [ha : Fact (0 < p.a)]
+    [hb : Fact (0 < p.b)] [hα : Fact (1 ≤ p.α)] [hγ : Fact (1 ≤ p.γ)] :
+    Theorem_1_1 intervalDomain p :=
+  intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+    p hχ0.out ha.out hb.out hα.out hγ.out
+
 /-- Paper 2 Theorem 1.1 from half-step H2-source Picard data, routed through
 the existing gamma >= 1 interval-domain umbrella. -/
 theorem intervalDomainPaper2_Theorem_1_1_of_halfStepH2SourceFrontierData
@@ -392,6 +413,41 @@ def IntervalDomainPaper2MainTheoremTargets
     Theorem_1_2 intervalDomain p ∧
       Theorem_1_3 intervalDomain p C
 
+/-- Main-theorem frontier record for the `χ₀ = 0` route.  Theorem 1.1 is
+proved internally; only the independent Theorem 1.2/1.3 frontier remains. -/
+structure IntervalDomainPaper2MainTheoremChiZeroFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13FrontierData p C S
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 in the proved `χ₀ = 0`
+route.  Compared with the H2/logistic-source routes, this carries no Theorem
+1.1 local-existence frontier package. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2MainTheoremChiZeroFrontierData p C S) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+      p hχ0 ha hb hα hγ,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
+      p C S hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle in the proved
+`χ₀ = 0` route. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact (IntervalDomainPaper2MainTheoremChiZeroFrontierData p C S)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
+    p C S hχ0 ha hb hα hγ hData.out
+
 /-- Main-theorem frontier record using the half-step H2-source Theorem 1.1
 route. -/
 structure IntervalDomainPaper2MainTheoremH2SourceFrontierData
@@ -477,6 +533,42 @@ def IntervalDomainPaper2LocalAndMainTheoremTargets
     (p : CM2Params) (C : Paper2Constants p) : Prop :=
   Proposition_1_1 intervalDomain p ∧
     IntervalDomainPaper2MainTheoremTargets p C
+
+/-- Local-plus-main frontier record for the proved `χ₀ = 0` Theorem 1.1
+route. -/
+structure IntervalDomainPaper2LocalAndMainChiZeroFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  proposition11 : IntervalDomainPaper2Proposition11FrontierData p
+  main : IntervalDomainPaper2MainTheoremChiZeroFrontierData p C S
+
+/-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
+with Theorem 1.1 supplied by the proved `χ₀ = 0` route. -/
+theorem intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2LocalAndMainChiZeroFrontierData p C S) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Proposition_1_1_of_frontierData
+      p hData.proposition11,
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
+      p C S hχ0 ha hb hα hγ hData.main⟩
+
+/-- Instance-facing interval-domain local-plus-main wrapper for the proved
+`χ₀ = 0` Theorem 1.1 route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainChiZeroFrontierData p C S)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroFrontierData
+    p C S hχ0 ha hb hα hγ hData.out
 
 /-- Local-plus-main frontier record using the half-step H2-source Theorem 1.1
 route. -/
@@ -564,6 +656,43 @@ def IntervalDomainPaper2StatementTargets
     IntervalDomainPaper2AprioriTargets p ∧
       IntervalDomainPaper2LocalAndMainTheoremTargets p C
 
+/-- Interval-domain Paper 2 statement-frontier record for the proved
+`χ₀ = 0` Theorem 1.1 route. -/
+structure IntervalDomainPaper2StatementChiZeroFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  interpolation : IntervalDomainLemma41.IntervalDomainInterpolation
+  localAndMain : IntervalDomainPaper2LocalAndMainChiZeroFrontierData p C S
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets with
+Theorem 1.1 supplied by the proved `χ₀ = 0` route. -/
+theorem intervalDomainPaper2_statementTargets_of_chiZeroFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2StatementChiZeroFrontierData p C S) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+      p hData.corollary,
+    intervalDomainPaper2_aprioriTargets_of_GN_frontier
+      p hData.interpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroFrontierData
+      p C S hχ0 ha hb hα hγ hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper for the
+proved `χ₀ = 0` Theorem 1.1 route. -/
+theorem intervalDomainPaper2_statementTargets_of_chiZeroFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact (IntervalDomainPaper2StatementChiZeroFrontierData p C S)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroFrontierData
+    p C S hχ0 ha hb hα hγ hData.out
+
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
 H2-source local-existence route. -/
 structure IntervalDomainPaper2StatementH2SourceFrontierData
@@ -642,6 +771,14 @@ theorem intervalDomainPaper2_statementTargets_of_logisticSourceFrontierDataFact
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_logisticSourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
+
+section AxiomAudit
+
+#print axioms intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+#print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
+#print axioms intervalDomainPaper2_statementTargets_of_chiZeroFrontierData
+
+end AxiomAudit
 
 end
 

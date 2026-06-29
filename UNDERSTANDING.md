@@ -5,11 +5,12 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build before the latest statement-wrapper edit:
-  `lake build` on `uisai2:/dev/shm/shen_verify` completed successfully,
-  **8977 jobs**.  After the Paper3 actual-linear statement wrapper was added,
-  the current root-target remote build `lake build ShenWork` completed
-  successfully on `uisai2:/dev/shm/shen_verify`, **8978 jobs**.
+- Last full remote build: after the Paper2 `χ₀ = 0` statement-wrapper edit,
+  `lake build ShenWork` completed successfully on
+  `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
+  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also completed
+  successfully, **3712 jobs**, with the new `χ₀ = 0` wrappers'
+  `#print axioms` output equal to `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -34,9 +35,15 @@ Current headline status:
   replace the monolithic `PaperGreenStepInputRouteACore` input by explicit
   `PerStepBoxParams` / `PerStepBoxZWitness` / Route-A rest / lower-raw aux data.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
-  Theorem 1.1 on the interval for χ₀ = 0.  General χ₀ ≤ 0 is not a no-frontier
-  headline yet: `paper2_theorem_1_1_general_chi_bform` still explicitly
-  requires `hlocal` and `IntervalDomainUniformLocalExistence`.  The B-form
+  Theorem 1.1 on the interval for χ₀ = 0.  This producer is now wired through
+  `IntervalDomainStatementAssembly` as
+  `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional` and through the
+  `χ₀ = 0` main/local+main/statement-target bundles; those routes carry no
+  Theorem 1.1 half-step frontier package, though they still carry the
+  independent Proposition 1.1 / Theorem 1.2 / Theorem 1.3 frontiers where
+  applicable.  General χ₀ ≤ 0 is not a no-frontier headline yet:
+  `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`
+  and `IntervalDomainUniformLocalExistence`.  The B-form
   branch now has `paper2_theorem_1_1_general_chi_bform_from_quant`, which
   replaces the uniform-local-existence input by the quantitative local factory
   `hQuant` via the existing restart/glue/sup-norm continuation machinery; the
@@ -99,7 +106,8 @@ Input-package audit:
   interfaces, not axioms and not proof holes.  A theorem consuming one of these
   packages is conditional until a producer constructs that package.
 - Some fields are already produced or reduced further by code.  Examples:
-  Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`; Paper3
+  Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`, now
+  exposed in the interval-domain statement assembly; Paper3
   actual-linear-small persistence is produced by
   `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall` and now wired
   to statement-level Theorem 2.1 wrappers.
