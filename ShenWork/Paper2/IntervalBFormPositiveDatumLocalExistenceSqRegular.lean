@@ -78,13 +78,6 @@ def PositiveDatumBFormLocalComponentsSqRegular.regularity
         (conjugatePicardLimit p u₀ K.DB.T)) :=
   bForm_classicalRegularity_of_direct_frontier K.regularityFrontier
 
-def PositiveDatumBFormLocalComponentsSqRegular.Hpde
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
-    ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p K.DB.T
-      (conjugatePicardLimit p u₀ K.DB.T) :=
-  hpde_of_BFormBankedInputs K.regularityFrontier.bank
-
 def PositiveDatumBFormLocalComponentsSqRegular.bridgeData
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
@@ -192,8 +185,7 @@ def PositiveDatumBFormLocalComponentsSqRegular.hpde_u
           + (conjugatePicardLimit p u₀ K.DB.T) t x
             * (p.a - p.b *
               ((conjugatePicardLimit p u₀ K.DB.T) t x) ^ p.α) :=
-  ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral
-    K.DB K.Hpde
+  K.regularityFrontier.bank.hpde_u
 
 def PositiveDatumBFormLocalComponentsSqRegular.route
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}

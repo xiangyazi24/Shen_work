@@ -17,6 +17,7 @@ open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.PDE
   (intervalNeumannResolverSourceCoeff)
 open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainGlobalWellposed
 open ShenWork.Paper2.BFormPositiveDatumNegPart
 open scoped Topology BigOperators
 
@@ -94,16 +95,6 @@ def PositiveDatumBFormSqDeepestHypotheses.directFrontier
   hResolverData := H.hResolverData
   hVpos := bform_mildChemicalConcentration_pos_of_conjugate_data p DB
 
-/-- The B-form spectral PDE field is discharged from the PID-unconditional
-spectral provider through the existing banked inputs. -/
-def PositiveDatumBFormSqDeepestHypotheses.Hpde
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {DB : ConjugateMildExistenceData p u₀}
-    (H : PositiveDatumBFormSqDeepestHypotheses p DB) :
-    ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p DB.T
-      (conjugatePicardLimit p u₀ DB.T) :=
-  hpde_of_BFormBankedInputs H.bank
-
 /-- The truncated Picard construction, plus the explicit bridge, gives the
 truncated mild fixed point for the named conjugate Picard limit. -/
 def PositiveDatumBFormSqDeepestHypotheses.truncatedMild
@@ -153,12 +144,10 @@ theorem PositiveDatumBFormSqDeepestHypotheses.localClassicalSolution
     conjugatePicardLimit p u₀ DB.T,
     mildChemicalConcentration p (conjugatePicardLimit p u₀ DB.T), ?_⟩
   refine ⟨?_, ?_⟩
-  · refine IsPaper2ClassicalSolution.of_components DB.hT
-      (ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_classicalRegularity_direct F)
-      H.strictPos ?_
-      (ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral
-        DB H.Hpde)
-      ?_ ?_
+  · let hreg :=
+      ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_classicalRegularity_direct F
+    refine IsPaper2ClassicalSolution.of_components DB.hT
+      hreg H.strictPos ?_ H.bank.hpde_u ?_ ?_
     · intro t x ht htT
       exact ShenWork.IntervalMildToClassical.mildChemical_nonneg
         (T := DB.T) p
@@ -288,7 +277,7 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest
         p u₀ hu₀ hu₀.admissible.1 hT hsol htrace hε
     refine ⟨1, hT, u, v, hsol, htrace, ?_, fun _hm => hglobal⟩
     exact
-      ShenWork.Paper2.IntervalDomainGlobalWellposed.nonminimal_supNorm_bound_of_corrected_initial_approach
+      nonminimal_supNorm_bound_of_corrected_initial_approach
         p hχ ha hb hT hsol happroach
   · intro ha_zero _hb_zero
     exact False.elim ((ne_of_gt ha) ha_zero)

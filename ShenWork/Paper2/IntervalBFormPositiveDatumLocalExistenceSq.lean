@@ -16,6 +16,7 @@ open ShenWork.IntervalMildToClassical
 open ShenWork.HeatKernelGradientEstimates
   (heatGradientLinftyLinftyConstant)
 open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 noncomputable section
 
@@ -39,9 +40,18 @@ structure PositiveDatumBFormLocalComponentsSq
     |p.χ₀| * (heatGradientLinftyLinftyConstant *
         (2 * Real.sqrt DB.T) * Hinf.CQ)
       + DB.T * Hinf.CL ≤ paperPositiveFloor huPaper / 2
-  Hpde :
-    ShenWork.IntervalBFormSpectral.HasBFormSpectralPdeAgreement p DB.T
-      (conjugatePicardLimit p u₀ DB.T)
+  hpde_u :
+    ∀ t x, 0 < t → t < DB.T → x ∈ intervalDomain.inside →
+      intervalDomain.timeDeriv (conjugatePicardLimit p u₀ DB.T) t x =
+        intervalDomain.laplacian
+            ((conjugatePicardLimit p u₀ DB.T) t) x
+          - p.χ₀ * intervalDomain.chemotaxisDiv p
+              ((conjugatePicardLimit p u₀ DB.T) t)
+              (mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ DB.T) t) x
+          + (conjugatePicardLimit p u₀ DB.T) t x
+            * (p.a - p.b *
+              ((conjugatePicardLimit p u₀ DB.T) t x) ^ p.α)
   DT : TruncatedConjugateMildExistenceData p u₀
   Hbridge : TruncatedConjugateLimitBridge p DB DT
   HmildWeak : TruncatedMildToWeakAvailable p DB
@@ -105,23 +115,6 @@ def PositiveDatumBFormLocalComponentsSq.strictPos
     (A := K.A) (D := K.Dbar) (M := K.M)
     (drift := K.drift) (react := K.react)
     K.huPaper K.Hinf K.hsmall K.hM_nonneg K.hM K.hstrip
-
-def PositiveDatumBFormLocalComponentsSq.hpde_u
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (K : PositiveDatumBFormLocalComponentsSq p u₀) :
-    ∀ t x, 0 < t → t < K.DB.T → x ∈ intervalDomain.inside →
-      intervalDomain.timeDeriv (conjugatePicardLimit p u₀ K.DB.T) t x =
-        intervalDomain.laplacian
-            ((conjugatePicardLimit p u₀ K.DB.T) t) x
-          - p.χ₀ * intervalDomain.chemotaxisDiv p
-              ((conjugatePicardLimit p u₀ K.DB.T) t)
-              (mildChemicalConcentration p
-                (conjugatePicardLimit p u₀ K.DB.T) t) x
-          + (conjugatePicardLimit p u₀ K.DB.T) t x
-            * (p.a - p.b *
-              ((conjugatePicardLimit p u₀ K.DB.T) t x) ^ p.α) :=
-  ShenWork.IntervalConjugatePicard.intervalConjugateMildSolution_pde_u_from_picard_data_and_spectral
-    K.DB K.Hpde
 
 def PositiveDatumBFormLocalComponentsSq.route
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -264,7 +257,7 @@ theorem paper2_theorem_1_1_general_chi_bformSq
         p u₀ hu₀ hu₀.admissible.1 hT hsol htrace hε
     refine ⟨1, hT, u, v, hsol, htrace, ?_, fun _hm => hglobal⟩
     exact
-      ShenWork.Paper2.IntervalDomainGlobalWellposed.nonminimal_supNorm_bound_of_corrected_initial_approach
+      nonminimal_supNorm_bound_of_corrected_initial_approach
           p hχ ha hb hT hsol happroach
   · intro ha_zero _hb_zero
     exact False.elim ((ne_of_gt ha) ha_zero)

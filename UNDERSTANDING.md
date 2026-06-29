@@ -6,7 +6,7 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Full remote build for the current tree: `lake build` on
-  `uisai2:/dev/shm/shen_verify` completed successfully, **8967 jobs**.
+  `uisai2:/dev/shm/shen_verify` completed successfully, **8977 jobs**.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -42,7 +42,13 @@ Current headline status:
   `IntervalDomainUniformLocalExistence` input by the same quantitative factory;
   the banked squared-barrier wrapper
   `paper2_theorem_1_1_general_chi_bformSq_of_banked_from_quant` does the same
-  after `positiveDatumBFormLocalHypSq_of_banked`.
+  after `positiveDatumBFormLocalHypSq_of_banked`.  The deeper squared-barrier
+  branches are also wired to the quantitative factory:
+  `paper2_theorem_1_1_general_chi_bformSq_regular_from_quant` and
+  `paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_quant`.  The
+  `SqRegular`/`SqDeepest` plumbing now uses the banked PDE identity
+  `BFormBankedInputs.hpde_u` directly instead of the stale spectral-agreement
+  shim `hpde_of_BFormBankedInputs`.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain
   sectorial endpoints are still assembled from explicit frontier/existence
   packages such as `Paper3MainlineData` and

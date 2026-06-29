@@ -46,9 +46,6 @@ structure PositiveDatumBFormSqBankedPlumbing
     (DB : ConjugateMildExistenceData p u₀) where
   bank :
     ShenWork.Paper2.BFormDirectClassical.BFormBankedInputs p DB
-  Hpde :
-    HasBFormSpectralPdeAgreement p DB.T
-      (conjugatePicardLimit p u₀ DB.T)
   hTimeNhd :
     HasTimeNeighborhoodSpectralAgreement DB.T
       (conjugatePicardLimit p u₀ DB.T)
@@ -107,7 +104,7 @@ def PositiveDatumBFormLocalComponentsSq.of_banked
     huPaper := P.bank.huPaper
     Hinf := P.bank.Hinf
     hsmall := P.bank.hsmall
-    Hpde := P.Hpde
+    hpde_u := P.bank.hpde_u
     DT := P.DT
     Hbridge := P.Hbridge
     HmildWeak := P.HmildWeak
