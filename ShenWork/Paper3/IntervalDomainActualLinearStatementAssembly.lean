@@ -533,11 +533,31 @@ end IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals
 
 /-! ### Closed-energy, raw-gradient inputs plus terminal pointwise endpoint -/
 
+/-- The remaining parameter-side boundedness core needed by the terminal
+Moser route once the actual-linear theorem wrapper supplies `0 < b` and the
+base parameter record supplies `0 < γ`. -/
+structure IntervalDomainMoserActualLinearSmallBoundednessCore
+    (p : CM2Params) : Prop where
+  alphaAbsorption : 2 * p.γ < p.α
+  gammaDimension : p.γ * (p.N : ℝ) < 2
+
+namespace IntervalDomainMoserActualLinearSmallBoundednessCore
+
+def to_boundednessHyp
+    {p : CM2Params}
+    (h : IntervalDomainMoserActualLinearSmallBoundednessCore p)
+    (hb : 0 < p.b) :
+    IntervalDomainBoundednessHyp p :=
+  ⟨Or.inr h.alphaAbsorption, hb, h.alphaAbsorption, p.hγ,
+    h.gammaDimension⟩
+
+end IntervalDomainMoserActualLinearSmallBoundednessCore
+
 /-- Closed-energy Moser residuals with the endpoint tower replaced by a direct
 terminal pointwise power-control input. -/
 structure IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
     (p : CM2Params) : Prop where
-  boundednessHyp : IntervalDomainBoundednessHyp p
+  boundednessCore : IntervalDomainMoserActualLinearSmallBoundednessCore p
   closedEnergyTrace :
     ∀ u₀ : intervalDomain.Point → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
@@ -598,9 +618,10 @@ def to_CERawGradResiduals
     {p : CM2Params}
     (h :
       IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
-        p) :
+        p)
+    (hb : 0 < p.b) :
     IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals p where
-  boundednessHyp := h.boundednessHyp
+  boundednessHyp := h.boundednessCore.to_boundednessHyp hb
   closedEnergyTrace := h.closedEnergyTrace
   rawMoserDrop := h.rawMoserDrop
   relativeMassGradient := h.relativeMassGradient
@@ -729,11 +750,12 @@ namespace IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts
 def to_CERawGradFacts
     {p : CM2Params}
     (h :
-      IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p) :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p)
+    (hb : 0 < p.b) :
     IntervalDomainSectorialMainlineMoserActualLinearSmallCERawGradFacts p where
   spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
   continuation := h.continuation
-  massLpSmoothing := h.massLpSmoothing.to_CERawGradResiduals
+  massLpSmoothing := h.massLpSmoothing.to_CERawGradResiduals hb
 
 end IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts
 
@@ -1175,7 +1197,7 @@ theorem
     IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCERawGradFrontierData
     p M0 uBar vLower K ha hb hχ0 hm hβ hχ
-    { core := hData.core.to_CERawGradFacts
+    { core := hData.core.to_CERawGradFacts hb
       compactness := hData.compactness
       stability := hData.stability }
 

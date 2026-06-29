@@ -5,9 +5,10 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after adding the Paper3 actual-linear-small
-  closed-energy/CEGrad/CERawGrad/CETerminal/Paper2-proposition/Paper2-main
-  Moser mainline/statement route, `lake build ShenWork` completed
+- Last full remote build: after thinning the Paper3 actual-linear-small
+  CETerminal boundedness input and after adding the closed-energy/CEGrad/
+  CERawGrad/CETerminal/Paper2-proposition/Paper2-main Moser
+  mainline/statement route, `lake build ShenWork` completed
   successfully on `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target
   build `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   also completed successfully, **8566 jobs**.  The actual-linear-small
@@ -274,8 +275,15 @@ Current headline status:
   `IntervalDomainMoserPointwisePowerControlBefore`; the proved conversion uses
   constant `pSeq` / `rootBound` sequences to recover
   `IntervalDomainMoserQuantitativeEndpoint`.  The terminal pointwise estimate
-  remains a residual; the tower-packaging bridge is proved.  The latest
-  CETerminal statement route also has a Paper2-proposition-input wrapper,
+  remains a residual; the tower-packaging bridge is proved.  The CETerminal
+  residual no longer carries the full `IntervalDomainBoundednessHyp` bundle:
+  it carries the two-field `IntervalDomainMoserActualLinearSmallBoundednessCore`
+  (`2 * γ < α` and `γ * N < 2`), and the conversion rebuilds
+  `IntervalDomainBoundednessHyp` from that core, the wrapper hypothesis
+  `0 < b`, and `CM2Params.hγ`.  Thus `0 < b`, `0 < γ`, and the sharp
+  threshold branch are no longer duplicate residual fields at this level; the
+  two absorption/dimension inequalities remain genuine parameter assumptions.
+  The latest CETerminal statement route also has a Paper2-proposition-input wrapper,
   `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2FrontierData`,
   with theorem
   `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData`;
