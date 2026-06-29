@@ -24,7 +24,7 @@ Current headline status:
 
   | area | closed or internally produced | honest residual/frontier inputs | deprecated or no-go route |
   | --- | --- | --- | --- |
-  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau traps now produce right-tail asymptotics by pure squeeze; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, and `Paper1CombinedStrictBarrierStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction strict-barrier/no-contact comparison, lower-pinned profile preservation plus rate-cover data, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned squeeze route is the active tail producer |
+  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau traps now produce right-tail asymptotics by pure squeeze; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1CombinedStrictBarrierStatementData`, and `Paper1CombinedLowerPinnedContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, no-contact comparison, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned squeeze route is the active tail producer |
   | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroStatementFrontierData` names the preferred conditional route | finite-horizon alternative, solution-slice interpolation/energy, dissipation/gradient/mass/power/energy frontiers, Proposition 2.5, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` |
   | Paper 3 | actual-linear-small Theorem 2.1 persistence; Proposition 1.3/1.4 can be routed through Paper2 Theorem 1.3/1.2 or Paper2 main targets; terminal pointwise endpoint now has a named quantitative-endpoint bridge; `IntervalDomainPaper3SupNormCompactnessRegularizationData` removes only the structural `upperEq` field by fixing the sup envelope; `IntervalDomainPaper3NegativeSensitivityFrontierData` decomposes `negativeBound` into global-solution and eventual-sup residuals | `negativeBound` or its decomposed global-solution/eventual-sup frontiers, terminal Moser inputs, spectral orbit, continuation/gluing, compactness/regularization, and stability frontiers | Paper2 Theorem 1.1 does not imply Paper3 Proposition 1.2 under the current API; see `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` |
 
@@ -69,9 +69,25 @@ Current headline status:
   `Paper1PositiveCriticalFrozenStationaryContactBranch` route splits that
   comparison into the non-strict monotone trap bound plus local no-contact
   facts on the constant branch, exponential branch, and interface of the
-  nonsmooth upper barrier.  Those no-contact facts remain carried residuals.
-  The right-tail asymptotic itself now has the pure lower-pinned squeeze
-  producer `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap`, with
+  nonsmooth upper barrier.  `Paper1PositiveLowerPinnedContactBranchData` keeps
+  the produced profile's `InLowerPinnedMonotoneTrap` witness and rate cover, so
+  the tail field of the contact branch is discharged by the pure squeeze
+  theorem rather than carried.  `Paper1PositiveLowerPinnedSchauderContactData`
+  is the corresponding lower-pinned fixed-point route through
+  `b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin`
+  with `M = MChi p`; despite the name of that reusable theorem, the wrapper is
+  sign-agnostic in `p` and the positive assumptions are carried at the
+  statement layer.  The scalar branch ceiling is named
+  `positiveBranchTailCap`; `kappa_lt_positiveBranchTailCap` proves
+  `kappa c < positiveBranchTailCap p c` for `2 < c`, so the cap-specialized
+  route `Paper1PositiveLowerPinnedCapSchauderContactData` can set
+  `κtilde = positiveBranchTailCap p c` and discharge both the lower-barrier
+  gap and rate-cover fields by pure arithmetic.  The remaining positive
+  residuals are the lower-pinned cap Schauder/contact data themselves:
+  lower-pin preservation by the positive map, Schauder/map data,
+  stationarity/flat-left inputs, and local no-contact facts.  The right-tail
+  asymptotic itself now has the pure lower-pinned squeeze producer
+  `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap`, with
   `lowerPinnedMonotoneTrap_tail_family_for_branch` covering the full branch
   interval once the lower-barrier exponent dominates the branch ceiling.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
