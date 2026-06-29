@@ -24,7 +24,7 @@ Current headline status:
 
   | area | closed or internally produced | honest residual/frontier inputs | deprecated or no-go route |
   | --- | --- | --- | --- |
-  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, and `Paper1CombinedStrictBarrierStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction strict-barrier comparison, fixed-point/stationarity/SMP inputs, and sharp right-tail asymptotics | tail-asymptotic identity wrappers are only carried residuals, not producers |
+  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau traps now produce right-tail asymptotics by pure squeeze; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, and `Paper1CombinedStrictBarrierStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction strict-barrier/no-contact comparison, lower-pinned profile preservation plus rate-cover data, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned squeeze route is the active tail producer |
   | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroStatementFrontierData` names the preferred conditional route | finite-horizon alternative, solution-slice interpolation/energy, dissipation/gradient/mass/power/energy frontiers, Proposition 2.5, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` |
   | Paper 3 | actual-linear-small Theorem 2.1 persistence; Proposition 1.3/1.4 can be routed through Paper2 Theorem 1.3/1.2 or Paper2 main targets; terminal pointwise endpoint now has a named quantitative-endpoint bridge; `IntervalDomainPaper3SupNormCompactnessRegularizationData` removes only the structural `upperEq` field by fixing the sup envelope; `IntervalDomainPaper3NegativeSensitivityFrontierData` decomposes `negativeBound` into global-solution and eventual-sup residuals | `negativeBound` or its decomposed global-solution/eventual-sup frontiers, terminal Moser inputs, spectral orbit, continuation/gluing, compactness/regularization, and stability frontiers | Paper2 Theorem 1.1 does not imply Paper3 Proposition 1.2 under the current API; see `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` |
 
@@ -69,8 +69,11 @@ Current headline status:
   `Paper1PositiveCriticalFrozenStationaryContactBranch` route splits that
   comparison into the non-strict monotone trap bound plus local no-contact
   facts on the constant branch, exponential branch, and interface of the
-  nonsmooth upper barrier.  Those no-contact facts and the sharp right-tail
-  asymptotic remain separate carried residuals.
+  nonsmooth upper barrier.  Those no-contact facts remain carried residuals.
+  The right-tail asymptotic itself now has the pure lower-pinned squeeze
+  producer `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap`, with
+  `lowerPinnedMonotoneTrap_tail_family_for_branch` covering the full branch
+  interval once the lower-barrier exponent dominates the branch ceiling.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  This producer is now wired through
   `IntervalDomainStatementAssembly` as

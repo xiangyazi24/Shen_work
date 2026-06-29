@@ -18,8 +18,14 @@
 
   CARRIED, with precise stall (STALL block at end):
   * `U 0 < 1` — the strong-maximum-principle scalar (trap saturated at `x = 0`).
-  * `HasWaveRightTailAsymptotic_of_stationary` (#4C) — the sharp tail
-    (`+∞`-linearisation; the repo has no producer of this predicate).
+  * `HasWaveRightTailAsymptotic_of_stationary` (#4C) — the sharp tail from
+    bare stationarity/trap data alone (`+∞`-linearisation is not built here).
+
+  CLOSED UNCONDITIONALLY:
+  * `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap` — a pure
+    lower-pinned-barrier squeeze theorem.  If the construction preserves the
+    lower pin `lowerBarrierPlateau κ κtilde D`, the right-tail asymptotic holds
+    for every `κ₁ < κtilde`, without using the stationary equation.
 
   NEW file only.  No `sorry`/`admit`/`native_decide`/`axiom`.
 -/
@@ -110,16 +116,118 @@ theorem ShenUpperBoundNegative_of_stationary_strongMaxPrinciple
 
 `HasWaveRightTailAsymptotic c κ₁ U` is the rate-`κ₁` ratio limit
 `exp((κ₁-κ)x)·(U x / exp(-κx) - 1) → 0` at `+∞`.  This is a `+∞`-linearisation
-property of the stationary ODE.  The repo has NO producer of this predicate from
-stationarity (it appears ONLY as a consumer); the linearisation machinery is not
-present.  It is carried here as a named hypothesis `htail`, so that the
-downstream `construction_neg` slot is fed without faking. -/
+property of the stationary ODE if only bare stationarity/trap data are kept.
+However, the lower-pinned route gives a separate pure squeeze producer: the
+far-right lower barrier has coefficient one, so the lower pin and the trap upper
+bound squeeze the ratio. -/
+
+/-- Pure Route-A squeeze: a lower-pinned plateau with exponent `κtilde`, plus
+the inherited upper trap bound at exponent `kappa c`, gives the sharp right-tail
+asymptotic for every `κ₁ < κtilde`.
+
+No stationary equation is used; the coefficient-one normalization comes from
+`lowerBarrierRaw_eq_exp_mul` on the far-right raw branch. -/
+theorem HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
+    {c κtilde D M κ₁ : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) M
+      (lowerBarrierPlateau (kappa c) κtilde D) U)
+    (_hκ₁lo : kappa c < κ₁) (hκ₁hi : κ₁ < κtilde) :
+    HasWaveRightTailAsymptotic c κ₁ U := by
+  unfold HasWaveRightTailAsymptotic
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  have hdecay :
+      Tendsto (fun x : ℝ => D * Real.exp ((κ₁ - κtilde) * x))
+        atTop (𝓝 0) := by
+    have hpos : 0 < κtilde - κ₁ := sub_pos.mpr hκ₁hi
+    have hbase0 := expDecay_tendsto_atTop (κ := κtilde - κ₁) hpos
+    have hbase :
+        Tendsto (fun x : ℝ => Real.exp ((κ₁ - κtilde) * x))
+          atTop (𝓝 0) := by
+      convert hbase0 using 1
+      ext x
+      simp [expDecay]
+      ring_nf
+    simpa [mul_zero] using hbase.const_mul D
+  refine squeeze_zero' (Eventually.of_forall fun x => norm_nonneg _) ?_ hdecay
+  refine eventually_atTop.2 ⟨lowerBarrierXPlus (kappa c) κtilde D + 1, ?_⟩
+  intro x hx
+  have hxlt : lowerBarrierXPlus (kappa c) κtilde D < x := by linarith
+  have he_pos : 0 < Real.exp (-(kappa c) * x) := Real.exp_pos _
+  have hupper : U x ≤ Real.exp (-(kappa c) * x) :=
+    hU.bare.le_exp x
+  have hlower : lowerBarrierRaw (kappa c) κtilde D x ≤ U x := by
+    have hplateau := hU.lower x
+    rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt] at hplateau
+    exact hplateau
+  set e : ℝ := Real.exp (-(kappa c) * x)
+  set q : ℝ := D * Real.exp (-(κtilde - kappa c) * x)
+  have heq_raw : lowerBarrierRaw (kappa c) κtilde D x = e * (1 - q) := by
+    simpa [e, q] using lowerBarrierRaw_eq_exp_mul (kappa c) κtilde D x
+  have hq_nonneg : 0 ≤ q :=
+    mul_nonneg hD (Real.exp_pos _).le
+  have hratio_upper : U x / e - 1 ≤ 0 := by
+    have hdiv : U x / e ≤ 1 :=
+      (div_le_one he_pos).2 (by simpa [e] using hupper)
+    linarith
+  have hratio_lower : -q ≤ U x / e - 1 := by
+    have hle : e * (1 - q) ≤ U x := by
+      simpa [heq_raw] using hlower
+    have hle' : (1 - q) * e ≤ U x := by
+      simpa [mul_comm] using hle
+    have hdiv : 1 - q ≤ U x / e := (le_div_iff₀ he_pos).2 hle'
+    linarith
+  have hratio_abs : |U x / e - 1| ≤ q := by
+    rw [abs_of_nonpos hratio_upper]
+    linarith
+  have hF_abs :
+      ‖Real.exp ((κ₁ - kappa c) * x) *
+          (U x / Real.exp (-(kappa c) * x) - 1)‖ ≤
+        D * Real.exp ((κ₁ - κtilde) * x) := by
+    rw [Real.norm_eq_abs, abs_mul]
+    have hexp_nonneg : 0 ≤ Real.exp ((κ₁ - kappa c) * x) :=
+      (Real.exp_pos _).le
+    rw [abs_of_nonneg hexp_nonneg]
+    have hmul := mul_le_mul_of_nonneg_left hratio_abs hexp_nonneg
+    calc
+      Real.exp ((κ₁ - kappa c) * x) *
+          |U x / Real.exp (-(kappa c) * x) - 1|
+          = Real.exp ((κ₁ - kappa c) * x) * |U x / e - 1| := by
+            simp [e]
+      _ ≤ Real.exp ((κ₁ - kappa c) * x) * q := by
+        simpa using hmul
+      _ = D * (Real.exp ((κ₁ - kappa c) * x) *
+            Real.exp (-(κtilde - kappa c) * x)) := by
+        simp [q]
+        ring
+      _ = D * Real.exp ((κ₁ - κtilde) * x) := by
+        rw [← Real.exp_add]
+        congr 1
+        ring
+  simpa [e] using hF_abs
+
+/-- Lower-pinned squeeze discharges the whole current branch tail interval once
+the lower-barrier exponent covers that interval. -/
+theorem lowerPinnedMonotoneTrap_tail_family_for_branch
+    {p : CMParams} {c κtilde D M : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hcover :
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ≤ κtilde)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) M
+      (lowerBarrierPlateau (kappa c) κtilde D) U) :
+    ∀ κ₁, kappa c < κ₁ →
+      κ₁ < min ((1 + p.α) * kappa c)
+        (min (p.m * kappa c + 1 / 2) 1) →
+      HasWaveRightTailAsymptotic c κ₁ U := by
+  intro κ₁ hκ₁lo hκ₁hi
+  exact HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
+    (c := c) (κtilde := κtilde) (D := D) (M := M)
+    (κ₁ := κ₁) (U := U) hD hU hκ₁lo (lt_of_lt_of_le hκ₁hi hcover)
 
 /-- **#4C — sharp right-tail asymptotic, carried.**  The conclusion is exactly
 the carried datum `htail`; this lemma records the intended interface (stationary
 + trap + `c` above threshold ⟹ the rate-`κ₁` tail) while keeping the genuine
-linearisation gap explicit and non-vacuous (a genuine decaying stationary wave
-satisfies `htail`).  See STALL: no `+∞`-linearisation producer exists in-repo. -/
+linearisation gap explicit for routes that do not preserve a lower pin. -/
 theorem HasWaveRightTailAsymptotic_of_stationary
     {p : CMParams} {c κ₁ : ℝ} {U : ℝ → ℝ}
     (hκ : 0 < kappa c) (hU : InMonotoneWaveTrapSet (kappa c) 1 U)
