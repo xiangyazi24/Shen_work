@@ -6,12 +6,12 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper3 actual-linear-small
-  closed-energy/CEGrad/CERawGrad Moser mainline/statement route,
+  closed-energy/CEGrad/CERawGrad/CETerminal Moser mainline/statement route,
   `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target build
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   also completed successfully, **8393 jobs**.  The actual-linear-small
-  sectorial/a-priori/Moser/closed-energy-Moser/CEGrad/CERawGrad
+  sectorial/a-priori/Moser/closed-energy-Moser/CEGrad/CERawGrad/CETerminal
   mainline/statement
   wrappers' `#print axioms` output is
   `[propext, Classical.choice, Quot.sound]`.
@@ -252,7 +252,18 @@ Current headline status:
   pointwise nonnegative-`B` drop condition and uses the proved
   `moserDissipationDropBeforeNonnegB_of_raw_drop` bridge to recover
   `MoserDissipationDropBeforeNonnegB`.  The raw drop is still a residual; the
-  packaging bridge is proved.
+  packaging bridge is proved.  The route now has a CETerminal variant,
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals`,
+  `IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts`,
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData`,
+  and
+  `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalFrontierData`.
+  This replaces the abstract `quantitativeEndpoint` tower field by direct
+  existence of one terminal pointwise power-control estimate
+  `IntervalDomainMoserPointwisePowerControlBefore`; the proved conversion uses
+  constant `pSeq` / `rootBound` sequences to recover
+  `IntervalDomainMoserQuantitativeEndpoint`.  The terminal pointwise estimate
+  remains a residual; the tower-packaging bridge is proved.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors

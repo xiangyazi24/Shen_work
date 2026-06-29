@@ -531,6 +531,89 @@ def to_CEGradResiduals
 
 end IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals
 
+/-! ### Closed-energy, raw-gradient inputs plus terminal pointwise endpoint -/
+
+/-- Closed-energy Moser residuals with the endpoint tower replaced by a direct
+terminal pointwise power-control input. -/
+structure IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        Nonempty
+          (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
+  rawMoserDrop :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+      ∀ pExp, p0 ≤ pExp → ∀ B, 0 ≤ B →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / pExp) *
+              deriv (fun τ =>
+                intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ pExp)
+  relativeMassGradient :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∃ cGrad : ℝ → ℝ,
+          (∀ pExp, p0 ≤ pExp → 0 < cGrad pExp) ∧
+          (∀ pExp, p0 ≤ pExp → ∀ eta > 0, ∃ Ceta,
+            LpMassGradientInterpolationEstimate intervalDomain
+              (pExp + rho) eta Ceta T u) ∧
+          (∀ pExp, p0 ≤ pExp → ∀ t, 0 < t → t < T →
+            intervalDomain.integral (fun x =>
+              (u t x) ^ (pExp + rho - 2) *
+                (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+            cGrad pExp * intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)) ∧
+          MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0
+  terminalPointwise :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ q R, 0 < q ∧ 0 ≤ R ∧
+          IntervalDomainMoserPointwisePowerControlBefore u T q R
+
+namespace IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
+
+def to_CERawGradResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals p where
+  boundednessHyp := h.boundednessHyp
+  closedEnergyTrace := h.closedEnergyTrace
+  rawMoserDrop := h.rawMoserDrop
+  relativeMassGradient := h.relativeMassGradient
+  quantitativeEndpoint := by
+    intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
+    rcases h.terminalPointwise hu₀ hT hsol htrace pExp hpExp hLp with
+      ⟨q, R, hq, hR, hpoint⟩
+    refine ⟨fun _ => q, fun _ => R, ?_⟩
+    intro _hAll
+    exact ⟨R, hR, 0, hq, hR, le_rfl, hpoint⟩
+
+end IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
+
 /-- Sectorial mainline facts with the Paper3 Moser-ladder mass route and the
 actual-linear-small persistence producer. -/
 structure IntervalDomainSectorialMainlineMoserActualLinearSmallFacts
@@ -630,6 +713,29 @@ def to_CEGradFacts
   massLpSmoothing := h.massLpSmoothing.to_CEGradResiduals
 
 end IntervalDomainSectorialMainlineMoserActualLinearSmallCERawGradFacts
+
+/-- Sectorial mainline facts with the terminal pointwise endpoint input. -/
+structure IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts
+    (p : CM2Params) : Prop where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  continuation :
+    IntervalDomainStandardContinuationGluingData p
+  massLpSmoothing :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals p
+
+namespace IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts
+
+def to_CERawGradFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallCERawGradFacts p where
+  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+  continuation := h.continuation
+  massLpSmoothing := h.massLpSmoothing.to_CERawGradResiduals
+
+end IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts
 
 /-- Construct the canonical sectorial core from Moser-ladder facts and the
 proved actual-linear-small persistence producer. -/
@@ -1038,6 +1144,101 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCERawGradFrontierData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Moser-ladder route with a terminal pointwise endpoint input -/
+
+/-- Concrete interval-domain Paper3 mainline frontiers using the direct
+terminal pointwise endpoint input. -/
+structure IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline from the
+terminal-endpoint Moser route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCERawGradFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { core := hData.core.to_CERawGradFacts
+      compactness := hData.compactness
+      stability := hData.stability }
+
+/-- Instance-facing concrete interval-domain Paper3 mainline from the
+terminal-endpoint Moser route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the direct terminal
+pointwise endpoint input. -/
+structure IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+terminal-endpoint Moser route. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalFrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+terminal-endpoint Moser route. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalFrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalFrontierData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -1074,5 +1275,9 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCERawGradFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCERawGradFrontierData
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalFrontierData
 
 end ShenWork.Paper3
