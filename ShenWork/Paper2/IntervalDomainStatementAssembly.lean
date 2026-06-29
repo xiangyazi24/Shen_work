@@ -853,6 +853,88 @@ def
   strongBootstrap := h.strongBootstrap
   strongEventualSupBound := h.strongEventualSupBound
 
+/-- `χ₀ = 0` version of the positive solution-slice Theorem 1.2/1.3
+frontier with local existence discharged by the proved interval-domain
+local-existence producer. -/
+structure
+    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  common :
+    IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad
+  prop25 : Proposition_2_5 intervalDomain p
+  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
+  slowBootstrap :
+    1 ≤ p.β → p.m < 1 →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalBootstrap :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalEventualSupBound :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+  strongBootstrap :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  strongEventualSupBound :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
+/-- Fill the local-existence slot of the local-free `χ₀ = 0` positive
+solution-slice frontier using `intervalDomain_localExistence_chiZero_unconditional`. -/
+def
+    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  common := h.common
+  prop25 := h.prop25
+  localExistence := by
+    intro u₀ hu₀
+    exact intervalDomain_localExistence_chiZero_unconditional
+      p hχ0 ha hb hα hγ hu₀
+  globalExtension := h.globalExtension
+  slowBootstrap := h.slowBootstrap
+  criticalBootstrap := h.criticalBootstrap
+  criticalEventualSupBound := h.criticalEventualSupBound
+  strongBootstrap := h.strongBootstrap
+  strongEventualSupBound := h.strongEventualSupBound
+
 /-- Assemble the interval-domain Theorem 1.2 and Theorem 1.3 statement targets
 from their existing frontier-data records. -/
 theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
@@ -968,6 +1050,21 @@ theorem
     Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_solutionInterpolationFrontierData
     p C cGrad hData.toSolution
+
+/-- Assemble interval-domain Theorems 1.2 and 1.3 in the `χ₀ = 0` regime from
+the positive solution-slice route with local existence produced internally. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
+    p C cGrad (hData.toPositive hχ0 ha hb hα hγ)
 
 /-- Instance-facing joint wrapper for interval-domain Theorems 1.2 and 1.3
 from the positive-constant solution-slice interpolation frontiers. -/
@@ -1211,6 +1308,18 @@ structure
     IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
       p C cGrad
 
+/-- Main-theorem frontier record for the proved `χ₀ = 0` route using the
+positive solution-slice Theorem 1.2/1.3 assembly with local existence produced
+internally. -/
+structure
+    IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad
+
 /-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 in the proved `χ₀ = 0`
 route.  Compared with the H2/logistic-source routes, this carries no Theorem
 1.1 local-existence frontier package. -/
@@ -1338,6 +1447,39 @@ theorem
         p C cGrad)] :
     IntervalDomainPaper2MainTheoremTargets p C :=
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 in the proved
+`χ₀ = 0` route, with both Theorem 1.1 and the Theorem 1.2/1.3 local-existence
+slot discharged by the proved local-existence producer. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+      p hχ0 ha hb hα hγ,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad hχ0 ha hb hα hγ hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle for the local-free
+positive solution-slice `χ₀ = 0` route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
 
 /-- Main-theorem frontier record using the half-step H2-source Theorem 1.1
@@ -1602,6 +1744,19 @@ structure
     IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationFrontierData
       p C cGrad
 
+/-- Local-plus-main frontier record for the proved `χ₀ = 0` route using the
+positive solution-slice Theorem 1.2/1.3 route with local existence produced
+internally. -/
+structure
+    IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad
+
 /-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
 in the proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
 internally. -/
@@ -1736,6 +1891,39 @@ theorem
         p C cGrad)] :
     IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
+in the proved `χ₀ = 0` route, with all local-existence uses in this bundle
+discharged internally. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
+      p hχ0 ha hb hα hγ hData.proposition11,
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad hχ0 ha hb hα hγ hData.main⟩
+
+/-- Instance-facing local-plus-main wrapper for the local-free positive
+solution-slice `χ₀ = 0` route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
 
 /-- Local-plus-main frontier record using the half-step H2-source Theorem 1.1
@@ -2025,6 +2213,20 @@ structure
     IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationFrontierData
       p C cGrad
 
+/-- Local-existence-free variant of the thinnest current `χ₀ = 0` positive
+solution-slice statement route.  The section-2 input remains thin, and the
+Theorem 1.2/1.3 local-existence field is supplied by the proved `χ₀ = 0`
+local-existence producer. -/
+structure
+    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad
+
 /-- Assemble the concrete interval-domain Paper 2 statement targets in the
 proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
 internally. -/
@@ -2195,6 +2397,43 @@ theorem
         p C cGrad)] :
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets in the
+proved `χ₀ = 0` route from positive solution-slice and thin section-2 data,
+with the Theorem 1.2/1.3 local-existence field produced internally. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationThinFrontierData
+      p C cGrad
+      (hData.localAndMain.main.theorem12And13.toPositive hχ0 ha hb hα hγ)
+      hData.section2,
+    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+      p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad hχ0 ha hb hα hγ hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper for
+the local-free `χ₀ = 0` positive solution-slice and thin section-2 route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
 
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
@@ -2571,12 +2810,16 @@ section AxiomAudit
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_solutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
 #print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
 #print axioms
@@ -2587,6 +2830,8 @@ section AxiomAudit
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
 #print axioms
@@ -2600,6 +2845,8 @@ section AxiomAudit
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationBootstrapFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
 #print axioms
