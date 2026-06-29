@@ -1,6 +1,7 @@
 import ShenWork.Paper3.IntervalDomainStatementAssembly
 import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper3.IntervalDomainPersistenceActualLinearSectorial
+import ShenWork.PDE.P3MoserLemmaDischarge
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDomainExistence
@@ -293,6 +294,76 @@ def IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals.to_moserLadder
   relativeMoserInterpolation := h.relativeMoserInterpolation
   quantitativeEndpoint := h.quantitativeEndpoint
 
+/-! ### Closed-energy seed variant -/
+
+/-- Moser-ladder mass/Lp/smoothing residuals with the L² seed field replaced
+by the closed integrated energy identity package.  The conversion to
+`IntervalDomainL2SeedRegularityFrontier` is proved in
+`P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData`. -/
+structure
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        Nonempty
+          (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+/- Convert the closed-energy seed variant back to the current actual-linear
+Moser residual surface. -/
+namespace IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals
+
+def to_actualLinearSmallResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals p where
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := by
+    intro u₀ hu₀ T hT u v hsol htrace
+    exact
+      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+        (Classical.choice
+          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
+  moserDissipation := h.moserDissipation
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+end IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals
+
 /-- Sectorial mainline facts with the Paper3 Moser-ladder mass route and the
 actual-linear-small persistence producer. -/
 structure IntervalDomainSectorialMainlineMoserActualLinearSmallFacts
@@ -315,6 +386,33 @@ def
   spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
   continuation := h.continuation
   massLpSmoothing := (h.massLpSmoothing.to_moserLadder ha hχ0).to_routeResiduals
+
+/-- Sectorial mainline facts with the L² seed supplied as a closed integrated
+energy identity. -/
+structure IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts
+    (p : CM2Params) : Prop where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  continuation :
+    IntervalDomainStandardContinuationGluingData p
+  massLpSmoothing :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals p
+
+/- Convert the closed-energy seed sectorial facts to the current Moser
+actual-linear-small facts. -/
+namespace IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts
+
+def to_moserActualLinearSmallFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts
+        p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallFacts p where
+  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+  continuation := h.continuation
+  massLpSmoothing := h.massLpSmoothing.to_actualLinearSmallResiduals
+
+end IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts
 
 /-- Construct the canonical sectorial core from Moser-ladder facts and the
 proved actual-linear-small persistence producer. -/
@@ -433,6 +531,103 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallFrontierData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Moser-ladder route with closed-energy L² seed -/
+
+/-- Concrete interval-domain Paper3 mainline frontiers using the Moser-ladder
+mass route, with the L² seed supplied by a closed integrated energy identity. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallClosedEnergyFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline from the closed-energy
+Moser route and the actual-linear-small persistence producer. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallClosedEnergyFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallClosedEnergyFrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { core := hData.core.to_moserActualLinearSmallFacts
+      compactness := hData.compactness
+      stability := hData.stability }
+
+/-- Instance-facing concrete interval-domain Paper3 mainline from the
+closed-energy Moser route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallClosedEnergyFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallClosedEnergyFrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallClosedEnergyFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the closed-energy
+Moser mass route and the actual-linear-small persistence producer. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallClosedEnergyFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallClosedEnergyFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+closed-energy Moser route. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallClosedEnergyFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallClosedEnergyFrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallClosedEnergyFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+closed-energy Moser route. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallClosedEnergyFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallClosedEnergyFrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallClosedEnergyFrontierData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -457,5 +652,9 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallFrontierData
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallClosedEnergyFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallClosedEnergyFrontierData
 
 end ShenWork.Paper3

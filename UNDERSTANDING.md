@@ -6,13 +6,13 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper3 actual-linear-small
-  Moser-ladder mainline/statement route, `lake build ShenWork` completed
-  successfully on `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target
+  closed-energy Moser mainline/statement route, `lake build ShenWork` completed
+  successfully on `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target
   build
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
-  also completed successfully, **8392 jobs**.  The new actual-linear-small
-  sectorial/a-priori/Moser mainline/statement wrappers' `#print axioms` output is
-  `[propext, Classical.choice, Quot.sound]`.
+  also completed successfully, **8393 jobs**.  The new actual-linear-small
+  sectorial/a-priori/Moser/closed-energy-Moser mainline/statement wrappers'
+  `#print axioms` output is `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -214,7 +214,19 @@ Current headline status:
   and derives the old `a_pos` / `chi_nonneg` fields from the actual-linear
   parameter hypotheses; remaining Moser-route inputs are boundedness,
   L²-seed regularity, Moser dissipation, relative Moser interpolation, and the
-  quantitative endpoint tower.
+  quantitative endpoint tower.  A still thinner closed-energy variant is now
+  exposed by
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals`,
+  `IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts`,
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallClosedEnergyFrontierData`,
+  and
+  `IntervalDomainPaper3StatementMoserActualLinearSmallClosedEnergyFrontierData`:
+  it replaces the naked `l2SeedRegularity` field by the existential closed
+  integrated-energy trace package
+  `P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData`, using the proved
+  `l2SeedRegularity_of_closedEnergyIdentityTraceData` bridge.  The energy
+  identity itself remains a residual; the seed regularity conversion is no
+  longer a residual.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
