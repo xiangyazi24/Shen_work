@@ -36,7 +36,9 @@ Current headline status:
   requires `hlocal` and `IntervalDomainUniformLocalExistence`.  The B-form
   branch now has `paper2_theorem_1_1_general_chi_bform_from_quant`, which
   replaces the uniform-local-existence input by the quantitative local factory
-  `hQuant` via the existing restart/glue/sup-norm continuation machinery.  The
+  `hQuant` via the existing restart/glue/sup-norm continuation machinery; the
+  negative-part frontier branch has the analogous
+  `paper2_theorem_1_1_general_chi_bform_negpart_from_quant`.  The
   squared-barrier branch now also has
   `paper2_theorem_1_1_general_chi_bformSq_from_quant`, replacing its
   `IntervalDomainUniformLocalExistence` input by the same quantitative factory;
