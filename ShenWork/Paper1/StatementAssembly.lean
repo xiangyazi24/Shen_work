@@ -484,6 +484,19 @@ structure Paper1CombinedStatementData
   lemma51 : Paper1Lemma51FrontierData
   lemma52 : Paper1Lemma52FrontierData
 
+/-- Bundled data for the Paper1 combined statement targets using the current
+strict-barrier main-statement route instead of the older monolithic
+`Paper1MainResultsData`.
+
+Still conditional: the proposition, Lemma 5.1/Lemma 5.2, mainline, positive
+strict-barrier comparison, and tail-asymptotic frontiers remain inputs. -/
+structure Paper1CombinedStrictBarrierStatementData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  main : Paper1MainStatementStrictBarrierData cStarStarFn
+  propositions : Paper1PropositionFrontierData
+  lemma51 : Paper1Lemma51FrontierData
+  lemma52 : Paper1Lemma52FrontierData
+
 /-- Assemble the Paper1 statement targets covered by existing data records. -/
 theorem paper1_combinedStatementTargets_of_data
     {cStarStarFn : CMParams → ℝ → ℝ}
@@ -495,12 +508,32 @@ theorem paper1_combinedStatementTargets_of_data
     paper1_lemma51And52Targets_of_frontierData
       hData.lemma51 hData.lemma52⟩
 
+/-- Assemble the Paper1 combined statement targets through the strict-barrier
+main-statement route. -/
+theorem paper1_combinedStatementTargets_of_strictBarrierData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1CombinedStrictBarrierStatementData cStarStarFn) :
+    Paper1CombinedStatementTargets :=
+  ⟨paper1_mainStatementTargets_of_strictBarrierData hData.main,
+    paper1_propositionTargets_of_frontierData hData.propositions,
+    paper1_lemma25Targets,
+    paper1_lemma51And52Targets_of_frontierData
+      hData.lemma51 hData.lemma52⟩
+
 /-- Instance-facing wrapper for the combined Paper1 statement targets. -/
 theorem paper1_combinedStatementTargets_of_dataFact
     (cStarStarFn : CMParams → ℝ → ℝ)
     [hData : Fact (Paper1CombinedStatementData cStarStarFn)] :
     Paper1CombinedStatementTargets :=
   paper1_combinedStatementTargets_of_data hData.out
+
+/-- Instance-facing wrapper for the combined strict-barrier Paper1 statement
+route. -/
+theorem paper1_combinedStatementTargets_of_strictBarrierDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1CombinedStrictBarrierStatementData cStarStarFn)] :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_strictBarrierData hData.out
 
 end
 
