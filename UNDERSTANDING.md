@@ -5,12 +5,12 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after the Paper3 reduced-analytic mainline statement
-  route edit, `lake build ShenWork` completed successfully on
+- Last full remote build: after the Paper3 a-priori mainline statement route
+  edit, `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
   `lake build ShenWork.Paper3.IntervalDomainStatementAssembly` completed
-  successfully, **3562 jobs**.  The new Paper3 reduced-analytic mainline and
-  statement wrappers' `#print axioms` output is
+  successfully, **3562 jobs**.  The new Paper3 reduced-analytic and a-priori
+  mainline/statement wrappers' `#print axioms` output is
   `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
@@ -112,7 +112,7 @@ Current headline status:
   not discharge the Theorem 2.2 local-stability package or the general
   sectorial mainline existence package.  The interval-domain mainline and
   statement assembly also now have reduced-analytic entry points
-  `IntervalDomainPaper3MainlineReducedAnalyticFrontierData` and
+  `IntervalDomainPaper3MainlineReducedAnalyticFrontierData` /
   `IntervalDomainPaper3StatementReducedAnalyticFrontierData`, with wrappers
   `intervalDomain_paper3_mainlineTargets_of_reducedAnalyticFrontierData` and
   `intervalDomain_paper3_statementTargets_of_reducedAnalyticFrontierData`.
@@ -121,6 +121,12 @@ Current headline status:
   `IntervalDomainSectorialMainlineReducedAnalyticFacts`, using the existing
   `.to_coreExistence` bridge; small-data Cauchy fields remain explicit, while
   the four persistence fields are reduced to pointwise lower-barrier facts.
+  A deeper a-priori route,
+  `IntervalDomainPaper3MainlineAprioriFrontierData` /
+  `IntervalDomainPaper3StatementAprioriFrontierData`, uses
+  `IntervalDomainSectorialMainlineAprioriFacts.to_coreExistence` to replace the
+  small-data Cauchy fields by continuation plus mass/Lp/smoothing residuals,
+  while keeping the same pointwise lower-barrier persistence facts.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors

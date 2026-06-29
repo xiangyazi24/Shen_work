@@ -1149,6 +1149,48 @@ theorem intervalDomain_paper3_mainlineTargets_of_reducedAnalyticFrontierDataFact
   intervalDomain_paper3_mainlineTargets_of_reducedAnalyticFrontierData
     p M0 uBar vLower K hData.out
 
+/-- Thinner concrete interval-domain Paper3 mainline frontiers in which the
+sectorial core package is supplied by the a-priori global-existence route.  The
+small-data Cauchy fields are produced from continuation plus mass/Lp/smoothing
+residuals; persistence is still supplied by pointwise lower-barrier facts. -/
+structure IntervalDomainPaper3MainlineAprioriFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core : IntervalDomainSectorialMainlineAprioriFacts p uBar
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline umbrella from the
+a-priori global-existence sectorial facts. -/
+theorem intervalDomain_paper3_mainlineTargets_of_aprioriFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3MainlineAprioriFrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_frontierData
+    p M0 uBar vLower K
+    { core := hData.core.to_coreExistence
+      compactness := hData.compactness
+      stability := hData.stability }
+
+/-- Instance-facing concrete interval-domain Paper3 mainline umbrella from
+the a-priori global-existence sectorial facts. -/
+theorem intervalDomain_paper3_mainlineTargets_of_aprioriFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3MainlineAprioriFrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_aprioriFrontierData
+    p M0 uBar vLower K hData.out
+
 /-! ## Full interval-domain statement targets -/
 
 /-- Concrete interval-domain Paper3 statement targets combining the
@@ -1227,10 +1269,47 @@ theorem
   intervalDomain_paper3_statementTargets_of_reducedAnalyticFrontierData
     p C M0 uBar vLower K hData.out
 
+/-- Bundled interval-domain Paper3 frontiers with the mainline sectorial core
+provided by the a-priori global-existence route. -/
+structure IntervalDomainPaper3StatementAprioriFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineAprioriFrontierData p M0 uBar vLower K
+
+/-- Assemble the concrete interval-domain Paper3 statement targets using the
+a-priori global-existence sectorial mainline route. -/
+theorem intervalDomain_paper3_statementTargets_of_aprioriFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3StatementAprioriFrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_aprioriFrontierData
+      p M0 uBar vLower K hData.mainline⟩
+
+/-- Instance-facing concrete interval-domain Paper3 statement-target wrapper
+using the a-priori global-existence sectorial mainline route. -/
+theorem intervalDomain_paper3_statementTargets_of_aprioriFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3StatementAprioriFrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_aprioriFrontierData
+    p C M0 uBar vLower K hData.out
+
 section AxiomAudit
 
 #print axioms intervalDomain_paper3_mainlineTargets_of_reducedAnalyticFrontierData
 #print axioms intervalDomain_paper3_statementTargets_of_reducedAnalyticFrontierData
+#print axioms intervalDomain_paper3_mainlineTargets_of_aprioriFrontierData
+#print axioms intervalDomain_paper3_statementTargets_of_aprioriFrontierData
 
 end AxiomAudit
 
