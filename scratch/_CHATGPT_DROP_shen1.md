@@ -1,55 +1,31 @@
-# Q2203 audit: CETerminal boundedness core
+# Q2212 R2 infrastructure audit
 
-I audited the requested Lean regions on `main` at commit `dd1f0a6d`.
+Audited current `main` at commit `5fc60d48`.
 
-## 1. Recoverability
+## 1. Existing theorem chains
 
-Yes, all five conjuncts of `IntervalDomainBoundednessHyp p` are recoverable from the proposed two-field core plus existing wrapper/parameter facts, provided the conversion has access to `hb : 0 < p.b`.
+The CETerminal route already reduces several fields by pure packaging:
 
-The reconstruction is direct:
+- `boundednessCore` closes the old boundedness bundle through `IntervalDomainMoserActualLinearSmallBoundednessCore.to_boundednessHyp hb`.
+- `closedEnergyTrace` reduces to `IntervalDomainL2SeedRegularityFrontier` through `P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData`, used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals.to_actualLinearSmallResiduals`.
+- `rawMoserDrop` reduces to `MoserDissipationDropBeforeNonnegB` through `moserDissipationDropBeforeNonnegB_of_raw_drop`, used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals.to_CEGradResiduals`.
+- `relativeMassGradient` reduces to `RelativeMoserInterpolationBefore` through `P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient`.
+- `terminalPointwise` reduces to the old `quantitativeEndpoint` field inside `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.to_CERawGradResiduals hb` by choosing constant endpoint sequences.
 
-- `IntervalDomainSharpL2AbsorptionThreshold p` follows by the right branch of its definition, using `Or.inr alphaAbsorption`.
-- `0 < p.b` is exactly the theorem-wrapper hypothesis `hb`.
-- `2 * p.γ < p.α` is `alphaAbsorption`.
-- `0 < p.γ` is already `p.hγ` from `CM2Params`.
-- `p.γ * (p.N : ℝ) < 2` is `gammaDimension`.
+The sectorial orbit field has this downstream chain once supplied: `intervalDomain_spectralSemigroupOrbitBoundRaw_of_sectorialConcrete` → `intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound` → `intervalDomain_Lemma_A_1_of_spectralSemigroupOrbitBound` → `intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBound_frontiers`.
 
-If the current no-argument conversion shape `to_CERawGradResiduals h` is kept, the missing fact at that local point is `hb : 0 < p.b`. So `hb` must be threaded into that conversion, or reconstruction must be delayed until a wrapper that already has `hb`.
+Continuation is consumed by `intervalDomainGlobalSolutionExists_of_standardContinuation_gluing_and_massLpSmoothing`, then by `intervalDomain_smallDataGlobal_of_globalSolutionExists` and `intervalDomain_massConstrainedSmallDataGlobal_of_globalSolutionExists`. Compactness and stability are routed by `intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers` and `intervalDomain_paper3_stability23To25Targets_of_frontiers`. On the proposition side, `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` uses `paper2Main` but still carries `negativeBound` separately.
 
-## 2. Helper to add
+## 2. Genuine frontiers
 
-Add this beside `IntervalDomainBoundednessHyp` in `ShenWork/PDE/IntervalDomainAPrioriGlobal.lean`.
+I found no existing producer for the nonlinear sectorial orbit bound, standard continuation/gluing, the closed energy trace, pointwise Moser drop, the mass-gradient package, terminal pointwise endpoint control, compactness/regularization subfields, stability subfields, or `negativeBound`. These are reduced and routed, not proved away.
 
-```lean
-import ShenWork.PDE.IntervalDomainAPrioriGlobal
+## 3. Smallest faithful next Lean edit
 
-namespace ShenWork.IntervalDomainExistence
+The best next edit is to name the currently inline terminal bridge. Add a helper theorem named `intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl` whose assumption is exactly the current `terminalPointwise` field and whose conclusion is exactly the old `quantitativeEndpoint` field. Its proof is already present inline: destruct the witness into `q` and `R`, set `pSeq := fun _ => q`, set `rootBound := fun _ => R`, and return the existing pointwise power-control witness.
 
-structure IntervalDomainBoundednessParameterCore (p : CM2Params) : Prop where
-  alphaAbsorption : 2 * p.γ < p.α
-  gammaDimension : p.γ * (p.N : ℝ) < 2
+Then replace the inline `quantitativeEndpoint := by ...` block in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.to_CERawGradResiduals` with a call to that helper. This is a faithful infrastructure cleanup, not a new PDE proof.
 
-theorem IntervalDomainBoundednessParameterCore.to_boundednessHyp
-    {p : CM2Params}
-    (h : IntervalDomainBoundednessParameterCore p)
-    (hb : 0 < p.b) :
-    IntervalDomainBoundednessHyp p :=
-  ⟨Or.inr h.alphaAbsorption, hb, h.alphaAbsorption, p.hγ, h.gammaDimension⟩
+## 4. Negative-bound caveat
 
-end ShenWork.IntervalDomainExistence
-```
-
-Then replace the terminal residual field with a core field such as `boundednessCore : IntervalDomainBoundednessParameterCore p`. The conversion to the older residual interface should rebuild the full bundle with `h.boundednessCore.to_boundednessHyp hb`, so `to_CERawGradResiduals` and the sectorial terminal-facts conversion above it need an `hb` argument unless reconstruction is delayed to the final statement wrapper.
-
-## 3. Residual-assumption status
-
-This removes a real interface over-assumption, but it mostly repackages the mathematics. It removes duplicate residual proof fields for the sharp threshold, strict `b` positivity, and strict `γ` positivity. It does not remove the two genuine parameter assumptions that still have to be supplied:
-
-- `alphaAbsorption : 2 * p.γ < p.α`;
-- `gammaDimension : p.γ * (p.N : ℝ) < 2`.
-
-## 4. Paper-facing caveat
-
-`alphaAbsorption` is not already part of the advertised actual-linear-small wrapper signature in the inspected regions. Those wrappers expose `ha`, `hb`, `hχ0`, `hm`, `hβ`, and the small-sensitivity condition `hχ`, while `CM2Params` only gives positivity of `α` and `γ`, not a relation `2 * p.γ < p.α`.
-
-Therefore `alphaAbsorption` must remain visible as an extra boundedness-side or Moser-route condition, either in the terminal residual/frontier data or as an explicit theorem hypothesis if this route is made more paper-facing. The same caveat applies to `gammaDimension`.
+Do not derive `negativeBound` from Paper2 Theorem 1.1 or from `paper2Main`. The P2Main data still carries both `negativeBound` and `paper2Main`, and `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` blocks that shortcut unless it is reconciled.
