@@ -1,31 +1,94 @@
-# Q2212 R2 infrastructure audit
+# Q2221 R2 Paper1/Paper2 residual wireability audit
 
-Audited current `main` at commit `5fc60d48`.
+Audited current `main` at commit `09140eae`.
 
-## 1. Existing theorem chains
+## Paper1 map
 
-The CETerminal route already reduces several fields by pure packaging:
+### `Paper1MainResultsData`
 
-- `boundednessCore` closes the old boundedness bundle through `IntervalDomainMoserActualLinearSmallBoundednessCore.to_boundednessHyp hb`.
-- `closedEnergyTrace` reduces to `IntervalDomainL2SeedRegularityFrontier` through `P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData`, used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals.to_actualLinearSmallResiduals`.
-- `rawMoserDrop` reduces to `MoserDissipationDropBeforeNonnegB` through `moserDissipationDropBeforeNonnegB_of_raw_drop`, used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals.to_CEGradResiduals`.
-- `relativeMassGradient` reduces to `RelativeMoserInterpolationBefore` through `P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient`.
-- `terminalPointwise` reduces to the old `quantitativeEndpoint` field inside `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.to_CERawGradResiduals hb` by choosing constant endpoint sequences.
+`construction_neg`: wireable by an existing chain, and should be thinned. Current full field is the old negative construction branch. The existing reduced route is `ConstructionNegSMPProvider` → `constructionNeg_of_provider_smp` → `Theorem_1_1.of_constructionNeg_provider_smp` → `paper1_Theorem_1_1_of_constructionNegSMPProvider`. This removes the full carried `ShenUpperBoundNegative` field and replaces it with the scalar strong-maximum-principle obligation `U 0 < 1`, while still carrying the sharp right-tail asymptotic.
 
-The sectorial orbit field has this downstream chain once supplied: `intervalDomain_spectralSemigroupOrbitBoundRaw_of_sectorialConcrete` → `intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound` → `intervalDomain_Lemma_A_1_of_spectralSemigroupOrbitBound` → `intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBound_frontiers`.
+`construction_pos`: genuine analytic residual. I found construction/witness helpers for positive fixed-point outputs, but no exact producer for the full positive branch field of `Paper1MainResultsData`.
 
-Continuation is consumed by `intervalDomainGlobalSolutionExists_of_standardContinuation_gluing_and_massLpSmoothing`, then by `intervalDomain_smallDataGlobal_of_globalSolutionExists` and `intervalDomain_massConstrainedSmallDataGlobal_of_globalSolutionExists`. Compactness and stability are routed by `intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers` and `intervalDomain_paper3_stability23To25Targets_of_frontiers`. On the proposition side, `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` uses `paper2Main` but still carries `negativeBound` separately.
+`cStarStar_spec` and `stability`: genuine B5 stability frontiers in this old main bundle. There is a better route through `Paper1MainlineExistence`, but no theorem produces these old fields from lower data without carrying the stability analysis.
 
-## 2. Genuine frontiers
+`wave_cont`, `cauchy_unique`, `resolvent`, `tail_asymp`: old regularity/uniqueness/tail frontiers. `resolvent` is wireable if the interface is changed to carry `TravelingWaveRegularity`, via `IsTravelingWave.V_eq_frozenElliptic_full` and related C2 uniqueness lemmas. In the current exact field shape, no producer exists. `tail_asymp` remains genuine; the repository has consumers such as Remark 4.3 bridges, not a producer for arbitrary waves.
 
-I found no existing producer for the nonlinear sectorial orbit bound, standard continuation/gluing, the closed energy trace, pointwise Moser drop, the mass-gradient package, terminal pointwise endpoint control, compactness/regularization subfields, stability subfields, or `negativeBound`. These are reduced and routed, not proved away.
+### `Paper1MainlineExistence`
 
-## 3. Smallest faithful next Lean edit
+This is the preferred Paper1 B5 route. It already thins the old `Paper1MainResultsData` stability interface. The theorem chain is `Paper1MainlineExistence` → `Theorem_1_2.of_mainlineExistence` and `Theorem_1_3.of_mainlineExistence` → `Theorem_1_2_and_1_3.of_mainlineExistence` → `paper1_mainlineStatementTargets_of_mainlineExistence`.
 
-The best next edit is to name the currently inline terminal bridge. Add a helper theorem named `intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl` whose assumption is exactly the current `terminalPointwise` field and whose conclusion is exactly the old `quantitativeEndpoint` field. Its proof is already present inline: destruct the witness into `q` and `R`, set `pSeq := fun _ => q`, set `rootBound := fun _ => R`, and return the existing pointwise power-control witness.
+Field classification:
 
-Then replace the inline `quantitativeEndpoint := by ...` block in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.to_CERawGradResiduals` with a call to that helper. This is a faithful infrastructure cleanup, not a new PDE proof.
+- `cStarStar_spec`: genuine stability-threshold frontier.
+- `regularity`: genuine wave-regularity frontier, but it usefully replaces the separate old `wave_cont` and `resolvent` fields. Once supplied, `IsTravelingWave.V_eq_frozenElliptic_full` is used downstream.
+- `energyDissipation`: genuine perturbation PDE frontier. The repository already supplies the weighted signal estimates from Lemma 2.5; this field is the remaining energy package.
+- `l2ToUniform`: genuine analytic upgrade frontier. The file explicitly separates `WeightedL2ToUniformMovingFrameUpgrade`; weighted L2 convergence alone is not claimed to imply uniform convergence.
+- `cauchyUnique`: genuine whole-line Cauchy uniqueness residual.
 
-## 4. Negative-bound caveat
+### `Paper1PropositionFrontierData`
 
-Do not derive `negativeBound` from Paper2 Theorem 1.1 or from `paper2Main`. The P2Main data still carries both `negativeBound` and `paper2Main`, and `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` blocks that shortcut unless it is reconciled.
+All five fields are genuine analytic residuals for arbitrary Cauchy data: `existence`, `max_neg`, `bound_pos`, `conv_neg`, and `conv_pos`. There are direct constant/equilibrium branches elsewhere, but no exact producer for these universal proposition fields. The wrapper `paper1_propositionTargets_of_frontierData` only routes them into `Proposition_1_1.of_global_existence_and_bounds` and `Proposition_1_2.of_global_existence_and_convergence`.
+
+### `Paper1Lemma51FrontierData`
+
+`resolvent`: exact current field has no producer. It is wireable after an interface change that carries `TravelingWaveRegularity`, using `IsTravelingWave.V_eq_frozenElliptic_full`, `IsTravelingWave.V_eq_frozenElliptic_via_C2`, or `V_eq_frozenElliptic_via_C2_uniqueness`.
+
+`continuous`: exact current field has no producer; it is naturally part of `TravelingWaveRegularity` but not derivable from bare `IsTravelingWave` in the current API.
+
+`deriv_tends`, `deriv_bound`, `deriv_exp`: genuine derivative/asymptotic residuals. The file has strong downstream consumers such as `Lemma_5_1.of_resolvent_derivative_bounds`; it does not prove these universal derivative fields.
+
+### `Paper1Lemma52FrontierData`
+
+`monotone`: genuine analytic residual in the exact universal field shape. Existing chains prove Lemma 5.2 from this monotonicity assumption: `Lemma_5_2_explicit_under_monotone` and `Lemma_5_2_under_monotone`. There are special-case direct branches such as `Lemma_5_2_frozen_monotone_trap_direct`, but they do not produce monotonicity for all traveling waves.
+
+### `ConstructionNegSMPProvider`
+
+Already produced after the provider: `FrozenStationaryWaveProfile`, `deriv U ≤ 0`, and `deriv (frozenElliptic p U) ≤ 0` are discharged by the lower-pinned Schauder wrapper and trap monotonicity inside `constructionNeg_of_lowerPinnedSchauderData_smp`. `ShenUpperBoundNegative` is reduced by `ShenUpperBoundNegative_of_stationary_strongMaxPrinciple` to the scalar `U 0 < 1`.
+
+Still genuine residuals inside the provider: the lower-pinned Schauder principle/data, the map-to-stationarity bridge, left-flatness, the scalar strong maximum principle `U 0 < 1`, and the sharp right-tail asymptotic. `StationaryUpperTail.lean` explicitly records that no producer exists for `U 0 < 1` or `HasWaveRightTailAsymptotic` from stationarity/trap alone; `HasWaveRightTailAsymptotic_of_stationary` is only a carried-interface lemma.
+
+## Paper2 map for the Q2214 route
+
+Target route: `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`.
+
+This is indeed the best current interval-domain route. Its top-level input has only:
+
+- `section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p`
+- `localAndMain : IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData p C cGrad`
+
+The assembly chain is:
+
+`intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData` uses `intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationThinFrontierData`, `intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier`, and `intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData`.
+
+### `section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData`
+
+Fields `lemma26`, `lemma27`, `prop22`, and `prop23` are genuine section-2 residuals in this statement-target bundle. The wrapper `intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData` only packages them through `Lemma_2_6.of_assumed_bound_branch`, `Lemma_2_7.of_assumed_bound_branch`, `Proposition_2_2.of_assumed_estimate_branch`, and `Proposition_2_3.of_assumed_estimate_branch`.
+
+What is already produced here: Proposition 2.4 is inserted by `intervalDomain_Proposition_2_4 p`, and Proposition 2.5 is supplied from the nested Theorem 1.2/1.3 data rather than from the section-2 record. Corollary 2.1 is produced from the positive solution-slice common data by `IntervalDomainTheorem11Composite.Corollary_2_1_intervalDomain_of_solution_interpolation_frontier`.
+
+### `localAndMain`
+
+`proposition11.finiteHorizonAlternative`: genuine continuation/blow-up alternative residual. The local-existence slot is already closed in the χ-zero route by `intervalDomain_localExistence_chiZero_unconditional`, through `intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData`.
+
+`main.theorem12And13.common.solutionInterpolation`: genuine solution-slice interpolation frontier, but this is the correct non-vacuous replacement for the false global `IntervalDomainInterpolation` statement. It is used both for Lemma 4.1 through `intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier` and for Corollary 2.1 through `IntervalDomainClassicalSolutionInterpolation_of_positive` followed by `Corollary_2_1_intervalDomain_of_solution_interpolation_frontier`.
+
+`common.dissipation`, `gradConstantPositive`, `gradientChain`, `massControl`, `powerIntegrability`, `energyFromCrossDiffusion`: genuine PDE/Moser-route residuals. The route composes them, but I found no exact producers in the statement assembly.
+
+`prop25`: genuine endpoint boundedness residual for this route. It is no longer duplicated in section-2 thin data, but it is still required by the Theorem 1.2/1.3 machinery.
+
+`globalExtension`: genuine continuation/globalization residual.
+
+`slowBootstrap`, `criticalBootstrap`, `criticalEventualSupBound`, `strongBootstrap`, `strongEventualSupBound`: genuine regime-specific bootstrap/eventual-bound frontiers. The wrapper uses them to close Theorem 1.2 and Theorem 1.3; no producer was found in the route files.
+
+### Paper2 no-go evidence
+
+Do not reintroduce the old global interpolation field. `IntervalDomainInterpolationCounterexample.lean` proves `not_intervalDomainInterpolation`; its header states the exact `IntervalDomainInterpolation` prop is false because positive step functions have zero classical derivative almost everywhere while retaining nonzero mass. The current positive solution-slice route is therefore the right sound interface, not just a cosmetic thinning.
+
+## Smallest next edit
+
+Paper1 has the clearest small Lean cleanup: add a bundled full-main wrapper that combines the already existing `ConstructionNegSMPProvider` route for Theorem 1.1 with `Paper1MainlineExistence` for Theorems 1.2 and 1.3. This would stop the preferred headline surface from carrying the old full `construction_neg`, `stability`, `wave_cont`, `resolvent`, and `tail_asymp` fields directly. It changes no mathematical claim; it only reuses existing chains:
+
+`ConstructionNegSMPProvider` → `Theorem_1_1.of_constructionNeg_provider_smp`, and `Paper1MainlineExistence` → `Theorem_1_2_and_1_3.of_mainlineExistence`.
+
+For Paper2, the route is already thinned correctly. The smallest useful edit is documentation: mark `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData` as the preferred interval-domain χ-zero statement route, and explicitly warn not to use the deprecated global `IntervalDomainInterpolation` route because `not_intervalDomainInterpolation` refutes it.
