@@ -1591,9 +1591,8 @@ private theorem cutoffResolverMajorant_bddAbove_direct
         obtain ⟨B_compact, hB_compact⟩ := (isCompact_Icc (a := c / 2) (b := c + 1)).exists_bound_of_continuousOn
           hA_cont.continuousOn
         -- L∞ tail bound: for t > 0, |S(t)u₀(x)| ≤ M_sup → srcSlice bounded → srcTimeCoeff bounded
-        -- For the tail, we need ContinuousOn of srcSlice on [0,1] + |srcSlice| ≤ ν * M_sup^γ
-        -- ContinuousOn follows from hSt_cont + rpow continuity at positive values
-        -- For now, we sorry the tail bound and combine with the compact bound
+        -- For the tail, combine continuity of srcSlice on [0,1] with the
+        -- L∞ semigroup bound and positivity of the floored iterate.
         have hA_tail : ∃ B_tail : ℝ, ∀ t : ℝ, c + 1 < t →
             |A t| ≤ B_tail := by
           set u := conjugatePicardIter p u₀ 0
@@ -1680,11 +1679,11 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             ‖iteratedFDeriv ℝ 1 A t‖ ≤ B := by
           -- Use 1D Leibniz on A = φ * R where R = resolverTimeCoeff.
           -- φ and φ' are bounded (cutoff). R is bounded (i=0 proof).
-          -- R' needs eigenvalue damping — sorry'd as the irreducible content.
+          -- R' is bounded using eigenvalue damping for the heat derivative.
           set R := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
           -- For t > c+1: A = R in a neighborhood (φ=1 for t > c)
-          -- So deriv A = deriv R, and we bound |deriv R|
-          -- |deriv R(t)| needs eigenvalue damping — sorry'd
+          -- So deriv A = deriv R, and we bound |deriv R| by the source
+          -- derivative coefficient estimate.
           have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
               |deriv R t| ≤ B_R' := by
             -- Step A: bound cosineCoeffs(srcSlice1(t), k) for t > c+1 (eigenvalue damping)
@@ -1765,8 +1764,8 @@ private theorem cutoffResolverMajorant_bddAbove_direct
             -- Bound |srcSlice1| ≤ νγ * M_sup^{γ-1} * CΔ
             have hBsrc : ∃ Bsrc : ℝ, ∀ t : ℝ, c + 1 < t →
                 |cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k| ≤ Bsrc := by
-              -- Full proof: ContinuousOn (d1) + pointwise bound (L∞ + lower + rpow + hDu) + cosineCoeffs
-              -- Uniform bound on srcSlice1 for ALL t > c+1 — sorry the existence of Bpt
+              -- Full proof: ContinuousOn (d1) + pointwise bound
+              -- (L∞ + lower + rpow + hDu) + cosineCoeffs.
               obtain ⟨Bpt, hBpt_nn, hBpt⟩ : ∃ Bpt : ℝ, 0 ≤ Bpt ∧
                   ∀ t : ℝ, c + 1 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
                     |srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t x| ≤ Bpt := by
