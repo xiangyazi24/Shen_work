@@ -6,6 +6,7 @@
   hypotheses are the canonical core existence package and the concrete
   initial-continuity frontier already exposed downstream.
 -/
+import ShenWork.Paper2.IntervalDomainStatementAssembly
 import ShenWork.Paper3.StatementAssembly
 import ShenWork.Paper3.IntervalDomainStabilityChain
 import ShenWork.Paper3.IntervalDomainSectorialNonlinearBridges
@@ -151,6 +152,35 @@ theorem
       Fact (IntervalDomainPaper3Proposition1FromPaper2TheoremsData p C)] :
     IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
   intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
+    p C hData.out
+
+/-- Interval-domain Paper3 Proposition 1.x data with Proposition 1.4 and
+Proposition 1.3 routed through the Paper2 main theorem target bundle. -/
+structure IntervalDomainPaper3Proposition1FromPaper2MainTargetsData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+
+/-- Assemble interval-domain Paper3 Propositions 1.2--1.4 using Paper2 main
+theorem targets for the existence branches. -/
+theorem
+    intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hData : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C) :
+    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
+  paper3_proposition1Targets_of_paper2MainTargetsData
+    { negativeBound := hData.negativeBound
+      main := hData.paper2Main }
+
+/-- Instance-facing interval-domain Paper3 Proposition 1.x wrapper using
+Paper2 main theorem targets. -/
+theorem
+    intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    [hData :
+      Fact (IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C)] :
+    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
+  intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
     p C hData.out
 
 /-! ## Theorem 2.x and compactness targets -/

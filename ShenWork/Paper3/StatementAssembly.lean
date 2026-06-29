@@ -4,6 +4,7 @@
   This file packages statement-layer branch-data bridges from `Statements`.
   It adds no analytic estimates.
 -/
+import ShenWork.Paper2.StatementAssembly
 import ShenWork.Paper3.Statements
 
 open ShenWork.Paper2
@@ -193,6 +194,34 @@ theorem paper3_proposition1Targets_of_paper2TheoremsDataFact
     [hData : Fact (Paper3Proposition1FromPaper2TheoremsData D p C)] :
     Paper3Proposition1Targets D p C :=
   paper3_proposition1Targets_of_paper2TheoremsData hData.out
+
+/-- Alternative frontier data for Paper3 Propositions 1.2--1.4 when the
+Paper3 Proposition 1.3/1.4 branches are supplied by the Paper2 main theorem
+bundle. -/
+structure Paper3Proposition1FromPaper2MainTargetsData
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound D p
+  main : Paper2.Paper2MainTheoremTargets D p C
+
+/-- Assemble Paper3 Propositions 1.2--1.4, extracting Paper2 Theorems 1.2
+and 1.3 from the Paper2 main theorem target bundle. -/
+theorem paper3_proposition1Targets_of_paper2MainTargetsData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FromPaper2MainTargetsData D p C) :
+    Paper3Proposition1Targets D p C :=
+  paper3_proposition1Targets_of_paper2TheoremsData
+    { negativeBound := hData.negativeBound
+      theorem12 := hData.main.2.1
+      theorem13 := hData.main.2.2 }
+
+/-- Instance-facing wrapper for the Paper2-main-target route to Paper3
+Propositions 1.2--1.4. -/
+theorem paper3_proposition1Targets_of_paper2MainTargetsDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FromPaper2MainTargetsData D p C)] :
+    Paper3Proposition1Targets D p C :=
+  paper3_proposition1Targets_of_paper2MainTargetsData hData.out
 
 /-! ## Theorem 2.1 persistence targets -/
 
@@ -667,6 +696,43 @@ theorem paper3_mainlineTargets_of_paper2TheoremsDataFact
     [hData : Fact (Paper3MainlineFromPaper2TheoremsData D p S K N C1 C3)] :
     Paper3MainlineTargets D p S K N C1 C3 :=
   paper3_mainlineTargets_of_paper2TheoremsData hData.out
+
+/-- Bundled generic Paper3 mainline frontier data using the Paper2 main
+theorem target bundle to supply Paper3 Propositions 1.3 and 1.4. -/
+structure Paper3MainlineFromPaper2MainTargetsData
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p) : Prop where
+  propositions : Paper3Proposition1FromPaper2MainTargetsData D p C1
+  persistence : Paper3UniformPersistenceRawData D p C3
+  theorem22 : Paper3Theorem22BranchData D p S N C3
+  compactness : Paper3CompactnessRegularizationRawData D p K N C3
+  stability : Paper3Stability23To25BranchData D p N C3
+
+/-- Assemble the generic Paper3 mainline umbrella using the Paper2 main
+theorem target route for Proposition 1.x. -/
+theorem paper3_mainlineTargets_of_paper2MainTargetsData
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C1 : Paper2Constants p} {C3 : Paper3Constants D p}
+    (hData : Paper3MainlineFromPaper2MainTargetsData D p S K N C1 C3) :
+    Paper3MainlineTargets D p S K N C1 C3 :=
+  ⟨paper3_proposition1Targets_of_paper2MainTargetsData hData.propositions,
+    paper3_uniformPersistenceTargets_of_rawData hData.persistence,
+    paper3_Theorem_2_2_of_branchData hData.theorem22,
+    paper3_compactnessRegularizationTargets_of_rawData hData.compactness,
+    paper3_stability23To25Targets_of_branchData hData.stability⟩
+
+/-- Instance-facing generic Paper3 mainline wrapper using the Paper2 main
+theorem target route for Proposition 1.x. -/
+theorem paper3_mainlineTargets_of_paper2MainTargetsDataFact
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p)
+    [hData : Fact
+      (Paper3MainlineFromPaper2MainTargetsData D p S K N C1 C3)] :
+    Paper3MainlineTargets D p S K N C1 C3 :=
+  paper3_mainlineTargets_of_paper2MainTargetsData hData.out
 
 end
 
