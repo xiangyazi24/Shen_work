@@ -1,8 +1,11 @@
 import ShenWork.Paper3.IntervalDomainStatementAssembly
+import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper3.IntervalDomainPersistenceActualLinearSectorial
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.Paper2
 
 namespace ShenWork.Paper3
@@ -231,6 +234,205 @@ theorem
   intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallFrontierData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Moser-ladder route with actual-linear persistence -/
+
+/-- Moser-ladder mass/Lp/smoothing residuals for the actual-linear-small
+regime.  The parameter-side fields `a_pos` and `chi_nonneg` are supplied by the
+actual-linear-small wrapper hypotheses. -/
+structure IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals
+    (p : CM2Params) where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+/-- Build the generic Moser-ladder residual package from the actual-linear
+small-sensitivity parameter hypotheses. -/
+def IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals.to_moserLadder
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingMoserLadderResiduals p where
+  a_pos := ha
+  chi_nonneg := le_of_lt hχ0
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  moserDissipation := h.moserDissipation
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+/-- Sectorial mainline facts with the Paper3 Moser-ladder mass route and the
+actual-linear-small persistence producer. -/
+structure IntervalDomainSectorialMainlineMoserActualLinearSmallFacts
+    (p : CM2Params) where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  continuation :
+    IntervalDomainStandardContinuationGluingData p
+  massLpSmoothing :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals p
+
+/-- Convert the Moser-ladder actual-linear-small facts to the a-priori
+actual-linear-small package. -/
+def
+    IntervalDomainSectorialMainlineMoserActualLinearSmallFacts.to_aprioriActualLinearSmallFacts
+    {p : CM2Params}
+    (h : IntervalDomainSectorialMainlineMoserActualLinearSmallFacts p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts p where
+  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+  continuation := h.continuation
+  massLpSmoothing := (h.massLpSmoothing.to_moserLadder ha hχ0).to_routeResiduals
+
+/-- Construct the canonical sectorial core from Moser-ladder facts and the
+proved actual-linear-small persistence producer. -/
+def IntervalDomainSectorialMainlineMoserActualLinearSmallFacts.to_coreExistence
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainSectorialMainlineMoserActualLinearSmallFacts p)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1))) :
+    IntervalDomainSectorialMainlineCoreExistence p uBar :=
+  (h.to_aprioriActualLinearSmallFacts ha hχ0).to_coreExistence
+    ha hb hχ0 hm hβ hχ
+
+/-- Sectorial mainline target from Moser-ladder facts and actual-linear-small
+persistence. -/
+theorem
+    intervalDomain_sectorialMainline_unconditionalTarget_of_moserActualLinearSmallFacts
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hfacts : IntervalDomainSectorialMainlineMoserActualLinearSmallFacts p) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_sectorialMainline_unconditionalTarget_of_coreExistence
+    p M0 uBar vLower
+    (hfacts.to_coreExistence ha hb hχ0 hm hβ hχ)
+
+/-- Concrete interval-domain Paper3 mainline frontiers using the Moser-ladder
+mass route and the actual-linear-small persistence producer. -/
+structure IntervalDomainPaper3MainlineMoserActualLinearSmallFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core : IntervalDomainSectorialMainlineMoserActualLinearSmallFacts p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline from Moser-ladder
+facts and the actual-linear-small persistence producer. -/
+theorem intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallFrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_frontierData
+    p M0 uBar vLower K
+    { core := hData.core.to_coreExistence ha hb hχ0 hm hβ hχ
+      compactness := hData.compactness
+      stability := hData.stability }
+
+/-- Instance-facing concrete interval-domain Paper3 mainline from Moser-ladder
+facts and actual-linear-small persistence. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallFrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the Moser-ladder mass
+route and the actual-linear-small persistence producer. -/
+structure IntervalDomainPaper3StatementMoserActualLinearSmallFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from
+Moser-ladder facts and actual-linear-small persistence. -/
+theorem intervalDomain_paper3_statementTargets_of_moserActualLinearSmallFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallFrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from
+Moser-ladder facts and actual-linear-small persistence. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallFrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallFrontierData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -249,5 +451,11 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_mainlineTargets_of_aprioriActualLinearSmallFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallFrontierData
+#print axioms
+  intervalDomain_sectorialMainline_unconditionalTarget_of_moserActualLinearSmallFacts
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallFrontierData
 
 end ShenWork.Paper3
