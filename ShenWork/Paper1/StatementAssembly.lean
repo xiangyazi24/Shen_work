@@ -135,7 +135,12 @@ theorem paper1_Theorem_1_3_of_mainlineExistence
 
 This is the existing `hpos` argument of
 `paper1_Theorem_1_1_of_constructionNegSMPProvider`, factored out so the
-preferred bundled main wrapper exposes every remaining input explicitly. -/
+preferred bundled main wrapper exposes every remaining input explicitly.
+
+This remains a genuine positive-construction frontier: the existing positive
+Rothe/Schauder route produces lower-pinned frozen stationary profiles, but the
+full `hpos` branch also requires `ShenUpperBoundPositive` and the sharp
+right-tail asymptotic for the produced profile. -/
 def Paper1PositiveCriticalFrozenStationaryBranch : Prop :=
   ∀ p : CMParams, p.α = p.m + p.γ - 1 →
     0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
