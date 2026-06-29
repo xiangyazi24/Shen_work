@@ -24,7 +24,7 @@ Current headline status:
 
   | area | closed or internally produced | honest residual/frontier inputs | deprecated or no-go route |
   | --- | --- | --- | --- |
-  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau traps now produce right-tail asymptotics by pure squeeze; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1CombinedStrictBarrierStatementData`, and `Paper1CombinedLowerPinnedContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, no-contact comparison, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned squeeze route is the active tail producer |
+  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau and raw traps now produce right-tail asymptotics by pure squeeze; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, and `Paper1CombinedLowerPinnedRawContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, smooth-branch no-contact comparison, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned plateau/raw squeeze route is the active tail producer |
   | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroStatementFrontierData` names the preferred conditional route | finite-horizon alternative, solution-slice interpolation/energy, dissipation/gradient/mass/power/energy frontiers, Proposition 2.5, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` |
   | Paper 3 | actual-linear-small Theorem 2.1 persistence; Proposition 1.3/1.4 can be routed through Paper2 Theorem 1.3/1.2 or Paper2 main targets; terminal pointwise endpoint now has a named quantitative-endpoint bridge; `IntervalDomainPaper3SupNormCompactnessRegularizationData` removes only the structural `upperEq` field by fixing the sup envelope; `IntervalDomainPaper3NegativeSensitivityFrontierData` decomposes `negativeBound` into global-solution and eventual-sup residuals | `negativeBound` or its decomposed global-solution/eventual-sup frontiers, terminal Moser inputs, spectral orbit, continuation/gluing, compactness/regularization, and stability frontiers | Paper2 Theorem 1.1 does not imply Paper3 Proposition 1.2 under the current API; see `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` |
 
@@ -82,13 +82,21 @@ Current headline status:
   `kappa c < positiveBranchTailCap p c` for `2 < c`, so the cap-specialized
   route `Paper1PositiveLowerPinnedCapSchauderContactData` can set
   `κtilde = positiveBranchTailCap p c` and discharge both the lower-barrier
-  gap and rate-cover fields by pure arithmetic.  The remaining positive
-  residuals are the lower-pinned cap Schauder/contact data themselves:
+  gap and rate-cover fields by pure arithmetic.  The current Route-A
+  lower-pinned producers expose a raw lower-barrier pin rather than the plateau
+  pin, and this is now matched by `Paper1PositiveLowerPinnedRawContactBranchData`
+  plus the statement-level `Paper1MainStatementLowerPinnedRawContactData` and
+  `Paper1CombinedLowerPinnedRawContactStatementData` routes.  The remaining
+  positive residuals are the lower-pinned cap Schauder/contact data themselves:
   lower-pin preservation by the positive map, Schauder/map data,
-  stationarity/flat-left inputs, and local no-contact facts.  The right-tail
-  asymptotic itself now has the pure lower-pinned squeeze producer
-  `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap`, with
-  `lowerPinnedMonotoneTrap_tail_family_for_branch` covering the full branch
+  stationarity/flat-left inputs, and smooth-branch no-contact facts.  The
+  interface contact is a separate pure differentiability/kink target rather
+  than the real upper-comparison atom.  The right-tail asymptotic itself now has
+  the pure lower-pinned squeeze producers
+  `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap` and
+  `HasWaveRightTailAsymptotic_of_lowerPinnedRawMonotoneTrap`, with
+  `lowerPinnedMonotoneTrap_tail_family_for_branch` and
+  `lowerPinnedRawMonotoneTrap_tail_family_for_branch` covering the full branch
   interval once the lower-barrier exponent dominates the branch ceiling.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  This producer is now wired through

@@ -368,6 +368,47 @@ theorem paper1_positiveStrictBarrierBranch_of_lowerPinnedContactData
   paper1_positiveStrictBarrierBranch_of_contactBranch
     (paper1_positiveContactBranch_of_lowerPinnedContactData hData)
 
+/-- Positive critical branch data that preserves a raw lower-barrier pin.
+
+This matches the output shape of the current Lemma 4.2 / Route-A lower-pinned
+producers.  The raw lower pin is enough for the tail squeeze because
+`lowerBarrierRaw_eq_exp_mul` already has leading coefficient one. -/
+structure Paper1PositiveLowerPinnedRawContactBranchData : Prop where
+  produce :
+    ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+      0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+      ∀ c : ℝ, 2 < c →
+        ∃ κtilde D : ℝ, ∃ U : ℝ → ℝ,
+          0 ≤ D ∧
+          positiveBranchTailCap p c ≤ κtilde ∧
+          FrozenStationaryWaveProfile p c U ∧
+          InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+            (lowerBarrierRaw (kappa c) κtilde D) U ∧
+          PositiveUpperBarrierContactContradictions p c U
+
+/-- Raw lower-pinned contact data produces the existing contact-branch
+interface, with the tail field discharged by the raw lower-barrier squeeze. -/
+theorem paper1_positiveContactBranch_of_lowerPinnedRawContactData
+    (hData : Paper1PositiveLowerPinnedRawContactBranchData) :
+    Paper1PositiveCriticalFrozenStationaryContactBranch := by
+  intro p hα hχ_nonneg hχ_small c hc
+  rcases hData.produce p hα hχ_nonneg hχ_small c hc with
+    ⟨κtilde, D, U, hD, hcover, hprofile, hpin, hno⟩
+  exact
+    ⟨U, hprofile, hpin.bare, hno,
+      lowerPinnedRawMonotoneTrap_tail_family_for_branch
+        (p := p) (c := c) (κtilde := κtilde) (D := D)
+        (M := MChi p) (U := U) hD
+        (by simpa [positiveBranchTailCap] using hcover) hpin⟩
+
+/-- Raw lower-pinned contact data also gives the strict-barrier branch by the
+pure no-contact-to-strict conversion. -/
+theorem paper1_positiveStrictBarrierBranch_of_lowerPinnedRawContactData
+    (hData : Paper1PositiveLowerPinnedRawContactBranchData) :
+    Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch :=
+  paper1_positiveStrictBarrierBranch_of_contactBranch
+    (paper1_positiveContactBranch_of_lowerPinnedRawContactData hData)
+
 /-- Positive lower-pinned Schauder/contact data.
 
 This exposes the shortest current route through the existing lower-pinned
@@ -521,6 +562,14 @@ structure Paper1MainStatementLowerPinnedContactData
   positiveLowerPinnedContact : Paper1PositiveLowerPinnedContactBranchData
   mainline : Paper1MainlineExistence cStarStarFn
 
+/-- Main-statement input package with the positive branch routed through the
+raw lower-pinned contact package. -/
+structure Paper1MainStatementLowerPinnedRawContactData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  constructionNeg : ConstructionNegSMPProvider
+  positiveLowerPinnedRawContact : Paper1PositiveLowerPinnedRawContactBranchData
+  mainline : Paper1MainlineExistence cStarStarFn
+
 /-- Preferred Paper1 main-statement wrapper from the current thinner input
 packages.
 
@@ -567,6 +616,19 @@ theorem paper1_mainStatementTargets_of_lowerPinnedContactData
           hData.positiveLowerPinnedContact
       mainline := hData.mainline }
 
+/-- Main-statement wrapper through the raw lower-pinned contact positive
+branch. -/
+theorem paper1_mainStatementTargets_of_lowerPinnedRawContactData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1MainStatementLowerPinnedRawContactData cStarStarFn) :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_strictBarrierData
+    { constructionNeg := hData.constructionNeg
+      positiveStrictBarrier :=
+        paper1_positiveStrictBarrierBranch_of_lowerPinnedRawContactData
+          hData.positiveLowerPinnedRawContact
+      mainline := hData.mainline }
+
 /-- Instance-facing wrapper for the preferred conditional Paper1 main-statement
 route. -/
 theorem paper1_mainStatementTargets_of_smpMainlineDataFact
@@ -590,6 +652,14 @@ theorem paper1_mainStatementTargets_of_lowerPinnedContactDataFact
     [hData : Fact (Paper1MainStatementLowerPinnedContactData cStarStarFn)] :
     Paper1MainStatementTargets :=
   paper1_mainStatementTargets_of_lowerPinnedContactData hData.out
+
+/-- Instance-facing wrapper for the raw lower-pinned contact Paper1
+main-statement route. -/
+theorem paper1_mainStatementTargets_of_lowerPinnedRawContactDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainStatementLowerPinnedRawContactData cStarStarFn)] :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_lowerPinnedRawContactData hData.out
 
 /-! ## Lemma 2.5 targets -/
 
@@ -821,6 +891,15 @@ structure Paper1CombinedLowerPinnedContactStatementData
   lemma51 : Paper1Lemma51FrontierData
   lemma52 : Paper1Lemma52FrontierData
 
+/-- Bundled data for the Paper1 combined statement targets using the raw
+lower-pinned contact positive branch. -/
+structure Paper1CombinedLowerPinnedRawContactStatementData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  main : Paper1MainStatementLowerPinnedRawContactData cStarStarFn
+  propositions : Paper1PropositionFrontierData
+  lemma51 : Paper1Lemma51FrontierData
+  lemma52 : Paper1Lemma52FrontierData
+
 /-- Assemble the Paper1 statement targets covered by existing data records. -/
 theorem paper1_combinedStatementTargets_of_data
     {cStarStarFn : CMParams → ℝ → ℝ}
@@ -856,6 +935,18 @@ theorem paper1_combinedStatementTargets_of_lowerPinnedContactData
     paper1_lemma51And52Targets_of_frontierData
       hData.lemma51 hData.lemma52⟩
 
+/-- Assemble the Paper1 combined statement targets through the raw
+lower-pinned contact main-statement route. -/
+theorem paper1_combinedStatementTargets_of_lowerPinnedRawContactData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1CombinedLowerPinnedRawContactStatementData cStarStarFn) :
+    Paper1CombinedStatementTargets :=
+  ⟨paper1_mainStatementTargets_of_lowerPinnedRawContactData hData.main,
+    paper1_propositionTargets_of_frontierData hData.propositions,
+    paper1_lemma25Targets,
+    paper1_lemma51And52Targets_of_frontierData
+      hData.lemma51 hData.lemma52⟩
+
 /-- Instance-facing wrapper for the combined Paper1 statement targets. -/
 theorem paper1_combinedStatementTargets_of_dataFact
     (cStarStarFn : CMParams → ℝ → ℝ)
@@ -878,6 +969,14 @@ theorem paper1_combinedStatementTargets_of_lowerPinnedContactDataFact
     [hData : Fact (Paper1CombinedLowerPinnedContactStatementData cStarStarFn)] :
     Paper1CombinedStatementTargets :=
   paper1_combinedStatementTargets_of_lowerPinnedContactData hData.out
+
+/-- Instance-facing wrapper for the combined raw lower-pinned contact Paper1
+statement route. -/
+theorem paper1_combinedStatementTargets_of_lowerPinnedRawContactDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1CombinedLowerPinnedRawContactStatementData cStarStarFn)] :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_lowerPinnedRawContactData hData.out
 
 end
 

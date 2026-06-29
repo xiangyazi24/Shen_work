@@ -121,6 +121,87 @@ However, the lower-pinned route gives a separate pure squeeze producer: the
 far-right lower barrier has coefficient one, so the lower pin and the trap upper
 bound squeeze the ratio. -/
 
+/-- Pure Route-A squeeze from a raw lower-barrier pin.
+
+This is the form that matches the lower-pinned Lemma 4.2 / Route-A producers:
+the fixed point is pinned above `lowerBarrierRaw κ κtilde D`.  Since the raw
+barrier has coefficient one at the leading exponent, no stationarity input is
+needed for the right-tail ratio. -/
+theorem HasWaveRightTailAsymptotic_of_lowerPinnedRawMonotoneTrap
+    {c κtilde D M κ₁ : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) M
+      (lowerBarrierRaw (kappa c) κtilde D) U)
+    (_hκ₁lo : kappa c < κ₁) (hκ₁hi : κ₁ < κtilde) :
+    HasWaveRightTailAsymptotic c κ₁ U := by
+  unfold HasWaveRightTailAsymptotic
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  have hdecay :
+      Tendsto (fun x : ℝ => D * Real.exp ((κ₁ - κtilde) * x))
+        atTop (𝓝 0) := by
+    have hpos : 0 < κtilde - κ₁ := sub_pos.mpr hκ₁hi
+    have hbase0 := expDecay_tendsto_atTop (κ := κtilde - κ₁) hpos
+    have hbase :
+        Tendsto (fun x : ℝ => Real.exp ((κ₁ - κtilde) * x))
+          atTop (𝓝 0) := by
+      convert hbase0 using 1
+      ext x
+      simp [expDecay]
+      ring_nf
+    simpa [mul_zero] using hbase.const_mul D
+  refine squeeze_zero' (Eventually.of_forall fun x => norm_nonneg _) ?_ hdecay
+  refine Eventually.of_forall fun x => ?_
+  have he_pos : 0 < Real.exp (-(kappa c) * x) := Real.exp_pos _
+  have hupper : U x ≤ Real.exp (-(kappa c) * x) :=
+    hU.bare.le_exp x
+  have hlower : lowerBarrierRaw (kappa c) κtilde D x ≤ U x :=
+    hU.lower x
+  set e : ℝ := Real.exp (-(kappa c) * x)
+  set q : ℝ := D * Real.exp (-(κtilde - kappa c) * x)
+  have heq_raw : lowerBarrierRaw (kappa c) κtilde D x = e * (1 - q) := by
+    simpa [e, q] using lowerBarrierRaw_eq_exp_mul (kappa c) κtilde D x
+  have hq_nonneg : 0 ≤ q :=
+    mul_nonneg hD (Real.exp_pos _).le
+  have hratio_upper : U x / e - 1 ≤ 0 := by
+    have hdiv : U x / e ≤ 1 :=
+      (div_le_one he_pos).2 (by simpa [e] using hupper)
+    linarith
+  have hratio_lower : -q ≤ U x / e - 1 := by
+    have hle : e * (1 - q) ≤ U x := by
+      simpa [heq_raw] using hlower
+    have hle' : (1 - q) * e ≤ U x := by
+      simpa [mul_comm] using hle
+    have hdiv : 1 - q ≤ U x / e := (le_div_iff₀ he_pos).2 hle'
+    linarith
+  have hratio_abs : |U x / e - 1| ≤ q := by
+    rw [abs_of_nonpos hratio_upper]
+    linarith
+  have hF_abs :
+      ‖Real.exp ((κ₁ - kappa c) * x) *
+          (U x / Real.exp (-(kappa c) * x) - 1)‖ ≤
+        D * Real.exp ((κ₁ - κtilde) * x) := by
+    rw [Real.norm_eq_abs, abs_mul]
+    have hexp_nonneg : 0 ≤ Real.exp ((κ₁ - kappa c) * x) :=
+      (Real.exp_pos _).le
+    rw [abs_of_nonneg hexp_nonneg]
+    have hmul := mul_le_mul_of_nonneg_left hratio_abs hexp_nonneg
+    calc
+      Real.exp ((κ₁ - kappa c) * x) *
+          |U x / Real.exp (-(kappa c) * x) - 1|
+          = Real.exp ((κ₁ - kappa c) * x) * |U x / e - 1| := by
+            simp [e]
+      _ ≤ Real.exp ((κ₁ - kappa c) * x) * q := by
+        simpa using hmul
+      _ = D * (Real.exp ((κ₁ - kappa c) * x) *
+            Real.exp (-(κtilde - kappa c) * x)) := by
+        simp [q]
+        ring
+      _ = D * Real.exp ((κ₁ - κtilde) * x) := by
+        rw [← Real.exp_add]
+        congr 1
+        ring
+  simpa [e] using hF_abs
+
 /-- Pure Route-A squeeze: a lower-pinned plateau with exponent `κtilde`, plus
 the inherited upper trap bound at exponent `kappa c`, gives the sharp right-tail
 asymptotic for every `κ₁ < κtilde`.
@@ -221,6 +302,24 @@ theorem lowerPinnedMonotoneTrap_tail_family_for_branch
       HasWaveRightTailAsymptotic c κ₁ U := by
   intro κ₁ hκ₁lo hκ₁hi
   exact HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
+    (c := c) (κtilde := κtilde) (D := D) (M := M)
+    (κ₁ := κ₁) (U := U) hD hU hκ₁lo (lt_of_lt_of_le hκ₁hi hcover)
+
+/-- Raw lower-pinned squeeze discharges the whole current branch tail interval
+once the raw lower-barrier exponent covers that interval. -/
+theorem lowerPinnedRawMonotoneTrap_tail_family_for_branch
+    {p : CMParams} {c κtilde D M : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hcover :
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ≤ κtilde)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) M
+      (lowerBarrierRaw (kappa c) κtilde D) U) :
+    ∀ κ₁, kappa c < κ₁ →
+      κ₁ < min ((1 + p.α) * kappa c)
+        (min (p.m * kappa c + 1 / 2) 1) →
+      HasWaveRightTailAsymptotic c κ₁ U := by
+  intro κ₁ hκ₁lo hκ₁hi
+  exact HasWaveRightTailAsymptotic_of_lowerPinnedRawMonotoneTrap
     (c := c) (κtilde := κtilde) (D := D) (M := M)
     (κ₁ := κ₁) (U := U) hD hU hκ₁lo (lt_of_lt_of_le hκ₁hi hcover)
 
