@@ -145,6 +145,21 @@ theorem doublyEven_cos (n : ℕ) :
         = (n : ℝ) * (2 * Real.pi) - (n : ℝ) * Real.pi * x by ring]
     exact Real.cos_nat_mul_two_pi_sub _ n
 
+/-- Any formal Neumann cosine series is doubly even.  This parity statement is
+termwise, so it does not require a summability hypothesis. -/
+theorem doublyEven_cosineSeries (c : ℕ → ℝ) :
+    DoublyEven (fun x => ∑' n, c n * ShenWork.CosineSpectrum.cosineMode n x) where
+  about0 := fun x => by
+    refine tsum_congr (fun n => ?_)
+    have := (doublyEven_cos n).about0 x
+    simp only [ShenWork.CosineSpectrum.cosineMode]
+    rw [this]
+  about1 := fun x => by
+    refine tsum_congr (fun n => ?_)
+    have := (doublyEven_cos n).about1 x
+    simp only [ShenWork.CosineSpectrum.cosineMode]
+    rw [this]
+
 /-- `DoublyEven` is closed under sums (the source is a sum of doubly-even pieces). -/
 theorem DoublyEven.add {f g : ℝ → ℝ} (hf : DoublyEven f) (hg : DoublyEven g) :
     DoublyEven (fun x => f x + g x) where
@@ -163,6 +178,84 @@ theorem DoublyEven.comp {f : ℝ → ℝ} (g : ℝ → ℝ) (hf : DoublyEven f) 
     DoublyEven (fun x => g (f x)) where
   about0 := fun x => by simp only [hf.about0 x]
   about1 := fun x => by simp only [hf.about1 x]
+
+/-- `DoublyEven` is closed under scalar multiplication. -/
+theorem DoublyEven.const_mul {f : ℝ → ℝ} (a : ℝ) (hf : DoublyEven f) :
+    DoublyEven (fun x => a * f x) where
+  about0 := fun x => by simp only [hf.about0 x]
+  about1 := fun x => by simp only [hf.about1 x]
+
+/-- A doubly-even function is `2`-periodic. -/
+theorem DoublyEven.periodic_two {f : ℝ → ℝ} (hf : DoublyEven f) :
+    Function.Periodic f 2 := by
+  intro x
+  calc
+    f (x + 2) = f (2 - (-x)) := by rw [show x + 2 = 2 - (-x) by ring]
+    _ = f (-x) := hf.about1 (-x)
+    _ = f x := hf.about0 x
+
+/-- Positivity on `[0,1]` propagates to all of `ℝ` for a doubly-even function. -/
+theorem DoublyEven.pos_of_pos_Icc {f : ℝ → ℝ} (hf : DoublyEven f)
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < f x) :
+    ∀ x : ℝ, 0 < f x := by
+  intro x
+  have hper := hf.periodic_two
+  have hx_abs : f x = f |x| := by
+    by_cases hx : 0 ≤ x
+    · rw [abs_of_nonneg hx]
+    · rw [abs_of_neg (not_le.mp hx)]
+      exact (hf.about0 x).symm
+  rw [hx_abs]
+  set n : ℤ := ⌊|x| / 2⌋ with hn_def
+  set r : ℝ := |x| - n * 2 with hr_def
+  have hrV : f |x| = f r :=
+    (hper.sub_int_mul_eq n).symm
+  have hr_lo : 0 ≤ r := by
+    have := Int.floor_le (|x| / 2)
+    linarith
+  have hr_hi : r < 2 := by
+    have := Int.lt_floor_add_one (|x| / 2)
+    linarith
+  rw [hrV]
+  by_cases hr1 : r ≤ 1
+  · exact hpos r ⟨hr_lo, hr1⟩
+  · push_neg at hr1
+    have hsym : f r = f (2 - r) := (hf.about1 r).symm
+    rw [hsym]
+    exact hpos (2 - r) ⟨by linarith, by linarith⟩
+
+/-- Bounds on `[0,1]` propagate to all of `ℝ` for a doubly-even function. -/
+theorem DoublyEven.bounds_of_bounds_Icc {f : ℝ → ℝ} (hf : DoublyEven f)
+    {m M : ℝ}
+    (hlb : ∀ x ∈ Set.Icc (0 : ℝ) 1, m ≤ f x)
+    (hub : ∀ x ∈ Set.Icc (0 : ℝ) 1, f x ≤ M) :
+    ∀ x : ℝ, m ≤ f x ∧ f x ≤ M := by
+  intro x
+  have hper := hf.periodic_two
+  have hx_abs : f x = f |x| := by
+    by_cases hx : 0 ≤ x
+    · rw [abs_of_nonneg hx]
+    · rw [abs_of_neg (not_le.mp hx)]
+      exact (hf.about0 x).symm
+  rw [hx_abs]
+  set n : ℤ := ⌊|x| / 2⌋ with hn_def
+  set r : ℝ := |x| - n * 2 with hr_def
+  have hrV : f |x| = f r :=
+    (hper.sub_int_mul_eq n).symm
+  have hr_lo : 0 ≤ r := by
+    have := Int.floor_le (|x| / 2)
+    linarith
+  have hr_hi : r < 2 := by
+    have := Int.lt_floor_add_one (|x| / 2)
+    linarith
+  rw [hrV]
+  by_cases hr1 : r ≤ 1
+  · exact ⟨hlb r ⟨hr_lo, hr1⟩, hub r ⟨hr_lo, hr1⟩⟩
+  · push_neg at hr1
+    have hsym : f r = f (2 - r) := (hf.about1 r).symm
+    rw [hsym]
+    exact ⟨hlb (2 - r) ⟨by linarith, by linarith⟩,
+      hub (2 - r) ⟨by linarith, by linarith⟩⟩
 
 /-- **Derivative flips parity: the derivative of a doubly-even function is
 odd-about-each-endpoint, hence its `deriv` is again doubly even after one more

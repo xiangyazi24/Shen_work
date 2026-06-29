@@ -293,6 +293,16 @@ theorem contDiff_two_rpow_of_pos {u : ℝ → ℝ} (hu : ContDiff ℝ 2 u) {c : 
   have hupt : u x ≠ 0 := by have := hupos x; linarith
   exact (Real.contDiffAt_rpow_const_of_ne (p := m) hupt).comp x hu.contDiffAt
 
+/-- Companion for a strictly-positive base `u ≥ c > 0`: `u^m ∈ C⁴` for every
+real exponent `m`.  This is the C⁴ version of `contDiff_two_rpow_of_pos`. -/
+theorem contDiff_four_rpow_of_pos {u : ℝ → ℝ} (hu : ContDiff ℝ 4 u) {c : ℝ}
+    (hc : 0 < c) (hupos : ∀ x, c ≤ u x) (m : ℝ) :
+    ContDiff ℝ 4 (fun x => (u x) ^ m) := by
+  rw [contDiff_iff_contDiffAt]
+  intro x
+  have hupt : u x ≠ 0 := by have := hupos x; linarith
+  exact (Real.contDiffAt_rpow_const_of_ne (p := m) hupt).comp x hu.contDiffAt
+
 /-! ## 6. Task 3 — factor membership + the flux assembly. -/
 
 /-- **The `(1+v)^{−β}` factor lands in `H^σ`.**  `v ∈ C²`, `v ≥ 0`, and the Neumann

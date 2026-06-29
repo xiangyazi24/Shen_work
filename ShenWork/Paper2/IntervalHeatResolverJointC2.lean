@@ -35,6 +35,7 @@
   The wiring (contDiff_tsum + eventuallyEq transfer) is fully proved.
 -/
 import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
+import ShenWork.Paper2.IntervalHeatLevel0SourceDecay
 import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
 import Mathlib.Analysis.Calculus.SmoothSeries
 
@@ -55,11 +56,12 @@ open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
   (cosineCoeffs_continuousOn_of_jointContinuousOn_Icc)
 open ShenWork.IntervalResolverJointC2Physical
   (boundedWeightJointTerm boundedWeightJointMajorant
-   boundedWeightJointTerm_contDiff boundedWeightJointTerm_iteratedFDeriv_le)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (PhysicalResolverJointC2Data)
+   boundedWeightJointTerm_contDiff boundedWeightJointTerm_iteratedFDeriv_le
+   boundedWeightJointGradTerm boundedWeightJointGradMajorant
+   boundedWeightJointGradSeries_contDiff_two)
 open ShenWork.IntervalResolverSpectralJointC2CutoffBounds
   (norm_iteratedFDeriv_comp_fst_le)
+open ShenWork.IntervalResolverSpectralJointC2Concrete (gradCosWeight valueCosWeight)
 open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
   (heatDu heatD2u heatSemigroup_d0 heatSemigroup_d1)
 open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
@@ -85,6 +87,379 @@ private theorem abs_tsum_le_tsum_of_abs_le
         refine hfabs.tsum_le_tsum (fun n => ?_) hg
         exact (Real.norm_eq_abs (f n)).symm ▸ hfg n
 
+/-- Product iterated-derivative bound on the positive time half-line, stated for
+ordinary derivatives by converting Mathlib's `Within` estimate on the open set
+`Ioi 0`. -/
+private theorem norm_iteratedFDeriv_mul_le_on_Ioi
+    {f g : ℝ → ℝ} (hf : ContDiffOn ℝ (2 : ℕ∞) f (Set.Ioi (0 : ℝ)))
+    (hg : ContDiffOn ℝ (2 : ℕ∞) g (Set.Ioi (0 : ℝ)))
+    {t : ℝ} (ht : 0 < t) {n : ℕ} (hn : n ≤ 2) :
+    ‖iteratedFDeriv ℝ n (fun y : ℝ => f y * g y) t‖ ≤
+      ∑ i ∈ Finset.range (n + 1), (n.choose i : ℝ) *
+        ‖iteratedFDeriv ℝ i f t‖ *
+        ‖iteratedFDeriv ℝ (n - i) g t‖ := by
+  have hnTop : (n : ℕ) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
+    exact_mod_cast hn
+  have hwithin := norm_iteratedFDerivWithin_mul_le hf hg isOpen_Ioi.uniqueDiffOn
+    (show t ∈ Set.Ioi (0 : ℝ) from ht) hnTop
+  have hprod_eq :
+      iteratedFDerivWithin ℝ n (fun y : ℝ => f y * g y) (Set.Ioi (0 : ℝ)) t =
+        iteratedFDeriv ℝ n (fun y : ℝ => f y * g y) t :=
+    (iteratedFDerivWithin_of_isOpen (𝕜 := ℝ)
+      (f := fun y : ℝ => f y * g y) n isOpen_Ioi)
+      (show t ∈ Set.Ioi (0 : ℝ) from ht)
+  have hf_eq : ∀ i : ℕ,
+      iteratedFDerivWithin ℝ i f (Set.Ioi (0 : ℝ)) t =
+        iteratedFDeriv ℝ i f t :=
+    fun i => (iteratedFDerivWithin_of_isOpen (𝕜 := ℝ) (f := f) i isOpen_Ioi)
+      (show t ∈ Set.Ioi (0 : ℝ) from ht)
+  have hg_eq : ∀ i : ℕ,
+      iteratedFDerivWithin ℝ i g (Set.Ioi (0 : ℝ)) t =
+        iteratedFDeriv ℝ i g t :=
+    fun i => (iteratedFDerivWithin_of_isOpen (𝕜 := ℝ) (f := g) i isOpen_Ioi)
+      (show t ∈ Set.Ioi (0 : ℝ) from ht)
+  rw [hprod_eq] at hwithin
+  simp_rw [hf_eq, hg_eq] at hwithin
+  exact hwithin
+
+private theorem resolverWeight_le_inv_kπ_sq
+    (p : CM2Params) {k : ℕ} (hk : 1 ≤ k) :
+    ShenWork.PDE.intervalNeumannResolverWeight p k ≤
+      1 / (((k : ℝ) * Real.pi) ^ 2) := by
+  have hmul :=
+    ShenWork.IntervalResolverJointC2PhysicalConcrete.eigenvalue_mul_resolverWeight_le_one p k
+  have hxpos : 0 < (k : ℝ) * Real.pi := by
+    exact mul_pos (by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk) Real.pi_pos
+  have hx2pos : 0 < ((k : ℝ) * Real.pi) ^ 2 := by positivity
+  have hlam :
+      ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k =
+        ((k : ℝ) * Real.pi) ^ 2 := by
+    have h1 :
+        ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k =
+          (k : ℝ) ^ 2 * Real.pi ^ 2 := rfl
+    rw [h1]
+    ring
+  rw [hlam] at hmul
+  calc ShenWork.PDE.intervalNeumannResolverWeight p k
+      = (((k : ℝ) * Real.pi) ^ 2 *
+          ShenWork.PDE.intervalNeumannResolverWeight p k) /
+          (((k : ℝ) * Real.pi) ^ 2) := by
+            field_simp [ne_of_gt hx2pos]
+    _ ≤ 1 / (((k : ℝ) * Real.pi) ^ 2) :=
+        div_le_div_of_nonneg_right hmul (le_of_lt hx2pos)
+
+private theorem summable_natShift_inv_pow (m : ℕ) (hm : 1 < m) :
+    Summable (fun k : ℕ => 1 / (((k : ℝ) + 1) ^ m)) := by
+  have hbase : Summable (fun k : ℕ => 1 / ((k : ℝ) ^ m)) :=
+    (Real.summable_one_div_nat_pow (p := m)).mpr hm
+  simpa [Nat.cast_add, Nat.cast_one] using
+    (summable_nat_add_iff (f := fun k : ℕ => 1 / ((k : ℝ) ^ m)) 1).2 hbase
+
+private theorem summable_inv_kπ_pow_pos (A : ℝ) {m : ℕ} (hm : 1 < m) :
+    Summable (fun k : ℕ =>
+      if k = 0 then 0 else A / (((k : ℝ) * Real.pi) ^ m)) := by
+  rw [← summable_nat_add_iff 1]
+  have hs : Summable (fun k : ℕ =>
+      (A / Real.pi ^ m) * (1 / (((k : ℝ) + 1) ^ m))) :=
+    (summable_natShift_inv_pow m hm).mul_left _
+  refine hs.congr ?_
+  intro k
+  have hkpos : 0 < (k : ℝ) + 1 := by positivity
+  have hkne : (k : ℝ) + 1 ≠ 0 := ne_of_gt hkpos
+  simp only [Nat.cast_add, Nat.cast_one, Nat.add_eq_zero_iff, one_ne_zero, and_false,
+    ↓reduceIte]
+  rw [mul_pow]
+  field_simp [hkne, Real.pi_ne_zero]
+
+private noncomputable def heatLevel0GradCoeffPowerBt
+    (Φ C₀ C₁ C₂ : ℝ) (i k : ℕ) : ℝ :=
+  if k = 0 then 0 else
+    let x : ℝ := (k : ℝ) * Real.pi
+    match i with
+    | 0 => 4 * Φ * (C₀ / x ^ 6)
+    | 1 => 4 * Φ * (C₀ / x ^ 6 + C₁ / x ^ 4)
+    | _ => 4 * Φ * (C₀ / x ^ 6 + C₁ / x ^ 4 + C₂ / x ^ 4)
+
+private theorem summable_abs_kπ_mul_inv_kπ_pow6 (A : ℝ) :
+    Summable (fun k : ℕ =>
+      |(k : ℝ) * Real.pi| *
+        (if k = 0 then 0 else A / (((k : ℝ) * Real.pi) ^ 6))) := by
+  refine (summable_inv_kπ_pow_pos A (m := 5) (by norm_num)).congr ?_
+  intro k
+  by_cases hk : k = 0
+  · subst k
+    simp
+  · have hxpos : 0 < (k : ℝ) * Real.pi := by
+      exact mul_pos (by exact_mod_cast Nat.pos_of_ne_zero hk) Real.pi_pos
+    have hxne : (k : ℝ) * Real.pi ≠ 0 := ne_of_gt hxpos
+    simp [hk, abs_of_nonneg (le_of_lt hxpos)]
+    field_simp [hxne]
+
+private theorem summable_abs_kπ_mul_inv_kπ_pow4 (A : ℝ) :
+    Summable (fun k : ℕ =>
+      |(k : ℝ) * Real.pi| *
+        (if k = 0 then 0 else A / (((k : ℝ) * Real.pi) ^ 4))) := by
+  refine (summable_inv_kπ_pow_pos A (m := 3) (by norm_num)).congr ?_
+  intro k
+  by_cases hk : k = 0
+  · subst k
+    simp
+  · have hxpos : 0 < (k : ℝ) * Real.pi := by
+      exact mul_pos (by exact_mod_cast Nat.pos_of_ne_zero hk) Real.pi_pos
+    have hxne : (k : ℝ) * Real.pi ≠ 0 := ne_of_gt hxpos
+    simp [hk, abs_of_nonneg (le_of_lt hxpos)]
+    field_simp [hxne]
+
+private theorem summable_lam_mul_inv_kπ_pow6 (A : ℝ) :
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        (if k = 0 then 0 else A / (((k : ℝ) * Real.pi) ^ 6))) := by
+  refine (summable_inv_kπ_pow_pos A (m := 4) (by norm_num)).congr ?_
+  intro k
+  by_cases hk : k = 0
+  · subst k
+    simp [unitIntervalCosineEigenvalue]
+  · have hxne : (k : ℝ) * Real.pi ≠ 0 := by
+      exact ne_of_gt (mul_pos (by exact_mod_cast Nat.pos_of_ne_zero hk) Real.pi_pos)
+    have hlam : unitIntervalCosineEigenvalue k = ((k : ℝ) * Real.pi) ^ 2 := by
+      unfold unitIntervalCosineEigenvalue
+      ring
+    simp [hk, hlam]
+    field_simp [hxne]
+
+private theorem summable_lam_mul_inv_kπ_pow4 (A : ℝ) :
+    Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        (if k = 0 then 0 else A / (((k : ℝ) * Real.pi) ^ 4))) := by
+  refine (summable_inv_kπ_pow_pos A (m := 2) (by norm_num)).congr ?_
+  intro k
+  by_cases hk : k = 0
+  · subst k
+    simp [unitIntervalCosineEigenvalue]
+  · have hxne : (k : ℝ) * Real.pi ≠ 0 := by
+      exact ne_of_gt (mul_pos (by exact_mod_cast Nat.pos_of_ne_zero hk) Real.pi_pos)
+    have hlam : unitIntervalCosineEigenvalue k = ((k : ℝ) * Real.pi) ^ 2 := by
+      unfold unitIntervalCosineEigenvalue
+      ring
+    simp [hk, hlam]
+    field_simp [hxne]
+
+private theorem summable_abs_kπ_lam_mul_inv_kπ_pow6 (A : ℝ) :
+    Summable (fun k : ℕ =>
+      |(k : ℝ) * Real.pi| * unitIntervalCosineEigenvalue k *
+        (if k = 0 then 0 else A / (((k : ℝ) * Real.pi) ^ 6))) := by
+  refine (summable_inv_kπ_pow_pos A (m := 3) (by norm_num)).congr ?_
+  intro k
+  by_cases hk : k = 0
+  · subst k
+    simp [unitIntervalCosineEigenvalue]
+  · have hxpos : 0 < (k : ℝ) * Real.pi := by
+      exact mul_pos (by exact_mod_cast Nat.pos_of_ne_zero hk) Real.pi_pos
+    have hxne : (k : ℝ) * Real.pi ≠ 0 := ne_of_gt hxpos
+    have hlam : unitIntervalCosineEigenvalue k = ((k : ℝ) * Real.pi) ^ 2 := by
+      unfold unitIntervalCosineEigenvalue
+      ring
+    simp [hk, hlam, abs_of_nonneg (le_of_lt hxpos)]
+    field_simp [hxne]
+
+private theorem gradMajorant_zero_eq (Bt : ℕ → ℕ → ℝ) (k : ℕ) :
+    boundedWeightJointGradMajorant Bt 0 k =
+      |(k : ℝ) * Real.pi| * Bt 0 k := by
+  rw [boundedWeightJointGradMajorant, Finset.sum_range_one]
+  show (Nat.choose 0 0 : ℝ) * Bt 0 k * gradCosWeight (0 - 0) k = _
+  simp only [Nat.choose_self, Nat.cast_one, Nat.sub_self]
+  show 1 * Bt 0 k * |(k : ℝ) * Real.pi| = _
+  ring
+
+private theorem gradMajorant_one_eq (Bt : ℕ → ℕ → ℝ) (k : ℕ) :
+    boundedWeightJointGradMajorant Bt 1 k =
+      unitIntervalCosineEigenvalue k * Bt 0 k +
+        |(k : ℝ) * Real.pi| * Bt 1 k := by
+  rw [boundedWeightJointGradMajorant, Finset.sum_range_succ, Finset.sum_range_one]
+  show (Nat.choose 1 0 : ℝ) * Bt 0 k * gradCosWeight (1 - 0) k
+      + (Nat.choose 1 1 : ℝ) * Bt 1 k * gradCosWeight (1 - 1) k = _
+  simp only [Nat.choose_self, Nat.choose_zero_right, Nat.cast_one]
+  show 1 * Bt 0 k * unitIntervalCosineEigenvalue k
+      + 1 * Bt 1 k * |(k : ℝ) * Real.pi| = _
+  ring
+
+private theorem gradMajorant_two_eq (Bt : ℕ → ℕ → ℝ) (k : ℕ) :
+    boundedWeightJointGradMajorant Bt 2 k =
+      |(k : ℝ) * Real.pi| * unitIntervalCosineEigenvalue k * Bt 0 k
+        + 2 * (unitIntervalCosineEigenvalue k * Bt 1 k)
+        + |(k : ℝ) * Real.pi| * Bt 2 k := by
+  rw [boundedWeightJointGradMajorant, Finset.sum_range_succ, Finset.sum_range_succ,
+    Finset.sum_range_one]
+  simp only [gradCosWeight, Nat.choose]
+  push_cast
+  ring
+
+private theorem valueMajorant_zero_eq (Bt : ℕ → ℕ → ℝ) (k : ℕ) :
+    boundedWeightJointMajorant Bt 0 k = Bt 0 k := by
+  rw [boundedWeightJointMajorant, Finset.sum_range_one]
+  show (Nat.choose 0 0 : ℝ) * Bt 0 k * valueCosWeight (0 - 0) k = _
+  simp [valueCosWeight]
+
+private theorem valueMajorant_one_eq (Bt : ℕ → ℕ → ℝ) (k : ℕ) :
+    boundedWeightJointMajorant Bt 1 k =
+      |(k : ℝ) * Real.pi| * Bt 0 k + Bt 1 k := by
+  rw [boundedWeightJointMajorant, Finset.sum_range_succ, Finset.sum_range_one]
+  show (Nat.choose 1 0 : ℝ) * Bt 0 k * valueCosWeight (1 - 0) k
+      + (Nat.choose 1 1 : ℝ) * Bt 1 k * valueCosWeight (1 - 1) k = _
+  simp only [Nat.choose_self, Nat.choose_zero_right, Nat.cast_one]
+  show 1 * Bt 0 k * |(k : ℝ) * Real.pi| + 1 * Bt 1 k * 1 = _
+  ring
+
+private theorem valueMajorant_two_eq (Bt : ℕ → ℕ → ℝ) (k : ℕ) :
+    boundedWeightJointMajorant Bt 2 k =
+      unitIntervalCosineEigenvalue k * Bt 0 k
+        + 2 * (|(k : ℝ) * Real.pi| * Bt 1 k)
+        + Bt 2 k := by
+  rw [boundedWeightJointMajorant, Finset.sum_range_succ, Finset.sum_range_succ,
+    Finset.sum_range_one]
+  simp only [valueCosWeight, Nat.choose]
+  push_cast
+  ring
+
+private theorem heatLevel0GradCoeffPowerBt_grad_summable
+    (Φ C₀ C₁ C₂ : ℝ) :
+    ∀ j : ℕ, (j : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointGradMajorant
+        (heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂) j) := by
+  classical
+  let Bt : ℕ → ℕ → ℝ := heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂
+  have s0 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Bt 0 k) := by
+    refine (summable_abs_kπ_mul_inv_kπ_pow6 (4 * Φ * C₀)).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  have s1a : Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * Bt 0 k) := by
+    refine (summable_lam_mul_inv_kπ_pow6 (4 * Φ * C₀)).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+      exact Or.inl trivial
+  have s1 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Bt 1 k) := by
+    have h6 := summable_abs_kπ_mul_inv_kπ_pow6 (4 * Φ * C₀)
+    have h4 := summable_abs_kπ_mul_inv_kπ_pow4 (4 * Φ * C₁)
+    refine (h6.add h4).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  have s2a : Summable (fun k : ℕ =>
+      |(k : ℝ) * Real.pi| * unitIntervalCosineEigenvalue k * Bt 0 k) := by
+    refine (summable_abs_kπ_lam_mul_inv_kπ_pow6 (4 * Φ * C₀)).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+      exact Or.inl trivial
+  have s2b : Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * Bt 1 k) := by
+    have h6 := summable_lam_mul_inv_kπ_pow6 (4 * Φ * C₀)
+    have h4 := summable_lam_mul_inv_kπ_pow4 (4 * Φ * C₁)
+    refine (h6.add h4).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  have s2c : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Bt 2 k) := by
+    have h6 := summable_abs_kπ_mul_inv_kπ_pow6 (4 * Φ * C₀)
+    have h4₁ := summable_abs_kπ_mul_inv_kπ_pow4 (4 * Φ * C₁)
+    have h4₂ := summable_abs_kπ_mul_inv_kπ_pow4 (4 * Φ * C₂)
+    refine ((h6.add h4₁).add h4₂).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  intro j hj
+  have hjNat : j ≤ 2 := by exact_mod_cast hj
+  interval_cases j
+  · exact s0.congr fun k => (gradMajorant_zero_eq Bt k).symm
+  · exact (s1a.add s1).congr fun k => (gradMajorant_one_eq Bt k).symm
+  · exact ((s2a.add (s2b.mul_left 2)).add s2c).congr fun k => by
+      rw [gradMajorant_two_eq]
+
+private theorem heatLevel0GradCoeffPowerBt_value_summable
+    (Φ C₀ C₁ C₂ : ℝ) :
+    ∀ j : ℕ, (j : ℕ∞) ≤ (2 : ℕ∞) →
+      Summable (boundedWeightJointMajorant
+        (heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂) j) := by
+  classical
+  let Bt : ℕ → ℕ → ℝ := heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂
+  have b0 : Summable (fun k : ℕ => Bt 0 k) := by
+    refine (summable_inv_kπ_pow_pos (4 * Φ * C₀) (m := 6) (by norm_num)).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  have b1 : Summable (fun k : ℕ => Bt 1 k) := by
+    have h6 := summable_inv_kπ_pow_pos (4 * Φ * C₀) (m := 6) (by norm_num)
+    have h4 := summable_inv_kπ_pow_pos (4 * Φ * C₁) (m := 4) (by norm_num)
+    refine (h6.add h4).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  have b2 : Summable (fun k : ℕ => Bt 2 k) := by
+    have h6 := summable_inv_kπ_pow_pos (4 * Φ * C₀) (m := 6) (by norm_num)
+    have h4₁ := summable_inv_kπ_pow_pos (4 * Φ * C₁) (m := 4) (by norm_num)
+    have h4₂ := summable_inv_kπ_pow_pos (4 * Φ * C₂) (m := 4) (by norm_num)
+    refine ((h6.add h4₁).add h4₂).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  have s0 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Bt 0 k) := by
+    exact (heatLevel0GradCoeffPowerBt_grad_summable Φ C₀ C₁ C₂ 0 (by norm_num)).congr
+      fun k => by rw [gradMajorant_zero_eq]
+  have s1a' : Summable (fun k : ℕ => unitIntervalCosineEigenvalue k * Bt 0 k) := by
+    refine (summable_lam_mul_inv_kπ_pow6 (4 * Φ * C₀)).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+      exact Or.inl trivial
+  have s1 : Summable (fun k : ℕ => |(k : ℝ) * Real.pi| * Bt 1 k) := by
+    have h6 := summable_abs_kπ_mul_inv_kπ_pow6 (4 * Φ * C₀)
+    have h4 := summable_abs_kπ_mul_inv_kπ_pow4 (4 * Φ * C₁)
+    refine (h6.add h4).congr ?_
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk, div_eq_mul_inv]
+      ring_nf
+  intro j hj
+  have hjNat : j ≤ 2 := by exact_mod_cast hj
+  interval_cases j
+  · exact b0.congr fun k => (valueMajorant_zero_eq Bt k).symm
+  · exact (s0.add b1).congr fun k => (valueMajorant_one_eq Bt k).symm
+  · exact ((s1a'.add (s1.mul_left 2)).add b2).congr fun k => by
+      rw [valueMajorant_two_eq]
+
 /-! ### Definitions -/
 
 /-- The `k`-th term of the resolver series, as a function of `(t, x)`:
@@ -93,11 +468,24 @@ def resolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
     (k : ℕ) : ℝ × ℝ → ℝ :=
   fun q => resolverTimeCoeff p u k q.1 * cosineMode k q.2
 
+/-- The `k`-th term of the spatial-gradient resolver series:
+`(t, x) ↦ resolverTimeCoeff p u k t · ∂ₓ cos(kπx)`. -/
+def resolverGradTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (k : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => resolverTimeCoeff p u k q.1 * deriv (cosineMode k) q.2
+
 /-- The cutoff resolver term: `(t,x) ↦ φ(t) · resolverTimeCoeff p u k t · cos(kπx)`. -/
 def cutoffResolverTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
     (c : ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
   fun q => smoothRightCutoff (c / 2) c q.1 *
     (resolverTimeCoeff p u k q.1 * cosineMode k q.2)
+
+/-- The cutoff gradient resolver term:
+`(t,x) ↦ φ(t) · resolverTimeCoeff p u k t · ∂ₓ cos(kπx)`. -/
+def cutoffResolverGradTerm (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (c : ℝ) (k : ℕ) : ℝ × ℝ → ℝ :=
+  fun q => smoothRightCutoff (c / 2) c q.1 *
+    (resolverTimeCoeff p u k q.1 * deriv (cosineMode k) q.2)
 
 /-! ### Layer 1: Source coefficient ContDiffAt at positive time (analytic content) -/
 
@@ -258,6 +646,46 @@ theorem heatLevel0_resolverTimeCoeff_deriv_eq
   rw [hEq]
   exact (hsrc.const_mul _).deriv
 
+/-- The second time derivative of `resolverTimeCoeff` at positive heat time is
+the elliptic weight times the second source time-slice coefficient. -/
+theorem heatLevel0_resolverTimeCoeff_iteratedDeriv_two_eq
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    iteratedDeriv 2 (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t =
+      ShenWork.PDE.intervalNeumannResolverWeight p k *
+        cosineCoeffs (srcSlice2 p (conjugatePicardIter p u₀ 0)
+          (heatDu u₀) (heatD2u u₀) t) k := by
+  set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
+  set R := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
+  have hRfun : R = fun s =>
+      w_k * srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
+    funext s
+    exact resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k s
+  change iteratedDeriv 2 R t = _
+  rw [hRfun, iteratedDeriv_const_mul_field]
+  congr 1
+  rw [iteratedDeriv_succ]
+  have hnear : (fun s => iteratedDeriv 1
+      (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) s) =ᶠ[𝓝 t]
+      fun s => cosineCoeffs (srcSlice1 p (conjugatePicardIter p u₀ 0)
+        (heatDu u₀) s) k := by
+    filter_upwards [Ioi_mem_nhds ht] with s hs
+    rw [iteratedDeriv_one]
+    exact (heatLevel0_srcTimeCoeff_hasDerivAt hu₀_bound hu₀_cont hfloor hs k).deriv
+  rw [Filter.EventuallyEq.deriv_eq hnear]
+  obtain ⟨δ₁, hδ₁, hcont_s1, hdiff_s1, hcd_s2⟩ :=
+    heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht
+  have hint : ∀ᶠ r in 𝓝 t, IntervalIntegrable
+      (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) r)
+      MeasureTheory.volume (0 : ℝ) 1 :=
+    hcont_s1.mono fun r hr =>
+      (Set.uIcc_of_le (zero_le_one (α := ℝ)) ▸ hr).intervalIntegrable
+  exact (cosineCoeffs_hasDerivAt_of_smooth_param hδ₁ hint hdiff_s1 hcd_s2).deriv
+
 /-! ### Layer 2: Resolver coefficient ContDiffAt by constant weight -/
 
 /-- The resolver time coefficient is `ContDiffAt ℝ 2` at positive time.
@@ -280,6 +708,294 @@ theorem heatLevel0_resolverTimeCoeff_contDiffAt_two
     funext s; exact resolverTimeCoeff_eq_weight_smul p _ k s
   rw [hEq]
   exact contDiffAt_const.mul hsrc
+
+private theorem heatLevel0_resolverCoeff_iteratedFDeriv_tail_bound_posMode
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ a C₀ C₁ C₂ : ℝ}
+    (ha : 0 < a)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (hC₀ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|
+        ≤ C₀ / ((k : ℝ) * Real.pi) ^ 4)
+    (hC₁ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k|
+        ≤ C₁ / ((k : ℝ) * Real.pi) ^ 2)
+    (hC₂ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t) k|
+        ≤ C₂ / ((k : ℝ) * Real.pi) ^ 2)
+    {i k : ℕ} (hi : i ≤ 2) (hk : 1 ≤ k) {t : ℝ} (ht : a ≤ t) :
+    ‖iteratedFDeriv ℝ i
+      (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t‖ ≤
+      ShenWork.PDE.intervalNeumannResolverWeight p k *
+        match i with
+        | 0 => C₀ / ((k : ℝ) * Real.pi) ^ 4
+        | 1 => C₁ / ((k : ℝ) * Real.pi) ^ 2
+        | _ => C₂ / ((k : ℝ) * Real.pi) ^ 2 := by
+  have htpos : 0 < t := lt_of_lt_of_le ha ht
+  have hw_nn : 0 ≤ ShenWork.PDE.intervalNeumannResolverWeight p k :=
+    ShenWork.PDE.intervalNeumannResolverWeight_nonneg p k
+  interval_cases i
+  · rw [norm_iteratedFDeriv_zero, Real.norm_eq_abs]
+    rw [resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k t,
+      srcTimeCoeff_eq_cosineCoeffs p (conjugatePicardIter p u₀ 0) k t,
+      abs_mul, abs_of_nonneg hw_nn]
+    exact mul_le_mul_of_nonneg_left (hC₀ t ht k hk) hw_nn
+  · rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, iteratedDeriv_one, Real.norm_eq_abs]
+    rw [heatLevel0_resolverTimeCoeff_deriv_eq hu₀_bound hu₀_cont hfloor htpos k,
+      abs_mul, abs_of_nonneg hw_nn]
+    exact mul_le_mul_of_nonneg_left (hC₁ t ht k hk) hw_nn
+  · rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
+    rw [heatLevel0_resolverTimeCoeff_iteratedDeriv_two_eq hu₀_bound hu₀_cont hfloor htpos k,
+      abs_mul, abs_of_nonneg hw_nn]
+    exact mul_le_mul_of_nonneg_left (hC₂ t ht k hk) hw_nn
+
+private theorem heatLevel0_cutoffResolverCoeff_iteratedFDeriv_tail_bound_posMode
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ a c Φ C₀ C₁ C₂ : ℝ}
+    (ha : 0 < a) (_hc : 0 < c) (ha_def : a = c / 2)
+    (hΦnn : 0 ≤ Φ)
+    (hΦ : ∀ r : ℕ, r ≤ 2 → ∀ t : ℝ,
+      ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖ ≤ Φ)
+    (hC₀nn : 0 ≤ C₀) (hC₁nn : 0 ≤ C₁) (hC₂nn : 0 ≤ C₂)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (hC₀ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|
+        ≤ C₀ / ((k : ℝ) * Real.pi) ^ 4)
+    (hC₁ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k|
+        ≤ C₁ / ((k : ℝ) * Real.pi) ^ 2)
+    (hC₂ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t) k|
+        ≤ C₂ / ((k : ℝ) * Real.pi) ^ 2)
+    {i k : ℕ} (hi : i ≤ 2) (hk : 1 ≤ k) {t : ℝ} :
+    ‖iteratedFDeriv ℝ i
+      (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤
+      let W := ShenWork.PDE.intervalNeumannResolverWeight p k
+      let E₀ := W * (C₀ / ((k : ℝ) * Real.pi) ^ 4)
+      let E₁ := W * (C₁ / ((k : ℝ) * Real.pi) ^ 2)
+      let E₂ := W * (C₂ / ((k : ℝ) * Real.pi) ^ 2)
+      match i with
+      | 0 => 4 * Φ * E₀
+      | 1 => 4 * Φ * (E₀ + E₁)
+      | _ => 4 * Φ * (E₀ + E₁ + E₂) := by
+  classical
+  let R : ℝ → ℝ := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
+  let φ : ℝ → ℝ := smoothRightCutoff (c / 2) c
+  set W : ℝ := ShenWork.PDE.intervalNeumannResolverWeight p k with hW_def
+  set E₀ : ℝ := W * (C₀ / ((k : ℝ) * Real.pi) ^ 4) with hE₀_def
+  set E₁ : ℝ := W * (C₁ / ((k : ℝ) * Real.pi) ^ 2) with hE₁_def
+  set E₂ : ℝ := W * (C₂ / ((k : ℝ) * Real.pi) ^ 2) with hE₂_def
+  have hWnn : 0 ≤ W := by
+    rw [hW_def]
+    exact ShenWork.PDE.intervalNeumannResolverWeight_nonneg p k
+  have hkpos : 0 < (k : ℝ) := by
+    exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk
+  have hkπpos : 0 < (k : ℝ) * Real.pi := mul_pos hkpos Real.pi_pos
+  have hE₀nn : 0 ≤ E₀ := by rw [hE₀_def]; positivity
+  have hE₁nn : 0 ≤ E₁ := by rw [hE₁_def]; positivity
+  have hE₂nn : 0 ≤ E₂ := by rw [hE₂_def]; positivity
+  by_cases htleft : t < c / 2
+  · have hev :
+        (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) =ᶠ[𝓝 t]
+          fun _ : ℝ => (0 : ℝ) := by
+      filter_upwards [Iio_mem_nhds htleft] with s hs
+      rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt hs)]
+      ring
+    rcases Nat.eq_zero_or_pos i with rfl | hipos
+    · rw [norm_iteratedFDeriv_zero, hev.eq_of_nhds, norm_zero]
+      dsimp [E₀, W]
+      positivity
+    · have hzero := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev i).eq_of_nhds
+      rw [hzero, iteratedFDeriv_const_of_ne (Nat.pos_iff_ne_zero.mp hipos), Pi.zero_apply,
+        norm_zero]
+      interval_cases i <;> dsimp [E₀, E₁, E₂, W] <;> positivity
+  · have ht_ge : a ≤ t := by
+      rw [ha_def]
+      exact le_of_not_gt htleft
+    have htpos : 0 < t := lt_of_lt_of_le ha ht_ge
+    have hφ_on : ContDiffOn ℝ (2 : ℕ∞) φ (Set.Ioi (0 : ℝ)) :=
+      (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).contDiffOn
+    have hR_on : ContDiffOn ℝ (2 : ℕ∞) R (Set.Ioi (0 : ℝ)) := by
+      refine (isOpen_Ioi.contDiffOn_iff).2 ?_
+      intro s hs
+      exact heatLevel0_resolverTimeCoeff_contDiffAt_two hu₀_bound hu₀_cont hfloor hs k
+    have hR_bound : ∀ r : ℕ, r ≤ 2 →
+        ‖iteratedFDeriv ℝ r R t‖ ≤
+          match r with
+          | 0 => E₀
+          | 1 => E₁
+          | _ => E₂ := by
+      intro r hr
+      have hbase := heatLevel0_resolverCoeff_iteratedFDeriv_tail_bound_posMode
+        (p := p) (u₀ := u₀) (M₀ := M₀) (a := a) (C₀ := C₀) (C₁ := C₁) (C₂ := C₂)
+        ha hu₀_bound hu₀_cont hfloor hC₀ hC₁ hC₂ hr hk ht_ge
+      interval_cases r <;> simpa [R, E₀, E₁, E₂, W, hW_def, hE₀_def, hE₁_def, hE₂_def] using hbase
+    have hprod := norm_iteratedFDeriv_mul_le_on_Ioi hφ_on hR_on htpos hi
+    have hprod' :
+        ‖iteratedFDeriv ℝ i
+          (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+            resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤
+        ∑ r ∈ Finset.range (i + 1), (i.choose r : ℝ) *
+          ‖iteratedFDeriv ℝ r φ t‖ *
+          ‖iteratedFDeriv ℝ (i - r) R t‖ := by
+      simpa [φ, R, mul_assoc] using hprod
+    refine hprod'.trans ?_
+    interval_cases i
+    · norm_num [Finset.sum_range_succ]
+      have hφ0 := hΦ 0 (by norm_num) t
+      have hR0 := hR_bound 0 (by norm_num)
+      have hφ0' : |φ t| ≤ Φ := by
+        simpa [φ, norm_iteratedFDeriv_zero, Real.norm_eq_abs] using hφ0
+      have hR0' : ‖iteratedFDeriv ℝ 0 R t‖ ≤ E₀ := by
+        simpa using hR0
+      have hmul : |φ t| * ‖iteratedFDeriv ℝ 0 R t‖ ≤ Φ * E₀ :=
+        mul_le_mul hφ0' hR0' (norm_nonneg _) (le_trans (abs_nonneg _) hφ0')
+      nlinarith [hmul, hΦnn, hE₀nn]
+    · norm_num [Finset.sum_range_succ]
+      have hφ0 := hΦ 0 (by norm_num) t
+      have hφ1 := hΦ 1 (by norm_num) t
+      have hR0 := hR_bound 0 (by norm_num)
+      have hR1 := hR_bound 1 (by norm_num)
+      have hφ0' : |φ t| ≤ Φ := by
+        simpa [φ, norm_iteratedFDeriv_zero, Real.norm_eq_abs] using hφ0
+      have hφ1' : ‖fderiv ℝ φ t‖ ≤ Φ := by
+        rw [norm_iteratedFDeriv_one] at hφ1
+        simpa [φ] using hφ1
+      have hR0' : ‖iteratedFDeriv ℝ 0 R t‖ ≤ E₀ := by
+        simpa using hR0
+      have hR1' : ‖iteratedFDeriv ℝ 1 R t‖ ≤ E₁ := by
+        simpa using hR1
+      have hmul1 : |φ t| * ‖iteratedFDeriv ℝ 1 R t‖ ≤ Φ * E₁ :=
+        mul_le_mul hφ0' hR1' (norm_nonneg _) (le_trans (abs_nonneg _) hφ0')
+      have hmul0 : ‖fderiv ℝ φ t‖ * ‖iteratedFDeriv ℝ 0 R t‖ ≤ Φ * E₀ :=
+        mul_le_mul hφ1' hR0' (norm_nonneg _) (le_trans (norm_nonneg _) hφ1')
+      nlinarith [hmul0, hmul1, hΦnn, hE₀nn, hE₁nn]
+    · norm_num [Finset.sum_range_succ]
+      have hφ0 := hΦ 0 (by norm_num) t
+      have hφ1 := hΦ 1 (by norm_num) t
+      have hφ2 := hΦ 2 (by norm_num) t
+      have hR0 := hR_bound 0 (by norm_num)
+      have hR1 := hR_bound 1 (by norm_num)
+      have hR2 := hR_bound 2 (by norm_num)
+      have hφ0' : |φ t| ≤ Φ := by
+        simpa [φ, norm_iteratedFDeriv_zero, Real.norm_eq_abs] using hφ0
+      have hφ1' : ‖fderiv ℝ φ t‖ ≤ Φ := by
+        rw [norm_iteratedFDeriv_one] at hφ1
+        simpa [φ] using hφ1
+      have hφ2' : ‖iteratedFDeriv ℝ 2 φ t‖ ≤ Φ := by
+        simpa [φ] using hφ2
+      have hR0' : ‖iteratedFDeriv ℝ 0 R t‖ ≤ E₀ := by
+        simpa using hR0
+      have hR1' : ‖iteratedFDeriv ℝ 1 R t‖ ≤ E₁ := by
+        simpa using hR1
+      have hR2' : ‖iteratedFDeriv ℝ 2 R t‖ ≤ E₂ := by
+        simpa using hR2
+      have hmul2 : |φ t| * ‖iteratedFDeriv ℝ 2 R t‖ ≤ Φ * E₂ :=
+        mul_le_mul hφ0' hR2' (norm_nonneg _) (le_trans (abs_nonneg _) hφ0')
+      have hmul1 : ‖fderiv ℝ φ t‖ * ‖iteratedFDeriv ℝ 1 R t‖ ≤ Φ * E₁ :=
+        mul_le_mul hφ1' hR1' (norm_nonneg _) (le_trans (norm_nonneg _) hφ1')
+      have hmul0 : ‖iteratedFDeriv ℝ 2 φ t‖ * ‖iteratedFDeriv ℝ 0 R t‖ ≤ Φ * E₀ :=
+        mul_le_mul hφ2' hR0' (norm_nonneg _) (le_trans (norm_nonneg _) hφ2')
+      nlinarith [hmul0, hmul1, hmul2, hΦnn, hE₀nn, hE₁nn, hE₂nn]
+
+private theorem heatLevel0_cutoffResolverCoeff_iteratedFDeriv_power_bound_posMode
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ a c Φ C₀ C₁ C₂ : ℝ}
+    (ha : 0 < a) (hc : 0 < c) (ha_def : a = c / 2)
+    (hΦnn : 0 ≤ Φ)
+    (hΦ : ∀ r : ℕ, r ≤ 2 → ∀ t : ℝ,
+      ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖ ≤ Φ)
+    (hC₀nn : 0 ≤ C₀) (hC₁nn : 0 ≤ C₁) (hC₂nn : 0 ≤ C₂)
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    (hC₀ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|
+        ≤ C₀ / ((k : ℝ) * Real.pi) ^ 4)
+    (hC₁ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) t) k|
+        ≤ C₁ / ((k : ℝ) * Real.pi) ^ 2)
+    (hC₂ : ∀ t : ℝ, a ≤ t → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs
+        (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t) k|
+        ≤ C₂ / ((k : ℝ) * Real.pi) ^ 2)
+    {i k : ℕ} (hi : i ≤ 2) (hk : 1 ≤ k) {t : ℝ} :
+    ‖iteratedFDeriv ℝ i
+      (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤
+      heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂ i k := by
+  classical
+  have hbase := heatLevel0_cutoffResolverCoeff_iteratedFDeriv_tail_bound_posMode
+    (p := p) (u₀ := u₀) (M₀ := M₀) (a := a) (c := c)
+    (Φ := Φ) (C₀ := C₀) (C₁ := C₁) (C₂ := C₂)
+    ha hc ha_def hΦnn hΦ hC₀nn hC₁nn hC₂nn
+    hu₀_bound hu₀_cont hfloor hC₀ hC₁ hC₂ hi hk (t := t)
+  set x : ℝ := (k : ℝ) * Real.pi with hx
+  have hxpos : 0 < x := by
+    rw [hx]
+    exact mul_pos (by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hk) Real.pi_pos
+  have hxne : x ≠ 0 := ne_of_gt hxpos
+  have hW_le : ShenWork.PDE.intervalNeumannResolverWeight p k ≤ 1 / x ^ 2 := by
+    rw [hx]
+    exact resolverWeight_le_inv_kπ_sq p hk
+  have hdiv₀nn : 0 ≤ C₀ / x ^ 4 := by positivity
+  have hdiv₁nn : 0 ≤ C₁ / x ^ 2 := by positivity
+  have hdiv₂nn : 0 ≤ C₂ / x ^ 2 := by positivity
+  have hE₀_le :
+      ShenWork.PDE.intervalNeumannResolverWeight p k * (C₀ / x ^ 4) ≤
+        C₀ / x ^ 6 := by
+    calc ShenWork.PDE.intervalNeumannResolverWeight p k * (C₀ / x ^ 4)
+        ≤ (1 / x ^ 2) * (C₀ / x ^ 4) :=
+            mul_le_mul_of_nonneg_right hW_le hdiv₀nn
+      _ = C₀ / x ^ 6 := by field_simp [hxne]
+  have hE₁_le :
+      ShenWork.PDE.intervalNeumannResolverWeight p k * (C₁ / x ^ 2) ≤
+        C₁ / x ^ 4 := by
+    calc ShenWork.PDE.intervalNeumannResolverWeight p k * (C₁ / x ^ 2)
+        ≤ (1 / x ^ 2) * (C₁ / x ^ 2) :=
+            mul_le_mul_of_nonneg_right hW_le hdiv₁nn
+      _ = C₁ / x ^ 4 := by field_simp [hxne]
+  have hE₂_le :
+      ShenWork.PDE.intervalNeumannResolverWeight p k * (C₂ / x ^ 2) ≤
+        C₂ / x ^ 4 := by
+    calc ShenWork.PDE.intervalNeumannResolverWeight p k * (C₂ / x ^ 2)
+        ≤ (1 / x ^ 2) * (C₂ / x ^ 2) :=
+            mul_le_mul_of_nonneg_right hW_le hdiv₂nn
+      _ = C₂ / x ^ 4 := by field_simp [hxne]
+  have h4Φnn : 0 ≤ 4 * Φ := by positivity
+  have hkne : k ≠ 0 := Nat.ne_zero_of_lt (Nat.lt_of_lt_of_le Nat.zero_lt_one hk)
+  interval_cases i
+  · refine hbase.trans ?_
+    simpa [heatLevel0GradCoeffPowerBt, hkne, x, hx, mul_assoc] using
+      mul_le_mul_of_nonneg_left hE₀_le h4Φnn
+  · refine hbase.trans ?_
+    have hsum :
+        ShenWork.PDE.intervalNeumannResolverWeight p k * (C₀ / x ^ 4) +
+          ShenWork.PDE.intervalNeumannResolverWeight p k * (C₁ / x ^ 2) ≤
+        C₀ / x ^ 6 + C₁ / x ^ 4 :=
+      add_le_add hE₀_le hE₁_le
+    simpa [heatLevel0GradCoeffPowerBt, hkne, x, hx, mul_add, mul_assoc] using
+      mul_le_mul_of_nonneg_left hsum h4Φnn
+  · refine hbase.trans ?_
+    have hsum :
+        ShenWork.PDE.intervalNeumannResolverWeight p k * (C₀ / x ^ 4) +
+          ShenWork.PDE.intervalNeumannResolverWeight p k * (C₁ / x ^ 2) +
+          ShenWork.PDE.intervalNeumannResolverWeight p k * (C₂ / x ^ 2) ≤
+        C₀ / x ^ 6 + C₁ / x ^ 4 + C₂ / x ^ 4 :=
+      add_le_add (add_le_add hE₀_le hE₁_le) hE₂_le
+    simpa [heatLevel0GradCoeffPowerBt, hkne, x, hx, mul_add, mul_assoc] using
+      mul_le_mul_of_nonneg_left hsum h4Φnn
 
 /-! ### Layer 3: Cutoff × resolverTimeCoeff is globally C² -/
 
@@ -335,6 +1051,271 @@ theorem cutoffResolverTerm_contDiff_two
     hcos.comp contDiff_snd
   simpa [cutoffResolverTerm, mul_assoc] using hcoef_q.mul hcos_q
 
+/-- Each cutoff gradient resolver term is C² in `(t,x)`. -/
+theorem cutoffResolverGradTerm_contDiff_two
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) (k : ℕ) :
+    ContDiff ℝ 2 (cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k) := by
+  have hcoef := cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+  have hcoef_q : ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      smoothRightCutoff (c / 2) c q.1 *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) :=
+    hcoef.comp contDiff_fst
+  have hcosd : ContDiff ℝ 2 (fun y : ℝ => deriv (cosineMode k) y) := by
+    have hEq : (fun y : ℝ => deriv (cosineMode k) y) =
+        fun y : ℝ => -((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * y) := by
+      funext y
+      rw [ShenWork.CosineSpectrum.cosineMode_deriv]
+    rw [hEq]
+    fun_prop
+  have hcosd_q : ContDiff ℝ 2 (fun q : ℝ × ℝ => deriv (cosineMode k) q.2) :=
+    hcosd.comp contDiff_snd
+  simpa [cutoffResolverGradTerm, mul_assoc] using hcoef_q.mul hcosd_q
+
+/-- Mechanical cutoff-value series assembler from explicit coefficient bounds.
+
+This is the value-series companion of `cutoffResolverGradSeries_contDiff_two_of_Bt`.
+It consumes direct bounds for the scalar cutoff coefficients
+`φ(t) * resolverTimeCoeff(k,t)` and the summability of the corresponding
+`valueCosWeight` majorants; no resolver data structure is used. -/
+theorem cutoffResolverSeries_contDiff_two_of_Bt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
+    (hBt : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i
+        (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤ Bt i k)
+    (hsumm : ∀ j : ℕ, (j : ℕ∞) ≤ 2 →
+      Summable (boundedWeightJointMajorant Bt j)) :
+    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+  let coeff : ℕ → ℝ → ℝ := fun k s =>
+    smoothRightCutoff (c / 2) c s *
+      resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+  have hcoeff : ∀ k, ContDiff ℝ (2 : ℕ∞) (coeff k) := by
+    intro k
+    exact cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+  have hBt' : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i (coeff k) t‖ ≤ Bt i k := by
+    intro i k t hi
+    simpa [coeff] using hBt i k t hi
+  have hseries : ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' k : ℕ, boundedWeightJointTerm coeff k q) :=
+    ShenWork.IntervalResolverJointC2Physical.boundedWeightJointSeries_contDiff_two
+      (c := coeff) (Bt := Bt) hcoeff hBt' hsumm
+  simpa [cutoffResolverTerm, boundedWeightJointTerm, coeff, mul_assoc] using hseries
+
+/-- Value-series assembler with positive-mode coefficient bounds only.  The zero
+mode is kept as one separate C² term; all summability obligations are on the
+positive-mode series. -/
+theorem cutoffResolverSeries_contDiff_two_posModes_of_Bt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
+    (hBt : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 → 1 ≤ k →
+      ‖iteratedFDeriv ℝ i
+        (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤ Bt i k)
+    (hsumm : ∀ j : ℕ, (j : ℕ∞) ≤ 2 →
+      Summable (boundedWeightJointMajorant
+        (fun i k => if k = 0 then 0 else Bt i k) j)) :
+    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+  classical
+  let coeff : ℕ → ℝ → ℝ := fun k s =>
+    if k = 0 then 0 else
+      smoothRightCutoff (c / 2) c s *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+  let Btp : ℕ → ℕ → ℝ := fun i k => if k = 0 then 0 else Bt i k
+  have hcoeff : ∀ k, ContDiff ℝ (2 : ℕ∞) (coeff k) := by
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simpa [coeff] using (contDiff_const : ContDiff ℝ (2 : ℕ∞) (fun _ : ℝ => (0 : ℝ)))
+    · simpa [coeff, hk] using cutoffResolverCoeff_contDiff_two
+        (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont hfloor hc k
+  have hBt' : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i (coeff k) t‖ ≤ Btp i k := by
+    intro i k t hi
+    by_cases hk : k = 0
+    · subst k
+      simp [coeff, Btp]
+    · have hk1 : 1 ≤ k := Nat.one_le_iff_ne_zero.mpr hk
+      simpa [coeff, Btp, hk] using hBt i k t hi hk1
+  have hseriesPos : ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' k : ℕ, boundedWeightJointTerm coeff k q) :=
+    ShenWork.IntervalResolverJointC2Physical.boundedWeightJointSeries_contDiff_two
+      (c := coeff) (Bt := Btp) hcoeff hBt' (by simpa [Btp] using hsumm)
+  have hzero : ContDiff ℝ (2 : ℕ∞)
+      (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c 0) :=
+    cutoffResolverTerm_contDiff_two (p := p) (u₀ := u₀) (M₀ := M₀)
+      hu₀_bound hu₀_cont hfloor hc 0
+  have hsumEq : (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) =
+      fun q : ℝ × ℝ =>
+        cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c 0 q +
+          ∑' k : ℕ, boundedWeightJointTerm coeff k q := by
+    funext q
+    have hmaj0 : Summable (fun k : ℕ => Btp 0 k) :=
+      (hsumm 0 (by norm_num)).congr fun k => valueMajorant_zero_eq Btp k
+    have hactual_bound : ∀ k : ℕ, 1 ≤ k →
+        ‖cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q‖ ≤ Btp 0 k := by
+      intro k hk
+      have hcoef := hBt 0 k q.1 (by norm_num) hk
+      have hcoef_abs :
+          |smoothRightCutoff (c / 2) c q.1 *
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1| ≤ Bt 0 k := by
+        simpa [norm_iteratedFDeriv_zero, Real.norm_eq_abs] using hcoef
+      have hcos : |cosineMode k q.2| ≤ 1 := by
+        unfold cosineMode
+        exact Real.abs_cos_le_one _
+      calc ‖cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q‖
+          = |(smoothRightCutoff (c / 2) c q.1 *
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1) *
+              cosineMode k q.2| := by
+                simp [cutoffResolverTerm, Real.norm_eq_abs, mul_assoc]
+        _ ≤ |smoothRightCutoff (c / 2) c q.1 *
+              resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k q.1| := by
+                rw [abs_mul]
+                exact (mul_le_mul_of_nonneg_left hcos (abs_nonneg _)).trans
+                  (by rw [mul_one])
+        _ ≤ Bt 0 k := hcoef_abs
+        _ = Btp 0 k := by
+          have hk0 : k ≠ 0 := Nat.ne_zero_of_lt (Nat.lt_of_lt_of_le Nat.zero_lt_one hk)
+          simp [Btp, hk0]
+    have hcoeff_bound : ∀ k : ℕ, ‖boundedWeightJointTerm coeff k q‖ ≤ Btp 0 k := by
+      intro k
+      by_cases hk0 : k = 0
+      · subst k
+        simp [boundedWeightJointTerm, coeff, Btp]
+      · simpa [boundedWeightJointTerm, cutoffResolverTerm, coeff, hk0, mul_assoc] using
+          hactual_bound k (Nat.one_le_iff_ne_zero.mpr hk0)
+    have htail : Summable (fun n : ℕ =>
+        cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c (n + 1) q) := by
+      refine Summable.of_norm_bounded
+        ((summable_nat_add_iff (f := fun k : ℕ => Btp 0 k) 1).2 hmaj0) ?_
+      intro n
+      exact hactual_bound (n + 1) (Nat.succ_le_succ (Nat.zero_le n))
+    have hf : Summable (fun k : ℕ =>
+        cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) :=
+      (summable_nat_add_iff
+        (f := fun k : ℕ => cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q)
+        1).1 htail
+    have hg : Summable (fun k : ℕ => boundedWeightJointTerm coeff k q) :=
+      Summable.of_norm_bounded hmaj0 hcoeff_bound
+    rw [hf.tsum_eq_zero_add, hg.tsum_eq_zero_add]
+    simp [boundedWeightJointTerm, coeff]
+    congr 1
+    funext n
+    simp [cutoffResolverTerm, mul_assoc]
+  rw [hsumEq]
+  exact hzero.add hseriesPos
+
+/-- Mechanical cutoff-gradient series assembler from explicit coefficient bounds.
+
+The remaining analytic input is `hBt` plus summability of the corresponding
+`gradCosWeight` majorants.  No resolver data structure is used here. -/
+theorem cutoffResolverGradSeries_contDiff_two_of_Bt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
+    (hBt : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i
+        (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤ Bt i k)
+    (hsumm : ∀ j : ℕ, (j : ℕ∞) ≤ 2 →
+      Summable (boundedWeightJointGradMajorant Bt j)) :
+    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+  let coeff : ℕ → ℝ → ℝ := fun k s =>
+    smoothRightCutoff (c / 2) c s *
+      resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+  have hcoeff : ∀ k, ContDiff ℝ (2 : ℕ∞) (coeff k) := by
+    intro k
+    exact cutoffResolverCoeff_contDiff_two hu₀_bound hu₀_cont hfloor hc k
+  have hBt' : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i (coeff k) t‖ ≤ Bt i k := by
+    intro i k t hi
+    simpa [coeff] using hBt i k t hi
+  have hseries : ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' k : ℕ, boundedWeightJointGradTerm coeff k q) :=
+    boundedWeightJointGradSeries_contDiff_two (c := coeff) (Bt := Bt)
+      hcoeff hBt' hsumm
+  simpa [cutoffResolverGradTerm, boundedWeightJointGradTerm, coeff, mul_assoc] using hseries
+
+/-- Same as `cutoffResolverGradSeries_contDiff_two_of_Bt`, but the coefficient
+majorant is required only on positive Fourier modes.  The zero mode contributes
+no spatial-gradient term, so the proof replaces its coefficient by zero before
+calling the bounded-weight gradient assembler. -/
+theorem cutoffResolverGradSeries_contDiff_two_posModes_of_Bt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
+    {c : ℝ} (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
+    (hBt : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 → 1 ≤ k →
+      ‖iteratedFDeriv ℝ i
+        (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤ Bt i k)
+    (hsumm : ∀ j : ℕ, (j : ℕ∞) ≤ 2 →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => if k = 0 then 0 else Bt i k) j)) :
+    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k q) := by
+  classical
+  let coeff : ℕ → ℝ → ℝ := fun k s =>
+    if k = 0 then 0 else
+      smoothRightCutoff (c / 2) c s *
+        resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s
+  let Btp : ℕ → ℕ → ℝ := fun i k => if k = 0 then 0 else Bt i k
+  have hcoeff : ∀ k, ContDiff ℝ (2 : ℕ∞) (coeff k) := by
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simpa [coeff] using (contDiff_const : ContDiff ℝ (2 : ℕ∞) (fun _ : ℝ => (0 : ℝ)))
+    · simpa [coeff, hk] using cutoffResolverCoeff_contDiff_two
+        (p := p) (u₀ := u₀) (M₀ := M₀) hu₀_bound hu₀_cont hfloor hc k
+  have hBt' : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i (coeff k) t‖ ≤ Btp i k := by
+    intro i k t hi
+    by_cases hk : k = 0
+    · subst k
+      simp [coeff, Btp]
+    · have hk1 : 1 ≤ k := Nat.one_le_iff_ne_zero.mpr hk
+      simpa [coeff, Btp, hk] using hBt i k t hi hk1
+  have hseries : ContDiff ℝ (2 : ℕ∞)
+      (fun q : ℝ × ℝ => ∑' k : ℕ, boundedWeightJointGradTerm coeff k q) :=
+    boundedWeightJointGradSeries_contDiff_two (c := coeff) (Bt := Btp)
+      hcoeff hBt' (by simpa [Btp] using hsumm)
+  have heq : (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverGradTerm p (conjugatePicardIter p u₀ 0) c k q) =
+      fun q : ℝ × ℝ => ∑' k : ℕ, boundedWeightJointGradTerm coeff k q := by
+    funext q
+    apply tsum_congr
+    intro k
+    by_cases hk : k = 0
+    · subst k
+      simp [cutoffResolverGradTerm, boundedWeightJointGradTerm, coeff,
+        ShenWork.CosineSpectrum.cosineMode_deriv]
+    · simp [cutoffResolverGradTerm, boundedWeightJointGradTerm, coeff, hk, mul_assoc]
+  rw [heq]
+  exact hseries
+
 /-! ### Summable majorant (analytic content) -/
 
 /-- The majorant for the cutoff resolver term at order `j`:
@@ -345,7 +1326,7 @@ The majorant shape is:
 where the resolver coefficient contribution decays as `1/(μ+λ_k)` times bounded
 source coefficients, giving overall summability from the elliptic weight. -/
 noncomputable def cutoffResolverMajorant (p : CM2Params)
-    (u₀ : intervalDomainPoint → ℝ) (_M₀ c : ℝ) (hc : 0 < c)
+    (u₀ : intervalDomainPoint → ℝ) (_M₀ c : ℝ) (_hc : 0 < c)
     (j k : ℕ) : ℝ :=
   ⨆ q : ℝ × ℝ, ‖iteratedFDeriv ℝ j
     (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖
@@ -403,99 +1384,7 @@ private theorem resolverSmoothRightCutoffDerivBound_spec
   (Classical.choose_spec
     (resolverSmoothRightCutoff_iteratedFDeriv_bound_exists c' c hc'c k hk)).2 t
 
-private noncomputable def cutoffResolverExplicitMajorant
-    (Bt : ℕ → ℕ → ℝ) (c : ℝ) (hc : 0 < c) (j k : ℕ) : ℝ :=
-  ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
-    (if hi : (i : ℕ∞) ≤ 2 then
-      resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
-    else 0) *
-    boundedWeightJointMajorant Bt (j - i) k
-
-private theorem cutoffResolverTerm_iteratedFDeriv_le_explicit
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    {c : ℝ} (hc : 0 < c) (j k : ℕ) (q : ℝ × ℝ)
-    (hj : (j : ℕ∞) ≤ 2) :
-    ‖iteratedFDeriv ℝ j (cutoffResolverTerm p u c k) q‖ ≤
-      cutoffResolverExplicitMajorant Bt c hc j k := by
-  classical
-  have hc'c : c / 2 < c := by linarith
-  let G : ℝ × ℝ → ℝ := fun q => smoothRightCutoff (c / 2) c q.1
-  let R : ℝ × ℝ → ℝ :=
-    boundedWeightJointTerm (resolverTimeCoeff p u) k
-  have hterm : cutoffResolverTerm p u c k = fun q : ℝ × ℝ => G q * R q := by
-    funext q
-    simp [cutoffResolverTerm, boundedWeightJointTerm, G, R, mul_assoc]
-  have hG : ContDiff ℝ (2 : ℕ∞) G :=
-    (smoothRightCutoff_contDiff (c' := c / 2) (c := c)).comp contDiff_fst
-  have hR : ContDiff ℝ (2 : ℕ∞) R :=
-    boundedWeightJointTerm_contDiff k (H.coeff_contDiff k)
-  have hjTop : ((j : ℕ∞) : WithTop ℕ∞) ≤ ((2 : ℕ∞) : WithTop ℕ∞) := by
-    exact_mod_cast hj
-  rw [hterm]
-  calc
-    ‖iteratedFDeriv ℝ j (fun q : ℝ × ℝ => G q * R q) q‖
-        ≤ ∑ i ∈ Finset.range (j + 1), (j.choose i : ℝ) *
-            ‖iteratedFDeriv ℝ i G q‖ *
-            ‖iteratedFDeriv ℝ (j - i) R q‖ := by
-          simpa [mul_assoc] using norm_iteratedFDeriv_mul_le hG hR q hjTop
-    _ ≤ cutoffResolverExplicitMajorant Bt c hc j k := by
-      unfold cutoffResolverExplicitMajorant
-      apply Finset.sum_le_sum
-      intro i hi
-      have hik : i ≤ j := Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)
-      have hjNat : j ≤ 2 := by exact_mod_cast hj
-      have hiNat : i ≤ 2 := le_trans hik hjNat
-      have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
-      have hiTop : (i : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hiNat
-      have hjiTop : ((j - i : ℕ) : ℕ∞) ≤ (2 : ℕ∞) := by exact_mod_cast hjiNat
-      have hG_bound : ‖iteratedFDeriv ℝ i G q‖ ≤
-          resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop := by
-        exact (norm_iteratedFDeriv_comp_fst_le
-          (smoothRightCutoff_contDiff (c' := c / 2) (c := c))
-          (by exact_mod_cast hiTop) q).trans
-          (resolverSmoothRightCutoffDerivBound_spec hc'c hiTop q.1)
-      have hR_bound : ‖iteratedFDeriv ℝ (j - i) R q‖ ≤
-          boundedWeightJointMajorant Bt (j - i) k :=
-        boundedWeightJointTerm_iteratedFDeriv_le
-          (c := resolverTimeCoeff p u) (Bt := Bt) (n := k) (k := j - i) (q := q)
-          (H.coeff_contDiff k) hjiTop
-          (fun a ha => H.coeff_bound a k q.1 ha)
-      have hchoose_nn : 0 ≤ (j.choose i : ℝ) := Nat.cast_nonneg _
-      have hΦ_nn : 0 ≤ resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop :=
-        resolverSmoothRightCutoffDerivBound_nonneg hc'c hiTop
-      calc (j.choose i : ℝ) * ‖iteratedFDeriv ℝ i G q‖ *
-            ‖iteratedFDeriv ℝ (j - i) R q‖
-          ≤ (j.choose i : ℝ) *
-              resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop *
-              ‖iteratedFDeriv ℝ (j - i) R q‖ := by
-            exact mul_le_mul_of_nonneg_right
-              (mul_le_mul_of_nonneg_left hG_bound hchoose_nn) (norm_nonneg _)
-        _ ≤ (j.choose i : ℝ) *
-              resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hiTop *
-              boundedWeightJointMajorant Bt (j - i) k := by
-            exact mul_le_mul_of_nonneg_left hR_bound
-              (mul_nonneg hchoose_nn hΦ_nn)
-        _ = (j.choose i : ℝ) *
-              (if hi : (i : ℕ∞) ≤ 2 then
-                resolverSmoothRightCutoffDerivBound (c / 2) c hc'c i hi
-              else 0) *
-              boundedWeightJointMajorant Bt (j - i) k := by
-            rw [dif_pos hiTop]
-
-private theorem cutoffResolverMajorant_bddAbove_of_physical
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
-    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
-    BddAbove (Set.range fun q : ℝ × ℝ =>
-      ‖iteratedFDeriv ℝ j
-        (cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k) q‖) := by
-  refine ⟨cutoffResolverExplicitMajorant Bt c hc j k, ?_⟩
-  rintro _ ⟨q, rfl⟩
-  exact cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj
-
-/-! ### Direct BddAbove (bypasses PhysicalResolverJointC2Data) -/
+/-! ### Direct BddAbove -/
 
 /-- Generic BddAbove from left-zero/mid/tail decomposition. -/
 private theorem bddAbove_range_of_left_mid_tail
@@ -516,7 +1405,7 @@ private theorem bddAbove_range_of_left_mid_tail
 
 set_option maxHeartbeats 800000 in
 /-- BddAbove of the cutoff resolver term iteratedFDeriv norm, proved directly
-from the product structure A(t) · B(x) without PhysicalResolverJointC2Data.
+from the product structure A(t) · B(x).
 Uses: left zero (cutoff), mid compact (compactness in t × cosine bound in x),
 tail explicit (L∞ contraction + eigenvalue damping). -/
 private theorem cutoffResolverMajorant_bddAbove_direct
@@ -770,7 +1659,7 @@ private theorem cutoffResolverMajorant_bddAbove_direct
               resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t = 0
             rw [smoothRightCutoff_eq_zero_of_le (by linarith : c / 2 < c) (le_of_lt ht_left)]
             ring
-          simp [this, le_max_left]
+          simp [this]
         · simp only [not_lt] at ht_left
           by_cases ht_mid : t ≤ c + 1
           · -- c/2 ≤ t ≤ c/2+2: compact bound
@@ -1396,50 +2285,6 @@ private theorem cutoffResolverMajorant_bddAbove_direct
       (fun q => ‖iteratedFDeriv ℝ j f q‖) q ≤ Ctail := htail
   exact bddAbove_range_of_left_mid_tail hleft' hmid' htail'
 
-private theorem cutoffResolverMajorant_le_explicit
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ}
-    (hc : 0 < c) {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p (conjugatePicardIter p u₀ 0) Bt)
-    (j k : ℕ) (hj : (j : ℕ∞) ≤ 2) :
-    cutoffResolverMajorant p u₀ M₀ c hc j k ≤
-      cutoffResolverExplicitMajorant Bt c hc j k := by
-  unfold cutoffResolverMajorant
-  exact ciSup_le (fun q =>
-    cutoffResolverTerm_iteratedFDeriv_le_explicit H hc j k q hj)
-
-private theorem cutoffResolverExplicitMajorant_summable
-    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {Bt : ℕ → ℕ → ℝ}
-    (H : PhysicalResolverJointC2Data p u Bt)
-    {c : ℝ} (hc : 0 < c) {j : ℕ} (hj : (j : ℕ∞) ≤ 2) :
-    Summable (cutoffResolverExplicitMajorant Bt c hc j) := by
-  classical
-  have hjNat : j ≤ 2 := by exact_mod_cast hj
-  let s := Finset.range (j + 1)
-  change Summable (fun k : ℕ =>
-    ∑ i ∈ s, (j.choose i : ℝ) *
-      (if hi : (i : ℕ∞) ≤ 2 then
-        resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
-      else 0) *
-      boundedWeightJointMajorant Bt (j - i) k)
-  refine Finset.induction_on s ?_ ?_
-  · simpa using (summable_zero : Summable (fun _ : ℕ => (0 : ℝ)))
-  · intro i s his hs
-    have hjiNat : j - i ≤ 2 := le_trans (Nat.sub_le j i) hjNat
-    have hbase : Summable (fun k : ℕ => boundedWeightJointMajorant Bt (j - i) k) :=
-      H.value_summable (j - i) (by exact_mod_cast hjiNat)
-    have hterm : Summable (fun k : ℕ =>
-        (j.choose i : ℝ) *
-          (if hi : (i : ℕ∞) ≤ 2 then
-            resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi
-          else 0) *
-          boundedWeightJointMajorant Bt (j - i) k) := by
-      by_cases hi : (i : ℕ∞) ≤ 2
-      · simpa [hi, mul_assoc] using
-          hbase.mul_left ((j.choose i : ℝ) *
-            resolverSmoothRightCutoffDerivBound (c / 2) c (by linarith) i hi)
-      · simpa [hi] using (summable_zero : Summable (fun _ : ℕ => (0 : ℝ)))
-    simpa [Finset.sum_insert, his] using hterm.add hs
-
 /-- The majorant is nonneg. -/
 theorem cutoffResolverMajorant_nonneg {p : CM2Params}
     {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
@@ -1456,32 +2301,6 @@ theorem cutoffResolverMajorant_nonneg {p : CM2Params}
   have hbdd := cutoffResolverMajorant_bddAbove_direct
     (p := p) hc hu₀_bound hu₀_cont hu₀_pos hfloor j k _hj
   exact (norm_nonneg _).trans (le_ciSup hbdd (0, 0))
-
-/-- The majorant is summable for each `j ≤ 2`.
-
-TODO(direct-route): prove via cosine coefficient IBP decay O(k^{-2}) combined
-with valueCosWeight growth, giving O(k^{j-4}) which is summable for j ≤ 2. -/
-theorem cutoffResolverMajorant_summable {p : CM2Params}
-    {u₀ : intervalDomainPoint → ℝ} {M₀ c : ℝ} (hc : 0 < c)
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    {j : ℕ} (_hj : (j : ℕ∞) ≤ 2) :
-    Summable (cutoffResolverMajorant p u₀ M₀ c hc j) := by
-  -- WARNING: This proof uses the OLD ROUTE (heatSemigroup_level0_resolverJointC2Data)
-  -- which depends on structurally-blocked sorry's in physicalSourceTimeC2_of_floored.
-  -- TODO: Replace with DIRECT ROUTE using IBP decay (IntervalWeakH2Neumann +
-  -- cosineCoeff_quadratic_decay) to get O(k^{-2}) source coefficient decay,
-  -- then explicit majorant summability without PhysicalResolverJointC2Data.
-  obtain ⟨Bt, H⟩ :=
-    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      hu₀_bound hu₀_cont hu₀_pos (p := p)
-  -- Transfer summability: majorant ≤ explicit majorant, explicit majorant is summable
-  exact Summable.of_norm_bounded (cutoffResolverExplicitMajorant_summable H hc _hj)
-    fun k => by
-      simp only [Real.norm_eq_abs, abs_of_nonneg
-        (cutoffResolverMajorant_nonneg hc hu₀_bound hu₀_cont hu₀_pos _hj)]
-      exact cutoffResolverMajorant_le_explicit hc H j k _hj
 
 /-- The majorant bounds the iterated derivatives of the cutoff resolver term. -/
 theorem cutoffResolverTerm_iteratedFDeriv_bound
@@ -1503,37 +2322,6 @@ theorem cutoffResolverTerm_iteratedFDeriv_bound
     (p := p) hc hu₀_bound hu₀_cont hu₀_pos hfloor j k hj
   exact le_ciSup hbdd q
 
-/-! ### Global C² of the cutoff series (mechanical from contDiff_tsum) -/
-
-/-- **Global C² of the cutoff resolver series.**
-
-The series `(t,x) ↦ ∑' k, φ(t) · resolverTimeCoeff p u k t · cos(kπx)` is
-`ContDiff ℝ 2` as a function `ℝ² → ℝ`.  The proof uses `contDiff_tsum` with the
-majorant from `cutoffResolverTerm_iteratedFDeriv_bound`. -/
-theorem cutoffResolverSeries_contDiff_two
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
-    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hu₀_cont : Continuous u₀)
-    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
-      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
-    {c : ℝ} (hc : 0 < c) :
-    ContDiff ℝ 2 (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c k q) := by
-  apply contDiff_tsum
-    (𝕜 := ℝ)
-    (f := cutoffResolverTerm p (conjugatePicardIter p u₀ 0) c)
-    (v := fun j k => cutoffResolverMajorant p u₀ M₀ c hc j k)
-  -- (1) Each cutoff term is C²
-  · intro k
-    exact cutoffResolverTerm_contDiff_two hu₀_bound hu₀_cont hfloor hc k
-  -- (2) Majorant summability for each j ≤ 2
-  · intro j hj
-    exact cutoffResolverMajorant_summable hc hu₀_bound hu₀_cont hu₀_pos hj
-  -- (3) Uniform iterated-derivative bound
-  · intro j k q hj
-    exact cutoffResolverTerm_iteratedFDeriv_bound hu₀_bound hu₀_cont hu₀_pos hc j k q hj
-
 /-! ### EventuallyEq: cutoff series = original series near (s₀, x₀) -/
 
 /-- The original resolver series equals the `intervalDomainLift` of
@@ -1549,6 +2337,86 @@ theorem resolverSeries_eq_lift_on_interior
   simp only [ShenWork.IntervalResolverJointC2Physical.boundedWeightJointTerm,
     resolverTerm] at h ⊢
   exact h
+
+/-- At positive heat time and interior spatial points, the spatial derivative of
+the lifted resolver equals the termwise-differentiated resolver series. -/
+theorem resolverGradSeries_eq_lift_deriv_on_interior_heat
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ t x : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hu₀_cont : Continuous u₀)
+    (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
+    (ht : 0 < t) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (intervalDomainLift (coupledChemicalConcentration p
+      (conjugatePicardIter p u₀ 0) t)) x =
+      ∑' k : ℕ, resolverGradTerm p (conjugatePicardIter p u₀ 0) k (t, x) := by
+  have hopen : Set.Ioo (0 : ℝ) 1 ∈ 𝓝 x := isOpen_Ioo.mem_nhds hx
+  have hval : (fun y : ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p
+          (conjugatePicardIter p u₀ 0) t) y) =ᶠ[𝓝 x]
+      fun y : ℝ =>
+        ∑' k : ℕ, resolverTerm p (conjugatePicardIter p u₀ 0) k (t, y) := by
+    filter_upwards [hopen] with y hy
+    exact resolverSeries_eq_lift_on_interior (p := p)
+      (u := conjugatePicardIter p u₀ 0) (Set.Ioo_subset_Icc_self hy)
+  rw [Filter.EventuallyEq.deriv_eq hval]
+  set b : ℕ → ℝ := fun k => resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t with hb
+  have hpos_t : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x :=
+    fun y hy =>
+      ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData.heatSemigroup_pos_of_pos
+        hu₀_cont hu₀_pos ht hy
+  have hsrc_summ : Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        |cosineCoeffs
+          (srcSlice p (conjugatePicardIter p u₀ 0) t) k|) :=
+    ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice_eigenvalue_L1_summable
+      hu₀_bound hu₀_cont ht hpos_t
+  have hb_summ : Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k * |b k|) := by
+    refine Summable.of_nonneg_of_le
+      (fun k => mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity)
+        (abs_nonneg _)) (fun k => ?_)
+      (hsrc_summ.mul_left (1 / p.μ))
+    have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue k := by
+      unfold unitIntervalCosineEigenvalue
+      positivity
+    have hsrc_nn : 0 ≤
+        unitIntervalCosineEigenvalue k *
+          |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k| :=
+      mul_nonneg hlam_nn (abs_nonneg _)
+    change unitIntervalCosineEigenvalue k *
+        |resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t| ≤
+      1 / p.μ * (unitIntervalCosineEigenvalue k *
+        |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|)
+    rw [resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k t,
+      srcTimeCoeff_eq_cosineCoeffs p (conjugatePicardIter p u₀ 0) k t,
+      abs_mul,
+      abs_of_nonneg
+        (ShenWork.IntervalPhysicalResolverDataConcrete.resolverWeight_nonneg p k)]
+    calc unitIntervalCosineEigenvalue k *
+          (ShenWork.PDE.intervalNeumannResolverWeight p k *
+            |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|)
+        = ShenWork.PDE.intervalNeumannResolverWeight p k *
+            (unitIntervalCosineEigenvalue k *
+              |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|) := by ring
+      _ ≤ (1 / p.μ) *
+            (unitIntervalCosineEigenvalue k *
+              |cosineCoeffs (srcSlice p (conjugatePicardIter p u₀ 0) t) k|) :=
+          mul_le_mul_of_nonneg_right
+            (ShenWork.IntervalResolverJointC2PhysicalConcrete.resolverWeight_le_inv_mu p k)
+            hsrc_nn
+  have hgrad :=
+    ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_grad_hasDerivAt hb_summ x
+  have hraw : (fun y : ℝ =>
+      ∑' k : ℕ, resolverTerm p (conjugatePicardIter p u₀ 0) k (t, y)) =
+      fun y : ℝ => ∑' k : ℕ, b k * cosineMode k y := by
+    funext y
+    apply tsum_congr
+    intro k
+    simp [resolverTerm, hb]
+  rw [hraw, hgrad.deriv]
+  exact tsum_congr (fun k => by
+    simp [resolverGradTerm, hb, ShenWork.CosineSpectrum.cosineMode_deriv])
 
 /-- Near `(s₀, x₀)` with `s₀ > c`, the original resolver series equals
 the cutoff series (because `φ(t) = 1` in a neighborhood of `s₀`). -/
@@ -1573,14 +2441,35 @@ theorem resolverSeries_eventuallyEq_cutoff
   congr 1; ext k
   simp [cutoffResolverTerm, resolverTerm, hq]
 
+/-- Near `(s₀,x₀)` with `s₀ > c`, the raw gradient series equals the cutoff
+gradient series. -/
+theorem resolverGradSeries_eventuallyEq_cutoff
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {c s₀ x₀ : ℝ} (_hc : 0 < c) (hs₀ : c < s₀) :
+    (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, resolverGradTerm p u k q) =ᶠ[𝓝 (s₀, x₀)]
+    (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, cutoffResolverGradTerm p u c k q) := by
+  have hc'c : c / 2 < c := by linarith
+  have hφ_one : smoothRightCutoff (c / 2) c =ᶠ[𝓝 s₀] fun _ => (1 : ℝ) :=
+    smoothRightCutoff_eventually_eq_one hc'c hs₀
+  have hφ_prod :
+      (fun q : ℝ × ℝ => smoothRightCutoff (c / 2) c q.1) =ᶠ[𝓝 (s₀, x₀)]
+        fun _ : ℝ × ℝ => (1 : ℝ) :=
+    hφ_one.comp_tendsto continuous_fst.continuousAt
+  filter_upwards [hφ_prod] with q hq
+  congr 1; ext k
+  simp [cutoffResolverGradTerm, resolverGradTerm, hq]
+
 /-! ### Main theorems -/
 
 /-- **Joint `ContDiffAt ℝ 2`** of the resolver coupled concentration at the heat
 semigroup base iterate `conjugatePicardIter p u₀ 0`, via direct cutoff +
 `contDiff_tsum`.
 
-Proof: `cutoffResolverSeries_contDiff_two` gives global `ContDiff ℝ 2` of the
-cutoff series.  Near `(s₀, x₀)` with `s₀ > c`, the cutoff series agrees with
+Proof: `cutoffResolverSeries_contDiff_two_posModes_of_Bt` gives global
+`ContDiff ℝ 2` of the cutoff series.  Near `(s₀, x₀)` with `s₀ > c`, the cutoff
+series agrees with
 the original series (`resolverSeries_eventuallyEq_cutoff`), and the original
 series = `intervalDomainLift (coupledChemicalConcentration ...)` on interior
 points.  So `ContDiffAt` of the lifted concentration follows. -/
@@ -1593,30 +2482,96 @@ theorem heatResolver_jointContDiffAt_two
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
     (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
-    ContDiffAt ℝ 2
-        (fun q : ℝ × ℝ =>
-          intervalDomainLift (coupledChemicalConcentration p
-            (conjugatePicardIter p u₀ 0) q.1) q.2)
-        (s₀, x₀) := by
-  -- Step 1: The cutoff series is globally C²
-  have hCutoff := (cutoffResolverSeries_contDiff_two (p := p)
-    hu₀_bound hu₀_cont hu₀_pos hfloor hc).contDiffAt (x := (s₀, x₀))
-  -- Step 2: Near (s₀, x₀), the cutoff series = resolver term series
-  have hEqCutoff := resolverSeries_eventuallyEq_cutoff (p := p)
-    (u := conjugatePicardIter p u₀ 0) hc hs₀ (x₀ := x₀)
-  -- Step 3: Near (s₀, x₀), the resolver term series = lifted concentration
-  -- (because x₀ ∈ (0,1) ⊂ [0,1])
-  have hmem : {q : ℝ × ℝ | q.2 ∈ Set.Ioo (0 : ℝ) 1} ∈ 𝓝 (s₀, x₀) :=
-    (isOpen_Ioo.preimage continuous_snd).mem_nhds hx₀
-  have hEqLift : (fun q : ℝ × ℝ =>
-      intervalDomainLift (coupledChemicalConcentration p
-        (conjugatePicardIter p u₀ 0) q.1) q.2) =ᶠ[𝓝 (s₀, x₀)]
-    (fun q : ℝ × ℝ =>
-      ∑' k : ℕ, resolverTerm p (conjugatePicardIter p u₀ 0) k q) := by
-    filter_upwards [hmem] with q hq
-    exact resolverSeries_eq_lift_on_interior (Set.Ioo_subset_Icc_self hq)
-  -- Chain: lift =ᶠ resolver series =ᶠ cutoff series
-  exact hCutoff.congr_of_eventuallyEq (hEqLift.trans hEqCutoff)
+      ContDiffAt ℝ 2
+          (fun q : ℝ × ℝ =>
+            intervalDomainLift (coupledChemicalConcentration p
+              (conjugatePicardIter p u₀ 0) q.1) q.2)
+          (s₀, x₀) := by
+    -- Step 1: The cutoff series is globally C² by the direct positive-mode route.
+    classical
+    have ha : 0 < c / 2 := by linarith
+    obtain ⟨C₀, hC₀nn, hC₀⟩ :=
+      ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice_quartic_decay_tail
+        (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2)
+        ha hu₀_bound hu₀_cont hu₀_pos
+    obtain ⟨C₁, hC₁nn, hC₁⟩ :=
+      ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice1_quadratic_decay_tail
+        (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2)
+        ha hu₀_bound hu₀_cont hu₀_pos
+    obtain ⟨C₂, hC₂nn, hC₂⟩ :=
+      ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice2_quadratic_decay_tail
+        (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2)
+        ha hu₀_bound hu₀_cont hu₀_pos
+    have hc'c : c / 2 < c := by linarith
+    let Φ₀ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 0 (by norm_num)
+    let Φ₁ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 1 (by norm_num)
+    let Φ₂ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 2 (by norm_num)
+    let Φ := max 0 (max Φ₀ (max Φ₁ Φ₂))
+    have hΦnn : 0 ≤ Φ := by
+      dsimp [Φ]
+      exact le_max_left 0 (max Φ₀ (max Φ₁ Φ₂))
+    have hΦ₀_le : Φ₀ ≤ Φ := by
+      dsimp [Φ]
+      exact (le_max_left Φ₀ (max Φ₁ Φ₂)).trans
+        (le_max_right 0 (max Φ₀ (max Φ₁ Φ₂)))
+    have hΦ₁_le : Φ₁ ≤ Φ := by
+      dsimp [Φ]
+      exact ((le_max_left Φ₁ Φ₂).trans (le_max_right Φ₀ (max Φ₁ Φ₂))).trans
+        (le_max_right 0 (max Φ₀ (max Φ₁ Φ₂)))
+    have hΦ₂_le : Φ₂ ≤ Φ := by
+      dsimp [Φ]
+      exact ((le_max_right Φ₁ Φ₂).trans (le_max_right Φ₀ (max Φ₁ Φ₂))).trans
+        (le_max_right 0 (max Φ₀ (max Φ₁ Φ₂)))
+    have hΦ : ∀ r : ℕ, r ≤ 2 → ∀ t : ℝ,
+        ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖ ≤ Φ := by
+      intro r hr t
+      interval_cases r
+      · exact (resolverSmoothRightCutoffDerivBound_spec hc'c
+          (k := 0) (by norm_num) t).trans hΦ₀_le
+      · exact (resolverSmoothRightCutoffDerivBound_spec hc'c
+          (k := 1) (by norm_num) t).trans hΦ₁_le
+      · exact (resolverSmoothRightCutoffDerivBound_spec hc'c
+          (k := 2) (by norm_num) t).trans hΦ₂_le
+    let Bt : ℕ → ℕ → ℝ := heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂
+    have hBtp_eq : (fun i k => if k = 0 then 0 else Bt i k) = Bt := by
+      funext i k
+      by_cases hk : k = 0
+      · subst k
+        simp [Bt, heatLevel0GradCoeffPowerBt]
+      · simp [Bt, heatLevel0GradCoeffPowerBt, hk]
+    have hBt : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 → 1 ≤ k →
+        ‖iteratedFDeriv ℝ i
+          (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+            resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤ Bt i k := by
+      intro i k t hi hk
+      exact heatLevel0_cutoffResolverCoeff_iteratedFDeriv_power_bound_posMode
+        (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2) (c := c)
+        (Φ := Φ) (C₀ := C₀) (C₁ := C₁) (C₂ := C₂)
+        ha hc rfl hΦnn hΦ hC₀nn hC₁nn hC₂nn
+        hu₀_bound hu₀_cont hfloor hC₀ hC₁ hC₂ hi hk (t := t)
+    have hsumm : ∀ j : ℕ, (j : ℕ∞) ≤ 2 →
+        Summable (boundedWeightJointMajorant
+          (fun i k => if k = 0 then 0 else Bt i k) j) := by
+      simpa [hBtp_eq] using heatLevel0GradCoeffPowerBt_value_summable Φ C₀ C₁ C₂
+    have hCutoff := (cutoffResolverSeries_contDiff_two_posModes_of_Bt
+      (p := p) (u₀ := u₀) (M₀ := M₀)
+      hu₀_bound hu₀_cont hfloor hc (Bt := Bt) hBt hsumm).contDiffAt (x := (s₀, x₀))
+    -- Step 2: Near (s₀, x₀), the cutoff series = resolver term series
+    have hEqCutoff := resolverSeries_eventuallyEq_cutoff (p := p)
+      (u := conjugatePicardIter p u₀ 0) hc hs₀ (x₀ := x₀)
+    -- Step 3: Near (s₀, x₀), the resolver term series = lifted concentration
+    -- (because x₀ ∈ (0,1) ⊂ [0,1])
+    have hmem : {q : ℝ × ℝ | q.2 ∈ Set.Ioo (0 : ℝ) 1} ∈ 𝓝 (s₀, x₀) :=
+      (isOpen_Ioo.preimage continuous_snd).mem_nhds hx₀
+    have hEqLift : (fun q : ℝ × ℝ =>
+        intervalDomainLift (coupledChemicalConcentration p
+          (conjugatePicardIter p u₀ 0) q.1) q.2) =ᶠ[𝓝 (s₀, x₀)]
+      (fun q : ℝ × ℝ =>
+        ∑' k : ℕ, resolverTerm p (conjugatePicardIter p u₀ 0) k q) := by
+      filter_upwards [hmem] with q hq
+      exact resolverSeries_eq_lift_on_interior (Set.Ioo_subset_Icc_self hq)
+    -- Chain: lift =ᶠ resolver series =ᶠ cutoff series
+    exact hCutoff.congr_of_eventuallyEq (hEqLift.trans hEqCutoff)
 
 /-- **Joint `ContDiffAt ℝ 2`** of the spatial derivative `∂ₓ v` of the resolver
 coupled concentration at the heat semigroup base iterate.
@@ -1627,7 +2582,7 @@ theorem heatResolver_grad_jointContDiffAt_two
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hu₀_cont : Continuous u₀)
     (hu₀_pos : ∀ x : intervalDomainPoint, 0 < u₀ x)
-    (_hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
+    (hfloor : ∀ t : ℝ, 0 < t → ∀ x ∈ Set.Icc (0:ℝ) 1,
       0 < intervalDomainLift (conjugatePicardIter p u₀ 0 t) x)
     {c : ℝ} (hc : 0 < c) {s₀ x₀ : ℝ} (hs₀ : c < s₀)
     (hx₀ : x₀ ∈ Set.Ioo (0 : ℝ) 1) :
@@ -1636,17 +2591,90 @@ theorem heatResolver_grad_jointContDiffAt_two
           deriv (intervalDomainLift (coupledChemicalConcentration p
             (conjugatePicardIter p u₀ 0) q.1)) q.2)
         (s₀, x₀) := by
-  -- WARNING: This proof uses the OLD ROUTE (heatSemigroup_level0_resolverJointC2Data)
-  -- which depends on structurally-blocked sorry's in physicalSourceTimeC2_of_floored.
-  -- TODO: Replace with DIRECT ROUTE using cutoff gradient series + contDiff_tsum
-  -- with quartic IBP decay (IntervalWeakH4Neumann) for gradient summability.
-  obtain ⟨Bt, H⟩ :=
-    ShenWork.Paper2.HeatResolverJointRegularity.heatSemigroup_level0_resolverJointC2Data
-      hu₀_bound hu₀_cont hu₀_pos (p := p)
-  exact ShenWork.IntervalResolverJointC2PhysicalConcrete.coupledChemical_grad_jointContDiffAt_two
-    H hx₀
-
-#print axioms heatResolver_jointContDiffAt_two
+  classical
+  have ha : 0 < c / 2 := by linarith
+  obtain ⟨C₀, hC₀nn, hC₀⟩ :=
+    ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice_quartic_decay_tail
+      (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2)
+      ha hu₀_bound hu₀_cont hu₀_pos
+  obtain ⟨C₁, hC₁nn, hC₁⟩ :=
+    ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice1_quadratic_decay_tail
+      (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2)
+      ha hu₀_bound hu₀_cont hu₀_pos
+  obtain ⟨C₂, hC₂nn, hC₂⟩ :=
+    ShenWork.Paper2.HeatLevel0SourceDecay.heatLevel0_srcSlice2_quadratic_decay_tail
+      (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2)
+      ha hu₀_bound hu₀_cont hu₀_pos
+  have hc'c : c / 2 < c := by linarith
+  let Φ₀ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 0 (by norm_num)
+  let Φ₁ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 1 (by norm_num)
+  let Φ₂ := resolverSmoothRightCutoffDerivBound (c / 2) c hc'c 2 (by norm_num)
+  let Φ := max 0 (max Φ₀ (max Φ₁ Φ₂))
+  have hΦnn : 0 ≤ Φ := by
+    dsimp [Φ]
+    exact le_max_left 0 (max Φ₀ (max Φ₁ Φ₂))
+  have hΦ₀_le : Φ₀ ≤ Φ := by
+    dsimp [Φ]
+    exact (le_max_left Φ₀ (max Φ₁ Φ₂)).trans
+      (le_max_right 0 (max Φ₀ (max Φ₁ Φ₂)))
+  have hΦ₁_le : Φ₁ ≤ Φ := by
+    dsimp [Φ]
+    exact ((le_max_left Φ₁ Φ₂).trans (le_max_right Φ₀ (max Φ₁ Φ₂))).trans
+      (le_max_right 0 (max Φ₀ (max Φ₁ Φ₂)))
+  have hΦ₂_le : Φ₂ ≤ Φ := by
+    dsimp [Φ]
+    exact ((le_max_right Φ₁ Φ₂).trans (le_max_right Φ₀ (max Φ₁ Φ₂))).trans
+      (le_max_right 0 (max Φ₀ (max Φ₁ Φ₂)))
+  have hΦ : ∀ r : ℕ, r ≤ 2 → ∀ t : ℝ,
+      ‖iteratedFDeriv ℝ r (smoothRightCutoff (c / 2) c) t‖ ≤ Φ := by
+    intro r hr t
+    interval_cases r
+    · exact (resolverSmoothRightCutoffDerivBound_spec hc'c
+        (k := 0) (by norm_num) t).trans hΦ₀_le
+    · exact (resolverSmoothRightCutoffDerivBound_spec hc'c
+        (k := 1) (by norm_num) t).trans hΦ₁_le
+    · exact (resolverSmoothRightCutoffDerivBound_spec hc'c
+        (k := 2) (by norm_num) t).trans hΦ₂_le
+  let Bt : ℕ → ℕ → ℝ := heatLevel0GradCoeffPowerBt Φ C₀ C₁ C₂
+  have hBtp_eq : (fun i k => if k = 0 then 0 else Bt i k) = Bt := by
+    funext i k
+    by_cases hk : k = 0
+    · subst k
+      simp [Bt, heatLevel0GradCoeffPowerBt]
+    · simp [Bt, heatLevel0GradCoeffPowerBt, hk]
+  have hBt : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 → 1 ≤ k →
+      ‖iteratedFDeriv ℝ i
+        (fun s : ℝ => smoothRightCutoff (c / 2) c s *
+          resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k s) t‖ ≤ Bt i k := by
+    intro i k t hi hk
+    exact heatLevel0_cutoffResolverCoeff_iteratedFDeriv_power_bound_posMode
+      (p := p) (u₀ := u₀) (M₀ := M₀) (a := c / 2) (c := c)
+      (Φ := Φ) (C₀ := C₀) (C₁ := C₁) (C₂ := C₂)
+      ha hc rfl hΦnn hΦ hC₀nn hC₁nn hC₂nn
+      hu₀_bound hu₀_cont hfloor hC₀ hC₁ hC₂ hi hk (t := t)
+  have hsumm : ∀ j : ℕ, (j : ℕ∞) ≤ 2 →
+      Summable (boundedWeightJointGradMajorant
+        (fun i k => if k = 0 then 0 else Bt i k) j) := by
+    simpa [hBtp_eq] using heatLevel0GradCoeffPowerBt_grad_summable Φ C₀ C₁ C₂
+  have hCutoff := (cutoffResolverGradSeries_contDiff_two_posModes_of_Bt
+    (p := p) (u₀ := u₀) (M₀ := M₀)
+    hu₀_bound hu₀_cont hfloor hc (Bt := Bt) hBt hsumm).contDiffAt (x := (s₀, x₀))
+  have hEqCutoff := resolverGradSeries_eventuallyEq_cutoff (p := p)
+    (u := conjugatePicardIter p u₀ 0) hc hs₀ (x₀ := x₀)
+  have htime : {q : ℝ × ℝ | 0 < q.1} ∈ 𝓝 (s₀, x₀) :=
+    (isOpen_Ioi.preimage continuous_fst).mem_nhds (lt_trans hc hs₀)
+  have hspace : {q : ℝ × ℝ | q.2 ∈ Set.Ioo (0 : ℝ) 1} ∈ 𝓝 (s₀, x₀) :=
+    (isOpen_Ioo.preimage continuous_snd).mem_nhds hx₀
+  have hEqLift : (fun q : ℝ × ℝ =>
+      deriv (intervalDomainLift (coupledChemicalConcentration p
+        (conjugatePicardIter p u₀ 0) q.1)) q.2) =ᶠ[𝓝 (s₀, x₀)]
+    (fun q : ℝ × ℝ =>
+      ∑' k : ℕ, resolverGradTerm p (conjugatePicardIter p u₀ 0) k q) := by
+    filter_upwards [htime, hspace] with q hqt hqx
+    exact resolverGradSeries_eq_lift_deriv_on_interior_heat
+      (p := p) (u₀ := u₀) (M₀ := M₀)
+      hu₀_bound hu₀_cont hu₀_pos hqt hqx
+  exact hCutoff.congr_of_eventuallyEq (hEqLift.trans hEqCutoff)
 
 end ShenWork.Paper2.HeatResolverJointC2Direct
 
