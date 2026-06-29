@@ -6,12 +6,13 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper3 actual-linear-small
-  closed-energy/CEGrad Moser mainline/statement route, `lake build ShenWork`
-  completed successfully on `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The
-  target build
+  closed-energy/CEGrad/CERawGrad Moser mainline/statement route,
+  `lake build ShenWork` completed successfully on
+  `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target build
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   also completed successfully, **8393 jobs**.  The actual-linear-small
-  sectorial/a-priori/Moser/closed-energy-Moser/CEGrad mainline/statement
+  sectorial/a-priori/Moser/closed-energy-Moser/CEGrad/CERawGrad
+  mainline/statement
   wrappers' `#print axioms` output is
   `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
@@ -240,7 +241,18 @@ Current headline status:
   `P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient`
   bridge to recover `RelativeMoserInterpolationBefore`.  Those four CEGrad
   subfields are still analytic residuals; only the conversion from them to
-  relative Moser interpolation is discharged.
+  relative Moser interpolation is discharged.  The route also has a
+  CERawGrad variant,
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals`,
+  `IntervalDomainSectorialMainlineMoserActualLinearSmallCERawGradFacts`,
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallCERawGradFrontierData`,
+  and
+  `IntervalDomainPaper3StatementMoserActualLinearSmallCERawGradFrontierData`.
+  This further replaces the black-box `moserDissipation` field by the raw
+  pointwise nonnegative-`B` drop condition and uses the proved
+  `moserDissipationDropBeforeNonnegB_of_raw_drop` bridge to recover
+  `MoserDissipationDropBeforeNonnegB`.  The raw drop is still a residual; the
+  packaging bridge is proved.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
