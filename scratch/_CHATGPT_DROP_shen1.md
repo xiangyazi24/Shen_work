@@ -1,214 +1,157 @@
-# Q2222 R3 Paper3 terminal/mainline residual thinning audit
+# Q2236 Paper3 actual-linear terminal route audit
 
-Audited current `main` at commit `09140eae`.
+Audited current `main` around `e3aa461e`, after the named bridge `intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl` was added in `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
 
-## 1. Terminal Moser residual record
+## 1. Pieces now closed or wired by named bridges
 
-Record: `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals p`.
+### Terminal pointwise endpoint
 
-### `boundednessCore`
+`terminalPointwise` is now explicitly wired into the older `quantitativeEndpoint` interface by:
 
-Classification: already thinned parameter residual; pure packaging to the old bundle, but not removable.
+`intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl`
 
-Existing chain:
+The exact bridge is curried over one solution/initial-datum instance. It takes the terminal field shape
+
+```lean
+∀ {u₀ : intervalDomain.Point → ℝ},
+  PositiveInitialDatum intervalDomain u₀ →
+∀ {T : ℝ}, 0 < T →
+∀ {u v : ℝ → intervalDomain.Point → ℝ},
+  IsPaper2ClassicalSolution intervalDomain p T u v →
+  InitialTrace intervalDomain u₀ u →
+∀ pExp,
+  max (p.N : ℝ)
+      (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+  LpPowerBoundedBefore intervalDomain pExp T u →
+    ∃ q R, 0 < q ∧ 0 ≤ R ∧
+      IntervalDomainMoserPointwisePowerControlBefore u T q R
+```
+
+and returns the old endpoint witness
+
+```lean
+∃ pSeq rootBound : ℕ → ℝ,
+  (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+    IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+```
+
+by choosing constant sequences `pSeq := fun _ => q` and `rootBound := fun _ => R`, with witness index `0`. The conversion `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.to_CERawGradResiduals` now calls this named theorem instead of carrying the proof inline.
+
+### Boundedness core
+
+`boundednessCore` is already wired by:
 
 `IntervalDomainMoserActualLinearSmallBoundednessCore.to_boundednessHyp hb`
 
-This reconstructs `IntervalDomainBoundednessHyp p` by using:
+This reconstructs `IntervalDomainBoundednessHyp p` from `alphaAbsorption`, `gammaDimension`, wrapper `hb : 0 < p.b`, and `p.hγ`. This is packaging for the old boundedness bundle, but the two core facts remain real assumptions: `2 * p.γ < p.α` and `p.γ * (p.N : ℝ) < 2`.
 
-- `Or.inr h.alphaAbsorption` for `IntervalDomainSharpL2AbsorptionThreshold p`;
-- wrapper `hb : 0 < p.b`;
-- `h.alphaAbsorption : 2 * p.γ < p.α`;
-- `p.hγ : 0 < p.γ`;
-- `h.gammaDimension : p.γ * (p.N : ℝ) < 2`.
+### Closed-energy seed
 
-The field still contains two genuine parameter assumptions: `alphaAbsorption` and `gammaDimension`.
+`closedEnergyTrace` is wired to the older L² seed field by:
 
-### `closedEnergyTrace`
+`P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData`
 
-Classification: pure packaging already reducible downstream, but the trace itself is a genuine analytic residual.
+used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals.to_actualLinearSmallResiduals`.
 
-Existing chain:
+### Raw Moser drop
 
-`closedEnergyTrace` → `P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData` → old `l2SeedRegularity` field in `IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals`.
+`rawMoserDrop` is wired to the repaired physical-`B` Moser drop predicate by:
 
-This is used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallClosedEnergyResiduals.to_actualLinearSmallResiduals`.
+`moserDissipationDropBeforeNonnegB_of_raw_drop`
 
-### `rawMoserDrop`
+used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCERawGradResiduals.to_CEGradResiduals`.
 
-Classification: pure packaging already reducible to the repaired physical-`B` predicate; the pointwise drop is still a genuine residual and should not be derived from the generic energy interface.
+Downstream, `MoserDissipationDropBeforeNonnegB` participates in the Moser chain through `moser_step_of_energy_nonnegB_relative_interpolation`, `moser_iteration_chain_of_energy_nonnegB_relative_interpolation`, `intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB`, and `intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB`.
 
-Existing chain:
+### Relative mass-gradient package
 
-`rawMoserDrop` → `moserDissipationDropBeforeNonnegB_of_raw_drop` → `MoserDissipationDropBeforeNonnegB` → `moser_step_of_energy_nonnegB_relative_interpolation` → `moser_iteration_chain_of_energy_nonnegB_relative_interpolation` → `intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB` and `intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB`.
+`relativeMassGradient` is wired to `RelativeMoserInterpolationBefore` by:
 
-No-go caveat: `P3MoserDissipationShape.lean` contains `unitLinearDrop_not_MoserDissipationDropBeforeNonnegB`, so this pointwise drop shape is not an automatic consequence of the broad Lp energy interface.
+`P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient`
 
-### `relativeMassGradient`
+used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCEGradResiduals.to_closedEnergyResiduals`.
 
-Classification: pure packaging already reducible downstream, but the mass-gradient package is a genuine analytic residual.
+### Actual-linear persistence
 
-Existing chain:
+The mainline no longer carries the four persistence parts. They are produced by:
 
-`relativeMassGradient` → `P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient` → `RelativeMoserInterpolationBefore`.
+`intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`
 
-This is used in `IntervalDomainMassLpSmoothingMoserActualLinearSmallCEGradResiduals.to_closedEnergyResiduals`.
+inside `IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts.to_coreExistence` / `IntervalDomainSectorialMainlineMoserActualLinearSmallFacts.to_coreExistence`, from `ha`, `hb`, `hχ0`, `hm`, `hβ`, and `hχ`.
 
-### `terminalPointwise`
+### Paper2-main proposition routing
 
-Classification: wireable by existing inline proof with small Lean glue.
+In the P2Main terminal route,
 
-Current code converts it inline inside `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.to_CERawGradResiduals`. The proof chooses constant endpoint sequences:
+`intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData`
 
-- `pSeq := fun _ => q`;
-- `rootBound := fun _ => R`;
-- witness index `0`;
-- endpoint bound `⟨R, hR, 0, hq, hR, le_rfl, hpoint⟩`.
+routes Paper3 Proposition 1.3 and Proposition 1.4 through the Paper2 main theorem target bundle. It deliberately does not discharge Paper3 Proposition 1.2.
 
-This should be named as a helper theorem. Exact suggested helper:
+## 2. Remaining fields: genuine analytic residuals vs packaging-only
 
-```lean
-import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
+### `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals p`
 
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
+Packaging / already wired:
 
-namespace ShenWork.Paper3
+- `boundednessCore`, as above, packages into `IntervalDomainBoundednessHyp p` once `hb` is supplied.
+- `closedEnergyTrace`, `rawMoserDrop`, `relativeMassGradient`, and `terminalPointwise` all have named packaging/conversion bridges.
 
-noncomputable section
+Genuine remaining residuals:
 
-/-- A direct terminal pointwise power-control witness supplies the older
-quantitative Moser endpoint by choosing constant endpoint sequences. -/
-theorem intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl
-    {p : CM2Params}
-    (hterminal :
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ {T : ℝ}, 0 < T →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T u v →
-        InitialTrace intervalDomain u₀ u →
-      ∀ pExp,
-        max (p.N : ℝ)
-            (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-        LpPowerBoundedBefore intervalDomain pExp T u →
-          ∃ q R, 0 < q ∧ 0 ≤ R ∧
-            IntervalDomainMoserPointwisePowerControlBefore u T q R) :
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ {T : ℝ}, 0 < T →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T u v →
-        InitialTrace intervalDomain u₀ u →
-      ∀ pExp,
-        max (p.N : ℝ)
-            (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-        LpPowerBoundedBefore intervalDomain pExp T u →
-          ∃ pSeq rootBound : ℕ → ℝ,
-            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound := by
-  intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
-  rcases hterminal hu₀ hT hsol htrace pExp hpExp hLp with
-    ⟨q, R, hq, hR, hpoint⟩
-  refine ⟨fun _ => q, fun _ => R, ?_⟩
-  intro _hAll
-  exact ⟨R, hR, 0, hq, hR, le_rfl, hpoint⟩
+- `boundednessCore.alphaAbsorption` and `boundednessCore.gammaDimension` are genuine parameter-side assumptions.
+- `closedEnergyTrace` itself is a genuine closed energy identity/trace residual.
+- `rawMoserDrop` is a genuine pointwise physical-drop residual. It should not be derived from the broad Lp energy inequality; `P3MoserDissipationShape.lean` contains no-go/counterexample material against such automatic pointwise-drop claims.
+- `relativeMassGradient` is a genuine mass-gradient / lower-order interpolation package.
+- `terminalPointwise` is a genuine terminal pointwise Moser endpoint estimate, though it now packages cleanly into `quantitativeEndpoint`.
 
-end
+### `IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p`
 
-end ShenWork.Paper3
-```
+Packaging / wired:
 
-Then `to_CERawGradResiduals` can replace the inline block with:
+- `massLpSmoothing` converts through
+  `to_CERawGradFacts hb` → `to_CEGradFacts` → `to_closedEnergyFacts` → `to_moserActualLinearSmallFacts` → `to_aprioriActualLinearSmallFacts` → `to_coreExistence`.
 
-```lean
-quantitativeEndpoint :=
-  intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl
-    h.terminalPointwise
-```
+Genuine remaining residuals:
 
-## 2. Sectorial terminal mainline facts
+- `spectralSemigroupOrbitBound : IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p` is a nonlinear sectorial orbit/Duhamel comparison residual. The linear spectral decay part is already separated and wired through `intervalDomain_spectralSemigroupOrbitBoundRaw_of_sectorialConcrete`, `intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound`, and `intervalDomain_Lemma_A_1_of_spectralSemigroupOrbitBound`, but no producer for the nonlinear orbit bound itself is present.
+- `continuation : IntervalDomainStandardContinuationGluingData p` is a genuine continuation/gluing residual. It is consumed by `intervalDomainGlobalSolutionExists_of_standardContinuation_gluing_and_massLpSmoothing`, then by `intervalDomain_smallDataGlobal_of_globalSolutionExists` and `intervalDomain_massConstrainedSmallDataGlobal_of_globalSolutionExists`.
 
-Record: `IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p`.
+### `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData`
 
-### `spectralSemigroupOrbitBound`
+Packaging / wired:
 
-Classification: genuine analytic residual.
+- `paper2Main` inside `propositions` is consumed by the Paper2-main proposition bridge to supply Paper3 Propositions 1.3 and 1.4.
+- `mainline` is routed through `intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData`.
 
-Wireable chain after it is supplied:
+Genuine remaining residuals:
 
-`intervalDomain_spectralSemigroupOrbitBoundRaw_of_sectorialConcrete` → `intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound` → `intervalDomain_Lemma_A_1_of_spectralSemigroupOrbitBound` → Theorem 2.2 wrappers such as `intervalDomain_Theorem_2_2_xpSigma_local_exponential_branch_of_spectralSemigroupOrbitBound`.
+- `propositions.negativeBound` is still the independent Paper3 Proposition 1.2 residual. It must not be derived from Paper2 Theorem 1.1; the statement-layer comment explicitly points to `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`.
+- `mainline.core.spectralSemigroupOrbitBound` and `mainline.core.continuation` are genuine residuals.
+- terminal Moser atoms inside `mainline.core.massLpSmoothing` are genuine lower-level residuals as listed above.
+- `mainline.compactness` and `mainline.stability` remain genuine frontiers except for small structural packaging fields noted below.
 
-The linear unit-interval spectral decay is already separated and proved; this field is the remaining nonlinear orbit-comparison/Duhamel estimate.
-
-### `continuation`
-
-Classification: genuine analytic residual.
-
-Consumed by:
-
-`intervalDomainGlobalSolutionExists_of_standardContinuation_gluing_and_massLpSmoothing` → `intervalDomain_smallDataGlobal_of_globalSolutionExists` and `intervalDomain_massConstrainedSmallDataGlobal_of_globalSolutionExists` → sectorial core existence.
-
-No exact producer for `IntervalDomainStandardContinuationGluingData p` was found in the inspected route.
-
-### `massLpSmoothing`
-
-Classification: composite reduced Moser route. The field is terminal-residual data; its conversions are pure packaging, while its lower-level analytic atoms remain real residuals.
-
-Conversion chain:
-
-`IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts.to_CERawGradFacts hb` → `IntervalDomainSectorialMainlineMoserActualLinearSmallCERawGradFacts.to_CEGradFacts` → `IntervalDomainSectorialMainlineMoserActualLinearSmallCEGradFacts.to_closedEnergyFacts` → `IntervalDomainSectorialMainlineMoserActualLinearSmallClosedEnergyFacts.to_moserActualLinearSmallFacts` → `IntervalDomainSectorialMainlineMoserActualLinearSmallFacts.to_aprioriActualLinearSmallFacts` → `IntervalDomainSectorialMainlineMoserActualLinearSmallFacts.to_coreExistence`.
-
-The actual-linear persistence fields are not carried here; they are produced by `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall` from `ha`, `hb`, `hχ0`, `hm`, `hβ`, and `hχ`.
-
-## 3. Full P2Main statement route
-
-Record: `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData p C M0 uBar vLower K`.
-
-### `propositions`
-
-Type: `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C`.
-
-Fields:
-
-- `negativeBound`: genuine residual / no-go to derive from Paper2 main. The generic wrapper `paper3_proposition1Targets_of_paper2MainTargetsData` explicitly consumes `negativeBound` separately and uses only `main.2.1` and `main.2.2` for Paper3 Propositions 1.4 and 1.3. The source comment says this is not derived from Paper2 Theorem 1.1 and points to `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`.
-- `paper2Main`: wireable if supplied by the preferred Paper2 route. In Paper3 it is pure proposition packaging: `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` → `paper3_proposition1Targets_of_paper2MainTargetsData` extracts Paper2 Theorem 1.2 and Theorem 1.3.
-
-### `mainline`
-
-Type: `IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData p M0 uBar vLower K`.
-
-Fields:
-
-- `core`: same three-field sectorial terminal facts above; contains genuine `spectralSemigroupOrbitBound`, genuine `continuation`, and the reduced terminal Moser residuals.
-- `compactness`: see compactness map below.
-- `stability`: see stability map below.
-
-Wrapper chain:
-
-`intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData` → `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` plus `intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData`.
-
-## 4. Compactness/regularization input structure
+### Compactness / regularization
 
 Record: `IntervalDomainPaper3ConcreteCompactnessRegularizationData p M0 uBar vLower K`.
 
-- `upperEq`: wireable with a canonical concrete `K` whose `upperEnvelope` is `intervalDomain.supNorm`; for arbitrary `K`, it remains a structural field. It feeds `intervalDomain_Lemma_3_4_of_upperEnvelope_eq_supNorm` through `intervalDomain_compactness_regularization_support_of_frontiers`.
-- `compact`: genuine analytic residual, consumed by `Lemma_3_2.of_timeTranslateCompactnessRaw`.
-- `initialContinuity`: genuine analytic/topological residual, consumed by `Lemma_3_3.of_assumed_continuity_branch`; the concrete bridge is `intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw`.
-- `minimalUpper`: genuine analytic residual, consumed by `Lemma_3_5.of_assumed_bound_branch`.
-- `resolvent`: genuine analytic residual, consumed by `Lemma_7_1.of_neumannResolventGradientBoundExistsRaw`.
+Packaging-only / structural:
 
-Assembly chain:
+- `upperEq` is structural, not analytic. It is used to route Lemma 3.4 through `intervalDomain_Lemma_3_4_of_upperEnvelope_eq_supNorm` and then through `intervalDomain_compactness_regularization_support_of_frontiers`.
 
-`IntervalDomainPaper3ConcreteCompactnessRegularizationData` → `intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers` → `intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers` → `intervalDomain_compactness_regularization_support_of_frontiers`.
+Genuine residuals:
 
-## 5. Stability 2.3--2.5 input structure
+- `compact` feeds `Lemma_3_2.of_timeTranslateCompactnessRaw`.
+- `initialContinuity` feeds `Lemma_3_3.of_assumed_continuity_branch`; the concrete interval bridge is `intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw`.
+- `minimalUpper` feeds `Lemma_3_5.of_assumed_bound_branch`.
+- `resolvent` feeds `Lemma_7_1.of_neumannResolventGradientBoundExistsRaw`.
+
+I did not find an existing canonical `CompactnessData intervalDomain` object in the inspected files that would definitionally close `upperEq` without choosing a new `K`. So removing `upperEq` is possible only as a local wrapper around a newly chosen canonical `K`, not by wiring an already-existing producer.
+
+### Stability Theorems 2.3--2.5
 
 Record: `IntervalDomainPaper3Stability23To25FrontierData p C`.
 
-All eight fields are genuine stability frontiers:
+All eight fields are genuine stability residuals:
 
 - `globalNonminimal23`
 - `globalMinimal23`
@@ -219,19 +162,49 @@ All eight fields are genuine stability frontiers:
 - `global25`
 - `exp25`
 
-Existing chain:
+They are packaged by:
 
-`IntervalDomainPaper3Stability23To25FrontierData` → `intervalDomain_paper3_stability23To25Targets_of_frontiers` → `intervalDomain_Theorem_2_3_to_2_5_for_concreteStabilityNorms_of_frontiers`.
+`intervalDomain_paper3_stability23To25Targets_of_frontiers` → `intervalDomain_Theorem_2_3_to_2_5_for_concreteStabilityNorms_of_frontiers`.
 
-No inspected file produces these eight universal global/exponential stability inputs. The wrappers only package them into Theorems 2.3, 2.4, and 2.5.
+No inspected producer discharges these global/exponential stability fields.
 
-## 6. Smallest next Lean edit
+## 3. Existing producers that should be wired now
 
-The smallest faithful edit after `09140eae` is to name the inline terminal endpoint bridge:
+The only newly relevant producer was the terminal endpoint bridge, and it is already wired:
 
-1. Add `intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl` near `IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals`.
-2. Replace the inline `quantitativeEndpoint := by ...` block in `to_CERawGradResiduals` with a call to that helper.
+`intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl`
 
-This edit reduces misleading headline surface by making explicit that `terminalPointwise` is not the same as `quantitativeEndpoint`; it is a stronger terminal atom that purely packages into the older endpoint shape. It does not remove or fake any analytic residual.
+No further producer appears to be sitting unused for the remaining analytic fields. In particular:
 
-The next larger cleanup would be a canonical-`K` compactness wrapper that discharges `upperEq` by construction, but that is more invasive because it chooses a concrete `CompactnessData intervalDomain`. The terminal helper is strictly smaller and mechanically local.
+- no producer for `IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p` was found;
+- no producer for `IntervalDomainStandardContinuationGluingData p` was found;
+- no producer for `closedEnergyTrace`, `rawMoserDrop`, `relativeMassGradient`, or `terminalPointwise` was found beyond their packaging bridges;
+- no producer for `negativeBound` was found, and deriving it from Paper2 main would contradict the documented no-go;
+- no producer for the compactness/stability residuals was found.
+
+## 4. Smallest honest next Lean edit
+
+No new theorem wrapper is needed for the terminal bridge; it already exists and is used. The smallest honest next edit is a doc/comment clarification on the preferred terminal P2Main route, not a theorem pretending to close more analysis.
+
+Suggested placement: immediately above `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData` in `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+
+Suggested replacement/extension of the existing doc comment:
+
+```lean
+/-- Full interval-domain Paper3 statement frontiers using the direct terminal
+pointwise endpoint input, with Proposition 1.3/1.4 routed through the Paper2
+main theorem target bundle.
+
+This is the preferred current actual-linear terminal statement route.  The
+terminal Moser endpoint is no longer inline: `terminalPointwise` is converted to
+`quantitativeEndpoint` by
+`intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl`.
+The route is still intentionally conditional: it carries the independent
+`negativeBound` residual for Paper3 Proposition 1.2, the sectorial nonlinear
+orbit bound, continuation/gluing, the terminal Moser analytic atoms,
+compactness/regularization frontiers, and Theorem 2.3--2.5 stability frontiers.
+Paper2 main targets discharge only the Proposition 1.3/1.4 branches, not
+`negativeBound`. -/
+```
+
+Risk classification: local documentation-only cleanup. A canonical-`K` wrapper to remove `upperEq` would be a larger local wrapper/refactor because it must choose or define a concrete `CompactnessData intervalDomain`; it should be handled separately and should not hide `compact`, `initialContinuity`, `minimalUpper`, or `resolvent`.
