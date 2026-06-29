@@ -6,7 +6,7 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Full remote build for the current tree: `lake build` on
-  `uisai2:/dev/shm/shen_verify` completed successfully, **8966 jobs**.
+  `uisai2:/dev/shm/shen_verify` completed successfully, **8967 jobs**.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -39,7 +39,10 @@ Current headline status:
   `hQuant` via the existing restart/glue/sup-norm continuation machinery.  The
   squared-barrier branch now also has
   `paper2_theorem_1_1_general_chi_bformSq_from_quant`, replacing its
-  `IntervalDomainUniformLocalExistence` input by the same quantitative factory.
+  `IntervalDomainUniformLocalExistence` input by the same quantitative factory;
+  the banked squared-barrier wrapper
+  `paper2_theorem_1_1_general_chi_bformSq_of_banked_from_quant` does the same
+  after `positiveDatumBFormLocalHypSq_of_banked`.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain
   sectorial endpoints are still assembled from explicit frontier/existence
   packages such as `Paper3MainlineData` and
