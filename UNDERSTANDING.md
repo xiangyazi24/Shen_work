@@ -52,7 +52,12 @@ Current headline status:
   `paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_quant`.  The
   `SqRegular`/`SqDeepest` plumbing uses the banked PDE identity
   `BFormBankedInputs.hpde_u` directly instead of the stale spectral-agreement
-  shim `hpde_of_BFormBankedInputs`.
+  shim `hpde_of_BFormBankedInputs`.  These B-form branches are also wired one
+  layer deeper through the threshold/Picard route:
+  `*_from_picardFrontier_persistence` wrappers replace `hQuant` by
+  `PicardRestartFrontier`, `ClassicalMinPersistence`, and the per-datum
+  `hlocal` seed, using the already-proved
+  `ThresholdQuantBridge.quantitativeLocalExistence_of_picardFrontier_persistence`.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain
   sectorial endpoints are still assembled from explicit frontier/existence
   packages such as `Paper3MainlineData` and
