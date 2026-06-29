@@ -5,9 +5,8 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after extending the Paper2 positive solution-slice
-  statement route to the H2-source and logistic-source statement wrappers,
-  `lake build ShenWork` completed successfully on
+- Last full remote build: after adding the Paper2 positive solution-slice
+  bootstrap statement routes, `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
   `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also completed
   successfully, **3712 jobs**.  The new Paper2 positive solution-slice
@@ -94,9 +93,17 @@ Current headline status:
   `IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationFrontierData`
   and
   `IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationFrontierData`
-  are the full-statement entry points.  This is still conditional, but no
-  longer rests on the step-function counterexample premise, including in the
-  full statement-target wrappers.
+  are the full-statement entry points.  The full-statement routes now also
+  have thinner bootstrap variants,
+  `IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationBootstrapFrontierData`,
+  `IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationBootstrapFrontierData`,
+  and
+  `IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationBootstrapFrontierData`.
+  These replace the carried `IntervalDomainPaper2Corollary21FrontierData`
+  field by the smaller `Paper2BootstrapEstimateBranchData`; Corollary 2.1 is
+  produced from the nested positive solution-slice common data.  This is still
+  conditional, but no longer rests on the step-function counterexample premise,
+  including in the full statement-target wrappers.
   General
   χ₀ ≤ 0 is not a no-frontier headline yet:
   `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`

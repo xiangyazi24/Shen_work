@@ -926,6 +926,44 @@ theorem
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
     p C cGrad hData.out
 
+/-- Assemble the section-2 Corollary 2.1/bootstrap target bundle with
+Corollary 2.1 produced from the positive solution-slice interpolation common
+frontier.  The only remaining section-2 input is the bootstrap/estimate branch
+data needed for Lemma 2.7 and Propositions 2.2--2.5. -/
+theorem
+    intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+        p C cGrad)
+    (hBootstrap : Paper2BootstrapEstimateBranchData intervalDomain p) :
+    IntervalDomainPaper2Corollary21BootstrapTargets p :=
+  ⟨IntervalDomainTheorem11Composite.Corollary_2_1_intervalDomain_of_solution_interpolation_frontier
+      p
+      (IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionInterpolation_of_positive
+        p hData.common.solutionInterpolation)
+      cGrad hData.common.dissipation hData.common.gradConstantPositive
+      hData.common.gradientChain hData.common.massControl
+      hData.common.powerIntegrability
+      hData.common.energyFromCrossDiffusion,
+    intervalDomainPaper2_bootstrapEstimateTargets_of_branchData
+      p hBootstrap⟩
+
+/-- Instance-facing section-2 Corollary 2.1/bootstrap wrapper from the
+positive solution-slice interpolation common frontier. -/
+theorem
+    intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    [hData : Fact
+      (IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+        p C cGrad)]
+    [hBootstrap : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    IntervalDomainPaper2Corollary21BootstrapTargets p :=
+  intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationFrontierData
+    p C cGrad hData.out hBootstrap.out
+
 /-- Single-target interval-domain wrapper for Paper2 Theorem 1.2. -/
 theorem intervalDomainPaper2_Theorem_1_2_of_frontierData
     (p : CM2Params) (C : Paper2Constants p)
@@ -1864,6 +1902,22 @@ structure
     IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationFrontierData
       p C cGrad
 
+/-- Thinner statement-frontier record for the proved `χ₀ = 0` route using the
+positive solution-slice interpolation assembly.  Unlike
+`IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationFrontierData`,
+this record does not carry the Corollary 2.1 energy frontier separately:
+Corollary 2.1 is produced from the nested positive solution-slice common data,
+while the section-2 branch data supplies Lemma 2.7 and Propositions 2.2--2.5. -/
+structure
+    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
 /-- Assemble the concrete interval-domain Paper 2 statement targets in the
 proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
 internally. -/
@@ -1966,6 +2020,41 @@ theorem
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
 
+/-- Assemble the concrete interval-domain Paper 2 statement targets in the
+proved `χ₀ = 0` route from the positive solution-slice route, with Corollary
+2.1 derived from the nested common data instead of carried separately. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationFrontierData
+      p C cGrad hData.localAndMain.main.theorem12And13 hData.bootstrap,
+    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+      p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+      p C cGrad hχ0 ha hb hα hγ hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper for the
+proved `χ₀ = 0` route from the thinner positive solution-slice/bootstrap data. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationBootstrapFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
 H2-source local-existence route. -/
 structure IntervalDomainPaper2StatementH2SourceFrontierData
@@ -2018,6 +2107,19 @@ structure
     IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
       p C cGrad
 
+/-- Thinner H2-source statement-frontier record using the positive
+solution-slice route.  It carries only the section-2 bootstrap branch data;
+Corollary 2.1 is produced from the nested positive solution-slice common data. -/
+structure
+    IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad
+
 /-- Assemble the concrete interval-domain Paper 2 statement targets from the
 H2-source local-existence route, using positive-constant solution-slice
 interpolation instead of the false global interpolation frontier. -/
@@ -2052,6 +2154,41 @@ theorem
         p C cGrad)] :
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets from the
+H2-source positive solution-slice route, with Corollary 2.1 derived from the
+nested common data instead of carried separately. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationFrontierData
+      p C cGrad hData.localAndMain.main.theorem12And13 hData.bootstrap,
+    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+      p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad hχ ha hb hγ_ge_one hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper from
+the H2-source thinner positive solution-slice/bootstrap data. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationBootstrapFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationBootstrapFrontierData
     p C cGrad hχ ha hb hγ_ge_one hData.out
 
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
@@ -2107,6 +2244,19 @@ structure
     IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
       p C cGrad
 
+/-- Thinner logistic-source statement-frontier record using the positive
+solution-slice route.  It carries only the section-2 bootstrap branch data;
+Corollary 2.1 is produced from the nested positive solution-slice common data. -/
+structure
+    IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad
+
 /-- Assemble the concrete interval-domain Paper 2 statement targets from the
 logistic-source local-existence route, using positive-constant solution-slice
 interpolation instead of the false global interpolation frontier. -/
@@ -2141,6 +2291,41 @@ theorem
         p C cGrad)] :
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets from the
+logistic-source positive solution-slice route, with Corollary 2.1 derived from
+the nested common data instead of carried separately. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationFrontierData
+      p C cGrad hData.localAndMain.main.theorem12And13 hData.bootstrap,
+    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+      p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad hχ ha hb hγ_ge_one hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper from
+the logistic-source thinner positive solution-slice/bootstrap data. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationBootstrapFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationBootstrapFrontierData
     p C cGrad hχ ha hb hγ_ge_one hData.out
 
 section AxiomAudit
@@ -2178,9 +2363,15 @@ section AxiomAudit
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
 #print axioms
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationBootstrapFrontierData
+#print axioms
   intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
 #print axioms
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationBootstrapFrontierData
+#print axioms
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationBootstrapFrontierData
 
 end AxiomAudit
 
