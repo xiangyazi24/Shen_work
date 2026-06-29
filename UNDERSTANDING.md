@@ -5,14 +5,13 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after the Paper1 weakened negative-construction
-  provider edit, `lake build ShenWork` completed successfully on
+- Last full remote build: after the Paper2 `χ₀ = 0` Proposition 1.1 thin
+  frontier edit, `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
-  `lake build ShenWork.Paper1.StatementAssembly` completed successfully,
-  **8282 jobs**.  The new Paper1 `ConstructionNegSMPProvider` route's
-  `#print axioms` output is `[propext, Classical.choice, Quot.sound]`.
-  The previous Paper2 `χ₀ = 0` statement wrappers had the same axiom-clean
-  output.
+  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` completed
+  successfully, **3712 jobs**.  The new Paper2 `χ₀ = 0` thin Proposition 1.1,
+  local-plus-main, and statement wrappers' `#print axioms` output is
+  `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -53,7 +52,13 @@ Current headline status:
   `χ₀ = 0` main/local+main/statement-target bundles; those routes carry no
   Theorem 1.1 half-step frontier package, though they still carry the
   independent Proposition 1.1 / Theorem 1.2 / Theorem 1.3 frontiers where
-  applicable.  General χ₀ ≤ 0 is not a no-frontier headline yet:
+  applicable.  The `χ₀ = 0` Proposition 1.1 route now also has thin wrappers
+  `IntervalDomainPaper2Proposition11ChiZeroFrontierData`,
+  `IntervalDomainPaper2LocalAndMainChiZeroThinFrontierData`, and
+  `IntervalDomainPaper2StatementChiZeroThinFrontierData`: these discharge the
+  local-existence field from `intervalDomain_localExistence_chiZero_unconditional`,
+  so Proposition 1.1 only carries the independent finite-horizon alternative in
+  that regime.  General χ₀ ≤ 0 is not a no-frontier headline yet:
   `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`
   and `IntervalDomainUniformLocalExistence`.  The B-form
   branch now has `paper2_theorem_1_1_general_chi_bform_from_quant`, which
