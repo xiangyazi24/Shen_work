@@ -6,13 +6,14 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper3 actual-linear-small
-  closed-energy Moser mainline/statement route, `lake build ShenWork` completed
-  successfully on `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The target
-  build
+  closed-energy/CEGrad Moser mainline/statement route, `lake build ShenWork`
+  completed successfully on `uisai2:/dev/shm/shen_verify`, **8981 jobs**.  The
+  target build
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
-  also completed successfully, **8393 jobs**.  The new actual-linear-small
-  sectorial/a-priori/Moser/closed-energy-Moser mainline/statement wrappers'
-  `#print axioms` output is `[propext, Classical.choice, Quot.sound]`.
+  also completed successfully, **8393 jobs**.  The actual-linear-small
+  sectorial/a-priori/Moser/closed-energy-Moser/CEGrad mainline/statement
+  wrappers' `#print axioms` output is
+  `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -226,7 +227,20 @@ Current headline status:
   `P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData`, using the proved
   `l2SeedRegularity_of_closedEnergyIdentityTraceData` bridge.  The energy
   identity itself remains a residual; the seed regularity conversion is no
-  longer a residual.
+  longer a residual.  The closed-energy Moser route now has a still thinner
+  CEGrad variant,
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallCEGradResiduals`,
+  `IntervalDomainSectorialMainlineMoserActualLinearSmallCEGradFacts`,
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallCEGradFrontierData`, and
+  `IntervalDomainPaper3StatementMoserActualLinearSmallCEGradFrontierData`.
+  This replaces the black-box `relativeMoserInterpolation` field by a
+  mass-gradient/lower-order interface (`cGrad` positivity,
+  `LpMassGradientInterpolationEstimate`, the gradient-comparison inequality,
+  and `MoserMassPowerToCurrentLpLowerOrder`), then uses the proved
+  `P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient`
+  bridge to recover `RelativeMoserInterpolationBefore`.  Those four CEGrad
+  subfields are still analytic residuals; only the conversion from them to
+  relative Moser interpolation is discharged.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
