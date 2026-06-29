@@ -130,6 +130,148 @@ theorem HasWaveRightTailAsymptotic_of_stationary
     HasWaveRightTailAsymptotic c κ₁ U :=
   htail
 
+/-! ## #4B wired back into the negative construction provider. -/
+
+/-- **`construction_neg` for a fixed `(p, c)`, with the upper-bound residual
+reduced to the single strong-maximum-principle scalar `U 0 < 1`.**
+
+Compared with `constructionNeg_of_lowerPinnedSchauderData`, this no longer
+carries the full `ShenUpperBoundNegative c U` predicate for every trapped
+profile.  It derives that predicate for the produced stationary fixed point
+from `ShenUpperBoundNegative_of_stationary_strongMaxPrinciple`; the remaining
+tail asymptotic residual is unchanged. -/
+theorem constructionNeg_of_lowerPinnedSchauderData_smp
+    {p : CMParams} {c lam κtilde D M : ℝ} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hχ : p.χ ≤ 0)
+    (hc : 0 < c) (hκ : 0 < kappa c)
+    (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap (kappa c) M
+          (lowerBarrierPlateau (kappa c) κtilde D)))
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InLowerPinnedMonotoneTrap (kappa c) M
+          (lowerBarrierPlateau (kappa c) κtilde D)) Tmap)
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap (kappa c) M
+        (lowerBarrierPlateau (kappa c) κtilde D) U →
+      Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap (kappa c) M
+        (lowerBarrierPlateau (kappa c) κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hM : M = 1)
+    (hSMP : ∀ U,
+      InLowerPinnedMonotoneTrap (kappa c) M
+        (lowerBarrierPlateau (kappa c) κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        U 0 < 1)
+    (htail : ∀ U,
+      InLowerPinnedMonotoneTrap (kappa c) M
+        (lowerBarrierPlateau (kappa c) κtilde D) U →
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U) :
+    ∃ U : ℝ → ℝ,
+      FrozenStationaryWaveProfile p c U ∧
+        (∀ x, deriv U x ≤ 0) ∧
+        (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+        ShenUpperBoundNegative c U ∧
+        ∀ κ₁, kappa c < κ₁ →
+          κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U := by
+  subst hM
+  obtain ⟨U, hU, hprofile⟩ :=
+    b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
+      hc hκ hgap hD hprinciple hdata hstationary hflat
+  have hupper : ShenUpperBoundNegative c U :=
+    ShenUpperBoundNegative_of_stationary_strongMaxPrinciple
+      hκ hU.bare hprofile.U_pos hχ hprofile.stationary_eq
+      (hSMP U hU hprofile.stationary_eq)
+  refine ⟨U, hprofile, ?_, ?_, hupper, htail U hU⟩
+  · exact fun x => constructionNeg_hUmono hU.bare x
+  · exact fun x => constructionNeg_hVmono p hU.bare x
+
+/-- Full quantified negative construction provider with the upper-bound slot
+weakened to the scalar strictness `U 0 < 1`. -/
+def ConstructionNegSMPProvider : Prop :=
+  ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+    ∀ c : ℝ, cStarLower p < c →
+      ∃ lam κtilde D : ℝ, ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+        0 < κtilde - kappa c ∧ 0 < D ∧
+        LocalUniformSchauderFixedPointPrinciple
+          (InLowerPinnedMonotoneTrap (kappa c) 1
+            (lowerBarrierPlateau (kappa c) κtilde D)) ∧
+        FrozenStationaryMapSchauderData p c lam
+          (InLowerPinnedMonotoneTrap (kappa c) 1
+            (lowerBarrierPlateau (kappa c) κtilde D)) Tmap ∧
+        (∀ U, InLowerPinnedMonotoneTrap (kappa c) 1
+            (lowerBarrierPlateau (kappa c) κtilde D) U →
+          Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0) ∧
+        (∀ U, InLowerPinnedMonotoneTrap (kappa c) 1
+            (lowerBarrierPlateau (kappa c) κtilde D) U →
+          (∀ x, frozenWaveOperator p c U U x = 0) →
+            FrozenStationaryFlatAtLeft p U) ∧
+        (∀ U, InLowerPinnedMonotoneTrap (kappa c) 1
+            (lowerBarrierPlateau (kappa c) κtilde D) U →
+          (∀ x, frozenWaveOperator p c U U x = 0) →
+            U 0 < 1) ∧
+        (∀ U, InLowerPinnedMonotoneTrap (kappa c) 1
+            (lowerBarrierPlateau (kappa c) κtilde D) U →
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+            HasWaveRightTailAsymptotic c κ₁ U)
+
+/-- **Full quantified negative construction from the weakened provider.**
+
+This is the same target as `constructionNeg_of_provider`, except the provider no
+longer supplies `ShenUpperBoundNegative c U` directly.  It supplies the scalar
+strictness at the saturated point `x = 0`; the rest of the strict upper bound is
+proved here from trap arithmetic and the stationary profile package. -/
+theorem constructionNeg_of_provider_smp
+    (hprovider : ConstructionNegSMPProvider) :
+    ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+      ∀ c : ℝ, cStarLower p < c →
+        ∃ U : ℝ → ℝ,
+          FrozenStationaryWaveProfile p c U ∧
+            (∀ x, deriv U x ≤ 0) ∧
+            (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+            ShenUpperBoundNegative c U ∧
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ < min ((1 + p.α) * kappa c)
+                (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U := by
+  intro p halpha hχ c hc
+  obtain ⟨lam, κtilde, D, Tmap, hgap, hD, hprinciple, hdata,
+      hstationary, hflat, hSMP, htail⟩ :=
+    hprovider p halpha hχ c hc
+  exact constructionNeg_of_lowerPinnedSchauderData_smp
+    hχ (lt_of_lt_of_le two_pos (two_lt_of_cStarLower_lt hc).le)
+    (kappa_pos_of_cStarLower_lt hc) hgap hD
+    hprinciple hdata hstationary hflat rfl hSMP htail
+
+/-- **Theorem 1.1 with the negative branch routed through the weakened
+upper-bound provider.** -/
+theorem Theorem_1_1.of_constructionNeg_provider_smp
+    (hprovider : ConstructionNegSMPProvider)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              ShenUpperBoundPositive p c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ < min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 :=
+  Theorem_1_1.of_assumed_frozenStationaryProfile_branches
+    (constructionNeg_of_provider_smp hprovider) hpos
+
 /-
 ================================================================================
 PRECISE STALL — #4B closed up to one scalar; #4C carried (real gap).
@@ -194,6 +336,9 @@ section AxiomAudit
 #print axioms ShenUpperBoundNegative_of_strictAtZero
 #print axioms ShenUpperBoundNegative_of_stationary_strongMaxPrinciple
 #print axioms HasWaveRightTailAsymptotic_of_stationary
+#print axioms constructionNeg_of_lowerPinnedSchauderData_smp
+#print axioms constructionNeg_of_provider_smp
+#print axioms Theorem_1_1.of_constructionNeg_provider_smp
 end AxiomAudit
 
 end ShenWork.Paper1

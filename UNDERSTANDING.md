@@ -5,12 +5,14 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after the Paper2 `χ₀ = 0` statement-wrapper edit,
-  `lake build ShenWork` completed successfully on
+- Last full remote build: after the Paper1 weakened negative-construction
+  provider edit, `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
-  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` also completed
-  successfully, **3712 jobs**, with the new `χ₀ = 0` wrappers'
-  `#print axioms` output equal to `[propext, Classical.choice, Quot.sound]`.
+  `lake build ShenWork.Paper1.StatementAssembly` completed successfully,
+  **8282 jobs**.  The new Paper1 `ConstructionNegSMPProvider` route's
+  `#print axioms` output is `[propext, Classical.choice, Quot.sound]`.
+  The previous Paper2 `χ₀ = 0` statement wrappers had the same axiom-clean
+  output.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -34,6 +36,16 @@ Current headline status:
   `b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData`, which
   replace the monolithic `PaperGreenStepInputRouteACore` input by explicit
   `PerStepBoxParams` / `PerStepBoxZWitness` / Route-A rest / lower-raw aux data.
+  The negative construction's upper-bound slot also has a thinner statement
+  route: `ConstructionNegSMPProvider` replaces the full carried
+  `ShenUpperBoundNegative c U` field by the scalar stationary strictness
+  `U 0 < 1` for each produced fixed point.  The wrappers
+  `constructionNeg_of_lowerPinnedSchauderData_smp`,
+  `constructionNeg_of_provider_smp`,
+  `Theorem_1_1.of_constructionNeg_provider_smp`, and the statement-layer
+  `paper1_Theorem_1_1_of_constructionNegSMPProvider` then derive the strict
+  upper bound from `ShenUpperBoundNegative_of_stationary_strongMaxPrinciple`.
+  The sharp right-tail asymptotic remains a separate carried residual.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  This producer is now wired through
   `IntervalDomainStatementAssembly` as

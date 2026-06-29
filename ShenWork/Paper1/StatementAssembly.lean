@@ -5,6 +5,7 @@
   `Statements` and `Lemma25Helpers`.  It adds no new analytic frontier.
 -/
 import ShenWork.Paper1.Lemma25Helpers
+import ShenWork.Paper1.StationaryUpperTail
 
 namespace ShenWork.Paper1
 
@@ -44,6 +45,44 @@ theorem paper1_Theorem_1_1_of_mainResultsDataFact
     [hData : Fact (Paper1MainResultsData cStarStarFn)] :
     Theorem_1_1 :=
   paper1_Theorem_1_1_of_mainResultsData hData.out
+
+/-- Single-target Paper1 Theorem 1.1 wrapper using the weakened negative
+construction provider.  The negative branch no longer carries
+`ShenUpperBoundNegative` directly; it carries the scalar strictness `U 0 < 1`
+through `ConstructionNegSMPProvider`. -/
+theorem paper1_Theorem_1_1_of_constructionNegSMPProvider
+    (hneg : ConstructionNegSMPProvider)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              ShenUpperBoundPositive p c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ < min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 :=
+  Theorem_1_1.of_constructionNeg_provider_smp hneg hpos
+
+/-- Instance-facing Paper1 Theorem 1.1 wrapper from the weakened negative
+construction provider. -/
+theorem paper1_Theorem_1_1_of_constructionNegSMPProviderFact
+    [hneg : Fact ConstructionNegSMPProvider]
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              ShenUpperBoundPositive p c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ < min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 :=
+  paper1_Theorem_1_1_of_constructionNegSMPProvider hneg.out hpos
 
 /-- The B5 stability/uniqueness endpoints covered by the canonical mainline
 existence package. -/
