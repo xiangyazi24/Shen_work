@@ -1,34 +1,51 @@
 # PAPER1-POSITIVE-BRANCH-AUDIT-REQUEST
 
-Audit target: Paper1 headline statement assembly on current `main` around `e3aa461e` or newer, focused only on the positive-critical/frozen-stationary branch.
+Audited current `main` around `e3aa461e` or newer, focusing only on Paper1 statement assembly and the positive-critical frozen-stationary branch.
 
-## First correction: this branch is for Theorem 1.1, not the B5 Theorem 1.2/1.3 route
+## 1. Where the positive branch actually sits
 
-The positive-critical/frozen-stationary branch appears in Paper1 Theorem 1.1 construction, not in the current strongest Paper1 Theorem 1.2/1.3 mainline.  The B5 stability/uniqueness route is:
-
-```lean
-paper1_mainlineStatementTargets_of_mainlineExistence
-  : Paper1MainlineExistence cStarStarFn → Theorem_1_2 ∧ Theorem_1_3
-```
-
-So Theorems 1.2/1.3 are conditional on `Paper1MainlineExistence`, whose fields are stability-threshold, traveling-wave regularity, perturbation energy dissipation, weighted-L2-to-uniform upgrade, and Cauchy uniqueness.  They do not require the positive frozen-stationary construction branch.
-
-The positive branch is needed when assembling the full Paper1 main statement target:
+The positive construction branch is needed for **Paper1 Theorem 1.1**, and therefore for the full three-target package
 
 ```lean
 Paper1MainStatementTargets := Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3
 ```
 
-via either:
+It is **not** an input to the current B5 route for **Theorem 1.2 / Theorem 1.3**.  Those are assembled separately by
 
 ```lean
-paper1_mainStatementTargets_of_mainResultsData
+paper1_mainlineStatementTargets_of_mainlineExistence
+  : Paper1MainlineExistence cStarStarFn → Paper1MainlineStatementTargets
+```
+
+with
+
+```lean
+Paper1MainlineStatementTargets := Theorem_1_2 ∧ Theorem_1_3
+```
+
+So the positive frozen-stationary branch affects the full Paper1 main statement through Theorem 1.1, while Theorem 1.2/1.3 remain conditional on the B5 package `Paper1MainlineExistence`.
+
+## 2. Exact branch now named in the repo
+
+The newly named branch is:
+
+```lean
+Paper1PositiveCriticalFrozenStationaryBranch
+```
+
+It is definitionally the old `hpos` input to
+
+```lean
 paper1_Theorem_1_1_of_constructionNegSMPProvider
 ```
 
-## Exact positive branch required by the headline wrapper
+and to the positive half of
 
-`paper1_Theorem_1_1_of_constructionNegSMPProvider` thins only the negative branch.  It still takes the positive branch as an explicit input:
+```lean
+Theorem_1_1.of_assumed_frozenStationaryProfile_branches
+```
+
+Its shape is:
 
 ```lean
 ∀ p : CMParams, p.α = p.m + p.γ - 1 →
@@ -43,31 +60,49 @@ paper1_Theorem_1_1_of_constructionNegSMPProvider
           HasWaveRightTailAsymptotic c κ₁ U
 ```
 
-That is exactly the `hpos` argument of:
+Classification: **genuine analytic residual / theorem-branch-shaped frontier**.
+
+It is not an empty declaration and it does not literally contain `Theorem_1_1`; however it is essentially the positive half of Theorem 1.1 at the frozen-stationary-profile level.  It should not be treated as produced unless a theorem constructs it.
+
+## 3. New `Paper1MainStatementSMPMainlineData` route
+
+The new bundle is:
 
 ```lean
-Theorem_1_1.of_assumed_frozenStationaryProfile_branches
+structure Paper1MainStatementSMPMainlineData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  constructionNeg : ConstructionNegSMPProvider
+  positiveCritical : Paper1PositiveCriticalFrozenStationaryBranch
+  mainline : Paper1MainlineExistence cStarStarFn
 ```
 
-Classification of this full `hpos` input: **genuine analytic residual / theorem-branch-shaped frontier**.  It is not currently produced unconditionally.
-
-## Existing positive-branch infrastructure
-
-The repo has significant positive-branch Rothe/Schauder infrastructure.  The relevant chain includes:
+The wrapper is:
 
 ```lean
-rotheFloorResidual_of_trap_pos
-b1_chiPos_existence
-b1_chiPos_existence_rootPin
-b1_chiPos_existence_profileClean_stationary_floor_rootPin
-b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData
-b1_chiPos_existence_paper_min_noBar_of_cubeApproxData
-b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData
-b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
+paper1_mainStatementTargets_of_smpMainlineData
+  : Paper1MainStatementSMPMainlineData cStarStarFn →
+      Paper1MainStatementTargets
+```
+
+Classification: **pure wiring from explicit conditional packages**.
+
+The route is semantically honest: the fields are named residual packages, and the doc comment says it does not construct `ConstructionNegSMPProvider`, the positive branch, or `Paper1MainlineExistence`.  It is a cleaner bundle than the old monolithic `Paper1MainResultsData`, but it is not an unconditional headline theorem.
+
+## 4. Can the positive branch be wired from existing construction theorems?
+
+Only partially.
+
+Existing positive construction wrappers can produce a lower-pinned frozen stationary profile under substantial route data, for example:
+
+```lean
 b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
+b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData
+b1_chiPos_existence_paper_min_noBar_of_cubeApproxData
+b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData
 ```
 
-The strongest inspected positive construction wrappers produce a lower-pinned stationary profile:
+The endpoint shape of these wrappers is of the form:
 
 ```lean
 ∃ U,
@@ -75,13 +110,13 @@ The strongest inspected positive construction wrappers produce a lower-pinned st
     FrozenStationaryWaveProfile p c U
 ```
 
-This is not enough for the exact `hpos` branch, because `hpos` additionally requires:
+This is meaningful progress, but it is **not** the exact `Paper1PositiveCriticalFrozenStationaryBranch`, because the exact branch additionally requires:
 
 ```lean
 ShenUpperBoundPositive p c U
 ```
 
-and the sharp tail:
+and
 
 ```lean
 ∀ κ₁, kappa c < κ₁ →
@@ -90,68 +125,49 @@ and the sharp tail:
   HasWaveRightTailAsymptotic c κ₁ U
 ```
 
-I found no existing theorem that turns the produced lower-pinned `FrozenStationaryWaveProfile` into those two fields.
+I found no existing theorem that supplies those two fields for the `U` produced by the positive Rothe/Schauder route.
 
-## Classification by input / route piece
+## 5. Input-by-input classification
 
-| Item | Classification | Notes |
-|---|---|---|
-| `paper1_mainlineStatementTargets_of_mainlineExistence` | pure wiring from a conditional package | Proves `Theorem_1_2 ∧ Theorem_1_3` from `Paper1MainlineExistence`; it does not use the positive construction branch. |
-| `Paper1MainlineExistence` | genuine analytic residual package | Carries `cStarStar_spec`, `regularity`, `energyDissipation`, `l2ToUniform`, and `cauchyUnique`.  It is not an empty declaration and does not contain `Theorem_1_2`/`Theorem_1_3` as fields. |
-| `paper1_Theorem_1_1_of_constructionNegSMPProvider` | pure wiring plus negative-branch thinning | Consumes `ConstructionNegSMPProvider` and the full positive `hpos`; only the negative upper-bound slot is thinned. |
-| `Theorem_1_1.of_assumed_frozenStationaryProfile_branches` | pure wiring | Converts negative and positive frozen-stationary profile branches into `Theorem_1_1`. |
-| Exact `hpos` branch | genuine analytic residual / theorem-branch-shaped frontier | Requires profile, `ShenUpperBoundPositive`, and `HasWaveRightTailAsymptotic`; not currently produced as a whole. |
-| `rotheFloorResidual_of_trap_pos` | pure wiring from existing produced facts plus carried core | Swaps in `whole_line_super_barrier_pos`; still carries the deep Green/core input. |
-| `b1_chiPos_existence` | conditional but meaningful wiring | Reuses the sign-agnostic `b1_chiNeg_existence_unconditional`; still needs `hcoreAll`, `hstep`, `htail`, Schauder principle, Green identity, positivity, boundedness, and endpoint-limit inputs. |
-| `b1_chiPos_existence_rootPin`, `b1_chiPos_existence_stationary_floor_rootPin`, `b1_chiPos_existence_profileClean_stationary_floor_rootPin` | conditional but plausibly wireable from existing packages | Reduce profile endpoint/positivity obligations using floor, stationary flatness, and SMP inputs; still conditional. |
-| `b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData` | conditional route wrapper | Fills the upper-barrier Lipschitz scalar from `PositivePaperLemma42ExactConditions`, but still needs producer, step, tail, stationarity, SMP realization, and flatness. |
-| `b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData` | conditional route wrapper | Produces the lower-pinned frozen profile from a core no-bar parabolic floor plus stationary-flat floor and SMP. |
-| `b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData` | conditional route wrapper | Replaces the all-`u` producer by the Route-A core floor, but still needs Route-A floor data, stationary-flat floor, and SMP. |
-| `b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData` | conditional but plausibly wireable from smaller packages | Further replaces the monolithic Route-A Green core by explicit source-box parameter packages; still a frontier package, not an unconditional producer. |
-| `PaperLowerRawParabolicFloorRouteAParamCoreNoBar` | genuine analytic residual package | Carries per-step source-box parameters, witnesses, rest provider, super-solution transfer, and lower-raw auxiliary data. |
-| `PaperLowerPinnedStationaryFlatFloor` | genuine analytic residual package | Supplies stationarity/flatness properties for the lower-pinned fixed point route. |
-| `StationaryStrongMaxPrinciple` / `StationaryStrongMaxPrincipleODERealization` | genuine analytic residual | `hsmp_of_odeRealization` is wiring, but the realization/SMP itself remains an input. |
-| `ShenUpperBoundPositive p c U` for the produced `U` | genuine analytic residual | There is `logisticProfile_shenUpperBoundPositive` for the explicit logistic profile, but no bridge from the Rothe fixed point to `ShenUpperBoundPositive`. |
-| `HasWaveRightTailAsymptotic c κ₁ U` for the produced `U` | genuine analytic residual | No producer was found from the current positive lower-pinned stationary profile route. |
+### Already produced unconditionally in Lean
 
-## Already produced unconditionally in Lean
+- `Theorem_1_1.of_assumed_frozenStationaryProfile_branches`: the bridge from branch data to `Theorem_1_1` is proved.
+- `paper1_Theorem_1_1_of_constructionNegSMPProvider`: the bridge using the weakened negative provider plus the positive branch is proved.
+- `paper1_mainlineStatementTargets_of_mainlineExistence`: the bridge from `Paper1MainlineExistence` to `Theorem_1_2 ∧ Theorem_1_3` is proved.
+- `paper1_mainStatementTargets_of_smpMainlineData`: the new bundle-to-main-target wrapper is proved.
+- `whole_line_super_barrier_pos`: used inside `rotheFloorResidual_of_trap_pos` to discharge the positive super-barrier part of the floor residual.
+- Structural facts such as `PositivePaperLemma42ExactConditions.upperBarrier_barLip`, `positivePaperLowerRawParabolicFloorRouteACore_of_noBar`, and trap-derived boundedness/right endpoint facts are already wired where used.
+- `logisticProfile_shenUpperBoundPositive` is proved, but only for the explicit logistic profile `logisticProfile (kappa c)`; it is not a producer for the Rothe fixed point.
 
-For this positive branch, the following are produced only as local components, not as the full `hpos`:
+### Pure wiring from existing produced facts
 
-- `whole_line_super_barrier_pos`, consumed by `rotheFloorResidual_of_trap_pos`.
-- Sign-agnostic Rothe/Schauder reuse through `b1_chiNeg_existence_unconditional`.
-- Trap-derived boundedness/right-end behavior used by the profile-clean wrappers.
-- `logisticProfile_shenUpperBoundPositive`, but only for the explicit profile `logisticProfile (kappa c)`, not for the constructed fixed point.
+- `Paper1PositiveCriticalFrozenStationaryBranch`: as a `def`, it is only a name for the existing `hpos` proposition.  Naming it is pure interface factoring, not production.
+- `Paper1MainStatementSMPMainlineData`: pure bundling of three conditional inputs.
+- `paper1_mainStatementTargets_of_smpMainlineData`: combines `paper1_Theorem_1_1_of_constructionNegSMPProvider` with `paper1_mainlineStatementTargets_of_mainlineExistence`.
+- `rotheFloorResidual_of_trap_pos`: swaps in the positive super-barrier and carries the deep Green core; it is not itself a full branch producer.
+- `positivePaperLowerRawParabolicFloorRouteACore_of_noBar` and `paperLowerRawStepProducerRouteACore_of_paramCore`: field-for-field adapters between thinner packages and older route packages.
 
-No inspected theorem unconditionally produces:
+### Conditional but plausibly wireable from existing packages
 
-```lean
-∀ p, p.α = p.m + p.γ - 1 → 0 ≤ p.χ →
-  p.χ < min (1 / 2 : ℝ) (chiStar p) → ∀ c, 2 < c →
-    ∃ U, FrozenStationaryWaveProfile p c U ∧
-      ShenUpperBoundPositive p c U ∧
-      ∀ κ₁, ... → HasWaveRightTailAsymptotic c κ₁ U
-```
+- `b1_chiPos_existence`: reuses the sign-agnostic `b1_chiNeg_existence_unconditional` once the positive route supplies `hcoreAll`, step/tail dependence, Schauder, Green identity, positivity, boundedness, and endpoint limits.
+- `b1_chiPos_existence_rootPin`, `b1_chiPos_existence_stationary_floor_rootPin`, and `b1_chiPos_existence_profileClean_stationary_floor_rootPin`: reduce strict positivity/left endpoint profile obligations using floor, stationary flatness, and strong maximum principle inputs.
+- `b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData`: fills the upper-barrier Lipschitz scalar from `PositivePaperLemma42ExactConditions` but still needs the producer/step/tail/stationarity/SMP/flatness route inputs.
+- `b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData`: produces the lower-pinned frozen profile from `PaperLowerRawParabolicFloorCoreNoBar`, stationary-flat floor data, and SMP.
+- `b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData`: replaces the all-`u` producer by the Route-A floor package.
+- `b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData`: thins Route-A further to source-box parameter packages.  This is the best inspected positive-profile producer route, but it still produces only profile + lower-pinned trap, not the full `positiveCritical` branch.
 
-## Is the positive branch empty or same-as-goal?
+### Genuine analytic residuals / theorem-branch-shaped frontiers
 
-The lower-level positive route packages are not empty declarations: they expose concrete finite-dimensional/Schauder/Rothe/Green/stationarity/SMP obligations and produce a real lower-pinned `FrozenStationaryWaveProfile` once those obligations are supplied.
+- `Paper1PositiveCriticalFrozenStationaryBranch`: the exact positive half-branch remains a residual.
+- `ShenUpperBoundPositive p c U` for the `U` produced by the positive Rothe route: no existing bridge found from lower-pinned trap + frozen stationarity to this strict upper bound.  The explicit logistic-profile theorem does not apply to the constructed fixed point.
+- `HasWaveRightTailAsymptotic c κ₁ U` for the produced `U`: no existing producer found from the positive lower-pinned frozen stationary profile.  This is the sharp right-tail linearization/asymptotic residual.
+- `PaperLowerRawParabolicFloorRouteAParamCoreNoBar`: still carries per-step source-box parameter/witness/rest/zsuper/lower-raw auxiliary data.
+- `PaperLowerPinnedStationaryFlatFloor`: still carries fixed-point stationarity/flatness-style information for the lower-pinned route.
+- `StationaryStrongMaxPrinciple` / `StationaryStrongMaxPrincipleODERealization`: still analytic residuals; `hsmp_of_odeRealization` is wiring, but the realization/SMP input itself is not produced unconditionally.
+- `Paper1MainlineExistence`: genuine B5 residual package for Theorems 1.2/1.3.  It is unrelated to closing the positive Theorem 1.1 construction branch.
 
-The exact `hpos` argument at the headline wrapper is still close to the positive half of `Theorem_1_1`; it is not “empty,” but it is theorem-branch-shaped and should be treated as a genuine remaining construction frontier.
+## 6. Final judgement
 
-## Smallest honest next edit
+The positive construction branch cannot currently be fully wired into `Paper1PositiveCriticalFrozenStationaryBranch` from existing theorems.  The repo has a strong conditional producer for a lower-pinned `FrozenStationaryWaveProfile`, but the strict positive upper bound and sharp right-tail asymptotic remain outside that producer.
 
-A safe edit is documentation near `paper1_Theorem_1_1_of_constructionNegSMPProvider`, not a theorem pretending the branch is closed:
-
-```lean
-/-- The positive branch remains a genuine construction frontier.  Existing
-positive Rothe/Schauder wrappers such as
-`b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData` produce a
-lower-pinned `FrozenStationaryWaveProfile`, but the exact `hpos` input here also
-requires `ShenUpperBoundPositive` and the sharp right-tail asymptotic for the
-produced profile.  Those are not currently produced by the positive branch
-wrappers.  Theorems 1.2/1.3 use `Paper1MainlineExistence` and do not consume this
-construction branch. -/
-```
-
-Do not replace the exact `hpos` argument with the existing positive profile producer alone; that would hide the strict upper-bound and sharp-tail residuals.
+The new `Paper1PositiveCriticalFrozenStationaryBranch` / `Paper1MainStatementSMPMainlineData` route is semantically honest as a **named conditional interface**.  It does not hide a proof of the target theorem, because it explicitly carries `positiveCritical` and `mainline` as fields and the wrapper is pure wiring.  The caveat is that `Paper1PositiveCriticalFrozenStationaryBranch` is branch-shaped: it should be read as a remaining frontier, not as a discharged construction theorem.
