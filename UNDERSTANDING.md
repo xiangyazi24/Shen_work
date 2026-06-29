@@ -45,8 +45,10 @@ Current headline status:
   after `positiveDatumBFormLocalHypSq_of_banked`.  The deeper squared-barrier
   branches are also wired to the quantitative factory:
   `paper2_theorem_1_1_general_chi_bformSq_regular_from_quant` and
-  `paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_quant`.  The
-  `SqRegular`/`SqDeepest` plumbing now uses the banked PDE identity
+  `paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_quant`, and the
+  concrete-banked variant
+  `paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_quant`.  The
+  `SqRegular`/`SqDeepest` plumbing uses the banked PDE identity
   `BFormBankedInputs.hpde_u` directly instead of the stale spectral-agreement
   shim `hpde_of_BFormBankedInputs`.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain

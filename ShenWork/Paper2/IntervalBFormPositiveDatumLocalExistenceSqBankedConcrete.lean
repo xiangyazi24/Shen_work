@@ -44,7 +44,7 @@ private theorem clip_continuous : Continuous clip :=
     (continuous_const.max (continuous_id.min continuous_const)) _
 
 private theorem clip_comp_eq_lift_on_Icc (g : intervalDomainPoint → ℝ)
-    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
     (g ∘ clip) x = intervalDomainLift g x := by
   have hclip_eq : max 0 (min x 1) = x := by
     rw [min_eq_left hx.2, max_eq_right hx.1]
@@ -53,13 +53,13 @@ private theorem clip_comp_eq_lift_on_Icc (g : intervalDomainPoint → ℝ)
 
 private theorem continuousOn_intervalDomainLift_of_continuous
     {g : intervalDomainPoint → ℝ} (hg : Continuous g) :
-    ContinuousOn (intervalDomainLift g) (Set.Icc (0:ℝ) 1) := by
+    ContinuousOn (intervalDomainLift g) (Set.Icc (0 : ℝ) 1) := by
   rw [continuousOn_iff_continuous_restrict]
   have hres :
-      Set.restrict (Set.Icc (0:ℝ) 1) (intervalDomainLift g) = g := by
+      Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift g) = g := by
     funext z
     obtain ⟨z, hz⟩ := z
-    show intervalDomainLift g z = g ⟨z, hz⟩
+    change intervalDomainLift g z = g ⟨z, hz⟩
     rw [intervalDomainLift, dif_pos hz]
   rw [hres]
   exact hg
@@ -136,7 +136,7 @@ theorem bform_mildChemicalConcentration_pos_of_conjugate_data
       · rw [Function.update_of_ne hk, hsplit k, cosineCoeffs_const, if_neg hk, sub_zero]
     rw [hupd]
     exact hâ.update 0 _
-  show 0 < intervalNeumannResolverR p (D.u t) x
+  change 0 < intervalNeumannResolverR p (D.u t) x
   exact resolverR_pos_of_representation p hcs_cont hagree hm_pos hcs_lb hcs_ub
     hsrc_coeff hâ hĝ x
 
