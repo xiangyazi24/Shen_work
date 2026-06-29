@@ -45,6 +45,115 @@ structure PaperLemma42ExactConditions
 
 namespace PaperLemma42ExactConditions
 
+private theorem one_sub_exp_neg_le_self (t : ℝ) :
+    1 - Real.exp (-t) ≤ t := by
+  have h := Real.add_one_le_exp (-t)
+  linarith
+
+private theorem upperBarrier_sub_le_of_le
+    {κ M x y : ℝ} (hκ : 0 ≤ κ) (hM : 0 < M) (hxy : x ≤ y) :
+    upperBarrier κ M x - upperBarrier κ M y ≤ κ * M * (y - x) := by
+  let d : ℝ := y - x
+  have hd : 0 ≤ d := sub_nonneg.mpr hxy
+  have ht : 0 ≤ κ * d := mul_nonneg hκ hd
+  have he_nonneg : 0 ≤ Real.exp (-(κ * d)) := (Real.exp_pos _).le
+  have he_le_one : Real.exp (-(κ * d)) ≤ 1 := by
+    simpa using Real.exp_le_exp.mpr (neg_nonpos.mpr ht)
+  have hone_sub_nonneg : 0 ≤ 1 - Real.exp (-(κ * d)) := sub_nonneg.mpr he_le_one
+  have hone_sub_le : 1 - Real.exp (-(κ * d)) ≤ κ * d :=
+    one_sub_exp_neg_le_self (κ * d)
+  have hEy :
+      Real.exp (-κ * y) =
+        Real.exp (-κ * x) * Real.exp (-(κ * d)) := by
+    rw [← Real.exp_add]
+    congr 1
+    dsimp [d]
+    ring
+  by_cases hxM : M ≤ Real.exp (-κ * x)
+  · by_cases hyM : M ≤ Real.exp (-κ * y)
+    · rw [upperBarrier_eq_M_of_le_exp hxM, upperBarrier_eq_M_of_le_exp hyM]
+      nlinarith [mul_nonneg (mul_nonneg hκ hM.le) hd]
+    · have hUy : upperBarrier κ M y = Real.exp (-κ * y) :=
+        upperBarrier_eq_exp_of_exp_le (not_le.mp hyM).le
+      rw [upperBarrier_eq_M_of_le_exp hxM, hUy]
+      have hEy_ge : M * Real.exp (-(κ * d)) ≤ Real.exp (-κ * y) := by
+        rw [hEy]
+        exact mul_le_mul_of_nonneg_right hxM he_nonneg
+      calc
+        M - Real.exp (-κ * y)
+            ≤ M - M * Real.exp (-(κ * d)) := by
+              exact sub_le_sub_left hEy_ge M
+        _ = M * (1 - Real.exp (-(κ * d))) := by ring
+        _ ≤ M * (κ * d) :=
+              mul_le_mul_of_nonneg_left hone_sub_le hM.le
+        _ = κ * M * (y - x) := by
+              dsimp [d]
+              ring
+  · have hUx : upperBarrier κ M x = Real.exp (-κ * x) :=
+      upperBarrier_eq_exp_of_exp_le (not_le.mp hxM).le
+    have hUy : upperBarrier κ M y = Real.exp (-κ * y) := by
+      apply upperBarrier_eq_exp_of_exp_le
+      have hmono : Real.exp (-κ * y) ≤ Real.exp (-κ * x) := by
+        exact Real.exp_le_exp.mpr (by nlinarith)
+      exact le_trans hmono (not_le.mp hxM).le
+    rw [hUx, hUy]
+    have hx_le_M : Real.exp (-κ * x) ≤ M := (not_le.mp hxM).le
+    calc
+      Real.exp (-κ * x) - Real.exp (-κ * y)
+          = Real.exp (-κ * x) * (1 - Real.exp (-(κ * d))) := by
+            rw [hEy]
+            ring
+      _ ≤ M * (1 - Real.exp (-(κ * d))) := by
+            exact mul_le_mul_of_nonneg_right hx_le_M hone_sub_nonneg
+      _ ≤ M * (κ * d) :=
+            mul_le_mul_of_nonneg_left hone_sub_le hM.le
+      _ = κ * M * (y - x) := by
+            dsimp [d]
+            ring
+
+theorem upperBarrier_abs_sub_le_mul
+    {κ M : ℝ} (hκ : 0 ≤ κ) (hM : 0 < M) :
+    ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤
+      κ * M * |x - y| := by
+  intro x y
+  by_cases hxy : x ≤ y
+  · have hmono : upperBarrier κ M y ≤ upperBarrier κ M x :=
+      upperBarrier_antitone hκ hxy
+    rw [abs_of_nonneg (sub_nonneg.mpr hmono)]
+    calc
+      upperBarrier κ M x - upperBarrier κ M y
+          ≤ κ * M * (y - x) :=
+            upperBarrier_sub_le_of_le hκ hM hxy
+      _ = κ * M * |x - y| := by
+            rw [abs_of_nonpos (sub_nonpos.mpr hxy)]
+            ring
+  · have hyx : y ≤ x := le_of_not_ge hxy
+    have hmono : upperBarrier κ M x ≤ upperBarrier κ M y :=
+      upperBarrier_antitone hκ hyx
+    rw [abs_of_nonpos (sub_nonpos.mpr hmono)]
+    calc
+      -(upperBarrier κ M x - upperBarrier κ M y)
+          = upperBarrier κ M y - upperBarrier κ M x := by ring
+      _ ≤ κ * M * (x - y) :=
+            upperBarrier_sub_le_of_le hκ hM hyx
+      _ = κ * M * |x - y| := by
+            rw [abs_of_nonneg (sub_nonneg.mpr hyx)]
+
+theorem upperBarrier_barLip
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PaperLemma42ExactConditions p c κ κtilde M) :
+    ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y| := by
+  intro x y
+  have hκM : κ * M ≤ M := by
+    nlinarith [h.hκ0.le, h.hκ1.le, h.hM]
+  calc
+    |upperBarrier κ M x - upperBarrier κ M y|
+        ≤ κ * M * |x - y| :=
+          upperBarrier_abs_sub_le_mul h.hκ0.le
+            (lt_of_lt_of_le zero_lt_one h.hM) x y
+    _ ≤ M * |x - y| :=
+          mul_le_mul_of_nonneg_right hκM (abs_nonneg _)
+
 theorem kappaTilde_le_one
     {p : CMParams} {c κ κtilde M : ℝ}
     (h : PaperLemma42ExactConditions p c κ κtilde M) :
@@ -1885,6 +1994,36 @@ structure PaperLowerRawParabolicFloorRouteACore
   tail :
     PaperRotheTailUniform p c lam M κ Λ
       (fun u => paperRotheStepProducer_of_routeA_greenCore ((producer u).green)) hκ hM
+
+/-- Route-A paper Rothe parabolic floor with the base-barrier Lipschitz field
+removed.  Under `PaperLemma42ExactConditions`, `upperBarrier` is automatically
+`M`-Lipschitz, so callers do not need to carry this scalar side condition. -/
+structure PaperLowerRawParabolicFloorRouteACoreNoBar
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
+  producer :
+    ∀ u, PaperLowerRawStepProducerRouteACore p c lam M κ κtilde D Λ hκ hM u
+  step :
+    PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_routeA_greenCore ((producer u).green)) hκ hM
+  tail :
+    PaperRotheTailUniform p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_routeA_greenCore ((producer u).green)) hκ hM
+
+/-- Fill the `barLip` field of the Route-A floor from the paper Lemma 4.2
+parameter conditions. -/
+def paperLowerRawParabolicFloorRouteACore_of_noBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (h : PaperLowerRawParabolicFloorRouteACoreNoBar
+      p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloorRouteACore
+      p c lam M κ κtilde D Λ hκ hM where
+  producer := h.producer
+  barLip := hcond.upperBarrier_barLip
+  step := h.step
+  tail := h.tail
 
 /-- Fill the live paper parabolic floor from the Route-A lower-raw core. -/
 def paperLowerRawParabolicFloor_of_routeA_core
