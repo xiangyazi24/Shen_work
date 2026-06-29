@@ -67,7 +67,8 @@ Current headline status:
   `*_picardLimitFrontier_*_of_BForm` variants for those same two branches also
   replace `PicardRestartFrontier` by the unified Picard-limit residual
   `ConeQuantBridge.PicardLimitRestartFrontier`.  The squared-barrier branches
-  still keep `hlocal`, because their B-form packages currently cover
+  have analogous `*_picardLimitFrontier_*` variants for the restart residual,
+  but still keep `hlocal`, because their B-form packages currently cover
   `PaperPositiveInitialDatum`, not the full `PositiveInitialDatum` class needed
   by F1.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain

@@ -561,6 +561,25 @@ theorem paper2_theorem_1_1_general_chi_bformSq_from_picardFrontier_persistence
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_persistence
         p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Squared-barrier B-form headline with the restart frontier reduced to the
+unified Picard-limit residual. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_from_picardLimitFrontier_persistence
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHypSq p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_from_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hBForm
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hPersist hlocal
+
 /-- Squared-barrier B-form headline with the uniform-local-existence input
 replaced by the Picard-restart route plus the boundary min-point persistence
 input. -/
@@ -579,6 +598,25 @@ theorem paper2_theorem_1_1_general_chi_bformSq_from_picardFrontier_boundary
   paper2_theorem_1_1_general_chi_bformSq p hχ ha hb hγ_ge_one hBForm
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
         p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
+
+/-- Squared-barrier B-form headline with boundary min-point persistence and
+the restart frontier reduced to the unified Picard-limit residual. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_from_picardLimitFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHypSq p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_from_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hBForm
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hlocal
 
 /-- Banked squared-barrier B-form headline with the uniform-local-existence
 input replaced by the quantitative local factory. -/
@@ -626,6 +664,30 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardFrontier_per
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_persistence
         p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Banked squared-barrier B-form headline with the restart frontier reduced to
+the unified Picard-limit residual. -/
+theorem
+    paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardLimitFrontier_persistence
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hbanked :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PaperPositiveInitialDatum intervalDomain u₀ →
+          ∃ DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData p u₀,
+            Nonempty (PositiveDatumBFormSqBankedPlumbing p DB))
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hbanked
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hPersist hlocal
+
 /-- Banked squared-barrier B-form headline with the uniform-local-existence
 input replaced by the Picard-restart route plus the boundary min-point
 persistence input. -/
@@ -649,6 +711,30 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardFrontier_bou
     p hχ ha hb hγ_ge_one hbanked
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
         p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
+
+/-- Banked squared-barrier B-form headline with boundary min-point persistence
+and the restart frontier reduced to the unified Picard-limit residual. -/
+theorem
+    paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardLimitFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hbanked :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PaperPositiveInitialDatum intervalDomain u₀ →
+          ∃ DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData p u₀,
+            Nonempty (PositiveDatumBFormSqBankedPlumbing p DB))
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hbanked
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hlocal
 
 /-- Concrete-banked squared-barrier B-form headline with the
 uniform-local-existence input replaced by the quantitative local factory. -/
@@ -697,6 +783,30 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardFro
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_persistence
         p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Concrete-banked squared-barrier B-form headline with the restart frontier
+reduced to the unified Picard-limit residual. -/
+theorem
+    paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardLimitFrontier_persistence
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hdeep :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PaperPositiveInitialDatum intervalDomain u₀ →
+          ∃ DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData p u₀,
+            Nonempty (PositiveDatumBFormSqBankedConcreteHypotheses p DB))
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hdeep
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hPersist hlocal
+
 /-- Concrete-banked squared-barrier B-form headline with the
 uniform-local-existence input replaced by the Picard-restart route plus the
 boundary min-point persistence input. -/
@@ -720,6 +830,31 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardFro
     p hχ ha hb hγ_ge_one hdeep
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
         p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
+
+/-- Concrete-banked squared-barrier B-form headline with boundary min-point
+persistence and the restart frontier reduced to the unified Picard-limit
+residual. -/
+theorem
+    paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardLimitFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hdeep :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PaperPositiveInitialDatum intervalDomain u₀ →
+          ∃ DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData p u₀,
+            Nonempty (PositiveDatumBFormSqBankedConcreteHypotheses p DB))
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hdeep
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hlocal
 
 /-- Regular squared-barrier B-form headline with the uniform-local-existence
 input replaced by the quantitative local factory. -/
@@ -759,6 +894,25 @@ theorem paper2_theorem_1_1_general_chi_bformSq_regular_from_picardFrontier_persi
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_persistence
         p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Regular squared-barrier B-form headline with the restart frontier reduced
+to the unified Picard-limit residual. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_regular_from_picardLimitFrontier_persistence
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHypSqRegular p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_regular_from_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hBForm
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hPersist hlocal
+
 /-- Regular squared-barrier B-form headline with the uniform-local-existence
 input replaced by the Picard-restart route plus the boundary min-point
 persistence input. -/
@@ -778,6 +932,25 @@ theorem paper2_theorem_1_1_general_chi_bformSq_regular_from_picardFrontier_bound
     p hχ ha hb hγ_ge_one hBForm
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
         p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
+
+/-- Regular squared-barrier B-form headline with boundary min-point persistence
+and the restart frontier reduced to the unified Picard-limit residual. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_regular_from_picardLimitFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHypSqRegular p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_regular_from_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hBForm
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hlocal
 
 /-- Deepest squared-barrier B-form headline with the uniform-local-existence
 input replaced by the quantitative local factory. -/
@@ -817,6 +990,25 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardFrontier_pe
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_persistence
         p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Deepest squared-barrier B-form headline with the restart frontier reduced
+to the unified Picard-limit residual. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardLimitFrontier_persistence
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hdeepest : PositiveDatumBFormLocalHypSqDeepest p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hdeepest
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hPersist hlocal
+
 /-- Deepest squared-barrier B-form headline with the uniform-local-existence
 input replaced by the Picard-restart route plus the boundary min-point
 persistence input. -/
@@ -837,6 +1029,25 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardFrontier_bo
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
         p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
 
+/-- Deepest squared-barrier B-form headline with boundary min-point persistence
+and the restart frontier reduced to the unified Picard-limit residual. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardLimitFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hdeepest : PositiveDatumBFormLocalHypSqDeepest p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hdeepest
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hlocal
+
 section AxiomAudit
 
 #print axioms paper2_theorem_1_1_general_chi_bformSq_from_quant
@@ -845,19 +1056,37 @@ section AxiomAudit
 #print axioms paper2_theorem_1_1_general_chi_bformSq_regular_from_quant
 #print axioms paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_quant
 #print axioms paper2_theorem_1_1_general_chi_bformSq_from_picardFrontier_persistence
+#print axioms paper2_theorem_1_1_general_chi_bformSq_from_picardLimitFrontier_persistence
 #print axioms paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardFrontier_persistence
 #print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardLimitFrontier_persistence
+#print axioms
   paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardFrontier_persistence
+#print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardLimitFrontier_persistence
 #print axioms paper2_theorem_1_1_general_chi_bformSq_regular_from_picardFrontier_persistence
+#print axioms
+  paper2_theorem_1_1_general_chi_bformSq_regular_from_picardLimitFrontier_persistence
 #print axioms paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardFrontier_persistence
+#print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardLimitFrontier_persistence
 #print axioms paper2_theorem_1_1_general_chi_bformSq_from_picardFrontier_boundary
+#print axioms paper2_theorem_1_1_general_chi_bformSq_from_picardLimitFrontier_boundary
 #print axioms
   paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardFrontier_boundary
 #print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_banked_from_picardLimitFrontier_boundary
+#print axioms
   paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardFrontier_boundary
+#print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_picardLimitFrontier_boundary
 #print axioms paper2_theorem_1_1_general_chi_bformSq_regular_from_picardFrontier_boundary
 #print axioms
+  paper2_theorem_1_1_general_chi_bformSq_regular_from_picardLimitFrontier_boundary
+#print axioms
   paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardFrontier_boundary
+#print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_picardLimitFrontier_boundary
 
 end AxiomAudit
 
