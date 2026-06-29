@@ -1,74 +1,37 @@
-# PAPER1-POSITIVE-LOWER-PINNED-TAIL-FEED
+# PAPER1-POSITIVE-LOWER-PINNED-PRODUCER-WIRING
 
 Repo: `xiangyazi24/Shen_work`  
-Relevant commit: `fc6fb1d9`  
-Task: shortest honest route to feed the Paper1 positive branch with a lower-pinned produced profile whose lower-barrier exponent covers
+Relevant commits: `fc6fb1d9` for pure tail squeeze, `9ae764e2` for contact/strict-barrier split  
+Task: shortest honest Lean-facing route to feed
 
 ```lean
-min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
+Paper1PositiveCriticalFrozenStationaryContactBranch
+Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch
 ```
 
-using the new pure tail squeeze theorems in `StationaryUpperTail.lean`.
+from existing positive construction infrastructure while preserving the lower-pinned witness.  This response is **producer-wiring only**; it does not re-prove the already-committed tail squeeze.
 
-## Current facts read
+## 0. Current available names
 
-### New tail squeeze API
+### StatementAssembly positive branch interfaces
 
-File: `ShenWork/Paper1/StationaryUpperTail.lean`.
+File: `ShenWork/Paper1/StatementAssembly.lean`.
 
-The newly added theorem is exactly the useful local tail producer:
-
-```lean
-theorem HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
-    {c κtilde D M κ₁ : ℝ} {U : ℝ → ℝ}
-    (hD : 0 ≤ D)
-    (hU : InLowerPinnedMonotoneTrap (kappa c) M
-      (lowerBarrierPlateau (kappa c) κtilde D) U)
-    (_hκ₁lo : kappa c < κ₁) (hκ₁hi : κ₁ < κtilde) :
-    HasWaveRightTailAsymptotic c κ₁ U
-```
-
-It then packages the whole branch interval as:
-
-```lean
-theorem lowerPinnedMonotoneTrap_tail_family_for_branch
-    {p : CMParams} {c κtilde D M : ℝ} {U : ℝ → ℝ}
-    (hD : 0 ≤ D)
-    (hcover :
-      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ≤ κtilde)
-    (hU : InLowerPinnedMonotoneTrap (kappa c) M
-      (lowerBarrierPlateau (kappa c) κtilde D) U) :
-    ∀ κ₁, kappa c < κ₁ →
-      κ₁ < min ((1 + p.α) * kappa c)
-        (min (p.m * kappa c + 1 / 2) 1) →
-      HasWaveRightTailAsymptotic c κ₁ U
-```
-
-This is the theorem to use.  It consumes only `0 ≤ D`, lower-pinned trap membership, and the cover inequality.  It does **not** require stationarity or `FrozenStationaryWaveProfile`.
-
-### Current positive branches in `StatementAssembly.lean`
-
-`Paper1PositiveCriticalFrozenStationaryBranch` still asks for
-
-```lean
-FrozenStationaryWaveProfile p c U ∧
-  ShenUpperBoundPositive p c U ∧
-  ∀ κ₁, ... → HasWaveRightTailAsymptotic c κ₁ U
-```
-
-`StatementAssembly.lean` has already split the upper-bound side into smaller APIs:
+Already available:
 
 ```lean
 ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
 PositiveUpperBarrierContactContradictions
 strict_upperBarrier_MChi_of_contactContradictions
 Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch
+paper1_positiveCriticalBranch_of_strictBarrier
 Paper1PositiveCriticalFrozenStationaryContactBranch
 paper1_positiveStrictBarrierBranch_of_contactBranch
-paper1_positiveCriticalBranch_of_strictBarrier
+Paper1MainStatementStrictBarrierData
+paper1_mainStatementTargets_of_strictBarrierData
 ```
 
-The key existing target to feed now is the contact branch:
+Current target for the producer-wiring step should be the contact branch:
 
 ```lean
 def Paper1PositiveCriticalFrozenStationaryContactBranch : Prop :=
@@ -85,13 +48,41 @@ def Paper1PositiveCriticalFrozenStationaryContactBranch : Prop :=
             HasWaveRightTailAsymptotic c κ₁ U
 ```
 
-The fourth field is now removable once the witness is lower-pinned with an exponent `κtilde` covering the branch cap.
+The tail field is now derivable from a lower-pinned witness, so the next API should produce the same data **except** carry lower-pinned membership and exponent cover instead of the tail.
 
-### Lower-pinned producer shape
+### Pure tail squeeze
+
+File: `ShenWork/Paper1/StationaryUpperTail.lean`.
+
+Available:
+
+```lean
+HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap
+```
+
+and the branch-family version:
+
+```lean
+theorem lowerPinnedMonotoneTrap_tail_family_for_branch
+    {p : CMParams} {c κtilde D M : ℝ} {U : ℝ → ℝ}
+    (hD : 0 ≤ D)
+    (hcover :
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ≤ κtilde)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) M
+      (lowerBarrierPlateau (kappa c) κtilde D) U) :
+    ∀ κ₁, kappa c < κ₁ →
+      κ₁ < min ((1 + p.α) * kappa c)
+        (min (p.m * kappa c + 1 / 2) 1) →
+      HasWaveRightTailAsymptotic c κ₁ U
+```
+
+Use this theorem directly.  Do not carry `HasWaveRightTailAsymptotic` in any new positive provider.
+
+### Lower-pinned trap and sign-agnostic lower-pinned producer
 
 File: `ShenWork/Paper1/WaveRotheSchauder.lean`.
 
-The lower-pinned trap is:
+Available lower-pinned shape:
 
 ```lean
 def InLowerPinnedMonotoneTrap
@@ -99,15 +90,30 @@ def InLowerPinnedMonotoneTrap
   InMonotoneWaveTrapSet κ M U ∧ ∀ x, φ x ≤ U x
 ```
 
-with projections:
+Available projections:
 
 ```lean
 InLowerPinnedMonotoneTrap.bare
 InLowerPinnedMonotoneTrap.lower
+InLowerPinnedMonotoneTrap.profileNontrivial
 InLowerPinnedMonotoneTrap.pos
 ```
 
-The existing lower-pinned Schauder wrapper that preserves the lower pin is:
+Available data restriction helper:
+
+```lean
+theorem FrozenStationaryMapSchauderData.lowerPinned
+    {κ M : ℝ} {φ : ℝ → ℝ}
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InMonotoneWaveTrapSet κ M) Tmap)
+    (hlower : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      ∀ x, φ x ≤ Tmap u x) :
+    FrozenStationaryMapSchauderData p c lam
+      (InLowerPinnedMonotoneTrap κ M φ) Tmap
+```
+
+Available lower-pinned stationary profile producer:
 
 ```lean
 theorem b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
@@ -137,19 +143,13 @@ theorem b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
       FrozenStationaryWaveProfile p c U
 ```
 
-Despite the historical `chiNeg` name, this wrapper is sign-agnostic at the Schauder/profile layer.  It is currently the best existing producer shape for the tail squeeze because it preserves `InLowerPinnedMonotoneTrap`.
+Despite the historical `chiNeg` name, this theorem is the existing lower-pinned Schauder/profile producer.  It is the shortest existing route that preserves `InLowerPinnedMonotoneTrap`.
 
-### Current positive wrappers
+### Positive wrappers currently do not preserve the lower pin
 
 File: `ShenWork/Paper1/WaveRothePos.lean`.
 
-The positive wrappers currently return only bare monotone-trap profile shape:
-
-```lean
-∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U
-```
-
-including:
+Current positive wrappers include:
 
 ```lean
 b1_chiPos_existence
@@ -162,213 +162,135 @@ b1_chiPos_existence_profileClean_stationary_floor
 b1_chiPos_existence_profileClean_stationary_floor_rootPin
 ```
 
-So: **no current positive-named wrapper preserves the lower pin**.  The sign-agnostic lower-pinned wrapper exists in `WaveRotheSchauder.lean`, but `WaveRothePos.lean` has not yet routed its positive data through that wrapper.
+All current `b1_chiPos_*` wrappers return only:
 
-## 1. Which existing producer preserves `InLowerPinnedMonotoneTrap`?
+```lean
+∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U
+```
 
-Existing preserving producer:
+They erase the lower pin, so they cannot feed `lowerPinnedMonotoneTrap_tail_family_for_branch` directly.
+
+## 1. Does an existing positive producer already return suitable `InLowerPinnedMonotoneTrap`?
+
+No positive-named producer currently returns:
+
+```lean
+InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+  (lowerBarrierPlateau (kappa c) κtilde D) U
+```
+
+The only existing producer that preserves this shape is the sign-agnostic theorem:
 
 ```lean
 b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
 ```
 
-in `WaveRotheSchauder.lean`.
+Therefore the positive branch needs either:
 
-It preserves exactly:
+1. a thin positive-name alias/wrapper around this theorem, plus positive lower-pinned Route-A data; or
+2. a named residual/provider that directly returns the lower-pinned produced profile.
 
-```lean
-InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U
-```
+This must remain a named residual until the positive Route-A construction supplies the lower-pinned Schauder principle/data/stationarity/flatness for the desired `κtilde`.
 
-and returns the frozen stationary profile.
+## 2. Does the lower-pinned producer expose free `κtilde`?
 
-There is **not yet** an equivalent positive-named wrapper in `WaveRothePos.lean`.  All current `b1_chiPos_existence_*` wrappers erase the lower pin and therefore cannot feed `lowerPinnedMonotoneTrap_tail_family_for_branch` directly.
-
-Recommended alias/wrapper name:
+Yes.  The sign-agnostic lower-pinned producer exposes free parameters:
 
 ```lean
-b1_chiPos_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
-```
-
-This should be a thin positive-named wrapper around `b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin`, with `κ := kappa c` and `M := MChi p` at the final branch call sites.
-
-## 2. Does the existing producer expose a free `κtilde`?
-
-Yes, the lower-pinned Schauder wrapper exposes free parameters:
-
-```lean
-κtilde D M : ℝ
+κ κtilde D M : ℝ
 ```
 
 with assumptions:
 
 ```lean
+0 < κ
 0 < κtilde - κ
 0 < D
 ```
 
-and the input trap/data/principle are all specialized to
+and all topological/analytic data specialized to the lower-pinned trap at that exact `κtilde`:
 
 ```lean
 InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D)
 ```
 
-So it can be run at any chosen `κtilde` **provided the lower-pinned Schauder principle/data/stationarity/flatness are available for that exact `κtilde`**.
+For the positive branch, specialize:
 
-For the new branch tail theorem, we need the cover inequality:
+```lean
+κ := kappa c
+M := MChi p
+```
+
+and require:
 
 ```lean
 min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ≤ κtilde
 ```
 
-Existing paper Lemma 4.2 parameter structures go the other direction.  In `WaveLemma42Paper.lean`, `PaperLemma42ExactConditions.hrange` has:
+Then the committed `lowerPinnedMonotoneTrap_tail_family_for_branch` closes the full tail field.
+
+Important mismatch: the older paper Lemma 4.2 parameter structure `PaperLemma42ExactConditions` has
 
 ```lean
-κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
+hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
 ```
 
-This is **not** enough for the tail theorem.  The shortest compatible choice is to set
+which is the **opposite direction** from the tail-family cover.  If the lower-barrier subsolution proof still needs `κtilde ≤ cap`, the shortest compatible specialization is equality:
 
 ```lean
-κtilde = min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
+κtilde = positiveBranchTailCap p c
 ```
 
-so both the old upper bound `κtilde ≤ cap` and the new cover `cap ≤ κtilde` hold by `le_rfl`.
-
-Needed parameter lemma:
+where:
 
 ```lean
 def positiveBranchTailCap (p : CMParams) (c : ℝ) : ℝ :=
   min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
-
-theorem kappa_lt_positiveBranchTailCap
-    (p : CMParams) {c : ℝ} (hc : 2 < c) :
-    kappa c < positiveBranchTailCap p c := by
-  -- uses:
-  --   kappa_pos_of_two_lt hc
-  --   kappa_lt_one_of_two_lt hc
-  --   p.hα : 1 ≤ p.α
-  --   p.hm : 1 ≤ p.m
 ```
 
-Sketch:
+Then both directions close by `le_rfl`, and the required positive gap follows from a pure parameter lemma.
 
-* `kappa c < (1 + p.α) * kappa c` because `0 < kappa c` and `1 < 1 + p.α`.
-* `kappa c < p.m * kappa c + 1 / 2` because `1 ≤ p.m` and `0 < 1 / 2`.
-* `kappa c < 1` by `kappa_lt_one_of_two_lt hc`.
-* combine with `lt_min` twice.
+## 3. Minimal theorem/structure names to add next
 
-Then set:
+### 3.1 Parameter cap definition and gap lemma
 
-```lean
-κtilde := positiveBranchTailCap p c
-hgap : 0 < κtilde - kappa c := sub_pos.mpr (kappa_lt_positiveBranchTailCap p hc)
-hcover : positiveBranchTailCap p c ≤ κtilde := le_rfl
-```
-
-## 3. Minimal new wrapper/data to remove the carried tail residual
-
-### 3.1 Lower-pinned contact branch without tail
-
-Add a branch object that preserves the lower pin and the lower-barrier exponent cover.  It should not carry tail asymptotics.
+Add near the positive branch assembly or in a small parameter helper file:
 
 ```lean
 import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.StationaryUpperTail
-import ShenWork.Paper1.WaveRotheSchauder
 
 open Filter Topology Real Set
 
 namespace ShenWork.Paper1
 
-/-- The positive branch cap appearing in the Paper1 right-tail interval. -/
+/-- The branch cap for the Paper1 positive right-tail interval. -/
 def positiveBranchTailCap (p : CMParams) (c : ℝ) : ℝ :=
   min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
 
-/-- Parameter lemma needed to run the lower-barrier plateau at the branch cap. -/
+/-- The cap is strictly above `kappa c` when `2 < c`. -/
 theorem kappa_lt_positiveBranchTailCap
     (p : CMParams) {c : ℝ} (hc : 2 < c) :
     kappa c < positiveBranchTailCap p c := by
-  -- arithmetic proof target
+  -- pure arithmetic target:
+  -- use `kappa_pos_of_two_lt hc`, `kappa_lt_one_of_two_lt hc`,
+  -- `p.hα : 1 ≤ p.α`, `p.hm : 1 ≤ p.m`, and `lt_min`.
+  -- No construction data and no PDE facts.
   sorry
 
-/-- Lower-pinned/contact positive branch, with no carried tail residual.
-The `hcover` field is exactly what feeds
-`lowerPinnedMonotoneTrap_tail_family_for_branch`. -/
-def Paper1PositiveCriticalLowerPinnedContactBranch : Prop :=
-  ∀ p : CMParams, p.α = p.m + p.γ - 1 →
-    0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
-    ∀ c : ℝ, 2 < c →
-      ∃ κtilde D : ℝ, ∃ U : ℝ → ℝ,
-        0 < D ∧
-        positiveBranchTailCap p c ≤ κtilde ∧
-        InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-          (lowerBarrierPlateau (kappa c) κtilde D) U ∧
-        FrozenStationaryWaveProfile p c U ∧
-        PositiveUpperBarrierContactContradictions p c U
-
-/-- Pure tail squeeze wrapper from lower-pinned/contact branch to the existing
-contact branch.  This is the direct replacement for the carried tail residual in
-`Paper1PositiveCriticalFrozenStationaryContactBranch`. -/
-theorem paper1_positiveContactBranch_of_lowerPinnedContactBranch
-    (hbranch : Paper1PositiveCriticalLowerPinnedContactBranch) :
-    Paper1PositiveCriticalFrozenStationaryContactBranch := by
-  intro p hα hχ0 hχsmall c hc
-  rcases hbranch p hα hχ0 hχsmall c hc with
-    ⟨κtilde, D, U, hD, hcover, hU, hprofile, hcontact⟩
-  refine ⟨U, hprofile, hU.bare, hcontact, ?_⟩
-  exact lowerPinnedMonotoneTrap_tail_family_for_branch
-    (p := p) (c := c) (κtilde := κtilde) (D := D) (M := MChi p) (U := U)
-    hD.le ?_ hU
-  -- close `?_: min ... ≤ κtilde` by unfolding `positiveBranchTailCap` at `hcover`
-  -- exact hcover
+end ShenWork.Paper1
 ```
 
-In the proof above, the only small adjustment is whether `positiveBranchTailCap` is definitional abbreviation or needs `simpa [positiveBranchTailCap] using hcover`.
-
-### 3.2 Lower-pinned strict-barrier branch without tail
-
-If you want to bypass `PositiveUpperBarrierContactContradictions` and feed the strict-barrier branch directly, use this alternative:
+This theorem is needed only to derive:
 
 ```lean
-/-- Lower-pinned/strict-barrier positive branch, with no carried tail residual. -/
-def Paper1PositiveCriticalLowerPinnedStrictBarrierBranch : Prop :=
-  ∀ p : CMParams, p.α = p.m + p.γ - 1 →
-    0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
-    ∀ c : ℝ, 2 < c →
-      ∃ κtilde D : ℝ, ∃ U : ℝ → ℝ,
-        0 < D ∧
-        positiveBranchTailCap p c ≤ κtilde ∧
-        InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-          (lowerBarrierPlateau (kappa c) κtilde D) U ∧
-        FrozenStationaryWaveProfile p c U ∧
-        (∀ x, U x < upperBarrier (kappa c) (MChi p) x)
-
-/-- Pure tail squeeze wrapper from lower-pinned/strict-barrier branch to the
-existing strict-barrier branch. -/
-theorem paper1_positiveStrictBarrierBranch_of_lowerPinnedStrictBarrierBranch
-    (hbranch : Paper1PositiveCriticalLowerPinnedStrictBarrierBranch) :
-    Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch := by
-  intro p hα hχ0 hχsmall c hc
-  rcases hbranch p hα hχ0 hχsmall c hc with
-    ⟨κtilde, D, U, hD, hcover, hU, hprofile, hstrict⟩
-  refine ⟨U, hprofile, hstrict, ?_⟩
-  exact lowerPinnedMonotoneTrap_tail_family_for_branch
-    (p := p) (c := c) (κtilde := κtilde) (D := D) (M := MChi p) (U := U)
-    hD.le (by simpa [positiveBranchTailCap] using hcover) hU
+0 < κtilde - kappa c
 ```
 
-The contact-branch version is preferable because `StatementAssembly.lean` already has the local no-contact API and the pure contact-to-strict wrapper:
+from `positiveBranchTailCap p c ≤ κtilde`.
 
-```lean
-paper1_positiveStrictBarrierBranch_of_contactBranch
-```
+### 3.2 Positive-name lower-pinned Schauder wrapper
 
-## 4. Exact next theorem signatures to add
-
-### 4.1 Positive lower-pinned Schauder wrapper
-
-This is the missing positive-named wrapper that preserves the lower pin.  It should be a direct call to the sign-agnostic lower-pinned wrapper in `WaveRotheSchauder.lean`.
+This is just a routing alias around the sign-agnostic lower-pinned wrapper.  It is useful because downstream code should not call a `chiNeg` name from the positive branch.
 
 ```lean
 import ShenWork.Paper1.WaveRothePos
@@ -379,8 +301,10 @@ open Filter Topology Real Set
 namespace ShenWork.Paper1
 
 /-- Positive-name lower-pinned Schauder wrapper.
-No sign-specific proof is hidden here; this is a routing wrapper that preserves
-`InLowerPinnedMonotoneTrap` so the tail squeeze can be used. -/
+
+This preserves the lower pin and returns the exact witness shape needed by the
+pure tail squeeze.  It does not prove contact/no-contact, strict upper bound, or
+the tail itself. -/
 theorem b1_chiPos_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
     {p : CMParams} {c lam κtilde D M : ℝ}
     {Tmap : (ℝ → ℝ) → ℝ → ℝ}
@@ -412,15 +336,26 @@ theorem b1_chiPos_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
 end ShenWork.Paper1
 ```
 
-This is honest: it does not assert `ShenUpperBoundPositive`, local no-contact, or tail asymptotics.  It only preserves the lower-pinned witness.
+This should compile as a direct alias, assuming imports expose the sign-agnostic theorem.
 
-### 4.2 Cap-specialized producer provider
+### 3.3 Route-A lower-pinned provider: named residual, no tail field
 
-The positive construction data must be available at a `κtilde` covering the cap, ideally at equality.  Introduce the provider shape explicitly:
+This is the shortest honest residual that represents exactly what is not yet wired in `WaveRothePos.lean`: positive Route-A data on the lower-pinned trap at an exponent covering the branch cap.
 
 ```lean
-/-- Data needed to run the positive lower-pinned route at a branch-covering
-lower-barrier exponent. -/
+import ShenWork.Paper1.StatementAssembly
+import ShenWork.Paper1.StationaryUpperTail
+import ShenWork.Paper1.WaveRotheSchauder
+
+open Filter Topology Real Set
+
+namespace ShenWork.Paper1
+
+/-- Positive Route-A data preserving the lower pin at a branch-covering exponent.
+
+No tail asymptotic is included: it is produced later by
+`lowerPinnedMonotoneTrap_tail_family_for_branch`.  No `ShenUpperBoundPositive` is
+included: upper comparison remains the separate contact/no-contact frontier. -/
 def PositiveLowerPinnedRouteAProvider : Prop :=
   ∀ p : CMParams, p.α = p.m + p.γ - 1 →
     0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
@@ -443,25 +378,35 @@ def PositiveLowerPinnedRouteAProvider : Prop :=
             (lowerBarrierPlateau (kappa c) κtilde D) U →
           (∀ x, frozenWaveOperator p c U U x = 0) →
             FrozenStationaryFlatAtLeft p U)
+
+end ShenWork.Paper1
 ```
 
-Do **not** include tail in this provider; the whole point is that tail is now produced by `lowerPinnedMonotoneTrap_tail_family_for_branch`.
-
-If the lower barrier subsolution machinery still requires the old upper range `κtilde ≤ cap`, then specialize the provider to
+This provider is not circular.  It does not contain:
 
 ```lean
-κtilde = positiveBranchTailCap p c
+HasWaveRightTailAsymptotic c κ₁ U
+ShenUpperBoundPositive p c U
+∀ x, U x < upperBarrier (kappa c) (MChi p) x
 ```
 
-using the `kappa_lt_positiveBranchTailCap` gap lemma.  That is the shortest path satisfying both old and new inequalities.
+It only contains lower-pinned construction data.
 
-### 4.3 Contact branch provider using lower-pinned Route-A data
+### 3.4 Contact-branch wrapper using provider + no-contact residual
 
-The local no-contact facts are still separate.  The wrapper below removes the tail residual only.
+This wrapper removes the tail residual from the contact branch.  It consumes local no-contact because that is still open.
 
 ```lean
-/-- Route-A lower-pinned data plus local no-contact facts imply the current
-contact branch; tail is generated by the pure lower-pinned squeeze. -/
+import ShenWork.Paper1.StatementAssembly
+import ShenWork.Paper1.StationaryUpperTail
+import ShenWork.Paper1.WaveRotheSchauder
+
+open Filter Topology Real Set
+
+namespace ShenWork.Paper1
+
+/-- From lower-pinned positive Route-A data plus local no-contact, build the
+current contact branch.  The tail is generated by the pure lower-pinned squeeze. -/
 theorem paper1_positiveContactBranch_of_lowerPinnedRouteAProvider
     (hroute : PositiveLowerPinnedRouteAProvider)
     (hcontact :
@@ -495,55 +440,153 @@ theorem paper1_positiveContactBranch_of_lowerPinnedRouteAProvider
   · exact lowerPinnedMonotoneTrap_tail_family_for_branch
       (p := p) (c := c) (κtilde := κtilde) (D := D) (M := MChi p) (U := U)
       hD.le (by simpa [positiveBranchTailCap] using hcover) hU
+
+/-- Strict-barrier branch follows from the contact branch wrapper already in
+`StatementAssembly.lean`. -/
+theorem paper1_positiveStrictBarrierBranch_of_lowerPinnedRouteAProvider
+    (hroute : PositiveLowerPinnedRouteAProvider)
+    (hcontact :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∀ κtilde D U,
+            0 < D →
+            positiveBranchTailCap p c ≤ κtilde →
+            InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+              (lowerBarrierPlateau (kappa c) κtilde D) U →
+            FrozenStationaryWaveProfile p c U →
+              PositiveUpperBarrierContactContradictions p c U) :
+    Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch :=
+  paper1_positiveStrictBarrierBranch_of_contactBranch
+    (paper1_positiveContactBranch_of_lowerPinnedRouteAProvider hroute hcontact)
+
+end ShenWork.Paper1
 ```
 
-This is the cleanest immediate replacement for the carried tail field in the contact branch.
+This is the recommended next code.  It is producer-wiring only and uses the committed tail squeeze exactly once.
 
-## 5. API gaps / non-circularity checklist
+## 4. How to discharge `PositiveLowerPinnedRouteAProvider` later
 
-### Gap A: positive lower-pinned construction data at covering `κtilde`
+There are two honest ways.
 
-Current positive wrappers erase the lower pin, so they cannot be used directly.  Need either:
+### Option A: direct lower-pinned Route-A data
 
-1. positive lower-pinned Route-A data specialized to `κtilde = positiveBranchTailCap p c`, or
-2. positive lower-pinned Route-A data with `positiveBranchTailCap p c ≤ κtilde`.
-
-This is the real construction-side gap.
-
-### Gap B: parameter lemma `kappa_lt_positiveBranchTailCap`
-
-Needed to turn `hcover` into the wrapper’s required gap:
+Prove the lower-pinned Schauder principle and `FrozenStationaryMapSchauderData` directly for:
 
 ```lean
-0 < κtilde - kappa c
+InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+  (lowerBarrierPlateau (kappa c) κtilde D)
 ```
 
-This is pure arithmetic and should be added near the branch cap definition.
+with `positiveBranchTailCap p c ≤ κtilde`.
 
-### Gap C: local no-contact facts
+This is the cleanest external API but may duplicate existing bare-route work.
 
-Still needed for `Paper1PositiveCriticalFrozenStationaryContactBranch`:
+### Option B: reuse bare positive data via `FrozenStationaryMapSchauderData.lowerPinned`
+
+If existing positive route data are available on the bare monotone trap:
 
 ```lean
-PositiveUpperBarrierContactContradictions p c U
+FrozenStationaryMapSchauderData p c lam
+  (InMonotoneWaveTrapSet (kappa c) (MChi p)) Tmap
 ```
 
-This is independent of the tail squeeze and should remain separate.
+then use:
 
-### Not a gap anymore: right-tail asymptotics
+```lean
+FrozenStationaryMapSchauderData.lowerPinned
+```
 
-Once `InLowerPinnedMonotoneTrap ... (lowerBarrierPlateau ... κtilde D) U` and `cap ≤ κtilde` are available, the branch tail is closed by:
+provided you prove the lower-barrier invariance residual:
+
+```lean
+∀ u,
+  InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+    (lowerBarrierPlateau (kappa c) κtilde D) u →
+  ∀ x, lowerBarrierPlateau (kappa c) κtilde D x ≤ Tmap u x
+```
+
+This should be named explicitly, e.g.
+
+```lean
+def PositiveRouteALowerBarrierInvariant
+    (p : CMParams) (c lam κtilde D : ℝ)
+    (Tmap : (ℝ → ℝ) → ℝ → ℝ) : Prop :=
+  ∀ u,
+    InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+      (lowerBarrierPlateau (kappa c) κtilde D) u →
+    ∀ x, lowerBarrierPlateau (kappa c) κtilde D x ≤ Tmap u x
+```
+
+This is the actual construction-side analytic residual: does the positive Route-A map preserve the lower barrier?  It is not tail and not strict upper comparison.
+
+## 5. Exact answer to the audit questions
+
+### Existing producer preserving lower pin?
+
+Yes, but not positive-named:
+
+```lean
+b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
+```
+
+No current `b1_chiPos_existence_*` wrapper preserves the lower pin.
+
+### Does it expose free `κtilde`?
+
+Yes.  It exposes free `κtilde` and `D`, but all lower-pinned principle/data/stationarity/flatness inputs must be supplied at that exact `κtilde`.
+
+### Can it satisfy branch-cover inequality?
+
+It can if the positive lower-pinned Route-A data are supplied with
+
+```lean
+positiveBranchTailCap p c ≤ κtilde
+```
+
+The safest specialization, especially if old subsolution constraints require `κtilde ≤ cap`, is equality:
+
+```lean
+κtilde = positiveBranchTailCap p c
+```
+
+Need new pure lemma:
+
+```lean
+kappa_lt_positiveBranchTailCap
+```
+
+for the gap assumption.
+
+### Minimal new wrapper/data to replace carried tail residual?
+
+Add:
+
+```lean
+positiveBranchTailCap
+kappa_lt_positiveBranchTailCap
+b1_chiPos_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
+PositiveLowerPinnedRouteAProvider
+paper1_positiveContactBranch_of_lowerPinnedRouteAProvider
+paper1_positiveStrictBarrierBranch_of_lowerPinnedRouteAProvider
+```
+
+The critical wrapper is:
+
+```lean
+paper1_positiveContactBranch_of_lowerPinnedRouteAProvider
+```
+
+because it constructs the existing contact branch and fills the tail field by:
 
 ```lean
 lowerPinnedMonotoneTrap_tail_family_for_branch hD.le hcover hU
 ```
 
-No stationarity, no `HasWaveRightTailAsymptotic` hypothesis, and no logistic-profile substitution are required.
-
 ## 6. False routes to avoid
 
-* Do not feed the new tail theorem from current `b1_chiPos_existence_*` outputs.  Those outputs have only `InMonotoneWaveTrapSet`; the lower pin was erased.
-* Do not use `PaperLemma42ExactConditions.hrange` alone.  It gives `κtilde ≤ cap`; the tail theorem needs `cap ≤ κtilde`.  Use equality `κtilde = cap` if the subsolution machinery needs the old upper range.
-* Do not add a provider field carrying the tail family again.  That would undo the new squeeze theorem.
-* Do not carry `ShenUpperBoundPositive`; keep using `PositiveUpperBarrierContactContradictions` or strict barrier comparison as the separate upper-bound frontier.
-* Do not replace `U` by `logisticProfile`; the tail squeeze is specifically valuable because it applies to the produced lower-pinned `U`.
+* Do not use current `b1_chiPos_existence_*` outputs for the tail squeeze; the lower pin is erased.
+* Do not add `HasWaveRightTailAsymptotic` as a field in the new provider; the tail squeeze now proves it.
+* Do not add `ShenUpperBoundPositive` or global strict barrier as a field in the lower-pinned provider; upper no-contact remains a separate frontier.
+* Do not rely on `PaperLemma42ExactConditions.hrange` alone; it gives `κtilde ≤ cap`, but the tail theorem needs `cap ≤ κtilde`.  Use equality at the cap if both directions are needed.
+* Do not replace the produced profile by `logisticProfile`; this route is about the actual lower-pinned fixed point.
