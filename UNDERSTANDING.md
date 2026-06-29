@@ -6,7 +6,7 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Full remote build for the current tree: `lake build` on
-  `uisai2:/dev/shm/shen_verify` completed successfully, **8955 jobs**.
+  `uisai2:/dev/shm/shen_verify` completed successfully, **8956 jobs**.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -24,6 +24,10 @@ Current headline status:
   `b1_chiNeg_existence_paper_min_core_noBar_of_cubeApproxData`,
   `b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData`, and
   `b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData`.
+  The Route-A producer residual also has a thinner source-box parameter wrapper,
+  `b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData`, which
+  replaces the monolithic `PaperGreenStepInputRouteACore` input by explicit
+  `PerStepBoxParams` / `PerStepBoxZWitness` / Route-A rest / lower-raw aux data.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  General χ₀ ≤ 0 is not a no-frontier
   headline yet: `paper2_theorem_1_1_general_chi_bform` still explicitly

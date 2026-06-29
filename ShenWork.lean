@@ -273,6 +273,7 @@ import ShenWork.Paper2.Brick4ChemDivHalfStep
 import ShenWork.Paper2.Brick5EndGate
 import ShenWork.Paper2.IntervalChemDivWinDischarge
 import ShenWork.Paper1.IntervalP1PerStepFixedSource
+import ShenWork.Paper1.WaveLemma42ParamCore
 import ShenWork.Paper2.IntervalCosineSobolevEmbedding
 import ShenWork.Paper2.IntervalGradientCoeffDuhamel
 import ShenWork.Paper2.IntervalDivergenceModeIdentity
