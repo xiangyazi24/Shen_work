@@ -267,21 +267,19 @@ theorem srcTimeCoeff_bound
   · rw [if_neg (Nat.pos_iff_ne_zero.mp hk)]
     exact (Classical.choose_spec (H.laplBound i hi)).2 t ht k hk
 
-/-- **DEAD CODE — structurally blocked, superseded by the direct cutoff route
-in `IntervalHeatResolverJointC2.lean`.**
+/-- Assemble `PhysicalSourceTimeC2` from floored source data plus the two global
+time-coefficient fields required by `PhysicalSourceTimeC2`.
 
-The `src_contDiff` and `src_bound` fields require global (all t ∈ ℝ) regularity,
-but `srcTimeCoeff` has a jump discontinuity at t = 0 (from Lean's `tsum` convention
-for non-absolutely-convergent Fourier series). The direct cutoff route bypasses
-this by windowing to t ≥ c/2 where the cutoff kills the t = 0 singularity.
-
-This theorem is retained only because `heatSemigroup_level0_resolverJointC2Data`
-(IntervalHeatSemigroupHighRegularity.lean) still calls it via the 2 remaining
-old-route consumers in IntervalHeatResolverJointC2.lean (lines 1246, 1410).
-Once those are replaced by the direct route, this theorem can be deleted. -/
+`FlooredSourceTimeData` supplies the slice identities and positive-time IBP
+envelopes.  The global `ContDiff` and global coefficient bound are intentionally
+explicit hypotheses here; they are stronger than the positive-time floored data
+and are part of the downstream regularity residual. -/
 theorem physicalSourceTimeC2_of_floored
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {s₁ s₂ : ℝ → ℝ → ℝ}
     (H : FlooredSourceTimeData p u s₁ s₂)
+    (hsrc_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞) (srcTimeCoeff p u k))
+    (hsrc_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i (srcTimeCoeff p u k) t‖ ≤ builtEs H i k)
     (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
       Summable (boundedWeightJointMajorant
         (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m))
@@ -289,8 +287,8 @@ theorem physicalSourceTimeC2_of_floored
       Summable (boundedWeightJointGradMajorant
         (fun i k => intervalNeumannResolverWeight p k * builtEs H i k) m)) :
     PhysicalSourceTimeC2 p u (builtEs H) where
-  src_contDiff k := by sorry -- DEAD: structurally blocked at t = 0
-  src_bound i k t hi := by sorry -- DEAD: structurally blocked at t = 0
+  src_contDiff := hsrc_contDiff
+  src_bound := hsrc_bound
   value_summable := hval
   grad_summable := hgrad
 

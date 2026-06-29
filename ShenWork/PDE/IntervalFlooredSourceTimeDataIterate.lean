@@ -178,6 +178,12 @@ cube ladder, NO `DuhamelSourceTimeC2Coeff`, NO resolver-C2/FAC field assumed. -/
 theorem coupledChemDivFluxFactorJointC2Inputs_of_iterate
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {du d2u : ℝ → ℝ → ℝ}
     (H : IterateSourceTimeData p u du d2u)
+    (hsrc_contDiff : ∀ k, ContDiff ℝ (2 : ℕ∞)
+      (ShenWork.IntervalPhysicalResolverDataConcrete.srcTimeCoeff p u k))
+    (hsrc_bound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+      ‖iteratedFDeriv ℝ i
+        (ShenWork.IntervalPhysicalResolverDataConcrete.srcTimeCoeff p u k) t‖ ≤
+        builtEs (flooredSourceTimeData_of_iterate H) i k)
     (hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
       Summable (ShenWork.IntervalResolverJointC2Physical.boundedWeightJointMajorant
         (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
@@ -215,7 +221,8 @@ theorem coupledChemDivFluxFactorJointC2Inputs_of_iterate
     ShenWork.IntervalCoupledRegularityBootstrap.CoupledChemDivFluxFactorJointC2Inputs
       p u :=
   ShenWork.IntervalPhysicalResolverDataConcrete.coupledChemDivFluxFactorJointC2Inputs_of_floor
-    (physicalSourceTimeC2_of_floored (flooredSourceTimeData_of_iterate H) hval hgrad)
+    (physicalSourceTimeC2_of_floored (flooredSourceTimeData_of_iterate H)
+      hsrc_contDiff hsrc_bound hval hgrad)
     other
 
 end ShenWork.IntervalFlooredSourceTimeDataIterate

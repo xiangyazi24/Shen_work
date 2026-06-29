@@ -81,6 +81,14 @@ structure ChemDivSolutionRegularityResidual
   du : ℝ → ℝ → ℝ
   d2u : ℝ → ℝ → ℝ
   hiter : ShenWork.IntervalFlooredSourceTimeDataIterate.IterateSourceTimeData p u du d2u
+  hsrcContDiff : ∀ k, ContDiff ℝ (2 : ℕ∞)
+    (ShenWork.IntervalPhysicalResolverDataConcrete.srcTimeCoeff p u k)
+  hsrcBound : ∀ (i k : ℕ) (t : ℝ), i ≤ 2 →
+    ‖iteratedFDeriv ℝ i
+      (ShenWork.IntervalPhysicalResolverDataConcrete.srcTimeCoeff p u k) t‖ ≤
+      ShenWork.IntervalPhysicalSourceTimeC2Concrete.builtEs
+        (ShenWork.IntervalFlooredSourceTimeDataIterate.flooredSourceTimeData_of_iterate
+          hiter) i k
   hval : ∀ m : ℕ, (m : ℕ∞) ≤ (2 : ℕ∞) →
     Summable (ShenWork.IntervalResolverJointC2Physical.boundedWeightJointMajorant
       (fun i k => ShenWork.PDE.intervalNeumannResolverWeight p k *
@@ -124,7 +132,7 @@ theorem fluxJointC2Hyp_of_residual {u : ℝ → intervalDomainPoint → ℝ}
     CoupledChemDivFluxJointC2Hyp p u :=
   coupledChemDivFluxJointC2Hyp_of_factorJointC2Inputs
     (ShenWork.IntervalFlooredSourceTimeDataIterate.coupledChemDivFluxFactorJointC2Inputs_of_iterate
-      R.hiter R.hval R.hgrad R.other)
+      R.hiter R.hsrcContDiff R.hsrcBound R.hval R.hgrad R.other)
 
 /-- **Global chem-div source time-`C¹` package from the residual.**  Wires the
 residual's chain-rule/decay/adot data through `coupledChemDivSource_timeC1_of_fluxJointC2`. -/

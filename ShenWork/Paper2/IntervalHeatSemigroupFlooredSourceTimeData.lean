@@ -3,7 +3,7 @@
 
 This file builds the `FlooredSourceTimeData p u s₁ s₂` for the heat semigroup
 base iterate `u = conjugatePicardIter p u₀ 0 = S(t)u₀`, the SINGLE
-infrastructure piece that gates 7 of 12 remaining sorry.
+infrastructure piece for positive-time source-slice data.
 
 ## Source slice and time derivatives
 
@@ -26,12 +26,12 @@ The τ ≤ 0 case is no longer required, eliminating the fundamental obstruction
 The time-derivative functions `du` and `d2u` are still defined as 0 at t ≤ 0
 for completeness, but they are only used at t > 0.
 
-## Sorry budget
+## Analytic inputs
 
-Each field of `FlooredSourceTimeData` is sorry'd with a named obligation.
-These are finite, non-circular, and independently attackable.  All fields
-now quantify over **positive time only** (`0 < τ` / `0 < t`), which makes
-them fillable from the heat semigroup smoothing data:
+The final constructor takes the long analytic fields as explicit hypotheses.
+They are finite, non-circular, and independently attackable.  All fields
+quantify over **positive time only** (`0 < τ` / `0 < t`), matching the heat
+semigroup smoothing data:
 
 1. `d0` — HasDerivAt of srcSlice = s₁ + joint continuity of s₁ (for τ > 0)
 2. `d1` — HasDerivAt of s₁ = s₂ + joint continuity of s₂ (for τ > 0)
@@ -40,12 +40,8 @@ them fillable from the heat semigroup smoothing data:
 5. `zerothBound` — uniform zeroth-mode bound (for t > 0)
 6. `laplBound` — uniform Laplacian bound (kπ)⁻² (for t > 0)
 
-Once built, this feeds into the committed chain:
-  FlooredSourceTimeData → physicalSourceTimeC2_of_floored → PhysicalSourceTimeC2
-  → physicalResolverJointC2Data_of_floor → PhysicalResolverJointC2Data
-  → coupledChemical_jointContDiffAt_two
-
-which closes `heatSemigroup_level0_resolverJointC2Data` (previously 4 unstructured sorry).
+This file no longer drives the heat-resolver joint-C² proof; that direct
+positive-time cutoff route lives in `IntervalHeatResolverJointC2`.
 -/
 import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
 import ShenWork.PDE.HasDerivWithinAtTsum
@@ -643,10 +639,8 @@ For `u = conjugatePicardIter p u₀ 0 = S(t)u₀`, this packages the three
 time-derivative slices of the source `srcSlice p u t x = ν·(S(t)u₀(x))^γ`
 with the six `FlooredSourceTimeData` fields.
 
-Each field is sorry'd as a named atomic obligation; once all 6 are discharged,
-the entire `heatSemigroup_level0_resolverJointC2Data` follows by the committed
-chain `FlooredSourceTimeData → physicalSourceTimeC2_of_floored →
-physicalResolverJointC2Data_of_floor`. -/
+The analytic fields are explicit hypotheses, assembled into the structural
+`FlooredSourceTimeData` record below. -/
 theorem heatSemigroup_flooredSourceTimeData
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {M₀ : ℝ}
     (_hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
