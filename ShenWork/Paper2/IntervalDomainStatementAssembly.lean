@@ -1248,6 +1248,53 @@ theorem intervalDomainPaper2_mainTheoremTargets_of_H2SourceFrontierDataFact
   intervalDomainPaper2_mainTheoremTargets_of_H2SourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
 
+/-- Main-theorem frontier record using the half-step H2-source Theorem 1.1
+route and the positive-constant solution-slice Theorem 1.2/1.3 route. -/
+structure
+    IntervalDomainPaper2MainTheoremH2SourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem11 :
+    IntervalDomainPaper2GradientMildHalfStepH2SourceFrontierCoreContinuationData
+      p
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 from the H2-source
+local-existence route plus the positive-constant solution-slice Theorem
+1.2/1.3 frontiers. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremH2SourcePositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_of_halfStepH2SourceFrontierData
+      p hχ ha hb hγ_ge_one hData.theorem11,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
+      p C cGrad hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle from the H2-source
+route plus the positive-constant solution-slice Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremH2SourcePositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
 /-- Main-theorem frontier record using the half-step logistic-source Theorem
 1.1 route. -/
 structure IntervalDomainPaper2MainTheoremLogisticSourceFrontierData
@@ -1287,6 +1334,53 @@ theorem intervalDomainPaper2_mainTheoremTargets_of_logisticSourceFrontierDataFac
     IntervalDomainPaper2MainTheoremTargets p C :=
   intervalDomainPaper2_mainTheoremTargets_of_logisticSourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
+
+/-- Main-theorem frontier record using the half-step logistic-source Theorem
+1.1 route and the positive-constant solution-slice Theorem 1.2/1.3 route. -/
+structure
+    IntervalDomainPaper2MainTheoremLogisticSourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem11 :
+    IntervalDomainPaper2GradientMildHalfStepLogisticSourceFrontierCoreContinuationData
+      p
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 from the logistic-source
+local-existence route plus the positive-constant solution-slice Theorem
+1.2/1.3 frontiers. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremLogisticSourcePositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_of_halfStepLogisticSourceFrontierData
+      p hχ ha hb hγ_ge_one hData.theorem11,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
+      p C cGrad hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle from the logistic-source
+route plus the positive-constant solution-slice Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremLogisticSourcePositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
 
 /-- Concrete interval-domain Paper 2 Proposition 1.1 together with the main
 Theorems 1.1--1.3. -/
@@ -1550,6 +1644,51 @@ theorem
   intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
 
+/-- Local-plus-main frontier record using the half-step H2-source Theorem 1.1
+route and the positive-constant solution-slice Theorem 1.2/1.3 route. -/
+structure
+    IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11FrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremH2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
+from the H2-source local-existence route plus the positive-constant
+solution-slice Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Proposition_1_1_of_frontierData
+      p hData.proposition11,
+    intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad hχ ha hb hγ_ge_one hData.main⟩
+
+/-- Instance-facing interval-domain local-plus-main wrapper from the H2-source
+route plus the positive-constant solution-slice Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
 /-- Local-plus-main frontier record using the half-step logistic-source
 Theorem 1.1 route. -/
 structure IntervalDomainPaper2LocalAndMainLogisticSourceFrontierData
@@ -1587,6 +1726,53 @@ theorem
     IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
   intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
+
+/-- Local-plus-main frontier record using the half-step logistic-source
+Theorem 1.1 route and the positive-constant solution-slice Theorem 1.2/1.3
+route. -/
+structure
+    IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11FrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremLogisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
+from the logistic-source local-existence route plus the positive-constant
+solution-slice Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Proposition_1_1_of_frontierData
+      p hData.proposition11,
+    intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad hχ ha hb hγ_ge_one hData.main⟩
+
+/-- Instance-facing interval-domain local-plus-main wrapper from the
+logistic-source route plus the positive-constant solution-slice Theorem
+1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
 
 /-! ## Combined interval-domain statement targets -/
 
@@ -1820,6 +2006,55 @@ theorem intervalDomainPaper2_statementTargets_of_H2SourceFrontierDataFact
     p C S hχ ha hb hγ_ge_one hData.out
 
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
+H2-source local-existence route and the positive-constant solution-slice
+Theorem 1.2/1.3 route. -/
+structure
+    IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets from the
+H2-source local-existence route, using positive-constant solution-slice
+interpolation instead of the false global interpolation frontier. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+      p hData.corollary,
+    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+      p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad hχ ha hb hγ_ge_one hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper from
+the H2-source local-existence route using positive-constant solution-slice
+interpolation. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Interval-domain Paper 2 statement-frontier record using the half-step
 logistic-source local-existence route. -/
 structure IntervalDomainPaper2StatementLogisticSourceFrontierData
     (p : CM2Params) (C : Paper2Constants p)
@@ -1859,6 +2094,55 @@ theorem intervalDomainPaper2_statementTargets_of_logisticSourceFrontierDataFact
   intervalDomainPaper2_statementTargets_of_logisticSourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
 
+/-- Interval-domain Paper 2 statement-frontier record using the half-step
+logistic-source local-existence route and the positive-constant solution-slice
+Theorem 1.2/1.3 route. -/
+structure
+    IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets from the
+logistic-source local-existence route, using positive-constant solution-slice
+interpolation instead of the false global interpolation frontier. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+      p hData.corollary,
+    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+      p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad hχ ha hb hγ_ge_one hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper from
+the logistic-source local-existence route using positive-constant
+solution-slice interpolation. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
 section AxiomAudit
 
 #print axioms intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
@@ -1874,17 +2158,29 @@ section AxiomAudit
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
 #print axioms intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroThinFrontierData
 #print axioms intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroThinFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
 
 end AxiomAudit
 
