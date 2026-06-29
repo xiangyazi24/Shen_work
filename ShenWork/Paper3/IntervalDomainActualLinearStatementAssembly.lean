@@ -1350,8 +1350,16 @@ theorem
 pointwise endpoint input, with Proposition 1.3/1.4 routed through the Paper2
 main theorem target bundle.
 
-The proposition package still carries the independent Proposition 1.2
-`negativeBound` residual; Paper2 main targets do not discharge it. -/
+This is the preferred current actual-linear terminal statement route.  The
+terminal Moser endpoint is no longer inline: `terminalPointwise` is converted to
+`quantitativeEndpoint` by
+`intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl`.
+The route is still intentionally conditional: it carries the independent
+`negativeBound` residual for Paper3 Proposition 1.2, the sectorial nonlinear
+orbit bound, continuation/gluing, the terminal Moser analytic atoms,
+compactness/regularization frontiers, and Theorem 2.3--2.5 stability frontiers.
+Paper2 main targets discharge only the Proposition 1.3/1.4 branches, not
+`negativeBound`. -/
 structure
     IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData
     (p : CM2Params) (C : Paper2Constants p)

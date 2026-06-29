@@ -158,7 +158,11 @@ theorem paper2_Proposition_1_1_of_existenceDataFact
 
 /-! ## Theorem 1.1--1.3 targets -/
 
-/-- Paper2 main theorem targets covered by the solution-branch package. -/
+/-- Paper2 main theorem target shape covered by the solution-branch package.
+
+This is only the target conjunction `Theorem_1_1 ∧ Theorem_1_2 ∧
+Theorem_1_3`; `paper2_mainTheoremTargets_of_solutionBranchData` remains
+conditional on `Paper2MainSolutionBranchData`. -/
 def Paper2MainTheoremTargets
     (D : BoundedDomainData) (p : CM2Params)
     (C : Paper2Constants p) : Prop :=
@@ -261,7 +265,11 @@ def Paper2StatementTargets
   Paper2BootstrapEstimateTargets D p ∧
     Paper2LocalAndMainTheoremTargets D p C
 
-/-- Bundled generic Paper2 statement-target data. -/
+/-- Bundled generic Paper2 statement-target data.
+
+Frontier bundle: `bootstrap` and `localAndMain` are supplied input packages.
+The wrapper `paper2_statementTargets_of_data` is statement assembly, not a
+no-assumption Paper2 headline theorem. -/
 structure Paper2StatementData
     (D : BoundedDomainData) (p : CM2Params)
     (C : Paper2Constants p) : Prop where

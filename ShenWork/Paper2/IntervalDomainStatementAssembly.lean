@@ -256,7 +256,14 @@ theorem intervalDomainPaper2_Lemma_3_1
   Lemma31Closure.Lemma_3_1_intervalDomain p
 
 /-- Single-target interval-domain wrapper for Lemma 4.1 from the concrete GN
-frontier. -/
+frontier.
+
+Deprecated as a headline route: this consumes
+`IntervalDomainLemma41.IntervalDomainInterpolation`, which is refuted as
+literally stated by
+`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
+Use the solution-slice or positive-solution-slice interpolation routes instead
+until the global interpolation statement is repaired. -/
 theorem intervalDomainPaper2_Lemma_4_1_of_GN_frontier
     (p : CM2Params)
     (hGN : IntervalDomainLemma41.IntervalDomainInterpolation) :
@@ -272,7 +279,11 @@ theorem intervalDomainPaper2_Lemma_4_1_of_GN_frontierFact
   intervalDomainPaper2_Lemma_4_1_of_GN_frontier p hGN.out
 
 /-- Assemble the interval-domain Lemma 3.1 and Lemma 4.1 targets from the GN
-frontier. -/
+frontier.
+
+Deprecated as a headline route for the same reason as
+`intervalDomainPaper2_Lemma_4_1_of_GN_frontier`: the global
+`IntervalDomainInterpolation` premise is currently refuted. -/
 theorem intervalDomainPaper2_aprioriTargets_of_GN_frontier
     (p : CM2Params)
     (hGN : IntervalDomainLemma41.IntervalDomainInterpolation) :
@@ -582,7 +593,13 @@ abbrev IntervalDomainPaper2GlobalExtensionFrontier
           IsPaper2GlobalClassicalSolution intervalDomain p u v
 
 /-- Common interpolation/energy inputs shared by the thinner interval-domain
-Theorem 1.2 and Theorem 1.3 route. -/
+Theorem 1.2 and Theorem 1.3 route.
+
+Legacy/no-go headline interface: the `interpolation` field is the global
+`IntervalDomainInterpolation` premise, refuted as literally stated by
+`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
+Prefer `IntervalDomainPaper2SolutionInterpolationEnergyFrontierData` or the
+positive solution-slice variant for current headline routes. -/
 structure IntervalDomainPaper2InterpolationEnergyFrontierData
     (p : CM2Params)
     (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
@@ -664,7 +681,11 @@ Compared with `IntervalDomainPaper2Theorem12And13FrontierData`, this route no
 longer carries `SemigroupEstimateData`, Lemma 2.1, Lemma 2.6, Lemma 4.1, or
 Corollary 2.1 as theorem fields.  It exposes the interpolation/energy/positivity
 route used by the existing Theorem 1.2/1.3 assemblies and replaces global
-boundedness fields by eventual sup-norm frontiers. -/
+boundedness fields by eventual sup-norm frontiers.
+
+Because the nested common data includes the false global
+`IntervalDomainInterpolation` premise, prefer the solution-slice or positive
+solution-slice routes below for current headline accounting. -/
 structure IntervalDomainPaper2Theorem12And13InterpolationFrontierData
     (p : CM2Params) (C : Paper2Constants p)
     (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
@@ -2401,7 +2422,12 @@ theorem
 
 /-- Assemble the concrete interval-domain Paper 2 statement targets in the
 proved `χ₀ = 0` route from positive solution-slice and thin section-2 data,
-with the Theorem 1.2/1.3 local-existence field produced internally. -/
+with the Theorem 1.2/1.3 local-existence field produced internally.
+
+This is the preferred current interval-domain `χ₀ = 0` statement route: it uses
+solution-slice interpolation and the local-free Theorem 1.2/1.3 interface,
+rather than the deprecated global `IntervalDomainInterpolation` premise
+refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`. -/
 theorem
     intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
     (p : CM2Params) (C : Paper2Constants p)
@@ -2436,8 +2462,59 @@ theorem
   intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
 
+/-- Preferred `χ₀ = 0` interval-domain Paper2 statement-frontier package.
+
+This is a transparent alias for
+`IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`.
+It avoids the refuted global `IntervalDomainInterpolation` route by using the
+positive solution-slice interpolation package.  It remains conditional on the
+thin section-2 frontiers, the finite-horizon alternative, the positive
+solution-slice interpolation/energy package, `Proposition_2_5`, global
+extension, bootstrap, and eventual-sup frontiers. -/
+abbrev IntervalDomainPaper2PreferredChiZeroStatementFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop :=
+  IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    p C cGrad
+
+/-- Preferred `χ₀ = 0` interval-domain Paper2 full-statement wrapper.
+
+Pure wiring alias for
+`intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`.
+It does not construct any residual package; it only gives the current preferred
+route a shorter, grep-visible name. -/
+theorem intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2PreferredChiZeroStatementFrontierData p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData
+
+/-- Instance-facing alias for the preferred `χ₀ = 0` interval-domain Paper2
+full-statement route. -/
+theorem intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact (IntervalDomainPaper2PreferredChiZeroStatementFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
-H2-source local-existence route. -/
+H2-source local-existence route.
+
+Legacy/no-go headline interface as written: the `interpolation` field is the
+refuted global `IntervalDomainInterpolation` premise.  Prefer the
+`...PositiveSolutionInterpolation...` H2-source statement routes. -/
 structure IntervalDomainPaper2StatementH2SourceFrontierData
     (p : CM2Params) (C : Paper2Constants p)
     (S : SemigroupEstimateData intervalDomain) : Prop where
@@ -2619,7 +2696,11 @@ theorem
     p C cGrad hχ ha hb hγ_ge_one hData.out
 
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
-logistic-source local-existence route. -/
+logistic-source local-existence route.
+
+Legacy/no-go headline interface as written: the `interpolation` field is the
+refuted global `IntervalDomainInterpolation` premise.  Prefer the
+`...PositiveSolutionInterpolation...` logistic-source statement routes. -/
 structure IntervalDomainPaper2StatementLogisticSourceFrontierData
     (p : CM2Params) (C : Paper2Constants p)
     (S : SemigroupEstimateData intervalDomain) : Prop where

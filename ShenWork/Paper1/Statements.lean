@@ -17844,7 +17844,11 @@ theorem paper1_main_results
       cStarStarFn hcStarStar hstability hcont hcauchy hresolvent htail_asymp
   exact ⟨h11, h12, h13⟩
 
-/-- Bundled frontiers for the Paper1 main statement bridge. -/
+/-- Bundled frontiers for the Paper1 main statement bridge.
+
+This is a conditional assembly interface, not a producer of the paper's main
+theorems: each field is an analytic input that must be supplied by a separate
+construction or stability argument. -/
 structure Paper1MainResultsData
     (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
   construction_neg :

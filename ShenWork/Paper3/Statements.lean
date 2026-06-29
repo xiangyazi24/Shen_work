@@ -1196,6 +1196,14 @@ lemma Proposition_1_2_of_negativeSensitivityGlobalEventualBound
   rcases h hχ hm u₀ hu₀.toPositive with ⟨u, v, hglobal, htrace, M, hM⟩
   exact ⟨u, v, hglobal, htrace, ⟨M, hM⟩⟩
 
+/-- Analytic residual used to prove Paper3 Proposition 1.2: global existence
+and eventual-in-time boundedness in the negative-sensitivity regime.
+
+This is stronger than the final recalled Proposition 1.2 interface because it
+quantifies over `PositiveInitialDatum` and exposes the eventual sup-norm witness
+that becomes `IsPaper2Bounded`.  It is not supplied by Paper2 Theorem 1.1 under
+the current abstract API; see
+`not_paper2_theorem_1_1_implies_paper3_proposition_1_2`. -/
 def NegativeSensitivityGlobalEventualBound
     (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 → 1 ≤ p.m →

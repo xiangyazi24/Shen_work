@@ -16,7 +16,11 @@ def Paper1MainStatementTargets : Prop :=
   Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3
 
 /-- Main Paper1 statement-target assembly from the existing main-results
-frontier record. -/
+frontier record.
+
+Conditional interface: this theorem does not construct `Paper1MainResultsData`.
+It only turns that package into `Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`.
+The closed no-frontier component in this file is `paper1_lemma25Targets`. -/
 theorem paper1_mainStatementTargets_of_mainResultsData
     {cStarStarFn : CMParams → ℝ → ℝ}
     (hData : Paper1MainResultsData cStarStarFn) :
@@ -49,7 +53,10 @@ theorem paper1_Theorem_1_1_of_mainResultsDataFact
 /-- Single-target Paper1 Theorem 1.1 wrapper using the weakened negative
 construction provider.  The negative branch no longer carries
 `ShenUpperBoundNegative` directly; it carries the scalar strictness `U 0 < 1`
-through `ConstructionNegSMPProvider`. -/
+through `ConstructionNegSMPProvider`.
+
+Still conditional: both `hneg : ConstructionNegSMPProvider` and the positive
+branch `hpos` are headline construction inputs. -/
 theorem paper1_Theorem_1_1_of_constructionNegSMPProvider
     (hneg : ConstructionNegSMPProvider)
     (hpos :
@@ -89,7 +96,10 @@ existence package. -/
 def Paper1MainlineStatementTargets : Prop :=
   Theorem_1_2 ∧ Theorem_1_3
 
-/-- Mainline-existence assembly for Paper1 Theorems 1.2 and 1.3. -/
+/-- Mainline-existence assembly for Paper1 Theorems 1.2 and 1.3.
+
+Conditional interface: `Paper1MainlineExistence` is the B5 mainline input
+package.  This wrapper does not construct that package. -/
 theorem paper1_mainlineStatementTargets_of_mainlineExistence
     {cStarStarFn : CMParams → ℝ → ℝ}
     (hexist : Paper1MainlineExistence cStarStarFn) :
@@ -120,6 +130,68 @@ theorem paper1_Theorem_1_3_of_mainlineExistence
     Theorem_1_3 :=
   (paper1_mainlineStatementTargets_of_mainlineExistence hexist).2
 
+/-- Positive critical frozen-stationary branch used with
+`ConstructionNegSMPProvider` to prove Paper1 Theorem 1.1.
+
+This is the existing `hpos` argument of
+`paper1_Theorem_1_1_of_constructionNegSMPProvider`, factored out so the
+preferred bundled main wrapper exposes every remaining input explicitly. -/
+def Paper1PositiveCriticalFrozenStationaryBranch : Prop :=
+  ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+    0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+    ∀ c : ℝ, 2 < c →
+      ∃ U : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U ∧
+          ShenUpperBoundPositive p c U ∧
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+            HasWaveRightTailAsymptotic c κ₁ U
+
+/-- Preferred Paper1 main-statement input package using the thinner current
+routes instead of the old monolithic `Paper1MainResultsData`.
+
+Still conditional: `constructionNeg` is the weakened negative construction
+provider, `positiveCritical` is the positive frozen-stationary branch for
+Theorem 1.1, and `mainline` is the B5 stability/uniqueness mainline package for
+Theorems 1.2 and 1.3.  This package is not an unconditional Paper1 headline
+producer. -/
+structure Paper1MainStatementSMPMainlineData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  constructionNeg : ConstructionNegSMPProvider
+  positiveCritical : Paper1PositiveCriticalFrozenStationaryBranch
+  mainline : Paper1MainlineExistence cStarStarFn
+
+/-- Preferred Paper1 main-statement wrapper from the current thinner input
+packages.
+
+This is pure wiring:
+* Theorem 1.1 is obtained from
+  `paper1_Theorem_1_1_of_constructionNegSMPProvider`.
+* Theorems 1.2 and 1.3 are obtained from
+  `paper1_mainlineStatementTargets_of_mainlineExistence`.
+
+It does not construct `ConstructionNegSMPProvider`, the positive branch, or
+`Paper1MainlineExistence`. -/
+theorem paper1_mainStatementTargets_of_smpMainlineData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1MainStatementSMPMainlineData cStarStarFn) :
+    Paper1MainStatementTargets := by
+  have hmainline :=
+    paper1_mainlineStatementTargets_of_mainlineExistence hData.mainline
+  exact ⟨paper1_Theorem_1_1_of_constructionNegSMPProvider
+      hData.constructionNeg hData.positiveCritical,
+    hmainline.1,
+    hmainline.2⟩
+
+/-- Instance-facing wrapper for the preferred conditional Paper1 main-statement
+route. -/
+theorem paper1_mainStatementTargets_of_smpMainlineDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainStatementSMPMainlineData cStarStarFn)] :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_smpMainlineData hData.out
+
 /-! ## Lemma 2.5 targets -/
 
 /-- Paper1 Lemma 2.5 together with its Jensen-step support target. -/
@@ -141,7 +213,8 @@ theorem paper1_lemma25Targets : Paper1Lemma25Targets :=
 /-! ## Lemma 5.1 and 5.2 targets -/
 
 /-- Frontier record for the Paper1 Lemma 5.1 resolvent and derivative-bound
-inputs. -/
+inputs.  This record names the remaining analytic inputs; it does not produce
+them. -/
 structure Paper1Lemma51FrontierData : Prop where
   resolvent :
     ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
@@ -174,7 +247,8 @@ structure Paper1Lemma51FrontierData : Prop where
               B1 * Real.exp (-(kappa c) * x) +
                 B2 * Real.exp (-(kappa c) * p.γ * x)
 
-/-- Frontier record for the Paper1 Lemma 5.2 monotonicity input. -/
+/-- Frontier record for the Paper1 Lemma 5.2 monotonicity input.  This is a
+carried frontier field, not a monotonicity producer. -/
 structure Paper1Lemma52FrontierData : Prop where
   monotone :
     ∀ p : CMParams, ∀ c : ℝ,
@@ -231,7 +305,8 @@ def Paper1PropositionTargets : Prop :=
   Proposition_1_1 ∧ Proposition_1_2
 
 /-- Frontier record for the Paper1 Cauchy existence, bounds, and convergence
-inputs that close Propositions 1.1 and 1.2. -/
+inputs that close Propositions 1.1 and 1.2.  These fields are the remaining
+whole-line Cauchy frontiers, not theorem producers. -/
 structure Paper1PropositionFrontierData : Prop where
   existence :
     ∀ p : CMParams,
@@ -309,7 +384,11 @@ def Paper1CombinedStatementTargets : Prop :=
       Paper1Lemma25Targets ∧
         Paper1Lemma51And52Targets
 
-/-- Bundled data for the Paper1 combined statement-target assembly. -/
+/-- Bundled data for the Paper1 combined statement-target assembly.
+
+This is a frontier bundle: `main`, `propositions`, `lemma51`, and `lemma52`
+are still supplied inputs.  Only the nested Lemma 2.5 targets are closed
+inside `paper1_combinedStatementTargets_of_data`. -/
 structure Paper1CombinedStatementData
     (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
   main : Paper1MainResultsData cStarStarFn

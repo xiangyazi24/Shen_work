@@ -5133,7 +5133,10 @@ theorem paper2_main_results_of_assumed_solutions_branches
     Theorem_1_3.of_assumed_solutions_branch hlocal hglobal
   exact ⟨h11, h12, h13⟩
 
-/-- Bundled solution-branch frontiers for the three Paper 2 main theorems. -/
+/-- Bundled solution-branch frontiers for the three Paper 2 main theorems.
+
+This is the generic conditional main-theorem interface: the branch fields are
+assumptions to be produced elsewhere, not closed existence theorems. -/
 structure Paper2MainSolutionBranchData
     (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) :
     Prop where

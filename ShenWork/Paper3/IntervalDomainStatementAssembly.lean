@@ -24,6 +24,12 @@ noncomputable section
 def IntervalDomainPaper3Proposition1Targets (p : CM2Params) : Prop :=
   Proposition_1_2 intervalDomain p ∧ Proposition_1_4 intervalDomain p
 
+/-- Interval-domain abbreviation for the independent Paper3 Proposition 1.2
+negative-sensitivity residual.  This is not produced by Paper2 main targets. -/
+abbrev IntervalDomainPaper3NegativeSensitivityResidual
+    (p : CM2Params) : Prop :=
+  NegativeSensitivityGlobalEventualBound intervalDomain p
+
 /-- Frontier data for the interval-domain Proposition 1.2 and Proposition 1.4
 targets. -/
 structure IntervalDomainPaper3Proposition1FrontierData
@@ -716,6 +722,81 @@ structure IntervalDomainPaper3ConcreteCompactnessRegularizationData
     NeumannResolventGradientBoundExistsRaw intervalDomain
       K.neumannResolventGradientBound
 
+/-- Compactness data on the interval with the upper envelope fixed to the
+concrete interval sup norm.  The convergence relation and Neumann-resolvent
+bound predicate remain parameters, so this only removes the structural
+`upperEq` field from routes that choose this compactness package. -/
+def intervalDomainSupNormCompactnessData
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) :
+    CompactnessData intervalDomain where
+  locallyConverges := locallyConverges
+  upperEnvelope := intervalDomain.supNorm
+  neumannResolventGradientBound := neumannResolventGradientBound
+
+@[simp] theorem intervalDomainSupNormCompactnessData_upperEnvelope
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (f : intervalDomain.Point → ℝ) :
+    (intervalDomainSupNormCompactnessData
+      locallyConverges neumannResolventGradientBound).upperEnvelope f =
+      intervalDomain.supNorm f :=
+  rfl
+
+/-- Concrete-constants compactness/regularization data for the canonical
+sup-envelope compactness package.  This omits only the structural `upperEq`
+field; compactness, initial continuity, minimal upper bounds, and resolvent
+estimates remain explicit analytic frontiers. -/
+structure IntervalDomainPaper3SupNormCompactnessRegularizationData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  compact :
+    TimeTranslateCompactnessRaw intervalDomain p locallyConverges
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  minimalUpper :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            EventuallyUpperBoundMinimalConclusion intervalDomain p
+              (intervalDomainPaper3Constants p M0 uBar vLower) u
+  resolvent :
+    NeumannResolventGradientBoundExistsRaw intervalDomain
+      neumannResolventGradientBound
+
+/-- Convert the canonical sup-envelope compactness package to the existing
+concrete compactness data by filling `upperEq` definitionally. -/
+def IntervalDomainPaper3SupNormCompactnessRegularizationData.toConcrete
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop}
+    {neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
+    (h : IntervalDomainPaper3SupNormCompactnessRegularizationData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) where
+  upperEq := by
+    intro f
+    rfl
+  compact := h.compact
+  initialContinuity := h.initialContinuity
+  minimalUpper := h.minimalUpper
+  resolvent := h.resolvent
+
 /-- Concrete-constants compactness/regularization statement-target assembly on
 the interval domain. -/
 theorem
@@ -757,6 +838,51 @@ theorem
       (intervalDomainPaper3Constants p M0 uBar vLower) :=
   intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
     p M0 uBar vLower K hData.out
+
+/-- Concrete-constants compactness/regularization targets for the canonical
+sup-envelope compactness package.  This is a wrapper only; it does not produce
+the analytic compactness, initial-continuity, minimal-upper, or resolvent
+frontiers. -/
+theorem
+    intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_supNormData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (hData : IntervalDomainPaper3SupNormCompactnessRegularizationData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3CompactnessRegularizationTargets p
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound)
+      intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower
+    (intervalDomainSupNormCompactnessData
+      locallyConverges neumannResolventGradientBound)
+    hData.toConcrete
+
+/-- Instance-facing sup-envelope compactness/regularization wrapper. -/
+theorem
+    intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_supNormDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    [hData : Fact (IntervalDomainPaper3SupNormCompactnessRegularizationData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3CompactnessRegularizationTargets p
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound)
+      intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_supNormData
+    p M0 uBar vLower locallyConverges
+    neumannResolventGradientBound hData.out
 
 /-- Single-target wrapper for concrete Paper3 Lemma 3.2 from the concrete
 compactness bundle. -/
