@@ -1,57 +1,85 @@
-# Q2204 R1 audit: Paper3 headline input packages at `dd1f0a6d3de69f825115cf8de985a8003f083929`
+# Q2214 R1 global headline-input audit for `Shen_work` commit `5fc60d48ba060e2b30439b77315537aa9a956c3c`
 
 ## Bottom line
 
-The route to `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData` is a real statement-layer assembly route, not an empty proof shell. It legitimately wires Paper3 Propositions 1.3 and 1.4 through Paper2 Theorem 1.3 and Theorem 1.2, extracted from `Paper2MainTheoremTargets`. It does **not** derive Paper3 Proposition 1.2 from Paper2 Theorem 1.1 or from the Paper2 main target bundle. The `negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p` field remains an independent Paper3 analytic residual. The no-go theorem `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` is exactly the warning sign: the tempting `Theorem_1_1 -> Proposition_1_2` route is unavailable under the current abstract API.
+The Lean tree has real statement wiring, but the Paper1--Paper3 headline theorem packages are not all no-assumption paper theorems. Most public `...Data`, `...FrontierData`, `...BranchData`, and `...Fact` wrappers are conditional assembly interfaces. A safe reading is:
 
-So the headline package is mixed:
+- **A**: no analytic input-package remains, apart from ordinary parameter/regime hypotheses.
+- **B**: a formerly explicit input is produced by another named wrapper.
+- **C**: honest analytic frontier/residual still remains.
+- **D**: deprecated/no-go/same-as-goal route that should not be advertised as a producer.
 
-- Paper3 Propositions 1.3 and 1.4: **A**, now genuinely wired through Paper2 Theorem 1.3 / Theorem 1.2 / main theorem targets.
-- Paper3 Proposition 1.2 negative-sensitivity input: **B** as an explicit honest residual, and **C** for any attempted derivation from Paper2 Theorem 1.1 alone.
-- Mainline terminal-Moser fields: mostly **B**, honest analytic residual interfaces; the wrapper theorem is proved wiring once those residuals are supplied.
-- **D**: I do not see a suspiciously empty or same-as-goal declaration in the audited route.
+## Paper 1
 
-## Source-backed route summary
+### Classification
 
-The final target is `IntervalDomainPaper3StatementTargets p C M0 uBar vLower K`, defined as the conjunction of `IntervalDomainPaper3Proposition1WithTheorem13Targets p C` and `IntervalDomainPaper3MainlineTargets p M0 uBar vLower K` (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:1261-1267`). The headline data structure `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData` has exactly two top-level fields: `propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C` and `mainline : IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData p M0 uBar vLower K` (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:1295-1302`). The theorem `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData` proves the target by pairing `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` with `intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData` (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:1304-1320`).
-
-On the proposition side, `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData` contains `negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p` and `paper2Main : IntervalDomainPaper2MainTheoremTargets p C` (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:159-164`). The interval-domain wrapper delegates directly to the generic `paper3_proposition1Targets_of_paper2MainTargetsData`, passing those two fields unchanged (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:166-175`).
-
-The generic `Paper3Proposition1FromPaper2MainTargetsData` likewise contains `negativeBound : NegativeSensitivityGlobalEventualBound D p` and `main : Paper2.Paper2MainTheoremTargets D p C` (`ShenWork/Paper3/StatementAssembly.lean:200-207`). Its bridge `paper3_proposition1Targets_of_paper2MainTargetsData` calls `paper3_proposition1Targets_of_paper2TheoremsData` with `theorem12 := hData.main.2.1` and `theorem13 := hData.main.2.2`; it does not use `hData.main.1` (`ShenWork/Paper3/StatementAssembly.lean:209-218`). Paper2 defines `Paper2MainTheoremTargets D p C` as `Theorem_1_1 D p ∧ Theorem_1_2 D p ∧ Theorem_1_3 D p C` (`ShenWork/Paper2/StatementAssembly.lean:162-165`), and the single-target wrappers project `.1`, `.2.1`, and `.2.2` as Theorems 1.1, 1.2, and 1.3 (`ShenWork/Paper2/StatementAssembly.lean:181-220`).
-
-## Classification of headline fields
-
-| Field or subfield | Class | Reason |
+| Package or theorem | Class | Source-backed audit |
 |---|---:|---|
-| `propositions` | Mixed | It is not itself empty or same-as-goal. It expands to `negativeBound` plus `paper2Main` (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:159-164`). |
-| `propositions.negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p` | **B** as packaged; **C** for a Paper2-Theorem-1.1-only derivation attempt | This is an explicit analytic residual for Paper3 Proposition 1.2. It requires global existence plus eventual-in-time sup bound in the `p.χ₀ ≤ 0`, `1 ≤ p.m` regime (`ShenWork/Paper3/Statements.lean:1199-1206`). It is used to obtain `Proposition_1_2` via `Proposition_1_2_of_negativeSensitivityGlobalEventualBound`, not via Paper2 main (`ShenWork/Paper3/Statements.lean:1177-1197`; `ShenWork/Paper3/StatementAssembly.lean:183-190`). The theorem `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` proves that `Paper2.Theorem_1_1` alone cannot imply `Proposition_1_2` for all abstract domains and parameters (`ShenWork/Paper3/Statements.lean:1307-1356`). |
-| `propositions.paper2Main : IntervalDomainPaper2MainTheoremTargets p C` | **A** | The Paper2 main target bundle supplies `Theorem_1_2` and `Theorem_1_3`, which the generic bridge extracts as `.2.1` and `.2.2` (`ShenWork/Paper3/StatementAssembly.lean:209-218`). This is the legitimate Paper2-main route for Paper3 Propositions 1.4 and 1.3. |
-| `mainline` | Mixed, mostly **B** | The field is not the goal `IntervalDomainPaper3MainlineTargets`; it is a frontier bundle with `core`, `compactness`, and `stability` fields (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:1151-1160`). The wrapper then converts it into the mainline target by existing assembly theorems (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:1163-1180`). |
-| `mainline.core : IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p` | **B** | This is an honest residual/facts package, not an empty declaration. Its leaf fields are `spectralSemigroupOrbitBound`, `continuation`, and `massLpSmoothing` (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:718-726`). It is converted downward to `CERawGradFacts` by copying the first two fields and converting `massLpSmoothing` (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:730-737`). |
-| `mainline.core.massLpSmoothing : IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals p` | **B** | This package has concrete analytic leaf assumptions: `boundednessHyp`, `closedEnergyTrace`, `rawMoserDrop`, `relativeMassGradient`, and `terminalPointwise` (`ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean:538-594`). It is a non-vacuous interface for the Moser terminal endpoint route. |
-| `mainline.compactness : IntervalDomainPaper3ConcreteCompactnessRegularizationData p M0 uBar vLower K` | **B** | The concrete compactness package carries `upperEq`, `compact`, `initialContinuity`, `minimalUpper`, and `resolvent` frontiers (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:694-713`). The theorem `intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers` turns these fields into the compactness/regularization target package (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:716-735`). |
-| `mainline.stability : IntervalDomainPaper3Stability23To25FrontierData p (...)` | **B** | The stability package is an explicit frontier list for global and exponential stability in Theorems 2.3--2.5: `globalNonminimal23`, `globalMinimal23`, `expNonminimal23`, `expMinimal23`, `global24`, `exp24`, `global25`, and `exp25` (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:883-954`). The assembly theorem consumes those fields to produce `IntervalDomainPaper3Stability23To25Targets` (`ShenWork/Paper3/IntervalDomainStatementAssembly.lean:956-965`). |
+| `paper1_Lemma_2_5`, `paper1_Lemma_2_5_JensenStep`, `paper1_lemma25Targets` | **A** | These are closed wrappers in `ShenWork/Paper1/StatementAssembly.lean`, around the Lemma 2.5 block. They return the proved Lemma 2.5/Jensen targets without a frontier package. |
+| `paper1_mainStatementTargets_of_mainResultsData` | **C** | It proves `Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3` only from `Paper1MainResultsData`. The structure is a headline input package, not currently produced by a no-frontier wrapper. |
+| `paper1_mainlineStatementTargets_of_mainlineExistence` | **C** | It proves Theorems 1.2/1.3 from `Paper1MainlineExistence`; that existence package remains an input. |
+| `paper1_Theorem_1_1_of_constructionNegSMPProvider` | **C**, with **B** sub-progress | The theorem still needs `ConstructionNegSMPProvider` plus a positive branch. The old negative upper-bound task is partly wired: `ShenUpperBoundNegative_of_stationary_strongMaxPrinciple` reduces it to the scalar `U 0 < 1`, with supporting bounds in `StationaryUpperTail.lean`. |
+| `paper1_combinedStatementTargets_of_data` | **C** | Combines `Paper1MainResultsData`, `Paper1PropositionFrontierData`, `Paper1Lemma51FrontierData`, and `Paper1Lemma52FrontierData`; only the Lemma 2.5 component is closed internally. |
+| `HasWaveRightTailAsymptotic_of_stationary` | **D-risk / honest residual** | In `StationaryUpperTail.lean`, this theorem takes `htail : HasWaveRightTailAsymptotic c κ₁ U` and returns the same predicate. It is documented as a carried tail-asymptotic residual, not a producer. |
 
-## Negative-sensitivity conclusion
+### Main remaining Paper1 residuals
 
-`negativeBound` cannot currently be derived from Paper2 Theorem 1.1. The repository contains a formal counterexample theorem, `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`, whose statement is exactly the negation of a uniform implication from `Paper2.Theorem_1_1 D p` to `Proposition_1_2 D p` (`ShenWork/Paper3/Statements.lean:1307-1309`). The proof constructs `proposition12CounterDomain`, `proposition12CounterParams`, and a counter-profile `proposition12CounterU`, proves `proposition12Counter_paper2_theorem_1_1`, then derives a contradiction from the claimed eventual bound (`ShenWork/Paper3/Statements.lean:1208-1306`; `ShenWork/Paper3/Statements.lean:1326-1356`).
+`Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, the positive construction branch, fixed-point/stationarity/SMP inputs in `ConstructionNegSMPProvider`, and the sharp right-tail asymptotic remain open or externally supplied.
 
-The current Paper2-main bridge also does not derive `negativeBound` from the full `Paper2MainTheoremTargets` tuple. The only extracted Paper2-main components are `.2.1` and `.2.2`, i.e. Theorems 1.2 and 1.3 (`ShenWork/Paper3/StatementAssembly.lean:209-218`). Thus `Paper2MainTheoremTargets.1` / Theorem 1.1 is carried inside the bundle but unused in this Paper3 proposition bridge. Unless a new API theorem is added that proves `NegativeSensitivityGlobalEventualBound intervalDomain p` from stronger Paper2 hypotheses, `negativeBound` should remain a named independent residual for Paper3 Proposition 1.2.
+## Paper 2
 
-## Paper3 Propositions 1.3 and 1.4
+### Generic packages
 
-Paper3 Proposition 1.3 is legitimately wired through Paper2 Theorem 1.3. The bridge `paper3_Proposition_1_3_of_Paper2_Theorem_1_3` introduces the Paper3 hypotheses and applies the bounded branch from `Paper2.Theorem_1_3` (`ShenWork/Paper3/StatementAssembly.lean:108-116`). Paper3 Proposition 1.4 is legitimately wired through Paper2 Theorem 1.2. The bridge `paper3_Proposition_1_4_of_Paper2_Theorem_1_2` converts the Paper3 case split into the nonnegativity hypotheses needed by Theorem 1.2, then applies its bounded branch (`ShenWork/Paper3/StatementAssembly.lean:154-169`). The combined bridge `paper3_proposition1Targets_of_paper2TheoremsData` uses `negativeBound` for Proposition 1.2, Theorem 1.3 for Proposition 1.3, and Theorem 1.2 for Proposition 1.4 (`ShenWork/Paper3/StatementAssembly.lean:181-190`). The newer main-target bridge simply extracts those Theorem 1.2 / 1.3 components from `Paper2MainTheoremTargets` (`ShenWork/Paper3/StatementAssembly.lean:209-218`; `ShenWork/Paper3/IntervalDomainStatementAssembly.lean:166-175`).
+| Package or theorem | Class | Source-backed audit |
+|---|---:|---|
+| `paper2_bootstrapEstimateTargets_of_branchData` | **C** | In `ShenWork/Paper2/StatementAssembly.lean`, it assembles Lemmas 2.6--2.7 and Propositions 2.2--2.5 from `Paper2BootstrapEstimateBranchData`. |
+| `paper2_Proposition_1_1_of_existenceData` | **C** | Consumes `Paper2Proposition11ExistenceData`; the local-existence/blow-up alternative is an input. |
+| `paper2_mainTheoremTargets_of_solutionBranchData` | **C** | `Paper2MainTheoremTargets` is exactly Theorems 1.1--1.3, but the wrapper needs `Paper2MainSolutionBranchData`. |
+| `paper2_statementTargets_of_data` | **C** | Combines bootstrap and local/main packages from `Paper2StatementData`; still conditional. |
 
-Therefore: **yes**, Paper3 Propositions 1.3 and 1.4 are now legitimately wired through Paper2 Theorem 1.3 / Theorem 1.2 / Paper2 main. **No**, Paper3 Proposition 1.2 is not supplied by Paper2 Theorem 1.1 or by the current Paper2-main extraction route.
+### Interval-domain packages
 
-## Recommended cleanup plan
+| Package or theorem | Class | Source-backed audit |
+|---|---:|---|
+| `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional` | **A** | In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`, this consumes only the regime/parameter hypotheses `p.χ₀ = 0`, `0 < p.a`, `0 < p.b`, `1 ≤ p.α`, `1 ≤ p.γ`, and delegates to `intervalDomain_theorem_1_1_chiZero_unconditional`. No half-step frontier package remains. |
+| `intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData` | **B/C** | Local existence is produced by `intervalDomain_localExistence_chiZero_unconditional`; the finite-horizon alternative remains a residual. |
+| `IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData.toPositive` | **B/C** | Fills the Theorem 1.2/1.3 local-existence slot with `intervalDomain_localExistence_chiZero_unconditional`, but keeps solution-slice interpolation/energy, `prop25`, global extension, bootstrap, and eventual-sup fields. |
+| `intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData` | **B/C** | Produces Theorem 1.1 internally via the χ₀=0 unconditional route and uses the local-free Theorem 1.2/1.3 route, but still carries the Theorem 1.2/1.3 frontiers. |
+| `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData` | **B/C**, best current full Paper2 route | This is the most credible full statement wrapper: positive solution-slice route, thin section-2 package, and local-free χ₀=0 local/main route. It remains conditional on the common interpolation/energy, bootstrap, eventual-sup, finite-horizon, and related fields. |
+| H2/logistic source main/statement routes | **C** | `intervalDomainPaper2_Theorem_1_1_of_halfStepH2SourceFrontierData`, `...of_halfStepLogisticSourceFrontierData`, and their statement bundles carry half-step frontier packages. |
+| Routes consuming `IntervalDomainInterpolation` | **D** | `ShenWork/Paper2/IntervalDomainInterpolationCounterexample.lean` proves `not_intervalDomainInterpolation`. Therefore GN-frontier/interpolation-frontier headline routes using the globally quantified `IntervalDomainInterpolation` should be treated as deprecated no-go interfaces, not theorem producers. |
 
-1. Rename or alias `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData` to something like `IntervalDomainPaper3Proposition1FromNegativeBoundAndPaper2MainTargetsData`. The current name can be misread as saying all of Paper3 Proposition 1.x comes from Paper2 main, but `negativeBound` is still independent.
+### Main remaining Paper2 residuals
 
-2. Add a doc comment on `negativeBound` in both `Paper3Proposition1FromPaper2MainTargetsData` and `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData` saying: this field is the Paper3 Proposition 1.2 residual; it is not derivable from `Paper2.Theorem_1_1` under the current abstract API, by `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`.
+Finite-horizon alternative; positive solution-slice interpolation/energy; dissipation; positive gradient constant and gradient chain; mass control; power integrability; energy from cross diffusion; `Proposition_2_5`; global extension; slow/critical/strong bootstrap; critical/strong eventual sup-norm bounds; and thin section-2 fields for Lemma 2.6, Lemma 2.7, Proposition 2.2, and Proposition 2.3.
 
-3. Keep `paper3_proposition1Targets_of_paper2MainTargetsData` as the preferred bridge for Propositions 1.3 and 1.4, but document that it uses only `.2.1` and `.2.2` of `Paper2MainTheoremTargets`. This will make the unused Theorem 1.1 component non-surprising.
+## Paper 3
 
-4. Consider splitting the full headline package into two visibly named subpackages: `paper2Main : IntervalDomainPaper2MainTheoremTargets p C` and `paper3Residuals`, where `paper3Residuals` contains `negativeBound`, terminal Moser residuals, compactness/regularization, and stability frontiers. This would separate imported Paper2 headlines from remaining Paper3 analytic obligations.
+### Generic and interval-domain packages
 
-5. Do not replace `negativeBound` with a same-as-goal `Proposition_1_2 intervalDomain p` field. The current `NegativeSensitivityGlobalEventualBound` interface is more informative and is used by a specific bridge theorem, so it is an honest residual rather than a suspicious target restatement.
+| Package or theorem | Class | Source-backed audit |
+|---|---:|---|
+| `paper3_uniformPersistenceTargets_of_rawData` | **C** | In `ShenWork/Paper3/StatementAssembly.lean`, it proves Theorem 2.1 and parts from `Paper3UniformPersistenceRawData`; the raw package is still an input. |
+| `paper3_Theorem_2_2_of_branchData` | **C** | Consumes `Paper3Theorem22BranchData`. |
+| `paper3_compactnessRegularizationTargets_of_rawData` | **C** | Consumes `Paper3CompactnessRegularizationRawData`. |
+| `paper3_Proposition_1_3_of_Paper2_Theorem_1_3` | **B** | Legitimately derives Paper3 Proposition 1.3 from Paper2 Theorem 1.3. |
+| `paper3_Proposition_1_4_of_Paper2_Theorem_1_2` | **B** | Legitimately derives Paper3 Proposition 1.4 from Paper2 Theorem 1.2. |
+| `Paper3Proposition1FromPaper2MainTargetsData` and interval version | **B/C** | Despite the name, these still contain `negativeBound`. The bridge extracts only `main.2.1` and `main.2.2` from Paper2 main targets for Paper3 Propositions 1.4 and 1.3. |
+| `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `...partTargets...`, `...sectorial...` | **A** | In `IntervalDomainActualLinearStatementAssembly.lean`, these call `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall` internally; no persistence package is carried. |
+| `IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts.to_coreExistence` | **B/C** | It produces persistence fields from `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall` and global-solution fields from continuation plus mass/Lp smoothing, but still needs spectral semigroup, continuation, and smoothing inputs. |
+| `intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalFrontierData` | **B/C** | Terminal Moser converts through `core.to_CERawGradFacts hb`; compactness and stability are passed through. The terminal core, compactness, and stability packages remain residual. |
+| `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData` | **B/C**, best current full Paper3 route | This combines the terminal Moser mainline with Paper2-main routing for Propositions 1.3/1.4. It still carries `negativeBound` for Proposition 1.2 and all mainline terminal/compactness/stability residuals. |
+| Paper2 Theorem 1.1 -> Paper3 Proposition 1.2 | **D** | `ShenWork/Paper3/Statements.lean` proves `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`. So `negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p` cannot be silently derived from Paper2 Theorem 1.1 under the current abstract API. |
+
+### Main remaining Paper3 residuals
+
+`negativeBound`; terminal Moser `boundednessCore`, `closedEnergyTrace`, `rawMoserDrop`, `relativeMassGradient`, and `terminalPointwise`; spectral semigroup orbit bound; continuation; compactness/regularization fields (`upperEq`, compactness, `initialContinuity`, `minimalUpper`, resolvent); and stability frontiers for Theorems 2.3--2.5.
+
+## Cleanup plan
+
+1. Rename or alias `Paper3Proposition1FromPaper2MainTargetsData` and `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData` to names such as `...FromNegativeBoundAndPaper2MainTargetsData`.
+2. Add doc comments to `negativeBound` saying it is the independent Paper3 Proposition 1.2 residual and is not supplied by Paper2 Theorem 1.1; cite `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`.
+3. Mark routes consuming `IntervalDomainInterpolation` as deprecated/no-go and point to `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`; steer users to solution-slice/positive solution-slice routes.
+4. Add “frontier package, not theorem producer” comments to headline structures: `Paper1MainResultsData`, `Paper1MainlineExistence`, `Paper2MainSolutionBranchData`, `Paper2StatementData`, `IntervalDomainPaper2Theorem12And13...FrontierData`, and `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData`.
+5. Add explicit “best current route” aliases with names that include `fromFrontiers` or `fromResiduals`, so conditional wrappers cannot be mistaken for no-assumption paper headlines.
+6. Keep a short status table in `UNDERSTANDING.md` separating closed theorems, produced-subfield wrappers, honest residual packages, and deprecated/no-go routes.
