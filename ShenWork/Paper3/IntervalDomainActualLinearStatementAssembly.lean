@@ -612,6 +612,43 @@ structure IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
         ∃ q R, 0 < q ∧ 0 ≤ R ∧
           IntervalDomainMoserPointwisePowerControlBefore u T q R
 
+/-- A terminal pointwise Moser estimate gives the older quantitative endpoint
+interface by taking constant exponent and root-bound sequences. -/
+theorem intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl
+    {p : CM2Params}
+    (hterminal :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (p.N : ℝ)
+            (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          ∃ q R, 0 < q ∧ 0 ≤ R ∧
+            IntervalDomainMoserPointwisePowerControlBefore u T q R)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (pExp : ℝ)
+    (hpExp :
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp)
+    (hLp : LpPowerBoundedBefore intervalDomain pExp T u) :
+    ∃ pSeq rootBound : ℕ → ℝ,
+      (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound := by
+  rcases hterminal hu₀ hT hsol htrace pExp hpExp hLp with
+    ⟨q, R, hq, hR, hpoint⟩
+  refine ⟨fun _ => q, fun _ => R, ?_⟩
+  intro _hAll
+  exact ⟨R, hR, 0, hq, hR, le_rfl, hpoint⟩
+
 namespace IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
 
 def to_CERawGradResiduals
@@ -627,11 +664,9 @@ def to_CERawGradResiduals
   relativeMassGradient := h.relativeMassGradient
   quantitativeEndpoint := by
     intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
-    rcases h.terminalPointwise hu₀ hT hsol htrace pExp hpExp hLp with
-      ⟨q, R, hq, hR, hpoint⟩
-    refine ⟨fun _ => q, fun _ => R, ?_⟩
-    intro _hAll
-    exact ⟨R, hR, 0, hq, hR, le_rfl, hpoint⟩
+    exact
+      intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl
+        h.terminalPointwise hu₀ hT hsol htrace pExp hpExp hLp
 
 end IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals
 
