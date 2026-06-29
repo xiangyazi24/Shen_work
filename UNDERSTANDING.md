@@ -1,6 +1,42 @@
-# UNDERSTANDING.md — Shen_work (2026-06-28 automode session)
+# UNDERSTANDING.md — Shen_work
 
-## CURRENT STATE (2026-06-28)
+## CURRENT STATE (2026-06-29, code-derived)
+
+Authoritative checks from the current tree:
+- Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
+  after stripping comments and strings.
+- Full remote build for the current tree: `lake build` on
+  `uisai2:/dev/shm/shen_verify` completed successfully, **8955 jobs**.
+- The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
+  repo no longer has proof-level `sorry`.
+
+Current headline status:
+- **Paper 1:** statement targets are still reduced to explicit frontier
+  packages.  `Paper1MainResultsData` carries the full Theorem 1.1--1.3
+  statement bridge; `Paper1MainlineExistence` carries the B5
+  stability/uniqueness mainline.  For the B1 construction wrappers, the
+  base-barrier Lipschitz condition is now derived from the Lemma 4.2 parameter
+  conditions: current wrappers include
+  `b1_chiNeg_existence_paper_clean_autoBar_of_cubeApproxData`,
+  `b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData`, and
+  `b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData`.
+- **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
+  Theorem 1.1 on the interval for χ₀ = 0.  General χ₀ ≤ 0 is not a no-frontier
+  headline yet: `paper2_theorem_1_1_general_chi_bform` still explicitly
+  requires `hlocal` and `IntervalDomainUniformLocalExistence`.
+- **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain
+  sectorial endpoints are still assembled from explicit frontier/existence
+  packages such as `Paper3MainlineData` and
+  `IntervalDomainSectorialMainlineExistence`; these are not yet no-assumption
+  PDE constructions.
+
+Next real work is residual-assumption discharge, not proof-hole removal.  Good
+small targets are the remaining Paper1 construction floors
+(`hprodAll`/`hstep`/`htail`/stationary/flat/SMP packages), Paper2 general-χ
+local/uniform existence inputs, and Paper3 interval-domain sectorial mainline
+existence/persistence packages.
+
+## SUPERSEDED HISTORICAL SNAPSHOT (2026-06-28)
 
 1001+ files, ~393K LOC. Papers 1, 3: 0 sorry. Paper 2 χ₀=0: 0 sorry (UNCONDITIONAL).
 Paper 2 χ₀<0: **42 sorry** across 8 files (was 43; hresolver_series filled).

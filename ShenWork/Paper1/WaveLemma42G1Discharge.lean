@@ -922,6 +922,39 @@ theorem b1_chiNeg_existence_paper_clean_of_cubeApproxData
           (le_trans zero_le_one hcond.hM) hstep htail)
     hstationary hrealize hflat
 
+/-- Clean χ≤0 paper wrapper with the base-barrier Lipschitz scalar condition
+discharged from `PaperLemma42ExactConditions`. -/
+theorem b1_chiNeg_existence_paper_clean_autoBar_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (htail : PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper_clean_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    hprodAll hcond.upperBarrier_barLip hstep htail hstationary hrealize hflat
+
 theorem b1_chiNeg_existence_paper_min_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -1200,6 +1233,39 @@ theorem b1_chiPos_existence_paper_clean_of_cubeApproxData
           (le_trans zero_le_one hcond.hM) hstep htail)
     hstationary hrealize hflat
 
+/-- Clean χ≥0 paper wrapper with the base-barrier Lipschitz scalar condition
+discharged from `PositivePaperLemma42ExactConditions`. -/
+theorem b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (htail : PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_clean_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    hprodAll hcond.upperBarrier_barLip hstep htail hstationary hrealize hflat
+
 theorem b1_chiPos_existence_paper_min_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
@@ -1255,12 +1321,15 @@ theorem b1_chiPos_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper'_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_clean_of_cubeApproxData
+#print axioms b1_chiNeg_existence_paper_clean_autoBar_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_min_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_routeA_core_of_cubeApproxData
+#print axioms b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper'_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_clean_of_cubeApproxData
+#print axioms b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_min_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_min_core_of_cubeApproxData
 

@@ -2342,6 +2342,21 @@ structure PositivePaperLemma42ExactConditions
 
 namespace PositivePaperLemma42ExactConditions
 
+theorem upperBarrier_barLip
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y| := by
+  intro x y
+  have hκM : κ * M ≤ M := by
+    nlinarith [h.hκ0.le, h.hκ1.le, h.hM]
+  calc
+    |upperBarrier κ M x - upperBarrier κ M y|
+        ≤ κ * M * |x - y| :=
+          PaperLemma42ExactConditions.upperBarrier_abs_sub_le_mul h.hκ0.le
+            (lt_of_lt_of_le zero_lt_one h.hM) x y
+    _ ≤ M * |x - y| :=
+          mul_le_mul_of_nonneg_right hκM (abs_nonneg _)
+
 theorem chi_lt_half
     {p : CMParams} {c κ κtilde M : ℝ}
     (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
