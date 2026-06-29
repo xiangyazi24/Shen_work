@@ -155,14 +155,19 @@ theorem
     p C hData.out
 
 /-- Interval-domain Paper3 Proposition 1.x data with Proposition 1.4 and
-Proposition 1.3 routed through the Paper2 main theorem target bundle. -/
+Proposition 1.3 routed through the Paper2 main theorem target bundle.
+
+The `negativeBound` field is still the independent Proposition 1.2 residual;
+the Paper2 main bundle is used downstream only for the Theorem 1.2/1.3
+components that imply Paper3 Propositions 1.4/1.3. -/
 structure IntervalDomainPaper3Proposition1FromPaper2MainTargetsData
     (p : CM2Params) (C : Paper2Constants p) : Prop where
   negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p
   paper2Main : IntervalDomainPaper2MainTheoremTargets p C
 
 /-- Assemble interval-domain Paper3 Propositions 1.2--1.4 using Paper2 main
-theorem targets for the existence branches. -/
+theorem targets for the Proposition 1.3/1.4 existence branches.  Proposition
+1.2 is supplied by the separate `negativeBound` field. -/
 theorem
     intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
     (p : CM2Params) (C : Paper2Constants p)

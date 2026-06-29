@@ -197,7 +197,11 @@ theorem paper3_proposition1Targets_of_paper2TheoremsDataFact
 
 /-- Alternative frontier data for Paper3 Propositions 1.2--1.4 when the
 Paper3 Proposition 1.3/1.4 branches are supplied by the Paper2 main theorem
-bundle. -/
+bundle.
+
+The `negativeBound` field is still an independent Paper3 Proposition 1.2
+residual.  It is not derived from Paper2 Theorem 1.1; see
+`not_paper2_theorem_1_1_implies_paper3_proposition_1_2`. -/
 structure Paper3Proposition1FromPaper2MainTargetsData
     (D : BoundedDomainData) (p : CM2Params)
     (C : Paper2Constants p) : Prop where
@@ -205,7 +209,10 @@ structure Paper3Proposition1FromPaper2MainTargetsData
   main : Paper2.Paper2MainTheoremTargets D p C
 
 /-- Assemble Paper3 Propositions 1.2--1.4, extracting Paper2 Theorems 1.2
-and 1.3 from the Paper2 main theorem target bundle. -/
+and 1.3 from the Paper2 main theorem target bundle.
+
+Only the Theorem 1.2 and Theorem 1.3 components of `hData.main` are consumed
+here; Proposition 1.2 is supplied by `hData.negativeBound`. -/
 theorem paper3_proposition1Targets_of_paper2MainTargetsData
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
     (hData : Paper3Proposition1FromPaper2MainTargetsData D p C) :

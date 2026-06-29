@@ -1312,8 +1312,11 @@ theorem
 /-! ### Terminal route with Paper2 main theorem target inputs -/
 
 /-- Full interval-domain Paper3 statement frontiers using the direct terminal
-pointwise endpoint input, with Proposition 1.x routed through the Paper2 main
-theorem target bundle. -/
+pointwise endpoint input, with Proposition 1.3/1.4 routed through the Paper2
+main theorem target bundle.
+
+The proposition package still carries the independent Proposition 1.2
+`negativeBound` residual; Paper2 main targets do not discharge it. -/
 structure
     IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData
     (p : CM2Params) (C : Paper2Constants p)
