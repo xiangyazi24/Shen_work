@@ -153,6 +153,58 @@ def Paper1PositiveCriticalFrozenStationaryBranch : Prop :=
               (min (p.m * kappa c + 1 / 2) 1) →
             HasWaveRightTailAsymptotic c κ₁ U
 
+/-- Strict comparison with the canonical `MChi` upper barrier implies the
+paper-facing positive upper-bound statement.
+
+This is pure normalization: `ShenUpperBoundPositive` stores the constant bound
+as `(1 / (1 - p.χ)) ^ (1 / p.α)`, while the construction route naturally uses
+`MChi p`. -/
+theorem ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
+    (hpos : ∀ x, 0 < U x)
+    (hstrict : ∀ x, U x < upperBarrier (kappa c) (MChi p) x) :
+    ShenUpperBoundPositive p c U := by
+  intro x
+  refine ⟨hpos x, ?_⟩
+  rw [← MChi_eq_rpow_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt]
+  simpa [upperBarrier] using hstrict x
+
+/-- Positive critical branch with the upper-bound residual exposed as a strict
+barrier comparison rather than as the bundled `ShenUpperBoundPositive`.
+
+Still conditional: this does not prove the strict comparison or the sharp
+right-tail asymptotics.  It only separates the pure `MChi`/normalization wiring
+from the analytic strict-comparison obligation. -/
+def Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch : Prop :=
+  ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+    0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+    ∀ c : ℝ, 2 < c →
+      ∃ U : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U ∧
+          (∀ x, U x < upperBarrier (kappa c) (MChi p) x) ∧
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+            HasWaveRightTailAsymptotic c κ₁ U
+
+/-- Pure conversion from the strict-barrier positive branch to the existing
+positive branch required by the Paper1 Theorem 1.1 wrapper. -/
+theorem paper1_positiveCriticalBranch_of_strictBarrier
+    (hbranch : Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch) :
+    Paper1PositiveCriticalFrozenStationaryBranch := by
+  intro p hα hχ_nonneg hχ_small c hc
+  rcases hbranch p hα hχ_nonneg hχ_small c hc with
+    ⟨U, hprofile, hstrict, htail⟩
+  have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by linarith
+  exact
+    ⟨U, hprofile,
+      ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
+        hχ_nonneg hχ_lt_one hprofile.U_pos hstrict,
+      htail⟩
+
 /-- Preferred Paper1 main-statement input package using the thinner current
 routes instead of the old monolithic `Paper1MainResultsData`.
 
@@ -165,6 +217,17 @@ structure Paper1MainStatementSMPMainlineData
     (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
   constructionNeg : ConstructionNegSMPProvider
   positiveCritical : Paper1PositiveCriticalFrozenStationaryBranch
+  mainline : Paper1MainlineExistence cStarStarFn
+
+/-- Main-statement input package with the positive branch's upper-bound field
+split down to the strict `MChi` upper-barrier comparison.
+
+Still conditional: the strict comparison and sharp right-tail asymptotics remain
+frontier inputs, and `Paper1MainlineExistence` is unchanged. -/
+structure Paper1MainStatementStrictBarrierData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  constructionNeg : ConstructionNegSMPProvider
+  positiveStrictBarrier : Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch
   mainline : Paper1MainlineExistence cStarStarFn
 
 /-- Preferred Paper1 main-statement wrapper from the current thinner input
@@ -189,6 +252,18 @@ theorem paper1_mainStatementTargets_of_smpMainlineData
     hmainline.1,
     hmainline.2⟩
 
+/-- Main-statement wrapper from the strict-barrier positive-branch package. -/
+theorem paper1_mainStatementTargets_of_strictBarrierData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1MainStatementStrictBarrierData cStarStarFn) :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_smpMainlineData
+    { constructionNeg := hData.constructionNeg
+      positiveCritical :=
+        paper1_positiveCriticalBranch_of_strictBarrier
+          hData.positiveStrictBarrier
+      mainline := hData.mainline }
+
 /-- Instance-facing wrapper for the preferred conditional Paper1 main-statement
 route. -/
 theorem paper1_mainStatementTargets_of_smpMainlineDataFact
@@ -196,6 +271,14 @@ theorem paper1_mainStatementTargets_of_smpMainlineDataFact
     [hData : Fact (Paper1MainStatementSMPMainlineData cStarStarFn)] :
     Paper1MainStatementTargets :=
   paper1_mainStatementTargets_of_smpMainlineData hData.out
+
+/-- Instance-facing wrapper for the strict-barrier Paper1 main-statement
+route. -/
+theorem paper1_mainStatementTargets_of_strictBarrierDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainStatementStrictBarrierData cStarStarFn)] :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_strictBarrierData hData.out
 
 /-! ## Lemma 2.5 targets -/
 
