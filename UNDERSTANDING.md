@@ -5,8 +5,11 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Full remote build for the current tree: `lake build` on
-  `uisai2:/dev/shm/shen_verify` completed successfully, **8977 jobs**.
+- Last full remote build before the latest statement-wrapper edit:
+  `lake build` on `uisai2:/dev/shm/shen_verify` completed successfully,
+  **8977 jobs**.  After the Paper3 actual-linear statement wrapper was added,
+  the current root-target remote build `lake build ShenWork` completed
+  successfully on `uisai2:/dev/shm/shen_verify`, **8978 jobs**.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -75,13 +78,37 @@ Current headline status:
   sectorial endpoints are still assembled from explicit frontier/existence
   packages such as `Paper3MainlineData` and
   `IntervalDomainSectorialMainlineExistence`; these are not yet no-assumption
-  PDE constructions.
+  PDE constructions.  Newer interval-domain Theorem 2.1 entry points
+  `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`,
+  `intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall`, and
+  `intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall` consume
+  the proved actual-linear-small persistence producer directly, removing the
+  explicit `IntervalDomainSectorialTheorem21Persistence` input in the
+  `m = 1`, `1 ≤ β`, `0 < χ₀ < a/(μ*Theta_beta (β-1))` subregime.  This does
+  not discharge the Theorem 2.2 local-stability package or the general
+  sectorial mainline existence package.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
 (`hprodAll`/`hstep`/`htail`/stationary/flat/SMP packages), Paper2 general-χ
 local/uniform existence inputs, and Paper3 interval-domain sectorial mainline
 existence/persistence packages.
+
+Input-package audit:
+- `structure` and `def ... : Prop` packages here are explicit residual
+  interfaces, not axioms and not proof holes.  A theorem consuming one of these
+  packages is conditional until a producer constructs that package.
+- Some fields are already produced or reduced further by code.  Examples:
+  Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`; Paper3
+  actual-linear-small persistence is produced by
+  `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall` and now wired
+  to statement-level Theorem 2.1 wrappers.
+- Other packages are genuine remaining analytic frontiers.  Examples:
+  Paper1 `Paper1MainResultsData` / `Paper1MainlineExistence`, Paper2 general-χ
+  `PicardLimitRestartFrontier` and `BoundaryMinPersistenceBound`, and Paper3
+  `IntervalDomainSectorialMainlineCoreExistence` still require construction
+  from PDE analysis before their corresponding headline endpoints become
+  no-assumption theorems.
 
 ## SUPERSEDED HISTORICAL SNAPSHOT (2026-06-28)
 
