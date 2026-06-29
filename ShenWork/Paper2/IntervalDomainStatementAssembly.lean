@@ -388,6 +388,183 @@ structure IntervalDomainPaper2Theorem12And13FrontierData
   theorem12 : IntervalDomainTheorem12.IntervalDomainTheorem12FrontierData p S
   theorem13 : IntervalDomainTheorem13.IntervalDomainTheorem13FrontierData p C S
 
+/-- Shared bootstrap conclusion used by the thinner Theorem 1.2/1.3
+interpolation-frontier route. -/
+abbrev IntervalDomainPaper2BootstrapOutput
+    (p : CM2Params) (T : ℝ)
+    (u v : ℝ → intervalDomain.Point → ℝ) : Prop :=
+  ∃ rho > 0,
+    CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+      ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+        LpPowerBoundedBefore intervalDomain p0 T u
+
+/-- Dissipation-side input for the thinner interval-domain Theorem 1.2/1.3
+route. -/
+abbrev IntervalDomainPaper2DissipationFrontier : Prop :=
+  ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+    AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+    LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+    ∀ pExp, p0 ≤ pExp → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / pExp) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ pExp) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / pExp) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ pExp)
+
+/-- Positivity of the gradient-conversion coefficient in the thinner
+Theorem 1.2/1.3 route. -/
+abbrev IntervalDomainPaper2GradientConstantPositive
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop :=
+  ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+    AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+    LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+    ∀ pExp, p0 ≤ pExp → 0 < cGrad u T rho p0 pExp
+
+/-- Chain-rule gradient comparison in the thinner Theorem 1.2/1.3 route. -/
+abbrev IntervalDomainPaper2GradientChainFrontier
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop :=
+  ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+    AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+    LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+    ∀ pExp, p0 ≤ pExp → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (pExp + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad u T rho p0 pExp * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)
+
+/-- Mass-control input in the thinner Theorem 1.2/1.3 route. -/
+abbrev IntervalDomainPaper2MassControlFrontier : Prop :=
+  ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+    AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+    LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+    ∀ pExp, p0 ≤ pExp → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+      Ceta * (intervalDomain.integral (u t)) ^ (pExp + rho) ≤ Cmass
+
+/-- Power-integrability input in the thinner Theorem 1.2/1.3 route. -/
+abbrev IntervalDomainPaper2PowerIntegrabilityFrontier : Prop :=
+  ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+    AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+    LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+    ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+        MeasureTheory.volume 0 1
+
+/-- PDE bridge from cross-diffusion bootstrap to the Lp energy inequality. -/
+abbrev IntervalDomainPaper2EnergyFromCrossDiffusionFrontier
+    (p : CM2Params) : Prop :=
+  ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+    IsPaper2ClassicalSolution intervalDomain p T u v →
+    CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+    AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+      LpBootstrapEnergyInequality intervalDomain u T rho p0
+
+/-- Per-datum interval-domain local existence input. -/
+abbrev IntervalDomainPaper2LocalExistenceFrontier
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+        InitialTrace intervalDomain u₀ u
+
+/-- Continuation input turning bounded finite-time solutions into global
+classical solutions. -/
+abbrev IntervalDomainPaper2GlobalExtensionFrontier
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+  ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+    IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+    InitialTrace intervalDomain u₀ u →
+      IsPaper2BoundedBefore intervalDomain Tmax u →
+        1 ≤ p.m →
+          IsPaper2GlobalClassicalSolution intervalDomain p u v
+
+/-- Common interpolation/energy inputs shared by the thinner interval-domain
+Theorem 1.2 and Theorem 1.3 route. -/
+structure IntervalDomainPaper2InterpolationEnergyFrontierData
+    (p : CM2Params)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  interpolation : IntervalDomainLemma41.IntervalDomainInterpolation
+  dissipation : IntervalDomainPaper2DissipationFrontier
+  gradConstantPositive :
+    IntervalDomainPaper2GradientConstantPositive cGrad
+  gradientChain : IntervalDomainPaper2GradientChainFrontier cGrad
+  massControl : IntervalDomainPaper2MassControlFrontier
+  powerIntegrability : IntervalDomainPaper2PowerIntegrabilityFrontier
+  energyFromCrossDiffusion :
+    IntervalDomainPaper2EnergyFromCrossDiffusionFrontier p
+
+/-- Thinner joint frontier for interval-domain Theorems 1.2 and 1.3.
+
+Compared with `IntervalDomainPaper2Theorem12And13FrontierData`, this route no
+longer carries `SemigroupEstimateData`, Lemma 2.1, Lemma 2.6, Lemma 4.1, or
+Corollary 2.1 as theorem fields.  It exposes the interpolation/energy/positivity
+route used by the existing Theorem 1.2/1.3 assemblies and replaces global
+boundedness fields by eventual sup-norm frontiers. -/
+structure IntervalDomainPaper2Theorem12And13InterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  common : IntervalDomainPaper2InterpolationEnergyFrontierData p cGrad
+  prop25 : Proposition_2_5 intervalDomain p
+  localExistence : IntervalDomainPaper2LocalExistenceFrontier p
+  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
+  slowBootstrap :
+    1 ≤ p.β → p.m < 1 →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalBootstrap :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalEventualSupBound :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+  strongBootstrap :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  strongEventualSupBound :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
 /-- Assemble the interval-domain Theorem 1.2 and Theorem 1.3 statement targets
 from their existing frontier-data records. -/
 theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
@@ -408,6 +585,46 @@ theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierDataFact
     Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
     p C S hData.out
+
+/-- Assemble the interval-domain Theorem 1.2 and Theorem 1.3 statement targets
+from the thinner interpolation/energy/positivity frontiers. -/
+theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13InterpolationFrontierData p C cGrad) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  ⟨IntervalDomainTheorem12.Theorem_1_2_intervalDomain_of_interpolation_frontier_solution_positivity
+      p hData.common.interpolation cGrad
+      hData.common.dissipation hData.common.gradConstantPositive
+      hData.common.gradientChain hData.common.massControl
+      hData.common.powerIntegrability
+      hData.common.energyFromCrossDiffusion hData.prop25
+      hData.localExistence hData.globalExtension
+      hData.slowBootstrap hData.criticalBootstrap
+      hData.criticalEventualSupBound,
+    IntervalDomainTheorem13.Theorem_1_3_intervalDomain_of_interpolation_frontier_solution_positivity
+      p C hData.common.interpolation cGrad
+      hData.common.dissipation hData.common.gradConstantPositive
+      hData.common.gradientChain hData.common.massControl
+      hData.common.powerIntegrability
+      hData.common.energyFromCrossDiffusion hData.prop25
+      hData.localExistence hData.globalExtension
+      hData.strongBootstrap hData.strongEventualSupBound⟩
+
+/-- Instance-facing joint wrapper for interval-domain Theorems 1.2 and 1.3
+from the thinner interpolation frontiers. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2Theorem12And13InterpolationFrontierData
+          p C cGrad)] :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierData
+    p C cGrad hData.out
 
 /-- Single-target interval-domain wrapper for Paper2 Theorem 1.2. -/
 theorem intervalDomainPaper2_Theorem_1_2_of_frontierData
@@ -445,6 +662,28 @@ theorem intervalDomainPaper2_Theorem_1_3_of_frontierDataFact
   intervalDomainPaper2_Theorem_1_3_of_frontierData
     p C S hData.out
 
+/-- Single-target interval-domain wrapper for Paper2 Theorem 1.2 from the
+thinner interpolation frontiers. -/
+theorem intervalDomainPaper2_Theorem_1_2_of_interpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13InterpolationFrontierData p C cGrad) :
+    Theorem_1_2 intervalDomain p :=
+  (intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierData
+    p C cGrad hData).1
+
+/-- Single-target interval-domain wrapper for Paper2 Theorem 1.3 from the
+thinner interpolation frontiers. -/
+theorem intervalDomainPaper2_Theorem_1_3_of_interpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13InterpolationFrontierData p C cGrad) :
+    Theorem_1_3 intervalDomain p C :=
+  (intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierData
+    p C cGrad hData).2
+
 /-! ## Main theorem bundles -/
 
 /-- Concrete interval-domain Paper 2 main theorem targets. -/
@@ -461,6 +700,16 @@ structure IntervalDomainPaper2MainTheoremChiZeroFrontierData
     (S : SemigroupEstimateData intervalDomain) : Prop where
   theorem12And13 :
     IntervalDomainPaper2Theorem12And13FrontierData p C S
+
+/-- Main-theorem frontier record for the proved `χ₀ = 0` route using the
+thinner interpolation-frontier Theorem 1.2/1.3 assembly.  This route carries
+no `SemigroupEstimateData` package. -/
+structure IntervalDomainPaper2MainTheoremChiZeroInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13InterpolationFrontierData p C cGrad
 
 /-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 in the proved `χ₀ = 0`
 route.  Compared with the H2/logistic-source routes, this carries no Theorem
@@ -488,6 +737,40 @@ theorem intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierDataFact
     IntervalDomainPaper2MainTheoremTargets p C :=
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
     p C S hχ0 ha hb hα hγ hData.out
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 in the proved `χ₀ = 0`
+route, with Theorems 1.2/1.3 supplied by the thinner interpolation-frontier
+assembly. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+      p hχ0 ha hb hα hγ,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierData
+      p C cGrad hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle in the proved
+`χ₀ = 0` route using the thinner interpolation-frontier Theorem 1.2/1.3
+assembly. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremChiZeroInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
 
 /-- Main-theorem frontier record using the half-step H2-source Theorem 1.1
 route. -/
@@ -620,6 +903,18 @@ structure IntervalDomainPaper2LocalAndMainChiZeroThinFrontierData
   proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
   main : IntervalDomainPaper2MainTheoremChiZeroFrontierData p C S
 
+/-- Local-plus-main frontier record for the proved `χ₀ = 0` route using the
+thinner interpolation-frontier Theorem 1.2/1.3 assembly.  The Proposition 1.1
+local-existence field is produced internally, and the main theorem route
+carries no `SemigroupEstimateData`. -/
+structure IntervalDomainPaper2LocalAndMainChiZeroInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
+  main : IntervalDomainPaper2MainTheoremChiZeroInterpolationFrontierData
+    p C cGrad
+
 /-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
 in the proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
 internally. -/
@@ -650,6 +945,41 @@ theorem
     IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroThinFrontierData
     p C S hχ0 ha hb hα hγ hData.out
+
+/-- Assemble interval-domain Paper 2 Proposition 1.1 and Theorems 1.1--1.3
+in the proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
+internally and Theorems 1.2/1.3 routed through the thinner interpolation
+frontiers. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainChiZeroInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
+      p hχ0 ha hb hα hγ hData.proposition11,
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierData
+      p C cGrad hχ0 ha hb hα hγ hData.main⟩
+
+/-- Instance-facing interval-domain local-plus-main wrapper for the proved
+`χ₀ = 0` route using the thinner interpolation-frontier Theorem 1.2/1.3
+assembly. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainChiZeroInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
 
 /-- Local-plus-main frontier record using the half-step H2-source Theorem 1.1
 route. -/
@@ -785,6 +1115,20 @@ structure IntervalDomainPaper2StatementChiZeroThinFrontierData
   localAndMain :
     IntervalDomainPaper2LocalAndMainChiZeroThinFrontierData p C S
 
+/-- Thinner interval-domain Paper 2 statement-frontier record for the proved
+`χ₀ = 0` route using the interpolation-frontier Theorem 1.2/1.3 assembly.
+This removes the statement-level `SemigroupEstimateData` package from the
+main theorem component. -/
+structure IntervalDomainPaper2StatementChiZeroInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  interpolation : IntervalDomainLemma41.IntervalDomainInterpolation
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroInterpolationFrontierData
+      p C cGrad
+
 /-- Assemble the concrete interval-domain Paper 2 statement targets in the
 proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
 internally. -/
@@ -814,6 +1158,42 @@ theorem intervalDomainPaper2_statementTargets_of_chiZeroThinFrontierDataFact
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_chiZeroThinFrontierData
     p C S hχ0 ha hb hα hγ hData.out
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets in the
+proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
+internally and Theorems 1.2/1.3 routed through the thinner interpolation
+frontiers. -/
+theorem intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroInterpolationFrontierData p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+      p hData.corollary,
+    intervalDomainPaper2_aprioriTargets_of_GN_frontier
+      p hData.interpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierData
+      p C cGrad hχ0 ha hb hα hγ hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper for the
+proved `χ₀ = 0` route using the thinner interpolation-frontier Theorem 1.2/1.3
+assembly. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2StatementChiZeroInterpolationFrontierData
+          p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
 
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
 H2-source local-existence route. -/
@@ -898,10 +1278,14 @@ section AxiomAudit
 
 #print axioms intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
 #print axioms intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
+#print axioms intervalDomainPaper2_Theorems_1_2_and_1_3_of_interpolationFrontierData
 #print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
+#print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierData
 #print axioms intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroThinFrontierData
+#print axioms intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroThinFrontierData
+#print axioms intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierData
 
 end AxiomAudit
 

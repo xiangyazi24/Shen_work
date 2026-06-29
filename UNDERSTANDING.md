@@ -5,13 +5,13 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after the Paper3 a-priori mainline statement route
-  edit, `lake build ShenWork` completed successfully on
+- Last full remote build: after the Paper2 interpolation-positive Theorem
+  1.2/1.3 statement route edit, `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8980 jobs**.  The target build
-  `lake build ShenWork.Paper3.IntervalDomainStatementAssembly` completed
-  successfully, **3562 jobs**.  The new Paper3 reduced-analytic and a-priori
-  mainline/statement wrappers' `#print axioms` output is
-  `[propext, Classical.choice, Quot.sound]`.
+  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` completed
+  successfully, **3712 jobs**.  The new Paper2 interpolation-frontier
+  Theorem 1.2/1.3 and χ₀=0 main/local/statement wrappers' `#print axioms`
+  output is `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -58,7 +58,21 @@ Current headline status:
   `IntervalDomainPaper2StatementChiZeroThinFrontierData`: these discharge the
   local-existence field from `intervalDomain_localExistence_chiZero_unconditional`,
   so Proposition 1.1 only carries the independent finite-horizon alternative in
-  that regime.  General χ₀ ≤ 0 is not a no-frontier headline yet:
+  that regime.  The Theorem 1.2/1.3 part of the `χ₀ = 0` route also has a
+  thinner interpolation-positive statement route:
+  `IntervalDomainPaper2Theorem12And13InterpolationFrontierData`,
+  `IntervalDomainPaper2MainTheoremChiZeroInterpolationFrontierData`,
+  `IntervalDomainPaper2LocalAndMainChiZeroInterpolationFrontierData`, and
+  `IntervalDomainPaper2StatementChiZeroInterpolationFrontierData`.  These
+  wrappers remove the old carried `SemigroupEstimateData` / Lemma 2.1 / Lemma
+  2.6 / Lemma 4.1 / Corollary 2.1 theorem fields from the main Theorem 1.2/1.3
+  route, replacing them by explicit interpolation, energy, gradient-chain,
+  mass-control, power-integrability, branch-bootstrap, and eventual sup-norm
+  frontiers.  This is still conditional: the current
+  `IntervalDomainInterpolation` statement is known false as literally stated
+  (`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`),
+  so that frontier must be repaired rather than claimed as proved.  General
+  χ₀ ≤ 0 is not a no-frontier headline yet:
   `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`
   and `IntervalDomainUniformLocalExistence`.  The B-form
   branch now has `paper2_theorem_1_1_general_chi_bform_from_quant`, which
