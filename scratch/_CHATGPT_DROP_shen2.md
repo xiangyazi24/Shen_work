@@ -1,29 +1,80 @@
-# HEADLINE-RESIDUAL-CLASSIFICATION-AUDIT
+# COMMIT-64CA6DC8-HEADLINE-CLEANUP-REVIEW
 
-Scope: current `main` around `e3aa461e` or newer. I inspected `UNDERSTANDING.md` and the Paper1/Paper2/Paper3 statement and interval assembly files requested. The repo is proof-hole clean according to `UNDERSTANDING.md`, but that does not mean the headline theorem packages are no-assumption theorems. Most headline-facing `structure ...Data`, `...FrontierData`, and `...BranchData` declarations are conditional input interfaces.
+## Scope
 
-## Terse audit table
+I reviewed GitHub commit `64ca6dc87942806431cbd2d2788f726d1ac690f2` (`Clarify headline frontier package status`) from the repository, plus the relevant post-commit file contents. This is a source/API review only; I did not run `lake build`. GitHub combined status for the commit was empty, so I did not see CI evidence either way.
 
-| Paper | Headline target/package | Current strongest route | Already-produced / wired inputs | Remaining residual inputs | Vacuous / empty / same-as-goal flags |
-|---|---|---|---|---|---|
-| **Paper1** | `Paper1MainStatementTargets := Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`; broader `Paper1CombinedStatementTargets` also includes propositions, Lemma 2.5, and Lemma 5.1/5.2 targets. | Strongest honest main route is split: `paper1_Theorem_1_1_of_constructionNegSMPProvider` for Theorem 1.1, plus `paper1_mainlineStatementTargets_of_mainlineExistence` / `Theorem_1_2_and_1_3.of_mainlineExistence` for Theorems 1.2 and 1.3. The older `paper1_mainStatementTargets_of_mainResultsData` still consumes the monolithic `Paper1MainResultsData`. | Closed: `paper1_Lemma_2_5`, `paper1_Lemma_2_5_JensenStep`, `paper1_lemma25Targets`. Wired: the negative-branch upper-bound slot is reduced through `ConstructionNegSMPProvider`, `constructionNeg_of_provider_smp`, and `Theorem_1_1.of_constructionNeg_provider_smp`; B5 mainline endpoints are wired from `Paper1MainlineExistence`. | `ConstructionNegSMPProvider` remains a real construction/provider package; Theorem 1.1 still needs the positive branch `hpos`; `Paper1MainlineExistence` remains an analytic B5 package; combined targets still need `Paper1PropositionFrontierData`, `Paper1Lemma51FrontierData`, and `Paper1Lemma52FrontierData`. The sharp right-tail asymptotic is still carried in construction routes. | No empty shell in the split route. `Paper1MainResultsData` and `Paper1CombinedStatementData` are broad conditional bundles, not no-assumption producers. Any right-tail-asymptotic pass-through helper should be read as a residual, not a producer. |
-| **Paper2** | Generic `Paper2StatementTargets`; interval-domain `IntervalDomainPaper2StatementTargets p C := IntervalDomainPaper2Corollary21BootstrapTargets p ∧ IntervalDomainPaper2AprioriTargets p ∧ IntervalDomainPaper2LocalAndMainTheoremTargets p C`. | Strongest current interval headline route is `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`: the `χ₀ = 0`, positive solution-slice, section-2-thin, local-free route. Generic `paper2_statementTargets_of_data` remains conditional on generic branch data. | Produced/wired in the preferred interval route: Theorem 1.1 via `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional`; local-existence slots via `intervalDomain_localExistence_chiZero_unconditional`; Proposition 2.4 via `intervalDomain_Proposition_2_4`; Lemma 4.1 and Corollary 2.1 are assembled from the supplied positive solution-slice common package. | Finite-horizon alternative; thin section-2 fields `lemma26`, `lemma27`, `prop22`, `prop23`; positive solution-slice common fields `solutionInterpolation`, `dissipation`, `gradConstantPositive`, `gradientChain`, `massControl`, `powerIntegrability`, `energyFromCrossDiffusion`; `prop25`; `globalExtension`; slow/critical/strong bootstrap fields; critical/strong eventual-sup fields. General `χ₀ ≤ 0` routes still carry local/uniform existence, Picard/restart, and boundary-min residuals. | The legacy global `IntervalDomainInterpolation` premise is formally refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`; routes consuming it are not preferred headline producers. The preferred positive solution-slice route avoids that premise. Degenerate zero-semigroup lemmas in `Statements.lean` are explicitly marked non-analytic/impostor-style and should not be counted as headline closure. |
-| **Paper3** | Generic `Paper3Proposition1Targets`; interval-domain `IntervalDomainPaper3StatementTargets p C M0 uBar vLower K`; actual-linear-small terminal route `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData`. | Strongest interval full-statement route is `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData`: proposition side uses `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData`; mainline side uses the terminal Moser actual-linear-small route. Actual-linear-small Theorem 2.1 wrappers are stronger closed subroutes but do not close the full Paper3 statement package. | Produced/wired: actual-linear-small persistence via `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`; Theorem 2.1 wrappers `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall`, and `intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall`; Paper3 Proposition 1.3 from Paper2 Theorem 1.3; Paper3 Proposition 1.4 from Paper2 Theorem 1.2; Paper2-main route extracts only Paper2 Theorems 1.2 and 1.3. Terminal Moser route has proved packaging conversions from thinner residual interfaces into older mainline packages. | `negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p` for Proposition 1.2; `IntervalDomainPaper2MainTheoremTargets p C` when using the Paper2-main proposition route; terminal core fields including spectral semigroup orbit bound, continuation/gluing, and terminal mass/Lp/smoothing residuals; compactness/regularization fields; stability fields for Theorems 2.3--2.5. | No empty/same-goal shell found in the strongest route. The theorem `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` blocks deriving Proposition 1.2 from Paper2 Theorem 1.1 under the current abstract API, so `negativeBound` is a genuine independent residual. |
+## Short verdict
 
-## Paper-by-paper notes
+I do not see an obvious Lean/API type error in the new Paper1, Paper2, or Paper3 declarations that are present in the commit. The new wrappers are honest pure-wiring wrappers and their comments mostly avoid overstating closure.
 
-### Paper1
+One caveat: I could not find a declaration named exactly `IntervalDomainPaper3NegativeSensitivityResidual` in commit `64ca6dc8`. The commit does add/keep strong documentation for `NegativeSensitivityGlobalEventualBound`, but if the intended cleanup included that interval-domain alias, it appears missing from the inspected commit.
 
-The old `paper1_mainStatementTargets_of_mainResultsData` is only a bridge from `Paper1MainResultsData` to the three main theorem targets. The clearer current route splits Theorem 1.1 from the B5 mainline: `paper1_Theorem_1_1_of_constructionNegSMPProvider` handles Theorem 1.1 using `ConstructionNegSMPProvider` plus the positive branch, while `paper1_mainlineStatementTargets_of_mainlineExistence` handles Theorems 1.2 and 1.3 from `Paper1MainlineExistence`. This is real wiring, but still conditional. Lemma 2.5 is the notable closed component.
+## Review table
 
-### Paper2
+| Area | Lean/API correctness | Residual-honesty review | Vacuity / same-goal review | Follow-up |
+|---|---|---|---|---|
+| Paper1 `Paper1PositiveCriticalFrozenStationaryBranch` | Looks type-correct. It is definitionally the existing `hpos` argument of `paper1_Theorem_1_1_of_constructionNegSMPProvider`. Passing `hData.positiveCritical` to that theorem should elaborate because the alias is a reducible `def : Prop`. | Honest. The docs say this is the positive branch input, not a producer. | Not vacuous and not theorem-shaped. It is a branch construction obligation, not `Theorem_1_1` itself. | No required edit. Optional: no change. |
+| Paper1 `Paper1MainStatementSMPMainlineData` and `paper1_mainStatementTargets_of_smpMainlineData` | Looks type-correct. `Paper1MainStatementTargets` is `Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`; the proof obtains Theorem 1.1 from `paper1_Theorem_1_1_of_constructionNegSMPProvider`, then splits `hmainline : Theorem_1_2 ∧ Theorem_1_3` into `.1` and `.2`. | Honest. The comments explicitly say `ConstructionNegSMPProvider`, the positive branch, and `Paper1MainlineExistence` are still inputs. | Not vacuous. It does not hide `Theorem_1_1`, `Theorem_1_2`, or `Theorem_1_3` as fields; it carries construction/mainline packages. | No required edit. |
+| Paper2 `IntervalDomainPaper2PreferredChiZeroStatementFrontierData` | Looks type-correct. It is an `abbrev` to the existing long preferred data type, so no field remapping risk. | Honest. The doc says it is conditional on thin section-2, finite-horizon, positive solution-slice interpolation/energy, `Proposition_2_5`, global extension, bootstrap, and eventual-sup frontiers. | Not vacuous. It is a transparent alias, not a new structure that can hide fields. | No required edit. |
+| Paper2 `intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData` and `...Fact` | Looks type-correct. It simply calls `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData` with the same parameters and data. The `Fact` version unwraps `hData.out`. | Honest. The doc says pure wiring and explicitly says it does not construct residual packages. | Not vacuous. It only gives a shorter name to the already-preferred route that avoids the refuted global interpolation premise. | No required edit. |
+| Paper3 `NegativeSensitivityGlobalEventualBound` documentation | The doc comment is safe and accurate. It states that the residual is stronger than the recalled Proposition 1.2 interface and not supplied by Paper2 Theorem 1.1 under the current abstract API. | Honest. It aligns with `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`. | Not same-as-goal: the definition exposes an eventual sup-norm witness and quantifies over `PositiveInitialDatum`. | If the intended alias was `IntervalDomainPaper3NegativeSensitivityResidual`, add it explicitly; see patch below. |
+| Paper3 `IntervalDomainPaper3SupNormCompactnessRegularizationData` and `.toConcrete` | Looks type-correct. `intervalDomainSupNormCompactnessData` fixes `upperEnvelope := intervalDomain.supNorm`, so `.toConcrete` can fill `upperEq` by `rfl`. The other fields map directly. | Honest. The docs say this removes only the structural `upperEq` field and keeps compactness, initial continuity, minimal upper, and resolvent as explicit analytic frontiers. | Not vacuous. The structure does not carry the compactness target theorem itself; it carries real frontier fields minus a definitional `upperEq`. | No required edit. |
+| Paper3 `intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_supNormData` and `...Fact` | Looks type-correct. It calls the existing concrete compactness/regularization wrapper with `hData.toConcrete`. | Honest. The wrapper doc says it does not produce the analytic compactness, initial-continuity, minimal-upper, or resolvent frontiers. | Not vacuous. It is a conversion wrapper for the canonical sup-envelope `CompactnessData`. | No required edit. |
+| `UNDERSTANDING.md` status text | I did not find a new explicit table in the inspected current file; I did inspect the current-state and input-package audit bullets. The claims I saw are consistent with the code: produced/wired fields are named, and remaining frontiers are still described as residuals. | Honest overall. It continues to distinguish no proof holes from no-assumption headline closure. | No new vacuous claim seen. The superseded historical snapshot remains clearly labeled superseded. | Optional: if the intended “headline table” was not added, add one later for readability, but this is documentation-only. |
 
-The preferred interval route is a mixed route: several slots are produced by named wrappers, but the main analysis remains in explicit frontier fields. It avoids the false global interpolation proposition by using positive solution-slice interpolation. The refuted global `IntervalDomainInterpolation` route should be treated as legacy/vacuous until repaired, not as a headline proof.
+## Answers to the specific questions
 
-### Paper3
+### 1. Any Lean/API bug in the new declarations or theorem wrappers?
 
-Paper3 Proposition 1.3 and Proposition 1.4 are legitimately routed through Paper2 Theorem 1.3 and Theorem 1.2. Proposition 1.2 is not supplied by Paper2 Theorem 1.1 or by Paper2 main. The `negativeBound` field is stronger than a bare copy of Proposition 1.2 because it exposes global existence plus an eventual sup-norm witness and quantifies over `PositiveInitialDatum`; it remains an analytic residual.
+No obvious source-level Lean/API bug in the declarations I could inspect.
 
-## Final classification
+The Paper1 theorem proof shape is correct: it builds the triple required by `Paper1MainStatementTargets` by combining a Theorem 1.1 proof with the pair returned by `paper1_mainlineStatementTargets_of_mainlineExistence`.
 
-The headline input packages are mostly honest conditional interfaces. Some fields are already produced or reduced by named current wrappers, but the remaining fields are substantial analytic frontiers. The only clearly invalid headline-adjacent condition found in the requested scope is the legacy Paper2 global `IntervalDomainInterpolation` premise, which is formally refuted and avoided by the preferred interval route.
+The Paper2 preferred route uses an `abbrev`, so the theorem alias should reduce to the existing long route without conversion friction.
+
+The Paper3 sup-norm compactness wrapper fills only `upperEq` definitionally and leaves the analytic fields untouched.
+
+Caveat: I did not run `lake build`; GitHub combined status for the commit returned no statuses.
+
+### 2. Any doc/status claim that overstates closure of a residual?
+
+No major overstatement found. The new comments consistently say “conditional,” “frontier,” “pure wiring,” or “does not construct.”
+
+The one item to double-check is process/expectation rather than a false claim: the prompt mentions `IntervalDomainPaper3NegativeSensitivityResidual`, but I could not find that exact declaration in commit `64ca6dc8`. If documentation elsewhere says that alias exists, that would be stale; otherwise this is simply an omitted optional alias.
+
+### 3. Any new wrapper that is vacuous or hides the theorem itself as a field?
+
+No.
+
+Paper1’s new data package does not contain `Theorem_1_1`, `Theorem_1_2`, or `Theorem_1_3` as fields. It contains the negative provider, the positive branch, and the mainline package.
+
+Paper2’s preferred route is a transparent alias plus a theorem alias, not a new opaque structure.
+
+Paper3’s sup-norm compactness data does not contain the target theorem; it only removes a definitional `upperEq` field by choosing a `CompactnessData` whose `upperEnvelope` is already `intervalDomain.supNorm`.
+
+### 4. Recommended small follow-up edit
+
+Only one small follow-up is worth considering: add the missing interval-domain alias if it was intended.
+
+File: `ShenWork/Paper3/IntervalDomainStatementAssembly.lean`
+
+Suggested location: near the Proposition 1.x frontier declarations, before `IntervalDomainPaper3Proposition1FrontierData` or before the Paper2 theorem/main-target data structures.
+
+```lean
+/-- Interval-domain abbreviation for the independent Paper3 Proposition 1.2
+negative-sensitivity residual.
+
+This is only a name for
+`NegativeSensitivityGlobalEventualBound intervalDomain p`; it is not produced by
+Paper2 Theorem 1.1 or by `IntervalDomainPaper2MainTheoremTargets`. -/
+abbrev IntervalDomainPaper3NegativeSensitivityResidual
+    (p : CM2Params) : Prop :=
+  NegativeSensitivityGlobalEventualBound intervalDomain p
+```
+
+Do not rewrite existing structure fields in the same patch unless the team wants the churn. The alias alone is enough to make the residual grep-visible.
+
+## Final review result
+
+Commit `64ca6dc8` is honest in residual classification and appears API-safe from source inspection. The only follow-up I recommend is the optional `IntervalDomainPaper3NegativeSensitivityResidual` alias, because the requested/expected name is not present in the inspected commit.
