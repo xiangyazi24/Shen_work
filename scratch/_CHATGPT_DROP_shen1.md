@@ -1,269 +1,516 @@
-# PAPER1-POSITIVE-BRANCH-CLOSURE-ROUTE
+# PAPER1-POSITIVE-STRICT-BARRIER-PRODUCER-ROUTE
 
 Repo: `xiangyazi24/Shen_work`  
-Source inspected: `main` at `b98c3a392ad264b7b57c9f7598a6b6a7dbcf1d12`  
-Scope: the two remaining fields of `Paper1PositiveCriticalFrozenStationaryBranch`:
+Source inspected: current `main` around `7dcd04a3`, including the later `StatementAssembly.lean` split after `5cde97f2`.
+
+Question answered: the smallest honest route to **produce**
 
 ```lean
+∀ x, U x < upperBarrier (kappa c) (MChi p) x
+```
+
+for the lower-pinned positive stationary profile, without merely carrying `ShenUpperBoundPositive p c U`.
+
+## Executive route
+
+Do **not** start with a global comparison theorem for
+
+```lean
+fun x => upperBarrier (kappa c) (MChi p) x - U x
+```
+
+as if it were a smooth `C²` gap.  The barrier is
+
+```lean
+upperBarrier κ M x = min M (Real.exp (-κ * x))
+```
+
+and is nonsmooth at the unique interface `Real.exp (-κ * x) = M`.  Current source even has the formal obstruction
+
+```lean
+not_differentiableAt_upperBarrier_of_interface
+```
+
+so a global classical maximum principle for `upperBarrier - U` is the wrong first API.
+
+The smallest honest API is:
+
+1. keep the produced object in the lower-pinned trap,
+2. prove **local contact contradictions** on the constant branch, exponential branch, and interface,
+3. assemble these contradictions with the non-strict trap bound into the strict barrier comparison, and
+4. feed that into the already-committed pure wrapper
+
+```lean
+ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
+```
+
+This keeps the residual strictly smaller than `ShenUpperBoundPositive`: the producer proves no-contact with the construction barrier, not positivity or the paper-facing `MChi` normalization.
+
+## 1. Current theorem names/files that nearly imply strict upper-barrier
+
+### Pure strict-barrier-to-Shen wiring already exists
+
+File: `ShenWork/Paper1/StatementAssembly.lean`
+
+```lean
+ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
+```
+
+Statement shape:
+
+```lean
+(hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
+(hpos : ∀ x, 0 < U x)
+(hstrict : ∀ x, U x < upperBarrier (kappa c) (MChi p) x) :
 ShenUpperBoundPositive p c U
 ```
 
-and
+This is exactly the pure wrapper we want to consume after no-contact is proved.  The same file also defines:
 
 ```lean
-∀ κ₁, kappa c < κ₁ →
-  κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
-  HasWaveRightTailAsymptotic c κ₁ U
+Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch
+paper1_positiveCriticalBranch_of_strictBarrier
+Paper1MainStatementStrictBarrierData
 ```
 
-for the same non-explicit `U` produced by the positive Rothe/Schauder Route-A construction.
+These are good final wiring interfaces; they intentionally do **not** produce the strict comparison.
 
-This is a route proposal, not an audit table.
+### Positive upper-barrier supersolution facts
 
-## 1. Existing theorem candidates and statement mismatch
+File: `ShenWork/Paper1/WaveSuperBarrierPos.lean`
 
-### A. Candidates for `ShenUpperBoundPositive p c U`
-
-**Current positive Route-A wrappers.**  The wrappers in `ShenWork/Paper1/WaveRothePos.lean`
+Main grep targets:
 
 ```lean
-b1_chiPos_existence
-b1_chiPos_existence_rootPin
-b1_chiPos_existence_profileClean
-b1_chiPos_existence_profileClean_rootPin
-b1_chiPos_existence_stationary_floor
-b1_chiPos_existence_stationary_floor_rootPin
-b1_chiPos_existence_profileClean_stationary_floor
-b1_chiPos_existence_profileClean_stationary_floor_rootPin
+whole_line_super_barrier_pos
+chemFlux_deriv_neg_chi_le_at_interface_pos
+frozenWaveOperator_upperBarrier_interface_nonpos_pos
 ```
 
-all stop at
+`whole_line_super_barrier_pos` proves, for a trapped old profile `u`, that the barrier is a weak whole-line frozen supersolution:
+
+```lean
+InWaveTrapSet κ M u →
+∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+```
+
+under the positive-sensitivity regime, `α = m + γ - 1`, `0 < κ`, `κ < 1`, `p.m * κ ≤ 1`, `1 ≤ M`, the `MChi` budget, and `c = κ + κ⁻¹`.
+
+Away from the interface, the file’s header points to the branch facts in `Statements.lean`:
+
+```lean
+frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
+frozenWaveOperator_upperBarrier_const_region_nonpos_pos
+Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
+```
+
+Mismatch: these are weak supersolution inequalities for the barrier.  They do not, by themselves, prove that a stationary subprofile cannot touch the barrier.
+
+### Upper-barrier branch and interface calculus
+
+File: `ShenWork/Paper1/Statements.lean`
+
+Useful exact names:
+
+```lean
+upperBarrier
+upperBarrier_eq_M_of_le_exp
+upperBarrier_eq_exp_of_exp_le
+upperBarrier_eventuallyEq_const_of_lt
+upperBarrier_eventuallyEq_exp_of_lt
+upperBarrier_deriv_eq_zero_of_const_lt
+upperBarrier_deriv_eq_exp_of_lt
+upperBarrier_iteratedDeriv_two_eq_zero_of_const_lt
+upperBarrier_iteratedDeriv_two_eq_exp_of_lt
+upperBarrier_eventuallyEq_const_left_of_interface
+upperBarrier_eventuallyEq_exp_right_of_interface
+upperBarrier_derivWithin_left_eq_zero_of_interface
+upperBarrier_derivWithin_right_eq_exp_of_interface
+not_differentiableAt_upperBarrier_of_interface
+frozenWaveOperator_upperBarrier_const_region_eq
+```
+
+These are the exact tools for avoiding a fake global `C²` barrier proof.  The interface facts should be used for a one-sided contradiction if contact occurs at the kink.
+
+### Produced-object facts from lower-pinned construction
+
+File: `ShenWork/Paper1/WaveRotheSchauder.lean`
+
+Useful exact names:
+
+```lean
+InLowerPinnedMonotoneTrap
+InLowerPinnedMonotoneTrap.bare
+InLowerPinnedMonotoneTrap.lower
+InLowerPinnedMonotoneTrap.profileNontrivial
+InLowerPinnedMonotoneTrap.pos
+b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
+b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
+```
+
+Despite the historical `chiNeg` prefix, the lower-pinned Schauder wrapper is sign-agnostic at this layer.  Its conclusion is exactly the shape the positive branch should preserve:
+
+```lean
+∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
+  FrozenStationaryWaveProfile p c U
+```
+
+Mismatch: the current positive wrappers in `WaveRothePos.lean` generally erase the lower pin and return only
 
 ```lean
 ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U
 ```
 
-They do not append `ShenUpperBoundPositive p c U`.
+For the strict upper-barrier producer, keep the lower-pinned witness.
 
-**Lower-pinned Schauder wrapper.**  `b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin` in `WaveRotheSchauder.lean` has the more useful output shape
+### Existing maximum-principle infrastructure
 
-```lean
-∃ U, InLowerPinnedMonotoneTrap κ M
-    (lowerBarrierPlateau κ κtilde D) U ∧
-  FrozenStationaryWaveProfile p c U
-```
+File: `ShenWork/Paper1/WaveTrapProps.lean`
 
-Despite the historical `chiNeg` name, the theorem itself is a sign-agnostic lower-pinned Schauder wrapper: it consumes a lower-pinned `FrozenStationaryMapSchauderData`, fixed-point stationarity, and flatness.  It can be wrapped under a positive name once the positive Route-A data are supplied on the lower-pinned trap.  Mismatch: it still gives only the non-strict upper trap membership through `hU.bare`, not strict `ShenUpperBoundPositive`.
-
-**Strict positivity from the lower pin.**  `InLowerPinnedMonotoneTrap.pos` proves
+Useful names:
 
 ```lean
-(∀ x, 0 < φ x) → InLowerPinnedMonotoneTrap κ M φ U → ∀ x, 0 < U x
+StationaryStrongMaxPrinciple
+StationaryLinearGronwallData
+stationaryJet_zero_of_gronwall_right
+stationaryLinearGronwallData_of_trap
+stationaryStrongMaxPrinciple_of_linearGronwall
+stationaryStrongMaxPrinciple_of_trap_regularity
+stationaryStrongMaxPrinciple_of_trap
+stationaryStrongMaxPrinciple_of_odeUniqueness
 ```
 
-and the plateau positivity used by the lower-pinned wrapper is `lowerBarrierPlateau_pos`.  Mismatch: this gives the first conjunct of `ShenUpperBoundPositive`, but not the strict upper inequalities.
+Mismatch: these prove positivity/no-zero-contact for a nonnegative stationary profile `U`.  They do not directly prove no-contact for `upperBarrier - U`, because that gap is not packaged as a stationary trapped profile and the barrier is nonsmooth at the interface.
 
-**Non-strict trap upper bounds.**  Trap methods such as `hU.bare.le_M` and `hU.bare.le_exp` give only
+File: `ShenWork/Paper1/NoSmallLeftPocket.lean`
+
+Reusable maximum-principle pieces:
 
 ```lean
-U x ≤ M
-U x ≤ Real.exp (-(κ) * x)
+deriv_deriv_nonneg_of_isLocalMin
+exists_interior_min_left
+noSmallInteriorMin
+strictlyPositiveAtLeft_of_noSmallInteriorMin
 ```
 
-or equivalently non-strict membership below `upperBarrier κ M`.  Mismatch: `ShenUpperBoundPositive` requires strict
+Mismatch: this is left-floor/small-density machinery, not an upper-barrier comparison theorem.  But `deriv_deriv_nonneg_of_isLocalMin` and the style of packaging a local contradiction are exactly the right pattern for the new no-contact API.
+
+### Explicit logistic profile facts are not producers for the constructed profile
+
+File: `ShenWork/PDE/TravelingWaveConstruction.lean`
+
+Names:
 
 ```lean
-U x < min ((1 / (1 - p.χ)) ^ (1 / p.α)) (Real.exp (-(kappa c) * x)).
+logisticProfile_shenUpperBoundPositive
+logisticProfile_hasWaveRightTailAsymptotic
+logisticProfile_positive_construction_seed_data
+logisticProfile_positive_construction_seed_data_of_chi_lt_half_chiStar
 ```
 
-The strictness is not a trap-membership fact.
+Mismatch: all concern `logisticProfile (kappa c)`, not the non-explicit fixed point `U`.  They should not be used to close this residual unless a theorem proves the constructed `U` is that logistic profile.
 
-**`whole_line_super_barrier_pos`.**  This proves the positive-regime whole-line supersolution inequality for `upperBarrier κ M`:
+## 2. Is a strong maximum/comparison route mathematically valid?
+
+Yes, but the valid route is **branchwise plus one-sided interface**, not a single smooth global comparison against `upperBarrier`.
+
+The comparison should be against the local smooth branches:
 
 ```lean
-whole_line_super_barrier_pos
-  (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
-  (hα : p.α = p.m + p.γ - 1)
-  (hκ : 0 < κ) (hκ1 : κ < 1) (hmκ : p.m * κ ≤ 1)
-  (hM : 1 ≤ M)
-  (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
-  (hc : c = κ + κ⁻¹) :
-  InWaveTrapSet κ M u →
-  ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+B_const x = MChi p
+B_exp x   = Real.exp (-(kappa c) * x)
 ```
 
-Mismatch: it is the non-strict superbarrier used to keep the Rothe step inside the trap.  It does not prove that the fixed point has no contact with the barrier.
+and then against the one-sided interface data.  The global theorem should be only an assembler.
 
-**`ShenUpperBoundPositive` projections and shifts.**  `ShenUpperBoundPositive.pos`, `.lt_constant`, `.lt_exp`, `.le_constant`, `.le_exp`, and `ShenUpperBoundPositive.shift_right` / `shift_right_of_two_lt` all consume an existing `ShenUpperBoundPositive`.  Mismatch: no production for the constructed fixed point.
+### Required sub-obligations
 
-**Explicit logistic profile lemmas.**  `logisticProfile_shenUpperBoundPositive`, `logisticProfile_tail_bounds`, `logisticProfile_positive_construction_seed_data`, and `logisticProfile_positive_construction_seed_data_of_chi_lt_half_chiStar` prove positive upper data only for
+For the produced positive profile:
 
 ```lean
-logisticProfile (kappa c)
+hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+       (lowerBarrierPlateau (kappa c) κtilde D) U
+hprofile : FrozenStationaryWaveProfile p c U
 ```
 
-Mismatch: the constructed Route-A profile is an arbitrary non-explicit fixed point `U`.  There is no theorem proving that this `U` is equal to the logistic profile.
+we need the following non-circular inputs, all satisfiable from current routes or from local comparison lemmas.
 
-### B. Candidates for `HasWaveRightTailAsymptotic c κ₁ U`
+#### Common data
 
-**`HasWaveRightTailAsymptotic_of_stationary`.**  In `StationaryUpperTail.lean`, this theorem has the right-looking name but is intentionally only a carried interface:
+* `hU.bare` gives non-strict trap membership:
+
+  ```lean
+  U x ≤ upperBarrier (kappa c) (MChi p) x
+  ```
+
+* `hU.pos (lowerBarrierPlateau_pos ...)` or `hprofile.U_pos` gives positivity.
+* `hprofile.stationary_eq` gives stationarity:
+
+  ```lean
+  ∀ x, frozenWaveOperator p c U U x = 0
+  ```
+
+* regularity for local comparison: at minimum, differentiability of `U` and `deriv U` on the branch.  The already-existing C² producers in `WaveTrapProps.lean` and `WavePaperStationaryFloor.lean` are the right source.
+* superbarrier inequalities from `whole_line_super_barrier_pos` and the away-from-interface branch theorems.
+
+#### Constant branch no-contact
+
+Branch condition:
 
 ```lean
-theorem HasWaveRightTailAsymptotic_of_stationary
-    {p : CMParams} {c κ₁ : ℝ} {U : ℝ → ℝ}
-    (hκ : 0 < kappa c) (hU : InMonotoneWaveTrapSet (kappa c) 1 U)
-    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
-    (hκ₁lo : kappa c < κ₁)
-    (hκ₁hi : κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1))
-    (htail : HasWaveRightTailAsymptotic c κ₁ U) :
-    HasWaveRightTailAsymptotic c κ₁ U
+MChi p < Real.exp (-(kappa c) * x)
 ```
 
-Mismatch: it consumes `htail`; it does not produce it.  It is also specialized to trap height `1`, while the positive branch naturally wants the height `MChi p`.
-
-**Consumer lemmas.**  `HasWaveRightTailAsymptotic.ratio_tendsto_one` and `HasWaveRightTailAsymptotic.tendsto_atTop_zero` only extract consequences from an already-proved asymptotic.  Mismatch: wrong direction.
-
-**Explicit logistic profile lemmas.**  `logisticProfile_hasWaveRightTailAsymptotic`, `logisticProfile_exists_waveRightTailAsymptotic`, `_of_kappa_lt_one`, `_of_two_lt`, and the positive logistic seed-data wrappers again apply only to `logisticProfile (kappa c)`.  Mismatch: not the constructed fixed point; also several wrappers are existential in `κ₁`, whereas the branch requires the full `∀ κ₁` family.
-
-**Lower-barrier facts.**  These are the most promising existing ingredients for B:
+Here `upperBarrier = MChi p` locally.  Need to show contact
 
 ```lean
-lowerBarrierRaw_eq_exp_mul
-lowerBarrierPlateau_eq_raw_of_xplus_lt
-InLowerPinnedMonotoneTrap.lower
-InLowerPinnedMonotoneTrap.bare
+U x = MChi p
 ```
 
-`lowerBarrierRaw_eq_exp_mul` exposes
+is impossible.
+
+Recommended split:
+
+* If `0 < p.χ`, then prove `1 < MChi p`; combine monotonicity plus `U → 1` at `-∞` to get `U x ≤ 1`, hence `U x < MChi p`.  This is mostly order/limit wiring once `MChi` strictness is proved.
+* If `p.χ = 0`, then `MChi p = 1`, and this becomes the classical no-finite-contact with the left equilibrium `1`.  This needs a real strong maximum/unique-continuation lemma: if a nonconstant stationary profile with right decay touches `1` at a finite point in the plateau branch, it cannot remain a valid wave.  Do not claim this from trap membership alone.
+
+#### Exponential branch no-contact
+
+Branch condition:
 
 ```lean
-lowerBarrierRaw κ κtilde D x =
-  Real.exp (-κ * x) * (1 - D * Real.exp (-(κtilde - κ) * x))
+Real.exp (-(kappa c) * x) < MChi p
 ```
 
-Mismatch: these facts do not directly mention `HasWaveRightTailAsymptotic`, but they should let us prove it by a squeeze argument for every `κ₁ < κtilde`, provided the constructed profile is kept in the lower-pinned trap.
-
-## 2. Minimal new theorem statements to aim for
-
-### 2.1 Keep the lower-pinned witness and choose the sharp tail cap
-
-The current positive wrappers erase the lower pin by returning only `InMonotoneWaveTrapSet κ M U`.  For the right-tail field, do not erase it.  Add a positive-name wrapper around the existing lower-pinned Schauder theorem, then run it at
+Here `upperBarrier = expDecay (kappa c)` locally.  Contact means
 
 ```lean
-κ = kappa c
-M = MChi p
-κtilde = positiveBranchTailCap p c
+U x = Real.exp (-(kappa c) * x)
 ```
 
-where:
+At such an interior contact, the gap `B_exp - U` has a local minimum zero.  The local proof should consume:
+
+* stationarity of `U`,
+* the exponential-region barrier inequality from `whole_line_super_barrier_pos` / `frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg`,
+* C² regularity of `U`, and
+* a one-dimensional strong comparison or contact contradiction for the smooth branch.
+
+This is the main new comparison lemma.  It is smaller than `ShenUpperBoundPositive` because it only rules out equality on the smooth exponential branch.
+
+#### Interface no-contact
+
+Interface condition:
 
 ```lean
-positiveBranchTailCap p c =
-  min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
+Real.exp (-(kappa c) * x) = MChi p
 ```
 
-Target statements:
+At the interface, a very small and honest theorem should rule out contact by one-sided derivatives, without stationarity.
+
+If `U ≤ upperBarrier`, `U x = MChi p`, and `U` is differentiable at `x`, then the one-sided gap derivatives force contradictory inequalities:
+
+* from the left, `upperBarrier` has derivative `0`, so contact gives a constraint on `deriv U x`;
+* from the right, `upperBarrier` has derivative `-kappa c * MChi p`, so contact gives the opposite strict constraint.
+
+The existing facts
+
+```lean
+upperBarrier_derivWithin_left_eq_zero_of_interface
+upperBarrier_derivWithin_right_eq_exp_of_interface
+not_differentiableAt_upperBarrier_of_interface
+```
+
+are exactly the right API.  This interface theorem is strictly smaller than any PDE comparison theorem and should be proved first.
+
+## 3. Minimal honest Lean decomposition
+
+### 3.1 Local contact-contradiction API
+
+Do not make a package field named `ShenUpperBoundPositive`.  If a temporary API package is useful, make it a package of local **contact contradictions**.
 
 ```lean
 import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveRothePos
+import ShenWork.Paper1.WaveRotheSchauder
+import ShenWork.Paper1.WaveSuperBarrierPos
+import ShenWork.Paper1.WaveTrapProps
+import ShenWork.Paper1.NoSmallLeftPocket
+
+open Filter Topology Real Set
+
+namespace ShenWork.Paper1
+
+/-- Local no-contact facts for the canonical positive upper barrier.
+
+This is intentionally not `ShenUpperBoundPositive` and not even the global strict
+barrier statement.  It only says that equality is impossible on each local
+piece of `upperBarrier`. -/
+structure PositiveUpperBarrierContactContradictions
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  const_branch :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      U x = MChi p → False
+  exp_branch :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+      U x = Real.exp (-(kappa c) * x) → False
+  interface :
+    ∀ x, Real.exp (-(kappa c) * x) = MChi p →
+      U x = MChi p → False
+
+/-- Pure assembly: non-strict trap bound plus local no-contact gives strict
+comparison with the nonsmooth barrier. -/
+theorem strict_upperBarrier_MChi_of_contactContradictions
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hno : PositiveUpperBarrierContactContradictions p c U) :
+    ∀ x, U x < upperBarrier (kappa c) (MChi p) x := by
+  intro x
+  -- sketch:
+  -- have hle : U x ≤ upperBarrier (kappa c) (MChi p) x := by
+  --   exact htrap.trap.upper x   -- unfold/accessor as available
+  -- rcases lt_or_eq_of_le hle with hlt | heq
+  -- · exact hlt
+  -- · rcases lt_trichotomy (Real.exp (-(kappa c) * x)) (MChi p) with hExpLt | hEq | hMLt
+  --   · have hB : upperBarrier (kappa c) (MChi p) x = Real.exp (-(kappa c) * x) :=
+  --       upperBarrier_eq_exp_of_exp_le hExpLt.le
+  --     exact False.elim (hno.exp_branch x hExpLt (by simpa [hB] using heq))
+  --   · have hB : upperBarrier (kappa c) (MChi p) x = MChi p :=
+  --       upperBarrier_eq_M_of_le_exp hEq.ge
+  --     exact False.elim (hno.interface x hEq (by simpa [hB] using heq))
+  --   · have hB : upperBarrier (kappa c) (MChi p) x = MChi p :=
+  --       upperBarrier_eq_M_of_le_exp hMLt.le
+  --     exact False.elim (hno.const_branch x hMLt (by simpa [hB] using heq))
+  sorry
+
+end ShenWork.Paper1
+```
+
+The `sorry` above marks the intended proof body only; do not commit it as code.  It should be a short proof once the exact `InWaveTrapSet` upper-bound accessor is selected.
+
+### 3.2 Interface contact theorem: prove this first
+
+```lean
+import ShenWork.Paper1.Statements
+
+open Filter Topology Real Set
+
+namespace ShenWork.Paper1
+
+/-- Interface contact is impossible for any differentiable profile lying below
+`upperBarrier`.
+
+This is a one-sided calculus lemma, not a PDE lemma.  It is the cleanest way to
+handle the nonsmooth kink. -/
+theorem upperBarrier_interface_contact_absurd_of_differentiable
+    {κ M : ℝ} {U : ℝ → ℝ} {x : ℝ}
+    (hκ : 0 < κ) (hM : 0 < M)
+    (hbelow : ∀ y, U y ≤ upperBarrier κ M y)
+    (hUdiff : DifferentiableAt ℝ U x)
+    (hx : Real.exp (-κ * x) = M)
+    (hcontact : U x = M) :
+    False := by
+  -- proof route:
+  -- left side: `upperBarrier = M`, so the gap `M - U` has one-sided minimum 0.
+  -- right side: `upperBarrier = expDecay κ`, whose one-sided derivative is `-κ*M`.
+  -- differentiability of U forces incompatible one-sided derivative inequalities.
+  -- consume:
+  --   upperBarrier_derivWithin_left_eq_zero_of_interface
+  --   upperBarrier_derivWithin_right_eq_exp_of_interface
+  --   hUdiff.derivWithin uniqueDiffWithinAt_Iio/Ioi
+  sorry
+
+end ShenWork.Paper1
+```
+
+This theorem is satisfiable and non-circular: it assumes only non-strict barrier membership, differentiability of `U`, and actual equality at the kink, then derives contradiction from one-sided slopes.
+
+### 3.3 Constant branch contact theorem
+
+```lean
+import ShenWork.Paper1.StatementAssembly
 import ShenWork.Paper1.WaveRotheSchauder
 import ShenWork.Paper1.WaveTrapProps
 
-open Filter Topology Real
+open Filter Topology Real Set
 
 namespace ShenWork.Paper1
 
-/- Target definition. -/
+/-- Constant-branch contact contradiction for the positive stationary profile.
 
-def positiveBranchTailCap (p : CMParams) (c : ℝ) : ℝ :=
-  min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1)
-
-/-
-Target theorem.  This is pure parameter arithmetic from `2 < c`, `1 ≤ p.α`,
-`1 ≤ p.m`, and `0 < kappa c < 1`.
-
-theorem kappa_lt_positiveBranchTailCap
-    (p : CMParams) {c : ℝ} (hc : 2 < c) :
-    kappa c < positiveBranchTailCap p c := by
-  -- prove each branch of the min is strictly above `kappa c`
--/
-
-/-
-Positive-name wrapper around the existing lower-pinned Schauder theorem.
-The proof should be a direct call to
-`b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin`;
-the theorem name `chiNeg` is historical here, not a sign hypothesis.
-
-theorem b1_chiPos_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
-    {p : CMParams} {c lam κtilde D M : ℝ}
-    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
-    (hc : 0 < c) (hκ : 0 < kappa c)
+This is local to the branch `MChi p < exp(-(kappa c)*x)`.  It should be proved
+by a case split on `p.χ = 0` versus `0 < p.χ`:
+* if `0 < p.χ`, prove `1 < MChi p` and use monotonicity plus `U → 1` at `-∞`;
+* if `p.χ = 0`, use a stationary strong maximum/unique-continuation argument
+  ruling out finite contact with the equilibrium `1`. -/
+theorem positive_constBranch_contact_absurd_of_lowerPinnedStationary
+    {p : CMParams} {c κtilde D : ℝ} {U : ℝ → ℝ} {x : ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
     (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
-    (hprinciple :
-      LocalUniformSchauderFixedPointPrinciple
-        (InLowerPinnedMonotoneTrap (kappa c) M
-          (lowerBarrierPlateau (kappa c) κtilde D)))
-    (hdata :
-      FrozenStationaryMapSchauderData p c lam
-        (InLowerPinnedMonotoneTrap (kappa c) M
-          (lowerBarrierPlateau (kappa c) κtilde D)) Tmap)
-    (hstationary : ∀ U,
-      InLowerPinnedMonotoneTrap (kappa c) M
-        (lowerBarrierPlateau (kappa c) κtilde D) U →
-      Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0)
-    (hflat : ∀ U,
-      InLowerPinnedMonotoneTrap (kappa c) M
-        (lowerBarrierPlateau (kappa c) κtilde D) U →
-      (∀ x, frozenWaveOperator p c U U x = 0) →
-        FrozenStationaryFlatAtLeft p U) :
-    ∃ U : ℝ → ℝ,
-      InLowerPinnedMonotoneTrap (kappa c) M
-        (lowerBarrierPlateau (kappa c) κtilde D) U ∧
-      FrozenStationaryWaveProfile p c U := by
-  -- exact b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
-  --   hc hκ hgap hD hprinciple hdata hstationary hflat
--/
+    (hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+      (lowerBarrierPlateau (kappa c) κtilde D) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hbranch : MChi p < Real.exp (-(kappa c) * x))
+    (hcontact : U x = MChi p) :
+    False := by
+  -- real residual, not pure wiring
+  -- suggested sublemmas:
+  --   one_lt_MChi_of_chi_pos_lt_one
+  --   antitone_le_of_tendsto_atBot_one
+  --   chiZero_no_finite_contact_one_of_stationary
+  sorry
 
 end ShenWork.Paper1
 ```
 
-This wrapper is not mathematically new; it just prevents losing the lower pin before proving B.
+This theorem is smaller than `ShenUpperBoundPositive`: it rules out one equality case on one branch.
 
-### 2.2 A: reduce `ShenUpperBoundPositive` to a strict no-contact theorem
-
-First add the pure wiring lemma from strict exact-barrier control to `ShenUpperBoundPositive`.
+### 3.4 Exponential branch contact theorem
 
 ```lean
 import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveRotheSchauder
+import ShenWork.Paper1.WaveSuperBarrierPos
+import ShenWork.Paper1.WaveTrapProps
 
-open Filter Topology Real
+open Filter Topology Real Set
 
 namespace ShenWork.Paper1
 
-/-
-Pure wiring target.  The proof should unfold `upperBarrier`, rewrite
-`MChi p` using `MChi_eq_rpow_of_chi_nonneg_lt_one`, and split the `min`.
+/-- Exponential-branch contact contradiction for the positive stationary profile.
 
-theorem ShenUpperBoundPositive_of_pos_strict_upperBarrier_MChi
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt_one : p.χ < 1)
-    (hpos : ∀ x, 0 < U x)
-    (hstrict : ∀ x, U x < upperBarrier (kappa c) (MChi p) x) :
-    ShenUpperBoundPositive p c U := by
-  intro x
-  refine ⟨hpos x, ?_⟩
-  -- expected core:
-  -- have hMx := hstrict x
-  -- rw [MChi_eq_rpow_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt_one] at hMx
-  -- simpa [upperBarrier] using hMx
--/
+This is the main smooth-branch comparison lemma.  It should use the exponential
+branch of the positive upper-barrier supersolution plus stationarity of `U`. -/
+theorem positive_expBranch_contact_absurd_of_lowerPinnedStationary
+    {p : CMParams} {c κtilde D : ℝ} {U : ℝ → ℝ} {x : ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+      (lowerBarrierPlateau (kappa c) κtilde D) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hbranch : Real.exp (-(kappa c) * x) < MChi p)
+    (hcontact : U x = Real.exp (-(kappa c) * x)) :
+    False := by
+  -- real residual, not pure wiring
+  -- consume/derive:
+  --   hprofile.stationary_eq
+  --   hU.bare.trap
+  --   frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
+  --   or whole_line_super_barrier_pos specialized to the branch
+  --   C² regularity from the stationary Green/Rothe regularity route
+  --   a one-dimensional strong comparison/contact contradiction for
+  --     gap = expDecay (kappa c) - U
+  sorry
 
 end ShenWork.Paper1
 ```
 
-Then isolate the real missing comparison theorem.  This should consume exactly the produced lower-pinned stationary object.
+This is the hardest part of the strict upper-bound producer.
+
+### 3.5 Produce all contact contradictions and assemble strict barrier
 
 ```lean
 import ShenWork.Paper1.StatementAssembly
@@ -271,17 +518,13 @@ import ShenWork.Paper1.WaveRotheSchauder
 import ShenWork.Paper1.WaveSuperBarrierPos
 import ShenWork.Paper1.WaveTrapProps
 
-open Filter Topology Real
+open Filter Topology Real Set
 
 namespace ShenWork.Paper1
 
-/-
-Real comparison target for A.
-Trap membership gives only `≤ upperBarrier`; this theorem upgrades to strict
-non-contact using the stationary equation, lower pin / nontriviality, and the
-positive whole-line superbarrier.
-
-theorem strict_upperBarrier_MChi_of_positive_lowerPinned_stationary
+/-- Producer of the local contact-contradiction API from the actual positive
+lower-pinned stationary object. -/
+theorem positiveUpperBarrier_contactContradictions_of_lowerPinnedStationary
     {p : CMParams} {c κtilde D : ℝ} {U : ℝ → ℝ}
     (hα : p.α = p.m + p.γ - 1)
     (hχ_nonneg : 0 ≤ p.χ)
@@ -290,21 +533,60 @@ theorem strict_upperBarrier_MChi_of_positive_lowerPinned_stationary
     (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
     (hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
       (lowerBarrierPlateau (kappa c) κtilde D) U)
-    (hprofile : FrozenStationaryWaveProfile p c U) :
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    -- either derive this from the profile's regularity field, or carry the exact
+    -- C¹ fact if `FrozenStationaryWaveProfile` does not expose it directly:
+    (hUdiff : ∀ x, DifferentiableAt ℝ U x) :
+    PositiveUpperBarrierContactContradictions p c U := by
+  refine
+    { const_branch := ?_
+      exp_branch := ?_
+      interface := ?_ }
+  · intro x hbranch hcontact
+    exact positive_constBranch_contact_absurd_of_lowerPinnedStationary
+      hα hχ_nonneg hχ_small hc hgap hD hU hprofile hbranch hcontact
+  · intro x hbranch hcontact
+    exact positive_expBranch_contact_absurd_of_lowerPinnedStationary
+      hα hχ_nonneg hχ_small hc hgap hD hU hprofile hbranch hcontact
+  · intro x hinterface hcontact
+    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+      lt_of_lt_of_le hχ_small (min_le_left _ _)
+    have hχ_lt_one : p.χ < 1 := by linarith
+    have hMpos : 0 < MChi p := by
+      -- from one_le_MChi_of_chi_nonneg_lt_one or direct positivity
+      exact lt_of_lt_of_le zero_lt_one
+        (one_le_MChi_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt_one)
+    exact upperBarrier_interface_contact_absurd_of_differentiable
+      (κ := kappa c) (M := MChi p) (U := U) (x := x)
+      (kappa_pos_of_two_lt hc) hMpos
+      (by
+        intro y
+        -- exact trap upper-bound accessor from `hU.bare`
+        -- e.g. `exact hU.bare.trap.upper y`
+        sorry)
+      (hUdiff x) hinterface hcontact
+
+/-- Strict upper-barrier producer.  This is the main theorem to feed into
+`ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi`. -/
+theorem strict_upperBarrier_MChi_of_positive_lowerPinnedStationary
+    {p : CMParams} {c κtilde D : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
+    (hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+      (lowerBarrierPlateau (kappa c) κtilde D) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hUdiff : ∀ x, DifferentiableAt ℝ U x) :
     ∀ x, U x < upperBarrier (kappa c) (MChi p) x := by
-  -- suggested proof route:
-  -- 1. `hU.bare` gives `U ≤ upperBarrier`.
-  -- 2. `whole_line_super_barrier_pos` gives the weak supersolution inequality
-  --    for `upperBarrier (kappa c) (MChi p)`.
-  -- 3. Use `hprofile.stationary_eq` plus a strong comparison / no-contact lemma
-  --    for the difference `upperBarrier - U`.
-  -- 4. Exclude the identically-contact case using the lower pin and right decay.
--/
+  exact strict_upperBarrier_MChi_of_contactContradictions hU.bare
+    (positiveUpperBarrier_contactContradictions_of_lowerPinnedStationary
+      hα hχ_nonneg hχ_small hc hgap hD hU hprofile hUdiff)
 
-/-
-Combined target for A after strict no-contact is available.
-
-theorem ShenUpperBoundPositive_of_positive_lowerPinned_stationary
+/-- Final upper-bound producer, still smaller than the whole positive branch
+because it produces only `ShenUpperBoundPositive`, not the tail asymptotic. -/
+theorem ShenUpperBoundPositive_of_positive_lowerPinnedStationary
     {p : CMParams} {c κtilde D : ℝ} {U : ℝ → ℝ}
     (hα : p.α = p.m + p.γ - 1)
     (hχ_nonneg : 0 ≤ p.χ)
@@ -313,240 +595,41 @@ theorem ShenUpperBoundPositive_of_positive_lowerPinned_stationary
     (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
     (hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
       (lowerBarrierPlateau (kappa c) κtilde D) U)
-    (hprofile : FrozenStationaryWaveProfile p c U) :
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hUdiff : ∀ x, DifferentiableAt ℝ U x) :
     ShenUpperBoundPositive p c U := by
-  have hχ_lt_one : p.χ < 1 := by
-    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
-      lt_of_lt_of_le hχ_small (min_le_left _ _)
-    linarith
-  exact ShenUpperBoundPositive_of_pos_strict_upperBarrier_MChi
+  have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by linarith
+  exact ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
     hχ_nonneg hχ_lt_one hprofile.U_pos
-    (strict_upperBarrier_MChi_of_positive_lowerPinned_stationary
-      hα hχ_nonneg hχ_small hc hgap hD hU hprofile)
--/
+    (strict_upperBarrier_MChi_of_positive_lowerPinnedStationary
+      hα hχ_nonneg hχ_small hc hgap hD hU hprofile hUdiff)
 
 end ShenWork.Paper1
 ```
 
-This is the smallest honest reduction for A: the only genuinely new analytic content is the strict no-contact theorem.
+Again, the `sorry` markers are proposal placeholders only; the committed Lean should introduce these theorem statements only when their proofs are being supplied or when the exact remaining hypothesis is explicitly exposed.
 
-### 2.3 B: prove the right-tail asymptotic by lower-barrier squeeze, not by replacing `U`
+## 4. Recommended proof order
 
-For B, the lower-pinned trap carries more information than the bare trap.  On the right tail,
+1. **Pure assembly first**: prove `strict_upperBarrier_MChi_of_contactContradictions`.  This is just `lt_or_eq_of_le`, `lt_trichotomy`, and the existing `upperBarrier_eq_*` lemmas.
+2. **Interface no-contact second**: prove `upperBarrier_interface_contact_absurd_of_differentiable`.  This is one-sided calculus and avoids the PDE.
+3. **Constant branch third**: prove the easy `0 < χ` case using `1 < MChi p`; isolate the `χ = 0` no-finite-contact theorem separately.
+4. **Exponential branch last**: prove the smooth-branch comparison theorem using the positive exponential-region supersolution and stationarity.  This is the real PDE comparison step.
+5. **Only then expose `ShenUpperBoundPositive_of_positive_lowerPinnedStationary`** and feed it into the existing strict-barrier branch wrapper.
 
-```lean
-lowerBarrierPlateau (kappa c) κtilde D x
-  = lowerBarrierRaw (kappa c) κtilde D x
-  = exp (-(kappa c) * x) *
-      (1 - D * exp (-(κtilde - kappa c) * x)).
-```
+## 5. False or vacuous routes to avoid
 
-Together with the trap upper bound `U x ≤ exp (-(kappa c) * x)`, this squeezes
+* Do not derive strictness from `InMonotoneWaveTrapSet` alone.  The trap carries only non-strict `U ≤ upperBarrier`.
+* Do not use a global classical maximum principle on `upperBarrier - U` without handling the interface.  `upperBarrier` is not differentiable at the kink.
+* Do not introduce a field
 
-```lean
-U x / exp (-(kappa c) * x) - 1
-```
+  ```lean
+  strict : ∀ x, U x < upperBarrier (kappa c) (MChi p) x
+  ```
 
-between `-D * exp (-(κtilde - kappa c) * x)` and `0` eventually.  Multiplication by `exp ((κ₁ - kappa c) * x)` tends to zero whenever `κ₁ < κtilde`.
-
-First prove the rate-below-`κtilde` squeeze theorem:
-
-```lean
-import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveRotheSchauder
-
-open Filter Topology Real
-
-namespace ShenWork.Paper1
-
-/-
-Mostly pure barrier/asymptotic theorem for B.
-It should not use stationarity; it uses only the lower pin and the upper trap.
-
-theorem HasWaveRightTailAsymptotic_of_lowerBarrierPinnedTrap
-    {c κtilde D M κ₁ : ℝ} {U : ℝ → ℝ}
-    (hκ : 0 < kappa c)
-    (hM : 1 ≤ M)
-    (hgap : 0 < κtilde - kappa c) (hD : 0 < D)
-    (hU : InLowerPinnedMonotoneTrap (kappa c) M
-      (lowerBarrierPlateau (kappa c) κtilde D) U)
-    (hκ₁lo : kappa c < κ₁) (hκ₁hi : κ₁ < κtilde) :
-    HasWaveRightTailAsymptotic c κ₁ U := by
-  -- proof route:
-  -- 1. eventually atTop, `lowerBarrierPlateau = lowerBarrierRaw` using
-  --    `lowerBarrierPlateau_eq_raw_of_xplus_lt`.
-  -- 2. rewrite lower barrier with `lowerBarrierRaw_eq_exp_mul`.
-  -- 3. upper trap gives `U x ≤ exp (-(kappa c) * x)` eventually
-  --    because `1 ≤ M` and `exp (-(kappa c) * x) ≤ 1` for `x ≥ 0`.
-  -- 4. divide by positive `exp (-(kappa c) * x)` and squeeze the ratio error.
-  -- 5. use `κ₁ < κtilde` to make
-  --    `exp ((κ₁ - κtilde) * x) → 0`.
--/
-
-end ShenWork.Paper1
-```
-
-Then choose `κtilde` to be the branch cap.  This gives the full `∀ κ₁` family required by `Paper1PositiveCriticalFrozenStationaryBranch`.
-
-```lean
-import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveRotheSchauder
-
-open Filter Topology Real
-
-namespace ShenWork.Paper1
-
-/-
-Full-family B theorem for a lower-pinned produced object at the sharp cap.
-The produced object is the same `U`; no logistic substitution is involved.
-
-theorem HasWaveRightTailAsymptotic_of_positive_lowerPinned_tailCap
-    {p : CMParams} {c D : ℝ} {U : ℝ → ℝ}
-    (hχ_nonneg : 0 ≤ p.χ)
-    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    (hc : 2 < c) (hD : 0 < D)
-    (hU : InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-      (lowerBarrierPlateau (kappa c) (positiveBranchTailCap p c) D) U) :
-    ∀ κ₁, kappa c < κ₁ →
-      κ₁ < positiveBranchTailCap p c →
-      HasWaveRightTailAsymptotic c κ₁ U := by
-  intro κ₁ hκ₁lo hκ₁hi
-  have hχ_lt_one : p.χ < 1 := by
-    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
-      lt_of_lt_of_le hχ_small (min_le_left _ _)
-    linarith
-  have hM : 1 ≤ MChi p :=
-    one_le_MChi_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt_one
-  have hgap : 0 < positiveBranchTailCap p c - kappa c := by
-    exact sub_pos.mpr (kappa_lt_positiveBranchTailCap p hc)
-  exact HasWaveRightTailAsymptotic_of_lowerBarrierPinnedTrap
-    (hκ := kappa_pos_of_two_lt hc)
-    (hM := hM) (hgap := hgap) (hD := hD)
-    (hU := hU) hκ₁lo hκ₁hi
--/
-
-end ShenWork.Paper1
-```
-
-For the branch's exact upper bound expression, unfold `positiveBranchTailCap` in the final wrapper.
-
-### 2.4 Final branch wrapper after A and B are reduced
-
-Once the positive Route-A construction returns the lower-pinned object at `κtilde = positiveBranchTailCap p c`, the final assembly becomes ordinary existential wiring.
-
-```lean
-import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveRotheSchauder
-
-open Filter Topology Real
-
-namespace ShenWork.Paper1
-
-/-
-Route-A closure skeleton.  `hroute` is the positive lower-pinned Route-A provider,
-specialized to the exact height `MChi p` and the sharp lower-barrier exponent
-`positiveBranchTailCap p c`.
-
-theorem Paper1PositiveCriticalFrozenStationaryBranch_of_lowerPinnedRouteA
-    (hroute :
-      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
-        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
-        ∀ c : ℝ, 2 < c →
-          ∃ D : ℝ, 0 < D ∧
-          ∃ U : ℝ → ℝ,
-            InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-              (lowerBarrierPlateau (kappa c) (positiveBranchTailCap p c) D) U ∧
-            FrozenStationaryWaveProfile p c U)
-    (hupper :
-      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
-        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
-        ∀ c : ℝ, 2 < c →
-          ∀ D : ℝ, 0 < D →
-          ∀ U : ℝ → ℝ,
-            InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-              (lowerBarrierPlateau (kappa c) (positiveBranchTailCap p c) D) U →
-            FrozenStationaryWaveProfile p c U →
-            ShenUpperBoundPositive p c U) :
-    Paper1PositiveCriticalFrozenStationaryBranch := by
-  intro p hα hχ0 hχsmall c hc
-  rcases hroute p hα hχ0 hχsmall c hc with ⟨D, hD, U, hU, hprofile⟩
-  have hupperU := hupper p hα hχ0 hχsmall c hc D hD U hU hprofile
-  refine ⟨U, hprofile, hupperU, ?_⟩
-  intro κ₁ hκ₁lo hκ₁hi
-  exact HasWaveRightTailAsymptotic_of_positive_lowerPinned_tailCap
-    (p := p) (c := c) (D := D) (U := U)
-    hχ0 hχsmall hc hD hU κ₁ hκ₁lo (by
-      simpa [positiveBranchTailCap] using hκ₁hi)
--/
-
-end ShenWork.Paper1
-```
-
-This wrapper deliberately makes A the only remaining analytic provider once B is reduced by the lower-barrier squeeze.
-
-## 3. Which field is wiring vs real new analysis?
-
-### A. `ShenUpperBoundPositive p c U`
-
-A has a pure-wiring tail, but not a pure-wiring proof.
-
-Pure wiring:
-
-```lean
-∀ x, 0 < U x
-∀ x, U x < upperBarrier (kappa c) (MChi p) x
-```
-
-implies `ShenUpperBoundPositive p c U` by unfolding `upperBarrier` and rewriting `MChi` in the positive regime.
-
-Real new analysis:
-
-```lean
-∀ x, U x < upperBarrier (kappa c) (MChi p) x
-```
-
-The trap gives only `≤`.  Upgrading to strict non-contact needs a strong comparison/no-contact theorem using the stationary equation and the positive whole-line superbarrier.  This is the substantive A residual.
-
-### B. `HasWaveRightTailAsymptotic c κ₁ U`
-
-B is likely reducible much more than the prior carried-tail interface suggests, provided the lower pin is preserved and the construction chooses `κtilde` at the sharp cap.
-
-For a lower-pinned object, the lower barrier itself has the exact right-tail expansion
-
-```lean
-exp (-(kappa c) * x) * (1 - D * exp (-(κtilde - kappa c) * x)).
-```
-
-The upper trap gives the matching upper envelope `exp (-(kappa c) * x)` eventually.  Therefore a squeeze should prove `HasWaveRightTailAsymptotic c κ₁ U` for every `κ₁ < κtilde`.  If `κtilde` is set to
-
-```lean
-positiveBranchTailCap p c
-```
-
-then this is exactly the full family required in the branch.
-
-So B is not just final wiring, but it should be mostly barrier/asymptotic calculus and trap squeezing, not a full new stationary ODE linearisation, as long as the lower-pinned witness is retained.  If only the currently erased output
-
-```lean
-InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U
-```
-
-is available, then B becomes genuinely underdetermined from trap data alone; the lower pin is the key extra datum.
-
-## 4. Anti-fake warnings
-
-Do not close A or B by switching the witness to `logisticProfile (kappa c)`.  The repository has good logistic-profile lemmas, including
-
-```lean
-logisticProfile_shenUpperBoundPositive
-logisticProfile_hasWaveRightTailAsymptotic
-logisticProfile_positive_construction_seed_data_of_chi_lt_half_chiStar
-```
-
-but these prove properties of the explicit logistic profile only.  They do not apply to the non-explicit `U` returned by the positive Rothe/Schauder fixed-point construction.
-
-Do not use `HasWaveRightTailAsymptotic_of_stationary` as if it were a producer.  Its last hypothesis is exactly the desired tail statement.
-
-Do not erase the lower pin before proving B.  The bare monotone trap gives only the crude upper envelope.  The lower-pinned trap gives the lower asymptotic expansion needed for the squeeze.
-
-Do not run the positive branch at an arbitrary larger height `M` if the goal is `ShenUpperBoundPositive`.  The strict upper bound is stated with the exact positive-regime constant `MChi p`, so the route should specialize the construction to `M = MChi p` or prove a separate comparison down to that exact height.
+  and then call that a producer.  If a package is used, make it local contact contradictions or lower-level comparison data.
+* Do not use `StationaryStrongMaxPrinciple` as if it directly applies to `upperBarrier - U`.  It is for positivity/no-zero-contact of stationary trapped profiles, not for a nonsmooth gap against the upper barrier.
+* Do not replace the constructed profile by `logisticProfile (kappa c)`.  Existing logistic lemmas are useful checks/examples, but they are not facts about the Route-A fixed point `U`.
+* Do not erase the lower pin too early.  The lower-pinned object supplies positivity/nontriviality and is the correct input to comparison and later tail-squeeze arguments.
