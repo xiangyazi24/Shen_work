@@ -30,8 +30,56 @@ abbrev IntervalDomainPaper3NegativeSensitivityResidual
     (p : CM2Params) : Prop :=
   NegativeSensitivityGlobalEventualBound intervalDomain p
 
+/-- Atomic interval-domain frontiers for Paper3 Proposition 1.2 in the
+negative-sensitivity regime.
+
+This is still a residual package.  It separates global existence/initial trace
+from the long-time sup-norm bound so future PDE work can discharge the two
+analytic components independently. -/
+structure IntervalDomainPaper3NegativeSensitivityFrontierData
+    (p : CM2Params) : Prop where
+  globalSolution :
+    p.χ₀ ≤ 0 → 1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+            InitialTrace intervalDomain u₀ u
+  eventualSupBound :
+    p.χ₀ ≤ 0 → 1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2GlobalClassicalSolution intervalDomain p u v →
+            InitialTrace intervalDomain u₀ u →
+              ∃ T₀ M : ℝ,
+                ∀ t : ℝ, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
+/-- Pure packaging from the atomic negative-sensitivity frontiers to the
+existing Paper3 Proposition 1.2 residual. -/
+theorem intervalDomainPaper3_negativeSensitivityResidual_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper3NegativeSensitivityFrontierData p) :
+    IntervalDomainPaper3NegativeSensitivityResidual p := by
+  intro hχ hm u₀ hu₀
+  rcases hData.globalSolution hχ hm u₀ hu₀ with
+    ⟨u, v, hglobal, htrace⟩
+  rcases hData.eventualSupBound hχ hm u₀ hu₀ u v hglobal htrace with
+    ⟨T₀, M, hM⟩
+  exact ⟨u, v, hglobal, htrace, M,
+    Filter.eventually_atTop.mpr ⟨T₀, hM⟩⟩
+
+/-- Instance-facing wrapper for the decomposed negative-sensitivity residual. -/
+theorem intervalDomainPaper3_negativeSensitivityResidual_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper3NegativeSensitivityFrontierData p)] :
+    IntervalDomainPaper3NegativeSensitivityResidual p :=
+  intervalDomainPaper3_negativeSensitivityResidual_of_frontierData p hData.out
+
 /-- Frontier data for the interval-domain Proposition 1.2 and Proposition 1.4
-targets. -/
+targets.  The `negativeBound` field can be supplied monolithically, or via
+`intervalDomainPaper3_negativeSensitivityResidual_of_frontierData` from the
+decomposed global-solution and eventual-sup frontiers above. -/
 structure IntervalDomainPaper3Proposition1FrontierData
     (p : CM2Params) : Prop where
   negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p
