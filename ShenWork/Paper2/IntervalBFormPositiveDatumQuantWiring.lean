@@ -77,6 +77,19 @@ theorem uniformLocalExistence_of_picardFrontier_persistence
     (ThresholdQuantBridge.quantitativeLocalExistence_of_picardFrontier_persistence
       p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Uniform local existence from the Picard-restart route, with the per-datum
+`hlocal` seed supplied by the positive-datum B-form package. -/
+theorem uniformLocalExistence_of_picardFrontier_persistence_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    IntervalDomainUniformLocalExistence p :=
+  uniformLocalExistence_of_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hPF hPersist
+    (positiveDatum_localExistence_of_BForm hBForm)
+
 /-- Boundary min-point derivative residual used to produce
 `ClassicalMinPersistence` in the general-`χ₀ ≤ 0` regime. -/
 def BoundaryMinPersistenceBound (p : CM2Params) : Prop :=
@@ -129,6 +142,20 @@ theorem uniformLocalExistence_of_picardFrontier_boundary
     (classicalMinPersistence_of_boundary_regime p hχ ha hb hγ_ge_one hbdry)
     hlocal
 
+/-- Uniform local existence from the Picard-restart route and boundary
+min-point persistence, with `hlocal` supplied by the positive-datum B-form
+package. -/
+theorem uniformLocalExistence_of_picardFrontier_boundary_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    IntervalDomainUniformLocalExistence p :=
+  uniformLocalExistence_of_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hPF hbdry
+    (positiveDatum_localExistence_of_BForm hBForm)
+
 /-- General-χ B-form headline with the uniform-local-existence input replaced
 by the quantitative local factory used by the restart/glue continuation route. -/
 theorem paper2_theorem_1_1_general_chi_bform_from_quant
@@ -166,6 +193,20 @@ theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence
       p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
 /-- General-χ B-form headline with the uniform-local-existence input replaced
+by the Picard-restart/min-persistence route, and with `hlocal` supplied by the
+B-form package itself. -/
+theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHyp p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform p hχ ha hb hγ_ge_one hBForm
+    (uniformLocalExistence_of_picardFrontier_persistence_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPF hPersist hBForm)
+
+/-- General-χ B-form headline with the uniform-local-existence input replaced
 by the Picard-restart route plus the boundary min-point persistence input. -/
 theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -183,21 +224,68 @@ theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary
     (uniformLocalExistence_of_picardFrontier_boundary
       p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
 
+/-- General-χ B-form headline with the uniform-local-existence input replaced
+by the Picard-restart/boundary-persistence route, and with `hlocal` supplied by
+the B-form package itself. -/
+theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHyp p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform p hχ ha hb hγ_ge_one hBForm
+    (uniformLocalExistence_of_picardFrontier_boundary_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPF hbdry hBForm)
+
 section AxiomAudit
 
 #print axioms uniformLocalExistence_of_quantitative_regime
 #print axioms uniformLocalExistence_of_picardFrontier_persistence
+#print axioms uniformLocalExistence_of_picardFrontier_persistence_of_BForm
 #print axioms classicalMinPersistence_of_boundary_regime
 #print axioms uniformLocalExistence_of_picardFrontier_boundary
+#print axioms uniformLocalExistence_of_picardFrontier_boundary_of_BForm
 #print axioms paper2_theorem_1_1_general_chi_bform_from_quant
 #print axioms paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence
+#print axioms
+  paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence_of_BForm
 #print axioms paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary
+#print axioms
+  paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary_of_BForm
 
 end AxiomAudit
 
 end ShenWork.Paper2.BFormPositiveDatumLocal
 
 namespace ShenWork.Paper2.BFormPositiveDatumNegPart
+
+/-- Uniform local existence from the Picard-restart route, with the per-datum
+`hlocal` seed supplied by the negative-part B-form frontier. -/
+theorem uniformLocalExistence_of_picardFrontier_persistence_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hPerDatum : BFormPositiveLocalFrontier p) :
+    IntervalDomainUniformLocalExistence p :=
+  ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hPF hPersist
+    (positiveDatum_localExistence_of_BForm hPerDatum)
+
+/-- Uniform local existence from the Picard-restart route and boundary
+min-point persistence, with `hlocal` supplied by the negative-part B-form
+frontier. -/
+theorem uniformLocalExistence_of_picardFrontier_boundary_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p)
+    (hPerDatum : BFormPositiveLocalFrontier p) :
+    IntervalDomainUniformLocalExistence p :=
+  ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hPF hbdry
+    (positiveDatum_localExistence_of_BForm hPerDatum)
 
 /-- Negative-part B-form headline with the uniform-local-existence input
 replaced by the quantitative local factory. -/
@@ -238,6 +326,22 @@ theorem paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_persist
         p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
 /-- Negative-part B-form headline with the uniform-local-existence input
+replaced by the Picard-restart/min-persistence route, and with `hlocal`
+supplied by the negative-part B-form frontier itself. -/
+theorem
+    paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_persistence_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPerDatum : BFormPositiveLocalFrontier p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_negpart
+    p hχ ha hb hγ_ge_one hPerDatum
+    (uniformLocalExistence_of_picardFrontier_persistence_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPF hPersist hPerDatum)
+
+/-- Negative-part B-form headline with the uniform-local-existence input
 replaced by the Picard-restart route plus the boundary min-point persistence
 input. -/
 theorem paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_boundary
@@ -257,12 +361,34 @@ theorem paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_boundar
     (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_picardFrontier_boundary
         p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
 
+/-- Negative-part B-form headline with the uniform-local-existence input
+replaced by the Picard-restart/boundary-persistence route, and with `hlocal`
+supplied by the negative-part B-form frontier itself. -/
+theorem
+    paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_boundary_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPerDatum : BFormPositiveLocalFrontier p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : ShenWork.Paper2.BFormPositiveDatumLocal.BoundaryMinPersistenceBound p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_negpart
+    p hχ ha hb hγ_ge_one hPerDatum
+    (uniformLocalExistence_of_picardFrontier_boundary_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPF hbdry hPerDatum)
+
 section AxiomAudit
 
+#print axioms uniformLocalExistence_of_picardFrontier_persistence_of_BForm
+#print axioms uniformLocalExistence_of_picardFrontier_boundary_of_BForm
 #print axioms paper2_theorem_1_1_general_chi_bform_negpart_from_quant
 #print axioms paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_persistence
 #print axioms
+  paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_persistence_of_BForm
+#print axioms
   paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_boundary
+#print axioms
+  paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_boundary_of_BForm
 
 end AxiomAudit
 
