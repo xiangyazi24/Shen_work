@@ -1,211 +1,157 @@
-# Q2223 R2 cleanup patch plan for `Shen_work` main `09140eae`
+# Q2230 R3 Paper3 `negativeBound` residual audit for `Shen_work` main `e3aa461e`
 
-## Scope and principle
+## Classification
 
-This is a minimal **code/doc cleanup plan only**. It should not change theorem statements, structures, proof terms, imports, or mathematical claims. The goal is to make headline wrappers visibly conditional where they consume `...Data`, `...FrontierData`, or `...BranchData` packages.
+`negativeBound : NegativeSensitivityGlobalEventualBound ...` is a **genuine analytic residual**, not pure packaging, not currently wireable by a small existing theorem chain, and not a deprecated/same-as-goal declaration.
 
-The current main already contains several Q2214-style fixes, especially in Paper3: `Paper3Proposition1FromPaper2MainTargetsData`, `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData`, and `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData` now explicitly mention that `negativeBound` remains independent. Do not duplicate those comments; only add the small missing warnings below.
-
-No new imports are needed for the suggested snippets below. They are in-place doc-comment or alias fragments inside files that already import the relevant names.
-
-## Patch 1: `UNDERSTANDING.md`
-
-**Location:** under the existing `Input-package audit:` bullets near the end of the current-state section.
-
-**Why:** the file already states the rule, but a tiny table would make the intended reading impossible to miss.
-
-```md
-### R2 headline-wrapper reading rule
-
-| Surface form | Safe reading |
-|---|---|
-| `theorem ..._of_data`, `..._of_frontierData`, `..._of_branchData`, `...Fact` | Conditional assembly theorem unless a named producer constructs the required package. |
-| `structure ...Data` / `...FrontierData` / `...BranchData` | Input interface, not an axiom and not a proof hole. |
-| Current closed producers | Paper1 `paper1_lemma25Targets`; Paper2 interval `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional`; Paper3 interval actual-linear-small `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall` and part/sectorial variants. |
-| Deprecated/no-go routes | Routes consuming `IntervalDomainLemma41.IntervalDomainInterpolation` until that statement is repaired; Paper3 derivation of Proposition 1.2 from Paper2 Theorem 1.1, refuted by `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`. |
-```
-
-## Patch 2: `ShenWork/Paper1/StatementAssembly.lean`
-
-### 2A. Clarify the main-results wrapper
-
-**Location:** doc comment immediately above `paper1_mainStatementTargets_of_mainResultsData`.
-
-Replace the current two-line comment with:
+There is already a tiny packaging bridge:
 
 ```lean
-/-- Main Paper1 statement-target assembly from the existing main-results
-frontier record.
-
-Conditional interface: this theorem does not construct `Paper1MainResultsData`.
-It only turns that package into `Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`.
-The closed no-frontier component in this file is `paper1_lemma25Targets`. -/
+Proposition_1_2_of_negativeSensitivityGlobalEventualBound
 ```
 
-### 2B. Clarify the mainline-existence wrapper
+So once `NegativeSensitivityGlobalEventualBound D p` is supplied, Paper3 Proposition 1.2 is immediate. But the repo currently does not contain a producer of `NegativeSensitivityGlobalEventualBound` itself. It is the residual producer that must still be proved analytically.
 
-**Location:** doc comment immediately above `paper1_mainlineStatementTargets_of_mainlineExistence`.
+## What the residual requires
+
+In `ShenWork/Paper3/Statements.lean`, `Proposition_1_2` asks, under `p.χ₀ ≤ 0` and `1 ≤ p.m`, that every **paper-positive** initial datum has a global classical solution, trace, and `IsPaper2Bounded D u`.
+
+Nearby, `NegativeSensitivityGlobalEventualBound D p` asks, under the same parameter inequalities, that every `PositiveInitialDatum D u₀` has global solution, trace, and an explicit eventual sup-norm bound:
 
 ```lean
-/-- Mainline-existence assembly for Paper1 Theorems 1.2 and 1.3.
-
-Conditional interface: `Paper1MainlineExistence` is the B5 mainline input
-package.  This wrapper does not construct that package. -/
+p.χ₀ ≤ 0 → 1 ≤ p.m →
+  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      ∃ M : ℝ, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
 ```
 
-### 2C. Clarify combined-data status
+This is not merely identical to `Proposition_1_2`: it is a stronger, more analytic interface. It quantifies over `PositiveInitialDatum` rather than only `PaperPositiveInitialDatum`, and it exposes the eventual sup-norm witness directly. The conversion to `Proposition_1_2` uses `PaperPositiveInitialDatum.toPositive` and packages the eventual bound as `IsPaper2Bounded`.
 
-**Location:** doc comment immediately above `Paper1CombinedStatementData`.
+For comparison, `IsPaper2Bounded D u` in `ShenWork/Paper2/Statements.lean` is definitionally:
 
 ```lean
-/-- Bundled data for the Paper1 combined statement-target assembly.
-
-This is a frontier bundle: `main`, `propositions`, `lemma51`, and `lemma52`
-are still supplied inputs.  Only the nested Lemma 2.5 targets are closed
-inside `paper1_combinedStatementTargets_of_data`. -/
+∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
 ```
 
-### 2D. Optional small warning on the weakened negative construction wrapper
+So `NegativeSensitivityGlobalEventualBound` is exactly the analytic global-existence-plus-eventual-bound input needed for Proposition 1.2, in a form slightly stronger than the final recalled Paper3 proposition.
 
-**Location:** extend the existing doc comment above `paper1_Theorem_1_1_of_constructionNegSMPProvider`.
+## Existing routing: where `negativeBound` is consumed
+
+### Generic Paper3 routing
+
+In `ShenWork/Paper3/StatementAssembly.lean`:
+
+- `Paper3Proposition1FrontierData` has fields
+  - `negativeBound : NegativeSensitivityGlobalEventualBound D p`,
+  - `proposition13`,
+  - `proposition14`.
+- `paper3_proposition1Targets_of_frontierData` maps `negativeBound` through `Proposition_1_2_of_negativeSensitivityGlobalEventualBound` and maps the other two fields through assumed existence branches.
+- `Paper3Proposition1FromPaper2TheoremsData` replaces only the Proposition 1.3/1.4 fields with Paper2 `Theorem_1_3` and `Theorem_1_2`; it still has `negativeBound`.
+- `Paper3Proposition1FromPaper2MainTargetsData` replaces the Paper2 theorem fields by `Paper2.Paper2MainTheoremTargets`, but still has `negativeBound`.
+- `paper3_proposition1Targets_of_paper2MainTargetsData` extracts only `main.2.1` and `main.2.2` for Paper2 Theorems 1.2 and 1.3. It does not use `main.1` to produce Proposition 1.2.
+
+Current main already has good comments here saying that `negativeBound` is independent and not derived from Paper2 Theorem 1.1.
+
+### Interval-domain Paper3 routing
+
+In `ShenWork/Paper3/IntervalDomainStatementAssembly.lean`:
+
+- `IntervalDomainPaper3Proposition1FrontierData` has
+  - `negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p`,
+  - `criticalExistence` for Proposition 1.4.
+- `IntervalDomainPaper3Proposition1FromPaper2TheoremsData` still has `negativeBound` plus Paper2 Theorem 1.2/1.3 fields.
+- `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData` still has `negativeBound` plus `paper2Main`.
+- `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` delegates to the generic Paper3 main-target bridge; Paper2 main is used only for Proposition 1.3/1.4.
+
+Current main already documents this correctly in the interval-domain main-target route.
+
+## Why it is not currently wireable
+
+### 1. Paper2 Theorem 1.1 is formally insufficient
+
+`ShenWork/Paper3/Statements.lean` contains the formal no-go theorem:
 
 ```lean
-/-- Single-target Paper1 Theorem 1.1 wrapper using the weakened negative
-construction provider.  The negative branch no longer carries
-`ShenUpperBoundNegative` directly; it carries the scalar strictness `U 0 < 1`
-through `ConstructionNegSMPProvider`.
-
-Still conditional: both `hneg : ConstructionNegSMPProvider` and the positive
-branch `hpos` are headline construction inputs. -/
+theorem not_paper2_theorem_1_1_implies_paper3_proposition_1_2 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
+        Paper2.Theorem_1_1 D p → Proposition_1_2 D p)
 ```
 
-No aliases are needed for Paper1 in the minimal patch.
-
-## Patch 3: `ShenWork/Paper2/StatementAssembly.lean`
-
-### 3A. Clarify generic main target shape
-
-**Location:** doc comment immediately above `Paper2MainTheoremTargets`.
+The proof builds `proposition12CounterDomain`, `proposition12CounterParams`, and `proposition12CounterU`, proves
 
 ```lean
-/-- Paper2 main theorem target shape covered by the solution-branch package.
-
-This is only the target conjunction `Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`;
-`paper2_mainTheoremTargets_of_solutionBranchData` remains conditional on
-`Paper2MainSolutionBranchData`. -/
+proposition12Counter_paper2_theorem_1_1 :
+  Paper2.Theorem_1_1 proposition12CounterDomain proposition12CounterParams
 ```
 
-### 3B. Clarify generic statement data
-
-**Location:** doc comment immediately above `Paper2StatementData`.
+and then derives a contradiction from any alleged eventual bound. This directly blocks the tempting route
 
 ```lean
-/-- Bundled generic Paper2 statement-target data.
-
-Frontier bundle: `bootstrap` and `localAndMain` are supplied input packages.
-The wrapper `paper2_statementTargets_of_data` is statement assembly, not a
-no-assumption headline theorem. -/
+Paper2.Theorem_1_1 D p → NegativeSensitivityGlobalEventualBound D p
 ```
 
-These are doc-only changes; no alias needed.
+because such a route would imply `Paper2.Theorem_1_1 D p → Proposition_1_2 D p` by composition with `Proposition_1_2_of_negativeSensitivityGlobalEventualBound`, contradicting the no-go theorem.
 
-## Patch 4: `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`
+### 2. Paper2 main targets do not fill the gap
 
-### 4A. Mark the GN/global interpolation route as no-go for headlines
-
-**Location:** doc comment immediately above `intervalDomainPaper2_Lemma_4_1_of_GN_frontier`.
+`Paper2MainTheoremTargets D p C` is the tuple
 
 ```lean
-/-- Single-target interval-domain wrapper for Lemma 4.1 from the concrete GN
-frontier.
-
-Deprecated as a headline route: this consumes
-`IntervalDomainLemma41.IntervalDomainInterpolation`, which is refuted as
-literally stated by
-`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
-Use the solution-slice or positive-solution-slice interpolation routes instead
-until the global interpolation statement is repaired. -/
+Theorem_1_1 D p ∧ Theorem_1_2 D p ∧ Theorem_1_3 D p C
 ```
 
-Also update the comment above `intervalDomainPaper2_aprioriTargets_of_GN_frontier` similarly:
+But the Paper3 bridge from Paper2 main targets uses only Theorems 1.2 and 1.3 for Propositions 1.4 and 1.3. It leaves `negativeBound` as a separate field. There is no current wrapper projecting `main.1` or any combination of `main.1`, `main.2.1`, and `main.2.2` into `NegativeSensitivityGlobalEventualBound`.
+
+That is correct: the no-go theorem rules out any API-level derivation from `Theorem_1_1` alone, and Theorems 1.2/1.3 cover different regimes/branches rather than the full `p.χ₀ ≤ 0`, `1 ≤ p.m` negative-sensitivity Proposition 1.2 interface.
+
+### 3. Paper2 Theorem 1.2-style eventual-bound frontiers are regime-specific and conditional
+
+Paper2 interval Theorem 1.2 machinery does contain eventual-sup/global-bound fields, but those are conditional branch inputs such as critical/strong eventual-sup frontiers. For example `IntervalDomainTheorem12.lean` explicitly states that Theorem 1.2 still leaves Cauchy theory, branch bootstrap seeds, `Proposition_2_5`, and critical long-time boundedness/eventual-sup frontiers as named hypotheses. These are not a ready-made global `NegativeSensitivityGlobalEventualBound intervalDomain p` producer.
+
+### 4. Repository search did not reveal a producer
+
+Searches for `NegativeSensitivityGlobalEventualBound`, `negativeBound :`, `GlobalEventualBound`, and related “eventual bound / negative sensitivity” phrases surfaced the definition and routing structures in Paper3, plus documentation/status files. They did not reveal a theorem of shape:
 
 ```lean
-/-- Assemble the interval-domain Lemma 3.1 and Lemma 4.1 targets from the GN
-frontier.
-
-Deprecated as a headline route for the same reason as
-`intervalDomainPaper2_Lemma_4_1_of_GN_frontier`: the global
-`IntervalDomainInterpolation` premise is currently refuted. -/
+... : NegativeSensitivityGlobalEventualBound D p
 ```
 
-### 4B. Warn on the interpolation-energy frontier that contains the refuted premise
-
-**Location:** doc comment immediately above `IntervalDomainPaper2InterpolationEnergyFrontierData`.
+or
 
 ```lean
-/-- Common interpolation/energy inputs shared by the thinner interval-domain
-Theorem 1.2 and Theorem 1.3 route.
-
-Legacy/no-go headline interface: the `interpolation` field is the global
-`IntervalDomainInterpolation` premise, refuted as literally stated by
-`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
-Prefer `IntervalDomainPaper2SolutionInterpolationEnergyFrontierData` or the
-positive solution-slice variant for current headline routes. -/
+... : NegativeSensitivityGlobalEventualBound intervalDomain p
 ```
 
-### 4C. Warn on H2/logistic statement packages that still carry the global premise
+outside the existing pass-through/proposition-routing packages.
 
-**Location:** doc comment above `IntervalDomainPaper2StatementH2SourceFrontierData`; repeat the same idea for the logistic-source counterpart if present below the fetched block.
+## Not same-as-goal and not deprecated
 
-```lean
-/-- Interval-domain Paper 2 statement-frontier record using the half-step
-H2-source local-existence route.
+It is close to the goal, but not a suspicious same-as-goal field. It is a deliberately stronger analytic interface:
 
-Legacy/no-go headline interface as written: the `interpolation` field is the
-refuted global `IntervalDomainInterpolation` premise.  Prefer the
-`...PositiveSolutionInterpolation...` H2-source statement routes. -/
-```
+- uses `PositiveInitialDatum`, then the bridge consumes `PaperPositiveInitialDatum.toPositive`;
+- exposes the exact eventual sup-norm witness used to build `IsPaper2Bounded`;
+- is reusable independently of the recalled Paper3 proposition statement.
 
-### 4D. Optional noninvasive alias for the preferred Paper2 full route
+It is also not deprecated. The no-go theorem says only that this residual cannot be obtained from Paper2 Theorem 1.1 under the current abstract API. It does not say the residual is false or vacuous; it says it needs extra analytic input or a narrower, more concrete domain/API where the missing eventual bound is actually proved.
 
-This is safe but not required. Add only if the team wants a grep-friendly entrypoint name. It does not change any interface or proof.
+## Smallest honest next edit
 
-**Location:** immediately after `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`.
+The smallest useful edit is documentation at the definition site, plus optionally a named interval alias for readability.
 
-```lean
-/-- Explicit-name alias for the current preferred `χ₀ = 0` interval-domain
-Paper2 full statement route.
+### Required doc edit
 
-Still conditional on the positive solution-slice common data, finite-horizon
-alternative, global-extension/bootstrap/eventual-sup frontiers, and the thin
-section-2 fields. -/
-theorem
-    intervalDomainPaper2_statementTargets_chiZero_posSolutionSlice_section2Thin_localFree_fromFrontiers
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData :
-      IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-        p C cGrad) :
-    IntervalDomainPaper2StatementTargets p C :=
-  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-    p C cGrad hχ0 ha hb hα hγ hData
-```
-
-If namespace length is a concern, skip this alias; the doc-comment patches are enough.
-
-## Patch 5: `ShenWork/Paper3/Statements.lean`
-
-**Location:** immediately above `NegativeSensitivityGlobalEventualBound`.
-
-**Why:** this is the most important residual to label at the source definition, not only at downstream wrappers.
+Add this doc comment immediately above `NegativeSensitivityGlobalEventualBound` in `ShenWork/Paper3/Statements.lean`:
 
 ```lean
 /-- Analytic residual used to prove Paper3 Proposition 1.2: global existence
 and eventual-in-time boundedness in the negative-sensitivity regime.
 
-This is not supplied by Paper2 Theorem 1.1 under the current abstract API; see
+This is stronger than the final recalled Proposition 1.2 interface because it
+quantifies over `PositiveInitialDatum` and exposes the eventual sup-norm witness
+that becomes `IsPaper2Bounded`.  It is not supplied by Paper2 Theorem 1.1 under
+the current abstract API; see
 `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`. -/
 def NegativeSensitivityGlobalEventualBound
     (D : BoundedDomainData) (p : CM2Params) : Prop :=
@@ -217,71 +163,39 @@ def NegativeSensitivityGlobalEventualBound
         ∃ M : ℝ, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
 ```
 
-This replaces only the missing doc comment; the definition body is unchanged.
+This changes no theorem interface and no proof.
 
-## Patch 6: Paper3 `FromPaper2MainTargets` names
+### Optional readability alias
 
-### Current main status
-
-No urgent doc patch is needed in these declarations because current main already has the critical warning:
-
-- `ShenWork/Paper3/StatementAssembly.lean`: `Paper3Proposition1FromPaper2MainTargetsData` says `negativeBound` is independent and not derived from Paper2 Theorem 1.1; `paper3_proposition1Targets_of_paper2MainTargetsData` says only Theorems 1.2/1.3 are consumed from `main`.
-- `ShenWork/Paper3/IntervalDomainStatementAssembly.lean`: `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData` says `negativeBound` is still the independent Proposition 1.2 residual.
-- `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`: `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData` says Paper2 main routes Proposition 1.3/1.4 and does not discharge `negativeBound`.
-
-### Optional aliases, not renames
-
-If Xiang wants grep-friendly names without breaking current users, add aliases, not renames.
-
-**Generic alias in `ShenWork/Paper3/StatementAssembly.lean`, after `paper3_proposition1Targets_of_paper2MainTargetsData`:**
+If the interval-domain route is where people keep misreading the field, add an alias in `ShenWork/Paper3/IntervalDomainStatementAssembly.lean` near the proposition-routing section:
 
 ```lean
-/-- Explicit-name alias: Paper2 main targets supply only the Proposition 1.3/1.4
-branches; `negativeBound` remains the Proposition 1.2 residual. -/
-theorem paper3_proposition1Targets_of_negativeBoundAndPaper2MainTargetsData
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
-    (hData : Paper3Proposition1FromPaper2MainTargetsData D p C) :
-    Paper3Proposition1Targets D p C :=
-  paper3_proposition1Targets_of_paper2MainTargetsData hData
+/-- Interval-domain abbreviation for the independent Paper3 Proposition 1.2
+negative-sensitivity residual.  This is not produced by Paper2 main targets. -/
+abbrev IntervalDomainPaper3NegativeSensitivityResidual
+    (p : CM2Params) : Prop :=
+  NegativeSensitivityGlobalEventualBound intervalDomain p
 ```
 
-**Interval alias in `ShenWork/Paper3/IntervalDomainStatementAssembly.lean`, after `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData`:**
+Then future structures can use the alias in new code, but do not rewrite existing fields yet. Rewriting all existing fields is unnecessary churn.
+
+### Do not do this
+
+Do not add any theorem claiming:
 
 ```lean
-/-- Explicit-name alias: Paper2 main targets supply Proposition 1.3/1.4;
-`negativeBound` remains the Proposition 1.2 residual. -/
-theorem
-    intervalDomain_paper3_proposition1WithTheorem13Targets_of_negativeBoundAndPaper2MainTargetsData
-    (p : CM2Params) (C : Paper2Constants p)
-    (hData : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C) :
-    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
-  intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
-    p C hData
+Paper2.Theorem_1_1 D p → NegativeSensitivityGlobalEventualBound D p
 ```
 
-These aliases are optional. They add names only; they do not replace existing APIs.
+or
 
-## Deferred changes: too invasive for this cleanup
+```lean
+IntervalDomainPaper2MainTheoremTargets p C →
+  NegativeSensitivityGlobalEventualBound intervalDomain p
+```
 
-1. **Do not rename existing structures/theorems now.** Renaming `Paper3Proposition1FromPaper2MainTargetsData`, `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData`, or `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData` would churn downstream references. Use comments or aliases first.
-2. **Do not add `@[deprecated]` attributes yet.** Formal deprecation on GN/interpolation routes may create noisy warnings across existing files. Prefer doc warnings in this patch.
-3. **Do not split frontier structures.** Splitting Paper2/Paper3 large data records into produced-vs-residual subrecords is a larger API migration.
-4. **Do not remove old routes.** Keep legacy wrappers for comparison and build stability; mark their status clearly instead.
-5. **Do not assert new discharge theorems.** This patch should only label current status and optionally add definitional aliases.
+unless it includes additional hypotheses strong enough to avoid the formal no-go theorem. Any such theorem without extra analytic/domain-specific assumptions would imply the refuted `Paper2.Theorem_1_1 → Proposition_1_2` route.
 
-## Minimal patch checklist
+## Final status
 
-Required minimal patch:
-
-1. `UNDERSTANDING.md`: add the R2 reading-rule table.
-2. `Paper1/StatementAssembly.lean`: clarify `paper1_mainStatementTargets_of_mainResultsData`, `paper1_mainlineStatementTargets_of_mainlineExistence`, `Paper1CombinedStatementData`, and optionally the weakened negative-construction wrapper.
-3. `Paper2/StatementAssembly.lean`: clarify `Paper2MainTheoremTargets` and `Paper2StatementData`.
-4. `Paper2/IntervalDomainStatementAssembly.lean`: add no-go doc warnings to GN/global interpolation routes and to statement packages that still consume `IntervalDomainInterpolation`.
-5. `Paper3/Statements.lean`: add the missing doc comment on `NegativeSensitivityGlobalEventualBound`.
-
-Optional safe aliases:
-
-- One explicit Paper2 preferred-route alias for the `χ₀ = 0`, positive solution-slice, section-2-thin, local-free full statement route.
-- Paper3 `negativeBoundAndPaper2MainTargets` aliases for the generic and interval proposition wrappers.
-
-That is the smallest safe cleanup: it is documentation-first, preserves all theorem interfaces, and avoids overclaiming conditional wrappers as closed headline theorems.
+`negativeBound` is an honest, live Paper3 Proposition 1.2 analytic residual. Existing code already routes it correctly once supplied. The only immediate cleanup needed is a stronger doc comment at the definition site and, optionally, a narrow interval-domain alias to make the residual status grep-visible.
