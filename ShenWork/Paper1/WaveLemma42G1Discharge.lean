@@ -1419,6 +1419,74 @@ theorem b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData
       hcond hpar)
     hconv hsmp
 
+/-- Fill the `barLip` field of the Route-A floor from the positive paper Lemma
+4.2 parameter conditions. -/
+def positivePaperLowerRawParabolicFloorRouteACore_of_noBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (h : PaperLowerRawParabolicFloorRouteACoreNoBar
+      p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloorRouteACore
+      p c lam M κ κtilde D Λ hκ hM where
+  producer := h.producer
+  barLip := hcond.upperBarrier_barLip
+  step := h.step
+  tail := h.tail
+
+/-- Route-A χ≥0 wrapper: the old all-`u` producer hypothesis is replaced by
+the Route-A parabolic floor. -/
+theorem b1_chiPos_existence_paper_routeA_core_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorRouteACore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u =>
+            (paperLowerRawParabolicFloor_of_routeA_core hpar).producer u
+              |>.producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_min_of_cubeApproxData p c lam M κ κtilde D Λ
+    hcond hD hD_ge_one hΛ0 hΛM
+    (paperLowerRawParabolicFloor_of_routeA_core hpar) hconv hsmp
+
+/-- Route-A χ≥0 wrapper with the base-barrier Lipschitz scalar condition
+discharged from `PositivePaperLemma42ExactConditions`. -/
+theorem b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorRouteACoreNoBar p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u =>
+            (paperLowerRawParabolicFloor_of_routeA_core
+              (positivePaperLowerRawParabolicFloorRouteACore_of_noBar
+                hcond hpar)).producer u
+              |>.producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_routeA_core_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    (positivePaperLowerRawParabolicFloorRouteACore_of_noBar hcond hpar)
+    hconv hsmp
+
 #print axioms paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper'_of_cubeApproxData
@@ -1438,6 +1506,8 @@ theorem b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_min_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData
+#print axioms b1_chiPos_existence_paper_routeA_core_of_cubeApproxData
+#print axioms b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
 
 end
 

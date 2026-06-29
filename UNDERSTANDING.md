@@ -23,10 +23,12 @@ Current headline status:
   `b1_chiPos_existence_paper_min_noBar_of_cubeApproxData`,
   `b1_chiNeg_existence_paper_min_core_noBar_of_cubeApproxData`,
   `b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData`, and
-  `b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData`.
-  The Route-A producer residual also has a thinner source-box parameter wrapper,
-  `b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData`, which
-  replaces the monolithic `PaperGreenStepInputRouteACore` input by explicit
+  `b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData` /
+  `b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData`.
+  The Route-A producer residual also has thinner source-box parameter wrappers,
+  `b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData` and
+  `b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData`, which
+  replace the monolithic `PaperGreenStepInputRouteACore` input by explicit
   `PerStepBoxParams` / `PerStepBoxZWitness` / Route-A rest / lower-raw aux data.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  General χ₀ ≤ 0 is not a no-frontier

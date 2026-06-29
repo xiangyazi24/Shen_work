@@ -155,12 +155,38 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar hpar)
     hconv hsmp
 
+/-- B1 χ≥0 Route-A wrapper after replacing the monolithic Route-A per-step
+producer residual by the explicit source-box parameter layer. -/
+theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+        p c lam M κ κtilde D Λ hcond.hκ0.le
+        (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u => paperLowerRawRouteAParamProducer (hpar.producer u))))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
+    p c lam M κ κtilde D Λ hcond hD hD_ge_one hΛ0 hΛM
+    (paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar hpar)
+    hconv hsmp
+
 section AxiomAudit
 
 #print axioms paperRouteAParamGreenCore
 #print axioms paperLowerRawStepProducerRouteACore_of_paramCore
 #print axioms paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+#print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 
 end AxiomAudit
 
