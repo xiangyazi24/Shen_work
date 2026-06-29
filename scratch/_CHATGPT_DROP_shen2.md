@@ -1,276 +1,29 @@
-# Q2239 R3 Paper2 preferred interval-domain headline route cleanup audit for `Shen_work` main around `e3aa461e`
+# HEADLINE-RESIDUAL-CLASSIFICATION-AUDIT
 
-## Bottom line
+I inspected current `main` around `e3aa461e` or newer, including `UNDERSTANDING.md` and the Paper1/Paper2/Paper3 statement assembly files. The key distinction is: the repo has no Lean proof holes reported in `UNDERSTANDING.md`, but most headline-facing `...Data`, `...FrontierData`, and `...BranchData` packages are still conditional input interfaces.
 
-Yes, there is a useful small cleanup, but it should be only a **transparent preferred-name alias plus theorem alias**, not a new field-copying structure. The existing route
+## Terse audit table
 
-```lean
-intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-```
+| Paper | Headline target/package | Strongest current route | Already-produced or wired inputs | Remaining residual inputs | Empty/vacuous/same-goal flags |
+|---|---|---|---|---|---|
+| **Paper1** | `Paper1MainStatementTargets := Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`; broader `Paper1CombinedStatementTargets` also includes propositions and Lemma 2.5 / Lemma 5.1 / Lemma 5.2 targets. | Best current main route is split: `paper1_Theorem_1_1_of_constructionNegSMPProvider` for Theorem 1.1, plus `paper1_mainlineStatementTargets_of_mainlineExistence` / `Theorem_1_2_and_1_3.of_mainlineExistence` for Theorems 1.2 and 1.3. The older `paper1_mainStatementTargets_of_mainResultsData` still consumes the broad `Paper1MainResultsData` bundle. | Closed: `paper1_Lemma_2_5`, `paper1_Lemma_2_5_JensenStep`, and `paper1_lemma25Targets`. Wired: the negative-branch strict upper bound is reduced through `ConstructionNegSMPProvider` and `Theorem_1_1.of_constructionNeg_provider_smp`; B5 endpoints are wired from `Paper1MainlineExistence`. | `ConstructionNegSMPProvider` remains a construction/provider package; Theorem 1.1 still also needs the positive branch `hpos`; `Paper1MainlineExistence` remains a B5 analytic package; combined targets still need `Paper1PropositionFrontierData`, `Paper1Lemma51FrontierData`, and `Paper1Lemma52FrontierData`. | No empty proof shell found in the strongest split route. `Paper1MainResultsData` and `Paper1CombinedStatementData` are broad conditional bundles, not no-assumption producers. Right-tail asymptotic helpers should be read as residual/pass-through unless a real producer is supplied. |
+| **Paper2** | Generic `Paper2StatementTargets`; interval-domain `IntervalDomainPaper2StatementTargets p C := IntervalDomainPaper2Corollary21BootstrapTargets p ∧ IntervalDomainPaper2AprioriTargets p ∧ IntervalDomainPaper2LocalAndMainTheoremTargets p C`. | Preferred interval route is `intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`: the `chi0 = 0`, positive solution-slice, section-2-thin, local-free route. Generic `paper2_statementTargets_of_data` remains conditional on generic data. | Produced/wired in the preferred interval route: Theorem 1.1 via `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional`; local existence via `intervalDomain_localExistence_chiZero_unconditional`; Proposition 2.4 via `intervalDomain_Proposition_2_4`; Corollary 2.1 and Lemma 4.1 are assembled from the supplied positive solution-slice common package. | Still residual: finite-horizon alternative; thin section-2 fields `lemma26`, `lemma27`, `prop22`, `prop23`; positive solution-slice common fields `solutionInterpolation`, `dissipation`, `gradConstantPositive`, `gradientChain`, `massControl`, `powerIntegrability`, `energyFromCrossDiffusion`; `prop25`; `globalExtension`; slow/critical/strong bootstrap fields; critical/strong eventual-sup fields. General `chi0 <= 0` still has local/uniform existence and Picard/restart/boundary residuals. | The legacy global `IntervalDomainInterpolation` premise is formally refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`; routes consuming it should not be counted as preferred headline producers. The current preferred route avoids it. Degenerate zero-semigroup lemmas in `Statements.lean` are marked in-source as non-analytic and are not the preferred route. |
+| **Paper3** | Generic `Paper3Proposition1Targets`; interval-domain `IntervalDomainPaper3StatementTargets p C M0 uBar vLower K`; actual-linear-small terminal route `IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainData`. | Strongest interval full statement route is `intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData`: proposition side uses `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData`; mainline side uses the terminal Moser actual-linear-small route. The actual-linear-small Theorem 2.1 wrappers are stronger closed subroutes but not full statement closure. | Produced/wired: actual-linear-small persistence via `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`; Theorem 2.1 wrappers `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `...partTargets...`, and `...sectorial...`; Paper3 Proposition 1.3 from Paper2 Theorem 1.3; Paper3 Proposition 1.4 from Paper2 Theorem 1.2; Paper2-main route extracts only Paper2 Theorems 1.2 and 1.3 from the Paper2 main bundle. Terminal Moser route has proved packaging conversions from thinner residual packages to older interfaces. | Still residual: `negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p` for Proposition 1.2; `IntervalDomainPaper2MainTheoremTargets p C` if using the Paper2-main proposition route; terminal mainline `core` fields including spectral semigroup orbit bound, continuation/gluing, and terminal mass/Lp/smoothing fields; compactness/regularization fields; stability fields for Theorems 2.3--2.5. | No empty/same-goal shell found in the preferred Paper3 route. The formal theorem `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` blocks deriving Paper3 Proposition 1.2 from Paper2 Theorem 1.1 under the current abstract API, so `negativeBound` is a genuine residual. |
 
-is already the right preferred `χ₀ = 0` interval-domain Paper2 statement route: it uses the positive solution-slice interpolation package and does not reintroduce the refuted global `IntervalDomainInterpolation` premise. A new alias can make that status grep-visible without hiding residuals.
+## Paper-by-paper notes
 
-## Why this route is the preferred one
+### Paper1
 
-`ShenWork/Paper2/IntervalDomainInterpolationCounterexample.lean` states and proves `not_intervalDomainInterpolation`, with the file header explaining that the literal global `IntervalDomainInterpolation` proposition is false because it quantifies over all positive interval functions with pointwise classical derivative as `gradNorm`; a positive step-function counterexample has zero gradient almost everywhere but nonzero `L²` mass.
+The old `paper1_mainStatementTargets_of_mainResultsData` is only a bridge from `Paper1MainResultsData` to the three main theorem targets. The cleaner current reading is split: Theorem 1.1 comes from `paper1_Theorem_1_1_of_constructionNegSMPProvider`, while Theorems 1.2 and 1.3 come from `paper1_mainlineStatementTargets_of_mainlineExistence`. This is real wiring, but it remains conditional on `ConstructionNegSMPProvider`, the positive branch `hpos`, and `Paper1MainlineExistence`. Lemma 2.5 is genuinely closed by the current wrappers.
 
-The preferred route avoids that proposition. Its nested positive route uses:
+### Paper2
 
-```lean
-IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation p
-```
+The preferred interval statement route discharges specific subfields: `chi0 = 0` Theorem 1.1 and local-existence slots are produced by named current theorems, and Proposition 2.4 is produced by the interval mass proof. The rest of the preferred route is still a frontier package. The older global interpolation route is not a valid headline route because `not_intervalDomainInterpolation` refutes the literal premise.
 
-inside:
+### Paper3
 
-```lean
-IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad
-```
+Paper3 has good routing for Proposition 1.3 and Proposition 1.4 through Paper2 Theorems 1.3 and 1.2. It does **not** have a route deriving Proposition 1.2 from Paper2 Theorem 1.1. `NegativeSensitivityGlobalEventualBound` is stronger than a bare theorem-shaped field: it exposes global existence plus an eventual sup-norm witness. The no-go theorem confirms it must remain independent unless additional analytic/domain-specific assumptions are added.
 
-rather than the globally quantified `IntervalDomainLemma41.IntervalDomainInterpolation` field used by the older interpolation-frontier routes.
+## Final classification
 
-## Existing preferred theorem chain
-
-The existing theorem has shape:
-
-```lean
-theorem
-    intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData :
-      IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-        p C cGrad) :
-    IntervalDomainPaper2StatementTargets p C
-```
-
-It assembles the three components of `IntervalDomainPaper2StatementTargets` as follows:
-
-```lean
-⟨
-  intervalDomainPaper2_corollary21BootstrapTargets_of_positiveSolutionInterpolationThinFrontierData
-    p C cGrad
-    (hData.localAndMain.main.theorem12And13.toPositive hχ0 ha hb hα hγ)
-    hData.section2,
-  intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-    p hData.localAndMain.main.theorem12And13.common.solutionInterpolation,
-  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
-    p C cGrad hχ0 ha hb hα hγ hData.localAndMain
-⟩
-```
-
-That is pure statement wiring. It does not invent a new producer for any frontier package.
-
-## Residual field audit
-
-The preferred data package is:
-
-```lean
-structure
-    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
-    Prop where
-  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
-  localAndMain :
-    IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
-      p C cGrad
-```
-
-### `section2`
-
-`section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p` still has four genuine analytic residual fields:
-
-```lean
-lemma26
-lemma27
-prop22
-prop23
-```
-
-The wrapper
-
-```lean
-intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
-```
-
-already supplies two other section-2 targets from elsewhere:
-
-- `Proposition_2_4 intervalDomain p` is produced by `intervalDomain_Proposition_2_4 p`.
-- `Proposition_2_5 intervalDomain p` is supplied from the nested Theorem 1.2/1.3 data as `prop25`, not by `section2`.
-
-Thus the thin section-2 package is genuinely thinner, but not closed.
-
-### `localAndMain.proposition11`
-
-`localAndMain.proposition11` has type:
-
-```lean
-IntervalDomainPaper2Proposition11ChiZeroFrontierData p
-```
-
-Its remaining field is the finite-horizon alternative. The local-existence slot is produced internally by:
-
-```lean
-intervalDomain_localExistence_chiZero_unconditional
-```
-
-through:
-
-```lean
-intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
-```
-
-So this component is partially produced by current code, but the finite-horizon alternative remains a residual.
-
-### `localAndMain.main.theorem12And13`
-
-`localAndMain.main.theorem12And13` has type:
-
-```lean
-IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
-  p C cGrad
-```
-
-It carries:
-
-```lean
-common
-prop25
-globalExtension
-slowBootstrap
-criticalBootstrap
-criticalEventualSupBound
-strongBootstrap
-strongEventualSupBound
-```
-
-The local-existence field present in the non-local-free positive route is produced by:
-
-```lean
-IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData.toPositive
-```
-
-which fills it using:
-
-```lean
-intervalDomain_localExistence_chiZero_unconditional
-```
-
-Theorem 1.1 in the main bundle is produced by:
-
-```lean
-intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
-```
-
-inside:
-
-```lean
-intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
-```
-
-The remaining `common`, `prop25`, `globalExtension`, bootstrap, and eventual-sup fields are genuine residual/frontier inputs.
-
-### `common`
-
-`common : IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad` remains an analytic solution-slice package. Its residual fields are:
-
-```lean
-solutionInterpolation
-dissipation
-gradConstantPositive
-gradientChain
-massControl
-powerIntegrability
-energyFromCrossDiffusion
-```
-
-Existing code already converts this package into some statement targets:
-
-- `IntervalDomainTheorem11Composite.Corollary_2_1_intervalDomain_of_solution_interpolation_frontier` produces Corollary 2.1 from the solution-slice common fields.
-- `intervalDomainPaper2_Lemma_4_1_of_solutionInterpolationFrontier` delegates to `IntervalDomainTheorem11Composite.Lemma_4_1_intervalDomain_of_solution_interpolation_frontier` to produce Lemma 4.1 from the solution-slice interpolation field.
-- `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData.toSolution` drops the positive-constant field for routes that only need the non-positive solution-slice package, using `IntervalDomainClassicalSolutionInterpolation_of_positive`.
-
-These are conversions after the package is supplied; they are not producers of the package itself.
-
-## Recommended smallest Lean edit
-
-Add a transparent alias and theorem alias near the preferred theorem in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`. This makes the preferred route explicit without duplicating fields.
-
-When inserted into that file, omit the repeated `import`, `open`, `namespace`, and `end` lines below; keep only the declarations inside the existing namespace/section.
-
-```lean
-import ShenWork.Paper2.IntervalDomainStatementAssembly
-
-open ShenWork.IntervalDomain
-
-namespace ShenWork.Paper2
-
-noncomputable section
-
-/-- Preferred `χ₀ = 0` interval-domain Paper2 statement-frontier package.
-
-This is a transparent alias for
-`IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`.
-It avoids the refuted global `IntervalDomainInterpolation` route by using the
-positive solution-slice interpolation package.  It is still conditional on the
-thin section-2 frontiers, finite-horizon alternative, positive solution-slice
-interpolation/energy package, `Proposition_2_5`, global extension, bootstrap,
-and eventual-sup frontiers. -/
-abbrev IntervalDomainPaper2PreferredChiZeroStatementFrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) : Prop :=
-  IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-    p C cGrad
-
-/-- Preferred `χ₀ = 0` interval-domain Paper2 full-statement wrapper.
-
-Pure wiring alias for
-`intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData`.
-It does not construct any residual package; it only gives the current preferred
-route a shorter, grep-visible name. -/
-theorem intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData : IntervalDomainPaper2PreferredChiZeroStatementFrontierData
-      p C cGrad) :
-    IntervalDomainPaper2StatementTargets p C :=
-  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-    p C cGrad hχ0 ha hb hα hγ hData
-
-/-- Instance-facing alias for the preferred `χ₀ = 0` interval-domain Paper2
-full-statement route. -/
-theorem intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierDataFact
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    [hData : Fact (IntervalDomainPaper2PreferredChiZeroStatementFrontierData
-      p C cGrad)] :
-    IntervalDomainPaper2StatementTargets p C :=
-  intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData
-    p C cGrad hχ0 ha hb hα hγ hData.out
-
-end
-
-end ShenWork.Paper2
-```
-
-## If an even smaller edit is desired
-
-Skip the `abbrev` and add only a theorem alias that takes the existing long data type. That is the absolute smallest Lean edit. The abbreviation is slightly better because it creates a stable preferred-route name without copying any fields.
-
-## Do not add
-
-Do not add a preferred alias that depends on any of:
-
-```lean
-IntervalDomainPaper2StatementChiZeroInterpolationFrontierData
-IntervalDomainPaper2InterpolationEnergyFrontierData
-IntervalDomainLemma41.IntervalDomainInterpolation
-```
-
-Those names belong to the refuted global interpolation route and should remain legacy/diagnostic, not preferred headline-facing entry points.
+The headline input packages are mostly honest conditional interfaces. Some components are already produced and wired by named wrappers, but the remaining fields are substantial analytic residuals. The only clearly invalid headline-adjacent route in the inspected source is the legacy Paper2 global `IntervalDomainInterpolation` route, which is formally refuted and avoided by the preferred interval-domain route.
