@@ -65,8 +65,12 @@ Current headline status:
   `Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch` /
   `Paper1MainStatementStrictBarrierData` expose the upper-bound frontier as
   the stricter analytic comparison
-  `∀ x, U x < upperBarrier (kappa c) (MChi p) x`.  That comparison and the
-  sharp right-tail asymptotic remain separate carried residuals.
+  `∀ x, U x < upperBarrier (kappa c) (MChi p) x`.  The further
+  `Paper1PositiveCriticalFrozenStationaryContactBranch` route splits that
+  comparison into the non-strict monotone trap bound plus local no-contact
+  facts on the constant branch, exponential branch, and interface of the
+  nonsmooth upper barrier.  Those no-contact facts and the sharp right-tail
+  asymptotic remain separate carried residuals.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  This producer is now wired through
   `IntervalDomainStatementAssembly` as

@@ -170,6 +170,63 @@ theorem ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
   rw [← MChi_eq_rpow_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt]
   simpa [upperBarrier] using hstrict x
 
+/-- Local no-contact facts for the nonsmooth canonical positive upper barrier.
+
+The barrier `upperBarrier (kappa c) (MChi p)` is the minimum of the constant
+branch `MChi p` and the exponential branch `exp (-(kappa c) * x)`.  This record
+keeps the real analytic work local: rule out contact on each smooth branch and
+at the interface. -/
+structure PositiveUpperBarrierContactContradictions
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  const_branch :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      U x = MChi p → False
+  exp_branch :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+      U x = Real.exp (-(kappa c) * x) → False
+  interface :
+    ∀ x, Real.exp (-(kappa c) * x) = MChi p →
+      U x = MChi p → False
+
+/-- Pure assembly: the non-strict wave-trap upper bound plus local no-contact
+on the constant branch, exponential branch, and interface gives strict
+comparison with the nonsmooth `MChi` upper barrier. -/
+theorem strict_upperBarrier_MChi_of_contactContradictions
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hno : PositiveUpperBarrierContactContradictions p c U) :
+    ∀ x, U x < upperBarrier (kappa c) (MChi p) x := by
+  intro x
+  have hle : U x ≤ upperBarrier (kappa c) (MChi p) x :=
+    htrap.le_upperBarrier x
+  by_cases hlt : U x < upperBarrier (kappa c) (MChi p) x
+  · exact hlt
+  have hcontact_barrier :
+      U x = upperBarrier (kappa c) (MChi p) x :=
+    le_antisymm hle (le_of_not_gt hlt)
+  let e : ℝ := Real.exp (-(kappa c) * x)
+  let m : ℝ := MChi p
+  rcases lt_trichotomy e m with he_lt_m | he_eq_m | hm_lt_e
+  · have hB :
+        upperBarrier (kappa c) (MChi p) x =
+          Real.exp (-(kappa c) * x) :=
+      upperBarrier_eq_exp_of_exp_le (by simpa [e, m] using he_lt_m.le)
+    have hcontact : U x = Real.exp (-(kappa c) * x) := by
+      simpa [hB] using hcontact_barrier
+    exact False.elim (hno.exp_branch x (by simpa [e, m] using he_lt_m) hcontact)
+  · have hB :
+        upperBarrier (kappa c) (MChi p) x = MChi p :=
+      upperBarrier_eq_M_of_le_exp (by simpa [e, m] using he_eq_m.ge)
+    have hcontact : U x = MChi p := by
+      simpa [hB] using hcontact_barrier
+    exact False.elim (hno.interface x (by simpa [e, m] using he_eq_m) hcontact)
+  · have hB :
+        upperBarrier (kappa c) (MChi p) x = MChi p :=
+      upperBarrier_eq_M_of_le_exp (by simpa [e, m] using hm_lt_e.le)
+    have hcontact : U x = MChi p := by
+      simpa [hB] using hcontact_barrier
+    exact False.elim (hno.const_branch x (by simpa [e, m] using hm_lt_e) hcontact)
+
 /-- Positive critical branch with the upper-bound residual exposed as a strict
 barrier comparison rather than as the bundled `ShenUpperBoundPositive`.
 
@@ -203,6 +260,37 @@ theorem paper1_positiveCriticalBranch_of_strictBarrier
     ⟨U, hprofile,
       ShenUpperBoundPositive.of_pos_strict_upperBarrier_MChi
         hχ_nonneg hχ_lt_one hprofile.U_pos hstrict,
+      htail⟩
+
+/-- Positive critical branch with the upper-bound frontier exposed as local
+no-contact facts for the nonsmooth `MChi` barrier.
+
+Still conditional: this does not prove the local no-contact facts or the sharp
+right-tail asymptotics. -/
+def Paper1PositiveCriticalFrozenStationaryContactBranch : Prop :=
+  ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+    0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+    ∀ c : ℝ, 2 < c →
+      ∃ U : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U ∧
+          InMonotoneWaveTrapSet (kappa c) (MChi p) U ∧
+          PositiveUpperBarrierContactContradictions p c U ∧
+          ∀ κ₁, kappa c < κ₁ →
+            κ₁ < min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+            HasWaveRightTailAsymptotic c κ₁ U
+
+/-- Pure conversion from local no-contact facts to the strict-barrier positive
+branch. -/
+theorem paper1_positiveStrictBarrierBranch_of_contactBranch
+    (hbranch : Paper1PositiveCriticalFrozenStationaryContactBranch) :
+    Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch := by
+  intro p hα hχ_nonneg hχ_small c hc
+  rcases hbranch p hα hχ_nonneg hχ_small c hc with
+    ⟨U, hprofile, htrap, hno, htail⟩
+  exact
+    ⟨U, hprofile,
+      strict_upperBarrier_MChi_of_contactContradictions htrap hno,
       htail⟩
 
 /-- Preferred Paper1 main-statement input package using the thinner current
