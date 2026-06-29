@@ -1951,6 +1951,34 @@ structure PaperLowerRawParabolicFloor
     PaperRotheTailUniform p c lam M κ Λ
       (fun u => (producer u).producer) hκ hM
 
+/-- The paper Rothe parabolic floor with the base-barrier Lipschitz field
+removed.  The missing scalar field is automatic under either paper Lemma 4.2
+parameter package. -/
+structure PaperLowerRawParabolicFloorNoBar
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop where
+  producer :
+    ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u
+  step :
+    PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (producer u).producer) hκ hM
+  tail :
+    PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (producer u).producer) hκ hM
+
+/-- Fill the full paper parabolic floor from the no-`barLip` floor under the
+χ≤0 Lemma 4.2 parameter conditions. -/
+def paperLowerRawParabolicFloor_of_noBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (h : PaperLowerRawParabolicFloorNoBar p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ hκ hM where
+  producer := h.producer
+  barLip := hcond.upperBarrier_barLip
+  step := h.step
+  tail := h.tail
+
 /-- Thinner paper Rothe parabolic floor after closing bounded-source Green
 bookkeeping.  The remaining producer core still carries source construction,
 sliding comparison data, comparison tails for the max principles, lower-raw aux
@@ -1976,6 +2004,34 @@ def paperLowerRawParabolicFloor_of_core
     PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ hκ hM where
   producer := fun u => paperLowerRawStepProducer_of_core (h.producer u)
   barLip := h.barLip
+  step := h.step
+  tail := h.tail
+
+/-- Core paper Rothe parabolic floor with the automatic base-barrier Lipschitz
+field removed. -/
+structure PaperLowerRawParabolicFloorCoreNoBar
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
+  producer :
+    ∀ u, PaperLowerRawStepProducerCore p c lam M κ κtilde D Λ hκ hM u
+  step :
+    PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_greenCore ((producer u).green)) hκ hM
+  tail :
+    PaperRotheTailUniform p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_greenCore ((producer u).green)) hκ hM
+
+/-- Fill the core paper parabolic floor from the no-`barLip` core under the
+χ≤0 Lemma 4.2 parameter conditions. -/
+def paperLowerRawParabolicFloorCore_of_noBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (h : PaperLowerRawParabolicFloorCoreNoBar
+      p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ hκ hM where
+  producer := h.producer
+  barLip := hcond.upperBarrier_barLip
   step := h.step
   tail := h.tail
 
@@ -2356,6 +2412,33 @@ theorem upperBarrier_barLip
             (lt_of_lt_of_le zero_lt_one h.hM) x y
     _ ≤ M * |x - y| :=
           mul_le_mul_of_nonneg_right hκM (abs_nonneg _)
+
+/-- Fill the full paper parabolic floor from the no-`barLip` floor under the
+χ≥0 Lemma 4.2 parameter conditions. -/
+def paperLowerRawParabolicFloor_of_noBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (h : PaperLowerRawParabolicFloorNoBar p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ hκ hM where
+  producer := h.producer
+  barLip := hcond.upperBarrier_barLip
+  step := h.step
+  tail := h.tail
+
+/-- Fill the core paper parabolic floor from the no-`barLip` core under the
+χ≥0 Lemma 4.2 parameter conditions. -/
+def paperLowerRawParabolicFloorCore_of_noBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (h : PaperLowerRawParabolicFloorCoreNoBar
+      p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ hκ hM where
+  producer := h.producer
+  barLip := hcond.upperBarrier_barLip
+  step := h.step
+  tail := h.tail
 
 theorem chi_lt_half
     {p : CMParams} {c κ κtilde M : ℝ}

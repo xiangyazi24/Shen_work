@@ -16,9 +16,13 @@ Current headline status:
   statement bridge; `Paper1MainlineExistence` carries the B5
   stability/uniqueness mainline.  For the B1 construction wrappers, the
   base-barrier Lipschitz condition is now derived from the Lemma 4.2 parameter
-  conditions: current wrappers include
+  conditions rather than carried as a separate floor field: current wrappers include
   `b1_chiNeg_existence_paper_clean_autoBar_of_cubeApproxData`,
-  `b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData`, and
+  `b1_chiPos_existence_paper_clean_autoBar_of_cubeApproxData`,
+  `b1_chiNeg_existence_paper_min_noBar_of_cubeApproxData`,
+  `b1_chiPos_existence_paper_min_noBar_of_cubeApproxData`,
+  `b1_chiNeg_existence_paper_min_core_noBar_of_cubeApproxData`,
+  `b1_chiPos_existence_paper_min_core_noBar_of_cubeApproxData`, and
   `b1_chiNeg_existence_paper_routeA_core_noBar_of_cubeApproxData`.
 - **Paper 2:** `intervalDomain_theorem_1_1_chiZero_unconditional` proves
   Theorem 1.1 on the interval for χ₀ = 0.  General χ₀ ≤ 0 is not a no-frontier
