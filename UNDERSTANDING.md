@@ -64,9 +64,12 @@ Current headline status:
   `MinPersistenceAtoms.classicalMinPersistence_of_boundary`.  For the base and
   negative-part full-PID branches, the `*_of_BForm` variants also discharge the
   explicit per-datum `hlocal` seed from the B-form local package itself.  The
-  squared-barrier branches still keep `hlocal`, because their B-form packages
-  currently cover `PaperPositiveInitialDatum`, not the full `PositiveInitialDatum`
-  class needed by F1.
+  `*_picardLimitFrontier_*_of_BForm` variants for those same two branches also
+  replace `PicardRestartFrontier` by the unified Picard-limit residual
+  `ConeQuantBridge.PicardLimitRestartFrontier`.  The squared-barrier branches
+  still keep `hlocal`, because their B-form packages currently cover
+  `PaperPositiveInitialDatum`, not the full `PositiveInitialDatum` class needed
+  by F1.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain
   sectorial endpoints are still assembled from explicit frontier/existence
   packages such as `Paper3MainlineData` and
