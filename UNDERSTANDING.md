@@ -58,6 +58,10 @@ Current headline status:
   `PicardRestartFrontier`, `ClassicalMinPersistence`, and the per-datum
   `hlocal` seed, using the already-proved
   `ThresholdQuantBridge.quantitativeLocalExistence_of_picardFrontier_persistence`.
+  The base B-form branch additionally has
+  `paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary`, which
+  replaces `ClassicalMinPersistence` by the boundary min-point derivative bound
+  used by `MinPersistenceAtoms.classicalMinPersistence_of_boundary`.
 - **Paper 3:** the generic `Paper3MainlineTargets` and interval-domain
   sectorial endpoints are still assembled from explicit frontier/existence
   packages such as `Paper3MainlineData` and

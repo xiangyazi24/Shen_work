@@ -6,6 +6,7 @@ import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqBankedConcrete
 import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqRegular
 import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqDeepest
 import ShenWork.Paper2.IntervalDomainFinalWiring
+import ShenWork.Paper2.IntervalDomainMinPersistFinal
 import ShenWork.Paper2.IntervalDomainThresholdQuantBridge
 
 open ShenWork.IntervalDomain
@@ -76,6 +77,66 @@ theorem uniformLocalExistence_of_picardFrontier_persistence
     (ThresholdQuantBridge.quantitativeLocalExistence_of_picardFrontier_persistence
       p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- Classical minimum persistence from the boundary min-point bound, with the
+regime overlap uniqueness supplied by the existing L² energy method. -/
+theorem classicalMinPersistence_of_boundary_regime
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hbdry : ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {M : ℝ}, 0 < M → (∀ x, |u₀ x| ≤ M) →
+      ∀ {t₁ T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+        ∀ s ∈ Set.Ico (t₁ / 2) T, ∀ ys ∈ Set.Icc (0 : ℝ) 1, ys = 0 ∨ ys = 1 →
+          intervalDomainLift (u s) ys =
+            sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) →
+          -(|p.χ₀| * ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+                (p.ν * (SupNormBridge.regimeBound p M) ^ p.γ)
+              + p.b * (SupNormBridge.regimeBound p M) ^ p.α)
+              * sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+            deriv (fun r => intervalDomainLift (u r) ys) s) :
+    QuantFromThreshold.ClassicalMinPersistence p := by
+  have hOverlap : GlueExtension.OverlapUniqueForPID p :=
+    GlueExtension.overlapUniqueForPID_of_l2EnergyMethod
+      (intervalDomainClassicalUniquenessL2EnergyMethod_of_boundedDatumUniform p
+        (intervalDomainL2UBoundedDatumUniform_of_bounded
+          (boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
+            (uniformLiftBoundZeroM_of_regime p hχ ha hb))))
+  exact ShenWork.MinPersistenceAtoms.classicalMinPersistence_of_boundary
+    p hχ ha hb hOverlap hbdry
+
+/-- Uniform local existence from the Picard-restart route and the boundary
+min-point form of the persistence input. -/
+theorem uniformLocalExistence_of_picardFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {M : ℝ}, 0 < M → (∀ x, |u₀ x| ≤ M) →
+      ∀ {t₁ T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+        ∀ s ∈ Set.Ico (t₁ / 2) T, ∀ ys ∈ Set.Icc (0 : ℝ) 1, ys = 0 ∨ ys = 1 →
+          intervalDomainLift (u s) ys =
+            sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) →
+          -(|p.χ₀| * ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+                (p.ν * (SupNormBridge.regimeBound p M) ^ p.γ)
+              + p.b * (SupNormBridge.regimeBound p M) ^ p.α)
+              * sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+            deriv (fun r => intervalDomainLift (u r) ys) s)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    IntervalDomainUniformLocalExistence p :=
+  uniformLocalExistence_of_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hPF
+    (classicalMinPersistence_of_boundary_regime p hχ ha hb hγ_ge_one hbdry)
+    hlocal
+
 /-- General-χ B-form headline with the uniform-local-existence input replaced
 by the quantitative local factory used by the restart/glue continuation route. -/
 theorem paper2_theorem_1_1_general_chi_bform_from_quant
@@ -112,12 +173,46 @@ theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence
     (uniformLocalExistence_of_picardFrontier_persistence
       p hχ ha hb hα_ge hγ_ge_one hPF hPersist hlocal)
 
+/-- General-χ B-form headline with the uniform-local-existence input replaced
+by the Picard-restart route plus the boundary min-point persistence input. -/
+theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHyp p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {M : ℝ}, 0 < M → (∀ x, |u₀ x| ≤ M) →
+      ∀ {t₁ T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+        ∀ s ∈ Set.Ico (t₁ / 2) T, ∀ ys ∈ Set.Icc (0 : ℝ) 1, ys = 0 ∨ ys = 1 →
+          intervalDomainLift (u s) ys =
+            sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) →
+          -(|p.χ₀| * ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+                (p.ν * (SupNormBridge.regimeBound p M) ^ p.γ)
+              + p.b * (SupNormBridge.regimeBound p M) ^ p.α)
+              * sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+            deriv (fun r => intervalDomainLift (u r) ys) s)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform p hχ ha hb hγ_ge_one hBForm
+    (uniformLocalExistence_of_picardFrontier_boundary
+      p hχ ha hb hα_ge hγ_ge_one hPF hbdry hlocal)
+
 section AxiomAudit
 
 #print axioms uniformLocalExistence_of_quantitative_regime
 #print axioms uniformLocalExistence_of_picardFrontier_persistence
+#print axioms classicalMinPersistence_of_boundary_regime
+#print axioms uniformLocalExistence_of_picardFrontier_boundary
 #print axioms paper2_theorem_1_1_general_chi_bform_from_quant
 #print axioms paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence
+#print axioms paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary
 
 end AxiomAudit
 
