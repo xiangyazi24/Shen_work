@@ -294,6 +294,76 @@ theorem intervalDomain_paper3_coreStatementTargets_of_coreExistenceFact
   intervalDomain_paper3_coreStatementTargets_of_coreExistence
     p M0 uBar vLower hcont.out hcore.out
 
+/-- Core statement-frontier data with Theorem 2.2 supplied directly by the
+two raw linear-stability branches.
+
+Compared with `IntervalDomainSectorialMainlineCoreExistence`, this separates
+the Theorem 2.1 persistence frontiers from the Theorem 2.2 local-exponential
+branches.  It therefore does not require the spectral-orbit and small-data
+existence fields when a direct `LinearStabilityInstability*Raw` producer is
+available. -/
+structure IntervalDomainPaper3CoreStatementLinear22Data
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+  theorem22Nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  theorem22Minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+
+/-- Assemble the core Paper3 statement targets from persistence plus the raw
+linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_coreStatementTargets_of_linear22Data
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hData :
+      IntervalDomainPaper3CoreStatementLinear22Data p M0 uBar vLower) :
+    IntervalDomainPaper3CoreStatementTargets p M0 uBar vLower := by
+  have h22 :
+      Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
+      p intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+      (intervalDomainSectorialPaper3Constants_usesCriticalSpectrum
+        p M0 uBar vLower)
+      hData.theorem22Nonminimal hData.theorem22Minimal
+  have h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+      p M0 uBar vLower
+      hData.persistence.part1 hData.persistence.part2
+      hData.persistence.part3 hData.persistence.part4
+  have h21_sectorial :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_Theorem_2_1_sectorialMainline_of_persistence
+      p M0 uBar vLower hData.persistence
+  exact
+    ⟨Lemma_3_1_proved intervalDomain p,
+      intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
+        p hData.initialContinuity,
+      intervalDomain_upperEnvelopeMonotonicityRaw_supNorm p,
+      h21,
+      ⟨h22, h21_sectorial⟩⟩
+
+/-- Instance-facing core statement wrapper for the raw-linear Theorem 2.2
+route. -/
+theorem intervalDomain_paper3_coreStatementTargets_of_linear22DataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hData : Fact
+      (IntervalDomainPaper3CoreStatementLinear22Data p M0 uBar vLower)] :
+    IntervalDomainPaper3CoreStatementTargets p M0 uBar vLower :=
+  intervalDomain_paper3_coreStatementTargets_of_linear22Data
+    p M0 uBar vLower hData.out
+
 /-- Single-target wrapper for Paper3 Lemma 3.1 from the core existence
 bundle. -/
 theorem intervalDomain_paper3_Lemma_3_1_of_coreExistence
@@ -1348,6 +1418,49 @@ theorem intervalDomain_paper3_mainlineTargets_of_frontierDataFact
   intervalDomain_paper3_mainlineTargets_of_frontierData
     p M0 uBar vLower K hData.out
 
+/-- Bundled interval-domain Paper3 mainline frontiers with Theorem 2.2 supplied
+by direct raw linear-stability branches. -/
+structure IntervalDomainPaper3MainlineLinear22FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core : IntervalDomainPaper3CoreStatementLinear22Data p M0 uBar vLower
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline umbrella from
+direct raw linear Theorem 2.2 branches and the remaining frontier records. -/
+theorem intervalDomain_paper3_mainlineTargets_of_linear22FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3MainlineLinear22FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_coreStatementTargets_of_linear22Data
+      p M0 uBar vLower hData.core,
+    intervalDomain_paper3_Theorem_2_1_partTargets_of_persistence
+      p M0 uBar vLower hData.core.persistence,
+    intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+      p M0 uBar vLower K hData.compactness,
+    intervalDomain_paper3_concreteStability23To25Targets_of_frontiers
+      p M0 uBar vLower hData.stability⟩
+
+/-- Instance-facing concrete interval-domain Paper3 mainline umbrella from
+direct raw linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_mainlineTargets_of_linear22FrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3MainlineLinear22FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_linear22FrontierData
+    p M0 uBar vLower K hData.out
+
 /-- Thinner concrete interval-domain Paper3 mainline frontiers in which the
 sectorial core package is supplied by reduced analytic facts.  The small-data
 Cauchy fields stay explicit, while the four persistence fields are replaced by
@@ -1473,6 +1586,41 @@ theorem intervalDomain_paper3_statementTargets_of_frontierDataFact
   intervalDomain_paper3_statementTargets_of_frontierData
     p C M0 uBar vLower K hData.out
 
+/-- Bundled interval-domain Paper3 frontiers with the mainline Theorem 2.2
+branch supplied by direct raw linear-stability data. -/
+structure IntervalDomainPaper3StatementLinear22FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineLinear22FrontierData p M0 uBar vLower K
+
+/-- Assemble the concrete interval-domain Paper3 statement targets using the
+direct raw linear Theorem 2.2 mainline route. -/
+theorem intervalDomain_paper3_statementTargets_of_linear22FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3StatementLinear22FrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_linear22FrontierData
+      p M0 uBar vLower K hData.mainline⟩
+
+/-- Instance-facing concrete interval-domain Paper3 statement-target wrapper
+using the direct raw linear Theorem 2.2 mainline route. -/
+theorem intervalDomain_paper3_statementTargets_of_linear22FrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3StatementLinear22FrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_linear22FrontierData
+    p C M0 uBar vLower K hData.out
+
 /-- Bundled interval-domain Paper3 frontiers with the mainline sectorial core
 provided by reduced analytic facts. -/
 structure IntervalDomainPaper3StatementReducedAnalyticFrontierData
@@ -1547,6 +1695,9 @@ theorem intervalDomain_paper3_statementTargets_of_aprioriFrontierDataFact
 
 section AxiomAudit
 
+#print axioms intervalDomain_paper3_coreStatementTargets_of_linear22Data
+#print axioms intervalDomain_paper3_mainlineTargets_of_linear22FrontierData
+#print axioms intervalDomain_paper3_statementTargets_of_linear22FrontierData
 #print axioms intervalDomain_paper3_mainlineTargets_of_reducedAnalyticFrontierData
 #print axioms intervalDomain_paper3_statementTargets_of_reducedAnalyticFrontierData
 #print axioms intervalDomain_paper3_mainlineTargets_of_aprioriFrontierData
