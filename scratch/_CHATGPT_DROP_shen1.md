@@ -1,428 +1,418 @@
-# Q2500 shen1 — honest analytic frontier interface for integrated Moser first-crossing
+# Q2510 shen1 — audit of local precrossing/window plumbing layer
 
 Repo: `xiangyazi24/Shen_work`
 
-Audited baseline: commit `9d9250e6fbc8e0efb30a61130cd0b6e471ed4321`.
+Baseline referenced by prompt: commit `9d9250e6fbc8e0efb30a61130cd0b6e471ed4321`.
 
-Target file/namespace for eventual interfaces:
+Target file:
 
 ```text
 ShenWork/PDE/P3MoserIntegratedClosure.lean
+```
+
+Visible-source caveat: the GitHub-visible `main` copy I can inspect still shows the pre-local-patch `P3MoserIntegratedClosure.lean`.  This audit is therefore based on the prompt’s description of the local patch, plus the exact fixed-window helper APIs visible at commit `9d9250e6`.  The user reports:
+
+```text
+uisai2 lake env lean ShenWork/PDE/P3MoserIntegratedClosure.lean
+```
+
+passes for the modified file.
+
+## Bottom line
+
+The described patch is architecturally honest and useful, provided it remains exactly a fixed-window/precrossing packaging layer and does not claim `IntegratedMoserFirstCrossingStep` or `LpPowerBoundedBefore D (p + rho) T u` from a time-integral estimate.
+
+The layer has the right role:
+
+1. normalize notation for `Y_p` and `G_p`,
+2. restrict regularity/integrability hypotheses to windows,
+3. package the current-exponent Icc bound and endpoint/nonnegativity data,
+4. apply the existing fixed-window integrated Moser estimates,
+5. return only an existential time-integral upper bound for `Y_{p+rho}`.
+
+That is exactly the honest staging point before the high-excursion/pointwise extraction frontier.
+
+## Source/API alignment
+
+The current helper APIs at `9d9250e6` require the following, and the described patch appears aligned with them.
+
+### `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound`
+
+Current visible shape:
+
+```lean
+integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
+  (hab : a ≤ b)
+  (hYmax_int :
+    IntervalIntegrable
+      (fun s => max (1 : ℝ)
+        (D.integral (fun x => (u s x) ^ p)))
+      volume a b)
+  (hY_le : ∀ s ∈ Set.Icc a b,
+    D.integral (fun x => (u s x) ^ p) ≤ M)
+```
+
+So adding a `maxOneEnergy_intervalIntegrable` field to the precrossing record is necessary and honest.  It is not derivable from a pointwise bound alone in arbitrary `BoundedDomainData`; it must come from power-profile integrability plus max/abs closure.
+
+### `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound`
+
+Current visible shape requires:
+
+```lean
+hrel hp heps hab ha hb hZ_int hG_int hY_le hG_le
+```
+
+The described record fields `higherPower_intervalIntegrable`, `gradient_intervalIntegrable`, `currentEnergy_le_Icc`, plus the gradient-bound wrapper are exactly the right supply chain.
+
+### `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds`
+
+Current visible shape requires:
+
+```lean
+hinteg hp hp_nonneg haT hbT hYa hYb_nonneg hmaxInt
+```
+
+Keeping `hp_nonneg` and `right_currentEnergy_nonneg` explicit in the precrossing layer is correct.  Neither is automatic from `p0 ≤ p` in the abstract statement unless there is an extra `0 ≤ p0`; and energy nonnegativity is not automatic from `BoundedDomainData`.
+
+## Honesty audit by component
+
+### `integratedMoserEnergy` and `integratedMoserGradientEnergy`
+
+Status: honest, useful notation.
+
+These are definitional aliases for existing expressions.  They add no analytic content and help later theorem statements stay readable.
+
+Suggested names are fine.  If you want slightly more explicit names, these are possible but not necessary:
+
+```lean
+integratedMoserPowerEnergy
+integratedMoserMoserGradientEnergy
+```
+
+I would keep the current names unless there is already a collision.  Short names are valuable in first-crossing statements.
+
+### interval-integrable restriction from `IntegrableOn (Set.uIcc 0 T)`
+
+Status: pure Lean plumbing.
+
+A helper of the form
+
+```lean
+intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+```
+
+is honest.  The key is that the theorem must require an orientation hypothesis such as `a ≤ b`, because the standard rewrite to `IntegrableOn f (Set.Ioc a b)` uses the non-reversed interval.  It should also require a subset hypothesis strong enough to place the window inside `Set.uIcc 0 T`.
+
+Recommended statement shape:
+
+```lean
+theorem intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+    {f : ℝ → ℝ} {T a b : ℝ}
+    (hab : a ≤ b)
+    (hint : IntegrableOn f (Set.uIcc (0 : ℝ) T) volume)
+    (hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T) :
+    IntervalIntegrable f volume a b := by
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hab]
+  exact hint.mono_set (Set.Ioc_subset_Icc_self.trans hsub)
+```
+
+This is no-sorry plumbing if the local Mathlib spelling is `IntegrableOn.mono_set`, which the repo already uses elsewhere.
+
+### `max-one intervalIntegrable` via abs formula
+
+Status: honest; slightly more robust than relying on a possibly renamed `IntegrableOn.max` method.
+
+Using the identity
+
+```lean
+max 1 y = (1 + y + |1 - y|) / 2
+```
+
+is mathematically sound and not an analytic assumption.  It requires only interval integrability closure under constants, addition/subtraction, scalar multiplication, and absolute value.  If it passes on uisai2, it is preferable to a fragile direct `hconst.max hY` proof.
+
+Recommended theorem name:
+
+```lean
+intervalIntegrable_max_one_of_intervalIntegrable
+```
+
+If the local proof uses the abs formula, the docstring should say so explicitly, e.g.
+
+```lean
+/-- If `Y` is interval-integrable, so is `max 1 Y`; proved via
+`max 1 y = (1 + y + |1 - y|) / 2` to avoid depending on the exact Mathlib name
+for integrability under `max`. -/
+```
+
+No hidden false claim here.
+
+### `IntegratedMoserFirstCrossingRegularity` interval-integrability producers
+
+Status: honest and useful.
+
+The fields
+
+```lean
+powerTimeIntegrable
+gradientTimeIntegrable
+```
+
+are global-on-`uIcc 0 T` hypotheses.  Producing interval-integrability on `a..b` is pure restriction plumbing.
+
+Suggested names are good:
+
+```lean
+IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+```
+
+One caveat: `higherPower_intervalIntegrable` for exponent `p + rho` must require or derive
+
+```lean
+p0 ≤ p + rho
+```
+
+so the constructor needs `0 ≤ rho` or `0 < rho`.  This is not a false claim; it is just an important hypothesis.  In the actual iteration route, `rho_pos` is available from `AbstractLpBootstrapHypothesis`, so `0 ≤ rho` is a reasonable field/hypothesis here.
+
+### `IntegratedMoserEnergyNonnegativity`
+
+Status: honest as an explicit abstract frontier/plumbing assumption; do not derive it abstractly.
+
+This is the right architecture.  The abstract `BoundedDomainData` has an arbitrary `integral` field, so one cannot prove
+
+```lean
+0 ≤ D.integral (fun x => (u t x) ^ p)
+```
+
+from `0 ≤ u` or `0 ≤ p` unless the domain/integral API carries positivity.  Making this a named hypothesis is honest.
+
+Suggested name is fine:
+
+```lean
+IntegratedMoserEnergyNonnegativity
+```
+
+If you want the name to advertise the time interval, use:
+
+```lean
+IntegratedMoserEnergyNonnegativeOnIcc
+```
+
+I slightly prefer `IntegratedMoserEnergyNonnegativity` because it matches the current abstract-frontier naming style.
+
+Potential future producer should be interval-domain-specific, e.g.
+
+```lean
+intervalDomain_integratedMoserEnergyNonnegativity_of_classicalSolution
+```
+
+but that should not be part of this abstract plumbing patch.
+
+### `LpPowerBoundedBefore` Icc `Cp` extraction
+
+Status: honest and useful.
+
+A helper like
+
+```lean
+currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+```
+
+or
+
+```lean
+exists_currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+```
+
+is pure unpacking of `LpPowerBoundedBefore` plus `0 < a` and `b < T`.
+
+Recommended theorem name if it returns an existential constant:
+
+```lean
+exists_currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+```
+
+Recommended theorem name if it takes a chosen `Cp` and a proof `hCp`:
+
+```lean
+currentEnergy_le_Icc_of_forall_before_bound
+```
+
+If the patch uses only one theorem returning `∃ Cp`, that is enough.
+
+### `IntegratedMoserPrecrossingIntervalData`
+
+Status: honest and useful.
+
+The record should be a `Prop` structure, not computational data, because it packages proof obligations and constants already chosen externally.  The fields listed in the prompt are the right minimal set:
+
+```lean
+hp
+hp_nonneg
+hab
+ha_pos
+hb_lt
+haT
+hbT
+currentEnergy_le_Icc
+right_currentEnergy_nonneg
+maxOneEnergy_intervalIntegrable
+higherPower_intervalIntegrable
+gradient_intervalIntegrable
+```
+
+No hidden false claim, as long as the record does not assert any pointwise information about `Y_{p+rho}`.
+
+Potential rename: `IntegratedMoserPrecrossingWindowData` is slightly better than `...IntervalData`, because “window” is the mathematical role.  However, if the committed patch already uses `IntegratedMoserPrecrossingIntervalData` and compiles, I would not churn the name unless downstream code has not started using it.
+
+The constructor from regularity should be named to make clear it builds only window data, e.g.
+
+```lean
+integratedMoserPrecrossingIntervalData_of_regular_window
+```
+
+or, with the better noun:
+
+```lean
+integratedMoserPrecrossingWindowData_of_regular_window
+```
+
+### `IntegratedMoserWindowUpperBoundData` as a `Prop` existential
+
+Status: honest and useful.
+
+If it is implemented as a `Prop` existential such as
+
+```lean
+def IntegratedMoserWindowUpperBoundData ... : Prop :=
+  ∃ Gbound Ceps, 0 ≤ Ceps ∧ ...
+```
+
+that is a good minimal interface.  It records exactly the output of the fixed-window machinery and does not expose computational data unnecessarily.  It is also appropriate because the later high-excursion frontier only needs existence of an upper bound to contradict.
+
+Potential rename: if it is a `Prop`, drop `Data`:
+
+```lean
+IntegratedMoserWindowUpperBound
+```
+
+Use `Data` only if it is a `structure ... : Prop where` with named fields/accessors.  Both styles are acceptable.  If the current patch uses existential `Prop`, the cleanest name would be:
+
+```lean
+IntegratedMoserWindowUpperBound
+```
+
+But I would not rename unless this is still unmerged; the current name is not misleading enough to justify churn.
+
+Important: do not add a field
+
+```lean
+0 ≤ Gbound
+```
+
+unless it is actually needed and proved.  The upper estimate only needs an upper witness.  Positivity of the gradient integral is also abstractly not automatic from `BoundedDomainData`.
+
+## Architecture check
+
+The patch belongs in `P3MoserIntegratedClosure.lean`, inside:
+
+```lean
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-## Goal
-
-Design the minimal honest analytic frontier needed to turn the fixed-window integrated Moser estimates into the atom currently consumed downstream:
+and before:
 
 ```lean
-def IntegratedMoserFirstCrossingStep
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    LpPowerBoundedBefore D p T u →
-      LpPowerBoundedBefore D (p + rho) T u
+moser_iteration_chain_of_integrated_first_crossing_step
 ```
 
-The frontier must not assert the false route
+This placement is right because:
+
+* it depends on fixed-window helper lemmas above it,
+* it supplies ingredients for the future first-crossing frontier,
+* it should not be imported into lower PDE/Paper2 files,
+* and it should not live in Paper3-specific statement assembly.
+
+No new imports should be needed if the local patch already passes.
+
+## Hidden-false-claim audit
+
+I do not see a hidden false analytic claim in the described layer.  The crucial honesty points are all respected:
+
+* It does not conclude `IntegratedMoserFirstCrossingStep`.
+* It does not conclude `LpPowerBoundedBefore D (p + rho) T u`.
+* It keeps energy nonnegativity explicit at the abstract `BoundedDomainData` level.
+* It keeps max-one integrability explicit/produced from integrability, not from mere boundedness.
+* It requires interior window hypotheses `0 < a`, `b < T` for relative-Moser pointwise inputs.
+* It uses endpoint membership `a ∈ Icc 0 T`, `b ∈ Icc a T` for the integrated dissipation extraction.
+* It requires `0 ≤ rho` or equivalent to ask regularity for `p + rho`.
+
+The only thing to watch is wording: comments should say “precrossing/window” rather than “first-crossing step” or “bootstrap step.”  The latter can be misread as already proving the pointwise extraction.
+
+## Suggested final local names
+
+If this patch is not yet stabilized downstream, I recommend this exact naming set:
 
 ```lean
-∫ s in a..b, Y_{p+rho} s ≤ K  →  LpPowerBoundedBefore D (p + rho) T u
+integratedMoserEnergy
+integratedMoserGradientEnergy
+intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+Icc_subset_uIcc_zero_T_of_endpoint_memberships
+intervalIntegrable_max_one_of_intervalIntegrable
+IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+IntegratedMoserEnergyNonnegativity
+exists_currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+IntegratedMoserPrecrossingIntervalData
+integratedMoserPrecrossingIntervalData_of_regular_window
+IntegratedMoserWindowUpperBound
+integratedMoser_windowUpperBound_of_precrossing
 ```
 
-A time-integral bound alone permits arbitrarily narrow spikes.  The missing analytic content is a high-excursion/thickness/lower-average or absolute-continuity mechanism that turns a hypothetical large pointwise value into a quantitatively useful lower bound on some time window.
+If the existing local patch already uses `IntegratedMoserWindowUpperBoundData`, keep it unless you want to align `Data` with structure/accessor style.
 
-## Recommended minimal decomposition
+## Recommended `#print axioms` targets
 
-There are three layers.
-
-1. **Fixed-window upper estimate provider** — pure plumbing from the existing helpers and the Q2497 precrossing/window data.
-2. **First-crossing/topological scaffolding** — mostly pure Lean real-analysis plumbing.
-3. **High-excursion contradiction frontier** — real analytic assumption.  This is the minimal honest bridge from window averages to pointwise control.
-
-The final theorem should be a wrapper whose proof is only plumbing once (1), (2), and (3) are supplied.
-
-## Common local abbreviations
-
-These are optional but make the frontier statements readable.
+After this plumbing layer, the important targets are:
 
 ```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- `Y_p(t) = ∫ u(t)^p`. -/
-def integratedMoserEnergy
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (p t : ℝ) : ℝ :=
-  D.integral (fun x => (u t x) ^ p)
-
-/-- `G_p(t) = ∫ |∇(u(t)^(p/2))|²`. -/
-def integratedMoserGradientEnergy
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (p t : ℝ) : ℝ :=
-  D.integral (fun x =>
-    (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+#print axioms intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+#print axioms Icc_subset_uIcc_zero_T_of_endpoint_memberships
+#print axioms intervalIntegrable_max_one_of_intervalIntegrable
+#print axioms IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+#print axioms IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
+#print axioms IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+#print axioms currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+#print axioms integratedMoserPrecrossingIntervalData_of_regular_window
+#print axioms integratedMoser_windowUpperBoundData_of_precrossing
 ```
 
-Classification: pure notation/plumbing.
+Adjust the last two names if you rename `WindowUpperBoundData` to `WindowUpperBound`.
 
-## Layer 1: fixed-window upper estimate provider
+## Next honest frontier after this layer
 
-This layer is not the hard frontier.  It packages the current fixed-window helpers plus the Q2497 precrossing record.  If Q2497’s `IntegratedMoserPrecrossingIntervalData` and `IntegratedMoserWindowUpperBoundData` have been committed, the following is just an interface for a theorem that should be proved from existing helpers.
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Pure-plumbing provider: on every honest precrossing window, the existing
-integrated-Moser and relative-Moser fixed-window estimates produce an upper
-bound for the higher-power time integral.
-
-This should be derivable from:
-* `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds`,
-* `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound`, and
-* `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound`.
--/
-structure IntegratedMoserWindowUpperEstimateProvider
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
-  upper :
-    ∀ {p a b M eps : ℝ},
-      IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M →
-      0 < eps →
-        IntegratedMoserWindowUpperBoundData D u rho p a b M eps
-
-/-- Shape only: this is the expected pure-plumbing constructor from the current
-fixed-window helper family.  Do not treat this as a new analytic assumption. -/
--- theorem integratedMoserWindowUpperEstimateProvider_of_integrated_dissipation_and_relative
---     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
---     {T rho p0 : ℝ}
---     (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
---     (hrel : RelativeMoserInterpolationBefore D u T rho p0) :
---     IntegratedMoserWindowUpperEstimateProvider D u T rho p0
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-Classification: pure plumbing.  The only dependency is that the precrossing/window data layer exists.
-
-## Layer 2: first-crossing/topological scaffolding
-
-This is the natural topology around “suppose the next exponent is not bounded.”  It is not the hard PDE/Moser input, but it can be tedious Lean work.
+The next theorem should still be frontier-parameterized, for example:
 
 ```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- `τ` is the first time in `(0,T)` at which `Y` reaches level `B`. -/
-def MoserFirstCrossingAt (Y : ℝ → ℝ) (T B τ : ℝ) : Prop :=
-  0 < τ ∧ τ < T ∧ Y τ = B ∧
-    ∀ s, 0 < s → s < τ → Y s < B
-
-/-- Pure topology frontier/plumbing: from continuity, initial strict sublevel,
-and later exceedance, obtain a first crossing. -/
--- theorem exists_moserFirstCrossingAt_of_continuousOn_exceeds
---     {Y : ℝ → ℝ} {T B : ℝ}
---     (hT : 0 < T)
---     (hcont : ContinuousOn Y (Set.Icc (0 : ℝ) T))
---     (hinit : Y 0 < B)
---     (hexceeds : ∃ t, 0 < t ∧ t < T ∧ B ≤ Y t) :
---     ∃ τ, MoserFirstCrossingAt Y T B τ
-
-/-- Pure topology/plumbing: if no first crossing above an initial sublevel can
-exist, then the function is bounded by that level on `(0,T)`. -/
--- theorem LpPowerBoundedBefore_of_no_higherPower_firstCrossing
---     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
---     {T q B : ℝ}
---     (hno : ¬ ∃ τ,
---       MoserFirstCrossingAt
---         (fun t => integratedMoserEnergy D u q t) T B τ)
---     (hT : 0 < T)
---     (hcont : ContinuousOn
---       (fun t => integratedMoserEnergy D u q t) (Set.Icc (0 : ℝ) T))
---     (hinit : integratedMoserEnergy D u q 0 < B) :
---     LpPowerBoundedBefore D q T u
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-Classification: pure Lean real-analysis plumbing.  These statements require no Moser-specific analytic estimate beyond continuity.
-
-## Layer 3A: preferred minimal hard frontier — high-excursion contradiction
-
-This is the cleanest minimal analytic interface.  It does not try to expose a fake formula for the window length or lower average.  Instead, it says: whenever a high first crossing occurs, the analytic high-excursion machinery can choose a window and an `eps` such that **any** fixed-window upper estimate on that window contradicts the high excursion.
-
-This is intentionally the hard frontier.
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Real analytic frontier: a high first crossing of `Y_{p+rho}` can be converted
-into a precrossing window whose lower-excursion information contradicts the
-fixed-window integrated-Moser upper bound.
-
-The field is phrased against `IntegratedMoserWindowUpperBoundData`; hence it
-cannot be misused as a direct time-integral-to-pointwise conversion. -/
 structure IntegratedMoserHighExcursionContradictionFrontier
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (T rho p0 : ℝ) : Prop where
   choose_level_and_contradict :
-    ∀ {p Cp C0 : ℝ},
-      p0 ≤ p →
-      0 ≤ p →
-      0 < rho →
-      -- current exponent already bounded on the full horizon
-      (∀ t, 0 < t → t < T → integratedMoserEnergy D u p t ≤ Cp) →
-      -- initial higher-energy is below `C0`
-      integratedMoserEnergy D u (p + rho) 0 ≤ C0 →
-      ∃ B : ℝ, C0 < B ∧
-        ∀ {τ : ℝ},
-          MoserFirstCrossingAt
-            (fun t => integratedMoserEnergy D u (p + rho) t) T B τ →
-          ∃ a b M eps : ℝ,
-            0 < eps ∧
-            M = Cp ∧
-            -- the window is honest/interior and has current `p` control
-            (∀ hI : IntegratedMoserPrecrossingIntervalData
-                D u T rho p0 p a b M,
-              -- every fixed-window upper bound on this window contradicts
-              -- the high-excursion/lower-average information.
-              IntegratedMoserWindowUpperBoundData D u rho p a b M eps → False)
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+    -- high-excursion/window-thickness/AC-modulus content here
+    ...
 ```
 
-Classification of fields:
-
-* `p0 ≤ p`, `0 ≤ p`, `0 < rho`: plumbing/parameters.
-* current bound `∀t, Y_p(t) ≤ Cp`: plumbing from `LpPowerBoundedBefore`.
-* initial higher-energy bound `Y_{p+rho}(0) ≤ C0`: plumbing from `IntegratedMoserFirstCrossingRegularity.initialPowerBound`.
-* existence of `B` and the contradiction for all upper-bound data: real analytic assumption.  This is where high-excursion thickness, lower-average estimates, or absolute-continuity/modulus data must enter.
-
-Why this is minimal: the final first-crossing proof only needs a contradiction to every possible crossing.  It does not need to know the exact lower-average formula as long as the frontier is explicitly analytic and tied to a genuine first-crossing window.
-
-## Layer 3B: more explicit decomposed hard frontier — lower-average plus separation
-
-If you want the analytic content to be more inspectable, split Layer 3A into two structures.  This is less minimal but more informative.
+Then the eventual wrapper can be:
 
 ```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Real analytic frontier: high first crossing produces a nontrivial window on
-which the higher-power energy has a lower time-average. -/
-structure IntegratedMoserHighExcursionLowerAverageFrontier
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
-  lower_average :
-    ∀ {p Cp B τ : ℝ},
-      p0 ≤ p →
-      0 ≤ p →
-      0 < rho →
-      (∀ t, 0 < t → t < T → integratedMoserEnergy D u p t ≤ Cp) →
-      MoserFirstCrossingAt
-        (fun t => integratedMoserEnergy D u (p + rho) t) T B τ →
-      ∃ a b M eps Lower : ℝ,
-        0 < eps ∧ M = Cp ∧ 0 < Lower ∧
-        (∀ hI : IntegratedMoserPrecrossingIntervalData
-            D u T rho p0 p a b M,
-          Lower ≤
-            ∫ s in a..b, integratedMoserEnergy D u (p + rho) s)
-
-/-- Quantitative separation frontier: the lower-average information obtained
-from a high excursion dominates the fixed-window upper estimate. -/
-structure IntegratedMoserUpperLowerSeparationFrontier
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
-  separate :
-    ∀ {p Cp C0 B a b M eps Lower : ℝ},
-      p0 ≤ p →
-      0 ≤ p →
-      0 < rho →
-      C0 < B →
-      M = Cp →
-      0 < eps →
-      0 < Lower →
-      (Lower ≤ ∫ s in a..b, integratedMoserEnergy D u (p + rho) s) →
-      IntegratedMoserWindowUpperBoundData D u rho p a b M eps →
-      False
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+theorem integratedMoserFirstCrossingStep_of_windowUpper_and_highExcursion
+    ...
+    (hupper : IntegratedMoserWindowUpperEstimateProvider D u T rho p0)
+    (hexcur : IntegratedMoserHighExcursionContradictionFrontier D u T rho p0) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 := by
+  ...
 ```
 
-Classification:
-
-* `IntegratedMoserHighExcursionLowerAverageFrontier`: real analytic.  It is a thickness/lower-average theorem.
-* `IntegratedMoserUpperLowerSeparationFrontier`: usually real analytic unless all constants and `eps ↦ Ceps` dependence are made quantitative.  With only existential `Ceps` from `RelativeMoserInterpolationBefore`, this is not mere algebra.
-
-Layer 3A is better for a minimal route-level interface.  Layer 3B is better if the analytic proof is being developed and audited in smaller pieces.
-
-## Optional absolute-continuity producer interface
-
-Absolute continuity is not by itself enough unless it gives a quantitative high-excursion thickness.  The honest AC-style producer should imply Layer 3B, not replace it with a vague continuity assumption.
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Optional real analytic producer: absolute-continuity/modulus data strong
-enough to yield high-excursion lower-average windows.
-
-This should be used only as a producer for
-`IntegratedMoserHighExcursionLowerAverageFrontier`, not directly as a fake
-pointwise extraction theorem. -/
-structure IntegratedMoserHigherPowerThicknessFromAC
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
-  thickness :
-    ∀ {p Cp B τ : ℝ},
-      p0 ≤ p →
-      0 ≤ p →
-      0 < rho →
-      (∀ t, 0 < t → t < T → integratedMoserEnergy D u p t ≤ Cp) →
-      MoserFirstCrossingAt
-        (fun t => integratedMoserEnergy D u (p + rho) t) T B τ →
-      ∃ a b theta : ℝ,
-        0 < theta ∧
-        a < b ∧ 0 < a ∧ b < T ∧
-        (b - a) * theta * B ≤
-          ∫ s in a..b, integratedMoserEnergy D u (p + rho) s
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-Classification: real analytic.  Proving this probably requires absolute continuity plus quantitative derivative/modulus bounds for `Y_{p+rho}` near high excursions.  Plain `ContinuousOn` or `AbsolutelyContinuousOn` without quantitative control is not enough.
-
-## Final theorem shape using the minimal frontier
-
-Once Q2497 plumbing exists, the final wrapper can be shaped as follows.  This code is a theorem **shape only**; it should not be committed with a fake proof.
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Shape only.  The proof should be plumbing once the high-excursion
-contradiction frontier is supplied. -/
--- theorem integratedMoserFirstCrossingStep_of_windowUpper_and_highExcursion
---     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
---     {T rho p0 : ℝ}
---     (hT : 0 < T)
---     (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
---     (hupper : IntegratedMoserWindowUpperEstimateProvider D u T rho p0)
---     (hcrossTopo :
---       ∀ {p B : ℝ}, p0 ≤ p →
---         ContinuousOn
---           (fun t => integratedMoserEnergy D u (p + rho) t)
---           (Set.Icc (0 : ℝ) T) →
---         integratedMoserEnergy D u (p + rho) 0 < B →
---         (∃ t, 0 < t ∧ t < T ∧
---           B ≤ integratedMoserEnergy D u (p + rho) t) →
---         ∃ τ,
---           MoserFirstCrossingAt
---             (fun t => integratedMoserEnergy D u (p + rho) t) T B τ)
---     (hexcur : IntegratedMoserHighExcursionContradictionFrontier
---       D u T rho p0) :
---     IntegratedMoserFirstCrossingStep D u T rho p0
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-Remarks:
-
-* `hcrossTopo` can later be replaced by the concrete theorem `exists_moserFirstCrossingAt_of_continuousOn_exceeds` once proved.
-* `hupper` is derivable from the fixed-window Moser estimates and should not be a final analytic assumption.
-* `hexcur` is the real analytic floor.
-
-## Dependency DAG
-
-### Pure plumbing
-
-```text
-integratedMoserEnergy / integratedMoserGradientEnergy
-  ↓
-Q2497 precrossing/window data constructors
-  ↓
-IntegratedMoserWindowUpperBoundData
-  ↓
-IntegratedMoserWindowUpperEstimateProvider_of_integrated_dissipation_and_relative
-```
-
-```text
-MoserFirstCrossingAt
-  ↓
-exists_moserFirstCrossingAt_of_continuousOn_exceeds
-  ↓
-LpPowerBoundedBefore_of_no_higherPower_firstCrossing
-```
-
-```text
-IntegratedMoserFirstCrossingRegularity.initialPowerBound
-  ↓
-choose C0 for Y_{p+rho}(0)
-```
-
-### Real analytic assumptions
-
-```text
-High-excursion/thickness OR AC/modulus data
-  ↓
-IntegratedMoserHighExcursionLowerAverageFrontier
-  + IntegratedMoserUpperLowerSeparationFrontier
-  ↓
-IntegratedMoserHighExcursionContradictionFrontier
-```
-
-or directly:
-
-```text
-IntegratedMoserHighExcursionContradictionFrontier
-```
-
-### Final wrapper
-
-```text
-LpPowerBoundedBefore D p T u
-  ↓ current Cp extraction (plumbing)
-Assume unbounded Y_{p+rho}
-  ↓ first-crossing topology (plumbing)
-first crossing τ at level B
-  ↓ high-excursion contradiction frontier (analytic)
-window upper estimate provider (plumbing from fixed-window Moser)
-  ↓ contradiction
-no crossing above B
-  ↓ LpPowerBoundedBefore D (p + rho) T u
-```
-
-## What not to add
-
-Do not add any theorem with one of these shapes:
-
-```lean
--- false without thickness/modulus data
-theorem LpPowerBoundedBefore_of_timeIntegral_bound ... :
-    LpPowerBoundedBefore D (p + rho) T u := ...
-
--- too tautological to be useful as an analytic frontier
-structure IntegratedMoserFirstCrossingFrontier where
-  step : IntegratedMoserFirstCrossingStep D u T rho p0
-```
-
-The first is mathematically false in this level of generality.  The second is honest but useless: it hides the entire problem in a field with the exact target conclusion.  The recommended minimal frontier is `IntegratedMoserHighExcursionContradictionFrontier`, because it names the actual missing mechanism while remaining just strong enough to make the final first-crossing wrapper routine.
-
-## Suggested `#print axioms` targets after later implementation
-
-```lean
-#print axioms IntegratedMoserWindowUpperEstimateProvider_of_integrated_dissipation_and_relative
-#print axioms exists_moserFirstCrossingAt_of_continuousOn_exceeds
-#print axioms LpPowerBoundedBefore_of_no_higherPower_firstCrossing
-#print axioms integratedMoserFirstCrossingStep_of_windowUpper_and_highExcursion
-```
-
-The final theorem should list the high-excursion frontier as a hypothesis.  It should not depend on hidden axioms or an unproved direct time-integral-to-pointwise conversion.
+Do not skip this frontier by converting a window integral directly to a pointwise bound.
