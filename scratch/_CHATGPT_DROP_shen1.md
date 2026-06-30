@@ -1,27 +1,60 @@
-# Q2662 (shen1) — next interface-thinning patch after global endpoint continuity
+# Q2667 (shen1) — gradient-energy continuity audit
 
-Repo: `xiangyazi24/Shen_work`  
-Scope: Lean 4, current `main` with commits `e278b3fc` and `5c4583a5`.  
-Do **not** edit `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
+Repo: `xiangyazi24/Shen_work`, Lean 4.  
+Scope: non-Zinan files only.  Do **not** edit or rely on
+`ShenWork/PDE/P3MoserHighExcursionProducer.lean` or
+`ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
 
-## 1. Yes: add an at-zero-only global-classical regularity data package
+## Answer first
 
-This is the smallest interface-thinning patch I see.  It belongs in
-`ShenWork/PDE/P3MoserRegularityProducer.lean`, near the existing
-`IntervalDomainIntegratedMoserClassicalRegularityData` section.
-
-The point is to replace the carried
+No: the proposed
 
 ```lean
-endpointEnergy : IntervalDomainPowerEnergyEndpointContinuity u T p0
+hgrad : ∀ p, p0 ≤ p → ContinuousOn gradientEnergy_p (Set.Icc 0 T)
 ```
 
-by only the left endpoint residual, because
-`intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical`
-already derives `atRight` from a global classical solution by viewing `T` as an
-interior time of horizon `T + 1`.
+is **not derivable** from the current
+`IsPaper2ClassicalSolution intervalDomain params T u v` /
+`intervalDomain.classicalRegularity T u v` fields.
 
-A compile-test-style snippet with all imports:
+The missing thing is not mere spatial `C²` of each fixed-time slice.  The Moser
+gradient energy uses
+
+```lean
+intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x
+```
+
+and `intervalDomain.gradNorm` is definitionally
+
+```lean
+|deriv (intervalDomainLift f) x.1|
+```
+
+so continuity of `gradientEnergy_p t` requires control of a **spatial derivative
+of a powered slice as `t` varies**, plus endpoint-in-time control.  Current
+`intervalDomainClassicalRegularity` has joint continuity of the solution field
+and of the time-derivative field, and it has fixed-time spatial `C²`; it does
+not contain joint continuity of
+
+```lean
+(t, x) ↦ deriv (fun z => (intervalDomainLift (u t)) z) x
+```
+
+or of the powered derivative
+
+```lean
+(t, x) ↦ deriv (fun z => (intervalDomainLift (u t) z) ^ (p / 2)) x
+```
+
+on a closed time-space slab.  Also, the target `ContinuousOn ... (Set.Icc 0 T)`
+includes `t = 0` and `t = T`; the classical-solution regularity surface is
+interior in time except for per-fixed-time spatial closure.
+
+## The small theorem is good, but it consumes a real new field
+
+This theorem itself is a straightforward, compile-shaped wrapper and should be
+added in `ShenWork/PDE/P3MoserRegularityProducer.lean` near the existing
+`intervalDomain_powerTimeIntegrable_of_energyContinuous` theorem.
 
 ```lean
 import ShenWork.PDE.P3MoserRegularityProducer
@@ -38,202 +71,250 @@ noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
-/-- Global-classical-facing reduced regularity data for integrated Moser.
-
-For a global classical solution, right-endpoint power-energy continuity on
-`[0,T]` follows by applying the interior-time continuity theorem on the longer
-horizon `T + 1`.  Therefore the only endpoint-energy residual that has to remain
-explicit is continuity at `0`.  Gradient-energy time integrability is still a
-separate analytic input. -/
-structure IntervalDomainIntegratedMoserGlobalClassicalRegularityData
-    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
-  atZero :
-    ∀ p, p0 ≤ p →
-      ContinuousWithinAt
-        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-        (Set.Icc (0 : ℝ) T) 0
-  gradientTimeIntegrable :
+/-- Closed-time continuity of the Moser gradient energy implies time-integrability
+on the finite interval.  This is the exact gradient analogue of
+`intervalDomain_powerTimeIntegrable_of_energyContinuous`. -/
+theorem intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        ContinuousOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.Icc (0 : ℝ) T)) :
     ∀ p, p0 ≤ p →
       IntegrableOn
         (fun t =>
           intervalDomain.integral (fun x =>
             (intervalDomain.gradNorm
               (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-        (Set.uIcc (0 : ℝ) T) volume
+        (Set.uIcc (0 : ℝ) T) volume := by
+  intro p hp
+  have hIcc :
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.Icc (0 : ℝ) T) volume :=
+    (hgrad p hp).integrableOn_Icc
+  simpa [Set.uIcc_of_le hT] using hIcc
 
-/-- Convert the at-zero-only global-classical package to the existing classical
-regularity-data package.
-
-This is pure interface wiring: `atRight` is supplied by
-`intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical`,
-and the gradient field is copied through. -/
-theorem intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hT : 0 < T)
-    (hdata : IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0) :
-    IntervalDomainIntegratedMoserClassicalRegularityData u T p0 where
-  endpointEnergy :=
-    intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
-      (params := params) (T := T) (p0 := p0) (u := u) (v := v)
-      hglobal hT hdata.atZero
-  gradientTimeIntegrable := hdata.gradientTimeIntegrable
-
-/-- Convenience reduced-frontier producer from the at-zero-only global-classical
-package.  This is optional but useful, because most downstream code consumes the
-`Lite` frontier or the existing first-crossing regularity producer. -/
-theorem intervalDomain_regularityLite_of_globalClassicalRegularityData
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hT : 0 < T)
-    (hdata : IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0) :
-    IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0 :=
-  intervalDomain_regularityLite_of_classicalRegularityData
-    (hglobal.classical hT)
-    (intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
-      hglobal hT hdata)
-
-/-- Convenience first-crossing regularity producer from the at-zero-only
-global-classical package.  This does not add analytic power; it only avoids
-repeating the conversion at call sites. -/
-theorem
-    intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hT : 0 < T)
-    (hdata : IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0) :
-    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
-  intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData
-    (intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
-      hglobal hT hdata)
-    (hglobal.classical hT)
-
-#print axioms intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
-#print axioms intervalDomain_regularityLite_of_globalClassicalRegularityData
-#print axioms
-  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
+#print axioms intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
 
 end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
 end
 ```
 
-For the actual patch inside `P3MoserRegularityProducer.lean`, do not duplicate
-the import header; the current file already imports `P3MoserEnergyContinuity` and
-opens `P3MoserEnergyContinuity`.  Insert the structure and theorem near the
-existing `IntervalDomainIntegratedMoserClassicalRegularityData` block, then add
-the three `#print axioms` lines to the existing `section AxiomAudit`.
+The theorem is pure wire-up.  It should not be advertised as produced by
+`IsPaper2ClassicalSolution`; it is a way to replace a carried integrability field
+by a carried continuity field.
 
-The absolute smallest version is only the structure plus
-`intervalDomain_classicalRegularityData_of_globalClassicalRegularityData`.  The
-`Lite` and `IntegratedMoserFirstCrossingRegularity` convenience theorems are safe
-pure wrappers, but can be skipped if you want the smallest possible diff.
+## Why current classical regularity does not prove `hgrad`
 
-## 2. `atZero` is not plausibly derivable from current `InitialTrace` alone
-
-The likely current shape is:
+The relevant concrete facts are:
 
 ```lean
-def InitialTrace
-    (D : BoundedDomainData) (u₀ : D.Point → ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
-  ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
-    D.supNorm (fun x => u t x - u₀ x) < ε
+structure BoundedDomainData where
+  ...
+  gradNorm : (Point → ℝ) → Point → ℝ
+  classicalRegularity : ℝ → (ℝ → Point → ℝ) → (ℝ → Point → ℝ) → Prop
 ```
 
-This is a right-limit statement toward `u₀` for strictly positive times.  It does
-not state `u 0 = u₀`, and it does not directly state continuity of the energy
-map at the actual value used by
+For `intervalDomain`, the definitions are:
 
 ```lean
-ContinuousWithinAt
-  (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-  (Set.Icc (0 : ℝ) T) 0
+def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
+    (x : intervalDomainPoint) : ℝ :=
+  |deriv (intervalDomainLift f) x.1|
+
+...
+
+def intervalDomain : ShenWork.Paper2.BoundedDomainData where
+  Point := intervalDomainPoint
+  ...
+  gradNorm := intervalDomainGradNorm
+  classicalRegularity := intervalDomainClassicalRegularity
 ```
 
-The target limit is the value at `t = 0`, namely
-`intervalDomain.integral (fun x => (u 0 x) ^ p)`.  `InitialTrace` only controls
-`u t` as `t ↓ 0`, relative to `u₀`; it leaves `u 0` unconstrained.  Semantically,
-one can keep `u t = u₀` for all `t > 0` small and redefine `u 0` arbitrarily;
-the trace statement still holds, while the energy continuity at `0` can fail.
-
-So do **not** add an axiom or theorem claiming
+And `intervalDomainClassicalRegularity` currently gives, among other fields:
 
 ```lean
-InitialTrace intervalDomain u₀ u →
-  IntervalDomainPowerEnergyEndpointContinuity u T p0
+-- fixed-time spatial regularity on the open interval
+∀ t ∈ Set.Ioo (0 : ℝ) T,
+  ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1) ∧ ...
+
+-- fixed-time closed-boundary spatial C² plus endpoint derivative values
+∀ t ∈ Set.Ioo (0 : ℝ) T,
+  (ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) ∧
+    deriv (intervalDomainLift (u t)) 0 = 0 ∧
+    deriv (intervalDomainLift (u t)) 1 = 0) ∧ ...
+
+-- joint continuity of the time derivative field
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+  (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
+
+-- joint continuity of the solution field
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+  (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
 ```
 
-or even the `atZero` field, unless extra hypotheses are added.  Reasonable extra
-hypotheses would include at least a pointwise/sup-norm identification `u 0 = u₀`
-(or an energy identity at `0`) plus a theorem turning the sup-norm trace into
-continuity of `∫ (u t)^p` for the relevant real exponents.  For arbitrary real
-`p`, that second step is not just algebraic; it needs positivity/floor or a
-controlled rpow-continuity argument.
-
-## 3. Better non-high-excursion target among existing residuals
-
-The best immediate non-Zinan target is still the endpoint-regularity residual
-itself:
+What is absent is the spatial-gradient analogue:
 
 ```lean
-IntervalDomainIntegratedMoserClassicalRegularityData.endpointEnergy
+ContinuousOn
+  (Function.uncurry
+    (fun (t : ℝ) (x : ℝ) =>
+      deriv (fun z : ℝ => intervalDomainLift (u t) z) x))
+  (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
 ```
 
-The patch above thins it to the strictly smaller package
+or, closer to the Moser expression, the powered version:
 
 ```lean
-IntervalDomainIntegratedMoserGlobalClassicalRegularityData.atZero
-IntervalDomainIntegratedMoserGlobalClassicalRegularityData.gradientTimeIntegrable
+∀ p, p0 ≤ p →
+  ContinuousOn
+    (Function.uncurry
+      (fun (t : ℝ) (x : ℝ) =>
+        deriv (fun z : ℝ => (intervalDomainLift (u t) z) ^ (p / 2)) x))
+    (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
 ```
 
-whenever the caller has
+Per-time `ContDiffOn` plus joint continuity of `u` does not imply joint
+continuity of `∂ₓu`.  Joint continuity of `∂ₜu` also does not imply it.  Those
+are different directions of differentiation.  A future analytic proof may use a
+PDE/parabolic-regularity theorem to get this, but that theorem is not encoded in
+`intervalDomainClassicalRegularity` right now.
+
+Even a powered-gradient joint-continuity field would still need a compact-slab /
+parametric-integral step to turn pointwise joint continuity into continuity of
 
 ```lean
-IsPaper2GlobalClassicalSolution intervalDomain params u v
-0 < T
+fun t => ∫₀¹ |∂ₓ(u(t)^(p/2))|^2
 ```
 
-After that lands, the next repository-local, non-high-excursion consumer target
-is:
+and it would need honest endpoint handling at `t = 0` and `t = T`.  So the
+current `hgrad` field is already the cleanest immediate interface surface.
+
+## Best honest package name and placement
+
+Place the following in `ShenWork/PDE/P3MoserRegularityProducer.lean`, not in the
+high-excursion or threshold-plan files.
 
 ```lean
-ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
-IntervalDomainMassLpSmoothingIntegratedStepResiduals.integratedStep
-IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.lowerUpperFrontiers
+import ShenWork.PDE.P3MoserRegularityProducer
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+
+/-- Closed-time continuity of the Moser gradient energy, exponent by exponent.
+
+This is the honest replacement for directly carrying gradient-energy
+`IntegrableOn`: it is stronger, but still not a consequence of the current
+classical-solution API. -/
+structure IntervalDomainIntegratedMoserGradientEnergyContinuityData
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  gradientEnergyContinuous :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.Icc (0 : ℝ) T)
+
+/-- Convert gradient-energy continuity data into the gradient-time-integrability
+field expected by `IntervalDomainIntegratedMoserClassicalRegularityData`. -/
+theorem intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuityData
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hdata : IntervalDomainIntegratedMoserGradientEnergyContinuityData u T p0) :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume :=
+  intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+    hT hdata.gradientEnergyContinuous
+
+/-- A continuity-based variant of the classical regularity data package.
+
+This is the best next interface-thinning package: callers may provide endpoint
+power-energy continuity and gradient-energy continuity; the old gradient
+integrability field is derived. -/
+structure IntervalDomainIntegratedMoserClassicalContinuityRegularityData
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  endpointEnergy : IntervalDomainPowerEnergyEndpointContinuity u T p0
+  gradientEnergy :
+    IntervalDomainIntegratedMoserGradientEnergyContinuityData u T p0
+
+/-- Convert the continuity-based classical regularity package to the existing
+classical regularity data package. -/
+theorem intervalDomain_classicalRegularityData_of_continuityRegularityData
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hdata :
+      IntervalDomainIntegratedMoserClassicalContinuityRegularityData u T p0) :
+    IntervalDomainIntegratedMoserClassicalRegularityData u T p0 where
+  endpointEnergy := hdata.endpointEnergy
+  gradientTimeIntegrable :=
+    intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuityData
+      hT hdata.gradientEnergy
+
+#print axioms intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuityData
+#print axioms intervalDomain_classicalRegularityData_of_continuityRegularityData
+
+end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+
+end
 ```
 
-But I would not patch that until a concrete caller actually has global classical
-solutions available at the residual surface.  The existing
-`IntervalDomainMassLpSmoothingIntegratedStepResiduals` field only receives a
-finite-horizon
+This is the patch I would ask Codex to land first.  It is small, purely
+interface-thinning, and exactly parallel to the already-proved power-energy
+continuity-to-integrability bridge.
+
+## If you want the lower-level analytic target instead
+
+If the next Codex is not just thinning the interface, but naming the future
+analytic producer target, put the lower-level frontier in
+`ShenWork/PDE/P3MoserEnergyContinuity.lean` or a new small
+`P3MoserGradientEnergyContinuity.lean` file:
 
 ```lean
-IsPaper2ClassicalSolution intervalDomain p T u v
+structure IntervalDomainPowerGradientEnergyJointContinuity
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  poweredSpatialGradient_jointContinuous :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv
+              (fun z : ℝ => (intervalDomainLift (u t) z) ^ (p / 2)) x))
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)
 ```
 
-not a global classical solution, so an at-zero-only endpoint package cannot be
-used there without changing the caller surface.  If the caller only has finite
-`hsol`, it still needs the full
-
-```lean
-IntervalDomainPowerEnergyEndpointContinuity u T p0
-```
-
-or an explicit `atRight` producer.
-
-The remaining honest analytic residuals are still:
-
-```lean
-IntervalDomainIntegratedMoserClassicalRegularityData.gradientTimeIntegrable
-IntegratedMoserDissipationDropBefore
-RelativeMoserInterpolationBefore
-IntegratedMoserHighExcursionLowerAverageWindowFrontier
-IntegratedMoserWindowUpperDataGapFrontier
-```
-
-The last two are Zinan-adjacent high-excursion/threshold-plan territory; consume
-them through the already-existing interfaces, but do not edit the owned producer
-files.
+But do not pretend this is already enough to close `hgrad`; it still needs a
+separate parametric-integral continuity lemma for the squared absolute derivative
+and endpoint positivity/rpow-chain-rule handling.  For the current Moser
+regularity producer, the more honest minimal field is directly
+`IntervalDomainIntegratedMoserGradientEnergyContinuityData.gradientEnergyContinuous`.
