@@ -1,368 +1,316 @@
-# Q2637 shen1 — audit of actual-linear-small statement thinning plan
+# Q2640 shen1 — audit of LowerUpper Moser headline Stability24 thinning
 
 Repo: `xiangyazi24/Shen_work`
 
 Target file: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
 
-Verdict: the plan is sound.  The useful Lean-level adjustments are mostly about exact field names, avoiding brittle `linarith` in impossible branches, and keeping the two Paper3 constants packages separate.
+## Verdict
 
-## Main Lean pitfalls to avoid
+The planned thinning is sound.  The cleanest implementation is a **generic-`K` stability-only variant** for the LowerUpper Moser route:
 
-1. The CM2Params field is spelled `p.χ₀`, not `p.chi0` or `p.chi0`.  Use names like `hχ0` / `hchi_pos`, but the field projection itself must be `p.χ₀`.
-
-2. The raw Theorem 2.2 fields in `IntervalDomainPaper3CoreStatementActualLinear22Data` use **sectorial** constants and sectorial C¹ distance:
-
-```lean
-LinearStabilityInstabilityNonminimalRaw intervalDomain p
-  unitIntervalNeumannSpectrum
-  intervalDomainSectorialStabilityNorms.c1Distance
-  (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+```text
+core        unchanged
+compactness unchanged, generic K
+stability   replaced by stability24, expanded with .toStability23To25 ha hχ0
 ```
 
-Do **not** switch these to `intervalDomainPaper3Constants`.  The `stability24` fields use `intervalDomainPaper3Constants`; the raw Theorem 2.2 fields use `intervalDomainSectorialPaper3Constants`.
-
-3. Do not thread or derive `0 ≤ p.β` in the thinning wrappers.  The `global24` / `exp24` fields already take `0 ≤ p.β` as an argument.  The actual-linear wrapper theorem still needs `hβ : 1 ≤ p.β` for persistence, but `.toStability23To25` should simply forward `h.global24` and `h.exp24`.
-
-4. For impossible branches, prefer robust `False.elim` terms over `exfalso; linarith`:
+Do **not** force the sup-norm compactness package in this pass.  The route you are targeting already carries:
 
 ```lean
-False.elim (not_le_of_gt hchi_pos hchi_nonpos)
-False.elim ((ne_of_gt ha_pos) ha0)
+compactness :
+  IntervalDomainPaper3ConcreteCompactnessRegularizationData
+    p M0 uBar vLower K
 ```
 
-`linarith` probably closes both contradictions, but the direct proofs are less fragile and avoid any issue with equality normalization.
-
-5. `IntervalDomainPaper3SupNormCompactnessRegularizationData.toConcrete` has exactly these fields to fill before conversion:
+so the new structure should also keep:
 
 ```lean
-compact
-initialContinuity
-minimalUpper
-resolvent
+(K : CompactnessData intervalDomain)
 ```
 
-`.toConcrete` fills `upperEq` definitionally for:
+generic.  A sup-norm-`K` variant would be a separate compactness thinning and would unnecessarily combine two independent reductions.
+
+## Main pitfalls
+
+### 1. Name length
+
+The names are long but consistent with the existing file.  `set_option linter.style.longLine false` is already present near the top, so long declaration names are acceptable.
+
+Recommended names:
 
 ```lean
-intervalDomainSupNormCompactnessData locallyConverges neumannResolventGradientBound
+IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
+intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainDataFact
 ```
 
-6. Place the new declarations after the existing theorem:
+They are verbose, but mirror the existing route names and avoid ambiguity.
+
+### 2. Field types
+
+For the mainline thin structure, use exactly:
 
 ```lean
-intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+core :
+  IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p
+compactness :
+  IntervalDomainPaper3ConcreteCompactnessRegularizationData
+    p M0 uBar vLower K
+stability24 :
+  IntervalDomainPaper3Stability24ActualLinearFrontierData p
+    (intervalDomainPaper3Constants p M0 uBar vLower)
 ```
 
-or at least after `IntervalDomainPaper3MainlineActualLinear22FrontierData` and after any declarations the final wrapper calls.  Lean has no forward references.
+Do not use `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals p` for `core`; the existing mainline route uses the sectorial mainline fact package.
 
-## Confident patch skeleton
+### 3. Generic `K` vs sup-norm `K`
 
-This should be insertable in `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` after the existing `intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData` theorem and before or after its `Fact` wrapper.  No extra imports are needed in that file.
+Use generic `K`.  The target theorem is:
 
 ```lean
-/-- In the actual-linear-small route, the only non-vacuous Theorem 2.3--2.5
-stability frontiers are the positive-sensitivity nonminimal Theorem 2.4 branches.
-The Theorem 2.3 branches assume `p.χ₀ ≤ 0`, contradicting the wrapper hypothesis
-`0 < p.χ₀`; the Theorem 2.5 branches assume `p.a = 0`, contradicting `0 < p.a`. -/
-structure IntervalDomainPaper3Stability24ActualLinearFrontierData
-    (p : CM2Params) (C : Paper3Constants intervalDomain p) : Prop where
-  global24 :
-    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
-      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
-          GloballyAsymptoticallyStableNonminimal intervalDomain p
-            eq.1 eq.2
-  exp24 :
-    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
-      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
-          ∃ A > 0, ∃ rate > 0,
-            ∀ u v : ℝ → intervalDomain.Point → ℝ,
-              PositiveGlobalBoundedSolution intervalDomain p u v →
-              UniformConvergesInSup intervalDomain u eq.1 →
-                ExponentialC1ConvergenceWith intervalDomain
-                  intervalDomainStabilityNorms u v eq.1 eq.2 A rate
-
-/-- Expand the actual-linear-small Theorem 2.4-only stability frontier into the
-existing full Theorem 2.3--2.5 frontier by filling the impossible sign/branch
-cases by contradiction. -/
-def IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25
-    {p : CM2Params} {C : Paper3Constants intervalDomain p}
-    (h : IntervalDomainPaper3Stability24ActualLinearFrontierData p C)
-    (ha_pos : 0 < p.a) (hchi_pos : 0 < p.χ₀) :
-    IntervalDomainPaper3Stability23To25FrontierData p C where
-  globalNonminimal23 := by
-    intro hchi_nonpos _hm _ha _hb
-    exact False.elim (not_le_of_gt hchi_pos hchi_nonpos)
-  globalMinimal23 := by
-    intro hchi_nonpos _hm _ha0 _hb0 _uStar _huStar
-    exact False.elim (not_le_of_gt hchi_pos hchi_nonpos)
-  expNonminimal23 := by
-    intro hchi_nonpos _hm _ha _hb
-    exact False.elim (not_le_of_gt hchi_pos hchi_nonpos)
-  expMinimal23 := by
-    intro hchi_nonpos _hm _ha0 _hb0 _uStar _huStar
-    exact False.elim (not_le_of_gt hchi_pos hchi_nonpos)
-  global24 := h.global24
-  exp24 := h.exp24
-  global25 := by
-    intro ha0 _hb0 _hm _hbeta _uStar _huStar
-    exact False.elim ((ne_of_gt ha_pos) ha0)
-  exp25 := by
-    intro ha0 _hb0 _hm _hbeta _uStar _huStar
-    exact False.elim ((ne_of_gt ha_pos) ha0)
-
-/-- Compactness/regularization data for the actual-linear-small route after
-choosing the canonical sup-norm compactness package and using `0 < p.a` to make
-the minimal-upper branch impossible.  Initial continuity is supplied once by the
-surrounding thin mainline data. -/
-structure IntervalDomainPaper3SupNormCompactnessAPosData
+intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperFrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop)
-    (neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
-  compact : TimeTranslateCompactnessRaw intervalDomain p locallyConverges
-  resolvent :
-    NeumannResolventGradientBoundExistsRaw intervalDomain
-      neumannResolventGradientBound
+    (K : CompactnessData intervalDomain) ...
+```
 
-/-- Convert the positive-`a` sup-norm compactness data into the existing sup-norm
-compactness/regularization data surface. -/
-def IntervalDomainPaper3SupNormCompactnessAPosData.toSupNormData
-    {p : CM2Params} {M0 uBar vLower : ℝ}
-    {locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop}
-    {neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
-    (h : IntervalDomainPaper3SupNormCompactnessAPosData
-      p M0 uBar vLower locallyConverges neumannResolventGradientBound)
-    (ha_pos : 0 < p.a)
-    (hcont : IntervalDomainInitialContinuityRaw p) :
-    IntervalDomainPaper3SupNormCompactnessRegularizationData
-      p M0 uBar vLower locallyConverges neumannResolventGradientBound where
-  compact := h.compact
-  initialContinuity := hcont
-  minimalUpper := by
-    intro ha0 _hb0 _hm _hbeta _hchi0 _hchi _u _v _huv
-    exact False.elim ((ne_of_gt ha_pos) ha0)
-  resolvent := h.resolvent
+and it consumes generic concrete compactness data.  There is no need to mention:
 
-/-- Thin actual-linear raw-Theorem-2.2 mainline data.  It carries initial
-continuity once, uses the sectorial constants for raw Theorem 2.2, uses the
-canonical sup-norm compactness package, and carries only the non-vacuous
-positive-sensitivity Theorem 2.4 stability frontiers. -/
-structure IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+```lean
+intervalDomainSupNormCompactnessData
+```
+
+unless you also want to drop `upperEq`/`minimalUpper`/duplicate initial-continuity as in the earlier actual-linear raw-22 thin route.
+
+### 4. Placement
+
+Place the new declarations after the existing LowerUpper P2Main route:
+
+```lean
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainDataFact
+```
+
+and before the first:
+
+```lean
+end
+
+end ShenWork.Paper3
+```
+
+Then add `#print axioms` entries in the reopened `namespace ShenWork.Paper3` block, after the existing LowerUpper prints.  Do not put declarations after the first `end`; that block is for printing only.
+
+### 5. Hypotheses
+
+The new mainline and statement theorems should keep all actual-linear-small hypotheses:
+
+```lean
+(ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+(hm : p.m = 1) (hβ : 1 ≤ p.β)
+(hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+```
+
+Only `ha` and `hχ0` are used directly by the stability24 expansion, but the existing LowerUpper route still needs `hb hm hβ hχ` downstream to produce actual-linear persistence.
+
+### 6. No `0 ≤ p.β` threading needed
+
+`IntervalDomainPaper3Stability24ActualLinearFrontierData.global24` and `.exp24` already expose the `0 ≤ p.β` argument exactly as the full stability frontier does.  The converter:
+
+```lean
+h.stability24.toStability23To25 ha hχ0
+```
+
+only fills the impossible branches and forwards `global24` / `exp24`; it should not derive or consume `0 ≤ p.β`.
+
+## Concise Lean skeleton
+
+This is intended to be inserted in `IntervalDomainActualLinearStatementAssembly.lean` before the closing `end`, not as a separate file.  The import line below is only for standalone checking in a scratch file; omit it when inserting into the existing file.
+
+```lean
+import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
+
+set_option linter.style.longLine false
+
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserActualWiring
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open ShenWork.Paper2.IntervalDomainEnergyStep
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.Paper2
+
+namespace ShenWork.Paper3
+
+noncomputable section
+
+/-- Lower-average / upper-gap Moser mainline data with the actual-linear-small
+stability package reduced to its non-vacuous Theorem 2.4 branches. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop)
-    (neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
-  initialContinuity : IntervalDomainInitialContinuityRaw p
-  theorem22Nonminimal :
-    LinearStabilityInstabilityNonminimalRaw intervalDomain p
-      unitIntervalNeumannSpectrum
-      intervalDomainSectorialStabilityNorms.c1Distance
-      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
-  theorem22Minimal :
-    LinearStabilityInstabilityMinimalRaw intervalDomain p
-      unitIntervalNeumannSpectrum
-      intervalDomainSectorialStabilityNorms.c1Distance
-      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p
   compactness :
-    IntervalDomainPaper3SupNormCompactnessAPosData
-      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
   stability24 :
     IntervalDomainPaper3Stability24ActualLinearFrontierData p
       (intervalDomainPaper3Constants p M0 uBar vLower)
 
-/-- Convert the thin actual-linear mainline data to the existing full surface. -/
-def IntervalDomainPaper3MainlineActualLinear22ThinFrontierData.toCurrent
+/-- Convert the Stability24-thinned LowerUpper Moser mainline data to the current
+full LowerUpper frontier surface. -/
+def
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
     {p : CM2Params} {M0 uBar vLower : ℝ}
-    {locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop}
-    {neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
-    (h : IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
-      p M0 uBar vLower locallyConverges neumannResolventGradientBound)
-    (ha_pos : 0 < p.a) (hchi_pos : 0 < p.χ₀) :
-    IntervalDomainPaper3MainlineActualLinear22FrontierData
-      p M0 uBar vLower
-      (intervalDomainSupNormCompactnessData
-        locallyConverges neumannResolventGradientBound) where
-  core :=
-    { initialContinuity := h.initialContinuity
-      theorem22Nonminimal := h.theorem22Nonminimal
-      theorem22Minimal := h.theorem22Minimal }
-  compactness :=
-    (h.compactness.toSupNormData ha_pos h.initialContinuity).toConcrete
-  stability := h.stability24.toStability23To25 ha_pos hchi_pos
+    {K : CompactnessData intervalDomain}
+    (h :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+        p M0 uBar vLower K)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperFrontierData
+      p M0 uBar vLower K where
+  core := h.core
+  compactness := h.compactness
+  stability := h.stability24.toStability23To25 ha hχ0
 
-/-- Mainline target from the thin actual-linear raw-Theorem-2.2 route. -/
-theorem intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData
+/-- Mainline target from LowerUpper Moser frontiers and the Stability24-only
+actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop)
-    (neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (K : CompactnessData intervalDomain)
     (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
     (hm : p.m = 1) (hβ : 1 ≤ p.β)
     (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
     (hData :
-      IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
-        p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
-    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
-      (intervalDomainSupNormCompactnessData
-        locallyConverges neumannResolventGradientBound) :=
-  intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
-    p M0 uBar vLower
-    (intervalDomainSupNormCompactnessData
-      locallyConverges neumannResolventGradientBound)
-    ha hb hχ0 hm hβ hχ (hData.toCurrent ha hχ0)
-```
+      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    (hData.toCurrent ha hχ0)
 
-## Checklist against the planned implementation
-
-### Plan item 1: `IntervalDomainPaper3Stability24ActualLinearFrontierData`
-
-Good.  Copy the `global24` and `exp24` types exactly from `IntervalDomainPaper3Stability23To25FrontierData`.  They are parameterized by an arbitrary `C : Paper3Constants intervalDomain p`, so this structure should also take `C`, not hard-code concrete constants.
-
-### Plan item 2: `.toStability23To25`
-
-Good.  Use:
-
-```lean
-not_le_of_gt hchi_pos hchi_nonpos
-(ne_of_gt ha_pos) ha0
-```
-
-rather than relying on `linarith`.  This avoids equality-normalization issues in the `p.a = 0` branches.  `0 ≤ p.β` is not involved in this conversion; do not derive it here.
-
-### Plan item 3: `IntervalDomainPaper3SupNormCompactnessAPosData`
-
-Good.  It should carry only:
-
-```lean
-compact
-resolvent
-```
-
-and `.toSupNormData` should take both:
-
-```lean
-(ha_pos : 0 < p.a)
-(hcont : IntervalDomainInitialContinuityRaw p)
-```
-
-because `initialContinuity` is still needed by `IntervalDomainPaper3SupNormCompactnessRegularizationData`, but should be shared from the thin mainline data.
-
-### Plan item 4: `IntervalDomainPaper3MainlineActualLinear22ThinFrontierData`
-
-Good.  Make sure the raw Theorem 2.2 fields use:
-
-```lean
-intervalDomainSectorialStabilityNorms.c1Distance
-(intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
-```
-
-not the non-sectorial `intervalDomainPaper3Constants`.
-
-### Plan item 5: `.toCurrent`
-
-Good.  The target type should be exactly:
-
-```lean
-IntervalDomainPaper3MainlineActualLinear22FrontierData
-  p M0 uBar vLower
-  (intervalDomainSupNormCompactnessData
-    locallyConverges neumannResolventGradientBound)
-```
-
-and the compactness field should be:
-
-```lean
-compactness :=
-  (h.compactness.toSupNormData ha_pos h.initialContinuity).toConcrete
-```
-
-If method notation fails inference, expand it explicitly:
-
-```lean
-compactness :=
-  (IntervalDomainPaper3SupNormCompactnessAPosData.toSupNormData
-    (p := p) (M0 := M0) (uBar := uBar) (vLower := vLower)
-    (locallyConverges := locallyConverges)
-    (neumannResolventGradientBound := neumannResolventGradientBound)
-    h.compactness ha_pos h.initialContinuity).toConcrete
-```
-
-### Plan item 6: mainline theorem
-
-Good.  It should call:
-
-```lean
-intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
-```
-
-with `K := intervalDomainSupNormCompactnessData locallyConverges neumannResolventGradientBound` and pass:
-
-```lean
-hData.toCurrent ha hχ0
-```
-
-The theorem still needs all existing actual-linear-small hypotheses:
-
-```lean
-ha hb hχ0 hm hβ hχ
-```
-
-because the underlying `to_linear22Data` call uses them to produce actual-linear persistence.
-
-## Optional extra wrapper
-
-After the mainline theorem compiles, an instance-facing wrapper would be routine:
-
-```lean
-theorem intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierDataFact
+/-- Instance-facing mainline target from LowerUpper Moser frontiers and the
+Stability24-only actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierDataFact
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop)
-    (neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (K : CompactnessData intervalDomain)
     (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
     (hm : p.m = 1) (hβ : 1 ≤ p.β)
     (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
     [hData : Fact
-      (IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
-        p M0 uBar vLower locallyConverges neumannResolventGradientBound)] :
-    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
-      (intervalDomainSupNormCompactnessData
-        locallyConverges neumannResolventGradientBound) :=
-  intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData
-    p M0 uBar vLower locallyConverges neumannResolventGradientBound
-    ha hb hχ0 hm hβ hχ hData.out
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using LowerUpper Moser
+frontiers, Paper2 main theorem targets for Proposition 1.3/1.4, and the
+Stability24-only actual-linear stability package. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from LowerUpper
+Moser frontiers, Paper2 main theorem target inputs, and Stability24-only
+actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from LowerUpper
+Moser frontiers, Paper2 main theorem target inputs, and Stability24-only
+actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+end
+
+end ShenWork.Paper3
 ```
 
-## Final assessment
+## `#print axioms` additions
 
-The thinning is non-vacuous and safe.  It removes duplicated `initialContinuity`, the definitional `upperEq`, the impossible positive-`a` minimal-upper branch, and the six impossible Theorem 2.3/2.5 stability branches.  The remaining fields are the real statement-level frontiers:
+Add these in the reopened print-only namespace block near the bottom, after the existing LowerUpper prints:
 
-```text
-initialContinuity
-theorem22Nonminimal
-theorem22Minimal
-compact
-resolvent
-global24
-exp24
+```lean
+#print axioms
+  IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
 ```
 
-plus proposition-side data outside this mainline package, especially `negativeBound` and Paper2 main theorem targets.
+You can also print the Fact wrapper if desired, but printing the non-Fact theorem is usually enough.
+
+## Is there a more generic helper?
+
+Yes and no.
+
+The useful generic helper already exists:
+
+```lean
+IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25
+```
+
+That is the core reduction and should be reused across every actual-linear route.  It avoids duplicating the six vacuous branch proofs.
+
+Beyond that, Lean record types are route-specific.  You could avoid adding a new structure by making only a theorem that takes `core`, `compactness`, and `stability24` as separate arguments:
+
+```lean
+theorem intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpper_core_compactness_stability24
+    ...
+    (core : IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p)
+    (compactness : IntervalDomainPaper3ConcreteCompactnessRegularizationData p M0 uBar vLower K)
+    (stability24 : IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K := ...
+```
+
+But since the file already exposes many `...FrontierData` and `...Fact` surfaces, the proposed structure is consistent and useful for instance-facing routes.  The route-specific wrapper is not mathematically new; it is a convenience surface for the preferred headline route.
+
+## Final checklist
+
+* Keep `K` generic.
+* Reuse `IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25` exactly.
+* New `mainline` field type is the sectorial LowerUpper facts package, not the residual package.
+* New `statement` propositions field remains `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C`.
+* Keep all actual-linear-small theorem hypotheses; only `ha` and `hχ0` are used by stability thinning, but the old route needs the rest.
+* Insert declarations before the first closing `end` of `namespace ShenWork.Paper3`.
+* Add `#print axioms` entries in the reopened print block after existing LowerUpper prints.
+* No high-excursion producer files are touched or required.
