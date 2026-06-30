@@ -1,5 +1,29 @@
 # Shen Trilogy Formalization — DOCTRINE
 
+## ACTIVE AUTOMODE TARGET (2026-06-30): Wire IntegratedMoserFirstCrossingStep to statement level
+
+Goal: wire the sorry-free `integratedMoserFirstCrossingStep_of_abstract_data` to Paper2 statement level.
+
+### Completed:
+- (a) ✅ Fix 2 sorry in P3MoserHighExcursionProducer.lean assembler (e5a13af7)
+- (b) ✅ Build ThresholdPlan producer (P3MoserThresholdPlanProducer.lean, e5a13af7)
+  - `integratedMoserFirstCrossingStep_of_abstract_data`: axiom-clean [propext, Classical.choice, Quot.sound]
+  - Takes: regularity, energy nonnegativity, dissipation drop, relative interpolation, gradient nonneg, p0≥0
+  - Handles Cq=0 (non-increasing energy) and Cq>0 (full threshold plan contradiction) separately
+
+### Remaining avenues:
+- (c) Produce `IntegratedMoserFirstCrossingRegularity` from `IsPaper2ClassicalSolution`
+  - Needs: energyContinuous, initialPowerBound, powerTimeIntegrable, gradientTimeIntegrable
+  - energyContinuous requires joint continuity of t ↦ ∫|u(t)|^p on [0,T]
+  - gradientTimeIntegrable requires time-integrability of gradient energy
+- (d) Produce `IntegratedMoserDissipationDropBefore` from classical solution
+  - This is the integrated energy inequality (weak formulation)
+  - May already be partly covered by existing infrastructure
+- (e) Wire gradient-integral-nonnegativity for intervalDomain (trivial from pointwise sq_nonneg)
+- (f) Wire to Paper2 statement assembly (connect to Prop 2.5 / Cor 2.1 route)
+
+---
+
 **Main goal (one sentence):** Formalize the Chen–Ruau–Shen chemotaxis-growth trilogy
 (Paper 1 traveling waves, Paper 2 bounded-domain existence, Paper 3 long-time dynamics)
 in Lean 4, landing the headline theorems with NO sorry / axiom / native_decide and NO
