@@ -133,6 +133,56 @@ structure IntervalDomainIntegratedMoserClassicalRegularityData
               (fun y => (u t y) ^ (p / 2)) x) ^ 2))
         (Set.uIcc (0 : ℝ) T) volume
 
+/-- Classical-solution-facing regularity data with the gradient residual stated
+as closed-time continuity rather than raw time integrability. -/
+structure IntervalDomainIntegratedMoserClassicalGradientContinuityData
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  endpointEnergy : IntervalDomainPowerEnergyEndpointContinuity u T p0
+  gradientEnergyContinuous :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.Icc (0 : ℝ) T)
+
+/-- Global-classical-solution-facing regularity data.  Compared with
+`IntervalDomainIntegratedMoserClassicalRegularityData`, this only asks for the
+left endpoint of the power-energy continuity package; the right endpoint is an
+interior time for a longer global classical branch. -/
+structure IntervalDomainIntegratedMoserGlobalClassicalRegularityData
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  atZero :
+    ∀ p, p0 ≤ p →
+      ContinuousWithinAt
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T) 0
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+
+/-- Convert global-classical-facing regularity data to the local
+classical-branch package by deriving right-endpoint power-energy continuity
+from the global branch. -/
+theorem intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hdata :
+      IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0) :
+    IntervalDomainIntegratedMoserClassicalRegularityData u T p0 where
+  endpointEnergy :=
+    intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
+      hglobal hT hdata.atZero
+  gradientTimeIntegrable := hdata.gradientTimeIntegrable
+
 /-- Extract energy continuity from the explicit regularity frontier data. -/
 theorem intervalDomain_energyContinuous_of_regularityFrontierData
     {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
@@ -180,6 +230,52 @@ theorem intervalDomain_powerTimeIntegrable_of_energyContinuous
     (henergy p hp).integrableOn_Icc
   simpa [Set.uIcc_of_le hT] using hIcc
 
+/-! ### Gradient time integrability -/
+
+/-- Closed-time continuity of the Moser gradient energy implies the
+gradient-energy time-integrability field. -/
+theorem intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        ContinuousOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.Icc (0 : ℝ) T)) :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume := by
+  intro p hp
+  have hIcc :
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.Icc (0 : ℝ) T) volume :=
+    (hgrad p hp).integrableOn_Icc
+  simpa [Set.uIcc_of_le hT] using hIcc
+
+/-- Convert the closed-gradient-continuity package to the existing classical
+regularity-data package. -/
+theorem intervalDomain_classicalRegularityData_of_gradientContinuityData
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hdata :
+      IntervalDomainIntegratedMoserClassicalGradientContinuityData u T p0) :
+    IntervalDomainIntegratedMoserClassicalRegularityData u T p0 where
+  endpointEnergy := hdata.endpointEnergy
+  gradientTimeIntegrable :=
+    intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+      hT hdata.gradientEnergyContinuous
+
 /-- Extract power-energy time integrability from the explicit regularity
 frontier data. -/
 theorem intervalDomain_powerTimeIntegrable_of_regularityFrontierData
@@ -190,8 +286,6 @@ theorem intervalDomain_powerTimeIntegrable_of_regularityFrontierData
         (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
         (Set.uIcc (0 : ℝ) T) volume :=
   hreg.powerTimeIntegrable
-
-/-! ### Gradient time integrability -/
 
 /-- Extract gradient-energy time integrability from the explicit regularity
 frontier data. -/
@@ -299,6 +393,37 @@ theorem
     IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
   intervalDomain_integratedMoserFirstCrossingRegularity_of_lite_classical
     (intervalDomain_regularityLite_of_classicalRegularityData hsol hdata) hsol
+
+/-- Build the reduced regularity frontier directly from the at-zero-only
+global-classical package. -/
+theorem intervalDomain_regularityLite_of_globalClassicalRegularityData
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hdata :
+      IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0) :
+    IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0 :=
+  intervalDomain_regularityLite_of_classicalRegularityData
+    (hglobal.classical hT)
+    (intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
+      hglobal hT hdata)
+
+/-- Produce `IntegratedMoserFirstCrossingRegularity` directly from the
+at-zero-only global-classical package. -/
+theorem
+    intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hdata :
+      IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData
+    (intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
+      hglobal hT hdata)
+    (hglobal.classical hT)
 
 /-! ### Combined regularity + nonnegativity package -/
 
@@ -605,6 +730,12 @@ section AxiomAudit
 
 #print axioms intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData
 #print axioms intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
+#print axioms intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+#print axioms intervalDomain_classicalRegularityData_of_gradientContinuityData
+#print axioms intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
+#print axioms intervalDomain_regularityLite_of_globalClassicalRegularityData
+#print axioms
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
 #print axioms intervalDomain_regularityLite_of_classicalRegularityData
 #print axioms intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData
 #print axioms intervalDomain_lowerAverageEpsilonData_of_classical
