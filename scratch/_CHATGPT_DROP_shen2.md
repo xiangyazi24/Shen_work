@@ -1,215 +1,179 @@
-# Q2287 shen2: Route-A wiring to lower-barrier branch data
+# Q2301 shen2: Papers 1--3 headline statement assembly audit
 
-## Verdict
+Repo: `xiangyazi24/Shen_work`, branch `main`.
 
-The shortest honest wiring is pure assembly:
+## Classification rule used
 
-1. Build the cap-specialized `PositivePaperLemma42ExactConditions` with
-   `kappa c` and `positiveBranchTailCap p c`.
-2. Feed current positive Route-A/cubeApprox producer
-   `b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData`.
-3. Use the produced `U`, lower pin, and profile to fill
-   `Paper1PositiveLowerPinnedRawContactBranchData`.
-4. Keep `PositiveUpperBarrierContactContradictions p c U` as an explicit residual.
+I classified statement/header wrappers by their Lean source shape, not by README claims.
 
-No-contact is not proved by this route. The tail is already handled downstream by
-`paper1_positiveContactBranch_of_lowerPinnedRawContactData`, which calls the raw lower-pin tail theorem.
+* **A. Closed/unconditional producer**: theorem has no frontier/branch/data structure argument. It may have ordinary parameter hypotheses such as `2 < c`, `p.χ₀ = 0`, or `0 < p.a`, but it does not consume a package whose fields are the target theorem or the missing analytic branch.
+* **B. Conditional/plausible wire-up**: theorem consumes a `...Data`, `...FrontierData`, `...BranchData`, or `...RawData` package; this is real statement wiring if the package fields are lower-level analytic atoms, but it is not a headline proof.
+* **C. Unsupported/vacuous/known-false/impostor**: route uses a refuted premise, a deliberately degenerate zero-data model, or a package that merely carries target-level statements/branches and should not be reported as proved.
 
-## Existing names
+## Concise audit table
 
-```lean
-#check positiveBranchTailCap
-#check kappa_lt_positiveBranchTailCap
-#check Paper1PositiveLowerPinnedRawContactBranchData
-#check paper1_positiveContactBranch_of_lowerPinnedRawContactData
-#check paper1_mainStatementTargets_of_lowerPinnedRawContactData
-#check PositivePaperLemma42ExactConditions
-#check PaperLowerPinnedStationaryFlatFloor
-#check PaperLowerRawParabolicFloorRouteAParamCoreNoBar
-#check paperLowerRawRouteAParamProducer
-#check b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-#check b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
-```
+| Paper/file | Name | Shape | Class | Audit note |
+|---|---|---:|---:|---|
+| Paper1 `ShenWork/Paper1/StatementAssembly.lean` | `paper1_lemma25Targets` | no data argument | A | Closed bundle `Lemma_2_5 ∧ Lemma_2_5_JensenStep`, via `Lemma_2_5_proved` and `Lemma_2_5_JensenStep_proved`. |
+| Paper1 `StatementAssembly.lean` | `paper1_mainStatementTargets_of_mainResultsData`, `paper1_Theorem_1_1_of_mainResultsData` | consumes `Paper1MainResultsData` | B/C | Conditional. Treat as C if advertised as proof: the main-results data is the headline package. |
+| Paper1 `StatementAssembly.lean` | `paper1_Theorem_1_1_of_constructionNegSMPProvider` | consumes `ConstructionNegSMPProvider` and positive branch argument | B | Plausible high-level wiring, but still conditional on negative construction and positive branch. |
+| Paper1 `StatementAssembly.lean` | `Paper1PositiveCriticalFrozenStationaryBranch` | `def` target branch | B/C | Not a theorem. This is the old monolithic positive branch target. |
+| Paper1 `StatementAssembly.lean` | `PositiveUpperBarrierContactContradictions`, `Paper1PositiveCriticalFrozenStationaryContactBranch` | contact residual / branch package | B | Good decomposition; no-contact is still analytic residual. |
+| Paper1 `StatementAssembly.lean` | `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData` | data packages | B | Useful: tail is no longer carried separately; lower pin discharges it. Still carries no-contact. |
+| Paper1 `StatementAssembly.lean` | `Paper1PositiveLowerPinnedSchauderContactData`, `Paper1PositiveLowerPinnedCapSchauderContactData` | Schauder/contact frontiers | B | Plausible wiring to existing lower-pinned producers, but still contains Schauder/map/stationarity/flat/no-contact inputs. |
+| Paper1 `StatementAssembly.lean` | `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData` | bundled data | B | Conditional main statement wrappers. They reduce positive branch shape but still carry `ConstructionNegSMPProvider`, a positive branch package, and `Paper1MainlineExistence`. |
+| Paper1 `StatementAssembly.lean` | `Paper1Lemma51FrontierData`, `Paper1Lemma52FrontierData` | explicit analytic fields | B | Honest frontier records for Lemma 5.1/5.2; not closed. |
+| Paper1 `StatementAssembly.lean` | `Paper1PropositionFrontierData` | explicit Cauchy/PDE fields | B | Honest proposition frontier; not closed. |
+| Paper1 `StatementAssembly.lean` | `Paper1CombinedStatementData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, `Paper1CombinedLowerPinnedRawContactStatementData` | bundled data | B/C | Conditional statement bundles. They assemble targets from packages; they do not prove Paper1 headline statements. |
+| Paper1 `ShenWork/Paper1/StationaryUpperTail.lean` | `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap`, `lowerPinnedRawMonotoneTrap_tail_family_for_branch` | no stationary residual | A | Closed pure squeeze route from lower/raw lower pin to tail. Good closed atom. |
+| Paper1 `StationaryUpperTail.lean` | `HasWaveRightTailAsymptotic_of_stationary` | assumes `htail` and returns it | C | Carry/no-op wrapper; do not count as producer. |
+| Paper2 `ShenWork/Paper2/UnitPointStatementAssembly.lean` | `unitPointPaper2_mainStatementTargets`, `unitPointPaper2_logisticNonminimalPackage`, `unitPointPaper2_Theorem_1_1`, `unitPointPaper2_Theorem_1_3` | no data argument | A | Closed unit-point logistic targets. |
+| Paper2 `UnitPointStatementAssembly.lean` | `unitPointPaper2_Theorem_1_2_when_not_a_pos_b_zero` | ordinary exclusion hypothesis | A/B | Honest conditional theorem: no frontier data, but excludes the known bad ODE slice `0 < p.a ∧ p.b = 0`. |
+| Paper2 `ShenWork/Paper2/StatementAssembly.lean` | `paper2_statementTargets_of_data`, `paper2_localAndMainTheoremTargets_of_data`, `paper2_mainTheoremTargets_of_solutionBranchData` | consumes branch/data | B | Generic Paper2 is only statement assembly from data. |
+| Paper2 `StatementAssembly.lean` | `Paper2Proposition11ExistenceData` | carries local existence branch | B | Conditional local-existence package. |
+| Paper2 `StatementAssembly.lean` | `Paper2LocalAndMainTheoremData`, `Paper2StatementData` | bundles branch data | B/C | Conditional. Do not describe as Paper2 headline proof. |
+| Paper2 `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Lemma_3_1` | no data argument | A | Closed interval-domain Lemma 3.1 via `Lemma31Closure.Lemma_3_1_intervalDomain`. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional` | parameter hypotheses only | A | Closed chi-zero interval-domain Theorem 1.1 route; local existence produced internally. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData` | finite-horizon frontier remains | B | Local existence discharged internally, but finite-horizon alternative still carried. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2BootstrapEstimateThinFrontierData` | carries Lemma 2.6/2.7/Prop 2.2/2.3; Prop 2.4 closed; Prop 2.5 supplied | B | Useful thinning, not closed. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Lemma_4_1_of_GN_frontier`, `intervalDomainPaper2_aprioriTargets_of_GN_frontier` | consumes `IntervalDomainInterpolation` | C | Deprecated/no-go route: premise is refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2InterpolationEnergyFrontierData`, `IntervalDomainPaper2Theorem12And13InterpolationFrontierData` | includes false global interpolation field | C | Do not use as headline route. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2SolutionInterpolationEnergyFrontierData`, `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData` | solution-slice interpolation packages | B | Plausible replacement route: avoids known false global interpolation. |
+| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData`, chi-zero local-free variant | many analytic fields | B | Best interval-domain main route shape, but still conditional on solution interpolation, dissipation, bootstrap, eventual sup bounds, global extension, etc. |
+| Paper2 `ShenWork/Paper2/Statements.lean` | `Lemma_2_1_zero_data`, `Lemma_2_2_zero_data`, `Lemma_2_3_zero_data`, `Lemma_2_4_zero_data`, `lemmas_2_1_to_2_4_zero_data` | zero semigroup model | C | Explicitly marked impostor/vacuous; not analytic semigroup proof. |
+| Paper3 `ShenWork/Paper3/StatementAssembly.lean` | `paper3_proposition1Targets_of_frontierData` | consumes `Paper3Proposition1FrontierData` | B | Conditional. Proposition 1.2 is `negativeBound`; 1.3/1.4 existence branches are carried. |
+| Paper3 `StatementAssembly.lean` | `paper3_Proposition_1_3_of_Paper2_Theorem_1_3`, `paper3_Proposition_1_4_of_Paper2_Theorem_1_2` | consumes Paper2 theorems | B | Good bridge; not independent Paper3 proof. |
+| Paper3 `StatementAssembly.lean` | `Paper3Proposition1FromPaper2MainTargetsData` | carries `negativeBound` + Paper2 main | B/C | Correctly leaves Proposition 1.2 residual independent. Do not claim Paper2 Theorem 1.1 implies Paper3 Proposition 1.2. |
+| Paper3 `StatementAssembly.lean` | `paper3_uniformPersistenceTargets_of_rawData`, `paper3_Theorem_2_1_of_rawData` | consumes `Paper3UniformPersistenceRawData` | B | Conditional persistence assembly. |
+| Paper3 `StatementAssembly.lean` | `paper3_Theorem_2_2_of_branchData`, `paper3_stability23To25Targets_of_branchData`, `paper3_compactnessRegularizationTargets_of_rawData` | branch/raw-data packages | B | Conditional statement-layer assembly. |
+| Paper3 `StatementAssembly.lean` | `Paper3MainlineData`, `Paper3MainlineFromPaper2Theorem13Data`, `Paper3MainlineFromPaper2TheoremsData`, `Paper3MainlineFromPaper2MainTargetsData` | bundled frontiers | B/C | Conditional mainline bundles; do not describe as proved main theorem. |
+| Paper3 `ShenWork/Paper3/IntervalDomainStatementAssembly.lean` | `intervalDomainPaper3_negativeSensitivityResidual_of_frontierData` | decomposes negative residual | B | Good atomization of Proposition 1.2 residual into global solution + eventual sup bound; still residual. |
+| Paper3 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper3Proposition1FrontierData` | carries `negativeBound` and critical existence branch | B | Conditional Proposition 1.x package. |
+| Paper3 `IntervalDomainStatementAssembly.lean` | `intervalDomain_paper3_coreStatementTargets_of_coreExistence` | consumes `IntervalDomainInitialContinuityRaw` and `IntervalDomainSectorialMainlineCoreExistence` | B | Stronger than pure statement package, but still conditional on core existence and initial-continuity frontiers. |
+| Paper3 `IntervalDomainStatementAssembly.lean` | `intervalDomain_paper3_Theorem_2_1_of_persistence` | consumes persistence package | B | Conditional wrapper. |
+| Paper3 `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` | `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `...partTargets...`, `...sectorial...` | no frontier data | A | Closed actual-linear small-sensitivity persistence producer for interval domain, under parameter hypotheses. |
+| Paper3 `IntervalDomainActualLinearStatementAssembly.lean` | `IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts`, `IntervalDomainPaper3MainlineAprioriActualLinearSmallFrontierData`, `IntervalDomainPaper3StatementAprioriActualLinearSmallFrontierData` | frontier packages | B | Persistence fields produced internally, but spectral/orbit/continuation/mass-Lp/compactness/stability/proposition frontiers remain. |
+| Paper3 `ShenWork/Paper3/Statements.lean` | `PositiveGlobalBoundedSolution` | weakened definition note | C warning | Source explicitly notes it is pointwise positivity, not paper-faithful per-time spatial floor; not a false theorem, but a faithfulness gap to track. |
 
-Use a new file:
+## Paper-by-paper assessment
 
-```lean
-import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveLemma42ParamCore
+### Paper 1
 
-open Filter Topology
+Closed pieces are small and real.  `paper1_lemma25Targets` is a no-assumption theorem and should be counted as closed.  The lower-pinned tail squeeze in `StationaryUpperTail.lean` is also closed and should be used to avoid carrying `HasWaveRightTailAsymptotic` whenever the raw or plateau lower pin is preserved.
 
-namespace ShenWork.Paper1
-
-noncomputable section
-```
-
-## Scalar helper
-
-```lean
-theorem positivePaperLemma42ExactConditions_of_branchCap
-    (p : CMParams) {c : Real}
-    (h_alpha : p.α = p.m + p.γ - 1)
-    (h_chi_nonneg : 0 <= p.χ)
-    (h_chi_small : p.χ < min (1 / 2 : Real) (chiStar p))
-    (hc : 2 < c) :
-    PositivePaperLemma42ExactConditions p c (kappa c)
-      (positiveBranchTailCap p c) (MChi p) := by
-  have h_chi_half : p.χ < (1 / 2 : Real) :=
-    lt_of_lt_of_le h_chi_small (min_le_left _ _)
-  have h_chi_one : p.χ < 1 := by linarith
-  exact
-    { hκ0 := kappa_pos_of_two_lt hc
-      hκ1 := kappa_lt_one_of_two_lt hc
-      hgap := kappa_lt_positiveBranchTailCap p hc
-      hrange := by
-        simp [positiveBranchTailCap]
-      hM := one_le_MChi_of_chi_nonneg_lt_one p h_chi_nonneg h_chi_one
-      hc := (kappa_add_inv_eq_of_two_lt hc).symm
-      hχ_nonneg := h_chi_nonneg
-      hχ_small := h_chi_small
-      hα_eq := h_alpha }
-```
-
-## Route-A parameter package
+The Paper1 headline route remains conditional.  The main theorem wrappers consume packages:
 
 ```lean
-structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
-  produce :
-    forall p : CMParams,
-      forall h_alpha : p.α = p.m + p.γ - 1,
-      forall h_chi_nonneg : 0 <= p.χ,
-      forall h_chi_small : p.χ < min (1 / 2 : Real) (chiStar p),
-      forall c : Real, forall hc : 2 < c,
-        exists lam D Lambda : Real,
-          let hcond : PositivePaperLemma42ExactConditions p c (kappa c)
-              (positiveBranchTailCap p c) (MChi p) :=
-            positivePaperLemma42ExactConditions_of_branchCap
-              p h_alpha h_chi_nonneg h_chi_small hc
-          exists hpar :
-            PaperLowerRawParabolicFloorRouteAParamCoreNoBar
-              p c lam (MChi p) (kappa c) (positiveBranchTailCap p c)
-              D Lambda hcond.hκ0.le (le_trans zero_le_one hcond.hM),
-              1 <= D /\
-              paperDMin p.χ (MChi p) (kappa c) (positiveBranchTailCap p c)
-                p.m p.γ c < D /\
-              0 <= Lambda /\ Lambda <= MChi p /\
-              PaperLowerPinnedStationaryFlatFloor p c (kappa c) (MChi p)
-                (lowerBarrierRaw (kappa c) (positiveBranchTailCap p c) D)
-                (rotheSeqOfPaperFromPositiveCond p c lam (MChi p) (kappa c)
-                  (positiveBranchTailCap p c) Lambda hcond
-                  (fun u => paperLowerRawRouteAParamProducer (hpar.producer u))) /\
-              StationaryStrongMaxPrinciple p c (kappa c) (MChi p) /\
-              (forall U : Real -> Real,
-                InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-                  (lowerBarrierRaw (kappa c) (positiveBranchTailCap p c) D) U ->
-                FrozenStationaryWaveProfile p c U ->
-                  PositiveUpperBarrierContactContradictions p c U)
+paper1_mainStatementTargets_of_mainResultsData
+paper1_Theorem_1_1_of_constructionNegSMPProvider
+paper1_mainStatementTargets_of_smpMainlineData
+paper1_mainStatementTargets_of_strictBarrierData
+paper1_mainStatementTargets_of_lowerPinnedContactData
+paper1_mainStatementTargets_of_lowerPinnedRawContactData
 ```
 
-## Assembly theorem
+The best current positive branch accounting is the raw lower-pinned contact route:
 
 ```lean
-theorem paper1_positiveRawBranchData_of_routeAParamData
-    (hData : Paper1PositiveLowerRawCapRouteAParamData) :
-    Paper1PositiveLowerPinnedRawContactBranchData := by
-  refine ⟨?_⟩
-  intro p h_alpha h_chi_nonneg h_chi_small c hc
-  let hcond : PositivePaperLemma42ExactConditions p c (kappa c)
-      (positiveBranchTailCap p c) (MChi p) :=
-    positivePaperLemma42ExactConditions_of_branchCap
-      p h_alpha h_chi_nonneg h_chi_small hc
-  rcases hData.produce p h_alpha h_chi_nonneg h_chi_small c hc with
-    ⟨lam, D, Lambda, hpar, hD_ge_one, hD_gt, hLambda0, hLambdaM,
-      hconv, hsmp, hcontact⟩
-  obtain ⟨U, hpin, hprofile⟩ :=
-    b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
-      p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Lambda
-      hcond hD_gt hD_ge_one hLambda0 hLambdaM hpar hconv hsmp
-  exact
-    ⟨positiveBranchTailCap p c, D, U,
-      le_trans zero_le_one hD_ge_one,
-      le_rfl,
-      hprofile,
-      hpin,
-      hcontact U hpin hprofile⟩
+Paper1PositiveLowerPinnedRawContactBranchData
+paper1_positiveContactBranch_of_lowerPinnedRawContactData
+paper1_positiveStrictBarrierBranch_of_lowerPinnedRawContactData
 ```
 
-Field closure summary:
+This is honest B-class wiring: the tail is produced from the raw lower pin, but `PositiveUpperBarrierContactContradictions` remains a real no-contact/upper strong-comparison residual.  Do not call the older `HasWaveRightTailAsymptotic_of_stationary` a producer; it assumes the exact tail conclusion and returns it.
+
+### Paper 2
+
+There are two real closed islands:
+
+1. `UnitPointStatementAssembly.lean`: `unitPointPaper2_mainStatementTargets`, `unitPointPaper2_Theorem_1_1`, and `unitPointPaper2_Theorem_1_3` are closed for `unitPointDomain`.  `unitPointPaper2_Theorem_1_2_when_not_a_pos_b_zero` is also honest under its explicit exclusion hypothesis.
+2. `IntervalDomainStatementAssembly.lean`: `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional` is a no-frontier chi-zero route; `intervalDomainPaper2_Lemma_3_1` is closed.
+
+The generic Paper2 statement wrappers are conditional assemblies from branch-data packages:
 
 ```lean
-κtilde := positiveBranchTailCap p c
-0 <= D := le_trans zero_le_one hD_ge_one
-positiveBranchTailCap p c <= κtilde := le_rfl
-FrozenStationaryWaveProfile p c U := hprofile
-InLowerPinnedMonotoneTrap ... := hpin
-PositiveUpperBarrierContactContradictions p c U := hcontact U hpin hprofile
+Paper2StatementData
+Paper2LocalAndMainTheoremData
+Paper2Proposition11ExistenceData
+Paper2MainSolutionBranchData
+Paper2BootstrapEstimateBranchData
 ```
 
-## Downstream wrapper
+The major C-class item is the global interpolation route:
 
 ```lean
-theorem paper1_positiveContactBranch_of_routeAParamData
-    (hData : Paper1PositiveLowerRawCapRouteAParamData) :
-    Paper1PositiveCriticalFrozenStationaryContactBranch :=
-  paper1_positiveContactBranch_of_lowerPinnedRawContactData
-    (paper1_positiveRawBranchData_of_routeAParamData hData)
+IntervalDomainLemma41.IntervalDomainInterpolation
+intervalDomainPaper2_Lemma_4_1_of_GN_frontier
+intervalDomainPaper2_aprioriTargets_of_GN_frontier
+IntervalDomainPaper2InterpolationEnergyFrontierData
+IntervalDomainPaper2Theorem12And13InterpolationFrontierData
 ```
 
-Then:
+`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` proves the global interpolation premise false as stated.  Any route that includes it is not merely conditional; it is currently unsupported/vacuous.  Prefer the solution-slice structures:
 
 ```lean
-example {cStarStarFn : CMParams -> Real}
-    (hneg : ConstructionNegSMPProvider)
-    (hroute : Paper1PositiveLowerRawCapRouteAParamData)
-    (hmain : Paper1MainlineExistence cStarStarFn) :
-    Paper1MainStatementTargets :=
-  paper1_mainStatementTargets_of_lowerPinnedRawContactData
-    { constructionNeg := hneg
-      positiveLowerPinnedRawContact :=
-        paper1_positiveRawBranchData_of_routeAParamData hroute
-      mainline := hmain }
+IntervalDomainPaper2SolutionInterpolationEnergyFrontierData
+IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
+IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 ```
 
-## Core-noBar variant
+Also treat `Lemma_2_1_zero_data` through `Lemma_2_4_zero_data` in `Paper2/Statements.lean` as C-class impostors: source comments explicitly state they prove estimates only for `zeroSemigroupEstimateData`.
 
-If the input is `PaperLowerRawParabolicFloorRouteACoreNoBar`, use the same scalar helper and call:
+### Paper 3
+
+Generic Paper3 is mostly B-class statement assembly.  The proposition route correctly keeps `NegativeSensitivityGlobalEventualBound` independent:
 
 ```lean
-b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
+Paper3Proposition1FrontierData
+Paper3Proposition1FromPaper2Theorem13Data
+Paper3Proposition1FromPaper2TheoremsData
+Paper3Proposition1FromPaper2MainTargetsData
 ```
 
-The `hconv` field must use the exact sequence in that theorem:
+The source comment on `Paper3Proposition1FromPaper2MainTargetsData` is important: `negativeBound` is not derived from Paper2 Theorem 1.1.  The interval-domain version also decomposes the negative residual usefully:
 
 ```lean
-rotheSeqOfPaperFromPositiveCond p c lam (MChi p) (kappa c)
-  (positiveBranchTailCap p c) Lambda hcond
-  (fun u =>
-    (paperLowerRawParabolicFloor_of_routeA_core
-      (positivePaperLowerRawParabolicFloorRouteACore_of_noBar hcond hpar)).producer u
-      |>.producer)
+IntervalDomainPaper3NegativeSensitivityFrontierData
+intervalDomainPaper3_negativeSensitivityResidual_of_frontierData
 ```
 
-The proof body is identical except the producer call is:
+The Paper3 mainline wrappers are conditional on raw/branch data:
 
 ```lean
-obtain ⟨U, hpin, hprofile⟩ :=
-  b1_chiPos_existence_paper_routeA_core_noBar_of_cubeApproxData
-    p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Lambda
-    hcond hD_gt hD_ge_one hLambda0 hLambdaM hpar hconv hsmp
+Paper3UniformPersistenceRawData
+Paper3Theorem22BranchData
+Paper3CompactnessRegularizationRawData
+Paper3Stability23To25BranchData
+Paper3MainlineData
 ```
 
-## Residuals that remain honest
-
-The new package still carries:
+The best closed Paper3 island is in `IntervalDomainActualLinearStatementAssembly.lean`:
 
 ```lean
-PaperLowerRawParabolicFloorRouteAParamCoreNoBar ...
-PaperLowerPinnedStationaryFlatFloor ...
-StationaryStrongMaxPrinciple p c (kappa c) (MChi p)
-forall U, InLowerPinnedMonotoneTrap ... U ->
-  FrozenStationaryWaveProfile p c U ->
-  PositiveUpperBarrierContactContradictions p c U
+intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall
+intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall
+intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall
 ```
 
-The last field is the no-contact residual.  Current Route-A/cubeApprox producers do not prove it.
+These are A-class for the actual-linear small-sensitivity interval-domain Theorem 2.1/persistence statements.  The later mainline actual-linear structures are still B-class because they carry spectral semigroup orbit bounds, continuation, mass-Lp smoothing, compactness, stability, and proposition frontiers.
+
+Finally, `Paper3/Statements.lean` contains a faithfulness warning: `PositiveGlobalBoundedSolution` uses pointwise positivity on the interior, not the paper's per-time spatial floor.  This is not an empty proof, but it is a statement-fidelity cleanup item.
+
+## Recommended cleanup priority order
+
+1. **Rename or quarantine C-class routes.** Mark all `IntervalDomainInterpolation`-based Paper2 wrappers as deprecated/no-headline in names or comments. They rely on a premise refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
+
+2. **Move `zeroSemigroupEstimateData` lemmas out of headline inventory.** Keep them as sanity tests/examples, but never list them as Paper2 Lemma 2.1--2.4 proofs.
+
+3. **Promote closed islands separately.** Publish explicit lists for A-class endpoints: Paper1 Lemma 2.5, lower-pinned tail squeeze, Paper2 unit-point, Paper2 interval chi-zero Theorem 1.1, Paper2 interval Lemma 3.1, Paper3 actual-linear interval Theorem 2.1.
+
+4. **For Paper1, make raw lower-pinned contact the preferred positive branch interface.** This minimizes the residual: Route-A/cubeApprox supplies profile + raw lower pin; tail is closed; only no-contact remains.
+
+5. **For Paper2 interval main results, prefer positive solution-slice interpolation frontiers.** Avoid global interpolation. The immediate target should be filling fields in `IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData` and the chi-zero local-free variant.
+
+6. **For Paper3 Proposition 1.2, keep the negative-sensitivity residual decomposed.** Work on `IntervalDomainPaper3NegativeSensitivityFrontierData.globalSolution` and `.eventualSupBound` separately. Do not route it through Paper2 Theorem 1.1.
+
+7. **For Paper3 mainline, isolate actual-linear closed persistence from the remaining mainline frontiers.** The actual-linear Theorem 2.1 producer is real; the full statement target still needs core/apriori/compactness/stability data.
+
+8. **Track Paper3 positivity fidelity.** Decide whether a future domain interface should encode compactness/infimum so `PositiveGlobalBoundedSolution` can match the paper's per-time spatial floor rather than pointwise interior positivity.
