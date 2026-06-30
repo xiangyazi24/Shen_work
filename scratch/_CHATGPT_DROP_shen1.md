@@ -1,61 +1,92 @@
-# Q2640 shen1 — audit of LowerUpper Moser headline Stability24 thinning
+# Q2646 shen1 — next safe statement-level reductions after LowerUpper thin route
 
 Repo: `xiangyazi24/Shen_work`
 
 Target file: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
 
-## Verdict
+Context inspected: current `main` has the generic-K LowerUpper Stability24 route and the sup-norm+Stability24 thin LowerUpper headline route from commit `0a648f98`.
 
-The planned thinning is sound.  The cleanest implementation is a **generic-`K` stability-only variant** for the LowerUpper Moser route:
+Excluded by ownership: no recommendations here require touching
 
 ```text
-core        unchanged
-compactness unchanged, generic K
-stability   replaced by stability24, expanded with .toStability23To25 ha hχ0
+ShenWork/PDE/P3MoserHighExcursionProducer.lean
+ShenWork/PDE/P3MoserThresholdPlanProducer.lean
 ```
 
-Do **not** force the sup-norm compactness package in this pass.  The route you are targeting already carries:
+## Executive recommendation
 
-```lean
-compactness :
-  IntervalDomainPaper3ConcreteCompactnessRegularizationData
-    p M0 uBar vLower K
-```
-
-so the new structure should also keep:
-
-```lean
-(K : CompactnessData intervalDomain)
-```
-
-generic.  A sup-norm-`K` variant would be a separate compactness thinning and would unnecessarily combine two independent reductions.
-
-## Main pitfalls
-
-### 1. Name length
-
-The names are long but consistent with the existing file.  `set_option linter.style.longLine false` is already present near the top, so long declaration names are acceptable.
-
-Recommended names:
+Do **not** add Stability24-only wrappers for every historical Moser route.  The useful reduction has already been made for the preferred LowerUpper headline route:
 
 ```lean
 IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
-IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
-intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
 IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainDataFact
+IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
+IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainData
 ```
 
-They are verbose, but mirror the existing route names and avoid ambiguity.
+The next safe, non-conflicting wrapper worth adding is only the **IntegratedStep P2Main Stability24 route**, because it is the useful alternate headline when another worker can provide an `IntegratedMoserFirstCrossingStep` atom directly but not the lower/upper split.  It avoids high-excursion producer ownership and remains a thinner public surface than the old full-stability IntegratedStep route.
 
-### 2. Field types
+For the older ladder routes:
 
-For the mainline thin structure, use exactly:
+```text
+CETerminal
+CERawGrad
+CEGrad
+ClosedEnergy
+base Moser actual-linear
+```
+
+Stability24-only wrappers are mechanically valid but mostly redundant.  They add API volume without changing the preferred route.  If someone is actively consuming the terminal endpoint route, CETerminal can be added as an optional compatibility wrapper; otherwise stop at IntegratedStep + LowerUpper.
+
+## Existing generic helper already solves the real reduction
+
+The core reduction is already route-independent:
+
+```lean
+IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25
+```
+
+It converts:
+
+```lean
+IntervalDomainPaper3Stability24ActualLinearFrontierData p C
+```
+
+to:
+
+```lean
+IntervalDomainPaper3Stability23To25FrontierData p C
+```
+
+using:
+
+```lean
+ha : 0 < p.a
+hχ0 : 0 < p.χ₀
+```
+
+That helper is the only mathematical/logical content.  Any further route-specific `...Stability24...FrontierData` is just API convenience around this helper.
+
+## Route-by-route classification
+
+| Route | Current status | Add Stability24 wrapper? | Why |
+|---|---:|---:|---|
+| LowerUpper | Done | No more | This is the preferred headline route and already has generic-K Stability24 plus sup-norm thin wrappers. |
+| IntegratedStep | Good next target | Yes, useful | It is the clean fallback headline if a direct `IntegratedMoserFirstCrossingStep` atom is available. It avoids high-excursion producer files and removes full stability from a live route. |
+| CETerminal | Optional | Usually no | It is a plausible legacy/pre-LowerUpper route, but after LowerUpper + IntegratedStep it is mostly a compatibility endpoint. Add only if current callers still use terminal-pointwise data directly. |
+| CERawGrad | Redundant | No | It is an intermediate lowering of dissipation/interpolation atoms. Users can route to CETerminal or IntegratedStep instead. |
+| CEGrad | Redundant | No | Pure ladder intermediate. Adding a Stability24 surface here duplicates wrappers without new benefit. |
+| ClosedEnergy | Redundant | No | Pure L²-seed reduction surface; useful internally, not as a headline statement API. |
+| Base Moser actual-linear | Redundant | No | Oldest/widest Moser route. It carries the least reduced Moser fields; avoid adding another public headline variant. |
+| AprioriActualLinearSmall | Not asked, redundant | No | It is upstream of Moser routes and not the current headline. Same stability converter can be used inline if needed. |
+
+## Useful next wrapper: IntegratedStep + Stability24 + P2Main
+
+Minimal fields for the recommended IntegratedStep wrapper:
 
 ```lean
 core :
-  IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p
+  IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts p
 compactness :
   IntervalDomainPaper3ConcreteCompactnessRegularizationData
     p M0 uBar vLower K
@@ -64,96 +95,28 @@ stability24 :
     (intervalDomainPaper3Constants p M0 uBar vLower)
 ```
 
-Do not use `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals p` for `core`; the existing mainline route uses the sectorial mainline fact package.
-
-### 3. Generic `K` vs sup-norm `K`
-
-Use generic `K`.  The target theorem is:
+Statement-level P2Main wrapper:
 
 ```lean
-intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperFrontierData
-    (p : CM2Params) (M0 uBar vLower : ℝ)
-    (K : CompactnessData intervalDomain) ...
+propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+mainline :
+  IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
+    p M0 uBar vLower K
 ```
 
-and it consumes generic concrete compactness data.  There is no need to mention:
+### Lean skeleton
+
+Insert before the closing `end` of the main namespace, not in the reopened `#print axioms` block.
 
 ```lean
-intervalDomainSupNormCompactnessData
-```
-
-unless you also want to drop `upperEq`/`minimalUpper`/duplicate initial-continuity as in the earlier actual-linear raw-22 thin route.
-
-### 4. Placement
-
-Place the new declarations after the existing LowerUpper P2Main route:
-
-```lean
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainDataFact
-```
-
-and before the first:
-
-```lean
-end
-
-end ShenWork.Paper3
-```
-
-Then add `#print axioms` entries in the reopened `namespace ShenWork.Paper3` block, after the existing LowerUpper prints.  Do not put declarations after the first `end`; that block is for printing only.
-
-### 5. Hypotheses
-
-The new mainline and statement theorems should keep all actual-linear-small hypotheses:
-
-```lean
-(ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
-(hm : p.m = 1) (hβ : 1 ≤ p.β)
-(hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
-```
-
-Only `ha` and `hχ0` are used directly by the stability24 expansion, but the existing LowerUpper route still needs `hb hm hβ hχ` downstream to produce actual-linear persistence.
-
-### 6. No `0 ≤ p.β` threading needed
-
-`IntervalDomainPaper3Stability24ActualLinearFrontierData.global24` and `.exp24` already expose the `0 ≤ p.β` argument exactly as the full stability frontier does.  The converter:
-
-```lean
-h.stability24.toStability23To25 ha hχ0
-```
-
-only fills the impossible branches and forwards `global24` / `exp24`; it should not derive or consume `0 ≤ p.β`.
-
-## Concise Lean skeleton
-
-This is intended to be inserted in `IntervalDomainActualLinearStatementAssembly.lean` before the closing `end`, not as a separate file.  The import line below is only for standalone checking in a scratch file; omit it when inserting into the existing file.
-
-```lean
-import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
-
-set_option linter.style.longLine false
-
-open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-open ShenWork.Paper2.IntervalDomainEnergyStep
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.Paper2
-
-namespace ShenWork.Paper3
-
-noncomputable section
-
-/-- Lower-average / upper-gap Moser mainline data with the actual-linear-small
-stability package reduced to its non-vacuous Theorem 2.4 branches. -/
+/-- Integrated-step Moser mainline data with the actual-linear-small stability
+package reduced to its non-vacuous Theorem 2.4 branches. -/
 structure
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
     (K : CompactnessData intervalDomain) : Prop where
   core :
-    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts p
   compactness :
     IntervalDomainPaper3ConcreteCompactnessRegularizationData
       p M0 uBar vLower K
@@ -161,156 +124,265 @@ structure
     IntervalDomainPaper3Stability24ActualLinearFrontierData p
       (intervalDomainPaper3Constants p M0 uBar vLower)
 
-/-- Convert the Stability24-thinned LowerUpper Moser mainline data to the current
-full LowerUpper frontier surface. -/
+/-- Convert IntegratedStep + Stability24 data to the existing full IntegratedStep
+frontier surface. -/
 def
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData.toCurrent
     {p : CM2Params} {M0 uBar vLower : ℝ}
     {K : CompactnessData intervalDomain}
     (h :
-      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+      IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
         p M0 uBar vLower K)
     (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperFrontierData
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
       p M0 uBar vLower K where
   core := h.core
   compactness := h.compactness
   stability := h.stability24.toStability23To25 ha hχ0
 
-/-- Mainline target from LowerUpper Moser frontiers and the Stability24-only
-actual-linear stability package. -/
+/-- Mainline target from the IntegratedStep Moser route with Stability24-only
+actual-linear stability. -/
 theorem
-    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
     (K : CompactnessData intervalDomain)
     (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
     (hm : p.m = 1) (hβ : 1 ≤ p.β)
     (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
     (hData :
-      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+      IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
         p M0 uBar vLower K) :
     IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
-  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperFrontierData
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
     p M0 uBar vLower K ha hb hχ0 hm hβ hχ
     (hData.toCurrent ha hχ0)
 
-/-- Instance-facing mainline target from LowerUpper Moser frontiers and the
-Stability24-only actual-linear stability package. -/
+/-- Instance-facing mainline target from the IntegratedStep Moser route with
+Stability24-only actual-linear stability. -/
 theorem
-    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierDataFact
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierDataFact
     (p : CM2Params) (M0 uBar vLower : ℝ)
     (K : CompactnessData intervalDomain)
     (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
     (hm : p.m = 1) (hβ : 1 ≤ p.β)
     (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
     [hData : Fact
-      (IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
         p M0 uBar vLower K)] :
     IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
-  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
     p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
-/-- Full interval-domain Paper3 statement frontiers using LowerUpper Moser
-frontiers, Paper2 main theorem targets for Proposition 1.3/1.4, and the
-Stability24-only actual-linear stability package. -/
+/-- Full interval-domain Paper3 statement data for the IntegratedStep Moser route,
+Paper2 main theorem targets, and Stability24-only actual-linear stability. -/
 structure
-    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainData
     (p : CM2Params) (C : Paper2Constants p)
     (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
   propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
   mainline :
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
       p M0 uBar vLower K
 
-/-- Assemble the full interval-domain Paper3 statement target from LowerUpper
-Moser frontiers, Paper2 main theorem target inputs, and Stability24-only
+/-- Assemble the full interval-domain Paper3 statement target from the
+IntegratedStep Moser route, Paper2 main theorem targets, and Stability24-only
 actual-linear stability. -/
 theorem
-    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
     (p : CM2Params) (C : Paper2Constants p)
     (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
     (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
     (hm : p.m = 1) (hβ : 1 ≤ p.β)
     (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
     (hData :
-      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainData
         p C M0 uBar vLower K) :
     IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
   ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
       p C hData.propositions,
-    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
       p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
 
-/-- Instance-facing full interval-domain Paper3 statement target from LowerUpper
-Moser frontiers, Paper2 main theorem target inputs, and Stability24-only
+/-- Instance-facing full interval-domain Paper3 statement target from the
+IntegratedStep Moser route, Paper2 main theorem targets, and Stability24-only
 actual-linear stability. -/
 theorem
-    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainDataFact
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainDataFact
     (p : CM2Params) (C : Paper2Constants p)
     (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
     (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
     (hm : p.m = 1) (hβ : 1 ≤ p.β)
     (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
     [hData : Fact
-      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainData
         p C M0 uBar vLower K)] :
     IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
-  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
-
-end
-
-end ShenWork.Paper3
 ```
 
-## `#print axioms` additions
-
-Add these in the reopened print-only namespace block near the bottom, after the existing LowerUpper prints:
+Add `#print axioms` entries after the existing IntegratedStep prints:
 
 ```lean
 #print axioms
-  IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
 #print axioms
-  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
-#print axioms
-  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
 ```
 
-You can also print the Fact wrapper if desired, but printing the non-Fact theorem is usually enough.
+## Optional wrapper: CETerminal + Stability24 + P2Main
 
-## Is there a more generic helper?
+Only add this if there are current consumers of the terminal-pointwise endpoint route.  It is valid, but less important than IntegratedStep because it is no longer the preferred headline surface.
 
-Yes and no.
-
-The useful generic helper already exists:
+Minimal fields:
 
 ```lean
-IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25
+core : IntervalDomainSectorialMainlineMoserActualLinearSmallCETerminalFacts p
+compactness :
+  IntervalDomainPaper3ConcreteCompactnessRegularizationData p M0 uBar vLower K
+stability24 :
+  IntervalDomainPaper3Stability24ActualLinearFrontierData p
+    (intervalDomainPaper3Constants p M0 uBar vLower)
 ```
 
-That is the core reduction and should be reused across every actual-linear route.  It avoids duplicating the six vacuous branch proofs.
-
-Beyond that, Lean record types are route-specific.  You could avoid adding a new structure by making only a theorem that takes `core`, `compactness`, and `stability24` as separate arguments:
+Exact names if added:
 
 ```lean
-theorem intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpper_core_compactness_stability24
-    ...
-    (core : IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p)
-    (compactness : IntervalDomainPaper3ConcreteCompactnessRegularizationData p M0 uBar vLower K)
-    (stability24 : IntervalDomainPaper3Stability24ActualLinearFrontierData p
-      (intervalDomainPaper3Constants p M0 uBar vLower)) :
-    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K := ...
+IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalStability24FrontierData
+IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalStability24FrontierData.toCurrent
+intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallCETerminalStability24FrontierData
+IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalStability24P2MainData
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalStability24P2MainData
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalStability24P2MainDataFact
 ```
 
-But since the file already exposes many `...FrontierData` and `...Fact` surfaces, the proposed structure is consistent and useful for instance-facing routes.  The route-specific wrapper is not mathematically new; it is a convenience surface for the preferred headline route.
+The `toCurrent` target should be:
 
-## Final checklist
+```lean
+IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+  p M0 uBar vLower K
+```
 
-* Keep `K` generic.
-* Reuse `IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25` exactly.
-* New `mainline` field type is the sectorial LowerUpper facts package, not the residual package.
-* New `statement` propositions field remains `IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C`.
-* Keep all actual-linear-small theorem hypotheses; only `ha` and `hχ0` are used by stability thinning, but the old route needs the rest.
-* Insert declarations before the first closing `end` of `namespace ShenWork.Paper3`.
-* Add `#print axioms` entries in the reopened print block after existing LowerUpper prints.
-* No high-excursion producer files are touched or required.
+with:
+
+```lean
+core := h.core
+compactness := h.compactness
+stability := h.stability24.toStability23To25 ha hχ0
+```
+
+## Do not add wrappers for these unless a caller specifically asks
+
+### Base Moser actual-linear route
+
+Existing route:
+
+```lean
+IntervalDomainPaper3MainlineMoserActualLinearSmallFrontierData
+```
+
+A Stability24 variant would have fields:
+
+```lean
+core : IntervalDomainSectorialMainlineMoserActualLinearSmallFacts p
+compactness : ConcreteCompactnessRegularizationData ... K
+stability24 : Stability24ActualLinear ...
+```
+
+This is valid but low value.  The base Moser route carries the broadest, least reduced Moser residuals.  Prefer IntegratedStep or LowerUpper.
+
+### ClosedEnergy route
+
+Existing route:
+
+```lean
+IntervalDomainPaper3MainlineMoserActualLinearSmallClosedEnergyFrontierData
+```
+
+Valid but redundant.  It exists to reduce the L² seed, not as a final headline surface.
+
+### CEGrad route
+
+Existing route:
+
+```lean
+IntervalDomainPaper3MainlineMoserActualLinearSmallCEGradFrontierData
+```
+
+Valid but redundant.  It only lowers the relative interpolation interface to mass-gradient data.
+
+### CERawGrad route
+
+Existing route:
+
+```lean
+IntervalDomainPaper3MainlineMoserActualLinearSmallCERawGradFrontierData
+```
+
+Valid but redundant.  It is another intermediate analytic-atom surface between terminal and CEGrad.
+
+## Type and constants pitfalls
+
+1. **Use `intervalDomainPaper3Constants` for Stability24**, not sectorial constants:
+
+```lean
+IntervalDomainPaper3Stability24ActualLinearFrontierData p
+  (intervalDomainPaper3Constants p M0 uBar vLower)
+```
+
+2. **Only raw Theorem 2.2 routes use sectorial constants.**  In the raw-linear route, the `theorem22Nonminimal` / `theorem22Minimal` fields use:
+
+```lean
+intervalDomainSectorialStabilityNorms.c1Distance
+(intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+```
+
+Moser IntegratedStep / LowerUpper / CETerminal routes do not carry raw Theorem 2.2 fields, so they should not mention `intervalDomainSectorialPaper3Constants` in the Stability24 wrappers.
+
+3. **Keep `K` generic for Stability24-only wrappers.**  Use:
+
+```lean
+(K : CompactnessData intervalDomain)
+compactness : IntervalDomainPaper3ConcreteCompactnessRegularizationData
+  p M0 uBar vLower K
+```
+
+Only use `intervalDomainSupNormCompactnessData` in a separate `Thin...` route that also drops `upperEq` and `minimalUpper` using `IntervalDomainPaper3SupNormCompactnessAPosData`.
+
+4. **Statement P2Main propositions field must be:**
+
+```lean
+IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+```
+
+not `IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C`.
+
+5. **All actual-linear hypotheses still need to appear on the theorem**, even if only `ha` and `hχ0` are used by `toStability23To25`:
+
+```lean
+(ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+(hm : p.m = 1) (hβ : 1 ≤ p.β)
+(hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+```
+
+The old target route still uses `hb hm hβ hχ` to produce actual-linear persistence.
+
+6. **Do not derive `0 ≤ p.β` here.**  The Stability24 fields retain the exact `global24` / `exp24` signatures; the converter forwards them unchanged.
+
+7. **Declaration order matters.**  Add the IntegratedStep Stability24 wrapper after the existing IntegratedStep route definitions and before the LowerUpper section, or after the LowerUpper section before the final `end`.  Add prints only in the reopened bottom namespace.
+
+## Best next commit scope
+
+A clean next commit would add only:
+
+```lean
+IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
+IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData.toCurrent
+intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
+intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierDataFact
+IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainData
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
+intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainDataFact
+```
+
+This gives one useful alternate headline beside the existing LowerUpper thin headline and avoids filling the file with route-ladder variants.
