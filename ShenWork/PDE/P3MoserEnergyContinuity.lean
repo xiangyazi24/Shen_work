@@ -157,11 +157,51 @@ theorem intervalDomain_energyContinuousOn_Icc_of_classical_endpointContinuity
   exact
     (hcontWithin.continuousAt (isOpen_Ioo.mem_nhds htIoo)).continuousWithinAt
 
+/-- Endpoint power-energy continuity from a left-endpoint residual and a global
+classical solution.
+
+The right endpoint `T` is an interior time for the longer horizon `T + 1`, so
+its continuity follows from `intervalDomain_energyContinuousOn_Ioo`.  The left
+endpoint remains an explicit residual because the current classical-solution
+record is an interior-time regularity statement. -/
+theorem intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hzero :
+      ∀ p, p0 ≤ p →
+        ContinuousWithinAt
+          (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+          (Set.Icc (0 : ℝ) T) 0) :
+    IntervalDomainPowerEnergyEndpointContinuity u T p0 := by
+  refine ⟨hzero, ?_⟩
+  intro p hp
+  have hTplus : 0 < T + 1 := by
+    linarith
+  have hsolLong :
+      IsPaper2ClassicalSolution intervalDomain params (T + 1) u v :=
+    hglobal.classical hTplus
+  have hIoo :
+      ContinuousOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Ioo (0 : ℝ) (T + 1)) :=
+    intervalDomain_energyContinuousOn_Ioo (p := p) hsolLong
+  have hTmem : T ∈ Set.Ioo (0 : ℝ) (T + 1) := by
+    exact ⟨hT, by linarith⟩
+  have hcontAt :
+      ContinuousAt
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p)) T :=
+    hIoo.continuousAt (isOpen_Ioo.mem_nhds hTmem)
+  exact hcontAt.continuousWithinAt
+
 #print axioms intervalDomain_solution_jointContinuousOn
 #print axioms intervalDomain_power_jointContinuousOn
 #print axioms intervalDomain_power_bounded_on_slab
 #print axioms intervalDomain_energyContinuousOn_Ioo
 #print axioms intervalDomain_energyContinuousOn_Icc_of_classical_endpointContinuity
+#print axioms
+  intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
