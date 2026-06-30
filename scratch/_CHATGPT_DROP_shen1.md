@@ -1,254 +1,167 @@
-# Q2372 shen1 — Paper2 remaining Prop25 actual atoms audit
+# Q2390 shen1 — help
 
 Repo: `xiangyazi24/Shen_work`
 
-Audited target: `main` at commit `cbeb0de224bdfd72cdf70e63f0baae3fd5e23067` (`Add Paper2 mass-gradient actual atom headline route`).
+Invocation: `Q2390 (shen1): --help`
 
-Scope: re-audit the remaining actual Prop25 atoms after the committed mass-gradient reduction of the `relativeMoserInterpolation` field in `IntervalDomainPaper2Prop25ActualAtomFrontierData`.
+This is a help/usage response only.  No new Lean audit, proof search, or repository build was requested by the command body, so this drop does not claim any new theorem frontier or patch beyond documenting the `shen1` workflow.
 
-## Current state after `cbeb0de2`
-
-The new mass-gradient route is real wiring.  In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`, the structure
-
-```lean
-IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData
-```
-
-keeps only these hard Prop25 actual atoms:
-
-```lean
-moserDissipation :
-  ... → MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-
-quantitativeEndpoint :
-  ... → ∃ pSeq rootBound : ℕ → ℝ,
-    (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
-```
-
-and lowers the relative-Moser field to mass-gradient data through
-
-```lean
-ShenWork.IntervalDomainExistence.P3MoserLemmas.intervalDomain_relativeMoserInterpolationBefore_of_massGradient
-```
-
-in
-
-```lean
-IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms
-```
-
-So the audit boundary is now correctly: physical-`B` dissipation and terminal endpoint/root-tower control.
-
-## 1. Existing theorem chain?
-
-There is **no existing theorem chain in the current repo that honestly derives either remaining atom from lower-level PDE facts**.
-
-### A. `MoserDissipationDropBeforeNonnegB`
-
-Relevant existing names:
-
-```lean
--- file: ShenWork/PDE/P3MoserDissipationShape.lean
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.moserDissipationDropBeforeNonnegB_of_raw_drop
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.IntegratedMoserDissipationDropBefore
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.integratedMoserDissipationDropBefore_of_integrated_energy
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.unitLinearDrop_not_MoserDissipationDropBeforeNonnegB
-```
-
-The only producer of `MoserDissipationDropBeforeNonnegB` is
-
-```lean
-moserDissipationDropBeforeNonnegB_of_raw_drop
-```
-
-but its input is the stronger pointwise raw drop:
-
-```lean
-∀ p, p0 ≤ p → ∀ B, 0 ≤ B → ∀ t, 0 < t → t < T →
-  0 ≤ (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
-    B * D.integral (fun x => (u t x) ^ p)
-```
-
-That is not a lower-level PDE derivation; it is a stronger wrapper around the same pointwise sign content.  The repo also defines the faithful integrated shape
-
-```lean
-IntegratedMoserDissipationDropBefore
-```
-
-and packages it via
-
-```lean
-integratedMoserDissipationDropBefore_of_integrated_energy
-```
-
-but that integrated shape is not consumed by the current Moser closure.  The current consumers still require pointwise `MoserDissipationDropBeforeNonnegB`:
-
-```lean
--- file: ShenWork/PDE/P3MoserDissipationShape.lean
-moser_step_of_energy_nonnegB_relative_interpolation
-moser_iteration_chain_of_energy_nonnegB_relative_interpolation
-all_exponents_of_energy_nonnegB_relative_interpolation_lpmono
-intervalDomain_all_exponents_of_energy_nonnegB_relative_interpolation
-intervalDomain_all_exponents_of_energy_nonnegB_relative_interpolation_inside
-intervalDomain_boundedBefore_of_energy_nonnegB_relative_interpolation
-intervalDomain_allLpBoundFromBootstrap_of_relative_moser_step_nonnegB
-intervalDomain_endpointBoundFromLp_of_quantitative_root_tower_nonnegB
-
--- file: ShenWork/PDE/P3MoserActualWiring.lean
-intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
-intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-```
-
-The counterexample
-
-```lean
-unitLinearDrop_not_MoserDissipationDropBeforeNonnegB
-```
-
-is exactly the warning not to derive the pointwise `NonnegB` atom abstractly from a generic energy inequality.  Therefore the next faithful dissipation reduction cannot be a wrapper from `LpBootstrapEnergyInequality` to `MoserDissipationDropBeforeNonnegB`.  It would need a new integrated-first-crossing Moser consumer.
-
-### B. `quantitativeEndpoint`
-
-Relevant existing names:
-
-```lean
--- file: ShenWork/Paper2/IntervalDomainMoserClosure.lean
-ShenWork.Paper2.IntervalDomainMoserClosure.IntervalDomainMoserPointwisePowerControlBefore
-ShenWork.Paper2.IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
-ShenWork.Paper2.IntervalDomainMoserClosure.intervalDomain_boundedBefore_of_pointwise_power_control
-ShenWork.Paper2.IntervalDomainMoserClosure.intervalDomain_boundedBefore_of_moser_quantitative_endpoint
-ShenWork.Paper2.IntervalDomainMoserClosure.intervalDomain_boundedBefore_of_moser_iteration_chain_and_quantitative_endpoint
-
--- file: ShenWork/PDE/IntervalDomainMoserActualAtoms.lean
-ShenWork.IntervalDomainExistence.dyadic_root_tower_bound
-ShenWork.IntervalDomainExistence.intervalDomain_endpointBoundFromLp_of_quantitative_root_tower
-
--- file: ShenWork/PDE/P3MoserDissipationShape.lean
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.intervalDomain_endpointBoundFromLp_of_quantitative_root_tower_nonnegB
-
--- file: ShenWork/PDE/P3MoserActualWiring.lean
-ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-```
-
-`IntervalDomainMoserQuantitativeEndpoint` is already very close to the final consumer.  It says that for some `M` and some index `n`, one has a positive exponent, a nonnegative root bound below `M`, and terminal pointwise power control:
-
-```lean
-∃ M, 0 ≤ M ∧ ∃ n : ℕ,
-  0 < pSeq n ∧ 0 ≤ rootBound n ∧ rootBound n ≤ M ∧
-    IntervalDomainMoserPointwisePowerControlBefore u T (pSeq n) (rootBound n)
-```
-
-The dyadic root-tower lemmas are algebraic only:
-
-```lean
-dyadic_inv_sum_Icc_le_one
-dyadic_k_inv_sum_Icc_eq
-dyadic_k_inv_sum_Icc_le_two
-dyadic_root_tower_product_bound
-dyadic_root_tower_iterate_bound
-dyadic_root_tower_bound
-```
-
-They do not construct the terminal pointwise control required by `IntervalDomainMoserQuantitativeEndpoint`.  The current endpoint producers all still take the endpoint as an explicit hypothesis.
-
-So there is no honest current theorem chain from lower PDE/GN facts to the `quantitativeEndpoint` field either.
-
-## 2. Smallest faithful next frontier package
-
-The safest next reduction is **not** dissipation-first.  It is the endpoint packaging reduction:
-
-> Replace the sequence/root-tower-shaped `quantitativeEndpoint` field by a smaller terminal pointwise endpoint frontier, then build the old `quantitativeEndpoint` shape by constant sequences.
-
-This is faithful because `IntervalDomainMoserClosure` ultimately consumes only terminal pointwise power control through
-
-```lean
-intervalDomain_boundedBefore_of_moser_quantitative_endpoint
-```
-
-The `pSeq/rootBound` pair is bookkeeping for a Moser construction, but the current consumer does not inspect a full sequence.  It only needs one index with pointwise power control.  Therefore a terminal frontier of the form
-
-```lean
-∃ q R : ℝ,
-  0 < q ∧ 0 ≤ R ∧
-    ((∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-      IntervalDomainMoserPointwisePowerControlBefore u T q R)
-```
-
-is strictly smaller than the current endpoint atom and is buildable with existing APIs.
-
-### Existing consumers affected
-
-For the endpoint-terminal reduction, **no deep Moser consumer has to change**.  Add one conversion wrapper in `IntervalDomainStatementAssembly.lean`:
-
-```lean
-TerminalPointwiseEndpoint → quantitativeEndpoint
-```
-
-Then all existing consumers can still run through:
-
-```lean
-IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms
-intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
-intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierData
-```
-
-For a dissipation-integrated reduction, by contrast, the existing consumers **would need new theorem variants**.  In particular, the pointwise-drop closure chain in `P3MoserDissipationShape.lean` would need an integrated-first-crossing analogue of at least:
-
-```lean
-moser_step_of_energy_nonnegB_relative_interpolation
-moser_iteration_chain_of_energy_nonnegB_relative_interpolation
-all_exponents_of_energy_nonnegB_relative_interpolation_lpmono
-intervalDomain_all_exponents_of_energy_nonnegB_relative_interpolation_inside
-intervalDomain_boundedBefore_of_energy_nonnegB_relative_interpolation
-intervalDomain_allLpBoundFromBootstrap_of_relative_moser_step_nonnegB
-```
-
-and `P3MoserActualWiring.lean` would need corresponding actual-atom entry points that consume `IntegratedMoserDissipationDropBefore` instead of `MoserDissipationDropBeforeNonnegB`.  That is real new analysis/closure work, not just a statement-level wrapper.
-
-## 3. No-go routes
-
-Do not use these routes:
-
-```lean
--- false legacy relative-Moser power route
-ShenWork.Paper2.IntervalDomainMCL.OldUnitIntervalPowerGNYoungForMoser
-ShenWork.Paper2.IntervalDomainGNYObstruction.not_oldUnitIntervalPowerGNYoungForMoser
-
--- false global interpolation route
-ShenWork.Paper2.IntervalDomainLemma41.IntervalDomainInterpolation
-ShenWork.Paper2.IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
-
--- invalid abstract derivation of pointwise physical-B drop
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.unitLinearDrop_not_MoserDissipationDropBeforeNonnegB
-```
-
-Also do not claim that
-
-```lean
-LpBootstrapEnergyInequality D u T rho p0
-```
-
-implies either old or nonnegative-`B` Moser dissipation.  The repo also has the older diagnostic
-
-```lean
-ShenWork.IntervalDomainExistence.P3MoserLemmaDischarge.LpBootstrapEnergyInequality_does_not_imply_MoserDissipationDropBefore
-```
-
-for the old drop shape.
-
-## 4. Buildable Lean patch outline
-
-This outline is buildable with current APIs because it only repackages terminal pointwise control into the existing `IntervalDomainMoserQuantitativeEndpoint` shape.  It does **not** try to derive the terminal pointwise estimate.
-
-Place after `IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData` in:
+## Usage
 
 ```text
-ShenWork/Paper2/IntervalDomainStatementAssembly.lean
+QNNNN (shen1): <task>
+
+----
+IMPORTANT (git-drop): write your COMPLETE response into
+scratch/_CHATGPT_DROP_shen1.md on the chatgpt-scratch branch of
+xiangyazi24/Shen_work via the GitHub connector.
 ```
 
-The file already imports all required modules at `cbeb0de2`; for an isolated check file, use:
+Use `shen1` when the desired output is a **repository-grounded Lean/statement-assembly audit** for the Shen_work project, delivered as a committed markdown drop rather than as an inline chat answer.
+
+A good `shen1` task usually specifies:
+
+1. The repository and branch/commit to audit.
+2. The paper/file family, for example `Paper1`, `Paper2`, `Paper3`, or a specific `StatementAssembly` file.
+3. The exact theorem wrappers, structures, or residual atoms under consideration.
+4. Forbidden shortcuts, for example axioms, `sorry`, refuted routes, stale global interpolation statements, or legacy GN/Moser shortcuts.
+5. The preferred kind of answer: exact names, import graph, cycle risks, theorem DAG, buildable Lean skeleton, or no-go frontier explanation.
+
+## Typical request shapes
+
+### Residual/frontier audit
+
+```text
+QNNNN (shen1): Repo xiangyazi24/Shen_work main at <commit>.
+Audit <paper/file/theorem family>. Identify the next smallest honest residual/frontier input
+that can be reduced by existing proved code, without using axioms, sorry, or refuted routes.
+Prefer a buildable Lean patch outline with exact names. If no small patch exists, explain
+which remaining inputs are genuine analytic frontiers.
+```
+
+Expected answer:
+
+- current checked route summary;
+- exact existing theorem/structure names;
+- smallest honest reducible input, if one exists;
+- Lean placement and imports;
+- skeleton code with namespaces and all imports;
+- explicit warning about false or cyclic routes;
+- clear statement of any genuine analytic frontier.
+
+### Statement assembly wiring question
+
+```text
+QNNNN (shen1): Repo xiangyazi24/Shen_work, branch <branch>.
+I want to wire <new frontier/provider> into <StatementAssembly wrapper>.
+Audit exact minimal Lean wiring. Should it live in a new file or directly in the assembly file?
+Return exact imports/namespaces and conversion code skeleton. Warn about cycles.
+```
+
+Expected answer:
+
+- recommended file location;
+- import direction and cycle analysis;
+- exact structure/field names;
+- conversion theorem or `.to...` function skeleton;
+- downstream wrappers that should remain unchanged;
+- routes that must not be used.
+
+### Full-statement wrapper audit
+
+```text
+QNNNN (shen1): Repo xiangyazi24/Shen_work main at <commit>.
+Audit whether <full statement wrapper> can be assembled from <preferred atom route> plus
+existing auxiliary producers. If not, identify the missing side-inputs and classify them as
+statement-level plumbing versus real analytic frontiers.
+```
+
+Expected answer:
+
+- yes/no answer first;
+- exact blockers;
+- distinction between wrapper bookkeeping and analytic content;
+- patch outline only for the buildable part;
+- no claim that an unproved analytic side condition is already discharged.
+
+## Output contract
+
+For git-drop prompts, the complete answer should be committed to:
+
+```text
+scratch/_CHATGPT_DROP_shen1.md
+```
+
+on:
+
+```text
+chatgpt-scratch
+```
+
+in:
+
+```text
+xiangyazi24/Shen_work
+```
+
+The chat reply after a successful drop should report only the essential delivery result:
+
+```text
+Committed to xiangyazi24/Shen_work on chatgpt-scratch: <commit-sha>
+```
+
+If the GitHub connector is unavailable or read-only, the correct failure response is:
+
+```text
+GIT-DROP FAILED: connector unavailable
+```
+
+A sandbox file, `/mnt/data` artifact, or inline-only answer is not a valid delivery for these prompts.
+
+## Standards for a valid `shen1` audit
+
+A valid audit should be conservative and repository-grounded.
+
+It should:
+
+- name exact Lean declarations rather than paraphrasing broad mathematical ideas;
+- distinguish existing proved code from proposed new assumptions;
+- explain why a patch is buildable, or why it is not;
+- flag import cycles before suggesting file placement;
+- avoid strengthening claims silently;
+- preserve theorem statement shapes expected by downstream wrappers when possible;
+- state when a remaining input is a genuine analytic frontier rather than Lean plumbing.
+
+It should not:
+
+- use `axiom`, `sorry`, or unsound placeholder interfaces as if they were reductions;
+- route through known-refuted global interpolation statements;
+- route through legacy GN/Moser shortcuts that the repo has already marked as false or obsolete;
+- claim that a statement-level wrapper proves a PDE estimate;
+- invent Lean names not present in the repository without labeling them as proposed names;
+- recommend a broad refactor when a one-wrapper conversion suffices.
+
+## Common no-go warnings in recent Shen_work audits
+
+These names have repeatedly appeared as routes that must not be treated as valid proof sources unless the user explicitly asks for historical/diagnostic discussion:
+
+```lean
+-- false/obsolete global interval interpolation route
+ShenWork.Paper2.IntervalDomainLemma41.IntervalDomainInterpolation
+
+-- diagnostic counterexample family for interval interpolation
+ShenWork.Paper2.IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
+
+-- false legacy GN/Young-for-Moser route
+ShenWork.Paper2.IntervalDomainMCL.OldUnitIntervalPowerGNYoungForMoser
+ShenWork.Paper2.IntervalDomainGNYObstruction.not_oldUnitIntervalPowerGNYoungForMoser
+```
+
+For Moser dissipation audits, also be careful not to claim that a generic energy inequality automatically implies the current physical-`B` pointwise dissipation atom.  Recent audits treated the nonnegative-`B` drop as a real atom unless an existing file contains a proved conversion with the exact required hypotheses.
+
+## Minimal Lean skeleton style
+
+When a task asks for code, use complete import blocks and keep proposed names clearly separated from existing names.
 
 ```lean
 import ShenWork.Paper2.IntervalDomainStatementAssembly
@@ -260,109 +173,46 @@ namespace ShenWork.Paper2
 
 noncomputable section
 
-/-- Actual-atom Proposition 2.5 frontier with relative Moser already lowered to
-mass-gradient data and the endpoint lowered from `pSeq/rootBound` bookkeeping to
-one terminal pointwise power-control estimate.
+/-- Proposed wrapper name; this is new unless already present in the audited commit. -/
+structure ProposedFrontierData (p : CM2Params) : Prop where
+  -- fields go here, using exact existing target declaration names
 
-The dissipation field remains the honest physical-`B` pointwise drop atom. -/
-structure IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData
-    (p : CM2Params) : Prop where
-  moserDissipation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
-          intervalDomain u T rho p0
-  relativeMassGradient :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        ∃ cGrad : ℝ → ℝ,
-          (∀ q, p0 ≤ q → 0 < cGrad q) ∧
-          (∀ q, p0 ≤ q → ∀ eta > 0, ∃ Ceta,
-            LpMassGradientInterpolationEstimate intervalDomain
-              (q + rho) eta Ceta T u) ∧
-          (∀ q, p0 ≤ q → ∀ t, 0 < t → t < T →
-            intervalDomain.integral (fun x =>
-                (u t x) ^ (q + rho - 2) *
-                  (intervalDomain.gradNorm (u t) x) ^ 2) ≤
-              cGrad q * intervalDomain.integral (fun x =>
-                (intervalDomain.gradNorm
-                  (fun y => (u t y) ^ (q / 2)) x) ^ 2)) ∧
-          MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0
-  terminalEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ q R : ℝ,
-          0 < q ∧ 0 ≤ R ∧
-            ((∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-              IntervalDomainMoserPointwisePowerControlBefore u T q R)
-
-/-- Convert the terminal endpoint package to the existing mass-gradient actual
-atom frontier by using constant `pSeq/rootBound` sequences. -/
-def
-    IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData.toMassGradient
+/-- Proposed conversion into an existing frontier shape. -/
+def ProposedFrontierData.toExistingFrontierData
     {p : CM2Params}
-    (h :
-      IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData
-        p) :
-    IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p where
-  moserDissipation := h.moserDissipation
-  relativeMassGradient := h.relativeMassGradient
-  quantitativeEndpoint := by
-    intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
-    rcases h.terminalEndpoint hu₀ hT hsol htrace pExp hpExp hLp with
-      ⟨q, R, hq, hR, hpoint⟩
-    refine ⟨fun _ : ℕ => q, fun _ : ℕ => R, ?_⟩
-    intro hAllLp
-    refine ⟨R, hR, 0, hq, hR, le_rfl, ?_⟩
-    exact hpoint hAllLp
-
-/-- Proposition 2.5 from mass-gradient actual atoms and terminal pointwise
-endpoint control. -/
-theorem
-    intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
-    (p : CM2Params)
-    (hData :
-      IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData
-        p) :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
-    p hData.toMassGradient
-
-/-- Corollary 2.1 from mass-gradient actual atoms and terminal pointwise endpoint
-control.  The endpoint field is not used for Corollary 2.1 but is retained so the
-same package can feed Proposition 2.5 and all headline wrappers. -/
-theorem
-    intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientTerminalEndpointFrontierData
-    (p : CM2Params)
-    (hData :
-      IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData
-        p) :
-    Corollary_2_1 intervalDomain p :=
-  intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierData
-    p hData.toMassGradient
+    (h : ProposedFrontierData p) :
+    ExistingFrontierData p := by
+  -- skeleton only; fill with exact existing declarations from the audit
+  sorry
 
 end
 
 end ShenWork.Paper2
 ```
 
-This is the recommended next patch if the goal is the safest incremental reduction.  It shrinks the endpoint atom without pretending to prove the terminal Moser pointwise estimate.
+If the task forbids `sorry`, the code block should be labeled as a skeleton unless all proof terms are actually known from the repository.  Do not present a skeleton as build-verified code.
 
-## Bottom line
+## Recommended answer order
 
-After `cbeb0de2`, neither remaining actual Prop25 atom has an honest lower-level derivation chain in the repo.  The next safest reduction is a **terminal endpoint package** that replaces `pSeq/rootBound` construction by a direct terminal pointwise power-control frontier and converts it back to `IntervalDomainMoserQuantitativeEndpoint` with constant sequences.
+1. One-sentence verdict.
+2. Current route and exact declarations involved.
+3. Smallest honest reduction, or explanation that none exists.
+4. Buildable patch outline with imports/namespaces.
+5. Cycle and no-go warnings.
+6. Remaining analytic frontiers.
 
-The dissipation atom should remain as-is until a new integrated-first-crossing Moser closure is proved; do not derive `MoserDissipationDropBeforeNonnegB` abstractly from the energy inequality.
+## Prompt template
+
+```text
+QNNNN (shen1): Repo xiangyazi24/Shen_work <branch> at <commit>.
+Read <files>. Audit <theorem/wrapper/frontier>.
+Question: <precise question>.
+Constraints: no axioms, no sorry, no refuted <route>, no obsolete <route>.
+Prefer exact Lean names and a buildable patch outline. If no small patch exists,
+explain the genuine frontier.
+
+----
+IMPORTANT (git-drop): write your COMPLETE response into scratch/_CHATGPT_DROP_shen1.md
+on the chatgpt-scratch branch of xiangyazi24/Shen_work via the GitHub connector —
+UPDATE the existing file, overwriting its contents. After committing, report the commit SHA.
+```
