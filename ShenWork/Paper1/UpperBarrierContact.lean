@@ -113,6 +113,37 @@ theorem no_const_left_plateau_of_tendsto_atBot_one
   have hEq : (1 : ℝ) = MChi p := tendsto_nhds_unique hlim hlimM
   exact hMne hEq.symm
 
+/-- Strictly positive sensitivity pushes the positive-branch normalization above
+`1`. -/
+theorem one_lt_MChi_of_chi_pos_lt_one
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    1 < MChi p := by
+  have hden_pos : 0 < 1 - p.χ := by linarith
+  have hbase_gt : 1 < 1 / (1 - p.χ) := by
+    rw [lt_div_iff₀ hden_pos]
+    linarith
+  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hexp_pos : 0 < 1 / p.α := div_pos one_pos hα_pos
+  rw [MChi_eq_rpow_of_chi_pos p hχ_pos]
+  exact Real.one_lt_rpow hbase_gt hexp_pos
+
+theorem MChi_ne_one_of_chi_pos_lt_one
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    MChi p ≠ 1 :=
+  ne_of_gt (one_lt_MChi_of_chi_pos_lt_one p hχ_pos hχ_lt)
+
+/-- The left-end profile limit discharges the constant-branch residual when
+`MChi p` is forced away from `1`. -/
+theorem no_const_left_plateau_of_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False :=
+  no_const_left_plateau_of_tendsto_atBot_one
+    hprofile.lim_neg_inf.1
+    (MChi_ne_one_of_chi_pos_lt_one p hχ_pos hχ_lt)
+
 /-- Pointwise second-derivative comparison against the exponential branch from
 a local maximum of `U - expDecay κ`.
 
@@ -273,6 +304,30 @@ structure PositiveUpperBarrierRemainingContactResidual
       U x = Real.exp (-(kappa c) * x) →
         frozenWaveOperator p c U
           (upperBarrier (kappa c) (MChi p)) x < 0
+
+/-- Under `0 < χ`, the constant-branch residual is discharged from the profile
+limit, so only strict exponential contact remains. -/
+structure PositiveUpperBarrierExpStrictContactResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  exp_strict_super_at_contact :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+      U x = Real.exp (-(kappa c) * x) →
+        frozenWaveOperator p c U
+          (upperBarrier (kappa c) (MChi p)) x < 0
+
+/-- Profile plus strict positive sensitivity narrows the smooth-contact residual
+to the strict exponential-contact field alone. -/
+theorem PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
+    PositiveUpperBarrierRemainingContactResidual p c U :=
+  { no_const_left_plateau :=
+      no_const_left_plateau_of_profile_chi_pos
+        hprofile hχ_pos hχ_lt
+    exp_strict_super_at_contact :=
+      hstrict.exp_strict_super_at_contact }
 
 @[deprecated PositiveUpperBarrierRemainingContactResidual (since := "2026-06-29")]
 abbrev PositiveUpperBarrierSmoothBranchResidual :=

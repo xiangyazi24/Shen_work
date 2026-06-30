@@ -6,12 +6,13 @@ Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper1 positive upper-contact
-  refinements and Route-A raw cap wiring, `lake build ShenWork` completed
-  successfully on `uisai2:/dev/shm/shen_verify`, **8983 jobs**.  The target
-  build
+  refinements, Route-A raw cap wiring, and `χ>0` no-left-plateau narrowing,
+  `lake build ShenWork` completed successfully on
+  `uisai2:/dev/shm/shen_verify`, **8983 jobs**.  The target build
   `lake build ShenWork.Paper1.UpperBarrierContact ShenWork.Paper1.PositiveRawRouteAAssembly`
-  also completed successfully.  The new Paper1 contact/Route-A wrappers have
-  `#print axioms` output `[propext, Classical.choice, Quot.sound]`.
+  also completed successfully.  The new Paper1 contact/Route-A wrappers and
+  no-left-plateau narrowing wrappers have `#print axioms` output
+  `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -90,9 +91,13 @@ Current headline status:
   proves the exponential-branch operator comparison directly as
   `positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary`.
   The surviving smooth residual is now
-  `PositiveUpperBarrierRemainingContactResidual`: constant-branch contact is
-  reduced to `no_const_left_plateau`, while exponential-branch contact keeps
-  only the strict superbarrier residual at contact.  The corresponding raw
+  `PositiveUpperBarrierRemainingContactResidual`: the generic wrapper still has
+  a `no_const_left_plateau` field, but `UpperBarrierContact` proves this field
+  from `FrozenStationaryWaveProfile.lim_neg_inf.1` once `0 < p.χ < 1`, via
+  `MChi_ne_one_of_chi_pos_lt_one`.  The thinner
+  `PositiveUpperBarrierExpStrictContactResidual` therefore leaves only the
+  strict exponential superbarrier residual at contact on that profile route.
+  The corresponding raw
   smooth-contact and remaining-contact statement routes are
   `Paper1PositiveLowerPinnedRawSmoothContactBranchData`,
   `Paper1MainStatementLowerPinnedRawSmoothContactData`, and
@@ -107,8 +112,9 @@ Current headline status:
   raw smooth-contact, and remaining-contact interfaces.  The remaining positive residuals are the
   Route-A/Schauder analytic data themselves: lower-pin preservation by the
   positive map, map/compactness data, stationarity/flat-left inputs, C²
-  regularity data, no-left-plateau, and strict exponential superbarrier at
-  contact.  The right-tail
+  regularity data, and the strict exponential superbarrier at contact.  The
+  no-left-plateau input is no longer separate on profile routes with
+  `0 < p.χ < 1`.  The right-tail
   asymptotic itself now has
   the pure lower-pinned squeeze producers
   `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap` and
