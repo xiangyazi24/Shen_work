@@ -348,11 +348,20 @@ Current headline status:
   `IntegratedMoserHighExcursionLowerAverageWindowFrontier` is the
   thickness/modulus lower-average frontier, while
   `IntegratedMoserWindowUpperGapWitnessFrontier` is the quantitative
-  `eps`/`Ceps` upper-gap frontier.  The latter now has a thinner producer
-  interface, `IntegratedMoserWindowUpperGapEpsilonFrontier`: the fixed-window
-  upper-bound calculation is discharged by
-  `integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap`, leaving only
-  the strict epsilon-gap choice as analytic input.  Their pure assembler is
+  `eps`/`Ceps` upper-gap frontier.  The preferred strict-gap interface is now
+  `IntegratedMoserWindowUpperDataGapFrontier`: it receives the proved
+  fixed-window upper-bound data producer and only has to close the gap for one
+  selected actual witness, avoiding the older over-strong requirement that the
+  same strict gap hold for every possible larger upper-bound witness.
+  `integratedMoser_windowUpperBoundData_of_lowerAverageWindow` supplies that
+  fixed-window data from regularity, nonnegativity, dissipation, and relative
+  interpolation, and
+  `integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap` converts the
+  new gap chooser to the existing witness frontier.  The older
+  `IntegratedMoserWindowUpperGapEpsilonFrontier` remains as a compatibility
+  stronger interface via
+  `integratedMoserWindowUpperDataGapFrontier_of_epsilonGap`.  Their pure
+  assembler is
   `integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap`.
   These are still fixed-window or conditional frontier interfaces; they do not
   extract a pointwise next-exponent bound from a bare time-integral estimate.
@@ -592,10 +601,13 @@ Input-package audit:
   cross-exponent `IntegratedMoserFirstCrossingLowerUpperFrontiers` package.
   The base-exponent nonnegativity field is now pure arithmetic via
   `p0_nonneg_of_abstractLpBootstrapHypothesis`, and
-  `IntegratedMoserFirstCrossingLowerAverageEpsilonData` collapses lower-average
-  plus epsilon-gap data to the split first-crossing package.  The current code
-  still does not derive high-excursion thickness or the quantitative
-  epsilon-gap closure.
+  `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` is now the
+  preferred package collapsing lower-average data plus the upper-data-aware
+  strict-gap chooser to the split first-crossing package.  The older
+  `IntegratedMoserFirstCrossingLowerAverageEpsilonData` still collapses through
+  a compatibility conversion, but is intentionally stronger.  The current code
+  still does not derive high-excursion thickness or the quantitative selected
+  upper-witness gap closure.
 - Some fields are already produced or reduced further by code.  Examples:
   Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`, now
   exposed in the interval-domain statement assembly; the Paper2

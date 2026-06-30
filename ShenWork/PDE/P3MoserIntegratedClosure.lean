@@ -787,12 +787,12 @@ structure IntegratedMoserWindowUpperGapEpsilonFrontier
               eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) <
                 hwin.lowerBound
 
-/-- Produce the upper-gap frontier from the already-proved fixed-window
-integrated-Moser upper-bound data, leaving only the quantitative epsilon-gap
-choice as a frontier. -/
-def integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
+/-- Build the fixed-window upper-bound data for a selected lower-average
+window.  This factors out the routine regularity/dissipation construction so
+gap frontiers can reason only about choosing a useful witness. -/
+def integratedMoser_windowUpperBoundData_of_lowerAverageWindow
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p : ℝ}
+    {T rho p0 p Cnext t eps : ℝ}
     (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
     (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
     (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
@@ -800,10 +800,49 @@ def integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
     (hp : p0 ≤ p)
     (hp_nonneg : 0 ≤ p)
     (hrho_pos : 0 < rho)
+    (hwin : IntegratedMoserHighExcursionLowerAverageWindow
+      D u T rho p0 p Cnext t)
+    (heps : 0 < eps) :
+    IntegratedMoserWindowUpperBoundData
+      D u rho p hwin.a hwin.b hwin.M eps := by
+  let hI :=
+    integratedMoserPrecrossingIntervalData_of_regular_window
+      hreg hnonneg hp hp_nonneg hrho_pos.le hwin.hab hwin.ha_pos
+      hwin.hb_lt hwin.haT hwin.hbT hwin.currentEnergy_le_Icc
+  exact integratedMoser_windowUpperBoundData_of_precrossing
+    hinteg hrel hI heps
+
+/-- Upper-gap frontier that may consult the fixed-window upper-bound data
+producer for the selected lower-average window.
+
+Unlike `IntegratedMoserWindowUpperGapEpsilonFrontier`, this does not require
+the strict gap to hold for every possible witness with the same epsilon.  It
+chooses one actual fixed-window witness supplied by the upper-bound calculation,
+which is the non-vacuous interface needed by the high-excursion plan. -/
+structure IntegratedMoserWindowUpperDataGapFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p : ℝ) where
+  produce :
+    ∀ {Cnext t : ℝ},
+      (hwin : IntegratedMoserHighExcursionLowerAverageWindow
+        D u T rho p0 p Cnext t) →
+      (∀ eps : ℝ, 0 < eps →
+        IntegratedMoserWindowUpperBoundData
+          D u rho p hwin.a hwin.b hwin.M eps) →
+        IntegratedMoserWindowUpperGapWitness
+          D u rho p hwin.a hwin.b hwin.M hwin.lowerBound
+
+/-- Compatibility adapter: the older all-witness epsilon-gap frontier implies
+the new upper-data-aware frontier.  This direction is intentionally one-way;
+the new frontier is weaker because it only has to close the gap for one chosen
+upper-bound witness. -/
+def integratedMoserWindowUpperDataGapFrontier_of_epsilonGap
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
     (hgap : IntegratedMoserWindowUpperGapEpsilonFrontier D u T rho p0 p) :
-    IntegratedMoserWindowUpperGapWitnessFrontier D u T rho p0 p where
+    IntegratedMoserWindowUpperDataGapFrontier D u T rho p0 p where
   produce := by
-    intro Cnext t hwin
+    intro Cnext t hwin hupperData
     let eps : ℝ := Classical.choose (hgap.choose hwin)
     have heps_spec := Classical.choose_spec (hgap.choose hwin)
     have heps : 0 < eps := heps_spec.1
@@ -814,13 +853,7 @@ def integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
           eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) <
             hwin.lowerBound :=
       heps_spec.2
-    let hI :=
-      integratedMoserPrecrossingIntervalData_of_regular_window
-        hreg hnonneg hp hp_nonneg hrho_pos.le hwin.hab hwin.ha_pos
-        hwin.hb_lt hwin.haT hwin.hbT hwin.currentEnergy_le_Icc
-    let hUpperData :=
-      integratedMoser_windowUpperBoundData_of_precrossing
-        hinteg hrel hI heps
+    let hUpperData := hupperData eps heps
     let Gbound : ℝ := Classical.choose hUpperData.bounds
     let hGbound_spec := Classical.choose_spec hUpperData.bounds
     let Ceps : ℝ := Classical.choose hGbound_spec
@@ -835,6 +868,47 @@ def integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
         eps_pos := heps
         upperWitness := hupper
         upper_lt_lower := hstrict hupper }
+
+/-- Produce the tied upper-gap witness frontier from an upper-data-aware gap
+frontier and the already-proved fixed-window upper-bound calculation. -/
+def integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
+    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (hrho_pos : 0 < rho)
+    (hgap : IntegratedMoserWindowUpperDataGapFrontier D u T rho p0 p) :
+    IntegratedMoserWindowUpperGapWitnessFrontier D u T rho p0 p where
+  produce := by
+    intro Cnext t hwin
+    exact
+      hgap.produce hwin
+        (fun eps heps =>
+          integratedMoser_windowUpperBoundData_of_lowerAverageWindow
+            hreg hnonneg hinteg hrel hp hp_nonneg hrho_pos hwin heps)
+
+/-- Produce the upper-gap frontier from the already-proved fixed-window
+integrated-Moser upper-bound data, leaving only the quantitative epsilon-gap
+choice as a frontier. -/
+def integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
+    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (hrho_pos : 0 < rho)
+    (hgap : IntegratedMoserWindowUpperGapEpsilonFrontier D u T rho p0 p) :
+    IntegratedMoserWindowUpperGapWitnessFrontier D u T rho p0 p :=
+  integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
+    hreg hnonneg hinteg hrel hp hp_nonneg hrho_pos
+    (integratedMoserWindowUpperDataGapFrontier_of_epsilonGap hgap)
 
 /-- Pure assembly of a lower-average window and a tied upper-gap witness into
 the packaged contradiction-window frontier object. -/
@@ -1040,6 +1114,84 @@ def toLowerUpperFrontiers
 
 end IntegratedMoserFirstCrossingLowerAverageEpsilonData
 
+/-- Producer data reducing the first-crossing package to lower-average
+thickness plus an upper-data-aware strict-gap chooser.
+
+This is the preferred non-vacuous split for the high-excursion route: the gap
+chooser is allowed to inspect the fixed-window upper-bound data producer, and
+therefore only has to close the gap for one selected witness rather than every
+larger witness satisfying the same upper-bound inequality. -/
+structure IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop where
+  regularity : IntegratedMoserFirstCrossingRegularity D u T p0
+  energyNonneg : IntegratedMoserEnergyNonnegativity D u T p0
+  dissipation : IntegratedMoserDissipationDropBefore D u T rho p0
+  relative : RelativeMoserInterpolationBefore D u T rho p0
+  rho_pos : 0 < rho
+  p0_nonneg : 0 ≤ p0
+  lowerAverage :
+    ∀ p, p0 ≤ p →
+      0 ≤ p →
+      LpPowerBoundedBefore D p T u →
+        Nonempty
+          (Σ Cnext : ℝ,
+            IntegratedMoserHighExcursionLowerAverageWindowFrontier
+              D u T rho p0 p Cnext)
+  upperDataGap :
+    ∀ p, p0 ≤ p →
+      0 ≤ p →
+        Nonempty
+          (IntegratedMoserWindowUpperDataGapFrontier D u T rho p0 p)
+
+namespace IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+
+/-- Collapse lower-average thickness plus the upper-data-aware gap chooser to
+the split lower/upper first-crossing package. -/
+def toLowerUpperFrontiers
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (h : IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+      D u T rho p0) :
+    IntegratedMoserFirstCrossingLowerUpperFrontiers D u T rho p0 where
+  p0_nonneg := h.p0_nonneg
+  frontiers := by
+    intro p hp hLp
+    have hp_nonneg : 0 ≤ p := le_trans h.p0_nonneg hp
+    let hlowerChoice :=
+      Classical.choice (h.lowerAverage p hp hp_nonneg hLp)
+    let hupperDataGap :=
+      Classical.choice (h.upperDataGap p hp hp_nonneg)
+    exact
+      { Cnext := hlowerChoice.1
+        lowerAverage := hlowerChoice.2
+        upperGap :=
+          integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
+            h.regularity h.energyNonneg h.dissipation h.relative
+            hp hp_nonneg h.rho_pos hupperDataGap }
+
+end IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+
+/-- Compatibility conversion from the older all-witness epsilon-gap package to
+the preferred upper-data-aware package. -/
+def IntegratedMoserFirstCrossingLowerAverageEpsilonData.toUpperDataGapData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (h : IntegratedMoserFirstCrossingLowerAverageEpsilonData D u T rho p0) :
+    IntegratedMoserFirstCrossingLowerAverageUpperDataGapData D u T rho p0 where
+  regularity := h.regularity
+  energyNonneg := h.energyNonneg
+  dissipation := h.dissipation
+  relative := h.relative
+  rho_pos := h.rho_pos
+  p0_nonneg := h.p0_nonneg
+  lowerAverage := h.lowerAverage
+  upperDataGap := by
+    intro p hp hp_nonneg
+    exact
+      ⟨integratedMoserWindowUpperDataGapFrontier_of_epsilonGap
+        (h.epsilonGap p hp hp_nonneg)⟩
+
 /-- Pure wrapper from split lower-average/upper-gap frontiers to the
 high-excursion contradiction-window frontier. -/
 def integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
@@ -1093,6 +1245,9 @@ theorem integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
 #print axioms IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le
 #print axioms integratedMoserPrecrossingIntervalData_of_regular_window
 #print axioms integratedMoser_windowUpperBoundData_of_precrossing
+#print axioms integratedMoser_windowUpperBoundData_of_lowerAverageWindow
+#print axioms integratedMoserWindowUpperDataGapFrontier_of_epsilonGap
+#print axioms integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
 #print axioms integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
 #print axioms false_of_windowUpperBoundWitness_lowerAverage_gap
 #print axioms false_of_integratedMoserHighExcursionContradictionWindow
@@ -1101,6 +1256,8 @@ theorem integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
 #print axioms IntegratedMoserLowerUpperWindowFrontiers.to_contradictionWindowFrontier
 #print axioms p0_nonneg_of_abstractLpBootstrapHypothesis
 #print axioms IntegratedMoserFirstCrossingLowerAverageEpsilonData.toLowerUpperFrontiers
+#print axioms IntegratedMoserFirstCrossingLowerAverageUpperDataGapData.toLowerUpperFrontiers
+#print axioms IntegratedMoserFirstCrossingLowerAverageEpsilonData.toUpperDataGapData
 #print axioms LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
 #print axioms integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
 #print axioms integratedMoserFirstCrossingStep_of_windowFrontier
