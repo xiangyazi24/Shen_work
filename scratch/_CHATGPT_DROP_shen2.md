@@ -1,54 +1,63 @@
-# Q2438 shen2: next smallest integrated-Moser lemma after gradient extraction
+# Q2446 shen2: next honest integrated-Moser lemma after max-one bound
 
-Repo target: `xiangyazi24/Shen_work`, `main` at commit `830352766089c95945fc741ccc208762862c54c6`.
+Repo target: `xiangyazi24/Shen_work`.
 
 ## Verdict
 
-After adding
+The next smallest mathematically honest lemma is a **time-integrated relative-Moser interpolation bound** on a fixed subinterval.  It should take as inputs:
+
+* the existing pointwise `RelativeMoserInterpolationBefore`,
+* a current-exponent bound `Y_p(s) ≤ M` on `Set.Icc a b`,
+* interval-integrability of the higher-power and gradient terms on `a..b`,
+* optionally a bound on the integrated gradient term.
+
+It should output a bound for
 
 ```lean
-integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+∫ s in a..b, D.integral (fun x => (u s x) ^ (p + rho))
 ```
 
-the next smallest buildable lemma is exactly the generic interval-integral cap for the `max 1 Y` term:
+in terms of
 
 ```lean
-∫ s in a..b, max 1 (Y s) ≤ (b - a) * max 1 M
+eps * ∫ s in a..b, D.integral (fun x => (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)
 ```
 
-from:
+plus a lower-order time-length term.  This is exactly the missing algebraic bridge after the gradient-integral extraction lemma: once `∫G_p` is bounded, relative interpolation gives a time-integral bound for `Y_{p+rho}`.
 
-* `a ≤ b`,
-* `∀ s ∈ Set.Icc a b, Y s ≤ M`,
-* interval-integrability of `fun s => max 1 (Y s)` on `a..b`.
+This does **not** smuggle the hard theorem.  It does not prove pointwise control of `Y_{p+rho}`, does not construct a first-crossing time, and does not produce `IntegratedMoserFirstCrossingStep`.  It only integrates an already-assumed pointwise interpolation inequality over a fixed interval.
 
-This lemma is purely order/interval-integral bookkeeping.  It does not prove any first-crossing step and does not mention `IntegratedMoserDissipationDropBefore`.
+## Why this is the right next lemma
 
-The most compile-stable form should take the max-integrability hypothesis explicitly.  Deriving that hypothesis from continuity or from `IntegratedMoserFirstCrossingRegularity.powerTimeIntegrable` is a separate later convenience lemma; do not mix it into this smallest bound lemma.
+Current Stage 1 already has the closure consumers from a supplied `IntegratedMoserFirstCrossingStep`.  The integrated dissipation side can now extract a gradient-integral bound from endpoint/time-integral bounds.  The previous max-one lemma supplies the time-integral bound for the `max 1 Y_p` term under a uniform pre-crossing bound.
 
-## Placement
+The next bottleneck is therefore the other half of the Moser step:
 
-Add the lemma in
+```lean
+Y_{p+rho}(s) ≤ eps * G_p(s) + Ceps * Y_p(s)
+```
+
+from `RelativeMoserInterpolationBefore`, integrated over `s ∈ [a,b]`.  The lemma below packages only that fixed-interval integration.
+
+## Imports / namespace
+
+Put this in:
 
 ```text
 ShenWork/PDE/P3MoserIntegratedClosure.lean
 ```
 
-inside namespace
+inside:
 
 ```lean
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-The current file already imports:
+The file's existing import/open block should be enough:
 
 ```lean
 import ShenWork.PDE.P3MoserDissipationShape
-```
 
-and already opens:
-
-```lean
 open MeasureTheory
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
@@ -57,150 +66,199 @@ open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open scoped Interval
 ```
 
-No additional import should be necessary for this lemma, because nearby source already uses `intervalIntegral.integral_mono_on`, `intervalIntegrable_const`, and `intervalIntegral.integral_const` under the same dependency chain.
-
-## Exact generic lemma likely to compile
+The proof uses the same interval-integral API already used in the repo, especially:
 
 ```lean
-/-- Bound the integrated `max 1 Y` term by a uniform pointwise bound on `Y`.
+intervalIntegral.integral_mono_on
+intervalIntegral.integral_add
+intervalIntegral.integral_const_mul
+intervalIntegral.integral_const
+intervalIntegrable_const
+```
 
-This is the small order/interval-integral lemma needed after extracting the
-integrated Moser gradient term.  It deliberately assumes interval-integrability
-of `max 1 ∘ Y`; producing that integrability from solution regularity can be a
-separate later lemma. -/
-theorem intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
-    {a b M : ℝ} {Y : ℝ → ℝ}
+## Proposed code: generic affine interval-integral helper
+
+This generic helper is useful beyond Moser and keeps the specialized lemma short.
+
+```lean
+/-- Integrate a pointwise affine upper bound over an oriented interval.
+
+This is pure interval-integral bookkeeping: if `F ≤ A * G + B` on `[a,b]`,
+then the interval integral of `F` is bounded by the affine expression in the
+interval integral of `G`. -/
+theorem intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on
+    {a b A B : ℝ} {F G : ℝ → ℝ}
     (hab : a ≤ b)
-    (hYmax_int :
-      IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) MeasureTheory.volume a b)
-    (hY_le : ∀ s ∈ Set.Icc a b, Y s ≤ M) :
-    ∫ s in a..b, max (1 : ℝ) (Y s) ≤
-      (b - a) * max (1 : ℝ) M := by
-  have hpoint :
-      ∀ s ∈ Set.Icc a b,
-        max (1 : ℝ) (Y s) ≤ max (1 : ℝ) M := by
-    intro s hs
-    exact max_le
-      (le_max_left (1 : ℝ) M)
-      (le_trans (hY_le s hs) (le_max_right (1 : ℝ) M))
+    (hF_int : IntervalIntegrable F MeasureTheory.volume a b)
+    (hG_int : IntervalIntegrable G MeasureTheory.volume a b)
+    (hpoint : ∀ s ∈ Set.Icc a b, F s ≤ A * G s + B) :
+    ∫ s in a..b, F s ≤
+      A * ∫ s in a..b, G s + (b - a) * B := by
+  have hR_int :
+      IntervalIntegrable (fun s => A * G s + B) MeasureTheory.volume a b :=
+    (hG_int.const_mul A).add intervalIntegrable_const
   have hmono :=
-    intervalIntegral.integral_mono_on hab
-      hYmax_int intervalIntegrable_const hpoint
-  have hconst :
-      (∫ _s in a..b, max (1 : ℝ) M) =
-        (b - a) * max (1 : ℝ) M := by
+    intervalIntegral.integral_mono_on hab hF_int hR_int hpoint
+  have hR :
+      (∫ s in a..b, A * G s + B) =
+        A * ∫ s in a..b, G s + (b - a) * B := by
+    rw [intervalIntegral.integral_add
+      (hG_int.const_mul A) intervalIntegrable_const]
+    rw [intervalIntegral.integral_const_mul]
     rw [intervalIntegral.integral_const]
     simp [smul_eq_mul]
-  simpa [hconst] using hmono
+  rw [hR] at hmono
+  exact hmono
 ```
 
-### Why this should compile
+If the method name `hG_int.const_mul A` is brittle in the local Mathlib version, use the same idea with whichever spelling Lean suggests for scalar multiplication of an `IntervalIntegrable` function.  The repo already uses `.add intervalIntegrable_const`, so the only uncertain syntactic point is the scalar-multiplication method name.
 
-The proof uses the same interval-integral API already used in the repo.  For example, `ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean` uses:
+## Proposed code: integrated relative-Moser bound
 
-```lean
-intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
-  hp_int (hq_int.add intervalIntegrable_const) hpoint
-```
-
-and then rewrites constants using:
+This is the actual next Moser-specific lemma.
 
 ```lean
-rw [intervalIntegral.integral_const]
-norm_num [smul_eq_mul]
-```
+/-- Integrate the relative Moser interpolation inequality over a time interval,
+using a uniform current-exponent bound on that interval.
 
-The proposed proof uses the same two Mathlib lemmas:
-
-* `intervalIntegral.integral_mono_on`
-* `intervalIntegral.integral_const`
-
-plus `intervalIntegrable_const`, `max_le`, `le_max_left`, and `le_max_right`.
-
-## Optional Moser-specialized wrapper
-
-The generic lemma is probably enough, but a one-line Moser-specialized wrapper can make later code cleaner.  It should also compile if the generic lemma compiles.
-
-```lean
-/-- Moser-energy specialization of
-`intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound`. -/
-theorem integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
+This is a fixed-interval estimate.  It does not assert any first-crossing or
+pointwise-in-time bound for the higher exponent. -/
+theorem relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_bound
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {a b M p : ℝ}
+    {T rho p0 p a b M eps : ℝ}
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (heps : 0 < eps)
     (hab : a ≤ b)
-    (hYmax_int :
+    (ha : 0 < a)
+    (hb : b < T)
+    (hZ_int :
       IntervalIntegrable
-        (fun s => max (1 : ℝ)
-          (D.integral (fun x => (u s x) ^ p)))
+        (fun s => D.integral (fun x => (u s x) ^ (p + rho)))
+        MeasureTheory.volume a b)
+    (hG_int :
+      IntervalIntegrable
+        (fun s =>
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
         MeasureTheory.volume a b)
     (hY_le :
       ∀ s ∈ Set.Icc a b,
         D.integral (fun x => (u s x) ^ p) ≤ M) :
-    ∫ s in a..b,
-      max (1 : ℝ) (D.integral (fun x => (u s x) ^ p)) ≤
-        (b - a) * max (1 : ℝ) M :=
-  intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
-    (Y := fun s => D.integral (fun x => (u s x) ^ p))
-    hab hYmax_int hY_le
+    ∃ Ceps, 0 ≤ Ceps ∧
+      ∫ s in a..b,
+          D.integral (fun x => (u s x) ^ (p + rho)) ≤
+        eps * ∫ s in a..b,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) +
+        (b - a) * (Ceps * M) := by
+  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, hrel_eps⟩
+  refine ⟨Ceps, hCeps_nonneg, ?_⟩
+  exact
+    intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on
+      (F := fun s => D.integral (fun x => (u s x) ^ (p + rho)))
+      (G := fun s =>
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
+      (A := eps) (B := Ceps * M)
+      hab hZ_int hG_int
+      (by
+        intro s hs
+        have hs0 : 0 < s := lt_of_lt_of_le ha hs.1
+        have hsT : s < T := lt_of_le_of_lt hs.2 hb
+        have hrel_s := hrel_eps s hs0 hsT
+        have hY_s := hY_le s hs
+        have hCY_s :
+            Ceps * D.integral (fun x => (u s x) ^ p) ≤ Ceps * M :=
+          mul_le_mul_of_nonneg_left hY_s hCeps_nonneg
+        linarith)
 ```
 
-This wrapper is optional; the generic lemma is the minimal useful patch.
+## Optional follow-up in the same patch: consume a supplied gradient-integral bound
 
-## How it feeds the gradient extraction lemma
-
-Suppose the already-added extraction lemma has hypotheses roughly:
+If the preceding gradient-extraction lemma returns a separate bound
 
 ```lean
-hY1 : Y t1 ≤ M
-hY2 : Y t2 ≤ M
-hMaxInt : ∫ s in t1..t2, max 1 (Y s) ≤ R
+∫ G ≤ Gbound
 ```
 
-or an explicit bound on that max integral.  The new lemma supplies the natural `R`:
+then this wrapper is a useful one-line combination.  It is still not the first-crossing theorem: it only turns a supplied gradient-integral bound into a supplied higher-power time-integral bound.
 
 ```lean
-R := (t2 - t1) * max 1 M
+/-- Integrated relative-Moser bound after substituting a supplied bound on the
+integrated gradient term. -/
+theorem relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M eps Gbound : ℝ}
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (heps : 0 < eps)
+    (hab : a ≤ b)
+    (ha : 0 < a)
+    (hb : b < T)
+    (hZ_int :
+      IntervalIntegrable
+        (fun s => D.integral (fun x => (u s x) ^ (p + rho)))
+        MeasureTheory.volume a b)
+    (hG_int :
+      IntervalIntegrable
+        (fun s =>
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
+        MeasureTheory.volume a b)
+    (hY_le :
+      ∀ s ∈ Set.Icc a b,
+        D.integral (fun x => (u s x) ^ p) ≤ M)
+    (hG_le :
+      ∫ s in a..b,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤ Gbound) :
+    ∃ Ceps, 0 ≤ Ceps ∧
+      ∫ s in a..b,
+          D.integral (fun x => (u s x) ^ (p + rho)) ≤
+        eps * Gbound + (b - a) * (Ceps * M) := by
+  rcases
+    relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_bound
+      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
+      (p := p) (a := a) (b := b) (M := M) (eps := eps)
+      hrel hp heps hab ha hb hZ_int hG_int hY_le with
+    ⟨Ceps, hCeps_nonneg, htime⟩
+  refine ⟨Ceps, hCeps_nonneg, ?_⟩
+  have hscaled :
+      eps * ∫ s in a..b,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      eps * Gbound :=
+    mul_le_mul_of_nonneg_left hG_le heps.le
+  linarith
 ```
 
-provided the first-crossing setup supplies
+This optional wrapper is often the most convenient consumer after
+`integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds`, because that extraction lemma likely outputs exactly `hG_le` or a bound on `2 * ∫G` that can be rescaled.
+
+## Why this is not smuggling the hard theorem
+
+These lemmas assume all fixed-interval input data explicitly:
+
+* interval-integrability of the higher-power term `Y_{p+rho}`;
+* interval-integrability of the gradient term `G_p`;
+* a uniform current-exponent bound `Y_p ≤ M` on the chosen interval;
+* optionally a supplied integrated-gradient bound.
+
+They do **not** prove:
 
 ```lean
-t1 ≤ t2
-∀ s ∈ Set.Icc t1 t2, Y s ≤ M
-IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) MeasureTheory.volume t1 t2
+LpPowerBoundedBefore D (p + rho) T u
 ```
 
-This is exactly the bounded-pre-crossing input one expects before proving the full first-crossing theorem.
-
-## Do not overreach in this patch
-
-Do not add any of the following yet:
-
-```lean
-IntegratedMoserDissipationDropBefore ... → IntegratedMoserFirstCrossingStep ...
-```
-
-or
-
-```lean
-IntegratedMoserFirstCrossingRegularity ... →
-  IntervalIntegrable (fun s => max 1 (Y s)) MeasureTheory.volume a b
-```
-
-unless you separately verify the required max-preserves-interval-integrability API.  The lemma above avoids that uncertainty and should be the next smallest buildable step.
+and they do **not** infer pointwise control from a time-integral estimate.  The later hard first-crossing step still has to use continuity of `Y_{p+rho}` to turn a time-integral contradiction into pointwise boundedness.  That is the genuine analytic part and remains outside these lemmas.
 
 ## Suggested `#print axioms`
 
-After adding the generic lemma:
-
 ```lean
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
+#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on
+#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_bound
+#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
 ```
 
-If you also add the Moser wrapper:
-
-```lean
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
-```
-
-Expected profile: no `sorryAx`, no custom axioms.  The generic theorem should only depend on standard mathlib/Lean axioms already used by interval-integral order lemmas.
+Expected profile: no `sorryAx`, no custom axioms.  These are order/interval-integral wrappers over existing assumptions.
