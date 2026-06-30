@@ -1229,6 +1229,30 @@ theorem integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
     (integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
       hfront)
 
+/-- Direct consumer for the preferred lower-average plus upper-data-aware gap
+package. -/
+theorem integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+        D u T rho p0) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 :=
+  integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
+    hdata.toLowerUpperFrontiers
+
+/-- Direct compatibility consumer for the older all-witness epsilon-gap
+package. -/
+theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageEpsilonData
+        D u T rho p0) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 :=
+  integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+    hdata.toUpperDataGapData
+
 #print axioms intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
 #print axioms Icc_subset_uIcc_zero_T_of_endpoint_memberships
 #print axioms IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
@@ -1262,6 +1286,8 @@ theorem integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
 #print axioms integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
 #print axioms integratedMoserFirstCrossingStep_of_windowFrontier
 #print axioms integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
+#print axioms integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+#print axioms integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
 
 /-- Iterate a supplied integrated first-crossing step along the arithmetic
 Moser ladder. -/
