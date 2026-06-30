@@ -1,346 +1,566 @@
-# Q2309 shen2: constant-branch / no-left-plateau wiring audit
+# Q2341 shen2: Paper2 interval-domain Proposition 2.5 route audit
 
-Repo: `xiangyazi24/Shen_work`, branch `main`.
+Repo target: `xiangyazi24/Shen_work`, `main` at commit `6eccd68f`.
 
-## Bottom line
+## Executive answer
 
-The constant-branch route described in the prompt is already present on current `main` in:
+There is a real net-reduction for
+
+```lean
+Proposition_2_5 intervalDomain p
+```
+
+that does **not** use the refuted global `IntervalDomainInterpolation` route and does **not** just carry old `Paper2BootstrapEstimateBranchData`.
+
+The best current route is the **actual-atoms / nonnegative-B Moser route**:
+
+```lean
+ShenWork.IntervalDomainExistence.P3MoserActualWiring
+  .intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+```
+
+It reduces Prop 2.5 to exactly three analytic atom families:
+
+```lean
+MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+RelativeMoserInterpolationBefore intervalDomain u T rho p0
+quantitative endpoint / root tower:
+  ∃ pSeq rootBound,
+    (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+```
+
+This is a genuine improvement over the old branch-data route.  The remaining atoms are still serious PDE/Moser frontiers, but they are smaller than `Proposition_2_5` itself.
+
+## Routes found, by honesty
+
+### 1. BranchData wrapper: not a net reduction
+
+File:
 
 ```text
-ShenWork/Paper1/UpperBarrierContact.lean
+ShenWork/Paper2/IntervalDomainStatementAssembly.lean
 ```
 
-The left-plateau residual can be discharged from a `FrozenStationaryWaveProfile` only under **strict** positive sensitivity:
+Current wrapper:
 
 ```lean
-0 < p.χ
+theorem intervalDomainPaper2_Proposition_2_5_of_branchData
+    (p : CM2Params)
+    (hData : Paper2BootstrapEstimateBranchData intervalDomain p) :
+    Proposition_2_5 intervalDomain p :=
+  Proposition_2_5.of_branchData hData
 ```
 
-plus an upper bound such as `p.χ < 1`.  The non-strict assumption
+This is not useful for reducing Prop 2.5.  The old branch-data record already contains a `prop25` field, and the generic branch-data package is known not to be constructible uniformly from the abstract API.  The repo even has obstruction theorems such as:
 
 ```lean
-0 ≤ p.χ
+theorem not_forall_branchData_after_lpi :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
+        Paper2BootstrapEstimateBranchData D p)
 ```
 
-is too weak, because the case `p.χ = 0` leaves `MChi p = 1`, and a left plateau at level `1` is not contradicted by the left-end limit `U → 1`.
+in `ShenWork/Paper2/IntervalDomainLPI.lean`.
 
-## 1. Exact projection for the left-end limit
-
-For
+Also in `IntervalDomainStatementAssembly.lean`, the thin section-2 wrapper is honest but does not produce Prop 2.5:
 
 ```lean
-hprofile : FrozenStationaryWaveProfile p c U
+theorem intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
+    (hProp25 : Proposition_2_5 intervalDomain p) :
+    IntervalDomainPaper2BootstrapEstimateTargets p
 ```
 
-the projection giving the profile limit is:
+It explicitly takes `hProp25`.  It is a consumer of a Prop 2.5 route, not a producer.
 
-```lean
-hprofile.lim_neg_inf.1 : Tendsto U atBot (𝓝 (1 : ℝ))
+### 2. LPI structured-data wrapper: honest but still coarse
+
+File:
+
+```text
+ShenWork/Paper2/IntervalDomainLPI.lean
 ```
 
-The second component is the elliptic profile limit:
+The first honest Prop 2.5 producer is:
 
 ```lean
-hprofile.lim_neg_inf.2 : Tendsto (frozenElliptic p U) atBot (𝓝 (1 : ℝ))
+theorem Proposition_2_5_intervalDomain_of_structured_moser_data
+    {p : CM2Params}
+    (hdata : ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {Tmax : ℝ}, 0 < Tmax →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+        ∀ pExp,
+          max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+          LpPowerBoundedBefore intervalDomain pExp Tmax u →
+            IntervalDomainStructuredMoserBootstrapData u Tmax) :
+    Proposition_2_5 intervalDomain p
 ```
 
-Source shape in `ShenWork/Paper1/Statements.lean` is visible from the constructor wrapper:
+This is honest because `IntervalDomainStructuredMoserBootstrapData` contains the actual Moser components and its `.boundedBefore` field is computed by `MoserClosure`; it is not equivalent to `Proposition_2_5`.  But it is still coarse: a caller must produce an entire structured Moser package for each solution/exponent.
+
+The file also proves the interval heat endpoint:
 
 ```lean
-theorem FrozenStationaryWaveProfile.mk_from_stationary
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hc : 0 < c)
-    (hU_pos : ∀ x, 0 < U x)
-    (hU_bdd : IsCUnifBdd U)
-    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
-    (hlim_neg : Tendsto U atBot (𝓝 1) ∧ Tendsto (frozenElliptic p U) atBot (𝓝 1))
-    (hlim_pos : Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)) :
-    FrozenStationaryWaveProfile p c U :=
-  { hc
-    U_pos := hU_pos
-    stationary_eq := hstat
-    elliptic_eq := frozenElliptic_ode p hU_bdd (fun x => (hU_pos x).le)
-    lim_neg_inf := hlim_neg
-    lim_pos_inf := hlim_pos }
+intervalDomainHeat_Lp_Linfty_pointwise_from_memLp
+intervalDomainHeat_Lp_Linfty_bound_from_memLp
+intervalDomainSemigroupEstimateData_Lp_Linfty_bound_from_memLp
 ```
 
-So the actual extraction expression is exactly:
+Those are useful analytic atoms, but they do not themselves produce Prop 2.5.  The file says that explicitly in its header.
 
-```lean
-exact hprofile.lim_neg_inf.1
+### 3. Structured Moser frontiers: cleaner package
+
+File:
+
+```text
+ShenWork/Paper2/IntervalDomainStructuredMoserData.lean
 ```
 
-This is already used in `UpperBarrierContact.lean`:
+Key structure:
 
 ```lean
-theorem no_const_left_plateau_of_profile_chi_pos
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hprofile : FrozenStationaryWaveProfile p c U)
-    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
-      (∀ y, y ≤ x → U y = MChi p) → False :=
-  no_const_left_plateau_of_tendsto_atBot_one
-    hprofile.lim_neg_inf.1
-    (MChi_ne_one_of_chi_pos_lt_one p hχ_pos hχ_lt)
+structure Prop25MoserFrontiers
+    (u : ℝ → intervalDomain.Point → ℝ) (T pExp : ℝ) where
+  pSeq : ℕ → ℝ
+  rootBound : ℕ → ℝ
+  energy : LpBootstrapEnergyInequality intervalDomain u T 1 pExp
+  dissipation : MoserDissipationDropBefore intervalDomain u T 1 pExp
+  relative : RelativeMoserInterpolationBefore intervalDomain u T 1 pExp
+  powerIntegrable :
+    ∀ r : ℝ, 1 < r → ∀ t, 0 < t → t < T →
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ r))
+        MeasureTheory.volume 0 1
+  endpoint :
+    (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 ```
 
-## 2. Existing `MChi p ≠ 1` / `1 < MChi p` API
-
-Current `main` already has both scalar lemmas in `ShenWork/Paper1/UpperBarrierContact.lean`:
+Producer:
 
 ```lean
-theorem one_lt_MChi_of_chi_pos_lt_one
-    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
-    1 < MChi p
+theorem Proposition_2_5_intervalDomain_of_prop25_moser_frontiers
+    {params : CM2Params}
+    (hfront :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (params.N : ℝ)
+            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) < pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          Prop25MoserFrontiers u T pExp) :
+    Proposition_2_5 intervalDomain params
 ```
 
-and:
+This is a genuine net-reduction relative to `Prop25` and `BranchData`, but not the smallest current reduction.  It carries `energy`, `dissipation`, `relative`, `powerIntegrable`, and `endpoint` as fields; several of these can now be produced from regularity and actual atoms in later files.
+
+Useful supporting definitions/theorems in this file:
 
 ```lean
-theorem MChi_ne_one_of_chi_pos_lt_one
-    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
-    MChi p ≠ 1
+abstractBootstrapHypothesis_of_prop25_exponent
+lpMono_of_classical_solution_power_integrable
+structuredMoserBootstrapData_of_solution_frontiers
+structuredMoserBootstrapData_of_prop25_frontiers
 ```
 
-The proof route is already exactly the expected one:
+### 4. MCL route: warns about false old GN input
 
-```lean
-theorem one_lt_MChi_of_chi_pos_lt_one
-    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
-    1 < MChi p := by
-  have hden_pos : 0 < 1 - p.χ := by linarith
-  have hbase_gt : 1 < 1 / (1 - p.χ) := by
-    rw [lt_div_iff₀ hden_pos]
-    linarith
-  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
-  have hexp_pos : 0 < 1 / p.α := div_pos one_pos hα_pos
-  rw [MChi_eq_rpow_of_chi_pos p hχ_pos]
-  exact Real.one_lt_rpow hbase_gt hexp_pos
+File:
 
-theorem MChi_ne_one_of_chi_pos_lt_one
-    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
-    MChi p ≠ 1 :=
-  ne_of_gt (one_lt_MChi_of_chi_pos_lt_one p hχ_pos hχ_lt)
+```text
+ShenWork/Paper2/IntervalDomainMCL.lean
 ```
 
-If the branch hypothesis is the usual Paper1 smallness
+This file contains a theorem:
 
 ```lean
-hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)
+theorem Proposition_2_5_intervalDomain_of_MCL_frontiers
+    {params : CM2Params}
+    (hcross : ... → CrossDiffusionBootstrapEstimate intervalDomain params T 1 u v)
+    (hdiss : ... → MoserDissipationDropBefore intervalDomain u T 1 pExp)
+    (hGN : OldUnitIntervalPowerGNYoungForMoser)
+    (hEndpoint : ... → ∃ pSeq rootBound, ...)
+    : Proposition_2_5 intervalDomain params
 ```
 
-then get `p.χ < 1` by:
+Do **not** use this as the preferred route, because the same file explicitly labels:
 
 ```lean
-have hχ_half : p.χ < (1 / 2 : ℝ) :=
-  lt_of_lt_of_le hχ_small (min_le_left _ _)
-have hχ_lt_one : p.χ < 1 := by linarith
+def OldUnitIntervalPowerGNYoungForMoser : Prop := ...
 ```
 
-If the available upper bound is instead
+as legacy and false for constant functions.  The comment states that the left side scales like `A^(p+rho)` while the lower-order term scales like `A^p`.  The replacement in the same file is:
 
 ```lean
-hχ_star : p.χ < chiStar p
+def UnitIntervalPowerGNYoungForMoser : Prop := ...
+
+theorem unitIntervalPowerGNYoungForMoser_proved :
+    UnitIntervalPowerGNYoungForMoser
 ```
 
-then use:
+However, `Proposition_2_5_intervalDomain_of_MCL_frontiers` is still wired to the old `OldUnitIntervalPowerGNYoungForMoser`, so it is not the best honest headline route.
+
+The useful theorem from `IntervalDomainMCL.lean` is instead:
 
 ```lean
-have hχ_lt_one : p.χ < 1 := lt_of_lt_of_le hχ_star (chiStar_le_one p)
+def structuredMoserBootstrapData_of_regularity_MCL
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hdiss : MoserDissipationDropBefore intervalDomain u T rho p0)
+    (hEndpoint : ...)
+    : IntervalDomainStructuredMoserBootstrapData u T
 ```
 
-There is no valid lemma from only `0 ≤ p.χ` to `MChi p ≠ 1`; the equality case `p.χ = 0` is the obstruction.
+It shows how regularity supplies energy, power-integrability, and Lp monotonicity, but it still uses the older pointwise `MoserDissipationDropBefore`, not the repaired nonnegative-B shape.
 
-## 3. Minimal wrapper status
+### 5. Actual atoms route: best current net-reduction
 
-### Already existing wrapper to reduce to strict exponential contact
+Files:
 
-`UpperBarrierContact.lean` already defines the two residual records:
-
-```lean
-structure PositiveUpperBarrierRemainingContactResidual
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
-  no_const_left_plateau :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
-      (∀ y, y ≤ x → U y = MChi p) → False
-  exp_strict_super_at_contact :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
-      U x = Real.exp (-(kappa c) * x) →
-        frozenWaveOperator p c U
-          (upperBarrier (kappa c) (MChi p)) x < 0
-
-structure PositiveUpperBarrierExpStrictContactResidual
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
-  exp_strict_super_at_contact :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
-      U x = Real.exp (-(kappa c) * x) →
-        frozenWaveOperator p c U
-          (upperBarrier (kappa c) (MChi p)) x < 0
+```text
+ShenWork/PDE/IntervalDomainMoserActualAtoms.lean
+ShenWork/PDE/P3MoserActualWiring.lean
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
 ```
 
-The minimal existing wrapper from profile plus strict positive sensitivity is:
+The older actual-atoms theorem is:
 
 ```lean
-theorem PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hprofile : FrozenStationaryWaveProfile p c U)
-    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
-    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
-    PositiveUpperBarrierRemainingContactResidual p c U :=
-  { no_const_left_plateau :=
-      no_const_left_plateau_of_profile_chi_pos
-        hprofile hχ_pos hχ_lt
-    exp_strict_super_at_contact :=
-      hstrict.exp_strict_super_at_contact }
+theorem intervalDomain_endpointBoundFromLp_of_quantitative_root_tower
+    {params : CM2Params}
+    (hcross : ... → CrossDiffusionBootstrapEstimate intervalDomain params T 1 u v)
+    (hdiss : ... → MoserDissipationDropBefore intervalDomain u T 1 pExp)
+    (hrel : ... → RelativeMoserInterpolationBefore intervalDomain u T 1 pExp)
+    (hEndpoint : ... → ∃ pSeq rootBound, ...)
+    : Proposition_2_5 intervalDomain params
 ```
 
-That is exactly the requested “residual containing only `exp_strict_super_at_contact`” route.
+It is honest, but it still carries the cross-diffusion bootstrap and the older pointwise dissipation shape.
 
-### Important distinction
-
-There is no wrapper that can produce
+The better theorem is in `ShenWork/PDE/P3MoserActualWiring.lean`:
 
 ```lean
-PositiveUpperBarrierExpStrictContactResidual p c U
+theorem intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+    {params : CM2Params}
+    (hdiss :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u
+          (params.N : ℝ) T rho p0 →
+          MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0)
+    (hrel :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u
+          (params.N : ℝ) T rho p0 →
+          RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hEndpoint :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (params.N : ℝ)
+            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) < pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          ∃ pSeq rootBound : ℕ → ℝ,
+            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    Proposition_2_5 intervalDomain params
 ```
 
-from only
+Why this is the best route:
 
-```lean
-FrozenStationaryWaveProfile p c U
-0 < p.χ
+* `CrossDiffusionBootstrapEstimate` is produced internally from the classical solution via `intervalDomain_crossDiffusionBootstrapEstimate_of_classical`.
+* The bootstrap seed is built internally by `abstract_prop25_bootstrap_two_gamma` using `rho = 2 * params.γ`.
+* `LpBootstrapEnergyInequality` is produced internally by `intervalDomain_LpBootstrapEnergyInequality_of_regularity`.
+* Lp monotonicity is produced internally from positivity and `intervalDomain_u_rpow_intervalIntegrable_of_regularity`.
+* The final finite-horizon bound is obtained by `intervalDomain_boundedBefore_of_energy_nonnegB_relative_interpolation` and the quantitative endpoint.
+
+This is a genuine reduction to exactly the PDE/Moser atoms that still need proof.
+
+### 6. Packaged version of the best route
+
+File:
+
+```text
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
 ```
 
-because `PositiveUpperBarrierExpStrictContactResidual` is precisely the remaining strict exponential-branch super-barrier residual.  The profile and strict-χ assumptions close the constant branch, not the exponential strict super-barrier field.
-
-If a call site has the strict field as a plain function rather than as a structure, the shortest convenience wrapper would be:
+Best existing structure:
 
 ```lean
-import ShenWork.Paper1.UpperBarrierContact
+structure IntervalDomainMassLpSmoothingMoserLadderResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity : ...
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint : ...
+```
 
-open Filter Topology
+Its Prop 2.5 projection is already present:
 
-namespace ShenWork.Paper1
+```lean
+theorem IntervalDomainMassLpSmoothingMoserLadderResiduals.proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+    h.moserDissipation h.relativeMoserInterpolation h.quantitativeEndpoint
+```
+
+This theorem only uses the three fields:
+
+```lean
+h.moserDissipation
+h.relativeMoserInterpolation
+h.quantitativeEndpoint
+```
+
+The other fields of `IntervalDomainMassLpSmoothingMoserLadderResiduals` are for the larger mass/Lp/smoothing route and `to_routeResiduals`, not for Prop 2.5 itself.
+
+## Minimal Lean wiring plan
+
+### Preferred minimal file/import
+
+Use the actual-atoms theorem directly from the PDE namespace.  A Paper2-facing wrapper can live in a small file such as:
+
+```text
+ShenWork/Paper2/IntervalDomainProp25ActualAtoms.lean
+```
+
+with imports:
+
+```lean
+import ShenWork.PDE.IntervalDomainMoserLadderAtoms
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserActualWiring
 
 noncomputable section
 
-/-- Convenience wrapper: profile convergence and strict positive sensitivity close
-constant-branch contact, leaving only the strict exponential contact function. -/
-theorem PositiveUpperBarrierRemainingContactResidual.of_expStrictFun_profile_chi_pos
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hprofile : FrozenStationaryWaveProfile p c U)
-    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
-    (hstrict :
-      ∀ x, Real.exp (-(kappa c) * x) < MChi p →
-        U x = Real.exp (-(kappa c) * x) →
-          frozenWaveOperator p c U
-            (upperBarrier (kappa c) (MChi p)) x < 0) :
-    PositiveUpperBarrierRemainingContactResidual p c U :=
-  PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
-    hprofile hχ_pos hχ_lt
-    { exp_strict_super_at_contact := hstrict }
-
-end
-
-end ShenWork.Paper1
+namespace ShenWork.Paper2
 ```
 
-This is only a convenience theorem; it adds no new math.
+### Smallest Prop25-only frontier
 
-## Full downstream no-contact wrapper already present
-
-Once regular stationary data are also available, current `main` already has the wrapper to full contact contradictions:
+The current `IntervalDomainMassLpSmoothingMoserLadderResiduals` is a good package for the larger route, but for Prop 2.5 alone the smaller frontier is:
 
 ```lean
-theorem PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hκ : 0 < kappa c)
-    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
-    (hprofile : FrozenStationaryWaveProfile p c U)
-    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
-    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
-    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
-    PositiveUpperBarrierContactContradictions p c U
+structure IntervalDomainPaper2Prop25ActualAtomFrontierData
+    (p : CM2Params) : Prop where
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 ```
 
-It combines:
+Wrapper:
 
 ```lean
-positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos
-PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_regularStationary
+theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+    hData.moserDissipation
+    hData.relativeMoserInterpolation
+    hData.quantitativeEndpoint
 ```
 
-and uses the existing interface no-contact lemma:
+This is a compile-oriented net reduction: the wrapper is almost definitional, but the data are strictly smaller than `Proposition_2_5` and much smaller than `Paper2BootstrapEstimateBranchData`.
+
+### Convenience wrapper from existing larger residual package
+
+If using the larger route data already present in `IntervalDomainMoserLadderAtoms.lean`, just expose this Paper2-facing wrapper:
 
 ```lean
-positiveUpperBarrier_interfaceNoContact_of_regular_stationary
+theorem intervalDomainPaper2_Proposition_2_5_of_moserLadderResiduals
+    (p : CM2Params)
+    (h : ShenWork.IntervalDomainExistence.IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  h.proposition25
 ```
 
-## Minimal branch-level implication
+This is honest, but slightly less minimal because the structure carries fields not needed by Prop 2.5.
 
-For a branch whose hypotheses include strict positive sensitivity, the intended shape is:
+## Current route ranking
+
+1. **Best current net-reduction**:
+
+   ```lean
+   intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+   ```
+
+   or packaged as:
+
+   ```lean
+   IntervalDomainMassLpSmoothingMoserLadderResiduals.proposition25
+   ```
+
+2. **Good intermediate route**:
+
+   ```lean
+   Proposition_2_5_intervalDomain_of_prop25_moser_frontiers
+   ```
+
+   It reduces to `Prop25MoserFrontiers`, but still carries energy/dissipation/relative/power-integrability/endpoint per solution.
+
+3. **Coarse but honest route**:
+
+   ```lean
+   Proposition_2_5_intervalDomain_of_structured_moser_data
+   ```
+
+   It reduces to a produced `IntervalDomainStructuredMoserBootstrapData` for every solution and qualifying exponent.
+
+4. **Avoid as headline**:
+
+   ```lean
+   Proposition_2_5_intervalDomain_of_MCL_frontiers
+   ```
+
+   It uses `OldUnitIntervalPowerGNYoungForMoser`, explicitly marked false for constant functions.
+
+5. **Not a reduction**:
+
+   ```lean
+   intervalDomainPaper2_Proposition_2_5_of_branchData
+   intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
+   ```
+
+   The first consumes old branch data containing Prop25; the second takes `hProp25` directly.
+
+## Concrete cleanup recommendation
+
+Add a Paper2-facing file exposing only the actual-atoms route:
 
 ```lean
-import ShenWork.Paper1.UpperBarrierContact
+import ShenWork.PDE.IntervalDomainMoserLadderAtoms
 
-open Filter Topology
-
-namespace ShenWork.Paper1
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserActualWiring
 
 noncomputable section
 
-/-- Branch-facing narrowing: strict positive sensitivity and profile convergence
-turn the remaining-contact residual into the exp-strict-only residual. -/
-theorem remainingContact_of_profile_strictChi_expStrict
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hprofile : FrozenStationaryWaveProfile p c U)
-    (hχ_pos : 0 < p.χ)
-    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
-    PositiveUpperBarrierRemainingContactResidual p c U := by
-  have hχ_half : p.χ < (1 / 2 : ℝ) :=
-    lt_of_lt_of_le hχ_small (min_le_left _ _)
-  have hχ_lt_one : p.χ < 1 := by linarith
-  exact
-    PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
-      hprofile hχ_pos hχ_lt_one hstrict
+namespace ShenWork.Paper2
 
-end
+structure IntervalDomainPaper2Prop25ActualAtomFrontierData
+    (p : CM2Params) : Prop where
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 
-end ShenWork.Paper1
+theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+    hData.moserDissipation
+    hData.relativeMoserInterpolation
+    hData.quantitativeEndpoint
+
+end ShenWork.Paper2
 ```
 
-Again, this wrapper is redundant with the existing theorem plus a two-line derivation of `p.χ < 1`, but it is the compile-oriented branch-facing statement.
+Then change interval-domain statement assembly routes that currently accept a naked
 
-## Exact answers
+```lean
+hProp25 : Proposition_2_5 intervalDomain p
+```
 
-1. Use:
+to optionally accept this smaller frontier and call:
 
-   ```lean
-   hprofile.lim_neg_inf.1
-   ```
+```lean
+intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData p hProp25Atoms
+```
 
-   for `Tendsto U atBot (𝓝 1)`.
+This gives a real net-reduction while preserving the existing statement wrappers.
 
-2. Yes.  Current main already has:
+## Final warning
 
-   ```lean
-   one_lt_MChi_of_chi_pos_lt_one
-   MChi_ne_one_of_chi_pos_lt_one
-   ```
-
-   in `ShenWork/Paper1/UpperBarrierContact.lean`.  They use `MChi_eq_rpow_of_chi_pos` and `Real.one_lt_rpow`.  There is no valid non-strict `0 ≤ p.χ` version.
-
-3. The minimal existing wrapper is:
-
-   ```lean
-   PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
-   ```
-
-   It turns profile convergence plus `0 < p.χ`, `p.χ < 1`, and the exp-strict residual into the full remaining-contact residual.  With regular stationary data, the existing theorem
-
-   ```lean
-   PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary
-   ```
-
-   closes the full no-contact package.
+Do not use global `IntervalDomainInterpolation`.  Do not use `OldUnitIntervalPowerGNYoungForMoser` as a headline route.  Do not claim `Paper2BootstrapEstimateBranchData intervalDomain p` is produced by current code.  The honest current Prop25 route is the actual-atoms route through nonnegative-B dissipation, relative Moser interpolation, and quantitative endpoint/root tower.
