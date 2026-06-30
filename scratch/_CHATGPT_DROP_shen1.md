@@ -1,193 +1,197 @@
-# Q2328 shen1 — positive strict exp bridge / hmκ routing audit
+# Q2331 shen1 — design audit for positive upper-contact interface narrowing
 
 Repo audited: `xiangyazi24/Shen_work` on `main`.
 
-Context assumed: local patch has added strict positive exponential superbarrier theorems and
+Question: whether the planned interface layer
+
+* adds `PositiveUpperBarrierConstLeftPlateauResidual`,
+* bridges it to `PositiveUpperBarrierRemainingContactResidual` using the strict exponential theorem plus `hmκ`, and
+* adds `Paper1PositiveLowerRawCapRouteAHmkConstParamData`
+
+is a genuine interface reduction or just a no-op/rename/residual-smuggling layer.
+
+## Verdict
+
+This is an honest net narrowing **provided the new package carries only the constant-left-plateau residual and carries `hmκ` explicitly**.
+
+It is a genuine reduction on the `hmκ` subregime because the exponential residual is no longer supplied by Route-A data.  It is produced internally by
 
 ```lean
 positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
 ```
 
-which produces `PositiveUpperBarrierExpStrictContactResidual p c U` from the standard positive branch data plus
+from positive scalar hypotheses, `hmκ : p.m * kappa c <= 1`, and trap membership.  The remaining carried contact atom is then only the constant-branch left-plateau obstruction.
 
-```lean
-hmκ : p.m * kappa c ≤ 1
-```
+It is still honest because prior audit showed `hmκ` is not derivable from the base positive branch assumptions.  So `hmκ` is a real extra frontier, not a hidden theorem.
 
-## 1. Can `hmκ` be derived from current positive branch packages?
+## No-op / smuggling checks
 
-No.  It is not derivable from the currently committed positive branch conditions.
+The design is clean if all of these are true.
 
-The relevant committed package is:
-
-```lean
-structure PositivePaperLemma42ExactConditions
-    (p : CMParams) (c κ κtilde M : ℝ) : Prop where
-  hκ0 : 0 < κ
-  hκ1 : κ < 1
-  hgap : κ < κtilde
-  hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
-  hM : 1 ≤ M
-  hc : c = κ + κ⁻¹
-  hχ_nonneg : 0 ≤ p.χ
-  hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)
-  hα_eq : p.α = p.m + p.γ - 1
-```
-
-The branch-cap constructor is:
-
-```lean
-theorem positivePaperLemma42ExactConditions_of_branchCap
-    (p : CMParams) {c : ℝ}
-    (hα : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ)
-    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    (hc : 2 < c) :
-    PositivePaperLemma42ExactConditions p c (kappa c)
-      (positiveBranchTailCap p c) (MChi p)
-```
-
-It fills only the fields above.  There is no `hmκ` field.
-
-The exact positive-condition projection close to this is:
-
-```lean
-theorem PositivePaperLemma42ExactConditions.kappaTilde_le_m_kappa_add_half
-    {p : CMParams} {c κ κtilde M : ℝ}
-    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
-    κtilde ≤ p.m * κ + 1 / 2
-```
-
-This is a bound on the **lower-barrier exponent** `κtilde`; it does not imply `p.m * κ ≤ 1`.
-
-The repo contains the exact counterexample theorem:
-
-```lean
-theorem not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one :
-    ¬ (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
-      p.α = p.m + p.γ - 1 →
-      ∀ κ : ℝ, 0 < κ → κ < 1 → p.m * κ ≤ 1)
-```
-
-Its witness is essentially `p.m = 3`, `p.α = 3`, `p.γ = 1`, `p.χ = 0`, and `κ = 1 / 2`, giving `p.m * κ = 3 / 2`.
-
-This also shows why `positiveBranchTailCap` does not rescue the situation: for that witness,
-
-```lean
-positiveBranchTailCap p c = min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
-```
-
-can still be above `κ`, while `p.m * κ ≤ 1` is false.  The cap controls admissible `κtilde`, not `mκ`.
-
-So `hmκ` must be carried explicitly wherever the strict positive exponential superbarrier is used.  Existing packages that do not carry it include:
-
-```lean
-Paper1PositiveLowerRawCapRouteAParamData
-Paper1PositiveLowerRawCapRouteASmoothParamData
-Paper1PositiveLowerRawCapRouteARemainingParamData
-```
-
-## 2. Minimal wrapper/data change to remove the strict exp residual when `hmκ` is available
-
-The clean local theorem should live in `UpperBarrierContact.lean` and convert a **constant-branch-only** residual into the existing remaining residual by using the new strict exp theorem.
-
-Add this small residual:
+1. `PositiveUpperBarrierConstLeftPlateauResidual` has exactly one field:
 
 ```lean
 structure PositiveUpperBarrierConstLeftPlateauResidual
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+    (p : CMParams) (c : Real) (U : Real -> Real) : Prop where
   no_const_left_plateau :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
-      (∀ y, y ≤ x → U y = MChi p) → False
+    forall x, MChi p < Real.exp (-(kappa c) * x) ->
+      (forall y, y <= x -> U y = MChi p) -> False
 ```
 
-Then add this bridge:
+It must not be an abbrev or wrapper around `PositiveUpperBarrierRemainingContactResidual`, `PositiveUpperBarrierExpStrictContactResidual`, or `PositiveUpperBarrierContactContradictions`.
+
+2. The bridge has the shape:
 
 ```lean
 theorem PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hα : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ)
-    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    {p : CMParams} {c : Real} {U : Real -> Real}
+    (ha : p.alpha = p.m + p.gamma - 1)
+    (hchi_nonneg : 0 <= p.chi)
+    (hchi_small : p.chi < min (1 / 2 : Real) (chiStar p))
     (hc : 2 < c)
-    (hmκ : p.m * kappa c ≤ 1)
+    (hmk : p.m * kappa c <= 1)
     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
     (hconst : PositiveUpperBarrierConstLeftPlateauResidual p c U) :
-    PositiveUpperBarrierRemainingContactResidual p c U :=
-  { no_const_left_plateau := hconst.no_const_left_plateau
-    exp_strict_super_at_contact :=
-      (positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
-        (p := p) (c := c) (U := U)
-        hα hχ_nonneg hχ_small hc hmκ htrap).exp_strict_super_at_contact }
+    PositiveUpperBarrierRemainingContactResidual p c U
 ```
 
-This removes the old strict exponential residual from the carried analytic package.  The remaining carried upper-contact atom is only the constant left-plateau obstruction.
+and the `exp_strict_super_at_contact` field is filled only by
 
-For Route-A, add a new hmk-aware data package in `PositiveRawRouteAAssembly.lean` rather than changing the existing packages:
+```lean
+(positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+  (p := p) (c := c) (U := U)
+  ha hchi_nonneg hchi_small hc hmk htrap).exp_strict_super_at_contact
+```
+
+The bridge should not take any old exp-contact residual as an argument.
+
+3. `Paper1PositiveLowerRawCapRouteAHmkConstParamData` should not carry any of these old residuals:
+
+```lean
+PositiveUpperBarrierRemainingContactResidual p c U
+PositiveUpperBarrierExpStrictContactResidual p c U
+PositiveUpperBarrierSmoothBranchNoContact p c U
+PositiveUpperBarrierContactContradictions p c U
+```
+
+It should carry only
+
+```lean
+PositiveUpperBarrierConstLeftPlateauResidual p c U
+```
+
+for produced profiles.
+
+4. The conversion
+
+```lean
+paper1_routeARemainingParamData_of_routeAHmkConstParamData
+```
+
+should construct the remaining residual by calling the bridge above, not by projecting a remaining residual from the new data package.
+
+If those four checks hold, this is not a no-op rename.  It removes a strictly stronger field from the Route-A data and replaces it with a scalar frontier plus a smaller constant-branch residual.
+
+## Vacuity check
+
+The package is stronger because it covers only the `hmκ` subregime.  That is not a vacuity problem as long as the name advertises it, for example with `Hmk` in the name.
+
+Prefer exposing `hmκ` as an explicit conjunct before the Route-A existential payload:
 
 ```lean
 structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
   produce :
-    ∀ p : CMParams, ∀ hα : p.α = p.m + p.γ - 1,
-      ∀ hχ_nonneg : 0 ≤ p.χ,
-        ∀ hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p),
-          ∀ c : ℝ, ∀ hc : 2 < c,
-            ∃ lam D Λ : ℝ,
-              let hcond :
-                  PositivePaperLemma42ExactConditions p c (kappa c)
-                    (positiveBranchTailCap p c) (MChi p) :=
-                positivePaperLemma42ExactConditions_of_branchCap
-                  p hα hχ_nonneg hχ_small hc
-              ∃ hpar :
-                PaperLowerRawParabolicFloorRouteAParamCoreNoBar
-                  p c lam (MChi p) (kappa c)
-                  (positiveBranchTailCap p c) D Λ
-                  hcond.hκ0.le (le_trans zero_le_one hcond.hM),
-                  p.m * kappa c ≤ 1 ∧
-                  1 ≤ D ∧
-                  paperDMin p.χ (MChi p) (kappa c)
-                    (positiveBranchTailCap p c) p.m p.γ c < D ∧
-                  0 ≤ Λ ∧ Λ ≤ MChi p ∧
-                  PaperLowerPinnedStationaryFlatFloor p c (kappa c)
-                    (MChi p)
-                    (lowerBarrierRaw (kappa c)
-                      (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
-                  StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
-                  StationaryC2RegularityFromEquation p c (kappa c) (MChi p) ∧
-                  (∀ U : ℝ → ℝ,
-                    InLowerPinnedMonotoneTrap (kappa c) (MChi p)
-                      (lowerBarrierRaw (kappa c)
-                        (positiveBranchTailCap p c) D) U →
-                    FrozenStationaryWaveProfile p c U →
-                    PositiveUpperBarrierConstLeftPlateauResidual p c U)
+    forall p : CMParams, forall ha : p.alpha = p.m + p.gamma - 1,
+      forall hchi_nonneg : 0 <= p.chi,
+        forall hchi_small : p.chi < min (1 / 2 : Real) (chiStar p),
+          forall c : Real, forall hc : 2 < c,
+            p.m * kappa c <= 1 /\
+            exists lam D L : Real,
+              -- same Route-A payload as RemainingParamData, but carrying only
+              -- PositiveUpperBarrierConstLeftPlateauResidual for produced U
+              True
 ```
 
-Then the conversion to the existing remaining package is direct:
+Putting `hmκ` inside the returned existential also works logically, but it is easier to miss in reviews.  A top-level conjunct makes the subregime visible.
+
+Do not mutate the existing
+
+```lean
+Paper1PositiveLowerRawCapRouteARemainingParamData
+```
+
+into an `hmκ`-requiring package.  Keep the old residual path available for regimes where `hmκ` is unavailable, and add the `HmkConst` package as an optional stronger interface.
+
+## Why `hmκ` must remain carried
+
+The current positive branch condition package is:
+
+```lean
+structure PositivePaperLemma42ExactConditions
+    (p : CMParams) (c k kt M : Real) : Prop where
+  hκ0 : 0 < k
+  hκ1 : k < 1
+  hgap : k < kt
+  hrange : kt <= min ((1 + p.alpha) * k) (min (p.m * k + 1 / 2) 1)
+  hM : 1 <= M
+  hc : c = k + k^-1
+  hχ_nonneg : 0 <= p.chi
+  hχ_small : p.chi < min (1 / 2 : Real) (chiStar p)
+  hα_eq : p.alpha = p.m + p.gamma - 1
+```
+
+The branch-cap constructor
+
+```lean
+positivePaperLemma42ExactConditions_of_branchCap
+```
+
+fills these fields but does not prove or store `p.m * kappa c <= 1`.
+
+The nearby projection
+
+```lean
+PositivePaperLemma42ExactConditions.kappaTilde_le_m_kappa_add_half
+```
+
+only proves a bound on `kappaTilde`, not on `p.m * kappa`.
+
+The repo has the exact false-premise detector:
+
+```lean
+theorem not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one :
+    not (forall p : CMParams, 0 <= p.chi -> p.chi < chiStar p ->
+      p.alpha = p.m + p.gamma - 1 ->
+      forall k : Real, 0 < k -> k < 1 -> p.m * k <= 1)
+```
+
+So an interface that “derives” `hmκ` from base positive data would be unsound.  Carrying `hmκ` explicitly is the right frontier.
+
+## Minimal conversion sketch
+
+The conversion from the new hmk-const package to the existing remaining package should look like this, modulo exact local binder names:
 
 ```lean
 theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
     (hData : Paper1PositiveLowerRawCapRouteAHmkConstParamData) :
     Paper1PositiveLowerRawCapRouteARemainingParamData := by
   refine ⟨?_⟩
-  intro p hα hχ_nonneg hχ_small c hc
-  rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hmκ, hD_ge_one, hD_gt, hΛ0, hΛM,
+  intro p ha hchi_nonneg hchi_small c hc
+  rcases hData.produce p ha hchi_nonneg hchi_small c hc with
+    ⟨hmk, lam, D, L, hpar, hD_ge_one, hD_gt, hL0, hLM,
       hconv, hsmp, hreg, hconst⟩
   exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp, hreg,
+    ⟨lam, D, L, hpar, hD_ge_one, hD_gt, hL0, hLM, hconv, hsmp, hreg,
       fun U hpin hprofile =>
         PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
           (p := p) (c := c) (U := U)
-          hα hχ_nonneg hχ_small hc hmκ hpin.bare
+          ha hchi_nonneg hchi_small hc hmk hpin.bare
           (hconst U hpin hprofile)⟩
 ```
 
-This keeps all downstream existing theorems usable, because you can reuse:
+This is the critical anti-smuggling line: the returned `PositiveUpperBarrierRemainingContactResidual` is built from `hconst` plus the strict exp theorem, not carried directly.
+
+Then reuse existing downstream wrappers:
 
 ```lean
 paper1_positiveRawSmoothContactData_of_routeARemainingParamData
@@ -195,45 +199,56 @@ paper1_positiveContactBranch_of_routeARemainingParamData
 paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
 ```
 
-## 3. Theorem-level bridge only, or also a new Hmk ParamData?
+Optional convenience wrappers can be added, but they should be one-line calls through `paper1_routeARemainingParamData_of_routeAHmkConstParamData`.
 
-Do both, but in two layers.
+## Design tradeoff
 
-### Layer 1: theorem-level bridge in `UpperBarrierContact.lean`
+Add both layers:
 
-This is mandatory and minimal.  It proves the mathematical fact:
+1. A theorem-level bridge in `UpperBarrierContact.lean`.
+   This is the reusable mathematical reduction and should exist even if Route-A is not used.
 
-```lean
-constant-left-plateau residual + hmκ + positive branch scalar data + trap
-  ⇒ PositiveUpperBarrierRemainingContactResidual
-```
+2. An optional hmk-aware Route-A data package in `PositiveRawRouteAAssembly.lean`.
+   This prevents every caller from manually building the remaining residual while keeping the `hmκ` restriction explicit.
 
-It is reusable outside Route-A and avoids mixing contact logic into the Route-A producer files.
+Do not replace the existing remaining-residual package.  The old package remains the fully general residual route.  The new package is the stricter but cleaner hmk subroute.
 
-### Layer 2: optional `...Hmk...ParamData` in `PositiveRawRouteAAssembly.lean`
+## Clean-audit checklist
 
-Add this if you want Route-A users to stop carrying `exp_strict_super_at_contact` explicitly.  The new package should be an optional stronger package, not a replacement for the existing `Paper1PositiveLowerRawCapRouteARemainingParamData`.
-
-Reason: `hmκ` is not derivable from the current branch assumptions.  If you mutate the existing package to require `hmκ`, you silently narrow the theorem.  A new name such as
+Inspect these exact signatures with `#check`:
 
 ```lean
-Paper1PositiveLowerRawCapRouteAHmkConstParamData
+#check PositiveUpperBarrierConstLeftPlateauResidual
+#check PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
+#check positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+#check Paper1PositiveLowerRawCapRouteAHmkConstParamData
+#check paper1_routeARemainingParamData_of_routeAHmkConstParamData
+#check paper1_positiveRawSmoothContactData_of_routeARemainingParamData
+#check paper1_positiveContactBranch_of_routeARemainingParamData
+#check paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
 ```
 
-makes the restriction visible and lets the old residual route remain available for regimes without `hmκ`.
-
-### Payload style choice
-
-Putting `hmκ` as a field inside the produced Sigma payload, as above, lets you convert into the existing remaining-contact package.  This is the easiest wiring route.
-
-If instead you put `hmκ` as an extra input to `produce`, then the package is logically cleaner for an hmk-restricted theorem, but it will not convert to the old hmk-free `Paper1PositiveLowerRawCapRouteARemainingParamData`; you will need parallel `...Hmk...Branch` statement wrappers.  That is heavier and not necessary unless the final Paper1 statement itself is being split by `hmκ`.
-
-## Recommended next step
-
-Implement the two small bridges above.  Do not try to derive `hmκ` from `PositivePaperLemma42ExactConditions`, `positiveBranchTailCap`, or the current Route-A param data: the committed theorem
+Run `#print axioms` on the proof-bearing bridges before calling the design clean:
 
 ```lean
-not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one
+#print axioms frozenWaveOperator_exp_neg_of_chi_nonneg
+#print axioms frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
+#print axioms positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+#print axioms PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
+#print axioms paper1_routeARemainingParamData_of_routeAHmkConstParamData
+#print axioms paper1_positiveRawSmoothContactData_of_routeARemainingParamData
+#print axioms paper1_positiveContactBranch_of_routeARemainingParamData
+#print axioms paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
 ```
 
-is the exact false-premise detector.
+Also inspect the field projection:
+
+```lean
+#check Paper1PositiveLowerRawCapRouteAHmkConstParamData.produce
+```
+
+The projection should reveal only `hmκ` and the constant-left-plateau residual as new contact-related obligations.  If it reveals `PositiveUpperBarrierRemainingContactResidual`, `PositiveUpperBarrierExpStrictContactResidual`, `PositiveUpperBarrierSmoothBranchNoContact`, or `PositiveUpperBarrierContactContradictions`, then the package is smuggling the old residual and should be rejected.
+
+## Final assessment
+
+The proposed plan is a genuine interface narrowing on the `hmκ` subregime.  It removes the strict exponential contact residual from Route-A data and replaces it with a theorem-level proof obligation already solved by the strict positive exponential superbarrier bridge.  The remaining carried data is smaller: `hmκ` plus the constant left-plateau residual.  Since `hmκ` is explicitly not derivable from the base positive branch hypotheses, this is an honest stronger subroute, not a vacuous proof of the full route.
