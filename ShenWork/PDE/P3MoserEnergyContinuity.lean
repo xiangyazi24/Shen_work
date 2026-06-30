@@ -1,4 +1,4 @@
-import ShenWork.PDE.P3MoserRegularityProducer
+import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
 
 /-!
@@ -17,7 +17,6 @@ open MeasureTheory Set Filter
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 open scoped Interval
 
 noncomputable section
@@ -108,10 +107,61 @@ theorem intervalDomain_energyContinuousOn_Ioo
   rw [henergy]
   exact hderiv.continuousAt.continuousWithinAt
 
+/-- Endpoint continuity data needed to upgrade the already-proved interior
+energy continuity to the closed interval `[0,T]`.
+
+This is honest: `IsPaper2ClassicalSolution` currently controls interior times,
+while the closed regularity field also asks about the values at `0` and `T`. -/
+structure IntervalDomainPowerEnergyEndpointContinuity
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  atZero :
+    ∀ p, p0 ≤ p →
+      ContinuousWithinAt
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T) 0
+  atRight :
+    ∀ p, p0 ≤ p →
+      ContinuousWithinAt
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T) T
+
+/-- Closed-interval energy continuity from the interior classical-solution
+continuity theorem plus explicit endpoint continuity data. -/
+theorem intervalDomain_energyContinuousOn_Icc_of_classical_endpointContinuity
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hend : IntervalDomainPowerEnergyEndpointContinuity u T p0) :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T) := by
+  intro p hp
+  rw [ContinuousOn]
+  intro t ht
+  by_cases ht0 : t = 0
+  · subst t
+    exact hend.atZero p hp
+  by_cases htT : t = T
+  · subst t
+    exact hend.atRight p hp
+  have htIoo : t ∈ Set.Ioo (0 : ℝ) T := by
+    exact
+      ⟨lt_of_le_of_ne ht.1 (fun h => ht0 h.symm),
+       lt_of_le_of_ne ht.2 htT⟩
+  have hcontWithin :
+      ContinuousWithinAt
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Ioo (0 : ℝ) T) t :=
+    intervalDomain_energyContinuousOn_Ioo (p := p) hsol t htIoo
+  exact
+    (hcontWithin.continuousAt (isOpen_Ioo.mem_nhds htIoo)).continuousWithinAt
+
 #print axioms intervalDomain_solution_jointContinuousOn
 #print axioms intervalDomain_power_jointContinuousOn
 #print axioms intervalDomain_power_bounded_on_slab
 #print axioms intervalDomain_energyContinuousOn_Ioo
+#print axioms intervalDomain_energyContinuousOn_Icc_of_classical_endpointContinuity
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
