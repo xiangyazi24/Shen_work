@@ -2,10 +2,14 @@ import ShenWork.Paper3.IntervalDomainStatementAssembly
 import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper3.IntervalDomainPersistenceActualLinearSectorial
 import ShenWork.PDE.P3MoserLemmaDischarge
+import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.PDE.P3MoserIntegratedClosure
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDomainExistence
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserActualWiring
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.Paper2
@@ -1403,6 +1407,298 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Integrated first-crossing step route
+
+The following structures replace the `rawMoserDrop` + `relativeMassGradient`
+pair with a single `IntegratedMoserFirstCrossingStep` supplier.  The conversion
+to the existing Moser-ladder route uses
+`intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms` and
+`intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms` from
+`P3MoserActualWiring`. -/
+
+/-- Closed-energy Moser residuals with the dissipation and relative
+interpolation fields replaced by a single integrated first-crossing step
+supplier.  This is thinner than the `CERawGrad` variant: one field replaces
+two. -/
+structure
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        Nonempty
+          (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
+  integratedStep :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingRouteResiduals p where
+  a_pos := ha
+  chi_nonneg := le_of_lt hχ0
+  boundednessHyp := h.boundednessHyp
+  driftBoundFromMass := by
+    intro u₀ hu₀ T hT u v hsol htrace hmass
+    have hCor21 : Corollary_2_1 intervalDomain p :=
+      intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
+        h.integratedStep
+    have hProp25 : Proposition_2_5 intervalDomain p :=
+      intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
+        h.integratedStep h.quantitativeEndpoint
+    have hspatial :
+        IntervalDomainL2SpatialAbsorptionEstimate p T u v hsol hmass :=
+      intervalDomainL2SpatialAbsorptionEstimate_of_classical
+        h.boundednessHyp hsol hmass
+    have huniform :
+        IntervalDomainL2HalfEnergyDifferentialInequalityUniformCeps p T u v :=
+      intervalDomainL2HalfEnergyDifferentialInequalityUniformCeps_of_classicalSolution
+        hsol
+    have hhalf :
+        IntervalDomainL2HalfEnergyDifferentialInequality p T u v :=
+      intervalDomainL2HalfEnergyDifferentialInequality_of_classicalSolution hsol
+    have habsorbing :
+        IntervalDomainL2AbsorbingDifferentialInequalityResult p T u :=
+      IntervalDomainL2AbsorbingDifferentialInequality
+        h.boundednessHyp.1 hsol hmass hspatial huniform
+    have hregularity : IntervalDomainL2SeedRegularityFrontier T u :=
+      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+        (Classical.choice
+          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
+    have hintegrated :
+        IntervalDomainL2AbsorbingIntegratedInequalityResult p T u :=
+      IntervalDomainL2AbsorbingIntegratedInequality
+        h.boundednessHyp.2.1 hsol habsorbing hregularity
+    have hL2 :
+        LpPowerBoundedBefore intervalDomain 2 T u :=
+      intervalDomainL2PowerBoundedBefore_of_absorbingIntegratedInequality
+        hsol hintegrated hregularity
+    have hbootstrap :
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u :=
+      intervalDomainL2BootstrapSeed_of_L2PowerBoundedBefore
+        h.boundednessHyp hu₀ hT hsol htrace hhalf hL2
+    have hbounded :
+        IsPaper2BoundedBefore intervalDomain T u :=
+      intervalDomainBoundedBefore_of_corollary21_and_proposition25
+        hCor21 hProp25 hu₀ hT hsol htrace hbootstrap
+    have hpoint : PointwiseBoundedBefore T u :=
+      pointwiseBoundedBefore_of_boundedBefore_and_supNormControls hbounded
+        (supNormControlsPointwiseBefore_of_classicalSolution hsol)
+    exact IntervalDomainChemotacticDriftBound_of_LinfBound hsol hpoint
+  l2SeedRegularity := by
+    intro u₀ hu₀ T hT u v hsol htrace
+    exact
+      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+        (Classical.choice
+          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
+  allLpBoundFromBootstrap :=
+    intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
+      h.integratedStep
+  endpointBoundFromLp :=
+    intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
+      h.integratedStep h.quantitativeEndpoint
+
+end
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+
+/-- Sectorial mainline facts with the integrated first-crossing step input. -/
+structure IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
+    (p : CM2Params) : Prop where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  continuation :
+    IntervalDomainStandardContinuationGluingData p
+  massLpSmoothing :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals p
+
+namespace
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
+
+def to_aprioriActualLinearSmallFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts p where
+  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+  continuation := h.continuation
+  massLpSmoothing := h.massLpSmoothing.to_routeResiduals ha hχ0
+
+end
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
+
+/-- Concrete interval-domain Paper3 mainline frontiers using the integrated
+first-crossing step route and the actual-linear-small persistence producer. -/
+structure IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline from the integrated
+first-crossing step route and the actual-linear-small persistence producer. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_aprioriActualLinearSmallFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { core := hData.core.to_aprioriActualLinearSmallFacts ha hχ0
+      compactness := hData.compactness
+      stability := hData.stability }
+
+/-- Instance-facing concrete interval-domain Paper3 mainline from the
+integrated first-crossing step route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the integrated
+first-crossing step route and the actual-linear-small persistence producer. -/
+structure IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+integrated first-crossing step route. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepFrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+integrated first-crossing step route. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepFrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the integrated
+first-crossing step route, with Proposition 1.3/1.4 routed through Paper2
+main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+integrated first-crossing step route and Paper2 main theorem target inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+integrated first-crossing step route and Paper2 main theorem target inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -1447,5 +1743,11 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
 
 end ShenWork.Paper3
