@@ -1,499 +1,804 @@
-# Q2117 (cron1/cron2) — gradient/derivative response for `/tmp/codex_gradient.md`
+# Q2565 (cron1) — integrated first-crossing Moser high-excursion roadmap
 
 Repository: `xiangyazi24/Shen_work`  
-Committed branch: `chatgpt-scratch`  
-Target report file: `scratch/_CHATGPT_DROP_cron1.md`
+Branch: `chatgpt-scratch`  
+Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
-## Scope and caveat
+## Executive answer
 
-The prompt references a local file:
+The two missing sub-frontiers should be split, but the split must use the correct quantifier order.
 
-```text
-/tmp/codex_gradient.md
-```
+* `LowerAverageWindow` chooses a real time window around a high-excursion time and supplies a **quantitative positive time average** for the next exponent:
 
-That path is not part of the GitHub repository and is not readable through the GitHub connector. The delivery rules explicitly prohibit using Python, code-interpreter, the sandbox, `/mnt/data`, or any local-file fallback. I therefore used only the GitHub connector.
+  ```text
+  Z(s) := Y_{p+rho}(s) = ∫ u(s)^(p+rho)
+  Y(s) := Y_p(s)       = ∫ u(s)^p
+  G(s) := G_p(s)       = ∫ |∇(u(s)^(p/2))|^2
+  ```
 
-A connector search for `codex_gradient` found no repository file with that name or content. The repository-visible context for `gradient`/derivative work points to:
+  From `Z(t) > Cnext`, choose a thickness window `[a,b]` on which
 
-```text
-ShenWork/Paper2/IntervalHeatResolverJointC2.lean
-```
+  ```text
+  κ * Cnext ≤ Z(s)     for all s ∈ [a,b]
+  Y(s) ≤ M             for all s ∈ [a,b]
+  ```
 
-especially the tail part of `cutoffResolverMajorant_bddAbove_direct`, where the proof tries to bound the `i = 1` and `i = 2` time derivatives of
+  with `0 < κ < 1`, usually `κ = 1/2`. Then set
 
-```lean
-A t = smoothRightCutoff (c / 2) c t *
-  resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k t
-```
+  ```text
+  lowerBound := (b - a) * (κ * Cnext).
+  ```
 
-for `t > c + 1`.
+* `UpperGapWitness` should **not** be proved by saying “take eps small”. That is false as a proof strategy unless one also controls how `Ceps` depends on `eps`. The Lean-safe standard choice is: fix a positive `eps★` first, get the corresponding relative-Moser constant `Ceps★`, then choose `Cnext` large enough so that the lower average beats both upper terms.
 
-## Main point
+  For a fixed window length lower bound `ell0 ≤ b-a`, a drop constant `Cdrop`, current bound `M ≥ 1`, and
 
-Do **not** try to solve this as a spatial-gradient estimate. In this file, the derivative being bounded is the **time derivative** of the resolver coefficient. The correct chain is:
+  ```text
+  Gbar := (M + Cdrop * p * T * M) / 2,
+  ```
 
-```text
-A = φ · R
-R t = w_k · srcTimeCoeff p u k t
-```
+  choose, for example,
 
-For `t > c + 1`, the cutoff is locally `1`, so `A =ᶠ[𝓝 t] R`. Thus the tail bounds reduce to derivative bounds for `R`.
+  ```text
+  eps★  := 1,
+  Cnext := 1 + max (4 * eps★ * Gbar / (κ * ell0))
+                   (4 * Ceps★ * M / κ).
+  ```
 
-The right identities are:
+  Then every lower window with `ell0 ≤ b-a` satisfies
 
-```text
-deriv R t
-  = w_k · cosineCoeffs (srcSlice1 p u heatDu t) k
+  ```text
+  eps★ * Gbound + (b-a) * Ceps★ * M < lowerBound.
+  ```
 
-iteratedDeriv 2 R t
-  = w_k · cosineCoeffs (srcSlice2 p u heatDu heatD2u t) k
-```
+This is the key correction: **the threshold `Cnext` is chosen after the interpolation constant for a fixed epsilon is known**. The lower-window producer must either provide a uniform thickness `ell0`, or the upper-gap frontier must remain an analytic frontier. A mere continuity window with no quantitative lower length is enough to populate the current `IntegratedMoserHighExcursionLowerAverageWindow`, but it is not enough to prove the strict gap uniformly.
 
-where `u = conjugatePicardIter p u₀ 0`. Analytically:
+## Existing source facts to consume
 
-```text
-srcSlice  = ν · u^γ
-srcSlice1 = ν · γ · u^(γ-1) · u_t
-srcSlice2 = ν · γ · (γ-1) · u^(γ-2) · u_t^2
-          + ν · γ · u^(γ-1) · u_tt
-```
-
-and for the heat semigroup base iterate:
-
-```text
-u_t  = heatDu u₀
-u_tt = heatD2u u₀
-```
-
-So the derivative tail proof needs only:
-
-1. a uniform positive lower bound and upper bound for `u` on `[0,1]`, obtained from positivity of `u₀`, compactness, and heat semigroup lower/L∞ bounds;
-2. a uniform bound on `heatDu` for `t > c + 1`;
-3. a uniform bound on `heatD2u` for `t > c + 1`;
-4. `cosineCoeffs_abs_le_of_continuous_bounded` to convert pointwise source-slice bounds into coefficient bounds.
-
-The previous `summability` fix should be reused twice: once for `heatDu`, and once for `heatD2u`. Use named majorants so Lean does not have to infer the `Summable` sequence.
-
-## File-level imports for the local block
+Current `ShenWork/PDE/P3MoserIntegratedClosure.lean` already has the right fixed-window plumbing:
 
 ```lean
-import ShenWork.Paper2.IntervalHeatSemigroupHighRegularity
-import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
-import Mathlib.Analysis.Calculus.SmoothSeries
+integratedMoserEnergy
+integratedMoserGradientEnergy
+currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+IntegratedMoserPrecrossingIntervalData
+integratedMoserPrecrossingIntervalData_of_regular_window
+IntegratedMoserWindowUpperBoundWitness
+IntegratedMoserWindowUpperBoundData
+integratedMoser_windowUpperBoundData_of_precrossing
+IntegratedMoserHighExcursionLowerAverageWindow
+IntegratedMoserHighExcursionLowerAverageWindowFrontier
+IntegratedMoserWindowUpperGapWitness
+IntegratedMoserWindowUpperGapWitnessFrontier
+IntegratedMoserLowerUpperWindowFrontiers
+integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
+```
 
-open Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.IntervalConjugatePicard (conjugatePicardIter)
-open ShenWork.IntervalCoupledRegularityBootstrap (coupledChemicalConcentration)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete (resolverTimeCoeff)
-open ShenWork.IntervalPhysicalResolverDataConcrete
-  (srcTimeCoeff resolverTimeCoeff_eq_weight_smul)
-open ShenWork.IntervalPhysicalSourceTimeC2Concrete (srcSlice srcTimeCoeff_eq_cosineCoeffs)
-open ShenWork.IntervalFlooredSourceTimeDataIterate (srcSlice1 srcSlice2)
-open ShenWork.IntervalMildPicardRegularity
-  (cosineCoeffs_hasDerivAt_of_smooth_param)
-open ShenWork.IntervalDomainPositiveWindowK1OnEndpoint
-  (cosineCoeffs_continuousOn_of_jointContinuousOn_Icc)
-open ShenWork.IntervalResolverJointC2Physical
-  (boundedWeightJointTerm boundedWeightJointMajorant
-   boundedWeightJointTerm_contDiff boundedWeightJointTerm_iteratedFDeriv_le)
-open ShenWork.IntervalResolverJointC2PhysicalConcrete
-  (PhysicalResolverJointC2Data)
-open ShenWork.IntervalResolverSpectralJointC2CutoffBounds
-  (norm_iteratedFDeriv_comp_fst_le)
-open ShenWork.Paper2.HeatSemigroupFlooredSourceTimeData
-  (heatDu heatD2u heatSemigroup_d0 heatSemigroup_d1)
-open ShenWork.IntervalResolverSpectralJointC2Cutoff (smoothRightCutoff
-  smoothRightCutoff_contDiff smoothRightCutoff_eq_zero_of_le
-  smoothRightCutoff_eq_one_of_ge smoothRightCutoff_eventually_eq_one)
+The integrated dissipation API has exactly the right shape:
+
+```lean
+def IntegratedMoserDissipationDropBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T _rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      D.integral (fun x => (u t2 x) ^ p) -
+          D.integral (fun x => (u t1 x) ^ p) +
+        2 * ∫ s in t1..t2,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      C * p * ∫ s in t1..t2,
+        max 1 (D.integral (fun x => (u s x) ^ p))
+```
+
+and the existing extraction lemma consumes it with the actual signature:
+
+```lean
+integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+  (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+  (hp : p0 ≤ p)
+  (hp_nonneg : 0 ≤ p)
+  (haT : a ∈ Set.Icc (0 : ℝ) T)
+  (hbT : b ∈ Set.Icc a T)
+  (hYa : D.integral (fun x => (u a x) ^ p) ≤ M)
+  (hYb_nonneg : 0 ≤ D.integral (fun x => (u b x) ^ p))
+  (hmaxInt :
+    ∫ s in a..b, max 1 (D.integral (fun x => (u s x) ^ p)) ≤ H) :
+  ∃ C, 0 ≤ C ∧
+    2 * ∫ s in a..b,
+      D.integral (fun x =>
+        (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      M + C * p * H
+```
+
+The upper-bound helper then sets, internally,
+
+```text
+Gbound = (M + C * p * ((b-a) * max 1 M)) / 2.
+```
+
+For the strict gap, however, the current existential upper-bound helper is slightly too opaque: to choose `Cnext` against `Ceps`, the proof should use an explicit-constant wrapper rather than hiding `Cdrop`, `Gbound`, and `Ceps` behind an existential.
+
+## Frontier 1: LowerAverageWindow
+
+### Mathematical construction
+
+Fix an exponent `p ≥ p0`, `0 ≤ p`, and write
+
+```text
+Y(s) = integratedMoserEnergy D u p s,
+Z(s) = integratedMoserEnergy D u (p + rho) s.
+```
+
+Assume the current induction hypothesis
+
+```lean
+hLp : LpPowerBoundedBefore D p T u
+```
+
+and choose its witness once:
+
+```text
+hLp = ⟨M0, hM0⟩,
+M  := max 1 M0.
+```
+
+Then for every interior time,
+
+```text
+Y(s) ≤ M0 ≤ M.
+```
+
+This is the `M` that must be stored in the lower window. Do not let a later helper choose a different existential `M`.
+
+Now suppose `0 < t < T` and
+
+```text
+Cnext < Z(t).
+```
+
+The standard time-thickness input is one of the following two forms.
+
+#### Minimal continuity version
+
+If all you need is the current `IntegratedMoserHighExcursionLowerAverageWindow` structure, continuity of `Z` on `[0,T]` suffices.
+
+Choose `κ = 1/2`. Since `Cnext < Z(t)` and `0 < Cnext`, we have `κ*Cnext < Z(t)`. By continuity, choose `r_cont > 0` so that
+
+```text
+|s - t| < r_cont  ⇒  κ*Cnext ≤ Z(s).
+```
+
+Choose the endpoint-safe radius
+
+```text
+r_edge := min (t/2) ((T - t)/2),
+δ      := min r_edge r_cont,
+a      := t - δ,
+b      := t + δ.
+```
+
+Then
+
+```text
+0 < a,
+b < T,
+a < b,
+[a,b] ⊆ (0,T),
+κ*Cnext ≤ Z(s) for all s ∈ [a,b].
+```
+
+Set
+
+```text
+lowerBound := (b - a) * (κ * Cnext).
+```
+
+Using interval integrability of `Z`, prove
+
+```text
+lowerBound ≤ ∫ s in a..b, Z(s).
+```
+
+This version is mathematically correct but gives no uniform lower bound on `b-a`. It is therefore not enough, by itself, to prove a uniform upper gap.
+
+#### Quantitative thickness version needed for the actual first-crossing contradiction
+
+For the full first-crossing step, the lower-window frontier should supply an additional length lower bound:
+
+```text
+ell0 > 0,
+ell0 ≤ b - a,
+κ*Cnext ≤ Z(s) on [a,b].
+```
+
+This is the real De Giorgi/Moser thickness input. It can come from a parabolic time-modulus estimate for the higher energy, or from a genuine first-crossing/high-excursion lemma. In Lean, keep it explicit; do not smuggle it into continuity.
+
+The lower window is then exactly:
+
+```text
+a, b       := thickness-window endpoints,
+M          := max 1 M0,
+lowerBound := (b - a) * (κ * Cnext).
+```
+
+### Lean-friendly statement shape
+
+Add the quantitative thickness as a separate analytic record. This avoids changing the existing lower-window record while still giving the upper-gap proof the length information it needs.
+
+```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open scoped Interval
 
 noncomputable section
 
-namespace ShenWork.Paper2.HeatResolverJointC2Direct
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+/-- Quantitative high-excursion time thickness for the next Moser energy.
+This is the genuine analytic lower-window frontier. -/
+structure IntegratedMoserHighExcursionThickness
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p Cnext kappa ell0 : ℝ) : Prop where
+  Cnext_pos : 0 < Cnext
+  kappa_pos : 0 < kappa
+  kappa_lt_one : kappa < 1
+  ell0_pos : 0 < ell0
+  produce :
+    ∀ t, 0 < t → t < T →
+      Cnext < integratedMoserEnergy D u (p + rho) t →
+        ∃ a b : ℝ,
+          a < b ∧
+          0 < a ∧ b < T ∧
+          a ∈ Set.Icc (0 : ℝ) T ∧
+          b ∈ Set.Icc a T ∧
+          ell0 ≤ b - a ∧
+          (∀ s ∈ Set.Icc a b,
+            kappa * Cnext ≤
+              integratedMoserEnergy D u (p + rho) s)
+
+/-- Quantitative lower window plus the already-chosen current-exponent bound. -/
+structure IntegratedMoserQuantLowerAverageWindow
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p Cnext kappa ell0 t : ℝ) where
+  base : IntegratedMoserHighExcursionLowerAverageWindow
+    D u T rho p0 p Cnext t
+  lower_eq : base.lowerBound =
+    (base.b - base.a) * (kappa * Cnext)
+  length_ge : ell0 ≤ base.b - base.a
+  kappa_pos : 0 < kappa
+  Cnext_pos : 0 < Cnext
+  ell0_pos : 0 < ell0
+
+/-- Build the lower-average window from a quantitative thickness frontier.
+The proof is routine interval-integral monotonicity. -/
+theorem lowerAverageWindow_of_highExcursionThickness
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p Cnext kappa ell0 t M : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hp : p0 ≤ p)
+    (hrho_nonneg : 0 ≤ rho)
+    (hY_le_all :
+      ∀ s, 0 < s → s < T →
+        integratedMoserEnergy D u p s ≤ M)
+    (hthick : IntegratedMoserHighExcursionThickness
+      D u T rho p0 p Cnext kappa ell0)
+    (ht0 : 0 < t) (htT : t < T)
+    (hhigh : Cnext < integratedMoserEnergy D u (p + rho) t) :
+    IntegratedMoserQuantLowerAverageWindow
+      D u T rho p0 p Cnext kappa ell0 t := by
+  /-
+  Roadmap:
+  1. Use `hthick.produce t ht0 htT hhigh` to obtain `a b`.
+  2. Define `lowerBound := (b-a) * (kappa*Cnext)`.
+  3. Current bound: for `s ∈ Icc a b`, use `0<a`, `b<T` to call `hY_le_all`.
+  4. Higher-energy integrability: use
+     `hreg.power_intervalIntegrable_of_Icc` at exponent `p+rho`.
+  5. Lower integral: compare constant function `kappa*Cnext` to `Z(s)` on `Icc a b`.
+  6. Package the existing `IntegratedMoserHighExcursionLowerAverageWindow` plus
+     `lower_eq` and `length_ge`.
+  -/
+  sorry
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
 ```
 
-## Robust local helper: `heatDu` tail bound
-
-This is the first helper needed by the gradient/time-derivative proof. Prefer the `CΔ := ∑' maj` witness to avoid any final `tsum_mul_left` orientation issue.
+The continuity-only lemma can also be useful, but should be named honestly:
 
 ```lean
-have hDu_bound : ∃ CΔ : ℝ, 0 ≤ CΔ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
-    |heatDu u₀ t x| ≤ CΔ := by
-  have hc1 : 0 < c + 1 := by
-    linarith
-
-  let base : ℕ → ℝ := fun n =>
-    unitIntervalCosineEigenvalue n *
-      Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)
-  let maj : ℕ → ℝ := fun n => M₀ * base n
-  let CΔ : ℝ := ∑' n : ℕ, maj n
-
-  have hM₀_nonneg : 0 ≤ M₀ :=
-    le_trans (abs_nonneg _) (hu₀_bound 0)
-
-  have hbase_summable : Summable base := by
-    simpa [base] using
-      ShenWork.IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable
-        hc1
-
-  have hmaj_summable : Summable maj := by
-    simpa [maj, base, mul_assoc] using hbase_summable.mul_left M₀
-
-  have hbase_nonneg : ∀ n : ℕ, 0 ≤ base n := by
-    intro n
-    dsimp [base]
-    exact mul_nonneg
-      (by unfold unitIntervalCosineEigenvalue; positivity)
-      (Real.exp_nonneg _)
-
-  have hmaj_nonneg : ∀ n : ℕ, 0 ≤ maj n := by
-    intro n
-    dsimp [maj]
-    exact mul_nonneg hM₀_nonneg (hbase_nonneg n)
-
-  refine ⟨CΔ, by dsimp [CΔ]; exact tsum_nonneg hmaj_nonneg, fun t ht x => ?_⟩
-
-  have ht_pos : 0 < t := by
-    linarith
-
-  simp only [heatDu, if_pos ht_pos]
-  unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianValue
-
-  let term : ℕ → ℝ := fun n =>
-    ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight t x n *
-      cosineCoeffs (intervalDomainLift u₀) n
-
-  change |∑' n : ℕ, term n| ≤ CΔ
-
-  have hterm_le : ∀ n : ℕ, |term n| ≤ maj n := by
-    intro n
-    dsimp [term, maj, base]
-    unfold ShenWork.RegularityBootstrap.unitIntervalCosineHeatLaplacianPointWeight
-    rw [abs_mul, abs_mul, abs_neg]
-
-    have heig_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
-      unfold unitIntervalCosineEigenvalue
-      positivity
-
-    have hpw_le : |unitIntervalCosineHeatPointWeight t x n| ≤
-        Real.exp (-t * unitIntervalCosineEigenvalue n) := by
-      unfold unitIntervalCosineHeatPointWeight
-      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
-      exact mul_le_of_le_one_right (Real.exp_nonneg _) (Real.abs_cos_le_one _)
-
-    have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤
-        Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := by
-      apply Real.exp_le_exp.mpr
-      have hmul : (c + 1) * unitIntervalCosineEigenvalue n ≤
-          t * unitIntervalCosineEigenvalue n :=
-        mul_le_mul_of_nonneg_right (le_of_lt ht) heig_nn
-      linarith
-
-    have hcoeff_le : |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀ :=
-      hu₀_bound n
-
-    calc
-      |unitIntervalCosineEigenvalue n| *
-          |unitIntervalCosineHeatPointWeight t x n| *
-          |cosineCoeffs (intervalDomainLift u₀) n|
-          ≤ unitIntervalCosineEigenvalue n *
-              Real.exp (-t * unitIntervalCosineEigenvalue n) * M₀ := by
-              rw [abs_of_nonneg heig_nn]
-              exact mul_le_mul
-                (mul_le_mul_of_nonneg_left hpw_le heig_nn)
-                hcoeff_le
-                (abs_nonneg _)
-                (mul_nonneg heig_nn (Real.exp_nonneg _))
-      _ ≤ unitIntervalCosineEigenvalue n *
-              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) * M₀ := by
-              exact mul_le_mul_of_nonneg_right
-                (mul_le_mul_of_nonneg_left hexp_le heig_nn)
-                hM₀_nonneg
-      _ = M₀ *
-            (unitIntervalCosineEigenvalue n *
-              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) := by
-              ring
-
-  exact abs_tsum_le_tsum_of_abs_le
-    (f := term) (g := maj) hterm_le hmaj_summable
+/-- Continuity gives a positive window, but not a uniform length bound. -/
+theorem lowerAverageWindow_of_highExcursion_continuity
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p Cnext t M : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hp : p0 ≤ p)
+    (hrho_nonneg : 0 ≤ rho)
+    (hCnext_pos : 0 < Cnext)
+    (hY_le_all :
+      ∀ s, 0 < s → s < T →
+        integratedMoserEnergy D u p s ≤ M)
+    (ht0 : 0 < t) (htT : t < T)
+    (hhigh : Cnext < integratedMoserEnergy D u (p + rho) t) :
+    IntegratedMoserHighExcursionLowerAverageWindow
+      D u T rho p0 p Cnext t := by
+  /-
+  Choose κ = 1/2 and δ = min edge-radius continuity-radius.
+  This proves the current lower-window record, but not the strict upper gap.
+  -/
+  sorry
 ```
 
-## Robust local helper: `heatD2u` tail bound
+## Frontier 2: UpperGapWitness
 
-Use the same pattern. This is the helper needed for `srcSlice2`.
+### Mathematical construction
 
-```lean
-have hD2u_bound : ∃ CΔ₂ : ℝ, 0 ≤ CΔ₂ ∧ ∀ t : ℝ, c + 1 < t → ∀ x : ℝ,
-    |heatD2u u₀ t x| ≤ CΔ₂ := by
-  have hc1 : 0 < c + 1 := by
-    linarith
-
-  let base₂ : ℕ → ℝ := fun n =>
-    unitIntervalCosineEigenvalue n ^ 2 *
-      Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)
-  let maj₂ : ℕ → ℝ := fun n => M₀ * base₂ n
-  let CΔ₂ : ℝ := ∑' n : ℕ, maj₂ n
-
-  have hM₀_nonneg : 0 ≤ M₀ :=
-    le_trans (abs_nonneg _) (hu₀_bound 0)
-
-  have hbase₂_summable : Summable base₂ := by
-    simpa [base₂] using
-      ShenWork.Paper2.HeatSemigroupJointRegularity.eigenvalue_pow_mul_exp_summable
-        2 hc1
-
-  have hmaj₂_summable : Summable maj₂ := by
-    simpa [maj₂, base₂, mul_assoc] using hbase₂_summable.mul_left M₀
-
-  have hbase₂_nonneg : ∀ n : ℕ, 0 ≤ base₂ n := by
-    intro n
-    dsimp [base₂]
-    exact mul_nonneg
-      (pow_nonneg (by unfold unitIntervalCosineEigenvalue; positivity) _)
-      (Real.exp_nonneg _)
-
-  have hmaj₂_nonneg : ∀ n : ℕ, 0 ≤ maj₂ n := by
-    intro n
-    dsimp [maj₂]
-    exact mul_nonneg hM₀_nonneg (hbase₂_nonneg n)
-
-  refine ⟨CΔ₂, by dsimp [CΔ₂]; exact tsum_nonneg hmaj₂_nonneg, fun t ht x => ?_⟩
-
-  have ht_pos : 0 < t := by
-    linarith
-
-  simp only [heatD2u, if_pos ht_pos]
-
-  let term₂ : ℕ → ℝ := fun n =>
-    unitIntervalCosineEigenvalue n ^ 2 *
-      (Real.exp (-t * unitIntervalCosineEigenvalue n) *
-        cosineCoeffs (intervalDomainLift u₀) n) *
-      ShenWork.CosineSpectrum.cosineMode n x
-
-  change |∑' n : ℕ, term₂ n| ≤ CΔ₂
-
-  have hterm₂_le : ∀ n : ℕ, |term₂ n| ≤ maj₂ n := by
-    intro n
-    dsimp [term₂, maj₂, base₂]
-    rw [show unitIntervalCosineEigenvalue n ^ 2 *
-        (Real.exp (-t * unitIntervalCosineEigenvalue n) *
-          cosineCoeffs (intervalDomainLift u₀) n) *
-        ShenWork.CosineSpectrum.cosineMode n x =
-        unitIntervalCosineEigenvalue n ^ 2 *
-        (Real.exp (-t * unitIntervalCosineEigenvalue n) *
-          ShenWork.CosineSpectrum.cosineMode n x) *
-        cosineCoeffs (intervalDomainLift u₀) n from by ring]
-    rw [abs_mul]
-
-    have heig_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
-      unfold unitIntervalCosineEigenvalue
-      positivity
-    have heig2_nn : 0 ≤ unitIntervalCosineEigenvalue n ^ 2 :=
-      pow_nonneg heig_nn _
-
-    have hexp_cos_le : |Real.exp (-t * unitIntervalCosineEigenvalue n) *
-        ShenWork.CosineSpectrum.cosineMode n x| ≤
-        Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := by
-      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
-      have hcos_le : |ShenWork.CosineSpectrum.cosineMode n x| ≤ 1 := by
-        unfold ShenWork.CosineSpectrum.cosineMode
-        exact Real.abs_cos_le_one _
-      have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤
-          Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := by
-        apply Real.exp_le_exp.mpr
-        have hmul : (c + 1) * unitIntervalCosineEigenvalue n ≤
-            t * unitIntervalCosineEigenvalue n :=
-          mul_le_mul_of_nonneg_right (le_of_lt ht) heig_nn
-        linarith
-      calc
-        Real.exp (-t * unitIntervalCosineEigenvalue n) *
-            |ShenWork.CosineSpectrum.cosineMode n x|
-            ≤ Real.exp (-t * unitIntervalCosineEigenvalue n) * 1 := by
-              exact mul_le_mul_of_nonneg_left hcos_le (Real.exp_nonneg _)
-        _ = Real.exp (-t * unitIntervalCosineEigenvalue n) := by ring
-        _ ≤ Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n) := hexp_le
-
-    calc
-      |unitIntervalCosineEigenvalue n ^ 2 *
-          (Real.exp (-t * unitIntervalCosineEigenvalue n) *
-            ShenWork.CosineSpectrum.cosineMode n x)| *
-          |cosineCoeffs (intervalDomainLift u₀) n|
-          ≤ (unitIntervalCosineEigenvalue n ^ 2 *
-              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) * M₀ := by
-              rw [abs_mul, abs_of_nonneg heig2_nn]
-              exact mul_le_mul
-                (mul_le_mul_of_nonneg_left hexp_cos_le heig2_nn)
-                (hu₀_bound n)
-                (abs_nonneg _)
-                (mul_nonneg heig2_nn (Real.exp_nonneg _))
-      _ = M₀ *
-            (unitIntervalCosineEigenvalue n ^ 2 *
-              Real.exp (-(c + 1) * unitIntervalCosineEigenvalue n)) := by
-              ring
-
-  exact abs_tsum_le_tsum_of_abs_le
-    (f := term₂) (g := maj₂) hterm₂_le hmaj₂_summable
-```
-
-## How this feeds the gradient/time-derivative tail
-
-After obtaining
-
-```lean
-obtain ⟨CΔ, hCΔ_nn, hDu⟩ := hDu_bound
-obtain ⟨CΔ₂, hCΔ₂_nn, hD2u⟩ := hD2u_bound
-```
-
-use compactness and positivity of `u₀` to get constants bounding the powers `u^(γ-1)` and `u^(γ-2)` on the invariant interval. Then set:
-
-```lean
-set B₁ := |p.ν * p.γ * (p.γ - 1)| * R₂ * CΔ ^ 2
-set B₂ := p.ν * p.γ * R₁ * CΔ₂
-```
-
-and prove:
-
-```lean
-|srcSlice2 p u (heatDu u₀) (heatD2u u₀) t x| ≤ B₁ + B₂
-```
-
-by `abs_add_le` and the two termwise estimates:
+Assume a lower window with the strengthened data
 
 ```text
-|νγ(γ-1) u^(γ-2) (heatDu)^2| ≤ |νγ(γ-1)| R₂ CΔ^2
-|νγ u^(γ-1) heatD2u|          ≤ νγ R₁ CΔ₂
+ell0 ≤ b-a,
+lowerBound = (b-a) * (κ*Cnext),
+M ≥ 1.
 ```
 
-For `srcSlice1`, only the first derivative bound is needed:
+From `hinteg p hp`, choose the drop constant
 
 ```text
-|νγ u^(γ-1) heatDu| ≤ νγ R₁ CΔ
+Cdrop ≥ 0.
 ```
 
-Then apply:
+For the actual window, the integrated dissipation gives
 
-```lean
-ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+```text
+∫_a^b G(s) ds ≤ Gbound
 ```
 
-with the corresponding `ContinuousOn` proof from `heatSemigroup_d1`.
+where
 
-## Derivative identities for `R`
-
-For the first derivative, the repository already has the intended theorem:
-
-```lean
-rw [heatLevel0_resolverTimeCoeff_deriv_eq hu₀_bound hu₀_cont hfloor ht_pos k]
+```text
+Gbound := (M + Cdrop * p * ((b-a) * max 1 M)) / 2.
 ```
 
-so the proof should look like:
+Since `M ≥ 1`, this is
 
-```lean
-set R := resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k
-set w_k := ShenWork.PDE.intervalNeumannResolverWeight p k
-
-have hR_deriv_bounded : ∃ B_R' : ℝ, ∀ t : ℝ, c + 1 < t →
-    |deriv R t| ≤ B_R' := by
-  -- after proving hBsrc for srcSlice1 coefficients:
-  obtain ⟨Bsrc, hBsrc⟩ := hBsrc
-  refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
-  have ht_pos : 0 < t := by linarith
-  rw [show deriv R t = deriv (resolverTimeCoeff p (conjugatePicardIter p u₀ 0) k) t from rfl]
-  rw [heatLevel0_resolverTimeCoeff_deriv_eq hu₀_bound hu₀_cont hfloor ht_pos k]
-  rw [abs_mul]
-  exact mul_le_mul_of_nonneg_left (hBsrc t ht) (abs_nonneg _)
+```text
+Gbound = (M + Cdrop * p * (b-a) * M) / 2.
 ```
 
-For the second derivative, avoid a spatial-gradient lemma. Differentiate the coefficient identity one more time:
+Also `b-a ≤ T`, so define the uniform bound
 
-```lean
-have hid2 : ∀ t : ℝ, 0 < t → iteratedDeriv 2 R t =
-    w_k * cosineCoeffs
-      (srcSlice2 p (conjugatePicardIter p u₀ 0) (heatDu u₀) (heatD2u u₀) t) k := by
-  intro t ht_pos
-  have hRfun : R = fun s =>
-      w_k * srcTimeCoeff p (conjugatePicardIter p u₀ 0) k s := by
-    funext s
-    exact resolverTimeCoeff_eq_weight_smul p (conjugatePicardIter p u₀ 0) k s
-  rw [hRfun, iteratedDeriv_const_mul_field]
-  congr 1
-  rw [iteratedDeriv_succ]
-  have hnear :
-      (fun s => iteratedDeriv 1
-        (srcTimeCoeff p (conjugatePicardIter p u₀ 0) k) s) =ᶠ[𝓝 t]
-      fun s => cosineCoeffs
-        (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) s) k := by
-    filter_upwards [Ioi_mem_nhds ht_pos] with s hs
-    rw [iteratedDeriv_one]
-    exact (heatLevel0_srcTimeCoeff_hasDerivAt hu₀_bound hu₀_cont hfloor hs k).deriv
-  rw [Filter.EventuallyEq.deriv_eq hnear]
-  obtain ⟨δ₁, hδ₁, hcont_s1, hdiff_s1, hcd_s2⟩ :=
-    heatSemigroup_d1 hu₀_bound hu₀_cont hfloor t ht_pos
-  have hint : ∀ᶠ r in 𝓝 t, IntervalIntegrable
-      (srcSlice1 p (conjugatePicardIter p u₀ 0) (heatDu u₀) r)
-      MeasureTheory.volume (0 : ℝ) 1 :=
-    hcont_s1.mono fun r hr =>
-      (Set.uIcc_of_le (zero_le_one (α := ℝ)) ▸ hr).intervalIntegrable
-  exact (cosineCoeffs_hasDerivAt_of_smooth_param hδ₁ hint hdiff_s1 hcd_s2).deriv
+```text
+Gbar := (M + Cdrop * p * T * M) / 2,
 ```
 
-Then the bound is just:
+and prove
 
-```lean
-have hR_deriv2_bounded : ∃ B_R'' : ℝ, ∀ t : ℝ, c + 1 < t →
-    |iteratedDeriv 2 R t| ≤ B_R'' := by
-  -- after proving hBsrc for srcSlice2 coefficients:
-  obtain ⟨Bsrc, hBsrc⟩ := hBsrc
-  refine ⟨|w_k| * Bsrc, fun t ht => ?_⟩
-  rw [hid2 t (by linarith : 0 < t), abs_mul]
-  exact mul_le_mul_of_nonneg_left (hBsrc t ht) (abs_nonneg _)
+```text
+Gbound ≤ Gbar.
 ```
 
-## How to transfer from `R` back to `A`
+Now fix epsilon before choosing the threshold. The simplest choice is
 
-For `t > c + 1`, use the cutoff-local equality:
+```text
+eps★ := 1.
+```
 
-```lean
-have hev : A =ᶠ[𝓝 t] R := by
-  filter_upwards [Ioi_mem_nhds (show c < t by linarith)] with s hs
-  show smoothRightCutoff (c / 2) c s * R s = R s
-  rw [smoothRightCutoff_eq_one_of_ge (by linarith : c / 2 < c) (le_of_lt hs)]
-  exact one_mul _
+Use relative Moser interpolation at this epsilon:
+
+```text
+Z(s) ≤ eps★ * G(s) + Ceps★ * Y(s),
+```
+
+with `Ceps★ ≥ 0`. After integration and the current bound `Y(s) ≤ M`,
+
+```text
+∫_a^b Z(s) ds ≤ eps★ * Gbound + (b-a) * Ceps★ * M.
+```
+
+Choose the next threshold after `Ceps★` is known:
+
+```text
+Cnext := 1 + max (4 * eps★ * Gbar / (κ * ell0))
+                 (4 * Ceps★ * M / κ).
 ```
 
 Then:
 
-```lean
--- i = 1
-rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv]
-simp only [iteratedDeriv_succ', iteratedDeriv_zero, Real.norm_eq_abs]
-rw [Filter.EventuallyEq.deriv_eq hev]
-exact hB_R' t ht
+```text
+eps★ * Gbound
+  ≤ eps★ * Gbar
+  < (κ*Cnext*ell0)/4
+  ≤ (κ*Cnext*(b-a))/4
+  = lowerBound/4,
 ```
 
-and:
+and
 
-```lean
--- i = 2
-have hev2 := (Filter.EventuallyEq.iteratedFDeriv (𝕜 := ℝ) hev 2).eq_of_nhds
-rw [show ‖iteratedFDeriv ℝ 2 A t‖ = ‖iteratedFDeriv ℝ 2 R t‖ from congr_arg _ hev2]
-rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
-exact hB_R'' t ht
+```text
+(b-a) * Ceps★ * M
+  < (b-a) * (κ*Cnext/4)
+  = lowerBound/4.
 ```
 
-## Possible local elaboration pitfalls
+Therefore
 
-1. If `Real.exp_le_exp.mpr` is unavailable in the local Mathlib snapshot, replace it with `Real.exp_le_exp_of_le` and keep the explicit `hmul` proof.
+```text
+eps★ * Gbound + (b-a) * Ceps★ * M < lowerBound.
+```
 
-2. If `change |∑' n, term n| ≤ CΔ` fails, first write the full unfolded `change`, then introduce `let term := ...`, and then `change` to the named term. This is the same workaround as in the summability note.
+This is the strict gap.
 
-3. If `iteratedDeriv_const_mul_field` does not rewrite in the intended direction, use `rw [hRfun]` first, then inspect the goal. The mathematical target is just that the second derivative of `fun s => w_k * f s` is `w_k * iteratedDeriv 2 f s`.
+### Why not choose epsilon after seeing the window?
 
-4. Do not introduce a new spatial-gradient abstraction unless another file already needs it. For this proof, the required estimate is entirely controlled by time derivatives of the heat semigroup series.
+For a fixed lower window, one might try
+
+```text
+eps < lowerBound / (4 * (Gbound + 1)).
+```
+
+That controls the gradient term. It does **not** control
+
+```text
+(b-a) * Ceps * M,
+```
+
+because `Ceps` may increase as `eps` decreases. Hence the following is not a valid theorem from the current hypotheses:
+
+```lean
+∀ hwin, ∃ eps Gbound Ceps,
+  eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) < hwin.lowerBound
+```
+
+unless the lower-window hypothesis already includes enough quantitative size to dominate the selected `Ceps`. The Lean implementation should reflect this by either:
+
+1. choosing `eps★`, `Ceps★`, and `Cnext` before producing lower windows, or
+2. keeping `UpperGapWitness` as an explicit analytic frontier.
+
+### Lean-friendly statement shapes
+
+First add explicit-constant wrappers. The current existential theorem is fine for upper bounds, but for a threshold proof we need the exact constants used in `Cnext`.
+
+```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+/-- Explicit drop constant on windows, unpacked from
+`IntegratedMoserDissipationDropBefore`. -/
+def IntegratedMoserDropConstant
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p Cdrop : ℝ) : Prop :=
+  0 ≤ Cdrop ∧
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      integratedMoserEnergy D u p t2 -
+          integratedMoserEnergy D u p t1 +
+        2 * ∫ s in t1..t2,
+          integratedMoserGradientEnergy D u p s ≤
+      Cdrop * p * ∫ s in t1..t2,
+        max 1 (integratedMoserEnergy D u p s)
+
+/-- Explicit relative-Moser interpolation constant for one epsilon. -/
+def RelativeMoserInterpolationConstant
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p eps Ceps : ℝ) : Prop :=
+  0 ≤ Ceps ∧
+    ∀ t, 0 < t → t < T →
+      integratedMoserEnergy D u (p + rho) t ≤
+        eps * integratedMoserGradientEnergy D u p t +
+        Ceps * integratedMoserEnergy D u p t
+
+/-- Explicit version of the gradient extraction lemma. -/
+theorem integratedMoser_gradientIntegral_le_with_constant
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p a b M H Cdrop : ℝ}
+    (hdropC : IntegratedMoserDropConstant D u T p Cdrop)
+    (hp_nonneg : 0 ≤ p)
+    (haT : a ∈ Set.Icc (0 : ℝ) T)
+    (hbT : b ∈ Set.Icc a T)
+    (hYa : integratedMoserEnergy D u p a ≤ M)
+    (hYb_nonneg : 0 ≤ integratedMoserEnergy D u p b)
+    (hmaxInt :
+      ∫ s in a..b, max 1 (integratedMoserEnergy D u p s) ≤ H) :
+    2 * ∫ s in a..b, integratedMoserGradientEnergy D u p s ≤
+      M + Cdrop * p * H := by
+  /-
+  Same proof as `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds`,
+  except `Cdrop` is supplied explicitly instead of obtained existentially.
+  -/
+  sorry
+
+/-- Explicit fixed-window upper witness with the constants that were used to
+choose `Cnext`. -/
+theorem integratedMoser_windowUpperBoundWitness_of_precrossing_with_constants
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M eps Cdrop Ceps : ℝ}
+    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
+    (hdropC : IntegratedMoserDropConstant D u T p Cdrop)
+    (hrelC : RelativeMoserInterpolationConstant D u T rho p eps Ceps)
+    (heps : 0 < eps) :
+    IntegratedMoserWindowUpperBoundWitness
+      D u rho p a b M eps
+      ((M + Cdrop * p * ((b - a) * max (1 : ℝ) M)) / 2)
+      Ceps := by
+  /-
+  Roadmap:
+  1. `H := (b-a) * max 1 M` from
+     `IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le`.
+  2. Use `integratedMoser_gradientIntegral_le_with_constant` to get the displayed
+     `Gbound`.
+  3. Integrate `hrelC` over `[a,b]` using
+     `intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on`.
+  4. Replace `∫G` by `Gbound` and `Y` by `M` on the window.
+  -/
+  sorry
+
+/-- Numeric threshold that makes the fixed-window upper bound strictly smaller
+than the lower average. -/
+def integratedMoserGapThreshold
+    (kappa ell0 eps Gbar Ceps M : ℝ) : ℝ :=
+  1 + max (4 * eps * Gbar / (kappa * ell0))
+          (4 * Ceps * M / kappa)
+
+/-- Pure arithmetic gap lemma. -/
+theorem upperGap_lt_lower_of_threshold
+    {kappa ell0 eps Gbar Gbound Ceps M Cnext a b lowerBound : ℝ}
+    (hkappa : 0 < kappa)
+    (hell0 : 0 < ell0)
+    (heps : 0 < eps)
+    (hM_nonneg : 0 ≤ M)
+    (hCeps_nonneg : 0 ≤ Ceps)
+    (hGbound_le : Gbound ≤ Gbar)
+    (hlength : ell0 ≤ b - a)
+    (hlower_eq : lowerBound = (b - a) * (kappa * Cnext))
+    (hCnext_ge : integratedMoserGapThreshold kappa ell0 eps Gbar Ceps M ≤ Cnext) :
+    eps * Gbound + (b - a) * (Ceps * M) < lowerBound := by
+  /-
+  Arithmetic only.
+  From `hCnext_ge` and the `+1`, derive strict inequalities:
+    eps*Gbar < (kappa*Cnext*ell0)/4,
+    Ceps*M   < (kappa*Cnext)/4.
+  Then use `ell0 ≤ b-a` and `lower_eq`.
+  -/
+  sorry
+
+/-- Package a fixed explicit upper witness and numeric gap as the existing
+`IntegratedMoserWindowUpperGapWitness`. -/
+theorem upperGapWitness_of_explicit_upper_and_threshold
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {rho p a b M lowerBound eps Gbound Ceps : ℝ}
+    (heps : 0 < eps)
+    (hupper : IntegratedMoserWindowUpperBoundWitness
+      D u rho p a b M eps Gbound Ceps)
+    (hgap : eps * Gbound + (b - a) * (Ceps * M) < lowerBound) :
+    IntegratedMoserWindowUpperGapWitness
+      D u rho p a b M lowerBound :=
+  { eps := eps
+    Gbound := Gbound
+    Ceps := Ceps
+    eps_pos := heps
+    upperWitness := hupper
+    upper_lt_lower := hgap }
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
+```
+
+## Full per-exponent construction order
+
+For a theorem building `IntegratedMoserLowerUpperWindowFrontiers D u T rho p0 p`, use this order.
+
+### Inputs
+
+```text
+hp             : p0 ≤ p
+hp_nonneg       : 0 ≤ p
+hrho_nonneg     : 0 ≤ rho
+hLp             : LpPowerBoundedBefore D p T u
+hreg            : IntegratedMoserFirstCrossingRegularity D u T p0
+hnonneg         : IntegratedMoserEnergyNonnegativity D u T p0
+hinteg          : IntegratedMoserDissipationDropBefore D u T rho p0
+hrel            : RelativeMoserInterpolationBefore D u T rho p0
+hthicknessData  : supplies κ, ell0 and high-excursion thickness
+```
+
+### Choices
+
+1. Unpack the current exponent bound once:
+
+   ```text
+   hLp = ⟨M0, hM0⟩,
+   M  = max 1 M0.
+   ```
+
+2. Unpack the integrated drop constant once:
+
+   ```text
+   hinteg p hp = ⟨Cdrop, hCdrop_nonneg, hCdrop⟩.
+   ```
+
+3. Fix epsilon before choosing the threshold:
+
+   ```text
+   eps★ = 1.
+   ```
+
+   Then unpack relative interpolation once:
+
+   ```text
+   hrel p hp eps★ eps★_pos = ⟨Ceps★, hCeps★_nonneg, hrel_eps★⟩.
+   ```
+
+4. Choose thickness constants from the high-excursion thickness frontier:
+
+   ```text
+   κ    = 1/2       -- or whatever the analytic thickness theorem supplies
+   ell0 > 0.
+   ```
+
+5. Define the safe uniform gradient upper bound:
+
+   ```text
+   Gbar := (M + Cdrop * p * T * M) / 2.
+   ```
+
+6. Define the next threshold:
+
+   ```text
+   Cnext := integratedMoserGapThreshold κ ell0 eps★ Gbar Ceps★ M.
+   ```
+
+   i.e.
+
+   ```text
+   Cnext = 1 + max (4 * eps★ * Gbar / (κ * ell0))
+                   (4 * Ceps★ * M / κ).
+   ```
+
+7. Define the lower frontier at this `Cnext`. For any high point `t`, the lower-window construction returns `[a,b]`, with
+
+   ```text
+   lowerBound = (b-a) * (κ*Cnext),
+   ell0 ≤ b-a,
+   Y(s) ≤ M on [a,b].
+   ```
+
+8. Define the upper-gap frontier by using the same explicit constants `eps★`, `Ceps★`, and `Cdrop`, building the fixed-window upper witness, proving `Gbound ≤ Gbar`, and applying the arithmetic gap lemma.
+
+### Lean skeleton for the final builder
+
+```lean
+/-- Build the split lower/upper frontier for one exponent from quantitative
+high-excursion thickness and the existing integrated Moser estimates. -/
+theorem integratedMoserLowerUpperWindowFrontiers_of_quantThickness
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p kappa ell0 : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
+    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (hrho_nonneg : 0 ≤ rho)
+    (hT_pos : 0 < T)
+    (hLp : LpPowerBoundedBefore D p T u)
+    -- analytic input: for the Cnext chosen in the proof, high excursions have
+    -- thickness with these `kappa` and `ell0`.
+    (hthick_for_all_Cnext :
+      ∀ Cnext,
+        0 < Cnext →
+          IntegratedMoserHighExcursionThickness
+            D u T rho p0 p Cnext kappa ell0) :
+    IntegratedMoserLowerUpperWindowFrontiers D u T rho p0 p := by
+  classical
+  /-
+  1. Unpack `hLp` as `M0`, set `M := max 1 M0`.
+  2. Unpack `hinteg p hp` as `Cdrop`.
+  3. Set `eps★ := 1` and unpack `hrel p hp eps★` as `Ceps★`.
+  4. Set `Gbar := (M + Cdrop*p*T*M)/2`.
+  5. Set `Cnext := integratedMoserGapThreshold kappa ell0 eps★ Gbar Ceps★ M`.
+  6. `lowerAverage.produce` uses
+       `lowerAverageWindow_of_highExcursionThickness` with
+       `hthick_for_all_Cnext Cnext Cnext_pos` and the same `M`.
+  7. `upperGap.produce hwin`:
+       a. build `IntegratedMoserPrecrossingIntervalData` via
+          `integratedMoserPrecrossingIntervalData_of_regular_window`;
+       b. build explicit upper witness via
+          `integratedMoser_windowUpperBoundWitness_of_precrossing_with_constants`;
+       c. prove `Gbound ≤ Gbar` using `b-a ≤ T`, `0≤Cdrop`, `0≤p`, `M≥1`;
+       d. prove numeric gap using `upperGap_lt_lower_of_threshold`;
+       e. package with `upperGapWitness_of_explicit_upper_and_threshold`.
+  -/
+  sorry
+```
+
+This is the compile-oriented shape I would add after `P3MoserIntegratedClosure.lean`, likely in a new file such as:
+
+```text
+ShenWork/PDE/P3MoserHighExcursionFrontiers.lean
+```
+
+with only
+
+```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+```
+
+at the top. That avoids cycles: the new file consumes the structures and fixed-window helpers already defined in `P3MoserIntegratedClosure`; statement assembly can import the new file only when it is ready to expose the strengthened frontier.
+
+## The exact no-go routes
+
+1. **Do not prove `UpperGapWitness` by `eps → 0` alone.**  The term `Ceps*M` is not monotone small in `eps`; in ordinary Young/GN estimates it usually grows as `eps` shrinks.
+
+2. **Do not rely on the current existential `integratedMoser_windowUpperBoundData_of_precrossing` when choosing `Cnext`.**  It hides the `Ceps` witness. For threshold selection, use an explicit-constant wrapper.
+
+3. **Do not claim a quantitative strict gap from mere continuity of `Z`.**  Continuity gives a positive window but not a uniform lower length. Without either a length lower bound or an equivalent lowerBound-size condition, a pointwise spike can be too narrow for the integrated upper estimate to contradict it.
+
+4. **Do not let `M` be chosen twice.**  The same `M := max 1 M0` extracted from `hLp` must be used in `Cnext`, in the lower window, and in the upper bound.
+
+## Minimal theorem DAG
+
+```text
+Existing:
+  IntegratedMoserDissipationDropBefore
+  RelativeMoserInterpolationBefore
+  IntegratedMoserFirstCrossingRegularity
+  IntegratedMoserEnergyNonnegativity
+  LpPowerBoundedBefore
+
+New arithmetic/constant wrappers:
+  IntegratedMoserDropConstant
+  RelativeMoserInterpolationConstant
+  integratedMoser_gradientIntegral_le_with_constant
+  integratedMoser_windowUpperBoundWitness_of_precrossing_with_constants
+  integratedMoserGapThreshold
+  upperGap_lt_lower_of_threshold
+  upperGapWitness_of_explicit_upper_and_threshold
+
+New lower-window frontier:
+  IntegratedMoserHighExcursionThickness
+  IntegratedMoserQuantLowerAverageWindow
+  lowerAverageWindow_of_highExcursionThickness
+  optional: lowerAverageWindow_of_highExcursion_continuity
+
+New assembly:
+  integratedMoserLowerUpperWindowFrontiers_of_quantThickness
+    → IntegratedMoserLowerUpperWindowFrontiers.to_contradictionWindowFrontier
+    → integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
+    → moser_iteration_chain_of_integrated_first_crossing_step
+    → intervalDomain_boundedBefore_of_integrated_first_crossing_step
+```
 
 ## Bottom line
 
-The gradient/derivative tail should be closed by the source-slice chain rule plus the same named-majorant summability pattern as Q2114. Bound `heatDu` and `heatD2u` uniformly for `t > c + 1`; use compact positivity of the heat iterate to bound the `u^(γ-1)` and `u^(γ-2)` factors; convert pointwise `srcSlice1`/`srcSlice2` bounds into coefficient bounds; then use `A =ᶠ[𝓝 t] R` because the cutoff is locally `1` in the tail.
+The honest construction is:
+
+```text
+M          := max 1 M0, where hLp = ⟨M0, hM0⟩
+a,b        := high-excursion thickness window for Z = Y_{p+rho}
+lowerBound := (b-a) * (κ*Cnext)
+eps        := fixed eps★, e.g. 1
+Ceps       := relative-Moser constant for eps★
+Gbound     := (M + Cdrop*p*((b-a)*max 1 M))/2
+Gbar       := (M + Cdrop*p*T*M)/2
+Cnext      := 1 + max (4*eps★*Gbar/(κ*ell0)) (4*Ceps*M/κ)
+```
+
+Then the lower average and upper estimate are incompatible. This is the standard DGNM/Moser threshold argument in Lean-friendly quantifier order.
