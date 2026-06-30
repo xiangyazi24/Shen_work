@@ -12,10 +12,12 @@ import ShenWork.Paper2.IntervalDomainStructuredMoserData
 import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.PDE.P3MoserLemmas
 
 set_option linter.style.longLine false
 
 open ShenWork.IntervalDomain
+open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainMoserClosure
 
 namespace ShenWork.Paper2
@@ -200,6 +202,135 @@ theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierDataFact
     Proposition_2_5 intervalDomain p :=
   intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData p hData.out
 
+/-- Actual-atom Proposition 2.5 frontier with the relative-Moser field reduced
+to the mass-gradient inputs used by `P3MoserLemmas`.
+
+The dissipation and quantitative endpoint fields remain the honest actual
+atoms; this wrapper only lowers the relative-interpolation boundary. -/
+structure IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData
+    (p : CM2Params) : Prop where
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
+          intervalDomain u T rho p0
+  relativeMassGradient :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∃ cGrad : ℝ → ℝ,
+          (∀ q, p0 ≤ q → 0 < cGrad q) ∧
+          (∀ q, p0 ≤ q → ∀ eta > 0, ∃ Ceta,
+            LpMassGradientInterpolationEstimate intervalDomain
+              (q + rho) eta Ceta T u) ∧
+          (∀ q, p0 ≤ q → ∀ t, 0 < t → t < T →
+            intervalDomain.integral (fun x =>
+                (u t x) ^ (q + rho - 2) *
+                  (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+              cGrad q * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm
+                  (fun y => (u t y) ^ (q / 2)) x) ^ 2)) ∧
+          MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+/-- Convert the mass-gradient relative-Moser frontier to the actual-atom
+frontier consumed by the existing Prop. 2.5 and Corollary 2.1 routes. -/
+def IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
+    IntervalDomainPaper2Prop25ActualAtomFrontierData p where
+  moserDissipation := h.moserDissipation
+  relativeMoserInterpolation := by
+    intro T rho p0 u v hsol hcross hboot
+    rcases h.relativeMassGradient hsol hcross hboot with
+      ⟨cGrad, hcGrad, hMG, hgrad, hmassToLp⟩
+    exact
+      ShenWork.IntervalDomainExistence.P3MoserLemmas.intervalDomain_relativeMoserInterpolationBefore_of_massGradient
+        cGrad hcGrad hMG hgrad hmassToLp
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+/-- Mass-gradient relative-Moser frontier produces interval-domain Proposition
+2.5 via the actual-atom route. -/
+theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+    p hData.toActualAtoms
+
+/-- Instance-facing mass-gradient relative-Moser Proposition 2.5 wrapper. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact (IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p)] :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
+    p hData.out
+
+/-- Actual-atom frontier produces interval-domain Corollary 2.1. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    Corollary_2_1 intervalDomain p :=
+  ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
+    hData.moserDissipation hData.relativeMoserInterpolation
+
+/-- Instance-facing actual-atom Corollary 2.1 wrapper. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper2Prop25ActualAtomFrontierData p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
+    p hData.out
+
+/-- Actual-atom frontier produces both Tier-1 inputs used by Theorems 1.2 and
+1.3. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  ⟨intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData p hData,
+    intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData p hData⟩
+
+/-- Mass-gradient relative-Moser frontier produces interval-domain Corollary
+2.1 via the actual-atom route. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
+    p hData.toActualAtoms
+
+/-- Instance-facing mass-gradient relative-Moser Corollary 2.1 wrapper. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact (IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierData
+    p hData.out
+
 /-- Section-2 target wrapper from the thinner branch data, with Proposition
 2.4 supplied by the interval-domain mass proof and Proposition 2.5 supplied by
 the current theorem-level route. -/
@@ -271,6 +402,30 @@ theorem
     [hAtoms : Fact (IntervalDomainPaper2Prop25ActualAtomFrontierData p)] :
     IntervalDomainPaper2BootstrapEstimateTargets p :=
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomFrontierData
+    p hThin.out hAtoms.out
+
+/-- Section-2 targets from the thin frontiers and the actual-atom Proposition
+2.5 frontier with relative Moser interpolation supplied by mass-gradient data. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomMassGradientFrontierData
+    (p : CM2Params)
+    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
+    (hAtoms :
+      IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomFrontierData
+    p hThin hAtoms.toActualAtoms
+
+/-- Instance-facing section-2 wrapper from thin frontiers and the actual-atom
+mass-gradient Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomMassGradientFrontierDataFact
+    (p : CM2Params)
+    [hThin : Fact (IntervalDomainPaper2BootstrapEstimateThinFrontierData p)]
+    [hAtoms :
+      Fact (IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p)] :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomMassGradientFrontierData
     p hThin.out hAtoms.out
 
 /-- Single-target interval-domain wrapper for Lemma 2.6. -/
@@ -1205,6 +1360,132 @@ def
   strongBootstrap := h.strongBootstrap
   strongEventualSupBound := h.strongEventualSupBound
 
+/-- Common-free actual-atom frontier for interval-domain Theorems 1.2 and 1.3
+in the proved `χ₀ = 0` local-free route.
+
+Compared with the positive solution-slice local-free route, this removes
+`IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData` and the
+`cGrad` parameter from the main-theorem path.  Both `Corollary_2_1` and
+`Proposition_2_5` are produced from `prop25Actual`. -/
+structure
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  prop25Actual : IntervalDomainPaper2Prop25ActualAtomFrontierData p
+  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
+  slowBootstrap :
+    1 ≤ p.β → p.m < 1 →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalBootstrap :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalEventualSupBound :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+  strongBootstrap :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  strongEventualSupBound :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
+/-- Common-free actual-atom frontier for Theorems 1.2 and 1.3 with the
+relative-Moser atom reduced to mass-gradient data. -/
+structure
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  prop25MassGradient :
+    IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p
+  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
+  slowBootstrap :
+    1 ≤ p.β → p.m < 1 →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalBootstrap :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalEventualSupBound :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+  strongBootstrap :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  strongEventualSupBound :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
+/-- Convert the mass-gradient common-free route to the actual-atom common-free
+route. -/
+def
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomMassGradientCor21LocalFreeFrontierData.toActualAtomCor21
+    {p : CM2Params} {C : Paper2Constants p}
+    (h :
+      IntervalDomainPaper2Theorem12And13ChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+        p C) :
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+      p C where
+  prop25Actual := h.prop25MassGradient.toActualAtoms
+  globalExtension := h.globalExtension
+  slowBootstrap := h.slowBootstrap
+  criticalBootstrap := h.criticalBootstrap
+  criticalEventualSupBound := h.criticalEventualSupBound
+  strongBootstrap := h.strongBootstrap
+  strongEventualSupBound := h.strongEventualSupBound
+
 /-- Assemble the interval-domain Theorem 1.2 and Theorem 1.3 statement targets
 from their existing frontier-data records. -/
 theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
@@ -1367,6 +1648,79 @@ theorem
     Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble interval-domain Theorems 1.2 and 1.3 in the `χ₀ = 0` regime from
+the common-free actual-atom route. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+        p C) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C := by
+  have hTier :
+      Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomFrontierData
+      p hData.prop25Actual
+  let hlocal : IntervalDomainPaper2LocalExistenceFrontier p :=
+    fun u₀ hu₀ =>
+      intervalDomain_localExistence_chiZero_unconditional
+        p hχ0 ha hb hα hγ hu₀
+  exact
+    ⟨IntervalDomainTheorem12.Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
+        p hTier.1 hTier.2 hlocal hData.globalExtension
+        hData.slowBootstrap hData.criticalBootstrap
+        hData.criticalEventualSupBound,
+      IntervalDomainTheorem13.Theorem_1_3_intervalDomain_of_parameter_m_pos_and_eventual_sup_bound
+        p C hTier.1 hTier.2 hlocal hData.globalExtension
+        hData.strongBootstrap hData.strongEventualSupBound⟩
+
+/-- Instance-facing wrapper for interval-domain Theorems 1.2 and 1.3 in the
+common-free actual-atom `χ₀ = 0` route. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+          p C)] :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData.out
+
+/-- Assemble interval-domain Theorems 1.2 and 1.3 in the `χ₀ = 0` regime from
+the common-free actual-atom route, with the relative-Moser atom reduced to
+mass-gradient data. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13ChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+        p C) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData.toActualAtomCor21
+
+/-- Instance-facing wrapper for interval-domain Theorems 1.2 and 1.3 in the
+common-free mass-gradient actual-atom `χ₀ = 0` route. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2Theorem12And13ChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+          p C)] :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData.out
 
 /-- Instance-facing joint wrapper for interval-domain Theorems 1.2 and 1.3
 from the positive-constant solution-slice interpolation frontiers. -/
@@ -1633,6 +1987,37 @@ structure
     IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
       p C cGrad
 
+/-- Main-theorem frontier record for the proved `χ₀ = 0` route using the
+common-free actual-atom Theorem 1.2/1.3 assembly. -/
+structure
+    IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+      p C
+
+/-- Main-theorem frontier record for the proved `χ₀ = 0` route using the
+common-free actual-atom Theorem 1.2/1.3 assembly, with relative Moser reduced
+to mass-gradient data. -/
+structure
+    IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+      p C
+
+/-- Convert the mass-gradient common-free main-theorem route to the actual-atom
+common-free main-theorem route. -/
+def
+    IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData.toActualAtomCor21
+    {p : CM2Params} {C : Paper2Constants p}
+    (h :
+      IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+      p C where
+  theorem12And13 := h.theorem12And13.toActualAtomCor21
+
 /-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 in the proved `χ₀ = 0`
 route.  Compared with the H2/logistic-source routes, this carries no Theorem
 1.1 local-existence frontier package. -/
@@ -1797,6 +2182,36 @@ theorem
     intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
       p C cGrad hχ0 ha hb hα hγ hData.theorem12And13⟩
 
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 from the common-free
+actual-atom Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+      p hχ0 ha hb hα hγ,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
+      p C hχ0 ha hb hα hγ hData.theorem12And13⟩
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 from the common-free
+mass-gradient actual-atom Theorem 1.2/1.3 route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData.toActualAtomCor21
+
 /-- Instance-facing interval-domain main-theorem bundle for the local-free
 positive solution-slice `χ₀ = 0` route. -/
 theorem
@@ -1826,6 +2241,34 @@ theorem
     IntervalDomainPaper2MainTheoremTargets p C :=
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Instance-facing interval-domain main-theorem bundle for the common-free
+actual-atom `χ₀ = 0` route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+        p C)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData.out
+
+/-- Instance-facing interval-domain main-theorem bundle for the common-free
+mass-gradient actual-atom `χ₀ = 0` route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+        p C)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData.out
 
 /-- Main-theorem frontier record using the half-step H2-source Theorem 1.1
 route. -/
@@ -2913,6 +3356,81 @@ theorem
     IntervalDomainPaper2MainTheoremTargets p C :=
   intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomFrontierData
     p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Preferred `χ₀ = 0` interval-domain Paper2 main-theorem frontier package
+with both Corollary 2.1 and Proposition 2.5 produced from the actual Moser
+atoms.  This is the common-free headline route and has no `cGrad` parameter. -/
+abbrev IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+    p C
+
+/-- Preferred `χ₀ = 0` interval-domain Paper2 main-theorem wrapper using the
+common-free actual-atom Corollary 2.1 / Proposition 2.5 route. -/
+theorem
+    intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData
+
+/-- Instance-facing alias for the preferred `χ₀ = 0` common-free actual-atom
+main-theorem route. -/
+theorem
+    intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+          p C)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
+    p C hχ0 ha hb hα hγ hData.out
+
+/-- Preferred `χ₀ = 0` interval-domain Paper2 main-theorem frontier package
+with both Corollary 2.1 and Proposition 2.5 produced from actual Moser atoms,
+and relative Moser reduced to mass-gradient data. -/
+abbrev
+    IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    p C
+
+/-- Preferred `χ₀ = 0` interval-domain Paper2 main-theorem wrapper using the
+common-free mass-gradient actual-atom Corollary 2.1 / Proposition 2.5 route. -/
+theorem
+    intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomMassGradientCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData
+
+/-- Instance-facing alias for the preferred `χ₀ = 0` common-free mass-gradient
+actual-atom main-theorem route. -/
+theorem
+    intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
+          p C)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
+    p C hχ0 ha hb hα hγ hData.out
 
 /-- Preferred `χ₀ = 0` statement-frontier package with Proposition 2.5
 produced from structured Moser data instead of carried as a theorem field.
