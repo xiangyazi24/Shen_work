@@ -1,72 +1,87 @@
-# Q2461 shen1 — honest precrossing interval skeleton for integrated Moser
+# Q2475 shen1 — corrected precrossing interval skeleton against current APIs
 
 Repo: `xiangyazi24/Shen_work`
 
-Target local file: `ShenWork/PDE/P3MoserIntegratedClosure.lean`
-
-Remote note: the public `main` copy visible to me still has the earlier integrated-closure skeleton and does **not** contain the new local lemmas named in the prompt.  The patch below is therefore written against the APIs exactly as described in Q2461, and is meant to be pasted **after** the compiled local lemmas:
-
-```lean
-integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
-intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
-integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
-intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on
-relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_bound
-relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
-```
-
-The important design constraint is: this skeleton never concludes
-
-```lean
-LpPowerBoundedBefore D (p + rho) T u
-```
-
-from a time-integral estimate.  It concludes only a bound on
-
-```lean
-∫ s in a..b, D.integral (fun x => (u s x) ^ (p + rho))
-```
-
-or its interval average.  That is the honest next step: no pointwise extraction, no hidden first-crossing supremum theorem, and no fake `LpPowerBoundedBefore` conversion.
-
-## Minimal patch
-
-Paste this near the end of `P3MoserIntegratedClosure.lean`, inside the existing namespace
+Target namespace:
 
 ```lean
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-and before the namespace-ending lines.
+I re-audited the currently visible `main` copy of `ShenWork/PDE/P3MoserIntegratedClosure.lean`.  It now contains the helper signatures needed for this question, including the two signature details that made the Q2461 drop too stale:
+
+1. `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound` takes not only `hab` and the Icc bound on `Y_p`, but also
 
 ```lean
+hYmax_int :
+  IntervalIntegrable
+    (fun s => max (1 : ℝ) (D.integral (fun x => (u s x) ^ p)))
+    volume a b
+```
+
+2. `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound` has the current shape
+
+```lean
+{T rho p0 p a b M eps Gbound : ℝ}
+(hrel : RelativeMoserInterpolationBefore D u T rho p0)
+(hp : p0 ≤ p)
+(heps : 0 < eps)
+(hab : a ≤ b)
+(ha : 0 < a)
+(hb : b < T)
+(hZ_int : IntervalIntegrable (fun s => D.integral (fun x => (u s x) ^ (p + rho))) volume a b)
+(hG_int : IntervalIntegrable (fun s => D.integral (fun x =>
+  (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) volume a b)
+(hY_le : ∀ s ∈ Set.Icc a b, D.integral (fun x => (u s x) ^ p) ≤ M)
+(hG_le : ∫ s in a..b, D.integral (fun x =>
+  (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤ Gbound)
+```
+
+and returns `∃ Ceps, 0 ≤ Ceps ∧ ∫ Z ≤ eps * Gbound + (b - a) * (Ceps * M)`.
+
+So the Q2461 data structure was missing one real field: max-one time integrability.  Also, the Q2461 wrapper that took an arbitrary `hhigher` argument and concluded exactly the same higher-power time-integral existence is not worth committing; it is just eta-expansion of an input.  The corrected patch below calls the current relative-Moser helper directly.
+
+## Compile-oriented patch
+
+If this is pasted into `ShenWork/PDE/P3MoserIntegratedClosure.lean`, insert only the section beginning at `/-! ### Honest precrossing... -/`, after the current helper
+
+```lean
+relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
+```
+
+and before `moser_iteration_chain_of_integrated_first_crossing_step`.
+
+For standalone scratch checking in a new file, use the full block with imports/open statements:
+
+```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
 /-! ### Honest precrossing interval skeleton
 
-This section is deliberately weaker than `IntegratedMoserFirstCrossingStep`.
-A precrossing window `[a,b]` carries a current `p`-energy bound on that
-window, and the integrated dissipation estimate gives an integrated gradient
-bound on that same window.  Relative Moser then gives only a time-integral
-bound for the higher power on `[a,b]`.
-
-There is no theorem here producing `LpPowerBoundedBefore D (p + rho) T u`.
-That pointwise extraction is a separate analytic/measure-theoretic frontier.
+This section packages only interval-level information.  It does not turn a
+time-integral or average estimate for `Y_{p+rho}` into
+`LpPowerBoundedBefore D (p + rho) T u`.
 -/
 
 section PrecrossingInterval
 
 /-- Data available on a genuine precrossing interval.
 
-Fields `ha_pos` and `hb_lt` are included because the relative-Moser pointwise
-input is normally available only for interior times `0 < t < T`; the interval
-integral ignores endpoints, but the existing helper proving the integrated
-relative estimate still needs an interior window.  The closed endpoint fields
-`haT` and `hbT` are kept explicitly because
-`integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds` takes
-exactly those endpoint-membership hypotheses.
-
-`right_currentLp_nonneg` is also explicit.  In PDE applications it should come
-from positivity/nonnegativity of `u` plus positivity of the abstract integral,
-but that is not part of `BoundedDomainData`; do not fake it here.
+The extra `maxOneEnergy_intervalIntegrable` field is required by the current
+signature of `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound`.
+The two ordinary interval-integrability fields are required by the current
+relative-Moser time-integral helper.
 -/
 structure IntegratedMoserPrecrossingIntervalData
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
@@ -78,222 +93,211 @@ structure IntegratedMoserPrecrossingIntervalData
   hb_lt : b < T
   haT : a ∈ Set.Icc (0 : ℝ) T
   hbT : b ∈ Set.Icc a T
-  currentLp_le_Icc :
+  currentEnergy_le_Icc :
     ∀ s ∈ Set.Icc a b,
       D.integral (fun x => (u s x) ^ p) ≤ M
-  right_currentLp_nonneg :
+  right_currentEnergy_nonneg :
     0 ≤ D.integral (fun x => (u b x) ^ p)
+  maxOneEnergy_intervalIntegrable :
+    IntervalIntegrable
+      (fun s => max (1 : ℝ)
+        (D.integral (fun x => (u s x) ^ p)))
+      volume a b
   higherPower_intervalIntegrable :
     IntervalIntegrable
       (fun s => D.integral (fun x => (u s x) ^ (p + rho)))
-      MeasureTheory.volume a b
+      volume a b
   gradient_intervalIntegrable :
     IntervalIntegrable
       (fun s =>
         D.integral (fun x =>
           (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
-      MeasureTheory.volume a b
+      volume a b
 
 namespace IntegratedMoserPrecrossingIntervalData
 
-/-- Left-end current-energy bound extracted from the precrossing window. -/
-theorem left_currentLp_le
+/-- Left-end current-energy bound extracted from the Icc precrossing bound. -/
+theorem left_currentEnergy_le
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
     {T rho p0 p a b M : ℝ}
     (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
     D.integral (fun x => (u a x) ^ p) ≤ M :=
-  hI.currentLp_le_Icc a ⟨le_rfl, hI.hab.le⟩
+  hI.currentEnergy_le_Icc a ⟨le_rfl, hI.hab.le⟩
 
-/-- Max-one time-integral control from the precrossing current-energy bound.
-
-This is the honest source of the `hmaxInt` argument for the extraction lemma.
-It uses the compiled local helper rather than proving a new interval-integral
-fact here.
--/
-theorem maxOne_timeIntegral_le
+/-- Max-one time-integral control from the current-energy Icc bound. -/
+theorem maxOneEnergy_timeIntegral_le
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
     {T rho p0 p a b M : ℝ}
     (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
     (∫ s in a..b,
-      max 1 (D.integral (fun x => (u s x) ^ p))) ≤
-        (b - a) * max 1 M := by
+      max (1 : ℝ) (D.integral (fun x => (u s x) ^ p))) ≤
+        (b - a) * max (1 : ℝ) M := by
   exact
     integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
-      (D := D) (u := u) (p := p) (a := a) (b := b) (M := M)
-      hI.hab.le hI.currentLp_le_Icc
+      (D := D) (u := u) (a := a) (b := b) (M := M) (p := p)
+      hI.hab.le hI.maxOneEnergy_intervalIntegrable hI.currentEnergy_le_Icc
 
 end IntegratedMoserPrecrossingIntervalData
 
 /-- Integrated Moser extraction on a precrossing interval.
 
-This is the signature-sensitive call.  It matches the Q2461 extraction API:
-`hinteg, hp, hp_nonneg, haT, hbT, hYa, hYb_nonneg, hmaxInt`.
+This is the signature-sensitive call.  It matches the current extraction lemma:
+`hinteg`, `hp`, `hp_nonneg`, `haT`, `hbT`, `hYa`, `hYb_nonneg`, `hmaxInt`.
 -/
 theorem integratedMoser_precrossing_gradientIntegral_le
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
     {T rho p0 p a b M : ℝ}
     (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
     (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
-    ∃ C, 2 *
-      (∫ s in a..b,
-        D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤
-        M + C * p * ((b - a) * max 1 M) := by
+    ∃ C, 0 ≤ C ∧
+      2 *
+        (∫ s in a..b,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤
+          M + C * p * ((b - a) * max (1 : ℝ) M) := by
   exact
     integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
-      (hinteg := hinteg)
-      (hp := hI.hp)
-      (hp_nonneg := hI.hp_nonneg)
-      (haT := hI.haT)
-      (hbT := hI.hbT)
-      (hYa := hI.left_currentLp_le)
-      (hYb_nonneg := hI.right_currentLp_nonneg)
-      (hmaxInt := hI.maxOne_timeIntegral_le)
+      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
+      (p := p) (a := a) (b := b) (M := M)
+      (H := (b - a) * max (1 : ℝ) M)
+      hinteg hI.hp hI.hp_nonneg hI.haT hI.hbT
+      (IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le hI)
+      hI.right_currentEnergy_nonneg
+      (IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le hI)
 
-/-- A one-sided gradient integral bound, with the harmless factor `2` removed.
-
-This is often the most convenient form to feed to the integrated relative-Moser
-helper.
--/
+/-- A one-sided bound for the integrated Moser-gradient term. -/
 theorem integratedMoser_precrossing_gradientIntegral_bound
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
     {T rho p0 p a b M : ℝ}
     (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
     (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
-    ∃ Gbar,
+    ∃ Gbound,
       (∫ s in a..b,
         D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbar := by
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound := by
   rcases integratedMoser_precrossing_gradientIntegral_le hinteg hI with
-    ⟨C, hC⟩
-  refine ⟨(M + C * p * ((b - a) * max 1 M)) / 2, ?_⟩
-  nlinarith
+    ⟨C, _hC_nonneg, hgrad⟩
+  refine ⟨(M + C * p * ((b - a) * max (1 : ℝ) M)) / 2, ?_⟩
+  linarith
 
-/-- The honest higher-power conclusion from an integrated relative-Moser
-consumer.
+/-- Honest higher-power time-integral output on a precrossing interval.
 
-The argument `hhigher` is intentionally time-integrated:
-from a gradient integral bound on `[a,b]`, it returns a time-integral bound for
-`Y_{p+rho}` on `[a,b]`.  This is exactly what the local helper
-`relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound`
-should provide from `RelativeMoserInterpolationBefore`, the current `p`-energy
-bound on the same Icc window, and interval integrability.
-
-Keeping `hhigher` as an argument makes this core wrapper robust to small binder
-name/order changes in the local relative-Moser helper, while the previous theorem
-above still checks the extraction call with the exact Q2461 signature.
+This directly consumes the current local helper
+`relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound`.
+It concludes only an interval integral bound, not `LpPowerBoundedBefore`.
 -/
-theorem integratedMoser_precrossing_higherPower_timeIntegral_le_of_integrated_relative
+theorem integratedMoser_precrossing_higherPower_timeIntegral_le
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M : ℝ}
+    {T rho p0 p a b M eps : ℝ}
     (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
     (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
-    (hhigher :
-      ∀ Gbar,
-        (∫ s in a..b,
-          D.integral (fun x =>
-            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbar →
-          ∃ Zbar,
-            (∫ s in a..b,
-              D.integral (fun x => (u s x) ^ (p + rho))) ≤ Zbar) :
-    ∃ Zbar,
-      (∫ s in a..b,
-        D.integral (fun x => (u s x) ^ (p + rho))) ≤ Zbar := by
-  rcases integratedMoser_precrossing_gradientIntegral_bound hinteg hI with
-    ⟨Gbar, hGbar⟩
-  exact hhigher Gbar hGbar
-
-/-- Average version of the previous time-integral conclusion.
-
-This is still not a pointwise estimate.  It only bounds the interval average,
-represented as `(1 / (b - a)) * ∫ ...`.
--/
-theorem integratedMoser_precrossing_higherPower_average_le_of_integrated_relative
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M : ℝ}
-    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
-    (hhigher :
-      ∀ Gbar,
-        (∫ s in a..b,
-          D.integral (fun x =>
-            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbar →
-          ∃ Zbar,
-            (∫ s in a..b,
-              D.integral (fun x => (u s x) ^ (p + rho))) ≤ Zbar) :
-    ∃ Zavg,
-      (1 / (b - a)) *
-        (∫ s in a..b,
-          D.integral (fun x => (u s x) ^ (p + rho))) ≤ Zavg := by
-  rcases
-    integratedMoser_precrossing_higherPower_timeIntegral_le_of_integrated_relative
-      hinteg hI hhigher with
-    ⟨Zbar, hZbar⟩
-  refine ⟨(1 / (b - a)) * Zbar, ?_⟩
-  have hscale_nonneg : 0 ≤ 1 / (b - a) := by
-    exact div_nonneg zero_le_one (sub_nonneg.mpr hI.hab.le)
-  exact mul_le_mul_of_nonneg_left hZbar hscale_nonneg
-
-end PrecrossingInterval
-```
-
-## Direct adapter to the local relative-Moser helper
-
-If your local theorem
-
-```lean
-relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
-```
-
-has the natural Q2451-style argument order, the `hhigher` argument above should be instantiated as follows.  This is intentionally separate from the core wrapper above, because the remote branch I can inspect does not contain the local helper signature.
-
-```lean
-have hhigher :
-    ∀ Gbar,
+    (heps : 0 < eps) :
+    ∃ Gbound,
       (∫ s in a..b,
         D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbar →
-        ∃ Zbar,
-          (∫ s in a..b,
-            D.integral (fun x => (u s x) ^ (p + rho))) ≤ Zbar := by
-  intro Gbar hGbar
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound ∧
+      ∃ Ceps, 0 ≤ Ceps ∧
+        (∫ s in a..b,
+          D.integral (fun x => (u s x) ^ (p + rho))) ≤
+          eps * Gbound + (b - a) * (Ceps * M) := by
+  rcases integratedMoser_precrossing_gradientIntegral_bound hinteg hI with
+    ⟨Gbound, hGbound⟩
+  refine ⟨Gbound, hGbound, ?_⟩
   exact
     relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
       (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
-      (p := p) (a := a) (b := b) (Cp := M) (Gbound := Gbar)
-      hrel hI.hp hI.hab.le hI.ha_pos hI.hb_lt
+      (p := p) (a := a) (b := b) (M := M)
+      (eps := eps) (Gbound := Gbound)
+      hrel hI.hp heps hI.hab.le hI.ha_pos hI.hb_lt
       hI.higherPower_intervalIntegrable
       hI.gradient_intervalIntegrable
-      hI.currentLp_le_Icc
-      hGbar
+      hI.currentEnergy_le_Icc
+      hGbound
+
+/-- Average form of the same honest higher-power estimate.
+
+This is still only an average/time-integral consequence.  It deliberately does
+not assert any pointwise-in-time `Y_{p+rho}` bound.
+-/
+theorem integratedMoser_precrossing_higherPower_average_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M eps : ℝ}
+    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
+    (heps : 0 < eps) :
+    ∃ Gbound,
+      (∫ s in a..b,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound ∧
+      ∃ Ceps, 0 ≤ Ceps ∧
+        (1 / (b - a)) *
+          (∫ s in a..b,
+            D.integral (fun x => (u s x) ^ (p + rho))) ≤
+          (1 / (b - a)) *
+            (eps * Gbound + (b - a) * (Ceps * M)) := by
+  rcases integratedMoser_precrossing_higherPower_timeIntegral_le
+      hinteg hrel hI heps with
+    ⟨Gbound, hGbound, Ceps, hCeps_nonneg, hZ⟩
+  refine ⟨Gbound, hGbound, Ceps, hCeps_nonneg, ?_⟩
+  have hscale_nonneg : 0 ≤ 1 / (b - a) := by
+    exact div_nonneg zero_le_one (sub_nonneg.mpr hI.hab.le)
+  exact mul_le_mul_of_nonneg_left hZ hscale_nonneg
+
+end PrecrossingInterval
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-Then the final call is just:
+## In-place insertion version
+
+Inside `P3MoserIntegratedClosure.lean`, do **not** add the final namespace-closing line from the standalone block.  Insert this section before the existing theorem
 
 ```lean
-exact
-  integratedMoser_precrossing_higherPower_timeIntegral_le_of_integrated_relative
-    hinteg hI hhigher
+moser_iteration_chain_of_integrated_first_crossing_step
 ```
 
-If the local helper uses binder names like `M` instead of `Cp`, or `Gbar` instead of `Gbound`, keep the same explicit hypotheses and change only those named arguments.  The proof obligation should remain a time-integral bound, not a pointwise `LpPowerBoundedBefore` claim.
+because that is where the helper family ends and the old pointwise first-crossing skeleton begins.
 
-## Why these assumptions are honest
+## Why the extra field is needed
 
-* `0 ≤ p` is not cosmetic: your extraction lemma explicitly asks for `hp_nonneg`.  Do not try to recover it from `p0 ≤ p` unless the caller also carries `0 ≤ p0` or a stronger bootstrap threshold.
-* `a < b` is needed for the average statement and gives the `a ≤ b` orientation required by the interval-integral helper.  For only the raw time-integral statement, `a ≤ b` is usually enough, but the precrossing interval should be nondegenerate anyway.
-* `0 < a` and `b < T` are needed by the relative-Moser pointwise input, which is stated on `0 < t < T`.  The integrated dissipation extraction itself only needs the closed endpoint hypotheses `a ∈ Icc 0 T` and `b ∈ Icc a T`.
-* `right_currentLp_nonneg` should come from PDE positivity/nonnegativity plus an integral-positivity lemma.  It is not derivable from the bare abstract `BoundedDomainData` interface.
-* The `IntervalIntegrable` fields are included because the helper chain integrating relative-Moser inequalities needs time-integrability of the higher-power profile and the Moser-gradient profile on `a..b`.  If your local helper obtains these from `IntegratedMoserFirstCrossingRegularity`, replace these fields by that regularity package plus small interval-restriction lemmas.
-
-## No-go statement
-
-The following theorem would be dishonest at this stage and should **not** be added:
+The Q2461 data structure only had integrability of `Y_{p+rho}` and the gradient profile.  Against the current helper signatures, that is insufficient: `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound` requires integrability of the function
 
 ```lean
-theorem bad_precrossing_to_LpPowerBoundedBefore ... :
-    LpPowerBoundedBefore D (p + rho) T u := by
-  ...
+fun s => max (1 : ℝ) (D.integral (fun x => (u s x) ^ p))
 ```
 
-A bound on `∫_{a}^{b} Y_{p+rho}(s) ds` or on the average over one precrossing window does not provide a uniform pointwise bound for all `0 < t < T`.  The missing input would be a genuine pointwise extraction/regularization theorem, or a first-crossing argument with continuity and a window-selection lemma strong enough to convert average control into endpoint control.  That is a real next frontier, not routine Lean plumbing.
+on `a..b`.  This can often be derived from regularity/time-integrability in a later patch, but it is not a purely algebraic consequence of the Icc upper bound in the abstract `BoundedDomainData` API.  Keeping it as a field is the honest compile-oriented move.
+
+## The Q2461 theorem not worth committing
+
+Do not commit the Q2461 theorem named approximately
+
+```lean
+integratedMoser_precrossing_higherPower_timeIntegral_le_of_integrated_relative
+```
+
+in the form where it takes an argument
+
+```lean
+hhigher : ∀ Gbar, (∫ G ≤ Gbar) → ∃ Zbar, ∫ Z ≤ Zbar
+```
+
+and returns
+
+```lean
+∃ Zbar, ∫ Z ≤ Zbar
+```
+
+That wrapper adds no useful interface: after the gradient-bound theorem, it merely applies an argument that already has the desired conclusion.  The corrected patch above is better because it directly calls the actual local relative-Moser helper and records the produced constants `Gbound` and `Ceps`.
+
+## Honest boundary of this patch
+
+This patch still does not prove, and should not try to prove,
+
+```lean
+LpPowerBoundedBefore D (p + rho) T u
+```
+
+from the higher-power time-integral or average estimate.  A later pointwise extraction theorem would need additional analytic input, such as a genuine first-crossing/continuity argument converting interval average control into endpoint or uniform-in-time control.  That is not present in these helper APIs.
