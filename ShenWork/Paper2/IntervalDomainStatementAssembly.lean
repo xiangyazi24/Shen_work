@@ -548,6 +548,20 @@ theorem
   intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientTerminalEndpointFrontierData
     p hData.out
 
+/-- Terminal-endpoint mass-gradient actual atoms produce both Tier-1 Moser
+outputs. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData
+        p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  ⟨intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientTerminalEndpointFrontierData
+      p hData,
+    intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
+      p hData⟩
+
 /-- Raw-drop terminal-endpoint mass-gradient actual atoms produce
 interval-domain Corollary 2.1. -/
 theorem
@@ -572,6 +586,20 @@ theorem
     Corollary_2_1 intervalDomain p :=
   intervalDomainPaper2_Corollary_2_1_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
     p hData.out
+
+/-- Raw-drop terminal-endpoint mass-gradient actual atoms produce both Tier-1
+Moser outputs. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData
+        p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  ⟨intervalDomainPaper2_Corollary_2_1_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
+      p hData,
+    intervalDomainPaper2_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
+      p hData⟩
 
 /-- Integrated-step frontier for interval-domain Proposition 2.5 and
 Corollary 2.1.
@@ -5722,6 +5750,10 @@ section AxiomAudit
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationSection2ThinFrontierData
 #print axioms intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
 #print axioms intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
 #print axioms
