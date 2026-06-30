@@ -1,179 +1,346 @@
-# Q2301 shen2: Papers 1--3 headline statement assembly audit
+# Q2309 shen2: constant-branch / no-left-plateau wiring audit
 
 Repo: `xiangyazi24/Shen_work`, branch `main`.
 
-## Classification rule used
+## Bottom line
 
-I classified statement/header wrappers by their Lean source shape, not by README claims.
+The constant-branch route described in the prompt is already present on current `main` in:
 
-* **A. Closed/unconditional producer**: theorem has no frontier/branch/data structure argument. It may have ordinary parameter hypotheses such as `2 < c`, `p.χ₀ = 0`, or `0 < p.a`, but it does not consume a package whose fields are the target theorem or the missing analytic branch.
-* **B. Conditional/plausible wire-up**: theorem consumes a `...Data`, `...FrontierData`, `...BranchData`, or `...RawData` package; this is real statement wiring if the package fields are lower-level analytic atoms, but it is not a headline proof.
-* **C. Unsupported/vacuous/known-false/impostor**: route uses a refuted premise, a deliberately degenerate zero-data model, or a package that merely carries target-level statements/branches and should not be reported as proved.
-
-## Concise audit table
-
-| Paper/file | Name | Shape | Class | Audit note |
-|---|---|---:|---:|---|
-| Paper1 `ShenWork/Paper1/StatementAssembly.lean` | `paper1_lemma25Targets` | no data argument | A | Closed bundle `Lemma_2_5 ∧ Lemma_2_5_JensenStep`, via `Lemma_2_5_proved` and `Lemma_2_5_JensenStep_proved`. |
-| Paper1 `StatementAssembly.lean` | `paper1_mainStatementTargets_of_mainResultsData`, `paper1_Theorem_1_1_of_mainResultsData` | consumes `Paper1MainResultsData` | B/C | Conditional. Treat as C if advertised as proof: the main-results data is the headline package. |
-| Paper1 `StatementAssembly.lean` | `paper1_Theorem_1_1_of_constructionNegSMPProvider` | consumes `ConstructionNegSMPProvider` and positive branch argument | B | Plausible high-level wiring, but still conditional on negative construction and positive branch. |
-| Paper1 `StatementAssembly.lean` | `Paper1PositiveCriticalFrozenStationaryBranch` | `def` target branch | B/C | Not a theorem. This is the old monolithic positive branch target. |
-| Paper1 `StatementAssembly.lean` | `PositiveUpperBarrierContactContradictions`, `Paper1PositiveCriticalFrozenStationaryContactBranch` | contact residual / branch package | B | Good decomposition; no-contact is still analytic residual. |
-| Paper1 `StatementAssembly.lean` | `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData` | data packages | B | Useful: tail is no longer carried separately; lower pin discharges it. Still carries no-contact. |
-| Paper1 `StatementAssembly.lean` | `Paper1PositiveLowerPinnedSchauderContactData`, `Paper1PositiveLowerPinnedCapSchauderContactData` | Schauder/contact frontiers | B | Plausible wiring to existing lower-pinned producers, but still contains Schauder/map/stationarity/flat/no-contact inputs. |
-| Paper1 `StatementAssembly.lean` | `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData` | bundled data | B | Conditional main statement wrappers. They reduce positive branch shape but still carry `ConstructionNegSMPProvider`, a positive branch package, and `Paper1MainlineExistence`. |
-| Paper1 `StatementAssembly.lean` | `Paper1Lemma51FrontierData`, `Paper1Lemma52FrontierData` | explicit analytic fields | B | Honest frontier records for Lemma 5.1/5.2; not closed. |
-| Paper1 `StatementAssembly.lean` | `Paper1PropositionFrontierData` | explicit Cauchy/PDE fields | B | Honest proposition frontier; not closed. |
-| Paper1 `StatementAssembly.lean` | `Paper1CombinedStatementData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, `Paper1CombinedLowerPinnedRawContactStatementData` | bundled data | B/C | Conditional statement bundles. They assemble targets from packages; they do not prove Paper1 headline statements. |
-| Paper1 `ShenWork/Paper1/StationaryUpperTail.lean` | `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap`, `lowerPinnedRawMonotoneTrap_tail_family_for_branch` | no stationary residual | A | Closed pure squeeze route from lower/raw lower pin to tail. Good closed atom. |
-| Paper1 `StationaryUpperTail.lean` | `HasWaveRightTailAsymptotic_of_stationary` | assumes `htail` and returns it | C | Carry/no-op wrapper; do not count as producer. |
-| Paper2 `ShenWork/Paper2/UnitPointStatementAssembly.lean` | `unitPointPaper2_mainStatementTargets`, `unitPointPaper2_logisticNonminimalPackage`, `unitPointPaper2_Theorem_1_1`, `unitPointPaper2_Theorem_1_3` | no data argument | A | Closed unit-point logistic targets. |
-| Paper2 `UnitPointStatementAssembly.lean` | `unitPointPaper2_Theorem_1_2_when_not_a_pos_b_zero` | ordinary exclusion hypothesis | A/B | Honest conditional theorem: no frontier data, but excludes the known bad ODE slice `0 < p.a ∧ p.b = 0`. |
-| Paper2 `ShenWork/Paper2/StatementAssembly.lean` | `paper2_statementTargets_of_data`, `paper2_localAndMainTheoremTargets_of_data`, `paper2_mainTheoremTargets_of_solutionBranchData` | consumes branch/data | B | Generic Paper2 is only statement assembly from data. |
-| Paper2 `StatementAssembly.lean` | `Paper2Proposition11ExistenceData` | carries local existence branch | B | Conditional local-existence package. |
-| Paper2 `StatementAssembly.lean` | `Paper2LocalAndMainTheoremData`, `Paper2StatementData` | bundles branch data | B/C | Conditional. Do not describe as Paper2 headline proof. |
-| Paper2 `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Lemma_3_1` | no data argument | A | Closed interval-domain Lemma 3.1 via `Lemma31Closure.Lemma_3_1_intervalDomain`. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional` | parameter hypotheses only | A | Closed chi-zero interval-domain Theorem 1.1 route; local existence produced internally. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData` | finite-horizon frontier remains | B | Local existence discharged internally, but finite-horizon alternative still carried. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2BootstrapEstimateThinFrontierData` | carries Lemma 2.6/2.7/Prop 2.2/2.3; Prop 2.4 closed; Prop 2.5 supplied | B | Useful thinning, not closed. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `intervalDomainPaper2_Lemma_4_1_of_GN_frontier`, `intervalDomainPaper2_aprioriTargets_of_GN_frontier` | consumes `IntervalDomainInterpolation` | C | Deprecated/no-go route: premise is refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2InterpolationEnergyFrontierData`, `IntervalDomainPaper2Theorem12And13InterpolationFrontierData` | includes false global interpolation field | C | Do not use as headline route. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2SolutionInterpolationEnergyFrontierData`, `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData` | solution-slice interpolation packages | B | Plausible replacement route: avoids known false global interpolation. |
-| Paper2 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData`, chi-zero local-free variant | many analytic fields | B | Best interval-domain main route shape, but still conditional on solution interpolation, dissipation, bootstrap, eventual sup bounds, global extension, etc. |
-| Paper2 `ShenWork/Paper2/Statements.lean` | `Lemma_2_1_zero_data`, `Lemma_2_2_zero_data`, `Lemma_2_3_zero_data`, `Lemma_2_4_zero_data`, `lemmas_2_1_to_2_4_zero_data` | zero semigroup model | C | Explicitly marked impostor/vacuous; not analytic semigroup proof. |
-| Paper3 `ShenWork/Paper3/StatementAssembly.lean` | `paper3_proposition1Targets_of_frontierData` | consumes `Paper3Proposition1FrontierData` | B | Conditional. Proposition 1.2 is `negativeBound`; 1.3/1.4 existence branches are carried. |
-| Paper3 `StatementAssembly.lean` | `paper3_Proposition_1_3_of_Paper2_Theorem_1_3`, `paper3_Proposition_1_4_of_Paper2_Theorem_1_2` | consumes Paper2 theorems | B | Good bridge; not independent Paper3 proof. |
-| Paper3 `StatementAssembly.lean` | `Paper3Proposition1FromPaper2MainTargetsData` | carries `negativeBound` + Paper2 main | B/C | Correctly leaves Proposition 1.2 residual independent. Do not claim Paper2 Theorem 1.1 implies Paper3 Proposition 1.2. |
-| Paper3 `StatementAssembly.lean` | `paper3_uniformPersistenceTargets_of_rawData`, `paper3_Theorem_2_1_of_rawData` | consumes `Paper3UniformPersistenceRawData` | B | Conditional persistence assembly. |
-| Paper3 `StatementAssembly.lean` | `paper3_Theorem_2_2_of_branchData`, `paper3_stability23To25Targets_of_branchData`, `paper3_compactnessRegularizationTargets_of_rawData` | branch/raw-data packages | B | Conditional statement-layer assembly. |
-| Paper3 `StatementAssembly.lean` | `Paper3MainlineData`, `Paper3MainlineFromPaper2Theorem13Data`, `Paper3MainlineFromPaper2TheoremsData`, `Paper3MainlineFromPaper2MainTargetsData` | bundled frontiers | B/C | Conditional mainline bundles; do not describe as proved main theorem. |
-| Paper3 `ShenWork/Paper3/IntervalDomainStatementAssembly.lean` | `intervalDomainPaper3_negativeSensitivityResidual_of_frontierData` | decomposes negative residual | B | Good atomization of Proposition 1.2 residual into global solution + eventual sup bound; still residual. |
-| Paper3 `IntervalDomainStatementAssembly.lean` | `IntervalDomainPaper3Proposition1FrontierData` | carries `negativeBound` and critical existence branch | B | Conditional Proposition 1.x package. |
-| Paper3 `IntervalDomainStatementAssembly.lean` | `intervalDomain_paper3_coreStatementTargets_of_coreExistence` | consumes `IntervalDomainInitialContinuityRaw` and `IntervalDomainSectorialMainlineCoreExistence` | B | Stronger than pure statement package, but still conditional on core existence and initial-continuity frontiers. |
-| Paper3 `IntervalDomainStatementAssembly.lean` | `intervalDomain_paper3_Theorem_2_1_of_persistence` | consumes persistence package | B | Conditional wrapper. |
-| Paper3 `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` | `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `...partTargets...`, `...sectorial...` | no frontier data | A | Closed actual-linear small-sensitivity persistence producer for interval domain, under parameter hypotheses. |
-| Paper3 `IntervalDomainActualLinearStatementAssembly.lean` | `IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts`, `IntervalDomainPaper3MainlineAprioriActualLinearSmallFrontierData`, `IntervalDomainPaper3StatementAprioriActualLinearSmallFrontierData` | frontier packages | B | Persistence fields produced internally, but spectral/orbit/continuation/mass-Lp/compactness/stability/proposition frontiers remain. |
-| Paper3 `ShenWork/Paper3/Statements.lean` | `PositiveGlobalBoundedSolution` | weakened definition note | C warning | Source explicitly notes it is pointwise positivity, not paper-faithful per-time spatial floor; not a false theorem, but a faithfulness gap to track. |
-
-## Paper-by-paper assessment
-
-### Paper 1
-
-Closed pieces are small and real.  `paper1_lemma25Targets` is a no-assumption theorem and should be counted as closed.  The lower-pinned tail squeeze in `StationaryUpperTail.lean` is also closed and should be used to avoid carrying `HasWaveRightTailAsymptotic` whenever the raw or plateau lower pin is preserved.
-
-The Paper1 headline route remains conditional.  The main theorem wrappers consume packages:
-
-```lean
-paper1_mainStatementTargets_of_mainResultsData
-paper1_Theorem_1_1_of_constructionNegSMPProvider
-paper1_mainStatementTargets_of_smpMainlineData
-paper1_mainStatementTargets_of_strictBarrierData
-paper1_mainStatementTargets_of_lowerPinnedContactData
-paper1_mainStatementTargets_of_lowerPinnedRawContactData
+```text
+ShenWork/Paper1/UpperBarrierContact.lean
 ```
 
-The best current positive branch accounting is the raw lower-pinned contact route:
+The left-plateau residual can be discharged from a `FrozenStationaryWaveProfile` only under **strict** positive sensitivity:
 
 ```lean
-Paper1PositiveLowerPinnedRawContactBranchData
-paper1_positiveContactBranch_of_lowerPinnedRawContactData
-paper1_positiveStrictBarrierBranch_of_lowerPinnedRawContactData
+0 < p.χ
 ```
 
-This is honest B-class wiring: the tail is produced from the raw lower pin, but `PositiveUpperBarrierContactContradictions` remains a real no-contact/upper strong-comparison residual.  Do not call the older `HasWaveRightTailAsymptotic_of_stationary` a producer; it assumes the exact tail conclusion and returns it.
-
-### Paper 2
-
-There are two real closed islands:
-
-1. `UnitPointStatementAssembly.lean`: `unitPointPaper2_mainStatementTargets`, `unitPointPaper2_Theorem_1_1`, and `unitPointPaper2_Theorem_1_3` are closed for `unitPointDomain`.  `unitPointPaper2_Theorem_1_2_when_not_a_pos_b_zero` is also honest under its explicit exclusion hypothesis.
-2. `IntervalDomainStatementAssembly.lean`: `intervalDomainPaper2_Theorem_1_1_chiZero_unconditional` is a no-frontier chi-zero route; `intervalDomainPaper2_Lemma_3_1` is closed.
-
-The generic Paper2 statement wrappers are conditional assemblies from branch-data packages:
+plus an upper bound such as `p.χ < 1`.  The non-strict assumption
 
 ```lean
-Paper2StatementData
-Paper2LocalAndMainTheoremData
-Paper2Proposition11ExistenceData
-Paper2MainSolutionBranchData
-Paper2BootstrapEstimateBranchData
+0 ≤ p.χ
 ```
 
-The major C-class item is the global interpolation route:
+is too weak, because the case `p.χ = 0` leaves `MChi p = 1`, and a left plateau at level `1` is not contradicted by the left-end limit `U → 1`.
+
+## 1. Exact projection for the left-end limit
+
+For
 
 ```lean
-IntervalDomainLemma41.IntervalDomainInterpolation
-intervalDomainPaper2_Lemma_4_1_of_GN_frontier
-intervalDomainPaper2_aprioriTargets_of_GN_frontier
-IntervalDomainPaper2InterpolationEnergyFrontierData
-IntervalDomainPaper2Theorem12And13InterpolationFrontierData
+hprofile : FrozenStationaryWaveProfile p c U
 ```
 
-`IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` proves the global interpolation premise false as stated.  Any route that includes it is not merely conditional; it is currently unsupported/vacuous.  Prefer the solution-slice structures:
+the projection giving the profile limit is:
 
 ```lean
-IntervalDomainPaper2SolutionInterpolationEnergyFrontierData
-IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
-IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
-IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+hprofile.lim_neg_inf.1 : Tendsto U atBot (𝓝 (1 : ℝ))
 ```
 
-Also treat `Lemma_2_1_zero_data` through `Lemma_2_4_zero_data` in `Paper2/Statements.lean` as C-class impostors: source comments explicitly state they prove estimates only for `zeroSemigroupEstimateData`.
-
-### Paper 3
-
-Generic Paper3 is mostly B-class statement assembly.  The proposition route correctly keeps `NegativeSensitivityGlobalEventualBound` independent:
+The second component is the elliptic profile limit:
 
 ```lean
-Paper3Proposition1FrontierData
-Paper3Proposition1FromPaper2Theorem13Data
-Paper3Proposition1FromPaper2TheoremsData
-Paper3Proposition1FromPaper2MainTargetsData
+hprofile.lim_neg_inf.2 : Tendsto (frozenElliptic p U) atBot (𝓝 (1 : ℝ))
 ```
 
-The source comment on `Paper3Proposition1FromPaper2MainTargetsData` is important: `negativeBound` is not derived from Paper2 Theorem 1.1.  The interval-domain version also decomposes the negative residual usefully:
+Source shape in `ShenWork/Paper1/Statements.lean` is visible from the constructor wrapper:
 
 ```lean
-IntervalDomainPaper3NegativeSensitivityFrontierData
-intervalDomainPaper3_negativeSensitivityResidual_of_frontierData
+theorem FrozenStationaryWaveProfile.mk_from_stationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hU_pos : ∀ x, 0 < U x)
+    (hU_bdd : IsCUnifBdd U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hlim_neg : Tendsto U atBot (𝓝 1) ∧ Tendsto (frozenElliptic p U) atBot (𝓝 1))
+    (hlim_pos : Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)) :
+    FrozenStationaryWaveProfile p c U :=
+  { hc
+    U_pos := hU_pos
+    stationary_eq := hstat
+    elliptic_eq := frozenElliptic_ode p hU_bdd (fun x => (hU_pos x).le)
+    lim_neg_inf := hlim_neg
+    lim_pos_inf := hlim_pos }
 ```
 
-The Paper3 mainline wrappers are conditional on raw/branch data:
+So the actual extraction expression is exactly:
 
 ```lean
-Paper3UniformPersistenceRawData
-Paper3Theorem22BranchData
-Paper3CompactnessRegularizationRawData
-Paper3Stability23To25BranchData
-Paper3MainlineData
+exact hprofile.lim_neg_inf.1
 ```
 
-The best closed Paper3 island is in `IntervalDomainActualLinearStatementAssembly.lean`:
+This is already used in `UpperBarrierContact.lean`:
 
 ```lean
-intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall
-intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall
-intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall
+theorem no_const_left_plateau_of_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False :=
+  no_const_left_plateau_of_tendsto_atBot_one
+    hprofile.lim_neg_inf.1
+    (MChi_ne_one_of_chi_pos_lt_one p hχ_pos hχ_lt)
 ```
 
-These are A-class for the actual-linear small-sensitivity interval-domain Theorem 2.1/persistence statements.  The later mainline actual-linear structures are still B-class because they carry spectral semigroup orbit bounds, continuation, mass-Lp smoothing, compactness, stability, and proposition frontiers.
+## 2. Existing `MChi p ≠ 1` / `1 < MChi p` API
 
-Finally, `Paper3/Statements.lean` contains a faithfulness warning: `PositiveGlobalBoundedSolution` uses pointwise positivity on the interior, not the paper's per-time spatial floor.  This is not an empty proof, but it is a statement-fidelity cleanup item.
+Current `main` already has both scalar lemmas in `ShenWork/Paper1/UpperBarrierContact.lean`:
 
-## Recommended cleanup priority order
+```lean
+theorem one_lt_MChi_of_chi_pos_lt_one
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    1 < MChi p
+```
 
-1. **Rename or quarantine C-class routes.** Mark all `IntervalDomainInterpolation`-based Paper2 wrappers as deprecated/no-headline in names or comments. They rely on a premise refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
+and:
 
-2. **Move `zeroSemigroupEstimateData` lemmas out of headline inventory.** Keep them as sanity tests/examples, but never list them as Paper2 Lemma 2.1--2.4 proofs.
+```lean
+theorem MChi_ne_one_of_chi_pos_lt_one
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    MChi p ≠ 1
+```
 
-3. **Promote closed islands separately.** Publish explicit lists for A-class endpoints: Paper1 Lemma 2.5, lower-pinned tail squeeze, Paper2 unit-point, Paper2 interval chi-zero Theorem 1.1, Paper2 interval Lemma 3.1, Paper3 actual-linear interval Theorem 2.1.
+The proof route is already exactly the expected one:
 
-4. **For Paper1, make raw lower-pinned contact the preferred positive branch interface.** This minimizes the residual: Route-A/cubeApprox supplies profile + raw lower pin; tail is closed; only no-contact remains.
+```lean
+theorem one_lt_MChi_of_chi_pos_lt_one
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    1 < MChi p := by
+  have hden_pos : 0 < 1 - p.χ := by linarith
+  have hbase_gt : 1 < 1 / (1 - p.χ) := by
+    rw [lt_div_iff₀ hden_pos]
+    linarith
+  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hexp_pos : 0 < 1 / p.α := div_pos one_pos hα_pos
+  rw [MChi_eq_rpow_of_chi_pos p hχ_pos]
+  exact Real.one_lt_rpow hbase_gt hexp_pos
 
-5. **For Paper2 interval main results, prefer positive solution-slice interpolation frontiers.** Avoid global interpolation. The immediate target should be filling fields in `IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData` and the chi-zero local-free variant.
+theorem MChi_ne_one_of_chi_pos_lt_one
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    MChi p ≠ 1 :=
+  ne_of_gt (one_lt_MChi_of_chi_pos_lt_one p hχ_pos hχ_lt)
+```
 
-6. **For Paper3 Proposition 1.2, keep the negative-sensitivity residual decomposed.** Work on `IntervalDomainPaper3NegativeSensitivityFrontierData.globalSolution` and `.eventualSupBound` separately. Do not route it through Paper2 Theorem 1.1.
+If the branch hypothesis is the usual Paper1 smallness
 
-7. **For Paper3 mainline, isolate actual-linear closed persistence from the remaining mainline frontiers.** The actual-linear Theorem 2.1 producer is real; the full statement target still needs core/apriori/compactness/stability data.
+```lean
+hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)
+```
 
-8. **Track Paper3 positivity fidelity.** Decide whether a future domain interface should encode compactness/infimum so `PositiveGlobalBoundedSolution` can match the paper's per-time spatial floor rather than pointwise interior positivity.
+then get `p.χ < 1` by:
+
+```lean
+have hχ_half : p.χ < (1 / 2 : ℝ) :=
+  lt_of_lt_of_le hχ_small (min_le_left _ _)
+have hχ_lt_one : p.χ < 1 := by linarith
+```
+
+If the available upper bound is instead
+
+```lean
+hχ_star : p.χ < chiStar p
+```
+
+then use:
+
+```lean
+have hχ_lt_one : p.χ < 1 := lt_of_lt_of_le hχ_star (chiStar_le_one p)
+```
+
+There is no valid lemma from only `0 ≤ p.χ` to `MChi p ≠ 1`; the equality case `p.χ = 0` is the obstruction.
+
+## 3. Minimal wrapper status
+
+### Already existing wrapper to reduce to strict exponential contact
+
+`UpperBarrierContact.lean` already defines the two residual records:
+
+```lean
+structure PositiveUpperBarrierRemainingContactResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  no_const_left_plateau :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False
+  exp_strict_super_at_contact :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+      U x = Real.exp (-(kappa c) * x) →
+        frozenWaveOperator p c U
+          (upperBarrier (kappa c) (MChi p)) x < 0
+
+structure PositiveUpperBarrierExpStrictContactResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  exp_strict_super_at_contact :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+      U x = Real.exp (-(kappa c) * x) →
+        frozenWaveOperator p c U
+          (upperBarrier (kappa c) (MChi p)) x < 0
+```
+
+The minimal existing wrapper from profile plus strict positive sensitivity is:
+
+```lean
+theorem PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
+    PositiveUpperBarrierRemainingContactResidual p c U :=
+  { no_const_left_plateau :=
+      no_const_left_plateau_of_profile_chi_pos
+        hprofile hχ_pos hχ_lt
+    exp_strict_super_at_contact :=
+      hstrict.exp_strict_super_at_contact }
+```
+
+That is exactly the requested “residual containing only `exp_strict_super_at_contact`” route.
+
+### Important distinction
+
+There is no wrapper that can produce
+
+```lean
+PositiveUpperBarrierExpStrictContactResidual p c U
+```
+
+from only
+
+```lean
+FrozenStationaryWaveProfile p c U
+0 < p.χ
+```
+
+because `PositiveUpperBarrierExpStrictContactResidual` is precisely the remaining strict exponential-branch super-barrier residual.  The profile and strict-χ assumptions close the constant branch, not the exponential strict super-barrier field.
+
+If a call site has the strict field as a plain function rather than as a structure, the shortest convenience wrapper would be:
+
+```lean
+import ShenWork.Paper1.UpperBarrierContact
+
+open Filter Topology
+
+namespace ShenWork.Paper1
+
+noncomputable section
+
+/-- Convenience wrapper: profile convergence and strict positive sensitivity close
+constant-branch contact, leaving only the strict exponential contact function. -/
+theorem PositiveUpperBarrierRemainingContactResidual.of_expStrictFun_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (hstrict :
+      ∀ x, Real.exp (-(kappa c) * x) < MChi p →
+        U x = Real.exp (-(kappa c) * x) →
+          frozenWaveOperator p c U
+            (upperBarrier (kappa c) (MChi p)) x < 0) :
+    PositiveUpperBarrierRemainingContactResidual p c U :=
+  PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
+    hprofile hχ_pos hχ_lt
+    { exp_strict_super_at_contact := hstrict }
+
+end
+
+end ShenWork.Paper1
+```
+
+This is only a convenience theorem; it adds no new math.
+
+## Full downstream no-contact wrapper already present
+
+Once regular stationary data are also available, current `main` already has the wrapper to full contact contradictions:
+
+```lean
+theorem PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
+    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
+    PositiveUpperBarrierContactContradictions p c U
+```
+
+It combines:
+
+```lean
+positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos
+PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_regularStationary
+```
+
+and uses the existing interface no-contact lemma:
+
+```lean
+positiveUpperBarrier_interfaceNoContact_of_regular_stationary
+```
+
+## Minimal branch-level implication
+
+For a branch whose hypotheses include strict positive sensitivity, the intended shape is:
+
+```lean
+import ShenWork.Paper1.UpperBarrierContact
+
+open Filter Topology
+
+namespace ShenWork.Paper1
+
+noncomputable section
+
+/-- Branch-facing narrowing: strict positive sensitivity and profile convergence
+turn the remaining-contact residual into the exp-strict-only residual. -/
+theorem remainingContact_of_profile_strictChi_expStrict
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
+    PositiveUpperBarrierRemainingContactResidual p c U := by
+  have hχ_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by linarith
+  exact
+    PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
+      hprofile hχ_pos hχ_lt_one hstrict
+
+end
+
+end ShenWork.Paper1
+```
+
+Again, this wrapper is redundant with the existing theorem plus a two-line derivation of `p.χ < 1`, but it is the compile-oriented branch-facing statement.
+
+## Exact answers
+
+1. Use:
+
+   ```lean
+   hprofile.lim_neg_inf.1
+   ```
+
+   for `Tendsto U atBot (𝓝 1)`.
+
+2. Yes.  Current main already has:
+
+   ```lean
+   one_lt_MChi_of_chi_pos_lt_one
+   MChi_ne_one_of_chi_pos_lt_one
+   ```
+
+   in `ShenWork/Paper1/UpperBarrierContact.lean`.  They use `MChi_eq_rpow_of_chi_pos` and `Real.one_lt_rpow`.  There is no valid non-strict `0 ≤ p.χ` version.
+
+3. The minimal existing wrapper is:
+
+   ```lean
+   PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
+   ```
+
+   It turns profile convergence plus `0 < p.χ`, `p.χ < 1`, and the exp-strict residual into the full remaining-contact residual.  With regular stationary data, the existing theorem
+
+   ```lean
+   PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary
+   ```
+
+   closes the full no-contact package.
