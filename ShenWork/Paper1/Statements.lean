@@ -7884,6 +7884,98 @@ theorem frozenWaveOperator_exp_nonpos_of_chi_nonneg
   dsimp [E, V, Vx] at hchem_le_logistic
   linarith
 
+/-- Strict positive-sensitivity exponential-branch superbarrier.
+
+This is the strict version of `frozenWaveOperator_exp_nonpos_of_chi_nonneg`.
+The only strengthened scalar input is `p.χ < 1`; the proof is the same
+positive-branch estimate, with the final `χ ≤ 1` budget used strictly. -/
+theorem frozenWaveOperator_exp_neg_of_chi_nonneg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt_one : p.χ < 1)
+    (hα : p.α = p.m + p.γ - 1)
+    (hκ_nonneg : 0 ≤ κ) (hmκ : p.m * κ ≤ 1)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (expDecay κ) x < 0 := by
+  let E := expDecay κ x
+  let V := frozenElliptic p u x
+  let Vx := deriv (frozenElliptic p u) x
+  have hE_pos : 0 < E := expDecay_pos κ x
+  have hE_nonneg : 0 ≤ E := hE_pos.le
+  have hV_nonneg : 0 ≤ V := by
+    dsimp [V]
+    exact frozenElliptic_nonneg p hu.nonneg x
+  have hVx_abs : |Vx| ≤ V := by
+    dsimp [V, Vx]
+    exact frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+  have hVx_le : Vx ≤ V := le_trans (le_abs_self _) hVx_abs
+  have hmk_nonneg : 0 ≤ p.m * κ :=
+    mul_nonneg (le_trans zero_le_one p.hm) hκ_nonneg
+  have hneg_term_lower :
+      -(p.m * κ) * V ≤ -(p.m * κ) * Vx := by
+    exact mul_le_mul_of_nonpos_left hVx_le (neg_nonpos.mpr hmk_nonneg)
+  have hbracket_lower :
+      -(p.m * κ) * Vx + V - (u x) ^ p.γ ≥ -((u x) ^ p.γ) := by
+    have hnonneg_part : 0 ≤ (1 - p.m * κ) * V :=
+      mul_nonneg (sub_nonneg.mpr hmκ) hV_nonneg
+    nlinarith
+  have hcoef_nonpos : -p.χ * E ^ p.m ≤ 0 := by
+    exact mul_nonpos_of_nonpos_of_nonneg
+      (neg_nonpos.mpr hχ_nonneg)
+      (Real.rpow_nonneg hE_nonneg p.m)
+  have hchem_le_source :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) ≤
+          p.χ * E ^ p.m * (u x) ^ p.γ := by
+      have hmul :=
+        mul_le_mul_of_nonpos_left hbracket_lower hcoef_nonpos
+      calc
+        -p.χ * E ^ p.m *
+            (-(p.m * κ) * Vx + V - (u x) ^ p.γ)
+            ≤ -p.χ * E ^ p.m * (-(u x) ^ p.γ) := hmul
+        _ = p.χ * E ^ p.m * (u x) ^ p.γ := by ring
+  have huγ_le_Eγ : (u x) ^ p.γ ≤ E ^ p.γ := by
+    dsimp [E, expDecay]
+    simpa [neg_mul] using hu.rpow_le_exp (le_trans zero_le_one p.hγ) x
+  have hcoef_source_nonneg : 0 ≤ p.χ * E ^ p.m :=
+    mul_nonneg hχ_nonneg (Real.rpow_nonneg hE_nonneg p.m)
+  have hchem_le_E :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) ≤
+        p.χ * E ^ p.m * E ^ p.γ := by
+    exact le_trans hchem_le_source
+      (mul_le_mul_of_nonneg_left huγ_le_Eγ hcoef_source_nonneg)
+  have hpow_mγ :
+      E ^ p.m * E ^ p.γ = E ^ (p.α + 1) := by
+    rw [← Real.rpow_add hE_pos, hα]
+    congr 1
+    ring
+  have hE_pow :
+      E * E ^ p.α = E ^ (p.α + 1) := by
+    have hE_one : E = E ^ (1 : ℝ) := (Real.rpow_one E).symm
+    nth_rw 1 [hE_one]
+    rw [← Real.rpow_add hE_pos]
+    congr 1
+    ring
+  have hchem_lt_logistic :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) <
+        E * E ^ p.α := by
+    calc
+          -p.χ * E ^ p.m *
+              (-(p.m * κ) * Vx + V - (u x) ^ p.γ)
+              ≤ p.χ * E ^ p.m * E ^ p.γ := hchem_le_E
+          _ = p.χ * (E ^ p.m * E ^ p.γ) := by ring
+          _ = p.χ * E ^ (p.α + 1) := by rw [hpow_mγ]
+          _ < 1 * E ^ (p.α + 1) :=
+              mul_lt_mul_of_pos_right hχ_lt_one
+                (Real.rpow_pos_of_pos hE_pos (p.α + 1))
+          _ = E * E ^ p.α := by rw [hE_pow]; ring
+  rw [frozenWaveOperator_exp_full_eq p hc hκ_eq hu.cunif_bdd hu.nonneg x hV_diff]
+  dsimp [E, V, Vx] at hchem_lt_logistic
+  linarith
+
 theorem frozenWaveOperator_upperBarrier_exp_region_eq
     (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
     {x : ℝ} (hx : expDecay κ x < M) :
@@ -7951,6 +8043,22 @@ theorem frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
   rw [frozenWaveOperator_upperBarrier_exp_region_eq p hx]
   exact frozenWaveOperator_exp_nonpos_of_chi_nonneg p hc hκ_eq hχ_nonneg
     (le_trans hχ.le (chiStar_le_one p)) hα hκ_nonneg hmκ hu hV_diff
+
+/-- Strict upper-barrier residual in the exponential region for the
+positive-sensitivity branch. -/
+theorem frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt_one : p.χ < 1)
+    (hα : p.α = p.m + p.γ - 1)
+    (hκ_nonneg : 0 ≤ κ) (hmκ : p.m * κ ≤ 1)
+    {x : ℝ} (hx : expDecay κ x < M)
+    (hu : InWaveTrapSet κ M u)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (upperBarrier κ M) x < 0 := by
+  rw [frozenWaveOperator_upperBarrier_exp_region_eq p hx]
+  exact frozenWaveOperator_exp_neg_of_chi_nonneg p hc hκ_eq hχ_nonneg
+    hχ_lt_one hα hκ_nonneg hmκ hu hV_diff
 
 theorem paperWaveOperator_exp_region_hdom_of_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}

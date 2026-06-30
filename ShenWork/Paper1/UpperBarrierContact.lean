@@ -305,6 +305,13 @@ structure PositiveUpperBarrierRemainingContactResidual
         frozenWaveOperator p c U
           (upperBarrier (kappa c) (MChi p)) x < 0
 
+/-- The constant-branch part of the remaining upper-contact residual. -/
+structure PositiveUpperBarrierConstLeftPlateauResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  no_const_left_plateau :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False
+
 /-- Under `0 < χ`, the constant-branch residual is discharged from the profile
 limit, so only strict exponential contact remains. -/
 structure PositiveUpperBarrierExpStrictContactResidual
@@ -314,6 +321,85 @@ structure PositiveUpperBarrierExpStrictContactResidual
       U x = Real.exp (-(kappa c) * x) →
         frozenWaveOperator p c U
           (upperBarrier (kappa c) (MChi p)) x < 0
+
+/-- Positive branch data in the exponential region produces the strict
+upper-barrier residual at contact.  The equality `U x = exp (-κ x)` is unused:
+strictness comes from the scalar budget `p.χ < 1` and the standard positive
+superbarrier side condition `p.m * kappa c ≤ 1`. -/
+theorem positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hmκ : p.m * kappa c ≤ 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
+    PositiveUpperBarrierExpStrictContactResidual p c U := by
+  refine ⟨?_⟩
+  intro x hx _hUx
+  have hχ_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by
+    linarith
+  have hx_exp : expDecay (kappa c) x < MChi p := by
+    simpa [expDecay] using hx
+  exact
+    frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
+      p (le_of_lt hc) rfl hχ_nonneg hχ_lt_one hα
+      (kappa_pos_of_two_lt hc).le hmκ hx_exp htrap.trap
+      (frozenElliptic_deriv_differentiableAt p
+        htrap.trap.cunif_bdd htrap.nonneg x)
+
+/-- A profile with `χ > 0` supplies the constant-branch residual. -/
+theorem PositiveUpperBarrierConstLeftPlateauResidual.of_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    PositiveUpperBarrierConstLeftPlateauResidual p c U :=
+  { no_const_left_plateau :=
+      no_const_left_plateau_of_profile_chi_pos
+        hprofile hχ_pos hχ_lt }
+
+/-- Constant-branch residual plus the positive-region strict exponential
+superbarrier close the full remaining smooth-contact residual on the `hmκ`
+subregime. -/
+theorem PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hmκ : p.m * kappa c ≤ 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hconst : PositiveUpperBarrierConstLeftPlateauResidual p c U) :
+    PositiveUpperBarrierRemainingContactResidual p c U :=
+  { no_const_left_plateau := hconst.no_const_left_plateau
+    exp_strict_super_at_contact :=
+      (positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+        hα hχ_nonneg hχ_small hc hmκ htrap).exp_strict_super_at_contact }
+
+/-- Profile convergence and the positive-region strict superbarrier close the
+entire remaining smooth-contact residual, provided the scalar branch also has
+`p.m * kappa c ≤ 1`. -/
+theorem PositiveUpperBarrierRemainingContactResidual.of_positive_region_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_pos : 0 < p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hmκ : p.m * kappa c ≤ 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U) :
+    PositiveUpperBarrierRemainingContactResidual p c U := by
+  have hχ_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by
+    linarith
+  exact
+    PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
+      hα hχ_pos.le hχ_small hc hmκ htrap
+      (PositiveUpperBarrierConstLeftPlateauResidual.of_profile_chi_pos
+        hprofile hχ_pos hχ_lt_one)
 
 /-- Profile plus strict positive sensitivity narrows the smooth-contact residual
 to the strict exponential-contact field alone. -/
@@ -388,6 +474,30 @@ theorem positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos
     (PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
       hprofile hχ_pos hχ_lt hstrict)
 
+/-- On the `hmκ` subregime, the strict positive-sensitivity route closes smooth
+no-contact directly from profile convergence, trap membership, and regularity. -/
+theorem positiveUpperBarrierSmoothBranchNoContact_of_positive_region_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_pos : 0 < p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hmκ : p.m * kappa c ≤ 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+    PositiveUpperBarrierSmoothBranchNoContact p c U := by
+  exact
+    positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
+      (MChi_pos_of_chi_lt_one p
+        (by
+          have hχ_half : p.χ < (1 / 2 : ℝ) :=
+            lt_of_lt_of_le hχ_small (min_le_left _ _)
+          linarith)).le
+      htrap hprofile.stationary_eq hreg
+      (PositiveUpperBarrierRemainingContactResidual.of_positive_region_profile_chi_pos
+        hα hχ_pos hχ_small hc hmκ htrap hprofile)
+
 /-- Strict positive sensitivity and strict exponential contact close the full
 upper-barrier no-contact package once the regular stationary data are present. -/
 theorem PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary
@@ -404,6 +514,30 @@ theorem PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_r
       htrap hprofile hχ_pos hχ_lt hreg hstrict)
     hκ
     (MChi_pos_of_chi_lt_one p hχ_lt)
+    htrap hprofile.stationary_eq hreg
+
+/-- On the `hmκ` subregime, the positive upper-barrier contact package is
+closed without any explicit smooth-contact residual field. -/
+theorem PositiveUpperBarrierContactContradictions.of_profile_chi_pos_hmk_regularStationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_pos : 0 < p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c)
+    (hmκ : p.m * kappa c ≤ 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+    PositiveUpperBarrierContactContradictions p c U :=
+  PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_regularStationary
+    (positiveUpperBarrierSmoothBranchNoContact_of_positive_region_profile_chi_pos
+      hα hχ_pos hχ_small hc hmκ htrap hprofile hreg)
+    (kappa_pos_of_two_lt hc)
+    (MChi_pos_of_chi_lt_one p
+      (by
+        have hχ_half : p.χ < (1 / 2 : ℝ) :=
+          lt_of_lt_of_le hχ_small (min_le_left _ _)
+        linarith))
     htrap hprofile.stationary_eq hreg
 
 /-- Positive critical branch data that preserves the raw lower pin and carries

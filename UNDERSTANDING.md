@@ -1,18 +1,20 @@
 # UNDERSTANDING.md — Shen_work
 
-## CURRENT STATE (2026-06-29, code-derived)
+## CURRENT STATE (2026-06-30, code-derived)
 
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
 - Last full remote build: after adding the Paper1 positive upper-contact
-  refinements, Route-A raw cap wiring, and `χ>0` no-left-plateau narrowing,
+  refinements, Route-A raw cap wiring, `χ>0` no-left-plateau narrowing, and
+  the `hmκ` strict exponential-region / constant-left-plateau bridge,
   `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8983 jobs**.  The target build
   `lake build ShenWork.Paper1.UpperBarrierContact ShenWork.Paper1.PositiveRawRouteAAssembly`
   also completed successfully.  The new Paper1 contact/Route-A wrappers,
-  no-left-plateau narrowing wrappers, and strict-positive exp-contact bridges
-  have `#print axioms` output `[propext, Classical.choice, Quot.sound]`.
+  no-left-plateau narrowing wrappers, strict-positive exp-contact bridges, and
+  hmk-aware Route-A constant-residual wrappers have `#print axioms` output
+  `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -21,7 +23,7 @@ Current headline status:
 
   | area | closed or internally produced | honest residual/frontier inputs | deprecated or no-go route |
   | --- | --- | --- | --- |
-  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau and raw traps now produce right-tail asymptotics by pure squeeze; the positive upper-barrier interface no-contact is discharged from differentiability/kink avoidance; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData`, `Paper1PositiveLowerPinnedRawSmoothContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData`, `Paper1MainStatementLowerPinnedRawSmoothContactData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, `Paper1CombinedLowerPinnedRawContactStatementData`, and `Paper1CombinedLowerPinnedRawSmoothContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, smooth-branch no-contact comparison, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned plateau/raw squeeze route is the active tail producer |
+  | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau and raw traps now produce right-tail asymptotics by pure squeeze; the positive upper-barrier interface no-contact is discharged from differentiability/kink avoidance; the strict exponential contact residual is closed on the `p.m * kappa c ≤ 1` subregime; Route-A has an hmk-aware constant-left-plateau residual package that converts to the remaining-contact package; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData`, `Paper1PositiveLowerPinnedRawSmoothContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData`, `Paper1MainStatementLowerPinnedRawSmoothContactData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, `Paper1CombinedLowerPinnedRawContactStatementData`, and `Paper1CombinedLowerPinnedRawSmoothContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, smooth-branch no-contact comparison outside the `hmκ` subregime, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned plateau/raw squeeze route is the active tail producer; `hmκ` is not implied by the base positive hypotheses |
   | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroStatementFrontierData` names the preferred conditional route | finite-horizon alternative, solution-slice interpolation/energy, dissipation/gradient/mass/power/energy frontiers, Proposition 2.5, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` |
   | Paper 3 | actual-linear-small Theorem 2.1 persistence; Proposition 1.3/1.4 can be routed through Paper2 Theorem 1.3/1.2 or Paper2 main targets; terminal pointwise endpoint now has a named quantitative-endpoint bridge; `IntervalDomainPaper3SupNormCompactnessRegularizationData` removes only the structural `upperEq` field by fixing the sup envelope; `IntervalDomainPaper3NegativeSensitivityFrontierData` decomposes `negativeBound` into global-solution and eventual-sup residuals | `negativeBound` or its decomposed global-solution/eventual-sup frontiers, terminal Moser inputs, spectral orbit, continuation/gluing, compactness/regularization, and stability frontiers | Paper2 Theorem 1.1 does not imply Paper3 Proposition 1.2 under the current API; see `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` |
 
@@ -97,6 +99,21 @@ Current headline status:
   `MChi_ne_one_of_chi_pos_lt_one`.  The thinner
   `PositiveUpperBarrierExpStrictContactResidual` therefore leaves only the
   strict exponential superbarrier residual at contact on that profile route.
+  `Statements` now proves the strict positive exponential-region operator
+  estimate as `frozenWaveOperator_exp_neg_of_chi_nonneg` and
+  `frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg`; with the
+  standard scalar side condition `p.m * kappa c ≤ 1`, `UpperBarrierContact`
+  packages this as
+  `positiveUpperBarrier_expStrictSuperAtContact_of_positive_region`,
+  `PositiveUpperBarrierConstLeftPlateauResidual.of_profile_chi_pos`,
+  `PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion`,
+  `PositiveUpperBarrierRemainingContactResidual.of_positive_region_profile_chi_pos`,
+  `positiveUpperBarrierSmoothBranchNoContact_of_positive_region_profile_chi_pos`,
+  and
+  `PositiveUpperBarrierContactContradictions.of_profile_chi_pos_hmk_regularStationary`.
+  This `hmκ` condition is a genuine extra scalar frontier, not a consequence of
+  the base positive branch hypotheses: the repo contains
+  `not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one`.
   The direct bridge
   `positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos`
   closes smooth no-contact from this thinner residual, and
@@ -115,10 +132,19 @@ Current headline status:
   `positiveBranchTailCap` and wires `Paper1PositiveLowerRawCapRouteAParamData`
   / `Paper1PositiveLowerRawCapRouteASmoothParamData` /
   `Paper1PositiveLowerRawCapRouteARemainingParamData` into those raw-contact,
-  raw smooth-contact, and remaining-contact interfaces.  The remaining positive residuals are the
+  raw smooth-contact, and remaining-contact interfaces.  On the `hmκ`
+  subregime, `Paper1PositiveLowerRawCapRouteAHmkConstParamData` carries only
+  `PositiveUpperBarrierConstLeftPlateauResidual` plus the scalar
+  `p.m * kappa c ≤ 1`; `paper1_routeARemainingParamData_of_routeAHmkConstParamData`
+  converts it back into the existing remaining-contact route, and
+  `paper1_positiveRawSmoothContactData_of_routeAHmkConstParamData`,
+  `paper1_positiveContactBranch_of_routeAHmkConstParamData`, and
+  `paper1_positiveStrictBarrierBranch_of_routeAHmkConstParamData` reuse the
+  downstream wrappers.  The remaining positive residuals are the
   Route-A/Schauder analytic data themselves: lower-pin preservation by the
   positive map, map/compactness data, stationarity/flat-left inputs, C²
-  regularity data, and the strict exponential superbarrier at contact.  The
+  regularity data, and either the strict exponential superbarrier at contact or
+  the scalar `hmκ` plus constant-left-plateau route above.  The
   no-left-plateau input is no longer separate on profile routes with
   `0 < p.χ < 1`.  The right-tail
   asymptotic itself now has
