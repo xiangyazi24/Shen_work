@@ -1,433 +1,598 @@
-# Q2631 shen1 — audit of `P3MoserRegularityProducer` frontier after `3baba004`
+# Q2636 shen1 — Paper3 actual-linear statement-route audit and next reductions
 
 Repo: `xiangyazi24/Shen_work`
 
-Branch/ref inspected: default branch `main`, plus `3baba004` for `ShenWork/PDE/P3MoserRegularityProducer.lean`.
+Branch inspected: current `main` after the committed changes mentioned in the prompt.
 
 Files inspected:
 
 ```text
+ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
+ShenWork/Paper3/IntervalDomainStatementAssembly.lean
+ShenWork/Paper3/IntervalDomainSectorial.lean
+ShenWork/Paper3/IntervalDomainSectorialNonlinearBridges.lean
+ShenWork/Paper3/IntervalDomainPersistenceActualLinearSectorial.lean
 ShenWork/PDE/P3MoserRegularityProducer.lean
-ShenWork/PDE/P3MoserIntegratedClosure.lean
-ShenWork/PDE/P3MoserHighExcursionProducer.lean
-ShenWork/PDE/P3MoserThresholdPlanProducer.lean
-ShenWork/Paper2/Statements.lean
-ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean
-ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean
-ShenWork/Paper2/IntervalDomainLpEnergyFrontiers.lean
-ShenWork/Paper2/IntervalDomainMass.lean
-ShenWork/PDE/IntervalDomain.lean
+ShenWork/PDE/P3MoserActualWiring.lean
+ShenWork/PDE/P3MoserLemmaDischarge.lean
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
 ```
 
-## Executive answer
+I did **not** rely on editing `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
 
-From `IsPaper2ClassicalSolution intervalDomain params T u v` or `IsPaper2GlobalClassicalSolution intervalDomain params u v` **alone**, none of the three new frontier fields is currently provable as stated:
+## Executive summary
+
+The next best non-conflicting reductions are in the **actual-linear statement layer**, not in high-excursion/Moser producer files.
+
+Top two reductions:
+
+1. **Actual-linear stability 2.3/2.5 vacuity reduction.**  In the actual-linear-small route, the final theorem assumes `0 < p.χ₀` and `0 < p.a`.  Therefore the `χ₀ ≤ 0` Theorem 2.3 branches and the minimal `a = 0, b = 0` Theorem 2.5 branches inside `IntervalDomainPaper3Stability23To25FrontierData` are vacuous.  A new actual-linear stability data structure should carry only the genuinely relevant Theorem 2.4 fields `global24` and `exp24`, then fill the other six fields by contradiction.  This removes six explicit frontier fields without new math.
+
+2. **Actual-linear compactness/core thinning.**  In the current actual-linear raw-linear route, `IntervalDomainInitialContinuityRaw p` is carried twice: once in `IntervalDomainPaper3CoreStatementActualLinear22Data.initialContinuity`, and once inside `IntervalDomainPaper3ConcreteCompactnessRegularizationData.initialContinuity`.  Also, if the compactness package is the already-defined `intervalDomainSupNormCompactnessData`, the `upperEq` field is definitional; and under `0 < p.a`, the compactness `minimalUpper` field is vacuous.  A thin actual-linear mainline data structure can carry one shared `initialContinuity`, only the real compactness/resolvent fields, and the two raw linear Theorem 2.2 branches.
+
+The uncommitted `P3MoserRegularityProducer` lite change is also the right reduction: `powerTimeIntegrable` is derivable from `energyContinuous + 0 ≤ T`; keep `energyContinuous` and `gradientTimeIntegrable` explicit.  That is orthogonal to high-excursion ownership.
+
+The uncommitted `IntervalDomainSectorial.lean` raw-linear sibling route is also the right direction: it bypasses `IntervalDomainSectorialMainlineCoreExistence` for the Theorem 2.1/2.2 target when raw linear-stability branches are supplied directly.  That is pure assembly plus already-produced actual-linear persistence; it should not carry the nonlinear orbit/small-data fields needed only for the sectorial H3.1 route.
+
+## Route map: what the current actual-linear statement route is doing
+
+The current preferred actual-linear statement endpoint in `IntervalDomainActualLinearStatementAssembly.lean` is:
 
 ```lean
-energyContinuous
-powerTimeIntegrable
-gradientTimeIntegrable
+IntervalDomainPaper3StatementActualLinear22P2MainData
+intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
 ```
 
-The refactor in `P3MoserRegularityProducer.lean` is therefore mathematically honest: the old skeleton that claimed these fields from `IsPaper2ClassicalSolution` was too strong.
-
-There is, however, one real frontier reduction available:
-
-* `powerTimeIntegrable` is redundant **if** `energyContinuous` is retained and `0 ≤ T` is available.  For classical solutions, `0 < T` is available from `IsPaper2ClassicalSolution.T_pos`.  This derives time-integrability of the scalar power energy from continuity on the compact interval.  It does **not** prove `powerTimeIntegrable` from classical regularity alone; it proves that the explicit frontier package can be weakened by dropping `powerTimeIntegrable` and deriving it from `energyContinuous`.
-
-So the best non-vacuous reduction is:
-
-```text
-keep explicit:  energyContinuous, gradientTimeIntegrable
-derive:         initialPowerBound, powerTimeIntegrable
-get from hsol:  energy nonnegativity, T_pos
-```
-
-Do not reduce `energyContinuous` or `gradientTimeIntegrable` yet.  Existing repo lemmas provide useful interior/fixed-time facts, but not the closed-time or time-integrability statements required by `IntegratedMoserFirstCrossingRegularity`.
-
-## Field-by-field audit
-
-### 1. `energyContinuous`
-
-Target field:
+It has:
 
 ```lean
-∀ p, p0 ≤ p → ContinuousOn
-  (fun t => intervalDomain.integral (fun x => (u t x)^p))
-  (Set.Icc (0 : ℝ) T)
+structure IntervalDomainPaper3StatementActualLinear22P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22FrontierData
+      p M0 uBar vLower K
 ```
 
-Status: **not provable from the current `IsPaper2ClassicalSolution` or `IsPaper2GlobalClassicalSolution` interface.**
-
-What is available:
+The `propositions` branch routes Paper3 Proposition 1.3/1.4 through Paper2 main theorem targets, but it deliberately still carries the independent Paper3 Proposition 1.2 residual:
 
 ```lean
-intervalDomainPowerEnergy_hasDerivAt
-intervalDomain_lp_timeLeibniz
+structure IntervalDomainPaper3Proposition1FromPaper2MainTargetsData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
 ```
 
-from `ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean`.  These give differentiability, hence continuity, at interior times `t ∈ Set.Ioo 0 T`.
-
-Precise interior-only skeleton:
+The `mainline` branch is:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-
-/-- Interior-only consequence of classical regularity.  This is useful, but it is
-not the closed-time `energyContinuous` field required by integrated Moser. -/
-theorem intervalDomain_powerEnergy_continuousAt_interior_of_classical
-    {params : CM2Params} {T q t : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (ht0 : 0 < t) (htT : t < T) :
-    ContinuousAt
-      (fun s => intervalDomain.integral (fun x => (u s x) ^ q)) t := by
-  have hderiv :
-      HasDerivAt (fun s => intervalDomainPowerEnergy q u s)
-        (∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv q u t y) t :=
-    intervalDomainPowerEnergy_hasDerivAt (q := q) hsol ⟨ht0, htT⟩
-  -- `intervalDomainPowerEnergy` is definitionally the same interval integral.
-  change ContinuousAt (fun s => intervalDomainPowerEnergy q u s) t
-  exact hderiv.continuousAt
-
-end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-
-end
+structure IntervalDomainPaper3MainlineActualLinear22FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core : IntervalDomainPaper3CoreStatementActualLinear22Data
+    p M0 uBar vLower
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
 ```
 
-Why this does not close the field:
-
-* `ContinuousOn ... (Set.Icc 0 T)` includes continuity at `t = 0` and at `t = T`.
-* `IsPaper2ClassicalSolution` only constrains the solution on interior times `0 < t < T`.  Its positivity, PDE identity, and interval-domain `classicalRegularity` are all interior-time statements.
-* `IsPaper2GlobalClassicalSolution` helps at a positive endpoint `T` by allowing a larger horizon, but it still gives no continuity at `t = 0` and no initial trace.  The value `u 0` can be arbitrary from the perspective of the current interface.
-
-Minimal extra data needed:
-
-Either keep the current field exactly, or supply stronger closed-time data such as:
+and the actual-linear core is:
 
 ```lean
-∀ p, p0 ≤ p,
-  ContinuousOn
-    (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-    (Set.Icc (0 : ℝ) T)
+structure IntervalDomainPaper3CoreStatementActualLinear22Data
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  theorem22Nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  theorem22Minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
 ```
 
-A more constructive future route would require a closed-time initial trace plus a parametric integral continuity theorem for real powers, with enough positivity/lower-bound control near `t = 0` to make `rpow` stable for all `p ≥ p0`.  That route is not currently in the repo.
-
-### 2. `powerTimeIntegrable`
-
-Target field:
+`to_linear22Data` fills the Theorem 2.1 persistence field internally by calling:
 
 ```lean
-∀ p, p0 ≤ p → IntegrableOn
-  (fun t => intervalDomain.integral (fun x => (u t x)^p))
-  (Set.uIcc (0 : ℝ) T) volume
+intervalDomain_sectorialTheorem21Persistence_actualLinearSmall
 ```
 
-Status from `IsPaper2ClassicalSolution` alone: **not provable**.
+from `IntervalDomainPersistenceActualLinearSectorial.lean`.
 
-Status as a frontier reduction: **provable from `energyContinuous` plus `0 ≤ T`.**
+## Classification by structure / field
 
-Existing supporting fact: Mathlib’s `ContinuousOn.integrableOn_Icc`, already used elsewhere in the repo through the `.integrableOn_Icc` projection style.
+### `IntervalDomainPaper3StatementActualLinear22P2MainData`
 
-Lean code for the reduction:
+| Field | Classification | Notes |
+|---|---|---|
+| `propositions.negativeBound` | real analytic frontier / remains explicit | Paper2 main targets do not imply Paper3 Proposition 1.2 negative-sensitivity eventual bound. This is explicitly documented in `IntervalDomainStatementAssembly.lean`. |
+| `propositions.paper2Main` | already external target / can be wired if caller has it | This is not produced by the actual-linear Paper3 route; it should be supplied from the Paper2 main theorem route. |
+| `mainline` | mixed | See below. |
+
+No honest reduction removes `negativeBound` from this route unless a separate negative-sensitivity global/eventual-bound theorem is supplied.
+
+### `IntervalDomainPaper3CoreStatementActualLinear22Data`
+
+| Field | Classification | Notes |
+|---|---|---|
+| `initialContinuity` | real analytic frontier, but duplicated | Needed for Lemma 3.3. No producer found in the repo. It is also carried in compactness data; share it once. |
+| `theorem22Nonminimal` | real analytic frontier | No existing producer found for the raw nonminimal linear-stability/instability branch. |
+| `theorem22Minimal` | real analytic frontier | No existing producer found for the raw minimal linear-stability/instability branch. |
+| persistence | already produced internally | `IntervalDomainPaper3CoreStatementActualLinear22Data.to_linear22Data` fills it using `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`. |
+
+### `IntervalDomainPaper3ConcreteCompactnessRegularizationData`
+
+| Field | Classification | Notes |
+|---|---|---|
+| `upperEq` | pure redundant wrapper when using `intervalDomainSupNormCompactnessData` | `IntervalDomainPaper3SupNormCompactnessRegularizationData.toConcrete` already fills this definitionally. |
+| `compact` | real analytic frontier | `TimeTranslateCompactnessRaw` remains a compactness theorem, not produced here. |
+| `initialContinuity` | real analytic frontier, but duplicated | Same field as `core.initialContinuity`; share it once. |
+| `minimalUpper` | vacuous in actual-linear-small route | Actual-linear theorem wrapper assumes `0 < p.a`, while this branch starts with `p.a = 0`. Fill by contradiction. |
+| `resolvent` | real analytic frontier | `NeumannResolventGradientBoundExistsRaw` remains explicit. |
+
+### `IntervalDomainPaper3Stability23To25FrontierData`
+
+| Field | Classification under actual-linear-small hypotheses | Notes |
+|---|---|---|
+| `globalNonminimal23` | vacuous | Starts with `p.χ₀ ≤ 0`, contradicts wrapper hypothesis `0 < p.χ₀`. |
+| `globalMinimal23` | vacuous | Same contradiction via `p.χ₀ ≤ 0`; also minimal branch. |
+| `expNonminimal23` | vacuous | Same contradiction via `p.χ₀ ≤ 0`. |
+| `expMinimal23` | vacuous | Same contradiction via `p.χ₀ ≤ 0`; also minimal branch. |
+| `global24` | real analytic frontier | This is the positive-sensitivity nonminimal global-stability branch. |
+| `exp24` | real analytic frontier | This is the positive-sensitivity nonminimal exponential upgrade branch. |
+| `global25` | vacuous | Starts with `p.a = 0`, contradicts wrapper hypothesis `0 < p.a`. |
+| `exp25` | vacuous | Same `p.a = 0` contradiction. |
+
+This is the largest safe reduction currently available in the statement layer.
+
+### Actual-linear persistence package
+
+Already produced in repo:
 
 ```lean
-import ShenWork.PDE.P3MoserRegularityProducer
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-
-/-- A compact-interval continuity field already implies the corresponding
-power-energy time-integrability field. -/
-theorem intervalDomain_powerTimeIntegrable_of_energyContinuous
-    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 ≤ T)
-    (henergy :
-      ∀ p, p0 ≤ p →
-        ContinuousOn
-          (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-          (Set.Icc (0 : ℝ) T)) :
-    ∀ p, p0 ≤ p →
-      IntegrableOn
-        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-        (Set.uIcc (0 : ℝ) T) volume := by
-  intro p hp
-  have hIcc :
-      IntegrableOn
-        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-        (Set.Icc (0 : ℝ) T) volume :=
-    (henergy p hp).integrableOn_Icc
-  simpa [Set.uIcc_of_le hT] using hIcc
-
-/-- Reduced regularity frontier: `powerTimeIntegrable` is derived from
-`energyContinuous` on `[0,T]` when `0 ≤ T`. -/
-structure IntervalDomainIntegratedMoserRegularityFrontierDataLite
-    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
-  energyContinuous :
-    ∀ p, p0 ≤ p →
-      ContinuousOn
-        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-        (Set.Icc (0 : ℝ) T)
-  gradientTimeIntegrable :
-    ∀ p, p0 ≤ p →
-      IntegrableOn
-        (fun t =>
-          intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm
-              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-        (Set.uIcc (0 : ℝ) T) volume
-
-/-- Produce the existing explicit frontier data from the reduced version. -/
-theorem intervalDomain_regularFrontierData_of_lite
-    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 ≤ T)
-    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0) :
-    IntervalDomainIntegratedMoserRegularityFrontierData u T p0 where
-  energyContinuous := hreg.energyContinuous
-  powerTimeIntegrable :=
-    intervalDomain_powerTimeIntegrable_of_energyContinuous
-      hT hreg.energyContinuous
-  gradientTimeIntegrable := hreg.gradientTimeIntegrable
-
-/-- Direct producer of integrated-Moser regularity from the reduced frontier. -/
-theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0) :
-    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
-  intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData
-    (intervalDomain_regularFrontierData_of_lite
-      (IsPaper2ClassicalSolution.T_pos hsol).le hreg)
-
-end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-
-end
+intervalDomain_sectorialTheorem21Persistence_actualLinearSmall
 ```
 
-Classification: **wiring / standard compact-continuity integration**, not new PDE math.
-
-What is available from classical regularity without `energyContinuous`:
+It fills:
 
 ```lean
-intervalDomain_u_rpow_intervalIntegrable_of_regularity
+IntervalDomainSectorialTheorem21Persistence p uBar
 ```
 
-from `ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean`, but this is only fixed-time spatial interval-integrability:
+from:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-open scoped Interval
-
-noncomputable section
-
-example
-    {params : CM2Params} {T t q : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (ht0 : 0 < t) (htT : t < T) :
-    IntervalIntegrable
-      (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ q))
-      volume 0 1 :=
-  intervalDomain_u_rpow_intervalIntegrable_of_regularity
-    (q := q) hsol ht0 htT
-
-end
+0 < p.a, 0 < p.b, 0 < p.χ₀,
+p.m = 1, 1 ≤ p.β,
+p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1))
 ```
 
-That fixed-time spatial lemma does not imply the target `IntegrableOn` in the time variable.  To prove time integrability without using `energyContinuous`, one would at least need scalar-energy measurability plus a time-integrable or essentially bounded envelope on `Set.uIcc 0 T`.  `LpPowerBoundedBefore` gives a uniform bound but not measurability; classical regularity gives interior local continuity but not endpoint control at `0`.
-
-### 3. `gradientTimeIntegrable`
-
-Target field:
+The component reductions are also already in the repo:
 
 ```lean
-∀ p, p0 ≤ p → IntegrableOn
-  (fun t =>
-    intervalDomain.integral (fun x =>
-      (intervalDomain.gradNorm
-        (fun y => (u t y)^(p/2)) x)^2))
-  (Set.uIcc 0 T) volume
+intervalDomain_uniformPersistencePart1Raw_of_part2_smallLinear
+intervalDomain_uniformPersistencePart2Raw_proven
+intervalDomain_uniformPersistencePart3Raw_vacuous_of_m_eq_one
+intervalDomain_uniformPersistencePart4Raw_vacuous_of_a_pos
 ```
 
-Status: **not provable from current `IsPaper2ClassicalSolution` / `IsPaper2GlobalClassicalSolution` infrastructure.**
+### Sectorial core vs raw-linear sibling route
 
-Useful existing fixed-time or algebraic lemmas:
+`IntervalDomainSectorialMainlineCoreExistence` is still the right package for the H3.1 sectorial path.  But for the actual-linear raw Theorem 2.2 route, it is overkill because raw linear-stability branches directly produce Theorem 2.2.
+
+The uncommitted sibling route in `IntervalDomainSectorial.lean` is therefore a good non-conflicting reduction.  It should keep only:
 
 ```lean
-intervalDomain_moser_gradNorm_sq_eq_weighted_of_regularity
-intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
-intervalDomainLpMoserGradientControl_of_regularity
-intervalDomain_gradient_integral_nonneg
+persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+
+theorem22Nonminimal : LinearStabilityInstabilityNonminimalRaw ...
+theorem22Minimal : LinearStabilityInstabilityMinimalRaw ...
 ```
 
-Representative fixed-time identity:
+and assemble:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-import ShenWork.PDE.P3MoserThresholdPlanProducer
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-open ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
-open scoped Interval
-
-noncomputable section
-
-example
-    {params : CM2Params} {T t q : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (ht0 : 0 < t) (htT : t < T) :
-    intervalDomain.integral
-        (fun x =>
-          (intervalDomain.gradNorm
-            (fun y : intervalDomain.Point => (u t y) ^ (q / 2)) x) ^ 2) =
-      (q / 2) ^ 2 *
-        intervalDomainLpWeightedGradientDissipation q u t :=
-  intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
-    (pExp := q) hsol ht0 htT
-
-example
-    {u : ℝ → intervalDomain.Point → ℝ} {q a b : ℝ}
-    (hab : a ≤ b) :
-    0 ≤ ∫ s in a..b,
-      integratedMoserGradientEnergy intervalDomain u q s :=
-  intervalDomain_gradient_integral_nonneg hab
-
-end
+IntervalDomainSectorialTheorem21And22UnconditionalTarget p M0 uBar vLower
 ```
 
-These are not time-integrability theorems.
+without `spectralSemigroupOrbitBound`, `smallDataGlobal`, or `massConstrainedSmallDataGlobal`.
 
-Minimal extra data needed:
+Classification:
 
-The current field is already a good minimal interface:
+* raw linear Theorem 2.2 branches: real analytic frontier;
+* persistence: already produced by actual-linear small route;
+* sectorial core existence fields: pure redundant for this raw-linear Theorem 2.2 path, but still relevant to the separate H3.1/local-exponential route.
 
-```lean
-∀ p, p0 ≤ p → IntegrableOn
-  (fun t =>
-    intervalDomain.integral (fun x =>
-      (intervalDomain.gradNorm
-        (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-  (Set.uIcc (0 : ℝ) T) volume
-```
+### Moser / mass-Lp smoothing surfaces in `IntervalDomainActualLinearStatementAssembly.lean`
 
-A more constructive future replacement could provide either:
+| Structure / field | Classification | Notes |
+|---|---|---|
+| `IntervalDomainMassLpSmoothingMoserActualLinearSmallBoundednessCore` | real parameter-side frontier | `alphaAbsorption` and `gammaDimension` remain real parameter inequalities; `to_boundednessHyp` fills the rest from `hb` and existing parameter positivity. |
+| `closedEnergyTrace` | real analytic frontier | Converted by `P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData`. Good reduction from old L² seed field. |
+| `rawMoserDrop` | real analytic frontier | Converted by `moserDissipationDropBeforeNonnegB_of_raw_drop`. |
+| `relativeMassGradient` | real analytic frontier | Converted by `P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient`. |
+| `terminalPointwise` | real analytic frontier | Converted by `intervalDomainMoserQuantitativeEndpoint_of_terminalPointwisePowerControl`. This is a good endpoint simplification. |
+| `integratedStep` | real analytic frontier / atom | Good explicit atom if avoiding high-excursion/threshold producer ownership. |
+| `lowerUpperFrontiers` | do not touch under current ownership | It routes through `P3MoserIntegratedClosure`, but producing it belongs to the high-excursion worker. |
 
-```lean
-∀ p, p0 ≤ p,
-  IntegrableOn
-    (fun t => intervalDomainLpWeightedGradientDissipation p u t)
-    (Set.uIcc (0 : ℝ) T) volume
-```
+### `P3MoserRegularityProducer.lean` lite change
 
-together with the Moser-gradient identity/control, or a closed-slab joint regularity theorem proving measurability and an integrable time envelope for the Moser-gradient energy.  No such theorem currently appears in the repo.
+This is a good reduction and should be committed independently:
 
-## False assumptions to avoid for `gradientTimeIntegrable`
+* `energyContinuous`: real frontier, keep.
+* `gradientTimeIntegrable`: real frontier, keep.
+* `powerTimeIntegrable`: small wiring from `energyContinuous + 0 ≤ T`, remove from explicit data.
+* `initialPowerBound`: already algebraic via `max integral 0`.
 
-Do not argue:
-
-```text
-classical solution ⇒ each spatial slice is C² ⇒ gradient energy is time-integrable
-```
-
-That implication is not valid in the current interface.
-
-The exact problems are:
-
-1. `ContDiffOn ℝ 2 (intervalDomainLift (u t)) ...` is per fixed interior time.  It gives spatial regularity of each slice, not measurability or integrability of the scalar function of time.
-
-2. The interval-domain `classicalRegularity` now contains joint continuity of the solution field and of the time-derivative field, but it does **not** contain joint continuity in `(t,x)` of the spatial derivative `deriv (intervalDomainLift (u t)) x`.  The Moser gradient uses spatial derivatives.
-
-3. Even a future joint continuity result on `(0,T) × [0,1]` would only give local integrability away from `t = 0`.  The target field is on `Set.uIcc 0 T`, so it still needs endpoint control, especially near `t = 0`.
-
-4. `intervalDomain_moser_gradient_integral_eq_weighted_of_regularity` is a fixed-time identity.  It does not say the weighted dissipation is `IntegrableOn` in time.
-
-5. `intervalDomain_gradient_integral_nonneg` proves only nonnegativity of a time interval integral.  Nonnegativity is not integrability.
-
-6. `IntegratedMoserDissipationDropBefore` contains interval integrals in inequalities, but the Lean statement does not produce `IntegrableOn` evidence for the gradient-energy time function.  The integrated-Moser closure later needs actual `IntegrableOn`/`IntervalIntegrable` objects, so this cannot be filled by inequality syntax alone.
-
-## Relation to existing Moser consumers
-
-`P3MoserThresholdPlanProducer.lean` confirms that these fields are genuinely consumed:
-
-* `hreg.energyContinuous (p + rho) hp_rho` is passed into `LpPowerBoundedBefore_of_crossingThresholdPlan`.
-* `hreg.powerTimeIntegrable` is converted to interval integrability on selected windows.
-* `hreg.gradientTimeIntegrable` is likewise converted to interval integrability on selected windows.
-
-`P3MoserHighExcursionProducer.lean` similarly uses closed-time continuity to turn a pointwise high excursion into a nontrivial lower-average window.  The lemma
-
-```lean
-exists_Icc_subinterval_gt_mid_of_continuousOn_gt
-```
-
-requires `ContinuousOn Y (Icc 0 T)`, not merely interior continuity.
-
-## Recommended frontier shape
-
-The current explicit frontier is honest.  The only reduction I recommend now is dropping `powerTimeIntegrable` from the explicit producer data and deriving it from `energyContinuous` plus `T ≥ 0`, as shown above.
-
-A reduced frontier could be named:
+Suggested names from the local work are good:
 
 ```lean
 IntervalDomainIntegratedMoserRegularityFrontierDataLite
 intervalDomain_powerTimeIntegrable_of_energyContinuous
-intervalDomain_regularFrontierData_of_lite
 intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
+intervalDomain_lowerAverageEpsilonData_of_classical_lite
+intervalDomain_firstCrossingStep_of_classical_and_frontiers_lite
+```
+
+This does not rely on high-excursion producer files.
+
+## Top reduction 1: actual-linear stability 2.3/2.5 vacuity
+
+Add this in `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` or, if preferred for general reuse, in `IntervalDomainStatementAssembly.lean`.  Since it uses actual-linear-small hypotheses, I would put it in `IntervalDomainActualLinearStatementAssembly.lean`.
+
+```lean
+import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
+
+set_option linter.style.longLine false
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+
+namespace ShenWork.Paper3
+
+noncomputable section
+
+/-- In the actual-linear-small route, the only non-vacuous Theorem 2.3--2.5
+stability fields are the positive-sensitivity nonminimal Theorem 2.4 branches.
+The `χ₀ ≤ 0` Theorem 2.3 branches contradict `0 < χ₀`, and the minimal
+Theorem 2.5 branches contradict `0 < a`. -/
+structure IntervalDomainPaper3Stability24ActualLinearFrontierData
+    (p : CM2Params) (C : Paper3Constants intervalDomain p) : Prop where
+  global24 :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
+          GloballyAsymptoticallyStableNonminimal intervalDomain p
+            eq.1 eq.2
+  exp24 :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain
+                  intervalDomainStabilityNorms u v eq.1 eq.2 A rate
+
+/-- Fill the full stability 2.3--2.5 frontier from the non-vacuous Theorem 2.4
+branches in the actual-linear-small regime. -/
+def IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h : IntervalDomainPaper3Stability24ActualLinearFrontierData p C)
+    (ha_pos : 0 < p.a) (hchi_pos : 0 < p.χ₀) :
+    IntervalDomainPaper3Stability23To25FrontierData p C where
+  globalNonminimal23 := by
+    intro hchi_nonpos _hm ha hb
+    exfalso
+    linarith
+  globalMinimal23 := by
+    intro hchi_nonpos _hm _ha0 _hb0 uStar huStar
+    exfalso
+    linarith
+  expNonminimal23 := by
+    intro hchi_nonpos _hm ha hb
+    exfalso
+    linarith
+  expMinimal23 := by
+    intro hchi_nonpos _hm _ha0 _hb0 uStar huStar
+    exfalso
+    linarith
+  global24 := h.global24
+  exp24 := h.exp24
+  global25 := by
+    intro ha0 _hb0 _hm _hbeta uStar huStar
+    exfalso
+    linarith
+  exp25 := by
+    intro ha0 _hb0 _hm _hbeta uStar huStar
+    exfalso
+    linarith
+
+end
+
+end ShenWork.Paper3
+```
+
+Classification: **pure logical/vacuity wiring**.  It removes six explicit frontier fields from the actual-linear-small route and does not change the theorem’s mathematical strength under the existing hypotheses.
+
+## Top reduction 2: shared initial continuity + positive-`a` compactness lite
+
+This can be layered on top of reduction 1.  It uses the existing `intervalDomainSupNormCompactnessData` and `IntervalDomainPaper3SupNormCompactnessRegularizationData.toConcrete`, then fills the minimal upper branch by contradiction from `0 < p.a`.
+
+```lean
+import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
+
+set_option linter.style.longLine false
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+
+namespace ShenWork.Paper3
+
+noncomputable section
+
+/-- Compactness/regularization data needed in the actual-linear-small route after
+choosing the canonical sup-norm upper envelope and using `0 < a` to make the
+minimal-upper branch vacuous.  The shared initial-continuity field is supplied by
+the surrounding mainline data. -/
+structure IntervalDomainPaper3SupNormCompactnessAPosData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  compact : TimeTranslateCompactnessRaw intervalDomain p locallyConverges
+  resolvent :
+    NeumannResolventGradientBoundExistsRaw intervalDomain
+      neumannResolventGradientBound
+
+/-- Convert positive-`a` compactness data into the existing sup-norm compactness
+package. -/
+def IntervalDomainPaper3SupNormCompactnessAPosData.toSupNormData
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop}
+    {neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
+    (h : IntervalDomainPaper3SupNormCompactnessAPosData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound)
+    (ha_pos : 0 < p.a)
+    (hcont : IntervalDomainInitialContinuityRaw p) :
+    IntervalDomainPaper3SupNormCompactnessRegularizationData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound where
+  compact := h.compact
+  initialContinuity := hcont
+  minimalUpper := by
+    intro ha0 _hb0 _hm _hbeta _hchi0 _hchi u v huv
+    exfalso
+    linarith
+  resolvent := h.resolvent
+
+/-- Thin actual-linear raw-Theorem-2.2 mainline data: persistence is produced by
+actual-linear-small, initial continuity is carried once, the compactness upper
+field is definitional, and the minimal-upper field is vacuous from `0 < a`. -/
+structure IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  theorem22Nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  theorem22Minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  compactness :
+    IntervalDomainPaper3SupNormCompactnessAPosData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Convert the thin actual-linear data to the current full mainline data surface. -/
+def IntervalDomainPaper3MainlineActualLinear22ThinFrontierData.toCurrent
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop}
+    {neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
+    (h : IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound)
+    (ha_pos : 0 < p.a) (hchi_pos : 0 < p.χ₀) :
+    IntervalDomainPaper3MainlineActualLinear22FrontierData
+      p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) where
+  core :=
+    { initialContinuity := h.initialContinuity
+      theorem22Nonminimal := h.theorem22Nonminimal
+      theorem22Minimal := h.theorem22Minimal }
+  compactness :=
+    (h.compactness.toSupNormData ha_pos h.initialContinuity).toConcrete
+  stability := h.stability24.toStability23To25 ha_pos hchi_pos
+
+/-- Mainline target from the thin actual-linear raw-Theorem-2.2 route. -/
+theorem intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+    p M0 uBar vLower
+    (intervalDomainSupNormCompactnessData
+      locallyConverges neumannResolventGradientBound)
+    ha hb hχ0 hm hβ hχ (hData.toCurrent ha hχ0)
+
+end
+
+end ShenWork.Paper3
+```
+
+Classification: **pure wiring + branch-vacuity reduction**.  It removes:
+
+* duplicate `initialContinuity`;
+* `upperEq` for canonical sup-norm compactness;
+* `minimalUpper` under actual-linear `0 < p.a`;
+* the six vacuous Theorem 2.3/2.5 stability fields if combined with reduction 1.
+
+Remaining non-vacuous fields in this thin mainline package are exactly:
+
+```text
+initialContinuity
+theorem22Nonminimal
+theorem22Minimal
+compact
+resolvent
+global24
+exp24
+```
+
+plus the statement-level proposition data outside the mainline:
+
+```text
+negativeBound
+paper2Main
+```
+
+## Sectorial raw-linear sibling route: audit of the uncommitted direction
+
+The planned `IntervalDomainSectorialTheorem22LinearRawExistence` / `IntervalDomainSectorialMainlineLinearRawExistence` route is correct and non-conflicting.
+
+Minimal intended shape:
+
+```lean
+import ShenWork.Paper3.IntervalDomainSectorial
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+
+namespace ShenWork.Paper3
+
+noncomputable section
+
+/-- Sectorial Theorem 2.1/2.2 target data when Theorem 2.2 is supplied directly
+by the raw linear stability/instability branches. -/
+structure IntervalDomainSectorialTheorem22LinearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+  theorem22Nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  theorem22Minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+
+/-- Sectorial Theorem 2.1/2.2 target from persistence plus raw linear Theorem 2.2
+branches, bypassing `IntervalDomainSectorialMainlineCoreExistence`. -/
+theorem intervalDomain_sectorialTheorem21And22Target_of_linearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (h : IntervalDomainSectorialTheorem22LinearRawExistence
+      p M0 uBar vLower) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower := by
+  have h22 :
+      Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
+      p intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+      (intervalDomainSectorialPaper3Constants_usesCriticalSpectrum
+        p M0 uBar vLower)
+      h.theorem22Nonminimal h.theorem22Minimal
+  have h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_Theorem_2_1_sectorialMainline_of_persistence
+      p M0 uBar vLower h.persistence
+  exact ⟨h22, h21⟩
+
+end
+
+end ShenWork.Paper3
+```
+
+Then the actual-linear small wrapper should fill `persistence` by:
+
+```lean
+intervalDomain_sectorialTheorem21Persistence_actualLinearSmall
 ```
 
 Classification:
 
+* assembling `h22` and `h21`: pure wiring;
+* actual-linear persistence: already produced;
+* raw linear branches: real analytic frontier;
+* `IntervalDomainSectorialMainlineCoreExistence`: redundant for this raw-linear route only.
+
+## What not to attack next
+
+Do not spend this coordination slot on:
+
+* `P3MoserHighExcursionProducer.lean` or `P3MoserThresholdPlanProducer.lean`; they are owned by another worker.
+* `lowerUpperFrontiers` producers; keep them explicit or use the already exposed integrated-step atom.
+* proving `energyContinuous` or `gradientTimeIntegrable` from `IsPaper2ClassicalSolution` alone.  The current explicit/lite regularity frontier is the honest interface.
+* trying to derive `negativeBound` from Paper2 main targets.  The statement layer explicitly separates Paper3 Proposition 1.2 from Paper2 main theorem targets.
+
+## Recommended next commit order
+
+1. Finish and commit `P3MoserRegularityProducer.lean` lite data.  This is safe and local to Moser regularity:
+
 ```text
-energyContinuous          remains real frontier
-powerTimeIntegrable       wiring from energyContinuous + 0 ≤ T
-initialPowerBound         already algebraic via max integral 0
-gradientTimeIntegrable    remains real frontier
-energy nonnegativity      already from hsol positivity
+IntervalDomainIntegratedMoserRegularityFrontierDataLite
+powerTimeIntegrable derived from energyContinuous
+lite wrappers for lowerAverage/firstCrossing
 ```
 
-Do **not** add a theorem named like this unless it takes explicit frontier data:
+2. Finish and commit the `IntervalDomainSectorial.lean` raw-linear sibling route.  This gives a reusable sectorial target independent of `IntervalDomainSectorialMainlineCoreExistence`.
 
-```lean
--- Too strong / currently false from the interface alone.
-theorem intervalDomain_integratedMoserRegularityFrontierData_of_classical
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
-    IntervalDomainIntegratedMoserRegularityFrontierData u T p0 := ...
+3. Add the actual-linear statement-layer thin data described above.  This can be done entirely in `IntervalDomainActualLinearStatementAssembly.lean` and does not touch high-excursion files.  It reduces the current actual-linear statement surface to the genuinely non-vacuous fields:
+
+```text
+propositions.negativeBound
+propositions.paper2Main
+initialContinuity
+theorem22Nonminimal
+theorem22Minimal
+compact
+resolvent
+global24
+exp24
 ```
 
-The current interface does not determine enough closed-time behavior at `t = 0`, nor enough time integrability of the Moser-gradient energy, to prove that theorem without new analytic input.
-
-## Final answer to the question
-
-1. **Actually provable now from existing full fields:** `powerTimeIntegrable` can be derived from `energyContinuous` and `0 ≤ T`; use `ContinuousOn.integrableOn_Icc` and `Set.uIcc_of_le`.  This is a valid frontier reduction.
-
-2. **Actually provable now from `IsPaper2ClassicalSolution`:** none of the three full fields.  Only supporting facts are provable: interior-time continuity/differentiability of power energies, fixed-time spatial power integrability, fixed-time Moser-gradient algebra, and nonnegativity.
-
-3. **Minimal extra data:** keep `energyContinuous` and `gradientTimeIntegrable` explicit, or replace them with stronger closed-time/joint-regularity packages that genuinely imply those statements.  The current explicit frontier shape is the right interface, modulo the reducible `powerTimeIntegrable` field.
-
-4. **Main false assumption to avoid:** fixed-time spatial `C²` regularity, even with positivity and the Moser-gradient chain rule, does not imply time integrability of the gradient energy.  Time measurability, time envelopes, and endpoint control are separate analytic data.
+Everything else in the current route is either already produced, pure wiring, duplicated, or vacuous under `0 < p.a` / `0 < p.χ₀`.
