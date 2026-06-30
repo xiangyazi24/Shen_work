@@ -1,531 +1,238 @@
-# Q2373 shen2: Paper2 full-statement reduction after common-free actual-atom main wrappers
+# Q2391 shen2: Prop25 nonnegative-B Moser dissipation audit
 
-Repo target: `xiangyazi24/Shen_work`, `main` at commit `cbeb0de2`.
+Repo target: `xiangyazi24/Shen_work`, `main` at commit `ceba98b2`.
 
-## Executive answer
+## Verdict
 
-Yes, a faithful, buildable next reduction exists, but it is **not** a fully common-free full-statement route.
-
-The current common-free actual-atom wrappers are enough for the **headline main theorems**:
+No small faithful statement-layer patch currently reduces the remaining Prop. 2.5 atom
 
 ```lean
-Theorem_1_1 intervalDomain p ∧ Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C
+ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
 ```
 
-via:
+to the existing integrated predicate
 
 ```lean
-IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
-IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
-intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
-intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
+ShenWork.IntervalDomainExistence.P3MoserDissipationShape.IntegratedMoserDissipationDropBefore
 ```
 
-But the **full statement target** is larger:
-
-```lean
-def IntervalDomainPaper2StatementTargets
-    (p : CM2Params) (C : Paper2Constants p) : Prop :=
-  IntervalDomainPaper2Corollary21BootstrapTargets p ∧
-    IntervalDomainPaper2AprioriTargets p ∧
-      IntervalDomainPaper2LocalAndMainTheoremTargets p C
-```
-
-So full statement accounting additionally needs:
-
-```lean
-IntervalDomainPaper2Corollary21BootstrapTargets p
-IntervalDomainPaper2AprioriTargets p
-Proposition_1_1 intervalDomain p
-```
-
-The actual-atom Cor21/Prop25 route can handle the first item.  The proved `χ₀ = 0` local existence plus finite-horizon frontier can handle `Proposition_1_1`.  The honest remaining side input is the a-priori package, specifically Lemma 4.1.
-
-The next buildable wrapper should therefore combine:
-
-1. common-free actual-atom main-theorem data;
-2. thin section-2 data;
-3. chi-zero Proposition 1.1 finite-horizon data;
-4. an explicit a-priori/Lemma 4.1 producer, preferably the existing positive solution-slice interpolation frontier:
-
-```lean
-IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation p
-```
-
-through:
-
-```lean
-intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-```
-
-This avoids both no-go routes:
-
-```lean
-IntervalDomainLemma41.IntervalDomainInterpolation
-OldUnitIntervalPowerGNYoungForMoser
-```
+The current source requires a new integrated-first-crossing Moser chain before that reduction can feed Corollary 2.1 or Proposition 2.5.  The existing `IntegratedMoserDissipationDropBefore` / `integratedMoserDissipationDropBefore_of_integrated_energy` pair is only a predicate plus a same-shape packaging theorem; it is not consumed by the existing Moser closure.
 
 ## Source-grounded facts
 
-### Full target shape
-
-In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`:
+1. `IntervalDomainPaper2Prop25ActualAtomFrontierData` in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` still carries
 
 ```lean
-def IntervalDomainPaper2StatementTargets
-    (p : CM2Params) (C : Paper2Constants p) : Prop :=
-  IntervalDomainPaper2Corollary21BootstrapTargets p ∧
-    IntervalDomainPaper2AprioriTargets p ∧
-      IntervalDomainPaper2LocalAndMainTheoremTargets p C
+moserDissipation :
+  ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+    IsPaper2ClassicalSolution intervalDomain p T u v →
+    CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+    AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+    ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
+      intervalDomain u T rho p0
 ```
 
-This is why headline-only Theorem 1.1--1.3 wrappers are not full statement wrappers.
-
-### Common-free headline wrappers already present
-
-In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`:
+and `intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData` passes this field directly to
 
 ```lean
-abbrev IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
-    (p : CM2Params) (C : Paper2Constants p) : Prop :=
-  IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
-    p C
-
-theorem intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData :
-      IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
-        p C) :
-    IntervalDomainPaper2MainTheoremTargets p C
+ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
 ```
 
-and:
+2. The mass-gradient reduction does not lower dissipation.  The conversion
+`IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms` contains
 
 ```lean
-abbrev
-    IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
-    (p : CM2Params) (C : Paper2Constants p) : Prop :=
-  IntervalDomainPaper2MainTheoremChiZeroActualAtomMassGradientCor21LocalFreeFrontierData
-    p C
-
-theorem
-    intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData :
-      IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
-        p C) :
-    IntervalDomainPaper2MainTheoremTargets p C
+moserDissipation := h.moserDissipation
 ```
 
-These are headline-only.  They intentionally do not include section-2 target accounting, Lemma 3.1/4.1 accounting, or Proposition 1.1.
-
-### Actual-atom Corollary 2.1 and Proposition 2.5 producers
-
-In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`:
+and only converts the relative field through
 
 ```lean
-theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
-    Proposition_2_5 intervalDomain p :=
-  ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-    hData.moserDissipation
-    hData.relativeMoserInterpolation
-    hData.quantitativeEndpoint
-
-theorem intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
-    Corollary_2_1 intervalDomain p :=
-  ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
-    hData.moserDissipation hData.relativeMoserInterpolation
-
-theorem
-    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
-    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p
+ShenWork.IntervalDomainExistence.P3MoserLemmas.intervalDomain_relativeMoserInterpolationBefore_of_massGradient
 ```
 
-For mass-gradient lowering of relative Moser:
+3. The terminal-endpoint reduction also does not lower dissipation.  The conversion
+`IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData.toMassGradient` contains
 
 ```lean
-def IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms
-    {p : CM2Params}
-    (h : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
-    IntervalDomainPaper2Prop25ActualAtomFrontierData p
+moserDissipation := h.moserDissipation
+relativeMassGradient := h.relativeMassGradient
 ```
 
-and:
+and only converts the terminal pointwise endpoint into constant `pSeq` / `rootBound` data.
+
+4. `ShenWork/PDE/P3MoserActualWiring.lean` has the two current actual-atom consumers
 
 ```lean
-theorem
-    intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
-    Proposition_2_5 intervalDomain p
-
-theorem
-    intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
-    Corollary_2_1 intervalDomain p
+intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
+intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
 ```
 
-### Existing a-priori producer that avoids false global interpolation
-
-In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`:
+Both require an `hdiss` argument producing `MoserDissipationDropBeforeNonnegB`.  The endpoint consumer finally calls
 
 ```lean
-def IntervalDomainPaper2AprioriTargets (p : CM2Params) : Prop :=
-  Lemma_3_1 intervalDomain p ∧ Lemma_4_1 intervalDomain p
-
-theorem intervalDomainPaper2_Lemma_3_1
-    (p : CM2Params) :
-    Lemma_3_1 intervalDomain p :=
-  Lemma31Closure.Lemma_3_1_intervalDomain p
-
-theorem intervalDomainPaper2_Lemma_4_1_of_solutionInterpolationFrontier
-    (p : CM2Params)
-    (hSlice :
-      IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-        p) :
-    Lemma_4_1 intervalDomain p
-
-theorem intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-    (p : CM2Params)
-    (hSlice :
-      IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-        p) :
-    IntervalDomainPaper2AprioriTargets p
+intervalDomain_boundedBefore_of_energy_nonnegB_relative_interpolation
 ```
 
-This is the current honest Lemma 4.1 route.  It is not common-free, but it is not the refuted global interpolation route.
+with `(hdiss hsol hcross hboot)`.
 
-### No-go a-priori route
-
-Do not use:
+5. `ShenWork/PDE/P3MoserDissipationShape.lean` defines the integrated predicate
 
 ```lean
-intervalDomainPaper2_Lemma_4_1_of_GN_frontier
-intervalDomainPaper2_aprioriTargets_of_GN_frontier
+def IntegratedMoserDissipationDropBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T _rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      D.integral (fun x => (u t2 x) ^ p) -
+          D.integral (fun x => (u t1 x) ^ p) +
+        2 * ∫ s in t1..t2,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      C * p * ∫ s in t1..t2,
+        max 1 (D.integral (fun x => (u s x) ^ p))
 ```
 
-because they require:
+and `integratedMoserDissipationDropBefore_of_integrated_energy` merely packages a same-shape hypothesis into that predicate.
+
+6. The same file explicitly records the shape diagnosis: the pointwise drop is not the faithful analytic consequence of the PDE energy estimate, and an integrated first-crossing energy inequality is the faithful shape.  It also proves
 
 ```lean
-IntervalDomainLemma41.IntervalDomainInterpolation
+theorem unitLinearDrop_not_MoserDissipationDropBeforeNonnegB :
+    ¬ MoserDissipationDropBeforeNonnegB
+      unitLinearDropDomain unitLinearDropU 1 1 1
 ```
 
-and the source comments mark it as refuted by:
+so an abstract bridge from integrated data to the pointwise nonnegative-`B` predicate would be a no-go without substantial new hypotheses.
+
+7. The existing nonnegative-`B` closure is pointwise.  Its core step is
 
 ```lean
-IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
+theorem moser_step_of_energy_nonnegB_relative_interpolation
 ```
 
-Also do not use `OldUnitIntervalPowerGNYoungForMoser`; `ShenWork/Paper2/IntervalDomainGNYObstruction.lean` proves:
+and its proof performs the local subtraction
 
 ```lean
-theorem not_oldUnitIntervalPowerGNYoungForMoser :
-    ¬ OldUnitIntervalPowerGNYoungForMoser
+rcases henergy p hp with ⟨A, hA, B, hB, K, hK, L_const, hfull⟩
+have hdrop_t := hdiss p hp A B K L_const hB.le hfull t ht0 htT
+linarith
 ```
 
-## Answer to the direct questions
+The integrated predicate gives an interval inequality for `Y_p t2 - Y_p t1 + 2∫G_p`, not the pointwise fact `0 ≤ (1 / p) * Y_p' t + B * Y_p t` needed at this line.
 
-### 1. Can full `IntervalDomainPaper2StatementTargets` be assembled from common-free actual-atom Cor21 plus an existing a-priori/Lemma 4.1 producer?
+8. `ShenWork/Paper2/IntervalDomainMoserClosure.lean` is also pointwise: `MoserDissipationDropBefore`, `RelativeMoserInterpolationBefore`, `moser_step_of_energy_dissipation_relative_interpolation`, and `IntervalDomainStructuredMoserBootstrapData.dissipation` all use the pointwise drop shape.  The abstract single-step `IntervalDomainChain.lp_bootstrap_single_step_abstract` also expects pointwise-in-time `A * G(t) ≤ K * Z(t) + L`.
 
-**Yes**, with one honest a-priori input.  The full wrapper can be built now by combining:
+## Consequence
 
-```lean
-intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
-intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomFrontierData
-intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
-intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
-```
+`IntegratedMoserDissipationDropBefore` cannot be consumed by the existing Moser closure.  A statement-layer patch that merely swaps the carried field from `MoserDissipationDropBeforeNonnegB` to `IntegratedMoserDissipationDropBefore` would not feed any existing theorem.  A patch that tries to prove `MoserDissipationDropBeforeNonnegB` from the integrated predicate would be analytically unsupported by the current APIs and conflicts with the source's counterexample/diagnosis.
 
-or the mass-gradient variant using:
+## Minimal honest new theorem family
+
+The next real file should be a new integrated closure layer, for example:
 
 ```lean
-IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms
-intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
-```
+import ShenWork.PDE.P3MoserDissipationShape
+import ShenWork.PDE.P3MoserLemmas
+import ShenWork.Paper2.IntervalDomainMoserClosure
 
-This is faithful because the a-priori/Lemma 4.1 side is a separate explicit input.  It does not pretend actual-atom Cor21 proves Lemma 4.1.
-
-### 2. Missing frontier if trying to make the full route completely common-free
-
-There is no source-grounded theorem currently proving:
-
-```lean
-Lemma_4_1 intervalDomain p
-```
-
-from the common-free actual-atom Cor21 route alone.  The smallest honest missing input is either:
-
-```lean
-Lemma_4_1 intervalDomain p
-```
-
-or, preferably in terms of an existing producer:
-
-```lean
-IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation p
-```
-
-because that feeds:
-
-```lean
-intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-```
-
-Inference: if the project wants a truly common-free full statement route, the next analytic theorem to prove is a Lemma 4.1 producer that does not rely on either global `IntervalDomainInterpolation` or the positive solution-slice interpolation frontier.  No such theorem is visible in the current source.
-
-### 3. Minimal Lean patch outline
-
-Add section-2 helpers first.
-
-```lean
-import ShenWork.Paper2.IntervalDomainStatementAssembly
-
+open MeasureTheory
 open ShenWork.IntervalDomain
+open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainMoserClosure
-
-namespace ShenWork.Paper2
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 
 noncomputable section
 
-/-- Section-2 Corollary 2.1 plus bootstrap targets from thin section-2 data and
-actual-atom Prop25/Cor21 data. -/
-theorem intervalDomainPaper2_corollary21BootstrapTargets_of_thinActualAtomFrontierData
-    (p : CM2Params)
-    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
-    (hAtoms : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
-    IntervalDomainPaper2Corollary21BootstrapTargets p :=
-  ⟨intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData p hAtoms,
-    intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomFrontierData
-      p hThin hAtoms⟩
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Mass-gradient variant of the section-2 Corollary 2.1 plus bootstrap wrapper. -/
-theorem
-    intervalDomainPaper2_corollary21BootstrapTargets_of_thinActualAtomMassGradientFrontierData
-    (p : CM2Params)
-    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
-    (hAtoms : IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData p) :
-    IntervalDomainPaper2Corollary21BootstrapTargets p :=
-  intervalDomainPaper2_corollary21BootstrapTargets_of_thinActualAtomFrontierData
-    p hThin hAtoms.toActualAtoms
+structure IntegratedMoserFirstCrossingRegularity
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop where
+  energyContinuous :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (fun t => D.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T)
+  initialPowerBound :
+    ∀ p, p0 ≤ p →
+      ∃ C0, 0 ≤ C0 ∧ D.integral (fun x => (u 0 x) ^ p) ≤ C0
+  powerTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t => D.integral (fun x => (u t x) ^ p))
+        (Set.uIcc (0 : ℝ) T) volume
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
 
-end
+/-
+New analytic theorem required; no current source theorem has this shape.
 
-end ShenWork.Paper2
-```
+theorem lpPowerBoundedBefore_succ_of_integrated_first_crossing
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hdiss : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (hLp : LpPowerBoundedBefore D p T u) :
+    LpPowerBoundedBefore D (p + rho) T u
+-/
 
-Then add the full-statement package using the existing a-priori producer.
-
-```lean
-import ShenWork.Paper2.IntervalDomainStatementAssembly
-
-open ShenWork.IntervalDomain
-open ShenWork.Paper2.IntervalDomainMoserClosure
-
-namespace ShenWork.Paper2
-
-noncomputable section
-
-/-- Full-statement data for the `χ₀ = 0` common-free actual-atom main route,
-with Lemma 4.1 supplied by the existing positive solution-slice a-priori
-producer. -/
-structure IntervalDomainPaper2StatementChiZeroActualAtomCor21Section2ThinAprioriFrontierData
-    (p : CM2Params) (C : Paper2Constants p) : Prop where
-  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
-  proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
-  aprioriInterpolation :
-    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-      p
-  main : IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
-    p C
-
-/-- Full-statement wrapper from common-free actual-atom main data plus the
-separate a-priori interpolation frontier. -/
-theorem intervalDomainPaper2_statementTargets_of_chiZeroActualAtomCor21Section2ThinAprioriFrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData :
-      IntervalDomainPaper2StatementChiZeroActualAtomCor21Section2ThinAprioriFrontierData
-        p C) :
-    IntervalDomainPaper2StatementTargets p C :=
-  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_thinActualAtomFrontierData
-      p hData.section2 hData.main.prop25Actual,
-    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-      p hData.aprioriInterpolation,
-    ⟨intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
-        p hχ0 ha hb hα hγ hData.proposition11,
-      intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
-        p C hχ0 ha hb hα hγ hData.main⟩⟩
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
 end
-
-end ShenWork.Paper2
 ```
 
-Mass-gradient variant:
+Once that single-step theorem is proved, the remaining derived family is routine and should be added under the same namespace:
 
 ```lean
-import ShenWork.Paper2.IntervalDomainStatementAssembly
-
-open ShenWork.IntervalDomain
-open ShenWork.Paper2.IntervalDomainMoserClosure
-
-namespace ShenWork.Paper2
-
-noncomputable section
-
-/-- Full-statement data for the `χ₀ = 0` common-free mass-gradient actual-atom
-main route, with Lemma 4.1 supplied separately by the positive solution-slice
-a-priori producer. -/
-structure
-    IntervalDomainPaper2StatementChiZeroActualAtomMassGradientCor21Section2ThinAprioriFrontierData
-    (p : CM2Params) (C : Paper2Constants p) : Prop where
-  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
-  proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
-  aprioriInterpolation :
-    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-      p
-  main :
-    IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomMassGradientCor21FrontierData
-      p C
-
-/-- Full-statement wrapper from common-free mass-gradient actual-atom main data
-plus the separate a-priori interpolation frontier. -/
-theorem
-    intervalDomainPaper2_statementTargets_of_chiZeroActualAtomMassGradientCor21Section2ThinAprioriFrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    (hData :
-      IntervalDomainPaper2StatementChiZeroActualAtomMassGradientCor21Section2ThinAprioriFrontierData
-        p C) :
-    IntervalDomainPaper2StatementTargets p C :=
-  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_thinActualAtomMassGradientFrontierData
-      p hData.section2 hData.main.prop25MassGradient,
-    intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
-      p hData.aprioriInterpolation,
-    ⟨intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
-        p hχ0 ha hb hα hγ hData.proposition11,
-      intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
-        p C hχ0 ha hb hα hγ hData.main⟩⟩
-
-end
-
-end ShenWork.Paper2
+moser_iteration_chain_of_integrated_first_crossing
+all_exponents_of_integrated_first_crossing_lpmono
+intervalDomain_boundedBefore_of_integrated_first_crossing
 ```
 
-These wrappers should be buildable in `IntervalDomainStatementAssembly.lean` itself because that file already imports:
+Then `P3MoserActualWiring` can add integrated actual-atom consumers analogous to the current nonnegative-`B` consumers:
 
 ```lean
-ShenWork.Paper2.IntervalDomainTheorem11Umbrella
-ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
-ShenWork.Paper2.IntervalDomainStructuredMoserData
-ShenWork.Paper2.IntervalDomainTheorem12
-ShenWork.Paper2.IntervalDomainTheorem13
-ShenWork.PDE.P3MoserActualWiring
-ShenWork.PDE.P3MoserLemmas
+intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_atoms
+intervalDomain_endpointBoundFromLp_of_actual_integrated_atoms
 ```
 
-If placed in a new file, import only:
+Only after those consumers exist should `IntervalDomainStatementAssembly.lean` add an integrated statement package, e.g.
 
 ```lean
-import ShenWork.Paper2.IntervalDomainStatementAssembly
+IntervalDomainPaper2Prop25ActualIntegratedAtomMassGradientTerminalEndpointFrontierData
 ```
 
-## Headline-only versus full statement accounting
-
-### Headline-only route already improved
-
-The following are headline-only wrappers:
+with fields:
 
 ```lean
-intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
-intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomMassGradientCor21FrontierData
+firstCrossingRegularity
+integratedDissipation
+relativeMassGradient
+terminalEndpoint
 ```
 
-They prove:
+where `relativeMassGradient` and `terminalEndpoint` reuse the existing shapes from `IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData`, while `integratedDissipation` has target
 
 ```lean
-IntervalDomainPaper2MainTheoremTargets p C
+IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
 ```
 
-They do **not** prove:
+## No-go routes
 
-```lean
-IntervalDomainPaper2StatementTargets p C
-```
+* Do not add an integrated-to-`MoserDissipationDropBeforeNonnegB` adapter.  The source explicitly treats the integrated estimate as the faithful replacement shape and contains `unitLinearDrop_not_MoserDissipationDropBeforeNonnegB`.
+* Do not expect the mass-gradient wrapper to lower dissipation.  It only lowers `RelativeMoserInterpolationBefore`.
+* Do not expect the terminal-endpoint wrapper to lower dissipation.  It only lowers the endpoint tower.
+* Do not use `OldUnitIntervalPowerGNYoungForMoser`; `IntervalDomainMCL.lean` documents it as false for constant functions.
+* Do not use the global `IntervalDomainInterpolation` route; `IntervalDomainStatementAssembly.lean` marks it deprecated because the literal statement is refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
 
-because they do not include `IntervalDomainPaper2Corollary21BootstrapTargets`, `IntervalDomainPaper2AprioriTargets`, or Proposition 1.1 accounting.
+## Final recommendation
 
-### Full statement route after the proposed patch
-
-The proposed wrappers prove:
-
-```lean
-IntervalDomainPaper2StatementTargets p C
-```
-
-but still explicitly carry:
-
-```lean
-IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation p
-```
-
-for Lemma 4.1.  This is honest full statement accounting; it should not be described as a fully common-free a-priori route.
-
-## No-go routes to keep out
-
-### Refuted global interpolation
-
-Do not use:
-
-```lean
-IntervalDomainLemma41.IntervalDomainInterpolation
-intervalDomainPaper2_Lemma_4_1_of_GN_frontier
-intervalDomainPaper2_aprioriTargets_of_GN_frontier
-IntervalDomainPaper2InterpolationEnergyFrontierData
-IntervalDomainPaper2Theorem12And13InterpolationFrontierData
-```
-
-The source comments identify the premise as refuted by:
-
-```lean
-IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
-```
-
-### False old Moser GN/Young predicate
-
-Do not use:
-
-```lean
-OldUnitIntervalPowerGNYoungForMoser
-Proposition_2_5_intervalDomain_of_MCL_frontiers
-relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung
-```
-
-because:
-
-```lean
-theorem not_oldUnitIntervalPowerGNYoungForMoser :
-    ¬ OldUnitIntervalPowerGNYoungForMoser
-```
-
-is proved in `ShenWork/Paper2/IntervalDomainGNYObstruction.lean`.
-
-## Recommended next priority
-
-1. Add the two section-2 helper wrappers for actual-atom Cor21 + thin bootstrap.
-2. Add the two full-statement structures/wrappers above, using the existing positive solution-slice a-priori producer only for `IntervalDomainPaper2AprioriTargets`.
-3. Later, if the goal is a truly common-free full route, prove a new Lemma 4.1 producer that avoids both `IntervalDomainInterpolation` and `IntervalDomainClassicalSolutionPositiveInterpolation`.  Until then, the positive solution-slice a-priori frontier is the smallest honest named input for full statement accounting.
+Leave `MoserDissipationDropBeforeNonnegB` as a genuine analytic frontier for the current statement layer.  The next honest reduction is a new integrated-first-crossing Moser closure, not a small statement-layer patch.
