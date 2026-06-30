@@ -2,30 +2,38 @@
 
 Repo target: `xiangyazi24/Shen_work`, after commit `5b83ceab`.
 
-This is the **genericization** plan only.  It is not a Paper2 statement-wrapper audit.
+This is the **genericization** plan only. It is not a Paper2 statement-wrapper audit.
 
 ## Goal
 
-Move the reusable part of the Paper3-local direct integrated-step route into:
+Move the reusable residual package out of `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` and into:
 
 ```text
 ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
 ```
 
-Then make:
+Then make Paper3 consume that generic package while keeping the existing Paper3-facing API names stable.
 
-```text
-ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
+The generic package should fill:
+
+```lean
+IntervalDomainMassLpSmoothingRouteResiduals p
 ```
 
-consume the generic package.  The patch must preserve the current honest design:
+directly by producing route-level:
 
-* consume a supplied `IntegratedMoserFirstCrossingStep`;
-* consume the existing quantitative endpoint/root-tower field;
-* produce `Corollary_2_1`, `Proposition_2_5`, and then `IntervalDomainMassLpSmoothingRouteResiduals` directly;
-* do **not** derive `MoserDissipationDropBeforeNonnegB`;
-* do **not** derive `RelativeMoserInterpolationBefore`;
-* do **not** produce `IntegratedMoserFirstCrossingStep`.
+```lean
+Corollary_2_1 intervalDomain p
+Proposition_2_5 intervalDomain p
+```
+
+from a supplied:
+
+```lean
+IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
+```
+
+plus the existing quantitative endpoint/root tower.  It must **not** derive old pointwise atoms and must **not** produce the integrated step.
 
 ## File 1: `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`
 
@@ -37,13 +45,13 @@ Current imports already include:
 import ShenWork.PDE.P3MoserActualWiring
 ```
 
-At `5b83ceab`, `P3MoserActualWiring` imports `P3MoserIntegratedClosure`, but add a direct import for robustness and readability:
+At `5b83ceab`, `P3MoserActualWiring` imports `P3MoserIntegratedClosure`, but add the direct import for clarity:
 
 ```lean
 import ShenWork.PDE.P3MoserIntegratedClosure
 ```
 
-Recommended import header:
+Recommended import block:
 
 ```lean
 import ShenWork.PDE.IntervalDomainAPrioriGlobal
@@ -52,33 +60,19 @@ import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.Paper2.IntervalDomainVSliceBounds
 ```
 
-Current opens include:
-
-```lean
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.MinPersistenceAtoms
-open Filter
-```
-
-Add:
+Add this open near the existing `P3MoserActualWiring` open:
 
 ```lean
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-so `IntegratedMoserFirstCrossingStep` is available unqualified.
+This avoids fully qualifying `IntegratedMoserFirstCrossingStep`.
 
 ### Placement
 
-Insert the generic integrated-step package immediately after the existing block:
+Insert the new generic package immediately after:
 
 ```lean
-namespace IntervalDomainMassLpSmoothingMoserLadderResiduals
-...
 end IntervalDomainMassLpSmoothingMoserLadderResiduals
 ```
 
@@ -88,11 +82,11 @@ and before:
 end ShenWork.IntervalDomainExistence
 ```
 
-This keeps all reusable mass/Lp/smoothing residual packages in the same PDE-level file.
+This keeps the reusable pointwise-Moser and integrated-step mass/Lp/smoothing packages adjacent.
 
 ### Generic names
 
-Use generic names, not Paper3-local actual-linear names:
+Use these exact generic names:
 
 ```lean
 IntervalDomainMassLpSmoothingIntegratedStepResiduals
@@ -102,13 +96,9 @@ IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
 IntervalDomainMassLpSmoothingIntegratedStepResiduals.aprioriBound
 ```
 
-These parallel the existing reusable package:
+Do not use Paper3/actual-linear-small names in the PDE-level file.
 
-```lean
-IntervalDomainMassLpSmoothingMoserLadderResiduals
-```
-
-### Code skeleton
+### Compile-oriented code
 
 ```lean
 /-- Lower-level inputs that replace the old pointwise Moser-ladder route fields
@@ -253,15 +243,15 @@ import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
 ```
 
-It likely reaches `IntervalDomainMoserLadderAtoms` transitively through Paper3 imports, but add a direct import if Lean cannot see the new generic package:
+Add a direct import if the generic package is not already visible transitively:
 
 ```lean
 import ShenWork.PDE.IntervalDomainMoserLadderAtoms
 ```
 
-This should not create a cycle because `IntervalDomainMoserLadderAtoms` is PDE/Paper2-level and does not import this Paper3 file.
+This should not create a cycle: `IntervalDomainMoserLadderAtoms` is PDE/Paper2-level and does not import Paper3 actual-linear statement assembly.
 
-Current opens already include:
+Existing opens are sufficient:
 
 ```lean
 open ShenWork.IntervalDomainExistence
@@ -269,13 +259,11 @@ open ShenWork.IntervalDomainExistence.P3MoserActualWiring
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-No new open is required for the generic package if `open ShenWork.IntervalDomainExistence` remains.
-
-## Paper3 local definitions: what to keep vs replace
+## Paper3 local definitions: keep vs replace
 
 ### Keep public Paper3 names
 
-Keep these Paper3-facing names stable:
+Keep these names stable:
 
 ```lean
 IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
@@ -290,16 +278,20 @@ IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainData
 intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
 ```
 
-Reason: these are Paper3-specific API names that encode actual-linear-small hypotheses and are likely referenced downstream.
+These are Paper3-facing API names and should remain as wrappers/adapters.
 
-### Replace only the implementation of the local route residual conversion
+### Add a local adapter to the generic package
 
-Add a local adapter:
+Inside:
 
 ```lean
 namespace
     IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+```
 
+add:
+
+```lean
 /-- Convert the Paper3 actual-linear-small integrated-step residual surface to
 the reusable integrated-step mass/Lp/smoothing residual package. -/
 def to_integratedStepResiduals
@@ -322,7 +314,7 @@ def to_integratedStepResiduals
   quantitativeEndpoint := h.quantitativeEndpoint
 ```
 
-Then replace the long local `to_routeResiduals` body by:
+Then replace the long local implementation of `to_routeResiduals` with:
 
 ```lean
 /-- Build the generic mass/Lp/smoothing route residuals from the Paper3
@@ -335,117 +327,71 @@ def to_routeResiduals
     (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
     IntervalDomainMassLpSmoothingRouteResiduals p :=
   (h.to_integratedStepResiduals ha hχ0).to_routeResiduals
-
-end
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
 ```
 
-### Should local residual structure become an alias?
+### Should local structures become aliases?
 
-For this commit, **do not replace the local Paper3 residual structure by an alias**.  Keep it as-is.
+No.  Keep the Paper3 local residual structure, sectorial facts, and frontend structures.
 
-Reason: the local structure has a Paper3-specific `closedEnergyTrace` field and parameter conversion `hχ0 : 0 < p.χ₀`, while the generic package expects `l2SeedRegularity` and `chi_nonneg`.  Making the local structure an alias would either lose the closed-energy convenience or force more imports/fields into the generic PDE file.  The minimal compile-safe refactor is a local adapter, not a type alias.
-
-### Should sectorial facts become aliases?
-
-No.  Keep:
+Reason: the local residual package is Paper3-specific because it carries `closedEnergyTrace` and converts it to `l2SeedRegularity` using:
 
 ```lean
-IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
+P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
 ```
 
-and its public method:
+The generic PDE package should stay generic and only require `l2SeedRegularity` directly, matching the existing reusable `IntervalDomainMassLpSmoothingMoserLadderResiduals` design.
 
-```lean
-to_aprioriActualLinearSmallFacts
-```
+### Should sectorial facts change?
 
-unchanged in name.  Its implementation can remain:
+No public name change is needed.  Existing code like:
 
 ```lean
 massLpSmoothing := h.massLpSmoothing.to_routeResiduals ha hχ0
 ```
 
-because the local `to_routeResiduals` now delegates to the generic package.
-
-If you want a clearer intermediate helper, you can add one, but it is optional:
-
-```lean
-def to_integratedStepRouteResiduals
-    {p : CM2Params}
-    (h :
-      IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
-        p)
-    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainMassLpSmoothingRouteResiduals p :=
-  (h.massLpSmoothing.to_integratedStepResiduals ha hχ0).to_routeResiduals
-```
-
-This optional helper is not needed for minimal scope.
+can remain unchanged because `to_routeResiduals` now delegates to the generic package.
 
 ## Calls to ActualWiring consumers
 
-Only the generic package should call these directly:
+Only the new generic package should call:
 
 ```lean
 intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
 intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
 ```
 
-Specifically:
-
-```lean
-theorem corollary21 ... :=
-  intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
-    h.integratedStep
-```
-
-and:
-
-```lean
-theorem proposition25 ... :=
-  intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
-    h.integratedStep h.quantitativeEndpoint
-```
-
-After this refactor, the Paper3 local `to_routeResiduals` should no longer call those consumers directly; it should call:
+Paper3 local code should call:
 
 ```lean
 (h.to_integratedStepResiduals ha hχ0).to_routeResiduals
 ```
 
-## Pitfalls
+rather than duplicating the route proof or directly calling the consumers.
 
-1. **Do not derive old atoms.**  The generic package should never try to construct:
+## Honesty pitfalls
+
+Do not construct or infer:
 
 ```lean
 MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
 RelativeMoserInterpolationBefore intervalDomain u T rho p0
 ```
 
-from `Corollary_2_1` or `Proposition_2_5`.  The route is deliberately integrated-step based.
+from `Corollary_2_1`, `Proposition_2_5`, or the integrated-step route.  The generic package should not have fields or conclusions with those old atom types.
 
-2. **Do not produce the integrated step.**  The field remains:
-
-```lean
-integratedStep : ... → IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
-```
-
-No theorem in this patch should have conclusion `IntegratedMoserFirstCrossingStep ...` unless it is just projecting an existing field.
-
-3. **Do not move closed-energy trace data into the generic PDE package in this commit.**  The generic package should use `l2SeedRegularity`, matching the existing reusable `IntervalDomainMassLpSmoothingMoserLadderResiduals`.  Paper3 can keep converting `closedEnergyTrace` to `l2SeedRegularity` locally using:
+Do not add any theorem that produces:
 
 ```lean
-P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
 ```
 
-4. **Do not rename Paper3 public frontiers.**  Keep the local Paper3 actual-linear-small frontend names stable.  The patch is an internal factoring of the reusable residual route, not a public Paper3 API rename.
+The integrated step remains a supplied field.
 
-5. **Avoid import cycles.**  `IntervalDomainMoserLadderAtoms.lean` may import `P3MoserIntegratedClosure`, but `P3MoserIntegratedClosure` must not import `IntervalDomainMoserLadderAtoms`.  Do not import any Paper3 files into `IntervalDomainMoserLadderAtoms.lean`.
+Do not import Paper3 into `IntervalDomainMoserLadderAtoms.lean`.
 
 ## Build commands
 
-Run the target files first:
+Run target files first:
 
 ```bash
 lake env lean ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
@@ -486,18 +432,18 @@ Paper3 adapter:
 #print axioms ShenWork.Paper3.intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
 ```
 
-Expected profile: same as existing route wrappers; no `sorryAx`, no new custom axiom, and no theorem producing `IntegratedMoserFirstCrossingStep`.  The step remains a supplied field.
+Expected profile: no `sorryAx`, no new custom axiom, and no theorem producing `IntegratedMoserFirstCrossingStep`.
 
 ## Minimal commit scope
 
-One commit is fine:
+One commit is enough:
 
 1. add `IntervalDomainMassLpSmoothingIntegratedStepResiduals` and namespace methods to `PDE/IntervalDomainMoserLadderAtoms.lean`;
-2. add `to_integratedStepResiduals` to the Paper3 local residual namespace;
-3. replace the local long `to_routeResiduals` proof body with:
+2. add `to_integratedStepResiduals` in the Paper3 local residual namespace;
+3. replace the long Paper3-local `to_routeResiduals` proof body with:
 
 ```lean
 (h.to_integratedStepResiduals ha hχ0).to_routeResiduals
 ```
 
-Do not also refactor/rename the higher Paper3 frontend names in this commit.
+Do not rename the higher Paper3 frontend names in this commit.
