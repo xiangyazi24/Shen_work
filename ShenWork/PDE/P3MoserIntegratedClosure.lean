@@ -390,16 +390,75 @@ theorem IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_o
   exact intervalIntegrable_max_one_of_intervalIntegrable
     (hreg.power_intervalIntegrable_of_Icc hp hab hsub)
 
-/-- Abstract nonnegativity of Moser energies on the closed finite horizon.
+/-- Abstract nonnegativity of Moser energies at interior times.
 
 This stays explicit at the abstract `BoundedDomainData` level.  Concrete
 `intervalDomain` producers can later prove it from positivity of classical
-solutions and interval-integral monotonicity. -/
+solutions and interval-integral monotonicity.  The first-crossing window only
+uses this for right endpoints `b` with `0 < b < T`; requiring a value at
+`t = 0` would add an unnecessary initial-trace side condition. -/
 def IntegratedMoserEnergyNonnegativity
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (T p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p → 0 ≤ p → ∀ t, t ∈ Set.Icc (0 : ℝ) T →
+  ∀ p, p0 ≤ p → 0 ≤ p → ∀ t, 0 < t → t < T →
     0 ≤ integratedMoserEnergy D u p t
+
+/-- The concrete unit-interval integral preserves nonnegative functions. -/
+theorem intervalDomain_integral_nonneg
+    (f : intervalDomain.Point → ℝ)
+    (hf : ∀ x, 0 ≤ f x) :
+    0 ≤ intervalDomain.integral f := by
+  change 0 ≤ intervalDomainIntegral f
+  unfold intervalDomainIntegral
+  refine ShenWork.IntervalDomain.intervalIntegral_nonneg
+    (L := 1) (by norm_num) ?_
+  intro x hx
+  unfold intervalDomainLift
+  simpa [hx] using hf ⟨x, hx⟩
+
+/-- Pointwise nonnegativity of an interval-domain slice gives nonnegative
+Moser energy for every real exponent. -/
+theorem intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {p t : ℝ}
+    (hu_nonneg : ∀ x : intervalDomain.Point, 0 ≤ u t x) :
+    0 ≤ integratedMoserEnergy intervalDomain u p t := by
+  unfold integratedMoserEnergy
+  exact intervalDomain_integral_nonneg _
+    (fun x => Real.rpow_nonneg (hu_nonneg x) p)
+
+/-- Produce the integrated-Moser energy nonnegativity package from pointwise
+nonnegativity of the interval-domain solution at all interior times. -/
+theorem intervalDomain_integratedMoserEnergyNonnegativity_of_pointwise_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {T p0 : ℝ}
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x) :
+    IntegratedMoserEnergyNonnegativity intervalDomain u T p0 := by
+  intro p _hp _hp_nonneg t ht0 htT
+  exact intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg
+    (u := u) (p := p) (t := t) (hu_nonneg t ht0 htT)
+
+/-- A positive classical interval-domain Paper2 solution supplies the
+integrated-Moser energy nonnegativity package. -/
+theorem intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+    {params : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {T p0 : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    IntegratedMoserEnergyNonnegativity intervalDomain u T p0 := by
+  exact intervalDomain_integratedMoserEnergyNonnegativity_of_pointwise_nonneg
+    (fun t ht0 htT x => (hsol.u_pos' (x := x) ht0 htT).le)
+
+/-- A global positive classical interval-domain Paper2 solution supplies the
+finite-horizon integrated-Moser energy nonnegativity package. -/
+theorem intervalDomain_integratedMoserEnergyNonnegativity_of_global_classical
+    {params : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {T p0 : ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v) :
+    IntegratedMoserEnergyNonnegativity intervalDomain u T p0 := by
+  intro p hp hp_nonneg t ht0 htT
+  have hT : 0 < T := lt_trans ht0 htT
+  exact intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+    (T := T) (p0 := p0) (hglobal.classical hT)
+    p hp hp_nonneg t ht0 htT
 
 /-- Extract an Icc current-energy bound from `LpPowerBoundedBefore`. -/
 theorem currentEnergy_Icc_bound_of_LpPowerBoundedBefore
@@ -492,8 +551,7 @@ theorem integratedMoserPrecrossingIntervalData_of_regular_window
   have hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T :=
     Icc_subset_uIcc_zero_T_of_endpoint_memberships haT hbT
   have hp_rho : p0 ≤ p + rho := by linarith
-  have hbT0 : b ∈ Set.Icc (0 : ℝ) T :=
-    ⟨le_trans haT.1 hbT.1, hbT.2⟩
+  have hb_pos : 0 < b := lt_of_lt_of_le ha_pos hbT.1
   refine
     { hp := hp
       hp_nonneg := hp_nonneg
@@ -503,7 +561,7 @@ theorem integratedMoserPrecrossingIntervalData_of_regular_window
       haT := haT
       hbT := hbT
       currentEnergy_le_Icc := hY_le
-      right_currentEnergy_nonneg := hnonneg p hp hp_nonneg b hbT0
+      right_currentEnergy_nonneg := hnonneg p hp hp_nonneg b hb_pos hb_lt
       maxOneEnergy_intervalIntegrable := ?_
       higherPower_intervalIntegrable := ?_
       gradient_intervalIntegrable := ?_ }
@@ -826,6 +884,11 @@ theorem integratedMoserFirstCrossingStep_of_windowFrontier
 #print axioms IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
 #print axioms intervalIntegrable_max_one_of_intervalIntegrable
 #print axioms IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+#print axioms intervalDomain_integral_nonneg
+#print axioms intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg
+#print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_pointwise_nonneg
+#print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+#print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_global_classical
 #print axioms currentEnergy_Icc_bound_of_LpPowerBoundedBefore
 #print axioms IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le
 #print axioms IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le

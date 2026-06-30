@@ -563,12 +563,15 @@ Input-package audit:
   packages is conditional until a producer constructs that package.
 - For the integrated Moser route, `IntegratedMoserPrecrossingIntervalData` and
   `IntegratedMoserWindowUpperBoundData` now have proved producers from the
-  named regularity/nonnegativity/current-bound/dissipation/relative inputs.
-  `IntegratedMoserHighExcursionContradictionWindowFrontier` is still the real
-  analytic frontier.  Its lower-average and upper-gap subfrontiers are now
-  explicitly split; the current code only wires those frontiers together and
-  does not derive high-excursion thickness or quantitative `eps`/`Ceps`
-  closure.
+  named regularity/interior-energy-nonnegativity/current-bound/dissipation/
+  relative inputs.  The energy-nonnegativity input is no longer a closed-time
+  requirement: it is only required at interior times and, for `intervalDomain`,
+  is produced from pointwise nonnegativity, `IsPaper2ClassicalSolution`, or
+  `IsPaper2GlobalClassicalSolution`.  `IntegratedMoserHighExcursionContradictionWindowFrontier`
+  is still the real analytic frontier.  Its lower-average and upper-gap
+  subfrontiers are now explicitly split; the current code only wires those
+  frontiers together and does not derive high-excursion thickness or
+  quantitative `eps`/`Ceps` closure.
 - Some fields are already produced or reduced further by code.  Examples:
   Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`, now
   exposed in the interval-domain statement assembly; the Paper2

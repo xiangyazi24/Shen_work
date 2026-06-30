@@ -373,10 +373,84 @@ def aprioriBound
 
 end IntervalDomainMassLpSmoothingIntegratedStepResiduals
 
+/-- Lower-level inputs that refine `IntegratedStepResiduals` by replacing
+the opaque `integratedStep` field with an explicit high-excursion
+contradiction-window frontier supplier.
+
+The conversion to `IntegratedStepResiduals` uses
+`integratedMoserFirstCrossingStep_of_windowFrontier` from
+`P3MoserIntegratedClosure`. -/
+structure IntervalDomainMassLpSmoothingWindowFrontierResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  windowFrontier :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserFirstCrossingFromWindowFrontier
+          intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainMassLpSmoothingWindowFrontierResiduals
+
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingWindowFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  integratedStep := fun hsol hcross hboot =>
+    integratedMoserFirstCrossingStep_of_windowFrontier
+      (h.windowFrontier hsol hcross hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingWindowFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_integratedStepResiduals.to_routeResiduals
+
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingWindowFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_integratedStepResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingWindowFrontierResiduals
+
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.aprioriBound
+#print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_routeResiduals
+#print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.aprioriBound
 
 end ShenWork.IntervalDomainExistence
 
