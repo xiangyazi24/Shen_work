@@ -1,303 +1,348 @@
-# Q2475 shen1 — corrected precrossing interval skeleton against current APIs
+# Q2484 shen1 — audit and corrected generic integrated-step Moser route
 
 Repo: `xiangyazi24/Shen_work`
 
-Target namespace:
+Target files:
 
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+```text
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
+ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
 ```
 
-I re-audited the currently visible `main` copy of `ShenWork/PDE/P3MoserIntegratedClosure.lean`.  It now contains the helper signatures needed for this question, including the two signature details that made the Q2461 drop too stale:
+## Source audit summary
 
-1. `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound` takes not only `hab` and the Icc bound on `Y_p`, but also
+The current source already has the relevant split:
 
-```lean
-hYmax_int :
-  IntervalIntegrable
-    (fun s => max (1 : ℝ) (D.integral (fun x => (u s x) ^ p)))
-    volume a b
-```
-
-2. `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound` has the current shape
-
-```lean
-{T rho p0 p a b M eps Gbound : ℝ}
-(hrel : RelativeMoserInterpolationBefore D u T rho p0)
-(hp : p0 ≤ p)
-(heps : 0 < eps)
-(hab : a ≤ b)
-(ha : 0 < a)
-(hb : b < T)
-(hZ_int : IntervalIntegrable (fun s => D.integral (fun x => (u s x) ^ (p + rho))) volume a b)
-(hG_int : IntervalIntegrable (fun s => D.integral (fun x =>
-  (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) volume a b)
-(hY_le : ∀ s ∈ Set.Icc a b, D.integral (fun x => (u s x) ^ p) ≤ M)
-(hG_le : ∫ s in a..b, D.integral (fun x =>
-  (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤ Gbound)
-```
-
-and returns `∃ Ceps, 0 ≤ Ceps ∧ ∫ Z ≤ eps * Gbound + (b - a) * (Ceps * M)`.
-
-So the Q2461 data structure was missing one real field: max-one time integrability.  Also, the Q2461 wrapper that took an arbitrary `hhigher` argument and concluded exactly the same higher-power time-integral existence is not worth committing; it is just eta-expansion of an input.  The corrected patch below calls the current relative-Moser helper directly.
-
-## Compile-oriented patch
-
-If this is pasted into `ShenWork/PDE/P3MoserIntegratedClosure.lean`, insert only the section beginning at `/-! ### Honest precrossing... -/`, after the current helper
+* `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean` is in namespace
+  `ShenWork.IntervalDomainExistence` and already imports `ShenWork.PDE.P3MoserActualWiring`.
+* That file already defines the generic non-integrated package
+  `IntervalDomainMassLpSmoothingMoserLadderResiduals`, with methods
+  `corollary21`, `proposition25`, `to_routeResiduals`, and `aprioriBound`.
+* `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` currently has the Paper3-local integrated-step package
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals`, whose `to_routeResiduals` repeats the long L2/mass/smoothing route body inline.
+* `P3MoserActualWiring` already provides the two route-level consumers needed for the integrated-step package:
 
 ```lean
-relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
+intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
+intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
 ```
 
-and before `moser_iteration_chain_of_integrated_first_crossing_step`.
+Those consumers produce `Corollary_2_1 intervalDomain p` and `Proposition_2_5 intervalDomain p` from a supplied `IntegratedMoserFirstCrossingStep` atom plus the quantitative endpoint.  The generic package should use them directly.  It should **not** produce `IntegratedMoserFirstCrossingStep`, and it should **not** derive `MoserDissipationDropBeforeNonnegB` or `RelativeMoserInterpolationBefore` from `Corollary_2_1`.
 
-For standalone scratch checking in a new file, use the full block with imports/open statements:
+## Compile-risk checklist and corrections
+
+1. **Namespace placement.**  Add the generic integrated-step package inside
 
 ```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-! ### Honest precrossing interval skeleton
-
-This section packages only interval-level information.  It does not turn a
-time-integral or average estimate for `Y_{p+rho}` into
-`LpPowerBoundedBefore D (p + rho) T u`.
--/
-
-section PrecrossingInterval
-
-/-- Data available on a genuine precrossing interval.
-
-The extra `maxOneEnergy_intervalIntegrable` field is required by the current
-signature of `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound`.
-The two ordinary interval-integrability fields are required by the current
-relative-Moser time-integral helper.
--/
-structure IntegratedMoserPrecrossingIntervalData
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 p a b M : ℝ) : Prop where
-  hp : p0 ≤ p
-  hp_nonneg : 0 ≤ p
-  hab : a < b
-  ha_pos : 0 < a
-  hb_lt : b < T
-  haT : a ∈ Set.Icc (0 : ℝ) T
-  hbT : b ∈ Set.Icc a T
-  currentEnergy_le_Icc :
-    ∀ s ∈ Set.Icc a b,
-      D.integral (fun x => (u s x) ^ p) ≤ M
-  right_currentEnergy_nonneg :
-    0 ≤ D.integral (fun x => (u b x) ^ p)
-  maxOneEnergy_intervalIntegrable :
-    IntervalIntegrable
-      (fun s => max (1 : ℝ)
-        (D.integral (fun x => (u s x) ^ p)))
-      volume a b
-  higherPower_intervalIntegrable :
-    IntervalIntegrable
-      (fun s => D.integral (fun x => (u s x) ^ (p + rho)))
-      volume a b
-  gradient_intervalIntegrable :
-    IntervalIntegrable
-      (fun s =>
-        D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
-      volume a b
-
-namespace IntegratedMoserPrecrossingIntervalData
-
-/-- Left-end current-energy bound extracted from the Icc precrossing bound. -/
-theorem left_currentEnergy_le
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M : ℝ}
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
-    D.integral (fun x => (u a x) ^ p) ≤ M :=
-  hI.currentEnergy_le_Icc a ⟨le_rfl, hI.hab.le⟩
-
-/-- Max-one time-integral control from the current-energy Icc bound. -/
-theorem maxOneEnergy_timeIntegral_le
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M : ℝ}
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
-    (∫ s in a..b,
-      max (1 : ℝ) (D.integral (fun x => (u s x) ^ p))) ≤
-        (b - a) * max (1 : ℝ) M := by
-  exact
-    integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
-      (D := D) (u := u) (a := a) (b := b) (M := M) (p := p)
-      hI.hab.le hI.maxOneEnergy_intervalIntegrable hI.currentEnergy_le_Icc
-
-end IntegratedMoserPrecrossingIntervalData
-
-/-- Integrated Moser extraction on a precrossing interval.
-
-This is the signature-sensitive call.  It matches the current extraction lemma:
-`hinteg`, `hp`, `hp_nonneg`, `haT`, `hbT`, `hYa`, `hYb_nonneg`, `hmaxInt`.
--/
-theorem integratedMoser_precrossing_gradientIntegral_le
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M : ℝ}
-    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
-    ∃ C, 0 ≤ C ∧
-      2 *
-        (∫ s in a..b,
-          D.integral (fun x =>
-            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤
-          M + C * p * ((b - a) * max (1 : ℝ) M) := by
-  exact
-    integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
-      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
-      (p := p) (a := a) (b := b) (M := M)
-      (H := (b - a) * max (1 : ℝ) M)
-      hinteg hI.hp hI.hp_nonneg hI.haT hI.hbT
-      (IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le hI)
-      hI.right_currentEnergy_nonneg
-      (IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le hI)
-
-/-- A one-sided bound for the integrated Moser-gradient term. -/
-theorem integratedMoser_precrossing_gradientIntegral_bound
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M : ℝ}
-    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
-    ∃ Gbound,
-      (∫ s in a..b,
-        D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound := by
-  rcases integratedMoser_precrossing_gradientIntegral_le hinteg hI with
-    ⟨C, _hC_nonneg, hgrad⟩
-  refine ⟨(M + C * p * ((b - a) * max (1 : ℝ) M)) / 2, ?_⟩
-  linarith
-
-/-- Honest higher-power time-integral output on a precrossing interval.
-
-This directly consumes the current local helper
-`relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound`.
-It concludes only an interval integral bound, not `LpPowerBoundedBefore`.
--/
-theorem integratedMoser_precrossing_higherPower_timeIntegral_le
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M eps : ℝ}
-    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
-    (heps : 0 < eps) :
-    ∃ Gbound,
-      (∫ s in a..b,
-        D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound ∧
-      ∃ Ceps, 0 ≤ Ceps ∧
-        (∫ s in a..b,
-          D.integral (fun x => (u s x) ^ (p + rho))) ≤
-          eps * Gbound + (b - a) * (Ceps * M) := by
-  rcases integratedMoser_precrossing_gradientIntegral_bound hinteg hI with
-    ⟨Gbound, hGbound⟩
-  refine ⟨Gbound, hGbound, ?_⟩
-  exact
-    relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
-      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
-      (p := p) (a := a) (b := b) (M := M)
-      (eps := eps) (Gbound := Gbound)
-      hrel hI.hp heps hI.hab.le hI.ha_pos hI.hb_lt
-      hI.higherPower_intervalIntegrable
-      hI.gradient_intervalIntegrable
-      hI.currentEnergy_le_Icc
-      hGbound
-
-/-- Average form of the same honest higher-power estimate.
-
-This is still only an average/time-integral consequence.  It deliberately does
-not assert any pointwise-in-time `Y_{p+rho}` bound.
--/
-theorem integratedMoser_precrossing_higherPower_average_le
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b M eps : ℝ}
-    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
-    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
-    (heps : 0 < eps) :
-    ∃ Gbound,
-      (∫ s in a..b,
-        D.integral (fun x =>
-          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound ∧
-      ∃ Ceps, 0 ≤ Ceps ∧
-        (1 / (b - a)) *
-          (∫ s in a..b,
-            D.integral (fun x => (u s x) ^ (p + rho))) ≤
-          (1 / (b - a)) *
-            (eps * Gbound + (b - a) * (Ceps * M)) := by
-  rcases integratedMoser_precrossing_higherPower_timeIntegral_le
-      hinteg hrel hI heps with
-    ⟨Gbound, hGbound, Ceps, hCeps_nonneg, hZ⟩
-  refine ⟨Gbound, hGbound, Ceps, hCeps_nonneg, ?_⟩
-  have hscale_nonneg : 0 ≤ 1 / (b - a) := by
-    exact div_nonneg zero_le_one (sub_nonneg.mpr hI.hab.le)
-  exact mul_le_mul_of_nonneg_left hZ hscale_nonneg
-
-end PrecrossingInterval
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+namespace ShenWork.IntervalDomainExistence
 ```
 
-## In-place insertion version
+in `IntervalDomainMoserLadderAtoms.lean`, alongside `IntervalDomainMassLpSmoothingMoserLadderResiduals`.  Do not put it in `ShenWork.Paper3`, and do not put it under `P3MoserActualWiring`.
 
-Inside `P3MoserIntegratedClosure.lean`, do **not** add the final namespace-closing line from the standalone block.  Insert this section before the existing theorem
+2. **Name resolution for `IntegratedMoserFirstCrossingStep`.**  `IntervalDomainMoserLadderAtoms.lean` currently opens `P3MoserActualWiring`, but not `P3MoserIntegratedClosure`.  Either add
 
 ```lean
-moser_iteration_chain_of_integrated_first_crossing_step
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-because that is where the helper family ends and the old pointwise first-crossing skeleton begins.
-
-## Why the extra field is needed
-
-The Q2461 data structure only had integrability of `Y_{p+rho}` and the gradient profile.  Against the current helper signatures, that is insufficient: `integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound` requires integrability of the function
+near the existing opens, or use the qualified name
 
 ```lean
-fun s => max (1 : ℝ) (D.integral (fun x => (u s x) ^ p))
+P3MoserIntegratedClosure.IntegratedMoserFirstCrossingStep
 ```
 
-on `a..b`.  This can often be derived from regularity/time-integrability in a later patch, but it is not a purely algebraic consequence of the Icc upper bound in the abstract `BoundedDomainData` API.  Keeping it as a field is the honest compile-oriented move.
+in the new structure field.  I recommend the qualified name to avoid changing global open behavior.
 
-## The Q2461 theorem not worth committing
+3. **Imports.**  No new import is needed in `IntervalDomainMoserLadderAtoms.lean`: it already imports `ShenWork.PDE.P3MoserActualWiring`, and that file imports `P3MoserIntegratedClosure`.  Do **not** import `Paper3.IntervalDomainActualLinearStatementAssembly` or any Paper3 file into the PDE file.
 
-Do not commit the Q2461 theorem named approximately
+4. **Do not convert through `IntervalDomainMassLpSmoothingMoserLadderResiduals`.**  That existing structure requires `moserDissipation` and `relativeMoserInterpolation`.  An integrated-step package does not have these fields and should not synthesize them.  The integrated-step package should go directly to `IntervalDomainMassLpSmoothingRouteResiduals` using route-level `Corollary_2_1` and `Proposition_2_5`.
+
+5. **Can `to_routeResiduals` code be copied?**  Yes, but copy it from `IntervalDomainMassLpSmoothingMoserLadderResiduals.to_routeResiduals`, not from the Paper3-local integrated-step version.  The generic copy should use an abstract `l2SeedRegularity` field.  Better still, factor the common long body into a route-level constructor that takes `Corollary_2_1` and `Proposition_2_5` as arguments; then the old and new routes can share the same body.
+
+6. **Closed-energy conversion remains Paper3-local.**  `ClosedEnergyIdentityTraceData` is currently in namespace `P3MoserLemmaDischarge`.  The generic PDE package should not mention it.  Keep the conversion
 
 ```lean
-integratedMoser_precrossing_higherPower_timeIntegral_le_of_integrated_relative
+P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
 ```
 
-in the form where it takes an argument
+inside the Paper3-local `to_integratedStepResiduals` adapter.
+
+7. **Paper3 local `to_routeResiduals`.**  Yes: it should become a short alias through `to_integratedStepResiduals`.  That removes duplicate L2/mass/smoothing code from Paper3 and makes future route corrections generic.
+
+## Patch 1: add the generic integrated-step route in `IntervalDomainMoserLadderAtoms.lean`
+
+Insert this after the existing namespace block
 
 ```lean
-hhigher : ∀ Gbar, (∫ G ≤ Gbar) → ∃ Zbar, ∫ Z ≤ Zbar
+end IntervalDomainMassLpSmoothingMoserLadderResiduals
 ```
 
-and returns
+and before
 
 ```lean
-∃ Zbar, ∫ Z ≤ Zbar
+end ShenWork.IntervalDomainExistence
 ```
-
-That wrapper adds no useful interface: after the gradient-bound theorem, it merely applies an argument that already has the desired conclusion.  The corrected patch above is better because it directly calls the actual local relative-Moser helper and records the produced constants `Gbound` and `Ceps`.
-
-## Honest boundary of this patch
-
-This patch still does not prove, and should not try to prove,
 
 ```lean
-LpPowerBoundedBefore D (p + rho) T u
+/-- Common constructor for mass/Lp/smoothing route residuals once the route-level
+Corollary 2.1 and Proposition 2.5 consumers have been supplied.
+
+This is the common body of the old Moser-ladder route and the integrated-step
+route.  It does not know how either `Corollary_2_1` or `Proposition_2_5` was
+proved, and it does not manufacture dissipation or relative-Moser atoms. -/
+def intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
+    {p : CM2Params}
+    (ha : 0 < p.a)
+    (hchi : 0 ≤ p.χ₀)
+    (hboundedness : IntervalDomainBoundednessHyp p)
+    (hl2SeedRegularity :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          IntervalDomainL2SeedRegularityFrontier T u)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p where
+  a_pos := ha
+  chi_nonneg := hchi
+  boundednessHyp := hboundedness
+  driftBoundFromMass := by
+    intro u₀ hu₀ T hT u v hsol htrace hmass
+    have hspatial :
+        IntervalDomainL2SpatialAbsorptionEstimate p T u v hsol hmass :=
+      intervalDomainL2SpatialAbsorptionEstimate_of_classical
+        hboundedness hsol hmass
+    have huniform :
+        IntervalDomainL2HalfEnergyDifferentialInequalityUniformCeps p T u v :=
+      intervalDomainL2HalfEnergyDifferentialInequalityUniformCeps_of_classicalSolution
+        hsol
+    have hhalf :
+        IntervalDomainL2HalfEnergyDifferentialInequality p T u v :=
+      intervalDomainL2HalfEnergyDifferentialInequality_of_classicalSolution hsol
+    have habsorbing :
+        IntervalDomainL2AbsorbingDifferentialInequalityResult p T u :=
+      IntervalDomainL2AbsorbingDifferentialInequality
+        hboundedness.1 hsol hmass hspatial huniform
+    have hregularity : IntervalDomainL2SeedRegularityFrontier T u :=
+      hl2SeedRegularity u₀ hu₀ T hT u v hsol htrace
+    have hintegrated :
+        IntervalDomainL2AbsorbingIntegratedInequalityResult p T u :=
+      IntervalDomainL2AbsorbingIntegratedInequality
+        hboundedness.2.1 hsol habsorbing hregularity
+    have hL2 :
+        LpPowerBoundedBefore intervalDomain 2 T u :=
+      intervalDomainL2PowerBoundedBefore_of_absorbingIntegratedInequality
+        hsol hintegrated hregularity
+    have hbootstrap :
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u :=
+      intervalDomainL2BootstrapSeed_of_L2PowerBoundedBefore
+        hboundedness hu₀ hT hsol htrace hhalf hL2
+    have hbounded :
+        IsPaper2BoundedBefore intervalDomain T u :=
+      intervalDomainBoundedBefore_of_corollary21_and_proposition25
+        hCor21 hProp25 hu₀ hT hsol htrace hbootstrap
+    have hpoint : PointwiseBoundedBefore T u :=
+      pointwiseBoundedBefore_of_boundedBefore_and_supNormControls hbounded
+        (supNormControlsPointwiseBefore_of_classicalSolution hsol)
+    exact IntervalDomainChemotacticDriftBound_of_LinfBound hsol hpoint
+  l2SeedRegularity := hl2SeedRegularity
+  allLpBoundFromBootstrap := hCor21
+  endpointBoundFromLp := hProp25
+
+/-- Generic mass/Lp/smoothing residuals whose Moser component is supplied as an
+integrated first-crossing step atom.
+
+This package consumes an already-proved integrated step.  It does not prove such
+a step, and it does not derive physical-`B` dissipation or relative interpolation
+from route-level outputs. -/
+structure IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals
+    (p : CM2Params) : Prop where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  integratedStep :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        P3MoserIntegratedClosure.IntegratedMoserFirstCrossingStep
+          intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals
+
+/-- Route-level Corollary 2.1 from the integrated first-crossing step atom. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
+    h.integratedStep
+
+/-- Route-level Proposition 2.5 from the integrated first-crossing step atom and
+quantitative endpoint. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
+    h.integratedStep h.quantitativeEndpoint
+
+/-- Build the old mass/Lp/smoothing route residual surface from the integrated
+step package. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
+    h.a_pos h.chi_nonneg h.boundednessHyp h.l2SeedRegularity
+    h.corollary21 h.proposition25
+
+/-- A-priori bound from the integrated-step mass/Lp/smoothing residuals. -/
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_routeResiduals.aprioriBound
+
+#print axioms intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
+#print axioms IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals.corollary21
+#print axioms IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals.proposition25
+#print axioms IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals.to_routeResiduals
+#print axioms IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals
 ```
 
-from the higher-power time-integral or average estimate.  A later pointwise extraction theorem would need additional analytic input, such as a genuine first-crossing/continuity argument converting interval average control into endpoint or uniform-in-time control.  That is not present in these helper APIs.
+### Optional low-risk refactor
+
+After adding the common constructor, the existing
+`IntervalDomainMassLpSmoothingMoserLadderResiduals.to_routeResiduals` can be shortened later to:
+
+```lean
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
+    h.a_pos h.chi_nonneg h.boundednessHyp h.l2SeedRegularity
+    h.corollary21 h.proposition25
+```
+
+This refactor is not required for Q2484.  It is safer to add the integrated-step route first and leave the existing route untouched unless you want to reduce duplication in the same commit.
+
+## Patch 2: make the Paper3-local integrated route an alias
+
+In `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`, replace the current long body of
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
+```
+
+with an adapter through the new generic package.  Keep this inside the existing namespace
+
+```lean
+namespace IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+```
+
+```lean
+/-- Convert the Paper3 actual-linear closed-energy integrated-step package to the
+generic integrated-step residual surface.
+
+The closed-energy-to-L²-seed conversion intentionally remains Paper3-local. -/
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingMoserIntegratedStepResiduals p where
+  a_pos := ha
+  chi_nonneg := le_of_lt hχ0
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := by
+    intro u₀ hu₀ T hT u v hsol htrace
+    exact
+      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+        (Classical.choice
+          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
+  integratedStep := h.integratedStep
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+/-- Build the old route residual surface via the generic integrated-step package. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  (h.to_integratedStepResiduals ha hχ0).to_routeResiduals
+
+#print axioms IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
+```
+
+No downstream theorem statement needs to change.  For example, the existing line
+
+```lean
+massLpSmoothing := h.massLpSmoothing.to_routeResiduals ha hχ0
+```
+
+in `IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts.to_aprioriActualLinearSmallFacts` should keep compiling, because the local `to_routeResiduals` signature is unchanged.
+
+## Things not to add
+
+Do not add any theorem of the following form in this genericization:
+
+```lean
+theorem ... : IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := ...
+```
+
+The integrated step remains an analytic atom supplied by the residual package.
+
+Do not add a conversion
+
+```lean
+Corollary_2_1 intervalDomain p →
+  MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+```
+
+or
+
+```lean
+Corollary_2_1 intervalDomain p →
+  RelativeMoserInterpolationBefore intervalDomain u T rho p0
+```
+
+Those would invert a route-level conclusion into analytic inputs and would be mathematically backwards.
+
+Do not make the generic integrated-step residual extend or convert to
+`IntervalDomainMassLpSmoothingMoserLadderResiduals`; that would require exactly the forbidden dissipation/interpolation fields.  The correct target is directly
+`IntervalDomainMassLpSmoothingRouteResiduals`.
