@@ -11,6 +11,7 @@ import ShenWork.Paper2.IntervalDomainMass
 import ShenWork.Paper2.IntervalDomainStructuredMoserData
 import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
+import ShenWork.PDE.IntervalAgmonInterpolation
 import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.PDE.P3MoserLemmas
@@ -20,6 +21,7 @@ set_option linter.style.longLine false
 open ShenWork.IntervalDomain
 open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
 namespace ShenWork.Paper2
@@ -1513,6 +1515,44 @@ structure IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
   powerIntegrability : IntervalDomainPaper2PowerIntegrabilityFrontier
   energyFromCrossDiffusion :
     IntervalDomainPaper2EnergyFromCrossDiffusionFrontier p
+
+/-- Agmon-frontier version of the positive solution-slice interpolation/energy
+package.  This exposes the remaining one-dimensional uniform
+Agmon/Gagliardo-Nirenberg theorem directly, rather than carrying the already
+assembled positive solution-slice interpolation theorem as an input. -/
+structure IntervalDomainPaper2AgmonPositiveSolutionInterpolationEnergyFrontierData
+    (p : CM2Params)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  agmon : UnitIntervalPositiveAgmonInterpolation
+  dissipation : IntervalDomainPaper2DissipationFrontier
+  gradConstantPositive :
+    IntervalDomainPaper2GradientConstantPositive cGrad
+  gradientChain : IntervalDomainPaper2GradientChainFrontier cGrad
+  massControl : IntervalDomainPaper2MassControlFrontier
+  powerIntegrability : IntervalDomainPaper2PowerIntegrabilityFrontier
+  energyFromCrossDiffusion :
+    IntervalDomainPaper2EnergyFromCrossDiffusionFrontier p
+
+/-- Convert the explicit Agmon-frontier package to the existing positive
+solution-slice interpolation package. -/
+def IntervalDomainPaper2AgmonPositiveSolutionInterpolationEnergyFrontierData.toPositive
+    {p : CM2Params}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2AgmonPositiveSolutionInterpolationEnergyFrontierData
+        p cGrad) :
+    IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
+      p cGrad where
+  solutionInterpolation :=
+    intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
+      (params := p) h.agmon
+  dissipation := h.dissipation
+  gradConstantPositive := h.gradConstantPositive
+  gradientChain := h.gradientChain
+  massControl := h.massControl
+  powerIntegrability := h.powerIntegrability
+  energyFromCrossDiffusion := h.energyFromCrossDiffusion
 
 /-- Drop the positive-constant field when only Corollary 2.1 is being
 assembled. -/
@@ -4119,6 +4159,18 @@ structure
     IntervalDomainPaper2LocalAndMainChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21FrontierData
       p C
 
+/-- Full-statement frontier for the preferred raw-drop terminal-endpoint route,
+with the a-priori positive solution-slice interpolation produced from the
+explicit uniform Agmon frontier. -/
+structure
+    IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  agmon : UnitIntervalPositiveAgmonInterpolation
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21FrontierData
+      p C
+
 /-- Convert the solution-interpolation full-statement route to the explicit
 a-priori package route. -/
 def
@@ -4180,6 +4232,22 @@ def
   section2 := h.section2
   aprioriInterpolation := h.aprioriInterpolation
   localAndMain := h.localAndMain.toTerminalEndpointCor21
+
+/-- Convert the explicit-Agmon full-statement route to the existing positive
+solution-slice a-priori route. -/
+def
+    IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData.toSolutionInterpolation
+    {p : CM2Params} {C : Paper2Constants p}
+    (h :
+      IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+        p C) :
+    IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinSolutionInterpolationFrontierData
+      p C where
+  section2 := h.section2
+  aprioriInterpolation :=
+    intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
+      (params := p) h.agmon
+  localAndMain := h.localAndMain
 
 /-- Assemble the concrete interval-domain Paper 2 statement targets in the
 proved `χ₀ = 0` route, with Proposition 1.1 local existence discharged
@@ -4565,6 +4633,21 @@ theorem
   intervalDomainPaper2_statementTargets_of_chiZeroActualAtomMassGradientTerminalEndpointCor21Section2ThinSolutionInterpolationFrontierData
     p C hχ0 ha hb hα hγ hData.toTerminalEndpoint
 
+/-- Assemble the concrete interval-domain Paper 2 statement targets from
+raw-drop terminal-endpoint mass-gradient actual atoms, thin section-2 data,
+and the explicit uniform Agmon frontier for the a-priori package. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+        p C) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinSolutionInterpolationFrontierData
+    p C hχ0 ha hb hα hγ hData.toSolutionInterpolation
+
 /-- Instance-facing full-statement wrapper for the raw-drop terminal-endpoint
 mass-gradient actual-atom route with positive solution-slice a-priori data. -/
 theorem
@@ -4577,6 +4660,20 @@ theorem
         p C)] :
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinSolutionInterpolationFrontierData
+    p C hχ0 ha hb hα hγ hData.out
+
+/-- Instance-facing full-statement wrapper for the raw-drop terminal-endpoint
+mass-gradient actual-atom route with the explicit uniform Agmon frontier. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+        p C)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
     p C hχ0 ha hb hα hγ hData.out
 
 /-- Preferred `χ₀ = 0` interval-domain Paper2 statement-frontier package.
@@ -5287,6 +5384,15 @@ abbrev
   IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinSolutionInterpolationFrontierData
     p C
 
+/-- Preferred `χ₀ = 0` full-statement frontier package using raw-drop
+terminal-endpoint mass-gradient actual atoms, with the a-priori package
+produced from the explicit uniform Agmon frontier. -/
+abbrev
+    IntervalDomainPaper2PreferredChiZeroStatementActualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+    p C
+
 /-- Preferred `χ₀ = 0` full-statement wrapper using raw-drop terminal-endpoint
 mass-gradient actual atoms and positive solution-slice a-priori producer. -/
 theorem
@@ -5299,6 +5405,20 @@ theorem
         p C) :
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinSolutionInterpolationFrontierData
+    p C hχ0 ha hb hα hγ hData
+
+/-- Preferred full-statement wrapper using raw-drop terminal-endpoint
+mass-gradient actual atoms and the explicit uniform Agmon frontier. -/
+theorem
+    intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2PreferredChiZeroStatementActualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierData
+        p C) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
     p C hχ0 ha hb hα hγ hData
 
 /-- Instance-facing preferred full-statement wrapper using raw-drop
@@ -5315,6 +5435,22 @@ theorem
           p C)] :
     IntervalDomainPaper2StatementTargets p C :=
   intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21SolutionInterpolationFrontierData
+    p C hχ0 ha hb hα hγ hData.out
+
+/-- Instance-facing preferred full-statement wrapper using raw-drop
+terminal-endpoint mass-gradient actual atoms and the explicit uniform Agmon
+frontier. -/
+theorem
+    intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2PreferredChiZeroStatementActualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierData
+          p C)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierData
     p C hχ0 ha hb hα hγ hData.out
 
 /-- Interval-domain Paper 2 statement-frontier record using the half-step
@@ -5758,6 +5894,10 @@ section AxiomAudit
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
 #print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+#print axioms
+  intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21AgmonFrontierData
 #print axioms intervalDomainPaper2_Proposition_2_5_of_lowerUpperFrontierData
 #print axioms intervalDomainPaper2_Corollary_2_1_of_lowerUpperFrontierData
 #print axioms
