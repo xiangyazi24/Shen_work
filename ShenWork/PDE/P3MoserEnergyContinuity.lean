@@ -88,6 +88,24 @@ theorem intervalDomain_energyContinuousOn_Ioo
     ContinuousOn
       (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
       (Ioo (0 : ℝ) T) := by
+  rw [ContinuousOn]
+  intro t₀ ht₀
+  -- The intervalDomain.integral unfolds to ∫ x in 0..1, (lift (u t) x) ^ p
+  show ContinuousWithinAt
+    (fun t => intervalDomainIntegral (fun x => (u t x) ^ p))
+    (Ioo (0 : ℝ) T) t₀
+  unfold intervalDomainIntegral
+  -- Goal: ContinuousWithinAt (fun t => ∫ x in 0..1, lift(...) x) (Ioo 0 T) t₀
+  -- Choose a compact sub-slab [a,b] ⊆ (0,T) containing t₀
+  set a := (t₀ + 0) / 2 -- midpoint of t₀ and 0
+  set b := (t₀ + T) / 2 -- midpoint of t₀ and T
+  have ha : 0 < a := by simp [a]; linarith [ht₀.1]
+  have hb : b < T := by simp [b]; linarith [ht₀.2]
+  have hab : a ≤ b := by simp [a, b]; linarith [ht₀.1, ht₀.2]
+  have hat₀ : a < t₀ := by simp [a]; linarith [ht₀.1]
+  have ht₀b : t₀ < b := by simp [b]; linarith [ht₀.2]
+  -- Get the uniform bound on [a,b] × [0,1]
+  rcases intervalDomain_power_bounded_on_slab hsol ha hb hab with ⟨C, hC⟩
   sorry
 
 #print axioms intervalDomain_solution_jointContinuousOn
