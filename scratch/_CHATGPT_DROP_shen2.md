@@ -1,187 +1,248 @@
-# Q2479 shen2: genericizing the Paper3-local integrated-step route
+# Q2490 shen2: common route constructor audit
 
-Repo target: `xiangyazi24/Shen_work`, after commit `5b83ceab`.
+Repo target: `xiangyazi24/Shen_work`.
 
-This is the **genericization** plan only. It is not a Paper2 statement-wrapper audit.
-
-## Goal
-
-Move the reusable residual package out of `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` and into:
-
-```text
-ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
-```
-
-Then make Paper3 consume that generic package while keeping the existing Paper3-facing API names stable.
-
-The generic package should fill:
+Question: after adding the generic `IntervalDomainMassLpSmoothingIntegratedStepResiduals` package and making Paper3's local integrated-step route pass through `to_integratedStepResiduals`, should the next small commit factor a common constructor
 
 ```lean
-IntervalDomainMassLpSmoothingRouteResiduals p
+intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
 ```
 
-directly by producing route-level:
+shared by the old `IntervalDomainMassLpSmoothingMoserLadderResiduals.to_routeResiduals` and the new `IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals`?
+
+## Recommendation
+
+Yes, but only in the narrow route-level sense.
+
+The next small commit is worth doing if it is exactly the following refactor:
+
+1. Add one PDE-level constructor in `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean` that consumes:
+   - `0 < p.a`,
+   - `0 ≤ p.χ₀`,
+   - `IntervalDomainBoundednessHyp p`,
+   - the existing `l2SeedRegularity` field,
+   - an already-supplied `Corollary_2_1 intervalDomain p`, and
+   - an already-supplied `Proposition_2_5 intervalDomain p`.
+2. Make both existing `to_routeResiduals` definitions call this constructor.
+3. Do not touch the analytic producer surface.
+4. Do not introduce any new theorem producing an integrated step.
+5. Do not derive `MoserDissipationDropBeforeNonnegB` or `RelativeMoserInterpolationBefore` from `Corollary_2_1`.
+
+This is a good cleanup because the duplicated part is not analytic. It is the route-level reconstruction of `driftBoundFromMass` from L2 absorption, bootstrap, `Corollary_2_1`, and `Proposition_2_5`. The old pointwise-Moser route and the new integrated-step route now differ only in how they produce those two theorem-level inputs.
+
+## Source-shape facts from the current files
+
+In `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`, the old package already has theorem wrappers:
 
 ```lean
-Corollary_2_1 intervalDomain p
-Proposition_2_5 intervalDomain p
+IntervalDomainMassLpSmoothingMoserLadderResiduals.corollary21
+IntervalDomainMassLpSmoothingMoserLadderResiduals.proposition25
 ```
 
-from a supplied:
+where the route-level theorems are obtained from the old actual atoms:
 
 ```lean
-IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
+intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
+intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
 ```
 
-plus the existing quantitative endpoint/root tower.  It must **not** derive old pointwise atoms and must **not** produce the integrated step.
-
-## File 1: `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`
-
-### Import/open changes
-
-Current imports already include:
+The new integrated-step package mirrors this shape with:
 
 ```lean
-import ShenWork.PDE.P3MoserActualWiring
+IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
+IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
 ```
 
-At `5b83ceab`, `P3MoserActualWiring` imports `P3MoserIntegratedClosure`, but add the direct import for clarity:
+using:
 
 ```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
+intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
+intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
 ```
 
-Recommended import block:
+Both `to_routeResiduals` definitions currently contain the same long `driftBoundFromMass` proof: build spatial/uniform/half-energy L2 ingredients, obtain `LpPowerBoundedBefore intervalDomain 2 T u`, seed the bootstrap, apply `intervalDomainBoundedBefore_of_corollary21_and_proposition25`, convert bounded-before to pointwise bounded-before, then call `IntervalDomainChemotacticDriftBound_of_LinfBound`.
+
+In `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`, the Paper3-local integrated-step residual already has the right adapter boundary:
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_integratedStepResiduals
+IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
+```
+
+and local `to_routeResiduals` is already just:
+
+```lean
+(h.to_integratedStepResiduals ha hχ0).to_routeResiduals
+```
+
+Therefore the common constructor belongs in `IntervalDomainMoserLadderAtoms.lean`; Paper3 should get the cleanup for free through the generic package. A Paper3 rewrite is not needed for this factoring commit.
+
+## Benefits
+
+### 1. It makes the route boundary explicit
+
+The constructor name states the true route:
+
+```lean
+Corollary_2_1 + Proposition_2_5 + L2 seed route
+  ⟶ IntervalDomainMassLpSmoothingRouteResiduals
+```
+
+That is the common layer. It is independent of whether `Corollary_2_1` and `Proposition_2_5` came from old nonnegative-B pointwise Moser atoms or from the new integrated first-crossing step atoms.
+
+### 2. It removes duplicated brittle proof script
+
+The duplicated proof is not logically hard, but it is long and touches many names:
+
+```lean
+intervalDomainL2SpatialAbsorptionEstimate_of_classical
+intervalDomainL2HalfEnergyDifferentialInequalityUniformCeps_of_classicalSolution
+intervalDomainL2HalfEnergyDifferentialInequality_of_classicalSolution
+IntervalDomainL2AbsorbingDifferentialInequality
+IntervalDomainL2AbsorbingIntegratedInequality
+intervalDomainL2PowerBoundedBefore_of_absorbingIntegratedInequality
+intervalDomainL2BootstrapSeed_of_L2PowerBoundedBefore
+intervalDomainBoundedBefore_of_corollary21_and_proposition25
+pointwiseBoundedBefore_of_boundedBefore_and_supNormControls
+supNormControlsPointwiseBefore_of_classicalSolution
+IntervalDomainChemotacticDriftBound_of_LinfBound
+```
+
+Keeping two copies means future harmless changes to the L2 seed route or drift interface must be synchronized twice.
+
+### 3. It does not add analytic content
+
+The new constructor should not prove either `Corollary_2_1` or `Proposition_2_5`. It only consumes them. Thus it does not claim:
+
+```lean
+IntegratedMoserFirstCrossingStep
+MoserDissipationDropBeforeNonnegB
+RelativeMoserInterpolationBefore
+```
+
+from anything weaker.
+
+### 4. It protects the new integrated-step route from accidentally becoming a pointwise route
+
+After the factor, the integrated-step package says:
+
+```lean
+integratedStep ⟶ corollary21/proposition25 ⟶ common route constructor
+```
+
+not:
+
+```lean
+integratedStep ⟶ old pointwise Moser atoms ⟶ old route
+```
+
+That is exactly the desired honest separation.
+
+## Risks and how to avoid them
+
+### Risk 1: too much generalization
+
+Do not abstract over the domain, the mass route, or arbitrary theorem names. Keep the constructor interval-domain-specific and route-specific. A fully generic constructor would create typeclass/inference churn without helping the current proof graph.
+
+### Risk 2: placing the constructor inside the wrong namespace
+
+Do not put it inside `namespace IntervalDomainMassLpSmoothingMoserLadderResiduals`. The integrated-step package should call it without importing or opening the old residual namespace semantically.
+
+Recommended placement:
+
+```lean
+namespace ShenWork.IntervalDomainExistence
+
+-- after `structure IntervalDomainMassLpSmoothingMoserLadderResiduals`
+-- before `namespace IntervalDomainMassLpSmoothingMoserLadderResiduals`
+
+def intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25 ...
+
+namespace IntervalDomainMassLpSmoothingMoserLadderResiduals
+...
+```
+
+This location is visible to both residual namespaces.
+
+### Risk 3: accidentally changing Paper3 APIs
+
+Do not rename or remove Paper3-facing names. In particular, keep:
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_integratedStepResiduals
+IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
+```
+
+The current Paper3 shape is already correct.
+
+### Risk 4: attempting a false converse
+
+Do not add any theorem of the form:
+
+```lean
+Corollary_2_1 intervalDomain p -> ... -> IntegratedMoserFirstCrossingStep ...
+Corollary_2_1 intervalDomain p -> MoserDissipationDropBeforeNonnegB ...
+Corollary_2_1 intervalDomain p -> RelativeMoserInterpolationBefore ...
+```
+
+That would violate the requested constraints and is not supported by the source shape.
+
+## Minimal compile-oriented patch
+
+Only `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean` needs to change.
+
+The imports are already suitable in the current file:
 
 ```lean
 import ShenWork.PDE.IntervalDomainAPrioriGlobal
 import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.Paper2.IntervalDomainVSliceBounds
-```
 
-Add this open near the existing `P3MoserActualWiring` open:
-
-```lean
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserActualWiring
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.MinPersistenceAtoms
+open Filter
 ```
 
-This avoids fully qualifying `IntegratedMoserFirstCrossingStep`.
-
-### Placement
-
-Insert the new generic package immediately after:
+### Add this constructor after `structure IntervalDomainMassLpSmoothingMoserLadderResiduals` and before `namespace IntervalDomainMassLpSmoothingMoserLadderResiduals`
 
 ```lean
-end IntervalDomainMassLpSmoothingMoserLadderResiduals
-```
+/-- Common route-level constructor for the mass/Lp/smoothing residual package.
 
-and before:
-
-```lean
-end ShenWork.IntervalDomainExistence
-```
-
-This keeps the reusable pointwise-Moser and integrated-step mass/Lp/smoothing packages adjacent.
-
-### Generic names
-
-Use these exact generic names:
-
-```lean
-IntervalDomainMassLpSmoothingIntegratedStepResiduals
-IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
-IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
-IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
-IntervalDomainMassLpSmoothingIntegratedStepResiduals.aprioriBound
-```
-
-Do not use Paper3/actual-linear-small names in the PDE-level file.
-
-### Compile-oriented code
-
-```lean
-/-- Lower-level inputs that replace the old pointwise Moser-ladder route fields
-by a supplied integrated first-crossing step.
-
-This package is route-level: it consumes `IntegratedMoserFirstCrossingStep`
-directly via `P3MoserActualWiring` and does not derive old pointwise Moser atoms
-such as `MoserDissipationDropBeforeNonnegB` or
-`RelativeMoserInterpolationBefore`. -/
-structure IntervalDomainMassLpSmoothingIntegratedStepResiduals
-    (p : CM2Params) where
-  a_pos : 0 < p.a
-  chi_nonneg : 0 ≤ p.χ₀
-  boundednessHyp : IntervalDomainBoundednessHyp p
-  l2SeedRegularity :
-    ∀ u₀ : intervalDomain.Point → ℝ,
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-        IntervalDomainL2SeedRegularityFrontier T u
-  integratedStep :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
-  quantitativeEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
-
-namespace IntervalDomainMassLpSmoothingIntegratedStepResiduals
-
-/-- Corollary 2.1 from the supplied integrated first-crossing step. -/
-theorem corollary21
+This is the shared part of the old pointwise-Moser route and the integrated-step
+route: once the L² seed route, Corollary 2.1, and Proposition 2.5 are available,
+the chemotactic drift field follows from the reconstructed `L∞` bound.  The
+constructor deliberately does not produce either theorem-level input and does
+not mention the analytic atoms used to obtain them. -/
+def intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
     {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
-    Corollary_2_1 intervalDomain p :=
-  intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
-    h.integratedStep
-
-/-- Proposition 2.5 from the supplied integrated first-crossing step and the
-quantitative Moser endpoint/root tower. -/
-theorem proposition25
-    {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
-    h.integratedStep h.quantitativeEndpoint
-
-/-- Build the old mass/Lp/smoothing residual package from the integrated-step
-route.
-
-The drift field is reconstructed from the `L∞` bound obtained by the L² seed,
-Corollary 2.1, and Proposition 2.5, exactly as in
-`IntervalDomainMassLpSmoothingMoserLadderResiduals.to_routeResiduals`. -/
-def to_routeResiduals
-    {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
+    (ha : 0 < p.a)
+    (hχ0 : 0 ≤ p.χ₀)
+    (hboundedness : IntervalDomainBoundednessHyp p)
+    (hl2Seed :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          IntervalDomainL2SeedRegularityFrontier T u)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p) :
     IntervalDomainMassLpSmoothingRouteResiduals p where
-  a_pos := h.a_pos
-  chi_nonneg := h.chi_nonneg
-  boundednessHyp := h.boundednessHyp
+  a_pos := ha
+  chi_nonneg := hχ0
+  boundednessHyp := hboundedness
   driftBoundFromMass := by
     intro u₀ hu₀ T hT u v hsol htrace hmass
-    have hCor21 : Corollary_2_1 intervalDomain p := h.corollary21
-    have hProp25 : Proposition_2_5 intervalDomain p := h.proposition25
     have hspatial :
         IntervalDomainL2SpatialAbsorptionEstimate p T u v hsol hmass :=
       intervalDomainL2SpatialAbsorptionEstimate_of_classical
-        h.boundednessHyp hsol hmass
+        hboundedness hsol hmass
     have huniform :
         IntervalDomainL2HalfEnergyDifferentialInequalityUniformCeps p T u v :=
       intervalDomainL2HalfEnergyDifferentialInequalityUniformCeps_of_classicalSolution
@@ -192,13 +253,13 @@ def to_routeResiduals
     have habsorbing :
         IntervalDomainL2AbsorbingDifferentialInequalityResult p T u :=
       IntervalDomainL2AbsorbingDifferentialInequality
-        h.boundednessHyp.1 hsol hmass hspatial huniform
+        hboundedness.1 hsol hmass hspatial huniform
     have hregularity : IntervalDomainL2SeedRegularityFrontier T u :=
-      h.l2SeedRegularity u₀ hu₀ T hT u v hsol htrace
+      hl2Seed u₀ hu₀ T hT u v hsol htrace
     have hintegrated :
         IntervalDomainL2AbsorbingIntegratedInequalityResult p T u :=
       IntervalDomainL2AbsorbingIntegratedInequality
-        h.boundednessHyp.2.1 hsol habsorbing hregularity
+        hboundedness.2.1 hsol habsorbing hregularity
     have hL2 :
         LpPowerBoundedBefore intervalDomain 2 T u :=
       intervalDomainL2PowerBoundedBefore_of_absorbingIntegratedInequality
@@ -209,7 +270,7 @@ def to_routeResiduals
             ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
               LpPowerBoundedBefore intervalDomain p0 T u :=
       intervalDomainL2BootstrapSeed_of_L2PowerBoundedBefore
-        h.boundednessHyp hu₀ hT hsol htrace hhalf hL2
+        hboundedness hu₀ hT hsol htrace hhalf hL2
     have hbounded :
         IsPaper2BoundedBefore intervalDomain T u :=
       intervalDomainBoundedBefore_of_corollary21_and_proposition25
@@ -218,107 +279,78 @@ def to_routeResiduals
       pointwiseBoundedBefore_of_boundedBefore_and_supNormControls hbounded
         (supNormControlsPointwiseBefore_of_classicalSolution hsol)
     exact IntervalDomainChemotacticDriftBound_of_LinfBound hsol hpoint
-  l2SeedRegularity := h.l2SeedRegularity
-  allLpBoundFromBootstrap := h.corollary21
-  endpointBoundFromLp := h.proposition25
+  l2SeedRegularity := hl2Seed
+  allLpBoundFromBootstrap := hCor21
+  endpointBoundFromLp := hProp25
+```
 
-/-- A-priori bound from the integrated-step residual package. -/
+### Replace the old pointwise-Moser `to_routeResiduals` body with this
+
+```lean
+/-- Build the old residual package.  The old drift field is reconstructed from
+L² seed regularity plus the route-level `Corollary_2_1` and `Proposition_2_5`
+inputs produced by the actual nonnegative-`B` Moser atoms. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
+    (p := p) h.a_pos h.chi_nonneg h.boundednessHyp h.l2SeedRegularity
+    h.corollary21 h.proposition25
+```
+
+### Replace the integrated-step `to_routeResiduals` body with this
+
+```lean
+/-- Build the old mass/Lp/smoothing residual package from the integrated-step
+route.  The only integrated-step-specific work is producing Corollary 2.1 and
+Proposition 2.5; the route-level drift reconstruction is shared. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
+    (p := p) h.a_pos h.chi_nonneg h.boundednessHyp h.l2SeedRegularity
+    h.corollary21 h.proposition25
+```
+
+The rest of the file can stay unchanged:
+
+```lean
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_routeResiduals.aprioriBound
+```
+
+and
+
+```lean
 def aprioriBound
     {p : CM2Params}
     (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
     IntervalDomainMassLpSmoothingAprioriBound p :=
   h.to_routeResiduals.aprioriBound
-
-end IntervalDomainMassLpSmoothingIntegratedStepResiduals
 ```
 
-## File 2: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
+should still compile as before.
 
-### Import/open changes
+## Optional axiom-print additions
 
-This file already imports:
+The existing file already prints axioms for the integrated-step route. If desired, add one print for the common constructor:
 
 ```lean
-import ShenWork.PDE.P3MoserActualWiring
-import ShenWork.PDE.P3MoserIntegratedClosure
+#print axioms intervalDomainMassLpSmoothingRouteResiduals_of_corollary21_and_proposition25
 ```
 
-Add a direct import if the generic package is not already visible transitively:
+This is optional. It can help verify that the common constructor itself introduced no new axioms beyond the already-used route dependencies, but it is not needed for the refactor.
+
+## What not to change
+
+Do not change `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` for this factoring unless you only update comments. Its current integrated-step route is already the right wrapper shape:
 
 ```lean
-import ShenWork.PDE.IntervalDomainMoserLadderAtoms
-```
-
-This should not create a cycle: `IntervalDomainMoserLadderAtoms` is PDE/Paper2-level and does not import Paper3 actual-linear statement assembly.
-
-Existing opens are sufficient:
-
-```lean
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-## Paper3 local definitions: keep vs replace
-
-### Keep public Paper3 names
-
-Keep these names stable:
-
-```lean
-IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
-IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
-IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
-IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts.to_aprioriActualLinearSmallFacts
-IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
-intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
-IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepFrontierData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepFrontierData
-IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
-```
-
-These are Paper3-facing API names and should remain as wrappers/adapters.
-
-### Add a local adapter to the generic package
-
-Inside:
-
-```lean
-namespace
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
-```
-
-add:
-
-```lean
-/-- Convert the Paper3 actual-linear-small integrated-step residual surface to
-the reusable integrated-step mass/Lp/smoothing residual package. -/
-def to_integratedStepResiduals
-    {p : CM2Params}
-    (h :
-      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
-        p)
-    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainMassLpSmoothingIntegratedStepResiduals p where
-  a_pos := ha
-  chi_nonneg := le_of_lt hχ0
-  boundednessHyp := h.boundednessHyp
-  l2SeedRegularity := by
-    intro u₀ hu₀ T hT u v hsol htrace
-    exact
-      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
-        (Classical.choice
-          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
-  integratedStep := h.integratedStep
-  quantitativeEndpoint := h.quantitativeEndpoint
-```
-
-Then replace the long local implementation of `to_routeResiduals` with:
-
-```lean
-/-- Build the generic mass/Lp/smoothing route residuals from the Paper3
-actual-linear-small integrated-step residual surface. -/
 def to_routeResiduals
     {p : CM2Params}
     (h :
@@ -329,121 +361,19 @@ def to_routeResiduals
   (h.to_integratedStepResiduals ha hχ0).to_routeResiduals
 ```
 
-### Should local structures become aliases?
+After the PDE-level generic `to_routeResiduals` is factored, this Paper3 wrapper automatically consumes the common constructor.
 
-No.  Keep the Paper3 local residual structure, sectorial facts, and frontend structures.
+## Bottom line
 
-Reason: the local residual package is Paper3-specific because it carries `closedEnergyTrace` and converts it to `l2SeedRegularity` using:
+This is worth the churn if kept to one constructor plus two short rewrites. It is not worth doing as a broader abstraction pass.
 
-```lean
-P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+The safe next commit should be a pure refactor in `IntervalDomainMoserLadderAtoms.lean`:
+
+```text
+Corollary_2_1 + Proposition_2_5 + L2 seed route
+  -> common route constructor
+  -> old pointwise-Moser to_routeResiduals
+  -> integrated-step to_routeResiduals
 ```
 
-The generic PDE package should stay generic and only require `l2SeedRegularity` directly, matching the existing reusable `IntervalDomainMassLpSmoothingMoserLadderResiduals` design.
-
-### Should sectorial facts change?
-
-No public name change is needed.  Existing code like:
-
-```lean
-massLpSmoothing := h.massLpSmoothing.to_routeResiduals ha hχ0
-```
-
-can remain unchanged because `to_routeResiduals` now delegates to the generic package.
-
-## Calls to ActualWiring consumers
-
-Only the new generic package should call:
-
-```lean
-intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
-intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
-```
-
-Paper3 local code should call:
-
-```lean
-(h.to_integratedStepResiduals ha hχ0).to_routeResiduals
-```
-
-rather than duplicating the route proof or directly calling the consumers.
-
-## Honesty pitfalls
-
-Do not construct or infer:
-
-```lean
-MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-RelativeMoserInterpolationBefore intervalDomain u T rho p0
-```
-
-from `Corollary_2_1`, `Proposition_2_5`, or the integrated-step route.  The generic package should not have fields or conclusions with those old atom types.
-
-Do not add any theorem that produces:
-
-```lean
-IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
-```
-
-The integrated step remains a supplied field.
-
-Do not import Paper3 into `IntervalDomainMoserLadderAtoms.lean`.
-
-## Build commands
-
-Run target files first:
-
-```bash
-lake env lean ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
-lake env lean ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
-```
-
-Then module builds:
-
-```bash
-lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
-lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
-```
-
-Finally:
-
-```bash
-lake build ShenWork
-```
-
-## `#print axioms` targets
-
-Reusable package:
-
-```lean
-#print axioms ShenWork.IntervalDomainExistence.IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
-#print axioms ShenWork.IntervalDomainExistence.IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
-#print axioms ShenWork.IntervalDomainExistence.IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
-#print axioms ShenWork.IntervalDomainExistence.IntervalDomainMassLpSmoothingIntegratedStepResiduals.aprioriBound
-```
-
-Paper3 adapter:
-
-```lean
-#print axioms ShenWork.Paper3.IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_integratedStepResiduals
-#print axioms ShenWork.Paper3.IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
-#print axioms ShenWork.Paper3.IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts.to_aprioriActualLinearSmallFacts
-#print axioms ShenWork.Paper3.intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
-#print axioms ShenWork.Paper3.intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
-```
-
-Expected profile: no `sorryAx`, no new custom axiom, and no theorem producing `IntegratedMoserFirstCrossingStep`.
-
-## Minimal commit scope
-
-One commit is enough:
-
-1. add `IntervalDomainMassLpSmoothingIntegratedStepResiduals` and namespace methods to `PDE/IntervalDomainMoserLadderAtoms.lean`;
-2. add `to_integratedStepResiduals` in the Paper3 local residual namespace;
-3. replace the long Paper3-local `to_routeResiduals` proof body with:
-
-```lean
-(h.to_integratedStepResiduals ha hχ0).to_routeResiduals
-```
-
-Do not rename the higher Paper3 frontend names in this commit.
+No new analytic claims are needed, and the hard constraints are preserved.
