@@ -43,6 +43,8 @@ import ShenWork.PDE.FractionalPowerDerivative
 import ShenWork.PDE.ParabolicMaxPrinciple
 import ShenWork.Paper1.Lemma25Helpers
 import ShenWork.Paper1.StatementAssembly
+import ShenWork.Paper1.UpperBarrierContact
+import ShenWork.Paper1.PositiveRawRouteAAssembly
 import ShenWork.Paper2.StatementAssembly
 import ShenWork.Paper2.UnitPointLogisticBridge
 import ShenWork.Paper2.UnitPointStatementAssembly
