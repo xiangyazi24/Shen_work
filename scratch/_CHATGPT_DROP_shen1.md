@@ -1,422 +1,362 @@
-# Q2702 (shen1) — `IntervalAgmonInterpolation.lean` sorry audit
+# Q2709 (shen1) — Agmon producer route audit
 
 Repo: `xiangyazi24/Shen_work`, Lean 4 / Mathlib 4.29.1.  
-Scope: non-Zinan files only.  I did not inspect or rely on
+Scope: non-Zinan files only.  I did not inspect, rely on, or propose edits to
 `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or
 `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
 
-## Executive verdict
-
-Do **not** try to fill the four `sorry`s in the current statements as written.
-There are two real API problems:
-
-1. `sup_le_integral_add_integral_deriv` and
-   `integral_abs_le_sqrt_integral_sq` are missing essential analytic hypotheses.
-   They are not just hard Lean exercises.
-2. `intervalDomain_classicalSolutionPositiveInterpolation_of_agmon` cannot use
-   the current `hagmon` signature, because it needs one `Ceps` uniform for all
-   time slices, while the current `hagmon` only gives a `Ceps` after a particular
-   function `f` has been chosen.
-
-There is a small compile-likely wiring replacement for (4), but only after
-changing the Agmon input to a uniform-frontier shape.
-
-## Source facts checked
-
-`IntervalDomainClassicalSolutionPositiveInterpolation` is:
+I inspected the current committed `ShenWork/PDE/IntervalAgmonInterpolation.lean`.
+It now contains no `sorry`s, defines the uniform frontier
+`UnitIntervalPositiveAgmonInterpolation`, and proves the wiring theorem
 
 ```lean
-abbrev IntervalDomainClassicalSolutionPositiveInterpolation
-    (p : CM2Params) : Prop :=
-  ∀ {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-    IsPaper2ClassicalSolution intervalDomain p T u v →
-      ∀ eps, 0 < eps → ∀ q, 1 < q → ∃ Ceps > 0,
-        LpMassGradientInterpolationEstimate intervalDomain q eps Ceps T u
-```
-
-So the `Ceps` is chosen once after `T,u,v,hsol,eps,q` and before the estimate is
-used at arbitrary `t ∈ (0,T)`.  A per-slice `∃ Ceps` from
-`hagmon (u t) ...` is too weak.
-
-For classical slices, the regularity accessors available in the repo are enough
-to provide positivity and spatial regularity:
-
-```lean
-have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
-have hpos : ∀ x : intervalDomain.Point, 0 < u t x :=
-  fun x => hsol.u_pos' ht0 htT
-have hC2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-  (hsol.regularity.2.2.2.2.1 t ht).1.1
-```
-
-The file also has the open-interval interior regularity field:
-
-```lean
-(hsol.regularity.1 t ht).1 :
-  ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1)
-```
-
-Those are adequate for wiring to a correct slice inequality, but they do not
-supply the missing analytic theorem itself.
-
-## Sorry 1: `sup_le_integral_add_integral_deriv`
-
-### Current statement is too weak
-
-Current theorem:
-
-```lean
-theorem sup_le_integral_add_integral_deriv
-    {f : ℝ → ℝ}
-    (hf_cont : ContinuousOn f (Icc 0 1))
-    (hf_diff : DifferentiableOn ℝ f (Ioo 0 1))
-    (hf_nonneg : ∀ x ∈ Icc (0 : ℝ) 1, 0 ≤ f x) :
-    ∀ x ∈ Icc (0 : ℝ) 1,
-      f x ≤ ∫ y in (0 : ℝ)..1, f y + ∫ y in (0 : ℝ)..1, |deriv f y|
-```
-
-The proof sketch needs a fundamental theorem of calculus / bounded variation
-step:
-
-```lean
-f x - f y ≤ ∫ s in (0 : ℝ)..1, |deriv f s|
-```
-
-But `ContinuousOn` on `[0,1]` plus `DifferentiableOn` on `(0,1)` does **not**
-encode absolute continuity or an integrable derivative / FTC identity.  In Lean
-terms, there is no source for the desired
-`f x - f y = ∫ s in y..x, deriv f s` bridge from those hypotheses alone.
-
-A standard counterexample shape is a differentiable continuous function whose
-derivative is not Lebesgue integrable, such as an oscillatory term near `0`
-(e.g. a smooth bump plus a small `x^2 * sin (1 / x^2)`-type term, adjusted at
-`0`).  The derivative has a nonintegrable absolute value near `0`, while the
-function is continuous and differentiable on the open interval.  With Mathlib's
-unconditional integral notation, nonintegrable terms do not give the FTC bound
-for free, so the proposed inequality is not derivable.
-
-### Thinnest honest replacement
-
-Use either an explicit variation/FTC frontier, or strengthen to a genuine C¹ /
-absolute-continuity input.
-
-The smallest statement-surface replacement is to name the exact pointwise FTC
-consequence the proof needs:
-
-```lean
-import ShenWork.Paper2.IntervalDomainTheorem11
-import ShenWork.PDE.IntervalDomain
-
-open MeasureTheory Set
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- Exact FTC/variation input needed for the elementary sup bound. -/
-def UnitIntervalDerivativeVariationBound (f : ℝ → ℝ) : Prop :=
-  ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
-    f x - f y ≤ ∫ s in (0 : ℝ)..1, |deriv f s|
-
-/-- Sup bound from the explicit variation input.  This is the honest algebraic
-part of the current `sup_le_integral_add_integral_deriv` proof. -/
-theorem sup_le_integral_add_integral_deriv_of_variationBound
-    {f : ℝ → ℝ}
-    (hf_cont : ContinuousOn f (Icc 0 1))
-    (hvar : UnitIntervalDerivativeVariationBound f) :
-    ∀ x ∈ Icc (0 : ℝ) 1,
-      f x ≤ ∫ y in (0 : ℝ)..1, f y + ∫ y in (0 : ℝ)..1, |deriv f y| := by
-  intro x hx
-  set C := ∫ s in (0 : ℝ)..1, |deriv f s|
-  have hpoint : ∀ y ∈ Icc (0 : ℝ) 1, f x ≤ f y + C := by
-    intro y hy
-    have hxy := hvar x hx y hy
-    dsimp [C]
-    linarith
-  have hle_integral : f x ≤ ∫ y in (0 : ℝ)..1, (f y + C) := by
-    have hconst : f x = ∫ _y in (0 : ℝ)..1, f x := by
-      rw [intervalIntegral.integral_const]
-      simp [smul_eq_mul]
-    rw [hconst]
-    exact intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
-      intervalIntegrable_const
-      ((hf_cont.intervalIntegrable_of_Icc (by norm_num)).add intervalIntegrable_const)
-      (fun y hy => hpoint y hy)
-  have hsplit : ∫ y in (0 : ℝ)..1, (f y + C) =
-      (∫ y in (0 : ℝ)..1, f y) + C := by
-    rw [intervalIntegral.integral_add
-      (hf_cont.intervalIntegrable_of_Icc (by norm_num))
-      intervalIntegrable_const,
-      intervalIntegral.integral_const]
-    simp [smul_eq_mul]
-  linarith
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-end
-```
-
-If Codex wants to prove `UnitIntervalDerivativeVariationBound` later, use a
-separate theorem with explicit hypotheses such as `ContDiffOn ℝ 1 f (Icc 0 1)`
-or `AbsoluteContinuousOn f (Icc 0 1)` plus the appropriate derivative
-integrability/FTC theorem.  Do not hide that in the current weak theorem.
-
-## Sorry 2: `integral_abs_le_sqrt_integral_sq`
-
-### Current statement is false / missing `L²`
-
-Current theorem:
-
-```lean
-theorem integral_abs_le_sqrt_integral_sq
-    {g : ℝ → ℝ}
-    (hg : IntervalIntegrable g volume 0 1) :
-    ∫ y in (0 : ℝ)..1, |g y| ≤
-      Real.sqrt (∫ y in (0 : ℝ)..1, g y ^ 2)
-```
-
-`IntervalIntegrable g` is only an `L¹` hypothesis.  It does not imply that
-`g^2` is integrable.  A standard counterexample is `g y = 1 / sqrt y` on
-`(0,1]` with any harmless value at `0`: it is `L¹` on the unit interval, but
-`g^2 = 1/y` is not integrable.  In Lean, the RHS interval integral is not
-justified by `hg`, so the Cauchy--Schwarz proof has no valid input.
-
-### Thinnest honest replacement
-
-Require square integrability.  The theorem then follows from Cauchy--Schwarz /
-Hölder on the restricted unit interval.  A compile route is:
-
-```lean
-import ShenWork.Paper2.IntervalDomainTheorem11
-import ShenWork.PDE.IntervalDomain
-import Mathlib.Analysis.InnerProductSpace.L2Space
-
-open MeasureTheory Set
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- Honest `L¹ ≤ L²` on the unit interval: requires square integrability. -/
-theorem integral_abs_le_sqrt_integral_sq_of_sq_integrable
-    {g : ℝ → ℝ}
-    (hg2 : IntervalIntegrable (fun y => g y ^ 2) volume 0 1) :
-    ∫ y in (0 : ℝ)..1, |g y| ≤
-      Real.sqrt (∫ y in (0 : ℝ)..1, g y ^ 2) := by
-  -- Recommended proof route:
-  -- 1. Rewrite interval integrals as integrals over `volume.restrict (Ioc 0 1)`
-  --    or `volume.restrict (Icc 0 1)` using the interval-integral API.
-  -- 2. Apply Cauchy--Schwarz to `|g| * 1`.
-  -- 3. Use `∫ 1^2 = 1` on the unit interval.
-  -- 4. Use nonnegativity of `∫ g^2` and `sq_le_sq` / `Real.le_sqrt`.
-  --
-  -- The key missing input in the old statement is exactly `hg2`; do not try to
-  -- derive it from `IntervalIntegrable g`.
-  admit
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-end
-```
-
-Replace the final `admit` with the local Mathlib Cauchy--Schwarz API available in
-the working tree.  The important correction is the statement surface: `hg2`, not
-`hg`, is the right input.
-
-## Sorry 3: `intervalDomain_agmon_interpolation`
-
-### Current statement is true only in a weak/non-useful sense, and the intended proof route is incomplete
-
-Current theorem places `∃ Ceps` after `f`:
-
-```lean
-theorem intervalDomain_agmon_interpolation
-    {f : intervalDomain.Point → ℝ}
-    ... :
-    ∃ Ceps > 0,
-      intervalDomain.integral (fun x => f x ^ q) ≤
-        eps * intervalDomain.integral
-          (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2) +
-        Ceps * (intervalDomain.integral f) ^ q
-```
-
-With `Ceps` allowed to depend on `f`, this is much easier than the paper's
-interpolation frontier and is not enough for `IntervalDomainClassicalSolutionPositiveInterpolation`.
-For a fixed positive continuous `f`, `intervalDomain.integral f` is positive, so
-one can often choose a huge `Ceps` after seeing `f`; this does not give a uniform
-constant for all time slices.
-
-The intended four-step proof also has a mathematical mismatch: Step 2 controls
-an unweighted `∫ |f'|` or `∫ (f')²`, but the target gradient term is
-
-```lean
-∫ f^(q-2) * (f')²
-```
-
-To bridge that honestly you need a power-chain-rule/coercivity argument, usually
-by applying the 1D estimate to a power of `f`, e.g. `f^(q/2)`, and proving
-
-```lean
-|∂x (f^(q/2))|² = (q / 2)^2 * f^(q-2) * |f'|²
-```
-
-on the interior, plus integrability.  The current hypotheses
-`ContinuousOn` + `DifferentiableOn` do not package those analytic facts.
-
-### Thinnest useful replacement
-
-Define the useful theorem as a **uniform frontier**:
-
-```lean
-/-- Uniform positive 1D Agmon/GN frontier on the unit interval.
-
-The constant is chosen from `q` and `eps` before the particular positive slice
-`f` is supplied.  This is the shape needed for classical solution slices. -/
-def UnitIntervalPositiveAgmonInterpolation : Prop :=
-  ∀ q : ℝ, 1 < q →
-  ∀ eps : ℝ, 0 < eps →
-    ∃ Ceps > 0,
-      ∀ f : intervalDomain.Point → ℝ,
-        (∀ x, 0 < f x) →
-        ContinuousOn (intervalDomainLift f) (Icc (0 : ℝ) 1) →
-        DifferentiableOn ℝ (intervalDomainLift f) (Ioo (0 : ℝ) 1) →
-          intervalDomain.integral (fun x => f x ^ q) ≤
-            eps * intervalDomain.integral
-              (fun x => f x ^ (q - 2) *
-                (intervalDomain.gradNorm f x) ^ 2) +
-            Ceps * (intervalDomain.integral f) ^ q
-```
-
-If proving the actual inequality now, use stronger assumptions in the producer
-lemma, not this weak C¹ shell.  For example, introduce a private analytic lemma
-for `ContDiffOn ℝ 1 (intervalDomainLift f) (Icc 0 1)` or explicit
-`UnitIntervalDerivativeVariationBound` / square-integrability / chain-rule
-frontiers, then export the uniform frontier above only after those pieces are
-proved.
-
-## Sorry 4: `intervalDomain_classicalSolutionPositiveInterpolation_of_agmon`
-
-### Current theorem cannot be proved from its current `hagmon`
-
-Current input:
-
-```lean
-hagmon :
-  ∀ (f : intervalDomain.Point → ℝ), ... →
-    ∀ q : ℝ, 1 < q →
-      ∀ eps : ℝ, 0 < eps →
-        ∃ Ceps > 0, inequality f q eps Ceps
-```
-
-This gives `Ceps` after choosing `f`.  In the target, `Ceps` must work for every
-time slice in `LpMassGradientInterpolationEstimate intervalDomain q eps Ceps T u`.
-Therefore the theorem is not derivable from the current `hagmon` signature.
-
-### Compile-shaped replacement wiring
-
-Use the uniform frontier above.  This should be placed in
-`ShenWork/PDE/IntervalAgmonInterpolation.lean` and then the old theorem should be
-replaced or deprecated.
-
-```lean
-import ShenWork.Paper2.IntervalDomainTheorem11
-import ShenWork.PDE.IntervalDomain
-
-open MeasureTheory Set
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- Uniform positive 1D Agmon/GN frontier on the unit interval. -/
-def UnitIntervalPositiveAgmonInterpolation : Prop :=
-  ∀ q : ℝ, 1 < q →
-  ∀ eps : ℝ, 0 < eps →
-    ∃ Ceps > 0,
-      ∀ f : intervalDomain.Point → ℝ,
-        (∀ x, 0 < f x) →
-        ContinuousOn (intervalDomainLift f) (Icc (0 : ℝ) 1) →
-        DifferentiableOn ℝ (intervalDomainLift f) (Ioo (0 : ℝ) 1) →
-          intervalDomain.integral (fun x => f x ^ q) ≤
-            eps * intervalDomain.integral
-              (fun x => f x ^ (q - 2) *
-                (intervalDomain.gradNorm f x) ^ 2) +
-            Ceps * (intervalDomain.integral f) ^ q
-
-/-- Produce the classical-solution positive interpolation frontier from a uniform
-unit-interval Agmon/GN frontier. -/
 theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
     {params : CM2Params}
     (hagmon : UnitIntervalPositiveAgmonInterpolation) :
+    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
+      params
+```
+
+The wiring theorem is the right quantifier-order fix: `Ceps` is chosen before the
+slice `f`.  The remaining question is whether the frontier itself is a theorem
+under its current weak slice assumptions.
+
+## 1. Is `UnitIntervalPositiveAgmonInterpolation` true as stated?
+
+Lean-oriented answer: **do not try to prove it from the current assumptions as
+stated.**  It is still under-hypothesized for a direct analytic proof.
+
+Current frontier:
+
+```lean
+def UnitIntervalPositiveAgmonInterpolation : Prop :=
+  ∀ q : ℝ, 1 < q →
+  ∀ eps : ℝ, 0 < eps →
+    ∃ Ceps > 0,
+      ∀ f : intervalDomain.Point → ℝ,
+        (∀ x, 0 < f x) →
+        ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
+        DifferentiableOn ℝ (intervalDomainLift f) (Set.Ioo (0 : ℝ) 1) →
+          intervalDomain.integral (fun x => f x ^ q) ≤
+            eps * intervalDomain.integral
+              (fun x => f x ^ (q - 2) *
+                (intervalDomain.gradNorm f x) ^ 2) +
+            Ceps * (intervalDomain.integral f) ^ q
+```
+
+The issue is the same one that killed the old FTC and `L¹ ≤ L²` sublemmas, but
+now hidden inside the frontier: `ContinuousOn` on `[0,1]` plus
+`DifferentiableOn` on `(0,1)` does not give the absolute-continuity / Sobolev
+regularity needed to use the derivative integral.  In the repository,
+`intervalDomain.gradNorm f x` is
+
+```lean
+|deriv (intervalDomainLift f) x.1|
+```
+
+so the gradient term is a Bochner interval integral of a derivative expression.
+For a direct proof, one needs enough regularity to know that this derivative term
+is the right derivative in an FTC sense and is square-integrable or at least
+usable in the relevant chain-rule estimate.
+
+Mathematical adversarial example shape: a positive continuous function on
+`[0,1]` that is differentiable on `(0,1)` but has a non-square-integrable
+oscillatory derivative near an endpoint.  The weak assumptions allow such
+functions.  In ordinary analysis one cannot use a finite-energy Agmon/Sobolev
+inequality on them.  In Lean this is worse: unprotected interval integrals of
+nonintegrable functions are not a valid substitute for extended-real `∞` terms,
+so the statement can behave like a false finite-integral claim rather than a
+vacuously-true extended-integral claim.
+
+The current proposition is acceptable **only as an explicit residual**.  It is
+not the right theorem target for Codex to attack directly.
+
+## 2. Thinnest corrected uniform frontier strong enough for classical slices
+
+Use a `C¹`/Sobolev-strength slice assumption.  The cleanest minimal surface that
+wires to existing `hsol.regularity` fields is:
+
+```lean
+ContDiffOn ℝ 1 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)
+```
+
+because every classical solution slice already provides the stronger field:
+
+```lean
+(hsol.regularity.2.2.2.2.1 t ht).1.1 :
+  ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1)
+```
+
+So the corrected frontier should be:
+
+```lean
+def UnitIntervalPositiveAgmonInterpolationC1 : Prop :=
+  ∀ q : ℝ, 1 < q →
+  ∀ eps : ℝ, 0 < eps →
+    ∃ Ceps > 0,
+      ∀ f : intervalDomain.Point → ℝ,
+        (∀ x, 0 < f x) →
+        ContDiffOn ℝ 1 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
+          intervalDomain.integral (fun x => f x ^ q) ≤
+            eps * intervalDomain.integral
+              (fun x => f x ^ (q - 2) *
+                (intervalDomain.gradNorm f x) ^ 2) +
+            Ceps * (intervalDomain.integral f) ^ q
+```
+
+This is still a genuine analytic theorem, not a trivial wrapper.  But it is now
+the right statement shape: the quantifier order is uniform, and the regularity
+surface is strong enough to justify the FTC / Cauchy--Schwarz / chain-rule route.
+
+If the proof of the actual analytic inequality gets stuck on endpoint behavior
+of `intervalDomainLift`, the next honest strengthening is:
+
+```lean
+ContDiffOn ℝ 1 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)
+∧ IntervalIntegrable (fun x => deriv (intervalDomainLift f) x) volume 0 1
+∧ IntervalIntegrable (fun x =>
+    f ⟨x, _⟩ ^ (q - 2) * deriv (intervalDomainLift f) x ^ 2) volume 0 1
+```
+
+But I would not put the integrability fields into the public frontier first,
+because `ContDiffOn ℝ 1` on compact `[0,1]` should be enough to derive the
+ordinary derivative integrability facts locally.  Keep those as private lemmas
+inside the future proof, not caller-facing fields, unless Mathlib friction forces
+the explicit surface.
+
+## 3. Search-oriented guidance for Codex
+
+Start with the existing repo algebra and frontier files:
+
+```bash
+grep -R "UnitIntervalPositiveAgmonInterpolation\|intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon" -n ShenWork/PDE ShenWork/Paper2
+
+grep -R "IntervalDomainInterpolation\|interpolation_absorption\|quadratic_absorption" -n ShenWork/Paper2/IntervalDomainLemma41.lean
+
+grep -R "LpMassGradientInterpolationEstimate\|Lemma_4_1_intervalDomain_of_solution_interpolation_frontier\|IntervalDomainClassicalSolutionPositiveInterpolation" -n ShenWork/Paper2 ShenWork/PDE
+
+grep -R "ContDiffOn ℝ 2 (intervalDomainLift (u t))\|solution_deriv_lift_continuousOn_Icc\|lift_hasDerivAt_interior" -n ShenWork/Paper2 ShenWork/PDE
+
+grep -R "intervalIntegral.integral_deriv\|integral_deriv_eq\|integral_mul_deriv\|intervalFluxByParts_open\|intervalCosineLaplacianCoeff_eq" -n ShenWork/Paper2 ShenWork/PDE
+```
+
+Useful repo files to inspect first:
+
+```lean
+ShenWork/PDE/IntervalAgmonInterpolation.lean
+ShenWork/Paper2/IntervalDomainLemma41.lean
+ShenWork/Paper2/IntervalDomainTheorem11.lean
+ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean
+ShenWork/Paper2/IntervalDomainMass.lean
+ShenWork/PDE/IntervalSolutionCoeffDeriv.lean
+ShenWork/PDE/IntervalDomain.lean
+```
+
+Likely Mathlib theorem/API patterns to type-search:
+
+```lean
+#check intervalIntegral.integral_deriv_eq_sub
+#check intervalIntegral.integral_deriv_eq_sub'
+#check intervalIntegral.integral_eq_sub_of_hasDerivAt
+#check intervalIntegral.integral_mono_on
+#check intervalIntegral.integral_const
+#check intervalIntegral.integral_add
+#check intervalIntegral.integral_const_mul
+
+#check ContDiffOn.continuousOn
+#check ContDiffOn.differentiableOn
+#check ContDiffOn.of_le
+#check HasDerivAt.rpow_const
+#check HasDerivWithinAt.rpow_const
+#check DifferentiableOn.rpow
+
+#check ContinuousOn.intervalIntegrable
+#check IntervalIntegrable.norm
+#check IntervalIntegrable.mul
+#check IntervalIntegrable.pow
+#check intervalIntegral.integral_nonneg
+
+#check Real.rpow_pos_of_pos
+#check Real.rpow_nonneg
+#check Real.rpow_le_rpow
+#check Real.rpow_add
+#check Real.sqrt_mul
+#check Real.sq_sqrt
+```
+
+For Cauchy--Schwarz/Hölder, search in Mathlib for these names/patterns rather
+than guessing exact spelling:
+
+```lean
+#check MeasureTheory.integral_mul_le_Lp_mul_Lq
+#check MeasureTheory.lintegral_mul_le_Lp_mul_Lq
+#check MeasureTheory.memLp_const
+#check MeasureTheory.MemLp
+#check MeasureTheory.eLpNorm
+```
+
+If those are too heavy, avoid the `Lp` API and prove the unit-interval
+`L¹ ≤ L²` lemma using a dedicated Cauchy--Schwarz lemma over
+`volume.restrict (Set.Icc 0 1)` or `volume.restrict (Set.Ioc 0 1)`, then convert
+back to interval integrals.
+
+Likely imports for the analytic proof attempt:
+
+```lean
+import ShenWork.Paper2.IntervalDomainTheorem11
+import ShenWork.PDE.IntervalDomain
+import ShenWork.Paper2.IntervalDomainLemma41
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import Mathlib.MeasureTheory.Function.LpSpace
+```
+
+Keep `Mathlib.MeasureTheory.Function.LpSpace` optional; it may be expensive, but
+it is the likely source for Hölder/Cauchy--Schwarz if the local environment has
+those theorem names.
+
+## 4. Compile-likely corrected frontier and wiring theorem
+
+This is the patch shape I recommend.  It does not prove Agmon; it records the
+right residual and gives a finished wrapper from existing classical regularity.
+
+```lean
+import ShenWork.Paper2.IntervalDomainTheorem11
+import ShenWork.PDE.IntervalDomain
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+/-- Uniform positive one-dimensional Agmon/Gagliardo-Nirenberg frontier on the
+unit interval, with a `C¹` slice regularity surface.
+
+This is the corrected theorem target.  The constant is chosen from `q` and
+`eps`, before the particular positive slice `f` is supplied. -/
+def UnitIntervalPositiveAgmonInterpolationC1 : Prop :=
+  ∀ q : ℝ, 1 < q →
+  ∀ eps : ℝ, 0 < eps →
+    ∃ Ceps > 0,
+      ∀ f : intervalDomain.Point → ℝ,
+        (∀ x, 0 < f x) →
+        ContDiffOn ℝ 1 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
+          intervalDomain.integral (fun x => f x ^ q) ≤
+            eps * intervalDomain.integral
+              (fun x => f x ^ (q - 2) *
+                (intervalDomain.gradNorm f x) ^ 2) +
+            Ceps * (intervalDomain.integral f) ^ q
+
+/-- A `C¹` uniform Agmon frontier implies the current weaker-looking uniform
+frontier.  This is optional; keep it only if existing callers already expect
+`UnitIntervalPositiveAgmonInterpolation`.
+
+The proof uses the fact that callers supplying only `ContinuousOn` and
+`DifferentiableOn` are not enough to produce `ContDiffOn`; therefore this
+conversion should **not** be added in this direction.  Instead, change callers to
+use `UnitIntervalPositiveAgmonInterpolationC1` directly.
+-/- no theorem here on purpose -/
+
+/-- Produce the classical-solution positive interpolation frontier from the
+corrected `C¹` uniform unit-interval Agmon frontier. -/
+theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon_C1
+    {params : CM2Params}
+    (hagmon : UnitIntervalPositiveAgmonInterpolationC1) :
     IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
       params := by
   intro T u v hsol eps heps q hq
   rcases hagmon q hq eps heps with ⟨Ceps, hCeps_pos, hCeps⟩
   refine ⟨Ceps, hCeps_pos, ?_⟩
   intro t ht0 htT
-  have ht : t ∈ Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
   have hf_pos : ∀ x : intervalDomain.Point, 0 < u t x :=
     fun x => hsol.u_pos' ht0 htT
   have hC2_closed :
-      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Icc (0 : ℝ) 1) :=
+      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
     (hsol.regularity.2.2.2.2.1 t ht).1.1
-  have hf_cont : ContinuousOn (intervalDomainLift (u t)) (Icc (0 : ℝ) 1) :=
-    hC2_closed.continuousOn
-  have hC2_open :
-      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Ioo (0 : ℝ) 1) :=
-    (hsol.regularity.1 t ht).1
-  have hf_diff : DifferentiableOn ℝ (intervalDomainLift (u t)) (Ioo (0 : ℝ) 1) := by
-    -- Depending on the local Mathlib API, this line may be either exactly this
-    -- or use `hC2_open.contDiffOn`/`contDiffOn_iff_contDiffAt` variants.
-    exact hC2_open.differentiableOn (by norm_num : (1 : ℕ∞) ≤ 2)
-  exact hCeps (u t) hf_pos hf_cont hf_diff
+  have hC1_closed :
+      ContDiffOn ℝ 1 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    hC2_closed.of_le (by norm_num)
+  exact hCeps (u t) hf_pos hC1_closed
 
-#print axioms intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
+#print axioms intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon_C1
 
 end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 
 end
 ```
 
-If `ContDiffOn.differentiableOn` expects a different numeric cast in Mathlib
-4.29.1, the only fragile line is:
+If `hC2_closed.of_le (by norm_num)` is the only line that fails under the local
+Mathlib spelling, replace it by the local pattern already known to compile in the
+current file:
 
 ```lean
-exact hC2_open.differentiableOn (by norm_num : (1 : ℕ∞) ≤ 2)
+have hf_diff : DifferentiableOn ℝ (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1) :=
+  ((hsol.regularity.1 t ht).1).differentiableOn (by norm_num)
 ```
 
-The rest of the wiring is the right route.  A common fallback is to derive
-`DifferentiableOn` from the closed `ContDiffOn` field and then `.mono` to
-`Ioo_subset_Icc_self`.
+but then keep the analytic frontier as the existing weak one.  I prefer the C¹
+frontier because it is the honest theorem target.
 
-## Practical patch recommendation
+## 5. Realistic proof route for the analytic lemma
 
-For this file, I would make the following small, honest patch:
+Do not attack the current weak frontier.  Attack this:
 
-1. Rename or replace the current weak
-   `intervalDomain_classicalSolutionPositiveInterpolation_of_agmon` with
-   `intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon`.
-2. Replace the current per-function `intervalDomain_agmon_interpolation` target
-   by the uniform frontier `UnitIntervalPositiveAgmonInterpolation`, unless the
-   per-function theorem is needed elsewhere.  The per-function theorem is not the
-   one that closes Paper2/Paper3 callers.
-3. Do not try to prove `sup_le_integral_add_integral_deriv` from only
-   `ContinuousOn + DifferentiableOn`; introduce either
-   `UnitIntervalDerivativeVariationBound` or a stronger `ContDiffOn`/absolute
-   continuity theorem.
-4. Do not try to prove `integral_abs_le_sqrt_integral_sq` from only
-   `IntervalIntegrable g`; add square-integrability.
+```lean
+UnitIntervalPositiveAgmonInterpolationC1
+```
 
-This leaves the true analytic Agmon/GN theorem as a named residual rather than a
-hidden axiom.  The final solution-slice wiring can then be closed cleanly and
-without touching statement surfaces outside this file, except for replacing the
-bad `hagmon` signature with the uniform one.
+A realistic proof route is:
+
+```text
+1. Prove a 1D Agmon/Sobolev bound for nonnegative C¹ `g` on `[0,1]`:
+      sup_{x∈[0,1]} g x^2 ≤ A * ∫ g^2 + B * sqrt (∫ g^2) * sqrt (∫ (g')^2)
+   or a variant sufficient for the mass-gradient interpolation.
+
+2. Apply it to `g = (intervalDomainLift f) ^ (q / 2)`.
+
+3. Use `HasDerivAt.rpow_const` / `ContDiffOn` chain-rule lemmas and positivity
+   to identify
+      deriv (fun x => (intervalDomainLift f x) ^ (q / 2))
+   with
+      (q / 2) * (intervalDomainLift f x) ^ (q / 2 - 1) * deriv (intervalDomainLift f) x.
+
+4. Rewrite the squared derivative as
+      (q / 2)^2 * f^(q-2) * (gradNorm f)^2.
+
+5. Feed the algebra into the already-proved
+      IntervalDomainLemma41.interpolation_absorption
+   or copy that absorption pattern locally.
+
+6. Convert `intervalDomain.integral` to `∫ x in 0..1, intervalDomainLift ...`
+   using `intervalDomainIntegral` unfolding and `intervalIntegral.integral_congr`.
+```
+
+The hardest Lean work is not the final wiring; it is the chain-rule and interval
+integral conversion around `intervalDomainLift`, especially at endpoints.  If
+that becomes painful, first prove a real-line lemma for `g : ℝ → ℝ` on
+`Set.Icc 0 1`, then add a small bridge from `f : intervalDomain.Point → ℝ` to
+`intervalDomainLift f`.
+
+## 6. What should remain as explicit residual now
+
+For current Paper2/Paper3 purposes, keep a named residual; do not fake-prove it:
+
+```lean
+UnitIntervalPositiveAgmonInterpolationC1
+```
+
+Then export only the wiring theorem:
+
+```lean
+intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon_C1
+```
+
+This is strong enough for classical solution slices because `hsol.regularity`
+already has closed-slab spatial `ContDiffOn ℝ 2` for every interior time slice.
+It is also adversarially honest: it does not claim that arbitrary merely
+continuous/differentiable functions have the Sobolev/Agmon regularity needed by
+the derivative-energy term.
