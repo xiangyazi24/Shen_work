@@ -1,74 +1,122 @@
-# Q2520 shen1 — audit and next producer split for high-excursion frontier
+# Q2522 shen1 — witness-tied Type data for the high-excursion contradiction window
 
 Repo: `xiangyazi24/Shen_work`
 
-Target file/namespace:
+Target namespace:
 
 ```text
-ShenWork/PDE/P3MoserIntegratedClosure.lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-Visible-source caveat: the GitHub-visible `main` copy I can inspect still lags the described local patch.  This audit is therefore based on the prompt’s description of the passing local patch and the fixed-window APIs already visible around commit `9d9250e6`.
+Visible-source caveat: the GitHub-visible `main` copy I can inspect still does not contain your local Q2522 refactor.  The audit below is therefore grounded in the current checked-in integrated-Moser APIs in `ShenWork/PDE/P3MoserIntegratedClosure.lean` and in your stated local definitions.
 
-## 1. Honesty audit
+## Verdict
 
-The split still looks mathematically honest **provided the contradiction-window definition ties the strict upper/lower gap to the same `Gbound` and `Ceps` witnesses used in the fixed-window upper estimate**.
+Your refactor is the right repair.
 
-The honest part is clear:
-
-* `IntegratedMoserWindowUpperBoundData` proves only a fixed-window time-integral upper bound:
+The key correction is that `IntegratedMoserHighExcursionContradictionWindow` now carries the same concrete `Gbound` and `Ceps` used by
 
 ```lean
-∃ Gbound Ceps, 0 ≤ Ceps ∧
-  ∫ G_p ≤ Gbound ∧
-  ∫ Y_{p+rho} ≤ eps * Gbound + (b - a) * (Ceps * M)
+upperWitness :
+  IntegratedMoserWindowUpperBoundWitness
+    D u rho p a b M eps Gbound Ceps
 ```
 
-* `IntegratedMoserHighExcursionContradictionWindowFrontier` does not say “time-integral bound implies pointwise bound.”  It says a **pointwise high excursion** produces a window with a lower average and a strict gap against the fixed-window upper estimate.
-
-That is the right mathematical shape.  The high-excursion/thickness/gap field is exactly the genuine analytic frontier.
-
-### The main API hazard: existential upper data
-
-Because `IntegratedMoserWindowUpperBoundData` is a `Prop` existential, it has no projections.  A downstream strict gap must not be stated as a universal claim over all possible upper witnesses, because arbitrary huge `Ceps` values can trivially satisfy the upper inequality and destroy the gap.
-
-Bad shape:
+and the strict gap is stated for exactly those witnesses:
 
 ```lean
--- Too strong / usually false: huge Ceps can satisfy the upper-bound inequality.
-∀ Gbound Ceps,
-  0 ≤ Ceps →
-  ∫ G_p ≤ Gbound →
-  ∫ Y_{p+rho} ≤ eps * Gbound + (b - a) * (Ceps * M) →
-  eps * Gbound + (b - a) * (Ceps * M) < lower
+upper_lt_lower : eps * Gbound + (b - a) * (Ceps * M) < lowerBound
 ```
 
-Good shape:
+That avoids the Q2520 bug: a universal gap over all possible `Gbound/Ceps` witnesses is false/too strong because the upper-bound existential can usually be satisfied by larger budgets.  The contradiction eliminator only needs the one selected witness actually stored in the window.
+
+## Hidden API issues to watch
+
+### 1. Type-valued window means the frontier should also be Type-valued, or use `Nonempty`
+
+If you declare
 
 ```lean
--- Good: the contradiction window existentially carries the same witnesses used
--- by the upper estimate and the strict gap.
-∃ Gbound Ceps, 0 ≤ Ceps ∧
-  ∫ G_p ≤ Gbound ∧
-  ∫ Y_{p+rho} ≤ eps * Gbound + (b - a) * (Ceps * M) ∧
-  lower ≤ ∫ Y_{p+rho} ∧
-  eps * Gbound + (b - a) * (Ceps * M) < lower
+structure IntegratedMoserHighExcursionContradictionWindow ... where
+  a b M eps lowerBound Gbound Ceps : ℝ
+  ...
 ```
 
-If the local `IntegratedMoserHighExcursionContradictionWindow` is already shaped this way, it is good.  If it instead stores only
+without `: Prop`, then it is `Type`-valued data.  A structure declared `: Prop` cannot have a field whose type is arbitrary Type-valued data.  Therefore either make the frontier Type-valued too:
 
 ```lean
-upperData : IntegratedMoserWindowUpperBoundData ...
-lowerAverage : lower ≤ ∫ Y_{p+rho}
+structure IntegratedMoserHighExcursionContradictionWindowFrontier ... where
+  produce : ∀ ..., IntegratedMoserHighExcursionContradictionWindow ...
+```
+
+or, if you insist that the frontier itself is a proposition, wrap the produced data in `Nonempty`:
+
+```lean
+structure IntegratedMoserHighExcursionContradictionWindowFrontier ... : Prop where
+  produce : ∀ ..., Nonempty (IntegratedMoserHighExcursionContradictionWindow ...)
+```
+
+For the current route, the Type-valued frontier is simpler and matches your stated refactor.
+
+### 2. Do not store only `IntegratedMoserWindowUpperBoundData` inside the contradiction window
+
+This is good:
+
+```lean
+Gbound Ceps : ℝ
+upperWitness : IntegratedMoserWindowUpperBoundWitness D u rho p a b M eps Gbound Ceps
+upper_lt_lower : eps * Gbound + (b - a) * (Ceps * M) < lowerBound
+```
+
+This is still risky:
+
+```lean
+upperData : IntegratedMoserWindowUpperBoundData D u rho p a b M eps
 upper_lt_lower : ?
 ```
 
-then check that `upper_lt_lower` has the actual existential witnesses in scope.  If not, refactor to a witness-level predicate as below.
+unless `upper_lt_lower` is stated after unpacking `upperData.bounds` and tied to the unpacked witnesses.  There should be no `.Gbound` or `.Ceps` projections from `IntegratedMoserWindowUpperBoundData`; the only safe consumer shape is:
 
-## 2. Recommended witness-level helper layer
+```lean
+rcases hdata.bounds with ⟨Gbound, Ceps, hupperWitness⟩
+```
 
-Even if you keep `IntegratedMoserWindowUpperBoundData` as a `Prop` existential, introduce a witness predicate for clarity.  This gives the later gap theorem a precise target.
+### 3. The pure contradiction lemma needs no geometry, but the upper-witness producer still does
+
+The eliminator
+
+```lean
+false_of_windowUpperBoundWitness_lowerAverage_gap
+```
+
+only uses
+
+```lean
+lowerBound ≤ ∫ Y_{p+rho}
+∫ Y_{p+rho} ≤ eps * Gbound + (b-a)*(Ceps*M)
+eps * Gbound + (b-a)*(Ceps*M) < lowerBound
+```
+
+so it does not need `a ≤ b`, `0 < a`, `b < T`, interval integrability, endpoint nonnegativity, or `hp_nonneg`.
+
+But the producer of `upperWitness` still must supply the exact hypotheses demanded by the checked-in APIs:
+
+* `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds` needs `hp`, `hp_nonneg`, `haT`, `hbT`, `hYa`, `hYb_nonneg`, and `hmaxInt`, and returns `∃ C, 0 ≤ C ∧ 2 * ∫G ≤ M + C*p*H`.
+* `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound` needs `heps`, `hab`, `ha : 0 < a`, `hb : b < T`, interval integrability for `Y_{p+rho}` and `G`, the current `Y_p ≤ M` bound on `Icc a b`, and the selected gradient bound `∫G ≤ Gbound`.
+
+So keep the geometry/integrability/current-bound fields in the lower-window producer or in the upper-bound-data producer.  They do not have to pollute the final contradiction eliminator.
+
+### 4. `M` does not need nonnegativity for the pure contradiction, but later producers may prefer it
+
+The witness-level contradiction works for any real `M` because the stored `upperWitness` already proves the upper inequality.  However, if an analytic producer derives `M` from `LpPowerBoundedBefore`, remember that `LpPowerBoundedBefore` is only `∃ C, ∀ t, ... ≤ C`; it does not by itself say `0 ≤ C`.  If a later estimate wants nonnegative `M`, choose `max C 0` or prove nonnegativity of the energy separately.
+
+### 5. `eps_pos` is correctly stored in the Type-valued window
+
+The pure contradiction lemma does not use `eps_pos`, but the upper-bound construction does: the checked-in relative-Moser integrated theorem takes `heps : 0 < eps`.  Keeping `eps_pos` in the contradiction window is harmless and useful for tracing the selected upper witness.
+
+## Exact pure helper theorem already implied by your refactor
+
+This is the first theorem I would add after the witness definition.  It is pure and should compile as soon as your local `IntegratedMoserWindowUpperBoundWitness` is in scope.
 
 ```lean
 import ShenWork.PDE.P3MoserIntegratedClosure
@@ -84,336 +132,389 @@ noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Witness-level form of the fixed-window upper estimate.  This is pure
-packaging; it makes the existential witnesses in
-`IntegratedMoserWindowUpperBoundData` explicit. -/
-def IntegratedMoserWindowUpperBoundWitness
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (rho p a b M eps Gbound Ceps : ℝ) : Prop :=
-  0 ≤ Ceps ∧
-    (∫ s in a..b, integratedMoserGradientEnergy D u p s) ≤ Gbound ∧
-    (∫ s in a..b, integratedMoserEnergy D u (p + rho) s) ≤
-      eps * Gbound + (b - a) * (Ceps * M)
-
-/-- Suggested equivalent definition if `IntegratedMoserWindowUpperBoundData` is
-still easy to adjust.  If downstream already uses the existing name, keep the
-existing name and add this as a lemma instead. -/
-def IntegratedMoserWindowUpperBoundData' 
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (rho p a b M eps : ℝ) : Prop :=
-  ∃ Gbound Ceps,
-    IntegratedMoserWindowUpperBoundWitness
-      D u rho p a b M eps Gbound Ceps
-
-/-- Pure contradiction eliminator once the same witnesses satisfy both the upper
-bound and the strict upper/lower gap. -/
+/-- Pure contradiction from a witness-level fixed-window upper bound and a lower
+average/gap for the same witnesses. -/
 theorem false_of_windowUpperBoundWitness_lowerAverage_gap
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {rho p a b M eps Gbound Ceps lower : ℝ}
+    {rho p a b M eps Gbound Ceps lowerBound : ℝ}
     (hupper :
       IntegratedMoserWindowUpperBoundWitness
         D u rho p a b M eps Gbound Ceps)
     (hlower :
-      lower ≤
-        ∫ s in a..b, integratedMoserEnergy D u (p + rho) s)
-    (hgap : eps * Gbound + (b - a) * (Ceps * M) < lower) :
+      lowerBound ≤
+        ∫ s in a..b, D.integral (fun x => (u s x) ^ (p + rho)))
+    (hgap : eps * Gbound + (b - a) * (Ceps * M) < lowerBound) :
     False := by
-  rcases hupper with ⟨_hCeps, _hG, hYupper⟩
+  rcases hupper with ⟨_hCeps_nonneg, _hG_le, hYupper⟩
   linarith
 
+/-- Pure eliminator for the Type-valued contradiction-window data. -/
+theorem false_of_integratedMoserHighExcursionContradictionWindow
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (hwin :
+      IntegratedMoserHighExcursionContradictionWindow
+        D u T rho p0 p) :
+    False := by
+  exact false_of_windowUpperBoundWitness_lowerAverage_gap
+    hwin.upperWitness hwin.lowerAverage hwin.upper_lt_lower
+
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
 ```
 
-Classification: pure plumbing.  This layer adds no analytic claim.  It only prevents confusion caused by existential `Prop` data.
+If your local `IntegratedMoserHighExcursionContradictionWindow` parameter list omits `T` or `p0`, keep the theorem name and proof body, and only adjust the parameter list.  The important part is that the proof uses `hwin.upperWitness`, `hwin.lowerAverage`, and `hwin.upper_lt_lower`; it must not unpack `IntegratedMoserWindowUpperBoundData` here.
 
-## 3. Next producer theorem split
+## Minimal next Type-valued producer interfaces
 
-The current frontier says a high excursion above `Cnext` produces a contradiction window.  To actually prove that frontier, split it into two genuine producer frontiers plus one pure assembler.
+The clean split is:
 
-### 3.1 High-excursion lower-average window producer
+```text
+lower-average window frontier
+        +
+upper-gap witness frontier
+        │
+        ▼
+pure assembler
+        │
+        ▼
+IntegratedMoserHighExcursionContradictionWindowFrontier
+```
 
-This is the real “thickness” or “absolute-continuity/modulus” analytic step.  It should not mention `Ceps`.  It only turns pointwise high excursion into a window with a lower time-average and the geometry needed for the fixed-window plumbing.
+### 1. Lower-average window data
+
+This is the output of the high-excursion/thickness frontier.  It deliberately does not mention `eps`, `Gbound`, or `Ceps`.
 
 ```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open scoped Interval
+
+noncomputable section
+
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Window selected from a high excursion, before applying the fixed-window upper
-estimate. -/
+/-- A selected high-excursion window with a lower average for the next exponent.
+This is Type-valued because it carries the chosen interval and constants. -/
 structure IntegratedMoserHighExcursionLowerAverageWindow
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 p Cp Cnext t : ℝ) : Prop where
-  a b lower : ℝ
-  hab : a < b
+    (T rho p0 p Cnext t : ℝ) where
+  a b M lowerBound : ℝ
+  hab : a ≤ b
   ha_pos : 0 < a
   hb_lt : b < T
   haT : a ∈ Set.Icc (0 : ℝ) T
   hbT : b ∈ Set.Icc a T
   currentEnergy_le_Icc :
     ∀ s ∈ Set.Icc a b,
-      integratedMoserEnergy D u p s ≤ Cp
+      D.integral (fun x => (u s x) ^ p) ≤ M
   lowerAverage :
-    lower ≤
-      ∫ s in a..b, integratedMoserEnergy D u (p + rho) s
+    lowerBound ≤
+      ∫ s in a..b, D.integral (fun x => (u s x) ^ (p + rho))
 
-/-- Real analytic frontier: every sufficiently high pointwise excursion of
-`Y_{p+rho}` produces a lower-average window.
-
-This is where continuity alone is insufficient; the proof needs a quantitative
-high-excursion thickness, absolute-continuity/modulus, or equivalent PDE input. -/
+/-- Analytic frontier: a high pointwise excursion produces a window carrying a
+quantitative lower average.  This is the thickness/modulus/non-spike input. -/
 structure IntegratedMoserHighExcursionLowerAverageWindowFrontier
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
+    (T rho p0 : ℝ) where
   produce :
-    ∀ {p Cp Cnext t : ℝ},
+    ∀ {p Cnext t : ℝ},
       p0 ≤ p →
       0 ≤ p →
-      0 < rho →
-      (∀ s, 0 < s → s < T → integratedMoserEnergy D u p s ≤ Cp) →
-      Cnext < integratedMoserEnergy D u (p + rho) t →
+      LpPowerBoundedBefore D p T u →
       0 < t → t < T →
+      Cnext < D.integral (fun x => (u t x) ^ (p + rho)) →
         IntegratedMoserHighExcursionLowerAverageWindow
-          D u T rho p0 p Cp Cnext t
+          D u T rho p0 p Cnext t
 
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
 ```
 
-Classification:
+Classification: the structure is plumbing; the `produce` field is genuine analytic content.  In particular, `lowerAverage` is not a consequence of a single pointwise high value without a quantitative continuity/absolute-continuity/thickness input.
 
-* Geometry fields (`a < b`, `0 < a`, `b < T`, endpoint membership) are plumbing once the analytic window is selected.
-* `currentEnergy_le_Icc` is plumbing from the current `LpPowerBoundedBefore` bound.
-* `lowerAverage` is the real analytic content: it is a thickness/lower-average claim from a pointwise high excursion.
+### 2. Upper-gap witness data
 
-### 3.2 Fixed-window upper witness plus strict gap producer
-
-This is where the `eps/Ceps` dependence belongs.  It must choose `eps` and the upper-bound witnesses together, not quantify over arbitrary `Ceps` witnesses.
+This is the correct home for the `eps/Gbound/Ceps` dependence.  It returns the exact upper witness and the strict gap for that same witness.
 
 ```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open scoped Interval
+
+noncomputable section
+
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Real analytic / quantitative frontier: for a lower-average high-excursion
-window, one can choose `eps` and the fixed-window upper-bound witnesses so that
-the upper budget is strictly below the lower average.
-
-This is intentionally stronger than merely having
-`IntegratedMoserWindowUpperBoundData`, because the latter is existential and has
-no projections.  The proof of this frontier must control the selected `Ceps`
-from relative Moser, or use a quantitative replacement for
-`RelativeMoserInterpolationBefore`. -/
-structure IntegratedMoserUpperWitnessGapFrontier
+/-- A fixed-window upper-bound witness together with a strict gap below the
+lower average selected by the lower-window data. -/
+structure IntegratedMoserWindowUpperGapWitness
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
+    (rho p a b M lowerBound : ℝ) where
+  eps Gbound Ceps : ℝ
+  eps_pos : 0 < eps
+  upperWitness :
+    IntegratedMoserWindowUpperBoundWitness
+      D u rho p a b M eps Gbound Ceps
+  upper_lt_lower :
+    eps * Gbound + (b - a) * (Ceps * M) < lowerBound
+
+/-- Quantitative upper-gap frontier: for the selected lower-average window, choose
+`eps` and the fixed-window upper witnesses so that the upper budget is below the
+lower average. -/
+structure IntegratedMoserWindowUpperGapWitnessFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) where
   produce :
-    ∀ {p Cp Cnext t : ℝ},
-      IntegratedMoserHighExcursionLowerAverageWindow
-        D u T rho p0 p Cp Cnext t →
-      ∃ eps Gbound Ceps,
-        0 < eps ∧
-        IntegratedMoserWindowUpperBoundWitness
-          D u rho p
-            (IntegratedMoserHighExcursionLowerAverageWindow.a)
-            (IntegratedMoserHighExcursionLowerAverageWindow.b)
-            Cp eps Gbound Ceps ∧
-        eps * Gbound +
-            ((IntegratedMoserHighExcursionLowerAverageWindow.b) -
-              (IntegratedMoserHighExcursionLowerAverageWindow.a)) *
-              (Ceps * Cp) <
-          IntegratedMoserHighExcursionLowerAverageWindow.lower
+    ∀ {p Cnext t : ℝ},
+      (hwin : IntegratedMoserHighExcursionLowerAverageWindow
+        D u T rho p0 p Cnext t) →
+        IntegratedMoserWindowUpperGapWitness
+          D u rho p hwin.a hwin.b hwin.M hwin.lowerBound
 
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
 ```
 
-The notation above uses structure projections schematically.  In actual Lean, bind the window as `hwin` and use `hwin.a`, `hwin.b`, `hwin.lower`:
+Classification: this frontier is not pure if you try to prove it from PDE estimates.  It is where the quantitative `eps ↦ Ceps` dependence of relative Moser, or a direct fixed-window upper-gap theorem, must live.  Existing `RelativeMoserInterpolationBefore` only gives `∀ eps > 0, ∃ Ceps, ...`; it does not expose enough dependence to prove a gap uniformly without additional analytic input.
+
+## Pure assemblers into the contradiction-window frontier
+
+These names are the next exact Lean theorem names I recommend.
+
+### 1. Assemble one contradiction window
 
 ```lean
-produce :
-  ∀ {p Cp Cnext t : ℝ},
-    (hwin : IntegratedMoserHighExcursionLowerAverageWindow
-      D u T rho p0 p Cp Cnext t) →
-    ∃ eps Gbound Ceps,
-      0 < eps ∧
-      IntegratedMoserWindowUpperBoundWitness
-        D u rho p hwin.a hwin.b Cp eps Gbound Ceps ∧
-      eps * Gbound + (hwin.b - hwin.a) * (Ceps * Cp) < hwin.lower
-```
+import ShenWork.PDE.P3MoserIntegratedClosure
 
-Classification:
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open scoped Interval
 
-* Choosing/applying `integratedMoser_windowUpperBoundData_of_precrossing` is plumbing.
-* Proving the selected `Ceps` and `Gbound` budget is below the lower average is real analytic/quantitative.
-* This is the correct home for all `eps/Ceps` dependence.  Do not hide this in the lower-average producer.
+noncomputable section
 
-### 3.3 Pure assembler to existing contradiction-window frontier
-
-Once the two producer frontiers above exist, the current `IntegratedMoserHighExcursionContradictionWindowFrontier` should be obtained by plumbing.
-
-```lean
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Pure assembly: lower-average window producer + upper-witness/gap producer
-imply the current high-excursion contradiction-window frontier. -/
-theorem integratedMoserHighExcursionContradictionWindowFrontier_of_lowerAverage_and_upperGap
+/-- Pure assembly of a lower-average window and a tied upper-gap witness into the
+Type-valued contradiction window. -/
+theorem integratedMoserHighExcursionContradictionWindow_of_lowerAverageWindow_and_upperGapWitness
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p Cnext t : ℝ}
+    (hlower :
+      IntegratedMoserHighExcursionLowerAverageWindow
+        D u T rho p0 p Cnext t)
+    (hupper :
+      IntegratedMoserWindowUpperGapWitness
+        D u rho p hlower.a hlower.b hlower.M hlower.lowerBound) :
+    IntegratedMoserHighExcursionContradictionWindow
+      D u T rho p0 p := by
+  exact
+    { a := hlower.a
+      b := hlower.b
+      M := hlower.M
+      eps := hupper.eps
+      lowerBound := hlower.lowerBound
+      Gbound := hupper.Gbound
+      Ceps := hupper.Ceps
+      eps_pos := hupper.eps_pos
+      upperWitness := hupper.upperWitness
+      lowerAverage := hlower.lowerAverage
+      upper_lt_lower := hupper.upper_lt_lower }
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
+```
+
+If your local contradiction-window structure also stores geometry fields, add these assignments from `hlower`:
+
+```lean
+hab := hlower.hab
+ha_pos := hlower.ha_pos
+hb_lt := hlower.hb_lt
+haT := hlower.haT
+hbT := hlower.hbT
+currentEnergy_le_Icc := hlower.currentEnergy_le_Icc
+```
+
+The important point is that `upperWitness` and `upper_lt_lower` both come from `hupper`, so they are tied to the same `eps/Gbound/Ceps`.
+
+### 2. Assemble the frontier
+
+```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+/-- Pure assembly: lower-average windows plus tied upper-gap witnesses produce the
+existing high-excursion contradiction-window frontier. -/
+theorem integratedMoserHighExcursionContradictionWindowFrontier_of_lowerAverageWindowFrontier_and_upperGapWitnessFrontier
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
     {T rho p0 : ℝ}
-    (hlower : IntegratedMoserHighExcursionLowerAverageWindowFrontier
-      D u T rho p0)
-    (hgap : IntegratedMoserUpperWitnessGapFrontier
-      D u T rho p0) :
+    (hlower :
+      IntegratedMoserHighExcursionLowerAverageWindowFrontier
+        D u T rho p0)
+    (hupper :
+      IntegratedMoserWindowUpperGapWitnessFrontier
+        D u T rho p0) :
     IntegratedMoserHighExcursionContradictionWindowFrontier
       D u T rho p0 := by
-  -- Plumbing only:
-  -- 1. receive a high excursion from the existing frontier target;
-  -- 2. call `hlower.produce` to obtain the window and lowerAverage;
-  -- 3. call `hgap.produce` to obtain eps/Gbound/Ceps, upper witness, and gap;
-  -- 4. package the current `IntegratedMoserHighExcursionContradictionWindow`;
-  -- 5. use `false_of_windowUpperBoundWitness_lowerAverage_gap` in the pure theorem
-  --    that eliminates contradiction windows, if needed.
-  admit
+  refine ⟨?_⟩
+  intro p Cnext t hp hp_nonneg hLp ht0 htT hhigh
+  let hwin : IntegratedMoserHighExcursionLowerAverageWindow
+      D u T rho p0 p Cnext t :=
+    hlower.produce hp hp_nonneg hLp ht0 htT hhigh
+  exact
+    integratedMoserHighExcursionContradictionWindow_of_lowerAverageWindow_and_upperGapWitness
+      hwin (hupper.produce hwin)
 
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
 ```
 
-The theorem above is a shape only; do not commit it with `admit`.  Its proof should be straightforward once the exact local fields of `IntegratedMoserHighExcursionContradictionWindowFrontier` are known.
+If your existing `IntegratedMoserHighExcursionContradictionWindowFrontier.produce` has a different binder order, keep the theorem name and only reorder the final `intro` line and the call to `hlower.produce`.  The proof should remain pure: call lower producer, call upper-gap producer on the selected lower window, package the Type-valued contradiction window.
 
-Classification: pure plumbing, assuming the two producer frontiers.
-
-## 4. Concrete route for proving the upper-gap frontier
-
-The hard part in `IntegratedMoserUpperWitnessGapFrontier` is that `RelativeMoserInterpolationBefore` only supplies:
+If the frontier is `Prop` with `Nonempty`, the last line becomes:
 
 ```lean
-∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧ pointwise_estimate eps Ceps
+  exact ⟨
+    integratedMoserHighExcursionContradictionWindow_of_lowerAverageWindow_and_upperGapWitness
+      hwin (hupper.produce hwin)⟩
 ```
 
-There is no quantitative dependence `Ceps(eps)` exposed.  Therefore a later analytic proof of the gap needs one of the following additional producer interfaces.
+## Optional safe unpacking theorem for `IntegratedMoserWindowUpperBoundData`
 
-### Option A: controlled relative-Moser constants
+This is the only projection-like helper I would add for the existential upper data.  It does not expose fake projections; it just unpacks the `bounds` field.
 
 ```lean
+import ShenWork.PDE.P3MoserIntegratedClosure
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open scoped Interval
+
+noncomputable section
+
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Quantitative replacement/refinement for `RelativeMoserInterpolationBefore`.
-It exposes a controlled choice of `Ceps`. -/
-structure ControlledRelativeMoserInterpolationBefore
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
-  Ceps : ℝ → ℝ → ℝ
-  Ceps_nonneg :
-    ∀ p eps, p0 ≤ p → 0 < eps → 0 ≤ Ceps p eps
-  estimate :
-    ∀ p eps, p0 ≤ p → 0 < eps → ∀ t, 0 < t → t < T →
-      integratedMoserEnergy D u (p + rho) t ≤
-        eps * integratedMoserGradientEnergy D u p t +
-        Ceps p eps * integratedMoserEnergy D u p t
-  Ceps_control :
-    -- Real analytic quantitative bound, e.g. polynomial/power dependence.
-    -- Shape deliberately left as a frontier depending on the actual GN/Young proof.
-    ∀ p eps, p0 ≤ p → 0 < eps → True
+/-- Safe consumer for `IntegratedMoserWindowUpperBoundData`: the data has no
+`Gbound` or `Ceps` projections; consumers must unpack `bounds`. -/
+theorem IntegratedMoserWindowUpperBoundData.exists_witness
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {rho p a b M eps : ℝ}
+    (hdata : IntegratedMoserWindowUpperBoundData D u rho p a b M eps) :
+    ∃ Gbound Ceps,
+      IntegratedMoserWindowUpperBoundWitness
+        D u rho p a b M eps Gbound Ceps := by
+  exact hdata.bounds
 
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+end
 ```
 
-Classification: real analytic.  The `estimate` resembles existing relative Moser; the `Ceps_control` field is the new information needed for a strict upper/lower gap.
-
-### Option B: direct upper-gap oracle for the chosen fixed-window theorem
-
-This is less transparent but minimal if you only need the next wrapper:
+Do not add a theorem of the shape
 
 ```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Direct quantitative oracle saying the fixed-window upper estimate can be
-chosen below the high-excursion lower average. -/
-structure IntegratedMoserFixedWindowUpperGapOracle
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop where
-  choose_upper_below_lower :
-    ∀ {p Cp Cnext t : ℝ},
-      (hwin : IntegratedMoserHighExcursionLowerAverageWindow
-        D u T rho p0 p Cp Cnext t) →
-      ∃ eps Gbound Ceps,
-        0 < eps ∧
-        IntegratedMoserWindowUpperBoundWitness
-          D u rho p hwin.a hwin.b Cp eps Gbound Ceps ∧
-        eps * Gbound + (hwin.b - hwin.a) * (Ceps * Cp) < hwin.lower
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+∀ Gbound Ceps,
+  IntegratedMoserWindowUpperBoundWitness ... Gbound Ceps →
+  eps * Gbound + ... < lowerBound
 ```
 
-This is essentially `IntegratedMoserUpperWitnessGapFrontier`.  It is honest, but it hides the quantitative GN/Young dependence in a single field.  For long-term maintainability, Option A is better.
+unless that universal statement is genuinely what you have proved.  It reintroduces the Q2520 issue.
 
-## 5. Dependency DAG
+## Exact upper-witness construction call shape
 
-Recommended next DAG:
+When you prove the upper-bound data producer, the checked-in extraction lemma signature should be consumed in this order.
+
+```lean
+rcases
+  integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+    (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
+    (p := p) (a := a) (b := b) (M := M) (H := H)
+    hinteg hp hp_nonneg haT hbT hYa hYb_nonneg hmaxInt with
+  ⟨Cgrad, hCgrad_nonneg, htwoG_le⟩
+
+let Gbound : ℝ := (M + Cgrad * p * H) / 2
+have hG_le :
+    (∫ s in a..b,
+      D.integral (fun x =>
+        (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound := by
+  dsimp [Gbound]
+  linarith
+
+rcases
+  relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
+    (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
+    (p := p) (a := a) (b := b) (M := M) (eps := eps)
+    (Gbound := Gbound)
+    hrel hp heps hab ha_pos hb_lt hZ_int hG_int hY_le hG_le with
+  ⟨Ceps, hCeps_nonneg, hZ_le⟩
+
+exact ⟨Gbound, Ceps, hCeps_nonneg, hG_le, hZ_le⟩
+```
+
+This matches the current integrated APIs: first select the gradient bound witness from the integrated dissipation estimate, then feed that exact `Gbound` into the integrated relative-Moser bound, then package the witness-level upper data.
+
+## Recommended theorem-name DAG
+
+Use these names in this order:
 
 ```text
-Current local fixed-window plumbing
-  integratedMoserPrecrossingIntervalData_of_regular_window
-  integratedMoser_windowUpperBoundData_of_precrossing
-        │
-        ▼
-Witness-level upper predicate
-  IntegratedMoserWindowUpperBoundWitness
-  false_of_windowUpperBoundWitness_lowerAverage_gap
-        │
-        ├─────────────── pure plumbing
-        ▼
-High-excursion lower-average producer
-  IntegratedMoserHighExcursionLowerAverageWindowFrontier
-        │
-        └── real analytic: thickness / AC / modulus / non-spike theorem
-        │
-        ▼
-Upper-witness gap producer
-  IntegratedMoserUpperWitnessGapFrontier
-        │
-        └── real analytic: eps/Ceps dependence or controlled relative-Moser constants
-        │
-        ▼
-Pure assembler
-  integratedMoserHighExcursionContradictionWindowFrontier_of_lowerAverage_and_upperGap
-        │
-        ▼
-Existing pure wrapper
-  LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
-  integratedMoserFirstCrossingStep_of_windowFrontier
+IntegratedMoserWindowUpperBoundWitness
+IntegratedMoserWindowUpperBoundData.exists_witness
+false_of_windowUpperBoundWitness_lowerAverage_gap
+false_of_integratedMoserHighExcursionContradictionWindow
+
+IntegratedMoserHighExcursionLowerAverageWindow
+IntegratedMoserHighExcursionLowerAverageWindowFrontier
+IntegratedMoserWindowUpperGapWitness
+IntegratedMoserWindowUpperGapWitnessFrontier
+
+integratedMoserHighExcursionContradictionWindow_of_lowerAverageWindow_and_upperGapWitness
+integratedMoserHighExcursionContradictionWindowFrontier_of_lowerAverageWindowFrontier_and_upperGapWitnessFrontier
+
+LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
+integratedMoserFirstCrossingStep_of_windowFrontier
 ```
 
-## 6. Field classification
+The first four are pure.  The two `...Window` structures are data.  The lower-average and upper-gap frontiers are the remaining genuine analytic inputs.  The two long `...of_lowerAverage...and_upperGap...` theorems are pure assembly and should not call any PDE estimate.
 
-### Pure plumbing / already available from current layer
+## Final audit summary
 
-* current `Y_p` bound on a window from `LpPowerBoundedBefore`;
-* interval-integrability of `Y_p`, `Y_{p+rho}`, and `G_p` from `IntegratedMoserFirstCrossingRegularity`;
-* construction of `IntegratedMoserPrecrossingIntervalData`;
-* production of fixed-window upper data from `IntegratedMoserDissipationDropBefore` and `RelativeMoserInterpolationBefore`;
-* contradiction from `upper ≤ budget < lower ≤ ∫Y`;
-* assembly of lower-window and upper-gap producers into the current frontier.
+The Q2522 design is mathematically honest if:
 
-### Genuine analytic assumptions
-
-* high-excursion lower average/thickness: pointwise high `Y_{p+rho}(t)` gives a time window with a quantitative lower integral;
-* control of the `eps/Ceps` dependence in relative Moser, or a direct proof that the fixed-window upper witnesses can be chosen below the lower average;
-* any absolute-continuity/modulus theorem strong enough to prevent arbitrarily narrow spikes.
-
-## 7. Recommended audit of current local definitions
-
-Please check the local `IntegratedMoserHighExcursionContradictionWindow` definition for this exact issue:
-
-* If it existentially stores `Gbound` and `Ceps` along with the upper inequalities and the strict gap, it is good.
-* If it stores only `IntegratedMoserWindowUpperBoundData` plus a gap that is not tied to the same witnesses, refactor to the witness-level shape above.
-* If it states a gap for all possible `Gbound/Ceps` witnesses, it is too strong and likely false, because arbitrarily large `Ceps` can satisfy the upper inequality.
-
-The most robust local shape is:
-
-```lean
-def IntegratedMoserHighExcursionContradictionWindow ... : Prop :=
-  ∃ a b M eps lower Gbound Ceps,
-    -- geometry/current-window fields
-    ... ∧
-    IntegratedMoserWindowUpperBoundWitness
-      D u rho p a b M eps Gbound Ceps ∧
-    lower ≤ ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ∧
-    eps * Gbound + (b - a) * (Ceps * M) < lower
-```
-
-This shape is both honest and usable by the existing pure wrapper.
+1. `IntegratedMoserHighExcursionContradictionWindow` is Type-valued and stores `Gbound/Ceps` explicitly.
+2. `upperWitness` and `upper_lt_lower` mention exactly those stored `Gbound/Ceps`.
+3. `LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier` eliminates a produced window via `hwin.upperWitness`, `hwin.lowerAverage`, and `hwin.upper_lt_lower` only.
+4. `IntegratedMoserWindowUpperBoundData` is consumed only by unpacking `bounds`; no fake witness projections are introduced.
+5. The high-excursion lower-average and upper-gap witness frontiers remain explicit assumptions/producers, because they contain the real analytic thickness and quantitative `eps/Ceps` dependence.
