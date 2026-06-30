@@ -1,81 +1,122 @@
-# Q2289 shen1 — audit of positive upper smooth-branch no-contact
+# Q2300 shen1 — Paper1 positive upper-contact audit
 
-Repo: `xiangyazi24/Shen_work`  
-Branch written: `chatgpt-scratch`  
-Question: can the positive upper-barrier **smooth branch** no-contact fields be proved from current committed Lean APIs, or should they be decomposed into a smaller frontier?
+Repo audited: `xiangyazi24/Shen_work` on `main`.
 
-## Bottom line
+Scope note: the new local `UpperBarrierContact.lean` names mentioned in the prompt (`PositiveUpperBarrierSmoothBranchResidual`, `Paper1PositiveLowerRawCapRouteAParamData`, etc.) do not appear on committed `main` yet.  This audit is therefore anchored to committed APIs and to the intended local definitions from the prompt.
 
-I do **not** see a committed proof of either smooth-branch no-contact field from the current APIs.
+## Executive conclusion
 
-The interface field is special and is already provable from the committed kink theorem:
+There is a split answer.
+
+* `exp_operator_compare_at_contact` looks **plausibly provable now** from committed local-calculus/max-principle ingredients, but not by a single existing theorem.  It should be the next short Lean proof target, not a long-term analytic residual.
+* `exp_strict_super_at_contact` should **remain an honest analytic residual** for now.  Current superbarrier APIs prove only `≤ 0`, not `< 0`, and Route-A/raw lower pin data does not currently provide the strict elliptic/chemotactic slack needed to upgrade the exponential branch.
+* `no_const_left_plateau` can be discharged for positive branch profiles once you have both a left limit `Tendsto U atBot (𝓝 1)` and `MChi p ≠ 1`.  In the standard positive assumptions currently used in the statement layer, `0 ≤ p.χ` is not enough because `p.χ = 0` is allowed and then `MChi p = 1` is expected.  Minimal extra scalar assumption: either carry `MChi p ≠ 1`, or carry `0 < p.χ` plus the existing `MChi_eq_rpow_of_chi_nonneg_lt_one` normalization and `p.χ < 1`.
+
+## Committed API facts that matter
+
+### Upper barrier and smooth regions
+
+The upper barrier is still the raw min barrier:
 
 ```lean
-maxSub_upperBarrier_ne_interface
+def upperBarrier (κ M : ℝ) : ℝ → ℝ :=
+  fun x => min M (Real.exp (-κ * x))
 ```
 
-because a contact at the kink gives a local maximum of `U - upperBarrier`, and the concave corner forbids a local maximum for differentiable `U`.
-
-For the two smooth branches, the same local-maximum argument only gives a **zero** maximum of `U - upperBarrier`, not a positive maximum and not a kink contradiction.  The committed Rothe maximum-principle closers rule out a **positive overshoot**; they do not rule out zero contact.
-
-The honest recommendation is:
-
-* keep the interface theorem as already proved from `maxSub_upperBarrier_ne_interface`;
-* replace the raw smooth no-contact pair by a smaller residual:
-  * constant branch: carry only a **no-left-plateau** residual, because constant-branch contact is provably equivalent to a left plateau using only antitonicity and `U ≤ M`;
-  * exponential branch: carry a **contact operator-comparison residual** plus a **strict exp-branch superbarrier-at-contact residual**.  These are narrower and more diagnostic than raw no-contact, and align with the available one-sided max-estimate API.
-
-## API audit
-
-### 1. Superbarrier APIs
-
-Relevant committed names:
+The key branch-local rewrites/projections are committed:
 
 ```lean
-whole_line_super_barrier_pos
-Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
-frozenWaveOperator_upperBarrier_const_region_nonpos_pos
-frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
-frozenWaveOperator_upperBarrier_const_region_eq
-frozenWaveOperator_exp_eq
+upperBarrier_eq_M_of_le_exp
+upperBarrier_eq_exp_of_exp_le
 upperBarrier_eventuallyEq_const_of_lt
 upperBarrier_eventuallyEq_exp_of_lt
+upperBarrier_deriv_eq_zero_of_const_lt
+upperBarrier_deriv_eq_exp_of_lt
+upperBarrier_iteratedDeriv_two_eq_zero_of_const_lt
+upperBarrier_iteratedDeriv_two_eq_exp_of_lt
 upperBarrier_contDiffAt_two_of_ne_interface
 ```
 
-What they give:
+So at an exponential-branch point
 
 ```lean
-whole_line_super_barrier_pos ... :
-  InWaveTrapSet κ M u →
-  ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+hx : Real.exp (-(kappa c) * x) < MChi p
 ```
 
-and, away from the kink,
+you can get, with `κ := kappa c` and `M := MChi p`, all of:
 
 ```lean
-Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa ... :
-  ∀ x, Real.exp (-κ * x) ≠ M →
-    frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+upperBarrier (kappa c) (MChi p) x = Real.exp (-(kappa c) * x)
+upperBarrier (kappa c) (MChi p) =ᶠ[𝓝 x] expDecay (kappa c)
+ContDiffAt ℝ 2 (upperBarrier (kappa c) (MChi p)) x
 ```
 
-The regional ingredients are only non-strict.  They do **not** imply contact is impossible, because contact with a non-strict super-solution is compatible with `F(B) = 0` unless a strong comparison/Hopf-type input is present.
+The first comes from `upperBarrier_eq_exp_of_exp_le hx.le`; the local smoothness comes from `upperBarrier_contDiffAt_two_of_ne_interface` with `ne_of_lt hx`.
 
-This matters especially on the constant branch.  In the limiting case `χ = 0`, the canonical `MChi p` is expected to be `1`, and the constant barrier `B ≡ 1` has zero logistic residual.  So a blanket strict constant-branch superbarrier residual would be false or at least too strong for the full positive-branch interface.
+### Positive superbarrier APIs
 
-### 2. Stationary regularity / strong maximum principle APIs
-
-Relevant committed names:
+Committed positive whole-line superbarrier:
 
 ```lean
-StationaryC2RegularityFromEquation
-stationaryC2RegularityFromEquation_of_trap
-stationaryStrongMaxPrinciple_of_trap_regularity
-stationaryStrongMaxPrinciple_of_trap
-StationaryStrongMaxPrinciple
+theorem whole_line_super_barrier_pos
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hmκ : p.m * κ ≤ 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hc : c = κ + κ⁻¹) :
+    InWaveTrapSet κ M u →
+    ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
 ```
 
-Exact regularity frontier:
+Its exponential branch internally calls:
+
+```lean
+frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
+```
+
+and its constant branch internally calls:
+
+```lean
+frozenWaveOperator_upperBarrier_const_region_nonpos_pos
+```
+
+There is also the away-from-interface wrapper:
+
+```lean
+theorem Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hc : c = κ + κ⁻¹)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hmκ : p.m * κ ≤ 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hu : InWaveTrapSet κ M u) :
+    ∀ x, Real.exp (-κ * x) ≠ M →
+      frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+```
+
+Important: every one of these is non-strict.  There is no committed `... < 0` version of the positive exponential region.
+
+The committed exponential formula is:
+
+```lean
+theorem frozenWaveOperator_exp_eq
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ : κ = kappa c)
+    (_hu : IsCUnifBdd u) (_hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    frozenWaveOperator p c u (expDecay κ) x =
+      -(expDecay κ x) * (expDecay κ x) ^ p.α
+      - p.χ * deriv (fun y => (expDecay κ y) ^ p.m *
+          deriv (frozenElliptic p u) y) x
+```
+
+This formula shows exactly why strictness is delicate: the logistic part is strictly negative, but the chemotactic term can be positive and is only bounded non-strictly by the committed positive-superbarrier estimates.
+
+### Stationary regularity and SMP APIs
+
+The exact regularity frontier is:
 
 ```lean
 def StationaryC2RegularityFromEquation
@@ -86,9 +127,9 @@ def StationaryC2RegularityFromEquation
         Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
 ```
 
-Despite the name, this returns `Differentiable ℝ U ∧ Differentiable ℝ (deriv U)`, not a direct `ContDiffAt ℝ 2 U x` field.  That is enough for the interface theorem because `maxSub_upperBarrier_ne_interface` only needs `DifferentiableAt ℝ U x`.  It is not immediately the exact shape consumed by the Rothe max-principle closers, which use `ContDiffAt ℝ 2` for the second-derivative test.
+This is enough for first derivatives and for a direct second-derivative-at-a-local-max bridge, but it is not literally the `ContDiffAt ℝ 2 U x` input expected by the existing `iteratedDeriv2_le_of_isLocalMax_sub` helper.
 
-The strong maximum principle currently proves positivity:
+The committed strong maximum principle is only a positivity theorem:
 
 ```lean
 def StationaryStrongMaxPrinciple
@@ -100,314 +141,420 @@ def StationaryStrongMaxPrinciple
           ∀ x, 0 < U x
 ```
 
-This is a lower-bound strong maximum principle for `U = 0`.  It does not give a strong comparison principle for `U` against `MChi p` or `exp (-(kappa c) * x)`.
+It does not compare `U` with the upper barrier.  It cannot prove either smooth upper-contact field by itself.
 
-### 3. Max-principle / one-sided comparison APIs
+### One-sided max-estimate / comparison APIs
 
-Relevant committed names:
-
-```lean
-implicitStep_oneSided_max_estimate
-implicitStep_le_of_barrier_maxPrinciple
-implicitStep_le_of_barrier_maxPrinciple_clean
-iteratedDeriv2_le_of_isLocalMax_sub
-chemFlux_increment_split
-exists_isMaxOn_pos_of_tendsto_nonpos
-```
-
-These are excellent for proving **non-overshoot** `W ≤ B` for an implicit step.  The clean theorem explicitly argues by contradiction from a positive value of `W - B` and then finds a positive global maximum.  In a smooth-branch contact situation, however, the trap already gives
+The key committed local estimate is:
 
 ```lean
-U y - upperBarrier (kappa c) (MChi p) y ≤ 0
+theorem implicitStep_oneSided_max_estimate
+    (p : CMParams) {c M C_chem : ℝ} {u W B : ℝ → ℝ} {x₀ : ℝ}
+    (hM : 0 ≤ M)
+    (hWmem : W x₀ ∈ Set.Icc (0 : ℝ) M)
+    (hBmem : B x₀ ∈ Set.Icc (0 : ℝ) M)
+    (hBW : B x₀ ≤ W x₀)
+    (hderiv1 : deriv W x₀ = deriv B x₀)
+    (hderiv2 : iteratedDeriv 2 W x₀ ≤ iteratedDeriv 2 B x₀)
+    (hchem : -p.χ * (deriv (chemFlux p u W) x₀ - deriv (chemFlux p u B) x₀)
+        ≤ C_chem * (W x₀ - B x₀)) :
+    frozenWaveOperator p c u W x₀ - frozenWaveOperator p c u B x₀
+      ≤ (reactionLip p.α M + C_chem) * (W x₀ - B x₀)
 ```
 
-for every `y`, and contact gives equality at `x`.  That is a zero maximum, not a positive maximum.  The existing max-principle closers therefore reprove `U ≤ B`; they do not rule out equality.
-
-The one-sided estimate can still be useful in a future proof.  At a smooth contact point, it is natural to aim for
+The key flux split is:
 
 ```lean
-frozenWaveOperator p c U U x ≤
-  frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x
+theorem chemFlux_increment_split
+    (p : CMParams) {u W B : ℝ → ℝ} {x₀ : ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ y, 0 ≤ u y)
+    (hWdiff : DifferentiableAt ℝ W x₀) (hBdiff : DifferentiableAt ℝ B x₀)
+    (hderiv1 : deriv W x₀ = deriv B x₀) :
+    deriv (chemFlux p u W) x₀ - deriv (chemFlux p u B) x₀
+      = p.m * deriv (frozenElliptic p u) x₀
+          * ((W x₀) ^ (p.m - 1) - (B x₀) ^ (p.m - 1)) * deriv W x₀
+        + ((W x₀) ^ p.m - (B x₀) ^ p.m) * deriv (deriv (frozenElliptic p u)) x₀
 ```
 
-and combine it with stationarity `F(U) x = 0` and a strict superbarrier residual `F(B) x < 0`.  But the strict residual is not currently committed, and the constant branch cannot honestly be handled by a blanket strict-superbarrier field.
+This is exactly the right shape for the exponential contact operator comparison: at contact `W x₀ = B x₀`, both power differences vanish, so the chem increment is `0` once the derivative equality is available.
 
-## Provable piece: constant contact forces a left plateau
+## Field 2: `exp_operator_compare_at_contact`
 
-This is the clean committed-API reduction I would add immediately.  It uses only `InMonotoneWaveTrapSet.le_M` and `InMonotoneWaveTrapSet.antitone`.
+### Verdict
+
+This field is likely provable from the current committed APIs with a small local bridge theorem.  It should not be treated as a deep Route-A analytic residual.
+
+### Proof route
+
+Let:
 
 ```lean
-import ShenWork.Paper1.StatementAssembly
-
-open Filter Topology
-
-namespace ShenWork.Paper1
-
-noncomputable section
-
-/-- A contact with the constant upper level of a monotone trap forces a whole
-left plateau.  No stationarity or regularity is needed. -/
-theorem constBranch_contact_forces_left_plateau
-    {κ M : ℝ} {U : ℝ → ℝ}
-    (htrap : InMonotoneWaveTrapSet κ M U)
-    {x : ℝ} (hUx : U x = M) :
-    ∀ y, y ≤ x -> U y = M := by
-  intro y hy
-  exact le_antisymm
-    (htrap.le_M y)
-    (by
-      have hmono : U x ≤ U y := htrap.antitone hy
-      simpa [hUx] using hmono)
-
-/-- If a profile tending to `1` at `-∞` had a left plateau at level `MChi p`,
-then `MChi p = 1`.  Thus for `MChi p ≠ 1`, the left plateau is impossible. -/
-theorem no_const_left_plateau_of_tendsto_atBot_one
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hlim : Tendsto U atBot (𝓝 (1 : ℝ)))
-    (hMne : MChi p ≠ 1) :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) ->
-      (∀ y, y ≤ x -> U y = MChi p) -> False := by
-  intro x _hx hplateau
-  have hev : U =ᶠ[atBot] fun _ : ℝ => MChi p := by
-    exact eventually_atBot.2 ⟨x, fun y hy => hplateau y hy⟩
-  have hlimM : Tendsto U atBot (𝓝 (MChi p)) :=
-    tendsto_const_nhds.congr' (hev.mono fun y hy => hy.symm)
-  have hEq : (1 : ℝ) = MChi p := tendsto_nhds_unique hlim hlimM
-  exact hMne hEq.symm
-
-end
-end ShenWork.Paper1
+κ := kappa c
+M := MChi p
+B := upperBarrier κ M
 ```
-
-For the positive branch, this gives a very useful route when the constructed profile has `U → 1` at `-∞` and one has, or can prove, `MChi p ≠ 1` under the intended `χ > 0` assumptions.  It is much narrower than carrying constant-branch no-contact directly.
-
-## Recommended replacement frontier
-
-If the local file currently defines:
-
-```lean
-def PositiveUpperBarrierSmoothBranchNoContact
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
-  (∀ x, MChi p < Real.exp (-(kappa c) * x) ->
-    U x = MChi p -> False) ∧
-  (∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-    U x = Real.exp (-(kappa c) * x) -> False)
-```
-
-then I recommend carrying this smaller frontier instead:
-
-```lean
-/-- Smaller smooth-branch frontier for the positive upper barrier.
-
-* `no_const_left_plateau` replaces constant-branch no-contact.  This is weaker and
-  more structural: actual constant-branch contact is reduced to this field by
-  monotonicity and the trap bound.
-* `exp_operator_compare_at_contact` is the strong-comparison inequality at an
-  exponential-branch contact point.
-* `exp_strict_super_at_contact` is the strict exp-branch barrier residual at such
-  a contact point.
-
-Together with stationarity, these assemble the old smooth no-contact pair. -/
-structure PositiveUpperBarrierSmoothBranchResidual
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
-  no_const_left_plateau :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) ->
-      (∀ y, y ≤ x -> U y = MChi p) -> False
-  exp_operator_compare_at_contact :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-      U x = Real.exp (-(kappa c) * x) ->
-        frozenWaveOperator p c U U x ≤
-          frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x
-  exp_strict_super_at_contact :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-      U x = Real.exp (-(kappa c) * x) ->
-        frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
-```
-
-The assembly wrapper is small and should be robust:
-
-```lean
-import ShenWork.Paper1.StatementAssembly
-
-open Filter Topology
-
-namespace ShenWork.Paper1
-
-noncomputable section
-
-/-- Existing local intended interface, included here for completeness.  If your
-`UpperBarrierContact.lean` already defines this, omit this definition. -/
-def PositiveUpperBarrierSmoothBranchNoContact
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
-  (∀ x, MChi p < Real.exp (-(kappa c) * x) ->
-    U x = MChi p -> False) ∧
-  (∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-    U x = Real.exp (-(kappa c) * x) -> False)
-
-/-- A contact with the constant upper level of a monotone trap forces a whole
-left plateau. -/
-theorem constBranch_contact_forces_left_plateau
-    {κ M : ℝ} {U : ℝ → ℝ}
-    (htrap : InMonotoneWaveTrapSet κ M U)
-    {x : ℝ} (hUx : U x = M) :
-    ∀ y, y ≤ x -> U y = M := by
-  intro y hy
-  exact le_antisymm
-    (htrap.le_M y)
-    (by
-      have hmono : U x ≤ U y := htrap.antitone hy
-      simpa [hUx] using hmono)
-
-/-- Smaller smooth-branch frontier for the positive upper barrier. -/
-structure PositiveUpperBarrierSmoothBranchResidual
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
-  no_const_left_plateau :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) ->
-      (∀ y, y ≤ x -> U y = MChi p) -> False
-  exp_operator_compare_at_contact :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-      U x = Real.exp (-(kappa c) * x) ->
-        frozenWaveOperator p c U U x ≤
-          frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x
-  exp_strict_super_at_contact :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-      U x = Real.exp (-(kappa c) * x) ->
-        frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
-
-/-- The smaller residual assembles the original smooth-branch no-contact pair. -/
-theorem positiveUpperBarrierSmoothBranchNoContact_of_residual
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
-    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
-    (hres : PositiveUpperBarrierSmoothBranchResidual p c U) :
-    PositiveUpperBarrierSmoothBranchNoContact p c U := by
-  constructor
-  · intro x hx hUx
-    exact hres.no_const_left_plateau x hx
-      (constBranch_contact_forces_left_plateau htrap hUx)
-  · intro x hx hUx
-    have hcmp := hres.exp_operator_compare_at_contact x hx hUx
-    have hstrict := hres.exp_strict_super_at_contact x hx hUx
-    have hnonneg :
-        0 ≤ frozenWaveOperator p c U
-          (upperBarrier (kappa c) (MChi p)) x := by
-      simpa [hstat x] using hcmp
-    exact (not_lt_of_ge hnonneg) hstrict
-
-end
-end ShenWork.Paper1
-```
-
-This is the wrapper I would use in `UpperBarrierContact.lean` rather than carrying the raw pair.
-
-## Why the exp residual is the right narrow target
-
-At an exponential-branch contact, the natural proof target is not raw `False`; it is the operator comparison
-
-```lean
-frozenWaveOperator p c U U x ≤
-  frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x
-```
-
-plus strict negativity of the barrier residual at that contact.  The existing one-sided max-estimate API is designed around exactly this kind of statement.
-
-A future theorem skeleton should look like this:
-
-```lean
-import ShenWork.Paper1.StatementAssembly
-import ShenWork.Paper1.WaveRotheMaxPrincipleClosers
-import ShenWork.Paper1.WaveRotheResidualClose
-
-open Filter Topology Set Real
-
-namespace ShenWork.Paper1
-
-noncomputable section
-
-/-- Future target: derive the exp-branch operator comparison at a contact point
-from the local maximum of `U - upperBarrier` and the one-sided max-estimate
-calculus.  This is not currently a one-line consequence of committed APIs because
-`StationaryC2RegularityFromEquation` returns differentiability of `U` and `deriv U`,
-while the existing second-derivative-test closer is packaged for `ContDiffAt ℝ 2`. -/
-theorem expBranch_operator_compare_at_contact_of_smooth_max_estimate
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (hM0 : 0 ≤ MChi p)
-    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
-    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
-    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
-    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
-      U x = Real.exp (-(kappa c) * x) ->
-        frozenWaveOperator p c U U x ≤
-          frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x := by
-  intro x hx hUx
-  -- Proof route:
-  -- 1. Let `B := upperBarrier (kappa c) (MChi p)`.
-  -- 2. From `hx`, get `B =ᶠ[𝓝 x] expDecay (kappa c)` and
-  --    `ContDiffAt ℝ 2 B x` via `upperBarrier_contDiffAt_two_of_ne_interface`.
-  -- 3. From trap + contact, get `IsLocalMax (fun y => U y - B y) x`.
-  -- 4. At the local max, get `deriv U x = deriv B x`.
-  -- 5. Get the second-derivative inequality `iteratedDeriv 2 U x ≤ iteratedDeriv 2 B x`.
-  --    Existing closer: `iteratedDeriv2_le_of_isLocalMax_sub`, but it wants
-  --    `ContDiffAt ℝ 2 U x`; bridge this from `hreg`, or prove the inequality
-  --    directly from `Differentiable ℝ U ∧ Differentiable ℝ (deriv U)`.
-  -- 6. Use `chemFlux_increment_split`; at contact `U x = B x`, so both rpow
-  --    differences vanish, giving chem increment `≤ 0` with `C_chem := 0`.
-  -- 7. Use `implicitStep_oneSided_max_estimate` with `C_chem := 0`.
-  --
-  -- This is the exact missing smooth strong-comparison calculus, not currently
-  -- committed as a theorem.
-  admit
-
-end
-end ShenWork.Paper1
-```
-
-Do **not** commit the skeleton with `admit`; it is documentation of the next theorem to prove.  The recommended residual above lets the file stay axiom-clean while identifying exactly what remains.
-
-## Why the current APIs do not close the smooth fields
-
-### Constant branch
-
-At a constant-branch contact:
-
-```lean
-MChi p < Real.exp (-(kappa c) * x)
-U x = MChi p
-```
-
-trap membership gives `U y ≤ MChi p` for every `y`, and antitonicity gives `MChi p ≤ U y` for every `y ≤ x`.  Hence the profile is exactly flat at level `MChi p` on the whole left half-line.  Existing APIs do not currently include the theorem that such a stationary left plateau is impossible for the positive branch.
-
-This is why `no_const_left_plateau` is the right smaller residual.  It is strictly more informative than raw no-contact and can be discharged from left-tail data when available.
-
-### Exponential branch
 
 At an exponential-branch contact:
 
 ```lean
-Real.exp (-(kappa c) * x) < MChi p
-U x = Real.exp (-(kappa c) * x)
+hx  : Real.exp (-(kappa c) * x) < MChi p
+hUx : U x = Real.exp (-(kappa c) * x)
 ```
 
-`upperBarrier` is smooth near `x`, so the obstruction is not the kink.  The available proof route is a smooth strong-comparison argument.  The committed APIs provide many ingredients, but not the final stationary strong-comparison theorem:
+1. Trap gives global nonpositivity of `φ := U - B`:
 
-* `whole_line_super_barrier_pos` gives only `F(B) ≤ 0`.
-* `Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa` gives only away-from-interface `F(B) ≤ 0`.
-* `implicitStep_le_of_barrier_maxPrinciple_clean` rules out positive overshoot, not zero contact.
-* `StationaryStrongMaxPrinciple` gives `0 < U`, not `U < B`.
+```lean
+∀ y, U y - B y ≤ 0
+```
 
-So the exp field should be carried as the two comparison residuals above until the smooth strong-comparison theorem is committed.
+because `htrap.le_upperBarrier y`.
 
-## Practical patch recommendation
+2. The exponential branch rewrite gives:
 
-For the local intended `UpperBarrierContact.lean`:
+```lean
+B x = Real.exp (-(kappa c) * x)
+```
 
-1. Keep the interface theorem from `maxSub_upperBarrier_ne_interface`.
-2. Add `constBranch_contact_forces_left_plateau`.
-3. Replace `PositiveUpperBarrierSmoothBranchNoContact` as a carried input with `PositiveUpperBarrierSmoothBranchResidual`.
-4. Use `positiveUpperBarrierSmoothBranchNoContact_of_residual` to recover the old shape for existing wrappers.
-5. If the branch has `FrozenStationaryWaveProfile p c U`, use `hprofile.lim_neg_inf.1` plus `MChi p ≠ 1` to discharge the constant residual via `no_const_left_plateau_of_tendsto_atBot_one`.
-6. Leave the exp residual as the narrow analytic frontier until a stationary smooth strong-comparison theorem is committed.
+so `hUx` gives `φ x = 0`.  Hence `x` is a local maximum of `φ`.
 
-## Validation note
+3. From `StationaryC2RegularityFromEquation`:
 
-This is a connector-only audit/drop.  I did not run `lake build`.  All theorem and projection names above were checked against the repository through the GitHub connector; the code snippets are intended to be copied into Lean and may need minor local adjustments if `UpperBarrierContact.lean` already defines one of the displayed names.
+```lean
+rcases hreg U htrap hstat with ⟨hUdiff, hUd_diff⟩
+```
+
+so `U` is differentiable and `deriv U` is differentiable.
+
+4. The barrier is smooth at `x` by:
+
+```lean
+upperBarrier_contDiffAt_two_of_ne_interface (ne_of_lt hx)
+```
+
+5. At the local max, get first derivative equality:
+
+```lean
+deriv U x = deriv B x
+```
+
+6. Prove a missing local bridge for the second derivative inequality:
+
+```lean
+-- target bridge, no new analytic assumption:
+-- from hloc, hUdiff, hUd_diff, and hBC2:
+--   iteratedDeriv 2 U x ≤ iteratedDeriv 2 B x
+```
+
+The committed helper
+
+```lean
+iteratedDeriv2_le_of_isLocalMax_sub
+```
+
+already proves this if both sides are `ContDiffAt ℝ 2`.  Since `hreg` gives `Differentiable ℝ U ∧ Differentiable ℝ (deriv U)`, the narrow missing bridge should avoid demanding global `ContDiffAt` and instead prove the needed pointwise linearity/second-derivative inequality directly from differentiability of `deriv U` at the point.
+
+A good name would be:
+
+```lean
+iteratedDeriv2_le_of_isLocalMax_sub_of_deriv_differentiable
+```
+
+7. Use `chemFlux_increment_split` with `W := U`, `B := upperBarrier κ M`, `u := U`.  Because `U x = B x`, the two power differences are zero, so the chem increment is zero.  This discharges `hchem` in `implicitStep_oneSided_max_estimate` with `C_chem := 0`.
+
+8. Range hypotheses for `implicitStep_oneSided_max_estimate` are routine from:
+
+```lean
+htrap.nonneg x
+htrap.le_M x
+upperBarrier_nonneg
+upperBarrier_le_M
+```
+
+9. `implicitStep_oneSided_max_estimate` then gives:
+
+```lean
+frozenWaveOperator p c U U x -
+  frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x ≤ 0
+```
+
+which is the desired `exp_operator_compare_at_contact` after rearranging.
+
+### Recommendation
+
+Prove this next as a local theorem, independent of Route-A raw/plateau lower pins.  Route-A data is not needed here; trap + stationarity + regularity + branch contact are enough.
+
+Suggested target name:
+
+```lean
+positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
+```
+
+The only missing Lean bridge is the pointwise second-derivative inequality from `StationaryC2RegularityFromEquation`; the chem part is already essentially contained in `chemFlux_increment_split`.
+
+## Field 3: `exp_strict_super_at_contact`
+
+### Verdict
+
+This should remain an honest analytic residual.
+
+The committed APIs give:
+
+```lean
+frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x ≤ 0
+```
+
+but not:
+
+```lean
+frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
+```
+
+at exponential-branch contact.
+
+### Why current APIs do not prove it
+
+On the exponential branch, `upperBarrier` is locally `expDecay`, and the committed formula is:
+
+```lean
+frozenWaveOperator p c U (expDecay (kappa c)) x =
+  -(expDecay (kappa c) x) * (expDecay (kappa c) x) ^ p.α
+  - p.χ * deriv (fun y => (expDecay (kappa c) y) ^ p.m *
+      deriv (frozenElliptic p U) y) x
+```
+
+The first term is strictly negative, but for `p.χ ≥ 0` the chemotactic term can have the opposite sign.  The positive superbarrier proof controls that term only non-strictly.  The proof of `whole_line_super_barrier_pos` explicitly routes the exponential case through the non-strict regional theorem:
+
+```lean
+frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
+```
+
+There is no committed theorem named like any of the following:
+
+```lean
+frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
+frozenWaveOperator_upperBarrier_exp_region_strict_neg_of_chi_nonneg
+whole_line_super_barrier_pos_strict
+```
+
+or any theorem that turns Route-A lower-pinning into strict slack in the frozen elliptic/chemotaxis bound.
+
+### Why Route-A/raw cap data does not currently close it
+
+The Route-A/raw lower pin is excellent for right-tail squeeze; committed APIs include:
+
+```lean
+HasWaveRightTailAsymptotic_of_lowerPinnedRawMonotoneTrap
+```
+
+which produces the sharp right-tail family from raw lower-pinned trap membership.  But the strict superbarrier residual is a pointwise statement about the cross-frozen operator of the upper barrier at a contact point.  It depends on the frozen elliptic field and its derivative through the chemotaxis term.  Current lower-pin/tail theorems do not provide a strict pointwise estimate of:
+
+```lean
+deriv (fun y => (expDecay (kappa c) y) ^ p.m * deriv (frozenElliptic p U) y) x
+```
+
+or a strict version of the positive regional superbarrier inequality.
+
+Thus a direct proof of `exp_strict_super_at_contact` would require a new analytic theorem, for example one of:
+
+```lean
+-- strict regional superbarrier, probably the cleanest formulation
+-- ∀ x, Real.exp (-κ * x) < M ->
+--   frozenWaveOperator p c u (upperBarrier κ M) x < 0
+
+-- or a contact-specific strict theorem
+-- ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
+--   U x = Real.exp (-(kappa c) * x) ->
+--   frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
+```
+
+The first global strict regional theorem may be too strong unless the proof extracts genuine slack from `p.χ < chiStar p` and the chemotaxis estimates.  The second contact-specific theorem is safer and better aligned with the local no-contact route.
+
+### Likely false / too-strong assumptions to avoid
+
+Do not assume any of these without a new proof:
+
+```lean
+whole_line_super_barrier_pos ... -> F(B) x < 0
+Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa ... -> F(B) x < 0
+StationaryStrongMaxPrinciple ... -> U x < upperBarrier ... x
+RouteA raw lower pin -> strict exp-branch superbarrier at contact
+```
+
+They are not consequences of the committed statements.  The first two are only non-strict.  The strong maximum principle only gives `0 < U`.  The raw lower pin currently feeds the right-tail squeeze, not a strict local elliptic flux estimate.
+
+## Constant branch: `no_const_left_plateau`
+
+### What is already provable
+
+For a monotone trapped profile, contact with the constant branch forces a whole left plateau.  This is purely order-theoretic and uses only:
+
+```lean
+htrap.le_M
+htrap.antitone
+```
+
+Proof shape:
+
+```lean
+-- If U x = M and y ≤ x, then antitonicity gives U x ≤ U y,
+-- while trap gives U y ≤ M.  Hence U y = M.
+```
+
+For the canonical positive branch:
+
+```lean
+M := MChi p
+```
+
+this reduces constant-branch no-contact to `no_const_left_plateau` exactly as your local residual intends.
+
+### When `no_const_left_plateau` is discharged
+
+If you have:
+
+```lean
+hlim : Tendsto U atBot (𝓝 (1 : ℝ))
+hMne : MChi p ≠ 1
+```
+
+then a left plateau at `MChi p` is impossible, because the plateau gives:
+
+```lean
+Tendsto U atBot (𝓝 (MChi p))
+```
+
+and uniqueness of limits gives `MChi p = 1`.
+
+This is the narrowest useful discharge lemma:
+
+```lean
+-- theorem no_const_left_plateau_of_tendsto_atBot_one
+--     (hlim : Tendsto U atBot (𝓝 (1 : ℝ)))
+--     (hMne : MChi p ≠ 1) :
+--     ∀ x, MChi p < Real.exp (-(kappa c) * x) ->
+--       (∀ y, y ≤ x -> U y = MChi p) -> False
+```
+
+### Are the needed hypotheses currently present?
+
+The left limit is present whenever the local route packages a `FrozenStationaryWaveProfile p c U`, because that structure carries the left-end convergence to `1`.  The existing statement-layer positive branch explicitly asks for:
+
+```lean
+FrozenStationaryWaveProfile p c U
+```
+
+in `Paper1PositiveCriticalFrozenStationaryBranch`.
+
+The scalar `MChi p ≠ 1` is **not** supplied by the current standard positive-branch assumptions alone:
+
+```lean
+0 ≤ p.χ
+p.χ < min (1 / 2 : ℝ) (chiStar p)
+```
+
+because `p.χ = 0` is allowed.  Existing normalization lemmas include:
+
+```lean
+MChi_eq_rpow_of_chi_nonneg_lt_one
+one_le_MChi_of_chi_nonneg_lt_one
+```
+
+These give the right normalization/weak lower bound, but not strict inequality when `χ = 0` is included.
+
+Minimal extra scalar assumption:
+
+```lean
+hMne : MChi p ≠ 1
+```
+
+or, semantically cleaner for the positive-only strict branch:
+
+```lean
+hχ_pos : 0 < p.χ
+```
+
+with the already available `p.χ < 1`.  From `0 < p.χ`, one should prove a small scalar lemma:
+
+```lean
+-- theorem MChi_ne_one_of_chi_pos_lt_one
+--     (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+--     MChi p ≠ 1
+```
+
+using `MChi_eq_rpow_of_chi_nonneg_lt_one` and positivity of `1 / p.α`.
+
+If the intended positive branch continues to include `χ = 0`, then `hlim : U → 1` at `-∞` cannot rule out a left plateau at level `1`; a different unique-continuation/no-flat-halfline theorem would be needed, and I do not see such a committed theorem for this upper contact problem.
+
+## Recommended next Paper1 steps
+
+### Step 1: prove the operator-compare field and remove it from the residual
+
+Add a theorem with target shape:
+
+```lean
+-- target shape only
+-- theorem positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
+--     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+--     (hM0 : 0 ≤ MChi p)
+--     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+--     (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+--     (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
+--     ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
+--       U x = Real.exp (-(kappa c) * x) ->
+--         frozenWaveOperator p c U U x ≤
+--           frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x
+```
+
+Do it by proving the small local bridges described above.  This is a realistic direct path from committed APIs.
+
+### Step 2: discharge constant branch when `χ > 0` is available
+
+For branch wrappers that really target positive sensitivity (`0 < p.χ`), add:
+
+```lean
+-- target scalar helper
+-- theorem MChi_ne_one_of_chi_pos_lt_one ... : MChi p ≠ 1
+```
+
+then use `FrozenStationaryWaveProfile.lim_neg_inf.1` and the left-plateau contradiction to discharge `no_const_left_plateau`.
+
+If the wrapper intentionally keeps `0 ≤ p.χ`, continue carrying `no_const_left_plateau`, or split off the `χ = 0` case with a separate argument.
+
+### Step 3: keep only strict exponential superbarrier as analytic frontier
+
+After Step 1, the residual can be narrowed to:
+
+```lean
+structure PositiveUpperBarrierRemainingContactResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  no_const_left_plateau :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) ->
+      (∀ y, y ≤ x -> U y = MChi p) -> False
+  exp_strict_super_at_contact :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
+      U x = Real.exp (-(kappa c) * x) ->
+        frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
+```
+
+And if Step 2 applies (`FrozenStationaryWaveProfile` plus `MChi p ≠ 1`), it can be narrowed further to just:
+
+```lean
+structure PositiveUpperBarrierExpStrictContactResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  exp_strict_super_at_contact :
+    ∀ x, Real.exp (-(kappa c) * x) < MChi p ->
+      U x = Real.exp (-(kappa c) * x) ->
+        frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
+```
+
+This is the honest remaining mathematical obstacle.
+
+## Final answer
+
+For Route-A/fixed-point profiles, the next committed Lean work should be:
+
+1. **Prove `exp_operator_compare_at_contact`** from local contact calculus using `implicitStep_oneSided_max_estimate`, `chemFlux_increment_split`, and a new pointwise second-derivative bridge from `StationaryC2RegularityFromEquation`.  This is plausible and should not remain a long-term residual.
+2. **Do not claim `exp_strict_super_at_contact` from the current superbarrier APIs.**  It is not a consequence of `whole_line_super_barrier_pos` or the regional non-strict lemmas.  Keep it as the analytic residual unless a strict positive exponential-region superbarrier theorem is added.
+3. **Discharge the constant residual only under `Tendsto U atBot (𝓝 1)` and `MChi p ≠ 1`.**  In the current branch assumptions, add `0 < p.χ` or carry `MChi p ≠ 1`; `0 ≤ p.χ` is too weak because it admits `χ = 0`.
+
+No `sorry`/`admit` Lean patch is recommended for the strict exponential field at this stage.
