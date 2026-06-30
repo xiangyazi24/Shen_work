@@ -2,6 +2,8 @@
 
 Repo target: `xiangyazi24/Shen_work`, after commit `5b83ceab`.
 
+Redispatch note: this overwrites the scratch drop for the repeated Q2465 request with the same compile-oriented guidance, grounded in the landed consumer names.
+
 ## Source facts checked
 
 The landed `ShenWork/PDE/P3MoserActualWiring.lean` consumers are exactly:
@@ -11,7 +13,7 @@ ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_allLpBoundFr
 ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
 ```
 
-with signatures:
+Their relevant arguments are:
 
 ```lean
 intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
@@ -62,37 +64,29 @@ intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
 import ShenWork.PDE.P3MoserActualWiring
 ```
 
-and at `5b83ceab`, `P3MoserActualWiring` imports:
+At `5b83ceab`, `P3MoserActualWiring` imports:
 
 ```lean
 import ShenWork.PDE.P3MoserIntegratedClosure
 ```
 
-So no direct new import is strictly necessary in `IntervalDomainStatementAssembly.lean`.  For readability and robustness, either add a direct import
+So no new import is strictly required in `IntervalDomainStatementAssembly.lean`.  Adding a direct import is still harmless and clearer:
 
 ```lean
 import ShenWork.PDE.P3MoserIntegratedClosure
 ```
 
-near `P3MoserActualWiring`, or rely on the transitive import.  There is no cycle risk if adding the direct import, because `P3MoserIntegratedClosure` is below `P3MoserActualWiring` and does not import statement assembly.
+place it next to `P3MoserActualWiring` if Lean does not resolve `IntegratedMoserFirstCrossingStep` transitively.
 
 ## Open caveat
 
-To use `IntegratedMoserFirstCrossingStep` unqualified in the new structure, add near the existing open block:
+To use `IntegratedMoserFirstCrossingStep` unqualified, add:
 
 ```lean
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-Current block:
-
-```lean
-open ShenWork.IntervalDomain
-open ShenWork.Paper2.IntervalDomainEnergyStep
-open ShenWork.Paper2.IntervalDomainMoserClosure
-```
-
-Recommended block:
+near the existing open block:
 
 ```lean
 open ShenWork.IntervalDomain
@@ -101,17 +95,21 @@ open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-Alternatively, keep no new `open` and write the type fully qualified:
+Without that open, use the fully qualified type:
 
 ```lean
 ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.IntegratedMoserFirstCrossingStep
 ```
 
-The open line is cleaner and consistent with downstream uses of imported names.
-
 ## Exact placement
 
-Minimal-diff placement: insert one contiguous block after the raw-drop terminal-endpoint mass-gradient Corollary 2.1 Fact wrapper and before the comment:
+Insert the new block after the existing raw-drop terminal-endpoint mass-gradient Corollary 2.1 Fact wrapper:
+
+```lean
+intervalDomainPaper2_Corollary_2_1_of_actualAtomRawDropMassGradientTerminalEndpointFrontierDataFact
+```
+
+and before:
 
 ```lean
 /-- Section-2 target wrapper from the thinner branch data, with Proposition
@@ -120,15 +118,15 @@ the current theorem-level route. -/
 theorem intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
 ```
 
-This is the transition point after all current Prop. 2.5 / Corollary 2.1 actual-atom wrappers and before the section-2 thin bootstrap wrappers.  It avoids threading the new route into multiple earlier clusters while preserving the file’s organization.
+That placement matches the existing file organization: all Proposition 2.5 / Corollary 2.1 route wrappers first, then the section-2 thin bootstrap wrappers.
 
-The existing thin wrapper to reuse is:
+The existing theorem to reuse for the thin wrapper is:
 
 ```lean
 intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
 ```
 
-It takes a `Proposition_2_5 intervalDomain p`, so the integrated-step thin wrapper should simply feed it
+It already takes a produced `Proposition_2_5 intervalDomain p`, so the integrated-step thin wrapper should call it with:
 
 ```lean
 intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData p hStep
@@ -232,9 +230,9 @@ theorem
     p hThin.out hStep.out
 ```
 
-## Why Fact wrappers are included
+## Fact wrappers
 
-Nearby patterns include Fact wrappers for:
+Nearby pattern uses Fact wrappers for single-output wrappers such as:
 
 ```lean
 intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierDataFact
@@ -242,11 +240,19 @@ intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierDataFact
 intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomFrontierDataFact
 ```
 
-So including Fact wrappers for the individual Proposition/Corollary and thin-bootstrap target is consistent.  I would **not** add a Fact wrapper for the pair theorem, because the nearby pair theorem for actual atoms has no Fact wrapper.
+So include Fact wrappers for:
+
+```lean
+intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierDataFact
+intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierDataFact
+intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierDataFact
+```
+
+Do not add a Fact wrapper for the pair theorem; the nearby actual-atom pair theorem does not have one.
 
 ## Naming notes
 
-Recommended new names:
+Recommended names:
 
 ```lean
 IntervalDomainPaper2Prop25IntegratedStepFrontierData
@@ -259,7 +265,7 @@ intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
 intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierDataFact
 ```
 
-These match existing naming style:
+These match nearby naming style:
 
 ```lean
 IntervalDomainPaper2Prop25ActualAtomFrontierData
