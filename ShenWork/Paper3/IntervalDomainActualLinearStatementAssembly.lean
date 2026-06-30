@@ -4,6 +4,7 @@ import ShenWork.Paper3.IntervalDomainPersistenceActualLinearSectorial
 import ShenWork.PDE.P3MoserLemmaDischarge
 import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
+import ShenWork.PDE.IntervalDomainMoserLadderAtoms
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDomainExistence
@@ -1457,78 +1458,35 @@ structure
 namespace
     IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
 
-def to_routeResiduals
+/-- Convert the Paper3 actual-linear-small integrated-step residual surface to
+the reusable integrated-step mass/Lp/smoothing residual package. -/
+def to_integratedStepResiduals
     {p : CM2Params}
     (h :
       IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
         p)
     (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainMassLpSmoothingRouteResiduals p where
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p where
   a_pos := ha
   chi_nonneg := le_of_lt hχ0
   boundednessHyp := h.boundednessHyp
-  driftBoundFromMass := by
-    intro u₀ hu₀ T hT u v hsol htrace hmass
-    have hCor21 : Corollary_2_1 intervalDomain p :=
-      intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
-        h.integratedStep
-    have hProp25 : Proposition_2_5 intervalDomain p :=
-      intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
-        h.integratedStep h.quantitativeEndpoint
-    have hspatial :
-        IntervalDomainL2SpatialAbsorptionEstimate p T u v hsol hmass :=
-      intervalDomainL2SpatialAbsorptionEstimate_of_classical
-        h.boundednessHyp hsol hmass
-    have huniform :
-        IntervalDomainL2HalfEnergyDifferentialInequalityUniformCeps p T u v :=
-      intervalDomainL2HalfEnergyDifferentialInequalityUniformCeps_of_classicalSolution
-        hsol
-    have hhalf :
-        IntervalDomainL2HalfEnergyDifferentialInequality p T u v :=
-      intervalDomainL2HalfEnergyDifferentialInequality_of_classicalSolution hsol
-    have habsorbing :
-        IntervalDomainL2AbsorbingDifferentialInequalityResult p T u :=
-      IntervalDomainL2AbsorbingDifferentialInequality
-        h.boundednessHyp.1 hsol hmass hspatial huniform
-    have hregularity : IntervalDomainL2SeedRegularityFrontier T u :=
-      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
-        (Classical.choice
-          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
-    have hintegrated :
-        IntervalDomainL2AbsorbingIntegratedInequalityResult p T u :=
-      IntervalDomainL2AbsorbingIntegratedInequality
-        h.boundednessHyp.2.1 hsol habsorbing hregularity
-    have hL2 :
-        LpPowerBoundedBefore intervalDomain 2 T u :=
-      intervalDomainL2PowerBoundedBefore_of_absorbingIntegratedInequality
-        hsol hintegrated hregularity
-    have hbootstrap :
-        ∃ rho > 0,
-          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
-            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
-              LpPowerBoundedBefore intervalDomain p0 T u :=
-      intervalDomainL2BootstrapSeed_of_L2PowerBoundedBefore
-        h.boundednessHyp hu₀ hT hsol htrace hhalf hL2
-    have hbounded :
-        IsPaper2BoundedBefore intervalDomain T u :=
-      intervalDomainBoundedBefore_of_corollary21_and_proposition25
-        hCor21 hProp25 hu₀ hT hsol htrace hbootstrap
-    have hpoint : PointwiseBoundedBefore T u :=
-      pointwiseBoundedBefore_of_boundedBefore_and_supNormControls hbounded
-        (supNormControlsPointwiseBefore_of_classicalSolution hsol)
-    exact IntervalDomainChemotacticDriftBound_of_LinfBound hsol hpoint
   l2SeedRegularity := by
     intro u₀ hu₀ T hT u v hsol htrace
     exact
       P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
         (Classical.choice
           (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
-  allLpBoundFromBootstrap :=
-    intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
-      h.integratedStep
-  endpointBoundFromLp :=
-    intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
-      h.integratedStep h.quantitativeEndpoint
+  integratedStep := h.integratedStep
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  (h.to_integratedStepResiduals ha hχ0).to_routeResiduals
 
 end
     IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
@@ -1743,6 +1701,10 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2FrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_integratedStepResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
 #print axioms
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
 #print axioms

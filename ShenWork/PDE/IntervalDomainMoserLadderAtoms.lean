@@ -1,11 +1,13 @@
 import ShenWork.PDE.IntervalDomainAPrioriGlobal
 import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.Paper2.IntervalDomainVSliceBounds
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open ShenWork.IntervalDomainExistence.P3MoserActualWiring
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.MinPersistenceAtoms
 open Filter
@@ -240,6 +242,141 @@ def aprioriBound
   h.to_routeResiduals.aprioriBound
 
 end IntervalDomainMassLpSmoothingMoserLadderResiduals
+
+/-- Lower-level inputs that replace the old pointwise Moser-ladder route
+fields by a supplied integrated first-crossing step.
+
+This package is intentionally route-level: it consumes
+`IntegratedMoserFirstCrossingStep` directly via `P3MoserActualWiring` and does
+not derive old pointwise Moser atoms such as
+`MoserDissipationDropBeforeNonnegB` or `RelativeMoserInterpolationBefore`. -/
+structure IntervalDomainMassLpSmoothingIntegratedStepResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  integratedStep :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainMassLpSmoothingIntegratedStepResiduals
+
+/-- Corollary 2.1 from the supplied integrated first-crossing step. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
+    h.integratedStep
+
+/-- Proposition 2.5 from the supplied integrated first-crossing step and the
+quantitative Moser endpoint/root tower. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
+    h.integratedStep h.quantitativeEndpoint
+
+/-- Build the old mass/Lp/smoothing residual package from the integrated-step
+route.
+
+The drift field is reconstructed from the `L∞` bound obtained by the L² seed,
+Corollary 2.1, and Proposition 2.5, exactly as in
+`IntervalDomainMassLpSmoothingMoserLadderResiduals.to_routeResiduals`. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  driftBoundFromMass := by
+    intro u₀ hu₀ T hT u v hsol htrace hmass
+    have hCor21 : Corollary_2_1 intervalDomain p := h.corollary21
+    have hProp25 : Proposition_2_5 intervalDomain p := h.proposition25
+    have hspatial :
+        IntervalDomainL2SpatialAbsorptionEstimate p T u v hsol hmass :=
+      intervalDomainL2SpatialAbsorptionEstimate_of_classical
+        h.boundednessHyp hsol hmass
+    have huniform :
+        IntervalDomainL2HalfEnergyDifferentialInequalityUniformCeps p T u v :=
+      intervalDomainL2HalfEnergyDifferentialInequalityUniformCeps_of_classicalSolution
+        hsol
+    have hhalf :
+        IntervalDomainL2HalfEnergyDifferentialInequality p T u v :=
+      intervalDomainL2HalfEnergyDifferentialInequality_of_classicalSolution hsol
+    have habsorbing :
+        IntervalDomainL2AbsorbingDifferentialInequalityResult p T u :=
+      IntervalDomainL2AbsorbingDifferentialInequality
+        h.boundednessHyp.1 hsol hmass hspatial huniform
+    have hregularity : IntervalDomainL2SeedRegularityFrontier T u :=
+      h.l2SeedRegularity u₀ hu₀ T hT u v hsol htrace
+    have hintegrated :
+        IntervalDomainL2AbsorbingIntegratedInequalityResult p T u :=
+      IntervalDomainL2AbsorbingIntegratedInequality
+        h.boundednessHyp.2.1 hsol habsorbing hregularity
+    have hL2 :
+        LpPowerBoundedBefore intervalDomain 2 T u :=
+      intervalDomainL2PowerBoundedBefore_of_absorbingIntegratedInequality
+        hsol hintegrated hregularity
+    have hbootstrap :
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u :=
+      intervalDomainL2BootstrapSeed_of_L2PowerBoundedBefore
+        h.boundednessHyp hu₀ hT hsol htrace hhalf hL2
+    have hbounded :
+        IsPaper2BoundedBefore intervalDomain T u :=
+      intervalDomainBoundedBefore_of_corollary21_and_proposition25
+        hCor21 hProp25 hu₀ hT hsol htrace hbootstrap
+    have hpoint : PointwiseBoundedBefore T u :=
+      pointwiseBoundedBefore_of_boundedBefore_and_supNormControls hbounded
+        (supNormControlsPointwiseBefore_of_classicalSolution hsol)
+    exact IntervalDomainChemotacticDriftBound_of_LinfBound hsol hpoint
+  l2SeedRegularity := h.l2SeedRegularity
+  allLpBoundFromBootstrap := h.corollary21
+  endpointBoundFromLp := h.proposition25
+
+/-- A-priori bound from the integrated-step residual package. -/
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedStepResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_routeResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingIntegratedStepResiduals
+
+#print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
+#print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
+#print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
+#print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.aprioriBound
 
 end ShenWork.IntervalDomainExistence
 
