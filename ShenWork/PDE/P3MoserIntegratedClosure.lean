@@ -273,6 +273,571 @@ theorem
     linarith
   exact le_trans htime (by simpa [rest] using hscaled_rest)
 
+/-! ### Honest precrossing/window plumbing before the first-crossing frontier -/
+
+/-- Short name for the current Moser energy `Y_p(t)`. -/
+def integratedMoserEnergy
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (p t : ℝ) : ℝ :=
+  D.integral (fun x => (u t x) ^ p)
+
+/-- Short name for the Moser gradient energy `G_p(t)`. -/
+def integratedMoserGradientEnergy
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (p t : ℝ) : ℝ :=
+  D.integral (fun x =>
+    (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)
+
+/-- Restrict an `IntegrableOn` hypothesis on `uIcc 0 T` to an
+`IntervalIntegrable` statement on a non-reversed interval `a..b`. -/
+theorem intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+    {f : ℝ → ℝ} {T a b : ℝ}
+    (hab : a ≤ b)
+    (hint : IntegrableOn f (Set.uIcc (0 : ℝ) T) volume)
+    (hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T) :
+    IntervalIntegrable f volume a b := by
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hab]
+  exact hint.mono_set (Set.Ioc_subset_Icc_self.trans hsub)
+
+/-- Endpoint hypotheses used by the integrated Moser extraction give the
+corresponding set inclusion for every point of the closed window. -/
+theorem Icc_subset_uIcc_zero_T_of_endpoint_memberships
+    {T a b : ℝ}
+    (haT : a ∈ Set.Icc (0 : ℝ) T)
+    (hbT : b ∈ Set.Icc a T) :
+    Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T := by
+  intro s hs
+  have h0T : (0 : ℝ) ≤ T := le_trans haT.1 haT.2
+  rw [Set.uIcc_of_le h0T]
+  exact ⟨le_trans haT.1 hs.1, le_trans hs.2 hbT.2⟩
+
+/-- Power-profile interval integrability from the first-crossing regularity
+package. -/
+theorem IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 p a b : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hp : p0 ≤ p)
+    (hab : a ≤ b)
+    (hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T) :
+    IntervalIntegrable (fun s => integratedMoserEnergy D u p s) volume a b := by
+  exact intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+    hab (hreg.powerTimeIntegrable p hp) hsub
+
+/-- Gradient-profile interval integrability from the first-crossing regularity
+package. -/
+theorem IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 p a b : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hp : p0 ≤ p)
+    (hab : a ≤ b)
+    (hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T) :
+    IntervalIntegrable
+      (fun s => integratedMoserGradientEnergy D u p s) volume a b := by
+  exact intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+    hab (hreg.gradientTimeIntegrable p hp) hsub
+
+/-- If `Y` is interval-integrable on a non-reversed interval, so is
+`max 1 Y`.
+
+The proof uses `max 1 y = (1 + y + |1 - y|) / 2`, avoiding any dependency on a
+Mathlib lemma name for integrability under `max`. -/
+theorem intervalIntegrable_max_one_of_intervalIntegrable
+    {Y : ℝ → ℝ} {a b : ℝ}
+    (hY : IntervalIntegrable Y volume a b) :
+    IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) volume a b := by
+  have hconst :
+      IntervalIntegrable (fun _s : ℝ => (1 : ℝ)) volume a b :=
+    intervalIntegrable_const
+  have hdiff :
+      IntervalIntegrable (fun s => (1 : ℝ) - Y s) volume a b :=
+    hconst.sub hY
+  have habs :
+      IntervalIntegrable (fun s => |(1 : ℝ) - Y s|) volume a b :=
+    hdiff.abs
+  have hnum :
+      IntervalIntegrable
+        (fun s => (1 : ℝ) + Y s + |(1 : ℝ) - Y s|) volume a b :=
+    (hconst.add hY).add habs
+  have hformula :
+      IntervalIntegrable
+        (fun s => ((1 : ℝ) + Y s + |(1 : ℝ) - Y s|) / 2) volume a b := by
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using
+      hnum.const_mul ((1 : ℝ) / 2)
+  refine hformula.congr ?_
+  intro s _hs
+  by_cases hle : (1 : ℝ) ≤ Y s
+  · dsimp
+    rw [max_eq_right hle, abs_of_nonpos (sub_nonpos.mpr hle)]
+    ring
+  · have hY_le : Y s ≤ 1 := le_of_not_ge hle
+    dsimp
+    rw [max_eq_left hY_le, abs_of_nonneg (sub_nonneg.mpr hY_le)]
+    ring
+
+/-- Max-one current-energy interval integrability from the regularity package. -/
+theorem IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 p a b : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hp : p0 ≤ p)
+    (hab : a ≤ b)
+    (hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T) :
+    IntervalIntegrable
+      (fun s => max (1 : ℝ) (integratedMoserEnergy D u p s))
+      volume a b := by
+  exact intervalIntegrable_max_one_of_intervalIntegrable
+    (hreg.power_intervalIntegrable_of_Icc hp hab hsub)
+
+/-- Abstract nonnegativity of Moser energies on the closed finite horizon.
+
+This stays explicit at the abstract `BoundedDomainData` level.  Concrete
+`intervalDomain` producers can later prove it from positivity of classical
+solutions and interval-integral monotonicity. -/
+def IntegratedMoserEnergyNonnegativity
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → 0 ≤ p → ∀ t, t ∈ Set.Icc (0 : ℝ) T →
+    0 ≤ integratedMoserEnergy D u p t
+
+/-- Extract an Icc current-energy bound from `LpPowerBoundedBefore`. -/
+theorem currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p a b : ℝ}
+    (hLp : LpPowerBoundedBefore D p T u)
+    (ha : 0 < a) (hb : b < T) :
+    ∃ M, ∀ s ∈ Set.Icc a b, integratedMoserEnergy D u p s ≤ M := by
+  rcases hLp with ⟨M, hM⟩
+  refine ⟨M, ?_⟩
+  intro s hs
+  exact hM s (lt_of_lt_of_le ha hs.1) (lt_of_le_of_lt hs.2 hb)
+
+/-- Data available on an honest precrossing/window interval.  This record only
+packages fixed-window hypotheses; it does not assert any pointwise bound for the
+next exponent. -/
+structure IntegratedMoserPrecrossingIntervalData
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p a b M : ℝ) : Prop where
+  hp : p0 ≤ p
+  hp_nonneg : 0 ≤ p
+  hab : a < b
+  ha_pos : 0 < a
+  hb_lt : b < T
+  haT : a ∈ Set.Icc (0 : ℝ) T
+  hbT : b ∈ Set.Icc a T
+  currentEnergy_le_Icc :
+    ∀ s ∈ Set.Icc a b,
+      integratedMoserEnergy D u p s ≤ M
+  right_currentEnergy_nonneg :
+    0 ≤ integratedMoserEnergy D u p b
+  maxOneEnergy_intervalIntegrable :
+    IntervalIntegrable
+      (fun s => max (1 : ℝ) (integratedMoserEnergy D u p s))
+      volume a b
+  higherPower_intervalIntegrable :
+    IntervalIntegrable
+      (fun s => integratedMoserEnergy D u (p + rho) s)
+      volume a b
+  gradient_intervalIntegrable :
+    IntervalIntegrable
+      (fun s => integratedMoserGradientEnergy D u p s)
+      volume a b
+
+namespace IntegratedMoserPrecrossingIntervalData
+
+/-- Left-end current-energy bound extracted from the Icc current-energy field. -/
+theorem left_currentEnergy_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M : ℝ}
+    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
+    integratedMoserEnergy D u p a ≤ M :=
+  hI.currentEnergy_le_Icc a ⟨le_rfl, hI.hab.le⟩
+
+/-- Max-one time-integral control in the exact form needed by the integrated
+Moser extraction lemma. -/
+theorem maxOneEnergy_timeIntegral_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M : ℝ}
+    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M) :
+    (∫ s in a..b,
+      max (1 : ℝ) (integratedMoserEnergy D u p s)) ≤
+        (b - a) * max (1 : ℝ) M := by
+  simpa [integratedMoserEnergy] using
+    integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
+      (D := D) (u := u) (a := a) (b := b) (M := M) (p := p)
+      hI.hab.le hI.maxOneEnergy_intervalIntegrable hI.currentEnergy_le_Icc
+
+end IntegratedMoserPrecrossingIntervalData
+
+/-- Build the precrossing/window data from first-crossing regularity,
+energy-nonnegativity, and a current-exponent Icc bound. -/
+theorem integratedMoserPrecrossingIntervalData_of_regular_window
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (hrho_nonneg : 0 ≤ rho)
+    (hab : a < b)
+    (ha_pos : 0 < a)
+    (hb_lt : b < T)
+    (haT : a ∈ Set.Icc (0 : ℝ) T)
+    (hbT : b ∈ Set.Icc a T)
+    (hY_le :
+      ∀ s ∈ Set.Icc a b,
+        integratedMoserEnergy D u p s ≤ M) :
+    IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M := by
+  have hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T :=
+    Icc_subset_uIcc_zero_T_of_endpoint_memberships haT hbT
+  have hp_rho : p0 ≤ p + rho := by linarith
+  have hbT0 : b ∈ Set.Icc (0 : ℝ) T :=
+    ⟨le_trans haT.1 hbT.1, hbT.2⟩
+  refine
+    { hp := hp
+      hp_nonneg := hp_nonneg
+      hab := hab
+      ha_pos := ha_pos
+      hb_lt := hb_lt
+      haT := haT
+      hbT := hbT
+      currentEnergy_le_Icc := hY_le
+      right_currentEnergy_nonneg := hnonneg p hp hp_nonneg b hbT0
+      maxOneEnergy_intervalIntegrable := ?_
+      higherPower_intervalIntegrable := ?_
+      gradient_intervalIntegrable := ?_ }
+  · exact hreg.maxOneEnergy_intervalIntegrable_of_Icc hp hab.le hsub
+  · exact hreg.power_intervalIntegrable_of_Icc hp_rho hab.le hsub
+  · exact hreg.gradient_intervalIntegrable_of_Icc hp hab.le hsub
+
+/-- Witness-level form of the fixed-window integrated Moser upper-bound
+calculation.  Keeping `Gbound` and `Ceps` explicit prevents later frontiers from
+accidentally quantifying over arbitrary, larger upper-bound witnesses. -/
+def IntegratedMoserWindowUpperBoundWitness
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (rho p a b M eps Gbound Ceps : ℝ) : Prop :=
+  0 ≤ Ceps ∧
+    (∫ s in a..b, integratedMoserGradientEnergy D u p s) ≤ Gbound ∧
+    (∫ s in a..b, integratedMoserEnergy D u (p + rho) s) ≤
+      eps * Gbound + (b - a) * (Ceps * M)
+
+/-- Constants and estimates produced by the fixed-window integrated Moser
+upper-bound calculation. -/
+structure IntegratedMoserWindowUpperBoundData
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (rho p a b M eps : ℝ) : Prop where
+  bounds :
+    ∃ Gbound Ceps : ℝ,
+      IntegratedMoserWindowUpperBoundWitness
+        D u rho p a b M eps Gbound Ceps
+
+/-- Package the existing fixed-window integrated-Moser and relative-Moser
+helpers into a reusable upper-bound record.  This is still only a time-integral
+theorem, not a pointwise extraction theorem. -/
+theorem integratedMoser_windowUpperBoundData_of_precrossing
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b M eps : ℝ}
+    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hI : IntegratedMoserPrecrossingIntervalData D u T rho p0 p a b M)
+    (heps : 0 < eps) :
+    IntegratedMoserWindowUpperBoundData D u rho p a b M eps := by
+  have hleft :
+      D.integral (fun x => (u a x) ^ p) ≤ M := by
+    simpa [integratedMoserEnergy] using
+      IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le hI
+  have hright_nonneg :
+      0 ≤ D.integral (fun x => (u b x) ^ p) := by
+    simpa [integratedMoserEnergy] using hI.right_currentEnergy_nonneg
+  have hmaxInt :
+      ∫ s in a..b, max 1 (D.integral (fun x => (u s x) ^ p)) ≤
+        (b - a) * max (1 : ℝ) M := by
+    simpa [integratedMoserEnergy] using
+      IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le hI
+  rcases
+    integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
+      (p := p) (a := a) (b := b) (M := M)
+      (H := (b - a) * max (1 : ℝ) M)
+      hinteg hI.hp hI.hp_nonneg hI.haT hI.hbT
+      hleft hright_nonneg hmaxInt with
+    ⟨C, _hC_nonneg, hgrad_two⟩
+  let Gbound : ℝ := (M + C * p * ((b - a) * max (1 : ℝ) M)) / 2
+  have hGbound_raw :
+      (∫ s in a..b,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤ Gbound := by
+    dsimp [Gbound] at hgrad_two ⊢
+    linarith
+  have hGbound :
+      (∫ s in a..b, integratedMoserGradientEnergy D u p s) ≤ Gbound := by
+    simpa [integratedMoserGradientEnergy] using hGbound_raw
+  have hZ_int :
+      IntervalIntegrable
+        (fun s => D.integral (fun x => (u s x) ^ (p + rho)))
+        volume a b := by
+    simpa [integratedMoserEnergy] using hI.higherPower_intervalIntegrable
+  have hG_int :
+      IntervalIntegrable
+        (fun s =>
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
+        volume a b := by
+    simpa [integratedMoserGradientEnergy] using hI.gradient_intervalIntegrable
+  have hY_le_raw :
+      ∀ s ∈ Set.Icc a b, D.integral (fun x => (u s x) ^ p) ≤ M := by
+    intro s hs
+    simpa [integratedMoserEnergy] using hI.currentEnergy_le_Icc s hs
+  rcases
+    relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
+      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
+      (p := p) (a := a) (b := b) (M := M)
+      (eps := eps) (Gbound := Gbound)
+      hrel hI.hp heps hI.hab.le hI.ha_pos hI.hb_lt
+      hZ_int hG_int hY_le_raw hGbound_raw with
+    ⟨Ceps, hCeps_nonneg, hZ⟩
+  refine ⟨Gbound, Ceps, hCeps_nonneg, hGbound, ?_⟩
+  simpa [integratedMoserEnergy] using hZ
+
+/-- Data supplied by a genuine high-excursion argument for one candidate
+violation of the next Moser exponent bound.
+
+The lower-average and strict-gap fields are analytic input.  This structure
+does not derive a pointwise bound from a time-integral estimate. -/
+structure IntegratedMoserHighExcursionContradictionWindow
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p : ℝ) where
+  a : ℝ
+  b : ℝ
+  M : ℝ
+  eps : ℝ
+  lowerBound : ℝ
+  Gbound : ℝ
+  Ceps : ℝ
+  eps_pos : 0 < eps
+  upperWitness :
+    IntegratedMoserWindowUpperBoundWitness
+      D u rho p a b M eps Gbound Ceps
+  lowerAverage :
+    lowerBound ≤ ∫ s in a..b, integratedMoserEnergy D u (p + rho) s
+  upper_lt_lower :
+    eps * Gbound + (b - a) * (Ceps * M) < lowerBound
+
+/-- Pure contradiction once the same upper-bound witnesses also satisfy a
+strict lower-average gap. -/
+theorem false_of_windowUpperBoundWitness_lowerAverage_gap
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {rho p a b M eps Gbound Ceps lower : ℝ}
+    (hupper :
+      IntegratedMoserWindowUpperBoundWitness
+        D u rho p a b M eps Gbound Ceps)
+    (hlower :
+      lower ≤ ∫ s in a..b, integratedMoserEnergy D u (p + rho) s)
+    (hgap : eps * Gbound + (b - a) * (Ceps * M) < lower) :
+    False := by
+  rcases hupper with ⟨_hCeps_nonneg, _hG, hYupper⟩
+  linarith
+
+/-- Pure eliminator for a packaged high-excursion contradiction window. -/
+theorem false_of_integratedMoserHighExcursionContradictionWindow
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (hwin :
+      IntegratedMoserHighExcursionContradictionWindow
+        D u T rho p0 p) :
+    False :=
+  false_of_windowUpperBoundWitness_lowerAverage_gap
+    hwin.upperWitness hwin.lowerAverage hwin.upper_lt_lower
+
+/-- A high-excursion window carrying the lower-average information, before any
+choice of fixed-window upper-bound witnesses.  Producing this is the
+thickness/modulus part of the analytic frontier. -/
+structure IntegratedMoserHighExcursionLowerAverageWindow
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p Cnext t : ℝ) where
+  a : ℝ
+  b : ℝ
+  M : ℝ
+  lowerBound : ℝ
+  hab : a < b
+  ha_pos : 0 < a
+  hb_lt : b < T
+  haT : a ∈ Set.Icc (0 : ℝ) T
+  hbT : b ∈ Set.Icc a T
+  currentEnergy_le_Icc :
+    ∀ s ∈ Set.Icc a b,
+      integratedMoserEnergy D u p s ≤ M
+  lowerAverage :
+    lowerBound ≤ ∫ s in a..b, integratedMoserEnergy D u (p + rho) s
+
+/-- Analytic frontier: a pointwise high excursion produces a window with a
+quantitative lower average. -/
+structure IntegratedMoserHighExcursionLowerAverageWindowFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p Cnext : ℝ) where
+  produce :
+    p0 ≤ p →
+      0 ≤ p →
+      LpPowerBoundedBefore D p T u →
+      ∀ t, 0 < t → t < T →
+        Cnext < integratedMoserEnergy D u (p + rho) t →
+          IntegratedMoserHighExcursionLowerAverageWindow
+            D u T rho p0 p Cnext t
+
+/-- A tied fixed-window upper-bound witness and strict gap below the selected
+lower average.  This is where `eps`, `Gbound`, and `Ceps` stay linked. -/
+structure IntegratedMoserWindowUpperGapWitness
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (rho p a b M lowerBound : ℝ) where
+  eps : ℝ
+  Gbound : ℝ
+  Ceps : ℝ
+  eps_pos : 0 < eps
+  upperWitness :
+    IntegratedMoserWindowUpperBoundWitness
+      D u rho p a b M eps Gbound Ceps
+  upper_lt_lower :
+    eps * Gbound + (b - a) * (Ceps * M) < lowerBound
+
+/-- Quantitative upper-gap frontier for a selected lower-average window.  This
+is the analytic home for the `eps`/`Ceps` dependence. -/
+structure IntegratedMoserWindowUpperGapWitnessFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p : ℝ) where
+  produce :
+    ∀ {Cnext t : ℝ},
+      (hwin : IntegratedMoserHighExcursionLowerAverageWindow
+        D u T rho p0 p Cnext t) →
+        IntegratedMoserWindowUpperGapWitness
+          D u rho p hwin.a hwin.b hwin.M hwin.lowerBound
+
+/-- Pure assembly of a lower-average window and a tied upper-gap witness into
+the packaged contradiction-window frontier object. -/
+def integratedMoserContradictionWindow_of_lowerAverage_upperGap
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p Cnext t : ℝ}
+    (hlower :
+      IntegratedMoserHighExcursionLowerAverageWindow
+        D u T rho p0 p Cnext t)
+    (hupper :
+      IntegratedMoserWindowUpperGapWitness
+        D u rho p hlower.a hlower.b hlower.M hlower.lowerBound) :
+    IntegratedMoserHighExcursionContradictionWindow
+      D u T rho p0 p where
+  a := hlower.a
+  b := hlower.b
+  M := hlower.M
+  eps := hupper.eps
+  lowerBound := hlower.lowerBound
+  Gbound := hupper.Gbound
+  Ceps := hupper.Ceps
+  eps_pos := hupper.eps_pos
+  upperWitness := hupper.upperWitness
+  lowerAverage := hlower.lowerAverage
+  upper_lt_lower := hupper.upper_lt_lower
+
+/-- Exponentwise high-excursion exclusion input.  A violation above `Cnext`
+must produce a contradiction window; constructing that window is the real
+analytic frontier. -/
+structure IntegratedMoserHighExcursionContradictionWindowFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p : ℝ) where
+  Cnext : ℝ
+  contradictionWindow :
+    ∀ t, 0 < t → t < T →
+      Cnext < integratedMoserEnergy D u (p + rho) t →
+        IntegratedMoserHighExcursionContradictionWindow D u T rho p0 p
+
+/-- Pure assembly from the lower-average and tied upper-gap frontiers to the
+existing high-excursion contradiction-window frontier. -/
+def integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p Cnext : ℝ}
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (hLp : LpPowerBoundedBefore D p T u)
+    (hlower :
+      IntegratedMoserHighExcursionLowerAverageWindowFrontier
+        D u T rho p0 p Cnext)
+    (hupper :
+      IntegratedMoserWindowUpperGapWitnessFrontier
+        D u T rho p0 p) :
+    IntegratedMoserHighExcursionContradictionWindowFrontier
+      D u T rho p0 p := by
+  refine ⟨Cnext, ?_⟩
+  intro t ht0 htT hhigh
+  let hwin :=
+    hlower.produce hp hp_nonneg hLp t ht0 htT hhigh
+  exact
+    integratedMoserContradictionWindow_of_lowerAverage_upperGap
+      hwin (hupper.produce hwin)
+
+/-- Pure contradiction step from the high-excursion frontier to the next
+exponent's `LpPowerBoundedBefore` statement.
+
+The proof uses the supplied contradiction window; it does not use a bare
+time-integral-to-pointwise principle. -/
+theorem LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (hfront :
+      IntegratedMoserHighExcursionContradictionWindowFrontier
+        D u T rho p0 p) :
+    LpPowerBoundedBefore D (p + rho) T u := by
+  refine ⟨hfront.Cnext, ?_⟩
+  intro t ht0 htT
+  by_contra hnot
+  have hhigh_raw :
+      hfront.Cnext < D.integral (fun x => (u t x) ^ (p + rho)) :=
+    lt_of_not_ge hnot
+  have hhigh :
+      hfront.Cnext < integratedMoserEnergy D u (p + rho) t := by
+    simpa [integratedMoserEnergy] using hhigh_raw
+  let hwin := hfront.contradictionWindow t ht0 htT hhigh
+  exact false_of_integratedMoserHighExcursionContradictionWindow hwin
+
+/-- Exponentwise high-excursion frontiers sufficient to produce the integrated
+first-crossing step.  The current-exponent `LpPowerBoundedBefore` input remains
+available because it is needed to build the current window bound. -/
+structure IntegratedMoserFirstCrossingFromWindowFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) where
+  highExcursion :
+    ∀ p, p0 ≤ p →
+      LpPowerBoundedBefore D p T u →
+        IntegratedMoserHighExcursionContradictionWindowFrontier
+          D u T rho p0 p
+
+/-- Pure wrapper from the high-excursion window frontier to the existing
+`IntegratedMoserFirstCrossingStep` atom. -/
+theorem integratedMoserFirstCrossingStep_of_windowFrontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hfront : IntegratedMoserFirstCrossingFromWindowFrontier D u T rho p0) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 := by
+  intro p hp hLp
+  exact LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
+    (hfront.highExcursion p hp hLp)
+
+#print axioms intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
+#print axioms Icc_subset_uIcc_zero_T_of_endpoint_memberships
+#print axioms IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+#print axioms IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
+#print axioms intervalIntegrable_max_one_of_intervalIntegrable
+#print axioms IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+#print axioms currentEnergy_Icc_bound_of_LpPowerBoundedBefore
+#print axioms IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le
+#print axioms IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le
+#print axioms integratedMoserPrecrossingIntervalData_of_regular_window
+#print axioms integratedMoser_windowUpperBoundData_of_precrossing
+#print axioms false_of_windowUpperBoundWitness_lowerAverage_gap
+#print axioms false_of_integratedMoserHighExcursionContradictionWindow
+#print axioms integratedMoserContradictionWindow_of_lowerAverage_upperGap
+#print axioms integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap
+#print axioms LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
+#print axioms integratedMoserFirstCrossingStep_of_windowFrontier
+
 /-- Iterate a supplied integrated first-crossing step along the arithmetic
 Moser ladder. -/
 theorem moser_iteration_chain_of_integrated_first_crossing_step

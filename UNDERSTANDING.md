@@ -14,9 +14,10 @@ Authoritative checks from the current tree:
   with explicit or solution-slice-produced a-priori frontiers, the Paper1
   positive upper-contact / Route-A direct remaining-contact refinements, and
   the Paper2/Paper3 integrated-Moser step-consumer closure layer, the
-  fixed-interval integrated relative-Moser time-integral bridge, the Paper2
-  statement-level integrated-step wrappers, and the reusable Paper3/PDE
-  integrated-step mass/Lp/smoothing residual package,
+  fixed-interval integrated relative-Moser time-integral bridge, the
+  integrated-Moser precrossing/window and high-excursion contradiction
+  frontier plumbing, the Paper2 statement-level integrated-step wrappers, and
+  the reusable Paper3/PDE integrated-step mass/Lp/smoothing residual package,
   `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8985 jobs**.  Target builds for
   `ShenWork.PDE.P3MoserIntegratedClosure`,
@@ -36,7 +37,7 @@ Current headline status:
   | area | closed or internally produced | honest residual/frontier inputs | deprecated or no-go route |
   | --- | --- | --- | --- |
   | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau and raw traps now produce right-tail asymptotics by pure squeeze; the positive upper-barrier interface no-contact is discharged from differentiability/kink avoidance; the strict exponential contact residual is closed on the `p.m * kappa c ≤ 1` subregime; Route-A has an hmk-aware constant-left-plateau residual package that converts to the remaining-contact package; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData`, `Paper1PositiveLowerPinnedRawSmoothContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData`, `Paper1MainStatementLowerPinnedRawSmoothContactData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, `Paper1CombinedLowerPinnedRawContactStatementData`, and `Paper1CombinedLowerPinnedRawSmoothContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, smooth-branch no-contact comparison outside the `hmκ` subregime, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned plateau/raw squeeze route is the active tail producer; `hmκ` is not implied by the base positive hypotheses |
-  | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData` names the current preferred Theorem 1.1--1.3 headline route with both Corollary 2.1 and Proposition 2.5 produced from actual Moser atoms; `IntervalDomainPaper2PreferredChiZeroStatementActualAtomCor21FrontierData` is the matching full-statement route with the a-priori package kept explicit; the `...ActualAtomMassGradientCor21...` variants additionally reduce the relative-Moser atom to mass-gradient inputs; `...ActualAtomMassGradientTerminalEndpointCor21...` variants further replace the endpoint tower field by one terminal pointwise power-control input; `...ActualAtomRawDropMassGradientTerminalEndpointCor21...` variants lower the dissipation atom to raw pointwise physical drop data via `moserDissipationDropBeforeNonnegB_of_raw_drop`; `...SolutionInterpolation...` statement variants produce the a-priori package from positive solution-slice interpolation; `IntervalDomainPaper2Prop25IntegratedStepFrontierData` exposes the same statement-layer Corollary 2.1 / Proposition 2.5 / thin section-2 route from a supplied integrated first-crossing step and quantitative endpoint; `P3MoserIntegratedClosure` proves the routine Moser chain/all-exponent/endpoint consequences from a supplied integrated first-crossing one-step predicate and the fixed-interval integrated dissipation / relative-Moser time-integral bounds needed before the genuine first-crossing argument | finite-horizon alternative, actual Prop25 atoms (raw pointwise Moser drop or nonnegative-B Moser dissipation, plus either quantitative endpoint/root tower or terminal pointwise endpoint; mass-gradient relative data in the reduced route), positive solution-slice interpolation or explicit `IntervalDomainPaper2AprioriTargets` for full statements, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields; the theorem producing `IntegratedMoserFirstCrossingStep` from integrated energy/relative interpolation/regularity remains a genuine analytic frontier | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`; `OldUnitIntervalPowerGNYoungForMoser` is legacy/false for constants and should not feed new Moser routes; raw pointwise Moser drop, production of the integrated first-crossing step, and terminal endpoint production are still real atoms, not consequences of the current abstract APIs |
+  | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData` names the current preferred Theorem 1.1--1.3 headline route with both Corollary 2.1 and Proposition 2.5 produced from actual Moser atoms; `IntervalDomainPaper2PreferredChiZeroStatementActualAtomCor21FrontierData` is the matching full-statement route with the a-priori package kept explicit; the `...ActualAtomMassGradientCor21...` variants additionally reduce the relative-Moser atom to mass-gradient inputs; `...ActualAtomMassGradientTerminalEndpointCor21...` variants further replace the endpoint tower field by one terminal pointwise power-control input; `...ActualAtomRawDropMassGradientTerminalEndpointCor21...` variants lower the dissipation atom to raw pointwise physical drop data via `moserDissipationDropBeforeNonnegB_of_raw_drop`; `...SolutionInterpolation...` statement variants produce the a-priori package from positive solution-slice interpolation; `IntervalDomainPaper2Prop25IntegratedStepFrontierData` exposes the same statement-layer Corollary 2.1 / Proposition 2.5 / thin section-2 route from a supplied integrated first-crossing step and quantitative endpoint; `P3MoserIntegratedClosure` proves the routine Moser chain/all-exponent/endpoint consequences from a supplied integrated first-crossing one-step predicate, the fixed-interval integrated dissipation / relative-Moser time-integral bounds, the precrossing-to-window upper-bound package, and the pure high-excursion contradiction wrapper needed before the genuine first-crossing argument | finite-horizon alternative, actual Prop25 atoms (raw pointwise Moser drop or nonnegative-B Moser dissipation, plus either quantitative endpoint/root tower or terminal pointwise endpoint; mass-gradient relative data in the reduced route), positive solution-slice interpolation or explicit `IntervalDomainPaper2AprioriTargets` for full statements, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields; the production of high-excursion contradiction windows/frontiers, and hence of `IntegratedMoserFirstCrossingStep`, from integrated energy/relative interpolation/regularity remains a genuine analytic frontier | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`; `OldUnitIntervalPowerGNYoungForMoser` is legacy/false for constants and should not feed new Moser routes; raw pointwise Moser drop, production of the integrated first-crossing step, and terminal endpoint production are still real atoms, not consequences of the current abstract APIs |
   | Paper 3 | actual-linear-small Theorem 2.1 persistence; Proposition 1.3/1.4 can be routed through Paper2 Theorem 1.3/1.2 or Paper2 main targets; terminal pointwise endpoint now has a named quantitative-endpoint bridge; the actual-linear-small mainline has a direct integrated-step route that supplies route-level Corollary 2.1 / Proposition 2.5 from `IntegratedMoserFirstCrossingStep`, without deriving old pointwise Moser atoms; the reusable core of that route is now `IntervalDomainMassLpSmoothingIntegratedStepResiduals` in `IntervalDomainMoserLadderAtoms`, while the Paper3 local package only converts closed-energy trace data to the generic `l2SeedRegularity` field; `IntervalDomainPaper3SupNormCompactnessRegularizationData` removes only the structural `upperEq` field by fixing the sup envelope; `IntervalDomainPaper3NegativeSensitivityFrontierData` decomposes `negativeBound` into global-solution and eventual-sup residuals | `negativeBound` or its decomposed global-solution/eventual-sup frontiers, integrated first-crossing step production, terminal Moser inputs, spectral orbit, continuation/gluing, compactness/regularization, and stability frontiers | Paper2 Theorem 1.1 does not imply Paper3 Proposition 1.2 under the current API; see `not_paper2_theorem_1_1_implies_paper3_proposition_1_2`; do not derive `MoserDissipationDropBeforeNonnegB` or `RelativeMoserInterpolationBefore` from Corollary 2.1 |
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
@@ -329,10 +330,32 @@ Current headline status:
   `intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on`,
   `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_bound`, and
   `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound`.
-  These are only time-integral estimates on a fixed interval; they do not
-  extract a pointwise next-exponent bound.  The remaining faithful hard theorem
-  is still the production of `IntegratedMoserFirstCrossingStep` from
-  integrated dissipation, relative interpolation, and all-exponent regularity.
+  It also adds the honest precrossing/window layer:
+  `IntegratedMoserPrecrossingIntervalData`,
+  `integratedMoserPrecrossingIntervalData_of_regular_window`,
+  `IntegratedMoserWindowUpperBoundData`, and
+  `integratedMoser_windowUpperBoundData_of_precrossing` package regularity,
+  energy nonnegativity, a current-exponent Icc bound, integrated dissipation,
+  and relative interpolation into a fixed-window upper bound.  The auxiliary
+  `IntegratedMoserWindowUpperBoundWitness` exposes the actual `Gbound`/`Ceps`
+  witnesses so that a later strict lower-average gap is tied to the same
+  fixed-window estimate, not to arbitrary larger witnesses.  The new
+  `IntegratedMoserHighExcursionContradictionWindowFrontier` and
+  `integratedMoserFirstCrossingStep_of_windowFrontier` then isolate the pure
+  contradiction step from a high pointwise excursion to the supplied one-step
+  Moser predicate.  The next producer split is now named as well:
+  `IntegratedMoserHighExcursionLowerAverageWindowFrontier` is the
+  thickness/modulus lower-average frontier, while
+  `IntegratedMoserWindowUpperGapWitnessFrontier` is the quantitative
+  `eps`/`Ceps` upper-gap frontier; their pure assembler is
+  `integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap`.
+  These are still fixed-window or conditional frontier interfaces; they do not
+  extract a pointwise next-exponent bound from a bare time-integral estimate.
+  The remaining faithful hard theorem is the production of those
+  high-excursion lower-average and upper-gap frontiers from integrated
+  dissipation, relative interpolation, and all-exponent regularity, including
+  high-excursion thickness, lower-average estimates, and the quantitative
+  `eps`/`Ceps` closure.
   The raw pointwise drop and terminal pointwise endpoint are still analytic
   inputs, not derived from the current abstract APIs.
   General
@@ -521,13 +544,15 @@ Current headline status:
   trace data.  It
   deliberately does not derive `MoserDissipationDropBeforeNonnegB` or
   `RelativeMoserInterpolationBefore` from `Corollary_2_1`; those would be
-  backwards analytic dependencies.  The hard residual is still the production
-  of the integrated first-crossing step itself.
+  backwards analytic dependencies.  The hard residual is now exposed more
+  precisely as production of the high-excursion contradiction-window frontier
+  sufficient to obtain the integrated first-crossing step.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
 (`hprodAll`/`hstep`/`htail`/stationary/flat/SMP packages), Paper2 general-χ
 local/uniform existence inputs, production of
+the high-excursion contradiction-window frontier sufficient for
 `IntegratedMoserFirstCrossingStep` from integrated dissipation/relative
 interpolation/regularity, and Paper3 interval-domain sectorial mainline
 existence/persistence packages.
@@ -536,6 +561,14 @@ Input-package audit:
 - `structure` and `def ... : Prop` packages here are explicit residual
   interfaces, not axioms and not proof holes.  A theorem consuming one of these
   packages is conditional until a producer constructs that package.
+- For the integrated Moser route, `IntegratedMoserPrecrossingIntervalData` and
+  `IntegratedMoserWindowUpperBoundData` now have proved producers from the
+  named regularity/nonnegativity/current-bound/dissipation/relative inputs.
+  `IntegratedMoserHighExcursionContradictionWindowFrontier` is still the real
+  analytic frontier.  Its lower-average and upper-gap subfrontiers are now
+  explicitly split; the current code only wires those frontiers together and
+  does not derive high-excursion thickness or quantitative `eps`/`Ceps`
+  closure.
 - Some fields are already produced or reduced further by code.  Examples:
   Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`, now
   exposed in the interval-domain statement assembly; the Paper2
