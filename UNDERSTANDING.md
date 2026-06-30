@@ -10,9 +10,9 @@ Authoritative checks from the current tree:
   `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8983 jobs**.  The target build
   `lake build ShenWork.Paper1.UpperBarrierContact ShenWork.Paper1.PositiveRawRouteAAssembly`
-  also completed successfully.  The new Paper1 contact/Route-A wrappers and
-  no-left-plateau narrowing wrappers have `#print axioms` output
-  `[propext, Classical.choice, Quot.sound]`.
+  also completed successfully.  The new Paper1 contact/Route-A wrappers,
+  no-left-plateau narrowing wrappers, and strict-positive exp-contact bridges
+  have `#print axioms` output `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -97,6 +97,12 @@ Current headline status:
   `MChi_ne_one_of_chi_pos_lt_one`.  The thinner
   `PositiveUpperBarrierExpStrictContactResidual` therefore leaves only the
   strict exponential superbarrier residual at contact on that profile route.
+  The direct bridge
+  `positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos`
+  closes smooth no-contact from this thinner residual, and
+  `PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary`
+  closes the full contact package once `0 < kappa c` and regular stationary
+  data are present.
   The corresponding raw
   smooth-contact and remaining-contact statement routes are
   `Paper1PositiveLowerPinnedRawSmoothContactBranchData`,

@@ -371,6 +371,41 @@ theorem positiveUpperBarrierSmoothBranchNoContact_of_residual
   positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
     hM0 htrap hstat hreg hres
 
+/-- On the strict positive-sensitivity route, profile convergence closes the
+constant-branch contact residual, so smooth no-contact needs only strict
+exponential contact. -/
+theorem positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
+    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
+    PositiveUpperBarrierSmoothBranchNoContact p c U :=
+  positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
+    (MChi_pos_of_chi_lt_one p hχ_lt).le
+    htrap hprofile.stationary_eq hreg
+    (PositiveUpperBarrierRemainingContactResidual.of_expStrict_profile_chi_pos
+      hprofile hχ_pos hχ_lt hstrict)
+
+/-- Strict positive sensitivity and strict exponential contact close the full
+upper-barrier no-contact package once the regular stationary data are present. -/
+theorem PositiveUpperBarrierContactContradictions.of_expStrict_profile_chi_pos_regularStationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
+    (hstrict : PositiveUpperBarrierExpStrictContactResidual p c U) :
+    PositiveUpperBarrierContactContradictions p c U :=
+  PositiveUpperBarrierContactContradictions.of_smoothBranchNoContact_regularStationary
+    (positiveUpperBarrierSmoothBranchNoContact_of_expStrict_profile_chi_pos
+      htrap hprofile hχ_pos hχ_lt hreg hstrict)
+    hκ
+    (MChi_pos_of_chi_lt_one p hχ_lt)
+    htrap hprofile.stationary_eq hreg
+
 /-- Positive critical branch data that preserves the raw lower pin and carries
 only the truly remaining smooth-contact residual.  The exponential-branch
 operator comparison is produced from the regular stationary data. -/
