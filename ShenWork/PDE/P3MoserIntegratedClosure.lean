@@ -831,6 +831,37 @@ def integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap
     integratedMoserContradictionWindow_of_lowerAverage_upperGap
       hwin (hupper.produce hwin)
 
+/-- Per-exponent lower-average and upper-gap frontiers.  This Type-valued
+record keeps the chosen next-exponent threshold `Cnext` tied to both frontier
+suppliers. -/
+structure IntegratedMoserLowerUpperWindowFrontiers
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 p : ℝ) where
+  Cnext : ℝ
+  lowerAverage :
+    IntegratedMoserHighExcursionLowerAverageWindowFrontier
+      D u T rho p0 p Cnext
+  upperGap :
+    IntegratedMoserWindowUpperGapWitnessFrontier D u T rho p0 p
+
+namespace IntegratedMoserLowerUpperWindowFrontiers
+
+/-- Convert per-exponent lower-average and upper-gap frontiers to the
+contradiction-window frontier consumed by the first-crossing step. -/
+def to_contradictionWindowFrontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p : ℝ}
+    (h : IntegratedMoserLowerUpperWindowFrontiers D u T rho p0 p)
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (hLp : LpPowerBoundedBefore D p T u) :
+    IntegratedMoserHighExcursionContradictionWindowFrontier
+      D u T rho p0 p :=
+  integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap
+    hp hp_nonneg hLp h.lowerAverage h.upperGap
+
+end IntegratedMoserLowerUpperWindowFrontiers
+
 /-- Pure contradiction step from the high-excursion frontier to the next
 exponent's `LpPowerBoundedBefore` statement.
 
@@ -867,6 +898,33 @@ structure IntegratedMoserFirstCrossingFromWindowFrontier
         IntegratedMoserHighExcursionContradictionWindowFrontier
           D u T rho p0 p
 
+/-- Cross-exponent first-crossing frontier split into the lower-average and
+upper-gap pieces.  The `p0_nonneg` field is explicit because the lower-average
+frontier requires `0 ≤ p`, while the final first-crossing step only quantifies
+over `p0 ≤ p`. -/
+structure IntegratedMoserFirstCrossingLowerUpperFrontiers
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) where
+  p0_nonneg : 0 ≤ p0
+  frontiers :
+    ∀ p, p0 ≤ p →
+      LpPowerBoundedBefore D p T u →
+        IntegratedMoserLowerUpperWindowFrontiers D u T rho p0 p
+
+/-- Pure wrapper from split lower-average/upper-gap frontiers to the
+high-excursion contradiction-window frontier. -/
+def integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hfront :
+      IntegratedMoserFirstCrossingLowerUpperFrontiers D u T rho p0) :
+    IntegratedMoserFirstCrossingFromWindowFrontier D u T rho p0 where
+  highExcursion := by
+    intro p hp hLp
+    exact
+      (hfront.frontiers p hp hLp).to_contradictionWindowFrontier
+        hp (le_trans hfront.p0_nonneg hp) hLp
+
 /-- Pure wrapper from the high-excursion window frontier to the existing
 `IntegratedMoserFirstCrossingStep` atom. -/
 theorem integratedMoserFirstCrossingStep_of_windowFrontier
@@ -877,6 +935,18 @@ theorem integratedMoserFirstCrossingStep_of_windowFrontier
   intro p hp hLp
   exact LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
     (hfront.highExcursion p hp hLp)
+
+/-- Pure wrapper from split lower-average/upper-gap frontiers to the existing
+`IntegratedMoserFirstCrossingStep` atom. -/
+theorem integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hfront :
+      IntegratedMoserFirstCrossingLowerUpperFrontiers D u T rho p0) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 :=
+  integratedMoserFirstCrossingStep_of_windowFrontier
+    (integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
+      hfront)
 
 #print axioms intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
 #print axioms Icc_subset_uIcc_zero_T_of_endpoint_memberships
@@ -898,8 +968,11 @@ theorem integratedMoserFirstCrossingStep_of_windowFrontier
 #print axioms false_of_integratedMoserHighExcursionContradictionWindow
 #print axioms integratedMoserContradictionWindow_of_lowerAverage_upperGap
 #print axioms integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap
+#print axioms IntegratedMoserLowerUpperWindowFrontiers.to_contradictionWindowFrontier
 #print axioms LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
+#print axioms integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
 #print axioms integratedMoserFirstCrossingStep_of_windowFrontier
+#print axioms integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
 
 /-- Iterate a supplied integrated first-crossing step along the arithmetic
 Moser ladder. -/

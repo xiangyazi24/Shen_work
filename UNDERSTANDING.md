@@ -546,7 +546,12 @@ Current headline status:
   `RelativeMoserInterpolationBefore` from `Corollary_2_1`; those would be
   backwards analytic dependencies.  The hard residual is now exposed more
   precisely as production of the high-excursion contradiction-window frontier
-  sufficient to obtain the integrated first-crossing step.
+  sufficient to obtain the integrated first-crossing step.  That frontier now
+  also has a reusable Type-level split surface:
+  `IntegratedMoserFirstCrossingLowerUpperFrontiers` and
+  `IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals` carry the
+  cross-exponent lower-average and upper-gap suppliers separately before
+  converting to the existing window-frontier and integrated-step routes.
 
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
@@ -569,9 +574,10 @@ Input-package audit:
   is produced from pointwise nonnegativity, `IsPaper2ClassicalSolution`, or
   `IsPaper2GlobalClassicalSolution`.  `IntegratedMoserHighExcursionContradictionWindowFrontier`
   is still the real analytic frontier.  Its lower-average and upper-gap
-  subfrontiers are now explicitly split; the current code only wires those
-  frontiers together and does not derive high-excursion thickness or
-  quantitative `eps`/`Ceps` closure.
+  subfrontiers are now explicitly split, both at a single exponent and in the
+  cross-exponent `IntegratedMoserFirstCrossingLowerUpperFrontiers` package; the
+  current code only wires those frontiers together and does not derive
+  high-excursion thickness or quantitative `eps`/`Ceps` closure.
 - Some fields are already produced or reduced further by code.  Examples:
   Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`, now
   exposed in the interval-domain statement assembly; the Paper2

@@ -444,6 +444,78 @@ def aprioriBound
 
 end IntervalDomainMassLpSmoothingWindowFrontierResiduals
 
+/-- Lower-level inputs that refine `WindowFrontierResiduals` by splitting the
+high-excursion frontier into its lower-average and upper-gap suppliers. -/
+structure IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  lowerUpperFrontiers :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserFirstCrossingLowerUpperFrontiers
+          intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
+
+def to_windowFrontierResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingWindowFrontierResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  windowFrontier := fun hsol hcross hboot =>
+    integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
+      (h.lowerUpperFrontiers hsol hcross hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p :=
+  h.to_windowFrontierResiduals.to_integratedStepResiduals
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_integratedStepResiduals.to_routeResiduals
+
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_integratedStepResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
+
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
@@ -451,6 +523,10 @@ end IntervalDomainMassLpSmoothingWindowFrontierResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_integratedStepResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.aprioriBound
+#print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_windowFrontierResiduals
+#print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_routeResiduals
+#print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.aprioriBound
 
 end ShenWork.IntervalDomainExistence
 
