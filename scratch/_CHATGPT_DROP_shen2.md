@@ -1,40 +1,58 @@
-# Q2341 shen2: Paper2 interval-domain Proposition 2.5 route audit
+# Q2358 shen2: Paper2 Prop25 actual-atom frontier audit
 
-Repo target: `xiangyazi24/Shen_work`, `main` at commit `6eccd68f`.
+Repo target: `xiangyazi24/Shen_work`, `main` at commit `69e2c9cc` (`Add Paper2 actual-atom Prop25 frontiers`).
 
 ## Executive answer
 
-There is a real net-reduction for
+The new frontier
+
+```lean
+IntervalDomainPaper2Prop25ActualAtomFrontierData p
+```
+
+is already a real net-reduction compared with carrying
 
 ```lean
 Proposition_2_5 intervalDomain p
 ```
 
-that does **not** use the refuted global `IntervalDomainInterpolation` route and does **not** just carry old `Paper2BootstrapEstimateBranchData`.
+or old
 
-The best current route is the **actual-atoms / nonnegative-B Moser route**:
+```lean
+Paper2BootstrapEstimateBranchData intervalDomain p
+```
+
+because the wrapper
+
+```lean
+intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+```
+
+routes through:
 
 ```lean
 ShenWork.IntervalDomainExistence.P3MoserActualWiring
   .intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
 ```
 
-It reduces Prop 2.5 to exactly three analytic atom families:
+and that theorem internally produces:
 
 ```lean
-MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-RelativeMoserInterpolationBefore intervalDomain u T rho p0
-quantitative endpoint / root tower:
-  ∃ pSeq rootBound,
-    (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+CrossDiffusionBootstrapEstimate intervalDomain p T (2 * p.γ) u v
+AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T (2 * p.γ) pExp
+LpBootstrapEnergyInequality intervalDomain u T (2 * p.γ) pExp
+Lp monotonicity from positivity + regularity
 ```
 
-This is a genuine improvement over the old branch-data route.  The remaining atoms are still serious PDE/Moser frontiers, but they are smaller than `Proposition_2_5` itself.
+The three remaining actual atoms have different statuses:
 
-## Routes found, by honesty
+| Field | Can reduce right now? | Best current replacement |
+|---|---:|---|
+| `moserDissipation` | only to a stronger raw pointwise drop; no honest PDE producer yet | usually keep it; optionally replace by a raw-drop frontier using `moserDissipationDropBeforeNonnegB_of_raw_drop` |
+| `relativeMoserInterpolation` | yes | replace by mass-gradient + gradient-chain + lower-order mass-to-Lp frontiers using `intervalDomain_relativeMoserInterpolationBefore_of_massGradient` |
+| `quantitativeEndpoint` | no real producer yet | keep as is; dyadic root-tower lemmas only prove algebraic subpieces |
 
-### 1. BranchData wrapper: not a net reduction
+## Current actual-atom frontier in `IntervalDomainStatementAssembly.lean`
 
 File:
 
@@ -42,136 +60,510 @@ File:
 ShenWork/Paper2/IntervalDomainStatementAssembly.lean
 ```
 
-Current wrapper:
+Current structure:
 
 ```lean
-theorem intervalDomainPaper2_Proposition_2_5_of_branchData
-    (p : CM2Params)
-    (hData : Paper2BootstrapEstimateBranchData intervalDomain p) :
-    Proposition_2_5 intervalDomain p :=
-  Proposition_2_5.of_branchData hData
-```
-
-This is not useful for reducing Prop 2.5.  The old branch-data record already contains a `prop25` field, and the generic branch-data package is known not to be constructible uniformly from the abstract API.  The repo even has obstruction theorems such as:
-
-```lean
-theorem not_forall_branchData_after_lpi :
-    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
-        Paper2BootstrapEstimateBranchData D p)
-```
-
-in `ShenWork/Paper2/IntervalDomainLPI.lean`.
-
-Also in `IntervalDomainStatementAssembly.lean`, the thin section-2 wrapper is honest but does not produce Prop 2.5:
-
-```lean
-theorem intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
-    (hProp25 : Proposition_2_5 intervalDomain p) :
-    IntervalDomainPaper2BootstrapEstimateTargets p
-```
-
-It explicitly takes `hProp25`.  It is a consumer of a Prop 2.5 route, not a producer.
-
-### 2. LPI structured-data wrapper: honest but still coarse
-
-File:
-
-```text
-ShenWork/Paper2/IntervalDomainLPI.lean
-```
-
-The first honest Prop 2.5 producer is:
-
-```lean
-theorem Proposition_2_5_intervalDomain_of_structured_moser_data
-    {p : CM2Params}
-    (hdata : ∀ {u₀ : intervalDomain.Point → ℝ},
+structure IntervalDomainPaper2Prop25ActualAtomFrontierData
+    (p : CM2Params) : Prop where
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
+          intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
       PositiveInitialDatum intervalDomain u₀ →
-      ∀ {Tmax : ℝ}, 0 < Tmax →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
-        InitialTrace intervalDomain u₀ u →
-        ∀ pExp,
-          max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-          LpPowerBoundedBefore intervalDomain pExp Tmax u →
-            IntervalDomainStructuredMoserBootstrapData u Tmax) :
-    Proposition_2_5 intervalDomain p
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 ```
 
-This is honest because `IntervalDomainStructuredMoserBootstrapData` contains the actual Moser components and its `.boundedBefore` field is computed by `MoserClosure`; it is not equivalent to `Proposition_2_5`.  But it is still coarse: a caller must produce an entire structured Moser package for each solution/exponent.
-
-The file also proves the interval heat endpoint:
+Current producer:
 
 ```lean
-intervalDomainHeat_Lp_Linfty_pointwise_from_memLp
-intervalDomainHeat_Lp_Linfty_bound_from_memLp
-intervalDomainSemigroupEstimateData_Lp_Linfty_bound_from_memLp
+theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+    hData.moserDissipation
+    hData.relativeMoserInterpolation
+    hData.quantitativeEndpoint
 ```
 
-Those are useful analytic atoms, but they do not themselves produce Prop 2.5.  The file says that explicitly in its header.
+This wrapper is good.  The next reduction should target the fields, not the wrapper.
 
-### 3. Structured Moser frontiers: cleaner package
+## Atom 1: `moserDissipation`
+
+### Existing APIs
 
 File:
 
 ```text
-ShenWork/Paper2/IntervalDomainStructuredMoserData.lean
+ShenWork/PDE/P3MoserDissipationShape.lean
 ```
 
-Key structure:
+Current field target:
 
 ```lean
-structure Prop25MoserFrontiers
-    (u : ℝ → intervalDomain.Point → ℝ) (T pExp : ℝ) where
-  pSeq : ℕ → ℝ
-  rootBound : ℕ → ℝ
-  energy : LpBootstrapEnergyInequality intervalDomain u T 1 pExp
-  dissipation : MoserDissipationDropBefore intervalDomain u T 1 pExp
-  relative : RelativeMoserInterpolationBefore intervalDomain u T 1 pExp
-  powerIntegrable :
-    ∀ r : ℝ, 1 < r → ∀ t, 0 < t → t < T →
-      IntervalIntegrable
-        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ r))
-        MeasureTheory.volume 0 1
-  endpoint :
-    (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+def MoserDissipationDropBeforeNonnegB
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ A B K L_const, 0 ≤ B →
+    (∀ t, 0 < t → t < T →
+      (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+        A * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        B * D.integral (fun x => (u t x) ^ p) ≤
+      K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+    ∀ t, 0 < t → t < T →
+      0 ≤
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          B * D.integral (fun x => (u t x) ^ p)
 ```
 
-Producer:
+Existing packaging theorem:
 
 ```lean
-theorem Proposition_2_5_intervalDomain_of_prop25_moser_frontiers
-    {params : CM2Params}
-    (hfront :
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ {T : ℝ}, 0 < T →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        InitialTrace intervalDomain u₀ u →
-      ∀ pExp,
-        max (params.N : ℝ)
-            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) < pExp →
-        LpPowerBoundedBefore intervalDomain pExp T u →
-          Prop25MoserFrontiers u T pExp) :
-    Proposition_2_5 intervalDomain params
+theorem moserDissipationDropBeforeNonnegB_of_raw_drop
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (hdrop :
+      ∀ p, p0 ≤ p → ∀ B, 0 ≤ B → ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p)) :
+    MoserDissipationDropBeforeNonnegB D u T rho p0
 ```
 
-This is a genuine net-reduction relative to `Prop25` and `BranchData`, but not the smallest current reduction.  It carries `energy`, `dissipation`, `relative`, `powerIntegrable`, and `endpoint` as fields; several of these can now be produced from regularity and actual atoms in later files.
-
-Useful supporting definitions/theorems in this file:
+There is also an integrated shape:
 
 ```lean
-abstractBootstrapHypothesis_of_prop25_exponent
-lpMono_of_classical_solution_power_integrable
-structuredMoserBootstrapData_of_solution_frontiers
-structuredMoserBootstrapData_of_prop25_frontiers
+def IntegratedMoserDissipationDropBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T _rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      D.integral (fun x => (u t2 x) ^ p) -
+          D.integral (fun x => (u t1 x) ^ p) +
+        2 * ∫ s in t1..t2,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      C * p * ∫ s in t1..t2,
+        max 1 (D.integral (fun x => (u s x) ^ p))
 ```
 
-### 4. MCL route: warns about false old GN input
+and its packaging theorem:
+
+```lean
+theorem integratedMoserDissipationDropBefore_of_integrated_energy
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (henergy :
+      ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
+        ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+          D.integral (fun x => (u t2 x) ^ p) -
+              D.integral (fun x => (u t1 x) ^ p) +
+            2 * ∫ s in t1..t2,
+              D.integral (fun x =>
+                (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+          C * p * ∫ s in t1..t2,
+            max 1 (D.integral (fun x => (u s x) ^ p))) :
+    IntegratedMoserDissipationDropBefore D u T rho p0
+```
+
+### Audit verdict
+
+There is **no existing honest theorem** that derives
+
+```lean
+MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+```
+
+from PDE regularity, from the integrated dissipation shape, or from lower-level energy frontiers.
+
+The raw-drop theorem is a packaging theorem only.  It is a reduction in syntax, but not a PDE proof.  More importantly, the file itself contains a no-go warning:
+
+```lean
+theorem unitLinearDrop_not_MoserDissipationDropBeforeNonnegB :
+    ¬ MoserDissipationDropBeforeNonnegB
+      unitLinearDropDomain unitLinearDropU 1 1 1
+```
+
+So do **not** try to derive this field abstractly.  The integrated shape is probably the mathematically faithful future direction, but current Prop25 Moser closure consumes the pointwise `NonnegB` predicate, not `IntegratedMoserDissipationDropBefore`.
+
+### Optional smaller input structure
+
+Only add this if you have a genuine raw pointwise drop proof.  It is stronger than the current field but packages through an existing theorem:
+
+```lean
+import ShenWork.Paper2.IntervalDomainStatementAssembly
+import ShenWork.PDE.P3MoserDissipationShape
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+
+noncomputable section
+
+namespace ShenWork.Paper2
+
+structure IntervalDomainPaper2Prop25RawDropDissipationFrontierData
+    (p : CM2Params) : Prop where
+  rawDrop :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ B, 0 ≤ B → ∀ t, 0 < t → t < T →
+          0 ≤
+            (1 / q) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ q)) t +
+              B * intervalDomain.integral (fun x => (u t x) ^ q)
+
+end ShenWork.Paper2
+```
+
+Use it via:
+
+```lean
+moserDissipation := by
+  intro T rho p0 u v hsol hcross hboot
+  exact moserDissipationDropBeforeNonnegB_of_raw_drop
+    (hRaw.rawDrop hsol hcross hboot)
+```
+
+Recommended status: **do not replace the current field globally** unless the team commits to this raw pointwise proof shape.  It is not an established lower-level PDE producer.
+
+## Atom 2: `relativeMoserInterpolation`
+
+### Existing reduction
+
+This field has a genuine existing lower-level route.
+
+File:
+
+```text
+ShenWork/PDE/P3MoserLemmas.lean
+```
+
+General theorem:
+
+```lean
+theorem relativeMoserInterpolationBefore_of_massGradient
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder D u T rho p0) :
+    RelativeMoserInterpolationBefore D u T rho p0
+```
+
+Interval specialization:
+
+```lean
+theorem intervalDomain_relativeMoserInterpolationBefore_of_massGradient
+    {u : ℝ → intervalDomain.Point → ℝ} {T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) *
+            (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp :
+      MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0) :
+    RelativeMoserInterpolationBefore intervalDomain u T rho p0
+```
+
+There is also a rho-one specialization:
+
+```lean
+intervalDomain_relativeMoserInterpolationBefore_rho_one_of_massGradient
+```
+
+but the actual Prop25 route in `P3MoserActualWiring.lean` chooses
+
+```lean
+rho = 2 * params.γ
+```
+
+so the general theorem is the right one.
+
+### Recommended replacement field
+
+Replace the current `relativeMoserInterpolation` field by a lower-level mass-gradient frontier.
+
+```lean
+import ShenWork.Paper2.IntervalDomainStatementAssembly
+import ShenWork.PDE.P3MoserLemmas
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserLemmas
+
+noncomputable section
+
+namespace ShenWork.Paper2
+
+structure IntervalDomainPaper2RelativeMoserMassGradientFrontierData
+    (p : CM2Params) : Prop where
+  relativeMassGradient :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+        ∃ cGrad : ℝ → ℝ,
+          (∀ q, p0 ≤ q → 0 < cGrad q) ∧
+          (∀ q, p0 ≤ q → ∀ eta > 0, ∃ Ceta,
+            LpMassGradientInterpolationEstimate intervalDomain
+              (q + rho) eta Ceta T u) ∧
+          (∀ q, p0 ≤ q → ∀ t, 0 < t → t < T →
+            intervalDomain.integral (fun x =>
+                (u t x) ^ (q + rho - 2) *
+                  (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+              cGrad q * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm
+                  (fun y => (u t y) ^ (q / 2)) x) ^ 2)) ∧
+          MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0
+
+end ShenWork.Paper2
+```
+
+### Wrapper using the reduced relative field
+
+```lean
+import ShenWork.Paper2.IntervalDomainStatementAssembly
+import ShenWork.PDE.P3MoserLemmas
+
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserLemmas
+
+noncomputable section
+
+namespace ShenWork.Paper2
+
+structure IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData
+    (p : CM2Params) : Prop where
+  moserDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
+  relativeMassGradient :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+        ∃ cGrad : ℝ → ℝ,
+          (∀ q, p0 ≤ q → 0 < cGrad q) ∧
+          (∀ q, p0 ≤ q → ∀ eta > 0, ∃ Ceta,
+            LpMassGradientInterpolationEstimate intervalDomain
+              (q + rho) eta Ceta T u) ∧
+          (∀ q, p0 ≤ q → ∀ t, 0 < t → t < T →
+            intervalDomain.integral (fun x =>
+                (u t x) ^ (q + rho - 2) *
+                  (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+              cGrad q * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm
+                  (fun y => (u t y) ^ (q / 2)) x) ^ 2)) ∧
+          MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+def IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData.toActualAtoms
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData p) :
+    IntervalDomainPaper2Prop25ActualAtomFrontierData p where
+  moserDissipation := h.moserDissipation
+  relativeMoserInterpolation := by
+    intro T rho p0 u v hsol hcross hboot
+    rcases h.relativeMassGradient hsol hcross hboot with
+      ⟨cGrad, hcGrad, hMG, hgrad, hmassToLp⟩
+    exact intervalDomain_relativeMoserInterpolationBefore_of_massGradient
+      cGrad hcGrad hMG hgrad hmassToLp
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+    p hData.toActualAtoms
+
+end ShenWork.Paper2
+```
+
+This is the cleanest immediate net-reduction.
+
+## Atom 3: `quantitativeEndpoint`
+
+### Existing endpoint/dyadic APIs
+
+File:
+
+```text
+ShenWork/Paper2/IntervalDomainMoserClosure.lean
+```
+
+Endpoint definition:
+
+```lean
+def IntervalDomainMoserQuantitativeEndpoint
+    (u : ℝ → intervalDomain.Point → ℝ) (T : ℝ)
+    (pSeq rootBound : ℕ → ℝ) : Prop :=
+  ∃ M, 0 ≤ M ∧ ∃ n : ℕ,
+    0 < pSeq n ∧ 0 ≤ rootBound n ∧ rootBound n ≤ M ∧
+      IntervalDomainMoserPointwisePowerControlBefore u T (pSeq n) (rootBound n)
+```
+
+Endpoint consumer:
+
+```lean
+theorem intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+    {u : ℝ → intervalDomain.Point → ℝ} {T : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hEndpoint : IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u
+```
+
+File:
+
+```text
+ShenWork/PDE/IntervalDomainMoserActualAtoms.lean
+```
+
+Dyadic algebra already proved:
+
+```lean
+theorem dyadic_root_tower_product_bound
+    (n : ℕ) {C : ℝ} (hC : 1 ≤ C) :
+    (∏ k ∈ Finset.Icc 1 n, dyadicMoserFactor C k) ≤ 4 * C
+
+theorem dyadic_root_tower_iterate_bound
+    {C : ℝ} {M : ℕ → ℝ} (hC : 1 ≤ C)
+    (hrec : ∀ k, 1 ≤ k →
+      M (k + 1) ≤ dyadicMoserFactor C k * M k) :
+    ∀ n,
+      M (n + 1) ≤
+        (∏ k ∈ Finset.Icc 1 n, dyadicMoserFactor C k) * M 1
+
+theorem dyadic_root_tower_bound
+    {C : ℝ} {M : ℕ → ℝ} (hC : 1 ≤ C) (hM1 : 0 ≤ M 1)
+    (hrec : ∀ k, 1 ≤ k →
+      M (k + 1) ≤ dyadicMoserFactor C k * M k) :
+    ∀ n, M (n + 1) ≤ 4 * C * M 1
+```
+
+### Audit verdict
+
+There is **no existing theorem** that constructs
+
+```lean
+∃ pSeq rootBound, (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+  IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+```
+
+from the dyadic root-tower lemmas plus solution data.  The dyadic lemmas are real and useful, but they only bound an abstract recurrence.  They do not provide the pointwise power control field:
+
+```lean
+IntervalDomainMoserPointwisePowerControlBefore u T (pSeq n) (rootBound n)
+```
+
+Therefore the current `quantitativeEndpoint` field should **not** be replaced yet.  The honest future replacement would need a new endpoint producer whose input exposes:
+
+```lean
+pSeq rootBound : ℕ → ℝ
+pSeq positivity at some n
+rootBound recurrence controlled by dyadic_root_tower_bound
+pointwise power control from the Moser/Agmon terminal step
+```
+
+but no such theorem exists now.
+
+## Existing lower-level facts already consumed internally by actual-atom Prop25
+
+The actual-atom wrapper already performs several reductions internally, so these should not be reintroduced as fields:
+
+File:
+
+```text
+ShenWork/PDE/P3MoserActualWiring.lean
+```
+
+Internally used theorem:
+
+```lean
+theorem intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
+```
+
+Internal steps:
+
+```lean
+-- cross diffusion bootstrap from classical solution
+intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol
+
+-- bootstrap seed with rho = 2 * params.γ
+abstract_prop25_bootstrap_two_gamma hT hpExp hLp
+
+-- energy inequality from regularity
+intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+
+-- Lp monotonicity from positivity + power integrability
+intervalDomain_LpPowerBoundedBefore_mono_of_integrable_nonneg
+intervalDomain_u_rpow_intervalIntegrable_of_regularity
+
+-- final Moser closure
+intervalDomain_boundedBefore_of_energy_nonnegB_relative_interpolation
+```
+
+So do not make `CrossDiffusionBootstrapEstimate`, `LpBootstrapEnergyInequality`, power-integrability, or Lp monotonicity fields of the Paper2 Prop25 statement frontier again.
+
+## No-go / avoid-list
+
+### Do not use `OldUnitIntervalPowerGNYoungForMoser`
 
 File:
 
@@ -179,25 +571,35 @@ File:
 ShenWork/Paper2/IntervalDomainMCL.lean
 ```
 
-This file contains a theorem:
-
-```lean
-theorem Proposition_2_5_intervalDomain_of_MCL_frontiers
-    {params : CM2Params}
-    (hcross : ... → CrossDiffusionBootstrapEstimate intervalDomain params T 1 u v)
-    (hdiss : ... → MoserDissipationDropBefore intervalDomain u T 1 pExp)
-    (hGN : OldUnitIntervalPowerGNYoungForMoser)
-    (hEndpoint : ... → ∃ pSeq rootBound, ...)
-    : Proposition_2_5 intervalDomain params
-```
-
-Do **not** use this as the preferred route, because the same file explicitly labels:
+Legacy false predicate:
 
 ```lean
 def OldUnitIntervalPowerGNYoungForMoser : Prop := ...
 ```
 
-as legacy and false for constant functions.  The comment states that the left side scales like `A^(p+rho)` while the lower-order term scales like `A^p`.  The replacement in the same file is:
+The file itself says it is false for constant functions.  This is formally confirmed in:
+
+```text
+ShenWork/Paper2/IntervalDomainGNYObstruction.lean
+```
+
+by:
+
+```lean
+theorem not_oldUnitIntervalPowerGNYoungForMoser :
+    ¬ OldUnitIntervalPowerGNYoungForMoser
+```
+
+Therefore avoid:
+
+```lean
+Proposition_2_5_intervalDomain_of_MCL_frontiers
+relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung
+```
+
+as headline routes, because they use the old false predicate.
+
+The proved replacement:
 
 ```lean
 def UnitIntervalPowerGNYoungForMoser : Prop := ...
@@ -206,110 +608,63 @@ theorem unitIntervalPowerGNYoungForMoser_proved :
     UnitIntervalPowerGNYoungForMoser
 ```
 
-However, `Proposition_2_5_intervalDomain_of_MCL_frontiers` is still wired to the old `OldUnitIntervalPowerGNYoungForMoser`, so it is not the best honest headline route.
-
-The useful theorem from `IntervalDomainMCL.lean` is instead:
+is real, but it is **not yet wired** into the Prop25 actual-atom route.  A future theorem can use it to prove the mass-gradient inputs for
 
 ```lean
-def structuredMoserBootstrapData_of_regularity_MCL
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
-    (hdiss : MoserDissipationDropBefore intervalDomain u T rho p0)
-    (hEndpoint : ...)
-    : IntervalDomainStructuredMoserBootstrapData u T
+intervalDomain_relativeMoserInterpolationBefore_of_massGradient
 ```
 
-It shows how regularity supplies energy, power-integrability, and Lp monotonicity, but it still uses the older pointwise `MoserDissipationDropBefore`, not the repaired nonnegative-B shape.
+but that bridge is not present now.
 
-### 5. Actual atoms route: best current net-reduction
+### Do not use global `IntervalDomainInterpolation`
 
-Files:
+The global interpolation premise is refuted by:
+
+```lean
+ShenWork.Paper2.IntervalDomainInterpolationCounterexample
+  .not_intervalDomainInterpolation
+```
+
+Routes depending on global `IntervalDomainInterpolation` remain unsupported/vacuous for headline accounting.
+
+### Do not derive `MoserDissipationDropBeforeNonnegB` abstractly
+
+The file `P3MoserDissipationShape.lean` proves:
+
+```lean
+unitLinearDrop_not_MoserDissipationDropBeforeNonnegB
+```
+
+so the pointwise drop shape is not an abstract consequence of the bounded-domain interface.  It is a genuine PDE/Moser atom unless replaced by a new integrated-first-crossing Moser closure theorem.
+
+## Recommended immediate patch
+
+Add only the relative-interpolation reduction now.  Keep `moserDissipation` and `quantitativeEndpoint` as current actual atoms.
+
+Suggested patch file:
 
 ```text
-ShenWork/PDE/IntervalDomainMoserActualAtoms.lean
-ShenWork/PDE/P3MoserActualWiring.lean
-ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
+ShenWork/Paper2/IntervalDomainProp25MassGradientFrontier.lean
 ```
 
-The older actual-atoms theorem is:
+Patch outline:
 
 ```lean
-theorem intervalDomain_endpointBoundFromLp_of_quantitative_root_tower
-    {params : CM2Params}
-    (hcross : ... → CrossDiffusionBootstrapEstimate intervalDomain params T 1 u v)
-    (hdiss : ... → MoserDissipationDropBefore intervalDomain u T 1 pExp)
-    (hrel : ... → RelativeMoserInterpolationBefore intervalDomain u T 1 pExp)
-    (hEndpoint : ... → ∃ pSeq rootBound, ...)
-    : Proposition_2_5 intervalDomain params
-```
+import ShenWork.Paper2.IntervalDomainStatementAssembly
+import ShenWork.PDE.P3MoserLemmas
 
-It is honest, but it still carries the cross-diffusion bootstrap and the older pointwise dissipation shape.
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainMoserClosure
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserLemmas
 
-The better theorem is in `ShenWork/PDE/P3MoserActualWiring.lean`:
+noncomputable section
 
-```lean
-theorem intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-    {params : CM2Params}
-    (hdiss :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0)
-    (hrel :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          RelativeMoserInterpolationBefore intervalDomain u T rho p0)
-    (hEndpoint :
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ {T : ℝ}, 0 < T →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        InitialTrace intervalDomain u₀ u →
-      ∀ pExp,
-        max (params.N : ℝ)
-            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) < pExp →
-        LpPowerBoundedBefore intervalDomain pExp T u →
-          ∃ pSeq rootBound : ℕ → ℝ,
-            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
-    Proposition_2_5 intervalDomain params
-```
+namespace ShenWork.Paper2
 
-Why this is the best route:
-
-* `CrossDiffusionBootstrapEstimate` is produced internally from the classical solution via `intervalDomain_crossDiffusionBootstrapEstimate_of_classical`.
-* The bootstrap seed is built internally by `abstract_prop25_bootstrap_two_gamma` using `rho = 2 * params.γ`.
-* `LpBootstrapEnergyInequality` is produced internally by `intervalDomain_LpBootstrapEnergyInequality_of_regularity`.
-* Lp monotonicity is produced internally from positivity and `intervalDomain_u_rpow_intervalIntegrable_of_regularity`.
-* The final finite-horizon bound is obtained by `intervalDomain_boundedBefore_of_energy_nonnegB_relative_interpolation` and the quantitative endpoint.
-
-This is a genuine reduction to exactly the PDE/Moser atoms that still need proof.
-
-### 6. Packaged version of the best route
-
-File:
-
-```text
-ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
-```
-
-Best existing structure:
-
-```lean
-structure IntervalDomainMassLpSmoothingMoserLadderResiduals
-    (p : CM2Params) where
-  a_pos : 0 < p.a
-  chi_nonneg : 0 ≤ p.χ₀
-  boundednessHyp : IntervalDomainBoundednessHyp p
-  l2SeedRegularity : ...
+structure IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData
+    (p : CM2Params) : Prop where
   moserDissipation :
     ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T u v →
@@ -317,250 +672,64 @@ structure IntervalDomainMassLpSmoothingMoserLadderResiduals
       AbstractLpBootstrapHypothesis intervalDomain u
         (p.N : ℝ) T rho p0 →
         MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-  relativeMoserInterpolation :
+  relativeMassGradient :
     ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T u v →
       CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  quantitativeEndpoint : ...
-```
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+        ∃ cGrad : ℝ → ℝ,
+          (∀ q, p0 ≤ q → 0 < cGrad q) ∧
+          (∀ q, p0 ≤ q → ∀ eta > 0, ∃ Ceta,
+            LpMassGradientInterpolationEstimate intervalDomain
+              (q + rho) eta Ceta T u) ∧
+          (∀ q, p0 ≤ q → ∀ t, 0 < t → t < T →
+            intervalDomain.integral (fun x =>
+                (u t x) ^ (q + rho - 2) *
+                  (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+              cGrad q * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm
+                  (fun y => (u t y) ^ (q / 2)) x) ^ 2)) ∧
+          MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 
-Its Prop 2.5 projection is already present:
-
-```lean
-theorem IntervalDomainMassLpSmoothingMoserLadderResiduals.proposition25
+def IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData.toActualAtoms
     {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-    h.moserDissipation h.relativeMoserInterpolation h.quantitativeEndpoint
-```
+    (h : IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData p) :
+    IntervalDomainPaper2Prop25ActualAtomFrontierData p where
+  moserDissipation := h.moserDissipation
+  relativeMoserInterpolation := by
+    intro T rho p0 u v hsol hcross hboot
+    rcases h.relativeMassGradient hsol hcross hboot with
+      ⟨cGrad, hcGrad, hMG, hgrad, hmassToLp⟩
+    exact intervalDomain_relativeMoserInterpolationBefore_of_massGradient
+      cGrad hcGrad hMG hgrad hmassToLp
+  quantitativeEndpoint := h.quantitativeEndpoint
 
-This theorem only uses the three fields:
-
-```lean
-h.moserDissipation
-h.relativeMoserInterpolation
-h.quantitativeEndpoint
-```
-
-The other fields of `IntervalDomainMassLpSmoothingMoserLadderResiduals` are for the larger mass/Lp/smoothing route and `to_routeResiduals`, not for Prop 2.5 itself.
-
-## Minimal Lean wiring plan
-
-### Preferred minimal file/import
-
-Use the actual-atoms theorem directly from the PDE namespace.  A Paper2-facing wrapper can live in a small file such as:
-
-```text
-ShenWork/Paper2/IntervalDomainProp25ActualAtoms.lean
-```
-
-with imports:
-
-```lean
-import ShenWork.PDE.IntervalDomainMoserLadderAtoms
-
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-
-noncomputable section
-
-namespace ShenWork.Paper2
-```
-
-### Smallest Prop25-only frontier
-
-The current `IntervalDomainMassLpSmoothingMoserLadderResiduals` is a good package for the larger route, but for Prop 2.5 alone the smaller frontier is:
-
-```lean
-structure IntervalDomainPaper2Prop25ActualAtomFrontierData
-    (p : CM2Params) : Prop where
-  moserDissipation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-  relativeMoserInterpolation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  quantitativeEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
-```
-
-Wrapper:
-
-```lean
-theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData
     (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    (hData : IntervalDomainPaper2Prop25ActualAtomWithMassGradientFrontierData p) :
     Proposition_2_5 intervalDomain p :=
-  intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-    hData.moserDissipation
-    hData.relativeMoserInterpolation
-    hData.quantitativeEndpoint
-```
-
-This is a compile-oriented net reduction: the wrapper is almost definitional, but the data are strictly smaller than `Proposition_2_5` and much smaller than `Paper2BootstrapEstimateBranchData`.
-
-### Convenience wrapper from existing larger residual package
-
-If using the larger route data already present in `IntervalDomainMoserLadderAtoms.lean`, just expose this Paper2-facing wrapper:
-
-```lean
-theorem intervalDomainPaper2_Proposition_2_5_of_moserLadderResiduals
-    (p : CM2Params)
-    (h : ShenWork.IntervalDomainExistence.IntervalDomainMassLpSmoothingMoserLadderResiduals p) :
-    Proposition_2_5 intervalDomain p :=
-  h.proposition25
-```
-
-This is honest, but slightly less minimal because the structure carries fields not needed by Prop 2.5.
-
-## Current route ranking
-
-1. **Best current net-reduction**:
-
-   ```lean
-   intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-   ```
-
-   or packaged as:
-
-   ```lean
-   IntervalDomainMassLpSmoothingMoserLadderResiduals.proposition25
-   ```
-
-2. **Good intermediate route**:
-
-   ```lean
-   Proposition_2_5_intervalDomain_of_prop25_moser_frontiers
-   ```
-
-   It reduces to `Prop25MoserFrontiers`, but still carries energy/dissipation/relative/power-integrability/endpoint per solution.
-
-3. **Coarse but honest route**:
-
-   ```lean
-   Proposition_2_5_intervalDomain_of_structured_moser_data
-   ```
-
-   It reduces to a produced `IntervalDomainStructuredMoserBootstrapData` for every solution and qualifying exponent.
-
-4. **Avoid as headline**:
-
-   ```lean
-   Proposition_2_5_intervalDomain_of_MCL_frontiers
-   ```
-
-   It uses `OldUnitIntervalPowerGNYoungForMoser`, explicitly marked false for constant functions.
-
-5. **Not a reduction**:
-
-   ```lean
-   intervalDomainPaper2_Proposition_2_5_of_branchData
-   intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
-   ```
-
-   The first consumes old branch data containing Prop25; the second takes `hProp25` directly.
-
-## Concrete cleanup recommendation
-
-Add a Paper2-facing file exposing only the actual-atoms route:
-
-```lean
-import ShenWork.PDE.IntervalDomainMoserLadderAtoms
-
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-
-noncomputable section
-
-namespace ShenWork.Paper2
-
-structure IntervalDomainPaper2Prop25ActualAtomFrontierData
-    (p : CM2Params) : Prop where
-  moserDissipation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-  relativeMoserInterpolation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  quantitativeEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
-
-theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-    hData.moserDissipation
-    hData.relativeMoserInterpolation
-    hData.quantitativeEndpoint
+  intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+    p hData.toActualAtoms
 
 end ShenWork.Paper2
 ```
 
-Then change interval-domain statement assembly routes that currently accept a naked
+## Priority order after this audit
 
-```lean
-hProp25 : Proposition_2_5 intervalDomain p
-```
-
-to optionally accept this smaller frontier and call:
-
-```lean
-intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData p hProp25Atoms
-```
-
-This gives a real net-reduction while preserving the existing statement wrappers.
-
-## Final warning
-
-Do not use global `IntervalDomainInterpolation`.  Do not use `OldUnitIntervalPowerGNYoungForMoser` as a headline route.  Do not claim `Paper2BootstrapEstimateBranchData intervalDomain p` is produced by current code.  The honest current Prop25 route is the actual-atoms route through nonnegative-B dissipation, relative Moser interpolation, and quantitative endpoint/root tower.
+1. Add the mass-gradient-relative frontier wrapper above.  This is the only safe immediate net-reduction among the three fields.
+2. Do not replace `quantitativeEndpoint` until a theorem constructs `IntervalDomainMoserQuantitativeEndpoint` from dyadic recurrence plus pointwise terminal control.
+3. Do not replace `moserDissipation` with the integrated shape until a new integrated-first-crossing Moser closure theorem consumes `IntegratedMoserDissipationDropBefore` directly.
+4. Keep `OldUnitIntervalPowerGNYoungForMoser` and global `IntervalDomainInterpolation` out of all headline Prop25 routes.
