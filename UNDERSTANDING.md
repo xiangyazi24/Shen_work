@@ -576,6 +576,20 @@ Current headline status:
   cross-exponent lower-average and upper-gap suppliers separately before
   converting to the existing window-frontier and integrated-step routes.
 
+**New threshold-plan route (2026-06-30):**
+`P3MoserThresholdPlanProducer.lean` provides a complete alternative pipeline:
+`integratedMoserFirstCrossingStep_of_abstract_data` takes regularity + energy
+nonnegativity + dissipation drop + relative interpolation + gradient nonneg +
+p0≥0 and produces `IntegratedMoserFirstCrossingStep` via the threshold-plan
+contradiction argument.  Handles Cq=0 (non-increasing energy) separately.
+`intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data` specializes
+to `intervalDomain` by supplying gradient nonneg from `sq_nonneg`.
+`P3MoserHighExcursionProducer.lean` is now axiom-clean (fixed 2 linarith
+failures from integral-notation greedy parsing).  The remaining frontier for
+this route is producing `IntegratedMoserFirstCrossingRegularity` from
+`IsPaper2ClassicalSolution` (energy continuity via dominated convergence on
+the compact interval domain).
+
 Next real work is residual-assumption discharge, not proof-hole removal.  Good
 small targets are the remaining Paper1 construction floors
 (`hprodAll`/`hstep`/`htail`/stationary/flat/SMP packages), Paper2 general-χ
