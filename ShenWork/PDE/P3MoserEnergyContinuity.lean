@@ -1,4 +1,5 @@
 import ShenWork.PDE.P3MoserRegularityProducer
+import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
 
 /-!
 # Energy continuity from classical solution joint continuity
@@ -90,27 +91,27 @@ theorem intervalDomain_energyContinuousOn_Ioo
       (Ioo (0 : ℝ) T) := by
   rw [ContinuousOn]
   intro t₀ ht₀
-  -- The intervalDomain.integral unfolds to ∫ x in 0..1, (lift (u t) x) ^ p
-  show ContinuousWithinAt
-    (fun t => intervalDomainIntegral (fun x => (u t x) ^ p))
-    (Ioo (0 : ℝ) T) t₀
-  unfold intervalDomainIntegral
-  -- Goal: ContinuousWithinAt (fun t => ∫ x in 0..1, lift(...) x) (Ioo 0 T) t₀
-  -- Choose a compact sub-slab [a,b] ⊆ (0,T) containing t₀
-  set a := (t₀ + 0) / 2 -- midpoint of t₀ and 0
-  set b := (t₀ + T) / 2 -- midpoint of t₀ and T
-  have ha : 0 < a := by simp [a]; linarith [ht₀.1]
-  have hb : b < T := by simp [b]; linarith [ht₀.2]
-  have hab : a ≤ b := by simp [a, b]; linarith [ht₀.1, ht₀.2]
-  have hat₀ : a < t₀ := by simp [a]; linarith [ht₀.1]
-  have ht₀b : t₀ < b := by simp [b]; linarith [ht₀.2]
-  -- Get the uniform bound on [a,b] × [0,1]
-  rcases intervalDomain_power_bounded_on_slab hsol ha hb hab with ⟨C, hC⟩
-  sorry
+  have hderiv :
+      HasDerivAt (fun s => intervalDomainPowerEnergy p u s)
+        (∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv p u t₀ y) t₀ :=
+    intervalDomainPowerEnergy_hasDerivAt (q := p) hsol ht₀
+  have henergy :
+      (fun t => intervalDomain.integral (fun x => (u t x) ^ p)) =
+        fun t => intervalDomainPowerEnergy p u t := by
+    funext t
+    unfold intervalDomainPowerEnergy
+    change intervalDomainIntegral (fun x => (u t x) ^ p) = _
+    unfold intervalDomainIntegral
+    refine intervalIntegral.integral_congr (fun y hy => ?_)
+    rw [Set.uIcc_of_le (zero_le_one)] at hy
+    simp [intervalDomainLift, hy]
+  rw [henergy]
+  exact hderiv.continuousAt.continuousWithinAt
 
 #print axioms intervalDomain_solution_jointContinuousOn
 #print axioms intervalDomain_power_jointContinuousOn
 #print axioms intervalDomain_power_bounded_on_slab
+#print axioms intervalDomain_energyContinuousOn_Ioo
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
