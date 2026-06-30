@@ -1,569 +1,422 @@
-# Q2684 (shen1) — Paper3 actual-linear Moser interface thinning audit
+# Q2702 (shen1) — `IntervalAgmonInterpolation.lean` sorry audit
 
-Repo: `xiangyazi24/Shen_work`, Lean 4.  
-Scope: non-Zinan files only.  Do **not** edit or rely on
+Repo: `xiangyazi24/Shen_work`, Lean 4 / Mathlib 4.29.1.  
+Scope: non-Zinan files only.  I did not inspect or rely on
 `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or
 `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
 
-I inspected `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
-and the imported Moser/PDE packages on current `main` through `7539485a`.
+## Executive verdict
 
-## Verdict
+Do **not** try to fill the four `sorry`s in the current statements as written.
+There are two real API problems:
 
-There is **one worthwhile mechanical thinning still available** for the Paper3
-actual-linear Moser statement surfaces:
+1. `sup_le_integral_add_integral_deriv` and
+   `integral_abs_le_sqrt_integral_sq` are missing essential analytic hypotheses.
+   They are not just hard Lean exercises.
+2. `intervalDomain_classicalSolutionPositiveInterpolation_of_agmon` cannot use
+   the current `hagmon` signature, because it needs one `Ceps` uniform for all
+   time slices, while the current `hagmon` only gives a `Ceps` after a particular
+   function `f` has been chosen.
 
-> Add an actual-linear wrapper surface for the already-existing PDE-level
-> `IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`, preferably
-> using the new continuity regularity package
-> `IntervalDomainIntegratedMoserClassicalContinuityRegularityData`.
+There is a small compile-likely wiring replacement for (4), but only after
+changing the Agmon input to a uniform-frontier shape.
 
-This removes the remaining opaque
+## Source facts checked
 
-```lean
-lowerUpperFrontiers :
-  ... → Nonempty
-    (IntegratedMoserFirstCrossingLowerUpperFrontiers intervalDomain u T rho p0)
-```
-
-from the preferred Paper3 actual-linear LowerUpper surface, replacing it by the
-mechanically assembled lower-average / upper-data-gap route:
+`IntervalDomainClassicalSolutionPositiveInterpolation` is:
 
 ```lean
-classicalContinuityRegularity
-integratedDissipation
-relativeMoserInterpolation
-lowerAverage
-upperDataGap
+abbrev IntervalDomainClassicalSolutionPositiveInterpolation
+    (p : CM2Params) : Prop :=
+  ∀ {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+    IsPaper2ClassicalSolution intervalDomain p T u v →
+      ∀ eps, 0 < eps → ∀ q, 1 < q → ∃ Ceps > 0,
+        LpMassGradientInterpolationEstimate intervalDomain q eps Ceps T u
 ```
 
-The proof chain is already in the repo; the missing part is only a Paper3-facing
-wrapper in `IntervalDomainActualLinearStatementAssembly.lean`.
+So the `Ceps` is chosen once after `T,u,v,hsol,eps,q` and before the estimate is
+used at arbitrary `t ∈ (0,T)`.  A per-slice `∃ Ceps` from
+`hagmon (u t) ...` is too weak.
 
-A second possible thinning is the old, optional one: add an IntegratedStep
-sup-norm compactness thin route analogous to the existing LowerUpper thin route.
-That is mechanically valid but probably API bloat unless direct integrated-step
-callers need it.  The preferred route should now be lowerAverage/upperDataGap,
-not bare IntegratedStep.
-
-## 1. Exact redundant / wireable fields
-
-### A. Main worthwhile thinning: `lowerUpperFrontiers`
-
-Current Paper3 actual-linear field:
+For classical slices, the regularity accessors available in the repo are enough
+to provide positivity and spatial regularity:
 
 ```lean
-structure IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals
-    (p : CM2Params) : Prop where
-  ...
-  lowerUpperFrontiers :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        Nonempty
-          (IntegratedMoserFirstCrossingLowerUpperFrontiers
-            intervalDomain u T rho p0)
-  ...
+have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+have hpos : ∀ x : intervalDomain.Point, 0 < u t x :=
+  fun x => hsol.u_pos' ht0 htT
+have hC2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+  (hsol.regularity.2.2.2.2.1 t ht).1.1
 ```
 
-This field is mechanically derivable from the imported lower-average /
-upper-data-gap components, because `P3MoserRegularityProducer.lean` already has:
+The file also has the open-interval interior regularity field:
 
 ```lean
-intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
-intervalDomain_regularityLite_of_classicalRegularityData
-intervalDomain_classicalRegularityData_of_continuityRegularityData
+(hsol.regularity.1 t ht).1 :
+  ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1)
 ```
 
-and `P3MoserIntegratedClosure.lean` already has the generic conversion path:
+Those are adequate for wiring to a correct slice inequality, but they do not
+supply the missing analytic theorem itself.
+
+## Sorry 1: `sup_le_integral_add_integral_deriv`
+
+### Current statement is too weak
+
+Current theorem:
 
 ```lean
-IntegratedMoserFirstCrossingLowerAverageUpperDataGapData.toLowerUpperFrontiers
-integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+theorem sup_le_integral_add_integral_deriv
+    {f : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Icc 0 1))
+    (hf_diff : DifferentiableOn ℝ f (Ioo 0 1))
+    (hf_nonneg : ∀ x ∈ Icc (0 : ℝ) 1, 0 ≤ f x) :
+    ∀ x ∈ Icc (0 : ℝ) 1,
+      f x ≤ ∫ y in (0 : ℝ)..1, f y + ∫ y in (0 : ℝ)..1, |deriv f y|
 ```
 
-At the PDE package level this is already consumed by:
+The proof sketch needs a fundamental theorem of calculus / bounded variation
+step:
 
 ```lean
-IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
-IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
-IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_routeResiduals
-IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.aprioriBound
+f x - f y ≤ ∫ s in (0 : ℝ)..1, |deriv f s|
 ```
 
-The Paper3 actual-linear file simply has no matching statement-facing surface
-for that package yet.
+But `ContinuousOn` on `[0,1]` plus `DifferentiableOn` on `(0,1)` does **not**
+encode absolute continuity or an integrable derivative / FTC identity.  In Lean
+terms, there is no source for the desired
+`f x - f y = ∫ s in y..x, deriv f s` bridge from those hypotheses alone.
 
-### B. Regularity field inside that thinning should use continuity data
+A standard counterexample shape is a differentiable continuous function whose
+derivative is not Lebesgue integrable, such as an oscillatory term near `0`
+(e.g. a smooth bump plus a small `x^2 * sin (1 / x^2)`-type term, adjusted at
+`0`).  The derivative has a nonintegrable absolute value near `0`, while the
+function is continuous and differentiable on the open interval.  With Mathlib's
+unconditional integral notation, nonintegrable terms do not give the FTC bound
+for free, so the proposed inequality is not derivable.
 
-The PDE-level residual currently expects:
+### Thinnest honest replacement
+
+Use either an explicit variation/FTC frontier, or strengthen to a genuine C¹ /
+absolute-continuity input.
+
+The smallest statement-surface replacement is to name the exact pointwise FTC
+consequence the proof needs:
 
 ```lean
-classicalRegularity :
-  ... → IntervalDomainIntegratedMoserClassicalRegularityData u T p0
-```
+import ShenWork.Paper2.IntervalDomainTheorem11
+import ShenWork.PDE.IntervalDomain
 
-That can be mechanically thinned in a Paper3-facing wrapper to:
-
-```lean
-classicalContinuityRegularity :
-  ... → IntervalDomainIntegratedMoserClassicalContinuityRegularityData u T p0
-```
-
-using:
-
-```lean
-intervalDomain_classicalRegularityData_of_continuityRegularityData
-  (IsPaper2ClassicalSolution.T_pos hsol).le
-  (h.classicalContinuityRegularity hsol hcross hboot)
-```
-
-This replaces raw `gradientTimeIntegrable` by the named
-`gradientEnergyContinuous` residual.  It does **not** remove endpoint continuity:
-for these actual-linear finite-horizon Moser callbacks, the input is only
-`IsPaper2ClassicalSolution intervalDomain p T u v`, not
-`IsPaper2GlobalClassicalSolution`, so the new global-classical at-right reducer
-cannot be used without adding a new global branch field.
-
-### C. Optional / not recommended by default: IntegratedStep thin compactness
-
-Current field in:
-
-```lean
-IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
-```
-
-is still generic-K compactness:
-
-```lean
-compactness :
-  IntervalDomainPaper3ConcreteCompactnessRegularizationData
-    p M0 uBar vLower K
-```
-
-It can be mechanically thinned exactly like the existing lower/upper thin route:
-
-```lean
-IntervalDomainPaper3SupNormCompactnessAPosData.toSupNormData
-IntervalDomainPaper3SupNormCompactnessRegularizationData.toConcrete
-```
-
-The existing proof pattern is already in:
-
-```lean
-IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
-intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
-```
-
-I would not add this unless direct `IntegratedMoserFirstCrossingStep` callers
-really need a public co-equal fallback.  The lowerAverage/upperDataGap route is
-strictly closer to the intended producer split.
-
-## 2. Exact theorem chain for the main thinning
-
-The chain for the proposed actual-linear lowerAverage/upperDataGap surface is:
-
-```text
-IntervalDomainIntegratedMoserClassicalContinuityRegularityData
-  -- intervalDomain_classicalRegularityData_of_continuityRegularityData
-IntervalDomainIntegratedMoserClassicalRegularityData
-  -- intervalDomain_regularityLite_of_classicalRegularityData
-IntervalDomainIntegratedMoserRegularityFrontierDataLite
-  -- intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-IntegratedMoserFirstCrossingStep
-  -- IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
-IntervalDomainMassLpSmoothingRouteResiduals
-  -- IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts.to_coreExistence
-IntervalDomainSectorialMainlineCoreExistence
-  -- existing Paper3 mainline/statement target wrappers
-IntervalDomainPaper3StatementTargets
-```
-
-If you prefer to route through the reusable PDE package first, the middle of the
-chain is:
-
-```text
-new actual-linear residual
-  -- to_lowerAverageUpperDataGapResiduals ha hχ0
-IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
-  -- .to_integratedStepResiduals
-IntervalDomainMassLpSmoothingIntegratedStepResiduals
-  -- .to_routeResiduals
-IntervalDomainMassLpSmoothingRouteResiduals
-```
-
-The only caveat: `IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`
-currently expects full `IntervalDomainIntegratedMoserClassicalRegularityData`, so
-the Paper3-facing wrapper is where the continuity-data-to-regularity-data
-conversion should happen.
-
-## 3. Small compile-likely patch sketch
-
-Place this in `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`,
-after the existing lower/upper residual section or just before the existing
-LowerUpper thin route.  Add the `open` line near the other opens if it is not
-already present.
-
-```lean
-import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
-
+open MeasureTheory Set
 open ShenWork.IntervalDomain
-open ShenWork.IntervalDomainExistence
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-open ShenWork.Paper2.IntervalDomainEnergyStep
-open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.Paper2
-
-namespace ShenWork.Paper3
+open scoped Interval
 
 noncomputable section
 
-/-- Actual-linear-small Moser residuals with the preferred lower-average /
-upper-data-gap split.  Compared with the existing `LowerUpperResiduals`, this
-replaces the opaque `IntegratedMoserFirstCrossingLowerUpperFrontiers` supplier by
-regularity, integrated dissipation, relative interpolation, lower-average, and
-upper-data-gap inputs.  The regularity input is stated in the new continuity
-form, so gradient time-integrability is derived by
-`intervalDomain_classicalRegularityData_of_continuityRegularityData`. -/
-structure
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-    (p : CM2Params) : Prop where
-  boundednessHyp : IntervalDomainBoundednessHyp p
-  closedEnergyTrace :
-    ∀ u₀ : intervalDomain.Point → ℝ,
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-        Nonempty
-          (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
-  classicalContinuityRegularity :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        IntervalDomainIntegratedMoserClassicalContinuityRegularityData u T p0
-  integratedDissipation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
-  relativeMoserInterpolation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  lowerAverage :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      ∀ q, p0 ≤ q →
-        0 ≤ q →
-        LpPowerBoundedBefore intervalDomain q T u →
-          Nonempty
-            (Σ Cnext : ℝ,
-              IntegratedMoserHighExcursionLowerAverageWindowFrontier
-                intervalDomain u T rho p0 q Cnext)
-  upperDataGap :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      ∀ q, p0 ≤ q →
-        0 ≤ q →
-          Nonempty
-            (IntegratedMoserWindowUpperDataGapFrontier
-              intervalDomain u T rho p0 q)
-  quantitativeEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 
-namespace
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+/-- Exact FTC/variation input needed for the elementary sup bound. -/
+def UnitIntervalDerivativeVariationBound (f : ℝ → ℝ) : Prop :=
+  ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+    f x - f y ≤ ∫ s in (0 : ℝ)..1, |deriv f s|
 
-/-- Convert the actual-linear-small lowerAverage/upperDataGap residual surface to
-the existing integrated-step actual-linear residual surface. -/
-def to_integratedStepResiduals
-    {p : CM2Params}
-    (h :
-      IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-        p) :
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
-      p where
-  boundednessHyp := h.boundednessHyp
-  closedEnergyTrace := h.closedEnergyTrace
-  integratedStep := fun hsol hcross hboot =>
-    intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-      (intervalDomain_regularityLite_of_classicalRegularityData hsol
-        (intervalDomain_classicalRegularityData_of_continuityRegularityData
-          (IsPaper2ClassicalSolution.T_pos hsol).le
-          (h.classicalContinuityRegularity hsol hcross hboot)))
-      hsol
-      (h.integratedDissipation hsol hcross hboot)
-      (h.relativeMoserInterpolation hsol hcross hboot)
-      (AbstractLpBootstrapHypothesis.rho_pos hboot)
-      (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
-      (h.lowerAverage hsol hcross hboot)
-      (h.upperDataGap hsol hcross hboot)
-  quantitativeEndpoint := h.quantitativeEndpoint
+/-- Sup bound from the explicit variation input.  This is the honest algebraic
+part of the current `sup_le_integral_add_integral_deriv` proof. -/
+theorem sup_le_integral_add_integral_deriv_of_variationBound
+    {f : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Icc 0 1))
+    (hvar : UnitIntervalDerivativeVariationBound f) :
+    ∀ x ∈ Icc (0 : ℝ) 1,
+      f x ≤ ∫ y in (0 : ℝ)..1, f y + ∫ y in (0 : ℝ)..1, |deriv f y| := by
+  intro x hx
+  set C := ∫ s in (0 : ℝ)..1, |deriv f s|
+  have hpoint : ∀ y ∈ Icc (0 : ℝ) 1, f x ≤ f y + C := by
+    intro y hy
+    have hxy := hvar x hx y hy
+    dsimp [C]
+    linarith
+  have hle_integral : f x ≤ ∫ y in (0 : ℝ)..1, (f y + C) := by
+    have hconst : f x = ∫ _y in (0 : ℝ)..1, f x := by
+      rw [intervalIntegral.integral_const]
+      simp [smul_eq_mul]
+    rw [hconst]
+    exact intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+      intervalIntegrable_const
+      ((hf_cont.intervalIntegrable_of_Icc (by norm_num)).add intervalIntegrable_const)
+      (fun y hy => hpoint y hy)
+  have hsplit : ∫ y in (0 : ℝ)..1, (f y + C) =
+      (∫ y in (0 : ℝ)..1, f y) + C := by
+    rw [intervalIntegral.integral_add
+      (hf_cont.intervalIntegrable_of_Icc (by norm_num))
+      intervalIntegrable_const,
+      intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+  linarith
 
-/-- Convert to the reusable PDE-level lowerAverage/upperDataGap residual package.
-This route is useful if downstream wants the new residual package directly. -/
-def to_lowerAverageUpperDataGapResiduals
-    {p : CM2Params}
-    (h :
-      IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-        p)
-    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p where
-  a_pos := ha
-  chi_nonneg := le_of_lt hχ0
-  boundednessHyp := h.boundednessHyp
-  l2SeedRegularity := by
-    intro u₀ hu₀ T hT u v hsol htrace
-    exact
-      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
-        (Classical.choice
-          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
-  classicalRegularity := by
-    intro T rho p0 u v hsol hcross hboot
-    exact
-      intervalDomain_classicalRegularityData_of_continuityRegularityData
-        (IsPaper2ClassicalSolution.T_pos hsol).le
-        (h.classicalContinuityRegularity hsol hcross hboot)
-  integratedDissipation := h.integratedDissipation
-  relativeMoserInterpolation := h.relativeMoserInterpolation
-  lowerAverage := h.lowerAverage
-  upperDataGap := h.upperDataGap
-  quantitativeEndpoint := h.quantitativeEndpoint
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 
 end
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+```
 
-/-- Sectorial mainline facts with the preferred lowerAverage/upperDataGap Moser
-residual surface. -/
-structure
-    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
-    (p : CM2Params) : Prop where
-  spectralSemigroupOrbitBound :
-    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
-  continuation :
-    IntervalDomainStandardContinuationGluingData p
-  massLpSmoothing :
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals p
+If Codex wants to prove `UnitIntervalDerivativeVariationBound` later, use a
+separate theorem with explicit hypotheses such as `ContDiffOn ℝ 1 f (Icc 0 1)`
+or `AbsoluteContinuousOn f (Icc 0 1)` plus the appropriate derivative
+integrability/FTC theorem.  Do not hide that in the current weak theorem.
 
-namespace
-    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
+## Sorry 2: `integral_abs_le_sqrt_integral_sq`
 
-def to_integratedStepFacts
-    {p : CM2Params}
-    (h :
-      IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
-        p) :
-    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts p where
-  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
-  continuation := h.continuation
-  massLpSmoothing := h.massLpSmoothing.to_integratedStepResiduals
+### Current statement is false / missing `L²`
+
+Current theorem:
+
+```lean
+theorem integral_abs_le_sqrt_integral_sq
+    {g : ℝ → ℝ}
+    (hg : IntervalIntegrable g volume 0 1) :
+    ∫ y in (0 : ℝ)..1, |g y| ≤
+      Real.sqrt (∫ y in (0 : ℝ)..1, g y ^ 2)
+```
+
+`IntervalIntegrable g` is only an `L¹` hypothesis.  It does not imply that
+`g^2` is integrable.  A standard counterexample is `g y = 1 / sqrt y` on
+`(0,1]` with any harmless value at `0`: it is `L¹` on the unit interval, but
+`g^2 = 1/y` is not integrable.  In Lean, the RHS interval integral is not
+justified by `hg`, so the Cauchy--Schwarz proof has no valid input.
+
+### Thinnest honest replacement
+
+Require square integrability.  The theorem then follows from Cauchy--Schwarz /
+Hölder on the restricted unit interval.  A compile route is:
+
+```lean
+import ShenWork.Paper2.IntervalDomainTheorem11
+import ShenWork.PDE.IntervalDomain
+import Mathlib.Analysis.InnerProductSpace.L2Space
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+/-- Honest `L¹ ≤ L²` on the unit interval: requires square integrability. -/
+theorem integral_abs_le_sqrt_integral_sq_of_sq_integrable
+    {g : ℝ → ℝ}
+    (hg2 : IntervalIntegrable (fun y => g y ^ 2) volume 0 1) :
+    ∫ y in (0 : ℝ)..1, |g y| ≤
+      Real.sqrt (∫ y in (0 : ℝ)..1, g y ^ 2) := by
+  -- Recommended proof route:
+  -- 1. Rewrite interval integrals as integrals over `volume.restrict (Ioc 0 1)`
+  --    or `volume.restrict (Icc 0 1)` using the interval-integral API.
+  -- 2. Apply Cauchy--Schwarz to `|g| * 1`.
+  -- 3. Use `∫ 1^2 = 1` on the unit interval.
+  -- 4. Use nonnegativity of `∫ g^2` and `sq_le_sq` / `Real.le_sqrt`.
+  --
+  -- The key missing input in the old statement is exactly `hg2`; do not try to
+  -- derive it from `IntervalIntegrable g`.
+  admit
+
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 
 end
-    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
-
-end ShenWork.Paper3
 ```
 
-Then either:
+Replace the final `admit` with the local Mathlib Cauchy--Schwarz API available in
+the working tree.  The important correction is the statement surface: `hg2`, not
+`hg`, is the right input.
 
-1. stop there and let callers convert to the existing integrated-step statement
-   route via `.to_integratedStepFacts`, or
-2. add a statement wrapper analogous to
-   `IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainData`.
+## Sorry 3: `intervalDomain_agmon_interpolation`
 
-The minimal statement wrapper would be:
+### Current statement is true only in a weak/non-useful sense, and the intended proof route is incomplete
+
+Current theorem places `∃ Ceps` after `f`:
 
 ```lean
--- Sketch only: place after the IntegratedStep/Stability24/P2Main route.
-structure
-    IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
-    (p : CM2Params) (C : Paper2Constants p)
-    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
-  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
-  mainline :
-    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
-      p M0 uBar vLower K
+theorem intervalDomain_agmon_interpolation
+    {f : intervalDomain.Point → ℝ}
+    ... :
+    ∃ Ceps > 0,
+      intervalDomain.integral (fun x => f x ^ q) ≤
+        eps * intervalDomain.integral
+          (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2) +
+        Ceps * (intervalDomain.integral f) ^ q
 ```
 
-But that exact sketch still uses the integrated-step mainline type.  If you want
-the public type name itself to expose lowerAverage/upperDataGap, define the
-matching mainline type:
+With `Ceps` allowed to depend on `f`, this is much easier than the paper's
+interpolation frontier and is not enough for `IntervalDomainClassicalSolutionPositiveInterpolation`.
+For a fixed positive continuous `f`, `intervalDomain.integral f` is positive, so
+one can often choose a huge `Ceps` after seeing `f`; this does not give a uniform
+constant for all time slices.
+
+The intended four-step proof also has a mathematical mismatch: Step 2 controls
+an unweighted `∫ |f'|` or `∫ (f')²`, but the target gradient term is
 
 ```lean
-structure
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
-    (p : CM2Params) (M0 uBar vLower : ℝ)
-    (K : CompactnessData intervalDomain) : Prop where
-  core :
-    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts p
-  compactness :
-    IntervalDomainPaper3ConcreteCompactnessRegularizationData
-      p M0 uBar vLower K
-  stability24 :
-    IntervalDomainPaper3Stability24ActualLinearFrontierData p
-      (intervalDomainPaper3Constants p M0 uBar vLower)
-
-def
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData.toIntegratedStepStability24
-    {p : CM2Params} {M0 uBar vLower : ℝ} {K : CompactnessData intervalDomain}
-    (h :
-      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
-        p M0 uBar vLower K) :
-    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
-      p M0 uBar vLower K where
-  core := h.core.to_integratedStepFacts
-  compactness := h.compactness
-  stability24 := h.stability24
+∫ f^(q-2) * (f')²
 ```
 
-Then the theorem is a one-line call to the existing integrated-step Stability24
-wrapper:
+To bridge that honestly you need a power-chain-rule/coercivity argument, usually
+by applying the 1D estimate to a power of `f`, e.g. `f^(q/2)`, and proving
 
 ```lean
-theorem
-    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
-    (p : CM2Params) (M0 uBar vLower : ℝ)
-    (K : CompactnessData intervalDomain)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
-    (hData :
-      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
-        p M0 uBar vLower K) :
-    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
-  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
-    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
-    hData.toIntegratedStepStability24
+|∂x (f^(q/2))|² = (q / 2)^2 * f^(q-2) * |f'|²
 ```
 
-## 4. No useful global-classical endpoint thinning in these surfaces
+on the interior, plus integrability.  The current hypotheses
+`ContinuousOn` + `DifferentiableOn` do not package those analytic facts.
 
-The new reducer
+### Thinnest useful replacement
+
+Define the useful theorem as a **uniform frontier**:
 
 ```lean
-intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
+/-- Uniform positive 1D Agmon/GN frontier on the unit interval.
+
+The constant is chosen from `q` and `eps` before the particular positive slice
+`f` is supplied.  This is the shape needed for classical solution slices. -/
+def UnitIntervalPositiveAgmonInterpolation : Prop :=
+  ∀ q : ℝ, 1 < q →
+  ∀ eps : ℝ, 0 < eps →
+    ∃ Ceps > 0,
+      ∀ f : intervalDomain.Point → ℝ,
+        (∀ x, 0 < f x) →
+        ContinuousOn (intervalDomainLift f) (Icc (0 : ℝ) 1) →
+        DifferentiableOn ℝ (intervalDomainLift f) (Ioo (0 : ℝ) 1) →
+          intervalDomain.integral (fun x => f x ^ q) ≤
+            eps * intervalDomain.integral
+              (fun x => f x ^ (q - 2) *
+                (intervalDomain.gradNorm f x) ^ 2) +
+            Ceps * (intervalDomain.integral f) ^ q
 ```
 
-and the energy endpoint theorem
+If proving the actual inequality now, use stronger assumptions in the producer
+lemma, not this weak C¹ shell.  For example, introduce a private analytic lemma
+for `ContDiffOn ℝ 1 (intervalDomainLift f) (Icc 0 1)` or explicit
+`UnitIntervalDerivativeVariationBound` / square-integrability / chain-rule
+frontiers, then export the uniform frontier above only after those pieces are
+proved.
+
+## Sorry 4: `intervalDomain_classicalSolutionPositiveInterpolation_of_agmon`
+
+### Current theorem cannot be proved from its current `hagmon`
+
+Current input:
 
 ```lean
-intervalDomain_powerEnergyEndpointContinuity_of_initialPowerEnergyContinuity
+hagmon :
+  ∀ (f : intervalDomain.Point → ℝ), ... →
+    ∀ q : ℝ, 1 < q →
+      ∀ eps : ℝ, 0 < eps →
+        ∃ Ceps > 0, inequality f q eps Ceps
 ```
 
-are real and useful, but they need:
+This gives `Ceps` after choosing `f`.  In the target, `Ceps` must work for every
+time slice in `LpMassGradientInterpolationEstimate intervalDomain q eps Ceps T u`.
+Therefore the theorem is not derivable from the current `hagmon` signature.
+
+### Compile-shaped replacement wiring
+
+Use the uniform frontier above.  This should be placed in
+`ShenWork/PDE/IntervalAgmonInterpolation.lean` and then the old theorem should be
+replaced or deprecated.
 
 ```lean
-IsPaper2GlobalClassicalSolution intervalDomain params u v
+import ShenWork.Paper2.IntervalDomainTheorem11
+import ShenWork.PDE.IntervalDomain
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+/-- Uniform positive 1D Agmon/GN frontier on the unit interval. -/
+def UnitIntervalPositiveAgmonInterpolation : Prop :=
+  ∀ q : ℝ, 1 < q →
+  ∀ eps : ℝ, 0 < eps →
+    ∃ Ceps > 0,
+      ∀ f : intervalDomain.Point → ℝ,
+        (∀ x, 0 < f x) →
+        ContinuousOn (intervalDomainLift f) (Icc (0 : ℝ) 1) →
+        DifferentiableOn ℝ (intervalDomainLift f) (Ioo (0 : ℝ) 1) →
+          intervalDomain.integral (fun x => f x ^ q) ≤
+            eps * intervalDomain.integral
+              (fun x => f x ^ (q - 2) *
+                (intervalDomain.gradNorm f x) ^ 2) +
+            Ceps * (intervalDomain.integral f) ^ q
+
+/-- Produce the classical-solution positive interpolation frontier from a uniform
+unit-interval Agmon/GN frontier. -/
+theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
+    {params : CM2Params}
+    (hagmon : UnitIntervalPositiveAgmonInterpolation) :
+    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
+      params := by
+  intro T u v hsol eps heps q hq
+  rcases hagmon q hq eps heps with ⟨Ceps, hCeps_pos, hCeps⟩
+  refine ⟨Ceps, hCeps_pos, ?_⟩
+  intro t ht0 htT
+  have ht : t ∈ Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hf_pos : ∀ x : intervalDomain.Point, 0 < u t x :=
+    fun x => hsol.u_pos' ht0 htT
+  have hC2_closed :
+      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 t ht).1.1
+  have hf_cont : ContinuousOn (intervalDomainLift (u t)) (Icc (0 : ℝ) 1) :=
+    hC2_closed.continuousOn
+  have hC2_open :
+      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Ioo (0 : ℝ) 1) :=
+    (hsol.regularity.1 t ht).1
+  have hf_diff : DifferentiableOn ℝ (intervalDomainLift (u t)) (Ioo (0 : ℝ) 1) := by
+    -- Depending on the local Mathlib API, this line may be either exactly this
+    -- or use `hC2_open.contDiffOn`/`contDiffOn_iff_contDiffAt` variants.
+    exact hC2_open.differentiableOn (by norm_num : (1 : ℕ∞) ≤ 2)
+  exact hCeps (u t) hf_pos hf_cont hf_diff
+
+#print axioms intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
+
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+end
 ```
 
-The actual Moser callbacks in these Paper3 statement surfaces take only finite
-horizon inputs:
+If `ContDiffOn.differentiableOn` expects a different numeric cast in Mathlib
+4.29.1, the only fragile line is:
 
 ```lean
-IsPaper2ClassicalSolution intervalDomain p T u v
-CrossDiffusionBootstrapEstimate intervalDomain p T rho u v
-AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0
+exact hC2_open.differentiableOn (by norm_num : (1 : ℕ∞) ≤ 2)
 ```
 
-So there is no honest mechanical way to replace `endpointEnergy` by only
-`IntervalDomainInitialPowerEnergyContinuityAtZero` at this layer.  Adding a field
-that manufactures a global classical solution from each finite-horizon callback
-would not be thinning; it would be a new analytic/global-extension input.
+The rest of the wiring is the right route.  A common fallback is to derive
+`DifferentiableOn` from the closed `ContDiffOn` field and then `.mono` to
+`Ioo_subset_Icc_self`.
 
-## 5. Optional IntegratedStep compactness-thin patch
+## Practical patch recommendation
 
-If a direct integrated-step caller asks for the same sup-norm compactness surface
-as the lower/upper headline route, add a copy of the existing lower/upper thin
-wrapper with `core` replaced by
-`IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts`.
+For this file, I would make the following small, honest patch:
 
-The mechanical chain is:
+1. Rename or replace the current weak
+   `intervalDomain_classicalSolutionPositiveInterpolation_of_agmon` with
+   `intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon`.
+2. Replace the current per-function `intervalDomain_agmon_interpolation` target
+   by the uniform frontier `UnitIntervalPositiveAgmonInterpolation`, unless the
+   per-function theorem is needed elsewhere.  The per-function theorem is not the
+   one that closes Paper2/Paper3 callers.
+3. Do not try to prove `sup_le_integral_add_integral_deriv` from only
+   `ContinuousOn + DifferentiableOn`; introduce either
+   `UnitIntervalDerivativeVariationBound` or a stronger `ContDiffOn`/absolute
+   continuity theorem.
+4. Do not try to prove `integral_abs_le_sqrt_integral_sq` from only
+   `IntervalIntegrable g`; add square-integrability.
 
-```text
-IntervalDomainPaper3SupNormCompactnessAPosData.toSupNormData
-  -- with `ha : 0 < p.a` and shared `initialContinuity`
-IntervalDomainPaper3SupNormCompactnessRegularizationData
-  -- .toConcrete
-IntervalDomainPaper3ConcreteCompactnessRegularizationData
-```
-
-This removes the generic `K` compactness field from direct IntegratedStep public
-surfaces.  I still rank it below the lowerAverage/upperDataGap wrapper because it
-adds another fallback API rather than moving the preferred route closer to the
-actual analytic split.
-
-## 6. Genuinely analytic residuals left after the thinning
-
-After adding the lowerAverage/upperDataGap actual-linear wrapper, the remaining
-non-mechanical residuals are:
-
-```lean
--- L² seed / closed energy at the beginning of the route
-closedEnergyTrace :
-  ... → Nonempty (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
-
--- Moser regularity, now in honest continuity form
-classicalContinuityRegularity :
-  ... → IntervalDomainIntegratedMoserClassicalContinuityRegularityData u T p0
-
--- Its endpoint subfield remains finite-horizon endpoint continuity, not just atZero
-endpointEnergy : IntervalDomainPowerEnergyEndpointContinuity u T p0
-
--- Its gradient subfield is still analytic
-IntervalDomainIntegratedMoserGradientEnergyContinuityData.gradientEnergyContinuous
-
--- Integrated Moser PDE inequality
-IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
-
--- Relative interpolation / mass-gradient route unless separately reduced
-RelativeMoserInterpolationBefore intervalDomain u T rho p0
-
--- Zinan-adjacent frontiers; consume only, do not edit producer files
-IntegratedMoserHighExcursionLowerAverageWindowFrontier
-IntegratedMoserWindowUpperDataGapFrontier
-
--- Endpoint route to Prop 2.5
-IntervalDomainMoserQuantitativeEndpoint
--- or the existing terminalPointwise package if using the CETerminal route
-
--- Paper3 non-Moser residuals
-IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw
-IntervalDomainStandardContinuationGluingData
-IntervalDomainPaper3SupNormCompactnessAPosData / concrete compactness
-IntervalDomainPaper3Stability24ActualLinearFrontierData
-IntervalDomainPaper3Proposition1FromPaper2MainTargetsData
-```
-
-No theorem in the current imports turns these into consequences of the actual-linear parameter hypotheses alone.  The only remaining work I would call mechanical is the wrapper layer above.
+This leaves the true analytic Agmon/GN theorem as a named residual rather than a
+hidden axiom.  The final solution-slice wiring can then be closed cleanly and
+without touching statement surfaces outside this file, except for replacing the
+bad `hagmon` signature with the uniform one.
