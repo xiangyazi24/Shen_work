@@ -1,215 +1,206 @@
-# Q2429 shen2: integrated Moser Stage 1 Lean API compile audit
+# Q2438 shen2: next smallest integrated-Moser lemma after gradient extraction
 
-Repo target: `xiangyazi24/Shen_work`, `main` at commit `8466aff054e1a3dd7fb3d02a0c4523132c6d6722`.
+Repo target: `xiangyazi24/Shen_work`, `main` at commit `830352766089c95945fc741ccc208762862c54c6`.
 
 ## Verdict
 
-The Stage 1 routine closure layer should compile as a standalone new module with only this import:
+After adding
+
+```lean
+integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+```
+
+the next smallest buildable lemma is exactly the generic interval-integral cap for the `max 1 Y` term:
+
+```lean
+∫ s in a..b, max 1 (Y s) ≤ (b - a) * max 1 M
+```
+
+from:
+
+* `a ≤ b`,
+* `∀ s ∈ Set.Icc a b, Y s ≤ M`,
+* interval-integrability of `fun s => max 1 (Y s)` on `a..b`.
+
+This lemma is purely order/interval-integral bookkeeping.  It does not prove any first-crossing step and does not mention `IntegratedMoserDissipationDropBefore`.
+
+The most compile-stable form should take the max-integrability hypothesis explicitly.  Deriving that hypothesis from continuity or from `IntegratedMoserFirstCrossingRegularity.powerTimeIntegrable` is a separate later convenience lemma; do not mix it into this smallest bound lemma.
+
+## Placement
+
+Add the lemma in
+
+```text
+ShenWork/PDE/P3MoserIntegratedClosure.lean
+```
+
+inside namespace
+
+```lean
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+```
+
+The current file already imports:
 
 ```lean
 import ShenWork.PDE.P3MoserDissipationShape
 ```
 
-No theorem should yet claim
+and already opens:
 
 ```lean
-IntegratedMoserDissipationDropBefore ... → IntegratedMoserFirstCrossingStep ...
-```
-
-The right Stage 1 design is to introduce a step predicate and prove only routine consumers of that step.  The real analytic proof remains a later theorem that produces the step.
-
-## Current API facts checked
-
-The names from the Q2411 skeleton are still available at this commit:
-
-* `BoundedDomainData`, `intervalDomain`, and `intervalDomainLift` are in the imported dependency chain through `P3MoserDissipationShape`.
-* `LpPowerBoundedBefore`, `AbstractLpBootstrapHypothesis`, `RelativeMoserInterpolationBefore`, `IntervalDomainMoserQuantitativeEndpoint`, `intervalDomain_boundedBefore_of_moser_quantitative_endpoint`, and `all_exponents_of_chain_and_lp_mono` are available from `ShenWork.Paper2.IntervalDomainMoserClosure`, already imported by `P3MoserDissipationShape`.
-* `IntegratedMoserDissipationDropBefore` is available from `ShenWork.IntervalDomainExistence.P3MoserDissipationShape`, but Stage 1 does not need to mention it except through the import/module purpose.
-* `MeasureTheory.volume`, `IntegrableOn`, and `ContinuousOn` are available through existing imports; open `MeasureTheory` in the new file for the unqualified `volume` field.
-
-## New file: `ShenWork/PDE/P3MoserIntegratedClosure.lean`
-
-This is the minimal Stage 1 file.  It contains no axioms, no `sorry`, and no analytic bridge from integrated dissipation to the step.
-
-```lean
-import ShenWork.PDE.P3MoserDissipationShape
-
 open MeasureTheory
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Closed-time and time-integrability data needed by a future integrated
-first-crossing Moser step.
-
-This is intentionally all-exponent data indexed by every `p >= p0`, not just
-the existing closed-time L² seed frontier from `P3MoserLemmas`. -/
-structure IntegratedMoserFirstCrossingRegularity
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T p0 : ℝ) : Prop where
-  energyContinuous :
-    ∀ p, p0 ≤ p →
-      ContinuousOn
-        (fun t => D.integral (fun x => (u t x) ^ p))
-        (Set.Icc (0 : ℝ) T)
-  initialPowerBound :
-    ∀ p, p0 ≤ p →
-      ∃ C0, 0 ≤ C0 ∧
-        D.integral (fun x => (u 0 x) ^ p) ≤ C0
-  powerTimeIntegrable :
-    ∀ p, p0 ≤ p →
-      IntegrableOn
-        (fun t => D.integral (fun x => (u t x) ^ p))
-        (Set.uIcc (0 : ℝ) T) volume
-  gradientTimeIntegrable :
-    ∀ p, p0 ≤ p →
-      IntegrableOn
-        (fun t =>
-          D.integral (fun x =>
-            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-        (Set.uIcc (0 : ℝ) T) volume
-
-/-- The one-step output needed from the future integrated first-crossing
-argument.  Stage 1 only consumes this step; it does not produce it from
-`IntegratedMoserDissipationDropBefore`. -/
-def IntegratedMoserFirstCrossingStep
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    LpPowerBoundedBefore D p T u →
-      LpPowerBoundedBefore D (p + rho) T u
-
-/-- Routine: iterate a supplied integrated first-crossing step along the
-arithmetic Moser ladder. -/
-theorem moser_iteration_chain_of_integrated_first_crossing_step
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T p0 rho : ℝ}
-    (hrho : 0 < rho)
-    (hbase : LpPowerBoundedBefore D p0 T u)
-    (hstep : IntegratedMoserFirstCrossingStep D u T rho p0) :
-    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u := by
-  intro n
-  induction n with
-  | zero =>
-      simp only [CharP.cast_eq_zero, zero_mul, add_zero]
-      exact hbase
-  | succ n ih =>
-      have hexp_eq :
-          p0 + (↑(n + 1) : ℝ) * rho = (p0 + ↑n * rho) + rho := by
-        push_cast
-        ring
-      rw [hexp_eq]
-      have hp_ge : p0 ≤ p0 + ↑n * rho :=
-        le_add_of_nonneg_right (mul_nonneg (Nat.cast_nonneg n) hrho.le)
-      exact hstep (p0 + ↑n * rho) hp_ge ih
-
-/-- Routine: a supplied integrated first-crossing step plus downward Lp
-monotonicity gives all finite exponents. -/
-theorem all_exponents_of_integrated_first_crossing_step_lpmono
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {N T rho p0 : ℝ}
-    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
-    (hstep : IntegratedMoserFirstCrossingStep D u T rho p0)
-    (hLpMono :
-      ∀ {p q : ℝ}, 1 < p → p ≤ q →
-        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
-    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u := by
-  exact all_exponents_of_chain_and_lp_mono
-    (AbstractLpBootstrapHypothesis.rho_pos hboot)
-    (moser_iteration_chain_of_integrated_first_crossing_step
-      (AbstractLpBootstrapHypothesis.rho_pos hboot)
-      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
-      hstep)
-    hLpMono
-
-/-- Routine: interval-domain finite-horizon boundedness from a supplied
-integrated first-crossing step and the existing quantitative endpoint. -/
-theorem intervalDomain_boundedBefore_of_integrated_first_crossing_step
-    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
-    {pSeq rootBound : ℕ → ℝ}
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
-    (hstep : IntegratedMoserFirstCrossingStep intervalDomain u T rho p0)
-    (hLpMono :
-      ∀ {p q : ℝ}, 1 < p → p ≤ q →
-        LpPowerBoundedBefore intervalDomain q T u →
-        LpPowerBoundedBefore intervalDomain p T u)
-    (hEndpoint :
-      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
-        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    all_exponents_of_integrated_first_crossing_step_lpmono
-      hboot hstep hLpMono
-  exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
-    (hEndpoint hAll)
-
-#print axioms IntegratedMoserFirstCrossingRegularity
-#print axioms IntegratedMoserFirstCrossingStep
-#print axioms moser_iteration_chain_of_integrated_first_crossing_step
-#print axioms all_exponents_of_integrated_first_crossing_step_lpmono
-#print axioms intervalDomain_boundedBefore_of_integrated_first_crossing_step
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-end
 ```
 
-## `ShenWork.lean` import line
+No additional import should be necessary for this lemma, because nearby source already uses `intervalIntegral.integral_mono_on`, `intervalIntegrable_const`, and `intervalIntegral.integral_const` under the same dependency chain.
 
-For `lake build ShenWork.PDE.P3MoserIntegratedClosure`, no root import is needed.
-
-For `lake build ShenWork` to cover the new module, yes: add one import line to `ShenWork.lean`.  The lowest-risk placement is next to the existing `P3MoserActualWiring` import:
+## Exact generic lemma likely to compile
 
 ```lean
-import ShenWork.PDE.P3MoserActualWiring
-import ShenWork.PDE.P3MoserIntegratedClosure
-import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
+/-- Bound the integrated `max 1 Y` term by a uniform pointwise bound on `Y`.
+
+This is the small order/interval-integral lemma needed after extracting the
+integrated Moser gradient term.  It deliberately assumes interval-integrability
+of `max 1 ∘ Y`; producing that integrability from solution regularity can be a
+separate later lemma. -/
+theorem intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
+    {a b M : ℝ} {Y : ℝ → ℝ}
+    (hab : a ≤ b)
+    (hYmax_int :
+      IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) MeasureTheory.volume a b)
+    (hY_le : ∀ s ∈ Set.Icc a b, Y s ≤ M) :
+    ∫ s in a..b, max (1 : ℝ) (Y s) ≤
+      (b - a) * max (1 : ℝ) M := by
+  have hpoint :
+      ∀ s ∈ Set.Icc a b,
+        max (1 : ℝ) (Y s) ≤ max (1 : ℝ) M := by
+    intro s hs
+    exact max_le
+      (le_max_left (1 : ℝ) M)
+      (le_trans (hY_le s hs) (le_max_right (1 : ℝ) M))
+  have hmono :=
+    intervalIntegral.integral_mono_on hab
+      hYmax_int intervalIntegrable_const hpoint
+  have hconst :
+      (∫ _s in a..b, max (1 : ℝ) M) =
+        (b - a) * max (1 : ℝ) M := by
+    rw [intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+  simpa [hconst] using hmono
 ```
 
-This creates no cycle: `P3MoserIntegratedClosure` imports `P3MoserDissipationShape`; it does not import `P3MoserActualWiring`, `IntervalDomainStatementAssembly`, or any Paper3 file.
+### Why this should compile
 
-## Suggested local checks
-
-Run:
-
-```bash
-lake env lean ShenWork/PDE/P3MoserIntegratedClosure.lean
-lake build ShenWork.PDE.P3MoserIntegratedClosure
-lake build ShenWork
-```
-
-Expected `#print axioms` targets:
+The proof uses the same interval-integral API already used in the repo.  For example, `ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean` uses:
 
 ```lean
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.IntegratedMoserFirstCrossingRegularity
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.IntegratedMoserFirstCrossingStep
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.moser_iteration_chain_of_integrated_first_crossing_step
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.all_exponents_of_integrated_first_crossing_step_lpmono
-#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.intervalDomain_boundedBefore_of_integrated_first_crossing_step
+intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+  hp_int (hq_int.add intervalIntegrable_const) hpoint
 ```
 
-The theorem targets should have the same harmless axiom profile as surrounding Prop-valued classical assembly lemmas, typically only core Lean/mathlib axioms such as `propext`, `Classical.choice`, and `Quot.sound`, if any appear.  There should be no `sorryAx`, no custom axiom, and no dependence on an integrated-to-pointwise adapter.
-
-## Hard theorem deliberately absent from Stage 1
-
-Do not add this yet:
+and then rewrites constants using:
 
 ```lean
-theorem integratedMoserFirstCrossingStep_of_integrated_dissipation_relative
+rw [intervalIntegral.integral_const]
+norm_num [smul_eq_mul]
+```
+
+The proposed proof uses the same two Mathlib lemmas:
+
+* `intervalIntegral.integral_mono_on`
+* `intervalIntegral.integral_const`
+
+plus `intervalIntegrable_const`, `max_le`, `le_max_left`, and `le_max_right`.
+
+## Optional Moser-specialized wrapper
+
+The generic lemma is probably enough, but a one-line Moser-specialized wrapper can make later code cleaner.  It should also compile if the generic lemma compiles.
+
+```lean
+/-- Moser-energy specialization of
+`intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound`. -/
+theorem integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 : ℝ}
-    (hT : 0 < T)
-    (hrho : 0 < rho)
-    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
-    (hdiss : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0) :
-    IntegratedMoserFirstCrossingStep D u T rho p0
+    {a b M p : ℝ}
+    (hab : a ≤ b)
+    (hYmax_int :
+      IntervalIntegrable
+        (fun s => max (1 : ℝ)
+          (D.integral (fun x => (u s x) ^ p)))
+        MeasureTheory.volume a b)
+    (hY_le :
+      ∀ s ∈ Set.Icc a b,
+        D.integral (fun x => (u s x) ^ p) ≤ M) :
+    ∫ s in a..b,
+      max (1 : ℝ) (D.integral (fun x => (u s x) ^ p)) ≤
+        (b - a) * max (1 : ℝ) M :=
+  intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
+    (Y := fun s => D.integral (fun x => (u s x) ^ p))
+    hab hYmax_int hY_le
 ```
 
-That theorem is the real analytic first-crossing proof and should be a later patch.
+This wrapper is optional; the generic lemma is the minimal useful patch.
+
+## How it feeds the gradient extraction lemma
+
+Suppose the already-added extraction lemma has hypotheses roughly:
+
+```lean
+hY1 : Y t1 ≤ M
+hY2 : Y t2 ≤ M
+hMaxInt : ∫ s in t1..t2, max 1 (Y s) ≤ R
+```
+
+or an explicit bound on that max integral.  The new lemma supplies the natural `R`:
+
+```lean
+R := (t2 - t1) * max 1 M
+```
+
+provided the first-crossing setup supplies
+
+```lean
+t1 ≤ t2
+∀ s ∈ Set.Icc t1 t2, Y s ≤ M
+IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) MeasureTheory.volume t1 t2
+```
+
+This is exactly the bounded-pre-crossing input one expects before proving the full first-crossing theorem.
+
+## Do not overreach in this patch
+
+Do not add any of the following yet:
+
+```lean
+IntegratedMoserDissipationDropBefore ... → IntegratedMoserFirstCrossingStep ...
+```
+
+or
+
+```lean
+IntegratedMoserFirstCrossingRegularity ... →
+  IntervalIntegrable (fun s => max 1 (Y s)) MeasureTheory.volume a b
+```
+
+unless you separately verify the required max-preserves-interval-integrability API.  The lemma above avoids that uncertainty and should be the next smallest buildable step.
+
+## Suggested `#print axioms`
+
+After adding the generic lemma:
+
+```lean
+#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
+```
+
+If you also add the Moser wrapper:
+
+```lean
+#print axioms ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure.integratedMoser_maxOneEnergy_timeIntegral_le_of_Icc_bound
+```
+
+Expected profile: no `sorryAx`, no custom axioms.  The generic theorem should only depend on standard mathlib/Lean axioms already used by interval-integral order lemmas.
