@@ -1,254 +1,331 @@
-# Q2331 shen1 — design audit for positive upper-contact interface narrowing
+# Q2340 shen1 — Paper2 preferred χ₀=0 headline frontier audit
 
-Repo audited: `xiangyazi24/Shen_work` on `main`.
+Repo audited: `xiangyazi24/Shen_work` main, requested around commit `6eccd68f`.
 
-Question: whether the planned interface layer
+Files inspected: `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`, `IntervalDomainTheorem11.lean`, `IntervalDomainTheorem12.lean`, `IntervalDomainTheorem13.lean`, `PDE/IntervalDomainExistence.lean`, and `UNDERSTANDING.md`.
 
-* adds `PositiveUpperBarrierConstLeftPlateauResidual`,
-* bridges it to `PositiveUpperBarrierRemainingContactResidual` using the strict exponential theorem plus `hmκ`, and
-* adds `Paper1PositiveLowerRawCapRouteAHmkConstParamData`
+## Bottom line
 
-is a genuine interface reduction or just a no-op/rename/residual-smuggling layer.
-
-## Verdict
-
-This is an honest net narrowing **provided the new package carries only the constant-left-plateau residual and carries `hmκ` explicitly**.
-
-It is a genuine reduction on the `hmκ` subregime because the exponential residual is no longer supplied by Route-A data.  It is produced internally by
+The preferred interval-domain `χ₀ = 0` **Theorem 1.1** route itself is already closed:
 
 ```lean
-positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+theorem intervalDomain_theorem_1_1_chiZero_unconditional
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Theorem_1_1 intervalDomain p
 ```
 
-from positive scalar hypotheses, `hmκ : p.m * kappa c <= 1`, and trap membership.  The remaining carried contact atom is then only the constant-branch left-plateau obstruction.
-
-It is still honest because prior audit showed `hmκ` is not derivable from the base positive branch assumptions.  So `hmκ` is a real extra frontier, not a hidden theorem.
-
-## No-op / smuggling checks
-
-The design is clean if all of these are true.
-
-1. `PositiveUpperBarrierConstLeftPlateauResidual` has exactly one field:
+and it is exposed in statement assembly as:
 
 ```lean
-structure PositiveUpperBarrierConstLeftPlateauResidual
-    (p : CMParams) (c : Real) (U : Real -> Real) : Prop where
-  no_const_left_plateau :
-    forall x, MChi p < Real.exp (-(kappa c) * x) ->
-      (forall y, y <= x -> U y = MChi p) -> False
+theorem intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
 ```
 
-It must not be an abbrev or wrapper around `PositiveUpperBarrierRemainingContactResidual`, `PositiveUpperBarrierExpStrictContactResidual`, or `PositiveUpperBarrierContactContradictions`.
+So the next net reduction should not try to “prove Theorem 1.1” again.  The best concrete wiring reduction is to make the **preferred χ₀=0 main-theorem headline route** explicit, separate from the full statement-target route that also carries Proposition 1.1 and section-2 targets.
 
-2. The bridge has the shape:
+Current preferred full statement wrapper is:
 
 ```lean
-theorem PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
-    {p : CMParams} {c : Real} {U : Real -> Real}
-    (ha : p.alpha = p.m + p.gamma - 1)
-    (hchi_nonneg : 0 <= p.chi)
-    (hchi_small : p.chi < min (1 / 2 : Real) (chiStar p))
-    (hc : 2 < c)
-    (hmk : p.m * kappa c <= 1)
-    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
-    (hconst : PositiveUpperBarrierConstLeftPlateauResidual p c U) :
-    PositiveUpperBarrierRemainingContactResidual p c U
+abbrev IntervalDomainPaper2PreferredChiZeroStatementFrontierData :=
+  IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+
+theorem intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData
 ```
 
-and the `exp_strict_super_at_contact` field is filled only by
+This is sound and preferred, but it still carries residuals needed only for the **full statement-target bundle**:
+
+* `finiteHorizonAlternative` through `IntervalDomainPaper2Proposition11ChiZeroFrontierData`,
+* section-2 thin fields `lemma26`, `lemma27`, `prop22`, `prop23`,
+* and the nested Theorem 1.2/1.3 frontiers.
+
+For the main headline bundle, the already-existing target is:
 
 ```lean
-(positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
-  (p := p) (c := c) (U := U)
-  ha hchi_nonneg hchi_small hc hmk htrap).exp_strict_super_at_contact
+def IntervalDomainPaper2MainTheoremTargets
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  Theorem_1_1 intervalDomain p ∧
+    Theorem_1_2 intervalDomain p ∧
+      Theorem_1_3 intervalDomain p C
 ```
 
-The bridge should not take any old exp-contact residual as an argument.
-
-3. `Paper1PositiveLowerRawCapRouteAHmkConstParamData` should not carry any of these old residuals:
+and the already-existing local-free positive solution-slice route is:
 
 ```lean
-PositiveUpperBarrierRemainingContactResidual p c U
-PositiveUpperBarrierExpStrictContactResidual p c U
-PositiveUpperBarrierSmoothBranchNoContact p c U
-PositiveUpperBarrierContactContradictions p c U
+theorem intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 ```
 
-It should carry only
+I recommend adding a grep-visible preferred alias/wrapper for that route.  This is a real interface reduction for headline accounting: it removes the Proposition 1.1 finite-horizon alternative and section-2 thin frontiers from the main-theorem target.  It does not pretend to prove the full `IntervalDomainPaper2StatementTargets`.
+
+## Concrete patch idea
+
+Add near the preferred full-statement alias in `IntervalDomainStatementAssembly.lean`:
 
 ```lean
-PositiveUpperBarrierConstLeftPlateauResidual p c U
+/-- Preferred `χ₀ = 0` interval-domain Paper2 main-theorem frontier package.
+
+This is the headline route for Theorems 1.1--1.3 only.  It avoids the refuted
+`IntervalDomainInterpolation` premise by using the positive solution-slice route,
+and it uses the local-free `χ₀ = 0` interface for Theorem 1.2/1.3.  It does not
+carry Proposition 1.1 or section-2 target frontiers. -/
+abbrev IntervalDomainPaper2PreferredChiZeroMainTheoremFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop :=
+  IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad
+
+/-- Preferred `χ₀ = 0` interval-domain Paper2 main-theorem wrapper.
+
+Pure wiring alias for
+`intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData`.
+This intentionally targets `IntervalDomainPaper2MainTheoremTargets`, not the full
+statement bundle. -/
+theorem intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2PreferredChiZeroMainTheoremFrontierData p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData
+
+/-- Instance-facing alias for the preferred `χ₀ = 0` main-theorem route. -/
+theorem intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2PreferredChiZeroMainTheoremFrontierData p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_frontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
 ```
 
-for produced profiles.
+This is deliberately small.  It does not smuggle a hard theorem as an assumption; it only gives the already-preferred local-free main theorem route the same short name that the full statement route already has.
 
-4. The conversion
+## Comparison of remaining fields
+
+### `finiteHorizonAlternative`
+
+Current chi-zero Proposition 1.1 frontier:
 
 ```lean
-paper1_routeARemainingParamData_of_routeAHmkConstParamData
+structure IntervalDomainPaper2Proposition11ChiZeroFrontierData
+    (p : CM2Params) : Prop where
+  finiteHorizonAlternative :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ Tmax > 0, ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+      InitialTrace intervalDomain u₀ u →
+        FiniteHorizonAlternative intervalDomain Tmax u ∧
+        (1 ≤ p.m → MGeOneFiniteHorizonAlternative intervalDomain Tmax u)
 ```
 
-should construct the remaining residual by calling the bridge above, not by projecting a remaining residual from the new data package.
-
-If those four checks hold, this is not a no-op rename.  It removes a strictly stronger field from the Route-A data and replaces it with a scalar frontier plus a smaller constant-branch residual.
-
-## Vacuity check
-
-The package is stronger because it covers only the `hmκ` subregime.  That is not a vacuity problem as long as the name advertises it, for example with `Hmk` in the name.
-
-Prefer exposing `hmκ` as an explicit conjunct before the Route-A existential payload:
+The local existence part is already removed by:
 
 ```lean
-structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
-  produce :
-    forall p : CMParams, forall ha : p.alpha = p.m + p.gamma - 1,
-      forall hchi_nonneg : 0 <= p.chi,
-        forall hchi_small : p.chi < min (1 / 2 : Real) (chiStar p),
-          forall c : Real, forall hc : 2 < c,
-            p.m * kappa c <= 1 /\
-            exists lam D L : Real,
-              -- same Route-A payload as RemainingParamData, but carrying only
-              -- PositiveUpperBarrierConstLeftPlateauResidual for produced U
-              True
+intervalDomainPaper2_Proposition_1_1_of_chiZeroFrontierData
 ```
 
-Putting `hmκ` inside the returned existential also works logically, but it is easier to miss in reviews.  A top-level conjunct makes the subregime visible.
-
-Do not mutate the existing
+which inserts:
 
 ```lean
-Paper1PositiveLowerRawCapRouteARemainingParamData
+intervalDomain_localExistence_chiZero_unconditional
 ```
 
-into an `hmκ`-requiring package.  Keep the old residual path available for regimes where `hmκ` is unavailable, and add the `HmkConst` package as an optional stronger interface.
+Do not try to remove `finiteHorizonAlternative` by assuming `IntervalDomainPaper2Proposition11FrontierData`; that would reintroduce the old bigger package and undo the reduction.  Also do not claim it follows from `globalExtension`; their shapes differ.  `globalExtension` turns bounded-before solutions into global solutions under `1 ≤ p.m`; `finiteHorizonAlternative` is a maximal-time alternative statement about a finite `Tmax` solution and includes both the base and `m ≥ 1` alternatives.
 
-## Why `hmκ` must remain carried
+For main theorem targets, the clean move is to bypass Proposition 1.1 entirely via the preferred main-target wrapper above.  For full statement targets, `finiteHorizonAlternative` remains an honest Cauchy/frontier input.
 
-The current positive branch condition package is:
+### `globalExtension`
+
+Current common abbreviation:
 
 ```lean
-structure PositivePaperLemma42ExactConditions
-    (p : CMParams) (c k kt M : Real) : Prop where
-  hκ0 : 0 < k
-  hκ1 : k < 1
-  hgap : k < kt
-  hrange : kt <= min ((1 + p.alpha) * k) (min (p.m * k + 1 / 2) 1)
-  hM : 1 <= M
-  hc : c = k + k^-1
-  hχ_nonneg : 0 <= p.chi
-  hχ_small : p.chi < min (1 / 2 : Real) (chiStar p)
-  hα_eq : p.alpha = p.m + p.gamma - 1
+abbrev IntervalDomainPaper2GlobalExtensionFrontier
+    (p : CM2Params) : Prop :=
+  ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
+  ∀ Tmax > 0, ∀ u v,
+    IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+    InitialTrace intervalDomain u₀ u →
+      IsPaper2BoundedBefore intervalDomain Tmax u →
+        1 ≤ p.m →
+          IsPaper2GlobalClassicalSolution intervalDomain p u v
 ```
 
-The branch-cap constructor
+This is still needed for the global branches in Theorem 1.2 and Theorem 1.3.  The existing Theorem 1.2/1.3 assemblies consume it through:
 
 ```lean
-positivePaperLemma42ExactConditions_of_branchCap
+IntervalDomainTheorem12.Theorem_1_2_intervalDomain_of_corollary21_and_proposition25
+IntervalDomainTheorem13.Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
 ```
 
-fills these fields but does not prove or store `p.m * kappa c <= 1`.
-
-The nearby projection
+There are subcritical wrappers that make the global branch vacuous under `p.m < 1`, e.g. in Theorem 1.3:
 
 ```lean
-PositivePaperLemma42ExactConditions.kappaTilde_le_m_kappa_add_half
+Theorem_1_3_intervalDomain_m_lt_one_regime_of_corollary21_and_proposition25
 ```
 
-only proves a bound on `kappaTilde`, not on `p.m * kappa`.
+but for the full mixed-regime Theorem 1.2/1.3 headline, `globalExtension` is a genuine remaining continuation frontier.  Do not hide it inside a new “main data” record unless the record name advertises it.
 
-The repo has the exact false-premise detector:
+### Section-2 thin fields: `lemma26`, `lemma27`, `prop22`, `prop23`
+
+Current thin package:
 
 ```lean
-theorem not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one :
-    not (forall p : CMParams, 0 <= p.chi -> p.chi < chiStar p ->
-      p.alpha = p.m + p.gamma - 1 ->
-      forall k : Real, 0 < k -> k < 1 -> p.m * k <= 1)
+structure IntervalDomainPaper2BootstrapEstimateThinFrontierData
+    (p : CM2Params) : Prop where
+  lemma26 : ...
+  lemma27 : ...
+  prop22 : ...
+  prop23 : ...
 ```
 
-So an interface that “derives” `hmκ` from base positive data would be unsound.  Carrying `hmκ` explicitly is the right frontier.
-
-## Minimal conversion sketch
-
-The conversion from the new hmk-const package to the existing remaining package should look like this, modulo exact local binder names:
+It is used by:
 
 ```lean
-theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
-    (hData : Paper1PositiveLowerRawCapRouteAHmkConstParamData) :
-    Paper1PositiveLowerRawCapRouteARemainingParamData := by
-  refine ⟨?_⟩
-  intro p ha hchi_nonneg hchi_small c hc
-  rcases hData.produce p ha hchi_nonneg hchi_small c hc with
-    ⟨hmk, lam, D, L, hpar, hD_ge_one, hD_gt, hL0, hLM,
-      hconv, hsmp, hreg, hconst⟩
-  exact
-    ⟨lam, D, L, hpar, hD_ge_one, hD_gt, hL0, hLM, hconv, hsmp, hreg,
-      fun U hpin hprofile =>
-        PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
-          (p := p) (c := c) (U := U)
-          ha hchi_nonneg hchi_small hc hmk hpin.bare
-          (hconst U hpin hprofile)⟩
+intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
 ```
 
-This is the critical anti-smuggling line: the returned `PositiveUpperBarrierRemainingContactResidual` is built from `hconst` plus the strict exp theorem, not carried directly.
-
-Then reuse existing downstream wrappers:
+Together with the proved mass result:
 
 ```lean
-paper1_positiveRawSmoothContactData_of_routeARemainingParamData
-paper1_positiveContactBranch_of_routeARemainingParamData
-paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
+intervalDomain_Proposition_2_4
 ```
 
-Optional convenience wrappers can be added, but they should be one-line calls through `paper1_routeARemainingParamData_of_routeAHmkConstParamData`.
+and `Proposition_2_5` from the nested Theorem 1.2/1.3 data, this produces the section-2 target bundle.  These fields are not needed for `IntervalDomainPaper2MainTheoremTargets`; they are only needed for `IntervalDomainPaper2StatementTargets`, which includes section-2 targets.
 
-## Design tradeoff
+So the preferred main-target wrapper above legitimately removes them from the headline theorem route.  For full statement accounting, they remain honest estimate frontiers.  Do not replace them by `Paper2BootstrapEstimateBranchData` if the purpose is thinning; that would be a regression.
 
-Add both layers:
+### Solution-slice interpolation / energy
 
-1. A theorem-level bridge in `UpperBarrierContact.lean`.
-   This is the reusable mathematical reduction and should exist even if Route-A is not used.
-
-2. An optional hmk-aware Route-A data package in `PositiveRawRouteAAssembly.lean`.
-   This prevents every caller from manually building the remaining residual while keeping the `hmκ` restriction explicit.
-
-Do not replace the existing remaining-residual package.  The old package remains the fully general residual route.  The new package is the stricter but cleaner hmk subroute.
-
-## Clean-audit checklist
-
-Inspect these exact signatures with `#check`:
+The global interpolation route is explicitly unsafe.  The deprecated wrapper says the global premise is refuted by:
 
 ```lean
-#check PositiveUpperBarrierConstLeftPlateauResidual
-#check PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
-#check positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
-#check Paper1PositiveLowerRawCapRouteAHmkConstParamData
-#check paper1_routeARemainingParamData_of_routeAHmkConstParamData
-#check paper1_positiveRawSmoothContactData_of_routeARemainingParamData
-#check paper1_positiveContactBranch_of_routeARemainingParamData
-#check paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
+IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
 ```
 
-Run `#print axioms` on the proof-bearing bridges before calling the design clean:
+Avoid these in current headline routes:
 
 ```lean
-#print axioms frozenWaveOperator_exp_neg_of_chi_nonneg
-#print axioms frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
-#print axioms positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
-#print axioms PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
-#print axioms paper1_routeARemainingParamData_of_routeAHmkConstParamData
-#print axioms paper1_positiveRawSmoothContactData_of_routeARemainingParamData
-#print axioms paper1_positiveContactBranch_of_routeARemainingParamData
-#print axioms paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
+IntervalDomainPaper2InterpolationEnergyFrontierData
+IntervalDomainPaper2Theorem12And13InterpolationFrontierData
+intervalDomainPaper2_aprioriTargets_of_GN_frontier
+intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierData
 ```
 
-Also inspect the field projection:
+Preferred route uses positive solution-slice interpolation:
 
 ```lean
-#check Paper1PositiveLowerRawCapRouteAHmkConstParamData.produce
+IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
+IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
+IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 ```
 
-The projection should reveal only `hmκ` and the constant-left-plateau residual as new contact-related obligations.  If it reveals `PositiveUpperBarrierRemainingContactResidual`, `PositiveUpperBarrierExpStrictContactResidual`, `PositiveUpperBarrierSmoothBranchNoContact`, or `PositiveUpperBarrierContactContradictions`, then the package is smuggling the old residual and should be rejected.
+and the conversion:
 
-## Final assessment
+```lean
+IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionInterpolation_of_positive
+```
 
-The proposed plan is a genuine interface narrowing on the `hmκ` subregime.  It removes the strict exponential contact residual from Route-A data and replaces it with a theorem-level proof obligation already solved by the strict positive exponential superbarrier bridge.  The remaining carried data is smaller: `hmκ` plus the constant left-plateau residual.  Since `hmκ` is explicitly not derivable from the base positive branch hypotheses, this is an honest stronger subroute, not a vacuous proof of the full route.
+This is the right residual shape.  It is still analytic, but not known-false and not vacuous.
+
+### `Proposition_2_5`
+
+This is the Lp-to-sup bridge.  It is consumed structurally by:
+
+```lean
+IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
+```
+
+and carried in the preferred positive solution-slice Theorem 1.2/1.3 data.  The section-2-thin wrapper reuses that nested `prop25`; it does not require a second independent `Prop25` field.
+
+Do not remove `Prop25` unless you actually prove a replacement Lp-to-sup theorem.  A wrapper that simply assumes `boundedBefore` or `Theorem_1_2` would smuggle the hard step.
+
+## Vacuity / known-false warnings
+
+Do not use the global interpolation route as a headline route:
+
+```lean
+IntervalDomainLemma41.IntervalDomainInterpolation
+```
+
+It is known false as literally stated by:
+
+```lean
+IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
+```
+
+Do not advertise a full-statement reduction if the patch only targets:
+
+```lean
+IntervalDomainPaper2MainTheoremTargets
+```
+
+That is a valid headline theorem target, but it intentionally excludes Proposition 1.1 and section-2 targets.
+
+Do not “reduce” finite-horizon alternative by carrying:
+
+```lean
+IntervalDomainPaper2Proposition11FrontierData
+```
+
+because that is a larger package containing local existence plus the same finite-horizon alternative.
+
+Do not “reduce” solution-slice interpolation by replacing it with the global interpolation premise.
+
+## Exact names to audit with `#check` / `#print axioms`
+
+For the preferred main-theorem route:
+
+```lean
+#check intervalDomain_theorem_1_1_chiZero_unconditional
+#check intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+#check intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+#check intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+#print axioms intervalDomain_theorem_1_1_chiZero_unconditional
+#print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+```
+
+For the full preferred statement route:
+
+```lean
+#check IntervalDomainPaper2PreferredChiZeroStatementFrontierData
+#check intervalDomainPaper2_preferredChiZeroStatementTargets_of_frontierData
+#check intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+#print axioms intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+```
+
+For the known-false/deprecated route:
+
+```lean
+#check IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation
+#check intervalDomainPaper2_Lemma_4_1_of_GN_frontier
+#check intervalDomainPaper2_aprioriTargets_of_GN_frontier
+```
+
+For section-2 thinning:
+
+```lean
+#check IntervalDomainPaper2BootstrapEstimateThinFrontierData
+#check intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData
+#check intervalDomain_Proposition_2_4
+#check IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
+```
+
+For solution-slice interpolation and energy:
+
+```lean
+#check IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
+#check IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionInterpolation_of_positive
+#check IntervalDomainTheorem11Composite.Corollary_2_1_intervalDomain_of_solution_interpolation_frontier
+#check intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+```
+
+## Recommended next action
+
+Add the preferred main-theorem alias/wrapper above.  It is small, non-smuggling, and clarifies the current status: Paper2 interval `χ₀ = 0` Theorem 1.1 is closed, and the preferred main headline route carries only the Theorem 1.2/1.3 positive solution-slice local-free frontiers.  Keep the existing preferred full-statement wrapper for users who need Proposition 1.1 and section-2 targets; those fields remain genuine residuals.
