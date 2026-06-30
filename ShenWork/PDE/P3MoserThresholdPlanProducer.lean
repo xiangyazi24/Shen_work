@@ -160,7 +160,38 @@ theorem integratedMoserFirstCrossingStep_of_abstract_data
             ⟨by linarith, by linarith⟩ ⟨hab, by linarith⟩))
       hp_nonneg hrho
 
+open ShenWork.IntervalDomain in
+/-- For `intervalDomain`, gradient energies are pointwise nonneg (squared norms),
+so their time integrals over `[a,b]` with `a ≤ b` are nonneg. -/
+theorem intervalDomain_gradient_integral_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {q a b : ℝ}
+    (hab : a ≤ b) :
+    0 ≤ ∫ s in a..b, integratedMoserGradientEnergy intervalDomain u q s :=
+  intervalIntegral.integral_nonneg_of_forall hab
+    (fun _ => intervalDomain_integral_nonneg _
+      (fun _ => sq_nonneg _))
+
+open ShenWork.IntervalDomain in
+/-- Produce `IntegratedMoserFirstCrossingStep` for `intervalDomain` from the
+four abstract data packages plus `p0 ≥ 0`. -/
+theorem intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0)
+    (hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0)
+    (hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hrho : 0 < rho)
+    (hp0_nonneg : 0 ≤ p0) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
+  integratedMoserFirstCrossingStep_of_abstract_data hreg hnonneg hdiss hrel hrho hp0_nonneg
+    (fun _q _hq _a _b _ha hab _hb =>
+      intervalDomain_gradient_integral_nonneg hab)
+
 #print axioms integratedMoserFirstCrossingStep_of_abstract_data
+#print axioms intervalDomain_gradient_integral_nonneg
+#print axioms intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
 
 end ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
 
