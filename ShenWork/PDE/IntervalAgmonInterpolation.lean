@@ -24,8 +24,10 @@ interpolation frontier.
 
 The paper-level consumer needs the second, uniform interface:
 `UnitIntervalPositiveAgmonInterpolation`, where `Ceps` is chosen from `q`
-and `eps` before the solution slice is supplied.  The final theorem wires
-that uniform frontier into `IntervalDomainClassicalSolutionPositiveInterpolation`.
+and `eps` before the solution slice is supplied, and where the slice carries
+the closed-interval `C²` regularity available from classical solutions.  The
+final theorem wires that uniform frontier into
+`IntervalDomainClassicalSolutionPositiveInterpolation`.
 -/
 
 open MeasureTheory Set
@@ -88,15 +90,19 @@ the unit interval.
 The constant is chosen from `q` and `eps` before the particular positive
 slice `f` is supplied.  This is the quantifier order needed by classical
 solution slices, whose `LpMassGradientInterpolationEstimate` must use one
-constant for all `t ∈ (0,T)`. -/
+constant for all `t ∈ (0,T)`.
+
+The `ContDiffOn ℝ 2` hypothesis is intentionally part of the frontier: the
+weaker old `ContinuousOn` plus open-interval differentiability interface did
+not carry enough analytic information for the FTC/integrability steps behind
+Agmon. -/
 def UnitIntervalPositiveAgmonInterpolation : Prop :=
   ∀ q : ℝ, 1 < q →
   ∀ eps : ℝ, 0 < eps →
     ∃ Ceps > 0,
       ∀ f : intervalDomain.Point → ℝ,
         (∀ x, 0 < f x) →
-        ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
-        DifferentiableOn ℝ (intervalDomainLift f) (Set.Ioo (0 : ℝ) 1) →
+        ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
           intervalDomain.integral (fun x => f x ^ q) ≤
             eps * intervalDomain.integral
               (fun x => f x ^ (q - 2) *
@@ -120,14 +126,7 @@ theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
   have hC2_closed :
       ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
     (hsol.regularity.2.2.2.2.1 t ht).1.1
-  have hf_cont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-    hC2_closed.continuousOn
-  have hC2_open :
-      ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1) :=
-    (hsol.regularity.1 t ht).1
-  have hf_diff : DifferentiableOn ℝ (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1) :=
-    hC2_open.differentiableOn (by norm_num)
-  exact hCeps (u t) hf_pos hf_cont hf_diff
+  exact hCeps (u t) hf_pos hC2_closed
 
 #print axioms intervalDomain_agmon_interpolation_slice
 #print axioms intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
