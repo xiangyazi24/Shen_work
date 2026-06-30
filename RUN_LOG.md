@@ -1,5 +1,38 @@
 # Shen Trilogy Formalization — RUN LOG
 
+## Run 2026-06-30 (automode, integrated Moser threshold-plan route)
+- doctrine: DOCTRINE.md (active target: wire IntegratedMoserFirstCrossingStep)
+- approval: automode continuation from handoff
+- starting avenue: (a) fix high-excursion producer, then (b) threshold plan
+
+### Progress (7 commits):
+- **P3MoserHighExcursionProducer.lean FIXED** (e5a13af7): 2 linarith failures from
+  integral-notation greedy parsing (`eps * ∫G + ...` parsed as `eps * (∫G + ...)`).
+  Used `intervalIntegral_le_of_pointwise_le_split` + explicit `calc`. Axiom-clean.
+- **P3MoserThresholdPlanProducer.lean CREATED** (e5a13af7, e5806e86): 3 axiom-clean theorems.
+  `integratedMoserFirstCrossingStep_of_abstract_data`: assembles threshold plan from
+  regularity/dissipation/interpolation, handles Cq=0 separately.
+  `intervalDomain_gradient_integral_nonneg` + specialized intervalDomain version.
+- **P3MoserRegularityProducer.lean CREATED** (2f21af73): clean skeleton with 4 isolated sorry
+  (energyContinuous, initialPowerBound, powerTimeIntegrable, gradientTimeIntegrable).
+  Convenience assemblers for combined packages and firstCrossingStep shortcut.
+- DOCTRINE.md and UNDERSTANDING.md updated with route documentation.
+
+### Architecture: new threshold-plan route
+`IsPaper2ClassicalSolution` → regularity producer (4 sorry) →
+`integratedMoserFirstCrossingStep_of_abstract_data` (axiom-clean) →
+`IntegratedMoserFirstCrossingStep` →
+(existing Moser chain / Cor 2.1 / Prop 2.5)
+
+### Remaining for this route:
+1. energyContinuous: parametric integral continuity from joint space-time continuity
+2. initialPowerBound: needs InitialTrace or energy ContinuousOn at t=0
+3. powerTimeIntegrable: follows from energyContinuous
+4. gradientTimeIntegrable: gradient energy continuity (hardest)
+
+### ChatGPT: dispatched 1 question (Mathlib parametric integral API), no response received.
+### All builds verified on uisai2. No local builds (24GB mini constraint).
+
 ## Run 2026-06-17 (overnight, continuous) — /automode formalized mid-run
 - doctrine: DOCTRINE.md (this commit)
 - approval: standing — Xiang's Stop-hook goal "不停, 完成 shen papers 的形式化, 继续派 codex",
