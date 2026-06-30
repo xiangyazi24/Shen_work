@@ -85,6 +85,8 @@ theorem integral_abs_le_sqrt_integral_sq
     (hg : IntervalIntegrable g volume 0 1) :
     ∫ y in (0 : ℝ)..1, |g y| ≤
       Real.sqrt (∫ y in (0 : ℝ)..1, g y ^ 2) := by
+  -- Cauchy-Schwarz: (∫|g|)² ≤ (∫g²)(∫1) = ∫g², so ∫|g| ≤ √(∫g²)
+  -- Since ∫₀¹ 1 = 1 on the unit interval
   sorry
 
 /-! ### Step 3: Hölder/pointwise bound for Lq -/
