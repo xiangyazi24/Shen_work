@@ -1,255 +1,122 @@
-# Q2352 shen1 — Paper2 actual-atoms wiring audit
+# Q2357 shen1 — Paper2 next headline-frontier reduction audit
 
 Repo: `xiangyazi24/Shen_work`
 
-Target branch for this drop: `chatgpt-scratch`
+Audited target: `main` at commit `69e2c9cca92966652a1e89938191160a15d17611` (`Add Paper2 actual-atom Prop25 frontiers`).
 
-Scope: audit the proposed `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` wiring that adds structured-Moser and actual-atom Proposition 2.5 frontiers, with the actual-atom route using
-
-```lean
-ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-```
-
-I inspected the current repository shape through the GitHub connector. The `chatgpt-scratch` branch copy of `IntervalDomainStatementAssembly.lean` is behind `main` and does not show the proposed local patch, so this is a shape/import/cycle audit against the existing exported names and the described local patch, not a successful Lean build of the patch.
+Scope: route-selection audit for the next best Paper2 headline-frontier reduction after the new actual-atom Proposition 2.5 wrappers in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`.
 
 ## Verdict
 
-The patch direction is sound, with two important shape constraints.
-
-1. The **actual-atom frontier should stay `Prop`**. Its fields are theorem-frontier predicates only: nonnegative-`B` Moser dissipation, relative interpolation, and a quantitative endpoint producer with an existential `pSeq/rootBound`. There is no reason to make this statement-level data a `Type` structure.
-
-2. The **structured `Prop25MoserFrontiers` producer should be `Prop`-valued with an existential wrapper**. Do not expose a directly projected field returning `Prop25MoserFrontiers u T pExp` from a statement-level `: Prop` record. `Prop25MoserFrontiers` carries data fields `pSeq` and `rootBound`, so direct projection is the wrong interface for the surrounding statement-level `Fact`/frontier style. Wrap the data existentially, unpack it only inside proofs of `Prop`, and locally rebuild `Prop25MoserFrontiers` when calling the existing structured-Moser theorem.
-
-3. Do **not** route actual atoms through `Prop25MoserFrontiers`. The structured-Moser theorem and the actual-atom theorem have different shapes: `Prop25MoserFrontiers` packages the old structured route at `rho = 1` with `MoserDissipationDropBefore`; the actual-atom theorem consumes `MoserDissipationDropBeforeNonnegB`, `RelativeMoserInterpolationBefore`, and the endpoint producer directly, and internally builds the needed bootstrap at `rho = 2 * params.γ`.
-
-4. Namespace/imports are correct if you import `P3MoserActualWiring` directly and either open or qualify the two lower namespaces:
+The next highest-leverage reduction that is already mostly wireable is **not** `globalExtension`, the slow/critical/strong bootstrap fields, or the eventual sup-bound fields. It is to remove
 
 ```lean
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
+IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad
 ```
 
-or just use fully qualified names. Opening `P3MoserActualWiring` alone does **not** expose `MoserDissipationDropBeforeNonnegB`; that predicate lives in `P3MoserDissipationShape`.
-
-5. Avoid both no-go routes in any headline statement assembly:
+from the **χ₀ = 0 main-theorem route for Theorems 1.1--1.3**, by using the same actual Moser atoms to produce both:
 
 ```lean
-OldUnitIntervalPowerGNYoungForMoser
-IntervalDomainLemma41.IntervalDomainInterpolation
+Corollary_2_1 intervalDomain p
+Proposition_2_5 intervalDomain p
 ```
 
-`OldUnitIntervalPowerGNYoungForMoser` is explicitly retained as an old/false-for-constants route in `IntervalDomainMCL.lean`. The global `IntervalDomainInterpolation` premise is also marked as refuted in the current statement assembly comments; use the positive solution-slice interpolation frontiers instead.
-
-## Cycle risk
-
-The safe dependency direction is:
-
-```text
-Paper2/IntervalDomainStructuredMoserData
-PDE/P3MoserActualWiring
-  -> Paper2/IntervalDomainStatementAssembly
-```
-
-More explicitly, `P3MoserActualWiring.lean` imports lower modules such as `IntervalDomainMoserActualAtoms`, `P3MoserDissipationShape`, and `IntervalDomainCrossDiffusionBootstrap`; those lower files should not import `IntervalDomainStatementAssembly`. With that direction, importing `ShenWork.PDE.P3MoserActualWiring` from `IntervalDomainStatementAssembly.lean` is cycle-safe.
-
-I would still prefer a tiny Paper2-facing wrapper file for long-term hygiene, but if the local patch intentionally places the wrappers directly in `IntervalDomainStatementAssembly.lean`, that is acceptable as long as the lower PDE actual-atom files never import the statement assembly.
-
-Do **not** import `ShenWork.PDE.IntervalDomainMoserLadderAtoms` just to reach the actual-atom Prop. 2.5 theorem. That file is a heavier route-residual layer. The minimal theorem is already in:
+The key existing theorem is already available:
 
 ```lean
-import ShenWork.PDE.P3MoserActualWiring
+ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
 ```
 
-## Minimal Lean shape
-
-This is the shape I would use inside `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`. The imports are included explicitly; place the definitions after the existing section-2/Prop25/frontier definitions or near the current Theorem 1.2/1.3 positive solution-slice frontier block.
+It consumes exactly the first two fields of the current actual-atom frontier:
 
 ```lean
-import ShenWork.Paper2.IntervalLemma31Closure
-/-
-  Paper2 interval-domain statement-target assembly.
--/
-import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
-import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
-import ShenWork.Paper2.IntervalDomainMass
-import ShenWork.Paper2.IntervalDomainTheorem12
-import ShenWork.Paper2.IntervalDomainTheorem13
-import ShenWork.Paper2.IntervalDomainStructuredMoserData
-import ShenWork.PDE.P3MoserActualWiring
+hData.moserDissipation
+hData.relativeMoserInterpolation
+```
 
-set_option linter.style.longLine false
+and produces `Corollary_2_1 intervalDomain p`. The already-added wrapper
+
+```lean
+intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+```
+
+then produces `Proposition_2_5 intervalDomain p` from the same `IntervalDomainPaper2Prop25ActualAtomFrontierData p`.
+
+So the next headline step should be a **common-free actual-atom main theorem wrapper**: no `cGrad`, no `common`, no `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData`. It should directly call the existing Theorem 1.2/1.3 structural assemblers:
+
+```lean
+IntervalDomainTheorem12.Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
+IntervalDomainTheorem13.Theorem_1_3_intervalDomain_of_parameter_m_pos_and_eventual_sup_bound
+```
+
+This is a main-theorem-only reduction. It should not be advertised as a full `IntervalDomainPaper2StatementTargets` reduction, because the full statement target still includes `IntervalDomainPaper2AprioriTargets`, hence still needs the sound Lemma 4.1 route. Actual Moser atoms produce `Corollary_2_1`/`Proposition_2_5`; they do **not** produce the positive solution-slice interpolation statement used for Lemma 4.1.
+
+## Exact proposed names
+
+I would add the following names, in this order:
+
+```lean
+intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
+intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomFrontierData
+
+IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
+
+IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+
+IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
+```
+
+The `Cor21` marker is intentional: it distinguishes this route from the current actual-atom wrapper, which only replaces the nested `Proposition_2_5` field but still carries the positive solution interpolation/energy `common` package.
+
+## Minimal Lean skeleton
+
+If this is added directly inside `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`, no new import is required: that file already imports `ShenWork.PDE.P3MoserActualWiring`, `IntervalDomainTheorem12`, and `IntervalDomainTheorem13`.
+
+For an isolated check file, the minimal import is:
+
+```lean
+import ShenWork.Paper2.IntervalDomainStatementAssembly
 
 open ShenWork.IntervalDomain
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.Paper2.IntervalDomainStructuredMoserData
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
 
 namespace ShenWork.Paper2
 
 noncomputable section
 
-/-- Prop-valued statement-layer wrapper for the structured-Moser Prop. 2.5
-frontier.
-
-`Prop25MoserFrontiers` itself carries data (`pSeq`, `rootBound`), so the
-statement-level record keeps the field in `Prop` by existentially hiding that
-data.  The theorem below unpacks the witnesses only while proving the Prop-valued
-statement `Proposition_2_5 intervalDomain p`. -/
-structure IntervalDomainPaper2Prop25StructuredMoserFrontierData
-    (p : CM2Params) : Prop where
-  frontiers :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          LpBootstrapEnergyInequality intervalDomain u T 1 pExp ∧
-          MoserDissipationDropBefore intervalDomain u T 1 pExp ∧
-          RelativeMoserInterpolationBefore intervalDomain u T 1 pExp ∧
-          (∀ r : ℝ, 1 < r → ∀ t, 0 < t → t < T →
-            IntervalIntegrable
-              (intervalDomainLift
-                (fun x : intervalDomain.Point => (u t x) ^ r))
-              MeasureTheory.volume 0 1) ∧
-          ((∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound)
-
-/-- Structured-Moser frontier produces interval-domain Proposition 2.5. -/
-theorem intervalDomainPaper2_Proposition_2_5_of_structuredMoserFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25StructuredMoserFrontierData p) :
-    Proposition_2_5 intervalDomain p := by
-  refine
-    IntervalDomainStructuredMoserData.Proposition_2_5_intervalDomain_of_prop25_moser_frontiers
-      ?_
-  intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
-  rcases hData.frontiers hu₀ hT hsol htrace pExp hpExp hLp with
-    ⟨pSeq, rootBound, henergy, hdiss, hrel, hpow, hend⟩
-  exact
-    { pSeq := pSeq
-      rootBound := rootBound
-      energy := henergy
-      dissipation := hdiss
-      relative := hrel
-      powerIntegrable := hpow
-      endpoint := hend }
-
-/-- Instance-facing structured-Moser wrapper. -/
-theorem intervalDomainPaper2_Proposition_2_5_of_structuredMoserFrontierDataFact
-    (p : CM2Params)
-    [hData : Fact (IntervalDomainPaper2Prop25StructuredMoserFrontierData p)] :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomainPaper2_Proposition_2_5_of_structuredMoserFrontierData
-    p hData.out
-
-/-- Paper2-facing actual-atom frontier for interval-domain Proposition 2.5.
-
-This is the preferred Prop. 2.5 replacement when using the actual Moser atoms:
-physical/nonnegative-`B` dissipation, relative Moser interpolation, and the
-quantitative endpoint/root-tower producer.  It intentionally does not mention
-`Prop25MoserFrontiers`, because the actual-atom theorem consumes these fields
-directly. -/
-structure IntervalDomainPaper2Prop25ActualAtomFrontierData
-    (p : CM2Params) : Prop where
-  moserDissipation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        MoserDissipationDropBeforeNonnegB intervalDomain u T rho p0
-  relativeMoserInterpolation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  quantitativeEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
-
-/-- Actual-atom frontier produces interval-domain Proposition 2.5. -/
-theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
+/-- Corollary 2.1 from the actual Moser atoms carried by the Proposition 2.5
+actual-atom frontier.  This is the bridge that makes the main-theorem route
+independent of `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData`. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData
     (p : CM2Params)
     (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
-    Proposition_2_5 intervalDomain p :=
-  ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-    hData.moserDissipation hData.relativeMoserInterpolation
-    hData.quantitativeEndpoint
+    Corollary_2_1 intervalDomain p :=
+  ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
+    (params := p)
+    hData.moserDissipation
+    hData.relativeMoserInterpolation
 
-/-- Instance-facing actual-atom wrapper. -/
-theorem intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierDataFact
+/-- The two Tier-1 inputs needed by the direct Theorem 1.2/1.3 structural route,
+assembled from one actual-atom frontier. -/
+theorem intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomFrontierData
     (p : CM2Params)
-    [hData : Fact (IntervalDomainPaper2Prop25ActualAtomFrontierData p)] :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData p hData.out
+    (hData : IntervalDomainPaper2Prop25ActualAtomFrontierData p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  ⟨intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData p hData,
+    intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData p hData⟩
 
-end
+/-- Common-free actual-atom frontier for interval-domain Theorems 1.2 and 1.3 in
+the proved `χ₀ = 0` local-free route.
 
-end ShenWork.Paper2
-```
-
-## Minimal local-free positive-solution variant using actual atoms
-
-If the patch also adds a Theorem 1.2/1.3 or main-theorem frontier that replaces the existing direct
-
-```lean
-prop25 : Proposition_2_5 intervalDomain p
-```
-
-field, do not make it inherit from the existing record while also keeping the old `prop25` field. Repeat the existing fields and replace only that one field by the actual-atom producer.
-
-The exact minimal pattern is:
-
-```lean
-import ShenWork.Paper2.IntervalLemma31Closure
-import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
-import ShenWork.Paper2.IntervalDomainTheorem11ChiZeroUnconditional
-import ShenWork.Paper2.IntervalDomainMass
-import ShenWork.Paper2.IntervalDomainTheorem12
-import ShenWork.Paper2.IntervalDomainTheorem13
-import ShenWork.Paper2.IntervalDomainStructuredMoserData
-import ShenWork.PDE.P3MoserActualWiring
-
-open ShenWork.IntervalDomain
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserActualWiring
-
-namespace ShenWork.Paper2
-
-noncomputable section
-
-/-- Actual-atom version of the preferred `χ₀ = 0` local-free positive
-solution-slice Theorem 1.2/1.3 frontier.  It is identical to
-`IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData`
-except that `prop25` is replaced by `prop25Actual`. -/
-structure
-    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
-    (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
-    Prop where
-  common :
-    IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad
+Compared with
+`IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData`,
+this removes the `common : IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad`
+field and removes the `cGrad` parameter entirely.  `Corollary_2_1` and
+`Proposition_2_5` are both produced from `prop25Actual`. -/
+structure IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
   prop25Actual : IntervalDomainPaper2Prop25ActualAtomFrontierData p
   globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
   slowBootstrap :
@@ -296,172 +163,221 @@ structure
       (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
         ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
 
-/-- Convert the actual-atom local-free frontier to the existing local-free
-frontier by producing the direct `Proposition_2_5` field. -/
-def
-    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData.toLocalFree
-    {p : CM2Params} {C : Paper2Constants p}
-    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
-    (h :
-      IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
-        p C cGrad) :
-    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
-      p C cGrad where
-  common := h.common
-  prop25 :=
-    intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
-      p h.prop25Actual
-  globalExtension := h.globalExtension
-  slowBootstrap := h.slowBootstrap
-  criticalBootstrap := h.criticalBootstrap
-  criticalEventualSupBound := h.criticalEventualSupBound
-  strongBootstrap := h.strongBootstrap
-  strongEventualSupBound := h.strongEventualSupBound
-
-/-- Assemble Theorems 1.2 and 1.3 from the actual-atom local-free frontier. -/
-theorem
-    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
+/-- Assemble Theorems 1.2 and 1.3 from the common-free actual-atom route. -/
+theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
     (p : CM2Params) (C : Paper2Constants p)
-    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
     (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
     (hData :
-      IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeActualAtomFrontierData
-        p C cGrad) :
-    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
-  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
-    p C cGrad hχ0 ha hb hα hγ hData.toLocalFree
+      IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+        p C) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C := by
+  have hTier :
+      Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomFrontierData
+      p hData.prop25Actual
+  let hlocal : IntervalDomainPaper2LocalExistenceFrontier p :=
+    fun u₀ hu₀ =>
+      intervalDomain_localExistence_chiZero_unconditional
+        p hχ0 ha hb hα hγ hu₀
+  exact
+    ⟨IntervalDomainTheorem12.Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
+        p hTier.1 hTier.2 hlocal hData.globalExtension
+        hData.slowBootstrap hData.criticalBootstrap
+        hData.criticalEventualSupBound,
+      IntervalDomainTheorem13.Theorem_1_3_intervalDomain_of_parameter_m_pos_and_eventual_sup_bound
+        p C hTier.1 hTier.2 hlocal hData.globalExtension
+        hData.strongBootstrap hData.strongEventualSupBound⟩
+
+/-- Common-free actual-atom frontier for interval-domain Paper2 Theorems 1.1--1.3
+in the proved `χ₀ = 0` route. -/
+structure IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomCor21LocalFreeFrontierData
+      p C
+
+/-- Assemble interval-domain Paper2 Theorems 1.1--1.3 from the common-free
+actual-atom Theorem 1.2/1.3 route. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
+      p hχ0 ha hb hα hγ,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomCor21LocalFreeFrontierData
+      p C hχ0 ha hb hα hγ hData.theorem12And13⟩
+
+/-- Preferred grep-visible alias for the common-free actual-atom χ₀ = 0
+main-theorem frontier. -/
+abbrev IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  IntervalDomainPaper2MainTheoremChiZeroActualAtomCor21LocalFreeFrontierData
+    p C
+
+/-- Preferred wrapper for the common-free actual-atom χ₀ = 0 main-theorem route. -/
+theorem intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+        p C) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomCor21LocalFreeFrontierData
+    p C hχ0 ha hb hα hγ hData
+
+/-- Instance-facing preferred wrapper for the common-free actual-atom χ₀ = 0
+main-theorem route. -/
+theorem intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomCor21FrontierData
+          p C)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_preferredChiZeroMainTheoremTargets_of_actualAtomCor21FrontierData
+    p C hχ0 ha hb hα hγ hData.out
 
 end
 
 end ShenWork.Paper2
 ```
 
-The same pattern can be used for the main-theorem wrapper: define a one-field actual-atom local-free main frontier whose `theorem12And13` field is the actual-atom local-free Theorem 1.2/1.3 frontier, then convert by calling the theorem above.
+## Why this is the best next reduction
 
-## Why the existential wrapper matters
+### 1. It is mostly pure wiring
 
-`Prop25MoserFrontiers` is not merely a proposition-shaped theorem assumption. It stores:
-
-```lean
-pSeq : ℕ → ℝ
-rootBound : ℕ → ℝ
-```
-
-plus proof fields. That means a statement-level frontier should not be designed around projecting those fields from an arbitrary theorem package. A `Prop` wrapper like this is robust:
+The existing current actual-atom main route still carries:
 
 ```lean
-frontiers :
-  ∀ ..., ∃ pSeq rootBound : ℕ → ℝ,
-    LpBootstrapEnergyInequality intervalDomain u T 1 pExp ∧
-    MoserDissipationDropBefore intervalDomain u T 1 pExp ∧
-    RelativeMoserInterpolationBefore intervalDomain u T 1 pExp ∧
-    ...
+common : IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData p cGrad
+prop25Actual : IntervalDomainPaper2Prop25ActualAtomFrontierData p
 ```
 
-Then the only place that constructs the `Type`-level `Prop25MoserFrontiers` value is the theorem proof, whose goal is itself a `Prop`. This keeps the statement assembly compatible with `Fact (...)` wrappers and avoids computational data leaking into the top-level theorem-frontier API.
-
-A shorter but slightly less explicit alternative is:
+The `common` package is only used in the existing main-theorem path to manufacture `Corollary_2_1`. But the actual atoms already manufacture `Corollary_2_1` through:
 
 ```lean
-frontiers :
-  ∀ ..., Nonempty (Prop25MoserFrontiers u T pExp)
+intervalDomain_allLpBoundFromBootstrap_of_actual_atoms_nonnegB
 ```
 
-That also keeps the field in `Prop`, but I prefer the explicit existential over `pSeq/rootBound` and the proof fields because it makes the frontier boundary auditable.
-
-## Actual-atom frontier should remain Prop
-
-The actual-atom frontier already has the right proof-only shape. The endpoint field is already existential:
+and they manufacture `Proposition_2_5` through:
 
 ```lean
-quantitativeEndpoint :
-  ∀ ...,
-    LpPowerBoundedBefore intervalDomain pExp T u →
-      ∃ pSeq rootBound : ℕ → ℝ,
-        (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-          IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData
 ```
 
-So the enclosing structure can and should be:
+Therefore the `common` package and the `cGrad` parameter can be bypassed for Theorems 1.1--1.3.
 
-```lean
-structure IntervalDomainPaper2Prop25ActualAtomFrontierData
-    (p : CM2Params) : Prop where
-  ...
-```
+### 2. It does not smuggle in the false global interpolation route
 
-Making it `Type` would be a regression: it would prevent the usual `Fact`-based instance-facing wrappers and would make a statement-level theorem package look computational when it is not.
-
-## Namespace/import audit
-
-Use these names exactly or qualify them fully:
-
-```lean
--- structured route
-ShenWork.Paper2.IntervalDomainStructuredMoserData.Prop25MoserFrontiers
-ShenWork.Paper2.IntervalDomainStructuredMoserData.Proposition_2_5_intervalDomain_of_prop25_moser_frontiers
-
--- actual atom route
-ShenWork.IntervalDomainExistence.P3MoserDissipationShape.MoserDissipationDropBeforeNonnegB
-ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB
-```
-
-The minimal new imports are:
-
-```lean
-import ShenWork.Paper2.IntervalDomainStructuredMoserData
-import ShenWork.PDE.P3MoserActualWiring
-```
-
-`P3MoserActualWiring` already imports the physical/nonnegative-`B` predicate path, but importing `IntervalDomainStructuredMoserData` directly is clearer if the patch mentions `Prop25MoserFrontiers` or `Proposition_2_5_intervalDomain_of_prop25_moser_frontiers`.
-
-Avoid:
-
-```lean
-import ShenWork.PDE.IntervalDomainMoserLadderAtoms
-```
-
-unless the patch actually needs the later route-residual package in that file. For just Prop. 2.5 actual-atoms wiring, it is too heavy.
-
-## Warnings about the two no-go frontiers
-
-Do not use this in new headline routes:
-
-```lean
-OldUnitIntervalPowerGNYoungForMoser
-```
-
-It is explicitly marked as legacy and false for constant functions. In particular, do not use
-
-```lean
-relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung
-```
-
-as the source of the actual-atom `relativeMoserInterpolation` field. For the actual-atom frontier, `relativeMoserInterpolation` should remain an independent frontier until the corrected relative interpolation proof is supplied.
-
-Also do not use the global arbitrary-function interpolation statement:
+This route does not mention:
 
 ```lean
 IntervalDomainLemma41.IntervalDomainInterpolation
 ```
 
-The preferred current statement assembly path is the positive solution-slice route:
+and does not mention:
 
 ```lean
-IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
-IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+OldUnitIntervalPowerGNYoungForMoser
 ```
 
-and the actual-atom variant should extend/convert into that route, not into the deprecated global-interpolation route.
+It also does not try to prove `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData`; it simply stops using that package for the main theorem bundle.
 
-## Final recommendation
+### 3. It respects the theorem/statement distinction
 
-For the local patch described in Q2352:
+The proposed wrapper is safe for:
 
-- Keep `IntervalDomainPaper2Prop25ActualAtomFrontierData : Prop`.
-- If adding a structured-Moser `Prop25MoserFrontiers` producer, make the producer field `Prop` via an existential wrapper; rebuild `Prop25MoserFrontiers` only inside the theorem proof.
-- Import `ShenWork.PDE.P3MoserActualWiring` directly; optionally import `ShenWork.Paper2.IntervalDomainStructuredMoserData` directly for clarity.
-- Qualify or open both `P3MoserActualWiring` and `P3MoserDissipationShape`.
-- Do not introduce `OldUnitIntervalPowerGNYoungForMoser` or `IntervalDomainLemma41.IntervalDomainInterpolation` into the new headline wiring.
-- Prefer a small wrapper file for dependency hygiene, but direct insertion into `IntervalDomainStatementAssembly.lean` is cycle-safe if lower PDE/Paper2 files never import the statement assembly.
+```lean
+IntervalDomainPaper2MainTheoremTargets p C
+```
+
+It is not, by itself, a replacement for:
+
+```lean
+IntervalDomainPaper2StatementTargets p C
+```
+
+because the statement target includes:
+
+```lean
+IntervalDomainPaper2AprioriTargets p
+```
+
+and the sound current route for `Lemma_4_1 intervalDomain p` is still the positive solution-slice interpolation route:
+
+```lean
+intervalDomainPaper2_aprioriTargets_of_solutionInterpolationFrontier
+```
+
+Actual Moser atoms do not prove that Lemma 4.1 frontier.
+
+## Cycle/import audit
+
+Recommended placement: add the bridge and wrappers in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`, after `IntervalDomainPaper2Prop25ActualAtomFrontierData` and before or near the current preferred main-theorem aliases.
+
+No new import is needed there. The file already has the necessary imports:
+
+```lean
+import ShenWork.Paper2.IntervalDomainTheorem12
+import ShenWork.Paper2.IntervalDomainTheorem13
+import ShenWork.PDE.P3MoserActualWiring
+```
+
+No namespace opening is required if the P3 theorem is fully qualified as in the skeleton. Keeping it fully qualified is preferable because the actual theorem lives in:
+
+```lean
+ShenWork.IntervalDomainExistence.P3MoserActualWiring
+```
+
+while the nonnegative-`B` predicate in the existing actual-atom structure lives in:
+
+```lean
+ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+```
+
+Do not move this wrapper down into `ShenWork/PDE/P3MoserActualWiring.lean`: that would create the wrong dependency direction, because `P3MoserActualWiring` should not import the Paper2 statement assembly just to see `IntervalDomainPaper2Prop25ActualAtomFrontierData`.
+
+If you create a new file instead, make it import `ShenWork.Paper2.IntervalDomainStatementAssembly`, but do **not** import that new file back into `IntervalDomainStatementAssembly.lean`. Otherwise the cycle is immediate.
+
+## No-go routes
+
+1. **Do not use `IntervalDomainLemma41.IntervalDomainInterpolation`.** It is a legacy/global interpolation interface and is already documented in the assembly file as refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`.
+
+2. **Do not use `OldUnitIntervalPowerGNYoungForMoser`.** That route is separately refuted by `IntervalDomainGNYObstruction.not_oldUnitIntervalPowerGNYoungForMoser`.
+
+3. **Do not try to fill `IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData` from actual atoms.** Actual atoms provide a Moser route to `Corollary_2_1` and `Proposition_2_5`; they do not provide the positive solution-slice interpolation field, the chain-rule gradient comparison, the mass-control field, or the energy-from-cross-diffusion field in the shape of that structure. The correct move is to bypass `common` for main theorems.
+
+4. **Do not claim the common-free actual-atom route proves the full statement bundle.** It proves the main theorem bundle only, unless a separate sound Lemma 4.1/positive-solution-slice route is still supplied for the a priori target.
+
+## What is not currently wireable
+
+After the common-free actual-atom reduction, the remaining fields are honest PDE/Cauchy frontiers in the current repo shape:
+
+```lean
+IntervalDomainPaper2GlobalExtensionFrontier p
+slowBootstrap
+criticalBootstrap
+criticalEventualSupBound
+strongBootstrap
+strongEventualSupBound
+```
+
+I do not see an existing proved wrapper that closes any of these from the current imported code. In particular:
+
+* `globalExtension` is the Cauchy continuation criterion: bounded finite-horizon classical solutions extend globally. It is consumed by Theorem 1.2/1.3 assemblers; it is not produced by Corollary 2.1 or Proposition 2.5.
+* the branch bootstrap fields produce the initial cross-diffusion bootstrap seed plus an initial `LpPowerBoundedBefore`; they are upstream of Corollary 2.1/Proposition 2.5 and cannot be derived from those outputs without circularity.
+* the eventual sup-bound fields are long-time/global boundedness inputs. The existing theorem code converts eventual sup bounds into `IsPaper2Bounded`, but it does not prove the eventual bounds.
+
+If forced to name the next honest atom after the common-free actual-atom wrapper, I would name `IntervalDomainPaper2GlobalExtensionFrontier p` as the clean Cauchy-theory atom, and keep the slow/critical/strong bootstrap and eventual sup-bound fields as separate regime-specific PDE-estimate atoms. None of those should be represented as already-wireable from the current proved code.
+
+## Bottom line
+
+Implement the common-free actual-atom main-theorem wrapper next. It removes the largest remaining non-PDE-analysis package from the χ₀ = 0 headline main theorem route, drops `cGrad` from that route entirely, reuses existing proved code, and avoids both refuted interpolation paths.
