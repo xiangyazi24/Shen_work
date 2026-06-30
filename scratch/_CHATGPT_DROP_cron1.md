@@ -1,181 +1,220 @@
-# Q2581 (cron1) — Lean 4 last-exit lemma for a continuous real function
+# Q2599 (cron1) — Lean 4 / Mathlib v4.29 tactic sequences for interval integrals
 
 Repository: `xiangyazi24/Shen_work`  
 Branch: `chatgpt-scratch`  
 Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
-## Core construction
+## Answer summary
 
-Let
-
-```lean
-S := Set.Icc (0 : ℝ) t ∩ {s : ℝ | Z s ≤ K}
-```
-
-This set is nonempty because `0 ∈ S`, compact because it is a closed subset of the compact interval `[0,t]`, and bounded above by `t`.  Define
+For problem (1), do not `rw` the affine-integral identity directly at the monotonicity inequality if binder names or pretty-printed interval binders are fighting you.  Prove the target-shape identity as a separate `have hR` with a `calc`, then close by transitivity:
 
 ```lean
-a := sSup S
+exact le_trans hmono (le_of_eq hR)
 ```
 
-By compactness, `a ∈ S`, hence `0 ≤ a`, `a ≤ t`, and `Z a ≤ K`.  If `Z a < K`, the intermediate value theorem on `[a,t]` gives some `c ∈ [a,t]` with `Z c = K`; since `Z a < K`, `c ≠ a`, so `a < c`.  But `c ∈ S`, contradicting `c ≤ sSup S = a`.  Thus `Z a = K`.  Finally, if some `s ∈ [a,t]` had `Z s < K`, then `s ∈ S`, so `s ≤ a`; with `a ≤ s`, this gives `s = a`, contradicting `Z a = K`.
+For problem (2), do not use `linarith`.  The proof is exactly:
+
+```lean
+exact add_le_add h1 h2
+```
+
+or, if only parentheses/multiplication association differ:
+
+```lean
+simpa [mul_assoc] using add_le_add h1 h2
+```
 
 ## Complete Lean code
 
 ```lean
 import Mathlib
 
-open Set
-open scoped Classical
+open MeasureTheory
+open scoped Interval
 
 noncomputable section
 
-/-- Last exit from the sublevel set `{s | Z s ≤ K}` before a high excursion.
+/-- Exact affine interval-integral identity.
 
-Given `Z` continuous on `[0,T]`, `Z 0 < K`, and a later time `t` with
-`2*K < Z t`, there is a last time `a ∈ (0,t)` where `Z a = K`, and after
-that time `Z` stays above `K` on `[a,t]`.
+This is the best way to avoid the bound-variable-renaming problem: prove the
+identity in the exact target shape by `calc`, then use it by `le_of_eq` or
+`rw [h_affine]` only at the final expression if needed.
 -/
-theorem exists_last_exit_eq_level_and_stays_above
-    {Z : ℝ → ℝ} {T K t : ℝ}
-    (hcont : ContinuousOn Z (Set.Icc (0 : ℝ) T))
-    (hZ0 : Z 0 < K)
-    (hK : 0 < K)
-    (ht0 : 0 < t)
-    (htT : t < T)
-    (hZt : 2 * K < Z t) :
-    ∃ a : ℝ,
-      a ∈ Set.Ioo (0 : ℝ) t ∧
-        Z a = K ∧
-          ∀ s ∈ Set.Icc a t, K ≤ Z s := by
-  classical
+theorem intervalIntegral_const_mul_add_const_eq
+    {a b eps C : ℝ} {G : ℝ → ℝ}
+    (hG_int : IntervalIntegrable G volume a b) :
+    (∫ s in a..b, eps * G s + C) =
+      eps * (∫ s in a..b, G s) + (b - a) * C := by
+  have hmul :
+      (∫ s in a..b, eps * G s) = eps * (∫ s in a..b, G s) := by
+    exact intervalIntegral.integral_const_mul eps G
+  have hconst :
+      (∫ _s in a..b, C) = (b - a) * C := by
+    rw [intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+  calc
+    (∫ s in a..b, eps * G s + C)
+        = (∫ s in a..b, eps * G s) + ∫ _s in a..b, C := by
+            exact intervalIntegral.integral_add
+              (hG_int.const_mul eps) intervalIntegrable_const
+    _ = eps * (∫ s in a..b, G s) + (b - a) * C := by
+            rw [hmul, hconst]
 
-  let S : Set ℝ := Set.Icc (0 : ℝ) t ∩ {s : ℝ | Z s ≤ K}
+/-- The special inequality in the question.
 
-  have hsub_tT : Set.Icc (0 : ℝ) t ⊆ Set.Icc (0 : ℝ) T := by
-    intro x hx
-    exact ⟨hx.1, le_trans hx.2 htT.le⟩
+No `a ≤ b` hypothesis is needed here because this is just the affine integral
+identity followed by reflexive inequality.
+-/
+theorem intervalIntegral_const_mul_add_const_le
+    {a b eps C : ℝ} {G : ℝ → ℝ}
+    (hG_int : IntervalIntegrable G volume a b) :
+    (∫ s in a..b, eps * G s + C) ≤
+      eps * (∫ s in a..b, G s) + (b - a) * C := by
+  exact le_of_eq (intervalIntegral_const_mul_add_const_eq
+    (a := a) (b := b) (eps := eps) (C := C) (G := G) hG_int)
 
-  have hcont_t : ContinuousOn Z (Set.Icc (0 : ℝ) t) :=
-    hcont.mono hsub_tT
+/-- General monotone version: if `F ≤ eps * G + C` on a non-reversed interval,
+then integrate and rewrite the affine upper integral.
 
-  have hS_nonempty : S.Nonempty := by
-    refine ⟨0, ?_⟩
-    simp [S, ht0.le, hZ0.le]
+This is the tactic sequence to use when your real goal came from a pointwise
+upper bound and `intervalIntegral.integral_mono_on`.
+-/
+theorem intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on'
+    {a b eps C : ℝ} {F G : ℝ → ℝ}
+    (hab : a ≤ b)
+    (hF_int : IntervalIntegrable F volume a b)
+    (hG_int : IntervalIntegrable G volume a b)
+    (hpoint : ∀ s ∈ Set.Icc a b, F s ≤ eps * G s + C) :
+    (∫ s in a..b, F s) ≤
+      eps * (∫ s in a..b, G s) + (b - a) * C := by
+  have hR_int : IntervalIntegrable (fun s => eps * G s + C) volume a b :=
+    (hG_int.const_mul eps).add intervalIntegrable_const
 
-  have hS_closed : IsClosed S := by
-    simpa [S, Set.preimage, Set.mem_Iic] using
-      (hcont_t.preimage_closed_of_closed
-        (isClosed_Icc : IsClosed (Set.Icc (0 : ℝ) t))
-        (isClosed_Iic : IsClosed (Set.Iic K)))
+  have hmono :
+      (∫ s in a..b, F s) ≤ (∫ s in a..b, eps * G s + C) := by
+    exact intervalIntegral.integral_mono_on hab hF_int hR_int hpoint
 
-  have hS_subset_Icc : S ⊆ Set.Icc (0 : ℝ) t := by
-    intro x hx
-    exact hx.1
+  have hR :
+      (∫ s in a..b, eps * G s + C) =
+        eps * (∫ s in a..b, G s) + (b - a) * C := by
+    exact intervalIntegral_const_mul_add_const_eq
+      (a := a) (b := b) (eps := eps) (C := C) (G := G) hG_int
 
-  have hS_compact : IsCompact S := by
-    exact isCompact_Icc.of_isClosed_subset hS_closed hS_subset_Icc
+  exact le_trans hmono (le_of_eq hR)
 
-  have hS_bddAbove : BddAbove S := by
-    refine ⟨t, ?_⟩
-    intro x hx
-    exact hx.1.2
+/-- Same general lemma, but with the affine expression itself as `F`.
+This matches the literal problem statement while still exercising the
+`integral_mono_on` chain. -/
+theorem intervalIntegral_affine_le_via_integral_mono_on
+    {a b eps C : ℝ} {G : ℝ → ℝ}
+    (hab : a ≤ b)
+    (hG_int : IntervalIntegrable G volume a b) :
+    (∫ s in a..b, eps * G s + C) ≤
+      eps * (∫ s in a..b, G s) + (b - a) * C := by
+  have hR_int : IntervalIntegrable (fun s => eps * G s + C) volume a b :=
+    (hG_int.const_mul eps).add intervalIntegrable_const
+  exact
+    intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on'
+      (a := a) (b := b) (eps := eps) (C := C)
+      (F := fun s => eps * G s + C) (G := G)
+      hab hR_int hG_int
+      (by
+        intro s hs
+        rfl)
 
-  let a : ℝ := sSup S
+/-- Problem (2): the opaque integral expression is harmless.  Do not use
+`linarith`; `add_le_add` has exactly the right type. -/
+theorem add_two_bounds_with_opaque_interval_integral
+    {a t eps Gbar Tbar C M : ℝ} {G : ℝ → ℝ}
+    (h1 : eps * (∫ s in a..t, G s) ≤ eps * Gbar)
+    (h2 : (t - a) * (C * M) ≤ Tbar * (C * M)) :
+    eps * (∫ s in a..t, G s) + (t - a) * (C * M) ≤
+      eps * Gbar + Tbar * (C * M) := by
+  exact add_le_add h1 h2
 
-  have haS : a ∈ S := by
-    dsimp [a]
-    exact hS_compact.sSup_mem hS_nonempty
+/-- Same proof, written as a `calc`, useful when the target is part of a longer
+proof and you want to avoid typeclass/tactic search noise. -/
+theorem add_two_bounds_with_opaque_interval_integral_calc
+    {a t eps Gbar Tbar C M : ℝ} {G : ℝ → ℝ}
+    (h1 : eps * (∫ s in a..t, G s) ≤ eps * Gbar)
+    (h2 : (t - a) * (C * M) ≤ Tbar * (C * M)) :
+    eps * (∫ s in a..t, G s) + (t - a) * (C * M) ≤
+      eps * Gbar + Tbar * (C * M) := by
+  calc
+    eps * (∫ s in a..t, G s) + (t - a) * (C * M)
+        ≤ eps * Gbar + (t - a) * (C * M) := by
+            exact add_le_add_right h1 ((t - a) * (C * M))
+    _ ≤ eps * Gbar + Tbar * (C * M) := by
+            exact add_le_add_left h2 (eps * Gbar)
 
-  have ha0 : 0 ≤ a := haS.1.1
-  have hat : a ≤ t := haS.1.2
-  have hZa_le : Z a ≤ K := haS.2
-
-  have hK_lt_Zt : K < Z t := by
-    nlinarith [hK, hZt]
-  have hK_le_Zt : K ≤ Z t := hK_lt_Zt.le
-
-  have hZa_eq : Z a = K := by
-    by_contra hZa_ne
-    have hZa_lt : Z a < K := lt_of_le_of_ne hZa_le hZa_ne
-
-    have hsub_atT : Set.Icc a t ⊆ Set.Icc (0 : ℝ) T := by
-      intro x hx
-      exact ⟨le_trans ha0 hx.1, le_trans hx.2 htT.le⟩
-
-    have hcont_at : ContinuousOn Z (Set.Icc a t) :=
-      hcont.mono hsub_atT
-
-    obtain ⟨c, hcIcc, hc_eq⟩ :=
-      intermediate_value_Icc hat hcont_at hZa_le hK_le_Zt
-
-    have hc_ne_a : c ≠ a := by
-      intro hca
-      have : Z a = K := by
-        simpa [hca] using hc_eq
-      exact hZa_ne this
-
-    have ha_lt_c : a < c :=
-      lt_of_le_of_ne hcIcc.1 (Ne.symm hc_ne_a)
-
-    have hcS : c ∈ S := by
-      refine ⟨?_, ?_⟩
-      · exact ⟨le_trans ha0 hcIcc.1, hcIcc.2⟩
-      · exact le_of_eq hc_eq
-
-    have hc_le_a : c ≤ a := by
-      dsimp [a]
-      exact le_csSup hS_bddAbove hcS
-
-    exact (not_lt_of_ge hc_le_a) ha_lt_c
-
-  have ha_pos : 0 < a := by
-    have h0_ne_a : (0 : ℝ) ≠ a := by
-      intro h0a
-      have hZ0_eq : Z 0 = K := by
-        rw [h0a]
-        exact hZa_eq
-      exact (ne_of_lt hZ0) hZ0_eq
-    exact lt_of_le_of_ne ha0 h0_ne_a
-
-  have ha_lt_t : a < t := by
-    have ha_ne_t : a ≠ t := by
-      intro hat_eq
-      have hZt_eq : Z t = K := by
-        rw [← hat_eq]
-        exact hZa_eq
-      exact (ne_of_lt hK_lt_Zt) hZt_eq.symm
-    exact lt_of_le_of_ne hat ha_ne_t
-
-  refine ⟨a, ⟨ha_pos, ha_lt_t⟩, hZa_eq, ?_⟩
-
-  intro s hs
-  by_contra hnot
-  have hZs_lt : Z s < K := lt_of_not_ge hnot
-
-  have hsS : s ∈ S := by
-    refine ⟨?_, ?_⟩
-    · exact ⟨le_trans ha0 hs.1, hs.2⟩
-    · exact hZs_lt.le
-
-  have hs_le_a : s ≤ a := by
-    dsimp [a]
-    exact le_csSup hS_bddAbove hsS
-
-  have hs_eq_a : s = a := le_antisymm hs_le_a hs.1
-
-  have hZs_eq : Z s = K := by
-    rw [hs_eq_a]
-    exact hZa_eq
-
-  exact (ne_of_lt hZs_lt) hZs_eq
+/-- Variant for the common parenthesization mismatch `(t-a)*C*M` versus
+`(t-a)*(C*M)`.  `simpa [mul_assoc]` normalizes it after `add_le_add`. -/
+theorem add_two_bounds_with_opaque_interval_integral_assoc
+    {a t eps Gbar Tbar C M : ℝ} {G : ℝ → ℝ}
+    (h1 : eps * (∫ s in a..t, G s) ≤ eps * Gbar)
+    (h2 : (t - a) * C * M ≤ Tbar * C * M) :
+    eps * (∫ s in a..t, G s) + (t - a) * (C * M) ≤
+      eps * Gbar + Tbar * (C * M) := by
+  simpa [mul_assoc] using add_le_add h1 h2
 
 end
 ```
 
-## Notes for local integration
+## Drop-in tactic sequences
 
-* The proof deliberately uses `S := [0,t] ∩ {s | Z s ≤ K}` and `a := sSup S`, not an arbitrary maximum witness.
-* The compactness step is the intended one: restrict continuity to `[0,t]`, use `ContinuousOn.preimage_closed_of_closed` for the closed sublevel set, then use `isCompact_Icc.of_isClosed_subset`.
-* The equality `Z a = K` is forced by `intermediate_value_Icc`; otherwise an equality point strictly after `a` would still lie in `S`, contradicting the supremum property.
-* The assumption `K > 0` is used only to derive `K < Z t` from `2*K < Z t`.
+### Problem (1), after `hmono`
+
+If you already have
+
+```lean
+hmono : (∫ s in a..b, F s) ≤ (∫ s in a..b, eps * G s + C)
+```
+
+then use this exact sequence:
+
+```lean
+have hR :
+    (∫ s in a..b, eps * G s + C) =
+      eps * (∫ s in a..b, G s) + (b - a) * C := by
+  have hmul :
+      (∫ s in a..b, eps * G s) = eps * (∫ s in a..b, G s) := by
+    exact intervalIntegral.integral_const_mul eps G
+  have hconst :
+      (∫ _s in a..b, C) = (b - a) * C := by
+    rw [intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+  calc
+    (∫ s in a..b, eps * G s + C)
+        = (∫ s in a..b, eps * G s) + ∫ _s in a..b, C := by
+            exact intervalIntegral.integral_add
+              (hG_int.const_mul eps) intervalIntegrable_const
+    _ = eps * (∫ s in a..b, G s) + (b - a) * C := by
+            rw [hmul, hconst]
+
+exact le_trans hmono (le_of_eq hR)
+```
+
+The important point is the final line: use `le_trans hmono (le_of_eq hR)` instead of rewriting `hmono` in place.
+
+### Problem (2), exact close
+
+```lean
+exact add_le_add h1 h2
+```
+
+If the products differ only by association:
+
+```lean
+simpa [mul_assoc] using add_le_add h1 h2
+```
+
+If you want the no-surprises `calc` version:
+
+```lean
+calc
+  eps * (∫ s in a..t, G s) + (t - a) * (C * M)
+      ≤ eps * Gbar + (t - a) * (C * M) := by
+          exact add_le_add_right h1 ((t - a) * (C * M))
+  _ ≤ eps * Gbar + Tbar * (C * M) := by
+          exact add_le_add_left h2 (eps * Gbar)
+```
