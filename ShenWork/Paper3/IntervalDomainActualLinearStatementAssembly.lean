@@ -74,6 +74,204 @@ theorem intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall
     (intervalDomain_sectorialTheorem21Persistence_actualLinearSmall
       (uBar := uBar) ha hb hχ0 hm hβ hχ)
 
+/-! ### Raw-linear Theorem 2.2 route with actual-linear persistence -/
+
+/-- Core Paper3 statement data in the actual-linear-small regime, with
+Theorem 2.1 persistence produced from the parameter hypotheses and Theorem 2.2
+supplied directly by raw linear-stability branches. -/
+structure IntervalDomainPaper3CoreStatementActualLinear22Data
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  theorem22Nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  theorem22Minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+
+/-- Convert actual-linear-small raw Theorem 2.2 data into the generic linear
+Theorem 2.2 statement package by producing the persistence field internally. -/
+def IntervalDomainPaper3CoreStatementActualLinear22Data.to_linear22Data
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    (h : IntervalDomainPaper3CoreStatementActualLinear22Data
+      p M0 uBar vLower)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1))) :
+    IntervalDomainPaper3CoreStatementLinear22Data p M0 uBar vLower where
+  initialContinuity := h.initialContinuity
+  persistence :=
+    intervalDomain_sectorialTheorem21Persistence_actualLinearSmall
+      (uBar := uBar) ha hb hχ0 hm hβ hχ
+  theorem22Nonminimal := h.theorem22Nonminimal
+  theorem22Minimal := h.theorem22Minimal
+
+/-- Core statement targets in the actual-linear-small regime from raw
+linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_coreStatementTargets_of_actualLinear22Data
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3CoreStatementActualLinear22Data
+        p M0 uBar vLower) :
+    IntervalDomainPaper3CoreStatementTargets p M0 uBar vLower :=
+  intervalDomain_paper3_coreStatementTargets_of_linear22Data
+    p M0 uBar vLower
+    (hData.to_linear22Data ha hb hχ0 hm hβ hχ)
+
+/-- Instance-facing core statement targets in the actual-linear-small regime
+from raw linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_coreStatementTargets_of_actualLinear22DataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3CoreStatementActualLinear22Data
+        p M0 uBar vLower)] :
+    IntervalDomainPaper3CoreStatementTargets p M0 uBar vLower :=
+  intervalDomain_paper3_coreStatementTargets_of_actualLinear22Data
+    p M0 uBar vLower ha hb hχ0 hm hβ hχ hData.out
+
+/-- Paper3 mainline frontiers in the actual-linear-small regime, with
+Theorem 2.2 supplied directly by raw linear-stability data. -/
+structure IntervalDomainPaper3MainlineActualLinear22FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core : IntervalDomainPaper3CoreStatementActualLinear22Data
+    p M0 uBar vLower
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete Paper3 mainline in the actual-linear-small regime
+from raw linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineActualLinear22FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_linear22FrontierData
+    p M0 uBar vLower K
+    { core := hData.core.to_linear22Data ha hb hχ0 hm hβ hχ
+      compactness := hData.compactness
+      stability := hData.stability }
+
+/-- Instance-facing concrete Paper3 mainline in the actual-linear-small regime
+from raw linear Theorem 2.2 branches. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineActualLinear22FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with
+Theorem 2.2 supplied directly by raw linear-stability data. -/
+structure IntervalDomainPaper3StatementActualLinear22FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full Paper3 statement target in the actual-linear-small
+regime from raw linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22FrontierData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full Paper3 statement target in the actual-linear-small
+regime from raw linear Theorem 2.2 branches. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22FrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22FrontierData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22FrontierData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with
+Proposition 1.3/1.4 routed through Paper2 main theorem targets and Theorem 2.2
+supplied directly by raw linear-stability data. -/
+structure IntervalDomainPaper3StatementActualLinear22P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full Paper3 statement target in the actual-linear-small
+regime from raw linear Theorem 2.2 branches and Paper2 main theorem targets. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22P2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full Paper3 statement target in the actual-linear-small
+regime from raw linear Theorem 2.2 branches and Paper2 main theorem targets. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22P2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22P2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### A-priori mainline route with actual-linear persistence -/
 
 /-- Sectorial mainline facts for the actual-linear small-sensitivity regime.
@@ -1942,6 +2140,14 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall
 #print axioms
   intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall
+#print axioms
+  intervalDomain_paper3_coreStatementTargets_of_actualLinear22Data
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_actualLinear22FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
 #print axioms
   intervalDomain_sectorialMainline_unconditionalTarget_of_aprioriActualLinearSmallFacts
 #print axioms
