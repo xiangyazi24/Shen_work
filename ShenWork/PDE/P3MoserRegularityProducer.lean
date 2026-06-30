@@ -88,6 +88,15 @@ The proof strategy is:
 - Extending to the closed `[0,T]` requires the initial trace and terminal
   trace to be handled separately.
 
+Mathlib API: `intervalIntegral.continuousWithinAt_of_dominated_interval` gives
+`ContinuousWithinAt (fun t => ∫ x in c..d, F t x) S t₀` from:
+- `AEStronglyMeasurable (F t) (μ.restrict (Ι c d))` near `t₀`
+- dominated bound `‖F t x‖ ≤ bound x` near `t₀` with `IntervalIntegrable bound`
+- pointwise `ContinuousWithinAt (fun t => F t x) S t₀` a.e.
+
+For the closed `[0,T]`: the interior `(0,T)` follows from time-C¹ regularity;
+the endpoints need the initial/terminal trace regularity.
+
 For now this is left as sorry. -/
 theorem intervalDomain_energyContinuous_of_classical
     {params : CM2Params} {T p0 : ℝ}
