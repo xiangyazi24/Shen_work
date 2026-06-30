@@ -2385,6 +2385,268 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Lower/upper headline route with Stability24 input -/
+
+/-- Lower-average / upper-gap Moser mainline data with the actual-linear-small
+stability package reduced to its non-vacuous Theorem 2.4 branches. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Convert the Stability24-thinned lower/upper Moser mainline data to the
+current full lower/upper frontier surface. -/
+def
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {K : CompactnessData intervalDomain}
+    (h :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+        p M0 uBar vLower K)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperFrontierData
+      p M0 uBar vLower K where
+  core := h.core
+  compactness := h.compactness
+  stability := h.stability24.toStability23To25 ha hχ0
+
+/-- Mainline target from lower/upper Moser frontiers and the Stability24-only
+actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperFrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    (hData.toCurrent ha hχ0)
+
+/-- Instance-facing mainline target from lower/upper Moser frontiers and the
+Stability24-only actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using lower/upper Moser
+frontiers, Paper2 main theorem targets for Proposition 1.3/1.4, and the
+Stability24-only actual-linear stability package. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from lower/upper
+Moser frontiers, Paper2 main theorem target inputs, and Stability24-only
+actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from
+lower/upper Moser frontiers, Paper2 main theorem target inputs, and
+Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-! ### Lower/upper headline route with thin compactness and stability inputs -/
+
+/-- Thin lower-average / upper-gap mainline frontiers for the actual-linear
+headline route.  This chooses the canonical sup-norm compactness package,
+shares initial continuity once, uses `0 < a` to discharge the minimal-upper
+branch, and carries only the non-vacuous Theorem 2.4 stability frontiers. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts p
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  compactness :
+    IntervalDomainPaper3SupNormCompactnessAPosData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline from the thin
+lower-average / upper-gap actual-linear headline route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperFrontierData
+    p M0 uBar vLower
+    (intervalDomainSupNormCompactnessData
+      locallyConverges neumannResolventGradientBound)
+    ha hb hχ0 hm hβ hχ
+    { core := hData.core
+      compactness :=
+        (hData.compactness.toSupNormData ha hData.initialContinuity).toConcrete
+      stability := hData.stability24.toStability23To25 ha hχ0 }
+
+/-- Instance-facing concrete interval-domain Paper3 mainline from the thin
+lower-average / upper-gap actual-linear headline route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
+        p M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
+    p M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the thin lower-average /
+upper-gap actual-linear headline route, with Proposition 1.3/1.4 routed through
+Paper2 main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the full interval-domain Paper3 statement target from the thin
+lower-average / upper-gap actual-linear headline route and Paper2 main theorem
+target inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+      ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the thin
+lower-average / upper-gap actual-linear headline route and Paper2 main theorem
+target inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -2467,5 +2729,15 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainData
+#print axioms
+  IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainData
 
 end ShenWork.Paper3
