@@ -1,356 +1,433 @@
-# Q2616 shen1 — audit of removing/weakening `epsilonGap` inside `P3MoserIntegratedClosure.lean`
+# Q2631 shen1 — audit of `P3MoserRegularityProducer` frontier after `3baba004`
 
 Repo: `xiangyazi24/Shen_work`
 
-Branch read: default branch `main`
+Branch/ref inspected: default branch `main`, plus `3baba004` for `ShenWork/PDE/P3MoserRegularityProducer.lean`.
 
 Files inspected:
 
 ```text
+ShenWork/PDE/P3MoserRegularityProducer.lean
 ShenWork/PDE/P3MoserIntegratedClosure.lean
-ShenWork/PDE/P3MoserActualWiring.lean
-ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
+ShenWork/PDE/P3MoserHighExcursionProducer.lean
+ShenWork/PDE/P3MoserThresholdPlanProducer.lean
+ShenWork/Paper2/Statements.lean
+ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean
+ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean
+ShenWork/Paper2/IntervalDomainLpEnergyFrontiers.lean
+ShenWork/Paper2/IntervalDomainMass.lean
+ShenWork/PDE/IntervalDomain.lean
 ```
-
-Scope respected: the recommendation below edits, at most, `ShenWork/PDE/P3MoserIntegratedClosure.lean`.  I do **not** recommend touching `IntervalDomainMoserLadderAtoms.lean`.
 
 ## Executive answer
 
-The best honest in-file reduction is already essentially present: make the `upper-data-aware` path the canonical path and stop exposing `IntegratedMoserWindowUpperGapEpsilonFrontier` / `IntegratedMoserFirstCrossingLowerAverageEpsilonData` as the preferred API.
+From `IsPaper2ClassicalSolution intervalDomain params T u v` or `IsPaper2GlobalClassicalSolution intervalDomain params u v` **alone**, none of the three new frontier fields is currently provable as stated:
 
-Concretely, the non-vacuous weakening is:
+```lean
+energyContinuous
+powerTimeIntegrable
+gradientTimeIntegrable
+```
+
+The refactor in `P3MoserRegularityProducer.lean` is therefore mathematically honest: the old skeleton that claimed these fields from `IsPaper2ClassicalSolution` was too strong.
+
+There is, however, one real frontier reduction available:
+
+* `powerTimeIntegrable` is redundant **if** `energyContinuous` is retained and `0 ≤ T` is available.  For classical solutions, `0 < T` is available from `IsPaper2ClassicalSolution.T_pos`.  This derives time-integrability of the scalar power energy from continuity on the compact interval.  It does **not** prove `powerTimeIntegrable` from classical regularity alone; it proves that the explicit frontier package can be weakened by dropping `powerTimeIntegrable` and deriving it from `energyContinuous`.
+
+So the best non-vacuous reduction is:
 
 ```text
-old analytic gap:
-  IntegratedMoserWindowUpperGapEpsilonFrontier
-
-preferred weaker analytic gap:
-  IntegratedMoserWindowUpperDataGapFrontier
-
-preferred first-crossing package:
-  IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
-
-consumer:
-  integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+keep explicit:  energyContinuous, gradientTimeIntegrable
+derive:         initialPowerBound, powerTimeIntegrable
+get from hsol:  energy nonnegativity, T_pos
 ```
 
-This is a real weakening, not just a rename:
+Do not reduce `energyContinuous` or `gradientTimeIntegrable` yet.  Existing repo lemmas provide useful interior/fixed-time facts, but not the closed-time or time-integrability statements required by `IntegratedMoserFirstCrossingRegularity`.
+
+## Field-by-field audit
+
+### 1. `energyContinuous`
+
+Target field:
 
 ```lean
--- Old/all-witness shape, too strong:
-∃ eps : ℝ, 0 < eps ∧
-  ∀ {Gbound Ceps : ℝ},
-    IntegratedMoserWindowUpperBoundWitness
-      D u rho p hwin.a hwin.b hwin.M eps Gbound Ceps →
-    eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) <
-      hwin.lowerBound
+∀ p, p0 ≤ p → ContinuousOn
+  (fun t => intervalDomain.integral (fun x => (u t x)^p))
+  (Set.Icc (0 : ℝ) T)
 ```
 
-versus
+Status: **not provable from the current `IsPaper2ClassicalSolution` or `IsPaper2GlobalClassicalSolution` interface.**
+
+What is available:
 
 ```lean
--- New/upper-data-aware shape:
--- Given the fixed-window upper-bound data producer, choose one actual witness
--- and prove the strict budget gap for that selected witness.
-∀ {Cnext t : ℝ},
-  (hwin : IntegratedMoserHighExcursionLowerAverageWindow
-    D u T rho p0 p Cnext t) →
-  (∀ eps : ℝ, 0 < eps →
-    IntegratedMoserWindowUpperBoundData
-      D u rho p hwin.a hwin.b hwin.M eps) →
-    IntegratedMoserWindowUpperGapWitness
-      D u rho p hwin.a hwin.b hwin.M hwin.lowerBound
+intervalDomainPowerEnergy_hasDerivAt
+intervalDomain_lp_timeLeibniz
 ```
 
-The second version is weaker because it does **not** demand the gap for arbitrary inflated `Gbound/Ceps` witnesses.  It may choose one witness delivered by the fixed-window upper-bound calculation.
+from `ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean`.  These give differentiability, hence continuity, at interior times `t ∈ Set.Ioo 0 T`.
 
-However, there is no honest way inside `P3MoserIntegratedClosure.lean` to remove the strict budget inequality altogether.  The fixed-window upper-bound witness gives only
-
-```lean
-∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
-  eps * Gbound + (b - a) * (Ceps * M)
-```
-
-and the lower-average window gives only
+Precise interior-only skeleton:
 
 ```lean
-lowerBound ≤ ∫ s in a..b, integratedMoserEnergy D u (p + rho) s
-```
-
-Together these imply at most
-
-```lean
-lowerBound ≤ eps * Gbound + (b - a) * (Ceps * M)
-```
-
-not a contradiction.  The contradiction requires the genuinely additional inequality
-
-```lean
-eps * Gbound + (b - a) * (Ceps * M) < lowerBound
-```
-
-for the same selected witness.  That is the exact remaining mathematical inequality Zinan’s high-excursion/threshold plan must produce, unless a separate controlled-relative-Moser theorem exposes enough quantitative `eps ↦ Ceps` dependence to prove it.
-
-## What is already good in the closure file
-
-The fixed-window upper-bound witness layer is correctly shaped:
-
-```lean
-def IntegratedMoserWindowUpperBoundWitness
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (rho p a b M eps Gbound Ceps : ℝ) : Prop :=
-  0 ≤ Ceps ∧
-    (∫ s in a..b, integratedMoserGradientEnergy D u p s) ≤ Gbound ∧
-    (∫ s in a..b, integratedMoserEnergy D u (p + rho) s) ≤
-      eps * Gbound + (b - a) * (Ceps * M)
-```
-
-and the fixed-window theorem correctly packages a witness existentially:
-
-```lean
-structure IntegratedMoserWindowUpperBoundData
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (rho p a b M eps : ℝ) : Prop where
-  bounds :
-    ∃ Gbound Ceps : ℝ,
-      IntegratedMoserWindowUpperBoundWitness
-        D u rho p a b M eps Gbound Ceps
-```
-
-The current theorem
-
-```lean
-integratedMoser_windowUpperBoundData_of_lowerAverageWindow
-```
-
-is exactly the fixed-window calculation that should be reused.  It is wiring/math already proved in the file: from regularity, nonnegativity, integrated dissipation, relative Moser, and the selected lower-average window geometry, it produces `IntegratedMoserWindowUpperBoundData` for every `eps > 0`.
-
-The current preferred package
-
-```lean
-IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
-```
-
-is therefore the right replacement for
-
-```lean
-IntegratedMoserFirstCrossingLowerAverageEpsilonData
-```
-
-because it replaces the old all-witness epsilon gap by the strictly weaker `upperDataGap` field:
-
-```lean
-upperDataGap :
-  ∀ p, p0 ≤ p →
-    0 ≤ p →
-      Nonempty
-        (IntegratedMoserWindowUpperDataGapFrontier D u T rho p0 p)
-```
-
-and the existing consumer
-
-```lean
-integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-```
-
-already collapses that package to `IntegratedMoserFirstCrossingStep`.
-
-## Recommended next in-file reduction
-
-I would not add a new frontier that merely restates `upper_lt_lower` under a new name.  The clean next change, if you want one, is just a surface wrapper that makes the upper-data-aware path the obvious entry point and removes `epsilonGap` from the theorem signature.
-
-Suggested exact theorem name:
-
-```lean
-integratedMoserFirstCrossingStep_of_lowerAverage_and_upperDataGapFrontiers
-```
-
-Suggested code:
-
-```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
+import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
 
 open MeasureTheory
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open scoped Interval
 
 noncomputable section
 
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
-/-- Preferred direct consumer for the high-excursion route: lower-average
-thickness plus an upper-data-aware strict-gap chooser.  This wrapper deliberately
-has no `IntegratedMoserWindowUpperGapEpsilonFrontier` argument. -/
-theorem integratedMoserFirstCrossingStep_of_lowerAverage_and_upperDataGapFrontiers
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 : ℝ}
-    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
-    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
-    (hinteg : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
-    (hrho_pos : 0 < rho)
-    (hp0_nonneg : 0 ≤ p0)
-    (hlower :
-      ∀ p, p0 ≤ p →
-        0 ≤ p →
-        LpPowerBoundedBefore D p T u →
-          Nonempty
-            (Σ Cnext : ℝ,
-              IntegratedMoserHighExcursionLowerAverageWindowFrontier
-                D u T rho p0 p Cnext))
-    (hupperDataGap :
-      ∀ p, p0 ≤ p →
-        0 ≤ p →
-          Nonempty
-            (IntegratedMoserWindowUpperDataGapFrontier D u T rho p0 p)) :
-    IntegratedMoserFirstCrossingStep D u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-    { regularity := hreg
-      energyNonneg := hnonneg
-      dissipation := hinteg
-      relative := hrel
-      rho_pos := hrho_pos
-      p0_nonneg := hp0_nonneg
-      lowerAverage := hlower
-      upperDataGap := hupperDataGap }
+/-- Interior-only consequence of classical regularity.  This is useful, but it is
+not the closed-time `energyContinuous` field required by integrated Moser. -/
+theorem intervalDomain_powerEnergy_continuousAt_interior_of_classical
+    {params : CM2Params} {T q t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    ContinuousAt
+      (fun s => intervalDomain.integral (fun x => (u s x) ^ q)) t := by
+  have hderiv :
+      HasDerivAt (fun s => intervalDomainPowerEnergy q u s)
+        (∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv q u t y) t :=
+    intervalDomainPowerEnergy_hasDerivAt (q := q) hsol ⟨ht0, htT⟩
+  -- `intervalDomainPowerEnergy` is definitionally the same interval integral.
+  change ContinuousAt (fun s => intervalDomainPowerEnergy q u s) t
+  exact hderiv.continuousAt
 
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
 end
 ```
 
-Classification: **pure wiring only**.  It adds no new mathematics and should be acceptable inside `P3MoserIntegratedClosure.lean`.  It is useful because it makes the preferred API explicit and avoids new callers depending on `IntegratedMoserFirstCrossingLowerAverageEpsilonData`.
+Why this does not close the field:
 
-## Why the old `epsilonGap` should remain compatibility-only
+* `ContinuousOn ... (Set.Icc 0 T)` includes continuity at `t = 0` and at `t = T`.
+* `IsPaper2ClassicalSolution` only constrains the solution on interior times `0 < t < T`.  Its positivity, PDE identity, and interval-domain `classicalRegularity` are all interior-time statements.
+* `IsPaper2GlobalClassicalSolution` helps at a positive endpoint `T` by allowing a larger horizon, but it still gives no continuity at `t = 0` and no initial trace.  The value `u 0` can be arbitrary from the perspective of the current interface.
 
-The existing conversion
+Minimal extra data needed:
 
-```lean
-IntegratedMoserFirstCrossingLowerAverageEpsilonData.toUpperDataGapData
-```
-
-is fine as a backward-compatibility adapter.  But new work should target
+Either keep the current field exactly, or supply stronger closed-time data such as:
 
 ```lean
-IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+∀ p, p0 ≤ p,
+  ContinuousOn
+    (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+    (Set.Icc (0 : ℝ) T)
 ```
 
-or the wrapper above, not the old epsilon package.
+A more constructive future route would require a closed-time initial trace plus a parametric integral continuity theorem for real powers, with enough positivity/lower-bound control near `t = 0` to make `rpow` stable for all `p ≥ p0`.  That route is not currently in the repo.
 
-The old epsilon frontier is too strong because it quantifies over every witness satisfying the upper-bound predicate.  Since larger `Gbound` or `Ceps` can often be made to satisfy the upper-bound inequality, a universal strict gap against all such witnesses is generally not stable.
+### 2. `powerTimeIntegrable`
 
-The upper-data-aware frontier is the honest weakening: it asks for a strict gap only for one selected upper-bound witness coming from the already-proved fixed-window calculation.
-
-## What would be vacuous and should not be added
-
-Do **not** add a structure like this and pretend it removed the gap:
+Target field:
 
 ```lean
-structure IntegratedMoserWindowBudgetFrontier ... where
-  produce :
-    ∀ hwin,
-      ∃ eps Gbound Ceps,
-        0 < eps ∧
-        IntegratedMoserWindowUpperBoundWitness
-          D u rho p hwin.a hwin.b hwin.M eps Gbound Ceps ∧
-        eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) <
-          hwin.lowerBound
+∀ p, p0 ≤ p → IntegrableOn
+  (fun t => intervalDomain.integral (fun x => (u t x)^p))
+  (Set.uIcc (0 : ℝ) T) volume
 ```
 
-That is just `IntegratedMoserWindowUpperGapWitnessFrontier` / `IntegratedMoserWindowUpperDataGapFrontier` in a different coat unless it is paired with a genuinely new analytic theorem explaining why the strict inequality follows from the high-excursion threshold construction.
+Status from `IsPaper2ClassicalSolution` alone: **not provable**.
 
-Also do **not** claim that
+Status as a frontier reduction: **provable from `energyContinuous` plus `0 ≤ T`.**
+
+Existing supporting fact: Mathlib’s `ContinuousOn.integrableOn_Icc`, already used elsewhere in the repo through the `.integrableOn_Icc` projection style.
+
+Lean code for the reduction:
 
 ```lean
-integratedMoser_windowUpperBoundData_of_lowerAverageWindow
+import ShenWork.PDE.P3MoserRegularityProducer
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open scoped Interval
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+
+/-- A compact-interval continuity field already implies the corresponding
+power-energy time-integrability field. -/
+theorem intervalDomain_powerTimeIntegrable_of_energyContinuous
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (henergy :
+      ∀ p, p0 ≤ p →
+        ContinuousOn
+          (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+          (Set.Icc (0 : ℝ) T)) :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.uIcc (0 : ℝ) T) volume := by
+  intro p hp
+  have hIcc :
+      IntegrableOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T) volume :=
+    (henergy p hp).integrableOn_Icc
+  simpa [Set.uIcc_of_le hT] using hIcc
+
+/-- Reduced regularity frontier: `powerTimeIntegrable` is derived from
+`energyContinuous` on `[0,T]` when `0 ≤ T`. -/
+structure IntervalDomainIntegratedMoserRegularityFrontierDataLite
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  energyContinuous :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T)
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+
+/-- Produce the existing explicit frontier data from the reduced version. -/
+theorem intervalDomain_regularFrontierData_of_lite
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0) :
+    IntervalDomainIntegratedMoserRegularityFrontierData u T p0 where
+  energyContinuous := hreg.energyContinuous
+  powerTimeIntegrable :=
+    intervalDomain_powerTimeIntegrable_of_energyContinuous
+      hT hreg.energyContinuous
+  gradientTimeIntegrable := hreg.gradientTimeIntegrable
+
+/-- Direct producer of integrated-Moser regularity from the reduced frontier. -/
+theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData
+    (intervalDomain_regularFrontierData_of_lite
+      (IsPaper2ClassicalSolution.T_pos hsol).le hreg)
+
+end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+
+end
 ```
 
-plus
+Classification: **wiring / standard compact-continuity integration**, not new PDE math.
+
+What is available from classical regularity without `energyContinuous`:
 
 ```lean
-hwin.lowerAverage
+intervalDomain_u_rpow_intervalIntegrable_of_regularity
 ```
 
-is enough to derive contradiction.  It is not.  Those two statements are consistent whenever
+from `ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean`, but this is only fixed-time spatial interval-integrability:
 
 ```lean
-hwin.lowerBound ≤ ∫Y ≤ budget
+import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+open scoped Interval
+
+noncomputable section
+
+example
+    {params : CM2Params} {T t q : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    IntervalIntegrable
+      (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ q))
+      volume 0 1 :=
+  intervalDomain_u_rpow_intervalIntegrable_of_regularity
+    (q := q) hsol ht0 htT
+
+end
 ```
 
-and that is exactly the non-contradictory ordering.
+That fixed-time spatial lemma does not imply the target `IntegrableOn` in the time variable.  To prove time integrability without using `energyContinuous`, one would at least need scalar-energy measurability plus a time-integrable or essentially bounded envelope on `Set.uIcc 0 T`.  `LpPowerBoundedBefore` gives a uniform bound but not measurability; classical regularity gives interior local continuity but not endpoint control at `0`.
 
-## Exact remaining mathematical inequality
+### 3. `gradientTimeIntegrable`
 
-For each selected high-excursion lower-average window
+Target field:
 
 ```lean
-hwin : IntegratedMoserHighExcursionLowerAverageWindow
-  D u T rho p0 p Cnext t
+∀ p, p0 ≤ p → IntegrableOn
+  (fun t =>
+    intervalDomain.integral (fun x =>
+      (intervalDomain.gradNorm
+        (fun y => (u t y)^(p/2)) x)^2))
+  (Set.uIcc 0 T) volume
 ```
 
-and for the fixed-window upper-bound data produced by
+Status: **not provable from current `IsPaper2ClassicalSolution` / `IsPaper2GlobalClassicalSolution` infrastructure.**
+
+Useful existing fixed-time or algebraic lemmas:
 
 ```lean
-fun eps heps =>
-  integratedMoser_windowUpperBoundData_of_lowerAverageWindow
-    hreg hnonneg hinteg hrel hp hp_nonneg hrho_pos hwin heps
+intervalDomain_moser_gradNorm_sq_eq_weighted_of_regularity
+intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+intervalDomainLpMoserGradientControl_of_regularity
+intervalDomain_gradient_integral_nonneg
 ```
 
-Zinan’s high-excursion/threshold plan, or a controlled-relative-Moser constant theorem, must produce:
+Representative fixed-time identity:
 
 ```lean
-∃ eps Gbound Ceps : ℝ,
-  0 < eps ∧
-  IntegratedMoserWindowUpperBoundWitness
-    D u rho p hwin.a hwin.b hwin.M eps Gbound Ceps ∧
-  eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) <
-    hwin.lowerBound
+import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+import ShenWork.PDE.P3MoserThresholdPlanProducer
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+open ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
+open scoped Interval
+
+noncomputable section
+
+example
+    {params : CM2Params} {T t q : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    intervalDomain.integral
+        (fun x =>
+          (intervalDomain.gradNorm
+            (fun y : intervalDomain.Point => (u t y) ^ (q / 2)) x) ^ 2) =
+      (q / 2) ^ 2 *
+        intervalDomainLpWeightedGradientDissipation q u t :=
+  intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+    (pExp := q) hsol ht0 htT
+
+example
+    {u : ℝ → intervalDomain.Point → ℝ} {q a b : ℝ}
+    (hab : a ≤ b) :
+    0 ≤ ∫ s in a..b,
+      integratedMoserGradientEnergy intervalDomain u q s :=
+  intervalDomain_gradient_integral_nonneg hab
+
+end
 ```
 
-Equivalently, using the already-proved upper-bound data producer as an argument, it must produce:
+These are not time-integrability theorems.
+
+Minimal extra data needed:
+
+The current field is already a good minimal interface:
 
 ```lean
-IntegratedMoserWindowUpperGapWitness
-  D u rho p hwin.a hwin.b hwin.M hwin.lowerBound
+∀ p, p0 ≤ p → IntegrableOn
+  (fun t =>
+    intervalDomain.integral (fun x =>
+      (intervalDomain.gradNorm
+        (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+  (Set.uIcc (0 : ℝ) T) volume
 ```
 
-from
+A more constructive future replacement could provide either:
 
 ```lean
-∀ eps : ℝ, 0 < eps →
-  IntegratedMoserWindowUpperBoundData
-    D u rho p hwin.a hwin.b hwin.M eps
+∀ p, p0 ≤ p,
+  IntegrableOn
+    (fun t => intervalDomainLpWeightedGradientDissipation p u t)
+    (Set.uIcc (0 : ℝ) T) volume
 ```
 
-This inequality is **new math**, not wiring.  The wiring is everything after it:
+together with the Moser-gradient identity/control, or a closed-slab joint regularity theorem proving measurability and an integrable time envelope for the Moser-gradient energy.  No such theorem currently appears in the repo.
+
+## False assumptions to avoid for `gradientTimeIntegrable`
+
+Do not argue:
 
 ```text
-IntegratedMoserWindowUpperDataGapFrontier
-  → integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
-  → IntegratedMoserFirstCrossingLowerAverageUpperDataGapData.toLowerUpperFrontiers
-  → integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+classical solution ⇒ each spatial slice is C² ⇒ gradient energy is time-integrable
 ```
 
-## Relationship to the other inspected files
+That implication is not valid in the current interface.
 
-`P3MoserActualWiring.lean` consumes an `IntegratedMoserFirstCrossingStep` as the atom for the actual integrated route.  It does not need to know whether the step came from `epsilonGap`, `upperDataGap`, or a future Zinan producer.
+The exact problems are:
 
-`IntervalDomainMoserLadderAtoms.lean` has residual packages that consume either an `IntegratedMoserFirstCrossingStep`, an `IntegratedMoserFirstCrossingFromWindowFrontier`, or split lower/upper frontiers.  The current consumption path already routes through the closure-file wrappers.  I would not edit it for this reduction.
+1. `ContDiffOn ℝ 2 (intervalDomainLift (u t)) ...` is per fixed interior time.  It gives spatial regularity of each slice, not measurability or integrability of the scalar function of time.
 
-## Bottom line
+2. The interval-domain `classicalRegularity` now contains joint continuity of the solution field and of the time-derivative field, but it does **not** contain joint continuity in `(t,x)` of the spatial derivative `deriv (intervalDomainLift (u t)) x`.  The Moser gradient uses spatial derivatives.
 
-Inside `P3MoserIntegratedClosure.lean`, the honest reduction is:
+3. Even a future joint continuity result on `(0,T) × [0,1]` would only give local integrability away from `t = 0`.  The target field is on `Set.uIcc 0 T`, so it still needs endpoint control, especially near `t = 0`.
 
-1. Treat `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` as the preferred API.
-2. Keep `IntegratedMoserFirstCrossingLowerAverageEpsilonData` only as compatibility.
-3. Optionally add the direct wrapper `integratedMoserFirstCrossingStep_of_lowerAverage_and_upperDataGapFrontiers` shown above.
-4. Do not claim the fixed-window upper-bound witnesses eliminate the strict gap.  They only supply the selected upper witness.  The remaining mathematical inequality is exactly the selected-budget strict inequality:
+4. `intervalDomain_moser_gradient_integral_eq_weighted_of_regularity` is a fixed-time identity.  It does not say the weighted dissipation is `IntegrableOn` in time.
+
+5. `intervalDomain_gradient_integral_nonneg` proves only nonnegativity of a time interval integral.  Nonnegativity is not integrability.
+
+6. `IntegratedMoserDissipationDropBefore` contains interval integrals in inequalities, but the Lean statement does not produce `IntegrableOn` evidence for the gradient-energy time function.  The integrated-Moser closure later needs actual `IntegrableOn`/`IntervalIntegrable` objects, so this cannot be filled by inequality syntax alone.
+
+## Relation to existing Moser consumers
+
+`P3MoserThresholdPlanProducer.lean` confirms that these fields are genuinely consumed:
+
+* `hreg.energyContinuous (p + rho) hp_rho` is passed into `LpPowerBoundedBefore_of_crossingThresholdPlan`.
+* `hreg.powerTimeIntegrable` is converted to interval integrability on selected windows.
+* `hreg.gradientTimeIntegrable` is likewise converted to interval integrability on selected windows.
+
+`P3MoserHighExcursionProducer.lean` similarly uses closed-time continuity to turn a pointwise high excursion into a nontrivial lower-average window.  The lemma
 
 ```lean
-eps * Gbound + (hwin.b - hwin.a) * (Ceps * hwin.M) < hwin.lowerBound
+exists_Icc_subinterval_gt_mid_of_continuousOn_gt
 ```
 
-for a witness actually produced by the fixed-window upper-bound data.
+requires `ContinuousOn Y (Icc 0 T)`, not merely interior continuity.
+
+## Recommended frontier shape
+
+The current explicit frontier is honest.  The only reduction I recommend now is dropping `powerTimeIntegrable` from the explicit producer data and deriving it from `energyContinuous` plus `T ≥ 0`, as shown above.
+
+A reduced frontier could be named:
+
+```lean
+IntervalDomainIntegratedMoserRegularityFrontierDataLite
+intervalDomain_powerTimeIntegrable_of_energyContinuous
+intervalDomain_regularFrontierData_of_lite
+intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
+```
+
+Classification:
+
+```text
+energyContinuous          remains real frontier
+powerTimeIntegrable       wiring from energyContinuous + 0 ≤ T
+initialPowerBound         already algebraic via max integral 0
+gradientTimeIntegrable    remains real frontier
+energy nonnegativity      already from hsol positivity
+```
+
+Do **not** add a theorem named like this unless it takes explicit frontier data:
+
+```lean
+-- Too strong / currently false from the interface alone.
+theorem intervalDomain_integratedMoserRegularityFrontierData_of_classical
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    IntervalDomainIntegratedMoserRegularityFrontierData u T p0 := ...
+```
+
+The current interface does not determine enough closed-time behavior at `t = 0`, nor enough time integrability of the Moser-gradient energy, to prove that theorem without new analytic input.
+
+## Final answer to the question
+
+1. **Actually provable now from existing full fields:** `powerTimeIntegrable` can be derived from `energyContinuous` and `0 ≤ T`; use `ContinuousOn.integrableOn_Icc` and `Set.uIcc_of_le`.  This is a valid frontier reduction.
+
+2. **Actually provable now from `IsPaper2ClassicalSolution`:** none of the three full fields.  Only supporting facts are provable: interior-time continuity/differentiability of power energies, fixed-time spatial power integrability, fixed-time Moser-gradient algebra, and nonnegativity.
+
+3. **Minimal extra data:** keep `energyContinuous` and `gradientTimeIntegrable` explicit, or replace them with stronger closed-time/joint-regularity packages that genuinely imply those statements.  The current explicit frontier shape is the right interface, modulo the reducible `powerTimeIntegrable` field.
+
+4. **Main false assumption to avoid:** fixed-time spatial `C²` regularity, even with positivity and the Moser-gradient chain rule, does not imply time integrability of the gradient energy.  Time measurability, time envelopes, and endpoint control are separate analytic data.
