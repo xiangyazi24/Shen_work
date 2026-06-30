@@ -12,7 +12,8 @@ Authoritative checks from the current tree:
   quantitative endpoint atom, the raw-drop reduction of the nonnegative-B
   Moser dissipation atom, the common-free actual-atom full-statement route
   with explicit or solution-slice-produced a-priori frontiers, and the Paper1
-  positive upper-contact / Route-A refinements, `lake build ShenWork` completed successfully on
+  positive upper-contact / Route-A direct remaining-contact refinements,
+  `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8984 jobs**.  The target build
   `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` completed
   successfully (**3739 jobs**).  The new Paper2 wrappers have `#print axioms`
@@ -139,6 +140,17 @@ Current headline status:
   `PositiveUpperBarrierConstLeftPlateauResidual` plus the scalar
   `p.m * kappa c ≤ 1`; `paper1_routeARemainingParamData_of_routeAHmkConstParamData`
   converts it back into the existing remaining-contact route, and
+  `paper1_positiveRawRemainingContactData_of_routeARemainingParamData` /
+  `paper1_positiveRawRemainingContactData_of_routeAHmkConstParamData`
+  now wire Route-A remaining-contact and hmk-aware constant-branch data
+  directly to `Paper1PositiveLowerPinnedRawRemainingContactBranchData`.
+  The statement wrappers
+  `paper1_mainStatementTargets_of_routeARemainingParamData`,
+  `paper1_mainStatementTargets_of_routeAHmkConstParamData`,
+  `paper1_combinedStatementTargets_of_routeARemainingParamData`, and
+  `paper1_combinedStatementTargets_of_routeAHmkConstParamData`
+  route the same data directly to Paper1 main/combined statement targets.
+  Separately,
   `paper1_positiveRawSmoothContactData_of_routeAHmkConstParamData`,
   `paper1_positiveContactBranch_of_routeAHmkConstParamData`, and
   `paper1_positiveStrictBarrierBranch_of_routeAHmkConstParamData` reuse the

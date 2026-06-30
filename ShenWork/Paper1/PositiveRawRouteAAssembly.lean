@@ -308,6 +308,34 @@ theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
           hα hχ_nonneg hχ_small hc hmκ hpin.bare
           (hconst U hpin hprofile)⟩
 
+/-- Route-A remaining-contact param data produces the raw lower-pinned
+remaining-contact package directly. -/
+theorem paper1_positiveRawRemainingContactData_of_routeARemainingParamData
+    (hData : Paper1PositiveLowerRawCapRouteARemainingParamData) :
+    Paper1PositiveLowerPinnedRawRemainingContactBranchData := by
+  refine ⟨?_⟩
+  intro p hα hχ_nonneg hχ_small c hc
+  let hcond :
+      PositivePaperLemma42ExactConditions p c (kappa c)
+        (positiveBranchTailCap p c) (MChi p) :=
+    positivePaperLemma42ExactConditions_of_branchCap
+      p hα hχ_nonneg hχ_small hc
+  rcases hData.produce p hα hχ_nonneg hχ_small c hc with
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp,
+      hreg, hres⟩
+  obtain ⟨U, hpin, hprofile⟩ :=
+    b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+      p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+  exact
+    ⟨positiveBranchTailCap p c, D, U,
+      le_trans zero_le_one hD_ge_one,
+      le_rfl,
+      hprofile,
+      hpin,
+      hres U hpin hprofile,
+      hreg⟩
+
 /-- The remaining-residual Route-A package produces the previous smooth-param
 package by discharging the operator-comparison field. -/
 theorem paper1_routeASmoothParamData_of_routeARemainingParamData
@@ -336,6 +364,76 @@ theorem paper1_positiveRawSmoothContactData_of_routeARemainingParamData
     Paper1PositiveLowerPinnedRawSmoothContactBranchData :=
   paper1_positiveRawSmoothContactData_of_routeAParamData
     (paper1_routeASmoothParamData_of_routeARemainingParamData hData)
+
+/-- Raw remaining-contact package from hmk-aware constant-branch Route-A data. -/
+theorem paper1_positiveRawRemainingContactData_of_routeAHmkConstParamData
+    (hData : Paper1PositiveLowerRawCapRouteAHmkConstParamData) :
+    Paper1PositiveLowerPinnedRawRemainingContactBranchData :=
+  paper1_positiveRawRemainingContactData_of_routeARemainingParamData
+    (paper1_routeARemainingParamData_of_routeAHmkConstParamData hData)
+
+/-- Main Paper1 statement targets from Route-A remaining-contact cap data. -/
+theorem paper1_mainStatementTargets_of_routeARemainingParamData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hneg : ConstructionNegSMPProvider)
+    (hpos : Paper1PositiveLowerRawCapRouteARemainingParamData)
+    (hmainline : Paper1MainlineExistence cStarStarFn) :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_lowerPinnedRawRemainingContactData
+    { constructionNeg := hneg
+      positiveLowerPinnedRawRemainingContact :=
+        paper1_positiveRawRemainingContactData_of_routeARemainingParamData hpos
+      mainline := hmainline }
+
+/-- Main Paper1 statement targets from hmk-aware Route-A constant-branch cap
+data. -/
+theorem paper1_mainStatementTargets_of_routeAHmkConstParamData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hneg : ConstructionNegSMPProvider)
+    (hpos : Paper1PositiveLowerRawCapRouteAHmkConstParamData)
+    (hmainline : Paper1MainlineExistence cStarStarFn) :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_routeARemainingParamData
+    hneg
+    (paper1_routeARemainingParamData_of_routeAHmkConstParamData hpos)
+    hmainline
+
+/-- Combined Paper1 statement targets from Route-A remaining-contact cap data. -/
+theorem paper1_combinedStatementTargets_of_routeARemainingParamData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hneg : ConstructionNegSMPProvider)
+    (hpos : Paper1PositiveLowerRawCapRouteARemainingParamData)
+    (hmainline : Paper1MainlineExistence cStarStarFn)
+    (hprops : Paper1PropositionFrontierData)
+    (h51 : Paper1Lemma51FrontierData)
+    (h52 : Paper1Lemma52FrontierData) :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactData
+    { main :=
+        { constructionNeg := hneg
+          positiveLowerPinnedRawRemainingContact :=
+            paper1_positiveRawRemainingContactData_of_routeARemainingParamData
+              hpos
+          mainline := hmainline }
+      propositions := hprops
+      lemma51 := h51
+      lemma52 := h52 }
+
+/-- Combined Paper1 statement targets from hmk-aware Route-A constant-branch
+cap data. -/
+theorem paper1_combinedStatementTargets_of_routeAHmkConstParamData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hneg : ConstructionNegSMPProvider)
+    (hpos : Paper1PositiveLowerRawCapRouteAHmkConstParamData)
+    (hmainline : Paper1MainlineExistence cStarStarFn)
+    (hprops : Paper1PropositionFrontierData)
+    (h51 : Paper1Lemma51FrontierData)
+    (h52 : Paper1Lemma52FrontierData) :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_routeARemainingParamData
+    hneg
+    (paper1_routeARemainingParamData_of_routeAHmkConstParamData hpos)
+    hmainline hprops h51 h52
 
 /-- Positive contact branch from Route-A param-core data with only the remaining
 upper-contact residual. -/
