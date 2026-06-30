@@ -1,4 +1,4 @@
-# Q2599 (cron1) — Lean 4 / Mathlib v4.29 tactic sequences for interval integrals
+# Q2622 (cron1) — Lean 4 / Mathlib API for continuous parameter-dependent interval integrals
 
 Repository: `xiangyazi24/Shen_work`  
 Branch: `chatgpt-scratch`  
@@ -6,215 +6,400 @@ Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 ## Answer summary
 
-For problem (1), do not `rw` the affine-integral identity directly at the monotonicity inequality if binder names or pretty-printed interval binders are fighting you.  Prove the target-shape identity as a separate `have hR` with a `calc`, then close by transitivity:
+The closest current Mathlib API is in:
 
 ```lean
-exact le_trans hmono (le_of_eq hR)
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
 ```
 
-For problem (2), do not use `linarith`.  The proof is exactly:
+The relevant namespace is mostly `intervalIntegral`.
+
+For a fixed interval integral with **global joint continuity**
 
 ```lean
-exact add_le_add h1 h2
+hF : Continuous (Function.uncurry F)
 ```
 
-or, if only parentheses/multiplication association differ:
+the direct theorem is:
 
 ```lean
-simpa [mul_assoc] using add_le_add h1 h2
+intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
 ```
 
-## Complete Lean code
+It proves:
 
 ```lean
-import Mathlib
+Continuous fun t => ∫ x in c..d, F t x ∂μ
+```
+
+and then `.continuousOn` gives the `ContinuousOn ... (Set.Icc a b)` goal.
+
+For your stated hypothesis, **joint `ContinuousOn` only on a compact rectangle**, I do not see a one-shot theorem named `continuousOn_integral_of_compact` or equivalent. The usual Mathlib route is to prove `ContinuousOn` pointwise and apply:
+
+```lean
+intervalIntegral.continuousWithinAt_of_dominated_interval
+```
+
+at each parameter point `t₀ ∈ Set.Icc a b`. Compactness gives the domination bound, and joint `ContinuousOn` gives the section-continuity hypotheses.
+
+So the short answer is:
+
+* If you have `Continuous (Function.uncurry F)`, use `intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'`.
+* If you only have `ContinuousOn (Function.uncurry F)` on `Set.Icc a b ×ˢ [[c,d]]`, use `intervalIntegral.continuousWithinAt_of_dominated_interval` plus a compact bound from `IsCompact.bddAbove_image`.
+* For raw dominated convergence of interval integrals, use `intervalIntegral.tendsto_integral_filter_of_dominated_convergence`.
+
+## Exact theorem names to try
+
+### Parameter continuity wrappers for interval integrals
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
 
 open MeasureTheory
 open scoped Interval
 
-noncomputable section
-
-/-- Exact affine interval-integral identity.
-
-This is the best way to avoid the bound-variable-renaming problem: prove the
-identity in the exact target shape by `calc`, then use it by `le_of_eq` or
-`rw [h_affine]` only at the final expression if needed.
--/
-theorem intervalIntegral_const_mul_add_const_eq
-    {a b eps C : ℝ} {G : ℝ → ℝ}
-    (hG_int : IntervalIntegrable G volume a b) :
-    (∫ s in a..b, eps * G s + C) =
-      eps * (∫ s in a..b, G s) + (b - a) * C := by
-  have hmul :
-      (∫ s in a..b, eps * G s) = eps * (∫ s in a..b, G s) := by
-    exact intervalIntegral.integral_const_mul eps G
-  have hconst :
-      (∫ _s in a..b, C) = (b - a) * C := by
-    rw [intervalIntegral.integral_const]
-    simp [smul_eq_mul]
-  calc
-    (∫ s in a..b, eps * G s + C)
-        = (∫ s in a..b, eps * G s) + ∫ _s in a..b, C := by
-            exact intervalIntegral.integral_add
-              (hG_int.const_mul eps) intervalIntegrable_const
-    _ = eps * (∫ s in a..b, G s) + (b - a) * C := by
-            rw [hmul, hconst]
-
-/-- The special inequality in the question.
-
-No `a ≤ b` hypothesis is needed here because this is just the affine integral
-identity followed by reflexive inequality.
--/
-theorem intervalIntegral_const_mul_add_const_le
-    {a b eps C : ℝ} {G : ℝ → ℝ}
-    (hG_int : IntervalIntegrable G volume a b) :
-    (∫ s in a..b, eps * G s + C) ≤
-      eps * (∫ s in a..b, G s) + (b - a) * C := by
-  exact le_of_eq (intervalIntegral_const_mul_add_const_eq
-    (a := a) (b := b) (eps := eps) (C := C) (G := G) hG_int)
-
-/-- General monotone version: if `F ≤ eps * G + C` on a non-reversed interval,
-then integrate and rewrite the affine upper integral.
-
-This is the tactic sequence to use when your real goal came from a pointwise
-upper bound and `intervalIntegral.integral_mono_on`.
--/
-theorem intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on'
-    {a b eps C : ℝ} {F G : ℝ → ℝ}
-    (hab : a ≤ b)
-    (hF_int : IntervalIntegrable F volume a b)
-    (hG_int : IntervalIntegrable G volume a b)
-    (hpoint : ∀ s ∈ Set.Icc a b, F s ≤ eps * G s + C) :
-    (∫ s in a..b, F s) ≤
-      eps * (∫ s in a..b, G s) + (b - a) * C := by
-  have hR_int : IntervalIntegrable (fun s => eps * G s + C) volume a b :=
-    (hG_int.const_mul eps).add intervalIntegrable_const
-
-  have hmono :
-      (∫ s in a..b, F s) ≤ (∫ s in a..b, eps * G s + C) := by
-    exact intervalIntegral.integral_mono_on hab hF_int hR_int hpoint
-
-  have hR :
-      (∫ s in a..b, eps * G s + C) =
-        eps * (∫ s in a..b, G s) + (b - a) * C := by
-    exact intervalIntegral_const_mul_add_const_eq
-      (a := a) (b := b) (eps := eps) (C := C) (G := G) hG_int
-
-  exact le_trans hmono (le_of_eq hR)
-
-/-- Same general lemma, but with the affine expression itself as `F`.
-This matches the literal problem statement while still exercising the
-`integral_mono_on` chain. -/
-theorem intervalIntegral_affine_le_via_integral_mono_on
-    {a b eps C : ℝ} {G : ℝ → ℝ}
-    (hab : a ≤ b)
-    (hG_int : IntervalIntegrable G volume a b) :
-    (∫ s in a..b, eps * G s + C) ≤
-      eps * (∫ s in a..b, G s) + (b - a) * C := by
-  have hR_int : IntervalIntegrable (fun s => eps * G s + C) volume a b :=
-    (hG_int.const_mul eps).add intervalIntegrable_const
-  exact
-    intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on'
-      (a := a) (b := b) (eps := eps) (C := C)
-      (F := fun s => eps * G s + C) (G := G)
-      hab hR_int hG_int
-      (by
-        intro s hs
-        rfl)
-
-/-- Problem (2): the opaque integral expression is harmless.  Do not use
-`linarith`; `add_le_add` has exactly the right type. -/
-theorem add_two_bounds_with_opaque_interval_integral
-    {a t eps Gbar Tbar C M : ℝ} {G : ℝ → ℝ}
-    (h1 : eps * (∫ s in a..t, G s) ≤ eps * Gbar)
-    (h2 : (t - a) * (C * M) ≤ Tbar * (C * M)) :
-    eps * (∫ s in a..t, G s) + (t - a) * (C * M) ≤
-      eps * Gbar + Tbar * (C * M) := by
-  exact add_le_add h1 h2
-
-/-- Same proof, written as a `calc`, useful when the target is part of a longer
-proof and you want to avoid typeclass/tactic search noise. -/
-theorem add_two_bounds_with_opaque_interval_integral_calc
-    {a t eps Gbar Tbar C M : ℝ} {G : ℝ → ℝ}
-    (h1 : eps * (∫ s in a..t, G s) ≤ eps * Gbar)
-    (h2 : (t - a) * (C * M) ≤ Tbar * (C * M)) :
-    eps * (∫ s in a..t, G s) + (t - a) * (C * M) ≤
-      eps * Gbar + Tbar * (C * M) := by
-  calc
-    eps * (∫ s in a..t, G s) + (t - a) * (C * M)
-        ≤ eps * Gbar + (t - a) * (C * M) := by
-            exact add_le_add_right h1 ((t - a) * (C * M))
-    _ ≤ eps * Gbar + Tbar * (C * M) := by
-            exact add_le_add_left h2 (eps * Gbar)
-
-/-- Variant for the common parenthesization mismatch `(t-a)*C*M` versus
-`(t-a)*(C*M)`.  `simpa [mul_assoc]` normalizes it after `add_le_add`. -/
-theorem add_two_bounds_with_opaque_interval_integral_assoc
-    {a t eps Gbar Tbar C M : ℝ} {G : ℝ → ℝ}
-    (h1 : eps * (∫ s in a..t, G s) ≤ eps * Gbar)
-    (h2 : (t - a) * C * M ≤ Tbar * C * M) :
-    eps * (∫ s in a..t, G s) + (t - a) * (C * M) ≤
-      eps * Gbar + Tbar * (C * M) := by
-  simpa [mul_assoc] using add_le_add h1 h2
-
-end
+#check intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
+#check intervalIntegral.continuous_parametric_intervalIntegral_of_continuous
+#check intervalIntegral.continuous_parametric_primitive_of_continuous
 ```
 
-## Drop-in tactic sequences
-
-### Problem (1), after `hmono`
-
-If you already have
+Meanings:
 
 ```lean
-hmono : (∫ s in a..b, F s) ≤ (∫ s in a..b, eps * G s + C)
+-- fixed endpoints, global joint continuity
+#check intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
+-- (hf : Continuous f.uncurry) (a₀ b₀ : ℝ) :
+--   Continuous fun x => ∫ t in a₀..b₀, f x t ∂μ
+
+-- variable upper endpoint, global joint continuity plus continuous endpoint map
+#check intervalIntegral.continuous_parametric_intervalIntegral_of_continuous
+-- (hf : Continuous f.uncurry) (hs : Continuous s) :
+--   Continuous fun x => ∫ t in a₀..s x, f x t ∂μ
+
+-- primitive jointly continuous in parameter and endpoint
+#check intervalIntegral.continuous_parametric_primitive_of_continuous
+-- (hf : Continuous f.uncurry) :
+--   Continuous fun p : X × ℝ => ∫ t in a₀..p.2, f p.1 t ∂μ
 ```
 
-then use this exact sequence:
+These convenient theorems live in the continuous-primitive section and have typeclass assumptions including:
 
 ```lean
-have hR :
-    (∫ s in a..b, eps * G s + C) =
-      eps * (∫ s in a..b, G s) + (b - a) * C := by
-  have hmul :
-      (∫ s in a..b, eps * G s) = eps * (∫ s in a..b, G s) := by
-    exact intervalIntegral.integral_const_mul eps G
-  have hconst :
-      (∫ _s in a..b, C) = (b - a) * C := by
-    rw [intervalIntegral.integral_const]
-    simp [smul_eq_mul]
-  calc
-    (∫ s in a..b, eps * G s + C)
-        = (∫ s in a..b, eps * G s) + ∫ _s in a..b, C := by
-            exact intervalIntegral.integral_add
-              (hG_int.const_mul eps) intervalIntegrable_const
-    _ = eps * (∫ s in a..b, G s) + (b - a) * C := by
-            rw [hmul, hconst]
-
-exact le_trans hmono (le_of_eq hR)
+[MeasureTheory.NullSingletonClass μ]
+[MeasureTheory.IsLocallyFiniteMeasure μ]
 ```
 
-The important point is the final line: use `le_trans hmono (le_of_eq hR)` instead of rewriting `hmono` in place.
+For ordinary Lebesgue interval integrals, these are inferred for `μ := volume`.
 
-### Problem (2), exact close
+### Dominated parameter-continuity theorems
+
+These are usually the best fit for `ContinuousOn` on a compact rectangle.
 
 ```lean
-exact add_le_add h1 h2
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+#check intervalIntegral.continuousWithinAt_of_dominated_interval
+#check intervalIntegral.continuousAt_of_dominated_interval
+#check intervalIntegral.continuous_of_dominated_interval
 ```
 
-If the products differ only by association:
+The important one for a `ContinuousOn` target is:
 
 ```lean
-simpa [mul_assoc] using add_le_add h1 h2
+#check intervalIntegral.continuousWithinAt_of_dominated_interval
+-- {F : X → ℝ → E} {x₀ : X} {bound : ℝ → ℝ} {a b : ℝ} {s : Set X}
+-- (hF_meas : ∀ᶠ x in 𝓝[s] x₀,
+--   AEStronglyMeasurable (F x) (μ.restrict <| Ι a b))
+-- (h_bound : ∀ᶠ x in 𝓝[s] x₀,
+--   ∀ᵐ t ∂μ, t ∈ Ι a b → ‖F x t‖ ≤ bound t)
+-- (bound_integrable : IntervalIntegrable bound μ a b)
+-- (h_cont : ∀ᵐ t ∂μ,
+--   t ∈ Ι a b → ContinuousWithinAt (fun x => F x t) s x₀) :
+-- ContinuousWithinAt (fun x => ∫ t in a..b, F x t ∂μ) s x₀
 ```
 
-If you want the no-surprises `calc` version:
+For a goal
 
 ```lean
-calc
-  eps * (∫ s in a..t, G s) + (t - a) * (C * M)
-      ≤ eps * Gbar + (t - a) * (C * M) := by
-          exact add_le_add_right h1 ((t - a) * (C * M))
-  _ ≤ eps * Gbar + Tbar * (C * M) := by
-          exact add_le_add_left h2 (eps * Gbar)
+ContinuousOn (fun t => ∫ x in c..d, F t x ∂μ) (Set.Icc a b)
 ```
+
+unfolding/using the definition of `ContinuousOn` reduces it to proving, for each `t₀ ∈ Set.Icc a b`,
+
+```lean
+ContinuousWithinAt (fun t => ∫ x in c..d, F t x ∂μ) (Set.Icc a b) t₀
+```
+
+which is exactly the conclusion of `intervalIntegral.continuousWithinAt_of_dominated_interval` with `s := Set.Icc a b`.
+
+### Dominated convergence / limits of interval integrals
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+#check intervalIntegral.tendsto_integral_filter_of_dominated_convergence
+#check TendstoUniformlyOn.tendsto_intervalIntegral_of_continuousOn
+#check intervalIntegral.hasSum_integral_of_dominated_convergence
+```
+
+Meanings:
+
+```lean
+-- filter DCT for interval integrals
+#check intervalIntegral.tendsto_integral_filter_of_dominated_convergence
+-- Tendsto (fun n => ∫ x in a..b, F n x ∂μ) l
+--   (𝓝 (∫ x in a..b, f x ∂μ))
+
+-- uniform convergence on an interval, with eventually ContinuousOn integrands
+#check TendstoUniformlyOn.tendsto_intervalIntegral_of_continuousOn
+-- hF : ∀ᶠ i in l, ContinuousOn (F i) [[a,b]]
+-- h_lim : TendstoUniformlyOn F f l [[a,b]]
+-- conclusion: convergence of interval integrals
+
+-- dominated convergence for series under interval integrals
+#check intervalIntegral.hasSum_integral_of_dominated_convergence
+```
+
+### General Bochner integral DCT, not interval-specific
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+
+#check MeasureTheory.tendsto_integral_of_dominated_convergence
+#check MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+#check MeasureTheory.tendsto_integral_filter_of_norm_le_const
+#check MeasureTheory.hasSum_integral_of_dominated_convergence
+#check MeasureTheory.integral_tsum
+#check MeasureTheory.integral_tsum_of_summable_integral_norm
+```
+
+Use these when the integral is not written as an interval integral `∫ x in a..b, ...`.
+
+### Variable endpoint primitives
+
+These are useful when the variable is an endpoint rather than a parameter in the integrand.
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+#check intervalIntegral.continuousOn_primitive
+#check intervalIntegral.continuousOn_primitive_Icc
+#check intervalIntegral.continuousOn_primitive_interval
+#check intervalIntegral.continuousOn_primitive_interval_left
+#check intervalIntegral.continuous_primitive
+#check MeasureTheory.Integrable.continuous_primitive
+```
+
+These do **not** solve `t ↦ ∫ x in c..d, F t x` directly unless `t` is an endpoint. They are for maps like:
+
+```lean
+fun x => ∫ t in a..x, f t ∂μ
+fun x => ∫ t in x..b, f t ∂μ
+```
+
+## Drop-in code: global joint continuity implies `ContinuousOn`
+
+This is the clean path when your hypothesis is global `Continuous (Function.uncurry F)`.
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+example {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {μ : Measure ℝ} [NullSingletonClass μ] [IsLocallyFiniteMeasure μ]
+    {F : ℝ → ℝ → E} {a b c d : ℝ}
+    (hF : Continuous (Function.uncurry F)) :
+    ContinuousOn (fun t : ℝ => ∫ x in c..d, F t x ∂μ) (Set.Icc a b) :=
+  (intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
+      (f := F) (μ := μ) hF c d).continuousOn
+```
+
+For Lebesgue measure, the same proof usually works with implicit `volume`:
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+example {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {F : ℝ → ℝ → E} {a b c d : ℝ}
+    (hF : Continuous (Function.uncurry F)) :
+    ContinuousOn (fun t : ℝ => ∫ x in c..d, F t x) (Set.Icc a b) :=
+  (intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
+      (f := F) (μ := volume) hF c d).continuousOn
+```
+
+For a variable upper endpoint:
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+example {X E : Type*} [TopologicalSpace X]
+    [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {μ : Measure ℝ} [NullSingletonClass μ] [IsLocallyFiniteMeasure μ]
+    {F : X → ℝ → E} {u : X → ℝ} {c : ℝ}
+    (hF : Continuous (Function.uncurry F))
+    (hu : Continuous u) :
+    Continuous fun t : X => ∫ x in c..u t, F t x ∂μ :=
+  intervalIntegral.continuous_parametric_intervalIntegral_of_continuous
+    (f := F) (μ := μ) (a₀ := c) hF hu
+```
+
+## Template: compact `ContinuousOn` route through domination
+
+Suppose your real assumptions look like this informally:
+
+```lean
+S = Set.Icc a b
+K = S ×ˢ [[c,d]]
+hF : ContinuousOn (Function.uncurry F) K
+```
+
+Then there is not a one-line theorem of the form
+
+```lean
+continuousOn_integral_of_compact hF
+```
+
+that I found. Instead:
+
+1. Prove a constant bound on the compact rectangle.
+2. Use the bound as the `bound` argument in `continuousWithinAt_of_dominated_interval`.
+3. Prove the section measurability and section continuity from `hF`.
+4. Wrap the result pointwise to get `ContinuousOn`.
+
+The theorem application has this shape:
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+example {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+    {μ : Measure ℝ} {F : ℝ → ℝ → E}
+    {S : Set ℝ} {t₀ c d : ℝ} {bound : ℝ → ℝ}
+    (hF_meas : ∀ᶠ t in 𝓝[S] t₀,
+      AEStronglyMeasurable (F t) (μ.restrict <| Ι c d))
+    (h_bound : ∀ᶠ t in 𝓝[S] t₀,
+      ∀ᵐ x ∂μ, x ∈ Ι c d → ‖F t x‖ ≤ bound x)
+    (h_bound_int : IntervalIntegrable bound μ c d)
+    (h_cont : ∀ᵐ x ∂μ,
+      x ∈ Ι c d → ContinuousWithinAt (fun t => F t x) S t₀) :
+    ContinuousWithinAt (fun t : ℝ => ∫ x in c..d, F t x ∂μ) S t₀ :=
+  intervalIntegral.continuousWithinAt_of_dominated_interval
+    hF_meas h_bound h_bound_int h_cont
+```
+
+For the compact-bound step, the names I would use are:
+
+```lean
+import Mathlib.MeasureTheory.Integral.DominatedConvergence
+
+open MeasureTheory
+open scoped Interval
+
+#check IsCompact.prod
+#check isCompact_Icc
+#check isCompact_uIcc
+#check IsCompact.bddAbove_image
+#check ContinuousOn.norm
+#check intervalIntegrable_const
+#check uIoc_subset_uIcc
+```
+
+The pattern is:
+
+```lean
+-- S := Set.Icc a b
+-- compact parameter set: isCompact_Icc
+-- compact x-interval: isCompact_uIcc
+-- compact rectangle: IsCompact.prod
+-- bound: IsCompact.bddAbove_image applied to hF.norm
+```
+
+In prose, if
+
+```lean
+hK : IsCompact (S ×ˢ [[c,d]])
+hF : ContinuousOn (Function.uncurry F) (S ×ˢ [[c,d]])
+```
+
+then use:
+
+```lean
+hK.bddAbove_image hF.norm
+```
+
+to get a real constant `C` bounding
+
+```lean
+fun p : ℝ × ℝ => ‖Function.uncurry F p‖
+```
+
+on the compact rectangle. Then use `bound := fun _ => C + 1` or a similar constant. For a locally finite measure, close the integrability side with:
+
+```lean
+intervalIntegrable_const
+```
+
+The inclusion from the interval-integral theorem's `Ι c d` to the compact interval is usually:
+
+```lean
+uIoc_subset_uIcc
+```
+
+This is why the DCT theorem's hypotheses mention `Ι c d`, while compact-continuity arguments often naturally produce facts on `[[c,d]]`.
+
+## Practical recommendation
+
+For your target:
+
+```lean
+ContinuousOn (fun t => ∫ x in c..d, F t x ∂μ) (Set.Icc a b)
+```
+
+try this order:
+
+1. If possible, strengthen/obtain `hF : Continuous (Function.uncurry F)` and finish with:
+
+   ```lean
+   exact (intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
+     (f := F) (μ := μ) hF c d).continuousOn
+   ```
+
+2. If the hypothesis is only compact-rectangle `ContinuousOn`, use:
+
+   ```lean
+   intro t₀ ht₀
+   refine intervalIntegral.continuousWithinAt_of_dominated_interval
+     (F := F) (μ := μ) (s := Set.Icc a b) (x₀ := t₀)
+     (bound := fun _ => C + 1) ?hF_meas ?h_bound ?h_bound_int ?h_cont
+   ```
+
+   with `C` from `IsCompact.bddAbove_image` on `Set.Icc a b ×ˢ [[c,d]]`.
+
+3. If you are proving a limit statement first and converting it to continuity manually, the theorem name is:
+
+   ```lean
+   intervalIntegral.tendsto_integral_filter_of_dominated_convergence
+   ```
+
+My conclusion: `continuousOn_integral_of_compact` does not appear to be the exported Mathlib API name; the closest exported tools are `intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'` for global joint continuity and `intervalIntegral.continuousWithinAt_of_dominated_interval` for the compact `ContinuousOn`/dominated route.
