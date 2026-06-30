@@ -2338,6 +2338,98 @@ theorem intervalDomain_Theorem_2_1_sectorialMainline_of_persistence
   intervalDomain_Theorem_2_1_sectorialMainline_of_persistenceFrontiers
     p M0 uBar vLower hpersist.to_persistenceFrontiers
 
+/-! ### Raw-linear Theorem 2.2 sectorial route -/
+
+/-- Theorem 2.2 local-stability data already reduced to the raw linear branch
+interface, with concrete sectorial interval norms and constants. -/
+structure IntervalDomainSectorialTheorem22LinearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+
+/-- Concrete sectorial interval-domain Theorem 2.2 from already-reduced raw
+linear-stability/instability branch data. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_linearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hlin : IntervalDomainSectorialTheorem22LinearRawExistence
+      p M0 uBar vLower) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) := by
+  have hC :
+      Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+    intervalDomainSectorialPaper3Constants_usesCriticalSpectrum
+      p M0 uBar vLower
+  refine Theorem_2_2.of_parts ?_ ?_ ?_ ?_
+  · intro ha hb
+    exact hlin.nonminimal ha hb
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    exact hC.positiveEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hχcrit
+  · intro ha hb uStar huStar
+    exact hlin.minimal ha hb uStar huStar
+  · intro _ha _hb uStar huStar
+    dsimp
+    intro hχcrit
+    exact hC.minimalEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχcrit
+
+/-- Sectorial mainline package whose Theorem 2.2 component is supplied at the
+raw branch level, not through the orbit/small-data local-frontier route. -/
+structure IntervalDomainSectorialMainlineLinearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  theorem22 :
+    IntervalDomainSectorialTheorem22LinearRawExistence p M0 uBar vLower
+  persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+
+/-- Concrete interval-domain Theorem 2.1/2.2 endpoint from split raw-local
+Theorem 2.2 data and the existing persistence package. -/
+theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_linearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (h : IntervalDomainSectorialMainlineLinearRawExistence
+      p M0 uBar vLower) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  ⟨intervalDomain_Theorem_2_2_sectorialMainline_of_linearRawExistence
+      p M0 uBar vLower h.theorem22,
+    intervalDomain_Theorem_2_1_sectorialMainline_of_persistence
+      p M0 uBar vLower h.persistence⟩
+
+/-- Literal sectorial Theorem 2.1/2.2 target from the raw-local Theorem 2.2
+mainline package. -/
+theorem intervalDomain_sectorialMainline_unconditionalTarget_of_linearRawExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (h : IntervalDomainSectorialMainlineLinearRawExistence
+      p M0 uBar vLower) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_linearRawExistence
+    p M0 uBar vLower h
+
+/-- Instance-facing raw-local sectorial mainline endpoint. -/
+theorem intervalDomain_sectorialMainline_unconditionalTarget_of_linearRawExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [h : Fact (IntervalDomainSectorialMainlineLinearRawExistence
+      p M0 uBar vLower)] :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_sectorialMainline_unconditionalTarget_of_linearRawExistence
+    p M0 uBar vLower h.out
+
 /-- Paper2-consistent interval-domain endpoint for Paper3 Theorems 2.1 and
 2.2: the user-facing sectorial mainline reduced to the concrete existence and
 persistence packages. -/

@@ -20,7 +20,8 @@ The four fields of `IntegratedMoserFirstCrossingRegularity` are:
    This is algebraic: use `max integral 0` as a nonnegative upper bound.
 
 3. `powerTimeIntegrable`: `t ↦ ∫₀¹ u(t,x)^p dx` is integrable on `[0,T]`.
-   This remains an explicit frontier.
+   The compatibility package below keeps this as an explicit field, but the
+   reduced `Lite` package derives it from `energyContinuous` when `0 ≤ T`.
 
 4. `gradientTimeIntegrable`: the gradient energy is integrable in time.
    This remains an explicit frontier.
@@ -92,6 +93,26 @@ structure IntervalDomainIntegratedMoserRegularityFrontierData
               (fun y => (u t y) ^ (p / 2)) x) ^ 2))
         (Set.uIcc (0 : ℝ) T) volume
 
+/-- Reduced interval-domain regularity data for the integrated Moser
+first-crossing argument.  The power-energy time-integrability field is omitted
+because it follows from closed-time energy continuity on the compact interval
+`[0,T]` when `0 ≤ T`. -/
+structure IntervalDomainIntegratedMoserRegularityFrontierDataLite
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  energyContinuous :
+    ∀ p, p0 ≤ p →
+      ContinuousOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T)
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+
 /-- Extract energy continuity from the explicit regularity frontier data. -/
 theorem intervalDomain_energyContinuous_of_regularityFrontierData
     {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
@@ -116,6 +137,28 @@ theorem intervalDomain_initialPowerBound
   · exact le_max_left _ _
 
 /-! ### Power time integrability -/
+
+/-- Closed-time energy continuity on `[0,T]` implies power-energy
+time-integrability on `Set.uIcc 0 T`. -/
+theorem intervalDomain_powerTimeIntegrable_of_energyContinuous
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (henergy :
+      ∀ p, p0 ≤ p →
+        ContinuousOn
+          (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+          (Set.Icc (0 : ℝ) T)) :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.uIcc (0 : ℝ) T) volume := by
+  intro p hp
+  have hIcc :
+      IntegrableOn
+        (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
+        (Set.Icc (0 : ℝ) T) volume :=
+    (henergy p hp).integrableOn_Icc
+  simpa [Set.uIcc_of_le hT] using hIcc
 
 /-- Extract power-energy time integrability from the explicit regularity
 frontier data. -/
@@ -143,6 +186,21 @@ theorem intervalDomain_gradientTimeIntegrable_of_regularityFrontierData
               (fun y => (u t y) ^ (p / 2)) x) ^ 2))
         (Set.uIcc (0 : ℝ) T) volume :=
   hreg.gradientTimeIntegrable
+
+/-! ### Reduced frontier conversion -/
+
+/-- Expand the reduced regularity frontier to the compatibility frontier by
+deriving power-energy time-integrability from closed-time energy continuity. -/
+theorem intervalDomain_regularFrontierData_of_lite
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0) :
+    IntervalDomainIntegratedMoserRegularityFrontierData u T p0 where
+  energyContinuous := hreg.energyContinuous
+  powerTimeIntegrable :=
+    intervalDomain_powerTimeIntegrable_of_energyContinuous
+      hT hreg.energyContinuous
+  gradientTimeIntegrable := hreg.gradientTimeIntegrable
 
 /-! ### Main producer -/
 
@@ -172,6 +230,28 @@ theorem
   intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData
     hreg.out
 
+/-- Produce `IntegratedMoserFirstCrossingRegularity` from the reduced
+regularity frontier. -/
+theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData
+    (intervalDomain_regularFrontierData_of_lite hT hreg)
+
+/-- Classical-solution-facing reduced producer for
+`IntegratedMoserFirstCrossingRegularity`; the classical solution supplies the
+positive horizon `T > 0`. -/
+theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_lite_classical
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
+    (IsPaper2ClassicalSolution.T_pos hsol).le hreg
+
 /-! ### Combined regularity + nonnegativity package -/
 
 /-- Produce both `IntegratedMoserFirstCrossingRegularity` and
@@ -187,6 +267,19 @@ theorem intervalDomain_regularity_and_nonnegativity_of_classical
     IntegratedMoserEnergyNonnegativity intervalDomain u T p0 :=
   ⟨intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData hreg,
    intervalDomain_integratedMoserEnergyNonnegativity_of_classical hsol⟩
+
+/-- Reduced regularity-data version of
+`intervalDomain_regularity_and_nonnegativity_of_classical`. -/
+theorem intervalDomain_regularity_and_nonnegativity_of_lite_classical
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 ∧
+    IntegratedMoserEnergyNonnegativity intervalDomain u T p0 :=
+  ⟨intervalDomain_integratedMoserFirstCrossingRegularity_of_lite_classical
+      hreg hsol,
+    intervalDomain_integratedMoserEnergyNonnegativity_of_classical hsol⟩
 
 /-! ### Lower-average/epsilon-gap data assembly -/
 
@@ -232,6 +325,37 @@ theorem intervalDomain_lowerAverageEpsilonData_of_classical
   lowerAverage := hlower
   epsilonGap := hgap
 
+/-- Reduced regularity-data version of
+`intervalDomain_lowerAverageEpsilonData_of_classical`. -/
+theorem intervalDomain_lowerAverageEpsilonData_of_lite_classical
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hrho : 0 < rho)
+    (hp0_nonneg : 0 ≤ p0)
+    (hlower :
+      ∀ p, p0 ≤ p →
+        0 ≤ p →
+        LpPowerBoundedBefore intervalDomain p T u →
+          Nonempty
+            (Σ Cnext : ℝ,
+              IntegratedMoserHighExcursionLowerAverageWindowFrontier
+                intervalDomain u T rho p0 p Cnext))
+    (hgap :
+      ∀ p, p0 ≤ p →
+        0 ≤ p →
+          IntegratedMoserWindowUpperGapEpsilonFrontier
+            intervalDomain u T rho p0 p) :
+    IntegratedMoserFirstCrossingLowerAverageEpsilonData
+      intervalDomain u T rho p0 :=
+  intervalDomain_lowerAverageEpsilonData_of_classical
+    (intervalDomain_regularFrontierData_of_lite
+      (IsPaper2ClassicalSolution.T_pos hsol).le hreg)
+    hsol hdiss hrel hrho hp0_nonneg hlower hgap
+
 /-- Shortcut: produce `IntegratedMoserFirstCrossingStep` from explicit
 regularity data, a classical solution, and the four PDE-content hypotheses via
 the lower-average/epsilon-gap route. -/
@@ -262,11 +386,43 @@ theorem intervalDomain_firstCrossingStep_of_classical_and_frontiers
     (intervalDomain_lowerAverageEpsilonData_of_classical
       hreg hsol hdiss hrel hrho hp0_nonneg hlower hgap)
 
+/-- Reduced regularity-data shortcut for
+`IntegratedMoserFirstCrossingStep`. -/
+theorem intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hrho : 0 < rho)
+    (hp0_nonneg : 0 ≤ p0)
+    (hlower :
+      ∀ p, p0 ≤ p →
+        0 ≤ p →
+        LpPowerBoundedBefore intervalDomain p T u →
+          Nonempty
+            (Σ Cnext : ℝ,
+              IntegratedMoserHighExcursionLowerAverageWindowFrontier
+                intervalDomain u T rho p0 p Cnext))
+    (hgap :
+      ∀ p, p0 ≤ p →
+        0 ≤ p →
+          IntegratedMoserWindowUpperGapEpsilonFrontier
+            intervalDomain u T rho p0 p) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
+  integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
+    (intervalDomain_lowerAverageEpsilonData_of_lite_classical
+      hreg hsol hdiss hrel hrho hp0_nonneg hlower hgap)
+
 section AxiomAudit
 
 #print axioms intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData
+#print axioms intervalDomain_integratedMoserFirstCrossingRegularity_of_lite
 #print axioms intervalDomain_lowerAverageEpsilonData_of_classical
+#print axioms intervalDomain_lowerAverageEpsilonData_of_lite_classical
 #print axioms intervalDomain_firstCrossingStep_of_classical_and_frontiers
+#print axioms intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
 
 end AxiomAudit
 
