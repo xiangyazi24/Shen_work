@@ -6,6 +6,7 @@
   the two smooth branches of the positive upper barrier.
 -/
 import ShenWork.Paper1.StatementAssembly
+import ShenWork.Paper1.WaveRotheMaxPrincipleClosers
 import ShenWork.Paper1.WaveRotheResidualClose
 
 open Filter Topology
@@ -112,48 +113,225 @@ theorem no_const_left_plateau_of_tendsto_atBot_one
   have hEq : (1 : ℝ) = MChi p := tendsto_nhds_unique hlim hlimM
   exact hMne hEq.symm
 
-/-- Finer smooth-branch frontier for the positive upper barrier.
+/-- Pointwise second-derivative comparison against the exponential branch from
+a local maximum of `U - expDecay κ`.
 
-The constant branch is reduced to a no-left-plateau statement.  The exponential
-branch is reduced to an operator comparison at contact plus strict upper
-super-barrier residual at contact. -/
-structure PositiveUpperBarrierSmoothBranchResidual
-    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
-  no_const_left_plateau :
-    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
-      (∀ y, y ≤ x → U y = MChi p) → False
-  exp_operator_compare_at_contact :
+The regularity frontier supplies differentiability of `U` and of `deriv U`, but
+not a `ContDiffAt ℝ 2 U x` package.  This bridge proves only the derivative
+linearity needed at the point. -/
+theorem iteratedDeriv2_le_expDecay_of_isLocalMax_sub
+    {U : ℝ → ℝ} {κ x : ℝ}
+    (hUdiff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hmax : IsLocalMax (fun y => U y - expDecay κ y) x) :
+    iteratedDeriv 2 U x ≤ iteratedDeriv 2 (expDecay κ) x := by
+  have hUcont : ContinuousAt U x := (hUdiff x).continuousAt
+  have hBcont : ContinuousAt (expDecay κ) x :=
+    (expDecay_hasDerivAt κ x).continuousAt
+  have hc : ContinuousAt (fun y => U y - expDecay κ y) x :=
+    hUcont.sub hBcont
+  have hnonpos :=
+    iteratedDeriv2_nonpos_of_isLocalMax hmax hc
+  have hderiv_sub_fun :
+      deriv (fun y => U y - expDecay κ y) =
+        fun y => deriv U y - deriv (expDecay κ) y := by
+    funext y
+    exact deriv_sub (hUdiff y)
+      ((expDecay_hasDerivAt κ y).differentiableAt)
+  have hExpDerivEq :
+      deriv (expDecay κ) = fun y => -κ * expDecay κ y := by
+    funext y
+    exact expDecay_deriv κ y
+  have hExpDerivDiff :
+      DifferentiableAt ℝ (deriv (expDecay κ)) x := by
+    rw [hExpDerivEq]
+    exact ((expDecay_hasDerivAt κ x).const_mul (-κ)).differentiableAt
+  have hsecond :
+      deriv (fun y => deriv U y - deriv (expDecay κ) y) x =
+        deriv (deriv U) x - deriv (deriv (expDecay κ)) x :=
+    deriv_sub (hUd_diff x) hExpDerivDiff
+  have hlin :
+      iteratedDeriv 2 (fun y => U y - expDecay κ y) x =
+        iteratedDeriv 2 U x - iteratedDeriv 2 (expDecay κ) x := by
+    rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+    rw [hderiv_sub_fun]
+    simpa [iteratedDeriv_succ, iteratedDeriv_zero] using hsecond
+  rw [hlin] at hnonpos
+  linarith
+
+/-- At an exponential-branch contact, the stationary trapped profile is below
+the frozen operator applied to the upper barrier.  This closes the
+`exp_operator_compare_at_contact` field from trap membership, stationarity, and
+the C² regularity frontier; no Route-A lower-pin data is used. -/
+theorem positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hM0 : 0 ≤ MChi p)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p)) :
     ∀ x, Real.exp (-(kappa c) * x) < MChi p →
       U x = Real.exp (-(kappa c) * x) →
         frozenWaveOperator p c U U x ≤
           frozenWaveOperator p c U
-            (upperBarrier (kappa c) (MChi p)) x
+            (upperBarrier (kappa c) (MChi p)) x := by
+  intro x hx hUx
+  let κ := kappa c
+  have hxExp : expDecay κ x < MChi p := by
+    simpa [κ, expDecay] using hx
+  have hUx_exp : U x = expDecay κ x := by
+    simpa [κ, expDecay] using hUx
+  have hEqExp :
+      upperBarrier κ (MChi p) =ᶠ[𝓝 x] expDecay κ :=
+    upperBarrier_eventuallyEq_exp_of_lt (κ := κ) (M := MChi p) hx
+  have hmax : IsLocalMax (fun y => U y - expDecay κ y) x := by
+    dsimp [IsLocalMax, IsMaxFilter]
+    have hx0 : U x - expDecay κ x = 0 := by
+      rw [hUx_exp, sub_self]
+    filter_upwards [hEqExp] with y hy
+    have hy_le : U y - upperBarrier κ (MChi p) y ≤ 0 :=
+      sub_nonpos.mpr (htrap.le_upperBarrier y)
+    have hy_le_exp : U y - expDecay κ y ≤ 0 := by
+      simpa [hy] using hy_le
+    simpa [hx0] using hy_le_exp
+  rcases hreg U htrap hstat with ⟨hUdiff, hUd_diff⟩
+  have hφderiv :
+      deriv (fun y => U y - expDecay κ y) x = 0 :=
+    hmax.deriv_eq_zero
+  have hderiv_sub :
+      deriv (fun y => U y - expDecay κ y) x =
+        deriv U x - deriv (expDecay κ) x :=
+    deriv_sub (hUdiff x)
+      ((expDecay_hasDerivAt κ x).differentiableAt)
+  have hderiv1 : deriv U x = deriv (expDecay κ) x := by
+    rw [hderiv_sub] at hφderiv
+    linarith
+  have hderiv2 :
+      iteratedDeriv 2 U x ≤ iteratedDeriv 2 (expDecay κ) x :=
+    iteratedDeriv2_le_expDecay_of_isLocalMax_sub
+      hUdiff hUd_diff hmax
+  have hWmem : U x ∈ Set.Icc (0 : ℝ) (MChi p) :=
+    ⟨htrap.nonneg x, htrap.le_M x⟩
+  have hBmem : expDecay κ x ∈ Set.Icc (0 : ℝ) (MChi p) :=
+    ⟨(expDecay_pos κ x).le, le_of_lt hxExp⟩
+  have hBW : expDecay κ x ≤ U x := by
+    exact le_of_eq hUx_exp.symm
+  have hchem_zero :
+      deriv (chemFlux p U U) x - deriv (chemFlux p U (expDecay κ)) x = 0 := by
+    have hsplit :=
+      chemFlux_increment_split (p := p) (u := U) (W := U)
+        (B := expDecay κ) (x₀ := x)
+        htrap.trap.cunif_bdd htrap.nonneg
+        (hUdiff x) ((expDecay_hasDerivAt κ x).differentiableAt)
+        hderiv1
+    have hpow_m1 :
+        (U x) ^ (p.m - 1) - (expDecay κ x) ^ (p.m - 1) = 0 := by
+      rw [hUx_exp]
+      ring
+    have hpow_m :
+        (U x) ^ p.m - (expDecay κ x) ^ p.m = 0 := by
+      rw [hUx_exp]
+      ring
+    rw [hsplit, hpow_m1, hpow_m]
+    ring
+  have hchem :
+      -p.χ *
+          (deriv (chemFlux p U U) x -
+            deriv (chemFlux p U (expDecay κ)) x)
+        ≤ (0 : ℝ) * (U x - expDecay κ x) := by
+    rw [hchem_zero]
+    ring_nf
+    exact le_rfl
+  have hstep :=
+    implicitStep_oneSided_max_estimate (p := p) (c := c)
+      (M := MChi p) (C_chem := 0) (u := U)
+      (W := U) (B := expDecay κ) (x₀ := x)
+      hM0 hWmem hBmem hBW hderiv1 hderiv2 hchem
+  have hdiff_le0 :
+      frozenWaveOperator p c U U x -
+        frozenWaveOperator p c U (expDecay κ) x ≤ 0 := by
+    simpa [hUx_exp] using hstep
+  have hle_exp :
+      frozenWaveOperator p c U U x ≤
+        frozenWaveOperator p c U (expDecay κ) x := by
+    linarith
+  rw [frozenWaveOperator_upperBarrier_exp_region_eq
+    (p := p) (c := c) (κ := κ) (M := MChi p) (u := U) (x := x) hxExp]
+  exact hle_exp
+
+/-- Finer smooth-branch frontier for the positive upper barrier.
+
+The constant branch is reduced to a no-left-plateau statement.  The exponential
+branch is now reduced only to strict upper super-barrier residual at contact:
+the operator comparison is closed above from regular stationary data. -/
+structure PositiveUpperBarrierRemainingContactResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  no_const_left_plateau :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False
   exp_strict_super_at_contact :
     ∀ x, Real.exp (-(kappa c) * x) < MChi p →
       U x = Real.exp (-(kappa c) * x) →
         frozenWaveOperator p c U
           (upperBarrier (kappa c) (MChi p)) x < 0
 
+@[deprecated PositiveUpperBarrierRemainingContactResidual (since := "2026-06-29")]
+abbrev PositiveUpperBarrierSmoothBranchResidual :=
+  PositiveUpperBarrierRemainingContactResidual
+
 /-- The finer smooth-branch residual assembles the original smooth no-contact
 pair. -/
-theorem positiveUpperBarrierSmoothBranchNoContact_of_residual
+theorem positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hM0 : 0 ≤ MChi p)
     (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
     (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
-    (hres : PositiveUpperBarrierSmoothBranchResidual p c U) :
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
+    (hres : PositiveUpperBarrierRemainingContactResidual p c U) :
     PositiveUpperBarrierSmoothBranchNoContact p c U := by
   constructor
   · intro x hx hUx
     exact hres.no_const_left_plateau x hx
       (constBranch_contact_forces_left_plateau htrap hUx)
   · intro x hx hUx
-    have hcmp := hres.exp_operator_compare_at_contact x hx hUx
+    have hcmp :=
+      positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary
+        (p := p) (c := c) (U := U) hM0 htrap hstat hreg x hx hUx
     have hstrict := hres.exp_strict_super_at_contact x hx hUx
     have hnonneg :
         0 ≤ frozenWaveOperator p c U
           (upperBarrier (kappa c) (MChi p)) x := by
       simpa [hstat x] using hcmp
     exact (not_lt_of_ge hnonneg) hstrict
+
+@[deprecated positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
+  (since := "2026-06-29")]
+theorem positiveUpperBarrierSmoothBranchNoContact_of_residual
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hM0 : 0 ≤ MChi p)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hreg : StationaryC2RegularityFromEquation p c (kappa c) (MChi p))
+    (hres : PositiveUpperBarrierRemainingContactResidual p c U) :
+    PositiveUpperBarrierSmoothBranchNoContact p c U :=
+  positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
+    hM0 htrap hstat hreg hres
+
+/-- Positive critical branch data that preserves the raw lower pin and carries
+only the truly remaining smooth-contact residual.  The exponential-branch
+operator comparison is produced from the regular stationary data. -/
+structure Paper1PositiveLowerPinnedRawRemainingContactBranchData : Prop where
+  produce :
+    ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+      0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+      ∀ c : ℝ, 2 < c →
+        ∃ κtilde D : ℝ, ∃ U : ℝ → ℝ,
+          0 ≤ D ∧
+          positiveBranchTailCap p c ≤ κtilde ∧
+          FrozenStationaryWaveProfile p c U ∧
+          InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+            (lowerBarrierRaw (kappa c) κtilde D) U ∧
+          PositiveUpperBarrierRemainingContactResidual p c U ∧
+          StationaryC2RegularityFromEquation p c (kappa c) (MChi p)
 
 /-- Positive critical branch data that preserves the current raw lower pin and
 carries only smooth-branch no-contact; the interface is discharged from
@@ -171,6 +349,25 @@ structure Paper1PositiveLowerPinnedRawSmoothContactBranchData : Prop where
             (lowerBarrierRaw (kappa c) κtilde D) U ∧
           PositiveUpperBarrierSmoothBranchNoContact p c U ∧
           StationaryC2RegularityFromEquation p c (kappa c) (MChi p)
+
+/-- Remaining-contact raw data produces the previous smooth-contact package by
+closing the exponential operator comparison from regular stationarity. -/
+theorem paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
+    (hData : Paper1PositiveLowerPinnedRawRemainingContactBranchData) :
+    Paper1PositiveLowerPinnedRawSmoothContactBranchData := by
+  refine ⟨?_⟩
+  intro p hα hχ_nonneg hχ_small c hc
+  rcases hData.produce p hα hχ_nonneg hχ_small c hc with
+    ⟨κtilde, D, U, hD, hcover, hprofile, hpin, hres, hreg⟩
+  have hχ_star : p.χ < chiStar p :=
+    lt_of_lt_of_le hχ_small (min_le_right _ _)
+  have hM0 : 0 ≤ MChi p :=
+    (MChi_pos_of_chi_lt_chiStar p hχ_star).le
+  exact
+    ⟨κtilde, D, U, hD, hcover, hprofile, hpin,
+      positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
+        hM0 hpin.bare hprofile.stationary_eq hreg hres,
+      hreg⟩
 
 /-- Raw lower-pinned smooth-branch contact data produces the full raw-contact
 package by closing the interface from regularity. -/
@@ -203,6 +400,22 @@ theorem paper1_positiveStrictBarrierBranch_of_lowerPinnedRawSmoothContactData
     Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch :=
   paper1_positiveStrictBarrierBranch_of_lowerPinnedRawContactData
     (paper1_positiveLowerPinnedRawContactData_of_smoothContactData hData)
+
+/-- Positive contact branch through raw lower-pinned remaining-contact data. -/
+theorem paper1_positiveContactBranch_of_lowerPinnedRawRemainingContactData
+    (hData : Paper1PositiveLowerPinnedRawRemainingContactBranchData) :
+    Paper1PositiveCriticalFrozenStationaryContactBranch :=
+  paper1_positiveContactBranch_of_lowerPinnedRawSmoothContactData
+    (paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
+      hData)
+
+/-- Strict-barrier branch through raw lower-pinned remaining-contact data. -/
+theorem paper1_positiveStrictBarrierBranch_of_lowerPinnedRawRemainingContactData
+    (hData : Paper1PositiveLowerPinnedRawRemainingContactBranchData) :
+    Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch :=
+  paper1_positiveStrictBarrierBranch_of_lowerPinnedRawSmoothContactData
+    (paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
+      hData)
 
 /-- Main-statement input package with the positive branch routed through raw
 lower-pinned smooth-branch no-contact data. -/
@@ -265,6 +478,76 @@ theorem paper1_combinedStatementTargets_of_lowerPinnedRawSmoothContactDataFact
         cStarStarFn)] :
     Paper1CombinedStatementTargets :=
   paper1_combinedStatementTargets_of_lowerPinnedRawSmoothContactData hData.out
+
+/-- Main-statement input package whose positive branch carries only the
+remaining contact residual. -/
+structure Paper1MainStatementLowerPinnedRawRemainingContactData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  constructionNeg : ConstructionNegSMPProvider
+  positiveLowerPinnedRawRemainingContact :
+    Paper1PositiveLowerPinnedRawRemainingContactBranchData
+  mainline : Paper1MainlineExistence cStarStarFn
+
+/-- Main-statement wrapper through the remaining-contact raw route. -/
+theorem paper1_mainStatementTargets_of_lowerPinnedRawRemainingContactData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData :
+      Paper1MainStatementLowerPinnedRawRemainingContactData cStarStarFn) :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_lowerPinnedRawSmoothContactData
+    { constructionNeg := hData.constructionNeg
+      positiveLowerPinnedRawSmoothContact :=
+        paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
+          hData.positiveLowerPinnedRawRemainingContact
+      mainline := hData.mainline }
+
+/-- Instance-facing wrapper for the raw lower-pinned remaining-contact
+main-statement route. -/
+theorem paper1_mainStatementTargets_of_lowerPinnedRawRemainingContactDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData :
+      Fact (Paper1MainStatementLowerPinnedRawRemainingContactData
+        cStarStarFn)] :
+    Paper1MainStatementTargets :=
+  paper1_mainStatementTargets_of_lowerPinnedRawRemainingContactData hData.out
+
+/-- Bundled data for Paper1 combined statement targets using the raw
+lower-pinned remaining-contact positive branch. -/
+structure Paper1CombinedLowerPinnedRawRemainingContactStatementData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  main : Paper1MainStatementLowerPinnedRawRemainingContactData cStarStarFn
+  propositions : Paper1PropositionFrontierData
+  lemma51 : Paper1Lemma51FrontierData
+  lemma52 : Paper1Lemma52FrontierData
+
+/-- Assemble Paper1 combined statement targets through the raw lower-pinned
+remaining-contact route. -/
+theorem paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData :
+      Paper1CombinedLowerPinnedRawRemainingContactStatementData cStarStarFn) :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_lowerPinnedRawSmoothContactData
+    { main :=
+        { constructionNeg := hData.main.constructionNeg
+          positiveLowerPinnedRawSmoothContact :=
+            paper1_positiveLowerPinnedRawSmoothContactData_of_remainingContactData
+              hData.main.positiveLowerPinnedRawRemainingContact
+          mainline := hData.main.mainline }
+      propositions := hData.propositions
+      lemma51 := hData.lemma51
+      lemma52 := hData.lemma52 }
+
+/-- Instance-facing wrapper for the combined raw lower-pinned remaining-contact
+Paper1 statement route. -/
+theorem paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData :
+      Fact (Paper1CombinedLowerPinnedRawRemainingContactStatementData
+        cStarStarFn)] :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_lowerPinnedRawRemainingContactData
+    hData.out
 
 end
 

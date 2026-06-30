@@ -87,21 +87,28 @@ Current headline status:
   `PositiveUpperBarrierSmoothBranchNoContact` plus the closed theorem
   `positiveUpperBarrier_interfaceNoContact_of_regular_stationary`, reusing
   `maxSub_upperBarrier_ne_interface` and the C² regularity frontier.  It also
-  refines the smooth residual to
-  `PositiveUpperBarrierSmoothBranchResidual`: constant-branch contact is reduced
-  to `no_const_left_plateau`, while exponential-branch contact is reduced to an
-  operator comparison plus strict superbarrier residual at contact.  The
-  corresponding raw smooth-contact statement routes are
+  proves the exponential-branch operator comparison directly as
+  `positiveUpperBarrier_expOperatorCompareAtContact_of_regular_stationary`.
+  The surviving smooth residual is now
+  `PositiveUpperBarrierRemainingContactResidual`: constant-branch contact is
+  reduced to `no_const_left_plateau`, while exponential-branch contact keeps
+  only the strict superbarrier residual at contact.  The corresponding raw
+  smooth-contact and remaining-contact statement routes are
   `Paper1PositiveLowerPinnedRawSmoothContactBranchData`,
   `Paper1MainStatementLowerPinnedRawSmoothContactData`, and
-  `Paper1CombinedLowerPinnedRawSmoothContactStatementData`.  `PositiveRawRouteAAssembly`
+  `Paper1CombinedLowerPinnedRawSmoothContactStatementData`, plus
+  `Paper1PositiveLowerPinnedRawRemainingContactBranchData`,
+  `Paper1MainStatementLowerPinnedRawRemainingContactData`, and
+  `Paper1CombinedLowerPinnedRawRemainingContactStatementData`.  `PositiveRawRouteAAssembly`
   specializes the exact Lemma 4.2 parameter conditions to
   `positiveBranchTailCap` and wires `Paper1PositiveLowerRawCapRouteAParamData`
-  and `Paper1PositiveLowerRawCapRouteASmoothParamData` into those raw-contact
-  and raw smooth-contact interfaces.  The remaining positive residuals are the
+  / `Paper1PositiveLowerRawCapRouteASmoothParamData` /
+  `Paper1PositiveLowerRawCapRouteARemainingParamData` into those raw-contact,
+  raw smooth-contact, and remaining-contact interfaces.  The remaining positive residuals are the
   Route-A/Schauder analytic data themselves: lower-pin preservation by the
   positive map, map/compactness data, stationarity/flat-left inputs, C²
-  regularity data, and the narrowed smooth-branch residuals.  The right-tail
+  regularity data, no-left-plateau, and strict exponential superbarrier at
+  contact.  The right-tail
   asymptotic itself now has
   the pure lower-pinned squeeze producers
   `HasWaveRightTailAsymptotic_of_lowerPinnedMonotoneTrap` and
