@@ -348,15 +348,19 @@ Current headline status:
   `IntegratedMoserHighExcursionLowerAverageWindowFrontier` is the
   thickness/modulus lower-average frontier, while
   `IntegratedMoserWindowUpperGapWitnessFrontier` is the quantitative
-  `eps`/`Ceps` upper-gap frontier; their pure assembler is
+  `eps`/`Ceps` upper-gap frontier.  The latter now has a thinner producer
+  interface, `IntegratedMoserWindowUpperGapEpsilonFrontier`: the fixed-window
+  upper-bound calculation is discharged by
+  `integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap`, leaving only
+  the strict epsilon-gap choice as analytic input.  Their pure assembler is
   `integratedMoserContradictionWindowFrontier_of_lowerAverage_upperGap`.
   These are still fixed-window or conditional frontier interfaces; they do not
   extract a pointwise next-exponent bound from a bare time-integral estimate.
   The remaining faithful hard theorem is the production of those
   high-excursion lower-average and upper-gap frontiers from integrated
   dissipation, relative interpolation, and all-exponent regularity, including
-  high-excursion thickness, lower-average estimates, and the quantitative
-  `eps`/`Ceps` closure.
+  high-excursion thickness, lower-average estimates, and the remaining
+  quantitative epsilon-gap closure.
   The raw pointwise drop and terminal pointwise endpoint are still analytic
   inputs, not derived from the current abstract APIs.
   General
@@ -585,9 +589,13 @@ Input-package audit:
   `IsPaper2GlobalClassicalSolution`.  `IntegratedMoserHighExcursionContradictionWindowFrontier`
   is still the real analytic frontier.  Its lower-average and upper-gap
   subfrontiers are now explicitly split, both at a single exponent and in the
-  cross-exponent `IntegratedMoserFirstCrossingLowerUpperFrontiers` package; the
-  current code only wires those frontiers together and does not derive
-  high-excursion thickness or quantitative `eps`/`Ceps` closure.
+  cross-exponent `IntegratedMoserFirstCrossingLowerUpperFrontiers` package.
+  The base-exponent nonnegativity field is now pure arithmetic via
+  `p0_nonneg_of_abstractLpBootstrapHypothesis`, and
+  `IntegratedMoserFirstCrossingLowerAverageEpsilonData` collapses lower-average
+  plus epsilon-gap data to the split first-crossing package.  The current code
+  still does not derive high-excursion thickness or the quantitative
+  epsilon-gap closure.
 - Some fields are already produced or reduced further by code.  Examples:
   Paper2 χ₀=0 has `intervalDomain_theorem_1_1_chiZero_unconditional`, now
   exposed in the interval-domain statement assembly; the Paper2
