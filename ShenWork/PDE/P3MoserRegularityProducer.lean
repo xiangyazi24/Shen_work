@@ -104,17 +104,10 @@ theorem intervalDomain_energyContinuous_of_classical
 /-- The initial power integral `∫₀¹ u(0,x)^p dx` is bounded for a classical
 solution.
 
-The proof strategy: the classical solution has a continuous (or at least
-bounded) initial trace `u(0,·)` on the compact `[0,1]`.  If `u(0,·)` is
-bounded by `M`, then `u(0,x)^p ≤ M^p` pointwise, and the integral over
-`[0,1]` is at most `M^p`.
-
-Note: the `IsPaper2ClassicalSolution` interface only gives `u(t,x) > 0` for
-`0 < t < T`, not at `t = 0`.  The initial trace bound requires either:
-  (a) an additional `InitialTrace` / `PositiveInitialDatum` hypothesis, or
-  (b) extracting the bound from the classical regularity at `t = 0`.
-
-For now this is left as sorry. -/
+Note: `IsPaper2ClassicalSolution` only gives `u(t,x) > 0` for `0 < t < T`,
+not at `t = 0`.  The initial bound requires either an `InitialTrace` /
+`PositiveInitialDatum` hypothesis or the energy-continuity ContinuousOn
+(extending from the interior to `t = 0`). -/
 theorem intervalDomain_initialPowerBound_of_classical
     {params : CM2Params} {T p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
