@@ -255,6 +255,7 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
       ∀ hχ_nonneg : 0 ≤ p.χ,
         ∀ hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p),
           ∀ c : ℝ, ∀ hc : 2 < c,
+            p.m * kappa c ≤ 1 ∧
             ∃ lam D Λ : ℝ,
               let hcond :
                   PositivePaperLemma42ExactConditions p c (kappa c)
@@ -266,7 +267,6 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
                   hcond.hκ0.le (le_trans zero_le_one hcond.hM),
-                  p.m * kappa c ≤ 1 ∧
                   1 ≤ D ∧
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
@@ -298,7 +298,7 @@ theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hmκ, hD_ge_one, hD_gt, hΛ0, hΛM, hconv,
+    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv,
       hsmp, hreg, hconst⟩
   exact
     ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp, hreg,
