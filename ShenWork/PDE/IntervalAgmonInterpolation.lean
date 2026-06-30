@@ -46,6 +46,10 @@ theorem sup_le_integral_add_integral_deriv
   -- because f(x) - f(y) = ∫ᵧˣ f' ≤ |∫ᵧˣ f'| ≤ ∫₀¹ |f'|
   have habs_deriv_int : ∀ y ∈ Icc (0 : ℝ) 1,
       f x - f y ≤ ∫ s in (0 : ℝ)..1, |deriv f s| := by
+    intro y hy
+    -- f(x) - f(y) = ∫ᵧˣ f' ≤ |∫ᵧˣ f'| ≤ ∫_{min}^{max} |f'| ≤ ∫₀¹ |f'|
+    -- For the FTC we need HasDerivAt on the interior of [y,x] or [x,y]
+    -- Use: DifferentiableOn + interior ⟹ HasDerivAt at interior points
     sorry
   -- Averaging: f(x) = f(x) · ∫₀¹ 1 ≤ ∫₀¹ (f(y) + C) = ∫f + C
   -- where C = ∫₀¹ |f'|
