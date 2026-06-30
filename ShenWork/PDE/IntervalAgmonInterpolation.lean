@@ -41,7 +41,36 @@ theorem sup_le_integral_add_integral_deriv
     (hf_nonneg : ∀ x ∈ Icc (0 : ℝ) 1, 0 ≤ f x) :
     ∀ x ∈ Icc (0 : ℝ) 1,
       f x ≤ ∫ y in (0 : ℝ)..1, f y + ∫ y in (0 : ℝ)..1, |deriv f y| := by
-  sorry
+  intro x hx
+  -- Key: for every y ∈ [0,1], f(x) ≤ f(y) + ∫₀¹ |f'|
+  -- because f(x) - f(y) = ∫ᵧˣ f' ≤ |∫ᵧˣ f'| ≤ ∫₀¹ |f'|
+  have habs_deriv_int : ∀ y ∈ Icc (0 : ℝ) 1,
+      f x - f y ≤ ∫ s in (0 : ℝ)..1, |deriv f s| := by
+    sorry
+  -- Averaging: f(x) = f(x) · ∫₀¹ 1 ≤ ∫₀¹ (f(y) + C) = ∫f + C
+  -- where C = ∫₀¹ |f'|
+  set C := ∫ s in (0 : ℝ)..1, |deriv f s|
+  have hpoint : ∀ y ∈ Icc (0 : ℝ) 1, f x ≤ f y + C := by
+    intro y hy; linarith [habs_deriv_int y hy]
+  -- ∫₀¹ (f(y) + C) = ∫f + C · 1 = ∫f + C
+  have hle_integral : f x ≤ ∫ y in (0 : ℝ)..1, (f y + C) := by
+    have h1 : f x = f x * (1 - 0) := by ring
+    rw [h1]
+    have h2 : f x * (1 - 0) = ∫ _y in (0 : ℝ)..1, f x := by
+      rw [intervalIntegral.integral_const]; simp [smul_eq_mul]
+    rw [h2]
+    exact intervalIntegral.integral_mono_on (by norm_num : (0:ℝ) ≤ 1)
+      intervalIntegrable_const
+      (hf_cont.intervalIntegrable_of_Icc (by norm_num) |>.add intervalIntegrable_const)
+      (fun y hy => hpoint y hy)
+  have hsplit : ∫ y in (0 : ℝ)..1, (f y + C) =
+      (∫ y in (0 : ℝ)..1, f y) + C := by
+    rw [intervalIntegral.integral_add
+      (hf_cont.intervalIntegrable_of_Icc (by norm_num))
+      intervalIntegrable_const,
+      intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+  linarith
 
 /-! ### Step 2: Cauchy-Schwarz on the unit interval -/
 
