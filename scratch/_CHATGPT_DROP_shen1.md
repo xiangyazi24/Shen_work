@@ -1,187 +1,239 @@
-# Q2308 shen1 — strict exponential superbarrier audit
+# Q2328 shen1 — positive strict exp bridge / hmκ routing audit
 
 Repo audited: `xiangyazi24/Shen_work` on `main`.
 
-Scope: only the exponential field
+Context assumed: local patch has added strict positive exponential superbarrier theorems and
 
 ```lean
-exp_strict_super_at_contact :
-  forall x, Real.exp (-(kappa c) * x) < MChi p ->
-    U x = Real.exp (-(kappa c) * x) ->
-      frozenWaveOperator p c U (upperBarrier (kappa c) (MChi p)) x < 0
+positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
 ```
 
-## Conclusion
-
-This field should not be a Route-A/fixed-point residual.  It should be proved by strengthening the committed positive exponential-region superbarrier from non-strict to strict.
-
-The important caveat is that the repo’s positive superbarrier API needs the scalar side condition
+which produces `PositiveUpperBarrierExpStrictContactResidual p c U` from the standard positive branch data plus
 
 ```lean
-hmk : p.m * kappa c <= 1
+hmκ : p.m * kappa c ≤ 1
 ```
 
-If that side condition is included, the strict inequality is true by the existing proof route.  If the assumption list is read without this side condition, the committed repo has no path even to the non-strict positive exponential superbarrier.
+## 1. Can `hmκ` be derived from current positive branch packages?
 
-No lower pin, right-tail asymptotic, no-left-plateau, stationarity, or C2 regularity is needed for this field.  The contact equality is also unused; only the exponential-region hypothesis is needed.
+No.  It is not derivable from the currently committed positive branch conditions.
 
-## Existing theorems to reuse
-
-The core formula is already committed:
+The relevant committed package is:
 
 ```lean
-theorem frozenWaveOperator_exp_full_eq
-    (p : CMParams) {c kappa : Real} {u : Real -> Real}
-    (hc : 2 <= c) (hk : kappa = kappa c)
-    (hu : IsCUnifBdd u) (hu_nonneg : forall x, 0 <= u x) (x : Real)
-    (hV_diff : DifferentiableAt Real (deriv (frozenElliptic p u)) x) :
-    frozenWaveOperator p c u (expDecay kappa) x =
-      -(expDecay kappa x) * (expDecay kappa x) ^ p.alpha
-      - p.chi * (expDecay kappa x) ^ p.m *
-        (-(p.m * kappa) * deriv (frozenElliptic p u) x +
-          frozenElliptic p u x - (u x) ^ p.gamma)
+structure PositivePaperLemma42ExactConditions
+    (p : CMParams) (c κ κtilde M : ℝ) : Prop where
+  hκ0 : 0 < κ
+  hκ1 : κ < 1
+  hgap : κ < κtilde
+  hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
+  hM : 1 ≤ M
+  hc : c = κ + κ⁻¹
+  hχ_nonneg : 0 ≤ p.χ
+  hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)
+  hα_eq : p.α = p.m + p.γ - 1
 ```
 
-I wrote this snippet with ASCII field names for readability; the actual file uses the Unicode Lean names `p.α`, `p.χ`, `p.γ`, and type `ℝ`.
-
-The branch rewrite is committed as:
+The branch-cap constructor is:
 
 ```lean
-theorem frozenWaveOperator_upperBarrier_exp_region_eq
-    (p : CMParams) {c kappa M : Real} {u : Real -> Real}
-    {x : Real} (hx : expDecay kappa x < M) :
-    frozenWaveOperator p c u (upperBarrier kappa M) x =
-      frozenWaveOperator p c u (expDecay kappa) x
+theorem positivePaperLemma42ExactConditions_of_branchCap
+    (p : CMParams) {c : ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c) :
+    PositivePaperLemma42ExactConditions p c (kappa c)
+      (positiveBranchTailCap p c) (MChi p)
 ```
 
-The current non-strict positive exp theorem is:
+It fills only the fields above.  There is no `hmκ` field.
+
+The exact positive-condition projection close to this is:
 
 ```lean
-theorem frozenWaveOperator_exp_nonpos_of_chi_nonneg
-    (p : CMParams) {c kappa M : Real} {u : Real -> Real}
-    (hc : 2 <= c) (hk_eq : kappa = kappa c)
-    (hchi_nonneg : 0 <= p.chi) (hchi_le_one : p.chi <= 1)
-    (ha : p.alpha = p.m + p.gamma - 1)
-    (hk_nonneg : 0 <= kappa) (hmk : p.m * kappa <= 1)
-    (hu : InWaveTrapSet kappa M u) {x : Real}
-    (hV_diff : DifferentiableAt Real (deriv (frozenElliptic p u)) x) :
-    frozenWaveOperator p c u (expDecay kappa) x <= 0
+theorem PositivePaperLemma42ExactConditions.kappaTilde_le_m_kappa_add_half
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ p.m * κ + 1 / 2
 ```
 
-And the current upper-barrier wrapper is:
+This is a bound on the **lower-barrier exponent** `κtilde`; it does not imply `p.m * κ ≤ 1`.
+
+The repo contains the exact counterexample theorem:
 
 ```lean
-theorem frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
-    (p : CMParams) {c kappa M : Real} {u : Real -> Real}
-    (hc : 2 <= c) (hk_eq : kappa = kappa c)
-    (hchi_nonneg : 0 <= p.chi) (hchi : p.chi < chiStar p)
-    (ha : p.alpha = p.m + p.gamma - 1)
-    (hk_nonneg : 0 <= kappa) (hmk : p.m * kappa <= 1)
-    {x : Real} (hx : expDecay kappa x < M)
-    (hu : InWaveTrapSet kappa M u)
-    (hV_diff : DifferentiableAt Real (deriv (frozenElliptic p u)) x) :
-    frozenWaveOperator p c u (upperBarrier kappa M) x <= 0
+theorem not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one :
+    ¬ (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
+      p.α = p.m + p.γ - 1 →
+      ∀ κ : ℝ, 0 < κ → κ < 1 → p.m * κ ≤ 1)
 ```
 
-The whole-line positive theorem `whole_line_super_barrier_pos` also explicitly requires `hmk : p.m * kappa <= 1`.
+Its witness is essentially `p.m = 3`, `p.α = 3`, `p.γ = 1`, `p.χ = 0`, and `κ = 1 / 2`, giving `p.m * κ = 3 / 2`.
 
-## Why strictness follows
-
-Inside `frozenWaveOperator_exp_nonpos_of_chi_nonneg`, set `E := expDecay kappa x`.  The proof already derives
+This also shows why `positiveBranchTailCap` does not rescue the situation: for that witness,
 
 ```lean
-chemotactic_term <= p.chi * E ^ p.m * E ^ p.gamma
-                 = p.chi * E ^ (p.alpha + 1)
+positiveBranchTailCap p c = min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
 ```
 
-using `p.alpha = p.m + p.gamma - 1`.
+can still be above `κ`, while `p.m * κ ≤ 1` is false.  The cap controls admissible `κtilde`, not `mκ`.
 
-The current proof then uses only `p.chi <= 1` to conclude
+So `hmκ` must be carried explicitly wherever the strict positive exponential superbarrier is used.  Existing packages that do not carry it include:
 
 ```lean
-p.chi * E ^ (p.alpha + 1) <= E * E ^ p.alpha.
+Paper1PositiveLowerRawCapRouteAParamData
+Paper1PositiveLowerRawCapRouteASmoothParamData
+Paper1PositiveLowerRawCapRouteARemainingParamData
 ```
 
-For the positive branch, `p.chi < min (1 / 2) (chiStar p)`, hence `p.chi < 1`.  Also `0 < E ^ (p.alpha + 1)` because `E > 0`.  So the same line is strict:
+## 2. Minimal wrapper/data change to remove the strict exp residual when `hmκ` is available
+
+The clean local theorem should live in `UpperBarrierContact.lean` and convert a **constant-branch-only** residual into the existing remaining residual by using the new strict exp theorem.
+
+Add this small residual:
 
 ```lean
-p.chi * E ^ (p.alpha + 1) < E * E ^ p.alpha.
+structure PositiveUpperBarrierConstLeftPlateauResidual
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  no_const_left_plateau :
+    ∀ x, MChi p < Real.exp (-(kappa c) * x) →
+      (∀ y, y ≤ x → U y = MChi p) → False
 ```
 
-After rewriting with `frozenWaveOperator_exp_full_eq`, the residual is `< 0`.
-
-The case `p.chi = 0` is not a problem: the chemotaxis term vanishes and the exponential logistic part is strictly negative.  The only boundary where the proof loses strictness is if one allows `p.chi = 1`, which is outside the positive branch.
-
-## Minimal producer statement
-
-Add a strict version of the exp theorem, not a Route-A theorem:
+Then add this bridge:
 
 ```lean
-theorem frozenWaveOperator_exp_neg_of_chi_nonneg
-    (p : CMParams) {c kappa M : Real} {u : Real -> Real}
-    (hc : 2 <= c) (hk_eq : kappa = kappa c)
-    (hchi_nonneg : 0 <= p.chi) (hchi_lt_one : p.chi < 1)
-    (ha : p.alpha = p.m + p.gamma - 1)
-    (hk_nonneg : 0 <= kappa) (hmk : p.m * kappa <= 1)
-    (hu : InWaveTrapSet kappa M u) {x : Real}
-    (hV_diff : DifferentiableAt Real (deriv (frozenElliptic p u)) x) :
-    frozenWaveOperator p c u (expDecay kappa) x < 0
-```
-
-Then add the upper-barrier wrapper:
-
-```lean
-theorem frozenWaveOperator_upperBarrier_exp_region_neg_of_chi_nonneg
-    (p : CMParams) {c kappa M : Real} {u : Real -> Real}
-    (hc : 2 <= c) (hk_eq : kappa = kappa c)
-    (hchi_nonneg : 0 <= p.chi) (hchi_lt_one : p.chi < 1)
-    (ha : p.alpha = p.m + p.gamma - 1)
-    (hk_nonneg : 0 <= kappa) (hmk : p.m * kappa <= 1)
-    {x : Real} (hx : expDecay kappa x < M)
-    (hu : InWaveTrapSet kappa M u)
-    (hV_diff : DifferentiableAt Real (deriv (frozenElliptic p u)) x) :
-    frozenWaveOperator p c u (upperBarrier kappa M) x < 0
-```
-
-Finally produce the residual field from ordinary positive branch data plus `hmk`:
-
-```lean
-theorem positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
-    {p : CMParams} {c : Real} {U : Real -> Real}
-    (ha : p.alpha = p.m + p.gamma - 1)
-    (hchi_nonneg : 0 <= p.chi)
-    (hchi_small : p.chi < min (1 / 2 : Real) (chiStar p))
+theorem PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
     (hc : 2 < c)
-    (hmk : p.m * kappa c <= 1)
-    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
-    PositiveUpperBarrierExpStrictContactResidual p c U
+    (hmκ : p.m * kappa c ≤ 1)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hconst : PositiveUpperBarrierConstLeftPlateauResidual p c U) :
+    PositiveUpperBarrierRemainingContactResidual p c U :=
+  { no_const_left_plateau := hconst.no_const_left_plateau
+    exp_strict_super_at_contact :=
+      (positiveUpperBarrier_expStrictSuperAtContact_of_positive_region
+        (p := p) (c := c) (U := U)
+        hα hχ_nonneg hχ_small hc hmκ htrap).exp_strict_super_at_contact }
 ```
 
-This wrapper uses `hx` to enter the exp region and supplies
+This removes the old strict exponential residual from the carried analytic package.  The remaining carried upper-contact atom is only the constant left-plateau obstruction.
+
+For Route-A, add a new hmk-aware data package in `PositiveRawRouteAAssembly.lean` rather than changing the existing packages:
 
 ```lean
-frozenElliptic_deriv_differentiableAt p htrap.trap.cunif_bdd htrap.nonneg x
+structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
+  produce :
+    ∀ p : CMParams, ∀ hα : p.α = p.m + p.γ - 1,
+      ∀ hχ_nonneg : 0 ≤ p.χ,
+        ∀ hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p),
+          ∀ c : ℝ, ∀ hc : 2 < c,
+            ∃ lam D Λ : ℝ,
+              let hcond :
+                  PositivePaperLemma42ExactConditions p c (kappa c)
+                    (positiveBranchTailCap p c) (MChi p) :=
+                positivePaperLemma42ExactConditions_of_branchCap
+                  p hα hχ_nonneg hχ_small hc
+              ∃ hpar :
+                PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+                  p c lam (MChi p) (kappa c)
+                  (positiveBranchTailCap p c) D Λ
+                  hcond.hκ0.le (le_trans zero_le_one hcond.hM),
+                  p.m * kappa c ≤ 1 ∧
+                  1 ≤ D ∧
+                  paperDMin p.χ (MChi p) (kappa c)
+                    (positiveBranchTailCap p c) p.m p.γ c < D ∧
+                  0 ≤ Λ ∧ Λ ≤ MChi p ∧
+                  PaperLowerPinnedStationaryFlatFloor p c (kappa c)
+                    (MChi p)
+                    (lowerBarrierRaw (kappa c)
+                      (positiveBranchTailCap p c) D)
+                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
+                      (kappa c) (positiveBranchTailCap p c) Λ hcond
+                      (fun u =>
+                        paperLowerRawRouteAParamProducer
+                          (hpar.producer u))) ∧
+                  StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
+                  StationaryC2RegularityFromEquation p c (kappa c) (MChi p) ∧
+                  (∀ U : ℝ → ℝ,
+                    InLowerPinnedMonotoneTrap (kappa c) (MChi p)
+                      (lowerBarrierRaw (kappa c)
+                        (positiveBranchTailCap p c) D) U →
+                    FrozenStationaryWaveProfile p c U →
+                    PositiveUpperBarrierConstLeftPlateauResidual p c U)
 ```
 
-The contact equality argument is ignored.
-
-## No existing strict producer
-
-I found no committed theorem whose conclusion is the strict exp-region upper-superbarrier or the exact residual field.  Existing theorem names to reuse are:
+Then the conversion to the existing remaining package is direct:
 
 ```lean
-frozenWaveOperator_exp_full_eq
-frozenWaveOperator_exp_nonpos_of_chi_nonneg
-frozenWaveOperator_upperBarrier_exp_region_eq
-frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
-whole_line_super_barrier_pos
-frozenElliptic_deriv_differentiableAt
-kappa_pos_of_two_lt
-chiStar_le_one
+theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
+    (hData : Paper1PositiveLowerRawCapRouteAHmkConstParamData) :
+    Paper1PositiveLowerRawCapRouteARemainingParamData := by
+  refine ⟨?_⟩
+  intro p hα hχ_nonneg hχ_small c hc
+  rcases hData.produce p hα hχ_nonneg hχ_small c hc with
+    ⟨lam, D, Λ, hpar, hmκ, hD_ge_one, hD_gt, hΛ0, hΛM,
+      hconv, hsmp, hreg, hconst⟩
+  exact
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp, hreg,
+      fun U hpin hprofile =>
+        PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
+          (p := p) (c := c) (U := U)
+          hα hχ_nonneg hχ_small hc hmκ hpin.bare
+          (hconst U hpin hprofile)⟩
 ```
 
-## Route selection
+This keeps all downstream existing theorems usable, because you can reuse:
 
-Prove the strict exp-region theorem next.  Do not route this through raw lower pins, right-tail asymptotics, no-left-plateau, stationarity, or C2 regularity.  Those are unnecessary for this field.
+```lean
+paper1_positiveRawSmoothContactData_of_routeARemainingParamData
+paper1_positiveContactBranch_of_routeARemainingParamData
+paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
+```
 
-The only producer-side issue is ensuring `hmk : p.m * kappa c <= 1` is available wherever the positive superbarrier is used.
+## 3. Theorem-level bridge only, or also a new Hmk ParamData?
+
+Do both, but in two layers.
+
+### Layer 1: theorem-level bridge in `UpperBarrierContact.lean`
+
+This is mandatory and minimal.  It proves the mathematical fact:
+
+```lean
+constant-left-plateau residual + hmκ + positive branch scalar data + trap
+  ⇒ PositiveUpperBarrierRemainingContactResidual
+```
+
+It is reusable outside Route-A and avoids mixing contact logic into the Route-A producer files.
+
+### Layer 2: optional `...Hmk...ParamData` in `PositiveRawRouteAAssembly.lean`
+
+Add this if you want Route-A users to stop carrying `exp_strict_super_at_contact` explicitly.  The new package should be an optional stronger package, not a replacement for the existing `Paper1PositiveLowerRawCapRouteARemainingParamData`.
+
+Reason: `hmκ` is not derivable from the current branch assumptions.  If you mutate the existing package to require `hmκ`, you silently narrow the theorem.  A new name such as
+
+```lean
+Paper1PositiveLowerRawCapRouteAHmkConstParamData
+```
+
+makes the restriction visible and lets the old residual route remain available for regimes without `hmκ`.
+
+### Payload style choice
+
+Putting `hmκ` as a field inside the produced Sigma payload, as above, lets you convert into the existing remaining-contact package.  This is the easiest wiring route.
+
+If instead you put `hmκ` as an extra input to `produce`, then the package is logically cleaner for an hmk-restricted theorem, but it will not convert to the old hmk-free `Paper1PositiveLowerRawCapRouteARemainingParamData`; you will need parallel `...Hmk...Branch` statement wrappers.  That is heavier and not necessary unless the final Paper1 statement itself is being split by `hmκ`.
+
+## Recommended next step
+
+Implement the two small bridges above.  Do not try to derive `hmκ` from `PositivePaperLemma42ExactConditions`, `positiveBranchTailCap`, or the current Route-A param data: the committed theorem
+
+```lean
+not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one
+```
+
+is the exact false-premise detector.
