@@ -5,16 +5,14 @@
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
   after stripping comments and strings.
-- Last full remote build: after adding the Paper1 positive upper-contact
-  refinements, Route-A raw cap wiring, `χ>0` no-left-plateau narrowing, and
-  the `hmκ` strict exponential-region / constant-left-plateau bridge,
-  `lake build ShenWork` completed successfully on
+- Last full remote build: after adding the Paper2 structured-Moser and
+  actual-atom Proposition 2.5 frontiers, the actual-atom preferred `χ₀ = 0`
+  main-headline route, and the Paper1 positive upper-contact / Route-A
+  refinements, `lake build ShenWork` completed successfully on
   `uisai2:/dev/shm/shen_verify`, **8983 jobs**.  The target build
-  `lake build ShenWork.Paper1.UpperBarrierContact ShenWork.Paper1.PositiveRawRouteAAssembly`
-  also completed successfully.  The new Paper1 contact/Route-A wrappers,
-  no-left-plateau narrowing wrappers, strict-positive exp-contact bridges, and
-  hmk-aware Route-A constant-residual wrappers have `#print axioms` output
-  `[propext, Classical.choice, Quot.sound]`.
+  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` completed
+  successfully (**3738 jobs**).  The new Paper2 wrappers have `#print axioms`
+  output `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
 
@@ -24,7 +22,7 @@ Current headline status:
   | area | closed or internally produced | honest residual/frontier inputs | deprecated or no-go route |
   | --- | --- | --- | --- |
   | Paper 1 | Lemma 2.5/Jensen; negative construction upper bound is reduced to the scalar stationary strictness `U 0 < 1` in `ConstructionNegSMPProvider`; positive-branch `ShenUpperBoundPositive` is split through the pure strict-`MChi` barrier wrapper; lower-pinned plateau and raw traps now produce right-tail asymptotics by pure squeeze; the positive upper-barrier interface no-contact is discharged from differentiability/kink avoidance; the strict exponential contact residual is closed on the `p.m * kappa c ≤ 1` subregime; Route-A has an hmk-aware constant-left-plateau residual package that converts to the remaining-contact package; `positiveBranchTailCap` and `kappa_lt_positiveBranchTailCap` close the scalar cap/gap arithmetic; `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData`, `Paper1PositiveLowerPinnedRawSmoothContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, and `Paper1PositiveLowerPinnedCapSchauderContactData` keep the lower-pinned witness through the positive route; `Paper1MainStatementSMPMainlineData`, `Paper1MainStatementStrictBarrierData`, `Paper1MainStatementLowerPinnedContactData`, `Paper1MainStatementLowerPinnedRawContactData`, `Paper1MainStatementLowerPinnedRawSmoothContactData`, `Paper1CombinedStrictBarrierStatementData`, `Paper1CombinedLowerPinnedContactStatementData`, `Paper1CombinedLowerPinnedRawContactStatementData`, and `Paper1CombinedLowerPinnedRawSmoothContactStatementData` are the thinner conditional statement routes | `Paper1MainResultsData`, `Paper1MainlineExistence`, proposition frontiers, Lemma 5.1/5.2 frontiers, positive construction lower-pinned cap Schauder/contact data, smooth-branch no-contact comparison outside the `hmκ` subregime, and fixed-point/stationarity/SMP inputs | tail-asymptotic identity wrappers from bare stationarity remain non-producers; the lower-pinned plateau/raw squeeze route is the active tail producer; `hmκ` is not implied by the base positive hypotheses |
-  | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroStatementFrontierData` names the preferred conditional route | finite-horizon alternative, solution-slice interpolation/energy, dissipation/gradient/mass/power/energy frontiers, Proposition 2.5, global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation` |
+  | Paper 2 | interval-domain Theorem 1.1 for `χ₀ = 0`; `χ₀ = 0` local existence in the local-free routes; Proposition 2.4 in the thin section-2 route; `IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomFrontierData` names the preferred Theorem 1.1--1.3 headline route; `IntervalDomainPaper2Prop25StructuredMoserFrontierData` and `IntervalDomainPaper2Prop25ActualAtomFrontierData` split Proposition 2.5 below the theorem-field level | finite-horizon alternative, solution-slice interpolation/energy, actual Prop25 atoms (nonnegative-B Moser dissipation, relative Moser interpolation, quantitative endpoint/root tower), global extension, bootstrap/eventual-sup fields, and thin section-2 Lemma 2.6/2.7/Proposition 2.2/2.3 fields | routes carrying global `IntervalDomainInterpolation`, refuted by `IntervalDomainInterpolationCounterexample.not_intervalDomainInterpolation`; `OldUnitIntervalPowerGNYoungForMoser` is legacy/false for constants and should not feed new Moser routes |
   | Paper 3 | actual-linear-small Theorem 2.1 persistence; Proposition 1.3/1.4 can be routed through Paper2 Theorem 1.3/1.2 or Paper2 main targets; terminal pointwise endpoint now has a named quantitative-endpoint bridge; `IntervalDomainPaper3SupNormCompactnessRegularizationData` removes only the structural `upperEq` field by fixing the sup envelope; `IntervalDomainPaper3NegativeSensitivityFrontierData` decomposes `negativeBound` into global-solution and eventual-sup residuals | `negativeBound` or its decomposed global-solution/eventual-sup frontiers, terminal Moser inputs, spectral orbit, continuation/gluing, compactness/regularization, and stability frontiers | Paper2 Theorem 1.1 does not imply Paper3 Proposition 1.2 under the current API; see `not_paper2_theorem_1_1_implies_paper3_proposition_1_2` |
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
@@ -232,6 +230,30 @@ Current headline status:
   the remaining full-statement residuals are the finite-horizon alternative,
   positive solution-slice interpolation/energy/global-extension/bootstrap and
   eventual sup-bound frontiers, plus the section-2 thin fields.
+  The preferred headline-only route for Theorems 1.1--1.3 is now named by
+  `IntervalDomainPaper2PreferredChiZeroMainTheoremFrontierData` and the thinner
+  actual-atom variant
+  `IntervalDomainPaper2PreferredChiZeroMainTheoremActualAtomFrontierData`.
+  These exclude Proposition 1.1 and section-2 target fields from headline
+  accounting.  Proposition 2.5 itself is split two ways:
+  `IntervalDomainPaper2Prop25StructuredMoserFrontierData` exposes the existing
+  structured-Moser producer with explicit `pSeq`/`rootBound`, energy,
+  dissipation, relative interpolation, power-integrability, and endpoint
+  fields; `IntervalDomainPaper2Prop25ActualAtomFrontierData` is the smaller
+  preferred route through
+  `intervalDomain_endpointBoundFromLp_of_actual_atoms_nonnegB`, carrying only
+  nonnegative-B Moser dissipation, relative Moser interpolation, and the
+  quantitative endpoint/root-tower producer.  The corresponding thin section-2
+  wrappers are
+  `intervalDomainPaper2_bootstrapEstimateTargets_of_thinStructuredMoserFrontierData`
+  and
+  `intervalDomainPaper2_bootstrapEstimateTargets_of_thinActualAtomFrontierData`;
+  the preferred full-statement wrappers are
+  `intervalDomainPaper2_preferredChiZeroStatementTargets_of_structuredMoserFrontierData`
+  and
+  `intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomFrontierData`.
+  New headline work should not use `OldUnitIntervalPowerGNYoungForMoser` or the
+  refuted global `IntervalDomainInterpolation` premise.
   General
   χ₀ ≤ 0 is not a no-frontier headline yet:
   `paper2_theorem_1_1_general_chi_bform` still explicitly requires `hlocal`
