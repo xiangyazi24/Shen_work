@@ -773,13 +773,41 @@ theorem
               intervalDomain (intervalDomainWithInitialSlice u₀ u)
               T rho p0 p)) :
     IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
-  refine intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
-    (u₀ := u₀) (u := u) (T := T) (rho := rho) (p0 := p0) ?_
-  exact intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-    (intervalDomain_regularityLite_of_globalClassicalTraceAnchored
-      hglobal hT htrace hdatum hgrad)
-    ((intervalDomain_globalClassical_withInitialSlice hglobal).classical hT)
-    hdiss hrel hrho hp0_nonneg hlower hupperDataGap
+  let uA : ℝ → intervalDomain.Point → ℝ :=
+    intervalDomainWithInitialSlice u₀ u
+  have hglobalA :
+      IsPaper2GlobalClassicalSolution intervalDomain params uA v := by
+    simpa [uA] using
+      (intervalDomain_globalClassical_withInitialSlice
+        (u₀ := u₀) (u := u) (v := v) hglobal)
+  have hsolA : IsPaper2ClassicalSolution intervalDomain params T uA v :=
+    hglobalA.classical hT
+  have hdataA :
+      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+        intervalDomain uA T rho p0 := by
+    refine
+      { regularity := ?_
+        energyNonneg := ?_
+        dissipation := ?_
+        relative := ?_
+        rho_pos := hrho
+        p0_nonneg := hp0_nonneg
+        lowerAverage := ?_
+        upperDataGap := ?_ }
+    · simpa [uA] using
+        intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
+          hglobal hT htrace hdatum hgrad
+    · exact intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+        (p0 := p0) hsolA
+    · simpa [uA] using hdiss
+    · simpa [uA] using hrel
+    · simpa [uA] using hlower
+    · simpa [uA] using hupperDataGap
+  have hstepA : IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0 :=
+    integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData hdataA
+  exact intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+    (u₀ := u₀) (u := u) (T := T) (rho := rho) (p0 := p0)
+    (by simpa [uA] using hstepA)
 
 /-! ### Combined regularity + nonnegativity package -/
 

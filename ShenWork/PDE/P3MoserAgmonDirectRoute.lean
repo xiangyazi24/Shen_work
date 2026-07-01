@@ -270,6 +270,23 @@ The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
 `hstep` input to `moser_iteration_chain`, yielding all Lp bounds.
 -/
 
+/-- Version WITHOUT `MoserDissipationDropBeforeNonnegB`: uses the full energy
+inequality `(1/p)Y' + AG + BY ≤ KZ + L` combined with the interpolation
+`Z ≤ εG + C` to absorb the gradient, giving `(1/p)Y' + BY ≤ C'`, then
+Gronwall. This is exactly the paper's Lemma 2.6 proof (page 21). -/
+theorem intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
+    (hrho : 0 < rho) :
+    ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
+  sorry
+
+/-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -381,6 +398,37 @@ theorem intervalDomain_Corollary_2_1_of_agmon
       hq
   exact all_exponents_of_chain_and_lp_mono hrho hchain hLpMono pExp hpExp
 
+/-- Proposition 2.5 WITHOUT `MoserDissipationDropBeforeNonnegB`. Uses the
+full energy inequality + Agmon interpolation + Gronwall (paper's Lemma 2.6).
+Frontier atoms: only `AgmonAbsorbedInterpolationBefore` + endpoint. -/
+theorem intervalDomain_Proposition_2_5_of_agmon_no_drop
+    (params : CM2Params)
+    (hinterp :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u
+          (params.N : ℝ) T rho p0 →
+          AgmonAbsorbedInterpolationBefore u T rho p0)
+    (hEndpoint :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (params.N : ℝ)
+            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
+          pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          ∃ pSeq rootBound : ℕ → ℝ,
+            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    Proposition_2_5 intervalDomain params := by
+  sorry
+
+/-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_Proposition_2_5_of_agmon
     (params : CM2Params)
     (hdiss :
