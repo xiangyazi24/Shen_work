@@ -1,135 +1,15 @@
-# Q2892 (shen1) — initial trace vs stored zero value for power-energy continuity
+# Q2893 (shen1) — analytic deleted-right power-energy trace limit
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
-Target file: `ShenWork/PDE/P3MoserEnergyContinuity.lean`  
+Target area: `ShenWork/PDE/P3MoserEnergyContinuity.lean`  
 Source edit requested: none; answer file only.
 
 ## Verdict
 
-`IntervalDomainInitialPowerEnergyContinuityAtZero u T p0` is **not provable** from
+Yes: the analytic deleted-right statement
 
 ```lean
-InitialTrace intervalDomain u₀ u
-```
-
-plus bounded/positive initial datum assumptions alone.
-
-It becomes provable with a **minimal extra compatibility assumption** identifying the stored `t = 0` energy with the trace datum energy, for every exponent used by the Moser ladder. Pointwise `u 0 = u₀` is sufficient but stronger than necessary. The thinnest useful compatibility residual is energy-level compatibility:
-
-```lean
-def IntervalDomainInitialPowerEnergyCompatibleAtZero
-    (u₀ : intervalDomain.Point → ℝ)
-    (u : ℝ → intervalDomain.Point → ℝ) (p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    intervalDomain.integral (fun x => (u 0 x) ^ p) =
-      intervalDomain.integral (fun x => (u₀ x) ^ p)
-```
-
-Then the intended route is:
-
-```text
-InitialTrace + paper-positive bounded datum + positive-time regularity
-  ⇒ deleted-right-limit of power energy is the u₀-energy
-energy compatibility at t=0
-  ⇒ ContinuousWithinAt on Icc 0 T at 0
-```
-
-The existing caveat in the code comment is therefore correct: `InitialTrace` controls only positive times and does not identify the stored value `u 0` with `u₀`.
-
-## Why no-compatibility proof is impossible
-
-`ContinuousWithinAt f (Set.Icc 0 T) 0` is a statement about the value `f 0`, not just a deleted right limit. For
-
-```lean
-f t = intervalDomain.integral (fun x => (u t x) ^ p)
-```
-
-continuity within `[0,T]` at `0` requires the positive-time limit to equal
-
-```lean
-intervalDomain.integral (fun x => (u 0 x) ^ p)
-```
-
-But `InitialTrace intervalDomain u₀ u` only says that, for `t > 0` small,
-
-```lean
-intervalDomain.supNorm (fun x => u t x - u₀ x) < ε
-```
-
-It says nothing about `u 0`.
-
-A concrete countermodel shape is easy: take a positive classical branch for all `t > 0` with trace datum `u₀`, but redefine the stored slice `u 0` to a different positive function. The global classical solution interface only asks for classical regularity on every strict interior time interval `(0,T)`, and `InitialTrace` only quantifies `0 < t`; neither sees the stored value at `0`. Unless the new stored slice happens to have the same `p`-energy as `u₀`, `IntervalDomainInitialPowerEnergyContinuityAtZero` fails.
-
-For the constant-equilibrium build path, this is especially transparent: let `u t x = c` for all `t > 0`, let `u₀ x = c`, but set `u 0 x = d` with `d ≠ c`. The trace to `u₀` is exact for positive times, and positive-time classical regularity is unchanged. For any positive ladder exponent `p`, the zero-time energy is `d^p` times the interval length, while the deleted right limit is `c^p` times the interval length.
-
-## Existing definitions/lemmas to use
-
-Relevant existing items:
-
-```lean
--- ShenWork/Paper2/Statements.lean
-def InitialTrace
-lemma InitialTrace.eventually_small
-
-def PaperPositiveInitialDatum
-lemma PaperPositiveInitialDatum.floor
-lemma PaperPositiveInitialDatum.admissible
-
-lemma IsPaper2GlobalClassicalSolution.classical
-```
-
-```lean
--- ShenWork/PDE/IntervalDomain.lean
-def intervalDomainPoint
-def intervalDomainLift
-def intervalDomainIntegral
-def intervalDomainSupNorm
-
-def intervalDomain : BoundedDomainData := ...
--- with fields:
---   supNorm := intervalDomainSupNorm
---   integral := intervalDomainIntegral
---   initialAdmissible := fun u₀ => BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀
-```
-
-```lean
--- ShenWork/PDE/P3MoserEnergyContinuity.lean
-theorem intervalDomain_power_jointContinuousOn
-theorem intervalDomain_energyContinuousOn_Ioo
-theorem intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
-theorem intervalDomain_powerEnergyEndpointContinuity_of_initialPowerEnergyContinuity
-```
-
-The existing `intervalDomain_energyContinuousOn_Ioo` proves the positive-time interior continuity. It does not handle `t = 0`; the proposed route below handles exactly that left endpoint.
-
-## Minimal residual/API
-
-The monolithic current residual is:
-
-```lean
-def IntervalDomainInitialPowerEnergyContinuityAtZero
-    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    ContinuousWithinAt
-      (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-      (Set.Icc (0 : ℝ) T) 0
-```
-
-A thinner decomposition is:
-
-```lean
-import ShenWork.PDE.P3MoserEnergyContinuity
-
-open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Topology Interval
-
-namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-
-/-- Deleted-right trace limit of the power energy to the initial datum energy.
-This intentionally does not mention the stored value `u 0`. -/
 def IntervalDomainInitialTracePowerEnergyTendsto
     (u₀ : intervalDomain.Point → ℝ)
     (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
@@ -138,41 +18,153 @@ def IntervalDomainInitialTracePowerEnergyTendsto
       (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
       (𝓝[Set.Ioc (0 : ℝ) T] 0)
       (𝓝 (intervalDomain.integral (fun x => (u₀ x) ^ p)))
+```
 
-/-- Energy-level compatibility of the stored zero slice with the initial datum.
-Pointwise `u 0 = u₀` implies this, but this is the exact compatibility needed
-for the Moser power-energy endpoint. -/
-def IntervalDomainInitialPowerEnergyCompatibleAtZero
-    (u₀ : intervalDomain.Point → ℝ)
-    (u : ℝ → intervalDomain.Point → ℝ) (p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    intervalDomain.integral (fun x => (u 0 x) ^ p) =
-      intervalDomain.integral (fun x => (u₀ x) ^ p)
+should be provable from current repo APIs, **provided the datum assumption is the paper-faithful positive datum**:
 
-/-- Deleted-right trace convergence plus zero-slice energy compatibility gives
-the current endpoint-continuity residual. -/
-theorem intervalDomain_initialPowerEnergyContinuityAtZero_of_traceTendsto_compat
-    {T p0 : ℝ}
+```lean
+PaperPositiveInitialDatum intervalDomain u₀
+```
+
+together with
+
+```lean
+InitialTrace intervalDomain u₀ u
+IsPaper2GlobalClassicalSolution intervalDomain params u v
+0 < T
+```
+
+No zero-slice compatibility `u 0 = u₀` is needed for this deleted-right theorem. The stored slice `u 0` is not mentioned by the filter `𝓝[Set.Ioc 0 T] 0` except as a limit point, and the function being evaluated has domain variable `t`; the proof uses only `0 < t` eventually.
+
+However, this is not currently a one-line proof from an existing named theorem. It needs several small interval-domain helper lemmas around `intervalDomainSupNorm`, boundedness of slices, and an integral Lipschitz estimate. These are analytic/domain lemmas, not new PDE residuals.
+
+## Recommended theorem statement
+
+Use the paper-positive datum route as the main theorem:
+
+```lean
+import ShenWork.PDE.P3MoserEnergyContinuity
+import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+
+open MeasureTheory Set Filter Topology
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
+open scoped Topology Interval
+
+namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
+
+/-- Initial trace plus a paper-positive datum gives the deleted-right power-energy
+limit to the datum energy.  This theorem deliberately does not inspect or
+constrain the stored slice `u 0`. -/
+theorem intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive
+    {params : CM2Params} {T p0 : ℝ}
     {u₀ : intervalDomain.Point → ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
     (hT : 0 < T)
-    (hlim : IntervalDomainInitialTracePowerEnergyTendsto u₀ u T p0)
-    (hcompat : IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0) :
-    IntervalDomainInitialPowerEnergyContinuityAtZero u T p0
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v) :
+    IntervalDomainInitialTracePowerEnergyTendsto u₀ u T p0
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 ```
 
-This split is strictly more informative than the monolithic residual:
+This theorem does **not** need `0 < p0`. The reason is that `PaperPositiveInitialDatum` supplies a uniform floor `η > 0`; all relevant bases lie in a compact interval `[η/2, M] ⊆ (0,∞)` for small positive time, so `r ↦ r ^ p` is uniformly continuous there for every real `p`.
 
-* `IntervalDomainInitialTracePowerEnergyTendsto` is the analytic consequence of trace convergence and real-power continuity.
-* `IntervalDomainInitialPowerEnergyCompatibleAtZero` is the exact missing stored-zero compatibility.
+If you insist on using only `PositiveInitialDatum intervalDomain u₀`, then the theorem should assume at least `0 < p0` (or directly `∀ p, p0 ≤ p → 0 < p`) plus a closed-domain nonnegativity lemma for `u₀`. Without a positive datum floor, zeros at the endpoints are possible; real `rpow` at zero is safe for positive exponents but not for negative exponents. In the Moser context `p0` is normally positive, but the `PaperPositiveInitialDatum` route is both cleaner and closer to the paper assumptions.
 
-If you prefer an even smaller residual surface, skip the named `Tendsto` predicate and add only compatibility plus the producer theorem below.
+## Existing helpers / APIs to reuse
 
-## Producer theorem with minimal compatibility
+### `ShenWork/Paper2/Statements.lean`
 
-The theorem I would add next is:
+Use:
+
+```lean
+def InitialTrace
+lemma InitialTrace.eventually_small
+
+def PaperPositiveInitialDatum
+lemma PaperPositiveInitialDatum.floor
+lemma PaperPositiveInitialDatum.admissible
+
+lemma IsPaper2GlobalClassicalSolution.classical
+lemma IsPaper2ClassicalSolution.u_pos'
+```
+
+`InitialTrace.eventually_small` gives the eventual small `intervalDomain.supNorm` distance for `0 < t`. `PaperPositiveInitialDatum.floor` gives `∃ η > 0, ∀ x, η ≤ u₀ x`. `PaperPositiveInitialDatum.admissible` unfolds through the concrete interval-domain `initialAdmissible` to boundedness of `|u₀|` and continuity of `u₀`.
+
+### `ShenWork/PDE/IntervalDomain.lean`
+
+Use the concrete definitions:
+
+```lean
+def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
+def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
+
+def intervalDomainIntegral (f : intervalDomainPoint → ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1, intervalDomainLift f x
+
+def intervalDomainSupNorm (f : intervalDomainPoint → ℝ) : ℝ :=
+  sSup (Set.range (fun x : intervalDomainPoint => |f x|))
+
+def intervalDomain : BoundedDomainData where
+  Point := intervalDomainPoint
+  supNorm := intervalDomainSupNorm
+  integral := intervalDomainIntegral
+  initialAdmissible := fun u₀ =>
+    BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀
+  ...
+```
+
+The closed-spatial part of `intervalDomainClassicalRegularity` gives, for positive times, `ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc 0 1)`, which is enough to get boundedness/continuity of positive-time slices on the compact interval.
+
+### `ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean`
+
+Use:
+
+```lean
+theorem intervalDomain_u_rpow_intervalIntegrable_of_regularity
+    {params : CM2Params} {T t q : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    IntervalIntegrable
+      (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ q))
+      MeasureTheory.volume 0 1
+```
+
+This supplies positive-time integrability of `(u t)^p` once a finite positive horizon is chosen, e.g. `t + 1`.
+
+### `ShenWork/PDE/P3MoserEnergyContinuity.lean`
+
+Use as patterns:
+
+```lean
+theorem intervalDomain_power_jointContinuousOn
+theorem intervalDomain_power_bounded_on_slab
+theorem intervalDomain_energyContinuousOn_Ioo
+```
+
+The deleted-right proof is not the same as `intervalDomain_energyContinuousOn_Ioo`; it is a trace-to-initial-datum theorem at the left endpoint. But the existing `rpow` positivity pattern in `intervalDomain_power_jointContinuousOn` is exactly the right model: apply `ContinuousOn.rpow` / `ContinuousOn.rpow_const` only after proving the bases are nonzero or the exponent is positive.
+
+### `ShenWork/PDE/P3MoserAgmonDirectRoute.lean`
+
+There is a private local pattern:
+
+```lean
+private lemma intervalDomainSupNorm_nonneg_local
+```
+
+It unfolds `intervalDomainSupNorm` and uses `le_csSup_of_le` / `sSup` reasoning. Do not depend on it because it is private, but copy the same style for public helper lemmas.
+
+## Small helper lemmas to add first
+
+### Helper 1: pointwise bound by concrete `intervalDomain.supNorm`
+
+This should compile essentially as written.
 
 ```lean
 import ShenWork.PDE.P3MoserEnergyContinuity
@@ -184,147 +176,175 @@ open scoped Topology Interval
 
 namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
-/-- Initial trace plus a paper-positive datum gives the deleted-right power-energy
-limit to the datum energy.  This theorem does not inspect or constrain `u 0`. -/
-theorem intervalDomain_initialTracePowerEnergyTendsto
-    {params : CM2Params} {T p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 < T)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (htrace : InitialTrace intervalDomain u₀ u)
-    (hdatum : PaperPositiveInitialDatum intervalDomain u₀) :
-    IntervalDomainInitialTracePowerEnergyTendsto u₀ u T p0
+/-- For a bounded slice, the concrete interval-domain sup norm dominates every
+pointwise absolute value. -/
+theorem intervalDomain_abs_le_supNorm_of_bddAbove
+    {f : intervalDomain.Point → ℝ}
+    (hbdd : BddAbove (Set.range (fun x : intervalDomain.Point => |f x|))) :
+    ∀ x : intervalDomain.Point, |f x| ≤ intervalDomain.supNorm f := by
+  intro x
+  change |f x| ≤ intervalDomainSupNorm f
+  unfold intervalDomainSupNorm
+  exact le_csSup hbdd ⟨x, rfl⟩
 
-/-- Final endpoint producer: the only compatibility required is equality of the
-stored zero-slice power energies with the initial datum power energies. -/
-theorem intervalDomain_initialPowerEnergyContinuityAtZero_of_initialTrace
-    {params : CM2Params} {T p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 < T)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (htrace : InitialTrace intervalDomain u₀ u)
-    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
-    (hcompat : IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0) :
-    IntervalDomainInitialPowerEnergyContinuityAtZero u T p0
+/-- If the concrete sup norm is strictly below `ε`, then every pointwise absolute
+value is strictly below `ε`. -/
+theorem intervalDomain_pointwise_abs_lt_of_supNorm_lt
+    {f : intervalDomain.Point → ℝ} {ε : ℝ}
+    (hbdd : BddAbove (Set.range (fun x : intervalDomain.Point => |f x|)))
+    (hsup : intervalDomain.supNorm f < ε) :
+    ∀ x : intervalDomain.Point, |f x| < ε := by
+  intro x
+  exact lt_of_le_of_lt
+    (intervalDomain_abs_le_supNorm_of_bddAbove hbdd x) hsup
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 ```
 
-Pointwise compatibility can be supplied by a convenience bridge:
+### Helper 2: boundedness of a difference slice
+
+Add this near the previous helper. This is pure order algebra; the proof route is triangle inequality plus two `BddAbove` witnesses.
 
 ```lean
-theorem intervalDomain_initialPowerEnergyCompatibleAtZero_of_eq
-    {p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ}
-    (h0 : u 0 = u₀) :
-    IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0 := by
-  intro p hp
-  rw [h0]
+/-- If two slices are bounded in absolute value, so is their difference. -/
+theorem bddAbove_abs_sub_of_bddAbove_abs
+    {X : Type*} {f g : X → ℝ}
+    (hf : BddAbove (Set.range (fun x : X => |f x|)))
+    (hg : BddAbove (Set.range (fun x : X => |g x|))) :
+    BddAbove (Set.range (fun x : X => |f x - g x|)) := by
+  rcases hf with ⟨Mf, hMf⟩
+  rcases hg with ⟨Mg, hMg⟩
+  refine ⟨Mf + Mg, ?_⟩
+  rintro _ ⟨x, rfl⟩
+  have hf_le : |f x| ≤ Mf := hMf ⟨x, rfl⟩
+  have hg_le : |g x| ≤ Mg := hMg ⟨x, rfl⟩
+  calc
+    |f x - g x| ≤ |f x| + |g x| := abs_sub_le_iff.mp ?_  -- see note below
+    _ ≤ Mf + Mg := add_le_add hf_le hg_le
 ```
 
-Energy compatibility is preferable as the main residual because it is exactly what the endpoint energy theorem consumes. Pointwise equality is cleaner for solution constructors, but unnecessarily strong for the Moser wrapper.
-
-## Proof route for `intervalDomain_initialTracePowerEnergyTendsto`
-
-Fix `p` with `p0 ≤ p`.
-
-1. Use `PaperPositiveInitialDatum.floor` to get a uniform lower bound:
+The only name risk in this skeleton is the triangle inequality lemma. In Mathlib this is usually one of:
 
 ```lean
-obtain ⟨η, hη, hfloor⟩ := PaperPositiveInitialDatum.floor hdatum
+abs_sub_le_iff
+abs_sub_le_iff.mp / .mpr
+abs_sub_le_iff.2
+abs_sub_le_iff.1
 ```
 
-So `η ≤ u₀ x` for every `x`, with `0 < η`.
+or a direct triangle lemma for subtraction. If the exact name fights you, replace the first `calc` step by the standard triangle inequality after rewriting `f x - g x = f x + (-g x)`.
 
-2. Use `PaperPositiveInitialDatum.admissible hdatum`, then unfold the concrete `intervalDomain.initialAdmissible` field if necessary, to obtain boundedness and continuity of `u₀`:
+A more robust proof using `abs_sub_le_iff` is:
 
 ```lean
-have hAdm := PaperPositiveInitialDatum.admissible hdatum
--- For intervalDomain this unfolds to:
--- BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀
+  have hf_abs := abs_le.mp hf_le
+  have hg_abs := abs_le.mp hg_le
+  exact (abs_sub_le_iff).2 ⟨by linarith, by linarith⟩
 ```
 
-Choose an upper bound `M₀` for `|u₀ x|` from the `BddAbove` field.
+if the local imported orientation is `|a - b| ≤ c ↔ a - c ≤ b ∧ b ≤ a + c`.
 
-3. Use `InitialTrace.eventually_small` with a radius smaller than `η / 2`, and later also smaller than the uniform-continuity radius for `rpow`:
+### Helper 3: boundedness of positive-time slices from global classical regularity
 
-```lean
-obtain ⟨δ, hδ_pos, hδ_trace⟩ :=
-  InitialTrace.eventually_small htrace hε
-```
-
-For `0 < t < δ`, trace gives
+Recommended statement:
 
 ```lean
-intervalDomain.supNorm (fun x => u t x - u₀ x) < ε
-```
-
-Since the concrete `supNorm` is `intervalDomainSupNorm = sSup (range |...|)`, add/use a helper lemma that converts this to a pointwise estimate once the difference slice is bounded above:
-
-```lean
-theorem intervalDomain_abs_le_supNorm_of_bddAbove
+/-- A closed-spatial continuous interval-domain slice has bounded absolute range. -/
+theorem intervalDomain_bddAbove_abs_of_continuousOn_Icc
     {f : intervalDomain.Point → ℝ}
-    (hbdd : BddAbove (Set.range (fun x : intervalDomain.Point => |f x|))) :
-    ∀ x, |f x| ≤ intervalDomain.supNorm f
+    (hf : ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)) :
+    BddAbove (Set.range (fun x : intervalDomain.Point => |f x|))
 ```
 
-The needed `hbdd` for `f x = u t x - u₀ x` follows from boundedness of `u₀` and positive-time spatial continuity/boundedness of `u t`, using `hglobal.classical (by linarith : 0 < t + 1)` and the closed-spatial regularity in `intervalDomainClassicalRegularity`.
+Proof route:
 
-4. The pointwise trace bound gives, for small positive `t`,
+1. `continuous_abs.comp_continuousOn hf` gives continuity of `fun y => |intervalDomainLift f y|` on `Icc 0 1`.
+2. Use `isCompact_Icc.exists_isMaxOn` or `IsCompact.exists_isMaxOn` to get a maximum on `Icc 0 1`.
+3. For each `x : intervalDomain.Point`, rewrite `intervalDomainLift f x.1 = f x` using `x.2`.
+4. Package `BddAbove` with the maximum value.
+
+Then add:
 
 ```lean
-η / 2 ≤ u t x
+/-- Positive-time global classical regularity gives absolute boundedness of the
+slice `u t`. -/
+theorem intervalDomain_bddAbove_abs_u_slice_of_global_classical
+    {params : CM2Params} {t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (ht0 : 0 < t) :
+    BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|))
 ```
 
-and also an upper bound such as
+Proof route:
 
 ```lean
-|u t x| ≤ M₀ + 1
+have hT : 0 < t + 1 := by linarith
+have hsol := hglobal.classical hT
+have ht : t ∈ Set.Ioo (0 : ℝ) (t + 1) := ⟨ht0, by linarith⟩
+have hC2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+  (hsol.regularity.2.2.2.2.1 t ht).1.1
+exact intervalDomain_bddAbove_abs_of_continuousOn_Icc hC2.continuousOn
 ```
 
-uniformly in `x`.
+The accessor path is the one already used in `intervalDomain_u_rpow_intervalIntegrable_of_regularity`.
 
-5. Real-power issue: because `p : ℝ`, do **not** use a polynomial-style estimate. Use uniform continuity of
+### Helper 4: datum boundedness and continuity
+
+For `PaperPositiveInitialDatum`, boundedness is immediate from admissibility after unfolding the interval-domain field:
 
 ```lean
-fun r : ℝ => r ^ p
+/-- Paper-positive interval-domain data are bounded in absolute value. -/
+theorem intervalDomain_bddAbove_abs_of_paperPositiveInitialDatum
+    {u₀ : intervalDomain.Point → ℝ}
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀) :
+    BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) := by
+  have hAdm := PaperPositiveInitialDatum.admissible hdatum
+  -- `intervalDomain.initialAdmissible` unfolds to
+  -- `BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀`.
+  simpa [intervalDomain] using hAdm.1
 ```
 
-on a compact positive interval, for example `[η / 2, M₀ + 1]`. The positivity floor is the key. A Lean route is:
+If `simpa [intervalDomain]` unfolds too much or too little, use:
 
 ```lean
-have hpow_cont : ContinuousOn (fun r : ℝ => r ^ p) (Set.Icc (η / 2) (M₀ + 1)) :=
-  (continuousOn_id.rpow_const (fun r hr => Or.inl (ne_of_gt (lt_of_lt_of_le ?ηpos hr.1))))
-
-have hpow_uc : UniformContinuousOn (fun r : ℝ => r ^ p) (Set.Icc (η / 2) (M₀ + 1)) :=
-  hpow_cont.uniformContinuousOn_compact isCompact_Icc
+  change BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) ∧
+      Continuous u₀ at hAdm
+  exact hAdm.1
 ```
 
-The exact Mathlib names may be one of these variants depending on imports:
+### Helper 5: uniform continuity of real powers on a positive compact interval
+
+This is the key real-`p` lemma. With a positive left endpoint it works for every real exponent.
 
 ```lean
-ContinuousOn.rpow
-ContinuousOn.rpow_const
-ContinuousOn.uniformContinuousOn_compact
-isCompact_Icc
+/-- On a compact interval bounded away from zero, `r ↦ r ^ p` is uniformly
+continuous for every real exponent `p`. -/
+theorem real_rpow_uniformContinuousOn_Icc_of_pos_left
+    {p a b : ℝ} (ha : 0 < a) :
+    UniformContinuousOn (fun r : ℝ => r ^ p) (Set.Icc a b) := by
+  have hcont : ContinuousOn (fun r : ℝ => r ^ p) (Set.Icc a b) := by
+    exact continuousOn_id.rpow_const
+      (fun r hr => Or.inl (ne_of_gt (lt_of_lt_of_le ha hr.1)))
+  exact hcont.uniformContinuousOn_compact isCompact_Icc
 ```
 
-This is the same real-power positivity pattern already used in `P3MoserEnergyContinuity.lean` by `intervalDomain_power_jointContinuousOn`, which calls `ContinuousOn.rpow` with a positivity/nonzero side condition.
-
-6. Uniform continuity converts pointwise `|u t x - u₀ x|` small into
+Name risks: depending on imports, the last line may be spelled as one of:
 
 ```lean
-|(u t x) ^ p - (u₀ x) ^ p| < ε
+hcont.uniformContinuousOn_compact isCompact_Icc
+isCompact_Icc.uniformContinuousOn_of_continuousOn hcont
 ```
 
-uniformly in `x`.
+The same pattern appears in existing code via `ContinuousOn.rpow` / `ContinuousOn.rpow_const` with a nonzero side condition.
 
-7. Integrate the pointwise difference over the unit interval. A useful helper lemma is:
+### Helper 6: integral difference bound on the unit interval
+
+Recommended statement:
 
 ```lean
+/-- On the concrete unit interval, a uniform pointwise bound controls the
+absolute difference of integrals. -/
 theorem intervalDomain_integral_sub_abs_le_of_pointwise_abs_le
     {f g : intervalDomain.Point → ℝ} {ε : ℝ}
     (hε : 0 ≤ ε)
@@ -334,64 +354,210 @@ theorem intervalDomain_integral_sub_abs_le_of_pointwise_abs_le
     |intervalDomain.integral f - intervalDomain.integral g| ≤ ε
 ```
 
-This is just `intervalDomainIntegral`, `intervalIntegral.integral_sub`, `norm_integral_le_integral_norm`, and interval length `1`. If the exact helper does not exist yet, it is a small non-PDE lemma.
+Proof route:
 
-For integrability:
+1. Rewrite `intervalDomain.integral` to `intervalDomainIntegral` and unfold.
+2. Use `intervalIntegral.integral_sub hf_int hg_int`.
+3. Prove `-ε ≤ ∫ (f-g)` and `∫ (f-g) ≤ ε` by `intervalIntegral.integral_mono_on zero_le_one` against the constant functions `-ε` and `ε`.
+4. Use `intervalIntegral.integral_const`; on `[0,1]`, the constant integral is the constant itself.
+5. Finish with `abs_le.mpr`.
 
-* `u₀` is continuous from `initialAdmissible`, and the positive floor makes `(u₀ x)^p` continuous/integrable.
-* for `t > 0`, `hglobal.classical (t+1)` gives spatial regularity/continuity of `u t`, and the positive lower bound makes `(u t x)^p` continuous/integrable.
+This helper avoids needing a special `abs_integral_le_integral_abs` interval-integral lemma name.
 
-8. This proves the deleted-right convergence:
+## Main proof decomposition
 
-```lean
-Tendsto
-  (fun t => intervalDomain.integral (fun x => (u t x) ^ p))
-  (𝓝[Set.Ioc (0 : ℝ) T] 0)
-  (𝓝 (intervalDomain.integral (fun x => (u₀ x) ^ p)))
-```
+Fix `p` with `p0 ≤ p`.
 
-9. Use `hcompat p hp` to replace the limit value by the stored zero energy, then prove `ContinuousWithinAt` on `Set.Icc 0 T` by splitting near `0` into the stored point `t = 0` and the deleted right interval `0 < t ≤ T`.
+### Step 1: datum floor and datum bound
 
-In metric epsilon language, after choosing a small neighborhood:
+From the paper-positive datum:
 
 ```lean
-intro t htIcc htclose
-by_cases ht0 : t = 0
-· subst t
-  -- difference is zero because the target is the actual value at 0
-· have htpos : 0 < t := lt_of_le_of_ne htIcc.1 (Ne.symm ht0)
-  -- use deleted-right trace convergence
+obtain ⟨η, hη, hfloor⟩ := PaperPositiveInitialDatum.floor hdatum
+have hdatum_bdd := intervalDomain_bddAbove_abs_of_paperPositiveInitialDatum hdatum
 ```
 
-## Real-power cautions
-
-The `p` in this endpoint residual is a real exponent. The trace-to-energy proof should not rely on integer-power algebra.
-
-The safe route is to require/use a uniform positive floor near `t = 0`:
+Choose an explicit upper bound `M₀` from `hdatum_bdd`, then replace it by a convenient nonnegative bound such as `M := max 1 M₀`. You need a lemma or local proof that
 
 ```lean
-PaperPositiveInitialDatum intervalDomain u₀
+∀ x, |u₀ x| ≤ M
 ```
 
-plus trace closeness small enough to keep
+and therefore
+
+```lean
+∀ x, u₀ x ≤ M
+```
+
+while also retaining
+
+```lean
+∀ x, η ≤ u₀ x
+```
+
+### Step 2: trace gives pointwise convergence for small positive times
+
+Given a small radius `δtrace`, `InitialTrace.eventually_small` gives
+
+```lean
+intervalDomain.supNorm (fun x => u t x - u₀ x) < δtrace
+```
+
+for `0 < t < δ`.
+
+For each such `t`, get boundedness of the difference slice:
+
+```lean
+have hut_bdd : BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|)) :=
+  intervalDomain_bddAbove_abs_u_slice_of_global_classical hglobal ht0
+
+have hdiff_bdd : BddAbove
+    (Set.range (fun x : intervalDomain.Point => |u t x - u₀ x|)) :=
+  bddAbove_abs_sub_of_bddAbove_abs hut_bdd hdatum_bdd
+```
+
+Then apply:
+
+```lean
+have hpoint_close : ∀ x, |u t x - u₀ x| < δtrace :=
+  intervalDomain_pointwise_abs_lt_of_supNorm_lt hdiff_bdd hsup
+```
+
+### Step 3: small trace distance traps `u t x` in a positive compact interval
+
+Choose `δtrace ≤ η / 2` and `δtrace ≤ 1`. Then for all `x`:
 
 ```lean
 η / 2 ≤ u t x
+u t x ≤ M + 1
+η ≤ u₀ x
+u₀ x ≤ M
 ```
 
-for small `t > 0`. This makes `r ↦ r ^ p` uniformly continuous on a compact positive interval for every fixed real `p`.
-
-Only `PositiveInitialDatum intervalDomain u₀` is weaker: it gives positivity only on `inside` and does not give a closed-domain uniform positive floor. For real `rpow`, especially for non-integer or negative exponents, that is not enough at the endpoints. The paper-faithful `PaperPositiveInitialDatum` is the right assumption.
-
-## Recommended next step
-
-Do not keep treating `IntervalDomainInitialPowerEnergyContinuityAtZero` as an irreducible black-box residual. Split it into:
-
-1. a trace limit theorem, which should be provable from `InitialTrace`, `PaperPositiveInitialDatum`, and positive-time global classical regularity; and
-2. an explicit stored-zero compatibility residual, preferably energy-level:
+So both `u t x` and `u₀ x` lie in the compact positive interval
 
 ```lean
-IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0
+Set.Icc (η / 2) (M + 1)
 ```
 
-This is thinner and more honest than the current monolithic endpoint continuity residual. It also pinpoints exactly what constructors must prove about their stored `u 0` slice.
+This is where `PaperPositiveInitialDatum` is strongest: the compact interval is bounded away from zero, so no sign/exponent case split is needed for real `p`.
+
+### Step 4: uniform continuity of `rpow` converts trace closeness to power closeness
+
+Use:
+
+```lean
+have huc : UniformContinuousOn (fun r : ℝ => r ^ p)
+    (Set.Icc (η / 2) (M + 1)) :=
+  real_rpow_uniformContinuousOn_Icc_of_pos_left (by linarith [hη] : 0 < η / 2)
+```
+
+Given target `ε > 0`, extract a uniform-continuity radius `δpow > 0`. Then pointwise trace closeness below `δpow` gives
+
+```lean
+∀ x, |(u t x) ^ p - (u₀ x) ^ p| < ε
+```
+
+or a non-strict `≤ ε` version after shrinking to `ε / 2`.
+
+### Step 5: integrate the pointwise power difference
+
+For positive `t`, use a horizon `t + 1`:
+
+```lean
+have hsolt : IsPaper2ClassicalSolution intervalDomain params (t + 1) u v :=
+  hglobal.classical (by linarith : 0 < t + 1)
+
+have hut_int : IntervalIntegrable
+    (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ p)) volume 0 1 :=
+  intervalDomain_u_rpow_intervalIntegrable_of_regularity
+    (q := p) hsolt ht0 (by linarith)
+```
+
+For `u₀`, use its continuity plus the same positive compact interval to show
+
+```lean
+have hu0_int : IntervalIntegrable
+    (intervalDomainLift (fun x : intervalDomain.Point => (u₀ x) ^ p)) volume 0 1 := ...
+```
+
+Proof route for `hu0_int`:
+
+* from `PaperPositiveInitialDatum.admissible hdatum`, get `Continuous u₀`;
+* show `ContinuousOn (fun y => intervalDomainLift u₀ y) (Icc 0 1)` by rewriting the lift on the interval;
+* apply `ContinuousOn.rpow_const` using the floor `η ≤ u₀ x`;
+* convert back to the lifted power function; then use `.intervalIntegrable`.
+
+Then apply `intervalDomain_integral_sub_abs_le_of_pointwise_abs_le` to get
+
+```lean
+|intervalDomain.integral (fun x => (u t x) ^ p) -
+  intervalDomain.integral (fun x => (u₀ x) ^ p)| ≤ ε
+```
+
+for all sufficiently small `t ∈ Set.Ioc 0 T`.
+
+### Step 6: package as `Tendsto` on `𝓝[Set.Ioc 0 T] 0`
+
+Use the metric characterization of tendsto to neighborhoods of a real number. The proof only needs eventual control for `t` in `Set.Ioc 0 T`; the set membership already supplies `0 < t` and `t ≤ T`. To get strict `t < T` when needed, shrink the neighborhood radius below `T`; alternatively use the global horizon `t + 1`, which avoids needing `t < T`.
+
+Skeleton shape:
+
+```lean
+  intro p hp
+  rw [Metric.tendsto_nhds]
+  intro ε hε
+  -- choose ε/2 for integral estimate and get a trace radius from rpow UC
+  -- obtain δ > 0 from `InitialTrace.eventually_small`
+  refine eventually_nhdsWithin_iff.mpr ?_
+  refine ⟨Set.Ioo (-δ) δ, ?open, ?mem, ?eventual⟩
+  intro t ht_near htIoc
+  have ht0 : 0 < t := htIoc.1
+  -- use trace, pointwise supNorm helper, rpow UC, integral difference bound
+```
+
+The exact filter lemma can vary. A robust alternative is to prove the ε/δ form manually with `Metric.mem_nhdsWithin_iff` / `eventually_nhdsWithin_iff`; do not try to turn this into ordinary `ContinuousAt`, because the theorem is deleted-right and intentionally ignores `u 0`.
+
+## PositiveInitialDatum-only route
+
+A weaker theorem may be possible:
+
+```lean
+theorem intervalDomain_initialTracePowerEnergyTendsto_of_positiveInitialDatum
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (hp0 : 0 < p0)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v) :
+    IntervalDomainInitialTracePowerEnergyTendsto u₀ u T p0
+```
+
+But this route needs additional work:
+
+1. From `PositiveInitialDatum` plus `intervalDomain.initialAdmissible`, prove `0 ≤ u₀ x` on the **closed** interval. This is not the same as the existing `PositiveInitialDatum.pos`, which only gives positivity on `inside`. It should follow from continuity and density of the interior near the endpoints, but it is a separate endpoint lemma.
+2. Since `u₀` may vanish at the boundary, use `0 < p` to prove continuity of `r ↦ r ^ p` at zero. This is why the theorem needs `0 < p0`, so `p0 ≤ p` implies `0 < p`.
+3. The uniform-continuity compact interval becomes `[0, M + 1]`, not `[η/2, M + 1]`, and the `ContinuousOn.rpow` side condition must use the exponent-positive branch at zeros.
+
+For Moser, `p0` is usually already positive, so this is mathematically plausible. But Lean-wise the paper-positive route is much cleaner and avoids all endpoint-zero `rpow` cases.
+
+## Final recommendation
+
+Add the paper-positive theorem first:
+
+```lean
+intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive
+```
+
+with no `0 < p0` hypothesis. Treat it as an analytic helper theorem, not a residual. Then combine it with the energy-compatibility residual from Q2892 to produce the full endpoint continuity:
+
+```text
+InitialTrace + PaperPositiveInitialDatum + global classical
+  ⇒ IntervalDomainInitialTracePowerEnergyTendsto
+IntervalDomainInitialPowerEnergyCompatibleAtZero
+  ⇒ IntervalDomainInitialPowerEnergyContinuityAtZero
+```
+
+This is the clean separation: the trace theorem proves the deleted-right limit, and the compatibility theorem handles the stored `u 0` value.
