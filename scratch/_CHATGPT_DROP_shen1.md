@@ -1,4 +1,4 @@
-# Q2875 (shen1) — closed-window derivative integrability after strict-window closure
+# Q2876 (shen1) — initial-window derivative integrability bridge
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
@@ -6,52 +6,40 @@ Source edit requested: none; answer file only.
 
 ## Executive answer
 
-The full closed-window
+I do **not** see a way to produce
 
 ```lean
-IntegratedMoserEnergyDerivativeWindowIntegrability intervalDomain u T p0
+IntegratedMoserEnergyDerivativeInitialWindowIntegrability intervalDomain u T p0
 ```
 
-should **not** be claimed from the current APIs consisting only of:
+from the existing initial-trace/global-classical/endpoint-energy-continuity APIs alone.
 
-* global classical solution;
-* endpoint energy continuity;
-* strict-window derivative integrability/continuity.
+Reason:
 
-The right endpoint is not a real obstruction once you have a global classical solution: for a window `[a,b]` with `0 < a` and `b ≤ T`, apply the strict-window theorem on the longer horizon `T + 1`, so `b < T + 1` even when `b = T`.
+* `IsPaper2GlobalClassicalSolution` is `∀ T > 0, IsPaper2ClassicalSolution ... T`, and `IsPaper2ClassicalSolution` gives regularity only for strict interior times `0 < t < T`.
+* `InitialTrace` is a value convergence/sup-norm approach statement as used by `conjugatePicardLimit_initialTrace_of_conjugate_data`; it does not bound or integrate `∂ₜ u` near `t = 0`.
+* endpoint power-energy continuity gives `ContinuousWithinAt Y (Icc 0 T) 0`, but continuity of `Y` at `0` plus differentiability on `(0,T)` does not imply `IntervalIntegrable (deriv Y) volume 0 b`.
+* the strict-window theorem gives integrability on every `[a,b]`, `a > 0`, but Mathlib’s `IntervalIntegrable` on `0..b` is actual Lebesgue/Bochner integrability over `Ioc 0 b`; local integrability away from `0` is insufficient.
 
-The left endpoint is the real obstruction.  Windows starting at `0` require integrability of
+The smallest honest PDE-shaped residual is therefore not the derivative of the abstract energy directly, but the **explicit time-Leibniz RHS profile**:
 
 ```lean
-deriv (fun τ => integratedMoserEnergy intervalDomain u q τ)
+s ↦ intervalDomainPowerEnergyDerivIntegral q u s
 ```
 
-on `(0,b]`.  Strict-window integrability on every `[a,b]` with `a > 0` does not imply integrability on `(0,b]`.  Endpoint continuity of the energy also does not imply absolute integrability of the derivative near `0`: a continuous function on `[0,b]` may be differentiable on `(0,b]` with derivative locally integrable on every `[a,b]` but not Lebesgue integrable near `0`.  Mathlib’s `IntervalIntegrable` is an actual integrability requirement, not an improper/conditional FTC placeholder.
+integrable on initial windows.  Global classical then identifies this profile with the derivative of `integratedMoserEnergy` for every `s > 0`, and `IntervalIntegrable.congr` transfers integrability on `Ioc 0 b`.  This is a no-sorry bridge and keeps the remaining PDE work exactly where it belongs: prove a near-`0` integrability estimate for the explicit profile.
 
-So the smallest honest bridge is: prove all positive-left-start windows from global classical + strict-window theorem, and keep only **initial-window derivative integrability** as a residual.
+## Code to add
 
-## Recommended exact interface
-
-Put these declarations in `ShenWork/PDE/P3MoserEnergyContinuity.lean` after the strict-window theorem, or in a small new file such as:
+Put this in `ShenWork/PDE/P3MoserEnergyContinuity.lean`, after the current strict-window derivative-integrability facts and after the existing definition
 
 ```lean
-ShenWork/PDE/P3MoserEnergyDerivativeWindow.lean
+def intervalDomainPowerEnergyDerivIntegral
+    (q : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (s : ℝ) : ℝ :=
+  ∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv q u s y
 ```
 
-with imports:
-
-```lean
-import ShenWork.PDE.P3MoserEnergyContinuity
-import Mathlib.Tactic
-```
-
-The code below is designed as no-sorry interface/wiring code.  It uses the compiled strict theorem named in the question:
-
-```lean
-intervalDomain_deriv_intervalIntegrable_of_strictWindow
-```
-
-If your local theorem has a longer name, only that final call needs renaming.
+If `IntegratedMoserEnergyDerivativeInitialWindowIntegrability` is already defined locally, omit its duplicate definition below.
 
 ```lean
 import ShenWork.PDE.P3MoserEnergyContinuity
@@ -69,10 +57,9 @@ namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
 /-- Initial-window derivative-integrability residual for Moser energies.
 
-This is exactly the part not supplied by strict-window integrability: windows
-whose left endpoint is `0`.  It deliberately asks for the actual derivative
-profile consumed by `IntegratedMoserEnergyDerivativeWindowIntegrability`, avoiding
-any endpoint-time derivative-identification issue at `0`. -/
+This is the exact left-endpoint piece missing after strict-window integrability:
+`IntervalIntegrable` over `0..b` means integrability on `Ioc 0 b`, so no value
+or derivative at the endpoint `0` itself is requested. -/
 def IntegratedMoserEnergyDerivativeInitialWindowIntegrability
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (T p0 : ℝ) : Prop :=
@@ -82,105 +69,12 @@ def IntegratedMoserEnergyDerivativeInitialWindowIntegrability
         (fun s => deriv (fun τ => integratedMoserEnergy D u q τ) s)
         volume 0 b
 
-/-- Positive-left-start derivative integrability for all windows inside `[0,T]`.
+/-- PDE-shaped initial-window residual: integrability near `t = 0` of the
+explicit time-Leibniz RHS for the interval-domain power energy.
 
-For `intervalDomain`, this will be supplied by global classical regularity plus
-the strict-window theorem, using a longer horizon to include the right endpoint
-`T`. -/
-def IntegratedMoserEnergyDerivativePositiveStartWindowIntegrability
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T p0 : ℝ) : Prop :=
-  ∀ q, p0 ≤ q →
-    ∀ a b, 0 < a → a ≤ b → b ≤ T →
-      IntervalIntegrable
-        (fun s => deriv (fun τ => integratedMoserEnergy D u q τ) s)
-        volume a b
-
-/-- Pure bridge from the initial-window residual plus all positive-left-start
-windows to the full closed-window derivative-integrability package.
-
-This theorem is intentionally abstract in `D`: it is just the case split on
-whether the left endpoint is `0`. -/
-theorem integratedMoserEnergyDerivativeWindowIntegrability_of_initial_and_positiveStart
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p0 : ℝ}
-    (hinit : IntegratedMoserEnergyDerivativeInitialWindowIntegrability D u T p0)
-    (hpos : IntegratedMoserEnergyDerivativePositiveStartWindowIntegrability D u T p0) :
-    IntegratedMoserEnergyDerivativeWindowIntegrability D u T p0 := by
-  intro q hq t1 ht1 t2 ht2
-  by_cases ht10 : t1 = 0
-  · subst t1
-    exact hinit q hq t2 ht2
-  · have ht1_pos : 0 < t1 := by
-      exact lt_of_le_of_ne ht1.1 (fun h : (0 : ℝ) = t1 => ht10 h.symm)
-    exact hpos q hq t1 t2 ht1_pos ht2.1 ht2.2
-
-/-- A global classical interval-domain solution supplies all derivative-integrable
-windows with positive left endpoint.
-
-The right endpoint `T` is handled by applying the strict-window theorem on the
-longer horizon `T + 1`. -/
-theorem intervalDomain_integratedMoserEnergyDerivativePositiveStartWindowIntegrability_of_global_classical
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v) :
-    IntegratedMoserEnergyDerivativePositiveStartWindowIntegrability
-      intervalDomain u T p0 := by
-  intro q _hq a b ha hab hbT
-  have hTplus_pos : 0 < T + 1 := by
-    have hT_pos : 0 < T := lt_of_lt_of_le ha (le_trans hab hbT)
-    linarith
-  have hsolLong :
-      IsPaper2ClassicalSolution intervalDomain params (T + 1) u v :=
-    hglobal.classical hTplus_pos
-  have hb_lt_Tplus : b < T + 1 := by
-    linarith
-  exact
-    intervalDomain_deriv_intervalIntegrable_of_strictWindow
-      (params := params) (T := T + 1) (q := q) (a := a) (b := b)
-      (u := u) (v := v) hsolLong ha hab hb_lt_Tplus
-
-/-- Full closed-window derivative integrability from global classical regularity
-plus the honest left-endpoint derivative-integrability residual. -/
-theorem intervalDomain_integratedMoserEnergyDerivativeWindowIntegrability_of_global_classical_initial
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hinit :
-      IntegratedMoserEnergyDerivativeInitialWindowIntegrability
-        intervalDomain u T p0) :
-    IntegratedMoserEnergyDerivativeWindowIntegrability intervalDomain u T p0 :=
-  integratedMoserEnergyDerivativeWindowIntegrability_of_initial_and_positiveStart
-    hinit
-    (intervalDomain_integratedMoserEnergyDerivativePositiveStartWindowIntegrability_of_global_classical
-      (params := params) (T := T) (p0 := p0) (u := u) (v := v) hglobal)
-
-end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-```
-
-## Why endpoint energy continuity is not enough
-
-The full FTC package has two logically separate requirements:
-
-```lean
-IntervalIntegrable (deriv Y) volume t1 t2
-∫ deriv Y = Y t2 - Y t1
-```
-
-Endpoint continuity helps with the `ContinuousOn Y (Icc t1 t2)` side of Mathlib’s FTC, but it does not produce the first line.  In particular, the theorem already used for FTC,
-
-```lean
-intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le
-```
-
-requires derivative interval integrability as an input.  There is no Mathlib theorem of the form “continuous on `[0,b]`, differentiable on `(0,b)`, and locally integrable derivative on every `[a,b]` implies `IntervalIntegrable deriv 0 b`,” because that statement is false for Lebesgue/Bochner integrability.
-
-A typical analytic counter-shape is a function continuous at `0`, differentiable on `(0,b]`, whose derivative behaves like a non-integrable oscillatory/singular term near `0`.  It can be locally integrable on every `[a,b]`, `a>0`, while not integrable on `(0,b]`.  Thus the left endpoint needs a genuine trace/integrability theorem, not a continuity wrapper.
-
-## Optional more PDE-shaped residual
-
-The residual above asks directly for the derivative profile.  If you prefer a producer closer to the interval-domain Leibniz APIs, introduce a second residual for the explicit RHS:
-
-```lean
+This is the preferred residual because it talks about the concrete producer
+`intervalDomainPowerDeriv`, not about an opaque `deriv` of an already-integrated
+energy. -/
 def IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability
     (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
   ∀ q, p0 ≤ q →
@@ -188,17 +82,128 @@ def IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability
       IntervalIntegrable
         (fun s => intervalDomainPowerEnergyDerivIntegral q u s)
         volume 0 b
+
+/-- At every positive time, global classical regularity identifies the derivative
+of the abstract integrated Moser energy with the explicit interval-domain
+power-derivative integral.
+
+The proof uses the horizon `s + 1`, so it never needs a pre-selected finite
+horizon and never touches `s = 0`. -/
+theorem intervalDomain_integratedMoserEnergy_deriv_eq_powerDerivIntegral_of_global_pos
+    {params : CM2Params} {q s : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hs0 : 0 < s) :
+    deriv (fun τ => integratedMoserEnergy intervalDomain u q τ) s =
+      intervalDomainPowerEnergyDerivIntegral q u s := by
+  have hTpos : 0 < s + 1 := by linarith
+  have hsol : IsPaper2ClassicalSolution intervalDomain params (s + 1) u v :=
+    hglobal.classical hTpos
+  have hpow :
+      HasDerivAt (fun τ => intervalDomainPowerEnergy q u τ)
+        (∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv q u s y) s :=
+    intervalDomainPowerEnergy_hasDerivAt
+      (p := params) (T := s + 1) (q := q) (u := u) (v := v)
+      hsol ⟨hs0, by linarith⟩
+  have hYeq :
+      (fun τ : ℝ => integratedMoserEnergy intervalDomain u q τ) =
+        fun τ : ℝ => intervalDomainPowerEnergy q u τ := by
+    funext τ
+    unfold integratedMoserEnergy intervalDomainPowerEnergy
+    change intervalDomainIntegral (fun x => (u τ x) ^ q) =
+      ∫ y in (0 : ℝ)..1, (intervalDomainLift (u τ) y) ^ q
+    unfold intervalDomainIntegral
+    refine intervalIntegral.integral_congr (fun y hy => ?_)
+    rw [Set.uIcc_of_le zero_le_one] at hy
+    simp [intervalDomainLift, hy]
+  rw [hYeq]
+  simpa [intervalDomainPowerEnergyDerivIntegral] using hpow.deriv
+
+/-- No-sorry bridge from explicit initial-window integrability of the
+Leibniz-RHS profile to initial-window integrability of the actual derivative of
+`integratedMoserEnergy`.
+
+The congruence is on `Ioc 0 b` (via `Set.uIoc_of_le`), so every relevant time is
+strictly positive and the global-classical derivative-identification lemma
+applies. -/
+theorem intervalDomain_integratedMoserEnergyDerivativeInitialWindowIntegrability_of_powerDerivIntegral_initial
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hpowInit :
+      IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability u T p0) :
+    IntegratedMoserEnergyDerivativeInitialWindowIntegrability
+      intervalDomain u T p0 := by
+  intro q hq b hb
+  have hpowInt :
+      IntervalIntegrable
+        (fun s => intervalDomainPowerEnergyDerivIntegral q u s)
+        volume 0 b :=
+    hpowInit q hq b hb
+  refine IntervalIntegrable.congr ?_ hpowInt
+  intro s hs
+  rw [Set.uIoc_of_le hb.1] at hs
+  exact
+    intervalDomain_integratedMoserEnergy_deriv_eq_powerDerivIntegral_of_global_pos
+      (params := params) (q := q) (s := s) (u := u) (v := v)
+      hglobal hs.1
+
+end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 ```
 
-Then prove a separate conversion to
-`IntegratedMoserEnergyDerivativeInitialWindowIntegrability` using the derivative-identification theorem on the longer global horizon `T+1` and an a.e.-congruence lemma for `IntervalIntegrable`.  I would not make this the first bridge unless you have confirmed the exact local lemma name for interval-integrability under a.e. equality in Mathlib 4.29.1.  The direct derivative residual above is smaller and immediately wires into the existing abstract package.
+## Why this is the right residual
 
-## Final recommended frontier statement
+The residual
 
-The headline frontier after the compiled strict-window work should be:
+```lean
+IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability u T p0
+```
+
+is strictly more PDE-shaped than asking directly for
 
 ```lean
 IntegratedMoserEnergyDerivativeInitialWindowIntegrability intervalDomain u T p0
 ```
 
-not the full closed-window predicate.  With global classical regularity, the theorem above reduces the full closed-window predicate exactly to that left-endpoint residual, with no axioms and no fake endpoint differentiability.
+because it targets the concrete integrand produced by the interval-domain time-Leibniz API:
+
+```lean
+intervalDomainPowerDeriv q u s y
+  = q * (intervalDomainLift (u s) y) ^ (q - 1) *
+      deriv (fun r => intervalDomainLift (u r) y) s
+```
+
+A later analytic producer can prove it using small-time estimates for `u`, `∂ₜu`, or the PDE RHS.  That is a genuine near-initial-time estimate.  It cannot be replaced by `InitialTrace`, because `InitialTrace` only controls `u(t) → u₀` in sup norm, not the integrability of `∂ₜu` or of the chain-rule energy derivative near `0`.
+
+## Optional even-more-PDE residual
+
+If you want one level closer to the PDE equation, define the residual in terms of the weighted time term already used in `IntervalDomainLpTimeLeibniz.lean`:
+
+```lean
+def IntervalDomainLpWeightedTimeTermInitialWindowIntegrability
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
+  ∀ q, p0 ≤ q →
+    ∀ b ∈ Set.Icc (0 : ℝ) T,
+      IntervalIntegrable
+        (fun s => q * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm q u s))
+        volume 0 b
+```
+
+Then convert this to `IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability` using the compiled identity
+
+```lean
+intervalDomainPowerTimeTerm_eq_scaled_weighted
+```
+
+at positive times, again by `IntervalIntegrable.congr` on `Ioc 0 b`.  I would land the explicit `intervalDomainPowerEnergyDerivIntegral` residual first, because it is syntactically closest to the existing derivative-identification theorem and avoids another layer of positivity rewrites.
+
+## Bottom line
+
+Current APIs produce:
+
+* all strict windows;
+* all positive-left-start windows via global classical and horizon extension;
+* endpoint **continuity** of the energy.
+
+They do **not** produce the initial derivative integrability needed for the full closed-window FTC.  The smallest honest next residual is initial-window integrability of `intervalDomainPowerEnergyDerivIntegral`; the no-sorry bridge above turns that residual into the abstract `IntegratedMoserEnergyDerivativeInitialWindowIntegrability` consumed downstream.
