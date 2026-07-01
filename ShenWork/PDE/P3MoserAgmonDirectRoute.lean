@@ -52,8 +52,8 @@ i.e., `∫u^{p+ρ} ≤ ‖u^{p/2}‖∞^{2(p+ρ-p₀)/p} · ∫u^{p₀}`
 theorem intervalDomain_higher_Lp_le_Linf_rpow_mul_seed
     {f : intervalDomain.Point → ℝ}
     (hf_nonneg : ∀ x, 0 ≤ f x)
-    {pExp p0 rho : ℝ}
-    (hp0_le : p0 ≤ pExp) (hrho : 0 < rho) :
+    {pExp rho : ℝ}
+    (hpExp : 0 ≤ pExp) (hrho : 0 ≤ rho) :
     intervalDomain.integral (fun x => f x ^ (pExp + rho)) ≤
       (intervalDomainSupNorm f) ^ rho *
         intervalDomain.integral (fun x => f x ^ pExp) := by
