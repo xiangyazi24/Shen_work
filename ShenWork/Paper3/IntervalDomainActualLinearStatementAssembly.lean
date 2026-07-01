@@ -779,6 +779,56 @@ theorem
   intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallFrontierData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers in the actual-linear-small
+regime, using Paper2 main theorem targets for Proposition 1.3/1.4 and
+discharging negative sensitivity from `0 < χ₀`. -/
+structure IntervalDomainPaper3StatementAprioriActualLinearSmallP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineAprioriActualLinearSmallFrontierData
+      p M0 uBar vLower K
+
+/-- A-priori actual-linear-small Paper3 statement target from Paper2 main
+theorem targets, with the negative-sensitivity residual discharged by
+`0 < χ₀`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementAprioriActualLinearSmallP2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C
+      { negativeBound :=
+          intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+            p hχ0
+        paper2Main := hData.paper2Main },
+    intervalDomain_paper3_mainlineTargets_of_aprioriActualLinearSmallFrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing a-priori actual-linear-small Paper3 statement target from
+Paper2 main theorem targets, with no separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementAprioriActualLinearSmallP2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallP2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Moser-ladder route with actual-linear persistence -/
 
 /-- Moser-ladder mass/Lp/smoothing residuals for the actual-linear-small
@@ -2457,6 +2507,82 @@ theorem
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers for the thin integrated-step
+actual-linear headline route, with the negative-sensitivity Proposition 1.2
+residual discharged by `0 < χ₀` and Proposition 1.3/1.4 routed through Paper2
+main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the full interval-domain Paper3 statement target from the thin
+integrated-step actual-linear headline route and Paper2 main theorem targets,
+without carrying a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing full interval-domain Paper3 statement target from the thin
+integrated-step actual-linear headline route and Paper2 main theorem targets,
+with the negative-sensitivity residual discharged by `0 < χ₀`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Lower-average / upper-data-gap component route -/
 
 /-- Actual-linear-small Moser residuals with the preferred lower-average /
@@ -3286,6 +3412,82 @@ theorem
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers for the thin lower-average /
+upper-gap actual-linear headline route, with the negative-sensitivity
+Proposition 1.2 residual discharged from `0 < χ₀` and Proposition 1.3/1.4
+routed through supplied Paper2 main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the thin lower-average / upper-gap actual-linear Paper3 statement
+target from Paper2 main theorem targets, without carrying a separate
+negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing thin lower-average / upper-gap actual-linear Paper3
+statement target from Paper2 main theorem targets, with the
+negative-sensitivity residual discharged by `0 < χ₀`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
 end
 
 end ShenWork.Paper3
@@ -3318,6 +3520,8 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_mainlineTargets_of_aprioriActualLinearSmallFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallP2MainNoNegData
 #print axioms
   intervalDomain_sectorialMainline_unconditionalTarget_of_moserActualLinearSmallFacts
 #print axioms
@@ -3365,6 +3569,8 @@ namespace ShenWork.Paper3
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainData
 #print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegData
+#print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_lowerAverageUpperDataGapResiduals
@@ -3404,5 +3610,7 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegData
 
 end ShenWork.Paper3
