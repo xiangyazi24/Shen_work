@@ -288,6 +288,28 @@ def integratedMoserGradientEnergy
   D.integral (fun x =>
     (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)
 
+/-- A nonnegative gradient energy has a nonnegative interval integral over a
+non-reversed time interval. -/
+theorem integratedMoserGradientEnergy_intervalIntegral_nonneg_of_forall
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {p a b : ℝ}
+    (hab : a ≤ b)
+    (hG_nonneg : ∀ t, 0 ≤ integratedMoserGradientEnergy D u p t) :
+    0 ≤ ∫ t in a..b, integratedMoserGradientEnergy D u p t :=
+  intervalIntegral.integral_nonneg_of_forall hab hG_nonneg
+
+/-- A nonnegative gradient energy on the integration window has a nonnegative
+interval integral over that non-reversed window. -/
+theorem integratedMoserGradientEnergy_intervalIntegral_nonneg_of_nonneg_on
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {p a b : ℝ}
+    (hab : a ≤ b)
+    (hG_nonneg :
+      ∀ t ∈ Set.Icc a b,
+        0 ≤ integratedMoserGradientEnergy D u p t) :
+    0 ≤ ∫ t in a..b, integratedMoserGradientEnergy D u p t :=
+  intervalIntegral.integral_nonneg hab hG_nonneg
+
 /-- Restrict an `IntegrableOn` hypothesis on `uIcc 0 T` to an
 `IntervalIntegrable` statement on a non-reversed interval `a..b`. -/
 theorem intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
@@ -403,6 +425,29 @@ def IntegratedMoserEnergyNonnegativity
   ∀ p, p0 ≤ p → 0 ≤ p → ∀ t, 0 < t → t < T →
     0 ≤ integratedMoserEnergy D u p t
 
+/-- Abstract nonnegativity of Moser gradient energies at interior times. -/
+def IntegratedMoserGradientEnergyNonnegativity
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → 0 ≤ p → ∀ t, 0 < t → t < T →
+    0 ≤ integratedMoserGradientEnergy D u p t
+
+/-- Package-level version of gradient-energy interval-integral nonnegativity
+on an interior time window. -/
+theorem integratedMoserGradientEnergy_intervalIntegral_nonneg_of_package
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 p a b : ℝ}
+    (hgrad : IntegratedMoserGradientEnergyNonnegativity D u T p0)
+    (hp : p0 ≤ p) (hp_nonneg : 0 ≤ p)
+    (hab : a ≤ b) (ha_pos : 0 < a) (hb_lt : b < T) :
+    0 ≤ ∫ t in a..b, integratedMoserGradientEnergy D u p t := by
+  refine integratedMoserGradientEnergy_intervalIntegral_nonneg_of_nonneg_on
+    (D := D) (u := u) (p := p) hab ?_
+  intro t ht
+  exact hgrad p hp hp_nonneg t
+    (lt_of_lt_of_le ha_pos ht.1)
+    (lt_of_le_of_lt ht.2 hb_lt)
+
 /-- The concrete unit-interval integral preserves nonnegative functions. -/
 theorem intervalDomain_integral_nonneg
     (f : intervalDomain.Point → ℝ)
@@ -415,6 +460,33 @@ theorem intervalDomain_integral_nonneg
   intro x hx
   unfold intervalDomainLift
   simpa [hx] using hf ⟨x, hx⟩
+
+/-- For `intervalDomain`, Moser gradient energy is pointwise nonnegative. -/
+theorem intervalDomain_integratedMoserGradientEnergy_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {p t : ℝ} :
+    0 ≤ integratedMoserGradientEnergy intervalDomain u p t := by
+  exact intervalDomain_integral_nonneg _
+    (fun _ => sq_nonneg _)
+
+/-- The interval domain supplies the abstract gradient-energy nonnegativity
+package. -/
+theorem intervalDomain_integratedMoserGradientEnergyNonnegativity
+    {u : ℝ → intervalDomain.Point → ℝ} {T p0 : ℝ} :
+    IntegratedMoserGradientEnergyNonnegativity intervalDomain u T p0 := by
+  intro p _hp _hp_nonneg t _ht0 _htT
+  exact intervalDomain_integratedMoserGradientEnergy_nonneg
+    (u := u) (p := p) (t := t)
+
+/-- For `intervalDomain`, Moser gradient energies have nonnegative interval
+integrals over non-reversed time intervals. -/
+theorem intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {p a b : ℝ}
+    (hab : a ≤ b) :
+    0 ≤ ∫ t in a..b,
+      integratedMoserGradientEnergy intervalDomain u p t :=
+  integratedMoserGradientEnergy_intervalIntegral_nonneg_of_forall hab
+    (fun _ => intervalDomain_integratedMoserGradientEnergy_nonneg)
 
 /-- Pointwise nonnegativity of an interval-domain slice gives nonnegative
 Moser energy for every real exponent. -/
@@ -1264,6 +1336,12 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
 #print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_pointwise_nonneg
 #print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_classical
 #print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_global_classical
+#print axioms integratedMoserGradientEnergy_intervalIntegral_nonneg_of_forall
+#print axioms integratedMoserGradientEnergy_intervalIntegral_nonneg_of_nonneg_on
+#print axioms integratedMoserGradientEnergy_intervalIntegral_nonneg_of_package
+#print axioms intervalDomain_integratedMoserGradientEnergy_nonneg
+#print axioms intervalDomain_integratedMoserGradientEnergyNonnegativity
+#print axioms intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
 #print axioms currentEnergy_Icc_bound_of_LpPowerBoundedBefore
 #print axioms IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le
 #print axioms IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le
