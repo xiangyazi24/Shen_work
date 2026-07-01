@@ -1,6 +1,7 @@
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.PDE.P3MoserEnergyContinuity
 import ShenWork.PDE.P3MoserThresholdPlanProducer
+import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 import ShenWork.Paper2.Statements
 
 /-!
@@ -35,6 +36,7 @@ classical-solution interface.
 open MeasureTheory
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
@@ -868,6 +870,40 @@ theorem intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedDa
     (intervalDomain_regularityLite_of_classicalRegularityData hsol hdata)
     hsol hdiss hrel hrho hp0_nonneg
 
+/-- Direct first-crossing step from classical regularity data, strict-time
+bootstrap energy, window FTC, relative interpolation, and the coefficient gap
+that produces the fixed integrated Moser dissipation drop. -/
+theorem intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hdata : IntervalDomainIntegratedMoserClassicalRegularityData u T p0)
+    (hFTC : IntegratedMoserEnergyWindowFTC intervalDomain u T p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hgap :
+      ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  have hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+    intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData
+      hdata hsol
+  have hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0 :=
+    intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+      (p0 := p0) hsol
+  have henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
+    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+  have hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 :=
+    intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
+      (params := params) (T := T) (rho := rho) (p0 := p0) (u := u)
+      hboot henergy hFTC hreg hnonneg hrel hgap
+  exact
+    intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+      hreg hnonneg hdiss hrel
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
+
 /-! ### Lower-average/epsilon-gap data assembly -/
 
 /-- Assemble the full `IntegratedMoserFirstCrossingLowerAverageEpsilonData`
@@ -1057,6 +1093,8 @@ section AxiomAudit
 #print axioms intervalDomain_firstCrossingStep_of_classical_integratedData
 #print axioms intervalDomain_firstCrossingStep_of_lite_classical_integratedData
 #print axioms intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+#print axioms
+  intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
 
 end AxiomAudit
 

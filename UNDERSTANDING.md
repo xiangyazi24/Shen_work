@@ -72,6 +72,17 @@ Authoritative checks from the current tree:
   ShenWork.Paper2.IntervalDomainStatementAssembly
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs).
+- `P3MoserRegularityProducer` now exposes
+  `intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap`,
+  an additive direct first-crossing wrapper from classical regularity data,
+  strict-time bootstrap energy, window FTC, relative interpolation, and the
+  fixed coefficient-gap condition.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserRegularityProducer
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs), and the new wrapper prints only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
