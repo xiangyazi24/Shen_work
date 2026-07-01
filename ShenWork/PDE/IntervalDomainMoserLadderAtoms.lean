@@ -603,95 +603,6 @@ def aprioriBound
 
 end IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
 
-/-- Compatibility-named lower-level inputs that refine the integrated-step
-residual package through the regularity-aware integrated-Moser data.
-
-The lower-average / upper-data-gap fields used to live here, but the direct
-threshold-plan route only needs classical regularity, integrated dissipation,
-and relative interpolation. -/
-structure IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
-    (p : CM2Params) where
-  a_pos : 0 < p.a
-  chi_nonneg : 0 ≤ p.χ₀
-  boundednessHyp : IntervalDomainBoundednessHyp p
-  l2SeedRegularity :
-    ∀ u₀ : intervalDomain.Point → ℝ,
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-        IntervalDomainL2SeedRegularityFrontier T u
-  classicalRegularity :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
-  integratedDissipation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
-  relativeMoserInterpolation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  quantitativeEndpoint :
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
-
-namespace IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
-
-def to_integratedMoserResiduals
-    {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p) :
-    IntervalDomainMassLpSmoothingIntegratedMoserResiduals p where
-  a_pos := h.a_pos
-  chi_nonneg := h.chi_nonneg
-  boundednessHyp := h.boundednessHyp
-  l2SeedRegularity := h.l2SeedRegularity
-  classicalRegularity := h.classicalRegularity
-  integratedDissipation := h.integratedDissipation
-  relativeMoserInterpolation := h.relativeMoserInterpolation
-  quantitativeEndpoint := h.quantitativeEndpoint
-
-def to_integratedStepResiduals
-    {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p) :
-    IntervalDomainMassLpSmoothingIntegratedStepResiduals p :=
-  h.to_integratedMoserResiduals.to_integratedStepResiduals
-
-def to_routeResiduals
-    {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p) :
-    IntervalDomainMassLpSmoothingRouteResiduals p :=
-  h.to_integratedStepResiduals.to_routeResiduals
-
-def aprioriBound
-    {p : CM2Params}
-    (h : IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p) :
-    IntervalDomainMassLpSmoothingAprioriBound p :=
-  h.to_integratedStepResiduals.aprioriBound
-
-end IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
-
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.proposition25
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.to_routeResiduals
@@ -708,14 +619,6 @@ end IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_integratedStepResiduals
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.aprioriBound
-#print axioms
-  IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_integratedMoserResiduals
-#print axioms
-  IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
-#print axioms
-  IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_routeResiduals
-#print axioms
-  IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.aprioriBound
 
 end ShenWork.IntervalDomainExistence
 

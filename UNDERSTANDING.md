@@ -44,6 +44,15 @@ Authoritative checks from the current tree:
   (3749 jobs).  `P3MoserEnergyContinuity` also builds on uisai2 (3558 jobs).
   The new integrated-Moser wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+  The PDE/Paper3 compatibility-surface cleanup also builds on uisai2 via
+  `lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` (8573 jobs).
+- The obsolete PDE-level
+  `IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`
+  compatibility package has been removed.  The Paper3 compatibility-named
+  lowerAverage/upperDataGap route now converts only to the integrated-step
+  actual-linear route; the old PDE converter is no longer a live source
+  surface.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

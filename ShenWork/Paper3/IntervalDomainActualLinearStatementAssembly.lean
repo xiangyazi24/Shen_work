@@ -2867,34 +2867,6 @@ def to_integratedStepResiduals
       (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
   quantitativeEndpoint := h.quantitativeEndpoint
 
-/-- Convert to the reusable PDE-level lowerAverage/upperDataGap residual
-compatibility package. -/
-def to_lowerAverageUpperDataGapResiduals
-    {p : CM2Params}
-    (h :
-      IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-        p)
-    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p where
-  a_pos := ha
-  chi_nonneg := le_of_lt hχ0
-  boundednessHyp := h.boundednessHyp
-  l2SeedRegularity := by
-    intro u₀ hu₀ T hT u v hsol htrace
-    exact
-      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
-        (Classical.choice
-          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
-  classicalRegularity := by
-    intro T rho p0 u v hsol hcross hboot
-    exact
-      intervalDomain_classicalRegularityData_of_continuityRegularityData
-        (IsPaper2ClassicalSolution.T_pos hsol).le
-        (h.classicalContinuityRegularity hsol hcross hboot)
-  integratedDissipation := h.integratedDissipation
-  relativeMoserInterpolation := h.relativeMoserInterpolation
-  quantitativeEndpoint := h.quantitativeEndpoint
-
 end
     IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
 
@@ -3903,8 +3875,6 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegData
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
-#print axioms
-  IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_lowerAverageUpperDataGapResiduals
 #print axioms
   IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts.to_integratedStepFacts
 #print axioms
