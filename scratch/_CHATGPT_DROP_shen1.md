@@ -1,435 +1,457 @@
-# Q2910 (shen1) — Paper2/P3 Moser frontier-stack route audit
+# Q2916 (shen1) — anchored Moser first-crossing and positive-time locality
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
-Target files: `ShenWork/PDE/P3MoserIntegratedClosure.lean`, `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`, `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`  
+Target files: `ShenWork/PDE/P3MoserActualWiring.lean`, `ShenWork/PDE/P3MoserIntegratedClosure.lean`, `ShenWork/PDE/P3MoserRegularityProducer.lean`, `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`, `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`  
 Source edit requested: none; answer file only.
 
-## Scope note
+## Verdict
 
-The connected GitHub branch is slightly behind the local working session: searches did not find the newest names such as
+The correct Lean route is:
+
+1. Build all **regularity / FTC / integrated-dissipation** objects for the **anchored** representative
 
 ```lean
-IntervalDomainRawMoserGradientTimeIntegrability
-intervalDomainWithInitialSlice
-IntegratedMoserEnergyWindowFTC
-IntegratedHigherPowerEnergyWindowCoeffFrontier
-integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality
+uA := intervalDomainWithInitialSlice u₀ u
 ```
 
-I therefore audited the pushed stack plus the local additions you described. The source-side conclusions below are phrased against the local names you gave, and against the pushed identifiers already visible in `P3MoserIntegratedClosure.lean`, `P3MoserRegularityProducer.lean`, `IntervalDomainMoserLadderAtoms.lean`, and `IntervalDomainStatementAssembly.lean`.
+because these objects see `t = 0` and are not safely positive-time-local.
 
-## Executive classification
-
-### WIRE NOW
-
-These are now routine wiring from the anchored/FTC infrastructure or from already-proved interval-domain package lemmas:
-
-1. **Anchored zero-time regularity package**, assuming the honest raw gradient frontier:
+2. Produce
 
 ```lean
-IntervalDomainRawMoserGradientTimeIntegrability u T p0
+IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0
 ```
 
-is supplied. Endpoint compatibility and initial power-energy continuity are now wiring via anchoring; raw gradient time-integrability transfers to anchored by a.e. equality.
+for the anchored representative.
 
-2. **`IntegratedMoserEnergyWindowFTC`**, once the existing `P3MoserEnergyContinuity` producer is fed with:
-   - global/classical data for the anchored representative;
-   - endpoint power-energy continuity, now produced by anchoring + trace + paper-positive datum;
-   - its remaining initial-window derivative/time-term/PDE-term integrability packages.
-
-The endpoint part is no longer a residual. The initial-window derivative/time-term/PDE-term integrability packages remain analytic inputs unless separately discharged.
-
-3. **Interval integrability of `Y`, `Z`, `G`, and `max 1 Y` on closed windows** once `IntegratedMoserFirstCrossingRegularity` is available:
-   - `Y_p`: `IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc`
-   - `Z = Y_{p+rho}`: same lemma with `p + rho`
-   - `G_p`: `IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc`
-   - `max 1 Y_p`: `IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc`
-
-4. **Pointwise and window nonnegativity of interval-domain energies** from classical/global positivity:
-   - `intervalDomain_integratedMoserEnergyNonnegativity_of_classical`
-   - `intervalDomain_integratedMoserEnergyNonnegativity_of_global_classical`
-   - `intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg`
-   - `intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg`
-
-5. **Fixed-window upper-bound data once a lower-average window is selected**:
+3. Transfer only the final **positive-time** consequences back to raw `u` using locality lemmas, especially:
 
 ```lean
-integratedMoser_windowUpperBoundData_of_lowerAverageWindow
+LpPowerBoundedBefore intervalDomain p T uA ↔
+LpPowerBoundedBefore intervalDomain p T u
 ```
 
-This already wires from regularity + nonnegativity + integrated dissipation + relative interpolation.
-
-6. **Adapters among upper-window/frontier structures**:
-   - `integratedMoserWindowUpperDataGapFrontier_of_epsilonGap`
-   - `integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap`
-   - `integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap`
-   - `IntegratedMoserFirstCrossingLowerAverageEpsilonData.toUpperDataGapData`
-   - `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData.toLowerUpperFrontiers`
-   - `integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData`
-   - `integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData`
-
-7. **Statement-layer collapse wrappers** in `IntervalDomainStatementAssembly.lean`:
-   - `IntervalDomainPaper2Prop25IntegratedMoserFrontierData.toIntegratedStepFrontierData`
-   - `IntervalDomainPaper2Prop25LowerUpperFrontierData.toIntegratedStepFrontierData`
-   - `intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData`
-   - `intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData`
-   - paired wrappers producing both Corollary 2.1 and Proposition 2.5.
-
-### HONEST FRONTIER
-
-These still should not be claimed as unconditional from the current source:
-
-1. **`IntervalDomainRawMoserGradientTimeIntegrability u T p0`**.
-
-Q2906’s conclusion still stands: current classical/global/trace/Picard APIs do not include all-exponent near-zero Moser-gradient time-integrability.
-
-2. **Initial-window derivative/time-term/PDE-term integrability packages** consumed by the existing `IntegratedMoserEnergyWindowFTC` producer.
-
-Anchoring removes the zero-slice compatibility problem but does not prove every initial-window time-derivative/PDE-term integrability fact required by the FTC producer.
-
-3. **Zinan’s lower-average / last-exit high-excursion frontier**:
+and
 
 ```lean
-IntegratedMoserHighExcursionLowerAverageWindowFrontier
+IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0 →
+IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
 ```
 
-and the corresponding field in:
+because both predicates quantify only `0 < t < T`.
+
+This is a pure WIRE NOW step. It is not an analytic frontier.
+
+But do **not** try to coerce anchored `IntegratedMoserFirstCrossingRegularity`, `IntervalDomainIntegratedMoserClassicalRegularityData`, `IntegratedMoserDissipationDropBefore`, or endpoint-energy continuity into raw-`u` versions: those contain `t = 0` data and the raw Picard representative can be wrong there.
+
+## Existing source status
+
+I did not find an existing pushed lemma named like:
 
 ```lean
-IntegratedMoserFirstCrossingLowerAverageEpsilonData.lowerAverage
-IntegratedMoserFirstCrossingLowerAverageUpperDataGapData.lowerAverage
+LpPowerBoundedBefore_congr
+IntegratedMoserFirstCrossingStep_congr
+IntegratedMoserFirstCrossingStep_of_eqOn_Ioo
 ```
 
-This is the window-thickness / last-exit high-excursion analytic input. Do not route it through source edits in `P3MoserHighExcursionProducer.lean` if Zinan owns that file.
-
-4. **Upper-data gap / epsilon-gap chooser**, unless the new local `_coeffGap` theorems already discharge it for the selected upper-bound witness:
+The visible existing locality tool is around classical solutions:
 
 ```lean
-IntegratedMoserWindowUpperDataGapFrontier
-IntegratedMoserWindowUpperGapEpsilonFrontier
+classicalSolutionLocalityUnderIooAgreement_intervalDomain
 ```
 
-The fixed-window upper-bound calculation is wiring, but proving a strict gap of the form
+which is the right kind of theorem for positive-time classical facts, but it does not transfer `LpPowerBoundedBefore` or `IntegratedMoserFirstCrossingStep`.
+
+The definitions make the needed transfer straightforward:
 
 ```lean
-eps * Gbound + (b - a) * (Ceps * M) < lowerBound
+-- ShenWork/Paper2/Statements.lean
+def LpPowerBoundedBefore
+    (D : BoundedDomainData) (pExp Tmax : ℝ)
+    (u : ℝ → D.Point → ℝ) : Prop :=
+  ∃ C, ∀ t, 0 < t → t < Tmax →
+    D.integral (fun x => (u t x) ^ pExp) ≤ C
 ```
 
-is a quantitative choice problem. It is not automatic from `IntegratedMoserFirstCrossingRegularity` plus `LpBootstrapEnergyInequality` alone unless the local coefficient/gap theorem is already exactly an upper-gap producer.
-
-5. **Integrated dissipation from PDE energy** unless using the new window-FTC/higher-power route with all required inputs.
-
-The existing statement field
+and:
 
 ```lean
-IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
-```
-
-is still analytic unless routed from `LpBootstrapEnergyInequality` + `IntegratedMoserEnergyWindowFTC` + interval integrability/nonnegativity + coefficient-surplus/gap via your new local theorem.
-
-## File-level audit
-
-### `P3MoserRegularityProducer.lean`
-
-The pushed file has the important bridge:
-
-```lean
-theorem intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
-```
-
-and the global-classical data structure:
-
-```lean
-structure IntervalDomainIntegratedMoserGlobalClassicalRegularityData
-    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
-  atZero : IntervalDomainInitialPowerEnergyContinuityAtZero u T p0
-  gradientTimeIntegrable : ∀ p, p0 ≤ p → IntegrableOn ... (Set.uIcc 0 T) volume
-```
-
-After anchoring, the `atZero` field is WIRE NOW. The `gradientTimeIntegrable` field should be fed by the named frontier:
-
-```lean
-def IntervalDomainRawMoserGradientTimeIntegrability
-    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
+-- ShenWork/PDE/P3MoserIntegratedClosure.lean
+def IntegratedMoserFirstCrossingStep
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
   ∀ p, p0 ≤ p →
-    IntegrableOn
-      (fun t => intervalDomain.integral (fun x =>
-        (intervalDomain.gradNorm
-          (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-      (Set.uIcc (0 : ℝ) T) volume
+    LpPowerBoundedBefore D p T u →
+      LpPowerBoundedBefore D (p + rho) T u
 ```
 
-Recommended wrapper if not already present:
+So both are exactly positive-time-local.
+
+## Add these locality lemmas
+
+Put these in a non-Zinan wiring file, preferably `P3MoserIntegratedClosure.lean` near `IntegratedMoserFirstCrossingStep`, or in a small shared locality file imported by both `P3MoserActualWiring.lean` and `IntervalDomainStatementAssembly.lean`.
+
+### 1. Positive-time equality predicate, optional but useful
 
 ```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-
-/-- Anchored regularity for first-crossing from global classical trace plus the
-honest raw all-exponent Moser-gradient integrability frontier. -/
-theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored_rawGradient
-    {params : CM2Params} {T p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 < T)
-    (htrace : InitialTrace intervalDomain u₀ u)
-    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hgradRaw : IntervalDomainRawMoserGradientTimeIntegrability u T p0) :
-    IntegratedMoserFirstCrossingRegularity intervalDomain
-      (intervalDomainWithInitialSlice u₀ u) T p0 := by
-  exact intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
-    hT htrace hdatum hglobal
-    (intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw hgradRaw)
-
-end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+def EqOnPositiveTimesBefore
+    {D : BoundedDomainData} (T : ℝ)
+    (u w : ℝ → D.Point → ℝ) : Prop :=
+  ∀ t, 0 < t → t < T → ∀ x : D.Point, u t x = w t x
 ```
 
-Status: **WIRE NOW**, assuming the local anchored theorem names from the prompt.
+You can also avoid the definition and use the hypothesis inline.
 
-### `P3MoserEnergyContinuity.lean`
-
-Local additions now make this route possible:
+### 2. Transfer `LpPowerBoundedBefore`
 
 ```lean
-initialPowerEnergyContinuityAtZero_of_trace_paperPositive_global_withInitialSlice
-```
+import ShenWork.PDE.P3MoserIntegratedClosure
 
-This should feed the existing `IntegratedMoserEnergyWindowFTC` producer. The right wrapper should not ask again for endpoint compatibility; it should ask only for the actual FTC side conditions.
+open ShenWork.Paper2
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-Recommended theorem shape:
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-
-/-- Window FTC for the anchored representative.  The endpoint part is now
-produced internally from trace + paper-positive datum + global classical;
-the derivative/time/PDE initial-window integrability packages remain honest
-inputs to the existing FTC producer. -/
-theorem integratedMoserEnergyWindowFTC_of_globalTraceAnchored
-    {params : CM2Params} {T p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hT : 0 < T)
-    (htrace : InitialTrace intervalDomain u₀ u)
-    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    -- keep the exact existing FTC side-condition packages here:
-    (hderivInt : /* existing initial-window derivative integrability package */)
-    (htimeInt  : /* existing time-term integrability package */)
-    (hpdeInt   : /* existing PDE-term integrability package */) :
-    IntegratedMoserEnergyWindowFTC intervalDomain
-      (intervalDomainWithInitialSlice u₀ u) T p0 := by
-  -- call the existing FTC producer, using:
-  -- initialPowerEnergyContinuityAtZero_of_trace_paperPositive_global_withInitialSlice
-  -- for the endpoint/atZero input.
-  exact /* existing FTC producer */
-
-end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-```
-
-Status: endpoint part **WIRE NOW**; derivative/time/PDE initial-window integrability inputs **HONEST FRONTIER** unless already produced elsewhere.
-
-### `P3MoserIntegratedClosure.lean`
-
-The pushed file already contains the key window-frontier adapters. From the local additions, the next useful wrapper is to package all routine inputs for your new higher-power coefficient frontier.
-
-Recommended local wrapper against your new theorem names:
-
-```lean
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Routine interval-domain inputs for the higher-power window coefficient
-frontier.  This packages all interval-integrability and nonnegativity obligations
-from first-crossing regularity and interval-domain positivity/nonnegativity.
-The remaining coefficient gap/surplus hypothesis is kept explicit. -/
-theorem integratedHigherPowerEnergyWindowCoeffFrontier_of_regular_energy_ftc
-    {T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
-    (hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0)
-    (hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
-    (hftc : IntegratedMoserEnergyWindowFTC intervalDomain u T p0)
-    -- exact local coefficient surplus/gap hypothesis consumed by your `_coeffGap` theorem:
-    (hcoeffGap : /* coefficient surplus/gap package */) :
-    IntegratedHigherPowerEnergyWindowCoeffFrontier intervalDomain u T rho p0 := by
-  -- For each p/window, discharge:
-  --   G integrability via hreg.gradient_intervalIntegrable_of_Icc
-  --   Y integrability via hreg.power_intervalIntegrable_of_Icc
-  --   Z = Y_(p+rho) integrability via hreg.power_intervalIntegrable_of_Icc
-  --   max integrability via hreg.maxOneEnergy_intervalIntegrable_of_Icc
-  --   nonnegativity via hnonneg / intervalDomain nonnegativity lemmas
-  -- then call:
-  --   integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality
-  -- or `_coeffGap` as appropriate.
-  exact /* local call */
+/-- `LpPowerBoundedBefore` only sees positive times, so it is invariant under
+agreement on `0 < t < T`. -/
+theorem LpPowerBoundedBefore_congr_pos
+    {D : BoundedDomainData} {p T : ℝ}
+    {u w : ℝ → D.Point → ℝ}
+    (hEq : ∀ t, 0 < t → t < T → ∀ x : D.Point, u t x = w t x) :
+    LpPowerBoundedBefore D p T u →
+      LpPowerBoundedBefore D p T w := by
+  intro h
+  rcases h with ⟨C, hC⟩
+  refine ⟨C, ?_⟩
+  intro t ht0 htT
+  have hfun :
+      (fun x : D.Point => (w t x) ^ p) =
+        (fun x : D.Point => (u t x) ^ p) := by
+    funext x
+    rw [← hEq t ht0 htT x]
+  simpa [hfun] using hC t ht0 htT
+
+/-- Symmetric form of positive-time locality for `LpPowerBoundedBefore`. -/
+theorem LpPowerBoundedBefore_iff_of_pos_eq
+    {D : BoundedDomainData} {p T : ℝ}
+    {u w : ℝ → D.Point → ℝ}
+    (hEq : ∀ t, 0 < t → t < T → ∀ x : D.Point, u t x = w t x) :
+    LpPowerBoundedBefore D p T u ↔
+      LpPowerBoundedBefore D p T w := by
+  constructor
+  · exact LpPowerBoundedBefore_congr_pos hEq
+  · exact LpPowerBoundedBefore_congr_pos
+      (fun t ht0 htT x => (hEq t ht0 htT x).symm)
 
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-Status: **WIRE NOW** for integrability/nonnegativity packaging; coefficient gap/surplus depends on the exact local theorem. If it is a numeric/algebraic hypothesis, keep it explicit. If it is the same as `IntegratedMoserWindowUpperDataGapFrontier`, mark it **HONEST FRONTIER**.
-
-Existing pushed names that should be used in this wrapper:
+This is expected to compile with only minor namespace adjustment. If `LpPowerBoundedBefore` is not in scope, add:
 
 ```lean
-IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
-IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
-IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
-intervalIntegrable_max_one_of_intervalIntegrable
-intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg
-intervalDomain_integratedMoserEnergyNonnegativity_of_classical
-intervalDomain_integratedMoserEnergyNonnegativity_of_global_classical
-intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
+open ShenWork.Paper2
 ```
 
-For the lower/upper window split, no new theorem is needed for the routine part; use the existing adapters:
+or fully qualify it as `ShenWork.Paper2.LpPowerBoundedBefore`.
+
+### 3. Transfer `AbstractLpBootstrapHypothesis`
+
+This is needed when a local/statement producer has a raw bootstrap hypothesis but the anchored step construction wants the bootstrap package for `uA`.
 
 ```lean
-integratedMoser_windowUpperBoundData_of_lowerAverageWindow
-integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
-integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
-IntegratedMoserFirstCrossingLowerAverageUpperDataGapData.toLowerUpperFrontiers
-integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+/-- The abstract bootstrap hypothesis is positive-time-local because its only
+`u`-dependent field is `LpPowerBoundedBefore`. -/
+theorem AbstractLpBootstrapHypothesis_congr_pos
+    {D : BoundedDomainData} {N T rho p0 : ℝ}
+    {u w : ℝ → D.Point → ℝ}
+    (hEq : ∀ t, 0 < t → t < T → ∀ x : D.Point, u t x = w t x)
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0) :
+    AbstractLpBootstrapHypothesis D w N T rho p0 := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · exact AbstractLpBootstrapHypothesis.rho_pos hboot
+  · exact AbstractLpBootstrapHypothesis.T_pos hboot
+  · exact AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
+  · exact LpPowerBoundedBefore_congr_pos hEq
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-Status: upper-bound calculation **WIRE NOW**; lower-average and strict-gap producer **HONEST FRONTIER**.
-
-### `IntervalDomainMoserLadderAtoms.lean`
-
-The current residual record still has these fields:
+If the field accessors differ locally, the constructor order is the same pattern already used in `P3MoserActualWiring.abstract_prop25_bootstrap_two_gamma`:
 
 ```lean
-l2SeedRegularity
-moserDissipation
-relativeMoserInterpolation
-quantitativeEndpoint
+⟨rho_pos, T_pos, p0_gt_threshold, initial_lp_bound⟩
 ```
 
-For the integrated-window route, the analogous thinner record should no longer carry a monolithic `moserDissipation` if the new window-FTC/higher-power route can produce it. But it must still carry the honest frontiers.
-
-Recommended new record shape in a non-Zinan file:
+### 4. Transfer `IntegratedMoserFirstCrossingStep`
 
 ```lean
-structure IntervalDomainIntegratedWindowMoserResiduals
-    (p : CM2Params) where
-  rawGradient :
-    ∀ {T p0 : ℝ} {u₀ : intervalDomain.Point → ℝ}
-      {u v : ℝ → intervalDomain.Point → ℝ},
-      0 < T →
-      InitialTrace intervalDomain u₀ u →
-      PaperPositiveInitialDatum intervalDomain u₀ →
-      IsPaper2GlobalClassicalSolution intervalDomain p u v →
-        IntervalDomainRawMoserGradientTimeIntegrability u T p0
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-  -- FTC side conditions, exact type to match P3MoserEnergyContinuity producer.
-  windowFTCInputs :
-    ∀ {T p0 : ℝ} {u₀ : intervalDomain.Point → ℝ}
-      {u v : ℝ → intervalDomain.Point → ℝ},
-      0 < T →
-      InitialTrace intervalDomain u₀ u →
-      PaperPositiveInitialDatum intervalDomain u₀ →
-      IsPaper2GlobalClassicalSolution intervalDomain p u v →
-        /* derivative/time/PDE initial-window integrability packages */
+/-- `IntegratedMoserFirstCrossingStep` is positive-time-local because it is a
+map between `LpPowerBoundedBefore` predicates. -/
+theorem IntegratedMoserFirstCrossingStep_congr_pos
+    {D : BoundedDomainData} {T rho p0 : ℝ}
+    {u w : ℝ → D.Point → ℝ}
+    (hEq : ∀ t, 0 < t → t < T → ∀ x : D.Point, u t x = w t x) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 →
+      IntegratedMoserFirstCrossingStep D w T rho p0 := by
+  intro hstep p hp hLp_w
+  have hLp_u : LpPowerBoundedBefore D p T u :=
+    LpPowerBoundedBefore_congr_pos
+      (fun t ht0 htT x => (hEq t ht0 htT x).symm) hLp_w
+  exact LpPowerBoundedBefore_congr_pos hEq (hstep p hp hLp_u)
 
-  relativeMoserInterpolation :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
-        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+/-- Symmetric form for `IntegratedMoserFirstCrossingStep`. -/
+theorem IntegratedMoserFirstCrossingStep_iff_of_pos_eq
+    {D : BoundedDomainData} {T rho p0 : ℝ}
+    {u w : ℝ → D.Point → ℝ}
+    (hEq : ∀ t, 0 < t → t < T → ∀ x : D.Point, u t x = w t x) :
+    IntegratedMoserFirstCrossingStep D u T rho p0 ↔
+      IntegratedMoserFirstCrossingStep D w T rho p0 := by
+  constructor
+  · exact IntegratedMoserFirstCrossingStep_congr_pos hEq
+  · exact IntegratedMoserFirstCrossingStep_congr_pos
+      (fun t ht0 htT x => (hEq t ht0 htT x).symm)
 
-  lowerAverage :
-    ∀ {T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
-      IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 →
-      IntegratedMoserEnergyNonnegativity intervalDomain u T p0 →
-      IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 →
-      RelativeMoserInterpolationBefore intervalDomain u T rho p0 →
-      0 < rho → 0 ≤ p0 →
-        ∀ q, p0 ≤ q → 0 ≤ q →
-          LpPowerBoundedBefore intervalDomain q T u →
-            Nonempty
-              (Σ Cnext : ℝ,
-                IntegratedMoserHighExcursionLowerAverageWindowFrontier
-                  intervalDomain u T rho p0 q Cnext)
-
-  upperDataGap :
-    ∀ {T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
-      IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 →
-      IntegratedMoserEnergyNonnegativity intervalDomain u T p0 →
-      IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 →
-      RelativeMoserInterpolationBefore intervalDomain u T rho p0 →
-      0 < rho → 0 ≤ p0 →
-        ∀ q, p0 ≤ q → 0 ≤ q →
-          Nonempty
-            (IntegratedMoserWindowUpperDataGapFrontier
-              intervalDomain u T rho p0 q)
-
-  quantitativeEndpoint :
-    -- keep existing field shape from IntervalDomainMassLpSmoothingMoserLadderResiduals
-    ∀ {u₀ : intervalDomain.Point → ℝ},
-      PositiveInitialDatum intervalDomain u₀ →
-    ∀ {T : ℝ}, 0 < T →
-    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      InitialTrace intervalDomain u₀ u →
-    ∀ pExp,
-      max (p.N : ℝ)
-          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
-      LpPowerBoundedBefore intervalDomain pExp T u →
-        ∃ pSeq rootBound : ℕ → ℝ,
-          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-This keeps genuine analytic tasks visible and moves pure adapters out of the headline residual.
+This is the main WIRE NOW lemma.
 
-Status: record definition **WIRE NOW**; the fields listed above are mixed: `rawGradient`, `windowFTCInputs`, `lowerAverage`, `upperDataGap`, and possibly `quantitativeEndpoint` are **HONEST FRONTIER** unless already supplied by separate producers; the conversions around them are WIRE NOW.
+### 5. Interval-domain anchored equality lemma
 
-### `IntervalDomainStatementAssembly.lean`
-
-The pushed file already has the collapse routes:
+Put this next to `intervalDomainWithInitialSlice`.
 
 ```lean
-IntervalDomainPaper2Prop25IntegratedMoserFrontierData.toIntegratedStepFrontierData
-IntervalDomainPaper2Prop25LowerUpperFrontierData.toIntegratedStepFrontierData
-intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
-intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
-intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
+namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
+
+/-- The anchored representative agrees with the raw representative at every
+strictly positive time. -/
+theorem intervalDomainWithInitialSlice_eq_raw_of_pos
+    {u₀ : intervalDomain.Point → ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {t : ℝ} (ht : 0 < t) :
+    intervalDomainWithInitialSlice u₀ u t = u t := by
+  funext x
+  simp [intervalDomainWithInitialSlice, ne_of_gt ht]
+
+/-- Pointwise version convenient for locality lemmas. -/
+theorem intervalDomainWithInitialSlice_eq_raw_of_pos_apply
+    {u₀ : intervalDomain.Point → ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {t : ℝ} (ht : 0 < t) (x : intervalDomain.Point) :
+    intervalDomainWithInitialSlice u₀ u t x = u t x := by
+  simpa using congrFun (intervalDomainWithInitialSlice_eq_raw_of_pos
+    (u₀ := u₀) (u := u) ht) x
+
+end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 ```
 
-Add a wrapper from the preferred lower-average/upper-data-gap data package rather than carrying `IntegratedMoserFirstCrossingLowerUpperFrontiers` directly:
+## Wrapper: anchored step to raw step
+
+Once you have an anchored step, the raw step is pure locality.
 
 ```lean
-namespace ShenWork.Paper2
+import ShenWork.PDE.P3MoserEnergyContinuity
+import ShenWork.PDE.P3MoserIntegratedClosure
 
-/-- Statement-layer route from lower-average plus upper-data-gap first-crossing
-data to the existing integrated-step frontier. -/
-def IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData.toIntegratedStepFrontierData
-    {p : CM2Params}
-    (h : IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
-    IntervalDomainPaper2Prop25IntegratedStepFrontierData p where
-  integratedStep := by
-    intro T rho p0 u v hsol hcross hboot
-    exact integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-      (h.lowerAverageUpperDataGap hsol hcross hboot)
-  quantitativeEndpoint := h.quantitativeEndpoint
+open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-end ShenWork.Paper2
+namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+/-- Use an anchored first-crossing step as a raw first-crossing step, since both
+`IntegratedMoserFirstCrossingStep` and `LpPowerBoundedBefore` only see
+`0 < t < T`. -/
+theorem intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+    {T rho p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (hstepA :
+      IntegratedMoserFirstCrossingStep intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  refine IntegratedMoserFirstCrossingStep_congr_pos ?_ hstepA
+  intro t ht0 _htT x
+  exact intervalDomainWithInitialSlice_eq_raw_of_pos_apply ht0 x
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-The corresponding record shape should mirror the pushed `IntervalDomainPaper2Prop25LowerUpperFrontierData` but carry the more decomposed data:
+This is the safest bridge into raw APIs.
+
+## What not to transfer
+
+Do **not** add raw/anchored congruence lemmas for the following unless the theorem statement explicitly avoids `t = 0`:
 
 ```lean
-structure IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData
+IntegratedMoserFirstCrossingRegularity
+IntervalDomainIntegratedMoserClassicalRegularityData
+IntervalDomainIntegratedMoserGlobalClassicalRegularityData
+IntegratedMoserDissipationDropBefore
+IntegratedMoserEnergyWindowFTC
+IntervalDomainInitialPowerEnergyContinuityAtZero
+IntervalDomainPowerEnergyEndpointContinuity
+```
+
+These contain `t = 0`, endpoint continuity, or windows with `t1 = 0`; raw and anchored representatives can differ there. Transferring them would be false or would require extra compatibility assumptions.
+
+In particular:
+
+```lean
+IntegratedMoserDissipationDropBefore D u T rho p0
+```
+
+is not obviously positive-time-local: its windows are quantified over
+
+```lean
+t1 ∈ Set.Icc 0 T, t2 ∈ Set.Icc t1 T
+```
+
+so `t1 = 0` is allowed and the term `D.integral (fun x => (u t1 x)^p)` sees the stored zero slice. Build this predicate for anchored `uA` if needed; do not transfer raw to anchored or anchored to raw without additional endpoint compatibility.
+
+## How to use this in the existing statement stack
+
+### Correct pattern inside a solution-specific producer
+
+Given raw solution data:
+
+```lean
+hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v
+htrace  : InitialTrace intervalDomain u₀ u
+hdatum  : PaperPositiveInitialDatum intervalDomain u₀
+hgrad   : IntervalDomainRawMoserGradientTimeIntegrability u T p0
+```
+
+construct the anchored object:
+
+```lean
+let uA := intervalDomainWithInitialSlice u₀ u
+```
+
+prove the anchored regularity / FTC / lower-upper data and hence:
+
+```lean
+hstepA : IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0
+```
+
+then immediately export the raw step:
+
+```lean
+have hstepRaw : IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
+  intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored hstepA
+```
+
+Then existing raw-`u` consumers can be used safely:
+
+```lean
+intervalDomain_boundedBefore_of_integrated_first_crossing_step
+all_exponents_of_integrated_first_crossing_step_lpmono
+intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms
+```
+
+because the thing they consume is now a raw-`u` step.
+
+### But do not try to fill the old universal local `hstep` field from anchoring
+
+The pushed `P3MoserActualWiring` route expects a field of this shape:
+
+```lean
+∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+  IsPaper2ClassicalSolution intervalDomain params T u v →
+  CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+  AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0 →
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
+```
+
+The anchored theorem cannot produce this field by itself, because it needs additional data that the local signature does not provide:
+
+```lean
+u₀
+InitialTrace intervalDomain u₀ u
+PaperPositiveInitialDatum intervalDomain u₀
+IsPaper2GlobalClassicalSolution intervalDomain params u v
+IntervalDomainRawMoserGradientTimeIntegrability u T p0
+```
+
+Therefore the existing purely local statement-layer field is too thin for the anchored route. This is not an analytic obstacle; it is a route-shape mismatch.
+
+## Smallest route wrapper to add
+
+Add a new frontier/wrapper whose step field has the data needed to build the anchored representative but whose output is a raw step.
+
+A minimal theorem-level wrapper:
+
+```lean
+namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+
+/-- Build a raw first-crossing step through the anchored representative.  This is
+pure wiring after the anchored first-crossing step has been produced. -/
+theorem intervalDomain_integratedMoserFirstCrossingStep_of_globalClassicalTraceAnchored
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hgradRaw : IntervalDomainRawMoserGradientTimeIntegrability u T p0)
+    -- plus the honest analytic/window frontiers needed to turn anchored regularity
+    -- into an anchored first-crossing step:
+    (hstepA :
+      IntegratedMoserFirstCrossingStep intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  exact intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored hstepA
+
+end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+```
+
+In practice, the wrapper should not take `hstepA` as a field if you already have lower/upper-window producers. Instead it should build `hstepA` internally from:
+
+```lean
+IntegratedMoserFirstCrossingRegularity intervalDomain (intervalDomainWithInitialSlice u₀ u) T p0
+IntegratedMoserEnergyNonnegativity intervalDomain (intervalDomainWithInitialSlice u₀ u) T p0
+IntegratedMoserDissipationDropBefore intervalDomain (intervalDomainWithInitialSlice u₀ u) T rho p0
+RelativeMoserInterpolationBefore intervalDomain (intervalDomainWithInitialSlice u₀ u) T rho p0
+IntegratedMoserFirstCrossingLowerAverageUpperDataGapData ...
+```
+
+and then call `intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored`.
+
+## Statement-layer recommendation
+
+Do not keep trying to satisfy:
+
+```lean
+IntervalDomainPaper2Prop25IntegratedStepFrontierData.integratedStep
+```
+
+from the anchored theorem unless you have a separate way to supply global trace data for every local classical branch.
+
+Instead add a global-trace/anchored statement-layer record. Its key field should return a raw step after internally anchoring:
+
+```lean
+structure IntervalDomainPaper2Prop25AnchoredIntegratedStepFrontierData
     (p : CM2Params) : Prop where
-  lowerAverageUpperDataGap :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
+  integratedStepFromGlobalTrace :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PaperPositiveInitialDatum intervalDomain u₀ →
+    ∀ {T rho p0 : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
       CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
       AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
-        IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
-          intervalDomain u T rho p0
+        IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
+
   quantitativeEndpoint :
-    -- same as existing IntervalDomainPaper2Prop25IntegratedStepFrontierData
+    -- existing endpoint field, raw-u, because the final raw step supplies raw Lp bounds
     ∀ {u₀ : intervalDomain.Point → ℝ},
       PositiveInitialDatum intervalDomain u₀ →
     ∀ {T : ℝ}, 0 < T →
@@ -444,99 +466,48 @@ structure IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData
             IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 ```
 
-Status: **WIRE NOW**. This is the clean statement-layer route. It does not pretend to prove lower-average or upper-data-gap.
+Then write theorem-level consumers where the headline context actually has `hglobal` and `htrace`. This avoids pretending to prove a local Proposition 2.5 atom for arbitrary local branches.
 
-## Fine-grained item classification requested in task 4
+## Optional transfer lemmas for final boundedness
 
-### `IntegratedMoserEnergyWindowFTC`
-
-**WIRE NOW** for endpoint continuity via anchoring.  
-**HONEST FRONTIER** for its derivative/time-term/PDE-term initial-window integrability packages unless already produced by a separate theorem.
-
-### Interval integrability of `G`, `Y`, `Z`, `max`
-
-**WIRE NOW** from `IntegratedMoserFirstCrossingRegularity`:
+If some route already produces final boundedness for anchored `uA`, transfer it explicitly:
 
 ```lean
-hreg.gradient_intervalIntegrable_of_Icc       -- G
-hreg.power_intervalIntegrable_of_Icc          -- Y and Z = p+rho
-hreg.maxOneEnergy_intervalIntegrable_of_Icc   -- max 1 Y
+theorem IsPaper2BoundedBefore_congr_pos
+    {D : BoundedDomainData} {T : ℝ}
+    {u w : ℝ → D.Point → ℝ}
+    (hSup : ∀ t, 0 < t → t < T, D.supNorm (u t) = D.supNorm (w t)) :
+    IsPaper2BoundedBefore D T u → IsPaper2BoundedBefore D T w := by
+  intro h
+  rcases h with ⟨M, hM⟩
+  refine ⟨M, ?_⟩
+  intro t ht0 htT
+  simpa [← hSup t ht0 htT] using hM t ht0 htT
 ```
 
-### Nonnegativity of `∫Y`
+For `intervalDomainWithInitialSlice`, prove the `hSup` equality from `intervalDomainWithInitialSlice_eq_raw_of_pos`.
 
-**WIRE NOW** for intervalDomain positive classical solutions:
+But this is usually second-best. Prefer transferring the first-crossing step to raw and then running existing raw endpoint/Prop.2.5 consumers.
 
-```lean
-intervalDomain_integratedMoserEnergyNonnegativity_of_classical
-intervalDomain_integratedMoserEnergyNonnegativity_of_global_classical
-intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg
-```
+## Classification
 
-For window integrals of nonnegative functions, use the existing interval-domain nonnegativity package plus interval-integrability.
+### WIRE NOW
 
-### Coefficient gap / surplus
+* `LpPowerBoundedBefore_congr_pos`
+* `AbstractLpBootstrapHypothesis_congr_pos`
+* `IntegratedMoserFirstCrossingStep_congr_pos`
+* `intervalDomainWithInitialSlice_eq_raw_of_pos`
+* `intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored`
+* optional `IsPaper2BoundedBefore_congr_pos`
 
-**WIRE NOW** only when the local theorem’s coefficient-surplus/gap hypothesis is explicitly supplied.  
-**HONEST FRONTIER** if it is supposed to choose an epsilon/witness that closes the actual lower-vs-upper high-excursion gap.
+These are all positive-time locality lemmas and should not require new analysis.
 
-Practical rule: algebraic coefficient absorption is wiring; quantitative epsilon choice tied to `Ceps`, `Gbound`, `M`, `(b-a)`, and `lowerBound` is a frontier.
+### HONEST FRONTIER
 
-### Lower-average frontier
+* Producing `IntervalDomainRawMoserGradientTimeIntegrability`.
+* Producing anchored `IntegratedMoserDissipationDropBefore`, `IntegratedMoserEnergyWindowFTC`, lower-average windows, upper-data-gap choices, etc.
+* Proving a universal local `integratedStep` field from the anchored theorem without adding global/trace/datum hypotheses. That is not valid as a wiring theorem; it is a statement-shape mismatch.
 
-**HONEST FRONTIER**:
+## Bottom line
 
-```lean
-IntegratedMoserHighExcursionLowerAverageWindowFrontier
-```
-
-This is Zinan’s last-exit/window-thickness work. Do not edit `P3MoserHighExcursionProducer.lean`.
-
-### Upper-bound witness / upper-gap frontier
-
-Split it:
-
-* **WIRE NOW**: fixed-window upper-bound data/witness once lower window and gap choice are supplied.
-
-```lean
-integratedMoser_windowUpperBoundData_of_lowerAverageWindow
-integratedMoserWindowUpperGapWitnessFrontier_of_upperDataGap
-integratedMoserWindowUpperGapWitnessFrontier_of_epsilonGap
-```
-
-* **HONEST FRONTIER**: producing the actual strict gap chooser.
-
-```lean
-IntegratedMoserWindowUpperDataGapFrontier
-IntegratedMoserWindowUpperGapEpsilonFrontier
-```
-
-unless your new local `_coeffGap` theorem already proves exactly one of those frontier structures from the window FTC + energy inequality data.
-
-## Recommended next cleanup order
-
-1. **Add a statement-layer `LowerAverageUpperDataGapFrontierData` wrapper** in `IntervalDomainStatementAssembly.lean`. This is pure wiring and will expose the preferred decomposed route directly to Proposition 2.5 and Corollary 2.1.
-
-2. **Add a non-Zinan residual record** in `IntervalDomainMoserLadderAtoms.lean` that carries only:
-   - raw all-exponent gradient integrability;
-   - FTC side-condition packages;
-   - relative interpolation;
-   - lower-average frontier;
-   - upper-data-gap frontier;
-   - quantitative endpoint.
-
-3. **Add a producer from that residual record to `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData`**. The body should be pure wiring:
-   - anchored regularity from rawGradient;
-   - energy nonnegativity from classical/global;
-   - integrated/window dissipation from `LpBootstrapEnergyInequality + IntegratedMoserEnergyWindowFTC + higherPower coeff frontier` if your local theorem supports it;
-   - relative interpolation from the residual field;
-   - lowerAverage and upperDataGap from residual fields.
-
-4. Keep the following marked as frontiers in the headline docs/structures:
-   - `IntervalDomainRawMoserGradientTimeIntegrability`;
-   - FTC side integrability packages;
-   - `IntegratedMoserHighExcursionLowerAverageWindowFrontier`;
-   - `IntegratedMoserWindowUpperDataGapFrontier`;
-   - quantitative endpoint, unless a separate endpoint producer is ready.
-
-This removes stale residuals without claiming a false unconditional proof.
+Use anchoring only for objects that see `t = 0`; after producing the anchored first-crossing step, cross back to raw `u` through positive-time locality. The existing Paper2 raw APIs can then be used safely. The needed bridge is small and should be added as locality lemmas, not as a fake proof that raw zero-time regularity equals anchored zero-time regularity.
