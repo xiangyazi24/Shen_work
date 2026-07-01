@@ -1,368 +1,320 @@
-# Q2802 shen2: current frontier landscape and next wrapper step
+# Q2829 shen2: audit of `IntervalDomain1DLinfRoute` energy/dissipation hole
 
 Repo target: `xiangyazi24/Shen_work`, default branch `main`.
 
-Scope honored: I did not propose edits to Zinan-owned producer files:
+Current local target file from prompt:
+
+```text
+ShenWork/PDE/IntervalDomain1DLinfRoute.lean
+```
+
+User context: Codex has locally closed
+
+```lean
+intervalDomain_Linf_of_Lp_and_gradient
+intervalDomain_all_Lp_of_Linf
+intervalDomain_Proposition_2_5_1d
+```
+
+and the only remaining local hole is
+
+```lean
+intervalDomain_Lp_energy_and_dissipation_of_regularity
+```
+
+I inspected the current `main` versions of the requested files and treated the local edits conceptually. I did not modify or rely on Zinan-owned producer files:
 
 ```text
 ShenWork/PDE/P3MoserHighExcursionProducer.lean
 ShenWork/PDE/P3MoserThresholdPlanProducer.lean
 ```
 
-Files inspected directly:
+## Verdict
 
-```text
-ShenWork/Paper2/IntervalDomainStatementAssembly.lean
-ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
-ShenWork/Paper1/StatementAssembly.lean
-```
+`intervalDomain_Lp_energy_and_dissipation_of_regularity` is **not derivable as stated** from the current in-repo APIs.
 
-I treat Q2802 as the active request; Q2781's Paper1--3 classification is folded in where relevant.
-
-## 1. Headline-facing fronts that are pure wrappers / already wireable
-
-### Paper2: Agmon and positive solution interpolation are closed
-
-The following are now proved/wired and should be considered stale as future suggestions:
+The minimal obstruction is not a missing Lean trick. The statement asks for a **uniform pointwise-in-time** bound on
 
 ```lean
-unitIntervalPositiveAgmonInterpolation
-intervalDomain_classicalSolutionPositiveInterpolation
-intervalDomainPaper2_Lemma_4_1_of_provedAgmon
-intervalDomainPaper2_aprioriTargets_of_provedAgmon
+intervalDomain.integral (fun x =>
+  (intervalDomain.gradNorm
+    (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)
 ```
 
-The preferred raw-drop terminal-endpoint mass-gradient route no longer carries Agmon as an assumption. The current wrapper chain is already present:
+for every `0 < t < T`. The current energy/Moser APIs provide:
+
+1. pointwise differential inequalities involving `Y'`, `Y`, `G`, and `Z`, and
+2. integrated-in-time Moser/dissipation control,
+
+but they do **not** provide a pointwise-in-time upper bound for `G(t)`.
+
+The second independent obstruction is exponent scope: `hboot : AbstractLpBootstrapHypothesis ... p0` supplies the base bootstrap data at `p0`; it does not by itself give `LpPowerBoundedBefore intervalDomain pExp T u` for every `pExp ≥ p0`. That higher-exponent fact is precisely what Moser iteration or another bootstrap step is meant to prove.
+
+## Evidence from current APIs
+
+### 1. `LpBootstrapEnergyInequality` is a differential inequality, not a bound theorem
+
+In `IntervalDomainLpBootstrapEnergyInequality.lean`, the assembled theorem is:
 
 ```lean
-IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData.toAgmon
-
-intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+theorem intervalDomain_LpBootstrapEnergyInequality_of_regularity
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
+    LpBootstrapEnergyInequality intervalDomain u T rho p0
 ```
 
-The local/main and main theorem extractors from that full statement route are also already present:
+Unfolding its use, for each `pExp ≥ p0` it produces constants `A`, `B`, `K`, `L` and a pointwise inequality of the form
 
 ```lean
-intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
-
-intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+(1 / pExp) * deriv (fun τ => ∫ u(τ)^pExp) t
+  + A * G_pExp(t)
+  + B * Y_pExp(t)
+≤ K * Z_{pExp+rho}(t) + L
 ```
 
-The preferred aliases are also present:
+This is not enough to bound either `Y_pExp(t)` or `G_pExp(t)` without additional control of the higher power `Z_{pExp+rho}` and the derivative term.
+
+Relevant exact names:
 
 ```lean
-IntervalDomainPaper2PreferredChiZeroStatementActualAtomRawDropMassGradientTerminalEndpointCor21ProvedAgmonFrontierData
-
-intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21ProvedAgmonFrontierData
+intervalDomain_LpBootstrapEnergyInequality_of_regularity
+intervalDomainLpMoserGradientControl_of_regularity
+intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+intervalDomainLpEnergy_eq_power_of_regularity
 ```
 
-So any recommendation to add the proved-Agmon Paper2 statement route or its main extractors is stale.
-
-### Paper2: theorem/data conversions already wired
-
-These are pure wrappers, not analytic producers:
+`intervalDomain_moser_gradient_integral_eq_weighted_of_regularity` is useful: it identifies the Moser gradient integral with the weighted dissipation,
 
 ```lean
-IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.toTerminalEndpoint
-IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData.toMassGradient
-IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms
-
-intervalDomainPaper2_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
-intervalDomainPaper2_Corollary_2_1_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
-
-IntervalDomainPaper2Theorem12And13ChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData.toTerminalEndpointCor21
-IntervalDomainPaper2MainTheoremChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData.toTerminalEndpointCor21
+intervalDomain.integral
+  (fun x => (intervalDomain.gradNorm
+    (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)
+= (pExp / 2) ^ 2 * intervalDomainLpWeightedGradientDissipation pExp u t
 ```
 
-They should be used as wrappers around lower-level atoms, not counted as open headline assumptions.
+but it is only an identity/comparison, not a bound.
 
-### Paper3: NoNeg and actual-linear wrapper families are already landed
+### 2. `hboot` gives a base `LpPowerBoundedBefore`, not all higher exponents
 
-The following suggestions are now stale because the declarations exist on `main`:
+`LpPowerBoundedBefore` is the expected pointwise-in-time Lp bound predicate:
 
 ```lean
-intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
-
-IntervalDomainPaper3StatementActualLinear22P2MainNoNegData
-intervalDomain_paper3_statementTargets_of_actualLinear22P2MainNoNegData
-
-IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
-
-IntervalDomainPaper3StatementAprioriActualLinearSmallP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallP2MainNoNegData
-
-IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainNoNegData
-
-IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainNoNegData
-
-IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
-
-IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainNoNegData
-
-IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainNoNegData
-
-IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegData
+def LpPowerBoundedBefore
+    (D : BoundedDomainData) (pExp Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
+  ∃ C, ∀ t, 0 < t → t < Tmax →
+    D.integral (fun x => (u t x) ^ pExp) ≤ C
 ```
 
-These are all pure statement-layer assumption cleanup: `0 < p.χ₀` discharges `NegativeSensitivityGlobalEventualBound intervalDomain p`, and Paper2 main targets supply Paper3 Proposition 1.3/1.4.
-
-### Paper1: only Lemma 2.5 is closed at headline level
-
-Already closed and wired:
+The Moser closure files treat higher exponents as a theorem output, not as a direct consequence of the base bootstrap hypothesis. For example:
 
 ```lean
-paper1_Lemma_2_5
-paper1_Lemma_2_5_JensenStep
-paper1_lemma25Targets
+all_exponents_of_moser_iteration_chain
+all_exponents_of_energy_nonnegB_relative_interpolation_lpmono
 ```
 
-The remaining Paper1 headline packages are not empty declarations, but most are genuine frontiers rather than mere wrapper work.
+need an iteration step / relative interpolation / dissipation data. So for arbitrary `pExp ≥ p0`, the desired `M_Lp` is not available from `hboot` alone.
 
-## 2. Genuine analytic producers / open atoms
+### 3. The repository explicitly diagnoses pointwise dissipation as the wrong shape
 
-### Paper2 genuine frontiers
-
-These should not be renamed as wrappers; they are real math/PDE obligations.
+`P3MoserDissipationShape.lean` says the faithful shape is integrated. It defines the old pointwise nonnegative-`B` predicate:
 
 ```lean
-IntervalDomainPaper2BootstrapEstimateThinFrontierData.lemma26
-IntervalDomainPaper2BootstrapEstimateThinFrontierData.lemma27
-IntervalDomainPaper2BootstrapEstimateThinFrontierData.prop22
-IntervalDomainPaper2BootstrapEstimateThinFrontierData.prop23
+def MoserDissipationDropBeforeNonnegB
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ A B K L_const, 0 ≤ B →
+    (∀ t, 0 < t → t < T →
+      (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+        A * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        B * D.integral (fun x => (u t x) ^ p) ≤
+      K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+    ∀ t, 0 < t → t < T →
+      0 ≤
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          B * D.integral (fun x => (u t x) ^ p)
 ```
 
-These are the thin Section 2 estimate package.
+but it also contains the diagnostic counterexample:
 
 ```lean
-IntervalDomainPaper2Proposition11ChiZeroFrontierData.finiteHorizonAlternative
+theorem unitLinearDrop_not_MoserDissipationDropBeforeNonnegB :
+    ¬ MoserDissipationDropBeforeNonnegB
+      unitLinearDropDomain unitLinearDropU 1 1 1
 ```
 
-Local existence is already discharged in the `χ₀ = 0` route, but finite-horizon continuation/alternative is still genuine.
+So the repository already records that the pointwise-drop/pointwise-dissipation expectation is too strong unless supplied as a genuine analytic atom.
 
-The current preferred Prop. 2.5/Moser atoms remain genuine:
+The integrated replacement is:
 
 ```lean
-IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.rawMoserDrop
-IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.relativeMassGradient
-IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.terminalEndpoint
+def IntegratedMoserDissipationDropBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T _rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      D.integral (fun x => (u t2 x) ^ p) -
+          D.integral (fun x => (u t1 x) ^ p) +
+        2 * ∫ s in t1..t2,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      C * p * ∫ s in t1..t2,
+        max 1 (D.integral (fun x => (u s x) ^ p))
 ```
 
-The Theorem 1.2/1.3 branch/global fronts remain genuine:
+### 4. `P3MoserIntegratedClosure` only gives integrated gradient bounds
+
+`P3MoserIntegratedClosure.lean` has the exact routine algebra for integrated dissipation:
 
 ```lean
-IntervalDomainPaper2GlobalExtensionFrontier
-slowBootstrap
-criticalBootstrap
-criticalEventualSupBound
-strongBootstrap
-strongEventualSupBound
+theorem integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+    ... :
+    ∃ C, 0 ≤ C ∧
+      2 * ∫ s in a..b,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+        M + C * p * H
 ```
 
-Those field names occur in the `IntervalDomainPaper2Theorem12And13...` / preferred `ChiZero...LocalFree...` route families.
-
-### Paper3 genuine frontiers
-
-Current actual-linear routes have many wrapper layers, but these fields are still real frontiers:
+This bounds a **time integral** of the gradient energy on `[a,b]`. It does not imply
 
 ```lean
-IntervalDomainPaper3CoreStatementActualLinear22Data.initialContinuity
-IntervalDomainPaper3CoreStatementActualLinear22Data.theorem22Nonminimal
-IntervalDomainPaper3CoreStatementActualLinear22Data.theorem22Minimal
+∀ t, 0 < t → t < T → G(t) ≤ M_diss
 ```
 
-For a-priori/mainline routes:
+without an additional pointwise regularity/maximum principle estimate. Even continuity of `G(t)` plus an integrated bound on `[0,T]` does not give a uniform pointwise bound unless there is a local modulus or differential control; continuous functions can have high narrow spikes with bounded integral.
+
+## Why `hlogistic_dominates : rho < params.α` does not close the hole
+
+The condition `rho < params.α` is the right analytic direction for absorbing the higher power in an integrated or differential inequality, but the current theorem does not include the actual Young/logistic absorption lemma needed to convert
 
 ```lean
-IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts.spectralSemigroupOrbitBound
-IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts.continuation
-IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts.massLpSmoothing
-
-IntervalDomainPaper3MainlineAprioriActualLinearSmallFrontierData.compactness
-IntervalDomainPaper3MainlineAprioriActualLinearSmallFrontierData.stability
+K * ∫ u^(pExp + rho)
 ```
 
-For terminal/lower-upper Moser surfaces:
+into a closed bound in `Y_pExp` and `G_pExp`. More importantly, even if such an absorption were added, the existing repository route formalizes the faithful output as an integrated Moser step, not a pointwise `G(t)` bound.
+
+## What is provable now
+
+A small bound extractor from an already-supplied `LpPowerBoundedBefore` is provable immediately:
 
 ```lean
-IntervalDomainMoserActualLinearSmallBoundednessCore.alphaAbsorption
-IntervalDomainMoserActualLinearSmallBoundednessCore.gammaDimension
-
-IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.closedEnergyTrace
-IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.rawMoserDrop
-IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.relativeMassGradient
-IntervalDomainMassLpSmoothingMoserActualLinearSmallCETerminalResiduals.terminalPointwise
-
-IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.integratedStep
-
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.classicalContinuityRegularity
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.integratedDissipation
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.relativeMoserInterpolation
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.lowerAverage
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.upperDataGap
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.quantitativeEndpoint
-
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals.lowerUpperFrontiers
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals.quantitativeEndpoint
+theorem intervalDomain_Lp_bound_of_LpPowerBoundedBefore
+    {T pExp : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hLp : LpPowerBoundedBefore intervalDomain pExp T u) :
+    ∃ M_Lp : ℝ,
+      0 ≤ M_Lp ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ M_Lp := by
+  rcases hLp with ⟨C, hC⟩
+  refine ⟨max 0 C, le_max_left _ _, ?_⟩
+  intro t ht0 htT
+  exact le_trans (hC t ht0 htT) (le_max_right _ _)
 ```
 
-If a proof route for `lowerAverage`, `upperDataGap`, `lowerUpperFrontiers`, or `terminalPointwise` needs the high-excursion/threshold producers, that part belongs to Zinan. Non-Zinan work should remain wrapper/assembly around already-exported facts.
-
-The non-vacuous stability frontiers in the actual-linear-small route are:
+And a repackaging theorem is provable if the pointwise gradient bound is supplied explicitly:
 
 ```lean
-IntervalDomainPaper3Stability24ActualLinearFrontierData.global24
-IntervalDomainPaper3Stability24ActualLinearFrontierData.exp24
+def IntervalDomainPointwiseMoserGradientBoundBefore
+    (u : ℝ → intervalDomain.Point → ℝ) (T pExp : ℝ) : Prop :=
+  ∃ M_diss : ℝ,
+    0 ≤ M_diss ∧
+    ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+        (intervalDomain.gradNorm
+          (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) ≤ M_diss
+
+theorem intervalDomain_Lp_energy_and_dissipation_of_Lp_and_pointwiseGradient
+    {T pExp : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hLp : LpPowerBoundedBefore intervalDomain pExp T u)
+    (hgrad : IntervalDomainPointwiseMoserGradientBoundBefore u T pExp) :
+    ∃ M_Lp M_diss : ℝ,
+      0 ≤ M_Lp ∧ 0 ≤ M_diss ∧
+      (∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ M_Lp) ∧
+      (∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm
+            (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) ≤ M_diss) := by
+  rcases intervalDomain_Lp_bound_of_LpPowerBoundedBefore hLp with
+    ⟨M_Lp, hMLp_nonneg, hMLp⟩
+  rcases hgrad with ⟨M_diss, hMdiss_nonneg, hMdiss⟩
+  exact ⟨M_Lp, M_diss, hMLp_nonneg, hMdiss_nonneg, hMLp, hMdiss⟩
 ```
 
-`toStability23To25` already makes the Theorem 2.3 and 2.5 branches vacuous from `0 < p.χ₀` and `0 < p.a`, so only those Theorem 2.4 fields are real.
+This is Lean-friendly and directly feeds the already-closed local `intervalDomain_Linf_of_Lp_and_gradient` theorem.
 
-### Paper1 genuine frontiers
+## Recommended replacement signature
 
-The current Paper1 residuals are real mathematical fronts:
+Replace the unprovable theorem with a statement that makes the missing pointwise gradient estimate explicit. This keeps the direct 1D `L∞` route honest:
 
 ```lean
-Paper1MainResultsData
-ConstructionNegSMPProvider
-Paper1PositiveCriticalFrozenStationaryBranch
-Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch
-Paper1PositiveCriticalFrozenStationaryContactBranch
-Paper1PositiveLowerPinnedContactBranchData
-Paper1PositiveLowerPinnedRawContactBranchData
-Paper1PositiveLowerPinnedSchauderContactData
-Paper1PositiveLowerPinnedCapSchauderContactData
-Paper1MainlineExistence
-Paper1Lemma51FrontierData
-Paper1Lemma52FrontierData
-Paper1PropositionFrontierData
+def IntervalDomainPointwiseMoserGradientBoundBefore
+    (u : ℝ → intervalDomain.Point → ℝ) (T pExp : ℝ) : Prop :=
+  ∃ M_diss : ℝ,
+    0 ≤ M_diss ∧
+    ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+        (intervalDomain.gradNorm
+          (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) ≤ M_diss
+
+theorem intervalDomain_Lp_energy_and_dissipation_of_Lp_and_pointwiseGradient
+    {T pExp : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hLp : LpPowerBoundedBefore intervalDomain pExp T u)
+    (hgrad : IntervalDomainPointwiseMoserGradientBoundBefore u T pExp) :
+    ∃ M_Lp M_diss : ℝ,
+      0 ≤ M_Lp ∧ 0 ≤ M_diss ∧
+      (∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ M_Lp) ∧
+      (∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm
+            (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) ≤ M_diss)
 ```
 
-For example, `Paper1Lemma51FrontierData` carries real fields such as `resolvent`, `continuous`, `deriv_tends`, `deriv_bound`, and `deriv_exp`; `Paper1PropositionFrontierData` carries whole-line Cauchy existence/bounds/convergence fields. These are not empty placeholders.
-
-## 3. Next low-risk wrapper to add
-
-The best current non-producer cleanup is a generic Paper2 projection from the full statement bundle to its local/main and main theorem components.
-
-Why this is still useful despite the route-specific extractors already landed:
-
-* The route-specific proved-Agmon extractors exist, but downstream Paper3 routes only need `IntervalDomainPaper2MainTheoremTargets p C`.
-* `IntervalDomainPaper2StatementTargets p C` already contains that target as a nested component.
-* A generic projector avoids adding a new route-specific extractor every time a statement route changes.
-* It is pure structure projection, no new analysis, no producer files.
-
-Insert in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` immediately after the definition of `IntervalDomainPaper2StatementTargets` or near the other statement-target wrappers.
+Then the direct 1D L∞ route should take:
 
 ```lean
-/-- Extract the local-plus-main theorem targets from the full interval-domain
-Paper 2 statement bundle.  This is pure projection. -/
-theorem intervalDomainPaper2_localAndMainTheoremTargets_of_statementTargets
-    {p : CM2Params} {C : Paper2Constants p}
-    (h : IntervalDomainPaper2StatementTargets p C) :
-    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
-  h.2.2
-
-/-- Extract the Paper 2 main theorem targets from the full interval-domain
-statement bundle.  This lets downstream Paper3 wrappers consume any completed
-Paper2 statement route without knowing which lower-level route produced it. -/
-theorem intervalDomainPaper2_mainTheoremTargets_of_statementTargets
-    {p : CM2Params} {C : Paper2Constants p}
-    (h : IntervalDomainPaper2StatementTargets p C) :
-    IntervalDomainPaper2MainTheoremTargets p C :=
-  h.2.2.2
-
-/-- Instance-facing local-plus-main extractor from a full Paper2 statement
-bundle. -/
-theorem intervalDomainPaper2_localAndMainTheoremTargets_of_statementTargetsFact
-    (p : CM2Params) (C : Paper2Constants p)
-    [h : Fact (IntervalDomainPaper2StatementTargets p C)] :
-    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
-  intervalDomainPaper2_localAndMainTheoremTargets_of_statementTargets h.out
-
-/-- Instance-facing main theorem extractor from a full Paper2 statement bundle. -/
-theorem intervalDomainPaper2_mainTheoremTargets_of_statementTargetsFact
-    (p : CM2Params) (C : Paper2Constants p)
-    [h : Fact (IntervalDomainPaper2StatementTargets p C)] :
-    IntervalDomainPaper2MainTheoremTargets p C :=
-  intervalDomainPaper2_mainTheoremTargets_of_statementTargets h.out
+hLp : LpPowerBoundedBefore intervalDomain pExp T u
+hgrad : IntervalDomainPointwiseMoserGradientBoundBefore u T pExp
 ```
 
-Expected result: this should compile by projection only. No extra imports if appended to `IntervalDomainStatementAssembly.lean`.
+instead of trying to derive both from `henergy` and `hboot`.
 
-### Optional follow-up wrapper using the projector
+## If the goal is to stay within existing integrated APIs
 
-After the projector exists, Paper3 can add statement-consuming variants without knowing the Paper2 route. For example, for the thin lower/upper route:
+Use an integrated replacement, but note that this is **not enough** for the current pointwise Agmon step:
 
 ```lean
-structure
-    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2StatementNoNegData
-    (p : CM2Params) (C : Paper2Constants p)
-    (M0 uBar vLower : ℝ)
-    (locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop)
-    (neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
-  paper2Statement : IntervalDomainPaper2StatementTargets p C
-  mainline :
-    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperThinFrontierData
-      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+theorem intervalDomain_integrated_dissipation_bound_of_integratedMoser
+    {T rho p0 p a b M H : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (hinteg : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0)
+    (hp : p0 ≤ p)
+    (hp_nonneg : 0 ≤ p)
+    (haT : a ∈ Set.Icc (0 : ℝ) T)
+    (hbT : b ∈ Set.Icc a T)
+    (hYa : intervalDomain.integral (fun x => (u a x) ^ p) ≤ M)
+    (hYb_nonneg : 0 ≤ intervalDomain.integral (fun x => (u b x) ^ p))
+    (hmaxInt :
+      ∫ s in a..b,
+        max 1 (intervalDomain.integral (fun x => (u s x) ^ p)) ≤ H) :
+    ∃ C, 0 ≤ C ∧
+      2 * ∫ s in a..b,
+        intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm
+            (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+        M + C * p * H :=
+  integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+    hinteg hp hp_nonneg haT hbT hYa hYb_nonneg hmaxInt
 ```
 
-Then its theorem simply calls the already-landed
-`intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegData`, feeding
-`intervalDomainPaper2_mainTheoremTargets_of_statementTargets hData.paper2Statement`.
+This is already essentially present as `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds`. It is the right API for an integrated Moser/first-crossing route, but it cannot replace the pointwise `M_diss` required by `intervalDomain_Linf_of_Lp_and_gradient`.
 
-This follow-up is also pure wiring, but the generic Paper2 projector is the better first patch because it helps all Paper3 P2Main wrappers.
+## Bottom line for Codex
 
-## 4. Prioritized actionable non-producer tasks
-
-| Priority | Task | Provable by wiring? | File | Notes |
-|---:|---|---:|---|---|
-| 1 | Add `intervalDomainPaper2_localAndMainTheoremTargets_of_statementTargets` and `intervalDomainPaper2_mainTheoremTargets_of_statementTargets` plus Fact wrappers. | Yes | `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` | Best low-risk cleanup. Pure projection from `IntervalDomainPaper2StatementTargets`. |
-| 2 | Add Paper3 P2Statement-consuming NoNeg wrappers, starting with `IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperThinP2StatementNoNegData`. | Yes, after task 1 | `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean` | Avoids requiring downstream callers to extract Paper2 main theorem targets manually. |
-| 3 | Add analogous P2Statement-consuming variants for `...CETerminalP2MainNoNegData` and `...IntegratedStepP2MainNoNegData`. | Yes, after task 1 | Same Paper3 file | Repetitive but useful if those routes are used by current campaigns. |
-| 4 | Add Paper1 projection helpers from `Paper1CombinedStatementTargets` to main/proposition/lemma bundles. | Yes | `ShenWork/Paper1/StatementAssembly.lean` | Very low risk, but lower value than Paper2/Paper3. |
-| 5 | Do **not** attempt to prove `IntervalDomainPaper2BootstrapEstimateThinFrontierData` or Paper3 Moser frontiers as a wrapper patch. | No | N/A | These are genuine analytic fronts; high-excursion/threshold parts may be Zinan-owned. |
-
-## 5. Explicit stale suggestions already covered
-
-Do not suggest these again:
-
-```lean
--- Agmon / positive solution interpolation
-unitIntervalPositiveAgmonInterpolation
-intervalDomain_classicalSolutionPositiveInterpolation
-intervalDomainPaper2_Lemma_4_1_of_provedAgmon
-intervalDomainPaper2_aprioriTargets_of_provedAgmon
-
--- Paper2 proved-Agmon full statement route and extractors
-IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData.toAgmon
-intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
-intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
-intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
-intervalDomainPaper2_preferredChiZeroStatementTargets_of_actualAtomRawDropMassGradientTerminalEndpointCor21ProvedAgmonFrontierData
-
--- Paper2 proved-positive local-free route, per current landed wrappers
-intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
-
--- Paper3 NoNeg routes
-intervalDomain_paper3_statementTargets_of_actualLinear22P2MainNoNegData
-intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_aprioriActualLinearSmallP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainNoNegData
-intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperThinP2MainNoNegData
-```
-
-## Bottom line
-
-The next non-producer patch should not target Agmon, NoNeg, or route-specific Paper2 main extractors; those are already landed. The highest-signal remaining pure wrapper is a generic projection from any completed `IntervalDomainPaper2StatementTargets p C` to `IntervalDomainPaper2MainTheoremTargets p C`, followed by optional Paper3 wrappers that accept a full Paper2 statement bundle instead of a manually extracted Paper2 main bundle.
+Do not try to prove the original theorem by clever use of `henergy`; it asks for a pointwise gradient bound that the repo intentionally does not provide. The correct non-Zinan patch is to replace it with the explicit pointwise-gradient-bound frontier above, or to reroute the 1D path through integrated Moser APIs and change the downstream Agmon step accordingly. The former is the minimal change that preserves the already-closed direct `intervalDomain_Linf_of_Lp_and_gradient` route.
