@@ -302,6 +302,113 @@ theorem agmon_inequality_interval
   rw [div_mul_eq_mul_div, ← sub_le_iff_le_add, le_div_iff₀ hL]
   nlinarith [hcs]
 
+/-- Agmon's inequality with only right derivatives on the open interval.
+
+This is the version compatible with zero-extended interval-domain lifts: the
+endpoints need not have full `HasDerivAt` data.  The proof is the same as
+`agmon_inequality_interval`, using Mathlib's FTC variant for functions
+continuous on the closed interval and right-differentiable on the interior. -/
+theorem agmon_inequality_interval_rightDeriv
+    {L : ℝ} (hL : 0 < L)
+    {f f' : ℝ → ℝ}
+    (hf_cont : ContinuousOn f (Icc 0 L))
+    (hf_deriv : ∀ x ∈ Ioo (0 : ℝ) L, HasDerivWithinAt f (f' x) (Ioi x) x)
+    (_hf'_int : IntervalIntegrable f' volume 0 L)
+    (hf_sq_int : IntervalIntegrable (fun y => f y ^ 2) volume 0 L)
+    (hf'_sq_int : IntervalIntegrable (fun y => f' y ^ 2) volume 0 L)
+    (hff'_int : IntervalIntegrable (fun y => f y * f' y) volume 0 L)
+    {x : ℝ} (hx : x ∈ Icc 0 L) :
+    f x ^ 2 ≤ (2 / L) * (∫ y in (0 : ℝ)..L, f y ^ 2) +
+      2 * sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) *
+        sqrt (∫ y in (0 : ℝ)..L, f' y ^ 2) := by
+  set If2 := ∫ y in (0 : ℝ)..L, f y ^ 2 with hIf2_def
+  set If'2 := ∫ y in (0 : ℝ)..L, f' y ^ 2 with hIf'2_def
+  have hIf2_nn : 0 ≤ If2 := intervalIntegral.integral_nonneg hL.le (fun u _ => sq_nonneg _)
+  have hfsq_deriv : ∀ s ∈ Ioo (0 : ℝ) L,
+      HasDerivWithinAt (fun t => f t ^ 2) (2 * f s * f' s) (Ioi s) s := by
+    intro s hs
+    have h := HasDerivWithinAt.fun_pow (hf_deriv s hs) 2
+    simp only [Nat.cast_ofNat] at h
+    convert h using 1
+    ring
+  have hfsq_cont : ContinuousOn (fun t => f t ^ 2) (Icc (0 : ℝ) L) := by
+    have hmul : ContinuousOn (fun t => f t * f t) (Icc (0 : ℝ) L) :=
+      hf_cont.mul hf_cont
+    refine hmul.congr ?_
+    intro t ht
+    ring
+  have h2ff'_int : IntervalIntegrable (fun s => 2 * f s * f' s) volume 0 L :=
+    (hff'_int.const_mul 2).congr (fun s _ => by ring)
+  have habs_ff' : IntervalIntegrable (fun y => |f y * f' y|) volume 0 L := by
+    have := hff'_int.norm
+    simp only [Real.norm_eq_abs] at this
+    exact this
+  have hftc : ∀ y₀ ∈ Icc (0 : ℝ) L,
+      ∫ s in y₀..x, (2 * f s * f' s) = f x ^ 2 - f y₀ ^ 2 := by
+    intro y₀ hy₀
+    have hsub : uIcc y₀ x ⊆ Icc 0 L := uIcc_subset_Icc hy₀ hx
+    exact intervalIntegral.integral_eq_sub_of_hasDeriv_right
+      (hcont := hfsq_cont.mono hsub)
+      (hderiv := by
+        intro s hs
+        have hs_uIoo : s ∈ uIoo y₀ x := by
+          simpa [Ioo_min_max] using hs
+        exact hfsq_deriv s (uIoo_subset_Ioo hy₀ hx hs_uIoo))
+      (hint := h2ff'_int.mono
+        (uIcc_subset_uIcc (Icc_subset_uIcc hy₀) (Icc_subset_uIcc hx))
+        le_rfl)
+  set Iff' := ∫ y in (0 : ℝ)..L, |f y * f' y|
+  have hpointwise : ∀ y₀ ∈ Icc (0 : ℝ) L, f x ^ 2 ≤ f y₀ ^ 2 + 2 * Iff' := by
+    intro y₀ hy₀
+    have hftc_eq := hftc y₀ hy₀
+    simp only at hftc_eq
+    have : f x ^ 2 = f y₀ ^ 2 + ∫ s in y₀..x, (2 * f s * f' s) := by
+      linarith
+    rw [this]
+    suffices ∫ s in y₀..x, (2 * f s * f' s) ≤ 2 * Iff' by linarith
+    calc ∫ s in y₀..x, (2 * f s * f' s)
+        ≤ |∫ s in y₀..x, (2 * f s * f' s)| := le_abs_self _
+      _ ≤ 2 * Iff' := by
+        have habs_eq : (fun s => |2 * f s * f' s|) = fun s => 2 * |f s * f' s| := by
+          funext s
+          rw [show (2 : ℝ) * f s * f' s = 2 * (f s * f' s) from by ring,
+            abs_mul, abs_of_nonneg (show (0 : ℝ) ≤ 2 by norm_num)]
+        have h_full_eq : ∫ s in (0 : ℝ)..L, |2 * f s * f' s| = 2 * Iff' := by
+          simp_rw [habs_eq]
+          exact intervalIntegral.integral_const_mul 2 _
+        have h_abs_int : IntervalIntegrable (fun s => |2 * f s * f' s|) volume 0 L := by
+          simp_rw [habs_eq]
+          exact habs_ff'.const_mul 2
+        rcases le_or_gt y₀ x with hle | hgt
+        · calc |∫ s in y₀..x, (2 * f s * f' s)|
+              ≤ ∫ s in y₀..x, |2 * f s * f' s| :=
+                intervalIntegral.abs_integral_le_integral_abs hle
+            _ ≤ ∫ s in (0 : ℝ)..L, |2 * f s * f' s| :=
+                intervalIntegral.integral_mono_interval hy₀.1 hle hx.2
+                  (Filter.Eventually.of_forall fun _ => abs_nonneg _) h_abs_int
+            _ = 2 * Iff' := h_full_eq
+        · rw [intervalIntegral.integral_symm, abs_neg]
+          calc |∫ s in x..y₀, (2 * f s * f' s)|
+              ≤ ∫ s in x..y₀, |2 * f s * f' s| :=
+                intervalIntegral.abs_integral_le_integral_abs hgt.le
+            _ ≤ ∫ s in (0 : ℝ)..L, |2 * f s * f' s| :=
+                intervalIntegral.integral_mono_interval hx.1 hgt.le hy₀.2
+                  (Filter.Eventually.of_forall fun _ => abs_nonneg _) h_abs_int
+            _ = 2 * Iff' := h_full_eq
+  have havg : L * f x ^ 2 ≤ If2 + L * (2 * Iff') := by
+    have hint_le : ∫ _ in (0 : ℝ)..L, f x ^ 2 ≤
+        ∫ y in (0 : ℝ)..L, (f y ^ 2 + 2 * Iff') :=
+      intervalIntegral.integral_mono_on hL.le intervalIntegrable_const
+        (hf_sq_int.add intervalIntegrable_const) (fun y hy => hpointwise y hy)
+    rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul, mul_comm] at hint_le
+    rw [intervalIntegral.integral_add hf_sq_int intervalIntegrable_const,
+      intervalIntegral.integral_const, sub_zero, smul_eq_mul, mul_comm] at hint_le
+    linarith
+  have hcs : Iff' ≤ sqrt If2 * sqrt If'2 :=
+    integral_abs_mul_le_sqrt hL hf_sq_int hf'_sq_int habs_ff'
+  rw [div_mul_eq_mul_div, ← sub_le_iff_le_add, le_div_iff₀ hL]
+  nlinarith [hcs]
+
 end ShenWork.GagliardoNirenberg
 
 end
