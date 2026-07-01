@@ -1,4 +1,4 @@
-# Q2878 (shen1) — component PDE-term bridge for weighted-time initial integrability
+# Q2880 (shen1) — PDE-term initial-window integrability frontier
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
@@ -6,34 +6,47 @@ Source edit requested: none; answer file only.
 
 ## Executive answer
 
-Yes.  The no-sorry bridge should use the compiled pointwise PDE-integral identity
+The current repo APIs do **not** appear to prove the full initial-window residual
+
+```lean
+IntervalDomainLpPDETermInitialWindowIntegrability params u v T p0
+```
+
+from `IsPaper2GlobalClassicalSolution`, `InitialTrace`, or endpoint energy continuity alone.
+
+What exists now is strong but pointwise-in-time:
+
+```lean
+intervalDomainLift_lp_diffusion_intervalIntegrable_of_regularity
+intervalDomainLift_lp_chemotaxis_intervalIntegrable_of_regularity
+intervalDomainLift_lp_logistic_intervalIntegrable_of_regularity
+```
+
+These show spatial interval integrability for each fixed positive time `s`.  They do **not** imply time integrability of the scalar profiles on `0..b = Ioc 0 b`.
+
+The compiled PDE-integral identity
 
 ```lean
 intervalDomain_lp_energy_hPDEIntegral_of_regularity
 ```
 
-which has sign/convention:
+is also pointwise in time.  It is excellent for congruence once scalar time integrability is known, but it does not itself prove any time integrability near `0`.
+
+So the honest split is:
+
+1. **Positive-start / strict windows** are reducible to continuity of the three scalar PDE profiles on compact time windows.  This can be packaged no-sorry by `ContinuousOn.intervalIntegrable`.
+2. **Initial windows starting at `0`** remain a real residual.  Neither `InitialTrace` nor endpoint power-energy continuity controls the time singularity of diffusion/chemotaxis/logistic scalar profiles.
+3. The thinnest residual for the current Moser route is still the existing component initial-window integrability residual.  A useful auxiliary positive-start package can be added so future closed-window variants split exactly into “initial edge + positive-start interior.”
+
+## No-sorry code: positive-start/strict-window split
+
+Put this in `ShenWork/PDE/P3MoserEnergyContinuity.lean` after the existing definition
 
 ```lean
-intervalDomain.integral (intervalDomainLpEnergyWeightedTimeTerm q u s) =
-  intervalDomainLpDiffusionIntegral q u s -
-    params.χ₀ * intervalDomainLpChemotaxisIntegral params q u v s +
-    intervalDomainLpLogisticIntegral params q u s
+IntervalDomainLpPDETermInitialWindowIntegrability
 ```
 
-Therefore, after multiplying by `q`, the component residual should require integrability of:
-
-```lean
-q * Diffusion
-q * (params.χ₀ * Chemotaxis)
-q * Logistic
-```
-
-Then the weighted time-term integrability follows by `(hDiff.sub hChem).add hLog` plus `IntervalIntegrable.congr` on `uIoc 0 b`.  To avoid the `s < T` endpoint problem when `b = T`, apply global classical on horizon `s + 1` for every `s > 0`.
-
-## Code to add
-
-Put this in `ShenWork/PDE/P3MoserEnergyContinuity.lean`, after the weighted residual from Q2877.  If the imports are already present because this is the same file, only add the declarations inside the existing namespace.
+If imports/namespaces are already present in the file, only add the declarations.
 
 ```lean
 import ShenWork.PDE.P3MoserEnergyContinuity
@@ -50,102 +63,173 @@ noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
-/-- Initial-window integrability residual for the three PDE terms in the weighted
-Lp time identity.
+/-- Positive-left-start time integrability of the three scalar PDE terms in the
+Lp weighted time identity.
 
-The chemotaxis term is recorded without the minus sign, as
-`q * (params.χ₀ * Chemotaxis)`, because the bridge will use `.sub` to build
-`q * Diffusion - q * (χ₀ * Chemotaxis) + q * Logistic`. -/
-def IntervalDomainLpPDETermInitialWindowIntegrability
+This is the part one expects to get from classical regularity/continuity on
+compact strict time slabs.  It intentionally does not include windows whose left
+endpoint is `0`. -/
+def IntervalDomainLpPDETermPositiveStartWindowIntegrability
     (params : CM2Params) (u v : ℝ → intervalDomain.Point → ℝ)
     (T p0 : ℝ) : Prop :=
   ∀ q, p0 ≤ q →
-    ∀ b ∈ Set.Icc (0 : ℝ) T,
+    ∀ a b, 0 < a → a ≤ b → b ≤ T →
       IntervalIntegrable
         (fun s => q * intervalDomainLpDiffusionIntegral q u s)
-        volume 0 b ∧
+        volume a b ∧
       IntervalIntegrable
         (fun s =>
           q * (params.χ₀ *
             intervalDomainLpChemotaxisIntegral params q u v s))
-        volume 0 b ∧
+        volume a b ∧
       IntervalIntegrable
         (fun s => q * intervalDomainLpLogisticIntegral params q u s)
-        volume 0 b
+        volume a b
 
-/-- Pointwise scaled PDE-integral identity for the weighted time term at a
-positive time, using global classical regularity on the horizon `s + 1`.
+/-- Continuity package for the three scalar PDE term profiles on positive-start
+closed time windows.
 
-This avoids the endpoint issue from a fixed horizon `T`: for every `0 < s`, we
-have `s < s + 1`. -/
-theorem intervalDomain_weightedTimeTerm_eq_pdeTerms_scaled_of_global_pos
-    {params : CM2Params} {q s : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hs0 : 0 < s) :
-    q * intervalDomain.integral
-        (intervalDomainLpEnergyWeightedTimeTerm q u s) =
-      q * intervalDomainLpDiffusionIntegral q u s -
-        q * (params.χ₀ *
-          intervalDomainLpChemotaxisIntegral params q u v s) +
-        q * intervalDomainLpLogisticIntegral params q u s := by
-  have hTpos : 0 < s + 1 := by linarith
-  have hsol : IsPaper2ClassicalSolution intervalDomain params (s + 1) u v :=
-    hglobal.classical hTpos
-  have hpde :=
-    intervalDomain_lp_energy_hPDEIntegral_of_regularity
-      (params := params) (T := s + 1) (t := s) (pExp := q)
-      (u := u) (v := v) hsol hs0 (by linarith)
-  rw [hpde]
-  ring
+This is the natural continuity residual/proposition from which the positive-start
+integrability package follows by `ContinuousOn.intervalIntegrable`.  Existing
+spatial integrability lemmas do not by themselves supply this continuity. -/
+def IntervalDomainLpPDETermPositiveStartWindowContinuity
+    (params : CM2Params) (u v : ℝ → intervalDomain.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ q, p0 ≤ q →
+    ∀ a b, 0 < a → a ≤ b → b ≤ T →
+      ContinuousOn
+        (fun s => q * intervalDomainLpDiffusionIntegral q u s)
+        (Set.Icc a b) ∧
+      ContinuousOn
+        (fun s =>
+          q * (params.χ₀ *
+            intervalDomainLpChemotaxisIntegral params q u v s))
+        (Set.Icc a b) ∧
+      ContinuousOn
+        (fun s => q * intervalDomainLpLogisticIntegral params q u s)
+        (Set.Icc a b)
 
-/-- No-sorry bridge from component initial-window integrability of the PDE terms
-to initial-window integrability of the weighted Lp time term.
+/-- No-sorry conversion from positive-start continuity of the three scalar PDE
+profiles to positive-start interval integrability.
 
-The congruence is over `uIoc 0 b`; after rewriting by `Set.uIoc_of_le hb.1`,
-every relevant time has `0 < s`, so the pointwise global-classical identity
-above applies.  This is robust when `b = 0`, since `Ioc 0 0` is empty. -/
-theorem intervalDomain_weightedTimeTermInitialWindowIntegrability_of_pdeTerm_initial
+This is the reusable strict-window producer skeleton.  The real analytic work,
+if desired later, is to prove `IntervalDomainLpPDETermPositiveStartWindowContinuity`
+from joint time-space regularity of the three integrands. -/
+theorem intervalDomain_lpPDETermPositiveStartWindowIntegrability_of_continuity
     {params : CM2Params} {T p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hterms : IntervalDomainLpPDETermInitialWindowIntegrability params u v T p0) :
-    IntervalDomainLpWeightedTimeTermInitialWindowIntegrability u T p0 := by
-  intro q hq b hb
-  rcases hterms q hq b hb with ⟨hDiff, hChem, hLog⟩
-  have hRHS :
+    (hcont : IntervalDomainLpPDETermPositiveStartWindowContinuity params u v T p0) :
+    IntervalDomainLpPDETermPositiveStartWindowIntegrability params u v T p0 := by
+  intro q hq a b ha hab hbT
+  rcases hcont q hq a b ha hab hbT with ⟨hD, hC, hL⟩
+  refine ⟨?_, ?_, ?_⟩
+  · apply ContinuousOn.intervalIntegrable
+    rwa [Set.uIcc_of_le hab]
+  · apply ContinuousOn.intervalIntegrable
+    rwa [Set.uIcc_of_le hab]
+  · apply ContinuousOn.intervalIntegrable
+    rwa [Set.uIcc_of_le hab]
+
+/-- Full closed-window integrability package for the three scalar PDE terms.
+
+This is not required by the current initial-window residual, but it is useful as
+the exact analogue of the earlier derivative-integrability split. -/
+def IntervalDomainLpPDETermClosedWindowIntegrability
+    (params : CM2Params) (u v : ℝ → intervalDomain.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ q, p0 ≤ q →
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      IntervalIntegrable
+        (fun s => q * intervalDomainLpDiffusionIntegral q u s)
+        volume t1 t2 ∧
       IntervalIntegrable
         (fun s =>
-          q * intervalDomainLpDiffusionIntegral q u s -
-            q * (params.χ₀ *
-              intervalDomainLpChemotaxisIntegral params q u v s) +
-            q * intervalDomainLpLogisticIntegral params q u s)
-        volume 0 b :=
-    (hDiff.sub hChem).add hLog
-  refine IntervalIntegrable.congr ?_ hRHS
-  intro s hs
-  rw [Set.uIoc_of_le hb.1] at hs
-  exact intervalDomain_weightedTimeTerm_eq_pdeTerms_scaled_of_global_pos
-    (params := params) (q := q) (s := s) (u := u) (v := v)
-    hglobal hs.1
+          q * (params.χ₀ *
+            intervalDomainLpChemotaxisIntegral params q u v s))
+        volume t1 t2 ∧
+      IntervalIntegrable
+        (fun s => q * intervalDomainLpLogisticIntegral params q u s)
+        volume t1 t2
+
+/-- Pure split: initial-edge integrability plus positive-left-start integrability
+imply integrability on every closed time window inside `[0,T]`.
+
+For windows starting at `0`, use the existing initial-window residual.  For all
+other windows, use positive-start integrability. -/
+theorem intervalDomain_lpPDETermClosedWindowIntegrability_of_initial_and_positiveStart
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hinit : IntervalDomainLpPDETermInitialWindowIntegrability params u v T p0)
+    (hpos : IntervalDomainLpPDETermPositiveStartWindowIntegrability params u v T p0) :
+    IntervalDomainLpPDETermClosedWindowIntegrability params u v T p0 := by
+  intro q hq t1 ht1 t2 ht2
+  by_cases ht10 : t1 = 0
+  · subst t1
+    exact hinit q hq t2 ht2
+  · have ht1_pos : 0 < t1 :=
+      lt_of_le_of_ne ht1.1 (fun h : (0 : ℝ) = t1 => ht10 h.symm)
+    exact hpos q hq t1 t2 ht1_pos ht2.1 ht2.2
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 ```
 
-## Why this is the thinnest component residual
+## What can be proved from current APIs?
 
-The existing identity already proves the **spatial** insertion of the PDE into the weighted time term at each positive time.  What it does **not** prove is **time integrability near `0`** of the resulting three scalar profiles.  So the residual should not ask again for pointwise PDE identities; it should ask exactly for initial-window `IntervalIntegrable` facts for the three scalar terms.
+### 1. Strict/positive-start windows
 
-The sign choice above is deliberate:
-
-```lean
-q * W = q * D - q * (χ₀ * C) + q * L
-```
-
-so the residual terms combine by:
+A no-sorry theorem from **continuity** to time integrability is straightforward and is given above.  However, I do not see an already-named repo theorem proving
 
 ```lean
-(hDiff.sub hChem).add hLog
+ContinuousOn (fun s => q * intervalDomainLpDiffusionIntegral q u s) (Icc a b)
+ContinuousOn (fun s => q * (params.χ₀ * intervalDomainLpChemotaxisIntegral ... s)) (Icc a b)
+ContinuousOn (fun s => q * intervalDomainLpLogisticIntegral ... s) (Icc a b)
 ```
 
-No positivity assumption is needed in this bridge because `intervalDomain_lp_energy_hPDEIntegral_of_regularity` is already an identity for the weighted term and the PDE terms.  Positivity was only needed one layer earlier, when converting the plain power-derivative integral to the weighted time term.
+from `IsPaper2GlobalClassicalSolution` or `IsPaper2ClassicalSolution`.
+
+The existing lemmas with names
+
+```lean
+intervalDomainLift_lp_diffusion_intervalIntegrable_of_regularity
+intervalDomainLift_lp_chemotaxis_intervalIntegrable_of_regularity
+intervalDomainLift_lp_logistic_intervalIntegrable_of_regularity
+```
+
+are spatial integrability lemmas at a fixed positive time.  They are exactly what the pointwise PDE-integral identity uses, but they do not provide time continuity or time integrability of the resulting scalar integrals.
+
+A future no-sorry producer for `IntervalDomainLpPDETermPositiveStartWindowContinuity` would need a parametric-integral continuity proof for each of the three integrands.  That is plausible on strict compact slabs, but it requires joint time-space continuity/boundedness of the lifted diffusion, chemotaxis, and logistic integrands.  The currently exposed named lemmas do not package that as a scalar-profile continuity theorem.
+
+### 2. Closed initial-window integrability
+
+This does **not** follow from the current APIs.
+
+`InitialTrace` proves value convergence of `u(t)` to `u₀` in a sup-norm sense.  Endpoint power-energy continuity proves continuity of
+
+```lean
+s ↦ ∫ u(s)^q
+```
+
+at `0`.  Neither statement controls the time singularity of
+
+```lean
+s ↦ intervalDomainLpDiffusionIntegral q u s
+s ↦ intervalDomainLpChemotaxisIntegral params q u v s
+s ↦ intervalDomainLpLogisticIntegral params q u s
+```
+
+on `Ioc 0 b`.  Pointwise-in-time classical regularity also cannot be integrated in time without a uniform-in-time or integrable-in-time bound.
+
+### 3. Thinnest honest residual
+
+For the current WindowFTC route, the thinnest honest residual remains:
+
+```lean
+IntervalDomainLpPDETermInitialWindowIntegrability params u v T p0
+```
+
+If you want a more modular future API, use the split above:
+
+* `IntervalDomainLpPDETermPositiveStartWindowContinuity` or `...PositiveStartWindowIntegrability` for strict/positive-left-start windows;
+* `IntervalDomainLpPDETermInitialWindowIntegrability` for the initial edge.
+
+Only the initial edge is genuinely hard for the current Moser WindowFTC route.
