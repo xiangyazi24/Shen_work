@@ -471,7 +471,7 @@ theorem intervalDomain_Proposition_2_5_of_agmon_no_drop
   have hchain :
       ∀ n : ℕ,
         LpPowerBoundedBefore intervalDomain (pExp + n * (2 * params.γ)) T u :=
-    intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
+    intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
       hsol hcross hboot (hreduce hsol hcross hboot)
       (hinterp hsol hcross hboot) hrho
   have hLpMono :
@@ -989,7 +989,7 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
 
 /-! ### Axiom audit -/
 
-#print axioms intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
+#print axioms intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
 #print axioms intervalDomain_Proposition_2_5_of_agmon_no_drop
 
 end ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
