@@ -464,6 +464,62 @@ theorem intervalDomain_paper3_statementTargets_of_actualLinear22P2MainDataFact
   intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-- In the actual-linear-small regime `0 < χ₀`, the negative-sensitivity
+Proposition 1.2 residual is vacuous. -/
+theorem intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+    (p : CM2Params) (hχ0 : 0 < p.χ₀) :
+    NegativeSensitivityGlobalEventualBound intervalDomain p := by
+  intro hχ_nonpos _hm _u₀ _hu₀
+  exact False.elim (not_le_of_gt hχ0 hχ_nonpos)
+
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with the
+negative-sensitivity residual discharged from `0 < χ₀` and Proposition 1.3/1.4
+routed through supplied Paper2 main theorem targets. -/
+structure IntervalDomainPaper3StatementActualLinear22P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the actual-linear raw-Theorem-2.2 statement target from Paper2 main
+theorem targets, without carrying a separate negative-sensitivity residual. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing actual-linear raw-Theorem-2.2 statement target from Paper2
+main theorem targets, with the negative-sensitivity residual discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_actualLinear22P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22P2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-- Full Paper3 statement frontiers in the actual-linear-small regime, with
 Proposition 1.3/1.4 routed through Paper2 main theorem targets and the mainline
 supplied by the thin raw-Theorem-2.2 route. -/
@@ -529,14 +585,6 @@ theorem intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainDataFa
   intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainData
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
-
-/-- In the actual-linear-small regime `0 < χ₀`, the negative-sensitivity
-Proposition 1.2 residual is vacuous. -/
-theorem intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
-    (p : CM2Params) (hχ0 : 0 < p.χ₀) :
-    NegativeSensitivityGlobalEventualBound intervalDomain p := by
-  intro hχ_nonpos _hm _u₀ _hu₀
-  exact False.elim (not_le_of_gt hχ0 hχ_nonpos)
 
 /-- Full Paper3 statement frontiers in the actual-linear-small regime, with
 the negative-sensitivity Proposition 1.2 residual discharged from `0 < χ₀`
@@ -1996,6 +2044,56 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers for the terminal Moser route,
+with the negative-sensitivity residual discharged by `0 < χ₀` and Proposition
+1.3/1.4 routed through supplied Paper2 main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallCETerminalFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the terminal Moser Paper3 statement target from Paper2 main theorem
+targets, without carrying a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing terminal Moser Paper3 statement target from Paper2 main
+theorem targets, with the negative-sensitivity residual discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallCETerminalP2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Integrated first-crossing step route
 
 The following structures replace the `rawMoserDrop` + `relativeMassGradient`
@@ -2245,6 +2343,55 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers for the integrated-step
+Moser route, with the negative-sensitivity residual discharged by `0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the integrated-step Moser Paper3 statement target from Paper2 main
+theorem targets, without carrying a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing integrated-step Moser Paper3 statement target from Paper2
+main theorem targets, with the negative-sensitivity residual discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Integrated first-crossing step route with Stability24 input -/
 
 /-- Integrated-step Moser mainline data with the actual-linear-small stability
@@ -2357,6 +2504,56 @@ theorem
         p C M0 uBar vLower K)] :
     IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the integrated-step
+Stability24 route, with the negative-sensitivity residual discharged by
+`0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the integrated-step Stability24 Paper3 statement target from Paper2
+main theorem targets, without carrying a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing integrated-step Stability24 Paper3 statement target from
+Paper2 main theorem targets, with the negative-sensitivity residual discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainNoNegData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
 /-! ### Integrated first-crossing step route with thin compactness and stability inputs -/
@@ -2879,6 +3076,57 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers for the lowerAverage /
+upperDataGap Stability24 route, with the negative-sensitivity residual
+discharged by `0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the lowerAverage / upperDataGap Stability24 Paper3 statement target
+from Paper2 main theorem targets, without a separate negative-sensitivity
+residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing lowerAverage / upperDataGap Stability24 Paper3 statement
+target from Paper2 main theorem targets, with negative sensitivity discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Lower-average / upper-gap split route
 
 This route refines the integrated-step residual by splitting the supplied
@@ -3150,6 +3398,55 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-- Full interval-domain Paper3 statement frontiers for the lower/upper split
+Moser route, with the negative-sensitivity residual discharged by `0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperFrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the lower/upper split Moser Paper3 statement target from Paper2
+main theorem targets, without a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperP2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing lower/upper split Moser Paper3 statement target from Paper2
+main theorem targets, with negative sensitivity discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperP2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Lower/upper headline route with Stability24 input -/
 
 /-- Lower-average / upper-gap Moser mainline data with the actual-linear-small
@@ -3262,6 +3559,56 @@ theorem
         p C M0 uBar vLower K)] :
     IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the lower/upper
+Stability24 route, with the negative-sensitivity residual discharged by
+`0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the lower/upper Stability24 Paper3 statement target from Paper2
+main theorem targets, without a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing lower/upper Stability24 Paper3 statement target from Paper2
+main theorem targets, with negative sensitivity discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallLowerUpperStability24P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainNoNegData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
 /-! ### Lower/upper headline route with thin compactness and stability inputs -/
@@ -3511,6 +3858,8 @@ namespace ShenWork.Paper3
 #print axioms
   intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
 #print axioms
+  intervalDomain_paper3_statementTargets_of_actualLinear22P2MainNoNegData
+#print axioms
   intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainData
 #print axioms
   intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
@@ -3549,6 +3898,8 @@ namespace ShenWork.Paper3
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainData
 #print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallCETerminalP2MainNoNegData
+#print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_integratedStepResiduals
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals.to_routeResiduals
@@ -3559,11 +3910,15 @@ namespace ShenWork.Paper3
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainData
 #print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepP2MainNoNegData
+#print axioms
   IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData.toCurrent
 #print axioms
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepStability24P2MainNoNegData
 #print axioms
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepThinFrontierData
 #print axioms
@@ -3585,6 +3940,8 @@ namespace ShenWork.Paper3
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
 #print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+#print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals.to_lowerUpperFrontierResiduals
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals.to_integratedStepResiduals
@@ -3601,11 +3958,15 @@ namespace ShenWork.Paper3
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainData
 #print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperP2MainNoNegData
+#print axioms
   IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperStability24FrontierData.toCurrent
 #print axioms
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperStability24FrontierData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerUpperStability24P2MainNoNegData
 #print axioms
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerUpperThinFrontierData
 #print axioms
