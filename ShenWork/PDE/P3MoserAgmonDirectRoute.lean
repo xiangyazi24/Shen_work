@@ -62,6 +62,24 @@ def AgmonAbsorbedInterpolationBefore
           (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
       Ceps
 
+/-- The missing no-drop reduction needed by the direct Agmon route.
+
+`LpBootstrapEnergyInequality` provides the full pointwise energy inequality
+with a time derivative and lower-order term.  The direct no-drop route needs
+an additional Gronwall/integrated-energy argument before it can feed
+`moser_iteration_chain`: namely, a pointwise Moser-gradient step
+`A G_p(t) <= K Z_p(t) + L`.  This predicate records exactly that remaining
+frontier, without asserting it follows from the current abstract API. -/
+def AgmonNoDropEnergyReductionBefore
+    (u : ℝ → intervalDomain.Point → ℝ) (T rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p →
+    ∃ A > 0, ∃ K > 0, ∃ L_const,
+      ∀ t, 0 < t → t < T →
+        A * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) +
+          L_const
+
 /-! ### Step 1: Hölder interpolation with seed norm
 
 For `w = u^{p/2}`, `p₁ = 2(p+ρ)/p`, `q₁ = 2p₀/p`:
@@ -270,10 +288,12 @@ The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
 `hstep` input to `moser_iteration_chain`, yielding all Lp bounds.
 -/
 
-/-- Version WITHOUT `MoserDissipationDropBeforeNonnegB`: uses the full energy
-inequality `(1/p)Y' + AG + BY ≤ KZ + L` combined with the interpolation
-`Z ≤ εG + C` to absorb the gradient, giving `(1/p)Y' + BY ≤ C'`, then
-Gronwall. This is exactly the paper's Lemma 2.6 proof (page 21). -/
+/-- Version WITHOUT `MoserDissipationDropBeforeNonnegB`, conditional on the
+honest no-drop energy-reduction frontier.
+
+The current abstract API does not derive this frontier from the full energy
+inequality alone; supplying `hreduce` is the remaining Gronwall/integrated
+energy content of this direct route. -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -281,10 +301,20 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hreduce : AgmonNoDropEnergyReductionBefore u T rho p0)
     (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
     (hrho : 0 < rho) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  sorry
+  have _henergy :
+      LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
+    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+  refine IntervalDomainChain.moser_iteration_chain
+    (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
+    hrho (AbstractLpBootstrapHypothesis.initial_lp_bound hboot) ?_
+  intro p hp
+  rcases hreduce p hp with ⟨A, hA, K, hK, L_const, hstep⟩
+  refine ⟨A, hA, K, hK, L_const, hstep, ?_⟩
+  exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
 /-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap
@@ -398,11 +428,17 @@ theorem intervalDomain_Corollary_2_1_of_agmon
       hq
   exact all_exponents_of_chain_and_lp_mono hrho hchain hLpMono pExp hpExp
 
-/-- Proposition 2.5 WITHOUT `MoserDissipationDropBeforeNonnegB`. Uses the
-full energy inequality + Agmon interpolation + Gronwall (paper's Lemma 2.6).
-Frontier atoms: only `AgmonAbsorbedInterpolationBefore` + endpoint. -/
+/-- Proposition 2.5 WITHOUT `MoserDissipationDropBeforeNonnegB`, conditional on
+the explicit no-drop energy-reduction frontier. -/
 theorem intervalDomain_Proposition_2_5_of_agmon_no_drop
     (params : CM2Params)
+    (hreduce :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u
+          (params.N : ℝ) T rho p0 →
+          AgmonNoDropEnergyReductionBefore u T rho p0)
     (hinterp :
       ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
         IsPaper2ClassicalSolution intervalDomain params T u v →
@@ -426,7 +462,46 @@ theorem intervalDomain_Proposition_2_5_of_agmon_no_drop
             (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
               IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
     Proposition_2_5 intervalDomain params := by
-  sorry
+  intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
+  have hcross :
+      CrossDiffusionBootstrapEstimate intervalDomain params T
+        (2 * params.γ) u v :=
+    intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol
+  have hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (params.N : ℝ) T (2 * params.γ) pExp :=
+    abstract_prop25_bootstrap_two_gamma hT hpExp hLp
+  have hrho : 0 < 2 * params.γ := by
+    nlinarith [params.hγ]
+  have hchain :
+      ∀ n : ℕ,
+        LpPowerBoundedBefore intervalDomain (pExp + n * (2 * params.γ)) T u :=
+    intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
+      hsol hcross hboot (hreduce hsol hcross hboot)
+      (hinterp hsol hcross hboot) hrho
+  have hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+          LpPowerBoundedBefore intervalDomain p T u := by
+    intro p q hp hpq hq
+    exact intervalDomain_LpPowerBoundedBefore_mono_of_integrable_nonneg
+      hp hpq
+      (fun t ht0 htT x =>
+        (IsPaper2ClassicalSolution.u_pos' hsol ht0 htT (x := x)).le)
+      (fun t ht0 htT =>
+        intervalDomain_u_rpow_intervalIntegrable_of_regularity
+          (q := p) hsol ht0 htT)
+      (fun t ht0 htT =>
+        intervalDomain_u_rpow_intervalIntegrable_of_regularity
+          (q := q) hsol ht0 htT)
+      hq
+  have hAll :
+      ∀ r > 1, LpPowerBoundedBefore intervalDomain r T u :=
+    all_exponents_of_chain_and_lp_mono hrho hchain hLpMono
+  rcases hEndpoint hu₀ hT hsol htrace pExp hpExp hLp with
+    ⟨pSeq, rootBound, hQuantEndpoint⟩
+  exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+    (hQuantEndpoint hAll)
 
 /-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_Proposition_2_5_of_agmon
@@ -916,6 +991,11 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
     scalar_seed_agmon_absorb hM0_nonneg hS_nonneg hG_nonneg
       hp0_pos hpExp hrho hrho_lt_two_p0 heps hSineq
   exact le_trans hhigh_le_seed (by simpa [G] using hscalar)
+
+/-! ### Axiom audit -/
+
+#print axioms intervalDomain_all_Lp_of_agmon_bootstrap_no_drop
+#print axioms intervalDomain_Proposition_2_5_of_agmon_no_drop
 
 end ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
 
