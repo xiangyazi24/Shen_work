@@ -1570,6 +1570,40 @@ def IntervalDomainPaper2AgmonPositiveSolutionInterpolationEnergyFrontierData.toP
   powerIntegrability := h.powerIntegrability
   energyFromCrossDiffusion := h.energyFromCrossDiffusion
 
+/-- Positive solution-slice interpolation/energy package with the interpolation
+field discharged by the proved interval-domain positive Agmon theorem. -/
+structure IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData
+    (p : CM2Params)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  dissipation : IntervalDomainPaper2DissipationFrontier
+  gradConstantPositive :
+    IntervalDomainPaper2GradientConstantPositive cGrad
+  gradientChain : IntervalDomainPaper2GradientChainFrontier cGrad
+  massControl : IntervalDomainPaper2MassControlFrontier
+  powerIntegrability : IntervalDomainPaper2PowerIntegrabilityFrontier
+  energyFromCrossDiffusion :
+    IntervalDomainPaper2EnergyFromCrossDiffusionFrontier p
+
+/-- Fill the positive solution-slice interpolation field using the proved
+interval-domain positive Agmon theorem. -/
+def
+    IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData.toPositive
+    {p : CM2Params}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData
+        p cGrad) :
+    IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData
+      p cGrad where
+  solutionInterpolation := intervalDomain_classicalSolutionPositiveInterpolation p
+  dissipation := h.dissipation
+  gradConstantPositive := h.gradConstantPositive
+  gradientChain := h.gradientChain
+  massControl := h.massControl
+  powerIntegrability := h.powerIntegrability
+  energyFromCrossDiffusion := h.energyFromCrossDiffusion
+
 /-- Drop the positive-constant field when only Corollary 2.1 is being
 assembled. -/
 def IntervalDomainPaper2PositiveSolutionInterpolationEnergyFrontierData.toSolution
@@ -1779,6 +1813,85 @@ def
     IntervalDomainPaper2Theorem12And13SolutionInterpolationFrontierData
       p C cGrad where
   common := h.common.toSolution
+  prop25 := h.prop25
+  localExistence := h.localExistence
+  globalExtension := h.globalExtension
+  slowBootstrap := h.slowBootstrap
+  criticalBootstrap := h.criticalBootstrap
+  criticalEventualSupBound := h.criticalEventualSupBound
+  strongBootstrap := h.strongBootstrap
+  strongEventualSupBound := h.strongEventualSupBound
+
+/-- Positive-constant solution-slice version of the Theorem 1.2/1.3 frontier
+with the solution-slice interpolation field discharged by the proved
+interval-domain positive Agmon theorem. -/
+structure
+    IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  common :
+    IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData
+      p cGrad
+  prop25 : Proposition_2_5 intervalDomain p
+  localExistence : IntervalDomainPaper2LocalExistenceFrontier p
+  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
+  slowBootstrap :
+    1 ≤ p.β → p.m < 1 →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalBootstrap :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalEventualSupBound :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+  strongBootstrap :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  strongEventualSupBound :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
+/-- Convert the proved-positive-interpolation Theorem 1.2/1.3 frontier to the
+existing positive solution-slice frontier. -/
+def
+    IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2Theorem12And13PositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  common := h.common.toPositive
   prop25 := h.prop25
   localExistence := h.localExistence
   globalExtension := h.globalExtension
@@ -2333,6 +2446,34 @@ theorem
     Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_solutionInterpolationFrontierData
     p C cGrad hData.toSolution
+
+/-- Assemble the interval-domain Theorem 1.2 and Theorem 1.3 headline targets
+from the positive solution-slice route with the interpolation theorem filled by
+the proved interval-domain positive Agmon theorem. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
+    p C cGrad hData.toPositive
+
+/-- Instance-facing wrapper for interval-domain Theorems 1.2 and 1.3 from the
+proved-positive solution-slice route. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    [hData :
+      Fact
+        (IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+          p C cGrad)] :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
+    p C cGrad hData.out
 
 /-- Assemble interval-domain Theorems 1.2 and 1.3 in the `χ₀ = 0` regime from
 the positive solution-slice route with local existence produced internally. -/
@@ -6001,6 +6142,10 @@ section AxiomAudit
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_solutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_positiveSolutionInterpolationFrontierData
+#print axioms
+  IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData.toPositive
+#print axioms
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
