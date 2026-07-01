@@ -52,12 +52,52 @@ i.e., `∫u^{p+ρ} ≤ ‖u^{p/2}‖∞^{2(p+ρ-p₀)/p} · ∫u^{p₀}`
 theorem intervalDomain_higher_Lp_le_Linf_rpow_mul_seed
     {f : intervalDomain.Point → ℝ}
     (hf_nonneg : ∀ x, 0 ≤ f x)
+    (hf_bdd : BddAbove (Set.range fun x : intervalDomain.Point => |f x|))
     {pExp rho : ℝ}
-    (hpExp : 0 ≤ pExp) (hrho : 0 ≤ rho) :
+    (hpExp : 0 ≤ pExp) (hrho : 0 ≤ rho)
+    (hLeftInt :
+      IntervalIntegrable
+        (intervalDomainLift (fun x => f x ^ (pExp + rho)))
+        MeasureTheory.volume 0 1)
+    (hPowInt :
+      IntervalIntegrable
+        (intervalDomainLift (fun x => f x ^ pExp))
+        MeasureTheory.volume 0 1) :
     intervalDomain.integral (fun x => f x ^ (pExp + rho)) ≤
       (intervalDomainSupNorm f) ^ rho *
         intervalDomain.integral (fun x => f x ^ pExp) := by
-  sorry
+  change intervalDomainIntegral _ ≤ _ * intervalDomainIntegral _
+  unfold intervalDomainIntegral
+  set M := intervalDomainSupNorm f
+  have hRightInt :
+      IntervalIntegrable
+        (fun y => M ^ rho * intervalDomainLift (fun x => f x ^ pExp) y)
+        MeasureTheory.volume 0 1 :=
+    hPowInt.const_mul (M ^ rho)
+  have hmono :
+      (∫ y in (0 : ℝ)..1,
+          intervalDomainLift (fun x => f x ^ (pExp + rho)) y) ≤
+        ∫ y in (0 : ℝ)..1,
+          M ^ rho * intervalDomainLift (fun x => f x ^ pExp) y := by
+    refine intervalIntegral.integral_mono_on zero_le_one hLeftInt hRightInt ?_
+    intro y hy
+    simp only [intervalDomainLift, hy]
+    have hfy : 0 ≤ f ⟨y, hy⟩ := hf_nonneg ⟨y, hy⟩
+    have hfM : f ⟨y, hy⟩ ≤ M := by
+      have : |f ⟨y, hy⟩| ≤ M :=
+        le_csSup hf_bdd ⟨⟨y, hy⟩, rfl⟩
+      exact le_trans (le_abs_self _) this
+    calc
+      f ⟨y, hy⟩ ^ (pExp + rho)
+          = f ⟨y, hy⟩ ^ pExp * f ⟨y, hy⟩ ^ rho :=
+        Real.rpow_add_of_nonneg hfy hpExp hrho
+      _ = f ⟨y, hy⟩ ^ rho * f ⟨y, hy⟩ ^ pExp := mul_comm _ _
+      _ ≤ M ^ rho * f ⟨y, hy⟩ ^ pExp :=
+        mul_le_mul_of_nonneg_right
+          (Real.rpow_le_rpow hfy hfM hrho)
+          (Real.rpow_nonneg hfy pExp)
+  rw [intervalIntegral.integral_const_mul] at hmono
+  exact hmono
 
 /-! ### Step 2: Agmon bound for w = u^{p/2}
 
