@@ -22,16 +22,37 @@ The thinnest χ₀=0 route is ProvedAgmonFrontierData which needs:
    - prop23: weighted signal estimate
 2. `localAndMain`: actual Moser atoms (raw drop, mass gradient, terminal endpoint) + local existence
 
-### Remaining avenues:
-- (a) lemma26 is the Moser iteration step — may follow from existing
-  `intervalDomain_LpBootstrapEnergyInequality_of_regularity` which produces
-  `LpBootstrapEnergyInequality` from the classical solution. The step from
-  `LpBootstrapEnergyInequality` to all Lp bounds needs the existing Moser
-  continuation machinery.
-- (b) lemma27 is a Gronwall/ODE estimate from the differential Moser inequality
-- (c) prop22/prop23 are the weighted gradient/signal estimates — genuine PDE content
-- (d) actual Moser atoms: raw drop, mass gradient data, terminal endpoint
-- (e) local existence: `PicardRestartFrontier` or `quantitativeLocalExistence`
+### ACTIVE AVENUE (automode 2026-06-30): Agmon-based mass-gradient route to Prop 2.5
+
+The old MCL route through `OldUnitIntervalPowerGNYoungForMoser` is DEAD (false).
+The new route: proved Agmon → mass-gradient conversion → threshold plan → Prop 2.5.
+
+**Chain:**
+```
+Proved Agmon → LpMassGradientInterpolationEstimate (available)
+  + gradient chain comparison (avenue a)
+  + mass-to-Lp conversion (avenue b)
+  → RelativeMoserInterpolationBefore (via existing P3MoserLemmas bridge)
+  + IntegratedMoserDissipationDropBefore (avenue c)
+  + regularity/nonneg data
+  → IntegratedMoserFirstCrossingStep (threshold plan, proved)
+  + quantitative endpoint
+  → Proposition_2_5 (via existing P3MoserActualWiring)
+```
+
+**Sub-avenues:**
+- (a) Gradient chain: `∫u^{p+ρ-2}|∇u|² ≤ cGrad·∫|∇(u^{p/2})|²` for classical solutions.
+  Reduces to pointwise `u^ρ ≤ cGrad·(p/2)²` (chain rule + L∞ bound).
+- (b) Mass-to-Lp: `Cmass·(∫u)^{p+ρ} ≤ Crel·∫u^p`. Jensen + mass boundedness.
+- (c) Integrated dissipation drop from `intervalDomain_lp_energy_balance_of_regularity`.
+- (d) Assembly → Prop 2.5.
+
+### Previous avenues (reference):
+- lemma26: Moser iteration step
+- lemma27: Gronwall/ODE from differential Moser inequality
+- prop22/prop23: weighted gradient/signal estimates (genuine PDE content)
+- actual Moser atoms: raw drop, mass gradient data, terminal endpoint
+- local existence: `PicardRestartFrontier` or `quantitativeLocalExistence`
 
 ---
 
