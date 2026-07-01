@@ -1,26 +1,37 @@
 # Shen Trilogy Formalization — DOCTRINE
 
-## ACTIVE AUTOMODE TARGET (2026-06-30): Wire IntegratedMoserFirstCrossingStep to statement level
+## ACTIVE AUTOMODE TARGET (2026-07-01): Close remaining Paper2 headline frontiers
 
-Goal: wire the sorry-free `integratedMoserFirstCrossingStep_of_abstract_data` to Paper2 statement level.
+### Completed (this campaign):
+- ✅ P3MoserHighExcursionProducer.lean fix (linarith + parenthesization)
+- ✅ P3MoserThresholdPlanProducer.lean (threshold plan route, axiom-clean)
+- ✅ P3MoserRegularityProducer.lean (frontier data structure, initialPowerBound)
+- ✅ P3MoserEnergyContinuity.lean (interior energy continuity via HasDerivAt)
+- ✅ IntervalAgmonInterpolation.lean (1D Agmon interpolation, axiom-clean) — by Xiang
+- ✅ GagliardoNirenberg.lean + SobolevEmbedding.lean — by Xiang
+- ✅ intervalDomain_classicalSolutionPositiveInterpolation — PROVED
+- ✅ Paper3 positive chi negative branch discharged
+- ✅ Full build green: 8988 jobs, 0 sorry, 0 sorryAx
 
-### Completed:
-- (a) ✅ Fix 2 sorry in P3MoserHighExcursionProducer.lean assembler (e5a13af7)
-- (b) ✅ Build ThresholdPlan producer (P3MoserThresholdPlanProducer.lean, e5a13af7)
-  - `integratedMoserFirstCrossingStep_of_abstract_data`: axiom-clean [propext, Classical.choice, Quot.sound]
-  - Takes: regularity, energy nonnegativity, dissipation drop, relative interpolation, gradient nonneg, p0≥0
-  - Handles Cq=0 (non-increasing energy) and Cq>0 (full threshold plan contradiction) separately
+### Current headline state:
+The thinnest χ₀=0 route is ProvedAgmonFrontierData which needs:
+1. `section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p`
+   - lemma26: LpBootstrapEnergyInequality → all Lp (Moser iteration step)
+   - lemma27: differential Moser → Lp bound (Gronwall-type)
+   - prop22: weighted gradient estimate
+   - prop23: weighted signal estimate
+2. `localAndMain`: actual Moser atoms (raw drop, mass gradient, terminal endpoint) + local existence
 
 ### Remaining avenues:
-- (c) Produce `IntegratedMoserFirstCrossingRegularity` from `IsPaper2ClassicalSolution`
-  - Needs: energyContinuous, initialPowerBound, powerTimeIntegrable, gradientTimeIntegrable
-  - energyContinuous requires joint continuity of t ↦ ∫|u(t)|^p on [0,T]
-  - gradientTimeIntegrable requires time-integrability of gradient energy
-- (d) Produce `IntegratedMoserDissipationDropBefore` from classical solution
-  - This is the integrated energy inequality (weak formulation)
-  - May already be partly covered by existing infrastructure
-- (e) Wire gradient-integral-nonnegativity for intervalDomain (trivial from pointwise sq_nonneg)
-- (f) Wire to Paper2 statement assembly (connect to Prop 2.5 / Cor 2.1 route)
+- (a) lemma26 is the Moser iteration step — may follow from existing
+  `intervalDomain_LpBootstrapEnergyInequality_of_regularity` which produces
+  `LpBootstrapEnergyInequality` from the classical solution. The step from
+  `LpBootstrapEnergyInequality` to all Lp bounds needs the existing Moser
+  continuation machinery.
+- (b) lemma27 is a Gronwall/ODE estimate from the differential Moser inequality
+- (c) prop22/prop23 are the weighted gradient/signal estimates — genuine PDE content
+- (d) actual Moser atoms: raw drop, mass gradient data, terminal endpoint
+- (e) local existence: `PicardRestartFrontier` or `quantitativeLocalExistence`
 
 ---
 
