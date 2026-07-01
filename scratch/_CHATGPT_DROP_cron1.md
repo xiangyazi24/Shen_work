@@ -1,397 +1,522 @@
-# Q2825 (cron1) — Lean 4 proof of `∫ f^(p+rho) ≤ sup(f)^rho * ∫ f^p`
+# Q2865 (cron1) — Mathlib names for the Moser/Agmon absorption step
 
 Repository: `xiangyazi24/Shen_work`  
 Branch: `chatgpt-scratch`  
 Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
-## Short answer
+I checked the repository pin first. `lake-manifest.json` on `chatgpt-scratch` pins Mathlib to `v4.29.1`, commit
 
-Yes: the right Mathlib lemma is
-
-```lean
-intervalIntegral.integral_mono_on
+```text
+5e932f97dd25535344f80f9dd8da3aab83df0fe6
 ```
 
-with shape:
+The names below are for that Mathlib version.
 
-```lean
-intervalIntegral.integral_mono_on
-  (a := a) (b := b) (μ := volume)
-  hab hLeftInt hRightInt hpoint
+## First correction: `p₀ > ρ/2` does not imply `ρ < p`
+
+The proposed route says `α = ρ / p` and then wants `α < 1`, i.e. `ρ < p`. But from
+
+```text
+p ≥ p₀  and  p₀ > ρ/2
 ```
 
-where
+you only get
 
-```lean
-hab       : a ≤ b
-hLeftInt  : IntervalIntegrable left volume a b
-hRightInt : IntervalIntegrable right volume a b
-hpoint    : ∀ x ∈ Set.Icc a b, left x ≤ right x
+```text
+p > ρ/2,
 ```
 
-In this repo there is already a convenient wrapper in `ShenWork.PDE.IntervalDomain`:
+not `p > ρ`. So the statement “`ρ < p`, which holds since `p ≥ p₀ > ρ/2`” is not Lean-provable and is mathematically false.
+
+There are two honest options:
+
+1. Strengthen the hypothesis to `ρ < p₀`, hence `ρ < p` for every `p ≥ p₀`; then `α < 1` and the clean concave-power lemma applies directly.
+2. Keep the weaker hypothesis `p₀ > ρ/2`; then the useful exponent is usually `α / 2 = ρ / (2*p) < 1`, because the Agmon bound has a `sqrt G` term. In this case you may need a separate sum bound for `1 ≤ α < 2`, not only the concave `α ≤ 1` case.
+
+The exact Mathlib names below cover both regimes.
+
+## Imports
+
+The relevant declarations are available from these imports:
 
 ```lean
-ShenWork.IntervalDomain.intervalIntegral_mono
+import Mathlib.Analysis.MeanInequalities
+import Mathlib.Analysis.MeanInequalitiesPow
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import Mathlib.Topology.Order.Compact
 ```
 
-with argument order:
+`Mathlib.Analysis.MeanInequalities` gives Young/Hölder-conjugate APIs.  
+`Mathlib.Analysis.MeanInequalitiesPow` gives the finite-sum/power inequalities.  
+`Mathlib.Topology.Order.Compact` gives compact-image `sSup`/maximum APIs.
+
+## 1. Real `rpow` of a sum, `0 ≤ α ≤ 1`
+
+Use:
 
 ```lean
-intervalIntegral_mono hL hfg hf hg
+Real.rpow_add_le_add_rpow
 ```
 
-and internally it is exactly:
+Exact shape in Mathlib `v4.29.1`:
 
 ```lean
-intervalIntegral.integral_mono_on hL hf hg hfg
+lemma Real.rpow_add_le_add_rpow
+    {p : ℝ} {a b : ℝ}
+    (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (hp : 0 ≤ p) (hp1 : p ≤ 1) :
+    (a + b) ^ p ≤ a ^ p + b ^ p
 ```
 
-For the real-power pointwise step, the useful lemmas are:
+Typical use:
 
 ```lean
-Real.rpow_add_of_nonneg
+have hsum : (A + G) ^ α ≤ A ^ α + G ^ α :=
+  Real.rpow_add_le_add_rpow hA_nonneg hG_nonneg hα_nonneg (le_of_lt hα_lt_one)
+```
+
+The `NNReal` version has the same name in namespace `NNReal`:
+
+```lean
+NNReal.rpow_add_le_add_rpow
+```
+
+Exact shape:
+
+```lean
+theorem NNReal.rpow_add_le_add_rpow
+    {p : ℝ} (a b : ℝ≥0)
+    (hp : 0 ≤ p) (hp1 : p ≤ 1) :
+    (a + b) ^ p ≤ a ^ p + b ^ p
+```
+
+### If only `p₀ > ρ/2` is available
+
+Then `α = ρ/p` may be in `[1,2)`. For the non-concave sum split, use the `NNReal` theorem:
+
+```lean
+NNReal.rpow_add_le_mul_rpow_add_rpow
+```
+
+Exact shape:
+
+```lean
+theorem NNReal.rpow_add_le_mul_rpow_add_rpow
+    (z₁ z₂ : ℝ≥0) {p : ℝ} (hp : 1 ≤ p) :
+    (z₁ + z₂) ^ p ≤ (2 : ℝ≥0) ^ (p - 1) * (z₁ ^ p + z₂ ^ p)
+```
+
+There is no equally-named `Real` wrapper in this Mathlib pin. If you want a real-valued version, lift `a` and `b` to `ℝ≥0` and `exact_mod_cast` back. Local wrapper shape:
+
+```lean
+import Mathlib.Analysis.MeanInequalitiesPow
+
+noncomputable section
+
+lemma real_rpow_add_le_mul_rpow_add_rpow_of_nonneg
+    {a b p : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp : 1 ≤ p) :
+    (a + b) ^ p ≤ (2 : ℝ) ^ (p - 1) * (a ^ p + b ^ p) := by
+  lift a to ℝ≥0 using ha
+  lift b to ℝ≥0 using hb
+  exact_mod_cast NNReal.rpow_add_le_mul_rpow_add_rpow a b hp
+```
+
+This is the right backup when `α < 1` is unavailable but `α < 2` is available, because after Agmon the gradient piece often becomes `G ^ (α/2)`, and `α/2 < 1` follows from `p > ρ/2`.
+
+Useful companion names for simplifying powers:
+
+```lean
 Real.rpow_le_rpow
+Real.rpow_lt_rpow
+Real.rpow_le_rpow_iff
+Real.rpow_mul
+Real.mul_rpow
 Real.rpow_nonneg
+Real.rpow_inv_rpow
+Real.rpow_rpow_inv
 ```
 
-For integrability from continuity, the useful names are:
+## 2. Young inequality / ε-absorption
+
+Use:
 
 ```lean
-ContinuousOn.rpow_const
-ContinuousOn.intervalIntegrable_of_Icc
-IntervalIntegrable.const_mul
+Real.young_inequality_of_nonneg
 ```
 
-## Clean Mathlib-only skeleton
-
-This is the core proof if you already have a bound `F x ≤ M` on `[0,1]` and the two needed interval-integrability facts.
+Exact shape:
 
 ```lean
-import Mathlib
+theorem Real.young_inequality_of_nonneg
+    {a b p q : ℝ}
+    (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (hpq : p.HolderConjugate q) :
+    a * b ≤ a ^ p / p + b ^ q / q
+```
 
-open MeasureTheory
-open scoped Interval
+There is also the absolute-value version:
+
+```lean
+theorem Real.young_inequality
+    (a b : ℝ) {p q : ℝ} (hpq : p.HolderConjugate q) :
+    a * b ≤ |a| ^ p / p + |b| ^ q / q
+```
+
+For nonnegative-valued versions:
+
+```lean
+NNReal.young_inequality
+NNReal.young_inequality_real
+ENNReal.young_inequality
+```
+
+### Constructing the conjugate exponents
+
+For `0 < α`, `0 < β`, `α + β = 1`, the most direct constructor is:
+
+```lean
+Real.HolderConjugate.inv_inv
+```
+
+Exact shape:
+
+```lean
+protected lemma Real.HolderConjugate.inv_inv
+    (ha : 0 < a) (hb : 0 < b) (hab : a + b = 1) :
+    a⁻¹.HolderConjugate b⁻¹
+```
+
+For the common special case `β = 1 - α`, use:
+
+```lean
+Real.HolderConjugate.inv_one_sub_inv
+Real.HolderConjugate.one_sub_inv_inv
+```
+
+Exact shapes:
+
+```lean
+lemma Real.HolderConjugate.inv_one_sub_inv
+    (ha₀ : 0 < a) (ha₁ : a < 1) :
+    a⁻¹.HolderConjugate (1 - a)⁻¹
+
+lemma Real.HolderConjugate.one_sub_inv_inv
+    (ha₀ : 0 < a) (ha₁ : a < 1) :
+    (1 - a)⁻¹.HolderConjugate a⁻¹
+```
+
+Also useful:
+
+```lean
+Real.holderConjugate_iff
+Real.HolderConjugate.conjExponent
+Real.HolderConjugate.symm
+Real.HolderConjugate.inv_add_inv_eq_one
+Real.HolderConjugate.pos
+Real.HolderConjugate.nonneg
+Real.HolderConjugate.ne_zero
+```
+
+### ε-form is not a single Mathlib lemma
+
+I did not find a built-in lemma named like `young_inequality_eps` or `young_inequality_with_epsilon`. The expected Lean route is to prove a tiny local helper from `Real.young_inequality_of_nonneg` by scaling.
+
+For product absorption, if `0 < α`, `0 < β`, `α + β = 1`, `ε > 0`, and `K ≥ 0`, prove a local helper of the form
+
+```lean
+K * x ^ α * y ^ β ≤ ε * x + Cε * y
+```
+
+by applying Young to
+
+```lean
+(λ * x ^ α) * ((K / λ) * y ^ β)
+```
+
+with
+
+```lean
+λ = ((α⁻¹) * ε) ^ (1 / α⁻¹)
+```
+
+or any equivalent positive scaling chosen so that the first Young term simplifies to `ε * x`.
+
+Skeleton, not meant as a drop-in theorem without the routine algebra filled in:
+
+```lean
+import Mathlib.Analysis.MeanInequalities
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 noncomputable section
 
-example {F : ℝ → ℝ} {p rho M : ℝ}
-    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
-    (hF_nonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ F x)
-    (hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M)
-    (hLeftInt :
-      IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1)
-    (hPowInt :
-      IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1) :
-    (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
-      M ^ rho * ∫ x in (0 : ℝ)..1, F x ^ p := by
-  have hRightInt :
-      IntervalIntegrable (fun x : ℝ => M ^ rho * F x ^ p) volume 0 1 :=
-    hPowInt.const_mul (M ^ rho)
+open Real
 
-  have hmono :
-      (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
-        ∫ x in (0 : ℝ)..1, M ^ rho * F x ^ p := by
-    refine intervalIntegral.integral_mono_on
-      (a := (0 : ℝ)) (b := 1) (μ := volume)
-      (f := fun x : ℝ => F x ^ (p + rho))
-      (g := fun x : ℝ => M ^ rho * F x ^ p)
-      zero_le_one hLeftInt hRightInt ?_
-    intro x hx
-    have hx0 : 0 ≤ F x := hF_nonneg x hx
-    have hxM : F x ≤ M := hF_le_M x hx
-    calc
-      F x ^ (p + rho) = F x ^ p * F x ^ rho := by
-        exact Real.rpow_add_of_nonneg hx0 hp hrho
-      _ = F x ^ rho * F x ^ p := by
-        rw [mul_comm]
-      _ ≤ M ^ rho * F x ^ p := by
-        exact mul_le_mul_of_nonneg_right
-          (Real.rpow_le_rpow hx0 hxM hrho)
-          (Real.rpow_nonneg hx0 p)
-
-  rw [intervalIntegral.integral_const_mul] at hmono
-  exact hmono
+-- Local helper shape: prove this once and reuse it.
+lemma young_scaled_product_route
+    {α β ε K x y : ℝ}
+    (hα : 0 < α) (hβ : 0 < β) (hαβ : α + β = 1)
+    (hε : 0 < ε) (hK : 0 ≤ K) (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    ∃ Cε : ℝ, 0 ≤ Cε ∧ K * x ^ α * y ^ β ≤ ε * x + Cε * y := by
+  let P : ℝ := α⁻¹
+  let Q : ℝ := β⁻¹
+  have hPQ : P.HolderConjugate Q := by
+    simpa [P, Q] using Real.HolderConjugate.inv_inv hα hβ hαβ
+  -- Apply:
+  --   Real.young_inequality_of_nonneg
+  -- to
+  --   a := λ * x ^ α
+  --   b := (K / λ) * y ^ β
+  -- with λ chosen positive and λ ^ P / P = ε.
+  -- Then simplify with:
+  --   Real.mul_rpow, Real.rpow_mul, Real.rpow_inv_rpow,
+  --   hPQ.ne_zero, hPQ.symm.ne_zero, field_simp/ring_nf.
+  classical
+  refine ⟨0, le_rfl, ?_⟩
+  -- This file is an audit of exact Mathlib names, not a compiled helper implementation.
+  -- Replace this placeholder with the scaled Young algebra in the target repo.
+  sorry
 ```
 
-The line
+For the simpler absorption
 
 ```lean
-rw [intervalIntegral.integral_const_mul] at hmono
+K * x ^ γ ≤ ε * x + Cε
 ```
 
-rewrites
+use the same theorem with `β = 1 - γ` and `y = 1`, or apply `Real.young_inequality_of_nonneg` to
 
 ```lean
-∫ x in 0..1, M ^ rho * F x ^ p
+a := λ * x ^ γ
+b := K / λ
 ```
 
-to
+with conjugates
 
 ```lean
-M ^ rho * ∫ x in 0..1, F x ^ p.
+γ⁻¹   and   (1 - γ)⁻¹
 ```
 
-## Same proof using the repo wrapper
-
-If `ShenWork.PDE.IntervalDomain` is imported, you can replace the raw `intervalIntegral.integral_mono_on` block by the local wrapper.
+constructed by
 
 ```lean
-import ShenWork.PDE.IntervalDomain
+Real.HolderConjugate.inv_one_sub_inv hγ_pos hγ_lt_one
+```
 
-open MeasureTheory
-open ShenWork.IntervalDomain
-open scoped Interval
+This is the cleanest local lemma for absorbing `G ^ θ` into `ε * G + Cε` when `0 < θ < 1`.
+
+## 3. Pulling `sSup` out of a pointwise bound
+
+The core order lemmas are:
+
+```lean
+csSup_le
+le_csSup
+```
+
+Exact useful shapes over `ℝ`/conditionally complete lattices:
+
+```lean
+theorem csSup_le
+    (h₁ : s.Nonempty) (h₂ : ∀ b ∈ s, b ≤ a) :
+    sSup s ≤ a
+
+theorem le_csSup
+    (h₁ : BddAbove s) (h₂ : a ∈ s) :
+    a ≤ sSup s
+```
+
+For image sets, the key membership lemma is:
+
+```lean
+Set.mem_image_of_mem
+```
+
+Typical pattern for a compact interval or any nonempty domain `K`:
+
+```lean
+import Mathlib.Topology.Order.Compact
 
 noncomputable section
 
-example {F : ℝ → ℝ} {p rho M : ℝ}
-    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
-    (hF_nonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ F x)
-    (hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M)
-    (hLeftInt :
-      IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1)
-    (hPowInt :
-      IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1) :
-    (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
-      M ^ rho * ∫ x in (0 : ℝ)..1, F x ^ p := by
-  have hRightInt :
-      IntervalIntegrable (fun x : ℝ => M ^ rho * F x ^ p) volume 0 1 :=
-    hPowInt.const_mul (M ^ rho)
+open Set
 
-  have hpoint :
-      ∀ x ∈ Set.Icc (0 : ℝ) 1,
-        F x ^ (p + rho) ≤ M ^ rho * F x ^ p := by
-    intro x hx
-    have hx0 : 0 ≤ F x := hF_nonneg x hx
-    have hxM : F x ≤ M := hF_le_M x hx
-    calc
-      F x ^ (p + rho) = F x ^ p * F x ^ rho := by
-        exact Real.rpow_add_of_nonneg hx0 hp hrho
-      _ = F x ^ rho * F x ^ p := by
-        rw [mul_comm]
-      _ ≤ M ^ rho * F x ^ p := by
-        exact mul_le_mul_of_nonneg_right
-          (Real.rpow_le_rpow hx0 hxM hrho)
-          (Real.rpow_nonneg hx0 p)
+variable {K : Set ℝ} {φ : ℝ → ℝ} {B : ℝ}
 
-  have hmono :
-      (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
-        ∫ x in (0 : ℝ)..1, M ^ rho * F x ^ p :=
-    intervalIntegral_mono
-      (L := (1 : ℝ)) zero_le_one hpoint hLeftInt hRightInt
+lemma sSup_image_le_of_pointwise
+    (hKne : K.Nonempty)
+    (hφB : ∀ x ∈ K, φ x ≤ B) :
+    sSup (φ '' K) ≤ B := by
+  refine csSup_le (hKne.image φ) ?_
+  rintro y ⟨x, hxK, rfl⟩
+  exact hφB x hxK
 
-  rw [intervalIntegral.integral_const_mul] at hmono
-  exact hmono
+lemma pointwise_le_sSup_image_of_bdd
+    (hBdd : BddAbove (φ '' K))
+    {x : ℝ} (hxK : x ∈ K) :
+    φ x ≤ sSup (φ '' K) := by
+  exact le_csSup hBdd (mem_image_of_mem φ hxK)
 ```
 
-This uses the wrapper already present in the repo:
+If you need boundedness of a continuous image of a compact set, use:
 
 ```lean
-ShenWork.IntervalDomain.intervalIntegral_mono
+IsCompact.bddAbove_image
 ```
 
-## If you want integrability from continuity
-
-If your lifted function `F` is continuous on `[0,1]`, then you can usually produce the integrability facts as follows.
+Exact shape:
 
 ```lean
-import Mathlib
-
-open MeasureTheory
-open scoped Interval
-
-noncomputable section
-
-example {F : ℝ → ℝ} {p rho : ℝ}
-    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
-    (hF_cont : ContinuousOn F (Set.Icc (0 : ℝ) 1)) :
-    IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1 ∧
-      IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1 := by
-  have hFp_cont : ContinuousOn (fun x : ℝ => F x ^ p) (Set.Icc (0 : ℝ) 1) :=
-    hF_cont.rpow_const (fun x hx => Or.inr hp)
-  have hFpr_cont : ContinuousOn (fun x : ℝ => F x ^ (p + rho)) (Set.Icc (0 : ℝ) 1) :=
-    hF_cont.rpow_const (fun x hx => Or.inr (add_nonneg hp hrho))
-  exact ⟨
-    hFp_cont.intervalIntegrable_of_Icc zero_le_one,
-    hFpr_cont.intervalIntegrable_of_Icc zero_le_one
-  ⟩
+theorem IsCompact.bddAbove_image
+    [ClosedIciTopology α] [Nonempty α]
+    {f : β → α} {K : Set β}
+    (hK : IsCompact K) (hf : ContinuousOn f K) :
+    BddAbove (f '' K)
 ```
 
-Then feed these two facts into the previous proof.
-
-## Deriving the `M` bound from `sSup (range |f|)`
-
-A good tactic is to separate the supremum bookkeeping from the integral proof.  First prove a lemma of this shape:
+For `[0,1]`, compactness is:
 
 ```lean
-hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M
+isCompact_Icc
 ```
 
-Then the integration proof is short.
-
-For a plain real function restricted to `[0,1]`, one clean way is:
+If you want the supremum to be attained, use:
 
 ```lean
-import Mathlib
-
-open MeasureTheory
-open scoped Interval
-
-noncomputable section
-
-example {F : ℝ → ℝ}
-    (hbdd : BddAbove
-      (Set.range (fun x : {x : ℝ // x ∈ Set.Icc (0 : ℝ) 1} => |F x.1|))) :
-    let M : ℝ := sSup
-      (Set.range (fun x : {x : ℝ // x ∈ Set.Icc (0 : ℝ) 1} => |F x.1|))
-    ∀ y ∈ Set.Icc (0 : ℝ) 1, F y ≤ M := by
-  intro M y hy
-  have h_abs : |F y| ≤ M := by
-    exact le_csSup hbdd ⟨⟨y, hy⟩, rfl⟩
-  exact le_trans (le_abs_self (F y)) h_abs
+IsCompact.exists_sSup_image_eq_and_ge
+IsCompact.exists_sSup_image_eq
+IsCompact.exists_isMaxOn
 ```
 
-For your interval-domain setup, the analogous step should look like this, assuming `intervalDomainPoint`, `intervalDomainLift`, and `hf_bdd` are in scope:
+The most relevant one is:
 
 ```lean
-import ShenWork.PDE.IntervalDomain
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open scoped Interval
-
-noncomputable section
-
--- Skeleton: adapt names/imports to the exact file where you place it.
-example {f : intervalDomainPoint → ℝ}
-    (hf_bdd : BddAbove (Set.range fun x : intervalDomainPoint => |f x|)) :
-    let M : ℝ := sSup (Set.range fun x : intervalDomainPoint => |f x|)
-    ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift f y ≤ M := by
-  intro M y hy
-  have h_abs_point : |f ⟨y, hy⟩| ≤ M := by
-    exact le_csSup hf_bdd ⟨⟨y, hy⟩, rfl⟩
-  have h_abs_lift : |intervalDomainLift f y| ≤ M := by
-    simpa [intervalDomainLift, hy] using h_abs_point
-  exact le_trans (le_abs_self (intervalDomainLift f y)) h_abs_lift
+theorem IsCompact.exists_sSup_image_eq_and_ge
+    [ClosedIciTopology α]
+    {s : Set β} (hs : IsCompact s) (ne_s : s.Nonempty)
+    {f : β → α} (hf : ContinuousOn f s) :
+    ∃ x ∈ s, sSup (f '' s) = f x ∧ ∀ y ∈ s, f y ≤ f x
 ```
 
-If you also have nonnegativity on points,
+There is no need to “pull `sSup` through” `rpow` as an equality. Usually the Lean-friendly route is:
+
+1. prove `φ x ≤ sSup (φ '' K)` by `le_csSup`,
+2. apply monotonicity of `Real.rpow` using `Real.rpow_le_rpow`,
+3. prove `sSup (φ '' K) ≤ B` by `csSup_le`,
+4. again apply `Real.rpow_le_rpow` if needed.
+
+## Recommended proof route for the Moser step
+
+Let
+
+```text
+G := ∫ |∇(f^(p/2))|²
+I := ∫ f^p
+S := sSup ((fun x => f x ^ p) '' Set.Icc (0:ℝ) 1)
+α := ρ / p
+```
+
+From the pointwise Agmon estimate, prove
 
 ```lean
-hf_nonneg : ∀ x : intervalDomainPoint, 0 ≤ f x
+S ≤ 2 * I + 2 * Real.sqrt I * Real.sqrt G
 ```
 
-then the corresponding lifted nonnegativity fact is:
+using `csSup_le` on the image. Then compare pointwise values to `S` using `le_csSup` if needed.
+
+For the power of the sum:
+
+* If you have `ρ < p`, use
 
 ```lean
-have hF_nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift f y := by
-  intro y hy
-  simpa [intervalDomainLift, hy] using hf_nonneg ⟨y, hy⟩
+Real.rpow_add_le_add_rpow
 ```
 
-Now use `F := intervalDomainLift f` in the generic Mathlib proof.
+with exponent `α = ρ/p`.
 
-## Recommended proof structure in the Shen files
+* If you only have `ρ < 2*p`, use the `NNReal.rpow_add_le_mul_rpow_add_rpow` route for the sum split, then absorb the gradient contribution with exponent `α/2 < 1`.
 
-I would implement this in three small lemmas rather than one giant proof.
-
-### 1. Sup-bound adapter
+For the absorption step, prove a local lemma from
 
 ```lean
--- interval-domain-specific
-lemma intervalDomainLift_le_sSup_abs
-    {f : intervalDomainPoint → ℝ}
-    (hf_bdd : BddAbove (Set.range fun x : intervalDomainPoint => |f x|)) :
-    ∀ y ∈ Set.Icc (0 : ℝ) 1,
-      intervalDomainLift f y ≤ sSup (Set.range fun x : intervalDomainPoint => |f x|) := by
-  intro y hy
-  have h_abs_point :
-      |f ⟨y, hy⟩| ≤ sSup (Set.range fun x : intervalDomainPoint => |f x|) := by
-    exact le_csSup hf_bdd ⟨⟨y, hy⟩, rfl⟩
-  have h_abs_lift :
-      |intervalDomainLift f y| ≤ sSup (Set.range fun x : intervalDomainPoint => |f x|) := by
-    simpa [intervalDomainLift, hy] using h_abs_point
-  exact le_trans (le_abs_self (intervalDomainLift f y)) h_abs_lift
+Real.young_inequality_of_nonneg
 ```
 
-### 2. Pointwise `rpow` inequality
+with conjugates made by
 
 ```lean
-lemma rpow_add_le_sup_rpow_mul_rpow_pointwise
-    {F : ℝ → ℝ} {p rho M x : ℝ}
-    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
-    (hx0 : 0 ≤ F x) (hxM : F x ≤ M) :
-    F x ^ (p + rho) ≤ M ^ rho * F x ^ p := by
-  calc
-    F x ^ (p + rho) = F x ^ p * F x ^ rho := by
-      exact Real.rpow_add_of_nonneg hx0 hp hrho
-    _ = F x ^ rho * F x ^ p := by
-      rw [mul_comm]
-    _ ≤ M ^ rho * F x ^ p := by
-      exact mul_le_mul_of_nonneg_right
-        (Real.rpow_le_rpow hx0 hxM hrho)
-        (Real.rpow_nonneg hx0 p)
+Real.HolderConjugate.inv_one_sub_inv
 ```
 
-### 3. Integral monotonicity lemma
+or
 
 ```lean
-lemma intervalIntegral_rpow_add_le_sup_rpow_mul_integral_rpow
-    {F : ℝ → ℝ} {p rho M : ℝ}
-    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
-    (hF_nonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ F x)
-    (hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M)
-    (hLeftInt : IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1)
-    (hPowInt : IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1) :
-    (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
-      M ^ rho * ∫ x in (0 : ℝ)..1, F x ^ p := by
-  have hRightInt :
-      IntervalIntegrable (fun x : ℝ => M ^ rho * F x ^ p) volume 0 1 :=
-    hPowInt.const_mul (M ^ rho)
-  have hmono :
-      (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
-        ∫ x in (0 : ℝ)..1, M ^ rho * F x ^ p := by
-    refine intervalIntegral.integral_mono_on
-      (a := (0 : ℝ)) (b := 1) (μ := volume)
-      zero_le_one hLeftInt hRightInt ?_
-    intro x hx
-    exact rpow_add_le_sup_rpow_mul_rpow_pointwise
-      hp hrho (hF_nonneg x hx) (hF_le_M x hx)
-  rw [intervalIntegral.integral_const_mul] at hmono
-  exact hmono
+Real.HolderConjugate.inv_inv
 ```
 
-## Notes and pitfalls
+The local lemma should have one of these two forms:
 
-1. Do not try to use `linarith` for the `rpow` pointwise inequality.  Use `Real.rpow_le_rpow` and then multiply by the nonnegative factor `F x ^ p`.
+```lean
+lemma absorb_rpow_lt_one
+    {θ ε K : ℝ} (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hε : 0 < ε) (hK : 0 ≤ K) :
+    ∃ Cε : ℝ, ∀ G : ℝ, 0 ≤ G → K * G ^ θ ≤ ε * G + Cε
+```
 
-2. Use `Real.rpow_add_of_nonneg`, not plain rewriting, for
+or the weighted product version:
 
-   ```lean
-   F x ^ (p + rho) = F x ^ p * F x ^ rho
-   ```
+```lean
+lemma young_scaled_product
+    {α β ε K : ℝ} (hα : 0 < α) (hβ : 0 < β) (hαβ : α + β = 1)
+    (hε : 0 < ε) (hK : 0 ≤ K) :
+    ∃ Cε : ℝ, ∀ x y : ℝ, 0 ≤ x → 0 ≤ y →
+      K * x ^ α * y ^ β ≤ ε * x + Cε * y
+```
 
-   because `Real.rpow` has special behavior at zero.  The lemma handles the zero case correctly under `0 ≤ F x`, `0 ≤ p`, `0 ≤ rho`.
+## Bottom line
 
-3. `intervalIntegral.integral_mono_on` requires integrability of both sides.  The RHS integrability is usually just:
+Exact names to use:
 
-   ```lean
-   hPowInt.const_mul (M ^ rho)
-   ```
+```lean
+-- sum powers
+Real.rpow_add_le_add_rpow
+NNReal.rpow_add_le_add_rpow
+NNReal.rpow_add_le_mul_rpow_add_rpow
 
-4. If your actual goal is stated with `intervalDomain.integral`, first unfold or rewrite it to the concrete interval integral of `intervalDomainLift`; then apply the lemma above.  The only interval-domain-specific work is proving the lifted nonnegativity and lifted sup bound on `Set.Icc 0 1`.
+-- Young
+Real.young_inequality_of_nonneg
+Real.young_inequality
+NNReal.young_inequality
+NNReal.young_inequality_real
+ENNReal.young_inequality
 
-5. If the chosen sup is exactly
+-- conjugate exponent constructors/facts
+Real.HolderConjugate.inv_inv
+Real.HolderConjugate.inv_one_sub_inv
+Real.HolderConjugate.one_sub_inv_inv
+Real.holderConjugate_iff
+Real.HolderConjugate.conjExponent
+Real.HolderConjugate.symm
+Real.HolderConjugate.inv_add_inv_eq_one
 
-   ```lean
-   sSup (Set.range fun x : intervalDomainPoint => |f x|)
-   ```
+-- sSup/image/compact maximum
+csSup_le
+le_csSup
+Set.mem_image_of_mem
+isCompact_Icc
+IsCompact.bddAbove_image
+IsCompact.exists_sSup_image_eq_and_ge
+IsCompact.exists_sSup_image_eq
+IsCompact.exists_isMaxOn
 
-   the bound proof should go through with `le_csSup hf_bdd ⟨x, rfl⟩`, where
+-- rpow algebra/monotonicity helpers
+Real.rpow_le_rpow
+Real.rpow_lt_rpow
+Real.rpow_le_rpow_iff
+Real.rpow_mul
+Real.mul_rpow
+Real.rpow_nonneg
+Real.rpow_inv_rpow
+Real.rpow_rpow_inv
+```
 
-   ```lean
-   hf_bdd : BddAbove (Set.range fun x : intervalDomainPoint => |f x|)
-   ```
-
-   is already the kind of hypothesis used in the existing `UnitIntervalPowerGNYoungForMoser` interface.
+The single biggest Lean-side issue is not finding the names; it is choosing the right exponent hypothesis. If the proof really uses `Real.rpow_add_le_add_rpow` at exponent `α = ρ/p`, then the theorem needs `ρ < p`, globally e.g. `ρ < p₀`. If the intended PDE hypothesis is only `p₀ > ρ/2`, then do not insist on `α < 1`; split the Agmon sum with the `NNReal.rpow_add_le_mul_rpow_add_rpow` fallback and absorb the `G ^ (α/2)` term using Young, since `α/2 < 1` is exactly what `p > ρ/2` gives.
