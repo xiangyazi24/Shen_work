@@ -1,4 +1,4 @@
-# Q2856 (shen1) — next Lean layer: window FTC and higher-power energy windows
+# Q2861 (shen1) — tactic pattern for closed-window integrated energy inequality
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
@@ -6,47 +6,83 @@ Source edit requested: none; answer file only.
 
 Do not edit `ShenWork/PDE/P3MoserHighExcursionProducer.lean`.
 
-## Connector-visible grounding
+## Goal pattern
 
-The connector-visible branch still does not show the newest local coefficient/closed-relative names, but the relevant existing infrastructure is visible.
+You have a pointwise strict-time energy inequality from `LpBootstrapEnergyInequality`:
 
-Names/files to grep:
-
-```text
-ShenWork/PDE/P3MoserIntegratedClosure.lean
-  IntegratedMoserFirstCrossingRegularity
-  integratedMoserEnergy
-  integratedMoserGradientEnergy
-  IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
-  IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
-  IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
-  Icc_subset_uIcc_zero_T_of_endpoint_memberships
-  intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
-  intervalIntegrable_max_one_of_intervalIntegrable
-
-ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean
-  intervalDomainPowerEnergy
-  intervalDomainPowerEnergy_hasDerivAt
-  intervalDomain_lp_timeLeibniz
-  intervalDomain_lp_timeLeibniz_intervalIntegral
-  intervalDomainLpEnergy_eq_powerEnergy_of_pos
-
-ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean
-  intervalDomain_LpBootstrapEnergyInequality_of_regularity
-  intervalDomainLpMoserGradientControl_of_regularity
-  intervalDomainLpLowerOrderControl_of_regularity
-  intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
-  intervalDomainLpEnergy_eq_power_of_regularity
-  intervalDomainLpEnergy_eventuallyEq_power_of_regularity
+```lean
+(1 / p) * deriv (fun τ => integratedMoserEnergy D u p τ) t
+  + A * integratedMoserGradientEnergy D u p t
+  + B * integratedMoserEnergy D u p t
+≤ K * integratedMoserEnergy D u (p + rho) t + L
 ```
 
-The key point: the time-Leibniz file gives **pointwise HasDerivAt** for power energies at interior times; the closure file gives **integrability of `Y_p`, `G_p`, and `max(1,Y_p)`** on windows. What is not currently part of `IntegratedMoserFirstCrossingRegularity` is integrability of the **time derivative** `deriv (fun τ => integratedMoserEnergy D u p τ)` on windows. That must be a separate field unless already available locally.
+for `0 < t`, `t < T`, with `0 < p`, `0 < B`, etc.  On a closed window
 
-## 1. Recommended `IntegratedMoserEnergyWindowFTC` layer
+```lean
+t1 ∈ Set.Icc (0 : ℝ) T,
+t2 ∈ Set.Icc t1 T
+```
 
-Do not make FTC only an equality. Make it a small structure carrying both derivative interval-integrability and the endpoint identity. The derivative integrability is needed again when integrating pointwise energy inequalities.
+you want:
 
-Place in `ShenWork/PDE/P3MoserIntegratedClosure.lean`.
+```lean
+integratedMoserEnergy D u p t2 - integratedMoserEnergy D u p t1
+  + (p * A) * ∫ s in t1..t2, integratedMoserGradientEnergy D u p s
+≤ (p * K) * ∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s
+  + max 0 (p * L) * ∫ s in t1..t2,
+      max 1 (integratedMoserEnergy D u p s)
+```
+
+or the same expression with the right side parenthesized to match your coefficient-frontier record.
+
+The robust route is:
+
+1. integrate the scaled pointwise inequality a.e. on the interval-integral domain `Set.Ioc t1 t2`;
+2. expand integrals of sums and constant multiples;
+3. rewrite `∫ deriv Y` using `IntegratedMoserEnergyWindowFTC.window_ftc`;
+4. drop the nonnegative term `(p * B) * ∫Y`;
+5. bound the constant term `(t2 - t1) * (p * L)` by `max 0 (p * L) * ∫max(1,Y)`.
+
+## Mathlib / repo lemmas to use
+
+Likely names to grep/check:
+
+```lean
+-- interval-integral representation / integrability
+intervalIntegral.integral_of_le
+intervalIntegrable_iff_integrableOn_Ioc_of_le
+IntervalIntegrable.add
+IntervalIntegrable.const_mul
+intervalIntegrable_const
+
+-- a.e. monotonicity / nonnegativity
+MeasureTheory.integral_mono_ae
+MeasureTheory.integral_nonneg_of_ae
+MeasureTheory.ae_restrict_iff'
+measurableSet_Ioc
+measure_mono_null
+
+-- interval integral algebra
+intervalIntegral.integral_add
+intervalIntegral.integral_const_mul
+intervalIntegral.integral_const
+
+-- repo helpers
+IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+Icc_subset_uIcc_zero_T_of_endpoint_memberships
+intervalIntegral_length_le_integral_max_one
+IntegratedMoserEnergyWindowFTC.window_ftc
+IntegratedMoserEnergyWindowFTC.deriv_intervalIntegrable
+```
+
+If your current helper is named `ae_restrict_Icc_strictInterior_of_Icc_endpoints`, prefer adding/using an `Ioc` version too, because `intervalIntegral.integral_of_le` rewrites `∫ in a..b` to integration over `Set.Ioc a b`.
+
+## General helper 1: interval-integral monotonicity from a.e. inequality on `Ioc`
+
+This is the main helper I would add near the a.e. endpoint bridge lemmas.
 
 ```lean
 import ShenWork.PDE.P3MoserIntegratedClosure
@@ -58,280 +94,74 @@ noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-- Window fundamental theorem of calculus for the Moser energy profile
-`Y_p(t) = integratedMoserEnergy D u p t`, including the derivative integrability
-needed to integrate pointwise energy inequalities. -/
-structure IntegratedMoserEnergyWindowFTC
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T p0 : ℝ) : Prop where
-  deriv_intervalIntegrable :
-    ∀ p, p0 ≤ p →
-      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-        IntervalIntegrable
-          (fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s)
-          volume t1 t2
-  window_ftc :
-    ∀ p, p0 ≤ p →
-      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-        (∫ s in t1..t2,
-          deriv (fun τ => integratedMoserEnergy D u p τ) s) =
-        integratedMoserEnergy D u p t2 -
-          integratedMoserEnergy D u p t1
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-### Why this is the right frontier shape
-
-`IntegratedMoserFirstCrossingRegularity` currently has:
-
-```lean
-energyContinuous
-initialPowerBound
-powerTimeIntegrable
-gradientTimeIntegrable
-```
-
-It does **not** say `Y_p` is absolutely continuous, nor that `deriv Y_p` is interval-integrable. So `IntegratedMoserEnergyWindowFTC` cannot honestly be derived from `IntegratedMoserFirstCrossingRegularity` alone.
-
-## 1a. Interval-domain helper: identify Moser energy with `intervalDomainPowerEnergy`
-
-This is pure definitional/lift wiring and should be easy.
-
-```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
-import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- The abstract Moser energy on `intervalDomain` is the same power energy used
-by the Paper2 time-Leibniz infrastructure. -/
-theorem intervalDomain_integratedMoserEnergy_eq_powerEnergy
-    (p : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) :
-    integratedMoserEnergy intervalDomain u p t =
-      intervalDomainPowerEnergy p u t := by
-  unfold integratedMoserEnergy intervalDomainPowerEnergy
-  change intervalDomainIntegral (fun x : intervalDomain.Point => (u t x) ^ p) =
-    ∫ y in (0 : ℝ)..1, (intervalDomainLift (u t) y) ^ p
-  unfold intervalDomainIntegral
-  refine intervalIntegral.integral_congr (fun y hy => ?_)
-  rw [Set.uIcc_of_le (zero_le_one)] at hy
-  simp [intervalDomainLift, hy]
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-If `intervalDomainIntegral` is not visible, replace the `change`/`unfold` block by whatever local style is used elsewhere in `IntervalDomainLpBootstrapEnergyInequality.lean` and `IntervalAgmonInterpolation.lean`.
-
-## 1b. HasDerivAt of `integratedMoserEnergy` from existing time-Leibniz
-
-This should be provable from `intervalDomainPowerEnergy_hasDerivAt` plus the equality helper above.
-
-```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
-import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Interior-time derivative of the integrated Moser energy, obtained by routing
-through `intervalDomainPowerEnergy_hasDerivAt`. -/
-theorem intervalDomain_integratedMoserEnergy_hasDerivAt_of_classical
-    {params : CM2Params} {T p t : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
-    HasDerivAt
-      (fun s => integratedMoserEnergy intervalDomain u p s)
-      (deriv (fun s => integratedMoserEnergy intervalDomain u p s) t)
-      t := by
-  have hpow := intervalDomainPowerEnergy_hasDerivAt (q := p) hsol ht
-  have hfun :
-      (fun s => integratedMoserEnergy intervalDomain u p s) =
-        fun s => intervalDomainPowerEnergy p u s := by
-    funext s
-    exact intervalDomain_integratedMoserEnergy_eq_powerEnergy p u s
-  have hpow' :
-      HasDerivAt
-        (fun s => integratedMoserEnergy intervalDomain u p s)
-        (∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv p u t y) t := by
-    simpa [hfun] using hpow
-  -- Convert the explicit derivative to `deriv` of the same function.
-  simpa [hpow'.deriv] using hpow'
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-If the final `simpa [hpow'.deriv]` fails, use:
-
-```lean
-convert hpow' using 1
-exact hpow'.deriv.symm
-```
-
-## 1c. Closed-window FTC from classical time-Leibniz plus derivative integrability
-
-This is the minimal honest theorem. It should be provable wiring once the correct Mathlib FTC lemma name is selected.
-
-```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
-import ShenWork.Paper2.IntervalDomainLpTimeLeibniz
-
-open MeasureTheory
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Produce the window FTC package for interval-domain Moser energies.  The
-classical solution supplies interior `HasDerivAt`; `hreg` supplies closed-window
-continuity of `Y_p`; the extra `hderivInt` is the missing derivative-integrability
-field. -/
-theorem intervalDomain_integratedMoserEnergyWindowFTC_of_classical
-    {params : CM2Params} {T p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0)
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hderivInt :
-      ∀ p, p0 ≤ p →
-        ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-          IntervalIntegrable
-            (fun s => deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s)
-            volume t1 t2) :
-    IntegratedMoserEnergyWindowFTC intervalDomain u T p0 where
-  deriv_intervalIntegrable := hderivInt
-  window_ftc := by
-    intro p hp t1 ht1 t2 ht2
-    have hab : t1 ≤ t2 := ht2.1
-    have hcont :
-        ContinuousOn
-          (fun t => integratedMoserEnergy intervalDomain u p t)
-          (Set.Icc t1 t2) := by
-      exact (hreg.energyContinuous p hp).mono
-        (Icc_subset_uIcc_zero_T_of_endpoint_memberships ht1 ht2)
-    have hderiv :
-        ∀ s ∈ Set.Ioo t1 t2,
-          HasDerivAt
-            (fun τ => integratedMoserEnergy intervalDomain u p τ)
-            (deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s)
-            s := by
-      intro s hs
-      have hs0 : 0 < s := lt_of_le_of_lt ht1.1 hs.1
-      have hsT : s < T := lt_of_lt_of_le hs.2 ht2.2
-      exact intervalDomain_integratedMoserEnergy_hasDerivAt_of_classical
-        (p := p) hsol ⟨hs0, hsT⟩
-    have hderiv_int := hderivInt p hp t1 ht1 t2 ht2
-    -- Try these Mathlib names in order:
-    --   intervalIntegral.integral_deriv_eq_sub
-    --   intervalIntegral.integral_deriv_eq_sub'
-    --   intervalIntegral.integral_eq_sub_of_hasDerivAt
-    --   intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le
-    -- The expected final call shape is:
-    exact intervalIntegral.integral_deriv_eq_sub hcont hderiv hderiv_int hab
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-The final Mathlib name/signature may differ. If it fails, immediately run:
-
-```lean
-#check intervalIntegral.integral_deriv_eq_sub
-#check intervalIntegral.integral_deriv_eq_sub'
-#check intervalIntegral.integral_eq_sub_of_hasDerivAt
-#check intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le
-#check intervalIntegral.integral_of_le
-```
-
-and adapt the final line. The mathematical inputs above are exactly the right ones: closed continuity, derivative on `Ioo t1 t2`, and derivative interval-integrability.
-
-### What remains a genuine regularity assumption here
-
-`hderivInt` is the genuine missing field unless your local code already proves it. It is **not** contained in `IntegratedMoserFirstCrossingRegularity`.
-
-A clean explicit frontier is:
-
-```lean
-def IntegratedMoserEnergyDerivativeWindowIntegrability
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-      IntervalIntegrable
-        (fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s)
-        volume t1 t2
-```
-
-For `intervalDomain`, this should eventually follow from joint continuity/boundedness of the time-derivative integrand over compact slabs, using the infrastructure in `IntervalUnderIntegralLeibniz.lean`. But it is not just algebraic wiring.
-
-## 2. Window higher-power energy from pointwise `LpBootstrapEnergyInequality`
-
-### Target frontier shape
-
-Use the same shape expected by the coefficient absorption wrapper. Keeping this as a named frontier makes later call sites cleaner.
-
-```lean
-def IntegratedHigherPowerEnergyWindowCoeffFrontier
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 theta : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    ∃ A K C0 L eps : ℝ,
-      0 < eps ∧ 0 ≤ K ∧ 0 ≤ C0 ∧ 0 ≤ L ∧
-      (∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-        integratedMoserEnergy D u p t2 -
-            integratedMoserEnergy D u p t1 +
-          A * (∫ s in t1..t2,
-            integratedMoserGradientEnergy D u p s) ≤
-        (C0 * p * (∫ s in t1..t2,
-          max 1 (integratedMoserEnergy D u p s)) +
-          K * (∫ s in t1..t2,
-            integratedMoserEnergy D u (p + rho) s)) +
-          L * (∫ s in t1..t2,
-            max 1 (integratedMoserEnergy D u p s))) ∧
-      K * eps ≤ A - theta
-```
-
-### Extra helper: length is bounded by `∫ max(1,Y)`
-
-Needed to absorb a constant `L_const` from pointwise energy into the max-one integral.
-
-```lean
-theorem intervalIntegral_length_le_integral_max_one
-    {a b : ℝ} {Y : ℝ → ℝ}
+/-- Monotonicity of interval integrals from an a.e. inequality on the actual
+interval-integral domain `Ioc a b`.  This is often more robust than trying to
+use pointwise `intervalIntegral.integral_mono_on`, because the pointwise PDE
+inequality only holds at strict interior times. -/
+theorem intervalIntegral_integral_mono_ae_Ioc
+    {a b : ℝ} {f g : ℝ → ℝ}
     (hab : a ≤ b)
-    (hYmax_int : IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) volume a b) :
-    b - a ≤ ∫ s in a..b, max (1 : ℝ) (Y s) := by
-  have hconst : IntervalIntegrable (fun _s : ℝ => (1 : ℝ)) volume a b :=
-    intervalIntegrable_const
-  have hmono := intervalIntegral.integral_mono_on hab hconst hYmax_int (by
-    intro s _hs
-    exact le_max_left (1 : ℝ) (Y s))
-  have hlen : (∫ _s in a..b, (1 : ℝ)) = b - a := by
-    rw [intervalIntegral.integral_const]
-    simp [smul_eq_mul]
-  simpa [hlen] using hmono
+    (hf : IntervalIntegrable f volume a b)
+    (hg : IntervalIntegrable g volume a b)
+    (hfg : ∀ᵐ s ∂(volume.restrict (Set.Ioc a b)), f s ≤ g s) :
+    ∫ s in a..b, f s ≤ ∫ s in a..b, g s := by
+  rw [intervalIntegral.integral_of_le hab]
+  rw [intervalIntegral.integral_of_le hab]
+  have hf_on : IntegrableOn f (Set.Ioc a b) volume :=
+    (intervalIntegrable_iff_integrableOn_Ioc_of_le hab).1 hf
+  have hg_on : IntegrableOn g (Set.Ioc a b) volume :=
+    (intervalIntegrable_iff_integrableOn_Ioc_of_le hab).1 hg
+  -- In this Mathlib version, one of these two usually works:
+  exact MeasureTheory.integral_mono_ae hf_on hg_on hfg
+  -- If the line above fails, replace it by one of:
+  --   exact MeasureTheory.integral_mono_ae hf_on.integrable hg_on.integrable hfg
+  -- or:
+  --   change ∫ s, f s ∂(volume.restrict (Set.Ioc a b)) ≤
+  --     ∫ s, g s ∂(volume.restrict (Set.Ioc a b))
+  --   exact MeasureTheory.integral_mono_ae hf_on hg_on hfg
+
+end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 ```
 
-### A.e. strict-interior helper
-
-This is the same endpoint bridge used for closed-window relative Moser.
+If `MeasureTheory.integral_mono_ae` expects `Integrable` rather than `IntegrableOn`, unfold/convert:
 
 ```lean
+change Integrable f (volume.restrict (Set.Ioc a b)) at hf_on
+change Integrable g (volume.restrict (Set.Ioc a b)) at hg_on
+exact MeasureTheory.integral_mono_ae hf_on hg_on hfg
+```
+
+## General helper 2: interval-integral nonnegativity from a.e. nonnegativity on `Ioc`
+
+This makes dropping `(p*B)*∫Y` clean when energy nonnegativity is only strict-interior.
+
+```lean
+/-- Nonnegativity of an interval integral from a.e. nonnegativity on the `Ioc`
+interval-integral domain. -/
+theorem intervalIntegral_integral_nonneg_ae_Ioc
+    {a b : ℝ} {f : ℝ → ℝ}
+    (hab : a ≤ b)
+    (hf : IntervalIntegrable f volume a b)
+    (hf_nonneg : ∀ᵐ s ∂(volume.restrict (Set.Ioc a b)), 0 ≤ f s) :
+    0 ≤ ∫ s in a..b, f s := by
+  rw [intervalIntegral.integral_of_le hab]
+  have hf_on : IntegrableOn f (Set.Ioc a b) volume :=
+    (intervalIntegrable_iff_integrableOn_Ioc_of_le hab).1 hf
+  -- Try this first:
+  exact MeasureTheory.integral_nonneg_of_ae hf_nonneg
+  -- If Mathlib asks for integrability explicitly, use/check:
+  --   exact MeasureTheory.integral_nonneg_of_ae hf_on hf_nonneg
+  -- or `change` the measure to `volume.restrict (Set.Ioc a b)` as in the previous helper.
+```
+
+## General helper 3: strict-interior a.e. on the interval domain
+
+If you only have the `Icc` version, add this `Ioc` version. It avoids measure-transfer clutter.
+
+```lean
+/-- On a closed time window `[a,b] ⊆ [0,T]`, the interval-integral domain
+`Ioc a b` consists of strict interior times a.e.  The left endpoint is excluded
+by `Ioc`; the only possible right-endpoint failure is the singleton `{T}`. -/
 theorem ae_restrict_Ioc_strictInterior_of_Icc_endpoints
     {T a b : ℝ}
     (haT : a ∈ Set.Icc (0 : ℝ) T)
@@ -352,247 +182,286 @@ theorem ae_restrict_Ioc_strictInterior_of_Icc_endpoints
   exact measure_mono_null hbad_subset (by simp)
 ```
 
-### Minimal theorem from pointwise energy + FTC + surplus
+## Main tactic skeleton
 
-This theorem is provable wiring **if** the local a.e. monotonicity helper from Q2853 is available. If not, use `intervalIntegral.integral_of_le` plus `MeasureTheory.integral_mono_ae` exactly as in Q2853.
-
-```lean
-import ShenWork.PDE.P3MoserIntegratedClosure
-import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-
-open MeasureTheory
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainMoserClosure
-open scoped Interval
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-
-/-- Convert the pointwise bootstrap energy inequality into the full closed-window
-higher-power energy frontier, assuming window FTC, energy nonnegativity, and an
-explicit coefficient surplus for the constants selected by the pointwise energy
-inequality. -/
-theorem integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_closed
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 theta : ℝ}
-    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
-    (hftc : IntegratedMoserEnergyWindowFTC D u T p0)
-    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
-    (henergy : LpBootstrapEnergyInequality D u T rho p0)
-    (hp_pos : ∀ p, p0 ≤ p → 0 < p)
-    (hrho_nonneg : 0 ≤ rho)
-    (hsurplus :
-      ∀ p, p0 ≤ p →
-      ∀ A B K Lconst : ℝ,
-        0 < A → 0 < B → 0 < K →
-        (∀ t, 0 < t → t < T →
-          (1 / p) * deriv (fun τ => integratedMoserEnergy D u p τ) t +
-              A * integratedMoserGradientEnergy D u p t +
-              B * integratedMoserEnergy D u p t ≤
-            K * integratedMoserEnergy D u (p + rho) t + Lconst) →
-        ∃ eps : ℝ, 0 < eps ∧ (p * K) * eps ≤ p * A - theta) :
-    IntegratedHigherPowerEnergyWindowCoeffFrontier D u T rho p0 theta := by
-  intro p hp
-  rcases henergy p hp with ⟨A, hA, B, hB, K, hK, Lconst, hpoint⟩
-  have hp0 : 0 < p := hp_pos p hp
-  have hp_nonneg : 0 ≤ p := hp0.le
-  have hp_rho : p0 ≤ p + rho := le_trans hp (le_add_of_nonneg_right hrho_nonneg)
-  -- Rewrite the pointwise statement in integratedMoserEnergy notation if needed.
-  have hpoint' :
-      ∀ t, 0 < t → t < T →
-        (1 / p) * deriv (fun τ => integratedMoserEnergy D u p τ) t +
-            A * integratedMoserGradientEnergy D u p t +
-            B * integratedMoserEnergy D u p t ≤
-          K * integratedMoserEnergy D u (p + rho) t + Lconst := by
-    intro t ht0 htT
-    simpa [integratedMoserEnergy, integratedMoserGradientEnergy] using
-      hpoint t ht0 htT
-  rcases hsurplus p hp A B K Lconst hA hB hK hpoint' with ⟨eps, heps, hgap⟩
-  refine ⟨p * A, p * K, 0, p * max 0 Lconst, eps, heps, ?_, by positivity, ?_, ?_, ?_, hgap⟩
-  · exact mul_nonneg hp_nonneg hK.le
-  · exact mul_nonneg hp_nonneg (le_max_left _ _)
-  · intro t1 ht1 t2 ht2
-    have hab : t1 ≤ t2 := ht2.1
-    have hsub : Set.Icc t1 t2 ⊆ Set.uIcc (0 : ℝ) T :=
-      Icc_subset_uIcc_zero_T_of_endpoint_memberships ht1 ht2
-    have hDeriv_int := hftc.deriv_intervalIntegrable p hp t1 ht1 t2 ht2
-    have hG_int := hreg.gradient_intervalIntegrable_of_Icc hp hab hsub
-    have hZ_int := hreg.power_intervalIntegrable_of_Icc hp_rho hab hsub
-    have hYmax_int := hreg.maxOneEnergy_intervalIntegrable_of_Icc hp hab hsub
-    let F : ℝ → ℝ := fun s =>
-      deriv (fun τ => integratedMoserEnergy D u p τ) s +
-        (p * A) * integratedMoserGradientEnergy D u p s
-    let R : ℝ → ℝ := fun s =>
-      (p * K) * integratedMoserEnergy D u (p + rho) s +
-        p * Lconst
-    have hF_int : IntervalIntegrable F volume t1 t2 := by
-      dsimp [F]
-      exact hDeriv_int.add (hG_int.const_mul (p * A))
-    have hR_int : IntervalIntegrable R volume t1 t2 := by
-      dsimp [R]
-      exact (hZ_int.const_mul (p * K)).add intervalIntegrable_const
-    have hstrict_ae := ae_restrict_Ioc_strictInterior_of_Icc_endpoints ht1 ht2
-    have hFR_ae : ∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)), F s ≤ R s := by
-      filter_upwards [hstrict_ae] with s hs
-      rcases hs with ⟨hs0, hsT⟩
-      have hpt := hpoint' s hs0 hsT
-      have hY_nonneg := hnonneg p hp hp_nonneg s hs0 hsT
-      have hBY_nonneg : 0 ≤ p * B * integratedMoserEnergy D u p s := by
-        exact mul_nonneg (mul_nonneg hp_nonneg hB.le) hY_nonneg
-      -- Multiply the pointwise inequality by `p`, then drop the nonnegative
-      -- `p*B*Y_p` term from the left.
-      dsimp [F, R]
-      nlinarith
-    have hmono : ∫ s in t1..t2, F s ≤ ∫ s in t1..t2, R s := by
-      -- Use local helper from Q2853, or replace by intervalIntegral.integral_of_le
-      -- plus MeasureTheory.integral_mono_ae.
-      exact intervalIntegral_integral_mono_ae_Ioc hab hF_int hR_int hFR_ae
-    have hF_eq :
-        (∫ s in t1..t2, F s) =
-          (integratedMoserEnergy D u p t2 - integratedMoserEnergy D u p t1) +
-          (p * A) * (∫ s in t1..t2,
-            integratedMoserGradientEnergy D u p s) := by
-      dsimp [F]
-      rw [intervalIntegral.integral_add hDeriv_int (hG_int.const_mul (p * A))]
-      rw [intervalIntegral.integral_const_mul]
-      rw [hftc.window_ftc p hp t1 ht1 t2 ht2]
-    have hR_eq :
-        (∫ s in t1..t2, R s) =
-          (p * K) * (∫ s in t1..t2,
-            integratedMoserEnergy D u (p + rho) s) +
-          (t2 - t1) * (p * Lconst) := by
-      dsimp [R]
-      rw [intervalIntegral.integral_add (hZ_int.const_mul (p * K)) intervalIntegrable_const]
-      rw [intervalIntegral.integral_const_mul]
-      rw [intervalIntegral.integral_const]
-      ring
-    have hlen_le_max :
-        t2 - t1 ≤ ∫ s in t1..t2,
-          max 1 (integratedMoserEnergy D u p s) :=
-      intervalIntegral_length_le_integral_max_one hab hYmax_int
-    have hconst_absorb :
-        (t2 - t1) * (p * Lconst) ≤
-          (p * max 0 Lconst) * (∫ s in t1..t2,
-            max 1 (integratedMoserEnergy D u p s)) := by
-      by_cases hLnonneg : 0 ≤ Lconst
-      · have hLmax : max 0 Lconst = Lconst := max_eq_right hLnonneg
-        have hcoef_nonneg : 0 ≤ p * Lconst := mul_nonneg hp_nonneg hLnonneg
-        have hmul := mul_le_mul_of_nonneg_right hlen_le_max hcoef_nonneg
-        simpa [hLmax, mul_comm, mul_left_comm, mul_assoc] using hmul
-      · have hLle0 : Lconst ≤ 0 := le_of_not_ge hLnonneg
-        have hleft_nonpos : (t2 - t1) * (p * Lconst) ≤ 0 := by
-          have hlen_nonneg : 0 ≤ t2 - t1 := sub_nonneg.mpr hab
-          have hpL_nonpos : p * Lconst ≤ 0 := mul_nonpos_of_nonneg_of_nonpos hp_nonneg hLle0
-          exact mul_nonpos_of_nonneg_of_nonpos hlen_nonneg hpL_nonpos
-        have hright_nonneg :
-            0 ≤ (p * max 0 Lconst) * (∫ s in t1..t2,
-              max 1 (integratedMoserEnergy D u p s)) := by
-          have hcoef : 0 ≤ p * max 0 Lconst := mul_nonneg hp_nonneg (le_max_left _ _)
-          have hmaxint_nonneg :
-              0 ≤ ∫ s in t1..t2, max 1 (integratedMoserEnergy D u p s) := by
-            exact intervalIntegral.integral_nonneg_of_forall hab
-              (fun _ => le_trans zero_le_one (le_max_left _ _))
-          exact mul_nonneg hcoef hmaxint_nonneg
-        exact le_trans hleft_nonpos hright_nonneg
-    -- Finish by rewriting the integrated pointwise inequality and absorbing the constant.
-    rw [hF_eq] at hmono
-    rw [hR_eq] at hmono
-    calc
-      integratedMoserEnergy D u p t2 - integratedMoserEnergy D u p t1 +
-          (p * A) * (∫ s in t1..t2, integratedMoserGradientEnergy D u p s)
-          ≤ (p * K) * (∫ s in t1..t2,
-              integratedMoserEnergy D u (p + rho) s) +
-            (t2 - t1) * (p * Lconst) := hmono
-      _ ≤ (0 * p * (∫ s in t1..t2,
-              max 1 (integratedMoserEnergy D u p s)) +
-            (p * K) * (∫ s in t1..t2,
-              integratedMoserEnergy D u (p + rho) s)) +
-            (p * max 0 Lconst) * (∫ s in t1..t2,
-              max 1 (integratedMoserEnergy D u p s)) := by
-            nlinarith [hconst_absorb]
-
-end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-```
-
-### Notes on likely compilation adjustments
-
-1. If `LpBootstrapEnergyInequality` is not in scope, add:
+This skeleton is the pattern I would use inside the theorem proving the closed-window higher-power energy inequality from pointwise `LpBootstrapEnergyInequality`.
 
 ```lean
-open ShenWork.Paper2.IntervalDomainEnergyStep
+-- Assumed local context, schematically:
+-- D u T rho p0 p t1 t2 A B K L : ℝ
+-- hp : p0 ≤ p
+-- hp_pos : 0 < p
+-- hA : 0 < A, hB : 0 < B, hK : 0 < K
+-- ht1 : t1 ∈ Set.Icc (0 : ℝ) T
+-- ht2 : t2 ∈ Set.Icc t1 T
+-- hpoint : ∀ t, 0 < t → t < T →
+--   (1 / p) * deriv (fun τ => integratedMoserEnergy D u p τ) t
+--     + A * integratedMoserGradientEnergy D u p t
+--     + B * integratedMoserEnergy D u p t
+--   ≤ K * integratedMoserEnergy D u (p + rho) t + L
+-- hftc : IntegratedMoserEnergyWindowFTC D u T p0
+-- hreg : IntegratedMoserFirstCrossingRegularity D u T p0
+-- hnonneg : IntegratedMoserEnergyNonnegativity D u T p0
+-- hrho_nonneg : 0 ≤ rho
+
+have hab : t1 ≤ t2 := ht2.1
+have hp_nonneg : 0 ≤ p := hp_pos.le
+have hp_ne : p ≠ 0 := ne_of_gt hp_pos
+have hp_rho : p0 ≤ p + rho := le_trans hp (le_add_of_nonneg_right hrho_nonneg)
+have hsub : Set.Icc t1 t2 ⊆ Set.uIcc (0 : ℝ) T :=
+  Icc_subset_uIcc_zero_T_of_endpoint_memberships ht1 ht2
+
+let Y : ℝ → ℝ := fun s => integratedMoserEnergy D u p s
+let Z : ℝ → ℝ := fun s => integratedMoserEnergy D u (p + rho) s
+let G : ℝ → ℝ := fun s => integratedMoserGradientEnergy D u p s
+let H : ℝ → ℝ := fun s => max (1 : ℝ) (Y s)
+let dY : ℝ → ℝ := fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s
+
+have hdY_int : IntervalIntegrable dY volume t1 t2 := by
+  simpa [dY] using hftc.deriv_intervalIntegrable p hp t1 ht1 t2 ht2
+have hY_int : IntervalIntegrable Y volume t1 t2 := by
+  simpa [Y] using hreg.power_intervalIntegrable_of_Icc hp hab hsub
+have hZ_int : IntervalIntegrable Z volume t1 t2 := by
+  simpa [Z] using hreg.power_intervalIntegrable_of_Icc hp_rho hab hsub
+have hG_int : IntervalIntegrable G volume t1 t2 := by
+  simpa [G] using hreg.gradient_intervalIntegrable_of_Icc hp hab hsub
+have hH_int : IntervalIntegrable H volume t1 t2 := by
+  simpa [Y, H] using hreg.maxOneEnergy_intervalIntegrable_of_Icc hp hab hsub
+
+let F : ℝ → ℝ := fun s => dY s + (p * A) * G s + (p * B) * Y s
+let R : ℝ → ℝ := fun s => (p * K) * Z s + p * L
+
+have hF_int : IntervalIntegrable F volume t1 t2 := by
+  dsimp [F]
+  exact (hdY_int.add (hG_int.const_mul (p * A))).add
+    (hY_int.const_mul (p * B))
+have hR_int : IntervalIntegrable R volume t1 t2 := by
+  dsimp [R]
+  exact (hZ_int.const_mul (p * K)).add intervalIntegrable_const
+
+have hstrict_ae := ae_restrict_Ioc_strictInterior_of_Icc_endpoints ht1 ht2
+
+have hFR_ae : ∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)), F s ≤ R s := by
+  filter_upwards [hstrict_ae] with s hs
+  rcases hs with ⟨hs0, hsT⟩
+  have hpt := hpoint s hs0 hsT
+  have hmul := mul_le_mul_of_nonneg_left hpt hp_nonneg
+  -- Scale away `(1 / p)` robustly by rewriting both sides of `hmul`.
+  have hleft_scale :
+      p * ((1 / p) * dY s + A * G s + B * Y s) =
+        dY s + (p * A) * G s + (p * B) * Y s := by
+    field_simp [hp_ne]
+    ring
+  have hright_scale :
+      p * (K * Z s + L) = (p * K) * Z s + p * L := by
+    ring
+  dsimp [F, R]
+  calc
+    dY s + (p * A) * G s + (p * B) * Y s
+        = p * ((1 / p) * dY s + A * G s + B * Y s) := hleft_scale.symm
+    _ ≤ p * (K * Z s + L) := hmul
+    _ = (p * K) * Z s + p * L := hright_scale
+
+have hmono : ∫ s in t1..t2, F s ≤ ∫ s in t1..t2, R s :=
+  intervalIntegral_integral_mono_ae_Ioc hab hF_int hR_int hFR_ae
 ```
 
-or import/open `ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality`.
-
-2. If `intervalIntegral_integral_mono_ae_Ioc` is not yet committed, add the helper from Q2853 or use:
+### Expand the integrals
 
 ```lean
-rw [intervalIntegral.integral_of_le hab]
-rw [intervalIntegral.integral_of_le hab]
-exact MeasureTheory.integral_mono_ae ...
+have hF_eq :
+    (∫ s in t1..t2, F s) =
+      (∫ s in t1..t2, dY s) +
+      (p * A) * (∫ s in t1..t2, G s) +
+      (p * B) * (∫ s in t1..t2, Y s) := by
+  dsimp [F]
+  rw [intervalIntegral.integral_add
+    (hdY_int.add (hG_int.const_mul (p * A)))
+    (hY_int.const_mul (p * B))]
+  rw [intervalIntegral.integral_add hdY_int (hG_int.const_mul (p * A))]
+  rw [intervalIntegral.integral_const_mul]
+  rw [intervalIntegral.integral_const_mul]
+  ring
+
+have hR_eq :
+    (∫ s in t1..t2, R s) =
+      (p * K) * (∫ s in t1..t2, Z s) +
+      (t2 - t1) * (p * L) := by
+  dsimp [R]
+  rw [intervalIntegral.integral_add (hZ_int.const_mul (p * K)) intervalIntegrable_const]
+  rw [intervalIntegral.integral_const_mul]
+  rw [intervalIntegral.integral_const]
+  ring
+
+have hFTC :
+    (∫ s in t1..t2, dY s) = Y t2 - Y t1 := by
+  simpa [dY, Y] using hftc.window_ftc p hp t1 ht1 t2 ht2
+
+have hmono_expanded :
+    (Y t2 - Y t1) +
+      (p * A) * (∫ s in t1..t2, G s) +
+      (p * B) * (∫ s in t1..t2, Y s) ≤
+    (p * K) * (∫ s in t1..t2, Z s) +
+      (t2 - t1) * (p * L) := by
+  rw [hF_eq, hR_eq] at hmono
+  rwa [hFTC] at hmono
 ```
 
-with the two `IntervalIntegrable` hypotheses converted by:
+### Prove `∫Y ≥ 0` a.e. and drop the nonnegative term
 
 ```lean
-(intervalIntegrable_iff_integrableOn_Ioc_of_le hab).mp hF_int
+have hY_nonneg_ae :
+    ∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)), 0 ≤ Y s := by
+  filter_upwards [hstrict_ae] with s hs
+  rcases hs with ⟨hs0, hsT⟩
+  simpa [Y] using hnonneg p hp hp_nonneg s hs0 hsT
+
+have hYint_nonneg : 0 ≤ ∫ s in t1..t2, Y s :=
+  intervalIntegral_integral_nonneg_ae_Ioc hab hY_int hY_nonneg_ae
+
+have hBYint_nonneg : 0 ≤ (p * B) * (∫ s in t1..t2, Y s) := by
+  exact mul_nonneg (mul_nonneg hp_nonneg hB.le) hYint_nonneg
+
+have hdropY :
+    (Y t2 - Y t1) +
+      (p * A) * (∫ s in t1..t2, G s) ≤
+    (p * K) * (∫ s in t1..t2, Z s) +
+      (t2 - t1) * (p * L) := by
+  nlinarith [hmono_expanded, hBYint_nonneg]
 ```
 
-3. If `nlinarith` struggles at the pointwise multiplication step, explicitly derive:
+If `nlinarith` struggles, rearrange with an explicit `have`:
 
 ```lean
-have hpt_mul :
-    deriv (fun τ => integratedMoserEnergy D u p τ) s +
-      p * A * integratedMoserGradientEnergy D u p s +
-      p * B * integratedMoserEnergy D u p s ≤
-    p * K * integratedMoserEnergy D u (p + rho) s + p * Lconst := by
-  have hm := mul_le_mul_of_nonneg_left hpt hp_nonneg
-  field_simp [ne_of_gt hp0] at hm
-  ring_nf at hm ⊢
-  exact hm
+have hadd :
+    (Y t2 - Y t1) + (p * A) * (∫ s in t1..t2, G s) +
+      (p * B) * (∫ s in t1..t2, Y s) =
+    ((Y t2 - Y t1) + (p * A) * (∫ s in t1..t2, G s)) +
+      (p * B) * (∫ s in t1..t2, Y s) := by ring
+rw [hadd] at hmono_expanded
+linarith
 ```
 
-then drop `p*B*Y` using `hBY_nonneg`.
-
-## What is provable wiring vs genuine assumption
-
-### Provable wiring
-
-The following are routine and should be compile-targets:
-
-- `intervalDomain_integratedMoserEnergy_eq_powerEnergy`
-- `intervalDomain_integratedMoserEnergy_hasDerivAt_of_classical`
-- `intervalIntegral_length_le_integral_max_one`
-- `intervalDomain_integratedMoserEnergyWindowFTC_of_classical`, **provided** derivative interval-integrability is supplied
-- `integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_closed`, **provided** `IntegratedMoserEnergyWindowFTC`, energy nonnegativity, and explicit coefficient surplus are supplied
-
-### Genuine PDE/regularity assumptions still needed
-
-1. **Derivative interval-integrability / absolute continuity of `Y_p`.**
-
-`IntegratedMoserFirstCrossingRegularity` does not include integrability of `deriv Y_p`. The time-Leibniz file gives pointwise `HasDerivAt`, but not window FTC by itself. Add either `IntegratedMoserEnergyDerivativeWindowIntegrability` or the full `IntegratedMoserEnergyWindowFTC` structure as a frontier.
-
-2. **Coefficient surplus.**
-
-`LpBootstrapEnergyInequality` gives `A > 0`, but the coefficient route for target `theta` needs surplus after scaling:
+### Bound the constant by `max 0 (p*L) * ∫max(1,Y)`
 
 ```lean
-∃ eps > 0, (p * K) * eps ≤ p * A - theta
+have hlen_le_H :
+    t2 - t1 ≤ ∫ s in t1..t2, H s := by
+  simpa [H] using intervalIntegral_length_le_integral_max_one
+    (Y := Y) hab hH_int
+
+have hH_nonneg : 0 ≤ ∫ s in t1..t2, H s := by
+  have hlen_nonneg : 0 ≤ t2 - t1 := sub_nonneg.mpr hab
+  exact le_trans hlen_nonneg hlen_le_H
+
+have hconst_bound :
+    (t2 - t1) * (p * L) ≤
+      max 0 (p * L) * (∫ s in t1..t2, H s) := by
+  by_cases hpL_nonneg : 0 ≤ p * L
+  · have hmax : max 0 (p * L) = p * L := max_eq_right hpL_nonneg
+    have hmul := mul_le_mul_of_nonneg_right hlen_le_H hpL_nonneg
+    -- `hmul` has `(t2-t1)*(p*L) ≤ H*(p*L)` or similar depending on orientation.
+    simpa [hmax, mul_comm, mul_left_comm, mul_assoc] using hmul
+  · have hpL_nonpos : p * L ≤ 0 := le_of_not_ge hpL_nonneg
+    have hlen_nonneg : 0 ≤ t2 - t1 := sub_nonneg.mpr hab
+    have hleft_nonpos : (t2 - t1) * (p * L) ≤ 0 := by
+      exact mul_nonpos_of_nonneg_of_nonpos hlen_nonneg hpL_nonpos
+    have hright_nonneg : 0 ≤ max 0 (p * L) * (∫ s in t1..t2, H s) := by
+      exact mul_nonneg (le_max_left _ _) hH_nonneg
+    exact le_trans hleft_nonpos hright_nonneg
 ```
 
-For `theta = 2`, this is not automatic from `A > 0`. It must remain an explicit assumption unless a stronger PDE energy theorem proves a lower bound on the chosen gradient coefficient.
+If the first branch orientation does not match, switch to:
 
-3. **Closed-window a.e. integration of pointwise inequalities.**
+```lean
+have hmul := mul_le_mul_of_nonneg_left hlen_le_H hpL_nonneg
+```
 
-This is proof plumbing, not PDE, but it must be present as a lemma (`ae_restrict_Ioc_strictInterior_of_Icc_endpoints` + interval-integral monotonicity a.e.). Without it, strict pointwise estimates cannot be applied directly at `t=0` or `t=T`.
+and `simpa [hmax, mul_comm, mul_left_comm, mul_assoc] using hmul`.
 
-## Recommended next edit order
+### Final assembly
 
-1. Add `IntegratedMoserEnergyWindowFTC` and `IntegratedMoserEnergyDerivativeWindowIntegrability` definitions.
-2. Add `intervalDomain_integratedMoserEnergy_eq_powerEnergy` and `intervalDomain_integratedMoserEnergy_hasDerivAt_of_classical`.
-3. Add `intervalDomain_integratedMoserEnergyWindowFTC_of_classical` with `hderivInt` as input.
-4. Add `intervalIntegral_length_le_integral_max_one`.
-5. Add `integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_closed` using explicit `hsurplus`.
+```lean
+calc
+  (Y t2 - Y t1) +
+      (p * A) * (∫ s in t1..t2, G s)
+      ≤ (p * K) * (∫ s in t1..t2, Z s) +
+          (t2 - t1) * (p * L) := hdropY
+  _ ≤ (p * K) * (∫ s in t1..t2, Z s) +
+        max 0 (p * L) * (∫ s in t1..t2, H s) := by
+      linarith [hconst_bound]
+```
 
-This gives a clean formal seam: Codex-owned closure/plumbing proves all scalar/window algebra, while the remaining analytic producer obligation is exactly the derivative-window FTC/absolute-continuity and coefficient-surplus data.
+Then unfold `Y`, `G`, `Z`, `H` or `simpa [Y, G, Z, H]` to match the target statement.
+
+## Common failure modes and fixes
+
+### 1. `field_simp` does not rewrite the scaled pointwise inequality
+
+Use a `calc` with explicit local variables, not `ring_nf at hmul` globally:
+
+```lean
+let d := dY s
+let y := Y s
+let g := G s
+let z := Z s
+have hpt' : (1 / p) * d + A * g + B * y ≤ K * z + L := by
+  simpa [d, y, g, z, dY, Y, G, Z] using hpoint s hs0 hsT
+have hmul := mul_le_mul_of_nonneg_left hpt' hp_nonneg
+have hscale_left : p * ((1 / p) * d + A * g + B * y) =
+    d + (p * A) * g + (p * B) * y := by
+  field_simp [hp_ne]
+  ring
+have hscale_right : p * (K * z + L) = (p * K) * z + p * L := by ring
+calc
+  d + (p * A) * g + (p * B) * y
+      = p * ((1 / p) * d + A * g + B * y) := hscale_left.symm
+  _ ≤ p * (K * z + L) := hmul
+  _ = (p * K) * z + p * L := hscale_right
+```
+
+### 2. `MeasureTheory.integral_mono_ae` type mismatch
+
+After rewriting with `intervalIntegral.integral_of_le`, the goal is over the restricted measure. Use `change`:
+
+```lean
+change ∫ s, f s ∂(volume.restrict (Set.Ioc a b)) ≤
+  ∫ s, g s ∂(volume.restrict (Set.Ioc a b))
+```
+
+Then convert integrability:
+
+```lean
+have hf_on : Integrable f (volume.restrict (Set.Ioc a b)) := by
+  simpa [IntegrableOn] using
+    (intervalIntegrable_iff_integrableOn_Ioc_of_le hab).1 hf
+```
+
+### 3. The strict-interior a.e. helper is over `Icc`, not `Ioc`
+
+Prefer an `Ioc` helper. If you must use an `Icc` helper, prove the `Ioc` version separately rather than transferring measures; it is only a few lines and avoids absolute-continuity API friction.
+
+### 4. Endpoint nonnegativity of `Y`
+
+Do not require endpoint nonnegativity unless you already have it. For interval integrals, a.e. nonnegativity on `Ioc` is enough. Use `hstrict_ae` plus `IntegratedMoserEnergyNonnegativity`, which is strict-interior.
+
+## Bottom line
+
+Add two general helpers:
+
+```lean
+intervalIntegral_integral_mono_ae_Ioc
+intervalIntegral_integral_nonneg_ae_Ioc
+```
+
+Then use the tactic pattern:
+
+1. define `Y`, `G`, `Z`, `H`, `dY`, `F`, `R`;
+2. prove interval-integrability of `F` and `R` from `hftc` and `hreg`;
+3. build `hFR_ae` by `filter_upwards [ae_restrict_Ioc_strictInterior_of_Icc_endpoints ht1 ht2]`;
+4. scale the pointwise inequality with `mul_le_mul_of_nonneg_left`, using a local `calc` to eliminate `(1/p)`;
+5. apply `intervalIntegral_integral_mono_ae_Ioc`;
+6. expand integrals with `intervalIntegral.integral_add` and `intervalIntegral.integral_const_mul`;
+7. rewrite `∫ dY` by `hftc.window_ftc`;
+8. prove `0 ≤ ∫Y` a.e. and drop `(p*B)*∫Y`;
+9. bound the constant using `intervalIntegral_length_le_integral_max_one` and `max 0 (p*L)`.
