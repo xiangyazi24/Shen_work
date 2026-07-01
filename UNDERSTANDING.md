@@ -3,8 +3,10 @@
 ## CURRENT STATE (2026-06-30, code-derived)
 
 Authoritative checks from the current tree:
-- Real proof holes in Lean code: **0** `sorry` / `admit` / `native_decide`
-  after stripping comments and strings.
+- Real proof holes in Lean code: **0** `sorry` in the main codebase.
+  **6 sorry in `P3MoserAgmonDirectRoute.lean`** (new architecture file, not
+  yet in the build graph). **2 sorry in `IntervalDomain1DLinfRoute.lean`**
+  (superseded architecture file).
 - Last full remote build: after adding the Paper2 structured-Moser and
   actual-atom Proposition 2.5 frontiers, the common-free actual-atom
   Corollary 2.1 / Proposition 2.5 headline route, the mass-gradient reduction
