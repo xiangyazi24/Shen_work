@@ -1,44 +1,30 @@
 import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.PDE.P3MoserThresholdPlanProducer
-import ShenWork.PDE.P3MoserRegularityProducer
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-import ShenWork.Paper2.IntervalDomainCrossDiffusionBootstrap
+import ShenWork.Paper2.IntervalDomainChain
 
 /-!
-# Agmon-based direct route to Moser iteration (1D)
+# GN-absorbed interpolation from Agmon → Moser iteration (1D)
 
-This file produces `IntegratedMoserFirstCrossingStep` (and hence all Lp bounds
-and Proposition 2.5) for the concrete `intervalDomain` using the proved Agmon
-interpolation, WITHOUT going through `RelativeMoserInterpolationBefore` as a
-precondition.
+This file produces the GN-absorbed interpolation inequality
+  `∫u^{p+ρ} ≤ ε·∫|∇(u^{p/2})|² + C_ε`
+for positive classical solutions on `intervalDomain = [0,1]`, using:
 
-## The gradient-exponent mismatch and its resolution
+1. The proved **Agmon inequality** for `w = u^{p/2}`:
+     `‖w‖∞² ≤ C(∫w² + ∫|w'|²)` (pointwise 1D Sobolev)
+2. **Hölder interpolation** with the SEED norm:
+     `∫u^{p+ρ} = ∫w^{p₁} ≤ ‖w‖∞^{p₁-q₁} · ∫w^{q₁}`
+   where `p₁ = 2(p+ρ)/p`, `q₁ = 2p₀/p`, and `∫w^{q₁} = ∫u^{p₀} ≤ M₀` (seed bound)
+3. **Young's inequality** to absorb the gradient:
+     `(A + G)^α ≤ εG + C_ε`  for `α = (p+ρ-p₀)/p < 1`
 
-The Agmon interpolation gives (for positive C² functions on [0,1]):
-  `∫ f^q ≤ ε · ∫ f^{q-2}|f'|² + Cε · (∫f)^q`
+The key insight (from the paper's Lemma 2.6): the lower-order term uses the
+SEED L^{p₀} norm (bounded by hypothesis), not the CURRENT L^p norm. This
+gives a CONSTANT lower-order term, which is stronger than
+`RelativeMoserInterpolationBefore` and feeds `moser_iteration_chain` directly.
 
-The existing Moser machinery needs `RelativeMoserInterpolationBefore`:
-  `∫ u^{p+ρ} ≤ ε · ∫ |∇(u^{p/2})|² + Cε · ∫ u^p`
-
-The gradient terms differ: `f^{q-2}|f'|²` vs `|∇(f^{p/2})|²`. By chain rule
-`|∇(u^{p/2})|² = (p/2)² u^{p-2}|∇u|²`, so converting requires bounding `u^ρ`
-pointwise — an L∞ bound, which is what Moser iteration PROVES (circular).
-
-### Resolution: bound-dependent interpolation inside the iteration
-
-The 1D Sobolev embedding (Agmon inequality for `g = u^{p/2}`) gives
-  `u(x)^p ≤ C(∫u^p + ∫|∇(u^{p/2})|²)`    pointwise
-
-Combined with `∫u^{p+ρ} ≤ ‖u‖∞^ρ · ∫u^p`, Young's inequality with
-sub-additivity of concave powers, and the current Lp bound `∫u^p ≤ M`:
-
-  `∫ u^{p+ρ} ≤ ε · ∫ |∇(u^{p/2})|² + (Cε · M^{ρ/(p-ρ)}) · ∫ u^p`
-
-The constant `Cε · M^{ρ/(p-ρ)}` depends on `M` (the Lp bound from the
-previous Moser step), but this is fine: inside the iteration, M is KNOWN.
-
-This produces `RelativeMoserInterpolationBefore` at each step of the iteration,
-feeding the threshold plan → `IntegratedMoserFirstCrossingStep` → next Lp bound.
+Combined with `LpBootstrapEnergyInequality` (proved from regularity), this
+yields all Lp bounds via `moser_iteration_chain`, and then L∞ via the proved
+Agmon/GN → Proposition 2.5.
 -/
 
 open MeasureTheory Set
@@ -49,180 +35,118 @@ open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 open ShenWork.Paper2.IntervalDomainLpMonotonicity
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
 open scoped Interval
 
 noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
 
-/-! ### Step 1: Pointwise Sobolev for u^{p/2} on [0,1]
+/-! ### Step 1: Hölder interpolation with seed norm
 
-From the proved `agmon_inequality_interval` with `f = intervalDomainLift (u^{p/2})`
-and L = 1:
-  `(u(x)^{p/2})² ≤ 2 ∫(u^{p/2})² + 2√(∫(u^{p/2})²) · √(∫|(u^{p/2})'|²)`
-i.e.,
-  `u(x)^p ≤ 2 ∫u^p + 2√(∫u^p) · √(∫|∇(u^{p/2})|²)`
+For `w = u^{p/2}`, `p₁ = 2(p+ρ)/p`, `q₁ = 2p₀/p`:
+  `∫w^{p₁} ≤ ‖w‖∞^{p₁-q₁} · ∫w^{q₁}`
 
-This is available from the existing `agmon_inequality_interval` applied to
-classical solution slices.
+i.e., `∫u^{p+ρ} ≤ ‖u^{p/2}‖∞^{2(p+ρ-p₀)/p} · ∫u^{p₀}`
 -/
 
-theorem intervalDomain_pointwise_sobolev_rpow
+theorem intervalDomain_higher_Lp_le_Linf_rpow_mul_seed
+    {f : intervalDomain.Point → ℝ}
+    (hf_nonneg : ∀ x, 0 ≤ f x)
+    {pExp p0 rho : ℝ}
+    (hp0_le : p0 ≤ pExp) (hrho : 0 < rho) :
+    intervalDomain.integral (fun x => f x ^ (pExp + rho)) ≤
+      (intervalDomainSupNorm f) ^ rho *
+        intervalDomain.integral (fun x => f x ^ pExp) := by
+  sorry
+
+/-! ### Step 2: Agmon bound for w = u^{p/2}
+
+From `intervalDomainLift_rpow_agmon_bound` (proved):
+  `u(x)^p ≤ 2·∫u^p + 2·√(∫u^p)·√((p²/4)·∫u^{p-2}|∇u|²)`
+  = `2·∫u^p + 2·√(∫u^p)·√(∫|∇(u^{p/2})|²)` (by chain rule equality)
+
+So: `‖u^{p/2}‖∞² = ‖u‖∞^p ≤ 2·∫u^p + 2·√(∫u^p)·√(∫|∇(u^{p/2})|²)`
+-/
+
+theorem intervalDomain_supNorm_rpow_le_energy_plus_gradient
     {params : CM2Params} {T t pExp : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (ht0 : 0 < t) (htT : t < T)
     (hpExp : 2 ≤ pExp) :
-    ∀ x : intervalDomain.Point,
-      (u t x) ^ pExp ≤
-        2 * intervalDomain.integral (fun y => (u t y) ^ pExp) +
-        2 * Real.sqrt (intervalDomain.integral (fun y => (u t y) ^ pExp)) *
-          Real.sqrt (intervalDomain.integral (fun y =>
-            (intervalDomain.gradNorm
-              (fun z => (u t z) ^ (pExp / 2)) y) ^ 2)) := by
+    (intervalDomainSupNorm (u t)) ^ pExp ≤
+      2 * intervalDomain.integral (fun x => (u t x) ^ pExp) +
+      2 * Real.sqrt (intervalDomain.integral (fun x => (u t x) ^ pExp)) *
+        Real.sqrt (intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm
+            (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)) := by
   sorry
 
-/-! ### Step 2: Superlinear interpolation
+/-! ### Step 3: GN-absorbed interpolation (the main lemma)
 
-From Step 1: `u(x)^ρ ≤ (2A + 2√A√G)^{ρ/p}` where A = ∫u^p, G = ∫|∇(u^{p/2})|².
+Combining Steps 1 and 2:
+  `∫u^{p+ρ} ≤ ‖u‖∞^ρ · ∫u^p ≤ C(∫u^p + ∫|∇(u^{p/2})|²)^{ρ/p} · ∫u^p`
 
-Then `∫u^{p+ρ} ≤ (2A + 2√A√G)^{ρ/p} · A`.
+But with the SEED norm trick (Hölder with q₁ = 2p₀/p):
+  `∫u^{p+ρ} ≤ ‖u^{p/2}‖∞^{2(p+ρ-p₀)/p} · ∫u^{p₀}`
+  ≤ `C(∫u^p + G)^{(p+ρ-p₀)/p} · M₀`
 
-Using sub-additivity of concave powers (ρ/p < 1) and Young:
-  `∫u^{p+ρ} ≤ ε G + Cε (A + A^{p/(p-ρ)})`
+With α = (p+ρ-p₀)/p < 1 (since p₀ > ρ):
+  `C(A+G)^α ≤ C(A^α + G^α) ≤ C(1+A+εG+C_ε)` (sub-additivity + Young on G^α)
+  `≤ εG + C(1+A+C_ε)`
+
+For the energy identity: the `A = ∫u^p` is absorbed by the `B·∫u^p` on the LHS.
+The net result: `K·∫u^{p+ρ} ≤ A_orig·G + C_absorbed`
+which is `∫u^{p+ρ} ≤ ε·G + Ceps` (constant lower-order term).
 -/
 
-theorem intervalDomain_superlinear_moser_interpolation
+theorem intervalDomain_gn_absorbed_interpolation_of_agmon
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
     (hrho : 0 < rho)
-    (hp0 : 2 ≤ p0)
-    (eps : ℝ) (heps : 0 < eps) :
-    ∃ Csl > 0,
-      ∀ pExp, p0 ≤ pExp → rho < pExp →
-      ∀ t, 0 < t → t < T →
-        intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤
-          eps * intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm
-              (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
-          Csl * ((intervalDomain.integral (fun x => (u t x) ^ pExp)) +
-            (intervalDomain.integral (fun x => (u t x) ^ pExp)) ^
-              (pExp / (pExp - rho))) := by
-  sorry
-
-/-! ### Step 3: Bound-dependent linearization
-
-When `∫u^p ≤ M` and `M ≥ 1`:
-  `(∫u^p)^{p/(p-ρ)} = (∫u^p)^{ρ/(p-ρ)} · ∫u^p ≤ M^{ρ/(p-ρ)} · ∫u^p`
-
-So:  `∫u^{p+ρ} ≤ ε G + C'ε · ∫u^p` with `C'ε = Csl · (1 + M^{ρ/(p-ρ)})`.
--/
-
-theorem intervalDomain_relativeMoserInterpolation_of_bound
-    {params : CM2Params} {T rho p0 pExp : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hrho : 0 < rho) (hp0 : 2 ≤ p0)
-    (hpExp : p0 ≤ pExp) (hrho_lt : rho < pExp)
-    {M : ℝ} (hM : 1 ≤ M)
-    (hMbound : ∀ t, 0 < t → t < T →
-      intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ M) :
-    ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧ ∀ t, 0 < t → t < T →
+    (hp0_gt_rho : rho < p0)
+    {pExp : ℝ} (hpExp : p0 ≤ pExp) :
+    ∀ eps > 0, ∃ Ceps : ℝ, ∀ t, 0 < t → t < T →
       intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤
         eps * intervalDomain.integral (fun x =>
           (intervalDomain.gradNorm
             (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
-        Ceps * intervalDomain.integral (fun x => (u t x) ^ pExp) := by
+        Ceps := by
   sorry
 
-/-! ### Step 4: Integrated dissipation from energy balance + bound-dependent interpolation
+/-! ### Step 4: Feed into moser_iteration_chain
 
-The energy balance gives:
-  `(1/p) Y'(t) + A G(t) + B Y(t) ≤ K Z(t) + L`
-
-Using the bound-dependent interpolation `Z(t) ≤ ε G(t) + Cε Y(t)`:
-  `(1/p) Y'(t) + (A - Kε) G(t) + (B - K Cε) Y(t) ≤ L`
-
-Choosing ε small: `(1/p) Y'(t) + (A/2) G(t) ≤ L + |B - K Cε| Y(t)`.
-
-Integrating: `Y(t₂) - Y(t₁) + (pA/2) ∫G ≤ pL(t₂-t₁) + p|B-KCε| ∫Y`.
+The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
+`hstep` input to `moser_iteration_chain`, yielding all Lp bounds.
 -/
 
-theorem intervalDomain_integratedDissipation_of_agmon_and_bound
-    {params : CM2Params} {T rho p0 pExp : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T rho p0)
-    (hrho : 0 < rho) (hp0 : 2 ≤ p0)
-    (hpExp : p0 ≤ pExp) (hrho_lt : rho < pExp)
-    {M : ℝ} (hM : 1 ≤ M)
-    (hMbound : ∀ t, 0 < t → t < T →
-      intervalDomain.integral (fun x => (u t x) ^ pExp) ≤ M) :
-    IntegratedMoserDissipationDropBefore intervalDomain u T rho pExp := by
-  sorry
-
-/-! ### Step 5: Single Moser step (bound → next bound)
-
-Combining:
-- `LpBootstrapEnergyInequality` (proved from regularity)
-- Bound-dependent `RelativeMoserInterpolationBefore` (Step 3)
-- `IntegratedMoserDissipationDropBefore` (Step 4)
-- Regularity data (from classical solution)
-- Threshold plan (proved)
-
-Produces `LpPowerBoundedBefore` at exponent `pExp + rho`.
--/
-
-theorem intervalDomain_moser_single_step_of_agmon
-    {params : CM2Params} {T rho p0 pExp : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T rho p0)
-    (hrho : 0 < rho) (hp0 : 2 ≤ p0)
-    (hpExp : p0 ≤ pExp) (hrho_lt : rho < pExp)
-    (hLp : LpPowerBoundedBefore intervalDomain pExp T u) :
-    LpPowerBoundedBefore intervalDomain (pExp + rho) T u := by
-  sorry
-
-/-! ### Step 6: Full Moser iteration (all Lp bounds from seed)
-
-By induction on the exponent, using Step 5 at each level.
-Produces `∀ r > 1, LpPowerBoundedBefore intervalDomain r T u`.
--/
-
-theorem intervalDomain_allLp_of_agmon_moser_iteration
+theorem intervalDomain_all_Lp_of_agmon_bootstrap
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T rho p0)
-    (hrho : 0 < rho) (hp0 : 2 ≤ p0) (hrho_lt : rho < p0) :
-    ∀ r : ℝ, 1 < r → LpPowerBoundedBefore intervalDomain r T u := by
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hrho : 0 < rho)
+    (hp0_gt_rho : rho < p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
   sorry
 
-/-! ### Step 7: Wire to Corollary 2.1 and Proposition 2.5
+/-! ### Step 5: Corollary 2.1 and Proposition 2.5
 
-All Lp bounds → Corollary 2.1 (immediate from the definition).
-Lp bounds + quantitative endpoint → Proposition 2.5.
+All Lp bounds + Lp monotonicity → ∀ r > 1, LpPowerBoundedBefore r T u.
+Plus quantitative endpoint → Proposition 2.5.
 -/
 
-theorem intervalDomain_Corollary_2_1_of_agmon_moser
+theorem intervalDomain_Corollary_2_1_of_agmon
     (params : CM2Params) :
     Corollary_2_1 intervalDomain params := by
   sorry
 
-theorem intervalDomain_Proposition_2_5_of_agmon_moser
+theorem intervalDomain_Proposition_2_5_of_agmon
     (params : CM2Params)
     (hEndpoint :
       ∀ {u₀ : intervalDomain.Point → ℝ},
@@ -241,10 +165,6 @@ theorem intervalDomain_Proposition_2_5_of_agmon_moser
               IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
     Proposition_2_5 intervalDomain params := by
   sorry
-
-#check intervalDomain_allLp_of_agmon_moser_iteration
-#check intervalDomain_Corollary_2_1_of_agmon_moser
-#check intervalDomain_Proposition_2_5_of_agmon_moser
 
 end ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
 
