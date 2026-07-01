@@ -1,468 +1,397 @@
-# Q2800 (cron1) — 1D Moser iteration and the natural Agmon gradient
+# Q2825 (cron1) — Lean 4 proof of `∫ f^(p+rho) ≤ sup(f)^rho * ∫ f^p`
 
 Repository: `xiangyazi24/Shen_work`  
 Branch: `chatgpt-scratch`  
 Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
-## Executive answer
+## Short answer
 
-There are two separate issues here.
+Yes: the right Mathlib lemma is
 
-1. **The desired linear `RelativeMoserInterpolationBefore` inequality is false as stated** if `rho > 0` and the constant is required to be independent of the function:
-
-   ```text
-   ∫ u^(p+rho) ≤ eps * ∫ |∇(u^(p/2))|² + Ceps * ∫ u^p.
-   ```
-
-   Constant functions already disprove it.  On `[0,1]`, take `u ≡ K > 0`.  Then the gradient term is zero and the inequality becomes
-
-   ```text
-   K^(p+rho) ≤ Ceps * K^p,
-   ```
-
-   i.e.
-
-   ```text
-   K^rho ≤ Ceps,
-   ```
-
-   for all `K`, impossible when `rho > 0`.
-
-2. **There is a standard 1D way to run the iteration without an a priori `L∞` bound**, but the interpolation term is not linear in `∫u^p`.  One uses the natural diffusion variable
-
-   ```text
-   g = u^(p/2)
-   ```
-
-   and a 1D Gagliardo--Nirenberg/Sobolev estimate for `g`.  This gives a valid inequality of the form
-
-   ```text
-   ∫ u^(p+rho)
-     ≤ eps * ∫ |∇(u^(p/2))|²
-       + Ceps,p,rho * (∫ u^p)^gamma
-       + lower-order terms,
-   ```
-
-   where `gamma > 1`, for example one convenient exponent is
-
-   ```text
-   gamma = (2*p + rho) / (2*p - rho)
-   ```
-
-   assuming `2*p > rho`.  A simpler but slightly weaker derivation from `H¹ -> L∞` gives a superlinear exponent such as `p/(p-rho)` assuming `p > rho`.  Either way, **the price of avoiding the `L∞` circularity is a superlinear lower-norm term**, not a linear `C * ∫u^p` term.
-
-So: yes, the 1D Sobolev embedding can be used, and it is the right non-circular tool, but it does **not** prove the exact linear interpolation interface currently demanded by `RelativeMoserInterpolationBefore`.
-
-## Why the current target inequality cannot be true
-
-The proposed target is:
-
-```text
-∀ p ≥ p0, ∀ eps > 0, ∃ Ceps,
-  ∫ u^(p+rho)
-    ≤ eps * ∫ |∇(u^(p/2))|² + Ceps * ∫ u^p.
+```lean
+intervalIntegral.integral_mono_on
 ```
 
-Assume `rho > 0`.  Put `u(x) = K`, a positive constant on `[0,1]`.  Then
+with shape:
 
-```text
-∇(u^(p/2)) = 0,
-∫ u^(p+rho) = K^(p+rho),
-∫ u^p = K^p.
+```lean
+intervalIntegral.integral_mono_on
+  (a := a) (b := b) (μ := volume)
+  hab hLeftInt hRightInt hpoint
 ```
 
-Thus the inequality implies
+where
 
-```text
-K^(p+rho) ≤ Ceps K^p,
+```lean
+hab       : a ≤ b
+hLeftInt  : IntervalIntegrable left volume a b
+hRightInt : IntervalIntegrable right volume a b
+hpoint    : ∀ x ∈ Set.Icc a b, left x ≤ right x
 ```
 
-or
+In this repo there is already a convenient wrapper in `ShenWork.PDE.IntervalDomain`:
 
-```text
-K^rho ≤ Ceps
+```lean
+ShenWork.IntervalDomain.intervalIntegral_mono
 ```
 
-for all `K > 0`.  This is impossible.  Therefore no Lean proof should exist for this statement without some extra hypothesis, such as an a priori `L∞` bound, an a priori `L^p` bound with constants allowed to depend on it, or a mass normalization plus a different lower-order term.
+with argument order:
 
-This is not a technical Lean gap; it is mathematically false.
-
-## Why the already-proved Agmon inequality does not directly give the existing interface
-
-The proved Agmon interpolation is:
-
-```text
-∫ f^q ≤ eps * ∫ f^(q-2) |f'|² + Ceps * (∫ f)^q.
+```lean
+intervalIntegral_mono hL hfg hf hg
 ```
 
-If one applies it directly with `f = u` and `q = p + rho`, then the gradient term is
+and internally it is exactly:
 
-```text
-∫ u^(p+rho-2) |u'|².
+```lean
+intervalIntegral.integral_mono_on hL hf hg hfg
 ```
 
-But the diffusion term available from testing the PDE at exponent `p` is usually
+For the real-power pointwise step, the useful lemmas are:
 
-```text
-∫ u^(p-2) |u'|²
+```lean
+Real.rpow_add_of_nonneg
+Real.rpow_le_rpow
+Real.rpow_nonneg
 ```
 
-or equivalently
+For integrability from continuity, the useful names are:
 
-```text
-∫ |∇(u^(p/2))|² = (p/2)² ∫ u^(p-2) |u'|².
+```lean
+ContinuousOn.rpow_const
+ContinuousOn.intervalIntegrable_of_Icc
+IntervalIntegrable.const_mul
 ```
 
-The Agmon gradient at exponent `p+rho` contains the extra factor `u^rho`:
+## Clean Mathlib-only skeleton
 
-```text
-u^(p+rho-2) |u'|² = u^rho * u^(p-2) |u'|².
-```
-
-Removing that factor requires an `L∞` bound on `u`, which is exactly the circular step.
-
-Applying the proved Agmon inequality to `f = u^(p/2)` is also not the desired fix.  If
-
-```text
-g = u^(p/2),
-q = 2 + 2*rho/p,
-```
-
-then
-
-```text
-∫ g^q = ∫ u^(p+rho),
-```
-
-but the Agmon gradient becomes
-
-```text
-∫ g^(q-2) |g'|²
-  = ∫ u^rho |∇(u^(p/2))|²,
-```
-
-again with the unwanted `u^rho` factor.
-
-Therefore the existing Agmon statement is not the right lemma to produce the old `RelativeMoserInterpolationBefore` interface.
-
-## Standard 1D non-circular replacement
-
-Set
-
-```text
-A_p = ∫ u^p,
-Y_p = ∫ |∇(u^(p/2))|²,
-g = u^(p/2).
-```
-
-Then
-
-```text
-∫ u^(p+rho) = ∫ g^(2 + 2*rho/p).
-```
-
-Let
-
-```text
-r = 2 + 2*rho/p.
-```
-
-In one dimension, the Gagliardo--Nirenberg inequality gives, for `r ≥ 2`,
-
-```text
-||g||_r ≤ C ||g'||_2^a ||g||_2^(1-a) + C ||g||_2,
-```
-
-with
-
-```text
-a = 1/2 - 1/r.
-```
-
-Raising to the `r`-th power gives the schematic bound
-
-```text
-∫ g^r
-  ≤ C * ||g'||_2^(a*r) * ||g||_2^((1-a)*r)
-    + C * ||g||_2^r.
-```
-
-For
-
-```text
-r = 2 + 2*rho/p,
-```
-
-one has
-
-```text
-a*r = rho/p.
-```
-
-Since
-
-```text
-||g'||_2² = Y_p,
-||g||_2² = A_p,
-```
-
-this becomes schematically
-
-```text
-∫ u^(p+rho)
-  ≤ C * Y_p^(rho/(2*p)) * A_p^(1 + rho/(2*p))
-    + C * A_p^(1 + rho/p).
-```
-
-Young's inequality then yields, for `2*p > rho`,
-
-```text
-∫ u^(p+rho)
-  ≤ eps * Y_p
-    + Ceps,p,rho * A_p^((2*p + rho)/(2*p - rho))
-    + C * A_p^(1 + rho/p).
-```
-
-Since
-
-```text
-(2*p + rho)/(2*p - rho) > 1,
-```
-
-this is superlinear in `A_p`.  This superlinear term is expected.  It is exactly what avoids using an a priori `L∞` bound.
-
-A clean Lean-facing replacement interface would therefore be closer to:
+This is the core proof if you already have a bound `F x ≤ M` on `[0,1]` and the two needed interval-integrability facts.
 
 ```lean
 import Mathlib
 
 open MeasureTheory
+open scoped Interval
 
-/-- Schematic replacement, not intended as already compiling code.
-The important point is the superlinear power of `∫ u^p`. -/
-def RelativeMoserInterpolationBefore1D_GN_Schematic : Prop :=
-  ∀ p : ℝ,
-    0 < p →
-    ∀ eps : ℝ,
-      0 < eps →
-      ∃ Ceps : ℝ,
-        0 < Ceps ∧
-        ∀ u, True
+noncomputable section
+
+example {F : ℝ → ℝ} {p rho M : ℝ}
+    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
+    (hF_nonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ F x)
+    (hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M)
+    (hLeftInt :
+      IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1)
+    (hPowInt :
+      IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1) :
+    (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
+      M ^ rho * ∫ x in (0 : ℝ)..1, F x ^ p := by
+  have hRightInt :
+      IntervalIntegrable (fun x : ℝ => M ^ rho * F x ^ p) volume 0 1 :=
+    hPowInt.const_mul (M ^ rho)
+
+  have hmono :
+      (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
+        ∫ x in (0 : ℝ)..1, M ^ rho * F x ^ p := by
+    refine intervalIntegral.integral_mono_on
+      (a := (0 : ℝ)) (b := 1) (μ := volume)
+      (f := fun x : ℝ => F x ^ (p + rho))
+      (g := fun x : ℝ => M ^ rho * F x ^ p)
+      zero_le_one hLeftInt hRightInt ?_
+    intro x hx
+    have hx0 : 0 ≤ F x := hF_nonneg x hx
+    have hxM : F x ≤ M := hF_le_M x hx
+    calc
+      F x ^ (p + rho) = F x ^ p * F x ^ rho := by
+        exact Real.rpow_add_of_nonneg hx0 hp hrho
+      _ = F x ^ rho * F x ^ p := by
+        rw [mul_comm]
+      _ ≤ M ^ rho * F x ^ p := by
+        exact mul_le_mul_of_nonneg_right
+          (Real.rpow_le_rpow hx0 hxM hrho)
+          (Real.rpow_nonneg hx0 p)
+
+  rw [intervalIntegral.integral_const_mul] at hmono
+  exact hmono
 ```
 
-Mathematically, the intended conclusion should be shaped like:
+The line
 
-```text
-∫ u^(p+rho)
-  ≤ eps * ∫ |∇(u^(p/2))|²
-    + Ceps * (∫ u^p)^gamma
-    + Ceps * (∫ u^p)^(1 + rho/p),
+```lean
+rw [intervalIntegral.integral_const_mul] at hmono
 ```
 
-with
+rewrites
 
-```text
-gamma = (2*p + rho) / (2*p - rho).
+```lean
+∫ x in 0..1, M ^ rho * F x ^ p
 ```
 
-In a formalization, it may be easier to keep both powers rather than forcing them into one exponent.
+to
 
-## What the elementary `H¹ -> L∞` estimate gives
-
-The user-suggested route is:
-
-```text
-||g||_∞² ≤ C (||g||_2² + ||g'||_2²),
+```lean
+M ^ rho * ∫ x in 0..1, F x ^ p.
 ```
 
-with
+## Same proof using the repo wrapper
 
-```text
-g = u^(p/2).
+If `ShenWork.PDE.IntervalDomain` is imported, you can replace the raw `intervalIntegral.integral_mono_on` block by the local wrapper.
+
+```lean
+import ShenWork.PDE.IntervalDomain
+
+open MeasureTheory
+open ShenWork.IntervalDomain
+open scoped Interval
+
+noncomputable section
+
+example {F : ℝ → ℝ} {p rho M : ℝ}
+    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
+    (hF_nonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ F x)
+    (hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M)
+    (hLeftInt :
+      IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1)
+    (hPowInt :
+      IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1) :
+    (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
+      M ^ rho * ∫ x in (0 : ℝ)..1, F x ^ p := by
+  have hRightInt :
+      IntervalIntegrable (fun x : ℝ => M ^ rho * F x ^ p) volume 0 1 :=
+    hPowInt.const_mul (M ^ rho)
+
+  have hpoint :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        F x ^ (p + rho) ≤ M ^ rho * F x ^ p := by
+    intro x hx
+    have hx0 : 0 ≤ F x := hF_nonneg x hx
+    have hxM : F x ≤ M := hF_le_M x hx
+    calc
+      F x ^ (p + rho) = F x ^ p * F x ^ rho := by
+        exact Real.rpow_add_of_nonneg hx0 hp hrho
+      _ = F x ^ rho * F x ^ p := by
+        rw [mul_comm]
+      _ ≤ M ^ rho * F x ^ p := by
+        exact mul_le_mul_of_nonneg_right
+          (Real.rpow_le_rpow hx0 hxM hrho)
+          (Real.rpow_nonneg hx0 p)
+
+  have hmono :
+      (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
+        ∫ x in (0 : ℝ)..1, M ^ rho * F x ^ p :=
+    intervalIntegral_mono
+      (L := (1 : ℝ)) zero_le_one hpoint hLeftInt hRightInt
+
+  rw [intervalIntegral.integral_const_mul] at hmono
+  exact hmono
 ```
 
-This gives
+This uses the wrapper already present in the repo:
 
-```text
-||u||_∞^p = ||g||_∞²
-  ≤ C (A_p + Y_p).
+```lean
+ShenWork.IntervalDomain.intervalIntegral_mono
 ```
 
-Since
+## If you want integrability from continuity
 
-```text
-∫ u^(p+rho) ≤ ||u||_∞^rho ∫ u^p,
+If your lifted function `F` is continuous on `[0,1]`, then you can usually produce the integrability facts as follows.
+
+```lean
+import Mathlib
+
+open MeasureTheory
+open scoped Interval
+
+noncomputable section
+
+example {F : ℝ → ℝ} {p rho : ℝ}
+    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
+    (hF_cont : ContinuousOn F (Set.Icc (0 : ℝ) 1)) :
+    IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1 ∧
+      IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1 := by
+  have hFp_cont : ContinuousOn (fun x : ℝ => F x ^ p) (Set.Icc (0 : ℝ) 1) :=
+    hF_cont.rpow_const (fun x hx => Or.inr hp)
+  have hFpr_cont : ContinuousOn (fun x : ℝ => F x ^ (p + rho)) (Set.Icc (0 : ℝ) 1) :=
+    hF_cont.rpow_const (fun x hx => Or.inr (add_nonneg hp hrho))
+  exact ⟨
+    hFp_cont.intervalIntegrable_of_Icc zero_le_one,
+    hFpr_cont.intervalIntegrable_of_Icc zero_le_one
+  ⟩
 ```
 
-we get
+Then feed these two facts into the previous proof.
 
-```text
-∫ u^(p+rho)
-  ≤ C (A_p + Y_p)^(rho/p) * A_p.
+## Deriving the `M` bound from `sSup (range |f|)`
+
+A good tactic is to separate the supremum bookkeeping from the integral proof.  First prove a lemma of this shape:
+
+```lean
+hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M
 ```
 
-Splitting the sum and applying Young gives, for `p > rho`,
+Then the integration proof is short.
 
-```text
-∫ u^(p+rho)
-  ≤ eps * Y_p
-    + Ceps,p,rho * A_p^(p/(p-rho))
-    + C * A_p^(1 + rho/p).
+For a plain real function restricted to `[0,1]`, one clean way is:
+
+```lean
+import Mathlib
+
+open MeasureTheory
+open scoped Interval
+
+noncomputable section
+
+example {F : ℝ → ℝ}
+    (hbdd : BddAbove
+      (Set.range (fun x : {x : ℝ // x ∈ Set.Icc (0 : ℝ) 1} => |F x.1|))) :
+    let M : ℝ := sSup
+      (Set.range (fun x : {x : ℝ // x ∈ Set.Icc (0 : ℝ) 1} => |F x.1|))
+    ∀ y ∈ Set.Icc (0 : ℝ) 1, F y ≤ M := by
+  intro M y hy
+  have h_abs : |F y| ≤ M := by
+    exact le_csSup hbdd ⟨⟨y, hy⟩, rfl⟩
+  exact le_trans (le_abs_self (F y)) h_abs
 ```
 
-This is valid and non-circular, but again the lower term is superlinear in `A_p`, not linear.
+For your interval-domain setup, the analogous step should look like this, assuming `intervalDomainPoint`, `intervalDomainLift`, and `hf_bdd` are in scope:
 
-So the answer to the specific question
+```lean
+import ShenWork.PDE.IntervalDomain
 
-```text
-Can this be used to derive the needed interpolation?
+open MeasureTheory
+open ShenWork.IntervalDomain
+open scoped Interval
+
+noncomputable section
+
+-- Skeleton: adapt names/imports to the exact file where you place it.
+example {f : intervalDomainPoint → ℝ}
+    (hf_bdd : BddAbove (Set.range fun x : intervalDomainPoint => |f x|)) :
+    let M : ℝ := sSup (Set.range fun x : intervalDomainPoint => |f x|)
+    ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift f y ≤ M := by
+  intro M y hy
+  have h_abs_point : |f ⟨y, hy⟩| ≤ M := by
+    exact le_csSup hf_bdd ⟨⟨y, hy⟩, rfl⟩
+  have h_abs_lift : |intervalDomainLift f y| ≤ M := by
+    simpa [intervalDomainLift, hy] using h_abs_point
+  exact le_trans (le_abs_self (intervalDomainLift f y)) h_abs_lift
 ```
 
-is:
+If you also have nonnegativity on points,
 
-```text
-It derives a valid Moser interpolation, but not the old linear one.
+```lean
+hf_nonneg : ∀ x : intervalDomainPoint, 0 ≤ f x
 ```
 
-It can support a 1D Moser iteration if the iteration machinery is modified to accept the superlinear `A_p` term.
+then the corresponding lifted nonnegativity fact is:
 
-## How to run the Moser iteration naturally in 1D
-
-The standard way is to avoid converting the proved Agmon gradient with a missing `u^rho` factor.  Instead, at exponent `p`, use the diffusion term exactly as it appears:
-
-```text
-Y_p = ∫ |∇(u^(p/2))|².
+```lean
+have hF_nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift f y := by
+  intro y hy
+  simpa [intervalDomainLift, hy] using hf_nonneg ⟨y, hy⟩
 ```
 
-Then estimate the higher power by a 1D Gagliardo--Nirenberg inequality for
+Now use `F := intervalDomainLift f` in the generic Mathlib proof.
 
-```text
-g = u^(p/2).
+## Recommended proof structure in the Shen files
+
+I would implement this in three small lemmas rather than one giant proof.
+
+### 1. Sup-bound adapter
+
+```lean
+-- interval-domain-specific
+lemma intervalDomainLift_le_sSup_abs
+    {f : intervalDomainPoint → ℝ}
+    (hf_bdd : BddAbove (Set.range fun x : intervalDomainPoint => |f x|)) :
+    ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift f y ≤ sSup (Set.range fun x : intervalDomainPoint => |f x|) := by
+  intro y hy
+  have h_abs_point :
+      |f ⟨y, hy⟩| ≤ sSup (Set.range fun x : intervalDomainPoint => |f x|) := by
+    exact le_csSup hf_bdd ⟨⟨y, hy⟩, rfl⟩
+  have h_abs_lift :
+      |intervalDomainLift f y| ≤ sSup (Set.range fun x : intervalDomainPoint => |f x|) := by
+    simpa [intervalDomainLift, hy] using h_abs_point
+  exact le_trans (le_abs_self (intervalDomainLift f y)) h_abs_lift
 ```
 
-The schematic iteration step is then:
+### 2. Pointwise `rpow` inequality
 
-```text
-d/dt A_p + c_p Y_p
-  ≤ lower-order terms involving ∫ u^(p+rho)
-  ≤ eps Y_p + Ceps * A_p^gamma + ...
+```lean
+lemma rpow_add_le_sup_rpow_mul_rpow_pointwise
+    {F : ℝ → ℝ} {p rho M x : ℝ}
+    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
+    (hx0 : 0 ≤ F x) (hxM : F x ≤ M) :
+    F x ^ (p + rho) ≤ M ^ rho * F x ^ p := by
+  calc
+    F x ^ (p + rho) = F x ^ p * F x ^ rho := by
+      exact Real.rpow_add_of_nonneg hx0 hp hrho
+    _ = F x ^ rho * F x ^ p := by
+      rw [mul_comm]
+    _ ≤ M ^ rho * F x ^ p := by
+      exact mul_le_mul_of_nonneg_right
+        (Real.rpow_le_rpow hx0 hxM hrho)
+        (Real.rpow_nonneg hx0 p)
 ```
 
-Choose `eps` small relative to `c_p` and absorb `eps Y_p` into the left-hand side.  The resulting differential inequality is of the form
+### 3. Integral monotonicity lemma
 
-```text
-d/dt A_p ≤ C_p * A_p^gamma + lower-order terms.
+```lean
+lemma intervalIntegral_rpow_add_le_sup_rpow_mul_integral_rpow
+    {F : ℝ → ℝ} {p rho M : ℝ}
+    (hp : 0 ≤ p) (hrho : 0 ≤ rho)
+    (hF_nonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ F x)
+    (hF_le_M : ∀ x ∈ Set.Icc (0 : ℝ) 1, F x ≤ M)
+    (hLeftInt : IntervalIntegrable (fun x : ℝ => F x ^ (p + rho)) volume 0 1)
+    (hPowInt : IntervalIntegrable (fun x : ℝ => F x ^ p) volume 0 1) :
+    (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
+      M ^ rho * ∫ x in (0 : ℝ)..1, F x ^ p := by
+  have hRightInt :
+      IntervalIntegrable (fun x : ℝ => M ^ rho * F x ^ p) volume 0 1 :=
+    hPowInt.const_mul (M ^ rho)
+  have hmono :
+      (∫ x in (0 : ℝ)..1, F x ^ (p + rho)) ≤
+        ∫ x in (0 : ℝ)..1, M ^ rho * F x ^ p := by
+    refine intervalIntegral.integral_mono_on
+      (a := (0 : ℝ)) (b := 1) (μ := volume)
+      zero_le_one hLeftInt hRightInt ?_
+    intro x hx
+    exact rpow_add_le_sup_rpow_mul_rpow_pointwise
+      hp hrho (hF_nonneg x hx) (hF_le_M x hx)
+  rw [intervalIntegral.integral_const_mul] at hmono
+  exact hmono
 ```
 
-or, after integrating on a time interval and using the usual Moser exponent ladder, a recursive bound for `A_p` or `A_p^(1/p)`.
+## Notes and pitfalls
 
-This is a standard 1D route.  It is not circular because no `L∞` hypothesis is used; the Sobolev embedding is applied to `g = u^(p/2)` and the gradient term is exactly the diffusion gradient.
+1. Do not try to use `linarith` for the `rpow` pointwise inequality.  Use `Real.rpow_le_rpow` and then multiply by the nonnegative factor `F x ^ p`.
 
-## Consequence for the current Lean architecture
+2. Use `Real.rpow_add_of_nonneg`, not plain rewriting, for
 
-The current interface
+   ```lean
+   F x ^ (p + rho) = F x ^ p * F x ^ rho
+   ```
 
-```text
-RelativeMoserInterpolationBefore:
-  ∫ u^(p+rho)
-    ≤ eps * ∫ |nabla(u^(p/2))|² + Ceps * ∫ u^p
-```
+   because `Real.rpow` has special behavior at zero.  The lemma handles the zero case correctly under `0 ≤ F x`, `0 ≤ p`, `0 ≤ rho`.
 
-should not be treated as an assumption-cleanup target unless extra hypotheses are added.  As written, it is false for `rho > 0`.
+3. `intervalIntegral.integral_mono_on` requires integrability of both sides.  The RHS integrability is usually just:
 
-There are three honest options.
+   ```lean
+   hPowInt.const_mul (M ^ rho)
+   ```
 
-### Option A: Change the interpolation interface to the true 1D GN form
+4. If your actual goal is stated with `intervalDomain.integral`, first unfold or rewrite it to the concrete interval integral of `intervalDomainLift`; then apply the lemma above.  The only interval-domain-specific work is proving the lifted nonnegativity and lifted sup bound on `Set.Icc 0 1`.
 
-Replace the linear lower term by a superlinear term:
+5. If the chosen sup is exactly
 
-```text
-∫ u^(p+rho)
-  ≤ eps * ∫ |∇(u^(p/2))|²
-    + Ceps * (∫u^p)^gamma
-    + Ceps * (∫u^p)^(1 + rho/p).
-```
+   ```lean
+   sSup (Set.range fun x : intervalDomainPoint => |f x|)
+   ```
 
-This is the mathematically natural non-circular interface.
+   the bound proof should go through with `le_csSup hf_bdd ⟨x, rfl⟩`, where
 
-### Option B: Allow dependence on an existing `L^p` bound
+   ```lean
+   hf_bdd : BddAbove (Set.range fun x : intervalDomainPoint => |f x|)
+   ```
 
-If the iteration state already has
-
-```text
-∫ u^p ≤ B_p,
-```
-
-then the superlinear term can be linearized as
-
-```text
-(∫u^p)^gamma ≤ B_p^(gamma-1) * ∫u^p.
-```
-
-But then the constant depends on `B_p`.  This is not the original function-independent interpolation lemma; it is an interpolation lemma relative to an existing finite-horizon `L^p` control.
-
-### Option C: Keep the old interface but add an `L∞` hypothesis
-
-With
-
-```text
-||u||∞ ≤ M,
-```
-
-one trivially has
-
-```text
-∫u^(p+rho) ≤ M^rho ∫u^p.
-```
-
-But this is circular if used to prove the first `L∞` bound.
-
-## Recommended next proof target
-
-The highest-signal non-circular Lean target is not the old `RelativeMoserInterpolationBefore`, but a 1D GN replacement around the variable
-
-```text
-g = u^(p/2).
-```
-
-A useful theorem shape is:
-
-```text
-For p > rho/2 and eps > 0, there exists Ceps such that
-
-  ∫ u^(p+rho)
-    ≤ eps * ∫ |∇(u^(p/2))|²
-      + Ceps * (∫u^p)^((2*p+rho)/(2*p-rho))
-      + Ceps * (∫u^p)^(1+rho/p).
-```
-
-A slightly easier first Lean target, using only `H¹ -> L∞`, is:
-
-```text
-For p > rho and eps > 0, there exists Ceps such that
-
-  ∫ u^(p+rho)
-    ≤ eps * ∫ |∇(u^(p/2))|²
-      + Ceps * (∫u^p)^(p/(p-rho))
-      + Ceps * (∫u^p)^(1+rho/p).
-```
-
-This version is weaker but likely easier to formalize, because it follows directly from:
-
-```text
-∫ u^(p+rho)
-  ≤ ||u||∞^rho ∫u^p
-```
-
-and
-
-```text
-||u||∞^p ≤ C (∫u^p + ∫|∇(u^(p/2))|²).
-```
-
-## Bottom line
-
-* The natural Agmon gradient form can be used in a Moser iteration only if the iteration is formulated at the matching exponent or through the variable `g = u^(p/2)`.
-* The old linear interpolation interface is false without an `L∞` bound or another prior amplitude control.
-* The standard 1D Sobolev/Gagliardo--Nirenberg route is valid and non-circular, but it yields a superlinear lower term in `∫u^p`.
-* Therefore the honest Lean cleanup is to introduce a new 1D relative Moser interpolation interface with a superlinear `A_p` term, then adapt the finite-horizon Moser wrappers to consume that interface.
+   is already the kind of hypothesis used in the existing `UnitIntervalPowerGNYoungForMoser` interface.
