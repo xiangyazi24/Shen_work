@@ -92,6 +92,17 @@ Authoritative checks from the current tree:
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- `IntervalDomainMoserLadderAtoms` now exposes
+  `IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals`, the
+  mass/Lp/smoothing residual analogue of the fixed regular-energy
+  coefficient-gap route.  It converts to the existing integrated-step residual
+  package and therefore to Corollary 2.1, Proposition 2.5, route residuals, and
+  the a-priori bound without using the lower/upper high-excursion split.  The
+  uisai2 target build `lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
