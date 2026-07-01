@@ -1,68 +1,138 @@
-# Q2985 (shen1) — post-`5239f50d` integrated-Moser API audit
+# Q2988 (shen1) — downstream wiring after fixed integrated-dissipation wrapper
 
 Repo: `xiangyazi24/Shen_work`  
-Audited HEAD: `5239f50d30d7ec467d8bbd002090997fa6605625` (`Remove obsolete lower-average gap residual surface`)  
-Scope: source-grounded Lean API/proof-frontier audit only; no source edits.  
+Audited HEAD: `3fe8bffd2778a186815e05b2d416cda41b2c4912` (`Remove legacy Moser frontier shortcut wrappers`)  
+Scope: source-grounded Lean audit/design only; no source edits.  
 Constraint: do not touch `ShenWork/PDE/P3MoserHighExcursionProducer.lean`.
 
 ## Executive answer
 
-The next lowest-risk **real wiring** step is in `ShenWork/PDE/P3MoserIntegratedClosure.lean`: add a fixed-coefficient wrapper that turns the already-proved coefficient-gap theorem
+After Codex adds
 
 ```lean
-intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap
+intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
 ```
 
-into the public fixed predicate
+in `ShenWork/PDE/P3MoserIntegratedClosure.lean`, the next lowest-risk downstream wiring step is **additive**, not a field replacement:
+
+1. Add a first-crossing wrapper in `ShenWork/PDE/P3MoserRegularityProducer.lean` that takes classical Moser regularity data, window FTC, relative interpolation, and the coefficient gap, derives `IntegratedMoserDissipationDropBefore` via the new fixed wrapper, and then calls the direct threshold-plan producer.
+2. Then add additive statement/residual surfaces that use this wrapper, beginning with `Paper2.IntervalDomainStatementAssembly.IntervalDomainPaper2Prop25...` and then the reusable PDE ladder surface in `IntervalDomainMoserLadderAtoms`.
+
+Do **not** replace existing `integratedDissipation` fields in-place as the next step. That is API-breaking and not necessary for a buildable residual reduction.
+
+## 1. Current black-box `integratedDissipation` carriers
+
+### Paper2 statement layer
+
+File: `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`.
+
+Current carrier:
 
 ```lean
-IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+structure IntervalDomainPaper2Prop25IntegratedMoserFrontierData
+    (p : CM2Params) : Prop where
+  classicalRegularity : ...
+  integratedDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+  relativeMoserInterpolation : ...
+  quantitativeEndpoint : ...
 ```
 
-by specializing `theta = 2` and applying
+Its conversion
 
 ```lean
-integratedMoserDissipationDropBefore_of_coeff_two
+IntervalDomainPaper2Prop25IntegratedMoserFrontierData.toIntegratedStepFrontierData
 ```
 
-from `P3MoserDissipationShape`.
+passes that field to
 
-This is not a new analytic proof. It is pure wiring, but it reduces a real future handoff: downstream statement layers can ask for `LpBootstrapEnergyInequality + IntegratedMoserEnergyWindowFTC + regularity + nonnegativity + relative interpolation + scalar coefficient gap` instead of carrying `IntegratedMoserDissipationDropBefore` as a black-box residual.
+```lean
+intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+```
 
-The next lowest-risk **cleanup-only** step is in `ShenWork/PDE/P3MoserRegularityProducer.lean`: remove or deprecate four compatibility shortcut theorems whose lowerAverage / upperGap / upperDataGap parameters are now dead. Their proof bodies explicitly ignore those parameters and call the direct threshold-plan wrappers.
+so `integratedDissipation` is a true black-box input here.
 
-Do **not** delete the Type-valued high-excursion lower/upper frontier packages in `P3MoserIntegratedClosure.lean` yet. They are still forced by older split-route statement surfaces and are likely still externally useful to Zinan's producer file.
+### Reusable PDE ladder layer
 
-## 1. Remaining compatibility surfaces with dead or stronger assumptions
+File: `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
 
-### A. Dead-argument shortcut theorems in `P3MoserRegularityProducer.lean`
+Current carrier:
+
+```lean
+structure IntervalDomainMassLpSmoothingIntegratedMoserResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity : ...
+  classicalRegularity : ...
+  integratedDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+  relativeMoserInterpolation : ...
+  quantitativeEndpoint : ...
+```
+
+Its conversion
+
+```lean
+IntervalDomainMassLpSmoothingIntegratedMoserResiduals.to_integratedStepResiduals
+```
+
+calls
+
+```lean
+intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+```
+
+with `h.integratedDissipation`.
+
+### Paper3 actual-linear compatibility-named layer
+
+File: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+
+Current carrier:
+
+```lean
+structure
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace : ...
+  classicalContinuityRegularity : ...
+  integratedDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+  relativeMoserInterpolation : ...
+  quantitativeEndpoint : ...
+```
+
+Despite the compatibility name, the old lowerAverage/upperDataGap fields are gone. The conversion
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
+```
+
+uses the direct threshold-plan route, but still takes `integratedDissipation` as a black-box field.
+
+### Theorem arguments in `P3MoserRegularityProducer`
 
 File: `ShenWork/PDE/P3MoserRegularityProducer.lean`.
 
-The following four theorems retain old lower-average / upper-gap parameters, but their current proof bodies only bind them to unused `_compat_*` locals and then call the direct threshold-plan route:
-
-```lean
-intervalDomain_firstCrossingStep_of_classical_and_frontiers
-intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
-intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
-intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-```
-
-Current shape, representative example:
-
-```lean
-theorem intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
-    ...
-    (hlower : ... IntegratedMoserHighExcursionLowerAverageWindowFrontier ...)
-    (hupperDataGap : ... IntegratedMoserWindowUpperDataGapFrontier ...) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
-  have _compat_lower := hlower
-  have _compat_upper := hupperDataGap
-  exact intervalDomain_firstCrossingStep_of_classical_integratedData
-    hreg hsol hdiss hrel hrho hp0_nonneg
-```
-
-These assumptions are genuinely dead in these four proof bodies. The clean replacement theorems already exist in the same file:
+These are not structures, but they are central downstream wiring points with black-box `hdiss` arguments:
 
 ```lean
 intervalDomain_firstCrossingStep_of_classical_integratedData
@@ -70,165 +140,306 @@ intervalDomain_firstCrossingStep_of_lite_classical_integratedData
 intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
 ```
 
-#### Recommended cleanup edit
-
-Delete the four compatibility shortcut theorem blocks, or if external branch compatibility matters, mark them as deprecated and keep them for one cycle.
-
-If deleting, also delete their four `#print axioms` lines in the `AxiomAudit` section:
+Legacy data constructors still take `hdiss` too:
 
 ```lean
-#print axioms intervalDomain_firstCrossingStep_of_classical_and_frontiers
-#print axioms intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
-#print axioms intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
-#print axioms intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
+intervalDomain_lowerAverageEpsilonData_of_classical
+intervalDomain_lowerAverageEpsilonData_of_lite_classical
+intervalDomain_lowerAverageUpperDataGapData_of_classical
+intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
 ```
 
-Expected build targets:
+but those construct legacy lower-average packages and should not be the first refactor target.
 
-```bash
-lake build ShenWork.PDE.P3MoserRegularityProducer
-lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
-lake build ShenWork.Paper2.IntervalDomainStatementAssembly
-lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
-```
+## 2. Lowest-risk additive wrapper
 
-Risk: low inside the current source tree; these are compatibility wrappers and the direct replacements already exist. External branches may still reference the old names, so deletion is an API break. If that matters, deprecate first rather than delete.
-
-### B. Compatibility-named Paper3 route block: stale names, but no dead fields
-
-File: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
-
-The following route block remains compatibility-named with `LowerAverageUpperDataGap`, but the fields have already been cleaned up and every remaining field is used by the conversion to integrated-step data:
+After the fixed wrapper exists in `P3MoserIntegratedClosure.lean`, add this theorem in `ShenWork/PDE/P3MoserRegularityProducer.lean`, near the existing direct threshold-plan theorem block:
 
 ```lean
-IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
-IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
-IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
-IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
-```
+/-- Direct first-crossing step from classical regularity data, the strict-time
+Lp-bootstrap energy inequality, window FTC, relative interpolation, and the
+coefficient gap needed to produce the fixed integrated Moser dissipation drop.
 
-Example: `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals` now consumes exactly the direct threshold-plan data:
-
-```lean
-classicalContinuityRegularity
-integratedDissipation
-relativeMoserInterpolation
-quantitativeEndpoint
-```
-
-and no longer has lower-average / upper-data-gap fields.
-
-#### Recommended cleanup edit
-
-This is not the next best target if the goal is reducing assumptions: the assumptions are no longer dead. The remaining issue is naming/API hygiene.
-
-If you want to clean it up, do a rename/deprecation pass only after downstream users have switched to the already cleaner integrated-step names:
-
-```lean
-IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
-IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
-IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
-IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainData
-IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainNoNegData
-```
-
-Risk: moderate API churn, low proof risk. This is cosmetic/stale-name cleanup, not a proof-frontier reduction.
-
-## 2. Real wiring recommendation in `P3MoserIntegratedClosure.lean`
-
-File: `ShenWork/PDE/P3MoserIntegratedClosure.lean`.
-
-Current source already has:
-
-```lean
-intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap :
-  ... → IntegratedMoserDissipationDropBeforeCoeff theta intervalDomain u T rho p0
-```
-
-and imported from `P3MoserDissipationShape`:
-
-```lean
-integratedMoserDissipationDropBefore_of_coeff_two :
-  IntegratedMoserDissipationDropBeforeCoeff 2 D u T rho p0 →
-  IntegratedMoserDissipationDropBefore D u T rho p0
-```
-
-The missing small wrapper is the fixed public predicate version.
-
-### Recommended theorem to add
-
-Add this immediately after `intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap`:
-
-```lean
-/-- Fixed-coefficient integrated Moser drop from the regular-energy coefficient-gap
-route.
-
-This specializes `intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap` to
-`theta = 2`, then converts the coefficient-parametric predicate to the public
-`IntegratedMoserDissipationDropBefore` predicate. -/
-theorem intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
+This is pure wiring: the hard analytic inputs are still regularity, window FTC,
+relative interpolation, and the coefficient gap. -/
+theorem intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
     {params : CM2Params} {T rho p0 : ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdata : IntervalDomainIntegratedMoserClassicalRegularityData u T p0)
     (hFTC : IntegratedMoserEnergyWindowFTC intervalDomain u T p0)
-    (hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0)
-    (hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0)
     (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
     (hgap :
-      ∀ p, p0 ≤ p → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < p * A) :
-    IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 :=
-  integratedMoserDissipationDropBefore_of_coeff_two
-    (intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap
-      (params := params) (T := T) (rho := rho) (p0 := p0)
-      (theta := (2 : ℝ)) (u := u)
-      hboot henergy hFTC hreg hnonneg hrel hgap)
+      ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  have hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+    intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData
+      hdata hsol
+  have hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0 :=
+    intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+      (p0 := p0) hsol
+  have henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
+    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+  have hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 :=
+    intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
+      (params := params) (T := T) (rho := rho) (p0 := p0) (u := u)
+      hboot henergy hFTC hreg hnonneg hrel hgap
+  exact intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+    hreg hnonneg hdiss hrel
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
 ```
 
-Add a `#print axioms` line for it in the audit section:
+Add an axiom-audit line:
 
 ```lean
-#print axioms
-  intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
+#print axioms intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
 ```
 
 Expected build target:
 
 ```bash
-lake build ShenWork.PDE.P3MoserIntegratedClosure
-```
-
-Optional downstream smoke tests:
-
-```bash
 lake build ShenWork.PDE.P3MoserRegularityProducer
-lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
-lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
 ```
 
-Risk: very low. It uses existing imports and existing theorems. It does not touch `P3MoserHighExcursionProducer.lean`.
+Risk: very low. It is additive, uses existing imports in `P3MoserRegularityProducer`, and does not touch Zinan's file.
 
-Limit: this wrapper still carries real analytic inputs: `hFTC`, `henergy`, `hreg`, `hnonneg`, `hrel`, and `hgap`. It does not prove those. It only exposes the already-proved route to the public fixed predicate consumed by threshold-plan wiring.
+## 3. Next additive residual/data surfaces
 
-### Why not call the threshold-plan producer from `P3MoserIntegratedClosure.lean`?
+### Patch A: Paper2 additive frontier surface
 
-Do not add a direct first-crossing theorem in `P3MoserIntegratedClosure.lean` that calls
+File: `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`.
+
+Add a new structure rather than replacing `IntervalDomainPaper2Prop25IntegratedMoserFrontierData`:
 
 ```lean
-P3MoserThresholdPlanProducer.integratedMoserFirstCrossingStep_of_abstract_data
+structure IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
+    (p : CM2Params) : Prop where
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  energyWindowFTC :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserEnergyWindowFTC intervalDomain u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coefficientGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+      ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    -- same field as IntegratedMoserFrontierData
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 ```
 
-because `P3MoserThresholdPlanProducer.lean` imports through the integrated-closure/high-excursion layer. Calling it from `P3MoserIntegratedClosure.lean` risks an import cycle. The right place for a first-crossing wrapper is an adjacent consumer file such as `P3MoserRegularityProducer.lean`, which already imports `P3MoserThresholdPlanProducer.lean`.
+Then add:
 
-## 3. What should not be removed yet
+```lean
+namespace IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
 
-### Type-valued high-excursion lower/upper packages remain live
+def toIntegratedStepFrontierData
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
+    IntervalDomainPaper2Prop25IntegratedStepFrontierData p where
+  integratedStep := fun hsol hcross hboot =>
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+      hsol hcross hboot
+      (h.classicalRegularity hsol hcross hboot)
+      (h.energyWindowFTC hsol hcross hboot)
+      (h.relativeMoserInterpolation hsol hcross hboot)
+      (h.coefficientGap hsol hcross hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
 
-Do **not** delete the Type-valued high-excursion split packages in `P3MoserIntegratedClosure.lean` as a low-risk cleanup. They are still forced by source-visible lower/upper split routes.
+end IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
+```
 
-Important declarations in `P3MoserIntegratedClosure.lean` include:
+Then add theorem/fact wrappers mirroring the existing integrated-Moser wrappers:
+
+```lean
+intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
+intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+```
+
+Expected build target:
+
+```bash
+lake build ShenWork.Paper2.IntervalDomainStatementAssembly
+```
+
+Risk: low. It is additive and does not break callers of `IntervalDomainPaper2Prop25IntegratedMoserFrontierData`.
+
+### Patch B: reusable PDE ladder additive surface
+
+File: `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
+
+Add a new structure parallel to `IntervalDomainMassLpSmoothingIntegratedMoserResiduals`, not a replacement:
+
+```lean
+structure IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity : ...
+  classicalRegularity : ...
+  energyWindowFTC : ...
+  relativeMoserInterpolation : ...
+  coefficientGap : ...
+  quantitativeEndpoint : ...
+```
+
+Then convert it to `IntervalDomainMassLpSmoothingIntegratedStepResiduals` using the same new regularity-producer wrapper:
+
+```lean
+namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
+
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p) :
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  integratedStep := fun hsol hcross hboot =>
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+      hsol hcross hboot
+      (h.classicalRegularity hsol hcross hboot)
+      (h.energyWindowFTC hsol hcross hboot)
+      (h.relativeMoserInterpolation hsol hcross hboot)
+      (h.coefficientGap hsol hcross hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
+```
+
+Add `to_routeResiduals` and `aprioriBound` wrappers if useful, paralleling the current integrated-Moser residual namespace.
+
+Expected build target:
+
+```bash
+lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
+```
+
+Risk: low. Additive only.
+
+### Patch C: Paper3 additive actual-linear wrapper, later
+
+File: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+
+Current structure carrying the black-box field:
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+```
+
+This compatibility-named structure now has no lowerAverage/upperDataGap fields, but still has:
+
+```lean
+classicalContinuityRegularity
+integratedDissipation
+relativeMoserInterpolation
+```
+
+Do **not** replace the `integratedDissipation` field in-place yet. A safer later additive surface would replace only this one field by:
+
+```lean
+energyWindowFTC : ... IntegratedMoserEnergyWindowFTC intervalDomain u T p0
+coefficientGap : ... ∀ q, p0 ≤ q → ∀ A K, 0 < A → 0 < K → (2 : ℝ) < q * A
+```
+
+and reuse `classicalContinuityRegularity` by first converting it to `IntervalDomainIntegratedMoserClassicalRegularityData` via:
+
+```lean
+intervalDomain_classicalRegularityData_of_continuityRegularityData
+```
+
+This is more specialized and more churny than the Paper2/PDE additive surfaces, so it should come after those build.
+
+## 4. API-breaking replacements to avoid for now
+
+Avoid replacing `integratedDissipation` fields in these existing declarations as the next patch:
+
+```lean
+IntervalDomainPaper2Prop25IntegratedMoserFrontierData
+IntervalDomainMassLpSmoothingIntegratedMoserResiduals
+IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+```
+
+Reasons:
+
+* It will break any caller constructing these records.
+* The additive replacement is enough to expose the lower-level route.
+* The old surface remains meaningful: it is the abstract threshold-plan data route, where an upstream producer may already have an `IntegratedMoserDissipationDropBefore` package.
+
+Also avoid changing:
+
+```lean
+IntervalDomainPaper2Prop25IntegratedStepFrontierData
+IntervalDomainMassLpSmoothingIntegratedStepResiduals
+IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+```
+
+Those intentionally abstract over the whole first-crossing step. Replacing `integratedStep` by energy/FTC data would collapse a useful abstraction layer.
+
+## 5. Real analytic inputs that remain after the fixed wrapper
+
+The fixed wrapper does **not** prove high-excursion, regularity, or endpoint closure. After it exists, the remaining genuine inputs are still:
+
+* `IntegratedMoserEnergyWindowFTC intervalDomain u T p0`: the window FTC / absolute-continuity-type input.
+* `IntervalDomainIntegratedMoserClassicalRegularityData` or `IntegratedMoserFirstCrossingRegularity`: closed-time energy continuity and gradient time integrability.
+* `RelativeMoserInterpolationBefore intervalDomain u T rho p0`.
+* The coefficient gap:
+  ```lean
+  ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  ```
+* `IntervalDomainMoserQuantitativeEndpoint` / terminal pointwise endpoint inputs for Proposition 2.5-style closure.
+* The L² seed / closed-energy trace and Paper3 non-Moser residuals such as compactness, resolvent, stability24, continuation, and Paper2-main inputs.
+
+`LpBootstrapEnergyInequality` itself is not necessarily a residual at these interval-domain classical-solution call sites, because existing wiring can produce it from:
+
+```lean
+intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+```
+
+But the proof still depends on that theorem and on the hypotheses needed by `hsol`, `hcross`, and `hboot`.
+
+## 6. High-excursion packages are not affected
+
+The fixed wrapper is about producing `IntegratedMoserDissipationDropBefore` from energy/FTC/coefficient-gap data. It does not replace the Type-valued high-excursion lower/upper packages.
+
+Keep the legacy lower/upper split packages in `P3MoserIntegratedClosure.lean` for now:
 
 ```lean
 IntegratedMoserFirstCrossingFromWindowFrontier
@@ -239,108 +450,44 @@ integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
 integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
 ```
 
-They remain used/forced by older route surfaces, including:
-
-* `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`
-  ```lean
-  IntervalDomainPaper2Prop25LowerUpperFrontierData
-  IntervalDomainPaper2Prop25LowerUpperFrontierData.toIntegratedStepFrontierData
-  ```
-  This record only has `lowerUpperFrontiers` and `quantitativeEndpoint`; it does **not** carry regularity/integrated-dissipation/relative-interpolation, so it cannot be rerouted to the threshold-plan producer without changing the record's meaning.
-
-* `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`
-  ```lean
-  IntervalDomainMassLpSmoothingWindowFrontierResiduals
-  IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
-  ```
-  These are explicitly window/lower-upper split residual surfaces. They are alternate producer-facing routes, not dead assumptions inside a direct-threshold proof.
-
-* `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
-  ```lean
-  IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals
-  IntervalDomainSectorialMainlineMoserActualLinearSmallLowerUpperFacts
-  IntervalDomainPaper3MainlineMoserActualLinearSmallLowerUpperFrontierData
-  ```
-  These still carry `lowerUpperFrontiers` and convert through
-  `integratedMoserFirstCrossingStep_of_lowerUpperFrontiers`.
-
-Therefore, deleting the high-excursion Type-valued packages would require deleting the remaining lower/upper split route surfaces. That is not a low-risk proof-frontier cleanup; it is an API removal decision. It also risks interfering with Zinan's producer target surface.
-
-### Lower-average data constructors still use their assumptions
-
-In `P3MoserRegularityProducer.lean`, the data constructors
+They remain distinct, Type-valued high-excursion producer surfaces and are still referenced by lower/upper split routes such as:
 
 ```lean
-intervalDomain_lowerAverageEpsilonData_of_classical
-intervalDomain_lowerAverageEpsilonData_of_lite_classical
-intervalDomain_lowerAverageUpperDataGapData_of_classical
-intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
+IntervalDomainPaper2Prop25LowerUpperFrontierData
+IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
+IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals
 ```
 
-still genuinely construct the corresponding legacy data packages, so their lower-average / upper-gap inputs are not dead. Keep them if the legacy data packages remain.
+Deleting or rerouting those surfaces is an API policy decision, not a consequence of the fixed integrated-dissipation wrapper.
 
-## 4. Recommended order of work
+## Recommended patch order
 
-### Patch A — real wiring, very low risk
+1. **P3MoserRegularityProducer additive theorem**  
+   Add `intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap`.  
+   Build:
+   ```bash
+   lake build ShenWork.PDE.P3MoserRegularityProducer
+   ```
 
-File: `ShenWork/PDE/P3MoserIntegratedClosure.lean`.
+2. **Paper2 additive frontier**  
+   Add `IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData` and theorem/fact wrappers.  
+   Build:
+   ```bash
+   lake build ShenWork.Paper2.IntervalDomainStatementAssembly
+   ```
 
-Add:
+3. **Reusable PDE ladder additive residual**  
+   Add `IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals` and conversions.  
+   Build:
+   ```bash
+   lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
+   ```
 
-```lean
-intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
-```
+4. **Optional Paper3 additive actual-linear surface**  
+   Add a Paper3-specific regular-energy/coefficient-gap residual only after the generic surfaces build.  
+   Build:
+   ```bash
+   lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
+   ```
 
-as shown above.
-
-Build:
-
-```bash
-lake build ShenWork.PDE.P3MoserIntegratedClosure
-```
-
-Impact: real wiring improvement. It exposes the current coefficient-gap route as the exact fixed integrated-dissipation predicate consumed downstream.
-
-### Patch B — dead-argument API cleanup, low source risk / external API break
-
-File: `ShenWork/PDE/P3MoserRegularityProducer.lean`.
-
-Delete or deprecate:
-
-```lean
-intervalDomain_firstCrossingStep_of_classical_and_frontiers
-intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
-intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
-intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-```
-
-and their `#print axioms` lines.
-
-Build:
-
-```bash
-lake build ShenWork.PDE.P3MoserRegularityProducer
-lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
-lake build ShenWork.Paper2.IntervalDomainStatementAssembly
-lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
-```
-
-Impact: removes stale assumptions from public theorem surfaces. This is API cleanup, not new analysis.
-
-### Patch C — stale-name cleanup, moderate churn
-
-File: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
-
-Either leave the compatibility-named lowerAverage/upperDataGap route block in place, or remove it after all callers are on the integrated-step/Stability24 route names. This block no longer carries dead lowerAverage/upperDataGap assumptions, so removing it is naming cleanup only.
-
-Build:
-
-```bash
-lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
-```
-
-Impact: cosmetic API simplification; moderate external-name churn.
-
-## Bottom line
-
-The best next Codex task is **not** to delete high-excursion packages. The best low-risk wiring task is to add the fixed integrated-dissipation wrapper in `P3MoserIntegratedClosure.lean`. The best low-risk stale-surface cleanup is to remove/deprecate the four `P3MoserRegularityProducer` shortcut theorems whose old lowerAverage/upperGap arguments are now intentionally unused.
+All four are additive. No axioms, no sorries, no replacement of hard analytic proofs by declarations.
