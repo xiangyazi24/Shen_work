@@ -1,24 +1,69 @@
 # Q2754 (shen1) — next low-conflict non-Zinan wrapper after actual-linear NoNeg
 
 Repo: `xiangyazi24/Shen_work`  
-Delivery branch: `chatgpt-scratch`
+Delivery branch: `chatgpt-scratch`  
+Source edit requested: none; answer file only.
 
-Off-limits producer files, not touched and not needed:
+Off-limits producer files, not inspected or used:
 
 - `ShenWork/PDE/P3MoserHighExcursionProducer.lean`
 - `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`
 
-I inspected the visible statement-assembly surfaces. Current default branch already has later variants of some of the wrappers discussed below, but for the baseline described in the prompt — after adding only
+## What I could verify from the connector-visible repo surface
+
+The connector-visible default branch exposes the proved Agmon/positive-solution route through these names in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`:
+
+```lean
+IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData
+IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData.toPositive
+IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
+```
+
+The exact local name mentioned in the prompt,
+
+```text
+...ProvedAgmonFrontierData
+```
+
+is not visible in the connector’s current default-branch code search/fetch surface; I only see that wording in docs/doctrine. So I will not invent that exact identifier. The wrapper below uses the verified default-branch names. If the local branch has the newer `...ProvedAgmonFrontierData` with fields `section2` and `localAndMain`, use the same pattern and replace the Paper2 theorem12/theorem13 call with the local theorem that produces either
+
+```lean
+Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C
+```
+
+or
+
+```lean
+IntervalDomainPaper2MainTheoremTargets p C
+```
+
+and then extract only `.2.1` and `.2.2`.
+
+## Recommendation
+
+After the current local NoNeg wrapper
 
 ```lean
 IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
 ```
 
-— the best next low-conflict edit is still clear.
+the next lowest-conflict reduction is to remove the **full Paper2 main theorem bundle** from the actual-linear Paper3 proposition surface.
 
-## Recommendation
+The current NoNeg wrapper still carries:
 
-Add a Paper3 actual-linear wrapper that avoids carrying the full Paper2 main theorem bundle when Paper3 only needs Paper2 Theorems 1.2 and 1.3.
+```lean
+paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+```
+
+but the Paper3 Proposition 1.3/1.4 part needs only:
+
+```lean
+Theorem_1_2 intervalDomain p
+Theorem_1_3 intervalDomain p C
+```
+
+Paper2 Theorem 1.1 is not consumed by `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData`. Therefore the next wrapper should consume the proved-positive Paper2 Theorem 1.2/1.3 route directly and keep the Paper3 actual-linear mainline unchanged.
 
 Target file:
 
@@ -26,61 +71,7 @@ Target file:
 ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
 ```
 
-The current NoNeg wrapper removes the Paper3 negative-sensitivity residual but still asks for:
-
-```lean
-paper2Main : IntervalDomainPaper2MainTheoremTargets p C
-```
-
-inside:
-
-```lean
-IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
-```
-
-That is stronger than necessary for Paper3 Proposition 1.3/1.4. The generic interval-domain Paper3 statement assembly already has a theorem12/theorem13 route:
-
-```lean
-intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
-```
-
-and the Paper2 interval assembly already has the proved-positive Agmon route:
-
-```lean
-IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
-intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
-```
-
-So the next wrapper should combine:
-
-1. `intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos` for Proposition 1.2;
-2. Paper2 proved-positive theorem12/theorem13 route for Proposition 1.3/1.4;
-3. the existing actual-linear thin mainline route.
-
-This is pure wiring. It does not touch Moser producers, high-excursion, threshold-plan files, or Agmon proofs.
-
-## Why this is higher signal than another Moser wrapper
-
-The NoNeg wrapper already removed `negativeBound`; the next opaque input is `paper2Main`. But Paper3 does not consume Paper2 Theorem 1.1 through the proposition route. It consumes only:
-
-```lean
-theorem12 : Theorem_1_2 intervalDomain p
-theorem13 : Theorem_1_3 intervalDomain p C
-```
-
-for Paper3 Proposition 1.4 and Proposition 1.3. Therefore a theorem12/theorem13 wrapper is a real headline-surface reduction.
-
-This also connects naturally to the proved Agmon baseline: the Paper2 route no longer needs an `agmon` field, because it can call:
-
-```lean
-intervalDomain_classicalSolutionPositiveInterpolation p
-```
-
-through the proved-positive data conversion.
-
-## Patch sketch
-
-Suggested new names:
+Suggested names:
 
 ```lean
 IntervalDomainPaper3StatementActualLinear22ThinTheorem12And13ProvedPositiveNoNegData
@@ -88,13 +79,17 @@ intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13Proved
 intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegDataFact
 ```
 
-Place near the existing `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData` block.
+This is **pure wiring**, not a mathematical frontier. It composes already-proved/wrapped declarations and removes an unnecessary Paper2 Theorem 1.1 input from this Paper3 route.
+
+## Patch sketch against visible default-branch identifiers
+
+Place after the existing `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData` block.
 
 ```lean
-/-- Full Paper3 statement frontiers in the actual-linear-small regime, with the
-negative-sensitivity Proposition 1.2 residual discharged from `0 < χ₀` and
-Proposition 1.3/1.4 routed through the proved-positive Paper2 Theorem 1.2/1.3
-frontier rather than the full Paper2 main theorem bundle. -/
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with
+negative sensitivity discharged by `0 < χ₀` and Paper3 Proposition 1.3/1.4
+routed through the proved-positive Paper2 Theorem 1.2/1.3 frontier, not through
+the full Paper2 main theorem bundle. -/
 structure
     IntervalDomainPaper3StatementActualLinear22ThinTheorem12And13ProvedPositiveNoNegData
     (p : CM2Params) (C : Paper2Constants p)
@@ -116,7 +111,7 @@ structure
 /-- Assemble the full Paper3 statement target from the actual-linear thin
 Theorem 2.2 mainline route and the proved-positive Paper2 Theorem 1.2/1.3
 frontier, without carrying a separate negative-sensitivity residual and without
-requiring the full Paper2 main theorem bundle. -/
+requiring full Paper2 main theorem targets. -/
 theorem
     intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegData
     (p : CM2Params) (C : Paper2Constants p)
@@ -152,8 +147,8 @@ theorem
         p M0 uBar vLower locallyConverges neumannResolventGradientBound
         ha hb hχ0 hm hβ hχ hData.mainline⟩
 
-/-- Instance-facing version of
-`intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegData`. -/
+/-- Instance-facing version of the proved-positive Theorem 1.2/1.3 NoNeg
+actual-linear thin route. -/
 theorem
     intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegDataFact
     (p : CM2Params) (C : Paper2Constants p)
@@ -179,28 +174,42 @@ theorem
     ha hb hχ0 hm hβ hχ hData.out
 ```
 
-## If the local branch uses `...ProvedAgmonFrontierData`
+## Variant if the local branch exposes `...ProvedAgmonFrontierData`
 
-The prompt says the preferred Paper2 raw-drop terminal-endpoint route now has a local `...ProvedAgmonFrontierData` with only `section2` and `localAndMain` fields and no `agmon` field. I do not see that exact name in the current default-branch surface exposed to the connector; the visible default-branch theorem12/13 proved-Agmon route is named `...ProvedPositiveSolutionInterpolation...`.
-
-If the local branch has the newer name, use the same wrapper shape but replace the `paper2Theorems` field and call with the local theorem that produces:
+If the local branch has a preferred Paper2 route such as:
 
 ```lean
-Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C
+IntervalDomainPaper2MainTheoremRawDropTerminalEndpointProvedAgmonFrontierData
+intervalDomainPaper2_mainTheoremTargets_of_rawDropTerminalEndpointProvedAgmonFrontierData
 ```
 
-or, if it produces `IntervalDomainPaper2MainTheoremTargets p C`, avoid using the Theorem 1.1 component and extract only:
+or similar, do **not** guess the name in the patch. Use the exact local identifier and define the Paper3 data field as that local data type:
 
 ```lean
-hMain.2.1 : Theorem_1_2 intervalDomain p
-hMain.2.2 : Theorem_1_3 intervalDomain p C
+paper2 : <exact local ...ProvedAgmonFrontierData name> p C
 ```
 
-The point of the wrapper remains the same: Paper3 actual-linear NoNeg should not require the full Paper2 main bundle when theorem12/theorem13 are enough.
+Then either:
 
-## Secondary candidate if not already present
+```lean
+have hMain : IntervalDomainPaper2MainTheoremTargets p C :=
+  <local theorem> p C hData.paper2
+have h23 : Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  ⟨hMain.2.1, hMain.2.2⟩
+```
 
-If the branch only has the raw-theorem-2.2 `ThinP2MainNoNegData`, the same NoNeg pattern should also be ported to the Moser/integrated-step statement routes:
+or if the local theorem already returns the pair:
+
+```lean
+have h23 : Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  <local theorem12/13 theorem> p C hData.paper2
+```
+
+The rest of the Paper3 proof is exactly the same.
+
+## Secondary candidate
+
+If the local branch only added the raw-Theorem-2.2 thin NoNeg wrapper, port the same NoNeg pattern to the integrated-step Moser surfaces:
 
 ```lean
 IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainNoNegData
@@ -208,36 +217,26 @@ IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2Ma
 IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepThinP2MainNoNegData
 ```
 
-On the current default branch visible to me, these integrated-step NoNeg variants already exist. On the baseline branch described in the prompt, if they are absent, they are safe pure-wiring patches: copy the exact construction pattern from `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData`, replacing the mainline target theorem with the corresponding integrated-step theorem.
+On the current default branch visible to me, these integrated-step NoNeg variants already exist. On the baseline branch in the prompt, if they are absent, they are safe pure-wiring copies of the current `ActualLinear22ThinP2MainNoNegData` pattern.
 
 ## Do not do next
 
-Do not work in:
-
-```text
-ShenWork/PDE/P3MoserHighExcursionProducer.lean
-ShenWork/PDE/P3MoserThresholdPlanProducer.lean
-```
-
-Do not try to route the `χ₀ = 0` Paper2 local-free wrappers into the actual-linear-small Paper3 route, because the actual-linear route requires:
+Do not route `χ₀ = 0` Paper2 local-free wrappers into this actual-linear Paper3 route. The actual-linear route assumes:
 
 ```lean
 0 < p.χ₀
 ```
 
-while the chi-zero route requires:
+while chi-zero wrappers assume:
 
 ```lean
 p.χ₀ = 0
 ```
 
-Those hypotheses are incompatible.
+Those regimes are incompatible.
+
+Do not work in high-excursion or threshold-plan producer files for this task.
 
 ## Bottom line
 
-Best next edit after the current `ActualLinear22ThinP2MainNoNegData` wrapper:
-
-1. Add an actual-linear thin Paper3 wrapper that consumes only Paper2 Theorem 1.2/1.3 proved-Agmon data, not full `IntervalDomainPaper2MainTheoremTargets`.
-2. If absent on the local branch, port the same NoNeg pattern to the integrated-step Moser statement routes.
-
-Both are pure statement-assembly wiring and are low conflict.
+Best next edit: add the actual-linear thin Paper3 wrapper consuming Paper2 Theorem 1.2/1.3 proved-Agmon/proved-positive data directly, not full Paper2 main theorem targets. It is pure statement-assembly wiring and reduces the headline input surface without touching Zinan-owned producer files.
