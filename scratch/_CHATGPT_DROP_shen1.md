@@ -1,324 +1,243 @@
-# Q2836 (shen1) — can integrated Moser dissipation be proved from current energy APIs?
+# Q2754 (shen1) — next low-conflict non-Zinan wrapper after actual-linear NoNeg
 
 Repo: `xiangyazi24/Shen_work`  
-Delivery branch: `chatgpt-scratch`  
-Scope: proof audit only; no repository source modifications.
+Delivery branch: `chatgpt-scratch`
 
-I inspected the current default-branch source around:
+Off-limits producer files, not touched and not needed:
 
-- `ShenWork/PDE/P3MoserDissipationShape.lean`
-- `ShenWork/PDE/P3MoserIntegratedClosure.lean`
+- `ShenWork/PDE/P3MoserHighExcursionProducer.lean`
 - `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`
-- `ShenWork/PDE/P3MoserRegularityProducer.lean`
-- `ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean`
 
-## Verdict
-
-`IntegratedMoserDissipationDropBefore intervalDomain u T rho p0` is **not currently derivable** from the existing proved API
+I inspected the visible statement-assembly surfaces. Current default branch already has later variants of some of the wrappers discussed below, but for the baseline described in the prompt — after adding only
 
 ```lean
-intervalDomain_LpBootstrapEnergyInequality_of_regularity
+IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
 ```
 
-plus the current cross-diffusion/bootstrap hypotheses alone. It remains a genuine PDE/integrated-energy frontier.
+— the best next low-conflict edit is still clear.
 
-The current clean threshold-plan route is real and proved:
+## Recommendation
 
-```lean
-P3MoserThresholdPlanProducer.integratedMoserFirstCrossingStep_of_abstract_data
-P3MoserThresholdPlanProducer.intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
-```
+Add a Paper3 actual-linear wrapper that avoids carrying the full Paper2 main theorem bundle when Paper3 only needs Paper2 Theorems 1.2 and 1.3.
 
-but those theorems consume
-
-```lean
-hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
-```
-
-as an input. They do not derive it from the Lp bootstrap energy inequality.
-
-## Exact current API facts
-
-### 1. The integrated dissipation target
-
-In `P3MoserDissipationShape.lean`:
-
-```lean
-def IntegratedMoserDissipationDropBefore
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T _rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
-    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-      D.integral (fun x => (u t2 x) ^ p) -
-          D.integral (fun x => (u t1 x) ^ p) +
-        2 * ∫ s in t1..t2,
-          D.integral (fun x =>
-            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
-      C * p * ∫ s in t1..t2,
-        max 1 (D.integral (fun x => (u s x) ^ p))
-```
-
-The only packaging theorem there is:
-
-```lean
-theorem integratedMoserDissipationDropBefore_of_integrated_energy
-    (henergy :
-      ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
-        ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-          ...same integrated inequality...) :
-    IntegratedMoserDissipationDropBefore D u T rho p0
-```
-
-So the file packages an already-integrated inequality. It does not prove that inequality from the pointwise Lp bootstrap estimate.
-
-### 2. The threshold plan consumes, but does not produce, `hdiss`
-
-In `P3MoserThresholdPlanProducer.lean`:
-
-```lean
-theorem integratedMoserFirstCrossingStep_of_abstract_data
-    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
-    (hnonneg : IntegratedMoserEnergyNonnegativity D u T p0)
-    (hdiss : IntegratedMoserDissipationDropBefore D u T rho p0)
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
-    (hrho : 0 < rho)
-    (hp0_nonneg : 0 ≤ p0)
-    (hgrad_nonneg : ... ) :
-    IntegratedMoserFirstCrossingStep D u T rho p0
-```
-
-and the interval specialization:
-
-```lean
-theorem intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
-    (hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0)
-    (hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0)
-    (hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0)
-    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
-    (hrho : 0 < rho)
-    (hp0_nonneg : 0 ≤ p0) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
-```
-
-This confirms the clean route is:
+Target file:
 
 ```text
-regularity + energy nonnegativity + integrated dissipation + relative interpolation
-  ==> IntegratedMoserFirstCrossingStep
+ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
 ```
 
-but integrated dissipation remains a separate input.
-
-### 3. What `intervalDomain_LpBootstrapEnergyInequality_of_regularity` gives
-
-In `IntervalDomainLpBootstrapEnergyInequality.lean`, the current theorem is:
+The current NoNeg wrapper removes the Paper3 negative-sensitivity residual but still asks for:
 
 ```lean
-theorem intervalDomain_LpBootstrapEnergyInequality_of_regularity
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
-    LpBootstrapEnergyInequality intervalDomain u T rho p0
+paper2Main : IntervalDomainPaper2MainTheoremTargets p C
 ```
 
-Unfolded at use sites, `LpBootstrapEnergyInequality` supplies, for each exponent `p`, constants
+inside:
 
 ```lean
-∃ A > 0, ∃ B > 0, ∃ K > 0, ∃ L_const, ∀ t, 0 < t → t < T →
-  (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x)^p)) t
-    + A * G_p(t) + B * Y_p(t)
-  ≤ K * Z_p(t) + L_const
+IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
 ```
 
-where
+That is stronger than necessary for Paper3 Proposition 1.3/1.4. The generic interval-domain Paper3 statement assembly already has a theorem12/theorem13 route:
 
 ```lean
-Y_p(t) = ∫ u(t)^p
-G_p(t) = ∫ |∇(u(t)^(p/2))|^2
-Z_p(t) = ∫ u(t)^(p+rho)
+intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
 ```
 
-This is a **pointwise differential inequality with a higher-power term on the right**. It is not the same shape as `IntegratedMoserDissipationDropBefore`, which is an **already-integrated** inequality with no `Z_p` term and a fixed `2 * ∫G_p` on the left.
-
-## Why the derivation is not currently available
-
-There are two independent gaps.
-
-### Gap A: differential-to-integrated energy transport
-
-To pass from the pointwise derivative inequality to
+and the Paper2 interval assembly already has the proved-positive Agmon route:
 
 ```lean
-Y_p(t2) - Y_p(t1) + ... ≤ ...
+IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
 ```
 
-Lean needs a fundamental-theorem/absolute-continuity bridge for
+So the next wrapper should combine:
+
+1. `intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos` for Proposition 1.2;
+2. Paper2 proved-positive theorem12/theorem13 route for Proposition 1.3/1.4;
+3. the existing actual-linear thin mainline route.
+
+This is pure wiring. It does not touch Moser producers, high-excursion, threshold-plan files, or Agmon proofs.
+
+## Why this is higher signal than another Moser wrapper
+
+The NoNeg wrapper already removed `negativeBound`; the next opaque input is `paper2Main`. But Paper3 does not consume Paper2 Theorem 1.1 through the proposition route. It consumes only:
 
 ```lean
-fun t => intervalDomain.integral (fun x => (u t x)^p)
+theorem12 : Theorem_1_2 intervalDomain p
+theorem13 : Theorem_1_3 intervalDomain p C
 ```
 
-on arbitrary `[t1,t2]` inside `[0,T]`. The current regularity package gives closed-time continuity and integrability fields, but it does not include a theorem saying the derivative integrates to the endpoint difference for every exponent.
+for Paper3 Proposition 1.4 and Proposition 1.3. Therefore a theorem12/theorem13 wrapper is a real headline-surface reduction.
 
-So even before absorbing `Z_p`, `LpBootstrapEnergyInequality` cannot simply be integrated in Lean from the current APIs.
-
-### Gap B: absorbing the `Z_p` term and normalizing the gradient coefficient
-
-Even if the differential inequality were integrated, it contains
+This also connects naturally to the proved Agmon baseline: the Paper2 route no longer needs an `agmon` field, because it can call:
 
 ```lean
-K * ∫ u^(p+rho)
+intervalDomain_classicalSolutionPositiveInterpolation p
 ```
 
-on the right. Removing this term requires an interpolation/absorption input such as `RelativeMoserInterpolationBefore`, with a small epsilon chosen from the energy coefficient.
+through the proved-positive data conversion.
 
-But `IntegratedMoserDissipationDropBefore` is currently separated from `hrel` in the clean threshold route. If one uses `hrel` to derive `hdiss`, then the route is no longer “energy alone gives dissipation”; it becomes a combined energy+interpolation absorption theorem.
+## Patch sketch
 
-There is also a coefficient issue: the integrated target has exactly
+Suggested new names:
 
 ```lean
-2 * ∫ G_p
+IntervalDomainPaper3StatementActualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegDataFact
 ```
 
-on the left. The current `LpBootstrapEnergyInequality` only guarantees some positive coefficient `A`; after multiplying by `p` and absorbing part of the right-hand side, the available gradient coefficient is generally `p*A'`, not definitionally `2`. In the current interval-domain proof, the produced `Acoef` is positive but not advertised as large enough to imply the fixed coefficient `2` target.
-
-This is why the existing route correctly treats `IntegratedMoserDissipationDropBefore` as its own frontier rather than deriving it from the pointwise Lp bootstrap inequality.
-
-## Existing APIs that are close but not enough
-
-### Old nonnegative-B route
-
-`P3MoserDissipationShape.lean` has:
+Place near the existing `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData` block.
 
 ```lean
-def MoserDissipationDropBeforeNonnegB ...
-theorem moserDissipationDropBeforeNonnegB_of_raw_drop ...
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with the
+negative-sensitivity Proposition 1.2 residual discharged from `0 < χ₀` and
+Proposition 1.3/1.4 routed through the proved-positive Paper2 Theorem 1.2/1.3
+frontier rather than the full Paper2 main theorem bundle. -/
+structure
+    IntervalDomainPaper3StatementActualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  paper2Theorems :
+    IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the full Paper3 statement target from the actual-linear thin
+Theorem 2.2 mainline route and the proved-positive Paper2 Theorem 1.2/1.3
+frontier, without carrying a separate negative-sensitivity residual and without
+requiring the full Paper2 main theorem bundle. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound cGrad) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) := by
+  have h23 : Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
+      p C cGrad hData.paper2Theorems
+  exact
+    ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData
+        p C
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          theorem12 := h23.1
+          theorem13 := h23.2 },
+      intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound
+        ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing version of
+`intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegData`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound cGrad)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinTheorem12And13ProvedPositiveNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound cGrad
+    ha hb hχ0 hm hβ hχ hData.out
 ```
 
-and old wrappers:
+## If the local branch uses `...ProvedAgmonFrontierData`
+
+The prompt says the preferred Paper2 raw-drop terminal-endpoint route now has a local `...ProvedAgmonFrontierData` with only `section2` and `localAndMain` fields and no `agmon` field. I do not see that exact name in the current default-branch surface exposed to the connector; the visible default-branch theorem12/13 proved-Agmon route is named `...ProvedPositiveSolutionInterpolation...`.
+
+If the local branch has the newer name, use the same wrapper shape but replace the `paper2Theorems` field and call with the local theorem that produces:
 
 ```lean
-moser_step_of_energy_nonnegB_relative_interpolation
-moser_iteration_chain_of_energy_nonnegB_relative_interpolation
-intervalDomain_allLpBoundFromBootstrap_of_relative_moser_step_nonnegB
-intervalDomain_endpointBoundFromLp_of_quantitative_root_tower_nonnegB
+Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C
 ```
 
-But this is not the clean threshold-plan route. It is the older pointwise route, and the same file even contains the counterexample:
+or, if it produces `IntervalDomainPaper2MainTheoremTargets p C`, avoid using the Theorem 1.1 component and extract only:
 
 ```lean
-theorem unitLinearDrop_not_MoserDissipationDropBeforeNonnegB
+hMain.2.1 : Theorem_1_2 intervalDomain p
+hMain.2.2 : Theorem_1_3 intervalDomain p C
 ```
 
-which documents that the pointwise drop shape is not a formal consequence of a generic full energy inequality.
+The point of the wrapper remains the same: Paper3 actual-linear NoNeg should not require the full Paper2 main bundle when theorem12/theorem13 are enough.
 
-### Regularity producer
+## Secondary candidate if not already present
 
-`P3MoserRegularityProducer.lean` is explicit that regularity fields are still frontier data. It produces regularity/nonnegativity packages from declared regularity data and a classical solution, but its data-assembly theorems still take:
+If the branch only has the raw-theorem-2.2 `ThinP2MainNoNegData`, the same NoNeg pattern should also be ported to the Moser/integrated-step statement routes:
 
 ```lean
-hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepP2MainNoNegData
+IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepStability24P2MainNoNegData
+IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedStepThinP2MainNoNegData
 ```
 
-as a parameter, for example:
+On the current default branch visible to me, these integrated-step NoNeg variants already exist. On the baseline branch described in the prompt, if they are absent, they are safe pure-wiring patches: copy the exact construction pattern from `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData`, replacing the mainline target theorem with the corresponding integrated-step theorem.
+
+## Do not do next
+
+Do not work in:
+
+```text
+ShenWork/PDE/P3MoserHighExcursionProducer.lean
+ShenWork/PDE/P3MoserThresholdPlanProducer.lean
+```
+
+Do not try to route the `χ₀ = 0` Paper2 local-free wrappers into the actual-linear-small Paper3 route, because the actual-linear route requires:
 
 ```lean
-intervalDomain_lowerAverageUpperDataGapData_of_classical
-intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
-intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
-intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
+0 < p.χ₀
 ```
 
-So regularity/nonnegativity are partially handled; dissipation is not.
-
-## Minimal honest frontier
-
-The minimal honest frontier should remain exactly the integrated dissipation package:
+while the chi-zero route requires:
 
 ```lean
-IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+p.χ₀ = 0
 ```
 
-For an interval-domain classical solution route, the reusable residual field should be:
-
-```lean
-∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-  IsPaper2ClassicalSolution intervalDomain params T u v →
-  CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-  AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0 →
-    IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
-```
-
-This is the smallest non-stale field used by the current threshold-plan route. It should not be replaced by `LpBootstrapEnergyInequality` unless one proves the missing integrated absorption theorem below.
-
-## If you want to prove it: missing theorem shape
-
-The real missing theorem is an **integrated absorbed Lp-energy estimate**, not another wrapper. A good target statement is:
-
-```lean
-theorem intervalDomain_integratedMoserDissipationDropBefore_of_regularity
-    {params : CM2Params} {T rho p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    -- either include hrel here, or prove a separate higher-power absorption estimate
-    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
-    -- plus the missing FTC/absolute-continuity bridge for Y_p
-    (hY_ac : ∀ p, p0 ≤ p →
-      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-        ∫ s in t1..t2,
-          deriv (fun τ => intervalDomain.integral (fun x => (u τ x)^p)) s =
-        intervalDomain.integral (fun x => (u t2 x)^p) -
-          intervalDomain.integral (fun x => (u t1 x)^p)) :
-    IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 := by
-  -- use intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
-  -- choose epsilon from the energy coefficient and hrel
-  -- integrate the pointwise inequality using hY_ac
-  -- absorb Z and dominate constants/Y terms by C*p*∫ max 1 Y
-  -- coefficient-normalization issue must be solved or included in the lemma hypotheses
-```
-
-However, because of the fixed `2 * ∫G` coefficient in `IntegratedMoserDissipationDropBefore`, the above theorem may still need a stronger integrated energy input than the current `LpBootstrapEnergyInequality` exposes. A more faithful frontier is therefore:
-
-```lean
-def IntervalDomainIntegratedMoserEnergyEstimate
-    (params : CM2Params) (u : ℝ → intervalDomain.Point → ℝ)
-    (T rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
-    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-      intervalDomain.integral (fun x => (u t2 x)^p) -
-          intervalDomain.integral (fun x => (u t1 x)^p) +
-        2 * ∫ s in t1..t2,
-          intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm
-              (fun y => (u s y)^(p / 2)) x)^2) ≤
-      C * p * ∫ s in t1..t2,
-        max 1 (intervalDomain.integral (fun x => (u s x)^p))
-```
-
-Then the existing theorem
-
-```lean
-integratedMoserDissipationDropBefore_of_integrated_energy
-```
-
-immediately packages it.
-
-## Recommended next Lean attack order
-
-1. **Prove a scalar/integral absorption lemma independent of PDE.**
-   Given an already-integrated inequality with `∫Z` on the right and a relative interpolation estimate, prove the `C*p*∫max(1,Y)` form. This isolates coefficient bookkeeping.
-
-2. **Prove the FTC/absolute-continuity bridge for `Y_p`.**
-   Target the exact endpoint-difference formula for
-   `t ↦ intervalDomain.integral (fun x => (u t x)^p)` on `[t1,t2]`.
-
-3. **Only then try to connect `intervalDomain_LpBootstrapEnergyInequality_of_regularity` to integrated dissipation.**
-   At that point, check whether the current positive coefficient `Acoef` is strong enough to produce the fixed `2 * ∫G` target. If not, either strengthen the PDE energy theorem to produce the exact integrated coefficient or weaken/parameterize the integrated dissipation predicate.
+Those hypotheses are incompatible.
 
 ## Bottom line
 
-Current status: **not provable from existing APIs as-is**.
+Best next edit after the current `ActualLinear22ThinP2MainNoNegData` wrapper:
 
-`intervalDomain_LpBootstrapEnergyInequality_of_regularity` is a proved pointwise differential inequality and is useful, but the threshold-plan `hdiss` input is an already-integrated, absorbed dissipation estimate. The missing piece is a genuine integrated PDE energy/absorption theorem. Until that theorem exists, keep `IntegratedMoserDissipationDropBefore intervalDomain u T rho p0` as an honest frontier field.
+1. Add an actual-linear thin Paper3 wrapper that consumes only Paper2 Theorem 1.2/1.3 proved-Agmon data, not full `IntervalDomainPaper2MainTheoremTargets`.
+2. If absent on the local branch, port the same NoNeg pattern to the integrated-step Moser statement routes.
+
+Both are pure statement-assembly wiring and are low conflict.
