@@ -2864,7 +2864,11 @@ namespace
 
 /-- Convert the actual-linear-small component lowerAverage/upperDataGap
 residual surface to the existing integrated-step actual-linear residual
-surface. -/
+surface.
+
+The lower-average and upper-data-gap fields are retained for compatibility, but
+this conversion now uses the direct threshold-plan route from regularity,
+integrated dissipation, and relative interpolation. -/
 def to_integratedStepResiduals
     {p : CM2Params}
     (h :
@@ -2875,18 +2879,15 @@ def to_integratedStepResiduals
   boundednessHyp := h.boundednessHyp
   closedEnergyTrace := h.closedEnergyTrace
   integratedStep := fun hsol hcross hboot =>
-    intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-      (intervalDomain_regularityLite_of_classicalRegularityData hsol
-        (intervalDomain_classicalRegularityData_of_continuityRegularityData
-          (IsPaper2ClassicalSolution.T_pos hsol).le
-          (h.classicalContinuityRegularity hsol hcross hboot)))
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+      (intervalDomain_classicalRegularityData_of_continuityRegularityData
+        (IsPaper2ClassicalSolution.T_pos hsol).le
+        (h.classicalContinuityRegularity hsol hcross hboot))
       hsol
       (h.integratedDissipation hsol hcross hboot)
       (h.relativeMoserInterpolation hsol hcross hboot)
       (AbstractLpBootstrapHypothesis.rho_pos hboot)
       (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
-      (h.lowerAverage hsol hcross hboot)
-      (h.upperDataGap hsol hcross hboot)
   quantitativeEndpoint := h.quantitativeEndpoint
 
 /-- Convert to the reusable PDE-level lowerAverage/upperDataGap residual

@@ -730,13 +730,15 @@ theorem intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
   exact intervalDomainWithInitialSlice_eq_raw_of_pos_apply
     (u₀ := u₀) (u := u) ht0 x
 
-/-- Produce a raw first-crossing step by running the lower-average /
-upper-data-gap route on the re-anchored representative, then transferring the
-positive-time step back to the raw trajectory.
+/-- Produce a raw first-crossing step by running the direct threshold-plan route
+on the re-anchored representative, then transferring the positive-time step
+back to the raw trajectory.
 
 All closed-time Moser inputs in this theorem are stated for
 `intervalDomainWithInitialSlice u₀ u`; only the final first-crossing step is
-exported back to raw `u`. -/
+exported back to raw `u`.  The lower-average / upper-data-gap frontiers are not
+needed here because the threshold-plan producer consumes regularity, energy
+nonnegativity, dissipation, and relative interpolation directly. -/
 theorem
     intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
     {params : CM2Params} {T rho p0 : ℝ}
@@ -754,24 +756,7 @@ theorem
       RelativeMoserInterpolationBefore intervalDomain
         (intervalDomainWithInitialSlice u₀ u) T rho p0)
     (hrho : 0 < rho)
-    (hp0_nonneg : 0 ≤ p0)
-    (hlower :
-      ∀ p, p0 ≤ p →
-        0 ≤ p →
-        LpPowerBoundedBefore intervalDomain p T
-          (intervalDomainWithInitialSlice u₀ u) →
-          Nonempty
-            (Σ Cnext : ℝ,
-              IntegratedMoserHighExcursionLowerAverageWindowFrontier
-                intervalDomain (intervalDomainWithInitialSlice u₀ u)
-                T rho p0 p Cnext))
-    (hupperDataGap :
-      ∀ p, p0 ≤ p →
-        0 ≤ p →
-          Nonempty
-            (IntegratedMoserWindowUpperDataGapFrontier
-              intervalDomain (intervalDomainWithInitialSlice u₀ u)
-              T rho p0 p)) :
+    (hp0_nonneg : 0 ≤ p0) :
     IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
   let uA : ℝ → intervalDomain.Point → ℝ :=
     intervalDomainWithInitialSlice u₀ u
@@ -782,29 +767,19 @@ theorem
         (u₀ := u₀) (u := u) (v := v) hglobal)
   have hsolA : IsPaper2ClassicalSolution intervalDomain params T uA v :=
     hglobalA.classical hT
-  have hdataA :
-      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
-        intervalDomain uA T rho p0 := by
-    refine
-      { regularity := ?_
-        energyNonneg := ?_
-        dissipation := ?_
-        relative := ?_
-        rho_pos := hrho
-        p0_nonneg := hp0_nonneg
-        lowerAverage := ?_
-        upperDataGap := ?_ }
-    · simpa [uA] using
-        intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
-          hglobal hT htrace hdatum hgrad
-    · exact intervalDomain_integratedMoserEnergyNonnegativity_of_classical
-        (p0 := p0) hsolA
-    · simpa [uA] using hdiss
-    · simpa [uA] using hrel
-    · simpa [uA] using hlower
-    · simpa [uA] using hupperDataGap
+  have hregA :
+      IntegratedMoserFirstCrossingRegularity intervalDomain uA T p0 := by
+    simpa [uA] using
+      intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
+        hglobal hT htrace hdatum hgrad
+  have hnonnegA :
+      IntegratedMoserEnergyNonnegativity intervalDomain uA T p0 :=
+    intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+      (p0 := p0) hsolA
   have hstepA : IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0 :=
-    integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData hdataA
+    intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+      hregA hnonnegA (by simpa [uA] using hdiss)
+      (by simpa [uA] using hrel) hrho hp0_nonneg
   exact intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
     (u₀ := u₀) (u := u) (T := T) (rho := rho) (p0 := p0)
     (by simpa [uA] using hstepA)
