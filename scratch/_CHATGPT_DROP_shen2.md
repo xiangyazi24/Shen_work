@@ -1,138 +1,391 @@
-# Q2675 shen2: Paper1--3 headline/frontier audit
+# Q2733 shen2: first bridge lemmas for interval Agmon/rpow
 
-Repo target: `xiangyazi24/Shen_work`, Lean 4.
+Repo target: `xiangyazi24/Shen_work`, Lean 4. Default branch after commit `216cbc4f`.
 
-Scope honored: I inspected the non-Zinan statement/headline/assembly surfaces and the named Moser residual packages. I did **not** edit, inspect for proof content, or rely on `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
+Scope honored: non-Zinan files only. I did not touch or rely on `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
 
-## Legend
+Files inspected:
 
-| Class | Meaning |
-|---|---|
-| A | Already discharged/proved locally: no headline input package remains at that layer, apart from ordinary theorem parameters/inequalities. |
-| B | Pure wiring likely available now: theorem/def converts named packages into headline targets, but the package itself is still supplied. |
-| C | Honest analytic residual/frontier: no local producer found in the inspected surfaces; the field names real PDE/compactness/stability/endpoint content. |
+```text
+ShenWork/PDE/IntervalAgmonInterpolation.lean
+ShenWork/PDE/IntervalDomain.lean
+ShenWork/PDE/GagliardoNirenberg.lean
+ShenWork/PDE/IntervalEllipticCharacterization.lean
+ShenWork/Paper2/IntervalMildPicardRegularity.lean
+ShenWork/Paper2/IntervalResolverPowerDecay.lean
+```
 
-## Executive summary
+## Main API facts to use
 
-| Area | Status | Exact Lean names |
-|---|---:|---|
-| Paper1 Lemma 2.5 | A | `paper1_Lemma_2_5`, `paper1_Lemma_2_5_JensenStep`, `paper1_lemma25Targets` |
-| Paper1 main statements | B over C | B: `paper1_mainStatementTargets_of_*`; C: `ConstructionNegSMPProvider`, `Paper1Positive*Branch*Data`, `Paper1MainlineExistence` |
-| Paper1 Lemma 5.x and Propositions | B over C | B: `paper1_lemma51And52Targets_of_frontierData`, `paper1_propositionTargets_of_frontierData`; C: `Paper1Lemma51FrontierData`, `Paper1Lemma52FrontierData`, `Paper1PropositionFrontierData` |
-| Generic Paper2 statement layer | B over C | B: `paper2_statementTargets_of_data`; C: `Paper2BootstrapEstimateBranchData`, `Paper2Proposition11ExistenceData`, `Paper2MainSolutionBranchData` |
-| Interval Paper2 section-2 / Moser | B over C, with one local A component | A: `intervalDomain_Proposition_2_4`; B: `intervalDomainPaper2_*_of_*FrontierData`; C: thin section-2 frontiers and Prop. 2.5 Moser atoms |
-| Paper2 Theorem 1.1/1.2 chain | B over C | B: `IntervalDomainTierChain.*`, `IntervalDomainTheorem12.*`; C: energy-from-cross-diffusion, continuation, bootstrap seeds, eventual sup/global boundedness |
-| P3 Moser regularity/endpoint continuity | B over C | B: `intervalDomain_*Regularity*` wrappers; C: `atZero`, `gradientTimeIntegrable` or `gradientEnergyContinuous` |
-| Moser ladder/apriori route | B over C | B: `.corollary21`, `.proposition25`, `.to_routeResiduals`, `.aprioriBound`; C: L2 seed regularity, Moser step/drop/relative/endpoint frontiers |
-| Generic Paper3 statement layer | B over C | B: `paper3_mainlineTargets_of_*`; C: persistence raw data, Theorem 2.2 branch data, compactness raw data, stability data, negative-sensitivity bound |
-| Interval Paper3 core | A/B over C | A: `Lemma_3_1_proved`, `intervalDomain_upperEnvelopeMonotonicityRaw_supNorm`, actual-linear persistence producer; B: core/linear assembly wrappers; C: `IntervalDomainInitialContinuityRaw`, sectorial core/linear/compactness/stability frontiers |
+The newly proved endpoint is:
 
-## Paper1 details
+```lean
+ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
+```
 
-| Class | Names | Audit |
-|---|---|---|
-| A | `paper1_Lemma_2_5`, `paper1_Lemma_2_5_JensenStep`, `paper1_lemma25Targets` | Closed locally via `Lemma_2_5_proved` and `Lemma_2_5_JensenStep_proved`. |
-| B | `paper1_mainStatementTargets_of_mainResultsData`, `paper1_mainStatementTargets_of_smpMainlineData`, `paper1_mainStatementTargets_of_strictBarrierData`, `paper1_mainStatementTargets_of_lowerPinnedContactData`, `paper1_mainStatementTargets_of_lowerPinnedRawContactData` | Pure headline assembly for `Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3`. These wrappers do not construct the branch data. |
-| B | `paper1_positiveCriticalBranch_of_strictBarrier`, `paper1_positiveStrictBarrierBranch_of_contactBranch`, `strict_upperBarrier_MChi_of_contactContradictions`, `paper1_positiveContactBranch_of_lowerPinnedContactData`, `paper1_positiveContactBranch_of_lowerPinnedRawContactData`, `paper1_positiveLowerPinnedContactData_of_schauderContactData`, `paper1_positiveSchauderContactData_of_capSchauderContactData` | Good normalization/wiring chain for the positive branch: contact/no-contact -> strict barrier -> `ShenUpperBoundPositive`; lower pin supplies tail squeeze. |
-| B | `paper1_mainlineStatementTargets_of_mainlineExistence`, `paper1_Theorem_1_2_of_mainlineExistence`, `paper1_Theorem_1_3_of_mainlineExistence` | Pure consumers of `Paper1MainlineExistence`. |
-| B | `paper1_lemma51And52Targets_of_frontierData`, `paper1_Lemma_5_1_of_frontierData`, `paper1_Lemma_5_2_explicit_of_frontierData`, `paper1_Lemma_5_2_of_frontierData` | Pure wrappers over Lemma 5 frontier records. |
-| B | `paper1_propositionTargets_of_frontierData`, `paper1_Proposition_1_1_of_frontierData`, `paper1_Proposition_1_2_of_frontierData` | Pure wrappers over Cauchy frontier data. |
-| B | `paper1_combinedStatementTargets_of_data`, `paper1_combinedStatementTargets_of_strictBarrierData`, `paper1_combinedStatementTargets_of_lowerPinnedContactData`, `paper1_combinedStatementTargets_of_lowerPinnedRawContactData` | Combined wrappers. Only Lemma 2.5 is closed internally; the rest is carried. |
-| C | `ConstructionNegSMPProvider` | Negative critical construction input for Theorem 1.1. I did not find a local unconditional producer in the inspected statement surface. |
-| C | `Paper1PositiveCriticalFrozenStationaryBranch`, `Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch`, `Paper1PositiveCriticalFrozenStationaryContactBranch`, `Paper1PositiveLowerPinnedContactBranchData`, `Paper1PositiveLowerPinnedRawContactBranchData`, `Paper1PositiveLowerPinnedSchauderContactData`, `Paper1PositiveLowerPinnedCapSchauderContactData` | These are increasingly thin positive-branch frontiers. The routing is pure, but the lower-pinned Schauder principle/map data, no-contact facts, and construction content remain analytic. |
-| C | `Paper1MainlineExistence` | Mainline B5 existence/stability package for Theorems 1.2/1.3 remains a supplied input. |
-| C | `Paper1Lemma51FrontierData` | Real Lemma 5.1 frontiers: resolvent identity, continuity, derivative tending to zero, derivative bound, exponential derivative estimate. |
-| C | `Paper1Lemma52FrontierData` | Monotonicity frontier for Lemma 5.2. |
-| C | `Paper1PropositionFrontierData` | Whole-line Cauchy existence, max/bound branches, and convergence branches are still explicit analytic frontiers. |
+with shape:
 
-## Paper2 details
+```lean
+{L : ℝ} → 0 < L →
+{f f' : ℝ → ℝ} →
+ContinuousOn f (Icc 0 L) →
+(∀ x ∈ Ioo 0 L, HasDerivWithinAt f (f' x) (Ioi x) x) →
+IntervalIntegrable f' volume 0 L →
+IntervalIntegrable (fun y => f y ^ 2) volume 0 L →
+IntervalIntegrable (fun y => f' y ^ 2) volume 0 L →
+IntervalIntegrable (fun y => f y * f' y) volume 0 L →
+∀ x ∈ Icc 0 L, ...
+```
 
-| Class | Names | Audit |
-|---|---|---|
-| A | `intervalDomain_Proposition_2_4` | Interval mass/proposition component is already supplied in interval statement assembly. |
-| B | `paper2_bootstrapEstimateTargets_of_branchData`, `paper2_Proposition_1_1_of_existenceData`, `paper2_mainTheoremTargets_of_solutionBranchData`, `paper2_localAndMainTheoremTargets_of_data`, `paper2_statementTargets_of_data` | Generic statement-layer wrappers only. The corresponding data records remain inputs. |
-| B | `intervalDomainPaper2_bootstrapEstimateTargets_of_thinFrontierData` | Thin section-2 wrapper: consumes thin Lemma 2.6/2.7/Prop.2.2/Prop.2.3 data, uses local Prop.2.4, and takes Prop.2.5 from any route. |
-| B | `intervalDomainPaper2_Proposition_2_5_of_structuredMoserFrontierData`, `intervalDomainPaper2_Proposition_2_5_of_actualAtomFrontierData`, `intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientFrontierData`, `intervalDomainPaper2_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData`, `intervalDomainPaper2_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData` | Pure Prop.2.5 producers once the chosen Moser frontier is supplied. The raw-drop/mass-gradient/terminal endpoint package is the thinnest actual-atom statement surface I saw. |
-| B | `intervalDomainPaper2_Corollary_2_1_of_actualAtomFrontierData`, `intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientFrontierData`, `intervalDomainPaper2_Corollary_2_1_of_actualAtomMassGradientTerminalEndpointFrontierData`, `intervalDomainPaper2_Corollary_2_1_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData` | Pure Cor.2.1 producers from the same atoms. |
-| B | `IntervalDomainPaper2Prop25LowerUpperFrontierData.toIntegratedStepFrontierData`, `intervalDomainPaper2_Proposition_2_5_of_lowerUpperFrontierData`, `intervalDomainPaper2_Corollary_2_1_of_lowerUpperFrontierData` | Lower/upper split frontiers collapse to an integrated step and then to Prop.2.5/Cor.2.1. |
-| B | `boundedBefore_of_corollary21_and_proposition25` | Cor.2.1 + Prop.2.5 + a bootstrap seed imply `IsPaper2BoundedBefore`. This is genuine wiring. |
-| B | `Theorem_1_2_intervalDomain_slow_branch_of_corollary21_and_proposition25`, `Theorem_1_2_intervalDomain_critical_branch_of_corollary21_and_proposition25`, `Theorem_1_2_intervalDomain_of_corollary21_and_proposition25` | Theorem 1.2 assembly once Cor.2.1/Prop.2.5, continuation, and branch bootstraps/bounds are available. |
-| B | `Theorem_1_2_intervalDomain_critical_regime_of_parameter_fields_and_eventual_sup_bound`, `Theorem_1_2_intervalDomain_critical_regime_of_Lemma_2_6_energy_and_eventual_sup_bound` | Good reductions: critical long-time boundedness can be supplied as an eventual sup-norm estimate; Cor.2.1 can be produced from Lemma 2.6 plus the energy derivation. |
-| B | `intervalDomain_tier1_theorem11_chain_of_frontiers`, `intervalDomain_tier1_theorem11_chain_of_frontiers_bounded_initial`, `intervalDomain_tier1_theorem11_branch_chain_of_frontiers_bounded_initial`, `intervalDomain_tier1_theorem11_branch_chain_of_frontiers_inside_nonneg_bounded_initial` | One-shot Tier-1/Tier-2 chain wrappers. They return `Lemma_2_6`, `Lemma_4_1`, `Corollary_2_1`, and `Theorem_1_1` once the named frontiers are supplied. |
-| C | `Paper2BootstrapEstimateBranchData`, `Paper2Proposition11ExistenceData`, `Paper2MainSolutionBranchData`, `Paper2LocalAndMainTheoremData`, `Paper2StatementData` | Generic branch-data packages remain frontiers unless interval-domain wrappers replace them. |
-| C | `IntervalDomainPaper2BootstrapEstimateThinFrontierData` | Residual section-2 estimate package: `lemma26`, `lemma27`, `prop22`, `prop23`. |
-| C | `IntervalDomainPaper2Prop25ActualAtomFrontierData` | Residual fields: `moserDissipation`, `relativeMoserInterpolation`, `quantitativeEndpoint`. |
-| C | `IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData` | Residual fields: `moserDissipation`, `relativeMassGradient`, `quantitativeEndpoint`. The relative field is lower-level than raw `RelativeMoserInterpolationBefore`. |
-| C | `IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData` | Residual fields: `moserDissipation`, `relativeMassGradient`, `terminalEndpoint`. The endpoint is reduced to one terminal pointwise power-control estimate. |
-| C | `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData` | Thinnest actual-atom surface inspected: `rawMoserDrop`, `relativeMassGradient`, `terminalEndpoint`. These are honest analytic atoms. |
-| C | `IntervalDomainPaper2Prop25IntegratedStepFrontierData`, `IntervalDomainPaper2Prop25LowerUpperFrontierData` | Integrated-step path still needs either `integratedStep` or `lowerUpperFrontiers` plus `quantitativeEndpoint`. |
-| C | `hEnergyFromCrossDiffusion` in Theorem 1.2 routes | Explicit weak/PDE energy derivation frontier from cross-diffusion estimate to `LpBootstrapEnergyInequality`. This is still analytic. |
-| C | `hlocal`, `hglobalExtension`, `hslowBootstrap`, `hcriticalBootstrap`, `hcriticalGlobalBound` / `hcriticalEventualSupBound` in `IntervalDomainTheorem12` | Continuation and branch-specific bootstrap/long-time boundedness remain real PDE frontiers. |
+For `IntervalAgmonInterpolation.lean`, the first bridge should set
 
-## P3 Moser regularity and ladder packages
+```lean
+F  y := (intervalDomainLift f y) ^ (q / 2)
+F' y := (q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
+          deriv (intervalDomainLift f) y
+```
 
-| Class | Names | Audit |
-|---|---|---|
-| A | `intervalDomain_initialPowerBound` | Algebraic real upper bound for the initial power integral is closed. |
-| B | `intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical` | Right endpoint is wireable from global classical regularity on a longer horizon. Left endpoint remains `atZero`. |
-| B | `intervalDomain_energyContinuousOn_Icc_of_classical_endpointContinuity` | Closed energy continuity follows from interior energy continuity plus endpoint package. |
-| B | `intervalDomain_powerTimeIntegrable_of_energyContinuous` | Power time-integrability follows from closed-time energy continuity on compact `[0,T]`. |
-| B | `intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous` | Gradient time-integrability follows from closed-time gradient-energy continuity. This lowers the gradient residual from raw integrability to continuity if desired. |
-| B | `intervalDomain_classicalRegularityData_of_globalClassicalRegularityData`, `intervalDomain_classicalRegularityData_of_gradientContinuityData`, `intervalDomain_regularFrontierData_of_lite`, `intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData`, `intervalDomain_integratedMoserFirstCrossingRegularity_of_lite`, `intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData`, `intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData` | Regularity producers are now good wrappers. They correctly expose only endpoint/gradient residuals. |
-| B | `intervalDomain_regularity_and_nonnegativity_of_classical`, `intervalDomain_regularity_and_nonnegativity_of_lite_classical` | Nonnegativity is supplied by the classical solution; regularity is supplied by the explicit data. |
-| B | `intervalDomain_lowerAverageEpsilonData_of_classical`, `intervalDomain_lowerAverageEpsilonData_of_lite_classical`, and the corresponding lower-average/upper-data-gap wrappers in `P3MoserRegularityProducer.lean` | Data assembly only; it does not prove the dissipation, interpolation, lower-average, or upper-gap frontiers. |
-| B | `IntervalDomainChemotacticDriftBound_of_LinfBound` | Finite-horizon pointwise/L∞ control of `u` gives the drift bound for the elliptic `v` slice. |
-| B | `IntervalDomainMassLpSmoothingMoserLadderResiduals.corollary21`, `.proposition25`, `.to_routeResiduals`, `.aprioriBound` | The older mass/Lp/smoothing route is reconstructed once L2 seed regularity and actual Moser atoms are supplied. Drift is no longer a primitive residual here. |
-| B | `IntervalDomainMassLpSmoothingIntegratedStepResiduals.corollary21`, `.proposition25`, `.to_routeResiduals`, `.aprioriBound` | Same route with a supplied integrated first-crossing step. |
-| B | `IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_integratedStepResiduals`, `.to_routeResiduals`, `.aprioriBound` | Window frontier collapses to the integrated-step residual package. |
-| C | `IntervalDomainPowerEnergyEndpointContinuity.atZero` and `IntervalDomainIntegratedMoserGlobalClassicalRegularityData.atZero` | Honest endpoint residual. `InitialTrace` controls positive times but does not identify the stored slice `u 0`. |
-| C | `IntervalDomainIntegratedMoserClassicalRegularityData.gradientTimeIntegrable` | Honest gradient-energy time-integrability residual if kept in raw form. |
-| C | `IntervalDomainIntegratedMoserClassicalGradientContinuityData.gradientEnergyContinuous` | Slightly better analytic frontier: closed-time gradient-energy continuity implies the raw integrability field, but is still not produced by the current classical API. |
-| C | `IntervalDomainMassLpSmoothingMoserLadderResiduals.l2SeedRegularity` | Honest L2 seed regularity residual; comments correctly note the classical-solution interface does not determine `u 0`. |
-| C | `IntervalDomainMassLpSmoothingMoserLadderResiduals.moserDissipation`, `.relativeMoserInterpolation`, `.quantitativeEndpoint` | Actual Moser atom frontiers. |
-| C | `IntervalDomainMassLpSmoothingIntegratedStepResiduals.integratedStep`, `.quantitativeEndpoint` | Integrated first-crossing and endpoint/root-tower frontiers. |
-| C | `IntervalDomainMassLpSmoothingWindowFrontierResiduals.windowFrontier`, `IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.lowerUpperFrontiers` | Still analytic first-crossing/window frontiers; currently just routed to the integrated-step surface. |
+and prove the positivity/continuity/right-derivative facts first.
 
-## Paper3 details
+Useful local theorem names already present elsewhere:
 
-| Class | Names | Audit |
-|---|---|---|
-| A | `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall`, `intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall` | Actual-linear small-sensitivity persistence is produced internally by `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`; no separate persistence package is carried in these theorems. |
-| A | `Lemma_3_1_proved intervalDomain p`, `intervalDomain_upperEnvelopeMonotonicityRaw_supNorm p` | These concrete interval support targets are closed and used inside core statement assembly. |
-| B | `paper3_Proposition_1_3_of_Paper2_Theorem_1_3`, `paper3_Proposition_1_4_of_Paper2_Theorem_1_2`, `paper3_proposition1Targets_of_paper2TheoremsData`, `paper3_proposition1Targets_of_paper2MainTargetsData` | Paper3 Proposition 1.3/1.4 can be routed from Paper2 Theorem 1.3/1.2. Proposition 1.2 remains independent. |
-| B | `paper3_uniformPersistenceTargets_of_rawData`, `paper3_Theorem_2_2_of_branchData`, `paper3_compactnessRegularizationTargets_of_rawData`, `paper3_stability23To25Targets_of_branchData`, `paper3_mainlineTargets_of_data`, `paper3_mainlineTargets_of_paper2Theorem13Data`, `paper3_mainlineTargets_of_paper2TheoremsData`, `paper3_mainlineTargets_of_paper2MainTargetsData` | Generic Paper3 statement assembly is pure wrapping over raw/branch data. |
-| B | `intervalDomainPaper3_negativeSensitivityResidual_of_frontierData` | Decomposes negative-sensitivity residual into global solution and eventual sup-bound fields. |
-| B | `intervalDomain_paper3_proposition1Targets_of_frontierData`, `intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData`, `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2TheoremsData`, `intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData` | Interval proposition routing is ready; negative-sensitivity remains a separate residual. |
-| B | `intervalDomain_paper3_coreStatementTargets_of_coreExistence` | Core interval targets from `IntervalDomainInitialContinuityRaw` and `IntervalDomainSectorialMainlineCoreExistence`. Produces Lemma 3.1, Lemma 3.3, upper-envelope monotonicity, stability-chain Theorem 2.1 target, and sectorial Theorem 2.1/2.2 target. |
-| B | `intervalDomain_paper3_coreStatementTargets_of_linear22Data` | Splits Theorem 2.1 persistence from raw linear Theorem 2.2 branches. |
-| B | `intervalDomain_paper3_Theorem_2_1_of_persistence`, `intervalDomain_paper3_Theorem_2_1_partTargets_of_persistence`, `intervalDomain_paper3_Theorem_2_1_sectorial_of_persistence` | Theorem 2.1-specific entry points from `IntervalDomainSectorialTheorem21Persistence`. |
-| B | `IntervalDomainPaper3CoreStatementActualLinear22Data.to_linear22Data`, `intervalDomain_paper3_coreStatementTargets_of_actualLinear22Data`, `intervalDomain_paper3_mainlineTargets_of_actualLinear22FrontierData` | Actual-linear route produces persistence internally; raw linear Theorem 2.2 branches remain input. |
-| B | `IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25` | In the actual-linear-small regime, Theorem 2.3 branches are vacuous from `0 < χ₀`, Theorem 2.5 branches are vacuous from `0 < a`, and only Theorem 2.4 fields remain. |
-| B | `IntervalDomainPaper3SupNormCompactnessAPosData.toSupNormData`, `IntervalDomainPaper3MainlineActualLinear22ThinFrontierData.toCurrent`, `intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData`, `intervalDomain_paper3_statementTargets_of_actualLinear22FrontierData` | Thin actual-linear wrappers are good. They reduce the active stability frontiers to the positive nonminimal Theorem 2.4 pair plus compactness/resolvent and raw linear Theorem 2.2. |
-| C | `NegativeSensitivityGlobalEventualBound`, `IntervalDomainPaper3NegativeSensitivityResidual`, `IntervalDomainPaper3NegativeSensitivityFrontierData.globalSolution`, `.eventualSupBound` | Honest Paper3 Proposition 1.2 residual. It is explicitly not derived from Paper2 main targets. |
-| C | `IntervalDomainPaper3Proposition1FrontierData.criticalExistence` | Critical existence branch for Proposition 1.4 if not routed through Paper2 Theorem 1.2. |
-| C | `Paper3UniformPersistenceRawData`, `Paper3Theorem22BranchData`, `Paper3CompactnessRegularizationRawData`, `Paper3Stability23To25BranchData` | Generic raw/branch Paper3 frontiers. The interval actual-linear route thins some of these but does not eliminate the core analytic content. |
-| C | `IntervalDomainInitialContinuityRaw` | Concrete initial-continuity frontier for interval Lemma 3.3/stability norm routing. |
-| C | `IntervalDomainSectorialMainlineCoreExistence`, or split fields `IntervalDomainSectorialTheorem21Persistence`, `LinearStabilityInstabilityNonminimalRaw`, `LinearStabilityInstabilityMinimalRaw` | Core sectorial existence and raw linear stability/instability frontiers. Actual-linear persistence is produced, but Theorem 2.2 raw branches are still carried. |
-| C | `IntervalDomainPaper3SupNormCompactnessAPosData.compact`, `.resolvent` | Compactness and Neumann resolvent gradient-bound data are still analytic inputs. |
-| C | `IntervalDomainPaper3Stability24ActualLinearFrontierData.global24`, `.exp24` | In the actual-linear-small path, these are the non-vacuous stability frontiers left after parameter contradictions remove Theorems 2.3 and 2.5 branches. |
+```lean
+ContDiffOn.rpow_const_of_ne
+HasDerivAt.rpow_const
+ShenWork.IntervalEllipticCharacterization.hasDerivAt_of_contDiffOn_two_interior
+ShenWork.IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two
+ContinuousOn.intervalIntegrable
+ContinuousOn.pow
+ContinuousOn.mul
+IntervalIntegrable.congr
+IntervalIntegrable.congr_ae
+```
 
-## Minimal residual shortlist
+The two `IntervalEllipticCharacterization` helpers are particularly relevant because they already encode the exact issue with closed-`Icc` `ContDiffOn`: two-sided `deriv` is available on the open interior, while endpoint facts about unrestricted `deriv` are not automatic.
 
-The highest-leverage honest residuals still visible after the current wrappers are:
+## Import guidance
 
-1. `IntervalDomainIntegratedMoserGlobalClassicalRegularityData.atZero` and either `gradientTimeIntegrable` or the better `IntervalDomainIntegratedMoserClassicalGradientContinuityData.gradientEnergyContinuous`.
-2. Prop.2.5 actual Moser atoms, preferably at the thinnest inspected surface: `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.rawMoserDrop`, `.relativeMassGradient`, `.terminalEndpoint`.
-3. Paper2 energy derivation: the `hEnergyFromCrossDiffusion` hypothesis used by `IntervalDomainTheorem12` and `IntervalDomainTierChain`.
-4. Paper2 continuation/branch frontiers: `hlocal`, `hglobalExtension`, slow/critical bootstrap seeds, and critical eventual sup/global boundedness.
-5. Paper1 genuine construction/Cauchy frontiers: `ConstructionNegSMPProvider`, the positive lower-pinned/contact/Schauder packages, `Paper1MainlineExistence`, `Paper1Lemma51FrontierData`, `Paper1Lemma52FrontierData`, `Paper1PropositionFrontierData`.
-6. Paper3 independent negative-sensitivity frontier and interval initial-continuity/core sectorial/linear/compactness/stability frontiers.
+In `ShenWork/PDE/IntervalAgmonInterpolation.lean`, add these imports if you add the bridge lemmas in that file:
 
-## Small non-Zinan edit suggestions
+```lean
+import ShenWork.PDE.GagliardoNirenberg
+import ShenWork.PDE.IntervalEllipticCharacterization
+```
 
-No large proof edit is forced by this audit. The small useful edits are organizational, not analytic:
+The current file already imports `ShenWork.PDE.IntervalDomain`, but `IntervalEllipticCharacterization` gives the clean interior derivative helper:
 
-1. In `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`, add one combined wrapper for the thinnest Prop.2.5 path:
-   `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData -> Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p`. Separate wrappers already exist; a pair wrapper would make downstream calls less noisy.
-2. In `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`, add a variant whose proposition field takes `IntervalDomainPaper3NegativeSensitivityFrontierData` directly and routes it through `intervalDomainPaper3_negativeSensitivityResidual_of_frontierData`; this would expose the remaining negative-sensitivity residual at the same granularity as the audit.
-3. In `ShenWork/PDE/P3MoserRegularityProducer.lean`, keep future endpoint work focused on an `atZero` producer plus a `gradientEnergyContinuous` producer. The existing wrappers already turn those into the needed integrated-Moser regularity package.
+```lean
+hasDerivAt_of_contDiffOn_two_interior
+```
+
+## Snippet 1: positivity and rpow continuity on `Icc 0 1`
+
+This is the first lemma I would add. It is small and should be stable.
+
+```lean
+import ShenWork.PDE.IntervalAgmonInterpolation
+import ShenWork.PDE.IntervalEllipticCharacterization
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalEllipticCharacterization
+open scoped Interval Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+/-- If a subtype profile is positive, its zero-extension/lift is positive on
+`[0,1]`. -/
+theorem intervalDomainLift_pos_on_Icc
+    {f : intervalDomain.Point → ℝ}
+    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x) :
+    ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift f y := by
+  intro y hy
+  rw [intervalDomainLift, dif_pos hy]
+  exact hf_pos ⟨y, hy⟩
+
+/-- Closed-interval continuity of `(lift f)^(q/2)` from closed-`Icc` `C²`
+regularity and positivity.  This uses the same `ContDiffOn.rpow_const_of_ne`
+API used in nearby files. -/
+theorem intervalDomainLift_rpow_half_continuousOn_Icc
+    {f : intervalDomain.Point → ℝ} {q : ℝ}
+    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
+    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn
+      (fun y : ℝ => (intervalDomainLift f y) ^ (q / 2))
+      (Set.Icc (0 : ℝ) 1) := by
+  exact
+    (hf_c2.rpow_const_of_ne
+      (fun y hy => ne_of_gt (intervalDomainLift_pos_on_Icc hf_pos y hy))).continuousOn
+
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+end
+```
+
+Notes:
+
+* The proof of positivity should use `rw [intervalDomainLift, dif_pos hy]`, not `simp`, because it keeps the subtype witness exactly visible.
+* For continuity, `ContDiffOn.rpow_const_of_ne` is stronger than needed but matches local style. A fallback is `hf_c2.continuousOn.rpow continuousOn_const ...`, but the `ContDiffOn` route is cleaner if subsequent lemmas need regularity.
+
+## Snippet 2: right-derivative bridge on `Ioi y`
+
+This is the key derivative bridge for `agmon_inequality_interval_rightDeriv`. Use the existing interior derivative helper rather than re-proving the `ContDiffOn`/neighborhood conversion.
+
+```lean
+import ShenWork.PDE.IntervalAgmonInterpolation
+import ShenWork.PDE.IntervalEllipticCharacterization
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalEllipticCharacterization
+open scoped Interval Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+/-- Interior right-derivative of `(lift f)^(q/2)`. -/
+theorem intervalDomainLift_rpow_half_hasDerivWithinAt_Ioi
+    {f : intervalDomain.Point → ℝ} {q y : ℝ}
+    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
+    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1))
+    (hy : y ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivWithinAt
+      (fun z : ℝ => (intervalDomainLift f z) ^ (q / 2))
+      ((q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
+        deriv (intervalDomainLift f) y)
+      (Set.Ioi y) y := by
+  have hbase :
+      HasDerivAt (intervalDomainLift f)
+        (deriv (intervalDomainLift f) y) y :=
+    hasDerivAt_of_contDiffOn_two_interior hf_c2 hy
+  have hpos_y : 0 < intervalDomainLift f y :=
+    intervalDomainLift_pos_on_Icc hf_pos y (Set.Ioo_subset_Icc_self hy)
+  have hpow :
+      HasDerivAt
+        (fun z : ℝ => (intervalDomainLift f z) ^ (q / 2))
+        (deriv (intervalDomainLift f) y * (q / 2) *
+          (intervalDomainLift f y) ^ (q / 2 - 1)) y :=
+    hbase.rpow_const (Or.inl (ne_of_gt hpos_y))
+  simpa [mul_assoc, mul_left_comm, mul_comm] using hpow.hasDerivWithinAt
+
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+end
+```
+
+Important points:
+
+* `HasDerivAt.rpow_const` gives derivative in the order
+  `deriv lift y * (q/2) * lift y ^ (q/2 - 1)`.
+* The requested derivative is the same expression commuted; `simpa [mul_assoc, mul_left_comm, mul_comm]` should normalize it.
+* The conversion from full derivative to right derivative is `hpow.hasDerivWithinAt`.
+
+## Snippet 3: use a named derivative function and the smallest integrability boundary
+
+The integrability part is **not** as short from only
+
+```lean
+ContDiffOn ℝ 2 (intervalDomainLift f) (Icc 0 1)
+```
+
+because `agmon_inequality_interval_rightDeriv` uses the unrestricted endpoint-valued function
+
+```lean
+deriv (intervalDomainLift f)
+```
+
+inside `F'`. Existing code in `IntervalEllipticCharacterization.lean` explicitly notes that `ContinuousOn (deriv g) (uIcc 0 1)` is not automatic from closed-`Icc` `ContDiffOn`; it proves interval-integrability of `deriv g` by comparison with `derivWithin` a.e.
+
+So the smallest honest first-bridge boundary is to package exactly the four interval-integrability inputs that Agmon asks for, after defining the explicit `F'`.
+
+```lean
+import ShenWork.PDE.IntervalAgmonInterpolation
+import ShenWork.PDE.IntervalEllipticCharacterization
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalEllipticCharacterization
+open scoped Interval Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+/-- The explicit derivative of `y ↦ (intervalDomainLift f y)^(q/2)` on the
+interior. -/
+def intervalDomainLiftRpowHalfDeriv
+    (q : ℝ) (f : intervalDomain.Point → ℝ) : ℝ → ℝ :=
+  fun y : ℝ =>
+    (q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
+      deriv (intervalDomainLift f) y
+
+/-- Exactly the integrability inputs needed by
+`agmon_inequality_interval_rightDeriv` for
+`F = (lift f)^(q/2)` and the explicit derivative `F'`. -/
+structure IntervalDomainLiftRpowHalfAgmonIntegrability
+    (q : ℝ) (f : intervalDomain.Point → ℝ) : Prop where
+  fprime_int :
+    IntervalIntegrable (intervalDomainLiftRpowHalfDeriv q f) volume 0 1
+  f_sq_int :
+    IntervalIntegrable
+      (fun y : ℝ => ((intervalDomainLift f y) ^ (q / 2)) ^ 2)
+      volume 0 1
+  fprime_sq_int :
+    IntervalIntegrable
+      (fun y : ℝ => (intervalDomainLiftRpowHalfDeriv q f y) ^ 2)
+      volume 0 1
+  ffprime_int :
+    IntervalIntegrable
+      (fun y : ℝ =>
+        (intervalDomainLift f y) ^ (q / 2) *
+          intervalDomainLiftRpowHalfDeriv q f y)
+      volume 0 1
+
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+end
+```
+
+This is the smallest statement boundary if you want no detour into endpoint behavior of unrestricted `deriv`.
+
+A short sufficient producer exists if you additionally carry:
+
+```lean
+hderiv_cont : ContinuousOn (deriv (intervalDomainLift f)) (Set.Icc (0 : ℝ) 1)
+```
+
+but that hypothesis is stronger than what closed-`Icc` `ContDiffOn` alone currently gives.
+
+## Snippet 4: optional short producer under `hderiv_cont`, and Agmon application shell
+
+This is a useful local test/snippet. It should be treated as a sufficient producer, not the final minimal analytic statement.
+
+```lean
+import ShenWork.PDE.IntervalAgmonInterpolation
+import ShenWork.PDE.IntervalEllipticCharacterization
+import ShenWork.PDE.GagliardoNirenberg
+
+open MeasureTheory Set
+open ShenWork.IntervalDomain
+open ShenWork.Paper2
+open ShenWork.IntervalEllipticCharacterization
+open scoped Interval Topology
+
+noncomputable section
+
+namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+private theorem intervalIntegrable_of_continuousOn_Icc01
+    {F : ℝ → ℝ}
+    (hF : ContinuousOn F (Set.Icc (0 : ℝ) 1)) :
+    IntervalIntegrable F volume 0 1 := by
+  have hFu : ContinuousOn F (Set.uIcc (0 : ℝ) 1) := by
+    simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hF
+  exact hFu.intervalIntegrable
+
+/-- A short sufficient integrability producer if endpoint continuity of the
+unrestricted derivative is supplied separately. -/
+theorem intervalDomainLift_rpow_half_agmonIntegrability_of_deriv_continuous
+    {f : intervalDomain.Point → ℝ} {q : ℝ}
+    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
+    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1))
+    (hderiv_cont :
+      ContinuousOn (deriv (intervalDomainLift f)) (Set.Icc (0 : ℝ) 1)) :
+    IntervalDomainLiftRpowHalfAgmonIntegrability q f := by
+  have hF_cont :
+      ContinuousOn
+        (fun y : ℝ => (intervalDomainLift f y) ^ (q / 2))
+        (Set.Icc (0 : ℝ) 1) :=
+    intervalDomainLift_rpow_half_continuousOn_Icc hf_pos hf_c2
+  have hpowm_cont :
+      ContinuousOn
+        (fun y : ℝ => (intervalDomainLift f y) ^ (q / 2 - 1))
+        (Set.Icc (0 : ℝ) 1) := by
+    exact
+      (hf_c2.rpow_const_of_ne
+        (fun y hy => ne_of_gt (intervalDomainLift_pos_on_Icc hf_pos y hy))).continuousOn
+  have hFp_cont :
+      ContinuousOn (intervalDomainLiftRpowHalfDeriv q f)
+        (Set.Icc (0 : ℝ) 1) := by
+    unfold intervalDomainLiftRpowHalfDeriv
+    simpa [mul_assoc] using (hpowm_cont.const_mul (q / 2)).mul hderiv_cont
+  exact
+    { fprime_int := intervalIntegrable_of_continuousOn_Icc01 hFp_cont
+      f_sq_int := intervalIntegrable_of_continuousOn_Icc01 (hF_cont.pow 2)
+      fprime_sq_int := intervalIntegrable_of_continuousOn_Icc01 (hFp_cont.pow 2)
+      ffprime_int := intervalIntegrable_of_continuousOn_Icc01 (hF_cont.mul hFp_cont) }
+
+/-- First application shell for the right-derivative Agmon theorem.  This is not
+the whole interpolation theorem; it only packages the first bridge facts. -/
+theorem intervalDomainLift_rpow_half_agmon_pointwise
+    {f : intervalDomain.Point → ℝ} {q x : ℝ}
+    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
+    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1))
+    (hint : IntervalDomainLiftRpowHalfAgmonIntegrability q f)
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    ((intervalDomainLift f x) ^ (q / 2)) ^ 2 ≤
+      (2 / 1) *
+          (∫ y in (0 : ℝ)..1,
+            ((intervalDomainLift f y) ^ (q / 2)) ^ 2) +
+        2 * Real.sqrt
+          (∫ y in (0 : ℝ)..1,
+            ((intervalDomainLift f y) ^ (q / 2)) ^ 2) *
+          Real.sqrt
+          (∫ y in (0 : ℝ)..1,
+            (intervalDomainLiftRpowHalfDeriv q f y) ^ 2) := by
+  exact
+    ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
+      (L := 1) (hL := by norm_num)
+      (f := fun y : ℝ => (intervalDomainLift f y) ^ (q / 2))
+      (f' := intervalDomainLiftRpowHalfDeriv q f)
+      (intervalDomainLift_rpow_half_continuousOn_Icc hf_pos hf_c2)
+      (fun y hy =>
+        intervalDomainLift_rpow_half_hasDerivWithinAt_Ioi
+          (f := f) (q := q) hf_pos hf_c2 hy)
+      hint.fprime_int
+      hint.f_sq_int
+      hint.fprime_sq_int
+      hint.ffprime_int
+      hx
+
+end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+
+end
+```
+
+## Recommended first bridge boundary
+
+Add only these first in `IntervalAgmonInterpolation.lean`:
+
+```lean
+intervalDomainLift_pos_on_Icc
+intervalDomainLift_rpow_half_continuousOn_Icc
+intervalDomainLift_rpow_half_hasDerivWithinAt_Ioi
+intervalDomainLiftRpowHalfDeriv
+IntervalDomainLiftRpowHalfAgmonIntegrability
+intervalDomainLift_rpow_half_agmon_pointwise
+```
+
+Do **not** try to prove the final mass-gradient interpolation theorem in the same move. The next separate bridge can decide whether to prove `IntervalDomainLiftRpowHalfAgmonIntegrability` from stronger closed endpoint derivative data or to keep it as an explicit local frontier while the endpoint behavior of unrestricted `deriv` is normalized.
+
+## Why I would not start with a stronger integrability lemma
+
+The tempting statement
+
+```lean
+ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
+IntervalDomainLiftRpowHalfAgmonIntegrability q f
+```
+
+is probably too large for the first bridge. It has two nontrivial endpoint issues:
+
+1. `ContDiffOn` on `Icc` naturally controls `derivWithin`; the Agmon derivative function uses unrestricted `deriv`.
+2. The square/product terms for `F'` need more than `IntervalIntegrable (deriv lift)`: they need integrability of products involving `((lift f)^(q/2-1))` and `deriv lift`, and for `F'^2` this is a weighted derivative-square term.
+
+There are likely routes using `derivWithin` continuity plus a.e. congruence, mirroring `intervalIntegrable_deriv_of_contDiffOn_two`, but that is a second bridge, not a first bridge.
