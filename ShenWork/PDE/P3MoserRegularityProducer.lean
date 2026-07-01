@@ -73,6 +73,21 @@ theorem intervalDomain_power_integral_nonneg_of_classical
 
 /-! ### Regularity frontier data -/
 
+/-- Raw Moser-gradient time-integrability for the positive-time representative.
+
+This is the remaining analytic input after the zero-time re-anchoring route:
+anchoring can transport this property across the null singleton `{0}`, but it
+does not produce the raw estimate. -/
+def IntervalDomainRawMoserGradientTimeIntegrability
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p →
+    IntegrableOn
+      (fun t =>
+        intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm
+            (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+      (Set.uIcc (0 : ℝ) T) volume
+
 /-- Explicit interval-domain regularity data for the integrated Moser
 first-crossing argument.  The initial bound field is omitted because it is an
 algebraic consequence for real-valued integrals. -/
@@ -188,6 +203,60 @@ structure IntervalDomainIntegratedMoserGlobalClassicalRegularityData
             (intervalDomain.gradNorm
               (fun y => (u t y) ^ (p / 2)) x) ^ 2))
         (Set.uIcc (0 : ℝ) T) volume
+
+/-- Build the global-classical-facing regularity data from the deleted-right
+initial trace theorem plus the honest zero-slice compatibility residual. -/
+theorem intervalDomain_globalClassicalRegularityData_of_trace_compat
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hcompat : IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume) :
+    IntervalDomainIntegratedMoserGlobalClassicalRegularityData u T p0 where
+  atZero :=
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_traceTendsto_compat
+      (intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive
+        hT htrace hdatum hglobal)
+      hcompat
+  gradientTimeIntegrable := hgrad
+
+/-- Build the global-classical-facing regularity data for the re-anchored
+representative.  No zero-slice compatibility hypothesis is needed: the anchored
+trajectory has the prescribed initial slice by construction. -/
+theorem intervalDomain_globalClassicalRegularityData_of_trace_paperPositive_anchored
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume) :
+    IntervalDomainIntegratedMoserGlobalClassicalRegularityData
+      (intervalDomainWithInitialSlice u₀ u) T p0 where
+  atZero :=
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_global_withInitialSlice
+      hT htrace hdatum hglobal
+  gradientTimeIntegrable :=
+    intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw hgrad
 
 /-- Convert global-classical-facing regularity data to the local
 classical-branch package by deriving right-endpoint power-energy continuity
@@ -475,6 +544,242 @@ theorem
     (intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
       hglobal hT hdata)
     (hglobal.classical hT)
+
+/-- Reduced regularity frontier from a global classical solution, initial trace,
+paper-positive initial datum, zero-slice compatibility, and the gradient
+time-integrability frontier. -/
+theorem intervalDomain_regularityLite_of_globalClassicalTraceCompat
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hcompat : IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume) :
+    IntervalDomainIntegratedMoserRegularityFrontierDataLite u T p0 :=
+  intervalDomain_regularityLite_of_globalClassicalRegularityData
+    hglobal hT
+    (intervalDomain_globalClassicalRegularityData_of_trace_compat
+      hT htrace hdatum hglobal hcompat hgrad)
+
+/-- Produce the integrated-Moser regularity package from a global classical
+solution, initial trace, paper-positive initial datum, zero-slice compatibility,
+and the gradient time-integrability frontier. -/
+theorem
+    intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceCompat
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hcompat : IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain u T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
+    hglobal hT
+    (intervalDomain_globalClassicalRegularityData_of_trace_compat
+      hT htrace hdatum hglobal hcompat hgrad)
+
+/-- Reduced regularity frontier for the re-anchored global classical
+representative.  The gradient input is stated for the raw trajectory; it is
+transported across the zero-time re-anchoring by a.e. equality. -/
+theorem intervalDomain_regularityLite_of_globalClassicalTraceAnchored
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume) :
+    IntervalDomainIntegratedMoserRegularityFrontierDataLite
+      (intervalDomainWithInitialSlice u₀ u) T p0 :=
+  intervalDomain_regularityLite_of_globalClassicalRegularityData
+    (intervalDomain_globalClassical_withInitialSlice hglobal)
+    hT
+    (intervalDomain_globalClassicalRegularityData_of_trace_paperPositive_anchored
+      hT htrace hdatum hglobal hgrad)
+
+/-- Integrated-Moser regularity for the re-anchored global classical
+representative.  The remaining analytic input is raw gradient
+time-integrability, transferred across the zero-time re-anchoring. -/
+theorem
+    intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain
+      (intervalDomainWithInitialSlice u₀ u) T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
+    (intervalDomain_globalClassical_withInitialSlice hglobal)
+    hT
+    (intervalDomain_globalClassicalRegularityData_of_trace_paperPositive_anchored
+      hT htrace hdatum hglobal hgrad)
+
+/-- Named-frontier version of
+`intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored`.
+The `hgrad` input is the genuine raw Moser-gradient time-integrability
+frontier. -/
+theorem
+    intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hgrad : IntervalDomainRawMoserGradientTimeIntegrability u T p0) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain
+      (intervalDomainWithInitialSlice u₀ u) T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
+    hglobal hT htrace hdatum hgrad
+
+/-- Closed-time raw Moser-gradient energy continuity is a sufficient, stronger
+source of the named raw-gradient frontier.  This is still an analytic input, not
+a consequence of the current classical-solution API. -/
+theorem
+    intervalDomain_integratedMoserRegularityAnchored_of_gradientContinuous
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        ContinuousOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.Icc (0 : ℝ) T)) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain
+      (intervalDomainWithInitialSlice u₀ u) T p0 :=
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
+    hglobal hT htrace hdatum
+    (intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous hT.le hgrad)
+
+/-! ### Positive-time transfer from the anchored representative -/
+
+/-- Raw bootstrap data transfers to the anchored representative because
+`AbstractLpBootstrapHypothesis` only depends on `u` through a positive-time
+`LpPowerBoundedBefore` field. -/
+theorem intervalDomain_abstractLpBootstrapHypothesis_anchored_of_raw
+    {N T rho p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0) :
+    AbstractLpBootstrapHypothesis intervalDomain
+      (intervalDomainWithInitialSlice u₀ u) N T rho p0 := by
+  refine AbstractLpBootstrapHypothesis_congr_pos ?_ hboot
+  intro t ht0 _htT x
+  exact (intervalDomainWithInitialSlice_eq_raw_of_pos_apply
+    (u₀ := u₀) (u := u) ht0 x).symm
+
+/-- An anchored first-crossing step is a raw first-crossing step: the step only
+maps positive-time `LpPowerBoundedBefore` predicates. -/
+theorem intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+    {T rho p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (hstep :
+      IntegratedMoserFirstCrossingStep intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  refine IntegratedMoserFirstCrossingStep_congr_pos ?_ hstep
+  intro t ht0 _htT x
+  exact intervalDomainWithInitialSlice_eq_raw_of_pos_apply
+    (u₀ := u₀) (u := u) ht0 x
+
+/-- Produce a raw first-crossing step by running the lower-average /
+upper-data-gap route on the re-anchored representative, then transferring the
+positive-time step back to the raw trajectory.
+
+All closed-time Moser inputs in this theorem are stated for
+`intervalDomainWithInitialSlice u₀ u`; only the final first-crossing step is
+exported back to raw `u`. -/
+theorem
+    intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hgrad : IntervalDomainRawMoserGradientTimeIntegrability u T p0)
+    (hdiss :
+      IntegratedMoserDissipationDropBefore intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0)
+    (hrel :
+      RelativeMoserInterpolationBefore intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0)
+    (hrho : 0 < rho)
+    (hp0_nonneg : 0 ≤ p0)
+    (hlower :
+      ∀ p, p0 ≤ p →
+        0 ≤ p →
+        LpPowerBoundedBefore intervalDomain p T
+          (intervalDomainWithInitialSlice u₀ u) →
+          Nonempty
+            (Σ Cnext : ℝ,
+              IntegratedMoserHighExcursionLowerAverageWindowFrontier
+                intervalDomain (intervalDomainWithInitialSlice u₀ u)
+                T rho p0 p Cnext))
+    (hupperDataGap :
+      ∀ p, p0 ≤ p →
+        0 ≤ p →
+          Nonempty
+            (IntegratedMoserWindowUpperDataGapFrontier
+              intervalDomain (intervalDomainWithInitialSlice u₀ u)
+              T rho p0 p)) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  refine intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+    (u₀ := u₀) (u := u) (T := T) (rho := rho) (p0 := p0) ?_
+  exact intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
+    (intervalDomain_regularityLite_of_globalClassicalTraceAnchored
+      hglobal hT htrace hdatum hgrad)
+    ((intervalDomain_globalClassical_withInitialSlice hglobal).classical hT)
+    hdiss hrel hrho hp0_nonneg hlower hupperDataGap
 
 /-! ### Combined regularity + nonnegativity package -/
 
@@ -822,10 +1127,26 @@ section AxiomAudit
 #print axioms intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuityData
 #print axioms intervalDomain_classicalRegularityData_of_gradientContinuityData
 #print axioms intervalDomain_classicalRegularityData_of_continuityRegularityData
+#print axioms intervalDomain_globalClassicalRegularityData_of_trace_compat
+#print axioms intervalDomain_globalClassicalRegularityData_of_trace_paperPositive_anchored
 #print axioms intervalDomain_classicalRegularityData_of_globalClassicalRegularityData
 #print axioms intervalDomain_regularityLite_of_globalClassicalRegularityData
 #print axioms
   intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalRegularityData
+#print axioms intervalDomain_regularityLite_of_globalClassicalTraceCompat
+#print axioms
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceCompat
+#print axioms intervalDomain_regularityLite_of_globalClassicalTraceAnchored
+#print axioms
+  intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
+#print axioms
+  intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
+#print axioms
+  intervalDomain_integratedMoserRegularityAnchored_of_gradientContinuous
+#print axioms intervalDomain_abstractLpBootstrapHypothesis_anchored_of_raw
+#print axioms intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+#print axioms
+  intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
 #print axioms intervalDomain_regularityLite_of_classicalRegularityData
 #print axioms intervalDomain_integratedMoserFirstCrossingRegularity_of_classicalRegularityData
 #print axioms intervalDomain_lowerAverageEpsilonData_of_classical

@@ -134,7 +134,7 @@ theorem intervalDomain_supNorm_rpow_le_energy_plus_gradient
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (ht0 : 0 < t) (htT : t < T)
-    (hpExp : 2 ≤ pExp) :
+    (hpExp : 0 < pExp) :
     (intervalDomainSupNorm (u t)) ^ pExp ≤
       2 * intervalDomain.integral (fun x => (u t x) ^ pExp) +
       2 * Real.sqrt (intervalDomain.integral (fun x => (u t x) ^ pExp)) *
@@ -147,7 +147,7 @@ theorem intervalDomain_supNorm_rpow_le_energy_plus_gradient
         Real.sqrt (intervalDomain.integral (fun x =>
           (intervalDomain.gradNorm
             (fun y => (u t y) ^ (pExp / 2)) x) ^ 2))
-  have hpExp_pos : 0 < pExp := lt_of_lt_of_le (by norm_num) hpExp
+  have hpExp_pos : 0 < pExp := hpExp
   have hf_pos : ∀ z : intervalDomain.Point, 0 < u t z :=
     fun z => hsol.u_pos' ht0 htT
   have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
@@ -454,6 +454,178 @@ theorem intervalDomain_Proposition_2_5_of_agmon
   exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
     (hQuantEndpoint hAll)
 
+private def scalarSeedAgmonAbsorbConstant
+    (M p p0 rho eps : ℝ) : ℝ :=
+  let theta : ℝ := (p - p0) / p
+  let alpha : ℝ := (p + rho - p0) / p
+  let eta : ℝ := (theta + alpha) / 2
+  let c2 : ℝ := 2 * Real.sqrt (M * (M / eps))
+  let c : ℝ := 2 * M + c2
+  let B0 : ℝ := (4 * c / 1 + 1) ^ (1 / (1 - eta))
+  let B : ℝ := max 1 B0
+  M * B ^ alpha
+
+private lemma sqrt_seed_product_eq
+    {M eps S theta alpha : ℝ}
+    (hM : 0 ≤ M) (heps : 0 < eps) (hS : 0 < S) :
+    2 * Real.sqrt (M * S ^ theta) *
+        Real.sqrt ((M / eps) * S ^ alpha) =
+      2 * Real.sqrt (M * (M / eps)) * S ^ ((theta + alpha) / 2) := by
+  have hMeps : 0 ≤ M / eps := div_nonneg hM heps.le
+  have hSnn : 0 ≤ S := hS.le
+  have hsqrt_theta : Real.sqrt (S ^ theta) = S ^ (theta / 2) := by
+    rw [Real.sqrt_eq_rpow]
+    rw [← Real.rpow_mul hSnn]
+    congr 1
+    ring
+  have hsqrt_alpha : Real.sqrt (S ^ alpha) = S ^ (alpha / 2) := by
+    rw [Real.sqrt_eq_rpow]
+    rw [← Real.rpow_mul hSnn]
+    congr 1
+    ring
+  calc
+    2 * Real.sqrt (M * S ^ theta) * Real.sqrt ((M / eps) * S ^ alpha)
+        = 2 * (Real.sqrt M * Real.sqrt (S ^ theta)) *
+            (Real.sqrt (M / eps) * Real.sqrt (S ^ alpha)) := by
+          rw [Real.sqrt_mul hM (S ^ theta), Real.sqrt_mul hMeps (S ^ alpha)]
+    _ = 2 * (Real.sqrt M * S ^ (theta / 2)) *
+            (Real.sqrt (M / eps) * S ^ (alpha / 2)) := by
+          rw [hsqrt_theta, hsqrt_alpha]
+    _ = 2 * (Real.sqrt M * Real.sqrt (M / eps)) *
+            (S ^ (theta / 2) * S ^ (alpha / 2)) := by ring
+    _ = 2 * Real.sqrt (M * (M / eps)) *
+            (S ^ (theta / 2) * S ^ (alpha / 2)) := by
+          rw [Real.sqrt_mul hM (M / eps)]
+    _ = 2 * Real.sqrt (M * (M / eps)) *
+            S ^ ((theta + alpha) / 2) := by
+          rw [← Real.rpow_add hS]
+          congr 2
+          ring
+
+private lemma scalar_seed_agmon_absorb
+    {M S G p p0 rho eps : ℝ}
+    (hM : 0 ≤ M) (hS : 0 ≤ S) (hG : 0 ≤ G)
+    (hp0 : 0 < p0) (hp : p0 ≤ p)
+    (hrho : 0 < rho) (hrho_lt : rho < 2 * p0)
+    (heps : 0 < eps)
+    (hSineq :
+      S ≤ 2 * M * S ^ ((p - p0) / p) +
+        2 * Real.sqrt (M * S ^ ((p - p0) / p)) * Real.sqrt G) :
+    M * S ^ ((p + rho - p0) / p) ≤
+      eps * G + scalarSeedAgmonAbsorbConstant M p p0 rho eps := by
+  let theta : ℝ := (p - p0) / p
+  let alpha : ℝ := (p + rho - p0) / p
+  let eta : ℝ := (theta + alpha) / 2
+  have hp_pos : 0 < p := lt_of_lt_of_le hp0 hp
+  have hp_ne : p ≠ 0 := ne_of_gt hp_pos
+  have htheta_nonneg : 0 ≤ theta := by
+    dsimp [theta]
+    exact div_nonneg (sub_nonneg.mpr hp) hp_pos.le
+  have halpha_pos : 0 < alpha := by
+    dsimp [alpha]
+    exact div_pos (by linarith) hp_pos
+  have halpha_nonneg : 0 ≤ alpha := halpha_pos.le
+  have htheta_le_alpha : theta ≤ alpha := by
+    dsimp [theta, alpha]
+    rw [div_le_div_iff_of_pos_right hp_pos]
+    linarith
+  have htheta_le_eta : theta ≤ eta := by
+    dsimp [eta]
+    linarith
+  have heta_nonneg : 0 ≤ eta := by
+    dsimp [eta]
+    linarith
+  have heta_lt_one : eta < 1 := by
+    dsimp [eta, theta, alpha]
+    field_simp [hp_ne]
+    nlinarith
+  let c2 : ℝ := 2 * Real.sqrt (M * (M / eps))
+  let c : ℝ := 2 * M + c2
+  let B0 : ℝ := (4 * c / 1 + 1) ^ (1 / (1 - eta))
+  let B : ℝ := max 1 B0
+  have hc2_nonneg : 0 ≤ c2 := by
+    dsimp [c2]
+    positivity
+  have hc_nonneg : 0 ≤ c := by
+    dsimp [c]
+    nlinarith
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    exact le_trans zero_le_one (le_max_left _ _)
+  have hC_nonneg : 0 ≤ M * B ^ alpha :=
+    mul_nonneg hM (Real.rpow_nonneg hB_nonneg alpha)
+  change M * S ^ alpha ≤ eps * G + M * B ^ alpha
+  by_cases hlarge : M * S ^ alpha ≤ eps * G
+  · have hEG_nonneg : 0 ≤ eps * G := mul_nonneg heps.le hG
+    linarith
+  · have hS_le_B : S ≤ B := by
+      by_cases hSle_one : S ≤ 1
+      · exact le_trans hSle_one (le_max_left _ _)
+      · have hS_gt_one : 1 < S := lt_of_not_ge hSle_one
+        have hS_pos : 0 < S := lt_trans zero_lt_one hS_gt_one
+        have hnot : eps * G < M * S ^ alpha := not_le.mp hlarge
+        have hG_lt : G < (M * S ^ alpha) / eps := by
+          rw [lt_div_iff₀ heps]
+          simpa [mul_comm] using hnot
+        have hG_le : G ≤ (M / eps) * S ^ alpha := by
+          have hEq : (M * S ^ alpha) / eps = (M / eps) * S ^ alpha := by ring
+          rw [hEq] at hG_lt
+          exact le_of_lt hG_lt
+        have hsqrtG_le :
+            Real.sqrt G ≤ Real.sqrt ((M / eps) * S ^ alpha) :=
+          Real.sqrt_le_sqrt hG_le
+        have hcoef_nonneg : 0 ≤ 2 * Real.sqrt (M * S ^ theta) := by
+          positivity
+        have hterm_le₁ :
+            2 * Real.sqrt (M * S ^ theta) * Real.sqrt G ≤
+              2 * Real.sqrt (M * S ^ theta) *
+                Real.sqrt ((M / eps) * S ^ alpha) := by
+          exact mul_le_mul_of_nonneg_left hsqrtG_le hcoef_nonneg
+        have hterm_eq :
+            2 * Real.sqrt (M * S ^ theta) *
+                Real.sqrt ((M / eps) * S ^ alpha) =
+              c2 * S ^ eta := by
+          dsimp [c2, eta]
+          exact sqrt_seed_product_eq hM heps hS_pos
+        have htheta_pow_le : S ^ theta ≤ S ^ eta :=
+          Real.rpow_le_rpow_of_exponent_le hS_gt_one.le htheta_le_eta
+        have hterm_le :
+            2 * Real.sqrt (M * S ^ theta) * Real.sqrt G ≤
+              c2 * S ^ eta := by
+          calc
+            2 * Real.sqrt (M * S ^ theta) * Real.sqrt G
+                ≤ 2 * Real.sqrt (M * S ^ theta) *
+                    Real.sqrt ((M / eps) * S ^ alpha) := hterm_le₁
+            _ = c2 * S ^ eta := hterm_eq
+        have hfirst_le : 2 * M * S ^ theta ≤ 2 * M * S ^ eta := by
+          exact mul_le_mul_of_nonneg_left htheta_pow_le (by nlinarith [hM])
+        have hS_sub : S ≤ c * S ^ eta := by
+          calc
+            S ≤ 2 * M * S ^ theta +
+                2 * Real.sqrt (M * S ^ theta) * Real.sqrt G := by
+                  simpa [theta] using hSineq
+            _ ≤ 2 * M * S ^ eta + c2 * S ^ eta := by
+                  exact add_le_add hfirst_le hterm_le
+            _ = c * S ^ eta := by
+                  dsimp [c]
+                  ring
+        have hS_bound0 : S ≤ B0 := by
+          have hsub :=
+            ShenWork.Paper2.IntervalDomainBootstrap.sublinear_algebraic_bound
+              (A := 1) (c := c) (d := 0) (e := 0) (x := S) (θ := eta)
+              (by norm_num) hc_nonneg (by norm_num) (by norm_num) hS
+              heta_nonneg heta_lt_one ?_
+          · dsimp [B0]
+            simpa using hsub
+          · simpa [zero_add, one_mul, add_zero] using hS_sub
+        exact le_trans hS_bound0 (le_max_right _ _)
+    have hpow_le : S ^ alpha ≤ B ^ alpha :=
+      Real.rpow_le_rpow hS hS_le_B halpha_nonneg
+    have hleft_le : M * S ^ alpha ≤ M * B ^ alpha :=
+      mul_le_mul_of_nonneg_left hpow_le hM
+    have hEG_nonneg : 0 ≤ eps * G := mul_nonneg heps.le hG
+    exact le_trans hleft_le (by linarith)
+
 /-! ### Producer: AgmonAbsorbedInterpolationBefore from classical solution regularity
 
 This theorem PRODUCES the `AgmonAbsorbedInterpolationBefore` frontier atom
@@ -473,7 +645,229 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
     AgmonAbsorbedInterpolationBefore u T rho p0 := by
-  sorry
+  have _hcross_used := hcross
+  unfold AgmonAbsorbedInterpolationBefore
+  intro pExp hpExp eps heps
+  rcases AbstractLpBootstrapHypothesis.initial_lp_bound hboot with ⟨C0, hC0⟩
+  let M0 : ℝ := max C0 0
+  have hM0_nonneg : 0 ≤ M0 := by
+    dsimp [M0]
+    exact le_max_right C0 0
+  have hseed_bound :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ p0) ≤ M0 := by
+    intro t ht0 htT
+    exact le_trans (hC0 t ht0 htT) (le_max_left C0 0)
+  have hrho : 0 < rho :=
+    AbstractLpBootstrapHypothesis.rho_pos hboot
+  have hp0_gt_one : 1 < p0 := by
+    have hthreshold := AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
+    have hone_le :
+        (1 : ℝ) ≤ max 1 (rho * (params.N : ℝ) / 2) :=
+      le_max_left _ _
+    linarith
+  have hp0_pos : 0 < p0 := lt_trans zero_lt_one hp0_gt_one
+  have hpExp_pos : 0 < pExp := lt_of_lt_of_le hp0_pos hpExp
+  have hrho_lt_two_p0 : rho < 2 * p0 := by
+    have hthreshold := AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
+    have hrhoN_lt : rho * (params.N : ℝ) / 2 < p0 :=
+      lt_of_le_of_lt (le_max_right _ _) hthreshold
+    have hN_ge_one_nat : 1 ≤ params.N := Nat.succ_le_of_lt params.hN
+    have hN_ge_one : (1 : ℝ) ≤ (params.N : ℝ) := by
+      exact_mod_cast hN_ge_one_nat
+    have hhalf_le : rho / 2 ≤ rho * (params.N : ℝ) / 2 := by
+      nlinarith [mul_le_mul_of_nonneg_left hN_ge_one hrho.le]
+    nlinarith
+  refine ⟨scalarSeedAgmonAbsorbConstant M0 pExp p0 rho eps, ?_⟩
+  intro t ht0 htT
+  let U : ℝ := intervalDomainSupNorm (u t)
+  let S : ℝ := U ^ pExp
+  let Y : ℝ := intervalDomain.integral (fun x => (u t x) ^ pExp)
+  let G : ℝ := intervalDomain.integral (fun x =>
+    (intervalDomain.gradNorm
+      (fun y => (u t y) ^ (pExp / 2)) x) ^ 2)
+  let seed : ℝ := intervalDomain.integral (fun x => (u t x) ^ p0)
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hf_nonneg : ∀ x : intervalDomain.Point, 0 ≤ u t x :=
+    fun x => (hsol.u_pos' ht0 htT (x := x)).le
+  have hf_bdd :
+      BddAbove (Set.range fun x : intervalDomain.Point => |u t x|) :=
+    ShenWork.IntervalDomainExistence.intervalDomain_solution_slice_abs_bddAbove
+      hsol ht
+  have hp0_nonneg : 0 ≤ p0 := hp0_pos.le
+  have hp_minus_nonneg : 0 ≤ pExp - p0 := sub_nonneg.mpr hpExp
+  have hhigh_minus_nonneg : 0 ≤ pExp + rho - p0 := by
+    linarith [hp_minus_nonneg, hrho.le]
+  have hseed_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ p0))
+        MeasureTheory.volume 0 1 :=
+    intervalDomain_u_rpow_intervalIntegrable_of_regularity
+      (q := p0) hsol ht0 htT
+  have hY_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+        MeasureTheory.volume 0 1 :=
+    intervalDomain_u_rpow_intervalIntegrable_of_regularity
+      (q := pExp) hsol ht0 htT
+  have hhigh_int :
+      IntervalIntegrable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => (u t x) ^ (pExp + rho)))
+        MeasureTheory.volume 0 1 :=
+    intervalDomain_u_rpow_intervalIntegrable_of_regularity
+      (q := pExp + rho) hsol ht0 htT
+  have hY_left_int :
+      IntervalIntegrable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => (u t x) ^ (p0 + (pExp - p0))))
+        MeasureTheory.volume 0 1 := by
+    have hpow : p0 + (pExp - p0) = pExp := by ring
+    simpa [hpow] using hY_int
+  have hhigh_left_int :
+      IntervalIntegrable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point =>
+            (u t x) ^ (p0 + (pExp + rho - p0))))
+        MeasureTheory.volume 0 1 := by
+    have hpow : p0 + (pExp + rho - p0) = pExp + rho := by ring
+    simpa [hpow] using hhigh_int
+  have hU_nonneg : 0 ≤ U := by
+    dsimp [U]
+    exact intervalDomainSupNorm_nonneg_local (u t)
+  have hS_nonneg : 0 ≤ S := by
+    dsimp [S]
+    exact Real.rpow_nonneg hU_nonneg pExp
+  have hY_nonneg : 0 ≤ Y := by
+    dsimp [Y]
+    exact intervalDomain_integral_u_rpow_nonneg_of_regularity
+      (q := pExp) hsol ht0 htT
+  have hchain :=
+    intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+      (params := params) (T := T) (pExp := pExp) (u := u) (v := v)
+      hsol ht0 htT
+  have hG_nonneg : 0 ≤ G := by
+    dsimp [G]
+    rw [hchain]
+    exact mul_nonneg (sq_nonneg _) <|
+      intervalDomain_lp_weighted_gradient_dissipation_nonneg_of_regularity
+        (pExp := pExp) hsol ht0 htT
+  have hY_raw :=
+    intervalDomain_higher_Lp_le_Linf_rpow_mul_seed
+      (f := u t) hf_nonneg hf_bdd
+      (pExp := p0) (rho := pExp - p0)
+      hp0_nonneg hp_minus_nonneg hY_left_int hseed_int
+  have hY_seed :
+      Y ≤ U ^ (pExp - p0) * seed := by
+    have hpow : p0 + (pExp - p0) = pExp := by ring
+    simpa [Y, U, seed, hpow] using hY_raw
+  have hU_theta :
+      U ^ (pExp - p0) = S ^ ((pExp - p0) / pExp) := by
+    have hmul : pExp * ((pExp - p0) / pExp) = pExp - p0 := by
+      field_simp [ne_of_gt hpExp_pos]
+    calc
+      U ^ (pExp - p0) = U ^ (pExp * ((pExp - p0) / pExp)) := by
+          rw [hmul]
+      _ = (U ^ pExp) ^ ((pExp - p0) / pExp) := by
+          rw [Real.rpow_mul hU_nonneg]
+      _ = S ^ ((pExp - p0) / pExp) := by
+          rfl
+  have hY_le_seed :
+      Y ≤ M0 * S ^ ((pExp - p0) / pExp) := by
+    have hseed_t : seed ≤ M0 := by
+      dsimp [seed]
+      exact hseed_bound t ht0 htT
+    have hcoef_nonneg : 0 ≤ U ^ (pExp - p0) :=
+      Real.rpow_nonneg hU_nonneg _
+    calc
+      Y ≤ U ^ (pExp - p0) * seed := hY_seed
+      _ ≤ U ^ (pExp - p0) * M0 :=
+          mul_le_mul_of_nonneg_left hseed_t hcoef_nonneg
+      _ = M0 * S ^ ((pExp - p0) / pExp) := by
+          rw [hU_theta]
+          ring
+  have hsup_step :
+      S ≤ 2 * Y + 2 * Real.sqrt Y * Real.sqrt G := by
+    have hstep :=
+      intervalDomain_supNorm_rpow_le_energy_plus_gradient
+        (params := params) (T := T) (t := t) (pExp := pExp)
+        (u := u) (v := v) hsol ht0 htT hpExp_pos
+    simpa [S, U, Y, G] using hstep
+  have hsqrtY_le :
+      Real.sqrt Y ≤
+        Real.sqrt (M0 * S ^ ((pExp - p0) / pExp)) :=
+    Real.sqrt_le_sqrt hY_le_seed
+  have hYterm_le :
+      2 * Y ≤ 2 * (M0 * S ^ ((pExp - p0) / pExp)) :=
+    mul_le_mul_of_nonneg_left hY_le_seed (by norm_num : (0 : ℝ) ≤ 2)
+  have hsqrtterm_le :
+      2 * Real.sqrt Y * Real.sqrt G ≤
+        2 * Real.sqrt (M0 * S ^ ((pExp - p0) / pExp)) *
+          Real.sqrt G := by
+    have hmul :=
+      mul_le_mul_of_nonneg_right hsqrtY_le (Real.sqrt_nonneg G)
+    nlinarith
+  have hSineq :
+      S ≤ 2 * M0 * S ^ ((pExp - p0) / pExp) +
+        2 * Real.sqrt (M0 * S ^ ((pExp - p0) / pExp)) *
+          Real.sqrt G := by
+    calc
+      S ≤ 2 * Y + 2 * Real.sqrt Y * Real.sqrt G := hsup_step
+      _ ≤
+          2 * (M0 * S ^ ((pExp - p0) / pExp)) +
+            2 * Real.sqrt (M0 * S ^ ((pExp - p0) / pExp)) *
+              Real.sqrt G := add_le_add hYterm_le hsqrtterm_le
+      _ =
+          2 * M0 * S ^ ((pExp - p0) / pExp) +
+            2 * Real.sqrt (M0 * S ^ ((pExp - p0) / pExp)) *
+              Real.sqrt G := by ring
+  have hhigh_raw :=
+    intervalDomain_higher_Lp_le_Linf_rpow_mul_seed
+      (f := u t) hf_nonneg hf_bdd
+      (pExp := p0) (rho := pExp + rho - p0)
+      hp0_nonneg hhigh_minus_nonneg hhigh_left_int hseed_int
+  have hhigh_seed :
+      intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤
+        U ^ (pExp + rho - p0) * seed := by
+    have hpow : p0 + (pExp + rho - p0) = pExp + rho := by ring
+    simpa [U, seed, hpow] using hhigh_raw
+  have hU_alpha :
+      U ^ (pExp + rho - p0) =
+        S ^ ((pExp + rho - p0) / pExp) := by
+    have hmul :
+        pExp * ((pExp + rho - p0) / pExp) =
+          pExp + rho - p0 := by
+      field_simp [ne_of_gt hpExp_pos]
+    calc
+      U ^ (pExp + rho - p0) =
+          U ^ (pExp * ((pExp + rho - p0) / pExp)) := by
+            rw [hmul]
+      _ = (U ^ pExp) ^ ((pExp + rho - p0) / pExp) := by
+            rw [Real.rpow_mul hU_nonneg]
+      _ = S ^ ((pExp + rho - p0) / pExp) := by
+            rfl
+  have hhigh_le_seed :
+      intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤
+        M0 * S ^ ((pExp + rho - p0) / pExp) := by
+    have hseed_t : seed ≤ M0 := by
+      dsimp [seed]
+      exact hseed_bound t ht0 htT
+    have hcoef_nonneg : 0 ≤ U ^ (pExp + rho - p0) :=
+      Real.rpow_nonneg hU_nonneg _
+    calc
+      intervalDomain.integral (fun x => (u t x) ^ (pExp + rho))
+          ≤ U ^ (pExp + rho - p0) * seed := hhigh_seed
+      _ ≤ U ^ (pExp + rho - p0) * M0 :=
+          mul_le_mul_of_nonneg_left hseed_t hcoef_nonneg
+      _ = M0 * S ^ ((pExp + rho - p0) / pExp) := by
+          rw [hU_alpha]
+          ring
+  have hscalar :
+      M0 * S ^ ((pExp + rho - p0) / pExp) ≤
+        eps * G + scalarSeedAgmonAbsorbConstant M0 pExp p0 rho eps :=
+    scalar_seed_agmon_absorb hM0_nonneg hS_nonneg hG_nonneg
+      hp0_pos hpExp hrho hrho_lt_two_p0 heps hSineq
+  exact le_trans hhigh_le_seed (by simpa [G] using hscalar)
 
 end ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
 

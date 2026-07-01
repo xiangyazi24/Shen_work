@@ -3,14 +3,11 @@
 ## CURRENT STATE (2026-07-01, code-derived)
 
 Authoritative checks from the current tree:
-- Real proof holes in Lean code: **1** `sorry` in Paper1
-  (`IntervalP1PerStepFixedSource.lean`), **1** `sorry` in
-  `P3MoserAgmonDirectRoute.lean` (`produce_AgmonAbsorbedInterpolationBefore_of_classical`
-  — producer of the Agmon-absorbed interpolation from classical solution).
-  The architecture sorry (5 steps) were filled by Codex (gpt-5.5) and
-  verified green on uisai2 (3561 jobs, axioms `[propext, Classical.choice,
-  Quot.sound]`). The Agmon/direct-1D route wiring + integrated closure
-  extensions (+1318 lines across 8 files) are axiom-clean.
+- Proof-hole scan: no proof-level `sorry`, `admit`, or custom `axiom`
+  declaration remains under `ShenWork/**/*.lean`.  The current scanner command
+  only matches two documentation/comment false positives:
+  `Wiener/EWA/SourceRealizationFrontier.lean` and
+  `Paper1/RotheFloorOrbitDataImpl.lean`.
 - Last full remote build: after adding the Paper2 structured-Moser and
   actual-atom Proposition 2.5 frontiers, the common-free actual-atom
   Corollary 2.1 / Proposition 2.5 headline route, the mass-gradient reduction
@@ -41,10 +38,65 @@ Authoritative checks from the current tree:
   through `P3MoserRegularityProducer`,
   `IntervalDomainMoserLadderAtoms`, and
   `Paper2.IntervalDomainStatementAssembly`, the remote uisai2 target build
-  `lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  `lake build ShenWork.PDE.P3MoserRegularityProducer
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
   ShenWork.Paper2.IntervalDomainStatementAssembly` completed successfully
-  (3749 jobs).  The new integrated-Moser wrappers print only
+  (3749 jobs).  `P3MoserEnergyContinuity` also builds on uisai2 (3558 jobs).
+  The new integrated-Moser wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
+  coefficient-gap surplus wrapper
+  `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
+  `P3MoserEnergyContinuity` proves strict-window derivative integrability of
+  interval-domain Moser energies from classical regularity, identifies positive
+  global-time derivatives with the explicit
+  `intervalDomainPowerEnergyDerivIntegral`, and reduces full closed-window FTC
+  to endpoint energy continuity plus the honest left-endpoint residual
+  `IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability`.
+  That residual is now further reduced, under global classical positivity, to
+  the weighted Lp time-term residual
+  `IntervalDomainLpWeightedTimeTermInitialWindowIntegrability`, with direct
+  consumer wrappers ending at
+  `intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_weightedTimeTerm`.
+  The weighted residual is further reduced to initial-window integrability of
+  the single combined PDE-side scalar profile
+  `q * intervalDomainLpDiffusionIntegral q u s -
+    q * (params.χ₀ * intervalDomainLpChemotaxisIntegral params q u v s) +
+    q * intervalDomainLpLogisticIntegral params q u s`, packaged as
+  `IntervalDomainLpPDECombinedInitialWindowIntegrability` and consumed by
+  `intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeCombined`.
+  The stronger componentwise entry point is retained: initial-window
+  integrability of the three PDE component profiles
+  `intervalDomainLpDiffusionIntegral`,
+  `intervalDomainLpChemotaxisIntegral`, and
+  `intervalDomainLpLogisticIntegral`, packaged as
+  `IntervalDomainLpPDETermInitialWindowIntegrability` and consumed by
+  `intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeTerms`;
+  `intervalDomain_lpPDECombinedInitialWindowIntegrability_of_terms` bridges the
+  componentwise package to the combined package.  Conversely,
+  `intervalDomain_lpPDECombinedInitialWindowIntegrability_of_weightedTimeTerm_initial`
+  and `intervalDomain_weightedTimeTermInitialWindowIntegrability_of_pdeCombined_initial`
+  identify the weighted-time and combined-PDE initial residuals under global
+  classical regularity, using only positive times.
+  A separate positive-left-start/initial-edge split is now exposed by
+  `IntervalDomainLpPDETermPositiveStartWindowIntegrability`,
+  `IntervalDomainLpPDETermPositiveStartWindowContinuity`, and
+  `intervalDomain_lpPDETermClosedWindowIntegrability_of_initial_and_positiveStart`;
+  the logistic component of the positive-start continuity package is now
+  produced from global classical regularity by
+  `intervalDomain_lpLogisticIntegral_continuousOn_positiveStart_of_global_classical`,
+  and
+  `intervalDomain_lpPDETermPositiveStartWindowContinuity_of_diffusionChemotaxis_global_logistic`
+  reduces the remaining positive-start continuity frontier to the diffusion
+  and chemotaxis scalar profiles.  The remaining positive-start scalar
+  continuity is further reduced by
+  `IntervalDomainLpDiffusionChemotaxisPositiveStartIntegrandJointContinuity`
+  and
+  `intervalDomain_lpPDETermPositiveStartWindowContinuity_of_integrandJoint_global_logistic`
+  to joint continuity of the two lifted diffusion/chemotaxis integrands on
+  `[a,b] × [0,1]`.  Current APIs still do not produce the initial-edge
+  combined PDE-profile integrability from `InitialTrace` or endpoint energy
+  continuity alone.
 
 Current headline status:
 - Short audit table for the Paper1--Paper3 headline wrappers:
