@@ -1,266 +1,452 @@
-# Q2903 (shen1) — anchored gradient time-integrability from raw integrability
+# Q2906 (shen1) — next frontier after anchoring: raw Moser-gradient time integrability
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
-Target files: `ShenWork/PDE/P3MoserEnergyContinuity.lean`, `ShenWork/PDE/P3MoserRegularityProducer.lean`  
+Target files: `ShenWork/PDE/P3MoserEnergyContinuity.lean`, `ShenWork/PDE/P3MoserRegularityProducer.lean`, nearby Paper2/PDE Moser files  
 Source edit requested: none; answer file only.
 
 ## Verdict
 
-Yes. The anchored gradient time-integrability is honestly derivable from the raw one, because the anchored and raw time integrands differ only at `t = 0`, and `{0}` is `volume`-null. This is exactly an **a.e. congruence** problem under the restricted measure
+The remaining raw gradient time-integrability input for
 
 ```lean
-volume.restrict (Set.uIcc (0 : ℝ) T)
+intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
 ```
 
-Do **not** use `IntegrableOn.congr_fun` as the primary route: it requires pointwise equality on the set, and `0 ∈ Set.uIcc 0 T`. The right route is `Integrable.congr` / `IntegrableOn` unfolded to `Integrable _ (volume.restrict s)` with an `=ᵐ[...]` proof.
+is still a **genuine analytic frontier**. It is not currently derivable from the visible proved classical/global/Picard/energy facts.
 
-No positivity, no `0 < T`, no regularity of `u₀`, and no gradient facts at `t = 0` are needed for this transfer. Integrability ignores one null time value.
-
-## Recommended helper definition
-
-This helper shortens all statements and avoids duplicating the long integrand.
+What anchoring solved:
 
 ```lean
-import ShenWork.PDE.P3MoserEnergyContinuity
-import ShenWork.PDE.P3MoserRegularityProducer
+u 0 = u₀      -- for the anchored representative
+InitialTrace  -- preserved
+Classical/global positive-time facts -- preserved
+raw gradient time-integrability -> anchored gradient time-integrability -- by a.e. equality
+```
 
-open MeasureTheory Set Filter Topology
+What it did **not** solve:
+
+```lean
+∀ p, p0 ≤ p →
+  IntegrableOn
+    (fun t => intervalDomain.integral (fun x =>
+      (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (Set.uIcc (0 : ℝ) T) volume
+```
+
+for the raw positive-time representative `u`.
+
+The repo currently has wiring lemmas that consume either raw gradient time-integrability or the stronger closed-time gradient-energy continuity package, but I do not see a theorem producing these all-exponent Moser-gradient integrability facts from `IsPaper2GlobalClassicalSolution`, `InitialTrace`, `conjugatePicardLimit`, or the existing p=2 energy seed facts.
+
+## Existing wiring already present
+
+### `P3MoserIntegratedClosure.lean`
+
+The main regularity structure explicitly requires gradient time-integrability:
+
+```lean
+structure IntegratedMoserFirstCrossingRegularity
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop where
+  ...
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+```
+
+So this is not cosmetic: the first-crossing Moser step consumes it as part of its regularity package.
+
+### `P3MoserRegularityProducer.lean`
+
+This file already has the only cheap conversion available:
+
+```lean
+theorem intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hgrad :
+      ∀ p, p0 ≤ p →
+        ContinuousOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.Icc (0 : ℝ) T)) :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+```
+
+and the data-wrapper version:
+
+```lean
+theorem intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuityData
+    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 ≤ T)
+    (hdata : IntervalDomainIntegratedMoserGradientEnergyContinuityData u T p0) :
+    ∀ p, p0 ≤ p → ...
+```
+
+But `IntervalDomainIntegratedMoserGradientEnergyContinuityData` itself is not produced from current classical/Picard data; it is a stronger analytic input.
+
+### `P3MoserLemmas.lean`
+
+This file has useful p=2 seed regularity plumbing:
+
+```lean
+structure ClosedEnergyIdentityTraceData
+...
+theorem closedEnergyTrace_to_l2SeedRegularityFrontier
+```
+
+and `IntervalDomainClosedL2SeedBridge.to_frontier` in `IntervalDomainMoserActualAtoms.lean` packages p=2 closed energy data. This is not enough for the integrated first-crossing Moser regularity, which is indexed over **every** `p ≥ p0` and asks for the Moser-gradient energy of `u^(p/2)`, not just the L2 seed energy.
+
+### `P3MoserDissipationShape.lean`
+
+`IntegratedMoserDissipationDropBefore` contains an integral of the Moser gradient:
+
+```lean
+D.integral (fun x => (u t2 x) ^ p) -
+    D.integral (fun x => (u t1 x) ^ p) +
+  2 * ∫ s in t1..t2,
+    D.integral (fun x =>
+      (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+  C * p * ∫ s in t1..t2,
+    max 1 (D.integral (fun x => (u s x) ^ p))
+```
+
+But this is **not** a proof of `IntegrableOn` for the gradient integrand. In Lean, interval integrals are total; an inequality mentioning `∫` does not automatically give Bochner integrability of the integrand. The Moser first-crossing step separately asks for `hreg.gradientTimeIntegrable` exactly to avoid relying on an undefined/nonintegrable interval integral.
+
+So do not try to derive raw gradient integrability merely by pointing at the integrated drop inequality.
+
+## Why classical/global/Picard facts are insufficient as currently stated
+
+`IsPaper2ClassicalSolution` gives positive-time regularity on every strict interior window. This should be enough, with some work, to prove local-in-time integrability on `[a,b] ⊆ (0,T)`. It is not enough for integrability all the way down to `0`.
+
+The global solution interface gives classical solutions on every finite positive horizon, but still only at positive times. It does not include a near-zero estimate of the form
+
+```lean
+∫ t in 0..T, ∫ x, |∇(u(t)^(p/2))|^2 < ∞
+```
+
+nor a dominating bound such as `G_p(t) ≤ C t^{-α}` with `α < 1`.
+
+The Picard/conjugate route proves deleted-right initial trace and positive-time mild/classical facts, but the visible B-form initial-trace files only prove sup-norm approach to `u₀`. They do not prove an H1/gradient-energy estimate near `t = 0` for all Moser exponents.
+
+Thus the raw gradient time-integrability input is not just an artifact of anchoring; it is the next real analytic producer frontier.
+
+## Search terms/files to inspect
+
+Use these exact grep/search terms.
+
+### Regularity consumer and cheap conversions
+
+```text
+ShenWork/PDE/P3MoserRegularityProducer.lean
+```
+
+Search:
+
+```text
+IntervalDomainIntegratedMoserGlobalClassicalRegularityData
+IntervalDomainIntegratedMoserGradientEnergyContinuityData
+intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous
+intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuityData
+gradientTimeIntegrable
+```
+
+### First-crossing regularity requirement
+
+```text
+ShenWork/PDE/P3MoserIntegratedClosure.lean
+```
+
+Search:
+
+```text
+IntegratedMoserFirstCrossingRegularity
+gradientTimeIntegrable
+integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
+```
+
+### Integrated dissipation shape
+
+```text
+ShenWork/PDE/P3MoserDissipationShape.lean
+```
+
+Search:
+
+```text
+IntegratedMoserDissipationDropBefore
+IntegratedMoserDissipationDropBeforeCoeff
+integratedMoserDissipationDropBefore_of_integrated_energy
+```
+
+### p=2 seed only; not full Moser-gradient ladder
+
+```text
+ShenWork/PDE/P3MoserLemmas.lean
+ShenWork/PDE/IntervalDomainMoserActualAtoms.lean
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
+```
+
+Search:
+
+```text
+ClosedEnergyIdentityTraceData
+closedEnergyTrace_to_l2SeedRegularityFrontier
+IntervalDomainClosedL2SeedBridge
+IntervalDomainL2SeedRegularityFrontier
+l2SeedRegularity
+```
+
+### Picard/conjugate source
+
+```text
+ShenWork/Paper2/IntervalConjugatePicard.lean
+ShenWork/Paper2/IntervalBFormInitialTrace.lean
+ShenWork/Paper2/IntervalBFormEndToEnd.lean
+```
+
+Search:
+
+```text
+conjugatePicardLimit
+conjugatePicardLimit_initialTrace_of_conjugate_data
+BFormSpectralFrontier
+BFormBankedInputs
+gradientInitialApproach_of_BForm
+```
+
+These files currently support positive-time/classical/trace construction, not the all-exponent gradient time-integrability needed here.
+
+## Smallest useful wiring theorem if a stronger input is supplied
+
+If you can supply closed-time gradient-energy continuity, the existing wiring already proves integrability. The smallest producer theorem should just expose this route for the anchored global-classical trace package:
+
+```lean
+import ShenWork.PDE.P3MoserRegularityProducer
+import ShenWork.PDE.P3MoserEnergyContinuity
+
+open MeasureTheory Set
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-open scoped Topology Interval
+open scoped Interval
 
-noncomputable section
+namespace ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
-namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-
-/-- The Moser gradient-energy time integrand used by the regularity producer. -/
-def intervalDomainMoserGradientEnergyTimeIntegrand
-    (u : ℝ → intervalDomain.Point → ℝ) (p : ℝ) (t : ℝ) : ℝ :=
-  intervalDomain.integral (fun x =>
-    (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)
-
-end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-```
-
-If you prefer not to add a definition, inline it in the theorem. The proof is the same but much less readable.
-
-## Core AE equality lemma
-
-This is the main local lemma. It says the raw and anchored gradient time integrands are equal a.e. on the unordered interval.
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-
-/-- Re-anchoring at `t = 0` does not change the Moser gradient-energy integrand
-a.e. on any time interval, because the only changed time is the null singleton
-`{0}`. -/
-theorem intervalDomain_moserGradientEnergyTimeIntegrand_withInitialSlice_ae_eq_raw
-    {T p : ℝ}
+/-- If the raw representative has closed-time Moser-gradient energy continuity,
+then the anchored representative has the regularity package needed for
+integrated first crossing.  This is only wiring; the gradient continuity input is
+still analytic. -/
+theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored_gradientContinuous
+    {params : CM2Params} {T p0 : ℝ}
     {u₀ : intervalDomain.Point → ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ} :
-    (fun t =>
-      intervalDomainMoserGradientEnergyTimeIntegrand
-        (intervalDomainWithInitialSlice u₀ u) p t)
-      =ᵐ[volume.restrict (Set.uIcc (0 : ℝ) T)]
-    (fun t => intervalDomainMoserGradientEnergyTimeIntegrand u p t) := by
-  rw [ae_restrict_iff' measurableSet_uIcc]
-  have hne : ∀ᵐ t ∂(volume : Measure ℝ), t ≠ (0 : ℝ) := by
-    simp [MeasureTheory.ae_iff, MeasureTheory.measure_singleton]
-  filter_upwards [hne] with t ht_ne ht_mem
-  have hslice :
-      (fun y : intervalDomain.Point =>
-          ((intervalDomainWithInitialSlice u₀ u) t y) ^ (p / 2)) =
-        (fun y : intervalDomain.Point => (u t y) ^ (p / 2)) := by
-    funext y
-    simp [intervalDomainWithInitialSlice, ht_ne]
-  simp [intervalDomainMoserGradientEnergyTimeIntegrand, hslice]
-
-end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-```
-
-Notes:
-
-* `ht_mem` is intentionally unused; it is supplied by `ae_restrict_iff'` after restricting to `Set.uIcc 0 T`.
-* `measurableSet_uIcc` avoids a case split on `T`. Do not rewrite `Set.uIcc 0 T` to `Set.Icc 0 T` unless you have `0 ≤ T` and really need it.
-* If `simp` does not rewrite under the lambda, the explicit `hslice` equality above fixes it.
-
-## Main transfer theorem
-
-This is the theorem I recommend adding near the anchored producer, either in `P3MoserEnergyContinuity.lean` or in `P3MoserRegularityProducer.lean` if the gradient-data structure lives there.
-
-```lean
-namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-
-/-- Raw gradient time-integrability transfers to the re-anchored representative:
-the two time integrands differ only at `t = 0`, a null time. -/
-theorem intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw
-    {T p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ}
-    (hraw :
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hgradRaw :
       ∀ p, p0 ≤ p →
-        IntegrableOn
-          (fun t => intervalDomainMoserGradientEnergyTimeIntegrand u p t)
-          (Set.uIcc (0 : ℝ) T) volume) :
-    ∀ p, p0 ≤ p →
-      IntegrableOn
-        (fun t =>
-          intervalDomainMoserGradientEnergyTimeIntegrand
-            (intervalDomainWithInitialSlice u₀ u) p t)
-        (Set.uIcc (0 : ℝ) T) volume := by
-  intro p hp
-  have hraw' : Integrable
-      (fun t => intervalDomainMoserGradientEnergyTimeIntegrand u p t)
-      (volume.restrict (Set.uIcc (0 : ℝ) T)) :=
-    hraw p hp
-  have hae :=
-    intervalDomain_moserGradientEnergyTimeIntegrand_withInitialSlice_ae_eq_raw
-      (T := T) (p := p) (u₀ := u₀) (u := u)
-  -- `hae` is anchored = raw.  `Integrable.congr` orientation may require `.symm`
-  -- depending on the local elaboration.  The following orientation is usually right:
-  exact hraw'.congr hae.symm
-
-end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
-```
-
-If the last line complains about orientation, use:
-
-```lean
-  exact hraw'.congr hae
-```
-
-and define the AE lemma in the opposite orientation:
-
-```lean
-(fun t => intervalDomainMoserGradientEnergyTimeIntegrand u p t)
-  =ᵐ[volume.restrict (Set.uIcc (0 : ℝ) T)]
-(fun t => intervalDomainMoserGradientEnergyTimeIntegrand
-  (intervalDomainWithInitialSlice u₀ u) p t)
-```
-
-The robust pattern is:
-
-```lean
-  change Integrable
-      (fun t => intervalDomainMoserGradientEnergyTimeIntegrand
-        (intervalDomainWithInitialSlice u₀ u) p t)
-      (volume.restrict (Set.uIcc (0 : ℝ) T))
-  exact hraw'.congr hae.symm
-```
-
-where `hae : anchored =ᵐ[...] raw`.
-
-## Direct theorem without helper definition
-
-If you do not want to introduce `intervalDomainMoserGradientEnergyTimeIntegrand`, use this direct theorem. It is longer but matches the current producer field exactly.
-
-```lean
-theorem intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw_direct
-    {T p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u : ℝ → intervalDomain.Point → ℝ}
-    (hraw :
+        ContinuousOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+          (Set.Icc (0 : ℝ) T)) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain
+      (intervalDomainWithInitialSlice u₀ u) T p0 := by
+  have hgradRawInt :
       ∀ p, p0 ≤ p →
         IntegrableOn
           (fun t =>
             intervalDomain.integral (fun x =>
               (intervalDomain.gradNorm
                 (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-          (Set.uIcc (0 : ℝ) T) volume) :
+          (Set.uIcc (0 : ℝ) T) volume :=
+    intervalDomain_gradientTimeIntegrable_of_gradientEnergyContinuous hT.le hgradRaw
+  have hgradAnchored :
+      ∀ p, p0 ≤ p →
+        IntegrableOn
+          (fun t =>
+            intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm
+                (fun y => ((intervalDomainWithInitialSlice u₀ u) t y) ^ (p / 2)) x) ^ 2))
+          (Set.uIcc (0 : ℝ) T) volume :=
+    intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw hgradRawInt
+  exact intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
+    hT htrace hdatum hglobal hgradAnchored
+
+end ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+```
+
+Caveat: for the **raw** representative, closed-time continuity at `0` is often false or irrelevant because raw Picard stores zero at `t = 0`. So this theorem is only useful if the raw `u 0` has already been made compatible or if the continuity statement is actually for the anchored representative.
+
+The safer wiring theorem is the one you effectively already have: assume raw `IntegrableOn`, transfer to anchored by a.e. equality, then produce regularity.
+
+## Missing analytic statement to add
+
+The smallest honest missing producer is a near-zero/all-window Moser-gradient time-integrability theorem. A direct statement is:
+
+```lean
+/-- Analytic near-zero Moser-gradient time-integrability for the raw positive-time
+solution representative.  This is the missing producer, not mere wiring. -/
+theorem intervalDomain_rawMoserGradientTimeIntegrable_of_globalPicard
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    -- likely additional source-specific Picard/spectral smoothing data here
+    :
     ∀ p, p0 ≤ p →
       IntegrableOn
         (fun t =>
           intervalDomain.integral (fun x =>
             (intervalDomain.gradNorm
-              (fun y => ((intervalDomainWithInitialSlice u₀ u) t y) ^ (p / 2)) x) ^ 2))
-        (Set.uIcc (0 : ℝ) T) volume := by
-  intro p hp
-  have hraw' : Integrable
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+```
+
+But as written this is too strong for the currently visible hypotheses: `hglobal` and `htrace` alone do not contain a quantitative near-zero gradient estimate. The theorem should be proved from one of the following honest stronger packages.
+
+### Option A: direct near-zero estimate package
+
+```lean
+structure IntervalDomainMoserGradientNearZeroIntegrability
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+```
+
+This is essentially the current raw input, but named as the genuine analytic frontier.
+
+### Option B: quantitative smoothing estimate
+
+This is more informative and probably closer to a Picard/spectral proof:
+
+```lean
+structure IntervalDomainMoserGradientNearZeroSmoothingBound
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  bound :
+    ∀ p, p0 ≤ p →
+      ∃ C σ, 0 ≤ C ∧ σ < 1 ∧
+        ∀ t ∈ Set.Ioc (0 : ℝ) T,
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤ C * t ^ (-σ)
+```
+
+Then add a pure real-analysis theorem turning this bound into `IntegrableOn` on `Set.uIcc 0 T`. This is honest because it states the actual near-zero smoothing/integrability information needed.
+
+### Option C: spectral/Picard producer
+
+If the B-form/cosine machinery has enough coefficient decay, add a source-facing theorem such as:
+
+```lean
+theorem intervalDomain_rawMoserGradientTimeIntegrable_of_BFormSpectralFrontier
+    {params : CM2Params} {p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData params u₀}
+    (F : ShenWork.Paper2.BFormEndToEnd.BFormSpectralFrontier params DB)
+    -- plus any exponent/lower-bound hypotheses actually needed for rpow chain rule
+    :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm
+              (fun y => (conjugatePicardLimit params u₀ DB.T t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) DB.T) volume
+```
+
+This is likely the right long-term producer if the Picard construction can provide enough heat-smoothing / coefficient summability. But I do not see this theorem currently in the repo.
+
+## Why not derive it from integrated drop?
+
+A tempting theorem would be:
+
+```lean
+IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 →
+(power energy bounded/integrable) →
+gradientTimeIntegrable
+```
+
+This is not currently a safe Lean route. The integrated drop predicate is stated using total interval integrals and does not include `IntervalIntegrable`/`IntegrableOn` of the gradient integrand as a field. A Bochner interval integral inequality alone is not a reliable integrability proof in this setup.
+
+If you want this route, the missing statement would need to be strengthened to include integrability, e.g.
+
+```lean
+structure IntegratedMoserDissipationDropBeforeWithGradientIntegrability
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop where
+  drop : IntegratedMoserDissipationDropBefore D u T rho p0
+  gradientTimeIntegrable :
+    ∀ p, p0 ≤ p →
+      IntegrableOn
+        (fun t =>
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+        (Set.uIcc (0 : ℝ) T) volume
+```
+
+But that just moves the frontier into the dissipation producer. It is honest, though.
+
+## Recommended next Lean step
+
+Do not spend time trying to prove raw all-exponent gradient time-integrability from `IsPaper2GlobalClassicalSolution` plus `InitialTrace`; the current interfaces do not contain the needed near-zero gradient estimate.
+
+The highest-signal next step is to name the frontier explicitly and wire it cleanly:
+
+```lean
+def IntervalDomainRawMoserGradientTimeIntegrability
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p →
+    IntegrableOn
       (fun t =>
         intervalDomain.integral (fun x =>
           (intervalDomain.gradNorm
             (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-      (volume.restrict (Set.uIcc (0 : ℝ) T)) :=
-    hraw p hp
-  have hae :
-      (fun t =>
-        intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm
-            (fun y => ((intervalDomainWithInitialSlice u₀ u) t y) ^ (p / 2)) x) ^ 2))
-        =ᵐ[volume.restrict (Set.uIcc (0 : ℝ) T)]
-      (fun t =>
-        intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm
-            (fun y => (u t y) ^ (p / 2)) x) ^ 2)) := by
-    rw [ae_restrict_iff' measurableSet_uIcc]
-    have hne : ∀ᵐ t ∂(volume : Measure ℝ), t ≠ (0 : ℝ) := by
-      simp [MeasureTheory.ae_iff, MeasureTheory.measure_singleton]
-    filter_upwards [hne] with t ht_ne ht_mem
-    have hslice :
-        (fun y : intervalDomain.Point =>
-            ((intervalDomainWithInitialSlice u₀ u) t y) ^ (p / 2)) =
-          (fun y : intervalDomain.Point => (u t y) ^ (p / 2)) := by
-      funext y
-      simp [intervalDomainWithInitialSlice, ht_ne]
-    simp [hslice]
-  change Integrable
-      (fun t =>
-        intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm
-            (fun y => ((intervalDomainWithInitialSlice u₀ u) t y) ^ (p / 2)) x) ^ 2))
-      (volume.restrict (Set.uIcc (0 : ℝ) T))
-  exact hraw'.congr hae.symm
+      (Set.uIcc (0 : ℝ) T) volume
 ```
 
-Again, if `Integrable.congr` orientation differs locally, replace `hae.symm` by `hae` and orient the AE equality accordingly.
-
-## How to use in the anchored producer
-
-Your anchored producer can ask for raw gradient time-integrability instead:
+Then make the anchored producer consume this raw frontier:
 
 ```lean
-(hgradRaw :
-  ∀ p, p0 ≤ p →
-    IntegrableOn
-      (fun t => intervalDomain.integral (fun x =>
-        (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-      (Set.uIcc (0 : ℝ) T) volume)
+theorem intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored_rawGradient
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hgradRaw : IntervalDomainRawMoserGradientTimeIntegrability u T p0) :
+    IntegratedMoserFirstCrossingRegularity intervalDomain
+      (intervalDomainWithInitialSlice u₀ u) T p0 := by
+  exact intervalDomain_integratedMoserFirstCrossingRegularity_of_globalClassicalTraceAnchored
+    hT htrace hdatum hglobal
+    (intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw hgradRaw)
 ```
 
-and fill the anchored field by:
-
-```lean
-gradientTimeIntegrable :=
-  intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw hgradRaw
-```
-
-or, without the helper integrand definition:
-
-```lean
-gradientTimeIntegrable :=
-  intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw_direct hgradRaw
-```
-
-## Pitfalls
-
-1. `Set.uIcc 0 T` always contains `0`, including when `T < 0` and when `T = 0`. So pointwise `IntegrableOn.congr_fun` over the set is not enough.
-
-2. Do not try to prove the anchored and raw gradient integrands are equal at `t = 0`. They are generally not equal: the anchored slice is `u₀`, while the raw slice is `u 0`.
-
-3. Do not unfold or prove anything about `intervalDomain.gradNorm` at `u₀`. The anchored time integrand at `0` can be ignored by a.e. congruence. This avoids unnecessary spatial regularity assumptions on `u₀`.
-
-4. `ae_restrict_iff' measurableSet_uIcc` is the clean way to work under `volume.restrict (Set.uIcc 0 T)`. The singleton-null fact can be obtained by:
-
-```lean
-have hne : ∀ᵐ t ∂(volume : Measure ℝ), t ≠ (0 : ℝ) := by
-  simp [MeasureTheory.ae_iff, MeasureTheory.measure_singleton]
-```
-
-5. If `measurableSet_uIcc` is not in scope, import the interval integral/basic measure files already imported by `P3MoserEnergyContinuity`, or rewrite via `Set.uIcc_of_le` only if you have a sign hypothesis. The theorem above does not need a sign hypothesis, so prefer `measurableSet_uIcc`.
-
-## Bottom line
-
-The anchored producer should take the raw gradient integrability field and derive the anchored one internally by AE congruence. This is an honest cleanup: endpoint power-energy continuity needs anchoring, but time-integrability of the gradient energy is invariant under changing a single time slice.
+This theorem is pure wiring and should be provable now, assuming the names from your local anchored work. The **unconditional** headline still waits for a real producer of `IntervalDomainRawMoserGradientTimeIntegrability`, most likely from B-form/spectral heat-smoothing estimates or an explicitly strengthened integrated-energy producer.
