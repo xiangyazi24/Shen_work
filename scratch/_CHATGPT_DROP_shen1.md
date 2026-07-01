@@ -1,179 +1,208 @@
-# Q2966 (shen1) — P3MoserRegularityProducer threshold-plan refactor audit
+# Q2968 (shen1) — Moser ladder lowerAverage/upperDataGap residual audit
 
 Repo: `xiangyazi24/Shen_work`  
-Audited ref: current main `d9a5fb318daa3226f7ab9a622de1bb8bddbcf67c`  
-File: `ShenWork/PDE/P3MoserRegularityProducer.lean`  
-Scope: source audit only; no project source edits.
+Scope: source-grounded API audit; no project source edits.  
+Context assumed: local patch has already refactored
+`ShenWork/PDE/P3MoserRegularityProducer.lean` theorem
+`intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers`
+to call the direct threshold-plan producer and no longer take lowerAverage / upperDataGap fields.
 
-## Answer
+## Short answer
 
-Yes. It is sound to refactor
+Yes. There are still residual surfaces carrying lowerAverage / upperDataGap / window-frontier fields even though the direct threshold-plan route can use regularity + energy nonnegativity + integrated dissipation + relative interpolation.
 
-```lean
-intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
-```
+The lowest-risk concrete target is in:
 
-so that it calls the direct threshold-plan producer and removes the two high-excursion / upper-data-gap hypotheses
-
-```lean
-hlower : ... IntegratedMoserHighExcursionLowerAverageWindowFrontier ...
-hupperDataGap : ... IntegratedMoserWindowUpperDataGapFrontier ...
-```
-
-from the theorem signature.
-
-The current proof builds the anchored representative
-
-```lean
-let uA := intervalDomainWithInitialSlice u₀ u
-```
-
-then packages `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` solely in order to call
-
-```lean
-integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-```
-
-But `P3MoserRegularityProducer.lean` already imports
-
-```lean
-import ShenWork.PDE.P3MoserThresholdPlanProducer
-```
-
-and opens
-
-```lean
-open ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
-```
-
-The imported file provides exactly the interval-domain wrapper:
-
-```lean
-intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
-```
-
-with inputs
-
-```lean
-hreg hnonneg hdiss hrel hrho hp0_nonneg
-```
-
-For the anchored representative `uA`, the target theorem already has or can construct all of these:
-
-* `hreg` from
+* `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
+* structure:
   ```lean
-  intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
-    hglobal hT htrace hdatum hgrad
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
   ```
-* `hnonneg` from
+* conversion theorem/def:
   ```lean
-  intervalDomain_integratedMoserEnergyNonnegativity_of_classical
-    (p0 := p0) hsolA
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
   ```
-* `hdiss` by `simpa [uA] using hdiss`.
-* `hrel` by `simpa [uA] using hrel`.
-* `hrho` and `hp0_nonneg` directly.
 
-Then the existing positive-time congruence theorem
+This structure carries both:
 
 ```lean
-intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+lowerAverage : ... IntegratedMoserHighExcursionLowerAverageWindowFrontier ...
+upperDataGap : ... IntegratedMoserWindowUpperDataGapFrontier ...
 ```
 
-transfers the anchored step back to raw `u`.
-
-## Ordering / import / name-resolution notes
-
-No import obstruction: `ShenWork.PDE.P3MoserThresholdPlanProducer` is already imported at the top of `P3MoserRegularityProducer.lean`.
-
-No ordering obstruction if the proof calls the imported theorem directly. The local convenience theorem
+but it also already carries enough data to run the threshold-plan producer directly:
 
 ```lean
-intervalDomain_firstCrossingStep_of_lite_classical_integratedData
+classicalContinuityRegularity : ...
+integratedDissipation : ...
+relativeMoserInterpolation : ...
 ```
 
-appears later in the same file, so this target theorem should **not** call that local wrapper unless the file is reordered. Calling the imported
+The current conversion still calls the old upper-data-gap route:
 
 ```lean
-P3MoserThresholdPlanProducer.intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
+  ...
+  (h.lowerAverage hsol hcross hboot)
+  (h.upperDataGap hsol hcross hboot)
 ```
 
-avoids the ordering issue.
+That is now unnecessary.
 
-Name resolution should work unqualified because the namespace is opened, but the fully qualified call below is safer and minimal.
+## Safest Lean wiring patch
 
-The theorem name `..._upperDataGapFrontiers` becomes stale after the refactor. Keeping the name is the smallest API patch; renaming it would be cleaner but is not required for soundness. Connector code search for the exact theorem name only showed the defining file, so there is no visible separate caller to update, but I would still check locally with `grep` before landing.
+The safest first patch is proof-body-only: keep the structure fields for API compatibility, but make `to_integratedStepResiduals` ignore `lowerAverage` and `upperDataGap` and call the direct threshold-plan producer. This removes the actual proof dependency immediately without breaking existing constructors.
 
-## Exact minimal Lean patch
-
-Replace the theorem signature and proof body with the following. The rest of the file can stay as-is.
+Patch the `integratedStep` field in
+`IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals` as follows:
 
 ```lean
-/-- Produce a raw first-crossing step by running the direct threshold-plan route
-on the re-anchored representative, then transferring the positive-time step back
-to the raw trajectory.
+namespace
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
 
-All closed-time Moser inputs in this theorem are stated for
-`intervalDomainWithInitialSlice u₀ u`; only the final first-crossing step is
-exported back to raw `u`.  The old lower-average / upper-data-gap frontiers are
-no longer needed here because the threshold-plan producer consumes regularity,
-energy nonnegativity, dissipation, and relative interpolation directly. -/
-theorem
-    intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
-    {params : CM2Params} {T rho p0 : ℝ}
-    {u₀ : intervalDomain.Point → ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hT : 0 < T)
-    (htrace : InitialTrace intervalDomain u₀ u)
-    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
-    (hgrad : IntervalDomainRawMoserGradientTimeIntegrability u T p0)
-    (hdiss :
-      IntegratedMoserDissipationDropBefore intervalDomain
-        (intervalDomainWithInitialSlice u₀ u) T rho p0)
-    (hrel :
-      RelativeMoserInterpolationBefore intervalDomain
-        (intervalDomainWithInitialSlice u₀ u) T rho p0)
-    (hrho : 0 < rho)
-    (hp0_nonneg : 0 ≤ p0) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
-  let uA : ℝ → intervalDomain.Point → ℝ :=
-    intervalDomainWithInitialSlice u₀ u
-  have hglobalA :
-      IsPaper2GlobalClassicalSolution intervalDomain params uA v := by
-    simpa [uA] using
-      (intervalDomain_globalClassical_withInitialSlice
-        (u₀ := u₀) (u := u) (v := v) hglobal)
-  have hsolA : IsPaper2ClassicalSolution intervalDomain params T uA v :=
-    hglobalA.classical hT
-  have hregA :
-      IntegratedMoserFirstCrossingRegularity intervalDomain uA T p0 := by
-    simpa [uA] using
-      intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
-        hglobal hT htrace hdatum hgrad
-  have hstepA : IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0 :=
-    ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
-      .intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
-      hregA
-      (intervalDomain_integratedMoserEnergyNonnegativity_of_classical
-        (p0 := p0) hsolA)
-      (by simpa [uA] using hdiss)
-      (by simpa [uA] using hrel)
-      hrho hp0_nonneg
-  exact intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
-    (u₀ := u₀) (u := u) (T := T) (rho := rho) (p0 := p0)
-    (by simpa [uA] using hstepA)
+/-- Convert the actual-linear-small component lowerAverage/upperDataGap
+residual surface to the existing integrated-step actual-linear residual
+surface.
+
+The lower-average and upper-data-gap fields are no longer needed for the
+conversion: the direct threshold-plan producer only needs regularity, energy
+nonnegativity, integrated dissipation, relative interpolation, `rho_pos`, and
+`p0_nonneg`. -/
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+      p where
+  boundednessHyp := h.boundednessHyp
+  closedEnergyTrace := h.closedEnergyTrace
+  integratedStep := fun hsol hcross hboot =>
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+      (intervalDomain_classicalRegularityData_of_continuityRegularityData
+        (IsPaper2ClassicalSolution.T_pos hsol).le
+        (h.classicalContinuityRegularity hsol hcross hboot))
+      hsol
+      (h.integratedDissipation hsol hcross hboot)
+      (h.relativeMoserInterpolation hsol hcross hboot)
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+end
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
 ```
 
-## Why the old high-excursion route is not necessary here
+This is a strictly weaker dependency path than the current one: it uses an existing theorem already imported through `P3MoserRegularityProducer`, and it does not need the window frontiers.
 
-The high-excursion lower-average and upper-data-gap route is still available in the same file through helpers such as
+After that proof-body patch builds, the next API cleanup is to delete the two fields from the structure:
 
 ```lean
-intervalDomain_lowerAverageUpperDataGapData_of_classical
-intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
+  lowerAverage : ...
+  upperDataGap : ...
 ```
 
-but it is no longer necessary for this anchored raw global-classical theorem. The threshold-plan producer bypasses the explicit `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` package and derives `IntegratedMoserFirstCrossingStep` from the abstract regularity/nonnegativity/dissipation/interpolation data directly.
+But I would do that as a second patch because downstream constructors may still fill those fields. The proof-body change is the lowest-risk compile test.
 
-So the proposed refactor is a real residual reduction: it deletes two unnecessary hypotheses from this theorem without adding any new analytic input.
+## Closely related PDE-level package
+
+There is also a reusable PDE-level residual package in:
+
+```lean
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
+```
+
+namely:
+
+```lean
+IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
+```
+
+It carries:
+
+```lean
+classicalRegularity
+integratedDissipation
+relativeMoserInterpolation
+lowerAverage
+upperDataGap
+quantitativeEndpoint
+```
+
+but its conversion
+
+```lean
+IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_integratedMoserResiduals
+```
+
+already drops `lowerAverage` and `upperDataGap` entirely:
+
+```lean
+classicalRegularity := h.classicalRegularity
+integratedDissipation := h.integratedDissipation
+relativeMoserInterpolation := h.relativeMoserInterpolation
+quantitativeEndpoint := h.quantitativeEndpoint
+```
+
+So this package is already internally routed through the direct integrated-Moser residual surface:
+
+```lean
+IntervalDomainMassLpSmoothingIntegratedMoserResiduals
+```
+
+For this file, the safe API cleanup is even more direct: remove the `lowerAverage` and `upperDataGap` fields from
+`IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`, and remove the corresponding assignments from any constructors. The conversion itself needs no semantic change because it does not use those fields.
+
+However, because `Paper3/IntervalDomainActualLinearStatementAssembly.lean` still has a `to_lowerAverageUpperDataGapResiduals` constructor that populates those fields, I would first land the Paper3 proof-body reroute above, then remove fields from both structures in a coordinated API-cleanup patch.
+
+## What should not be refactored this way
+
+These packages still carry window/lower-upper frontiers, but they do **not** have enough data to feed the direct threshold-plan producer as-is:
+
+* `IntervalDomainPaper2Prop25LowerUpperFrontierData` in
+  `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`.
+  It only carries `lowerUpperFrontiers` plus `quantitativeEndpoint`; it does not carry regularity, integrated dissipation, or relative interpolation. So it is an alternate/historical lower-upper statement route, not a direct threshold-plan candidate.
+
+* `IntervalDomainMassLpSmoothingWindowFrontierResiduals` in
+  `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
+  It carries an opaque `windowFrontier : IntegratedMoserFirstCrossingFromWindowFrontier ...`, not regularity/dissipation/relative-interpolation inputs.
+
+* `IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals` in
+  `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
+  It carries `lowerUpperFrontiers`, not the threshold-plan input tuple.
+
+* `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals` in
+  `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+  It carries `lowerUpperFrontiers`, not the direct regularity/dissipation/relative-interpolation package.
+
+Those can remain as alternative WIP / historical routes unless you want to delete old APIs wholesale.
+
+## Remaining genuine analytic inputs after the safe reroute
+
+The direct threshold-plan route still genuinely needs the following residuals, depending on which surface is used:
+
+* closed-time Moser regularity:
+  ```lean
+  IntervalDomainIntegratedMoserClassicalRegularityData
+  ```
+  or the continuity version
+  ```lean
+  IntervalDomainIntegratedMoserClassicalContinuityRegularityData
+  ```
+* integrated dissipation:
+  ```lean
+  IntegratedMoserDissipationDropBefore
+  ```
+* relative Moser interpolation:
+  ```lean
+  RelativeMoserInterpolationBefore
+  ```
+* endpoint / boundedness closure:
+  ```lean
+  IntervalDomainMoserQuantitativeEndpoint
+  ```
+  or the later terminal pointwise endpoint wrappers.
+* L² seed / closed-energy trace fields in the Paper3 Moser ladder.
+* unrelated Paper3 global/sectorial residuals: compactness, resolvent, stability24, continuation, and Paper2 main theorem input where applicable.
+
+So the next residual reduction should **not** claim to prove any analytic estimate. It should only remove the now-obsolete lowerAverage / upperDataGap dependency from the conversion path that already has the threshold-plan data.
