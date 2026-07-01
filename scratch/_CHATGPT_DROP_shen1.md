@@ -1,93 +1,103 @@
-# Q2993 (shen1) — Paper2 Prop. 2.5 regular-energy coefficient-gap surface
+# Q2996 (shen1) — PDE/Paper3 ladder surface for regular-energy coefficient-gap route
 
 Repo: `xiangyazi24/Shen_work`  
-Audited committed HEAD: `e559581bb93e0036af36f7e6f12f5e719e6c065e` (`Expose fixed Moser dissipation coefficient-gap route`)  
-Pending local theorem assumed present and already producer-target built:
+Audited committed HEAD: `af19f8478ce16c590db64981f0dd0367d8560646` (`Add coefficient-gap first-crossing producer`)  
+Assumed local pending patch: `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` already adds
+`IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData` plus its Prop. 2.5 / Cor. 2.1 / thin bootstrap target wrappers, and that patch has built on uisai2.
 
-```lean
-intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
-```
-
-Scope: source-grounded Lean audit/design for the next additive **Paper2 surface only**.  
+Scope: source-grounded Lean audit/design for the next additive **PDE/Paper3 ladder surface only**.  
 Constraint respected: do **not** touch `ShenWork/PDE/P3MoserHighExcursionProducer.lean`.  
-Additive only: no replacement of existing integrated-step, integrated-Moser, lower/upper, or actual-atom packages.
+Additive only: no replacement/deletion of existing integrated-step, integrated-Moser, window-frontier, lower/upper, or Paper3 actual-linear routes.
 
 ## Executive answer
 
-The canonical file is:
+The next PDE surface should live in:
 
 ```text
-ShenWork/Paper2/IntervalDomainStatementAssembly.lean
+ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
 ```
 
-not the generic `ShenWork/Paper2/StatementAssembly.lean`.  The interval-domain statement file already imports and opens the needed PDE Moser modules:
+Add it immediately after:
 
 ```lean
-import ShenWork.PDE.P3MoserActualWiring
-import ShenWork.PDE.P3MoserIntegratedClosure
-import ShenWork.PDE.P3MoserLemmas
-import ShenWork.PDE.P3MoserRegularityProducer
-
-open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
-open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
-open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
-```
-
-The existing Prop. 2.5 integrated-step package is already the right target:
-
-```lean
-IntervalDomainPaper2Prop25IntegratedStepFrontierData
-```
-
-It carries exactly:
-
-```lean
-integratedStep :
-  ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-    IsPaper2ClassicalSolution intervalDomain p T u v →
-    CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-    AbstractLpBootstrapHypothesis intervalDomain u
-      (p.N : ℝ) T rho p0 →
-      IntegratedMoserFirstCrossingStep intervalDomain u T rho p0
-
-quantitativeEndpoint : ...
-```
-
-So the new surface should be an additive refinement that produces that `integratedStep` field using the pending PDE theorem, while forwarding the already-existing quantitative endpoint field unchanged.
-
-## Placement
-
-Add the following block in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` immediately after:
-
-```lean
-end IntervalDomainPaper2Prop25IntegratedMoserFrontierData
+end IntervalDomainMassLpSmoothingIntegratedMoserResiduals
 ```
 
 and before:
 
 ```lean
-/-- Lower-average / upper-gap split frontier for interval-domain Proposition
-2.5 and Corollary 2.1. -/
-structure IntervalDomainPaper2Prop25LowerUpperFrontierData
+/-- Lower-level inputs that refine `IntegratedStepResiduals` by replacing
+the opaque `integratedStep` field with an explicit high-excursion
+contradiction-window frontier supplier. -/
+structure IntervalDomainMassLpSmoothingWindowFrontierResiduals
 ```
 
-This keeps the new route adjacent to the existing integrated-Moser and integrated-step Prop. 2.5 surfaces, and it does not disturb the lower/upper frontier package.
-
-## Exact Lean code
-
-No new import or open is needed in `IntervalDomainStatementAssembly.lean` once the pending local theorem is present in `P3MoserRegularityProducer.lean`, because that file already imports `ShenWork.PDE.P3MoserRegularityProducer` and opens `ShenWork.IntervalDomainExistence.P3MoserRegularityProducer`.
+This makes the new route a sibling of the existing `IntervalDomainMassLpSmoothingIntegratedMoserResiduals` surface, and it converts to the canonical package:
 
 ```lean
-/-- Regular-energy coefficient-gap frontier for interval-domain Proposition 2.5
-and Corollary 2.1.
+IntervalDomainMassLpSmoothingIntegratedStepResiduals
+```
 
-Compared with `IntervalDomainPaper2Prop25IntegratedMoserFrontierData`, this
-surface does not carry a pre-built integrated dissipation field.  Instead it
-carries the regular-energy sources used by the fixed coefficient-gap route:
-classical regularity data, the energy-window FTC, relative Moser interpolation,
-and the coefficient gap. -/
-structure IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
-    (p : CM2Params) : Prop where
+That package is already the right junction because it supplies:
+
+```lean
+corollary21
+proposition25
+to_routeResiduals
+aprioriBound
+```
+
+from one integrated first-crossing step plus the quantitative endpoint.
+
+## Why not import the new Paper2 frontier into the PDE file?
+
+Do **not** import `ShenWork.Paper2.IntervalDomainStatementAssembly` into `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.  The PDE ladder file should remain below the Paper2 statement assembly layer.  The new Paper2 frontier and this new PDE residual should be parallel surfaces with the same data shape:
+
+* Paper2 surface: statement-level Prop. 2.5 / Cor. 2.1 package.
+* PDE surface: mass/Lp/smoothing ladder package that converts to `IntervalDomainMassLpSmoothingIntegratedStepResiduals`.
+
+This avoids a layering/cycle risk while still routing through the same integrated-step atom produced by:
+
+```lean
+intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+```
+
+## Exact PDE code
+
+No new import is needed in `IntervalDomainMoserLadderAtoms.lean`.  At `af19f847`, it already imports:
+
+```lean
+import ShenWork.PDE.P3MoserRegularityProducer
+```
+
+and already opens:
+
+```lean
+open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
+```
+
+Add this block at the placement above:
+
+```lean
+/-- Lower-level inputs that produce the integrated first-crossing step from the
+regular-energy coefficient-gap route.
+
+This is the mass/Lp/smoothing residual analogue of the Paper2
+`IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData` surface.  It
+keeps the route additive: the existing integrated-step, integrated-Moser,
+window-frontier, and lower/upper frontier packages remain unchanged. -/
+structure IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
   classicalRegularity :
     ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T u v →
@@ -95,7 +105,7 @@ structure IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
       AbstractLpBootstrapHypothesis intervalDomain u
         (p.N : ℝ) T rho p0 →
         IntervalDomainIntegratedMoserClassicalRegularityData u T p0
-  windowFTC :
+  energyWindowFTC :
     ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T u v →
       CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
@@ -109,14 +119,13 @@ structure IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
       AbstractLpBootstrapHypothesis intervalDomain u
         (p.N : ℝ) T rho p0 →
         RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  coefficientGap :
+  coeffGap :
     ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T u v →
       CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
       AbstractLpBootstrapHypothesis intervalDomain u
         (p.N : ℝ) T rho p0 →
-        ∀ pExp, p0 ≤ pExp → ∀ A K : ℝ,
-          0 < A → 0 < K → (2 : ℝ) < pExp * A
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
   quantitativeEndpoint :
     ∀ {u₀ : intervalDomain.Point → ℝ},
       PositiveInitialDatum intervalDomain u₀ →
@@ -125,144 +134,229 @@ structure IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
       IsPaper2ClassicalSolution intervalDomain p T u v →
       InitialTrace intervalDomain u₀ u →
     ∀ pExp,
-      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
       LpPowerBoundedBefore intervalDomain pExp T u →
         ∃ pSeq rootBound : ℕ → ℝ,
           (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
             IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 
-namespace IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
+namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
 
-/-- Collapse the regular-energy coefficient-gap frontier to the existing
-integrated-step statement route. -/
-def toIntegratedStepFrontierData
+/-- Collapse the regular-energy coefficient-gap residuals to the canonical
+integrated-step mass/Lp/smoothing residual package. -/
+def to_integratedStepResiduals
     {p : CM2Params}
-    (h : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
-    IntervalDomainPaper2Prop25IntegratedStepFrontierData p where
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p) :
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
   integratedStep := fun hsol hcross hboot =>
     intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
       hsol
       hcross
       hboot
       (h.classicalRegularity hsol hcross hboot)
-      (h.windowFTC hsol hcross hboot)
+      (h.energyWindowFTC hsol hcross hboot)
       (h.relativeMoserInterpolation hsol hcross hboot)
-      (h.coefficientGap hsol hcross hboot)
+      (h.coeffGap hsol hcross hboot)
   quantitativeEndpoint := h.quantitativeEndpoint
 
-end IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
-```
-
-Then add the Prop. 2.5 wrapper near the existing integrated-step and integrated-Moser Prop. 2.5 wrappers, for example immediately after:
-
-```lean
-theorem intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierData
-```
-
-```lean
-/-- Regular-energy coefficient-gap frontier produces interval-domain
-Proposition 2.5 through the existing integrated-step statement route. -/
-theorem intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
-    p hData.toIntegratedStepFrontierData
-
-/-- Instance-facing regular-energy coefficient-gap Proposition 2.5 wrapper. -/
-theorem
-    intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierDataFact
-    (p : CM2Params)
-    [hData :
-      Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
-    Proposition_2_5 intervalDomain p :=
-  intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
-    p hData.out
-```
-
-This is the smallest viable Prop. 2.5-only surface.  It does not replace the existing `IntervalDomainPaper2Prop25IntegratedMoserFrontierData`; it adds a more upstream regular-energy coefficient-gap route into the same already-canonical integrated-step endpoint.
-
-## Optional sibling wrappers
-
-If you want the new surface to mirror the existing integrated-step and integrated-Moser routes completely, add these adjacent to the existing Corollary 2.1 and combined wrappers:
-
-```lean
-/-- Regular-energy coefficient-gap frontier produces interval-domain
-Corollary 2.1 through the existing integrated-step statement route. -/
-theorem intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
+/-- Corollary 2.1 from the regular-energy coefficient-gap residual package. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p) :
     Corollary_2_1 intervalDomain p :=
-  intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
-    p hData.toIntegratedStepFrontierData
+  h.to_integratedStepResiduals.corollary21
 
-/-- Regular-energy coefficient-gap frontier produces both Tier-1 Moser outputs. -/
-theorem
-    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
-    (p : CM2Params)
-    (hData : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
-    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
-  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
-    p hData.toIntegratedStepFrontierData
+/-- Proposition 2.5 from the regular-energy coefficient-gap residual package. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  h.to_integratedStepResiduals.proposition25
+
+/-- Build the old mass/Lp/smoothing residual package from the regular-energy
+coefficient-gap route. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_integratedStepResiduals.to_routeResiduals
+
+/-- A-priori bound from the regular-energy coefficient-gap residual package. -/
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_integratedStepResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
 ```
-
-The Prop. 2.5-only structure and theorem above are sufficient for the requested next additive Paper2 surface; these siblings are convenience surfaces.
 
 ## `#print axioms` lines
 
-Add these near the existing axiom-audit lines in `IntervalDomainStatementAssembly.lean`:
+Add these near the existing axiom audit block at the end of `IntervalDomainMoserLadderAtoms.lean`, immediately after the existing `IntervalDomainMassLpSmoothingIntegratedMoserResiduals` lines and before the `WindowFrontierResiduals` lines:
 
 ```lean
-#print axioms IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData.toIntegratedStepFrontierData
-#print axioms intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
-#print axioms intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierDataFact
-```
-
-If the optional Corollary 2.1 wrappers are added, also add:
-
-```lean
-#print axioms intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
-#print axioms intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+#print axioms
+  IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.corollary21
+#print axioms IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.proposition25
+#print axioms
+  IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.to_routeResiduals
+#print axioms IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.aprioriBound
 ```
 
 ## Build target
 
-For the additive Paper2 surface:
+For the additive PDE ladder surface:
 
 ```bash
-lake build ShenWork.Paper2.IntervalDomainStatementAssembly
+lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
 ```
 
-For root-closure confirmation:
+A useful combined check, matching the current campaign targets, is:
 
 ```bash
-lake build ShenWork
+lake build \
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms \
+  ShenWork.Paper2.IntervalDomainStatementAssembly \
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
 ```
 
-## Type-check and mismatch notes
+## Paper3 actual-linear wrapper: now or later?
 
-1. **Against committed `e559581b` alone, the exact code is expected to fail only because the pending theorem is not yet in the committed GitHub HEAD.**  The identifier
+I would **not** add a Paper3 actual-linear wrapper in the same patch unless an immediate Paper3 endpoint needs to consume this route.  The PDE surface above is the canonical next additive layer.  It already converts to `IntervalDomainMassLpSmoothingIntegratedStepResiduals`, and therefore to the existing route-level apriori package.  A Paper3 actual-linear wrapper would only be a parameter-side convenience wrapper that supplies:
 
-   ```lean
-   intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
-   ```
+```lean
+a_pos := ha
+chi_nonneg := le_of_lt hχ0
+```
 
-   must first be present in `ShenWork/PDE/P3MoserRegularityProducer.lean`.  The user reports that theorem is already pending locally and has built through the producer target, so the Paper2 code above is intended for that local tree.
+and forwards the same analytic fields.
 
-2. **The correct target is `IntervalDomainPaper2Prop25IntegratedStepFrontierData`, not `IntervalDomainMassLpSmoothingIntegratedStepResiduals`.**  The latter is a larger route-level package from `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean` and additionally requires:
+If you do want that convenience wrapper now, put it in:
 
-   ```lean
-   a_pos
-   chi_nonneg
-   boundednessHyp
-   l2SeedRegularity
-   quantitativeEndpoint
-   ```
+```text
+ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
+```
 
-   That would be too strong for a Prop. 2.5-only Paper2 surface.  The existing Paper2 statement assembly package is exactly the minimal surface: `integratedStep + quantitativeEndpoint`.
+inside the existing section:
 
-3. **No direct mismatch with `intervalDomain_LpBootstrapEnergyInequality_of_regularity` appears in the Paper2 surface.**  This surface delegates the energy construction to the pending PDE theorem.  The pending theorem receives the same `hsol`, `hcross`, and `hboot` arguments carried by the Paper2 package and internally produces the strict-time `LpBootstrapEnergyInequality`.
+```lean
+/-! ### Moser-ladder route with actual-linear persistence -/
+```
 
-4. **The coefficient-gap field is intentionally parameterized by the active bootstrap triple.**  In Prop. 2.5 the integrated-step consumer will instantiate the bootstrap with `rho = 2 * p.γ` via `intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms`, but Corollary 2.1 uses the bootstrap supplied by its hypothesis.  Therefore the field should stay fully polymorphic in `{T rho p0 u v}` rather than hard-coding `2 * p.γ`.
+immediately after:
 
-5. **The endpoint field must remain.**  `intervalDomain_endpointBoundFromLp_of_actual_integrated_step_atoms` consumes both an integrated first-crossing step supplier and the quantitative endpoint/root tower.  The new coefficient-gap route only produces the first-crossing step; it does not replace endpoint extraction.
+```lean
+def IntervalDomainMassLpSmoothingMoserActualLinearSmallResiduals.to_moserLadder
+```
+
+and before:
+
+```lean
+/-! ### Closed-energy seed variant -/
+```
+
+Optional exact code:
+
+```lean
+/-- Regular-energy coefficient-gap mass/Lp/smoothing residuals for the
+actual-linear-small regime.  The parameter-side fields `a_pos` and `chi_nonneg`
+are supplied by the actual-linear-small wrapper hypotheses. -/
+structure IntervalDomainMassLpSmoothingRegularEnergyCoeffGapActualLinearSmallResiduals
+    (p : CM2Params) where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  energyWindowFTC :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserEnergyWindowFTC intervalDomain u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coeffGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+/-- Build the generic regular-energy coefficient-gap residual package from the
+actual-linear-small parameter hypotheses. -/
+def IntervalDomainMassLpSmoothingRegularEnergyCoeffGapActualLinearSmallResiduals.to_regularEnergyCoeffGap
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapActualLinearSmallResiduals p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p where
+  a_pos := ha
+  chi_nonneg := le_of_lt hχ0
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  classicalRegularity := h.classicalRegularity
+  energyWindowFTC := h.energyWindowFTC
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  coeffGap := h.coeffGap
+  quantitativeEndpoint := h.quantitativeEndpoint
+```
+
+Optional Paper3 `#print axioms` line if that wrapper is added:
+
+```lean
+#print axioms
+  IntervalDomainMassLpSmoothingRegularEnergyCoeffGapActualLinearSmallResiduals.to_regularEnergyCoeffGap
+```
+
+But I recommend landing the PDE residual first.  The Paper3 actual-linear wrapper is mechanically harmless, but it is a convenience layer, not the next necessary proof frontier.
+
+## Smallest viable alternative if the named surface is ill-typed
+
+If Lean rejects the direct call to the producer theorem because namespace opening changes, qualify it explicitly:
+
+```lean
+ShenWork.IntervalDomainExistence.P3MoserRegularityProducer.
+  intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+```
+
+If the field name `energyWindowFTC` conflicts with local naming conventions, rename only the field to `windowFTC`; the type and converter remain identical.  To align with the already-pending Paper2 surface, I recommend keeping `energyWindowFTC`.
+
+If someone insists that the PDE residual must literally convert through the new Paper2 `IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData`, that is the wrong layer for `IntervalDomainMoserLadderAtoms.lean`: it would require importing `ShenWork.Paper2.IntervalDomainStatementAssembly` into a PDE ladder file.  The smallest viable and layer-safe alternative is exactly the converter above to `IntervalDomainMassLpSmoothingIntegratedStepResiduals`, which is already the canonical residual package used to recover Corollary 2.1, Proposition 2.5, the route residuals, and the apriori bound.
