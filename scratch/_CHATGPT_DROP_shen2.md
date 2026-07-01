@@ -1,343 +1,305 @@
-# Q2848 shen2: relative-Moser integration route audit
+# Q2854 shen2: pointwise-to-window energy input for integrated Moser absorption
 
 Repo target: `xiangyazi24/Shen_work`, Lean 4, default branch `main`.
 
-Files/APIs inspected directly:
+Files inspected directly:
 
 ```text
+ShenWork/Paper2/IntervalDomainLpBootstrapEnergyInequality.lean
+ShenWork/Paper2/IntervalDomainLpTimeLeibniz.lean
+ShenWork/Paper2/IntervalDomainEnergyStep.lean
 ShenWork/PDE/P3MoserIntegratedClosure.lean
-ShenWork/Paper2/IntervalDomainMoserClosure.lean
+ShenWork/PDE/P3MoserDissipationShape.lean
+ShenWork/PDE/P3MoserEnergyContinuity.lean
 ```
 
-Scope honored: no proposed edits to Zinan-owned
+I did not propose edits to:
 
 ```text
 ShenWork/PDE/P3MoserHighExcursionProducer.lean
 ```
 
-## Current state
+## Executive audit
 
-The pointwise predicate is exactly:
+The existing pointwise theorem
 
 ```lean
-def RelativeMoserInterpolationBefore
-    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
-    ∀ t, 0 < t → t < T →
-      D.integral (fun x => (u t x) ^ (p + rho)) ≤
-        eps * D.integral (fun x =>
-          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-        Ceps * D.integral (fun x => (u t x) ^ p)
+intervalDomain_LpBootstrapEnergyInequality_of_regularity
 ```
 
-So it is **strict interior only**: it gives a pointwise inequality only for
+already gives the strict-time pointwise energy inequality in the form needed for later integration:
 
 ```lean
-0 < t ∧ t < T
+henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0
 ```
 
-`P3MoserIntegratedClosure.lean` already has the strict interior integration lemma with a **pointwise current-energy bound**:
+For each `p ≥ p0`, this exposes constants
 
 ```lean
-relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_bound
+A > 0, B > 0, K > 0, L_const : ℝ
 ```
 
-and its gradient-bound variant:
+and a strict-interior pointwise estimate
 
 ```lean
-relativeMoser_higherPower_timeIntegral_le_of_Icc_currentLp_and_gradient_bound
+(1 / p) * deriv (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t
+  + A * G_p(t) + B * Y_p(t)
+≤ K * Z_(p+rho)(t) + L_const
 ```
 
-Those require:
+for `0 < t < T`.
+
+However, turning this into the closed-window input
 
 ```lean
-hab : a ≤ b
-ha : 0 < a
-hb : b < T
-hZ_int : IntervalIntegrable Z volume a b
-hG_int : IntervalIntegrable G volume a b
-hY_le : ∀ s ∈ Set.Icc a b, Y s ≤ M
+Y_p(t2) - Y_p(t1) + Awin * ∫ G_p ≤
+  C0 * p * ∫ max(1, Y_p) + Kwin * ∫ Z_(p+rho) + Lwin * ∫ max(1, Y_p)
 ```
 
-They are correct for high-excursion windows already encoded in this file, because those windows carry strict fields:
+requires two producer-side ingredients that are **not currently provided by** `IntervalDomainLpTimeLeibniz.lean` alone:
+
+1. an FTC/absolute-continuity theorem for the power energy `Y_p`; and
+2. an endpoint/a.e. integration bridge, because the pointwise estimate only holds on `0 < t < T`, while the target windows are closed and may include `0` or `T`.
+
+The scalar bookkeeping and constant exposure are provable once those two inputs are supplied. The coefficient surplus
 
 ```lean
-IntegratedMoserPrecrossingIntervalData.ha_pos : 0 < a
-IntegratedMoserPrecrossingIntervalData.hb_lt : b < T
+Kwin * eps ≤ Awin - theta
 ```
 
-The needed new shape is different: it wants a time-integrated lower-order term
+is **not** guaranteed by the existing `LpBootstrapEnergyInequality` type; it must be exposed as a separate surplus hypothesis/frontier, or the coefficient `theta` must be chosen after seeing the produced constants.
+
+## Existing names that matter
+
+### `IntervalDomainLpTimeLeibniz.lean`
+
+This file proves pointwise time differentiability on strict interior times:
 
 ```lean
-Ceps * ∫ max 1 Y_p(s)
+intervalDomain_lp_timeLeibniz
+intervalDomain_lp_timeLeibniz_intervalIntegral
+intervalDomain_lp_energy_hLpTime
+intervalDomain_lp_energy_hLpTime_frontier
 ```
 
-rather than `(b-a) * (Ceps * M)`.
-
-## 1. Strongest provable now: strict interior `max 1 Y` version
-
-This is the next small lemma Codex should add to `P3MoserIntegratedClosure.lean`. Insert it after
+The main output is:
 
 ```lean
+theorem intervalDomain_lp_energy_hLpTime_frontier
+    {p : CM2Params} {T q : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v) :
+    ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy q u τ) s =
+        q * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm q u s)
+```
+
+This is a pointwise derivative identity. It does **not** state that `Y_p` is absolutely continuous on every window, that `deriv Y_p` is interval-integrable, or that
+
+```lean
+∫ s in t1..t2, deriv Y_p s = Y_p t2 - Y_p t1
+```
+
+### `P3MoserEnergyContinuity.lean`
+
+This file supplies continuity, not FTC:
+
+```lean
+intervalDomain_energyContinuousOn_Ioo
+IntervalDomainPowerEnergyEndpointContinuity
+IntervalDomainInitialPowerEnergyContinuityAtZero
+intervalDomain_energyContinuousOn_Icc_of_classical_endpointContinuity
+```
+
+It is useful support for a future FTC proof, but continuity alone does not give the window identity for `∫ deriv Y_p`.
+
+### `P3MoserIntegratedClosure.lean`
+
+This file already contains the time-window infrastructure:
+
+```lean
+integratedMoserEnergy
+integratedMoserGradientEnergy
+IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
+IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
 intervalIntegrable_max_one_of_intervalIntegrable
+integratedMoserGradientEnergy_intervalIntegral_nonneg_of_package
 ```
 
-so that `integratedMoserEnergy`, `integratedMoserGradientEnergy`, and the max-integrability helper are already in scope.
+It also already records the strict-window design pattern: windows used by the high-excursion route carry
 
 ```lean
-/-- Strict-interior integrated relative-Moser estimate with the lower-order
-current energy kept as `∫ max 1 Y_p`.
-
-This is the strongest direct consequence of
-`RelativeMoserInterpolationBefore`: the interval must satisfy `0 < a` and
-`b < T`, because the pointwise relative interpolation hypothesis is only stated
-for strict interior times. -/
-theorem relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p a b eps : ℝ}
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
-    (hp : p0 ≤ p)
-    (heps : 0 < eps)
-    (hab : a ≤ b)
-    (ha : 0 < a)
-    (hb : b < T)
-    (hZ_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u (p + rho) s)
-        volume a b)
-    (hG_int :
-      IntervalIntegrable
-        (fun s => integratedMoserGradientEnergy D u p s)
-        volume a b)
-    (hY_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u p s)
-        volume a b) :
-    ∃ Ceps, 0 ≤ Ceps ∧
-      ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
-        eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
-        Ceps * (∫ s in a..b,
-          max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
-  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, hrel_eps⟩
-  have hYmax_int :
-      IntervalIntegrable
-        (fun s => max (1 : ℝ) (integratedMoserEnergy D u p s))
-        volume a b :=
-    intervalIntegrable_max_one_of_intervalIntegrable hY_int
-  have hR_int :
-      IntervalIntegrable
-        (fun s =>
-          eps * integratedMoserGradientEnergy D u p s +
-            Ceps * integratedMoserEnergy D u p s)
-        volume a b :=
-    (hG_int.const_mul eps).add (hY_int.const_mul Ceps)
-  have hpoint :
-      ∀ s ∈ Set.Icc a b,
-        integratedMoserEnergy D u (p + rho) s ≤
-          eps * integratedMoserGradientEnergy D u p s +
-            Ceps * integratedMoserEnergy D u p s := by
-    intro s hs
-    have hs0 : 0 < s := lt_of_lt_of_le ha hs.1
-    have hsT : s < T := lt_of_le_of_lt hs.2 hb
-    simpa [integratedMoserEnergy, integratedMoserGradientEnergy] using
-      hrel_eps s hs0 hsT
-  have hmono :
-      ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
-        ∫ s in a..b,
-          eps * integratedMoserGradientEnergy D u p s +
-            Ceps * integratedMoserEnergy D u p s :=
-    intervalIntegral.integral_mono_on hab hZ_int hR_int hpoint
-  have hR_eq :
-      (∫ s in a..b,
-          eps * integratedMoserGradientEnergy D u p s +
-            Ceps * integratedMoserEnergy D u p s) =
-        eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
-          Ceps * (∫ s in a..b, integratedMoserEnergy D u p s) := by
-    rw [intervalIntegral.integral_add
-      (hG_int.const_mul eps) (hY_int.const_mul Ceps)]
-    rw [intervalIntegral.integral_const_mul,
-      intervalIntegral.integral_const_mul]
-  have hY_le_max_point :
-      ∀ s ∈ Set.Icc a b,
-        integratedMoserEnergy D u p s ≤
-          max (1 : ℝ) (integratedMoserEnergy D u p s) := by
-    intro s _hs
-    exact le_max_right (1 : ℝ) (integratedMoserEnergy D u p s)
-  have hY_le_max_int :
-      ∫ s in a..b, integratedMoserEnergy D u p s ≤
-        ∫ s in a..b,
-          max (1 : ℝ) (integratedMoserEnergy D u p s) :=
-    intervalIntegral.integral_mono_on hab hY_int hYmax_int hY_le_max_point
-  have hscaled :
-      Ceps * (∫ s in a..b, integratedMoserEnergy D u p s) ≤
-        Ceps * (∫ s in a..b,
-          max (1 : ℝ) (integratedMoserEnergy D u p s)) :=
-    mul_le_mul_of_nonneg_left hY_le_max_int hCeps_nonneg
-  refine ⟨Ceps, hCeps_nonneg, ?_⟩
-  rw [hR_eq] at hmono
-  linarith
+ha_pos : 0 < a
+hb_lt : b < T
 ```
 
-Notes:
+because many pointwise PDE estimates are strict-interior only.
 
-* This theorem is purely a wrapper around `RelativeMoserInterpolationBefore` plus interval integration.
-* It does not need `Y ≥ 0`; the pointwise comparison `Y ≤ max 1 Y` is unconditional.
-* It still needs `ha : 0 < a` and `hb : b < T`.
-* It does not need `hYmax_int` as a user hypothesis because `intervalIntegrable_max_one_of_intervalIntegrable` already derives it from `hY_int`.
+## Minimal theorem layer 1: FTC/AC frontier for `Y_p`
 
-## 2. Strict-interior all-window version matching the desired input shape
-
-If the downstream wrapper can be changed to strict interior windows, use this shape:
+Add this frontier in `P3MoserIntegratedClosure.lean`, near the definitions of `integratedMoserEnergy` and `integratedMoserGradientEnergy`, or put the interval-domain producer in `P3MoserEnergyContinuity.lean` and import it.
 
 ```lean
-/-- Strict-interior all-window version of the integrated relative-Moser estimate.
-This is exactly the desired `hrelInt` shape, but only on windows contained in
-`(0,T)`. -/
-theorem relativeMoser_hrelInt_strictInterior
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 : ℝ}
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
-    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
-    (hrho_nonneg : 0 ≤ rho) :
-    ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
-      ∃ Ceps, 0 ≤ Ceps ∧
-        ∀ a b, a ≤ b → 0 < a → b < T →
-          ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
-            eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
-            Ceps * (∫ s in a..b,
-              max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
-  intro p hp eps heps
-  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, _hrel_eps⟩
-  refine ⟨Ceps, hCeps_nonneg, ?_⟩
-  intro a b hab ha hb
-  have hT_nonneg : 0 ≤ T := le_trans ha.le (le_of_lt hb)
-  have hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T := by
-    intro s hs
-    rw [Set.uIcc_of_le hT_nonneg]
-    exact ⟨le_trans ha.le hs.1, le_trans hs.2 (le_of_lt hb)⟩
-  have hp_rho : p0 ≤ p + rho := by linarith
-  have hZ_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u (p + rho) s) volume a b :=
-    hreg.power_intervalIntegrable_of_Icc hp_rho hab hsub
-  have hG_int :
-      IntervalIntegrable
-        (fun s => integratedMoserGradientEnergy D u p s) volume a b :=
-    hreg.gradient_intervalIntegrable_of_Icc hp hab hsub
-  have hY_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u p s) volume a b :=
-    hreg.power_intervalIntegrable_of_Icc hp hab hsub
-  exact
-    (relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne
-      (D := D) (u := u) (T := T) (rho := rho) (p0 := p0)
-      (p := p) (a := a) (b := b) (eps := eps)
-      hrel hp heps hab ha hb hZ_int hG_int hY_int).choose_spec.2
-```
+/-- Window FTC data for the Moser energy.  This is the missing bridge from the
+strict-time derivative identity to a closed-window energy difference.
 
-The last line above is skeleton-level; in a real proof, avoid `choose_spec.2` directly by `rcases` on the previous lemma and reuse the resulting `Ceps`. Since this theorem chooses `Ceps` before `a b`, the constant must be the same for all windows. That is okay: `Ceps` comes from `hrel p hp eps heps`, independent of the window.
-
-A more compile-oriented implementation would inline the proof of the first lemma after choosing `Ceps`, rather than calling the existential-returning lemma for each window and then needing proof that the chosen constant is the same.
-
-## 3. Closed-window version: not available from current pointwise API without an endpoint/a.e. bridge
-
-The desired input shape quantifies closed windows:
-
-```lean
-∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T, ...
-```
-
-This includes windows with `t1 = 0` and/or `t2 = T`. But `RelativeMoserInterpolationBefore` only applies at times satisfying `0 < s` and `s < T`.
-
-Mathematically, endpoint failure should be harmless for interval integrals: the endpoint set `{0,T}` is null. In Lean, however, the current repository integration lemma
-
-```lean
-intervalIntegral_le_const_mul_integral_add_length_mul_const_of_le_on
-```
-
-and the existing relative-Moser integration lemma use
-
-```lean
-intervalIntegral.integral_mono_on
-```
-
-which asks for pointwise comparison on `Set.Icc a b`. That is why the current in-repo relative integration lemmas require strict window hypotheses:
-
-```lean
-ha : 0 < a
-hb : b < T
-```
-
-So the closed-window version is not a direct consequence of the currently packaged repository APIs. The missing piece is not a PDE estimate; it is an endpoint/a.e. transport layer.
-
-## 4. Exact endpoint/a.e. frontier to add for closed windows
-
-If the compiled wrapper really requires closed windows, introduce this a.e. version in `P3MoserIntegratedClosure.lean`:
-
-```lean
-/-- A.e. relative-Moser interpolation on closed time windows.
-
-This is the exact endpoint bridge missing between the pointwise strict-interior
-`RelativeMoserInterpolationBefore` and closed-window time integration. -/
-def RelativeMoserInterpolationBeforeClosedWindowAE
+The derivative identity itself is supplied by `IntervalDomainLpTimeLeibniz`; this
+predicate asks for the stronger absolute-continuity/FTC consequence. -/
+def IntegratedMoserEnergyWindowFTC
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
-    ∃ Ceps, 0 ≤ Ceps ∧
-      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-        (∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)),
-          integratedMoserEnergy D u (p + rho) s ≤
-            eps * integratedMoserGradientEnergy D u p s +
-            Ceps * integratedMoserEnergy D u p s)
+    (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+    IntervalIntegrable
+      (fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s)
+      volume t1 t2 ∧
+    ∫ s in t1..t2,
+        deriv (fun τ => integratedMoserEnergy D u p τ) s =
+      integratedMoserEnergy D u p t2 - integratedMoserEnergy D u p t1
 ```
 
-Then add the closed-window integration theorem:
+A strict-window variant is easier and more faithful to current APIs:
 
 ```lean
-/-- Closed-window integrated relative-Moser estimate from an a.e. closed-window
-relative interpolation frontier. -/
-theorem relativeMoser_higherPower_timeIntegral_le_of_closedWindow_currentEnergy_maxOne_of_ae
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 p t1 t2 eps : ℝ}
-    (hrelAE : RelativeMoserInterpolationBeforeClosedWindowAE D u T rho p0)
-    (hp : p0 ≤ p)
-    (heps : 0 < eps)
-    (ht1 : t1 ∈ Set.Icc (0 : ℝ) T)
-    (ht2 : t2 ∈ Set.Icc t1 T)
-    (hZ_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u (p + rho) s)
-        volume t1 t2)
-    (hG_int :
-      IntervalIntegrable
-        (fun s => integratedMoserGradientEnergy D u p s)
-        volume t1 t2)
-    (hY_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u p s)
-        volume t1 t2) :
-    ∃ Ceps, 0 ≤ Ceps ∧
-      ∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s ≤
-        eps * (∫ s in t1..t2, integratedMoserGradientEnergy D u p s) +
-        Ceps * (∫ s in t1..t2,
-          max (1 : ℝ) (integratedMoserEnergy D u p s))
+def IntegratedMoserEnergyWindowFTCStrict
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ a b, a ≤ b → 0 < a → b < T →
+    IntervalIntegrable
+      (fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s)
+      volume a b ∧
+    ∫ s in a..b,
+        deriv (fun τ => integratedMoserEnergy D u p τ) s =
+      integratedMoserEnergy D u p b - integratedMoserEnergy D u p a
 ```
 
-Proof strategy:
+### Can this be proved now from `IntervalDomainLpTimeLeibniz`?
 
-1. `rcases hrelAE p hp eps heps with ⟨Ceps, hCeps_nonneg, hAE⟩`.
-2. Set `Y`, `G`, `Z`, `R := fun s => eps * G s + Ceps * Y s`.
-3. Prove `R` interval-integrable from `hG_int` and `hY_int`.
-4. Use an a.e. interval-integral monotonicity lemma to get
+Not as a one-line wrapper. `IntervalDomainLpTimeLeibniz` gives `HasDerivAt`/`deriv` equalities on strict times. To prove `IntegratedMoserEnergyWindowFTCStrict`, Codex still needs to package one of the following:
+
+```lean
+-- either a standard FTC theorem application:
+∀ p hp a b, a ≤ b → 0 < a → b < T →
+  IntervalIntegrable (fun s => deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s)
+    volume a b ∧
+  (∀ s ∈ Set.Icc a b,
+    HasDerivAt (fun τ => integratedMoserEnergy intervalDomain u p τ)
+      (deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s) s)
+```
+
+or a stronger absolute-continuity statement for `Y_p`. The derivative equality is present; the window FTC/absolute-continuity package is not.
+
+So: `intervalDomain_lp_energy_hLpTime_frontier` is already proved; `IntegratedMoserEnergyWindowFTCStrict` remains the next producer-side theorem/frontier.
+
+## Minimal theorem layer 2: pure strict-window integration of `LpBootstrapEnergyInequality`
+
+Once `IntegratedMoserEnergyWindowFTCStrict` is available, the following theorem is pure algebra/integration and should live in `P3MoserIntegratedClosure.lean`.
+
+```lean
+/-- Strict-window integration of `LpBootstrapEnergyInequality` into the
+higher-power integrated input shape.
+
+This theorem does not prove the FTC; it consumes `hFTC`.  It also does not prove
+coefficient surplus for a fixed `theta`; it exposes the produced coefficients. -/
+theorem integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_strict
+    {T rho p0 p a b : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hp : p0 ≤ p) (hp_pos : 0 < p)
+    (hab : a ≤ b) (ha : 0 < a) (hb : b < T)
+    (hFTC :
+      ∫ s in a..b,
+          deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s =
+        integratedMoserEnergy intervalDomain u p b -
+          integratedMoserEnergy intervalDomain u p a)
+    (hDeriv_int :
+      IntervalIntegrable
+        (fun s => deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s)
+        volume a b)
+    (hG_int :
+      IntervalIntegrable
+        (fun s => integratedMoserGradientEnergy intervalDomain u p s)
+        volume a b)
+    (hY_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy intervalDomain u p s)
+        volume a b)
+    (hZ_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy intervalDomain u (p + rho) s)
+        volume a b)
+    (hY_nonneg :
+      ∀ s ∈ Set.Icc a b, 0 ≤ integratedMoserEnergy intervalDomain u p s) :
+    ∃ Awin Kwin C0 Lwin : ℝ,
+      0 < Awin ∧ 0 ≤ Kwin ∧ 0 ≤ C0 ∧ 0 ≤ Lwin ∧
+      integratedMoserEnergy intervalDomain u p b -
+          integratedMoserEnergy intervalDomain u p a +
+        Awin * ∫ s in a..b, integratedMoserGradientEnergy intervalDomain u p s ≤
+        C0 * p *
+            (∫ s in a..b,
+              max (1 : ℝ) (integratedMoserEnergy intervalDomain u p s)) +
+          Kwin *
+            (∫ s in a..b, integratedMoserEnergy intervalDomain u (p + rho) s) +
+          Lwin *
+            (∫ s in a..b,
+              max (1 : ℝ) (integratedMoserEnergy intervalDomain u p s))
+```
+
+### Constants
+
+Unwrap the pointwise energy inequality:
+
+```lean
+rcases henergy p hp with ⟨A, hA, B, hB, K, hK, L_const, hpoint⟩
+```
+
+Use
+
+```lean
+Awin := p * A
+Kwin := p * K
+C0 := 0
+Lwin := max 0 (p * L_const)
+```
+
+Then:
+
+* `0 < Awin` follows from `hp_pos` and `hA`;
+* `0 ≤ Kwin` follows from `hp_pos.le` and `hK.le`;
+* `0 ≤ C0` is trivial;
+* `0 ≤ Lwin` is `le_max_left`.
+
+### Proof sketch
+
+1. For `s ∈ Icc a b`, strictness follows from `ha` and `hb`:
    ```lean
-   ∫ Z ≤ ∫ R
+   have hs0 : 0 < s := lt_of_lt_of_le ha hs.1
+   have hsT : s < T := lt_of_le_of_lt hs.2 hb
    ```
-   from `hAE t1 ht1 t2 ht2`.
-5. Rewrite `∫ R = eps * ∫ G + Ceps * ∫ Y`.
-6. Use `Y ≤ max 1 Y` pointwise and `Ceps ≥ 0` to replace `∫Y` by `∫max 1 Y`.
+2. Use `hpoint s hs0 hsT` and multiply by `p > 0` to get the pointwise inequality
+   ```lean
+   deriv Y s + (p*A) * G s + (p*B) * Y s ≤ (p*K) * Z s + p*L_const
+   ```
+3. Integrate this pointwise inequality over `a..b` using `intervalIntegral.integral_mono_on`.  Required interval-integrability hypotheses are exactly `hDeriv_int`, `hG_int`, `hY_int`, `hZ_int`, plus constants.
+4. Rewrite
+   ```lean
+   ∫ deriv Y = Y b - Y a
+   ```
+   with `hFTC`.
+5. Drop `(p*B) * ∫Y` from the left using `hY_nonneg`, `hY_int`, `hab`, and `hB`.
+6. Bound the constant term by the max-one integral:
+   ```lean
+   (b - a) ≤ ∫ s in a..b, max 1 (Y s)
+   ```
+   from `intervalIntegral.integral_mono_on hab intervalIntegrable_const hYmax_int` and the pointwise inequality `1 ≤ max 1 (Y s)`.  The file already has `intervalIntegrable_max_one_of_intervalIntegrable`, so `hYmax_int` follows from `hY_int`.
+7. `p*L_const*(b-a) ≤ Lwin * ∫max` follows by cases on the sign of `p*L_const`, using `Lwin = max 0 (p*L_const)`.
 
-The only nontrivial library/API point is step 4. If Mathlib exposes a usable name such as `intervalIntegral.integral_mono_ae`, use it. If not, add a local helper in this file:
+This theorem is a good Codex target after `IntegratedMoserEnergyWindowFTCStrict` exists. It does not touch high-excursion producers.
+
+## Minimal theorem layer 3: closed-window version
+
+The closed-window version needs endpoint/a.e. transport, because `henergy` only applies at strict times. The clean closed-window theorem should not use `intervalIntegral.integral_mono_on` directly with a pointwise proof on `Set.Icc t1 t2`; it should use an a.e. monotonicity helper.
+
+First add a local measure-theory helper if Mathlib does not expose a convenient name:
 
 ```lean
 /-- A.e. version of interval-integral monotonicity over a non-reversed interval. -/
@@ -348,114 +310,190 @@ theorem intervalIntegral_integral_mono_on_ae
     (hg : IntervalIntegrable g volume a b)
     (hle : ∀ᵐ s ∂(volume.restrict (Set.Ioc a b)), f s ≤ g s) :
     ∫ s in a..b, f s ≤ ∫ s in a..b, g s := by
-  -- proof should unfold `intervalIntegrable_iff_integrableOn_Ioc_of_le hab`
-  -- and use the Lebesgue integral monotonicity theorem on
-  -- `volume.restrict (Set.Ioc a b)`, then rewrite interval integrals by the
-  -- usual `intervalIntegral.integral_of_le` / Ioc representation.
+  -- unfold interval integrals to `volume.restrict (Set.Ioc a b)` via
+  -- `intervalIntegrable_iff_integrableOn_Ioc_of_le hab` and
+  -- `intervalIntegral.integral_of_le`, then use integral monotonicity for
+  -- a.e. ordered integrable functions.
   ...
 ```
 
-This helper is pure measure theory, not a PDE frontier.
-
-## 5. Can `RelativeMoserInterpolationBeforeClosedWindowAE` be derived from `RelativeMoserInterpolationBefore`?
-
-Mathematically yes, from endpoint-null facts. For each closed window `t1..t2` with
+Then add the endpoint-a.e. strictness lemma:
 
 ```lean
-t1 ∈ Set.Icc 0 T, t2 ∈ Set.Icc t1 T
-```
-
-we need the strict-interior condition a.e. on `Set.Ioc t1 t2`:
-
-```lean
-∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)), 0 < s ∧ s < T
-```
-
-The lower bound is easy because `s ∈ Ioc t1 t2` gives `t1 < s` and `0 ≤ t1`.
-The upper bound fails only at `s = T` when `t2 = T`, a singleton null set.
-
-A useful bridge theorem would be:
-
-```lean
-/-- The pointwise strict-interior relative-Moser predicate implies its a.e.
-closed-window version, after discarding endpoint singletons. -/
-theorem relativeMoserInterpolationBeforeClosedWindowAE_of_strictInterior
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
-    (hrel : RelativeMoserInterpolationBefore D u T rho p0) :
-    RelativeMoserInterpolationBeforeClosedWindowAE D u T rho p0 := by
-  intro p hp eps heps
-  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, hpoint⟩
-  refine ⟨Ceps, hCeps_nonneg, ?_⟩
-  intro t1 ht1 t2 ht2
-  -- Need to prove that almost every `s` in `volume.restrict (Set.Ioc t1 t2)`
-  -- satisfies `0 < s ∧ s < T`, then apply `hpoint s` and simp through
-  -- `integratedMoserEnergy` / `integratedMoserGradientEnergy`.
+/-- On any closed window inside `[0,T]`, almost every point of the interval
+integral lies in the strict interior `(0,T)`. -/
+theorem ae_strictInterior_of_closed_window
+    {T t1 t2 : ℝ}
+    (ht1 : t1 ∈ Set.Icc (0 : ℝ) T)
+    (ht2 : t2 ∈ Set.Icc t1 T) :
+    ∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)), 0 < s ∧ s < T := by
+  -- From `s ∈ Ioc t1 t2`, get `t1 < s`; with `0 ≤ t1`, get `0 < s`.
+  -- For `s < T`, use `s ≤ t2 ≤ T` and discard the possible singleton `s = T`.
+  -- The only failure is at `T`, a volume-null singleton.
   ...
 ```
 
-This should be provable with standard singleton-null lemmas, but it is not currently packaged in the repository. If Codex wants a low-risk step, add the strict-interior theorem first; then add this AE bridge and closed-window integration theorem separately.
-
-## 6. Regularity-fed closed-window `hrelInt` skeleton
-
-Once the a.e. bridge exists, the final wrapper matching the compiled input shape should be:
+Now the closed theorem has the same shape as the strict theorem, but consumes a closed-window FTC frontier:
 
 ```lean
-/-- Produce the closed-window `hrelInt` shape from first-crossing regularity and
-the a.e. closed-window relative-Moser frontier. -/
-theorem relativeMoser_hrelInt_closedWindow_of_regular_AE
-    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
-    {T rho p0 : ℝ}
-    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
-    (hrelAE : RelativeMoserInterpolationBeforeClosedWindowAE D u T rho p0)
-    (hrho_nonneg : 0 ≤ rho) :
-    ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
-      ∃ Ceps, 0 ≤ Ceps ∧
+theorem integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_closed
+    {T rho p0 p t1 t2 : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hp : p0 ≤ p) (hp_pos : 0 < p)
+    (ht1 : t1 ∈ Set.Icc (0 : ℝ) T)
+    (ht2 : t2 ∈ Set.Icc t1 T)
+    (hFTC :
+      ∫ s in t1..t2,
+          deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s =
+        integratedMoserEnergy intervalDomain u p t2 -
+          integratedMoserEnergy intervalDomain u p t1)
+    (hDeriv_int :
+      IntervalIntegrable
+        (fun s => deriv (fun τ => integratedMoserEnergy intervalDomain u p τ) s)
+        volume t1 t2)
+    (hG_int :
+      IntervalIntegrable
+        (fun s => integratedMoserGradientEnergy intervalDomain u p s)
+        volume t1 t2)
+    (hY_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy intervalDomain u p s)
+        volume t1 t2)
+    (hZ_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy intervalDomain u (p + rho) s)
+        volume t1 t2)
+    (hY_nonneg_ae :
+      ∀ᵐ s ∂(volume.restrict (Set.Ioc t1 t2)),
+        0 ≤ integratedMoserEnergy intervalDomain u p s) :
+    ∃ Awin Kwin C0 Lwin : ℝ,
+      0 < Awin ∧ 0 ≤ Kwin ∧ 0 ≤ C0 ∧ 0 ≤ Lwin ∧
+      integratedMoserEnergy intervalDomain u p t2 -
+          integratedMoserEnergy intervalDomain u p t1 +
+        Awin * ∫ s in t1..t2,
+          integratedMoserGradientEnergy intervalDomain u p s ≤
+        C0 * p *
+            (∫ s in t1..t2,
+              max (1 : ℝ) (integratedMoserEnergy intervalDomain u p s)) +
+          Kwin *
+            (∫ s in t1..t2,
+              integratedMoserEnergy intervalDomain u (p + rho) s) +
+          Lwin *
+            (∫ s in t1..t2,
+              max (1 : ℝ) (integratedMoserEnergy intervalDomain u p s))
+```
+
+This is the theorem shape needed to feed a closed-window wrapper.
+
+### What remains frontier in the closed theorem?
+
+The closed theorem still needs `hFTC`. Current `IntervalDomainLpTimeLeibniz` gives strict-time derivative identities, but not closed-window absolute continuity. The endpoint/a.e. strictness and a.e. monotonicity are pure measure-theory wrappers and should be provable; the general-p FTC/AC package remains the real producer-side frontier.
+
+## Surplus exposure for `K * eps ≤ A - theta`
+
+The pointwise-to-window theorem above exposes `Awin` and `Kwin`, but it cannot prove the surplus for fixed `theta`.
+
+The right separate predicate is:
+
+```lean
+/-- Coefficient surplus needed to use a relative-Moser epsilon in the integrated
+absorption theorem. -/
+def IntegratedHigherPowerEnergySurplus
+    (theta : ℝ) (T rho p0 : ℝ)
+    (u : ℝ → intervalDomain.Point → ℝ) : Prop :=
+  ∀ p, p0 ≤ p →
+    ∃ Awin Kwin : ℝ,
+      0 < Awin ∧ 0 ≤ Kwin ∧
+      theta < Awin ∧
+      -- optional: identify these with the constants chosen by the window energy
+      -- theorem, or bundle them in the same structure.
+      True
+```
+
+Better, avoid matching independent existential witnesses by bundling constants and the window inequality together:
+
+```lean
+structure IntegratedHigherPowerEnergyWindowInput
+    (theta : ℝ) (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop where
+  input : ∀ p, p0 ≤ p →
+    ∃ Awin Kwin C0 Lwin : ℝ,
+      0 < Awin ∧ 0 ≤ Kwin ∧ 0 ≤ C0 ∧ 0 ≤ Lwin ∧
+      theta < Awin ∧
+      (∀ eps, 0 < eps → Kwin * eps ≤ Awin - theta →
         ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
-          ∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s ≤
-            eps * (∫ s in t1..t2, integratedMoserGradientEnergy D u p s) +
-            Ceps * (∫ s in t1..t2,
-              max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
-  intro p hp eps heps
-  rcases hrelAE p hp eps heps with ⟨Ceps, hCeps_nonneg, hAE⟩
-  refine ⟨Ceps, hCeps_nonneg, ?_⟩
-  intro t1 ht1 t2 ht2
-  have hab : t1 ≤ t2 := ht2.1
-  have hsub : Set.Icc t1 t2 ⊆ Set.uIcc (0 : ℝ) T :=
-    Icc_subset_uIcc_zero_T_of_endpoint_memberships ht1 ht2
-  have hp_rho : p0 ≤ p + rho := by linarith
-  have hZ_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u (p + rho) s) volume t1 t2 :=
-    hreg.power_intervalIntegrable_of_Icc hp_rho hab hsub
-  have hG_int :
-      IntervalIntegrable
-        (fun s => integratedMoserGradientEnergy D u p s) volume t1 t2 :=
-    hreg.gradient_intervalIntegrable_of_Icc hp hab hsub
-  have hY_int :
-      IntervalIntegrable
-        (fun s => integratedMoserEnergy D u p s) volume t1 t2 :=
-    hreg.power_intervalIntegrable_of_Icc hp hab hsub
-  -- apply `relativeMoser_higherPower_timeIntegral_le_of_closedWindow_currentEnergy_maxOne_of_ae`
-  -- with the same `Ceps` from `hAE`; or inline the proof to avoid existential
-  -- mismatch.
-  ...
+          integratedMoserEnergy D u p t2 - integratedMoserEnergy D u p t1 +
+            Awin * ∫ s in t1..t2, integratedMoserGradientEnergy D u p s ≤
+          C0 * p *
+              (∫ s in t1..t2,
+                max (1 : ℝ) (integratedMoserEnergy D u p s)) +
+            Kwin *
+              (∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s) +
+            Lwin *
+              (∫ s in t1..t2,
+                max (1 : ℝ) (integratedMoserEnergy D u p s)))
 ```
 
-Again, the only missing implementation detail is the a.e. interval-integral monotonicity/endpoint bridge, not PDE analysis.
+If `theta < Awin`, the wrapper can choose
 
-## Recommendation
+```lean
+eps := (Awin - theta) / (2 * (Kwin + 1))
+```
 
-For immediate Codex work in `P3MoserIntegratedClosure.lean`:
+and prove `Kwin * eps ≤ Awin - theta` from `0 ≤ Kwin`. This is the same scalar surplus logic as Q2839.
 
-1. Land `relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne` first. It is strict interior and should compile with only existing APIs.
-2. Do **not** pretend this proves the closed-window `hrelInt` shape. It does not cover `t1 = 0` or `t2 = T` because `RelativeMoserInterpolationBefore` is strict interior.
-3. For closed windows, add the explicit a.e. bridge:
+### Can the surplus be proved from `intervalDomain_LpBootstrapEnergyInequality_of_regularity`?
+
+Not from the public type alone. `LpBootstrapEnergyInequality` only gives some `A > 0`; it does not guarantee `theta < A`, and for the fixed current target `theta = 2`, `A > 0` is insufficient. If the particular interval-domain construction has a larger explicit `Awin`, that requires a stronger theorem exposing the constructed constants, not merely the abstract `LpBootstrapEnergyInequality` existential.
+
+## Recommended implementation order
+
+1. **Pure helper** in `P3MoserIntegratedClosure.lean`:
    ```lean
-   RelativeMoserInterpolationBeforeClosedWindowAE
-   relativeMoserInterpolationBeforeClosedWindowAE_of_strictInterior
-   intervalIntegral_integral_mono_on_ae
-   relativeMoser_higherPower_timeIntegral_le_of_closedWindow_currentEnergy_maxOne_of_ae
+   intervalIntegral_length_le_integral_max_one
    ```
-4. Then add `relativeMoser_hrelInt_closedWindow_of_regular_AE` to feed the already-compiled closed-window wrapper.
+   from `hY_int` using `max ≥ 1`.
 
-This sequence cleanly separates the already-provable strict-window integration from the endpoint/a.e. transport needed by the closed-window wrapper.
+2. **FTC frontier**:
+   ```lean
+   IntegratedMoserEnergyWindowFTCStrict
+   IntegratedMoserEnergyWindowFTC
+   ```
+   The strict version is the immediate target. The closed version needs endpoint compatibility.
+
+3. **Strict pointwise-to-window theorem**:
+   ```lean
+   integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_strict
+   ```
+   This is pure once the strict FTC data is supplied.
+
+4. **Closed-window endpoint/a.e. bridge**:
+   ```lean
+   intervalIntegral_integral_mono_on_ae
+   ae_strictInterior_of_closed_window
+   integratedHigherPowerEnergyWindow_of_LpBootstrapEnergyInequality_closed
+   ```
+
+5. **Surplus-aware bundled input** for the local wrapper:
+   ```lean
+   IntegratedHigherPowerEnergyWindowInput
+   ```
+   Bundle constants with the window inequality so the later absorption wrapper does not have to match unrelated existential choices.
+
+## Classification
+
+| Piece | Status from current repo APIs |
+|---|---|
+| Pointwise derivative identity for `Y_p` on `0<t<T` | Already proved: `intervalDomain_lp_energy_hLpTime_frontier`. |
+| Pointwise `LpBootstrapEnergyInequality` from regularity | Already proved: `intervalDomain_LpBootstrapEnergyInequality_of_regularity`. |
+| Interior energy continuity | Already proved: `intervalDomain_energyContinuousOn_Ioo`. |
+| Closed energy continuity | Proved only with endpoint residual: `IntervalDomainPowerEnergyEndpointContinuity`. |
+| General-p FTC/absolute continuity for `Y_p` on windows | Not currently packaged; real next producer-side frontier. |
+| Strict-window integration of pointwise inequality after FTC | Pure wrapper; should be provable now once FTC data is an input. |
+| Closed-window integration from strict pointwise inequality | Needs pure a.e./endpoint integration bridge plus FTC. |
+| Surplus `K*eps ≤ A-theta` for fixed `theta` | Not implied by `LpBootstrapEnergyInequality`; must be an exposed coefficient/surplus assumption or use a coefficient-parameterized predicate. |
+
+## Bottom line
+
+The minimal next theorem is **not** another PDE estimate. It is a window FTC/absolute-continuity producer for `Y_p`, using the strict-time derivative identity already proved in `IntervalDomainLpTimeLeibniz`. Once that is available, Codex can add a pure `P3MoserIntegratedClosure` theorem integrating `LpBootstrapEnergyInequality` over strict windows. The closed-window version additionally needs an a.e. endpoint bridge. The fixed-coefficient absorption wrapper still needs surplus exposed explicitly; it cannot be recovered from the abstract pointwise energy inequality alone.
