@@ -62,6 +62,16 @@ Authoritative checks from the current tree:
   ShenWork.Paper2.IntervalDomainStatementAssembly
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs).
+- `P3MoserIntegratedClosure` now exposes
+  `intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap`,
+  the fixed `theta = 2` wrapper from the regular-energy coefficient-gap route
+  to the public `IntegratedMoserDissipationDropBefore` predicate.  The uisai2
+  target build `lake build ShenWork.PDE.P3MoserIntegratedClosure
+  ShenWork.PDE.P3MoserRegularityProducer
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs).
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

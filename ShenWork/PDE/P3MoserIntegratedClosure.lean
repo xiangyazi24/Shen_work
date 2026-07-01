@@ -1750,6 +1750,31 @@ theorem intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap
     intervalDomain_integratedMoserDissipationDropBeforeCoeff_of_windowEnergy_and_relative
       hboot hwindow hrelInt
 
+/-- Fixed-coefficient integrated Moser drop from the regular-energy
+coefficient-gap route.
+
+This specializes `intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap`
+to `theta = 2`, then converts the coefficient-parametric predicate to the
+public `IntegratedMoserDissipationDropBefore` predicate. -/
+theorem intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hFTC : IntegratedMoserEnergyWindowFTC intervalDomain u T p0)
+    (hreg : IntegratedMoserFirstCrossingRegularity intervalDomain u T p0)
+    (hnonneg : IntegratedMoserEnergyNonnegativity intervalDomain u T p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hgap :
+      ∀ p, p0 ≤ p → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < p * A) :
+    IntegratedMoserDissipationDropBefore intervalDomain u T rho p0 :=
+  integratedMoserDissipationDropBefore_of_coeff_two
+    (intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap
+      (params := params) (T := T) (rho := rho) (p0 := p0)
+      (theta := (2 : ℝ)) (u := u)
+      hboot henergy hFTC hreg hnonneg hrel hgap)
+
 /-- Extract an Icc current-energy bound from `LpPowerBoundedBefore`. -/
 theorem currentEnergy_Icc_bound_of_LpPowerBoundedBefore
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
@@ -2570,6 +2595,8 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
 #print axioms higherPowerWindowCoeffFrontier_of_regularEnergy
 #print axioms higherPowerWindowCoeffFrontier_of_regularEnergy_coeffGap
 #print axioms intervalDomain_dissipationCoeff_of_regularEnergy_coeffGap
+#print axioms
+  intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap
 #print axioms integratedMoserGradientEnergy_intervalIntegral_nonneg_of_forall
 #print axioms integratedMoserGradientEnergy_intervalIntegral_nonneg_of_nonneg_on
 #print axioms integratedMoserGradientEnergy_intervalIntegral_nonneg_of_package
