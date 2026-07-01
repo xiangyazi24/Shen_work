@@ -248,3 +248,32 @@ FIX NEEDED: refactor `chemDivSource_weakH2_of_uv_C4_global` to take:
   - `hv_even : ∀ x, V_cos (-x) = V_cos x`
 Then: build H2 for F = deriv(chemFluxFun β U_cos V_cos) using parity → deriv F 0 = 0,
 transfer to chemDivLift via congr_on_Icc + h_agree.
+
+---
+## [2026-06-30 NIGHT] GN-absorbed interpolation from Agmon — the CORRECT 1D Moser route
+
+### State
+Architecture committed in P3MoserAgmonDirectRoute.lean (5 sorry steps).
+The earlier diagnosis "1D Moser doesn't work" was WRONG — resolved by reading
+the paper's Lemma 2.6, which uses the SEED L^{p₀} norm (not the current L^p)
+as the GN lower-order term.
+
+### Route
+```
+proved Agmon (u^{p/2}) → Hölder with seed norm → sub-additivity + Young
+→ GN-absorbed interpolation: ∫u^{p+ρ} ≤ ε·G + C_ε
+→ feeds moser_iteration_chain (existing) → all Lp bounds
+→ + Agmon L∞ frontier → Proposition 2.5
+```
+
+### Key condition
+p₀ > ρ (so the exponent α = (p+ρ-p₀)/p < 1 for Young). This is the paper's
+p₀ > max{1, ρN/2}, which for N=1 gives p₀ > ρ/2. The AbstractLpBootstrapHypothesis
+already requires p₀ > max{1, ρN/2}.
+
+### Sorry inventory (P3MoserAgmonDirectRoute.lean)
+1. `intervalDomain_higher_Lp_le_Linf_rpow_mul_seed` — Hölder: ∫f^{p+ρ} ≤ ‖f‖∞^ρ · ∫f^p
+2. `intervalDomain_supNorm_rpow_le_energy_plus_gradient` — Agmon → ‖u‖∞^p bound
+3. `intervalDomain_gn_absorbed_interpolation_of_agmon` — THE MAIN LEMMA
+4. `intervalDomain_all_Lp_of_agmon_bootstrap` — moser_iteration_chain application
+5. `intervalDomain_Corollary_2_1_of_agmon` + `..._Proposition_2_5_of_agmon` — wiring
