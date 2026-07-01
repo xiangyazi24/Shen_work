@@ -1,391 +1,280 @@
-# Q2733 shen2: first bridge lemmas for interval Agmon/rpow
+# Q2749 shen2: remaining Paper2/Paper3 headline frontiers after Agmon closure
 
-Repo target: `xiangyazi24/Shen_work`, Lean 4. Default branch after commit `216cbc4f`.
+Repo target: `xiangyazi24/Shen_work`, Lean 4.
 
-Scope honored: non-Zinan files only. I did not touch or rely on `ShenWork/PDE/P3MoserHighExcursionProducer.lean` or `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
-
-Files inspected:
+Current user-supplied state taken as baseline:
 
 ```text
-ShenWork/PDE/IntervalAgmonInterpolation.lean
-ShenWork/PDE/IntervalDomain.lean
-ShenWork/PDE/GagliardoNirenberg.lean
-ShenWork/PDE/IntervalEllipticCharacterization.lean
-ShenWork/Paper2/IntervalMildPicardRegularity.lean
-ShenWork/Paper2/IntervalResolverPowerDecay.lean
+lake build ShenWork   # succeeded remotely, 8988 jobs
+IntervalAgmonInterpolation.lean proves unitIntervalPositiveAgmonInterpolation
+IntervalAgmonInterpolation.lean proves intervalDomain_classicalSolutionPositiveInterpolation
+#print axioms only propext/Classical.choice/Quot.sound for those endpoints
 ```
 
-## Main API facts to use
+Scope honored: I did not propose edits to Zinan-owned files
 
-The newly proved endpoint is:
-
-```lean
-ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
+```text
+ShenWork/PDE/P3MoserHighExcursionProducer.lean
+ShenWork/PDE/P3MoserThresholdPlanProducer.lean
 ```
 
-with shape:
+I inspected the current statement surfaces in:
 
-```lean
-{L : ℝ} → 0 < L →
-{f f' : ℝ → ℝ} →
-ContinuousOn f (Icc 0 L) →
-(∀ x ∈ Ioo 0 L, HasDerivWithinAt f (f' x) (Ioi x) x) →
-IntervalIntegrable f' volume 0 L →
-IntervalIntegrable (fun y => f y ^ 2) volume 0 L →
-IntervalIntegrable (fun y => f' y ^ 2) volume 0 L →
-IntervalIntegrable (fun y => f y * f' y) volume 0 L →
-∀ x ∈ Icc 0 L, ...
+```text
+ShenWork/Paper2/IntervalDomainStatementAssembly.lean
+ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean
 ```
 
-For `IntervalAgmonInterpolation.lean`, the first bridge should set
+## 0. Immediate consequence of the Agmon closure
+
+The Agmon residual is now closed at the statement-surface level.
+
+The old explicit-Agmon wrapper is still present:
 
 ```lean
-F  y := (intervalDomainLift f y) ^ (q / 2)
-F' y := (q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
-          deriv (intervalDomainLift f) y
+structure
+  IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+  (p : CM2Params) (C : Paper2Constants p) : Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  agmon : UnitIntervalPositiveAgmonInterpolation
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21FrontierData
+      p C
 ```
 
-and prove the positivity/continuity/right-derivative facts first.
-
-Useful local theorem names already present elsewhere:
+but the new preferred wrapper has removed `agmon`:
 
 ```lean
-ContDiffOn.rpow_const_of_ne
-HasDerivAt.rpow_const
-ShenWork.IntervalEllipticCharacterization.hasDerivAt_of_contDiffOn_two_interior
-ShenWork.IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two
-ContinuousOn.intervalIntegrable
-ContinuousOn.pow
-ContinuousOn.mul
-IntervalIntegrable.congr
-IntervalIntegrable.congr_ae
+structure
+  IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+  (p : CM2Params) (C : Paper2Constants p) : Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21FrontierData
+      p C
 ```
 
-The two `IntervalEllipticCharacterization` helpers are particularly relevant because they already encode the exact issue with closed-`Icc` `ContDiffOn`: two-sided `deriv` is available on the open interior, while endpoint facts about unrestricted `deriv` are not automatic.
-
-## Import guidance
-
-In `ShenWork/PDE/IntervalAgmonInterpolation.lean`, add these imports if you add the bridge lemmas in that file:
+and fills it with the proved theorem:
 
 ```lean
-import ShenWork.PDE.GagliardoNirenberg
-import ShenWork.PDE.IntervalEllipticCharacterization
+def
+  IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData.toAgmon
+  {p : CM2Params} {C : Paper2Constants p}
+  (h :
+    IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+      p C) :
+  IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
+    p C where
+  section2 := h.section2
+  agmon := unitIntervalPositiveAgmonInterpolation
+  localAndMain := h.localAndMain
 ```
 
-The current file already imports `ShenWork.PDE.IntervalDomain`, but `IntervalEllipticCharacterization` gives the clean interior derivative helper:
+The full statement target is also already wired:
 
 ```lean
-hasDerivAt_of_contDiffOn_two_interior
+theorem
+  intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+  (p : CM2Params) (C : Paper2Constants p)
+  (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+  (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+  (hData :
+    IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+      p C) :
+  IntervalDomainPaper2StatementTargets p C
 ```
 
-## Snippet 1: positivity and rpow continuity on `Icc 0 1`
+So `UnitIntervalPositiveAgmonInterpolation` and `IntervalDomainClassicalSolutionPositiveInterpolation` should no longer be counted as headline residuals in the preferred Paper2 route.
 
-This is the first lemma I would add. It is small and should be stable.
+## 1. Remaining inputs that are now wiring / should be discharged from already-proved code
+
+These are not analytic residuals anymore; they are conversion/assembly surfaces.
+
+| Package / theorem | Status | Notes |
+|---|---:|---|
+| `UnitIntervalPositiveAgmonInterpolation` | wiring / closed | Use `unitIntervalPositiveAgmonInterpolation`. Do not carry this in preferred headline data. |
+| `IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation p` | wiring / closed | Use `intervalDomain_classicalSolutionPositiveInterpolation` or `intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon (params := p) unitIntervalPositiveAgmonInterpolation`. |
+| `IntervalDomainPaper2AgmonPositiveSolutionInterpolationEnergyFrontierData.toPositive` | wiring | Still useful for older explicit-Agmon data, but the preferred route should use the proved-Agmon data instead. |
+| `IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData.toSolutionInterpolation` | wiring | Converts explicit Agmon to positive solution interpolation. The `agmon` field is now fillable by theorem. |
+| `IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData.toAgmon` | wiring | Correct bridge from current preferred data to old explicit-Agmon surface. |
+| `intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData` | wiring | Current preferred full Paper2 statement target from `section2` and `localAndMain`. |
+| `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.toTerminalEndpoint` | wiring | Packages `rawMoserDrop` into `MoserDissipationDropBeforeNonnegB` and forwards relative/terminal fields. |
+| `IntervalDomainPaper2Prop25ActualAtomMassGradientTerminalEndpointFrontierData.toMassGradient` | wiring | Converts terminal endpoint to `pSeq/rootBound` endpoint via constant sequences. |
+| `IntervalDomainPaper2Prop25ActualAtomMassGradientFrontierData.toActualAtoms` | wiring | Converts mass-gradient relative data to `RelativeMoserInterpolationBefore`. |
+| `intervalDomainPaper2_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData` | wiring over atoms | Produces Prop. 2.5 once the three actual atoms are supplied. |
+| `intervalDomainPaper2_Corollary_2_1_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData` | wiring over atoms | Produces Cor. 2.1 once the same actual atoms are supplied. |
+| `intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData` | wiring over branch frontiers | Main theorem 1.2/1.3 assembly; local existence is already the proved `χ₀ = 0` producer in this route. |
+| `intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData` | wiring | Adds proved Theorem 1.1 to the local-free 1.2/1.3 result. |
+| `IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25` | wiring | In actual-linear-small (`0 < a`, `0 < χ₀`) the Theorem 2.3 branches are false by `0 < χ₀`, and Theorem 2.5 branches are false by `0 < a`; only Theorem 2.4 fields remain. |
+| `IntervalDomainPaper3MainlineActualLinear22ThinFrontierData.toCurrent` | wiring | Builds the current Paper3 mainline surface from thin actual-linear data. |
+| `intervalDomain_paper3_Theorem_2_1_of_actualLinearSmall`, `intervalDomain_paper3_Theorem_2_1_partTargets_of_actualLinearSmall`, `intervalDomain_paper3_Theorem_2_1_sectorial_of_actualLinearSmall` | closed/wiring | Persistence is already produced internally by `intervalDomain_sectorialTheorem21Persistence_actualLinearSmall`. |
+
+A useful accounting change: older names carrying `agmon : UnitIntervalPositiveAgmonInterpolation` should be treated as compatibility wrappers, not as headline routes. The preferred Paper2 route is now the proved-Agmon one.
+
+## 2. Genuine analytic residuals and ownership
+
+### Paper2 residuals
+
+| Residual | Exact names | Owner / file family to attack |
+|---|---|---|
+| Thin section-2 estimate package | `IntervalDomainPaper2BootstrapEstimateThinFrontierData.lemma26`, `.lemma27`, `.prop22`, `.prop23` | Paper2 estimate/PDE side; likely non-Zinan. Candidate files around `IntervalDomainLpBootstrapEnergyInequality`, `IntervalDomainLpMonotonicity`, resolver/signal estimate files. This is not Agmon anymore. |
+| Finite-horizon alternative | `IntervalDomainPaper2Proposition11ChiZeroFrontierData.finiteHorizonAlternative` | Paper2 existence/continuation side; non-Zinan unless someone owns the continuation package separately. Candidate files around `IntervalDomainExistence`, `IntervalDomainTheorem11Umbrella`, `IntervalDomainTheorem11ChiZeroUnconditional`. |
+| Global extension / continuation | `IntervalDomainPaper2GlobalExtensionFrontier p` | Paper2 continuation/globalization. Candidate files around `IntervalDomainTheorem11*`, `IntervalDomainAPrioriGlobal`, `IntervalDomainMoserLadderAtoms`. |
+| Raw physical Moser drop | `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.rawMoserDrop` | Moser energy/dissipation side. Candidate non-Zinan files: `P3MoserDissipationShape.lean`, `P3MoserLemmaDischarge.lean`, `P3MoserLemmas.lean`. Do not push this into Zinan files unless Zinan elects to. |
+| Relative mass-gradient package | `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.relativeMassGradient` | Moser lemma/algebra side; non-Zinan candidate files `P3MoserLemmas.lean`, `P3MoserLemmaDischarge.lean`, existing interval mass-gradient estimate files. Agmon is no longer the blocker. |
+| Terminal Moser endpoint | `IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData.terminalEndpoint` | Genuine Moser endpoint / root-tower / high-excursion residual. If the proof route goes through `P3MoserHighExcursionProducer.lean` or `P3MoserThresholdPlanProducer.lean`, it is Zinan-owned. Non-Zinan work should only adjust wrappers around it, not the producer files. |
+| Branch bootstrap seeds | `slowBootstrap`, `criticalBootstrap`, `strongBootstrap` fields in the `IntervalDomainPaper2Theorem12And13*` and preferred `ChiZero...` packages | Paper2/PDE bootstrap side. These are real estimates producing `IntervalDomainPaper2BootstrapOutput p T u v`. Candidate files: `IntervalDomainTheorem12.lean`, `IntervalDomainAPrioriGlobal.lean`, `IntervalDomainMoserLadderAtoms.lean`; if they call high-excursion producers, hand that subgoal to Zinan. |
+| Long-time/eventual sup bounds | `criticalEventualSupBound`, `strongEventualSupBound` | Paper2 global boundedness / long-time PDE side. Candidate files: `IntervalDomainAPrioriGlobal.lean`, `IntervalDomainMoserLadderAtoms.lean`, theorem 1.2/1.3 assembly files. |
+
+### Paper3 residuals
+
+| Residual | Exact names | Owner / file family to attack |
+|---|---|---|
+| Negative sensitivity global eventual bound | `NegativeSensitivityGlobalEventualBound intervalDomain p`, `IntervalDomainPaper3NegativeSensitivityFrontierData.globalSolution`, `.eventualSupBound` | Paper3/Paper2 global negative-sensitivity side. In actual-linear-small routes with `0 < p.χ₀`, this should be discharged by contradiction rather than carried. See the edit below. |
+| Initial continuity for stability norm | `IntervalDomainInitialContinuityRaw p` | Paper3 stability/initial-continuity side; candidate files around `IntervalDomainStatementAssembly.lean`, `IntervalDomainStabilityChain.lean`. |
+| Raw linear Theorem 2.2 branches | `LinearStabilityInstabilityNonminimalRaw ...`, `LinearStabilityInstabilityMinimalRaw ...` in `IntervalDomainPaper3CoreStatementActualLinear22Data` | Paper3 linear stability/sectorial owner. Candidate files around `IntervalDomainPersistenceActualLinearSectorial.lean`, `IntervalDomainSectorialNonlinearBridges.lean`. |
+| Compactness | `IntervalDomainPaper3SupNormCompactnessAPosData.compact : TimeTranslateCompactnessRaw ...` | Paper3 compactness/regularization owner. Candidate files around `IntervalDomainStatementAssembly.lean`, sectorial compactness files. |
+| Resolvent gradient bound | `IntervalDomainPaper3SupNormCompactnessAPosData.resolvent : NeumannResolventGradientBoundExistsRaw ...` | Paper3 elliptic/sectorial support. |
+| Nonminimal stability/convergence | `IntervalDomainPaper3Stability24ActualLinearFrontierData.global24`, `.exp24` | Paper3 stability owner. These are the non-vacuous actual-linear Theorem 2.4 frontiers. |
+
+Important parameter note: do **not** try to feed the Paper2 `χ₀ = 0` proved-Agmon statement route directly into the actual-linear-small Paper3 route, because the latter assumes `0 < p.χ₀`. The proved-Agmon closure is a Paper2 `χ₀ = 0` headline simplification. The Paper3 actual-linear-small route should instead eliminate negative-sensitivity fields by contradiction from `0 < p.χ₀` and continue to carry same-parameter Paper2 main targets only when those are available from a positive-sensitivity Paper2 route.
+
+## 3. Concrete next Lean edit for Codex, low-conflict and non-Zinan
+
+Best next edit: remove the unnecessary Paper3 negative-sensitivity assumption from the actual-linear-small `0 < χ₀` statement route.
+
+Why this is low-conflict:
+
+* It touches only `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+* It uses pure logic: `NegativeSensitivityGlobalEventualBound` is vacuous under `0 < p.χ₀` because its first argument is `p.χ₀ ≤ 0`.
+* It avoids all Zinan-owned Moser producer files.
+* It reduces Paper3 headline assumptions immediately: `IntervalDomainPaper3StatementActualLinear22ThinP2MainData` currently carries `propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C`, whose first field is `negativeBound`; the new wrapper should carry only `paper2Main` plus `mainline`.
+
+Suggested code:
 
 ```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.PDE.IntervalEllipticCharacterization
+import ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly
 
-open MeasureTheory Set
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
-open ShenWork.IntervalEllipticCharacterization
-open scoped Interval Topology
+
+namespace ShenWork.Paper3
 
 noncomputable section
 
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+/-- In the actual-linear-small regime `0 < χ₀`, the negative-sensitivity
+Proposition 1.2 hypothesis is vacuous. -/
+theorem intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+    (p : CM2Params) (hχ0 : 0 < p.χ₀) :
+    NegativeSensitivityGlobalEventualBound intervalDomain p := by
+  intro hχ_nonpos _hm _u₀ _hu₀
+  exact False.elim (not_le_of_gt hχ0 hχ_nonpos)
 
-/-- If a subtype profile is positive, its zero-extension/lift is positive on
-`[0,1]`. -/
-theorem intervalDomainLift_pos_on_Icc
-    {f : intervalDomain.Point → ℝ}
-    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x) :
-    ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift f y := by
-  intro y hy
-  rw [intervalDomainLift, dif_pos hy]
-  exact hf_pos ⟨y, hy⟩
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with
+Paper3 Proposition 1.2 discharged by `0 < χ₀`, and Proposition 1.3/1.4 routed
+through supplied Paper2 main theorem targets. -/
+structure IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
 
-/-- Closed-interval continuity of `(lift f)^(q/2)` from closed-`Icc` `C²`
-regularity and positivity.  This uses the same `ContDiffOn.rpow_const_of_ne`
-API used in nearby files. -/
-theorem intervalDomainLift_rpow_half_continuousOn_Icc
-    {f : intervalDomain.Point → ℝ} {q : ℝ}
-    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
-    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)) :
-    ContinuousOn
-      (fun y : ℝ => (intervalDomainLift f y) ^ (q / 2))
-      (Set.Icc (0 : ℝ) 1) := by
-  exact
-    (hf_c2.rpow_const_of_ne
-      (fun y hy => ne_of_gt (intervalDomainLift_pos_on_Icc hf_pos y hy))).continuousOn
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-end
-```
-
-Notes:
-
-* The proof of positivity should use `rw [intervalDomainLift, dif_pos hy]`, not `simp`, because it keeps the subtype witness exactly visible.
-* For continuity, `ContDiffOn.rpow_const_of_ne` is stronger than needed but matches local style. A fallback is `hf_c2.continuousOn.rpow continuousOn_const ...`, but the `ContDiffOn` route is cleaner if subsequent lemmas need regularity.
-
-## Snippet 2: right-derivative bridge on `Ioi y`
-
-This is the key derivative bridge for `agmon_inequality_interval_rightDeriv`. Use the existing interior derivative helper rather than re-proving the `ContDiffOn`/neighborhood conversion.
-
-```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.PDE.IntervalEllipticCharacterization
-
-open MeasureTheory Set
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.IntervalEllipticCharacterization
-open scoped Interval Topology
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- Interior right-derivative of `(lift f)^(q/2)`. -/
-theorem intervalDomainLift_rpow_half_hasDerivWithinAt_Ioi
-    {f : intervalDomain.Point → ℝ} {q y : ℝ}
-    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
-    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1))
-    (hy : y ∈ Set.Ioo (0 : ℝ) 1) :
-    HasDerivWithinAt
-      (fun z : ℝ => (intervalDomainLift f z) ^ (q / 2))
-      ((q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
-        deriv (intervalDomainLift f) y)
-      (Set.Ioi y) y := by
-  have hbase :
-      HasDerivAt (intervalDomainLift f)
-        (deriv (intervalDomainLift f) y) y :=
-    hasDerivAt_of_contDiffOn_two_interior hf_c2 hy
-  have hpos_y : 0 < intervalDomainLift f y :=
-    intervalDomainLift_pos_on_Icc hf_pos y (Set.Ioo_subset_Icc_self hy)
-  have hpow :
-      HasDerivAt
-        (fun z : ℝ => (intervalDomainLift f z) ^ (q / 2))
-        (deriv (intervalDomainLift f) y * (q / 2) *
-          (intervalDomainLift f y) ^ (q / 2 - 1)) y :=
-    hbase.rpow_const (Or.inl (ne_of_gt hpos_y))
-  simpa [mul_assoc, mul_left_comm, mul_comm] using hpow.hasDerivWithinAt
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+/-- Actual-linear-small Paper3 statement target from Paper2 main theorem targets
+without carrying a separate negative-sensitivity residual. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
+        p C M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
 
 end
+
+end ShenWork.Paper3
 ```
 
-Important points:
-
-* `HasDerivAt.rpow_const` gives derivative in the order
-  `deriv lift y * (q/2) * lift y ^ (q/2 - 1)`.
-* The requested derivative is the same expression commuted; `simpa [mul_assoc, mul_left_comm, mul_comm]` should normalize it.
-* The conversion from full derivative to right derivative is `hpow.hasDerivWithinAt`.
-
-## Snippet 3: use a named derivative function and the smallest integrability boundary
-
-The integrability part is **not** as short from only
+Optional follow-up in the same file: add the `Fact` wrapper mirroring nearby style.
 
 ```lean
-ContDiffOn ℝ 2 (intervalDomainLift f) (Icc 0 1)
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
+        p C M0 uBar vLower locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
 ```
 
-because `agmon_inequality_interval_rightDeriv` uses the unrestricted endpoint-valued function
+Expected imports: none if appended to `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`; otherwise import that file.
+
+## Secondary non-Zinan edit candidate
+
+If Codex wants a Paper2-only edit instead, add extractor wrappers from the preferred proved-Agmon full-statement data to the already nested local/main and main theorem targets. This does not close analytic residuals, but it improves downstream reuse and prevents consumers from carrying both a full statement package and a separate Paper2 main package.
 
 ```lean
-deriv (intervalDomainLift f)
+theorem
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+  (p : CM2Params) (C : Paper2Constants p)
+  (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+  (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+  (hData :
+    IntervalDomainPaper2StatementChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinProvedAgmonFrontierData
+      p C) :
+  IntervalDomainPaper2MainTheoremTargets p C :=
+  (intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21FrontierData
+    p C hχ0 ha hb hα hγ hData.localAndMain).2
 ```
 
-inside `F'`. Existing code in `IntervalEllipticCharacterization.lean` explicitly notes that `ContinuousOn (deriv g) (uIcc 0 1)` is not automatic from closed-`Icc` `ContDiffOn`; it proves interval-integrability of `deriv g` by comparison with `derivWithin` a.e.
+This is less assumption-reducing than the Paper3 vacuity edit, but it is also low-risk and purely structural.
 
-So the smallest honest first-bridge boundary is to package exactly the four interval-integrability inputs that Agmon asks for, after defining the explicit `F'`.
+## Bottom line
+
+After Agmon closure, the preferred Paper2 `χ₀ = 0` full-statement surface has only two real fields left at the top:
 
 ```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.PDE.IntervalEllipticCharacterization
-
-open MeasureTheory Set
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.IntervalEllipticCharacterization
-open scoped Interval Topology
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- The explicit derivative of `y ↦ (intervalDomainLift f y)^(q/2)` on the
-interior. -/
-def intervalDomainLiftRpowHalfDeriv
-    (q : ℝ) (f : intervalDomain.Point → ℝ) : ℝ → ℝ :=
-  fun y : ℝ =>
-    (q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
-      deriv (intervalDomainLift f) y
-
-/-- Exactly the integrability inputs needed by
-`agmon_inequality_interval_rightDeriv` for
-`F = (lift f)^(q/2)` and the explicit derivative `F'`. -/
-structure IntervalDomainLiftRpowHalfAgmonIntegrability
-    (q : ℝ) (f : intervalDomain.Point → ℝ) : Prop where
-  fprime_int :
-    IntervalIntegrable (intervalDomainLiftRpowHalfDeriv q f) volume 0 1
-  f_sq_int :
-    IntervalIntegrable
-      (fun y : ℝ => ((intervalDomainLift f y) ^ (q / 2)) ^ 2)
-      volume 0 1
-  fprime_sq_int :
-    IntervalIntegrable
-      (fun y : ℝ => (intervalDomainLiftRpowHalfDeriv q f y) ^ 2)
-      volume 0 1
-  ffprime_int :
-    IntervalIntegrable
-      (fun y : ℝ =>
-        (intervalDomainLift f y) ^ (q / 2) *
-          intervalDomainLiftRpowHalfDeriv q f y)
-      volume 0 1
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-end
+section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+localAndMain :
+  IntervalDomainPaper2LocalAndMainChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21FrontierData p C
 ```
 
-This is the smallest statement boundary if you want no detour into endpoint behavior of unrestricted `deriv`.
-
-A short sufficient producer exists if you additionally carry:
-
-```lean
-hderiv_cont : ContinuousOn (deriv (intervalDomainLift f)) (Set.Icc (0 : ℝ) 1)
-```
-
-but that hypothesis is stronger than what closed-`Icc` `ContDiffOn` alone currently gives.
-
-## Snippet 4: optional short producer under `hderiv_cont`, and Agmon application shell
-
-This is a useful local test/snippet. It should be treated as a sufficient producer, not the final minimal analytic statement.
-
-```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.PDE.IntervalEllipticCharacterization
-import ShenWork.PDE.GagliardoNirenberg
-
-open MeasureTheory Set
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.IntervalEllipticCharacterization
-open scoped Interval Topology
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-private theorem intervalIntegrable_of_continuousOn_Icc01
-    {F : ℝ → ℝ}
-    (hF : ContinuousOn F (Set.Icc (0 : ℝ) 1)) :
-    IntervalIntegrable F volume 0 1 := by
-  have hFu : ContinuousOn F (Set.uIcc (0 : ℝ) 1) := by
-    simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hF
-  exact hFu.intervalIntegrable
-
-/-- A short sufficient integrability producer if endpoint continuity of the
-unrestricted derivative is supplied separately. -/
-theorem intervalDomainLift_rpow_half_agmonIntegrability_of_deriv_continuous
-    {f : intervalDomain.Point → ℝ} {q : ℝ}
-    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
-    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1))
-    (hderiv_cont :
-      ContinuousOn (deriv (intervalDomainLift f)) (Set.Icc (0 : ℝ) 1)) :
-    IntervalDomainLiftRpowHalfAgmonIntegrability q f := by
-  have hF_cont :
-      ContinuousOn
-        (fun y : ℝ => (intervalDomainLift f y) ^ (q / 2))
-        (Set.Icc (0 : ℝ) 1) :=
-    intervalDomainLift_rpow_half_continuousOn_Icc hf_pos hf_c2
-  have hpowm_cont :
-      ContinuousOn
-        (fun y : ℝ => (intervalDomainLift f y) ^ (q / 2 - 1))
-        (Set.Icc (0 : ℝ) 1) := by
-    exact
-      (hf_c2.rpow_const_of_ne
-        (fun y hy => ne_of_gt (intervalDomainLift_pos_on_Icc hf_pos y hy))).continuousOn
-  have hFp_cont :
-      ContinuousOn (intervalDomainLiftRpowHalfDeriv q f)
-        (Set.Icc (0 : ℝ) 1) := by
-    unfold intervalDomainLiftRpowHalfDeriv
-    simpa [mul_assoc] using (hpowm_cont.const_mul (q / 2)).mul hderiv_cont
-  exact
-    { fprime_int := intervalIntegrable_of_continuousOn_Icc01 hFp_cont
-      f_sq_int := intervalIntegrable_of_continuousOn_Icc01 (hF_cont.pow 2)
-      fprime_sq_int := intervalIntegrable_of_continuousOn_Icc01 (hFp_cont.pow 2)
-      ffprime_int := intervalIntegrable_of_continuousOn_Icc01 (hF_cont.mul hFp_cont) }
-
-/-- First application shell for the right-derivative Agmon theorem.  This is not
-the whole interpolation theorem; it only packages the first bridge facts. -/
-theorem intervalDomainLift_rpow_half_agmon_pointwise
-    {f : intervalDomain.Point → ℝ} {q x : ℝ}
-    (hf_pos : ∀ x : intervalDomain.Point, 0 < f x)
-    (hf_c2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1))
-    (hint : IntervalDomainLiftRpowHalfAgmonIntegrability q f)
-    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
-    ((intervalDomainLift f x) ^ (q / 2)) ^ 2 ≤
-      (2 / 1) *
-          (∫ y in (0 : ℝ)..1,
-            ((intervalDomainLift f y) ^ (q / 2)) ^ 2) +
-        2 * Real.sqrt
-          (∫ y in (0 : ℝ)..1,
-            ((intervalDomainLift f y) ^ (q / 2)) ^ 2) *
-          Real.sqrt
-          (∫ y in (0 : ℝ)..1,
-            (intervalDomainLiftRpowHalfDeriv q f y) ^ 2) := by
-  exact
-    ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
-      (L := 1) (hL := by norm_num)
-      (f := fun y : ℝ => (intervalDomainLift f y) ^ (q / 2))
-      (f' := intervalDomainLiftRpowHalfDeriv q f)
-      (intervalDomainLift_rpow_half_continuousOn_Icc hf_pos hf_c2)
-      (fun y hy =>
-        intervalDomainLift_rpow_half_hasDerivWithinAt_Ioi
-          (f := f) (q := q) hf_pos hf_c2 hy)
-      hint.fprime_int
-      hint.f_sq_int
-      hint.fprime_sq_int
-      hint.ffprime_int
-      hx
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-end
-```
-
-## Recommended first bridge boundary
-
-Add only these first in `IntervalAgmonInterpolation.lean`:
-
-```lean
-intervalDomainLift_pos_on_Icc
-intervalDomainLift_rpow_half_continuousOn_Icc
-intervalDomainLift_rpow_half_hasDerivWithinAt_Ioi
-intervalDomainLiftRpowHalfDeriv
-IntervalDomainLiftRpowHalfAgmonIntegrability
-intervalDomainLift_rpow_half_agmon_pointwise
-```
-
-Do **not** try to prove the final mass-gradient interpolation theorem in the same move. The next separate bridge can decide whether to prove `IntervalDomainLiftRpowHalfAgmonIntegrability` from stronger closed endpoint derivative data or to keep it as an explicit local frontier while the endpoint behavior of unrestricted `deriv` is normalized.
-
-## Why I would not start with a stronger integrability lemma
-
-The tempting statement
-
-```lean
-ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
-IntervalDomainLiftRpowHalfAgmonIntegrability q f
-```
-
-is probably too large for the first bridge. It has two nontrivial endpoint issues:
-
-1. `ContDiffOn` on `Icc` naturally controls `derivWithin`; the Agmon derivative function uses unrestricted `deriv`.
-2. The square/product terms for `F'` need more than `IntervalIntegrable (deriv lift)`: they need integrability of products involving `((lift f)^(q/2-1))` and `deriv lift`, and for `F'^2` this is a weighted derivative-square term.
-
-There are likely routes using `derivWithin` continuity plus a.e. congruence, mirroring `intervalIntegrable_deriv_of_contDiffOn_two`, but that is a second bridge, not a first bridge.
+Unfolding `localAndMain`, the hard content is now exactly continuation/global extension, branch bootstrap/eventual sup bounds, and the raw-drop/mass-gradient/terminal-endpoint Moser atoms. Paper3 still has independent stability/compactness/linear frontiers, but in the actual-linear-small positive-χ route the negative-sensitivity Proposition 1.2 residual should be eliminated immediately by the small non-Zinan wrapper above.
