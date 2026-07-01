@@ -107,7 +107,7 @@ theorem intervalDomain_gn_absorbed_interpolation_of_agmon
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
     (hrho : 0 < rho)
-    (hp0_gt_rho : rho < p0)
+    (hp0_gt_half_rho : rho < 2 * p0)
     {pExp : ℝ} (hpExp : p0 ≤ pExp) :
     ∀ eps > 0, ∃ Ceps : ℝ, ∀ t, 0 < t → t < T →
       intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤
@@ -131,7 +131,7 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
     (hrho : 0 < rho)
-    (hp0_gt_rho : rho < p0) :
+    (hp0_gt_half_rho : rho < 2 * p0) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
   sorry
 
