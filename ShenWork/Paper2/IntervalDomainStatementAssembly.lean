@@ -6970,6 +6970,278 @@ theorem
   intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
     p C cGrad hχ ha hb hγ_ge_one hData.out
 
+/-- `χ₀ = 0` local-free Theorem 1.2/1.3 frontier with the positive
+solution-slice interpolation field discharged by the proved interval-domain
+positive Agmon theorem. -/
+structure
+    IntervalDomainPaper2Theorem12And13ChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  common :
+    IntervalDomainPaper2ProvedPositiveSolutionInterpolationEnergyFrontierData
+      p cGrad
+  prop25 : Proposition_2_5 intervalDomain p
+  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
+  slowBootstrap :
+    1 ≤ p.β → p.m < 1 →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalBootstrap :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  criticalEventualSupBound :
+    1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+  strongBootstrap :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainPaper2BootstrapOutput p T u v
+  strongEventualSupBound :
+    0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0, IntervalDomainPaper2BootstrapOutput p T u v) →
+        ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M
+
+/-- Convert the proved-positive local-free Theorem 1.2/1.3 route to the
+existing positive solution-slice local-free route. -/
+def
+    IntervalDomainPaper2Theorem12And13ChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData.toPositiveLocalFree
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2Theorem12And13ChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2Theorem12And13ChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad where
+  common := h.common.toPositive
+  prop25 := h.prop25
+  globalExtension := h.globalExtension
+  slowBootstrap := h.slowBootstrap
+  criticalBootstrap := h.criticalBootstrap
+  criticalEventualSupBound := h.criticalEventualSupBound
+  strongBootstrap := h.strongBootstrap
+  strongEventualSupBound := h.strongEventualSupBound
+
+/-- Assemble Theorems 1.2 and 1.3 from the `χ₀ = 0` proved-positive
+local-free route. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2Theorem12And13ChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositiveLocalFree
+
+/-- Instance-facing Theorem 1.2/1.3 wrapper for the `χ₀ = 0`
+proved-positive local-free route. -/
+theorem
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2Theorem12And13ChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad)] :
+    Theorem_1_2 intervalDomain p ∧ Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Main-theorem package for the `χ₀ = 0` proved-positive local-free route. -/
+structure
+    IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive local-free main-theorem route to the existing
+positive solution-slice local-free route. -/
+def
+    IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData.toPositiveLocalFree
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad where
+  theorem12And13 := h.theorem12And13.toPositiveLocalFree
+
+/-- Assemble main theorem targets for the `χ₀ = 0` proved-positive local-free
+route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositiveLocalFree
+
+/-- Instance-facing main theorem wrapper for the `χ₀ = 0` proved-positive
+local-free route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Local-plus-main package for the `χ₀ = 0` proved-positive local-free
+route. -/
+structure
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive local-free local-plus-main route to the
+existing positive solution-slice local-free route. -/
+def
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData.toPositiveLocalFree
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad where
+  proposition11 := h.proposition11
+  main := h.main.toPositiveLocalFree
+
+/-- Assemble local-plus-main targets for the `χ₀ = 0` proved-positive
+local-free route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositiveLocalFree
+
+/-- Instance-facing local-plus-main wrapper for the `χ₀ = 0` proved-positive
+local-free route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Preferred thin statement package for the `χ₀ = 0` proved-positive
+local-free route. -/
+structure
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
+      p C cGrad
+
+/-- Convert the preferred proved-positive local-free thin statement route to
+the existing positive solution-slice local-free route. -/
+def
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData.toPositiveLocalFree
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+      p C cGrad where
+  section2 := h.section2
+  localAndMain := h.localAndMain.toPositiveLocalFree
+
+/-- Assemble statement targets for the preferred `χ₀ = 0` proved-positive
+local-free thin route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositiveLocalFree
+
+/-- Instance-facing statement wrapper for the preferred `χ₀ = 0`
+proved-positive local-free thin route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
 section AxiomAudit
 
 #print axioms intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
@@ -6985,6 +7257,8 @@ section AxiomAudit
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_provedPositiveSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroPositiveSolutionInterpolationLocalFreeFrontierData
+#print axioms
+  intervalDomainPaper2_Theorems_1_2_and_1_3_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroFrontierData
 #print axioms intervalDomainPaper2_mainTheoremTargets_of_chiZeroInterpolationFrontierData
 #print axioms
@@ -6999,6 +7273,8 @@ section AxiomAudit
   intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
 #print axioms
@@ -7017,6 +7293,8 @@ section AxiomAudit
   intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationLocalFreeFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
 #print axioms
@@ -7046,6 +7324,8 @@ section AxiomAudit
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationSection2ThinFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinLocalFreeFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
 #print axioms
