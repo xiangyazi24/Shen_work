@@ -3,13 +3,14 @@
 ## CURRENT STATE (2026-07-01, code-derived)
 
 Authoritative checks from the current tree:
-- Real proof holes in Lean code: **0** `sorry` in the main codebase.
-  The former Agmon/direct-1D route holes in
-  `P3MoserAgmonDirectRoute.lean` and `IntervalDomain1DLinfRoute.lean` have
-  been replaced by explicit frontier inputs
-  (`AgmonAbsorbedInterpolationBefore` and
-  `IntervalDomainPointwiseMoserGradientBoundBefore`) plus axiom-clean
-  downstream wrappers.
+- Real proof holes in Lean code: **1** `sorry` in Paper1
+  (`IntervalP1PerStepFixedSource.lean`), **1** `sorry` in
+  `P3MoserAgmonDirectRoute.lean` (`produce_AgmonAbsorbedInterpolationBefore_of_classical`
+  — producer of the Agmon-absorbed interpolation from classical solution).
+  The architecture sorry (5 steps) were filled by Codex (gpt-5.5) and
+  verified green on uisai2 (3561 jobs, axioms `[propext, Classical.choice,
+  Quot.sound]`). The Agmon/direct-1D route wiring + integrated closure
+  extensions (+1318 lines across 8 files) are axiom-clean.
 - Last full remote build: after adding the Paper2 structured-Moser and
   actual-atom Proposition 2.5 frontiers, the common-free actual-atom
   Corollary 2.1 / Proposition 2.5 headline route, the mass-gradient reduction
