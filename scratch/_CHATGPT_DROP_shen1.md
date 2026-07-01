@@ -1,4 +1,4 @@
-# Q2877 (shen1) — weighted-time-term initial-window bridge
+# Q2878 (shen1) — component PDE-term bridge for weighted-time initial integrability
 
 Repo: `xiangyazi24/Shen_work`  
 Delivery branch: `chatgpt-scratch`  
@@ -6,35 +6,34 @@ Source edit requested: none; answer file only.
 
 ## Executive answer
 
-Yes, a no-sorry bridge is available, but not from the weighted-time-term residual **alone** unless positivity is available.  The compiled identity
+Yes.  The no-sorry bridge should use the compiled pointwise PDE-integral identity
 
 ```lean
-intervalDomainPowerTimeTerm_eq_scaled_weighted
+intervalDomain_lp_energy_hPDEIntegral_of_regularity
 ```
 
-has the hypothesis
+which has sign/convention:
 
 ```lean
-(hpos : ∀ x : intervalDomain.Point, 0 < u t x)
+intervalDomain.integral (intervalDomainLpEnergyWeightedTimeTerm q u s) =
+  intervalDomainLpDiffusionIntegral q u s -
+    params.χ₀ * intervalDomainLpChemotaxisIntegral params q u v s +
+    intervalDomainLpLogisticIntegral params q u s
 ```
 
-because it rewrites `|u|` to `u` and uses `Real.rpow_add` on positive bases.  Therefore the thinnest correct bridge is:
+Therefore, after multiplying by `q`, the component residual should require integrability of:
 
-1. a pure bridge assuming positive slices at all positive times;
-2. a global-classical wrapper, since `IsPaper2GlobalClassicalSolution` supplies positivity for every `s > 0` by using horizon `s + 1`.
+```lean
+q * Diffusion
+q * (params.χ₀ * Chemotaxis)
+q * Logistic
+```
 
-This is robust for `b = 0`: the interval-integrability congruence is over `uIoc 0 b`; when `b = 0` that set is empty, and the proof never needs a value at `s = 0`.
+Then the weighted time-term integrability follows by `(hDiff.sub hChem).add hLog` plus `IntervalIntegrable.congr` on `uIoc 0 b`.  To avoid the `s < T` endpoint problem when `b = T`, apply global classical on horizon `s + 1` for every `s > 0`.
 
 ## Code to add
 
-Put this in `ShenWork/PDE/P3MoserEnergyContinuity.lean`, after the existing definitions
-
-```lean
-intervalDomainPowerEnergyDerivIntegral
-IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability
-```
-
-If the weighted residual is already defined locally, omit the duplicate `def` below.
+Put this in `ShenWork/PDE/P3MoserEnergyContinuity.lean`, after the weighted residual from Q2877.  If the imports are already present because this is the same file, only add the declarations inside the existing namespace.
 
 ```lean
 import ShenWork.PDE.P3MoserEnergyContinuity
@@ -51,143 +50,102 @@ noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
-/-- PDE-shaped initial-window residual for the weighted time-term appearing in
-the interval-domain Lp chain rule.
+/-- Initial-window integrability residual for the three PDE terms in the weighted
+Lp time identity.
 
-This is one step closer to the PDE than
-`IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability`: it asks for
-integrability of the already-existing weighted time-term profile. -/
-def IntervalDomainLpWeightedTimeTermInitialWindowIntegrability
-    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop :=
+The chemotaxis term is recorded without the minus sign, as
+`q * (params.χ₀ * Chemotaxis)`, because the bridge will use `.sub` to build
+`q * Diffusion - q * (χ₀ * Chemotaxis) + q * Logistic`. -/
+def IntervalDomainLpPDETermInitialWindowIntegrability
+    (params : CM2Params) (u v : ℝ → intervalDomain.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
   ∀ q, p0 ≤ q →
     ∀ b ∈ Set.Icc (0 : ℝ) T,
       IntervalIntegrable
-        (fun s =>
-          q * intervalDomain.integral
-            (intervalDomainLpEnergyWeightedTimeTerm q u s))
-        volume 0 b
-
-/-- Pointwise identity between the explicit power-energy derivative integral and
-the weighted time-term, under positivity of the time slice.
-
-The positivity hypothesis is necessary for the absolute-value and real-power
-rewrites inside `intervalDomainPowerTimeTerm_eq_scaled_weighted`. -/
-theorem intervalDomainPowerEnergyDerivIntegral_eq_scaled_weighted_of_pos
-    (q s : ℝ) (u : ℝ → intervalDomain.Point → ℝ)
-    (hpos : ∀ x : intervalDomain.Point, 0 < u s x) :
-    intervalDomainPowerEnergyDerivIntegral q u s =
-      q * intervalDomain.integral
-        (intervalDomainLpEnergyWeightedTimeTerm q u s) := by
-  calc
-    intervalDomainPowerEnergyDerivIntegral q u s
-        = ∫ y in (0 : ℝ)..1, intervalDomainPowerDeriv q u s y := by
-            rfl
-    _ = intervalDomain.integral
-          (fun x => q * (u s x) ^ (q - 1) * intervalDomain.timeDeriv u s x) :=
-            intervalDomainPowerDeriv_integral_eq_timeTerm q u s
-    _ = q * intervalDomain.integral
-          (intervalDomainLpEnergyWeightedTimeTerm q u s) :=
-            intervalDomainPowerTimeTerm_eq_scaled_weighted q s u hpos
-
-/-- No-sorry bridge from weighted-time-term initial-window integrability to the
-explicit power-derivative-integral initial-window residual, assuming positivity
-of `u` at every positive time.
-
-The congruence is on `uIoc 0 b`; after rewriting by `Set.uIoc_of_le hb.1`, every
-relevant `s` satisfies `0 < s`, so the supplied positivity hypothesis applies.
-This is robust when `b = 0`, since `Ioc 0 0` is empty. -/
-theorem intervalDomain_powerDerivIntegralInitialWindowIntegrability_of_weightedTimeTerm_initial_of_pos
-    {T p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
-    (hpos : ∀ s, 0 < s → ∀ x : intervalDomain.Point, 0 < u s x)
-    (hwt : IntervalDomainLpWeightedTimeTermInitialWindowIntegrability u T p0) :
-    IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability u T p0 := by
-  intro q hq b hb
-  have hwtInt :
+        (fun s => q * intervalDomainLpDiffusionIntegral q u s)
+        volume 0 b ∧
       IntervalIntegrable
         (fun s =>
-          q * intervalDomain.integral
-            (intervalDomainLpEnergyWeightedTimeTerm q u s))
-        volume 0 b :=
-    hwt q hq b hb
-  refine IntervalIntegrable.congr ?_ hwtInt
-  intro s hs
-  rw [Set.uIoc_of_le hb.1] at hs
-  exact intervalDomainPowerEnergyDerivIntegral_eq_scaled_weighted_of_pos
-    q s u (hpos s hs.1)
+          q * (params.χ₀ *
+            intervalDomainLpChemotaxisIntegral params q u v s))
+        volume 0 b ∧
+      IntervalIntegrable
+        (fun s => q * intervalDomainLpLogisticIntegral params q u s)
+        volume 0 b
 
-/-- Global classical solutions supply the positivity needed by the pure bridge:
-for each positive time `s`, run the classical solution API on horizon `s + 1`. -/
-theorem intervalDomain_powerDerivIntegralInitialWindowIntegrability_of_weightedTimeTerm_initial
-    {params : CM2Params} {T p0 : ℝ}
+/-- Pointwise scaled PDE-integral identity for the weighted time term at a
+positive time, using global classical regularity on the horizon `s + 1`.
+
+This avoids the endpoint issue from a fixed horizon `T`: for every `0 < s`, we
+have `s < s + 1`. -/
+theorem intervalDomain_weightedTimeTerm_eq_pdeTerms_scaled_of_global_pos
+    {params : CM2Params} {q s : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
-    (hwt : IntervalDomainLpWeightedTimeTermInitialWindowIntegrability u T p0) :
-    IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability u T p0 := by
-  refine
-    intervalDomain_powerDerivIntegralInitialWindowIntegrability_of_weightedTimeTerm_initial_of_pos
-      (T := T) (p0 := p0) (u := u) ?_ hwt
-  intro s hs x
+    (hs0 : 0 < s) :
+    q * intervalDomain.integral
+        (intervalDomainLpEnergyWeightedTimeTerm q u s) =
+      q * intervalDomainLpDiffusionIntegral q u s -
+        q * (params.χ₀ *
+          intervalDomainLpChemotaxisIntegral params q u v s) +
+        q * intervalDomainLpLogisticIntegral params q u s := by
   have hTpos : 0 < s + 1 := by linarith
   have hsol : IsPaper2ClassicalSolution intervalDomain params (s + 1) u v :=
     hglobal.classical hTpos
-  exact hsol.u_pos' (x := x) hs (by linarith)
+  have hpde :=
+    intervalDomain_lp_energy_hPDEIntegral_of_regularity
+      (params := params) (T := s + 1) (t := s) (pExp := q)
+      (u := u) (v := v) hsol hs0 (by linarith)
+  rw [hpde]
+  ring
+
+/-- No-sorry bridge from component initial-window integrability of the PDE terms
+to initial-window integrability of the weighted Lp time term.
+
+The congruence is over `uIoc 0 b`; after rewriting by `Set.uIoc_of_le hb.1`,
+every relevant time has `0 < s`, so the pointwise global-classical identity
+above applies.  This is robust when `b = 0`, since `Ioc 0 0` is empty. -/
+theorem intervalDomain_weightedTimeTermInitialWindowIntegrability_of_pdeTerm_initial
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hterms : IntervalDomainLpPDETermInitialWindowIntegrability params u v T p0) :
+    IntervalDomainLpWeightedTimeTermInitialWindowIntegrability u T p0 := by
+  intro q hq b hb
+  rcases hterms q hq b hb with ⟨hDiff, hChem, hLog⟩
+  have hRHS :
+      IntervalIntegrable
+        (fun s =>
+          q * intervalDomainLpDiffusionIntegral q u s -
+            q * (params.χ₀ *
+              intervalDomainLpChemotaxisIntegral params q u v s) +
+            q * intervalDomainLpLogisticIntegral params q u s)
+        volume 0 b :=
+    (hDiff.sub hChem).add hLog
+  refine IntervalIntegrable.congr ?_ hRHS
+  intro s hs
+  rw [Set.uIoc_of_le hb.1] at hs
+  exact intervalDomain_weightedTimeTerm_eq_pdeTerms_scaled_of_global_pos
+    (params := params) (q := q) (s := s) (u := u) (v := v)
+    hglobal hs.1
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 ```
 
-## Notes on imports/namespaces
+## Why this is the thinnest component residual
 
-The important extra open is:
+The existing identity already proves the **spatial** insertion of the PDE into the weighted time term at each positive time.  What it does **not** prove is **time integrability near `0`** of the resulting three scalar profiles.  So the residual should not ask again for pointwise PDE identities; it should ask exactly for initial-window `IntervalIntegrable` facts for the three scalar terms.
 
-```lean
-open ShenWork.Paper2.IntervalDomainEnergyStep
-```
-
-because the definition
+The sign choice above is deliberate:
 
 ```lean
-intervalDomainLpEnergyWeightedTimeTerm
+q * W = q * D - q * (χ₀ * C) + q * L
 ```
 
-lives in `ShenWork.Paper2.IntervalDomainEnergyStep`, while the identities
+so the residual terms combine by:
 
 ```lean
-intervalDomainPowerDeriv_integral_eq_timeTerm
-intervalDomainPowerTimeTerm_eq_scaled_weighted
+(hDiff.sub hChem).add hLog
 ```
 
-are exported in the `ShenWork.Paper2` namespace by `IntervalDomainLpTimeLeibniz.lean`.
-
-## If the local file already defines the weighted residual
-
-Use only the three theorem declarations.  The bridge theorem names can also be shortened locally, but I recommend keeping both:
-
-```lean
-..._of_pos
-...
-```
-
-because the first is reusable without a `params`/`v`/global-classical dependency, while the second is the interval-domain PDE wrapper used downstream.
-
-## Why positivity is unavoidable
-
-The weighted term is
-
-```lean
-|u t x| ^ (q - 2) * u t x * intervalDomain.timeDeriv u t x
-```
-
-whereas the power-derivative integral uses
-
-```lean
-q * (u t x) ^ (q - 1) * intervalDomain.timeDeriv u t x
-```
-
-The equality between them uses `abs_of_pos` and the real-power law
-
-```lean
-(u t x) ^ (q - 2) * u t x = (u t x) ^ (q - 1)
-```
-
-which is exactly why `intervalDomainPowerTimeTerm_eq_scaled_weighted` requires
-`∀ x, 0 < u t x`.  Without positivity, the proposed theorem from `hwt` alone is not well-typed/provable from the current identity; global classical supplies the missing positivity for all `s > 0`.
+No positivity assumption is needed in this bridge because `intervalDomain_lp_energy_hPDEIntegral_of_regularity` is already an identity for the weighted term and the PDE terms.  Positivity was only needed one layer earlier, when converting the plain power-derivative integral to the weighted time term.
