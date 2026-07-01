@@ -140,6 +140,17 @@ The net result: `K·∫u^{p+ρ} ≤ A_orig·G + C_absorbed`
 which is `∫u^{p+ρ} ≤ ε·G + Ceps` (constant lower-order term).
 -/
 
+/-- The paper's Lemma 2.6 uses the full GN inequality (Theorem 1 in [37])
+to get condition `ρ < 2p₀`. The Agmon-Hölder route (using only the proved
+1D Sobolev L∞ embedding) gives the stricter condition `ρ < p₀`.
+
+To match the paper's condition, one would need to prove the
+derivative-endpoint 1D GN interpolation inequality directly, which is
+a separate analytical result beyond the current Agmon bound.
+
+For `p₀ > max{1, ρ}` (equivalently `ρ < p₀`), the Agmon-Hölder route
+suffices. The `ρ < 2p₀` condition here is the paper's condition; the
+proof may currently require the stronger `ρ < p₀`. -/
 theorem intervalDomain_gn_absorbed_interpolation_of_agmon
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
