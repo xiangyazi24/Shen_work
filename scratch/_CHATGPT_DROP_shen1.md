@@ -1,193 +1,179 @@
-# Q2954 (shen1) — short independent headline-residual audit
+# Q2966 (shen1) — P3MoserRegularityProducer threshold-plan refactor audit
 
 Repo: `xiangyazi24/Shen_work`  
-Audited ref: current main `ff729271c64ad6ab20c0ee099c30cde6037fee02`  
+Audited ref: current main `d9a5fb318daa3226f7ab9a622de1bb8bddbcf67c`  
+File: `ShenWork/PDE/P3MoserRegularityProducer.lean`  
 Scope: source audit only; no project source edits.
 
-## Short verdict
+## Answer
 
-Yes: the shen1 classification is materially correct. I found no missing top-level residual field in the three named preferred routes. The only important caveat is regime compatibility: the Paper3 actual-linear-small route assumes `0 < p.χ₀`, so its `paper2Main : IntervalDomainPaper2MainTheoremTargets p C` field is **not** supplied by the Paper2 `χ₀ = 0` route. It remains a separate Paper2-main input for that positive-χ regime.
-
-## 1. Correctness of the listed preferred routes
-
-### Paper1
-
-Path: `ShenWork/Paper1/StatementAssembly.lean`.
-
-The listed route is correct:
-
-* `paper1_mainStatementTargets_of_lowerPinnedContactData`
-* `paper1_mainStatementTargets_of_lowerPinnedRawContactData`
-
-The corresponding input records have exactly the listed fields:
+Yes. It is sound to refactor
 
 ```lean
-structure Paper1MainStatementLowerPinnedContactData
-    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
-  constructionNeg : ConstructionNegSMPProvider
-  positiveLowerPinnedContact : Paper1PositiveLowerPinnedContactBranchData
-  mainline : Paper1MainlineExistence cStarStarFn
-
-structure Paper1MainStatementLowerPinnedRawContactData
-    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
-  constructionNeg : ConstructionNegSMPProvider
-  positiveLowerPinnedRawContact : Paper1PositiveLowerPinnedRawContactBranchData
-  mainline : Paper1MainlineExistence cStarStarFn
+intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
 ```
 
-No top-level Paper1 residual field is missing from shen1's list. The file also has further reductions such as `paper1_positiveContactBranch_of_schauderContactData` and `paper1_positiveRawContactData_of_routeAParamData` in `ShenWork/Paper1/PositiveRawRouteAAssembly.lean`, but these replace one positive-branch residual by smaller route-A/Schauder residuals; they are not unconditional producers of the listed top-level residual.
-
-### Paper2 interval-domain, `χ₀ = 0`
-
-Path: `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`.
-
-The listed least-residual route is correct:
+so that it calls the direct threshold-plan producer and removes the two high-excursion / upper-data-gap hypotheses
 
 ```lean
-intervalDomainPaper2_mainTheoremTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData
+hlower : ... IntegratedMoserHighExcursionLowerAverageWindowFrontier ...
+hupperDataGap : ... IntegratedMoserWindowUpperDataGapFrontier ...
 ```
 
-Its top-level record is intentionally a one-field wrapper:
+from the theorem signature.
+
+The current proof builds the anchored representative
 
 ```lean
-structure
-    IntervalDomainPaper2MainTheoremChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData
-    (p : CM2Params) (C : Paper2Constants p) : Prop where
-  theorem12And13 :
-    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData
-      p C
+let uA := intervalDomainWithInitialSlice u₀ u
 ```
 
-Expanding `theorem12And13`, shen1's list is complete:
+then packages `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` solely in order to call
 
 ```lean
-structure
-    IntervalDomainPaper2Theorem12And13ChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData
-    (p : CM2Params) (C : Paper2Constants p) : Prop where
-  prop25RawDropTerminal :
-    IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData p
-  globalExtension : IntervalDomainPaper2GlobalExtensionFrontier p
-  slowBootstrap : ...
-  criticalBootstrap : ...
-  criticalEventualSupBound : ...
-  strongBootstrap : ...
-  strongEventualSupBound : ...
+integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
 ```
 
-And `prop25RawDropTerminal` expands exactly as listed:
+But `P3MoserRegularityProducer.lean` already imports
 
 ```lean
-structure
-    IntervalDomainPaper2Prop25ActualAtomRawDropMassGradientTerminalEndpointFrontierData
-    (p : CM2Params) : Prop where
-  rawMoserDrop : ...
-  relativeMassGradient : ...
-  terminalEndpoint : ...
+import ShenWork.PDE.P3MoserThresholdPlanProducer
 ```
 
-No top-level field is missing. The theorem arguments `hχ0 : p.χ₀ = 0`, `ha : 0 < p.a`, `hb : 0 < p.b`, `hα : 1 ≤ p.α`, and `hγ : 1 ≤ p.γ` are parameter-side hypotheses, not residual frontier fields. Theorem 1.1 and local existence are indeed produced internally by the χ-zero route; they are not residual fields of this preferred wrapper.
-
-### Paper3 actual-linear-small interval-domain route
-
-Paths:
-
-* `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
-* `ShenWork/Paper3/IntervalDomainStatementAssembly.lean`
-
-The listed preferred route is correct:
+and opens
 
 ```lean
-intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+open ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
 ```
 
-with input record:
+The imported file provides exactly the interval-domain wrapper:
 
 ```lean
-structure IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
-    (p : CM2Params) (C : Paper2Constants p)
-    (M0 uBar vLower : ℝ)
-    (locallyConverges :
-      (ℕ → ℝ → intervalDomain.Point → ℝ) →
-        (ℝ → intervalDomain.Point → ℝ) → Prop)
-    (neumannResolventGradientBound :
-      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
-  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
-  mainline :
-    IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
-      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
 ```
 
-Expanding `mainline`, shen1's list is complete:
+with inputs
 
 ```lean
-structure IntervalDomainPaper3MainlineActualLinear22ThinFrontierData ... where
-  initialContinuity : IntervalDomainInitialContinuityRaw p
-  theorem22Nonminimal : LinearStabilityInstabilityNonminimalRaw ...
-  theorem22Minimal : LinearStabilityInstabilityMinimalRaw ...
-  compactness : IntervalDomainPaper3SupNormCompactnessAPosData ...
-  stability24 : IntervalDomainPaper3Stability24ActualLinearFrontierData ...
+hreg hnonneg hdiss hrel hrho hp0_nonneg
 ```
 
-Further expansion is also as listed:
+For the anchored representative `uA`, the target theorem already has or can construct all of these:
+
+* `hreg` from
+  ```lean
+  intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
+    hglobal hT htrace hdatum hgrad
+  ```
+* `hnonneg` from
+  ```lean
+  intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+    (p0 := p0) hsolA
+  ```
+* `hdiss` by `simpa [uA] using hdiss`.
+* `hrel` by `simpa [uA] using hrel`.
+* `hrho` and `hp0_nonneg` directly.
+
+Then the existing positive-time congruence theorem
 
 ```lean
-structure IntervalDomainPaper3SupNormCompactnessAPosData ... where
-  compact : TimeTranslateCompactnessRaw intervalDomain p locallyConverges
-  resolvent : NeumannResolventGradientBoundExistsRaw intervalDomain neumannResolventGradientBound
-
-structure IntervalDomainPaper3Stability24ActualLinearFrontierData ... where
-  global24 : ...
-  exp24 : ...
+intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
 ```
 
-The negative-sensitivity residual is indeed vacuous in this route, via:
+transfers the anchored step back to raw `u`.
+
+## Ordering / import / name-resolution notes
+
+No import obstruction: `ShenWork.PDE.P3MoserThresholdPlanProducer` is already imported at the top of `P3MoserRegularityProducer.lean`.
+
+No ordering obstruction if the proof calls the imported theorem directly. The local convenience theorem
 
 ```lean
-intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+intervalDomain_firstCrossingStep_of_lite_classical_integratedData
 ```
 
-and Theorem 2.1 persistence is produced internally by:
+appears later in the same file, so this target theorem should **not** call that local wrapper unless the file is reordered. Calling the imported
 
 ```lean
-intervalDomain_sectorialTheorem21Persistence_actualLinearSmall
+P3MoserThresholdPlanProducer.intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
 ```
 
-## 2. Missed top-level residual fields?
+avoids the ordering issue.
 
-No. I did not find an omitted top-level residual field in the three preferred routes.
+Name resolution should work unqualified because the namespace is opened, but the fully qualified call below is safer and minimal.
 
-Small clarification: Paper3's `locallyConverges` and `neumannResolventGradientBound` are parameters of `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData`, not record fields. The actual residual fields involving them are `compactness.compact` and `compactness.resolvent`, which shen1 listed.
+The theorem name `..._upperDataGapFrontiers` becomes stale after the refactor. Keeping the name is the smallest API patch; renaming it would be cleaner but is not required for soundness. Connector code search for the exact theorem name only showed the defining file, so there is no visible separate caller to update, but I would still check locally with `grep` before landing.
 
-Also, the parameter-side hypotheses for Paper3 actual-linear-small,
+## Exact minimal Lean patch
+
+Replace the theorem signature and proof body with the following. The rest of the file can stay as-is.
 
 ```lean
-ha : 0 < p.a
-hb : 0 < p.b
-hχ0 : 0 < p.χ₀
-hm : p.m = 1
-hβ : 1 ≤ p.β
-hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1))
+/-- Produce a raw first-crossing step by running the direct threshold-plan route
+on the re-anchored representative, then transferring the positive-time step back
+to the raw trajectory.
+
+All closed-time Moser inputs in this theorem are stated for
+`intervalDomainWithInitialSlice u₀ u`; only the final first-crossing step is
+exported back to raw `u`.  The old lower-average / upper-data-gap frontiers are
+no longer needed here because the threshold-plan producer consumes regularity,
+energy nonnegativity, dissipation, and relative interpolation directly. -/
+theorem
+    intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hgrad : IntervalDomainRawMoserGradientTimeIntegrability u T p0)
+    (hdiss :
+      IntegratedMoserDissipationDropBefore intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0)
+    (hrel :
+      RelativeMoserInterpolationBefore intervalDomain
+        (intervalDomainWithInitialSlice u₀ u) T rho p0)
+    (hrho : 0 < rho)
+    (hp0_nonneg : 0 ≤ p0) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  let uA : ℝ → intervalDomain.Point → ℝ :=
+    intervalDomainWithInitialSlice u₀ u
+  have hglobalA :
+      IsPaper2GlobalClassicalSolution intervalDomain params uA v := by
+    simpa [uA] using
+      (intervalDomain_globalClassical_withInitialSlice
+        (u₀ := u₀) (u := u) (v := v) hglobal)
+  have hsolA : IsPaper2ClassicalSolution intervalDomain params T uA v :=
+    hglobalA.classical hT
+  have hregA :
+      IntegratedMoserFirstCrossingRegularity intervalDomain uA T p0 := by
+    simpa [uA] using
+      intervalDomain_integratedMoserRegularityAnchored_of_rawGradient
+        hglobal hT htrace hdatum hgrad
+  have hstepA : IntegratedMoserFirstCrossingStep intervalDomain uA T rho p0 :=
+    ShenWork.IntervalDomainExistence.P3MoserThresholdPlanProducer
+      .intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+      hregA
+      (intervalDomain_integratedMoserEnergyNonnegativity_of_classical
+        (p0 := p0) hsolA)
+      (by simpa [uA] using hdiss)
+      (by simpa [uA] using hrel)
+      hrho hp0_nonneg
+  exact intervalDomain_integratedMoserFirstCrossingStep_raw_of_anchored
+    (u₀ := u₀) (u := u) (T := T) (rho := rho) (p0 := p0)
+    (by simpa [uA] using hstepA)
 ```
 
-are theorem assumptions, not residual fields.
+## Why the old high-excursion route is not necessary here
 
-## 3. Any listed residual already produced and only missing one wiring theorem?
+The high-excursion lower-average and upper-data-gap route is still available in the same file through helpers such as
 
-Not in a materially useful way.
+```lean
+intervalDomain_lowerAverageUpperDataGapData_of_classical
+intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
+```
 
-* Paper1: `Paper1PositiveLowerPinnedRawContactBranchData` can be produced from `Paper1PositiveLowerRawCapRouteAParamData` by `paper1_positiveRawContactData_of_routeAParamData`, but that just shifts the residual to the route-A param/contact package. `ConstructionNegSMPProvider` and `Paper1MainlineExistence` are not produced unconditionally in the preferred route's import graph.
-* Paper2: `prop25RawDropTerminal`, `globalExtension`, and the slow/critical/strong bootstrap/eventual-bound fields remain genuine inputs. The route does contain pure conversions (`toTerminalEndpointCor21`, `toMassGradientCor21`, etc.), but no closed theorem producing the listed residual package.
-* Paper3: persistence and the negative-sensitivity residual are already produced internally, but they are not among the listed residual fields. The listed fields `paper2Main`, `initialContinuity`, raw Theorem 2.2 nonminimal/minimal, compactness compact/resolvent, and stability24 global/exp remain inputs.
+but it is no longer necessary for this anchored raw global-classical theorem. The threshold-plan producer bypasses the explicit `IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` package and derives `IntegratedMoserFirstCrossingStep` from the abstract regularity/nonnegativity/dissipation/interpolation data directly.
 
-Important caveat: a one-line composition from the Paper2 `χ₀ = 0` route into Paper3's actual-linear-small `paper2Main` field is impossible because the regimes conflict (`p.χ₀ = 0` versus `0 < p.χ₀`). Any Paper3 headline wrapper using this actual-linear-small route must supply `paper2Main` from a Paper2 route valid in the positive-χ regime, or carry it as an input as the current record does.
-
-## 4. Circular or empty packages?
-
-No circular or empty frontier package in these preferred routes, with one caveat about interpretation.
-
-* `IntervalDomainPaper2MainTheoremChiZeroActualAtomRawDropMassGradientTerminalEndpointCor21LocalFreeFrontierData` is a thin one-field wrapper, but not empty: its single field expands to the real Theorem 1.2/1.3 residual package.
-* `IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData` is also thin, but not empty: `paper2Main` and `mainline` are real fields.
-* `IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25` legitimately fills several branches by contradiction from `0 < p.χ₀` and `0 < p.a`; only `global24` and `exp24` remain non-vacuous.
-* `P3MoserAgmonDirectRoute` is sorry-free, but `AgmonNoDropEnergyReductionBefore` is an explicit frontier, not a hidden proof. It is therefore not misleading if treated as a conditional/WIP route, and it is not the preferred live headline route.
-
-Bottom line: shen1's classification is sound. The main thing to avoid saying is that Paper3's actual-linear-small `paper2Main` is supplied by the Paper2 χ-zero theorem route; it is a separate residual because the parameter regimes differ.
+So the proposed refactor is a real residual reduction: it deletes two unnecessary hypotheses from this theorem without adding any new analytic input.
