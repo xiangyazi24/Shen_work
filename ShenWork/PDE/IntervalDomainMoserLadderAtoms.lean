@@ -603,13 +603,12 @@ def aprioriBound
 
 end IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
 
-/-- Lower-level inputs that refine the integrated-step residual package by
-carrying the preferred regularity-aware lower-average / upper-data-gap split.
+/-- Compatibility-named lower-level inputs that refine the integrated-step
+residual package through the regularity-aware integrated-Moser data.
 
-This is a consumer-side package.  It does not construct high-excursion windows
-or the upper-data-gap chooser; it only assembles those frontiers, together with
-the explicit classical regularity data, into the existing integrated
-first-crossing step route. -/
+The lower-average / upper-data-gap fields used to live here, but the direct
+threshold-plan route only needs classical regularity, integrated dissipation,
+and relative interpolation. -/
 structure IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
     (p : CM2Params) where
   a_pos : 0 < p.a
@@ -643,30 +642,6 @@ structure IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
       AbstractLpBootstrapHypothesis intervalDomain u
         (p.N : ℝ) T rho p0 →
         RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  lowerAverage :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      ∀ q, p0 ≤ q →
-        0 ≤ q →
-        LpPowerBoundedBefore intervalDomain q T u →
-          Nonempty
-            (Σ Cnext : ℝ,
-              IntegratedMoserHighExcursionLowerAverageWindowFrontier
-                intervalDomain u T rho p0 q Cnext)
-  upperDataGap :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      ∀ q, p0 ≤ q →
-        0 ≤ q →
-          Nonempty
-            (IntegratedMoserWindowUpperDataGapFrontier
-              intervalDomain u T rho p0 q)
   quantitativeEndpoint :
     ∀ {u₀ : intervalDomain.Point → ℝ},
       PositiveInitialDatum intervalDomain u₀ →

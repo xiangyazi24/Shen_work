@@ -2782,11 +2782,12 @@ theorem
 
 /-! ### Lower-average / upper-data-gap component route -/
 
-/-- Actual-linear-small Moser residuals with the preferred lower-average /
-upper-data-gap split.  Compared with the older lower/upper residual surface,
-this replaces the opaque `IntegratedMoserFirstCrossingLowerUpperFrontiers`
-supplier by the regularity, integrated dissipation, relative interpolation,
-lower-average, and upper-data-gap inputs that assemble it. -/
+/-- Compatibility-named actual-linear-small Moser residuals for the former
+lower-average / upper-data-gap route.
+
+The direct threshold-plan route now only consumes regularity, integrated
+dissipation, and relative interpolation; the lower-average / upper-data-gap
+fields have been removed from this residual surface. -/
 structure
     IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
     (p : CM2Params) : Prop where
@@ -2820,30 +2821,6 @@ structure
       AbstractLpBootstrapHypothesis intervalDomain u
         (p.N : ℝ) T rho p0 →
         RelativeMoserInterpolationBefore intervalDomain u T rho p0
-  lowerAverage :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      ∀ q, p0 ≤ q →
-        0 ≤ q →
-        LpPowerBoundedBefore intervalDomain q T u →
-          Nonempty
-            (Σ Cnext : ℝ,
-              IntegratedMoserHighExcursionLowerAverageWindowFrontier
-                intervalDomain u T rho p0 q Cnext)
-  upperDataGap :
-    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T u v →
-      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (p.N : ℝ) T rho p0 →
-      ∀ q, p0 ≤ q →
-        0 ≤ q →
-          Nonempty
-            (IntegratedMoserWindowUpperDataGapFrontier
-              intervalDomain u T rho p0 q)
   quantitativeEndpoint :
     ∀ {u₀ : intervalDomain.Point → ℝ},
       PositiveInitialDatum intervalDomain u₀ →
@@ -2891,7 +2868,7 @@ def to_integratedStepResiduals
   quantitativeEndpoint := h.quantitativeEndpoint
 
 /-- Convert to the reusable PDE-level lowerAverage/upperDataGap residual
-package. -/
+compatibility package. -/
 def to_lowerAverageUpperDataGapResiduals
     {p : CM2Params}
     (h :
@@ -2916,8 +2893,6 @@ def to_lowerAverageUpperDataGapResiduals
         (h.classicalContinuityRegularity hsol hcross hboot)
   integratedDissipation := h.integratedDissipation
   relativeMoserInterpolation := h.relativeMoserInterpolation
-  lowerAverage := h.lowerAverage
-  upperDataGap := h.upperDataGap
   quantitativeEndpoint := h.quantitativeEndpoint
 
 end
