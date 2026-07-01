@@ -818,6 +818,24 @@ theorem intervalDomain_regularity_and_nonnegativity_of_lite_classical
 /-- Produce the integrated first-crossing step directly from regularity,
 integrated dissipation, and relative Moser interpolation via the threshold-plan
 route. -/
+theorem intervalDomain_firstCrossingStep_of_classical_integratedData
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hreg : IntervalDomainIntegratedMoserRegularityFrontierData u T p0)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hdiss : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hrho : 0 < rho)
+    (hp0_nonneg : 0 ≤ p0) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
+  intervalDomain_integratedMoserFirstCrossingStep_of_abstract_data
+    (intervalDomain_integratedMoserFirstCrossingRegularity_of_frontierData hreg)
+    (intervalDomain_integratedMoserEnergyNonnegativity_of_classical hsol)
+    hdiss hrel hrho hp0_nonneg
+
+/-- Produce the integrated first-crossing step directly from reduced regularity,
+integrated dissipation, and relative Moser interpolation via the threshold-plan
+route. -/
 theorem intervalDomain_firstCrossingStep_of_lite_classical_integratedData
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -1002,9 +1020,11 @@ theorem intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
       (IsPaper2ClassicalSolution.T_pos hsol).le hreg)
     hsol hdiss hrel hrho hp0_nonneg hlower hupperDataGap
 
-/-- Shortcut: produce `IntegratedMoserFirstCrossingStep` from explicit
-regularity data, a classical solution, and the four PDE-content hypotheses via
-the lower-average/epsilon-gap route. -/
+/-- Compatibility shortcut for the old lower-average/epsilon-gap route.
+
+The lower-average and epsilon-gap parameters are retained for callers of the
+old surface, but the proof now uses the direct threshold-plan route from
+regularity, integrated dissipation, and relative interpolation. -/
 theorem intervalDomain_firstCrossingStep_of_classical_and_frontiers
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -1027,13 +1047,16 @@ theorem intervalDomain_firstCrossingStep_of_classical_and_frontiers
         0 ≤ p →
           IntegratedMoserWindowUpperGapEpsilonFrontier
             intervalDomain u T rho p0 p) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
-    (intervalDomain_lowerAverageEpsilonData_of_classical
-      hreg hsol hdiss hrel hrho hp0_nonneg hlower hgap)
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  have _compat_lower := hlower
+  have _compat_gap := hgap
+  exact intervalDomain_firstCrossingStep_of_classical_integratedData
+    hreg hsol hdiss hrel hrho hp0_nonneg
 
-/-- Reduced regularity-data shortcut for
-`IntegratedMoserFirstCrossingStep`. -/
+/-- Reduced regularity-data compatibility shortcut for the old
+lower-average/epsilon-gap route.  The lower-average and epsilon-gap parameters
+are retained for callers of the old surface; the proof uses the direct
+threshold-plan route. -/
 theorem intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -1056,14 +1079,17 @@ theorem intervalDomain_firstCrossingStep_of_lite_classical_and_frontiers
         0 ≤ p →
           IntegratedMoserWindowUpperGapEpsilonFrontier
             intervalDomain u T rho p0 p) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
-    (intervalDomain_lowerAverageEpsilonData_of_lite_classical
-      hreg hsol hdiss hrel hrho hp0_nonneg hlower hgap)
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  have _compat_lower := hlower
+  have _compat_gap := hgap
+  exact intervalDomain_firstCrossingStep_of_lite_classical_integratedData
+    hreg hsol hdiss hrel hrho hp0_nonneg
 
-/-- Shortcut: produce `IntegratedMoserFirstCrossingStep` from explicit
-regularity data, a classical solution, and the preferred lower-average /
-upper-data-gap frontiers. -/
+/-- Compatibility shortcut for the old lower-average / upper-data-gap route.
+
+The lower-average and upper-data-gap parameters are retained for callers of the
+old surface, but the proof now uses the direct threshold-plan route from
+regularity, integrated dissipation, and relative interpolation. -/
 theorem intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -1087,13 +1113,16 @@ theorem intervalDomain_firstCrossingStep_of_classical_and_upperDataGapFrontiers
           Nonempty
             (IntegratedMoserWindowUpperDataGapFrontier
               intervalDomain u T rho p0 p)) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-    (intervalDomain_lowerAverageUpperDataGapData_of_classical
-      hreg hsol hdiss hrel hrho hp0_nonneg hlower hupperDataGap)
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  have _compat_lower := hlower
+  have _compat_upper := hupperDataGap
+  exact intervalDomain_firstCrossingStep_of_classical_integratedData
+    hreg hsol hdiss hrel hrho hp0_nonneg
 
-/-- Reduced regularity-data shortcut for the preferred lower-average /
-upper-data-gap first-crossing route. -/
+/-- Reduced regularity-data compatibility shortcut for the old lower-average /
+upper-data-gap route.  The lower-average and upper-data-gap parameters are
+retained for callers of the old surface; the proof uses the direct
+threshold-plan route. -/
 theorem intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -1117,10 +1146,11 @@ theorem intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFront
           Nonempty
             (IntegratedMoserWindowUpperDataGapFrontier
               intervalDomain u T rho p0 p)) :
-    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-    (intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
-      hreg hsol hdiss hrel hrho hp0_nonneg hlower hupperDataGap)
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 := by
+  have _compat_lower := hlower
+  have _compat_upper := hupperDataGap
+  exact intervalDomain_firstCrossingStep_of_lite_classical_integratedData
+    hreg hsol hdiss hrel hrho hp0_nonneg
 
 section AxiomAudit
 
@@ -1156,6 +1186,7 @@ section AxiomAudit
 #print axioms intervalDomain_lowerAverageEpsilonData_of_lite_classical
 #print axioms intervalDomain_lowerAverageUpperDataGapData_of_classical
 #print axioms intervalDomain_lowerAverageUpperDataGapData_of_lite_classical
+#print axioms intervalDomain_firstCrossingStep_of_classical_integratedData
 #print axioms intervalDomain_firstCrossingStep_of_lite_classical_integratedData
 #print axioms intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
 #print axioms intervalDomain_firstCrossingStep_of_classical_and_frontiers

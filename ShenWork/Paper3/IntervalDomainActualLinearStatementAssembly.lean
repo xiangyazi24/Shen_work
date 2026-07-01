@@ -2839,13 +2839,13 @@ structure
 namespace
     IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
 
-/-- Convert the actual-linear-small component lowerAverage/upperDataGap
-residual surface to the existing integrated-step actual-linear residual
-surface.
+/-- Convert the compatibility-named actual-linear-small lowerAverage/upperDataGap
+residual surface to the existing integrated-step actual-linear residual surface.
 
-The lower-average and upper-data-gap fields are retained for compatibility, but
-this conversion now uses the direct threshold-plan route from regularity,
-integrated dissipation, and relative interpolation. -/
+The old route name is retained for compatibility; the lower-average and
+upper-data-gap fields have been removed, and this conversion uses the direct
+threshold-plan route from regularity, integrated dissipation, and relative
+interpolation. -/
 def to_integratedStepResiduals
     {p : CM2Params}
     (h :
