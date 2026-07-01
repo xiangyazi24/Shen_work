@@ -288,17 +288,13 @@ The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
 `hstep` input to `moser_iteration_chain`, yielding all Lp bounds.
 -/
 
-/-- Gronwall-based Moser step: from the FULL energy inequality + interpolation,
-derive the Lp bound at the CURRENT exponent p via Gronwall.
+/-- Moser chain from the Agmon interpolation and a supplied no-drop
+energy-reduction frontier.
 
-This is the paper's Lemma 2.6 approach:
-1. Full energy: `(1/p)Y' + AG + BY ≤ KZ + L`
-2. Interpolation: `Z ≤ εG + C`
-3. Substitute and absorb gradient: `(1/p)Y' + BY ≤ KC + L` (gradient cancels!)
-4. Gronwall: `Y(t) ≤ max(Y(0), (KC+L)/B)`
-5. Then Z bounded from interpolation + Y bound.
-
-No `MoserDissipationDropBeforeNonnegB` needed. No `AgmonNoDropEnergyReductionBefore` needed. -/
+The direct Gronwall argument controls the current energy after absorbing the
+gradient term, but the pointwise `lp_bootstrap_single_step_abstract` interface
+still needs the separate gradient step `A G_p ≤ K Z_p + L`.  That step is kept
+as the explicit `AgmonNoDropEnergyReductionBefore` frontier here. -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -306,10 +302,20 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hreduce : AgmonNoDropEnergyReductionBefore u T rho p0)
     (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
     (hrho : 0 < rho) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  sorry
+  have _henergy :
+      LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
+    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+  refine IntervalDomainChain.moser_iteration_chain
+    (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
+    hrho (AbstractLpBootstrapHypothesis.initial_lp_bound hboot) ?_
+  intro p hp
+  rcases hreduce p hp with ⟨A, hA, K, hK, L_const, hstep⟩
+  refine ⟨A, hA, K, hK, L_const, hstep, ?_⟩
+  exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
 /-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap
