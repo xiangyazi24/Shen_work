@@ -53,6 +53,15 @@ Authoritative checks from the current tree:
   lowerAverage/upperDataGap route now converts only to the integrated-step
   actual-linear route; the old PDE converter is no longer a live source
   surface.
+- The four legacy first-crossing shortcut theorems in
+  `P3MoserRegularityProducer` that still accepted lower-average / upper-gap
+  frontier parameters after their proof bodies had switched to the direct
+  threshold-plan route have been removed.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserRegularityProducer
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs).
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
