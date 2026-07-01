@@ -40,12 +40,26 @@ Proved Agmon → LpMassGradientInterpolationEstimate (available)
   → Proposition_2_5 (via existing P3MoserActualWiring)
 ```
 
-**Sub-avenues:**
-- (a) Gradient chain: `∫u^{p+ρ-2}|∇u|² ≤ cGrad·∫|∇(u^{p/2})|²` for classical solutions.
-  Reduces to pointwise `u^ρ ≤ cGrad·(p/2)²` (chain rule + L∞ bound).
-- (b) Mass-to-Lp: `Cmass·(∫u)^{p+ρ} ≤ Crel·∫u^p`. Jensen + mass boundedness.
-- (c) Integrated dissipation drop from `intervalDomain_lp_energy_balance_of_regularity`.
-- (d) Assembly → Prop 2.5.
+**STRUCTURAL FINDING (2026-06-30): gradient-exponent mismatch is REAL.**
+- `RelativeMoserInterpolationBefore` (∫u^{p+ρ} ≤ ε∫|∇(u^{p/2})|² + C∫u^p) is FALSE
+  in general for 1D — same reason OldUnitIntervalPowerGNYoungForMoser is false.
+- What holds in 1D: SUPERLINEAR form ∫u^{p+ρ} ≤ ε∫|∇(u^{p/2})|² + C·(∫u^p)^{p/(p-ρ)}.
+- The superlinear lower-order term breaks the threshold plan's first-crossing argument
+  (the threshold K can't be set because K - C·K^α·T → -∞ for α > 1).
+- Therefore: Moser iteration via threshold plan DOES NOT WORK in 1D as-is.
+
+**CORRECTED 1D ROUTE: Uniform Gronwall + 1D Sobolev.**
+1. Energy estimate at p=2: integrated bounds ∫_s^{s+r} ∫u² + ∫|u'|² ≤ C
+2. Uniform Gronwall lemma (Temam): integrated bounds → pointwise ∫u²(t) ≤ C, ∫|u'|²(t) ≤ C
+3. 1D Sobolev (Agmon for u): ‖u(t)‖_∞² ≤ C(∫u² + ∫|u'|²) ≤ C'
+4. L∞ → all Lp: ∫u^p ≤ ‖u‖_∞^{p-1} · ∫u ≤ C'
+5. This IS Proposition 2.5 for the 1D case.
+
+**Sub-avenues (revised):**
+- (a) Prove the superlinear 1D interpolation lemma (architecture done in P3MoserAgmonDirectRoute.lean)
+- (b) Implement the Uniform Gronwall Lemma (check if in Mathlib)
+- (c) Build the L² energy → integrated bounds → pointwise bounds chain
+- (d) Wire pointwise bounds + Agmon → L∞ → all Lp → Prop 2.5
 
 ### Previous avenues (reference):
 - lemma26: Moser iteration step
