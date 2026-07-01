@@ -1,12 +1,15 @@
 # UNDERSTANDING.md — Shen_work
 
-## CURRENT STATE (2026-06-30, code-derived)
+## CURRENT STATE (2026-07-01, code-derived)
 
 Authoritative checks from the current tree:
 - Real proof holes in Lean code: **0** `sorry` in the main codebase.
-  **6 sorry in `P3MoserAgmonDirectRoute.lean`** (new architecture file, not
-  yet in the build graph). **2 sorry in `IntervalDomain1DLinfRoute.lean`**
-  (superseded architecture file).
+  The former Agmon/direct-1D route holes in
+  `P3MoserAgmonDirectRoute.lean` and `IntervalDomain1DLinfRoute.lean` have
+  been replaced by explicit frontier inputs
+  (`AgmonAbsorbedInterpolationBefore` and
+  `IntervalDomainPointwiseMoserGradientBoundBefore`) plus axiom-clean
+  downstream wrappers.
 - Last full remote build: after adding the Paper2 structured-Moser and
   actual-atom Proposition 2.5 frontiers, the common-free actual-atom
   Corollary 2.1 / Proposition 2.5 headline route, the mass-gradient reduction
@@ -33,6 +36,14 @@ Authoritative checks from the current tree:
   `[propext, Classical.choice, Quot.sound]`.
 - The 2026-06-28 note below claiming "Paper 2 χ₀<0: 42 sorry" is stale; the
   repo no longer has proof-level `sorry`.
+- Current target verification: after wiring the integrated-Moser data frontier
+  through `P3MoserRegularityProducer`,
+  `IntervalDomainMoserLadderAtoms`, and
+  `Paper2.IntervalDomainStatementAssembly`, the remote uisai2 target build
+  `lake build ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly` completed successfully
+  (3749 jobs).  The new integrated-Moser wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 
 Current headline status:
 - Short audit table for the Paper1--Paper3 headline wrappers:

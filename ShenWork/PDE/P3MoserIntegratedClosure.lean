@@ -84,6 +84,77 @@ theorem integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
   have hCineq_ab := hCineq a haT b hbT
   linarith
 
+/-- Pure scalar absorption for one integrated Moser time window, with the
+explicit final constant.
+
+`Ydiff` is the endpoint energy difference, `Gint` is the Moser-gradient
+integral, `Zint` is the higher-power integral, and `Hint` is the time integral
+of the current energy envelope.  If the already-integrated inequality has
+gradient coefficient `A`, higher-power coefficient `K`, and interpolation
+cost `K * eps`, any surplus `K * eps ≤ A - theta` yields a coefficient-`theta`
+integrated drop. -/
+theorem scalar_absorb_higherPower_window_const
+    {Ydiff Gint Zint Hint A K C0 L p eps Ceps theta : ℝ}
+    (hp : 0 < p)
+    (hG : 0 ≤ Gint)
+    (hC0 : 0 ≤ C0)
+    (hK : 0 ≤ K)
+    (hL : 0 ≤ L)
+    (hCeps : 0 ≤ Ceps)
+    (henergy :
+      Ydiff + A * Gint ≤ C0 * p * Hint + K * Zint + L * Hint)
+    (hrel : Zint ≤ eps * Gint + Ceps * Hint)
+    (habsorb : K * eps ≤ A - theta) :
+    0 ≤ C0 + (K * Ceps + L) / p ∧
+      Ydiff + theta * Gint ≤
+        (C0 + (K * Ceps + L) / p) * p * Hint := by
+  constructor
+  · have hKCeps_nonneg : 0 ≤ K * Ceps := mul_nonneg hK hCeps
+    have hnum_nonneg : 0 ≤ K * Ceps + L := add_nonneg hKCeps_nonneg hL
+    exact add_nonneg hC0 (div_nonneg hnum_nonneg hp.le)
+  · have hKrel :
+        K * Zint ≤ K * (eps * Gint + Ceps * Hint) :=
+      mul_le_mul_of_nonneg_left hrel hK
+    have henergy_rel :
+        Ydiff + A * Gint ≤
+          C0 * p * Hint + K * (eps * Gint + Ceps * Hint) +
+            L * Hint := by
+      linarith
+    have htheta_le : theta ≤ A - K * eps := by
+      linarith
+    have hthetaG :
+        theta * Gint ≤ (A - K * eps) * Gint :=
+      mul_le_mul_of_nonneg_right htheta_le hG
+    have hmain :
+        Ydiff + theta * Gint ≤
+          C0 * p * Hint + (K * Ceps + L) * Hint := by
+      nlinarith
+    have hfinal :
+        (C0 + (K * Ceps + L) / p) * p * Hint =
+          C0 * p * Hint + (K * Ceps + L) * Hint := by
+      field_simp [ne_of_gt hp]
+    simpa [hfinal]
+
+/-- Existential packaging of `scalar_absorb_higherPower_window_const`. -/
+theorem scalar_absorb_higherPower_window
+    {Ydiff Gint Zint Hint A K C0 L p eps Ceps theta : ℝ}
+    (hp : 0 < p)
+    (hG : 0 ≤ Gint)
+    (hC0 : 0 ≤ C0)
+    (hK : 0 ≤ K)
+    (hL : 0 ≤ L)
+    (hCeps : 0 ≤ Ceps)
+    (henergy :
+      Ydiff + A * Gint ≤ C0 * p * Hint + K * Zint + L * Hint)
+    (hrel : Zint ≤ eps * Gint + Ceps * Hint)
+    (habsorb : K * eps ≤ A - theta) :
+    ∃ Cfinal, 0 ≤ Cfinal ∧
+      Ydiff + theta * Gint ≤ Cfinal * p * Hint := by
+  rcases scalar_absorb_higherPower_window_const
+      hp hG hC0 hK hL hCeps henergy hrel habsorb with
+    ⟨hC, hineq⟩
+  exact ⟨C0 + (K * Ceps + L) / p, hC, hineq⟩
+
 /-- Bound the integrated `max 1 Y` term by a uniform pointwise bound on `Y`. -/
 theorem intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
     {a b M : ℝ} {Y : ℝ → ℝ}
@@ -110,6 +181,27 @@ theorem intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound
     simp [smul_eq_mul]
   rw [hconst] at hmono
   exact hmono
+
+/-- The time length of a non-reversed window is controlled by the integral of
+`max 1 Y` over that window.  This absorbs constant lower-order terms into the
+same envelope used by the integrated Moser drop. -/
+theorem intervalIntegral_length_le_integral_max_one
+    {a b : ℝ} {Y : ℝ → ℝ}
+    (hab : a ≤ b)
+    (hYmax_int :
+      IntervalIntegrable (fun s => max (1 : ℝ) (Y s)) volume a b) :
+    b - a ≤ ∫ s in a..b, max (1 : ℝ) (Y s) := by
+  have hconst : IntervalIntegrable (fun _s : ℝ => (1 : ℝ)) volume a b :=
+    intervalIntegrable_const
+  have hmono :
+      (∫ _s in a..b, (1 : ℝ)) ≤
+        ∫ s in a..b, max (1 : ℝ) (Y s) :=
+    intervalIntegral.integral_mono_on hab hconst hYmax_int
+      (fun s _hs => le_max_left (1 : ℝ) (Y s))
+  have hlen : (∫ _s in a..b, (1 : ℝ)) = b - a := by
+    rw [intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+  simpa [hlen] using hmono
 
 /-- Moser-energy specialization of
 `intervalIntegral_max_one_le_length_mul_max_one_of_Icc_bound`. -/
@@ -288,6 +380,177 @@ def integratedMoserGradientEnergy
   D.integral (fun x =>
     (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)
 
+/-- Window fundamental theorem of calculus for the Moser energy profile
+`Y_p(t) = integratedMoserEnergy D u p t`.
+
+This is intentionally separate from `IntegratedMoserFirstCrossingRegularity`:
+continuity and time-integrability of `Y_p` do not by themselves give
+integrability of `deriv Y_p` or the endpoint identity. -/
+structure IntegratedMoserEnergyWindowFTC
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop where
+  deriv_intervalIntegrable :
+    ∀ p, p0 ≤ p →
+      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        IntervalIntegrable
+          (fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s)
+          volume t1 t2
+  window_ftc :
+    ∀ p, p0 ≤ p →
+      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        (∫ s in t1..t2,
+          deriv (fun τ => integratedMoserEnergy D u p τ) s) =
+        integratedMoserEnergy D u p t2 -
+          integratedMoserEnergy D u p t1
+
+/-- The derivative-integrability part of the Moser-energy window FTC.  This is
+the analytic frontier that has to come from a genuine time-Leibniz/absolute
+continuity producer. -/
+def IntegratedMoserEnergyDerivativeWindowIntegrability
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p →
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      IntervalIntegrable
+        (fun s => deriv (fun τ => integratedMoserEnergy D u p τ) s)
+        volume t1 t2
+
+/-- Coefficient-level full-window higher-power energy input for the integrated
+Moser absorption step.
+
+The theorem `integratedMoserDissipationDropBeforeCoeff_of_higherPower_and_relative`
+consumes exactly this kind of window inequality together with integrated
+relative-Moser interpolation.  The final surplus field records the coefficient
+gap needed to absorb the higher-power term into the gradient term. -/
+def IntegratedHigherPowerEnergyWindowCoeffFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 theta : ℝ) : Prop :=
+  ∀ p, p0 ≤ p →
+    ∃ A K C0 L eps : ℝ,
+      0 < eps ∧ 0 ≤ K ∧ 0 ≤ C0 ∧ 0 ≤ L ∧
+      (∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        integratedMoserEnergy D u p t2 -
+            integratedMoserEnergy D u p t1 +
+          A * (∫ s in t1..t2,
+            integratedMoserGradientEnergy D u p s) ≤
+        (C0 * p * (∫ s in t1..t2,
+            max 1 (integratedMoserEnergy D u p s)) +
+          K * (∫ s in t1..t2,
+            integratedMoserEnergy D u (p + rho) s)) +
+          L * (∫ s in t1..t2,
+            max 1 (integratedMoserEnergy D u p s))) ∧
+      K * eps ≤ A - theta
+
+/-- Window-level absorption into the coefficient-parameterized integrated
+Moser drop.
+
+This theorem deliberately starts from already-integrated window inequalities.
+Producing those inequalities from the PDE energy identity is the remaining PDE
+frontier; the algebraic absorption step itself is closed here. -/
+theorem
+    integratedMoserDissipationDropBeforeCoeff_of_higherPower_and_relative
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 theta : ℝ}
+    (hp_pos : ∀ p, p0 ≤ p → 0 < p)
+    (henergy :
+      ∀ p, p0 ≤ p →
+        ∃ A K C0 L eps : ℝ,
+          0 < eps ∧ 0 ≤ K ∧ 0 ≤ C0 ∧ 0 ≤ L ∧
+          (∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+            integratedMoserEnergy D u p t2 -
+                integratedMoserEnergy D u p t1 +
+              A * ∫ s in t1..t2,
+                integratedMoserGradientEnergy D u p s ≤
+            (C0 * p * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy D u p s)) +
+              K * (∫ s in t1..t2,
+                integratedMoserEnergy D u (p + rho) s)) +
+              L * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy D u p s))) ∧
+          K * eps ≤ A - theta)
+    (hrelInt :
+      ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
+        ∃ Ceps, 0 ≤ Ceps ∧
+          ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+            ∫ s in t1..t2,
+                integratedMoserEnergy D u (p + rho) s ≤
+              eps * (∫ s in t1..t2,
+                integratedMoserGradientEnergy D u p s) +
+              Ceps * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy D u p s)))
+    (hG_nonneg :
+      ∀ p, p0 ≤ p → ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        0 ≤ ∫ s in t1..t2, integratedMoserGradientEnergy D u p s) :
+    IntegratedMoserDissipationDropBeforeCoeff theta D u T rho p0 := by
+  intro p hp
+  rcases henergy p hp with
+    ⟨A, K, C0, L, eps, heps, hK, hC0, hL, henergy_window, habsorb⟩
+  rcases hrelInt p hp eps heps with
+    ⟨Ceps, hCeps, hrel_window⟩
+  refine ⟨C0 + (K * Ceps + L) / p, ?_, ?_⟩
+  · have hKCeps_nonneg : 0 ≤ K * Ceps := mul_nonneg hK hCeps
+    have hnum_nonneg : 0 ≤ K * Ceps + L := add_nonneg hKCeps_nonneg hL
+    exact add_nonneg hC0 (div_nonneg hnum_nonneg (hp_pos p hp).le)
+  · intro t1 ht1 t2 ht2
+    have henergy_scalar :
+        integratedMoserEnergy D u p t2 -
+              integratedMoserEnergy D u p t1 +
+            A * ∫ s in t1..t2, integratedMoserGradientEnergy D u p s ≤
+          (C0 * p *
+              (∫ s in t1..t2, max 1 (integratedMoserEnergy D u p s)) +
+            K * (∫ s in t1..t2,
+              integratedMoserEnergy D u (p + rho) s)) +
+          L * (∫ s in t1..t2,
+            max 1 (integratedMoserEnergy D u p s)) := by
+      exact henergy_window t1 ht1 t2 ht2
+    rcases
+      scalar_absorb_higherPower_window_const
+        (Ydiff :=
+          integratedMoserEnergy D u p t2 -
+            integratedMoserEnergy D u p t1)
+        (Gint :=
+          ∫ s in t1..t2, integratedMoserGradientEnergy D u p s)
+        (Zint :=
+          ∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s)
+        (Hint :=
+          ∫ s in t1..t2, max 1 (integratedMoserEnergy D u p s))
+        (A := A) (K := K) (C0 := C0) (L := L) (p := p)
+        (eps := eps) (Ceps := Ceps) (theta := theta)
+        (hp_pos p hp) (hG_nonneg p hp t1 ht1 t2 ht2)
+        hC0 hK hL hCeps
+        henergy_scalar
+        (hrel_window t1 ht1 t2 ht2)
+        habsorb with
+      ⟨_hCfinal, hwindow⟩
+    simpa [integratedMoserEnergy, integratedMoserGradientEnergy]
+      using hwindow
+
+/-- Named-frontier version of
+`integratedMoserDissipationDropBeforeCoeff_of_higherPower_and_relative`. -/
+theorem
+    integratedMoserDissipationDropBeforeCoeff_of_higherPowerFrontier_and_relative
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 theta : ℝ}
+    (hp_pos : ∀ p, p0 ≤ p → 0 < p)
+    (henergy :
+      IntegratedHigherPowerEnergyWindowCoeffFrontier D u T rho p0 theta)
+    (hrelInt :
+      ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
+        ∃ Ceps, 0 ≤ Ceps ∧
+          ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+            ∫ s in t1..t2,
+                integratedMoserEnergy D u (p + rho) s ≤
+              eps * (∫ s in t1..t2,
+                integratedMoserGradientEnergy D u p s) +
+              Ceps * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy D u p s)))
+    (hG_nonneg :
+      ∀ p, p0 ≤ p → ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        0 ≤ ∫ s in t1..t2, integratedMoserGradientEnergy D u p s) :
+    IntegratedMoserDissipationDropBeforeCoeff theta D u T rho p0 :=
+  integratedMoserDissipationDropBeforeCoeff_of_higherPower_and_relative
+    hp_pos henergy hrelInt hG_nonneg
+
 /-- A nonnegative gradient energy has a nonnegative interval integral over a
 non-reversed time interval. -/
 theorem integratedMoserGradientEnergy_intervalIntegral_nonneg_of_forall
@@ -332,6 +595,38 @@ theorem Icc_subset_uIcc_zero_T_of_endpoint_memberships
   have h0T : (0 : ℝ) ≤ T := le_trans haT.1 haT.2
   rw [Set.uIcc_of_le h0T]
   exact ⟨le_trans haT.1 hs.1, le_trans hs.2 hbT.2⟩
+
+/-- On a closed Moser window `[a,b] ⊆ [0,T]`, almost every point in the
+closed interval is a strict interior time.  The only possible failures are the
+endpoint singletons `{0,T}`. -/
+theorem ae_restrict_Icc_strictInterior_of_Icc_endpoints
+    {T a b : ℝ}
+    (haT : a ∈ Set.Icc (0 : ℝ) T)
+    (hbT : b ∈ Set.Icc a T) :
+    ∀ᵐ s ∂(volume.restrict (Set.Icc a b)), 0 < s ∧ s < T := by
+  refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+  have hnull : volume ({(0 : ℝ), T} : Set ℝ) = 0 := by
+    exact Set.Finite.measure_zero ((Set.finite_singleton T).insert (0 : ℝ)) volume
+  refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
+  intro s hs
+  simp only [Set.mem_setOf_eq] at hs
+  have hsIcc : s ∈ Set.Icc a b := by
+    by_contra hs_not
+    exact hs (fun hs_mem => False.elim (hs_not hs_mem))
+  have hbad : ¬ (0 < s ∧ s < T) := by
+    intro hs_good
+    exact hs (fun _ => hs_good)
+  have hs_nonneg : 0 ≤ s := le_trans haT.1 hsIcc.1
+  have hs_le_T : s ≤ T := le_trans hsIcc.2 hbT.2
+  simp only [Set.mem_insert_iff, Set.mem_singleton_iff]
+  by_cases hs_pos : 0 < s
+  · right
+    have hT_le_s : T ≤ s := by
+      exact le_of_not_gt (fun hs_lt => hbad ⟨hs_pos, hs_lt⟩)
+    exact le_antisymm hs_le_T hT_le_s
+  · left
+    have hs_nonpos : s ≤ 0 := le_of_not_gt hs_pos
+    exact le_antisymm hs_nonpos hs_nonneg
 
 /-- Power-profile interval integrability from the first-crossing regularity
 package. -/
@@ -398,6 +693,197 @@ theorem intervalIntegrable_max_one_of_intervalIntegrable
     rw [max_eq_left hY_le, abs_of_nonneg (sub_nonneg.mpr hY_le)]
     ring
 
+/-- Strict-interior integrated relative-Moser estimate with a fixed relative
+constant and the lower-order term kept as `∫ max 1 Y_p`.
+
+The strict endpoint assumptions are essential for this direct pointwise
+integration route: `RelativeMoserInterpolationBefore` only supplies the
+interpolation inequality for `0 < t < T`. -/
+theorem
+    relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne_const
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p a b eps Ceps : ℝ}
+    (hCeps_nonneg : 0 ≤ Ceps)
+    (hrel_eps :
+      ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ p))
+    (hab : a ≤ b)
+    (ha : 0 < a)
+    (hb : b < T)
+    (hZ_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u (p + rho) s)
+        volume a b)
+    (hG_int :
+      IntervalIntegrable
+        (fun s => integratedMoserGradientEnergy D u p s)
+        volume a b)
+    (hY_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u p s)
+        volume a b) :
+    ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
+      eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
+      Ceps * (∫ s in a..b,
+        max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
+  have hYmax_int :
+      IntervalIntegrable
+        (fun s => max (1 : ℝ) (integratedMoserEnergy D u p s))
+        volume a b :=
+    intervalIntegrable_max_one_of_intervalIntegrable hY_int
+  have hR_int :
+      IntervalIntegrable
+        (fun s =>
+          eps * integratedMoserGradientEnergy D u p s +
+            Ceps * integratedMoserEnergy D u p s)
+        volume a b :=
+    (hG_int.const_mul eps).add (hY_int.const_mul Ceps)
+  have hpoint :
+      ∀ s ∈ Set.Icc a b,
+        integratedMoserEnergy D u (p + rho) s ≤
+          eps * integratedMoserGradientEnergy D u p s +
+            Ceps * integratedMoserEnergy D u p s := by
+    intro s hs
+    have hs0 : 0 < s := lt_of_lt_of_le ha hs.1
+    have hsT : s < T := lt_of_le_of_lt hs.2 hb
+    simpa [integratedMoserEnergy, integratedMoserGradientEnergy] using
+      hrel_eps s hs0 hsT
+  have hmono :
+      ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
+        ∫ s in a..b,
+          eps * integratedMoserGradientEnergy D u p s +
+            Ceps * integratedMoserEnergy D u p s :=
+    intervalIntegral.integral_mono_on hab hZ_int hR_int hpoint
+  have hR_eq :
+      (∫ s in a..b,
+          eps * integratedMoserGradientEnergy D u p s +
+            Ceps * integratedMoserEnergy D u p s) =
+        eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
+          Ceps * (∫ s in a..b, integratedMoserEnergy D u p s) := by
+    have hG_mul :
+        (∫ s in a..b, eps * integratedMoserGradientEnergy D u p s) =
+          eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) :=
+      intervalIntegral.integral_const_mul eps
+        (fun s => integratedMoserGradientEnergy D u p s)
+    have hY_mul :
+        (∫ s in a..b, Ceps * integratedMoserEnergy D u p s) =
+          Ceps * (∫ s in a..b, integratedMoserEnergy D u p s) :=
+      intervalIntegral.integral_const_mul Ceps
+        (fun s => integratedMoserEnergy D u p s)
+    calc
+      (∫ s in a..b,
+          eps * integratedMoserGradientEnergy D u p s +
+            Ceps * integratedMoserEnergy D u p s)
+          = (∫ s in a..b, eps * integratedMoserGradientEnergy D u p s) +
+              ∫ s in a..b, Ceps * integratedMoserEnergy D u p s := by
+            exact intervalIntegral.integral_add
+              (hG_int.const_mul eps) (hY_int.const_mul Ceps)
+      _ = eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
+            Ceps * (∫ s in a..b, integratedMoserEnergy D u p s) := by
+            rw [hG_mul, hY_mul]
+  have hY_le_max_point :
+      ∀ s ∈ Set.Icc a b,
+        integratedMoserEnergy D u p s ≤
+          max (1 : ℝ) (integratedMoserEnergy D u p s) := by
+    intro s _hs
+    exact le_max_right (1 : ℝ) (integratedMoserEnergy D u p s)
+  have hY_le_max_int :
+      ∫ s in a..b, integratedMoserEnergy D u p s ≤
+        ∫ s in a..b,
+          max (1 : ℝ) (integratedMoserEnergy D u p s) :=
+    intervalIntegral.integral_mono_on hab hY_int hYmax_int hY_le_max_point
+  have hscaled :
+      Ceps * (∫ s in a..b, integratedMoserEnergy D u p s) ≤
+        Ceps * (∫ s in a..b,
+          max (1 : ℝ) (integratedMoserEnergy D u p s)) :=
+    mul_le_mul_of_nonneg_left hY_le_max_int hCeps_nonneg
+  rw [hR_eq] at hmono
+  linarith
+
+/-- Strict-interior integrated relative-Moser estimate with the lower-order
+current energy kept as `∫ max 1 Y_p`. -/
+theorem relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 p a b eps : ℝ}
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (heps : 0 < eps)
+    (hab : a ≤ b)
+    (ha : 0 < a)
+    (hb : b < T)
+    (hZ_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u (p + rho) s)
+        volume a b)
+    (hG_int :
+      IntervalIntegrable
+        (fun s => integratedMoserGradientEnergy D u p s)
+        volume a b)
+    (hY_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u p s)
+        volume a b) :
+    ∃ Ceps, 0 ≤ Ceps ∧
+      ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
+        eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
+        Ceps * (∫ s in a..b,
+          max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
+  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, hrel_eps⟩
+  refine ⟨Ceps, hCeps_nonneg, ?_⟩
+  exact
+    relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne_const
+      (D := D) (u := u) (T := T) (rho := rho) (p := p)
+      (a := a) (b := b) (eps := eps) (Ceps := Ceps)
+      hCeps_nonneg hrel_eps hab ha hb hZ_int hG_int hY_int
+
+/-- Strict-interior all-window version of the integrated relative-Moser estimate.
+This matches the desired full-window `hrelInt` shape except that windows must lie
+strictly inside `(0,T)`, reflecting the current pointwise predicate. -/
+theorem relativeMoser_hrelInt_strictInterior
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hrho_nonneg : 0 ≤ rho) :
+    ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
+      ∃ Ceps, 0 ≤ Ceps ∧
+        ∀ a b, a ≤ b → 0 < a → b < T →
+          ∫ s in a..b, integratedMoserEnergy D u (p + rho) s ≤
+            eps * (∫ s in a..b, integratedMoserGradientEnergy D u p s) +
+            Ceps * (∫ s in a..b,
+              max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
+  intro p hp eps heps
+  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, hrel_eps⟩
+  refine ⟨Ceps, hCeps_nonneg, ?_⟩
+  intro a b hab ha hb
+  have hT_nonneg : 0 ≤ T := le_trans ha.le (le_trans hab hb.le)
+  have hsub : Set.Icc a b ⊆ Set.uIcc (0 : ℝ) T := by
+    intro s hs
+    rw [Set.uIcc_of_le hT_nonneg]
+    exact ⟨le_trans ha.le hs.1, le_trans hs.2 hb.le⟩
+  have hp_rho : p0 ≤ p + rho := by
+    linarith
+  have hZ_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u (p + rho) s) volume a b :=
+    hreg.power_intervalIntegrable_of_Icc hp_rho hab hsub
+  have hG_int :
+      IntervalIntegrable
+        (fun s => integratedMoserGradientEnergy D u p s) volume a b :=
+    hreg.gradient_intervalIntegrable_of_Icc hp hab hsub
+  have hY_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u p s) volume a b :=
+    hreg.power_intervalIntegrable_of_Icc hp hab hsub
+  exact
+    relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne_const
+      (D := D) (u := u) (T := T) (rho := rho) (p := p)
+      (a := a) (b := b) (eps := eps) (Ceps := Ceps)
+      hCeps_nonneg hrel_eps hab ha hb hZ_int hG_int hY_int
+
 /-- Max-one current-energy interval integrability from the regularity package. -/
 theorem IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
@@ -411,6 +897,111 @@ theorem IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_o
       volume a b := by
   exact intervalIntegrable_max_one_of_intervalIntegrable
     (hreg.power_intervalIntegrable_of_Icc hp hab hsub)
+
+/-- Full closed-window integrated relative-Moser estimate.  Endpoint failures
+are ignored by an a.e. monotonicity argument on the interval-integral domain. -/
+theorem relativeMoser_hrelInt_closedWindow_of_regular
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hreg : IntegratedMoserFirstCrossingRegularity D u T p0)
+    (hrho_nonneg : 0 ≤ rho) :
+    ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
+      ∃ Ceps, 0 ≤ Ceps ∧
+        ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+          ∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s ≤
+            eps * (∫ s in t1..t2,
+              integratedMoserGradientEnergy D u p s) +
+            Ceps * (∫ s in t1..t2,
+              max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
+  intro p hp eps heps
+  rcases hrel p hp eps heps with ⟨Ceps, hCeps_nonneg, hrel_eps⟩
+  refine ⟨Ceps, hCeps_nonneg, ?_⟩
+  intro t1 ht1 t2 ht2
+  have hab : t1 ≤ t2 := ht2.1
+  have hp_rho : p0 ≤ p + rho := by
+    linarith
+  have hsub : Set.Icc t1 t2 ⊆ Set.uIcc (0 : ℝ) T :=
+    Icc_subset_uIcc_zero_T_of_endpoint_memberships ht1 ht2
+  have hZ_int :
+      IntervalIntegrable
+        (fun s => integratedMoserEnergy D u (p + rho) s) volume t1 t2 :=
+    hreg.power_intervalIntegrable_of_Icc hp_rho hab hsub
+  have hG_int :
+      IntervalIntegrable
+        (fun s => integratedMoserGradientEnergy D u p s) volume t1 t2 :=
+    hreg.gradient_intervalIntegrable_of_Icc hp hab hsub
+  have hYmax_int :
+      IntervalIntegrable
+        (fun s => max (1 : ℝ) (integratedMoserEnergy D u p s)) volume t1 t2 :=
+    hreg.maxOneEnergy_intervalIntegrable_of_Icc hp hab hsub
+  let R : ℝ → ℝ := fun s =>
+    eps * integratedMoserGradientEnergy D u p s +
+      Ceps * max (1 : ℝ) (integratedMoserEnergy D u p s)
+  have hR_int : IntervalIntegrable R volume t1 t2 := by
+    dsimp [R]
+    exact (hG_int.const_mul eps).add (hYmax_int.const_mul Ceps)
+  have hpoint_ae :
+      integratedMoserEnergy D u (p + rho) ≤ᵐ[volume.restrict (Set.Icc t1 t2)]
+        R := by
+    filter_upwards
+      [ae_restrict_Icc_strictInterior_of_Icc_endpoints ht1 ht2] with s hs
+    rcases hs with ⟨hs0, hsT⟩
+    have hrel_s := hrel_eps s hs0 hsT
+    have hY_le_max :
+        integratedMoserEnergy D u p s ≤
+          max (1 : ℝ) (integratedMoserEnergy D u p s) :=
+      le_max_right _ _
+    have hCY_le :
+        Ceps * integratedMoserEnergy D u p s ≤
+          Ceps * max (1 : ℝ) (integratedMoserEnergy D u p s) :=
+      mul_le_mul_of_nonneg_left hY_le_max hCeps_nonneg
+    have hCY_le' :
+        Ceps * (D.integral fun x => u s x ^ p) ≤
+          Ceps * max (1 : ℝ) (D.integral fun x => u s x ^ p) := by
+      simpa [integratedMoserEnergy] using hCY_le
+    dsimp [R, integratedMoserEnergy, integratedMoserGradientEnergy]
+    exact hrel_s.trans (add_le_add_right hCY_le' _)
+  have hmono :
+      ∫ s in t1..t2, integratedMoserEnergy D u (p + rho) s ≤
+        ∫ s in t1..t2, R s :=
+    intervalIntegral.integral_mono_ae_restrict hab hZ_int hR_int hpoint_ae
+  have hR_eq :
+      (∫ s in t1..t2, R s) =
+        eps * (∫ s in t1..t2,
+          integratedMoserGradientEnergy D u p s) +
+        Ceps * (∫ s in t1..t2,
+          max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
+    dsimp [R]
+    have hG_mul :
+        (∫ s in t1..t2, eps * integratedMoserGradientEnergy D u p s) =
+          eps * (∫ s in t1..t2,
+            integratedMoserGradientEnergy D u p s) :=
+      intervalIntegral.integral_const_mul eps
+        (fun s => integratedMoserGradientEnergy D u p s)
+    have hY_mul :
+        (∫ s in t1..t2,
+            Ceps * max (1 : ℝ) (integratedMoserEnergy D u p s)) =
+          Ceps * (∫ s in t1..t2,
+            max (1 : ℝ) (integratedMoserEnergy D u p s)) :=
+      intervalIntegral.integral_const_mul Ceps
+        (fun s => max (1 : ℝ) (integratedMoserEnergy D u p s))
+    calc
+      (∫ s in t1..t2,
+          eps * integratedMoserGradientEnergy D u p s +
+            Ceps * max (1 : ℝ) (integratedMoserEnergy D u p s))
+          = (∫ s in t1..t2,
+              eps * integratedMoserGradientEnergy D u p s) +
+            ∫ s in t1..t2,
+              Ceps * max (1 : ℝ) (integratedMoserEnergy D u p s) := by
+            exact intervalIntegral.integral_add
+              (hG_int.const_mul eps) (hYmax_int.const_mul Ceps)
+      _ = eps * (∫ s in t1..t2,
+              integratedMoserGradientEnergy D u p s) +
+            Ceps * (∫ s in t1..t2,
+              max (1 : ℝ) (integratedMoserEnergy D u p s)) := by
+            rw [hG_mul, hY_mul]
+  exact le_trans hmono (by rw [hR_eq])
 
 /-- Abstract nonnegativity of Moser energies at interior times.
 
@@ -487,6 +1078,65 @@ theorem intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
       integratedMoserGradientEnergy intervalDomain u p t :=
   integratedMoserGradientEnergy_intervalIntegral_nonneg_of_forall hab
     (fun _ => intervalDomain_integratedMoserGradientEnergy_nonneg)
+
+/-- Interval-domain packaging for the coefficient-form integrated Moser
+dissipation theorem.  The hard producer inputs are the full-window higher-power
+energy inequality and the full-window integrated relative-Moser inequality; this
+wrapper only supplies `p > 0` from the bootstrap hypothesis and `∫ G_p >= 0`
+from the concrete interval domain. -/
+theorem
+    intervalDomain_integratedMoserDissipationDropBeforeCoeff_of_windowEnergy_and_relative
+    {params : CM2Params} {T rho p0 theta : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ}
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (henergy :
+      ∀ p, p0 ≤ p →
+        ∃ A K C0 L eps : ℝ,
+          0 < eps ∧ 0 ≤ K ∧ 0 ≤ C0 ∧ 0 ≤ L ∧
+          (∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+            integratedMoserEnergy intervalDomain u p t2 -
+                integratedMoserEnergy intervalDomain u p t1 +
+              A * (∫ s in t1..t2,
+                integratedMoserGradientEnergy intervalDomain u p s) ≤
+            (C0 * p * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy intervalDomain u p s)) +
+              K * (∫ s in t1..t2,
+                integratedMoserEnergy intervalDomain u (p + rho) s)) +
+              L * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy intervalDomain u p s))) ∧
+          K * eps ≤ A - theta)
+    (hrelInt :
+      ∀ p, p0 ≤ p → ∀ eps, 0 < eps →
+        ∃ Ceps, 0 ≤ Ceps ∧
+          ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+            ∫ s in t1..t2,
+                integratedMoserEnergy intervalDomain u (p + rho) s ≤
+              eps * (∫ s in t1..t2,
+                integratedMoserGradientEnergy intervalDomain u p s) +
+              Ceps * (∫ s in t1..t2,
+                max 1 (integratedMoserEnergy intervalDomain u p s))) :
+    IntegratedMoserDissipationDropBeforeCoeff
+      theta intervalDomain u T rho p0 := by
+  have hp_pos : ∀ p, p0 ≤ p → 0 < p := by
+    intro p hp
+    have hthreshold := AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
+    have hone_le :
+        (1 : ℝ) ≤ max 1 (rho * (params.N : ℝ) / 2) :=
+      le_max_left _ _
+    have hp0_pos : 0 < p0 := by linarith
+    linarith
+  have hG_nonneg :
+      ∀ p, p0 ≤ p →
+      ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        0 ≤ ∫ s in t1..t2,
+          integratedMoserGradientEnergy intervalDomain u p s := by
+    intro p _hp t1 _ht1 t2 ht2
+    exact intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
+      (u := u) (p := p) ht2.1
+  exact
+    integratedMoserDissipationDropBeforeCoeff_of_higherPower_and_relative
+      hp_pos henergy hrelInt hG_nonneg
 
 /-- Pointwise nonnegativity of an interval-domain slice gives nonnegative
 Moser energy for every real exponent. -/
@@ -1327,10 +1977,16 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
 
 #print axioms intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
 #print axioms Icc_subset_uIcc_zero_T_of_endpoint_memberships
+#print axioms ae_restrict_Icc_strictInterior_of_Icc_endpoints
 #print axioms IntegratedMoserFirstCrossingRegularity.power_intervalIntegrable_of_Icc
 #print axioms IntegratedMoserFirstCrossingRegularity.gradient_intervalIntegrable_of_Icc
 #print axioms intervalIntegrable_max_one_of_intervalIntegrable
+#print axioms intervalIntegral_length_le_integral_max_one
+#print axioms relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne_const
+#print axioms relativeMoser_higherPower_timeIntegral_le_of_Icc_currentEnergy_maxOne
+#print axioms relativeMoser_hrelInt_strictInterior
 #print axioms IntegratedMoserFirstCrossingRegularity.maxOneEnergy_intervalIntegrable_of_Icc
+#print axioms relativeMoser_hrelInt_closedWindow_of_regular
 #print axioms intervalDomain_integral_nonneg
 #print axioms intervalDomain_integratedMoserEnergy_nonneg_of_pointwise_nonneg
 #print axioms intervalDomain_integratedMoserEnergyNonnegativity_of_pointwise_nonneg
@@ -1342,6 +1998,14 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
 #print axioms intervalDomain_integratedMoserGradientEnergy_nonneg
 #print axioms intervalDomain_integratedMoserGradientEnergyNonnegativity
 #print axioms intervalDomain_integratedMoserGradientEnergy_intervalIntegral_nonneg
+#print axioms
+  intervalDomain_integratedMoserDissipationDropBeforeCoeff_of_windowEnergy_and_relative
+#print axioms scalar_absorb_higherPower_window_const
+#print axioms scalar_absorb_higherPower_window
+#print axioms
+  integratedMoserDissipationDropBeforeCoeff_of_higherPower_and_relative
+#print axioms
+  integratedMoserDissipationDropBeforeCoeff_of_higherPowerFrontier_and_relative
 #print axioms currentEnergy_Icc_bound_of_LpPowerBoundedBefore
 #print axioms IntegratedMoserPrecrossingIntervalData.left_currentEnergy_le
 #print axioms IntegratedMoserPrecrossingIntervalData.maxOneEnergy_timeIntegral_le

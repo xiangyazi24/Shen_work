@@ -9,9 +9,9 @@ import ShenWork.Paper2.IntervalDomainLpMonotonicity
 In 1D (the concrete `intervalDomain` = [0,1]), the L∞ bound does NOT
 require Moser iteration. Instead:
 
-1. **Energy + Gronwall → L² bound** (pointwise in time)
+1. **Lp bound + pointwise Moser-gradient bound** (explicit frontier)
 2. **1D Sobolev** (Agmon for g = u^{p/2}) → pointwise `u(x)^p ≤ C(∫u^p + ∫|∇(u^{p/2})|²)`
-3. **Gradient bound** from the energy identity → `∫|∇(u^{p/2})|²(t) ≤ C'` (pointwise in time)
+3. **Pointwise gradient frontier** → `∫|∇(u^{p/2})|²(t) ≤ C'` (pointwise in time)
 4. **Combining 2+3**: `‖u(t)‖∞^p ≤ C(M_p + G_p)` → L∞ bound
 5. **L∞ → all Lp**: `∫u^r ≤ ‖u‖∞^{r-1} ∫u` → all Lp bounds → Prop 2.5
 
@@ -26,11 +26,12 @@ exponent), but the interpolation is SUPERLINEAR:
 The superlinear term breaks the threshold plan's first-crossing argument.
 The direct Sobolev route avoids this entirely.
 
-## Parameter condition
+## Honest frontier
 
-The L² energy estimate closes (Gronwall gives global bound) under the
-paper's subcritical condition: the logistic damping `a - bu^m` with
-`m > 1` beats the chemotaxis growth (α > ρ in the abstract framework).
+The repository's existing energy/Moser APIs provide differential inequalities
+and integrated-in-time dissipation control.  They do not provide the pointwise
+in-time Moser-gradient bound used by the direct 1D Agmon step.  This file
+therefore keeps that pointwise-gradient estimate as an explicit frontier.
 -/
 
 open MeasureTheory Set
@@ -47,34 +48,26 @@ noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.IntervalDomain1DLinfRoute
 
-/-! ### Step 1: L^p energy → integrated dissipation bound
+/-! ### Step 1: Explicit pointwise-gradient frontier
 
-From `LpBootstrapEnergyInequality` at exponent p:
-  `(1/p) Y'(t) + A·G(t) + B·Y(t) ≤ K·Z(t) + L`
-
-where Y = ∫u^p, G = ∫|∇(u^{p/2})|², Z = ∫u^{p+ρ}.
-
-Under the parameter condition (α > ρ), absorb Z using the logistic:
-  `Z = ∫u^{p+ρ} ≤ ε·∫u^{p+α} + C_ε·∫u^p` (Young for powers, α > ρ)
-
-The logistic damping gives `-b·∫u^{p+α}` in the energy, absorbing the Z term.
-
-After absorption: `Y'(t) + c·G(t) ≤ C₁·Y(t) + C₂`
-
-Gronwall → Y(t) bounded → integrated G bounded.
+The direct Agmon step needs a uniform pointwise-in-time bound for the
+Moser-gradient energy.  The integrated Moser route proves only time-integrated
+dissipation estimates, so this pointwise estimate is kept as an explicit input.
 -/
 
-theorem intervalDomain_Lp_energy_and_dissipation_of_regularity
-    {params : CM2Params} {T rho p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T rho p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
-    (hlogistic_dominates : rho < params.α)
-    {pExp : ℝ} (hpExp : p0 ≤ pExp) :
+def IntervalDomainPointwiseMoserGradientBoundBefore
+    (u : ℝ → intervalDomain.Point → ℝ) (T pExp : ℝ) : Prop :=
+  ∃ M_diss : ℝ,
+    0 ≤ M_diss ∧
+    ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+        (intervalDomain.gradNorm
+          (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) ≤ M_diss
+
+theorem intervalDomain_Lp_energy_and_dissipation_of_Lp_and_pointwiseGradient
+    {T pExp : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hLp : LpPowerBoundedBefore intervalDomain pExp T u)
+    (hgrad : IntervalDomainPointwiseMoserGradientBoundBefore u T pExp) :
     ∃ M_Lp M_diss : ℝ,
       0 ≤ M_Lp ∧ 0 ≤ M_diss ∧
       (∀ t, 0 < t → t < T →
@@ -83,7 +76,11 @@ theorem intervalDomain_Lp_energy_and_dissipation_of_regularity
         intervalDomain.integral (fun x =>
           (intervalDomain.gradNorm
             (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) ≤ M_diss) := by
-  sorry
+  rcases hLp with ⟨C, hC⟩
+  rcases hgrad with ⟨M_diss, hMdiss_nonneg, hMdiss⟩
+  refine ⟨max 0 C, M_diss, le_max_left _ _, hMdiss_nonneg, ?_, hMdiss⟩
+  intro t ht0 htT
+  exact le_trans (hC t ht0 htT) (le_max_right _ _)
 
 /-! ### Step 2: Pointwise L∞ from Lp + gradient via 1D Sobolev
 
@@ -241,23 +238,18 @@ Chain: energy + Gronwall → Lp + dissipation bounds → 1D Sobolev → L∞ →
 theorem intervalDomain_Proposition_2_5_1d
     (params : CM2Params)
     (hlogistic_dominates : 2 * params.γ < params.α)
-    (_hEndpoint :
-      ∀ {u₀ : intervalDomain.Point → ℝ},
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ {T : ℝ}, 0 < T →
-      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+    (hPointwiseGradient :
+      ∀ {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
         IsPaper2ClassicalSolution intervalDomain params T u v →
-        InitialTrace intervalDomain u₀ u →
-      ∀ pExp,
-        max (params.N : ℝ)
-            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
-          pExp →
-        LpPowerBoundedBefore intervalDomain pExp T u →
-          ∃ pSeq rootBound : ℕ → ℝ,
-            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
-              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+          ∀ pExp,
+            max (params.N : ℝ)
+                (max (params.m * (params.N : ℝ))
+                  (params.γ * (params.N : ℝ))) < pExp →
+            LpPowerBoundedBefore intervalDomain pExp T u →
+            2 * params.γ < params.α →
+              IntervalDomainPointwiseMoserGradientBoundBefore u T pExp) :
     Proposition_2_5 intervalDomain params := by
-  intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
+  intro _u₀ _hu₀ T _hT u v hsol _htrace pExp hpExp hLp
   have hpExp_pos : 0 < pExp := by
     have hN_lt : (params.N : ℝ) < pExp :=
       lt_of_le_of_lt (le_max_left _ _) hpExp
@@ -265,43 +257,11 @@ theorem intervalDomain_Proposition_2_5_1d
     have hN_ge_one : (1 : ℝ) ≤ (params.N : ℝ) := by
       exact_mod_cast hN_ge_one_nat
     linarith
-  have hcross :
-      CrossDiffusionBootstrapEstimate intervalDomain params T
-        (2 * params.γ) u v :=
-    intervalDomain_crossDiffusionBootstrapEstimate_of_classical hsol
-  have hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u
-        (params.N : ℝ) T (2 * params.γ) pExp := by
-    refine ⟨?_, hT, ?_, hLp⟩
-    · nlinarith [params.hγ]
-    · have hN_lt : (params.N : ℝ) < pExp :=
-        lt_of_le_of_lt (le_max_left _ _) hpExp
-      have hN_ge_one_nat : 1 ≤ params.N := Nat.succ_le_of_lt params.hN
-      have hN_ge_one : (1 : ℝ) ≤ (params.N : ℝ) := by
-        exact_mod_cast hN_ge_one_nat
-      have h1_lt : (1 : ℝ) < pExp := lt_of_le_of_lt hN_ge_one hN_lt
-      have hgammaN_le :
-          params.γ * (params.N : ℝ) ≤
-            max (params.N : ℝ)
-              (max (params.m * (params.N : ℝ))
-                (params.γ * (params.N : ℝ))) := by
-        exact le_trans (le_max_right _ _) (le_max_right _ _)
-      have hgammaN_lt : params.γ * (params.N : ℝ) < pExp :=
-        lt_of_le_of_lt hgammaN_le hpExp
-      have hrho_half :
-          (2 * params.γ) * (params.N : ℝ) / 2 =
-            params.γ * (params.N : ℝ) := by
-        ring
-      exact max_lt h1_lt (by simpa [hrho_half] using hgammaN_lt)
-  have henergy :
-      LpBootstrapEnergyInequality intervalDomain u T
-        (2 * params.γ) pExp :=
-    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
-  rcases intervalDomain_Lp_energy_and_dissipation_of_regularity
-      (params := params) (T := T) (rho := 2 * params.γ)
-      (p0 := pExp) (u := u) (v := v)
-      hsol hcross hboot henergy hlogistic_dominates
-      (pExp := pExp) le_rfl with
+  have hgrad :
+      IntervalDomainPointwiseMoserGradientBoundBefore u T pExp :=
+    hPointwiseGradient hsol pExp hpExp hLp hlogistic_dominates
+  rcases intervalDomain_Lp_energy_and_dissipation_of_Lp_and_pointwiseGradient
+      (T := T) (pExp := pExp) (u := u) hLp hgrad with
     ⟨M_Lp, M_diss, hMLp, hMdiss, hLp_bound, hgrad_bound⟩
   let C : ℝ := 2 * M_Lp + 2 * Real.sqrt M_Lp * Real.sqrt M_diss
   have hpower :
@@ -332,7 +292,7 @@ theorem intervalDomain_Proposition_2_5_1d
   exact intervalDomain_boundedBefore_of_pointwise_power_control
     hpExp_pos hR_nonneg hpoint
 
-#check intervalDomain_Lp_energy_and_dissipation_of_regularity
+#check intervalDomain_Lp_energy_and_dissipation_of_Lp_and_pointwiseGradient
 #check intervalDomain_Linf_of_Lp_and_gradient
 #check intervalDomain_all_Lp_of_Linf
 #check intervalDomain_Proposition_2_5_1d

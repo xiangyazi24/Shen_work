@@ -15,6 +15,7 @@ import ShenWork.PDE.IntervalAgmonInterpolation
 import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.PDE.P3MoserLemmas
+import ShenWork.PDE.P3MoserRegularityProducer
 
 set_option linter.style.longLine false
 
@@ -22,7 +23,9 @@ open ShenWork.IntervalDomain
 open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
 namespace ShenWork.Paper2
 
@@ -632,6 +635,69 @@ structure IntervalDomainPaper2Prop25IntegratedStepFrontierData
           (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
             IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
 
+/-- Integrated-Moser data frontier for interval-domain Proposition 2.5 and
+Corollary 2.1.
+
+This is thinner than the direct `IntegratedStep` frontier: it exposes the
+regularity, integrated dissipation, and relative interpolation data consumed by
+the threshold-plan producer. -/
+structure IntervalDomainPaper2Prop25IntegratedMoserFrontierData
+    (p : CM2Params) : Prop where
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  integratedDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainPaper2Prop25IntegratedMoserFrontierData
+
+/-- Collapse integrated-Moser frontier data to the existing integrated-step
+statement route. -/
+def toIntegratedStepFrontierData
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    IntervalDomainPaper2Prop25IntegratedStepFrontierData p where
+  integratedStep := fun hsol hcross hboot =>
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+      (h.classicalRegularity hsol hcross hboot)
+      hsol
+      (h.integratedDissipation hsol hcross hboot)
+      (h.relativeMoserInterpolation hsol hcross hboot)
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+end IntervalDomainPaper2Prop25IntegratedMoserFrontierData
+
 /-- Lower-average / upper-gap split frontier for interval-domain Proposition
 2.5 and Corollary 2.1.
 
@@ -687,12 +753,28 @@ theorem intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
     hData.integratedStep
     hData.quantitativeEndpoint
 
+/-- Integrated-Moser data frontier produces interval-domain Proposition 2.5. -/
+theorem intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
+    p hData.toIntegratedStepFrontierData
+
 /-- Instance-facing integrated-step Proposition 2.5 wrapper. -/
 theorem intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierDataFact
     (p : CM2Params)
     [hData : Fact (IntervalDomainPaper2Prop25IntegratedStepFrontierData p)] :
     Proposition_2_5 intervalDomain p :=
   intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
+    p hData.out
+
+/-- Instance-facing integrated-Moser-data Proposition 2.5 wrapper. -/
+theorem intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper2Prop25IntegratedMoserFrontierData p)] :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierData
     p hData.out
 
 /-- Integrated-step frontier produces interval-domain Corollary 2.1. -/
@@ -703,12 +785,28 @@ theorem intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
   ShenWork.IntervalDomainExistence.P3MoserActualWiring.intervalDomain_allLpBoundFromBootstrap_of_actual_integrated_step_atoms
     hData.integratedStep
 
+/-- Integrated-Moser data frontier produces interval-domain Corollary 2.1. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
+    p hData.toIntegratedStepFrontierData
+
 /-- Instance-facing integrated-step Corollary 2.1 wrapper. -/
 theorem intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierDataFact
     (p : CM2Params)
     [hData : Fact (IntervalDomainPaper2Prop25IntegratedStepFrontierData p)] :
     Corollary_2_1 intervalDomain p :=
   intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
+    p hData.out
+
+/-- Instance-facing integrated-Moser-data Corollary 2.1 wrapper. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper2Prop25IntegratedMoserFrontierData p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierData
     p hData.out
 
 /-- Integrated-step frontier produces both Tier-1 Moser outputs. -/
@@ -720,6 +818,15 @@ theorem
   ⟨intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData p hData,
     intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
       p hData⟩
+
+/-- Integrated-Moser data frontier produces both Tier-1 Moser outputs. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedMoserFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
+    p hData.toIntegratedStepFrontierData
 
 /-- Section-2 target wrapper from the thinner branch data, with Proposition
 2.4 supplied by the interval-domain mass proof and Proposition 2.5 supplied by
@@ -758,6 +865,17 @@ theorem
     (intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
       p hStep)
 
+/-- Section-2 targets from thin frontiers and the integrated-Moser-data
+Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierData
+    (p : CM2Params)
+    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
+    (hMoser : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
+    p hThin hMoser.toIntegratedStepFrontierData
+
 /-- Instance-facing section-2 wrapper from thin frontiers and the integrated-step
 Proposition 2.5 frontier. -/
 theorem
@@ -768,6 +886,17 @@ theorem
     IntervalDomainPaper2BootstrapEstimateTargets p :=
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
     p hThin.out hStep.out
+
+/-- Instance-facing section-2 wrapper from thin frontiers and the
+integrated-Moser-data Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierDataFact
+    (p : CM2Params)
+    [hThin : Fact (IntervalDomainPaper2BootstrapEstimateThinFrontierData p)]
+    [hMoser : Fact (IntervalDomainPaper2Prop25IntegratedMoserFrontierData p)] :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierData
+    p hThin.out hMoser.out
 
 /-- Lower-average / upper-gap split frontier produces interval-domain
 Proposition 2.5 via the integrated-step route. -/
@@ -7426,13 +7555,21 @@ section AxiomAudit
 #print axioms intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
 #print axioms intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
 #print axioms
+  intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierData
+#print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
 #print axioms
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedMoserFrontierData
+#print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
+#print axioms
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
 #print axioms

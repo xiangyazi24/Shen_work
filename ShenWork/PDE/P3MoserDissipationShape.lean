@@ -77,6 +77,65 @@ def IntegratedMoserDissipationDropBefore
       C * p * ∫ s in t1..t2,
         max 1 (D.integral (fun x => (u s x) ^ p))
 
+/-- Coefficient-parameterized version of
+`IntegratedMoserDissipationDropBefore`.
+
+Scalar absorption naturally leaves whatever coefficient remains after the
+higher-power term has been absorbed.  The public fixed predicate above is the
+special case `theta = 2`. -/
+def IntegratedMoserDissipationDropBeforeCoeff
+    (theta : ℝ) (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T _rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∃ C, 0 ≤ C ∧
+    ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+      D.integral (fun x => (u t2 x) ^ p) -
+          D.integral (fun x => (u t1 x) ^ p) +
+        theta * ∫ s in t1..t2,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2) ≤
+      C * p * ∫ s in t1..t2,
+        max 1 (D.integral (fun x => (u s x) ^ p))
+
+/-- The coefficient-parameterized integrated drop specializes to the fixed
+coefficient predicate at `theta = 2`. -/
+theorem integratedMoserDissipationDropBefore_of_coeff_two
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (h : IntegratedMoserDissipationDropBeforeCoeff 2 D u T rho p0) :
+    IntegratedMoserDissipationDropBefore D u T rho p0 := by
+  intro p hp
+  exact h p hp
+
+/-- If the coefficient-parametric estimate has coefficient at least `2`, it
+implies the fixed route predicate, provided the Moser-gradient time integral is
+nonnegative.  The latter is an explicit input because `BoundedDomainData` keeps
+the integral operation abstract. -/
+theorem integratedMoserDissipationDropBefore_of_coeff_ge_two
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 theta : ℝ}
+    (htheta : 2 ≤ theta)
+    (hG_nonneg :
+      ∀ p, p0 ≤ p → ∀ t1 ∈ Set.Icc (0 : ℝ) T, ∀ t2 ∈ Set.Icc t1 T,
+        0 ≤ ∫ s in t1..t2,
+          D.integral (fun x =>
+            (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2))
+    (h : IntegratedMoserDissipationDropBeforeCoeff theta D u T rho p0) :
+    IntegratedMoserDissipationDropBefore D u T rho p0 := by
+  intro p hp
+  rcases h p hp with ⟨C, hC, hineq⟩
+  refine ⟨C, hC, ?_⟩
+  intro t1 ht1 t2 ht2
+  have hG := hG_nonneg p hp t1 ht1 t2 ht2
+  have hthetaG :
+      2 * (∫ s in t1..t2,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) ≤
+      theta * (∫ s in t1..t2,
+        D.integral (fun x =>
+          (D.gradNorm (fun y => (u s y) ^ (p / 2)) x) ^ 2)) :=
+    mul_le_mul_of_nonneg_right htheta hG
+  have hmain := hineq t1 ht1 t2 ht2
+  linarith
+
 /-- Packaging theorem for the integrated first-crossing Moser drop. -/
 theorem integratedMoserDissipationDropBefore_of_integrated_energy
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
@@ -451,6 +510,8 @@ theorem intervalDomain_endpointBoundFromLp_of_quantitative_root_tower_nonnegB
       hQuantEndpoint
 
 #print axioms moserDissipationDropBeforeNonnegB_of_raw_drop
+#print axioms integratedMoserDissipationDropBefore_of_coeff_two
+#print axioms integratedMoserDissipationDropBefore_of_coeff_ge_two
 #print axioms integratedMoserDissipationDropBefore_of_integrated_energy
 #print axioms unitLinearDrop_not_MoserDissipationDropBeforeNonnegB
 #print axioms intervalDomain_allLpBoundFromBootstrap_of_relative_moser_step_nonnegB
