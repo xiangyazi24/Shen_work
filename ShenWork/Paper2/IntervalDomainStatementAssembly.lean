@@ -6133,6 +6133,843 @@ theorem
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationSection2ThinFrontierData
     p C cGrad hχ ha hb hγ_ge_one hData.out
 
+/-! ## Proved-positive solution-slice lifts -/
+
+/-- `χ₀ = 0` main-theorem route with the positive solution-slice interpolation
+field discharged by the proved interval-domain positive Agmon theorem. -/
+structure
+    IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive `χ₀ = 0` main-theorem route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremChiZeroPositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  theorem12And13 := h.theorem12And13.toPositive
+
+/-- H2-source main-theorem route with the positive solution-slice
+interpolation field discharged by the proved interval-domain positive Agmon
+theorem. -/
+structure
+    IntervalDomainPaper2MainTheoremH2SourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem11 :
+    IntervalDomainPaper2GradientMildHalfStepH2SourceFrontierCoreContinuationData
+      p
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive H2-source main-theorem route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2MainTheoremH2SourceProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2MainTheoremH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremH2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  theorem11 := h.theorem11
+  theorem12And13 := h.theorem12And13.toPositive
+
+/-- Logistic-source main-theorem route with the positive solution-slice
+interpolation field discharged by the proved interval-domain positive Agmon
+theorem. -/
+structure
+    IntervalDomainPaper2MainTheoremLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  theorem11 :
+    IntervalDomainPaper2GradientMildHalfStepLogisticSourceFrontierCoreContinuationData
+      p
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13ProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive logistic-source main-theorem route to the
+existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2MainTheoremLogisticSourceProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2MainTheoremLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremLogisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  theorem11 := h.theorem11
+  theorem12And13 := h.theorem12And13.toPositive
+
+/-- Assemble the `χ₀ = 0` main theorem targets through the proved-positive
+solution-slice route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositive
+
+/-- Instance-facing `χ₀ = 0` main theorem wrapper through the proved-positive
+solution-slice route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble the H2-source main theorem targets through the proved-positive
+solution-slice route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing H2-source main theorem wrapper through the proved-positive
+solution-slice route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble the logistic-source main theorem targets through the
+proved-positive solution-slice route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing logistic-source main theorem wrapper through the
+proved-positive solution-slice route. -/
+theorem
+    intervalDomainPaper2_mainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- `χ₀ = 0` local-plus-main route through the proved-positive solution-slice
+main theorem package. -/
+structure
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11ChiZeroFrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremChiZeroProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive `χ₀ = 0` local-plus-main route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainChiZeroPositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  proposition11 := h.proposition11
+  main := h.main.toPositive
+
+/-- H2-source local-plus-main route through the proved-positive solution-slice
+main theorem package. -/
+structure
+    IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11FrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremH2SourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive H2-source local-plus-main route to the
+existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainH2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  proposition11 := h.proposition11
+  main := h.main.toPositive
+
+/-- Logistic-source local-plus-main route through the proved-positive
+solution-slice main theorem package. -/
+structure
+    IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  proposition11 : IntervalDomainPaper2Proposition11FrontierData p
+  main :
+    IntervalDomainPaper2MainTheoremLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive logistic-source local-plus-main route to the
+existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainLogisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  proposition11 := h.proposition11
+  main := h.main.toPositive
+
+/-- Assemble local-plus-main targets for the `χ₀ = 0` proved-positive route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositive
+
+/-- Instance-facing local-plus-main wrapper for the `χ₀ = 0` proved-positive
+route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble local-plus-main targets for the H2-source proved-positive route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing local-plus-main wrapper for the H2-source proved-positive
+route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble local-plus-main targets for the logistic-source proved-positive
+route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing local-plus-main wrapper for the logistic-source
+proved-positive route. -/
+theorem
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2LocalAndMainTheoremTargets p C :=
+  intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Statement route for `χ₀ = 0`, with the positive solution-slice
+interpolation field produced internally. -/
+structure
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive `χ₀ = 0` statement route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  corollary := h.corollary
+  localAndMain := h.localAndMain.toPositive
+
+/-- Bootstrap statement route for `χ₀ = 0`, with positive solution-slice
+interpolation produced internally. -/
+structure
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive `χ₀ = 0` bootstrap statement route to the
+existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationBootstrapFrontierData
+      p C cGrad where
+  bootstrap := h.bootstrap
+  localAndMain := h.localAndMain.toPositive
+
+/-- Thin section-2 statement route for `χ₀ = 0`, with positive solution-slice
+interpolation produced internally. -/
+structure
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainChiZeroProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive `χ₀ = 0` thin statement route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementChiZeroPositiveSolutionInterpolationSection2ThinFrontierData
+      p C cGrad where
+  section2 := h.section2
+  localAndMain := h.localAndMain.toPositive
+
+/-- Statement route for the H2-source case, with the positive solution-slice
+interpolation field produced internally. -/
+structure
+    IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive H2-source statement route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  corollary := h.corollary
+  localAndMain := h.localAndMain.toPositive
+
+/-- Bootstrap statement route for the H2-source case, with positive
+solution-slice interpolation produced internally. -/
+structure
+    IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive H2-source bootstrap statement route to the
+existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationBootstrapFrontierData
+      p C cGrad where
+  bootstrap := h.bootstrap
+  localAndMain := h.localAndMain.toPositive
+
+/-- Thin section-2 statement route for the H2-source case, with positive
+solution-slice interpolation produced internally. -/
+structure
+    IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainH2SourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive H2-source thin statement route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementH2SourcePositiveSolutionInterpolationSection2ThinFrontierData
+      p C cGrad where
+  section2 := h.section2
+  localAndMain := h.localAndMain.toPositive
+
+/-- Statement route for the logistic-source case, with the positive
+solution-slice interpolation field produced internally. -/
+structure
+    IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive logistic-source statement route to the existing
+positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationFrontierData
+      p C cGrad where
+  corollary := h.corollary
+  localAndMain := h.localAndMain.toPositive
+
+/-- Bootstrap statement route for the logistic-source case, with positive
+solution-slice interpolation produced internally. -/
+structure
+    IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive logistic-source bootstrap statement route to
+the existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationBootstrapFrontierData
+      p C cGrad where
+  bootstrap := h.bootstrap
+  localAndMain := h.localAndMain.toPositive
+
+/-- Thin section-2 statement route for the logistic-source case, with positive
+solution-slice interpolation produced internally. -/
+structure
+    IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ) :
+    Prop where
+  section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+      p C cGrad
+
+/-- Convert the proved-positive logistic-source thin statement route to the
+existing positive solution-slice route. -/
+def
+    IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData.toPositive
+    {p : CM2Params} {C : Paper2Constants p}
+    {cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ}
+    (h :
+      IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementLogisticSourcePositiveSolutionInterpolationSection2ThinFrontierData
+      p C cGrad where
+  section2 := h.section2
+  localAndMain := h.localAndMain.toPositive
+
+/-- Assemble statement targets for the `χ₀ = 0` proved-positive route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositive
+
+/-- Instance-facing statement wrapper for the `χ₀ = 0` proved-positive route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble statement targets for the `χ₀ = 0` proved-positive bootstrap
+route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositive
+
+/-- Instance-facing statement wrapper for the `χ₀ = 0` proved-positive
+bootstrap route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationBootstrapFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble statement targets for the `χ₀ = 0` proved-positive thin route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroPositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.toPositive
+
+/-- Instance-facing statement wrapper for the `χ₀ = 0` proved-positive thin
+route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementChiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ0 ha hb hα hγ hData.out
+
+/-- Assemble statement targets for the H2-source proved-positive route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing statement wrapper for the H2-source proved-positive route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble statement targets for the H2-source proved-positive bootstrap
+route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing statement wrapper for the H2-source proved-positive
+bootstrap route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationBootstrapFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble statement targets for the H2-source proved-positive thin route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourcePositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing statement wrapper for the H2-source proved-positive thin
+route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementH2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble statement targets for the logistic-source proved-positive route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing statement wrapper for the logistic-source proved-positive
+route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble statement targets for the logistic-source proved-positive
+bootstrap route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing statement wrapper for the logistic-source proved-positive
+bootstrap route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationBootstrapFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
+/-- Assemble statement targets for the logistic-source proved-positive thin
+route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad) :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.toPositive
+
+/-- Instance-facing statement wrapper for the logistic-source proved-positive
+thin route. -/
+theorem
+    intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementLogisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+        p C cGrad)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+    p C cGrad hχ ha hb hγ_ge_one hData.out
+
 section AxiomAudit
 
 #print axioms intervalDomainPaper2_Theorem_1_1_chiZero_unconditional
@@ -6160,6 +6997,12 @@ section AxiomAudit
   intervalDomainPaper2_mainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_mainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_mainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
 #print axioms intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroThinFrontierData
 #print axioms intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroInterpolationFrontierData
 #print axioms
@@ -6172,6 +7015,12 @@ section AxiomAudit
   intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourcePositiveSolutionInterpolationFrontierData
 #print axioms
   intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourcePositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_chiZeroProvedPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceProvedPositiveSolutionInterpolationFrontierData
+#print axioms
+  intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceProvedPositiveSolutionInterpolationFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroThinFrontierData
 #print axioms intervalDomainPaper2_statementTargets_of_chiZeroInterpolationFrontierData
@@ -6195,6 +7044,12 @@ section AxiomAudit
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationBootstrapFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_logisticSourcePositiveSolutionInterpolationSection2ThinFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_chiZeroProvedPositiveSolutionInterpolationSection2ThinFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_H2SourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
+#print axioms
+  intervalDomainPaper2_statementTargets_of_logisticSourceProvedPositiveSolutionInterpolationSection2ThinFrontierData
 #print axioms intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
 #print axioms intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
 #print axioms
