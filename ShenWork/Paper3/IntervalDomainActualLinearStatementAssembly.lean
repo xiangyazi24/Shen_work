@@ -530,6 +530,86 @@ theorem intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainDataFa
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 
+/-- In the actual-linear-small regime `0 < χ₀`, the negative-sensitivity
+Proposition 1.2 residual is vacuous. -/
+theorem intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+    (p : CM2Params) (hχ0 : 0 < p.χ₀) :
+    NegativeSensitivityGlobalEventualBound intervalDomain p := by
+  intro hχ_nonpos _hm _u₀ _hu₀
+  exact False.elim (not_le_of_gt hχ0 hχ_nonpos)
+
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with
+the negative-sensitivity Proposition 1.2 residual discharged from `0 < χ₀`
+and Proposition 1.3/1.4 routed through supplied Paper2 main theorem targets. -/
+structure IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the actual-linear-small Paper3 statement target from Paper2 main
+theorem targets, without carrying a separate negative-sensitivity residual. -/
+theorem intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing actual-linear-small Paper3 statement target from Paper2
+main theorem targets, with the negative-sensitivity residual discharged by
+`0 < χ₀`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22ThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### A-priori mainline route with actual-linear persistence -/
 
 /-- Sectorial mainline facts for the actual-linear small-sensitivity regime.
@@ -3230,6 +3310,8 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_actualLinear22P2MainData
 #print axioms
   intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
 #print axioms
   intervalDomain_sectorialMainline_unconditionalTarget_of_aprioriActualLinearSmallFacts
 #print axioms
