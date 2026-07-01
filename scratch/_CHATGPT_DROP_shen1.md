@@ -1,208 +1,312 @@
-# Q2968 (shen1) — Moser ladder lowerAverage/upperDataGap residual audit
+# Q2973 (shen1) — lowerAverage/upperDataGap API cleanup audit
 
 Repo: `xiangyazi24/Shen_work`  
 Scope: source-grounded API audit; no project source edits.  
-Context assumed: local patch has already refactored
-`ShenWork/PDE/P3MoserRegularityProducer.lean` theorem
-`intervalDomain_firstCrossingStep_raw_of_globalClassicalTraceAnchored_upperDataGapFrontiers`
-to call the direct threshold-plan producer and no longer take lowerAverage / upperDataGap fields.
+Assumed local patch state: the two reroutes described in the prompt are already present and verified.
 
 ## Short answer
 
-Yes. There are still residual surfaces carrying lowerAverage / upperDataGap / window-frontier fields even though the direct threshold-plan route can use regularity + energy nonnegativity + integrated dissipation + relative interpolation.
+Yes, the fields can be removed with small source-visible edits, but the safest cleanup is staged.
 
-The lowest-risk concrete target is in:
+1. **Lowest-risk patch:** remove `lowerAverage` and `upperDataGap` from the reusable PDE package
+   ```lean
+   IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
+   ```
+   in `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`, and remove the two corresponding assignments in the Paper3 constructor
+   ```lean
+   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_lowerAverageUpperDataGapResiduals
+   ```
+   This leaves the Paper3 compatibility structure unchanged, so external constructors of the Paper3 route do not immediately break.
 
-* `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
-* structure:
-  ```lean
-  IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-  ```
-* conversion theorem/def:
-  ```lean
-  IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
-  ```
+2. **Next patch, still small but more API-breaking:** remove `lowerAverage` and `upperDataGap` from the Paper3 structure
+   ```lean
+   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+   ```
+   in `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+   In the local patched state its `to_integratedStepResiduals` no longer uses those fields, so only the structure definition and stale constructor assignments/comments need edits.
 
-This structure carries both:
+3. **Avoid renaming route structures in the same patch.** Names containing `LowerAverageUpperDataGap` become stale after field deletion, but renaming all theorem/structure names would create broad downstream churn. Treat that as a later deprecation/alias cleanup.
 
-```lean
-lowerAverage : ... IntegratedMoserHighExcursionLowerAverageWindowFrontier ...
-upperDataGap : ... IntegratedMoserWindowUpperDataGapFrontier ...
-```
+## Source hits / constructor inventory
 
-but it also already carries enough data to run the threshold-plan producer directly:
+Connector code search for the exact names found only the defining files and the Paper3 bridge:
 
-```lean
-classicalContinuityRegularity : ...
-integratedDissipation : ...
-relativeMoserInterpolation : ...
-```
+* `IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`
+  appears in:
+  * `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`
+  * `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
 
-The current conversion still calls the old upper-data-gap route:
+* `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals`
+  appears only in:
+  * `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`
 
-```lean
-intervalDomain_firstCrossingStep_of_lite_classical_and_upperDataGapFrontiers
-  ...
-  (h.lowerAverage hsol hcross hboot)
-  (h.upperDataGap hsol hcross hboot)
-```
+So within the source indexed by GitHub, this is not a wide-use API.
 
-That is now unnecessary.
+## 1. PDE package cleanup
 
-## Safest Lean wiring patch
+File: `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
 
-The safest first patch is proof-body-only: keep the structure fields for API compatibility, but make `to_integratedStepResiduals` ignore `lowerAverage` and `upperDataGap` and call the direct threshold-plan producer. This removes the actual proof dependency immediately without breaking existing constructors.
-
-Patch the `integratedStep` field in
-`IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals` as follows:
+Current structure:
 
 ```lean
-namespace
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-
-/-- Convert the actual-linear-small component lowerAverage/upperDataGap
-residual surface to the existing integrated-step actual-linear residual
-surface.
-
-The lower-average and upper-data-gap fields are no longer needed for the
-conversion: the direct threshold-plan producer only needs regularity, energy
-nonnegativity, integrated dissipation, relative interpolation, `rho_pos`, and
-`p0_nonneg`. -/
-def to_integratedStepResiduals
-    {p : CM2Params}
-    (h :
-      IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-        p) :
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
-      p where
-  boundednessHyp := h.boundednessHyp
-  closedEnergyTrace := h.closedEnergyTrace
-  integratedStep := fun hsol hcross hboot =>
-    intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
-      (intervalDomain_classicalRegularityData_of_continuityRegularityData
-        (IsPaper2ClassicalSolution.T_pos hsol).le
-        (h.classicalContinuityRegularity hsol hcross hboot))
-      hsol
-      (h.integratedDissipation hsol hcross hboot)
-      (h.relativeMoserInterpolation hsol hcross hboot)
-      (AbstractLpBootstrapHypothesis.rho_pos hboot)
-      (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
-  quantitativeEndpoint := h.quantitativeEndpoint
-
-end
-    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
-```
-
-This is a strictly weaker dependency path than the current one: it uses an existing theorem already imported through `P3MoserRegularityProducer`, and it does not need the window frontiers.
-
-After that proof-body patch builds, the next API cleanup is to delete the two fields from the structure:
-
-```lean
+structure IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity : ...
+  classicalRegularity : ...
+  integratedDissipation : ...
+  relativeMoserInterpolation : ...
   lowerAverage : ...
   upperDataGap : ...
+  quantitativeEndpoint : ...
 ```
 
-But I would do that as a second patch because downstream constructors may still fill those fields. The proof-body change is the lowest-risk compile test.
-
-## Closely related PDE-level package
-
-There is also a reusable PDE-level residual package in:
+The conversion already ignores the two obsolete fields:
 
 ```lean
-ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean
+namespace IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
+
+def to_integratedMoserResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals p) :
+    IntervalDomainMassLpSmoothingIntegratedMoserResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  classicalRegularity := h.classicalRegularity
+  integratedDissipation := h.integratedDissipation
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  quantitativeEndpoint := h.quantitativeEndpoint
 ```
 
-namely:
+Therefore deleting the fields from this PDE structure is semantically safe.
+
+### Minimal PDE patch
+
+Delete the two fields:
 
 ```lean
-IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals
+  lowerAverage :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+      ∀ q, p0 ≤ q →
+        0 ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+          Nonempty
+            (Σ Cnext : ℝ,
+              IntegratedMoserHighExcursionLowerAverageWindowFrontier
+                intervalDomain u T rho p0 q Cnext)
+  upperDataGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+      ∀ q, p0 ≤ q →
+        0 ≤ q →
+          Nonempty
+            (IntegratedMoserWindowUpperDataGapFrontier
+              intervalDomain u T rho p0 q)
 ```
 
-It carries:
-
-```lean
-classicalRegularity
-integratedDissipation
-relativeMoserInterpolation
-lowerAverage
-upperDataGap
-quantitativeEndpoint
-```
-
-but its conversion
+No changes are needed in:
 
 ```lean
 IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_integratedMoserResiduals
+IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
+IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.to_routeResiduals
+IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.aprioriBound
 ```
 
-already drops `lowerAverage` and `upperDataGap` entirely:
+except docstring wording.
+
+### Required Paper3 constructor edit for the PDE patch
+
+File: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
+
+Update:
 
 ```lean
-classicalRegularity := h.classicalRegularity
-integratedDissipation := h.integratedDissipation
-relativeMoserInterpolation := h.relativeMoserInterpolation
-quantitativeEndpoint := h.quantitativeEndpoint
+IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_lowerAverageUpperDataGapResiduals
 ```
 
-So this package is already internally routed through the direct integrated-Moser residual surface:
+by deleting these assignments:
 
 ```lean
-IntervalDomainMassLpSmoothingIntegratedMoserResiduals
+  lowerAverage := h.lowerAverage
+  upperDataGap := h.upperDataGap
 ```
 
-For this file, the safe API cleanup is even more direct: remove the `lowerAverage` and `upperDataGap` fields from
-`IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`, and remove the corresponding assignments from any constructors. The conversion itself needs no semantic change because it does not use those fields.
+The rest of the constructor stays the same.
 
-However, because `Paper3/IntervalDomainActualLinearStatementAssembly.lean` still has a `to_lowerAverageUpperDataGapResiduals` constructor that populates those fields, I would first land the Paper3 proof-body reroute above, then remove fields from both structures in a coordinated API-cleanup patch.
+## 2. Paper3 package cleanup
 
-## What should not be refactored this way
+File: `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
 
-These packages still carry window/lower-upper frontiers, but they do **not** have enough data to feed the direct threshold-plan producer as-is:
+Current Paper3 structure:
 
-* `IntervalDomainPaper2Prop25LowerUpperFrontierData` in
-  `ShenWork/Paper2/IntervalDomainStatementAssembly.lean`.
-  It only carries `lowerUpperFrontiers` plus `quantitativeEndpoint`; it does not carry regularity, integrated dissipation, or relative interpolation. So it is an alternate/historical lower-upper statement route, not a direct threshold-plan candidate.
+```lean
+structure
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace : ...
+  classicalContinuityRegularity : ...
+  integratedDissipation : ...
+  relativeMoserInterpolation : ...
+  lowerAverage : ...
+  upperDataGap : ...
+  quantitativeEndpoint : ...
+```
 
-* `IntervalDomainMassLpSmoothingWindowFrontierResiduals` in
-  `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
-  It carries an opaque `windowFrontier : IntegratedMoserFirstCrossingFromWindowFrontier ...`, not regularity/dissipation/relative-interpolation inputs.
+After the local Q2968-style reroute, its
 
-* `IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals` in
-  `ShenWork/PDE/IntervalDomainMoserLadderAtoms.lean`.
-  It carries `lowerUpperFrontiers`, not the threshold-plan input tuple.
+```lean
+to_integratedStepResiduals
+```
 
-* `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerUpperResiduals` in
-  `ShenWork/Paper3/IntervalDomainActualLinearStatementAssembly.lean`.
-  It carries `lowerUpperFrontiers`, not the direct regularity/dissipation/relative-interpolation package.
+uses the direct threshold-plan producer and does not consume `lowerAverage` or `upperDataGap`. Therefore the fields are dead for the integrated-step path.
 
-Those can remain as alternative WIP / historical routes unless you want to delete old APIs wholesale.
+### Minimal Paper3 field deletion patch
 
-## Remaining genuine analytic inputs after the safe reroute
+Delete the fields from the structure:
 
-The direct threshold-plan route still genuinely needs the following residuals, depending on which surface is used:
+```lean
+  lowerAverage :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+      ∀ q, p0 ≤ q →
+        0 ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+          Nonempty
+            (Σ Cnext : ℝ,
+              IntegratedMoserHighExcursionLowerAverageWindowFrontier
+                intervalDomain u T rho p0 q Cnext)
+  upperDataGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+      ∀ q, p0 ≤ q →
+        0 ≤ q →
+          Nonempty
+            (IntegratedMoserWindowUpperDataGapFrontier
+              intervalDomain u T rho p0 q)
+```
 
-* closed-time Moser regularity:
-  ```lean
-  IntervalDomainIntegratedMoserClassicalRegularityData
-  ```
-  or the continuity version
-  ```lean
-  IntervalDomainIntegratedMoserClassicalContinuityRegularityData
-  ```
-* integrated dissipation:
-  ```lean
-  IntegratedMoserDissipationDropBefore
-  ```
-* relative Moser interpolation:
-  ```lean
-  RelativeMoserInterpolationBefore
-  ```
-* endpoint / boundedness closure:
-  ```lean
-  IntervalDomainMoserQuantitativeEndpoint
-  ```
-  or the later terminal pointwise endpoint wrappers.
-* L² seed / closed-energy trace fields in the Paper3 Moser ladder.
-* unrelated Paper3 global/sectorial residuals: compactness, resolvent, stability24, continuation, and Paper2 main theorem input where applicable.
+In the already-rerouted local version, `to_integratedStepResiduals` should need no proof-body change. In current unpatched main it would still need the Q2968 reroute first.
 
-So the next residual reduction should **not** claim to prove any analytic estimate. It should only remove the now-obsolete lowerAverage / upperDataGap dependency from the conversion path that already has the threshold-plan data.
+If the PDE package cleanup above is also applied, then `to_lowerAverageUpperDataGapResiduals` must also delete the same two assignments:
+
+```lean
+  lowerAverage := h.lowerAverage
+  upperDataGap := h.upperDataGap
+```
+
+If only the Paper3 fields are deleted but the PDE structure still carries those fields, `to_lowerAverageUpperDataGapResiduals` can no longer be implemented. So do not delete Paper3 fields alone unless you either:
+
+1. delete the PDE fields too, or
+2. remove/deprecate `to_lowerAverageUpperDataGapResiduals` and any use of it.
+
+## Risk ranking
+
+### Low risk: PDE package field deletion only
+
+Edits:
+
+1. Remove `lowerAverage` / `upperDataGap` from `IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals`.
+2. Remove the two assignments in Paper3 `to_lowerAverageUpperDataGapResiduals`.
+3. Adjust docstrings.
+
+Why low risk: the PDE conversion already ignores those fields, and GitHub search shows only the Paper3 bridge constructs the PDE package.
+
+### Low-to-moderate risk: coordinated deletion in both PDE and Paper3 structures
+
+Edits:
+
+1. All edits from the low-risk patch.
+2. Remove `lowerAverage` / `upperDataGap` from `IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals`.
+3. Confirm local `to_integratedStepResiduals` is already the direct threshold-plan version.
+4. Adjust docstrings.
+
+Why higher risk: any local/unindexed code constructing the Paper3 compatibility structure with the old fields will break. Within the visible source, this is small.
+
+### Moderate/high churn: rename all `LowerAverageUpperDataGap` route names
+
+The names that become stale include:
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
+IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
+IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
+IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
+IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
+```
+
+Renaming them would be semantically cleaner but is not the lowest-risk residual reduction. Prefer later aliases/deprecation wrappers.
+
+## Recommended minimal patch plan
+
+### Patch 1: safe source cleanup
+
+Do this first:
+
+```text
+PDE/IntervalDomainMoserLadderAtoms.lean:
+  - Remove lowerAverage and upperDataGap fields from
+    IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals.
+  - Leave conversions unchanged.
+
+Paper3/IntervalDomainActualLinearStatementAssembly.lean:
+  - In to_lowerAverageUpperDataGapResiduals, remove:
+      lowerAverage := h.lowerAverage
+      upperDataGap := h.upperDataGap
+  - Leave the Paper3 structure fields in place for compatibility.
+```
+
+This validates that the reusable PDE route no longer advertises dead high-excursion fields while preserving the Paper3 surface for downstream callers.
+
+### Patch 2: Paper3 compatibility surface cleanup
+
+After Patch 1 builds:
+
+```text
+Paper3/IntervalDomainActualLinearStatementAssembly.lean:
+  - Remove lowerAverage and upperDataGap fields from
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.
+  - Keep the old structure/theorem names for now, but update comments to say the route is retained as a compatibility name and now uses direct threshold-plan data.
+```
+
+### Patch 3: optional deprecation/rename
+
+Only after downstream branches are updated, introduce clearer names such as:
+
+```lean
+IntervalDomainMassLpSmoothingMoserActualLinearSmallContinuityIntegratedResiduals
+IntervalDomainSectorialMainlineMoserActualLinearSmallContinuityIntegratedFacts
+```
+
+and keep old names as abbrevs or compatibility wrappers if practical. This is cleanup, not the next lowest-risk residual reduction.
+
+## Remaining real residuals after cleanup
+
+Removing these fields does not prove new analysis. The remaining genuine inputs are still:
+
+* `closedEnergyTrace` / L² seed regularity;
+* `classicalContinuityRegularity` or `classicalRegularity` for closed-time Moser regularity;
+* `integratedDissipation : IntegratedMoserDissipationDropBefore ...`;
+* `relativeMoserInterpolation : RelativeMoserInterpolationBefore ...`;
+* `quantitativeEndpoint` or terminal pointwise endpoint routes;
+* plus Paper3 sectorial/compactness/stability residuals outside the Moser ladder.
+
+So the field deletion is an API hygiene reduction, not a new analytic theorem.
