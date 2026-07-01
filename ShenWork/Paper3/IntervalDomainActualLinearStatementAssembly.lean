@@ -2898,8 +2898,8 @@ def to_lowerAverageUpperDataGapResiduals
 end
     IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals
 
-/-- Sectorial mainline facts with the preferred lowerAverage/upperDataGap Moser
-residual surface. -/
+/-- Sectorial mainline facts with the compatibility-named
+lowerAverage/upperDataGap Moser residual surface. -/
 structure
     IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
     (p : CM2Params) : Prop where
@@ -2930,17 +2930,15 @@ def to_aprioriActualLinearSmallFacts
       IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
         p)
     (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
-    IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts p where
-  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
-  continuation := h.continuation
-  massLpSmoothing :=
-    (h.massLpSmoothing.to_lowerAverageUpperDataGapResiduals ha hχ0).to_routeResiduals
+    IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts p :=
+  h.to_integratedStepFacts.to_aprioriActualLinearSmallFacts ha hχ0
 
 end
     IntervalDomainSectorialMainlineMoserActualLinearSmallLowerAverageUpperDataGapFacts
 
-/-- LowerAverage/upperDataGap Moser mainline data with the actual-linear-small
-stability package reduced to its non-vacuous Theorem 2.4 branches. -/
+/-- Compatibility-named lowerAverage/upperDataGap Moser mainline data with the
+actual-linear-small stability package reduced to its non-vacuous Theorem 2.4
+branches. -/
 structure
     IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
@@ -2955,8 +2953,8 @@ structure
     IntervalDomainPaper3Stability24ActualLinearFrontierData p
       (intervalDomainPaper3Constants p M0 uBar vLower)
 
-/-- Convert the component lowerAverage/upperDataGap mainline data to the
-existing integrated-step Stability24 surface. -/
+/-- Convert the compatibility-named lowerAverage/upperDataGap mainline data to
+the existing integrated-step Stability24 surface. -/
 def
     IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData.toIntegratedStepStability24
     {p : CM2Params} {M0 uBar vLower : ℝ}
@@ -2970,8 +2968,8 @@ def
   compactness := h.compactness
   stability24 := h.stability24
 
-/-- Mainline target from component lowerAverage/upperDataGap Moser frontiers
-and the Stability24-only actual-linear stability package. -/
+/-- Mainline target from the compatibility-named lowerAverage/upperDataGap
+Moser route and the Stability24-only actual-linear stability package. -/
 theorem
     intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
     (p : CM2Params) (M0 uBar vLower : ℝ)
@@ -2987,8 +2985,9 @@ theorem
     p M0 uBar vLower K ha hb hχ0 hm hβ hχ
     hData.toIntegratedStepStability24
 
-/-- Instance-facing mainline target from component lowerAverage/upperDataGap
-Moser frontiers and the Stability24-only actual-linear stability package. -/
+/-- Instance-facing mainline target from the compatibility-named
+lowerAverage/upperDataGap Moser route and the Stability24-only actual-linear
+stability package. -/
 theorem
     intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24FrontierDataFact
     (p : CM2Params) (M0 uBar vLower : ℝ)
@@ -3003,10 +3002,10 @@ theorem
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
     p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
-/-- Full interval-domain Paper3 statement frontiers using component
-lowerAverage/upperDataGap Moser frontiers, Paper2 main theorem targets for
-Proposition 1.3/1.4, and the Stability24-only actual-linear stability
-package. -/
+/-- Full interval-domain Paper3 statement frontiers using the
+compatibility-named lowerAverage/upperDataGap Moser route, Paper2 main theorem
+targets for Proposition 1.3/1.4, and the Stability24-only actual-linear
+stability package. -/
 structure
     IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
     (p : CM2Params) (C : Paper2Constants p)
@@ -3016,9 +3015,9 @@ structure
     IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
       p M0 uBar vLower K
 
-/-- Assemble the full interval-domain Paper3 statement target from component
-lowerAverage/upperDataGap Moser frontiers, Paper2 main theorem target inputs,
-and Stability24-only actual-linear stability. -/
+/-- Assemble the full interval-domain Paper3 statement target from the
+compatibility-named lowerAverage/upperDataGap Moser route, Paper2 main theorem
+target inputs, and Stability24-only actual-linear stability. -/
 theorem
     intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
     (p : CM2Params) (C : Paper2Constants p)
@@ -3035,9 +3034,9 @@ theorem
     intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
       p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
 
-/-- Instance-facing full interval-domain Paper3 statement target from component
-lowerAverage/upperDataGap Moser frontiers, Paper2 main theorem target inputs,
-and Stability24-only actual-linear stability. -/
+/-- Instance-facing full interval-domain Paper3 statement target from the
+compatibility-named lowerAverage/upperDataGap Moser route, Paper2 main theorem
+target inputs, and Stability24-only actual-linear stability. -/
 theorem
     intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainDataFact
     (p : CM2Params) (C : Paper2Constants p)
@@ -3052,9 +3051,9 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
-/-- Full interval-domain Paper3 statement frontiers for the lowerAverage /
-upperDataGap Stability24 route, with the negative-sensitivity residual
-discharged by `0 < χ₀`. -/
+/-- Full interval-domain Paper3 statement frontiers for the compatibility-named
+lowerAverage / upperDataGap Stability24 route, with the negative-sensitivity
+residual discharged by `0 < χ₀`. -/
 structure
     IntervalDomainPaper3StatementMoserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
     (p : CM2Params) (C : Paper2Constants p)
@@ -3064,9 +3063,9 @@ structure
     IntervalDomainPaper3MainlineMoserActualLinearSmallLowerAverageUpperDataGapStability24FrontierData
       p M0 uBar vLower K
 
-/-- Assemble the lowerAverage / upperDataGap Stability24 Paper3 statement target
-from Paper2 main theorem targets, without a separate negative-sensitivity
-residual. -/
+/-- Assemble the compatibility-named lowerAverage / upperDataGap Stability24
+Paper3 statement target from Paper2 main theorem targets, without a separate
+negative-sensitivity residual. -/
 theorem
     intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegData
     (p : CM2Params) (C : Paper2Constants p)
@@ -3087,8 +3086,9 @@ theorem
           paper2Main := hData.paper2Main }
       mainline := hData.mainline }
 
-/-- Instance-facing lowerAverage / upperDataGap Stability24 Paper3 statement
-target from Paper2 main theorem targets, with negative sensitivity discharged. -/
+/-- Instance-facing compatibility-named lowerAverage / upperDataGap Stability24
+Paper3 statement target from Paper2 main theorem targets, with negative
+sensitivity discharged. -/
 theorem
     intervalDomain_paper3_statementTargets_of_moserActualLinearSmallLowerAverageUpperDataGapStability24P2MainNoNegDataFact
     (p : CM2Params) (C : Paper2Constants p)
