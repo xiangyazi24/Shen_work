@@ -1,179 +1,87 @@
-# Q2720 (shen1) — C2 `UnitIntervalPositiveAgmonInterpolation` audit
+# Q2732 (shen1) — shortest route from endpoint-safe Agmon to `UnitIntervalPositiveAgmonInterpolation`
 
 Repo: `xiangyazi24/Shen_work`  
+Main commit audited: `216cbc4f0f79aebc217ea39ff038e325bfa108e2` (`Add endpoint-safe Agmon inequality`)  
 Branch for this drop: `chatgpt-scratch`  
-Lean target: Lean 4 / Mathlib 4.29.1  
-Scope: non-Zinan files only. I did **not** inspect, edit, rely on, or propose edits to
-`ShenWork/PDE/P3MoserHighExcursionProducer.lean` or
-`ShenWork/PDE/P3MoserThresholdPlanProducer.lean`.
+Scope: non-Zinan files only. I did **not** inspect, edit, rely on, or propose edits to:
 
-I inspected/search-audited the requested files:
+- `ShenWork/PDE/P3MoserHighExcursionProducer.lean`
+- `ShenWork/PDE/P3MoserThresholdPlanProducer.lean`
 
-- `ShenWork/PDE/SobolevEmbedding.lean`
+I inspected the requested files on the connected repo default branch:
+
 - `ShenWork/PDE/GagliardoNirenberg.lean`
-- `ShenWork/Paper2/IntervalDomainLemma41.lean`
-- `ShenWork/PDE/IntervalDomain.lean`
 - `ShenWork/PDE/IntervalAgmonInterpolation.lean`
+- `ShenWork/PDE/IntervalDomain.lean`
+- `ShenWork/Paper2/IntervalDomainLemma41.lean`
 
-I also checked adjacent non-forbidden consumer files only to identify exact names and whether the new raw-drop terminal-endpoint full-statement wrappers produce or merely consume the Agmon/mass-gradient frontier. The wrappers in `ShenWork/Paper2/IntervalDomainStatementAssembly.lean` lower the full-statement route to a `relativeMassGradient` field, but they do not prove the C2 `UnitIntervalPositiveAgmonInterpolation` producer.
+I also checked adjacent non-forbidden helper files to identify existing bridge lemmas that should be reused:
 
-## Verdict
+- `ShenWork/PDE/IntervalEllipticCharacterization.lean`
+- `ShenWork/Paper2/IntervalDomainStructuredMoserPower.lean`
+- `ShenWork/PDE/IntervalDomainAPrioriGlobal.lean`
+- `ShenWork/Paper2/IntervalDomainL2CrossControl.lean`
 
-The current repo has most of the **algebraic** and **classical Agmon** components, but I do **not** see an existing theorem composition that proves
+## Executive route
+
+The new theorem
 
 ```lean
-def UnitIntervalPositiveAgmonInterpolation : Prop :=
-  ∀ q : ℝ, 1 < q → ∀ eps : ℝ, 0 < eps → ∃ Ceps > 0,
-    ∀ f : intervalDomain.Point → ℝ,
-      (∀ x, 0 < f x) →
-      ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
-        intervalDomain.integral (fun x => f x ^ q) ≤
-          eps * intervalDomain.integral
-            (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2) +
-          Ceps * (intervalDomain.integral f) ^ q
+ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
 ```
 
-from the currently exported lemmas alone.
+is the correct endpoint-safe engine. It asks only for right derivatives on `Ioo 0 L`, not ordinary endpoint derivatives of the zero extension.
 
-The smallest genuine missing analytic lemma is an **endpoint-safe Agmon/FTC lemma** compatible with `ContDiffOn ℝ 2 ... (Set.Icc 0 1)` / within-domain regularity of `intervalDomainLift`. The existing Agmon theorem requires ordinary `HasDerivAt` on the closed interval, which is the wrong interface for the zero-extension `intervalDomainLift`.
+The shortest faithful Lean route is now:
 
-Once that endpoint-safe Agmon core is available, the rest is a finite amount of `intervalDomain.integral` / `intervalDomainLift` / `gradNorm` / `rpow` chain-rule conversion plus the already-proved algebraic absorption theorem in `IntervalDomainLemma41.lean`.
+1. For `h := intervalDomainLift f`, define
+   ```lean
+   g  y := h y ^ (q / 2)
+   gp y := (q / 2) * h y ^ (q / 2 - 1) * deriv h y
+   ```
+2. Prove the input bundle for `agmon_inequality_interval_rightDeriv` using:
+   - positivity of `h` on `Icc 0 1` from subtype positivity;
+   - `ContDiffOn` to ordinary interior `HasDerivAt h (deriv h x) x`, then to `HasDerivWithinAt ... (Ioi x)`;
+   - `Real.hasDerivAt_rpow_const` plus composition to get the right derivative of `g`;
+   - integrability via continuous `derivWithin h (Icc 0 1)` representatives and a.e. equality with `deriv h` on the interior.
+3. Apply `agmon_inequality_interval_rightDeriv (L := 1)` to get, for each `y ∈ Icc 0 1`,
+   ```lean
+   (intervalDomainLift f y) ^ q ≤ 2 * Y + q * Real.sqrt (Y * G)
+   ```
+   where
+   ```lean
+   Y := intervalDomain.integral (fun x => f x ^ q)
+   G := intervalDomain.integral
+     (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2)
+   ```
+4. Use a uniform Young step to get the pre-absorption inequality
+   ```lean
+   Y ≤ 2 * δ * Y + δ * q * Real.sqrt (Y * G) + Cδ * (intervalDomain.integral f) ^ q
+   ```
+   with `Cδ` depending only on `q, δ`, not on `f`.
+5. Reuse the already-proved
+   ```lean
+   ShenWork.Paper2.IntervalDomainLemma41.interpolation_absorption
+   ```
+   and choose `δ` small enough that
+   ```lean
+   δ ^ 2 * q ^ 2 / (1 - 2 * δ) ^ 2 ≤ eps
+   ```
 
-## 1. Existing theorem names/signatures that can be composed
+The remaining work is not a new analytic frontier. It is a proof-producing bridge: endpoint-safe Agmon input, rpow/integral rewrites, uniform Young, final absorption.
 
-### A. Current frontier and wiring in `IntervalAgmonInterpolation.lean`
+## Existing theorem inventory to compose
 
-The file has a proved single-slice sanity lemma, but it is **not** uniform in `f`:
+### Endpoint-safe Agmon
 
-```lean
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-theorem intervalDomain_agmon_interpolation_slice
-    {f : intervalDomain.Point → ℝ} {q eps : ℝ}
-    (hmass : 0 < intervalDomain.integral f) :
-    ∃ Ceps > 0,
-      intervalDomain.integral (fun x => f x ^ q) ≤
-        eps * intervalDomain.integral
-          (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2) +
-        Ceps * (intervalDomain.integral f) ^ q
-```
-
-This lemma chooses `Ceps` after `f`, so it cannot discharge `UnitIntervalPositiveAgmonInterpolation`, where `Ceps` must be chosen from `q, eps` before the slice is supplied.
-
-The file also has the correct downstream wiring theorem:
-
-```lean
-theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-    {params : CM2Params}
-    (hagmon : UnitIntervalPositiveAgmonInterpolation) :
-    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
-      params
-```
-
-The proof extracts closed-interval C2 regularity from the classical solution:
-
-```lean
-have hC2_closed :
-    ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-  (hsol.regularity.2.2.2.2.1 t ht).1.1
-```
-
-This theorem is good and should be kept unchanged. The missing work is producing `UnitIntervalPositiveAgmonInterpolation`.
-
-### B. Sobolev/Agmon infrastructure in `SobolevEmbedding.lean`
-
-Exported theorem names/signatures:
+In `ShenWork/PDE/GagliardoNirenberg.lean`:
 
 ```lean
-namespace ShenWork.Sobolev
-
-theorem lpNorm_one_le_rpow_measure_mul_lpNorm_two
-    {α : Type*} [MeasurableSpace α] {μ : Measure α} [IsFiniteMeasure μ]
-    {f : α → ℝ}
-    (hf : AEStronglyMeasurable f μ)
-    (hf_mem : MemLp f (2 : ℝ≥0∞) μ) :
-    lpNorm f (1 : ℝ≥0∞) μ ≤
-      ((μ Set.univ).toReal ^ (1 / 2 : ℝ)) *
-        lpNorm f (2 : ℝ≥0∞) μ
-
-theorem interval_integral_abs_le_length_rpow_mul_lpNorm_two
-    {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
-    (hf : AEStronglyMeasurable f (volume.restrict (Ioc (0 : ℝ) L)))
-    (hf_mem : MemLp f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) :
-    (∫ y in (0 : ℝ)..L, |f y|) ≤
-      (L ^ (1 / 2 : ℝ)) *
-        lpNorm f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))
-
-theorem sobolev_pointwise_bound
+theorem ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
     {L : ℝ} (hL : 0 < L)
     {f f' : ℝ → ℝ}
     (hf_cont : ContinuousOn f (Icc 0 L))
-    (hf_deriv : ∀ x ∈ Icc 0 L, HasDerivAt f (f' x) x)
-    (hf'_int : IntervalIntegrable f' volume 0 L)
-    {x : ℝ} (hx : x ∈ Icc 0 L) :
-    |f x| ≤ (1 / L) * (∫ y in (0 : ℝ)..L, |f y|) +
-      (∫ y in (0 : ℝ)..L, |f' y|)
-
-theorem sobolev_H1_Linfty_interval
-    {L : ℝ} (hL : 0 < L)
-    {f f' : ℝ → ℝ}
-    (hf_cont : ContinuousOn f (Icc 0 L))
-    (hf_deriv : ∀ x ∈ Icc 0 L, HasDerivAt f (f' x) x)
-    (hf_mem : MemLp f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)))
-    (hf'_mem : MemLp f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)))
-    {x : ℝ} (hx : x ∈ Icc 0 L) :
-    |f x| ≤
-      (1 / L) *
-          ((L ^ (1 / 2 : ℝ)) *
-            lpNorm f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) +
-        (L ^ (1 / 2 : ℝ)) *
-          lpNorm f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))
-```
-
-These are not directly enough for the target because they also require ordinary closed-interval `HasDerivAt` for the chosen representative.
-
-### C. GN/Agmon facts in `GagliardoNirenberg.lean`
-
-Exported theorem names/signatures:
-
-```lean
-namespace ShenWork.Sobolev
-
-theorem lpNorm_four_rpow_two_le_bound_mul_lpNorm_two
-    {α : Type*} [MeasurableSpace α] {μ : Measure α} {f : α → ℝ} {B : ℝ}
-    (hf : AEStronglyMeasurable f μ)
-    (hf_mem : MemLp f (2 : ℝ≥0∞) μ)
-    (hB : 0 ≤ B)
-    (hbound : ∀ᵐ x ∂μ, ‖f x‖ ≤ B) :
-    (lpNorm f (4 : ℝ≥0∞) μ) ^ (2 : ℝ) ≤
-      B * lpNorm f (2 : ℝ≥0∞) μ
-
-theorem gagliardoNirenberg_interval
-    {L : ℝ} (hL : 0 < L)
-    {f f' : ℝ → ℝ}
-    (hf_cont : ContinuousOn f (Icc 0 L))
-    (hf_deriv : ∀ x ∈ Icc 0 L, HasDerivAt f (f' x) x)
-    (hf_mem : MemLp f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)))
-    (hf'_mem : MemLp f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) :
-    (lpNorm f (4 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) ^ (2 : ℝ) ≤
-      ((1 / L) *
-          ((L ^ (1 / 2 : ℝ)) *
-            lpNorm f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) +
-        (L ^ (1 / 2 : ℝ)) *
-          lpNorm f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) *
-        lpNorm f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))
-```
-
-The strongest directly relevant theorem is:
-
-```lean
-namespace ShenWork.GagliardoNirenberg
-
-theorem agmon_inequality_interval
-    {L : ℝ} (hL : 0 < L)
-    {f f' : ℝ → ℝ}
-    (_hf_cont : ContinuousOn f (Icc 0 L))
-    (hf_deriv : ∀ x ∈ Icc 0 L, HasDerivAt f (f' x) x)
+    (hf_deriv : ∀ x ∈ Ioo (0 : ℝ) L, HasDerivWithinAt f (f' x) (Ioi x) x)
     (_hf'_int : IntervalIntegrable f' volume 0 L)
     (hf_sq_int : IntervalIntegrable (fun y => f y ^ 2) volume 0 L)
     (hf'_sq_int : IntervalIntegrable (fun y => f' y ^ 2) volume 0 L)
@@ -184,27 +92,72 @@ theorem agmon_inequality_interval
         sqrt (∫ y in (0 : ℝ)..L, f' y ^ 2)
 ```
 
-This is mathematically the right estimate. The problem is the derivative hypothesis. It requires ordinary `HasDerivAt` on **all** `x ∈ Icc 0 L`. Its proof uses
+This theorem uses `intervalIntegral.integral_eq_sub_of_hasDeriv_right` internally. It is exactly the endpoint-safe replacement for the old theorem, whose closed ordinary `HasDerivAt` input did not fit zero-extensions.
+
+### Current target and wiring
+
+In `ShenWork/PDE/IntervalAgmonInterpolation.lean`:
 
 ```lean
-intervalIntegral.integral_eq_sub_of_hasDerivAt
+def UnitIntervalPositiveAgmonInterpolation : Prop :=
+  ∀ q : ℝ, 1 < q →
+  ∀ eps : ℝ, 0 < eps →
+    ∃ Ceps > 0,
+      ∀ f : intervalDomain.Point → ℝ,
+        (∀ x, 0 < f x) →
+        ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
+          intervalDomain.integral (fun x => f x ^ q) ≤
+            eps * intervalDomain.integral
+              (fun x => f x ^ (q - 2) *
+                (intervalDomain.gradNorm f x) ^ 2) +
+            Ceps * (intervalDomain.integral f) ^ q
 ```
 
-with derivative data over `uIcc y₀ x`, so endpoint ordinary derivatives are part of the interface.
-
-### D. Algebraic absorption in `IntervalDomainLemma41.lean`
-
-This file has the absorption step already proved:
+Also already proved:
 
 ```lean
-namespace ShenWork.Paper2.IntervalDomainLemma41
+theorem intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
+    {params : CM2Params}
+    (hagmon : UnitIntervalPositiveAgmonInterpolation) :
+    IntervalDomainTheorem11Composite.IntervalDomainClassicalSolutionPositiveInterpolation
+      params
+```
 
-theorem quadratic_absorption {a b c : ℝ}
-    (ha : 0 ≤ a) (_hb : 0 ≤ b) (_hc : 0 ≤ c)
-    (h : a ≤ b * Real.sqrt a + c) :
-    a ≤ b ^ 2 + 2 * c
+Do not change this wiring. It is already the correct quantifier-order bridge.
 
-theorem interpolation_absorption {Y G Mp δ pv C : ℝ}
+### Interval-domain definitions
+
+In `ShenWork/PDE/IntervalDomain.lean`:
+
+```lean
+def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
+
+def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
+
+def intervalDomainIntegral (f : intervalDomainPoint → ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1, intervalDomainLift f x
+
+def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
+    (x : intervalDomainPoint) : ℝ :=
+  |deriv (intervalDomainLift f) x.1|
+
+def intervalDomain : ShenWork.Paper2.BoundedDomainData where
+  Point := intervalDomainPoint
+  integral := intervalDomainIntegral
+  gradNorm := intervalDomainGradNorm
+  -- other fields elided
+```
+
+These definitions mean the final gradient integral is literally an interval integral of an `intervalDomainLift`, and `gradNorm` is the ordinary derivative of the zero extension. The proof must use a.e. agreement with `derivWithin` at the endpoints; do not try to prove endpoint ordinary differentiability.
+
+### Algebraic absorption
+
+In `ShenWork/Paper2/IntervalDomainLemma41.lean`:
+
+```lean
+theorem ShenWork.Paper2.IntervalDomainLemma41.interpolation_absorption
+    {Y G Mp δ pv C : ℝ}
     (hY : 0 ≤ Y) (hG : 0 ≤ G) (hMp : 0 ≤ Mp)
     (hδ_pos : 0 < δ) (hδ_lt : δ < 1 / 4) (hp : 0 < pv)
     (hC : 0 ≤ C)
@@ -213,32 +166,56 @@ theorem interpolation_absorption {Y G Mp δ pv C : ℝ}
       2 * C / (1 - 2 * δ) * Mp
 ```
 
-This should be reused. Do not reprove the quadratic absorption.
+This is the final algebraic close. Reuse it.
 
-The same file defines a global interpolation frontier:
+### Existing bridge lemmas to reuse
+
+In `ShenWork/PDE/IntervalEllipticCharacterization.lean`:
 
 ```lean
-def IntervalDomainInterpolation : Prop :=
-  ∀ (eps : ℝ), 0 < eps → ∀ (pExp : ℝ), 1 < pExp → ∃ Ceps > 0,
-    ∀ (f : intervalDomainPoint → ℝ),
-      (∀ x, x ∈ intervalDomain.inside → 0 < f x) →
-        intervalDomain.integral (fun x => (f x) ^ pExp) ≤
-          eps * intervalDomain.integral
-              (fun x => (f x) ^ (pExp - 2) *
-                (intervalDomain.gradNorm f x) ^ 2) +
-            Ceps * (intervalDomain.integral f) ^ pExp
+theorem ShenWork.IntervalEllipticCharacterization.hasDerivAt_of_contDiffOn_two_interior
+    {g : ℝ → ℝ} (hg : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt g (deriv g x) x
+
+theorem ShenWork.IntervalEllipticCharacterization.continuousOn_of_contDiffOn_two
+    {g : ℝ → ℝ} (hg : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn g (Set.uIcc (0 : ℝ) 1)
+
+theorem ShenWork.IntervalEllipticCharacterization.continuousOn_derivWithin_of_contDiffOn_two
+    {g : ℝ → ℝ} (hg : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn (derivWithin g (Set.Icc (0 : ℝ) 1)) (Set.Icc (0 : ℝ) 1)
+
+theorem ShenWork.IntervalEllipticCharacterization.deriv_eq_derivWithin_interior
+    {g : ℝ → ℝ} {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv g x = derivWithin g (Set.Icc (0 : ℝ) 1) x
+
+theorem ShenWork.IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two
+    {g : ℝ → ℝ} (hg : ContDiffOn ℝ 2 g (Set.Icc (0 : ℝ) 1)) :
+    IntervalIntegrable (deriv g) volume 0 1
 ```
 
-But this is only a `Prop` frontier, not a proved theorem. It also has no `ContDiffOn` hypothesis, so it is not the right theorem to prove directly for arbitrary functions.
+These are the exact helpers I would import and use. The proof style in `IntervalDomainL2CrossControl.lean` is especially relevant: it builds a continuous `derivWithin` representative, proves interval-integrability, then uses `congr_ae` and the null endpoint `{1}` to transfer back to ordinary `deriv`.
 
-### E. Adjacent existing slice package in `IntervalDomainAPrioriGlobal.lean`
-
-This theorem is useful for orientation because it packages an elementary power/sup step plus Agmon, but it still inherits the closed ordinary derivative requirement:
+In `ShenWork/Paper2/IntervalDomainStructuredMoserPower.lean`, there is a directly reusable pattern for rpow continuity/integrability:
 
 ```lean
-namespace ShenWork.IntervalDomainExistence
+theorem ShenWork.Paper2.IntervalDomainStructuredMoserData.intervalDomain_classical_solution_powerIntegrable
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ∀ r : ℝ, 1 < r → ∀ t, 0 < t → t < T →
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ r))
+        volume 0 1
+```
 
-theorem integral_pow_le_sup_pow_mul
+The theorem itself is solution-specific, but its proof pattern is exactly what is needed here: use `ContinuousOn.rpow_const`, a positive/nonzero base on `Icc`, then `.intervalIntegrable` after rewriting `Icc` to `uIcc`.
+
+In `ShenWork/PDE/IntervalDomainAPrioriGlobal.lean`, useful existing candidates are:
+
+```lean
+theorem ShenWork.IntervalDomainExistence.integral_pow_le_sup_pow_mul
     {pExp : ℝ} (hpExp : 1 ≤ pExp)
     {f : intervalDomain.Point → ℝ}
     (hf_nonneg : ∀ x : intervalDomain.Point, 0 ≤ f x)
@@ -250,8 +227,12 @@ theorem integral_pow_le_sup_pow_mul
         MeasureTheory.volume 0 1) :
     intervalDomain.integral (fun x : intervalDomain.Point => (f x) ^ pExp) ≤
       (intervalDomainSupNorm f) ^ (pExp - 1) * intervalDomain.integral f
+```
 
-theorem intervalDomain_Lp_interpolation_classicalSlice
+and
+
+```lean
+theorem ShenWork.IntervalDomainExistence.intervalDomain_Lp_interpolation_classicalSlice
     {pExp : ℝ} (hpExp : 1 ≤ pExp)
     {f : intervalDomain.Point → ℝ}
     (hf_nonneg : ∀ x : intervalDomain.Point, 0 ≤ f x)
@@ -281,173 +262,354 @@ theorem intervalDomain_Lp_interpolation_classicalSlice
               Real.sqrt (∫ y in (0 : ℝ)..1, f' y ^ 2)
 ```
 
-This does **not** prove `UnitIntervalPositiveAgmonInterpolation`. It is a slice package that still asks the caller to provide closed ordinary `HasDerivAt` of the chosen lift.
+The first theorem may be useful for the Young step if the import graph allows. The second theorem still uses the old ordinary closed-interval derivative interface, so it should not be used directly for `UnitIntervalPositiveAgmonInterpolation` unless it is first refactored to use `agmon_inequality_interval_rightDeriv`.
 
-### F. Concrete interval-domain definitions
+## 1. Exact smaller lemmas needed to apply `agmon_inequality_interval_rightDeriv`
 
-The relevant definitions in `IntervalDomain.lean` are:
-
-```lean
-def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
-
-def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
-  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
-
-def intervalDomainIntegral (f : intervalDomainPoint → ℝ) : ℝ :=
-  ∫ x in (0 : ℝ)..1, intervalDomainLift f x
-
-def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
-    (x : intervalDomainPoint) : ℝ :=
-  |deriv (intervalDomainLift f) x.1|
-
-def intervalDomain : ShenWork.Paper2.BoundedDomainData where
-  Point := intervalDomainPoint
-  inside := {x : intervalDomainPoint | (x.1 : ℝ) ∈ Set.Ioo 0 1}
-  boundary := {x : intervalDomainPoint | x.1 = 0 ∨ x.1 = 1}
-  volume := 1
-  integral := intervalDomainIntegral
-  gradNorm := intervalDomainGradNorm
-  classicalRegularity := intervalDomainClassicalRegularity
-  -- other fields elided
-```
-
-The concrete definitions are good, but they force the proof to constantly move between subtype points and real interval variables.
-
-## 2. Why the existing lemmas do not directly close the C2 frontier
-
-The obstruction is not the final epsilon absorption. That is handled by `IntervalDomainLemma41.interpolation_absorption`.
-
-The obstruction is the interface mismatch:
+Let
 
 ```lean
-ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)
+h  : ℝ → ℝ := intervalDomainLift f
+g  : ℝ → ℝ := fun y => h y ^ (q / 2)
+gp : ℝ → ℝ := fun y => (q / 2) * h y ^ (q / 2 - 1) * deriv h y
 ```
 
-is a **within-set** regularity hypothesis. But `intervalDomainLift` is the zero extension. For a positive function on `[0,1]`, the zero extension usually has jumps at `0` and `1` from outside the interval. Hence it is not generally ordinary differentiable at the endpoints.
-
-Existing `agmon_inequality_interval` requires:
+To call
 
 ```lean
-∀ x ∈ Set.Icc 0 L, HasDerivAt g (g' x) x
+ShenWork.GagliardoNirenberg.agmon_inequality_interval_rightDeriv
+  (L := 1) (f := g) (f' := gp)
 ```
 
-for the real representative `g`. The C2 frontier only gives the right regularity on the closed interval in the `ContDiffOn`/within sense, not ordinary endpoint `HasDerivAt` of the zero extension.
+these are the exact smaller obligations:
 
-This also blocks the apparently tempting route through:
+### 1. Positivity and nonzero base on `Icc`
 
 ```lean
-ShenWork.IntervalDomainExistence.intervalDomain_Lp_interpolation_classicalSlice
+∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift f y
 ```
 
-because that theorem has the same explicit input:
+Proof pattern:
 
 ```lean
-(hf_deriv : ∀ x ∈ Set.Icc (0 : ℝ) 1,
-  HasDerivAt (intervalDomainLift f) (f' x) x)
+intro y hy
+let x : intervalDomain.Point := ⟨y, hy⟩
+simpa [intervalDomainLift, hy, x] using hf_pos x
 ```
 
-So the repo currently has the right pointwise Agmon theorem for ordinary closed-interval representatives, but it lacks an endpoint-safe theorem for zero-extended interval-domain representatives.
+This is used by `ContinuousOn.rpow_const`, `Real.hasDerivAt_rpow_const`, `Real.rpow_add`, and `Real.rpow_pos_of_pos`.
 
-## 3. Smallest missing analytic lemma(s)
+### 2. `g` continuous on `Icc 0 1`
 
-There are two viable ways to add the missing producer. The first is more reusable; the second is narrower and probably fastest.
+```lean
+ContinuousOn (fun y => (intervalDomainLift f y) ^ (q / 2)) (Set.Icc (0 : ℝ) 1)
+```
 
-### Option A — reusable endpoint-safe Agmon theorem
+Proof pattern:
 
-Add this near `agmon_inequality_interval` in `ShenWork/PDE/GagliardoNirenberg.lean`:
+```lean
+(hfC2.continuousOn.rpow_const
+  (fun y hy => Or.inl (ne_of_gt (hpos_lift y hy))))
+```
+
+### 3. Right derivative of `g` on `Ioo 0 1`
+
+```lean
+∀ y ∈ Set.Ioo (0 : ℝ) 1,
+  HasDerivWithinAt
+    (fun z => (intervalDomainLift f z) ^ (q / 2))
+    ((q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
+      deriv (intervalDomainLift f) y)
+    (Set.Ioi y) y
+```
+
+Use the existing interior derivative helper:
+
+```lean
+have hh_at : HasDerivAt h (deriv h y) y :=
+  ShenWork.IntervalEllipticCharacterization.hasDerivAt_of_contDiffOn_two_interior
+    hfC2 hy
+have hh_right : HasDerivWithinAt h (deriv h y) (Set.Ioi y) y :=
+  hh_at.hasDerivWithinAt
+```
+
+Then try first:
+
+```lean
+have hp : HasDerivAt (fun z : ℝ => z ^ (q / 2))
+    ((q / 2) * (h y) ^ (q / 2 - 1)) (h y) :=
+  Real.hasDerivAt_rpow_const
+    (x := h y) (p := q / 2) (Or.inl (ne_of_gt hbase_pos))
+
+-- Try this method name first:
+have hg := hp.comp_hasDerivWithinAt y hh_right
+```
+
+If `comp_hasDerivWithinAt` elaborates in the opposite direction, use the dot-call from the outer derivative theorem (`hp`) and provide `y` explicitly. The result may have coefficient order
+
+```lean
+((q / 2) * h y ^ (q / 2 - 1)) * deriv h y
+```
+
+so finish with `ring_nf`/`ring` on multiplication associativity.
+
+### 4. Interval-integrability of `gp`, `g^2`, `gp^2`, and `g*gp`
+
+The faithful endpoint route is:
+
+- prove continuity on `Icc` of the `derivWithin` representative
+  ```lean
+  fun y => (q / 2) * h y ^ (q / 2 - 1) *
+    derivWithin h (Set.Icc (0 : ℝ) 1) y
+  ```
+  using
+  ```lean
+  ShenWork.IntervalEllipticCharacterization.continuousOn_derivWithin_of_contDiffOn_two hfC2
+  ```
+- get `IntervalIntegrable` by rewriting `Icc` to `uIcc` and calling `.intervalIntegrable`;
+- transfer to the ordinary-`deriv` representative by `.congr_ae`, using
+  ```lean
+  ShenWork.IntervalEllipticCharacterization.deriv_eq_derivWithin_interior
+  ```
+  and the null endpoint `{1}` pattern already used in `IntervalDomainL2CrossControl.lean`.
+
+This is the key endpoint convention: ordinary `deriv h` may be junk at endpoints, but it equals `derivWithin h (Icc 0 1)` a.e. on the interval. That is enough because every target is an interval integral.
+
+## 2. API names to try first
+
+### `ContDiffOn` to derivative data
+
+Try the existing repo theorem first:
+
+```lean
+ShenWork.IntervalEllipticCharacterization.hasDerivAt_of_contDiffOn_two_interior
+```
+
+Then:
+
+```lean
+HasDerivAt.hasDerivWithinAt
+```
+
+If proving directly, the exact pattern already in the repo is:
+
+```lean
+have hIcc_nhds : Set.Icc (0 : ℝ) 1 ∈ 𝓝 x := by
+  rw [mem_nhds_iff]
+  exact ⟨Set.Ioo (0 : ℝ) 1, Set.Ioo_subset_Icc_self, isOpen_Ioo, hx⟩
+have hcd : ContDiffAt ℝ 2 g x := by
+  have := hg.contDiffWithinAt (Set.mem_Icc_of_Ioo hx)
+  exact this.contDiffAt hIcc_nhds
+have hdiff : DifferentiableAt ℝ g x := hcd.differentiableAt (by norm_num)
+exact hdiff.hasDerivAt
+```
+
+For continuous `derivWithin` and derivative integrability, use:
+
+```lean
+ShenWork.IntervalEllipticCharacterization.continuousOn_derivWithin_of_contDiffOn_two
+ShenWork.IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two
+ShenWork.IntervalEllipticCharacterization.deriv_eq_derivWithin_interior
+```
+
+### `Real.rpow` continuity and chain rule
+
+Try these first:
+
+```lean
+ContinuousOn.rpow_const
+Real.hasDerivAt_rpow_const
+Real.rpow_add
+Real.rpow_one
+Real.rpow_pos_of_pos
+Real.rpow_nonneg
+Real.rpow_le_rpow
+```
+
+For the derivative chain rule, prefer:
+
+```lean
+Real.hasDerivAt_rpow_const
+HasDerivAt.comp_hasDerivWithinAt
+```
+
+or, if available in this Mathlib version:
+
+```lean
+HasDerivWithinAt.rpow_const
+```
+
+The repo already uses `Real.hasDerivAt_rpow_const` in `ShenWork/PDE/ODEExistence.lean` and `ContinuousOn.rpow_const` in `IntervalDomainStructuredMoserPower.lean` and `IntervalDomainAPrioriGlobal.lean`.
+
+### Interval-integrability and a.e. endpoint transfer
+
+Try these first:
+
+```lean
+ContinuousOn.intervalIntegrable
+IntervalIntegrable.const_mul
+IntervalIntegrable.mul_continuousOn
+IntervalIntegrable.congr
+IntervalIntegrable.congr_ae
+ContinuousOn.mul
+ContinuousOn.rpow_const
+ContinuousOn.pow
+```
+
+For the null endpoint transfer, follow the pattern in `IntervalDomainL2CrossControl.lean`:
+
+```lean
+rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+have hnull : volume ({(1:ℝ)} : Set ℝ) = 0 := by simp
+refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
+```
+
+Then, for `y ∈ Ioc 0 1` and `y ≠ 1`, build
+
+```lean
+have hyIoo : y ∈ Set.Ioo (0:ℝ) 1 := ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hy1⟩
+```
+
+and rewrite ordinary derivative via:
+
+```lean
+ShenWork.IntervalEllipticCharacterization.deriv_eq_derivWithin_interior hyIoo
+```
+
+### Interval-domain integral rewrites
+
+Use:
+
+```lean
+unfold intervalDomain intervalDomainIntegral
+intervalIntegral.integral_congr
+intervalIntegral.integral_const_mul
+intervalIntegral.integral_mono_on
+Set.uIcc_of_le
+Set.uIoc_of_le
+```
+
+For subtype conversion:
+
+```lean
+have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
+  simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
+let x : intervalDomain.Point := ⟨y, hyIcc⟩
+simp [intervalDomainLift, hyIcc, x]
+```
+
+For `gradNorm`:
+
+```lean
+simp [intervalDomain, intervalDomainGradNorm, intervalDomainLift, hyIcc, x, sq_abs]
+```
+
+## 3. Existing theorem chain that already handles part of the bridge
+
+Yes, but no single theorem currently proves the target.
+
+Reusable candidates:
+
+1. `ShenWork.IntervalEllipticCharacterization.hasDerivAt_of_contDiffOn_two_interior`  
+   Converts closed `Icc` C2 to ordinary interior derivative. Use this before `.hasDerivWithinAt`.
+
+2. `ShenWork.IntervalEllipticCharacterization.continuousOn_derivWithin_of_contDiffOn_two`  
+   Gives the continuous closed-interval derivative representative. This is better than trying to prove `ContinuousOn (deriv h) (Icc 0 1)`, which is not faithful for zero-extensions.
+
+3. `ShenWork.IntervalEllipticCharacterization.deriv_eq_derivWithin_interior`  
+   Bridges `deriv` and `derivWithin` on the open interior; use it under `congr_ae`.
+
+4. `ShenWork.IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two`  
+   Already proves the a.e. endpoint bridge for `deriv h` itself.
+
+5. `ShenWork.Paper2.IntervalDomainStructuredMoserData.intervalDomain_classical_solution_powerIntegrable`  
+   Not directly applicable to arbitrary `f`, but its proof is the exact pattern for power integrability from positivity + closed continuity.
+
+6. `ShenWork.IntervalDomainExistence.integral_pow_le_sup_pow_mul`  
+   Can support the first `∫ f^q ≤ sup^(q-1) * mass` step if the import graph allows. I would not route through `intervalDomain_Lp_interpolation_classicalSlice` unchanged because it still requires ordinary `HasDerivAt` on `Icc`.
+
+7. `ShenWork.IntervalDomainExistence.intervalDomain_Lp_interpolation_classicalSlice`  
+   Useful as a pattern only. It packages old Agmon + power estimate but is not endpoint-safe as stated.
+
+## 4. Next Lean lemma statements to add
+
+I would add these in the following order. They are proof-producing lemmas, not residual wrappers.
+
+### Lemma 1: the Agmon input bundle for `g = h^(q/2)`
+
+This isolates all endpoint and integrability pain. Use `gp` with ordinary `deriv h`, but prove integrability via the `derivWithin` continuous representative and a.e. equality.
 
 ```lean
 import ShenWork.PDE.GagliardoNirenberg
-
-open MeasureTheory Set intervalIntegral
-open scoped ENNReal Interval
-
-noncomputable section
-
-namespace ShenWork.GagliardoNirenberg
-
-/-- Endpoint-safe Agmon inequality on `[0,L]`.
-
-This is the same estimate as `agmon_inequality_interval`, but it only requires
-ordinary derivative data on the open interval.  It is the right interface for
-zero-extended interval-domain functions: endpoint ordinary differentiability of
-the zero extension is not required, and endpoint values are irrelevant for the
-integral estimates. -/
-theorem agmon_inequality_interval_Ioo_ae
-    {L : ℝ} (hL : 0 < L)
-    {g g' : ℝ → ℝ}
-    (hg_cont : ContinuousOn g (Set.Icc 0 L))
-    (hg_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) L, HasDerivAt g (g' x) x)
-    (hg'_int : IntervalIntegrable g' volume 0 L)
-    (hg_sq_int : IntervalIntegrable (fun y => g y ^ 2) volume 0 L)
-    (hg'_sq_int : IntervalIntegrable (fun y => g' y ^ 2) volume 0 L)
-    (hgg'_int : IntervalIntegrable (fun y => g y * g' y) volume 0 L) :
-    ∀ᵐ x ∂(volume.restrict (Set.Icc (0 : ℝ) L)),
-      g x ^ 2 ≤ (2 / L) * (∫ y in (0 : ℝ)..L, g y ^ 2) +
-        2 * Real.sqrt (∫ y in (0 : ℝ)..L, g y ^ 2) *
-          Real.sqrt (∫ y in (0 : ℝ)..L, g' y ^ 2) := by
-  -- Proof plan: copy the existing `agmon_inequality_interval` proof, but prove
-  -- the FTC step on interior subintervals and then conclude a.e.; endpoints are
-  -- measure-zero under `volume.restrict (Icc 0 L)`.
-  --
-  -- The core replacement is the current call:
-  --   intervalIntegral.integral_eq_sub_of_hasDerivAt
-  -- which needs closed ordinary `HasDerivAt`.
-  -- Replace it by an interior/within-interval FTC lemma, or prove that small
-  -- interior truncations `(a,L-a)` satisfy the current theorem and let `a ↓ 0`.
-  -- This is the only genuinely analytic missing step.
-  --
-  -- Do not try to obtain endpoint `HasDerivAt` for `intervalDomainLift`; it is
-  -- false for positive zero-extensions.
-  admit
-
-end ShenWork.GagliardoNirenberg
-```
-
-The `admit` above marks the missing analytic theorem; do not commit it as-is. The theorem statement is the useful target. If Mathlib already has a suitable `integral_eq_sub_of_hasDerivWithinAt`/absolute-continuity interval FTC theorem, this proof should be short by adapting the existing proof.
-
-A pointwise interior variant is also fine:
-
-```lean
-theorem agmon_inequality_interval_Ioo
-    {L : ℝ} (hL : 0 < L)
-    {g g' : ℝ → ℝ}
-    (hg_cont : ContinuousOn g (Set.Icc 0 L))
-    (hg_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) L, HasDerivAt g (g' x) x)
-    (hg'_int : IntervalIntegrable g' volume 0 L)
-    (hg_sq_int : IntervalIntegrable (fun y => g y ^ 2) volume 0 L)
-    (hg'_sq_int : IntervalIntegrable (fun y => g' y ^ 2) volume 0 L)
-    (hgg'_int : IntervalIntegrable (fun y => g y * g' y) volume 0 L)
-    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) L) :
-    g x ^ 2 ≤ (2 / L) * (∫ y in (0 : ℝ)..L, g y ^ 2) +
-      2 * Real.sqrt (∫ y in (0 : ℝ)..L, g y ^ 2) *
-        Real.sqrt (∫ y in (0 : ℝ)..L, g' y ^ 2)
-```
-
-For the final interpolation proof, the a.e. version is often easier because the endpoint values do not matter under the interval integral.
-
-### Option B — narrower direct interval-domain Agmon core
-
-If you want the smallest theorem tailored to this task, prove the following in `ShenWork/PDE/IntervalAgmonInterpolation.lean` or a small imported helper file:
-
-```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.PDE.GagliardoNirenberg
+import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.Paper2.IntervalDomainLemma41
+import ShenWork.PDE.IntervalDomain
 
 open MeasureTheory Set intervalIntegral
 open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLemma41
+open ShenWork.IntervalEllipticCharacterization
 
 noncomputable section
 
 namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 
-/-- Agmon applied to `g = f^(q/2)`, rewritten in interval-domain notation.
+/-- Input package for endpoint-safe Agmon applied to
+`g = (intervalDomainLift f)^(q/2)`. -/
+theorem intervalDomain_positive_C2_rpowHalf_agmonInputs
+    {q : ℝ} (hq : 1 < q)
+    {f : intervalDomain.Point → ℝ}
+    (hf_pos : ∀ x, 0 < f x)
+    (hfC2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)) :
+    let h : ℝ → ℝ := intervalDomainLift f
+    let g : ℝ → ℝ := fun y => h y ^ (q / 2)
+    let gp : ℝ → ℝ := fun y =>
+      (q / 2) * h y ^ (q / 2 - 1) * deriv h y
+    ContinuousOn g (Set.Icc (0 : ℝ) 1) ∧
+      (∀ y ∈ Set.Ioo (0 : ℝ) 1,
+        HasDerivWithinAt g (gp y) (Set.Ioi y) y) ∧
+      IntervalIntegrable gp volume 0 1 ∧
+      IntervalIntegrable (fun y => g y ^ 2) volume 0 1 ∧
+      IntervalIntegrable (fun y => gp y ^ 2) volume 0 1 ∧
+      IntervalIntegrable (fun y => g y * gp y) volume 0 1
+```
 
-This is the narrow analytic producer needed before the already-proved algebraic
-absorption step. -/
+This is the most useful next lemma. If it is too large, split out only the last three integrability conjuncts into a separate lemma.
+
+### Lemma 2: rewrite the Agmon derivative integral to the interval-domain `G`
+
+This should be proved by `intervalIntegral.integral_congr` plus rpow arithmetic and `sq_abs`.
+
+```lean
+/-- Rewrites the squared derivative of `f^(q/2)` to the weighted gradient
+integral used by `UnitIntervalPositiveAgmonInterpolation`. -/
+theorem intervalDomain_rpowHalf_deriv_sq_integral_eq
+    {q : ℝ} (hq : 1 < q)
+    {f : intervalDomain.Point → ℝ}
+    (hf_pos : ∀ x, 0 < f x) :
+    let h : ℝ → ℝ := intervalDomainLift f
+    let gp : ℝ → ℝ := fun y =>
+      (q / 2) * h y ^ (q / 2 - 1) * deriv h y
+    ∫ y in (0 : ℝ)..1, gp y ^ 2 =
+      (q ^ 2 / 4) * intervalDomain.integral
+        (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2)
+```
+
+Key local arithmetic:
+
+```lean
+have hpow_exp : (q / 2 - 1) + (q / 2 - 1) = q - 2 := by ring
+have hcoeff : (q / 2) * (q / 2) = q ^ 2 / 4 := by ring
+```
+
+Use `Real.rpow_add` under `0 < intervalDomainLift f y`.
+
+### Lemma 3: endpoint-safe Agmon rewritten to the `Y/G` bound
+
+This is the first theorem that should actually call `agmon_inequality_interval_rightDeriv`.
+
+```lean
+/-- Endpoint-safe Agmon for `f^(q/2)`, rewritten in interval-domain notation. -/
 theorem intervalDomain_positive_C2_power_agmon_core
     {q : ℝ} (hq : 1 < q)
     {f : intervalDomain.Point → ℝ}
@@ -456,210 +618,35 @@ theorem intervalDomain_positive_C2_power_agmon_core
     let Y : ℝ := intervalDomain.integral (fun x => f x ^ q)
     let G : ℝ := intervalDomain.integral
       (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2)
-    ∀ᵐ y ∂(volume.restrict (Set.Icc (0 : ℝ) 1)),
-      (intervalDomainLift f y) ^ q ≤ 2 * Y + q * Real.sqrt (Y * G) := by
-  -- Proof outline:
-  --   g  y := (intervalDomainLift f y) ^ (q / 2)
-  --   g' y := (q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
-  --             deriv (intervalDomainLift f) y
-  --
-  -- Use endpoint-safe Agmon on `g`, then rewrite:
-  --   ∫ g^2  = intervalDomain.integral (fun x => f x^q)
-  --   ∫ g'^2 = (q^2 / 4) * intervalDomain.integral
-  --       (fun x => f x^(q-2) * gradNorm f x^2)
-  --
-  -- Required ingredients:
-  --   * positivity of `intervalDomainLift f y` for `y ∈ Icc 0 1`;
-  --   * rpow chain rule for positive base;
-  --   * `intervalIntegral.integral_congr` conversions;
-  --   * `sq_abs` for `gradNorm`.
-  --
-  -- This theorem is not currently derivable from the repo without the endpoint-
-  -- safe Agmon/FTC step described above.
-  admit
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+    ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      (intervalDomainLift f y) ^ q ≤ 2 * Y + q * Real.sqrt (Y * G)
 ```
 
-Again, the `admit` is only to mark the missing proof in this audit. The statement is the narrow producer target, not a residual wrapper.
+Why pointwise on `Icc` is okay now: the new Agmon theorem returns the estimate for `x ∈ Icc`; it only requires right derivative data on `Ioo`.
 
-## 4. Compile-oriented proof skeleton after the missing core
-
-The following is the route I would implement after proving the endpoint-safe Agmon core. It is intentionally split so the hard analytic step is isolated from the algebraic absorption.
-
-### 4.1 Small scalar and positivity support lemmas
-
-These are not the hard analytic part, but they make the final proof clean.
+Main rewrites:
 
 ```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.Paper2.IntervalDomainLemma41
-
-open MeasureTheory Set intervalIntegral
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLemma41
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- Choose a small absorption parameter. -/
-theorem exists_delta_for_interpolation_coeff
-    {q eps : ℝ} (hq : 0 < q) (heps : 0 < eps) :
-    ∃ δ : ℝ,
-      0 < δ ∧ δ < 1 / 4 ∧
-        δ ^ 2 * q ^ 2 / (1 - 2 * δ) ^ 2 ≤ eps := by
-  -- A conservative explicit choice such as
-  --   δ = min (1/8) (Real.sqrt eps / (4 * q))
-  -- should work.  This is scalar real algebra, not analytic.
-  admit
-
-/-- Nonnegativity of the `Y = ∫ f^q` term. -/
-theorem intervalDomain_integral_rpow_nonneg
-    {q : ℝ} {f : intervalDomain.Point → ℝ}
-    (hf_nonneg : ∀ x, 0 ≤ f x) :
-    0 ≤ intervalDomain.integral (fun x => f x ^ q) := by
-  unfold intervalDomain intervalDomainIntegral
-  refine intervalIntegral.integral_nonneg (by norm_num) ?_
-  intro y hy
-  have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
-    simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
-  let x : intervalDomain.Point := ⟨y, hyIcc⟩
-  simpa [intervalDomainLift, hyIcc, x] using
-    Real.rpow_nonneg (hf_nonneg x) q
-
-/-- Nonnegativity of the weighted gradient term. -/
-theorem intervalDomain_weightedGradientIntegral_nonneg
-    {q : ℝ} {f : intervalDomain.Point → ℝ}
-    (hf_nonneg : ∀ x, 0 ≤ f x) :
-    0 ≤ intervalDomain.integral
-      (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2) := by
-  unfold intervalDomain intervalDomainIntegral
-  refine intervalIntegral.integral_nonneg (by norm_num) ?_
-  intro y hy
-  have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
-    simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
-  let x : intervalDomain.Point := ⟨y, hyIcc⟩
-  have hpow : 0 ≤ f x ^ (q - 2) := Real.rpow_nonneg (hf_nonneg x) (q - 2)
-  have hsq : 0 ≤ (intervalDomain.gradNorm f x) ^ 2 := sq_nonneg _
-  simpa [intervalDomainLift, hyIcc, x] using mul_nonneg hpow hsq
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+(∫ y in (0 : ℝ)..1, (h y ^ (q / 2)) ^ 2) = Y
+(∫ y in (0 : ℝ)..1, gp y ^ 2) = (q ^ 2 / 4) * G
 ```
 
-The two nonnegativity proofs above are intended to be very close to compilable. Depending on local simp behavior, the final `simpa` in the gradient lemma may need:
+Then simplify the square-root coefficient using `q > 0`, `Y ≥ 0`, `G ≥ 0`:
 
 ```lean
-simp [intervalDomainLift, hyIcc, x, intervalDomainGradNorm]
+2 * sqrt Y * sqrt ((q ^ 2 / 4) * G) = q * sqrt (Y * G)
 ```
 
-### 4.2 Pre-absorption producer
+This scalar simplification may deserve a tiny helper lemma if `nlinarith`/`rw [Real.sqrt_mul]` gets noisy.
 
-This is the next narrow target after `intervalDomain_positive_C2_power_agmon_core`:
+### Lemma 4: uniform pre-absorption, then final closure
 
-```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.Paper2.IntervalDomainLemma41
-
-open MeasureTheory Set intervalIntegral
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLemma41
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- The analytic + Young step before quadratic absorption.
-
-This is narrower than the final `UnitIntervalPositiveAgmonInterpolation`: it
-stops exactly at the hypothesis consumed by
-`IntervalDomainLemma41.interpolation_absorption`. -/
-theorem intervalDomain_positive_C2_pre_absorption
-    {q δ : ℝ} (hq : 1 < q) (hδ_pos : 0 < δ)
-    {f : intervalDomain.Point → ℝ}
-    (hf_pos : ∀ x, 0 < f x)
-    (hfC2 : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)) :
-    ∃ Cδ : ℝ, 0 ≤ Cδ ∧
-      let Y : ℝ := intervalDomain.integral (fun x => f x ^ q)
-      let G : ℝ := intervalDomain.integral
-        (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2)
-      let Mp : ℝ := (intervalDomain.integral f) ^ q
-      Y ≤ 2 * δ * Y + δ * q * Real.sqrt (Y * G) + Cδ * Mp := by
-  -- Route:
-  -- 1. Get the a.e. bound from `intervalDomain_positive_C2_power_agmon_core`:
-  --      f^q ≤ B := 2Y + q sqrt(YG).
-  -- 2. Convert it to an a.e. bound for `f^(q-1)`:
-  --      f^(q-1) ≤ B^((q-1)/q), using positivity and `Real.rpow_le_rpow`.
-  -- 3. Integrate `f^q = f * f^(q-1)`:
-  --      Y ≤ M * B^((q-1)/q).
-  -- 4. Apply scaled Young with exponents `q` and `q/(q-1)`:
-  --      M * B^((q-1)/q) ≤ δ * B + Cδ * M^q.
-  -- 5. Expand `δ * B`.
-  --
-  -- This is still proof-producing, not a residual wrapper, because it isolates
-  -- the exact analytic/Young obligation before the already-proved absorption.
-  admit
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-```
-
-This theorem is probably the best single theorem for a worker to attack after endpoint-safe Agmon is in place.
-
-### 4.3 Final closure to `UnitIntervalPositiveAgmonInterpolation`
-
-After `exists_delta_for_interpolation_coeff`, the two nonnegativity lemmas, and `intervalDomain_positive_C2_pre_absorption`, the final theorem is mostly algebraic:
+This must choose its constant before `f`.
 
 ```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.Paper2.IntervalDomainLemma41
-
-open MeasureTheory Set intervalIntegral
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLemma41
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-/-- Final proof of the C2 unit-interval positive Agmon interpolation frontier,
-once the endpoint-safe Agmon/Young pre-absorption producer is available. -/
-theorem unitIntervalPositiveAgmonInterpolation_proved :
-    UnitIntervalPositiveAgmonInterpolation := by
-  intro q hq eps heps
-  have hq_pos : 0 < q := lt_trans zero_lt_one hq
-  rcases exists_delta_for_interpolation_coeff (q := q) (eps := eps) hq_pos heps with
-    ⟨δ, hδ_pos, hδ_lt, hcoeff⟩
-  -- `Cδ` comes from the pre-absorption theorem; `Ceps` is made strictly
-  -- positive by adding `1`.
-  classical
-  obtain ⟨Cδ, hCδ_nonneg, hpre_all⟩ :=
-    Classical.choice ?preChoice
-  -- In a real proof, avoid `Classical.choice ?preChoice`: after introducing
-  -- `f hf_pos hfC2`, call `intervalDomain_positive_C2_pre_absorption` for that
-  -- slice.  If one wants a single `Ceps` independent of `f`, then the
-  -- pre-absorption theorem must choose `Cδ` from `q,δ` only.  Prefer this
-  -- stronger statement:
-  --
-  -- theorem intervalDomain_positive_C2_pre_absorption_uniform
-  --   {q δ : ℝ} (hq : 1 < q) (hδ_pos : 0 < δ) :
-  --   ∃ Cδ ≥ 0, ∀ f, ...
-  --
-  -- The current displayed `pre_absorption` statement above chooses `Cδ` after
-  -- `f`; for the final theorem it must be strengthened to choose `Cδ` before
-  -- `f`.  That is a critical quantifier-order detail.
-  admit
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-```
-
-Important correction: the final theorem requires the Young constant to be uniform in `f`. Therefore the actual pre-absorption producer should be stated as:
-
-```lean
+/-- Uniform Young/pre-absorption step from the pointwise power Agmon core. -/
 theorem intervalDomain_positive_C2_pre_absorption_uniform
-    {q δ : ℝ} (hq : 1 < q) (hδ_pos : 0 < δ) :
+    {q δ : ℝ} (hq : 1 < q) (hδ : 0 < δ) :
     ∃ Cδ : ℝ, 0 ≤ Cδ ∧
       ∀ f : intervalDomain.Point → ℝ,
         (∀ x, 0 < f x) →
@@ -671,300 +658,85 @@ theorem intervalDomain_positive_C2_pre_absorption_uniform
           Y ≤ 2 * δ * Y + δ * q * Real.sqrt (Y * G) + Cδ * Mp
 ```
 
-Then the final closure has the right quantifier order:
+This can use either:
+
+- the direct pointwise route from Lemma 3:
+  `f^q ≤ B` implies `f^(q-1) ≤ B^((q-1)/q)`, integrate `f * f^(q-1)`; or
+- existing `integral_pow_le_sup_pow_mul` plus a new `intervalDomainSupNorm_rpow_le_of_pointwise_rpow_le` helper.
+
+I prefer the direct pointwise route because it avoids `sSup`/`intervalDomainSupNorm` friction.
+
+After Lemma 4, the final theorem is just:
 
 ```lean
-import ShenWork.PDE.IntervalAgmonInterpolation
-import ShenWork.Paper2.IntervalDomainLemma41
-
-open MeasureTheory Set intervalIntegral
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
-open ShenWork.Paper2.IntervalDomainLemma41
-
-noncomputable section
-
-namespace ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
-
-theorem unitIntervalPositiveAgmonInterpolation_of_pre_absorption_uniform
-    (hdelta : ∀ {q eps : ℝ}, 0 < q → 0 < eps →
-      ∃ δ : ℝ, 0 < δ ∧ δ < 1 / 4 ∧
-        δ ^ 2 * q ^ 2 / (1 - 2 * δ) ^ 2 ≤ eps)
-    (hpre : ∀ {q δ : ℝ}, 1 < q → 0 < δ →
-      ∃ Cδ : ℝ, 0 ≤ Cδ ∧
-        ∀ f : intervalDomain.Point → ℝ,
-          (∀ x, 0 < f x) →
-          ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) →
-            let Y : ℝ := intervalDomain.integral (fun x => f x ^ q)
-            let G : ℝ := intervalDomain.integral
-              (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2)
-            let Mp : ℝ := (intervalDomain.integral f) ^ q
-            Y ≤ 2 * δ * Y + δ * q * Real.sqrt (Y * G) + Cδ * Mp) :
+-- final closure outline, using existing interpolation_absorption
+theorem unitIntervalPositiveAgmonInterpolation_proved :
     UnitIntervalPositiveAgmonInterpolation := by
   intro q hq eps heps
-  have hq_pos : 0 < q := lt_trans zero_lt_one hq
-  rcases hdelta (q := q) (eps := eps) hq_pos heps with
-    ⟨δ, hδ_pos, hδ_lt, hcoeff⟩
-  rcases hpre (q := q) (δ := δ) hq hδ_pos with
-    ⟨Cδ, hCδ_nonneg, hpreδ⟩
-  let Ceps : ℝ := 2 * Cδ / (1 - 2 * δ) + 1
-  refine ⟨Ceps, ?_, ?_⟩
-  · have hden : 0 < 1 - 2 * δ := by linarith
-    dsimp [Ceps]
-    positivity
-  · intro f hf_pos hfC2
-    let Y : ℝ := intervalDomain.integral (fun x => f x ^ q)
-    let G : ℝ := intervalDomain.integral
-      (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2)
-    let Mp : ℝ := (intervalDomain.integral f) ^ q
-    have hY : 0 ≤ Y := by
-      dsimp [Y]
-      exact intervalDomain_integral_rpow_nonneg (q := q) (f := f)
-        (fun x => le_of_lt (hf_pos x))
-    have hG : 0 ≤ G := by
-      dsimp [G]
-      exact intervalDomain_weightedGradientIntegral_nonneg (q := q) (f := f)
-        (fun x => le_of_lt (hf_pos x))
-    have hMp : 0 ≤ Mp := by
-      dsimp [Mp]
-      -- Enough to show `0 ≤ intervalDomain.integral f`; for strict positivity,
-      -- prove/use `intervalDomain_integral_pos_of_pos_continuous`.
-      have hM_nonneg : 0 ≤ intervalDomain.integral f := by
-        exact intervalDomain_integral_rpow_nonneg (q := (1 : ℝ)) (f := f)
-          (fun x => le_of_lt (hf_pos x))
-      exact Real.rpow_nonneg hM_nonneg q
-    have hpreY :
-        Y ≤ 2 * δ * Y + δ * q * Real.sqrt (Y * G) + Cδ * Mp := by
-      simpa [Y, G, Mp] using hpreδ f hf_pos hfC2
-    have habs :=
-      interpolation_absorption
-        (Y := Y) (G := G) (Mp := Mp) (δ := δ) (pv := q) (C := Cδ)
-        hY hG hMp hδ_pos hδ_lt hq_pos hCδ_nonneg hpreY
-    have hden : 0 < 1 - 2 * δ := by linarith
-    have hmassCoeff_nonneg : 0 ≤ 2 * Cδ / (1 - 2 * δ) := by positivity
-    have hCeps_ge : 2 * Cδ / (1 - 2 * δ) ≤ Ceps := by
-      dsimp [Ceps]
-      linarith
-    have hGterm :
-        δ ^ 2 * q ^ 2 / (1 - 2 * δ) ^ 2 * G ≤ eps * G :=
-      mul_le_mul_of_nonneg_right hcoeff hG
-    have hMpterm :
-        2 * Cδ / (1 - 2 * δ) * Mp ≤ Ceps * Mp :=
-      mul_le_mul_of_nonneg_right hCeps_ge hMp
-    -- Finish by unfolding Y/G/Mp and chaining the two coefficient comparisons.
-    calc
-      intervalDomain.integral (fun x => f x ^ q) = Y := rfl
-      _ ≤ δ ^ 2 * q ^ 2 / (1 - 2 * δ) ^ 2 * G +
-            2 * Cδ / (1 - 2 * δ) * Mp := habs
-      _ ≤ eps * G + Ceps * Mp := add_le_add hGterm hMpterm
-      _ = eps * intervalDomain.integral
-            (fun x => f x ^ (q - 2) * (intervalDomain.gradNorm f x) ^ 2) +
-          Ceps * (intervalDomain.integral f) ^ q := rfl
-
-end ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
+  -- choose δ with 0<δ, δ<1/4, and δ^2*q^2/(1-2δ)^2 ≤ eps
+  -- obtain Cδ from intervalDomain_positive_C2_pre_absorption_uniform
+  -- set Ceps := 2*Cδ/(1 - 2*δ) + 1
+  -- for each f, apply pre-absorption and then
+  -- ShenWork.Paper2.IntervalDomainLemma41.interpolation_absorption
 ```
 
-This last closure is close to compile-plausible once the named support lemmas are present. The one subtle point is the nonnegativity of `intervalDomain.integral f`: the displayed use of `intervalDomain_integral_rpow_nonneg (q := 1)` proves nonnegativity of `∫ f^1`, so one may need `simpa [Real.rpow_one]` to rewrite it to `∫ f`.
+Do not choose `Cδ` after `f`; that would recreate the old non-uniform slice problem.
 
-## 5. Likely troublesome conversions
+## Conversion notes for the final proof
 
-### A. `intervalDomain.integral`
+### `intervalDomainLift` power equality
 
-Most goals need this unfolding:
-
-```lean
-unfold intervalDomain intervalDomainIntegral
-```
-
-or, if the expected head symbol is already known:
+Inside `y ∈ Icc 0 1`:
 
 ```lean
-change intervalDomainIntegral (fun x : intervalDomainPoint => f x ^ q) ≤ _
-unfold intervalDomainIntegral
-```
-
-After unfolding, target integrals have shape:
-
-```lean
-∫ y in (0 : ℝ)..1, intervalDomainLift (fun x : intervalDomain.Point => f x ^ q) y
-```
-
-### B. Subtype point from interval variable
-
-Inside `intervalIntegral.integral_congr`, `integral_mono_on`, or nonnegativity proofs:
-
-```lean
-have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
-  simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
-let x : intervalDomain.Point := ⟨y, hyIcc⟩
-simp [intervalDomainLift, hyIcc, x]
-```
-
-If the local hypothesis is `Ioc`/`uIoc`, use:
-
-```lean
-have hyIoc : y ∈ Set.Ioc (0 : ℝ) 1 := by
-  simpa [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
-have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨hyIoc.1.le, hyIoc.2⟩
-```
-
-### C. Lift of a power vs power of a lift
-
-On `[0,1]`:
-
-```lean
+let x : intervalDomain.Point := ⟨y, hy⟩
 have hpow_lift :
     intervalDomainLift (fun x : intervalDomain.Point => f x ^ q) y =
       (intervalDomainLift f y) ^ q := by
-  let x : intervalDomain.Point := ⟨y, hyIcc⟩
-  simp [intervalDomainLift, hyIcc, x]
+  simp [intervalDomainLift, hy, x]
 ```
 
-Do not expect this rewrite to hold definitionally outside `[0,1]`; do it under the interval membership hypothesis.
+### `g^2 = h^q`
 
-### D. `gradNorm`
-
-By definition:
+For `hpos : 0 < h y`:
 
 ```lean
-intervalDomain.gradNorm f x = |deriv (intervalDomainLift f) x.1|
+have hhalf : h y ^ (q / 2) * h y ^ (q / 2) = h y ^ q := by
+  rw [← Real.rpow_add hpos]
+  ring_nf
 ```
 
-Typical rewrite after constructing `x : intervalDomain.Point := ⟨y, hyIcc⟩`:
+Then use `pow_two`.
+
+### `gp^2` rewrite
+
+For `hpos : 0 < h y`:
 
 ```lean
-simp [intervalDomain, intervalDomainGradNorm, intervalDomainLift, hyIcc, x, sq_abs]
+have hpow : h y ^ (q / 2 - 1) * h y ^ (q / 2 - 1) = h y ^ (q - 2) := by
+  rw [← Real.rpow_add hpos]
+  ring_nf
+have hcoeff : (q / 2) * (q / 2) = q ^ 2 / 4 := by ring
 ```
 
-The `sq_abs` rewrite is needed to turn `|deriv ...| ^ 2` into `(deriv ...)^2`.
+Then unfold `gp`, use `pow_two`, `hpow`, `hcoeff`, and `sq_abs` for `gradNorm`.
 
-### E. Endpoint ordinary derivative trap
+### `gradNorm` rewrite
 
-Do not try to prove:
+Under `hy : y ∈ Icc 0 1` and `x := ⟨y, hy⟩`:
 
 ```lean
-∀ x ∈ Set.Icc (0 : ℝ) 1,
-  HasDerivAt (intervalDomainLift f) (deriv (intervalDomainLift f) x) x
+simp [intervalDomain, intervalDomainGradNorm, intervalDomainLift, hy, x, sq_abs]
 ```
 
-from the C2 frontier. For a positive `f`, the zero extension `intervalDomainLift f` is generally discontinuous from outside at `0` and `1`. `ContDiffOn` on `Set.Icc 0 1` is within-domain smoothness, not ordinary differentiability of the zero extension at endpoints.
+This turns the target gradient integrand into a statement about `(deriv (intervalDomainLift f) y)^2`.
 
-This is the core reason existing `agmon_inequality_interval` does not compose directly.
+### a.e. endpoint bridge
 
-### F. `ContDiffOn` to interior derivative
+For integrability of expressions using ordinary `deriv h`, prove the corresponding expression with `derivWithin h (Icc 0 1)` continuous on `Icc`, then transfer with `.congr_ae`. The only bad point under the interval-integral restricted measure is `{1}` after rewriting to `Ioc 0 1`.
 
-Interior points should be fine. For `hy : y ∈ Set.Ioo 0 1`, use the neighborhood fact that `[0,1] ∈ 𝓝 y`:
+This is the same endpoint convention used in `IntervalEllipticCharacterization.intervalIntegrable_deriv_of_contDiffOn_two` and in the cross-control proof.
 
-```lean
-have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, le_of_lt hy.2⟩
-have hIcc_mem : Set.Icc (0 : ℝ) 1 ∈ 𝓝 y :=
-  Icc_mem_nhds hy.1 hy.2
-```
+## Final recommendation
 
-Then extract differentiability/derivative data for `intervalDomainLift f` at interior points from `hfC2`. The exact API may require `hfC2.contDiffAt hIcc_mem` or a nearby `ContDiffOn` lemma, then `.differentiableAt` / `.hasDerivAt`. This is a standard API nuisance, not the analytic blocker.
-
-### G. `rpow` chain rule
-
-For interior `y`:
-
-```lean
-have hbase_pos : 0 < intervalDomainLift f y := by
-  have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, le_of_lt hy.2⟩
-  let x : intervalDomain.Point := ⟨y, hyIcc⟩
-  simpa [intervalDomainLift, hyIcc, x] using hf_pos x
-```
-
-The derivative of `g y = (intervalDomainLift f y)^(q/2)` should be obtained from a positive-base `rpow` derivative theorem, with target:
-
-```lean
-HasDerivAt
-  (fun z : ℝ => (intervalDomainLift f z) ^ (q / 2))
-  ((q / 2) * (intervalDomainLift f y) ^ (q / 2 - 1) *
-    deriv (intervalDomainLift f) y)
-  y
-```
-
-Keep the base positivity explicit; it is the main side condition that keeps `rpow` manageable.
-
-### H. Squared chain-rule integrand
-
-The key pointwise rewrite is:
-
-```lean
-((q / 2) * a ^ (q / 2 - 1) * b) ^ 2 =
-  (q ^ 2 / 4) * a ^ (q - 2) * b ^ 2
-```
-
-under `0 < a`. Useful scalar facts:
-
-```lean
-have hpow_exp : 2 * (q / 2 - 1) = q - 2 := by ring
-have hqhalf_sq : (q / 2) ^ 2 = q ^ 2 / 4 := by ring
-```
-
-For `rpow`, use `Real.rpow_mul` / `Real.mul_rpow` with `le_of_lt hbase_pos`.
-
-### I. Positivity of mass
-
-For the final mass term, nonnegativity is enough for coefficient comparison, but strict positivity is useful for some Young rewrites:
-
-```lean
-theorem intervalDomain_integral_pos_of_pos_continuous
-    {f : intervalDomain.Point → ℝ}
-    (hf_pos : ∀ x, 0 < f x)
-    (hf_cont : ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1)) :
-    0 < intervalDomain.integral f
-```
-
-Proof route: unfold `intervalDomainIntegral`, prove `0 < intervalDomainLift f y` on `Icc 0 1`, then use an interval-integral positivity theorem. If using only nonnegativity in the final closure, the easier `intervalDomain_integral_rpow_nonneg (q := 1)` plus `Real.rpow_one` is enough.
-
-## 6. Recommended implementation order
-
-1. Add/prove `agmon_inequality_interval_Ioo` or `agmon_inequality_interval_Ioo_ae` in `ShenWork/PDE/GagliardoNirenberg.lean`.
-
-2. Add/prove the interval-domain power Agmon core:
-
-```lean
-intervalDomain_positive_C2_power_agmon_core
-```
-
-3. Add/prove the uniform pre-absorption theorem:
-
-```lean
-intervalDomain_positive_C2_pre_absorption_uniform
-```
-
-Pay attention to quantifier order: `Cδ` must be chosen from `q, δ`, before `f`.
-
-4. Add the small scalar and nonnegativity lemmas:
-
-```lean
-exists_delta_for_interpolation_coeff
-intervalDomain_integral_rpow_nonneg
-intervalDomain_weightedGradientIntegral_nonneg
-```
-
-5. Prove:
-
-```lean
-unitIntervalPositiveAgmonInterpolation_of_pre_absorption_uniform
-```
-
-or directly:
-
-```lean
-theorem unitIntervalPositiveAgmonInterpolation_proved :
-    UnitIntervalPositiveAgmonInterpolation := ...
-```
-
-6. Keep the existing wiring theorem:
-
-```lean
-intervalDomain_classicalSolutionPositiveInterpolation_of_uniform_agmon
-```
-
-That theorem already feeds `IntervalDomainClassicalSolutionPositiveInterpolation`, and the newer raw-drop terminal-endpoint wrappers can then consume the resulting mass-gradient frontier through their `relativeMassGradient` fields.
-
-## Bottom line
-
-Existing repo lemmas are close but do not currently prove the C2 `UnitIntervalPositiveAgmonInterpolation` frontier. The missing analytic core is endpoint-safe Agmon/FTC for closed-interval within-regular functions, followed by the `rpow` chain-rule conversion for `f^(q/2)`. The algebraic absorption is already present as `IntervalDomainLemma41.interpolation_absorption`; use it rather than adding a new wrapper or reproving the final quadratic step.
+Add the Agmon-input bundle and the derivative-square rewrite first. Those are the two highest-value, most local lemmas. Once `intervalDomain_positive_C2_power_agmon_core` compiles, the final `UnitIntervalPositiveAgmonInterpolation` proof should be a standard Young + `interpolation_absorption` exercise, with the main remaining risk being scalar `rpow`/Young algebra rather than endpoint analysis.
