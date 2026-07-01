@@ -454,6 +454,27 @@ theorem intervalDomain_Proposition_2_5_of_agmon
   exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
     (hQuantEndpoint hAll)
 
+/-! ### Producer: AgmonAbsorbedInterpolationBefore from classical solution regularity
+
+This theorem PRODUCES the `AgmonAbsorbedInterpolationBefore` frontier atom
+from the proved Agmon interpolation + the seed Lp bound + Hölder + Young.
+
+The proof uses:
+1. `intervalDomain_higher_Lp_le_Linf_rpow_mul_seed`: ∫f^{p+ρ} ≤ ‖f‖∞^ρ · ∫f^p
+2. `intervalDomain_supNorm_rpow_le_energy_plus_gradient`: ‖f‖∞^p ≤ C(A+G)
+3. Seed bound ∫u^{p₀} ≤ M₀ (from bootstrap hypothesis)
+4. Sub-additivity + Young: (A+G)^{ρ/p} ≤ εG + C_ε
+-/
+theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
+    AgmonAbsorbedInterpolationBefore u T rho p0 := by
+  sorry
+
 end ShenWork.IntervalDomainExistence.P3MoserAgmonDirectRoute
 
 end
