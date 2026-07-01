@@ -698,6 +698,76 @@ def toIntegratedStepFrontierData
 
 end IntervalDomainPaper2Prop25IntegratedMoserFrontierData
 
+/-- Regular-energy coefficient-gap frontier for interval-domain Proposition 2.5
+and Corollary 2.1.
+
+This route keeps the statement layer on the direct integrated-step consumer:
+the supplied classical regularity, window FTC, relative interpolation, and
+coefficient gap produce the one-step Moser crossing through the regular-energy
+coefficient-gap producer. -/
+structure IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
+    (p : CM2Params) : Prop where
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  energyWindowFTC :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserEnergyWindowFTC intervalDomain u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coeffGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
+
+/-- Collapse the regular-energy coefficient-gap frontier to the existing
+integrated-step statement route. -/
+def toIntegratedStepFrontierData
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
+    IntervalDomainPaper2Prop25IntegratedStepFrontierData p where
+  integratedStep := fun hsol hcross hboot =>
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+      hsol hcross hboot
+      (h.classicalRegularity hsol hcross hboot)
+      (h.energyWindowFTC hsol hcross hboot)
+      (h.relativeMoserInterpolation hsol hcross hboot)
+      (h.coeffGap hsol hcross hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+end IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
+
 /-- Lower-average / upper-gap split frontier for interval-domain Proposition
 2.5 and Corollary 2.1.
 
@@ -761,6 +831,16 @@ theorem intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierData
   intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
     p hData.toIntegratedStepFrontierData
 
+/-- Regular-energy coefficient-gap frontier produces interval-domain
+Proposition 2.5. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
+    p hData.toIntegratedStepFrontierData
+
 /-- Instance-facing integrated-step Proposition 2.5 wrapper. -/
 theorem intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierDataFact
     (p : CM2Params)
@@ -777,6 +857,16 @@ theorem intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierDataFact
   intervalDomainPaper2_Proposition_2_5_of_integratedMoserFrontierData
     p hData.out
 
+/-- Instance-facing regular-energy coefficient-gap Proposition 2.5 wrapper. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+    p hData.out
+
 /-- Integrated-step frontier produces interval-domain Corollary 2.1. -/
 theorem intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
     (p : CM2Params)
@@ -789,6 +879,16 @@ theorem intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
 theorem intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierData
     (p : CM2Params)
     (hData : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
+    p hData.toIntegratedStepFrontierData
+
+/-- Regular-energy coefficient-gap frontier produces interval-domain
+Corollary 2.1. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
     Corollary_2_1 intervalDomain p :=
   intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
     p hData.toIntegratedStepFrontierData
@@ -809,6 +909,16 @@ theorem intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierDataFact
   intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierData
     p hData.out
 
+/-- Instance-facing regular-energy coefficient-gap Corollary 2.1 wrapper. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
+    p hData.out
+
 /-- Integrated-step frontier produces both Tier-1 Moser outputs. -/
 theorem
     intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
@@ -824,6 +934,16 @@ theorem
     intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedMoserFrontierData
     (p : CM2Params)
     (hData : IntervalDomainPaper2Prop25IntegratedMoserFrontierData p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
+    p hData.toIntegratedStepFrontierData
+
+/-- Regular-energy coefficient-gap frontier produces both Tier-1 Moser
+outputs. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
     Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
     p hData.toIntegratedStepFrontierData
@@ -876,6 +996,17 @@ theorem
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
     p hThin hMoser.toIntegratedStepFrontierData
 
+/-- Section-2 targets from thin frontiers and the regular-energy
+coefficient-gap Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierData
+    (p : CM2Params)
+    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
+    (hStep : IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p) :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
+    p hThin hStep.toIntegratedStepFrontierData
+
 /-- Instance-facing section-2 wrapper from thin frontiers and the integrated-step
 Proposition 2.5 frontier. -/
 theorem
@@ -897,6 +1028,18 @@ theorem
     IntervalDomainPaper2BootstrapEstimateTargets p :=
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierData
     p hThin.out hMoser.out
+
+/-- Instance-facing section-2 wrapper from thin frontiers and the regular-energy
+coefficient-gap Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierDataFact
+    (p : CM2Params)
+    [hThin : Fact (IntervalDomainPaper2BootstrapEstimateThinFrontierData p)]
+    [hStep :
+      Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierData
+    p hThin.out hStep.out
 
 /-- Lower-average / upper-gap split frontier produces interval-domain
 Proposition 2.5 via the integrated-step route. -/
@@ -7559,6 +7702,10 @@ section AxiomAudit
 #print axioms
   intervalDomainPaper2_Corollary_2_1_of_integratedMoserFrontierData
 #print axioms
+  intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
+#print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
@@ -7567,9 +7714,13 @@ section AxiomAudit
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedMoserFrontierData
 #print axioms
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+#print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
 #print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierData
+#print axioms
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
 #print axioms
