@@ -243,7 +243,6 @@ theorem weightedGradDiss_le_of_Linf
   · sorry
   · sorry
   · intro y hy
-    rw [Set.uIcc_of_le zero_le_one] at hy
     have h1 : intervalDomainLift
         (fun x => (u t x) ^ (pExp - 2) *
           (intervalDomain.gradNorm (u t) x) ^ 2) y =
