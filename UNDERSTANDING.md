@@ -122,6 +122,16 @@ Authoritative checks from the current tree:
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- `Paper2.IntervalDomainStatementAssembly` now exposes
+  `IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData`,
+  the statement-layer analogue of the local-FTC-data coefficient-gap route.
+  It converts to the existing regular-energy coefficient-gap Prop 2.5 /
+  Corollary 2.1 route and adds direct Proposition 2.5, Corollary 2.1,
+  combined Tier-1, and thin section-2 bootstrap target wrappers.  The uisai2
+  target build `lake build ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

@@ -13,6 +13,7 @@ import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.PDE.IntervalAgmonInterpolation
 import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.PDE.P3MoserEnergyContinuity
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.PDE.P3MoserLemmas
 import ShenWork.PDE.P3MoserRegularityProducer
@@ -24,6 +25,7 @@ open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence.IntervalAgmonInterpolation
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 
@@ -768,6 +770,83 @@ def toIntegratedStepFrontierData
 
 end IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData
 
+/-- Regular-energy coefficient-gap frontier with the window FTC split into
+endpoint power-energy continuity and derivative-window integrability. -/
+structure
+    IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+    (p : CM2Params) : Prop where
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  energyWindowFTCData :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserEnergyWindowFTCLocalData u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coeffGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+
+/-- Collapse the local-FTC-data coefficient-gap frontier to the existing
+regular-energy coefficient-gap statement route. -/
+def toRegularEnergyCoeffGapFrontierData
+    {p : CM2Params}
+    (h :
+      IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+        p) :
+    IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p where
+  classicalRegularity := h.classicalRegularity
+  energyWindowFTC := fun hsol hcross hboot =>
+    intervalDomain_integratedMoserEnergyWindowFTC_of_localData
+      hsol (h.energyWindowFTCData hsol hcross hboot)
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  coeffGap := h.coeffGap
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+/-- Collapse the local-FTC-data coefficient-gap frontier to the integrated-step
+statement route. -/
+def toIntegratedStepFrontierData
+    {p : CM2Params}
+    (h :
+      IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+        p) :
+    IntervalDomainPaper2Prop25IntegratedStepFrontierData p :=
+  h.toRegularEnergyCoeffGapFrontierData.toIntegratedStepFrontierData
+
+end IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+
 /-- Lower-average / upper-gap split frontier for interval-domain Proposition
 2.5 and Corollary 2.1.
 
@@ -841,6 +920,18 @@ theorem
   intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
     p hData.toIntegratedStepFrontierData
 
+/-- Local-FTC-data regular-energy coefficient-gap frontier produces
+interval-domain Proposition 2.5. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFTCLocalDataFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+        p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+    p hData.toRegularEnergyCoeffGapFrontierData
+
 /-- Instance-facing integrated-step Proposition 2.5 wrapper. -/
 theorem intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierDataFact
     (p : CM2Params)
@@ -865,6 +956,19 @@ theorem
       Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
     Proposition_2_5 intervalDomain p :=
   intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+    p hData.out
+
+/-- Instance-facing local-FTC-data regular-energy coefficient-gap Proposition
+2.5 wrapper. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFTCLocalDataFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact
+        (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+          p)] :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFTCLocalDataFrontierData
     p hData.out
 
 /-- Integrated-step frontier produces interval-domain Corollary 2.1. -/
@@ -893,6 +997,18 @@ theorem
   intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierData
     p hData.toIntegratedStepFrontierData
 
+/-- Local-FTC-data regular-energy coefficient-gap frontier produces
+interval-domain Corollary 2.1. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFTCLocalDataFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+        p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
+    p hData.toRegularEnergyCoeffGapFrontierData
+
 /-- Instance-facing integrated-step Corollary 2.1 wrapper. -/
 theorem intervalDomainPaper2_Corollary_2_1_of_integratedStepFrontierDataFact
     (p : CM2Params)
@@ -917,6 +1033,19 @@ theorem
       Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
     Corollary_2_1 intervalDomain p :=
   intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
+    p hData.out
+
+/-- Instance-facing local-FTC-data regular-energy coefficient-gap Corollary
+2.1 wrapper. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFTCLocalDataFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact
+        (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+          p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFTCLocalDataFrontierData
     p hData.out
 
 /-- Integrated-step frontier produces both Tier-1 Moser outputs. -/
@@ -947,6 +1076,18 @@ theorem
     Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_integratedStepFrontierData
     p hData.toIntegratedStepFrontierData
+
+/-- Local-FTC-data regular-energy coefficient-gap frontier produces both
+Tier-1 Moser outputs. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFTCLocalDataFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+        p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
+    p hData.toRegularEnergyCoeffGapFrontierData
 
 /-- Section-2 target wrapper from the thinner branch data, with Proposition
 2.4 supplied by the interval-domain mass proof and Proposition 2.5 supplied by
@@ -1007,6 +1148,19 @@ theorem
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
     p hThin hStep.toIntegratedStepFrontierData
 
+/-- Section-2 targets from thin frontiers and the local-FTC-data
+regular-energy coefficient-gap Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFTCLocalDataFrontierData
+    (p : CM2Params)
+    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
+    (hStep :
+      IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+        p) :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierData
+    p hThin hStep.toRegularEnergyCoeffGapFrontierData
+
 /-- Instance-facing section-2 wrapper from thin frontiers and the integrated-step
 Proposition 2.5 frontier. -/
 theorem
@@ -1039,6 +1193,20 @@ theorem
       Fact (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFrontierData p)] :
     IntervalDomainPaper2BootstrapEstimateTargets p :=
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierData
+    p hThin.out hStep.out
+
+/-- Instance-facing section-2 wrapper from thin frontiers and the local-FTC-data
+regular-energy coefficient-gap Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFTCLocalDataFrontierDataFact
+    (p : CM2Params)
+    [hThin : Fact (IntervalDomainPaper2BootstrapEstimateThinFrontierData p)]
+    [hStep :
+      Fact
+        (IntervalDomainPaper2Prop25RegularEnergyCoeffGapFTCLocalDataFrontierData
+          p)] :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFTCLocalDataFrontierData
     p hThin.out hStep.out
 
 /-- Lower-average / upper-gap split frontier produces interval-domain
@@ -7706,6 +7874,10 @@ section AxiomAudit
 #print axioms
   intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFrontierData
 #print axioms
+  intervalDomainPaper2_Proposition_2_5_of_regularEnergyCoeffGapFTCLocalDataFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_of_regularEnergyCoeffGapFTCLocalDataFrontierData
+#print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomMassGradientTerminalEndpointFrontierData
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_actualAtomRawDropMassGradientTerminalEndpointFrontierData
@@ -7716,11 +7888,15 @@ section AxiomAudit
 #print axioms
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFrontierData
 #print axioms
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_regularEnergyCoeffGapFTCLocalDataFrontierData
+#print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedStepFrontierData
 #print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinIntegratedMoserFrontierData
 #print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFrontierData
+#print axioms
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinRegularEnergyCoeffGapFTCLocalDataFrontierData
 #print axioms
   intervalDomainPaper2_statementTargets_of_chiZeroActualAtomRawDropMassGradientTerminalEndpointCor21Section2ThinAgmonFrontierData
 #print axioms
