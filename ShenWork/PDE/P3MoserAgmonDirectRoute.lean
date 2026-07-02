@@ -300,6 +300,30 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap
     linarith
   · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
+/-- **Gronwall route (Fable-5 strategy): NO dissipation drop, NO gradient bound.**
+
+Propagates uniform Lp bound level by level using ONLY:
+- Full energy inequality: `(1/p)Y' + AG + BY ≤ KZ + L`
+- Agmon-absorbed interpolation: `Z ≤ εG + C_ε`
+- Gronwall
+
+At each level: substitute interpolation → absorb gradient (drop G≥0 from LHS)
+→ `(1/p)Y' + BY ≤ D_p` → Gronwall → Y bounded.
+
+`AgmonAbsorbedInterpolationBefore` is the ONLY frontier atom (already PRODUCED).
+`MoserDissipationDropBeforeNonnegB` is NOT needed. -/
+theorem intervalDomain_all_Lp_of_agmon_gronwall
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
+    (hrho : 0 < rho) :
+    ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
+  sorry
+
 private theorem abstract_prop25_bootstrap_two_gamma
     {params : CM2Params} {T pExp : ℝ}
     {u : ℝ → intervalDomain.Point → ℝ}
