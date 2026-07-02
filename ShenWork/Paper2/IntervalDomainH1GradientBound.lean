@@ -172,19 +172,14 @@ theorem weightedGradDiss_eq_two_mul_H1energy
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (ht0 : 0 < t) (htT : t < T) :
     intervalDomainLpWeightedGradientDissipation 2 u t = 2 * H1energy u t := by
-  unfold intervalDomainLpWeightedGradientDissipation H1energy
-  change intervalDomainIntegral _ = 2 * ((1 / 2 : ℝ) * _)
-  ring_nf
-  unfold intervalDomainIntegral
-  congr 1
+  simp only [intervalDomainLpWeightedGradientDissipation, H1energy,
+    ShenWork.IntervalDomain.intervalDomainIntegral]
+  rw [show (2 : ℝ) * ((1 : ℝ) / 2 * _) = _ from by ring]
   refine intervalIntegral.integral_congr (fun x hx => ?_)
-  rw [Set.uIcc_of_le (zero_le_one)] at hx
-  simp only [intervalDomainLift, hx, dif_pos]
-  rw [show (2 : ℝ) - 2 = 0 from by norm_num]
-  rw [Real.rpow_zero]
-  rw [one_mul]
-  unfold intervalDomainGradNorm
-  rw [sq_abs]
+  rw [Set.uIcc_of_le zero_le_one] at hx
+  simp only [intervalDomainLift, hx, dif_pos,
+    show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul,
+    ShenWork.IntervalDomain.intervalDomainGradNorm, sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
@@ -208,8 +203,9 @@ theorem produce_pointwiseGradientBound_full
     (hwin : ∀ τ, 1 ≤ τ → W τ ≤ C) (hWnn : ∀ τ, 1 ≤ τ → 0 ≤ W τ)
     (hT : 1 < T) :
     IntervalDomainPointwiseMoserGradientBoundBefore u T 2 := by
-  have hY1 : 0 ≤ max Ylocal ((1 + A) * C + B) := le_max_of_le_left
-    (le_trans (H1energy_nonneg u 0) (by linarith [hlocal 1 ⟨one_pos, le_refl 1⟩]))
+  have hYlocal_nonneg : 0 ≤ Ylocal :=
+    le_trans (H1energy_nonneg u 1) (hlocal 1 ⟨one_pos, le_refl 1⟩)
+  have hY1 : 0 ≤ max Ylocal ((1 + A) * C + B) := le_max_of_le_left hYlocal_nonneg
   have hH1bnd := ShenWork.Paper2.IntervalChiNegH1Energy.chiNeg_H1_norm_bound
     hsol hA hlocal havg hwin hWnn
   exact produce_pointwiseGradientBound_of_H1energy_bound hsol hY1
