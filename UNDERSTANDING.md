@@ -224,16 +224,17 @@ Authoritative checks from the current tree:
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
-- `P3MoserAgmonDirectRoute` no longer carries the unsupported no-drop Gronwall
-  theorem or the dependent no-drop Proposition 2.5 wrapper.  The deleted route
-  tried to get all Lp bounds from `AgmonAbsorbedInterpolationBefore` alone,
-  but the current APIs do not supply the required time-continuity,
-  initial-value, and scalar Gronwall interface for the full PDE energy.  The
-  live Agmon route remains the existing route conditional on the explicit
-  `MoserDissipationDropBeforeNonnegB` frontier.  The target build
+- `P3MoserAgmonDirectRoute` keeps the existing Agmon route conditional on the
+  explicit `MoserDissipationDropBeforeNonnegB` frontier.  The no-drop
+  Gronwall route is now represented only as the honest conditional consumer
+  `intervalDomain_all_Lp_of_agmon_gronwall`, which requires the explicit
+  scalar package `AgmonGronwallLpEnergyFrontiers`: closed-time Lp-energy
+  continuity, right-derivative data, an initial-energy bound, and the resulting
+  scalar differential inequality at each exponent.  It is not produced from
+  `AgmonAbsorbedInterpolationBefore` alone.  The target build
   `lake build ShenWork.PDE.P3MoserAgmonDirectRoute` completed successfully
-  (3561 jobs), and its axiom audit prints only
-  `[propext, Classical.choice, Quot.sound]`.
+  (3561 jobs), and the Agmon bootstrap/Gronwall/Proposition 2.5 axiom audits
+  print only `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

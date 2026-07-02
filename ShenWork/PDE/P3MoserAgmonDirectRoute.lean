@@ -269,9 +269,12 @@ theorem intervalDomain_gn_absorbed_interpolation_of_agmon
 The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
 `hstep` input to `moser_iteration_chain`, once the separate dissipation/drop
 frontier has removed the derivative and lower-order terms from the full PDE
-energy inequality.  A full Gronwall route would need its own time-continuity,
-initial-value, and scalar Gronwall interface; it is not produced by
-`AgmonAbsorbedInterpolationBefore` alone. -/
+energy inequality.  A Gronwall route can avoid this pointwise dissipation drop,
+but it needs the scalar Gronwall data at every exponent: closed-time energy
+continuity, right-derivative data at `0`, an initial-energy bound, and the
+post-Agmon scalar differential inequality.  These fields are not produced by
+`AgmonAbsorbedInterpolationBefore` alone, so they are kept as an explicit
+frontier package below. -/
 
 /-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap
@@ -300,29 +303,50 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap
     linarith
   · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
-/-- **Gronwall route (Fable-5 strategy): NO dissipation drop, NO gradient bound.**
+/-- Scalar data needed to run the Agmon-plus-Gronwall route at each exponent.
 
-Propagates uniform Lp bound level by level using ONLY:
-- Full energy inequality: `(1/p)Y' + AG + BY ≤ KZ + L`
-- Agmon-absorbed interpolation: `Z ≤ εG + C_ε`
-- Gronwall
+This is the honest missing interface for the no-drop route.  The fields are
+exactly the data consumed by the existing scalar Gronwall wrapper; producing
+them from a classical PDE solution and initial trace is separate analytic work.
+-/
+def AgmonGronwallLpEnergyFrontiers
+    (u : ℝ → intervalDomain.Point → ℝ) (T rho p0 : ℝ) : Prop :=
+  ∀ n : ℕ,
+    let pExp : ℝ := p0 + n * rho
+    ∃ δ c d : ℝ,
+      0 ≤ δ ∧ 0 ≤ c ∧ 0 ≤ d ∧
+      ContinuousOn (fun t => intervalDomainLpAbsEnergy pExp u t)
+        (Set.Icc (0 : ℝ) T) ∧
+      (∀ t ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt
+          (fun τ => intervalDomainLpAbsEnergy pExp u τ)
+          (deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t)
+          (Set.Ici t) t) ∧
+      intervalDomainLpAbsEnergy pExp u 0 ≤ δ ∧
+      (∀ t ∈ Set.Ico (0 : ℝ) T,
+        deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤
+          c * intervalDomainLpAbsEnergy pExp u t + d)
 
-At each level: substitute interpolation → absorb gradient (drop G≥0 from LHS)
-→ `(1/p)Y' + BY ≤ D_p` → Gronwall → Y bounded.
+/-- **Conditional Gronwall route.**
 
-`AgmonAbsorbedInterpolationBefore` is the ONLY frontier atom (already PRODUCED).
-`MoserDissipationDropBeforeNonnegB` is NOT needed. -/
+This consumes the explicit scalar Gronwall frontier package.  In particular,
+`AgmonAbsorbedInterpolationBefore` by itself does not supply the closed-time
+initial/right-derivative data needed to start Gronwall from `t = 0`. -/
 theorem intervalDomain_all_Lp_of_agmon_gronwall
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
-    (hrho : 0 < rho) :
+    (hgronwall : AgmonGronwallLpEnergyFrontiers u T rho p0) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  sorry
+  intro n
+  rcases hgronwall n with
+    ⟨δ, c, d, hδ, hc, hd, hcont, hderiv_within, hinit, hderiv_le⟩
+  exact intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall
+    (u := u) (T := T) (p := p0 + n * rho) (δ := δ) (c := c) (d := d)
+    hδ hc hd
+    (fun t ht0 htT x =>
+      (IsPaper2ClassicalSolution.u_pos' hsol ht0 htT (x := x)).le)
+    hcont hderiv_within hinit hderiv_le
 
 private theorem abstract_prop25_bootstrap_two_gamma
     {params : CM2Params} {T pExp : ℝ}
@@ -901,6 +925,7 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
 /-! ### Axiom audit -/
 
 #print axioms intervalDomain_all_Lp_of_agmon_bootstrap
+#print axioms intervalDomain_all_Lp_of_agmon_gronwall
 #print axioms intervalDomain_Proposition_2_5_of_agmon
 #print axioms produce_AgmonAbsorbedInterpolationBefore_of_classical
 
