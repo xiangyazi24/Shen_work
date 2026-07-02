@@ -54,6 +54,59 @@ private theorem gradNorm_eq (f : intervalDomainPoint → ℝ)
     intervalDomain.gradNorm f p = |deriv (intervalDomainLift f) p.1| :=
   rfl
 
+private theorem weightedGradDiss_intervalIntegrable
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    IntervalIntegrable
+      (intervalDomainLift
+        (fun x => (u t x) ^ (pExp - 2) *
+          (intervalDomain.gradNorm (u t) x) ^ 2))
+      volume 0 1 := by
+  have hCu : ContDiffOn ℝ 2
+      (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+  have hdw0 :
+      derivWithin (intervalDomainLift (u t))
+        (Set.Icc (0 : ℝ) 1) 0 = 0 :=
+    intervalDomain_solution_derivWithin_u_left_zero hsol ht0 htT
+  have hdw1 :
+      derivWithin (intervalDomainLift (u t))
+        (Set.Icc (0 : ℝ) 1) 1 = 0 :=
+    intervalDomain_solution_derivWithin_u_right_zero hsol ht0 htT
+  have hdu_cont :
+      ContinuousOn (deriv (intervalDomainLift (u t)))
+        (Set.Icc (0 : ℝ) 1) :=
+    deriv_intervalDomainLift_continuousOn_Icc_of_regularity hCu hdw0 hdw1
+  have hne :
+      ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u t) y ≠ 0 :=
+    fun y hy => ne_of_gt (intervalDomain_solution_lift_u_pos hsol ht0 htT hy)
+  have hpow_cont : ContinuousOn
+      (fun y => (intervalDomainLift (u t) y) ^ (pExp - 2))
+      (Set.Icc (0 : ℝ) 1) :=
+    (hCu.rpow_const_of_ne hne).continuousOn
+  have hgrad_sq_cont : ContinuousOn
+      (fun y => (deriv (intervalDomainLift (u t)) y) ^ 2)
+      (Set.Icc (0 : ℝ) 1) := by
+    simpa [pow_two] using hdu_cont.mul hdu_cont
+  have hprod_cont : ContinuousOn
+      (fun y => (intervalDomainLift (u t) y) ^ (pExp - 2) *
+        (deriv (intervalDomainLift (u t)) y) ^ 2)
+      (Set.Icc (0 : ℝ) 1) :=
+    hpow_cont.mul hgrad_sq_cont
+  have hlift_cont : ContinuousOn
+      (intervalDomainLift
+        (fun x => (u t x) ^ (pExp - 2) *
+          (intervalDomain.gradNorm (u t) x) ^ 2))
+      (Set.uIcc (0 : ℝ) 1) := by
+    rw [Set.uIcc_of_le zero_le_one]
+    refine hprod_cont.congr ?_
+    intro y hy
+    simp only [intervalDomainLift, dif_pos hy]
+    rw [gradNorm_eq, sq_abs]
+  exact hlift_cont.intervalIntegrable
+
 /-! ### H¹ differential inequality WITHOUT ‖u‖_∞
 
 The key improvement over `h1_diffIneq_of_sup_bounds`: instead of bounding
@@ -240,8 +293,9 @@ theorem weightedGradDiss_le_of_Linf
   unfold intervalDomainIntegral
   rw [← intervalIntegral.integral_const_mul]
   apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
-  · sorry
-  · sorry
+  · exact weightedGradDiss_intervalIntegrable hsol ht0 htT
+  · exact
+      (weightedGradDiss_intervalIntegrable (pExp := (2 : ℝ)) hsol ht0 htT).const_mul _
   · intro y hy
     have h1 : intervalDomainLift
         (fun x => (u t x) ^ (pExp - 2) *
