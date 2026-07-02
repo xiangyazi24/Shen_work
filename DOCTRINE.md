@@ -45,10 +45,14 @@ However, in 1D there is a cleaner route via H¹ energy + Uniform Gronwall:
 6. **L∞ → all Lp → Prop 2.5** (EXISTING: IntervalDomain1DLinfRoute)
 
 ### Avenues (ranked — avenue (a) is now the Fable oracle route)
-(a) **H¹ + Uniform Gronwall**: build pieces 3-4 above. Three new artifacts:
-    - `ShenWork/Analysis/UniformGronwall.lean` — abstract Uniform Gronwall lemma
-    - `ShenWork/Paper2/IntervalDomainH1EnergyNoSupBound.lean` — H¹ DI without ‖u‖_∞
-    - Producer theorem: apply UG to get `IntervalDomainPointwiseMoserGradientBoundBefore u T 2`
+(a) **H¹ + averaging**: build pieces 3-4 above. Artifacts:
+    - `ShenWork/Paper2/IntervalDomainH1GradientBound.lean` — NEW
+      - `h1_diffIneq_of_agmon_bounds`: DERIVED ✓ (abstract Young, builds clean)
+      - `weightedGradDiss_eq_two_mul_H1energy`: CLEAN ✓ (micro-lemma + rw chain)
+      - `produce_pointwiseGradientBound_of_H1energy_bound`: CLEAN ✓ (bridge + coefficient simplification)
+      - `produce_pointwiseGradientBound_full`: CLEAN ✓ (wires chiNeg_H1_norm_bound)
+    - `ShenWork/Analysis/UniformGronwall.lean` — NOT NEEDED (existing averaging suffices)
+    - CARRIED hypotheses for full producer: hlocal + havg + hwin
     Terminal: this + existing 1D Linf route → Prop 2.5 unconditional.
 (b) **Semigroup/mild route (paper's actual proof)**: bypass gradient bound entirely,
     use mild formulation + heat semigroup estimates for L∞.
