@@ -309,44 +309,65 @@ This is the honest missing interface for the no-drop route.  The fields are
 exactly the data consumed by the existing scalar Gronwall wrapper; producing
 them from a classical PDE solution and initial trace is separate analytic work.
 -/
-def AgmonGronwallLpEnergyFrontiers
-    (u : ℝ → intervalDomain.Point → ℝ) (T rho p0 : ℝ) : Prop :=
-  ∀ n : ℕ,
-    let pExp : ℝ := p0 + n * rho
-    ∃ δ c d : ℝ,
-      0 ≤ δ ∧ 0 ≤ c ∧ 0 ≤ d ∧
-      ContinuousOn (fun t => intervalDomainLpAbsEnergy pExp u t)
-        (Set.Icc (0 : ℝ) T) ∧
-      (∀ t ∈ Set.Ico (0 : ℝ) T,
-        HasDerivWithinAt
-          (fun τ => intervalDomainLpAbsEnergy pExp u τ)
-          (deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t)
-          (Set.Ici t) t) ∧
-      intervalDomainLpAbsEnergy pExp u 0 ≤ δ ∧
-      (∀ t ∈ Set.Ico (0 : ℝ) T,
-        deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤
-          c * intervalDomainLpAbsEnergy pExp u t + d)
+/-- **Algebraic absorption route: derive AG ≤ KZ + L' WITHOUT Gronwall.**
 
-/-- **Conditional Gronwall route.**
+From the full energy `(1/p)Y' + AG + BY ≤ KZ + L` and the interpolation
+`Z ≤ εG + C₀` (with ε = A/(2K)):
 
-This consumes the explicit scalar Gronwall frontier package.  In particular,
-`AgmonAbsorbedInterpolationBefore` by itself does not supply the closed-time
-initial/right-derivative data needed to start Gronwall from `t = 0`. -/
+1. Substitute: `(1/p)Y' + (A/2)G + BY ≤ KC₀ + L =: D_p`
+2. Therefore `(1/p)Y' ≤ D_p` (drop positive (A/2)G and BY from LHS)
+3. Back to original: `AG ≤ KZ + L - (1/p)Y' - BY ≤ KZ + L + D_p`
+   (since `-(1/p)Y' ≥ -D_p` from step 2, and `-BY ≤ 0`)
+
+So `AG ≤ KZ + (L + D_p)` — feeds `lp_bootstrap_single_step_abstract`. -/
 theorem intervalDomain_all_Lp_of_agmon_gronwall
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hgronwall : AgmonGronwallLpEnergyFrontiers u T rho p0) :
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
+    (hrho : 0 < rho) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  intro n
-  rcases hgronwall n with
-    ⟨δ, c, d, hδ, hc, hd, hcont, hderiv_within, hinit, hderiv_le⟩
-  exact intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall
-    (u := u) (T := T) (p := p0 + n * rho) (δ := δ) (c := c) (d := d)
-    hδ hc hd
-    (fun t ht0 htT x =>
-      (IsPaper2ClassicalSolution.u_pos' hsol ht0 htT (x := x)).le)
-    hcont hderiv_within hinit hderiv_le
+  have henergy :
+      LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
+    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
+  refine IntervalDomainChain.moser_iteration_chain
+    (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
+    hrho (AbstractLpBootstrapHypothesis.initial_lp_bound hboot) ?_
+  intro p hp
+  rcases henergy p hp with ⟨A, hA, B, hB, K, hK, L_const, hfull⟩
+  have heps_pos : 0 < A / (2 * K) := div_pos hA (mul_pos two_pos hK)
+  rcases hinterp p hp (A / (2 * K)) heps_pos with ⟨C₀, hC₀⟩
+  set D_p := K * C₀ + L_const
+  refine ⟨A, hA, K, hK, L_const + D_p, ?_, ?_⟩
+  · intro t ht0 htT
+    have hfull_t := hfull t ht0 htT
+    have hC₀_t := hC₀ t ht0 htT
+    have hG_nonneg : 0 ≤ intervalDomain.integral (fun x =>
+        (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) :=
+      intervalDomain_integral_nonneg _ (fun _ => sq_nonneg _)
+    have hY_nonneg : 0 ≤ intervalDomain.integral (fun x => (u t x) ^ p) :=
+      intervalDomain_integral_u_rpow_nonneg_of_regularity (q := p) hsol ht0 htT
+    have habs : K * (A / (2 * K)) = A / 2 := by
+      field_simp
+      ring
+    have habsorbed :
+        (1 / p) * deriv (fun τ => intervalDomain.integral
+          (fun x => (u τ x) ^ p)) t +
+        A / 2 * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        B * intervalDomain.integral (fun x => (u t x) ^ p) ≤ D_p := by
+      have := hfull_t
+      nlinarith [hC₀_t, habs]
+    have hY_prime_le :
+        (1 / p) * deriv (fun τ => intervalDomain.integral
+          (fun x => (u τ x) ^ p)) t ≤ D_p := by
+      nlinarith [mul_nonneg (div_nonneg hA.le (by positivity : (0:ℝ) ≤ 2)) hG_nonneg,
+                  mul_nonneg hB.le hY_nonneg]
+    nlinarith
+  · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
 private theorem abstract_prop25_bootstrap_two_gamma
     {params : CM2Params} {T pExp : ℝ}
