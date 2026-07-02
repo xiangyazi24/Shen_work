@@ -94,12 +94,14 @@ theorem h1_diffIneq_of_agmon_bounds
       (3 / 2) * V_v ^ 2 := by
   -- Use Young: V₁·X·Z ≤ (1/6)X² + (3/2)V₁²Z²
   have hy1 : V₁ * (X * Z) ≤ (1/6) * X ^ 2 + (3/2) * V₁ ^ 2 * Z ^ 2 := by
-    have := youngMul_le (p := X) (q := V₁ * Z) (ε := 1/6) (by norm_num : (0:ℝ) < 1/6)
-    nlinarith [mul_comm V₁ (X * Z), mul_assoc V₁ X Z]
+    have h := youngMul_le (p := X) (q := V₁ * Z) (ε := 1/6) (by norm_num : (0:ℝ) < 1/6)
+    have : (V₁ * Z) ^ 2 / (4 * (1 / 6 : ℝ)) = (3 / 2) * V₁ ^ 2 * Z ^ 2 := by ring
+    nlinarith [mul_comm V₁ (X * Z)]
   -- Use Young: V_v·X ≤ (1/6)X² + (3/2)V_v²
   have hy2 : V_v * X ≤ (1/6) * X ^ 2 + (3/2) * V_v ^ 2 := by
-    have := youngMul_le (p := X) (q := V_v) (ε := 1/6) (by norm_num : (0:ℝ) < 1/6)
-    nlinarith
+    have h := youngMul_le (p := X) (q := V_v) (ε := 1/6) (by norm_num : (0:ℝ) < 1/6)
+    have : V_v ^ 2 / (4 * (1 / 6 : ℝ)) = (3 / 2) * V_v ^ 2 := by ring
+    linarith [mul_comm V_v X]
   -- Collect: yp ≤ -(2/3)X² + (3/2)V₁²·Z² + (3/2)V_v² + a_react·Z²
   -- Drop -(2/3)X² ≤ 0
   have hcollect : yp ≤ (3/2) * V₁ ^ 2 * Z ^ 2 + (3/2) * V_v ^ 2 +
