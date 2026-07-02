@@ -235,18 +235,26 @@ theorem weightedGradDiss_le_of_Linf
     (pExp : ℝ) (hpExp2 : 2 ≤ pExp) :
     intervalDomainLpWeightedGradientDissipation pExp u t ≤
       Minf ^ (pExp - 2) * intervalDomainLpWeightedGradientDissipation 2 u t := by
-  have hkey : ∀ x : intervalDomain.Point,
+  have hpointwise : ∀ x : intervalDomain.Point,
       (u t x) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2 ≤
-      Minf ^ (pExp - 2) * ((u t x) ^ ((2 : ℝ) - 2) *
-        (intervalDomain.gradNorm (u t) x) ^ 2) := by
+      Minf ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2 := by
     intro x
-    have hu_pos : 0 < u t x := hsol.u_pos' ht0 htT
-    have hu_le : u t x ≤ Minf := hLinf x
-    rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
+    rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul] at *
     exact mul_le_mul_of_nonneg_right
-      (Real.rpow_le_rpow hu_pos.le hu_le (by linarith))
+      (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le (hLinf x) (by linarith))
       (sq_nonneg _)
-  sorry
+  unfold intervalDomainLpWeightedGradientDissipation
+  change intervalDomainIntegral _ ≤ Minf ^ (pExp - 2) * intervalDomainIntegral _
+  unfold intervalDomainIntegral
+  rw [← intervalIntegral.integral_const_mul]
+  apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+  · sorry
+  · sorry
+  · intro y hy
+    rw [Set.uIcc_of_le zero_le_one] at hy
+    simp only [intervalDomainLift, hy, dif_pos]
+    rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
+    exact hpointwise ⟨y, hy⟩
 
 /-- **1D shortcut: L∞ + H1 bound → general gradient bound at any pExp ≥ 2.**
 
