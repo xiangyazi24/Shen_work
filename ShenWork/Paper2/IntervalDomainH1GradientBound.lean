@@ -47,9 +47,9 @@ private theorem intervalDomainLift_apply_of_mem (f : intervalDomainPoint → ℝ
     intervalDomainLift f x = f ⟨x, hx⟩ :=
   dif_pos hx
 
-private theorem intervalDomainGradNorm_eq (f : intervalDomainPoint → ℝ)
+private theorem gradNorm_eq (f : intervalDomainPoint → ℝ)
     (p : intervalDomainPoint) :
-    intervalDomainGradNorm f p = |deriv (intervalDomainLift f) p.1| :=
+    intervalDomain.gradNorm f p = |deriv (intervalDomainLift f) p.1| :=
   rfl
 
 /-! ### H¹ differential inequality WITHOUT ‖u‖_∞
@@ -194,7 +194,7 @@ theorem weightedGradDiss_eq_two_mul_H1energy
   rw [Set.uIcc_of_le zero_le_one] at hy
   rw [intervalDomainLift_apply_of_mem _ y hy]
   rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
-  rw [intervalDomainGradNorm_eq, sq_abs]
+  rw [gradNorm_eq, sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
