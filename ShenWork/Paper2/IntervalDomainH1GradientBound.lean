@@ -235,24 +235,28 @@ theorem weightedGradDiss_le_of_Linf
     (pExp : ℝ) (hpExp2 : 2 ≤ pExp) :
     intervalDomainLpWeightedGradientDissipation pExp u t ≤
       Minf ^ (pExp - 2) * intervalDomainLpWeightedGradientDissipation 2 u t := by
-  unfold intervalDomainLpWeightedGradientDissipation intervalDomainIntegral
-  rw [← intervalIntegral.integral_const_mul]
-  refine intervalIntegral.integral_mono_on (by norm_num) ?_ ?_ (fun y hy => ?_)
-  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
-  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
-  · rw [Set.uIcc_of_le zero_le_one] at hy
-    have hu_pos : 0 < u t ⟨y, hy⟩ := hsol.u_pos' ht0 htT
-    have hu_le : u t ⟨y, hy⟩ ≤ Minf := hLinf ⟨y, hy⟩
-    simp only [intervalDomainLift, hy, dif_pos]
+  unfold intervalDomainLpWeightedGradientDissipation
+  have hkey : ∀ x : intervalDomain.Point,
+      (u t x) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2 ≤
+      Minf ^ (pExp - 2) * ((u t x) ^ ((2 : ℝ) - 2) *
+        (intervalDomain.gradNorm (u t) x) ^ 2) := by
+    intro x
+    have hu_pos : 0 < u t x := hsol.u_pos' ht0 htT
+    have hu_le : u t x ≤ Minf := hLinf x
     rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
-    have hexp_nn : 0 ≤ pExp - 2 := by linarith
-    have : (u t ⟨y, hy⟩) ^ (pExp - 2) ≤ Minf ^ (pExp - 2) :=
-      Real.rpow_le_rpow hu_pos.le hu_le hexp_nn
-    have hgrad_sq_nn : 0 ≤ (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 :=
-      sq_nonneg _
-    calc (u t ⟨y, hy⟩) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2
-        ≤ Minf ^ (pExp - 2) * (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 := by
-          exact mul_le_mul_of_nonneg_right this hgrad_sq_nn
+    exact mul_le_mul_of_nonneg_right
+      (Real.rpow_le_rpow hu_pos.le hu_le (by linarith))
+      (sq_nonneg _)
+  change intervalDomainIntegral _ ≤ Minf ^ (pExp - 2) * intervalDomainIntegral _
+  unfold intervalDomainIntegral
+  rw [← intervalIntegral.integral_const_mul]
+  apply intervalIntegral_mono (by norm_num : (0 : ℝ) ≤ 1)
+  · intro y hy
+    have hym : y ∈ Set.Icc (0 : ℝ) 1 := hy
+    simp only [intervalDomainLift, hym, dif_pos]
+    exact hkey ⟨y, hym⟩
+  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
+  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
 
 /-- **1D shortcut: L∞ + H1 bound → general gradient bound at any pExp ≥ 2.**
 
