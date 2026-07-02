@@ -1079,6 +1079,63 @@ def toIntegratedStepFrontierData
 
 end IntervalDomainPaper2Prop25LowerUpperFrontierData
 
+/-- Preferred lower-average / upper-data-gap data frontier for interval-domain
+Proposition 2.5 and Corollary 2.1.
+
+This is a statement-layer `Prop` wrapper around the Type-valued selected-window
+data package.  It converts through the existing lower/upper split route and
+does not reintroduce the obsolete PDE-level lowerAverage/upperDataGap residual
+surface. -/
+structure IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData
+    (p : CM2Params) : Prop where
+  lowerAverageUpperDataGapData :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        Nonempty
+          (IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+            intervalDomain u T rho p0)
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData
+
+/-- Collapse the preferred lower-average / upper-data-gap package to the
+existing lower/upper split statement route. -/
+def toLowerUpperFrontierData
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
+    IntervalDomainPaper2Prop25LowerUpperFrontierData p where
+  lowerUpperFrontiers := by
+    intro T rho p0 u v hsol hcross hboot
+    rcases h.lowerAverageUpperDataGapData hsol hcross hboot with
+      ⟨hdata⟩
+    exact ⟨hdata.toLowerUpperFrontiers⟩
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+/-- Collapse the preferred lower-average / upper-data-gap package to the
+existing integrated-step statement route. -/
+def toIntegratedStepFrontierData
+    {p : CM2Params}
+    (h : IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
+    IntervalDomainPaper2Prop25IntegratedStepFrontierData p :=
+  h.toLowerUpperFrontierData.toIntegratedStepFrontierData
+
+end IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData
+
 /-- Integrated-step frontier produces interval-domain Proposition 2.5. -/
 theorem intervalDomainPaper2_Proposition_2_5_of_integratedStepFrontierData
     (p : CM2Params)
@@ -1637,6 +1694,87 @@ theorem
     [hStep : Fact (IntervalDomainPaper2Prop25LowerUpperFrontierData p)] :
     IntervalDomainPaper2BootstrapEstimateTargets p :=
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerUpperFrontierData
+    p hThin.out hStep.out
+
+/-- Preferred lower-average / upper-data-gap frontier produces interval-domain
+Proposition 2.5 via the lower/upper split route. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_lowerAverageUpperDataGapFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_lowerUpperFrontierData
+    p hData.toLowerUpperFrontierData
+
+/-- Instance-facing preferred lower-average / upper-data-gap Proposition 2.5
+wrapper. -/
+theorem
+    intervalDomainPaper2_Proposition_2_5_of_lowerAverageUpperDataGapFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact (IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p)] :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_lowerAverageUpperDataGapFrontierData
+    p hData.out
+
+/-- Preferred lower-average / upper-data-gap frontier produces interval-domain
+Corollary 2.1 via the lower/upper split route. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_lowerAverageUpperDataGapFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_lowerUpperFrontierData
+    p hData.toLowerUpperFrontierData
+
+/-- Instance-facing preferred lower-average / upper-data-gap Corollary 2.1
+wrapper. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_of_lowerAverageUpperDataGapFrontierDataFact
+    (p : CM2Params)
+    [hData :
+      Fact (IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_lowerAverageUpperDataGapFrontierData
+    p hData.out
+
+/-- Preferred lower-average / upper-data-gap frontier produces both Tier-1
+Moser outputs. -/
+theorem
+    intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_lowerAverageUpperDataGapFrontierData
+    (p : CM2Params)
+    (hData :
+      IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
+    Corollary_2_1 intervalDomain p ∧ Proposition_2_5 intervalDomain p :=
+  ⟨intervalDomainPaper2_Corollary_2_1_of_lowerAverageUpperDataGapFrontierData
+      p hData,
+    intervalDomainPaper2_Proposition_2_5_of_lowerAverageUpperDataGapFrontierData
+      p hData⟩
+
+/-- Section-2 targets from thin frontiers and the preferred lower-average /
+upper-data-gap Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerAverageUpperDataGapFrontierData
+    (p : CM2Params)
+    (hThin : IntervalDomainPaper2BootstrapEstimateThinFrontierData p)
+    (hStep :
+      IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p) :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerUpperFrontierData
+    p hThin hStep.toLowerUpperFrontierData
+
+/-- Instance-facing section-2 wrapper from thin frontiers and the preferred
+lower-average / upper-data-gap Proposition 2.5 frontier. -/
+theorem
+    intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerAverageUpperDataGapFrontierDataFact
+    (p : CM2Params)
+    [hThin : Fact (IntervalDomainPaper2BootstrapEstimateThinFrontierData p)]
+    [hStep :
+      Fact (IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData p)] :
+    IntervalDomainPaper2BootstrapEstimateTargets p :=
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerAverageUpperDataGapFrontierData
     p hThin.out hStep.out
 
 /-- Section-2 targets from the thin frontiers and the structured-Moser
@@ -8295,6 +8433,14 @@ section AxiomAudit
   intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_lowerUpperFrontierData
 #print axioms
   intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerUpperFrontierData
+#print axioms
+  intervalDomainPaper2_Proposition_2_5_of_lowerAverageUpperDataGapFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_of_lowerAverageUpperDataGapFrontierData
+#print axioms
+  intervalDomainPaper2_Corollary_2_1_and_Proposition_2_5_of_lowerAverageUpperDataGapFrontierData
+#print axioms
+  intervalDomainPaper2_bootstrapEstimateTargets_of_thinLowerAverageUpperDataGapFrontierData
 
 end AxiomAudit
 

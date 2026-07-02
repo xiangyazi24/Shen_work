@@ -303,12 +303,6 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap
     linarith
   · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
-/-- Scalar data needed to run the Agmon-plus-Gronwall route at each exponent.
-
-This is the honest missing interface for the no-drop route.  The fields are
-exactly the data consumed by the existing scalar Gronwall wrapper; producing
-them from a classical PDE solution and initial trace is separate analytic work.
--/
 /-- **Algebraic absorption route: derive AG ≤ KZ + L' WITHOUT Gronwall.**
 
 From the full energy `(1/p)Y' + AG + BY ≤ KZ + L` and the interpolation
@@ -346,13 +340,15 @@ theorem intervalDomain_all_Lp_of_agmon_gronwall
     have hfull_t := hfull t ht0 htT
     have hC₀_t := hC₀ t ht0 htT
     have hG_nonneg : 0 ≤ intervalDomain.integral (fun x =>
-        (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) :=
-      intervalDomain_integral_nonneg _ (fun _ => sq_nonneg _)
+        (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) := by
+      change 0 ≤ intervalDomainIntegral _
+      unfold intervalDomainIntegral
+      exact intervalIntegral.integral_nonneg (by norm_num) (fun y _ => by
+        simp [intervalDomainLift]; split_ifs <;> exact sq_nonneg _)
     have hY_nonneg : 0 ≤ intervalDomain.integral (fun x => (u t x) ^ p) :=
       intervalDomain_integral_u_rpow_nonneg_of_regularity (q := p) hsol ht0 htT
     have habs : K * (A / (2 * K)) = A / 2 := by
       field_simp
-      ring
     have habsorbed :
         (1 / p) * deriv (fun τ => intervalDomain.integral
           (fun x => (u τ x) ^ p)) t +
@@ -364,9 +360,20 @@ theorem intervalDomain_all_Lp_of_agmon_gronwall
     have hY_prime_le :
         (1 / p) * deriv (fun τ => intervalDomain.integral
           (fun x => (u τ x) ^ p)) t ≤ D_p := by
-      nlinarith [mul_nonneg (div_nonneg hA.le (by positivity : (0:ℝ) ≤ 2)) hG_nonneg,
-                  mul_nonneg hB.le hY_nonneg]
-    nlinarith
+      have hAG : 0 ≤ A / 2 * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) :=
+        mul_nonneg (by linarith) hG_nonneg
+      have hBY : 0 ≤ B * intervalDomain.integral (fun x => (u t x) ^ p) :=
+        mul_nonneg hB.le hY_nonneg
+      linarith
+    -- From hfull_t and hY_prime_le, derive AG ≤ KZ + L + D_p
+    -- hfull_t: (1/p)Y' + AG + BY ≤ KZ + L_const
+    -- So AG = [(1/p)Y' + AG + BY] - (1/p)Y' - BY
+    --       ≤ [KZ + L_const] - (-(D_p)) - 0
+    --       = KZ + L_const + D_p
+    have hBY_nonneg : 0 ≤ B * intervalDomain.integral (fun x => (u t x) ^ p) :=
+      mul_nonneg hB.le hY_nonneg
+    linarith
   · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
 
 private theorem abstract_prop25_bootstrap_two_gamma
