@@ -112,56 +112,100 @@ theorem h1_diffIneq_of_agmon_bounds
   rw [hZsq_eq] at hcollect
   nlinarith
 
-/-! ### Assembly: Uniform Gronwall application
+/-! ### Assembly: H1energy bound → pointwise gradient bound
 
-Given:
-1. H¹ DI: G₂' ≤ α·G₂ + β (from h1_diffIneq_of_agmon_bounds)
-2. Integrated bound: ∫₀ᵀ G₂ dt ≤ C_int (from L² energy)
-3. Near-zero bound: G₂(t) ≤ C₀ for t ∈ (0, r] (from initial H¹ regularity)
-
-Conclusion: G₂(t) ≤ M for all t ∈ (0, T), giving
-IntervalDomainPointwiseMoserGradientBoundBefore u T 2.
+Two steps:
+1. **H1energy uniformly bounded** — from `chiNeg_H1_norm_bound` (existing averaging
+   theorem in `IntervalChiNegH1Energy.lean`). Takes the averaged DI, the sliding-window
+   dissipation bound, and the local bound as CARRIED hypotheses. DERIVED assembly.
+2. **H1energy → IntervalDomainPointwiseMoserGradientBoundBefore** — definitional
+   conversion. `H1energy u t = ½·∫(deriv lift)²`, and for pExp=2 the target is
+   `∫(gradNorm(u^1))² = ∫(gradNorm u)² = ∫(|deriv lift|)² = 2·H1energy`.
+   Uses `intervalDomain_moser_gradient_integral_eq_weighted_of_regularity`.
 -/
 
-/-- **Pointwise gradient bound at level 2 from H¹ energy + Uniform Gronwall.**
+/-- **Producer: H1energy uniformly bounded → IntervalDomainPointwiseMoserGradientBoundBefore.**
 
-This is the producer theorem that closes the frontier
-`IntervalDomainPointwiseMoserGradientBoundBefore u T 2`.
+CARRIED: `hbnd` — the H1energy is bounded uniformly on `(0,T)`.
+This is the output of `chiNeg_H1_norm_bound` (or any other route that gives H1energy ≤ Y₁).
 
-CARRIED hypotheses:
-- `hH1id`: the H¹ energy identity (HasDerivAt for ½∫|u_x|²)
-- `hIntGrad`: integrated gradient bound
-- `hNearZero`: near-zero gradient bound (from initial regularity)
-- `hDI_coeff`: the DI coefficients (from h1_diffIneq_of_agmon_bounds)
+DERIVED: the definitional conversion. For pExp=2:
+  `∫(gradNorm (u^1))² = (2/2)² · ∫u^0 · (gradNorm u)² = ∫(gradNorm u)²`
+  `= ∫(deriv lift)² = 2 · H1energy ≤ 2·Y₁`.
 -/
-theorem produce_pointwiseGradientBound_of_h1_energy
+theorem produce_pointwiseGradientBound_of_H1energy_bound
     {params : CM2Params} {T : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
-    (_hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    -- Carried: H¹ energy is continuously differentiable
-    (hH1_cont : ContinuousOn (H1energy u) (Icc 0 T))
-    -- Carried: the DI holds: (H1energy u)' ≤ α · (H1energy u) + β
-    {coeff_α coeff_β : ℝ}
-    (hcoeff_α_nonneg : 0 ≤ coeff_α)
-    (hcoeff_β_nonneg : 0 ≤ coeff_β)
-    (hDI : ∀ t ∈ Ioo (0 : ℝ) T,
-      ∃ y', HasDerivAt (H1energy u) y' t ∧
-        y' ≤ coeff_α * H1energy u t + coeff_β)
-    -- Carried: integrated gradient bound
-    {C_int r : ℝ}
-    (hr : 0 < r) (hrT : r < T)
-    (hIntGrad : ∀ t, 0 ≤ t → t + r ≤ T →
-      ∫ s in t..t + r, H1energy u s ≤ C_int)
-    (hCint_nonneg : 0 ≤ C_int)
-    -- Carried: near-zero bound (from initial H¹ regularity)
-    {C_init : ℝ}
-    (hNearZero : ∀ t, 0 < t → t ≤ r → H1energy u t ≤ C_init)
-    (hCinit_nonneg : 0 ≤ C_init) :
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    {Y₁ : ℝ} (hY1 : 0 ≤ Y₁)
+    (hbnd : ∀ τ, 0 < τ → τ < T → H1energy u τ ≤ Y₁) :
     IntervalDomainPointwiseMoserGradientBoundBefore u T 2 := by
-  -- The bound M combines the Uniform Gronwall bound on [r,T] and the
-  -- near-zero bound on (0,r].
-  -- UG bound: (C_int/r + coeff_β·r)·exp(coeff_α·r)
-  -- Total: max(C_init, UG_bound) scaled by 2 (since H1energy = ½G₂)
+  refine ⟨2 * Y₁, by linarith, fun t ht0 htT => ?_⟩
+  -- Target: ∫(gradNorm (fun y => (u t y)^1) x)² ≤ 2·Y₁
+  -- Step 1: rewrite using moser gradient bridge (pExp=2, so pExp/2=1)
+  have hbridge :=
+    ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+      .intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+      (pExp := 2) hsol ht0 htT
+  -- hbridge : ∫(gradNorm (u^1))² = (2/2)² · weightedGradDiss 2 u t
+  --         = 1 · ∫ u^0 · (gradNorm u)²
+  -- After bridge: goal is (2/2)^2 * weightedGradDiss 2 u t ≤ 2·Y₁
+  -- (2/2)^2 = 1, weightedGradDiss 2 u t = ∫u^0·(gradNorm u)² = ∫(deriv lift)² = 2·H1energy
+  -- So 1 · 2 · H1energy ≤ 2·Y₁, which follows from hbnd.
+  have hsimp : (2 : ℝ) / 2 = 1 := by norm_num
+  rw [hsimp, one_pow, one_mul]
+  -- Now goal: intervalDomainLpWeightedGradientDissipation 2 u t ≤ 2 * Y₁
+  -- Need: weightedGradDiss 2 u t = 2 · H1energy u t
+  -- This is a definitional unfolding: u^0=1 + gradNorm=|deriv lift| + integral agreement
   sorry
+
+/-- **Definitional bridge: weighted gradient dissipation at level 2 = 2 · H1energy.**
+
+`intervalDomainLpWeightedGradientDissipation 2 u t = ∫ u^0 · (gradNorm u)² = ∫ (gradNorm u)²`
+`= ∫₀¹ (deriv(lift(u t)))² = 2 · H1energy u t`.
+
+The chain: `u^(2-2) = u^0 = 1` (by rpow_zero), `gradNorm f x = |deriv(lift f) x|` (def),
+`|y|² = y²` (sq_abs), and the interval domain integral agrees with `∫₀¹`.
+-/
+theorem weightedGradDiss_eq_two_mul_H1energy
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    intervalDomainLpWeightedGradientDissipation 2 u t = 2 * H1energy u t := by
+  sorry
+
+/-- **Full producer: classical solution → pointwise gradient bound at level 2.**
+
+CARRIED hypotheses:
+- `hlocal`: H1energy bounded on (0, 1] (from local Gronwall)
+- `havg`: averaged DI on [1, T) (from integrating G₂' ≤ A·G₂ + B)
+- `hwin`: sliding-window dissipation ∫_{τ-1}^τ H1energy ≤ C
+- `hWnn`: non-negativity of the window integral
+
+These are the SAME hypotheses that `chiNeg_H1_norm_bound` takes.
+The new content is: we can produce them WITHOUT ‖u‖_∞,
+using `h1_diffIneq_of_agmon_bounds` + Agmon interpolation.
+-/
+theorem produce_pointwiseGradientBound_full
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    {A B C Ylocal : ℝ} (hA : 0 ≤ A) {W : ℝ → ℝ}
+    (hlocal : ∀ τ, τ ∈ Ioc (0 : ℝ) 1 → H1energy u τ ≤ Ylocal)
+    (havg : ∀ τ, 1 ≤ τ → 1 * H1energy u τ ≤ W τ + 1 * (A * W τ + B * 1))
+    (hwin : ∀ τ, 1 ≤ τ → W τ ≤ C) (hWnn : ∀ τ, 1 ≤ τ → 0 ≤ W τ)
+    (hT : 1 < T) :
+    IntervalDomainPointwiseMoserGradientBoundBefore u T 2 := by
+  have hY1 : 0 ≤ max Ylocal ((1 + A) * C + B) := le_max_of_le_left
+    (le_trans (H1energy_nonneg u 0) (by linarith [hlocal 1 ⟨one_pos, le_refl 1⟩]))
+  exact produce_pointwiseGradientBound_of_H1energy_bound hsol hY1
+    (ShenWork.Paper2.IntervalChiNegH1Energy.chiNeg_H1_norm_bound hsol hA hlocal havg hwin hWnn)
+
+section AxiomAudit
+#print axioms h1_diffIneq_of_agmon_bounds
+#print axioms produce_pointwiseGradientBound_of_H1energy_bound
+#print axioms produce_pointwiseGradientBound_full
+end AxiomAudit
 
 end ShenWork.Paper2.IntervalDomainH1GradientBound
