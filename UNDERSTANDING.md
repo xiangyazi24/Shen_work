@@ -67,6 +67,16 @@ Authoritative checks from the current tree:
   relative interpolation directly, then converts through the existing
   integrated-step actual-linear route.  The older compatibility-named
   lowerAverage/upperDataGap route remains only as a compatibility surface.
+- The same Paper3 actual-linear file now exposes a named regular-energy
+  coefficient-gap Stability24/P2-main statement surface:
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapStability24FrontierData`,
+  `IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapStability24P2MainData`,
+  and the no-negative-sensitivity variant.  These are pure wrappers through the
+  existing integrated-step Stability24 route; no new analytic fields were
+  introduced.  The uisai2 target build
+  `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
+  completed successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - The four legacy first-crossing shortcut theorems in
   `P3MoserRegularityProducer` that still accepted lower-average / upper-gap
   frontier parameters after their proof bodies had switched to the direct
