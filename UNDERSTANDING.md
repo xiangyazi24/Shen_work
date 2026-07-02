@@ -3,11 +3,10 @@
 ## CURRENT STATE (2026-07-01, code-derived)
 
 Authoritative checks from the current tree:
-- Proof-hole scan: no proof-level `sorry`, `admit`, or custom `axiom`
-  declaration remains under `ShenWork/**/*.lean`.  The current scanner command
-  only matches two documentation/comment false positives:
-  `Wiener/EWA/SourceRealizationFrontier.lean` and
-  `Paper1/RotheFloorOrbitDataImpl.lean`.
+- Proof-hole scan: no proof-level `sorry`, `admit`, `native_decide`, or custom
+  `axiom`/`constant` declaration remains under `ShenWork/**/*.lean`.  The
+  current proof-level `sorry` scan and the uncommented `admit`/`native_decide`/
+  custom-declaration scans all return no hits.
 - Last full remote build: after adding the Paper2 structured-Moser and
   actual-atom Proposition 2.5 frontiers, the common-free actual-atom
   Corollary 2.1 / Proposition 2.5 headline route, the mass-gradient reduction
@@ -159,6 +158,29 @@ Authoritative checks from the current tree:
   ShenWork.Paper2.IntervalDomainStatementAssembly
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
+- The derivative-window route also has a boundary-split surface landed in
+  `98b22ba5`: `P3MoserEnergyContinuity` proves the derivative-window
+  integrability wrapper from explicit endpoint/boundary data, and the PDE,
+  Paper2, and Paper3 layers expose matching
+  `...RegularEnergyCoeffGapDerivativeBoundary...` residual/frontier/facts
+  packages.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserEnergyContinuity
+  ShenWork.PDE.P3MoserRegularityProducer
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
+- `P3MoserAgmonDirectRoute` no longer carries the unsupported no-drop Gronwall
+  theorem or the dependent no-drop Proposition 2.5 wrapper.  The deleted route
+  tried to get all Lp bounds from `AgmonAbsorbedInterpolationBefore` alone,
+  but the current APIs do not supply the required time-continuity,
+  initial-value, and scalar Gronwall interface for the full PDE energy.  The
+  live Agmon route remains the existing route conditional on the explicit
+  `MoserDissipationDropBeforeNonnegB` frontier.  The target build
+  `lake build ShenWork.PDE.P3MoserAgmonDirectRoute` completed successfully
+  (3561 jobs), and its axiom audit prints only
   `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
