@@ -244,7 +244,7 @@ theorem weightedGradDiss_le_of_Linf
   · sorry
   · intro y hy
     rw [Set.uIcc_of_le zero_le_one] at hy
-    rw [intervalDomainLift_apply_of_mem _ y hy, intervalDomainLift_apply_of_mem _ y hy]
+    simp only [intervalDomainLift, hy, dite_true]
     rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
     exact mul_le_mul_of_nonneg_right
       (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le (hLinf ⟨y, hy⟩) (by linarith))
