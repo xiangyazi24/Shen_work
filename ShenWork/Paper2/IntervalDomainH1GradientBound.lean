@@ -179,9 +179,9 @@ theorem weightedGradDiss_eq_two_mul_H1energy
     ShenWork.IntervalDomain.intervalDomainIntegral]
   refine intervalIntegral.integral_congr (fun x hx => ?_)
   rw [Set.uIcc_of_le zero_le_one] at hx
-  simp only [intervalDomainLift, hx, dif_pos,
-    show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul,
-    ShenWork.IntervalDomain.intervalDomainGradNorm, sq_abs]
+  conv_lhs => rw [intervalDomainLift, dif_pos hx]
+  rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
+  simp only [ShenWork.IntervalDomain.intervalDomainGradNorm, sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
