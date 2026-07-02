@@ -172,9 +172,11 @@ theorem weightedGradDiss_eq_two_mul_H1energy
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (ht0 : 0 < t) (htT : t < T) :
     intervalDomainLpWeightedGradientDissipation 2 u t = 2 * H1energy u t := by
-  simp only [intervalDomainLpWeightedGradientDissipation, H1energy,
+  suffices h : intervalDomainLpWeightedGradientDissipation 2 u t =
+      ∫ x in (0:ℝ)..1, (deriv (intervalDomainLift (u t)) x) ^ 2 by
+    simp only [H1energy]; linarith
+  simp only [intervalDomainLpWeightedGradientDissipation,
     ShenWork.IntervalDomain.intervalDomainIntegral]
-  rw [show (2 : ℝ) * ((1 : ℝ) / 2 * _) = _ from by ring]
   refine intervalIntegral.integral_congr (fun x hx => ?_)
   rw [Set.uIcc_of_le zero_le_one] at hx
   simp only [intervalDomainLift, hx, dif_pos,
