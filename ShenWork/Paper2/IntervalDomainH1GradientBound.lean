@@ -38,6 +38,8 @@ open ShenWork.IntervalDomainExistence.IntervalDomain1DLinfRoute
   (IntervalDomainPointwiseMoserGradientBoundBefore)
 open ShenWork.Paper2.IntervalDomainEnergyStep
   (intervalDomainLpWeightedGradientDissipation)
+open ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
+  (intervalDomain_moser_gradient_integral_eq_weighted_of_regularity)
 open MeasureTheory Set
 
 namespace ShenWork.Paper2.IntervalDomainH1GradientBound
@@ -156,8 +158,7 @@ theorem produce_pointwiseGradientBound_of_H1energy_bound
   -- Target: ∫(gradNorm (fun y => (u t y)^1) x)² ≤ 2·Y₁
   -- Step 1: rewrite using moser gradient bridge (pExp=2, so pExp/2=1)
   have hbridge :=
-    ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
-      .intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+    intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
       (pExp := 2) hsol ht0 htT
   rw [hbridge]
   have : (2 : ℝ) / 2 = 1 := by norm_num
