@@ -3470,6 +3470,318 @@ theorem
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Integrated-Moser direct threshold-plan route -/
+
+/-- Actual-linear-small Moser residuals whose first-crossing step is produced
+directly from classical integrated-Moser regularity, integrated dissipation,
+and relative interpolation. -/
+structure
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        Nonempty
+          (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  integratedDissipation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+
+/-- Convert the actual-linear integrated-Moser surface to the reusable PDE-level
+integrated-Moser residual package. -/
+def to_integratedMoserResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingIntegratedMoserResiduals p where
+  a_pos := ha
+  chi_nonneg := le_of_lt hχ0
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := by
+    intro u₀ hu₀ T hT u v hsol htrace
+    exact
+      P3MoserLemmaDischarge.l2SeedRegularity_of_closedEnergyIdentityTraceData
+        (Classical.choice
+          (h.closedEnergyTrace u₀ hu₀ T hT u v hsol htrace))
+  classicalRegularity := h.classicalRegularity
+  integratedDissipation := h.integratedDissipation
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+/-- Convert the direct integrated-Moser actual-linear surface to the existing
+integrated-step actual-linear residual surface. -/
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals
+      p where
+  boundednessHyp := h.boundednessHyp
+  closedEnergyTrace := h.closedEnergyTrace
+  integratedStep := fun hsol hcross hboot =>
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
+      (h.classicalRegularity hsol hcross hboot)
+      hsol
+      (h.integratedDissipation hsol hcross hboot)
+      (h.relativeMoserInterpolation hsol hcross hboot)
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_integratedStepResiduals.to_routeResiduals ha hχ0
+
+end
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+
+/-- Sectorial mainline facts with the direct integrated-Moser residual surface. -/
+structure
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts
+    (p : CM2Params) : Prop where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  continuation :
+    IntervalDomainStandardContinuationGluingData p
+  massLpSmoothing :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals
+      p
+
+namespace
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts
+
+def to_integratedStepFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts
+        p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts p where
+  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+  continuation := h.continuation
+  massLpSmoothing := h.massLpSmoothing.to_integratedStepResiduals
+
+def to_aprioriActualLinearSmallFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts p :=
+  h.to_integratedStepFacts.to_aprioriActualLinearSmallFacts ha hχ0
+
+end
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts
+
+/-- Direct integrated-Moser mainline data with the actual-linear-small
+stability package reduced to its non-vacuous Theorem 2.4 branches. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts
+      p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Convert direct integrated-Moser mainline data to the existing integrated-step
+Stability24 route. -/
+def
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData.toIntegratedStepStability24
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {K : CompactnessData intervalDomain}
+    (h :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepStability24FrontierData
+      p M0 uBar vLower K where
+  core := h.core.to_integratedStepFacts
+  compactness := h.compactness
+  stability24 := h.stability24
+
+/-- Mainline target from the direct integrated-Moser Moser route and the
+Stability24-only actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedMoserStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    hData.toIntegratedStepStability24
+
+/-- Instance-facing mainline target from the direct integrated-Moser route and
+the Stability24-only actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedMoserStability24FrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedMoserStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the direct
+integrated-Moser route, Paper2 main theorem targets for Proposition 1.3/1.4,
+and the Stability24-only actual-linear stability package. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedMoserStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from direct
+integrated-Moser frontiers, Paper2 main theorem target inputs, and
+Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedMoserStability24P2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedMoserStability24FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from direct
+integrated-Moser frontiers, Paper2 main theorem target inputs, and
+Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedMoserStability24P2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the direct
+integrated-Moser Stability24 route, with the negative-sensitivity residual
+discharged by `0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedMoserStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the direct integrated-Moser Stability24 Paper3 statement target
+from Paper2 main theorem targets, without a separate negative-sensitivity
+residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedMoserStability24P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing direct integrated-Moser Stability24 Paper3 statement target
+from Paper2 main theorem targets, with negative sensitivity discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallIntegratedMoserStability24P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Lower-average / upper-data-gap component route -/
 
 /-- Compatibility-named actual-linear-small Moser residuals for the former
@@ -4621,6 +4933,24 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegData
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals.to_integratedMoserResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals.to_integratedStepResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals.to_routeResiduals
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts.to_integratedStepFacts
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedMoserFacts.to_aprioriActualLinearSmallFacts
+#print axioms
+  IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedMoserStability24FrontierData.toIntegratedStepStability24
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedMoserStability24FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedMoserStability24P2MainNoNegData
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallLowerAverageUpperDataGapResiduals.to_integratedStepResiduals
 #print axioms

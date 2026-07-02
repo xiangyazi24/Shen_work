@@ -59,6 +59,14 @@ Authoritative checks from the current tree:
   `IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals`.  These are
   additive wrappers through the existing integrated-step route; no new
   mathematical input fields were introduced.
+- `Paper3.IntervalDomainActualLinearStatementAssembly` now exposes the properly
+  named direct threshold-plan surface
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals`
+  and its sectorial / Stability24 / P2-main statement wrappers.  This route
+  consumes classical integrated-Moser regularity, integrated dissipation, and
+  relative interpolation directly, then converts through the existing
+  integrated-step actual-linear route.  The older compatibility-named
+  lowerAverage/upperDataGap route remains only as a compatibility surface.
 - The four legacy first-crossing shortcut theorems in
   `P3MoserRegularityProducer` that still accepted lower-average / upper-gap
   frontier parameters after their proof bodies had switched to the direct
