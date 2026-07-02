@@ -138,34 +138,6 @@ Two steps:
    Uses `intervalDomain_moser_gradient_integral_eq_weighted_of_regularity`.
 -/
 
-/-- **Producer: H1energy uniformly bounded → IntervalDomainPointwiseMoserGradientBoundBefore.**
-
-CARRIED: `hbnd` — the H1energy is bounded uniformly on `(0,T)`.
-This is the output of `chiNeg_H1_norm_bound` (or any other route that gives H1energy ≤ Y₁).
-
-DERIVED: the definitional conversion. For pExp=2:
-  `∫(gradNorm (u^1))² = (2/2)² · ∫u^0 · (gradNorm u)² = ∫(gradNorm u)²`
-  `= ∫(deriv lift)² = 2 · H1energy ≤ 2·Y₁`.
--/
-theorem produce_pointwiseGradientBound_of_H1energy_bound
-    {params : CM2Params} {T : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    {Y₁ : ℝ} (hY1 : 0 ≤ Y₁)
-    (hbnd : ∀ τ, 0 < τ → τ < T → H1energy u τ ≤ Y₁) :
-    IntervalDomainPointwiseMoserGradientBoundBefore u T 2 := by
-  refine ⟨2 * Y₁, by linarith, fun t ht0 htT => ?_⟩
-  -- Target: ∫(gradNorm (fun y => (u t y)^1) x)² ≤ 2·Y₁
-  -- Step 1: rewrite using moser gradient bridge (pExp=2, so pExp/2=1)
-  have hbridge :=
-    intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
-      (pExp := 2) hsol ht0 htT
-  rw [hbridge]
-  have : (2 : ℝ) / 2 = 1 := by norm_num
-  rw [this, one_pow, one_mul,
-    weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT]
-  linarith [hbnd t ht0 htT]
-
 /-- **Definitional bridge: weighted gradient dissipation at level 2 = 2 · H1energy.**
 
 `intervalDomainLpWeightedGradientDissipation 2 u t = ∫ u^0 · (gradNorm u)² = ∫ (gradNorm u)²`
@@ -191,6 +163,32 @@ theorem weightedGradDiss_eq_two_mul_H1energy
   rw [intervalDomainLift_apply_of_mem _ y hy]
   rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
   rw [gradNorm_eq, sq_abs]
+
+/-- **Producer: H1energy uniformly bounded → IntervalDomainPointwiseMoserGradientBoundBefore.**
+
+CARRIED: `hbnd` — the H1energy is bounded uniformly on `(0,T)`.
+This is the output of `chiNeg_H1_norm_bound` (or any other route that gives H1energy ≤ Y₁).
+
+DERIVED: the definitional conversion. For pExp=2:
+  `∫(gradNorm (u^1))² = (2/2)² · ∫u^0 · (gradNorm u)² = ∫(gradNorm u)²`
+  `= ∫(deriv lift)² = 2 · H1energy ≤ 2·Y₁`.
+-/
+theorem produce_pointwiseGradientBound_of_H1energy_bound
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    {Y₁ : ℝ} (hY1 : 0 ≤ Y₁)
+    (hbnd : ∀ τ, 0 < τ → τ < T → H1energy u τ ≤ Y₁) :
+    IntervalDomainPointwiseMoserGradientBoundBefore u T 2 := by
+  refine ⟨2 * Y₁, by linarith, fun t ht0 htT => ?_⟩
+  have hbridge :=
+    intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+      (pExp := 2) hsol ht0 htT
+  rw [hbridge]
+  have : (2 : ℝ) / 2 = 1 := by norm_num
+  rw [this, one_pow, one_mul,
+    weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT]
+  linarith [hbnd t ht0 htT]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
