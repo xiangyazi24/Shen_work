@@ -42,6 +42,16 @@ open ShenWork.IntervalMildRegularityBootstrap
   (unitIntervalCosineEigenvalue_mul_exp_summable)
 open ShenWork.IntervalDomainRegularityBootstrap
   (reciprocalSquareTerm reciprocalSquareTerm_summable)
+open ShenWork.IntervalCosineSliceRegularity
+  (intervalDomainCosineSlice_contDiffOn_Ioo
+   intervalDomainCosineSlice_neumann_limit_left
+   intervalDomainCosineSlice_neumann_limit_right
+   intervalDomainCosineSlice_conjunct7)
+open ShenWork.Paper2.RegularityFrontierAssembly
+  (timeSlices_v_of_resolverSpectral
+   jointTimeDerivInterior_v_of_resolverSpectral
+   jointTimeDerivClosed_v_of_resolverSpectral
+   jointSolutionClosed_v_of_resolverSpectral)
 open ShenWork.HeatKernelGradientEstimates
   (unitIntervalCosineHeatTrace_single_exp_summable)
 open ShenWork.IntervalResolverSpatialC2 (resolverR_summability)
