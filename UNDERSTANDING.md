@@ -52,6 +52,13 @@ Authoritative checks from the current tree:
   lowerAverage/upperDataGap route now converts only to the integrated-step
   actual-linear route; the old PDE converter is no longer a live source
   surface.
+- `IntervalDomainMoserLadderAtoms` now exposes direct Corollary 2.1 and
+  Proposition 2.5 consumers for
+  `IntervalDomainMassLpSmoothingIntegratedMoserResiduals`,
+  `IntervalDomainMassLpSmoothingWindowFrontierResiduals`, and
+  `IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals`.  These are
+  additive wrappers through the existing integrated-step route; no new
+  mathematical input fields were introduced.
 - The four legacy first-crossing shortcut theorems in
   `P3MoserRegularityProducer` that still accepted lower-average / upper-gap
   frontier parameters after their proof bodies had switched to the direct

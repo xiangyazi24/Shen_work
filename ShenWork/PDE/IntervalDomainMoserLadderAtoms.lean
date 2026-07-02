@@ -448,6 +448,20 @@ def to_integratedStepResiduals
       (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
   quantitativeEndpoint := h.quantitativeEndpoint
 
+/-- Corollary 2.1 from the regularity-aware integrated-Moser residual package. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedMoserResiduals p) :
+    Corollary_2_1 intervalDomain p :=
+  h.to_integratedStepResiduals.corollary21
+
+/-- Proposition 2.5 from the regularity-aware integrated-Moser residual package. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingIntegratedMoserResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  h.to_integratedStepResiduals.proposition25
+
 def to_routeResiduals
     {p : CM2Params}
     (h : IntervalDomainMassLpSmoothingIntegratedMoserResiduals p) :
@@ -996,6 +1010,20 @@ def to_integratedStepResiduals
       (h.windowFrontier hsol hcross hboot)
   quantitativeEndpoint := h.quantitativeEndpoint
 
+/-- Corollary 2.1 from the window-frontier residual package. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingWindowFrontierResiduals p) :
+    Corollary_2_1 intervalDomain p :=
+  h.to_integratedStepResiduals.corollary21
+
+/-- Proposition 2.5 from the window-frontier residual package. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingWindowFrontierResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  h.to_integratedStepResiduals.proposition25
+
 def to_routeResiduals
     {p : CM2Params}
     (h : IntervalDomainMassLpSmoothingWindowFrontierResiduals p) :
@@ -1068,6 +1096,20 @@ def to_integratedStepResiduals
     IntervalDomainMassLpSmoothingIntegratedStepResiduals p :=
   h.to_windowFrontierResiduals.to_integratedStepResiduals
 
+/-- Corollary 2.1 from the lower/upper split residual package. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
+    Corollary_2_1 intervalDomain p :=
+  h.to_integratedStepResiduals.corollary21
+
+/-- Proposition 2.5 from the lower/upper split residual package. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  h.to_integratedStepResiduals.proposition25
+
 def to_routeResiduals
     {p : CM2Params}
     (h : IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals p) :
@@ -1088,6 +1130,8 @@ end IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
 #print axioms IntervalDomainMassLpSmoothingIntegratedStepResiduals.aprioriBound
 #print axioms
   IntervalDomainMassLpSmoothingIntegratedMoserResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingIntegratedMoserResiduals.corollary21
+#print axioms IntervalDomainMassLpSmoothingIntegratedMoserResiduals.proposition25
 #print axioms
   IntervalDomainMassLpSmoothingIntegratedMoserResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingIntegratedMoserResiduals.aprioriBound
@@ -1136,10 +1180,14 @@ namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryRe
 end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
 
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.corollary21
+#print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.proposition25
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.aprioriBound
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_windowFrontierResiduals
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_integratedStepResiduals
+#print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.corollary21
+#print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.proposition25
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals.aprioriBound
 
