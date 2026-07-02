@@ -235,14 +235,6 @@ theorem weightedGradDiss_le_of_Linf
     (pExp : ℝ) (hpExp2 : 2 ≤ pExp) :
     intervalDomainLpWeightedGradientDissipation pExp u t ≤
       Minf ^ (pExp - 2) * intervalDomainLpWeightedGradientDissipation 2 u t := by
-  have hpointwise : ∀ x : intervalDomain.Point,
-      (u t x) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2 ≤
-      Minf ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2 := by
-    intro x
-    rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul] at *
-    exact mul_le_mul_of_nonneg_right
-      (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le (hLinf x) (by linarith))
-      (sq_nonneg _)
   unfold intervalDomainLpWeightedGradientDissipation
   change intervalDomainIntegral _ ≤ Minf ^ (pExp - 2) * intervalDomainIntegral _
   unfold intervalDomainIntegral
@@ -252,9 +244,13 @@ theorem weightedGradDiss_le_of_Linf
   · sorry
   · intro y hy
     rw [Set.uIcc_of_le zero_le_one] at hy
-    simp only [intervalDomainLift, hy, dif_pos]
+    have hlift_eq : ∀ (f : intervalDomain.Point → ℝ),
+        intervalDomainLift f y = f ⟨y, hy⟩ := fun f => dif_pos hy
+    rw [hlift_eq, hlift_eq]
     rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
-    exact hpointwise ⟨y, hy⟩
+    exact mul_le_mul_of_nonneg_right
+      (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le (hLinf ⟨y, hy⟩) (by linarith))
+      (sq_nonneg _)
 
 /-- **1D shortcut: L∞ + H1 bound → general gradient bound at any pExp ≥ 2.**
 
