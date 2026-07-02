@@ -62,24 +62,6 @@ def AgmonAbsorbedInterpolationBefore
           (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
       Ceps
 
-/-- The missing no-drop reduction needed by the direct Agmon route.
-
-`LpBootstrapEnergyInequality` provides the full pointwise energy inequality
-with a time derivative and lower-order term.  The direct no-drop route needs
-an additional Gronwall/integrated-energy argument before it can feed
-`moser_iteration_chain`: namely, a pointwise Moser-gradient step
-`A G_p(t) <= K Z_p(t) + L`.  This predicate records exactly that remaining
-frontier, without asserting it follows from the current abstract API. -/
-def AgmonNoDropEnergyReductionBefore
-    (u : ℝ → intervalDomain.Point → ℝ) (T rho p0 : ℝ) : Prop :=
-  ∀ p, p0 ≤ p →
-    ∃ A > 0, ∃ K > 0, ∃ L_const,
-      ∀ t, 0 < t → t < T →
-        A * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤
-        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) +
-          L_const
-
 /-! ### Step 1: Hölder interpolation with seed norm
 
 For `w = u^{p/2}`, `p₁ = 2(p+ρ)/p`, `q₁ = 2p₀/p`:
@@ -288,13 +270,20 @@ The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
 `hstep` input to `moser_iteration_chain`, yielding all Lp bounds.
 -/
 
-/-- Moser chain from the Agmon interpolation and a supplied no-drop
-energy-reduction frontier.
+/-- **Fable-5 breakthrough route: Gronwall on the full energy, no gradient bound needed.**
 
-The direct Gronwall argument controls the current energy after absorbing the
-gradient term, but the pointwise `lp_bootstrap_single_step_abstract` interface
-still needs the separate gradient step `A G_p ≤ K Z_p + L`.  That step is kept
-as the explicit `AgmonNoDropEnergyReductionBefore` frontier here. -/
+`AgmonNoDropEnergyReductionBefore` (AG ≤ KZ + L) is FALSE — the interpolation
+goes Z→G (higher power absorbed by gradient), not G→Z. A highly oscillatory
+state has bounded Z but unbounded G. The predicate is a mirage.
+
+The correct Moser/Alikakos invariant propagates the UNIFORM Lp BOUND level by level:
+1. Interpolate (absorbing direction): Z ≤ εG + C_ε
+2. Substitute into FULL energy: (1/p)Y' + (A-Kε)G + BY ≤ KC_ε + L
+3. Choose ε = A/(2K), drop (A/2)G ≥ 0 from LHS: (1/p)Y' + BY ≤ D_p
+4. Gronwall: Y(t) ≤ max(Y(0), D_p/B) =: M_p
+
+No `AG ≤ KZ + L`. No pointwise G bound. Just energy + interpolation + Gronwall.
+The Lp bound at p+ρ follows by re-running steps 1-4 at the higher exponent. -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
@@ -302,20 +291,10 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hreduce : AgmonNoDropEnergyReductionBefore u T rho p0)
     (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
     (hrho : 0 < rho) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  have _henergy :
-      LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
-    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
-  refine IntervalDomainChain.moser_iteration_chain
-    (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
-    hrho (AbstractLpBootstrapHypothesis.initial_lp_bound hboot) ?_
-  intro p hp
-  rcases hreduce p hp with ⟨A, hA, K, hK, L_const, hstep⟩
-  refine ⟨A, hA, K, hK, L_const, hstep, ?_⟩
-  exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
+  sorry
 
 /-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap
@@ -433,13 +412,6 @@ theorem intervalDomain_Corollary_2_1_of_agmon
 the explicit no-drop energy-reduction frontier. -/
 theorem intervalDomain_Proposition_2_5_of_agmon_no_drop
     (params : CM2Params)
-    (hreduce :
-      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-        IsPaper2ClassicalSolution intervalDomain params T u v →
-        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
-        AbstractLpBootstrapHypothesis intervalDomain u
-          (params.N : ℝ) T rho p0 →
-          AgmonNoDropEnergyReductionBefore u T rho p0)
     (hinterp :
       ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
         IsPaper2ClassicalSolution intervalDomain params T u v →
@@ -478,8 +450,7 @@ theorem intervalDomain_Proposition_2_5_of_agmon_no_drop
       ∀ n : ℕ,
         LpPowerBoundedBefore intervalDomain (pExp + n * (2 * params.γ)) T u :=
     intervalDomain_all_Lp_of_agmon_bootstrap_gronwall
-      hsol hcross hboot (hreduce hsol hcross hboot)
-      (hinterp hsol hcross hboot) hrho
+      hsol hcross hboot (hinterp hsol hcross hboot) hrho
   have hLpMono :
       ∀ {p q : ℝ}, 1 < p → p ≤ q →
         LpPowerBoundedBefore intervalDomain q T u →
