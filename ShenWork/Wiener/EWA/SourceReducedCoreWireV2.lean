@@ -19,20 +19,32 @@ noncomputable section
 namespace ShenWork.EWA
 
 open Set Filter Topology
-open ShenWork.GWA ShenWork.Wiener
+open ShenWork.GWA ShenWork.Wiener ShenWork.CosineSpectrum
 open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainPoint intervalDomainLift
+  (intervalDomainLift intervalDomainPoint
+   intervalDomainChemotaxisDiv intervalDomain
    intervalDomainClassicalRegularity)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemDivSourceCoeffs coupledLogisticSourceCoeffs
-   CoupledDuhamelReducedClassicalCore)
+   coupledChemicalConcentration CoupledDuhamelReducedClassicalCore)
 open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
 open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn)
 open ShenWork.IntervalResolverDirectTimeRegularity
   (HasResolverDirectSpectralData)
 open ShenWork.Paper2 (SourceCoeffQuadraticDecay)
+open ShenWork.PDE
+  (intervalNeumannResolverR intervalNeumannResolverCoeff
+   intervalNeumannResolverSourceCoeff)
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
+open ShenWork.IntervalMildRegularityBootstrap
+  (unitIntervalCosineEigenvalue_mul_exp_summable)
+open ShenWork.IntervalDomainRegularityBootstrap
+  (reciprocalSquareTerm reciprocalSquareTerm_summable)
+open ShenWork.HeatKernelGradientEstimates
+  (unitIntervalCosineHeatTrace_single_exp_summable)
+open ShenWork.IntervalResolverSpatialC2 (resolverR_summability)
 
 variable {T : ℝ}
 
