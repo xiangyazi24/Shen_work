@@ -155,9 +155,8 @@ theorem produce_pointwiseGradientBound_of_H1energy_bound
   have hsimp : (2 : ℝ) / 2 = 1 := by norm_num
   rw [hsimp, one_pow, one_mul]
   -- Now goal: intervalDomainLpWeightedGradientDissipation 2 u t ≤ 2 * Y₁
-  -- Need: weightedGradDiss 2 u t = 2 · H1energy u t
-  -- This is a definitional unfolding: u^0=1 + gradNorm=|deriv lift| + integral agreement
-  sorry
+  rw [weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT]
+  linarith [hbnd t ht0 htT]
 
 /-- **Definitional bridge: weighted gradient dissipation at level 2 = 2 · H1energy.**
 
@@ -173,7 +172,19 @@ theorem weightedGradDiss_eq_two_mul_H1energy
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (ht0 : 0 < t) (htT : t < T) :
     intervalDomainLpWeightedGradientDissipation 2 u t = 2 * H1energy u t := by
-  sorry
+  unfold intervalDomainLpWeightedGradientDissipation H1energy
+  change intervalDomainIntegral _ = 2 * ((1 / 2 : ℝ) * _)
+  ring_nf
+  unfold intervalDomainIntegral
+  congr 1
+  refine intervalIntegral.integral_congr (fun x hx => ?_)
+  rw [Set.uIcc_of_le (zero_le_one)] at hx
+  simp only [intervalDomainLift, hx, dif_pos]
+  rw [show (2 : ℝ) - 2 = 0 from by norm_num]
+  rw [Real.rpow_zero]
+  rw [one_mul]
+  unfold intervalDomainGradNorm
+  rw [sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
