@@ -283,7 +283,17 @@ theorem produce_pointwiseGradientBound_general_pExp
   have h2 := weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT
   rw [h2] at hweighted
   have hH1bound := hH1 t ht0 htT
-  nlinarith [sq_nonneg (pExp / 2), Real.rpow_nonneg hMinf (pExp - 2)]
+  have hMinf_nn : 0 ≤ Minf ^ (pExp - 2) := Real.rpow_nonneg hMinf _
+  have hH1_chain : Minf ^ (pExp - 2) * (2 * H1energy u t) ≤
+      Minf ^ (pExp - 2) * (2 * Y₁) := by
+    exact mul_le_mul_of_nonneg_left (by linarith) hMinf_nn
+  have h_sq_nn : 0 ≤ (pExp / 2) ^ 2 := sq_nonneg _
+  calc (pExp / 2) ^ 2 * intervalDomainLpWeightedGradientDissipation pExp u t
+      ≤ (pExp / 2) ^ 2 * (Minf ^ (pExp - 2) * (2 * H1energy u t)) :=
+        mul_le_mul_of_nonneg_left hweighted h_sq_nn
+    _ ≤ (pExp / 2) ^ 2 * (Minf ^ (pExp - 2) * (2 * Y₁)) :=
+        mul_le_mul_of_nonneg_left hH1_chain h_sq_nn
+    _ = (pExp / 2) ^ 2 * Minf ^ (pExp - 2) * (2 * Y₁) := by ring
 
 section AxiomAudit
 #print axioms h1_diffIneq_of_agmon_bounds
