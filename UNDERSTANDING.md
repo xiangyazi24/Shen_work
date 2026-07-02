@@ -1,6 +1,6 @@
 # UNDERSTANDING.md — Shen_work
 
-## CURRENT STATE (2026-07-01, code-derived)
+## CURRENT STATE (2026-07-02, code-derived)
 
 Authoritative checks from the current tree:
 - Proof-hole scan: no proof-level `sorry`, `admit`, `native_decide`, or custom
