@@ -921,6 +921,28 @@ theorem
       hab hY_cont hY_deriv (hderivInt p hp t1 ht1 t2 ht2)
   simpa [Y] using hFTC
 
+/-- Local data sufficient to produce the abstract Moser-energy window FTC on the
+interval domain.
+
+This is a genuine split of `IntegratedMoserEnergyWindowFTC`: endpoint power
+energy continuity and derivative-window integrability can be produced or
+refined independently. -/
+structure IntervalDomainIntegratedMoserEnergyWindowFTCLocalData
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  endpointEnergy : IntervalDomainPowerEnergyEndpointContinuity u T p0
+  derivativeWindowIntegrability :
+    IntegratedMoserEnergyDerivativeWindowIntegrability intervalDomain u T p0
+
+/-- Produce the abstract Moser-energy window FTC from packaged local data. -/
+theorem intervalDomain_integratedMoserEnergyWindowFTC_of_localData
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hdata : IntervalDomainIntegratedMoserEnergyWindowFTCLocalData u T p0) :
+    IntegratedMoserEnergyWindowFTC intervalDomain u T p0 :=
+  intervalDomain_integratedMoserEnergyWindowFTC_of_classical_endpoint_derivIntegrable
+    hsol hdata.endpointEnergy hdata.derivativeWindowIntegrability
+
 /-- Strict-window derivative integrability for the Moser energy, reduced to
 continuity of the explicit power-derivative integral profile.
 
@@ -2063,6 +2085,59 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeTerms
       (params := params) (T := T) (p0 := p0) (u := u) (v := v)
       hglobal hterms)
 
+/-- Global-classical initial-window PDE data sufficient for the local
+Moser-energy FTC data package.  The left endpoint energy continuity and the
+initial-window PDE integrability remain explicit residuals. -/
+structure IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData
+    (params : CM2Params) (u v : ℝ → intervalDomain.Point → ℝ)
+    (T p0 : ℝ) : Prop where
+  atZero : IntervalDomainInitialPowerEnergyContinuityAtZero u T p0
+  pdeCombinedInitial :
+    IntervalDomainLpPDECombinedInitialWindowIntegrability params u v T p0
+
+/-- Convert the global-classical initial-window PDE package into local FTC
+data: the right endpoint is supplied by global classical regularity on a longer
+horizon, and the derivative-window integrability is reduced to the combined
+PDE initial-window residual. -/
+theorem
+    intervalDomain_integratedMoserEnergyWindowFTCLocalData_of_globalPDEInitialData
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hdata :
+      IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData
+        params u v T p0) :
+    IntervalDomainIntegratedMoserEnergyWindowFTCLocalData u T p0 where
+  endpointEnergy :=
+    intervalDomain_powerEnergyEndpointContinuity_of_initialPowerEnergyContinuity
+      (params := params) (T := T) (p0 := p0) (u := u) (v := v)
+      hglobal hT hdata.atZero
+  derivativeWindowIntegrability :=
+    intervalDomain_derivativeWindowIntegrability_of_global_weightedTimeTerm
+      (params := params) (T := T) (p0 := p0) (u := u) (v := v)
+      hglobal
+      (intervalDomain_weightedTimeTermInitialWindowIntegrability_of_pdeCombined_initial
+        (params := params) (T := T) (p0 := p0) (u := u) (v := v)
+        hglobal hdata.pdeCombinedInitial)
+
+/-- Direct FTC producer from global-classical initial-window PDE data. -/
+theorem intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hdata :
+      IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData
+        params u v T p0) :
+    IntegratedMoserEnergyWindowFTC intervalDomain u T p0 :=
+  intervalDomain_integratedMoserEnergyWindowFTC_of_localData
+    (params := params) (T := T) (p0 := p0) (u := u) (v := v)
+    (hglobal.classical hT)
+    (intervalDomain_integratedMoserEnergyWindowFTCLocalData_of_globalPDEInitialData
+      (params := params) (T := T) (p0 := p0) (u := u) (v := v)
+      hglobal hT hdata)
+
 #print axioms intervalDomain_solution_jointContinuousOn
 #print axioms intervalDomain_power_jointContinuousOn
 #print axioms intervalDomain_power_bounded_on_slab
@@ -2081,6 +2156,8 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeTerms
   intervalDomain_lpPDETermClosedWindowIntegrability_of_initial_and_positiveStart
 #print axioms
   intervalDomain_integratedMoserEnergyWindowFTC_of_classical_endpoint_derivIntegrable
+#print axioms
+  intervalDomain_integratedMoserEnergyWindowFTC_of_localData
 #print axioms
   intervalDomain_deriv_intervalIntegrable_strictWindow_of_powerDerivIntegral_continuousOn
 #print axioms intervalDomain_deriv_intervalIntegrable_of_strictWindow
@@ -2149,6 +2226,10 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeTerms
   intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeCombined
 #print axioms
   intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeTerms
+#print axioms
+  intervalDomain_integratedMoserEnergyWindowFTCLocalData_of_globalPDEInitialData
+#print axioms
+  intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
 
 end ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 

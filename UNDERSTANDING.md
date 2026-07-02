@@ -103,6 +103,25 @@ Authoritative checks from the current tree:
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- `P3MoserEnergyContinuity` now exposes the local FTC split
+  `IntervalDomainIntegratedMoserEnergyWindowFTCLocalData` and the wrapper
+  `intervalDomain_integratedMoserEnergyWindowFTC_of_localData`, reducing the
+  abstract `IntegratedMoserEnergyWindowFTC` package to endpoint power-energy
+  continuity plus derivative-window integrability.  It also exposes
+  `IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData`, whose
+  explicit residuals are the left-endpoint power-energy continuity field and
+  combined PDE initial-window integrability.  `IntervalDomainMoserLadderAtoms`
+  now exposes
+  `IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals`,
+  replacing the monolithic `energyWindowFTC` field in the regular-energy
+  coefficient-gap route by this local FTC data while preserving the existing
+  Corollary 2.1 / Proposition 2.5 / route / a-priori consumers.  The uisai2
+  target build `lake build ShenWork.PDE.P3MoserEnergyContinuity
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

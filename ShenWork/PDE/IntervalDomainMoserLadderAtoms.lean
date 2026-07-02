@@ -1,5 +1,6 @@
 import ShenWork.PDE.IntervalDomainAPrioriGlobal
 import ShenWork.PDE.P3MoserActualWiring
+import ShenWork.PDE.P3MoserEnergyContinuity
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.PDE.P3MoserRegularityProducer
 import ShenWork.Paper2.IntervalDomainVSliceBounds
@@ -8,6 +9,7 @@ open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open ShenWork.IntervalDomainExistence.P3MoserActualWiring
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 open ShenWork.Paper2.IntervalDomainMoserClosure
@@ -565,6 +567,116 @@ def aprioriBound
 
 end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals
 
+/-- Regular-energy coefficient-gap residuals with the window-FTC field reduced
+to local FTC data: closed endpoint power-energy continuity plus
+derivative-window integrability. -/
+structure IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  energyWindowFTCData :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserEnergyWindowFTCLocalData u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coeffGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals
+
+def to_regularEnergyCoeffGapResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals p) :
+    IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  classicalRegularity := h.classicalRegularity
+  energyWindowFTC := fun hsol hcross hboot =>
+    intervalDomain_integratedMoserEnergyWindowFTC_of_localData
+      hsol (h.energyWindowFTCData hsol hcross hboot)
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  coeffGap := h.coeffGap
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals p) :
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p :=
+  h.to_regularEnergyCoeffGapResiduals.to_integratedStepResiduals
+
+/-- Corollary 2.1 from the local-FTC-data regular-energy coefficient-gap route. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals p) :
+    Corollary_2_1 intervalDomain p :=
+  h.to_regularEnergyCoeffGapResiduals.corollary21
+
+/-- Proposition 2.5 from the local-FTC-data regular-energy coefficient-gap route. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals p) :
+    Proposition_2_5 intervalDomain p :=
+  h.to_regularEnergyCoeffGapResiduals.proposition25
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_regularEnergyCoeffGapResiduals.to_routeResiduals
+
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_regularEnergyCoeffGapResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals
+
 /-- Lower-level inputs that refine `IntegratedStepResiduals` by replacing
 the opaque `integratedStep` field with an explicit high-excursion
 contradiction-window frontier supplier.
@@ -724,6 +836,18 @@ end IntervalDomainMassLpSmoothingLowerUpperFrontierResiduals
 #print axioms
   IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals.aprioriBound
+
+namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals
+
+#print axioms to_regularEnergyCoeffGapResiduals
+#print axioms to_integratedStepResiduals
+#print axioms corollary21
+#print axioms proposition25
+#print axioms to_routeResiduals
+#print axioms aprioriBound
+
+end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals
+
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_integratedStepResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_routeResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.aprioriBound
