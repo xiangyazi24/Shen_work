@@ -250,7 +250,7 @@ theorem weightedGradDiss_le_of_Linf
   change intervalDomainIntegral _ ≤ Minf ^ (pExp - 2) * intervalDomainIntegral _
   unfold intervalDomainIntegral
   rw [← intervalIntegral.integral_const_mul]
-  apply intervalIntegral_mono (by norm_num : (0 : ℝ) ≤ 1)
+  apply ShenWork.IntervalDomain.intervalIntegral_mono (by norm_num : (0 : ℝ) ≤ 1)
   · intro y hy
     have hym : y ∈ Set.Icc (0 : ℝ) 1 := hy
     simp only [intervalDomainLift, hym, dif_pos]
