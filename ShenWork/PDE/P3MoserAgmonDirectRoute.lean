@@ -269,12 +269,12 @@ theorem intervalDomain_gn_absorbed_interpolation_of_agmon
 The GN-absorbed interpolation + `LpBootstrapEnergyInequality` provide the
 `hstep` input to `moser_iteration_chain`, once the separate dissipation/drop
 frontier has removed the derivative and lower-order terms from the full PDE
-energy inequality.  A Gronwall route can avoid this pointwise dissipation drop,
-but it needs the scalar Gronwall data at every exponent: closed-time energy
-continuity, right-derivative data at `0`, an initial-energy bound, and the
-post-Agmon scalar differential inequality.  These fields are not produced by
-`AgmonAbsorbedInterpolationBefore` alone, so they are kept as an explicit
-frontier package below. -/
+energy inequality.  A Gronwall route could avoid this pointwise dissipation
+drop, but it would need the scalar Gronwall data at every exponent:
+closed-time energy continuity, right-derivative data at `0`, an initial-energy
+bound, and the post-Agmon scalar differential inequality.  These fields are
+not produced by `AgmonAbsorbedInterpolationBefore` alone, so this file does
+not export a no-drop Agmon theorem. -/
 
 /-- Original version with dissipation drop (kept for compatibility). -/
 theorem intervalDomain_all_Lp_of_agmon_bootstrap
@@ -302,35 +302,6 @@ theorem intervalDomain_all_Lp_of_agmon_bootstrap
     have hdrop_t := hdiss p hp A B K L_const hB.le hfull t ht0 htT
     linarith
   · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
-
-/-- **Algebraic absorption route: derive AG ≤ KZ + L' WITHOUT Gronwall.**
-
-From the full energy `(1/p)Y' + AG + BY ≤ KZ + L` and the interpolation
-`Z ≤ εG + C₀` (with ε = A/(2K)):
-
-1. Substitute: `(1/p)Y' + (A/2)G + BY ≤ KC₀ + L =: D_p`
-2. Therefore `(1/p)Y' ≤ D_p` (drop positive (A/2)G and BY from LHS)
-3. Back to original: `AG ≤ KZ + L - (1/p)Y' - BY ≤ KZ + L + D_p`
-   (since `-(1/p)Y' ≥ -D_p` from step 2, and `-BY ≤ 0`)
-
-So `AG ≤ KZ + (L + D_p)` — feeds `lp_bootstrap_single_step_abstract`. -/
-theorem intervalDomain_all_Lp_of_agmon_gronwall
-    {params : CM2Params} {T rho p0 : ℝ}
-    {u v : ℝ → intervalDomain.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
-    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
-    (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
-    (hrho : 0 < rho) :
-    ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  -- Fable-5 strategy: for each exponent p, the absorbed energy gives
-  -- (1/p)Y' + BY ≤ D_p (after substituting interpolation and dropping G≥0).
-  -- Gronwall on [s,t] ⊂ (0,T) → Y(t) ≤ max(Y(s), D_p/B).
-  -- Let s→0+: Y(t) ≤ max(limsup Y(0+), D_p/B).
-  -- limsup Y(0+) < ∞ from the initial trace (classical solution).
-  -- This bypasses moser_iteration_chain entirely (no AG ≤ KZ + L needed).
-  sorry
 
 private theorem abstract_prop25_bootstrap_two_gamma
     {params : CM2Params} {T pExp : ℝ}
@@ -909,7 +880,6 @@ theorem produce_AgmonAbsorbedInterpolationBefore_of_classical
 /-! ### Axiom audit -/
 
 #print axioms intervalDomain_all_Lp_of_agmon_bootstrap
-#print axioms intervalDomain_all_Lp_of_agmon_gronwall
 #print axioms intervalDomain_Proposition_2_5_of_agmon
 #print axioms produce_AgmonAbsorbedInterpolationBefore_of_classical
 

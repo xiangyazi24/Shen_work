@@ -226,15 +226,14 @@ Authoritative checks from the current tree:
   `[propext, Classical.choice, Quot.sound]`.
 - `P3MoserAgmonDirectRoute` keeps the existing Agmon route conditional on the
   explicit `MoserDissipationDropBeforeNonnegB` frontier.  The no-drop
-  Gronwall route is now represented only as the honest conditional consumer
-  `intervalDomain_all_Lp_of_agmon_gronwall`, which requires the explicit
-  scalar package `AgmonGronwallLpEnergyFrontiers`: closed-time Lp-energy
-  continuity, right-derivative data, an initial-energy bound, and the resulting
-  scalar differential inequality at each exponent.  It is not produced from
-  `AgmonAbsorbedInterpolationBefore` alone.  The target build
+  Gronwall shortcut is not exported: `AgmonAbsorbedInterpolationBefore` alone
+  does not carry closed-time Lp-energy continuity, right-derivative data, an
+  initial-energy bound, or the resulting scalar differential inequality at
+  each exponent.  The target build
   `lake build ShenWork.PDE.P3MoserAgmonDirectRoute` completed successfully
-  (3561 jobs), and the Agmon bootstrap/Gronwall/Proposition 2.5 axiom audits
-  print only `[propext, Classical.choice, Quot.sound]`.
+  (3561 jobs after the stale shortcut removal), and the Agmon bootstrap /
+  Proposition 2.5 axiom audits print only
+  `[propext, Classical.choice, Quot.sound]`.
 - `P3MoserIntegratedClosure` now exposes direct all-exponent and
   finite-horizon boundedness consumers for the high-excursion
   `windowFrontier`, split `lowerUpperFrontiers`, preferred
@@ -267,6 +266,18 @@ Authoritative checks from the current tree:
   `lake build ShenWork.PDE.P3MoserIntegratedClosure` completed successfully
   (3557 jobs), and the new conversion axiom audits print only
   `[propext, Classical.choice, Quot.sound]`.
+- `Paper2.IntervalDomainStatementAssembly` now exposes the statement-layer
+  preferred lower-average / upper-data-gap route
+  `IntervalDomainPaper2Prop25LowerAverageUpperDataGapFrontierData`, converting
+  `Nonempty IntegratedMoserFirstCrossingLowerAverageUpperDataGapData` through
+  the existing lower/upper split and integrated-step routes.  It adds direct
+  Proposition 2.5, Corollary 2.1, combined Tier-1, and thin section-2 target
+  wrappers, without restoring the obsolete PDE-level
+  `IntervalDomainMassLpSmoothingLowerAverageUpperDataGapResiduals` surface.
+  The uisai2 target build
+  `lake build ShenWork.Paper2.IntervalDomainStatementAssembly` completed
+  successfully (3745 jobs), and the new statement wrapper axiom audits print
+  only `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
