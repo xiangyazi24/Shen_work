@@ -297,22 +297,11 @@ theorem weightedGradDiss_le_of_Linf
   · exact
       (weightedGradDiss_intervalIntegrable (pExp := (2 : ℝ)) hsol ht0 htT).const_mul _
   · intro y hy
-    have h1 : intervalDomainLift
-        (fun x => (u t x) ^ (pExp - 2) *
-          (intervalDomain.gradNorm (u t) x) ^ 2) y =
-        (u t ⟨y, hy⟩) ^ (pExp - 2) *
-          (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 := by
-      unfold intervalDomainLift; exact dif_pos hy
-    have h2 : intervalDomainLift
-        (fun x => (u t x) ^ ((2 : ℝ) - 2) *
-          (intervalDomain.gradNorm (u t) x) ^ 2) y =
-        (u t ⟨y, hy⟩) ^ ((2 : ℝ) - 2) *
-          (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 := by
-      unfold intervalDomainLift; exact dif_pos hy
-    rw [h1, h2]
+    simp only [intervalDomainLift, dif_pos hy]
     rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
     exact mul_le_mul_of_nonneg_right
-      (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le (hLinf ⟨y, hy⟩) (by linarith))
+      (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le
+        (hLinf ⟨y, hy⟩) (by linarith))
       (sq_nonneg _)
 
 /-- **1D shortcut: L∞ + H1 bound → general gradient bound at any pExp ≥ 2.**
