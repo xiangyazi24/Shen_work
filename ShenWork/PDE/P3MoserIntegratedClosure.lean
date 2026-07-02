@@ -2521,6 +2521,30 @@ def integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
       (hfront.frontiers p hp hLp).to_contradictionWindowFrontier
         hp (le_trans hfront.p0_nonneg hp) hLp
 
+/-- Pure wrapper from the preferred lower-average plus upper-data-aware gap
+package to the high-excursion window frontier. -/
+def integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageUpperDataGapData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+        D u T rho p0) :
+    IntegratedMoserFirstCrossingFromWindowFrontier D u T rho p0 :=
+  integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
+    hdata.toLowerUpperFrontiers
+
+/-- Compatibility wrapper from the older all-witness epsilon-gap package to
+the high-excursion window frontier. -/
+def integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageEpsilonData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageEpsilonData
+        D u T rho p0) :
+    IntegratedMoserFirstCrossingFromWindowFrontier D u T rho p0 :=
+  integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageUpperDataGapData
+    hdata.toUpperDataGapData
+
 /-- Pure wrapper from the high-excursion window frontier to the existing
 `IntegratedMoserFirstCrossingStep` atom. -/
 theorem integratedMoserFirstCrossingStep_of_windowFrontier
@@ -2553,8 +2577,9 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
       IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
         D u T rho p0) :
     IntegratedMoserFirstCrossingStep D u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
-    hdata.toLowerUpperFrontiers
+  integratedMoserFirstCrossingStep_of_windowFrontier
+    (integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageUpperDataGapData
+      hdata)
 
 /-- Direct compatibility consumer for the older all-witness epsilon-gap
 package. -/
@@ -2565,8 +2590,9 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
       IntegratedMoserFirstCrossingLowerAverageEpsilonData
         D u T rho p0) :
     IntegratedMoserFirstCrossingStep D u T rho p0 :=
-  integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData
-    hdata.toUpperDataGapData
+  integratedMoserFirstCrossingStep_of_windowFrontier
+    (integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageEpsilonData
+      hdata)
 
 #print axioms intervalIntegrable_of_integrableOn_uIcc_of_Icc_subset
 #print axioms Icc_subset_uIcc_zero_T_of_endpoint_memberships
@@ -2631,6 +2657,10 @@ theorem integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData
 #print axioms IntegratedMoserFirstCrossingLowerAverageEpsilonData.toUpperDataGapData
 #print axioms LpPowerBoundedBefore_of_highExcursionContradictionWindowFrontier
 #print axioms integratedMoserFirstCrossingFromWindowFrontier_of_lowerUpperFrontiers
+#print axioms
+  integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageUpperDataGapData
+#print axioms
+  integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageEpsilonData
 #print axioms integratedMoserFirstCrossingStep_of_windowFrontier
 #print axioms integratedMoserFirstCrossingStep_of_lowerUpperFrontiers
 #print axioms integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData

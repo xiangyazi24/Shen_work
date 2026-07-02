@@ -256,6 +256,17 @@ Authoritative checks from the current tree:
   `lake build ShenWork.PDE.P3MoserIntegratedClosure` completed successfully
   (3557 jobs), and the new chain axiom audits print only
   `[propext, Classical.choice, Quot.sound]`.
+- `P3MoserIntegratedClosure` also exposes direct data-to-window-frontier
+  conversions
+  `integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageUpperDataGapData`
+  and
+  `integratedMoserFirstCrossingFromWindowFrontier_of_lowerAverageEpsilonData`;
+  the corresponding step consumers now route through these window-frontier
+  wrappers.  This is pure interface plumbing for downstream producers, with no
+  new analytic residual fields.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserIntegratedClosure` completed successfully
+  (3557 jobs), and the new conversion axiom audits print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
