@@ -285,8 +285,6 @@ theorem realSlice_classicalRegularity_of_L1ContOn
 
 /-! ### v2 reduced core (L1ContOn). -/
 
--- TEMPORARILY commented out to verify classicalRegularity in isolation
-/-
 theorem realSlice_reducedCore_wired_v2 (p : CM2Params)
     (u_star : EWA T 1)
     (u₀ : intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ)
@@ -426,8 +424,8 @@ theorem realSlice_reducedCore_wired_v2 (p : CM2Params)
   exact realSlice_reducedCore p u_star u₀ u₀cos hδρ hheat
     hu_ball htime hlap hchemInv hlogInv hsum_lap hsc hsl
     hclassReg hrealizes hT hu0cos hrecon hdefect htrace
--/
 
 end ShenWork.EWA
 
 #print axioms ShenWork.EWA.realSlice_classicalRegularity_of_L1ContOn
+#print axioms ShenWork.EWA.realSlice_reducedCore_wired_v2
