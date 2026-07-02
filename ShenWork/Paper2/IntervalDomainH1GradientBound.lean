@@ -28,7 +28,8 @@ import ShenWork.PDE.IntervalDomain1DLinfRoute
 
 noncomputable section
 
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
+  intervalDomainIntegral intervalDomainGradNorm)
 open ShenWork.Paper2 (IsPaper2ClassicalSolution CM2Params)
 open ShenWork.Paper2.IntervalChiNegH1Energy (H1energy lapL2sq H1EnergyIdentity
   H1energy_nonneg lapL2sq_nonneg youngMul_le)
@@ -180,13 +181,14 @@ theorem weightedGradDiss_eq_two_mul_H1energy
   unfold intervalDomainIntegral
   refine intervalIntegral.integral_congr (fun y hy => ?_)
   rw [Set.uIcc_of_le zero_le_one] at hy
-  let x : intervalDomain.Point := ⟨y, hy⟩
-  show intervalDomainLift
-    (fun p => (u t p) ^ ((2 : ℝ) - 2) * (intervalDomainGradNorm (u t) p) ^ 2) y =
-    (deriv (intervalDomainLift (u t)) y) ^ 2
-  simp only [intervalDomainLift, hy, dif_pos]
-  rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
-  simp only [intervalDomainGradNorm, sq_abs]
+  have hlift : intervalDomainLift
+      (fun p => (u t p) ^ ((2 : ℝ) - 2) *
+        (intervalDomainGradNorm (u t) p) ^ 2) y =
+      (intervalDomainGradNorm (u t) ⟨y, hy⟩) ^ 2 := by
+    simp [intervalDomainLift, dif_pos hy,
+      show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero]
+  rw [hlift]
+  simp [intervalDomainGradNorm, sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
