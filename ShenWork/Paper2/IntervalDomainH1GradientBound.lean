@@ -24,13 +24,14 @@
   - produce_pointwiseGradientBound: IntervalDomainPointwiseMoserGradientBoundBefore u T 2
 -/
 import ShenWork.Paper2.IntervalChiNegH1Energy
+import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 import ShenWork.PDE.IntervalDomain1DLinfRoute
 
 noncomputable section
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
   intervalDomainIntegral intervalDomainGradNorm)
-open ShenWork.Paper2 (IsPaper2ClassicalSolution CM2Params)
+open ShenWork.Paper2 (IsPaper2ClassicalSolution)
 open ShenWork.Paper2.IntervalChiNegH1Energy (H1energy lapL2sq H1EnergyIdentity
   H1energy_nonneg lapL2sq_nonneg youngMul_le)
 open ShenWork.IntervalDomainExistence.IntervalDomain1DLinfRoute
