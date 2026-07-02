@@ -245,6 +245,17 @@ Authoritative checks from the current tree:
   `lake build ShenWork.PDE.P3MoserIntegratedClosure` completed successfully
   (3557 jobs), and the new consumer axiom audits print only
   `[propext, Classical.choice, Quot.sound]`.
+- The same integrated-Moser closure layer now also exposes direct arithmetic
+  ladder-chain consumers for the same four frontier/data packages:
+  `moser_iteration_chain_of_windowFrontier`,
+  `moser_iteration_chain_of_lowerUpperFrontiers`,
+  `moser_iteration_chain_of_lowerAverageUpperDataGapData`, and
+  `moser_iteration_chain_of_lowerAverageEpsilonData`.  These are pure
+  wrappers through `moser_iteration_chain_of_integrated_first_crossing_step`;
+  no new analytic residual fields were introduced.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserIntegratedClosure` completed successfully
+  (3557 jobs), and the new chain axiom audits print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

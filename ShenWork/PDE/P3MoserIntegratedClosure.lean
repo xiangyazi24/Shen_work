@@ -2665,6 +2665,58 @@ theorem moser_iteration_chain_of_integrated_first_crossing_step
         le_add_of_nonneg_right (mul_nonneg (Nat.cast_nonneg n) hrho.le)
       exact hstep (p0 + ↑n * rho) hp_ge ih
 
+/-- A high-excursion window frontier directly generates the arithmetic Moser
+ladder. -/
+theorem moser_iteration_chain_of_windowFrontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (hfront : IntegratedMoserFirstCrossingFromWindowFrontier D u T rho p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u :=
+  moser_iteration_chain_of_integrated_first_crossing_step hrho hbase
+    (integratedMoserFirstCrossingStep_of_windowFrontier hfront)
+
+/-- Split lower/upper frontiers directly generate the arithmetic Moser
+ladder. -/
+theorem moser_iteration_chain_of_lowerUpperFrontiers
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (hfront :
+      IntegratedMoserFirstCrossingLowerUpperFrontiers D u T rho p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u :=
+  moser_iteration_chain_of_integrated_first_crossing_step hrho hbase
+    (integratedMoserFirstCrossingStep_of_lowerUpperFrontiers hfront)
+
+/-- Preferred lower-average plus upper-data-gap data directly generates the
+arithmetic Moser ladder. -/
+theorem moser_iteration_chain_of_lowerAverageUpperDataGapData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+        D u T rho p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u :=
+  moser_iteration_chain_of_integrated_first_crossing_step hrho hbase
+    (integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData hdata)
+
+/-- Legacy lower-average plus all-witness epsilon-gap data directly generates
+the arithmetic Moser ladder. -/
+theorem moser_iteration_chain_of_lowerAverageEpsilonData
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageEpsilonData D u T rho p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u :=
+  moser_iteration_chain_of_integrated_first_crossing_step hrho hbase
+    (integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData hdata)
+
 /-- A supplied integrated first-crossing step plus downward Lp monotonicity
 gives all finite exponents. -/
 theorem all_exponents_of_integrated_first_crossing_step_lpmono
@@ -2852,6 +2904,10 @@ theorem intervalDomain_boundedBefore_of_lowerAverageEpsilonData
     hLpMono hEndpoint
 
 #print axioms moser_iteration_chain_of_integrated_first_crossing_step
+#print axioms moser_iteration_chain_of_windowFrontier
+#print axioms moser_iteration_chain_of_lowerUpperFrontiers
+#print axioms moser_iteration_chain_of_lowerAverageUpperDataGapData
+#print axioms moser_iteration_chain_of_lowerAverageEpsilonData
 #print axioms all_exponents_of_integrated_first_crossing_step_lpmono
 #print axioms intervalDomain_boundedBefore_of_integrated_first_crossing_step
 #print axioms all_exponents_of_windowFrontier_lpmono
