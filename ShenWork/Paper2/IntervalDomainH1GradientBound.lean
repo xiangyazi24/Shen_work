@@ -210,11 +210,14 @@ theorem produce_pointwiseGradientBound_full
     IntervalDomainPointwiseMoserGradientBoundBefore u T 2 := by
   have hY1 : 0 ≤ max Ylocal ((1 + A) * C + B) := le_max_of_le_left
     (le_trans (H1energy_nonneg u 0) (by linarith [hlocal 1 ⟨one_pos, le_refl 1⟩]))
+  have hH1bnd := ShenWork.Paper2.IntervalChiNegH1Energy.chiNeg_H1_norm_bound
+    hsol hA hlocal havg hwin hWnn
   exact produce_pointwiseGradientBound_of_H1energy_bound hsol hY1
-    (ShenWork.Paper2.IntervalChiNegH1Energy.chiNeg_H1_norm_bound hsol hA hlocal havg hwin hWnn)
+    (fun τ hτ0 _ => hH1bnd τ hτ0)
 
 section AxiomAudit
 #print axioms h1_diffIneq_of_agmon_bounds
+#print axioms weightedGradDiss_eq_two_mul_H1energy
 #print axioms produce_pointwiseGradientBound_of_H1energy_bound
 #print axioms produce_pointwiseGradientBound_full
 end AxiomAudit
