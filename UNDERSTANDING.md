@@ -235,6 +235,16 @@ Authoritative checks from the current tree:
   `lake build ShenWork.PDE.P3MoserAgmonDirectRoute` completed successfully
   (3561 jobs), and the Agmon bootstrap/Gronwall/Proposition 2.5 axiom audits
   print only `[propext, Classical.choice, Quot.sound]`.
+- `P3MoserIntegratedClosure` now exposes direct all-exponent and
+  finite-horizon boundedness consumers for the high-excursion
+  `windowFrontier`, split `lowerUpperFrontiers`, preferred
+  `lowerAverageUpperDataGapData`, and legacy `lowerAverageEpsilonData`
+  packages.  These are pure wrappers through the existing
+  `IntegratedMoserFirstCrossingStep` closure and the quantitative endpoint; no
+  new analytic residual fields were introduced.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserIntegratedClosure` completed successfully
+  (3557 jobs), and the new consumer axiom audits print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.

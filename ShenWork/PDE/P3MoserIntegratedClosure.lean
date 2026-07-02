@@ -2705,6 +2705,164 @@ theorem intervalDomain_boundedBefore_of_integrated_first_crossing_step
   exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
     (hEndpoint hAll)
 
+/-- A supplied high-excursion window frontier plus downward Lp monotonicity
+gives all finite exponents. -/
+theorem all_exponents_of_windowFrontier_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (hfront : IntegratedMoserFirstCrossingFromWindowFrontier D u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u :=
+  all_exponents_of_integrated_first_crossing_step_lpmono hboot
+    (integratedMoserFirstCrossingStep_of_windowFrontier hfront) hLpMono
+
+/-- Split lower/upper frontiers plus downward Lp monotonicity give all finite
+exponents. -/
+theorem all_exponents_of_lowerUpperFrontiers_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (hfront :
+      IntegratedMoserFirstCrossingLowerUpperFrontiers D u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u :=
+  all_exponents_of_integrated_first_crossing_step_lpmono hboot
+    (integratedMoserFirstCrossingStep_of_lowerUpperFrontiers hfront) hLpMono
+
+/-- Preferred lower-average plus upper-data-gap data, together with downward
+Lp monotonicity, gives all finite exponents. -/
+theorem all_exponents_of_lowerAverageUpperDataGapData_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+        D u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u :=
+  all_exponents_of_integrated_first_crossing_step_lpmono hboot
+    (integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData hdata)
+    hLpMono
+
+/-- Legacy lower-average plus all-witness epsilon-gap data, together with
+downward Lp monotonicity, gives all finite exponents. -/
+theorem all_exponents_of_lowerAverageEpsilonData_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageEpsilonData D u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u :=
+  all_exponents_of_integrated_first_crossing_step_lpmono hboot
+    (integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData hdata)
+    hLpMono
+
+/-- Interval-domain finite-horizon boundedness directly from a high-excursion
+window frontier. -/
+theorem intervalDomain_boundedBefore_of_windowFrontier
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (hfront :
+      IntegratedMoserFirstCrossingFromWindowFrontier
+        intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_integrated_first_crossing_step hboot
+    (integratedMoserFirstCrossingStep_of_windowFrontier hfront)
+    hLpMono hEndpoint
+
+/-- Interval-domain finite-horizon boundedness directly from split lower/upper
+frontiers. -/
+theorem intervalDomain_boundedBefore_of_lowerUpperFrontiers
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (hfront :
+      IntegratedMoserFirstCrossingLowerUpperFrontiers
+        intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_integrated_first_crossing_step hboot
+    (integratedMoserFirstCrossingStep_of_lowerUpperFrontiers hfront)
+    hLpMono hEndpoint
+
+/-- Interval-domain finite-horizon boundedness directly from the preferred
+lower-average plus upper-data-gap package. -/
+theorem intervalDomain_boundedBefore_of_lowerAverageUpperDataGapData
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageUpperDataGapData
+        intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_integrated_first_crossing_step hboot
+    (integratedMoserFirstCrossingStep_of_lowerAverageUpperDataGapData hdata)
+    hLpMono hEndpoint
+
+/-- Interval-domain finite-horizon boundedness directly from the legacy
+lower-average plus all-witness epsilon-gap package. -/
+theorem intervalDomain_boundedBefore_of_lowerAverageEpsilonData
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (hdata :
+      IntegratedMoserFirstCrossingLowerAverageEpsilonData
+        intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_integrated_first_crossing_step hboot
+    (integratedMoserFirstCrossingStep_of_lowerAverageEpsilonData hdata)
+    hLpMono hEndpoint
+
+#print axioms moser_iteration_chain_of_integrated_first_crossing_step
+#print axioms all_exponents_of_integrated_first_crossing_step_lpmono
+#print axioms intervalDomain_boundedBefore_of_integrated_first_crossing_step
+#print axioms all_exponents_of_windowFrontier_lpmono
+#print axioms all_exponents_of_lowerUpperFrontiers_lpmono
+#print axioms all_exponents_of_lowerAverageUpperDataGapData_lpmono
+#print axioms all_exponents_of_lowerAverageEpsilonData_lpmono
+#print axioms intervalDomain_boundedBefore_of_windowFrontier
+#print axioms intervalDomain_boundedBefore_of_lowerUpperFrontiers
+#print axioms intervalDomain_boundedBefore_of_lowerAverageUpperDataGapData
+#print axioms intervalDomain_boundedBefore_of_lowerAverageEpsilonData
+
 end ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
 end
