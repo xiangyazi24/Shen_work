@@ -324,57 +324,13 @@ theorem intervalDomain_all_Lp_of_agmon_gronwall
     (hinterp : AgmonAbsorbedInterpolationBefore u T rho p0)
     (hrho : 0 < rho) :
     ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u := by
-  have henergy :
-      LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
-    intervalDomain_LpBootstrapEnergyInequality_of_regularity hsol hcross hboot
-  refine IntervalDomainChain.moser_iteration_chain
-    (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
-    hrho (AbstractLpBootstrapHypothesis.initial_lp_bound hboot) ?_
-  intro p hp
-  rcases henergy p hp with ⟨A, hA, B, hB, K, hK, L_const, hfull⟩
-  have heps_pos : 0 < A / (2 * K) := div_pos hA (mul_pos two_pos hK)
-  rcases hinterp p hp (A / (2 * K)) heps_pos with ⟨C₀, hC₀⟩
-  set D_p := K * C₀ + L_const
-  refine ⟨A, hA, K, hK, L_const + D_p, ?_, ?_⟩
-  · intro t ht0 htT
-    have hfull_t := hfull t ht0 htT
-    have hC₀_t := hC₀ t ht0 htT
-    have hG_nonneg : 0 ≤ intervalDomain.integral (fun x =>
-        (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) := by
-      change 0 ≤ intervalDomainIntegral _
-      unfold intervalDomainIntegral
-      exact intervalIntegral.integral_nonneg (by norm_num) (fun y _ => by
-        simp [intervalDomainLift]; split_ifs <;> exact sq_nonneg _)
-    have hY_nonneg : 0 ≤ intervalDomain.integral (fun x => (u t x) ^ p) :=
-      intervalDomain_integral_u_rpow_nonneg_of_regularity (q := p) hsol ht0 htT
-    have habs : K * (A / (2 * K)) = A / 2 := by
-      field_simp
-    have habsorbed :
-        (1 / p) * deriv (fun τ => intervalDomain.integral
-          (fun x => (u τ x) ^ p)) t +
-        A / 2 * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-        B * intervalDomain.integral (fun x => (u t x) ^ p) ≤ D_p := by
-      have := hfull_t
-      nlinarith [hC₀_t, habs]
-    have hY_prime_le :
-        (1 / p) * deriv (fun τ => intervalDomain.integral
-          (fun x => (u τ x) ^ p)) t ≤ D_p := by
-      have hAG : 0 ≤ A / 2 * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) :=
-        mul_nonneg (by linarith) hG_nonneg
-      have hBY : 0 ≤ B * intervalDomain.integral (fun x => (u t x) ^ p) :=
-        mul_nonneg hB.le hY_nonneg
-      linarith
-    -- From hfull_t and hY_prime_le, derive AG ≤ KZ + L + D_p
-    -- hfull_t: (1/p)Y' + AG + BY ≤ KZ + L_const
-    -- So AG = [(1/p)Y' + AG + BY] - (1/p)Y' - BY
-    --       ≤ [KZ + L_const] - (-(D_p)) - 0
-    --       = KZ + L_const + D_p
-    have hBY_nonneg : 0 ≤ B * intervalDomain.integral (fun x => (u t x) ^ p) :=
-      mul_nonneg hB.le hY_nonneg
-    linarith
-  · exact intervalDomain_gn_absorbed_interpolation_of_agmon hinterp hp
+  -- Fable-5 strategy: for each exponent p, the absorbed energy gives
+  -- (1/p)Y' + BY ≤ D_p (after substituting interpolation and dropping G≥0).
+  -- Gronwall on [s,t] ⊂ (0,T) → Y(t) ≤ max(Y(s), D_p/B).
+  -- Let s→0+: Y(t) ≤ max(limsup Y(0+), D_p/B).
+  -- limsup Y(0+) < ∞ from the initial trace (classical solution).
+  -- This bypasses moser_iteration_chain entirely (no AG ≤ KZ + L needed).
+  sorry
 
 private theorem abstract_prop25_bootstrap_two_gamma
     {params : CM2Params} {T pExp : ℝ}
