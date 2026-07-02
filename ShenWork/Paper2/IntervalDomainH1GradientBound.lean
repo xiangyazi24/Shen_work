@@ -42,6 +42,16 @@ open MeasureTheory Set
 
 namespace ShenWork.Paper2.IntervalDomainH1GradientBound
 
+private theorem intervalDomainLift_apply_of_mem (f : intervalDomainPoint → ℝ)
+    (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalDomainLift f x = f ⟨x, hx⟩ :=
+  dif_pos hx
+
+private theorem intervalDomainGradNorm_eq (f : intervalDomainPoint → ℝ)
+    (p : intervalDomainPoint) :
+    intervalDomainGradNorm f p = |deriv (intervalDomainLift f) p.1| :=
+  rfl
+
 /-! ### H¹ differential inequality WITHOUT ‖u‖_∞
 
 The key improvement over `h1_diffIneq_of_sup_bounds`: instead of bounding
@@ -182,14 +192,9 @@ theorem weightedGradDiss_eq_two_mul_H1energy
   unfold intervalDomainIntegral
   refine intervalIntegral.integral_congr (fun y hy => ?_)
   rw [Set.uIcc_of_le zero_le_one] at hy
-  have hlift : intervalDomainLift
-      (fun p => (u t p) ^ ((2 : ℝ) - 2) *
-        (intervalDomainGradNorm (u t) p) ^ 2) y =
-      (intervalDomainGradNorm (u t) ⟨y, hy⟩) ^ 2 := by
-    simp [intervalDomainLift, dif_pos hy,
-      show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero]
-  rw [hlift]
-  simp [intervalDomainGradNorm, sq_abs]
+  rw [intervalDomainLift_apply_of_mem _ y hy]
+  rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
+  rw [intervalDomainGradNorm_eq, sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
