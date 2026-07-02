@@ -175,13 +175,18 @@ theorem weightedGradDiss_eq_two_mul_H1energy
   suffices h : intervalDomainLpWeightedGradientDissipation 2 u t =
       ∫ x in (0:ℝ)..1, (deriv (intervalDomainLift (u t)) x) ^ 2 by
     simp only [H1energy]; linarith
-  simp only [intervalDomainLpWeightedGradientDissipation,
-    ShenWork.IntervalDomain.intervalDomainIntegral]
-  refine intervalIntegral.integral_congr (fun x hx => ?_)
-  rw [Set.uIcc_of_le zero_le_one] at hx
-  conv_lhs => rw [intervalDomainLift, dif_pos hx]
+  unfold intervalDomainLpWeightedGradientDissipation
+  change intervalDomainIntegral _ = _
+  unfold intervalDomainIntegral
+  refine intervalIntegral.integral_congr (fun y hy => ?_)
+  rw [Set.uIcc_of_le zero_le_one] at hy
+  let x : intervalDomain.Point := ⟨y, hy⟩
+  show intervalDomainLift
+    (fun p => (u t p) ^ ((2 : ℝ) - 2) * (intervalDomainGradNorm (u t) p) ^ 2) y =
+    (deriv (intervalDomainLift (u t)) y) ^ 2
+  simp only [intervalDomainLift, hy, dif_pos]
   rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
-  simp only [ShenWork.IntervalDomain.intervalDomainGradNorm, sq_abs]
+  simp only [intervalDomainGradNorm, sq_abs]
 
 /-- **Full producer: classical solution → pointwise gradient bound at level 2.**
 
