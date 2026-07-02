@@ -3413,6 +3413,342 @@ theorem
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapStability24P2MainNoNegData
     p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### FTC-local-data regular-energy coefficient-gap route with Stability24 input -/
+
+/-- FTC-local-data regular-energy coefficient-gap Moser mainline data with the
+actual-linear-small stability package reduced to its non-vacuous Theorem 2.4
+branches. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataFacts
+      p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Convert the FTC-local-data coefficient-gap mainline data to the
+regular-energy coefficient-gap Stability24 route. -/
+def
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData.toRegularEnergyCoeffGapStability24
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {K : CompactnessData intervalDomain}
+    (h :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapStability24FrontierData
+      p M0 uBar vLower K where
+  core := h.core.to_regularEnergyCoeffGapFacts
+  compactness := h.compactness
+  stability24 := h.stability24
+
+/-- Mainline target from the FTC-local-data regular-energy coefficient-gap
+Moser route and the Stability24-only actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    hData.toRegularEnergyCoeffGapStability24
+
+/-- Instance-facing mainline target from the FTC-local-data regular-energy
+coefficient-gap Moser route and the Stability24-only actual-linear stability
+package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the FTC-local-data
+regular-energy coefficient-gap route, Paper2 main theorem targets for
+Proposition 1.3/1.4, and the Stability24-only actual-linear stability package. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+FTC-local-data regular-energy coefficient-gap Moser route, Paper2 main theorem
+target inputs, and Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+FTC-local-data regular-energy coefficient-gap Moser route, Paper2 main theorem
+target inputs, and Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the FTC-local-data
+regular-energy coefficient-gap Stability24 route, with the negative-sensitivity
+residual discharged by `0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the FTC-local-data regular-energy coefficient-gap Stability24
+Paper3 statement target from Paper2 main theorem targets, without a separate
+negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing FTC-local-data regular-energy coefficient-gap Stability24
+Paper3 statement target from Paper2 main theorem targets, with the
+negative-sensitivity residual discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-! ### Derivative-window regular-energy coefficient-gap route with Stability24 input -/
+
+/-- Derivative-window regular-energy coefficient-gap Moser mainline data with
+the actual-linear-small stability package reduced to its non-vacuous Theorem
+2.4 branches. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowFacts
+      p
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Convert the derivative-window coefficient-gap mainline data to the
+FTC-local-data coefficient-gap Stability24 route. -/
+def
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData.toFTCLocalDataStability24
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {K : CompactnessData intervalDomain}
+    (h :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+      p M0 uBar vLower K where
+  core := h.core.to_FTCLocalDataFacts
+  compactness := h.compactness
+  stability24 := h.stability24
+
+/-- Mainline target from the derivative-window regular-energy coefficient-gap
+Moser route and the Stability24-only actual-linear stability package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    hData.toFTCLocalDataStability24
+
+/-- Instance-facing mainline target from the derivative-window regular-energy
+coefficient-gap Moser route and the Stability24-only actual-linear stability
+package. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+    p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers using the derivative-window
+regular-energy coefficient-gap route, Paper2 main theorem targets for
+Proposition 1.3/1.4, and the Stability24-only actual-linear stability package. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the full interval-domain Paper3 statement target from the
+derivative-window regular-energy coefficient-gap Moser route, Paper2 main
+theorem target inputs, and Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+      p M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the
+derivative-window regular-energy coefficient-gap Moser route, Paper2 main
+theorem target inputs, and Stability24-only actual-linear stability. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the derivative-window
+regular-energy coefficient-gap Stability24 route, with the negative-sensitivity
+residual discharged by `0 < χ₀`. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+      p M0 uBar vLower K
+
+/-- Assemble the derivative-window regular-energy coefficient-gap Stability24
+Paper3 statement target from Paper2 main theorem targets, without a separate
+negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegData
+        p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing derivative-window regular-energy coefficient-gap
+Stability24 Paper3 statement target from Paper2 main theorem targets, with the
+negative-sensitivity residual discharged. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegData
+        p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegData
+    p C M0 uBar vLower K ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Derivative-boundary regular-energy coefficient-gap route with Stability24 input -/
 
 /-- Derivative-boundary regular-energy coefficient-gap Moser mainline data with
@@ -5270,6 +5606,22 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapStability24P2MainData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapStability24P2MainNoNegData
+#print axioms
+  IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData.toRegularEnergyCoeffGapStability24
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainNoNegData
+#print axioms
+  IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData.toFTCLocalDataStability24
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24P2MainNoNegData
 #print axioms
   IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryStability24FrontierData.toRegularEnergyCoeffGapStability24
 #print axioms

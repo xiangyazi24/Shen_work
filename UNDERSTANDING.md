@@ -77,14 +77,20 @@ Authoritative checks from the current tree:
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   completed successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
-- The derivative-boundary regular-energy coefficient-gap Paper3 route now has
-  a direct Stability24/P2-main statement surface:
+- The FTC-local-data, derivative-window, and derivative-boundary
+  regular-energy coefficient-gap Paper3 routes now have direct
+  Stability24/P2-main statement surfaces, including
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24FrontierData`,
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowStability24FrontierData`,
   `IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryStability24FrontierData`,
+  the corresponding P2-main statement packages such as
+  `IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataStability24P2MainData`
+  and
   `IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryStability24P2MainData`,
-  and the no-negative-sensitivity variant.  These are pure wrappers through
-  the existing derivative-boundary facts and regular-energy coefficient-gap
-  Stability24 route; no analytic residual fields were added.  The uisai2
-  target build
+  and their no-negative-sensitivity variants.  These are pure wrappers through
+  the existing FTC-local-data / derivative-window / derivative-boundary facts
+  and the regular-energy coefficient-gap Stability24 route; no analytic
+  residual fields were added.  The uisai2 target build
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   completed successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
