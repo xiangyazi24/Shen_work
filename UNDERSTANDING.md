@@ -132,6 +132,17 @@ Authoritative checks from the current tree:
   ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
   successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- `Paper3.IntervalDomainActualLinearStatementAssembly` now exposes
+  `IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataResiduals`
+  and
+  `IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataFacts`,
+  the actual-linear-small compatibility versions of the local-FTC-data
+  coefficient-gap route.  They collapse to the existing regular-energy
+  coefficient-gap actual-linear residual/facts, then reuse the integrated-step
+  and a-priori mainline consumers.  The uisai2 target build
+  `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
+  completed successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
