@@ -159,15 +159,10 @@ theorem produce_pointwiseGradientBound_of_H1energy_bound
     ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
       .intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
       (pExp := 2) hsol ht0 htT
-  -- hbridge : ∫(gradNorm (u^1))² = (2/2)² · weightedGradDiss 2 u t
-  --         = 1 · ∫ u^0 · (gradNorm u)²
-  -- After bridge: goal is (2/2)^2 * weightedGradDiss 2 u t ≤ 2·Y₁
-  -- (2/2)^2 = 1, weightedGradDiss 2 u t = ∫u^0·(gradNorm u)² = ∫(deriv lift)² = 2·H1energy
-  -- So 1 · 2 · H1energy ≤ 2·Y₁, which follows from hbnd.
-  have hsimp : (2 : ℝ) / 2 = 1 := by norm_num
-  rw [hsimp, one_pow, one_mul]
-  -- Now goal: intervalDomainLpWeightedGradientDissipation 2 u t ≤ 2 * Y₁
-  rw [weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT]
+  rw [hbridge]
+  have : (2 : ℝ) / 2 = 1 := by norm_num
+  rw [this, one_pow, one_mul,
+    weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT]
   linarith [hbnd t ht0 htT]
 
 /-- **Definitional bridge: weighted gradient dissipation at level 2 = 2 · H1energy.**
