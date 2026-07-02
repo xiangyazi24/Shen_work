@@ -1,65 +1,58 @@
 # Shen Trilogy Formalization — DOCTRINE
 
-## ACTIVE AUTOMODE TARGET (2026-07-01): Close remaining Paper2 headline frontiers
+## ACTIVE AUTOMODE TARGET (2026-07-02): Discharge Prop 2.5 conditions via 1D energy + Sobolev route
 
-### Completed (this campaign):
-- ✅ P3MoserHighExcursionProducer.lean fix (linarith + parenthesization)
-- ✅ P3MoserThresholdPlanProducer.lean (threshold plan route, axiom-clean)
-- ✅ P3MoserRegularityProducer.lean (frontier data structure, initialPowerBound)
-- ✅ P3MoserEnergyContinuity.lean (interior energy continuity via HasDerivAt)
-- ✅ IntervalAgmonInterpolation.lean (1D Agmon interpolation, axiom-clean) — by Xiang
-- ✅ GagliardoNirenberg.lean + SobolevEmbedding.lean — by Xiang
-- ✅ intervalDomain_classicalSolutionPositiveInterpolation — PROVED
-- ✅ Paper3 positive chi negative branch discharged
-- ✅ Full build green: 8988 jobs, 0 sorry, 0 sorryAx
+### Background — what Fable 5 found (2026-07-01)
+- `AgmonNoDropEnergyReductionBefore` (AG ≤ KZ + L) is FALSE — interpolation goes Z→G not G→Z.
+  High-oscillation functions have bounded Z but unbounded G.
+- Algebraic absorption route also failed — gives upper bound on Y', but
+  AG ≤ KZ + L needs LOWER bound on Y' (opposite direction).
+- `RelativeMoserInterpolationBefore` is FALSE in 1D (superlinear lower-order term).
+- Moser iteration via threshold plan DOES NOT WORK in 1D.
 
-### Current headline state:
-The thinnest χ₀=0 route is ProvedAgmonFrontierData which needs:
-1. `section2 : IntervalDomainPaper2BootstrapEstimateThinFrontierData p`
-   - lemma26: LpBootstrapEnergyInequality → all Lp (Moser iteration step)
-   - lemma27: differential Moser → Lp bound (Gronwall-type)
-   - prop22: weighted gradient estimate
-   - prop23: weighted signal estimate
-2. `localAndMain`: actual Moser atoms (raw drop, mass gradient, terminal endpoint) + local existence
+### What IS proved
+- `AgmonAbsorbedInterpolationBefore` — PRODUCED unconditionally from classical solution
+  (P3MoserAgmonDirectRoute.lean:648, `produce_AgmonAbsorbedInterpolationBefore_of_classical`)
+- 1D Sobolev: `intervalDomainLift_rpow_agmon_bound` — ‖u‖∞ from ∫u^p + ∫|∇(u^{p/2})|²
+- `IntervalDomain1DLinfRoute.lean` has the L∞ → all Lp → Prop 2.5 assembly,
+  conditional on `IntervalDomainPointwiseMoserGradientBoundBefore`
+- Energy step machinery in `IntervalDomainEnergyStep.lean`:
+  `intervalDomain_lp_energy_derivative_le_energy_plus_lower_of_frontiers` gives Y'(t) ≤ Cgr*(Y + lower)
+- Mathlib Gronwall: `le_gronwallBound_of_liminf_deriv_right_le` (already used in Paper1)
+- Full build green: 0 sorry, 0 sorryAx
 
-### ACTIVE AVENUE (automode 2026-06-30): Agmon-based mass-gradient route to Prop 2.5
+### SOLE REMAINING FRONTIER: `IntervalDomainPointwiseMoserGradientBoundBefore`
+Produce `∃ M_diss, ∀ t ∈ (0,T), ∫|∇(u^{p/2})|² ≤ M_diss` from `IsPaper2ClassicalSolution`.
+Once this is produced, `intervalDomain_Proposition_2_5_1d` closes Prop 2.5.
 
-The old MCL route through `OldUnitIntervalPowerGNYoungForMoser` is DEAD (false).
-The new route: proved Agmon → mass-gradient conversion → threshold plan → Prop 2.5.
+### CORRECTED 1D ROUTE (Fable oracle 2026-07-02):
 
-**Chain:**
-```
-Proved Agmon → LpMassGradientInterpolationEstimate (available)
-  + gradient chain comparison (avenue a)
-  + mass-to-Lp conversion (avenue b)
-  → RelativeMoserInterpolationBefore (via existing P3MoserLemmas bridge)
-  + IntegratedMoserDissipationDropBefore (avenue c)
-  + regularity/nonneg data
-  → IntegratedMoserFirstCrossingStep (threshold plan, proved)
-  + quantitative endpoint
-  → Proposition_2_5 (via existing P3MoserActualWiring)
-```
+**Key insight (Fable)**: the energy identity+inequality cannot produce a pointwise UPPER
+bound on G₂ — they only give a lower bound. The paper itself uses semigroup estimates
+(Prop 2.5 mild formulation) to get L∞, never proving a pointwise gradient bound.
+However, in 1D there is a cleaner route via H¹ energy + Uniform Gronwall:
 
-**STRUCTURAL FINDING (2026-06-30): gradient-exponent mismatch is REAL.**
-- `RelativeMoserInterpolationBefore` (∫u^{p+ρ} ≤ ε∫|∇(u^{p/2})|² + C∫u^p) is FALSE
-  in general for 1D — same reason OldUnitIntervalPowerGNYoungForMoser is false.
-- What holds in 1D: SUPERLINEAR form ∫u^{p+ρ} ≤ ε∫|∇(u^{p/2})|² + C·(∫u^p)^{p/(p-ρ)}.
-- The superlinear lower-order term breaks the threshold plan's first-crossing argument
-  (the threshold K can't be set because K - C·K^α·T → -∞ for α > 1).
-- Therefore: Moser iteration via threshold plan DOES NOT WORK in 1D as-is.
+1. **Y₂ bounded** — L² energy inequality + Gronwall (EXISTING)
+2. **∫₀ᵀ G₂ dt bounded** — from L² energy inequality (EXISTING)
+3. **H¹ energy DI without ‖u‖_∞** — test PDE with -u_xx:
+   G₂' ≤ αG₂ + β (constant coefficients)
+   where α,β depend only on params, ‖v_x‖_∞, ‖v‖_∞ (bounded), Y₂ (bounded).
+   Key: bound ∫F_x² using v_x∈L∞ + Agmon absorption (∫u^{2+2γ} ≤ εG₂ + C_ε)
+   to avoid the ‖u‖_∞ circularity in the existing h1_diffIneq_of_sup_bounds.
+4. **Uniform Gronwall** (Temam III.1.1): from G₂'≤αG₂+β + ∫G₂ bounded →
+   pointwise G₂(t) ≤ M for t ≥ r. Near t=0: initial H¹ regularity.
+5. **1D Sobolev** → ‖u‖_∞² ≤ C(Y₂ + G₂) → L∞ (EXISTING consumer)
+6. **L∞ → all Lp → Prop 2.5** (EXISTING: IntervalDomain1DLinfRoute)
 
-**CORRECTED 1D ROUTE: Uniform Gronwall + 1D Sobolev.**
-1. Energy estimate at p=2: integrated bounds ∫_s^{s+r} ∫u² + ∫|u'|² ≤ C
-2. Uniform Gronwall lemma (Temam): integrated bounds → pointwise ∫u²(t) ≤ C, ∫|u'|²(t) ≤ C
-3. 1D Sobolev (Agmon for u): ‖u(t)‖_∞² ≤ C(∫u² + ∫|u'|²) ≤ C'
-4. L∞ → all Lp: ∫u^p ≤ ‖u‖_∞^{p-1} · ∫u ≤ C'
-5. This IS Proposition 2.5 for the 1D case.
-
-**Sub-avenues (revised):**
-- (a) Prove the superlinear 1D interpolation lemma (architecture done in P3MoserAgmonDirectRoute.lean)
-- (b) Implement the Uniform Gronwall Lemma (check if in Mathlib)
-- (c) Build the L² energy → integrated bounds → pointwise bounds chain
-- (d) Wire pointwise bounds + Agmon → L∞ → all Lp → Prop 2.5
+### Avenues (ranked — avenue (a) is now the Fable oracle route)
+(a) **H¹ + Uniform Gronwall**: build pieces 3-4 above. Three new artifacts:
+    - `ShenWork/Analysis/UniformGronwall.lean` — abstract Uniform Gronwall lemma
+    - `ShenWork/Paper2/IntervalDomainH1EnergyNoSupBound.lean` — H¹ DI without ‖u‖_∞
+    - Producer theorem: apply UG to get `IntervalDomainPointwiseMoserGradientBoundBefore u T 2`
+    Terminal: this + existing 1D Linf route → Prop 2.5 unconditional.
+(b) **Semigroup/mild route (paper's actual proof)**: bypass gradient bound entirely,
+    use mild formulation + heat semigroup estimates for L∞.
+    More faithful to paper but heavier infrastructure.
 
 ### Previous avenues (reference):
 - lemma26: Moser iteration step

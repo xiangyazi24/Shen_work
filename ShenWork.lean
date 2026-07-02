@@ -430,3 +430,5 @@ import ShenWork.Paper2.IntervalRestartVariationOfConstants
 import ShenWork.Paper2.IntervalLevel0DirectResolverCommute
 import ShenWork.Paper2.IntervalResolverLevel0SpectralC2Coeff
 import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
+import ShenWork.Analysis.UniformGronwall
+import ShenWork.Paper2.IntervalDomainH1GradientBound
