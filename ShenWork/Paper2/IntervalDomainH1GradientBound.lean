@@ -244,7 +244,19 @@ theorem weightedGradDiss_le_of_Linf
   · sorry
   · intro y hy
     rw [Set.uIcc_of_le zero_le_one] at hy
-    simp only [intervalDomainLift, hy, dite_true]
+    have h1 : intervalDomainLift
+        (fun x => (u t x) ^ (pExp - 2) *
+          (intervalDomain.gradNorm (u t) x) ^ 2) y =
+        (u t ⟨y, hy⟩) ^ (pExp - 2) *
+          (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 := by
+      unfold intervalDomainLift; exact dif_pos hy
+    have h2 : intervalDomainLift
+        (fun x => (u t x) ^ ((2 : ℝ) - 2) *
+          (intervalDomain.gradNorm (u t) x) ^ 2) y =
+        (u t ⟨y, hy⟩) ^ ((2 : ℝ) - 2) *
+          (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 := by
+      unfold intervalDomainLift; exact dif_pos hy
+    rw [h1, h2]
     rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
     exact mul_le_mul_of_nonneg_right
       (Real.rpow_le_rpow (hsol.u_pos' ht0 htT).le (hLinf ⟨y, hy⟩) (by linarith))
