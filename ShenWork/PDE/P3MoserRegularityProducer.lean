@@ -904,6 +904,31 @@ theorem intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnerg
       (AbstractLpBootstrapHypothesis.rho_pos hboot)
       (p0_nonneg_of_abstractLpBootstrapHypothesis hboot)
 
+/-- Direct first-crossing step from classical regularity data and derivative
+window integrability.  The endpoint continuity needed for the energy-window
+FTC is taken from the same classical regularity data, so callers no longer
+duplicate that field in a separate local-FTC package. -/
+theorem
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivWindow
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hdata : IntervalDomainIntegratedMoserClassicalRegularityData u T p0)
+    (hderiv :
+      IntegratedMoserEnergyDerivativeWindowIntegrability intervalDomain u T p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hgap :
+      ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
+  intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+    hsol hcross hboot hdata
+    (intervalDomain_integratedMoserEnergyWindowFTC_of_classical_endpoint_derivIntegrable
+      hsol hdata.endpointEnergy hderiv)
+    hrel hgap
+
 /-! ### Lower-average/epsilon-gap data assembly -/
 
 /-- Assemble the full `IntegratedMoserFirstCrossingLowerAverageEpsilonData`
@@ -1095,6 +1120,8 @@ section AxiomAudit
 #print axioms intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData
 #print axioms
   intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
+#print axioms
+  intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivWindow
 
 end AxiomAudit
 

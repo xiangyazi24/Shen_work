@@ -143,6 +143,23 @@ Authoritative checks from the current tree:
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   completed successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- The regular-energy coefficient-gap route now has a thinner
+  derivative-window surface.  `P3MoserRegularityProducer` exposes
+  `intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivWindow`,
+  which builds the energy-window FTC from
+  `classicalRegularity.endpointEnergy` plus
+  `IntegratedMoserEnergyDerivativeWindowIntegrability`.  The PDE, Paper2, and
+  Paper3 statement layers expose the matching
+  `...RegularEnergyCoeffGapDerivativeWindow...` residual/frontier/facts
+  packages, converting through the local-FTC-data surfaces without duplicating
+  endpoint continuity as a separate residual.  This is still conditional on the
+  derivative-window integrability frontier.  The uisai2 target build
+  `lake build ShenWork.PDE.P3MoserRegularityProducer
+  ShenWork.PDE.IntervalDomainMoserLadderAtoms
+  ShenWork.Paper2.IntervalDomainStatementAssembly
+  ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly` completed
+  successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - New integrated-Moser closure status: `P3MoserIntegratedClosure` has the
   coefficient-gap surplus wrapper
   `integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality_coeffGap`.
