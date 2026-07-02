@@ -220,11 +220,77 @@ theorem produce_pointwiseGradientBound_full
   exact produce_pointwiseGradientBound_of_H1energy_bound hsol hY1
     (fun τ hτ0 _ => hH1bnd τ hτ0)
 
+/-- **Pointwise weighted gradient comparison: u^{p-2}|∇u|² ≤ M∞^{p-2}·|∇u|² when u ≤ M∞ and p ≥ 2.**
+
+For pExp ≥ 2, we have u^{pExp-2} ≤ M∞^{pExp-2} pointwise (since u > 0, u ≤ M∞,
+and the exponent pExp-2 ≥ 0), so the weighted gradient dissipation at level pExp
+is bounded by M∞^{pExp-2} times the unweighted (pExp=2) dissipation. -/
+theorem weightedGradDiss_le_of_Linf
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    {M∞ : ℝ} (hMinf : 0 ≤ M∞)
+    (hLinf : ∀ x : intervalDomain.Point, u t x ≤ M∞)
+    (pExp : ℝ) (hpExp2 : 2 ≤ pExp) :
+    intervalDomainLpWeightedGradientDissipation pExp u t ≤
+      M∞ ^ (pExp - 2) * intervalDomainLpWeightedGradientDissipation 2 u t := by
+  unfold intervalDomainLpWeightedGradientDissipation intervalDomainIntegral
+  rw [← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_mono_on (by norm_num) ?_ ?_ (fun y hy => ?_)
+  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
+  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
+  · rw [Set.uIcc_of_le zero_le_one] at hy
+    have hu_pos : 0 < u t ⟨y, hy⟩ := hsol.u_pos' ht0 htT
+    have hu_le : u t ⟨y, hy⟩ ≤ M∞ := hLinf ⟨y, hy⟩
+    simp only [intervalDomainLift, hy, dif_pos]
+    rw [show (2 : ℝ) - 2 = 0 from by norm_num, Real.rpow_zero, one_mul]
+    have hexp_nn : 0 ≤ pExp - 2 := by linarith
+    have : (u t ⟨y, hy⟩) ^ (pExp - 2) ≤ M∞ ^ (pExp - 2) :=
+      Real.rpow_le_rpow hu_pos.le hu_le hexp_nn
+    have hgrad_sq_nn : 0 ≤ (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 :=
+      sq_nonneg _
+    calc (u t ⟨y, hy⟩) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2
+        ≤ M∞ ^ (pExp - 2) * (intervalDomain.gradNorm (u t) ⟨y, hy⟩) ^ 2 := by
+          exact mul_le_mul_of_nonneg_right this hgrad_sq_nn
+
+/-- **1D shortcut: L∞ + H1 bound → general gradient bound at any pExp ≥ 2.**
+
+In 1D, once we have `u(t,x) ≤ M∞` and `H1energy u t ≤ Y₁` (uniformly in t),
+we get `IntervalDomainPointwiseMoserGradientBoundBefore u T pExp` for pExp ≥ 2:
+  `∫|∇(u^{p/2})|² = (p/2)² ∫ u^{p-2}|∇u|² ≤ (p/2)² M∞^{p-2} · 2Y₁`.
+
+This avoids the full Moser ladder — the 1D Sobolev H¹→L∞ embedding makes
+the H1 bound at pExp=2 sufficient for all levels ≥ 2. -/
+theorem produce_pointwiseGradientBound_general_pExp
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    {Y₁ : ℝ} (hY1 : 0 ≤ Y₁)
+    (hH1 : ∀ τ, 0 < τ → τ < T → H1energy u τ ≤ Y₁)
+    {M∞ : ℝ} (hMinf : 0 ≤ M∞)
+    (hLinf : ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, u t x ≤ M∞)
+    (pExp : ℝ) (hpExp2 : 2 ≤ pExp) :
+    IntervalDomainPointwiseMoserGradientBoundBefore u T pExp := by
+  have hpExp : 0 < pExp := by linarith
+  refine ⟨(pExp / 2) ^ 2 * M∞ ^ (pExp - 2) * (2 * Y₁), by positivity, fun t ht0 htT => ?_⟩
+  have hbridge :=
+    intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+      (pExp := pExp) hsol ht0 htT
+  rw [hbridge]
+  have hweighted :=
+    weightedGradDiss_le_of_Linf hsol ht0 htT hMinf (hLinf t ht0 htT) pExp hpExp2
+  have h2 := weightedGradDiss_eq_two_mul_H1energy hsol ht0 htT
+  rw [h2] at hweighted
+  have hH1bound := hH1 t ht0 htT
+  nlinarith [sq_nonneg (pExp / 2), Real.rpow_nonneg hMinf (pExp - 2)]
+
 section AxiomAudit
 #print axioms h1_diffIneq_of_agmon_bounds
 #print axioms weightedGradDiss_eq_two_mul_H1energy
 #print axioms produce_pointwiseGradientBound_of_H1energy_bound
 #print axioms produce_pointwiseGradientBound_full
+#print axioms produce_pointwiseGradientBound_general_pExp
 end AxiomAudit
 
 end ShenWork.Paper2.IntervalDomainH1GradientBound
