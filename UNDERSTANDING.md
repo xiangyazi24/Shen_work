@@ -94,6 +94,16 @@ Authoritative checks from the current tree:
   `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
   completed successfully (8573 jobs), and the new wrappers print only
   `[propext, Classical.choice, Quot.sound]`.
+- The derivative-boundary regular-energy coefficient-gap route also has a thin
+  sup-norm compactness / Stability24 P2-main statement surface:
+  `IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData`,
+  `IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData`,
+  and the no-negative-sensitivity variant.  It routes through the existing
+  derivative-boundary facts and integrated-step thin route, so it adds no new
+  analytic residual fields.  The uisai2 target build
+  `lake build ShenWork.Paper3.IntervalDomainActualLinearStatementAssembly`
+  completed successfully (8573 jobs), and the new wrappers print only
+  `[propext, Classical.choice, Quot.sound]`.
 - The four legacy first-crossing shortcut theorems in
   `P3MoserRegularityProducer` that still accepted lower-average / upper-gap
   frontier parameters after their proof bodies had switched to the direct

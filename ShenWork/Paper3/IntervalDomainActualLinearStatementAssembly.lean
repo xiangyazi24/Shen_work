@@ -4141,6 +4141,245 @@ theorem
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 
+/-! ### Derivative-boundary regular-energy coefficient-gap route with thin compactness input -/
+
+/-- Thin derivative-boundary regular-energy coefficient-gap Moser mainline
+frontiers for the actual-linear headline route.  This uses the canonical
+sup-norm compactness package and carries only the non-vacuous Theorem 2.4
+stability frontiers. -/
+structure
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  core :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+      p
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  compactness :
+    IntervalDomainPaper3SupNormCompactnessAPosData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+  stability24 :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Convert the derivative-boundary coefficient-gap thin route to the existing
+integrated-step thin route. -/
+def
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData.toIntegratedStepThin
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop}
+    {neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
+    (h :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallIntegratedStepThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound where
+  core := h.core.to_integratedStepFacts
+  initialContinuity := h.initialContinuity
+  compactness := h.compactness
+  stability24 := h.stability24
+
+/-- Assemble the concrete interval-domain Paper3 mainline from the thin
+derivative-boundary regular-energy coefficient-gap route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepThinFrontierData
+    p M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.toIntegratedStepThin
+
+/-- Instance-facing concrete interval-domain Paper3 mainline from the thin
+derivative-boundary regular-energy coefficient-gap route. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+        p M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+    p M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the thin
+derivative-boundary regular-energy coefficient-gap route, with Proposition
+1.3/1.4 routed through Paper2 main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  propositions : IntervalDomainPaper3Proposition1FromPaper2MainTargetsData p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the full interval-domain Paper3 statement target from the thin
+derivative-boundary regular-energy coefficient-gap route and Paper2 main
+theorem target inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_paper2MainTargetsData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+      ha hb hχ0 hm hβ hχ hData.mainline⟩
+
+/-- Instance-facing full interval-domain Paper3 statement target from the thin
+derivative-boundary regular-energy coefficient-gap route and Paper2 main theorem
+target inputs. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full interval-domain Paper3 statement frontiers for the thin
+derivative-boundary regular-energy coefficient-gap route, with the
+negative-sensitivity Proposition 1.2 residual discharged by `0 < χ₀` and
+Proposition 1.3/1.4 routed through Paper2 main theorem targets. -/
+structure
+    IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the full interval-domain Paper3 statement target from the thin
+derivative-boundary regular-energy coefficient-gap route and Paper2 main theorem
+targets, without carrying a separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ
+    { propositions :=
+        { negativeBound :=
+            intervalDomainPaper3_negativeSensitivityGlobalEventualBound_of_chi_pos
+              p hχ0
+          paper2Main := hData.paper2Main }
+      mainline := hData.mainline }
+
+/-- Instance-facing full interval-domain Paper3 statement target from the thin
+derivative-boundary regular-energy coefficient-gap route and Paper2 main theorem
+targets, with the negative-sensitivity residual discharged by `0 < χ₀`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
 /-! ### Integrated-Moser direct threshold-plan route -/
 
 /-- Actual-linear-small Moser residuals whose first-crossing step is produced
@@ -5636,6 +5875,14 @@ namespace ShenWork.Paper3
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainData
 #print axioms
   intervalDomain_paper3_statementTargets_of_moserActualLinearSmallIntegratedStepThinP2MainNoNegData
+#print axioms
+  IntervalDomainPaper3MainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData.toIntegratedStepThin
+#print axioms
+  intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinFrontierData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainData
+#print axioms
+  intervalDomain_paper3_statementTargets_of_moserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryThinP2MainNoNegData
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedMoserResiduals.to_integratedMoserResiduals
 #print axioms
