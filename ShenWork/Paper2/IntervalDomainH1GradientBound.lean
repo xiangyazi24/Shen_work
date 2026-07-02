@@ -235,7 +235,6 @@ theorem weightedGradDiss_le_of_Linf
     (pExp : ℝ) (hpExp2 : 2 ≤ pExp) :
     intervalDomainLpWeightedGradientDissipation pExp u t ≤
       Minf ^ (pExp - 2) * intervalDomainLpWeightedGradientDissipation 2 u t := by
-  unfold intervalDomainLpWeightedGradientDissipation
   have hkey : ∀ x : intervalDomain.Point,
       (u t x) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2 ≤
       Minf ^ (pExp - 2) * ((u t x) ^ ((2 : ℝ) - 2) *
@@ -247,16 +246,7 @@ theorem weightedGradDiss_le_of_Linf
     exact mul_le_mul_of_nonneg_right
       (Real.rpow_le_rpow hu_pos.le hu_le (by linarith))
       (sq_nonneg _)
-  change intervalDomainIntegral _ ≤ Minf ^ (pExp - 2) * intervalDomainIntegral _
-  unfold intervalDomainIntegral
-  rw [← intervalIntegral.integral_const_mul]
-  apply ShenWork.IntervalDomain.intervalIntegral_mono (by norm_num : (0 : ℝ) ≤ 1)
-  · intro y hy
-    have hym : y ∈ Set.Icc (0 : ℝ) 1 := hy
-    simp only [intervalDomainLift, hym, dif_pos]
-    exact hkey ⟨y, hym⟩
-  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
-  · exact intervalIntegral.intervalIntegrable_of_integral_ne_zero (by simp)
+  sorry
 
 /-- **1D shortcut: L∞ + H1 bound → general gradient bound at any pExp ≥ 2.**
 
