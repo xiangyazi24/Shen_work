@@ -805,6 +805,140 @@ def aprioriBound
 
 end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeWindowResiduals
 
+/-- Regular-energy coefficient-gap residuals with derivative-window
+integrability reduced to initial- and terminal-window derivative
+integrability.  Classical regularity supplies the strict interior windows. -/
+structure IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+    (p : CM2Params) where
+  a_pos : 0 < p.a
+  chi_nonneg : 0 ≤ p.χ₀
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  l2SeedRegularity :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        IntervalDomainL2SeedRegularityFrontier T u
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  derivativeBoundaryData :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserEnergyDerivativeBoundaryData u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coeffGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+
+def to_derivativeWindowResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeWindowResiduals
+      p where
+  a_pos := h.a_pos
+  chi_nonneg := h.chi_nonneg
+  boundednessHyp := h.boundednessHyp
+  l2SeedRegularity := h.l2SeedRegularity
+  classicalRegularity := h.classicalRegularity
+  derivativeWindowIntegrability := fun hsol hcross hboot =>
+    intervalDomain_derivativeWindowIntegrability_of_classical_boundary
+      hsol (h.derivativeBoundaryData hsol hcross hboot)
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  coeffGap := h.coeffGap
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_FTCLocalDataResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    IntervalDomainMassLpSmoothingRegularEnergyCoeffGapFTCLocalDataResiduals
+      p :=
+  h.to_derivativeWindowResiduals.to_FTCLocalDataResiduals
+
+def to_regularEnergyCoeffGapResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    IntervalDomainMassLpSmoothingRegularEnergyCoeffGapResiduals p :=
+  h.to_derivativeWindowResiduals.to_regularEnergyCoeffGapResiduals
+
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    IntervalDomainMassLpSmoothingIntegratedStepResiduals p :=
+  h.to_derivativeWindowResiduals.to_integratedStepResiduals
+
+/-- Corollary 2.1 from the derivative-boundary regular-energy coefficient-gap
+route. -/
+theorem corollary21
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    Corollary_2_1 intervalDomain p :=
+  h.to_derivativeWindowResiduals.corollary21
+
+/-- Proposition 2.5 from the derivative-boundary regular-energy coefficient-gap
+route. -/
+theorem proposition25
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    Proposition_2_5 intervalDomain p :=
+  h.to_derivativeWindowResiduals.proposition25
+
+def to_routeResiduals
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_derivativeWindowResiduals.to_routeResiduals
+
+def aprioriBound
+    {p : CM2Params}
+    (h : IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p) :
+    IntervalDomainMassLpSmoothingAprioriBound p :=
+  h.to_derivativeWindowResiduals.aprioriBound
+
+end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+
 /-- Lower-level inputs that refine `IntegratedStepResiduals` by replacing
 the opaque `integratedStep` field with an explicit high-excursion
 contradiction-window frontier supplier.
@@ -987,6 +1121,19 @@ namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeWindowResi
 #print axioms aprioriBound
 
 end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeWindowResiduals
+
+namespace IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
+
+#print axioms to_derivativeWindowResiduals
+#print axioms to_FTCLocalDataResiduals
+#print axioms to_regularEnergyCoeffGapResiduals
+#print axioms to_integratedStepResiduals
+#print axioms corollary21
+#print axioms proposition25
+#print axioms to_routeResiduals
+#print axioms aprioriBound
+
+end IntervalDomainMassLpSmoothingRegularEnergyCoeffGapDerivativeBoundaryResiduals
 
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_integratedStepResiduals
 #print axioms IntervalDomainMassLpSmoothingWindowFrontierResiduals.to_routeResiduals

@@ -929,6 +929,31 @@ theorem
       hsol hdata.endpointEnergy hderiv)
     hrel hgap
 
+/-- Direct first-crossing step from classical regularity data and the two
+endpoint derivative-window residuals.  The strict interior derivative
+integrability is produced locally from classical regularity. -/
+theorem
+    intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivBoundary
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hdata : IntervalDomainIntegratedMoserClassicalRegularityData u T p0)
+    (hderivBoundary :
+      IntervalDomainIntegratedMoserEnergyDerivativeBoundaryData u T p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hgap :
+      ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A) :
+    IntegratedMoserFirstCrossingStep intervalDomain u T rho p0 :=
+  intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivWindow
+    hsol hcross hboot hdata
+    (intervalDomain_derivativeWindowIntegrability_of_classical_boundary
+      (params := params) (T := T) (p0 := p0) (u := u) (v := v)
+      hsol hderivBoundary)
+    hrel hgap
+
 /-! ### Lower-average/epsilon-gap data assembly -/
 
 /-- Assemble the full `IntegratedMoserFirstCrossingLowerAverageEpsilonData`
@@ -1122,6 +1147,8 @@ section AxiomAudit
   intervalDomain_firstCrossingStep_of_classicalRegularityData_regularEnergyCoeffGap
 #print axioms
   intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivWindow
+#print axioms
+  intervalDomain_firstCrossingStep_of_classicalRegularityData_coeffGap_derivBoundary
 
 end AxiomAudit
 

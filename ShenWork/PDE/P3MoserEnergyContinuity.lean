@@ -1030,6 +1030,71 @@ def IntegratedMoserEnergyDerivativeInitialWindowIntegrability
         (fun s => deriv (fun τ => integratedMoserEnergy D u q τ) s)
         volume 0 b
 
+/-- Terminal-window derivative-integrability residual for Moser energies.
+
+Together with initial-window integrability, this is the endpoint part not
+covered by strict-interior classical regularity. -/
+def IntegratedMoserEnergyDerivativeTerminalWindowIntegrability
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T p0 : ℝ) : Prop :=
+  ∀ q, p0 ≤ q →
+    ∀ a, 0 < a → a ≤ T →
+      IntervalIntegrable
+        (fun s => deriv (fun τ => integratedMoserEnergy D u q τ) s)
+        volume a T
+
+/-- Endpoint derivative-integrability data for the interval-domain Moser energy.
+
+Strict interior windows are produced from classical regularity; this package
+keeps only the two time-boundary residuals. -/
+structure IntervalDomainIntegratedMoserEnergyDerivativeBoundaryData
+    (u : ℝ → intervalDomain.Point → ℝ) (T p0 : ℝ) : Prop where
+  initialWindow :
+    IntegratedMoserEnergyDerivativeInitialWindowIntegrability
+      intervalDomain u T p0
+  terminalWindow :
+    IntegratedMoserEnergyDerivativeTerminalWindowIntegrability
+      intervalDomain u T p0
+
+/-- Assemble full derivative-window integrability from initial-window,
+strict-interior, and terminal-window pieces. -/
+theorem integratedMoserEnergyDerivativeWindowIntegrability_of_boundary
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p0 : ℝ}
+    (hinit :
+      IntegratedMoserEnergyDerivativeInitialWindowIntegrability D u T p0)
+    (hstrict :
+      IntegratedMoserEnergyDerivativeStrictWindowIntegrability D u T p0)
+    (hterminal :
+      IntegratedMoserEnergyDerivativeTerminalWindowIntegrability D u T p0) :
+    IntegratedMoserEnergyDerivativeWindowIntegrability D u T p0 := by
+  intro q hq t1 ht1 t2 ht2
+  by_cases ht10 : t1 = 0
+  · subst t1
+    exact hinit q hq t2 ht2
+  have ht1_pos : 0 < t1 :=
+    lt_of_le_of_ne ht1.1 (fun h : (0 : ℝ) = t1 => ht10 h.symm)
+  by_cases ht2T : t2 = T
+  · subst t2
+    exact hterminal q hq t1 ht1_pos ht1.2
+  have ht2_lt : t2 < T := lt_of_le_of_ne ht2.2 ht2T
+  exact hstrict q hq t1 t2 ht1_pos ht2.1 ht2_lt
+
+/-- A local classical interval-domain solution supplies the strict-interior
+part of derivative-window integrability; only initial and terminal endpoint
+windows remain as residuals. -/
+theorem intervalDomain_derivativeWindowIntegrability_of_classical_boundary
+    {params : CM2Params} {T p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hdata :
+      IntervalDomainIntegratedMoserEnergyDerivativeBoundaryData u T p0) :
+    IntegratedMoserEnergyDerivativeWindowIntegrability intervalDomain u T p0 :=
+  integratedMoserEnergyDerivativeWindowIntegrability_of_boundary
+    hdata.initialWindow
+    (intervalDomain_integratedMoserEnergyDerivativeStrictWindowIntegrability_of_classical
+      (params := params) (T := T) (p0 := p0) (u := u) (v := v) hsol)
+    hdata.terminalWindow
+
 /-- PDE-shaped initial-window residual: integrability near `t = 0` of the
 explicit time-Leibniz RHS for the interval-domain power energy. -/
 def IntervalDomainPowerEnergyDerivIntegralInitialWindowIntegrability
@@ -2163,6 +2228,8 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
 #print axioms intervalDomain_deriv_intervalIntegrable_of_strictWindow
 #print axioms
   intervalDomain_integratedMoserEnergyDerivativeStrictWindowIntegrability_of_classical
+#print axioms integratedMoserEnergyDerivativeWindowIntegrability_of_boundary
+#print axioms intervalDomain_derivativeWindowIntegrability_of_classical_boundary
 #print axioms
   intervalDomain_integratedMoserEnergy_deriv_eq_powerDerivIntegral_of_global_pos
 #print axioms

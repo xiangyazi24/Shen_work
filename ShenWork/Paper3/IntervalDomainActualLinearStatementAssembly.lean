@@ -2519,6 +2519,126 @@ def to_routeResiduals
 end
     IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowResiduals
 
+/-- Actual-linear-small mass/Lp/smoothing residuals for the
+derivative-boundary regular-energy coefficient-gap route.  The strict
+interior derivative windows come from classical regularity. -/
+structure
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+    (p : CM2Params) : Prop where
+  boundednessHyp : IntervalDomainBoundednessHyp p
+  closedEnergyTrace :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        Nonempty
+          (P3MoserLemmaDischarge.ClosedEnergyIdentityTraceData T u₀ u)
+  classicalRegularity :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserClassicalRegularityData u T p0
+  derivativeBoundaryData :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        IntervalDomainIntegratedMoserEnergyDerivativeBoundaryData u T p0
+  relativeMoserInterpolation :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  coeffGap :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u
+        (p.N : ℝ) T rho p0 →
+        ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A
+  quantitativeEndpoint :
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ {T : ℝ}, 0 < T →
+    ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+    ∀ pExp,
+      max (p.N : ℝ)
+          (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+      LpPowerBoundedBefore intervalDomain pExp T u →
+        ∃ pSeq rootBound : ℕ → ℝ,
+          (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+            IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+namespace
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+
+/-- Produce the derivative-window actual-linear residual from endpoint
+derivative data and strict interior classical regularity. -/
+def to_derivativeWindowResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowResiduals
+      p where
+  boundednessHyp := h.boundednessHyp
+  closedEnergyTrace := h.closedEnergyTrace
+  classicalRegularity := h.classicalRegularity
+  derivativeWindowIntegrability := fun hsol hcross hboot =>
+    intervalDomain_derivativeWindowIntegrability_of_classical_boundary
+      hsol (h.derivativeBoundaryData hsol hcross hboot)
+  relativeMoserInterpolation := h.relativeMoserInterpolation
+  coeffGap := h.coeffGap
+  quantitativeEndpoint := h.quantitativeEndpoint
+
+def to_FTCLocalDataResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataResiduals
+      p :=
+  h.to_derivativeWindowResiduals.to_FTCLocalDataResiduals
+
+def to_regularEnergyCoeffGapResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapResiduals
+      p :=
+  h.to_derivativeWindowResiduals.to_regularEnergyCoeffGapResiduals
+
+def to_integratedStepResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+        p) :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallIntegratedStepResiduals p :=
+  h.to_derivativeWindowResiduals.to_integratedStepResiduals
+
+/-- Direct route residuals from the derivative-boundary regular-energy
+coefficient-gap actual-linear surface. -/
+def to_routeResiduals
+    {p : CM2Params}
+    (h :
+      IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainMassLpSmoothingRouteResiduals p :=
+  h.to_derivativeWindowResiduals.to_routeResiduals ha hχ0
+
+end
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+
 /-- Sectorial mainline facts with the integrated first-crossing step input. -/
 structure IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts
     (p : CM2Params) : Prop where
@@ -2702,6 +2822,77 @@ def to_aprioriActualLinearSmallFacts
 
 end
     IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowFacts
+
+/-- Sectorial mainline facts for the derivative-boundary regular-energy
+coefficient-gap Moser route. -/
+structure
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+    (p : CM2Params) : Prop where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  continuation :
+    IntervalDomainStandardContinuationGluingData p
+  massLpSmoothing :
+    IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals
+      p
+
+namespace
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+
+/-- Collapse derivative-boundary sectorial facts to the existing
+derivative-window sectorial facts. -/
+def to_derivativeWindowFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+        p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowFacts
+      p where
+  spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+  continuation := h.continuation
+  massLpSmoothing := h.massLpSmoothing.to_derivativeWindowResiduals
+
+def to_FTCLocalDataFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+        p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapFTCLocalDataFacts
+      p :=
+  h.to_derivativeWindowFacts.to_FTCLocalDataFacts
+
+def to_regularEnergyCoeffGapFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+        p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapFacts
+      p :=
+  h.to_derivativeWindowFacts.to_regularEnergyCoeffGapFacts
+
+/-- Convert the derivative-boundary regular-energy coefficient-gap sectorial
+facts to the existing integrated-step sectorial facts. -/
+def to_integratedStepFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+        p) :
+    IntervalDomainSectorialMainlineMoserActualLinearSmallIntegratedStepFacts p :=
+  h.to_derivativeWindowFacts.to_integratedStepFacts
+
+/-- Convert the derivative-boundary regular-energy coefficient-gap sectorial
+facts to the existing a-priori actual-linear-small facts. -/
+def to_aprioriActualLinearSmallFacts
+    {p : CM2Params}
+    (h :
+      IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
+        p)
+    (ha : 0 < p.a) (hχ0 : 0 < p.χ₀) :
+    IntervalDomainSectorialMainlineAprioriActualLinearSmallFacts p :=
+  h.to_derivativeWindowFacts.to_aprioriActualLinearSmallFacts ha hχ0
+
+end
+    IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts
 
 /-- Concrete interval-domain Paper3 mainline frontiers using the integrated
 first-crossing step route and the actual-linear-small persistence producer. -/
@@ -4371,6 +4562,16 @@ namespace ShenWork.Paper3
 #print axioms
   IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowResiduals.to_routeResiduals
 #print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals.to_derivativeWindowResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals.to_FTCLocalDataResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals.to_regularEnergyCoeffGapResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals.to_integratedStepResiduals
+#print axioms
+  IntervalDomainMassLpSmoothingMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryResiduals.to_routeResiduals
+#print axioms
   IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapFacts.to_integratedStepFacts
 #print axioms
   IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapFacts.to_aprioriActualLinearSmallFacts
@@ -4388,6 +4589,16 @@ namespace ShenWork.Paper3
   IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowFacts.to_integratedStepFacts
 #print axioms
   IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeWindowFacts.to_aprioriActualLinearSmallFacts
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts.to_derivativeWindowFacts
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts.to_FTCLocalDataFacts
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts.to_regularEnergyCoeffGapFacts
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts.to_integratedStepFacts
+#print axioms
+  IntervalDomainSectorialMainlineMoserActualLinearSmallRegularEnergyCoeffGapDerivativeBoundaryFacts.to_aprioriActualLinearSmallFacts
 #print axioms
   intervalDomain_paper3_mainlineTargets_of_moserActualLinearSmallIntegratedStepFrontierData
 #print axioms
