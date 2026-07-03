@@ -6,6 +6,8 @@ import ShenWork.Wiener.WeightedL1EvalDeriv
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
 import ShenWork.PDE.IntervalSemigroupNeumann
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
+import ShenWork.Wiener.EWA.SourceL1ContOnBridge
+import ShenWork.Wiener.EWA.ChemDivEval
 
 /-!
 # Discharge `hsource` (ResolverSourceSummable) from EWA structure
@@ -787,5 +789,86 @@ theorem hsumE_of_L1ContOn (p : CM2Params)
 #print axioms wLog_continuous_of_floor
 #print axioms realizes_evalST_auto
 #print axioms hsumE_of_L1ContOn
+
+/-! ### L1ContOn auto-discharge (Group B)
+
+Wire the DuhamelSourceL1ContOn hypotheses for logistic and chemDiv sources
+from EWA data alone. Uses eval bridges + slab realization. -/
+
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn) in
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledLogisticSourceCoeffs coupledLogisticSourceLift) in
+noncomputable def logisticSourceL1ContOn_auto (p : CM2Params)
+    (u_star : EWA T 1) {δ : ℝ} (hδpos : 0 < δ)
+    (hER : EvenRealEWA u_star) (hfloor : UniformFloor u_star δ)
+    (hα : 0 ≤ p.α) (hT : 0 ≤ T) :
+    DuhamelSourceL1ContOn (coupledLogisticSourceCoeffs p (realSlice u_star)) T :=
+  logisticSourceL1ContOn_of_EWA p (realSlice u_star) u_star hT hER
+    (fun τ x hx =>
+      evalST_growthEWA_eq_logisticLifted p u_star (realSlice u_star τ.1) τ x
+        (Set.Ioo_subset_Icc_self hx)
+        (realSlice_h_u_slab hER τ x (Set.Ioo_subset_Icc_self hx))
+        (realSlice_h_uα_slab p hδpos hER hfloor hα τ x (Set.Ioo_subset_Icc_self hx)))
+
+#print axioms logisticSourceL1ContOn_auto
+
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn) in
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledChemDivSourceCoeffs coupledChemDivSourceLift) in
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted) in
+noncomputable def chemDivSourceL1ContOn_auto (p : CM2Params)
+    (u_star : EWA T 1) {δ : ℝ} (hδpos : 0 < δ)
+    (hER : EvenRealEWA u_star) (hTpos : 0 < T)
+    (hfloor : UniformFloor u_star δ)
+    (hβpos : 0 < p.β) (hνnn : 0 ≤ p.ν) (hμle1 : p.μ ≤ 1) :
+    DuhamelSourceL1ContOn (coupledChemDivSourceCoeffs p (realSlice u_star)) T := by
+  have hT : (0 : ℝ) ≤ T := le_of_lt hTpos
+  have hsum : ∀ σ : TimeDom T, ResolverSourceSummable p (realSlice u_star σ.1) :=
+    fun σ => resolverSourceSummable_of_evenReal p u_star hER hδpos hfloor σ
+  have hgrad : ∀ (τ : TimeDom T),
+      Summable fun k : ℕ =>
+        |(intervalNeumannResolverCoeff p (realSlice u_star τ.1) k).re| *
+          ((k : ℝ) * Real.pi) :=
+    fun τ => resolverGradSummable_of_evenReal p u_star hER hδpos hfloor τ
+  set f : ℝ → ℝ → ℝ := fun s y =>
+    if h : s ∈ Set.Icc (0 : ℝ) T then
+      p.ν * (WA.evalAt (y : WA.Circ)
+        (sliceWA ⟨s, h⟩ (GWA.incl (by omega : (0:ℕ) ≤ 1) u_star))).re ^ p.γ
+    else 0
+  have hf_cont : ∀ σ : TimeDom T, Continuous (f σ.1) := by
+    intro σ; simp only [f, dif_pos σ.2]
+    exact sourceFn_continuous p u_star hδpos hfloor σ
+  have hf_nonneg : ∀ (σ : TimeDom T) (y : ℝ), 0 ≤ f σ.1 y := by
+    intro σ y; simp only [f, dif_pos σ.2]
+    exact sourceFn_nonneg p u_star hνnn hδpos hfloor σ y
+  have hf_coeff : ∀ (σ : TimeDom T) (k : ℕ),
+      cosineCoeffs (f σ.1) k =
+        (intervalNeumannResolverSourceCoeff p (realSlice u_star σ.1) k).re := by
+    intro σ k
+    have : f σ.1 = (fun (y : ℝ) =>
+        p.ν * (WA.evalAt (y : WA.Circ)
+          (sliceWA σ (GWA.incl (by omega : (0:ℕ) ≤ 1) u_star))).re ^ p.γ) := by
+      funext y; simp only [f, dif_pos σ.2]
+    rw [this, sourceFn_coeff]
+  have hf2 : ∀ σ : TimeDom T, Summable (fun k => (cosineCoeffs (f σ.1) k) ^ 2) := by
+    intro σ
+    have hcoeff : ∀ k, cosineCoeffs (f σ.1) k =
+        resolverSourceReCoeff p (realSlice u_star σ.1) k := by
+      intro k; simp only [hf_coeff σ k, resolverSourceReCoeff]
+    simp_rw [hcoeff]
+    exact summable_sq_of_summable_abs (hsum σ)
+  have h_flux_nbhd := realSlice_h_flux_slab p hδpos hβpos hER hfloor
+      hsum hgrad hμle1 f hf_cont hf_nonneg hf_coeff hf2
+  have h_flux_diff : ∀ (τ : TimeDom T), ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) x :=
+    fun τ x hx => chemFluxLifted_differentiableAt_of_EWA p u_star hER hδpos hfloor hνnn τ hx
+  exact chemDivSourceL1ContOn_of_EWA (μ := p.μ) (ν := p.ν) (γ := p.γ) p.hμ p
+    (realSlice u_star) u_star hT hER
+    (fun τ x hx =>
+      evalST_chemDivEWA_eq_coupledChemDivSourceLift (μ := p.μ) (ν := p.ν) (γ := p.γ) p.hμ p
+        (realSlice u_star) u_star τ x hx (Set.Ioo_subset_Icc_self hx)
+        (hgrad τ) (h_flux_nbhd τ) (h_flux_diff τ x hx))
+
+#print axioms chemDivSourceL1ContOn_auto
 
 end ShenWork.EWA
