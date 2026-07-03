@@ -4,6 +4,8 @@ import ShenWork.Wiener.EWA.SourceInversion
 import ShenWork.Wiener.EWA.SourceEvalBridge
 import ShenWork.Wiener.WeightedL1EvalDeriv
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
+import ShenWork.PDE.IntervalSemigroupNeumann
+import ShenWork.Paper2.IntervalPicardLimitRestartWeak
 
 /-!
 # Discharge `hsource` (ResolverSourceSummable) from EWA structure
@@ -697,6 +699,86 @@ theorem realizes_evalST_auto (p : CM2Params) (u₀cos : ℕ → ℝ)
     hLipQ hLipG hKnn hK hmem_star hβpos hαnn hμle1 rfl hfloor hsumR hgrad f hf_cont
     hf_nonneg hf_coeff hf2 h_flux_diff h_src_cont_log t htlo hthi
 
+/-! ### Eigenvalue summability from L1ContOn (Group D)
+
+`fullSourceCoeff = heat_part + (-χ₀)*duhamel_chem + duhamel_log`.
+Each leg is eigenvalue-summable: heat from exp decay, Duhamel legs from
+`eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope` + summable envelope.
+Triangle inequality assembles `hsumE`. -/
+
+open ShenWork.IntervalSemigroupNeumann (heatCoeff_eigenvalue_summable) in
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn) in
+open ShenWork.IntervalDuhamelClosedC2 (duhamelSpectralCoeff) in
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledChemDivSourceCoeffs coupledLogisticSourceCoeffs) in
+theorem hsumE_of_L1ContOn (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ)
+    {Mu0 : ℝ} (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
+    (hchem : DuhamelSourceL1ContOn (coupledChemDivSourceCoeffs p u) T)
+    (hlog : DuhamelSourceL1ContOn (coupledLogisticSourceCoeffs p u) T)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
+    Summable (fun n => unitIntervalCosineEigenvalue n *
+      |fullSourceCoeff p u u₀cos t n|) := by
+  have hC : Summable (fun n => unitIntervalCosineEigenvalue n *
+      |duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n|) :=
+    Summable.of_nonneg_of_le
+      (fun n => mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity) (abs_nonneg _))
+      (fun n => eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope hchem ht htT n)
+      hchem.henv_summable
+  have hL : Summable (fun n => unitIntervalCosineEigenvalue n *
+      |duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|) :=
+    Summable.of_nonneg_of_le
+      (fun n => mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity) (abs_nonneg _))
+      (fun n => eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope hlog ht htT n)
+      hlog.henv_summable
+  have hH : Summable (fun n => unitIntervalCosineEigenvalue n *
+      |Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n|) :=
+    heatCoeff_eigenvalue_summable ht hu0bd
+  refine Summable.of_nonneg_of_le
+    (fun n => mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity) (abs_nonneg _))
+    (fun n => ?_)
+    (hH.add ((hC.mul_left |p.χ₀|).add hL))
+  simp only [fullSourceCoeff]
+  have hnn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+    unfold unitIntervalCosineEigenvalue; positivity
+  have htri : |Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n
+      + (-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n
+      + duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|
+    ≤ |Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n|
+      + |(-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n|
+      + |duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n| := by
+    have h1 := abs_add_le
+      (Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n)
+      ((-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n)
+    have h2 := abs_add_le
+      (Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n
+        + (-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n)
+      (duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n)
+    linarith
+  calc unitIntervalCosineEigenvalue n *
+        |Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n
+         + (-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n
+         + duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|
+      ≤ unitIntervalCosineEigenvalue n *
+        (|Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n|
+         + |(-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n|
+         + |duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|) :=
+        mul_le_mul_of_nonneg_left htri hnn
+    _ = unitIntervalCosineEigenvalue n *
+          |Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n|
+        + (unitIntervalCosineEigenvalue n *
+          |(-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n|
+        + unitIntervalCosineEigenvalue n *
+          |duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|) := by ring
+    _ = unitIntervalCosineEigenvalue n *
+          |Real.exp (-t * unitIntervalCosineEigenvalue n) * u₀cos n|
+        + (|p.χ₀| * (unitIntervalCosineEigenvalue n *
+          |duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n|)
+        + unitIntervalCosineEigenvalue n *
+          |duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|) := by
+        congr 1; simp only [abs_mul, abs_neg]; ring
+
+#print axioms hsumE_of_L1ContOn
 #print axioms evalAt_re_continuous
 #print axioms sourceFn_continuous
 #print axioms sourceFn_nonneg
@@ -704,5 +786,6 @@ theorem realizes_evalST_auto (p : CM2Params) (u₀cos : ℕ → ℝ)
 #print axioms sourceFn_sq_summable
 #print axioms wLog_continuous_of_floor
 #print axioms realizes_evalST_auto
+#print axioms hsumE_of_L1ContOn
 
 end ShenWork.EWA
