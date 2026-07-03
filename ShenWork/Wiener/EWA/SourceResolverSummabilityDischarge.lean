@@ -8,6 +8,8 @@ import ShenWork.PDE.IntervalSemigroupNeumann
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
 import ShenWork.Wiener.EWA.SourceL1ContOnBridge
 import ShenWork.Wiener.EWA.ChemDivEval
+import ShenWork.Paper2.IntervalDomainPdeUWiring
+import ShenWork.Wiener.EWA.SourcePerSliceClose
 
 /-!
 # Discharge `hsource` (ResolverSourceSummable) from EWA structure
@@ -870,5 +872,71 @@ noncomputable def chemDivSourceL1ContOn_auto (p : CM2Params)
         (hgrad τ) (h_flux_nbhd τ) (h_flux_diff τ x hx))
 
 #print axioms chemDivSourceL1ContOn_auto
+
+/-! ### Group F: `hlogInv` bypassing `hlogNE0/1`
+
+The existing route `realSlice_hlogInv_of_bankedU` (in `SourceSliceC2Neumann.lean`)
+requires `hlogNE0/1` (endpoint nonvanishing of logistic source) for the
+C²-Neumann → IBP → Fourier summability chain.
+
+This bypass uses the L1ContOn envelope summability (from `logisticSourceL1ContOn_auto`)
+to get cosine coefficient ℓ¹ summability directly, then bridges to the Fourier
+summability via `fourierCoeff_reflCircle_summable_of_cosineCoeff_abs`, feeding
+into `logistic_source_inversion`. No endpoint data is needed. -/
+
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledLogisticSourceCoeffs coupledLogisticSourceLift) in
+open ShenWork.IntervalDomainExistence
+  (intervalDomainPoint intervalDomainLift intervalLogisticSource
+   intervalDomainConstExtend constExtend_eq_lift_on_Icc constExtend_continuous) in
+open ShenWork.IntervalCosineInversion (reflCircle cosineCoeffs) in
+theorem realSlice_hlogInv_of_L1ContOn (p : CM2Params)
+    (u_star : EWA T 1)
+    {δ : ℝ} (hδpos : 0 < δ)
+    (hER : EvenRealEWA u_star)
+    (hfloor : UniformFloor u_star δ)
+    (hα : 0 ≤ p.α) (hT : 0 ≤ T)
+    (u₀cos : ℕ → ℝ)
+    (hsumE : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      Summable (fun n => unitIntervalCosineEigenvalue n *
+        |fullSourceCoeff p (realSlice u_star) u₀cos t n|))
+    (hrealizes : ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (realSlice u_star t) x
+        = ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n * cosineMode n x) :
+    ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x : intervalDomainPoint,
+      x.1 ∈ Set.Ioo (0 : ℝ) 1 →
+      (∑' n, coupledLogisticSourceCoeffs p (realSlice u_star) t n *
+        cosineMode n x.1)
+        = realSlice u_star t x
+            * (p.a - p.b * (realSlice u_star t x) ^ p.α) := by
+  intro t ht x hx
+  set s : intervalDomainPoint → ℝ := intervalLogisticSource p (realSlice u_star t)
+  set g : ℝ → ℝ := intervalDomainConstExtend s
+  have hcont_s : Continuous s :=
+    realSlice_wLog_continuous p u_star u₀cos hα hsumE hrealizes ht
+  have hcont_g : Continuous g := constExtend_continuous hcont_s
+  have hgeq : Set.EqOn g (coupledLogisticSourceLift p (realSlice u_star) t)
+      (Set.Icc (0 : ℝ) 1) := by
+    intro y hy
+    show intervalDomainConstExtend s y = coupledLogisticSourceLift p (realSlice u_star) t y
+    exact constExtend_eq_lift_on_Icc hy
+  have hL1 := logisticSourceL1ContOn_auto p u_star hδpos hER hfloor hα hT
+  have hcos_abs : Summable (fun k : ℕ => |cosineCoeffs g k|) := by
+    have heq : ∀ k, cosineCoeffs g k =
+        coupledLogisticSourceCoeffs p (realSlice u_star) t k := by
+      intro k
+      rw [cosineCoeffs_congr_on_Icc hgeq k]
+      rfl
+    simp_rw [heq]
+    exact Summable.of_nonneg_of_le (fun k => abs_nonneg _)
+      (fun k => hL1.henv_bound t (le_of_lt ht.1) (le_of_lt ht.2) k)
+      hL1.henv_summable
+  have hfourier : Summable (fun n : ℤ =>
+      fourierCoeff (reflCircle g) n) :=
+    ShenWork.Paper2.PdeUWiring.fourierCoeff_reflCircle_summable_of_cosineCoeff_abs
+      hcont_g hcos_abs
+  exact logistic_source_inversion p (realSlice u_star) t g hcont_g hgeq hfourier hx
+
+#print axioms realSlice_hlogInv_of_L1ContOn
 
 end ShenWork.EWA
