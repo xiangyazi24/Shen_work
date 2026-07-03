@@ -124,11 +124,12 @@ theorem fullSourceCoeff_trace_tendsto_of_L1ContOn (p : CM2Params)
   rw [show (0 : ℝ) = ∑' n, (0 : ℝ) from (tsum_zero).symm]
   refine tendsto_tsum_of_dominated_convergence hGsum (fun n => ?_) ?_
   · -- Per-mode convergence: |defect t n| → 0 as t → 0⁺
-    -- Bound: |defect t n| ≤ |e^{-tλ_n}-1|·|u₀cos n| + |χ₀|·t·env_c n + t·env_l n
-    -- Each piece → 0: exponential continuity + t → 0.
+    set upper : ℝ → ℝ := fun t =>
+      |Real.exp (-t * unitIntervalCosineEigenvalue n) - 1| * |u₀cos n|
+        + |p.χ₀| * (t * hchem.envelope n) + t * hlog.envelope n
     refine squeeze_zero' (Eventually.of_forall (fun t => abs_nonneg _)) ?_ ?_
-    · -- |defect t n| ≤ bound(t) eventually in (0,T)
-      filter_upwards [Ioo_mem_nhdsGT hTpos] with t ht
+    · filter_upwards [Ioo_mem_nhdsGT hTpos] with t ht
+      show |fullSourceCoeff p u u₀cos t n - u₀cos n| ≤ upper t
       rw [fullSourceCoeff_sub_eq]
       calc |(Real.exp (-t * unitIntervalCosineEigenvalue n) - 1) * u₀cos n
               + (-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n
@@ -143,37 +144,40 @@ theorem fullSourceCoeff_trace_tendsto_of_L1ContOn (p : CM2Params)
                 abs_add_le
                   ((Real.exp (-t * unitIntervalCosineEigenvalue n) - 1) * u₀cos n)
                   ((-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n)]
-        _ ≤ |Real.exp (-t * unitIntervalCosineEigenvalue n) - 1| * |u₀cos n|
-            + |p.χ₀| * (t * hchem.envelope n)
-            + t * hlog.envelope n := by
-              gcongr
-              · exact abs_mul _ _  |>.le
+        _ ≤ upper t := by
+              unfold_let upper; gcongr
+              · exact (abs_mul _ _).le
               · rw [abs_mul, abs_neg]; gcongr
-                exact le_trans (abs_duhamelSpectralCoeff_le_weak hchem ht.1 ht.2.le n)
-                  (by nlinarith)
-              · exact le_trans (abs_duhamelSpectralCoeff_le_weak hlog ht.1 ht.2.le n)
-                  (by nlinarith)
-    · -- bound(t) → 0 as t → 0⁺
+                exact abs_duhamelSpectralCoeff_le_weak hchem ht.1 ht.2.le n
+              · exact abs_duhamelSpectralCoeff_le_weak hlog ht.1 ht.2.le n
+    · show Tendsto upper (𝓝[>] (0 : ℝ)) (𝓝 0)
+      have hexp_tend : Tendsto (fun t : ℝ =>
+          |Real.exp (-t * ↑(unitIntervalCosineEigenvalue n)) - 1|)
+          (𝓝 (0 : ℝ)) (𝓝 0) := by
+        have := ((Real.continuous_exp.comp
+          (continuous_neg.mul continuous_const)).sub
+          continuous_const).norm.tendsto (0 : ℝ)
+        simp at this; exact this
+      have ht_nhds : Tendsto id (𝓝[>] (0 : ℝ)) (𝓝 0) :=
+        tendsto_id.mono_left nhdsWithin_le_nhds
       have h1 : Tendsto (fun t : ℝ =>
-          |Real.exp (-t * unitIntervalCosineEigenvalue n) - 1| * |u₀cos n|)
+          |Real.exp (-t * ↑(unitIntervalCosineEigenvalue n)) - 1| * |u₀cos n|)
           (𝓝[>] (0 : ℝ)) (𝓝 0) := by
-        rw [show (0 : ℝ) = |Real.exp (-0 * unitIntervalCosineEigenvalue n) - 1| * |u₀cos n|
-          from by simp]
-        exact (((Real.continuous_exp.comp
-          ((continuous_neg.mul continuous_const))).sub continuous_const).norm.tendsto 0
-          |>.mul tendsto_const_nhds).mono_left nhdsWithin_le_nhds
+        rw [show (0 : ℝ) = 0 * |u₀cos n| from by ring]
+        exact (hexp_tend.mono_left nhdsWithin_le_nhds).mul tendsto_const_nhds
       have h2 : Tendsto (fun t : ℝ => |p.χ₀| * (t * hchem.envelope n))
           (𝓝[>] (0 : ℝ)) (𝓝 0) := by
         rw [show (0 : ℝ) = |p.χ₀| * (0 * hchem.envelope n) from by ring]
-        exact (tendsto_const_nhds.mul
-          (((tendsto_id.mono_left nhdsWithin_le_nhds).mul
-            tendsto_const_nhds))).congr (fun t => by ring)
+        exact tendsto_const_nhds.mul (ht_nhds.mul tendsto_const_nhds)
       have h3 : Tendsto (fun t : ℝ => t * hlog.envelope n)
           (𝓝[>] (0 : ℝ)) (𝓝 0) := by
         rw [show (0 : ℝ) = 0 * hlog.envelope n from by ring]
-        exact (tendsto_id.mono_left nhdsWithin_le_nhds).mul tendsto_const_nhds
-      convert h1.add (h2.add h3) using 1
-      simp [add_assoc]
+        exact ht_nhds.mul tendsto_const_nhds
+      have := h1.add (h2.add h3)
+      rwa [show (0 : ℝ) + (0 + 0) = 0 from by ring,
+        show (fun t => |Real.exp (-t * ↑(unitIntervalCosineEigenvalue n)) - 1| * |u₀cos n|
+          + (|p.χ₀| * (t * hchem.envelope n) + t * hlog.envelope n))
+          = upper from funext (fun t => by unfold_let upper; ring)] at this
   · -- Domination: ‖|defect t n|‖ = |defect t n| ≤ G n for t near 0⁺
     filter_upwards [Ioo_mem_nhdsGT hTpos] with t ht
     intro n
