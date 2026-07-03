@@ -84,12 +84,48 @@ The strong path (`chiNeg_theorem_1_1_of_strong`) takes
 `ChiNegDatumUniformConstructionStrong p` (PPID) and produces
 `Theorem_1_1 intervalDomain p` directly, bypassing the PID umbrella.
 
-**Remaining blocker: assembly of v4 hypotheses (blocker 1).**
-Per the audit table above, ALL individual producers exist, and ALL
-hypotheses are derivable from the EWA fixed point + PPID datum +
-L1ContOn data. Even `hdefect`/`htrace` (initially thought to be
-irreducible atoms) are derivable from `hsumE` + `hsumc` + L1ContOn
-via DCT. The remaining work is purely ASSEMBLY — no new analysis.
+**Remaining blocker: Wiener algebra gap (blocker 3, NEW).**
+`chiNegStrong_EWA_fixedPoint_of_floor` requires `hsumc : Summable (fun k =>
+|cosineCoeffs u₀ k|)` and `hmem : MemW 1 (ofCosineCoeffs ...)` — the initial
+datum must be in the Wiener algebra A(T). But `PaperPositiveInitialDatum` for
+`intervalDomain` only requires `Continuous u₀ ∧ BddAbove (range |u₀|)` +
+uniform floor. Not every continuous function has ℓ¹ summable cosine
+coefficients.
+
+Shen's paper assumes C² initial data (automatic Wiener algebra by IBP:
+`|ĉₙ| ≤ C/n²` from double integration by parts). Possible resolutions:
+  (a) Strengthen `intervalDomain.initialAdmissible` to include C² or Wiener
+      algebra membership (changes `Theorem_1_1` statement — stronger hypothesis)
+  (b) Approximation: approximate continuous u₀ by Wiener algebra functions,
+      get solutions for each, pass to a limit (requires solution stability)
+  (c) Use the heat semigroup: `heatEWA u₀E` is automatically in Wiener algebra
+      even if u₀ is only continuous (heat kernel smooths). The issue is only
+      in the `hrecon` / trace triple — the initial datum reconstruction.
+
+This is a genuine formalization gap, not a wiring issue.
+
+**Progress (2026-07-03):**
+- **hdefect + htrace DISCHARGED** (0 sorry) — `SourceInitialTraceDischarge.lean`
+  - Part 1: `fullSourceCoeff_sub_eq` (pointwise defect identity)
+  - Part 2: `fullSourceCoeff_defect_summable_of_L1ContOn` (hdefect from L1ContOn)
+  - Part 3: `fullSourceCoeff_trace_tendsto_of_L1ContOn` (htrace via Tannery DCT)
+  - Also: `SourceTraceDefectDerivation.lean` — alternative hdefect via eigenvalue summability
+- **v5 auto-assembly WRITTEN** (0 sorry) — `SourceReducedCoreWireV5Auto.lean`
+  - `realSlice_reducedCore_wired_v5_auto`: takes only Picard framework + datum + floor,
+    auto-derives ALL 15 spectral chain hypotheses, produces `CoupledDuhamelReducedClassicalCore`
+  - Eliminates: hsumR, hgrad, f-family, flux/log regularity, L1ContOn, hsumE, hdefect, htrace
+
+**Remaining work (conditional on blocker 3 resolution):**
+1. ~~Resolve blocker 3 (Wiener algebra gap)~~ STILL OPEN
+2. ~~Prove defect/trace atoms from L1ContOn + hsumc~~ DONE
+3. ~~Write v5 assembly wiring~~ DONE
+4. **NEW: Contraction parameter construction** — produce the ~30 quantitative bounds
+   for `chiNegStrong_EWA_fixedPoint_of_floor` from `M` and `p`. This requires:
+   - Bounding `‖heatEWA u₀E‖ ≤ R(M)` and `‖gDeriv(heatEWA u₀E)‖ ≤ Md(M)`
+   - Computing explicit Lipschitz constants on the ball
+   - Choosing ρ, δv, T such that contraction condition holds
+   - All bounds must be UNIFORM over all PPID data with `|u₀| ≤ M`
+5. Wire everything into `ChiNegDatumUniformConstructionStrong`
 
 1. ~~**`hfp` — chemotaxis-inclusive Duhamel identity.**~~ RESOLVED.
    `SourceChiNegFaithful.lean` already implements the hfp-free route via
