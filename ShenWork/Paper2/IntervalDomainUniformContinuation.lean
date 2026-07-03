@@ -35,6 +35,34 @@ theorem classicalSolution_slice_positiveInitialDatum
   have hbdd := classicalSolution_u_range_bddAbove hsol hτ
   exact ⟨⟨hbdd, hcont⟩, fun x _hx => hsol.u_pos' hτ.1 hτ.2⟩
 
+/-- **Interior slice of a classical solution satisfies PPID (strong datum).**
+
+The closed-domain positivity of `IsPaper2ClassicalSolution` gives
+`∀ x : intervalDomainPoint, 0 < u τ x`; compactness of `intervalDomainPoint`
+and continuity of `u τ` then produce the uniform positive floor
+`∃ η > 0, ∀ x, η ≤ u τ x` via `isCompact_Icc.exists_isMinOn`.
+
+This is strictly stronger than `classicalSolution_slice_positiveInitialDatum`
+and is the key theorem enabling a STRONG (floor-carrying) restart factory
+for the continuation mechanism. -/
+theorem classicalSolution_slice_paperPositiveInitialDatum
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    PaperPositiveInitialDatum intervalDomain (u τ) := by
+  have hweak := classicalSolution_slice_positiveInitialDatum hsol hτ
+  refine ⟨hweak.1, ?_⟩
+  have hcont : Continuous (u τ) := hweak.1.2
+  have hpos : ∀ x : intervalDomainPoint, 0 < u τ x := fun x => hsol.u_pos' hτ.1 hτ.2
+  haveI : CompactSpace intervalDomainPoint :=
+    isCompact_iff_compactSpace.mp isCompact_Icc
+  have hne : (Set.univ : Set intervalDomainPoint).Nonempty :=
+    ⟨⟨0, le_rfl, zero_le_one⟩, Set.mem_univ _⟩
+  obtain ⟨x₀, _, hx₀min⟩ :=
+    isCompact_univ.exists_isMinOn hne hcont.continuousOn
+  exact ⟨u τ x₀, hpos x₀, fun x => hx₀min (Set.mem_univ x)⟩
+
 /-- **Paper 2 Theorem 1.1 from hlocal + hUniform.**
 
 The leanest entry point for unconditional Paper 2 Theorem 1.1
