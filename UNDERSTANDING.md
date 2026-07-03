@@ -29,19 +29,82 @@ v4's remaining hypotheses are ALL structural (cannot be eliminated):
 - L1ContOn source data (hchem_l1, hlog_l1, hsumE)
 - Initial trace (hrecon, hdefect, htrace)
 
-**Two genuine blockers remain:**
+**One genuine blocker remains (PID/PPID type gap):**
 
-1. **`hfp` — chemotaxis-inclusive Duhamel identity.** The EWA fixed-point produces
-   `u_star = picardEWA ... u_star`, but `ChiNegRealizationAtoms` needs
-   `realSlice u_star = intervalDuhamelOperator p u₀ (realSlice u_star)`. The bridge
-   `intervalGradientDuhamelMap_eq_intervalDuhamelOperator_of_frontiers` equates the two
-   ONLY when the chemotaxis Duhamel term vanishes — TRUE for χ₀=0, FALSE for χ₀<0.
+1. ~~**`hfp` — chemotaxis-inclusive Duhamel identity.**~~ RESOLVED.
+   `SourceChiNegFaithful.lean` already implements the hfp-free route via
+   `ChiNegDatumUniformConstructionFaithful`. The `LocalExistenceBypass.lean`
+   parallel attempt was redundant and deleted.
 
-2. **Continuation/restart factory over weak data.** The headline reduction feeds
-   `RestartAndGlueWorks` whose factory is re-invoked at time-slices that are only
-   `PositiveInitialDatum` (no uniform floor). The EWA tower needs
-   `PaperPositiveInitialDatum` (with floor). Rebuilding the continuation stack over
-   strong data is not local work.
+2. **Continuation/restart factory over weak data.** The umbrella theorem chain
+   (`RestartAndGlueWorks` → `IntervalDomainUniformLocalExistence` → multi-layer
+   umbrella → `Theorem_1_1`) quantifies internally over `PositiveInitialDatum`
+   (PID: positivity on open interior only). The EWA tower produces a factory over
+   `PaperPositiveInitialDatum` (PPID: uniform positive floor on closed domain).
+
+   **Mathematical fact:** PID ⊋ PPID. Every restart slice IS PPID (proved in
+   `classicalSolution_slice_paperPositiveInitialDatum`), but the PID typing is
+   hard-wired through ~8 deep layers of the umbrella. The cascade is too deep
+   to refactor without build verification.
+
+   **New theorem (2026-07-02):**
+   `classicalSolution_slice_paperPositiveInitialDatum` in
+   `IntervalDomainUniformContinuation.lean` — uses compactness of `Icc 0 1` +
+   continuity + closed-domain positivity to produce the uniform floor `∃ η > 0,
+   ∀ x, η ≤ u τ x`. This is the mathematical KEY that makes the refactor
+   possible — every restart slice is PPID, so a PPID-typed factory suffices.
+
+   **Resolution: PPID strong path (2026-07-03).**
+   Instead of a deep PID→PPID cascade refactor (8+ files, ~100 changes, no
+   build verification), a PURELY ADDITIVE new file was written:
+
+   `IntervalDomainTheorem11StrongPath.lean` (~525 lines) provides:
+   - §1: Private sup-norm helpers duplicated from MoserClosure (~60 lines,
+     pure real analysis, inaccessible outside their defining file)
+   - §2: `restartAndGlueWorks_ppid` — PPID-typed restart and glue. Close copy
+     of the PID version with TWO changes: factory takes PPID, overlap
+     uniqueness gets `.toPositive`
+   - §3: `uniformLocalExistence_ppid` — PPID-typed uniform continuation from
+     PPID quantitative local existence + restart + Lemma 3.1 sup-norm bound
+   - §4: `reachableArbitrarilyLong_ppid` — PPID-typed iteration to arbitrary
+     horizons
+   - §5: `Theorem_1_1_intervalDomain_of_ppid_local_and_quant` — DIRECT proof
+     of `Theorem_1_1 intervalDomain p` from PPID-typed `hlocal` + `hQuant`,
+     bypassing the PID-typed `IntervalDomainGlobalSolutionExists` struct
+   - §6: Wire to EWA construction:
+     - `ChiNegDatumUniformConstructionPPID` — PPID-typed analogue of
+       `ChiNegDatumUniformConstructionFaithful` (returns solutions, not EWA objects)
+     - `localExistence_of_ppid_quant` — derives `hlocal` from `hQuant`
+       (any PPID datum: extract bound M → apply factory → get solution)
+     - `chiNeg_theorem_1_1_ppid` — single-input route: PPID factory → Theorem_1_1
+     - `ppid_of_strong` — bridges `ChiNegDatumUniformConstructionStrong` (PPID,
+       returns EWA objects) to `ChiNegDatumUniformConstructionPPID` (PPID, returns
+       solutions) via the regularity bootstrap
+     - `chiNeg_theorem_1_1_of_strong` — **HEADLINE**: Strong PPID construction →
+       `Theorem_1_1 intervalDomain p`
+
+   **Key architectural insight:** `ChiNegDatumUniformConstructionFaithful` (PID)
+   is **unsatisfiable** from the EWA tower — the Picard engine needs a uniform
+   positive floor (`∀ y, η ≤ u₀ y`) that PID data cannot supply. The tower CAN
+   fill `ChiNegDatumUniformConstructionStrong` (PPID). This file connects Strong
+   directly to `Theorem_1_1`, bypassing the entire PID-typed umbrella chain.
+
+   The complete forward chain is:
+   ```
+   ChiNegDatumUniformConstructionStrong p  (EWA tower output, PPID)
+   → ppid_of_strong                        (regularity bootstrap unwrap)
+   → ChiNegDatumUniformConstructionPPID p  (solutions, PPID)
+   → localExistence_of_ppid_quant          (hlocal derived from hQuant)
+   → reachableArbitrarilyLong_ppid         (PPID iteration)
+   → GlobalSolutionGluingFromReachability  (PID via .toPositive, already proved)
+   → Theorem_1_1 intervalDomain p          (PPID quantifier matches)
+   ```
+
+   No existing files are modified. The PID umbrella chain still exists but is
+   dead code for the χ₀<0 track.
+
+   **Status: written, NOT yet built (uisai1/2 down).** Need to build-verify
+   before the file is considered landed.
 
 ### Key architectural finding
 
