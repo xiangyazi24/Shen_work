@@ -60,15 +60,22 @@ hypotheses of `realSlice_reducedCore_wired_v4` from EWA fixed point + initial da
 | 22 | hfloorδ, hfloor | `UniformFloor u_star δ'` | derived from Picard ball + heat floor |
 | **Initial trace** ||||
 | 23 | hrecon (cosine reconstruction) | initial datum cosine expansion | FRAMEWORK |
-| 24 | hdefect (ℓ¹ defect summable) | source coefficient defect analysis | NEEDS ASSEMBLY |
-| 25 | htrace (defect → 0) | source coefficient trace limit | NEEDS ASSEMBLY |
+| 24 | hdefect (ℓ¹ defect summable) | DERIVABLE from hsumE + hsumc | CAN INTERNALIZE |
+| 25 | htrace (defect → 0) | DERIVABLE from hsumc + L1ContOn + DCT | CAN INTERNALIZE |
 
-**Summary:** ALL individual producers exist. No new analytic frontier needed.
+**Summary:** ALL individual producers exist. `hdefect` and `htrace` (rows 24-25)
+are NOT independent atoms — both are derivable:
+- `hdefect`: `|defect_n| ≤ |fullSourceCoeff n| + |u₀cos n|`, both summable
+  (first from `hsumE` via eigenvalue domination, second from `hsumc`)
+- `htrace`: three terms all → 0 as t→0: heat term by DCT over `2|u₀cos n|`,
+  Duhamel terms by `t · ∑ envelope_n → 0` from L1ContOn envelope
+
 The remaining work is ASSEMBLY — writing the wiring theorem that:
 1. Takes PPID datum + Picard fixed point
 2. Calls each landed producer with the correct arguments
-3. Feeds the assembled hypotheses into `realSlice_reducedCore_wired_v4`
-4. Returns `CoupledDuhamelReducedClassicalCore p T u₀ (realSlice u_star)`
+3. Derives `hdefect` and `htrace` from `hsumE` + `hsumc` + L1ContOn
+4. Feeds the assembled hypotheses into `realSlice_reducedCore_wired_v4`
+5. Returns `CoupledDuhamelReducedClassicalCore p T u₀ (realSlice u_star)`
 
 This assembly instantiates `ChiNegDatumUniformConstructionStrong`.
 
@@ -78,13 +85,11 @@ The strong path (`chiNeg_theorem_1_1_of_strong`) takes
 `Theorem_1_1 intervalDomain p` directly, bypassing the PID umbrella.
 
 **Remaining blocker: assembly of v4 hypotheses (blocker 1).**
-Per the audit table above, ALL individual producers exist. The remaining
-work is ASSEMBLY — writing the wiring theorem that takes PPID datum +
-Picard fixed point, calls each landed producer with correct arguments,
-feeds assembled hypotheses into `realSlice_reducedCore_wired_v4`, and
-returns `CoupledDuhamelReducedClassicalCore`. Two atoms (`hdefect`,
-`htrace`) still need dedicated producers for the initial trace
-convergence — the irreducible semigroup-trace content.
+Per the audit table above, ALL individual producers exist, and ALL
+hypotheses are derivable from the EWA fixed point + PPID datum +
+L1ContOn data. Even `hdefect`/`htrace` (initially thought to be
+irreducible atoms) are derivable from `hsumE` + `hsumc` + L1ContOn
+via DCT. The remaining work is purely ASSEMBLY — no new analysis.
 
 1. ~~**`hfp` — chemotaxis-inclusive Duhamel identity.**~~ RESOLVED.
    `SourceChiNegFaithful.lean` already implements the hfp-free route via
