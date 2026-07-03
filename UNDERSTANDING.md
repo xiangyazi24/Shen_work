@@ -23,13 +23,68 @@ from v2 (11 from v1):
 
 ### Remaining to Theorem_1_1
 
-v4's remaining hypotheses are ALL structural (cannot be eliminated):
-- Picard fixed-point data (hfix, hself, hLipQ, hLipG, hKnn, hK, hmem_star)
-- EWA tower inputs (hsumR, hgrad, f-family, h_flux_diff, h_src_cont_log)
-- L1ContOn source data (hchem_l1, hlog_l1, hsumE)
-- Initial trace (hrecon, hdefect, htrace)
+**Forward chain:** `ChiNegDatumUniformConstructionStrong p` → `chiNeg_theorem_1_1_of_strong` → `Theorem_1_1 intervalDomain p`.
 
-**One genuine blocker remains (PID/PPID type gap):**
+To produce `ChiNegDatumUniformConstructionStrong p`, need to feed ALL
+hypotheses of `realSlice_reducedCore_wired_v4` from EWA fixed point + initial datum.
+
+#### v4 Hypothesis Audit (2026-07-03)
+
+| # | Hypothesis | Producer | Status |
+|---|-----------|----------|--------|
+| **Picard framework** ||||
+| 1 | hfix (fixed point identity) | `chiNegStrong_EWA_fixedPoint_of_floor` | LANDED (SourceChiNegUncondFix) |
+| 2 | hself (self-map) | same | LANDED |
+| 3 | hLipQ (chemFlux Lip) | same | LANDED |
+| 4 | hLipG (growth Lip) | same | LANDED |
+| 5 | hKnn, hK (contraction rate) | same | LANDED |
+| 6 | hmem_star (ball membership) | same | LANDED |
+| 7 | hρ', hρ'ρ, hT0 | framework bookkeeping | LANDED |
+| **EWA tower inputs** ||||
+| 8 | hsumR (ResolverSourceSummable) | `resolverSourceSummable_of_evenReal` | LANDED (SourceResolverSummabilityDischarge:150) |
+| 9 | hgrad (gradient summability) | `resolverGradSummable_of_evenReal` | LANDED (SourceResolverSummabilityDischarge:239) |
+| 10 | f, hf_cont | `sourceFn_continuous` | LANDED (SourceResolverSummabilityDischarge:347) |
+| 11 | hf_nonneg | `sourceFn_nonneg` | LANDED (SourceResolverSummabilityDischarge:365) |
+| 12 | hf_coeff | `sourceFn_coeff` | LANDED (SourceResolverSummabilityDischarge:375) |
+| 13 | hf2 | `sourceFn_sq_summable` | LANDED (SourceResolverSummabilityDischarge:408) |
+| 14 | h_flux_diff | `chemFluxLifted_differentiableAt_of_EWA` | LANDED (SourceResolverSummabilityDischarge:584) |
+| 15 | h_src_cont_log | `wLog_continuous_of_floor` | LANDED (SourceResolverSummabilityDischarge:430) |
+| **L1ContOn source data** ||||
+| 16 | hchem_l1 | `chemDivSourceL1ContOn_of_EWA` | LANDED (SourceL1ContOnBridge:83) |
+| 17 | hlog_l1 | `logisticSourceL1ContOn_of_EWA` | LANDED (SourceL1ContOnBridge:112) |
+| 18 | hsumE (eigenvalue-ℓ¹) | `fullSourceCoeff_eigenvalueSummable_slab_of_chemReg` | LANDED but needs wiring (SourceFullCoeffSlabSummable:109) — reduces to chemDiv regularity package |
+| **Initial datum** ||||
+| 19 | u₀E, hδρ, hheat, hu_ball | `chiNegStrong_heatFloor_of_paperDatum` + Picard | LANDED |
+| 20 | u₀cos, hu0bd, hsumc, hmem | cosine analysis of PPID datum | FRAMEWORK — standard spectral decomposition |
+| 21 | hβpos, hαnn, hμle1 | parameter constraints | from `CM2Params` |
+| 22 | hfloorδ, hfloor | `UniformFloor u_star δ'` | derived from Picard ball + heat floor |
+| **Initial trace** ||||
+| 23 | hrecon (cosine reconstruction) | initial datum cosine expansion | FRAMEWORK |
+| 24 | hdefect (ℓ¹ defect summable) | source coefficient defect analysis | NEEDS ASSEMBLY |
+| 25 | htrace (defect → 0) | source coefficient trace limit | NEEDS ASSEMBLY |
+
+**Summary:** ALL individual producers exist. No new analytic frontier needed.
+The remaining work is ASSEMBLY — writing the wiring theorem that:
+1. Takes PPID datum + Picard fixed point
+2. Calls each landed producer with the correct arguments
+3. Feeds the assembled hypotheses into `realSlice_reducedCore_wired_v4`
+4. Returns `CoupledDuhamelReducedClassicalCore p T u₀ (realSlice u_star)`
+
+This assembly instantiates `ChiNegDatumUniformConstructionStrong`.
+
+**PID/PPID type gap: CLOSED** by `IntervalDomainTheorem11StrongPath.lean`.
+The strong path (`chiNeg_theorem_1_1_of_strong`) takes
+`ChiNegDatumUniformConstructionStrong p` (PPID) and produces
+`Theorem_1_1 intervalDomain p` directly, bypassing the PID umbrella.
+
+**Remaining blocker: assembly of v4 hypotheses (blocker 1).**
+Per the audit table above, ALL individual producers exist. The remaining
+work is ASSEMBLY — writing the wiring theorem that takes PPID datum +
+Picard fixed point, calls each landed producer with correct arguments,
+feeds assembled hypotheses into `realSlice_reducedCore_wired_v4`, and
+returns `CoupledDuhamelReducedClassicalCore`. Two atoms (`hdefect`,
+`htrace`) still need dedicated producers for the initial trace
+convergence — the irreducible semigroup-trace content.
 
 1. ~~**`hfp` — chemotaxis-inclusive Duhamel identity.**~~ RESOLVED.
    `SourceChiNegFaithful.lean` already implements the hfp-free route via
