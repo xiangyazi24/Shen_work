@@ -1,5 +1,215 @@
 # UNDERSTANDING.md — Shen_work
 
+## Breakthrough: vdEWA_floor_of_evenReal (2026-07-03)
+
+**`SourceVdFloorGeneric.lean`** proves: for ANY `EvenRealEWA U` with
+`UniformFloor U δ` (δ > 0) and `0 ≤ p.ν`, we have
+`UniformFloor (1 + vdEWA p.μ p.ν p.γ p.hμ U) 1`.
+
+This is the GENERALIZATION of `vdEWA_center_floor_heat_discharged`
+(which only works for `heatEWA u₀E`). The proof uses the same chain:
+`realPowEWA_eval` → `slice_smul_realPow_eq_source` →
+`evalST_gResolver_eq_resolverSynthesis_all` → `resolverSynthesis_nonneg_all`.
+All the building blocks (`sourceFn_continuous`, `sourceFn_nonneg`,
+`sourceFn_coeff`, `realSlice_evalST_realizes`) already work for generic
+`U : EWA T 1`, not just the heat center.
+
+**Impact: eliminates the Wiener-norm-dependent `hsmall` condition.**
+
+The existing ball-reduction approach (`vdUniformFloor_of_ball` in
+`SourceVdFloorDischarge.lean`) bounds `‖vdEWA u − vdEWA center‖ ≤ Lv·ρ`,
+giving floor `1 − Lv·ρ`. For large Wiener norms, `Lv·ρ ≥ 1` and the
+bound is NEGATIVE (useless). With `vdEWA_floor_of_evenReal`, any
+EvenReal ball element with positive u-floor gets floor 1 DIRECTLY —
+no ball reduction, no `hsmall`, no Wiener-norm dependence.
+
+**Remaining integration step: EvenReal-restricted Banach fixed point.**
+
+`picardEWA_clean_fixedPoint` quantifies `hVdFloor : ∀ u ∈ ball, ...`
+over ALL ball elements. But non-EvenReal ball elements cannot have their
+`vdEWA` floor proved (the `realPowEWA_eval` bridge requires EvenReal).
+The Picard map PRESERVES EvenReal, and the fixed point IS EvenReal.
+Resolution: apply Banach's contraction mapping theorem on the EvenReal
+closed ball `{u | EvenRealEWA u} ∩ closedBall(center, ρ)`, which is:
+1. Complete (closed subset of a Banach space ∩ closed set)
+2. Self-mapped by Picard (EvenReal preservation + ball self-map)
+3. Contracted (same contraction constant, with δv = 1 from the new theorem)
+
+This refactoring eliminates `hVdFloor` as a carried hypothesis entirely
+and closes the path to unconditional `Theorem_1_1`.
+
+**File: `SourceVdFloorGeneric.lean` — NOT YET BUILT (uisai1/2 down).**
+
+## Assembly: vdFloor → EvenReal ball → unconditional core (2026-07-03)
+
+Five files wire the breakthrough into the headline theorem:
+
+1. **`SourceFixedPointEvenReal.lean`** — `picardEWA_clean_fixedPoint_evenReal`:
+   Banach on `B' = closedBall(center, ρ) ∩ {EvenRealEWA}`. Self-map proof
+   INLINED (not via `picardEWA_mapsTo`) to avoid the chicken-and-egg.
+   Returns `∃ T, hTpos : 0 < T, ∃ u_star ∈ B, EvenRealEWA u_star ∧ fix`.
+   **Changed:** now returns `0 < T` (was `0 ≤ T`); uses `hTpos.le` internally.
+
+2. **`SourceReducedCoreWireV6EvenReal.lean`** — `realSlice_reducedCore_of_evenReal`:
+   Takes `EvenRealEWA u_star` as GIVEN (not derived from contraction framework).
+   **Changed:** floor-lifespan separation — takes `{η : ℝ} (hηpos : 0 < η)
+   (hfloor : UniformFloor u_star η)` instead of `(hfloor : UniformFloor u_star T)`.
+   The floor η is decoupled from the lifespan T.
+
+3. **`SourceChiNegPerDatumV6.lean`** — `chiNeg_EWA_core_of_datum` (NEW):
+   Per-datum wiring combining clean FP + v6. Takes: continuous u₀ with floor δ₀,
+   ℓ¹ cosine summability, MemW, coefficient bounds, reconstruction.
+   Produces `∃ T, 0 < T, ∃ u_star : EWA T 1, Core p T u₀p (realSlice u_star)`.
+   Key: ball floor η = δ₀ - δ₀/2 derived automatically from `uniformFloor_on_ball`.
+
+4. **`IntervalCoupledClassicalCoreRestrict.lean`** — `Core.restrict` (NEW):
+   If `Core p T u₀ u` and `0 < δ ≤ T`, then `Core p δ u₀ u`. Each field
+   restricts trivially: quantifier restriction + ContinuousOn.mono.
+   Also includes `intervalDomainClassicalRegularity_restrict`.
+
+5. **Remaining gap:** Wire into `ChiNegDatumUniformConstructionStrong`
+   → `chiNeg_theorem_1_1_of_strong` → `Theorem_1_1 intervalDomain p`.
+   See gap analysis below.
+
+**All files NOT YET BUILT (uisai1/2 down).**
+
+## Gap Analysis: Strong Construction → Theorem_1_1 (2026-07-03)
+
+### The forward chain (what exists)
+
+```
+ChiNegDatumUniformConstructionStrong p
+  → ppid_of_strong      (IntervalDomainTheorem11StrongPath.lean:534)
+  → chiNeg_theorem_1_1_ppid (IntervalDomainTheorem11StrongPath.lean:527)
+  → Theorem_1_1 intervalDomain p
+```
+
+### What `ChiNegDatumUniformConstructionStrong` requires
+
+```lean
+∀ M > 0, ∃ δ > 0, ∀ u₀ : PPID, |u₀| ≤ M →
+    ∃ u_star : EWA δ 1, Core p δ u₀ (realSlice u_star)
+```
+
+The δ must be **UNIFORM** across all PPID datums bounded by M.
+
+### What we have: per-datum existence (chiNeg_EWA_core_of_datum)
+
+```lean
+∀ u₀ : PPID (+ Wiener data), ∃ T > 0,
+    ∃ u_star : EWA T 1, Core p T u₀p (realSlice u_star)
+```
+
+Per-datum T varies per datum. NOT uniform.
+
+### The TWO gaps (reducible to ONE)
+
+**Gap 1: Wiener membership.** `PaperPositiveInitialDatum` = continuous + bounded
++ positive floor. Continuous bounded functions on [0,1] are NOT necessarily in
+the Wiener algebra (ℓ¹ cosine coefficients). The per-datum theorem needs:
+- `Summable (fun k => |cosineCoeffs u₀ k|)` — ℓ¹ summability
+- `MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))` — weighted ℓ¹: ∑(1+k)|c_k| < ∞
+- Reconstruction: `u₀p x = ∑' n, c_n * cos(nπx)` — pointwise convergence
+
+**Gap 2: Uniform lifespan.** The clean FP's T depends on the contraction
+constants, which depend on the Wiener norm ‖u₀E‖. For PPID datums bounded by M,
+the Wiener norm can be arbitrarily large, so T can be arbitrarily small.
+To get a uniform δ, I need uniform Wiener norm bounds.
+
+**Gap 2 reduces to Gap 1.** If all PPID datums bounded by M have Wiener
+norm ≤ W(M) for some finite W(M), then:
+- All contraction constants (L_Q, L_G, M_Q, M_G) are bounded by explicit
+  algebraic expressions in W(M), the floor, and p's parameters
+- `exists_uniform_EWA_lifespan` (ChiNegUniformLifespan.lean:109) gives
+  uniform T* > 0 from these bounds
+- `Core.restrict` restricts per-datum Core from [0,T(datum)] to [0,T*]
+  (since T(datum) ≥ T* when per-datum constants ≤ bar constants)
+
+### Regularity analysis of the Wiener gap
+
+| Regularity of u₀ | Cosine decay | ∑\|c_k\| | ∑(1+k)\|c_k\| | In WA? |
+|---|---|---|---|---|
+| Continuous | O(1/log k) worst | may diverge | diverges | NO |
+| Lipschitz (W^{1,∞}) | O(1/k) | ∑1/k diverges | diverges | NO |
+| H¹ (∑k²\|c_k\|² < ∞) | varies | converges (CS) | may diverge | ℓ¹ only |
+| H² (∑k⁴\|c_k\|² < ∞) | O(1/k²) | converges | converges | YES |
+| C² + Neumann BC | O(1/k²) | converges | converges | YES |
+
+**Key insight:** If `PaperPositiveInitialDatum` were strengthened to require
+C² or H² regularity, the Wiener gap would close. The paper (Shen) assumes
+u₀ ∈ W^{2,p}(Ω) (at least H² by Sobolev embedding), not merely continuous.
+**This is a design decision for Xiang.**
+
+### The closing plan (once Wiener gap is resolved)
+
+Given a hypothesis `WienerDatumBounds p` providing:
+- For each M > 0: uniform Wiener norm bound W(M) and floor bound δm(M)
+- For each PPID datum bounded by M: Wiener lifting (continuous u₀ : ℝ → ℝ
+  with floor δm, ℓ¹ summability, MemW, reconstruction)
+
+The proof of `ChiNegDatumUniformConstructionStrong p`:
+1. Compute uniform contraction constants from (W(M), δm(M), p)
+2. Call `exists_uniform_EWA_lifespan` → uniform δ > 0
+3. For each datum: write a "prescribed-T" version of the clean FP at δ
+   (or: call the existing clean FP getting T ≥ δ, then Core.restrict to δ)
+4. Per-datum v6 → Core on [0,δ]
+
+### Alternative: bypass the EWA contraction entirely
+
+The paper's proof uses Galerkin approximation + energy estimates, not
+Fourier contraction. This avoids Wiener membership entirely but requires
+massive new formalization infrastructure (finite-dimensional ODE systems,
+Sobolev spaces, Aubin-Lions compactness). Not viable in this session.
+
+## New files created (2026-07-03, NOT YET BUILT)
+
+| File | Purpose | Sorry |
+|------|---------|-------|
+| `SourceVdFloorGeneric.lean` | Generic vdFloor for ANY EvenReal + floor | 0 |
+| `SourceFixedPointEvenReal.lean` | Clean Banach FP, `0 < T` output | 0 |
+| `SourceReducedCoreWireV6EvenReal.lean` | v6 Core, floor η ≠ lifespan T | 0 |
+| `SourceChiNegPerDatumV6.lean` | Per-datum Core from clean FP + v6 | 0 |
+| `SourceChiNegLocalExistence.lean` | Per-datum local existence → ClassicalSolution | 0 |
+| `IntervalCoupledClassicalCoreRestrict.lean` | Core.restrict for time restriction | 0 |
+| `IntervalDomainTheorem11CorePath.lean` | EWA-free: UniformCore → Theorem_1_1 | 0 |
+| `SourceCleanFPConstants.lean` | Named defs + nonnegativity for FP constants | 0 |
+| `SourceFixedPointEvenRealPrescribed.lean` | Prescribed-T clean FP with normBound | 0 |
+| `SourceChiNegPerDatumPrescribed.lean` | Per-datum Core at prescribed T | 0 |
+| `SourceChiNegUniformBridge.lean` | DatumWienerData → Theorem_1_1 | 0 |
+| `SourceChiNegUniformCore.lean` | WienerLifting structure + packaging | 0 |
+
+**TOTAL: 0 sorry across all 12 new files.** (Pending `lake build` verification.)
+
+### Dependency graph (two paths to Theorem_1_1)
+
+```
+PATH A (per-datum, ∃ T):
+  SourceVdFloorGeneric + SourceFixedPointEvenReal
+    → SourceReducedCoreWireV6EvenReal → SourceChiNegPerDatumV6
+      → SourceChiNegLocalExistence → (per-datum ClassicalSolution)
+
+PATH B (uniform T*, via prescribed-T FP — ALL 0 SORRY):
+  SourceCleanFPConstants (named defs + nonnegativity)
+    → SourceFixedPointEvenRealPrescribed (Banach FP at given T)
+      → SourceChiNegPerDatumPrescribed (FP + v6 → Core at T)
+        → SourceChiNegUniformBridge (DatumWienerData → UniformCore)
+          → IntervalDomainTheorem11CorePath (UniformCore → Thm_1_1)
+            → theorem_1_1_of_datumWienerData
+
+HYPOTHESIS: DatumWienerData (the Wiener membership gap)
+```
+
+### Remaining work to UNCONDITIONAL Theorem_1_1
+
+1. **Build verification** — ALL new files need `lake build` (uisai1/2 down)
+2. **Wiener membership gap** — THE sole remaining mathematical hypothesis.
+   PPID (continuous + bounded + positive) does NOT guarantee Wiener algebra
+   membership. Need either:
+   (a) Strengthen `PaperPositiveInitialDatum` to require H² or C² regularity, OR
+   (b) Prove that continuous bounded periodic functions with positive floor
+       have ℓ¹ cosine coefficients (unlikely without regularity).
+   **This is Xiang's design decision.**
+
 ## χ₀<0 Discharge Chain — v4 Complete (2026-07-02)
 
 ### Per-slice realization frontier: CLOSED by v4
@@ -115,17 +325,24 @@ This is a genuine formalization gap, not a wiring issue.
     auto-derives ALL 15 spectral chain hypotheses, produces `CoupledDuhamelReducedClassicalCore`
   - Eliminates: hsumR, hgrad, f-family, flux/log regularity, L1ContOn, hsumE, hdefect, htrace
 
-**Remaining work (conditional on blocker 3 resolution):**
-1. ~~Resolve blocker 3 (Wiener algebra gap)~~ STILL OPEN
+**Remaining work:**
+1. ~~Resolve blocker 3 (Wiener algebra gap)~~ STILL OPEN (see analysis above)
 2. ~~Prove defect/trace atoms from L1ContOn + hsumc~~ DONE
 3. ~~Write v5 assembly wiring~~ DONE
-4. **NEW: Contraction parameter construction** — produce the ~30 quantitative bounds
-   for `chiNegStrong_EWA_fixedPoint_of_floor` from `M` and `p`. This requires:
-   - Bounding `‖heatEWA u₀E‖ ≤ R(M)` and `‖gDeriv(heatEWA u₀E)‖ ≤ Md(M)`
-   - Computing explicit Lipschitz constants on the ball
-   - Choosing ρ, δv, T such that contraction condition holds
-   - All bounds must be UNIFORM over all PPID data with `|u₀| ≤ M`
-5. Wire everything into `ChiNegDatumUniformConstructionStrong`
+4. ~~VdFloor generalization~~ DONE — `vdEWA_floor_of_evenReal` (NOT YET BUILT)
+5. **NEW: EvenReal-restricted Banach fixed point** — modify the contraction
+   mapping argument to work on `{u | EvenRealEWA u} ∩ closedBall(center, ρ)`.
+   This eliminates `hVdFloor` as a carried hypothesis. Key steps:
+   - Prove `EvenRealEWA` is a closed condition (limits of EvenReal are EvenReal)
+   - Show the EvenReal closed ball is complete (closed subset of complete space)
+   - Apply Banach with δv = 1 (from `vdEWA_floor_of_evenReal`)
+   Estimated: ~150 lines (copy of `clean_fixedPoint` with the refined ball)
+6. **Per-datum assembly** — wire PPID datum + Wiener membership + EvenReal
+   fixed point → `CoupledDuhamelReducedClassicalCore` → `ChiNegDatumUniformConstructionStrong`
+7. **Uniform Wiener norm bound for restarts** — solution slices at τ > 0 have
+   Wiener norms bounded by a function of the initial Wiener norm and T.
+   Needed for the UNIFORM construction (same δ for all data with |u₀| ≤ M).
+   Restart data ARE in Wiener algebra via `cosineCoeff_summable_of_eigenvalue_summable`.
 
 1. ~~**`hfp` — chemotaxis-inclusive Duhamel identity.**~~ RESOLVED.
    `SourceChiNegFaithful.lean` already implements the hfp-free route via
