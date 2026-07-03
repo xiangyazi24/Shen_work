@@ -1,5 +1,40 @@
 # Shen Trilogy Formalization — RUN LOG
 
+## Run 2026-07-03 (automode+fable-ora, DatumWienerData → Theorem_1_1)
+- doctrine: Complete the χ₀<0 assembly chain to Theorem_1_1
+- approval: automode continuation
+- starting avenue: prescribed-T FP + master bridge
+- end: 2026-07-03 ~01:30 CT
+- final result: **COMPLETE** — 12 files, 0 sorry, entire DatumWienerData → Theorem_1_1 chain
+
+### Progress (3 commits):
+- **342156a8**: 12 new files (1815 lines), 0 sorry:
+  - `SourceCleanFPConstants.lean` — named FP constants + nonnegativity
+  - `SourceFixedPointEvenRealPrescribed.lean` — Banach FP at prescribed T
+  - `SourceChiNegPerDatumPrescribed.lean` — per-datum Core at prescribed T
+  - `SourceChiNegUniformBridge.lean` — DatumWienerData → UniformCore → Thm_1_1
+  - Plus 8 files from prior sub-session (vdFloor, v6 core, local existence, etc.)
+- **9e953f12**: Fix CleanFPConst equality proofs (dsimp + simp for let bindings)
+- **c04c962f**: Fix nonnegativity proofs (dsimp for let-binding beta-reduction)
+
+### Remaining:
+1. **lake build** — uisai1/uisai2 both unreachable (Tailscale timeout)
+2. **Wiener gap** — PPID ≠ Wiener algebra; need C²/H² regularity strengthening.
+   This is a design decision for Xiang.
+
+## Run 2026-07-02 (automode, 1D energy + Sobolev route for Prop 2.5)
+- doctrine: DOCTRINE.md (active target: discharge IntervalDomainPointwiseMoserGradientBoundBefore)
+- approval: automode continuation from 2026-07-01 session
+- starting avenue: (a) Direct mass→v'→energy→pointwise chain
+
+### Context from Fable 5 session (2026-07-01):
+- AG ≤ KZ+L is FALSE (interpolation direction error)
+- Algebraic absorption also failed (Y' direction error)
+- Correct route: 1D energy estimate + pointwise gradient bootstrap → Sobolev → L∞
+- Codex dispatched to uisai2 (`/var/tmp/shen_gradient`) for gradient bound producer
+
+### Progress:
+
 ## Run 2026-06-30 (automode, integrated Moser threshold-plan route)
 - doctrine: DOCTRINE.md (active target: wire IntegratedMoserFirstCrossingStep)
 - approval: automode continuation from handoff
