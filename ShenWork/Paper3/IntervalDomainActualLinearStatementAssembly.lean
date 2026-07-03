@@ -245,6 +245,62 @@ def IntervalDomainPaper3Stability24ActualLinearFrontierData.toStability23To25
     intro ha0 _hb0 _hm _hβ _uStar _huStar
     exact False.elim ((ne_of_gt ha_pos) ha0)
 
+/-- Formula-level actual-linear-small Theorem 2.4 stability frontiers.
+
+Compared with `IntervalDomainPaper3Stability24ActualLinearFrontierData`, this
+is specialized to the concrete interval-domain Paper3 constants and asks the
+global/exponential Theorem 2.4 branches only under the paper's displayed
+formula condition.  The conversion to the package-shaped condition is proved
+by `intervalDomain_concrete_positiveEquilibrium_formulaCondition_of_condition`.
+-/
+structure IntervalDomainPaper3Stability24ActualLinearFormulaFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  global24Formula :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+          GloballyAsymptoticallyStableNonminimal intervalDomain p
+            eq.1 eq.2
+  exp24Formula :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain
+                  intervalDomainStabilityNorms u v eq.1 eq.2 A rate
+
+/-- Convert the formula-level actual-linear-small Theorem 2.4 frontiers to the
+existing package-shaped Stability24 surface. -/
+def IntervalDomainPaper3Stability24ActualLinearFormulaFrontierData.toActualLinear
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    (h : IntervalDomainPaper3Stability24ActualLinearFormulaFrontierData
+      p M0 uBar vLower) :
+    IntervalDomainPaper3Stability24ActualLinearFrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower) where
+  global24 := by
+    intro ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb
+    dsimp
+    intro hcond
+    exact h.global24Formula ha_pos hb_pos hβ_nonneg hα_pos hγ_pos
+      ha hb
+      (intervalDomain_concrete_positiveEquilibrium_formulaCondition_of_condition
+        (p := p) (M0 := M0) (uBar := uBar) (vLower := vLower)
+        (ha := ha) (hb := hb) hcond)
+  exp24 := by
+    intro ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb
+    dsimp
+    intro hcond
+    exact h.exp24Formula ha_pos hb_pos hβ_nonneg hα_pos hγ_pos
+      ha hb
+      (intervalDomain_concrete_positiveEquilibrium_formulaCondition_of_condition
+        (p := p) (M0 := M0) (uBar := uBar) (vLower := vLower)
+        (ha := ha) (hb := hb) hcond)
+
 /-- Canonical sup-envelope compactness/regularization data in the
 actual-linear-small route after using the shared initial-continuity field and
 `0 < a` to make the minimal-upper branch vacuous. -/
@@ -310,6 +366,52 @@ structure IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
   stability24 :
     IntervalDomainPaper3Stability24ActualLinearFrontierData p
       (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Thin actual-linear raw-Theorem-2.2 mainline data with the Theorem 2.4
+frontiers stated at the paper's formula-condition level. -/
+structure IntervalDomainPaper3MainlineActualLinear22ThinFormulaFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  theorem22Nonminimal :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  theorem22Minimal :
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+      unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms.c1Distance
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower).chiCritical
+  compactness :
+    IntervalDomainPaper3SupNormCompactnessAPosData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+  stability24Formula :
+    IntervalDomainPaper3Stability24ActualLinearFormulaFrontierData
+      p M0 uBar vLower
+
+/-- Convert the formula-level thin actual-linear data to the existing thin
+actual-linear mainline surface. -/
+def IntervalDomainPaper3MainlineActualLinear22ThinFormulaFrontierData.toThin
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop}
+    {neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop}
+    (h : IntervalDomainPaper3MainlineActualLinear22ThinFormulaFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3MainlineActualLinear22ThinFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound where
+  initialContinuity := h.initialContinuity
+  theorem22Nonminimal := h.theorem22Nonminimal
+  theorem22Minimal := h.theorem22Minimal
+  compactness := h.compactness
+  stability24 := h.stability24Formula.toActualLinear
 
 /-- Convert the thin actual-linear data to the current full mainline frontier
 surface. -/
@@ -378,6 +480,52 @@ theorem
       (intervalDomainSupNormCompactnessData
         locallyConverges neumannResolventGradientBound) :=
   intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData
+    p M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
+/-- Mainline target from the thin actual-linear raw-Theorem-2.2 route with
+formula-level Theorem 2.4 frontiers. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFormulaFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3MainlineActualLinear22ThinFormulaFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFrontierData
+    p M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.toThin
+
+/-- Instance-facing mainline target from the thin actual-linear raw-Theorem-2.2
+route with formula-level Theorem 2.4 frontiers. -/
+theorem
+    intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFormulaFrontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3MainlineActualLinear22ThinFormulaFrontierData
+        p M0 uBar vLower locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_mainlineTargets_of_actualLinear22ThinFormulaFrontierData
     p M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 
@@ -657,6 +805,77 @@ theorem
       (intervalDomainSupNormCompactnessData
         locallyConverges neumannResolventGradientBound) :=
   intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ hData.out
+
+/-- Full Paper3 statement frontiers in the actual-linear-small regime, with
+the negative-sensitivity Proposition 1.2 residual discharged from `0 < χ₀`,
+Proposition 1.3/1.4 routed through supplied Paper2 main theorem targets, and
+the Theorem 2.4 stability frontiers stated at formula level. -/
+structure IntervalDomainPaper3StatementActualLinear22ThinFormulaP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop) : Prop where
+  paper2Main : IntervalDomainPaper2MainTheoremTargets p C
+  mainline :
+    IntervalDomainPaper3MainlineActualLinear22ThinFormulaFrontierData
+      p M0 uBar vLower locallyConverges neumannResolventGradientBound
+
+/-- Assemble the actual-linear-small Paper3 statement target from Paper2 main
+theorem targets and formula-level Theorem 2.4 frontiers, without carrying a
+separate negative-sensitivity residual. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_actualLinear22ThinFormulaP2MainNoNegData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    (hData :
+      IntervalDomainPaper3StatementActualLinear22ThinFormulaP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinP2MainNoNegData
+    p C M0 uBar vLower locallyConverges neumannResolventGradientBound
+    ha hb hχ0 hm hβ hχ
+    { paper2Main := hData.paper2Main
+      mainline := hData.mainline.toThin }
+
+/-- Instance-facing actual-linear-small Paper3 statement target from Paper2
+main theorem targets and formula-level Theorem 2.4 frontiers, with the
+negative-sensitivity residual discharged by `0 < χ₀`. -/
+theorem
+    intervalDomain_paper3_statementTargets_of_actualLinear22ThinFormulaP2MainNoNegDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ)
+    (locallyConverges :
+      (ℕ → ℝ → intervalDomain.Point → ℝ) →
+        (ℝ → intervalDomain.Point → ℝ) → Prop)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (intervalDomain.Point → ℝ) → ℝ → Prop)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    [hData : Fact
+      (IntervalDomainPaper3StatementActualLinear22ThinFormulaP2MainNoNegData
+        p C M0 uBar vLower
+        locallyConverges neumannResolventGradientBound)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower
+      (intervalDomainSupNormCompactnessData
+        locallyConverges neumannResolventGradientBound) :=
+  intervalDomain_paper3_statementTargets_of_actualLinear22ThinFormulaP2MainNoNegData
     p C M0 uBar vLower locallyConverges neumannResolventGradientBound
     ha hb hχ0 hm hβ hχ hData.out
 

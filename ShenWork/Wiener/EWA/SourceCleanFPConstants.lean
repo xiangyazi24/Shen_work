@@ -14,7 +14,7 @@
 
   Extracting them as named `def`s enables:
   1. The prescribed-T FP (takes T + conditions in terms of these `def`s)
-  2. Monotonicity proofs (larger ‖u₀E‖ → larger constants → smaller T)
+  2. Nonnegativity proofs (needed for `exists_uniform_EWA_lifespan`)
   3. Connection with `exists_uniform_EWA_lifespan` (bar-bounds on these constants)
 
   All constants match the `set` definitions in
@@ -24,41 +24,41 @@
 -/
 import ShenWork.Wiener.EWA.FnegLipschitz
 import ShenWork.Wiener.EWA.Basic
+import ShenWork.Paper2.Defs
+import ShenWork.Wiener.EWA.SourceFixedPointClean
 
-open ShenWork.EWA
+open ShenWork.EWA ShenWork.GWA ShenWork.Wiener
 
 noncomputable section
 
 namespace ShenWork.EWA.CleanFPConst
 
-variable (p : CM2Params) (normU₀E floor : ℝ)
+def R (normU₀E floor : ℝ) : ℝ := normU₀E + floor / 2
 
-def R : ℝ := normU₀E + floor / 2
+def ρ (floor : ℝ) : ℝ := floor / 2
 
-def ρ : ℝ := floor / 2
+def Md (normU₀E floor : ℝ) : ℝ := Real.pi * R normU₀E floor
 
-def Md : ℝ := Real.pi * R normU₀E floor
-
-def Mdv : ℝ :=
+def Mdv (p : CM2Params) (normU₀E floor : ℝ) : ℝ :=
   Real.pi * (GWA.resolverGainConst p.μ * (|p.ν| *
     ((R normU₀E floor) ^ (Nat.floor p.γ + 1)
       * negNormConst ((Nat.floor p.γ + 1 : ℝ) - p.γ)
           (floor / 2) (Md normU₀E floor))))
 
-def M_Q : ℝ :=
+def M_Q (p : CM2Params) (normU₀E floor : ℝ) : ℝ :=
   (R normU₀E floor) * (Real.pi * (GWA.resolverGainConst p.μ * (|p.ν| *
       ((R normU₀E floor) ^ (Nat.floor p.γ + 1)
         * negNormConst ((Nat.floor p.γ + 1 : ℝ) - p.γ)
             (floor / 2) (Md normU₀E floor)))))
     * negNormConst p.β 1 (Mdv p normU₀E floor)
 
-def M_G : ℝ :=
+def M_G (p : CM2Params) (normU₀E floor : ℝ) : ℝ :=
   (R normU₀E floor) * (|p.a| * 1 + |p.b| *
     ((R normU₀E floor) ^ (Nat.floor p.α + 1)
       * negNormConst ((Nat.floor p.α + 1 : ℝ) - p.α)
           (floor / 2) (Md normU₀E floor)))
 
-def L_Q : ℝ :=
+def L_Q (p : CM2Params) (normU₀E floor : ℝ) : ℝ :=
   let sγ := (Nat.floor p.γ + 1 : ℝ) - p.γ
   let rr := R normU₀E floor
   let md := Md normU₀E floor
@@ -80,7 +80,7 @@ def L_Q : ℝ :=
             + rr ^ (Nat.floor p.γ + 1)
               * negLipConst sγ δρ md))))
 
-def L_G : ℝ :=
+def L_G (p : CM2Params) (normU₀E floor : ℝ) : ℝ :=
   let sα := (Nat.floor p.α + 1 : ℝ) - p.α
   let rr := R normU₀E floor
   let md := Md normU₀E floor
@@ -95,18 +95,20 @@ def L_G : ℝ :=
 
 /-! ### Nonnegativity of all constants. -/
 
-theorem R_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) : 0 ≤ R normU₀E floor := by
+theorem R_nonneg {normU₀E floor : ℝ} (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
+    0 ≤ R normU₀E floor := by
   unfold R; linarith
 
-theorem ρ_pos (hf : 0 < floor) : 0 < ρ floor := by
+theorem ρ_pos {floor : ℝ} (hf : 0 < floor) : 0 < ρ floor := by
   unfold ρ; linarith
 
-theorem Md_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) : 0 ≤ Md normU₀E floor := by
+theorem Md_nonneg {normU₀E floor : ℝ} (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
+    0 ≤ Md normU₀E floor := by
   unfold Md R; positivity
 
 /-! ### Nonnegativity of all four contraction/self-map constants. -/
 
-theorem Mdv_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
+theorem Mdv_nonneg {normU₀E floor : ℝ} {p : CM2Params} (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
     0 ≤ Mdv p normU₀E floor := by
   dsimp only [Mdv, Md, R]
   have hCμ : (0 : ℝ) ≤ GWA.resolverGainConst p.μ := by
@@ -118,7 +120,8 @@ theorem Mdv_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
   have hneg := negNormConst_nonneg hsγ hδρ hMdnn
   positivity
 
-theorem L_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
+theorem L_Q_nonneg {normU₀E floor : ℝ} {p : CM2Params} (hn : 0 ≤ normU₀E)
+    (hf : 0 < floor) (hβ : 0 < p.β) :
     0 ≤ L_Q p normU₀E floor := by
   dsimp only [L_Q, Md, Mdv, R]
   have hCμ : (0 : ℝ) ≤ GWA.resolverGainConst p.μ := by
@@ -137,7 +140,8 @@ theorem L_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
   have hnegLv := negLipConst_nonneg hβ one_pos hMdvnn
   positivity
 
-theorem L_G_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
+theorem L_G_nonneg {normU₀E floor : ℝ} {p : CM2Params} (hn : 0 ≤ normU₀E)
+    (hf : 0 < floor) :
     0 ≤ L_G p normU₀E floor := by
   dsimp only [L_G, Md, R]
   have hsα : 0 < (Nat.floor p.α + 1 : ℝ) - p.α := by
@@ -148,7 +152,8 @@ theorem L_G_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
   have hnegLα := negLipConst_nonneg hsα hδρ hMdnn
   positivity
 
-theorem M_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
+theorem M_Q_nonneg {normU₀E floor : ℝ} {p : CM2Params} (hn : 0 ≤ normU₀E)
+    (hf : 0 < floor) (hβ : 0 < p.β) :
     0 ≤ M_Q p normU₀E floor := by
   dsimp only [M_Q, Md, Mdv, R]
   have hCμ : (0 : ℝ) ≤ GWA.resolverGainConst p.μ := by
@@ -165,7 +170,8 @@ theorem M_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
   have hnegNv := negNormConst_nonneg hβ one_pos hMdvnn
   positivity
 
-theorem M_G_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
+theorem M_G_nonneg {normU₀E floor : ℝ} {p : CM2Params} (hn : 0 ≤ normU₀E)
+    (hf : 0 < floor) :
     0 ≤ M_G p normU₀E floor := by
   dsimp only [M_G, Md, R]
   have hsα : 0 < (Nat.floor p.α + 1 : ℝ) - p.α := by

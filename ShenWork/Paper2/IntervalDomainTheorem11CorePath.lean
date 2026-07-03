@@ -19,7 +19,10 @@
 import ShenWork.Paper2.IntervalDomainTheorem11StrongPath
 import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
 
-open ShenWork.IntervalDomain (intervalDomainPoint)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomain)
+open ShenWork.Paper2
+open ShenWork.Paper2.StrongPath (chiNeg_theorem_1_1_ppid ChiNegDatumUniformConstructionPPID)
+open ShenWork.IntervalCoupledRegularityBootstrap (CoupledDuhamelReducedClassicalCore)
 
 noncomputable section
 
