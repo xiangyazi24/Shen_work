@@ -418,7 +418,7 @@ theorem reachableArbitrarilyLong_ppid
   intro n
   induction n with
   | zero =>
-    simp only [Nat.zero_eq, Nat.cast_zero, zero_mul, add_zero]
+    simp only [Nat.cast_zero, zero_mul, add_zero]
     exact ⟨u₀sol, v₀sol, hsol₀, htrace₀⟩
   | succ n ih =>
     obtain ⟨un, vn, hsoln, htracen⟩ := ih
