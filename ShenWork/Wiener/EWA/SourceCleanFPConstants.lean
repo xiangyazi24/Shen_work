@@ -108,7 +108,7 @@ theorem Md_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) : 0 ≤ Md normU₀E f
 
 theorem Mdv_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
     0 ≤ Mdv p normU₀E floor := by
-  unfold Mdv Md R
+  dsimp only [Mdv, Md, R]
   have hCμ : (0 : ℝ) ≤ GWA.resolverGainConst p.μ := by
     unfold GWA.resolverGainConst; have := p.hμ; positivity
   have hsγ : 0 < (Nat.floor p.γ + 1 : ℝ) - p.γ := by
@@ -120,7 +120,7 @@ theorem Mdv_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
 
 theorem L_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
     0 ≤ L_Q p normU₀E floor := by
-  unfold L_Q Md Mdv R
+  dsimp only [L_Q, Md, Mdv, R]
   have hCμ : (0 : ℝ) ≤ GWA.resolverGainConst p.μ := by
     unfold GWA.resolverGainConst; have := p.hμ; positivity
   have hsγ : 0 < (Nat.floor p.γ + 1 : ℝ) - p.γ := by
@@ -139,7 +139,7 @@ theorem L_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
 
 theorem L_G_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
     0 ≤ L_G p normU₀E floor := by
-  unfold L_G Md R
+  dsimp only [L_G, Md, R]
   have hsα : 0 < (Nat.floor p.α + 1 : ℝ) - p.α := by
     have := Nat.lt_floor_add_one p.α; linarith
   have hMdnn : (0 : ℝ) ≤ Real.pi * (normU₀E + floor / 2) := by positivity
@@ -150,7 +150,7 @@ theorem L_G_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
 
 theorem M_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
     0 ≤ M_Q p normU₀E floor := by
-  unfold M_Q Md Mdv R
+  dsimp only [M_Q, Md, Mdv, R]
   have hCμ : (0 : ℝ) ≤ GWA.resolverGainConst p.μ := by
     unfold GWA.resolverGainConst; have := p.hμ; positivity
   have hsγ : 0 < (Nat.floor p.γ + 1 : ℝ) - p.γ := by
@@ -167,7 +167,7 @@ theorem M_Q_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) (hβ : 0 < p.β) :
 
 theorem M_G_nonneg (hn : 0 ≤ normU₀E) (hf : 0 < floor) :
     0 ≤ M_G p normU₀E floor := by
-  unfold M_G Md R
+  dsimp only [M_G, Md, R]
   have hsα : 0 < (Nat.floor p.α + 1 : ℝ) - p.α := by
     have := Nat.lt_floor_add_one p.α; linarith
   have hMdnn : (0 : ℝ) ≤ Real.pi * (normU₀E + floor / 2) := by positivity
