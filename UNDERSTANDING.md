@@ -1,37 +1,47 @@
 # UNDERSTANDING.md — Shen_work
 
-## χ₀<0 Discharge Chain — Session 2026-07-02 (Groups E+F)
+## χ₀<0 Discharge Chain — v4 Complete (2026-07-02)
 
-### What was done
+### Per-slice realization frontier: CLOSED by v4
 
-Two bypass theorems in `SourceResolverSummabilityDischarge.lean` that eliminate
-4 hypotheses from the v2 reduced-core chain:
+The full per-slice realization frontier (blocker 1 from `SourceChiNegUncondFix.lean`)
+is now internalized by `realSlice_reducedCore_wired_v4`. It eliminates 9 hypotheses
+from v2 (11 from v1):
 
-1. **`realSlice_hlogInv_of_L1ContOn`** (Group F) — logistic source inversion
-   without `hlogNE0/1` (endpoint nonvanishing of logistic source lift).
-   Route: `constExtend(logisticSource)` as continuous surrogate +
-   `cosineCoeffs_congr_on_Icc` + L1ContOn envelope + Fourier summability bypass.
+| Group | Hypothesis | Method |
+|-------|-----------|--------|
+| E | hcontChem, h_coeffChem | EWA eval bridge (`realSlice_hchemInv_of_L1ContOn`) |
+| F | hlogNE0, hlogNE1 | constExtend surrogate (`realSlice_hlogInv_of_L1ContOn`) |
+| G | Hv | L1ContOn Hv chain (`realSlice_Hv_full_of_L1ContOn`) |
+| C | hclassReg | Assembly: htimeDeriv + hdecay + Hv + Hvpos → `realSlice_classicalRegularity_of_L1ContOn` |
+| — | μc, νc, γc, hμc, Uc | No longer needed (chemInv bypass) |
 
-2. **`realSlice_hchemInv_of_L1ContOn`** (Group E) — chemDiv inversion without
-   `hcontChem` or `h_coeffChem`. Route: EWA eval bridge directly —
-   `evalST(chemDivEWA) = ∑ ewaCosCoeffAt cos` (EvenReal cosine series) +
-   eval bridge `evalST = chemDivLift` on `(0,1)` + coefficient bridge
-   `ewaCosCoeffAt = coupledChemDivSourceCoeffs`.
+**Files committed (NOT YET BUILT — uisai1/2 down):**
+- `SourceResolverSummabilityDischarge.lean` — Groups E+F bypass theorems
+- `ResolverSliceHvWiringL1.lean` — Group G Hv from L1ContOn (81f2c3ee)
+- `SourceReducedCoreWireV2.lean` — v3+v4 chains + `slice_hasDerivAt_of_l1` non-private (aa806744)
 
-Both are no-sorry, no-axiom, committed and pushed. NOT YET BUILT (uisai1/2 down).
+### Remaining to Theorem_1_1
 
-### Remaining to Theorem_1_1 (after this session)
+v4's remaining hypotheses are ALL structural (cannot be eliminated):
+- Picard fixed-point data (hfix, hself, hLipQ, hLipG, hKnn, hK, hmem_star)
+- EWA tower inputs (hsumR, hgrad, f-family, h_flux_diff, h_src_cont_log)
+- L1ContOn source data (hchem_l1, hlog_l1, hsumE)
+- Initial trace (hrecon, hdefect, htrace)
 
-- **Hv** (Group G): `HasResolverDirectSpectralData` — deep chain through
-  `SourcePerSliceCloseL1` → `realSlice_Hv_closed_of_L1ContOn`. Needs quadratic
-  decay residuals `C/hC/hdecay/ha0` from `realSlice_powerSource_window_uniform_decay`.
-- **hclassReg** (Group C): `intervalDomainClassicalRegularity` — needs Hv +
-  `DuhamelSourceTimeC1` (or `TimeC1On` variant) + time derivative atoms.
-- **Group H**: `hrecon/hdefect/htrace` — initial trace convergence.
-- **Assembly**: `realSlice_reducedCore_auto` collapsing all discharged groups.
-- **Capstone**: `ChiNegFaithfulRealizationFrontier → Theorem_1_1`.
-- **Blocker 2**: Continuation/restart factory typed over weak data
-  (`PositiveInitialDatum`) vs strong construction.
+**Two genuine blockers remain:**
+
+1. **`hfp` — chemotaxis-inclusive Duhamel identity.** The EWA fixed-point produces
+   `u_star = picardEWA ... u_star`, but `ChiNegRealizationAtoms` needs
+   `realSlice u_star = intervalDuhamelOperator p u₀ (realSlice u_star)`. The bridge
+   `intervalGradientDuhamelMap_eq_intervalDuhamelOperator_of_frontiers` equates the two
+   ONLY when the chemotaxis Duhamel term vanishes — TRUE for χ₀=0, FALSE for χ₀<0.
+
+2. **Continuation/restart factory over weak data.** The headline reduction feeds
+   `RestartAndGlueWorks` whose factory is re-invoked at time-slices that are only
+   `PositiveInitialDatum` (no uniform floor). The EWA tower needs
+   `PaperPositiveInitialDatum` (with floor). Rebuilding the continuation stack over
+   strong data is not local work.
 
 ### Key architectural finding
 
