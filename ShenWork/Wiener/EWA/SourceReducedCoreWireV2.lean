@@ -14,6 +14,7 @@ import ShenWork.Wiener.EWA.SourceReducedCoreWire
 import ShenWork.Wiener.EWA.SourceClassicalRegularity
 import ShenWork.Wiener.EWA.SourceSynthesisL1
 import ShenWork.Wiener.EWA.SourceResolverSummabilityDischarge
+import ShenWork.Wiener.EWA.ResolverSliceHvWiringL1
 
 noncomputable section
 
@@ -99,7 +100,7 @@ private theorem hsum_log_of_l1 (p : CM2Params)
 
 /-! ### Slice HasDerivAt + time derivative (L1ContOn). -/
 
-private theorem slice_hasDerivAt_of_l1 (p : CM2Params)
+theorem slice_hasDerivAt_of_l1 (p : CM2Params)
     (u : ℝ → intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ) {Mu0 : ℝ}
     (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
     (hchem : DuhamelSourceL1ContOn (coupledChemDivSourceCoeffs p u) T)
@@ -558,8 +559,178 @@ theorem realSlice_reducedCore_wired_v3 (p : CM2Params)
     hu_ball htime hlap hchemInv hlogInv hsum_lap hsc hsl
     hclassReg hrealizes hT hu0cos hrecon hdefect htrace
 
+/-! ### v4: internalize Hv + hclassReg (no external spectral/regularity) -/
+
+theorem realSlice_reducedCore_wired_v4 (p : CM2Params)
+    (u_star : EWA T 1)
+    (u₀ : intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ)
+    {Mu0 : ℝ} (hu0bd : ∀ n, |u₀cos n| ≤ Mu0)
+    {u₀E : WA 1} {δ ρ : ℝ} (hδρ : 0 < δ - ρ)
+    (hheat : UniformFloor (heatEWA (T := T) u₀E) δ)
+    (hu_ball : u_star ∈ Metric.closedBall
+      (heatEWA (T := T) u₀E) ρ)
+    (hsumc : Summable (fun k => |u₀cos k|))
+    (hmem : MemW 1 (ofCosineCoeffs u₀cos))
+    (hT0 : (0 : ℝ) ≤ T) {L_Q L_G δ' ρ' : ℝ}
+    (hδ'pos : 0 < δ') (hρ'ρ : ρ' = ρ)
+    (hfix : u_star = picardEWA p p.μ p.ν p.γ p.hμ hT0
+      (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1) u_star)
+    (hρ' : 0 ≤ ρ')
+    (hself : MapsTo
+      (picardEWA p p.μ p.ν p.γ p.hμ hT0
+        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1))
+      (Metric.closedBall
+        (heatEWA (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ')
+      (Metric.closedBall
+        (heatEWA (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ'))
+    (hLipQ : ∀ a ∈ Metric.closedBall (heatEWA (T := T)
+        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ',
+      ∀ b ∈ Metric.closedBall (heatEWA (T := T)
+        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ',
+      ‖chemFluxEWA p.μ p.ν p.β p.γ p.hμ a
+        - chemFluxEWA p.μ p.ν p.β p.γ p.hμ b‖
+          ≤ L_Q * ‖a - b‖)
+    (hLipG : ∀ a ∈ Metric.closedBall (heatEWA (T := T)
+        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ',
+      ∀ b ∈ Metric.closedBall (heatEWA (T := T)
+        (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ',
+      ‖growthEWA p.α p.a p.b a - growthEWA p.α p.a p.b b‖
+        ≤ L_G * ‖a - b‖)
+    (hKnn : (0 : ℝ) ≤
+      |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T)
+    (hK : |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T < 1)
+    (hmem_star : u_star ∈ Metric.closedBall (heatEWA (T := T)
+      (⟨ofCosineCoeffs u₀cos, hmem⟩ : WA 1)) ρ')
+    (hβpos : 0 < p.β) (hαnn : 0 ≤ p.α) (hμle1 : p.μ ≤ 1)
+    (hfloorδ : δ' = T) (hfloor : UniformFloor u_star δ')
+    (hsumR : ∀ σ : TimeDom T,
+      ResolverSourceSummable p (realSlice u_star σ.1))
+    (hgrad : ∀ (τ : TimeDom T),
+      Summable fun k : ℕ =>
+        |(intervalNeumannResolverCoeff p
+          (realSlice u_star τ.1) k).re| * ((k : ℝ) * Real.pi))
+    (f : ℝ → ℝ → ℝ)
+    (hf_cont : ∀ σ : TimeDom T, Continuous (f σ.1))
+    (hf_nonneg : ∀ (σ : TimeDom T) (y : ℝ), 0 ≤ f σ.1 y)
+    (hf_coeff : ∀ (σ : TimeDom T) (k : ℕ),
+      cosineCoeffs (f σ.1) k =
+        (intervalNeumannResolverSourceCoeff p
+          (realSlice u_star σ.1) k).re)
+    (hf2 : ∀ σ : TimeDom T,
+      Summable (fun k => (cosineCoeffs (f σ.1) k) ^ 2))
+    (h_flux_diff : ∀ (τ : TimeDom T),
+      ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+        DifferentiableAt ℝ
+          (chemFluxLifted p (realSlice u_star τ.1)) x)
+    (h_src_cont_log : ∀ (τ : TimeDom T),
+      Continuous (wLog p u_star τ.1))
+    (hchem_l1 : DuhamelSourceL1ContOn
+      (coupledChemDivSourceCoeffs p (realSlice u_star)) T)
+    (hlog_l1 : DuhamelSourceL1ContOn
+      (coupledLogisticSourceCoeffs p (realSlice u_star)) T)
+    (hsumE : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      Summable (fun n => unitIntervalCosineEigenvalue n *
+        |fullSourceCoeff p (realSlice u_star) u₀cos t n|))
+    (hT : (0 : ℝ) < T)
+    (hu0cos : Summable (fun n => |u₀cos n|))
+    (hrecon : ∀ x : intervalDomainPoint,
+      u₀ x = ∑' n, u₀cos n * cosineMode n x.1)
+    (hdefect : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      Summable (fun n =>
+        |fullSourceCoeff p (realSlice u_star) u₀cos t n
+          - u₀cos n|))
+    (htrace : Filter.Tendsto
+      (fun t => ∑' n,
+        |fullSourceCoeff p (realSlice u_star) u₀cos t n
+          - u₀cos n|)
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0)) :
+    CoupledDuhamelReducedClassicalCore p T u₀
+      (realSlice u_star) := by
+  -- Step 0: derive EvenRealEWA from Picard fixed-point parity.
+  have hER : EvenRealEWA u_star :=
+    picardEWA_evenReal_fixedPoint p p.hμ hT0 u₀cos hmem
+      (hρ'ρ ▸ hρ') (hρ'ρ ▸ hself) (hρ'ρ ▸ hLipQ) (hρ'ρ ▸ hLipG)
+      hKnn hK u_star (hρ'ρ ▸ hmem_star) hfix
+  -- Step 1: derive hrealizes from the slab-eval discharge.
+  have hrealizes :
+      ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        intervalDomainLift (realSlice u_star t) x =
+          ∑' n, fullSourceCoeff p (realSlice u_star) u₀cos t n
+            * cosineMode n x := by
+    refine realSlice_realizes_slab_evalST_discharged p u₀cos
+      hsumc hmem hT0 hδ'pos u_star ?_ hρ' ?_ ?_ ?_ hKnn hK ?_
+      hβpos hαnn hμle1 hfloorδ hfloor hsumR hgrad
+      f hf_cont hf_nonneg hf_coeff hf2 h_flux_diff
+      h_src_cont_log
+    · exact hfix
+    · exact hρ'ρ ▸ hself
+    · exact hρ'ρ ▸ hLipQ
+    · exact hρ'ρ ▸ hLipG
+    · exact hρ'ρ ▸ hmem_star
+  -- Step 2: endpoint nonvanishing.
+  have huNE0 := realSlice_lift_endpoint0_ne_zero hδρ hheat
+    hu_ball (T := T)
+  have huNE1 := realSlice_lift_endpoint1_ne_zero hδρ hheat
+    hu_ball (T := T)
+  -- Step 3: time derivative and differentiability (unrestricted).
+  have htimeDeriv : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      ∀ x : intervalDomainPoint,
+        deriv (fun s : ℝ => realSlice u_star s x) t =
+          ∑' n, fullSourceCoeffDot p (realSlice u_star) u₀cos t n *
+            cosineMode n x.1 :=
+    fun t ht x =>
+      (slice_hasDerivAt_of_l1 p (realSlice u_star) u₀cos hu0bd
+        hchem_l1 hlog_l1 hrealizes ht x).deriv
+  have hdiffU : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      ∀ x : intervalDomainPoint,
+        DifferentiableAt ℝ (fun s : ℝ => realSlice u_star s x) t :=
+    fun t ht x =>
+      (slice_hasDerivAt_of_l1 p (realSlice u_star) u₀cos hu0bd
+        hchem_l1 hlog_l1 hrealizes ht x).differentiableAt
+  -- Step 4: quadratic source decay.
+  have hdecay : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      SourceCoeffQuadraticDecay p (realSlice u_star t) :=
+    realSlice_resolverDecay p u_star u₀cos hδρ hheat hu_ball
+      hsumE hrealizes huNE0 huNE1
+  -- Step 5: Hv = HasResolverDirectSpectralData (from L1ContOn chain).
+  have Hv : HasResolverDirectSpectralData T
+      (mildChemicalConcentration p (realSlice u_star)) p :=
+    realSlice_Hv_full_of_L1ContOn p u_star u₀cos hu0bd
+      hchem_l1 hlog_l1 hδρ hheat hu_ball hsumE hrealizes
+  -- Step 6: resolver positivity.
+  have Hvpos : ∀ t ∈ Set.Ioo (0 : ℝ) T,
+      ∀ x : intervalDomainPoint,
+        0 < mildChemicalConcentration p (realSlice u_star) t x :=
+    realSlice_resolverPos p u_star u₀cos hδρ hheat hu_ball
+      hsumE hrealizes
+  -- Step 7: classical regularity (assembled from steps 3-6).
+  have hclassReg : intervalDomainClassicalRegularity T
+      (realSlice u_star)
+      (mildChemicalConcentration p (realSlice u_star)) :=
+    realSlice_classicalRegularity_of_L1ContOn p u_star u₀cos
+      hu0bd hchem_l1 hlog_l1 hsumE hrealizes htimeDeriv hdiffU
+      huNE0 huNE1 hdecay Hv Hvpos
+  -- Step 8: from v3's proof body — chimney + logistic invariance + core.
+  have htime := htime_of_l1 p (realSlice u_star) u₀cos hu0bd
+    hchem_l1 hlog_l1 hrealizes
+  have hlap := realSlice_hlap_of_atoms p (realSlice u_star)
+    u₀cos hsumE hrealizes
+  have hsum_lap := realSlice_hsum_lap_of_atoms p
+    (realSlice u_star) u₀cos hsumE
+  have hsc := hsum_chem_of_l1 p (realSlice u_star) hchem_l1
+  have hsl := hsum_log_of_l1 p (realSlice u_star) hlog_l1
+  have hchemInv := realSlice_hchemInv_of_L1ContOn p u_star
+    (hfloorδ ▸ hT) hER hT hfloor hβpos
+    (le_of_lt p.hν) hμle1
+  have hlogInv := realSlice_hlogInv_of_L1ContOn p u_star
+    (hfloorδ ▸ hT) hER hfloor hαnn hT0 u₀cos hsumE hrealizes
+  exact realSlice_reducedCore p u_star u₀ u₀cos hδρ hheat
+    hu_ball htime hlap hchemInv hlogInv hsum_lap hsc hsl
+    hclassReg hrealizes hT hu0cos hrecon hdefect htrace
+
 end ShenWork.EWA
 
 #print axioms ShenWork.EWA.realSlice_classicalRegularity_of_L1ContOn
 #print axioms ShenWork.EWA.realSlice_reducedCore_wired_v2
 #print axioms ShenWork.EWA.realSlice_reducedCore_wired_v3
+#print axioms ShenWork.EWA.realSlice_reducedCore_wired_v4
