@@ -1,5 +1,46 @@
 # UNDERSTANDING.md — Shen_work
 
+## χ₀<0 Discharge Chain — Session 2026-07-02 (Groups E+F)
+
+### What was done
+
+Two bypass theorems in `SourceResolverSummabilityDischarge.lean` that eliminate
+4 hypotheses from the v2 reduced-core chain:
+
+1. **`realSlice_hlogInv_of_L1ContOn`** (Group F) — logistic source inversion
+   without `hlogNE0/1` (endpoint nonvanishing of logistic source lift).
+   Route: `constExtend(logisticSource)` as continuous surrogate +
+   `cosineCoeffs_congr_on_Icc` + L1ContOn envelope + Fourier summability bypass.
+
+2. **`realSlice_hchemInv_of_L1ContOn`** (Group E) — chemDiv inversion without
+   `hcontChem` or `h_coeffChem`. Route: EWA eval bridge directly —
+   `evalST(chemDivEWA) = ∑ ewaCosCoeffAt cos` (EvenReal cosine series) +
+   eval bridge `evalST = chemDivLift` on `(0,1)` + coefficient bridge
+   `ewaCosCoeffAt = coupledChemDivSourceCoeffs`.
+
+Both are no-sorry, no-axiom, committed and pushed. NOT YET BUILT (uisai1/2 down).
+
+### Remaining to Theorem_1_1 (after this session)
+
+- **Hv** (Group G): `HasResolverDirectSpectralData` — deep chain through
+  `SourcePerSliceCloseL1` → `realSlice_Hv_closed_of_L1ContOn`. Needs quadratic
+  decay residuals `C/hC/hdecay/ha0` from `realSlice_powerSource_window_uniform_decay`.
+- **hclassReg** (Group C): `intervalDomainClassicalRegularity` — needs Hv +
+  `DuhamelSourceTimeC1` (or `TimeC1On` variant) + time derivative atoms.
+- **Group H**: `hrecon/hdefect/htrace` — initial trace convergence.
+- **Assembly**: `realSlice_reducedCore_auto` collapsing all discharged groups.
+- **Capstone**: `ChiNegFaithfulRealizationFrontier → Theorem_1_1`.
+- **Blocker 2**: Continuation/restart factory typed over weak data
+  (`PositiveInitialDatum`) vs strong construction.
+
+### Key architectural finding
+
+`hcontChem` (chemDiv continuity on `intervalDomainPoint`, including endpoints)
+is likely FALSE — the chemDiv lift is discontinuous at {0,1} (confirmed by
+`SourceRealizesRecords.lean:184-185`). The existing route
+`realSlice_hchemInv_direct` required it via `constExtend_continuous`. The EWA
+eval bridge approach avoids this entirely.
+
 ## CURRENT STATE (2026-07-02, code-derived)
 
 Authoritative checks from the current tree:

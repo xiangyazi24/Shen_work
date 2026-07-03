@@ -1070,9 +1070,11 @@ theorem realSlice_hchemInv_of_L1ContOn (p : CM2Params)
     have h2 := h_eval x.1 hx
     have := h1.symm.trans h2
     exact_mod_cast this
-  conv_lhs => ext n; rw [show coupledChemDivSourceCoeffs p (realSlice u_star) t n = c n
-    from (hcoeff_eq n).symm]
-  rw [hid, coupledChemDivSourceLift, intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hx)]
+  have hlhs : (∑' n, coupledChemDivSourceCoeffs p (realSlice u_star) t n * cosineMode n x.1)
+      = ∑' n, c n * cosineMode n x.1 :=
+    tsum_congr (fun n => by rw [(hcoeff_eq n).symm])
+  rw [hlhs, hid, coupledChemDivSourceLift]
+  simp only [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hx)]
 
 #print axioms realSlice_hchemInv_of_L1ContOn
 
