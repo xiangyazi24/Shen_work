@@ -142,20 +142,26 @@ theorem picardEWA_clean_fixedPoint_evenReal_prescribedT (p : CM2Params)
           + (|p.a| * 1 + |p.b| *
               (R ^ (Nat.floor p.α + 1)
                 * negNormConst ((Nat.floor p.α + 1 : ℝ) - p.α) (δ - ρ) Md)) with hLG_def
+  -- Key identity: δ - ρ = δ / 2 (local uses δ - ρ, CleanFPConst uses floor / 2).
+  have hδρ_eq : δ - ρ = δ / 2 := by unfold_let ρ; ring
   -- These expressions equal CleanFPConst at (normBound, δ) because:
   -- R = normBound + δ/2, δ-ρ = δ/2, δv = 1.
   have hLQ_eq : L_Q = CleanFPConst.L_Q p normBound δ := by
-    unfold_let L_Q R Md Mdv ρ; unfold CleanFPConst.L_Q CleanFPConst.R CleanFPConst.Md CleanFPConst.Mdv
-    ring
+    unfold_let L_Q R Md Mdv ρ
+    dsimp only [CleanFPConst.L_Q, CleanFPConst.R, CleanFPConst.Md, CleanFPConst.Mdv]
+    simp only [show δ - δ / 2 = δ / 2 from by ring]
   have hLG_eq : L_G = CleanFPConst.L_G p normBound δ := by
-    unfold_let L_G R Md ρ; unfold CleanFPConst.L_G CleanFPConst.R CleanFPConst.Md
-    ring
+    unfold_let L_G R Md ρ
+    dsimp only [CleanFPConst.L_G, CleanFPConst.R, CleanFPConst.Md]
+    simp only [show δ - δ / 2 = δ / 2 from by ring]
   have hMQ_eq : M_Q = CleanFPConst.M_Q p normBound δ := by
-    unfold_let M_Q R Md Mdv ρ; unfold CleanFPConst.M_Q CleanFPConst.R CleanFPConst.Md CleanFPConst.Mdv
-    ring
+    unfold_let M_Q R Md Mdv ρ
+    dsimp only [CleanFPConst.M_Q, CleanFPConst.R, CleanFPConst.Md, CleanFPConst.Mdv]
+    simp only [show δ - δ / 2 = δ / 2 from by ring]
   have hMG_eq : M_G = CleanFPConst.M_G p normBound δ := by
-    unfold_let M_G R Md ρ; unfold CleanFPConst.M_G CleanFPConst.R CleanFPConst.Md
-    ring
+    unfold_let M_G R Md ρ
+    dsimp only [CleanFPConst.M_G, CleanFPConst.R, CleanFPConst.Md]
+    simp only [show δ - δ / 2 = δ / 2 from by ring]
   -- Nonnegativity of Γ-combination constants.
   have hsγ : 0 < (Nat.floor p.γ + 1 : ℝ) - p.γ := by
     have := Nat.lt_floor_add_one p.γ; linarith
