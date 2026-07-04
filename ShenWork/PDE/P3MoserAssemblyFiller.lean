@@ -1,4 +1,5 @@
 import ShenWork.PDE.P3MoserIntegratedDissipationPDE
+import ShenWork.PDE.P3MoserIntegratedDissipationPDEv2
 import ShenWork.PDE.P3MoserQuantitativeEndpointDischarge
 import ShenWork.PDE.P3MoserGradientIntegrabilityFromDissipation
 import ShenWork.PDE.P3MoserRelativeMassGradientProducer
@@ -12,6 +13,7 @@ open ShenWork.IntervalDomain
 open ShenWork.IntervalDomainExistence
 open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedDissipationPDEv2
 open ShenWork.IntervalDomainExistence.P3MoserRegularityProducer
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainEnergyStep
@@ -67,7 +69,7 @@ theorem intervalDomain_integratedDropResiduals_of_classical
         CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
         AbstractLpBootstrapHypothesis intervalDomain u
           (p.N : ℝ) T rho p0 →
-          ∀ q, p0 ≤ q → ∀ A K : ℝ, 0 < A → 0 < K → (2 : ℝ) < q * A)
+          LpBootstrapEnergyInequalityWithGap intervalDomain u T rho p0)
     (hDyadicEndpoint :
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
@@ -126,7 +128,7 @@ theorem intervalDomain_integratedDropResiduals_of_classical
         P3MoserLemmaDischarge.relativeMoserInterpolationBefore_of_massGradient
           cGrad hcGrad hMG hgrad hmassToLp
     exact
-      _root_.ShenWork.IntervalDomainExistence.P3MoserIntegratedDissipationPDE.intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE
+      _root_.ShenWork.IntervalDomainExistence.P3MoserIntegratedDissipationPDEv2.intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE_v2
           hsol hcross hboot
           (hFTC hsol hcross hboot)
           hrel
