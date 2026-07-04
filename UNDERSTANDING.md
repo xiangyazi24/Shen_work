@@ -151,13 +151,28 @@ Converter `to_closedEnergyIdentityTraceData` combines partial + remaining into f
 | `quantitativeEndpoint` | ❌ PDE frontier | de Giorgi |
 | `a_pos`, `chi_nonneg` | ✅ parameter | — |
 
-**Irreducible PDE frontiers (6 items):**
-1. `zeroRightDerivative` — HasDerivWithinAt of L² energy at t=0 from the right
-2. `gradientTimeIntegrable` — closed-time gradient energy continuity
-3. `integratedMoserDissipation` — integrated Moser energy drop
-4. `relativeMassGradient` — mass/gradient Sobolev interpolation
-5. `quantitativeEndpoint` — de Giorgi quantitative estimate
-6. `IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData` — initial-window derivative integrability for FTC
+**Irreducible PDE frontiers — REVISED after dual-oracle synthesis (2026-07-04):**
+
+The 6 nominal frontiers collapse to 3 real work items (oracle consensus):
+
+| # | Frontier | True status | Action |
+|---|----------|-------------|--------|
+| 1 | `zeroRightDerivative` | **SATISFIABILITY TRAP** — `deriv E 0` is two-sided, junk at t=0. Audit file created: `P3MoserZeroDerivAudit.lean` (211 lines, axiom-clean). Corrected definition `IntervalDomainL2SeedZeroRightDerivativeWithin` uses `derivWithin (Ici 0)`. | Fold into FTC infrastructure; prove via `hasDerivAt_interval_left_endpoint_of_tendsto_deriv` after gradient-energy continuity at t=0 |
+| 2 | `gradientTimeIntegrable` | **DERIVED from #3** — monotone convergence: rearrange integrated drop on [t₁,t₂], Y_p bounded, G_p ≥ 0, take t₁→0, t₂→T. NOT independent. | Derive after #3 lands |
+| 3 | `integratedMoserDissipation` | **THE CORE PDE ESTIMATE** — assembly from Leibniz + IBP + cross-diffusion bootstrap + FTC. All sub-tools exist. Must track C(p) polynomial growth for #5. | Main Codex task after #4 and #6 |
+| 4 | `relativeMassGradient` | **MOSTLY WIRING** — Agmon interpolation PROVED (`IntervalAgmonInterpolation.lean:872`). GN/Young wrappers exist (`UnitIntervalPowerGNYoungForMoser`). Chain-rule identity for cGrad. Jensen for mass-power. | Codex task 9 (running) |
+| 5 | `quantitativeEndpoint` | **TERMINAL** — dyadic root tower already proved. Needs polynomial C(p) from #3. Continuity contradiction for Lp→pointwise. | After #3 with tracked constants |
+| 6 | `FTCGlobalPDEInitialData` | **COLLAPSES** — `atZero` already proved. True irreducible is `pdeCombinedInitial` (PDE-term integrability near t=0). | Codex task 12 (running) |
+
+**Attack order:** #4 and #6 in parallel (independent) → #3 (core, depends on both) → #2 (derived) → #1 (corrected + proved) → #5 (terminal)
+
+**v-gradient finding:** No standalone ‖∂ₓv‖∞ needed. `CrossDiffusionBootstrapEstimate` absorbs v-gradients via resolver bounds (`IntervalDomainCrossDiffusionBootstrap.lean:591`).
+
+**Oracle ledger:**
+
+| Round | Fable | ChatGPT | Key insight |
+|-------|-------|---------|-------------|
+| R1 | 6→3 real items; #1 has deriv/derivWithin trap; #2,#6 corollaries of #3; v-gradient hidden sub-item | 6→4 real items; #6 first; existing GN/Young wrappers for #4; #1 fold into #6 | Agreement: collapse. Fable caught trap; ChatGPT found wrappers |
 
 ## Breakthrough: vdEWA_floor_of_evenReal (2026-07-03)
 
