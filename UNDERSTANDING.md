@@ -132,6 +132,34 @@ Converter `to_closedEnergyIdentityTraceData` combines partial + remaining into f
 
 `lake build` on uisai2: **8993 jobs, 852 seconds, BUILD OK.** All new files axiom-clean.
 
+### Moser continuation chain (tasks 25-35, COMPLETED 2026-07-04)
+
+**File: `P3MoserTopLevelAssembly.lean`** (commit ca20192e, axiom-clean, 3600 jobs verified on uisai2)
+
+Top-level wiring theorem:
+```
+SubintervalAssemblyResidual + PointwiseUniformizationResidual → IsPaper2BoundedBefore
+```
+
+The FULL Moser continuation chain (tasks 25-35) is axiom-clean, 0 sorry:
+- T25: `ShortTimeBoundedBeforeResidual` (per-t on (0,τ₀)) — UNCONDITIONAL
+- T26-27: `ContinuationWiring` — wires assembly + closure residuals
+- T28: `FirstCrossingSupremumClosureResidual` — sSup real induction
+- T29: `ShortTimeBoundedBefore` — intervalDomain-specific (compact [0,1])
+- T30: `ExtensionByContinuityResidual` — joint continuity extension
+- T31: `SubintervalMoserInputResidual` — bootstrap input wiring
+- T32: `FirstCrossingPointwiseUniformClosureResidual` — conditional on Uniformization
+- T33-34: `SubintervalLpPowerBoundResidual` — Lp from pointwise uniform
+- T35: Top-level assembly
+
+**Two irreducible residuals:**
+1. `SubintervalAssemblyResidual` — the Moser iteration: given energy inequality data at τ, produce L∞ on [0,τ]. This IS the hard PDE theorem (De Giorgi-Nash-Moser bootstrapping from Lp to L∞).
+2. `PointwiseUniformizationResidual` — convert per-t bounds (∀ t, ∃ M_t) to uniform (∃ M, ∀ t). Genuinely irreducible: joint continuity on OPEN (0,T) × [0,1] doesn't give uniform bounds (no control at t=0 or t=T). The circularity: Lp seed → assembly → uniform → Lp seed cannot be broken from current hypotheses.
+
+**Analysis of PointwiseUniformizationResidual:** An InitialUniformBound + Assembly approach was explored but fails because the assembly output M(τ) may grow as τ → T (SubintervalAssemblyResidual is a black box). Even with a real induction carrying uniform bounds, the sSup argument gives τ* = T but not a single uniform M across all of (0,T).
+
+**Relationship to PDE assembly (tasks 1-18):** The PDE assembly produces IntegratedMoserFirstCrossingStep (the iteration STEP) from classical regularity + PDE frontier data. SubintervalAssemblyResidual bundles the FULL iteration (step + endpoint + chain + conversion). Proving SubintervalAssemblyResidual from PDE assembly output would require interior-only FTC (available) + resolving the PDE frontiers (zeroRightDerivative, gradientTimeIntegrable — still carried).
+
 ### Updated conditional input landscape (2026-07-04)
 
 | Condition | Status | Cleared by |
@@ -2290,6 +2318,41 @@ with the dyadic iteration (5) feeding the quantitative endpoint (4).
 | 23 | Initial-time regularity | P3MoserInitialTimeRegularity.lean | ✅ axiom-clean (18s) |
 | 24 | No-bound relative interp | P3MoserRelativeInterpolationNoBound.lean | ✅ axiom-clean (confirms circularity real) |
 | 25 | First-crossing continuation | P3MoserFirstCrossingContinuation.lean | ✅ axiom-clean (circularity broken) |
+| 26 | Gap wiring | P3MoserGapProducerWiring.lean | ✅ axiom-clean (wires T22 into assembly) |
+| 27 | Continuation wiring | P3MoserContinuationWiring.lean | ✅ axiom-clean (replaces circular hBoundedBefore) |
+| 28 | Real induction (Residual D) | P3MoserRealInduction.lean | ✅ axiom-clean (5 theorems, 2 sub-residuals) |
+| 29 | Short-time bounded (Residual A) | P3MoserShortTimeBounded.lean | ✅ axiom-clean UNCONDITIONAL |
+| 30 | Continuity extension (Residual C) | P3MoserContinuityExtension.lean | ✅ axiom-clean UNCONDITIONAL |
+| 31 | Subinterval input | P3MoserSubintervalInput.lean | ✅ axiom-clean (2 sub-residuals: τ>0 + Lp uniform) |
+| 32 | Real induction closure | P3MoserRealInductionClosure.lean | ✅ axiom-clean (1 sub-residual: uniformization) |
+| 33 | Uniformization | P3MoserUniformization.lean | ⏳ dispatched |
+
+### Residual discharge status (post tasks 31-32)
+
+T25's 4 named residuals for breaking the circularity:
+| Residual | Status | Discharged by |
+|----------|--------|---------------|
+| A: ShortTimeBoundedBefore | ✅ UNCONDITIONAL | T29 (compactness of [0,1] + classical regularity) |
+| B: SubintervalAssembly | ✅ wired | T27 (continuation wiring) |
+| C: ExtensionByContinuity | ✅ UNCONDITIONAL | T30 (time continuity + compactness) |
+| D: FirstCrossingSupremumClosure | ✅ conditional → T28+T32 | T32 proves τ*=T by real induction |
+
+T28's sub-residuals:
+| Sub-residual | Status | Task |
+|-------------|--------|------|
+| SubintervalMoserInputResidual | ✅ T31 | conditional on τ>0 + Lp uniform |
+| FirstCrossingPointwiseUniformClosureResidual | ✅ T32 | conditional on PointwiseUniformization |
+
+T31-T32 final frontier (3 sub-residuals converging to 1 issue):
+| Sub-residual | Status | Nature |
+|-------------|--------|--------|
+| SubintervalPositiveTimeResidual | ⏳ | interface mismatch: τ ≥ 0 but needs τ > 0 |
+| SubintervalLpPowerBoundResidual | ⏳ | uniform Lp bound from per-t bounds |
+| PointwiseUniformizationResidual | ⏳ T33 | per-t to uniform L∞ bound |
+
+The last two converge to the SAME core analytic fact: a classical solution with joint
+space-time continuity on intervalDomain has uniform bounds on compact time subintervals.
+T33 dispatched to investigate and discharge.
 
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
