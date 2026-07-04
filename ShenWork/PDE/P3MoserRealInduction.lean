@@ -34,7 +34,7 @@ def SubintervalMoserInputResidual (p : CM2Params) : Prop :=
   ∀ {T τ : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
     IsPaper2ClassicalSolution intervalDomain p T u v →
       BoundedBeforeOnSubinterval intervalDomain u τ T →
-        0 ≤ τ →
+        0 < τ →
           ∃ rho p0,
             CrossDiffusionBootstrapEstimate intervalDomain p τ rho u v ∧
               AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) τ rho p0 ∧
@@ -46,7 +46,7 @@ def ClosedTimeSubintervalBoundResidual (p : CM2Params) : Prop :=
   ∀ {T τ : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
     IsPaper2ClassicalSolution intervalDomain p T u v →
       BoundedBeforeOnSubinterval intervalDomain u τ T →
-        0 ≤ τ →
+        0 < τ →
           ∃ M, ∀ t, t ∈ Set.Icc (0 : ℝ) τ →
             ∀ x, |u t x| ≤ M
 
@@ -60,7 +60,7 @@ def FirstCrossingPointwiseUniformClosureResidual
     IsPaper2ClassicalSolution D p T u v →
       ShortTimeBoundedBeforeResidual D p →
         (∀ {τ : ℝ},
-          0 ≤ τ →
+          0 < τ →
             τ < T →
               BoundedBeforeOnSubinterval D u τ T →
                 ∃ δ, 0 < δ ∧ τ + δ ≤ T ∧
@@ -72,8 +72,8 @@ theorem closedTimeSubintervalBound_of_assembly
     (hinputs : SubintervalMoserInputResidual p)
     (hassembly : SubintervalAssemblyResidual intervalDomain p) :
     ClosedTimeSubintervalBoundResidual p := by
-  intro T τ u v hsol hsub hτ_nonneg
-  rcases hinputs hsol hsub hτ_nonneg with
+  intro T τ u v hsol hsub hτ_pos
+  rcases hinputs hsol hsub hτ_pos with
     ⟨rho, p0, hcross, hboot, hgap⟩
   exact hassembly hsol hsub hcross hboot hgap
 
@@ -84,12 +84,12 @@ theorem rightExtension_of_closedTimeSubintervalBound
     {T τ : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     (hsub : BoundedBeforeOnSubinterval intervalDomain u τ T)
-    (hτ_nonneg : 0 ≤ τ)
+    (hτ_pos : 0 < τ)
     (hτT : τ < T) :
     ∃ δ, 0 < δ ∧ τ + δ ≤ T ∧
       BoundedBeforeOnSubinterval intervalDomain u (τ + δ) T := by
-  rcases hclosed hsol hsub hτ_nonneg with ⟨M, hM⟩
-  exact hextend hτT hsol (hM τ ⟨hτ_nonneg, le_rfl⟩)
+  rcases hclosed hsol hsub hτ_pos with ⟨M, hM⟩
+  exact hextend hτT hsol (hM τ ⟨le_of_lt hτ_pos, le_rfl⟩)
 
 /-- For the concrete interval domain, a uniform pointwise absolute-value bound
 controls the concrete `supNorm`, because that norm is `sSup (range |f|)`. -/
@@ -139,14 +139,14 @@ theorem intervalDomain_FirstCrossingSupremumClosureResidual
     closedTimeSubintervalBound_of_assembly hinputs hassembly
   have hright :
       ∀ {τ : ℝ},
-        0 ≤ τ →
+        0 < τ →
           τ < T →
             BoundedBeforeOnSubinterval intervalDomain u τ T →
               ∃ δ, 0 < δ ∧ τ + δ ≤ T ∧
                 BoundedBeforeOnSubinterval intervalDomain u (τ + δ) T := by
-    intro τ hτ_nonneg hτT hsub
+    intro τ hτ_pos hτT hsub
     exact rightExtension_of_closedTimeSubintervalBound
-      hclosed hextend hsol hsub hτ_nonneg hτT
+      hclosed hextend hsol hsub hτ_pos hτT
   exact intervalDomain_boundedBefore_of_pointwise_uniform_bound
     (hclosure hsol hshort hright)
 

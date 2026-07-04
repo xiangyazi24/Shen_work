@@ -32,7 +32,7 @@ theorem firstCrossing_boundedBeforeOnSubinterval_T
     (hshort : ShortTimeBoundedBeforeResidual D p)
     (hright :
       ∀ {τ : ℝ},
-        0 ≤ τ →
+        0 < τ →
           τ < T →
             BoundedBeforeOnSubinterval D u τ T →
               ∃ δ, 0 < δ ∧ τ + δ ≤ T ∧
@@ -46,8 +46,8 @@ theorem firstCrossing_boundedBeforeOnSubinterval_T
   let τstar : ℝ := sSup S
   have hτ₀_le_star : τ₀ ≤ τstar := by
     exact le_csSup hS_bdd hτ₀_mem
-  have hstar_nonneg : 0 ≤ τstar :=
-    le_trans (le_of_lt hτ₀_pos) hτ₀_le_star
+  have hstar_pos : 0 < τstar := by
+    linarith
   have hstar_le_T : τstar ≤ T := by
     exact csSup_le hS_nonempty (fun τ hτ => hτ.1)
   have hstar_sub : BoundedBeforeOnSubinterval D u τstar T := by
@@ -57,7 +57,7 @@ theorem firstCrossing_boundedBeforeOnSubinterval_T
     exact hτ_mem.2 t ht0 htτ
   have hstar_eq_T : τstar = T := by
     rcases lt_or_eq_of_le hstar_le_T with hstar_lt_T | hstar_eq_T
-    · rcases hright hstar_nonneg hstar_lt_T hstar_sub with
+    · rcases hright hstar_pos hstar_lt_T hstar_sub with
         ⟨δ, hδ_pos, _hδT, hδ_sub⟩
       have hδ_le_star : τstar + δ ≤ τstar := by
         exact le_csSup hS_bdd hδ_sub
@@ -75,7 +75,7 @@ theorem firstCrossing_pointwise_exists_bound_before_T
     (hshort : ShortTimeBoundedBeforeResidual D p)
     (hright :
       ∀ {τ : ℝ},
-        0 ≤ τ →
+        0 < τ →
           τ < T →
             BoundedBeforeOnSubinterval D u τ T →
               ∃ δ, 0 < δ ∧ τ + δ ≤ T ∧

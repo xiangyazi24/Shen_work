@@ -13,11 +13,9 @@ gap producer on a positive subinterval.  The remaining analytic seed needed for
 `LpPowerBoundedBefore` needs one uniform integral constant on the whole
 subinterval.
 
-There is also a small interface mismatch in `SubintervalMoserInputResidual`:
-it assumes only `0 ≤ τ`, but `AbstractLpBootstrapHypothesis ... τ ...`
-contains the field `0 < τ`.  The final theorem below therefore takes the
-positive-time implication as a named residual rather than hiding that boundary
-case.
+The `SubintervalMoserInputResidual` interface is stated on positive
+subintervals, matching the positive-time field of
+`AbstractLpBootstrapHypothesis`.
 -/
 
 open ShenWork.IntervalDomain
@@ -79,15 +77,6 @@ def SubintervalLpPowerBoundResidual (p : CM2Params) : Prop :=
         0 < τ →
           LpPowerBoundedBefore intervalDomain (subintervalMoserP0 p) τ u
 
-/-- The missing positivity premise in the current non-strict residual
-interface. -/
-def SubintervalPositiveTimeResidual (p : CM2Params) : Prop :=
-  ∀ {T τ : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
-    IsPaper2ClassicalSolution intervalDomain p T u v →
-      BoundedBeforeOnSubinterval intervalDomain u τ T →
-        0 ≤ τ →
-          0 < τ
-
 /-- Positive-time version of `SubintervalMoserInputResidual`, modulo the one
 uniform Lp seed residual. -/
 def PositiveSubintervalMoserInputResidual (p : CM2Params) : Prop :=
@@ -131,16 +120,12 @@ theorem intervalDomain_positiveSubintervalMoserInputResidual
       hsolτ hcross hboot
   exact ⟨rho, p0, hcross, hboot, hgap⟩
 
-/-- Discharge the original non-strict residual interface from the positive-time
-interface fix and the uniform Lp seed residual. -/
+/-- Discharge the subinterval input residual from the uniform Lp seed residual. -/
 theorem intervalDomain_subintervalMoserInputResidual
     {p : CM2Params}
-    (hτ_pos : SubintervalPositiveTimeResidual p)
     (hLp : SubintervalLpPowerBoundResidual p) :
     SubintervalMoserInputResidual p := by
-  intro T τ u v hsol hsub hτ_nonneg
   exact intervalDomain_positiveSubintervalMoserInputResidual hLp
-    hsol hsub (hτ_pos hsol hsub hτ_nonneg)
 
 #print axioms subintervalMoserRho_pos
 #print axioms subintervalMoserP0_gt_bootstrapThreshold
