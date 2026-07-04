@@ -474,6 +474,49 @@ theorem intervalDomain_integral_sub_abs_le_of_pointwise_abs_le
   simpa [Real.norm_eq_abs] using hnorm
 
 /-- The trace-difference slice is bounded at every positive time. -/
+theorem intervalDomain_traceDiff_slice_abs_bddAbove_of_classical
+    {params : CM2Params} {T t : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (hu₀_bdd : BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|))) :
+    BddAbove (Set.range
+      (fun x : intervalDomain.Point => |u t x - u₀ x|)) := by
+  have htmem : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hut_bdd : BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|)) :=
+    intervalDomain_solution_slice_abs_bddAbove hsol htmem
+  exact bddAbove_abs_sub_of_bddAbove_abs hut_bdd hu₀_bdd
+
+/-- Initial trace gives pointwise control of `u t - u₀` at small positive times,
+  using only the finite-horizon classical solution on `(0,T)`. -/
+theorem intervalDomain_initialTrace_pointwise_abs_lt_of_classical
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hu₀_bdd : BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x : intervalDomain.Point, |u t x - u₀ x| < ε := by
+  obtain ⟨δtrace, hδtrace_pos, hδtrace⟩ :=
+    InitialTrace.eventually_small htrace hε
+  refine ⟨min δtrace T, lt_min hδtrace_pos hT, ?_⟩
+  intro t ht0 htδ x
+  have htδtrace : t < δtrace := lt_of_lt_of_le htδ (min_le_left _ _)
+  have htT : t < T := lt_of_lt_of_le htδ (min_le_right _ _)
+  have hdiff_bdd :
+      BddAbove (Set.range
+        (fun x : intervalDomain.Point => |u t x - u₀ x|)) :=
+    intervalDomain_traceDiff_slice_abs_bddAbove_of_classical
+      (params := params) (T := T) (t := t) (u₀ := u₀) (u := u) (v := v)
+      hsol ht0 htT hu₀_bdd
+  exact intervalDomain_pointwise_abs_lt_of_supNorm_lt hdiff_bdd
+    (hδtrace t ht0 htδtrace) x
+
+/-- The trace-difference slice is bounded at every positive time. -/
 theorem intervalDomain_traceDiff_slice_abs_bddAbove_of_global
     {params : CM2Params} {t : ℝ}
     {u₀ : intervalDomain.Point → ℝ}
@@ -635,6 +678,128 @@ theorem intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive
   rw [Real.dist_eq]
   linarith
 
+/-- Finite-horizon deleted-right convergence of power energies to the prescribed
+initial-datum energy.  This is the local-in-time version of
+`intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive`: the proof only
+uses `IsPaper2ClassicalSolution` on the fixed horizon once the trace radius is
+cut down to stay inside `(0,T)`. -/
+theorem intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive_classical
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    IntervalDomainInitialTracePowerEnergyTendsto u₀ u T p0 := by
+  intro p _hp
+  obtain ⟨η, hη, hfloor⟩ := PaperPositiveInitialDatum.floor hdatum
+  have hη2 : 0 < η / 2 := by linarith
+  have hu₀_bdd :
+      BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) :=
+    intervalDomain_bddAbove_abs_of_paperPositiveInitialDatum hdatum
+  obtain ⟨Mraw, hMraw⟩ := hu₀_bdd
+  let M : ℝ := max (max Mraw 1) η + 1
+  have hu₀_abs_le_M : ∀ x : intervalDomain.Point, |u₀ x| ≤ M := by
+    intro x
+    have hxraw : |u₀ x| ≤ Mraw := hMraw ⟨x, rfl⟩
+    have hMraw_le : Mraw ≤ max Mraw 1 := le_max_left _ _
+    have hmax_le : max Mraw 1 ≤ max (max Mraw 1) η := le_max_left _ _
+    dsimp [M]
+    linarith
+  have hu₀_le_M : ∀ x : intervalDomain.Point, u₀ x ≤ M := by
+    intro x
+    exact le_trans (le_abs_self _) (hu₀_abs_le_M x)
+  rw [Metric.tendsto_nhds]
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by linarith
+  have huc :
+      UniformContinuousOn (fun r : ℝ => r ^ p) (Set.Icc (η / 2) (M + 1)) :=
+    real_rpow_uniformContinuousOn_Icc_of_pos_left hη2
+  obtain ⟨δpow, hδpow, hpow⟩ :=
+    Metric.uniformContinuousOn_iff.mp huc (ε / 2) hε2
+  let traceRad : ℝ := min (min (η / 2) 1) (δpow / 2)
+  have hδpow2 : 0 < δpow / 2 := by linarith
+  have htraceRad : 0 < traceRad := by
+    dsimp [traceRad]
+    exact lt_min (lt_min hη2 (by norm_num)) hδpow2
+  obtain ⟨δtrace, hδtrace_pos, hδtrace⟩ :=
+    intervalDomain_initialTrace_pointwise_abs_lt_of_classical
+      (params := params) (T := T) (u₀ := u₀) (u := u) (v := v)
+      hT htrace hsol (⟨Mraw, hMraw⟩ :
+        BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+      htraceRad
+  let δ : ℝ := min δtrace T
+  have hδ : 0 < δ := lt_min hδtrace_pos hT
+  rw [eventually_nhdsWithin_iff, Metric.eventually_nhds_iff_ball]
+  refine ⟨δ, hδ, ?_⟩
+  intro t htball htIoc
+  have htdist : dist t 0 < δ := by
+    simpa [Metric.mem_ball] using htball
+  have ht0 : 0 < t := htIoc.1
+  have htδ : t < δ := by
+    rw [Real.dist_eq] at htdist
+    simpa [sub_zero, abs_of_nonneg ht0.le] using htdist
+  have htδtrace : t < δtrace := lt_of_lt_of_le htδ (min_le_left _ _)
+  have htT : t < T := lt_of_lt_of_le htδ (min_le_right _ _)
+  have hpoint_close :
+      ∀ x : intervalDomain.Point, |u t x - u₀ x| < traceRad :=
+    hδtrace t ht0 htδtrace
+  have hpow_point :
+      ∀ x : intervalDomain.Point,
+        |(u t x) ^ p - (u₀ x) ^ p| ≤ ε / 2 := by
+    intro x
+    have hclose := hpoint_close x
+    have htr_eta : traceRad ≤ η / 2 := by
+      dsimp [traceRad]
+      exact le_trans (min_le_left _ _) (min_le_left _ _)
+    have htr_one : traceRad ≤ 1 := by
+      dsimp [traceRad]
+      exact le_trans (min_le_left _ _) (min_le_right _ _)
+    have htr_pow : traceRad ≤ δpow := by
+      dsimp [traceRad]
+      have hhalf : δpow / 2 ≤ δpow := by linarith
+      exact le_trans (min_le_right _ _) hhalf
+    have hut_lower : η / 2 ≤ u t x := by
+      have hleft := (abs_lt.mp hclose).1
+      linarith [hfloor x, htr_eta]
+    have hut_upper : u t x ≤ M + 1 := by
+      have hright := (abs_lt.mp hclose).2
+      linarith [hu₀_le_M x, htr_one]
+    have hu₀_mem : u₀ x ∈ Set.Icc (η / 2) (M + 1) := by
+      constructor
+      · linarith [hfloor x]
+      · linarith [hu₀_le_M x]
+    have hut_mem : u t x ∈ Set.Icc (η / 2) (M + 1) :=
+      ⟨hut_lower, hut_upper⟩
+    have hdist_power_arg : dist (u t x) (u₀ x) < δpow := by
+      rw [Real.dist_eq]
+      exact lt_of_lt_of_le hclose htr_pow
+    have hpd :
+        dist ((u t x) ^ p) ((u₀ x) ^ p) < ε / 2 :=
+      hpow (u t x) hut_mem (u₀ x) hu₀_mem hdist_power_arg
+    rw [Real.dist_eq] at hpd
+    exact le_of_lt hpd
+  have hut_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ p))
+        volume 0 1 :=
+    intervalDomain_u_rpow_intervalIntegrable_of_regularity
+      (q := p) hsol ht0 htT
+  have hu₀_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => (u₀ x) ^ p))
+        volume 0 1 :=
+    intervalDomain_u0_rpow_intervalIntegrable_of_paperPositive hdatum
+  have hIntClose :
+      |intervalDomain.integral (fun x : intervalDomain.Point => (u t x) ^ p) -
+        intervalDomain.integral (fun x : intervalDomain.Point => (u₀ x) ^ p)| ≤
+        ε / 2 :=
+    intervalDomain_integral_sub_abs_le_of_pointwise_abs_le
+      (by linarith : 0 ≤ ε / 2) hut_int hu₀_int hpow_point
+  rw [Real.dist_eq]
+  linarith
+
 /-- Deleted-right convergence to the initial-datum energy plus zero-slice
 energy compatibility gives the current left-endpoint power-energy continuity
 residual. -/
@@ -698,6 +863,96 @@ theorem
         hdatum
         (intervalDomain_globalClassical_withInitialSlice hglobal))
       intervalDomain_initialPowerEnergyCompatibleAtZero_withInitialSlice
+
+/-- Initial power-energy continuity at zero for a finite-horizon classical
+solution, assuming the stored zero slice is energy-compatible with the prescribed
+initial datum. -/
+theorem
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcompat : IntervalDomainInitialPowerEnergyCompatibleAtZero u₀ u p0) :
+    IntervalDomainInitialPowerEnergyContinuityAtZero u T p0 := by
+  exact
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_traceTendsto_compat
+      (intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive_classical
+        hT htrace hdatum hsol)
+      hcompat
+
+/-- Initial power-energy continuity at zero for the re-anchored representative
+of a finite-horizon classical solution. -/
+theorem
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical_withInitialSlice_core
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    IntervalDomainInitialPowerEnergyContinuityAtZero
+      (intervalDomainWithInitialSlice u₀ u) T p0 := by
+  exact
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_traceTendsto_compat
+      (intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive_classical
+        hT
+        (intervalDomain_initialTrace_withInitialSlice htrace)
+        hdatum
+        (intervalDomain_classical_withInitialSlice hsol))
+      intervalDomain_initialPowerEnergyCompatibleAtZero_withInitialSlice
+
+/-- The requested raw finite-horizon endpoint theorem, with the necessary
+zero-slice hypothesis made explicit.  Without this hypothesis, the statement is
+false because neither `InitialTrace` nor `IsPaper2ClassicalSolution` constrains
+the stored value `u 0`. -/
+theorem intervalDomainPowerEnergyContinuousWithinAt_zero_of_initialTrace
+    {p : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hzeroSlice : u 0 = u₀)
+    (_hp0 : 1 ≤ p0) :
+    ContinuousWithinAt
+      (fun t => intervalDomain.integral
+        (fun x : intervalDomain.Point => (u t x) ^ p0))
+      (Set.Icc 0 T) 0 := by
+  have hzero :
+      IntervalDomainInitialPowerEnergyContinuityAtZero u T p0 :=
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical
+      hT htrace hdatum hsol
+      (intervalDomain_initialPowerEnergyCompatibleAtZero_of_eq hzeroSlice)
+  exact hzero p0 le_rfl
+
+/-- Finite-horizon endpoint continuity at zero for the re-anchored trajectory
+whose stored zero slice is definitionally the prescribed initial datum. -/
+theorem intervalDomainPowerEnergyContinuousWithinAt_zero_withInitialSlice_of_initialTrace
+    {p : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (_hp0 : 1 ≤ p0) :
+    ContinuousWithinAt
+      (fun t => intervalDomain.integral
+        (fun x : intervalDomain.Point =>
+          ((intervalDomainWithInitialSlice u₀ u) t x) ^ p0))
+      (Set.Icc 0 T) 0 := by
+  have hzero :
+      IntervalDomainInitialPowerEnergyContinuityAtZero
+        (intervalDomainWithInitialSlice u₀ u) T p0 :=
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical_withInitialSlice_core
+      hT htrace hdatum hsol
+  exact hzero p0 le_rfl
 
 /-- Closed-interval energy continuity from the interior classical-solution
 continuity theorem plus explicit endpoint continuity data. -/
@@ -2203,6 +2458,52 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
       (params := params) (T := T) (p0 := p0) (u := u) (v := v)
       hglobal hT hdata)
 
+/-- Initial power-energy continuity at zero for the re-anchored representative,
+packaged over all exponents above `p0`. -/
+theorem intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical_withInitialSlice
+    {p : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hp0 : 1 ≤ p0) :
+    IntervalDomainInitialPowerEnergyContinuityAtZero
+      (intervalDomainWithInitialSlice u₀ u) T p0 := by
+  intro q hq
+  exact
+    intervalDomainPowerEnergyContinuousWithinAt_zero_withInitialSlice_of_initialTrace
+      (p := p) (T := T) (p0 := q) (u₀ := u₀) (u := u) (v := v)
+      hT hsol htrace hdatum (le_trans hp0 hq)
+
+/-- Full endpoint power-energy continuity for a global classical solution after
+re-anchoring the stored zero-time slice to the prescribed initial datum. -/
+theorem intervalDomain_powerEnergyEndpointContinuity_withInitialSlice_of_global_classical
+    {p : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hp0 : 1 ≤ p0) :
+    IntervalDomainPowerEnergyEndpointContinuity
+      (intervalDomainWithInitialSlice u₀ u) T p0 := by
+  have hzero :
+      IntervalDomainInitialPowerEnergyContinuityAtZero
+        (intervalDomainWithInitialSlice u₀ u) T p0 :=
+    intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical_withInitialSlice
+      (p := p) (T := T) (p0 := p0) (u₀ := u₀) (u := u) (v := v)
+      hT (hglobal.classical hT) htrace hdatum hp0
+  exact
+    intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
+      (params := p) (T := T) (p0 := p0)
+      (u := intervalDomainWithInitialSlice u₀ u) (v := v)
+      (intervalDomain_globalClassical_withInitialSlice
+        (params := p) (u₀ := u₀) (u := u) (v := v) hglobal)
+      hT hzero
+
 #print axioms intervalDomain_solution_jointContinuousOn
 #print axioms intervalDomain_power_jointContinuousOn
 #print axioms intervalDomain_power_bounded_on_slab
@@ -2262,9 +2563,13 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
 #print axioms intervalDomain_u0_rpow_intervalIntegrable_of_paperPositive
 #print axioms real_rpow_uniformContinuousOn_Icc_of_pos_left
 #print axioms intervalDomain_integral_sub_abs_le_of_pointwise_abs_le
+#print axioms intervalDomain_traceDiff_slice_abs_bddAbove_of_classical
+#print axioms intervalDomain_initialTrace_pointwise_abs_lt_of_classical
 #print axioms intervalDomain_traceDiff_slice_abs_bddAbove_of_global
 #print axioms intervalDomain_initialTrace_pointwise_abs_lt
 #print axioms intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive
+#print axioms
+  intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive_classical
 #print axioms
   intervalDomain_initialPowerEnergyCompatibleAtZero_of_eq
 #print axioms intervalDomainWithInitialSlice_eq_raw_of_pos
@@ -2279,6 +2584,16 @@ theorem intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
   intervalDomain_initialPowerEnergyContinuityAtZero_of_traceTendsto_compat
 #print axioms
   intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_global_withInitialSlice
+#print axioms
+  intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical
+#print axioms
+  intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical_withInitialSlice
+#print axioms
+  intervalDomain_powerEnergyEndpointContinuity_withInitialSlice_of_global_classical
+#print axioms
+  intervalDomainPowerEnergyContinuousWithinAt_zero_of_initialTrace
+#print axioms
+  intervalDomainPowerEnergyContinuousWithinAt_zero_withInitialSlice_of_initialTrace
 #print axioms
   intervalDomain_powerEnergyEndpointContinuity_of_atZero_and_global_classical
 #print axioms

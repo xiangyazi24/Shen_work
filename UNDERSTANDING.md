@@ -1,5 +1,164 @@
 # UNDERSTANDING.md — Shen_work
 
+## L2 Seed Frontier Producer (2026-07-03)
+
+**File: `ShenWork/Paper2/IntervalDomainL2SeedFrontierProducer.lean`** (149 lines, axiom-clean)
+
+Produces `IntervalDomainL2SeedRegularityFrontier T u` from:
+- `IsPaper2ClassicalSolution` (have)
+- `IntervalDomainPowerEnergyEndpointContinuity u T 2` (still carried)
+- `IntervalDomainL2SeedZeroRightDerivative u` (still carried, but downstream never uses t=0)
+
+Unconditionally discharges 2 of 4 frontier fields:
+- `derivativeAlignment`: proved via `LpAbsEnergy 2 = 2 * L2HalfEnergy` + `deriv_const_mul_field`
+- `initialBound`: trivial (`⟨E(0), E_nonneg, le_refl⟩`)
+
+Also proves helper identities:
+- `intervalDomainLpAbsEnergy_two_eq_two_mul_L2HalfEnergy`
+- `intervalDomainLpAbsEnergy_two_eq_powerEnergy`
+- `intervalDomainLpAbsEnergy_two_nonneg`
+
+### Conditional input landscape (CERawGradResiduals leaf)
+
+| Condition | Nature | Status |
+|-----------|--------|--------|
+| `boundednessHyp` | parameter (2γ<α, γN<2, 0<b, 0<γ) | correctly carried |
+| `closedEnergyTrace` | FTC + endpoint energy continuity | interior PROVED, endpoints CARRIED |
+| `rawMoserDrop` | (1/p)d/dt∫u^p + B∫u^p ≥ 0, ∀B≥0 | **UNSATISFIABLE** (formal counterexample at P3MoserDissipationShape.lean:188) |
+| `relativeMassGradient` | Sobolev/GN gradient interpolation | PDE frontier |
+| `quantitativeEndpoint` | de Giorgi iteration | PDE frontier |
+
+**Critical finding (2026-07-03):** `rawMoserDrop` is provably FALSE. The file
+`P3MoserDissipationShape.lean` contains `unitLinearDrop_not_MoserDissipationDropBeforeNonnegB`
+which refutes even the weaker `MoserDissipationDropBeforeNonnegB`. With B=0, the condition
+demands E'(t) ≥ 0 (energy non-decreasing), which fails for any solution with diffusion.
+
+**The correct shape** is `IntegratedMoserDissipationDropBefore` (same file, line 67):
+integrated energy drop over time intervals, NOT pointwise. This IS satisfiable — it
+follows from integrating the energy inequality via FTC.
+
+**The fix route already exists** in the codebase:
+- `IntegratedMoserDissipationDropBefore` → `IntegratedMoserFirstCrossingStep` (via `P3MoserThresholdPlanProducer.lean:25`)
+- `IntegratedMoserFirstCrossingStep` → `Corollary_2_1` + `Proposition_2_5` (via `IntervalDomainMassLpSmoothingIntegratedStepResiduals`, `IntervalDomainMoserLadderAtoms.lean:257`)
+- The integrated step residuals produce `to_routeResiduals` identical to the old nonnegB route.
+
+**Action needed:** Build a leaf-level structure analogous to `CERawGradResiduals` but with
+`integratedMoserDissipation : IntegratedMoserDissipationDropBefore` replacing `rawMoserDrop`,
+and wire it through `IntegratedMoserFirstCrossingStep` → `IntervalDomainMassLpSmoothingIntegratedStepResiduals`.
+
+The `closedEnergyTrace` gap reduces to: endpoint continuity at t=0 (from InitialTrace)
+and t=T (from energy identity/regularity).
+
+### Endpoint continuity at t=0 (COMPLETED, 2026-07-03)
+
+**Codex task 2 delivered + verified axiom-clean.** Added 267 lines to `P3MoserEnergyContinuity.lean`:
+
+- `intervalDomain_traceDiff_slice_abs_bddAbove_of_classical` — boundedness of |u(t) - u₀|
+- `intervalDomain_initialTrace_pointwise_abs_lt_of_classical` — pointwise control from InitialTrace
+- `intervalDomain_initialTracePowerEnergyTendsto_of_paperPositive_classical` — finite-horizon tendsto
+- `intervalDomainPowerEnergyContinuousWithinAt_zero_of_initialTrace` — ContinuousWithinAt at t=0 (with explicit `hzeroSlice : u 0 = u₀`)
+- `intervalDomainPowerEnergyContinuousWithinAt_zero_withInitialSlice_of_initialTrace` — ContinuousWithinAt for `intervalDomainWithInitialSlice u₀ u` (no `u 0 = u₀` hypothesis needed)
+
+All `#print axioms` = `[propext, Classical.choice, Quot.sound]`.
+
+The `u(0) ≠ u₀` issue is handled correctly: `intervalDomainWithInitialSlice` re-anchors the trajectory by replacing `u(0)` with `u₀`.
+
+### Integrated Moser drop replacement (FILE CREATED, build pending, 2026-07-03)
+
+**File: `ShenWork/Paper3/IntervalDomainIntegratedMoserAssembly.lean`** (151 lines)
+
+New structure `IntervalDomainMassLpSmoothingMoserIntegratedDropResiduals` replaces the
+unsatisfiable `rawMoserDrop` with `integratedMoserDissipation : IntegratedMoserDissipationDropBefore`.
+
+Wiring: `to_integratedStepResiduals` converts to `IntervalDomainMassLpSmoothingIntegratedStepResiduals`,
+then `to_routeResiduals` chains through to `IntervalDomainMassLpSmoothingRouteResiduals`.
+
+Extra parameter: `classicalRegularity : ... → IntervalDomainIntegratedMoserClassicalRegularityData u T p0`
+is needed by `intervalDomain_firstCrossingStep_of_classicalRegularityData_integratedData`.
+
+**Status: VERIFIED axiom-clean on uisai2. `[propext, Classical.choice, Quot.sound]`.**
+
+Note: Codex refined imports from the original spec — uses `IntervalDomainMoserLadderAtoms` +
+`P3MoserLemmaDischarge` instead of `IntervalDomainActualLinearStatementAssembly`, reducing the
+dependency chain.
+
+### Endpoint wiring into assembly chain (COMPLETED, 2026-07-04)
+
+**Codex task 4 delivered + verified.** Added 315 lines to `P3MoserEnergyContinuity.lean`:
+
+- `intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_classical_withInitialSlice` — packages pointwise ContinuousWithinAt for ALL p ≥ p0
+- `intervalDomain_powerEnergyEndpointContinuity_withInitialSlice_of_global_classical` — full endpoint continuity (atZero + atRight) for global solutions with re-anchored trajectory
+
+Also added FTC window theorems:
+- `intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData` and variants
+
+### Gradient integrability survey (COMPLETED, 2026-07-04)
+
+**Codex task 5 delivered + verified.** New file `P3MoserGradientIntegrability.lean` (251 lines, axiom-clean).
+
+**Key finding: `gradientTimeIntegrable` is IRREDUCIBLE** — cannot be derived from `IsPaper2ClassicalSolution` alone. Missing: closed-time gradient energy continuity `ContinuousOn (t ↦ ∫|∇(u^{p/2})|²) (Icc 0 T)` at the boundary (especially t=0). Classical solution API gives regularity on `Ioo(0,T)` only.
+
+Provides reducers that wire various partial inputs into `IntervalDomainIntegratedMoserClassicalRegularityData`:
+- `intervalDomain_classicalRegularityData_of_classical_endpoint_gradientContinuous`
+- `intervalDomain_classicalRegularityData_of_global_atZero_gradientContinuous`
+
+### Closed energy partial producer (COMPLETED, 2026-07-04)
+
+**Codex task 6 delivered + verified.** New file `P3MoserClosedEnergyProducer.lean` (241 lines, axiom-clean).
+
+`ClosedEnergyIdentityTracePartialData` discharges from classical solution:
+- ✅ `nonnegT` — from T_pos
+- ✅ `initial_trace_energy` — via re-anchoring (`intervalDomainWithInitialSlice`)
+- ✅ `positiveTimeEnergyHasDerivWithin` — from classical interior regularity
+- ✅ `derivativeAlignment` — algebraic identity
+
+`ClosedEnergyIdentityTraceRemainingData` — the irreducible remainder:
+- `g` + `g_integrable` + `energy_eq` — FTC representation
+- `zeroRightDerivative` — HasDerivWithinAt at t=0
+
+Converter `to_closedEnergyIdentityTraceData` combines partial + remaining into full data.
+
+### FTC infrastructure bridge (COMPLETED, 2026-07-04)
+
+**Codex task 8 delivered + verified.** New file `P3MoserFTCInfrastructure.lean` (142 lines, axiom-clean).
+
+**Key finding:** `g`, `g_integrable`, `energy_eq` discharge from `IntegratedMoserEnergyWindowFTC` specialized at exponent 2:
+- `closedEnergyIdentityTraceRemainingData_of_integratedMoserEnergyWindowFTC` — converts existing FTC package
+- `closedEnergyIdentityTraceData_withInitialSlice_of_globalPDEInitialData` — full producer for global case
+
+**Only `zeroRightDerivative` remains irreducible** — no existing producer in the codebase.
+
+### Full project build (2026-07-04)
+
+`lake build` on uisai2: **8993 jobs, 852 seconds, BUILD OK.** All new files axiom-clean.
+
+### Updated conditional input landscape (2026-07-04)
+
+| Condition | Status | Cleared by |
+|-----------|--------|------------|
+| `boundednessHyp` | ✅ parameter | — |
+| `closedEnergyTrace.nonnegT` | ✅ | T_pos (task 6) |
+| `closedEnergyTrace.initial_trace_energy` | ✅ | re-anchoring (task 6) |
+| `closedEnergyTrace.positiveTimeHasDeriv` | ✅ | classical interior (task 6) |
+| `closedEnergyTrace.derivativeAlignment` | ✅ | algebraic (task 6) |
+| `closedEnergyTrace.g + g_integrable + energy_eq` | ✅ reducible | from IntegratedMoserEnergyWindowFTC@2 (task 8) |
+| `closedEnergyTrace.zeroRightDerivative` | ❌ irreducible | no producer exists |
+| `classicalRegularity.endpointEnergy.atZero` | ✅ | trace+classical (tasks 2,4) |
+| `classicalRegularity.endpointEnergy.atRight` | ✅ (global) | automatic for global solutions (task 4) |
+| `classicalRegularity.gradientTimeIntegrable` | ❌ irreducible | needs closed-time gradient continuity (task 5) |
+| `integratedMoserDissipation` | ❌ PDE frontier | satisfiable, not yet produced |
+| `relativeMassGradient` | ❌ PDE frontier | Sobolev/GN |
+| `quantitativeEndpoint` | ❌ PDE frontier | de Giorgi |
+| `a_pos`, `chi_nonneg` | ✅ parameter | — |
+
+**Irreducible PDE frontiers (6 items):**
+1. `zeroRightDerivative` — HasDerivWithinAt of L² energy at t=0 from the right
+2. `gradientTimeIntegrable` — closed-time gradient energy continuity
+3. `integratedMoserDissipation` — integrated Moser energy drop
+4. `relativeMassGradient` — mass/gradient Sobolev interpolation
+5. `quantitativeEndpoint` — de Giorgi quantitative estimate
+6. `IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData` — initial-window derivative integrability for FTC
+
 ## Breakthrough: vdEWA_floor_of_evenReal (2026-07-03)
 
 **`SourceVdFloorGeneric.lean`** proves: for ANY `EvenRealEWA U` with
