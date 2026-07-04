@@ -246,6 +246,10 @@ import ShenWork.PDE.IntervalIterateGradMajorant
 import ShenWork.Paper1.BrouwerNDimFreudenthal
 import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
+import ShenWork.PDE.P3MoserGradientIntegrabilityFromDissipation
+import ShenWork.PDE.P3MoserIntegratedDissipationPDE
+import ShenWork.PDE.P3MoserPDECombinedInitialProducer
+import ShenWork.PDE.P3MoserQuantitativeEndpointDischarge
 import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
 import ShenWork.Paper3.IntervalDomainPersistenceActualLinearPart2
 import ShenWork.Paper3.IntervalDomainConstantEquilibriumWitness

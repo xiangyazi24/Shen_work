@@ -166,6 +166,44 @@ The 6 nominal frontiers collapse to 3 real work items (oracle consensus):
 
 **Attack order:** #4 and #6 in parallel (independent) → #3 (core, depends on both) → #2 (derived) → #1 (corrected + proved) → #5 (terminal)
 
+### Task 9: relativeMassGradient (COMPLETED, 2026-07-04)
+
+**File: `P3MoserRelativeMassGradientProducer.lean`** (506 lines, axiom-clean, 294k Codex tokens)
+
+8 theorems, 0 sorry, 0 axiom. Key deliverables:
+- `intervalDomain_massGradientInterpolation_of_classical` — sub-component (B), UNCONDITIONAL, uses Agmon
+- `intervalDomain_moserMassPowerToCurrentLpLowerOrder_of_classical` — sub-component (D), UNCONDITIONAL
+- `intervalDomain_relativeMassGradient_of_classical_boundedBefore` — full 4-tuple, conditional on `IsPaper2BoundedBefore` (uniform sup bound needed for chain-rule components A,C)
+- `intervalDomain_relativeMassGradient_components_BD_of_classical` — convenience theorem packaging B+D
+
+**Note on BoundedBefore:** The assembly field `relativeMassGradient` expects the 4-tuple without explicit `BoundedBefore`. Classical solutions on compact [0,1] are bounded before any finite T (continuous u on compact domain). A wiring lemma `IsPaper2ClassicalSolution → IsPaper2BoundedBefore` is needed; should be straightforward.
+
+### Task 10: frontier #1 deriv audit (COMPLETED, 2026-07-04)
+
+**File: `P3MoserZeroDerivAudit.lean`** (211 lines, axiom-clean, 141k Codex tokens)
+
+**CONFIRMED: `IntervalDomainL2SeedZeroRightDerivative` is UNSATISFIABLE by PDE data.**
+- `deriv E 0` is Mathlib's two-sided derivative → junk value 0 at t=0
+- `intervalDomainWithInitialSlice` only replaces t=0, negative time = raw u(t)
+- Consumers pass `hzero` without using its value, BUT upper layer uses `max K (deriv E 0)` → junk
+
+Corrected definition: `IntervalDomainL2SeedZeroRightDerivativeWithin` using `derivWithin (Ici 0) 0`.
+Conditional adapter: `to_old_of_deriv_eq` — needs `deriv E 0 = derivWithin E (Ici 0) 0` to convert back.
+Producer: `zeroRightDerivativeWithin_withInitialSlice_of_tendsto_deriv` — from interior differentiability + derivative limit.
+
+### Task 12: frontier #6 pdeCombinedInitial (IN PROGRESS, 2026-07-04)
+
+**File: `P3MoserPDECombinedInitialProducer.lean`** (186 lines growing, axiom-clean so far)
+
+6 theorems so far. Key chain:
+- `IntegratedMoserEnergyDerivativeInitialWindowIntegrability` (INPUT)
+  → `IntervalDomainLpWeightedTimeTermInitialWindowIntegrability`
+  → `IntervalDomainLpPDECombinedInitialWindowIntegrability` (OUTPUT = pdeCombinedInitial)
+
+Also provides backward bridge from `IntegratedMoserEnergyWindowFTC` → pdeCombinedInitial (useful when FTC comes from non-GlobalPDE source).
+
+**True irreducible:** `IntegratedMoserEnergyDerivativeInitialWindowIntegrability` — integrability of d/dt Y_p near t=0.
+
 **v-gradient finding:** No standalone ‖∂ₓv‖∞ needed. `CrossDiffusionBootstrapEstimate` absorbs v-gradients via resolver bounds (`IntervalDomainCrossDiffusionBootstrap.lean:591`).
 
 **Oracle ledger:**
