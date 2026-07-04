@@ -1,4 +1,4 @@
-# Q3220 (cron1) — uniform H¹ bound route
+# Q3266 (cron1) — final six Moser/PDE frontiers triage
 
 Repository: `xiangyazi24/Shen_work`  
 Branch: `chatgpt-scratch`  
@@ -6,538 +6,539 @@ Target file: `scratch/_CHATGPT_DROP_cron1.md`
 
 ## Executive answer
 
-The mathematically simplest route is **Route C**, but in a very specific form:
+The six listed frontiers are **not six independent hard PDE gaps**. The repo has already built a large part of the endpoint/FTC and scalar-Moser scaffolding. The remaining work should be reorganized as follows:
 
 ```text
-prove the H¹ energy derivative by a finite-difference-in-time + spatial-IBP lemma,
-not by differentiating u_x in time and not by spectral Parseval.
+Main hard PDE producer:
+  #3 integratedMoserDissipation, using #4 relativeMassGradient and #6 initial-window FTC data.
+
+Endpoint/FTC producer:
+  #6 IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData.
+  This largely subsumes #1 zeroRightDerivative.
+
+Moser terminal producer:
+  #5 quantitativeEndpoint.
+
+Derived/packaging:
+  #2 gradientTimeIntegrable should be derived after #3, not attacked first.
 ```
 
-This avoids the missing `u_xt`. The key identity is the finite-difference formula
+Recommended attack order:
 
 ```text
-H1energy(u,s) - H1energy(u,t)
-  = -1/2 ∫₀¹ (u_xx(s,x) + u_xx(t,x)) * (u(s,x) - u(t,x)) dx,
+1. #6 initial-window FTC / PDE integrability package.
+2. #4 relativeMassGradient / GN-Young package wiring.
+3. #3 integratedMoserDissipationDropBefore from the integrated PDE energy inequality.
+4. Derive #2 gradientTimeIntegrable from #3 + regularity/energy continuity.
+5. #5 quantitativeEndpoint from the already-landed dyadic root-tower scalar lemmas.
+6. Collapse #1 into #6 / closed-energy trace infrastructure, or prove it only as a corollary of the same FTC package.
 ```
 
-using Neumann boundary data at both slices. After division by `s-t`, the limit uses only
+The key audit result: `P3MoserEnergyContinuity.lean`, `P3MoserFTCInfrastructure.lean`, `P3MoserDissipationShape.lean`, `P3MoserIntegratedClosure.lean`, `P3MoserLemmaDischarge.lean`, `P3MoserActualWiring.lean`, `IntervalDomainMoserActualAtoms.lean`, and `IntervalDomainMoserClosure.lean` already contain most of the scaffolding. The remaining atoms are concentrated PDE estimates, not broad missing infrastructure.
+
+## Frontier-by-frontier triage
+
+### 1. `zeroRightDerivative`
+
+**Likely status:** present under a related name, not the exact name.
+
+The direct grep for `zeroRightDerivative` was not productive, but `P3MoserClosedEnergyProducer.lean` and `P3MoserFTCInfrastructure.lean` expose the exact shape:
 
 ```text
-u_xx(s,·) -> u_xx(t,·) uniformly on [0,1],
-(u(s,·)-u(t,·))/(s-t) -> u_t(t,·) uniformly on [0,1].
+IntervalDomainL2SeedZeroRightDerivative u
+ClosedEnergyIdentityTraceRemainingData.zeroRightDerivative
 ```
 
-The second convergence follows from pointwise `HasDerivAt` in time plus joint continuity of `u_t`, via the interval FTC / uniform continuity on compact boxes. No mixed derivative `u_xt` is needed.
-
-So the recommended route is:
+`P3MoserClosedEnergyProducer.lean` already proves the positive-time `HasDerivWithinAt` field:
 
 ```text
-1. Prove a single-solution L² energy identity and sliding-window ∫H1energy bound.
-2. Prove H1EnergyIdentity by the finite-difference spatial-IBP route.
-3. Feed the already-landed algebraic H¹ DI and uniform averaging / Gronwall assembly.
+intervalDomainLpAbsEnergy_two_hasDerivWithinAt_of_classical_interior
+intervalDomainLpAbsEnergy_two_hasDerivWithinAt_of_classical_and_zero
 ```
 
-Route A is sound but overbuilds spectral infrastructure. Route B is useful for a near-zero/local gradient bound, but it is not the cleanest global H¹ route because the source contains `u_x` and leads to a Volterra/fractional-Gronwall bootstrap that still needs uniform lower-order bounds and mild representation machinery.
-
-## Current repo alignment
-
-The current H¹ files already point to the correct endpoint. `IntervalDomainH1GradientBound.lean` documents the intended sequence:
+and packages the partial trace data for the re-anchored trajectory:
 
 ```text
-Y₂ bounded, ∫₀ᵀ G₂ bounded
-H¹ DI without ||u||∞
-Uniform Gronwall / averaging
-pointwise gradient bound at p=2
+closedEnergyIdentityTracePartialData_withInitialSlice_of_classical
+closedEnergyIdentityTraceData_withInitialSlice_of_classical
 ```
 
-It also shows that the algebraic part is already separated:
+`P3MoserFTCInfrastructure.lean` then specializes `IntegratedMoserEnergyWindowFTC` at exponent `2` to produce most of the closed-energy trace, with only the zero-time right derivative as a named remaining endpoint input:
 
 ```text
-h1_diffIneq_of_agmon_bounds
-produce_pointwiseGradientBound_full
-produce_pointwiseGradientBound_general_pExp
+closedEnergyIdentityTraceRemainingData_of_integratedMoserEnergyWindowFTC
+closedEnergyIdentityTraceRemainingData_of_globalPDEInitialData
+closedEnergyIdentityTraceData_withInitialSlice_of_globalPDEInitialData
 ```
 
-`IntervalChiNegH1Energy.lean` is even more explicit: it carries exactly two obligations:
+**Hardness:** medium, but probably redundant. It is an endpoint compatibility lemma, not a core PDE inequality.
+
+**Most efficient tactic:** do not prove this directly from classical regularity at `t = 0`. Classical regularity is interior-time only. Instead, prove the stronger initial-window FTC package (#6). Then specialize it at exponent `2` via `P3MoserFTCInfrastructure.lean`; the right derivative becomes either a field in the same package or a corollary of the primitive identity.
+
+**Key insight:** the re-anchored trajectory sets `u(0)=u₀`, but positive-time dynamics are unchanged. Endpoint differentiability at `0` should be derived from the right-primitive/FTC identity, not from a nonexistent classical time derivative at the boundary.
+
+### 2. `gradientTimeIntegrable`
+
+**Likely status:** the exact field is present and still carried.
+
+Files:
 
 ```text
-H1EnergyIdentity
-hWindow : sliding-window ∫ H1energy ≤ C
+P3MoserRegularityProducer.lean
+P3MoserEnergyContinuity.lean
+P3MoserIntegratedClosure.lean
 ```
 
-Those are the two targets. Do not reopen the algebraic DI unless its hypotheses need renaming.
-
-## Route comparison
-
-### Route A — spectral derivative of `Σ λ_k |c_k|²`
-
-Sound, but not the least infrastructure.
-
-It needs:
+`P3MoserRegularityProducer.lean` defines:
 
 ```text
-Parseval bridge for gradient energy,
-per-mode time derivative of cosine coefficients,
-termwise differentiation of Σ λ_k c_k(t)^2,
-weighted summability of the derivative majorant,
-cosine reconstruction / coefficient identity for u_t,
-O(1/k²) or stronger coefficient decay for C² Neumann slices.
+IntervalDomainRawMoserGradientTimeIntegrability
+IntervalDomainIntegratedMoserRegularityFrontierData.gradientTimeIntegrable
+IntervalDomainIntegratedMoserRegularityFrontierDataLite.gradientTimeIntegrable
+IntervalDomainIntegratedMoserGlobalClassicalRegularityData.gradientTimeIntegrable
 ```
 
-For a fully spectral local-existence chain this can be natural. But for an arbitrary classical solution record that already gives spatial C², Neumann boundary conditions, time derivative, PDE, and joint continuity, the spectral route is longer than necessary.
-
-Use Route A only if the spectral H¹ derivative file is already almost complete and importing it creates no new hrealizes-style obligations. Otherwise, it is not the fastest path.
-
-### Route B — direct semigroup/Duhamel gradient estimate
-
-This can work for local gradient bounds, but it is not the cleanest uniform H¹ proof.
-
-A typical estimate would be
+`P3MoserEnergyContinuity.lean` already has the null-singleton transfer across the re-anchored slice:
 
 ```text
-||u_x(t)||₂ or ||u_x(t)||∞
-  ≤ C δ^(-1/2) ||u(t-δ)|| + C ∫_{t-δ}^t (t-s)^(-1/2) ||g(s)|| ds.
+intervalDomain_gradientTimeIntegrable_withInitialSlice_of_raw
 ```
 
-The problem is that
+So the endpoint rewrite has been handled. The raw integrability itself is the remaining analytic input.
+
+**Hardness:** not independently hard if #3 is proved. It is currently a carried field, but should be derived from the integrated dissipation inequality.
+
+**Existing bridge:** `P3MoserIntegratedClosure.lean` proves
 
 ```text
-g = -χ₀ chemotaxis + logistic
+integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds
 ```
 
-contains the taxis term with `u_x`, e.g.
+which takes `IntegratedMoserDissipationDropBefore` plus endpoint/time-integral bounds and yields a bound on the time integral of the Moser gradient. This is exactly the kind of result needed for `gradientTimeIntegrable`.
+
+**Most efficient tactic:** after #3, derive `gradientTimeIntegrable` by applying the integrated drop with `t1=0`, `t2=T` or finite subwindows, using:
 
 ```text
-u_x * v_x + u * v_xx
+energyContinuous / initialPowerBound / powerTimeIntegrable
 ```
 
-or the divergence-form equivalent. Thus the estimate becomes a Volterra inequality for the gradient norm:
+from `IntegratedMoserFirstCrossingRegularity`.
+
+**Key insight:** do not prove gradient integrability by endpoint smoothness of the gradient integrand. Use the integrated Moser energy inequality itself: it already contains the time integral of the gradient with a positive coefficient.
+
+### 3. `integratedMoserDissipation`
+
+**Likely status:** shape and scalar algebra proved; PDE producer not proved.
+
+Files:
 
 ```text
-M(t) ≤ C δ^(-1/2) lower_order + C ∫ (t-s)^(-1/2) (a M(s) + b) ds.
+P3MoserDissipationShape.lean
+P3MoserIntegratedClosure.lean
+P3MoserThresholdPlanProducer.lean
 ```
 
-This is not impossible. On a short window one can absorb using
+`P3MoserDissipationShape.lean` defines the faithful target:
 
 ```text
-∫₀^δ r^(-1/2) dr = 2 sqrt δ,
+IntegratedMoserDissipationDropBefore
+IntegratedMoserDissipationDropBeforeCoeff
 ```
 
-or use fractional Gronwall. But formalizing this requires:
+and provides wrappers:
 
 ```text
-mild/Duhamel representation for the classical solution,
-heat gradient estimate in the exact norm,
-uniform resolver bounds for v_x and v_xx,
-control of u and u^γ without already using the desired H¹ -> L∞ consequence,
-fractional/Volterra or small-window absorption formalization.
+integratedMoserDissipationDropBefore_of_coeff_two
+integratedMoserDissipationDropBefore_of_coeff_ge_two
+integratedMoserDissipationDropBefore_of_integrated_energy
 ```
 
-If uniform L∞ is already available independently, Route B becomes quite viable. In the present dependency chain, however, H¹ is supposed to produce L∞, so Route B risks a circular dependency unless all coefficients in the Volterra inequality are controlled from lower-order estimates only.
+It also documents why the old pointwise raw drop was not a faithful theorem target.
 
-Best use of Route B here:
+`P3MoserIntegratedClosure.lean` has scalar absorption lemmas, including:
 
 ```text
-near-zero/local H¹ bound hlocal
+scalar_absorb_higherPower_window_const
+scalar_absorb_higherPower_window
+exists_pos_eps_mul_le_sub_of_coeff_gap
 ```
 
-for the uniform-Gronwall assembly, or a fallback if Route C’s energy identity stalls.
+**Hardness:** genuinely hard, but now sharply localized. This is the main PDE estimate.
 
-### Route C — energy identity via finite differences and IBP
+**Dependencies:** depends on #6 for the integrated window FTC and on #4 for the relative interpolation/absorption of the higher-power term.
 
-This is the best route.
-
-The classical calculation
-
-```text
-y(t) = 1/2 ∫ u_x(t)^2
-```
-
-usually writes
-
-```text
-y' = ∫ u_x u_xt.
-```
-
-But you do not need `u_xt`. Use finite differences:
-
-```text
-y(s)-y(t)
-  = 1/2 ∫ (u_x(s)^2 - u_x(t)^2)
-  = 1/2 ∫ (u_x(s)+u_x(t)) * ∂x(u(s)-u(t))
-  = -1/2 ∫ (u_xx(s)+u_xx(t)) * (u(s)-u(t)).
-```
-
-The boundary term is
-
-```text
-[(u_x(s)+u_x(t)) * (u(s)-u(t))]₀¹ = 0
-```
-
-because both time slices satisfy Neumann boundary conditions.
-
-Divide by `s-t` and let `s -> t`:
-
-```text
-y'(t) = -∫ u_xx(t,x) * u_t(t,x) dx.
-```
-
-Then substitute the PDE:
-
-```text
-u_t = u_xx - χ₀ * (u_x v_x + u v_xx) + u(a - b u^α).
-```
-
-So
-
-```text
-y' = -∫ u_xx²
-     + χ₀ ∫ u_xx (u_x v_x + u v_xx)
-     - ∫ u_xx * u(a - b u^α).
-```
-
-The reaction term can be integrated by parts as usual:
-
-```text
--∫ u_xx f(u) = ∫ f'(u) u_x²,
-```
-
-provided the endpoint boundary term vanishes. Since `u_x=0` at endpoints, it does.
-
-This produces the exact `H1EnergyIdentity` already expected by `IntervalChiNegH1Energy.lean`.
-
-## The key Lean lemma for Route C
-
-Create a new file, e.g.
-
-```text
-ShenWork/Paper2/IntervalChiNegH1EnergyIdentity.lean
-```
-
-with two stages.
+**Most efficient tactic:** prove a theorem of this shape:
 
 ```lean
-import ShenWork.Paper2.IntervalChiNegH1Energy
-import ShenWork.Paper2.IntervalDomainL2UEnergyUniform
-import ShenWork.Paper2.IntervalDomainEnergyStep
-import ShenWork.PDE.IntervalDomain
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import ShenWork.PDE.P3MoserEnergyContinuity
+import ShenWork.PDE.P3MoserDissipationShape
+import ShenWork.PDE.P3MoserIntegratedClosure
+import ShenWork.PDE.P3MoserLemmaDischarge
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
+namespace ShenWork.IntervalDomainExistence.P3MoserPDEDrop
 
-open Set Filter Topology MeasureTheory
+open MeasureTheory Set
 open ShenWork.IntervalDomain
-  (intervalDomain intervalDomainPoint intervalDomainLift)
 open ShenWork.Paper2
-open ShenWork.Paper2.IntervalChiNegH1Energy
-  (H1energy lapL2sq H1EnergyIdentity)
+open ShenWork.IntervalDomainExistence.P3MoserDissipationShape
+open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 
-/-!
-Target 1: finite-difference identity.
+/-
+Target theorem shape:
 
-This lemma uses only spatial C² and Neumann data at the two time slices.
-No time derivative is involved.
+theorem intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    (hT : 0 < T)
+    (hftc : IntegratedMoserEnergyWindowFTC intervalDomain u T p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    -- plus cross-diffusion bounds already supplied by henergy/hcross
+    : IntegratedMoserDissipationDropBefore intervalDomain u T rho p0
 -/
 
--- theorem H1energy_sub_eq_spatialIBP
---     {u : ℝ → intervalDomainPoint → ℝ} {s t : ℝ}
---     (hC2s : ContDiffOn ℝ 2 (intervalDomainLift (u s)) (Set.Icc (0 : ℝ) 1))
---     (hC2t : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1))
---     (hNs0 : derivWithin (intervalDomainLift (u s)) (Set.Icc (0 : ℝ) 1) 0 = 0)
---     (hNs1 : derivWithin (intervalDomainLift (u s)) (Set.Icc (0 : ℝ) 1) 1 = 0)
---     (hNt0 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) 0 = 0)
---     (hNt1 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) 1 = 0) :
---     H1energy u s - H1energy u t
---       = -(1/2) * ∫ x in (0 : ℝ)..1,
---           (deriv (fun y => deriv (intervalDomainLift (u s)) y) x
---             + deriv (fun y => deriv (intervalDomainLift (u t)) y) x)
---           * (intervalDomainLift (u s) x - intervalDomainLift (u t) x)
-
-/-!
-Target 2: derivative of H1energy without u_xt.
-
-Use Target 1, divide by `s-t`, and pass to the limit using:
-  * joint continuity of u_xx,
-  * uniform convergence of time difference quotients to u_t from time-FTC/joint continuity.
--/
-
--- theorem H1energy_hasDerivAt_spatialIBP
---     {p : CM2Params} {T τ : ℝ}
---     {u v : ℝ → intervalDomainPoint → ℝ}
---     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
---     (hτ0 : 0 < τ) (hτT : τ < T) :
---     HasDerivAt (H1energy u)
---       (-(∫ x in (0 : ℝ)..1,
---           deriv (fun y => deriv (intervalDomainLift (u τ)) y) x
---             * intervalDomain.timeDeriv u τ ⟨x, by sorry⟩)) τ
-
-/-!
-Target 3: substitute PDE and integrate by parts in space to produce the packaged
-H1EnergyIdentity shape consumed downstream.
--/
-
--- theorem H1EnergyIdentity_of_classicalSolution
---     {p : CM2Params} {T τ : ℝ}
---     {u v : ℝ → intervalDomainPoint → ℝ}
---     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
---     (hτ0 : 0 < τ) (hτT : τ < T) :
---     ∃ taxisX uvxx reactX,
---       H1EnergyIdentity p u τ taxisX uvxx reactX ∧
---       -- plus the term definitions / bounds needed by the DI producer
---       True
-
-end ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
+end ShenWork.IntervalDomainExistence.P3MoserPDEDrop
 ```
 
-The exact endpoint derivative API should use the repo’s existing lemmas:
+The proof path is:
+
+1. Use the FTC package to integrate the derivative term over `[t1,t2]`.
+2. Use the already-landed `LpBootstrapEnergyInequality` / interval-domain Lp energy inequality to get the integrated inequality with a higher-power term.
+3. Apply `RelativeMoserInterpolationBefore` with an `eps` chosen by `exists_pos_eps_mul_le_sub_of_coeff_gap`.
+4. Package with `integratedMoserDissipationDropBefore_of_coeff_ge_two` or `..._of_integrated_energy`.
+
+**Key insight:** prove the **integrated** inequality directly. Do not try to resurrect the old pointwise `rawMoserDrop` predicate. The repo already contains a counterexample showing why that shape is wrong.
+
+### 4. `relativeMassGradient`
+
+**Likely status:** partially proved under different names; assembly still needed.
+
+Files:
 
 ```text
-intervalDomain_solution_derivWithin_u_left_zero
-intervalDomain_solution_derivWithin_u_right_zero
-intervalDomain_spatial_integrationByParts_identity
+P3MoserLemmaDischarge.lean
+P3MoserLemmas.lean
+GagliardoNirenberg.lean
+IntervalDomainMCL.lean
 ```
 
-Do not state the lemma with `u_xt` or `deriv (fun t => deriv (u t))`.
-
-## How to prove uniform convergence of the time difference quotient
-
-The required analytic lemma is small and reusable:
+`P3MoserLemmaDischarge.lean` has:
 
 ```text
-If ∀x, HasDerivAt (fun s => F s x) (Ft t x) t
-and Ft is jointly continuous on a compact time-space box,
-then (F(t+h,x)-F(t,x))/h -> Ft(t,x) uniformly in x.
+unitInterval_regular_power_GNYoung : UnitIntervalPowerGNYoungForMoser
+relativeMoserInterpolationBefore_of_massGradient
 ```
 
-In Lean, the easiest path is not a raw epsilon proof for difference quotients. Use the interval FTC in time:
+`P3MoserLemmas.lean` has wrappers:
 
 ```text
-F(t+h,x) - F(t,x) = ∫ r in t..t+h, Ft(r,x)
+intervalDomain_relativeMoserInterpolationBefore_of_massGradient
+intervalDomain_relativeMoserInterpolationBefore_rho_one_of_massGradient
+```
+
+`GagliardoNirenberg.lean` contains a concrete 1D GN lemma:
+
+```text
+gagliardoNirenberg_interval
+```
+
+**Hardness:** medium. The analytic inequality is essentially present; the remaining work is matching interfaces and exponents.
+
+**Most efficient tactic:** avoid a new general Sobolev/GN library. Use the already-proved `UnitIntervalPowerGNYoungForMoser` and package it into the exact `RelativeMoserInterpolationBefore` consumer. If the existing wrapper’s `hgrad` side condition is awkward, prove a more direct wrapper from `UnitIntervalPowerGNYoungForMoser` to `RelativeMoserInterpolationBefore` instead of forcing the older mass-gradient interface.
+
+**Key mathematical insight:** set
+
+```text
+w = u^(p/2)
 ```
 
 then
 
 ```text
-(F(t+h,x)-F(t,x))/h - Ft(t,x)
-  = average_{r ∈ [t,t+h]} (Ft(r,x)-Ft(t,x)).
+u^(p+ρ) = w^(2 + 2ρ/p).
 ```
 
-Joint continuity of `Ft` gives uniform continuity on a compact neighborhood of `(t,[0,1])`, so the averaged difference tends uniformly to zero.
-
-This avoids any mixed derivative and is often simpler than trying to use pointwise `HasDerivAt` directly under the spatial integral.
-
-## Route B: can it work despite `g` depending on `u_x`?
-
-Yes, but it is not the least-infrastructure path.
-
-A local window estimate would look like:
+In 1D, GN/Young gives
 
 ```text
-M(t) := sup_{r ∈ [t₀,t₀+δ]} ||u_x(r)||
-
-M(t) ≤ C δ^{-1/2} ||u(t₀)||∞
-       + C sqrt(δ) * M(t)
-       + C δ * lower_order.
+∫ w^(2 + 2ρ/p) ≤ η ∫ |w_x|² + Cη * lower_order(w).
 ```
 
-For small `δ`, absorb `C sqrt(δ) * M(t)` to the left. This gives a local bound. Then iterate windows.
+The lower-order term is controlled by the current `Lp` energy (`∫ u^p`) and/or the mass-power-to-current-Lp lemma. This is exactly the relative interpolation shape used in the integrated Moser step.
 
-But this requires:
+**Possible collapse:** #4 is not a separate frontier once the wrapper from `UnitIntervalPowerGNYoungForMoser` to `RelativeMoserInterpolationBefore` exists.
+
+### 5. `quantitativeEndpoint`
+
+**Likely status:** scalar root-tower and final conversion are already proved; PDE recurrence/pointwise power control remains.
+
+Files:
 
 ```text
-Duhamel representation for the classical solution on every restart window,
-heat gradient bounds in the right norm,
-uniform resolver bounds for v_x and v_xx,
-control of u and u^γ without already using the desired H¹ -> L∞ consequence,
-fractional/Volterra or small-window absorption formalization.
+IntervalDomainMoserActualAtoms.lean
+IntervalDomainMoserClosure.lean
+P3MoserActualWiring.lean
+IntervalDomainMoserLadderAtoms.lean
 ```
 
-If uniform L∞ is already available independently, Route B becomes quite viable. In the current chain, however, H¹ is supposed to produce L∞, so Route B risks a circular dependency unless all coefficients in the Volterra inequality are controlled from lower-order estimates only.
-
-Best use of Route B here:
+`IntervalDomainMoserActualAtoms.lean` already proves finite dyadic root-tower estimates:
 
 ```text
-near-zero/local H¹ bound hlocal
+dyadic_inv_sum_Icc_le_one
+dyadic_k_inv_sum_Icc_eq
+dyadic_k_inv_sum_Icc_le_two
+dyadicMoserFactor
+dyadic_moser_factor_prod_split
+dyadic_root_tower_product_bound
+dyadic_root_tower_iterate_bound
+dyadic_root_tower_bound
 ```
 
-for the uniform-Gronwall assembly, or a fallback if Route C’s energy identity stalls.
-
-## Can we avoid `HasDerivAt (H1energy u)` entirely?
-
-Yes in principle, but not cheaply in the current architecture.
-
-A pure semigroup proof could bound `||u_x(t)||` directly and never define `H1energy'`. But that is Route B and requires the Volterra/Duhamel infrastructure above.
-
-A weak-energy proof could integrate the PDE over time and prove an integral inequality for `H1energy` without a pointwise derivative. But uniform Gronwall in the repo is already wired around a differential inequality / averaged DI. Replacing it would require a new integral-form uniform-Gronwall theorem plus an integral H¹ estimate. That is possible, but it is not smaller than proving the finite-difference `HasDerivAt` identity.
-
-Therefore, for this repo, do not avoid `HasDerivAt` entirely. Prove it by Route C, not by `u_xt`.
-
-## Sliding-window dissipation bound
-
-The sliding-window bound
+`IntervalDomainMoserClosure.lean` defines the honest endpoint:
 
 ```text
-∫_{τ-1}^{τ} H1energy u s ds ≤ C
+IntervalDomainMoserPointwisePowerControlBefore
+IntervalDomainMoserLpAbsRootBoundBefore
+IntervalDomainMoserQuantitativeEndpoint
 ```
 
-should be derived from a **single-solution L² energy identity**, not from the L² difference energy.
-
-Testing the PDE with `u` gives, schematically,
+and proves conversion:
 
 ```text
-1/2 d/dt ∫ u² + ∫ u_x²
-  = taxis terms + ∫ u²(a - b u^α).
+intervalDomain_supNorm_le_of_pointwise_power_control
+intervalDomain_boundedBefore_of_pointwise_power_control
+intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+intervalDomain_boundedBefore_of_moser_iteration_chain_and_quantitative_endpoint
 ```
 
-The taxis terms can be bounded using resolver/flux bounds and Young:
+`P3MoserActualWiring.lean` shows Proposition 2.5 consumes `hEndpoint` as the remaining endpoint atom.
+
+**Hardness:** hard, but it is a discrete/scalar recurrence plus one Sobolev/Agmon endpoint step, not broad PDE regularity.
+
+**Most efficient tactic:** do not use the false abstract envelope frontier. Build the structured dyadic endpoint for the actual interval-domain solution:
 
 ```text
-|∫ u u_x v_x| ≤ ε ∫ u_x² + C ∫ u²,
-|∫ u² v_xx| ≤ C ∫ u²       (or handled in divergence form).
+p_k = 2^k * p_start,
+M_k = sup_t ||u(t)||_{p_k},
+M_{k+1} ≤ (C * 2^k)^(1/2^k) * M_k.
 ```
 
-The logistic term satisfies
+Then feed `dyadic_root_tower_bound` to obtain a uniform finite root bound and finally produce
 
 ```text
-∫ u²(a - b u^α) ≤ a ∫ u².
+IntervalDomainMoserPointwisePowerControlBefore
 ```
 
-Thus, for a bounded solution / lower-order estimate,
+for some finite stage / limiting endpoint expected by the current hook.
+
+**Key insight:** the scalar tower is already landed. The remaining task is generating the recurrence constants from the integrated Moser step/GN estimates in the exact `IntervalDomainMoserQuantitativeEndpoint` format.
+
+### 6. `IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData`
+
+**Likely status:** exact target exists; reduced to two subfields.
+
+The exact structure is in `P3MoserEnergyContinuity.lean`:
 
 ```text
-d/dt ∫u² + c ∫u_x² ≤ C(1 + ∫u²).
+IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData
 ```
 
-Integrating over a window gives
+with fields:
 
 ```text
-∫_{τ-1}^{τ} ∫u_x² ≤ C.
+atZero : IntervalDomainInitialPowerEnergyContinuityAtZero u T p0
+pdeCombinedInitial :
+  IntervalDomainLpPDECombinedInitialWindowIntegrability params u v T p0
 ```
 
-Since
+and it already has a direct producer:
 
 ```text
-H1energy = 1/2 ∫u_x²,
+intervalDomain_integratedMoserEnergyWindowFTC_of_globalPDEInitialData
 ```
 
-this is exactly the needed `hWindow`.
-
-This single-solution L² energy identity is much easier than the H¹ identity because it only differentiates
+There are also intermediate producers:
 
 ```text
-∫ u(t,x)^2 dx,
+intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_powerInit
+intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_weightedTimeTerm
+intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeCombined
+intervalDomain_integratedMoserEnergyWindowFTC_of_global_atZero_pdeTerms
 ```
 
-which needs `u_t` but not any spatial derivative of `u_t`. The classical solution record already gives pointwise time differentiability and joint continuity of `u_t`.
+**Hardness:** medium-hard but highly localized. This is the first thing to attack because it unlocks FTC and collapses `zeroRightDerivative`/endpoint issues.
 
-### Target file for the window producer
+**Most efficient tactic:** produce its two fields separately.
+
+The `atZero` field is largely already handled by re-anchoring and trace:
+
+```text
+intervalDomain_initialPowerEnergyContinuityAtZero_of_trace_paperPositive_global_withInitialSlice
+```
+
+The remaining real work is `pdeCombinedInitial`, i.e. integrability near `t=0` of
+
+```text
+q * DiffusionIntegral - q * χ₀ * ChemotaxisIntegral + q * LogisticIntegral.
+```
+
+Use the combined residual rather than componentwise unless componentwise estimates are already simpler. Endpoint `s=0` is irrelevant for interval integrability over `0..b`, because the relevant set is `Ioc 0 b`.
+
+**Key insight:** global classical regularity handles every positive-start window. The only missing time interval is `[0,b]`. Use positivity/initial trace and already available lower-order a priori bounds to dominate the weighted time term near zero. If necessary, state a local-in-time integrable bound on the combined PDE scalar profile; the existing file will convert it to all the derivative-window packages.
+
+## Redundancies and collapses
+
+### `zeroRightDerivative` is mostly subsumed by #6
+
+`P3MoserFTCInfrastructure.lean` shows that closed-energy trace data comes from `IntegratedMoserEnergyWindowFTC` at exponent `2`, plus `IntervalDomainL2SeedZeroRightDerivative`. The right derivative can either remain a tiny endpoint atom or be folded into the same initial-window FTC data. Do not treat it as a separate major PDE frontier.
+
+### `gradientTimeIntegrable` should be derived from `integratedMoserDissipation`
+
+Once #3 is available, `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds` is the intended route. Treat #2 as a derived regularity field, not as a primitive PDE theorem.
+
+### `relativeMassGradient` is a wrapper around landed GN/Young data
+
+The analytic core exists as `unitInterval_regular_power_GNYoung`. The work is interface alignment.
+
+### `quantitativeEndpoint` already has its scalar skeleton
+
+Do not rebuild dyadic products or root-tower estimates. Use `dyadic_root_tower_bound` and focus on deriving the recurrence from the integrated Moser step.
+
+## Efficient attack order
+
+### Step 1 — Close #6 first
+
+Target file:
+
+```text
+ShenWork/PDE/P3MoserInitialWindowPDE.lean
+```
+
+Suggested theorem shape:
 
 ```lean
-import ShenWork.Paper2.IntervalChiNegH1Energy
-import ShenWork.Paper2.IntervalDomainL2UEnergyUniform
-import ShenWork.Paper2.IntervalDomainEnergyStep
-import ShenWork.PDE.IntervalDomain
+import ShenWork.PDE.P3MoserEnergyContinuity
 
 noncomputable section
 
-namespace ShenWork.Paper2.IntervalSingleSolutionL2Window
+namespace ShenWork.IntervalDomainExistence.P3MoserInitialWindowPDE
 
-open Set Filter Topology MeasureTheory
+open MeasureTheory Set
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
-open ShenWork.Paper2.IntervalChiNegH1Energy (H1energy)
+open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 
-/-!
-Target theorem: single-solution L² energy identity and window dissipation.
+/-
+Target:
+
+theorem intervalDomain_integratedMoserEnergyWindowFTCGlobalPDEInitialData_of_trace_bounds
+    {params : CM2Params} {T p0 : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hT : 0 < T)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hdatum : PaperPositiveInitialDatum intervalDomain u₀)
+    (hglobal : IsPaper2GlobalClassicalSolution intervalDomain params u v)
+    -- minimal lower-order/a-priori data needed to dominate the combined PDE scalar near zero
+    : IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData
+        params (intervalDomainWithInitialSlice u₀ u) v T p0
 -/
 
--- def L2energy (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ) : ℝ :=
---   (1/2 : ℝ) * ∫ x in (0 : ℝ)..1, (intervalDomainLift (u t) x)^2
-
--- theorem L2energy_hasDerivAt_of_classicalSolution
---     {p : CM2Params} {T t : ℝ}
---     {u v : ℝ → intervalDomainPoint → ℝ}
---     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
---     (ht0 : 0 < t) (htT : t < T) :
---     HasDerivAt (L2energy u)
---       (∫ x in (0 : ℝ)..1,
---          intervalDomainLift (u t) x * intervalDomain.timeDeriv u t ⟨x, by sorry⟩) t
-
--- theorem singleSolution_H1_window_bound
---     {p : CM2Params} {T : ℝ}
---     {u v : ℝ → intervalDomainPoint → ℝ}
---     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
---     (lowerOrderBounds : True) :
---     ∃ C, ∀ τ, 1 ≤ τ → τ < T →
---       ∫ s in (τ - 1)..τ, H1energy u s ≤ C
-
-end ShenWork.Paper2.IntervalSingleSolutionL2Window
+end ShenWork.IntervalDomainExistence.P3MoserInitialWindowPDE
 ```
 
-The proof can reuse the repo’s existing L² difference-energy IBP infrastructure, but it should be a new single-solution theorem rather than trying to force the difference lemma with a zero solution.
+First prove `atZero` by existing theorem. Then prove `pdeCombinedInitial` via a local domination lemma for the combined PDE profile on `(0,b]`.
 
-## Recommended dispatch order
+### Step 2 — Close #4 relative interpolation
 
-1. **Single-solution L² window producer**
-   * easier `HasDerivAt ∫u²`;
-   * gives `hWindow` for the existing H¹ uniform bound.
-
-2. **Finite-difference H¹ energy identity**
-   * prove `H1EnergyIdentity` without `u_xt`.
-
-3. **Term bounds feeding existing algebra**
-   * taxis-gradient term;
-   * `u v_xx` term via elliptic relation / Agmon as already planned;
-   * reaction derivative term.
-
-4. **Existing assembly**
-   * `h1_diffIneq_of_agmon_bounds`;
-   * `chiNeg_H1_norm_bound` / `produce_pointwiseGradientBound_full`;
-   * `produce_pointwiseGradientBound_general_pExp` if needed.
-
-5. **Use Route B only for local start if needed**
-   * near-zero `hlocal : H1energy ≤ Ylocal` on `(0,1]`;
-   * or fallback if direct H¹ identity stalls.
-
-## Answers to the numbered questions
-
-### 1. Least new Lean/Mathlib infrastructure
-
-Route C, via finite differences, needs the least new infrastructure.
-
-It uses:
+Target file:
 
 ```text
-spatial IBP already in the repo,
-Neumann boundary data already in the classical solution record,
-time differentiability and joint continuity already in the classical solution record,
-standard interval FTC / uniform continuity lemmas.
+ShenWork/PDE/P3MoserRelativeInterpolationDischarge.lean
 ```
 
-Route A needs more spectral infrastructure. Route B needs Duhamel representation plus Volterra/fractional-Gronwall machinery.
+Use:
 
-### 2. Can Route B work despite `g` depending on `u_x`?
+```text
+unitInterval_regular_power_GNYoung
+relativeMoserInterpolationBefore_of_massGradient
+```
 
-Yes, but it becomes a fixed-point/Volterra inequality for the gradient. It can be closed on small windows by absorption or fractional Gronwall if lower-order coefficients are uniformly bounded. In the current chain, it is better as a local bound tool than as the global H¹ route.
+or build a direct wrapper if the old mass-gradient interface is awkward.
 
-### 3. Can we avoid proving `HasDerivAt (H1energy u)`?
+### Step 3 — Close #3 integrated dissipation
 
-Yes via a full semigroup gradient estimate route, but that is not the shortest route in this repo. The existing uniform-Gronwall/H¹ machinery wants a differential inequality. Prove `HasDerivAt` by finite differences and spatial IBP instead.
+Target file:
 
-### 4. Is the single-solution sliding-window dissipation bound derivable?
+```text
+ShenWork/PDE/P3MoserIntegratedDissipationPDE.lean
+```
 
-Yes. It should come from testing the single PDE with `u`, proving a single-solution L² energy identity, and integrating the resulting dissipation inequality over windows. The existing L² difference energy is adjacent infrastructure, but the clean missing theorem is a single-solution L² energy/window producer.
+Use:
+
+```text
+IntegratedMoserEnergyWindowFTC
+LpBootstrapEnergyInequality / interval-domain Lp PDE energy inequality
+RelativeMoserInterpolationBefore
+scalar_absorb_higherPower_window
+IntegratedMoserDissipationDropBefore_of_integrated_energy
+```
+
+### Step 4 — Derive #2
+
+Target theorem:
+
+```text
+gradientTimeIntegrable_of_integratedMoserDissipationDropBefore
+```
+
+Use `integratedMoser_gradientIntegral_le_of_endpoint_and_timeIntegral_bounds` to supply integrability of the gradient energy.
+
+### Step 5 — Close #5 quantitative endpoint
+
+Target file:
+
+```text
+ShenWork/PDE/P3MoserQuantitativeEndpointDischarge.lean
+```
+
+Use:
+
+```text
+dyadic_root_tower_bound
+intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+intervalDomain_boundedBefore_of_moser_iteration_chain_and_quantitative_endpoint
+```
+
+The remaining work is deriving the recurrence constants from the already-proved integrated step and GN estimates.
+
+### Step 6 — Assemble
+
+Replace the six separate frontiers with three or four named inputs:
+
+```text
+InitialWindowPDEData        -- #6 plus #1
+RelativeInterpolationData   -- #4
+IntegratedDissipationData   -- #3, then #2 derived
+QuantitativeEndpointData    -- #5
+```
+
+After #3 derives #2, even `IntegratedDissipationData` can be treated as the main Moser energy atom.
+
+## Final classification table
+
+| Frontier | Already proved under another name? | Hardness | Best action |
+|---|---:|---:|---|
+| `zeroRightDerivative` | partially: `IntervalDomainL2SeedZeroRightDerivative`, closed-energy partial data | medium / redundant | fold into #6; do not attack first |
+| `gradientTimeIntegrable` | transfer and regularity packages exist; raw field carried | derived after #3 | derive from integrated dissipation |
+| `integratedMoserDissipation` | predicate and scalar absorption proved | hard | main PDE energy estimate after #4/#6 |
+| `relativeMassGradient` | GN/Young core and wrappers exist | medium | package `UnitIntervalPowerGNYoungForMoser` into `RelativeMoserInterpolationBefore` |
+| `quantitativeEndpoint` | root-tower and final conversion proved | hard | prove recurrence/root-bound producer |
+| `IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData` | exact structure and conversion theorems exist | medium-hard | attack first; reduces to `atZero` + `pdeCombinedInitial` |
 
 ## Bottom line
 
-The fastest faithful path is:
-
-```text
-single-solution L² window bound
-+ finite-difference H¹ energy identity without u_xt
-+ existing H¹ algebra / uniform averaging
-```
-
-Do not make the spectral route the main path unless it is already nearly complete. Do not make the semigroup/Duhamel route the main path unless the direct H¹ identity stalls; it solves a harder Volterra problem and may reintroduce L∞ circularity.
+The efficient plan is to stop treating the six names as independent. The repo has already reduced the endpoint/FTC side to `IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData`, and the scalar Moser side to a small set of integrated/relative/endpoint atoms. Close the initial-window FTC package first, wire the existing GN/Young package second, prove the integrated Moser dissipation third, derive gradient-time integrability fourth, and leave the quantitative endpoint as the final Moser-iteration recurrence problem.
