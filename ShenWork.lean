@@ -249,6 +249,7 @@ import ShenWork.PDE.P3MoserActualWiring
 import ShenWork.PDE.P3MoserIntegratedClosure
 import ShenWork.PDE.P3MoserGradientIntegrabilityFromDissipation
 import ShenWork.PDE.P3MoserIntegratedDissipationPDE
+import ShenWork.PDE.P3MoserIntegratedDissipationPDEv2
 import ShenWork.PDE.P3MoserPDECombinedInitialProducer
 import ShenWork.PDE.P3MoserQuantitativeEndpointDischarge
 import ShenWork.Paper3.IntervalDomainMoserLadderHeadline
