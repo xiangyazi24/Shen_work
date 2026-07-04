@@ -2245,8 +2245,11 @@ Both routes need the quantitative endpoint (Moser iteration closure).
 The assembly filler's 7 hypotheses reduce, after tracing all producer chains, to
 5 irreducible PDE residuals:
 
-1. **hGap** (`LpBootstrapEnergyInequalityWithGap`) — parameter-regime dependent.
-   `2 < pExp * Acoef` fails for current coefficients when χ₀ ≠ 0. MUST carry.
+1. **hGap** (`LpBootstrapEnergyInequalityWithGap`) — **CRITICAL BUG CONFIRMED**.
+   Current eps = A0/(2*(chiBound+1)) gives pExp*Acoef → 2⁻ for χ₀ ≠ 0.
+   For χ₀ ≥ 1, gap `2 < pExp*A` is NEVER satisfiable — all downstream vacuously true.
+   FIX: p-dependent eps = A0/(p*(chiBound+1)) gives pExp*Acoef → 4 (Python-verified).
+   Task 22 dispatched for the refactor.
 
 2. **PDE initial-time regularity** (`IntervalDomainLpPDETermInitialWindowIntegrability`)
    — integrability of diffusion/chemotaxis/logistic terms near t=0. This is the base
@@ -2283,3 +2286,26 @@ with the dyadic iteration (5) feeding the quantitative endpoint (4).
 | 19 | Global assembly wiring | P3MoserAssemblyGlobalWiring.lean | ✅ (build needs lake) |
 | 20 | FTC global producer | P3MoserFTCGlobalProducer.lean | ✅ (build needs lake) |
 | 21 | BoundedBefore investigation | P3MoserBoundedBeforeProducer.lean | ✅ (report + wiring) |
+| 22 | ε refactor for gap | P3MoserEnergyGapRefactor.lean | ✅ axiom-clean (fixes vacuity bug) |
+| 23 | Initial-time regularity | P3MoserInitialTimeRegularity.lean | ✅ axiom-clean (18s) |
+| 24 | No-bound relative interp | P3MoserRelativeInterpolationNoBound.lean | ✅ axiom-clean (confirms circularity real) |
+| 25 | First-crossing continuation | P3MoserFirstCrossingContinuation.lean | ✅ axiom-clean (circularity broken) |
+
+### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
+
+**Fable's key findings:**
+- hGap is a fixable coefficient bug (not a permanent residual)
+- Vacuity risk: χ₀ ≠ 0 case has ALL downstream theorems vacuously true
+- Circularity breakable via first-crossing continuation argument
+- Initial-time regularity likely not a frontier (time weight trick or closed-interval)
+
+**ChatGPT's key findings:**
+- Agrees hGap unsatisfiable; proposes replacing gap definition with positive-coeff frontier
+- Suggests no-bounded-before route for relative interpolation via 1D GN/Young
+- Sketches `LocalInitialMoserPDEIntegrability` package for initial-time issue
+
+**Synthesis:**
+- ε refactor (Fable's route) is more surgical — define alongside, bridge
+- ChatGPT's no-bound interpolation route worth investigating as circularity break
+- Both agree initial-time is producible with local regularity data
+- Priority: ε refactor → (no-bound interp + initial-time) parallel → dyadic
