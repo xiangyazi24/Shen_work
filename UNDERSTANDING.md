@@ -203,6 +203,8 @@ Producer: `zeroRightDerivativeWithin_withInitialSlice_of_tendsto_deriv` — from
 
 **Residuals carried:** `IntervalDomainIntegratedMoserClassicalRegularityData` (needs gradient time integrability → task 15 provides this), `hgap: 2 < q * A` (coefficient condition from parameters).
 
+**⚠️ hgap UNSATISFIABLE (discovered 2026-07-04):** The gap condition `∀ q ≥ p0, ∀ A K > 0, 2 < q * A` is universally quantified over ALL positive A. For A = 1/(2q), we get 2 < 1/2. The underlying theorem `higherPowerWindowCoeffFrontier_of_regularEnergy` (IntegratedClosure.lean:789) only uses A,K from `LpBootstrapEnergyInequality` — the universal quantification is an over-strengthening in the `_coeffGap` wrapper. Fix: task 17 writes a v2 with combined `LpBootstrapEnergyInequalityWithGap` that pairs the energy inequality with the gap for the SPECIFIC A.
+
 ### Task 14: frontier #5 quantitativeEndpoint (COMPLETED, 2026-07-04)
 
 **File: `P3MoserQuantitativeEndpointDischarge.lean`** (199 lines, axiom-clean, 236k Codex tokens)
@@ -239,6 +241,25 @@ Also provides backward bridge from `IntegratedMoserEnergyWindowFTC` → pdeCombi
 **True irreducible:** `IntegratedMoserEnergyDerivativeInitialWindowIntegrability` — integrability of d/dt Y_p near t=0.
 
 **v-gradient finding:** No standalone ‖∂ₓv‖∞ needed. `CrossDiffusionBootstrapEstimate` absorbs v-gradients via resolver bounds (`IntervalDomainCrossDiffusionBootstrap.lean:591`).
+
+### Task 16: assembly filler (COMPLETED, 2026-07-04)
+
+**File: `P3MoserAssemblyFiller.lean`** (151 lines, axiom-clean, 157k Codex tokens)
+
+Wires all frontier producers into `IntervalDomainMassLpSmoothingMoserIntegratedDropResiduals` via the intermediate `IntervalDomainMassLpSmoothingMoserIntegratedDropDyadicEndpointResiduals` structure.
+
+**6 carried hypotheses (irreducible inputs):**
+
+| # | Hypothesis | Nature | Status |
+|---|-----------|--------|--------|
+| 1 | `hClosedTrace` | closed energy trace data | ❌ needs zeroRightDerivative (frontier #1) |
+| 2 | `hFTC` | IntegratedMoserEnergyWindowFTC | ❌ needs endpoint continuity at t=0 + derivative integrability |
+| 3 | `hClassicalRegularity` | gradient regularity data | 🟡 task 15 provides from dissipation bound data |
+| 4 | `hBoundedBefore` | IsPaper2BoundedBefore | 🟡 Moser iteration output (has producer in IntegratedClosure) |
+| 5 | `hGap` | coefficient gap 2 < q*A | ❌ **UNSATISFIABLE** — task 17 fixing |
+| 6 | `hDyadicEndpoint` | dyadic recurrence data | ❌ needs Moser dyadic recurrence data |
+
+**Build verified:** 9004 jobs, 128s, BUILD OK on uisai2. Commit 9bd27ecf.
 
 **Oracle ledger:**
 
@@ -2164,3 +2185,101 @@ FlooredSourceTimeData's 6 sorry are NOT trivially fillable after weakening:
   blow up as t → 0 for merely continuous initial data
 NEXT: further weaken zerothBound/laplBound to per-compact-window (∀ t ∈ [c,T]),
 or restructure the consumer chain to accept window-local data directly.
+
+## 2026-07-04 — Assembly Filler Residuals: Architecture Map
+
+### Assembly target chain
+```
+(hsol, hcross, hboot, hinputs, hbdns)
+  → IntervalDomainMassLpSmoothingMoserIntegratedDropResiduals  [assembly filler]
+    → IntervalDomainMassLpSmoothingRouteResiduals               [global chain]
+      → aprioriBound / seedData                                 [existence]
+```
+
+### Assembly filler (P3MoserAssemblyFiller.lean) — 7 input hypotheses
+
+| Hypothesis | Status | Notes |
+|-----------|--------|-------|
+| hbdns (BoundednessHyp) | ✅ parameter | correctly carried |
+| hClosedTrace | chains through hFTC + zero-deriv | see below |
+| hFTC | conditional on hderivInitial | task 20 produced `P3MoserFTCGlobalProducer.lean` |
+| hClassicalRegularity | ✅ discharged | via `intervalDomain_classicalRegularitySupplier_global_withInitialSlice` |
+| hBoundedBefore | conditional on crossing step + endpoint | task 21 report in `P3MoserBoundedBeforeProducer.lean` |
+| hGap | ❌ must remain carried | coefficient analysis: `2 < pExp * Acoef` FAILS for current coefficients |
+| hDyadicEndpoint | open frontier | dyadic Moser iteration construction needed |
+
+### Global assembly wiring (P3MoserAssemblyGlobalWiring.lean, task 19)
+Wires assembly filler into global chain: `hinputs → hClassicalRegularity` discharged;
+remaining 6 hypotheses forwarded.
+
+### Dependency chain for hClosedTrace
+```
+hClosedTrace
+  ← closedEnergyIdentityTraceData_withInitialSlice_of_globalPDEInitialData
+     ← hFTC (IntervalDomainIntegratedMoserEnergyWindowFTCGlobalPDEInitialData)
+     ← hzero (IntervalDomainL2SeedZeroRightDerivative) — task 10 ✅
+     ← hglobal (IsPaper2GlobalClassicalSolution) — from hinputs
+```
+
+### hFTC residual (task 20)
+`intervalDomain_assemblyFTC_of_globalInputs` needs:
+- `hinputs` (have)
+- `hderivInitial : IntegratedMoserEnergyDerivativeInitialWindowIntegrability`
+  (new residual — initial-window derivative integrability from PDE data)
+
+### hBoundedBefore residual (task 21)
+Cannot be produced from `(hsol, hcross, hboot)` alone. Needs:
+- Preferred route: `IntegratedMoserFirstCrossingStep` + quantitative endpoint
+- Older route: physical-B dissipation + relative interpolation + endpoint
+Both routes need the quantitative endpoint (Moser iteration closure).
+
+### Net carried residuals (as of task 19-21)
+1. **hGap** — must remain carried (coefficient regime dependent)
+2. **hDyadicEndpoint** — dyadic Moser iteration construction
+3. **hderivInitial** — initial-window derivative integrability for FTC
+4. **hBoundedBefore sub-residuals** — crossing step + quantitative endpoint
+5. **hClosedTrace** — chains through hFTC, so residual = hderivInitial
+
+### Bottom-level PDE residuals (where the wiring bottoms out)
+
+The assembly filler's 7 hypotheses reduce, after tracing all producer chains, to
+5 irreducible PDE residuals:
+
+1. **hGap** (`LpBootstrapEnergyInequalityWithGap`) — parameter-regime dependent.
+   `2 < pExp * Acoef` fails for current coefficients when χ₀ ≠ 0. MUST carry.
+
+2. **PDE initial-time regularity** (`IntervalDomainLpPDETermInitialWindowIntegrability`)
+   — integrability of diffusion/chemotaxis/logistic terms near t=0. This is the base
+   of the chain: PDETermInitial → PDECombinedInitial → WeightedTimeTerm →
+   PowerDerivIntegral → MoserDerivativeInitial → FTC → ClosedTrace.
+
+3. **IntegratedMoserFirstCrossingStep** — Moser crossing step for hBoundedBefore.
+   Producer exists in P3MoserRegularityProducer.lean but needs
+   `IntegratedMoserDissipationDropBefore` + `RelativeMoserInterpolationBefore`
+   (circular with hBoundedBefore).
+
+4. **IntervalDomainMoserQuantitativeEndpoint** — quantitative endpoint for hBoundedBefore.
+   Produced from `DyadicMoserEndpointRecurrence` (item 5).
+
+5. **DyadicMoserEndpointRecurrence** — the dyadic Moser iteration construction
+   (hDyadicEndpoint). Core construction of the doubling sequence.
+
+Items 3-5 form the Moser iteration closure: crossing → all-Lp-bounded → bounded-before,
+with the dyadic iteration (5) feeding the quantitative endpoint (4).
+
+### Codex task ledger (cumulative)
+
+| Task | Frontier | File | Status |
+|------|----------|------|--------|
+| 9 | relativeMassGradient | P3MoserRelativeMassGradientProducer.lean | ✅ |
+| 10 | zeroDeriv audit | P3MoserZeroDerivAudit.lean | ✅ |
+| 12 | pdeCombinedInitial | P3MoserPDECombinedInitialProducer.lean | ✅ |
+| 13 | integratedDissipation | P3MoserIntegratedDissipationPDE.lean | ✅ |
+| 14 | quantitativeEndpoint | P3MoserQuantitativeEndpointDischarge.lean | ✅ |
+| 15 | gradientIntegrability | P3MoserGradientIntegrabilityFromDissipation.lean | ✅ |
+| 16 | Assembly filler v1 | P3MoserAssemblyFiller.lean | ✅ |
+| 17 | Surplus fix | P3MoserIntegratedDissipationPDEv2.lean | ✅ BUILD_OK |
+| 18 | Assembly filler v2 | P3MoserAssemblyFiller.lean update | ✅ BUILD_OK |
+| 19 | Global assembly wiring | P3MoserAssemblyGlobalWiring.lean | ✅ (build needs lake) |
+| 20 | FTC global producer | P3MoserFTCGlobalProducer.lean | ✅ (build needs lake) |
+| 21 | BoundedBefore investigation | P3MoserBoundedBeforeProducer.lean | ✅ (report + wiring) |
