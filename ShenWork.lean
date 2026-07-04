@@ -218,6 +218,7 @@ import ShenWork.Paper2.IntervalChiNegConcreteConnectors
 import ShenWork.Paper2.IntervalSoftClampFloorAudit
 import ShenWork.Paper2.IntervalChiNegFloorClosure
 import ShenWork.Paper2.IntervalIBPCoeffExtraction
+import ShenWork.PDE.P3MoserAssemblyFiller
 import ShenWork.Paper2.IntervalEigenCubeTailFromTower
 import ShenWork.Paper2.IntervalNeumannTowerOfC6
 import ShenWork.Paper2.IntervalSourceRepresentative
