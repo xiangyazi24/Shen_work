@@ -146,9 +146,9 @@ Converter `to_closedEnergyIdentityTraceData` combines partial + remaining into f
 | `classicalRegularity.endpointEnergy.atZero` | ✅ | trace+classical (tasks 2,4) |
 | `classicalRegularity.endpointEnergy.atRight` | ✅ (global) | automatic for global solutions (task 4) |
 | `classicalRegularity.gradientTimeIntegrable` | ❌ irreducible | needs closed-time gradient continuity (task 5) |
-| `integratedMoserDissipation` | ❌ PDE frontier | satisfiable, not yet produced |
-| `relativeMassGradient` | ❌ PDE frontier | Sobolev/GN |
-| `quantitativeEndpoint` | ❌ PDE frontier | de Giorgi |
+| `integratedMoserDissipation` | ✅ (conditional) | task 13: `P3MoserIntegratedDissipationPDE.lean` — wired via existing `regularEnergy_coeffGap`. Conditional on `IntervalDomainIntegratedMoserClassicalRegularityData` + hgap |
+| `relativeMassGradient` | ✅ (conditional) | task 9: `P3MoserRelativeMassGradientProducer.lean` — Agmon+chain-rule. Conditional on `IsPaper2BoundedBefore` |
+| `quantitativeEndpoint` | ✅ (conditional) | task 14: `P3MoserQuantitativeEndpointDischarge.lean` — dyadic recurrence + converter. Conditional on `IntegratedMoserDissipationDropBefore` |
 | `a_pos`, `chi_nonneg` | ✅ parameter | — |
 
 **Irreducible PDE frontiers — REVISED after dual-oracle synthesis (2026-07-04):**
@@ -191,11 +191,45 @@ Corrected definition: `IntervalDomainL2SeedZeroRightDerivativeWithin` using `der
 Conditional adapter: `to_old_of_deriv_eq` — needs `deriv E 0 = derivWithin E (Ici 0) 0` to convert back.
 Producer: `zeroRightDerivativeWithin_withInitialSlice_of_tendsto_deriv` — from interior differentiability + derivative limit.
 
-### Task 12: frontier #6 pdeCombinedInitial (IN PROGRESS, 2026-07-04)
+### Task 13: frontier #3 integratedMoserDissipation (COMPLETED, 2026-07-04)
 
-**File: `P3MoserPDECombinedInitialProducer.lean`** (186 lines growing, axiom-clean so far)
+**File: `P3MoserIntegratedDissipationPDE.lean`** (97 lines, axiom-clean, 248k Codex tokens)
 
-6 theorems so far. Key chain:
+2 theorems, 0 sorry, 0 axiom. Core PDE assembly:
+- `intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE` — produces `IntegratedMoserDissipationDropBefore` from classical solution + cross-diffusion bootstrap + Lp bootstrap + WindowFTC + RelativeMoserInterpolationBefore + classicalRegularityData + coefficient gap
+- `intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE_fact` — convenience fact version
+
+**Architecture:** Pure wiring through existing `intervalDomain_integratedMoserDissipationDropBefore_of_regularEnergy_coeffGap`. No new PDE analysis — all heavy lifting was already done.
+
+**Residuals carried:** `IntervalDomainIntegratedMoserClassicalRegularityData` (needs gradient time integrability → task 15 provides this), `hgap: 2 < q * A` (coefficient condition from parameters).
+
+### Task 14: frontier #5 quantitativeEndpoint (COMPLETED, 2026-07-04)
+
+**File: `P3MoserQuantitativeEndpointDischarge.lean`** (199 lines, axiom-clean, 236k Codex tokens)
+
+5 definitions/theorems, 0 sorry, 0 axiom:
+- `DyadicMoserEndpointRecurrence` — structure for dyadic Moser recurrence data
+- `intervalDomain_moserQuantitativeEndpoint_of_dyadic_recurrence` — endpoint from recurrence
+- `intervalDomain_moserQuantitativeEndpoint_of_integrated_dissipation` — endpoint from integrated dissipation (bridges frontiers #3→#5)
+- `IntervalDomainMassLpSmoothingMoserIntegratedDropDyadicEndpointResiduals` — refined residual structure with both dissipation and endpoint data
+- `to_integratedDropResiduals` — converter to `IntervalDomainMassLpSmoothingMoserIntegratedDropResiduals` (the assembly)
+
+### Task 15: frontier #2 gradientIntegrability (COMPLETED, 2026-07-04)
+
+**File: `P3MoserGradientIntegrabilityFromDissipation.lean`** (258 lines, axiom-clean, 218k Codex tokens)
+
+3 definitions/theorems, 0 sorry, 0 axiom:
+- `IntervalDomainIntegratedDissipationGradientBoundData` — input data structure for gradient integrability
+- `intervalDomain_gradientTimeIntegrable_of_integratedDissipation_boundData` — gradient time integrability from integrated dissipation
+- `intervalDomain_classicalRegularityData_of_integratedDissipation_boundData` — **KEY BRIDGE:** produces `IntervalDomainIntegratedMoserClassicalRegularityData` (the residual from task 13) from integrated dissipation bound data
+
+**This closes the circularity gap:** Task 13 needs classicalRegularityData → Task 15 provides it from dissipation → Task 13 provides dissipation. The resolved dependency: classicalRegularityData derives from dissipation bound data, NOT from dissipation itself (no circularity — the bound data is a weaker input).
+
+### Task 12: frontier #6 pdeCombinedInitial (COMPLETED, 2026-07-04)
+
+**File: `P3MoserPDECombinedInitialProducer.lean`** (186 lines, axiom-clean, 244k Codex tokens)
+
+6 theorems. Key chain:
 - `IntegratedMoserEnergyDerivativeInitialWindowIntegrability` (INPUT)
   → `IntervalDomainLpWeightedTimeTermInitialWindowIntegrability`
   → `IntervalDomainLpPDECombinedInitialWindowIntegrability` (OUTPUT = pdeCombinedInitial)
