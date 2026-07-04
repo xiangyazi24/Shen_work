@@ -13,6 +13,8 @@ open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
+
+set_option linter.style.longLine false
 open scoped Interval
 
 noncomputable section
@@ -142,7 +144,6 @@ theorem
 /-- Re-anchored global-classical initial-window PDE data from initial trace,
 positive datum, and Moser-derivative initial-window integrability for the
 re-anchored representative. -/
-set_option linter.style.longLine false
 theorem
     intervalDomain_globalPDEInitialData_withInitialSlice_of_trace_moserDerivativeInitial
     {params : CM2Params} {T p0 : ℝ}
