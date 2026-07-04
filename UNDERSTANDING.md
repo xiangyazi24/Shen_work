@@ -160,6 +160,68 @@ The FULL Moser continuation chain (tasks 25-35) is axiom-clean, 0 sorry:
 
 **Relationship to PDE assembly (tasks 1-18):** The PDE assembly produces IntegratedMoserFirstCrossingStep (the iteration STEP) from classical regularity + PDE frontier data. SubintervalAssemblyResidual bundles the FULL iteration (step + endpoint + chain + conversion). Proving SubintervalAssemblyResidual from PDE assembly output would require interior-only FTC (available) + resolving the PDE frontiers (zeroRightDerivative, gradientTimeIntegrable — still carried).
 
+### Task 36: SubintervalAssemblyResidual bridge (COMPLETED 2026-07-04)
+
+**File: `P3MoserSubintervalAssemblyBridge.lean`** (commit edb3ac8c, axiom-clean, 3595 jobs)
+
+Reduces SubintervalAssemblyResidual to 4 explicit suppliers:
+1. `hstep`: IntegratedMoserFirstCrossingStep supplier (from sol + cross + boot + gap)
+2. `hEndpoint`: MoserQuantitativeEndpoint supplier (from sol + cross + boot)
+3. `hInitial`: u(0) pointwise bounded (from sol)
+4. `hTerminal`: u(τ) pointwise bounded (from sol + sub + τ>0)
+
+### Task 37: Eliminate hTerminal for τ < T (COMPLETED 2026-07-04)
+
+**File: `P3MoserSubintervalAssemblyBridge.lean`** (commit 0e891c57, axiom-clean, 219 lines)
+
+Two new theorems:
+- `intervalDomain_terminal_bound_of_classical_strict` — for τ ∈ (0,T), classical regularity gives `∃ M, ∀ x, |u τ x| ≤ M` via `intervalDomain_solution_slice_abs_bound`
+- `intervalDomain_subintervalAssemblyResidual_strict_of_step_endpoint_initial` — assembly from 3 suppliers (hstep + hEndpoint + hInitial) when τ < T (no hTerminal needed)
+
+**Impact:** The continuation chain ONLY invokes assembly at τ < T (extension needs room to extend beyond τ). So in practice, SubintervalAssemblyResidual needs only 3 suppliers.
+
+**Full chain now:**
+```
+IntegratedMoserFirstCrossingStep + Endpoint + Initial
+  → SubintervalAssemblyResidual (tasks 36-37, bridge, τ<T)
+    + PointwiseUniformizationResidual
+      → IsPaper2BoundedBefore (task 35, top assembly)
+        → AprioriBound → GlobalExistence
+```
+
+### Comprehensive condition audit (2026-07-04)
+
+**4 irreducible PDE frontiers** block the chain from raw data to GlobalExistence:
+
+| # | Frontier | What it does | Where consumed | Can Codex close it? |
+|---|----------|-------------|----------------|---------------------|
+| 1 | `zeroRightDerivative` | HasDerivWithinAt at t=0 for energy | → ClosedEnergyTrace → FTC → hstep | 🟡 Fix identified (derivWithin), needs gradient-energy continuity at t=0 |
+| 2 | `gradientTimeIntegrable` | ∫₀ᵀ‖∇(u^{p/2})‖² dt < ∞ | → ClassicalRegularityData → hstep | ❌ Genuine PDE (monotone convergence from dissipation) |
+| 3 | `DyadicMoserEndpointRecurrence` | De Giorgi dyadic iteration data | → MoserQuantitativeEndpoint → hEndpoint | ❌ PDE content (extraction from integrated dissipation) |
+| 4 | `PointwiseUniformizationResidual` | per-t bounds → uniform M | independent, needed by top assembly | ❌ Genuinely irreducible (assembly output M(τ) may grow) |
+
+**Conditions that ARE discharged:**
+- ✅ `ShortTimeBoundedBeforeResidual` — unconditional (compact [0,1])
+- ✅ `ExtensionByContinuityResidual` — unconditional (classical + compact)
+- ✅ `hInitial` — from initial data (PositiveInitialDatum + InitialTrace gives bounded u₀)
+- ✅ `hTerminal` — from classical regularity when τ < T (task 37)
+- ✅ `integratedMoserDissipation` — conditional on FTC + regularity (task 13)
+- ✅ `relativeMassGradient` — conditional on IsPaper2BoundedBefore (task 9)
+- ✅ `LpBootstrapEnergyInequalityWithGap` — from classical regularity (task 17)
+
+**Dependency graph of irreducible frontiers:**
+```
+zeroRightDerivative (#1) ←── depends on gradient-energy continuity at t=0
+    ↓
+ClosedEnergyTrace → FTC ──┐
+                           ├──→ hstep (IntegratedMoserFirstCrossingStep)
+gradientTimeIntegrable (#2) ┘         ↓
+                                      SubintervalAssemblyResidual
+DyadicMoserEndpointRecurrence (#3) → hEndpoint ↓
+                                      + PointwiseUniformizationResidual (#4)
+                                      → IsPaper2BoundedBefore
+```
+
 ### Updated conditional input landscape (2026-07-04)
 
 | Condition | Status | Cleared by |
