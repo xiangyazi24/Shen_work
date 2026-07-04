@@ -19,6 +19,7 @@ open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.IntervalDomainExistence
 open ShenWork.IntervalDomainExistence.P3MoserBoundedBeforeProducer
+open ShenWork.IntervalDomainExistence.P3MoserContinuityExtension
 open ShenWork.IntervalDomainExistence.P3MoserFirstCrossingContinuation
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedClosure
 open ShenWork.IntervalDomainExistence.P3MoserIntegratedDissipationPDEv2
@@ -141,9 +142,77 @@ theorem intervalDomain_subintervalAssemblyResidual_of_step_endpoint_initial_and_
       exact (hMopen t ht_pos ht_lt x).trans
         (le_trans (le_max_left Mopen M₀) (le_max_left (max Mopen M₀) Mτ))
 
+/-- Classical interval-domain regularity supplies the right-endpoint bound
+whenever the subinterval endpoint is strictly before the classical horizon. -/
+theorem intervalDomain_terminal_bound_of_classical_strict
+    {p : CM2Params} {T τ : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (_hsub : BoundedBeforeOnSubinterval intervalDomain u τ T)
+    (hτ_pos : 0 < τ) (hτ_lt : τ < T) :
+    ∃ M, ∀ x, |u τ x| ≤ M :=
+  intervalDomain_solution_slice_abs_bound hsol
+    (show τ ∈ Set.Ioo (0 : ℝ) T from ⟨hτ_pos, hτ_lt⟩)
+
+/-- Closed-subinterval assembly with the terminal slice discharged from
+classical regularity, under the strict subinterval condition `τ < T`. -/
+theorem intervalDomain_subintervalAssemblyResidual_strict_of_step_endpoint_initial
+    {p : CM2Params}
+    (hstep :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+        LpBootstrapEnergyInequalityWithGap intervalDomain u T rho p0 →
+          IntegratedMoserFirstCrossingStep intervalDomain u T rho p0)
+    (hEndpoint :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          ∃ pSeq rootBound : ℕ → ℝ,
+            (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound)
+    (hInitial :
+      ∀ {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+          ∃ M₀, ∀ x, |u 0 x| ≤ M₀) :
+    ∀ {T τ rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      BoundedBeforeOnSubinterval intervalDomain u τ T →
+      τ < T →
+      CrossDiffusionBootstrapEstimate intervalDomain p τ rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) τ rho p0 →
+      LpBootstrapEnergyInequalityWithGap intervalDomain u τ rho p0 →
+        ∃ M, ∀ t, t ∈ Set.Icc (0 : ℝ) τ →
+          ∀ x : intervalDomain.Point, |u t x| ≤ M := by
+  intro T τ rho p0 u v hsol hsub hτ_lt hcross hboot hgap
+  have hτ_pos : 0 < τ := AbstractLpBootstrapHypothesis.T_pos hboot
+  rcases intervalDomain_subinterval_strict_pointwise_bound_of_step_and_endpoint
+      (p := p) hstep hEndpoint hsol hsub hcross hboot hgap with
+    ⟨Mopen, hMopen⟩
+  rcases hInitial hsol with ⟨M₀, hM₀⟩
+  rcases intervalDomain_terminal_bound_of_classical_strict
+      hsol hsub hτ_pos hτ_lt with
+    ⟨Mτ, hMτ⟩
+  refine ⟨max (max Mopen M₀) Mτ, ?_⟩
+  intro t ht x
+  by_cases ht_zero : t = 0
+  · subst t
+    exact (hM₀ x).trans
+      (le_trans (le_max_right Mopen M₀) (le_max_left (max Mopen M₀) Mτ))
+  · have ht_pos : 0 < t := lt_of_le_of_ne ht.1 (Ne.symm ht_zero)
+    by_cases ht_terminal : t = τ
+    · subst t
+      exact (hMτ x).trans (le_max_right (max Mopen M₀) Mτ)
+    · have ht_lt : t < τ := lt_of_le_of_ne ht.2 ht_terminal
+      exact (hMopen t ht_pos ht_lt x).trans
+        (le_trans (le_max_left Mopen M₀) (le_max_left (max Mopen M₀) Mτ))
+
 #print axioms intervalDomain_abs_le_supNorm_of_bddAbove_abs
 #print axioms intervalDomain_subinterval_strict_pointwise_bound_of_step_and_endpoint
 #print axioms intervalDomain_subintervalAssemblyResidual_of_step_endpoint_initial_and_terminal
+#print axioms intervalDomain_terminal_bound_of_classical_strict
+#print axioms intervalDomain_subintervalAssemblyResidual_strict_of_step_endpoint_initial
 
 end ShenWork.IntervalDomainExistence.P3MoserSubintervalAssemblyBridge
 
