@@ -2940,6 +2940,18 @@ source-facing near-zero L¹ majorant for the assembled RHS itself.  Its adapter
 to `H1IdentityRHSInitialWindowIntegrableBefore` lets future physical estimates
 target an RHS majorant directly before crossing into the derivative-proxy route.
 
+Task 88 adds `IntervalChiNegH1PhysicalInitialRHS`, specializing the Task87
+near-zero RHS majorant route to the concrete physical scalar triple from Task
+84.  The new `H1PhysicalRHSStrictInitialRouteBefore` asks for the pointwise
+physical H¹ identity, square-root estimates, strict-positive-time component
+continuity, and an assembled physical RHS initial-window majorant.  It produces
+the full `H1IdentityRHSIntegrableBefore`, the combined
+`H1SupBoundSqrtRHSIntegrableBefore`, the scalar zero-start derivative
+integrability input, and a bounded-before wrapper without requiring zero-start
+component continuity.  This is still honest route wiring: the analytic physical
+majorant, strict component continuity, bounds, and substitution identity remain
+upstream producers.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

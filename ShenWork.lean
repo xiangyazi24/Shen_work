@@ -460,6 +460,7 @@ import ShenWork.Paper2.IntervalChiNegH1StrictRHSIntegrability
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeProducer
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeFTC
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeRHS
+import ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
 import ShenWork.Paper2.IntervalChiNegH1DerivativeWindowProducer
 import ShenWork.Paper2.IntervalChiNegH1BridgeInitialWiring
 import ShenWork.Wiener.EWA.SourceChiNegUniformBridge
