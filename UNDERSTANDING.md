@@ -2487,6 +2487,18 @@ The last two converge to the SAME core analytic fact: a classical solution with 
 space-time continuity on intervalDomain has uniform bounds on compact time subintervals.
 T33 dispatched to investigate and discharge.
 
+### H1 strict-window component continuity (2026-07-05)
+
+Task 58 adds `IntervalChiNegH1LapComponentContinuity.lean`.
+It proves that closed-slab joint continuity of `liftDeriv2 u` gives
+continuity of `lapL2sq u` on every strict positive-time closed window
+`[a,b] ⊂ (0,T)`.
+
+This is a real component-continuity lemma, but it is not an endpoint closure:
+the theorem deliberately assumes `0 < a`, matching
+`H1LiftDeriv2JointContinuousBefore`. It does not discharge any record field
+that requires continuity on windows starting at `a = 0`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
