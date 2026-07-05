@@ -1185,7 +1185,11 @@ Current headline status:
   zero-slice compatibility `H1energy u 0 = H1InitialEnergy u₀`, produces
   `ContinuousWithinAt (H1energy u) (Ici 0) 0` and the corresponding
   closed-window H1 continuity wrapper.  Positive-time trace data alone still
-  does not identify the stored value `u 0`.
+  does not identify the stored value `u 0`.  The follow-up wiring file
+  `IntervalChiNegH1InitialWiring` threads this split endpoint package through
+  the scalar-regularity, scalar-DI, and bounded-before H1 routes.  Downstream
+  wrappers now carry `H1InitialTraceEnergyTendsto` plus
+  `H1InitialEnergyCompatibleAtZero` instead of a raw `hcont0`.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
