@@ -125,12 +125,88 @@ abbrev MeanBundleFamily (μ β χ₀ t : ℝ) (u v : ℝ → ℝ → ℝ) (û₀
   ∀ σ : ℝ, ∀ E : TrajectoryHSigmaEnvelope σ t (fun τ => cosineCoeffs (u τ)),
     MeanStepBundle μ σ β χ₀ t u v û₀ Q W vx Fl Mmean E
 
+/-- Recursive sigma position after `n` mean-fixed quarter-steps.  This is the
+definitional index used by the dependent finite supply. -/
+def meanSigmaAfter : ℕ → ℝ → ℝ
+  | 0, σ => σ
+  | n + 1, σ => meanSigmaAfter n (σ + 1 / 4)
+
+/-- Closed form for the recursive sigma position. -/
+theorem meanSigmaAfter_eq_add_nat_mul (n : ℕ) (σ : ℝ) :
+    meanSigmaAfter n σ = σ + n * (1 / 4) := by
+  induction n generalizing σ with
+  | zero =>
+      simp [meanSigmaAfter]
+  | succ n ih =>
+      calc
+        meanSigmaAfter (n + 1) σ = meanSigmaAfter n (σ + 1 / 4) := rfl
+        _ = (σ + 1 / 4) + n * (1 / 4) := ih (σ + 1 / 4)
+        _ = σ + (n + 1 : ℕ) * (1 / 4) := by
+            push_cast
+            ring
+
+/-- A dependent finite mean-step supply tied to the actual current envelope.
+For `n` steps, this asks for exactly one bundle at each visited ladder state and
+none at the final overshoot level. -/
+def MeanStepSupply (μ β χ₀ t : ℝ) (u v : ℝ → ℝ → ℝ) (û₀ : ℕ → ℝ)
+    (Q W vx : ℝ → ℝ → ℝ) (Fl : ℕ → ℝ → ℝ) (Mmean : ℝ) :
+    (n : ℕ) → (σ : ℝ) →
+      TrajectoryHSigmaEnvelope σ t (fun τ => cosineCoeffs (u τ)) → Type
+  | 0, _σ, _E => PUnit
+  | n + 1, σ, E =>
+      Sigma (fun B : MeanStepBundle μ σ β χ₀ t u v û₀ Q W vx Fl Mmean E =>
+        MeanStepSupply μ β χ₀ t u v û₀ Q W vx Fl Mmean n (σ + 1 / 4) B.step)
+
+/-- Compatibility bridge from the old all-σ family to the exact finite supply. -/
+def meanStepSupply_of_family {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
+    {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ}
+    (Bf : MeanBundleFamily μ β χ₀ t u v û₀ Q W vx Fl Mmean) :
+    ∀ (n : ℕ) {σ₀ : ℝ}
+      (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ))),
+      MeanStepSupply μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ E₀
+  | 0, _σ₀, _E₀ => PUnit.unit
+  | n + 1, σ₀, E₀ =>
+      let B := Bf σ₀ E₀
+      ⟨B, meanStepSupply_of_family Bf n B.step⟩
+
+/-- A finite mean-fixed bundle path along the actual σ-ladder.  For `n` steps
+from `σ₀`, this asks for bundles only at
+`σ₀, σ₀ + 1/4, ..., σ₀ + (n-1)/4`; the final overshoot level needs no bundle. -/
+def MeanBundlePath (μ β χ₀ t : ℝ) (u v : ℝ → ℝ → ℝ) (û₀ : ℕ → ℝ)
+    (Q W vx : ℝ → ℝ → ℝ) (Fl : ℕ → ℝ → ℝ) (Mmean : ℝ) : ℕ → ℝ → Type
+  | 0, _σ => PUnit
+  | n + 1, σ =>
+      (∀ E : TrajectoryHSigmaEnvelope σ t (fun τ => cosineCoeffs (u τ)),
+        MeanStepBundle μ σ β χ₀ t u v û₀ Q W vx Fl Mmean E)
+      × MeanBundlePath μ β χ₀ t u v û₀ Q W vx Fl Mmean n (σ + 1 / 4)
+
+/-- Compatibility bridge from the old all-σ family to the finite ladder path. -/
+def meanBundlePath_of_family {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
+    {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ}
+    (Bf : MeanBundleFamily μ β χ₀ t u v û₀ Q W vx Fl Mmean) :
+    ∀ (n : ℕ) (σ₀ : ℝ), MeanBundlePath μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀
+  | 0, _σ₀ => PUnit.unit
+  | n + 1, σ₀ => ⟨fun E => Bf σ₀ E, meanBundlePath_of_family Bf n (σ₀ + 1 / 4)⟩
+
+/-- Compatibility bridge from a finite per-sigma path to the exact envelope-tied
+finite supply. -/
+def meanStepSupply_of_path {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
+    {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ} :
+    ∀ (n : ℕ) {σ₀ : ℝ}
+      (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ))),
+      MeanBundlePath μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ →
+      MeanStepSupply μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ E₀
+  | 0, _σ₀, _E₀, _Bp => PUnit.unit
+  | n + 1, _σ₀, E₀, Bp =>
+      let B := Bp.1 E₀
+      ⟨B, meanStepSupply_of_path n B.step Bp.2⟩
+
 /-- **THE MEAN-FIXED ITERATE.**  `n` applications of the mean-fixed σ-step. -/
 def meanStep_iterate {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
     {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ}
     (Bf : MeanBundleFamily μ β χ₀ t u v û₀ Q W vx Fl Mmean) :
     ∀ (n : ℕ) {σ₀ : ℝ}
-      (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ))),
+      (_ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ))),
       TrajectoryHSigmaEnvelope (σ₀ + n * (1 / 4)) t (fun τ => cosineCoeffs (u τ))
   | 0, σ₀, E₀ => by simpa using E₀
   | n + 1, σ₀, E₀ => by
@@ -141,6 +217,52 @@ def meanStep_iterate {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : 
       have hcast : ((n : ℝ) + 1) = ((n + 1 : ℕ) : ℝ) := by push_cast; ring
       rw [hcast] at hrec
       exact hrec
+
+/-- **THE SUPPLY-RESTRICTED MEAN-FIXED ITERATE.**  This is the exact finite
+version: it consumes only the bundle at the current envelope, then recurses on
+the envelope produced by that bundle. -/
+def meanStep_iterate_supply {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
+    {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ} :
+    ∀ (n : ℕ) {σ₀ : ℝ}
+      (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ))),
+      MeanStepSupply μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ E₀ →
+      TrajectoryHSigmaEnvelope (meanSigmaAfter n σ₀) t (fun τ => cosineCoeffs (u τ))
+  | 0, _σ₀, E₀, _S => by simpa [meanSigmaAfter] using E₀
+  | n + 1, _σ₀, _E₀, S => by
+      exact meanStep_iterate_supply n S.1.step S.2
+
+/-- Closed-form version of `meanStep_iterate_supply`. -/
+def meanStep_iterate_supply_closed {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ}
+    {û₀ : ℕ → ℝ} {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ}
+    (n : ℕ) {σ₀ : ℝ}
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ)))
+    (S : MeanStepSupply μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ E₀) :
+    TrajectoryHSigmaEnvelope (σ₀ + n * (1 / 4)) t (fun τ => cosineCoeffs (u τ)) := by
+  simpa [meanSigmaAfter_eq_add_nat_mul] using
+    (meanStep_iterate_supply (μ := μ) (β := β) (χ₀ := χ₀) (t := t)
+      (u := u) (v := v) (û₀ := û₀) (Q := Q) (W := W) (vx := vx)
+      (Fl := Fl) (Mmean := Mmean) n E₀ S)
+
+/-- **THE FINITE-PATH MEAN-FIXED ITERATE.**  This is the inhabitable version of
+`meanStep_iterate`: it consumes bundle data only at the σ-values the recursion
+actually visits. -/
+def meanStep_iterate_path {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
+    {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ} :
+    ∀ (n : ℕ) {σ₀ : ℝ}
+      (_ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ))),
+      MeanBundlePath μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ →
+      TrajectoryHSigmaEnvelope (σ₀ + n * (1 / 4)) t (fun τ => cosineCoeffs (u τ))
+  | 0, _σ₀, E₀, _Bp => by simpa using E₀
+  | n + 1, σ₀, E₀, Bp => by
+      rcases Bp with ⟨Bhead, Btail⟩
+      have hnext := (Bhead E₀).step
+      have hrec :=
+        meanStep_iterate_path (μ := μ) (β := β) (χ₀ := χ₀) (t := t)
+          (u := u) (v := v) (û₀ := û₀) (Q := Q) (W := W) (vx := vx)
+          (Fl := Fl) (Mmean := Mmean) n hnext Btail
+      convert hrec using 1
+      push_cast
+      ring
 
 /-- **REACH `H¹` (mean-fixed).**  From a base envelope at `σ₀` and the mean-fixed
 family, with `n` steps overshooting `1`, reach `TrajectoryHSigmaEnvelope 1` of `u`
@@ -155,10 +277,41 @@ def meanReach_H1_of_base {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û�
   henv := memHSigma_antitone hreach (meanStep_iterate Bf n E₀).henv
   hdom := (meanStep_iterate Bf n E₀).hdom
 
+/-- **SUPPLY-RESTRICTED REACH `H¹` (mean-fixed).**  This is the exact finite
+route: one bundle per visited envelope, no full σ-family assumption. -/
+def meanReach_H1_of_base_supply {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ}
+    {û₀ : ℕ → ℝ} {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ}
+    {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ)))
+    (S : MeanStepSupply μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀ E₀) :
+    TrajectoryHSigmaEnvelope 1 t (fun τ => cosineCoeffs (u τ)) where
+  env := (meanStep_iterate_supply_closed n E₀ S).env
+  henv := memHSigma_antitone hreach (meanStep_iterate_supply_closed n E₀ S).henv
+  hdom := (meanStep_iterate_supply_closed n E₀ S).hdom
+
+/-- **FINITE-PATH REACH `H¹` (mean-fixed).**  Same conclusion as
+`meanReach_H1_of_base`, but with an inhabitable ladder-indexed bundle path. -/
+def meanReach_H1_of_base_path {μ β χ₀ t : ℝ} {u v : ℝ → ℝ → ℝ} {û₀ : ℕ → ℝ}
+    {Q W vx : ℝ → ℝ → ℝ} {Fl : ℕ → ℝ → ℝ} {Mmean : ℝ} {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ t (fun τ => cosineCoeffs (u τ)))
+    (Bp : MeanBundlePath μ β χ₀ t u v û₀ Q W vx Fl Mmean n σ₀) :
+    TrajectoryHSigmaEnvelope 1 t (fun τ => cosineCoeffs (u τ)) where
+  env := (meanStep_iterate_path n E₀ Bp).env
+  henv := memHSigma_antitone hreach (meanStep_iterate_path n E₀ Bp).henv
+  hdom := (meanStep_iterate_path n E₀ Bp).hdom
+
 end ShenWork.Paper2.IntervalChiNegMeanFixedIterate
 
 namespace ShenWork.Paper2.IntervalChiNegMeanFixedIterate
 #print axioms MeanStepBundle.step
+#print axioms meanSigmaAfter_eq_add_nat_mul
+#print axioms meanStep_iterate_supply
+#print axioms meanStep_iterate_supply_closed
+#print axioms meanReach_H1_of_base_supply
 #print axioms meanStep_iterate
 #print axioms meanReach_H1_of_base
+#print axioms meanStep_iterate_path
+#print axioms meanReach_H1_of_base_path
 end ShenWork.Paper2.IntervalChiNegMeanFixedIterate

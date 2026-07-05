@@ -64,11 +64,12 @@ open ShenWork.Paper2.BFormHSigmaDuhamelEnergy (duhamelEnergyCoeff)
 open ShenWork.Paper2.IntervalDivergenceModeIdentity (sineCoeffs)
 open ShenWork.Paper2.IntervalDecompTauLift (conjQ conjFl)
 open ShenWork.Paper2.IntervalTrajectoryEnvelope (TrajectoryHSigmaEnvelope)
-open ShenWork.Paper2.IntervalChiNegSeamFixedReach (CarrySeam)
+open ShenWork.Paper2.IntervalChiNegSeamFixedReach (CarrySeam CarrySeamSupply_windowHmd)
 open ShenWork.Paper2.IntervalChiNegMildPackage (DecompHyp)
 open ShenWork.Paper2.IntervalChiNegCapstone
   (conjugateMildData chiNeg_H1_envelope_conjugate
-   chiNeg_H1_envelope_conjugate_windowHmd chiNeg_H1_envelope_conjugate_decompHyp)
+   chiNeg_H1_envelope_conjugate_windowHmd chiNeg_H1_envelope_conjugate_windowHmd_supply
+   chiNeg_H1_envelope_conjugate_decompHyp chiNeg_H1_envelope_conjugate_decompHyp_supply)
 
 /-- **`chiNeg_H1_unconditional`** — the χ₀<0 uniform H¹ trajectory envelope for
 `conjugatePicardLimit p u₀ D.T`.  Conditional on the four faithful hypotheses
@@ -122,6 +123,38 @@ def chiNeg_H1_unconditional_windowHmd {σ₀ : ℝ} (n : ℕ)
       (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
   chiNeg_H1_envelope_conjugate_windowHmd n hreach p hα hγ hu₀ hu0 hmean0 hmd E₀ C
 
+/-- Exact finite-supply version of `chiNeg_H1_unconditional_windowHmd`.  The
+carried seam input is only the generated ladder supply, not a global `∀ σ E`
+family. -/
+def chiNeg_H1_unconditional_windowHmd_supply {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    {μ β : ℝ} {v vx W : ℝ → ℝ → ℝ}
+    (hu0 : (conjugateMildData p hα hγ hu₀).u 0 = u₀)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M)
+    (hmd : ∀ τ, 0 < τ → τ ≤ (conjugateMildData p hα hγ hu₀).T → ∀ k, k ≠ 0 →
+      cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ)) k
+        = Real.exp (-(τ * lam k))
+            * cosineCoeffs (intervalDomainLift u₀) k
+          + (-p.χ₀) * duhamelEnergyCoeff 1
+              (fun k τ => sineCoeffs (conjQ p (conjugateMildData p hα hγ hu₀).u τ) k) τ k
+          + duhamelEnergyCoeff 1 (conjFl p (conjugateMildData p hα hγ hu₀).u) τ k)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))))
+    (S : CarrySeamSupply_windowHmd (p := p) (u₀ := u₀) (μ := μ) (β := β)
+      (t := (conjugateMildData p hα hγ hu₀).T)
+      (Mmean := (conjugateMildData p hα hγ hu₀).M)
+      (u := (conjugateMildData p hα hγ hu₀).u) (v := v) (vx := vx) (W := W)
+      hu0 (conjugateMildData p hα hγ hu₀).hM.le
+      (conjugateMildData p hα hγ hu₀).hbound
+      (conjugateMildData p hα hγ hu₀).hcont
+      hmean0 hmd n σ₀ E₀) :
+    TrajectoryHSigmaEnvelope 1 (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
+  chiNeg_H1_envelope_conjugate_windowHmd_supply n hreach p hα hγ hu₀
+    hu0 hmean0 hmd E₀ S
+
 /-- Final capstone variant that replaces the window-restricted `hmd` seam by the
 standard positive-time decomposition hypothesis bundle. -/
 def chiNeg_H1_unconditional_decompHyp {σ₀ : ℝ} (n : ℕ)
@@ -141,12 +174,42 @@ def chiNeg_H1_unconditional_decompHyp {σ₀ : ℝ} (n : ℕ)
       (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
   chiNeg_H1_envelope_conjugate_decompHyp n hreach p hα hγ hu₀ hu0 hmean0 Dhyp E₀ C
 
+/-- Exact finite-supply final capstone variant with the standard positive-time
+decomposition hypothesis bundle. -/
+def chiNeg_H1_unconditional_decompHyp_supply {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    {μ β : ℝ} {v vx W : ℝ → ℝ → ℝ}
+    (hu0 : (conjugateMildData p hα hγ hu₀).u 0 = u₀)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M)
+    (Dhyp : DecompHyp p u₀ (conjugateMildData p hα hγ hu₀).u
+      (conjugateMildData p hα hγ hu₀).hmild (conjugateMildData p hα hγ hu₀).T)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))))
+    (S : CarrySeamSupply_windowHmd (p := p) (u₀ := u₀) (μ := μ) (β := β)
+      (t := (conjugateMildData p hα hγ hu₀).T)
+      (Mmean := (conjugateMildData p hα hγ hu₀).M)
+      (u := (conjugateMildData p hα hγ hu₀).u) (v := v) (vx := vx) (W := W)
+      hu0 (conjugateMildData p hα hγ hu₀).hM.le
+      (conjugateMildData p hα hγ hu₀).hbound
+      (conjugateMildData p hα hγ hu₀).hcont hmean0
+      (ShenWork.Paper2.IntervalChiNegMildPackage.conjugateMild_decomp_pos p
+        (conjugateMildData p hα hγ hu₀) Dhyp)
+      n σ₀ E₀) :
+    TrajectoryHSigmaEnvelope 1 (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
+  chiNeg_H1_envelope_conjugate_decompHyp_supply n hreach p hα hγ hu₀
+    hu0 hmean0 Dhyp E₀ S
+
 end ShenWork.Paper2.IntervalChiNegFinal
 
 namespace ShenWork.Paper2.IntervalChiNegFinal
 section AxiomAudit
 #print axioms chiNeg_H1_unconditional
 #print axioms chiNeg_H1_unconditional_windowHmd
+#print axioms chiNeg_H1_unconditional_windowHmd_supply
 #print axioms chiNeg_H1_unconditional_decompHyp
+#print axioms chiNeg_H1_unconditional_decompHyp_supply
 end AxiomAudit
 end ShenWork.Paper2.IntervalChiNegFinal
