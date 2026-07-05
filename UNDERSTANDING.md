@@ -2883,6 +2883,20 @@ majorant plus a.e. measurability and norm control.  The adapters
 82's scalar derivative-initial input, still without zero-start `lapL2sq`
 continuity or downstream bounded-before data.
 
+Task 84 names the concrete physical H¹ RHS scalar triple in
+`IntervalChiNegH1PhysicalRHSScalars`.  The pointwise pieces
+`H1PhysicalChemTaxisPart`, `H1PhysicalChemUvxxPart`, and
+`H1PhysicalLogisticReactionPart` are integrated against `liftDeriv2` to produce
+the fixed scalar functions `H1PhysicalTaxisX`, `H1PhysicalUvxxX`, and
+`H1PhysicalReactX`; the two chemotaxis pieces recombine algebraically to the
+landed `liftChemotaxisDivPhysicalRep`.  The new route record
+`H1PhysicalRHSRouteBefore` packages pointwise identity, square-root bounds, and
+closed-window component continuity for this exact scalar triple, then feeds it
+into Task 77's `H1PhysicalSplitComponentDataBefore` and the existing
+sqrt/RHS integrability packages.  This is still an honest target interface:
+the analytic component continuity, estimates, and PDE substitution equality
+for the physical formulas remain to be produced upstream.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

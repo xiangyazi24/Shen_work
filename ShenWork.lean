@@ -455,6 +455,7 @@ import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 import ShenWork.Paper2.IntervalChiNegH1InitialWiring
 import ShenWork.Paper2.IntervalChiNegH1Bridge
 import ShenWork.Paper2.IntervalChiNegH1PhysicalComponents
+import ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 import ShenWork.Paper2.IntervalChiNegH1StrictRHSIntegrability
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeProducer
 import ShenWork.Paper2.IntervalChiNegH1BridgeInitialWiring
