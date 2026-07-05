@@ -2797,6 +2797,25 @@ In particular, the degenerate existential tuple from
 the physical split, because Task 77 requires the same global component
 functions to carry the sqrt estimates and continuity package.
 
+The zero-start physical RHS route still does not have producers from the
+existing strict-positive-time classical/mild regularity APIs for the closed
+zero-start inputs.  Task 78 therefore adds the explicit frontier record
+`H1ZeroStartPhysicalRHSDataBefore` in
+`IntervalChiNegH1ZeroSlabPhysicalRHS`: zero-start continuity of `liftTimeDeriv`,
+`liftChemotaxisDivPhysicalRep`, and the reaction component, plus interior
+equality of `liftDeriv2` with the concrete physical RHS.  The adapter
+`H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPhysicalRHSData` feeds this exact
+record into the existing zero-slab representative route.  This remains an
+honest construction-level target, not a theorem from the current
+`IsPaper2ClassicalSolution` API.
+Task 78 also isolates the algebraic reaction component:
+`logisticReaction_continuousOn_zeroSlab_of_lift_continuous_positive` proves
+zero-start reaction continuity from zero-start lift continuity and positivity,
+and `H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPhysicalRHS_lift_positive`
+uses that helper so the remaining hard fields are the zero-start time
+derivative, chem representative, lift continuity/positivity, and interior PDE
+equality inputs.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
