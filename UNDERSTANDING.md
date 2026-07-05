@@ -1135,8 +1135,12 @@ Current headline status:
   honest carries for this route are still H1 scalar regularity/its
   `u_xx`-plus-derivative-integrability producer, the sup-bound DI data, and the
   restricted local H1 seed; the old unrestricted `τ ∈ Ioc 0 1` local seed should
-  not be treated as the active target when `T < 1`.  Verified by remote full
-  build on uisai2: 9136 jobs, `BUILD OK` (2026-07-05).
+  not be treated as the active target when `T < 1`.  The `u_xx` L1-continuity
+  side now has a no-sorry scalar producer
+  `H1UxxL1ContBefore_of_liftDeriv2_jointContinuousBefore` from strict closed
+  slab joint continuity of `liftDeriv2`; the remaining upstream carry is that
+  joint continuity, not the L1 continuity argument itself.  Verified by remote
+  full build on uisai2: 9140 jobs, `BUILD OK` (2026-07-05).
   Follow-up producer `IntervalChiNegH1DerivativeIntegrability` reduces the
   scalar derivative-integrability part to an explicit
   `H1IdentityRHSIntegrableBefore` package.  Its primary bounded-before wrapper
@@ -1170,8 +1174,9 @@ Current headline status:
   `H1IdentityRHSComponentsContinuousBefore` plus parametric/spectral
   component-continuity variants, replacing raw RHS interval-integrability by
   closed-window continuity of `lapL2sq`, `taxisX`, `uvxx`, and `reactX`.  This
-  keeps `H1UxxL1ContBefore`, time-zero H1 continuity, the restricted local H1
-  seed, and the actual physical estimates as explicit frontiers.
+  keeps strict-slab joint continuity of `liftDeriv2`, time-zero H1 continuity,
+  the restricted local H1 seed, and the actual physical estimates as explicit
+  frontiers.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
