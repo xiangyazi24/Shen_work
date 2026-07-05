@@ -2783,6 +2783,20 @@ feeds the stronger endpoint package.  The concrete
 physical target.  No theorem yet produces those zero-start continuity/equality
 inputs from the construction data.
 
+Task 77 adds `IntervalChiNegH1PhysicalComponents`, a thin route-facing interface
+for the other H1 frontier: one fixed triple of scalar RHS components
+`taxisX`/`uvxx`/`reactX` must simultaneously provide pointwise
+`H1EnergyIdentity`, the square-root term estimates, and closed-window component
+continuity.  The record
+`H1PhysicalSplitComponentDataBefore` packages those three facts and immediately
+produces `H1SupBoundSqrtDIDataBefore`, `H1IdentityRHSIntegrableBefore`, and
+`H1SupBoundSqrtRHSIntegrableBefore`.  This is not a proof of the physical
+formulas or estimates; it is a non-vacuous target shape for a future producer.
+In particular, the degenerate existential tuple from
+`H1EnergyIdentity_of_classicalSolution_and_uxxL1Cont` still does not count as
+the physical split, because Task 77 requires the same global component
+functions to carry the sqrt estimates and continuity package.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
