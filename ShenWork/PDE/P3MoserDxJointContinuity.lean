@@ -290,6 +290,108 @@ theorem intervalDomain_u_logisticPrimitive_jointContinuous
   exact continuousOn_parametric_primitive_of_continuousOn_Ioo_Icc
     (intervalDomain_u_logistic_jointContinuous hsol)
 
+/-- Pointwise FTC bridge from the elliptic `v` equation and the left Neumann
+condition: on the closed spatial interval, `v_x` is the primitive of the
+reaction source. -/
+theorem intervalDomain_dx_v_eq_reactionPrimitive
+    {params : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (intervalDomainLift (v t)) x =
+      ∫ s in (0 : ℝ)..x,
+        params.μ * intervalDomainLift (v t) s -
+          params.ν * (intervalDomainLift (u t) s) ^ params.γ := by
+  classical
+  rcases hx with ⟨hx0, hx1⟩
+  by_cases hx_eq0 : x = 0
+  · subst x
+    simp [intervalDomain_dx_v_left_neumann hsol ht]
+  have hxpos : 0 < x := lt_of_le_of_ne hx0 (Ne.symm hx_eq0)
+  let R : ℝ → ℝ := fun s =>
+    params.μ * intervalDomainLift (v t) s -
+      params.ν * (intervalDomainLift (u t) s) ^ params.γ
+  have hreg := hsol.regularity
+  change intervalDomainClassicalRegularity T u v at hreg
+  have hC2v : ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1) :=
+    (hreg.1 t ht).2
+  have hDvC1 : ContDiffOn ℝ 1 (deriv (intervalDomainLift (v t))) (Set.Ioo (0 : ℝ) 1) :=
+    hC2v.deriv_of_isOpen isOpen_Ioo (by norm_num)
+  have hderiv :
+      ∀ y ∈ Set.Ioo (0 : ℝ) x,
+        HasDerivAt (fun z : ℝ => deriv (intervalDomainLift (v t)) z) (R y) y := by
+    intro y hy
+    have hy01 : y ∈ Set.Ioo (0 : ℝ) 1 :=
+      ⟨hy.1, lt_of_lt_of_le hy.2 hx1⟩
+    have hdiff :
+        DifferentiableAt ℝ (deriv (intervalDomainLift (v t))) y :=
+      (hDvC1.differentiableOn (by norm_num)).differentiableAt
+        (IsOpen.mem_nhds isOpen_Ioo hy01)
+    have hxx :
+        deriv (fun z : ℝ => deriv (intervalDomainLift (v t)) z) y = R y := by
+      simpa [R] using
+        intervalDomain_v_xx_eq_reaction_lift hsol ht.1 ht.2 hy.1
+          (lt_of_lt_of_le hy.2 hx1)
+    simpa [hxx] using hdiff.hasDerivAt
+  have hRint : IntervalIntegrable R volume (0 : ℝ) x := by
+    have hsrc := intervalDomain_v_xx_reaction_jointContinuous (params := params)
+      (T := T) (u := u) (v := v) hsol
+    have hmap : ContinuousOn (fun s : ℝ => (t, s)) (Set.Icc (0 : ℝ) x) :=
+      (continuous_const.prodMk continuous_id).continuousOn
+    have hslice : ContinuousOn R (Set.Icc (0 : ℝ) x) := by
+      refine (hsrc.comp hmap ?_)
+      intro s hs
+      exact ⟨ht, ⟨hs.1, le_trans hs.2 hx1⟩⟩
+    exact hslice.intervalIntegrable_of_Icc hxpos.le
+  have hleft_tendsto :
+      Filter.Tendsto (fun z : ℝ => deriv (intervalDomainLift (v t)) z)
+        (𝓝[>] (0 : ℝ)) (𝓝 (deriv (intervalDomainLift (v t)) 0)) := by
+    have hleft := (hreg.2.2.2.1 t ht).2.1
+    have h0 := intervalDomain_dx_v_left_neumann hsol ht
+    simpa [h0] using hleft
+  have hright_tendsto :
+      Filter.Tendsto (fun z : ℝ => deriv (intervalDomainLift (v t)) z)
+        (𝓝[<] x) (𝓝 (deriv (intervalDomainLift (v t)) x)) := by
+    by_cases hxlt : x < 1
+    · have hx01 : x ∈ Set.Ioo (0 : ℝ) 1 := ⟨hxpos, hxlt⟩
+      have hdiff :
+          DifferentiableAt ℝ (deriv (intervalDomainLift (v t))) x :=
+        (hDvC1.differentiableOn (by norm_num)).differentiableAt
+          (IsOpen.mem_nhds isOpen_Ioo hx01)
+      exact hdiff.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+    · have hx_eq1 : x = 1 := le_antisymm hx1 (le_of_not_gt hxlt)
+      subst x
+      have hright := (hreg.2.2.2.1 t ht).2.2
+      have h1 : deriv (intervalDomainLift (v t)) 1 = 0 :=
+        (hreg.2.2.2.2.1 t ht).2.2.2
+      simpa [h1] using hright
+  have hFTC :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt_of_tendsto
+      (f := fun z : ℝ => deriv (intervalDomainLift (v t)) z)
+      (f' := R) hxpos hderiv hRint hleft_tendsto hright_tendsto
+  have h0 := intervalDomain_dx_v_left_neumann hsol ht
+  rw [h0, sub_zero] at hFTC
+  exact hFTC.symm
+
+/-- Joint continuity of the lifted spatial derivative `v_x` on
+`(0,T) × [0,1]`, obtained by transferring continuity from the already-proved
+reaction primitive. -/
+theorem intervalDomain_dx_v_jointlyContinuous
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (v t)) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  refine ContinuousOn.congr
+    (intervalDomain_v_x_reactionPrimitive_jointContinuous (params := params)
+      (T := T) (u := u) (v := v) hsol) ?_
+  intro z hz
+  rcases z with ⟨t, x⟩
+  exact intervalDomain_dx_v_eq_reactionPrimitive (params := params)
+    (T := T) (u := u) (v := v) hsol hz.1 hz.2
+
 #print axioms exists_continuous_extension_of_continuousOn_Icc_prod
 #print axioms continuousOn_parametric_primitive_of_continuousOn_Ioo_Icc
 #print axioms intervalDomain_laplacian_v_eq_reaction
@@ -301,3 +403,5 @@ theorem intervalDomain_u_logisticPrimitive_jointContinuous
 #print axioms intervalDomain_u_logistic_jointContinuous
 #print axioms intervalDomain_v_x_reactionPrimitive_jointContinuous
 #print axioms intervalDomain_u_logisticPrimitive_jointContinuous
+#print axioms intervalDomain_dx_v_eq_reactionPrimitive
+#print axioms intervalDomain_dx_v_jointlyContinuous
