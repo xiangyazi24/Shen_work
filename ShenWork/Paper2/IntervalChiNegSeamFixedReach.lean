@@ -109,6 +109,41 @@ def meanBundleFamily_conjugate
         · rw [← h0, hu0]; exact hmean0
         · exact mean_bound_of_mild hM0 hbd hcont h0 hτ.2 }
 
+/-- Window-restricted variant of `meanBundleFamily_conjugate`.  The `k ≠ 0`
+decomposition is only required for `0 < τ ≤ t`, which matches the landed
+positive-time Duhamel decomposition; the `τ = 0` row is glued by `decomp_tau0`. -/
+def meanBundleFamily_conjugate_windowHmd
+    (hu0 : u 0 = u₀) (hM0 : 0 ≤ Mmean)
+    (hbd : ∀ τ, 0 < τ → τ ≤ t → ∀ x : intervalDomainPoint, |u τ x| ≤ Mmean)
+    (hcont : HasContinuousSlices t u)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ Mmean)
+    (hmd : ∀ τ, 0 < τ → τ ≤ t → ∀ k, k ≠ 0 →
+      cosineCoeffs (intervalDomainLift (u τ)) k
+        = Real.exp (-(τ * lam k)) * cosineCoeffs (intervalDomainLift u₀) k
+          + (-p.χ₀) * duhamelEnergyCoeff 1 (fun k τ => sineCoeffs (conjQ p u τ) k) τ k
+          + duhamelEnergyCoeff 1 (conjFl p u) τ k)
+    (C : ∀ σ E, CarrySeam p μ β t u v vx W σ E) :
+    MeanBundleFamily μ β p.χ₀ t (fun τ => intervalDomainLift (u τ)) v
+      (cosineCoeffs (intervalDomainLift u₀)) (conjQ p u) W vx (conjFl p u) Mmean :=
+  fun σ E =>
+    { hμ := (C σ E).hμ, hσ0 := (C σ E).hσ0, hσ1 := (C σ E).hσ1, hβ := (C σ E).hβ
+      ht := (C σ E).ht, ht1 := (C σ E).ht1
+      hû₀ := by simpa [hu0] using (C σ E).hû₀
+      hvnn := (C σ E).hvnn, hQ := (C σ E).hQ, hWdef := (C σ E).hWdef
+      hbr := (C σ E).hbr, hbridge := (C σ E).hbridge, hvrel := (C σ E).hvrel
+      hdiv := (C σ E).hdiv, hQ_cont := (C σ E).hQ_cont, L := (C σ E).L
+      hFl_cont := (C σ E).hFl_cont
+      hdecomp_pos := by
+        intro τ hτ k hk
+        rcases eq_or_lt_of_le hτ.1 with h0 | h0
+        · subst h0; simpa [hu0] using decomp_tau0 (p := p) (u := u) hu0 k
+        · simpa [hu0] using hmd τ h0 hτ.2 k hk
+      hmean := by
+        intro τ hτ
+        rcases eq_or_lt_of_le hτ.1 with h0 | h0
+        · rw [← h0, hu0]; exact hmean0
+        · exact mean_bound_of_mild hM0 hbd hcont h0 hτ.2 }
+
 /-- **CAPSTONE — REACH `TrajectoryHSigmaEnvelope 1` for `conjugatePicardLimit`,
 mean-fixed.**  `hmean`/`hdecomp_pos` discharged from landed data (NO false `hzero`);
 the base `E₀`, the per-τ decomp residuals `hmd`, and the carried seam `C`
@@ -131,9 +166,31 @@ def meanReach_H1_conjugate {σ₀ : ℝ} (n : ℕ)
   meanReach_H1_of_base n hreach E₀
     (meanBundleFamily_conjugate hu0 hM0 hbd hcont hmean0 hmd C)
 
+/-- Window-restricted capstone reach: same conclusion as `meanReach_H1_conjugate`,
+but the carried `hmd` input is restricted to the actual time window `0 < τ ≤ t`. -/
+def meanReach_H1_conjugate_windowHmd {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (hu0 : u 0 = u₀) (hM0 : 0 ≤ Mmean)
+    (hbd : ∀ τ, 0 < τ → τ ≤ t → ∀ x : intervalDomainPoint, |u τ x| ≤ Mmean)
+    (hcont : HasContinuousSlices t u)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ Mmean)
+    (hmd : ∀ τ, 0 < τ → τ ≤ t → ∀ k, k ≠ 0 →
+      cosineCoeffs (intervalDomainLift (u τ)) k
+        = Real.exp (-(τ * lam k)) * cosineCoeffs (intervalDomainLift u₀) k
+          + (-p.χ₀) * duhamelEnergyCoeff 1 (fun k τ => sineCoeffs (conjQ p u τ) k) τ k
+          + duhamelEnergyCoeff 1 (conjFl p u) τ k)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ t
+      (fun τ => cosineCoeffs (intervalDomainLift (u τ))))
+    (C : ∀ σ E, CarrySeam p μ β t u v vx W σ E) :
+    TrajectoryHSigmaEnvelope 1 t (fun τ => cosineCoeffs (intervalDomainLift (u τ))) :=
+  meanReach_H1_of_base n hreach E₀
+    (meanBundleFamily_conjugate_windowHmd hu0 hM0 hbd hcont hmean0 hmd C)
+
 end ShenWork.Paper2.IntervalChiNegSeamFixedReach
 
 namespace ShenWork.Paper2.IntervalChiNegSeamFixedReach
 #print axioms meanBundleFamily_conjugate
+#print axioms meanBundleFamily_conjugate_windowHmd
 #print axioms meanReach_H1_conjugate
+#print axioms meanReach_H1_conjugate_windowHmd
 end ShenWork.Paper2.IntervalChiNegSeamFixedReach

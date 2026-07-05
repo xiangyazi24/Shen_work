@@ -83,13 +83,14 @@ namespace ShenWork.Paper2.IntervalChiNegMildPackage
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
-open ShenWork.IntervalConjugatePicard (conjugatePicardLimit)
+open ShenWork.IntervalConjugatePicard (conjugatePicardLimit ConjugateMildSolutionData)
 open ShenWork.Paper2.HSigmaScale (lam MemHSigma resolverCoeff)
 open ShenWork.Paper2.IntervalDivergenceModeIdentity (sineCoeffs)
 open ShenWork.Paper2.IntervalDenomEnvelopeResolver (resolverValue)
 open ShenWork.Paper2.IntervalEnvelopeProp (Envelopes)
 open ShenWork.Paper2.BFormHSigmaDuhamelEnergy (duhamelEnergyCoeff)
-open ShenWork.Paper2.IntervalDecompTauLift (conjQ conjFl conjugateSlice_decomp_tauLift)
+open ShenWork.Paper2.IntervalDecompTauLift
+  (conjQ conjFl conjugateSlice_decomp_tauLift conjugateSlice_decomp_tauLift_pos)
 open ShenWork.Paper2.IntervalTrajectoryEnvelope
   (TrajectoryHSigmaEnvelope FluxFactorEnvelopes)
 open ShenWork.Paper2.IntervalChiNegTrajectoryClosure (InputFamily)
@@ -163,6 +164,24 @@ theorem conjugate_hdecomp (p : CM2Params)
   conjugateSlice_decomp_tauLift p hmild D.htT D.hQcont D.hLcont D.hLM
     D.hheat_cont D.hchemI_cont D.hlogI_cont D.hpt_heat D.hswap_chem D.hswap_log
     D.hzero
+
+/-- Positive-time, window-restricted `k ≠ 0` decomposition for a packaged
+conjugate mild solution.  This is the exact shape the mean-fixed H¹ capstone can
+consume without strengthening it to an all-positive-time statement. -/
+theorem conjugateMild_decomp_pos (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (S : ConjugateMildSolutionData p u₀)
+    (D : DecompHyp p u₀ S.u S.hmild S.T) :
+    ∀ τ, 0 < τ → τ ≤ S.T → ∀ k, k ≠ 0 →
+      cosineCoeffs (intervalDomainLift (S.u τ)) k
+        = Real.exp (-(τ * lam k)) * cosineCoeffs (intervalDomainLift u₀) k
+          + (-p.χ₀) * duhamelEnergyCoeff 1
+              (fun k τ => sineCoeffs (conjQ p S.u τ) k) τ k
+          + duhamelEnergyCoeff 1 (conjFl p S.u) τ k := by
+  intro τ hτ0 hτT k hk
+  exact conjugateSlice_decomp_tauLift_pos p S.hmild D.htT D.hQcont D.hLcont D.hLM
+    D.hheat_cont D.hchemI_cont D.hlogI_cont D.hpt_heat D.hswap_chem D.hswap_log
+    hτ0 hτT hk
 
 /-! ## The per-(σ, E) carried mild seam — everything `hdecomp` does NOT supply. -/
 
@@ -286,10 +305,10 @@ def fluxFactors_of_carried (p : CM2Params)
     {gW gvx : ℕ → ℝ}
     (hgW : MemHSigma σ gW) (hgvx : MemHSigma σ gvx)
     (hQeq : ∀ τ, conjQ p u τ = fun x => W τ x * vx τ x)
-    (hbridge : ∀ τ ∈ Set.Icc (0:ℝ) t,
+    (hbridge : ∀ τ ∈ Set.Icc (0 : ℝ) t,
       ShenWork.Paper2.IntervalMixedProduct.MixedMulBridge (W τ) (vx τ))
-    (heW : ∀ τ ∈ Set.Icc (0:ℝ) t, Envelopes gW (cosineCoeffs (W τ)))
-    (hevx : ∀ τ ∈ Set.Icc (0:ℝ) t, Envelopes gvx (sineCoeffs (vx τ))) :
+    (heW : ∀ τ ∈ Set.Icc (0 : ℝ) t, Envelopes gW (cosineCoeffs (W τ)))
+    (hevx : ∀ τ ∈ Set.Icc (0 : ℝ) t, Envelopes gvx (sineCoeffs (vx τ))) :
     FluxFactorEnvelopes σ t (conjQ p u) where
   W := W
   vx := vx
@@ -334,6 +353,7 @@ end ShenWork.Paper2.IntervalChiNegMildPackage
 
 namespace ShenWork.Paper2.IntervalChiNegMildPackage
 #print axioms conjugate_hdecomp
+#print axioms conjugateMild_decomp_pos
 #print axioms mildSlicePackage_conjugate
 #print axioms mildPackageFamily_conjugate
 #print axioms inputFamily_conjugate

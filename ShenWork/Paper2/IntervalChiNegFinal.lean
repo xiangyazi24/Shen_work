@@ -65,7 +65,10 @@ open ShenWork.Paper2.IntervalDivergenceModeIdentity (sineCoeffs)
 open ShenWork.Paper2.IntervalDecompTauLift (conjQ conjFl)
 open ShenWork.Paper2.IntervalTrajectoryEnvelope (TrajectoryHSigmaEnvelope)
 open ShenWork.Paper2.IntervalChiNegSeamFixedReach (CarrySeam)
-open ShenWork.Paper2.IntervalChiNegCapstone (conjugateMildData chiNeg_H1_envelope_conjugate)
+open ShenWork.Paper2.IntervalChiNegMildPackage (DecompHyp)
+open ShenWork.Paper2.IntervalChiNegCapstone
+  (conjugateMildData chiNeg_H1_envelope_conjugate
+   chiNeg_H1_envelope_conjugate_windowHmd chiNeg_H1_envelope_conjugate_decompHyp)
 
 /-- **`chiNeg_H1_unconditional`** — the χ₀<0 uniform H¹ trajectory envelope for
 `conjugatePicardLimit p u₀ D.T`.  Conditional on the four faithful hypotheses
@@ -94,10 +97,56 @@ def chiNeg_H1_unconditional {σ₀ : ℝ} (n : ℕ) (hreach : (1 : ℝ) ≤ σ�
       (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
   chiNeg_H1_envelope_conjugate n hreach p hα hγ hu₀ hu0 hmean0 hmd E₀ C
 
+/-- Window-restricted version of `chiNeg_H1_unconditional`: the `hmd` seam is
+only required on the actual interval `0 < τ ≤ T`, matching the landed positive-time
+Duhamel producer. -/
+def chiNeg_H1_unconditional_windowHmd {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    {μ β : ℝ} {v vx W : ℝ → ℝ → ℝ}
+    (hu0 : (conjugateMildData p hα hγ hu₀).u 0 = u₀)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M)
+    (hmd : ∀ τ, 0 < τ → τ ≤ (conjugateMildData p hα hγ hu₀).T → ∀ k, k ≠ 0 →
+      cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ)) k
+        = Real.exp (-(τ * lam k))
+            * cosineCoeffs (intervalDomainLift u₀) k
+          + (-p.χ₀) * duhamelEnergyCoeff 1
+              (fun k τ => sineCoeffs (conjQ p (conjugateMildData p hα hγ hu₀).u τ) k) τ k
+          + duhamelEnergyCoeff 1 (conjFl p (conjugateMildData p hα hγ hu₀).u) τ k)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))))
+    (C : ∀ σ E, CarrySeam p μ β (conjugateMildData p hα hγ hu₀).T
+      (conjugateMildData p hα hγ hu₀).u v vx W σ E) :
+    TrajectoryHSigmaEnvelope 1 (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
+  chiNeg_H1_envelope_conjugate_windowHmd n hreach p hα hγ hu₀ hu0 hmean0 hmd E₀ C
+
+/-- Final capstone variant that replaces the window-restricted `hmd` seam by the
+standard positive-time decomposition hypothesis bundle. -/
+def chiNeg_H1_unconditional_decompHyp {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    {μ β : ℝ} {v vx W : ℝ → ℝ → ℝ}
+    (hu0 : (conjugateMildData p hα hγ hu₀).u 0 = u₀)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M)
+    (Dhyp : DecompHyp p u₀ (conjugateMildData p hα hγ hu₀).u
+      (conjugateMildData p hα hγ hu₀).hmild (conjugateMildData p hα hγ hu₀).T)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))))
+    (C : ∀ σ E, CarrySeam p μ β (conjugateMildData p hα hγ hu₀).T
+      (conjugateMildData p hα hγ hu₀).u v vx W σ E) :
+    TrajectoryHSigmaEnvelope 1 (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
+  chiNeg_H1_envelope_conjugate_decompHyp n hreach p hα hγ hu₀ hu0 hmean0 Dhyp E₀ C
+
 end ShenWork.Paper2.IntervalChiNegFinal
 
 namespace ShenWork.Paper2.IntervalChiNegFinal
 section AxiomAudit
 #print axioms chiNeg_H1_unconditional
+#print axioms chiNeg_H1_unconditional_windowHmd
+#print axioms chiNeg_H1_unconditional_decompHyp
 end AxiomAudit
 end ShenWork.Paper2.IntervalChiNegFinal

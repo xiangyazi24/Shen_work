@@ -46,6 +46,7 @@
 -/
 import ShenWork.Paper2.IntervalChiNegBaseDirect
 import ShenWork.Paper2.IntervalChiNegSeamFixedReach
+import ShenWork.Paper2.IntervalChiNegMildPackage
 import ShenWork.Paper2.IntervalConjugatePicardCoreInhabit
 
 noncomputable section
@@ -66,7 +67,9 @@ open ShenWork.Paper2.IntervalDecompTauLift (conjQ conjFl)
 open ShenWork.Paper2.IntervalTrajectoryEnvelope (TrajectoryHSigmaEnvelope)
 open ShenWork.Paper2.IntervalChiNegTrajBanach (Traj trajFun trajPhi EnvBallTraj)
 open ShenWork.Paper2.IntervalChiNegBaseDirect (TrajSeamDirect trajEnvelope_chiNeg_base_direct)
-open ShenWork.Paper2.IntervalChiNegSeamFixedReach (CarrySeam meanReach_H1_conjugate)
+open ShenWork.Paper2.IntervalChiNegSeamFixedReach
+  (CarrySeam meanReach_H1_conjugate meanReach_H1_conjugate_windowHmd)
+open ShenWork.Paper2.IntervalChiNegMildPackage (DecompHyp conjugateMild_decomp_pos)
 open ShenWork.IntervalConjugateDuhamelMap (intervalConjugateDuhamelMap)
 open Real
 open scoped NNReal
@@ -156,6 +159,52 @@ def chiNeg_H1_envelope_conjugate {σ₀ : ℝ} (n : ℕ) (hreach : (1 : ℝ) ≤
     (conjugateMildData p hα hγ hu₀).hbound (conjugateMildData p hα hγ hu₀).hcont
     hmean0 hmd E₀ C
 
+/-- Window-restricted version of `chiNeg_H1_envelope_conjugate`.  The Duhamel
+decomposition seam is required only on `0 < τ ≤ T`, the actual trajectory window. -/
+def chiNeg_H1_envelope_conjugate_windowHmd {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    {μ β : ℝ} {v vx W : ℝ → ℝ → ℝ}
+    (hu0 : (conjugateMildData p hα hγ hu₀).u 0 = u₀)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M)
+    (hmd : ∀ τ, 0 < τ → τ ≤ (conjugateMildData p hα hγ hu₀).T → ∀ k, k ≠ 0 →
+      cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ)) k
+        = Real.exp (-(τ * lam k))
+            * cosineCoeffs (intervalDomainLift u₀) k
+          + (-p.χ₀) * duhamelEnergyCoeff 1
+              (fun k τ => sineCoeffs (conjQ p (conjugateMildData p hα hγ hu₀).u τ) k) τ k
+          + duhamelEnergyCoeff 1 (conjFl p (conjugateMildData p hα hγ hu₀).u) τ k)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))))
+    (C : ∀ σ E, CarrySeam p μ β (conjugateMildData p hα hγ hu₀).T
+      (conjugateMildData p hα hγ hu₀).u v vx W σ E) :
+    TrajectoryHSigmaEnvelope 1 (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
+  meanReach_H1_conjugate_windowHmd n hreach hu0 (conjugateMildData p hα hγ hu₀).hM.le
+    (conjugateMildData p hα hγ hu₀).hbound (conjugateMildData p hα hγ hu₀).hcont
+    hmean0 hmd E₀ C
+
+/-- Capstone variant that replaces the window-restricted `hmd` seam by the
+standard `DecompHyp` bundle consumed by the landed positive-time decomposition. -/
+def chiNeg_H1_envelope_conjugate_decompHyp {σ₀ : ℝ} (n : ℕ)
+    (hreach : (1 : ℝ) ≤ σ₀ + n * (1 / 4))
+    (p : CM2Params) (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    {μ β : ℝ} {v vx W : ℝ → ℝ → ℝ}
+    (hu0 : (conjugateMildData p hα hγ hu₀).u 0 = u₀)
+    (hmean0 : |cosineCoeffs (intervalDomainLift u₀) 0| ≤ (conjugateMildData p hα hγ hu₀).M)
+    (Dhyp : DecompHyp p u₀ (conjugateMildData p hα hγ hu₀).u
+      (conjugateMildData p hα hγ hu₀).hmild (conjugateMildData p hα hγ hu₀).T)
+    (E₀ : TrajectoryHSigmaEnvelope σ₀ (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))))
+    (C : ∀ σ E, CarrySeam p μ β (conjugateMildData p hα hγ hu₀).T
+      (conjugateMildData p hα hγ hu₀).u v vx W σ E) :
+    TrajectoryHSigmaEnvelope 1 (conjugateMildData p hα hγ hu₀).T
+      (fun τ => cosineCoeffs (intervalDomainLift ((conjugateMildData p hα hγ hu₀).u τ))) :=
+  chiNeg_H1_envelope_conjugate_windowHmd n hreach p hα hγ hu₀ hu0 hmean0
+    (conjugateMild_decomp_pos p (conjugateMildData p hα hγ hu₀) Dhyp) E₀ C
+
 end ShenWork.Paper2.IntervalChiNegCapstone
 
 namespace ShenWork.Paper2.IntervalChiNegCapstone
@@ -164,5 +213,7 @@ section AxiomAudit
 #print axioms conjugateMildData_u
 #print axioms chiNeg_base_E0_conjugate
 #print axioms chiNeg_H1_envelope_conjugate
+#print axioms chiNeg_H1_envelope_conjugate_windowHmd
+#print axioms chiNeg_H1_envelope_conjugate_decompHyp
 end AxiomAudit
 end ShenWork.Paper2.IntervalChiNegCapstone
