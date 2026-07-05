@@ -82,6 +82,35 @@ theorem chiNeg_H1_norm_bound_before
     rw [hsimp] at h1
     exact le_trans h1 (le_max_right _ _)
 
+/-- Variant of `chiNeg_H1_norm_bound_before` whose averaged estimate is only
+required for `τ > 1`.  The local seed already covers `τ ≤ 1`, so the proof never
+uses the averaged estimate at the zero-starting window `τ = 1`. -/
+theorem chiNeg_H1_norm_bound_before_strictAverage
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (_hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {A B C Ylocal : ℝ} (hA : 0 ≤ A) {W : ℝ → ℝ}
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal)
+    (havg : ∀ τ, 1 < τ → τ < T →
+      1 * H1energy u τ ≤ W τ + 1 * (A * W τ + B * 1))
+    (hwin : ∀ τ, 1 ≤ τ → τ < T → W τ ≤ C)
+    (hWnn : ∀ τ, 1 ≤ τ → τ < T → 0 ≤ W τ) :
+    ∀ τ, 0 < τ → τ < T →
+      H1energy u τ ≤ max Ylocal ((1 + A) * C + B) := by
+  intro τ hτ0 hτT
+  rcases le_or_gt τ 1 with hτ1 | hτ1
+  · exact le_trans (hlocal τ ⟨hτ0, hτ1⟩ hτT) (le_max_left _ _)
+  · have h1 := uniform_bound_of_window_le
+      (ytR := H1energy u τ) (W := W τ)
+      (A := A) (B := B) (R := 1) (C := C)
+      one_pos hA (hWnn τ hτ1.le hτT)
+      (hwin τ hτ1.le hτT) (havg τ hτ1 hτT)
+    have hsimp : C / 1 + A * C + B * 1 = (1 + A) * C + B := by
+      ring
+    rw [hsimp] at h1
+    exact le_trans h1 (le_max_right _ _)
+
 /-- H¹ bound on `(0,T)` after replacing the carried window input by the landed
 single-solution L² window theorem.
 
@@ -113,6 +142,40 @@ theorem H1_bound_before_of_singleSolution_window
     intro τ _hτ1 _hτT
     exact H1Window_nonneg
   have hbefore := chiNeg_H1_norm_bound_before
+    (p := p) (T := T) (u := u) (v := v)
+    hsol hA (W := H1Window u)
+    hlocal havg hwin hWnn
+  intro τ hτ0 hτT
+  exact le_trans (hbefore τ hτ0 hτT) (le_max_right _ _)
+
+/-- `H1_bound_before_of_singleSolution_window` with an averaged estimate only
+for `τ > 1`. -/
+theorem H1_bound_before_of_singleSolution_window_strictAverage
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (habsorbing :
+      IntervalDomainL2AbsorbingDifferentialInequalityResult p T u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {Y_L2 : ℝ}
+    (hL2 : ∀ τ, 0 < τ → τ < T → L2energy u τ ≤ Y_L2)
+    {A B Ylocal : ℝ} (hA : 0 ≤ A)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal)
+    (havg : ∀ τ, 1 < τ → τ < T →
+      1 * H1energy u τ ≤
+        H1Window u τ + 1 * (A * H1Window u τ + B * 1)) :
+    ∃ Y₁, 0 ≤ Y₁ ∧
+      ∀ τ, 0 < τ → τ < T → H1energy u τ ≤ Y₁ := by
+  rcases H1Window_bound_of_singleSolution_H1_window_bound
+      hsol habsorbing hfrontier hL2 with
+    ⟨C, _hC, hwin⟩
+  let Yraw : ℝ := max Ylocal ((1 + A) * C + B)
+  refine ⟨max 0 Yraw, le_max_left _ _, ?_⟩
+  have hWnn : ∀ τ, 1 ≤ τ → τ < T → 0 ≤ H1Window u τ := by
+    intro τ _hτ1 _hτT
+    exact H1Window_nonneg
+  have hbefore := chiNeg_H1_norm_bound_before_strictAverage
     (p := p) (T := T) (u := u) (v := v)
     hsol hA (W := H1Window u)
     hlocal havg hwin hWnn
@@ -189,11 +252,40 @@ theorem intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_and_Lp2
   exact intervalDomain_boundedBefore_of_H1bound_and_L2seed_logistic
     hsol hlogistic hY₁ hH1bnd hLp2
 
+/-- Strict-average variant of
+`intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_and_Lp2`. -/
+theorem intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_strict_and_Lp2
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hlogistic : 2 * p.γ < p.α)
+    (habsorbing :
+      IntervalDomainL2AbsorbingDifferentialInequalityResult p T u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {Y_L2 : ℝ}
+    (hL2 : ∀ τ, 0 < τ → τ < T → L2energy u τ ≤ Y_L2)
+    {A B Ylocal : ℝ} (hA : 0 ≤ A)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal)
+    (havg : ∀ τ, 1 < τ → τ < T →
+      1 * H1energy u τ ≤
+        H1Window u τ + 1 * (A * H1Window u τ + B * 1))
+    (hLp2 : LpPowerBoundedBefore intervalDomain 2 T u) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  rcases H1_bound_before_of_singleSolution_window_strictAverage
+      hsol habsorbing hfrontier hL2 hA hlocal havg with
+    ⟨Y₁, hY₁, hH1bnd⟩
+  exact intervalDomain_boundedBefore_of_H1bound_and_L2seed_logistic
+    hsol hlogistic hY₁ hH1bnd hLp2
+
 #print axioms H1Window_nonneg
 #print axioms H1Window_bound_of_singleSolution_H1_window_bound
 #print axioms chiNeg_H1_norm_bound_before
 #print axioms H1_bound_before_of_singleSolution_window
 #print axioms H1_avg_of_pointwise_window_bound
 #print axioms intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_and_Lp2
+#print axioms chiNeg_H1_norm_bound_before_strictAverage
+#print axioms H1_bound_before_of_singleSolution_window_strictAverage
+#print axioms intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_strict_and_Lp2
 
 end ShenWork.Paper2.IntervalChiNegH1WindowWiring

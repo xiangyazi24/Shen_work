@@ -44,6 +44,27 @@ structure H1ScalarDIOnBefore
   hDI : ∀ r, 0 < r → r < T →
     deriv (H1energy u) r ≤ A * H1energy u r + B
 
+/-- Strict-positive-time scalar H¹ differential inequality data.
+
+Unlike `H1ScalarDIOnBefore`, this package does not ask for closed-window
+regularity on intervals starting at `0`.  It is enough for averaged estimates at
+times `τ > 1`, because then the averaging window `[τ - 1, τ]` has positive left
+endpoint. -/
+structure H1ScalarDIOnStrictBefore
+    (u : ℝ → intervalDomainPoint → ℝ) (T A B : ℝ) : Prop where
+  hA : 0 ≤ A
+  hB : 0 ≤ B
+  hcont : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+    ContinuousOn (H1energy u) (Set.Icc a b)
+  hderivInt : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+    IntervalIntegrable (fun r => deriv (H1energy u) r) volume a b
+  hhasDerivRight : ∀ {a b r : ℝ}, 0 < a → a ≤ b → b < T →
+    r ∈ Set.Ioo a b →
+      HasDerivWithinAt (H1energy u)
+        (deriv (H1energy u) r) (Set.Ioi r) r
+  hDI : ∀ r, 0 < r → r < T →
+    deriv (H1energy u) r ≤ A * H1energy u r + B
+
 /-- A nonnegative H¹ subwindow is bounded by the full one-unit window. -/
 theorem H1Window_subinterval_le
     {u : ℝ → intervalDomainPoint → ℝ} {τ σ : ℝ}
@@ -141,6 +162,75 @@ theorem H1_backward_bound_of_scalarDI_before
       _ ≤ A * H1Window u τ + B := by linarith
   linarith
 
+/-- Strict-positive-time version of `H1_backward_bound_of_scalarDI_before`.
+
+The assumption `1 < τ` ensures every start point in `[τ - 1, τ]` is strictly
+positive, so no scalar regularity at the zero endpoint is used. -/
+theorem H1_backward_bound_of_scalarDI_strict_before
+    {u : ℝ → intervalDomainPoint → ℝ} {T A B τ σ : ℝ}
+    (hDI : H1ScalarDIOnStrictBefore u T A B)
+    (hτ1 : 1 < τ) (hτT : τ < T)
+    (hσ : σ ∈ Set.Icc (τ - 1) τ) :
+    H1energy u τ ≤ H1energy u σ + (A * H1Window u τ + B) := by
+  have hleft_pos : 0 < τ - 1 := by linarith
+  have hσpos : 0 < σ := lt_of_lt_of_le hleft_pos hσ.1
+  have hστ : σ ≤ τ := hσ.2
+  have hcontστ : ContinuousOn (H1energy u) (Set.Icc σ τ) :=
+    hDI.hcont hσpos hστ hτT
+  have hH1int :
+      IntervalIntegrable (fun r => H1energy u r) volume σ τ :=
+    hcontστ.intervalIntegrable_of_Icc hστ
+  have hderivInt :
+      IntervalIntegrable (fun r => deriv (H1energy u) r) volume σ τ :=
+    hDI.hderivInt hσpos hστ hτT
+  have hFTC :
+      (∫ r in σ..τ, deriv (H1energy u) r) =
+        H1energy u τ - H1energy u σ := by
+    exact intervalIntegral.integral_eq_sub_of_hasDeriv_right_of_le
+      hστ hcontστ (fun r hr => hDI.hhasDerivRight hσpos hστ hτT hr)
+      hderivInt
+  have hrhsInt :
+      IntervalIntegrable (fun r => A * H1energy u r + B) volume σ τ :=
+    (hH1int.const_mul A).add intervalIntegral.intervalIntegrable_const
+  have hmono :
+      (∫ r in σ..τ, deriv (H1energy u) r) ≤
+        ∫ r in σ..τ, A * H1energy u r + B :=
+    intervalIntegral.integral_mono_on_of_le_Ioo hστ hderivInt hrhsInt
+      (fun r hr => by
+        have hr0 : 0 < r := lt_trans hσpos hr.1
+        have hrT : r < T := lt_trans hr.2 hτT
+        exact hDI.hDI r hr0 hrT)
+  have hrhs_eval :
+      (∫ r in σ..τ, A * H1energy u r + B) =
+        A * (∫ r in σ..τ, H1energy u r) + B * (τ - σ) := by
+    rw [intervalIntegral.integral_add
+      (hH1int.const_mul A) intervalIntegral.intervalIntegrable_const]
+    rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_const]
+    simp [smul_eq_mul]
+    ring_nf
+  have hfull_cont :
+      ContinuousOn (H1energy u) (Set.Icc (τ - 1) τ) :=
+    hDI.hcont hleft_pos (by linarith) hτT
+  have hsub :
+      (∫ r in σ..τ, H1energy u r) ≤ H1Window u τ :=
+    H1Window_subinterval_le hσ hfull_cont
+  have hA_sub :
+      A * (∫ r in σ..τ, H1energy u r) ≤ A * H1Window u τ :=
+    mul_le_mul_of_nonneg_left hsub hDI.hA
+  have hB_len : B * (τ - σ) ≤ B := by
+    have hlen : τ - σ ≤ 1 := by linarith [hσ.1]
+    have hlen_nonneg : 0 ≤ τ - σ := by linarith [hσ.2]
+    nlinarith [mul_le_mul_of_nonneg_left hlen hDI.hB, hlen_nonneg]
+  have hmain :
+      H1energy u τ - H1energy u σ ≤ A * H1Window u τ + B := by
+    calc
+      H1energy u τ - H1energy u σ
+          = ∫ r in σ..τ, deriv (H1energy u) r := hFTC.symm
+      _ ≤ ∫ r in σ..τ, A * H1energy u r + B := hmono
+      _ = A * (∫ r in σ..τ, H1energy u r) + B * (τ - σ) := hrhs_eval
+      _ ≤ A * H1Window u τ + B := by linarith
+  linarith
+
 /-- Average the backward-in-time bound over the one-unit window to produce the
 exact `havg` shape consumed by `chiNeg_H1_norm_bound_before`. -/
 theorem H1_avg_of_backwards_bound
@@ -172,6 +262,24 @@ theorem H1_avg_of_scalarDI_before
     hDI.hcont (by linarith [hτ1]) (by linarith) hτT
   exact H1_avg_of_backwards_bound hcont
     (fun σ hσ => H1_backward_bound_of_scalarDI_before hDI hτ1 hτT hσ)
+
+/-- Strict-positive-time scalar DI supplies the averaged estimate for `τ > 1`.
+
+This avoids any continuity or derivative-integrability query on a window whose
+left endpoint is `0`. -/
+theorem H1_avg_of_scalarDI_strict_before
+    {u : ℝ → intervalDomainPoint → ℝ} {T A B : ℝ}
+    (hDI : H1ScalarDIOnStrictBefore u T A B) :
+    ∀ τ, 1 < τ → τ < T →
+      1 * H1energy u τ ≤
+        H1Window u τ + 1 * (A * H1Window u τ + B * 1) := by
+  intro τ hτ1 hτT
+  have hleft_pos : 0 < τ - 1 := by linarith
+  have hcont : ContinuousOn (H1energy u) (Set.Icc (τ - 1) τ) :=
+    hDI.hcont hleft_pos (by linarith) hτT
+  exact H1_avg_of_backwards_bound hcont
+    (fun σ hσ =>
+      H1_backward_bound_of_scalarDI_strict_before hDI hτ1 hτT hσ)
 
 /-- The scalar H¹ differential inequality supplies the restricted local H¹
 seed needed before the one-unit averaged estimate starts.
@@ -310,6 +418,40 @@ theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
     hsol hbounded.2.2.1 habsorbing hfrontier hL2 hDI.hA
     hlocal (H1_avg_of_scalarDI_before hDI) hLp2
 
+/-- Strict-positive-time scalar-DI route to bounded-before, with the local
+near-zero H¹ seed kept as an explicit input. -/
+theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_strict_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {A B Ylocal : ℝ}
+    (hDI : H1ScalarDIOnStrictBefore u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hmass : IntervalDomainLogisticMassBound params T u :=
+    intervalDomainLogisticMassBound_of_proposition24
+      (ShenWork.Paper2.intervalDomain_Proposition_2_4 params)
+      ha hbounded.2.1 hu₀.toPositive hT hsol htrace
+  have habsorbing :
+      IntervalDomainL2AbsorbingDifferentialInequalityResult params T u :=
+    intervalDomain_absorbingDifferentialL2_of_mass hbounded hsol hmass
+  have hLp2 : LpPowerBoundedBefore intervalDomain 2 T u :=
+    intervalDomainL2PowerBoundedBefore_of_absorbingDifferentialInequality
+      hsol habsorbing hfrontier
+  rcases intervalDomain_L2energy_bound_of_Lp2 hsol hLp2 with
+    ⟨Y_L2, hL2⟩
+  exact intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_strict_and_Lp2
+    hsol hbounded.2.2.1 habsorbing hfrontier hL2 hDI.hA
+    hlocal (H1_avg_of_scalarDI_strict_before hDI) hLp2
+
 /-- Paper-positive H¹ scalar-DI wrapper with the restricted local seed produced
 from the scalar differential inequality itself. -/
 theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before
@@ -333,11 +475,15 @@ theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before
 
 #print axioms H1Window_subinterval_le
 #print axioms H1_backward_bound_of_scalarDI_before
+#print axioms H1_backward_bound_of_scalarDI_strict_before
 #print axioms H1_avg_of_backwards_bound
 #print axioms H1_avg_of_scalarDI_before
+#print axioms H1_avg_of_scalarDI_strict_before
 #print axioms exists_H1_localSeed_of_scalarDI_before
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
+#print axioms
+  intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_strict_local_before
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before
 
 end ShenWork.Paper2.IntervalChiNegH1AverageWiring

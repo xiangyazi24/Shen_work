@@ -2832,6 +2832,16 @@ zero-start obligations are primitive closed-time regularity of
 `u`, `v`, `u_x`, `v_x`, `liftTimeDeriv`, positivity/nonnegativity at `t = 0`,
 and the interior PDE equality for `liftDeriv2`.
 
+Task 80 opens the honest strict-positive-time/cutoff route in
+`IntervalChiNegH1AverageWiring` and `IntervalChiNegH1WindowWiring`.  The new
+`H1ScalarDIOnStrictBefore` asks for scalar continuity, derivative
+integrability, and right-derivative data only on windows with positive left
+endpoint.  It proves `H1_avg_of_scalarDI_strict_before` only for `τ > 1`;
+the downstream strict-average window wrappers use the existing local H¹ seed to
+cover `τ ≤ 1`.  The route therefore avoids querying continuity/integrability on
+the zero-starting window `[0,1]`; the necessary near-zero input is now explicit
+as `hlocal : ∀ τ ∈ (0,1], τ < T → H1energy u τ ≤ Ylocal`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
