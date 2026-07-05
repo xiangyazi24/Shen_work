@@ -1137,6 +1137,12 @@ Current headline status:
   restricted local H1 seed; the old unrestricted `τ ∈ Ioc 0 1` local seed should
   not be treated as the active target when `T < 1`.  Verified by remote full
   build on uisai2: 9136 jobs, `BUILD OK` (2026-07-05).
+  Follow-up producer `IntervalChiNegH1DerivativeIntegrability` reduces the
+  scalar derivative-integrability part to an explicit
+  `H1IdentityRHSIntegrableBefore` package and provides
+  `intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before`;
+  it does not yet produce `H1SupBoundDIDataBefore` or the restricted local H1
+  seed.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
