@@ -2911,6 +2911,19 @@ this split into the existing `H1ScalarRegularityBefore` interface without using
 `H1IdentityRHSIntegrableBefore`, bounded-before, or zero-start `lapL2sq`
 continuity.
 
+Task 86 adds `IntervalChiNegH1InitialDerivativeFTC` as the source-facing
+zero-start H¹ derivative adapter requested by Q3463.  The new
+`H1EnergyDerivativeInitialWindowAEProxyBefore` accepts an interval-integrable
+proxy whose equality with `deriv (H1energy u)` holds a.e. on each `Ioc 0 b`,
+which is the natural output shape of an integrated energy/FTC argument.  It
+lowers to Task 83's `H1EnergyDerivativeInitialWindowMajorantBefore` by
+a.e. measurability congruence and the trivial norm bound, then to
+`H1EnergyDerivativeInitialWindowIntegrableBefore` through the existing majorant
+adapter.  The optional `H1EnergyInitialWindowFTCBefore` frontier stores the
+actual FTC identity while exposing only its integrable proxy and a.e. derivative
+equality to the current route, so this bridge still does not use RHS
+integrability, bounded-before, or zero-start `lapL2sq` continuity.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
