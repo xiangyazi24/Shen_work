@@ -89,6 +89,98 @@ structure H1PhysicalRHSInitialWindowMajorantBefore
     (H1PhysicalUvxxX p u v)
     (H1PhysicalReactX p u)
 
+/-- Local zero-window majorant for the assembled concrete physical H¹ RHS. -/
+def H1PhysicalRHSZeroWindowMajorantBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T : ℝ) : Prop :=
+  H1IdentityRHSZeroWindowMajorantBefore p u T
+    (H1PhysicalTaxisX p u v)
+    (H1PhysicalUvxxX p u v)
+    (H1PhysicalReactX p u)
+
+/-- Additive local scalar majorants for the four physical pieces in the
+assembled H¹ RHS, all on one zero-window `(0, δ]`. -/
+def H1PhysicalRHSAdditiveScalarZeroMajorantsBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T : ℝ) : Prop :=
+  ∃ δ : ℝ,
+    0 < δ ∧ δ < T ∧
+    ∃ Glap Gtaxis Guvxx Greact : ℝ → ℝ,
+      IntervalIntegrable Glap volume (0 : ℝ) δ ∧
+      IntervalIntegrable Gtaxis volume (0 : ℝ) δ ∧
+      IntervalIntegrable Guvxx volume (0 : ℝ) δ ∧
+      IntervalIntegrable Greact volume (0 : ℝ) δ ∧
+      AEStronglyMeasurable
+        (H1IdentityRHSValue p u
+          (H1PhysicalTaxisX p u v)
+          (H1PhysicalUvxxX p u v)
+          (H1PhysicalReactX p u))
+        (volume.restrict (Set.Ioc (0 : ℝ) δ)) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖lapL2sq u r‖ ≤ ‖Glap r‖) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖H1PhysicalTaxisX p u v r‖ ≤ ‖Gtaxis r‖) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖H1PhysicalUvxxX p u v r‖ ≤ ‖Guvxx r‖) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖H1PhysicalReactX p u r‖ ≤ ‖Greact r‖)
+
+/-- Additive local scalar majorants assemble to a local zero-window majorant
+for the concrete physical H¹ RHS. -/
+theorem H1PhysicalRHSZeroWindowMajorantBefore_of_additiveScalarMajorants
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (h : H1PhysicalRHSAdditiveScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSZeroWindowMajorantBefore p u v T := by
+  rcases h with
+    ⟨δ, hδ_pos, hδ_before, Glap, Gtaxis, Guvxx, Greact,
+      hGlap_int, hGtaxis_int, hGuvxx_int, hGreact_int,
+      hRHS_meas, hLap_bound, hTaxis_bound, hUvxx_bound, hReact_bound⟩
+  refine
+    ⟨δ, hδ_pos, hδ_before,
+      (fun r =>
+        ‖Glap r‖ + ‖(-p.χ₀)‖ * ‖Gtaxis r‖ +
+          ‖(-p.χ₀)‖ * ‖Guvxx r‖ + ‖Greact r‖),
+      ?_, hRHS_meas, ?_⟩
+  · exact
+      (((hGlap_int.norm.add
+        (hGtaxis_int.norm.const_mul ‖(-p.χ₀)‖)).add
+        (hGuvxx_int.norm.const_mul ‖(-p.χ₀)‖)).add
+        hGreact_int.norm)
+  · filter_upwards [hLap_bound, hTaxis_bound, hUvxx_bound, hReact_bound]
+      with r hLap hTaxis hUvxx hReact
+    have hTaxis_scaled :
+        ‖(-p.χ₀)‖ * ‖H1PhysicalTaxisX p u v r‖
+          ≤ ‖(-p.χ₀)‖ * ‖Gtaxis r‖ :=
+      mul_le_mul_of_nonneg_left hTaxis (norm_nonneg (-p.χ₀))
+    have hUvxx_scaled :
+        ‖(-p.χ₀)‖ * ‖H1PhysicalUvxxX p u v r‖
+          ≤ ‖(-p.χ₀)‖ * ‖Guvxx r‖ :=
+      mul_le_mul_of_nonneg_left hUvxx (norm_nonneg (-p.χ₀))
+    have hterms :
+        ‖lapL2sq u r‖
+            + ‖(-p.χ₀)‖ * ‖H1PhysicalTaxisX p u v r‖
+            + ‖(-p.χ₀)‖ * ‖H1PhysicalUvxxX p u v r‖
+            + ‖H1PhysicalReactX p u r‖
+          ≤ ‖Glap r‖ + ‖(-p.χ₀)‖ * ‖Gtaxis r‖
+            + ‖(-p.χ₀)‖ * ‖Guvxx r‖ + ‖Greact r‖ :=
+      add_le_add (add_le_add (add_le_add hLap hTaxis_scaled) hUvxx_scaled) hReact
+    have hG_nonneg :
+        0 ≤ ‖Glap r‖ + ‖(-p.χ₀)‖ * ‖Gtaxis r‖
+          + ‖(-p.χ₀)‖ * ‖Guvxx r‖ + ‖Greact r‖ :=
+      add_nonneg
+        (add_nonneg
+          (add_nonneg (norm_nonneg (Glap r))
+            (mul_nonneg (norm_nonneg (-p.χ₀)) (norm_nonneg (Gtaxis r))))
+          (mul_nonneg (norm_nonneg (-p.χ₀)) (norm_nonneg (Guvxx r))))
+        (norm_nonneg (Greact r))
+    exact
+      (H1IdentityRHSValue_norm_le_scalar_sum p u
+          (H1PhysicalTaxisX p u v)
+          (H1PhysicalUvxxX p u v)
+          (H1PhysicalReactX p u) r).trans
+        (by rwa [Real.norm_of_nonneg hG_nonneg])
+
 /-- Route package for the concrete physical scalar triple with strict
 positive-time component continuity and a zero-start assembled-RHS majorant. -/
 structure H1PhysicalRHSStrictInitialRouteBefore
@@ -110,6 +202,29 @@ theorem H1IdentityRHSInitialWindowMajorantBefore_of_physicalInitialMajorant
       (H1PhysicalUvxxX p u v)
       (H1PhysicalReactX p u) :=
   h.majorant
+
+/-- A physical zero-window majorant and strict positive-time physical component
+continuity give the global physical initial-window majorant. -/
+theorem H1PhysicalRHSInitialWindowMajorantBefore_of_zeroWindow_strict
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hStrict : H1PhysicalRHSComponentsContinuousStrictBefore p u v T)
+    (hZero : H1PhysicalRHSZeroWindowMajorantBefore p u v T) :
+    H1PhysicalRHSInitialWindowMajorantBefore p u v T :=
+  ⟨H1IdentityRHSInitialWindowMajorantBefore_of_zeroWindow_strict
+    hStrict.components hZero⟩
+
+/-- Additive local scalar majorants plus strict positive-time physical component
+continuity give the global physical initial-window majorant. -/
+theorem H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hStrict : H1PhysicalRHSComponentsContinuousStrictBefore p u v T)
+    (hAdd : H1PhysicalRHSAdditiveScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSInitialWindowMajorantBefore p u v T :=
+  H1PhysicalRHSInitialWindowMajorantBefore_of_zeroWindow_strict
+    hStrict
+    (H1PhysicalRHSZeroWindowMajorantBefore_of_additiveScalarMajorants hAdd)
 
 /-- The physical initial majorant gives initial-window integrability of the
 assembled physical H¹ RHS. -/
@@ -133,6 +248,20 @@ theorem H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalInitialMajora
     H1EnergyDerivativeInitialWindowIntegrableBefore u T :=
   H1EnergyDerivativeInitialWindowIntegrableBefore_of_identityRHSMajorant
     hId.identity hMaj.majorant
+
+/-- Physical identity, strict component continuity, and a physical zero-window
+majorant give the scalar zero-start H¹ derivative-integrability input. -/
+theorem H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalZeroWindowMajorant
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hId : H1PhysicalRHSIdentityBefore p u v T)
+    (hStrict : H1PhysicalRHSComponentsContinuousStrictBefore p u v T)
+    (hZero : H1PhysicalRHSZeroWindowMajorantBefore p u v T) :
+    H1EnergyDerivativeInitialWindowIntegrableBefore u T :=
+  H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalInitialMajorant
+    hId
+    (H1PhysicalRHSInitialWindowMajorantBefore_of_zeroWindow_strict
+      hStrict hZero)
 
 /-- The strict/initial physical route supplies full explicit-RHS integrability
 for the concrete scalar triple. -/
@@ -211,6 +340,12 @@ theorem intervalDomain_boundedBefore_of_physicalStrictInitialRoute_before
   H1IdentityRHSInitialWindowIntegrableBefore_of_physicalInitialMajorant
 #print axioms
   H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalInitialMajorant
+#print axioms H1PhysicalRHSZeroWindowMajorantBefore_of_additiveScalarMajorants
+#print axioms H1PhysicalRHSInitialWindowMajorantBefore_of_zeroWindow_strict
+#print axioms
+  H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
+#print axioms
+  H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalZeroWindowMajorant
 #print axioms H1IdentityRHSIntegrableBefore_of_physicalStrictInitialRoute
 #print axioms H1SupBoundSqrtDIDataBefore_of_physicalStrictInitialRoute
 #print axioms H1SupBoundSqrtRHSIntegrableBefore_of_physicalStrictInitialRoute

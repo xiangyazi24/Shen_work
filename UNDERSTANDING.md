@@ -2969,6 +2969,28 @@ literal `liftDeriv2`.  It deliberately does not prove the hard joint continuity
 of the physical formulas themselves, nor the near-zero majorant, square-root
 bounds, or substitution identity.
 
+Task 90 follows Q3470 and narrows the physical initial-window majorant frontier
+from a global zero-start producer to a local endpoint producer.  In
+`IntervalChiNegH1InitialDerivativeRHS`, `H1IdentityRHSZeroWindowMajorantBefore`
+asks for one local majorant on `(0, delta]`; strict-positive-time component
+continuity then extends this to `H1IdentityRHSInitialWindowMajorantBefore` and
+initial-window RHS integrability on every zero-start window before `T`.  The
+same file also adds reusable scalar majorant algebra and the pointwise norm
+bound `H1IdentityRHSValue_norm_le_scalar_sum`, so termwise scalar estimates can
+assemble the H¹ RHS majorant without consuming bounded-before, full RHS
+integrability, or derivative integrability.
+
+`IntervalChiNegH1PhysicalInitialRHS` now specializes the zero-window interface
+to the physical scalar triple.  `H1PhysicalRHSAdditiveScalarZeroMajorantsBefore`
+requires local scalar majorants for the lap, taxis, uvxx, and reaction terms on
+one common zero window, and
+`H1PhysicalRHSZeroWindowMajorantBefore_of_additiveScalarMajorants` packages them
+into the assembled physical RHS zero-window majorant.  With strict physical
+component continuity, this yields the global physical initial-window majorant
+and the scalar zero-start H¹ derivative-integrability input.  All new Task90
+theorems are wired with `#print axioms`; target build shows only
+`[propext, Classical.choice, Quot.sound]`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
