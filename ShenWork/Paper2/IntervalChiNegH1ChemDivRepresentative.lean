@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
+import ShenWork.PDE.IntervalCoupledClassicalBallEstimates
 import ShenWork.PDE.P3MoserDxJointContinuity
 
 /-!
@@ -14,12 +15,15 @@ open MeasureTheory Set
 open scoped BigOperators Topology Interval
 
 open ShenWork.IntervalDomain
+open ShenWork.PDE
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 open ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
 open ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
+open ShenWork.IntervalCoupledClassicalBallEstimates
+open ShenWork.IntervalResolverLaplacianBridge
 
 noncomputable section
 
@@ -44,6 +48,120 @@ abbrev liftChemotaxisDivPhysicalRep (p : CM2Params)
   p.β * intervalDomainLift (u t) x *
       (deriv (intervalDomainLift (v t)) x) ^ 2 /
     (1 + intervalDomainLift (v t) x) ^ (p.β + 1)
+
+/-- On the open spatial interior, the resolver-based chemotaxis-divergence
+representative from the classical ball estimates is the physical product-rule
+representative used by the H¹ route. -/
+theorem intervalChemDivRepr_eq_liftChemotaxisDivPhysicalRep_interior
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T t x : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalChemDivRepr p (u t) (v t) ⟨x, Set.Ioo_subset_Icc_self hx⟩ =
+      liftChemotaxisDivPhysicalRep p u v t x := by
+  classical
+  let X : intervalDomainPoint := ⟨x, Set.Ioo_subset_Icc_self hx⟩
+  have hgrad :
+      deriv (intervalDomainLift (v t)) x = resolverGradReal p (u t) x :=
+    solution_lift_v_deriv_eq_resolverGrad hsol ht hx
+  have hdecay : SourceCoeffQuadraticDecay p (u t) :=
+    sourceCoeffQuadraticDecay_of_solution hsol ht
+  have hR :
+      intervalNeumannResolverR p (u t) X =
+        intervalDomainLift (v t) x := by
+    simpa [X] using
+      solution_v_eq_resolver_pointwise_unconditional hsol ht hx
+  have hsource :
+      intervalNeumannResolverSourceValue p (u t) X =
+        p.ν * (intervalDomainLift (u t) x) ^ p.γ := by
+    simpa [X] using
+      sourceValue_eq_source (p := p) (T := T) (u := u) (v := v)
+        hsol ht X
+  have hrlap :
+      intervalNeumannResolverRLap p (u t) X =
+        p.μ * intervalDomainLift (v t) x -
+          p.ν * (intervalDomainLift (u t) x) ^ p.γ := by
+    rw [intervalNeumannResolverRLap_elliptic_identity hdecay X, hR, hsource]
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  have hv_nonneg : 0 ≤ intervalDomainLift (v t) x :=
+    solution_lift_v_nonneg_Icc hsol ht x hxIcc
+  have hbase_pos : 0 < 1 + intervalDomainLift (v t) x := by
+    linarith
+  have hneg_beta :
+      (1 + intervalDomainLift (v t) x) ^ (-p.β) =
+        ((1 + intervalDomainLift (v t) x) ^ p.β)⁻¹ :=
+    Real.rpow_neg hbase_pos.le p.β
+  have hneg_beta_one :
+      (1 + intervalDomainLift (v t) x) ^ (-p.β - 1) =
+        ((1 + intervalDomainLift (v t) x) ^ (p.β + 1))⁻¹ := by
+    have h := Real.rpow_neg hbase_pos.le (p.β + 1)
+    have hexp : -(p.β + 1) = -p.β - 1 := by ring
+    rwa [hexp] at h
+  change intervalChemDivRepr p (u t) (v t) X =
+    liftChemotaxisDivPhysicalRep p u v t x
+  unfold intervalChemDivRepr liftChemotaxisDivPhysicalRep
+  rw [← hgrad, hrlap, hneg_beta, hneg_beta_one]
+  simp only [X, div_eq_mul_inv]
+
+/-- The literal lifted interval-domain chemotaxis divergence is the interval
+point formula on the interval branch. -/
+theorem lift_chemotaxisDiv_eq_intervalDomainChemotaxisDiv
+    {p : CM2Params} {u v : intervalDomainPoint → ℝ} {x : ℝ}
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalDomainLift
+        (fun X : intervalDomainPoint =>
+          intervalDomain.chemotaxisDiv p u v X) x =
+      intervalDomainChemotaxisDiv p u v ⟨x, hx⟩ := by
+  simp [intervalDomain, intervalDomainLift, hx]
+
+/-- Interior pointwise equality between the literal lifted chemotaxis-divergence
+term and the physical representative. -/
+theorem lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_interior
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T t x : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalDomainLift
+        (fun X : intervalDomainPoint =>
+          intervalDomain.chemotaxisDiv p (u t) (v t) X) x =
+      liftChemotaxisDivPhysicalRep p u v t x := by
+  let X : intervalDomainPoint := ⟨x, Set.Ioo_subset_Icc_self hx⟩
+  calc
+    intervalDomainLift
+        (fun X : intervalDomainPoint =>
+          intervalDomain.chemotaxisDiv p (u t) (v t) X) x
+        = intervalDomainChemotaxisDiv p (u t) (v t) X := by
+          simpa [X] using
+            lift_chemotaxisDiv_eq_intervalDomainChemotaxisDiv
+              (p := p) (u := u t) (v := v t)
+              (x := x) (Set.Ioo_subset_Icc_self hx)
+    _ = intervalChemDivRepr p (u t) (v t) X := by
+          exact intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
+            (p := p) (T := T) (u := u) (v := v) hsol ht hx
+    _ = liftChemotaxisDivPhysicalRep p u v t x := by
+          exact intervalChemDivRepr_eq_liftChemotaxisDivPhysicalRep_interior
+            (p := p) (T := T) (u := u) (v := v) hsol ht hx
+
+/-- Strict-slab interior `EqOn` between the literal lifted chemotaxis-divergence
+term and the physical representative.  The spatial set is open, so this avoids
+the endpoint ordinary-derivative trap. -/
+theorem lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T a b : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ha : 0 < a) (_hab : a ≤ b) (hbT : b < T) :
+    Set.EqOn
+      (Function.uncurry
+        (fun t x =>
+          intervalDomainLift
+            (fun X : intervalDomainPoint =>
+              intervalDomain.chemotaxisDiv p (u t) (v t) X) x))
+      (Function.uncurry (liftChemotaxisDivPhysicalRep p u v))
+      (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1) := by
+  intro z hz
+  rcases z with ⟨t, x⟩
+  rcases hz with ⟨htab, hx⟩
+  have ht : t ∈ Set.Ioo (0 : ℝ) T :=
+    ⟨lt_of_lt_of_le ha htab.1, lt_of_le_of_lt htab.2 hbT⟩
+  exact lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_interior
+    (p := p) (T := T) (u := u) (v := v) hsol ht hx
 
 /-- Classical solutions supply closed-spatial strict-slab continuity of the
 physical chemotaxis-divergence representative. -/
@@ -261,11 +379,35 @@ theorem H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_eq_physicalR
   exact liftChemotaxisDivPhysicalRep_continuousOn_strictSlab_of_classicalSolution
     (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
 
+/-- The concrete chemotaxis-divergence interior equality is now supplied
+directly by the resolver representative bridge.  The remaining H¹ L¹ input is
+only the separate interior equality between `liftDeriv2` and the physical RHS. -/
+theorem H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_physicalRHS_interiorEq
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hEqPhysicalInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry (liftDeriv2PhysicalRHS p u v))
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine
+    H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_eq_physicalRHS_interiorEq
+      (p := p) (u := u) (v := v) (T := T) hsol ?_ hEqPhysicalInterior
+  intro a b ha hab hbT
+  exact lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior
+    (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+
 section AxiomAudit
 
+#print axioms intervalChemDivRepr_eq_liftChemotaxisDivPhysicalRep_interior
+#print axioms lift_chemotaxisDiv_eq_intervalDomainChemotaxisDiv
+#print axioms lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_interior
+#print axioms lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior
 #print axioms liftChemotaxisDivPhysicalRep_continuousOn_strictSlab_of_classicalSolution
 #print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_interiorEq
 #print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_eq_physicalRHS_interiorEq
+#print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_physicalRHS_interiorEq
 
 end AxiomAudit
 

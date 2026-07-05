@@ -2565,6 +2565,28 @@ The remaining frontier is the interior product-rule EqOn identifying the
 literal lifted `chemotaxisDiv` with this representative; endpoint equality is
 still deliberately not claimed.
 
+Task 64 closes that interior product-rule EqOn using the already-proved
+resolver representative route rather than reproving the full quotient
+calculus.  The file now imports
+`IntervalCoupledClassicalBallEstimates` and proves:
+- `intervalChemDivRepr_eq_liftChemotaxisDivPhysicalRep_interior`, rewriting
+  the resolver factors with `solution_lift_v_deriv_eq_resolverGrad`,
+  `solution_v_eq_resolver_pointwise_unconditional`,
+  `sourceValue_eq_source`, and
+  `intervalNeumannResolverRLap_elliptic_identity`;
+- `lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_interior`, combining
+  the literal interval-domain branch with
+  `intervalDomainChemotaxisDiv_eq_chemDivRepr_interior`;
+- `lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior`,
+  the strict-slab `EqOn` on `Icc a b ×ˢ Ioo 0 1`.
+
+Consequently
+`H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_physicalRHS_interiorEq`
+now produces `H1UxxL1ContBefore` from `IsPaper2ClassicalSolution` plus only the
+separate interior equality between `liftDeriv2 u` and `liftDeriv2PhysicalRHS p u v`.
+The literal lifted `chemotaxisDiv` endpoint equality is still intentionally not
+claimed.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
