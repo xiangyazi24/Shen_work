@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
+import ShenWork.PDE.P3MoserDxJointContinuity
 
 /-!
 # Strict-slab representative transfer for `liftDeriv2`
@@ -407,6 +408,48 @@ theorem logisticReaction_continuousOn_strictSlab_of_classicalSolution
   simpa [Function.uncurry] using
     hu.mul (continuousOn_const.sub (hupow.const_mul p.b))
 
+/-- On the open spatial interior, the classical `u`-equation identifies the
+lifted second derivative with the physical RHS. -/
+theorem liftDeriv2_eq_liftDeriv2PhysicalRHS_interior_of_classicalSolution
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T t x : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    liftDeriv2 u t x = liftDeriv2PhysicalRHS p u v t x := by
+  let X : intervalDomainPoint := ⟨x, Set.Ioo_subset_Icc_self hx⟩
+  have hXin : X ∈ intervalDomain.inside := by
+    change (X.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1
+    exact hx
+  have hpde :
+      intervalDomain.laplacian (u t) X =
+        intervalDomain.timeDeriv u t X
+          + p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) X
+          - u t X * (p.a - p.b * (u t X) ^ p.α) :=
+    intervalDomain_laplacian_u_eq_time_chem_logistic
+      (params := p) (T := T) (u := u) (v := v)
+      hsol ht.1 ht.2 hXin
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  simpa [liftDeriv2, liftTimeDeriv, liftDeriv2PhysicalRHS,
+    intervalDomain, intervalDomainLaplacian, intervalDomainLift, hxIcc, X]
+    using hpde
+
+/-- Strict-slab `EqOn` version of
+`liftDeriv2_eq_liftDeriv2PhysicalRHS_interior_of_classicalSolution`. -/
+theorem liftDeriv2_eq_liftDeriv2PhysicalRHS_strictSlab_interior_of_classicalSolution
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T a b : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (ha : 0 < a) (_hab : a ≤ b) (hbT : b < T) :
+    Set.EqOn
+      (Function.uncurry (fun t x => liftDeriv2 u t x))
+      (Function.uncurry (liftDeriv2PhysicalRHS p u v))
+      (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1) := by
+  intro z hz
+  rcases z with ⟨t, x⟩
+  rcases hz with ⟨htab, hx⟩
+  have ht : t ∈ Set.Ioo (0 : ℝ) T :=
+    ⟨lt_of_lt_of_le ha htab.1, lt_of_le_of_lt htab.2 hbT⟩
+  exact liftDeriv2_eq_liftDeriv2PhysicalRHS_interior_of_classicalSolution
+    (p := p) (T := T) (u := u) (v := v) hsol ht hx
+
 /-- From a classical solution, only the chemotaxis-divergence continuity and
 closed-slab equality with the physical RHS remain as explicit upstream inputs. -/
 theorem H1LiftDeriv2JointContinuousBefore_of_classical_chem_eq_physicalRHS
@@ -549,6 +592,35 @@ theorem H1UxxL1ContBefore_of_classical_chemRep_eq_physicalRHS_interiorEq
   rw [hphys]
   simp [liftDeriv2PhysicalRHS, liftDeriv2PhysicalRHSWithChemRep, hchem]
 
+/-- Classical-solution L¹ transfer through a closed-slab continuous
+chemotaxis-divergence representative.  The physical `u_xx` RHS equality is
+supplied directly by the pointwise classical PDE, so the only remaining
+representative-specific input is the interior chemotaxis equality. -/
+theorem H1UxxL1ContBefore_of_classical_chemRep_eq_chem_interiorEq
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {chemRep : ℝ → ℝ → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hChemRep : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry chemRep)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hChemEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift
+              (fun X : intervalDomainPoint =>
+                intervalDomain.chemotaxisDiv p (u t) (v t) X) x))
+        (Function.uncurry chemRep)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_classical_chemRep_eq_physicalRHS_interiorEq
+    (p := p) (u := u) (v := v) (chemRep := chemRep) (T := T)
+    hsol hChemRep hChemEqInterior ?_
+  intro a b ha hab hbT
+  exact
+    liftDeriv2_eq_liftDeriv2PhysicalRHS_strictSlab_interior_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+
 section AxiomAudit
 
 #print axioms H1LiftDeriv2JointContinuousBefore_of_strictSlab_eq_continuous
@@ -567,6 +639,9 @@ section AxiomAudit
 #print axioms H1UxxL1ContBefore_of_classical_chem_interiorEq_physicalRHS
 #print axioms H1UxxL1ContBefore_of_classical_chemRep_interiorEq
 #print axioms H1UxxL1ContBefore_of_classical_chemRep_eq_physicalRHS_interiorEq
+#print axioms liftDeriv2_eq_liftDeriv2PhysicalRHS_interior_of_classicalSolution
+#print axioms liftDeriv2_eq_liftDeriv2PhysicalRHS_strictSlab_interior_of_classicalSolution
+#print axioms H1UxxL1ContBefore_of_classical_chemRep_eq_chem_interiorEq
 
 end AxiomAudit
 
