@@ -328,6 +328,272 @@ theorem boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy
     (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
     htend hcompat hdata hlocal
 
+/-- Bundled-endpoint version of
+`H1ScalarRegularityBefore_of_initialTraceEnergy`. -/
+theorem H1ScalarRegularityBefore_of_initialEndpointData
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX) :
+    H1ScalarRegularityBefore u T :=
+  H1ScalarRegularityBefore_of_initialTraceEnergy
+    hsol hUxxL1 hinit.tendsto hinit.compatible hRHS
+
+/-- Bundled-endpoint classical version of
+`H1ScalarRegularityBefore_of_classical_initialTraceEnergy`. -/
+theorem H1ScalarRegularityBefore_of_classical_initialEndpointData
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX) :
+    H1ScalarRegularityBefore u T :=
+  H1ScalarRegularityBefore_of_classical_initialTraceEnergy
+    hsol hinit.tendsto hinit.compatible hRHS
+
+/-- Bundled-endpoint version of
+`H1ScalarDIOnBefore_of_initialTraceEnergy`. -/
+theorem H1ScalarDIOnBefore_of_initialEndpointData
+    {p : CM2Params} {T A B : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX)
+    (hBound : H1IdentityRHSBoundBefore p u T A B) :
+    H1ScalarDIOnBefore u T A B :=
+  H1ScalarDIOnBefore_of_initialTraceEnergy
+    hsol hUxxL1 hinit.tendsto hinit.compatible hRHS hBound
+
+/-- Bundled-endpoint classical version of
+`H1ScalarDIOnBefore_of_classical_initialTraceEnergy`. -/
+theorem H1ScalarDIOnBefore_of_classical_initialEndpointData
+    {p : CM2Params} {T A B : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX)
+    (hBound : H1IdentityRHSBoundBefore p u T A B) :
+    H1ScalarDIOnBefore u T A B :=
+  H1ScalarDIOnBefore_of_classical_initialTraceEnergy
+    hsol hinit.tendsto hinit.compatible hRHS hBound
+
+/-- Bundled-endpoint version of
+`boundedBefore_of_H1identityRHS_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1identityRHS_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {A B Ylocal : ℝ}
+    (hBound : H1IdentityRHSBoundBefore params u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1identityRHS_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1
+    hinit.tendsto hinit.compatible hRHS hBound hlocal
+
+/-- Bundled-endpoint classical version of
+`boundedBefore_of_H1identityRHS_classical_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1identityRHS_classical_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {A B Ylocal : ℝ}
+    (hBound : H1IdentityRHSBoundBefore params u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1identityRHS_classical_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    hinit.tendsto hinit.compatible hRHS hBound hlocal
+
+/-- Bundled-endpoint version of
+`boundedBefore_of_H1supBoundDI_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1supBoundDI_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundDIDataBefore params u T V₁ V₂ M L)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundDI_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1
+    hinit.tendsto hinit.compatible hRHS hdata hlocal
+
+/-- Bundled-endpoint classical version of
+`boundedBefore_of_H1supBoundDI_classical_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1supBoundDI_classical_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundDIDataBefore params u T V₁ V₂ M L)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundDI_classical_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    hinit.tendsto hinit.compatible hRHS hdata hlocal
+
+/-- Bundled-endpoint version of
+`boundedBefore_of_H1supBoundSqrtDI_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1supBoundSqrtDI_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtDIDataBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundSqrtDI_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1
+    hinit.tendsto hinit.compatible hRHS hdata hlocal
+
+/-- Bundled-endpoint classical version of
+`boundedBefore_of_H1supBoundSqrtDI_classical_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1supBoundSqrtDI_classical_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtDIDataBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundSqrtDI_classical_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    hinit.tendsto hinit.compatible hRHS hdata hlocal
+
+/-- Bundled-endpoint version of
+`boundedBefore_of_H1supBoundSqrtRHS_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1supBoundSqrtRHS_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtRHSIntegrableBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundSqrtRHS_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1
+    hinit.tendsto hinit.compatible hdata hlocal
+
+/-- Bundled-endpoint classical version of
+`boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy`. -/
+theorem boundedBefore_of_H1supBoundSqrtRHS_classical_initialEndpointData
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hinit : H1InitialEndpointData u₀ u T)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtRHSIntegrableBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    hinit.tendsto hinit.compatible hdata hlocal
+
 #print axioms H1ScalarRegularityBefore_of_initialTraceEnergy
 #print axioms H1ScalarRegularityBefore_of_classical_initialTraceEnergy
 #print axioms H1ScalarDIOnBefore_of_initialTraceEnergy
@@ -340,5 +606,17 @@ theorem boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy
 #print axioms boundedBefore_of_H1supBoundSqrtDI_classical_initialTraceEnergy
 #print axioms boundedBefore_of_H1supBoundSqrtRHS_initialTraceEnergy
 #print axioms boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy
+#print axioms H1ScalarRegularityBefore_of_initialEndpointData
+#print axioms H1ScalarRegularityBefore_of_classical_initialEndpointData
+#print axioms H1ScalarDIOnBefore_of_initialEndpointData
+#print axioms H1ScalarDIOnBefore_of_classical_initialEndpointData
+#print axioms boundedBefore_of_H1identityRHS_initialEndpointData
+#print axioms boundedBefore_of_H1identityRHS_classical_initialEndpointData
+#print axioms boundedBefore_of_H1supBoundDI_initialEndpointData
+#print axioms boundedBefore_of_H1supBoundDI_classical_initialEndpointData
+#print axioms boundedBefore_of_H1supBoundSqrtDI_initialEndpointData
+#print axioms boundedBefore_of_H1supBoundSqrtDI_classical_initialEndpointData
+#print axioms boundedBefore_of_H1supBoundSqrtRHS_initialEndpointData
+#print axioms boundedBefore_of_H1supBoundSqrtRHS_classical_initialEndpointData
 
 end ShenWork.Paper2.IntervalChiNegH1InitialWiring

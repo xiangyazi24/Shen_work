@@ -42,6 +42,14 @@ def H1InitialEnergyCompatibleAtZero
     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   H1energy u 0 = H1InitialEnergy u₀
 
+/-- Bundled H¹ endpoint data: deleted-right convergence to the prescribed
+initial H¹ energy plus compatibility of the stored zero slice. -/
+structure H1InitialEndpointData
+    (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
+  tendsto : H1InitialTraceEnergyTendsto u₀ u T
+  compatible : H1InitialEnergyCompatibleAtZero u₀ u
+
 /-- Exact equality of the stored zero slice gives the H¹ energy compatibility
 field.  This does not imply deleted-right H¹ energy convergence. -/
 theorem H1InitialEnergyCompatibleAtZero_of_zeroSlice
@@ -108,6 +116,17 @@ theorem H1energy_continuousWithinAt_zero_of_initialTraceEnergy
   rw [hcompat]
   exact hright
 
+/-- Bundled endpoint-data version of
+`H1energy_continuousWithinAt_zero_of_initialTraceEnergy`. -/
+theorem H1energy_continuousWithinAt_zero_of_initialEndpointData
+    {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hT : 0 < T)
+    (hinit : H1InitialEndpointData u₀ u T) :
+    ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) (0 : ℝ) :=
+  H1energy_continuousWithinAt_zero_of_initialTraceEnergy
+    hT hinit.tendsto hinit.compatible
+
 /-- Closed-window H¹ energy continuity from `u_xx` L¹ time-continuity plus the
 split initial endpoint data. -/
 theorem H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy
@@ -126,10 +145,26 @@ theorem H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy
   intro a b ha hab hbT
   exact H1energy_continuousOn_before_of_uxxL1Cont hsol hUxxL1 hcont0 ha hab hbT
 
+/-- Bundled endpoint-data version of
+`H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy`. -/
+theorem H1energy_continuousOn_before_of_uxxL1Cont_initialEndpointData
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hinit : H1InitialEndpointData u₀ u T) :
+    ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn (H1energy u) (Set.Icc a b) :=
+  H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy
+    hsol hUxxL1 hinit.tendsto hinit.compatible
+
 #print axioms tendsto_nhdsWithin_Ici_zero_of_tendsto_nhdsWithin_Ioc_zero
 #print axioms H1InitialEnergyCompatibleAtZero_of_zeroSlice
 #print axioms H1InitialEnergyCompatibleAtZero_of_zeroSlice_pointwise
 #print axioms H1energy_continuousWithinAt_zero_of_initialTraceEnergy
+#print axioms H1energy_continuousWithinAt_zero_of_initialEndpointData
 #print axioms H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy
+#print axioms H1energy_continuousOn_before_of_uxxL1Cont_initialEndpointData
 
 end ShenWork.Paper2.IntervalChiNegH1InitialContinuity

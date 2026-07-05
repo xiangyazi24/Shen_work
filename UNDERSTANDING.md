@@ -2608,6 +2608,18 @@ deleted-right convergence field `H1InitialTraceEnergyTendsto`; ordinary
 `InitialTrace` is only a sup-norm right trace and remains too weak for that H1
 energy limit.
 
+Task 67 records the Q3428 audit conclusion in the API: the two H1 endpoint
+fields are now bundled as
+`IntervalChiNegH1InitialContinuity.H1InitialEndpointData`.  It contains exactly
+`H1InitialTraceEnergyTendsto u₀ u T` and
+`H1InitialEnergyCompatibleAtZero u₀ u`; it is not a producer of the deleted-right
+H1 trace.  `IntervalChiNegH1InitialWiring` and
+`IntervalChiNegH1BridgeInitialWiring` add thin `*_initialEndpointData` wrappers
+for the scalar-DI, bounded-before, parametric/spectral, and component-continuity
+routes by projecting those two fields into the existing
+`*_initialTraceEnergy` theorem family.  The hard frontier remains a genuine H1
+trace theorem producing `H1InitialTraceEnergyTendsto`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
