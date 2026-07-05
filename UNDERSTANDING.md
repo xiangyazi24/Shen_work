@@ -2853,6 +2853,24 @@ left endpoints, and the new initial-window integrability field handles the
 zero endpoint.  The bounded-before wrapper then reuses the existing
 `boundedBefore_of_H1supBoundDI_classicalChemRep_before` route unchanged.
 
+Task 82 mirrors the P3/Moser initial-window pattern at the H¹ level.  The new
+`H1EnergyDerivativeInitialWindowIntegrableBefore` is a scalar near-zero input:
+`deriv (H1energy u)` is interval-integrable on every zero-starting window before
+`T`.  The adapter
+`H1IdentityRHSInitialWindowIntegrableBefore_of_deriv_initialWindow` uses the H¹
+identity only on `Ioc 0 b` to turn that scalar derivative integrability into
+assembled RHS initial-window integrability; the endpoint value at zero is not
+used.  This keeps route C away from zero-start `lapL2sq` continuity while giving
+future producers a simpler scalar derivative-integrability target.
+The reusable congruence lemmas
+`H1IdentityRHS_intervalIntegrable_of_deriv_eq_on_uIoc` and
+`H1IdentityRHS_intervalIntegrable_of_deriv_eq_on_Ioc` record the reverse
+direction from derivative integrability to explicit-RHS integrability.
+The direct adapter
+`H1IdentityRHSIntegrableBefore_of_componentsStrictBefore_derivInitial` packages
+strict component continuity plus this scalar derivative input straight into the
+landed `H1IdentityRHSIntegrableBefore` interface.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
