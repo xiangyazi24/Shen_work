@@ -2534,6 +2534,22 @@ spatial endpoint equality. Q3415/Q3417 both flag the literal lifted
 honest frontier is a continuous physical representative plus interior equality,
 not a silent closed-endpoint congruence.
 
+Task 63 adds the abstract chemotaxis-divergence representative seam inside
+`IntervalChiNegH1LiftDeriv2Transfer.lean`. The new RHS
+`liftDeriv2PhysicalRHSWithChemRep p u chemRep` replaces the endpoint-bad
+literal lifted chemotaxis-divergence term by an arbitrary closed-slab
+continuous `chemRep`; `H1UxxL1ContBefore_of_classical_chemRep_eq_physicalRHS_interiorEq`
+then combines:
+1. closed-slab continuity of `chemRep`,
+2. interior equality between actual lifted `chemotaxisDiv` and `chemRep`, and
+3. interior equality between `liftDeriv2` and the old physical RHS,
+to produce `H1UxxL1ContBefore`.
+
+This is only an interface reduction. It does not construct the concrete
+`chemRep`, and it does not claim endpoint continuity/equality for the literal
+lifted chemotaxis-divergence term. A concrete representative producer can now
+target the two remaining inputs above without touching the L¹ transfer proof.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

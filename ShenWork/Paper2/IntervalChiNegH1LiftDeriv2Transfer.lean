@@ -34,6 +34,17 @@ abbrev liftDeriv2PhysicalRHS (p : CM2Params)
     intervalDomainLift (u t) x *
       (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α)
 
+/-- Physical strict-slab representative with the chemotaxis-divergence term
+replaced by a closed-slab continuous representative.  The actual chemotaxis
+lift only needs to agree with `chemRep` on the spatial interior for the L¹
+route below. -/
+abbrev liftDeriv2PhysicalRHSWithChemRep (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (chemRep : ℝ → ℝ → ℝ)
+    (t x : ℝ) : ℝ :=
+  liftTimeDeriv u t x + p.χ₀ * chemRep t x -
+    intervalDomainLift (u t) x *
+      (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α)
+
 /-- The physical RHS representative is continuous wherever its three components
 are continuous. -/
 theorem liftDeriv2PhysicalRHS_continuousOn_of_components
@@ -57,6 +68,26 @@ theorem liftDeriv2PhysicalRHS_continuousOn_of_components
     ContinuousOn (Function.uncurry (liftDeriv2PhysicalRHS p u v)) s := by
   simpa [liftDeriv2PhysicalRHS, Function.uncurry] using
     (hTime.add (hChem.const_mul p.χ₀)).sub hReact
+
+/-- The chem-representative RHS is continuous wherever its time derivative,
+chem representative, and reaction components are continuous. -/
+theorem liftDeriv2PhysicalRHSWithChemRep_continuousOn_of_components
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {chemRep : ℝ → ℝ → ℝ} {s : Set (ℝ × ℝ)}
+    (hTime :
+      ContinuousOn (Function.uncurry (fun t x => liftTimeDeriv u t x)) s)
+    (hChemRep :
+      ContinuousOn (Function.uncurry chemRep) s)
+    (hReact :
+      ContinuousOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift (u t) x *
+              (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α))) s) :
+    ContinuousOn
+      (Function.uncurry (liftDeriv2PhysicalRHSWithChemRep p u chemRep)) s := by
+  simpa [liftDeriv2PhysicalRHSWithChemRep, Function.uncurry] using
+    (hTime.add (hChemRep.const_mul p.χ₀)).sub hReact
 
 /-- If `liftDeriv2 u` has a continuous strict-slab representative `F`, then the
 current strict-positive-time joint-continuity package follows. -/
@@ -274,6 +305,42 @@ theorem H1UxxL1ContBefore_of_physicalRHS_components_interiorEq
     (hChem (a := a) (b := b) ha hab hbT)
     (hReact (a := a) (b := b) ha hab hbT)
 
+/-- L¹ `u_xx` transfer for a physical RHS that uses a closed-slab continuous
+chemotaxis-divergence representative.  This is the endpoint-insensitive version:
+agreement with `liftDeriv2` is required only on the open spatial interior. -/
+theorem H1UxxL1ContBefore_of_chemRep_components_interiorEq
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {chemRep : ℝ → ℝ → ℝ} {T : ℝ}
+    (hTime : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry (fun t x => liftTimeDeriv u t x))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hChemRep : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry chemRep)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hReact : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift (u t) x *
+              (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α)))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry (liftDeriv2PhysicalRHSWithChemRep p u chemRep))
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_strictSlab_interior_eq_continuous
+    (u := u) (T := T)
+    (F := liftDeriv2PhysicalRHSWithChemRep p u chemRep) ?_ hEqInterior
+  intro a b ha hab hbT
+  exact liftDeriv2PhysicalRHSWithChemRep_continuousOn_of_components
+    (p := p) (u := u) (chemRep := chemRep)
+    (s := Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1)
+    (hTime (a := a) (b := b) ha hab hbT)
+    (hChemRep (a := a) (b := b) ha hab hbT)
+    (hReact (a := a) (b := b) ha hab hbT)
+
 /-- A classical solution supplies strict-slab continuity of `liftTimeDeriv`. -/
 theorem liftTimeDeriv_continuousOn_strictSlab_of_classicalSolution
     {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T a b : ℝ}
@@ -420,20 +487,86 @@ theorem H1UxxL1ContBefore_of_classical_chem_interiorEq_physicalRHS
     exact logisticReaction_continuousOn_strictSlab_of_classicalSolution
       (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
 
+/-- Classical-solution L¹ transfer through a closed-slab continuous
+chemotaxis-divergence representative.  The PDE equality is stated directly
+against the representative RHS, only on the open spatial interior. -/
+theorem H1UxxL1ContBefore_of_classical_chemRep_interiorEq
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {chemRep : ℝ → ℝ → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hChemRep : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry chemRep)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry (liftDeriv2PhysicalRHSWithChemRep p u chemRep))
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_chemRep_components_interiorEq
+    (p := p) (u := u) (chemRep := chemRep) (T := T) ?_ hChemRep ?_
+    hEqInterior
+  · intro a b ha hab hbT
+    exact liftTimeDeriv_continuousOn_strictSlab_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+  · intro a b ha hab hbT
+    exact logisticReaction_continuousOn_strictSlab_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+
+/-- Classical-solution L¹ transfer from the old physical RHS plus an interior
+agreement proof between the actual lifted chemotaxis-divergence term and a
+closed-slab continuous representative. -/
+theorem H1UxxL1ContBefore_of_classical_chemRep_eq_physicalRHS_interiorEq
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {chemRep : ℝ → ℝ → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hChemRep : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry chemRep)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hChemEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift
+              (fun X : intervalDomainPoint =>
+                intervalDomain.chemotaxisDiv p (u t) (v t) X) x))
+        (Function.uncurry chemRep)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1))
+    (hEqPhysicalInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry (liftDeriv2PhysicalRHS p u v))
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_classical_chemRep_interiorEq
+    (p := p) (u := u) (v := v) (chemRep := chemRep) (T := T)
+    hsol hChemRep ?_
+  intro a b ha hab hbT z hz
+  have hphys := hEqPhysicalInterior (a := a) (b := b) ha hab hbT hz
+  have hchem := hChemEqInterior (a := a) (b := b) ha hab hbT hz
+  rcases z with ⟨t, x⟩
+  simp only [Function.uncurry_apply_pair] at hphys hchem ⊢
+  rw [hphys]
+  simp [liftDeriv2PhysicalRHS, liftDeriv2PhysicalRHSWithChemRep, hchem]
+
 section AxiomAudit
 
 #print axioms H1LiftDeriv2JointContinuousBefore_of_strictSlab_eq_continuous
 #print axioms H1UxxL1ContBefore_of_strictSlab_eq_continuous
 #print axioms H1UxxL1ContBefore_of_strictSlab_interior_eq_continuous
 #print axioms liftDeriv2PhysicalRHS_continuousOn_of_components
+#print axioms liftDeriv2PhysicalRHSWithChemRep_continuousOn_of_components
 #print axioms H1LiftDeriv2JointContinuousBefore_of_physicalRHS_components
 #print axioms H1UxxL1ContBefore_of_physicalRHS_components
 #print axioms H1UxxL1ContBefore_of_physicalRHS_components_interiorEq
+#print axioms H1UxxL1ContBefore_of_chemRep_components_interiorEq
 #print axioms liftTimeDeriv_continuousOn_strictSlab_of_classicalSolution
 #print axioms logisticReaction_continuousOn_strictSlab_of_classicalSolution
 #print axioms H1LiftDeriv2JointContinuousBefore_of_classical_chem_eq_physicalRHS
 #print axioms H1UxxL1ContBefore_of_classical_chem_eq_physicalRHS
 #print axioms H1UxxL1ContBefore_of_classical_chem_interiorEq_physicalRHS
+#print axioms H1UxxL1ContBefore_of_classical_chemRep_interiorEq
+#print axioms H1UxxL1ContBefore_of_classical_chemRep_eq_physicalRHS_interiorEq
 
 end AxiomAudit
 
