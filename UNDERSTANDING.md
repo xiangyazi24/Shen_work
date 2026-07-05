@@ -1146,6 +1146,10 @@ Current headline status:
   `H1SupBoundDIDataBefore` wrapper is only a corollary through
   `H1IdentityRHSBoundBefore_of_supBoundDIData`.  It does not yet produce the
   identity/RHS-bound package or the restricted local H1 seed.
+  Follow-up producer `IntervalChiNegH1SupBoundDIProducer` removes one
+  bookkeeping layer by letting callers state the same pointwise sup-bound data
+  with canonical square-root witnesses.  It still assumes the physical split
+  estimates pointwise, so it is not a proof of the identity/RHS-bound package.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
