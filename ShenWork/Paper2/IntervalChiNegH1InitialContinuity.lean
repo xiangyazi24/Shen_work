@@ -42,6 +42,24 @@ def H1InitialEnergyCompatibleAtZero
     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   H1energy u 0 = H1InitialEnergy u₀
 
+/-- Exact equality of the stored zero slice gives the H¹ energy compatibility
+field.  This does not imply deleted-right H¹ energy convergence. -/
+theorem H1InitialEnergyCompatibleAtZero_of_zeroSlice
+    {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hzero : u 0 = u₀) :
+    H1InitialEnergyCompatibleAtZero u₀ u := by
+  simp [H1InitialEnergyCompatibleAtZero, H1InitialEnergy, H1energy, hzero]
+
+/-- Pointwise equality of the stored zero slice gives the H¹ energy
+compatibility field. -/
+theorem H1InitialEnergyCompatibleAtZero_of_zeroSlice_pointwise
+    {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hzero : ∀ x : intervalDomainPoint, u 0 x = u₀ x) :
+    H1InitialEnergyCompatibleAtZero u₀ u :=
+  H1InitialEnergyCompatibleAtZero_of_zeroSlice (funext hzero)
+
 /-- Deleted-right convergence on `(0, T]` plus the stored value at zero gives
 right-continuity on `Ici 0`. -/
 theorem tendsto_nhdsWithin_Ici_zero_of_tendsto_nhdsWithin_Ioc_zero
@@ -109,6 +127,8 @@ theorem H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy
   exact H1energy_continuousOn_before_of_uxxL1Cont hsol hUxxL1 hcont0 ha hab hbT
 
 #print axioms tendsto_nhdsWithin_Ici_zero_of_tendsto_nhdsWithin_Ioc_zero
+#print axioms H1InitialEnergyCompatibleAtZero_of_zeroSlice
+#print axioms H1InitialEnergyCompatibleAtZero_of_zeroSlice_pointwise
 #print axioms H1energy_continuousWithinAt_zero_of_initialTraceEnergy
 #print axioms H1energy_continuousOn_before_of_uxxL1Cont_initialTraceEnergy
 

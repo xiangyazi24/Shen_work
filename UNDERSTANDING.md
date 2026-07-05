@@ -2599,6 +2599,15 @@ identity/RHS package or component-continuity route package, the split
 initial-energy endpoint data, the restricted local H1 seed, and the physical
 sqrt-bound estimates.
 
+Task 66 adds the small zero-slice compatibility bridge in
+`IntervalChiNegH1InitialContinuity`: `u 0 = u₀` (or pointwise equality of the
+stored zero slice) implies `H1InitialEnergyCompatibleAtZero u₀ u` by unfolding
+`H1energy` and `H1InitialEnergy`.  This is useful for mild/finite routes that
+already carry exact zero-slice equality, but it deliberately does not prove the
+deleted-right convergence field `H1InitialTraceEnergyTendsto`; ordinary
+`InitialTrace` is only a sup-norm right trace and remains too weak for that H1
+energy limit.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
