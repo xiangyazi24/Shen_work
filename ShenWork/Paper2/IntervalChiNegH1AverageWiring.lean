@@ -198,10 +198,47 @@ theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
   exact intervalDomain_boundedBefore_of_paperPositive_H1local_average
     hbounded ha hu₀ hT hsol htrace hfrontier hDI.hA hlocal havg
 
+/-- Restricted-time paper-positive H¹ scalar-DI wrapper.
+
+This uses the windowed 1D bypass directly, so the local H¹ start is only
+required on the actual solution interval `τ < T`. -/
+theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {A B Ylocal : ℝ}
+    (hDI : H1ScalarDIOnBefore u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hmass : IntervalDomainLogisticMassBound params T u :=
+    intervalDomainLogisticMassBound_of_proposition24
+      (ShenWork.Paper2.intervalDomain_Proposition_2_4 params)
+      ha hbounded.2.1 hu₀.toPositive hT hsol htrace
+  have habsorbing :
+      IntervalDomainL2AbsorbingDifferentialInequalityResult params T u :=
+    intervalDomain_absorbingDifferentialL2_of_mass hbounded hsol hmass
+  have hLp2 : LpPowerBoundedBefore intervalDomain 2 T u :=
+    intervalDomainL2PowerBoundedBefore_of_absorbingDifferentialInequality
+      hsol habsorbing hfrontier
+  rcases intervalDomain_L2energy_bound_of_Lp2 hsol hLp2 with
+    ⟨Y_L2, hL2⟩
+  exact intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_and_Lp2
+    hsol hbounded.2.2.1 habsorbing hfrontier hL2 hDI.hA
+    hlocal (H1_avg_of_scalarDI_before hDI) hLp2
+
 #print axioms H1Window_subinterval_le
 #print axioms H1_backward_bound_of_scalarDI_before
 #print axioms H1_avg_of_backwards_bound
 #print axioms H1_avg_of_scalarDI_before
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
+#print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
 
 end ShenWork.Paper2.IntervalChiNegH1AverageWiring

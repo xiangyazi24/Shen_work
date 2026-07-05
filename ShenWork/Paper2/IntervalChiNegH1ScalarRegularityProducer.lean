@@ -17,6 +17,7 @@ open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
+open ShenWork.Paper2.IntervalChiNegH1AverageWiring
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 
 noncomputable section
@@ -82,8 +83,26 @@ theorem H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt
     (H1energy_continuousOn_before_of_uxxL1Cont hsol hUxxL1 hcont0)
     hderivInt
 
+/-- Direct scalar-DI producer after the H¹ continuity bridge, still carrying
+derivative-integrability and the pointwise identity/RHS-bound package. -/
+theorem H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont
+    {p : CM2Params} {T A B : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hderivInt : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      IntervalIntegrable (fun r => deriv (H1energy u) r) volume a b)
+    (hId : H1IdentityRHSBoundBefore p u T A B) :
+    H1ScalarDIOnBefore u T A B :=
+  H1ScalarDIOnBefore_of_identityRHSBound
+    (H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt
+      hsol hUxxL1 hcont0 hderivInt)
+    hId
+
 #print axioms H1energy_continuousOn_before_of_uxxL1Cont
 #print axioms H1ScalarRegularityBefore_of_hcont_and_hderivInt
 #print axioms H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt
+#print axioms H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont
 
 end ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer

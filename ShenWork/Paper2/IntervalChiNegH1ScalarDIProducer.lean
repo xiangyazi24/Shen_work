@@ -157,6 +157,37 @@ theorem intervalDomain_boundedBefore_of_paperPositive_H1supBoundDI_local
   exact intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
     hbounded ha hu₀ hT hsol htrace hfrontier hDI hlocal
 
+/-- Restricted-time variant of
+`intervalDomain_boundedBefore_of_paperPositive_H1supBoundDI_local`.
+
+The local H¹ start is only required where the solution is in force (`τ < T`);
+the L²/window inputs are produced internally by the 1D bypass. -/
+theorem intervalDomain_boundedBefore_of_paperPositive_H1supBoundDI_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hreg : H1ScalarRegularityBefore u T)
+    (hdata : H1SupBoundDIDataBefore params u T V₁ V₂ M L)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  let A : ℝ := 2 * (-params.χ₀) ^ 2 * V₁ ^ 2 + 2 * L
+  let B : ℝ := (-params.χ₀) ^ 2 * M ^ 2 * V₂ ^ 2
+  have hId : H1IdentityRHSBoundBefore params u T A B := by
+    simpa [A, B] using H1IdentityRHSBoundBefore_of_supBoundDIData hdata
+  have hDI : H1ScalarDIOnBefore u T A B :=
+    H1ScalarDIOnBefore_of_identityRHSBound hreg hId
+  exact intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier hDI hlocal
+
 /-- Upstream `u_xx` L¹-continuity shape for the finite-difference H¹ identity
 producer.  This file records the interface only; it does not prove it. -/
 def H1UxxL1ContBefore
@@ -183,6 +214,7 @@ theorem H1EnergyIdentity_of_classicalSolution_and_H1UxxL1ContBefore
 #print axioms H1ScalarDIOnBefore_of_identityRHSBound
 #print axioms H1IdentityRHSBoundBefore_of_supBoundDIData
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1supBoundDI_local
+#print axioms intervalDomain_boundedBefore_of_paperPositive_H1supBoundDI_local_before
 #print axioms H1EnergyIdentity_of_classicalSolution_and_H1UxxL1ContBefore
 
 end ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
