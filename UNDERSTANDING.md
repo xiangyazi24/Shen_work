@@ -1166,7 +1166,12 @@ Current headline status:
   `H1SupBoundSqrtRHSIntegrableBefore`.  This is only record assembly plus calls
   to `H1EnergyIdentity_of_parametric_and_IBP` or `H1EnergyIdentity_of_spectral`;
   it still carries the physical estimates and RHS interval-integrability as
-  hypotheses.
+  hypotheses.  The same bridge now also provides
+  `H1IdentityRHSComponentsContinuousBefore` plus parametric/spectral
+  component-continuity variants, replacing raw RHS interval-integrability by
+  closed-window continuity of `lapL2sq`, `taxisX`, `uvxx`, and `reactX`.  This
+  keeps `H1UxxL1ContBefore`, time-zero H1 continuity, the restricted local H1
+  seed, and the actual physical estimates as explicit frontiers.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
