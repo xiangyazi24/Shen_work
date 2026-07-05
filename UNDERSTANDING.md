@@ -2897,6 +2897,20 @@ sqrt/RHS integrability packages.  This is still an honest target interface:
 the analytic component continuity, estimates, and PDE substitution equality
 for the physical formulas remain to be produced upstream.
 
+Task 85 standardizes the derivative-window side of route C in
+`IntervalChiNegH1DerivativeWindowProducer`.  The new
+`H1EnergyDerivativePositiveStartWindowIntegrableBefore` is produced from strict
+component continuity plus the pointwise H¹ identity; it only uses windows with
+positive left endpoint.  The theorem
+`H1EnergyDerivativeWindowIntegrableBefore_of_initial_and_positiveStart` then
+combines that positive-start package with Task 82's zero-start scalar input
+`H1EnergyDerivativeInitialWindowIntegrableBefore` to recover full
+pre-horizon derivative-window integrability.  The scalar regularity adapter
+`H1ScalarRegularityBefore_of_uxxL1Cont_componentsStrictBefore_initial` feeds
+this split into the existing `H1ScalarRegularityBefore` interface without using
+`H1IdentityRHSIntegrableBefore`, bounded-before, or zero-start `lapL2sq`
+continuity.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
