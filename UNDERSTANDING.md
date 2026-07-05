@@ -2762,6 +2762,21 @@ Bridge component-continuity package.  The analytic producer may now target
 either the minimal existential single-slab package or the stronger
 before-`T` family package.
 
+Q3439 independently audited the next producer route.  It rejects deriving the
+zero-time lap frontier from ordinary classical-solution data, H1 endpoint data,
+or `H1InitialTraceEnergyTendsto`; those would smuggle in H2/lap trace.  It
+recommends the same physical-representative pattern used for the positive-time
+`u_xx` frontier: construction-level mild/Picard data should produce a
+zero-start continuous physical RHS representative, plus interior equality to
+`liftDeriv2`.  Task 75 adds only the honest bridge layer in
+`IntervalChiNegH1ZeroSlabPhysicalRHS`: a continuous zero-start representative
+or the concrete `liftDeriv2PhysicalRHSWithChemRep` component package now
+produces `H1LiftDeriv2ZeroSlabRepresentative` /
+`H1LiftDeriv2HasZeroSlabRepresentative`, and the before-`T` component wrapper
+`H1LiftDeriv2ZeroSlabRepresentativeBefore_of_zeroStartPhysicalRHS_components`
+feeds the stronger endpoint package.  No theorem yet produces those zero-start
+continuity/equality inputs from the construction data.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
