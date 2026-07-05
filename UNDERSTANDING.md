@@ -2506,9 +2506,19 @@ continuous strict-slab representative `F` and an `EqOn` proof that `F` agrees
 with `liftDeriv2 u` on each strict slab. The file also immediately routes this
 to `H1UxxL1ContBefore`.
 
-This is not yet the physical PDE RHS producer. The endpoint and physical
-chemotaxis-divergence identities remain explicit in the future `EqOn`/`F`
-inputs.
+Task 60 extends that seam to the physical PDE RHS shape. It defines
+`liftDeriv2PhysicalRHS p u v = u_t + χ₀ chemotaxisDiv - reaction`, proves this
+RHS is continuous on any set from continuity of its time / chemotaxis /
+reaction components, and packages strict-slab component continuity plus an
+explicit `EqOn` proof into both `H1LiftDeriv2JointContinuousBefore` and
+`H1UxxL1ContBefore`.
+
+It also proves that an `IsPaper2ClassicalSolution` supplies the time-derivative
+and logistic-reaction component continuity on every strict slab. The remaining
+upstream inputs for this H1 route are now exactly: strict-slab continuity of
+the lifted `chemotaxisDiv` term, and the `EqOn` proof identifying `liftDeriv2`
+with the physical RHS on closed spatial slabs. This is still not the
+chemotaxis-divergence or endpoint-equality producer.
 
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
