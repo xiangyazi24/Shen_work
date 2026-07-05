@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
 import ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity
+import ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 
 /-!
 # Zero-start physical RHS bridge for the H¹ lap component
@@ -20,6 +21,7 @@ open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
 open ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
 open ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity
+open ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 
 noncomputable section
 
@@ -187,6 +189,67 @@ theorem
         (hReact (b := b) hb hbT))
     hEqInterior
 
+/-- Concrete single-slab wrapper using the physical chemotaxis-divergence
+representative as the `chemRep` component. -/
+theorem H1LiftDeriv2HasZeroSlabRep_of_chemPhysical_components
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {b : ℝ}
+    (hb0 : 0 < b)
+    (hTime : ContinuousOn
+      (Function.uncurry (fun t x => liftTimeDeriv u t x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hChem : ContinuousOn
+      (Function.uncurry (liftChemotaxisDivPhysicalRep p u v))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hReact : ContinuousOn
+      (Function.uncurry
+        (fun t x =>
+          intervalDomainLift (u t) x *
+            (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α)))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior :
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry
+          (liftDeriv2PhysicalRHSWithChemRep p u
+            (liftChemotaxisDivPhysicalRep p u v)))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1LiftDeriv2HasZeroSlabRepresentative u :=
+  H1LiftDeriv2HasZeroSlabRepresentative_of_zeroStartPhysicalRHS_components
+    (p := p) (u := u) (chemRep := liftChemotaxisDivPhysicalRep p u v)
+    hb0 hTime hChem hReact hEqInterior
+
+/-- Concrete before-`T` wrapper using the physical chemotaxis-divergence
+representative as the `chemRep` component. -/
+theorem H1LiftDeriv2ZeroSlabRepBefore_of_chemPhysical_components
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hTime : ∀ {b : ℝ}, 0 ≤ b → b < T →
+      ContinuousOn (Function.uncurry (fun t x => liftTimeDeriv u t x))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hChem : ∀ {b : ℝ}, 0 ≤ b → b < T →
+      ContinuousOn
+        (Function.uncurry (liftChemotaxisDivPhysicalRep p u v))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hReact : ∀ {b : ℝ}, 0 ≤ b → b < T →
+      ContinuousOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift (u t) x *
+              (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α)))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {b : ℝ}, 0 ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry
+          (liftDeriv2PhysicalRHSWithChemRep p u
+            (liftChemotaxisDivPhysicalRep p u v)))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1LiftDeriv2ZeroSlabRepresentativeBefore u T
+      (liftDeriv2PhysicalRHSWithChemRep p u
+        (liftChemotaxisDivPhysicalRep p u v)) :=
+  H1LiftDeriv2ZeroSlabRepresentativeBefore_of_zeroStartPhysicalRHS_components
+    (p := p) (u := u) (chemRep := liftChemotaxisDivPhysicalRep p u v)
+    hTime hChem hReact hEqInterior
+
 section AxiomAudit
 
 #print axioms H1LiftDeriv2ZeroSlabRepresentative_of_zeroStartRep
@@ -197,6 +260,8 @@ section AxiomAudit
 #print axioms H1LiftDeriv2ZeroSlabRepresentativeBefore_of_zeroStartPhysicalRHSRep
 #print axioms
   H1LiftDeriv2ZeroSlabRepresentativeBefore_of_zeroStartPhysicalRHS_components
+#print axioms H1LiftDeriv2HasZeroSlabRep_of_chemPhysical_components
+#print axioms H1LiftDeriv2ZeroSlabRepBefore_of_chemPhysical_components
 
 end AxiomAudit
 

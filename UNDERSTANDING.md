@@ -1177,8 +1177,8 @@ Current headline status:
   `H1IdentityRHSComponentsContinuousBefore` plus parametric/spectral
   component-continuity variants, replacing raw RHS interval-integrability by
   closed-window continuity of `lapL2sq`, `taxisX`, `uvxx`, and `reactX`.  This
-  keeps strict-slab joint continuity of `liftDeriv2`, the restricted local H1
-  seed, and the actual physical estimates as explicit frontiers.  The raw
+  keeps strict-slab joint continuity of `liftDeriv2` and the actual physical
+  estimates as explicit frontiers at the bridge layer.  The raw
   time-zero H1 continuity input is further reduced in
   `IntervalChiNegH1InitialContinuity`: deleted-right convergence of
   `H1energy u` to `H1InitialEnergy u₀` on `Ioc 0 T`, plus explicit
@@ -1192,9 +1192,11 @@ Current headline status:
   `H1InitialEnergyCompatibleAtZero` instead of a raw `hcont0`.  The bridge
   follow-up `IntervalChiNegH1BridgeInitialWiring` does the same for the
   route-specific parametric/spectral H1 bridge packages, including the
-  component-continuity variants.  It still leaves the route packages,
-  restricted local H1 seed, strict-slab `liftDeriv2` continuity, and endpoint
-  trace/compatibility as explicit inputs.
+  component-continuity variants.  Its current `_before` wrappers no longer
+  require a manual restricted local H1 seed: scalar-DI local-start production is
+  internal.  They still leave the route packages, strict-slab `liftDeriv2`
+  continuity when required by the chosen route, and endpoint trace/compatibility
+  as explicit inputs.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
@@ -2762,20 +2764,24 @@ Bridge component-continuity package.  The analytic producer may now target
 either the minimal existential single-slab package or the stronger
 before-`T` family package.
 
-Q3439 independently audited the next producer route.  It rejects deriving the
-zero-time lap frontier from ordinary classical-solution data, H1 endpoint data,
-or `H1InitialTraceEnergyTendsto`; those would smuggle in H2/lap trace.  It
-recommends the same physical-representative pattern used for the positive-time
-`u_xx` frontier: construction-level mild/Picard data should produce a
-zero-start continuous physical RHS representative, plus interior equality to
-`liftDeriv2`.  Task 75 adds only the honest bridge layer in
+Q3439 and Q3442 independently audited the next producer route.  They reject
+deriving the zero-time lap frontier from ordinary classical-solution data, H1
+endpoint data, or `H1InitialTraceEnergyTendsto`; those would smuggle in H2/lap
+trace.  They recommend the same physical-representative pattern used for the
+positive-time `u_xx` frontier: construction-level mild/Picard data should
+produce a zero-start continuous physical RHS representative, plus interior
+equality to `liftDeriv2`.  Task 75 adds only the honest bridge layer in
 `IntervalChiNegH1ZeroSlabPhysicalRHS`: a continuous zero-start representative
 or the concrete `liftDeriv2PhysicalRHSWithChemRep` component package now
 produces `H1LiftDeriv2ZeroSlabRepresentative` /
 `H1LiftDeriv2HasZeroSlabRepresentative`, and the before-`T` component wrapper
 `H1LiftDeriv2ZeroSlabRepresentativeBefore_of_zeroStartPhysicalRHS_components`
-feeds the stronger endpoint package.  No theorem yet produces those zero-start
-continuity/equality inputs from the construction data.
+feeds the stronger endpoint package.  The concrete
+`liftChemotaxisDivPhysicalRep` wrappers
+`H1LiftDeriv2HasZeroSlabRep_of_chemPhysical_components` and
+`H1LiftDeriv2ZeroSlabRepBefore_of_chemPhysical_components` name the exact next
+physical target.  No theorem yet produces those zero-start continuity/equality
+inputs from the construction data.
 
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
