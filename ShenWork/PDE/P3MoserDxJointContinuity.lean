@@ -405,3 +405,254 @@ theorem intervalDomain_dx_v_jointlyContinuous
 #print axioms intervalDomain_u_logisticPrimitive_jointContinuous
 #print axioms intervalDomain_dx_v_eq_reactionPrimitive
 #print axioms intervalDomain_dx_v_jointlyContinuous
+
+/-- Joint continuity of the variable-upper-limit primitive of the closed-slab
+time derivative field in the integrated `u_x` identity. -/
+theorem intervalDomain_u_timeDeriv_primitive_jointContinuous
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ContinuousOn
+      (fun z : ℝ × ℝ =>
+        ∫ s in (0 : ℝ)..z.2,
+          deriv (fun r : ℝ => intervalDomainLift (u r) s) z.1)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hreg := hsol.regularity
+  change intervalDomainClassicalRegularity T u v at hreg
+  exact continuousOn_parametric_primitive_of_continuousOn_Ioo_Icc
+    (by
+      simpa [Function.uncurry] using hreg.2.2.2.2.2.1.1)
+
+/-- Closed-slab joint continuity of the chemotactic flux
+`u v_x / (1 + v)^β`. -/
+theorem intervalDomain_chemotaxis_flux_jointContinuous
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ContinuousOn
+      (fun z : ℝ × ℝ =>
+        intervalDomainLift (u z.1) z.2 *
+          deriv (intervalDomainLift (v z.1)) z.2 /
+            (1 + intervalDomainLift (v z.1) z.2) ^ params.β)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hreg := hsol.regularity
+  change intervalDomainClassicalRegularity T u v at hreg
+  have hu_cont :
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hreg.2.2.2.2.2.2.1
+  have hv_cont :
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hreg.2.2.2.2.2.2.2
+  have hvx_cont :
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (v t)) x))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    intervalDomain_dx_v_jointlyContinuous (params := params)
+      (T := T) (u := u) (v := v) hsol
+  have hbase_cont :
+      ContinuousOn
+        (fun z : ℝ × ℝ =>
+          1 +
+            Function.uncurry
+              (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z)
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.add hv_cont
+  have hbase_pos :
+      ∀ z ∈ (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1),
+        0 <
+          1 +
+            Function.uncurry
+              (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z := by
+    intro z hz
+    rcases z with ⟨t, x⟩
+    rcases hz with ⟨ht, hx⟩
+    simp only [Function.uncurry_apply_pair]
+    rw [intervalDomainLift, dif_pos hx]
+    have hv_nonneg : 0 ≤ v t ⟨x, hx⟩ :=
+      hsol.v_nonneg ht.1 ht.2
+    linarith
+  have hden_cont :
+      ContinuousOn
+        (fun z : ℝ × ℝ =>
+          (1 +
+            Function.uncurry
+              (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z) ^
+            params.β)
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hbase_cont.rpow_const
+      (fun z hz => Or.inl (ne_of_gt (hbase_pos z hz)))
+  have hden_ne :
+      ∀ z ∈ (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1),
+        (1 +
+          Function.uncurry
+            (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z) ^
+            params.β ≠ 0 := by
+    intro z hz
+    exact ne_of_gt (Real.rpow_pos_of_pos (hbase_pos z hz) _)
+  simpa [Function.uncurry] using
+    (hu_cont.mul hvx_cont).div hden_cont hden_ne
+
+#print axioms intervalDomain_u_timeDeriv_primitive_jointContinuous
+#print axioms intervalDomain_chemotaxis_flux_jointContinuous
+
+/-- The closed-interval representative of `u_x` has zero left endpoint value. -/
+theorem intervalDomain_dxWithin_u_left_neumann
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    derivWithin (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) 0 = 0 := by
+  let X0 : intervalDomain.Point := ⟨0, ⟨le_rfl, by norm_num⟩⟩
+  have hbd : X0 ∈ intervalDomain.boundary := by
+    change (X0.1 : ℝ) = 0 ∨ (X0.1 : ℝ) = 1
+    left
+    rfl
+  have hN := (hsol.neumann ht.1 ht.2 hbd).1
+  have hnormal :
+      derivWithin (intervalDomainLift (u t)) (Set.Ici (0 : ℝ)) 0 = 0 := by
+    simpa [intervalDomain, intervalDomainNormalDeriv, X0] using hN
+  have hsets :
+      (Set.Icc (0 : ℝ) 1 : Set ℝ) =ᶠ[𝓝 (0 : ℝ)] Set.Ici (0 : ℝ) := by
+    filter_upwards [Iio_mem_nhds (show (0 : ℝ) < 1 by norm_num)] with y hy
+    apply propext
+    constructor
+    · intro h
+      exact h.1
+    · intro h
+      exact ⟨h, le_of_lt hy⟩
+  rwa [derivWithin_congr_set hsets]
+
+/-- The closed-interval representative of `u_x` has zero right endpoint value. -/
+theorem intervalDomain_dxWithin_u_right_neumann
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    derivWithin (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) 1 = 0 := by
+  let X1 : intervalDomain.Point := ⟨1, ⟨by norm_num, le_rfl⟩⟩
+  have hbd : X1 ∈ intervalDomain.boundary := by
+    change (X1.1 : ℝ) = 0 ∨ (X1.1 : ℝ) = 1
+    right
+    rfl
+  have hN := (hsol.neumann ht.1 ht.2 hbd).1
+  have hnormal :
+      derivWithin (intervalDomainLift (u t)) (Set.Iic (1 : ℝ)) 1 = 0 := by
+    simpa [intervalDomain, intervalDomainNormalDeriv, X1] using hN
+  have hsets :
+      (Set.Icc (0 : ℝ) 1 : Set ℝ) =ᶠ[𝓝 (1 : ℝ)] Set.Iic (1 : ℝ) := by
+    filter_upwards [Ioi_mem_nhds (show (0 : ℝ) < 1 by norm_num)] with y hy
+    apply propext
+    constructor
+    · intro h
+      exact h.2
+    · intro h
+      exact ⟨le_of_lt hy, h⟩
+  rwa [derivWithin_congr_set hsets]
+
+/-- Pointwise FTC bridge: on the closed spatial interval, `u_x` is the
+primitive of the lifted second spatial derivative. -/
+theorem intervalDomain_dx_u_eq_laplacianPrimitive
+    {params : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (intervalDomainLift (u t)) x =
+      ∫ s in (0 : ℝ)..x,
+        deriv (fun y : ℝ => deriv (intervalDomainLift (u t)) y) s := by
+  classical
+  rcases hx with ⟨hx0, hx1⟩
+  by_cases hx_eq0 : x = 0
+  · subst x
+    simp [intervalDomain_dx_u_left_neumann hsol ht]
+  have hxpos : 0 < x := lt_of_le_of_ne hx0 (Ne.symm hx_eq0)
+  let W : ℝ → ℝ :=
+    fun y => derivWithin (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) y
+  have hreg := hsol.regularity
+  change intervalDomainClassicalRegularity T u v at hreg
+  have hC2u : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    (hreg.2.2.2.2.1 t ht).1.1
+  have hWc1 : ContDiffOn ℝ 1 W (Set.Icc (0 : ℝ) 1) := by
+    simpa [W] using
+      hC2u.derivWithin (uniqueDiffOn_Icc (show (0 : ℝ) < 1 by norm_num))
+        (by norm_num)
+  have hWc1_x : ContDiffOn ℝ 1 W (Set.Icc (0 : ℝ) x) :=
+    hWc1.mono (by
+      intro y hy
+      exact ⟨hy.1, le_trans hy.2 hx1⟩)
+  have hW_cont : ContinuousOn W (Set.Icc (0 : ℝ) x) :=
+    hWc1_x.continuousOn
+  have hW_deriv :
+      ∀ y ∈ Set.Ioo (0 : ℝ) x, HasDerivAt W (deriv W y) y := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) x := ⟨hy.1.le, hy.2.le⟩
+    have hdiff : DifferentiableAt ℝ W y :=
+      ((hWc1_x y hyIcc).contDiffAt (Icc_mem_nhds hy.1 hy.2)).differentiableAt
+        one_ne_zero
+    exact hdiff.hasDerivAt
+  have hW_derivWithin_cont :
+      ContinuousOn (derivWithin W (Set.Icc (0 : ℝ) x)) (Set.Icc (0 : ℝ) x) :=
+    (hWc1_x.derivWithin (m := 0) (uniqueDiffOn_Icc hxpos) (by norm_num)).continuousOn
+  have hW_derivWithin_int :
+      IntervalIntegrable (derivWithin W (Set.Icc (0 : ℝ) x)) volume (0 : ℝ) x :=
+    hW_derivWithin_cont.intervalIntegrable_of_Icc hxpos.le
+  have hW_deriv_int : IntervalIntegrable (deriv W) volume (0 : ℝ) x := by
+    refine hW_derivWithin_int.congr_ae ?_
+    simp only [Set.uIoc_of_le hxpos.le]
+    rw [← Measure.restrict_congr_set Ioo_ae_eq_Ioc]
+    filter_upwards [self_mem_ae_restrict measurableSet_Ioo] with y hy
+    exact derivWithin_of_mem_nhds (Icc_mem_nhds hy.1 hy.2)
+  have hFTC :
+      ∫ s in (0 : ℝ)..x, deriv W s = W x - W 0 :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le hxpos.le hW_cont
+      hW_deriv hW_deriv_int
+  have hcongr :
+      (∫ s in (0 : ℝ)..x,
+          deriv (fun y : ℝ => deriv (intervalDomainLift (u t)) y) s)
+        = ∫ s in (0 : ℝ)..x, deriv W s := by
+    refine intervalIntegral.integral_congr_ae ?_
+    rw [ae_uIoc_iff]
+    constructor
+    · filter_upwards [(Ioo_ae_eq_Ioc (a := (0 : ℝ)) (b := x) :
+          Set.Ioo (0 : ℝ) x =ᶠ[ae volume] Set.Ioc (0 : ℝ) x)]
+        with y hyEq hyIoc
+      have hy : y ∈ Set.Ioo (0 : ℝ) x := by
+        exact Eq.mpr hyEq hyIoc
+      have hy01 : y ∈ Set.Ioo (0 : ℝ) 1 := ⟨hy.1, lt_of_lt_of_le hy.2 hx1⟩
+      have hWev :
+          W =ᶠ[𝓝 y] fun z : ℝ => deriv (intervalDomainLift (u t)) z := by
+        filter_upwards [IsOpen.mem_nhds isOpen_Ioo hy01] with z hz
+        have hzsets : Set.Icc (0 : ℝ) 1 ∈ 𝓝 z := Icc_mem_nhds hz.1 hz.2
+        simp [W, derivWithin_of_mem_nhds hzsets]
+      exact (hWev.deriv_eq).symm
+    · filter_upwards with y hy
+      have hyfalse : False := by
+        rcases hy with ⟨hyx, hy0⟩
+        linarith
+      exact False.elim hyfalse
+  have hW0 : W 0 = 0 := by
+    simpa [W] using intervalDomain_dxWithin_u_left_neumann
+      (params := params) (T := T) (u := u) (v := v) hsol ht
+  have hWx : W x = deriv (intervalDomainLift (u t)) x := by
+    by_cases hx_eq1 : x = 1
+    · subst x
+      have hW1 : W 1 = 0 := by
+        simpa [W] using intervalDomain_dxWithin_u_right_neumann
+          (params := params) (T := T) (u := u) (v := v) hsol ht
+      have hD1 : deriv (intervalDomainLift (u t)) 1 = 0 :=
+        (hreg.2.2.2.2.1 t ht).1.2.2
+      simp [hW1, hD1]
+    · have hxlt : x < 1 := lt_of_le_of_ne hx1 hx_eq1
+      have hsets : Set.Icc (0 : ℝ) 1 ∈ 𝓝 x := Icc_mem_nhds hxpos hxlt
+      simp [W, derivWithin_of_mem_nhds hsets]
+  rw [hcongr, hFTC, hWx, hW0, sub_zero]
+
+#print axioms intervalDomain_dxWithin_u_left_neumann
+#print axioms intervalDomain_dxWithin_u_right_neumann
+#print axioms intervalDomain_dx_u_eq_laplacianPrimitive
