@@ -2620,6 +2620,18 @@ routes by projecting those two fields into the existing
 `*_initialTraceEnergy` theorem family.  The hard frontier remains a genuine H1
 trace theorem producing `H1InitialTraceEnergyTendsto`.
 
+Task 68 strengthens the positive-time lap component continuity seam without
+claiming any time-zero endpoint.  `IntervalChiNegH1LapComponentContinuity` now
+has
+`lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous` and its
+strict-window family version: a closed-slab continuous representative `F` plus
+interior `EqOn` with `liftDeriv2 u` implies continuity of
+`τ ↦ lapL2sq u τ` on strict positive-time closed windows.  This mirrors the L1
+`u_xx` transfer and avoids requiring equality at spatial endpoints.  It still
+does not fill the current `H1IdentityRHSComponentsContinuousBefore.lap_cont`
+field globally, because that record asks for windows with `0 ≤ a`, including
+`a = 0`; the landed theorem only covers `0 < a`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

@@ -41,6 +41,49 @@ theorem lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
     continuousOn_intervalIntegral_zero_one_of_continuousOn_Icc_prod hFcont
   simpa [F, lapL2sq, liftDeriv2] using hint
 
+/-- A continuous closed-slab representative that agrees with `liftDeriv2` on
+the open spatial interior also gives `lapL2sq` continuity.  Endpoint equality
+is unnecessary because the endpoint mismatch is ignored by interval-integral
+a.e. congruence. -/
+theorem lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous
+    {u : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ} {a b : ℝ}
+    (hFcont :
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior :
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b) := by
+  let G : ℝ → ℝ := fun τ => ∫ x in (0 : ℝ)..1, (F τ x) ^ 2
+  have hFsq_cont :
+      ContinuousOn (Function.uncurry (fun τ x => (F τ x) ^ 2))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1) := by
+    simpa [Function.uncurry] using hFcont.pow 2
+  have hGcont : ContinuousOn G (Set.Icc a b) := by
+    have hint :=
+      continuousOn_intervalIntegral_zero_one_of_continuousOn_Icc_prod
+        hFsq_cont
+    simpa [G] using hint
+  refine hGcont.congr ?_
+  intro τ hτ
+  dsimp [G]
+  change
+    (∫ x in (0 : ℝ)..1, (liftDeriv2 u τ x) ^ 2) =
+      ∫ x in (0 : ℝ)..1, (F τ x) ^ 2
+  refine intervalIntegral.integral_congr_ae ?_
+  have hne1 : ∀ᵐ x : ℝ ∂volume, x ≠ (1 : ℝ) := by
+    rw [MeasureTheory.ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  filter_upwards [hne1] with x hx_ne1 hxmem
+  rw [Set.uIoc_of_le zero_le_one] at hxmem
+  have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 :=
+    ⟨hxmem.1, lt_of_le_of_ne hxmem.2 hx_ne1⟩
+  have hEqτ := hEqInterior (x := (τ, x)) (Set.mem_prod.mpr ⟨hτ, hxIoo⟩)
+  simp only [Function.uncurry_apply_pair] at hEqτ
+  exact congrArg (fun y : ℝ => y ^ 2) hEqτ
+
 /-- The scalar strict-slab regularity package gives `lapL2sq` continuity on
 every strict closed time window `[a,b] ⊂ (0,T)`. -/
 theorem lapL2sq_continuousOn_strictWindow_of_liftDeriv2_jointContinuousBefore
@@ -51,5 +94,29 @@ theorem lapL2sq_continuousOn_strictWindow_of_liftDeriv2_jointContinuousBefore
   intro a b ha hab hbT
   exact lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
     (h.cont ha hab hbT)
+
+/-- Strict-window version of
+`lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous`. -/
+theorem lapL2sq_continuousOn_strictWindow_of_strictSlab_interior_eq_continuous
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ} {F : ℝ → ℝ → ℝ}
+    (hF : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b) := by
+  intro a b ha hab hbT
+  exact lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous
+    (hF (a := a) (b := b) ha hab hbT)
+    (hEqInterior (a := a) (b := b) ha hab hbT)
+
+#print axioms lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
+#print axioms lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous
+#print axioms lapL2sq_continuousOn_strictWindow_of_liftDeriv2_jointContinuousBefore
+#print axioms lapL2sq_continuousOn_strictWindow_of_strictSlab_interior_eq_continuous
 
 end ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity
