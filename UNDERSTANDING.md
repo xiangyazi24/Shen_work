@@ -1155,6 +1155,18 @@ Current headline status:
   RHS-integrability side.  An existential-only normalizer remains available for
   later pointwise estimates, but this still assumes the physical split estimates
   pointwise, so it is not a proof of the identity/RHS-bound package.
+  Follow-up producer `IntervalChiNegH1RHSIntegrabilityProducer` reduces the
+  explicit RHS-integrability package to closed-window continuity of the
+  assembled RHS, with a component-continuity helper for `lapL2sq`, `taxisX`,
+  `uvxx`, and `reactX`.  It does not prove those component continuity facts.
+  Follow-up bridge `IntervalChiNegH1Bridge` factors out the shared
+  `H1SqrtTermBoundsBefore` estimate package and adds route-specific wrappers
+  from the parametric assembly inputs (`hpar`/`hsub`) and the spectral assembly
+  inputs (`hParsevalGrad`/`hder`/`hval`) into
+  `H1SupBoundSqrtRHSIntegrableBefore`.  This is only record assembly plus calls
+  to `H1EnergyIdentity_of_parametric_and_IBP` or `H1EnergyIdentity_of_spectral`;
+  it still carries the physical estimates and RHS interval-integrability as
+  hypotheses.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption

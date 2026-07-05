@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
+import ShenWork.Paper2.IntervalChiNegH1RHSIntegrabilityProducer
 
 /-!
 # H¹ sup-bound DI producer
@@ -17,6 +17,7 @@ open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 open ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
+open ShenWork.Paper2.IntervalChiNegH1RHSIntegrabilityProducer
 
 noncomputable section
 
@@ -171,6 +172,56 @@ theorem H1IdentityRHSIntegrableBefore_of_supBoundSqrtRHSData
   intro τ hτ
   exact (hdata.sqrtData.point τ hτ.1 hτ.2).1
 
+/-- Square-root sup-bound data plus closed-window continuity of the same
+explicit RHS gives the combined sqrt/RHS package. -/
+theorem H1SupBoundSqrtRHSIntegrableBefore_of_continuousOn_Icc
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hdata : H1SupBoundSqrtDIDataBefore p u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hRHSCont : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn
+        (H1IdentityRHSValue p u taxisX uvxx reactX) (Set.Icc a b)) :
+    H1SupBoundSqrtRHSIntegrableBefore p u T V₁ V₂ M L
+      taxisX uvxx reactX := by
+  refine
+    { sqrtData := hdata
+      rhs_intervalIntegrable := ?_ }
+  have hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX :=
+    H1IdentityRHSIntegrableBefore_of_continuousOn_Icc
+      (fun τ hτ => (hdata.point τ hτ.1 hτ.2).1) hRHSCont
+  intro a b ha hab hbT
+  exact hRHS.rhs_intervalIntegrable (a := a) (b := b) ha hab hbT
+
+/-- Component continuity on closed time windows upgrades square-root sup-bound
+data to the combined sqrt/RHS package. -/
+theorem H1SupBoundSqrtRHSIntegrableBefore_of_component_continuousOn_Icc
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hdata : H1SupBoundSqrtDIDataBefore p u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hLap : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b))
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1SupBoundSqrtRHSIntegrableBefore p u T V₁ V₂ M L
+      taxisX uvxx reactX := by
+  refine
+    { sqrtData := hdata
+      rhs_intervalIntegrable := ?_ }
+  have hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX :=
+    H1IdentityRHSIntegrableBefore_of_component_continuousOn_Icc
+      (fun τ hτ => (hdata.point τ hτ.1 hτ.2).1)
+      hLap hTaxis hUvxx hReact
+  intro a b ha hab hbT
+  exact hRHS.rhs_intervalIntegrable (a := a) (b := b) ha hab hbT
+
 /-- Bounded-before route from one explicit physical-split frontier package,
 plus the remaining `u_xx` continuity and restricted local-start carries. -/
 theorem intervalDomain_boundedBefore_of_H1supBoundSqrtRHS_local_before
@@ -247,6 +298,8 @@ theorem H1SupBoundDIDataBefore_of_sqrtData_exists
 #print axioms H1IdentityRHSBoundBefore_of_supBoundSqrtDIData
 #print axioms intervalDomain_boundedBefore_of_H1supBoundSqrtDI_integrableRHS_local_before
 #print axioms H1IdentityRHSIntegrableBefore_of_supBoundSqrtRHSData
+#print axioms H1SupBoundSqrtRHSIntegrableBefore_of_continuousOn_Icc
+#print axioms H1SupBoundSqrtRHSIntegrableBefore_of_component_continuousOn_Icc
 #print axioms intervalDomain_boundedBefore_of_H1supBoundSqrtRHS_local_before
 #print axioms H1SupBoundDIDataBefore_of_sqrtData_exists
 
