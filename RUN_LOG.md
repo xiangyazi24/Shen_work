@@ -351,3 +351,8 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
   print is `[propext, Classical.choice, Quot.sound]`.  Remote full build
   `/Users/huangx/.openclaw/workspace/scripts/remote-build.sh $(basename $PWD)`
   passes with `=== BUILD OK (76s) ===`.
+- Added the direct wrapper
+  `H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt`, combining the proved
+  `u_xx`-continuity-to-`ContinuousOn` bridge with the still-carried
+  derivative-integrability input.  Local module build passes and a remote full
+  build passes with `=== BUILD OK (71s) ===`.

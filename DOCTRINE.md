@@ -444,6 +444,11 @@ hcont
 → H1ScalarRegularityBefore u T
 ```
 
+The direct wrapper
+`H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt` is also available when
+the continuity input is to be produced specifically from `H1UxxL1ContBefore`
+and time-zero right-continuity.
+
 This deliberately does **not** claim that the pointwise H¹ identity supplies
 interval FTC regularity.  Remaining honest scalar-regularity inputs are:
 
