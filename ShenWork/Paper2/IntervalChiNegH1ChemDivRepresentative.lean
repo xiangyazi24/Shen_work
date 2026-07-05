@@ -398,6 +398,25 @@ theorem H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_physicalRHS_
   exact lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior
     (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
 
+/-- Concrete H¹ L¹ `u_xx` frontier from a classical solution.  The chemotaxis
+representative is supplied by the closed-slab physical representative, the
+chemotaxis equality is only asserted on the open spatial interior, and the
+remaining physical-RHS equality is supplied by the pointwise classical PDE. -/
+theorem H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_classical_chemRep_eq_chem_interiorEq
+    (p := p) (u := u) (v := v)
+    (chemRep := liftChemotaxisDivPhysicalRep p u v) (T := T)
+    hsol ?_ ?_
+  · intro a b ha hab hbT
+    exact liftChemotaxisDivPhysicalRep_continuousOn_strictSlab_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+  · intro a b ha hab hbT
+    exact lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+
 section AxiomAudit
 
 #print axioms intervalChemDivRepr_eq_liftChemotaxisDivPhysicalRep_interior
@@ -408,6 +427,7 @@ section AxiomAudit
 #print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_interiorEq
 #print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_eq_physicalRHS_interiorEq
 #print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_physicalRHS_interiorEq
+#print axioms H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep
 
 end AxiomAudit
 

@@ -2580,12 +2580,14 @@ calculus.  The file now imports
 - `lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_strictSlab_interior`,
   the strict-slab `EqOn` on `Icc a b ×ˢ Ioo 0 1`.
 
-Consequently
-`H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_physicalRHS_interiorEq`
-now produces `H1UxxL1ContBefore` from `IsPaper2ClassicalSolution` plus only the
-separate interior equality between `liftDeriv2 u` and `liftDeriv2PhysicalRHS p u v`.
-The literal lifted `chemotaxisDiv` endpoint equality is still intentionally not
-claimed.
+Together with the physical-RHS PDE EqOn bridge in
+`IntervalChiNegH1LiftDeriv2Transfer`
+(`liftDeriv2_eq_liftDeriv2PhysicalRHS_strictSlab_interior_of_classicalSolution`
+and `H1UxxL1ContBefore_of_classical_chemRep_eq_chem_interiorEq`),
+the final wrapper
+`H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep` now produces
+`H1UxxL1ContBefore u T` directly from `IsPaper2ClassicalSolution`.  The literal
+lifted `chemotaxisDiv` endpoint equality is still intentionally not claimed.
 
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
