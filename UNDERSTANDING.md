@@ -2816,6 +2816,22 @@ uses that helper so the remaining hard fields are the zero-start time
 derivative, chem representative, lift continuity/positivity, and interior PDE
 equality inputs.
 
+Task 79 continues the same zero-start physical RHS route with
+`IntervalChiNegH1ZeroStartComponents`.  The new primitive record
+`H1ZeroStartPhysicalPrimitiveDataBefore` asks for zero-start continuity of
+`u`, `v`, `u_x`, and `v_x`, positivity/nonnegativity, zero-start
+`liftTimeDeriv` continuity, and the endpoint-including interior equality.
+The algebraic theorem
+`liftChemotaxisDivPhysicalRep_continuousOn_zeroSlab_of_primitives` proves the
+concrete chemotaxis-divergence representative continuous on `[0,b] × [0,1]`
+from those primitive continuity fields, and
+`H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPrimitiveData` feeds the result
+through Task 78's physical-RHS data package.  After Task 79, the easy reaction
+and chem algebra are no longer frontier fields; the remaining analytic
+zero-start obligations are primitive closed-time regularity of
+`u`, `v`, `u_x`, `v_x`, `liftTimeDeriv`, positivity/nonnegativity at `t = 0`,
+and the interior PDE equality for `liftDeriv2`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
