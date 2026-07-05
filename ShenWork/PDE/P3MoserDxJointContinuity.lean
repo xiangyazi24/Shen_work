@@ -656,3 +656,222 @@ theorem intervalDomain_dx_u_eq_laplacianPrimitive
 #print axioms intervalDomain_dxWithin_u_left_neumann
 #print axioms intervalDomain_dxWithin_u_right_neumann
 #print axioms intervalDomain_dx_u_eq_laplacianPrimitive
+
+/-- The chemotaxis divergence primitive is the chemotactic flux, using the left
+Neumann endpoint value. -/
+theorem intervalDomain_chemotaxisDiv_primitive_eq_flux
+    {params : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    (∫ s in (0 : ℝ)..x,
+        intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)) s)
+      = intervalFlux params (u t) (v t) x := by
+  classical
+  rcases hx with ⟨hx0, hx1⟩
+  let F : ℝ → ℝ := intervalFlux params (u t) (v t)
+  have hFcont : ContinuousOn F (Set.Icc (0 : ℝ) x) := by
+    exact (flux_contDiffOn_Icc (p := params) (T := T) (u := u) (v := v)
+      hsol ht).continuousOn.mono (Set.Icc_subset_Icc le_rfl hx1)
+  have hFderiv : ∀ y ∈ Set.Ioo (0 : ℝ) x, HasDerivAt F (deriv F y) y := by
+    intro y hy
+    have hy01 : y ∈ Set.Ioo (0 : ℝ) 1 := ⟨hy.1, lt_of_lt_of_le hy.2 hx1⟩
+    have hdiff : DifferentiableAt ℝ F y :=
+      ((flux_contDiffOn_Ioo_of_solution (p := params) (T := T) (u := u) (v := v)
+          hsol ht).differentiableOn (by norm_num)).differentiableAt
+        (IsOpen.mem_nhds isOpen_Ioo hy01)
+    exact hdiff.hasDerivAt
+  have hFderivInt : IntervalIntegrable (deriv F) volume (0 : ℝ) x := by
+    have hfull : IntervalIntegrable (deriv F) volume (0 : ℝ) 1 := by
+      simpa [F] using solution_deriv_flux_intervalIntegrable
+        (p := params) (T := T) (u := u) (v := v) hsol ht
+    exact hfull.mono_set (Set.uIcc_subset_uIcc
+      (show (0 : ℝ) ∈ Set.uIcc (0 : ℝ) 1 by simp)
+      (show x ∈ Set.uIcc (0 : ℝ) 1 by
+        simpa [Set.uIcc_of_le zero_le_one] using ⟨hx0, hx1⟩))
+  have hFTC : (∫ s in (0 : ℝ)..x, deriv F s) = F x - F 0 :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le hx0 hFcont hFderiv hFderivInt
+  have hchem :
+      (∫ s in (0 : ℝ)..x,
+          intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)) s)
+        = ∫ s in (0 : ℝ)..x, deriv F s := by
+    refine intervalIntegral.integral_congr_ae ?_
+    refine Filter.Eventually.of_forall ?_
+    intro y hyu
+    rw [Set.uIoc_of_le hx0] at hyu
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨hyu.1.le, le_trans hyu.2 hx1⟩
+    have hleft :
+        intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)) y =
+          intervalDomainChemotaxisDiv params (u t) (v t) ⟨y, hyIcc⟩ := by
+      simp [intervalDomain, intervalDomainLift, hyIcc]
+    rw [hleft]
+    unfold intervalDomainChemotaxisDiv
+    change deriv (intervalFlux params (u t) (v t)) y = deriv F y
+    simp [F]
+  have hF0 : F 0 = 0 := by
+    simpa [F] using (flux_endpoint_zero (p := params) (T := T) (u := u) (v := v)
+      hsol ht).1
+  rw [hchem, hFTC, hF0, sub_zero]
+
+/-- Pointwise integrated `u_x` identity in time/flux/logistic form. -/
+theorem intervalDomain_dx_u_eq_time_flux_logisticPrimitive
+    {params : CM2Params} {T t x : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (intervalDomainLift (u t)) x =
+      (∫ s in (0 : ℝ)..x,
+        deriv (fun r : ℝ => intervalDomainLift (u r) s) t)
+      + params.χ₀ * intervalFlux params (u t) (v t) x
+      - (∫ s in (0 : ℝ)..x,
+        intervalDomainLift (u t) s *
+          (params.a - params.b * (intervalDomainLift (u t) s) ^ params.α)) := by
+  classical
+  rcases hx with ⟨hx0, hx1⟩
+  let A : ℝ → ℝ := fun s => deriv (fun r : ℝ => intervalDomainLift (u r) s) t
+  let C : ℝ → ℝ := fun s =>
+    intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)) s
+  let L : ℝ → ℝ := fun s =>
+    intervalDomainLift (u t) s *
+      (params.a - params.b * (intervalDomainLift (u t) s) ^ params.α)
+  have hdx := intervalDomain_dx_u_eq_laplacianPrimitive
+    (params := params) (T := T) (u := u) (v := v) hsol ht ⟨hx0, hx1⟩
+  have hreg := hsol.regularity
+  change intervalDomainClassicalRegularity T u v at hreg
+  have hAint : IntervalIntegrable A volume (0 : ℝ) x := by
+    have hsrc : ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+      hreg.2.2.2.2.2.1.1
+    have hmap : ContinuousOn (fun s : ℝ => (t, s)) (Set.Icc (0 : ℝ) x) :=
+      (continuous_const.prodMk continuous_id).continuousOn
+    have hslice : ContinuousOn A (Set.Icc (0 : ℝ) x) := by
+      refine (hsrc.comp hmap ?_)
+      intro s hs
+      exact ⟨ht, ⟨hs.1, le_trans hs.2 hx1⟩⟩
+    exact hslice.intervalIntegrable_of_Icc hx0
+  have hCint : IntervalIntegrable C volume (0 : ℝ) x := by
+    have hfull := intervalDomainLift_chemDiv_intervalIntegrable_of_regularity
+      (params := params) (T := T) (t := t) (u := u) (v := v) hsol ht.1 ht.2
+    exact hfull.mono_set (Set.uIcc_subset_uIcc
+      (show (0 : ℝ) ∈ Set.uIcc (0 : ℝ) 1 by simp)
+      (show x ∈ Set.uIcc (0 : ℝ) 1 by
+        simpa [Set.uIcc_of_le zero_le_one] using ⟨hx0, hx1⟩))
+  have hLint : IntervalIntegrable L volume (0 : ℝ) x := by
+    have hsrc := intervalDomain_u_logistic_jointContinuous
+      (params := params) (T := T) (u := u) (v := v) hsol
+    have hmap : ContinuousOn (fun s : ℝ => (t, s)) (Set.Icc (0 : ℝ) x) :=
+      (continuous_const.prodMk continuous_id).continuousOn
+    have hslice : ContinuousOn L (Set.Icc (0 : ℝ) x) := by
+      refine (hsrc.comp hmap ?_)
+      intro s hs
+      exact ⟨ht, ⟨hs.1, le_trans hs.2 hx1⟩⟩
+    exact hslice.intervalIntegrable_of_Icc hx0
+  have hlap_congr :
+      (∫ s in (0 : ℝ)..x,
+        deriv (fun y : ℝ => deriv (intervalDomainLift (u t)) y) s)
+        = ∫ s in (0 : ℝ)..x, A s + params.χ₀ * C s - L s := by
+    refine intervalIntegral.integral_congr_ae ?_
+    rw [ae_uIoc_iff]
+    constructor
+    · filter_upwards [(Ioo_ae_eq_Ioc (a := (0 : ℝ)) (b := x) :
+          Set.Ioo (0 : ℝ) x =ᶠ[ae volume] Set.Ioc (0 : ℝ) x)]
+        with y hyEq hyIoc
+      have hy : y ∈ Set.Ioo (0 : ℝ) x := Eq.mpr hyEq hyIoc
+      have hy01 : y ∈ Set.Ioo (0 : ℝ) 1 := ⟨hy.1, lt_of_lt_of_le hy.2 hx1⟩
+      have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy01
+      let Y : intervalDomain.Point := ⟨y, hyIcc⟩
+      have hYin : Y ∈ intervalDomain.inside := by
+        change (Y.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1
+        exact hy01
+      have hpde := intervalDomain_laplacian_u_eq_time_chem_logistic
+        (params := params) (T := T) (u := u) (v := v) (x := Y)
+        hsol ht.1 ht.2 hYin
+      have hlapY :
+          deriv (fun y : ℝ => deriv (intervalDomainLift (u t)) y) y =
+            intervalDomain.laplacian (u t) Y := by
+        simp [intervalDomain, intervalDomainLaplacian, Y]
+      have hAY : A y = intervalDomain.timeDeriv u t Y := by
+        change deriv (fun r : ℝ => intervalDomainLift (u r) y) t =
+          deriv (fun s : ℝ => u s Y) t
+        apply congrArg (fun f : ℝ → ℝ => deriv f t)
+        funext r
+        change intervalDomainLift (u r) y = u r ⟨y, hyIcc⟩
+        simp [intervalDomainLift, hyIcc]
+      have hCY : C y = intervalDomain.chemotaxisDiv params (u t) (v t) Y := by
+        change intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)) y =
+          intervalDomainChemotaxisDiv params (u t) (v t) ⟨y, hyIcc⟩
+        simp [intervalDomain, intervalDomainLift, hyIcc]
+      have hUY : intervalDomainLift (u t) y = u t Y := by
+        change intervalDomainLift (u t) y = u t ⟨y, hyIcc⟩
+        simp [intervalDomainLift, hyIcc]
+      have hLY :
+          L y = u t Y * (params.a - params.b * (u t Y) ^ params.α) := by
+        simp [L, hUY]
+      calc
+        deriv (fun y : ℝ => deriv (intervalDomainLift (u t)) y) y
+            = intervalDomain.laplacian (u t) Y := hlapY
+        _ = intervalDomain.timeDeriv u t Y
+              + params.χ₀ * intervalDomain.chemotaxisDiv params (u t) (v t) Y
+              - u t Y * (params.a - params.b * (u t Y) ^ params.α) := hpde
+        _ = A y + params.χ₀ * C y - L y := by rw [hAY, hCY, hLY]
+    · filter_upwards with y hy
+      have hyfalse : False := by
+        rcases hy with ⟨hyx, hy0⟩
+        linarith
+      exact False.elim hyfalse
+  have hsplit :
+      (∫ s in (0 : ℝ)..x, A s + params.χ₀ * C s - L s)
+        = (∫ s in (0 : ℝ)..x, A s)
+          + params.χ₀ * (∫ s in (0 : ℝ)..x, C s)
+          - (∫ s in (0 : ℝ)..x, L s) := by
+    rw [intervalIntegral.integral_sub (hAint.add (hCint.const_mul params.χ₀)) hLint]
+    rw [intervalIntegral.integral_add hAint (hCint.const_mul params.χ₀)]
+    rw [intervalIntegral.integral_const_mul]
+  have hchem := intervalDomain_chemotaxisDiv_primitive_eq_flux
+    (params := params) (T := T) (u := u) (v := v) hsol ht ⟨hx0, hx1⟩
+  rw [hdx, hlap_congr, hsplit]
+  change (∫ s in (0 : ℝ)..x, A s) + params.χ₀ * (∫ s in (0 : ℝ)..x, C s) -
+      (∫ s in (0 : ℝ)..x, L s) =
+    (∫ s in (0 : ℝ)..x, A s) + params.χ₀ * intervalFlux params (u t) (v t) x -
+      (∫ s in (0 : ℝ)..x, L s)
+  rw [hchem]
+
+/-- Joint continuity of the lifted spatial derivative `u_x` on
+`(0,T) × [0,1]`. -/
+theorem intervalDomain_dx_u_jointlyContinuous
+    {params : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (u t)) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have htime := intervalDomain_u_timeDeriv_primitive_jointContinuous
+    (params := params) (T := T) (u := u) (v := v) hsol
+  have hflux := intervalDomain_chemotaxis_flux_jointContinuous
+    (params := params) (T := T) (u := u) (v := v) hsol
+  have hlog := intervalDomain_u_logisticPrimitive_jointContinuous
+    (params := params) (T := T) (u := u) (v := v) hsol
+  have hcomb :
+      ContinuousOn
+        (fun z : ℝ × ℝ =>
+          (∫ s in (0 : ℝ)..z.2,
+            deriv (fun r : ℝ => intervalDomainLift (u r) s) z.1)
+          + params.χ₀ *
+              (intervalDomainLift (u z.1) z.2 *
+                deriv (intervalDomainLift (v z.1)) z.2 /
+                  (1 + intervalDomainLift (v z.1) z.2) ^ params.β)
+          - (∫ s in (0 : ℝ)..z.2,
+            intervalDomainLift (u z.1) s *
+              (params.a - params.b * (intervalDomainLift (u z.1) s) ^ params.α)))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+    simpa [Function.uncurry] using (htime.add (hflux.const_mul params.χ₀)).sub hlog
+  refine ContinuousOn.congr hcomb ?_
+  intro z hz
+  rcases z with ⟨t, x⟩
+  simpa [Function.uncurry, intervalFlux] using
+    intervalDomain_dx_u_eq_time_flux_logisticPrimitive
+      (params := params) (T := T) (u := u) (v := v) hsol hz.1 hz.2
