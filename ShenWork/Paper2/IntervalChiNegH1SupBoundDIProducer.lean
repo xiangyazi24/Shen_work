@@ -144,6 +144,61 @@ theorem intervalDomain_boundedBefore_of_H1supBoundSqrtDI_integrableRHS_local_bef
     (H1SupBoundDIDataBefore_of_sqrtData hdata)
     hlocal
 
+/-- One explicit physical-split package carrying both square-root sup-bound
+data and interval-integrability of the same RHS functions.  This is still a
+frontier package: it does not prove the physical split estimates. -/
+structure H1SupBoundSqrtRHSIntegrableBefore
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (T V₁ V₂ M L : ℝ) (taxisX uvxx reactX : ℝ → ℝ) : Prop where
+  sqrtData : H1SupBoundSqrtDIDataBefore p u T V₁ V₂ M L
+    taxisX uvxx reactX
+  rhs_intervalIntegrable : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+    IntervalIntegrable
+      (H1IdentityRHSValue p u taxisX uvxx reactX) volume a b
+
+/-- The combined sqrt/RHS package gives the explicit RHS-integrability package
+using the identity field already contained in its square-root data. -/
+theorem H1IdentityRHSIntegrableBefore_of_supBoundSqrtRHSData
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hdata : H1SupBoundSqrtRHSIntegrableBefore p u T V₁ V₂ M L
+      taxisX uvxx reactX) :
+    H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX := by
+  refine
+    { identity := ?_
+      rhs_intervalIntegrable := hdata.rhs_intervalIntegrable }
+  intro τ hτ
+  exact (hdata.sqrtData.point τ hτ.1 hτ.2).1
+
+/-- Bounded-before route from one explicit physical-split frontier package,
+plus the remaining `u_xx` continuity and restricted local-start carries. -/
+theorem intervalDomain_boundedBefore_of_H1supBoundSqrtRHS_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtRHSIntegrableBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_H1supBoundSqrtDI_integrableRHS_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    hUxxL1 hcont0
+    (H1IdentityRHSIntegrableBefore_of_supBoundSqrtRHSData hdata)
+    hdata.sqrtData hlocal
+
 /-- Existential-only variant of `H1SupBoundSqrtDIDataBefore`.  This is useful
 when a later proof naturally produces pointwise physical-split witnesses, but it
 does not expose global RHS functions for `H1IdentityRHSIntegrableBefore`. -/
@@ -191,6 +246,8 @@ theorem H1SupBoundDIDataBefore_of_sqrtData_exists
 #print axioms H1SupBoundDIDataBefore_of_sqrtData
 #print axioms H1IdentityRHSBoundBefore_of_supBoundSqrtDIData
 #print axioms intervalDomain_boundedBefore_of_H1supBoundSqrtDI_integrableRHS_local_before
+#print axioms H1IdentityRHSIntegrableBefore_of_supBoundSqrtRHSData
+#print axioms intervalDomain_boundedBefore_of_H1supBoundSqrtRHS_local_before
 #print axioms H1SupBoundDIDataBefore_of_sqrtData_exists
 
 end ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer

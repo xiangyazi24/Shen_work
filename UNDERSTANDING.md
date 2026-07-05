@@ -1150,9 +1150,11 @@ Current headline status:
   bookkeeping layer by letting callers state the same pointwise sup-bound data
   with canonical square-root witnesses while keeping explicit
   `taxisX`/`uvxx`/`reactX` functions for the RHS-integrability package.  It
-  also has an existential-only normalizer for later pointwise estimates, but it
-  still assumes the physical split estimates pointwise, so it is not a proof of
-  the identity/RHS-bound package.
+  also provides `H1SupBoundSqrtRHSIntegrableBefore`, a combined frontier package
+  where those same functions feed both the sup-bound side and the
+  RHS-integrability side.  An existential-only normalizer remains available for
+  later pointwise estimates, but this still assumes the physical split estimates
+  pointwise, so it is not a proof of the identity/RHS-bound package.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
