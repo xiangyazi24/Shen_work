@@ -2550,6 +2550,21 @@ This is only an interface reduction. It does not construct the concrete
 lifted chemotaxis-divergence term. A concrete representative producer can now
 target the two remaining inputs above without touching the L¹ transfer proof.
 
+Task 63 concrete producer adds
+`IntervalChiNegH1ChemDivRepresentative.lean`. It defines
+`liftChemotaxisDivPhysicalRep p u v`, the product-rule expression
+`u_x v_x/(1+v)^β + u(μv-νu^γ)/(1+v)^β - β u v_x^2/(1+v)^(β+1)`,
+and proves
+`liftChemotaxisDivPhysicalRep_continuousOn_strictSlab_of_classicalSolution`
+from the existing joint continuity of `u`, `v`, `u_x`, `v_x`, and the elliptic
+reaction representative for `v_xx`. The file also specializes the abstract seam
+to this concrete representative via
+`H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_interiorEq` and
+`H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep_eq_physicalRHS_interiorEq`.
+The remaining frontier is the interior product-rule EqOn identifying the
+literal lifted `chemotaxisDiv` with this representative; endpoint equality is
+still deliberately not claimed.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

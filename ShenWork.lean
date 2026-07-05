@@ -444,6 +444,7 @@ import ShenWork.Paper2.IntervalChiNegH1AverageWiring
 import ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 import ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
 import ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
+import ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 import ShenWork.Paper2.IntervalChiNegH1InitialContinuity
 import ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity
 import ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
