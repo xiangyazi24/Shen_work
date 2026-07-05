@@ -2683,6 +2683,23 @@ needed once `H1ScalarDIOnBefore` is available.
 that already carry endpoint data; the endpoint bundle is analytically unused by
 the seed theorem.
 
+Task 71 performs the route-facing cleanup enabled by Task 70.  The old
+`*_local_*` wrappers are retained, but the derivative/RHS/sup-bound/initial H1
+routes now also expose no-manual-`hlocal` variants that first produce
+`H1ScalarDIOnBefore` and then call
+`intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before`.  The new
+wrappers live in:
+- `IntervalChiNegH1DerivativeIntegrability`: identity-RHS and sup-bound-DI
+  integrable-RHS routes, including classical representative variants.
+- `IntervalChiNegH1SupBoundDIProducer`: square-root sup-bound DI/RHS routes.
+- `IntervalChiNegH1InitialWiring`: split `initialTraceEnergy` routes and bundled
+  `H1InitialEndpointData` routes.
+
+This removes the local H1 seed as a manual route hypothesis for those H1
+bounded-before APIs.  It does not discharge the upstream producers for
+RHS-integrability, H1 `u_xx` L1 continuity, sup-bound/square-root physical
+frontiers, or the Task 69 zero-start lap-continuity seam.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
