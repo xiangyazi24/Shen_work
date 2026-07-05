@@ -1139,10 +1139,13 @@ Current headline status:
   build on uisai2: 9136 jobs, `BUILD OK` (2026-07-05).
   Follow-up producer `IntervalChiNegH1DerivativeIntegrability` reduces the
   scalar derivative-integrability part to an explicit
-  `H1IdentityRHSIntegrableBefore` package and provides
-  `intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before`;
-  it does not yet produce `H1SupBoundDIDataBefore` or the restricted local H1
-  seed.
+  `H1IdentityRHSIntegrableBefore` package.  Its primary bounded-before wrapper
+  is now
+  `intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before`,
+  which consumes `H1IdentityRHSBoundBefore` directly; the
+  `H1SupBoundDIDataBefore` wrapper is only a corollary through
+  `H1IdentityRHSBoundBefore_of_supBoundDIData`.  It does not yet produce the
+  identity/RHS-bound package or the restricted local H1 seed.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption

@@ -176,6 +176,36 @@ theorem H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
     (H1_derivInt_of_identityRHSIntegrableBefore hRHS)
     hBound
 
+/-- Paper-positive bounded-before route using the compact identity/RHS-bound
+package directly, with scalar regularity produced from `u_xx` L¹-continuity
+and explicit RHS integrability. The local H¹ start is required only while
+`τ < T`. -/
+theorem intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {A B Ylocal : ℝ}
+    (hBound : H1IdentityRHSBoundBefore params u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hDI : H1ScalarDIOnBefore u T A B :=
+    H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
+      hsol hUxxL1 hcont0 hRHS hBound
+  exact intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier hDI hlocal
+
 /-- Paper-positive bounded-before route using sup-bound DI data, with the
 scalar regularity field produced from `u_xx` L¹-continuity and explicit RHS
 integrability. The local H¹ start is required only while `τ < T`. -/
@@ -199,11 +229,13 @@ theorem intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
     (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
       H1energy u τ ≤ Ylocal) :
     IsPaper2BoundedBefore intervalDomain T u := by
-  have hreg : H1ScalarRegularityBefore u T :=
-    H1ScalarRegularityBefore_of_uxxL1Cont_and_identityRHSIntegrable
-      hsol hUxxL1 hcont0 hRHS
-  exact intervalDomain_boundedBefore_of_paperPositive_H1supBoundDI_local_before
-    hbounded ha hu₀ hT hsol htrace hfrontier hreg hdata hlocal
+  let A : ℝ := 2 * (-params.χ₀) ^ 2 * V₁ ^ 2 + 2 * L
+  let B : ℝ := (-params.χ₀) ^ 2 * M ^ 2 * V₂ ^ 2
+  have hBound : H1IdentityRHSBoundBefore params u T A B := by
+    simpa [A, B] using H1IdentityRHSBoundBefore_of_supBoundDIData hdata
+  exact intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1 hcont0 hRHS
+    hBound hlocal
 
 #print axioms H1_deriv_intervalIntegrable_of_eq_on_uIoc
 #print axioms H1_deriv_intervalIntegrable_of_eq_on_Ioc
@@ -214,6 +246,7 @@ theorem intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
 #print axioms H1ScalarRegularityBefore_of_hcont_and_identityRHSIntegrable
 #print axioms H1ScalarRegularityBefore_of_uxxL1Cont_and_identityRHSIntegrable
 #print axioms H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
+#print axioms intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before
 #print axioms intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
 
 end ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
