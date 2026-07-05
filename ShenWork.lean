@@ -443,6 +443,7 @@ import ShenWork.Paper2.IntervalChiNegH1WindowWiring
 import ShenWork.Paper2.IntervalChiNegH1AverageWiring
 import ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 import ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
+import ShenWork.Paper2.IntervalChiNegH1InitialContinuity
 import ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
 import ShenWork.Paper2.IntervalChiNegH1RHSIntegrabilityProducer
 import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer

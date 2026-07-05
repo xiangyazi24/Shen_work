@@ -24,6 +24,26 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
 
+/-- If two continuous time-slices on `[0, 1]` differ pointwise by at most `ε`,
+then their L¹ distance on `[0, 1]` is at most `ε`. -/
+theorem intervalIntegral_norm_sub_le_of_pointwise_bound
+    {F : ℝ → ℝ → ℝ} {s τ ε : ℝ}
+    (hFs : ContinuousOn (fun x : ℝ => F s x) (Set.Icc (0 : ℝ) 1))
+    (hFτ : ContinuousOn (fun x : ℝ => F τ x) (Set.Icc (0 : ℝ) 1))
+    (hbound : ∀ x ∈ Set.Icc (0 : ℝ) 1, ‖F s x - F τ x‖ ≤ ε) :
+    ∫ x in (0 : ℝ)..1, ‖F s x - F τ x‖ ≤ ε := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have hcont : ContinuousOn (fun x : ℝ => ‖F s x - F τ x‖)
+      (Set.Icc (0 : ℝ) 1) :=
+    (hFs.sub hFτ).norm
+  have hleft_int : IntervalIntegrable
+      (fun x : ℝ => ‖F s x - F τ x‖) volume 0 1 :=
+    hcont.intervalIntegrable_of_Icc h01
+  have hright_int : IntervalIntegrable (fun _x : ℝ => ε) volume 0 1 :=
+    intervalIntegrable_const
+  have hmono := intervalIntegral.integral_mono_on h01 hleft_int hright_int hbound
+  simpa [intervalIntegral.integral_const] using hmono
+
 /-- Closed-window joint continuity of the lifted second spatial derivative.
 
 This is a deliberately strong scalar regularity input: it is exactly the
@@ -34,6 +54,63 @@ structure H1LiftDeriv2JointContinuousBefore
   cont : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
     ContinuousOn (Function.uncurry (fun t x => liftDeriv2 u t x))
       (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1)
+
+/-- On one compact time-space slab, joint continuity gives local L¹ continuity
+in time at any time inside that slab. -/
+theorem l1_time_continuity_at_of_jointContinuousOn_slab
+    {F : ℝ → ℝ → ℝ} {a b τ : ℝ}
+    (haτ : a ≤ τ) (hτb : τ ≤ b)
+    (hcont : ContinuousOn (fun z : ℝ × ℝ => F z.1 z.2)
+      (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∀ ε > 0, ∃ δ > 0,
+      ∀ s, |s - τ| < δ → s ∈ Set.Icc a b →
+        ∫ x in (0 : ℝ)..1, ‖F s x - F τ x‖ ≤ ε := by
+  intro ε hε
+  let K : Set (ℝ × ℝ) := Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1
+  have hK : IsCompact K := by
+    dsimp [K]
+    exact isCompact_Icc.prod isCompact_Icc
+  have hcontK : ContinuousOn (fun z : ℝ × ℝ => F z.1 z.2) K := by
+    simpa [K] using hcont
+  have huc : UniformContinuousOn (fun z : ℝ × ℝ => F z.1 z.2) K :=
+    hK.uniformContinuousOn_of_continuous hcontK
+  rw [Metric.uniformContinuousOn_iff] at huc
+  obtain ⟨δu, hδu, hmod⟩ := huc ε hε
+  refine ⟨δu, hδu, ?_⟩
+  intro s hsabs hsI
+  have hτI : τ ∈ Set.Icc a b := ⟨haτ, hτb⟩
+  have hslice_s : ContinuousOn (fun x => F s x) (Set.Icc (0 : ℝ) 1) := by
+    have hmaps : Set.MapsTo (fun x : ℝ => ((s, x) : ℝ × ℝ))
+        (Set.Icc (0 : ℝ) 1) K := by
+      intro x hx
+      exact Set.mem_prod.mpr ⟨hsI, hx⟩
+    have hpair : ContinuousOn (fun x : ℝ => ((s, x) : ℝ × ℝ))
+        (Set.Icc (0 : ℝ) 1) :=
+      continuousOn_const.prodMk continuousOn_id
+    have hcomp := hcontK.comp hpair hmaps
+    simpa [Function.comp_def] using hcomp
+  have hslice_τ : ContinuousOn (fun x => F τ x) (Set.Icc (0 : ℝ) 1) := by
+    have hmaps : Set.MapsTo (fun x : ℝ => ((τ, x) : ℝ × ℝ))
+        (Set.Icc (0 : ℝ) 1) K := by
+      intro x hx
+      exact Set.mem_prod.mpr ⟨hτI, hx⟩
+    have hpair : ContinuousOn (fun x : ℝ => ((τ, x) : ℝ × ℝ))
+        (Set.Icc (0 : ℝ) 1) :=
+      continuousOn_const.prodMk continuousOn_id
+    have hcomp := hcontK.comp hpair hmaps
+    simpa [Function.comp_def] using hcomp
+  refine intervalIntegral_norm_sub_le_of_pointwise_bound
+    (F := F) (s := s) (τ := τ) (ε := ε) hslice_s hslice_τ ?_
+  intro x hx
+  have hp_s : ((s, x) : ℝ × ℝ) ∈ K := Set.mem_prod.mpr ⟨hsI, hx⟩
+  have hp_τ : ((τ, x) : ℝ × ℝ) ∈ K := Set.mem_prod.mpr ⟨hτI, hx⟩
+  have hdist : dist ((s, x) : ℝ × ℝ) ((τ, x) : ℝ × ℝ) < δu := by
+    rw [Prod.dist_eq]
+    simp only [dist_self]
+    rw [max_eq_left dist_nonneg]
+    simpa [Real.dist_eq] using hsabs
+  have hlt := hmod (s, x) hp_s (τ, x) hp_τ hdist
+  simpa [dist_eq_norm] using le_of_lt hlt
 
 /-- Joint continuity of `u_xx` on every strict closed time slab gives the
 L¹-continuity frontier used by the finite-difference H¹ identity producer. -/
@@ -60,72 +137,25 @@ theorem H1UxxL1ContBefore_of_liftDeriv2_jointContinuousBefore
     dsimp [b, η]
     have hle : min (τ / 2) ((T - τ) / 2) ≤ (T - τ) / 2 := min_le_right _ _
     linarith
-  have hτI : τ ∈ Set.Icc a b := by
-    constructor <;> dsimp [a, b] <;> linarith [hηpos.le]
-  have hcont : ContinuousOn (Function.uncurry (fun t x => liftDeriv2 u t x))
-      (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1) :=
-    h.cont ha_pos hab hbT
-  have hcompact : IsCompact (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1) :=
-    isCompact_Icc.prod isCompact_Icc
-  have huc : UniformContinuousOn
-      (Function.uncurry (fun t x => liftDeriv2 u t x))
-      (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1) :=
-    hcompact.uniformContinuousOn_of_continuous hcont
-  rw [Metric.uniformContinuousOn_iff] at huc
-  obtain ⟨δu, hδu_pos, hmod⟩ := huc ε hε
-  refine ⟨min δu η, lt_min hδu_pos hηpos, ?_⟩
+  have haτ : a ≤ τ := by
+    dsimp [a]
+    linarith [hηpos.le]
+  have hτb : τ ≤ b := by
+    dsimp [b]
+    linarith [hηpos.le]
+  have hcont := h.cont ha_pos hab hbT
+  obtain ⟨δ0, hδ0_pos, hδ0⟩ :=
+    l1_time_continuity_at_of_jointContinuousOn_slab
+      (F := fun t x => liftDeriv2 u t x)
+      (a := a) (b := b) (τ := τ) haτ hτb hcont ε hε
+  refine ⟨min δ0 η, lt_min hδ0_pos hηpos, ?_⟩
   intro s hsclose _hsIoo
-  have hsδu : |s - τ| < δu := lt_of_lt_of_le hsclose (min_le_left _ _)
+  have hsδ0 : |s - τ| < δ0 := lt_of_lt_of_le hsclose (min_le_left _ _)
   have hsη : |s - τ| < η := lt_of_lt_of_le hsclose (min_le_right _ _)
   have hsI : s ∈ Set.Icc a b := by
     have hsabs := abs_lt.mp hsη
     constructor <;> dsimp [a, b] <;> linarith
-  have hslice_s : ContinuousOn (fun x => liftDeriv2 u s x) (Set.Icc (0 : ℝ) 1) := by
-    have hmaps : Set.MapsTo (fun x : ℝ => ((s, x) : ℝ × ℝ))
-        (Set.Icc (0 : ℝ) 1) (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1) := by
-      intro x hx
-      exact Set.mem_prod.mpr ⟨hsI, hx⟩
-    have hpair : ContinuousOn (fun x : ℝ => ((s, x) : ℝ × ℝ))
-        (Set.Icc (0 : ℝ) 1) :=
-      continuousOn_const.prodMk continuousOn_id
-    have hcomp := hcont.comp hpair hmaps
-    simpa [Function.comp_def, Function.uncurry] using hcomp
-  have hslice_τ : ContinuousOn (fun x => liftDeriv2 u τ x) (Set.Icc (0 : ℝ) 1) := by
-    have hmaps : Set.MapsTo (fun x : ℝ => ((τ, x) : ℝ × ℝ))
-        (Set.Icc (0 : ℝ) 1) (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1) := by
-      intro x hx
-      exact Set.mem_prod.mpr ⟨hτI, hx⟩
-    have hpair : ContinuousOn (fun x : ℝ => ((τ, x) : ℝ × ℝ))
-        (Set.Icc (0 : ℝ) 1) :=
-      continuousOn_const.prodMk continuousOn_id
-    have hcomp := hcont.comp hpair hmaps
-    simpa [Function.comp_def, Function.uncurry] using hcomp
-  have hdiff_cont : ContinuousOn
-      (fun x => ‖liftDeriv2 u s x - liftDeriv2 u τ x‖)
-      (Set.Icc (0 : ℝ) 1) :=
-    (hslice_s.sub hslice_τ).norm
-  have hleft_int : IntervalIntegrable
-      (fun x => ‖liftDeriv2 u s x - liftDeriv2 u τ x‖) volume 0 1 :=
-    hdiff_cont.intervalIntegrable_of_Icc (by norm_num : (0 : ℝ) ≤ 1)
-  have hright_int : IntervalIntegrable (fun _x : ℝ => ε) volume 0 1 :=
-    intervalIntegrable_const
-  have hpoint : ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      ‖liftDeriv2 u s x - liftDeriv2 u τ x‖ ≤ ε := by
-    intro x hx
-    have hp_s : ((s, x) : ℝ × ℝ) ∈ Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1 :=
-      Set.mem_prod.mpr ⟨hsI, hx⟩
-    have hp_τ : ((τ, x) : ℝ × ℝ) ∈ Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1 :=
-      Set.mem_prod.mpr ⟨hτI, hx⟩
-    have hdist : dist ((s, x) : ℝ × ℝ) ((τ, x) : ℝ × ℝ) < δu := by
-      rw [Prod.dist_eq]
-      simp only [dist_self]
-      rw [max_eq_left dist_nonneg]
-      simpa [Real.dist_eq] using hsδu
-    have hlt := hmod (s, x) hp_s (τ, x) hp_τ hdist
-    simpa [Function.uncurry, dist_eq_norm] using le_of_lt hlt
-  have hmono := intervalIntegral.integral_mono_on
-    (by norm_num : (0 : ℝ) ≤ 1) hleft_int hright_int hpoint
-  simpa [liftDeriv2, intervalIntegral.integral_const] using hmono
+  simpa [liftDeriv2] using hδ0 s hsδ0 hsI
 
 /-- `u_xx` L¹ time-continuity gives `ContinuousOn` of the H¹ energy on every
 closed pre-horizon interval, once the right-continuity at `t = 0` is supplied.
@@ -204,6 +234,8 @@ theorem H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont
     hId
 
 #print axioms H1energy_continuousOn_before_of_uxxL1Cont
+#print axioms intervalIntegral_norm_sub_le_of_pointwise_bound
+#print axioms l1_time_continuity_at_of_jointContinuousOn_slab
 #print axioms H1UxxL1ContBefore_of_liftDeriv2_jointContinuousBefore
 #print axioms H1ScalarRegularityBefore_of_hcont_and_hderivInt
 #print axioms H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt

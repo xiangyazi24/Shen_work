@@ -1139,8 +1139,11 @@ Current headline status:
   side now has a no-sorry scalar producer
   `H1UxxL1ContBefore_of_liftDeriv2_jointContinuousBefore` from strict closed
   slab joint continuity of `liftDeriv2`; the remaining upstream carry is that
-  joint continuity, not the L1 continuity argument itself.  Verified by remote
-  full build on uisai2: 9140 jobs, `BUILD OK` (2026-07-05).
+  joint continuity, not the L1 continuity argument itself.  The proof is now
+  factored through the reusable scalar bound
+  `intervalIntegral_norm_sub_le_of_pointwise_bound` and the fixed-slab helper
+  `l1_time_continuity_at_of_jointContinuousOn_slab`.  Verified by remote full
+  build on uisai2: 9140 jobs, `BUILD OK` (2026-07-05).
   Follow-up producer `IntervalChiNegH1DerivativeIntegrability` reduces the
   scalar derivative-integrability part to an explicit
   `H1IdentityRHSIntegrableBefore` package.  Its primary bounded-before wrapper
@@ -1174,9 +1177,15 @@ Current headline status:
   `H1IdentityRHSComponentsContinuousBefore` plus parametric/spectral
   component-continuity variants, replacing raw RHS interval-integrability by
   closed-window continuity of `lapL2sq`, `taxisX`, `uvxx`, and `reactX`.  This
-  keeps strict-slab joint continuity of `liftDeriv2`, time-zero H1 continuity,
-  the restricted local H1 seed, and the actual physical estimates as explicit
-  frontiers.
+  keeps strict-slab joint continuity of `liftDeriv2`, the restricted local H1
+  seed, and the actual physical estimates as explicit frontiers.  The raw
+  time-zero H1 continuity input is further reduced in
+  `IntervalChiNegH1InitialContinuity`: deleted-right convergence of
+  `H1energy u` to `H1InitialEnergy u₀` on `Ioc 0 T`, plus explicit
+  zero-slice compatibility `H1energy u 0 = H1InitialEnergy u₀`, produces
+  `ContinuousWithinAt (H1energy u) (Ici 0) 0` and the corresponding
+  closed-window H1 continuity wrapper.  Positive-time trace data alone still
+  does not identify the stored value `u 0`.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption
