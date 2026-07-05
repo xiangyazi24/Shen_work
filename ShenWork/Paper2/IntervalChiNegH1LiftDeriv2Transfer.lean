@@ -93,6 +93,76 @@ theorem H1UxxL1ContBefore_of_strictSlab_eq_continuous
     (H1LiftDeriv2JointContinuousBefore_of_strictSlab_eq_continuous
       (u := u) (T := T) (F := F) hF hEq)
 
+/-- For the L¹ `u_xx` frontier, endpoint pointwise equality is unnecessary.
+It is enough to have a continuous closed-slab representative that agrees with
+`liftDeriv2` on the open spatial interior; the endpoint mismatch is ignored by
+`intervalIntegral.integral_congr_ae`. -/
+theorem H1UxxL1ContBefore_of_strictSlab_interior_eq_continuous
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ} {F : ℝ → ℝ → ℝ}
+    (hF : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  rw [H1UxxL1ContBefore]
+  intro τ hτ0 hτT ε hε
+  let η : ℝ := min (τ / 2) ((T - τ) / 2)
+  have hηpos : 0 < η := by
+    dsimp [η]
+    exact lt_min (half_pos hτ0) (half_pos (sub_pos.mpr hτT))
+  let a : ℝ := τ - η
+  let b : ℝ := τ + η
+  have ha_pos : 0 < a := by
+    dsimp [a, η]
+    have hle : min (τ / 2) ((T - τ) / 2) ≤ τ / 2 := min_le_left _ _
+    linarith [half_pos hτ0]
+  have hab : a ≤ b := by
+    dsimp [a, b]
+    linarith [hηpos.le]
+  have hbT : b < T := by
+    dsimp [b, η]
+    have hle : min (τ / 2) ((T - τ) / 2) ≤ (T - τ) / 2 := min_le_right _ _
+    linarith
+  have haτ : a ≤ τ := by
+    dsimp [a]
+    linarith [hηpos.le]
+  have hτb : τ ≤ b := by
+    dsimp [b]
+    linarith [hηpos.le]
+  have hcont := hF ha_pos hab hbT
+  obtain ⟨δ0, hδ0_pos, hδ0⟩ :=
+    l1_time_continuity_at_of_jointContinuousOn_slab
+      (F := F) (a := a) (b := b) (τ := τ) haτ hτb hcont ε hε
+  refine ⟨min δ0 η, lt_min hδ0_pos hηpos, ?_⟩
+  intro s hsclose _hsIoo
+  have hsδ0 : |s - τ| < δ0 := lt_of_lt_of_le hsclose (min_le_left _ _)
+  have hsη : |s - τ| < η := lt_of_lt_of_le hsclose (min_le_right _ _)
+  have hsI : s ∈ Set.Icc a b := by
+    have hsabs := abs_lt.mp hsη
+    constructor <;> dsimp [a, b] <;> linarith
+  have hτI : τ ∈ Set.Icc a b := ⟨haτ, hτb⟩
+  have hF_l1 := hδ0 s hsδ0 hsI
+  change
+    ∫ x in (0 : ℝ)..1, ‖liftDeriv2 u s x - liftDeriv2 u τ x‖ ≤ ε
+  have hEq := hEqInterior (a := a) (b := b) ha_pos hab hbT
+  have hne1 : ∀ᵐ x : ℝ ∂volume, x ≠ (1 : ℝ) := by
+    rw [MeasureTheory.ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  rw [intervalIntegral.integral_congr_ae]
+  · exact hF_l1
+  · filter_upwards [hne1] with x hx_ne1 hxmem
+    rw [Set.uIoc_of_le zero_le_one] at hxmem
+    have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 :=
+      ⟨hxmem.1, lt_of_le_of_ne hxmem.2 hx_ne1⟩
+    have hsEq := hEq (x := (s, x)) (Set.mem_prod.mpr ⟨hsI, hxIoo⟩)
+    have hτEq := hEq (x := (τ, x)) (Set.mem_prod.mpr ⟨hτI, hxIoo⟩)
+    simp only [Function.uncurry_apply_pair] at hsEq hτEq
+    rw [hsEq, hτEq]
+
 /-- Strict-slab continuity of the physical RHS components, plus slabwise
 agreement with `liftDeriv2`, produces the H¹ `u_xx` joint-continuity package.
 
@@ -165,6 +235,44 @@ theorem H1UxxL1ContBefore_of_physicalRHS_components
   H1UxxL1ContBefore_of_liftDeriv2_jointContinuousBefore
     (H1LiftDeriv2JointContinuousBefore_of_physicalRHS_components
       (p := p) (u := u) (v := v) (T := T) hTime hChem hReact hEq)
+
+/-- The physical RHS component package also gives the L¹ `u_xx` frontier when
+the physical RHS agrees with `liftDeriv2` only on the spatial interior. -/
+theorem H1UxxL1ContBefore_of_physicalRHS_components_interiorEq
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hTime : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry (fun t x => liftTimeDeriv u t x))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hChem : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift
+              (fun X : intervalDomainPoint =>
+                intervalDomain.chemotaxisDiv p (u t) (v t) X) x))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hReact : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift (u t) x *
+              (p.a - p.b * (intervalDomainLift (u t) x) ^ p.α)))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry (liftDeriv2PhysicalRHS p u v))
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_strictSlab_interior_eq_continuous
+    (u := u) (T := T) (F := liftDeriv2PhysicalRHS p u v) ?_ hEqInterior
+  intro a b ha hab hbT
+  exact liftDeriv2PhysicalRHS_continuousOn_of_components
+    (p := p) (u := u) (v := v)
+    (s := Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1)
+    (hTime (a := a) (b := b) ha hab hbT)
+    (hChem (a := a) (b := b) ha hab hbT)
+    (hReact (a := a) (b := b) ha hab hbT)
 
 /-- A classical solution supplies strict-slab continuity of `liftTimeDeriv`. -/
 theorem liftTimeDeriv_continuousOn_strictSlab_of_classicalSolution
@@ -283,17 +391,49 @@ theorem H1UxxL1ContBefore_of_classical_chem_eq_physicalRHS
     (H1LiftDeriv2JointContinuousBefore_of_classical_chem_eq_physicalRHS
       (p := p) (u := u) (v := v) (T := T) hsol hChem hEq)
 
+/-- For the L¹ route, a classical solution only needs chemotaxis-divergence
+continuity plus the interior physical RHS equality. Endpoint equality is not
+part of this interface. -/
+theorem H1UxxL1ContBefore_of_classical_chem_interiorEq_physicalRHS
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hChem : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn
+        (Function.uncurry
+          (fun t x =>
+            intervalDomainLift
+              (fun X : intervalDomainPoint =>
+                intervalDomain.chemotaxisDiv p (u t) (v t) X) x))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry (liftDeriv2PhysicalRHS p u v))
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1UxxL1ContBefore u T := by
+  refine H1UxxL1ContBefore_of_physicalRHS_components_interiorEq
+    (p := p) (u := u) (v := v) (T := T) ?_ hChem ?_ hEqInterior
+  · intro a b ha hab hbT
+    exact liftTimeDeriv_continuousOn_strictSlab_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+  · intro a b ha hab hbT
+    exact logisticReaction_continuousOn_strictSlab_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol ha hab hbT
+
 section AxiomAudit
 
 #print axioms H1LiftDeriv2JointContinuousBefore_of_strictSlab_eq_continuous
 #print axioms H1UxxL1ContBefore_of_strictSlab_eq_continuous
+#print axioms H1UxxL1ContBefore_of_strictSlab_interior_eq_continuous
 #print axioms liftDeriv2PhysicalRHS_continuousOn_of_components
 #print axioms H1LiftDeriv2JointContinuousBefore_of_physicalRHS_components
 #print axioms H1UxxL1ContBefore_of_physicalRHS_components
+#print axioms H1UxxL1ContBefore_of_physicalRHS_components_interiorEq
 #print axioms liftTimeDeriv_continuousOn_strictSlab_of_classicalSolution
 #print axioms logisticReaction_continuousOn_strictSlab_of_classicalSolution
 #print axioms H1LiftDeriv2JointContinuousBefore_of_classical_chem_eq_physicalRHS
 #print axioms H1UxxL1ContBefore_of_classical_chem_eq_physicalRHS
+#print axioms H1UxxL1ContBefore_of_classical_chem_interiorEq_physicalRHS
 
 end AxiomAudit
 

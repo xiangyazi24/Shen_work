@@ -2520,6 +2520,20 @@ the lifted `chemotaxisDiv` term, and the `EqOn` proof identifying `liftDeriv2`
 with the physical RHS on closed spatial slabs. This is still not the
 chemotaxis-divergence or endpoint-equality producer.
 
+Task 62 adds the endpoint-insensitive L¹ variant of the same seam. The new
+theorem `H1UxxL1ContBefore_of_strictSlab_interior_eq_continuous` runs
+`l1_time_continuity_at_of_jointContinuousOn_slab` on a continuous closed-slab
+representative `F`, then transfers the spatial interval integral back to
+`liftDeriv2` using `intervalIntegral.integral_congr_ae`. Thus the L¹ route only
+requires `EqOn` on `Icc a b ×ˢ Ioo 0 1`; endpoint equality at `x = 0,1` is no
+longer needed for `H1UxxL1ContBefore`.
+
+The stronger route to `H1LiftDeriv2JointContinuousBefore` still requires closed
+spatial endpoint equality. Q3415/Q3417 both flag the literal lifted
+`chemotaxisDiv` endpoint as a real zero-extension derivative trap, so the next
+honest frontier is a continuous physical representative plus interior equality,
+not a silent closed-endpoint congruence.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
