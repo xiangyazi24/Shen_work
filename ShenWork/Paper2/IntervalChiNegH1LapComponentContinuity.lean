@@ -24,6 +24,13 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity
 
+/-- Explicit endpoint-lap continuity frontier.  This is H²/lap-trace data, not
+H¹-energy endpoint data. -/
+structure H1LapComponentEndpointContinuousBefore
+    (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
+  lap_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc (0 : ℝ) b)
+
 /-- Closed-slab joint continuity of `u_xx` implies closed-window continuity of
 the squared Laplacian component on that same slab. -/
 theorem lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
@@ -114,9 +121,26 @@ theorem lapL2sq_continuousOn_strictWindow_of_strictSlab_interior_eq_continuous
     (hF (a := a) (b := b) ha hab hbT)
     (hEqInterior (a := a) (b := b) ha hab hbT)
 
+/-- Endpoint-lap continuity plus strict positive-time lap continuity gives the
+full `0 ≤ a` lap-continuity field expected by closed-window RHS packages. -/
+theorem lapL2sq_continuousOn_before_of_endpoint_and_strict
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (h0 : H1LapComponentEndpointContinuousBefore u T)
+    (hstrict : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b)) :
+    ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b) := by
+  intro a b ha hab hbT
+  by_cases ha_pos : 0 < a
+  · exact hstrict ha_pos hab hbT
+  · have ha_eq : a = 0 := le_antisymm (le_of_not_gt ha_pos) ha
+    subst a
+    exact h0.lap_cont0 (b := b) hab hbT
+
 #print axioms lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
 #print axioms lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous
 #print axioms lapL2sq_continuousOn_strictWindow_of_liftDeriv2_jointContinuousBefore
 #print axioms lapL2sq_continuousOn_strictWindow_of_strictSlab_interior_eq_continuous
+#print axioms lapL2sq_continuousOn_before_of_endpoint_and_strict
 
 end ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity

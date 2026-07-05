@@ -2632,6 +2632,33 @@ does not fill the current `H1IdentityRHSComponentsContinuousBefore.lap_cont`
 field globally, because that record asks for windows with `0 ≤ a`, including
 `a = 0`; the landed theorem only covers `0 < a`.
 
+Task 69 records that `0 < a` / `0 ≤ a` mismatch in the bridge API rather than
+silently strengthening the analysis.  Q3431 independently confirms that the
+zero-endpoint lap-continuity input is a genuine H2/lap-trace frontier, not a
+consequence of `H1InitialEndpointData`, `H1UxxL1ContBefore`, the classical
+solution record, or scalar H1 regularity.  `IntervalChiNegH1LapComponentContinuity`
+therefore names this explicit frontier as
+`H1LapComponentEndpointContinuousBefore` and proves the pure combiner
+`lapL2sq_continuousOn_before_of_endpoint_and_strict`.
+
+`IntervalChiNegH1Bridge` now has
+`H1IdentityRHSComponentsContinuousStrictBefore`, with all four component fields
+quantified over strict positive-time windows, plus constructors that fill the
+strict `lap_cont` either from `H1LiftDeriv2JointContinuousBefore` or from a
+continuous closed-slab representative plus interior `EqOn`.
+
+For the existing closed-window package
+`H1IdentityRHSComponentsContinuousBefore`, Task 69 adds only honest reducers:
+`H1IdentityRHSComponentsContinuousBefore_of_lap_zero_and_lap_strict`,
+`..._of_liftDeriv2_jointContinuousBefore_and_lap_zero`, and
+`..._of_strictSlab_interior_eq_continuous_and_lap_zero`, together with
+record-style `..._lapEndpoint` variants.  Each route requires an explicit
+zero-starting-window input
+`∀ {b}, 0 ≤ b → b < T → ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc 0 b)`.
+That endpoint lap-continuity field is not provided by the strict positive-time
+producers and should not be confused with `H1InitialEndpointData`, which only
+bundles H1 energy trace/compatibility data.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
