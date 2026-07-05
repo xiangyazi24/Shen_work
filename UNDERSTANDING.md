@@ -2924,6 +2924,22 @@ actual FTC identity while exposing only its integrable proxy and a.e. derivative
 equality to the current route, so this bridge still does not use RHS
 integrability, bounded-before, or zero-start `lapL2sq` continuity.
 
+Task 87 adds `IntervalChiNegH1InitialDerivativeRHS`, the reverse initial-window
+bridge for independently produced assembled H¹ RHS data.  Given the pointwise
+positive-time H¹ identity and
+`H1IdentityRHSInitialWindowIntegrableBefore`, the theorem
+`H1EnergyDerivativeInitialWindowProxyBefore_of_identityRHSInitialWindow` uses
+the explicit `H1IdentityRHSValue` as the proxy for `deriv (H1energy u)` on each
+`Ioc 0 b`.  The file then lowers this to Task 86's a.e. proxy, Task 83's
+majorant, and finally `H1EnergyDerivativeInitialWindowIntegrableBefore`.  This
+adapter does not consume the full `H1IdentityRHSIntegrableBefore` package or
+bounded-before data; its source hypothesis must still be produced independently
+to avoid reintroducing the old circular route.
+The same file also adds `H1IdentityRHSInitialWindowMajorantBefore`, a
+source-facing near-zero L¹ majorant for the assembled RHS itself.  Its adapter
+to `H1IdentityRHSInitialWindowIntegrableBefore` lets future physical estimates
+target an RHS majorant directly before crossing into the derivative-proxy route.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
