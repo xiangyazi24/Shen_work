@@ -67,7 +67,23 @@ theorem H1ScalarRegularityBefore_of_hcont_and_hderivInt
   hcont := hcont
   hderivInt := hderivInt
 
+/-- Direct scalar-regularity producer from the proved H¹ energy continuity
+bridge plus the still-carried derivative-integrability field. -/
+theorem H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hUxxL1 : H1UxxL1ContBefore u T)
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hderivInt : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      IntervalIntegrable (fun r => deriv (H1energy u) r) volume a b) :
+    H1ScalarRegularityBefore u T :=
+  H1ScalarRegularityBefore_of_hcont_and_hderivInt
+    (H1energy_continuousOn_before_of_uxxL1Cont hsol hUxxL1 hcont0)
+    hderivInt
+
 #print axioms H1energy_continuousOn_before_of_uxxL1Cont
 #print axioms H1ScalarRegularityBefore_of_hcont_and_hderivInt
+#print axioms H1ScalarRegularityBefore_of_uxxL1Cont_and_hderivInt
 
 end ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
