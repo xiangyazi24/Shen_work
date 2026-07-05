@@ -1189,7 +1189,12 @@ Current headline status:
   `IntervalChiNegH1InitialWiring` threads this split endpoint package through
   the scalar-regularity, scalar-DI, and bounded-before H1 routes.  Downstream
   wrappers now carry `H1InitialTraceEnergyTendsto` plus
-  `H1InitialEnergyCompatibleAtZero` instead of a raw `hcont0`.
+  `H1InitialEnergyCompatibleAtZero` instead of a raw `hcont0`.  The bridge
+  follow-up `IntervalChiNegH1BridgeInitialWiring` does the same for the
+  route-specific parametric/spectral H1 bridge packages, including the
+  component-continuity variants.  It still leaves the route packages,
+  restricted local H1 seed, strict-slab `liftDeriv2` continuity, and endpoint
+  trace/compatibility as explicit inputs.
 
   Thus the tree is proof-hole-free, but most `...Data` / `...FrontierData`
   headline wrappers are conditional assembly interfaces, not no-assumption

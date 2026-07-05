@@ -449,4 +449,5 @@ import ShenWork.Paper2.IntervalChiNegH1RHSIntegrabilityProducer
 import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 import ShenWork.Paper2.IntervalChiNegH1InitialWiring
 import ShenWork.Paper2.IntervalChiNegH1Bridge
+import ShenWork.Paper2.IntervalChiNegH1BridgeInitialWiring
 import ShenWork.Wiener.EWA.SourceChiNegUniformBridge
