@@ -2499,6 +2499,17 @@ the theorem deliberately assumes `0 < a`, matching
 `H1LiftDeriv2JointContinuousBefore`. It does not discharge any record field
 that requires continuity on windows starting at `a = 0`.
 
+Task 59 adds `IntervalChiNegH1LiftDeriv2Transfer.lean`.
+It fixes the next seam shape: to produce
+`H1LiftDeriv2JointContinuousBefore`, it is enough to provide a jointly
+continuous strict-slab representative `F` and an `EqOn` proof that `F` agrees
+with `liftDeriv2 u` on each strict slab. The file also immediately routes this
+to `H1UxxL1ContBefore`.
+
+This is not yet the physical PDE RHS producer. The endpoint and physical
+chemotaxis-divergence identities remain explicit in the future `EqOn`/`F`
+inputs.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
