@@ -2720,6 +2720,22 @@ windows.  A minimal future producer should either prove
 strict-window continuity, or supply a zero-slab continuous representative for
 `liftDeriv2` on `[0,b] × [0,1]`.
 
+Task 73 implements the first option as an honest API split, without proving the
+new H2 trace fact.  `IntervalChiNegH1LapComponentContinuity` now names the
+atomic zero-right frontier as horizon-free `H1LapComponentZeroRightContinuous`
+and proves that this frontier plus strict positive-time `lapL2sq` continuity yields
+`H1LapComponentEndpointContinuousBefore`.  Two convenience wrappers fill the
+strict part from either `H1LiftDeriv2JointContinuousBefore` or a strict-slab
+continuous representative of `liftDeriv2`.  The remaining hard analytic input is
+now exactly the zero-right `lapL2sq` continuity at `t = 0`, not the local H1
+seed or positive-time `u_xx` continuity.  Q3437 confirmed that no committed
+producer currently derives this from the existing H1/PDE APIs; it also led to
+three additional reducers in the same file.  A zero-start continuous
+representative `F` on `[0,b] × [0,1]`, together with interior equality to
+`liftDeriv2`, now produces `H1LapComponentZeroRightContinuous`, and a zero-slab
+family directly produces `H1LapComponentEndpointContinuousBefore`.  Thus the
+next analytic atom is the zero-slab representative/equality itself.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
