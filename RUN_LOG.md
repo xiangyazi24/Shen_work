@@ -256,3 +256,98 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
   - 3E/positivity: CLOSES with wiring
   - 1A, 2A-sup, 3G: NEEDS WORK (higher spatial regularity / closed-slab representatives)
   - 3A sub-sorry: NEEDS WORK (resolver C⁴ → rewrite to use C²)
+
+## Run 2026-07-03 03:xx
+- doctrine version: updated 2026-07-03 (Prop 2.5 hId+hWindow+hlocal gaps)
+- starting avenue: (a) spectral route for H¹ DI
+- end: <pending>
+- final result: <pending>
+
+## Run 2026-07-05 (Task 41 1D bypass assembly)
+- ChatGPT Q3359 audited the C³-Neumann Wiener-lifting gap: do not state an
+  unconditional `ContDiffOn + deriv endpoint` provider; keep explicit weighted
+  summability/reconstruction certificates until the analytic provider theorems
+  are proved.
+- Added `ShenWork/PDE/P3Moser1DBypassAssembly.lean`.
+- Result: proved
+  `intervalDomain_boundedBefore_of_L2bound_and_H1bound`:
+  `LpPowerBoundedBefore intervalDomain 2 T u` + uniform `H1energy` bound
+  produces `IsPaper2BoundedBefore intervalDomain T u` via the existing 1D
+  Agmon route and the p=2 H¹ gradient producer.
+- Added upstream wrappers:
+  `..._of_absorbingIntegratedL2_and_H1bound`,
+  `..._of_absorbingDifferentialL2_and_H1bound`, and H¹-window variants using
+  `chiNeg_H1_norm_bound`.
+- Important correction to Task 41 spec: H¹ seminorm alone does not control the
+  spatial constant mode, so the H1-only theorem was not used as an interface.
+- Verification: `lake env lean ShenWork/PDE/P3Moser1DBypassAssembly.lean` and
+  `lake build ShenWork.PDE.P3Moser1DBypassAssembly` both pass; axiom print is
+  `[propext, Classical.choice, Quot.sound]`.
+- ChatGPT Q3367 recommended doing the H¹ window reducer first, with all H¹
+  inputs restricted to `τ < T` rather than forcing the older unrestricted
+  `chiNeg_H1_norm_bound` interface.
+- Added `ShenWork/Paper2/IntervalChiNegH1WindowWiring.lean`:
+  `H1Window`, `H1Window_bound_of_singleSolution_H1_window_bound`,
+  `chiNeg_H1_norm_bound_before`,
+  `H1_bound_before_of_singleSolution_window`, and
+  `intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_and_Lp2`.
+  This removes the carried H¹ sliding-window hypothesis using
+  `singleSolution_H1_window_bound`; it still honestly carries `hlocal`,
+  `havg`, and the terminal `LpPowerBoundedBefore intervalDomain 2 T u`.
+- Verification: `lake env lean ShenWork/Paper2/IntervalChiNegH1WindowWiring.lean`
+  and `lake build ShenWork.Paper2.IntervalChiNegH1WindowWiring` both pass; axiom
+  print is `[propext, Classical.choice, Quot.sound]`.
+- Added the smaller reducer `H1_avg_of_pointwise_window_bound`: a pointwise
+  integrated inequality `H1energy u τ ≤ H1energy u s + A*H1Window u τ + B`
+  for interior starts `s ∈ (τ-1,τ)` averages to the exact `havg` input.  This
+  splits the next task into a pure scalar FTC producer for that pointwise
+  inequality.
+- ChatGPT Q3371 confirmed there is no visible repo theorem already producing
+  the H¹ `havg` input, and recommended a scalar-only DI/FTC reducer.
+- Added `ShenWork/Paper2/IntervalChiNegH1AverageWiring.lean`:
+  `H1ScalarDIOnBefore`, `H1Window_subinterval_le`,
+  `H1_backward_bound_of_scalarDI_before`, `H1_avg_of_backwards_bound`, and
+  `H1_avg_of_scalarDI_before`.  This proves the `havg` input from a scoped
+  scalar inequality `deriv (H1energy u) ≤ A * H1energy u + B`, with continuity,
+  derivative-integrability, and right-derivative FTC data carried explicitly.
+- Verification: `lake env lean ShenWork/Paper2/IntervalChiNegH1AverageWiring.lean`
+  and `lake build ShenWork.Paper2.IntervalChiNegH1AverageWiring` both pass;
+  axiom print is `[propext, Classical.choice, Quot.sound]`.
+- ChatGPT Q3374 confirmed the next honest boundary is not `hUxxL1Cont`, but a
+  compact scalar/PDE producer:
+  scalar H¹ FTC regularity plus pointwise `H1EnergyIdentity` with RHS bounded by
+  `A * H1energy + B` implies `H1ScalarDIOnBefore`.
+- Added `ShenWork/Paper2/IntervalChiNegH1ScalarDIProducer.lean`:
+  `H1ScalarRegularityBefore`, `H1IdentityRHSBoundBefore`,
+  `H1ScalarDIOnBefore_of_identityRHSBound`,
+  `H1SupBoundDIDataBefore`, and
+  `H1IdentityRHSBoundBefore_of_supBoundDIData`.  This uses the existing
+  `h1_diffIneq_of_sup_bounds` algebraic theorem while keeping scalar continuity,
+  derivative integrability, cross-term estimates, and `u_xx` L¹-continuity
+  explicit upstream.
+- Added/verified the final scalar-DI wrapper in
+  `IntervalChiNegH1AverageWiring`:
+  `intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local`, composing
+  `H1_avg_of_scalarDI_before` with the paper-positive P3 bypass.
+- Verification: `lake env lean
+  ShenWork/Paper2/IntervalChiNegH1ScalarDIProducer.lean` and `lake build
+  ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer` both pass; axiom print is
+  `[propext, Classical.choice, Quot.sound]`.  A remote full build including the
+  new producer was started after local verification.
+- ChatGPT Q3377 confirmed that the existing pointwise H¹ identity does not
+  produce the full scalar FTC regularity package by itself: closed-window
+  continuity needs a time-zero right-continuity input, and
+  `IntervalIntegrable (deriv (H1energy u))` remains a separate scalar input.
+- Added `ShenWork/Paper2/IntervalChiNegH1ScalarRegularityProducer.lean`:
+  `H1energy_continuousOn_before_of_uxxL1Cont` proves the continuity field of
+  `H1ScalarRegularityBefore` from `IsPaper2ClassicalSolution`, the carried
+  `H1UxxL1ContBefore`, and explicit
+  `ContinuousWithinAt (H1energy u) (Set.Ici 0) 0`; and
+  `H1ScalarRegularityBefore_of_hcont_and_hderivInt` packages the continuity
+  field with the still-carried derivative-integrability field.
+- Verification: `lake env lean
+  ShenWork/Paper2/IntervalChiNegH1ScalarRegularityProducer.lean` and `lake build
+  ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer` both pass; axiom
+  print is `[propext, Classical.choice, Quot.sound]`.  Remote full build
+  `/Users/huangx/.openclaw/workspace/scripts/remote-build.sh $(basename $PWD)`
+  passes with `=== BUILD OK (76s) ===`.

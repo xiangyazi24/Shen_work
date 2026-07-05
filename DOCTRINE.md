@@ -1,6 +1,61 @@
 # Shen Trilogy Formalization — DOCTRINE
 
-## ACTIVE AUTOMODE TARGET (2026-07-02): Discharge Prop 2.5 conditions via 1D energy + Sobolev route
+## ACTIVE AUTOMODE TARGET (2026-07-03): Prop 2.5 — close hId + hWindow + hlocal gaps
+
+### Session 2026-07-03 Focus: produce H¹ energy DI from classical solution
+
+The chain to Prop 2.5 is CLEAN except for THREE carried hypotheses in
+`produce_pointwiseGradientBound_full` (via `chiNeg_H1_norm_bound`):
+  1. **hId** (H1EnergyIdentity) — `HasDerivAt (H1energy u) (derivative_value) τ`
+  2. **hWindow** — `∫_{τ-1}^τ H1energy ≤ C` (single-solution dissipation window)
+  3. **hlocal** — `H1energy bounded on (0,1]` (parabolic smoothing near t=0)
+
+### Dual-oracle synthesis (2026-07-03, Fable + ChatGPT):
+
+**Decision: Route C (finite-difference + spatial IBP).** Both oracles agreed on
+the energy identity value `y'(t) = -∫ u_xx · u_t` but disagreed on route.
+ChatGPT's Route C won because it needs NO spectral theory, NO new regularity
+fields, and only uses spatial C² + Neumann + joint u_t continuity already in
+the 9-conjunct regularity record.
+
+**Route C proof:**
+  Step 1: H1energy(s)-H1energy(t) = -½∫(u_xx(s)+u_xx(t))·(u(s)-u(t))
+          (spatial IBP, Neumann kills boundary — pure algebra, no time deriv)
+  Step 2: divide by (s-t), limit: y'(t) = -∫ u_xx(t)·u_t(t)
+          (needs L¹ continuity of u_xx in time — CARRIED)
+  Step 3: PDE substitution → H1EnergyIdentity shape
+
+**Files created:**
+  - `IntervalChiNegH1EnergyIdentity.lean` — Route C, carries `hUxxL1Cont`
+  - `IntervalSingleSolutionL2Window.lean` — L² energy + hWindow (existed prior)
+
+**Status of the THREE carried hypotheses:**
+  1. **hId** → Route C reduces to ONE carry: `hUxxL1Cont` (L¹ continuity of
+     u_xx in time). Derivable from PDE: u_xx = u_t + F, u_t jointly continuous
+     (conj. 8), F involves v_xx = v_t + μv - νu^γ (all jointly continuous),
+     then v_x by spatial antiderivative, then u_x by same. Fixed-point argument.
+  2. **hWindow** → `singleSolution_H1_window_bound` is now a proved theorem in
+     `IntervalSingleSolutionL2Window.lean`. It is not a raw sorry; it consumes
+     `IntervalDomainL2AbsorbingDifferentialInequalityResult`,
+     `IntervalDomainL2SeedRegularityFrontier`, and a uniform `L2energy` bound.
+  3. **hlocal** → H1energy bounded on (0,1]. From: H1energy continuous on
+     (0,T) (H1energy is a composition of continuous maps), hence bounded on
+     compact [ε,1]. The near-zero behavior uses parabolic smoothing.
+
+### Avenues (revised after oracle synthesis):
+(a) **Route C (active)** — finite-difference + spatial IBP → H1EnergyIdentity
+    → chiNeg_H1_norm_bound → produce_pointwiseGradientBound_full → Prop 2.5.
+    Sole carry: `hUxxL1Cont`. File: `IntervalChiNegH1EnergyIdentity.lean`.
+(b) **Spectral route (backup)** — eigenvalue-weighted ℓ¹ summability.
+    Harder: needs `Σ λ_k |û_k| < ∞`, which requires C² Neumann + Cauchy-Schwarz
+    + Parseval on f'' — but the sum Σ |cosineCoeffs(f'')_k| converges only if
+    f'' ∈ BV (need C³ or better), which isn't in the record.
+(c) **Hybrid (fallback)** — semigroup + Duhamel for spectral bounds.
+Terminal: `intervalDomain_Proposition_2_5_1d` unconditional from `IsPaper2ClassicalSolution`.
+
+---
+
+## Previous ACTIVE TARGET (2026-07-02): Discharge Prop 2.5 conditions via 1D energy + Sobolev route
 
 ### Background — what Fable 5 found (2026-07-01)
 - `AgmonNoDropEnergyReductionBefore` (AG ≤ KZ + L) is FALSE — interpolation goes Z→G not G→Z.
@@ -274,3 +329,126 @@ already requires p₀ > max{1, ρN/2}.
 3. `intervalDomain_gn_absorbed_interpolation_of_agmon` — THE MAIN LEMMA
 4. `intervalDomain_all_Lp_of_agmon_bootstrap` — moser_iteration_chain application
 5. `intervalDomain_Corollary_2_1_of_agmon` + `..._Proposition_2_5_of_agmon` — wiring
+
+---
+## [2026-07-05] Task 41 correction: H¹-only is not a bounded-before interface
+
+The proposed 1D bypass theorem with only a uniform `H1energy` bound is too
+strong as an interface: the H¹ seminorm controls the derivative part but not
+the spatial constant mode.  The honest reducer is:
+
+```
+LpPowerBoundedBefore intervalDomain 2 T u
++ uniform H1energy u τ ≤ Y₁ on (0,T)
+→ IsPaper2BoundedBefore intervalDomain T u
+```
+
+This is now proved as
+`ShenWork.IntervalDomainExistence.P3Moser1DBypassAssembly.intervalDomain_boundedBefore_of_L2bound_and_H1bound`.
+
+The same file also provides upstream combinators from the existing L² absorbing
+seed frontiers and H¹ window/local/average package:
+
+```
+IntervalDomainL2AbsorbingIntegratedInequalityResult + IntervalDomainL2SeedRegularityFrontier
++ chiNeg_H1_norm_bound inputs
+→ IsPaper2BoundedBefore intervalDomain T u
+```
+
+Consequences for orchestration:
+- If a future route can produce an unconditional `L²`/mass seed and uniform
+  H¹ bound, the 1D bounded-before conclusion is closed by this file.
+- Do not dispatch workers to prove the H1-only version unless the statement is
+  strengthened with a constant-mode/mass/L² hypothesis.
+
+Follow-up window wiring is now proved in
+`ShenWork.Paper2.IntervalChiNegH1WindowWiring`:
+
+```
+singleSolution_H1_window_bound
++ hlocal on (0,1] restricted by τ < T
++ havg on 1 ≤ τ < T for H1Window
+→ ∃ Y₁ ≥ 0, ∀ τ, 0 < τ → τ < T → H1energy u τ ≤ Y₁
+```
+
+The final wrapper
+`intervalDomain_boundedBefore_of_L2Window_H1local_H1avg_and_Lp2` composes this
+with the Task 41 1D bypass while keeping the `p=2` Lp seed explicit.  Remaining
+H¹-route carries are now `hlocal` and `havg`; `havg` should be attacked next
+through a scalar H¹ differential inequality plus interval FTC.  The new reducer
+`H1_avg_of_pointwise_window_bound` already proves the final averaging step from
+the pointwise window inequality
+`H1energy u τ ≤ H1energy u s + A * H1Window u τ + B`; the next gap is therefore
+the scalar FTC theorem producing that pointwise window inequality from the H¹
+DI.  Do not attack `hUxxL1Cont` as the next low-risk task; it remains the
+upstream analytic regularity frontier behind the H¹ identity route.
+
+That scalar FTC reducer is now proved in
+`ShenWork.Paper2.IntervalChiNegH1AverageWiring`:
+
+```
+H1ScalarDIOnBefore u T A B
+→ ∀ τ, 1 ≤ τ → τ < T →
+    H1energy u τ ≤ H1Window u τ + (A * H1Window u τ + B)
+```
+
+`H1ScalarDIOnBefore` is intentionally scalar: it carries H¹-energy continuity on
+closed nonnegative windows, interval integrability of `deriv (H1energy u)`,
+right-derivative FTC data, and the pointwise DI
+`deriv (H1energy u) ≤ A * H1energy u + B`.  Remaining low-risk work is now to
+produce this scalar package from the landed H¹ identity plus algebraic
+cross-term bounds, still carrying `hUxxL1Cont` upstream if needed.  The separate
+`hlocal` start on `(0,1]` remains another carried input.
+
+Task 41C scalar-DI producer is now proved in
+`ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer`:
+
+```
+H1ScalarRegularityBefore u T
++ H1IdentityRHSBoundBefore p u T A B
+→ H1ScalarDIOnBefore u T A B
+```
+
+The `H1IdentityRHSBoundBefore` package is also produced from explicit
+`H1SupBoundDIDataBefore` via the existing `h1_diffIneq_of_sup_bounds` algebraic
+theorem.  This is the current honest boundary:
+
+- scalar continuity/integrability of `H1energy` remains a separate FTC
+  regularity input;
+- pointwise taxis/uvxx/reaction estimates remain explicit in
+  `H1SupBoundDIDataBefore`;
+- `hUxxL1Cont` is not attacked here and remains upstream of whichever theorem
+  produces the pointwise `H1EnergyIdentity`;
+- `hlocal` on `(0,1]` is still a separate carried start.
+
+`IntervalChiNegH1AverageWiring` also has the paper-positive wrapper
+`intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local`, so once
+`H1ScalarRegularityBefore`, `H1SupBoundDIDataBefore`, and `hlocal` are supplied,
+the Task 41 bounded-before route closes through the P3 bypass.
+
+Task 41D scalar-regularity producer is now proved in
+`ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer`:
+
+```
+IsPaper2ClassicalSolution intervalDomain p T u v
++ H1UxxL1ContBefore u T
++ ContinuousWithinAt (H1energy u) (Set.Ici 0) 0
+→ ∀ 0 ≤ a ≤ b < T, ContinuousOn (H1energy u) (Set.Icc a b)
+```
+
+and the packaging lemma:
+
+```
+hcont
++ hderivInt
+→ H1ScalarRegularityBefore u T
+```
+
+This deliberately does **not** claim that the pointwise H¹ identity supplies
+interval FTC regularity.  Remaining honest scalar-regularity inputs are:
+
+- `IntervalIntegrable (fun r => deriv (H1energy u) r) volume a b` on all
+  closed pre-horizon windows;
+- time-zero right-continuity of `H1energy`, unless a future theorem derives it
+  from initial-trace/parabolic regularity;
+- the upstream analytic `H1UxxL1ContBefore` itself.
