@@ -388,6 +388,22 @@ theorem H1ScalarDIOnBefore_of_classical_initialEndpointData
   H1ScalarDIOnBefore_of_classical_initialTraceEnergy
     hsol hinit.tendsto hinit.compatible hRHS hBound
 
+/-- Endpoint-data-facing wrapper for the scalar local seed.
+
+The endpoint bundle is not analytically needed once `H1ScalarDIOnBefore` is
+available; it is kept here only so route APIs that already carry
+`H1InitialEndpointData` can call the seed theorem without changing imports. -/
+theorem exists_H1_localSeed_of_scalarDI_initialEndpointData
+    {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {T A B : ℝ}
+    (hT : 0 < T)
+    (hDI : H1ScalarDIOnBefore u T A B)
+    (_hinit : H1InitialEndpointData u₀ u T) :
+    ∃ Ylocal : ℝ,
+      ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+        H1energy u τ ≤ Ylocal :=
+  exists_H1_localSeed_of_scalarDI_before hT hDI
+
 /-- Bundled-endpoint version of
 `boundedBefore_of_H1identityRHS_initialTraceEnergy`. -/
 theorem boundedBefore_of_H1identityRHS_initialEndpointData
@@ -610,6 +626,7 @@ theorem boundedBefore_of_H1supBoundSqrtRHS_classical_initialEndpointData
 #print axioms H1ScalarRegularityBefore_of_classical_initialEndpointData
 #print axioms H1ScalarDIOnBefore_of_initialEndpointData
 #print axioms H1ScalarDIOnBefore_of_classical_initialEndpointData
+#print axioms exists_H1_localSeed_of_scalarDI_initialEndpointData
 #print axioms boundedBefore_of_H1identityRHS_initialEndpointData
 #print axioms boundedBefore_of_H1identityRHS_classical_initialEndpointData
 #print axioms boundedBefore_of_H1supBoundDI_initialEndpointData

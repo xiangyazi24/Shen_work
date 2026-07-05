@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1WindowWiring
+import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
 /-!
@@ -172,6 +173,81 @@ theorem H1_avg_of_scalarDI_before
   exact H1_avg_of_backwards_bound hcont
     (fun σ hσ => H1_backward_bound_of_scalarDI_before hDI hτ1 hτT hσ)
 
+/-- The scalar H¹ differential inequality supplies the restricted local H¹
+seed needed before the one-unit averaged estimate starts.
+
+The proof avoids needing a right derivative at `0`: first bound the energy on
+`[0, T/2]` by compactness, then apply Mathlib's Gronwall estimate only on
+windows `[T/2, τ]`, obtaining the derivative at the left endpoint from the
+larger positive-time window `[0, τ]`. -/
+theorem exists_H1_localSeed_of_scalarDI_before
+    {u : ℝ → intervalDomainPoint → ℝ} {T A B : ℝ}
+    (hT : 0 < T)
+    (hDI : H1ScalarDIOnBefore u T A B) :
+    ∃ Ylocal : ℝ,
+      ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+        H1energy u τ ≤ Ylocal := by
+  let δ : ℝ := T / 2
+  have hδ0 : 0 < δ := by
+    dsimp [δ]
+    linarith
+  have hδT : δ < T := by
+    dsimp [δ]
+    linarith
+  have h0δ : (0 : ℝ) ≤ δ := le_of_lt hδ0
+  have hcont0δ : ContinuousOn (H1energy u) (Set.Icc (0 : ℝ) δ) :=
+    hDI.hcont (by norm_num) h0δ hδT
+  have hbdd : BddAbove ((H1energy u) '' Set.Icc (0 : ℝ) δ) :=
+    isCompact_Icc.bddAbove_image hcont0δ
+  obtain ⟨M0, hM0_image⟩ := hbdd
+  have hM0 : ∀ t, t ∈ Set.Icc (0 : ℝ) δ → H1energy u t ≤ M0 := by
+    intro t ht
+    exact hM0_image (Set.mem_image_of_mem (H1energy u) ht)
+  refine ⟨max M0 (gronwallBound (H1energy u δ) A B 1), ?_⟩
+  intro τ hτ hτT
+  by_cases hτδ : τ ≤ δ
+  · have hτIcc : τ ∈ Set.Icc (0 : ℝ) δ := ⟨le_of_lt hτ.1, hτδ⟩
+    exact (hM0 τ hτIcc).trans (le_max_left _ _)
+  · have hδτ : δ < τ := lt_of_not_ge hτδ
+    have hδτ_le : δ ≤ τ := le_of_lt hδτ
+    have hcontδτ : ContinuousOn (H1energy u) (Set.Icc δ τ) :=
+      hDI.hcont h0δ hδτ_le hτT
+    have hgr :
+        H1energy u τ ≤ gronwallBound (H1energy u δ) A B (τ - δ) := by
+      have hpoint :=
+        le_gronwallBound_of_liminf_deriv_right_le
+          (f := H1energy u)
+          (f' := fun t => deriv (H1energy u) t)
+          (δ := H1energy u δ) (K := A) (ε := B)
+          (a := δ) (b := τ)
+          hcontδτ
+          (fun t ht r hr => by
+            have ht0 : 0 < t := lt_of_lt_of_le hδ0 ht.1
+            have htτ : t < τ := ht.2
+            have hderiv :
+                HasDerivWithinAt (H1energy u)
+                  (deriv (H1energy u) t) (Set.Ioi t) t :=
+              hDI.hhasDerivRight (a := 0) (b := τ) (r := t)
+                (by norm_num) (le_of_lt hτ.1) hτT ⟨ht0, htτ⟩
+            exact (hderiv.limsup_slope_le' (lt_irrefl t) hr).frequently.mono
+              (fun z hz => by
+                simpa [slope_def_field, div_eq_mul_inv, mul_comm, mul_left_comm,
+                  mul_assoc] using hz))
+          (le_rfl)
+          (fun t ht => by
+            have ht0 : 0 < t := lt_of_lt_of_le hδ0 ht.1
+            have htT : t < T := lt_trans ht.2 hτT
+            exact hDI.hDI t ht0 htT)
+          τ ⟨hδτ_le, le_rfl⟩
+      simpa [sub_self] using hpoint
+    have htime_le : τ - δ ≤ 1 := by
+      linarith [hτ.2, h0δ]
+    have hmono :
+        gronwallBound (H1energy u δ) A B (τ - δ) ≤
+          gronwallBound (H1energy u δ) A B 1 :=
+      (gronwallBound_mono (H1energy_nonneg u δ) hDI.hB hDI.hA) htime_le
+    exact (hgr.trans hmono).trans (le_max_right _ _)
+
 /-- Bridge from `H1ScalarDIOnBefore` to the paper-positive H¹-local-average bypass
 assembler. -/
 theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
@@ -234,11 +310,34 @@ theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
     hsol hbounded.2.2.1 habsorbing hfrontier hL2 hDI.hA
     hlocal (H1_avg_of_scalarDI_before hDI) hLp2
 
+/-- Paper-positive H¹ scalar-DI wrapper with the restricted local seed produced
+from the scalar differential inequality itself. -/
+theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {A B : ℝ}
+    (hDI : H1ScalarDIOnBefore u T A B) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  rcases exists_H1_localSeed_of_scalarDI_before hT hDI with
+    ⟨Ylocal, hlocal⟩
+  exact intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier hDI hlocal
+
 #print axioms H1Window_subinterval_le
 #print axioms H1_backward_bound_of_scalarDI_before
 #print axioms H1_avg_of_backwards_bound
 #print axioms H1_avg_of_scalarDI_before
+#print axioms exists_H1_localSeed_of_scalarDI_before
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
 #print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
+#print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before
 
 end ShenWork.Paper2.IntervalChiNegH1AverageWiring

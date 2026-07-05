@@ -2659,6 +2659,30 @@ That endpoint lap-continuity field is not provided by the strict positive-time
 producers and should not be confused with `H1InitialEndpointData`, which only
 bundles H1 energy trace/compatibility data.
 
+Task 70 discharges the restricted local H1 seed needed by the H1 averaged
+route.  `IntervalChiNegH1AverageWiring` now proves
+`exists_H1_localSeed_of_scalarDI_before`: from `0 < T` and
+`H1ScalarDIOnBefore u T A B` alone, there is a `Ylocal` with
+`H1energy u τ ≤ Ylocal` for `τ ∈ (0,1]` and `τ < T`.
+
+Q3432 identified the scalar-DI seed as the next target; Q3433 audited the
+endpoint issue.  Mathlib's `le_gronwallBound_of_liminf_deriv_right_le` cannot
+be applied directly on `[0, τ]`, because the current scalar-DI record gives the
+right-derivative and derivative inequality only for strictly positive times.
+The landed proof avoids a new open-left Gronwall lemma: it first bounds
+`H1energy` on `[0, T/2]` by compactness and `hDI.hcont`, then applies Mathlib
+Gronwall only on `[T/2, τ]` for points beyond that initial compact interval.
+Thus no PDE input, bounded-before assumption, or `H1InitialEndpointData` is
+needed once `H1ScalarDIOnBefore` is available.
+
+`IntervalChiNegH1AverageWiring` also exposes
+`intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_before`, a no-manual
+`hlocal` variant of the paper-positive scalar-DI bounded-before wrapper.
+`IntervalChiNegH1InitialWiring` adds only a thin
+`exists_H1_localSeed_of_scalarDI_initialEndpointData` wrapper for route APIs
+that already carry endpoint data; the endpoint bundle is analytically unused by
+the seed theorem.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
