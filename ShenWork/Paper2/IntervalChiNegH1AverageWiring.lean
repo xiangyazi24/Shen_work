@@ -13,9 +13,11 @@ open MeasureTheory Set Filter
 open scoped BigOperators Topology Interval
 
 open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1WindowWiring
+open ShenWork.IntervalDomainExistence.P3Moser1DBypassAssembly
 
 noncomputable section
 
@@ -170,9 +172,36 @@ theorem H1_avg_of_scalarDI_before
   exact H1_avg_of_backwards_bound hcont
     (fun σ hσ => H1_backward_bound_of_scalarDI_before hDI hτ1 hτT hσ)
 
+/-- Bridge from `H1ScalarDIOnBefore` to the paper-positive H¹-local-average bypass
+assembler. -/
+theorem intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {A B Ylocal : ℝ}
+    (hDI : H1ScalarDIOnBefore u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have havg : ∀ τ, 1 ≤ τ → τ < T →
+      1 * H1energy u τ ≤
+        (∫ s in (τ - 1)..τ, H1energy u s) +
+          1 * (A * (∫ s in (τ - 1)..τ, H1energy u s) + B * 1) := by
+    intro τ hτ1 hτT
+    simpa [H1Window] using H1_avg_of_scalarDI_before hDI τ hτ1 hτT
+  exact intervalDomain_boundedBefore_of_paperPositive_H1local_average
+    hbounded ha hu₀ hT hsol htrace hfrontier hDI.hA hlocal havg
+
 #print axioms H1Window_subinterval_le
 #print axioms H1_backward_bound_of_scalarDI_before
 #print axioms H1_avg_of_backwards_bound
 #print axioms H1_avg_of_scalarDI_before
+#print axioms intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local
 
 end ShenWork.Paper2.IntervalChiNegH1AverageWiring
