@@ -2589,6 +2589,16 @@ the final wrapper
 `H1UxxL1ContBefore u T` directly from `IsPaper2ClassicalSolution`.  The literal
 lifted `chemotaxisDiv` endpoint equality is still intentionally not claimed.
 
+Task 65 wires that concrete `H1UxxL1ContBefore` producer into the downstream
+H1 scalar-DI / endpoint / bridge wrappers.  New wrappers in
+`IntervalChiNegH1DerivativeIntegrability`, `IntervalChiNegH1InitialWiring`, and
+`IntervalChiNegH1BridgeInitialWiring` remove the explicit `hUxxL1` parameter
+whenever an `IsPaper2ClassicalSolution` is already in scope.  This closes the
+H1 `u_xx` carry for these routes; the remaining honest inputs are now the H1
+identity/RHS package or component-continuity route package, the split
+initial-energy endpoint data, the restricted local H1 seed, and the physical
+sqrt-bound estimates.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

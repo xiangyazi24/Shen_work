@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
+import ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 
 /-!
 # H¹ derivative-integrability producer
@@ -20,6 +21,7 @@ open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1AverageWiring
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
 open ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
+open ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 
 noncomputable section
 
@@ -159,6 +161,21 @@ theorem H1ScalarRegularityBefore_of_uxxL1Cont_and_identityRHSIntegrable
     hsol hUxxL1 hcont0
     (H1_derivInt_of_identityRHSIntegrableBefore hRHS)
 
+/-- H¹ scalar regularity from a classical solution via the concrete
+chemotaxis-divergence representative, plus explicit RHS integrability. -/
+theorem H1ScalarRegularityBefore_of_classicalChemRep_identityRHSIntegrable
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX) :
+    H1ScalarRegularityBefore u T :=
+  H1ScalarRegularityBefore_of_uxxL1Cont_and_identityRHSIntegrable
+    hsol
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    hcont0 hRHS
+
 /-- Direct scalar-DI producer from `u_xx` L¹-continuity, explicit RHS
 integrability, and the pointwise RHS-bound package. -/
 theorem H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
@@ -175,6 +192,23 @@ theorem H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
     hsol hUxxL1 hcont0
     (H1_derivInt_of_identityRHSIntegrableBefore hRHS)
     hBound
+
+/-- Direct scalar-DI producer from a classical solution via the concrete
+chemotaxis-divergence representative, explicit RHS integrability, and the
+pointwise RHS-bound package. -/
+theorem H1ScalarDIOnBefore_of_identityRHSBound_classicalChemRep_integrableRHS
+    {p : CM2Params} {T A B : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX)
+    (hBound : H1IdentityRHSBoundBefore p u T A B) :
+    H1ScalarDIOnBefore u T A B :=
+  H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
+    hsol
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    hcont0 hRHS hBound
 
 /-- Paper-positive bounded-before route using the compact identity/RHS-bound
 package directly, with scalar regularity produced from `u_xx` L¹-continuity
@@ -205,6 +239,33 @@ theorem intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before
       hsol hUxxL1 hcont0 hRHS hBound
   exact intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
     hbounded ha hu₀ hT hsol htrace hfrontier hDI hlocal
+
+/-- Paper-positive bounded-before route using the concrete classical
+chemotaxis-divergence representative to produce the `u_xx` L¹-continuity input.
+The local H¹ start is required only while `τ < T`. -/
+theorem boundedBefore_of_H1identityRHS_classicalChemRep_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {A B Ylocal : ℝ}
+    (hBound : H1IdentityRHSBoundBefore params u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    hcont0 hRHS hBound hlocal
 
 /-- Paper-positive bounded-before route using sup-bound DI data, with the
 scalar regularity field produced from `u_xx` L¹-continuity and explicit RHS
@@ -237,6 +298,32 @@ theorem intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
     hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1 hcont0 hRHS
     hBound hlocal
 
+/-- Sup-bound DI variant using the concrete classical chemotaxis-divergence
+representative to produce the `u_xx` L¹-continuity input. -/
+theorem boundedBefore_of_H1supBoundDI_classicalChemRep_local_before
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hcont0 : ContinuousWithinAt (H1energy u) (Set.Ici (0 : ℝ)) 0)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundDIDataBefore params u T V₁ V₂ M L)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    hcont0 hRHS hdata hlocal
+
 #print axioms H1_deriv_intervalIntegrable_of_eq_on_uIoc
 #print axioms H1_deriv_intervalIntegrable_of_eq_on_Ioc
 #print axioms H1_derivInt_of_identityRHS_intervalIntegrable
@@ -245,8 +332,12 @@ theorem intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
 #print axioms H1IdentityRHS_intervalIntegrable_of_continuousOn_Icc
 #print axioms H1ScalarRegularityBefore_of_hcont_and_identityRHSIntegrable
 #print axioms H1ScalarRegularityBefore_of_uxxL1Cont_and_identityRHSIntegrable
+#print axioms H1ScalarRegularityBefore_of_classicalChemRep_identityRHSIntegrable
 #print axioms H1ScalarDIOnBefore_of_identityRHSBound_uxxL1Cont_integrableRHS
+#print axioms H1ScalarDIOnBefore_of_identityRHSBound_classicalChemRep_integrableRHS
 #print axioms intervalDomain_boundedBefore_of_H1identityRHS_integrableRHS_local_before
+#print axioms boundedBefore_of_H1identityRHS_classicalChemRep_local_before
 #print axioms intervalDomain_boundedBefore_of_H1supBoundDI_integrableRHS_local_before
+#print axioms boundedBefore_of_H1supBoundDI_classicalChemRep_local_before
 
 end ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability

@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalChiNegH1InitialContinuity
 import ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
+import ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 
 /-!
 # H¹ initial endpoint wiring
@@ -23,6 +24,7 @@ open ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
 open ShenWork.Paper2.IntervalChiNegH1InitialContinuity
 open ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
 open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
+open ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 
 noncomputable section
 
@@ -46,6 +48,23 @@ theorem H1ScalarRegularityBefore_of_initialTraceEnergy
       hsol hUxxL1 htend hcompat)
     hRHS
 
+/-- H¹ scalar regularity from a classical solution, explicit RHS
+integrability, and the split initial endpoint data. -/
+theorem H1ScalarRegularityBefore_of_classical_initialTraceEnergy
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htend : H1InitialTraceEnergyTendsto u₀ u T)
+    (hcompat : H1InitialEnergyCompatibleAtZero u₀ u)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX) :
+    H1ScalarRegularityBefore u T :=
+  H1ScalarRegularityBefore_of_initialTraceEnergy
+    hsol
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    htend hcompat hRHS
+
 /-- Direct scalar-DI producer using the split initial endpoint data instead of a
 raw right-continuity-at-zero hypothesis. -/
 theorem H1ScalarDIOnBefore_of_initialTraceEnergy
@@ -64,6 +83,24 @@ theorem H1ScalarDIOnBefore_of_initialTraceEnergy
     (H1ScalarRegularityBefore_of_initialTraceEnergy
       hsol hUxxL1 htend hcompat hRHS)
     hBound
+
+/-- Direct scalar-DI producer from a classical solution and split initial
+endpoint data. -/
+theorem H1ScalarDIOnBefore_of_classical_initialTraceEnergy
+    {p : CM2Params} {T A B : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htend : H1InitialTraceEnergyTendsto u₀ u T)
+    (hcompat : H1InitialEnergyCompatibleAtZero u₀ u)
+    (hRHS : H1IdentityRHSIntegrableBefore p u T taxisX uvxx reactX)
+    (hBound : H1IdentityRHSBoundBefore p u T A B) :
+    H1ScalarDIOnBefore u T A B :=
+  H1ScalarDIOnBefore_of_initialTraceEnergy
+    hsol
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    htend hcompat hRHS hBound
 
 /-- Paper-positive bounded-before route with the endpoint carry expressed as
 deleted-right initial-energy convergence plus zero-slice compatibility. -/
@@ -93,6 +130,34 @@ theorem boundedBefore_of_H1identityRHS_initialTraceEnergy
       hsol hUxxL1 htend hcompat hRHS hBound
   exact intervalDomain_boundedBefore_of_paperPositive_H1scalarDI_local_before
     hbounded ha hu₀ hT hsol htrace hfrontier hDI hlocal
+
+/-- Paper-positive bounded-before route from a classical solution, with the
+endpoint carry expressed as deleted-right initial-energy convergence plus
+zero-slice compatibility. -/
+theorem boundedBefore_of_H1identityRHS_classical_initialTraceEnergy
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (htend : H1InitialTraceEnergyTendsto u₀ u T)
+    (hcompat : H1InitialEnergyCompatibleAtZero u₀ u)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {A B Ylocal : ℝ}
+    (hBound : H1IdentityRHSBoundBefore params u T A B)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1identityRHS_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    htend hcompat hRHS hBound hlocal
 
 /-- Sup-bound DI variant of the split-endpoint bounded-before route. -/
 theorem boundedBefore_of_H1supBoundDI_initialTraceEnergy
@@ -124,6 +189,32 @@ theorem boundedBefore_of_H1supBoundDI_initialTraceEnergy
     hbounded ha hu₀ hT hsol htrace hfrontier hUxxL1 htend hcompat hRHS
     hBound hlocal
 
+/-- Sup-bound DI variant from a classical solution and split endpoint data. -/
+theorem boundedBefore_of_H1supBoundDI_classical_initialTraceEnergy
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (htend : H1InitialTraceEnergyTendsto u₀ u T)
+    (hcompat : H1InitialEnergyCompatibleAtZero u₀ u)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundDIDataBefore params u T V₁ V₂ M L)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundDI_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    htend hcompat hRHS hdata hlocal
+
 /-- Square-root sup-bound DI variant of the split-endpoint bounded-before route. -/
 theorem boundedBefore_of_H1supBoundSqrtDI_initialTraceEnergy
     {params : CM2Params} {T : ℝ}
@@ -152,6 +243,34 @@ theorem boundedBefore_of_H1supBoundSqrtDI_initialTraceEnergy
     hUxxL1 htend hcompat hRHS
     (H1SupBoundDIDataBefore_of_sqrtData hdata)
     hlocal
+
+/-- Square-root sup-bound DI variant from a classical solution and split
+endpoint data. -/
+theorem boundedBefore_of_H1supBoundSqrtDI_classical_initialTraceEnergy
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (htend : H1InitialTraceEnergyTendsto u₀ u T)
+    (hcompat : H1InitialEnergyCompatibleAtZero u₀ u)
+    (hRHS : H1IdentityRHSIntegrableBefore params u T taxisX uvxx reactX)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtDIDataBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundSqrtDI_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    htend hcompat hRHS hdata hlocal
 
 /-- Combined square-root/RHS package variant of the split-endpoint
 bounded-before route. -/
@@ -182,11 +301,44 @@ theorem boundedBefore_of_H1supBoundSqrtRHS_initialTraceEnergy
     (H1IdentityRHSIntegrableBefore_of_supBoundSqrtRHSData hdata)
     hdata.sqrtData hlocal
 
+/-- Combined square-root/RHS package variant from a classical solution and
+split endpoint data. -/
+theorem boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy
+    {params : CM2Params} {T : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (htend : H1InitialTraceEnergyTendsto u₀ u T)
+    (hcompat : H1InitialEnergyCompatibleAtZero u₀ u)
+    {V₁ V₂ M L Ylocal : ℝ}
+    (hdata : H1SupBoundSqrtRHSIntegrableBefore params u T V₁ V₂ M L
+      taxisX uvxx reactX)
+    (hlocal : ∀ τ, τ ∈ Set.Ioc (0 : ℝ) 1 → τ < T →
+      H1energy u τ ≤ Ylocal) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_H1supBoundSqrtRHS_initialTraceEnergy
+    hbounded ha hu₀ hT hsol htrace hfrontier
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    htend hcompat hdata hlocal
+
 #print axioms H1ScalarRegularityBefore_of_initialTraceEnergy
+#print axioms H1ScalarRegularityBefore_of_classical_initialTraceEnergy
 #print axioms H1ScalarDIOnBefore_of_initialTraceEnergy
+#print axioms H1ScalarDIOnBefore_of_classical_initialTraceEnergy
 #print axioms boundedBefore_of_H1identityRHS_initialTraceEnergy
+#print axioms boundedBefore_of_H1identityRHS_classical_initialTraceEnergy
 #print axioms boundedBefore_of_H1supBoundDI_initialTraceEnergy
+#print axioms boundedBefore_of_H1supBoundDI_classical_initialTraceEnergy
 #print axioms boundedBefore_of_H1supBoundSqrtDI_initialTraceEnergy
+#print axioms boundedBefore_of_H1supBoundSqrtDI_classical_initialTraceEnergy
 #print axioms boundedBefore_of_H1supBoundSqrtRHS_initialTraceEnergy
+#print axioms boundedBefore_of_H1supBoundSqrtRHS_classical_initialTraceEnergy
 
 end ShenWork.Paper2.IntervalChiNegH1InitialWiring
