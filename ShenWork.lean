@@ -438,3 +438,7 @@ import ShenWork.Paper2.IntervalResolverLevel0SpectralC2Coeff
 import ShenWork.Paper2.IntervalLevel0HeatMixedRepr
 import ShenWork.Analysis.UniformGronwall
 import ShenWork.Paper2.IntervalDomainH1GradientBound
+import ShenWork.PDE.P3Moser1DBypassAssembly
+import ShenWork.Paper2.IntervalChiNegH1WindowWiring
+import ShenWork.Paper2.IntervalChiNegH1AverageWiring
+import ShenWork.Wiener.EWA.SourceChiNegUniformBridge

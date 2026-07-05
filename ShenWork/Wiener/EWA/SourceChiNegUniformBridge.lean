@@ -18,32 +18,19 @@
 -/
 import ShenWork.Wiener.EWA.SourceChiNegPerDatumPrescribed
 import ShenWork.Wiener.EWA.ChiNegUniformLifespan
+import ShenWork.Wiener.EWA.WienerLiftingC3
 import ShenWork.Paper2.IntervalDomainTheorem11CorePath
 
 open Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainPoint)
+open ShenWork.Wiener (WA ofCosineCoeffs)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomain)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.Paper2 (PaperPositiveInitialDatum Theorem_1_1)
 
 noncomputable section
 
 namespace ShenWork.EWA
-
-/-- **Wiener lifting data for a single PPID datum.**
-
-Provides the cosine-series infrastructure needed to run the EWA fixed point. -/
-structure DatumWienerLifting (u₀p : intervalDomainPoint → ℝ) where
-  u₀ : ℝ → ℝ
-  hu₀ : Continuous u₀
-  floor : ℝ
-  hfloor_pos : 0 < floor
-  hfloor : ∀ y, floor ≤ u₀ y
-  hsumc : Summable (fun k => |cosineCoeffs u₀ k|)
-  hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))
-  coeff_bound : ℝ
-  hcoeff_bound : ∀ n, |cosineCoeffs u₀ n| ≤ coeff_bound
-  hrecon : ∀ x : intervalDomainPoint,
-    u₀p x = ∑' n, cosineCoeffs u₀ n * cosineMode n x.1
 
 /-- **Uniform Wiener data for PPID datums bounded by M.**
 
@@ -88,7 +75,9 @@ theorem uniformCore_of_datumWienerData (p : CM2Params)
   have hLGnn : 0 ≤ LGbar := CleanFPConst.L_G_nonneg hWM_nn hfm_pos
   have hMQnn : 0 ≤ MQbar := CleanFPConst.M_Q_nonneg hWM_nn hfm_pos hβpos
   have hMGnn : 0 ≤ MGbar := CleanFPConst.M_G_nonneg hWM_nn hfm_pos
-  have hρpos : 0 < ρbar := by unfold_let ρbar; linarith
+  have hρpos : 0 < ρbar := by
+    change 0 < fm / 2
+    linarith
   obtain ⟨Tstar, hTstar_pos, hTstar_body⟩ :=
     exists_uniform_EWA_lifespan (χ₀ := p.χ₀)
       hLQnn hLGnn hMQnn hMGnn hρpos
@@ -101,6 +90,7 @@ theorem uniformCore_of_datumWienerData (p : CM2Params)
   have hKlt : |p.χ₀| * C₀ * LQbar * Real.sqrt Tstar + LGbar * Tstar < 1 := by
     have := hbar_conds.1; ring_nf at this ⊢; exact this
   have hsmall : |p.χ₀| * C₀ * MQbar * Real.sqrt Tstar + MGbar * Tstar ≤ fm / 2 := by
+    change |p.χ₀| * C₀ * MQbar * Real.sqrt Tstar + MGbar * Tstar ≤ ρbar
     have := hbar_conds.2; ring_nf at this ⊢; exact this
   -- Step 4: for each datum, run the prescribed-T FP at Tstar.
   refine ⟨Tstar, hTstar_pos, fun {u₀p} hu₀p hbd => ?_⟩

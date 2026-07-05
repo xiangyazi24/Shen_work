@@ -24,18 +24,65 @@ import ShenWork.Wiener.EWA.SourceResolverSummabilityDischarge
 import ShenWork.Wiener.EWA.SourceInitialTraceDischarge
 
 open Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.GWA
+open ShenWork.Wiener (WA MemW ofCosineCoeffs)
+open ShenWork.IntervalDomain
+  (intervalDomainPoint intervalDomainLift intervalDomain intervalDomainClassicalRegularity)
+open ShenWork.PDE
+  (intervalNeumannResolverSourceCoeff intervalNeumannResolverCoeff)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
 open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn)
 open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemDivSourceCoeffs coupledLogisticSourceCoeffs)
+  (coupledChemDivSourceCoeffs coupledLogisticSourceCoeffs
+   coupledChemicalConcentration CoupledDuhamelReducedClassicalCore)
+open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
+open ShenWork.IntervalResolverDirectTimeRegularity (HasResolverDirectSpectralData)
+open ShenWork.Paper2 (SourceCoeffQuadraticDecay)
 
 noncomputable section
 
 namespace ShenWork.EWA
 
 variable {T : ℝ}
+
+private theorem cosineMode_abs_le_v6 (n : ℕ) (x : ℝ) :
+    |cosineMode n x| ≤ 1 := by
+  simp only [cosineMode]
+  exact Real.abs_cos_le_one _
+
+private theorem hsum_chem_of_l1_v6 (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (src : DuhamelSourceL1ContOn (coupledChemDivSourceCoeffs p u) T) :
+    ∀ t ∈ Ioo (0 : ℝ) T,
+      ∀ x : intervalDomainPoint, x.1 ∈ Ioo (0 : ℝ) 1 →
+        Summable (fun n =>
+          coupledChemDivSourceCoeffs p u t n * cosineMode n x.1) := by
+  intro t ht x _
+  exact Summable.of_norm
+    (src.henv_summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      fun n => by
+        rw [Real.norm_eq_abs, abs_mul]
+        exact (mul_le_of_le_one_right (abs_nonneg _)
+          (cosineMode_abs_le_v6 n x.1)).trans
+            (src.henv_bound t ht.1.le ht.2.le n))
+
+private theorem hsum_log_of_l1_v6 (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (src : DuhamelSourceL1ContOn (coupledLogisticSourceCoeffs p u) T) :
+    ∀ t ∈ Ioo (0 : ℝ) T,
+      ∀ x : intervalDomainPoint, x.1 ∈ Ioo (0 : ℝ) 1 →
+        Summable (fun n =>
+          coupledLogisticSourceCoeffs p u t n * cosineMode n x.1) := by
+  intro t ht x _
+  exact Summable.of_norm
+    (src.henv_summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      fun n => by
+        rw [Real.norm_eq_abs, abs_mul]
+        exact (mul_le_of_le_one_right (abs_nonneg _)
+          (cosineMode_abs_le_v6 n x.1)).trans
+            (src.henv_bound t ht.1.le ht.2.le n))
 
 theorem realSlice_reducedCore_of_evenReal (p : CM2Params)
     (u_star : EWA T 1) (u₀ : intervalDomainPoint → ℝ) (u₀cos : ℕ → ℝ)
@@ -167,14 +214,21 @@ theorem realSlice_reducedCore_of_evenReal (p : CM2Params)
     realSlice_classicalRegularity_of_L1ContOn p u_star u₀cos
       hu0bd hchem_l1 hlog_l1 hsumE hrealizes htimeDeriv hdiffU
       huNE0 huNE1 hdecay Hv Hvpos
-  have htime := htime_of_l1 p (realSlice u_star) u₀cos hu0bd
-    hchem_l1 hlog_l1 hrealizes
+  have htime :
+      ∀ t ∈ Set.Ioo (0 : ℝ) T, ∀ x : intervalDomainPoint,
+        x.1 ∈ Set.Ioo (0 : ℝ) 1 →
+          intervalDomain.timeDeriv (realSlice u_star) t x =
+            ∑' n, fullSourceCoeffDot p (realSlice u_star) u₀cos t n *
+              cosineMode n x.1 :=
+    fun t ht x _ =>
+      (slice_hasDerivAt_of_l1 p (realSlice u_star) u₀cos hu0bd
+        hchem_l1 hlog_l1 hrealizes ht x).deriv
   have hlap := realSlice_hlap_of_atoms p (realSlice u_star)
     u₀cos hsumE hrealizes
   have hsum_lap := realSlice_hsum_lap_of_atoms p
     (realSlice u_star) u₀cos hsumE
-  have hsc := hsum_chem_of_l1 p (realSlice u_star) hchem_l1
-  have hsl := hsum_log_of_l1 p (realSlice u_star) hlog_l1
+  have hsc := hsum_chem_of_l1_v6 p (realSlice u_star) hchem_l1
+  have hsl := hsum_log_of_l1_v6 p (realSlice u_star) hlog_l1
   have hchemInv := realSlice_hchemInv_of_L1ContOn p u_star
     hηpos hER hT hfloor hβpos hνnn hμle1
   have hlogInv := realSlice_hlogInv_of_L1ContOn p u_star

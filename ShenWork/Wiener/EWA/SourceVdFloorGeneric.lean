@@ -31,7 +31,10 @@ import ShenWork.Wiener.EWA.SourceResolverSummabilityDischarge
 import ShenWork.Wiener.EWA.SourceResolverFloor
 
 open Set Filter Topology
+open ShenWork.GWA ShenWork.Wiener
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+open ShenWork.PDE
+  (intervalNeumannResolverSourceCoeff intervalNeumannResolverCoeff)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 

@@ -17,7 +17,9 @@ import ShenWork.Wiener.EWA.SourceFixedPointEvenRealPrescribed
 import ShenWork.Wiener.EWA.SourceReducedCoreWireV6EvenReal
 
 open Set Filter Topology
+open ShenWork.Wiener (WA MemW ofCosineCoeffs)
 open ShenWork.IntervalDomain (intervalDomainPoint)
+open ShenWork.IntervalCoupledRegularityBootstrap (CoupledDuhamelReducedClassicalCore)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 

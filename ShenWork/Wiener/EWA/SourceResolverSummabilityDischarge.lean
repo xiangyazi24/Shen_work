@@ -10,6 +10,8 @@ import ShenWork.Wiener.EWA.SourceL1ContOnBridge
 import ShenWork.Wiener.EWA.ChemDivEval
 import ShenWork.Paper2.IntervalDomainPdeUWiring
 import ShenWork.Wiener.EWA.SourcePerSliceClose
+import ShenWork.PDE.IntervalDomainContinuousExtension
+import ShenWork.PDE.IntervalCosineInversion
 
 /-!
 # Discharge `hsource` (ResolverSourceSummable) from EWA structure
@@ -887,9 +889,12 @@ into `logistic_source_inversion`. No endpoint data is needed. -/
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledLogisticSourceCoeffs coupledLogisticSourceLift) in
 open ShenWork.IntervalDomainExistence
-  (intervalDomainPoint intervalDomainLift intervalLogisticSource
-   intervalDomainConstExtend constExtend_eq_lift_on_Icc constExtend_continuous) in
-open ShenWork.IntervalCosineInversion (reflCircle cosineCoeffs) in
+  (intervalLogisticSource) in
+open ShenWork.IntervalDomain
+  (intervalDomainPoint intervalDomainLift intervalDomainConstExtend
+   constExtend_eq_lift_on_Icc constExtend_continuous) in
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs) in
+open ShenWork.IntervalCosineInversion (reflCircle) in
 theorem realSlice_hlogInv_of_L1ContOn (p : CM2Params)
     (u_star : EWA T 1)
     {δ : ℝ} (hδpos : 0 < δ)
@@ -952,9 +957,11 @@ continuous and agrees with the lift on `(0,1)` via the eval bridge.
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemDivSourceCoeffs coupledChemDivSourceLift
    coupledChemicalConcentration) in
-open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalDomain
   (intervalDomainPoint intervalDomainLift intervalDomainChemotaxisDiv) in
-open ShenWork.IntervalCosineInversion (reflCircle cosineCoeffs) in
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs) in
+open ShenWork.IntervalCosineInversion
+  (reflCircle intervalCosine_hasSum_pointwise) in
 theorem chemDiv_source_inversion_Ioo (p : CM2Params)
     (u : ℝ → intervalDomainPoint → ℝ) (t : ℝ)
     (g : ℝ → ℝ) (hcont : Continuous g)
@@ -991,9 +998,10 @@ Combining these two: `∑ coupledChemDivSourceCoeffs cos = coupledChemDivSourceL
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemDivSourceCoeffs coupledChemDivSourceLift
    coupledChemicalConcentration) in
-open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalDomain
   (intervalDomainPoint intervalDomainLift intervalDomainChemotaxisDiv) in
-open ShenWork.IntervalCosineInversion (reflCircle cosineCoeffs) in
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs) in
+open ShenWork.IntervalCosineInversion (reflCircle) in
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted) in
 theorem realSlice_hchemInv_of_L1ContOn (p : CM2Params)
     (u_star : EWA T 1)
@@ -1010,7 +1018,7 @@ theorem realSlice_hchemInv_of_L1ContOn (p : CM2Params)
             (coupledChemicalConcentration p (realSlice u_star) t) x := by
   intro t ht x hx
   have hT : (0 : ℝ) ≤ T := le_of_lt hTpos
-  have τ : TimeDom T := ⟨t, ht⟩
+  let τ : TimeDom T := ⟨t, Set.Ioo_subset_Icc_self ht⟩
   set F := chemDivEWA p.μ p.ν p.γ p.hμ p u_star
   have hER_F : EvenRealEWA F :=
     chemDivEWA_evenReal FnegEWA_evenReal_Hyp_proved p.hμ p hER
@@ -1046,10 +1054,12 @@ theorem realSlice_hchemInv_of_L1ContOn (p : CM2Params)
       hsum_σ hgrad hμle1 f
       (fun σ => by simp only [f, dif_pos σ.2]; exact sourceFn_continuous p u_star hδpos hfloor σ)
       (fun σ y => by simp only [f, dif_pos σ.2]; exact sourceFn_nonneg p u_star hνnn hδpos hfloor σ y)
-      (fun σ k => by simp only [f, dif_pos σ.2]; exact (sourceFn_coeff p u_star hδpos hfloor σ k).symm ▸ rfl)
+      (fun σ k => by simp only [f, dif_pos σ.2]; exact (sourceFn_coeff p u_star σ k).symm ▸ rfl)
       (fun σ => by
         have hcoeff : ∀ k, cosineCoeffs (f σ.1) k = resolverSourceReCoeff p (realSlice u_star σ.1) k := by
-          intro k; simp only [f, dif_pos σ.2, resolverSourceReCoeff]; rw [sourceFn_coeff]
+          intro k
+          simp only [f, dif_pos σ.2, resolverSourceReCoeff]
+          rw [sourceFn_coeff p u_star σ k]
         simp_rw [hcoeff]; exact summable_sq_of_summable_abs (hsum_σ σ))
   have h_flux_diff : ∀ y ∈ Set.Ioo (0:ℝ) 1,
       DifferentiableAt ℝ (chemFluxLifted p (realSlice u_star τ.1)) y :=
@@ -1057,9 +1067,12 @@ theorem realSlice_hchemInv_of_L1ContOn (p : CM2Params)
   have h_eval : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
       evalST τ (y : WA.Circ) F
         = ((coupledChemDivSourceLift p (realSlice u_star) t y : ℝ) : ℂ) :=
-    fun y hy => evalST_chemDivEWA_eq_coupledChemDivSourceLift (μ := p.μ) (ν := p.ν) (γ := p.γ)
-      p.hμ p (realSlice u_star) u_star τ y hy (Set.Ioo_subset_Icc_self hy)
-      (hgrad τ) (h_flux_nbhd τ) (h_flux_diff y hy)
+    fun y hy => by
+      simpa [F, τ] using
+        evalST_chemDivEWA_eq_coupledChemDivSourceLift
+          (μ := p.μ) (ν := p.ν) (γ := p.γ)
+          p.hμ p (realSlice u_star) u_star τ y hy (Set.Ioo_subset_Icc_self hy)
+          (hgrad τ) (h_flux_nbhd τ) (h_flux_diff y hy)
   have hcoeff_eq : ∀ k, c k = coupledChemDivSourceCoeffs p (realSlice u_star) t k :=
     fun k => ewaCosCoeffAt_eq_cosineCoeffs_of_even_real (F := F)
       (f := coupledChemDivSourceLift p (realSlice u_star) t) τ
@@ -1075,6 +1088,11 @@ theorem realSlice_hchemInv_of_L1ContOn (p : CM2Params)
     tsum_congr (fun n => by rw [(hcoeff_eq n).symm])
   rw [hlhs, hid, coupledChemDivSourceLift]
   simp only [intervalDomainLift, dif_pos (Set.Ioo_subset_Icc_self hx)]
+  exact congrArg
+    (fun z : intervalDomainPoint =>
+      intervalDomainChemotaxisDiv p (realSlice u_star t)
+        (coupledChemicalConcentration p (realSlice u_star) t) z)
+    (Subtype.ext rfl)
 
 #print axioms realSlice_hchemInv_of_L1ContOn
 

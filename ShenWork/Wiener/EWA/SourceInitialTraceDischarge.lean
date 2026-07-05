@@ -21,10 +21,11 @@
 -/
 import ShenWork.Wiener.EWA.SourceStrongSolution
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
+import ShenWork.PDE.HeatSemigroup
+import Mathlib.Analysis.Normed.Group.Tannery
 
 open scoped BigOperators
 open Set Filter Topology
-open ShenWork.Wiener (unitIntervalCosineEigenvalue)
 open ShenWork.IntervalDuhamelClosedC2 (duhamelSpectralCoeff)
 open ShenWork.IntervalCoupledRegularityBootstrap
   (coupledChemDivSourceCoeffs coupledLogisticSourceCoeffs)
@@ -73,8 +74,15 @@ theorem fullSourceCoeff_defect_summable_of_L1ContOn (p : CM2Params)
   intro t ht
   have htpos := ht.1
   have htT := ht.2.le
-  refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_) ?_
-  · rw [fullSourceCoeff_sub_eq]
+  have hT_nonneg : 0 ≤ T := le_trans htpos.le htT
+  refine Summable.of_nonneg_of_le
+    (f := fun n =>
+      2 * |u₀cos n| + |p.χ₀| * (T * hchem.envelope n) + T * hlog.envelope n)
+    (g := fun n => |fullSourceCoeff p u u₀cos t n - u₀cos n|)
+    (fun n => abs_nonneg _) (fun n => ?_) ?_
+  · change |fullSourceCoeff p u u₀cos t n - u₀cos n| ≤
+      2 * |u₀cos n| + |p.χ₀| * (T * hchem.envelope n) + T * hlog.envelope n
+    rw [fullSourceCoeff_sub_eq]
     calc |(Real.exp (-t * unitIntervalCosineEigenvalue n) - 1) * u₀cos n
             + (-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n
             + duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|
@@ -95,9 +103,15 @@ theorem fullSourceCoeff_defect_summable_of_L1ContOn (p : CM2Params)
             · rw [abs_mul]; gcongr; exact abs_exp_sub_one_le t htpos.le n
             · rw [abs_mul, abs_neg]; gcongr
               exact le_trans (abs_duhamelSpectralCoeff_le_weak hchem htpos htT n)
-                (by nlinarith)
+                (by
+                  have henv_nonneg : 0 ≤ hchem.envelope n :=
+                    le_trans (abs_nonneg _) (hchem.henv_bound 0 le_rfl hT_nonneg n)
+                  exact mul_le_mul_of_nonneg_right htT henv_nonneg)
             · exact le_trans (abs_duhamelSpectralCoeff_le_weak hlog htpos htT n)
-                (by nlinarith)
+                (by
+                  have henv_nonneg : 0 ≤ hlog.envelope n :=
+                    le_trans (abs_nonneg _) (hlog.henv_bound 0 le_rfl hT_nonneg n)
+                  exact mul_le_mul_of_nonneg_right htT henv_nonneg)
   · exact ((hsumc.mul_left 2).add
       ((hchem.henv_summable.mul_left (|p.χ₀| * T)).congr (fun n => by ring))).add
       ((hlog.henv_summable.mul_left T).congr (fun n => by ring))
@@ -114,20 +128,26 @@ theorem fullSourceCoeff_trace_tendsto_of_L1ContOn (p : CM2Params)
       (fun t => ∑' n, |fullSourceCoeff p u u₀cos t n - u₀cos n|)
       (𝓝[>] (0 : ℝ)) (𝓝 0) := by
   set G : ℕ → ℝ := fun n =>
-    2 * |u₀cos n| + |p.χ₀| * T * hchem.envelope n + T * hlog.envelope n
+    2 * |u₀cos n| + |p.χ₀| * T * hchem.envelope n + T * hlog.envelope n with hG_def
   have hGsum : Summable G :=
     ((hsumc.mul_left 2).add
       ((hchem.henv_summable.mul_left (|p.χ₀| * T)).congr (fun n => by ring))).add
       ((hlog.henv_summable.mul_left T).congr (fun n => by ring))
   -- Use Tannery's theorem with f t n = |defect t n| (nonneg → ‖f t n‖ = f t n)
   -- We need: ∀ k, f t k → g k = 0 per mode, and ‖f t k‖ ≤ bound k eventually.
-  rw [show (0 : ℝ) = ∑' n, (0 : ℝ) from (tsum_zero).symm]
-  refine tendsto_tsum_of_dominated_convergence hGsum (fun n => ?_) ?_
-  · -- Per-mode convergence: |defect t n| → 0 as t → 0⁺
+  have hpoint : ∀ n : ℕ,
+      Tendsto (fun t : ℝ => |fullSourceCoeff p u u₀cos t n - u₀cos n|)
+        (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+    intro n
+    -- Per-mode convergence: |defect t n| → 0 as t → 0⁺.
     set upper : ℝ → ℝ := fun t =>
       |Real.exp (-t * unitIntervalCosineEigenvalue n) - 1| * |u₀cos n|
-        + |p.χ₀| * (t * hchem.envelope n) + t * hlog.envelope n
-    refine squeeze_zero' (Eventually.of_forall (fun t => abs_nonneg _)) ?_ ?_
+        + |p.χ₀| * (t * hchem.envelope n) + t * hlog.envelope n with hupper
+    refine squeeze_zero'
+      (t₀ := 𝓝[>] (0 : ℝ))
+      (f := fun t => |fullSourceCoeff p u u₀cos t n - u₀cos n|)
+      (g := upper)
+      (Eventually.of_forall (fun t => abs_nonneg _)) ?_ ?_
     · filter_upwards [Ioo_mem_nhdsGT hTpos] with t ht
       show |fullSourceCoeff p u u₀cos t n - u₀cos n| ≤ upper t
       rw [fullSourceCoeff_sub_eq]
@@ -145,42 +165,70 @@ theorem fullSourceCoeff_trace_tendsto_of_L1ContOn (p : CM2Params)
                   ((Real.exp (-t * unitIntervalCosineEigenvalue n) - 1) * u₀cos n)
                   ((-p.χ₀) * duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n)]
         _ ≤ upper t := by
-              unfold_let upper; gcongr
-              · exact (abs_mul _ _).le
-              · rw [abs_mul, abs_neg]; gcongr
-                exact abs_duhamelSpectralCoeff_le_weak hchem ht.1 ht.2.le n
-              · exact abs_duhamelSpectralCoeff_le_weak hlog ht.1 ht.2.le n
+              have hchem_le :
+                  |(-p.χ₀) *
+                    duhamelSpectralCoeff (coupledChemDivSourceCoeffs p u) t n|
+                    ≤ |p.χ₀| * (t * hchem.envelope n) := by
+                rw [abs_mul, abs_neg]
+                exact mul_le_mul_of_nonneg_left
+                  (abs_duhamelSpectralCoeff_le_weak hchem ht.1 ht.2.le n)
+                  (abs_nonneg _)
+              have hlog_le :
+                  |duhamelSpectralCoeff (coupledLogisticSourceCoeffs p u) t n|
+                    ≤ t * hlog.envelope n :=
+                abs_duhamelSpectralCoeff_le_weak hlog ht.1 ht.2.le n
+              rw [hupper, abs_mul]
+              linarith
     · show Tendsto upper (𝓝[>] (0 : ℝ)) (𝓝 0)
       have hexp_tend : Tendsto (fun t : ℝ =>
           |Real.exp (-t * ↑(unitIntervalCosineEigenvalue n)) - 1|)
           (𝓝 (0 : ℝ)) (𝓝 0) := by
-        have := ((Real.continuous_exp.comp
-          (continuous_neg.mul continuous_const)).sub
-          continuous_const).norm.tendsto (0 : ℝ)
-        simp at this; exact this
+        have hinner : Continuous (fun t : ℝ => -t * unitIntervalCosineEigenvalue n) :=
+          continuous_id.neg.mul continuous_const
+        have hexp : Continuous (fun t : ℝ =>
+            Real.exp (-t * unitIntervalCosineEigenvalue n)) :=
+          Real.continuous_exp.comp hinner
+        have hsub : Continuous (fun t : ℝ =>
+            Real.exp (-t * unitIntervalCosineEigenvalue n) - 1) :=
+          hexp.sub continuous_const
+        have habs : Continuous (fun t : ℝ =>
+            |Real.exp (-t * unitIntervalCosineEigenvalue n) - 1|) :=
+          hsub.abs
+        simpa using habs.tendsto (0 : ℝ)
       have ht_nhds : Tendsto id (𝓝[>] (0 : ℝ)) (𝓝 0) :=
         tendsto_id.mono_left nhdsWithin_le_nhds
       have h1 : Tendsto (fun t : ℝ =>
           |Real.exp (-t * ↑(unitIntervalCosineEigenvalue n)) - 1| * |u₀cos n|)
           (𝓝[>] (0 : ℝ)) (𝓝 0) := by
-        rw [show (0 : ℝ) = 0 * |u₀cos n| from by ring]
-        exact (hexp_tend.mono_left nhdsWithin_le_nhds).mul tendsto_const_nhds
+        simpa using
+          ((hexp_tend.mono_left nhdsWithin_le_nhds).mul
+            (tendsto_const_nhds : Tendsto (fun _ : ℝ => |u₀cos n|)
+              (𝓝[>] (0 : ℝ)) (𝓝 |u₀cos n|)))
       have h2 : Tendsto (fun t : ℝ => |p.χ₀| * (t * hchem.envelope n))
           (𝓝[>] (0 : ℝ)) (𝓝 0) := by
-        rw [show (0 : ℝ) = |p.χ₀| * (0 * hchem.envelope n) from by ring]
-        exact tendsto_const_nhds.mul (ht_nhds.mul tendsto_const_nhds)
+        simpa using
+          ((tendsto_const_nhds : Tendsto (fun _ : ℝ => |p.χ₀|)
+              (𝓝[>] (0 : ℝ)) (𝓝 |p.χ₀|)).mul
+            (ht_nhds.mul
+              (tendsto_const_nhds : Tendsto (fun _ : ℝ => hchem.envelope n)
+                (𝓝[>] (0 : ℝ)) (𝓝 (hchem.envelope n)))))
       have h3 : Tendsto (fun t : ℝ => t * hlog.envelope n)
           (𝓝[>] (0 : ℝ)) (𝓝 0) := by
-        rw [show (0 : ℝ) = 0 * hlog.envelope n from by ring]
-        exact ht_nhds.mul tendsto_const_nhds
+        simpa using
+          (ht_nhds.mul
+            (tendsto_const_nhds : Tendsto (fun _ : ℝ => hlog.envelope n)
+              (𝓝[>] (0 : ℝ)) (𝓝 (hlog.envelope n))))
       have := h1.add (h2.add h3)
       rwa [show (0 : ℝ) + (0 + 0) = 0 from by ring,
         show (fun t => |Real.exp (-t * ↑(unitIntervalCosineEigenvalue n)) - 1| * |u₀cos n|
           + (|p.χ₀| * (t * hchem.envelope n) + t * hlog.envelope n))
-          = upper from funext (fun t => by unfold_let upper; ring)] at this
-  · -- Domination: ‖|defect t n|‖ = |defect t n| ≤ G n for t near 0⁺
+          = upper from funext (fun t => by rw [hupper]; ring)] at this
+  have hbound : ∀ᶠ t in 𝓝[>] (0 : ℝ), ∀ k : ℕ,
+      ‖|fullSourceCoeff p u u₀cos t k - u₀cos k|‖ ≤ G k := by
+    -- Domination: ‖|defect t n|‖ = |defect t n| ≤ G n for t near 0⁺.
     filter_upwards [Ioo_mem_nhdsGT hTpos] with t ht
     intro n
+    have hT_nonneg : 0 ≤ T := le_trans ht.1.le ht.2.le
     rw [Real.norm_eq_abs, abs_abs]
     rw [fullSourceCoeff_sub_eq]
     calc |(Real.exp (-t * unitIntervalCosineEigenvalue n) - 1) * u₀cos n
@@ -203,8 +251,25 @@ theorem fullSourceCoeff_trace_tendsto_of_L1ContOn (p : CM2Params)
             · rw [abs_mul]; gcongr; exact abs_exp_sub_one_le t ht.1.le n
             · rw [abs_mul, abs_neg]; gcongr
               exact le_trans (abs_duhamelSpectralCoeff_le_weak hchem ht.1 ht.2.le n)
-                (by nlinarith)
+                (by
+                  have henv_nonneg : 0 ≤ hchem.envelope n :=
+                    le_trans (abs_nonneg _) (hchem.henv_bound 0 le_rfl hT_nonneg n)
+                  exact mul_le_mul_of_nonneg_right ht.2.le henv_nonneg)
             · exact le_trans (abs_duhamelSpectralCoeff_le_weak hlog ht.1 ht.2.le n)
-                (by nlinarith)
+                (by
+                  have henv_nonneg : 0 ≤ hlog.envelope n :=
+                    le_trans (abs_nonneg _) (hlog.henv_bound 0 le_rfl hT_nonneg n)
+                  exact mul_le_mul_of_nonneg_right ht.2.le henv_nonneg)
+      _ = G n := by
+            rw [hG_def]
+            ring
+  simpa using
+    (tendsto_tsum_of_dominated_convergence
+      (α := ℝ) (β := ℕ) (G := ℝ)
+      (𝓕 := 𝓝[>] (0 : ℝ))
+      (f := fun t n => |fullSourceCoeff p u u₀cos t n - u₀cos n|)
+      (g := fun _n : ℕ => 0)
+      (bound := G)
+      hGsum hpoint hbound)
 
 end ShenWork.EWA

@@ -30,6 +30,8 @@ import ShenWork.Wiener.EWA.SourceVdFloorGeneric
 import ShenWork.Wiener.EWA.SourceFixedPointParity
 
 open Set Filter Topology
+open ShenWork.GWA
+open ShenWork.Wiener (WA MemW ofCosineCoeffs)
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 
@@ -39,6 +41,8 @@ namespace ShenWork.EWA
 
 variable {T : ℝ}
 
+set_option maxHeartbeats 800000 in
+-- The Banach fixed-point term is large; default heartbeats time out during final checking.
 /-- **THE UNCONDITIONAL CLEAN FIXED POINT on the EvenReal ball.**
 
 From standard datum facts (continuous `u₀` with positive floor and ℓ¹ cosine
@@ -233,7 +237,9 @@ theorem picardEWA_clean_fixedPoint_evenReal {p : CM2Params}
   have hLipG : ∀ a ∈ B', ∀ b ∈ B',
       ‖growthEWA p.α p.a p.b a - growthEWA p.α p.a p.b b‖ ≤ L_G * ‖a - b‖ := by
     intro u ⟨hu_ball, _⟩ w ⟨hw_ball, _⟩
-    have h := growthEWA_lipschitz hαnn hδρpos hMdnn
+    have h := growthEWA_lipschitz (α := p.α) (a := p.a) (b := p.b)
+      (δ := δ - ρ) (Md := Md) (R := R) (u := u) (w := w)
+      hαnn hδρpos hMdnn
       (hball_floor u hu_ball) (hball_floor w hw_ball)
       (hMD u hu_ball) (hMD w hw_ball)
       (hball_norm u hu_ball) (hball_norm w hw_ball) hRnn
@@ -243,9 +249,11 @@ theorem picardEWA_clean_fixedPoint_evenReal {p : CM2Params}
     rw [hKdef]; have := C₀_nonneg; have hsq : 0 ≤ Real.sqrt T := Real.sqrt_nonneg T; positivity
   have hK : K < 1 := by
     rw [hKdef]
-    have heq : |p.χ₀| * C₀ * L_Q * Real.sqrt T + L_G * T
-        = |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T := by ring
-    rw [heq] at hKlt; exact hKlt
+    have hmul : |p.χ₀| * (C₀ * Real.sqrt T) * L_Q
+        = |p.χ₀| * C₀ * L_Q * Real.sqrt T := by
+      ring
+    rw [hmul]
+    exact hKlt
   -- Φ restricted to B' is K-contracting.
   have hlip : ContractingWith K.toNNReal (hself.restrict Φ B' B') := by
     refine ⟨Real.toNNReal_lt_one.mpr hK, ?_⟩
@@ -260,4 +268,6 @@ theorem picardEWA_clean_fixedPoint_evenReal {p : CM2Params}
 
 end ShenWork.EWA
 
+set_option maxHeartbeats 800000 in
+-- The fixed-point proof term is large; the theorem itself compiles at the default budget.
 #print axioms ShenWork.EWA.picardEWA_clean_fixedPoint_evenReal

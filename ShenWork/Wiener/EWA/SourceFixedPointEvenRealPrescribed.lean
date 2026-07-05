@@ -23,6 +23,8 @@ import ShenWork.Wiener.EWA.SourceFixedPointEvenReal
 import ShenWork.Wiener.EWA.SourceCleanFPConstants
 
 open Set Filter Topology
+open ShenWork.GWA
+open ShenWork.Wiener (WA MemW ofCosineCoeffs)
 open ShenWork.IntervalDomain (intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 
@@ -30,6 +32,8 @@ noncomputable section
 
 namespace ShenWork.EWA
 
+set_option maxHeartbeats 800000 in
+-- The prescribed-time Banach construction has the same large fixed-point proof term.
 /-- **THE CLEAN FIXED POINT ON THE EVENREAL BALL AT A PRESCRIBED TIME T.**
 
 Same Banach construction as `picardEWA_clean_fixedPoint_evenReal`, but T is
@@ -143,25 +147,29 @@ theorem picardEWA_clean_fixedPoint_evenReal_prescribedT (p : CM2Params)
               (R ^ (Nat.floor p.α + 1)
                 * negNormConst ((Nat.floor p.α + 1 : ℝ) - p.α) (δ - ρ) Md)) with hLG_def
   -- Key identity: δ - ρ = δ / 2 (local uses δ - ρ, CleanFPConst uses floor / 2).
-  have hδρ_eq : δ - ρ = δ / 2 := by unfold_let ρ; ring
+  have hδρ_eq : δ - ρ = δ / 2 := by
+    rw [hρ_def]
+    ring
+  have hMd_eq : Md = CleanFPConst.Md normBound δ := by
+    rw [hMd_def, hR_is]
+    rfl
+  have hMdv_eq : Mdv = CleanFPConst.Mdv p normBound δ := by
+    rw [hMdv_def, hR_is, hMd_eq, hδρ_eq]
+    rfl
   -- These expressions equal CleanFPConst at (normBound, δ) because:
   -- R = normBound + δ/2, δ-ρ = δ/2, δv = 1.
   have hLQ_eq : L_Q = CleanFPConst.L_Q p normBound δ := by
-    unfold_let L_Q R Md Mdv ρ
-    dsimp only [CleanFPConst.L_Q, CleanFPConst.R, CleanFPConst.Md, CleanFPConst.Mdv]
-    simp only [show δ - δ / 2 = δ / 2 from by ring]
+    rw [hLQ_def, hR_is, hMd_eq, hMdv_eq, hδρ_eq]
+    rfl
   have hLG_eq : L_G = CleanFPConst.L_G p normBound δ := by
-    unfold_let L_G R Md ρ
-    dsimp only [CleanFPConst.L_G, CleanFPConst.R, CleanFPConst.Md]
-    simp only [show δ - δ / 2 = δ / 2 from by ring]
+    rw [hLG_def, hR_is, hMd_eq, hδρ_eq]
+    rfl
   have hMQ_eq : M_Q = CleanFPConst.M_Q p normBound δ := by
-    unfold_let M_Q R Md Mdv ρ
-    dsimp only [CleanFPConst.M_Q, CleanFPConst.R, CleanFPConst.Md, CleanFPConst.Mdv]
-    simp only [show δ - δ / 2 = δ / 2 from by ring]
+    rw [hMQ_def, hR_is, hMd_eq, hMdv_eq, hδρ_eq]
+    rfl
   have hMG_eq : M_G = CleanFPConst.M_G p normBound δ := by
-    unfold_let M_G R Md ρ
-    dsimp only [CleanFPConst.M_G, CleanFPConst.R, CleanFPConst.Md]
-    simp only [show δ - δ / 2 = δ / 2 from by ring]
+    rw [hMG_def, hR_is, hMd_eq, hδρ_eq]
+    rfl
   -- Nonnegativity of Γ-combination constants.
   have hsγ : 0 < (Nat.floor p.γ + 1 : ℝ) - p.γ := by
     have := Nat.lt_floor_add_one p.γ; linarith
@@ -175,13 +183,21 @@ theorem picardEWA_clean_fixedPoint_evenReal_prescribedT (p : CM2Params)
     negNormConst_nonneg hsα hδρpos hMdnn
   have hnegLα : (0 : ℝ) ≤ negLipConst ((Nat.floor p.α + 1 : ℝ) - p.α) (δ - ρ) Md :=
     negLipConst_nonneg hsα hδρpos hMdnn
-  have hMdvnn : 0 ≤ Mdv := by rw [hMdv_def]; positivity
+  have hMdvnn : 0 ≤ Mdv := by
+    rw [hMdv_eq]
+    exact CleanFPConst.Mdv_nonneg hnormBound hδpos
   have hnegNv : (0 : ℝ) ≤ negNormConst p.β 1 Mdv := negNormConst_nonneg hβpos hδvpos hMdvnn
   have hnegLv : (0 : ℝ) ≤ negLipConst p.β 1 Mdv := negLipConst_nonneg hβpos hδvpos hMdvnn
   have hone : ‖(1 : EWA T 1)‖ = 1 := norm_one_EWA hTpos.le
   -- Rewrite hypothesized conditions to use local variables.
   have hKlt' : |p.χ₀| * C₀ * L_Q * Real.sqrt T + L_G * T < 1 := by
     rw [hLQ_eq, hLG_eq]; exact hKlt
+  have hLQnn : 0 ≤ L_Q := by
+    rw [hLQ_eq]
+    exact CleanFPConst.L_Q_nonneg hnormBound hδpos hβpos
+  have hLGnn : 0 ≤ L_G := by
+    rw [hLG_eq]
+    exact CleanFPConst.L_G_nonneg hnormBound hδpos
   have hsmall' : |p.χ₀| * C₀ * M_Q * Real.sqrt T + M_G * T ≤ ρ := by
     rw [hMQ_eq, hMG_eq]; exact hsmall
   -- Rewrite to the form expected by the Banach construction.
@@ -236,7 +252,9 @@ theorem picardEWA_clean_fixedPoint_evenReal_prescribedT (p : CM2Params)
   have hLipG : ∀ a ∈ B', ∀ b ∈ B',
       ‖growthEWA p.α p.a p.b a - growthEWA p.α p.a p.b b‖ ≤ L_G * ‖a - b‖ := by
     intro u ⟨hu_ball, _⟩ w ⟨hw_ball, _⟩
-    have h := growthEWA_lipschitz hαnn hδρpos hMdnn
+    have h := growthEWA_lipschitz (α := p.α) (a := p.a) (b := p.b)
+      (δ := δ - ρ) (Md := Md) (R := R) (u := u) (w := w)
+      hαnn hδρpos hMdnn
       (hball_floor u hu_ball) (hball_floor w hw_ball)
       (hMD u hu_ball) (hMD w hw_ball)
       (hball_norm u hu_ball) (hball_norm w hw_ball) hRnn
@@ -246,9 +264,11 @@ theorem picardEWA_clean_fixedPoint_evenReal_prescribedT (p : CM2Params)
     rw [hKdef]; have := C₀_nonneg; have hsq : 0 ≤ Real.sqrt T := Real.sqrt_nonneg T; positivity
   have hK : K < 1 := by
     rw [hKdef]
-    have heq : |p.χ₀| * C₀ * L_Q * Real.sqrt T + L_G * T
-        = |p.χ₀| * (C₀ * Real.sqrt T) * L_Q + L_G * T := by ring
-    rw [heq] at hKlt'; exact hKlt'
+    have hmul : |p.χ₀| * (C₀ * Real.sqrt T) * L_Q
+        = |p.χ₀| * C₀ * L_Q * Real.sqrt T := by
+      ring
+    rw [hmul]
+    exact hKlt'
   -- Φ restricted to B' is K-contracting.
   have hlip : ContractingWith K.toNNReal (hself.restrict Φ B' B') := by
     refine ⟨Real.toNNReal_lt_one.mpr hK, ?_⟩
