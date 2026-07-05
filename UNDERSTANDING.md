@@ -2871,6 +2871,18 @@ The direct adapter
 strict component continuity plus this scalar derivative input straight into the
 landed `H1IdentityRHSIntegrableBefore` interface.
 
+Task 83 adds the construction-facing producer file
+`IntervalChiNegH1InitialDerivativeProducer`, following Q3462.  It keeps two
+frontiers separate from the strict RHS bridge:
+`H1EnergyDerivativeInitialWindowProxyBefore`, for an integrable proxy agreeing
+with `deriv (H1energy u)` on each `Ioc 0 b`, and
+`H1EnergyDerivativeInitialWindowMajorantBefore`, for an integrable near-zero
+majorant plus a.e. measurability and norm control.  The adapters
+`H1EnergyDerivativeInitialWindowIntegrableBefore_of_proxy` and
+`H1EnergyDerivativeInitialWindowIntegrableBefore_of_majorant` both produce Task
+82's scalar derivative-initial input, still without zero-start `lapL2sq`
+continuity or downstream bounded-before data.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
