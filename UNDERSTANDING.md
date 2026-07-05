@@ -2700,6 +2700,26 @@ bounded-before APIs.  It does not discharge the upstream producers for
 RHS-integrability, H1 `u_xx` L1 continuity, sup-bound/square-root physical
 frontiers, or the Task 69 zero-start lap-continuity seam.
 
+Task 72 propagates the same no-manual-`hlocal` cleanup one layer higher through
+`IntervalChiNegH1BridgeInitialWiring`.  Q3435 independently audited the file and
+confirmed that the parametric/spectral initial wrappers still had a propagation
+gap after Task 71.  The file now retains the old explicit-`hlocal` APIs and adds
+sixteen `_before` wrappers mirroring the existing raw-RHS and
+component-continuity parametric/spectral families, both for split
+`initialTraceEnergy` data and bundled `H1InitialEndpointData`.  Each new wrapper
+converts the route-specific package to `H1SupBoundSqrtRHSIntegrableBefore` and
+then calls the corresponding Task71 InitialWiring `_before` theorem.
+
+Q3434 separately audited the Task 69 lap endpoint seam and confirmed it remains
+a genuine H2/laplacian trace frontier.  Existing committed infrastructure gives
+H1 endpoint energy data, positive-time `u_xx` L1 continuity, and strict
+positive-time `liftDeriv2` representative continuity/equality, but no theorem
+produces `ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc 0 b)` for zero-start
+windows.  A minimal future producer should either prove
+`ContinuousWithinAt (fun τ => lapL2sq u τ) (Set.Ici 0) 0` plus combine it with
+strict-window continuity, or supply a zero-slab continuous representative for
+`liftDeriv2` on `[0,b] × [0,1]`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
