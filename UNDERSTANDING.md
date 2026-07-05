@@ -2842,6 +2842,17 @@ cover `τ ≤ 1`.  The route therefore avoids querying continuity/integrability 
 the zero-starting window `[0,1]`; the necessary near-zero input is now explicit
 as `hlocal : ∀ τ ∈ (0,1], τ < T → H1energy u τ ≤ Ylocal`.
 
+Task 81 implements the narrower route-C adapter suggested by Q3453 in
+`IntervalChiNegH1StrictRHSIntegrability`.  Instead of upgrading strict
+positive-time component continuity to zero-start `lapL2sq` continuity, the new
+`H1IdentityRHSInitialWindowIntegrableBefore` asks only for initial-window
+integrability of the assembled H¹ identity RHS.  The adapter
+`H1IdentityRHSIntegrableBefore_of_componentsStrictBefore_initialWindow`
+splits windows by left endpoint: strict component continuity handles positive
+left endpoints, and the new initial-window integrability field handles the
+zero endpoint.  The bounded-before wrapper then reuses the existing
+`boundedBefore_of_H1supBoundDI_classicalChemRep_before` route unchanged.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
