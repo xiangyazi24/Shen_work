@@ -400,6 +400,55 @@ theorem H1PhysicalRHSComponentsContinuousStrictBefore_of_strictSlab_parts
       (p := p) (u := u) (v := v) (T := T) (F := F)
       hF hEqInterior hTaxisPart hUvxxPart hReactPart)
 
+/-- Representative strict-slab integrand continuity plus additive local scalar
+zero-window majorants assemble the physical strict/initial route. -/
+theorem H1PhysicalRHSStrictInitialRouteBefore_of_repIntegrands_additiveScalarZero
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ}
+    (hId : H1PhysicalRHSIdentityBefore p u v T)
+    (hBounds : H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L)
+    (hRep : H1PhysicalRHSRepIntegrandsContinuousStrictBefore p u v T F)
+    (hAdd : H1PhysicalRHSAdditiveScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSStrictInitialRouteBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
+    hId hBounds
+    (H1PhysicalRHSComponentsContinuousStrictBefore_of_strictSlab_repIntegrands
+      hRep)
+    hAdd
+
+/-- Direct part-continuity version of the physical strict/initial route
+constructor. -/
+theorem H1PhysicalRHSStrictInitialRouteBefore_of_strictSlab_parts_additiveScalarZero
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ}
+    (hId : H1PhysicalRHSIdentityBefore p u v T)
+    (hBounds : H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L)
+    (hF : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1))
+    (hTaxisPart : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry (H1PhysicalChemTaxisPart p u v))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hUvxxPart : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry (H1PhysicalChemUvxxPart p u v))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hReactPart : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry (H1PhysicalLogisticReactionPart p u))
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hAdd : H1PhysicalRHSAdditiveScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSStrictInitialRouteBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSStrictInitialRouteBefore_of_repIntegrands_additiveScalarZero
+    hId hBounds
+    (H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_parts
+      (p := p) (u := u) (v := v) (T := T) (F := F)
+      hF hEqInterior hTaxisPart hUvxxPart hReactPart)
+    hAdd
+
 #print axioms H1PhysicalTaxisX_continuousOn_Icc_of_integrand
 #print axioms H1PhysicalUvxxX_continuousOn_Icc_of_integrand
 #print axioms H1PhysicalReactX_continuousOn_Icc_of_integrand
@@ -415,5 +464,9 @@ theorem H1PhysicalRHSComponentsContinuousStrictBefore_of_strictSlab_parts
 #print axioms
   H1PhysicalRHSComponentsContinuousStrictBefore_of_strictSlab_repIntegrands
 #print axioms H1PhysicalRHSComponentsContinuousStrictBefore_of_strictSlab_parts
+#print axioms
+  H1PhysicalRHSStrictInitialRouteBefore_of_repIntegrands_additiveScalarZero
+#print axioms
+  H1PhysicalRHSStrictInitialRouteBefore_of_strictSlab_parts_additiveScalarZero
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalScalarContinuity

@@ -2991,6 +2991,20 @@ and the scalar zero-start H¹ derivative-integrability input.  All new Task90
 theorems are wired with `#print axioms`; target build shows only
 `[propext, Classical.choice, Quot.sound]`.
 
+Task 91 connects the Task89 and Task90 interfaces into the physical strict/initial
+route.  `IntervalChiNegH1PhysicalInitialRHS` now has the route constructor
+`H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow`, which
+packages physical identity, square-root bounds, strict component continuity, and
+additive local scalar zero-window majorants into
+`H1PhysicalRHSStrictInitialRouteBefore`.  `IntervalChiNegH1PhysicalScalarContinuity`
+then adds representative-integrand and direct part-continuity versions, so a
+continuous strict-slab representative for `liftDeriv2`, continuity of the three
+non-lap physical parts, and the additive zero-window scalar majorants assemble
+the route without consuming bounded-before, full RHS integrability, or derivative
+integrability.  This is route wiring only; the source PDE estimates remain the
+continuity producers, additive local scalar majorants, physical identity, and
+square-root bounds.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

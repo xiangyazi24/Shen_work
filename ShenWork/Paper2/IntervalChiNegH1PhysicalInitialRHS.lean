@@ -226,6 +226,20 @@ theorem H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_st
     hStrict
     (H1PhysicalRHSZeroWindowMajorantBefore_of_additiveScalarMajorants hAdd)
 
+/-- Physical identity, square-root bounds, strict component continuity, and
+additive local scalar zero-window majorants assemble the strict/initial route. -/
+theorem H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hId : H1PhysicalRHSIdentityBefore p u v T)
+    (hBounds : H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L)
+    (hStrict : H1PhysicalRHSComponentsContinuousStrictBefore p u v T)
+    (hAdd : H1PhysicalRHSAdditiveScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSStrictInitialRouteBefore p u v T V₁ V₂ M L :=
+  ⟨hId, hBounds, hStrict,
+    H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
+      hStrict hAdd⟩
+
 /-- The physical initial majorant gives initial-window integrability of the
 assembled physical H¹ RHS. -/
 theorem H1IdentityRHSInitialWindowIntegrableBefore_of_physicalInitialMajorant
@@ -344,6 +358,7 @@ theorem intervalDomain_boundedBefore_of_physicalStrictInitialRoute_before
 #print axioms H1PhysicalRHSInitialWindowMajorantBefore_of_zeroWindow_strict
 #print axioms
   H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
+#print axioms H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
 #print axioms
   H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalZeroWindowMajorant
 #print axioms H1IdentityRHSIntegrableBefore_of_physicalStrictInitialRoute
