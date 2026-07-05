@@ -38,6 +38,42 @@ structure H1LapComponentZeroRightContinuous
     (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   lap_cont0 : ContinuousWithinAt (fun τ => lapL2sq u τ) (Set.Ici (0 : ℝ)) 0
 
+/-- Zero-start slab representative/equality frontier for `liftDeriv2` before
+`T`.  This packages the remaining H²/laplacian trace input without asserting a
+physical producer for it. -/
+structure H1LiftDeriv2ZeroSlabRepresentativeBefore
+    (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) (F : ℝ → ℝ → ℝ) : Prop where
+  cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn (Function.uncurry F)
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  eqInterior0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    Set.EqOn
+      (Function.uncurry (fun t x => liftDeriv2 u t x))
+      (Function.uncurry F)
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)
+
+/-- A single zero-start slab representative for `liftDeriv2`.  This is the
+minimal local H²/lap-trace frontier needed to obtain zero-right continuity of
+`lapL2sq`. -/
+structure H1LiftDeriv2ZeroSlabRepresentative
+    (u : ℝ → intervalDomainPoint → ℝ) (F : ℝ → ℝ → ℝ) (b : ℝ) : Prop where
+  hb0 : 0 < b
+  hFcont :
+    ContinuousOn (Function.uncurry F)
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  hEqInterior :
+    Set.EqOn
+      (Function.uncurry (fun t x => liftDeriv2 u t x))
+      (Function.uncurry F)
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)
+
+/-- Existential packaging of the single-slab zero-start representative
+frontier. -/
+def H1LiftDeriv2HasZeroSlabRepresentative
+    (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∃ (F : ℝ → ℝ → ℝ) (b : ℝ),
+    H1LiftDeriv2ZeroSlabRepresentative u F b
+
 /-- Closed-slab joint continuity of `u_xx` implies closed-window continuity of
 the squared Laplacian component on that same slab. -/
 theorem lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
@@ -143,6 +179,19 @@ theorem lapL2sq_continuousOn_before_of_endpoint_and_strict
   · have ha_eq : a = 0 := le_antisymm (le_of_not_gt ha_pos) ha
     subst a
     exact h0.lap_cont0 (b := b) hab hbT
+
+/-- Endpoint-window lap continuity alone gives closed-window lap continuity on
+every `[a,b]` with `0 ≤ a`, by restriction from `[0,b]`. -/
+theorem lapL2sq_continuousOn_before_of_endpoint
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (h0 : H1LapComponentEndpointContinuousBefore u T) :
+    ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b) := by
+  intro a b ha hab hbT
+  have hb_nonneg : 0 ≤ b := le_trans ha hab
+  exact (h0.lap_cont0 (b := b) hb_nonneg hbT).mono (by
+    intro τ hτ
+    exact ⟨le_trans ha hτ.1, hτ.2⟩)
 
 /-- Zero-right continuity at time zero plus strict positive-time continuity
 gives continuity on every zero-starting window `[0,b]`. -/
@@ -272,6 +321,55 @@ theorem H1LapComponentZeroRightContinuous_of_zeroSlab_interior_eq_continuous
       lapL2sq_continuousWithinAt_zero_of_zeroSlab_interior_eq_continuous
         hb0 hFcont hEqInterior }
 
+/-- A single zero-start representative slab produces zero-right lap-component
+continuity. -/
+theorem H1LapComponentZeroRightContinuous_of_zeroSlabRepresentative
+    {u : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ} {b : ℝ}
+    (h : H1LiftDeriv2ZeroSlabRepresentative u F b) :
+    H1LapComponentZeroRightContinuous u :=
+  H1LapComponentZeroRightContinuous_of_zeroSlab_interior_eq_continuous
+    h.hb0 h.hFcont h.hEqInterior
+
+/-- Existential single-slab zero-start representative package reduced to the
+zero-right lap-component frontier. -/
+theorem H1LapComponentZeroRightContinuous_of_hasZeroSlabRepresentative
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (h : H1LiftDeriv2HasZeroSlabRepresentative u) :
+    H1LapComponentZeroRightContinuous u := by
+  rcases h with ⟨F, b, h⟩
+  exact H1LapComponentZeroRightContinuous_of_zeroSlabRepresentative h
+
+/-- A single zero-start representative slab plus positive-time `liftDeriv2`
+joint continuity gives the endpoint-window lap frontier. -/
+theorem
+    H1LapEndpointBefore_of_hasZeroSlabRep_and_liftDeriv2
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (h0 : H1LiftDeriv2HasZeroSlabRepresentative u)
+    (huxx : H1LiftDeriv2JointContinuousBefore u T) :
+    H1LapComponentEndpointContinuousBefore u T :=
+  H1LapComponentEndpointContinuousBefore_of_zeroRight_and_liftDeriv2_jointContinuousBefore
+    (H1LapComponentZeroRightContinuous_of_hasZeroSlabRepresentative h0)
+    huxx
+
+/-- A single zero-start representative slab plus a strict positive-time
+representative family gives the endpoint-window lap frontier. -/
+theorem
+    H1LapEndpointBefore_of_hasZeroSlabRep_and_strictSlab
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ} {F : ℝ → ℝ → ℝ}
+    (h0 : H1LiftDeriv2HasZeroSlabRepresentative u)
+    (hF : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    H1LapComponentEndpointContinuousBefore u T :=
+  H1LapComponentEndpointContinuousBefore_of_zeroRight_and_strictSlab_interior_eq_continuous
+    (H1LapComponentZeroRightContinuous_of_hasZeroSlabRepresentative h0)
+    hF hEqInterior
+
 /-- A zero-start representative family directly supplies the endpoint-window
 frontier.  The family hypotheses are the remaining H²/lap-trace data. -/
 theorem H1LapComponentEndpointContinuousBefore_of_zeroSlab_interior_eq_continuous
@@ -289,11 +387,32 @@ theorem H1LapComponentEndpointContinuousBefore_of_zeroSlab_interior_eq_continuou
       lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous
         (hF0 hb_nonneg hbT) (hEq0 hb_nonneg hbT) }
 
+/-- Record wrapper for a zero-start `liftDeriv2` representative family. -/
+theorem H1LapComponentEndpointContinuousBefore_of_zeroSlabRepresentativeBefore
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ} {F : ℝ → ℝ → ℝ}
+    (h : H1LiftDeriv2ZeroSlabRepresentativeBefore u T F) :
+    H1LapComponentEndpointContinuousBefore u T :=
+  H1LapComponentEndpointContinuousBefore_of_zeroSlab_interior_eq_continuous
+    (F := F)
+    (fun {b} hb_nonneg hbT => h.cont0 (b := b) hb_nonneg hbT)
+    (fun {b} hb_nonneg hbT => h.eqInterior0 (b := b) hb_nonneg hbT)
+
+/-- Closed-window lap continuity from a zero-start `liftDeriv2` representative
+family, by first producing the endpoint-window frontier. -/
+theorem lapL2sq_continuousOn_before_of_zeroSlabRepresentativeBefore
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ} {F : ℝ → ℝ → ℝ}
+    (h : H1LiftDeriv2ZeroSlabRepresentativeBefore u T F) :
+    ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn (fun τ => lapL2sq u τ) (Set.Icc a b) :=
+  lapL2sq_continuousOn_before_of_endpoint
+    (H1LapComponentEndpointContinuousBefore_of_zeroSlabRepresentativeBefore h)
+
 #print axioms lapL2sq_continuousOn_Icc_of_liftDeriv2_jointContinuousOn
 #print axioms lapL2sq_continuousOn_Icc_of_strictSlab_interior_eq_continuous
 #print axioms lapL2sq_continuousOn_strictWindow_of_liftDeriv2_jointContinuousBefore
 #print axioms lapL2sq_continuousOn_strictWindow_of_strictSlab_interior_eq_continuous
 #print axioms lapL2sq_continuousOn_before_of_endpoint_and_strict
+#print axioms lapL2sq_continuousOn_before_of_endpoint
 #print axioms lapL2sq_continuousOn_Icc_zero_of_zeroRight_and_strict
 #print axioms H1LapComponentEndpointContinuousBefore_of_zeroRight_and_strict
 #print axioms
@@ -302,7 +421,15 @@ theorem H1LapComponentEndpointContinuousBefore_of_zeroSlab_interior_eq_continuou
   H1LapComponentEndpointContinuousBefore_of_zeroRight_and_strictSlab_interior_eq_continuous
 #print axioms lapL2sq_continuousWithinAt_zero_of_zeroSlab_interior_eq_continuous
 #print axioms H1LapComponentZeroRightContinuous_of_zeroSlab_interior_eq_continuous
+#print axioms H1LapComponentZeroRightContinuous_of_zeroSlabRepresentative
+#print axioms H1LapComponentZeroRightContinuous_of_hasZeroSlabRepresentative
+#print axioms
+  H1LapEndpointBefore_of_hasZeroSlabRep_and_liftDeriv2
+#print axioms
+  H1LapEndpointBefore_of_hasZeroSlabRep_and_strictSlab
 #print axioms
   H1LapComponentEndpointContinuousBefore_of_zeroSlab_interior_eq_continuous
+#print axioms H1LapComponentEndpointContinuousBefore_of_zeroSlabRepresentativeBefore
+#print axioms lapL2sq_continuousOn_before_of_zeroSlabRepresentativeBefore
 
 end ShenWork.Paper2.IntervalChiNegH1LapComponentContinuity

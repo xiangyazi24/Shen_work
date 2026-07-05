@@ -353,6 +353,178 @@ theorem H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint_and_lapStrict
     (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
     hLap0.lap_cont0 hLapStrict hTaxis hUvxx hReact
 
+/-- Endpoint-window lap continuity directly fills the closed-window lap
+component by restricting `[0,b]` to `[a,b]`. -/
+theorem H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hLap0 : H1LapComponentEndpointContinuousBefore u T)
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  { lap_cont := lapL2sq_continuousOn_before_of_endpoint hLap0
+    taxis_cont := hTaxis
+    uvxx_cont := hUvxx
+    react_cont := hReact }
+
+/-- Component continuity from zero-right lap continuity and positive-time
+`liftDeriv2` joint continuity. -/
+theorem
+    H1IdentityRHSComponentsContinuousBefore_of_zeroRight_and_liftDeriv2_jointContinuousBefore
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hLap0 : H1LapComponentZeroRightContinuous u)
+    (huxx : H1LiftDeriv2JointContinuousBefore u T)
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint
+    (p := p) (u := u) (T := T)
+    (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
+    (H1LapComponentEndpointContinuousBefore_of_zeroRight_and_liftDeriv2_jointContinuousBefore
+      hLap0 huxx)
+    hTaxis hUvxx hReact
+
+/-- Component continuity from a single-slab zero-start representative and
+positive-time `liftDeriv2` joint continuity. -/
+theorem
+    H1ComponentsBefore_of_hasZeroSlabRep_and_liftDeriv2
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hLap0 : H1LiftDeriv2HasZeroSlabRepresentative u)
+    (huxx : H1LiftDeriv2JointContinuousBefore u T)
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  H1IdentityRHSComponentsContinuousBefore_of_zeroRight_and_liftDeriv2_jointContinuousBefore
+    (p := p) (u := u) (T := T)
+    (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
+    (H1LapComponentZeroRightContinuous_of_hasZeroSlabRepresentative hLap0)
+    huxx hTaxis hUvxx hReact
+
+/-- Component continuity from zero-right lap continuity and a strict
+positive-time continuous representative of `liftDeriv2`. -/
+theorem
+    H1IdentityRHSComponentsContinuousBefore_of_zeroRight_and_strictSlab_interior_eq_continuous
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hLap0 : H1LapComponentZeroRightContinuous u)
+    (hF : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1))
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint
+    (p := p) (u := u) (T := T)
+    (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
+    (H1LapComponentEndpointContinuousBefore_of_zeroRight_and_strictSlab_interior_eq_continuous
+      hLap0 hF hEqInterior)
+    hTaxis hUvxx hReact
+
+/-- Component continuity from a single-slab zero-start representative and a
+strict positive-time continuous representative of `liftDeriv2`. -/
+theorem
+    H1ComponentsBefore_of_hasZeroSlabRep_and_strictSlab
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hLap0 : H1LiftDeriv2HasZeroSlabRepresentative u)
+    (hF : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc a b ×ˢ Set.Ioo (0 : ℝ) 1))
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  H1IdentityRHSComponentsContinuousBefore_of_zeroRight_and_strictSlab_interior_eq_continuous
+    (p := p) (u := u) (T := T) (F := F)
+    (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
+    (H1LapComponentZeroRightContinuous_of_hasZeroSlabRepresentative hLap0)
+    hF hEqInterior hTaxis hUvxx hReact
+
+/-- Component continuity from a zero-start `liftDeriv2` representative family
+for the lap component, carrying the other closed-window components explicitly.
+-/
+theorem H1IdentityRHSComponentsContinuousBefore_of_zeroSlab_interior_eq_continuous
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hF0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEq0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1))
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint
+    (p := p) (u := u) (T := T)
+    (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
+    (H1LapComponentEndpointContinuousBefore_of_zeroSlab_interior_eq_continuous
+      (F := F) hF0 hEq0)
+    hTaxis hUvxx hReact
+
+/-- Record-style version of
+`H1IdentityRHSComponentsContinuousBefore_of_zeroSlab_interior_eq_continuous`. -/
+theorem H1IdentityRHSComponentsContinuousBefore_of_zeroSlabRepresentativeBefore
+    {p : CM2Params} {T : ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {F : ℝ → ℝ → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ}
+    (hF0 : H1LiftDeriv2ZeroSlabRepresentativeBefore u T F)
+    (hTaxis : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn taxisX (Set.Icc a b))
+    (hUvxx : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn uvxx (Set.Icc a b))
+    (hReact : ∀ {a b : ℝ}, 0 ≤ a → a ≤ b → b < T →
+      ContinuousOn reactX (Set.Icc a b)) :
+    H1IdentityRHSComponentsContinuousBefore p u T taxisX uvxx reactX :=
+  H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint
+    (p := p) (u := u) (T := T)
+    (taxisX := taxisX) (uvxx := uvxx) (reactX := reactX)
+    (H1LapComponentEndpointContinuousBefore_of_zeroSlabRepresentativeBefore hF0)
+    hTaxis hUvxx hReact
+
 /-- Existing `Before` package from positive-time `u_xx` joint continuity plus an
 explicit zero-endpoint lap-component continuity input. -/
 theorem
@@ -602,6 +774,17 @@ theorem H1SupBoundSqrtRHSIntegrableBefore_of_spectralSplit_componentsContinuous
 #print axioms H1IdentityRHSComponentsContinuousStrictBefore_of_strictSlab_interior_eq_continuous
 #print axioms H1IdentityRHSComponentsContinuousBefore_of_lap_zero_and_lap_strict
 #print axioms H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint_and_lapStrict
+#print axioms H1IdentityRHSComponentsContinuousBefore_of_lapEndpoint
+#print axioms
+  H1IdentityRHSComponentsContinuousBefore_of_zeroRight_and_liftDeriv2_jointContinuousBefore
+#print axioms
+  H1ComponentsBefore_of_hasZeroSlabRep_and_liftDeriv2
+#print axioms
+  H1IdentityRHSComponentsContinuousBefore_of_zeroRight_and_strictSlab_interior_eq_continuous
+#print axioms
+  H1ComponentsBefore_of_hasZeroSlabRep_and_strictSlab
+#print axioms H1IdentityRHSComponentsContinuousBefore_of_zeroSlab_interior_eq_continuous
+#print axioms H1IdentityRHSComponentsContinuousBefore_of_zeroSlabRepresentativeBefore
 #print axioms
   H1IdentityRHSComponentsContinuousBefore_of_liftDeriv2_jointContinuousBefore_and_lap_zero
 #print axioms

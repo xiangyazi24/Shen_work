@@ -2736,6 +2736,32 @@ representative `F` on `[0,b] × [0,1]`, together with interior equality to
 family directly produces `H1LapComponentEndpointContinuousBefore`.  Thus the
 next analytic atom is the zero-slab representative/equality itself.
 
+Task 74 packages that remaining atom without touching the physical-RHS/transfer
+route.  `IntervalChiNegH1LapComponentContinuity` now has the record
+`H1LiftDeriv2ZeroSlabRepresentativeBefore`, whose fields are exactly the
+zero-start continuous representative on `[0,b] × [0,1]` and interior equality to
+`liftDeriv2`; this record produces both `H1LapComponentEndpointContinuousBefore`
+and full closed-window `lapL2sq` continuity.  A small observation was also
+formalized: once `H1LapComponentEndpointContinuousBefore` is known, no separate
+strict lap-continuity hypothesis is needed to obtain closed-window lap
+continuity on `[a,b]`, since `[a,b] ⊆ [0,b]`.  `IntervalChiNegH1Bridge` now has
+component-continuity constructors from an endpoint record, from zero-right plus
+positive-time `liftDeriv2`, and from zero-slab representative data.  The
+remaining proof obligation is still a producer for
+`H1LiftDeriv2ZeroSlabRepresentativeBefore`, expected to live in the
+physical-RHS/transfer route.
+
+Q3438 then pointed out a weaker route-facing form of the same atom: one
+positive-length zero-start slab already implies the zero-right frontier, which
+can then be combined with strict positive-time regularity.  Task 74 therefore
+also names `H1LiftDeriv2ZeroSlabRepresentative` and the existential
+`H1LiftDeriv2HasZeroSlabRepresentative`, with wrappers to
+`H1LapComponentZeroRightContinuous`, to endpoint lap continuity using either
+`H1LiftDeriv2JointContinuousBefore` or a strict-slab representative, and to the
+Bridge component-continuity package.  The analytic producer may now target
+either the minimal existential single-slab package or the stronger
+before-`T` family package.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
