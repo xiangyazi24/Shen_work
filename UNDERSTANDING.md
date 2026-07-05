@@ -2952,6 +2952,23 @@ component continuity.  This is still honest route wiring: the analytic physical
 majorant, strict component continuity, bounds, and substitution identity remain
 upstream producers.
 
+Task 89 adds `IntervalChiNegH1PhysicalScalarContinuity`, a small interface layer
+for the Task88 strict component-continuity input.  The file names the three
+physical H1 scalar integrands and reuses the existing compact-slab integral
+continuity bridge to turn strict-slab joint continuity of each integrand into
+`ContinuousOn` facts for `H1PhysicalTaxisX`, `H1PhysicalUvxxX`, and
+`H1PhysicalReactX` on every positive-start time window.  With an explicit
+strict `lapL2sq` continuity input, or with the existing `liftDeriv2`/strict-slab
+representative producers for that lap input, it packages
+`H1PhysicalRHSComponentsContinuousStrictBefore`.  Following the Q3472 audit, it
+also includes a representative-friendly version: a continuous strict-slab
+representative `F` for `liftDeriv2 u`, equality only on the open spatial
+interior, and continuity of the three physical non-lap parts are enough to
+produce the same component package, avoiding endpoint continuity assumptions on
+literal `liftDeriv2`.  It deliberately does not prove the hard joint continuity
+of the physical formulas themselves, nor the near-zero majorant, square-root
+bounds, or substitution identity.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
