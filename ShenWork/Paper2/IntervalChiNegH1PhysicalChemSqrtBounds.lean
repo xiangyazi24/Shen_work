@@ -534,10 +534,45 @@ theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
       (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
       (u := u) (v := v) hsol hchi hchem)
 
+/-- Resolver/core fixed-before-`T` source bounds produce the chemotaxis-side
+L² sqrt data package under classical fixed-time regularity. -/
+theorem H1PhysicalChemL2SqrtBoundDataBefore_of_classical_resolverSup
+    {p : CM2Params} {T V₁ V₂ M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hchi : 0 ≤ -p.χ₀)
+    (hres : H1PhysicalChemResolverSupBefore p u v T V₁ V₂ M) :
+    H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M :=
+  H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
+    (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+    (u := u) (v := v) hsol hchi
+    (H1PhysicalChemFactorBoundsBefore_of_resolverSup
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+      (u := u) (v := v) hsol hres)
+
+/-- Resolver/core fixed-before-`T` source bounds, plus the classical logistic
+reaction reducer, produce the concrete physical H¹ sqrt-bound frontier. -/
+theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_resolverSup
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hchi : 0 ≤ -p.χ₀)
+    (hL : p.a ≤ L)
+    (hres : H1PhysicalChemResolverSupBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
+    (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M) (L := L)
+    (u := u) (v := v) hsol hchi hL
+    (H1PhysicalChemFactorBoundsBefore_of_resolverSup
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+      (u := u) (v := v) hsol hres)
+
 #print axioms H1PhysicalChemTaxisPart_le_of_resolverGrad
 #print axioms H1PhysicalChemUvxxPart_le_of_core
 #print axioms H1PhysicalChemFactorBoundsBefore_of_resolverSup
 #print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
+#print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_resolverSup
+#print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_resolverSup
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalChemSqrtBounds
