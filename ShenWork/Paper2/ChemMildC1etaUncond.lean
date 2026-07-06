@@ -256,6 +256,75 @@ theorem differentiatedMildSliceDiffOn_derivWithin {χ₀ t₀ θ η CQ HQ M : �
     hsum.congr (fun z _ => D.w_split z) (D.w_split x)
   exact hw.derivWithin huniq
 
+/-- The `η`-Hölder control of `derivWithin w (Icc 0 1)` supplied by the
+three-leg bridge package. -/
+theorem differentiatedMildSliceDiffOn_derivWithin_holder {χ₀ t₀ θ η CQ HQ M : ℝ}
+    {Q : ℝ → ℝ → ℝ} {w initLeg reactLeg : ℝ → ℝ} {Ainit Achem Areact : ℝ}
+    (D : DifferentiatedMildSliceDiffOn χ₀ t₀ θ η CQ HQ M Q w initLeg reactLeg
+      Ainit Achem Areact) :
+    ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+      |derivWithin w (Set.Icc (0:ℝ) 1) x - derivWithin w (Set.Icc (0:ℝ) 1) y|
+        ≤ (Ainit + |χ₀| * Achem + Areact) * |x - y| ^ η := by
+  intro x hx y hy
+  rw [differentiatedMildSliceDiffOn_derivWithin D hx,
+    differentiatedMildSliceDiffOn_derivWithin D hy]
+  set dxy : ℝ := |x - y| ^ η with hdxy
+  have hI := D.init_holder x hx y hy
+  have hC := D.chem_holder x hx y hy
+  have hR := D.react_holder x hx y hy
+  have hsplit :
+      (deriv initLeg x - χ₀ * chemLitLeg₂ t₀ Q x + deriv reactLeg x)
+        - (deriv initLeg y - χ₀ * chemLitLeg₂ t₀ Q y + deriv reactLeg y)
+      = (deriv initLeg x - deriv initLeg y)
+        + (-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)
+        + (deriv reactLeg x - deriv reactLeg y) := by ring
+  rw [hsplit]
+  have htri :
+      |(deriv initLeg x - deriv initLeg y)
+          + (-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)
+          + (deriv reactLeg x - deriv reactLeg y)|
+        ≤ |deriv initLeg x - deriv initLeg y|
+          + |(-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)|
+          + |deriv reactLeg x - deriv reactLeg y| := by
+    refine (abs_add_le _ _).trans ?_
+    gcongr
+    exact abs_add_le _ _
+  refine htri.trans ?_
+  have hχC : |(-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)|
+      ≤ |χ₀| * (Achem * dxy) := by
+    rw [abs_mul, abs_neg]
+    exact mul_le_mul_of_nonneg_left hC (abs_nonneg _)
+  calc |deriv initLeg x - deriv initLeg y|
+          + |(-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)|
+          + |deriv reactLeg x - deriv reactLeg y|
+      ≤ Ainit * dxy + |χ₀| * (Achem * dxy) + Areact * dxy :=
+        add_le_add (add_le_add hI hχC) hR
+    _ = (Ainit + |χ₀| * Achem + Areact) * dxy := by ring
+
+/-- The clamped closed-interval derivative representative required by the
+`DifferentiableOn` Wiener feed is continuous. -/
+theorem differentiatedMildSliceDiffOn_derivWithin_clamp_continuous
+    {χ₀ t₀ θ η CQ HQ M : ℝ} {Q : ℝ → ℝ → ℝ}
+    {w initLeg reactLeg : ℝ → ℝ} {Ainit Achem Areact : ℝ}
+    (hη0 : 0 < η)
+    (D : DifferentiatedMildSliceDiffOn χ₀ t₀ θ η CQ HQ M Q w initLeg reactLeg
+      Ainit Achem Areact) :
+    Continuous (fun x => derivWithin w (Set.Icc (0:ℝ) 1) (clamp01 x)) := by
+  have hK_nn : 0 ≤ Ainit + |χ₀| * Achem + Areact := by
+    have h2 : 0 ≤ |χ₀| * Achem := mul_nonneg (abs_nonneg _) D.Achem_nn
+    have := D.Ainit_nn
+    have := D.Areact_nn
+    linarith
+  have hcontOn : ContinuousOn (derivWithin w (Set.Icc (0:ℝ) 1)) (Set.Icc (0:ℝ) 1) :=
+    holderBound_continuousOn_Icc hη0 hK_nn
+      (fun a b ha hb => differentiatedMildSliceDiffOn_derivWithin_holder D a ha b hb)
+  have hmaps : Set.MapsTo clamp01 Set.univ (Set.Icc (0:ℝ) 1) :=
+    fun x _ => clamp01_mem x
+  have hcomp : ContinuousOn
+      (fun x => derivWithin w (Set.Icc (0:ℝ) 1) (clamp01 x)) Set.univ :=
+    hcontOn.comp clamp01_continuous.continuousOn hmaps
+  exact continuousOn_univ.mp hcomp
+
 /-- **`chemMild_C1eta_slice_diffOn` — the `[0,1]` slice + Wiener feed from the bridge.**
 
 From the differentiated mild bridge `DifferentiatedMildSliceDiffOn` (`0 < η ≤ 1`):
@@ -269,8 +338,8 @@ NO off-interior residual, NO global-`ℝ` differentiability, and — after the `
 discharge (`differentiatedMildSliceDiffOn_of_brick4_chem`) — NO regularity conclusion is
 carried: `init_holder`/`react_holder` come from `gradLeg_holder_global`, `chem_holder` from
 the literal=spectral bridge + the committed spectral `chemLeg_holder_of_brick4`.  The
-Wiener feed still requires the honest closed-interval continuity/no-flux package for
-`derivWithin w`.
+clamped `derivWithin` continuity is produced from this same Hölder package; the Wiener feed
+still requires the honest endpoint no-flux package for `derivWithin w`.
 
 **This is a slice-FROM-bridge, NOT concretely unconditional** (hence the honest relabel,
 parallel to the committed `chemMild_positiveTime_C1eta_slice`).  What the bridge
@@ -292,7 +361,6 @@ theorem chemMild_C1eta_slice_diffOn {χ₀ t₀ θ η CQ HQ M : ℝ} {Q : ℝ �
     (hη0 : 0 < η) (hη1 : η ≤ 1)
     (D : DifferentiatedMildSliceDiffOn χ₀ t₀ θ η CQ HQ M Q w initLeg reactLeg
       Ainit Achem Areact)
-    (hD_cont : Continuous (fun x => derivWithin w (Set.Icc (0 : ℝ) 1) (clamp01 x)))
     (hNeumann : derivWithin w (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
       derivWithin w (Set.Icc (0 : ℝ) 1) 1 = 0) :
     DifferentiableOn ℝ w (Set.Icc (0:ℝ) 1) ∧
@@ -307,46 +375,12 @@ theorem chemMild_C1eta_slice_diffOn {χ₀ t₀ θ η CQ HQ M : ℝ} {Q : ℝ �
   have hK_nn : 0 ≤ Ainit + |χ₀| * Achem + Areact := by
     have h2 : 0 ≤ |χ₀| * Achem := mul_nonneg (abs_nonneg _) D.Achem_nn
     have := D.Ainit_nn; have := D.Areact_nn; linarith
-  -- the `η`-Hölder of `derivWithin w (Icc 0 1)` on `[0,1]` via the three-leg triangle.
   have hHolder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
       |derivWithin w (Set.Icc (0:ℝ) 1) x - derivWithin w (Set.Icc (0:ℝ) 1) y|
-        ≤ (Ainit + |χ₀| * Achem + Areact) * |x - y| ^ η := by
-    intro x hx y hy
-    rw [differentiatedMildSliceDiffOn_derivWithin D hx,
-      differentiatedMildSliceDiffOn_derivWithin D hy]
-    set dxy : ℝ := |x - y| ^ η with hdxy
-    have hI := D.init_holder x hx y hy
-    have hC := D.chem_holder x hx y hy
-    have hR := D.react_holder x hx y hy
-    -- rearrange the difference of the three-leg sums into leg differences.
-    have hsplit :
-        (deriv initLeg x - χ₀ * chemLitLeg₂ t₀ Q x + deriv reactLeg x)
-          - (deriv initLeg y - χ₀ * chemLitLeg₂ t₀ Q y + deriv reactLeg y)
-        = (deriv initLeg x - deriv initLeg y)
-          + (-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)
-          + (deriv reactLeg x - deriv reactLeg y) := by ring
-    rw [hsplit]
-    have htri :
-        |(deriv initLeg x - deriv initLeg y)
-            + (-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)
-            + (deriv reactLeg x - deriv reactLeg y)|
-          ≤ |deriv initLeg x - deriv initLeg y|
-            + |(-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)|
-            + |deriv reactLeg x - deriv reactLeg y| := by
-      refine (abs_add_le _ _).trans ?_
-      gcongr
-      exact abs_add_le _ _
-    refine htri.trans ?_
-    have hχC : |(-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)|
-        ≤ |χ₀| * (Achem * dxy) := by
-      rw [abs_mul, abs_neg]
-      exact mul_le_mul_of_nonneg_left hC (abs_nonneg _)
-    calc |deriv initLeg x - deriv initLeg y|
-            + |(-χ₀) * (chemLitLeg₂ t₀ Q x - chemLitLeg₂ t₀ Q y)|
-            + |deriv reactLeg x - deriv reactLeg y|
-        ≤ Ainit * dxy + |χ₀| * (Achem * dxy) + Areact * dxy :=
-          add_le_add (add_le_add hI hχC) hR
-      _ = (Ainit + |χ₀| * Achem + Areact) * dxy := by ring
+        ≤ (Ainit + |χ₀| * Achem + Areact) * |x - y| ^ η :=
+    differentiatedMildSliceDiffOn_derivWithin_holder D
+  have hD_cont : Continuous (fun x => derivWithin w (Set.Icc (0:ℝ) 1) (clamp01 x)) :=
+    differentiatedMildSliceDiffOn_derivWithin_clamp_continuous hη0 D
   refine ⟨hdiffOn, hHolder, ?_⟩
   exact ShenWork.Wiener.EWA.holderCosineCoeff_summable_diffOn
     w hwc hdiffOn hD_cont hNeumann hη0 hη1 hK_nn
@@ -430,7 +464,6 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_initialHolder_smallTheta_cut
       |deriv initLeg x - deriv initLeg y| ≤ Ainit * |x - y| ^ η)
     (react_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
       |deriv reactLeg x - deriv reactLeg y| ≤ Areact * |x - y| ^ η)
-    (hD_cont : Continuous (fun x => derivWithin w (Set.Icc (0 : ℝ) 1) (clamp01 x)))
     (hNeumann : derivWithin w (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
       derivWithin w (Set.Icc (0 : ℝ) 1) 1 = 0) :
     ∃ HQ : ℝ, 0 ≤ HQ ∧
@@ -448,7 +481,7 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_initialHolder_smallTheta_cut
         init_holder react_holder with
     ⟨HQ, hHQ_nonneg, Dslice⟩
   refine ⟨HQ, hHQ_nonneg, ?_⟩
-  exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hD_cont hNeumann
+  exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hNeumann
 
 end
 
