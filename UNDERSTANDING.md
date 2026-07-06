@@ -28,6 +28,23 @@ that layer.  They remain conditional on the corresponding B-form local package,
 the Picard restart or Picard-limit frontier, and the scalar parameter
 assumptions.
 
+Post-Task152 cleanup:
+`ShenWork/Paper2/IntervalDomainPicardLimitSpectralFrontier.lean` factors the
+chi-zero/cone Picard-limit route one step further:
+`EndToEnd.PerDatumSpectralFrontier` supplies both the half-step restart package
+and the classical frontier core, hence it discharges
+`ConeQuantBridge.PicardLimitRestartFrontier`.  This is deliberately recorded as
+a chi-zero/cone bridge, not as a general-chi B-form shortcut, because the
+general-chi B-form route uses the restart-cosine interface rather than the
+logistic-only half-step source package.
+
+Q3614 route audit: after Task152, the shortest general-chi negative-part
+headline still carries only regime assumptions plus
+`BFormPositiveLocalFrontier p` and
+`ConeQuantBridge.PicardLimitRestartFrontier p`.  The next assumption-reducing
+task is therefore a genuine producer for `BFormPositiveLocalFrontier p` (or a
+large named subpackage), not another boundary-window wrapper.
+
 ## L2 Seed Frontier Producer (2026-07-03)
 
 **File: `ShenWork/Paper2/IntervalDomainL2SeedFrontierProducer.lean`** (149 lines, axiom-clean)
