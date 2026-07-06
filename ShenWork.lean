@@ -174,6 +174,7 @@ import ShenWork.Paper2.IntervalDomainF1Assembly
 import ShenWork.Paper2.IntervalDomainFinalWiring
 import ShenWork.Paper2.IntervalBFormPositiveDatumQuantWiring
 import ShenWork.Paper2.IntervalDomainMinPersistFinal
+import ShenWork.Paper2.IntervalDomainBoundaryHboundChiNonpos
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
 import ShenWork.Paper2.IntervalPicardGateSolve
 import ShenWork.Paper2.IntervalDomainHresWiring
