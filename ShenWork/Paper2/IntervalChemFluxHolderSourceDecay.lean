@@ -809,6 +809,35 @@ theorem ChemLegData_of_gradientMild_CthetaSourceOn_cutoff
       hQcoeff := hQcoeff
       hQholder := fun s _hs => chemFluxCthetaCutoffSource_holder H s }
 
+/-- Direct small-exponent initial-data Holder route to the positive-time
+chemotaxis-leg data package.  This is the C1/eta-facing form of the weak
+small-`θ` source route: it first builds `ChemFluxCthetaSourceOn`, then folds it
+into cutoff `ChemLegData` on any local window `0 < t ≤ D.T`. -/
+theorem ChemLegData_of_gradientMild_initialHolder_smallTheta_cutoff_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {t θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t ≤ D.T) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemLegData t θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ
+        (2 * (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))))
+        (chemFluxCthetaCutoffSource p D.u D.T) := by
+  rcases ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_components
+      D hθ0 hθlt hH₀_nonneg hholder hplan with
+    ⟨HQ, hHQ_nonneg, Hsource⟩
+  exact ⟨HQ, hHQ_nonneg,
+    ChemLegData_of_gradientMild_CthetaSourceOn_cutoff D Hsource ht htT⟩
+
 end
 
 end ShenWork.Paper2
