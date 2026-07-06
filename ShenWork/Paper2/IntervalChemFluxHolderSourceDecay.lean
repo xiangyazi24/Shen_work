@@ -666,6 +666,82 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_uniformSourceCoeff_
       exact resolverGrad2Real_uniform_bound_of_uniformSourceCoeffQuadraticDecayOn
         Hsrc s hs0 hsT z)
 
+/-- Small-exponent initial-data Holder route to zero-time vanishing of the
+chem-flux Hessian Duhamel leg.  This combines the weak small-`θ` source package
+with the local `ChemFluxCthetaSourceOn` frontier. -/
+theorem chemFlux_secondDerivDuhamel_tendsto_zero_of_gradientMild_initialHolder_smallTheta_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀))
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (D.u s)) w) z) x)
+        volume 0 t) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => deriv
+            (fun w : ℝ =>
+              ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                (t - s) (chemFluxLifted p (D.u s)) w) z) x| < ε := by
+  rcases ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_components
+      D hθ0 hθlt hH₀_nonneg hholder hplan with
+    ⟨HQ, _hHQ_nonneg, Hsource⟩
+  exact chemFlux_secondDerivDuhamel_tendsto_zero_of_CthetaSourceOn
+    Hsource D.hT h2_int
+
+/-- Leibniz-facing small-exponent initial-data Holder route: the spatial
+derivative of the chem-flux gradient-Duhamel leg vanishes at zero time once the
+standard second-derivative integrability and spatial Leibniz identity are
+available. -/
+theorem chemFlux_gradDuhamel_deriv_tendsto_zero_of_gradientMild_initialHolder_smallTheta_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀))
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (D.u s)) w) z) x)
+        volume 0 t)
+    (hLeibniz : ∀ {t x : ℝ}, 0 < t →
+      deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (D.u s)) z) y) x =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (D.u s)) w) z) x) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (D.u s)) z) y) x| < ε := by
+  rcases ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_components
+      D hθ0 hθlt hH₀_nonneg hholder hplan with
+    ⟨HQ, _hHQ_nonneg, Hsource⟩
+  exact chemFlux_gradDuhamel_deriv_tendsto_zero_of_CthetaSourceOn
+    Hsource D.hT h2_int hLeibniz
+
 end
 
 end ShenWork.Paper2
