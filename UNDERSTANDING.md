@@ -68,6 +68,11 @@ Q3619 then identified the datum-faithful negative-part target:
 `BFormPositiveDatumLocalSq.bFormPaperPositiveLocalFrontier_of_sqRegular` expose
 the `SqRegular` package as a paper-positive negative-part frontier without
 claiming the all-positive `BFormPositiveLocalFrontier`.
+Task155 adds the same paper-positive negative-part frontier producer for the
+base squared-barrier package:
+`BFormPositiveDatumLocalSq.bFormPaperPositiveLocalFrontier_of_sq`.  This remains
+datum-faithful: it is a PPID frontier producer, not an all-positive PID
+producer.
 
 ## L2 Seed Frontier Producer (2026-07-03)
 

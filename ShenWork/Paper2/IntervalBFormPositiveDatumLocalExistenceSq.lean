@@ -143,6 +143,26 @@ theorem PositiveDatumBFormLocalComponentsSq.isClassicalSolution
     (conjugateMildSolutionData_of_data K.DB).hcont
     ht (le_of_lt htT) x
 
+/-- A squared-barrier component package builds the negative-part classical
+frontier record, keeping the datum class paper-positive. -/
+theorem PositiveDatumBFormLocalComponentsSq.toBFormPositiveClassicalFrontier
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSq p u₀) :
+    BFormPositiveClassicalFrontier p K.DB := by
+  refine
+    { route := K.route
+      regularity := K.regularity
+      v_nonneg := ?_
+      hpde_v := K.hpde_v
+      neumann := K.neumann }
+  intro t x ht htT
+  exact ShenWork.IntervalMildToClassical.mildChemical_nonneg
+    (T := K.DB.T) p
+    (u := conjugatePicardLimit p u₀ K.DB.T)
+    (conjugateMildSolutionData_of_data K.DB).hnonneg
+    (conjugateMildSolutionData_of_data K.DB).hcont
+    ht (le_of_lt htT) x
+
 theorem PositiveDatumBFormLocalComponentsSq.localClassicalSolution
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (K : PositiveDatumBFormLocalComponentsSq p u₀) :
@@ -163,6 +183,16 @@ def PositiveDatumBFormLocalHypSq (p : CM2Params) : Prop :=
   ∀ u₀ : intervalDomainPoint → ℝ,
     PaperPositiveInitialDatum intervalDomain u₀ →
       Nonempty (PositiveDatumBFormLocalComponentsSq p u₀)
+
+/-- The squared-barrier paper-positive component package produces the
+paper-positive negative-part B-form frontier. -/
+theorem bFormPaperPositiveLocalFrontier_of_sq
+    {p : CM2Params}
+    (hBForm : PositiveDatumBFormLocalHypSq p) :
+    BFormPaperPositiveLocalFrontier p := by
+  intro u₀ hu₀paper
+  obtain ⟨K⟩ := hBForm u₀ hu₀paper
+  exact ⟨K.DB, ⟨K.toBFormPositiveClassicalFrontier⟩⟩
 
 /-- Local classical existence for paper-positive data from the squared-barrier
 B-form component package. -/
