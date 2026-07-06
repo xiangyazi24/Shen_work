@@ -144,6 +144,61 @@ theorem intervalDomainL2SeedRegularityFrontier_of_classical_and_endpointContinui
       (deriv_const_mul_field
         (x := t) (v := fun τ : ℝ => intervalDomainL2HalfEnergy u τ) (2 : ℝ))
 
+/-- A spatially constant trajectory has the closed-time L² seed regularity
+frontier. -/
+theorem intervalDomainL2SeedRegularityFrontier_const {T c : ℝ} :
+    IntervalDomainL2SeedRegularityFrontier T
+      (fun _ (_ : intervalDomain.Point) => c) where
+  energyContinuous := by
+    let E : ℝ :=
+      intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) 0
+    have hfun :
+        (fun t : ℝ =>
+          intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) t)
+          = fun _ : ℝ => E := by
+      funext t
+      rfl
+    rw [hfun]
+    exact continuousOn_const
+  energyHasDerivWithin := by
+    intro t _ht
+    let E : ℝ :=
+      intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) 0
+    have hfun :
+        (fun τ : ℝ =>
+          intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) τ)
+          = fun _ : ℝ => E := by
+      funext τ
+      rfl
+    rw [hfun, deriv_const]
+    exact hasDerivWithinAt_const t (Set.Ici t) E
+  initialBound := by
+    refine ⟨intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) 0,
+      intervalDomainLpAbsEnergy_two_nonneg (fun _ (_ : intervalDomain.Point) => c) 0,
+      le_rfl⟩
+  derivativeAlignment := by
+    intro t _ht
+    let E : ℝ :=
+      intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) 0
+    let H : ℝ :=
+      intervalDomainL2HalfEnergy (fun _ (_ : intervalDomain.Point) => c) 0
+    have hE :
+        (fun τ : ℝ =>
+          intervalDomainLpAbsEnergy 2 (fun _ (_ : intervalDomain.Point) => c) τ)
+          = fun _ : ℝ => E := by
+      funext τ
+      rfl
+    have hH :
+        (fun τ : ℝ =>
+          intervalDomainL2HalfEnergy (fun _ (_ : intervalDomain.Point) => c) τ)
+          = fun _ : ℝ => H := by
+      funext τ
+      rfl
+    rw [hE, hH, deriv_const, deriv_const]
+    ring
+
+#print axioms intervalDomainL2SeedRegularityFrontier_const
+
 end ShenWork.Paper2
 
 end
