@@ -73,6 +73,11 @@ base squared-barrier package:
 `BFormPositiveDatumLocalSq.bFormPaperPositiveLocalFrontier_of_sq`.  This remains
 datum-faithful: it is a PPID frontier producer, not an all-positive PID
 producer.
+Task156 wires that PPID frontier to the PPID strong path through
+`BFormPositiveDatumNegPart.paperPositiveDatum_localExistence_of_BForm` and
+`paper2_theorem_1_1_general_chi_bform_paper_negpart_from_ppid_quant`, with
+explicit Sq/SqRegular negative-part wrappers in
+`IntervalBFormPositiveDatumPPIDStrongWiring`.
 
 ## L2 Seed Frontier Producer (2026-07-03)
 

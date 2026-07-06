@@ -227,6 +227,20 @@ theorem positiveDatum_localExistence_of_BForm
   obtain ⟨DB, ⟨F⟩⟩ := hPerDatum u₀ hu₀
   exact localClassicalSolution_of_BFormPositiveClassicalFrontier F
 
+/-- Local existence for the `PaperPositiveInitialDatum` class from the
+paper-positive negative-part B-form frontier. -/
+theorem paperPositiveDatum_localExistence_of_BForm
+    {p : CM2Params}
+    (hPerDatum : BFormPaperPositiveLocalFrontier p) :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PaperPositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨DB, ⟨F⟩⟩ := hPerDatum u₀ hu₀
+  exact localClassicalSolution_of_BFormPositiveClassicalFrontier F
+
 /-- General-χ B-form headline with the old `hlocal` frontier narrowed to the
 positive-datum B-form negative-part frontier. -/
 theorem paper2_theorem_1_1_general_chi_bform_negpart
@@ -249,6 +263,7 @@ theorem paper2_theorem_1_1_general_chi_bform_negpart
 #print axioms isClassicalSolution_of_BFormPositiveClassicalFrontier
 #print axioms localClassicalSolution_of_BFormPositiveClassicalFrontier
 #print axioms positiveDatum_localExistence_of_BForm
+#print axioms paperPositiveDatum_localExistence_of_BForm
 #print axioms paper2_theorem_1_1_general_chi_bform_negpart
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart
