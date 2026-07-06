@@ -3019,6 +3019,21 @@ producers are still the local nonnegative scalar bounds, strict-slab
 continuity, physical identity, and square-root bounds, not bounded-before,
 full RHS integrability, or derivative integrability.
 
+Task 93 moves the zero-window scalar-majorant frontier one step closer to the
+usual Cauchy/Young PDE estimates.  `IntervalChiNegH1PhysicalInitialRHS` adds
+`H1PhysicalRHSYoungScalarZeroMajorantsBefore`: a shared nonnegative lap
+majorant plus three nonnegative product remainders control the physical taxis,
+uvxx, and reaction scalars in the form expected after applying Young's
+inequality.  The adapter
+`H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore_of_young` mechanically
+turns these bounds into Task92's nonnegative additive scalar majorants, and
+`H1PhysicalRHSStrictInitialRouteBefore_of_youngScalar_zeroWindow` feeds them
+into the strict/initial route.  `IntervalChiNegH1PhysicalScalarContinuity` adds
+representative and direct strict-slab wrappers for the same Young-style input.
+The actual analytic producers are still the component-square estimates and the
+raw lap time-integrability data; no downstream bounded-before or RHS
+integrability package is used.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
