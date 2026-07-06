@@ -120,6 +120,84 @@ theorem gradDuhamel_sup_bound
         have hsqT : 0 ≤ Real.sqrt T := Real.sqrt_nonneg _
         nlinarith [hCgnn, hCq, Real.sqrt_nonneg t, hsqrt, mul_nonneg hCgnn hCq]
 
+/-- Zero-time vanishing of the full-kernel gradient-Duhamel integral for a
+uniformly bounded source family.  This is the `T := t` specialization of
+`gradDuhamel_sup_bound`, with the `√t` factor made into an epsilon-delta limit. -/
+theorem gradDuhamel_tendsto_zero_of_bounded
+    {q : ℝ → ℝ → ℝ} {Cq : ℝ}
+    (hCq : 0 ≤ Cq)
+    (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
+    (hq_sup : ∀ s y, |q s y| ≤ Cq)
+    (hg_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv
+          (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x)
+        volume 0 t) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x| < ε := by
+  intro ε hε
+  let A : ℝ := heatGradientLinftyLinftyConstant * 2 * Cq
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    exact mul_nonneg (mul_nonneg heatGradientLinftyLinftyConstant_nonneg (by norm_num)) hCq
+  let δ : ℝ := (ε / (A + 1)) ^ 2
+  have hδ : 0 < δ := by
+    dsimp [δ]
+    positivity
+  refine ⟨δ, hδ, ?_⟩
+  intro t ht htδ x
+  have hbound :=
+    gradDuhamel_sup_bound (t := t) (T := t) ht le_rfl
+      (q := q) hq_int hCq hq_sup x (hg_int (t := t) (x := x) ht)
+  have hsqrt_bound : Real.sqrt t < ε / (A + 1) := by
+    dsimp [δ] at htδ
+    rw [← Real.sqrt_sq (show 0 ≤ ε / (A + 1) by positivity)]
+    exact Real.sqrt_lt_sqrt ht.le htδ
+  have htail : heatGradientLinftyLinftyConstant * (2 * Real.sqrt t) * Cq < ε := by
+    have hA_lt : A * Real.sqrt t < ε := by
+      have hden_pos : 0 < A + 1 := by linarith
+      have hA_step : A * Real.sqrt t ≤ A * (ε / (A + 1)) :=
+        mul_le_mul_of_nonneg_left (le_of_lt hsqrt_bound) hA_nonneg
+      have hfrac_lt : A * (ε / (A + 1)) < ε := by
+        calc
+          A * (ε / (A + 1)) = (A * ε) / (A + 1) := by ring
+          _ < ε := by
+            rw [div_lt_iff₀ hden_pos]
+            nlinarith [hε]
+      calc
+        A * Real.sqrt t ≤ A * (ε / (A + 1)) := hA_step
+        _ < ε := hfrac_lt
+    simpa [A, mul_comm, mul_left_comm, mul_assoc] using hA_lt
+  exact lt_of_le_of_lt hbound htail
+
+/-- Zero-time vanishing of the spatial derivative of a full-kernel value-Duhamel
+leg, assuming the derivative-under-the-time-integral identity. -/
+theorem valueDuhamel_deriv_tendsto_zero_of_bounded
+    {q : ℝ → ℝ → ℝ} {Cq : ℝ}
+    (hCq : 0 ≤ Cq)
+    (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
+    (hq_sup : ∀ s y, |q s y| ≤ Cq)
+    (hg_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv
+          (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x)
+        volume 0 t)
+    (hLeibniz : ∀ {t x : ℝ}, 0 < t →
+      deriv (fun z : ℝ =>
+        ∫ s in (0 : ℝ)..t, intervalFullSemigroupOperator (t - s) (q s) z) x =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      |deriv (fun z : ℝ =>
+        ∫ s in (0 : ℝ)..t, intervalFullSemigroupOperator (t - s) (q s) z) x| < ε := by
+  intro ε hε
+  rcases gradDuhamel_tendsto_zero_of_bounded hCq hq_int hq_sup hg_int ε hε with
+    ⟨δ, hδ, hδsmall⟩
+  exact ⟨δ, hδ, fun t ht htδ x => by
+    rw [hLeibniz (t := t) (x := x) ht]
+    exact hδsmall t ht htδ x⟩
+
 /-- **Atom D — value-Duhamel sup bound.**  For a source path `r` bounded by `Cr`,
 the value-Duhamel integral `∫₀ᵗ S(t−s) r(s) ds` is bounded by `T·Cr`.  The
 non-singular per-slice value (semigroup `L∞`-contraction
