@@ -258,6 +258,163 @@ theorem initialLegConjugateOscillationControl_of_continuousOn
     _ < ε := by
       linarith
 
+/-- Endpoint-small bounded profiles have vanishing conjugate-kernel operator on
+endpoint x-layers. -/
+theorem initialLegConjugateEndpointOperatorVanish_of_endpointSmall_bound
+    {df : ℝ → ℝ} {M : ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1))
+    (hM : 0 ≤ M)
+    (hdf_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ M)
+    (hsmall : InitialLegDerivativeEndpointSmall df) :
+    InitialLegConjugateEndpointOperatorVanish df := by
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by linarith
+  rcases hsmall (ε / 2) hε2 with ⟨ηs, hηs_pos, hηs_lt, hsη⟩
+  let η : ℝ := ηs / 2
+  have hη_pos : 0 < η := by positivity
+  have hη_lt : η < (1 / 2 : ℝ) := by
+    dsimp [η]
+    linarith
+  set C : ℝ := 2 * M / ηs + 1
+  have hA_nonneg : 0 ≤ 2 * M / ηs := by positivity
+  have hA_le_C : 2 * M / ηs ≤ C := by
+    dsimp [C]
+    linarith
+  have hC_pos : 0 < C := by
+    dsimp [C]
+    linarith
+  have hlinear_absorb :
+      ∀ {x y : ℝ}, ηs / 2 ≤ |y - x| → M ≤ C * |y - x| := by
+    intro x y hdist
+    have hbase : M ≤ (2 * M / ηs) * |y - x| := by
+      calc
+        M = (2 * M / ηs) * (ηs / 2) := by
+          field_simp [ne_of_gt hηs_pos]
+        _ ≤ (2 * M / ηs) * |y - x| :=
+          mul_le_mul_of_nonneg_left hdist hA_nonneg
+    have hCdist : (2 * M / ηs) * |y - x| ≤ C * |y - x| :=
+      mul_le_mul_of_nonneg_right hA_le_C (abs_nonneg _)
+    exact le_trans hbase hCdist
+  have hpoint :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, x ≤ η ∨ 1 - η ≤ x →
+        ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ ε / 2 + C * |y - x| := by
+    intro x hx hxend y hy
+    rcases hxend with hxleft | hxright
+    · by_cases hynear : y ≤ ηs
+      · exact le_trans (le_of_lt (hsη y hy (Or.inl hynear)))
+          (le_add_of_nonneg_right (mul_nonneg hC_pos.le (abs_nonneg _)))
+      · have hygt : ηs < y := lt_of_not_ge hynear
+        have hdist : ηs / 2 ≤ |y - x| := by
+          have hnonneg : 0 ≤ y - x := by
+            dsimp [η] at hxleft
+            linarith
+          rw [abs_of_nonneg hnonneg]
+          dsimp [η] at hxleft
+          linarith
+        have hdfM := hdf_bound y hy
+        have htail := hlinear_absorb (x := x) (y := y) hdist
+        linarith [le_trans hdfM htail]
+    · by_cases hynear : 1 - ηs ≤ y
+      · exact le_trans (le_of_lt (hsη y hy (Or.inr hynear)))
+          (le_add_of_nonneg_right (mul_nonneg hC_pos.le (abs_nonneg _)))
+      · have hylt : y < 1 - ηs := lt_of_not_ge hynear
+        have hdist : ηs / 2 ≤ |y - x| := by
+          have hnonpos : y - x ≤ 0 := by
+            dsimp [η] at hxright
+            linarith
+          rw [abs_of_nonpos hnonpos]
+          dsimp [η] at hxright
+          linarith
+        have hdfM := hdf_bound y hy
+        have htail := hlinear_absorb (x := x) (y := y) hdist
+        linarith [le_trans hdfM htail]
+  set τ : ℝ := (ε / (4 * C)) ^ 2
+  have hτ_pos : 0 < τ := by positivity
+  refine ⟨η, hη_pos, hη_lt, τ, hτ_pos, ?_⟩
+  intro t ht htτ x hx hxend
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  let K : ℝ → ℝ := fun y => intervalNeumannConjugateKernel t x y
+  have hdf_u : ContinuousOn df (Set.uIcc (0 : ℝ) 1) := by
+    simpa [Set.uIcc_of_le h01] using hdf_cont
+  have hK_u : ContinuousOn K (Set.uIcc (0 : ℝ) 1) := by
+    simpa [K, Set.uIcc_of_le h01] using continuousOn_conjugateKernel_snd ht x
+  have hdist_u : ContinuousOn (fun y : ℝ => |y - x|) (Set.uIcc (0 : ℝ) 1) :=
+    (continuous_abs.comp (continuous_id.sub continuous_const)).continuousOn
+  have hprod_ii : IntervalIntegrable
+      (fun y : ℝ => df y * K y) MeasureTheory.volume 0 1 :=
+    (hdf_u.mul hK_u).intervalIntegrable
+  have hKabs_ii : IntervalIntegrable
+      (fun y : ℝ => |K y|) MeasureTheory.volume 0 1 :=
+    hK_u.abs.intervalIntegrable
+  have hmoment_ii : IntervalIntegrable
+      (fun y : ℝ => |y - x| * |K y|) MeasureTheory.volume 0 1 :=
+    (hdist_u.mul hK_u.abs).intervalIntegrable
+  have hcoef_u : ContinuousOn (fun y : ℝ => ε / 2 + C * |y - x|)
+      (Set.uIcc (0 : ℝ) 1) :=
+    continuousOn_const.add (continuousOn_const.mul hdist_u)
+  have hmod_ii : IntervalIntegrable
+      (fun y : ℝ => (ε / 2 + C * |y - x|) * |K y|)
+      MeasureTheory.volume 0 1 :=
+    (hcoef_u.mul hK_u.abs).intervalIntegrable
+  have hsplit :
+      (∫ y in (0 : ℝ)..1, (ε / 2 + C * |y - x|) * |K y|)
+        = (ε / 2) * (∫ y in (0 : ℝ)..1, |K y|)
+          + C * (∫ y in (0 : ℝ)..1, |y - x| * |K y|) := by
+    rw [show (fun y : ℝ => (ε / 2 + C * |y - x|) * |K y|) =
+        fun y : ℝ => (ε / 2) * |K y| + C * (|y - x| * |K y|) from by
+      funext y
+      ring]
+    rw [intervalIntegral.integral_add (hKabs_ii.const_mul (ε / 2))
+      (hmoment_ii.const_mul C), intervalIntegral.integral_const_mul,
+      intervalIntegral.integral_const_mul]
+  have htail_bound : C * (4 * t / Real.sqrt (4 * Real.pi * t)) < ε / 2 := by
+    have h4pit_pos : 0 < 4 * Real.pi * t := by positivity
+    have hpi_ge : 4 * t ≤ 4 * Real.pi * t := by nlinarith [Real.pi_gt_three]
+    have hsqrt4t : Real.sqrt (4 * t) = 2 * Real.sqrt t := by
+      have h4t_eq : (4 : ℝ) * t = (2 * Real.sqrt t) * (2 * Real.sqrt t) := by
+        have := Real.mul_self_sqrt ht.le
+        nlinarith
+      rw [show (4 : ℝ) * t = (2 * Real.sqrt t) * (2 * Real.sqrt t) from h4t_eq,
+        Real.sqrt_mul_self (by positivity : (0 : ℝ) ≤ 2 * Real.sqrt t)]
+    have hmoment_le : 4 * t / Real.sqrt (4 * Real.pi * t) ≤ 2 * Real.sqrt t := by
+      rw [div_le_iff₀ (Real.sqrt_pos_of_pos h4pit_pos)]
+      calc
+        4 * t = 2 * Real.sqrt t * Real.sqrt (4 * t) := by
+          rw [hsqrt4t]
+          nlinarith [Real.mul_self_sqrt ht.le]
+        _ ≤ 2 * Real.sqrt t * Real.sqrt (4 * Real.pi * t) :=
+          mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hpi_ge) (by positivity)
+    have hsqrt_bound : Real.sqrt t < ε / (4 * C) := by
+      rw [← Real.sqrt_sq (show (0 : ℝ) ≤ ε / (4 * C) by positivity)]
+      exact Real.sqrt_lt_sqrt ht.le htτ
+    calc
+      C * (4 * t / Real.sqrt (4 * Real.pi * t))
+          ≤ C * (2 * Real.sqrt t) :=
+        mul_le_mul_of_nonneg_left hmoment_le hC_pos.le
+      _ < C * (2 * (ε / (4 * C))) :=
+        mul_lt_mul_of_pos_left (by linarith) hC_pos
+      _ = ε / 2 := by field_simp; ring
+  calc
+    |-(∫ y in (0 : ℝ)..1, df y * intervalNeumannConjugateKernel t x y)|
+        = |∫ y in (0 : ℝ)..1, df y * K y| := by
+      simp [K]
+    _ ≤ ∫ y in (0 : ℝ)..1, |df y * K y| :=
+      intervalIntegral.abs_integral_le_integral_abs h01
+    _ ≤ ∫ y in (0 : ℝ)..1, (ε / 2 + C * |y - x|) * |K y| := by
+      apply intervalIntegral.integral_mono_on h01 hprod_ii.abs hmod_ii
+      intro y hy
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_right (hpoint x hx hxend y hy) (abs_nonneg _)
+    _ = (ε / 2) * (∫ y in (0 : ℝ)..1, |K y|)
+          + C * (∫ y in (0 : ℝ)..1, |y - x| * |K y|) := hsplit
+    _ ≤ (ε / 2) * 1 + C * (4 * t / Real.sqrt (4 * Real.pi * t)) := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_left (conjugateKernel_L1_bound ht x) (by linarith))
+        (mul_le_mul_of_nonneg_left
+          (by simpa [K] using conjugateKernel_abs_moment_le ht hx) hC_pos.le)
+    _ < ε := by
+      linarith
+
 /-- A filter-form uniform conjugate/Dirichlet approximate identity immediately
 supplies the epsilon-delta hypothesis consumed by the C1 initial-leg reducer. -/
 theorem initialLegConjugateDerivativeApprox_of_tendstoUniformlyOn
