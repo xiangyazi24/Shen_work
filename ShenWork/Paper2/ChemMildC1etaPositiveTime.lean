@@ -7,7 +7,9 @@ import ShenWork.Paper2.ChemMildC1etaCommonFoldWrappers
 
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
-open ShenWork.IntervalMildRegularityBootstrap (HasRestartCosineRepresentations)
+open ShenWork.IntervalMildRegularityBootstrap
+  (GradientMildHalfStepRestartData HasRestartCosineRepresentations
+   hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 
 namespace ShenWork.Paper2
@@ -32,6 +34,24 @@ theorem gradientMild_trueLift_coeffs_summable_positiveTime_of_initialHolder_intr
   exact
     gradientMild_trueLift_coeffs_summable_of_phase1CutoffRep_initialHolder_intrinsic
       Dsol H hη0 hθη hθlt hH₀_nonneg hholder ht htT
+
+/-- Downstream-only version: half-step restart data supplies the restart-cosine
+representations consumed by the C1/eta route.  This records the dependency
+direction; it is not a construction of restart data from Wiener summability. -/
+theorem gradientMild_trueLift_coeffs_summable_of_halfStepRestart_initialHolder_intrinsic
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData Dsol)
+    {θ η H₀ : ℝ}
+    (hη0 : 0 < η) (hθη : η < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    ∀ t : ℝ, 0 < t → t < Dsol.T →
+      Summable (fun n : ℕ => |cosineCoeffs (intervalDomainLift (Dsol.u t)) n|) :=
+  gradientMild_trueLift_coeffs_summable_positiveTime_of_initialHolder_intrinsic
+    Dsol
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData Dsol R)
+    hη0 hθη hθlt hH₀_nonneg hholder
 
 end
 
