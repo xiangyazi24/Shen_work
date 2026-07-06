@@ -812,6 +812,34 @@ theorem initialLegConjugateDerivativeApprox_of_continuousOn_zero
   exact initialLegConjugateDerivativeApprox_of_continuousOn_zero_bound
     hdf_cont hdf_zero hdf_one hM hdf_bound
 
+/-- Continuous endpoint-compatible derivative profiles have vanishing endpoint
+operator layer, with boundedness inferred from compactness of `[0,1]`. -/
+theorem initialLegConjugateEndpointOperatorVanish_of_continuousOn_zero
+    {df : ℝ → ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1))
+    (hdf_zero : df 0 = 0) (hdf_one : df 1 = 0) :
+    InitialLegConjugateEndpointOperatorVanish df := by
+  obtain ⟨M, hM, hdf_bound⟩ := continuousOn_Icc_abs_bound hdf_cont
+  exact initialLegConjugateEndpointOperatorVanish_of_endpointSmall_bound
+    hdf_cont hM hdf_bound
+    (initialLegDerivativeEndpointSmall_of_continuousOn_zero
+      hdf_cont hdf_zero hdf_one)
+
+/-- Continuous endpoint-compatible derivative profiles satisfy the endpoint
+layer conjugate approximate identity, with boundedness inferred from compactness
+of `[0,1]`. -/
+theorem initialLegConjugateDerivativeEndpointApprox_of_continuousOn_zero
+    {df : ℝ → ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1))
+    (hdf_zero : df 0 = 0) (hdf_one : df 1 = 0) :
+    InitialLegConjugateDerivativeEndpointApprox df := by
+  have hsmall : InitialLegDerivativeEndpointSmall df :=
+    initialLegDerivativeEndpointSmall_of_continuousOn_zero hdf_cont hdf_zero hdf_one
+  exact initialLegConjugateDerivativeEndpointApprox_of_operatorVanish_endpointSmall
+    (initialLegConjugateEndpointOperatorVanish_of_continuousOn_zero
+      hdf_cont hdf_zero hdf_one)
+    hsmall
+
 /-- If the derivative field commutes with the homogeneous semigroup leg and the
 candidate derivative profile has value approximate identity, then the
 homogeneous C1 initial approach follows. -/
