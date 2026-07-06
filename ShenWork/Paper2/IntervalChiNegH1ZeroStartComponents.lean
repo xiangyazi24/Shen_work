@@ -110,6 +110,69 @@ structure H1ZeroStartPhysicalPrimitiveContinuityBefore
         Function.uncurry
           (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z
 
+/-- Source-facing zero-start closed-slab primitive regularity and sign data.
+This package is intentionally independent of `CM2Params`: the continuity/sign
+subfrontier only mentions `u`, `v`, and their first spatial derivatives. -/
+structure H1ZeroStartClosedPrimitiveC1SignBefore
+    (u v : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
+  u_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  v_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  ux_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (u t)) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  vx_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (v t)) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  u_pos0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ∀ z ∈ Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1,
+      0 <
+        Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x) z
+  v_nonneg0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ∀ z ∈ Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1,
+      0 ≤
+        Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z
+
+/-- A p-free closed primitive continuity/sign package supplies the physical
+continuity subfrontier for any parameter set. -/
+theorem H1ZeroStartPhysicalPrimitiveContinuityBefore_of_closedPrimitiveC1Sign
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (h : H1ZeroStartClosedPrimitiveC1SignBefore u v T) :
+    H1ZeroStartPhysicalPrimitiveContinuityBefore p u v T where
+  u_cont0 := h.u_cont0
+  v_cont0 := h.v_cont0
+  ux_cont0 := h.ux_cont0
+  vx_cont0 := h.vx_cont0
+  u_pos0 := h.u_pos0
+  v_nonneg0 := h.v_nonneg0
+
+/-- Project the continuity/sign half from the older full primitive package.
+This is only a convenience projection; the full package already contains the
+separate PDE-seam fields. -/
+theorem H1ZeroStartPhysicalPrimitiveContinuityBefore_of_primitiveData
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (h : H1ZeroStartPhysicalPrimitiveDataBefore p u v T) :
+    H1ZeroStartPhysicalPrimitiveContinuityBefore p u v T where
+  u_cont0 := h.u_cont0
+  v_cont0 := h.v_cont0
+  ux_cont0 := h.ux_cont0
+  vx_cont0 := h.vx_cont0
+  u_pos0 := h.u_pos0
+  v_nonneg0 := h.v_nonneg0
+
 /-- The initial-time PDE seam needed by the zero-start physical H¹ route:
 closed-slab time-derivative continuity and endpoint-including interior
 agreement of literal `liftDeriv2` with the physical representative. -/
@@ -126,6 +189,62 @@ structure H1ZeroStartPhysicalPDESeamBefore
         (liftDeriv2PhysicalRHSWithChemRep p u
           (liftChemotaxisDivPhysicalRep p u v)))
       (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)
+
+/-- Initial-time PDE compatibility sufficient to produce the zero-start PDE
+seam once positive-time classical PDE equality is available.  The record keeps
+the true zero-time obligations explicit: closed-slab time-derivative
+continuity and the literal interior PDE trace at `t = 0`. -/
+structure H1ZeroStartPhysicalPDEInitialCompatibilityBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
+  time_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry (fun t x => liftTimeDeriv u t x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  eq0Interior :
+    Set.EqOn
+      (fun x => liftDeriv2 u (0 : ℝ) x)
+      (fun x =>
+        liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v) (0 : ℝ) x)
+      (Set.Ioo (0 : ℝ) 1)
+
+/-- Positive-time classical PDE equality plus explicit initial-time
+compatibility produces the endpoint-including zero-start physical PDE seam. -/
+theorem H1ZeroStartPhysicalPDESeamBefore_of_classicalSolution_initialCompatibility
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hinit : H1ZeroStartPhysicalPDEInitialCompatibilityBefore p u v T) :
+    H1ZeroStartPhysicalPDESeamBefore p u v T where
+  time_cont0 := hinit.time_cont0
+  eqInterior0 := by
+    intro b _hb0 hbT z hz
+    rcases z with ⟨t, x⟩
+    rcases hz with ⟨htb, hx⟩
+    simp only [Function.uncurry_apply_pair]
+    by_cases ht_zero : t = 0
+    · subst t
+      exact hinit.eq0Interior hx
+    · have ht_ne : (0 : ℝ) ≠ t := by
+        intro h0t
+        exact ht_zero h0t.symm
+      have ht_pos : 0 < t := lt_of_le_of_ne htb.1 ht_ne
+      have htT : t < T := lt_of_le_of_lt htb.2 hbT
+      have hphys :
+          liftDeriv2 u t x = liftDeriv2PhysicalRHS p u v t x :=
+        liftDeriv2_eq_liftDeriv2PhysicalRHS_interior_of_classicalSolution
+          (p := p) (T := T) (u := u) (v := v) hsol ⟨ht_pos, htT⟩ hx
+      have hchem :
+          intervalDomainLift
+              (fun X : intervalDomainPoint =>
+                intervalDomain.chemotaxisDiv p (u t) (v t) X) x =
+            liftChemotaxisDivPhysicalRep p u v t x :=
+        lift_chemotaxisDiv_eq_liftChemotaxisDivPhysicalRep_interior
+          (p := p) (T := T) (u := u) (v := v) hsol ⟨ht_pos, htT⟩ hx
+      calc
+        liftDeriv2 u t x = liftDeriv2PhysicalRHS p u v t x := hphys
+        _ = liftDeriv2PhysicalRHSWithChemRep p u
+            (liftChemotaxisDivPhysicalRep p u v) t x := by
+          simp [liftDeriv2PhysicalRHS, liftDeriv2PhysicalRHSWithChemRep, hchem]
 
 /-- Reassemble the original zero-start primitive package from the separated
 continuity/positivity data and the initial-time PDE seam. -/
@@ -359,7 +478,10 @@ theorem H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPrimitiveData
 
 section AxiomAudit
 
+#print axioms H1ZeroStartPhysicalPrimitiveContinuityBefore_of_closedPrimitiveC1Sign
+#print axioms H1ZeroStartPhysicalPrimitiveContinuityBefore_of_primitiveData
 #print axioms H1ZeroStartPhysicalPrimitiveDataBefore_of_continuity_and_pdeSeam
+#print axioms H1ZeroStartPhysicalPDESeamBefore_of_classicalSolution_initialCompatibility
 #print axioms liftChemotaxisDivPhysicalRep_continuousOn_zeroSlab_of_primitives
 #print axioms H1ZeroStartPhysicalRHSDataBefore_of_zeroStartPrimitiveData
 #print axioms H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPrimitiveData

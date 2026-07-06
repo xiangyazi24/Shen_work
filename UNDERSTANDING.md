@@ -3280,6 +3280,32 @@ axiom-clean and only reassembles the old package.  This is not a mathematical
 closure; it marks the initial-time PDE seam as the real remaining
 zero-start blocker.
 
+Task 112 follows the Q3549 PDE-seam audit.  The audit confirms that
+`H1ZeroStartPhysicalPDESeamBefore` is not derivable from the current
+`IsPaper2ClassicalSolution` record alone: `liftTimeDeriv` continuity and the
+PDE equality are only available on strict-positive-time slabs.  The new
+`H1ZeroStartPhysicalPDEInitialCompatibilityBefore` record therefore asks only
+for the genuine missing zero-time seam data: closed-slab continuity of
+`liftTimeDeriv u` on `[0,b] × [0,1]` and the interior PDE trace at `t = 0`.
+The constructor
+`H1ZeroStartPhysicalPDESeamBefore_of_classicalSolution_initialCompatibility`
+then fills the positive-time branch from the existing classical pointwise
+`liftDeriv2` equality and chemotaxis representative equality.  This shrinks
+the PDE-seam carry, but it is still conditional on explicit initial-time
+compatibility.
+
+The Q3547 continuity/sign audit gives the analogous result for the other half
+of Task111.  `H1ZeroStartPhysicalPrimitiveContinuityBefore` is also not a
+consequence of current classical regularity or `InitialTrace`: the available
+joint continuity and positivity APIs are strict-positive-time, while this
+frontier includes `t = 0`.  The new p-free
+`H1ZeroStartClosedPrimitiveC1SignBefore` record names the exact source-facing
+closed-slab data needed for `u`, `v`, `u_x`, `v_x`, `u > 0`, and `v ≥ 0`, and
+`H1ZeroStartPhysicalPrimitiveContinuityBefore_of_closedPrimitiveC1Sign` maps it
+into the physical continuity subfrontier for any `CM2Params`.  This removes the
+irrelevant parameter from the source package but still leaves zero-start
+closed-slab primitive regularity/sign as a real construction-level obligation.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
