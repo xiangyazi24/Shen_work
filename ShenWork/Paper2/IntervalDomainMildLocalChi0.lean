@@ -294,6 +294,21 @@ theorem hpde_u_of_inputs_localized_data
     I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
     I.adott I.hderivt I.hadotcontt I.hMdott I.hLc
 
+/-- The `Hu` time-neighborhood spectral-agreement field is produced from the
+same localized restart/K1/K2 data already carried by the χ₀ = 0 ledger.  This
+theorem does not assume the `I.Hu` field itself. -/
+theorem Hu_of_inputs_localized_data
+    {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (I : LimitRegularityInputs p u₀ D) :
+    HasTimeNeighborhoodSpectralAgreement D.T D.u :=
+  ShenWork.Paper2.TimeNhdSubtype.Hu_of_restart_localized_of_subtypeCont
+    hχ0 D.u I.hα I.ha I.hb I.hu₀_cont I.hu₀_bound I.hfix I.hsrc0
+    I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
+    I.adott I.hderivt I.hadotcontt I.hMdott
+    (fun t ht htT s hs hst =>
+      constExtend_continuous (I.hLc t ht htT s hs hst))
+
 /-! ## Assembling the per-datum package from the ledger -/
 
 /-- **Build `R` from the ledger via step 1.** -/
@@ -335,7 +350,7 @@ theorem frontierCore_of_inputs
       RegularityFrontierAssembly.hasResolverDirectSpectralData_of_clamped_perT0
         D.u I.Hvsrc
     exact RegularityFrontierWiring.gradientMildClassicalRegularityFrontierData_of_spectral
-      p D I.Hu Hv Hrestart I.Hvpos
+      p D (Hu_of_inputs_localized_data hχ0 I) Hv Hrestart I.Hvpos
 
 /-! ## The top-level `hMildLocal`-abstract statement (χ₀ = 0) -/
 
