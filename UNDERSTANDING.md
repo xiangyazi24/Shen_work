@@ -1,5 +1,16 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 277: Route-facing chi-zero headline alias (2026-07-06)
+
+`IntervalDomainChiZeroHeadline.lean` exposes
+`paper2_theorem_1_1_chiZero_headline` as the preferred Paper2-facing entry point
+for the current chi-zero interval-domain theorem.  The proof is a thin alias to
+`IntervalPicardTowerSupply.from_cone_construction`, so it uses the tower/cone
+route rather than the old ledger-level or source-spectral surfaces.  This is
+still the chi-zero interval-domain fragment under the structural assumptions
+`0 < p.a`, `0 < p.b`, `1 ≤ p.α`, and `1 ≤ p.γ`; it is not the general
+nonpositive-chi or arbitrary-domain theorem.
+
 ## Task 276: Chi-zero hsrc0 fed directly from the narrowed Hres core (2026-07-06)
 
 `IntervalResolverSourceWindowHsrc0FromCore.lean` bridges the existing
