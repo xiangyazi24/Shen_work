@@ -17,10 +17,11 @@
     * the differentiated `[0,1]` representative `w = initLeg − χ₀·chemLitLeg + reactLeg`
       is therefore `DifferentiableOn ℝ · (Icc 0 1)`, its `derivWithin` on `[0,1]` is the
       three-leg sum, and is `η`-Hölder on `[0,1]` by the triangle inequality;
-    * feeding this into the `DifferentiableOn` summability variant
-      `holderCosineCoeff_summable_of_differentiableOn` yields `Summable |cosineCoeffs w n|`.
+    * feeding this plus the endpoint no-flux package into the committed
+      `holderCosineCoeff_summable_diffOn` yields `Summable |cosineCoeffs w n|`.
 
-  **NO Neumann** (the cosine-IBP boundary term vanishes from `sin(nπ)=sin 0=0` alone),
+  **NO global-`ℝ` differentiability** of `w`; the Wiener feed still carries the honest
+  closed-interval endpoint no-flux package for `derivWithin w` on `[0,1]`.
   **NO off-interior residual** (the interchange is the committed interior one extended to
   the endpoints, step 1), **NO global-`ℝ` differentiability** of `w` (only on `[0,1]`).
 
@@ -29,14 +30,17 @@
   `η`-Hölder moduli — exactly the bridge data of the committed `DifferentiatedMildSlice`,
   NOT a regularity conclusion.
 
-  No `sorry`/`admit`/custom `axiom`/`native_decide`.
+  No proof placeholders, native-decision shortcuts, or custom axiomatic declarations.
 -/
 import ShenWork.Paper2.ChemMildDifferentiableOn
 import ShenWork.Paper2.ChemMildC1etaAssembly
+import ShenWork.Paper2.IntervalChemFluxHolderSourceDecay
 import ShenWork.Wiener.EWA.HolderCosineDecayDiffOn
 
 open MeasureTheory Set
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 open ShenWork.IntervalDomainRegularityBootstrap (unitIntervalCosineHeatSecondValue)
 
 namespace ShenWork.Paper2
@@ -79,7 +83,8 @@ theorem chemLitLeg₂_eq_chemDuhamelLeg_Icc {t₀ θ CQ HQ M : ℝ} {Q : ℝ →
 
 The differentiated mild slice `w = u(t₀,·)` over `[0,1]`, recorded as the honest
 representation data plus the per-leg `η`-Hölder moduli, in the `DifferentiableOn`/
-`derivWithin` route (NO global differentiability, NO Neumann):
+`derivWithin` route (NO global differentiability; endpoint no-flux is not built into
+this bridge package):
 
 * `w_split` — the `[0,1]` representative `w x = initLeg x − χ₀·chemLitLeg t₀ Q x + reactLeg x`
   (the differentiated mild representation; legs defined on all of `ℝ`);
@@ -88,7 +93,8 @@ representation data plus the per-leg `η`-Hölder moduli, in the `Differentiable
 * `init_diff` / `react_diff` — the value legs are globally differentiable (committed
   gradient route), hence `DifferentiableOn ℝ · (Icc 0 1)` and `derivWithin = deriv`;
 * `init_holder` / `chem_holder` / `react_holder` — the per-leg `η`-Hölder of the
-  `[0,1]` derivatives, `[0,1]`-local (the value legs are even global). -/
+  `[0,1]` derivatives, `[0,1]`-local (the value legs are even global).
+This bridge package does not carry endpoint no-flux; the Wiener feed takes that separately. -/
 structure DifferentiatedMildSliceDiffOn (χ₀ t₀ θ η CQ HQ M : ℝ) (Q : ℝ → ℝ → ℝ)
     (w initLeg reactLeg : ℝ → ℝ) (Ainit Achem Areact : ℝ) : Prop where
   /-- The `[0,1]` differentiated representative (legs on all of `ℝ`). -/
@@ -259,11 +265,12 @@ From the differentiated mild bridge `DifferentiatedMildSliceDiffOn` (`0 < η ≤
   `Ainit + |χ₀|·Achem + Areact`;
 * `Summable |cosineCoeffs w n|` (the Wiener feed).
 
-NO Neumann, NO off-interior residual, NO global-`ℝ` differentiability, and — after the
-`chem_holder` discharge (`differentiatedMildSliceDiffOn_of_brick4_chem`) — NO regularity
-conclusion is carried: `init_holder`/`react_holder` come from `gradLeg_holder_global`,
-`chem_holder` from the literal=spectral bridge + the committed spectral
-`chemLeg_holder_of_brick4`.
+NO off-interior residual, NO global-`ℝ` differentiability, and — after the `chem_holder`
+discharge (`differentiatedMildSliceDiffOn_of_brick4_chem`) — NO regularity conclusion is
+carried: `init_holder`/`react_holder` come from `gradLeg_holder_global`, `chem_holder` from
+the literal=spectral bridge + the committed spectral `chemLeg_holder_of_brick4`.  The
+Wiener feed still requires the honest closed-interval continuity/no-flux package for
+`derivWithin w`.
 
 **This is a slice-FROM-bridge, NOT concretely unconditional** (hence the honest relabel,
 parallel to the committed `chemMild_positiveTime_C1eta_slice`).  What the bridge
@@ -284,7 +291,10 @@ theorem chemMild_C1eta_slice_diffOn {χ₀ t₀ θ η CQ HQ M : ℝ} {Q : ℝ �
     {w initLeg reactLeg : ℝ → ℝ} {Ainit Achem Areact : ℝ}
     (hη0 : 0 < η) (hη1 : η ≤ 1)
     (D : DifferentiatedMildSliceDiffOn χ₀ t₀ θ η CQ HQ M Q w initLeg reactLeg
-      Ainit Achem Areact) :
+      Ainit Achem Areact)
+    (hD_cont : Continuous (fun x => derivWithin w (Set.Icc (0 : ℝ) 1) (clamp01 x)))
+    (hNeumann : derivWithin w (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin w (Set.Icc (0 : ℝ) 1) 1 = 0) :
     DifferentiableOn ℝ w (Set.Icc (0:ℝ) 1) ∧
       (∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
         |derivWithin w (Set.Icc (0:ℝ) 1) x - derivWithin w (Set.Icc (0:ℝ) 1) y|
@@ -338,8 +348,107 @@ theorem chemMild_C1eta_slice_diffOn {χ₀ t₀ θ η CQ HQ M : ℝ} {Q : ℝ �
           add_le_add (add_le_add hI hχC) hR
       _ = (Ainit + |χ₀| * Achem + Areact) * dxy := by ring
   refine ⟨hdiffOn, hHolder, ?_⟩
-  exact ShenWork.Wiener.EWA.holderCosineCoeff_summable_of_differentiableOn
-    w hwc hdiffOn hη0 hη1 hK_nn hHolder
+  exact ShenWork.Wiener.EWA.holderCosineCoeff_summable_diffOn
+    w hwc hdiffOn hD_cont hNeumann hη0 hη1 hK_nn
+    (fun x y hx hy => hHolder x hx y hy)
+
+/-! ## Small-`θ` chem-flux source consumer
+
+The next two wrappers consume the Task188 small-exponent initial-holder
+`ChemLegData` producer for the cutoff chem-flux source.  They discharge only the
+`chemData` slot of the C1/eta bridge; the differentiated mild representation,
+leg integrability, and value-leg differentiability/Hölder inputs remain explicit. -/
+
+/-- Small-exponent initial-data Holder route from the concrete chem-flux data to
+the differentiated `[0,1]` C1/eta bridge package. -/
+theorem differentiatedMildSliceDiffOn_of_gradientMild_initialHolder_smallTheta_cutoff_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    {χ₀ t θ η H₀ Ainit Areact : ℝ}
+    {w initLeg reactLeg : ℝ → ℝ}
+    (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ Dsol.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t ≤ Dsol.T)
+    (init_diff : Differentiable ℝ initLeg) (react_diff : Differentiable ℝ reactLeg)
+    (hAinit_nn : 0 ≤ Ainit) (hAreact_nn : 0 ≤ Areact)
+    (hleg_int : ∀ x : ℝ, IntervalIntegrable
+      (fun s => unitIntervalCosineHeatSecondValue (t - s)
+        (cosineCoeffs (chemFluxCthetaCutoffSource p Dsol.u Dsol.T s)) (clamp01 x))
+      volume 0 t)
+    (w_split : ∀ x : ℝ,
+      w x = initLeg x - χ₀ * chemLitLeg t
+        (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactLeg x)
+    (init_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+      |deriv initLeg x - deriv initLeg y| ≤ Ainit * |x - y| ^ η)
+    (react_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+      |deriv reactLeg x - deriv reactLeg y| ≤ Areact * |x - y| ^ η) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      DifferentiatedMildSliceDiffOn χ₀ t θ η
+        (Dsol.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * Dsol.M ^ p.γ)))) HQ
+        (2 * (Dsol.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * Dsol.M ^ p.γ)))))
+        (chemFluxCthetaCutoffSource p Dsol.u Dsol.T)
+        w initLeg reactLeg Ainit (chemDuhamelConst t θ η HQ) Areact := by
+  rcases ChemLegData_of_gradientMild_initialHolder_smallTheta_cutoff_components
+      Dsol hθ0 hθlt hH₀_nonneg hholder hplan ht htT with
+    ⟨HQ, hHQ_nonneg, chemData⟩
+  refine ⟨HQ, hHQ_nonneg, ?_⟩
+  exact differentiatedMildSliceDiffOn_of_brick4_chem hη0 hη1 hθη chemData
+    init_diff react_diff hAinit_nn hAreact_nn hleg_int w_split init_holder react_holder
+
+/-- Small-exponent initial-data Holder route from the concrete chem-flux data to
+the `[0,1]` C1/eta slice conclusion and Wiener coefficient summability. -/
+theorem chemMild_C1eta_slice_diffOn_of_gradientMild_initialHolder_smallTheta_cutoff_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    {χ₀ t θ η H₀ Ainit Areact : ℝ}
+    {w initLeg reactLeg : ℝ → ℝ}
+    (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ Dsol.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t ≤ Dsol.T)
+    (init_diff : Differentiable ℝ initLeg) (react_diff : Differentiable ℝ reactLeg)
+    (hAinit_nn : 0 ≤ Ainit) (hAreact_nn : 0 ≤ Areact)
+    (hleg_int : ∀ x : ℝ, IntervalIntegrable
+      (fun s => unitIntervalCosineHeatSecondValue (t - s)
+        (cosineCoeffs (chemFluxCthetaCutoffSource p Dsol.u Dsol.T s)) (clamp01 x))
+      volume 0 t)
+    (w_split : ∀ x : ℝ,
+      w x = initLeg x - χ₀ * chemLitLeg t
+        (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactLeg x)
+    (init_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+      |deriv initLeg x - deriv initLeg y| ≤ Ainit * |x - y| ^ η)
+    (react_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+      |deriv reactLeg x - deriv reactLeg y| ≤ Areact * |x - y| ^ η)
+    (hD_cont : Continuous (fun x => derivWithin w (Set.Icc (0 : ℝ) 1) (clamp01 x)))
+    (hNeumann : derivWithin w (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin w (Set.Icc (0 : ℝ) 1) 1 = 0) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      DifferentiableOn ℝ w (Set.Icc (0:ℝ) 1) ∧
+        (∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+          |derivWithin w (Set.Icc (0:ℝ) 1) x -
+              derivWithin w (Set.Icc (0:ℝ) 1) y|
+            ≤ (Ainit + |χ₀| * chemDuhamelConst t θ η HQ + Areact) *
+              |x - y| ^ η) ∧
+        Summable (fun n : ℕ => |cosineCoeffs w n|) := by
+  rcases
+      differentiatedMildSliceDiffOn_of_gradientMild_initialHolder_smallTheta_cutoff_components
+        Dsol hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
+        init_diff react_diff hAinit_nn hAreact_nn hleg_int w_split
+        init_holder react_holder with
+    ⟨HQ, hHQ_nonneg, Dslice⟩
+  refine ⟨HQ, hHQ_nonneg, ?_⟩
+  exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hD_cont hNeumann
 
 end
 
