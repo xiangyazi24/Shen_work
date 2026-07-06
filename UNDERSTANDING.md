@@ -3369,6 +3369,20 @@ wrappers specialize this to the existing constant solution regimes.  This pairs
 with Task115's constant primitive C1/sign producer; it still does not supply a
 general B-form/Picard zero-start producer.
 
+Task 122 connects the constant special cases to the old route-facing primitive
+frontier.  The new `IntervalChiNegH1ZeroStartConstantPrimitiveData` file adds
+the Q3565 safe wrapper
+`H1ZeroStartInitializedPrimitiveC1SignSource_of_closedPrimitiveC1Sign`, its
+constant specialization, the Q3566 route-facing
+`H1ZeroStartPhysicalPDEInitialCompatibilityBefore_const_of_reaction_zero`, and
+equilibrium/zero-reaction wrappers.  It then combines the constant closed
+primitive C1/sign package, the constant initial PDE compatibility package, and
+the existing constant classical solution theorems to prove
+`H1ZeroStartPhysicalPrimitiveDataBefore_const_equilibrium` and
+`H1ZeroStartPhysicalPrimitiveDataBefore_const_zeroReaction`.  This closes the
+older zero-start primitive-data frontier only for the constant equilibrium and
+zero-reaction regimes.
+
 The same Task118 commit records Q3559's matching current status for the
 primitive C1/sign half.  The
 raw B-form/Picard local output cannot be the zero-start trajectory because
@@ -3382,6 +3396,11 @@ continuity/sign fields.  The reducer
 `H1ZeroStartClosedPrimitiveC1SignBefore_of_initializedSource` is only a
 projection into the current p-free target; it is a source-interface guard, not
 a proof that the general B-form/Picard construction supplies those fields.
+Q3565 independently rechecked this after Task118: no non-circular general
+producer exists in the audited B-form/Picard, patched-slice, or positive-time
+joint-continuity layers.  The missing general source data remain an initialized
+`(u,v)` trajectory with actual zero slices and closed-zero-slab value/first
+spatial-derivative continuity and signs.
 
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
