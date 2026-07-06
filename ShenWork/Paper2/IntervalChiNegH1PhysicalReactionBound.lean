@@ -16,6 +16,7 @@ open scoped BigOperators Topology Interval
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
+open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
 open ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 open ShenWork.Paper2.IntervalChiNegH1PhysicalSqrtBounds
@@ -438,6 +439,101 @@ theorem H1PhysicalReactX_le_a_H1gradL2Norm_sq_of_classicalSolution
     (p := p) (T := T) (τ := τ) (L := p.a) (u := u) (v := v)
     hsol hτ le_rfl
 
+/-- The remaining chemotaxis-side fixed-time L² data for the physical H¹
+sqrt-bound route, after the logistic reaction estimate has been split off. -/
+structure H1PhysicalChemL2SqrtBoundDataBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T V₁ V₂ M : ℝ) : Prop where
+  hchi : 0 ≤ -p.χ₀
+  hV1 : 0 ≤ V₁
+  hV2 : 0 ≤ V₂
+  hM : 0 ≤ M
+  lap_sq_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable (fun x => (liftDeriv2 u τ x) ^ 2) volume (0 : ℝ) 1
+  taxis_sq_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => (H1PhysicalChemTaxisPart p u v τ x) ^ 2) volume (0 : ℝ) 1
+  uvxx_sq_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => (H1PhysicalChemUvxxPart p u v τ x) ^ 2) volume (0 : ℝ) 1
+  taxis_prod_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => |liftDeriv2 u τ x * H1PhysicalChemTaxisPart p u v τ x|)
+      volume (0 : ℝ) 1
+  uvxx_prod_int : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    IntervalIntegrable
+      (fun x => |liftDeriv2 u τ x * H1PhysicalChemUvxxPart p u v τ x|)
+      volume (0 : ℝ) 1
+  taxis_l2_bound : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+      ≤ V₁ * H1gradL2Norm u τ
+  uvxx_l2_bound : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+      ≤ M * V₂
+
+/-- Chemotaxis-side L² sqrt data plus reaction IBP data rebuild the older
+all-components L² sqrt data package. -/
+theorem H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_reactionIBP
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hchem : H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M)
+    (hreact : H1PhysicalReactionIBPBoundDataBefore p u T L) :
+    H1PhysicalRHSL2SqrtBoundDataBefore p u v T V₁ V₂ M L :=
+  { hchi := hchem.hchi
+    hV1 := hchem.hV1
+    hV2 := hchem.hV2
+    hM := hchem.hM
+    hL := hreact.hL
+    lap_sq_int := hchem.lap_sq_int
+    taxis_sq_int := hchem.taxis_sq_int
+    uvxx_sq_int := hchem.uvxx_sq_int
+    taxis_prod_int := hchem.taxis_prod_int
+    uvxx_prod_int := hchem.uvxx_prod_int
+    taxis_l2_bound := hchem.taxis_l2_bound
+    uvxx_l2_bound := hchem.uvxx_l2_bound
+    react_bound := H1PhysicalReactX_le_gradSq_of_reactionIBPBoundDataBefore hreact }
+
+/-- Chemotaxis-side L² sqrt data plus the classical reaction producer rebuild
+the older all-components L² sqrt data package. -/
+theorem H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_classical_reaction
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hL : p.a ≤ L)
+    (hchem : H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSL2SqrtBoundDataBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_reactionIBP
+    hchem
+    (H1PhysicalReactionIBPBoundDataBefore_of_classicalSolution
+      (p := p) (T := T) (L := L) (u := u) (v := v) hsol hL)
+
+/-- Chemotaxis-side L² sqrt data plus reaction IBP data produce the concrete
+physical H¹ sqrt-bound frontier. -/
+theorem H1PhysicalRHSSqrtBoundsBefore_of_chemL2SqrtBoundData_and_reactionIBP
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hchem : H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M)
+    (hreact : H1PhysicalReactionIBPBoundDataBefore p u T L) :
+    H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSSqrtBoundsBefore_of_L2SqrtBoundData
+    (H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_reactionIBP
+      hchem hreact)
+
+/-- Chemotaxis-side L² sqrt data plus the classical logistic reaction producer
+give the concrete physical H¹ sqrt-bound frontier. -/
+theorem H1PhysicalRHSSqrtBoundsBefore_of_chemL2SqrtBoundData_and_classical_reaction
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hL : p.a ≤ L)
+    (hchem : H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSSqrtBoundsBefore_of_L2SqrtBoundData
+    (H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_classical_reaction
+      hsol hL hchem)
+
 /-- Pointwise taxis/uvxx estimates plus reaction IBP data produce the concrete
 physical H¹ sqrt-bound frontier. -/
 theorem H1PhysicalRHSSqrtBoundsBefore_of_pointwise_norm_bounds_and_reactionIBP
@@ -483,6 +579,10 @@ theorem H1PhysicalRHSSqrtBoundsBefore_of_pointwise_norm_bounds_and_classical_rea
 #print axioms H1PhysicalReactX_le_gradSq_of_reactionIBPBoundDataBefore
 #print axioms H1PhysicalReactX_le_L_H1gradL2Norm_sq_of_classicalSolution
 #print axioms H1PhysicalReactX_le_a_H1gradL2Norm_sq_of_classicalSolution
+#print axioms H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_reactionIBP
+#print axioms H1PhysicalRHSL2SqrtBoundDataBefore_of_chemL2SqrtBoundData_and_classical_reaction
+#print axioms H1PhysicalRHSSqrtBoundsBefore_of_chemL2SqrtBoundData_and_reactionIBP
+#print axioms H1PhysicalRHSSqrtBoundsBefore_of_chemL2SqrtBoundData_and_classical_reaction
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_pointwise_norm_bounds_and_reactionIBP
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_pointwise_norm_bounds_and_classical_reaction
 
