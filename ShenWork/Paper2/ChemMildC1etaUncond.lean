@@ -487,6 +487,13 @@ noncomputable def initialValueLegDerivHolderConst (t η Cu₀ : ℝ) : ℝ :=
     (secondDerivSmoothingConst ^ η * gradSmoothingConst ^ (1 - η)) *
       t ^ (-((1 + η) / 2) : ℝ) * Cu₀
 
+/-- The explicit `η`-Holder constant for the derivative of the reaction Duhamel leg. -/
+noncomputable def reactionDerivLegHolderConst (t η CL : ℝ) : ℝ :=
+  ∫ s in (0 : ℝ)..t,
+    (2 : ℝ) ^ (1 - η) *
+      (secondDerivSmoothingConst ^ η * gradSmoothingConst ^ (1 - η)) *
+        (t - s) ^ (-((1 + η) / 2) : ℝ) * CL
+
 /-- The homogeneous initial value leg is globally differentiable at positive time. -/
 theorem initialValueLeg_differentiable
     {t : ℝ} (ht : 0 < t) {u₀ : ℝ → ℝ}
@@ -525,6 +532,61 @@ theorem initialValueLeg_deriv_holder_Icc
   intro x _ y _
   simpa [initialValueLeg, initialValueLegDerivHolderConst] using
     (gradLeg_holder_global ht hη0 hη1 hu₀_meas hu₀_bdd x y)
+
+/-- Nonnegativity of the reaction Duhamel derivative Holder constant. -/
+theorem reactionDerivLegHolderConst_nonneg
+    {t η CL : ℝ} (ht : 0 < t) (hCL_nn : 0 ≤ CL) :
+    0 ≤ reactionDerivLegHolderConst t η CL := by
+  unfold reactionDerivLegHolderConst
+  refine intervalIntegral.integral_nonneg ht.le (fun s hs => ?_)
+  have hts : 0 ≤ t - s := by linarith [hs.2]
+  have htwo : 0 ≤ (2 : ℝ) ^ (1 - η) := Real.rpow_nonneg (by norm_num) _
+  have hsecond : 0 ≤ secondDerivSmoothingConst ^ η :=
+    Real.rpow_nonneg secondDerivSmoothingConst_nonneg _
+  have hgrad : 0 ≤ gradSmoothingConst ^ (1 - η) :=
+    Real.rpow_nonneg gradSmoothingConst_nonneg _
+  have htime : 0 ≤ (t - s) ^ (-((1 + η) / 2) : ℝ) :=
+    Real.rpow_nonneg hts _
+  positivity
+
+/-- The derivative of the reaction Duhamel leg is `η`-Holder on `[0,1]` for a bounded
+measurable source. -/
+theorem reactionDerivLeg_holder_Icc
+    {t η : ℝ} (ht : 0 < t) (hη0 : 0 < η) (hη1 : η < 1)
+    {L : ℝ → ℝ → ℝ}
+    (hL_meas : Measurable (Function.uncurry L))
+    {CL : ℝ} (hCL_nn : 0 ≤ CL) (hL_bdd : ∀ s y, |L s y| ≤ CL) :
+    ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+      |reactionDerivLeg t L x - reactionDerivLeg t L y|
+        ≤ reactionDerivLegHolderConst t η CL * |x - y| ^ η := by
+  intro x _ y _
+  unfold reactionDerivLeg reactionDerivLegHolderConst
+  have hφ_int : IntervalIntegrable
+      (fun s : ℝ => (2 : ℝ) ^ (1 - η) *
+        (secondDerivSmoothingConst ^ η * gradSmoothingConst ^ (1 - η)) *
+        (t - s) ^ (-((1 + η) / 2) : ℝ) * CL) volume 0 t := by
+    have h0 := duhamel_holder_gradTime_integrand_integrable ht hη0 hη1
+    have h1 := h0.const_mul ((2 : ℝ) ^ (1 - η) *
+      (secondDerivSmoothingConst ^ η * gradSmoothingConst ^ (1 - η)))
+    have h2 := h1.mul_const CL
+    exact h2.congr (fun s _ => by ring)
+  refine holder_of_duhamel_integral ht.le
+    (ShenWork.IntervalDuhamelIntegrability.gradDuhamel_intervalIntegrable_of_joint_measurable
+      ht hL_meas hCL_nn hL_bdd x)
+    (ShenWork.IntervalDuhamelIntegrability.gradDuhamel_intervalIntegrable_of_joint_measurable
+      ht hL_meas hCL_nn hL_bdd y)
+    hφ_int ?_
+  have hne : ∀ᵐ s ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  refine (ae_restrict_iff' measurableSet_Icc).mpr ?_
+  filter_upwards [hne] with s hs_ne hs_mem
+  have hts : 0 < t - s := sub_pos.mpr (lt_of_le_of_ne hs_mem.2 hs_ne)
+  have hLs_meas : AEStronglyMeasurable (L s)
+      (ShenWork.IntervalDomain.intervalMeasure 1) := by
+    exact (hL_meas.comp measurable_prodMk_left).aestronglyMeasurable
+  exact neumannHeatGradient_Linf_to_Ctheta hts hη0 hη1 hLs_meas
+    (hL_bdd s) x y
 
 /-- Small-exponent initial-data Holder route from the concrete chem-flux data to
 the differentiated `[0,1]` C1/eta bridge package. -/
@@ -625,7 +687,7 @@ Holder field, representation, and endpoint no-flux remain honest data. -/
 theorem differentiatedMildSliceDiffOn_of_gradientMild_phase1ValueLegs_smallTheta_cutoff_components
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (Dsol : GradientMildSolutionData p u₀)
-    {χ₀ t θ η H₀ Cu₀ CL Areact : ℝ}
+    {χ₀ t θ η H₀ Cu₀ CL : ℝ}
     {L : ℝ → ℝ → ℝ} {w : ℝ → ℝ}
     (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
     (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
@@ -641,13 +703,9 @@ theorem differentiatedMildSliceDiffOn_of_gradientMild_phase1ValueLegs_smallTheta
     (hL_meas : Measurable (Function.uncurry L))
     (hCL_nn : 0 ≤ CL)
     (hL_bdd : ∀ s y, |L s y| ≤ CL)
-    (hAreact_nn : 0 ≤ Areact)
     (w_split : ∀ x : ℝ,
       w x = initialValueLeg t (intervalDomainLift u₀) x - χ₀ * chemLitLeg t
-        (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactionValueLeg t L x)
-    (react_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
-      |reactionDerivLeg t L x - reactionDerivLeg t L y| ≤
-        Areact * |x - y| ^ η) :
+        (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactionValueLeg t L x) :
     ∃ HQ : ℝ, 0 ≤ HQ ∧
       DifferentiatedMildSliceDiffOn χ₀ t θ η
         (Dsol.M * (Real.sqrt (∑' k : ℕ,
@@ -659,17 +717,19 @@ theorem differentiatedMildSliceDiffOn_of_gradientMild_phase1ValueLegs_smallTheta
         (chemFluxCthetaCutoffSource p Dsol.u Dsol.T)
         w (initialValueLeg t (intervalDomainLift u₀)) (reactionValueLeg t L)
         (initialValueLegDerivHolderConst t η Cu₀) (chemDuhamelConst t θ η HQ)
-        Areact := by
+        (reactionDerivLegHolderConst t η CL) := by
   have react_diff : Differentiable ℝ (reactionValueLeg t L) := by
     intro x
     exact (reactionValueLeg_hasDerivAt ht hL_meas hCL_nn hL_bdd x).differentiableAt
+  have hAreact_nn : 0 ≤ reactionDerivLegHolderConst t η CL :=
+    reactionDerivLegHolderConst_nonneg ht hCL_nn
   have react_holder_deriv : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
       |deriv (reactionValueLeg t L) x - deriv (reactionValueLeg t L) y|
-        ≤ Areact * |x - y| ^ η := by
+        ≤ reactionDerivLegHolderConst t η CL * |x - y| ^ η := by
     intro x hx y hy
     rw [reactionValueLeg_deriv_eq ht hL_meas hCL_nn hL_bdd x,
       reactionValueLeg_deriv_eq ht hL_meas hCL_nn hL_bdd y]
-    exact react_holder x hx y hy
+    exact reactionDerivLeg_holder_Icc ht hη0 hη1 hL_meas hCL_nn hL_bdd x hx y hy
   exact
     differentiatedMildSliceDiffOn_of_gradientMild_initialValueLeg_smallTheta_cutoff_components
       Dsol hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
@@ -721,7 +781,7 @@ with the canonical phase-1 value legs `S(t)u₀` and `∫₀ᵗ S(t-s)L(s) ds`. 
 theorem chemMild_C1eta_slice_diffOn_of_gradientMild_phase1ValueLegs_smallTheta_cutoff_components
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (Dsol : GradientMildSolutionData p u₀)
-    {χ₀ t θ η H₀ Cu₀ CL Areact : ℝ}
+    {χ₀ t θ η H₀ Cu₀ CL : ℝ}
     {L : ℝ → ℝ → ℝ} {w : ℝ → ℝ}
     (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
     (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
@@ -737,13 +797,9 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_phase1ValueLegs_smallTheta_c
     (hL_meas : Measurable (Function.uncurry L))
     (hCL_nn : 0 ≤ CL)
     (hL_bdd : ∀ s y, |L s y| ≤ CL)
-    (hAreact_nn : 0 ≤ Areact)
     (w_split : ∀ x : ℝ,
       w x = initialValueLeg t (intervalDomainLift u₀) x - χ₀ * chemLitLeg t
         (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactionValueLeg t L x)
-    (react_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
-      |reactionDerivLeg t L x - reactionDerivLeg t L y| ≤
-        Areact * |x - y| ^ η)
     (hNeumann : derivWithin w (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
       derivWithin w (Set.Icc (0 : ℝ) 1) 1 = 0) :
     ∃ HQ : ℝ, 0 ≤ HQ ∧
@@ -752,14 +808,14 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_phase1ValueLegs_smallTheta_c
           |derivWithin w (Set.Icc (0:ℝ) 1) x -
               derivWithin w (Set.Icc (0:ℝ) 1) y|
             ≤ (initialValueLegDerivHolderConst t η Cu₀ +
-                |χ₀| * chemDuhamelConst t θ η HQ + Areact) *
+                |χ₀| * chemDuhamelConst t θ η HQ +
+                  reactionDerivLegHolderConst t η CL) *
               |x - y| ^ η) ∧
         Summable (fun n : ℕ => |cosineCoeffs w n|) := by
   rcases
       differentiatedMildSliceDiffOn_of_gradientMild_phase1ValueLegs_smallTheta_cutoff_components
         Dsol hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
-        hu₀_meas hu₀_bdd hCu₀_nn hL_meas hCL_nn hL_bdd hAreact_nn
-        w_split react_holder with
+        hu₀_meas hu₀_bdd hCu₀_nn hL_meas hCL_nn hL_bdd w_split with
     ⟨HQ, hHQ_nonneg, Dslice⟩
   refine ⟨HQ, hHQ_nonneg, ?_⟩
   exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hNeumann
