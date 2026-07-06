@@ -6,7 +6,8 @@
 import ShenWork.Paper2.IntervalChemFluxHolderFrontier
 import ShenWork.Paper2.IntervalResolverHolder
 
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open MeasureTheory
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
 open ShenWork.PDE (intervalNeumannResolverR)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
 
@@ -66,6 +67,73 @@ theorem chemFluxLifted_holder_Icc_of_sourceDecay_components
     hU_nonneg hG_nonneg hHu_nonneg hHg_nonneg
     hu_bound hg_bound hR_nonneg hu_holder hg_holder hR_holder
     a b ha hb
+
+/-- Uniform component bounds and Holder moduli assemble the full
+`ChemFluxCthetaSourceOn` source package.
+
+This is deliberately a record assembler: measurability, integrability,
+boundedness, and continuity of the flux are supplied separately, while the
+Holder field is discharged from uniform bounds on `u`, `V_x`, and `V`. -/
+theorem ChemFluxCthetaSourceOn_of_uniform_components
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ U G Hu Hg Hv : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hCQ_nonneg : 0 ≤ CQ) (hHQ_nonneg : 0 ≤ HQ)
+    (hU_nonneg : 0 ≤ U) (hG_nonneg : 0 ≤ G)
+    (hHu_nonneg : 0 ≤ Hu) (hHg_nonneg : 0 ≤ Hg)
+    (hcomp_le : Hu * G + U * Hg + U * G * p.β * Hv ≤ HQ)
+    (flux_meas : Measurable (Function.uncurry (fun s => chemFluxLifted p (u s))))
+    (flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (u s)) (intervalMeasure 1))
+    (flux_bound : ∀ s : ℝ, 0 < s → s ≤ T → ∀ y : ℝ,
+      |chemFluxLifted p (u s) y| ≤ CQ)
+    (flux_cont : ∀ s : ℝ, 0 < s → s ≤ T → Continuous (chemFluxLifted p (u s)))
+    (hu_bound : ∀ s, 0 < s → s ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |intervalDomainLift (u s) x| ≤ U)
+    (hg_bound : ∀ s, 0 < s → s ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |resolverGradReal p (u s) x| ≤ G)
+    (hR_nonneg : ∀ s, 0 < s → s ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 ≤ intervalDomainLift (intervalNeumannResolverR p (u s)) x)
+    (hu_holder : ∀ s, 0 < s → s ≤ T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalDomainLift (u s) a - intervalDomainLift (u s) b| ≤
+          Hu * |a - b| ^ θ)
+    (hg_holder : ∀ s, 0 < s → s ≤ T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |resolverGradReal p (u s) a - resolverGradReal p (u s) b| ≤
+          Hg * |a - b| ^ θ)
+    (hR_holder : ∀ s, 0 < s → s ≤ T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalDomainLift (intervalNeumannResolverR p (u s)) a -
+            intervalDomainLift (intervalNeumannResolverR p (u s)) b| ≤
+          Hv * |a - b| ^ θ) :
+    ChemFluxCthetaSourceOn p u T θ CQ HQ where
+  theta_pos := hθ0
+  theta_lt_one := hθ1
+  CQ_nonneg := hCQ_nonneg
+  HQ_nonneg := hHQ_nonneg
+  flux_meas := flux_meas
+  flux_int := flux_int
+  flux_bound := flux_bound
+  flux_cont := flux_cont
+  flux_holder := by
+    intro s hs0 hsT a b ha hb
+    have hbase :
+        |chemFluxLifted p (u s) a - chemFluxLifted p (u s) b| ≤
+          (Hu * G + U * Hg + U * G * p.β * Hv) * |a - b| ^ θ :=
+      chemFluxLifted_holder_of_component_holder
+        (p := p) (w := u s) (θ := θ) (U := U) (G := G)
+        (Hu := Hu) (Hg := Hg) (Hv := Hv)
+        hU_nonneg hG_nonneg hHu_nonneg hHg_nonneg
+        (hu_bound s hs0 hsT)
+        (hg_bound s hs0 hsT)
+        (hR_nonneg s hs0 hsT)
+        (hu_holder s hs0 hsT)
+        (hg_holder s hs0 hsT)
+        (hR_holder s hs0 hsT)
+        a b ha hb
+    exact hbase.trans
+      (mul_le_mul_of_nonneg_right hcomp_le
+        (Real.rpow_nonneg (abs_nonneg _) _))
 
 end
 
