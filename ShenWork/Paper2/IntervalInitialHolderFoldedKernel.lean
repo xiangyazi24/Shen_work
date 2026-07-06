@@ -278,6 +278,127 @@ theorem foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_branch_interchang
       ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t f x.1 := by
   exact (foldedHeatIntegral_eq_fullKernel_branch_tsums t x f hG hA hB).trans hI.symm
 
+/-- A bounded measurable factor is harmless against one translated reflected
+heat branch on `[0,1]`. -/
+theorem heatKernel_sub_branch_abs_integral_mul_bounded_le
+    {t : ℝ} (ht : 0 < t) (a : ℝ) {f : ℝ → ℝ} {M : ℝ}
+    (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    |∫ y in (0 : ℝ)..1, heatKernel t (a - y) * f y|
+      ≤ M * ∫ y in (0 : ℝ)..1, heatKernel t (a - y) := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have hprod_int : IntervalIntegrable
+      (fun y : ℝ => heatKernel t (a - y) * f y) volume 0 1 := by
+    exact ((heatKernel_translated_integrable ht a).mul_bdd
+      hf_meas.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun y => by
+        simpa [Real.norm_eq_abs] using hf_bound y)).intervalIntegrable
+  have hkernel_cont : Continuous (fun y : ℝ => heatKernel t (a - y)) := by
+    unfold heatKernel
+    fun_prop
+  have hkernel_int : IntervalIntegrable
+      (fun y : ℝ => heatKernel t (a - y)) volume 0 1 :=
+    hkernel_cont.intervalIntegrable 0 1
+  have hbound_int : IntervalIntegrable
+      (fun y : ℝ => M * heatKernel t (a - y)) volume 0 1 :=
+    hkernel_int.const_mul M
+  calc
+    |∫ y in (0 : ℝ)..1, heatKernel t (a - y) * f y|
+        ≤ ∫ y in (0 : ℝ)..1, |heatKernel t (a - y) * f y| :=
+          intervalIntegral.abs_integral_le_integral_abs h01
+    _ ≤ ∫ y in (0 : ℝ)..1, M * heatKernel t (a - y) := by
+        refine intervalIntegral.integral_mono_on h01 hprod_int.abs hbound_int ?_
+        intro y _hy
+        rw [abs_mul, abs_of_nonneg (heatKernel_nonneg ht (a - y))]
+        calc
+          heatKernel t (a - y) * |f y| ≤ heatKernel t (a - y) * M :=
+            mul_le_mul_of_nonneg_left (hf_bound y) (heatKernel_nonneg ht (a - y))
+          _ = M * heatKernel t (a - y) := by ring
+    _ = M * ∫ y in (0 : ℝ)..1, heatKernel t (a - y) := by
+        rw [intervalIntegral.integral_const_mul]
+
+/-- A bounded measurable factor is harmless against one translated direct
+heat branch on `[0,1]`. -/
+theorem heatKernel_add_branch_abs_integral_mul_bounded_le
+    {t : ℝ} (ht : 0 < t) (a : ℝ) {f : ℝ → ℝ} {M : ℝ}
+    (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    |∫ y in (0 : ℝ)..1, heatKernel t (a + y) * f y|
+      ≤ M * ∫ y in (0 : ℝ)..1, heatKernel t (a + y) := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have hprod_int : IntervalIntegrable
+      (fun y : ℝ => heatKernel t (a + y) * f y) volume 0 1 := by
+    exact (((heatKernel_integrable ht).comp_add_left a).mul_bdd
+      hf_meas.aestronglyMeasurable
+      (Filter.Eventually.of_forall fun y => by
+        simpa [Real.norm_eq_abs] using hf_bound y)).intervalIntegrable
+  have hkernel_cont : Continuous (fun y : ℝ => heatKernel t (a + y)) := by
+    unfold heatKernel
+    fun_prop
+  have hkernel_int : IntervalIntegrable
+      (fun y : ℝ => heatKernel t (a + y)) volume 0 1 :=
+    hkernel_cont.intervalIntegrable 0 1
+  have hbound_int : IntervalIntegrable
+      (fun y : ℝ => M * heatKernel t (a + y)) volume 0 1 :=
+    hkernel_int.const_mul M
+  calc
+    |∫ y in (0 : ℝ)..1, heatKernel t (a + y) * f y|
+        ≤ ∫ y in (0 : ℝ)..1, |heatKernel t (a + y) * f y| :=
+          intervalIntegral.abs_integral_le_integral_abs h01
+    _ ≤ ∫ y in (0 : ℝ)..1, M * heatKernel t (a + y) := by
+        refine intervalIntegral.integral_mono_on h01 hprod_int.abs hbound_int ?_
+        intro y _hy
+        rw [abs_mul, abs_of_nonneg (heatKernel_nonneg ht (a + y))]
+        calc
+          heatKernel t (a + y) * |f y| ≤ heatKernel t (a + y) * M :=
+            mul_le_mul_of_nonneg_left (hf_bound y) (heatKernel_nonneg ht (a + y))
+          _ = M * heatKernel t (a + y) := by ring
+    _ = M * ∫ y in (0 : ℝ)..1, heatKernel t (a + y) := by
+        rw [intervalIntegral.integral_const_mul]
+
+/-- Bounded data make the two folded branch integral sequences summable. -/
+theorem foldedHeat_branch_summable_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint) {f : ℝ → ℝ} {M : ℝ}
+    (_hM : 0 ≤ M) (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y) ∧
+    Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y) := by
+  set A : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ))
+  set B : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ))
+  have hA_nonneg : ∀ k : ℤ, 0 ≤ A k := by
+    intro k
+    exact intervalIntegral.integral_nonneg (by norm_num : (0 : ℝ) ≤ 1)
+      (fun y _hy => heatKernel_nonneg ht (-x.1 - y + 2 * (k : ℝ)))
+  have hB_nonneg : ∀ k : ℤ, 0 ≤ B k := by
+    intro k
+    exact intervalIntegral.integral_nonneg (by norm_num : (0 : ℝ) ≤ 1)
+      (fun y _hy => heatKernel_nonneg ht (-x.1 + y + 2 * (k : ℝ)))
+  have hAB : Summable (fun k : ℤ => A k + B k) := by
+    simpa [A, B] using
+      (ShenWork.IntervalNeumannFullKernel.summable_cell_heat_interval_integral ht (-x.1))
+  have hA_sum : Summable A :=
+    Summable.of_nonneg_of_le hA_nonneg
+      (fun k => le_add_of_nonneg_right (hB_nonneg k)) hAB
+  have hB_sum : Summable B :=
+    Summable.of_nonneg_of_le hB_nonneg
+      (fun k => le_add_of_nonneg_left (hA_nonneg k)) hAB
+  constructor
+  · refine Summable.of_norm_bounded (g := fun k : ℤ => M * A k)
+      (hA_sum.mul_left M) ?_
+    intro k
+    rw [Real.norm_eq_abs]
+    have hle := heatKernel_sub_branch_abs_integral_mul_bounded_le
+      ht (-x.1 + 2 * (k : ℝ)) hf_meas hf_bound
+    simpa [A, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hle
+  · refine Summable.of_norm_bounded (g := fun k : ℤ => M * B k)
+      (hB_sum.mul_left M) ?_
+    intro k
+    rw [Real.norm_eq_abs]
+    have hle := heatKernel_add_branch_abs_integral_mul_bounded_le
+      ht (-x.1 + 2 * (k : ℝ)) hf_meas hf_bound
+    simpa [B, add_comm, add_left_comm, add_assoc] using hle
+
 end
 
 end ShenWork.Paper2
