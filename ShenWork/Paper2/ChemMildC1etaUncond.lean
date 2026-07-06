@@ -79,6 +79,93 @@ theorem chemLitLeg₂_eq_chemDuhamelLeg_Icc {t₀ θ CQ HQ M : ℝ} {Q : ℝ →
   exact intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Icc hσ
     (hd.hQcont s hsIoo) (hd.hQcoeff s hsIoo) hx
 
+/-- The literal second-derivative chemotaxis-leg time integrand is interval-integrable
+at every closed-interval point. -/
+theorem chemLegData_literal_secondDeriv_intervalIntegrable
+    {t₀ θ CQ HQ M : ℝ} {Q : ℝ → ℝ → ℝ}
+    (hd : ChemLegData t₀ θ CQ HQ M Q) {x : ℝ}
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    IntervalIntegrable
+      (fun s : ℝ => deriv (fun z : ℝ => deriv
+        (fun w : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+            (t₀ - s) (Q s) w) z) x)
+      volume 0 t₀ := by
+  have hQ_ae : AEStronglyMeasurable (Function.uncurry Q)
+      ((volume.restrict (Set.uIoc (0:ℝ) t₀)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)) :=
+    hd.hQmeas.aestronglyMeasurable
+  have hmeas : AEStronglyMeasurable
+      (fun s : ℝ => deriv (fun z : ℝ => deriv
+        (fun w : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+            (t₀ - s) (Q s) w) z) x)
+      (volume.restrict (Set.uIoc (0:ℝ) t₀)) :=
+    intervalFullSemigroupOperator_s_dependent_secondDeriv_aestronglyMeasurable_x₀
+      hd.ht₀ hQ_ae hd.hQint hd.hQbdd x
+  set bound : ℝ → ℝ := fun s =>
+    ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ
+      * (t₀ - s) ^ (-1 + θ / 2 : ℝ) * HQ with hbound_def
+  have hbound_int : IntervalIntegrable bound volume 0 t₀ := by
+    have h0 :=
+      ShenWork.IntervalNeumannFullKernel.intervalIntegrable_sub_rpow_hessian
+        (t := t₀) hd.hθ0
+    have h1 := (h0.const_mul
+      (ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ)).mul_const HQ
+    exact h1.congr (fun s _ => by rw [hbound_def])
+  have huIoc_eq : Set.uIoc (0:ℝ) t₀ = Set.Ioc (0:ℝ) t₀ :=
+    Set.uIoc_of_le hd.ht₀.le
+  have hae_ne_t : ∀ᵐ s ∂volume, s ≠ t₀ := by
+    have heq : {s : ℝ | ¬ s ≠ t₀} = {t₀} := by ext s; simp [eq_comm]
+    rw [ae_iff, heq]
+    exact Real.volume_singleton
+  refine IntervalIntegrable.mono_fun'
+    (f := fun s : ℝ => deriv (fun z : ℝ => deriv
+      (fun w : ℝ =>
+        ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+          (t₀ - s) (Q s) w) z) x)
+    (g := bound) hbound_int hmeas ?_
+  refine (ae_restrict_iff' measurableSet_uIoc).mpr ?_
+  filter_upwards [hae_ne_t] with s hsne hs
+  rw [huIoc_eq] at hs
+  have hsIoo : s ∈ Set.Ioo (0:ℝ) t₀ := ⟨hs.1, lt_of_le_of_ne hs.2 hsne⟩
+  have hts : 0 < t₀ - s := sub_pos.mpr hsIoo.2
+  have hQ_ae_meas : AEStronglyMeasurable (Q s)
+      (ShenWork.IntervalDomain.intervalMeasure 1) :=
+    (hd.hQint s).aestronglyMeasurable
+  have hbrick := ShenWork.IntervalNeumannFullKernel.neumannHeatSecondDeriv_Ctheta_to_Linfty
+    hts hd.hθ0 hd.hθ1 hQ_ae_meas (hd.hQbdd s) hd.hHQ_nn
+    (hd.hQholder s hsIoo) hx
+  rw [Real.norm_eq_abs, hbound_def]
+  exact hbrick
+
+/-- The spectral second-value chemotaxis-leg time integrand is interval-integrable.
+This discharges the former `hleg_int` input used by the C1/η chemotaxis-leg bridge. -/
+theorem chemLegData_unitIntervalCosineHeatSecondValue_intervalIntegrable
+    {t₀ θ CQ HQ M : ℝ} {Q : ℝ → ℝ → ℝ}
+    (hd : ChemLegData t₀ θ CQ HQ M Q) (x : ℝ) :
+    IntervalIntegrable
+      (fun s : ℝ => unitIntervalCosineHeatSecondValue (t₀ - s)
+        (cosineCoeffs (Q s)) (clamp01 x))
+      volume 0 t₀ := by
+  have hLit :=
+    chemLegData_literal_secondDeriv_intervalIntegrable (hd := hd) (x := clamp01 x)
+      (clamp01_mem x)
+  have huIoc_eq : Set.uIoc (0:ℝ) t₀ = Set.Ioc (0:ℝ) t₀ :=
+    Set.uIoc_of_le hd.ht₀.le
+  have hae_ne_t : ∀ᵐ s ∂volume, s ≠ t₀ := by
+    have heq : {s : ℝ | ¬ s ≠ t₀} = {t₀} := by ext s; simp [eq_comm]
+    rw [ae_iff, heq]
+    exact Real.volume_singleton
+  refine hLit.congr_ae ?_
+  refine (ae_restrict_iff' measurableSet_uIoc).mpr ?_
+  filter_upwards [hae_ne_t] with s hsne hs
+  rw [huIoc_eq] at hs
+  have hsIoo : s ∈ Set.Ioo (0:ℝ) t₀ := ⟨hs.1, lt_of_le_of_ne hs.2 hsne⟩
+  have hσ : (0:ℝ) < t₀ - s := sub_pos.mpr hsIoo.2
+  exact intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Icc hσ
+    (hd.hQcont s hsIoo) (hd.hQcoeff s hsIoo) (clamp01_mem x)
+
 /-- **`DifferentiatedMildSliceDiffOn` — the unconditional `[0,1]` bridge package.**
 
 The differentiated mild slice `w = u(t₀,·)` over `[0,1]`, recorded as the honest
@@ -139,9 +226,7 @@ The remaining inputs are exactly the honest bridge data, NO regularity conclusio
 * `w_split` — the differentiated mild REPRESENTATION on `[0,1]`;
 * `chemData` — the committed step-1 chemotaxis differentiability bundle;
 * `init_diff`/`react_diff` + `init_holder`/`react_holder` — the GROUNDED value legs
-  (realizable from the committed global gradient route `gradLeg_holder_global`);
-* `hleg_int` — interval-integrability of the spectral Duhamel integrand (needed by
-  `chemLeg_holder_of_brick4`; for `x ∈ [0,1]` this is the `chemLitLeg₂` integrand).
+  (realizable from the committed global gradient route `gradLeg_holder_global`).
 `chem_holder` is NO LONGER assumed. -/
 theorem differentiatedMildSliceDiffOn_of_brick4_chem
     {χ₀ t₀ θ η CQ HQ M Ainit Areact : ℝ} {Q : ℝ → ℝ → ℝ}
@@ -150,9 +235,6 @@ theorem differentiatedMildSliceDiffOn_of_brick4_chem
     (chemData : ChemLegData t₀ θ CQ HQ M Q)
     (init_diff : Differentiable ℝ initLeg) (react_diff : Differentiable ℝ reactLeg)
     (hAinit_nn : 0 ≤ Ainit) (hAreact_nn : 0 ≤ Areact)
-    (hleg_int : ∀ x : ℝ, IntervalIntegrable
-      (fun s => unitIntervalCosineHeatSecondValue (t₀ - s) (cosineCoeffs (Q s)) (clamp01 x))
-      volume 0 t₀)
     (w_split : ∀ x : ℝ, w x = initLeg x - χ₀ * chemLitLeg t₀ Q x + reactLeg x)
     (init_holder : ∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
       |deriv initLeg x - deriv initLeg y| ≤ Ainit * |x - y| ^ η)
@@ -162,6 +244,10 @@ theorem differentiatedMildSliceDiffOn_of_brick4_chem
       Ainit (chemDuhamelConst t₀ θ η HQ) Areact := by
   have ht₀ := chemData.ht₀; have hθ0 := chemData.hθ0; have hθ1 := chemData.hθ1
   have hHQ_nn := chemData.hHQ_nn
+  have hleg_int : ∀ x : ℝ, IntervalIntegrable
+      (fun s => unitIntervalCosineHeatSecondValue (t₀ - s) (cosineCoeffs (Q s)) (clamp01 x))
+      volume 0 t₀ :=
+    fun x => chemLegData_unitIntervalCosineHeatSecondValue_intervalIntegrable chemData x
   -- the chemotaxis Hölder constant is nonneg (integral of a nonneg integrand on `[0,t₀]`).
   have hAchem_nn : 0 ≤ chemDuhamelConst t₀ θ η HQ := by
     unfold chemDuhamelConst
@@ -389,9 +475,10 @@ theorem chemMild_C1eta_slice_diffOn {χ₀ t₀ θ η CQ HQ M : ℝ} {Q : ℝ �
 /-! ## Small-`θ` chem-flux source consumer
 
 The next two wrappers consume the Task188 small-exponent initial-holder
-`ChemLegData` producer for the cutoff chem-flux source.  They discharge only the
-`chemData` slot of the C1/eta bridge; the differentiated mild representation,
-leg integrability, and value-leg differentiability/Hölder inputs remain explicit. -/
+`ChemLegData` producer for the cutoff chem-flux source.  They discharge the
+`chemData` slot and the spectral second-value leg integrability of the C1/eta
+bridge; the differentiated mild representation and value-leg differentiability/Hölder
+inputs remain explicit. -/
 
 /-- Small-exponent initial-data Holder route from the concrete chem-flux data to
 the differentiated `[0,1]` C1/eta bridge package. -/
@@ -409,10 +496,6 @@ theorem differentiatedMildSliceDiffOn_of_gradientMild_initialHolder_smallTheta_c
     (ht : 0 < t) (htT : t ≤ Dsol.T)
     (init_diff : Differentiable ℝ initLeg) (react_diff : Differentiable ℝ reactLeg)
     (hAinit_nn : 0 ≤ Ainit) (hAreact_nn : 0 ≤ Areact)
-    (hleg_int : ∀ x : ℝ, IntervalIntegrable
-      (fun s => unitIntervalCosineHeatSecondValue (t - s)
-        (cosineCoeffs (chemFluxCthetaCutoffSource p Dsol.u Dsol.T s)) (clamp01 x))
-      volume 0 t)
     (w_split : ∀ x : ℝ,
       w x = initLeg x - χ₀ * chemLitLeg t
         (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactLeg x)
@@ -435,7 +518,7 @@ theorem differentiatedMildSliceDiffOn_of_gradientMild_initialHolder_smallTheta_c
     ⟨HQ, hHQ_nonneg, chemData⟩
   refine ⟨HQ, hHQ_nonneg, ?_⟩
   exact differentiatedMildSliceDiffOn_of_brick4_chem hη0 hη1 hθη chemData
-    init_diff react_diff hAinit_nn hAreact_nn hleg_int w_split init_holder react_holder
+    init_diff react_diff hAinit_nn hAreact_nn w_split init_holder react_holder
 
 /-- Small-exponent initial-data Holder route from the concrete chem-flux data to
 the `[0,1]` C1/eta slice conclusion and Wiener coefficient summability. -/
@@ -453,10 +536,6 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_initialHolder_smallTheta_cut
     (ht : 0 < t) (htT : t ≤ Dsol.T)
     (init_diff : Differentiable ℝ initLeg) (react_diff : Differentiable ℝ reactLeg)
     (hAinit_nn : 0 ≤ Ainit) (hAreact_nn : 0 ≤ Areact)
-    (hleg_int : ∀ x : ℝ, IntervalIntegrable
-      (fun s => unitIntervalCosineHeatSecondValue (t - s)
-        (cosineCoeffs (chemFluxCthetaCutoffSource p Dsol.u Dsol.T s)) (clamp01 x))
-      volume 0 t)
     (w_split : ∀ x : ℝ,
       w x = initLeg x - χ₀ * chemLitLeg t
         (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x + reactLeg x)
@@ -477,8 +556,7 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_initialHolder_smallTheta_cut
   rcases
       differentiatedMildSliceDiffOn_of_gradientMild_initialHolder_smallTheta_cutoff_components
         Dsol hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
-        init_diff react_diff hAinit_nn hAreact_nn hleg_int w_split
-        init_holder react_holder with
+        init_diff react_diff hAinit_nn hAreact_nn w_split init_holder react_holder with
     ⟨HQ, hHQ_nonneg, Dslice⟩
   refine ⟨HQ, hHQ_nonneg, ?_⟩
   exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hNeumann
