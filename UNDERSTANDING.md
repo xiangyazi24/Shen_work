@@ -3217,6 +3217,23 @@ one obtains `H1PhysicalRHSIdentityBefore`.  This does not prove the physical
 substitution equality; it isolates it as the remaining identity blocker instead
 of carrying the whole physical identity package.
 
+Task 107 closes that isolated Route-C substitution frontier.  In the same
+`IntervalChiNegH1PhysicalIdentityRouteC` file,
+`H1PhysicalRHSRouteCSubstitutionAt_of_classicalSolution` proves the fixed-time
+interval-integral expansion from the classical strict-slab physical RHS
+representative, using the interior equality for `liftDeriv2`, the algebraic
+split of the chemotaxis divergence into the taxis and `u v_xx` parts, and an
+a.e. endpoint congruence on `(0,1]`.  The before-wrapper
+`H1PhysicalRHSRouteCSubstitutionBefore_of_classicalSolution` is now
+axiom-clean.  Consequently the physical identity blocker is no longer the full
+substitution package: it reduces to the already explicit `H1UxxL1ContBefore`
+input needed by the finite-difference Route-C derivative producer.  The Q3542
+audit separately confirmed that the Young/component-square route does not
+prove `H1PhysicalRHSSqrtBoundsBefore`; the sqrt frontier is still a distinct
+pointwise estimate package for the taxis, `u v_xx`, and reaction scalar terms.
+The zero-start primitive package also remains separate, so this is progress on
+the identity route, not an unconditional bounded-before headline.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
