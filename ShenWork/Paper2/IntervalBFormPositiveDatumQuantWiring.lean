@@ -8,6 +8,8 @@ import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqDeepest
 import ShenWork.Paper2.IntervalDomainConeQuantBridge
 import ShenWork.Paper2.IntervalDomainFinalWiring
 import ShenWork.Paper2.IntervalDomainMinPersistFinal
+import ShenWork.Paper2.IntervalDomainBoundaryHbound
+import ShenWork.Paper2.IntervalDomainBoundaryHboundRight
 import ShenWork.Paper2.IntervalDomainThresholdQuantBridge
 
 open ShenWork.IntervalDomain
@@ -188,6 +190,35 @@ theorem classicalMinPersistence_of_boundary_window_regime
     ?_
   intro T u v hsol htr s hs ys hys hys01 harg
   exact hbdry hu₀ hM hbnd ht₁ hsol htr s hs ys hys hys01 harg
+
+/-- In the flux-free regime, the existing endpoint min-point estimates produce
+the corrected windowed boundary persistence residual. -/
+theorem boundaryMinPersistenceWindowBound_chiZero
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    BoundaryMinPersistenceWindowBound p := by
+  intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs ys _hys hys01 harg
+  have hs0 : 0 < s := lt_of_lt_of_le (by linarith : (0 : ℝ) < t₁ / 2) hs.1
+  have hsT : s < T := hs.2
+  have hMpos : (0 : ℝ) ≤ SupNormBridge.regimeBound p M :=
+    (SupNormBridge.regimeBound_pos p hM).le
+  have hsup :=
+    ShenWork.MinPersistenceAtoms.hSupNorm_of_regime
+      p (le_of_eq hχ0) ha hb hu₀ hM hbnd ht₁ hsol.T_pos hsol htr
+  have hu_le : ∀ x : intervalDomainPoint, u s x ≤ SupNormBridge.regimeBound p M := by
+    intro x
+    have hb_abs := hsup s hs x.1
+    have hlift : intervalDomainLift (u s) x.1 = u s x := by
+      simp only [intervalDomainLift]
+      exact dif_pos x.2
+    rw [hlift] at hb_abs
+    exact (abs_le.mp hb_abs).2
+  rcases hys01 with h0 | h1
+  · subst h0
+    exact ShenWork.MinPersistenceAtoms.hbdry_left_chi0
+      hχ0 hsol hs0 hsT hMpos hu_le harg
+  · subst h1
+    exact ShenWork.MinPersistenceAtoms.hbdry_right_chi0
+      hχ0 hsol hs0 hsT hMpos hu_le harg
 
 /-- Quantitative local existence from the Picard-restart route and boundary
 min-point persistence, retaining the per-datum local seed as a source input. -/
@@ -583,6 +614,7 @@ section AxiomAudit
 #print axioms classicalMinPersistence_of_boundary_regime
 #print axioms boundaryMinPersistenceWindowBound_of_boundary
 #print axioms classicalMinPersistence_of_boundary_window_regime
+#print axioms boundaryMinPersistenceWindowBound_chiZero
 #print axioms uniformLocalExistence_of_picardFrontier_boundary
 #print axioms uniformLocalExistence_of_picardFrontier_boundary_of_BForm
 #print axioms uniformLocalExistence_of_picardLimitFrontier_boundary_of_BForm
