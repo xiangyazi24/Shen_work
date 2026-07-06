@@ -778,4 +778,177 @@ theorem neumannHeatSecondDeriv_Ctheta_to_Linfty {t θ : ℝ} (ht : 0 < t)
         exact intervalNeumannFullKernel_secondDeriv_weighted_mass ht hθ0 hθ1 hx
     _ = weightedHeatHessConst θ * t ^ (-1 + θ / 2 : ℝ) * Hh := by ring
 
+/-! ## Duhamel-time wrappers for the cancellative second-derivative bound -/
+
+/-- The cancellative Hessian time kernel is interval-integrable on `[0,t]`:
+`s ↦ (t-s)^{-1+θ/2}` has exponent strictly larger than `-1` as soon as `θ > 0`. -/
+theorem intervalIntegrable_sub_rpow_hessian {t θ : ℝ} (hθ0 : 0 < θ) :
+    IntervalIntegrable (fun s : ℝ => (t - s) ^ (-1 + θ / 2 : ℝ)) volume 0 t := by
+  have hr : (-1 : ℝ) < -1 + θ / 2 := by linarith
+  have h0 : IntervalIntegrable (fun x : ℝ => x ^ (-1 + θ / 2 : ℝ)) volume 0 t :=
+    intervalIntegral.intervalIntegrable_rpow' (a := 0) (b := t) hr
+  have h := (h0.comp_sub_left t).symm
+  simpa using h
+
+/-- Time-kernel evaluation for the cancellative Hessian exponent:
+`∫₀ᵗ (t-s)^{-1+θ/2} ds = t^{θ/2}/(θ/2)`. -/
+theorem integral_sub_rpow_hessian {t θ : ℝ} (_ht : 0 ≤ t) (hθ0 : 0 < θ) :
+    (∫ s in (0 : ℝ)..t, (t - s) ^ (-1 + θ / 2 : ℝ))
+      = t ^ (θ / 2 : ℝ) / (θ / 2) := by
+  rw [intervalIntegral.integral_comp_sub_left (fun x : ℝ => x ^ (-1 + θ / 2 : ℝ)) t]
+  simp only [sub_self, sub_zero]
+  rw [integral_rpow (Or.inl (by linarith : (-1 : ℝ) < -1 + θ / 2))]
+  have hexp : (-1 + θ / 2 : ℝ) + 1 = θ / 2 := by ring
+  have hθhalf_ne : (θ / 2 : ℝ) ≠ 0 := by linarith
+  rw [hexp, Real.zero_rpow hθhalf_ne, sub_zero]
+
+/-- Uniform small-time bound for the second-derivative Duhamel term under a uniform
+`C^θ` modulus of the source slices.  This is the Duhamel-time form of
+`neumannHeatSecondDeriv_Ctheta_to_Linfty`, with the integrable
+`(t-s)^{-1+θ/2}` singularity explicitly evaluated. -/
+theorem secondDerivDuhamel_sup_bound_Ctheta
+    {t θ : ℝ} (ht : 0 < t) (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    {q : ℝ → ℝ → ℝ} {Cq Hq : ℝ}
+    (hHq_nn : 0 ≤ Hq)
+    (hq_meas : ∀ s, AEStronglyMeasurable (q s) (intervalMeasure 1))
+    (hq_bound : ∀ s y, |q s y| ≤ Cq)
+    (hq_holder : ∀ s a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |q s a - q s b| ≤ Hq * |a - b| ^ θ)
+    (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1)
+    (h2_int : IntervalIntegrable
+      (fun s : ℝ => deriv (fun z : ℝ => deriv
+        (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x)
+      volume 0 t) :
+    |∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x|
+      ≤ weightedHeatHessConst θ * (t ^ (θ / 2 : ℝ) / (θ / 2)) * Hq := by
+  set Cθ : ℝ := weightedHeatHessConst θ with hCθ
+  have hdom_int : IntervalIntegrable
+      (fun s : ℝ => Cθ * (t - s) ^ (-1 + θ / 2 : ℝ) * Hq) volume 0 t :=
+    (((intervalIntegrable_sub_rpow_hessian (t := t) hθ0).const_mul Cθ).mul_const Hq)
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hae : (fun s : ℝ => |deriv (fun z : ℝ => deriv
+        (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x|)
+      ≤ᵐ[volume.restrict (Set.Icc 0 t)]
+      (fun s : ℝ => Cθ * (t - s) ^ (-1 + θ / 2 : ℝ) * Hq) := by
+    refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+    filter_upwards [hne] with s hs_ne hs_mem
+    have hs_lt : s < t := lt_of_le_of_ne hs_mem.2 hs_ne
+    have hts : 0 < t - s := sub_pos.mpr hs_lt
+    simpa [hCθ] using
+      (neumannHeatSecondDeriv_Ctheta_to_Linfty hts hθ0 hθ1 (hq_meas s)
+        (hq_bound s) hHq_nn (hq_holder s) hx)
+  calc |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => deriv
+            (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x|
+      ≤ ∫ s in (0 : ℝ)..t, |deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x| :=
+        intervalIntegral.abs_integral_le_integral_abs ht.le
+    _ ≤ ∫ s in (0 : ℝ)..t, Cθ * (t - s) ^ (-1 + θ / 2 : ℝ) * Hq :=
+        intervalIntegral.integral_mono_ae_restrict ht.le h2_int.abs hdom_int hae
+    _ = Cθ * (t ^ (θ / 2 : ℝ) / (θ / 2)) * Hq := by
+        rw [intervalIntegral.integral_mul_const, intervalIntegral.integral_const_mul,
+          integral_sub_rpow_hessian ht.le hθ0]
+    _ = weightedHeatHessConst θ * (t ^ (θ / 2 : ℝ) / (θ / 2)) * Hq := by rw [hCθ]
+
+/-- Zero-time vanishing of the second-derivative Duhamel integral under a uniform
+`C^θ` source modulus.  This is the cancellative chemotaxis-leg analogue of the
+gradient-Duhamel `O(√t)` zero-time wrapper: the time singularity integrates to
+`O(t^{θ/2})`. -/
+theorem secondDerivDuhamel_tendsto_zero_of_uniform_holder
+    {q : ℝ → ℝ → ℝ} {θ Cq Hq : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hHq_nn : 0 ≤ Hq)
+    (hq_meas : ∀ s, AEStronglyMeasurable (q s) (intervalMeasure 1))
+    (hq_bound : ∀ s y, |q s y| ≤ Cq)
+    (hq_holder : ∀ s a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |q s a - q s b| ≤ Hq * |a - b| ^ θ)
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x)
+        volume 0 t) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => deriv
+            (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x| < ε := by
+  intro ε hε
+  let A : ℝ := weightedHeatHessConst θ * (1 / (θ / 2)) * Hq
+  have hθhalf_pos : 0 < θ / 2 := by linarith
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    exact mul_nonneg
+      (mul_nonneg (weightedHeatHessConst_nonneg θ) (by positivity))
+      hHq_nn
+  let δ : ℝ := (ε / (A + 1)) ^ (2 / θ : ℝ)
+  have hbase_pos : 0 < ε / (A + 1) := by positivity
+  have hδ : 0 < δ := by
+    dsimp [δ]
+    positivity
+  refine ⟨δ, hδ, ?_⟩
+  intro t ht htδ x hx
+  have hbound := secondDerivDuhamel_sup_bound_Ctheta (t := t) (θ := θ) ht hθ0 hθ1
+    (q := q) (Cq := Cq) (Hq := Hq) hHq_nn hq_meas hq_bound hq_holder
+    x hx (h2_int (t := t) (x := x) ht)
+  have hδpow : δ ^ (θ / 2 : ℝ) = ε / (A + 1) := by
+    dsimp [δ]
+    rw [← Real.rpow_mul hbase_pos.le]
+    have hmul : (2 / θ : ℝ) * (θ / 2) = 1 := by field_simp [ne_of_gt hθ0]
+    rw [hmul, Real.rpow_one]
+  have htpow_bound : t ^ (θ / 2 : ℝ) < ε / (A + 1) := by
+    calc t ^ (θ / 2 : ℝ) < δ ^ (θ / 2 : ℝ) :=
+          Real.rpow_lt_rpow ht.le htδ hθhalf_pos
+      _ = ε / (A + 1) := hδpow
+  have htail : weightedHeatHessConst θ * (t ^ (θ / 2 : ℝ) / (θ / 2)) * Hq < ε := by
+    have hA_lt : A * t ^ (θ / 2 : ℝ) < ε := by
+      have hden_pos : 0 < A + 1 := by linarith
+      have hA_step : A * t ^ (θ / 2 : ℝ) ≤ A * (ε / (A + 1)) :=
+        mul_le_mul_of_nonneg_left (le_of_lt htpow_bound) hA_nonneg
+      have hfrac_lt : A * (ε / (A + 1)) < ε := by
+        calc
+          A * (ε / (A + 1)) = (A * ε) / (A + 1) := by ring
+          _ < ε := by
+            rw [div_lt_iff₀ hden_pos]
+            nlinarith [hε]
+      exact lt_of_le_of_lt hA_step hfrac_lt
+    simpa [A, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hA_lt
+  exact lt_of_le_of_lt hbound htail
+
+/-- Zero-time vanishing of the spatial derivative of a full-kernel gradient-Duhamel
+leg, assuming the derivative-under-the-time-integral identity. -/
+theorem gradDuhamel_deriv_tendsto_zero_of_uniform_holder
+    {q : ℝ → ℝ → ℝ} {θ Cq Hq : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hHq_nn : 0 ≤ Hq)
+    (hq_meas : ∀ s, AEStronglyMeasurable (q s) (intervalMeasure 1))
+    (hq_bound : ∀ s y, |q s y| ≤ Cq)
+    (hq_holder : ∀ s a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |q s a - q s b| ≤ Hq * |a - b| ^ θ)
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x)
+        volume 0 t)
+    (hLeibniz : ∀ {t x : ℝ}, 0 < t →
+      deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) y) x =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator (t - s) (q s) w) z) x) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) y) x| < ε := by
+  intro ε hε
+  rcases secondDerivDuhamel_tendsto_zero_of_uniform_holder
+      hθ0 hθ1 hHq_nn hq_meas hq_bound hq_holder h2_int ε hε with
+    ⟨δ, hδ, hδsmall⟩
+  exact ⟨δ, hδ, fun t ht htδ x hx => by
+    rw [hLeibniz (t := t) (x := x) ht]
+    exact hδsmall t ht htδ x hx⟩
+
 end ShenWork.IntervalNeumannFullKernel
