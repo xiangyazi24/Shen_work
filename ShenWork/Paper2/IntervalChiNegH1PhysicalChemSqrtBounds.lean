@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1PhysicalReactionBound
+import ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 
 /-!
@@ -13,10 +14,16 @@ open MeasureTheory Set
 open scoped BigOperators Topology Interval
 
 open ShenWork.IntervalDomain
+open ShenWork.IntervalEllipticCharacterization
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
+open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
+open ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
+open ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 open ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
+open ShenWork.Paper2.IntervalChiNegH1PhysicalScalarContinuity
+open ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 open ShenWork.Paper2.IntervalChiNegH1PhysicalReactionBound
 
 noncomputable section
@@ -167,8 +174,370 @@ theorem H1PhysicalChemFactorBoundsBefore_of_resolverSup
         h.hM (h.u_abs_le τ hτ x hx)
         (h.uvxx_core_le τ hτ x hx)
 
+private theorem continuousOn_slice_of_uncurry
+    {F : ℝ → ℝ → ℝ} {r : ℝ} {s : Set ℝ}
+    (hF : ContinuousOn (Function.uncurry F) (Set.Icc r r ×ˢ s)) :
+    ContinuousOn (F r) s := by
+  have hpair : ContinuousOn (fun x : ℝ => ((r, x) : ℝ × ℝ)) s :=
+    continuousOn_const.prodMk continuousOn_id
+  have hmaps :
+      Set.MapsTo (fun x : ℝ => ((r, x) : ℝ × ℝ)) s
+        (Set.Icc r r ×ˢ s) := by
+    intro x hx
+    exact ⟨⟨le_rfl, le_rfl⟩, hx⟩
+  simpa [Function.uncurry] using hF.comp hpair hmaps
+
+private theorem ae_uIoc_zero_one_mem_Ioo :
+    ∀ᵐ x : ℝ ∂volume,
+      x ∈ Set.uIoc (0 : ℝ) 1 → x ∈ Set.Ioo (0 : ℝ) 1 := by
+  have hne1 : ∀ᵐ x : ℝ ∂volume, x ≠ (1 : ℝ) := by
+    rw [MeasureTheory.ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  filter_upwards [hne1] with x hx_ne1 hxmem
+  rw [Set.uIoc_of_le zero_le_one] at hxmem
+  exact ⟨hxmem.1, lt_of_le_of_ne hxmem.2 hx_ne1⟩
+
+private theorem square_intervalIntegrable_of_uncurry_continuousOn_slice
+    {part : ℝ → ℝ → ℝ} {r : ℝ}
+    (hCont :
+      ContinuousOn (Function.uncurry part)
+        (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1)) :
+    IntervalIntegrable (fun x => (part r x) ^ 2) volume (0 : ℝ) 1 := by
+  exact ContinuousOn.intervalIntegrable_of_Icc
+    (μ := volume) (by norm_num : (0 : ℝ) ≤ 1)
+    ((continuousOn_slice_of_uncurry
+      (F := part) (r := r) (s := Set.Icc (0 : ℝ) 1) hCont).pow 2)
+
+private theorem liftDeriv2_sq_intervalIntegrable_of_rep_cont
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {F : ℝ → ℝ → ℝ} {r : ℝ}
+    (hCont :
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior :
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc r r ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    IntervalIntegrable (fun x => (liftDeriv2 u r x) ^ 2)
+      volume (0 : ℝ) 1 := by
+  have hSlice :
+      ContinuousOn (fun x => (F r x) ^ 2) (Set.Icc (0 : ℝ) 1) :=
+    (continuousOn_slice_of_uncurry
+      (F := F) (r := r) (s := Set.Icc (0 : ℝ) 1) hCont).pow 2
+  have hRepInt :
+      IntervalIntegrable (fun x => (F r x) ^ 2) volume (0 : ℝ) 1 :=
+    ContinuousOn.intervalIntegrable_of_Icc
+      (μ := volume) (by norm_num : (0 : ℝ) ≤ 1) hSlice
+  refine hRepInt.congr_ae ?_
+  rw [Set.uIoc_of_le zero_le_one]
+  rw [Filter.EventuallyEq, ae_restrict_iff' measurableSet_Ioc]
+  filter_upwards [ae_uIoc_zero_one_mem_Ioo] with x hxIoo hxIoc
+  have hx : x ∈ Set.Ioo (0 : ℝ) 1 := by
+    simpa [Set.uIoc_of_le zero_le_one] using hxIoo (by
+      simpa [Set.uIoc_of_le zero_le_one] using hxIoc)
+  have hEq := hEqInterior (x := (r, x))
+    (Set.mem_prod.mpr ⟨⟨le_rfl, le_rfl⟩, hx⟩)
+  simp only [Function.uncurry_apply_pair] at hEq
+  rw [← hEq]
+
+private theorem abs_liftDeriv2_mul_part_intervalIntegrable_of_rep_product_cont
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {F part : ℝ → ℝ → ℝ} {r : ℝ}
+    (hCont :
+      ContinuousOn (Function.uncurry (fun t x => F t x * part t x))
+        (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior :
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc r r ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    IntervalIntegrable (fun x => |liftDeriv2 u r x * part r x|)
+      volume (0 : ℝ) 1 := by
+  have hSlice :
+      ContinuousOn (fun x => |F r x * part r x|) (Set.Icc (0 : ℝ) 1) :=
+    (continuousOn_slice_of_uncurry
+      (F := fun t x => F t x * part t x)
+      (r := r) (s := Set.Icc (0 : ℝ) 1) hCont).abs
+  have hRepInt :
+      IntervalIntegrable (fun x => |F r x * part r x|) volume (0 : ℝ) 1 :=
+    ContinuousOn.intervalIntegrable_of_Icc
+      (μ := volume) (by norm_num : (0 : ℝ) ≤ 1) hSlice
+  refine hRepInt.congr_ae ?_
+  rw [Set.uIoc_of_le zero_le_one]
+  rw [Filter.EventuallyEq, ae_restrict_iff' measurableSet_Ioc]
+  filter_upwards [ae_uIoc_zero_one_mem_Ioo] with x hxIoo hxIoc
+  have hx : x ∈ Set.Ioo (0 : ℝ) 1 := by
+    simpa [Set.uIoc_of_le zero_le_one] using hxIoo (by
+      simpa [Set.uIoc_of_le zero_le_one] using hxIoc)
+  have hEq := hEqInterior (x := (r, x))
+    (Set.mem_prod.mpr ⟨⟨le_rfl, le_rfl⟩, hx⟩)
+  simp only [Function.uncurry_apply_pair] at hEq
+  simp [hEq]
+
+private theorem grad_sq_intervalIntegrable_of_classicalSolution
+    {p : CM2Params} {T τ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    IntervalIntegrable
+      (fun x => (deriv (intervalDomainLift (u τ)) x) ^ 2)
+      volume (0 : ℝ) 1 := by
+  exact
+    ((solution_deriv_lift_continuousOn_Icc hsol hτ).pow 2).intervalIntegrable_of_Icc
+      (by norm_num : (0 : ℝ) ≤ 1)
+
+private theorem H1PhysicalChemTaxisPart_l2_bound_of_factorBound
+    {p : CM2Params} {V₁ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hgrad_sq :
+      IntervalIntegrable
+        (fun x => (deriv (intervalDomainLift (u τ)) x) ^ 2)
+        volume (0 : ℝ) 1)
+    (hpart_sq :
+      IntervalIntegrable
+        (fun x => (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+        volume (0 : ℝ) 1)
+    (hV1 : 0 ≤ V₁)
+    (hfactor : ∀ x, x ∈ Set.Icc (0 : ℝ) 1 →
+      |H1PhysicalChemTaxisPart p u v τ x| ≤
+        V₁ * |deriv (intervalDomainLift (u τ)) x|) :
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+      ≤ V₁ * H1gradL2Norm u τ := by
+  have hright_int :
+      IntervalIntegrable
+        (fun x => V₁ ^ 2 * (deriv (intervalDomainLift (u τ)) x) ^ 2)
+        volume (0 : ℝ) 1 :=
+    hgrad_sq.const_mul (V₁ ^ 2)
+  have hmono :
+      (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2) ≤
+        ∫ x in (0 : ℝ)..1,
+          V₁ ^ 2 * (deriv (intervalDomainLift (u τ)) x) ^ 2 := by
+    refine intervalIntegral.integral_mono_on
+      (by norm_num : (0 : ℝ) ≤ 1) hpart_sq hright_int ?_
+    intro x hx
+    have hfac := hfactor x hx
+    have hright_nonneg :
+        0 ≤ V₁ * |deriv (intervalDomainLift (u τ)) x| :=
+      mul_nonneg hV1 (abs_nonneg _)
+    calc
+      (H1PhysicalChemTaxisPart p u v τ x) ^ 2
+          = |H1PhysicalChemTaxisPart p u v τ x| ^ 2 := by
+              rw [sq_abs]
+      _ ≤ (V₁ * |deriv (intervalDomainLift (u τ)) x|) ^ 2 :=
+          (sq_le_sq₀ (abs_nonneg _) hright_nonneg).2 hfac
+      _ = V₁ ^ 2 * (deriv (intervalDomainLift (u τ)) x) ^ 2 := by
+          rw [mul_pow, sq_abs]
+  have hright_eval :
+      (∫ x in (0 : ℝ)..1,
+          V₁ ^ 2 * (deriv (intervalDomainLift (u τ)) x) ^ 2) =
+        V₁ ^ 2 * (H1gradL2Norm u τ) ^ 2 := by
+    rw [intervalIntegral.integral_const_mul]
+    rw [H1grad_sq_integral_eq_H1gradL2Norm_sq]
+  have hsqrt :
+      Real.sqrt
+          (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+        ≤ Real.sqrt (V₁ ^ 2 * (H1gradL2Norm u τ) ^ 2) := by
+    exact Real.sqrt_le_sqrt (by simpa [hright_eval] using hmono)
+  have hprod_nonneg : 0 ≤ V₁ * H1gradL2Norm u τ :=
+    mul_nonneg hV1 (H1gradL2Norm_nonneg u τ)
+  have hsq : V₁ ^ 2 * (H1gradL2Norm u τ) ^ 2 =
+      (V₁ * H1gradL2Norm u τ) ^ 2 := by ring
+  calc
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2)
+        ≤ Real.sqrt (V₁ ^ 2 * (H1gradL2Norm u τ) ^ 2) := hsqrt
+    _ = V₁ * H1gradL2Norm u τ := by
+        rw [hsq, Real.sqrt_sq_eq_abs, abs_of_nonneg hprod_nonneg]
+
+private theorem H1PhysicalChemUvxxPart_l2_bound_of_factorBound
+    {p : CM2Params} {M V₂ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ} {τ : ℝ}
+    (hpart_sq :
+      IntervalIntegrable
+        (fun x => (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+        volume (0 : ℝ) 1)
+    (hM : 0 ≤ M) (hV2 : 0 ≤ V₂)
+    (hfactor : ∀ x, x ∈ Set.Icc (0 : ℝ) 1 →
+      |H1PhysicalChemUvxxPart p u v τ x| ≤ M * V₂) :
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+      ≤ M * V₂ := by
+  have hcoef_nonneg : 0 ≤ M * V₂ := mul_nonneg hM hV2
+  have hright_int :
+      IntervalIntegrable (fun _x : ℝ => (M * V₂) ^ 2) volume (0 : ℝ) 1 :=
+    intervalIntegrable_const
+  have hmono :
+      (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2) ≤
+        ∫ _x in (0 : ℝ)..1, (M * V₂) ^ 2 := by
+    refine intervalIntegral.integral_mono_on
+      (by norm_num : (0 : ℝ) ≤ 1) hpart_sq hright_int ?_
+    intro x hx
+    have hfac := hfactor x hx
+    calc
+      (H1PhysicalChemUvxxPart p u v τ x) ^ 2
+          = |H1PhysicalChemUvxxPart p u v τ x| ^ 2 := by
+              rw [sq_abs]
+      _ ≤ (M * V₂) ^ 2 :=
+          (sq_le_sq₀ (abs_nonneg _) hcoef_nonneg).2 hfac
+  have hright_eval :
+      (∫ _x in (0 : ℝ)..1, (M * V₂) ^ 2) = (M * V₂) ^ 2 := by
+    rw [intervalIntegral.integral_const]
+    norm_num
+  have hsqrt :
+      Real.sqrt
+          (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+        ≤ Real.sqrt ((M * V₂) ^ 2) := by
+    exact Real.sqrt_le_sqrt (by simpa [hright_eval] using hmono)
+  calc
+    Real.sqrt
+        (∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2)
+        ≤ Real.sqrt ((M * V₂) ^ 2) := hsqrt
+    _ = M * V₂ := by
+        rw [Real.sqrt_sq_eq_abs, abs_of_nonneg hcoef_nonneg]
+
+/-- Classical fixed-time regularity plus source-side chem factor bounds produce
+the chemotaxis-side L² sqrt data package.  This is still a source-side theorem:
+the fixed-before-`T` constants are supplied by `hchem`, not derived from
+per-time classical bounds. -/
+theorem H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
+    {p : CM2Params} {T V₁ V₂ M : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hchi : 0 ≤ -p.χ₀)
+    (hchem : H1PhysicalChemFactorBoundsBefore p u v T V₁ V₂ M) :
+    H1PhysicalChemL2SqrtBoundDataBefore p u v T V₁ V₂ M := by
+  have hRep :=
+    H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol
+  refine
+    { hchi := hchi
+      hV1 := hchem.hV1
+      hV2 := hchem.hV2
+      hM := hchem.hM
+      lap_sq_int := ?_
+      taxis_sq_int := ?_
+      uvxx_sq_int := ?_
+      taxis_prod_int := ?_
+      uvxx_prod_int := ?_
+      taxis_l2_bound := ?_
+      uvxx_l2_bound := ?_ }
+  · intro τ hτ
+    exact
+      liftDeriv2_sq_intervalIntegrable_of_rep_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (r := τ)
+        (hRep.uxx_cont (a := τ) (b := τ) hτ.1 le_rfl hτ.2)
+        (hRep.uxx_eqInterior (a := τ) (b := τ) hτ.1 le_rfl hτ.2)
+  · intro τ hτ
+    exact
+      square_intervalIntegrable_of_uncurry_continuousOn_slice
+        (part := H1PhysicalChemTaxisPart p u v)
+        (r := τ)
+        (H1PhysicalChemTaxisPart_continuousOn_strictSlab_of_classicalSolution
+          (p := p) (T := T) (u := u) (v := v)
+          hsol hτ.1 le_rfl hτ.2)
+  · intro τ hτ
+    exact
+      square_intervalIntegrable_of_uncurry_continuousOn_slice
+        (part := H1PhysicalChemUvxxPart p u v)
+        (r := τ)
+        (H1PhysicalChemUvxxPart_continuousOn_strictSlab_of_classicalSolution
+          (p := p) (T := T) (u := u) (v := v)
+          hsol hτ.1 le_rfl hτ.2)
+  · intro τ hτ
+    have hCont :
+        ContinuousOn
+          (Function.uncurry
+            (fun t x =>
+              liftDeriv2PhysicalRHSWithChemRep p u
+                (liftChemotaxisDivPhysicalRep p u v) t x *
+              H1PhysicalChemTaxisPart p u v t x))
+          (Set.Icc τ τ ×ˢ Set.Icc (0 : ℝ) 1) := by
+      simpa [H1PhysicalTaxisRepIntegrand] using
+        hRep.taxis_cont (a := τ) (b := τ) hτ.1 le_rfl hτ.2
+    exact
+      abs_liftDeriv2_mul_part_intervalIntegrable_of_rep_product_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (part := H1PhysicalChemTaxisPart p u v)
+        (r := τ)
+        hCont
+        (hRep.uxx_eqInterior (a := τ) (b := τ) hτ.1 le_rfl hτ.2)
+  · intro τ hτ
+    have hCont :
+        ContinuousOn
+          (Function.uncurry
+            (fun t x =>
+              liftDeriv2PhysicalRHSWithChemRep p u
+                (liftChemotaxisDivPhysicalRep p u v) t x *
+              H1PhysicalChemUvxxPart p u v t x))
+          (Set.Icc τ τ ×ˢ Set.Icc (0 : ℝ) 1) := by
+      simpa [H1PhysicalUvxxRepIntegrand] using
+        hRep.uvxx_cont (a := τ) (b := τ) hτ.1 le_rfl hτ.2
+    exact
+      abs_liftDeriv2_mul_part_intervalIntegrable_of_rep_product_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (part := H1PhysicalChemUvxxPart p u v)
+        (r := τ)
+        hCont
+        (hRep.uxx_eqInterior (a := τ) (b := τ) hτ.1 le_rfl hτ.2)
+  · intro τ hτ
+    exact
+      H1PhysicalChemTaxisPart_l2_bound_of_factorBound
+        (p := p) (V₁ := V₁) (u := u) (v := v)
+        (τ := τ)
+        (grad_sq_intervalIntegrable_of_classicalSolution
+          (p := p) (T := T) (τ := τ) (u := u) (v := v) hsol hτ)
+        (square_intervalIntegrable_of_uncurry_continuousOn_slice
+          (part := H1PhysicalChemTaxisPart p u v)
+          (r := τ)
+          (H1PhysicalChemTaxisPart_continuousOn_strictSlab_of_classicalSolution
+            (p := p) (T := T) (u := u) (v := v)
+            hsol hτ.1 le_rfl hτ.2))
+        hchem.hV1
+        (hchem.taxis_factor_le τ hτ)
+  · intro τ hτ
+    exact
+      H1PhysicalChemUvxxPart_l2_bound_of_factorBound
+        (p := p) (M := M) (V₂ := V₂) (u := u) (v := v)
+        (τ := τ)
+        (square_intervalIntegrable_of_uncurry_continuousOn_slice
+          (part := H1PhysicalChemUvxxPart p u v)
+          (r := τ)
+          (H1PhysicalChemUvxxPart_continuousOn_strictSlab_of_classicalSolution
+            (p := p) (T := T) (u := u) (v := v)
+            hsol hτ.1 le_rfl hτ.2))
+        hchem.hM hchem.hV2
+        (hchem.uvxx_factor_le τ hτ)
+
+/-- Classical fixed-time regularity and source-side chem factor bounds, together
+with the classical logistic reaction reducer, produce the concrete physical H¹
+sqrt-bound frontier. -/
+theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hchi : 0 ≤ -p.χ₀)
+    (hL : p.a ≤ L)
+    (hchem : H1PhysicalChemFactorBoundsBefore p u v T V₁ V₂ M) :
+    H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSSqrtBoundsBefore_of_chemL2SqrtBoundData_and_classical_reaction
+    hsol hL
+    (H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M)
+      (u := u) (v := v) hsol hchi hchem)
+
 #print axioms H1PhysicalChemTaxisPart_le_of_resolverGrad
 #print axioms H1PhysicalChemUvxxPart_le_of_core
 #print axioms H1PhysicalChemFactorBoundsBefore_of_resolverSup
+#print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
+#print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalChemSqrtBounds
