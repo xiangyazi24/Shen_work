@@ -3160,6 +3160,25 @@ carries RHS measurability, product measurability, or a.e. spatial
 square-integrability.  It still does not prove any of the four time
 integrability assumptions, physical identity/substitution, or sqrt bounds.
 
+Task 103 follows the Q3535 time-integrability audit.  The audit confirmed that
+strict-positive-time classical continuity cannot imply zero-window time
+integrability near `t = 0`; the missing input has to be zero-start analytic
+data.  `IntervalChiNegH1PhysicalYoungSpatial` now proves
+`H1PhysicalSquareProfilesTimeIntegrableBefore_of_zeroStartPrimitiveData`: from
+`H1ZeroStartPhysicalPrimitiveDataBefore` it obtains zero-window
+`IntervalIntegrable` data for `lapL2sq u`,
+`H1PhysicalTaxisPartSq p u v`, `H1PhysicalUvxxPartSq p u v`, and
+`H1PhysicalReactPartSq p u`.  The lap field uses the existing zero-slab
+representative route; the three non-lap fields use zero-slab continuity of the
+individual physical parts plus the interval-integral continuity helper.  The
+new wrapper
+`H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_classical_zeroStartPrimitiveData`
+then combines classical strict-slab regularity with that zero-start primitive
+package to produce the full spatial Young data.  This removes the four
+separate time-integrability carries only under `H1ZeroStartPhysicalPrimitiveDataBefore`;
+it is not an unconditional headline theorem, and the physical
+identity/substitution plus sqrt-bound frontiers remain separate.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
