@@ -137,6 +137,127 @@ theorem conjugateKernel_abs_moment_le
     _ ≤ 4 * t / Real.sqrt (4 * Real.pi * t) :=
       ShenWork.IntervalSemigroupUniform.intervalNeumannFullKernel_abs_moment_le ht x hx
 
+/-- Continuous derivative profiles have vanishing conjugate-kernel oscillation
+term.  The proof uses only the `L¹` mass bound and the absolute first-moment
+bound for the conjugate kernel. -/
+theorem initialLegConjugateOscillationControl_of_continuousOn
+    {df : ℝ → ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1)) :
+    InitialLegConjugateOscillationControl df := by
+  intro ε hε
+  obtain ⟨M, hM_pos, hdfM⟩ :
+      ∃ M : ℝ, 0 < M ∧ ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ M := by
+    obtain ⟨B, hB⟩ := isCompact_Icc.exists_bound_of_continuousOn hdf_cont
+    refine ⟨max B 1, by positivity, fun y hy => ?_⟩
+    exact (Real.norm_eq_abs (df y) ▸ hB y hy).trans (le_max_left B 1)
+  have huc := isCompact_Icc.uniformContinuousOn_of_continuous
+    (s := Set.Icc (0 : ℝ) 1) hdf_cont
+  rw [Metric.uniformContinuousOn_iff] at huc
+  obtain ⟨η, hη_pos, hηdf⟩ := huc (ε / 2) (by linarith)
+  set C : ℝ := 2 * M / η
+  have hC_pos : 0 < C := by positivity
+  have hlinmod : ∀ x ∈ Set.Icc (0 : ℝ) 1, ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      |df y - df x| ≤ ε / 2 + C * |y - x| := by
+    intro x hx y hy
+    by_cases hclose : dist y x < η
+    · have h1 := hηdf y hy x hx hclose
+      rw [Real.dist_eq] at h1
+      linarith [mul_nonneg hC_pos.le (abs_nonneg (y - x))]
+    · have hdist_ge : η ≤ dist y x := le_of_not_gt hclose
+      have hyx : η ≤ |y - x| := by rwa [Real.dist_eq] at hdist_ge
+      have hab : |df y - df x| ≤ 2 * M := by
+        have hfy := abs_le.mp (hdfM y hy)
+        have hfx := abs_le.mp (hdfM x hx)
+        exact abs_le.mpr ⟨by linarith, by linarith⟩
+      linarith [mul_le_mul_of_nonneg_left hyx hC_pos.le,
+        show C * η = 2 * M by simp [C]; field_simp]
+  set τ : ℝ := (ε / (4 * C)) ^ 2
+  have hτ_pos : 0 < τ := by positivity
+  refine ⟨τ, hτ_pos, ?_⟩
+  intro t ht htτ x hx
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  let K : ℝ → ℝ := fun y => intervalNeumannConjugateKernel t x y
+  have hdf_u : ContinuousOn df (Set.uIcc (0 : ℝ) 1) := by
+    simpa [Set.uIcc_of_le h01] using hdf_cont
+  have hK_u : ContinuousOn K (Set.uIcc (0 : ℝ) 1) := by
+    simpa [K, Set.uIcc_of_le h01] using continuousOn_conjugateKernel_snd ht x
+  have hdist_u : ContinuousOn (fun y : ℝ => |y - x|) (Set.uIcc (0 : ℝ) 1) :=
+    (continuous_abs.comp (continuous_id.sub continuous_const)).continuousOn
+  have hprod_ii : IntervalIntegrable
+      (fun y : ℝ => (df y - df x) * K y) MeasureTheory.volume 0 1 :=
+    ((hdf_u.sub continuousOn_const).mul hK_u).intervalIntegrable
+  have hKabs_ii : IntervalIntegrable
+      (fun y : ℝ => |K y|) MeasureTheory.volume 0 1 :=
+    hK_u.abs.intervalIntegrable
+  have hmoment_ii : IntervalIntegrable
+      (fun y : ℝ => |y - x| * |K y|) MeasureTheory.volume 0 1 :=
+    (hdist_u.mul hK_u.abs).intervalIntegrable
+  have hcoef_u : ContinuousOn (fun y : ℝ => ε / 2 + C * |y - x|)
+      (Set.uIcc (0 : ℝ) 1) :=
+    continuousOn_const.add (continuousOn_const.mul hdist_u)
+  have hmod_ii : IntervalIntegrable
+      (fun y : ℝ => (ε / 2 + C * |y - x|) * |K y|)
+      MeasureTheory.volume 0 1 :=
+    (hcoef_u.mul hK_u.abs).intervalIntegrable
+  have hsplit :
+      (∫ y in (0 : ℝ)..1, (ε / 2 + C * |y - x|) * |K y|)
+        = (ε / 2) * (∫ y in (0 : ℝ)..1, |K y|)
+          + C * (∫ y in (0 : ℝ)..1, |y - x| * |K y|) := by
+    rw [show (fun y : ℝ => (ε / 2 + C * |y - x|) * |K y|) =
+        fun y : ℝ => (ε / 2) * |K y| + C * (|y - x| * |K y|) from by
+      funext y
+      ring]
+    rw [intervalIntegral.integral_add (hKabs_ii.const_mul (ε / 2))
+      (hmoment_ii.const_mul C), intervalIntegral.integral_const_mul,
+      intervalIntegral.integral_const_mul]
+  have htail_bound : C * (4 * t / Real.sqrt (4 * Real.pi * t)) < ε / 2 := by
+    have h4pit_pos : 0 < 4 * Real.pi * t := by positivity
+    have hpi_ge : 4 * t ≤ 4 * Real.pi * t := by nlinarith [Real.pi_gt_three]
+    have hsqrt4t : Real.sqrt (4 * t) = 2 * Real.sqrt t := by
+      have h4t_eq : (4 : ℝ) * t = (2 * Real.sqrt t) * (2 * Real.sqrt t) := by
+        have := Real.mul_self_sqrt ht.le
+        nlinarith
+      rw [show (4 : ℝ) * t = (2 * Real.sqrt t) * (2 * Real.sqrt t) from h4t_eq,
+        Real.sqrt_mul_self (by positivity : (0 : ℝ) ≤ 2 * Real.sqrt t)]
+    have hmoment_le : 4 * t / Real.sqrt (4 * Real.pi * t) ≤ 2 * Real.sqrt t := by
+      rw [div_le_iff₀ (Real.sqrt_pos_of_pos h4pit_pos)]
+      calc
+        4 * t = 2 * Real.sqrt t * Real.sqrt (4 * t) := by
+          rw [hsqrt4t]
+          nlinarith [Real.mul_self_sqrt ht.le]
+        _ ≤ 2 * Real.sqrt t * Real.sqrt (4 * Real.pi * t) :=
+          mul_le_mul_of_nonneg_left (Real.sqrt_le_sqrt hpi_ge) (by positivity)
+    have hsqrt_bound : Real.sqrt t < ε / (4 * C) := by
+      rw [← Real.sqrt_sq (show (0 : ℝ) ≤ ε / (4 * C) by positivity)]
+      exact Real.sqrt_lt_sqrt ht.le htτ
+    calc
+      C * (4 * t / Real.sqrt (4 * Real.pi * t))
+          ≤ C * (2 * Real.sqrt t) :=
+        mul_le_mul_of_nonneg_left hmoment_le hC_pos.le
+      _ < C * (2 * (ε / (4 * C))) :=
+        mul_lt_mul_of_pos_left (by linarith) hC_pos
+      _ = ε / 2 := by field_simp; ring
+  calc
+    |-(∫ y in (0 : ℝ)..1, (df y - df x) * intervalNeumannConjugateKernel t x y)|
+        = |∫ y in (0 : ℝ)..1, (df y - df x) * K y| := by
+      simp [K]
+    _ ≤ ∫ y in (0 : ℝ)..1, |(df y - df x) * K y| :=
+      intervalIntegral.abs_integral_le_integral_abs h01
+    _ ≤ ∫ y in (0 : ℝ)..1, (ε / 2 + C * |y - x|) * |K y| := by
+      apply intervalIntegral.integral_mono_on h01 hprod_ii.abs hmod_ii
+      intro y hy
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_right (hlinmod x hx y hy) (abs_nonneg _)
+    _ = (ε / 2) * (∫ y in (0 : ℝ)..1, |K y|)
+          + C * (∫ y in (0 : ℝ)..1, |y - x| * |K y|) := hsplit
+    _ ≤ (ε / 2) * 1 + C * (4 * t / Real.sqrt (4 * Real.pi * t)) := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_left (conjugateKernel_L1_bound ht x) (by linarith))
+        (mul_le_mul_of_nonneg_left
+          (by simpa [K] using conjugateKernel_abs_moment_le ht hx) hC_pos.le)
+    _ < ε := by
+      linarith
+
 /-- A filter-form uniform conjugate/Dirichlet approximate identity immediately
 supplies the epsilon-delta hypothesis consumed by the C1 initial-leg reducer. -/
 theorem initialLegConjugateDerivativeApprox_of_tendstoUniformlyOn
