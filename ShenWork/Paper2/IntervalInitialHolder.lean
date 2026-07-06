@@ -21,6 +21,7 @@ noncomputable section
 
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 
 /-- Initial-data spatial Holder modulus on the genuine interval domain. -/
 def InitialDatumHolder
@@ -85,6 +86,22 @@ theorem InitialLegUniformHolderAtZero_of_contracting_couplings
         integral_mono_ae hint.abs (integrable_const _) hpoint
     _ = H₀ * |x.1 - y.1| ^ θ := by
         simp
+
+/-- Small-time mild Holder wrapper using initial-data Holder regularity and a
+contractive-coupling producer for the homogeneous Neumann heat leg.  The
+coupling construction remains an explicit input; this theorem only connects it
+to the existing small-time mild Holder bootstrap. -/
+theorem mild_orderBox_smallTime_holder_of_initialDatumHolder_contracting_couplings
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀)) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  exact mild_orderBox_smallTime_holder_of_initialLeg_holder D hθ0 hθ1 hH₀
+    (InitialLegUniformHolderAtZero_of_contracting_couplings hθ0 hH₀ hholder hplan)
 
 /-- On the period-2 additive circle, real representatives whose ordinary
 distance is at most half the period have the same circle distance. -/
