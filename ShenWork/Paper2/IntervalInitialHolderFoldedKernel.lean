@@ -189,6 +189,95 @@ theorem foldedHeat_branch_tsum_reindex
       = fun k => A k + B k by rfl,
     Summable.tsum_add hA hB, hAt, hBt, add_comm]
 
+/-- The folded real-line heat integral equals the sum of the two full-kernel
+image-branch lattice sums, assuming the folded branch sums are summable. -/
+theorem foldedHeatIntegral_eq_fullKernel_branch_tsums
+    (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ)
+    (hG : Integrable
+      (fun z : ℝ => heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1))
+    (hA : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y))
+    (hB : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y)) :
+    foldedHeatIntegral t x f =
+      (∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+      +
+      (∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y) := by
+  unfold foldedHeatIntegral
+  have htiling := ShenWork.integral_eq_tsum_integral_Ioc_offset
+    (-x.1 - 1) hG
+  rw [htiling]
+  have hcell :
+      (fun k : ℤ =>
+        ∫ z in Set.Ioc ((-x.1 - 1) + 2 * (k : ℝ))
+            ((-x.1 - 1) + 2 * (k : ℝ) + 2),
+          heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1)
+        =
+      (fun k : ℤ =>
+        (∫ y in (0 : ℝ)..1,
+          heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y)
+        +
+        (∫ y in (0 : ℝ)..1,
+          heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y)) := by
+    funext k
+    convert foldedHeat_cell_integral_eq_two_branches t x f k hG using 1
+    ring_nf
+  rw [hcell]
+  exact foldedHeat_branch_tsum_reindex t x f hA hB
+
+/-- Bounded-measurable version of
+`foldedHeatIntegral_eq_fullKernel_branch_tsums`. -/
+theorem foldedHeatIntegral_eq_fullKernel_branch_tsums_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint) {f : ℝ → ℝ} {M : ℝ}
+    (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M)
+    (hA : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y))
+    (hB : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y)) :
+    foldedHeatIntegral t x f =
+      (∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+      +
+      (∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y) :=
+  foldedHeatIntegral_eq_fullKernel_branch_tsums t x f
+    (foldedHeat_integrable_of_bounded ht x hf_meas hf_bound) hA hB
+
+/-- Image-branch `tsum`/interval-integral interchange for the full Neumann
+kernel. This is the remaining bridge between the method-of-images branch sums
+and `intervalFullSemigroupOperator`. -/
+def FullKernelImageBranchInterchange
+    (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ) : Prop :=
+  ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t f x.1 =
+    (∑' k : ℤ,
+      ∫ y in (0 : ℝ)..1,
+        heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+    +
+    (∑' k : ℤ,
+      ∫ y in (0 : ℝ)..1,
+        heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y)
+
+/-- Folded heat equals the existing full-kernel Neumann semigroup once the
+image-branch interchange is supplied. -/
+theorem foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_branch_interchange
+    (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ)
+    (hG : Integrable
+      (fun z : ℝ => heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1))
+    (hA : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y))
+    (hB : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y))
+    (hI : FullKernelImageBranchInterchange t x f) :
+    foldedHeatIntegral t x f =
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t f x.1 := by
+  exact (foldedHeatIntegral_eq_fullKernel_branch_tsums t x f hG hA hB).trans hI.symm
+
 end
 
 end ShenWork.Paper2
