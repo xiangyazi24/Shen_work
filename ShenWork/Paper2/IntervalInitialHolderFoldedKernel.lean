@@ -59,6 +59,32 @@ noncomputable def foldedHeatIntegral
     (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ) : ℝ :=
   ∫ z : ℝ, heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1
 
+/-- The folded translate coordinate is Borel-measurable in the real noise
+variable. -/
+theorem addCircleTwoFoldTranslatePoint_coord_measurable
+    (x : intervalDomainPoint) :
+    Measurable (fun z : ℝ => (addCircleTwoFoldTranslatePoint x z).1) := by
+  unfold addCircleTwoFoldTranslatePoint addCircleTwoFoldPoint
+  exact (Continuous.dist
+    ((AddCircle.continuous_mk' (2 : ℝ)).comp (continuous_const.add continuous_id))
+    continuous_const).measurable
+
+/-- A bounded measurable datum gives an integrable folded heat integrand on the
+real noise line. -/
+theorem foldedHeat_integrable_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint)
+    {f : ℝ → ℝ} {M : ℝ}
+    (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    Integrable
+      (fun z : ℝ => heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1) := by
+  have hf_comp :
+      AEStronglyMeasurable
+        (fun z : ℝ => f (addCircleTwoFoldTranslatePoint x z).1) volume :=
+    (hf_meas.comp (addCircleTwoFoldTranslatePoint_coord_measurable x)).aestronglyMeasurable
+  exact (heatKernel_integrable ht).mul_bdd hf_comp
+    (Filter.Eventually.of_forall fun z => by
+      simpa [Real.norm_eq_abs] using hf_bound (addCircleTwoFoldTranslatePoint x z).1)
+
 /-- On one period-2 cell in the real noise variable, the folded real-line
 integral is exactly the sum of the two image branches over `[0,1]`. -/
 theorem foldedHeat_cell_integral_eq_two_branches
@@ -96,6 +122,18 @@ theorem foldedHeat_cell_integral_eq_two_branches
       rw [harg]
       exact addCircleTwoFoldPoint_coe_add_period_eq hyIcc k
     simp [G, hfold]
+
+/-- Bounded measurable version of `foldedHeat_cell_integral_eq_two_branches`. -/
+theorem foldedHeat_cell_integral_eq_two_branches_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint) (f : ℝ → ℝ) (k : ℤ)
+    {M : ℝ} (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    (∫ z in Set.Ioc (-x.1 + 2 * (k : ℝ) - 1) (-x.1 + 2 * (k : ℝ) + 1),
+        heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1)
+      =
+        (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y)
+          + (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y) :=
+  foldedHeat_cell_integral_eq_two_branches t x f k
+    (foldedHeat_integrable_of_bounded ht x hf_meas hf_bound)
 
 /-- The two folded image-branch lattice sums are the two full-kernel branches,
 after the involutive reindexing `k ↦ -k` and the evenness of `heatKernel`. -/
