@@ -1,5 +1,25 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 273: Chi-zero hsrc0-only route no longer carries Hu separately (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs.lean` now proves
+`timeNeighborhoodSpectralAgreement_of_hsrc0Inputs`: in the `χ₀ = 0` branch, the
+same full-horizon bounded patched-source package `hsrc0` reconstructs the
+u-side `HasTimeNeighborhoodSpectralAgreement`.  The proof reuses Task270 to get
+the canonical `limitCoeff` representation and compact eigenvalue envelope,
+derives singleton-window summability and spatial K2 bounds from that envelope,
+then feeds the existing `ResolverSpectralAgreementFromK1` producer and converts
+the resulting resolver spectral agreement to the time-neighborhood form.
+
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointHsrc0InputsFrontier.lean`
+adds source and iterate no-Hu surfaces.  These carry only the source/iterate
+package, the hsrc0-only resolver-source input, and the pointwise PDE identity;
+the u-side spectral agreement is derived by the new adapter before routing into
+the existing hsrc0 headline wrappers.  This is a genuine removal of the sibling
+Hu field from the chi-zero hsrc0 route, but the route is still conditional on
+per-datum source or iterate data, the PDE identity, and the explicit full-horizon
+`hsrc0` package.
+
 ## Task 270: Chi-zero hsrc0-only resolver-source inputs (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs.lean` implements the
