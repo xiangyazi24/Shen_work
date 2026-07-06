@@ -3116,6 +3116,17 @@ uses the generic GN helper to produce the three product-integrability fields.
 It does not produce product measurability from classical regularity and does
 not close any identity, sqrt, or time-integrability frontier.
 
+Task 99 completes the R5 product-measurability producer:
+`IntervalChiNegH1PhysicalClassicalContinuity` now has
+`H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution`.  It uses the
+strict-slab representative continuity package plus the interior a.e. equality
+between literal `liftDeriv2` and the continuous physical RHS representative to
+produce the three a.e. strong measurability fields for the absolute products on
+`Ioc 0 1`.  This discharges only the product-measurability inputs exposed by
+Task 98.  The square-integrability fields, time integrability of `lapL2sq` and
+the three physical square profiles, RHS measurability, the physical identity,
+and sqrt bounds are still explicit frontiers.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

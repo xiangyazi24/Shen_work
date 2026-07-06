@@ -53,6 +53,61 @@ private theorem one_add_lift_v_pos_on_strict_slab
   have hvnn : 0 ≤ v t ⟨x, hx⟩ := hsol.v_nonneg htI.1 htI.2
   linarith
 
+private theorem continuousOn_slice_of_uncurry
+    {F : ℝ → ℝ → ℝ} {r : ℝ} {s : Set ℝ}
+    (hF : ContinuousOn (Function.uncurry F) (Set.Icc r r ×ˢ s)) :
+    ContinuousOn (F r) s := by
+  have hpair : ContinuousOn (fun x : ℝ => ((r, x) : ℝ × ℝ)) s :=
+    continuousOn_const.prodMk continuousOn_id
+  have hmaps :
+      Set.MapsTo (fun x : ℝ => ((r, x) : ℝ × ℝ)) s
+        (Set.Icc r r ×ˢ s) := by
+    intro x hx
+    exact ⟨⟨le_rfl, le_rfl⟩, hx⟩
+  simpa [Function.uncurry] using hF.comp hpair hmaps
+
+private theorem
+    abs_liftDeriv2_mul_part_aestronglyMeasurable_of_rep_product_cont
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {F part : ℝ → ℝ → ℝ} {r : ℝ}
+    (hCont :
+      ContinuousOn (Function.uncurry (fun t x => F t x * part t x))
+        (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior :
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc r r ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    AEStronglyMeasurable
+      (fun x => |liftDeriv2 u r x * part r x|)
+      (volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+  have hSlice :
+      ContinuousOn (fun x => F r x * part r x) (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_slice_of_uncurry
+      (F := fun t x => F t x * part t x)
+      (r := r) (s := Set.Icc (0 : ℝ) 1) hCont
+  have hRepMeas :
+      AEStronglyMeasurable
+        (fun x => |F r x * part r x|)
+        (volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+    exact hSlice.abs.aestronglyMeasurable_of_subset_isCompact isCompact_Icc
+      measurableSet_Ioc (fun x hx => ⟨le_of_lt hx.1, hx.2⟩)
+  refine hRepMeas.congr ?_
+  rw [Filter.EventuallyEq, ae_restrict_iff' measurableSet_Ioc]
+  have hne1 : ∀ᵐ x : ℝ ∂volume, x ≠ (1 : ℝ) := by
+    have heq : {x : ℝ | ¬ x ≠ (1 : ℝ)} = {(1 : ℝ)} := by
+      ext x
+      simp
+    rw [ae_iff, heq]
+    exact Real.volume_singleton
+  filter_upwards [hne1] with x hxne hxIoc
+  have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 :=
+    ⟨hxIoc.1, lt_of_le_of_ne hxIoc.2 hxne⟩
+  have hEq := hEqInterior (x := (r, x))
+    (Set.mem_prod.mpr ⟨⟨le_rfl, le_rfl⟩, hxIoo⟩)
+  simp only [Function.uncurry_apply_pair] at hEq
+  simp [hEq]
+
 /-- Strict-slab continuity of the concrete physical `liftDeriv2`
 representative with the closed-slab chemotaxis-divergence representative. -/
 theorem liftDeriv2PhysicalRHSWithChemRep_continuousOn_strictSlab_of_classicalSolution
@@ -276,6 +331,104 @@ theorem H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution
     (H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
       (p := p) (u := u) (v := v) (T := T) hsol)
 
+/-- Classical strict-slab representative continuity supplies the three
+abs-product measurability fields needed by the component-square spatial Young
+adapter.  This is only a measurability producer; it does not provide the square
+integrability or time-integrability data. -/
+theorem H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution
+    {p : CM2Params} {T δ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (_hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      AEStronglyMeasurable
+        (fun x => |liftDeriv2 u r x *
+          H1PhysicalChemTaxisPart p u v r x|)
+        (volume.restrict (Set.Ioc (0 : ℝ) 1))) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      AEStronglyMeasurable
+        (fun x => |liftDeriv2 u r x *
+          H1PhysicalChemUvxxPart p u v r x|)
+        (volume.restrict (Set.Ioc (0 : ℝ) 1))) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      AEStronglyMeasurable
+        (fun x => |liftDeriv2 u r x *
+          H1PhysicalLogisticReactionPart p u r x|)
+        (volume.restrict (Set.Ioc (0 : ℝ) 1))) := by
+  have hRep :=
+    H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol
+  refine ⟨?_, ?_, ?_⟩
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    have hCont :
+        ContinuousOn
+          (Function.uncurry
+            (fun t x =>
+              liftDeriv2PhysicalRHSWithChemRep p u
+                (liftChemotaxisDivPhysicalRep p u v) t x *
+              H1PhysicalChemTaxisPart p u v t x))
+          (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1) := by
+      simpa [H1PhysicalTaxisRepIntegrand] using
+        hRep.taxis_cont (a := r) (b := r) hr.1 le_rfl hrT
+    exact
+      abs_liftDeriv2_mul_part_aestronglyMeasurable_of_rep_product_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (part := H1PhysicalChemTaxisPart p u v)
+        (r := r)
+        hCont
+        (hRep.uxx_eqInterior (a := r) (b := r) hr.1 le_rfl hrT)
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    have hCont :
+        ContinuousOn
+          (Function.uncurry
+            (fun t x =>
+              liftDeriv2PhysicalRHSWithChemRep p u
+                (liftChemotaxisDivPhysicalRep p u v) t x *
+              H1PhysicalChemUvxxPart p u v t x))
+          (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1) := by
+      simpa [H1PhysicalUvxxRepIntegrand] using
+        hRep.uvxx_cont (a := r) (b := r) hr.1 le_rfl hrT
+    exact
+      abs_liftDeriv2_mul_part_aestronglyMeasurable_of_rep_product_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (part := H1PhysicalChemUvxxPart p u v)
+        (r := r)
+        hCont
+        (hRep.uxx_eqInterior (a := r) (b := r) hr.1 le_rfl hrT)
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    have hCont :
+        ContinuousOn
+          (Function.uncurry
+            (fun t x =>
+              liftDeriv2PhysicalRHSWithChemRep p u
+                (liftChemotaxisDivPhysicalRep p u v) t x *
+              H1PhysicalLogisticReactionPart p u t x))
+          (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1) := by
+      simpa [H1PhysicalReactRepIntegrand] using
+        hRep.react_cont (a := r) (b := r) hr.1 le_rfl hrT
+    exact
+      abs_liftDeriv2_mul_part_aestronglyMeasurable_of_rep_product_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (part := H1PhysicalLogisticReactionPart p u)
+        (r := r)
+        hCont
+        (hRep.uxx_eqInterior (a := r) (b := r) hr.1 le_rfl hrT)
+
 /-- Physical strict/initial route constructor with strict component continuity
 discharged from the classical solution.  The remaining inputs are the physical
 identity, sqrt estimates, and the Young zero-window majorant. -/
@@ -321,6 +474,8 @@ theorem H1PhysicalRHSStrictInitialRouteBefore_of_classical_componentSquareZero
   H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution
+#print axioms
+  H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSStrictInitialRouteBefore_of_classical_youngScalarZero
 #print axioms
