@@ -111,6 +111,7 @@ import ShenWork.Paper2.IntervalChemFluxHolderFrontier
 import ShenWork.Paper2.IntervalResolverHolder
 import ShenWork.Paper2.IntervalChemFluxHolderSourceDecay
 import ShenWork.Paper2.IntervalChemFluxHolderCommonFold
+import ShenWork.Paper2.IntervalChemFluxHolderCommonFoldC1eta
 import ShenWork.Paper2.ChemMildC1etaCommonFoldWrappers
 import ShenWork.Paper2.IntervalMildSourceDecayUniform
 import ShenWork.Paper2.IntervalInitialHolder
