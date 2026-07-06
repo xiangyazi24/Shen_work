@@ -8,6 +8,7 @@ import ShenWork.Paper2.IntervalResolverHolder
 import ShenWork.Paper2.IntervalResolverWeakBounds
 import ShenWork.Paper2.IntervalInitialHolder
 import ShenWork.Paper2.ChemMildHolderBootstrap
+import ShenWork.Paper2.ChemMildDifferentiableOn
 import ShenWork.Paper2.IntervalBFormInitialTrace
 import ShenWork.Paper2.IntervalMildToClassical
 
@@ -741,6 +742,72 @@ theorem chemFlux_gradDuhamel_deriv_tendsto_zero_of_gradientMild_initialHolder_sm
     ⟨HQ, _hHQ_nonneg, Hsource⟩
   exact chemFlux_gradDuhamel_deriv_tendsto_zero_of_CthetaSourceOn
     Hsource D.hT h2_int hLeibniz
+
+/-- A local `ChemFluxCthetaSourceOn` package over a `GradientMildSolutionData`
+trajectory produces the `ChemLegData` consumed by the positive-time C1/eta
+chemotaxis-leg machinery, after cutting the source off outside the package
+window.  The cutoff avoids asserting global-in-time properties of the real flux
+outside `0 < s ≤ D.T`; on `s ∈ (0,t)` it agrees with the real flux. -/
+theorem ChemLegData_of_gradientMild_CthetaSourceOn_cutoff
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {t θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p D.u D.T θ CQ HQ)
+    (ht : 0 < t) (htT : t ≤ D.T) :
+    ChemLegData t θ CQ HQ (2 * CQ)
+      (chemFluxCthetaCutoffSource p D.u D.T) := by
+  have hQmeas : Measurable
+      (Function.uncurry (chemFluxCthetaCutoffSource p D.u D.T)) := by
+    have hwin : MeasurableSet {z : ℝ × ℝ | 0 < z.1 ∧ z.1 ≤ D.T} := by
+      exact (measurableSet_lt measurable_const measurable_fst).inter
+        (measurableSet_le measurable_fst measurable_const)
+    have hbase : Measurable
+        (fun z : ℝ × ℝ => chemFluxLifted p (D.u z.1) z.2) := by
+      simpa [Function.uncurry] using H.flux_meas
+    exact hbase.ite hwin measurable_const
+  have hQint : ∀ s : ℝ,
+      Integrable (chemFluxCthetaCutoffSource p D.u D.T s) (intervalMeasure 1) := by
+    intro s
+    exact ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      (chemFluxCthetaCutoffSource_aestronglyMeasurable H s)
+      (chemFluxCthetaCutoffSource_bound H s)
+  have hQcont : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      Continuous (chemFluxCthetaCutoffSource p D.u D.T s) := by
+    intro s hs
+    have hsT : s ≤ D.T := le_trans (le_of_lt hs.2) htT
+    have hwin : 0 < s ∧ s ≤ D.T := ⟨hs.1, hsT⟩
+    have hcont :
+        Continuous (chemFluxLifted p (D.u s)) :=
+      ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+        p (D.hcont s hs.1 hsT) (fun x => D.hnonneg s hs.1 hsT x)
+    have heq :
+        chemFluxCthetaCutoffSource p D.u D.T s = chemFluxLifted p (D.u s) := by
+      funext y
+      simp [chemFluxCthetaCutoffSource, hwin]
+    rw [heq]
+    exact hcont
+  have hQcoeff : ∀ s ∈ Set.Ioo (0 : ℝ) t, ∀ n : ℕ,
+      |ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+        (chemFluxCthetaCutoffSource p D.u D.T s) n| ≤ 2 * CQ := by
+    intro s hs n
+    exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      (f := chemFluxCthetaCutoffSource p D.u D.T s)
+      ((hQcont s hs).continuousOn)
+      H.CQ_nonneg
+      (fun x _hx => chemFluxCthetaCutoffSource_bound H s x)
+      n
+  exact
+    { ht₀ := ht
+      hθ0 := H.theta_pos
+      hθ1 := H.theta_lt_one
+      hHQ_nn := H.HQ_nonneg
+      hQmeas := hQmeas
+      hQint := hQint
+      hCQ_nn := H.CQ_nonneg
+      hQbdd := chemFluxCthetaCutoffSource_bound H
+      hQcont := hQcont
+      hQcoeff := hQcoeff
+      hQholder := fun s _hs => chemFluxCthetaCutoffSource_holder H s }
 
 end
 
