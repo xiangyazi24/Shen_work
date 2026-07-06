@@ -30,6 +30,40 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalChiNegH1PhysicalExit
 
+/-- Endpoint-data bounded-before wrapper from an already assembled physical
+strict/initial route.  This is the route-facing exit point: upstream files may
+produce the strict route by any non-circular source, while this theorem only
+feeds it into the scalar H¹ bounded-before machinery. -/
+theorem boundedBefore_of_physicalStrictInitialRoute_initialEndpointData_before
+    {params : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (hStrict : H1PhysicalRHSStrictInitialRouteBefore params u v T V₁ V₂ M L) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hdata :
+      H1SupBoundSqrtRHSIntegrableBefore params u T V₁ V₂ M L
+        (H1PhysicalTaxisX params u v)
+        (H1PhysicalUvxxX params u v)
+        (H1PhysicalReactX params u) :=
+    H1SupBoundSqrtRHSIntegrableBefore_of_physicalStrictInitialRoute hStrict
+  exact
+    boundedBefore_of_H1supBoundSqrtRHS_classical_initialEndpointData_before
+      (params := params) (T := T) (u₀ := u₀) (u := u) (v := v)
+      (taxisX := H1PhysicalTaxisX params u v)
+      (uvxx := H1PhysicalUvxxX params u v)
+      (reactX := H1PhysicalReactX params u)
+      hbounded ha hu₀ hT hsol htrace hfrontier hinit hdata
+
+#print axioms boundedBefore_of_physicalStrictInitialRoute_initialEndpointData_before
+
 /-- Endpoint-data bounded-before wrapper for the physical H¹ route.
 
 This composes the Task104 strict/initial route with the existing initial
@@ -60,19 +94,9 @@ theorem boundedBefore_of_physical_classical_zeroStartPrimitiveData_initialEndpoi
       (V₁ := V₁) (V₂ := V₂) (M := M) (L := L)
       (u := u) (v := v)
       hsol H hId hBounds hδ_pos hδ_before
-  have hdata :
-      H1SupBoundSqrtRHSIntegrableBefore params u T V₁ V₂ M L
-        (H1PhysicalTaxisX params u v)
-        (H1PhysicalUvxxX params u v)
-        (H1PhysicalReactX params u) :=
-    H1SupBoundSqrtRHSIntegrableBefore_of_physicalStrictInitialRoute hStrict
   exact
-    boundedBefore_of_H1supBoundSqrtRHS_classical_initialEndpointData_before
-      (params := params) (T := T) (u₀ := u₀) (u := u) (v := v)
-      (taxisX := H1PhysicalTaxisX params u v)
-      (uvxx := H1PhysicalUvxxX params u v)
-      (reactX := H1PhysicalReactX params u)
-      hbounded ha hu₀ hT hsol htrace hfrontier hinit hdata
+    boundedBefore_of_physicalStrictInitialRoute_initialEndpointData_before
+      hbounded ha hu₀ hT hsol htrace hfrontier hinit hStrict
 
 #print axioms
   boundedBefore_of_physical_classical_zeroStartPrimitiveData_initialEndpointData_before
