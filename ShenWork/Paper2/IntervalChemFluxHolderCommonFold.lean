@@ -101,6 +101,33 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_bounded_components
         ht x y hM hu₀_meas hlift_bound)
     hg_holder
 
+/-- Measurable initial Holder data discharge the bounded-data inputs using the
+intrinsic endpoint-plus-Holder bound. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_measurable_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ Hg : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hH₀_nonneg : 0 ≤ H₀) (hHg_nonneg : 0 ≤ Hg)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀))
+    (hg_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |resolverGradReal p (D.u s) a - resolverGradReal p (D.u s) b| ≤
+          Hg * |a - b| ^ θ) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  let M : ℝ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
+  have hM : 0 ≤ M := add_nonneg (abs_nonneg _) hH₀_nonneg
+  have hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M :=
+    initialDatumHolder_abs_bound hθ0 hH₀_nonneg hholder
+  exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_bounded_components
+    D hθ0 hθ1 hH₀_nonneg hHg_nonneg hM hholder hu₀_meas hu₀_bound
+    hg_holder
+
 /-- Common-folded-noise version of the weak small-exponent initial-holder source
 package.  The only remaining heat-kernel input is the common-noise law; the
 resolver-gradient Holder field is produced internally for `0 < θ < 1/2`. -/
@@ -185,6 +212,28 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_bounded_
       NeumannHeatCommonFoldNoiseFor_of_bounded
         ht x y hM hu₀_meas hlift_bound)
 
+/-- Small-exponent source package for measurable initial Holder data, using the
+intrinsic endpoint-plus-Holder bound. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_measurable_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀)) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  let M : ℝ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
+  have hM : 0 ≤ M := add_nonneg (abs_nonneg _) hH₀_nonneg
+  have hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M :=
+    initialDatumHolder_abs_bound hθ0 hH₀_nonneg hholder
+  exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_bounded_components
+    D hθ0 hθlt hH₀_nonneg hM hholder hu₀_meas hu₀_bound
+
 /-- Common-folded-noise source package with the resolver-gradient Holder field
 discharged from a uniform resolver-second-derivative bound. -/
 theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_commonFoldNoise_components
@@ -239,6 +288,32 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_bounded_compo
         ht x y hM hu₀_meas hlift_bound)
     hdecay hgrad2_bound
 
+/-- Measurable bounded-data source package with the resolver-gradient Holder
+field discharged from a uniform resolver-second-derivative bound. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_measurable_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ Hg : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hH₀_nonneg : 0 ≤ H₀) (hHg_nonneg : 0 ≤ Hg)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀))
+    (hdecay : ∀ s, 0 < s → s ≤ D.T → SourceCoeffQuadraticDecay p (D.u s))
+    (hgrad2_bound : ∀ s, 0 < s → s ≤ D.T → ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      |resolverGrad2Real p (D.u s) z| ≤ Hg) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  let M : ℝ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
+  have hM : 0 ≤ M := add_nonneg (abs_nonneg _) hH₀_nonneg
+  have hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M :=
+    initialDatumHolder_abs_bound hθ0 hH₀_nonneg hholder
+  exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_bounded_components
+    D hθ0 hθ1 hH₀_nonneg hHg_nonneg hM hholder hu₀_meas hu₀_bound
+    hdecay hgrad2_bound
+
 /-- Common-folded-noise source package from a uniform source-coefficient
 quadratic decay frontier. -/
 theorem ChemFluxCthetaSourceOn_of_initialHolder_uniformSourceCoeff_commonFoldNoise_components
@@ -290,6 +365,29 @@ theorem ChemFluxCthetaSourceOn_of_initialHolder_uniformSourceCoeff_bounded_compo
       NeumannHeatCommonFoldNoiseFor_of_bounded
         ht x y hM hu₀_meas hlift_bound)
     Hsrc
+
+/-- Uniform source-coefficient route for measurable initial Holder data, using
+the intrinsic endpoint-plus-Holder bound. -/
+theorem ChemFluxCthetaSourceOn_of_initialHolder_uniformSourceCoeff_measurable_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ Csrc : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀))
+    (Hsrc : UniformSourceCoeffQuadraticDecayOn p D.u D.T Csrc) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  let M : ℝ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
+  have hM : 0 ≤ M := add_nonneg (abs_nonneg _) hH₀_nonneg
+  have hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M :=
+    initialDatumHolder_abs_bound hθ0 hH₀_nonneg hholder
+  exact ChemFluxCthetaSourceOn_of_initialHolder_uniformSourceCoeff_bounded_components
+    D hθ0 hθ1 hH₀_nonneg hM hholder hu₀_meas hu₀_bound Hsrc
 
 /-- Common-folded-noise small-exponent initial-data Holder route to the
 positive-time chemotaxis-leg data package. -/
@@ -347,6 +445,33 @@ theorem ChemLegData_of_gradientMild_initialHolder_smallTheta_bounded_cutoff_comp
       NeumannHeatCommonFoldNoiseFor_of_bounded
         hr x y hM hu₀_meas hlift_bound)
     ht htT
+
+/-- Small-exponent ChemLegData cutoff route for measurable initial Holder data,
+using the intrinsic endpoint-plus-Holder bound. -/
+theorem ChemLegData_of_gradientMild_initialHolder_smallTheta_measurable_cutoff_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {t θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t ≤ D.T) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemLegData t θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ
+        (2 * (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))))
+        (chemFluxCthetaCutoffSource p D.u D.T) := by
+  let M : ℝ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
+  have hM : 0 ≤ M := add_nonneg (abs_nonneg _) hH₀_nonneg
+  have hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M :=
+    initialDatumHolder_abs_bound hθ0 hH₀_nonneg hholder
+  exact ChemLegData_of_gradientMild_initialHolder_smallTheta_bounded_cutoff_components
+    D hθ0 hθlt hH₀_nonneg hM hholder hu₀_meas hu₀_bound ht htT
 
 end
 
