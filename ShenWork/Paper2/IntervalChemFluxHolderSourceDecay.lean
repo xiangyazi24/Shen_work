@@ -6,6 +6,7 @@
 import ShenWork.Paper2.IntervalChemFluxHolderFrontier
 import ShenWork.Paper2.IntervalResolverHolder
 import ShenWork.Paper2.IntervalResolverWeakBounds
+import ShenWork.Paper2.IntervalInitialHolder
 import ShenWork.Paper2.ChemMildHolderBootstrap
 import ShenWork.Paper2.IntervalBFormInitialTrace
 import ShenWork.Paper2.IntervalMildToClassical
@@ -266,6 +267,60 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
     exact Continuous.continuousOn
       (ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
         p (D.hcont s hs0 hsT) (fun x => D.hnonneg s hs0 hsT x))
+
+/-- Mild-solution source package from initial-data Holder regularity plus the
+contractive-coupling frontier for the homogeneous Neumann heat leg.
+
+This wrapper uses the existing small-time mild Holder theorem to produce the
+uniform `u`-Holder modulus internally, and chooses the resulting source Holder
+constant `HQ` explicitly.  The resolver-gradient Holder modulus remains a real
+frontier input. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ Hg : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hH₀_nonneg : 0 ≤ H₀) (hHg_nonneg : 0 ≤ Hg)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀))
+    (hg_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |resolverGradReal p (D.u s) a - resolverGradReal p (D.u s) b| ≤
+          Hg * |a - b| ^ θ) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  rcases mild_orderBox_smallTime_holder_of_initialDatumHolder_contracting_couplings
+      D hθ0 hθ1 hH₀_nonneg hholder hplan with
+    ⟨Hu, hHu_nonneg, hu_holder⟩
+  set G : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+      (2 * (p.ν * D.M ^ p.γ)) with hG
+  set HQ : ℝ := Hu * G + D.M * Hg + D.M * G * p.β * G with hHQ
+  have hG_nonneg : 0 ≤ G := by
+    rw [hG]
+    exact mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg D.hM.le _)))
+  have hHQ_nonneg : 0 ≤ HQ := by
+    rw [hHQ]
+    exact add_nonneg
+      (add_nonneg
+        (mul_nonneg hHu_nonneg hG_nonneg)
+        (mul_nonneg D.hM.le hHg_nonneg))
+      (mul_nonneg
+        (mul_nonneg
+          (mul_nonneg D.hM.le hG_nonneg)
+          p.hβ)
+        hG_nonneg)
+  refine ⟨HQ, hHQ_nonneg, ?_⟩
+  refine ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
+    (D := D) (θ := θ) (HQ := HQ) (Hu := Hu) (Hg := Hg)
+    hθ0 hθ1 hHQ_nonneg hHu_nonneg hHg_nonneg ?_ hu_holder hg_holder
+  rw [hHQ, hG]
 
 end
 
