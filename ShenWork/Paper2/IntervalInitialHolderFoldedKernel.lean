@@ -819,6 +819,86 @@ theorem initialDatumHolder_abs_bound
     _ = |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀ := by
         simp [x₀, add_comm]
 
+/-- Initial Holder data make the zero extension continuous on the closed
+interval.  This is the only continuity needed for measurability of the lifted
+datum. -/
+theorem initialDatumHolder_intervalDomainLift_continuousOn
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) := by
+  rw [Metric.continuousOn_iff]
+  intro b hb ε hε
+  set A : ℝ := H₀ + 1 with hA
+  have hApos : 0 < A := by rw [hA]; linarith
+  set δ : ℝ := ((ε / A) ^ (1 / θ : ℝ)) with hδ
+  have hδpos : 0 < δ := by
+    rw [hδ]
+    exact Real.rpow_pos_of_pos (by positivity) _
+  refine ⟨δ, hδpos, ?_⟩
+  intro a ha hab
+  rw [Real.dist_eq]
+  have hdist_nonneg : 0 ≤ |a - b| := abs_nonneg _
+  have hdist_lt : |a - b| < δ := by
+    simpa [Real.dist_eq] using hab
+  have hpow_lt : |a - b| ^ θ < ε / A := by
+    have hpow := Real.rpow_lt_rpow hdist_nonneg hdist_lt hθ0
+    have hcollapse : δ ^ θ = ε / A := by
+      rw [hδ]
+      rw [show (1 / θ : ℝ) = θ⁻¹ by rw [one_div]]
+      have hθne : θ ≠ 0 := ne_of_gt hθ0
+      rw [Real.rpow_inv_rpow (by positivity : 0 ≤ ε / A) hθne]
+    rwa [hcollapse] at hpow
+  have hle :
+      |intervalDomainLift u₀ a - intervalDomainLift u₀ b|
+        ≤ H₀ * |a - b| ^ θ := by
+    simpa [intervalDomainLift, ha, hb] using hholder ⟨a, ha⟩ ⟨b, hb⟩
+  have hmul_le : H₀ * |a - b| ^ θ ≤ A * |a - b| ^ θ := by
+    gcongr
+    rw [hA]
+    linarith
+  have hmul_lt : A * |a - b| ^ θ < ε := by
+    have := mul_lt_mul_of_pos_left hpow_lt hApos
+    rwa [mul_div_cancel₀ ε (ne_of_gt hApos)] at this
+  exact lt_of_le_of_lt (hle.trans hmul_le) hmul_lt
+
+/-- Initial Holder data are continuous on the interval subtype. -/
+theorem initialDatumHolder_continuous
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    Continuous u₀ := by
+  have hcont_on :
+      ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) :=
+    initialDatumHolder_intervalDomainLift_continuousOn hθ0 hH₀ hholder
+  rw [continuousOn_iff_continuous_restrict] at hcont_on
+  have heq :
+      Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift u₀) = u₀ := by
+    ext ⟨x, hx⟩
+    change intervalDomainLift u₀ x = u₀ ⟨x, hx⟩
+    rw [intervalDomainLift, dif_pos hx]
+  rwa [heq] at hcont_on
+
+/-- Initial Holder data make the zero extension measurable on the real line. -/
+theorem initialDatumHolder_intervalDomainLift_measurable
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    Measurable (intervalDomainLift u₀) := by
+  have hcont_on :
+      ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) :=
+    initialDatumHolder_intervalDomainLift_continuousOn hθ0 hH₀ hholder
+  have hpiece :
+      (Set.Icc (0 : ℝ) 1).piecewise (intervalDomainLift u₀) (fun _ : ℝ => 0) =
+        intervalDomainLift u₀ := by
+    funext x
+    by_cases hx : x ∈ Set.Icc (0 : ℝ) 1
+    · rw [Set.piecewise_eq_of_mem _ _ _ hx]
+    · rw [Set.piecewise_eq_of_notMem _ _ _ hx]
+      simp [intervalDomainLift, hx]
+  rw [← hpiece]
+  exact ContinuousOn.measurable_piecewise hcont_on continuousOn_const measurableSet_Icc
+
 /-- Bounded measurable initial data can use the heat-kernel folded-noise
 producer directly, so the initial-leg Holder theorem no longer needs an
 external common-noise `hplan`. -/
@@ -852,6 +932,17 @@ theorem InitialLegUniformHolderAtZero_of_measurable_initialDatumHolder
   exact InitialLegUniformHolderAtZero_of_bounded_initialDatumHolder
     hθ0 hH₀ hM hholder hu₀_meas hu₀_bound
 
+/-- Initial Holder data use their intrinsic measurability and endpoint-plus-
+Holder bound, so no separate measurability or bound hypotheses are needed. -/
+theorem InitialLegUniformHolderAtZero_of_initialDatumHolder
+    {u₀ : intervalDomainPoint → ℝ} {T θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    InitialLegUniformHolderAtZero u₀ T θ H₀ := by
+  exact InitialLegUniformHolderAtZero_of_measurable_initialDatumHolder
+    hθ0 hH₀ hholder
+    (initialDatumHolder_intervalDomainLift_measurable hθ0 hH₀ hholder)
+
 /-- Small-time mild Holder wrapper for bounded measurable initial data, using
 the concrete heat-kernel folded-noise law. -/
 theorem mild_orderBox_smallTime_holder_of_bounded_initialDatumHolder
@@ -882,6 +973,20 @@ theorem mild_orderBox_smallTime_holder_of_measurable_initialDatumHolder
   exact mild_orderBox_smallTime_holder_of_initialLeg_holder D hθ0 hθ1 hH₀
     (InitialLegUniformHolderAtZero_of_measurable_initialDatumHolder
       hθ0 hH₀ hholder hu₀_meas)
+
+/-- Small-time mild Holder wrapper for initial Holder data, with measurability
+and the bound constant supplied by the Holder datum itself. -/
+theorem mild_orderBox_smallTime_holder_of_initialDatumHolder
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ShenWork.IntervalMildPicard.GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  exact mild_orderBox_smallTime_holder_of_measurable_initialDatumHolder
+    D hθ0 hθ1 hH₀ hholder
+    (initialDatumHolder_intervalDomainLift_measurable hθ0 hH₀ hholder)
 
 end
 
