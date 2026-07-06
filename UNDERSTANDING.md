@@ -1,5 +1,27 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 259: PPID resolver-source easy fields reduced to joint continuity (2026-07-06)
+
+`IntervalResolverSourceWindowJointInputs.lean` implements the stricter Q3711
+reduction.  The new `ResolverSourceWindowJointInputs` package removes
+`hpos`, `Msup`/`hub`, and `hlower` from the Task255 primitive input ledger.
+Pointwise positivity is projected from `GradientMildSolutionData.hpos`, the
+upper bound from `GradientMildSolutionData.hbound` with `Msup := D.M`, and
+the compact lower bound from a joint-continuity input for
+`(σ,x) ↦ intervalDomainLift (D.u σ) x` on `(0,D.T) × [0,1]` plus compact
+minimization on `[a,b] × [0,1]`.  Thus positivity/upper/lower fields are no
+longer opaque resolver-source residuals.
+
+`IntervalDomainPPIDResolverSourceJointInputsFrontier.lean` wires the joint
+input package into the PPID source and iterate-source frontier surfaces, then
+exposes the corresponding `χ₀ ≤ 0` and `χ₀ < 0` Theorem 1.1 wrappers.  This
+still carries the u-side time-neighborhood spectral agreement and `hpde_u`
+as sibling fields for the downstream restart/classical route, but they are no
+longer used to manufacture the resolver-source lower-bound field.  The
+remaining real resolver-source producer frontier is now sharper: faithful
+non-`χ₀ = 0` representation/envelope for `D.u`, spatial K2 bounds from that
+envelope, and power-source K1 time-regularity.
+
 ## Task 257: PPID resolver-source lower bound discharged from u-side spectral continuity (2026-07-06)
 
 `IntervalResolverSourceWindowInputsNoLower.lean` removes the compact
