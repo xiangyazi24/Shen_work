@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalChiNegH1InitialWiring
 import ShenWork.Paper2.IntervalChiNegH1PhysicalYoungSpatial
+import ShenWork.Paper2.IntervalChiNegH1PhysicalIdentityRouteC
 
 /-!
 # Physical H¹ exit wrappers
@@ -19,6 +20,7 @@ open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1InitialContinuity
 open ShenWork.Paper2.IntervalChiNegH1InitialWiring
 open ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
+open ShenWork.Paper2.IntervalChiNegH1PhysicalIdentityRouteC
 open ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 open ShenWork.Paper2.IntervalChiNegH1PhysicalYoungSpatial
 open ShenWork.Paper2.IntervalChiNegH1SupBoundDIProducer
@@ -74,5 +76,36 @@ theorem boundedBefore_of_physical_classical_zeroStartPrimitiveData_initialEndpoi
 
 #print axioms
   boundedBefore_of_physical_classical_zeroStartPrimitiveData_initialEndpointData_before
+
+/-- Endpoint-data bounded-before wrapper after the physical identity has been
+closed from the classical solution.  The remaining explicit analytic frontiers
+are the zero-start primitive data and square-root bounds. -/
+theorem
+    boundedBefore_of_physical_classical_zeroStart_identityClosed_before
+    {params : CM2Params} {T δ V₁ V₂ M L : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IntervalDomainBoundednessHyp params)
+    (ha : 0 < params.a)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀)
+    (hT : 0 < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hfrontier : IntervalDomainL2SeedRegularityFrontier T u)
+    (hinit : H1InitialEndpointData u₀ u T)
+    (H : H1ZeroStartPhysicalPrimitiveDataBefore params u v T)
+    (hBounds : H1PhysicalRHSSqrtBoundsBefore params u v T V₁ V₂ M L)
+    (hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  boundedBefore_of_physical_classical_zeroStartPrimitiveData_initialEndpointData_before
+    (params := params) (T := T) (δ := δ)
+    (V₁ := V₁) (V₂ := V₂) (M := M) (L := L)
+    (u₀ := u₀) (u := u) (v := v)
+    hbounded ha hu₀ hT hsol htrace hfrontier hinit H
+    (H1PhysicalRHSIdentityBefore_of_classicalSolution hsol)
+    hBounds hδ_pos hδ_before
+
+#print axioms
+  boundedBefore_of_physical_classical_zeroStart_identityClosed_before
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalExit
