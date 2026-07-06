@@ -20,6 +20,14 @@ producers are:
 Verification before banking: targeted module build, root `ShenWork.lean`,
 proof-hole/whitespace scans, and clean-3 axiom audits all passed locally.
 
+Task 152 extends the same file with thin base and negative-part B-form headline
+wrappers.  These wrappers consume the proved general chi nonpositive window
+boundary producer internally, so the full-PID Picard-restart and Picard-limit
+B-form routes no longer expose a separate boundary min-persistence residual at
+that layer.  They remain conditional on the corresponding B-form local package,
+the Picard restart or Picard-limit frontier, and the scalar parameter
+assumptions.
+
 ## L2 Seed Frontier Producer (2026-07-03)
 
 **File: `ShenWork/Paper2/IntervalDomainL2SeedFrontierProducer.lean`** (149 lines, axiom-clean)

@@ -442,4 +442,137 @@ theorem boundaryMinPersistenceWindowBound_chiNonpos
   boundaryMinPersistenceWindowBound_of_endpointBounds
     (boundaryMinPersistenceWindowEndpointBounds_chiNonpos p hχ ha hb)
 
+/-- Base B-form quantitative local existence with the general-chi windowed
+boundary persistence producer supplied internally. -/
+theorem quantitativeLocalExistence_of_picardFrontier_boundary_window_chiNonpos_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardFrontier_boundary_window_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one hPF
+    (boundaryMinPersistenceWindowBound_chiNonpos p hχ ha hb)
+    hBForm
+
+/-- Base B-form quantitative local existence with Picard-limit restart and the
+general-chi windowed boundary persistence producer supplied internally. -/
+theorem quantitativeLocalExistence_of_picardLimitFrontier_boundary_window_chiNonpos_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardLimitFrontier_boundary_window_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one hPLF
+    (boundaryMinPersistenceWindowBound_chiNonpos p hχ ha hb)
+    hBForm
+
+/-- Base B-form headline with Picard restart and the general-chi windowed
+boundary persistence producer supplied internally. -/
+theorem paper2_theorem_1_1_general_chi_bform_from_picardFrontier_boundary_window_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHyp p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_from_quant p hχ ha hb hγ_ge_one hBForm
+    (quantitativeLocalExistence_of_picardFrontier_boundary_window_chiNonpos_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPF hBForm)
+
+/-- Base B-form headline with Picard-limit restart and the general-chi windowed
+boundary persistence producer supplied internally. -/
+theorem paper2_theorem_1_1_general_chi_bform_from_picardLimitFrontier_boundary_window_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHyp p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_from_quant p hχ ha hb hγ_ge_one hBForm
+    (quantitativeLocalExistence_of_picardLimitFrontier_boundary_window_chiNonpos_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPLF hBForm)
+
 end ShenWork.Paper2.BFormPositiveDatumLocal
+
+namespace ShenWork.Paper2.BFormPositiveDatumNegPart
+
+/-- Negative-part B-form quantitative local existence with the general-chi
+windowed boundary persistence producer supplied internally. -/
+theorem quantitativeLocalExistence_of_picardFrontier_boundary_window_chiNonpos_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hPerDatum : BFormPositiveLocalFrontier p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardFrontier_boundary_window_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one hPF
+    (ShenWork.Paper2.BFormPositiveDatumLocal.boundaryMinPersistenceWindowBound_chiNonpos
+      p hχ ha hb)
+    hPerDatum
+
+/-- Negative-part B-form quantitative local existence with Picard-limit restart
+and the general-chi windowed boundary persistence producer supplied internally. -/
+theorem quantitativeLocalExistence_of_picardLimitFrontier_boundary_window_chiNonpos_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPerDatum : BFormPositiveLocalFrontier p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardLimitFrontier_boundary_window_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one hPLF
+    (ShenWork.Paper2.BFormPositiveDatumLocal.boundaryMinPersistenceWindowBound_chiNonpos
+      p hχ ha hb)
+    hPerDatum
+
+/-- Negative-part B-form headline with Picard restart and the general-chi
+windowed boundary persistence producer supplied internally. -/
+theorem paper2_theorem_1_1_general_chi_bform_negpart_from_picardFrontier_boundary_window_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPerDatum : BFormPositiveLocalFrontier p)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_negpart_from_quant
+    p hχ ha hb hγ_ge_one hPerDatum
+    (quantitativeLocalExistence_of_picardFrontier_boundary_window_chiNonpos_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPF hPerDatum)
+
+/-- Negative-part B-form headline with Picard-limit restart and the general-chi
+windowed boundary persistence producer supplied internally. -/
+theorem
+    paper2_theorem_1_1_general_chi_bform_negpart_from_picardLimitFrontier_boundary_window_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPerDatum : BFormPositiveLocalFrontier p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_negpart_from_quant
+    p hχ ha hb hγ_ge_one hPerDatum
+    (quantitativeLocalExistence_of_picardLimitFrontier_boundary_window_chiNonpos_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPLF hPerDatum)
+
+end ShenWork.Paper2.BFormPositiveDatumNegPart
