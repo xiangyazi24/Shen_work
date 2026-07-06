@@ -2,6 +2,7 @@ import ShenWork.Paper2.IntervalChiNegH1PhysicalResolverSupProducer
 import ShenWork.Paper2.IntervalChiNegH1PhysicalIdentityRouteC
 import ShenWork.Paper2.IntervalChiNegH1PhysicalYoungSpatial
 import ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents
+import ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 /-!
 # Physical H¹ strict/initial route from independent bounded-before data
@@ -23,6 +24,7 @@ open ShenWork.Paper2.IntervalChiNegH1PhysicalYoungSpatial
 open ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 open ShenWork.Paper2.IntervalChiNegH1PhysicalChemSqrtBounds
 open ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents
+open ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 noncomputable section
 
@@ -124,9 +126,79 @@ theorem
       hBounds
       hδ_pos hδ_before
 
+/-- Nonminimal negative-sensitivity specialization: the independent
+bounded-before source is the corrected initial-approach sup-norm bound from
+Lemma 3.1. -/
+theorem
+    H1PhysicalRHSStrictInitialRouteBefore_of_classical_nonminimal_zeroStartPrimitiveData
+    (p : CM2Params)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T δ : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (H : H1ZeroStartPhysicalPrimitiveDataBefore p u v T)
+    (hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    ∃ M, H1PhysicalRHSStrictInitialRouteBefore p u v T
+      (H1PhysicalChemResolverGradCap p M)
+      (H1PhysicalChemUvxxCoreSupConstant p M
+        (H1PhysicalChemResolverValueCap p M)
+        (H1PhysicalChemResolverGradCap p M))
+      M p.a := by
+  have hbounded : IsPaper2BoundedBefore intervalDomain T u :=
+    boundedBefore_nonminimal_of_corrected_initial_approach
+      p hboundedInitial hχ ha hb hu₀ hT hsol htrace
+  exact
+    H1PhysicalRHSStrictInitialRouteBefore_of_classical_boundedBefore_zeroStartPrimitiveData
+      (p := p) (T := T) (δ := δ) (L := p.a) (u := u) (v := v)
+      hsol (by linarith) le_rfl hbounded H hδ_pos hδ_before
+
+/-- Minimal negative-sensitivity specialization: the independent bounded-before
+source is the corrected initial-approach sup-norm bound in the zero-reaction
+branch. -/
+theorem
+    H1PhysicalRHSStrictInitialRouteBefore_of_classical_minimal_zeroStartPrimitiveData
+    (p : CM2Params)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T δ : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (H : H1ZeroStartPhysicalPrimitiveDataBefore p u v T)
+    (hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    ∃ M, H1PhysicalRHSStrictInitialRouteBefore p u v T
+      (H1PhysicalChemResolverGradCap p M)
+      (H1PhysicalChemUvxxCoreSupConstant p M
+        (H1PhysicalChemResolverValueCap p M)
+        (H1PhysicalChemResolverGradCap p M))
+      M 0 := by
+  have hbounded : IsPaper2BoundedBefore intervalDomain T u :=
+    boundedBefore_minimal_of_corrected_initial_approach
+      p hboundedInitial hχ ha hb hu₀ hT hsol htrace
+  exact
+    H1PhysicalRHSStrictInitialRouteBefore_of_classical_boundedBefore_zeroStartPrimitiveData
+      (p := p) (T := T) (δ := δ) (L := 0) (u := u) (v := v)
+      hsol (by linarith) (by simp [ha]) hbounded H hδ_pos hδ_before
+
 #print axioms H1PhysicalRHSStrictInitialRouteBefore_of_classical_boundedBefore_youngScalarZero
 #print axioms H1PhysicalRHSStrictInitialRouteBefore_of_classical_boundedBefore_componentSquareZero
 #print axioms
   H1PhysicalRHSStrictInitialRouteBefore_of_classical_boundedBefore_zeroStartPrimitiveData
+#print axioms
+  H1PhysicalRHSStrictInitialRouteBefore_of_classical_nonminimal_zeroStartPrimitiveData
+#print axioms
+  H1PhysicalRHSStrictInitialRouteBefore_of_classical_minimal_zeroStartPrimitiveData
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalBoundedBeforeRoute
