@@ -164,6 +164,112 @@ theorem addCircle_two_foldPoint_translate_contract_real
   have hxy := addCircle_two_dist_coe_eq_abs_Icc x.2 y.2
   simpa [addCircleTwoFoldPoint, htrans, hxy] using hrev
 
+/-- Common folded-noise interface for the reflected Neumann heat leg.  A
+producer should supply one noise law `ν` such that folding the same translated
+period-2 noise from `x` and `y` gives the two semigroup values.  This file only
+uses the interface; the analytic kernel-law representation is a separate task. -/
+structure NeumannHeatCommonFoldNoiseFor
+    (t : ℝ) (x y : intervalDomainPoint) (f : ℝ → ℝ) where
+  ν : Measure ℝ
+  prob : IsProbabilityMeasure ν
+  fx_integrable : Integrable (fun z : ℝ =>
+    f (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1) ν
+  fy_integrable : Integrable (fun z : ℝ =>
+    f (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1) ν
+  sx_eq :
+    intervalFullSemigroupOperator t f x.1 =
+      ∫ z : ℝ,
+        f (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 ∂ν
+  sy_eq :
+    intervalFullSemigroupOperator t f y.1 =
+      ∫ z : ℝ,
+        f (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 ∂ν
+
+/-- A common folded-noise representation preserves the initial Holder modulus
+for the homogeneous Neumann heat leg.  The proof uses only the deterministic
+fold contraction plus integral Minkowski; the construction of the noise law is
+kept explicit in `hplan`. -/
+theorem InitialLegUniformHolderAtZero_of_common_fold_noise
+    {u₀ : intervalDomainPoint → ℝ} {T θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ T → ∀ x y : intervalDomainPoint,
+      NeumannHeatCommonFoldNoiseFor t x y (intervalDomainLift u₀)) :
+    InitialLegUniformHolderAtZero u₀ T θ H₀ := by
+  intro t htpos htT x y
+  rcases hplan t htpos htT x y with ⟨ν, hprob, hxint, hyint, hxeq, hyeq⟩
+  haveI : IsProbabilityMeasure ν := hprob
+  rw [hxeq, hyeq, ← integral_sub hxint hyint]
+  have hdiff_int : Integrable (fun z : ℝ =>
+      intervalDomainLift u₀
+          (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+        intervalDomainLift u₀
+          (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1) ν :=
+    hxint.sub hyint
+  have hpoint :
+      (fun z : ℝ =>
+          |intervalDomainLift u₀
+              (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+            intervalDomainLift u₀
+              (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1|)
+        ≤ᵐ[ν]
+      fun _z : ℝ => H₀ * |x.1 - y.1| ^ θ := by
+    filter_upwards with z
+    set X : intervalDomainPoint :=
+      addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ))) with hX
+    set Y : intervalDomainPoint :=
+      addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ))) with hY
+    have hholder_z :
+        |intervalDomainLift u₀ X.1 - intervalDomainLift u₀ Y.1|
+          ≤ H₀ * |X.1 - Y.1| ^ θ := by
+      simpa [InitialDatumHolder, intervalDomainLift, X, Y] using hholder X Y
+    have hdist_z : |X.1 - Y.1| ≤ |x.1 - y.1| := by
+      simpa [X, Y] using addCircle_two_foldPoint_translate_contract_real x y z
+    exact hholder_z.trans (mul_le_mul_of_nonneg_left
+      (Real.rpow_le_rpow (abs_nonneg _) hdist_z hθ0.le) hH₀)
+  calc
+    |∫ z : ℝ,
+        intervalDomainLift u₀
+            (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+          intervalDomainLift u₀
+            (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 ∂ν|
+        = ‖∫ z : ℝ,
+            intervalDomainLift u₀
+                (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+              intervalDomainLift u₀
+                (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 ∂ν‖ := by
+          rw [Real.norm_eq_abs]
+    _ ≤ ∫ z : ℝ,
+          ‖intervalDomainLift u₀
+              (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+            intervalDomainLift u₀
+              (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1‖ ∂ν :=
+        norm_integral_le_integral_norm _
+    _ = ∫ z : ℝ,
+          |intervalDomainLift u₀
+              (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+            intervalDomainLift u₀
+              (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1| ∂ν := by
+        simp [Real.norm_eq_abs]
+    _ ≤ ∫ _z : ℝ, H₀ * |x.1 - y.1| ^ θ ∂ν :=
+        integral_mono_ae hdiff_int.abs (integrable_const _) hpoint
+    _ = H₀ * |x.1 - y.1| ^ θ := by
+        simp
+
+/-- Small-time mild Holder wrapper using initial-data Holder regularity and a
+common folded-noise producer for the homogeneous Neumann heat leg. -/
+theorem mild_orderBox_smallTime_holder_of_initialDatumHolder_common_fold_noise
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatCommonFoldNoiseFor t x y (intervalDomainLift u₀)) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  exact mild_orderBox_smallTime_holder_of_initialLeg_holder D hθ0 hθ1 hH₀
+    (InitialLegUniformHolderAtZero_of_common_fold_noise hθ0 hH₀ hholder hplan)
+
 end
 
 end ShenWork.Paper2
