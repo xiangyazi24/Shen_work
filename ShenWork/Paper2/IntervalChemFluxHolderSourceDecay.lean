@@ -399,6 +399,186 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_components
   exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_components
     D hθ0 hθ1 hH₀_nonneg hHg_nonneg hholder hplan hg_holder
 
+/-- Uniform quadratic decay of the elliptic source coefficients on the positive
+time window.  This is the quantitative upstream frontier that can produce the
+uniform resolver-gradient C¹ control used by Task175. -/
+structure UniformSourceCoeffQuadraticDecayOn
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
+    (T Csrc : ℝ) : Prop where
+  Csrc_nonneg : 0 ≤ Csrc
+  decay : ∀ s, 0 < s → s ≤ T → ∀ k : ℕ, 1 ≤ k →
+    |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| ≤
+      Csrc / ((k : ℝ) * Real.pi) ^ 2
+
+/-- A uniform source-coefficient decay record gives per-time
+`SourceCoeffQuadraticDecay`. -/
+def UniformSourceCoeffQuadraticDecayOn.sourceDecay
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T Csrc : ℝ}
+    (H : UniformSourceCoeffQuadraticDecayOn p u T Csrc) :
+    ∀ s, 0 < s → s ≤ T → SourceCoeffQuadraticDecay p (u s) := by
+  intro s hs0 hsT
+  exact ⟨Csrc, H.Csrc_nonneg, H.decay s hs0 hsT⟩
+
+/-- Fixed summable majorant for the resolver second derivative under a uniform
+source-coefficient quadratic decay constant. -/
+noncomputable def resolverGrad2UniformMajorant (Csrc : ℝ) (k : ℕ) : ℝ :=
+  if k = 0 then 0 else Csrc / Real.pi ^ 2 * (1 / (k : ℝ) ^ 2)
+
+theorem resolverGrad2UniformMajorant_nonneg {Csrc : ℝ}
+    (hCsrc : 0 ≤ Csrc) (k : ℕ) :
+    0 ≤ resolverGrad2UniformMajorant Csrc k := by
+  by_cases hk : k = 0
+  · simp [resolverGrad2UniformMajorant, hk]
+  · have hpi2 : 0 ≤ Real.pi ^ 2 := sq_nonneg _
+    have hk2 : 0 ≤ (k : ℝ) ^ 2 := sq_nonneg _
+    simpa [resolverGrad2UniformMajorant, hk] using
+      mul_nonneg (div_nonneg hCsrc hpi2) (inv_nonneg.mpr hk2)
+
+theorem resolverGrad2UniformMajorant_summable (Csrc : ℝ) :
+    Summable fun k : ℕ => resolverGrad2UniformMajorant Csrc k := by
+  classical
+  rw [← summable_nat_add_iff 1]
+  have hp2 : Summable fun k : ℕ => 1 / ((k : ℝ) + 1) ^ 2 := by
+    have := (Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)
+    simpa using (summable_nat_add_iff (f := fun k : ℕ => 1 / (k : ℝ) ^ 2) 1).2 this
+  convert hp2.mul_left (Csrc / Real.pi ^ 2) using 1
+  ext k
+  simp [resolverGrad2UniformMajorant, Nat.cast_add, Nat.cast_one]
+
+/-- Concrete uniform bound obtained by summing the fixed second-derivative
+majorant. -/
+noncomputable def resolverGrad2UniformBound (Csrc : ℝ) : ℝ :=
+  ∑' k : ℕ, resolverGrad2UniformMajorant Csrc k
+
+theorem resolverGrad2UniformBound_nonneg {Csrc : ℝ} (hCsrc : 0 ≤ Csrc) :
+    0 ≤ resolverGrad2UniformBound Csrc := by
+  exact tsum_nonneg fun k => resolverGrad2UniformMajorant_nonneg hCsrc k
+
+/-- Uniform source-coefficient quadratic decay gives a single uniform bound on
+the resolver second derivative series. -/
+theorem resolverGrad2Real_uniform_bound_of_uniformSourceCoeffQuadraticDecayOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T Csrc : ℝ}
+    (H : UniformSourceCoeffQuadraticDecayOn p u T Csrc) :
+    ∀ s, 0 < s → s ≤ T → ∀ z : ℝ,
+      |resolverGrad2Real p (u s) z| ≤ resolverGrad2UniformBound Csrc := by
+  classical
+  set majorant : ℕ → ℝ := resolverGrad2UniformMajorant Csrc with hmajorant
+  have hmajorant_sum : Summable majorant := by
+    simpa [majorant] using resolverGrad2UniformMajorant_summable Csrc
+  intro s hs0 hsT z
+  set term : ℕ → ℝ := fun k =>
+    (ShenWork.PDE.intervalNeumannResolverCoeff p (u s) k).re *
+      (-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * z)) with hterm
+  have hterm_le : ∀ k : ℕ, ‖term k‖ ≤ majorant k := by
+    intro k
+    by_cases hk0 : k = 0
+    · subst k
+      simp [term, majorant, resolverGrad2UniformMajorant]
+    · have hk1 : 1 ≤ k := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hk0)
+      have hkpos_nat : 0 < k := Nat.pos_of_ne_zero hk0
+      have hkpos : (0 : ℝ) < (k : ℝ) := by exact_mod_cast hkpos_nat
+      have hkpipos : (0 : ℝ) < (k : ℝ) * Real.pi := mul_pos hkpos Real.pi_pos
+      have hkpisqpos : (0 : ℝ) < ((k : ℝ) * Real.pi) ^ 2 := by positivity
+      have hden_pos : 0 < p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k :=
+        ShenWork.PDE.intervalNeumannResolver_denom_pos p k
+      have hlam :
+          ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k =
+            (k : ℝ) ^ 2 * Real.pi ^ 2 := rfl
+      have hdenlow :
+          ((k : ℝ) * Real.pi) ^ 2 ≤
+            p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k := by
+        rw [hlam]
+        nlinarith [p.hμ.le, sq_nonneg ((k : ℝ) * Real.pi)]
+      have hsrc := H.decay s hs0 hsT k hk1
+      have hmode :
+          |(-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * z))| ≤
+            ((k : ℝ) * Real.pi) ^ 2 := by
+        rw [abs_mul, abs_neg, abs_of_nonneg (sq_nonneg _)]
+        calc ((k : ℝ) * Real.pi) ^ 2 * |Real.cos ((k : ℝ) * Real.pi * z)|
+            ≤ ((k : ℝ) * Real.pi) ^ 2 * 1 :=
+              mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (sq_nonneg _)
+          _ = ((k : ℝ) * Real.pi) ^ 2 := mul_one _
+      have hcoeff :
+          |(ShenWork.PDE.intervalNeumannResolverCoeff p (u s) k).re| =
+            |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| /
+              (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) := by
+        rw [ShenWork.IntervalResolverGradientBridge.resolverCoeff_re_eq,
+          abs_div, abs_of_pos hden_pos]
+      have hterm_base :
+          ‖term k‖ ≤
+            |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| /
+              (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+                ((k : ℝ) * Real.pi) ^ 2 := by
+        rw [hterm, Real.norm_eq_abs, abs_mul, hcoeff]
+        exact mul_le_mul_of_nonneg_left hmode
+          (div_nonneg (abs_nonneg _) hden_pos.le)
+      have hratio :
+          |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| /
+              (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+                ((k : ℝ) * Real.pi) ^ 2 ≤
+            |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| := by
+        have hdivle : ((k : ℝ) * Real.pi) ^ 2 /
+            (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) ≤ 1 := by
+          exact (div_le_one hden_pos).2 hdenlow
+        calc
+          |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| /
+              (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+                ((k : ℝ) * Real.pi) ^ 2
+              = |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| *
+                  (((k : ℝ) * Real.pi) ^ 2 /
+                    (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k)) := by
+                ring
+          _ ≤ |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| * 1 :=
+              mul_le_mul_of_nonneg_left hdivle (abs_nonneg _)
+          _ = |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| := mul_one _
+      have htarget :
+          Csrc / ((k : ℝ) * Real.pi) ^ 2 = majorant k := by
+        rw [hmajorant, resolverGrad2UniformMajorant, if_neg hk0]
+        have hkne : (k : ℝ) ≠ 0 := by exact_mod_cast hk0
+        field_simp [hkne, Real.pi_ne_zero]
+      exact hterm_base.trans (hratio.trans (hsrc.trans (by rw [htarget])))
+  have hterm_sum : Summable term := by
+    apply Summable.of_norm
+    exact Summable.of_nonneg_of_le (fun k => norm_nonneg _) hterm_le hmajorant_sum
+  have hnorm_sum : Summable fun k : ℕ => ‖term k‖ := hterm_sum.norm
+  have hsum_norm_le :
+      (∑' k : ℕ, ‖term k‖) ≤ resolverGrad2UniformBound Csrc := by
+    simpa [resolverGrad2UniformBound, majorant] using
+      hnorm_sum.tsum_le_tsum hterm_le hmajorant_sum
+  calc
+    |resolverGrad2Real p (u s) z|
+        = ‖∑' k : ℕ, term k‖ := by
+          rw [Real.norm_eq_abs]
+          congr 1
+    _ ≤ ∑' k : ℕ, ‖term k‖ := norm_tsum_le_tsum_norm hterm_sum.norm
+    _ ≤ resolverGrad2UniformBound Csrc := hsum_norm_le
+
+/-- Initial-data Holder chemFlux source package from a uniform source-coefficient
+quadratic decay frontier. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_uniformSourceCoeff_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ Csrc : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀))
+    (Hsrc : UniformSourceCoeffQuadraticDecayOn p D.u D.T Csrc) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_components
+    D hθ0 hθ1 hH₀_nonneg
+    (resolverGrad2UniformBound_nonneg Hsrc.Csrc_nonneg)
+    hholder hplan Hsrc.sourceDecay
+    (by
+      intro s hs0 hsT z _hz
+      exact resolverGrad2Real_uniform_bound_of_uniformSourceCoeffQuadraticDecayOn
+        Hsrc s hs0 hsT z)
+
 end
 
 end ShenWork.Paper2
