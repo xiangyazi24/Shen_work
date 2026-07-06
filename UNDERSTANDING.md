@@ -1,5 +1,20 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 241: PPID Picard-frontier bridge to Theorem 1.1 (2026-07-06)
+
+`IntervalDomainPPIDPicardFrontierTheorem11.lean` lowers the Task240
+`ThresholdQuantitativeLocalExistence` input to the existing
+`ThresholdQuantBridge.PicardRestartFrontier` interface via
+`thresholdQuantitativeLocalExistence_of_picardFrontier`.  The resulting theorem
+`PPIDThresholdReachability.theorem_1_1_intervalDomain_of_ppid_picardFrontier_persistence_seed`
+proves `Theorem_1_1 intervalDomain p` from regime assumptions,
+`PicardRestartFrontier p`, `ClassicalMinPersistence p`, and per-datum PPID seed
+local existence.
+
+This is still conditional, but the threshold-local Picard contraction core is no
+longer a residual at this layer.  The remaining PPID-route residuals are the
+Picard restart frontier, min-persistence, and PPID seed local existence.
+
 ## Task 240: PPID threshold/min-persistence bridge to Theorem 1.1 (2026-07-06)
 
 `IntervalDomainPPIDThresholdTheorem11.lean` lifts the Task238 anti-Zeno
