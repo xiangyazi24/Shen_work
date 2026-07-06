@@ -1,5 +1,27 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 274: Chi-zero hsrc0 produced from iterate bootstrap inputs (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs.lean` now exposes
+`ResolverSourceWindowHsrc0BootstrapInputs`, a thin interface around the
+non-circular iterate-side producer
+`IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates`.  The package
+carries the per-window iterate coefficient envelope, pointwise iterate-to-limit
+source coefficient convergence, and patched-source coefficient time continuity;
+the datum-side source bound is derived from `PositiveInitialDatum` through
+`IntervalPicardLimitBddHcontP.datum_source_coeff_bound`.  The adapter
+`resolverSourceWindowHsrc0Inputs_of_bootstrapInputs` turns those inputs into the
+Task270 hsrc0-only resolver-source package, and a convenience adapter feeds the
+existing envelope/no-joint package.
+
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointHsrc0InputsFrontier.lean`
+adds source and iterate bootstrap/no-Hu surfaces.  These no longer carry the
+full-horizon hsrc0 package or the u-side Hu package as explicit sibling fields:
+the hsrc0 package is produced from bootstrap inputs, and Hu is reconstructed by
+Task273 before routing into the existing chi-zero headline wrappers.  The route
+remains conditional on the bootstrap analytic inputs and the pointwise PDE
+identity; it is not yet an unconditional theorem.
+
 ## Task 273: Chi-zero hsrc0-only route no longer carries Hu separately (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs.lean` now proves

@@ -10,17 +10,20 @@
 import ShenWork.Paper2.IntervalResolverSourceWindowEnvelopeOnlyNoJointNoK1Inputs
 import ShenWork.Paper2.IntervalPicardLimitBddAdapterPatched
 import ShenWork.Paper2.IntervalResolverSpectralAgreementFromK1
+import ShenWork.Paper2.IntervalPicardLimitBddBootstrap
+import ShenWork.Paper2.IntervalPicardLimitBddHcontP
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomain intervalDomainLift intervalDomainPoint
   intervalDomainConstExtend)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
-open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData picardIter)
 open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreement)
 open ShenWork.IntervalPicardLimitRestart (limitCoeff)
 open ShenWork.IntervalPicardLimitRestartBdd (DuhamelSourceBddOn)
-open ShenWork.IntervalPicardLimitBddProducer (patchedSource)
+open ShenWork.IntervalPicardLimitBddProducer (patchedSource windowEnv)
 open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalPicardLimitBddAdapter (windowEigEnv windowEigEnv_summable)
 open ShenWork.Paper2.ResolverSpectralAgreementFromK1
@@ -36,6 +39,41 @@ structure ResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀) where
   hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T
+
+/-- Iterate-side bootstrap inputs for the remaining Task270 resolver-source
+residual `hsrc0`.  These are the non-circular hypotheses consumed by
+`duhamelSourceBddOn_of_iterates`; the datum-side source bound is derived from
+`PositiveInitialDatum`. -/
+structure ResolverSourceWindowHsrc0BootstrapInputs
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) where
+  Cwin : ℝ → ℝ
+  hCwin : ∀ a', 0 ≤ Cwin a'
+  henv_iter : ∀ a', 0 < a' → ∀ s, a' ≤ s → s ≤ D.T → ∀ (n : ℕ) (k : ℕ),
+    |cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k| ≤ windowEnv (Cwin a') k
+  hconv : ∀ s, 0 < s → s ≤ D.T → ∀ k,
+    Tendsto (fun n => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+      atTop (nhds (cosineCoeffs (logisticLifted p (D.u s)) k))
+  hcontP : ∀ k, ContinuousOn
+    (fun s => patchedSource p u₀ D.u s k) (Set.Icc 0 D.T)
+
+/-- Produce the hsrc0-only resolver-source input package from the iterate-side
+bounded-source bootstrap inputs. -/
+noncomputable def resolverSourceWindowHsrc0Inputs_of_bootstrapInputs
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (B : ResolverSourceWindowHsrc0BootstrapInputs p D) :
+    ResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs p D where
+  hsrc0 :=
+    ShenWork.IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates
+      p D hα ha hb
+      (ShenWork.IntervalPicardLimitBddHcontP.datumBound_nonneg p hu₀.admissible.1)
+      (ShenWork.IntervalPicardLimitBddHcontP.datum_source_coeff_bound p
+        hu₀.admissible.2 hu₀.admissible.1 hu₀.2)
+      B.Cwin B.hCwin B.henv_iter B.hconv
+      (τ := D.T) D.hT le_rfl B.hcontP
 
 /-- The canonical `limitCoeff` package fills the no-K1 envelope/no-joint surface
 from the bounded patched-source package in the χ₀ = 0 branch. -/
@@ -104,6 +142,20 @@ def resolverSourceWindowEnvelopeOnlyNoJointInputs_of_hsrc0Inputs
   resolverSourceWindowEnvelopeOnlyNoJointInputs_of_envelopeOnlyNoJointNoK1Inputs
     hχ0 hα ha hb hu₀
     (resolverSourceWindowEnvelopeOnlyNoJointNoK1Inputs_of_hsrc0Inputs hχ0 hu₀ H)
+
+/-- Bootstrap inputs fill the existing envelope/no-joint source package through
+the hsrc0-only adapter. -/
+noncomputable def resolverSourceWindowEnvelopeOnlyNoJointInputs_of_hsrc0BootstrapInputs
+    {p : CM2Params} (hχ0 : p.χ₀ = 0)
+    {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (B : ResolverSourceWindowHsrc0BootstrapInputs p D) :
+    ResolverSourceWindowEnvelopeOnlyNoJointInputs p D :=
+  resolverSourceWindowEnvelopeOnlyNoJointInputs_of_hsrc0Inputs
+    hχ0 hα ha hb hu₀
+    (resolverSourceWindowHsrc0Inputs_of_bootstrapInputs hα ha hb hu₀ B)
 
 /-- In the χ₀ = 0 branch, the same `hsrc0`-only package also reconstructs the
 u-side time-neighborhood spectral agreement.  The proof derives the
