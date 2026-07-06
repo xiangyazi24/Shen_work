@@ -66,6 +66,129 @@ theorem chemFlux_secondDeriv_slice_bound_of_CthetaSourceOn
     (H.flux_holder s hs0 hsT)
     hx
 
+/-- Time-cutoff chemotaxis flux source.  It agrees with the real flux on the
+positive window `0 < s ≤ T` and is zero elsewhere, so local-in-time source
+bounds become honest global-in-`s` bounds. -/
+def chemFluxCthetaCutoffSource
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) :
+    ℝ → ℝ → ℝ :=
+  fun s y => if 0 < s ∧ s ≤ T then chemFluxLifted p (u s) y else 0
+
+theorem chemFluxCthetaCutoffSource_aestronglyMeasurable
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ) :
+    ∀ s : ℝ,
+      AEStronglyMeasurable (chemFluxCthetaCutoffSource p u T s)
+        (intervalMeasure 1) := by
+  intro s
+  by_cases hs : 0 < s ∧ s ≤ T
+  · change AEStronglyMeasurable
+      (fun y : ℝ => if 0 < s ∧ s ≤ T then chemFluxLifted p (u s) y else 0)
+      (intervalMeasure 1)
+    simpa [hs] using
+      (H.flux_int s).aestronglyMeasurable
+  · change AEStronglyMeasurable
+      (fun y : ℝ => if 0 < s ∧ s ≤ T then chemFluxLifted p (u s) y else 0)
+      (intervalMeasure 1)
+    simpa [hs] using
+      (aestronglyMeasurable_const :
+        AEStronglyMeasurable (fun _ : ℝ => (0 : ℝ)) (intervalMeasure 1))
+
+theorem chemFluxCthetaCutoffSource_bound
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ) :
+    ∀ s y : ℝ, |chemFluxCthetaCutoffSource p u T s y| ≤ CQ := by
+  intro s y
+  by_cases hs : 0 < s ∧ s ≤ T
+  · simpa [chemFluxCthetaCutoffSource, hs] using
+      H.flux_bound s hs.1 hs.2 y
+  · simpa [chemFluxCthetaCutoffSource, hs] using H.CQ_nonneg
+
+theorem chemFluxCthetaCutoffSource_holder
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ) :
+    ∀ s a b : ℝ, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |chemFluxCthetaCutoffSource p u T s a -
+        chemFluxCthetaCutoffSource p u T s b| ≤ HQ * |a - b| ^ θ := by
+  intro s a b ha hb
+  by_cases hs : 0 < s ∧ s ≤ T
+  · simpa [chemFluxCthetaCutoffSource, hs] using
+      H.flux_holder s hs.1 hs.2 a b ha hb
+  · have hnonneg : 0 ≤ HQ * |a - b| ^ θ :=
+      mul_nonneg H.HQ_nonneg (Real.rpow_nonneg (abs_nonneg _) _)
+    simpa [chemFluxCthetaCutoffSource, hs] using hnonneg
+
+/-- Zero-time vanishing of the cutoff chem-flux second-derivative Duhamel leg
+from the local-window `C^θ` source package.  This is a global-source consumer
+for the cutoff; it does not identify cutoff and original source integrals. -/
+theorem chemFlux_cutoff_secondDerivDuhamel_tendsto_zero_of_CthetaSourceOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ)
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxCthetaCutoffSource p u T s) w) z) x)
+        volume 0 t) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => deriv
+            (fun w : ℝ =>
+              ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                (t - s) (chemFluxCthetaCutoffSource p u T s) w) z) x| < ε := by
+  exact
+    ShenWork.IntervalNeumannFullKernel.secondDerivDuhamel_tendsto_zero_of_uniform_holder
+      H.theta_pos H.theta_lt_one H.HQ_nonneg
+      (chemFluxCthetaCutoffSource_aestronglyMeasurable H)
+      (chemFluxCthetaCutoffSource_bound H)
+      (chemFluxCthetaCutoffSource_holder H)
+      h2_int
+
+/-- Leibniz-facing zero-time wrapper for the spatial derivative of the cutoff
+chem-flux gradient-Duhamel leg. -/
+theorem chemFlux_cutoff_gradDuhamel_deriv_tendsto_zero_of_CthetaSourceOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ)
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxCthetaCutoffSource p u T s) w) z) x)
+        volume 0 t)
+    (hLeibniz : ∀ {t x : ℝ}, 0 < t →
+      deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxCthetaCutoffSource p u T s) z) y) x =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxCthetaCutoffSource p u T s) w) z) x) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxCthetaCutoffSource p u T s) z) y) x| < ε := by
+  exact
+    ShenWork.IntervalNeumannFullKernel.gradDuhamel_deriv_tendsto_zero_of_uniform_holder
+      H.theta_pos H.theta_lt_one H.HQ_nonneg
+      (chemFluxCthetaCutoffSource_aestronglyMeasurable H)
+      (chemFluxCthetaCutoffSource_bound H)
+      (chemFluxCthetaCutoffSource_holder H)
+      h2_int hLeibniz
+
 /-- Local-window Duhamel-time form of the `C^θ` chem-flux frontier.  The
 source hypotheses are only used on `0 < s ≤ t ≤ T`; the two excluded endpoints
 `s = 0` and `s = t` are null for the interval integral. -/
