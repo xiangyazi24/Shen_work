@@ -243,6 +243,45 @@ theorem PositiveDatumBFormLocalComponentsSqRegular.isClassicalSolution
     (conjugateMildSolutionData_of_data K.DB).hcont
     ht (le_of_lt htT) x
 
+/-- A `SqRegular` component package builds the negative-part classical
+frontier record, keeping the datum class paper-positive. -/
+theorem PositiveDatumBFormLocalComponentsSqRegular.toBFormPositiveClassicalFrontier
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
+    BFormPositiveClassicalFrontier p K.DB := by
+  let R := K.route
+  have hreg :
+      intervalDomainClassicalRegularity K.DB.T
+        (conjugatePicardLimit p u₀ K.DB.T)
+        (mildChemicalConcentration p
+          (conjugatePicardLimit p u₀ K.DB.T)) := by
+    simpa [intervalDomain] using K.regularity
+  have hpdeV :
+      ∀ t x, 0 < t → t < K.DB.T → x ∈ intervalDomain.inside →
+        0 = intervalDomain.laplacian
+              ((mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ K.DB.T)) t) x
+            - p.μ *
+              (mildChemicalConcentration p
+                (conjugatePicardLimit p u₀ K.DB.T)) t x
+            + p.ν *
+              ((conjugatePicardLimit p u₀ K.DB.T) t x) ^ p.γ :=
+    bForm_mildChemical_hpde_v_of_resolver_standardFacts
+      K.neumannFacts.resolver_source_decay hreg R.strictPos
+  refine
+    { route := R
+      regularity := K.regularity
+      v_nonneg := ?_
+      hpde_v := hpdeV
+      neumann := K.neumann }
+  intro t x ht htT
+  exact ShenWork.IntervalMildToClassical.mildChemical_nonneg
+    (T := K.DB.T) p
+    (u := conjugatePicardLimit p u₀ K.DB.T)
+    (conjugateMildSolutionData_of_data K.DB).hnonneg
+    (conjugateMildSolutionData_of_data K.DB).hcont
+    ht (le_of_lt htT) x
+
 theorem PositiveDatumBFormLocalComponentsSqRegular.localClassicalSolution
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (K : PositiveDatumBFormLocalComponentsSqRegular p u₀) :
@@ -260,6 +299,16 @@ def PositiveDatumBFormLocalHypSqRegular (p : CM2Params) : Prop :=
   ∀ u₀ : intervalDomainPoint → ℝ,
     PaperPositiveInitialDatum intervalDomain u₀ →
       Nonempty (PositiveDatumBFormLocalComponentsSqRegular p u₀)
+
+/-- The `SqRegular` paper-positive component package produces the
+paper-positive negative-part B-form frontier. -/
+theorem bFormPaperPositiveLocalFrontier_of_sqRegular
+    {p : CM2Params}
+    (hBForm : PositiveDatumBFormLocalHypSqRegular p) :
+    BFormPaperPositiveLocalFrontier p := by
+  intro u₀ hu₀paper
+  obtain ⟨K⟩ := hBForm u₀ hu₀paper
+  exact ⟨K.DB, ⟨K.toBFormPositiveClassicalFrontier⟩⟩
 
 theorem positiveDatum_localExistence_of_BFormSqRegular
     {p : CM2Params}

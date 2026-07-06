@@ -56,6 +56,19 @@ downstream headline
 `paper2_theorem_1_1_general_chi_bform_negpart_from_picardLimitFrontier_of_localHyp`
 feeds the Task152 negative-part Picard-limit route from this base local package.
 
+Task154 PPID strong-path wiring:
+`IntervalBFormPositiveDatumPPIDStrongWiring` adds paper-positive quantitative
+wrappers for the squared-barrier B-form packages.  These use
+`StrongPath.Theorem_1_1_intervalDomain_of_ppid_local_and_quant`, so the
+quantitative factory is typed over `PaperPositiveInitialDatum`, matching the
+actual datum quantifier in `Theorem_1_1`; they do not pretend that the
+`Sq`/`SqRegular`/`SqDeepest` packages provide all-positive PID local existence.
+Q3619 then identified the datum-faithful negative-part target:
+`BFormPaperPositiveLocalFrontier` and
+`BFormPositiveDatumLocalSq.bFormPaperPositiveLocalFrontier_of_sqRegular` expose
+the `SqRegular` package as a paper-positive negative-part frontier without
+claiming the all-positive `BFormPositiveLocalFrontier`.
+
 ## L2 Seed Frontier Producer (2026-07-03)
 
 **File: `ShenWork/Paper2/IntervalDomainL2SeedFrontierProducer.lean`** (149 lines, axiom-clean)

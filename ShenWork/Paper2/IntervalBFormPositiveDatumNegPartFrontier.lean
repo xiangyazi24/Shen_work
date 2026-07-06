@@ -201,6 +201,17 @@ def BFormPositiveLocalFrontier (p : CM2Params) : Prop :=
       ∃ DB : ConjugateMildExistenceData p u₀,
         Nonempty (BFormPositiveClassicalFrontier p DB)
 
+/-- Per-datum B-form frontier for the paper-positive datum class.
+
+This is the datum-faithful analogue of `BFormPositiveLocalFrontier` for
+component packages whose constructors require the uniform closed-domain floor
+carried by `PaperPositiveInitialDatum`. -/
+def BFormPaperPositiveLocalFrontier (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomainPoint → ℝ,
+    PaperPositiveInitialDatum intervalDomain u₀ →
+      ∃ DB : ConjugateMildExistenceData p u₀,
+        Nonempty (BFormPositiveClassicalFrontier p DB)
+
 /-- Local existence for the full `PositiveInitialDatum` class from the
 negative-part B-form frontier.  This is the replacement for the old `hlocal`
 hypothesis; it does not pass through `PaperPositiveInitialDatum`. -/
