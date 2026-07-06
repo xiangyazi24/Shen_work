@@ -1,5 +1,27 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 250: PPID resolver-source decay lowered to spatial K2 data (2026-07-06)
+
+`IntervalResolverSourceWindowDecayFrontier.lean` lowers the
+`ResolverSourceWindowData` residual one step further on the decay side.  Its
+new `ResolverSourceWindowSpatialK1Data` keeps the window cosine
+representation, a positive lower bound, an upper bound, spatial G1/G2 bounds,
+and the power-source K1 time-derivative data, but no longer carries the
+quadratic decay constant for `ν * u^γ` as an input.  The theorem
+`windowData_of_spatialK1Data` produces that constant through the already-proved
+`ResolverPowerDecay.powerSource_window_uniform_decay`, so this is a genuine
+reduction of the resolver-source decay subfield.  The power-source K1
+time-derivative package remains an explicit residual.
+
+`IntervalDomainPPIDResolverSourceDecayFrontier.lean` wires this lowered
+resolver-source package into the PPID restart-core route.  It exposes
+`PerDatumSpatialK1SourceSpectralFrontier` and
+`PerDatumIterateSpatialK1SourceSpectralFrontier`, plus chi-nonpositive and
+strict-negative PPID Theorem 1.1 wrappers from those surfaces.  This still does
+not solve `PicardIterateConvergenceData`, `Hu`, or `hpde_u`; it only removes
+the explicit power-source decay fields from Task246's `ResolverSourceWindowData`
+surface.
+
 ## Task 246: PPID resolver-source witness lowered to window data (2026-07-06)
 
 `IntervalResolverSourceWitnessFrontier.lean` factors out the smallest current
