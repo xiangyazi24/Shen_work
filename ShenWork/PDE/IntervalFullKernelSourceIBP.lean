@@ -52,6 +52,76 @@ theorem conjugateKernel_at_one {t : ℝ} (ht : 0 < t) (x : ℝ) :
   rw [hfun, show tsum (f ∘ (· + 1)) = ∑' k : ℤ, f (k + 1) from rfl]
   exact (Equiv.tsum_eq (Equiv.addRight (1 : ℤ)) f)
 
+/-! ## Boundary cancellation at x = 0 and x = 1 -/
+
+/-- **Endpoint cancellation in the spatial variable: `K̃(t,0,y) = 0`.**
+The two lattice families `{−y + 2k}` and `{y + 2k}` are related by
+`k ↦ -k` and the evenness of the heat kernel. -/
+theorem conjugateKernel_at_x_zero {t : ℝ} (ht : 0 < t) (y : ℝ) :
+    intervalNeumannConjugateKernel t 0 y = 0 := by
+  rw [intervalNeumannConjugateKernel]
+  have hsum_neg : Summable (fun k : ℤ => heatKernel t (0 - y + 2 * (k : ℝ))) :=
+    latticeGaussianSummable ht (0 - y)
+  have hsum_pos : Summable (fun k : ℤ => heatKernel t (0 + y + 2 * (k : ℝ))) :=
+    latticeGaussianSummable ht (0 + y)
+  rw [Summable.tsum_add hsum_neg.neg hsum_pos, tsum_neg]
+  suffices h : (∑' k : ℤ, heatKernel t (0 + y + 2 * (k : ℝ))) =
+      ∑' k : ℤ, heatKernel t (0 - y + 2 * (k : ℝ)) by linarith
+  set f : ℤ → ℝ := fun k => heatKernel t (0 + y + 2 * (k : ℝ)) with hf
+  have hfun : (fun k : ℤ => heatKernel t (0 - y + 2 * (k : ℝ))) =
+      f ∘ Equiv.neg ℤ := by
+    funext k
+    simp only [hf, Function.comp, Equiv.neg_apply]
+    rw [← heatKernel_neg t (0 + y + 2 * ((-k : ℤ) : ℝ))]
+    congr 1
+    push_cast
+    ring
+  rw [hfun]
+  exact (Equiv.tsum_eq (Equiv.neg ℤ) f).symm
+
+/-- **Endpoint cancellation in the spatial variable: `K̃(t,1,y) = 0`.**
+The two lattice families `{1 − y + 2k}` and `{1 + y + 2k}` are related by
+`k ↦ -k-1` and the evenness of the heat kernel. -/
+theorem conjugateKernel_at_x_one {t : ℝ} (ht : 0 < t) (y : ℝ) :
+    intervalNeumannConjugateKernel t 1 y = 0 := by
+  rw [intervalNeumannConjugateKernel]
+  have hsum_neg : Summable (fun k : ℤ => heatKernel t (1 - y + 2 * (k : ℝ))) :=
+    latticeGaussianSummable ht (1 - y)
+  have hsum_pos : Summable (fun k : ℤ => heatKernel t (1 + y + 2 * (k : ℝ))) :=
+    latticeGaussianSummable ht (1 + y)
+  rw [Summable.tsum_add hsum_neg.neg hsum_pos, tsum_neg]
+  suffices h : (∑' k : ℤ, heatKernel t (1 + y + 2 * (k : ℝ))) =
+      ∑' k : ℤ, heatKernel t (1 - y + 2 * (k : ℝ)) by linarith
+  let e : ℤ ≃ ℤ := (Equiv.neg ℤ).trans (Equiv.addRight (-1 : ℤ))
+  set f : ℤ → ℝ := fun k => heatKernel t (1 - y + 2 * (k : ℝ)) with hf
+  have hfun : (fun k : ℤ => heatKernel t (1 + y + 2 * (k : ℝ))) = f ∘ e := by
+    funext k
+    simp only [hf, Function.comp]
+    rw [← heatKernel_neg t (1 - y + 2 * ((e k : ℤ) : ℝ))]
+    congr 1
+    simp [e]
+    ring
+  rw [hfun]
+  exact (Equiv.tsum_eq e f)
+
+/-- The conjugate-kernel operator vanishes exactly at the left endpoint. -/
+theorem conjugateKernel_integral_at_x_zero {t : ℝ} (ht : 0 < t) (f : ℝ → ℝ) :
+    (∫ y in (0 : ℝ)..1, f y * intervalNeumannConjugateKernel t 0 y) = 0 := by
+  rw [show (fun y : ℝ => f y * intervalNeumannConjugateKernel t 0 y) =
+      fun _ : ℝ => 0 from by
+    funext y
+    rw [conjugateKernel_at_x_zero ht y, mul_zero]]
+  simp
+
+/-- The conjugate-kernel operator vanishes exactly at the right endpoint. -/
+theorem conjugateKernel_integral_at_x_one {t : ℝ} (ht : 0 < t) (f : ℝ → ℝ) :
+    (∫ y in (0 : ℝ)..1, f y * intervalNeumannConjugateKernel t 1 y) = 0 := by
+  rw [show (fun y : ℝ => f y * intervalNeumannConjugateKernel t 1 y) =
+      fun _ : ℝ => 0 from by
+    funext y
+    rw [conjugateKernel_at_x_one ht y, mul_zero]]
+  simp
+
 /-! ## Spatial IBP for the Duhamel source integral -/
 
 /-- **Spatial IBP theorem (G2b).**  For `t > 0` and C¹ source `Q` on `[0,1]`
