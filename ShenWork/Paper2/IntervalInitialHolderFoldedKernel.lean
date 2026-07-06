@@ -899,6 +899,52 @@ theorem initialDatumHolder_intervalDomainLift_measurable
   rw [← hpiece]
   exact ContinuousOn.measurable_piecewise hcont_on continuousOn_const measurableSet_Icc
 
+/-- Initial Holder data give the intrinsic absolute-value bound for the
+zero-extension on the real line. -/
+theorem initialDatumHolder_intervalDomainLift_abs_bound
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    ∀ y : ℝ,
+      |intervalDomainLift u₀ y| ≤
+        |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀ := by
+  exact intervalDomainLift_abs_bound_of_interval_bound
+    (add_nonneg (abs_nonneg _) hH₀)
+    (initialDatumHolder_abs_bound hθ0 hH₀ hholder)
+
+/-- Initial Holder data make the zero extension `AEStronglyMeasurable`
+against any measure on the real line. -/
+theorem initialDatumHolder_intervalDomainLift_aestronglyMeasurable
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ} {μ : Measure ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    AEStronglyMeasurable (intervalDomainLift u₀) μ := by
+  exact (initialDatumHolder_intervalDomainLift_measurable hθ0 hH₀ hholder).aestronglyMeasurable
+
+/-- Initial Holder data make the zero extension `AEStronglyMeasurable`
+against the concrete interval measure. -/
+theorem initialDatumHolder_intervalDomainLift_aestronglyMeasurable_intervalMeasure
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    AEStronglyMeasurable (intervalDomainLift u₀)
+      (ShenWork.IntervalDomain.intervalMeasure 1) := by
+  exact initialDatumHolder_intervalDomainLift_aestronglyMeasurable
+    hθ0 hH₀ hholder
+
+/-- Initial Holder data make the zero extension integrable against the concrete
+interval measure. -/
+theorem initialDatumHolder_intervalDomainLift_integrable_intervalMeasure
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    Integrable (intervalDomainLift u₀)
+      (ShenWork.IntervalDomain.intervalMeasure 1) := by
+  exact ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+    (initialDatumHolder_intervalDomainLift_aestronglyMeasurable_intervalMeasure
+      hθ0 hH₀ hholder)
+    (initialDatumHolder_intervalDomainLift_abs_bound hθ0 hH₀ hholder)
+
 /-- Bounded measurable initial data can use the heat-kernel folded-noise
 producer directly, so the initial-leg Holder theorem no longer needs an
 external common-noise `hplan`. -/
