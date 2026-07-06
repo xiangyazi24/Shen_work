@@ -3147,6 +3147,19 @@ RHS measurability: the time integrability of `lapL2sq` and the three physical
 square profiles, the physical identity/substitution, and sqrt bounds remain
 open frontiers.
 
+Task 102 packages the source-facing spatial Young data down to exactly the
+remaining time-integrability carries.  `IntervalChiNegH1PhysicalYoungSpatial`
+now has
+`H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_classical_squareTimeIntegrable`,
+which combines the classical RHS measurability producer, the classical
+abs-product measurability producer, and the classical a.e. spatial
+square-integrability producer, while keeping explicit assumptions for
+`IntervalIntegrable (lapL2sq u)` and the three physical square profiles on
+`(0, δ]`.  Thus the component-square zero-window route no longer separately
+carries RHS measurability, product measurability, or a.e. spatial
+square-integrability.  It still does not prove any of the four time
+integrability assumptions, physical identity/substitution, or sqrt bounds.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
+import ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 import ShenWork.PDE.GagliardoNirenberg
 
 /-!
@@ -20,6 +21,7 @@ open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
 open ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 open ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
+open ShenWork.Paper2.IntervalChiNegH1PhysicalClassicalContinuity
 open ShenWork.GagliardoNirenberg
 
 noncomputable section
@@ -235,6 +237,52 @@ theorem H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_squareData_and_pro
         (by norm_num : (0 : ℝ) ≤ 1)
         hLap hReactSq hProdMeas
 
+/-- Classical strict-slab regularity supplies the measurability and a.e.
+spatial square-integrability inputs for the spatial Young data.  The four
+time-integrability fields remain explicit source assumptions. -/
+theorem
+    H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_classical_squareTimeIntegrable
+    {p : CM2Params} {T δ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hδ_pos : 0 < δ) (hδ_before : δ < T)
+    (hLap_time :
+      IntervalIntegrable (lapL2sq u) volume (0 : ℝ) δ)
+    (hTaxisSq_time :
+      IntervalIntegrable (H1PhysicalTaxisPartSq p u v) volume (0 : ℝ) δ)
+    (hUvxxSq_time :
+      IntervalIntegrable (H1PhysicalUvxxPartSq p u v) volume (0 : ℝ) δ)
+    (hReactSq_time :
+      IntervalIntegrable (H1PhysicalReactPartSq p u) volume (0 : ℝ) δ) :
+    H1PhysicalRHSComponentSquareSpatialYoungDataBefore p u v T := by
+  have hRHS_meas :
+      AEStronglyMeasurable
+        (H1IdentityRHSValue p u
+          (H1PhysicalTaxisX p u v)
+          (H1PhysicalUvxxX p u v)
+          (H1PhysicalReactX p u))
+        (volume.restrict (Set.Ioc (0 : ℝ) δ)) :=
+    H1PhysicalRHSValue_aestronglyMeasurableBefore_of_classicalSolution
+      (p := p) (T := T) (δ := δ) (u := u) (v := v)
+      hsol hδ_pos hδ_before
+  rcases
+    H1PhysicalRHSSpatialSquareIntegrableBefore_of_classicalSolution
+      (p := p) (T := T) (δ := δ) (u := u) (v := v)
+      hsol hδ_pos hδ_before
+    with ⟨hLap_space, hTaxisSq_space, hUvxxSq_space, hReactSq_space⟩
+  rcases
+    H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution
+      (p := p) (T := T) (δ := δ) (u := u) (v := v)
+      hsol hδ_pos hδ_before
+    with ⟨hTaxisProd_meas, hUvxxProd_meas, hReactProd_meas⟩
+  exact
+    H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_squareData_and_productMeas
+      (p := p) (T := T) (δ := δ) (u := u) (v := v)
+      hδ_pos hδ_before hRHS_meas
+      hLap_time hTaxisSq_time hUvxxSq_time hReactSq_time
+      hLap_space hTaxisSq_space hUvxxSq_space hReactSq_space
+      hTaxisProd_meas hUvxxProd_meas hReactProd_meas
+
 /-- Spatial Young data lower to the component-square zero-window interface. -/
 theorem H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData
     {p : CM2Params} {T : ℝ}
@@ -281,6 +329,8 @@ theorem H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
   H1PhysicalReactX_norm_le_half_lapL2sq_add_half_reactPartSq_of_spatial
 #print axioms
   H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_squareData_and_productMeas
+#print axioms
+  H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_classical_squareTimeIntegrable
 #print axioms
   H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData
 #print axioms H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
