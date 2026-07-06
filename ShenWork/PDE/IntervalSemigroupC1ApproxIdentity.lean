@@ -107,6 +107,36 @@ def InitialLegConjugateDerivativeEndpointApprox (df : ℝ → ℝ) : Prop :=
       x ≤ η ∨ 1 - η ≤ x →
         |-(∫ y in (0 : ℝ)..1, df y * intervalNeumannConjugateKernel t x y) - df x| < ε
 
+/-- Absolute first moment of the conjugate kernel, dominated pointwise by the
+full Neumann kernel's first moment. -/
+theorem conjugateKernel_abs_moment_le
+    {t : ℝ} (ht : 0 < t) {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    (∫ y in (0 : ℝ)..1,
+        |y - x| * |intervalNeumannConjugateKernel t x y|)
+      ≤ 4 * t / Real.sqrt (4 * Real.pi * t) := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have hKtilde_int : IntervalIntegrable
+      (fun y : ℝ => |y - x| * |intervalNeumannConjugateKernel t x y|)
+      MeasureTheory.volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le h01]
+    exact ((continuous_abs.comp (continuous_id.sub continuous_const)).continuousOn.mul
+      (continuousOn_conjugateKernel_snd ht x).abs)
+  have hKfull_int : IntervalIntegrable
+      (fun y : ℝ => |y - x| * intervalNeumannFullKernel t x y)
+      MeasureTheory.volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le h01]
+    exact ((continuous_abs.comp (continuous_id.sub continuous_const)).continuousOn.mul
+      (continuousOn_intervalNeumannFullKernel_snd ht x))
+  calc
+    (∫ y in (0 : ℝ)..1, |y - x| * |intervalNeumannConjugateKernel t x y|)
+        ≤ ∫ y in (0 : ℝ)..1, |y - x| * intervalNeumannFullKernel t x y :=
+      intervalIntegral.integral_mono_on h01 hKtilde_int hKfull_int
+        (fun y _ => mul_le_mul_of_nonneg_left (abs_conjugateKernel_le ht x y) (abs_nonneg _))
+    _ ≤ 4 * t / Real.sqrt (4 * Real.pi * t) :=
+      ShenWork.IntervalSemigroupUniform.intervalNeumannFullKernel_abs_moment_le ht x hx
+
 /-- A filter-form uniform conjugate/Dirichlet approximate identity immediately
 supplies the epsilon-delta hypothesis consumed by the C1 initial-leg reducer. -/
 theorem initialLegConjugateDerivativeApprox_of_tendstoUniformlyOn
