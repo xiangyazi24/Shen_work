@@ -1,5 +1,25 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 151: endpoint chemDiv limits for general chi nonpositive (2026-07-06)
+
+`ShenWork/Paper2/IntervalDomainBoundaryChemDivLimit.lean` discharges the
+left/right one-sided chemotaxis-divergence limit residuals introduced by
+Task 150.  The proof avoids endpoint ordinary derivatives of zero extensions:
+on interior filters it identifies `boundaryChemDivReal` with the H1-route
+closed-slab physical representative, takes endpoint limits through that
+representative, and bounds the endpoint coefficient by transferring the
+interior `v_slice_coeff_bounds` estimate to the closed endpoint.  The public
+producers are:
+
+- `MinPersistenceAtoms.boundaryChemDivLeftLimitBound_of_classicalSolution`
+- `MinPersistenceAtoms.boundaryChemDivRightLimitBound_of_classicalSolution`
+- `MinPersistenceAtoms.boundaryChemDivEndpointLimitBounds_of_classicalSolution`
+- `BFormPositiveDatumLocal.boundaryMinPersistenceWindowEndpointBounds_chiNonpos`
+- `BFormPositiveDatumLocal.boundaryMinPersistenceWindowBound_chiNonpos`
+
+Verification before banking: targeted module build, root `ShenWork.lean`,
+proof-hole/whitespace scans, and clean-3 axiom audits all passed locally.
+
 ## L2 Seed Frontier Producer (2026-07-03)
 
 **File: `ShenWork/Paper2/IntervalDomainL2SeedFrontierProducer.lean`** (149 lines, axiom-clean)
