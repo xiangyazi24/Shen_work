@@ -25,12 +25,11 @@
      `IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData`;
   2. provides the `hlocal` bridge
      `localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData`;
-  3. factors the final wiring through a single
-     `paper2_theorem_1_1_from_quant_and_hlocal` (regime + `hQuant` + `hlocal`
-     → `Theorem_1_1`, with `hPCW` discharged by
-     `PiecewiseClassical.piecewiseClassicalWorks`);
-  4. derives `paper2_theorem_1_1_from_two_restart` (abstract-restart local
-     data) as a corollary.
+  3. factors the final wiring through `paper2_theorem_1_1_from_quant` when a
+     quantitative local factory is available;
+  4. keeps `paper2_theorem_1_1_from_quant_and_hlocal` and
+     `paper2_theorem_1_1_from_two_restart` as compatibility wrappers for older
+     callers.
 
   No `sorry`/`admit`/custom `axiom`.
 -/
@@ -40,6 +39,7 @@ import ShenWork.Paper2.IntervalDomainGlueExtension
 import ShenWork.Paper2.IntervalDomainTimeShift
 import ShenWork.Paper2.IntervalDomainSupNormBridge
 import ShenWork.Paper2.IntervalDomainRestartExtension
+import ShenWork.Paper2.IntervalDomainFinalWiring
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalGradientDuhamelMap
@@ -151,9 +151,31 @@ theorem paper2_theorem_1_1_from_quant_and_hlocal
           InitialTrace intervalDomain w uw := fun hw hbw => hex hw hbw
     exact hRestart hM' hδ hfactory hu₀ hbound' hT₀ hsol htrace hSupBound
 
+/-- **Paper 2 Theorem 1.1 from one quantitative local factory**, abstract-restart
+module alias.
+
+The quantitative factory supplies ordinary local existence and uniform
+continuation through `FinalWiring.paper2_theorem_1_1_from_quant`; no separate
+abstract-restart local data is needed at this level. -/
+theorem paper2_theorem_1_1_from_quant
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
+
 /-- **Paper 2 Theorem 1.1 from regime + 2 hypotheses, abstract-restart form.**
-This is the faithful (`χ₀ ≤ 0`-compatible) residual interface: `hQuant`
-(quantitative local existence) and the abstract-restart mild local data. -/
+
+Compatibility wrapper.  The abstract-restart local data is retained only for
+older callers; analytically, the quantitative factory already supplies the
+local-existence field consumed by the umbrella. -/
 theorem paper2_theorem_1_1_from_two_restart
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
@@ -164,11 +186,9 @@ theorem paper2_theorem_1_1_from_two_restart
         ∃ u v,
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u)
-    (hMildLocal :
+    (_hMildLocal :
       IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_from_quant_and_hlocal p hχ ha hb hγ_ge_one hQuant
-    (localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
-      p hMildLocal)
+  paper2_theorem_1_1_from_quant p hχ ha hb hγ_ge_one hQuant
 
 end ShenWork.Paper2.RestartLocalWiring
