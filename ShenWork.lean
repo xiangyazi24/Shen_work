@@ -113,6 +113,7 @@ import ShenWork.Paper2.IntervalChemFluxHolderSourceDecay
 import ShenWork.Paper2.IntervalChemFluxHolderCommonFold
 import ShenWork.Paper2.IntervalMildSourceDecayUniform
 import ShenWork.Paper2.IntervalInitialHolder
+import ShenWork.Paper2.IntervalInitialHolderFoldedKernel
 import ShenWork.Paper2.IntervalMildPicard
 import ShenWork.Paper2.IntervalMildRegularityBootstrap
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
