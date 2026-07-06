@@ -71,6 +71,29 @@ a globally C² function agreeing with the Picard limit on `[0,1]`.
 In practice it comes from the restart cosine series.
 -/
 
+/-- If an abstract global profile agrees with the true lifted interval slice on
+`[0,1]`, then its logistic-source cosine coefficients agree with the
+`logisticLifted` coefficients of the interval slice.  This is the algebraic
+bridge between a profile-based source package and the true restart identity. -/
+theorem cosineCoeffs_logisticSourceFun_eq_logisticLifted_of_eqOn_Icc
+    (p : CM2Params) {g : ℝ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hgw : Set.EqOn g (intervalDomainLift w) (Set.Icc (0 : ℝ) 1))
+    (k : ℕ) :
+    cosineCoeffs (logisticSourceFun p.a p.b p.α g) k =
+      cosineCoeffs (ShenWork.IntervalGradientDuhamelMap.logisticLifted p w) k := by
+  have hsource :
+      Set.EqOn (logisticSourceFun p.a p.b p.α g)
+        (logisticSourceFun p.a p.b p.α (intervalDomainLift w))
+        (Set.Icc (0 : ℝ) 1) := by
+    intro x hx
+    rw [logisticSourceFun, logisticSourceFun, hgw hx]
+  have hcoeff_profile :=
+    ShenWork.Paper2.cosineCoeffs_congr_on_Icc hsource k
+  have hcoeff_lift :=
+    ShenWork.Paper2.cosineCoeffs_congr_on_Icc
+      (logisticLifted_eq_logisticSourceFun_on_Icc p w) k
+  exact hcoeff_profile.trans hcoeff_lift.symm
+
 /-- All regularity data needed to fill `GradientMildHalfStepLogisticSourceData`
 for the Picard limit.  Fields are 1-to-1 with the target structure.
 
