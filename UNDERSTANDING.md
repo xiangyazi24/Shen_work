@@ -3034,6 +3034,25 @@ The actual analytic producers are still the component-square estimates and the
 raw lap time-integrability data; no downstream bounded-before or RHS
 integrability package is used.
 
+Task 94 follows the Q3483 audit and pulls the Young-style frontier down to
+primitive component-square data without proving the hard spatial Cauchy/Young
+estimates.  `IntervalChiNegH1InitialDerivativeRHS` adds
+`H1IdentityRHSValue_aestronglyMeasurable_of_components`, so future source
+producers can assemble RHS measurability from the lap, taxis, uvxx, and
+reaction scalar measurability fields.  `IntervalChiNegH1PhysicalInitialRHS`
+names the square profiles `H1PhysicalTaxisPartSq`,
+`H1PhysicalUvxxPartSq`, and `H1PhysicalReactPartSq`, then adds
+`H1PhysicalRHSComponentSquareZeroDataBefore`: one common zero-window package
+carrying assembled RHS measurability, raw `lapL2sq` integrability, the three
+square-profile integrability fields, and the three local Young product
+estimates.  The adapter
+`H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_componentSquareZeroData`
+lowers this package to Task93's Young-style scalar majorants.  The remaining
+source obligations are still the actual component measurability, local lap
+integrability, square-profile integrability, and scalar-product estimates;
+they must not be filled using downstream RHS integrability, derivative
+integrability, strict/initial route data, or bounded-before packages.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

@@ -495,6 +495,27 @@ theorem H1EnergyDerivativeInitialWindowIntegrableBefore_of_identityRHSMajorant
     (H1EnergyDerivativeInitialWindowProxyBefore_of_identityRHSMajorant
       hId hMaj)
 
+/-- Component a.e.-strong measurability gives a.e.-strong measurability of the
+assembled H¹ identity RHS on the same restricted measure. -/
+theorem H1IdentityRHSValue_aestronglyMeasurable_of_components
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {taxisX uvxx reactX : ℝ → ℝ} {s : Set ℝ}
+    (hlap : AEStronglyMeasurable (lapL2sq u) (volume.restrict s))
+    (htaxis : AEStronglyMeasurable taxisX (volume.restrict s))
+    (huvxx : AEStronglyMeasurable uvxx (volume.restrict s))
+    (hreact : AEStronglyMeasurable reactX (volume.restrict s)) :
+    AEStronglyMeasurable
+      (H1IdentityRHSValue p u taxisX uvxx reactX)
+      (volume.restrict s) := by
+  change AEStronglyMeasurable
+    (fun r =>
+      -(lapL2sq u r) + (-p.χ₀) * taxisX r +
+        (-p.χ₀) * uvxx r + reactX r)
+    (volume.restrict s)
+  simpa using
+    (((hlap.neg).add (htaxis.const_mul (-p.χ₀))).add
+      (huvxx.const_mul (-p.χ₀))).add hreact
+
 #print axioms H1IdentityRHSInitialWindowMajorantBefore_of_scalarMajorant
 #print axioms H1IdentityRHSInitialWindowIntegrableBefore_of_majorant
 #print axioms H1IdentityRHSInitialWindowMajorantBefore_of_initialWindowIntegrable
@@ -523,5 +544,6 @@ theorem H1EnergyDerivativeInitialWindowIntegrableBefore_of_identityRHSMajorant
   H1EnergyDerivativeInitialWindowMajorantBefore_of_identityRHSMajorant
 #print axioms
   H1EnergyDerivativeInitialWindowIntegrableBefore_of_identityRHSMajorant
+#print axioms H1IdentityRHSValue_aestronglyMeasurable_of_components
 
 end ShenWork.Paper2.IntervalChiNegH1InitialDerivativeRHS

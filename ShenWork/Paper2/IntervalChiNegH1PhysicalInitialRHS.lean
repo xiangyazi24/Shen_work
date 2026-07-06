@@ -98,6 +98,21 @@ def H1PhysicalRHSZeroWindowMajorantBefore
     (H1PhysicalUvxxX p u v)
     (H1PhysicalReactX p u)
 
+/-- Spatial square profile for the taxis non-lap factor. -/
+def H1PhysicalTaxisPartSq (p : CM2Params)
+    (u v : ℝ → intervalDomainPoint → ℝ) (τ : ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1, (H1PhysicalChemTaxisPart p u v τ x) ^ 2
+
+/-- Spatial square profile for the `uvxx`/denominator non-lap factor. -/
+def H1PhysicalUvxxPartSq (p : CM2Params)
+    (u v : ℝ → intervalDomainPoint → ℝ) (τ : ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1, (H1PhysicalChemUvxxPart p u v τ x) ^ 2
+
+/-- Spatial square profile for the reaction non-lap factor. -/
+def H1PhysicalReactPartSq (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (τ : ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1, (H1PhysicalLogisticReactionPart p u τ x) ^ 2
+
 /-- Additive local scalar majorants for the four physical pieces in the
 assembled H¹ RHS, all on one zero-window `(0, δ]`. -/
 def H1PhysicalRHSAdditiveScalarZeroMajorantsBefore
@@ -251,6 +266,83 @@ theorem H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore_of_young
     exact add_nonneg
       (mul_nonneg (by norm_num : 0 ≤ ((1 : ℝ) / 2)) hGlap)
       hGreact
+
+/-- Component-square zero-window data for the Task93 Young-style interface.
+The three Young fields are local scalar-product estimates; the remaining data
+are explicit square-profile integrability and assembled-RHS measurability on
+one common zero window. -/
+def H1PhysicalRHSComponentSquareZeroDataBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T : ℝ) : Prop :=
+  ∃ δ : ℝ,
+    0 < δ ∧ δ < T ∧
+    AEStronglyMeasurable
+      (H1IdentityRHSValue p u
+        (H1PhysicalTaxisX p u v)
+        (H1PhysicalUvxxX p u v)
+        (H1PhysicalReactX p u))
+      (volume.restrict (Set.Ioc (0 : ℝ) δ)) ∧
+    IntervalIntegrable (lapL2sq u) volume (0 : ℝ) δ ∧
+    IntervalIntegrable (H1PhysicalTaxisPartSq p u v) volume (0 : ℝ) δ ∧
+    IntervalIntegrable (H1PhysicalUvxxPartSq p u v) volume (0 : ℝ) δ ∧
+    IntervalIntegrable (H1PhysicalReactPartSq p u) volume (0 : ℝ) δ ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      ‖H1PhysicalTaxisX p u v r‖
+        ≤ ((1 : ℝ) / 2) * lapL2sq u r
+          + ((1 : ℝ) / 2) * H1PhysicalTaxisPartSq p u v r) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      ‖H1PhysicalUvxxX p u v r‖
+        ≤ ((1 : ℝ) / 2) * lapL2sq u r
+          + ((1 : ℝ) / 2) * H1PhysicalUvxxPartSq p u v r) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      ‖H1PhysicalReactX p u r‖
+        ≤ ((1 : ℝ) / 2) * lapL2sq u r
+          + ((1 : ℝ) / 2) * H1PhysicalReactPartSq p u r)
+
+/-- Component-square zero-window data lower to the Task93 Young-style
+zero-window scalar majorants. -/
+theorem H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_componentSquareZeroData
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (h : H1PhysicalRHSComponentSquareZeroDataBefore p u v T) :
+    H1PhysicalRHSYoungScalarZeroMajorantsBefore p u v T := by
+  rcases h with
+    ⟨δ, hδ_pos, hδ_before, hRHS_meas,
+      hLap_int, hTaxisSq_int, hUvxxSq_int, hReactSq_int,
+      hTaxis_young, hUvxx_young, hReact_young⟩
+  refine
+    ⟨δ, hδ_pos, hδ_before,
+      lapL2sq u,
+      (fun r => ((1 : ℝ) / 2) * H1PhysicalTaxisPartSq p u v r),
+      (fun r => ((1 : ℝ) / 2) * H1PhysicalUvxxPartSq p u v r),
+      (fun r => ((1 : ℝ) / 2) * H1PhysicalReactPartSq p u r),
+      hLap_int,
+      hTaxisSq_int.const_mul ((1 : ℝ) / 2),
+      hUvxxSq_int.const_mul ((1 : ℝ) / 2),
+      hReactSq_int.const_mul ((1 : ℝ) / 2),
+      hRHS_meas, ?_, ?_, ?_, ?_, ?_,
+      hTaxis_young, hUvxx_young, hReact_young⟩
+  · exact ae_of_all _ fun r => lapL2sq_nonneg u r
+  · exact ae_of_all _ fun r =>
+      mul_nonneg (by norm_num : 0 ≤ ((1 : ℝ) / 2)) (by
+        unfold H1PhysicalTaxisPartSq
+        exact intervalIntegral.integral_nonneg
+          (show (0 : ℝ) ≤ 1 by norm_num)
+          (fun x _hx => sq_nonneg (H1PhysicalChemTaxisPart p u v r x)))
+  · exact ae_of_all _ fun r =>
+      mul_nonneg (by norm_num : 0 ≤ ((1 : ℝ) / 2)) (by
+        unfold H1PhysicalUvxxPartSq
+        exact intervalIntegral.integral_nonneg
+          (show (0 : ℝ) ≤ 1 by norm_num)
+          (fun x _hx => sq_nonneg (H1PhysicalChemUvxxPart p u v r x)))
+  · exact ae_of_all _ fun r =>
+      mul_nonneg (by norm_num : 0 ≤ ((1 : ℝ) / 2)) (by
+        unfold H1PhysicalReactPartSq
+        exact intervalIntegral.integral_nonneg
+          (show (0 : ℝ) ≤ 1 by norm_num)
+          (fun x _hx => sq_nonneg (H1PhysicalLogisticReactionPart p u r x)))
+  · exact ae_of_all _ fun r => by
+      rw [Real.norm_of_nonneg (lapL2sq_nonneg u r)]
 
 /-- Additive local scalar majorants assemble to a local zero-window majorant
 for the concrete physical H¹ RHS. -/
@@ -517,6 +609,8 @@ theorem intervalDomain_boundedBefore_of_physicalStrictInitialRoute_before
   H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
 #print axioms H1PhysicalRHSAdditiveScalarZeroMajorantsBefore_of_nonneg
 #print axioms H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore_of_young
+#print axioms
+  H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_componentSquareZeroData
 #print axioms H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
 #print axioms H1PhysicalRHSStrictInitialRouteBefore_of_nonnegScalar_zeroWindow
 #print axioms H1PhysicalRHSStrictInitialRouteBefore_of_youngScalar_zeroWindow
