@@ -3105,6 +3105,17 @@ solution; the time integrability of `lapL2sq` and the three physical square
 profiles, RHS measurability, the physical identity, and sqrt bounds remain
 open carries.
 
+Task 98 completes the next R5 packaging step without changing that accounting:
+`IntervalChiNegH1PhysicalYoungSpatial` now has
+`H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_squareData_and_productMeas`.
+The theorem keeps the zero-window scalar data explicit: one `δ`, RHS
+measurability, time integrability of `lapL2sq` and the three physical square
+profiles, a.e. spatial square integrability for the lap and three non-lap
+factors, and a.e. strong measurability of the three absolute products.  It only
+uses the generic GN helper to produce the three product-integrability fields.
+It does not produce product measurability from classical regularity and does
+not close any identity, sqrt, or time-integrability frontier.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

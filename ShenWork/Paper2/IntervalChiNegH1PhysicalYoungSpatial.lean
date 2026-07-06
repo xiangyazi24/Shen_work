@@ -20,6 +20,7 @@ open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
 open ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 open ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
+open ShenWork.GagliardoNirenberg
 
 noncomputable section
 
@@ -140,6 +141,100 @@ def H1PhysicalRHSComponentSquareSpatialYoungDataBefore
           H1PhysicalLogisticReactionPart p u r x|)
         volume (0 : ℝ) 1)
 
+/-- Square-integrability plus product measurability supplies the product
+integrability fields in `H1PhysicalRHSComponentSquareSpatialYoungDataBefore`.
+The product measurability hypotheses are explicit: square integrability of the
+two factors alone is not a measurability theorem. -/
+theorem H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_squareData_and_productMeas
+    {p : CM2Params} {T δ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hδ_pos : 0 < δ) (hδ_before : δ < T)
+    (hRHS_meas :
+      AEStronglyMeasurable
+        (H1IdentityRHSValue p u
+          (H1PhysicalTaxisX p u v)
+          (H1PhysicalUvxxX p u v)
+          (H1PhysicalReactX p u))
+        (volume.restrict (Set.Ioc (0 : ℝ) δ)))
+    (hLap_time :
+      IntervalIntegrable (lapL2sq u) volume (0 : ℝ) δ)
+    (hTaxisSq_time :
+      IntervalIntegrable (H1PhysicalTaxisPartSq p u v) volume (0 : ℝ) δ)
+    (hUvxxSq_time :
+      IntervalIntegrable (H1PhysicalUvxxPartSq p u v) volume (0 : ℝ) δ)
+    (hReactSq_time :
+      IntervalIntegrable (H1PhysicalReactPartSq p u) volume (0 : ℝ) δ)
+    (hLap_space :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        IntervalIntegrable (fun x => (liftDeriv2 u r x) ^ 2)
+          volume (0 : ℝ) 1)
+    (hTaxisSq_space :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        IntervalIntegrable
+          (fun x => (H1PhysicalChemTaxisPart p u v r x) ^ 2)
+          volume (0 : ℝ) 1)
+    (hUvxxSq_space :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        IntervalIntegrable
+          (fun x => (H1PhysicalChemUvxxPart p u v r x) ^ 2)
+          volume (0 : ℝ) 1)
+    (hReactSq_space :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        IntervalIntegrable
+          (fun x => (H1PhysicalLogisticReactionPart p u r x) ^ 2)
+          volume (0 : ℝ) 1)
+    (hTaxisProd_meas :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        AEStronglyMeasurable
+          (fun x => |liftDeriv2 u r x *
+            H1PhysicalChemTaxisPart p u v r x|)
+          (volume.restrict (Set.Ioc (0 : ℝ) 1)))
+    (hUvxxProd_meas :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        AEStronglyMeasurable
+          (fun x => |liftDeriv2 u r x *
+            H1PhysicalChemUvxxPart p u v r x|)
+          (volume.restrict (Set.Ioc (0 : ℝ) 1)))
+    (hReactProd_meas :
+      ∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        AEStronglyMeasurable
+          (fun x => |liftDeriv2 u r x *
+            H1PhysicalLogisticReactionPart p u r x|)
+          (volume.restrict (Set.Ioc (0 : ℝ) 1))) :
+    H1PhysicalRHSComponentSquareSpatialYoungDataBefore p u v T := by
+  refine
+    ⟨δ, hδ_pos, hδ_before, hRHS_meas,
+      hLap_time, hTaxisSq_time, hUvxxSq_time, hReactSq_time,
+      hLap_space, hTaxisSq_space, hUvxxSq_space, hReactSq_space,
+      ?_, ?_, ?_⟩
+  · filter_upwards [hLap_space, hTaxisSq_space, hTaxisProd_meas]
+      with r hLap hTaxisSq hProdMeas
+    exact
+      intervalIntegrable_abs_mul_of_sq_integrable_of_aestronglyMeasurable
+        (a := (0 : ℝ)) (b := 1)
+        (f := fun x => liftDeriv2 u r x)
+        (g := fun x => H1PhysicalChemTaxisPart p u v r x)
+        (by norm_num : (0 : ℝ) ≤ 1)
+        hLap hTaxisSq hProdMeas
+  · filter_upwards [hLap_space, hUvxxSq_space, hUvxxProd_meas]
+      with r hLap hUvxxSq hProdMeas
+    exact
+      intervalIntegrable_abs_mul_of_sq_integrable_of_aestronglyMeasurable
+        (a := (0 : ℝ)) (b := 1)
+        (f := fun x => liftDeriv2 u r x)
+        (g := fun x => H1PhysicalChemUvxxPart p u v r x)
+        (by norm_num : (0 : ℝ) ≤ 1)
+        hLap hUvxxSq hProdMeas
+  · filter_upwards [hLap_space, hReactSq_space, hReactProd_meas]
+      with r hLap hReactSq hProdMeas
+    exact
+      intervalIntegrable_abs_mul_of_sq_integrable_of_aestronglyMeasurable
+        (a := (0 : ℝ)) (b := 1)
+        (f := fun x => liftDeriv2 u r x)
+        (g := fun x => H1PhysicalLogisticReactionPart p u r x)
+        (by norm_num : (0 : ℝ) ≤ 1)
+        hLap hReactSq hProdMeas
+
 /-- Spatial Young data lower to the component-square zero-window interface. -/
 theorem H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData
     {p : CM2Params} {T : ℝ}
@@ -184,6 +279,8 @@ theorem H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
   H1PhysicalUvxxX_norm_le_half_lapL2sq_add_half_uvxxPartSq_of_spatial
 #print axioms
   H1PhysicalReactX_norm_le_half_lapL2sq_add_half_reactPartSq_of_spatial
+#print axioms
+  H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_squareData_and_productMeas
 #print axioms
   H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData
 #print axioms H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
