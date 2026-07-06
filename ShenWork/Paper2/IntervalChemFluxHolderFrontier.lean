@@ -35,7 +35,8 @@ structure ChemFluxCthetaSourceOn
   CQ_nonneg : 0 ≤ CQ
   HQ_nonneg : 0 ≤ HQ
   flux_meas : Measurable (Function.uncurry (fun s => chemFluxLifted p (u s)))
-  flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (u s)) (intervalMeasure 1)
+  flux_int : ∀ s : ℝ, 0 < s → s ≤ T →
+    Integrable (chemFluxLifted p (u s)) (intervalMeasure 1)
   flux_bound : ∀ s : ℝ, 0 < s → s ≤ T → ∀ y : ℝ,
     |chemFluxLifted p (u s) y| ≤ CQ
   flux_cont : ∀ s : ℝ, 0 < s → s ≤ T →
@@ -61,7 +62,7 @@ theorem chemFlux_secondDeriv_slice_bound_of_CthetaSourceOn
         σ ^ (-1 + θ / 2 : ℝ) * HQ :=
   ShenWork.IntervalNeumannFullKernel.neumannHeatSecondDeriv_Ctheta_to_Linfty
     hσ H.theta_pos H.theta_lt_one
-    (H.flux_int s).aestronglyMeasurable
+    (H.flux_int s hs0 hsT).aestronglyMeasurable
     (H.flux_bound s hs0 hsT)
     H.HQ_nonneg
     (H.flux_holder s hs0 hsT)
@@ -88,7 +89,7 @@ theorem chemFluxCthetaCutoffSource_aestronglyMeasurable
       (fun y : ℝ => if 0 < s ∧ s ≤ T then chemFluxLifted p (u s) y else 0)
       (intervalMeasure 1)
     simpa [hs] using
-      (H.flux_int s).aestronglyMeasurable
+      (H.flux_int s hs.1 hs.2).aestronglyMeasurable
   · change AEStronglyMeasurable
       (fun y : ℝ => if 0 < s ∧ s ≤ T then chemFluxLifted p (u s) y else 0)
       (intervalMeasure 1)
@@ -238,7 +239,7 @@ theorem chemFlux_secondDerivDuhamel_sup_bound_of_CthetaSourceOn
     simpa [hCθ] using
       (ShenWork.IntervalNeumannFullKernel.neumannHeatSecondDeriv_Ctheta_to_Linfty
         hts H.theta_pos H.theta_lt_one
-        (H.flux_int s).aestronglyMeasurable
+        (H.flux_int s hs_pos hsT).aestronglyMeasurable
         (H.flux_bound s hs_pos hsT)
         H.HQ_nonneg
         (H.flux_holder s hs_pos hsT)

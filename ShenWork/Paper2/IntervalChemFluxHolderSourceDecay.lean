@@ -87,7 +87,8 @@ theorem ChemFluxCthetaSourceOn_of_uniform_components
     (hHu_nonneg : 0 ≤ Hu) (hHg_nonneg : 0 ≤ Hg)
     (hcomp_le : Hu * G + U * Hg + U * G * p.β * Hv ≤ HQ)
     (flux_meas : Measurable (Function.uncurry (fun s => chemFluxLifted p (u s))))
-    (flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (u s)) (intervalMeasure 1))
+    (flux_int : ∀ s : ℝ, 0 < s → s ≤ T →
+      Integrable (chemFluxLifted p (u s)) (intervalMeasure 1))
     (flux_bound : ∀ s : ℝ, 0 < s → s ≤ T → ∀ y : ℝ,
       |chemFluxLifted p (u s) y| ≤ CQ)
     (flux_cont : ∀ s : ℝ, 0 < s → s ≤ T →
@@ -142,11 +143,9 @@ theorem ChemFluxCthetaSourceOn_of_uniform_components
 
 /-- Mild-solution specialization of `ChemFluxCthetaSourceOn_of_uniform_components`.
 
-The `GradientMildSolutionData` fields discharge the source measurability, positive
-window sup bound, positive window continuity, the `u`-bound (`U = D.M`), and
-resolver nonnegativity.  The global integrability field is still explicit because
-`ChemFluxCthetaSourceOn` asks for `∀ s`, while `GradientMildSolutionData` only
-controls slices on the positive mild window. -/
+The `GradientMildSolutionData` fields discharge the source measurability,
+positive-window integrability, positive-window sup bound, positive-window
+continuity, the `u`-bound (`U = D.M`), and resolver nonnegativity. -/
 theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
@@ -156,7 +155,6 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
     (hG_nonneg : 0 ≤ G)
     (hHu_nonneg : 0 ≤ Hu) (hHg_nonneg : 0 ≤ Hg)
     (hcomp_le : Hu * G + D.M * Hg + D.M * G * p.β * Hv ≤ HQ)
-    (flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (D.u s)) (intervalMeasure 1))
     (hu_holder : ∀ s, 0 < s → s ≤ D.T → ∀ x y : intervalDomainPoint,
       |D.u s x - D.u s y| ≤ Hu * |x.1 - y.1| ^ θ)
     (hg_bound : ∀ s, 0 < s → s ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -207,7 +205,11 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
     hθ0 hθ1 hCQ_nonneg hHQ_nonneg D.hM.le hG_nonneg
     hHu_nonneg hHg_nonneg hcomp_le
     (chemFluxLifted_uncurry_measurable (p := p) (u := D.u) D.hmeas)
-    flux_int ?_ ?_ hu_bound hg_bound hR_nonneg hu_holder_lift hg_holder hR_holder
+    ?_ ?_ ?_ hu_bound hg_bound hR_nonneg hu_holder_lift hg_holder hR_holder
+  · intro s hs0 hsT
+    exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
+      p (fun x => D.hbound s hs0 hsT x) D.hM.le
+      (D.hcont s hs0 hsT) (fun x => D.hnonneg s hs0 hsT x)
   · intro s hs0 hsT y
     simpa [hCQ] using
       BFormInitialTrace.chemFluxLifted_bound_of_ball
