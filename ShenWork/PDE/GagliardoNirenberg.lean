@@ -254,6 +254,45 @@ theorem norm_integral_mul_le_half_sq_sum
           ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, g y ^ 2) :=
         integral_abs_mul_le_half_sq_sum hL hf_sq hg_sq hfg
 
+/-- Product integrability from square integrability plus product measurability
+on an ordered interval.  The measurability hypothesis is essential: square
+integrability of `f ^ 2` and `g ^ 2` alone does not imply measurability of
+`fun x => |f x * g x|`. -/
+theorem intervalIntegrable_abs_mul_of_sq_integrable_of_aestronglyMeasurable
+    {a b : ℝ} (hab : a ≤ b)
+    {f g : ℝ → ℝ}
+    (hf_sq : IntervalIntegrable (fun x => f x ^ 2) volume a b)
+    (hg_sq : IntervalIntegrable (fun x => g x ^ 2) volume a b)
+    (hfg_meas : AEStronglyMeasurable (fun x => |f x * g x|)
+      (volume.restrict (Set.Ioc a b))) :
+    IntervalIntegrable (fun x => |f x * g x|) volume a b := by
+  let dom : ℝ → ℝ := fun x =>
+    ((1 : ℝ) / 2) * f x ^ 2 + ((1 : ℝ) / 2) * g x ^ 2
+  have hdom_interval : IntervalIntegrable dom volume a b := by
+    dsimp [dom]
+    exact (hf_sq.const_mul ((1 : ℝ) / 2)).add
+      (hg_sq.const_mul ((1 : ℝ) / 2))
+  have hbound : ∀ᵐ x ∂volume.restrict (Set.Ioc a b),
+      ‖|f x * g x|‖ ≤ dom x := by
+    refine ae_of_all _ ?_
+    intro x
+    have hprod_nonneg : 0 ≤ |f x * g x| := abs_nonneg _
+    have hdom_nonneg : 0 ≤ dom x := by
+      dsimp [dom]
+      nlinarith [sq_nonneg (f x), sq_nonneg (g x)]
+    have hpt : |f x * g x| ≤ dom x := by
+      dsimp [dom]
+      rw [abs_mul]
+      nlinarith [sq_nonneg (|f x| - |g x|), sq_abs (f x), sq_abs (g x)]
+    rw [Real.norm_eq_abs, abs_of_nonneg hprod_nonneg]
+    exact hpt
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hab]
+  rw [IntegrableOn]
+  have hdom_integrable : Integrable dom (volume.restrict (Set.Ioc a b)) := by
+    rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hab] at hdom_interval
+    simpa [IntegrableOn] using hdom_interval
+  exact Integrable.mono' hdom_integrable hfg_meas hbound
+
 /-! ### Agmon's inequality -/
 
 theorem agmon_inequality_interval
@@ -456,6 +495,7 @@ theorem agmon_inequality_interval_rightDeriv
 #print axioms integral_abs_mul_le_sqrt
 #print axioms integral_abs_mul_le_half_sq_sum
 #print axioms norm_integral_mul_le_half_sq_sum
+#print axioms intervalIntegrable_abs_mul_of_sq_integrable_of_aestronglyMeasurable
 
 end ShenWork.GagliardoNirenberg
 

@@ -3092,6 +3092,19 @@ frontiers.  This is still not a full headline proof: the physical
 identity/substitution, sqrt estimates, and near-zero component-square/lap
 integrability estimates remain analytic obligations.
 
+The subsequent 5-round ChatGPT audit (Q3506--Q3519) confirmed that this route
+is honestly conditional and should not be named as an unconditional physical
+H¹ exit.  The next smallest non-circular step is local to the spatial Young
+frontier: `GagliardoNirenberg` now also exposes the ordered helper
+`intervalIntegrable_abs_mul_of_sq_integrable_of_aestronglyMeasurable`, which
+turns square integrability of two factors plus a.e. strong measurability of
+their absolute product into interval integrability of that absolute product.
+This closes only a generic measurability/integrability API gap.  It does not
+prove `H1PhysicalRHSComponentSquareSpatialYoungDataBefore` from a classical
+solution; the time integrability of `lapL2sq` and the three physical square
+profiles, RHS measurability, the physical identity, and sqrt bounds remain
+open carries.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
