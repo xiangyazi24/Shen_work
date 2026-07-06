@@ -3191,6 +3191,19 @@ physical strict/initial route still explicitly assumes
 strict/initial H¹ package is now local, but no new identity, sqrt-bound, or
 zero-start primitive producer has been proved.
 
+Task 105 adds the endpoint-data exit wrapper in the new
+`IntervalChiNegH1PhysicalExit` file:
+`boundedBefore_of_physical_classical_zeroStartPrimitiveData_initialEndpointData_before`.
+It composes Task104's physical strict/initial route with
+`boundedBefore_of_H1supBoundSqrtRHS_classical_initialEndpointData_before`, and
+adds the module to `ShenWork.lean`.  This is still conditional route wiring:
+it carries `H1PhysicalRHSIdentityBefore`, `H1PhysicalRHSSqrtBoundsBefore`,
+`H1ZeroStartPhysicalPrimitiveDataBefore`, `H1InitialEndpointData`,
+`IntervalDomainL2SeedRegularityFrontier`, and the usual initial/boundedness
+environment.  Q3537 confirmed that identity, sqrt bounds, and the zero-start
+primitive package are not currently derivable from `IsPaper2ClassicalSolution`
+by a small wrapper.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
