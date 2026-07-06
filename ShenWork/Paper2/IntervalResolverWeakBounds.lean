@@ -50,6 +50,113 @@ open scoped Topology BigOperators
 
 namespace ShenWork.IntervalResolverWeakBounds
 
+/-! ## Fractional sine-mode difference seed for weak gradient Holder -/
+
+/-- Interpolation between the uniform sine bound and the Lipschitz sine bound:
+`min 2 r ≤ 2^(1-θ) r^θ` for `0 ≤ θ ≤ 1` and `0 ≤ r`. -/
+theorem min_two_le_two_rpow_mul_rpow {θ r : ℝ}
+    (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) (hr : 0 ≤ r) :
+    min (2 : ℝ) r ≤ (2 : ℝ) ^ (1 - θ) * r ^ θ := by
+  by_cases hr2 : r ≤ 2
+  · rw [min_eq_right hr2]
+    by_cases hzero : r = 0
+    · subst r
+      positivity
+    · have hrpos : 0 < r := lt_of_le_of_ne hr (Ne.symm hzero)
+      have hexp_nonneg : 0 ≤ 1 - θ := by linarith
+      have hpow_le : r ^ (1 - θ) ≤ (2 : ℝ) ^ (1 - θ) :=
+        Real.rpow_le_rpow hr hr2 hexp_nonneg
+      have hre : r = r ^ (1 - θ) * r ^ θ := by
+        rw [← Real.rpow_add hrpos, sub_add_cancel, Real.rpow_one]
+      calc r
+          = r ^ (1 - θ) * r ^ θ := hre
+        _ ≤ (2 : ℝ) ^ (1 - θ) * r ^ θ :=
+            mul_le_mul_of_nonneg_right hpow_le (Real.rpow_nonneg hr θ)
+  · have h2r : (2 : ℝ) ≤ r := le_of_not_ge hr2
+    rw [min_eq_left h2r]
+    have hpow_le : (2 : ℝ) ^ θ ≤ r ^ θ :=
+      Real.rpow_le_rpow (by norm_num) h2r hθ0
+    calc (2 : ℝ)
+        = (2 : ℝ) ^ (1 - θ) * (2 : ℝ) ^ θ := by
+            rw [← Real.rpow_add (by norm_num : (0 : ℝ) < 2),
+              sub_add_cancel, Real.rpow_one]
+      _ ≤ (2 : ℝ) ^ (1 - θ) * r ^ θ :=
+          mul_le_mul_of_nonneg_left hpow_le
+            (Real.rpow_nonneg (by norm_num) (1 - θ))
+
+/-- Fractional sine-mode difference bound for the resolver gradient modes.  This
+is the single-mode seed for the weak bounded-data gradient Holder route at small
+Holder exponents. -/
+theorem resolverGrad_sineMode_sub_le_rpow
+    {θ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ ≤ 1)
+    (k : ℕ) (x y : ℝ) :
+    |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x)) -
+      (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * y))| ≤
+      (2 : ℝ) ^ (1 - θ) * (((k : ℝ) * Real.pi) ^ (1 + θ)) *
+        |x - y| ^ θ := by
+  by_cases hk : k = 0
+  · subst k
+    simp only [Nat.cast_zero, zero_mul, neg_zero, zero_mul, sub_self, abs_zero]
+    exact mul_nonneg
+      (mul_nonneg (Real.rpow_nonneg (by norm_num : (0 : ℝ) ≤ 2) (1 - θ))
+        (Real.rpow_nonneg (by norm_num : (0 : ℝ) ≤ 0) (1 + θ)))
+      (Real.rpow_nonneg (abs_nonneg _) θ)
+  · set K : ℝ := (k : ℝ) * Real.pi with hK
+    have hkpos_nat : 0 < k := Nat.pos_of_ne_zero hk
+    have hKpos : 0 < K := by
+      rw [hK]
+      positivity
+    have hKnn : 0 ≤ K := hKpos.le
+    have hlhs :
+        |(-K * Real.sin (K * x)) - (-K * Real.sin (K * y))| =
+          K * |Real.sin (K * x) - Real.sin (K * y)| := by
+      have hsub : (-K * Real.sin (K * x)) - (-K * Real.sin (K * y)) =
+          -K * (Real.sin (K * x) - Real.sin (K * y)) := by ring
+      rw [hsub, abs_mul, abs_neg, abs_of_nonneg hKnn]
+    have hsin_two : |Real.sin (K * x) - Real.sin (K * y)| ≤ 2 := by
+      calc |Real.sin (K * x) - Real.sin (K * y)|
+          ≤ |Real.sin (K * x)| + |Real.sin (K * y)| := by
+              simpa [sub_eq_add_neg, abs_neg] using
+                (abs_add_le (Real.sin (K * x)) (-(Real.sin (K * y))))
+        _ ≤ 1 + 1 := add_le_add (Real.abs_sin_le_one _) (Real.abs_sin_le_one _)
+        _ = 2 := by norm_num
+    have hsin_lip : |Real.sin (K * x) - Real.sin (K * y)| ≤ K * |x - y| := by
+      have h := Real.lipschitzWith_sin.dist_le_mul (K * x) (K * y)
+      have hdist : |K * x - K * y| = K * |x - y| := by
+        have hsub : K * x - K * y = K * (x - y) := by ring
+        rw [hsub, abs_mul, abs_of_nonneg hKnn]
+      simpa [Real.dist_eq, dist_eq_norm, Real.norm_eq_abs, one_mul, hdist] using h
+    have hsin_min :
+        |Real.sin (K * x) - Real.sin (K * y)| ≤ min (2 : ℝ) (K * |x - y|) :=
+      le_min hsin_two hsin_lip
+    have hmin_bound : min (2 : ℝ) (K * |x - y|) ≤
+        (2 : ℝ) ^ (1 - θ) * (K * |x - y|) ^ θ :=
+      min_two_le_two_rpow_mul_rpow hθ0.le hθ1
+        (mul_nonneg hKnn (abs_nonneg _))
+    calc
+      |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x)) -
+        (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * y))|
+          = |(-K * Real.sin (K * x)) - (-K * Real.sin (K * y))| := by rw [hK]
+      _ = K * |Real.sin (K * x) - Real.sin (K * y)| := hlhs
+      _ ≤ K * min (2 : ℝ) (K * |x - y|) :=
+          mul_le_mul_of_nonneg_left hsin_min hKnn
+      _ ≤ K * ((2 : ℝ) ^ (1 - θ) * (K * |x - y|) ^ θ) :=
+          mul_le_mul_of_nonneg_left hmin_bound hKnn
+      _ = (2 : ℝ) ^ (1 - θ) * (((k : ℝ) * Real.pi) ^ (1 + θ)) *
+            |x - y| ^ θ := by
+          rw [Real.mul_rpow (x := K) (y := |x - y|) hKnn (abs_nonneg _) (z := θ)]
+          have hKpow : K * K ^ θ = K ^ (1 + θ) := by
+            calc K * K ^ θ
+                = K ^ (1 : ℝ) * K ^ θ := by rw [Real.rpow_one]
+              _ = K ^ ((1 : ℝ) + θ) := (Real.rpow_add hKpos 1 θ).symm
+              _ = K ^ (1 + θ) := rfl
+          calc K * ((2 : ℝ) ^ (1 - θ) * (K ^ θ * |x - y| ^ θ))
+              = (2 : ℝ) ^ (1 - θ) * (K * K ^ θ) * |x - y| ^ θ := by ring
+            _ = (2 : ℝ) ^ (1 - θ) * (K ^ (1 + θ)) * |x - y| ^ θ := by
+                rw [hKpow]
+            _ = (2 : ℝ) ^ (1 - θ) * (((k : ℝ) * Real.pi) ^ (1 + θ)) *
+                  |x - y| ^ θ := by rw [hK]
+
 /-! ## B1 — source `ℓ²` from continuity (cosine–Bessel, no `hsol`) -/
 
 /-- **B1.**  For a lift continuous on `[0,1]`, the elliptic-source cosine
