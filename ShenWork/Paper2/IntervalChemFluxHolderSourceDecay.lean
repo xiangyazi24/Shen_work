@@ -410,6 +410,32 @@ structure UniformSourceCoeffQuadraticDecayOn
     |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re| ≤
       Csrc / ((k : ℝ) * Real.pi) ^ 2
 
+/-- Uniform cosine-coefficient decay for the power source `ν*u^γ` is exactly the
+same positive-mode decay as `UniformSourceCoeffQuadraticDecayOn`.  This bridge
+connects window-uniform power-source producers to the Task176 interface. -/
+theorem UniformSourceCoeffQuadraticDecayOn_of_powerSource_cosineCoeff_decay
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T Csrc : ℝ}
+    (hCsrc : 0 ≤ Csrc)
+    (hdecay : ∀ s, 0 < s → s ≤ T → ∀ k : ℕ, 1 ≤ k →
+      |ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (fun x => p.ν * intervalDomainLift (u s) x ^ p.γ) k| ≤
+        Csrc / ((k : ℝ) * Real.pi) ^ 2) :
+    UniformSourceCoeffQuadraticDecayOn p u T Csrc := by
+  refine ⟨hCsrc, ?_⟩
+  intro s hs0 hsT k hk
+  have hkne : k ≠ 0 := Nat.ne_of_gt (Nat.lt_of_lt_of_le Nat.zero_lt_one hk)
+  have hre_eq :
+      (ShenWork.PDE.intervalNeumannResolverSourceCoeff p (u s) k).re =
+        ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (fun x => p.ν * intervalDomainLift (u s) x ^ p.γ) k := by
+    unfold ShenWork.PDE.intervalNeumannResolverSourceCoeff
+    unfold ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+    simp only [Complex.ofReal_re,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+      if_neg hkne]
+  rw [hre_eq]
+  exact hdecay s hs0 hsT k hk
+
 /-- A uniform source-coefficient decay record gives per-time
 `SourceCoeffQuadraticDecay`. -/
 def UniformSourceCoeffQuadraticDecayOn.sourceDecay
