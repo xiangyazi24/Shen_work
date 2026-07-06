@@ -45,6 +45,17 @@ headline still carries only regime assumptions plus
 task is therefore a genuine producer for `BFormPositiveLocalFrontier p` (or a
 large named subpackage), not another boundary-window wrapper.
 
+Task153 first constructor:
+`BFormPositiveDatumLocal.bFormPositiveLocalFrontier_of_localHyp` proves that the
+strong `PositiveDatumBFormLocalHyp p` component package produces the
+negative-part `BFormPositiveLocalFrontier p`.  The proof constructs
+`BFormPositiveClassicalFrontier` directly from `K.route`, `K.regularity`,
+`mildChemical_nonneg`, `K.hpde_v`, and `K.neumann`; it does not use final
+Theorem 1.1, a quantitative factory, or a paper-positive conversion.  The
+downstream headline
+`paper2_theorem_1_1_general_chi_bform_negpart_from_picardLimitFrontier_of_localHyp`
+feeds the Task152 negative-part Picard-limit route from this base local package.
+
 ## L2 Seed Frontier Producer (2026-07-03)
 
 **File: `ShenWork/Paper2/IntervalDomainL2SeedFrontierProducer.lean`** (149 lines, axiom-clean)

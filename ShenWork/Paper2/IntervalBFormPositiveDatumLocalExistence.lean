@@ -131,6 +131,37 @@ def PositiveDatumBFormLocalHyp (p : CM2Params) : Prop :=
     PositiveInitialDatum intervalDomain u₀ →
       Nonempty (PositiveDatumBFormLocalComponents p u₀)
 
+/-- A positive-datum B-form component package builds the negative-part
+B-form classical frontier record for the same datum. -/
+theorem PositiveDatumBFormLocalComponents.toBFormPositiveClassicalFrontier
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (K : PositiveDatumBFormLocalComponents p u₀)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    BFormPositiveClassicalFrontier p K.DB := by
+  refine
+    { route := K.route hu₀
+      regularity := K.regularity
+      v_nonneg := ?_
+      hpde_v := K.hpde_v
+      neumann := K.neumann }
+  intro t x ht htT
+  exact ShenWork.IntervalMildToClassical.mildChemical_nonneg
+    (T := K.DB.T) p
+    (u := conjugatePicardLimit p u₀ K.DB.T)
+    (conjugateMildSolutionData_of_data K.DB).hnonneg
+    (conjugateMildSolutionData_of_data K.DB).hcont
+    ht (le_of_lt htT) x
+
+/-- The strong positive-datum B-form component package produces the
+negative-part B-form frontier used by the current shortest general-chi route. -/
+theorem bFormPositiveLocalFrontier_of_localHyp
+    {p : CM2Params}
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    BFormPositiveLocalFrontier p := by
+  intro u₀ hu₀
+  obtain ⟨K⟩ := hBForm u₀ hu₀
+  exact ⟨K.DB, ⟨K.toBFormPositiveClassicalFrontier hu₀⟩⟩
+
 /-- Local classical existence for all positive initial data from the B-form
 components.  This is the `hlocal` argument required by the general-chi B-form
 headline. -/

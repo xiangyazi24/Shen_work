@@ -576,3 +576,24 @@ theorem
       p hχ ha hb hα_ge hγ_ge_one hPLF hPerDatum)
 
 end ShenWork.Paper2.BFormPositiveDatumNegPart
+
+namespace ShenWork.Paper2.BFormPositiveDatumLocal
+
+open ShenWork.Paper2.BFormPositiveDatumNegPart
+
+/-- Negative-part B-form headline with Picard-limit restart, with the
+negative-part frontier supplied by the base positive-datum B-form local
+component package. -/
+theorem
+    paper2_theorem_1_1_general_chi_bform_negpart_from_picardLimitFrontier_of_localHyp
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hBForm : PositiveDatumBFormLocalHyp p)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p) :
+    Theorem_1_1 intervalDomain p :=
+  have hPerDatum : BFormPositiveLocalFrontier p :=
+    bFormPositiveLocalFrontier_of_localHyp hBForm
+  paper2_theorem_1_1_general_chi_bform_negpart_from_picardLimitFrontier_boundary_window_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one hPerDatum hPLF
+
+end ShenWork.Paper2.BFormPositiveDatumLocal
