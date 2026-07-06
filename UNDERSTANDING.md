@@ -1,5 +1,21 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 240: PPID threshold/min-persistence bridge to Theorem 1.1 (2026-07-06)
+
+`IntervalDomainPPIDThresholdTheorem11.lean` lifts the Task238 anti-Zeno
+reachability result to the PPID quantitative-local interface and then to
+`Theorem_1_1 intervalDomain p`.  The key observation is that Task238 gives
+solutions on arbitrary target horizons for each fixed PPID datum; choosing
+target horizon `1` yields the uniform `δ = 1` quantitative-local package
+needed by `StrongPath.Theorem_1_1_intervalDomain_of_ppid_local_and_quant`.
+
+The resulting theorem
+`PPIDThresholdReachability.theorem_1_1_intervalDomain_of_ppid_threshold_persistence_seed`
+is still conditional on the real analytic inputs
+`ThresholdQuantitativeLocalExistence p`, `ClassicalMinPersistence p`, and
+per-datum PPID seed local existence.  It does not use a common all-PPID
+datum floor.
+
 ## Task 239: strict-negative uniform-floor dead routes and floorless scalar atom (2026-07-06)
 
 The full-PPID uniform-floor route for strict chi-negative local existence is
