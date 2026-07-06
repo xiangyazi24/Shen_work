@@ -372,9 +372,24 @@ theorem H1PhysicalRHSIdentityBefore_of_classical_uxxL1Cont_routeCSubstitution
   rw [← hsub']
   exact hder
 
+/-- Classical solutions supply the concrete physical H¹ identity package via
+the existing Route-C `u_xx` L¹-continuity producer and the exact physical
+substitution theorem above. -/
+theorem H1PhysicalRHSIdentityBefore_of_classicalSolution
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v) :
+    H1PhysicalRHSIdentityBefore p u v T :=
+  H1PhysicalRHSIdentityBefore_of_classical_uxxL1Cont_routeCSubstitution
+    hsol
+    (H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep hsol)
+    (H1PhysicalRHSRouteCSubstitutionBefore_of_classicalSolution hsol)
+
 #print axioms
   H1PhysicalRHSRouteCSubstitutionBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSIdentityBefore_of_classical_uxxL1Cont_routeCSubstitution
+#print axioms
+  H1PhysicalRHSIdentityBefore_of_classicalSolution
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalIdentityRouteC
