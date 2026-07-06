@@ -139,6 +139,55 @@ theorem classicalMinPersistence_of_boundary_regime
   exact ShenWork.MinPersistenceAtoms.classicalMinPersistence_of_boundary
     p hχ ha hb hOverlap hbdry
 
+/-- Quantitative local existence from the Picard-restart route and boundary
+min-point persistence, retaining the per-datum local seed as a source input. -/
+theorem quantitativeLocalExistence_of_picardFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  ThresholdQuantBridge.quantitativeLocalExistence_of_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hPF
+    (classicalMinPersistence_of_boundary_regime p hχ ha hb hγ_ge_one hbdry)
+    hlocal
+
+/-- Quantitative local existence from the unified Picard-limit restart frontier
+and boundary min-point persistence, retaining the per-datum local seed as a
+source input. -/
+theorem quantitativeLocalExistence_of_picardLimitFrontier_boundary
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hlocal
+
 /-- Uniform local existence from the Picard-restart route and the boundary
 min-point form of the persistence input. -/
 theorem uniformLocalExistence_of_picardFrontier_boundary
@@ -241,10 +290,9 @@ theorem quantitativeLocalExistence_of_picardFrontier_boundary_of_BForm
         ∃ u v,
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u :=
-  quantitativeLocalExistence_of_picardFrontier_persistence_of_BForm
-    p hχ ha hb hα_ge hγ_ge_one hPF
-    (classicalMinPersistence_of_boundary_regime p hχ ha hb hγ_ge_one hbdry)
-    hBForm
+  quantitativeLocalExistence_of_picardFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hPF hbdry
+    (positiveDatum_localExistence_of_BForm hBForm)
 
 /-- Quantitative local existence from the unified Picard-limit restart frontier
 and the boundary min-point persistence residual, with the per-datum local seed
@@ -262,10 +310,9 @@ theorem quantitativeLocalExistence_of_picardLimitFrontier_boundary_of_BForm
         ∃ u v,
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u :=
-  quantitativeLocalExistence_of_picardFrontier_boundary_of_BForm
-    p hχ ha hb hα_ge hγ_ge_one
-    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
-    hbdry hBForm
+  quantitativeLocalExistence_of_picardLimitFrontier_boundary
+    p hχ ha hb hα_ge hγ_ge_one hPLF hbdry
+    (positiveDatum_localExistence_of_BForm hBForm)
 
 /-- General-χ headline from the source-side hQuant package:
 B-form local seed, Picard-limit restart frontier, and boundary persistence. -/
@@ -398,6 +445,8 @@ section AxiomAudit
 #print axioms uniformLocalExistence_of_picardFrontier_boundary
 #print axioms uniformLocalExistence_of_picardFrontier_boundary_of_BForm
 #print axioms uniformLocalExistence_of_picardLimitFrontier_boundary_of_BForm
+#print axioms quantitativeLocalExistence_of_picardFrontier_boundary
+#print axioms quantitativeLocalExistence_of_picardLimitFrontier_boundary
 #print axioms quantitativeLocalExistence_of_picardFrontier_persistence_of_BForm
 #print axioms quantitativeLocalExistence_of_picardLimitFrontier_persistence_of_BForm
 #print axioms quantitativeLocalExistence_of_picardFrontier_boundary_of_BForm
