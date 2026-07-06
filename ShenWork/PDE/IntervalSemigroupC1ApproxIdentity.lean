@@ -820,6 +820,26 @@ theorem initialLegC1Approx_of_conjugateApprox_of_sourceIBP
   rw [hderiv]
   exact hδ t ht htδ x hx
 
+/-- Source-IBP reducer with the conjugate approximate identity produced from
+continuity, endpoint compatibility, and boundedness of the derivative profile. -/
+theorem initialLegC1Approx_of_sourceIBP_continuousOn_zero_bound
+    {f df : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf_bound : ∀ y, |f y| ≤ Cf)
+    (hf_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt f (df y) y)
+    (hdf_int : IntervalIntegrable df MeasureTheory.volume 0 1)
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1))
+    (hdf_zero : df 0 = 0) (hdf_one : df 1 = 0)
+    {M : ℝ} (hM : 0 ≤ M)
+    (hdf_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ M) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x - df x| < ε :=
+  initialLegC1Approx_of_conjugateApprox_of_sourceIBP
+    hf_meas hf_bound hf_deriv hdf_int
+    (initialLegConjugateDerivativeApprox_of_continuousOn_zero_bound
+      hdf_cont hdf_zero hdf_one hM hdf_bound)
+
 /-- Source-IBP reducer through a global C1 representative `Q` that agrees with
 the desired source `f` on `[0,1]`.  This is the safer form for zero-extended
 interval data, whose raw lift need not be globally differentiable at the
@@ -852,6 +872,27 @@ theorem initialLegC1Approx_of_conjugateApprox_of_Icc_repr
       (t := t) ht (Q := Q) (Q' := dQ) hQ_meas hQ_bound hQ_deriv hdQ_int x
   rw [hderiv]
   exact hδ t ht htδ x hx
+
+/-- Representative-form source-IBP reducer with the conjugate approximate
+identity produced from local derivative compatibility data. -/
+theorem initialLegC1Approx_of_Icc_repr_continuousOn_zero_bound
+    {f Q dQ : ℝ → ℝ}
+    (hfQ : ∀ y ∈ Set.Icc (0 : ℝ) 1, f y = Q y)
+    (hQ_meas : AEStronglyMeasurable Q (intervalMeasure 1))
+    {CQ : ℝ} (hQ_bound : ∀ y, |Q y| ≤ CQ)
+    (hQ_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q (dQ y) y)
+    (hdQ_int : IntervalIntegrable dQ MeasureTheory.volume 0 1)
+    (hdQ_cont : ContinuousOn dQ (Set.Icc (0 : ℝ) 1))
+    (hdQ_zero : dQ 0 = 0) (hdQ_one : dQ 1 = 0)
+    {M : ℝ} (hM : 0 ≤ M)
+    (hdQ_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |dQ y| ≤ M) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x - dQ x| < ε :=
+  initialLegC1Approx_of_conjugateApprox_of_Icc_repr
+    hfQ hQ_meas hQ_bound hQ_deriv hdQ_int
+    (initialLegConjugateDerivativeApprox_of_continuousOn_zero_bound
+      hdQ_cont hdQ_zero hdQ_one hM hdQ_bound)
 
 /-- The existing uniform value approximate identity supplies
 `InitialLegDerivativeValueApprox` for a globally continuous derivative
@@ -909,6 +950,29 @@ theorem intervalFullSemigroup_initialLegC1Approx_of_conjugateApprox
   initialLegC1Approx_of_conjugateApprox_of_sourceIBP
     hu₀_meas hu₀_bound hu₀_deriv hdu₀_int happrox
 
+/-- Domain-facing source-IBP reducer with no explicit conjugate-approximation
+hypothesis: it is produced from continuity, endpoint compatibility, and
+boundedness of the derivative profile. -/
+theorem intervalFullSemigroup_initialLegC1Approx_of_sourceIBP_continuousOn_zero_bound
+    {u₀ : intervalDomainPoint → ℝ} {du₀ : ℝ → ℝ}
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {Cu₀ : ℝ} (hu₀_bound : ∀ y, |intervalDomainLift u₀ y| ≤ Cu₀)
+    (hu₀_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+      HasDerivAt (intervalDomainLift u₀) (du₀ y) y)
+    (hdu₀_int : IntervalIntegrable du₀ MeasureTheory.volume 0 1)
+    (hdu₀_cont : ContinuousOn du₀ (Set.Icc (0 : ℝ) 1))
+    (hdu₀_zero : du₀ 0 = 0) (hdu₀_one : du₀ 1 = 0)
+    {M : ℝ} (hM : 0 ≤ M)
+    (hdu₀_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |du₀ y| ≤ M) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator t (intervalDomainLift u₀) z) x -
+          du₀ x| < ε :=
+  initialLegC1Approx_of_sourceIBP_continuousOn_zero_bound
+    hu₀_meas hu₀_bound hu₀_deriv hdu₀_int
+    hdu₀_cont hdu₀_zero hdu₀_one hM hdu₀_bound
+
 /-- Domain-facing representative form for interval initial data.  The global
 representative `Q` supplies the differentiability required by source IBP, while
 the semigroup still acts on the original zero-extended interval source. -/
@@ -927,6 +991,29 @@ theorem intervalFullSemigroup_initialLegC1Approx_of_Icc_repr_conjugateApprox
           du₀ x| < ε :=
   initialLegC1Approx_of_conjugateApprox_of_Icc_repr
     hu₀Q hQ_meas hQ_bound hQ_deriv hdu₀_int happrox
+
+/-- Domain-facing representative form with no explicit conjugate-approximation
+hypothesis: the derivative profile's local continuity, endpoint compatibility,
+and boundedness produce it. -/
+theorem intervalFullSemigroup_initialLegC1Approx_of_Icc_repr_continuousOn_zero_bound
+    {u₀ : intervalDomainPoint → ℝ} {Q du₀ : ℝ → ℝ}
+    (hu₀Q : ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift u₀ y = Q y)
+    (hQ_meas : AEStronglyMeasurable Q (intervalMeasure 1))
+    {CQ : ℝ} (hQ_bound : ∀ y, |Q y| ≤ CQ)
+    (hQ_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q (du₀ y) y)
+    (hdu₀_int : IntervalIntegrable du₀ MeasureTheory.volume 0 1)
+    (hdu₀_cont : ContinuousOn du₀ (Set.Icc (0 : ℝ) 1))
+    (hdu₀_zero : du₀ 0 = 0) (hdu₀_one : du₀ 1 = 0)
+    {M : ℝ} (hM : 0 ≤ M)
+    (hdu₀_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |du₀ y| ≤ M) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator t (intervalDomainLift u₀) z) x -
+          du₀ x| < ε :=
+  initialLegC1Approx_of_Icc_repr_continuousOn_zero_bound
+    hu₀Q hQ_meas hQ_bound hQ_deriv hdu₀_int
+    hdu₀_cont hdu₀_zero hdu₀_one hM hdu₀_bound
 
 end
 
