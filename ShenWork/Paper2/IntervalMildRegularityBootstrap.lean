@@ -654,6 +654,50 @@ theorem gradientMild_closedC2_neumann_of_restartCosineRepresentations
     gradientMild_neumann_left_of_restartCosineRepresentations D H,
     gradientMild_neumann_right_of_restartCosineRepresentations D H⟩
 
+/-- Restarted cosine representations give the exact closed-interval endpoint
+no-flux package consumed by the `DifferentiableOn` Wiener feed.  This converts
+the existing one-sided Neumann limits of the ordinary derivative into
+`derivWithin · (Icc 0 1)` endpoint values. -/
+theorem gradientMild_derivWithin_endpoint_zero_of_restartCosineRepresentations
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u) :
+    ∀ t, 0 < t → t < D.T →
+      derivWithin (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) 1 = 0 := by
+  intro t ht htT
+  rcases gradientMild_closedC2_neumann_of_restartCosineRepresentations D H with
+    ⟨hC2, hN0, hN1⟩
+  let f : ℝ → ℝ := intervalDomainLift (D.u t)
+  have hC2t : ContDiffOn ℝ 2 f (Set.Icc (0 : ℝ) 1) := hC2 t ht htT
+  have hdiff : DifferentiableOn ℝ f (Set.Ioo (0 : ℝ) 1) :=
+    (hC2t.differentiableOn (by norm_num)).mono Set.Ioo_subset_Icc_self
+  have hcont0 : ContinuousWithinAt f (Set.Ioo (0 : ℝ) 1) 0 :=
+    (hC2t.continuousOn 0 (by constructor <;> norm_num)).mono Set.Ioo_subset_Icc_self
+  have hcont1 : ContinuousWithinAt f (Set.Ioo (0 : ℝ) 1) 1 :=
+    (hC2t.continuousOn 1 (by constructor <;> norm_num)).mono Set.Ioo_subset_Icc_self
+  have hmem0 : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
+    mem_nhdsWithin.mpr ⟨Set.Iio 1, isOpen_Iio, by norm_num,
+      fun z hz => ⟨hz.2, hz.1⟩⟩
+  have hmem1 : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin (1 : ℝ) (Set.Iio 1) :=
+    mem_nhdsWithin.mpr ⟨Set.Ioi 0, isOpen_Ioi, by norm_num,
+      fun z hz => ⟨hz.1, hz.2⟩⟩
+  have hleftIci : HasDerivWithinAt f 0 (Set.Ici (0 : ℝ)) 0 :=
+    hasDerivWithinAt_Ici_of_tendsto_deriv hdiff hcont0 hmem0 (hN0 t ht htT)
+  have hrightIic : HasDerivWithinAt f 0 (Set.Iic (1 : ℝ)) 1 :=
+    hasDerivWithinAt_Iic_of_tendsto_deriv hdiff hcont1 hmem1 (hN1 t ht htT)
+  have hleftIcc : HasDerivWithinAt f 0 (Set.Icc (0 : ℝ) 1) 0 :=
+    hleftIci.mono (by intro z hz; exact hz.1)
+  have hrightIcc : HasDerivWithinAt f 0 (Set.Icc (0 : ℝ) 1) 1 :=
+    hrightIic.mono (by intro z hz; exact hz.2)
+  constructor
+  · exact hleftIcc.derivWithin
+      ((uniqueDiffOn_Icc (by norm_num : (0 : ℝ) < 1)) 0
+        (by constructor <;> norm_num))
+  · exact hrightIcc.derivWithin
+      ((uniqueDiffOn_Icc (by norm_num : (0 : ℝ) < 1)) 1
+        (by constructor <;> norm_num))
+
 /-- Half-step restart data gives the exact closed-`C²`/Neumann triple consumed
 downstream by the mild-to-classical bridge. -/
 theorem gradientMild_closedC2_neumann_of_halfStepRestartData
@@ -686,6 +730,30 @@ theorem gradientMild_closedC2_neumann_of_halfStepH2SourceData
       Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
         (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :=
   gradientMild_closedC2_neumann_of_halfStepRestartData D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
+/-- Half-step restart data gives the exact closed-interval endpoint no-flux
+package consumed by the `DifferentiableOn` Wiener feed. -/
+theorem gradientMild_derivWithin_endpoint_zero_of_halfStepRestartData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    ∀ t, 0 < t → t < D.T →
+      derivWithin (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) 1 = 0 :=
+  gradientMild_derivWithin_endpoint_zero_of_restartCosineRepresentations D
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+
+/-- H²/time-`C¹` half-step source data gives the exact closed-interval endpoint
+no-flux package consumed by the `DifferentiableOn` Wiener feed. -/
+theorem gradientMild_derivWithin_endpoint_zero_of_halfStepH2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    ∀ t, 0 < t → t < D.T →
+      derivWithin (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) 1 = 0 :=
+  gradientMild_derivWithin_endpoint_zero_of_halfStepRestartData D
     (gradientMildHalfStepRestartData_of_H2SourceData D S)
 
 end ShenWork.IntervalMildRegularityBootstrap
