@@ -8,7 +8,7 @@ import ShenWork.Paper2.IntervalInitialHolder
 import ShenWork.PDE.IntervalFullKernelMass
 
 open MeasureTheory
-open scoped Real Topology
+open scoped Real Topology ENNReal NNReal
 
 namespace ShenWork.Paper2
 
@@ -59,6 +59,39 @@ noncomputable def foldedHeatIntegral
     (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ) : ℝ :=
   ∫ z : ℝ, heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1
 
+/-- The positive-time heat kernel as an `NNReal` density. -/
+noncomputable def heatKernelNN (t : ℝ) (ht : 0 < t) (z : ℝ) : NNReal :=
+  ⟨heatKernel t z, heatKernel_nonneg ht z⟩
+
+/-- The full-line Gaussian noise law at positive time. -/
+noncomputable def heatKernelNoiseMeasure (t : ℝ) (ht : 0 < t) : Measure ℝ :=
+  volume.withDensity fun z => (heatKernelNN t ht z : ENNReal)
+
+theorem heatKernelNN_measurable {t : ℝ} (ht : 0 < t) :
+    Measurable (heatKernelNN t ht) := by
+  exact Measurable.subtype_mk (by unfold heatKernel; fun_prop)
+
+/-- The heat-kernel density has total mass one, hence defines a probability
+measure. -/
+theorem heatKernelNoiseMeasure_isProbability {t : ℝ} (ht : 0 < t) :
+    IsProbabilityMeasure (heatKernelNoiseMeasure t ht) := by
+  rw [isProbabilityMeasure_iff]
+  have hint : Integrable (fun z : ℝ => (heatKernelNN t ht z : ℝ)) volume := by
+    simpa [heatKernelNN] using heatKernel_integrable ht
+  calc
+    (heatKernelNoiseMeasure t ht) Set.univ
+        = ∫⁻ z in Set.univ, (heatKernelNN t ht z : ENNReal) ∂volume := by
+          dsimp [heatKernelNoiseMeasure]
+          rw [withDensity_apply _ MeasurableSet.univ]
+    _ = ∫⁻ z : ℝ, (heatKernelNN t ht z : ENNReal) ∂volume := by
+          rw [Measure.restrict_univ]
+    _ = ENNReal.ofReal (∫ z : ℝ, (heatKernelNN t ht z : ℝ) ∂volume) := by
+          exact lintegral_coe_eq_integral (heatKernelNN t ht) hint
+    _ = ENNReal.ofReal (∫ z : ℝ, heatKernel t z ∂volume) := by
+          simp [heatKernelNN]
+    _ = 1 := by
+          rw [heatKernel_integral_eq_one ht, ENNReal.ofReal_one]
+
 /-- The folded translate coordinate is Borel-measurable in the real noise
 variable. -/
 theorem addCircleTwoFoldTranslatePoint_coord_measurable
@@ -84,6 +117,50 @@ theorem foldedHeat_integrable_of_bounded
   exact (heatKernel_integrable ht).mul_bdd hf_comp
     (Filter.Eventually.of_forall fun z => by
       simpa [Real.norm_eq_abs] using hf_bound (addCircleTwoFoldTranslatePoint x z).1)
+
+/-- Bounded measurable folded data are integrable under the heat-kernel noise
+law. -/
+theorem heatKernelNoiseMeasure_fold_integrable_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint)
+    {f : ℝ → ℝ} {M : ℝ}
+    (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    Integrable (fun z : ℝ => f (addCircleTwoFoldTranslatePoint x z).1)
+      (heatKernelNoiseMeasure t ht) := by
+  have hweighted :
+      Integrable (fun z : ℝ =>
+        heatKernelNN t ht z • f (addCircleTwoFoldTranslatePoint x z).1) volume := by
+    change Integrable (fun z : ℝ =>
+      (heatKernelNN t ht z : ℝ) * f (addCircleTwoFoldTranslatePoint x z).1) volume
+    simpa [heatKernelNN] using
+      (foldedHeat_integrable_of_bounded ht x hf_meas hf_bound)
+  exact (integrable_withDensity_iff_integrable_smul (μ := volume)
+    (heatKernelNN_measurable ht)).2 hweighted
+
+/-- Integrating a folded translate against the heat-kernel noise law is exactly
+the folded real-line heat integral. -/
+theorem heatKernelNoiseMeasure_integral_eq_foldedHeatIntegral
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint) (f : ℝ → ℝ) :
+    (∫ z : ℝ, f (addCircleTwoFoldTranslatePoint x z).1
+        ∂(heatKernelNoiseMeasure t ht)) =
+      foldedHeatIntegral t x f := by
+  unfold foldedHeatIntegral heatKernelNoiseMeasure
+  calc
+    (∫ z : ℝ, f (addCircleTwoFoldTranslatePoint x z).1
+        ∂(volume.withDensity fun z => (heatKernelNN t ht z : ENNReal)))
+        =
+      ∫ z : ℝ, heatKernelNN t ht z •
+        f (addCircleTwoFoldTranslatePoint x z).1 ∂volume := by
+          simpa using integral_withDensity_eq_integral_smul (μ := volume)
+            (heatKernelNN_measurable ht)
+            (fun z : ℝ => f (addCircleTwoFoldTranslatePoint x z).1)
+    _ = ∫ z : ℝ, heatKernel t z *
+          f (addCircleTwoFoldTranslatePoint x z).1 ∂volume := by
+        change (∫ z : ℝ, (heatKernelNN t ht z : ℝ) *
+            f (addCircleTwoFoldTranslatePoint x z).1 ∂volume)
+          =
+          ∫ z : ℝ, heatKernel t z *
+            f (addCircleTwoFoldTranslatePoint x z).1 ∂volume
+        simp [heatKernelNN]
 
 /-- On one period-2 cell in the real noise variable, the folded real-line
 integral is exactly the sum of the two image branches over `[0,1]`. -/
@@ -663,6 +740,47 @@ theorem foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_bounded
     (foldedHeat_integrable_of_bounded ht x hf_meas hf_bound)
     hA hB
     (FullKernelImageBranchInterchange_of_bounded ht x hM hf_meas hf_bound)
+
+/-- Bounded measurable data provide the common folded-noise representation used by
+the initial-leg Holder interface.  The shared noise law is the full-line
+Gaussian density, then both interval points are obtained by period-2 folding of
+the translated noise. -/
+noncomputable def NeumannHeatCommonFoldNoiseFor_of_bounded
+    {t : ℝ} (ht : 0 < t) (x y : intervalDomainPoint)
+    {f : ℝ → ℝ} {M : ℝ}
+    (hM : 0 ≤ M) (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    NeumannHeatCommonFoldNoiseFor t x y f := by
+  refine
+    { ν := heatKernelNoiseMeasure t ht
+      prob := heatKernelNoiseMeasure_isProbability ht
+      fx_integrable := ?_
+      fy_integrable := ?_
+      sx_eq := ?_
+      sy_eq := ?_ }
+  · change Integrable (fun z : ℝ => f (addCircleTwoFoldTranslatePoint x z).1)
+      (heatKernelNoiseMeasure t ht)
+    exact heatKernelNoiseMeasure_fold_integrable_of_bounded ht x hf_meas hf_bound
+  · change Integrable (fun z : ℝ => f (addCircleTwoFoldTranslatePoint y z).1)
+      (heatKernelNoiseMeasure t ht)
+    exact heatKernelNoiseMeasure_fold_integrable_of_bounded ht y hf_meas hf_bound
+  · calc
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t f x.1 =
+          foldedHeatIntegral t x f := by
+        exact (foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_bounded
+          ht x hM hf_meas hf_bound).symm
+      _ =
+          ∫ z : ℝ, f (addCircleTwoFoldTranslatePoint x z).1
+            ∂(heatKernelNoiseMeasure t ht) := by
+        exact (heatKernelNoiseMeasure_integral_eq_foldedHeatIntegral ht x f).symm
+  · calc
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t f y.1 =
+          foldedHeatIntegral t y f := by
+        exact (foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_bounded
+          ht y hM hf_meas hf_bound).symm
+      _ =
+          ∫ z : ℝ, f (addCircleTwoFoldTranslatePoint y z).1
+            ∂(heatKernelNoiseMeasure t ht) := by
+        exact (heatKernelNoiseMeasure_integral_eq_foldedHeatIntegral ht y f).symm
 
 end
 
