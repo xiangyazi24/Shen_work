@@ -572,6 +572,109 @@ theorem patchedSlice_ux_zeroFace_of_derivUniformApproachAt_zero
     _ < ε / 2 + ε / 2 := add_lt_add htime hspace
     _ = ε := by ring
 
+/-- Uniform-in-space initial approach of the spatial derivative of the patched
+chemical resolver branch. This is the explicit v-side analytic derivative
+input; proving it requires resolver-gradient continuity at the initial slice. -/
+def PatchedChemicalDerivUniformApproachAtZero
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop :=
+  ∀ ε > 0, ∃ δ > 0,
+    ∀ t ∈ Set.Icc (0 : ℝ) T, |t| < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (intervalDomainLift (patchedChemical p u₀ u t)) x -
+          deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x| < ε
+
+/-- The v-derivative zero face follows from uniform derivative approach of the
+patched chemical resolver at zero and spatial continuity of the initial
+resolver derivative.
+
+The theorem is only a metric reducer. It does not prove the resolver-gradient
+continuity needed to establish `PatchedChemicalDerivUniformApproachAtZero`. -/
+theorem patchedChemical_vx_zeroFace_of_derivUniformApproachAt_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hv₀x_cont :
+      ContinuousOn
+        (fun x : ℝ =>
+          deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x)
+        (Set.Icc (0 : ℝ) 1))
+    (hdvx : PatchedChemicalDerivUniformApproachAtZero p u₀ u T) :
+    ∀ {b : ℝ}, 0 ≤ b → b ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      ContinuousWithinAt
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (intervalDomainLift (patchedChemical p u₀ u t)) x))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1) (0, x) := by
+  intro b _hb0 hbT x hx
+  rw [Metric.continuousWithinAt_iff]
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by linarith
+  obtain ⟨δt, hδt_pos, hδt⟩ := hdvx (ε / 2) hε2
+  have hx_cont :
+      ContinuousWithinAt
+        (fun x : ℝ =>
+          deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x)
+        (Set.Icc (0 : ℝ) 1) x :=
+    hv₀x_cont x hx
+  rw [Metric.continuousWithinAt_iff] at hx_cont
+  obtain ⟨δx, hδx_pos, hδx⟩ := hx_cont (ε / 2) hε2
+  refine ⟨min δt δx, lt_min hδt_pos hδx_pos, ?_⟩
+  rintro ⟨t, y⟩ ⟨htb, hy⟩ hdist
+  have hdist_t : dist t (0 : ℝ) < δt := by
+    have hprod : dist (t, y) (0, x) < δt :=
+      lt_of_lt_of_le hdist (min_le_left _ _)
+    have hle : dist t (0 : ℝ) ≤ dist (t, y) (0, x) := by
+      rw [Prod.dist_eq]
+      exact le_max_left _ _
+    exact lt_of_le_of_lt hle hprod
+  have hdist_x : dist y x < δx := by
+    have hprod : dist (t, y) (0, x) < δx :=
+      lt_of_lt_of_le hdist (min_le_right _ _)
+    have hle : dist y x ≤ dist (t, y) (0, x) := by
+      rw [Prod.dist_eq]
+      exact le_max_right _ _
+    exact lt_of_le_of_lt hle hprod
+  have htT : t ∈ Set.Icc (0 : ℝ) T := ⟨htb.1, le_trans htb.2 hbT⟩
+  have htime :
+      |deriv (intervalDomainLift (patchedChemical p u₀ u t)) y -
+        deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) y| <
+          ε / 2 := by
+    exact hδt t htT (by simpa [Real.dist_eq] using hdist_t) y hy
+  have hspace :
+      |deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) y -
+        deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x| <
+          ε / 2 := by
+    have h := hδx hy (by simpa [Real.dist_eq] using hdist_x)
+    simpa [Real.dist_eq] using h
+  have hval_ty :
+      Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (intervalDomainLift (patchedChemical p u₀ u t)) x) (t, y) =
+        deriv (intervalDomainLift (patchedChemical p u₀ u t)) y := by
+    simp [Function.uncurry]
+  have hval_0x :
+      Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (intervalDomainLift (patchedChemical p u₀ u t)) x) (0, x) =
+        deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x := by
+    simp [Function.uncurry, patchedChemical_zero]
+  rw [hval_ty, hval_0x, Real.dist_eq]
+  calc
+    |deriv (intervalDomainLift (patchedChemical p u₀ u t)) y -
+        deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x|
+        = |(deriv (intervalDomainLift (patchedChemical p u₀ u t)) y -
+              deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) y) +
+            (deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) y -
+              deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x)| := by
+          ring_nf
+    _ ≤ |deriv (intervalDomainLift (patchedChemical p u₀ u t)) y -
+          deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) y| +
+        |deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) y -
+          deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p u₀)) x| :=
+          abs_add_le _ _
+    _ < ε / 2 + ε / 2 := add_lt_add htime hspace
+    _ = ε := by ring
+
 /-- Direct B-form classical data plus explicit zero-face primitive C¹ traces
 for the reanchored Picard pair supplies the initialized source package.
 
@@ -691,6 +794,7 @@ section AxiomAudit
 #print axioms patchedChemical_timeContinuousAt_zero_of_patchedSlice_ball
 #print axioms patchedChemical_lift_zeroFace_of_timeContinuousAt_zero
 #print axioms patchedSlice_ux_zeroFace_of_derivUniformApproachAt_zero
+#print axioms patchedChemical_vx_zeroFace_of_derivUniformApproachAt_zero
 
 end AxiomAudit
 
