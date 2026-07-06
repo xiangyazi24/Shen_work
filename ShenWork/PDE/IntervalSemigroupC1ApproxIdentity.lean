@@ -1,5 +1,6 @@
 import ShenWork.PDE.IntervalSemigroupUniform
 import ShenWork.PDE.IntervalFullKernelSourceIBP
+import ShenWork.PDE.IntervalConjugateKernelMassDefect
 
 /-!
 # Conditional C1 approximate identity for the homogeneous initial leg
@@ -615,6 +616,130 @@ theorem initialLegConjugateDerivativeEndpointApprox_of_continuousOn_zero_bound
       hdf_cont hM hdf_bound hsmall)
     hsmall
 
+/-- Continuous derivative profiles satisfy the conjugate-kernel approximate
+identity uniformly on every interior strip. -/
+theorem initialLegConjugateDerivativeInteriorApprox_of_continuousOn
+    {df : ℝ → ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1)) :
+    InitialLegConjugateDerivativeInteriorApprox df := by
+  obtain ⟨M, hM_pos, hdfM⟩ :
+      ∃ M : ℝ, 0 < M ∧ ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ M := by
+    obtain ⟨B, hB⟩ := isCompact_Icc.exists_bound_of_continuousOn hdf_cont
+    refine ⟨max B 1, by positivity, fun y hy => ?_⟩
+    exact (Real.norm_eq_abs (df y) ▸ hB y hy).trans (le_max_left B 1)
+  have hosc := initialLegConjugateOscillationControl_of_continuousOn hdf_cont
+  intro η hη_pos _hη_lt ε hε
+  have hε2 : 0 < ε / 2 := by linarith
+  rcases hosc (ε / 2) hε2 with ⟨δo, hδo_pos, ho⟩
+  set δm : ℝ := (ε * η / (16 * M)) ^ 2 with hδm_def
+  have hδm_pos : 0 < δm := by positivity
+  refine ⟨min δo δm, lt_min hδo_pos hδm_pos, ?_⟩
+  intro t ht htδ x hxint
+  have hto : t < δo := lt_of_lt_of_le htδ (min_le_left _ _)
+  have htm : t < δm := lt_of_lt_of_le htδ (min_le_right _ _)
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := by
+    exact ⟨le_trans hη_pos.le hxint.1, by linarith [hxint.2, hη_pos.le]⟩
+  have ho' := ho t ht hto x hxIcc
+  let R : ℝ := ∫ y in (0 : ℝ)..1, intervalNeumannReflectedKernelPart t x y
+  have hR_nonneg : 0 ≤ R := by
+    dsimp [R]
+    exact intervalIntegral.integral_nonneg_of_forall (by norm_num)
+      (fun y => reflectedKernelPart_nonneg ht x y)
+  have hR_bound : R ≤ (2 * Real.sqrt t) / η := by
+    dsimp [R]
+    exact reflectedKernelPart_integral_le_two_sqrt_div ht hη_pos hxint
+  have htarget_nonneg : 0 ≤ ε * η / (16 * M) := by positivity
+  have hsqrt_bound : Real.sqrt t < ε * η / (16 * M) := by
+    rw [← Real.sqrt_sq htarget_nonneg]
+    rw [hδm_def] at htm
+    exact Real.sqrt_lt_sqrt ht.le htm
+  have hmass_small : M * (2 * R) < ε / 2 := by
+    have hR2 : 2 * R ≤ 2 * ((2 * Real.sqrt t) / η) :=
+      mul_le_mul_of_nonneg_left hR_bound (by norm_num)
+    have hM2 : M * (2 * R) ≤ M * (2 * ((2 * Real.sqrt t) / η)) :=
+      mul_le_mul_of_nonneg_left hR2 hM_pos.le
+    have hprod : 4 * M * Real.sqrt t < ε * η / 4 := by
+      calc
+        4 * M * Real.sqrt t < 4 * M * (ε * η / (16 * M)) :=
+          mul_lt_mul_of_pos_left hsqrt_bound (by positivity)
+        _ = ε * η / 4 := by
+          field_simp [ne_of_gt hM_pos]
+          ring
+    have hdiv : (4 * M * Real.sqrt t) / η < ε / 4 := by
+      rw [div_lt_iff₀ hη_pos]
+      calc
+        4 * M * Real.sqrt t < ε * η / 4 := hprod
+        _ = (ε / 4) * η := by ring
+    have htail : M * (2 * ((2 * Real.sqrt t) / η)) < ε / 2 := by
+      calc
+        M * (2 * ((2 * Real.sqrt t) / η))
+            = (4 * M * Real.sqrt t) / η := by
+          field_simp [ne_of_gt hη_pos]
+          ring
+        _ < ε / 4 := hdiv
+        _ < ε / 2 := by linarith
+    exact lt_of_le_of_lt hM2 htail
+  have hmass_term :
+      |df x * (-(∫ y in (0 : ℝ)..1, intervalNeumannConjugateKernel t x y) - 1)|
+        < ε / 2 := by
+    have hid := conjugateKernel_massDefect_eq_neg_two_reflectedMass ht x
+    calc
+      |df x * (-(∫ y in (0 : ℝ)..1, intervalNeumannConjugateKernel t x y) - 1)|
+          = |df x * (-2 * R)| := by
+        rw [hid]
+      _ = |df x| * (2 * R) := by
+        rw [abs_mul]
+        have hneg2R : |-2 * R| = 2 * R := by
+          rw [abs_mul, abs_of_nonpos (by norm_num : (-2 : ℝ) ≤ 0),
+            abs_of_nonneg hR_nonneg]
+          ring
+        rw [hneg2R]
+      _ ≤ M * (2 * R) :=
+        mul_le_mul_of_nonneg_right (hdfM x hxIcc)
+          (mul_nonneg (by norm_num) hR_nonneg)
+      _ < ε / 2 := hmass_small
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  let K : ℝ → ℝ := fun y => intervalNeumannConjugateKernel t x y
+  have hdf_u : ContinuousOn df (Set.uIcc (0 : ℝ) 1) := by
+    simpa [Set.uIcc_of_le h01] using hdf_cont
+  have hK_u : ContinuousOn K (Set.uIcc (0 : ℝ) 1) := by
+    simpa [K, Set.uIcc_of_le h01] using continuousOn_conjugateKernel_snd ht x
+  have hosc_int : IntervalIntegrable
+      (fun y : ℝ => (df y - df x) * K y) MeasureTheory.volume 0 1 :=
+    ((hdf_u.sub continuousOn_const).mul hK_u).intervalIntegrable
+  have hconst_int : IntervalIntegrable
+      (fun y : ℝ => df x * K y) MeasureTheory.volume 0 1 :=
+    (continuousOn_const.mul hK_u).intervalIntegrable
+  have hsplit :
+      -(∫ y in (0 : ℝ)..1, df y * K y) - df x =
+        (-(∫ y in (0 : ℝ)..1, (df y - df x) * K y)) +
+          df x * (-(∫ y in (0 : ℝ)..1, K y) - 1) := by
+    have hfun :
+        (fun y : ℝ => df y * K y) =
+          fun y : ℝ => (df y - df x) * K y + df x * K y := by
+      funext y
+      ring
+    rw [hfun]
+    rw [intervalIntegral.integral_add hosc_int hconst_int]
+    rw [intervalIntegral.integral_const_mul]
+    ring
+  rw [show
+      (-(∫ y in (0 : ℝ)..1,
+          df y * intervalNeumannConjugateKernel t x y) - df x) =
+        (-(∫ y in (0 : ℝ)..1,
+          (df y - df x) * intervalNeumannConjugateKernel t x y)) +
+          df x * (-(∫ y in (0 : ℝ)..1,
+            intervalNeumannConjugateKernel t x y) - 1) by
+        simpa [K] using hsplit]
+  exact lt_of_le_of_lt (abs_add_le _ _) (by
+    calc
+      |-(∫ y in (0 : ℝ)..1,
+          (df y - df x) * intervalNeumannConjugateKernel t x y)| +
+          |df x * (-(∫ y in (0 : ℝ)..1,
+            intervalNeumannConjugateKernel t x y) - 1)|
+          < ε / 2 + ε / 2 := add_lt_add ho' hmass_term
+      _ = ε := by ring)
+
 /-- Patching reducer: interior-strip convergence plus endpoint-layer convergence
 prove the closed-interval conjugate-kernel approximate identity. -/
 theorem initialLegConjugateDerivativeApprox_of_interior_endpoint
@@ -640,6 +765,20 @@ theorem initialLegConjugateDerivativeApprox_of_interior_endpoint
     · have hxint : x ∈ Set.Icc η (1 - η) := by
         exact ⟨le_of_lt (lt_of_not_ge hxleft), le_of_lt (lt_of_not_ge hxright)⟩
       exact hi t ht htδi x hxint
+
+/-- Continuous endpoint-compatible bounded profiles satisfy the full
+closed-interval conjugate-kernel approximate identity. -/
+theorem initialLegConjugateDerivativeApprox_of_continuousOn_zero_bound
+    {df : ℝ → ℝ} {M : ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1))
+    (hdf_zero : df 0 = 0) (hdf_one : df 1 = 0)
+    (hM : 0 ≤ M)
+    (hdf_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ M) :
+    InitialLegConjugateDerivativeApprox df :=
+  initialLegConjugateDerivativeApprox_of_interior_endpoint
+    (initialLegConjugateDerivativeInteriorApprox_of_continuousOn hdf_cont)
+    (initialLegConjugateDerivativeEndpointApprox_of_continuousOn_zero_bound
+      hdf_cont hdf_zero hdf_one hM hdf_bound)
 
 /-- If the derivative field commutes with the homogeneous semigroup leg and the
 candidate derivative profile has value approximate identity, then the
