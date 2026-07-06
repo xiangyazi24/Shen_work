@@ -47,6 +47,8 @@
 -/
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalMildPicardLimitRegularity
+import ShenWork.Paper2.IntervalPicardLimitRestartWeak
+import ShenWork.Paper2.IntervalDuhamelSourceShift
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain
@@ -93,6 +95,111 @@ theorem cosineCoeffs_logisticSourceFun_eq_logisticLifted_of_eqOn_Icc
     ShenWork.Paper2.cosineCoeffs_congr_on_Icc
       (logisticLifted_eq_logisticSourceFun_on_Icc p w) k
   exact hcoeff_profile.trans hcoeff_lift.symm
+
+/-- The restarted coefficient only reads its source family on the integration
+window `[0, τ]`. -/
+theorem restartDuhamelCoeff_congr_on_Icc {a₀ : ℕ → ℝ} {a a' : ℝ → ℕ → ℝ} {τ : ℝ}
+    (hτ : 0 ≤ τ) (hagree : ∀ s ∈ Set.Icc (0 : ℝ) τ, ∀ n, a s n = a' s n)
+    (n : ℕ) :
+    restartDuhamelCoeff a₀ a τ n = restartDuhamelCoeff a₀ a' τ n := by
+  unfold restartDuhamelCoeff
+  rw [ShenWork.IntervalDuhamelSourceShift.duhamelSpectralCoeff_congr_on_Icc hτ hagree n]
+
+/-- Transport a true-source half-step restart representation to the abstract
+profile-source form required by `hSpectralAgree`. -/
+theorem hSpectralAgree_of_trueRestart_and_profile_eqOn_Icc
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {profile : ℝ → ℝ → ℝ → ℝ}
+    {t : ℝ} (ht : 0 < t)
+    (htrue :
+      Set.EqOn (intervalDomainLift (D.u t))
+        (fun x => ∑' n,
+          restartDuhamelCoeff
+            (gradientMildHalfStepInitialCoeff D t)
+            (fun σ n =>
+              cosineCoeffs
+                (ShenWork.IntervalGradientDuhamelMap.logisticLifted p
+                  (D.u (t / 2 + σ))) n)
+            (t / 2) n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1))
+    (hprofile : ∀ σ ∈ Set.Icc (0 : ℝ) (t / 2),
+      Set.EqOn (profile t σ) (intervalDomainLift (D.u (t / 2 + σ)))
+        (Set.Icc (0 : ℝ) 1)) :
+    Set.EqOn (intervalDomainLift (D.u t))
+      (fun x => ∑' n,
+        restartDuhamelCoeff
+          (gradientMildHalfStepInitialCoeff D t)
+          (fun σ n => cosineCoeffs (logisticSourceFun p.a p.b p.α
+            (profile t σ)) n)
+          (t / 2) n * cosineMode n x)
+      (Set.Icc 0 1) := by
+  intro x hx
+  rw [htrue hx]
+  refine tsum_congr (fun n => ?_)
+  have hτ : 0 ≤ t / 2 := by positivity
+  have hsrc_agree :
+      ∀ s ∈ Set.Icc (0 : ℝ) (t / 2), ∀ n,
+        cosineCoeffs
+            (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (D.u (t / 2 + s))) n =
+          cosineCoeffs (logisticSourceFun p.a p.b p.α (profile t s)) n := by
+    intro s hs n
+    exact (cosineCoeffs_logisticSourceFun_eq_logisticLifted_of_eqOn_Icc
+      p (hprofile s hs) n).symm
+  have hcoeff :=
+    restartDuhamelCoeff_congr_on_Icc
+      (a₀ := gradientMildHalfStepInitialCoeff D t)
+      (a := fun s n =>
+        cosineCoeffs
+          (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (D.u (t / 2 + s))) n)
+      (a' := fun σ n =>
+        cosineCoeffs (logisticSourceFun p.a p.b p.α (profile t σ)) n)
+      hτ hsrc_agree n
+  rw [hcoeff]
+
+/-- Produce the `hSpectralAgree` field from the existing weak half-step restart
+identity, once the global `profile` agrees on `[0,1]` with the true lifted limit
+slice throughout the half-step integration window. -/
+theorem hSpectralAgree_of_profile_eqOn_weakRestart
+    {p : CM2Params} (hχ0 : p.χ₀ = 0)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {profile : ℝ → ℝ → ℝ → ℝ}
+    {M₀ : ℝ}
+    (hu₀_cont : Continuous (intervalDomainLift u₀))
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hfix : ∀ s, 0 < s → s < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0 : ℝ) 1) →
+      intervalDomainLift (D.u s) x =
+        ShenWork.IntervalGradientDuhamelMap.intervalGradientDuhamelMap
+          p u₀ D.u s ⟨x, hx⟩)
+    (hsrc0 : ShenWork.IntervalPicardLimitRestartWeak.DuhamelSourceL1ContOn
+      (fun s k =>
+        cosineCoeffs (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (D.u s)) k)
+      D.T)
+    (hL_cont : ∀ s, 0 < s → s < D.T →
+      Continuous (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (D.u s)))
+    (hprofile : ∀ t, 0 < t → t < D.T → ∀ σ, 0 ≤ σ → σ ≤ t / 2 →
+      Set.EqOn (profile t σ) (intervalDomainLift (D.u (t / 2 + σ)))
+        (Set.Icc (0 : ℝ) 1)) :
+    ∀ t, 0 < t → t < D.T →
+    Set.EqOn (intervalDomainLift (D.u t))
+      (fun x => ∑' n,
+        restartDuhamelCoeff
+          (gradientMildHalfStepInitialCoeff D t)
+          (fun σ n => cosineCoeffs (logisticSourceFun p.a p.b p.α
+            (profile t σ)) n)
+          (t / 2) n * cosineMode n x)
+      (Set.Icc 0 1) := by
+  intro t ht htT
+  have hweak :=
+    ShenWork.IntervalPicardLimitRestartWeak.picardLimitRestart_cosineIdentity_weak
+      p hχ0 u₀ D.u
+      (T := D.T)
+      (fun s hs hst x hx => hfix s hs (lt_of_le_of_lt hst htT) x hx)
+      hu₀_cont hu₀_bound hsrc0 ht (le_of_lt htT)
+      (fun s hs hst => hL_cont s hs (lt_of_le_of_lt hst htT))
+  exact hSpectralAgree_of_trueRestart_and_profile_eqOn_Icc D ht hweak
+    (fun σ hσ => hprofile t ht htT σ hσ.1 hσ.2)
 
 /-- All regularity data needed to fill `GradientMildHalfStepLogisticSourceData`
 for the Picard limit.  Fields are 1-to-1 with the target structure.
