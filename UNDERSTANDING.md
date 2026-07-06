@@ -1,5 +1,24 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 264: Resolver-source spatial K2 reduced to coefficient envelopes (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeInputs.lean` implements the Q3713
+reduction.  The new `ResolverSourceWindowEnvelopeInputs` package replaces the
+joint-input fields `hG1` and `hG2` by one compact-window eigenvalue envelope
+for the chosen coefficients `bc`: a nonnegative summable sequence `E` with
+`unitIntervalCosineEigenvalue n * |bc σ n| ≤ E n` uniformly over the window.
+Theorems `hG1_of_envelope` and `hG2_of_envelope` use the existing generic
+`CompactSliceGradientBounds.grad_series_abs_le` and `grad2_series_abs_le`
+helpers, plus the cosine-series derivative transfer and endpoint junk-derivative
+lemmas, to manufacture the K2 bounds consumed by Task259.
+
+`IntervalDomainPPIDResolverSourceEnvelopeInputsFrontier.lean` and
+`IntervalDomainChiZeroResolverSourceEnvelopeInputsFrontier.lean` wire this
+envelope surface into the PPID and `χ₀ = 0` headline wrappers.  This is still a
+conditional interface reduction: the real producer work is now concentrated in
+faithful representation/eigenvalue-envelope data, joint lift continuity, and
+power-source K1 time-regularity.
+
 ## Task 263: Chi-zero headline wrappers from joint resolver-source inputs (2026-07-06)
 
 `IntervalDomainChiZeroResolverSourceJointInputsFrontier.lean` adds the
