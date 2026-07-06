@@ -322,6 +322,67 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_components
     hθ0 hθ1 hHQ_nonneg hHu_nonneg hHg_nonneg ?_ hu_holder hg_holder
   rw [hHQ, hG]
 
+/-- Initial-data Holder chemFlux source package in the weak small-exponent
+range.  The resolver-gradient Holder field is produced from bounded continuous
+order-box data, so this route does not require source-coefficient quadratic
+decay or a uniform resolver-second-derivative bound. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_smallTheta_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀)) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  set Hg : ℝ := (2 : ℝ) ^ (1 - θ) *
+    Real.sqrt (∑' k : ℕ,
+      (ShenWork.IntervalResolverWeakBounds.intervalNeumannResolverGradHolderWeight p θ k) ^ 2) *
+      (2 * (p.ν * D.M ^ p.γ)) with hHg
+  have hθ1 : θ < 1 := by nlinarith [hθlt]
+  have hHg_nonneg : 0 ≤ Hg := by
+    rw [hHg]
+    exact mul_nonneg
+      (mul_nonneg (Real.rpow_nonneg (by norm_num : (0 : ℝ) ≤ 2) _)
+        (Real.sqrt_nonneg _))
+      (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg D.hM.le _)))
+  have hcont_on : ∀ s, 0 < s → s ≤ D.T →
+      ContinuousOn (intervalDomainLift (D.u s)) (Set.Icc (0 : ℝ) 1) := by
+    intro s hs0 hsT
+    rw [continuousOn_iff_continuous_restrict]
+    have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift (D.u s)) =
+        D.u s := by
+      ext ⟨y, hy⟩
+      simp [Set.restrict, intervalDomainLift, hy]
+      rfl
+    rw [this]
+    exact D.hcont s hs0 hsT
+  have hlb : ∀ s, 0 < s → s ≤ D.T → ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      0 ≤ intervalDomainLift (D.u s) y := by
+    intro s hs0 hsT y hy
+    simpa [intervalDomainLift, hy] using D.hnonneg s hs0 hsT ⟨y, hy⟩
+  have hub : ∀ s, 0 < s → s ≤ D.T → ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (D.u s) y ≤ D.M := by
+    intro s hs0 hsT y hy
+    have hb := D.hbound s hs0 hsT ⟨y, hy⟩
+    simpa [intervalDomainLift, hy] using (abs_le.mp hb).2
+  have hg_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |resolverGradReal p (D.u s) a - resolverGradReal p (D.u s) b| ≤
+          Hg * |a - b| ^ θ := by
+    intro s hs0 hsT a b ha hb
+    rw [hHg]
+    exact ShenWork.IntervalResolverWeakBounds.resolverGradReal_holder_Icc_of_bounded_smallTheta
+      p hθ0 hθlt (hcont_on s hs0 hsT) (hlb s hs0 hsT) (hub s hs0 hsT) ha hb
+  exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_components
+    D hθ0 hθ1 hH₀_nonneg hHg_nonneg hholder hplan hg_holder
+
 /-- Uniform resolver-gradient spatial Holder bound from per-slice source decay
 and one uniform bound on the resolver second derivative.
 
