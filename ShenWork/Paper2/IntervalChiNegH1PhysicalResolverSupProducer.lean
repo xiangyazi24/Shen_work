@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalChiNegH1PhysicalChemSqrtBounds
 import ShenWork.Paper2.IntervalDomainResolverSupQuantitative
+import ShenWork.PDE.IntervalResolverSpatialC2
 
 /-!
 # Source producers for physical H¹ chem resolver sup data
@@ -32,6 +33,21 @@ private theorem H1PhysicalChemResolverGradCap_nonneg
     (p : CM2Params) {M : ℝ} (hM : 0 ≤ M) :
     0 ≤ H1PhysicalChemResolverGradCap p M := by
   unfold H1PhysicalChemResolverGradCap
+  exact
+    mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg hM p.γ)))
+
+/-- Quantitative resolver-value cap obtained from a fixed pointwise upper bound
+on `u`. -/
+abbrev H1PhysicalChemResolverValueCap (p : CM2Params) (M : ℝ) : ℝ :=
+  Real.sqrt (∑' k : ℕ, (intervalNeumannResolverWeight p k) ^ 2) *
+    (2 * (p.ν * M ^ p.γ))
+
+private theorem H1PhysicalChemResolverValueCap_nonneg
+    (p : CM2Params) {M : ℝ} (hM : 0 ≤ M) :
+    0 ≤ H1PhysicalChemResolverValueCap p M := by
+  unfold H1PhysicalChemResolverValueCap
   exact
     mul_nonneg (Real.sqrt_nonneg _)
       (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
@@ -81,6 +97,58 @@ theorem intervalDomainLift_le_supNorm_of_classical
   rw [hlift]
   exact (le_abs_self _).trans habs
 
+/-- The unconditional interior elliptic characterization extends to the closed
+interval by continuity of the resolver series and of the clamped lift
+representative of `v`. -/
+theorem solution_v_eq_resolver_pointwise_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ x : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalNeumannResolverR p (u τ) (⟨x, hx⟩ : intervalDomainPoint) =
+      intervalDomainLift (v τ) x := by
+  classical
+  set R : ℝ → ℝ := fun y : ℝ =>
+    ∑' k : ℕ, (intervalNeumannResolverCoeff p (u τ) k).re *
+      ShenWork.CosineSpectrum.cosineMode k y
+    with hRdef
+  set V : ℝ → ℝ := liftRepr (v τ) with hVdef
+  have hRcont : Continuous R := by
+    have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
+    simpa [R] using
+      (ShenWork.IntervalResolverSpatialC2.resolverR_contDiff_two
+        (p := p) (u := u τ) hdecay).continuous
+  have hVcont : Continuous V := by
+    have hcontV : ContinuousOn (intervalDomainLift (v τ)) (Set.Icc (0 : ℝ) 1) :=
+      ((hsol.regularity.2.2.2.2.1 τ hτ).2.1).continuousOn
+    simpa [V] using liftRepr_continuous hcontV
+  have heq : Set.EqOn R V (Set.Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have hrv :=
+      solution_v_eq_resolver_pointwise_unconditional
+        (p := p) (T := T) (u := u) (v := v) hsol hτ hy
+    have hR_apply :
+        intervalNeumannResolverR p (u τ)
+            (⟨y, Set.Ioo_subset_Icc_self hy⟩ : intervalDomainPoint) = R y := by
+      simpa [R] using
+        (ShenWork.IntervalResolverSpatialC2.resolverR_eq_cosineSeries
+          (p := p) (u := u τ)
+          (⟨y, Set.Ioo_subset_Icc_self hy⟩ : intervalDomainPoint))
+    have hV_apply : V y = intervalDomainLift (v τ) y := by
+      simpa [V] using liftRepr_eq_on_Icc (Set.Ioo_subset_Icc_self hy)
+    exact hR_apply.symm.trans (hrv.trans hV_apply.symm)
+  have hclos := heq.closure hRcont hVcont
+  rw [closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)] at hclos
+  have hR_apply :
+      intervalNeumannResolverR p (u τ) (⟨x, hx⟩ : intervalDomainPoint) = R x := by
+    simpa [R] using
+      (ShenWork.IntervalResolverSpatialC2.resolverR_eq_cosineSeries
+        (p := p) (u := u τ) (⟨x, hx⟩ : intervalDomainPoint))
+  have hV_apply : V x = intervalDomainLift (v τ) x := by
+    simpa [V] using liftRepr_eq_on_Icc hx
+  exact hR_apply.symm.trans ((hclos hx).trans hV_apply)
+
 /-- A finite-horizon sup-norm bound, together with the exact uvxx-core source
 bound, produces the smaller upper/core source package.  The sup-norm constant
 is replaced by `max M 0` so the downstream quantitative resolver theorem has a
@@ -114,6 +182,74 @@ theorem H1PhysicalChemUpperCoreBoundsBefore_of_boundedBefore_core
   have hsup : intervalDomain.supNorm (u τ) ≤ M₀ :=
     hM₀ τ hτ.1 hτ.2
   exact (hpoint.trans hsup).trans (le_max_left M₀ 0)
+
+/-- A finite-horizon sup-norm bound for a classical solution gives uniform
+before-`T` bounds on `u`, `v = R(u)`, and the resolver gradient. -/
+theorem H1PhysicalChemValueGradSupBefore_of_boundedBefore
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hbounded : IsPaper2BoundedBefore intervalDomain T u) :
+    ∃ M, H1PhysicalChemValueGradSupBefore p u v T M
+      (H1PhysicalChemResolverValueCap p M)
+      (H1PhysicalChemResolverGradCap p M) := by
+  rcases hbounded with ⟨M₀, hM₀⟩
+  let M : ℝ := max M₀ 0
+  refine ⟨M, ?_⟩
+  have hM_nonneg : 0 ≤ M := le_max_right M₀ 0
+  refine
+    { hM := hM_nonneg
+      hV := H1PhysicalChemResolverValueCap_nonneg p hM_nonneg
+      hG := H1PhysicalChemResolverGradCap_nonneg p hM_nonneg
+      u_nonneg_le := ?_
+      v_abs_le := ?_
+      resolver_grad_le := ?_ }
+  · intro τ hτ x hx
+    have hnonneg : 0 ≤ intervalDomainLift (u τ) x :=
+      (solution_lift_pos
+        (p := p) (T := T) (u := u) (v := v) hsol hτ x hx).le
+    have hpoint :
+        intervalDomainLift (u τ) x ≤ intervalDomain.supNorm (u τ) :=
+      intervalDomainLift_le_supNorm_of_classical
+        (p := p) (T := T) (u := u) (v := v) hsol hτ hx
+    have hsup : intervalDomain.supNorm (u τ) ≤ M₀ :=
+      hM₀ τ hτ.1 hτ.2
+    exact ⟨hnonneg, (hpoint.trans hsup).trans (le_max_left M₀ 0)⟩
+  · intro τ hτ x hx
+    have hub : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 →
+        intervalDomainLift (u τ) y ≤ M := by
+      intro y hy
+      have hpoint :
+          intervalDomainLift (u τ) y ≤ intervalDomain.supNorm (u τ) :=
+        intervalDomainLift_le_supNorm_of_classical
+          (p := p) (T := T) (u := u) (v := v) hsol hτ hy
+      have hsup : intervalDomain.supNorm (u τ) ≤ M₀ :=
+        hM₀ τ hτ.1 hτ.2
+      exact (hpoint.trans hsup).trans (le_max_left M₀ 0)
+    have hv_eq :=
+      solution_v_eq_resolver_pointwise_Icc
+        (p := p) (T := T) (u := u) (v := v) hsol hτ hx
+    rw [← hv_eq]
+    simpa [H1PhysicalChemResolverValueCap] using
+      resolverValue_sup_le_of_ub
+        (p := p) (T := T) (u := u) (v := v)
+        hsol (τ := τ) (M := M) hτ hub
+        (⟨x, hx⟩ : intervalDomainPoint)
+  · intro τ hτ x hx
+    have hub : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 →
+        intervalDomainLift (u τ) y ≤ M := by
+      intro y hy
+      have hpoint :
+          intervalDomainLift (u τ) y ≤ intervalDomain.supNorm (u τ) :=
+        intervalDomainLift_le_supNorm_of_classical
+          (p := p) (T := T) (u := u) (v := v) hsol hτ hy
+      have hsup : intervalDomain.supNorm (u τ) ≤ M₀ :=
+        hM₀ τ hτ.1 hτ.2
+      exact (hpoint.trans hsup).trans (le_max_left M₀ 0)
+    simpa [H1PhysicalChemResolverGradCap] using
+      resolverGrad_sup_le_of_ub
+        (p := p) (T := T) (u := u) (v := v)
+        hsol (τ := τ) (M := M) hτ hub (x := x) hx
 
 /-- Uniform pointwise upper control of `u` plus the exact uvxx-core source bound
 produces the resolver/core package used by the physical H¹ sqrt route. -/
@@ -216,11 +352,71 @@ theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_boundedBefore_core
     (p := p) (T := T) (M := M) (V₂ := V₂) (L := L)
     (u := u) (v := v) hsol hchi hL hupper⟩
 
+/-- Direct resolver/core producer from a finite-horizon sup-norm bound.  The
+uvxx-core constant is generated from the value and gradient caps, so this no
+longer carries the exact-core source residual. -/
+theorem H1PhysicalChemResolverSupBefore_of_boundedBefore_valueGrad
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hbounded : IsPaper2BoundedBefore intervalDomain T u) :
+    ∃ M, H1PhysicalChemResolverSupBefore p u v T
+      (H1PhysicalChemResolverGradCap p M)
+      (H1PhysicalChemUvxxCoreSupConstant p M
+        (H1PhysicalChemResolverValueCap p M)
+        (H1PhysicalChemResolverGradCap p M))
+      M := by
+  rcases
+    H1PhysicalChemValueGradSupBefore_of_boundedBefore
+      (p := p) (T := T) (u := u) (v := v) hsol hbounded with
+    ⟨M, hVG⟩
+  exact
+    ⟨M,
+      H1PhysicalChemResolverSupBefore_of_valueGradSup
+        (p := p) (T := T) (M := M)
+        (V := H1PhysicalChemResolverValueCap p M)
+        (G := H1PhysicalChemResolverGradCap p M)
+        (u := u) (v := v) hsol hVG⟩
+
+/-- Direct full physical H¹ sqrt wrapper from a finite-horizon sup-norm bound.
+The chem core constant is the algebraic value/gradient cap. -/
+theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_boundedBefore_valueGrad
+    {p : CM2Params} {T L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hchi : 0 ≤ -p.χ₀)
+    (hL : p.a ≤ L)
+    (hbounded : IsPaper2BoundedBefore intervalDomain T u) :
+    ∃ M, H1PhysicalRHSSqrtBoundsBefore p u v T
+      (H1PhysicalChemResolverGradCap p M)
+      (H1PhysicalChemUvxxCoreSupConstant p M
+        (H1PhysicalChemResolverValueCap p M)
+        (H1PhysicalChemResolverGradCap p M))
+      M L := by
+  rcases
+    H1PhysicalChemResolverSupBefore_of_boundedBefore_valueGrad
+      (p := p) (T := T) (u := u) (v := v) hsol hbounded with
+    ⟨M, hres⟩
+  exact
+    ⟨M,
+      H1PhysicalRHSSqrtBoundsBefore_of_classical_resolverSup
+        (p := p) (T := T)
+        (V₁ := H1PhysicalChemResolverGradCap p M)
+        (V₂ := H1PhysicalChemUvxxCoreSupConstant p M
+          (H1PhysicalChemResolverValueCap p M)
+          (H1PhysicalChemResolverGradCap p M))
+        (M := M) (L := L) (u := u) (v := v)
+        hsol hchi hL hres⟩
+
 #print axioms H1PhysicalChemResolverSupBefore_of_upperCore
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_upperCore
 #print axioms intervalDomainLift_le_supNorm_of_classical
+#print axioms solution_v_eq_resolver_pointwise_Icc
+#print axioms H1PhysicalChemValueGradSupBefore_of_boundedBefore
 #print axioms H1PhysicalChemUpperCoreBoundsBefore_of_boundedBefore_core
 #print axioms H1PhysicalChemResolverSupBefore_of_boundedBefore_core
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_boundedBefore_core
+#print axioms H1PhysicalChemResolverSupBefore_of_boundedBefore_valueGrad
+#print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_boundedBefore_valueGrad
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalResolverSupProducer
