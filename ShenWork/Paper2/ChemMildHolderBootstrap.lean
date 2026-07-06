@@ -807,6 +807,46 @@ def InitialLegUniformHolderAtZero
         intervalFullSemigroupOperator t (intervalDomainLift u₀) y.1| ≤
       H₀ * |x.1 - y.1| ^ θ
 
+/-- A uniform spatial derivative bound on the homogeneous initial heat leg is a
+producer for the zero-time initial-leg Holder frontier.  This theorem is only a
+thin MVT consumer: it does not prove the semigroup derivative bound itself. -/
+theorem InitialLegUniformHolderAtZero_of_semigroup_deriv_bound
+    {u₀ : intervalDomainPoint → ℝ} {T θ G : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) (hG : 0 ≤ G)
+    (hdiff : ∀ t, 0 < t → t ≤ T → ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      DifferentiableAt ℝ
+        (fun x : ℝ => intervalFullSemigroupOperator t (intervalDomainLift u₀) x) z)
+    (hderiv_bound : ∀ t, 0 < t → t ≤ T → ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      ‖deriv
+        (fun x : ℝ => intervalFullSemigroupOperator t (intervalDomainLift u₀) x) z‖ ≤ G) :
+    InitialLegUniformHolderAtZero u₀ T θ G := by
+  intro t htpos htT x y
+  set F : ℝ → ℝ := fun z => intervalFullSemigroupOperator t (intervalDomainLift u₀) z with hF
+  have hFdiff : ∀ z ∈ Set.Icc (0 : ℝ) 1, DifferentiableAt ℝ F z := by
+    intro z hz
+    simpa [F] using hdiff t htpos htT z hz
+  have hFbound : ∀ z ∈ Set.Icc (0 : ℝ) 1, ‖deriv F z‖ ≤ G := by
+    intro z hz
+    simpa [F] using hderiv_bound t htpos htT z hz
+  have hmvt :=
+    (convex_Icc (0 : ℝ) 1).norm_image_sub_le_of_norm_deriv_le
+      (f := F) (s := Set.Icc (0 : ℝ) 1)
+      hFdiff hFbound x.2 y.2
+  have hlip :
+      |intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 -
+        intervalFullSemigroupOperator t (intervalDomainLift u₀) y.1| ≤
+          G * |x.1 - y.1| := by
+    simpa [F, Real.norm_eq_abs, abs_sub_comm] using hmvt
+  have hdist_le_one : |x.1 - y.1| ≤ 1 := by
+    rw [abs_sub_le_iff]
+    constructor <;> linarith [x.2.1, x.2.2, y.2.1, y.2.2]
+  have hdist_le_pow : |x.1 - y.1| ≤ |x.1 - y.1| ^ θ := by
+    simpa [Real.rpow_one] using
+      (Real.rpow_le_rpow_of_exponent_ge'
+        (x := |x.1 - y.1|) (y := 1) (z := θ)
+        (abs_nonneg _) hdist_le_one hθ0.le hθ1)
+  exact hlip.trans (mul_le_mul_of_nonneg_left hdist_le_pow hG)
+
 /-- Uniform small-time Holder bound for the mild solution, conditional on the
 homogeneous initial leg already having a uniform Holder modulus at zero.  This
 is the small-time analogue of `mild_orderBox_positiveTime_holder`; it avoids the
