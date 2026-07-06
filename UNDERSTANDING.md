@@ -3072,6 +3072,26 @@ integrability fields from primitive zero-start data, local denominator/source
 bounds, and resolver estimates; it must not consume full RHS integrability,
 derivative integrability, strict/initial route data, or `IsPaper2BoundedBefore`.
 
+Task 96 follows Q3486/Q3487 and removes the strict-positive-time continuity
+layer from the physical H¹ strict/initial route.  New file
+`IntervalChiNegH1PhysicalClassicalContinuity` proves from
+`IsPaper2ClassicalSolution intervalDomain p T u v` that the concrete physical
+`liftDeriv2` representative
+`liftDeriv2PhysicalRHSWithChemRep p u (liftChemotaxisDivPhysicalRep p u v)` is
+continuous on every strict closed slab and agrees with literal `liftDeriv2 u`
+on the open spatial interior.  It also proves strict-slab continuity of the
+three Task84 non-lap factors
+`H1PhysicalChemTaxisPart`, `H1PhysicalChemUvxxPart`, and
+`H1PhysicalLogisticReactionPart`, then packages these as
+`H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution` and
+`H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution`.
+Consequently `H1PhysicalRHSStrictInitialRouteBefore_of_classical_youngScalarZero`
+and the component-square variant leave only the physical H¹ identity,
+square-root bounds, and Task94 zero-window component-square data as route
+frontiers.  This is still not a full headline proof: the physical
+identity/substitution, sqrt estimates, and near-zero component-square/lap
+integrability estimates remain analytic obligations.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
