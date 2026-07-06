@@ -42,7 +42,7 @@ open MeasureTheory Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
-open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData HasJointMeasurability)
 open ShenWork.IntervalMildRegularityBootstrap
   (HasRestartCosineRepresentations
     gradientMild_derivWithin_endpoint_zero_of_restartCosineRepresentations)
@@ -506,6 +506,73 @@ noncomputable def logisticCutoffSource
     ℝ → ℝ → ℝ :=
   fun s y => if 0 < s ∧ s ≤ T then logisticLifted p (u s) y else 0
 
+/-- Joint measurability of the lifted logistic source from the mild-solution
+joint-measurability field. -/
+theorem logisticLifted_joint_measurable_of_hasJoint
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability u) :
+    Measurable (fun q : ℝ × ℝ => logisticLifted p (u q.1) q.2) := by
+  have h_rpow : Measurable (fun x : ℝ => x ^ p.α) := by fun_prop
+  have hpow :
+      Measurable (fun q : ℝ × ℝ =>
+        (intervalDomainLift (u q.1) q.2) ^ p.α) :=
+    h_rpow.comp hum
+  have hpoly :
+      Measurable (fun q : ℝ × ℝ =>
+        intervalDomainLift (u q.1) q.2 *
+          (p.a - p.b * (intervalDomainLift (u q.1) q.2) ^ p.α)) :=
+    hum.mul (measurable_const.sub (measurable_const.mul hpow))
+  rw [show
+      (fun q : ℝ × ℝ => logisticLifted p (u q.1) q.2) =
+        fun q : ℝ × ℝ =>
+          intervalDomainLift (u q.1) q.2 *
+            (p.a - p.b * (intervalDomainLift (u q.1) q.2) ^ p.α) by
+    funext q
+    by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+    · simp [logisticLifted, ShenWork.IntervalDomainExistence.intervalLogisticSource,
+        intervalDomainLift, hy]
+    · simp [logisticLifted, intervalDomainLift, hy]]
+  exact hpoly
+
+/-- The time-cutoff logistic source is jointly measurable. -/
+theorem logisticCutoffSource_measurable
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hum : HasJointMeasurability u) :
+    Measurable (Function.uncurry (logisticCutoffSource p u T)) := by
+  have hsource : Measurable (fun q : ℝ × ℝ => logisticLifted p (u q.1) q.2) :=
+    logisticLifted_joint_measurable_of_hasJoint hum
+  have hcut :
+      Measurable
+        (fun q : ℝ × ℝ =>
+          if 0 < q.1 ∧ q.1 ≤ T then logisticLifted p (u q.1) q.2 else 0) := by
+    refine Measurable.ite ?_ hsource measurable_const
+    exact (isOpen_Ioi.preimage continuous_fst).measurableSet.inter
+      (isClosed_Iic.preimage continuous_fst).measurableSet
+  simpa [Function.uncurry, logisticCutoffSource] using hcut
+
+/-- Nonnegativity of the standard logistic-source sup bound. -/
+theorem logisticCutoffSource_boundConst_nonneg
+    {p : CM2Params} {M : ℝ} (hM : 0 < M) :
+    0 ≤ M * (p.a + p.b * M ^ p.α) :=
+  mul_nonneg hM.le
+    (add_nonneg p.ha (mul_nonneg p.hb (Real.rpow_nonneg hM.le _)))
+
+/-- Global bound for the time-cutoff logistic source, using the mild ball bound
+inside the active time window and the nonnegative bound constant outside it. -/
+theorem logisticCutoffSource_bound
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T M : ℝ}
+    (hM : 0 < M)
+    (hbound : ∀ s, 0 < s → s ≤ T → ∀ x, |u s x| ≤ M) :
+    ∀ s y, |logisticCutoffSource p u T s y| ≤
+      M * (p.a + p.b * M ^ p.α) := by
+  intro s y
+  by_cases hwin : 0 < s ∧ s ≤ T
+  · rw [logisticCutoffSource, if_pos hwin]
+    exact ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound
+      p hM (fun z => hbound s hwin.1 hwin.2 z) y
+  · rw [logisticCutoffSource, if_neg hwin]
+    simpa using logisticCutoffSource_boundConst_nonneg (p := p) hM
+
 /-- The global smooth representative carried by the phase-1 C1/η route.  It agrees
 with the true lifted mild slice on `[0,1]`, but unlike the zero extension it is not
 forced to vanish off the interval. -/
@@ -945,6 +1012,91 @@ theorem chemMild_C1eta_slice_diffOn_of_gradientMild_phase1ValueLegs_smallTheta_c
     ⟨HQ, hHQ_nonneg, Dslice⟩
   refine ⟨HQ, hHQ_nonneg, ?_⟩
   exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hNeumann
+
+/-- Concrete phase-1 C1/η route for the canonical cutoff representative.  This
+instantiates the reaction source with `logisticCutoffSource`, the chemotaxis
+coefficient with `p.χ₀`, the global representative by reflexive splitting, and
+the endpoint no-flux package from restarted cosine representations. -/
+theorem chemMild_C1eta_slice_diffOn_of_gradientMild_phase1CutoffRep_smallTheta_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t θ η H₀ Cu₀ : ℝ}
+    (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ Dsol.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t < Dsol.T)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀)
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hu₀_bdd : ∀ y, |intervalDomainLift u₀ y| ≤ Cu₀)
+    (hCu₀_nn : 0 ≤ Cu₀) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      DifferentiableOn ℝ
+        (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+        (Set.Icc (0:ℝ) 1) ∧
+        (∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+          |derivWithin
+              (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+              (Set.Icc (0:ℝ) 1) x -
+              derivWithin
+                (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+                (Set.Icc (0:ℝ) 1) y|
+            ≤ (initialValueLegDerivHolderConst t η Cu₀ +
+                |p.χ₀| * chemDuhamelConst t θ η HQ +
+                  reactionDerivLegHolderConst t η
+                    (Dsol.M * (p.a + p.b * Dsol.M ^ p.α))) *
+              |x - y| ^ η) ∧
+        Summable (fun n : ℕ =>
+          |cosineCoeffs
+            (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t) n|) := by
+  exact
+    chemMild_C1eta_slice_diffOn_of_gradientMild_phase1ValueLegs_smallTheta_cutoff_components
+      (Dsol := Dsol) (χ₀ := p.χ₀) (t := t) (θ := θ) (η := η)
+      (H₀ := H₀) (Cu₀ := Cu₀)
+      (CL := Dsol.M * (p.a + p.b * Dsol.M ^ p.α))
+      (L := logisticCutoffSource p Dsol.u Dsol.T)
+      (w := gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+      hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht (le_of_lt htT)
+      hu₀_meas hu₀_bdd hCu₀_nn
+      (logisticCutoffSource_measurable (p := p) (u := Dsol.u) (T := Dsol.T)
+        Dsol.hmeas)
+      (logisticCutoffSource_boundConst_nonneg (p := p) Dsol.hM)
+      (logisticCutoffSource_bound (p := p) (u := Dsol.u) (T := Dsol.T)
+        Dsol.hM Dsol.hbound)
+      (by intro x; rfl)
+      (gradientMild_phase1ValueLegs_cutoffRep_derivWithin_endpoint_zero
+        Dsol H ht htT)
+
+/-- The concrete phase-1 representative route also gives Wiener coefficient
+summability for the true lifted mild slice, by `[0,1]` agreement. -/
+theorem gradientMild_trueLift_cosineCoeffs_summable_of_phase1CutoffRep_smallTheta_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t θ η H₀ Cu₀ : ℝ}
+    (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ Dsol.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t < Dsol.T)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀)
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hu₀_bdd : ∀ y, |intervalDomainLift u₀ y| ≤ Cu₀)
+    (hCu₀_nn : 0 ≤ Cu₀) :
+    Summable (fun n : ℕ => |cosineCoeffs (intervalDomainLift (Dsol.u t)) n|) := by
+  rcases
+      chemMild_C1eta_slice_diffOn_of_gradientMild_phase1CutoffRep_smallTheta_components
+        Dsol H hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
+        hu₀_meas hu₀_bdd hCu₀_nn with
+    ⟨HQ, _hHQ_nonneg, _hDiff, _hHolder, hsum⟩
+  exact summable_abs_cosineCoeffs_of_eqOn_Icc
+    (gradientMild_phase1ValueLegs_cutoffRep_eqOn_Icc Dsol ht (le_of_lt htT))
+    hsum
 
 /-- Small-exponent concrete chem-flux route to the `[0,1]` C1/eta slice conclusion
 with the canonical homogeneous initial value leg `S(t)u₀`. -/
