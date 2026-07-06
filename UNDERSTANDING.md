@@ -1,5 +1,29 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 239: strict-negative uniform-floor dead routes and floorless scalar atom (2026-07-06)
+
+The full-PPID uniform-floor route for strict chi-negative local existence is
+now formally dead in the two interfaces that had been feeding the EWA/Wiener
+bridge:
+
+- `SourceChiNegUniformBridgeC3Obstruction.not_uniformFlooredC3NeumannData`
+  refutes the narrowed C3/Neumann uniform-floor residual.
+- `SourceChiNegDatumWienerDataObstruction.not_datumWienerData` refutes the
+  monolithic `DatumWienerData` residual directly, using cosine reconstruction
+  to transfer the lifting floor back to the constant paper datum.
+- `SourceChiNegUniformFloorDead` collects both no-go facts under route-level
+  names, so future all-PPID reductions cannot silently route through these
+  uninhabited premises.
+
+Q3697 correctly diagnosed the strategic issue: the all-PPID strict-negative
+route cannot depend on a common lower floor depending only on a sup bound.
+Its suggested faithful-Wiener obstruction is superseded by the stronger
+`not_datumWienerData` theorem above.  Its floorless scalar-power atom was
+already present as
+`IntervalDomainL2UEnergyUniformGammaGeOne.rpow_lipschitz_on_Icc_zeroM_of_one_le_gamma`.
+`IntervalRpowLipschitz.rpow_lipschitz_on_Icc_nonneg` is a thin existential
+adapter around that existing result for the floor-free fixed-point route.
+
 ## Task 151: endpoint chemDiv limits for general chi nonpositive (2026-07-06)
 
 `ShenWork/Paper2/IntervalDomainBoundaryChemDivLimit.lean` discharges the
