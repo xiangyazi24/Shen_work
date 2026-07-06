@@ -78,6 +78,12 @@ Task156 wires that PPID frontier to the PPID strong path through
 `paper2_theorem_1_1_general_chi_bform_paper_negpart_from_ppid_quant`, with
 explicit Sq/SqRegular negative-part wrappers in
 `IntervalBFormPositiveDatumPPIDStrongWiring`.
+Task157 extends the paper-positive negative-part frontier to the deepest
+squared-barrier package:
+`BFormPositiveDatumLocalSq.bFormPaperPositiveLocalFrontier_of_sqDeepest`.
+The `negativePart_zero` field is produced by consuming the existing
+`NegativePartEnergyCoreData`/Gronwall route; this wrapper does not remove any
+weak-PDE assumptions used to build that energy core.
 
 ## L2 Seed Frontier Producer (2026-07-03)
 

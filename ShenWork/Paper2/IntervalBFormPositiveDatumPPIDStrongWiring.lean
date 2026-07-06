@@ -133,6 +133,19 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_ppid_quant
     (positiveDatum_localExistence_of_BFormSq_deepest hdeepest)
     hQuant
 
+/-- Deepest squared-barrier B-form headline through the paper-positive
+negative-part frontier and PPID-typed strong path. -/
+theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_negpart_from_ppid_quant
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hdeepest : PositiveDatumBFormLocalHypSqDeepest p)
+    (hQuant : ShenWork.Paper2.StrongPath.ChiNegDatumUniformConstructionPPID p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_general_chi_bform_paper_negpart_from_ppid_quant
+    p hχ ha hb hγ_ge_one
+    (bFormPaperPositiveLocalFrontier_of_sqDeepest hdeepest)
+    hQuant
+
 section AxiomAudit
 
 #print axioms paper2_theorem_1_1_general_chi_bformSq_from_ppid_quant
@@ -144,6 +157,8 @@ section AxiomAudit
 #print axioms
   paper2_theorem_1_1_general_chi_bformSq_regular_negpart_from_ppid_quant
 #print axioms paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_ppid_quant
+#print axioms
+  paper2_theorem_1_1_general_chi_bformSq_of_deepest_negpart_from_ppid_quant
 
 end AxiomAudit
 

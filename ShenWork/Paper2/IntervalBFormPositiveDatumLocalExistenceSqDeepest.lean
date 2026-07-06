@@ -130,6 +130,62 @@ def PositiveDatumBFormSqDeepestHypotheses.strictPos
     H.bank.huPaper H.bank.Hinf H.bank.hsmall
     H.hM_nonneg H.hM H.hstrip
 
+/-- The deepest package's energy core gives pointwise nonnegativity, hence
+zero negative part. This wrapper consumes `Henergy`; it does not discharge the
+weak-PDE input used to build that energy core. -/
+theorem PositiveDatumBFormSqDeepestHypotheses.negativePart_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (H : PositiveDatumBFormSqDeepestHypotheses p DB) :
+    ∀ t, 0 < t → t ≤ DB.T → ∀ x : intervalDomainPoint,
+      negativePart (conjugatePicardLimit p u₀ DB.T t x) = 0 := by
+  intro t ht htT x
+  have hnonneg :
+      0 ≤ conjugatePicardLimit p u₀ DB.T t x :=
+    (negativePartEnergyGronwallAvailable_of_coreData H.Henergy)
+      H.Henergy.estimate.weak t ht htT x
+  exact negativePart_eq_zero_of_nonneg hnonneg
+
+def PositiveDatumBFormSqDeepestHypotheses.route
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (H : PositiveDatumBFormSqDeepestHypotheses p DB) :
+    BFormNegativePartPositivityRoute p DB where
+  datum := H.bank.huPaper.toPositive
+  negativePart_zero := H.negativePart_zero
+  strictPos := H.strictPos
+  hpde_u := H.bank.hpde_u
+
+/-- A deepest squared-barrier package builds the negative-part classical
+frontier record, keeping the datum class paper-positive. -/
+theorem PositiveDatumBFormSqDeepestHypotheses.toBFormPositiveClassicalFrontier
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (H : PositiveDatumBFormSqDeepestHypotheses p DB) :
+    BFormPositiveClassicalFrontier p DB := by
+  let F := H.directFrontier
+  let hsol :=
+    ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_isClassicalSolution_direct F
+  let hreg :=
+    ShenWork.Paper2.BFormDirectClassical.intervalConjugatePicardLimit_classicalRegularity_direct F
+  refine
+    { route := H.route
+      regularity := hreg
+      v_nonneg := ?_
+      hpde_v := ?_
+      neumann := ?_ }
+  · intro t x ht htT
+    exact ShenWork.IntervalMildToClassical.mildChemical_nonneg
+      (T := DB.T) p
+      (u := conjugatePicardLimit p u₀ DB.T)
+      (conjugateMildSolutionData_of_data DB).hnonneg
+      (conjugateMildSolutionData_of_data DB).hcont
+      ht (le_of_lt htT) x
+  · intro t x ht htT hx
+    exact hsol.pde_v ht htT hx
+  · intro t x ht htT hx
+    exact hsol.neumann ht htT hx
+
 theorem PositiveDatumBFormSqDeepestHypotheses.localClassicalSolution
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {DB : ConjugateMildExistenceData p u₀}
@@ -168,6 +224,16 @@ def PositiveDatumBFormLocalHypSqDeepest (p : CM2Params) : Prop :=
     PaperPositiveInitialDatum intervalDomain u₀ →
       ∃ DB : ConjugateMildExistenceData p u₀,
         Nonempty (PositiveDatumBFormSqDeepestHypotheses p DB)
+
+/-- The deepest paper-positive component package produces the paper-positive
+negative-part B-form frontier. -/
+theorem bFormPaperPositiveLocalFrontier_of_sqDeepest
+    {p : CM2Params}
+    (hdeepest : PositiveDatumBFormLocalHypSqDeepest p) :
+    BFormPaperPositiveLocalFrontier p := by
+  intro u₀ hu₀paper
+  rcases hdeepest u₀ hu₀paper with ⟨DB, ⟨H⟩⟩
+  exact ⟨DB, ⟨H.toBFormPositiveClassicalFrontier⟩⟩
 
 theorem positiveDatum_localExistence_of_BFormSq_deepest
     {p : CM2Params}
