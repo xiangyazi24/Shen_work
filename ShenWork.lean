@@ -107,6 +107,7 @@ import ShenWork.Paper2.IntervalDomainResolverSupQuantitative
 import ShenWork.Paper2.IntervalDomainCrossDiffusionBootstrap
 import ShenWork.Paper2.IntervalResolverWeakBounds
 import ShenWork.Paper2.IntervalGradientDuhamelMap
+import ShenWork.Paper2.IntervalChemFluxHolderFrontier
 import ShenWork.Paper2.IntervalMildPicard
 import ShenWork.Paper2.IntervalMildRegularityBootstrap
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
