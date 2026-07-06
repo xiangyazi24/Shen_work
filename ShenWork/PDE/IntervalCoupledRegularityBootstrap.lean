@@ -288,6 +288,36 @@ theorem normalDeriv_zero_of_closedC2_neumann
     exact (hasDerivWithinAt_Iic_of_tendsto_deriv hdiff hcont1 hmem1 hN1).derivWithin
       (uniqueDiffWithinAt_Iic (1 : ℝ))
 
+/-- On the open interval, the genuine derivative of the lifted static resolver
+agrees with the resolver-gradient sine series.  Endpoint statements require
+separate handling because `intervalDomainLift` is the zero extension outside
+`[0,1]`, while `normalDeriv` is one-sided. -/
+theorem resolver_lift_deriv_eq_resolverGradReal_of_sourceDecay
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (intervalDomainLift (intervalNeumannResolverR p u)) x =
+      resolverGradReal p u x := by
+  classical
+  set S : ℝ → ℝ := fun z =>
+    ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+      Real.cos ((k : ℝ) * Real.pi * z) with hS
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  have hSderiv :
+      HasDerivAt S (intervalNeumannResolverRGrad p u ⟨x, hxIcc⟩) x := by
+    rw [hS]
+    exact solution_resolver_grad_hasDerivAt_of_sourceDecay hdecay hxIcc
+  have hEq : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      intervalDomainLift (intervalNeumannResolverR p u) y = S y := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    simp only [intervalDomainLift, hyIcc, dif_pos]
+    rw [resolverR_apply_eq, hS]
+  have hloc : intervalDomainLift (intervalNeumannResolverR p u) =ᶠ[𝓝 x] S := by
+    refine Filter.eventuallyEq_of_mem ?_ hEq
+    exact IsOpen.mem_nhds isOpen_Ioo hx
+  rw [hloc.deriv_eq, hSderiv.deriv, resolverGradReal_eq p u ⟨x, hxIcc⟩]
+
 /-- The resolver laplacian equals the `RLap` series on the open interval. -/
 theorem resolver_laplacian_eq_RLap_of_sourceDecay
     {p : CM2Params} {u : intervalDomainPoint → ℝ}
