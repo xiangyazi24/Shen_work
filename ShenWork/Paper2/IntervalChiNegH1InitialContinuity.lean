@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1ScalarRegularityProducer
+import ShenWork.PDE.IntervalDomainExistence
 
 /-!
 # H¹ initial endpoint continuity
@@ -12,6 +13,7 @@ open MeasureTheory Set Filter
 open scoped BigOperators Topology Interval
 
 open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1ScalarDIProducer
@@ -49,6 +51,82 @@ structure H1InitialEndpointData
     (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
   tendsto : H1InitialTraceEnergyTendsto u₀ u T
   compatible : H1InitialEnergyCompatibleAtZero u₀ u
+
+private theorem intervalIntegral_constLift_deriv_sq_zero (c : ℝ) :
+    (∫ x in (0 : ℝ)..1,
+      (deriv (intervalDomainLift (fun _ : intervalDomainPoint => c)) x) ^ 2) = 0 := by
+  calc
+    (∫ x in (0 : ℝ)..1,
+      (deriv (intervalDomainLift (fun _ : intervalDomainPoint => c)) x) ^ 2)
+        = ∫ _x in (0 : ℝ)..1, (0 : ℝ) := by
+          refine intervalIntegral.integral_congr (fun x hx => ?_)
+          rw [Set.uIcc_of_le (zero_le_one : (0 : ℝ) ≤ 1)] at hx
+          have hderiv :
+              deriv (intervalDomainLift (fun _ : intervalDomainPoint => c)) x = 0 := by
+            by_cases hx0 : x = 0
+            · subst x
+              exact (intervalDomainLift_const_deriv_endpoint_zero c).1
+            · by_cases hx1 : x = 1
+              · subst x
+                exact (intervalDomainLift_const_deriv_endpoint_zero c).2
+              · exact intervalDomainLift_const_deriv_zero c
+                  ⟨lt_of_le_of_ne hx.1 (Ne.symm hx0), lt_of_le_of_ne hx.2 hx1⟩
+          simp [hderiv]
+    _ = 0 := by simp
+
+/-- The H¹ energy of a spatially constant trajectory is zero. -/
+theorem H1energy_const (c τ : ℝ) :
+    H1energy (fun _ (_ : intervalDomainPoint) => c) τ = 0 := by
+  simp [H1energy, intervalIntegral_constLift_deriv_sq_zero c]
+
+/-- The prescribed initial H¹ energy of a spatially constant datum is zero. -/
+theorem H1InitialEnergy_const (c : ℝ) :
+    H1InitialEnergy (fun _ : intervalDomainPoint => c) = 0 := by
+  simp [H1InitialEnergy, intervalIntegral_constLift_deriv_sq_zero c]
+
+/-- A constant trajectory has deleted-right H¹ energy trace equal to its
+constant initial datum. -/
+theorem H1InitialTraceEnergyTendsto_const {T c : ℝ} :
+    H1InitialTraceEnergyTendsto
+      (fun _ : intervalDomainPoint => c)
+      (fun _ (_ : intervalDomainPoint) => c)
+      T := by
+  have hfun :
+      (fun τ : ℝ => H1energy (fun _ (_ : intervalDomainPoint) => c) τ) =
+        fun _ : ℝ => (0 : ℝ) := by
+    funext τ
+    exact H1energy_const c τ
+  unfold H1InitialTraceEnergyTendsto
+  change Tendsto (fun τ : ℝ => H1energy (fun _ (_ : intervalDomainPoint) => c) τ)
+    (𝓝[Set.Ioc (0 : ℝ) T] (0 : ℝ))
+    (𝓝 (H1InitialEnergy (fun _ : intervalDomainPoint => c)))
+  rw [hfun, H1InitialEnergy_const c]
+  exact tendsto_const_nhds
+
+/-- A constant trajectory is compatible with its constant initial datum at the
+stored zero slice. -/
+theorem H1InitialEnergyCompatibleAtZero_const (c : ℝ) :
+    H1InitialEnergyCompatibleAtZero
+      (fun _ : intervalDomainPoint => c)
+      (fun _ (_ : intervalDomainPoint) => c) := by
+  unfold H1InitialEnergyCompatibleAtZero
+  rw [H1energy_const c 0, H1InitialEnergy_const c]
+
+/-- Bundled H¹ endpoint data for a spatially constant trajectory. -/
+theorem H1InitialEndpointData_const {T c : ℝ} :
+    H1InitialEndpointData
+      (fun _ : intervalDomainPoint => c)
+      (fun _ (_ : intervalDomainPoint) => c)
+      T :=
+  ⟨H1InitialTraceEnergyTendsto_const, H1InitialEnergyCompatibleAtZero_const c⟩
+
+/-- Bundled H¹ endpoint data for the interval-domain constant datum API. -/
+theorem H1InitialEndpointData_constOnInterval {T c : ℝ} :
+    H1InitialEndpointData
+      (constOnInterval c)
+      (fun _ (_ : intervalDomainPoint) => c)
+      T := by
+  simpa [constOnInterval] using H1InitialEndpointData_const (T := T) (c := c)
 
 /-- Exact equality of the stored zero slice gives the H¹ energy compatibility
 field.  This does not imply deleted-right H¹ energy convergence. -/
@@ -160,6 +238,12 @@ theorem H1energy_continuousOn_before_of_uxxL1Cont_initialEndpointData
     hsol hUxxL1 hinit.tendsto hinit.compatible
 
 #print axioms tendsto_nhdsWithin_Ici_zero_of_tendsto_nhdsWithin_Ioc_zero
+#print axioms H1energy_const
+#print axioms H1InitialEnergy_const
+#print axioms H1InitialTraceEnergyTendsto_const
+#print axioms H1InitialEnergyCompatibleAtZero_const
+#print axioms H1InitialEndpointData_const
+#print axioms H1InitialEndpointData_constOnInterval
 #print axioms H1InitialEnergyCompatibleAtZero_of_zeroSlice
 #print axioms H1InitialEnergyCompatibleAtZero_of_zeroSlice_pointwise
 #print axioms H1energy_continuousWithinAt_zero_of_initialTraceEnergy
