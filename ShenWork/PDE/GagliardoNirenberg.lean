@@ -132,7 +132,8 @@ open Real
 
 /-! ### Cauchy–Schwarz for interval integrals -/
 
-private theorem sq_integral_abs_mul_le
+/-- Cauchy-Schwarz for interval integrals, squared form. -/
+theorem sq_integral_abs_mul_le
     {L : ℝ} (hL : 0 < L)
     {f g : ℝ → ℝ}
     (hf_sq : IntervalIntegrable (fun y => f y ^ 2) volume 0 L)
@@ -189,7 +190,8 @@ private theorem sq_integral_abs_mul_le
     ring
   linarith
 
-private theorem integral_abs_mul_le_sqrt
+/-- Cauchy-Schwarz for interval integrals in square-root form. -/
+theorem integral_abs_mul_le_sqrt
     {L : ℝ} (hL : 0 < L)
     {f g : ℝ → ℝ}
     (hf_sq : IntervalIntegrable (fun y => f y ^ 2) volume 0 L)
@@ -210,6 +212,47 @@ private theorem integral_abs_mul_le_sqrt
       sq_sqrt (intervalIntegral.integral_nonneg hL.le (fun u _ => sq_nonneg _))]
   have : B ^ 2 ≤ R ^ 2 := by linarith
   exact le_of_sq_le_sq this hR_nn
+
+/-- Young-style consequence of Cauchy-Schwarz for interval integrals. -/
+theorem integral_abs_mul_le_half_sq_sum
+    {L : ℝ} (hL : 0 < L)
+    {f g : ℝ → ℝ}
+    (hf_sq : IntervalIntegrable (fun y => f y ^ 2) volume 0 L)
+    (hg_sq : IntervalIntegrable (fun y => g y ^ 2) volume 0 L)
+    (hfg : IntervalIntegrable (fun y => |f y * g y|) volume 0 L) :
+    ∫ y in (0 : ℝ)..L, |f y * g y| ≤
+      ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, f y ^ 2) +
+        ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, g y ^ 2) := by
+  have hcs := integral_abs_mul_le_sqrt hL hf_sq hg_sq hfg
+  set A := ∫ y in (0 : ℝ)..L, f y ^ 2 with hA_def
+  set C := ∫ y in (0 : ℝ)..L, g y ^ 2 with hC_def
+  have hA_nn : 0 ≤ A := intervalIntegral.integral_nonneg hL.le (fun u _ => sq_nonneg _)
+  have hC_nn : 0 ≤ C := intervalIntegral.integral_nonneg hL.le (fun u _ => sq_nonneg _)
+  have hyoung : sqrt A * sqrt C ≤ ((1 : ℝ) / 2) * A + ((1 : ℝ) / 2) * C := by
+    have hsq : 0 ≤ (sqrt A - sqrt C) ^ 2 := sq_nonneg _
+    have hA_sq : (sqrt A) ^ 2 = A := sq_sqrt hA_nn
+    have hC_sq : (sqrt C) ^ 2 = C := sq_sqrt hC_nn
+    nlinarith
+  simpa [A, C] using hcs.trans hyoung
+
+/-- Norm form of the interval-integral Young estimate. -/
+theorem norm_integral_mul_le_half_sq_sum
+    {L : ℝ} (hL : 0 < L)
+    {f g : ℝ → ℝ}
+    (hf_sq : IntervalIntegrable (fun y => f y ^ 2) volume 0 L)
+    (hg_sq : IntervalIntegrable (fun y => g y ^ 2) volume 0 L)
+    (hfg : IntervalIntegrable (fun y => |f y * g y|) volume 0 L) :
+    ‖∫ y in (0 : ℝ)..L, f y * g y‖ ≤
+      ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, f y ^ 2) +
+        ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, g y ^ 2) := by
+  calc
+    ‖∫ y in (0 : ℝ)..L, f y * g y‖
+        = |∫ y in (0 : ℝ)..L, f y * g y| := Real.norm_eq_abs _
+    _ ≤ ∫ y in (0 : ℝ)..L, |f y * g y| :=
+        intervalIntegral.abs_integral_le_integral_abs hL.le
+    _ ≤ ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, f y ^ 2) +
+          ((1 : ℝ) / 2) * (∫ y in (0 : ℝ)..L, g y ^ 2) :=
+        integral_abs_mul_le_half_sq_sum hL hf_sq hg_sq hfg
 
 /-! ### Agmon's inequality -/
 
@@ -408,6 +451,11 @@ theorem agmon_inequality_interval_rightDeriv
     integral_abs_mul_le_sqrt hL hf_sq_int hf'_sq_int habs_ff'
   rw [div_mul_eq_mul_div, ← sub_le_iff_le_add, le_div_iff₀ hL]
   nlinarith [hcs]
+
+#print axioms sq_integral_abs_mul_le
+#print axioms integral_abs_mul_le_sqrt
+#print axioms integral_abs_mul_le_half_sq_sum
+#print axioms norm_integral_mul_le_half_sq_sum
 
 end ShenWork.GagliardoNirenberg
 

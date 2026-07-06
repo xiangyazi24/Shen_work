@@ -3053,6 +3053,25 @@ integrability, square-profile integrability, and scalar-product estimates;
 they must not be filled using downstream RHS integrability, derivative
 integrability, strict/initial route data, or bounded-before packages.
 
+Task 95 follows the Q3489 audit and starts the source-side spatial
+Cauchy/Young layer without touching downstream H1 packages.
+`GagliardoNirenberg` now exposes the interval Cauchy-Schwarz tools
+`sq_integral_abs_mul_le` and `integral_abs_mul_le_sqrt`, plus the
+Young half-square consequences `integral_abs_mul_le_half_sq_sum` and
+`norm_integral_mul_le_half_sq_sum`.  The new
+`IntervalChiNegH1PhysicalYoungSpatial` file proves the three fixed-time
+physical product estimates for `H1PhysicalTaxisX`, `H1PhysicalUvxxX`, and
+`H1PhysicalReactX`, then packages explicit source-side zero-window data:
+time integrability of `lapL2sq` and the three square profiles, a.e.
+spatial square integrability of `liftDeriv2` and each non-lap part, and a.e.
+spatial absolute-product integrability.  This lowers to Task94
+`H1PhysicalRHSComponentSquareZeroDataBefore`, and then to Task93
+`H1PhysicalRHSYoungScalarZeroMajorantsBefore`.  The remaining hard producer is
+now precisely the PDE/regularity theorem proving those time and a.e. spatial
+integrability fields from primitive zero-start data, local denominator/source
+bounds, and resolver estimates; it must not consume full RHS integrability,
+derivative integrability, strict/initial route data, or `IsPaper2BoundedBefore`.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
