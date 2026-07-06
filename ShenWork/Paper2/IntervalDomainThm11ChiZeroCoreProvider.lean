@@ -713,6 +713,51 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- strong-maximum-principle producer (now landed).
   Hvpos := ShenWork.IntervalResolverStrictPositivity.mildChemicalConcentration_pos p D }
 
+/-! ## Tight-ledger provider companions
+
+Task225 deleted the externally-carried `hpde_u` and `Hu` fields from the local
+ledger interface.  The provider above still constructs the older reduced ledger,
+so the additive helpers below simply forget `hpde_u` and expose the same provider
+through `LedgerSweep.TightLimitRegularityInputs`. -/
+
+/-- **Per-datum tight ledger from the existing reduced provider.**
+All fields are copied from `reducedLimitRegularityInputs_of_picard` except the
+now-derivable `hpde_u` field, which is intentionally not carried by the tight
+interface. -/
+noncomputable def tightLimitRegularityInputs_of_picard
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
+    (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (D : GradientMildSolutionData p u₀)
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (R : PicardIterateResidualData p u₀ D) :
+    LedgerSweep.TightLimitRegularityInputs p u₀ D :=
+  let I := reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hDu R
+  { hα := I.hα
+    ha := I.ha
+    hb := I.hb
+    hu₀_cont := I.hu₀_cont
+    M₀ := I.M₀
+    hu₀_bound := I.hu₀_bound
+    hfix := I.hfix
+    hsrc0 := I.hsrc0
+    Msup := I.Msup
+    bc := I.bc
+    hbsum := I.hbsum
+    hagree := I.hagree
+    hpost := I.hpost
+    hubt := I.hubt
+    hG1t := I.hG1t
+    hG2t := I.hG2t
+    hN0t := I.hN0t
+    hN1t := I.hN1t
+    adott := I.adott
+    hderivt := I.hderivt
+    hadotcontt := I.hadotcontt
+    hMdott := I.hMdott
+    hLc := I.hLc
+    Hvsrc := I.Hvsrc
+    Hvpos := I.Hvpos }
+
 /-! ## Wdata-only narrowing: cone facts supplied at the construction site
 
 The provider's residual surface is shrunk from the THREE-leg
@@ -784,6 +829,58 @@ noncomputable def restartAndFrontierCore_of_wdata
       (ShenWork.IntervalMildToLocalExistence.GradientMildClassicalFrontierCoreData p D) :=
   let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
     (reducedLimitRegularityInputs_of_wdata p hχ0 ha hb hα u₀ hu₀ D hDu
+      hcont_iter hFacts hFacts_T hiter_cont Wdata)
+  ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
+   MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
+
+/-- **Per-datum tight ledger from cone facts + the Wdata-only residual.**
+This is the tight companion to `reducedLimitRegularityInputs_of_wdata`: it builds
+the same iterate residual package, then exposes the smaller Task225 ledger that
+does not carry `hpde_u`/`Hu` as external fields. -/
+noncomputable def tightLimitRegularityInputs_of_wdata
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
+    (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (D : GradientMildSolutionData p u₀)
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    (hiter_cont : ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+      ContinuousOn
+        (fun s => ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc a' τ))
+    (Wdata : WdataProvider p u₀ D) :
+    LedgerSweep.TightLimitRegularityInputs p u₀ D :=
+  let C := picardIterateResidualCore_of_wdata hcont_iter hFacts hFacts_T Wdata
+  let hsrc0 := ShenWork.Paper2.HresWiring.duhamelSourceBddOn_of_core hα ha.le hb.le
+    hu₀ hDu C hiter_cont
+  let hu₀_bnd := ShenWork.IntervalRestartSliceLipschitz.u₀_cosineCoeff_bound
+    hu₀.admissible.2
+  tightLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hDu
+    (picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu hsrc0
+      hu₀_bnd.choose_spec.2 C)
+
+/-- **The tight classical frontier core from cone facts + Wdata.**
+Same output as `restartAndFrontierCore_of_wdata`, routed through
+`LedgerSweep.limitRegularityInputs_of_tight` so downstream audits see that the
+provider now targets the smaller `hpde_u`/`Hu`-free ledger surface. -/
+noncomputable def restartAndFrontierCore_of_wdata_tight
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
+    (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (D : GradientMildSolutionData p u₀)
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    (hiter_cont : ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+      ContinuousOn
+        (fun s => ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc a' τ))
+    (Wdata : WdataProvider p u₀ D) :
+    (ShenWork.IntervalMildRegularityBootstrap.GradientMildHalfStepRestartData D) ×'
+      (ShenWork.IntervalMildToLocalExistence.GradientMildClassicalFrontierCoreData p D) :=
+  let I := LedgerSweep.limitRegularityInputs_of_tight hχ0
+    (tightLimitRegularityInputs_of_wdata p hχ0 ha hb hα u₀ hu₀ D hDu
       hcont_iter hFacts hFacts_T hiter_cont Wdata)
   ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
    MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
