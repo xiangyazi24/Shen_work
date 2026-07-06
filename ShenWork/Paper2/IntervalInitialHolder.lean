@@ -135,6 +135,35 @@ theorem addCircle_two_dist_translate (x y z : ℝ) :
   congr 1
   ring_nf
 
+/-- Every point on the period-2 additive circle is within distance `1` of zero. -/
+theorem addCircle_two_dist_zero_le_one (z : AddCircle (2 : ℝ)) :
+    dist z 0 ≤ 1 := by
+  rw [dist_eq_norm, sub_zero]
+  have hp : (2 : ℝ) ≠ 0 := by norm_num
+  have h := AddCircle.norm_le_half_period (p := (2 : ℝ)) (x := z) hp
+  norm_num at h ⊢
+  exact h
+
+/-- Fold a point of the period-2 circle back to `[0,1]` by its distance to zero. -/
+noncomputable def addCircleTwoFoldPoint
+    (z : AddCircle (2 : ℝ)) : intervalDomainPoint :=
+  ⟨dist z 0, dist_nonneg, addCircle_two_dist_zero_le_one z⟩
+
+/-- Folding after a common real translation is contractive for interval starting
+points.  This is the deterministic metric core of the common-noise reflected
+Brownian coupling route. -/
+theorem addCircle_two_foldPoint_translate_contract_real
+    (x y : intervalDomainPoint) (z : ℝ) :
+    |(addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+      (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1| ≤
+      |x.1 - y.1| := by
+  have hrev :=
+    abs_dist_sub_le (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))
+      (((y.1 + z : ℝ) : AddCircle (2 : ℝ))) (0 : AddCircle (2 : ℝ))
+  have htrans := addCircle_two_dist_translate x.1 y.1 z
+  have hxy := addCircle_two_dist_coe_eq_abs_Icc x.2 y.2
+  simpa [addCircleTwoFoldPoint, htrans, hxy] using hrev
+
 end
 
 end ShenWork.Paper2

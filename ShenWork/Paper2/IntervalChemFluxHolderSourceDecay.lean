@@ -146,11 +146,12 @@ theorem ChemFluxCthetaSourceOn_of_uniform_components
 
 The `GradientMildSolutionData` fields discharge the source measurability,
 positive-window integrability, positive-window sup bound, positive-window
-continuity, the `u`-bound (`U = D.M`), and resolver nonnegativity. -/
+continuity, the `u`-bound (`U = D.M`), the resolver-gradient sup bound, the
+resolver-value Holder bound, and resolver nonnegativity. -/
 theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
-    {θ HQ Hu Hg Hv : ℝ}
+    {θ HQ Hu Hg : ℝ}
     (hθ0 : 0 < θ) (hθ1 : θ < 1)
     (hHQ_nonneg : 0 ≤ HQ)
     (hHu_nonneg : 0 ≤ Hu) (hHg_nonneg : 0 ≤ Hg)
@@ -161,18 +162,16 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
         D.M * Hg +
         D.M * (Real.sqrt (∑' k : ℕ,
           (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
-            (2 * (p.ν * D.M ^ p.γ))) * p.β * Hv ≤ HQ)
+            (2 * (p.ν * D.M ^ p.γ))) * p.β *
+          (Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+              (2 * (p.ν * D.M ^ p.γ))) ≤ HQ)
     (hu_holder : ∀ s, 0 < s → s ≤ D.T → ∀ x y : intervalDomainPoint,
       |D.u s x - D.u s y| ≤ Hu * |x.1 - y.1| ^ θ)
     (hg_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
       a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
         |resolverGradReal p (D.u s) a - resolverGradReal p (D.u s) b| ≤
-          Hg * |a - b| ^ θ)
-    (hR_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
-      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
-        |intervalDomainLift (intervalNeumannResolverR p (D.u s)) a -
-            intervalDomainLift (intervalNeumannResolverR p (D.u s)) b| ≤
-          Hv * |a - b| ^ θ) :
+          Hg * |a - b| ^ θ) :
     ChemFluxCthetaSourceOn p D.u D.T θ
       (D.M * (Real.sqrt (∑' k : ℕ,
         (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
@@ -195,31 +194,32 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
       |intervalDomainLift (D.u s) x| ≤ D.M := by
     intro s hs0 hsT x hx
     simpa [intervalDomainLift, hx] using D.hbound s hs0 hsT ⟨x, hx⟩
+  have hcont_on : ∀ s, 0 < s → s ≤ D.T →
+      ContinuousOn (intervalDomainLift (D.u s)) (Set.Icc (0 : ℝ) 1) := by
+    intro s hs0 hsT
+    rw [continuousOn_iff_continuous_restrict]
+    have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift (D.u s)) =
+        D.u s := by
+      ext ⟨y, hy⟩
+      simp [Set.restrict, intervalDomainLift, hy]
+      rfl
+    rw [this]
+    exact D.hcont s hs0 hsT
+  have hlb : ∀ s, 0 < s → s ≤ D.T → ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      0 ≤ intervalDomainLift (D.u s) y := by
+    intro s hs0 hsT y hy
+    simpa [intervalDomainLift, hy] using D.hnonneg s hs0 hsT ⟨y, hy⟩
+  have hub : ∀ s, 0 < s → s ≤ D.T → ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (D.u s) y ≤ D.M := by
+    intro s hs0 hsT y hy
+    have hb := D.hbound s hs0 hsT ⟨y, hy⟩
+    simpa [intervalDomainLift, hy] using (abs_le.mp hb).2
   have hg_bound : ∀ s, 0 < s → s ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |resolverGradReal p (D.u s) x| ≤ G := by
     intro s hs0 hsT x hx
     rw [hG]
-    have hcont_on :
-        ContinuousOn (intervalDomainLift (D.u s)) (Set.Icc (0 : ℝ) 1) := by
-      rw [continuousOn_iff_continuous_restrict]
-      have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift (D.u s)) =
-          D.u s := by
-        ext ⟨y, hy⟩
-        simp [Set.restrict, intervalDomainLift, hy]
-        rfl
-      rw [this]
-      exact D.hcont s hs0 hsT
-    have hlb : ∀ y ∈ Set.Icc (0 : ℝ) 1,
-        0 ≤ intervalDomainLift (D.u s) y := by
-      intro y hy
-      simpa [intervalDomainLift, hy] using D.hnonneg s hs0 hsT ⟨y, hy⟩
-    have hub : ∀ y ∈ Set.Icc (0 : ℝ) 1,
-        intervalDomainLift (D.u s) y ≤ D.M := by
-      intro y hy
-      have hb := D.hbound s hs0 hsT ⟨y, hy⟩
-      simpa [intervalDomainLift, hy] using (abs_le.mp hb).2
     exact ShenWork.IntervalResolverWeakBounds.resolverGrad_sup_le_of_bounded
-      p hcont_on hlb hub hx
+      p (hcont_on s hs0 hsT) (hlb s hs0 hsT) (hub s hs0 hsT) hx
   have hR_nonneg : ∀ s, 0 < s → s ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
       0 ≤ intervalDomainLift (intervalNeumannResolverR p (D.u s)) x := by
     intro s hs0 hsT x hx
@@ -235,9 +235,18 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
     intro s hs0 hsT a b ha hb
     simpa [intervalDomainLift, ha, hb] using
       hu_holder s hs0 hsT ⟨a, ha⟩ ⟨b, hb⟩
+  have hR_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalDomainLift (intervalNeumannResolverR p (D.u s)) a -
+            intervalDomainLift (intervalNeumannResolverR p (D.u s)) b| ≤
+          G * |a - b| ^ θ := by
+    intro s hs0 hsT a b ha hb
+    rw [hG]
+    exact ShenWork.IntervalResolverWeakBounds.intervalNeumannResolverR_lift_holder_Icc_of_bounded
+      p hθ0 hθ1.le (hcont_on s hs0 hsT) (hlb s hs0 hsT) (hub s hs0 hsT) ha hb
   refine ChemFluxCthetaSourceOn_of_uniform_components
     (p := p) (u := D.u) (T := D.T) (θ := θ) (CQ := CQ) (HQ := HQ)
-    (U := D.M) (G := G) (Hu := Hu) (Hg := Hg) (Hv := Hv)
+    (U := D.M) (G := G) (Hu := Hu) (Hg := Hg) (Hv := G)
     hθ0 hθ1 hCQ_nonneg hHQ_nonneg D.hM.le hG_nonneg
     hHu_nonneg hHg_nonneg ?_
     (chemFluxLifted_uncurry_measurable (p := p) (u := D.u) D.hmeas)

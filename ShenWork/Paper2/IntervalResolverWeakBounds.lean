@@ -301,6 +301,219 @@ theorem resolverGrad_sup_le_of_bounded
   exact mul_le_mul_of_nonneg_left
     (source_coeffL2Norm_le_of_bounded p hUcont hlb hub) (Real.sqrt_nonneg _)
 
+/-- Each Neumann cosine mode is spatially Lipschitz with constant `kπ`. -/
+private theorem unitIntervalCosineMode_abs_sub_le
+    (k : ℕ) (x y : ℝ) :
+    |unitIntervalCosineMode k x - unitIntervalCosineMode k y| ≤
+      ((k : ℝ) * Real.pi) * |x - y| := by
+  rw [unitIntervalCosineMode]
+  calc |Real.cos ((k : ℝ) * Real.pi * x) -
+        Real.cos ((k : ℝ) * Real.pi * y)|
+      ≤ |((k : ℝ) * Real.pi * x) - ((k : ℝ) * Real.pi * y)| :=
+        Real.abs_cos_sub_cos_le _ _
+    _ = ((k : ℝ) * Real.pi) * |x - y| := by
+        rw [← mul_sub, abs_mul]
+        have hkp_nonneg : 0 ≤ (k : ℝ) * Real.pi :=
+          mul_nonneg (Nat.cast_nonneg _) Real.pi_pos.le
+        rw [abs_of_nonneg hkp_nonneg]
+
+/-- **Weak resolver-value spatial Holder bound.**  If a bounded continuous
+order-box element satisfies `0 ≤ u ≤ M`, then the elliptic resolver value is
+spatially `θ`-Holder on `[0,1]` with the same gradient-weight constant that
+controls `resolverGradReal`.
+
+The proof avoids the C²/source-decay derivative bridge.  It estimates the
+cosine-series difference directly by Cauchy-Schwarz, using
+`|cos(kπx)-cos(kπy)| ≤ kπ|x-y|`. -/
+theorem intervalNeumannResolverR_lift_holder_Icc_of_bounded
+    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M θ : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ ≤ 1)
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hlb : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
+    (hub : ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift u x ≤ M)
+    {x y : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    |intervalDomainLift (intervalNeumannResolverR p u) x -
+        intervalDomainLift (intervalNeumannResolverR p u) y| ≤
+      (Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * M ^ p.γ))) * |x - y| ^ θ := by
+  classical
+  have hMnn : 0 ≤ M := by
+    have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := ⟨le_rfl, by norm_num⟩
+    exact le_trans (hlb 0 h0) (hub 0 h0)
+  have hsrc := resolverSourceCoeff_re_sq_summable_of_continuousOn p hUcont
+  have hl2 : Summable fun k : ℕ => ((intervalNeumannResolverSourceCoeff p u k).re) ^ 2 := by
+    simpa [intervalNeumannResolverSourceCoeff_zero, sub_zero] using hsrc
+  have hsumx := resolver_cosineSeries_summable_of_sourceL2 p hl2 x
+  have hsumy := resolver_cosineSeries_summable_of_sourceL2 p hl2 y
+  set A : ℕ → ℂ := fun k =>
+    intervalNeumannResolverSourceCoeff p u k -
+      intervalNeumannResolverSourceCoeff p (fun _ => 0) k with hA
+  set e : ℕ → ℝ := fun k => (A k).re with he
+  set m : ℕ → ℝ := fun k =>
+    (unitIntervalCosineMode k x - unitIntervalCosineMode k y) /
+      (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) with hm
+  have hterm : ∀ k : ℕ,
+      (intervalNeumannResolverCoeff p u k).re * unitIntervalCosineMode k x -
+        (intervalNeumannResolverCoeff p u k).re * unitIntervalCosineMode k y =
+          e k * m k := by
+    intro k
+    have hden : p.μ + unitIntervalNeumannSpectrum.eigenvalue k ≠ 0 :=
+      ne_of_gt (intervalNeumannResolver_denom_pos p k)
+    rw [he, hA, hm, resolverCoeff_re_eq p u k]
+    simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero]
+    field_simp [hden]
+  have he_sq : Summable fun k : ℕ => (e k) ^ 2 := by
+    simpa [e, A, intervalNeumannResolverSourceCoeff_zero, sub_zero] using hl2
+  have hm_sq : Summable fun k : ℕ => (m k) ^ 2 := by
+    refine Summable.of_nonneg_of_le (fun k => sq_nonneg _) ?_
+      ((intervalNeumannResolverGradWeight_sq_summable p).mul_left (|x - y| ^ 2))
+    intro k
+    have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue k :=
+      intervalNeumannResolver_denom_pos p k
+    have hm_abs : |m k| ≤ intervalNeumannResolverGradWeight p k * |x - y| := by
+      rw [hm, abs_div, abs_of_pos hden_pos, intervalNeumannResolverGradWeight]
+      calc |unitIntervalCosineMode k x - unitIntervalCosineMode k y| /
+            (p.μ + unitIntervalNeumannSpectrum.eigenvalue k)
+          ≤ (((k : ℝ) * Real.pi) * |x - y|) /
+              (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) :=
+            div_le_div_of_nonneg_right
+              (unitIntervalCosineMode_abs_sub_le k x y) hden_pos.le
+        _ = (k : ℝ) * Real.pi /
+              (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) * |x - y| := by
+            ring
+    calc (m k) ^ 2 = |m k| ^ 2 := (sq_abs (m k)).symm
+      _ ≤ (intervalNeumannResolverGradWeight p k * |x - y|) ^ 2 :=
+          pow_le_pow_left₀ (abs_nonneg _) hm_abs 2
+      _ = |x - y| ^ 2 * (intervalNeumannResolverGradWeight p k) ^ 2 := by ring
+  have hprod_sum : Summable fun k : ℕ => e k * m k := by
+    apply Summable.of_norm
+    have hdom : ∀ k : ℕ,
+        ‖e k * m k‖ ≤ (1/2) * (e k)^2 + (1/2) * (m k)^2 := by
+      intro k
+      rw [Real.norm_eq_abs, abs_mul]
+      nlinarith [sq_abs (e k), sq_abs (m k), sq_nonneg (|e k| - |m k|)]
+    exact Summable.of_nonneg_of_le (fun k => norm_nonneg _) hdom
+      ((he_sq.mul_left (1/2)).add (hm_sq.mul_left (1/2)))
+  have hsum_eq :
+      intervalNeumannResolverR p u ⟨x, hx⟩ -
+          intervalNeumannResolverR p u ⟨y, hy⟩ =
+        ∑' k : ℕ, e k * m k := by
+    simp only [intervalNeumannResolverR]
+    rw [← hsumx.tsum_sub hsumy]
+    refine tsum_congr ?_
+    intro k
+    rw [← hterm k]
+  have hCS :
+      |∑' k : ℕ, e k * m k| ≤
+        Real.sqrt (∑' k : ℕ, (e k) ^ 2) *
+          Real.sqrt (∑' k : ℕ, (m k) ^ 2) :=
+    real_abs_tsum_mul_le_sqrt_tsum_sq_mul_sqrt_tsum_sq he_sq hm_sq
+  have hA_l2 :
+      Real.sqrt (∑' k : ℕ, (e k) ^ 2) ≤ coeffL2Norm A := by
+    rw [coeffL2Norm, coeffL2Energy]
+    apply Real.sqrt_le_sqrt
+    refine he_sq.tsum_le_tsum ?_ (intervalNeumannResolverR_source_l2_summable p u (fun _ => 0) hsrc)
+    intro k
+    have : (e k) ^ 2 = (A k).re * (A k).re := by rw [he]; ring
+    rw [this]
+    calc (A k).re * (A k).re ≤ Complex.normSq (A k) := Complex.re_sq_le_normSq _
+      _ = ‖A k‖ ^ 2 := (Complex.sq_norm _).symm
+  have hmW :
+      Real.sqrt (∑' k : ℕ, (m k) ^ 2) ≤
+        Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+          |x - y| := by
+    have hsum_le :
+        (∑' k : ℕ, (m k) ^ 2) ≤
+          |x - y| ^ 2 *
+            (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) := by
+      have hle : ∀ k : ℕ,
+          (m k) ^ 2 ≤
+            |x - y| ^ 2 * (intervalNeumannResolverGradWeight p k) ^ 2 := by
+        intro k
+        have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue k :=
+          intervalNeumannResolver_denom_pos p k
+        have hm_abs : |m k| ≤ intervalNeumannResolverGradWeight p k * |x - y| := by
+          rw [hm, abs_div, abs_of_pos hden_pos, intervalNeumannResolverGradWeight]
+          calc |unitIntervalCosineMode k x - unitIntervalCosineMode k y| /
+                (p.μ + unitIntervalNeumannSpectrum.eigenvalue k)
+              ≤ (((k : ℝ) * Real.pi) * |x - y|) /
+                  (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) :=
+                div_le_div_of_nonneg_right
+                  (unitIntervalCosineMode_abs_sub_le k x y) hden_pos.le
+            _ = (k : ℝ) * Real.pi /
+                  (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) * |x - y| := by
+                ring
+        calc (m k) ^ 2 = |m k| ^ 2 := (sq_abs (m k)).symm
+          _ ≤ (intervalNeumannResolverGradWeight p k * |x - y|) ^ 2 :=
+              pow_le_pow_left₀ (abs_nonneg _) hm_abs 2
+          _ = |x - y| ^ 2 * (intervalNeumannResolverGradWeight p k) ^ 2 := by ring
+      calc (∑' k : ℕ, (m k) ^ 2)
+          ≤ ∑' k : ℕ, |x - y| ^ 2 * (intervalNeumannResolverGradWeight p k) ^ 2 :=
+            hm_sq.tsum_le_tsum hle
+              ((intervalNeumannResolverGradWeight_sq_summable p).mul_left (|x - y| ^ 2))
+        _ = |x - y| ^ 2 *
+            (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) := by
+            exact Summable.tsum_mul_left (|x - y| ^ 2)
+              (intervalNeumannResolverGradWeight_sq_summable p)
+    calc Real.sqrt (∑' k : ℕ, (m k) ^ 2)
+        ≤ Real.sqrt (|x - y| ^ 2 *
+            (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2)) :=
+          Real.sqrt_le_sqrt hsum_le
+      _ = Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+          |x - y| := by
+          rw [Real.sqrt_mul (sq_nonneg (|x - y|))
+            (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2)]
+          rw [Real.sqrt_sq (abs_nonneg _), mul_comm]
+  have hLip :
+      |intervalNeumannResolverR p u ⟨x, hx⟩ -
+          intervalNeumannResolverR p u ⟨y, hy⟩| ≤
+        (Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * M ^ p.γ))) * |x - y| := by
+    rw [hsum_eq]
+    have hcoeff := source_coeffL2Norm_le_of_bounded p hUcont hlb hub
+    have hcoeff_nn : 0 ≤ coeffL2Norm A := Real.sqrt_nonneg _
+    have hW_nn :
+        0 ≤ Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) :=
+      Real.sqrt_nonneg _
+    have hdist_nn : 0 ≤ |x - y| := abs_nonneg _
+    calc |∑' k : ℕ, e k * m k|
+        ≤ Real.sqrt (∑' k : ℕ, (e k) ^ 2) *
+            Real.sqrt (∑' k : ℕ, (m k) ^ 2) := hCS
+      _ ≤ coeffL2Norm A *
+            (Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+              |x - y|) :=
+          mul_le_mul hA_l2 hmW (Real.sqrt_nonneg _) hcoeff_nn
+      _ ≤ (2 * (p.ν * M ^ p.γ)) *
+            (Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+              |x - y|) :=
+          mul_le_mul_of_nonneg_right hcoeff (mul_nonneg hW_nn hdist_nn)
+      _ = (Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * M ^ p.γ))) * |x - y| := by ring
+  have hdist_le_one : |x - y| ≤ 1 := by
+    rw [abs_sub_le_iff]
+    constructor <;> linarith [hx.1, hx.2, hy.1, hy.2]
+  have hdist_le_pow : |x - y| ≤ |x - y| ^ θ := by
+    simpa [Real.rpow_one] using
+      (Real.rpow_le_rpow_of_exponent_ge'
+        (x := |x - y|) (y := 1) (z := θ)
+        (abs_nonneg _) hdist_le_one hθ0.le hθ1)
+  have hconst_nn :
+      0 ≤ Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * M ^ p.γ)) := by
+    exact mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg hMnn _)))
+  have hxlift :
+      intervalDomainLift (intervalNeumannResolverR p u) x =
+        intervalNeumannResolverR p u ⟨x, hx⟩ := by
+    simp [intervalDomainLift, hx]
+  have hylift :
+      intervalDomainLift (intervalNeumannResolverR p u) y =
+        intervalNeumannResolverR p u ⟨y, hy⟩ := by
+    simp [intervalDomainLift, hy]
+  rw [hxlift, hylift]
+  exact hLip.trans (mul_le_mul_of_nonneg_left hdist_le_pow hconst_nn)
+
 
 /-! ## B4 — resolver value/gradient DIFFERENCE Lipschitz (weak)
 
