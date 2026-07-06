@@ -399,6 +399,271 @@ theorem foldedHeat_branch_summable_of_bounded
       ht (-x.1 + 2 * (k : ℝ)) hf_meas hf_bound
     simpa [B, add_comm, add_left_comm, add_assoc] using hle
 
+/-- Bounded data make the two full image-branch integral sequences summable. -/
+theorem fullKernel_image_branch_summable_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : ℝ) {f : ℝ → ℝ} {M : ℝ}
+    (_hM : 0 ≤ M) (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (x - y + 2 * (k : ℝ)) * f y) ∧
+    Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (x + y + 2 * (k : ℝ)) * f y) := by
+  set A : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (x - y + 2 * (k : ℝ))
+  set B : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (x + y + 2 * (k : ℝ))
+  have hA_nonneg : ∀ k : ℤ, 0 ≤ A k := by
+    intro k
+    exact intervalIntegral.integral_nonneg (by norm_num : (0 : ℝ) ≤ 1)
+      (fun y _hy => heatKernel_nonneg ht (x - y + 2 * (k : ℝ)))
+  have hB_nonneg : ∀ k : ℤ, 0 ≤ B k := by
+    intro k
+    exact intervalIntegral.integral_nonneg (by norm_num : (0 : ℝ) ≤ 1)
+      (fun y _hy => heatKernel_nonneg ht (x + y + 2 * (k : ℝ)))
+  have hAB : Summable (fun k : ℤ => A k + B k) := by
+    simpa [A, B] using
+      (ShenWork.IntervalNeumannFullKernel.summable_cell_heat_interval_integral ht x)
+  have hA_sum : Summable A :=
+    Summable.of_nonneg_of_le hA_nonneg
+      (fun k => le_add_of_nonneg_right (hB_nonneg k)) hAB
+  have hB_sum : Summable B :=
+    Summable.of_nonneg_of_le hB_nonneg
+      (fun k => le_add_of_nonneg_left (hA_nonneg k)) hAB
+  constructor
+  · refine Summable.of_norm_bounded (g := fun k : ℤ => M * A k)
+      (hA_sum.mul_left M) ?_
+    intro k
+    rw [Real.norm_eq_abs]
+    have hle := heatKernel_sub_branch_abs_integral_mul_bounded_le
+      ht (x + 2 * (k : ℝ)) hf_meas hf_bound
+    simpa [A, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hle
+  · refine Summable.of_norm_bounded (g := fun k : ℤ => M * B k)
+      (hB_sum.mul_left M) ?_
+    intro k
+    rw [Real.norm_eq_abs]
+    have hle := heatKernel_add_branch_abs_integral_mul_bounded_le
+      ht (x + 2 * (k : ℝ)) hf_meas hf_bound
+    simpa [B, add_comm, add_left_comm, add_assoc] using hle
+
+/-- Norm-integral domination for one full-kernel image cell after multiplication
+by a bounded datum. -/
+theorem fullKernel_image_integral_norm_hk_le_mass_mul
+    {t : ℝ} (ht : 0 < t) (x : ℝ) {f : ℝ → ℝ} {M : ℝ}
+    (hf_bound : ∀ y, |f y| ≤ M) (k : ℤ) :
+    (∫ y,
+        ‖((heatKernel t (x - y + 2 * (k : ℝ))
+            + heatKernel t (x + y + 2 * (k : ℝ))) * f y)‖
+        ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)))
+      ≤ M *
+        ((∫ y in (0 : ℝ)..1, heatKernel t (x - y + 2 * (k : ℝ)))
+          + (∫ y in (0 : ℝ)..1, heatKernel t (x + y + 2 * (k : ℝ)))) := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  set A : ℝ → ℝ := fun y => heatKernel t (x - y + 2 * (k : ℝ))
+  set B : ℝ → ℝ := fun y => heatKernel t (x + y + 2 * (k : ℝ))
+  have hAii : IntervalIntegrable A volume 0 1 := by
+    have hAcont : Continuous A := by
+      unfold A heatKernel
+      fun_prop
+    exact hAcont.intervalIntegrable 0 1
+  have hBii : IntervalIntegrable B volume 0 1 := by
+    have hBcont : Continuous B := by
+      unfold B heatKernel
+      fun_prop
+    exact hBcont.intervalIntegrable 0 1
+  have hupper_int : Integrable
+      (fun y : ℝ => M * (A y + B y)) (volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+    exact ((intervalIntegrable_iff_integrableOn_Ioc_of_le h01).mp (hAii.add hBii)).const_mul M
+  calc
+    (∫ y, ‖((A y + B y) * f y)‖ ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)))
+        ≤ ∫ y, M * (A y + B y) ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+          refine MeasureTheory.integral_mono_of_nonneg
+            (Filter.Eventually.of_forall fun y => norm_nonneg _)
+            hupper_int
+            (Filter.Eventually.of_forall fun y => ?_)
+          have hK_nonneg : 0 ≤ A y + B y := by
+            exact add_nonneg (by simpa [A] using heatKernel_nonneg ht (x - y + 2 * (k : ℝ)))
+              (by simpa [B] using heatKernel_nonneg ht (x + y + 2 * (k : ℝ)))
+          change ‖(A y + B y) * f y‖ ≤ M * (A y + B y)
+          rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hK_nonneg]
+          calc
+            (A y + B y) * |f y| ≤ (A y + B y) * M :=
+              mul_le_mul_of_nonneg_left (hf_bound y) hK_nonneg
+            _ = M * (A y + B y) := by ring
+    _ = M * ∫ y, A y + B y ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+        rw [MeasureTheory.integral_const_mul]
+    _ = M *
+        ((∫ y in (0 : ℝ)..1, heatKernel t (x - y + 2 * (k : ℝ)))
+          + (∫ y in (0 : ℝ)..1, heatKernel t (x + y + 2 * (k : ℝ)))) := by
+        congr 1
+        rw [← intervalIntegral.integral_of_le h01]
+        simpa [A, B] using intervalIntegral.integral_add hAii hBii
+
+/-- Interchange the full image-kernel branch `tsum` with the `[0,1]` integral
+after multiplication by a bounded measurable datum. -/
+theorem fullKernel_image_integral_tsum_mul_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : ℝ) {f : ℝ → ℝ} {M : ℝ}
+    (_hM : 0 ≤ M) (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    (∫ y in (0 : ℝ)..1,
+        ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel t x y * f y)
+      =
+    ∑' k : ℤ,
+      ∫ y in (0 : ℝ)..1,
+        (heatKernel t (x - y + 2 * (k : ℝ))
+          + heatKernel t (x + y + 2 * (k : ℝ))) * f y := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  let μ := volume.restrict (Set.Ioc (0 : ℝ) 1)
+  set hk : ℤ → ℝ → ℝ := fun k y =>
+    (heatKernel t (x - y + 2 * (k : ℝ))
+      + heatKernel t (x + y + 2 * (k : ℝ))) * f y with hk_def
+  have hμint : ∀ k : ℤ, Integrable (hk k) μ := by
+    intro k
+    have hAprod : IntervalIntegrable
+        (fun y : ℝ => heatKernel t (x - y + 2 * (k : ℝ)) * f y) volume 0 1 := by
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+        ((heatKernel_translated_integrable ht (x + 2 * (k : ℝ))).mul_bdd
+          hf_meas.aestronglyMeasurable
+          (Filter.Eventually.of_forall fun y => by
+            simpa [Real.norm_eq_abs] using hf_bound y)).intervalIntegrable
+    have hBprod : IntervalIntegrable
+        (fun y : ℝ => heatKernel t (x + y + 2 * (k : ℝ)) * f y) volume 0 1 := by
+      simpa [add_comm, add_left_comm, add_assoc] using
+        (((heatKernel_integrable ht).comp_add_left (x + 2 * (k : ℝ))).mul_bdd
+          hf_meas.aestronglyMeasurable
+          (Filter.Eventually.of_forall fun y => by
+            simpa [Real.norm_eq_abs] using hf_bound y)).intervalIntegrable
+    have hsum : IntervalIntegrable (hk k) volume 0 1 := by
+      convert hAprod.add hBprod using 1
+      funext y
+      rw [hk_def]
+      ring
+    exact (intervalIntegrable_iff_integrableOn_Ioc_of_le h01).mp hsum
+  set mass : ℤ → ℝ := fun k =>
+    (∫ y in (0 : ℝ)..1, heatKernel t (x - y + 2 * (k : ℝ)))
+      + (∫ y in (0 : ℝ)..1, heatKernel t (x + y + 2 * (k : ℝ)))
+  have hmass_sum : Summable mass := by
+    simpa [mass] using
+      (ShenWork.IntervalNeumannFullKernel.summable_cell_heat_interval_integral ht x)
+  have hμsum : Summable (fun k : ℤ => ∫ y, ‖hk k y‖ ∂μ) := by
+    refine Summable.of_nonneg_of_le
+      (fun k => MeasureTheory.integral_nonneg fun y => norm_nonneg _)
+      ?_ (hmass_sum.mul_left M)
+    intro k
+    simpa [μ, hk_def, mass] using
+      (fullKernel_image_integral_norm_hk_le_mass_mul (t := t) ht (x := x)
+        (f := f) (M := M) hf_bound k)
+  have key := MeasureTheory.integral_tsum_of_summable_integral_norm
+    (μ := μ) (F := hk) hμint hμsum
+  calc
+    (∫ y in (0 : ℝ)..1,
+        ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel t x y * f y)
+        = ∫ y, (∑' k : ℤ, hk k y) ∂μ := by
+          rw [intervalIntegral.integral_of_le h01]
+          refine MeasureTheory.integral_congr_ae
+            (Filter.Eventually.of_forall fun y => ?_)
+          unfold ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel
+          rw [hk_def]
+          change ((∑' (k : ℤ),
+              (heatKernel t (x - y + 2 * (k : ℝ))
+                + heatKernel t (x + y + 2 * (k : ℝ)))) * f y)
+            =
+              ∑' (k : ℤ),
+                ((heatKernel t (x - y + 2 * (k : ℝ))
+                  + heatKernel t (x + y + 2 * (k : ℝ))) * f y)
+          rw [tsum_mul_right]
+    _ = ∑' k : ℤ, ∫ y, hk k y ∂μ := key.symm
+    _ = ∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          (heatKernel t (x - y + 2 * (k : ℝ))
+            + heatKernel t (x + y + 2 * (k : ℝ))) * f y := by
+          refine tsum_congr (fun k => ?_)
+          rw [← intervalIntegral.integral_of_le h01]
+
+/-- Bounded measurable data allow image-branch `tsum`/interval-integral
+interchange for the full Neumann kernel. -/
+theorem FullKernelImageBranchInterchange_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint) {f : ℝ → ℝ} {M : ℝ}
+    (hM : 0 ≤ M) (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    FullKernelImageBranchInterchange t x f := by
+  unfold FullKernelImageBranchInterchange
+  rw [ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator]
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have hconv :
+      (∫ y,
+          ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel t x.1 y * f y
+            ∂ShenWork.IntervalDomain.intervalMeasure 1)
+        =
+        ∫ y in (0 : ℝ)..1,
+          ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel t x.1 y * f y := by
+    rw [intervalIntegral.integral_of_le h01]
+    simp only [ShenWork.IntervalDomain.intervalMeasure, ShenWork.IntervalDomain.intervalSet]
+    rw [MeasureTheory.integral_Icc_eq_integral_Ioc]
+  rw [hconv]
+  rw [fullKernel_image_integral_tsum_mul_of_bounded
+    (t := t) ht (x := x.1) (f := f) (M := M) hM hf_meas hf_bound]
+  have hbranches := fullKernel_image_branch_summable_of_bounded
+    (t := t) ht (x := x.1) (f := f) (M := M) hM hf_meas hf_bound
+  calc
+    (∑' k : ℤ,
+      ∫ y in (0 : ℝ)..1,
+        (heatKernel t (x.1 - y + 2 * (k : ℝ))
+          + heatKernel t (x.1 + y + 2 * (k : ℝ))) * f y)
+        =
+      ∑' k : ℤ,
+        ((∫ y in (0 : ℝ)..1,
+            heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+          + (∫ y in (0 : ℝ)..1,
+            heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y)) := by
+        refine tsum_congr (fun k => ?_)
+        have hAprod : IntervalIntegrable
+            (fun y : ℝ => heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+            volume 0 1 := by
+          simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+            ((heatKernel_translated_integrable ht (x.1 + 2 * (k : ℝ))).mul_bdd
+              hf_meas.aestronglyMeasurable
+              (Filter.Eventually.of_forall fun y => by
+                simpa [Real.norm_eq_abs] using hf_bound y)).intervalIntegrable
+        have hBprod : IntervalIntegrable
+            (fun y : ℝ => heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y)
+            volume 0 1 := by
+          simpa [add_comm, add_left_comm, add_assoc] using
+            (((heatKernel_integrable ht).comp_add_left (x.1 + 2 * (k : ℝ))).mul_bdd
+              hf_meas.aestronglyMeasurable
+              (Filter.Eventually.of_forall fun y => by
+                simpa [Real.norm_eq_abs] using hf_bound y)).intervalIntegrable
+        rw [show (fun y : ℝ =>
+            (heatKernel t (x.1 - y + 2 * (k : ℝ))
+              + heatKernel t (x.1 + y + 2 * (k : ℝ))) * f y)
+            =
+            (fun y : ℝ =>
+              heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y
+                + heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y) from by
+              funext y
+              ring]
+        exact intervalIntegral.integral_add hAprod hBprod
+    _ =
+      (∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+      +
+      (∑' k : ℤ,
+        ∫ y in (0 : ℝ)..1,
+          heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y) :=
+        Summable.tsum_add hbranches.1 hbranches.2
+
+/-- Final bounded-data bridge from the folded real-line heat representation to
+the existing full-kernel Neumann semigroup operator. -/
+theorem foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_bounded
+    {t : ℝ} (ht : 0 < t) (x : intervalDomainPoint) {f : ℝ → ℝ} {M : ℝ}
+    (hM : 0 ≤ M) (hf_meas : Measurable f) (hf_bound : ∀ y, |f y| ≤ M) :
+    foldedHeatIntegral t x f =
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t f x.1 := by
+  obtain ⟨hA, hB⟩ :=
+    foldedHeat_branch_summable_of_bounded ht x hM hf_meas hf_bound
+  exact foldedHeatIntegral_eq_intervalFullSemigroupOperator_of_branch_interchange
+    t x f
+    (foldedHeat_integrable_of_bounded ht x hf_meas hf_bound)
+    hA hB
+    (FullKernelImageBranchInterchange_of_bounded ht x hM hf_meas hf_bound)
+
 end
 
 end ShenWork.Paper2
