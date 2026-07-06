@@ -1,5 +1,30 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 257: PPID resolver-source lower bound discharged from u-side spectral continuity (2026-07-06)
+
+`IntervalResolverSourceWindowInputsNoLower.lean` removes the compact
+positive lower-bound field from the Task255 resolver-source primitive input
+package.  The new `ResolverSourceWindowInputsNoLower` still carries the
+global cosine representation, pointwise positivity, compact upper and spatial
+K2 bounds, and power-source K1 coefficient time-regularity, but not
+`hlower`.  The theorem `compactLower_of_timeNeighborhoodSpectral` derives
+that lower bound from `HasTimeNeighborhoodSpectralAgreement D.T D.u` by using
+the existing joint continuity theorem
+`mildSolution_jointContinuousOn_closed` on `[a,b] × [0,1]`, compact
+minimization, and the carried pointwise positivity.
+
+`IntervalDomainPPIDResolverSourceInputsNoLowerFrontier.lean` wires this
+no-lower input package into the PPID restart route for both source-data and
+iterate-data surfaces, then exposes the corresponding `χ₀ ≤ 0` and `χ₀ < 0`
+Theorem 1.1 wrappers.  This is a residual reduction, not a new unconditional
+headline theorem: the route still assumes the u-side time-neighborhood
+spectral agreement, `hpde_u`, and the remaining resolver-source primitive
+fields.  ChatGPT Q3711 independently audits Task255 in the same direction:
+`hpos`, compact upper bounds, and compact lower bounds are not the true
+non-`χ₀ = 0` analytic frontier; the hard residue is the faithful non-`χ₀`
+representation/envelope, spatial K2 from that envelope, and power-source K1
+time-regularity.
+
 ## Task 255: PPID resolver-source window data lowered to primitive inputs (2026-07-06)
 
 `IntervalResolverSourceWindowInputs.lean` implements the Q3706 generic
