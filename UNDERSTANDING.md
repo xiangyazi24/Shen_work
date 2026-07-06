@@ -3204,6 +3204,19 @@ environment.  Q3537 confirmed that identity, sqrt bounds, and the zero-start
 primitive package are not currently derivable from `IsPaper2ClassicalSolution`
 by a small wrapper.
 
+Task 106 starts splitting the physical identity frontier into a smaller honest
+piece.  The new `IntervalChiNegH1PhysicalIdentityRouteC` file defines
+`H1PhysicalRHSRouteCSubstitutionBefore`, the exact equality that rewrites the
+Route-C derivative value
+`-∫ liftDeriv2 u τ x * liftTimeDeriv u τ x` into
+`H1IdentityRHSValue` for the concrete physical scalar triple
+`H1PhysicalTaxisX`, `H1PhysicalUvxxX`, and `H1PhysicalReactX`.  It proves
+`H1PhysicalRHSIdentityBefore_of_classical_uxxL1Cont_routeCSubstitution`: from a
+classical solution, `H1UxxL1ContBefore`, and that exact substitution frontier,
+one obtains `H1PhysicalRHSIdentityBefore`.  This does not prove the physical
+substitution equality; it isolates it as the remaining identity blocker instead
+of carrying the whole physical identity package.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
