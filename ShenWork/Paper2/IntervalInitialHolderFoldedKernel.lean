@@ -59,6 +59,98 @@ noncomputable def foldedHeatIntegral
     (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ) : ℝ :=
   ∫ z : ℝ, heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1
 
+/-- On one period-2 cell in the real noise variable, the folded real-line
+integral is exactly the sum of the two image branches over `[0,1]`. -/
+theorem foldedHeat_cell_integral_eq_two_branches
+    (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ) (k : ℤ)
+    (hG : Integrable
+      (fun z : ℝ => heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1)) :
+    (∫ z in Set.Ioc (-x.1 + 2 * (k : ℝ) - 1) (-x.1 + 2 * (k : ℝ) + 1),
+        heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1)
+      =
+        (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y)
+          + (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y) := by
+  set G : ℝ → ℝ := fun z => heatKernel t z * f (addCircleTwoFoldTranslatePoint x z).1
+  have hcell := ShenWork.cell_integral_eq (g := G) hG (-x.1) k
+  rw [← hcell]
+  congr 1
+  · refine intervalIntegral.integral_congr (fun y hy => ?_)
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
+      simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
+    have hfold :
+        (addCircleTwoFoldTranslatePoint x (-x.1 - y + 2 * (k : ℝ))).1 = y := by
+      unfold addCircleTwoFoldTranslatePoint
+      have harg : x.1 + (-x.1 - y + 2 * (k : ℝ)) = -y + 2 * (k : ℝ) := by
+        ring
+      rw [harg]
+      exact addCircleTwoFoldPoint_neg_add_period_eq hyIcc k
+    simp [G, hfold]
+  · refine intervalIntegral.integral_congr (fun y hy => ?_)
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
+      simpa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] using hy
+    have hfold :
+        (addCircleTwoFoldTranslatePoint x (-x.1 + y + 2 * (k : ℝ))).1 = y := by
+      unfold addCircleTwoFoldTranslatePoint
+      have harg : x.1 + (-x.1 + y + 2 * (k : ℝ)) = y + 2 * (k : ℝ) := by
+        ring
+      rw [harg]
+      exact addCircleTwoFoldPoint_coe_add_period_eq hyIcc k
+    simp [G, hfold]
+
+/-- The two folded image-branch lattice sums are the two full-kernel branches,
+after the involutive reindexing `k ↦ -k` and the evenness of `heatKernel`. -/
+theorem foldedHeat_branch_tsum_reindex
+    (t : ℝ) (x : intervalDomainPoint) (f : ℝ → ℝ)
+    (hA : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y))
+    (hB : Summable (fun k : ℤ =>
+      ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y)) :
+    (∑' k : ℤ,
+        ((∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y)
+          + (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y)))
+      =
+        (∑' k : ℤ,
+          ∫ y in (0 : ℝ)..1, heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y)
+          + (∑' k : ℤ,
+            ∫ y in (0 : ℝ)..1, heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y) := by
+  set A : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y
+  set B : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y
+  set C : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (x.1 - y + 2 * (k : ℝ)) * f y
+  set D : ℤ → ℝ := fun k =>
+    ∫ y in (0 : ℝ)..1, heatKernel t (x.1 + y + 2 * (k : ℝ)) * f y
+  have hAeq : A = D ∘ Equiv.neg ℤ := by
+    funext k
+    simp only [A, D, Function.comp, Equiv.neg_apply]
+    refine intervalIntegral.integral_congr (fun y _ => ?_)
+    congr 1
+    rw [← heatKernel_neg t (x.1 + y + 2 * ((-k : ℤ) : ℝ))]
+    congr 1
+    push_cast
+    ring
+  have hBeq : B = C ∘ Equiv.neg ℤ := by
+    funext k
+    simp only [B, C, Function.comp, Equiv.neg_apply]
+    refine intervalIntegral.integral_congr (fun y _ => ?_)
+    congr 1
+    rw [← heatKernel_neg t (x.1 - y + 2 * ((-k : ℤ) : ℝ))]
+    congr 1
+    push_cast
+    ring
+  have hAt : (∑' k : ℤ, A k) = ∑' k : ℤ, D k := by
+    rw [hAeq]
+    exact Equiv.tsum_eq (Equiv.neg ℤ) D
+  have hBt : (∑' k : ℤ, B k) = ∑' k : ℤ, C k := by
+    rw [hBeq]
+    exact Equiv.tsum_eq (Equiv.neg ℤ) C
+  rw [show (fun k : ℤ =>
+        (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 - y + 2 * (k : ℝ)) * f y)
+          + (∫ y in (0 : ℝ)..1, heatKernel t (-x.1 + y + 2 * (k : ℝ)) * f y))
+      = fun k => A k + B k by rfl,
+    Summable.tsum_add hA hB, hAt, hBt, add_comm]
+
 end
 
 end ShenWork.Paper2
