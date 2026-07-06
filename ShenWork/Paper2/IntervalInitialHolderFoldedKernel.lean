@@ -794,6 +794,31 @@ theorem intervalDomainLift_abs_bound_of_interval_bound
   · exact hu₀_bound ⟨y, hy⟩
   · simpa using hM
 
+/-- Initial Holder data are bounded by the left-endpoint size plus the Holder
+constant. -/
+theorem initialDatumHolder_abs_bound
+    {u₀ : intervalDomainPoint → ℝ} {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀) :
+    ∀ x : intervalDomainPoint,
+      |u₀ x| ≤ |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀ := by
+  intro x
+  let x₀ : intervalDomainPoint := ⟨0, by constructor <;> norm_num⟩
+  have hdist_le_one : |x.1 - x₀.1| ≤ 1 := by
+    rw [abs_sub_le_iff]
+    constructor <;> linarith [x.2.1, x.2.2]
+  have hpow_le_one : |x.1 - x₀.1| ^ θ ≤ 1 :=
+    Real.rpow_le_one (abs_nonneg _) hdist_le_one hθ0.le
+  have hdiff_le : |u₀ x - u₀ x₀| ≤ H₀ := by
+    exact (hholder x x₀).trans
+      (by simpa using mul_le_mul_of_nonneg_left hpow_le_one hH₀)
+  calc
+    |u₀ x| = |(u₀ x - u₀ x₀) + u₀ x₀| := by ring_nf
+    _ ≤ |u₀ x - u₀ x₀| + |u₀ x₀| := abs_add_le _ _
+    _ ≤ H₀ + |u₀ x₀| := add_le_add hdiff_le le_rfl
+    _ = |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀ := by
+        simp [x₀, add_comm]
+
 /-- Bounded measurable initial data can use the heat-kernel folded-noise
 producer directly, so the initial-leg Holder theorem no longer needs an
 external common-noise `hplan`. -/
@@ -812,6 +837,21 @@ theorem InitialLegUniformHolderAtZero_of_bounded_initialDatumHolder
       NeumannHeatCommonFoldNoiseFor_of_bounded
         ht x y hM hu₀_meas hlift_bound)
 
+/-- Measurable initial Holder data use their intrinsic endpoint-plus-Holder
+bound, so no separate bound constant is needed. -/
+theorem InitialLegUniformHolderAtZero_of_measurable_initialDatumHolder
+    {u₀ : intervalDomainPoint → ℝ} {T θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀)) :
+    InitialLegUniformHolderAtZero u₀ T θ H₀ := by
+  let M : ℝ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
+  have hM : 0 ≤ M := add_nonneg (abs_nonneg _) hH₀
+  have hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M :=
+    initialDatumHolder_abs_bound hθ0 hH₀ hholder
+  exact InitialLegUniformHolderAtZero_of_bounded_initialDatumHolder
+    hθ0 hH₀ hM hholder hu₀_meas hu₀_bound
+
 /-- Small-time mild Holder wrapper for bounded measurable initial data, using
 the concrete heat-kernel folded-noise law. -/
 theorem mild_orderBox_smallTime_holder_of_bounded_initialDatumHolder
@@ -827,6 +867,21 @@ theorem mild_orderBox_smallTime_holder_of_bounded_initialDatumHolder
   exact mild_orderBox_smallTime_holder_of_initialLeg_holder D hθ0 hθ1 hH₀
     (InitialLegUniformHolderAtZero_of_bounded_initialDatumHolder
       hθ0 hH₀ hM hholder hu₀_meas hu₀_bound)
+
+/-- Small-time mild Holder wrapper for measurable initial Holder data, with the
+bound constant supplied by the Holder datum itself. -/
+theorem mild_orderBox_smallTime_holder_of_measurable_initialDatumHolder
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ShenWork.IntervalMildPicard.GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hH₀ : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀)) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  exact mild_orderBox_smallTime_holder_of_initialLeg_holder D hθ0 hθ1 hH₀
+    (InitialLegUniformHolderAtZero_of_measurable_initialDatumHolder
+      hθ0 hH₀ hholder hu₀_meas)
 
 end
 
