@@ -110,6 +110,7 @@ import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.Paper2.IntervalChemFluxHolderFrontier
 import ShenWork.Paper2.IntervalResolverHolder
 import ShenWork.Paper2.IntervalChemFluxHolderSourceDecay
+import ShenWork.Paper2.IntervalMildSourceDecayUniform
 import ShenWork.Paper2.IntervalInitialHolder
 import ShenWork.Paper2.IntervalMildPicard
 import ShenWork.Paper2.IntervalMildRegularityBootstrap
