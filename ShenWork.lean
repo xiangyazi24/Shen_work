@@ -457,6 +457,7 @@ import ShenWork.Paper2.IntervalChiNegH1Bridge
 import ShenWork.Paper2.IntervalChiNegH1PhysicalComponents
 import ShenWork.Paper2.IntervalChiNegH1PhysicalRHSScalars
 import ShenWork.Paper2.IntervalChiNegH1PhysicalSqrtBounds
+import ShenWork.Paper2.IntervalChiNegH1PhysicalReactionBound
 import ShenWork.Paper2.IntervalChiNegH1PhysicalIdentityRouteC
 import ShenWork.Paper2.IntervalChiNegH1StrictRHSIntegrability
 import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeProducer
