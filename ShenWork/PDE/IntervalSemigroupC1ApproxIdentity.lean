@@ -599,6 +599,22 @@ theorem initialLegConjugateDerivativeEndpointApprox_of_operatorVanish_endpointSm
     _ < ε / 2 + ε / 2 := add_lt_add hop_bound hs_bound
     _ = ε := by ring
 
+/-- Continuous endpoint-compatible bounded profiles satisfy the endpoint-layer
+conjugate approximate identity. -/
+theorem initialLegConjugateDerivativeEndpointApprox_of_continuousOn_zero_bound
+    {df : ℝ → ℝ} {M : ℝ}
+    (hdf_cont : ContinuousOn df (Set.Icc (0 : ℝ) 1))
+    (hdf_zero : df 0 = 0) (hdf_one : df 1 = 0)
+    (hM : 0 ≤ M)
+    (hdf_bound : ∀ y ∈ Set.Icc (0 : ℝ) 1, |df y| ≤ M) :
+    InitialLegConjugateDerivativeEndpointApprox df := by
+  have hsmall : InitialLegDerivativeEndpointSmall df :=
+    initialLegDerivativeEndpointSmall_of_continuousOn_zero hdf_cont hdf_zero hdf_one
+  exact initialLegConjugateDerivativeEndpointApprox_of_operatorVanish_endpointSmall
+    (initialLegConjugateEndpointOperatorVanish_of_endpointSmall_bound
+      hdf_cont hM hdf_bound hsmall)
+    hsmall
+
 /-- Patching reducer: interior-strip convergence plus endpoint-layer convergence
 prove the closed-interval conjugate-kernel approximate identity. -/
 theorem initialLegConjugateDerivativeApprox_of_interior_endpoint
