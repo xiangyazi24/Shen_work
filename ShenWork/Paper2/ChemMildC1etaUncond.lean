@@ -43,6 +43,9 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalMildRegularityBootstrap
+  (HasRestartCosineRepresentations
+    gradientMild_derivWithin_endpoint_zero_of_restartCosineRepresentations)
 open ShenWork.IntervalDomainRegularityBootstrap (unitIntervalCosineHeatSecondValue)
 
 namespace ShenWork.Paper2
@@ -586,6 +589,36 @@ theorem summable_abs_cosineCoeffs_of_eqOn_Icc {f g : ℝ → ℝ}
   refine hg.congr ?_
   intro n
   rw [cosineCoeffs_congr_on_Icc hfg n]
+
+/-- Endpoint no-flux for `derivWithin · (Icc 0 1)` transfers across equality on
+`[0,1]`. -/
+theorem derivWithin_endpoint_zero_congr_on_Icc {f g : ℝ → ℝ}
+    (hfg : Set.EqOn f g (Set.Icc (0 : ℝ) 1))
+    (hg : derivWithin g (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin g (Set.Icc (0 : ℝ) 1) 1 = 0) :
+    derivWithin f (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin f (Set.Icc (0 : ℝ) 1) 1 = 0 := by
+  constructor
+  · rw [derivWithin_congr hfg (hfg (by constructor <;> norm_num))]
+    exact hg.1
+  · rw [derivWithin_congr hfg (hfg (by constructor <;> norm_num))]
+    exact hg.2
+
+/-- Restarted cosine representations give the exact endpoint no-flux package for
+the canonical phase-1 C1/η global representative. -/
+theorem gradientMild_phase1ValueLegs_cutoffRep_derivWithin_endpoint_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t : ℝ} (ht : 0 < t) (htT : t < Dsol.T) :
+    derivWithin (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+        (Set.Icc (0 : ℝ) 1) 0 = 0 ∧
+      derivWithin (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+        (Set.Icc (0 : ℝ) 1) 1 = 0 := by
+  have hEq := gradientMild_phase1ValueLegs_cutoffRep_eqOn_Icc Dsol ht (le_of_lt htT)
+  have hLift :=
+    gradientMild_derivWithin_endpoint_zero_of_restartCosineRepresentations Dsol H t ht htT
+  exact derivWithin_endpoint_zero_congr_on_Icc (fun x hx => (hEq hx).symm) hLift
 
 /-- The homogeneous initial value leg is globally differentiable at positive time. -/
 theorem initialValueLeg_differentiable
