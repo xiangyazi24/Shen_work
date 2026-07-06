@@ -1,7 +1,9 @@
 import ShenWork.Paper2.IntervalBFormDirectClassical
 import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSq
 import ShenWork.Paper2.IntervalChiNegH1ZeroStartPrimitiveTraceReducer
+import ShenWork.Paper2.IntervalDuhamelIntegrability
 import ShenWork.Paper2.IntervalPicardLimitSliceTimeContinuity
+import ShenWork.Paper2.IntervalResolverWeakBounds
 import ShenWork.PDE.P3MoserEnergyContinuity
 
 /-!
@@ -25,7 +27,7 @@ open ShenWork.IntervalDomainExistence
 open ShenWork.IntervalMildPicard
   (GradientMildSolutionData)
 open ShenWork.IntervalPicardLimitBddHcontP
-  (patchedSlice patchedSlice_of_nonpos)
+  (patchedSlice patchedSlice_of_nonpos patchedSlice_of_pos)
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData conjugatePicardLimit)
 open ShenWork.IntervalMildToClassical
@@ -186,6 +188,191 @@ theorem patchedChemical_pos_time_nonneg
   intro x
   rw [patchedChemical_of_pos p u₀ u ht]
   exact mildChemical_nonneg p hu_nonneg hu_cont ht htT x
+
+/-- The lifted static resolver profile is spatially continuous on the closed
+interval whenever the source profile is continuous on the subtype. -/
+theorem intervalNeumannResolverR_lift_continuousOn
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} (hw_cont : Continuous w) :
+    ContinuousOn
+      (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w))
+      (Set.Icc (0 : ℝ) 1) := by
+  have hcont_on :
+      ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+    ShenWork.IntervalPicardLimitBddHcontP.lift_continuousOn_Icc hw_cont
+  have hseries_cont : Continuous (fun y : ℝ =>
+      ∑' k : ℕ, (ShenWork.PDE.intervalNeumannResolverCoeff p w k).re *
+        unitIntervalCosineMode k y) :=
+    ShenWork.IntervalDuhamelIntegrability.resolverValueReal_continuous_of_continuousOn
+      p hcont_on
+  refine hseries_cont.continuousOn.congr ?_
+  intro y hy
+  simp [intervalDomainLift, hy, ShenWork.PDE.intervalNeumannResolverR]
+
+/-- The patched chemical concentration is uniformly time-continuous at zero in
+the resolver value, provided the patched u-slices stay in a common nonnegative
+`M`-ball. -/
+theorem patchedChemical_timeContinuousAt_zero_of_patchedSlice_ball
+    {p : CM2Params} (hγ : 1 ≤ p.γ) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀cont : Continuous u₀) (D : GradientMildSolutionData p u₀)
+    {M : ℝ} (hM : 0 < M)
+    (hu₀_mem : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift u₀ x ∈ Set.Icc (0 : ℝ) M)
+    (hpatch_mem : ∀ t ∈ Set.Icc (0 : ℝ) D.T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (patchedSlice u₀ D.u t) x ∈ Set.Icc (0 : ℝ) M) :
+    ∀ ε > 0, ∃ δ > 0,
+      ∀ t ∈ Set.Icc (0 : ℝ) D.T, |t - 0| < δ →
+        ∀ x : intervalDomainPoint,
+          |patchedChemical p u₀ D.u t x - patchedChemical p u₀ D.u 0 x| < ε := by
+  intro ε hε
+  let C : ℝ :=
+    Real.sqrt (∑' k : ℕ, (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+      (2 * (p.ν * (p.γ * M ^ (p.γ - 1))))
+  have hγ_nonneg : 0 ≤ p.γ := le_trans (by norm_num : (0 : ℝ) ≤ 1) hγ
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num)
+        (mul_nonneg p.hν.le
+          (mul_nonneg hγ_nonneg (Real.rpow_nonneg hM.le _))))
+  have hCden_pos : 0 < C + 1 := by linarith
+  have hεC : 0 < ε / (C + 1) := div_pos hε hCden_pos
+  obtain ⟨δ, hδpos, hδ⟩ :=
+    ShenWork.IntervalPicardLimitSliceTimeContinuity.patchedSlice_timeContinuousAt_zero
+      hu₀cont D (ε / (C + 1)) hεC
+  refine ⟨δ, hδpos, ?_⟩
+  intro t htD htdist x
+  by_cases htzero : t = 0
+  · subst t
+    rw [sub_self, abs_zero]
+    exact hε
+  have htpos : 0 < t := lt_of_le_of_ne htD.1 (Ne.symm htzero)
+  have hUc₁ :
+      ContinuousOn (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) :=
+    ShenWork.IntervalPicardLimitBddHcontP.lift_continuousOn_Icc
+      (D.hcont t htpos htD.2)
+  have hUc₂ :
+      ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) :=
+    ShenWork.IntervalPicardLimitBddHcontP.lift_continuousOn_Icc hu₀cont
+  have hmem₁ : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (D.u t) y ∈ Set.Icc (0 : ℝ) M := by
+    intro y hy
+    simpa [patchedSlice_of_pos u₀ D.u htpos] using hpatch_mem t htD y hy
+  have hD : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      |intervalDomainLift (D.u t) y - intervalDomainLift u₀ y| ≤ ε / (C + 1) := by
+    intro y hy
+    let Y : intervalDomainPoint := ⟨y, hy⟩
+    have htime :=
+      hδ t htD (by simpa [sub_zero] using htdist) Y
+    have htime' :
+        |D.u t Y - u₀ Y| < ε / (C + 1) := by
+      simpa [patchedSlice_of_pos u₀ D.u htpos,
+        patchedSlice_of_nonpos u₀ D.u (le_refl (0 : ℝ))] using htime
+    exact le_of_lt (by simpa [intervalDomainLift, Y, hy] using htime')
+  have hbound :=
+    ShenWork.IntervalResolverWeakBounds.resolverValue_diff_sup_le_of_bounded
+      p hγ hUc₁ hUc₂ hmem₁ hu₀_mem hD x
+  have hrewrite :
+      Real.sqrt (∑' k : ℕ, (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+          (2 * (p.ν * (p.γ * M ^ (p.γ - 1)) * (ε / (C + 1)))) =
+        C * (ε / (C + 1)) := by
+    dsimp [C]
+    ring
+  rw [patchedChemical_of_pos p u₀ D.u htpos, patchedChemical_zero,
+    mildChemicalConcentration]
+  refine lt_of_le_of_lt (by simpa [hrewrite] using hbound) ?_
+  have hlt : C * (ε / (C + 1)) < ε := by
+    field_simp [hCden_pos.ne']
+    nlinarith [hε, hC_nonneg]
+  exact hlt
+
+/-- Under a common nonnegative `M`-ball for the patched u-slices, the patched
+chemical concentration has the value zero-face continuity required by the split
+zero-start trace record. -/
+theorem patchedChemical_lift_zeroFace_of_timeContinuousAt_zero
+    {p : CM2Params} (hγ : 1 ≤ p.γ) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀cont : Continuous u₀) (D : GradientMildSolutionData p u₀)
+    {M : ℝ} (hM : 0 < M)
+    (hu₀_mem : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift u₀ x ∈ Set.Icc (0 : ℝ) M)
+    (hpatch_mem : ∀ t ∈ Set.Icc (0 : ℝ) D.T, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (patchedSlice u₀ D.u t) x ∈ Set.Icc (0 : ℝ) M) :
+    ∀ {b : ℝ}, 0 ≤ b → b ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      ContinuousWithinAt
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            intervalDomainLift (patchedChemical p u₀ D.u t) x))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1) (0, x) := by
+  intro b _hb0 hbT x hx
+  rw [Metric.continuousWithinAt_iff]
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by linarith
+  obtain ⟨δt, hδt_pos, hδt⟩ :=
+    patchedChemical_timeContinuousAt_zero_of_patchedSlice_ball
+      hγ hu₀cont D hM hu₀_mem hpatch_mem (ε / 2) hε2
+  have hspatial_on :
+      ContinuousOn
+        (intervalDomainLift (patchedChemical p u₀ D.u 0))
+        (Set.Icc (0 : ℝ) 1) := by
+    rw [patchedChemical_zero]
+    exact intervalNeumannResolverR_lift_continuousOn p hu₀cont
+  have hspatial_cont :
+      ContinuousWithinAt
+        (intervalDomainLift (patchedChemical p u₀ D.u 0))
+        (Set.Icc (0 : ℝ) 1) x :=
+    hspatial_on x hx
+  rw [Metric.continuousWithinAt_iff] at hspatial_cont
+  obtain ⟨δx, hδx_pos, hδx⟩ := hspatial_cont (ε / 2) hε2
+  refine ⟨min δt δx, lt_min hδt_pos hδx_pos, ?_⟩
+  rintro ⟨t, y⟩ ⟨htb, hy⟩ hdist
+  have hdist_t : dist t (0 : ℝ) < δt := by
+    have hprod : dist (t, y) (0, x) < δt :=
+      lt_of_lt_of_le hdist (min_le_left _ _)
+    have hle : dist t (0 : ℝ) ≤ dist (t, y) (0, x) := by
+      rw [Prod.dist_eq]
+      exact le_max_left _ _
+    exact lt_of_le_of_lt hle hprod
+  have hdist_x : dist y x < δx := by
+    have hprod : dist (t, y) (0, x) < δx :=
+      lt_of_lt_of_le hdist (min_le_right _ _)
+    have hle : dist y x ≤ dist (t, y) (0, x) := by
+      rw [Prod.dist_eq]
+      exact le_max_right _ _
+    exact lt_of_le_of_lt hle hprod
+  have htD : t ∈ Set.Icc (0 : ℝ) D.T := ⟨htb.1, le_trans htb.2 hbT⟩
+  let Y : intervalDomainPoint := ⟨y, hy⟩
+  let X : intervalDomainPoint := ⟨x, hx⟩
+  have htime :
+      |patchedChemical p u₀ D.u t Y - patchedChemical p u₀ D.u 0 Y| < ε / 2 := by
+    have h :=
+      hδt t htD (by simpa [Real.dist_eq] using hdist_t) Y
+    simpa using h
+  have hspace :
+      |patchedChemical p u₀ D.u 0 Y - patchedChemical p u₀ D.u 0 X| < ε / 2 := by
+    have h := hδx hy (by simpa [Real.dist_eq] using hdist_x)
+    simpa [Real.dist_eq, intervalDomainLift, Y, X, hy, hx] using h
+  have hval_ty :
+      Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            intervalDomainLift (patchedChemical p u₀ D.u t) x) (t, y) =
+        patchedChemical p u₀ D.u t Y := by
+    simp [Function.uncurry, intervalDomainLift, Y, hy]
+  have hval_0x :
+      Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            intervalDomainLift (patchedChemical p u₀ D.u t) x) (0, x) =
+        patchedChemical p u₀ D.u 0 X := by
+    simp [Function.uncurry, intervalDomainLift, X, hx]
+  rw [hval_ty, hval_0x, Real.dist_eq]
+  calc
+    |patchedChemical p u₀ D.u t Y - patchedChemical p u₀ D.u 0 X|
+        = |(patchedChemical p u₀ D.u t Y - patchedChemical p u₀ D.u 0 Y) +
+            (patchedChemical p u₀ D.u 0 Y - patchedChemical p u₀ D.u 0 X)| := by
+          ring_nf
+    _ ≤ |patchedChemical p u₀ D.u t Y - patchedChemical p u₀ D.u 0 Y| +
+          |patchedChemical p u₀ D.u 0 Y - patchedChemical p u₀ D.u 0 X| :=
+          abs_add_le _ _
+    _ < ε / 2 + ε / 2 := add_lt_add htime hspace
+    _ = ε := by ring
 
 /-- Combine the value/sign zero-face package with the derivative zero-face
 frontier into the full C¹ zero-face trace record. -/
@@ -400,6 +587,9 @@ section AxiomAudit
 #print axioms intervalNeumannResolverR_nonneg_of_paperPositiveInitialDatum
 #print axioms patchedChemical_zero_nonneg_of_paperPositiveInitialDatum
 #print axioms patchedChemical_pos_time_nonneg
+#print axioms intervalNeumannResolverR_lift_continuousOn
+#print axioms patchedChemical_timeContinuousAt_zero_of_patchedSlice_ball
+#print axioms patchedChemical_lift_zeroFace_of_timeContinuousAt_zero
 
 end AxiomAudit
 
