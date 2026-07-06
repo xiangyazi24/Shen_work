@@ -322,6 +322,83 @@ theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_components
     hθ0 hθ1 hHQ_nonneg hHu_nonneg hHg_nonneg ?_ hu_holder hg_holder
   rw [hHQ, hG]
 
+/-- Uniform resolver-gradient spatial Holder bound from per-slice source decay
+and one uniform bound on the resolver second derivative.
+
+This is a consumer for the remaining analytic frontier: it does not produce the
+uniform `resolverGrad2Real` bound, but it packages exactly the MVT step needed
+to turn that bound into the `hg_holder` field used by the chemFlux assembler. -/
+theorem resolverGradReal_uniform_holder_Icc_of_sourceDecay_grad2Bound
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T θ Hg : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) (hHg_nonneg : 0 ≤ Hg)
+    (hdecay : ∀ s, 0 < s → s ≤ T → SourceCoeffQuadraticDecay p (u s))
+    (hgrad2_bound : ∀ s, 0 < s → s ≤ T → ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      |resolverGrad2Real p (u s) z| ≤ Hg) :
+    ∀ s, 0 < s → s ≤ T → ∀ x y : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 → y ∈ Set.Icc (0 : ℝ) 1 →
+        |resolverGradReal p (u s) x - resolverGradReal p (u s) y| ≤
+          Hg * |x - y| ^ θ := by
+  intro s hs0 hsT x y hx hy
+  have hsdecay : SourceCoeffQuadraticDecay p (u s) := hdecay s hs0 hsT
+  have hderiv : ∀ z : ℝ, HasDerivAt (fun y : ℝ => resolverGradReal p (u s) y)
+      (resolverGrad2Real p (u s) z) z :=
+    fun z => resolverGradReal_hasDerivAt_of_sourceDecay hsdecay z
+  have hdiffAt : ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      DifferentiableAt ℝ (fun y : ℝ => resolverGradReal p (u s) y) z :=
+    fun z _ => (hderiv z).differentiableAt
+  have hderiv_eq : ∀ z : ℝ,
+      deriv (fun y : ℝ => resolverGradReal p (u s) y) z =
+        resolverGrad2Real p (u s) z :=
+    fun z => (hderiv z).deriv
+  have hbound : ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      ‖deriv (fun y : ℝ => resolverGradReal p (u s) y) z‖ ≤ Hg := by
+    intro z hz
+    rw [Real.norm_eq_abs, hderiv_eq z]
+    exact hgrad2_bound s hs0 hsT z hz
+  have hlip :
+      |resolverGradReal p (u s) x - resolverGradReal p (u s) y| ≤
+        Hg * |x - y| := by
+    have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+      (f := fun y => resolverGradReal p (u s) y)
+      hdiffAt hbound (convex_Icc 0 1) hx hy
+    simp only [Real.norm_eq_abs] at hmv
+    rw [abs_sub_comm (resolverGradReal p (u s) x), abs_sub_comm x y]
+    exact hmv
+  have hdist_le_one : |x - y| ≤ 1 := by
+    rw [abs_sub_le_iff]
+    constructor <;> linarith [hx.1, hx.2, hy.1, hy.2]
+  have hdist_le_pow : |x - y| ≤ |x - y| ^ θ := by
+    simpa [Real.rpow_one] using
+      (Real.rpow_le_rpow_of_exponent_ge'
+        (x := |x - y|) (y := 1) (z := θ)
+        (abs_nonneg _) hdist_le_one hθ0.le hθ1)
+  exact hlip.trans (mul_le_mul_of_nonneg_left hdist_le_pow hHg_nonneg)
+
+/-- Initial-data Holder chemFlux source package with the resolver-gradient
+Holder field discharged from a uniform resolver-second-derivative bound. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_grad2_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ H₀ Hg : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hH₀_nonneg : 0 ≤ H₀) (hHg_nonneg : 0 ≤ Hg)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor t x y (intervalDomainLift u₀))
+    (hdecay : ∀ s, 0 < s → s ≤ D.T → SourceCoeffQuadraticDecay p (D.u s))
+    (hgrad2_bound : ∀ s, 0 < s → s ≤ D.T → ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      |resolverGrad2Real p (D.u s) z| ≤ Hg) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      ChemFluxCthetaSourceOn p D.u D.T θ
+        (D.M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  have hg_holder :=
+    resolverGradReal_uniform_holder_Icc_of_sourceDecay_grad2Bound
+      (p := p) (u := D.u) (T := D.T) hθ0 hθ1.le hHg_nonneg hdecay hgrad2_bound
+  exact ChemFluxCthetaSourceOn_of_gradientMild_initialHolder_components
+    D hθ0 hθ1 hH₀_nonneg hHg_nonneg hholder hplan hg_holder
+
 end
 
 end ShenWork.Paper2
