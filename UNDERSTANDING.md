@@ -1,5 +1,31 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 246: PPID resolver-source witness lowered to window data (2026-07-06)
+
+`IntervalResolverSourceWitnessFrontier.lean` factors out the smallest current
+general PPID residual identified by Q3704: the per-time clamped resolver-source
+witness.  It defines `ResolverSourceWitness` (the raw witness consumed by
+`RegularityFrontierAssembly.hasResolverDirectSpectralData_of_clamped_perT0`)
+and the producer-facing `ResolverSourceWindowData`, consisting of local
+power-source cosine representation, positivity, quadratic decay, and K1
+time-derivative data on a window around each interior time.  The theorem
+`resolverSourceWitness_of_windowData` feeds that window data through the
+existing soft-clamped resolver-source producer in
+`IntervalResolverSourceClampedWitness`, and
+`resolverDirectSpectralData_of_windowData` packages it as resolver direct
+spectral data.
+
+`IntervalDomainPPIDResolverSourceFrontier.lean` then replaces the raw
+resolver-source witness in the PPID source frontier by
+`ResolverSourceWindowData`.  It exposes
+`PerDatumWindowSourceSpectralFrontier` and
+`PerDatumIterateWindowSourceSpectralFrontier`, plus chi-nonpositive and
+strict-negative PPID Theorem 1.1 wrappers from these lowered surfaces.  This is
+a real residual reduction for the resolver-source field only.  It does not
+claim to produce `PicardIterateConvergenceData`,
+`HasTimeNeighborhoodSpectralAgreement D.T D.u`, or the pointwise `hpde_u`
+identity; Q3704 flags those as larger or route-specific producer tasks.
+
 ## Task 245: PPID frontier surface trimmed to consumed restart/core fields (2026-07-06)
 
 `IntervalDomainPPIDRestartCoreFrontier.lean` records smaller per-datum spectral
