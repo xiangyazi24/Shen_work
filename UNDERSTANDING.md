@@ -1,5 +1,34 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 244: PPID headline reduced to unified/spectral Picard frontier (2026-07-06)
+
+`IntervalDomainPPIDPicardLimitFrontier.lean` adds the current thinnest PPID
+wrappers for the chi-nonpositive and strict-negative Theorem 1.1 route.
+After Task243 discharged `ClassicalMinPersistence`, the remaining input was
+the threshold-route `ThresholdQuantBridge.PicardRestartFrontier p`.  Task244
+first replaces that input by the unified
+`ConeQuantBridge.PicardLimitRestartFrontier p`, using the existing
+`picardRestartFrontier_of_picardLimitFrontier` bridge.  It then adds spectral
+frontier wrappers using
+`ConeQuantBridge.picardLimitRestartFrontier_of_spectralFrontier`.
+
+The current PPID headline surface is therefore conditional on regime
+assumptions plus the per-datum spectral frontier
+`EndToEnd.PerDatumSpectralFrontier` for Picard-limit solution packages.  This is
+an honest conditional reduction: `PerDatumSpectralFrontier` has no producer in
+the current grep results, and remains the next analytic construction target.
+
+## Task 243: PPID min-persistence discharged for chi nonpositive (2026-07-06)
+
+`IntervalDomainMinPersistChiNonpos.lean` exposes
+`MinPersistenceAtoms.classicalMinPersistence_chiNonpos` and `_chiNeg` by
+feeding the proved endpoint chemotaxis-divergence boundary-window producer into
+`classicalMinPersistence_of_boundary_window_regime`.  It then proves
+`PPIDThresholdReachability.theorem_1_1_intervalDomain_of_ppid_picardFrontier_chiNonpos`
+and `_chiNeg`, discharging the `ClassicalMinPersistence` input left by Task242.
+After Task243, the PPID threshold route's remaining construction input is
+`ThresholdQuantBridge.PicardRestartFrontier p`.
+
 ## Task 242: PPID seed local existence from Picard frontier (2026-07-06)
 
 `IntervalDomainPPIDPicardFrontierSeed.lean` removes the separate PPID seed
