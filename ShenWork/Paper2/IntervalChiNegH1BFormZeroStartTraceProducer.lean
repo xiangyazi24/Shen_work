@@ -472,6 +472,106 @@ theorem patchedSlice_lift_zeroFace_of_timeContinuousAt_zero
     _ < ε / 2 + ε / 2 := add_lt_add htime hspace
     _ = ε := by ring
 
+/-- Uniform-in-space initial approach of the spatial derivative of the patched
+Picard slice. This is the explicit analytic derivative input, not a disguised
+zero-face trace field. -/
+def PatchedSliceDerivUniformApproachAtZero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) : Prop :=
+  ∀ ε > 0, ∃ δ > 0,
+    ∀ t ∈ Set.Icc (0 : ℝ) D.T, |t| < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (intervalDomainLift (patchedSlice u₀ D.u t)) x -
+          deriv (intervalDomainLift u₀) x| < ε
+
+/-- The u-derivative zero face follows from uniform derivative approach at zero
+and spatial continuity of the initial derivative. This is the derivative
+analogue of `patchedSlice_lift_zeroFace_of_timeContinuousAt_zero`.
+
+The theorem is non-circular: it does not assume
+`H1ZeroStartPrimitiveDerivativeZeroFaceTrace`; it only consumes the explicit
+uniform derivative approach that remains an analytic frontier for the
+construction. -/
+theorem patchedSlice_ux_zeroFace_of_derivUniformApproachAt_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (hu₀x_cont :
+      ContinuousOn (fun x : ℝ => deriv (intervalDomainLift u₀) x)
+        (Set.Icc (0 : ℝ) 1))
+    (hdux : PatchedSliceDerivUniformApproachAtZero (p := p) (u₀ := u₀) D) :
+    ∀ {b : ℝ}, 0 ≤ b → b ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      ContinuousWithinAt
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (intervalDomainLift (patchedSlice u₀ D.u t)) x))
+        (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1) (0, x) := by
+  intro b _hb0 hbT x hx
+  rw [Metric.continuousWithinAt_iff]
+  intro ε hε
+  have hε2 : 0 < ε / 2 := by linarith
+  obtain ⟨δt, hδt_pos, hδt⟩ := hdux (ε / 2) hε2
+  have hx_cont :
+      ContinuousWithinAt
+        (fun x : ℝ => deriv (intervalDomainLift u₀) x)
+        (Set.Icc (0 : ℝ) 1) x :=
+    hu₀x_cont x hx
+  rw [Metric.continuousWithinAt_iff] at hx_cont
+  obtain ⟨δx, hδx_pos, hδx⟩ := hx_cont (ε / 2) hε2
+  refine ⟨min δt δx, lt_min hδt_pos hδx_pos, ?_⟩
+  rintro ⟨t, y⟩ ⟨htb, hy⟩ hdist
+  have hdist_t : dist t (0 : ℝ) < δt := by
+    have hprod : dist (t, y) (0, x) < δt :=
+      lt_of_lt_of_le hdist (min_le_left _ _)
+    have hle : dist t (0 : ℝ) ≤ dist (t, y) (0, x) := by
+      rw [Prod.dist_eq]
+      exact le_max_left _ _
+    exact lt_of_le_of_lt hle hprod
+  have hdist_x : dist y x < δx := by
+    have hprod : dist (t, y) (0, x) < δx :=
+      lt_of_lt_of_le hdist (min_le_right _ _)
+    have hle : dist y x ≤ dist (t, y) (0, x) := by
+      rw [Prod.dist_eq]
+      exact le_max_right _ _
+    exact lt_of_le_of_lt hle hprod
+  have htD : t ∈ Set.Icc (0 : ℝ) D.T := ⟨htb.1, le_trans htb.2 hbT⟩
+  have htime :
+      |deriv (intervalDomainLift (patchedSlice u₀ D.u t)) y -
+        deriv (intervalDomainLift u₀) y| < ε / 2 := by
+    exact hδt t htD (by simpa [Real.dist_eq] using hdist_t) y hy
+  have hspace :
+      |deriv (intervalDomainLift u₀) y -
+        deriv (intervalDomainLift u₀) x| < ε / 2 := by
+    have h := hδx hy (by simpa [Real.dist_eq] using hdist_x)
+    simpa [Real.dist_eq] using h
+  have hval_ty :
+      Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (intervalDomainLift (patchedSlice u₀ D.u t)) x) (t, y) =
+        deriv (intervalDomainLift (patchedSlice u₀ D.u t)) y := by
+    simp [Function.uncurry]
+  have hval_0x :
+      Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (intervalDomainLift (patchedSlice u₀ D.u t)) x) (0, x) =
+        deriv (intervalDomainLift u₀) x := by
+    simp [Function.uncurry, patchedSlice_of_nonpos u₀ D.u (le_refl (0 : ℝ))]
+  rw [hval_ty, hval_0x, Real.dist_eq]
+  calc
+    |deriv (intervalDomainLift (patchedSlice u₀ D.u t)) y -
+        deriv (intervalDomainLift u₀) x|
+        = |(deriv (intervalDomainLift (patchedSlice u₀ D.u t)) y -
+              deriv (intervalDomainLift u₀) y) +
+            (deriv (intervalDomainLift u₀) y -
+              deriv (intervalDomainLift u₀) x)| := by
+          ring_nf
+    _ ≤ |deriv (intervalDomainLift (patchedSlice u₀ D.u t)) y -
+          deriv (intervalDomainLift u₀) y| +
+        |deriv (intervalDomainLift u₀) y -
+          deriv (intervalDomainLift u₀) x| :=
+          abs_add_le _ _
+    _ < ε / 2 + ε / 2 := add_lt_add htime hspace
+    _ = ε := by ring
+
 /-- Direct B-form classical data plus explicit zero-face primitive C¹ traces
 for the reanchored Picard pair supplies the initialized source package.
 
@@ -590,6 +690,7 @@ section AxiomAudit
 #print axioms intervalNeumannResolverR_lift_continuousOn
 #print axioms patchedChemical_timeContinuousAt_zero_of_patchedSlice_ball
 #print axioms patchedChemical_lift_zeroFace_of_timeContinuousAt_zero
+#print axioms patchedSlice_ux_zeroFace_of_derivUniformApproachAt_zero
 
 end AxiomAudit
 
