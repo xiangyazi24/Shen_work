@@ -3127,6 +3127,14 @@ Task 98.  The square-integrability fields, time integrability of `lapL2sq` and
 the three physical square profiles, RHS measurability, the physical identity,
 and sqrt bounds are still explicit frontiers.
 
+Task 100 removes the spatial part of the square-integrability carry:
+`H1PhysicalRHSSpatialSquareIntegrableBefore_of_classicalSolution` now produces
+the a.e. spatial square-integrability fields for literal `liftDeriv2` and the
+three physical non-lap parts from strict-slab representative continuity.  This
+does not produce time integrability of `lapL2sq` or of the physical square
+profiles; those remain separate one-dimensional-in-time obligations, alongside
+RHS measurability, the physical identity, and sqrt bounds.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

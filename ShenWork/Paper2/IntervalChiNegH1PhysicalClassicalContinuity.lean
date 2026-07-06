@@ -108,6 +108,51 @@ private theorem
   simp only [Function.uncurry_apply_pair] at hEq
   simp [hEq]
 
+private theorem square_intervalIntegrable_of_uncurry_continuousOn_slice
+    {part : ℝ → ℝ → ℝ} {r : ℝ}
+    (hCont :
+      ContinuousOn (Function.uncurry part)
+        (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1)) :
+    IntervalIntegrable (fun x => (part r x) ^ 2) volume (0 : ℝ) 1 := by
+  exact ContinuousOn.intervalIntegrable_of_Icc
+    (μ := volume) (by norm_num : (0 : ℝ) ≤ 1)
+    ((continuousOn_slice_of_uncurry
+      (F := part) (r := r) (s := Set.Icc (0 : ℝ) 1) hCont).pow 2)
+
+private theorem liftDeriv2_sq_intervalIntegrable_of_rep_cont
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {F : ℝ → ℝ → ℝ} {r : ℝ}
+    (hCont :
+      ContinuousOn (Function.uncurry F)
+        (Set.Icc r r ×ˢ Set.Icc (0 : ℝ) 1))
+    (hEqInterior :
+      Set.EqOn
+        (Function.uncurry (fun t x => liftDeriv2 u t x))
+        (Function.uncurry F)
+        (Set.Icc r r ×ˢ Set.Ioo (0 : ℝ) 1)) :
+    IntervalIntegrable (fun x => (liftDeriv2 u r x) ^ 2)
+      volume (0 : ℝ) 1 := by
+  have hRepInt :
+      IntervalIntegrable (fun x => (F r x) ^ 2) volume (0 : ℝ) 1 :=
+    square_intervalIntegrable_of_uncurry_continuousOn_slice
+      (part := F) (r := r) hCont
+  refine hRepInt.congr_ae ?_
+  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  rw [Filter.EventuallyEq, ae_restrict_iff' measurableSet_Ioc]
+  have hne1 : ∀ᵐ x : ℝ ∂volume, x ≠ (1 : ℝ) := by
+    have heq : {x : ℝ | ¬ x ≠ (1 : ℝ)} = {(1 : ℝ)} := by
+      ext x
+      simp
+    rw [ae_iff, heq]
+    exact Real.volume_singleton
+  filter_upwards [hne1] with x hxne hxIoc
+  have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 :=
+    ⟨hxIoc.1, lt_of_le_of_ne hxIoc.2 hxne⟩
+  have hEq := hEqInterior (x := (r, x))
+    (Set.mem_prod.mpr ⟨⟨le_rfl, le_rfl⟩, hxIoo⟩)
+  simp only [Function.uncurry_apply_pair] at hEq
+  simp [hEq]
+
 /-- Strict-slab continuity of the concrete physical `liftDeriv2`
 representative with the closed-slab chemotaxis-divergence representative. -/
 theorem liftDeriv2PhysicalRHSWithChemRep_continuousOn_strictSlab_of_classicalSolution
@@ -429,6 +474,76 @@ theorem H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution
         hCont
         (hRep.uxx_eqInterior (a := r) (b := r) hr.1 le_rfl hrT)
 
+/-- Classical strict-slab continuity supplies the a.e. spatial square
+integrability fields for the component-square spatial Young adapter.  This
+does not provide any time integrability of the corresponding square profiles. -/
+theorem H1PhysicalRHSSpatialSquareIntegrableBefore_of_classicalSolution
+    {p : CM2Params} {T δ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (_hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      IntervalIntegrable (fun x => (liftDeriv2 u r x) ^ 2)
+        volume (0 : ℝ) 1) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      IntervalIntegrable
+        (fun x => (H1PhysicalChemTaxisPart p u v r x) ^ 2)
+        volume (0 : ℝ) 1) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      IntervalIntegrable
+        (fun x => (H1PhysicalChemUvxxPart p u v r x) ^ 2)
+        volume (0 : ℝ) 1) ∧
+    (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+      IntervalIntegrable
+        (fun x => (H1PhysicalLogisticReactionPart p u r x) ^ 2)
+        volume (0 : ℝ) 1) := by
+  have hRep :=
+    H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    exact
+      liftDeriv2_sq_intervalIntegrable_of_rep_cont
+        (u := u)
+        (F := liftDeriv2PhysicalRHSWithChemRep p u
+          (liftChemotaxisDivPhysicalRep p u v))
+        (r := r)
+        (hRep.uxx_cont (a := r) (b := r) hr.1 le_rfl hrT)
+        (hRep.uxx_eqInterior (a := r) (b := r) hr.1 le_rfl hrT)
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    exact
+      square_intervalIntegrable_of_uncurry_continuousOn_slice
+        (part := H1PhysicalChemTaxisPart p u v)
+        (r := r)
+        (H1PhysicalChemTaxisPart_continuousOn_strictSlab_of_classicalSolution
+          (p := p) (T := T) (u := u) (v := v) hsol hr.1 le_rfl hrT)
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    exact
+      square_intervalIntegrable_of_uncurry_continuousOn_slice
+        (part := H1PhysicalChemUvxxPart p u v)
+        (r := r)
+        (H1PhysicalChemUvxxPart_continuousOn_strictSlab_of_classicalSolution
+          (p := p) (T := T) (u := u) (v := v) hsol hr.1 le_rfl hrT)
+  · refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    refine Filter.Eventually.of_forall ?_
+    intro r hr
+    have hrT : r < T := lt_of_le_of_lt hr.2 hδ_before
+    exact
+      square_intervalIntegrable_of_uncurry_continuousOn_slice
+        (part := H1PhysicalLogisticReactionPart p u)
+        (r := r)
+        (H1PhysicalLogisticReactionPart_continuousOn_strictSlab_of_classicalSolution
+          (p := p) (T := T) (u := u) (v := v) hsol hr.1 le_rfl hrT)
+
 /-- Physical strict/initial route constructor with strict component continuity
 discharged from the classical solution.  The remaining inputs are the physical
 identity, sqrt estimates, and the Young zero-window majorant. -/
@@ -476,6 +591,8 @@ theorem H1PhysicalRHSStrictInitialRouteBefore_of_classical_componentSquareZero
   H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution
+#print axioms
+  H1PhysicalRHSSpatialSquareIntegrableBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSStrictInitialRouteBefore_of_classical_youngScalarZero
 #print axioms
