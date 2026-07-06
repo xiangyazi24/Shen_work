@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents
+import ShenWork.PDE.IntervalDomainExistence
 
 /-!
 # Initial trace reducer for the zero-start H1 physical route
@@ -12,6 +13,7 @@ open MeasureTheory Set
 open scoped BigOperators Topology Interval
 
 open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
 open ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
@@ -21,6 +23,12 @@ open ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents
 noncomputable section
 
 namespace ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents
+
+private lemma ellipticV_reaction_core_zero (p : CM2Params) (c : ℝ) :
+    p.μ * ellipticV p c - p.ν * c ^ p.γ = 0 := by
+  unfold ellipticV
+  field_simp [p.hμ.ne']
+  ring
 
 /-- Source-facing initial `u`-PDE trace together with the initial chemotaxis
 representative seam.  This is exactly the pointwise `t = 0` content needed by
@@ -95,5 +103,90 @@ theorem eq0Interior_of_initialLiteralUPDETrace_withChemRep
       rw [← htime_lift, hchem, ← hu_lift]
 
 #print axioms eq0Interior_of_initialLiteralUPDETrace_withChemRep
+
+/-- Constant-in-time/space sources with zero logistic reaction satisfy the
+literal initial PDE trace and chemotaxis-representative seam.  This is the
+initial-trace companion to `H1ZeroStartClosedPrimitiveC1SignBefore_const`; it is
+not a general B-form/Picard producer. -/
+theorem H1ZeroStartLiteralUPDETraceWithChemRepBefore_const
+    (p : CM2Params) {c : ℝ}
+    (hreact : c * (p.a - p.b * c ^ p.α) = 0) :
+    H1ZeroStartLiteralUPDETraceWithChemRepBefore p
+      (fun _ (_ : intervalDomainPoint) => c)
+      (fun _ (_ : intervalDomainPoint) => ellipticV p c) where
+  pde0 := by
+    intro X hx
+    have hxInside : X ∈ intervalDomain.inside := by
+      simpa [intervalDomain] using hx
+    change deriv (fun _s : ℝ => c) (0 : ℝ) =
+      intervalDomainLaplacian (fun _ : intervalDomainPoint => c) X -
+        p.χ₀ * intervalDomainChemotaxisDiv p
+          (fun _ : intervalDomainPoint => c)
+          (fun _ : intervalDomainPoint => ellipticV p c) X +
+        c * (p.a - p.b * c ^ p.α)
+    rw [deriv_const, intervalDomainLaplacian_const_zero c hxInside,
+      intervalDomainChemotaxisDiv_const_zero p c (ellipticV p c) hxInside,
+      hreact]
+    ring
+  chem0 := by
+    intro X hx
+    have hxIcc : X.1 ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+    have hxInside : X ∈ intervalDomain.inside := by
+      simpa [intervalDomain] using hx
+    have hu_deriv :
+        deriv (intervalDomainLift (fun _ : intervalDomainPoint => c)) X.1 = 0 :=
+      intervalDomainLift_const_deriv_zero c hx
+    have hv_deriv :
+        deriv
+            (intervalDomainLift
+              (fun _ : intervalDomainPoint => ellipticV p c)) X.1 = 0 :=
+      intervalDomainLift_const_deriv_zero (ellipticV p c) hx
+    have hchem_zero :
+        intervalDomainChemotaxisDiv p
+          (fun _ : intervalDomainPoint => c)
+          (fun _ : intervalDomainPoint => ellipticV p c) X = 0 :=
+      intervalDomainChemotaxisDiv_const_zero p c (ellipticV p c) hxInside
+    calc
+      intervalDomainLift
+          (fun Y : intervalDomainPoint =>
+            intervalDomain.chemotaxisDiv p
+              ((fun _ (_ : intervalDomainPoint) => c) (0 : ℝ))
+              ((fun _ (_ : intervalDomainPoint) => ellipticV p c) (0 : ℝ)) Y)
+          X.1
+          = 0 := by
+            simp [intervalDomain, intervalDomainLift, hxIcc, hchem_zero]
+      _ = liftChemotaxisDivPhysicalRep p
+          (fun _ (_ : intervalDomainPoint) => c)
+          (fun _ (_ : intervalDomainPoint) => ellipticV p c) (0 : ℝ) X.1 := by
+            simp [liftChemotaxisDivPhysicalRep, intervalDomainLift, hxIcc,
+              hu_deriv, hv_deriv, ellipticV_reaction_core_zero]
+
+#print axioms H1ZeroStartLiteralUPDETraceWithChemRepBefore_const
+
+/-- Equilibrium constants satisfy the literal initial trace package. -/
+theorem H1ZeroStartLiteralUPDETraceWithChemRepBefore_equilibrium
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    H1ZeroStartLiteralUPDETraceWithChemRepBefore p
+      (fun _ (_ : intervalDomainPoint) => (p.a / p.b) ^ (1 / p.α))
+      (fun _ (_ : intervalDomainPoint) =>
+        ellipticV p ((p.a / p.b) ^ (1 / p.α))) :=
+  H1ZeroStartLiteralUPDETraceWithChemRepBefore_const p
+    (by
+      rw [equilibrium_reaction_zero p ha hb]
+      ring)
+
+/-- Zero-reaction constants satisfy the literal initial trace package. -/
+theorem H1ZeroStartLiteralUPDETraceWithChemRepBefore_zeroReaction
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (c : ℝ) :
+    H1ZeroStartLiteralUPDETraceWithChemRepBefore p
+      (fun _ (_ : intervalDomainPoint) => c)
+      (fun _ (_ : intervalDomainPoint) => ellipticV p c) :=
+  H1ZeroStartLiteralUPDETraceWithChemRepBefore_const p
+    (by
+      rw [ha, hb]
+      ring)
+
+#print axioms H1ZeroStartLiteralUPDETraceWithChemRepBefore_equilibrium
+#print axioms H1ZeroStartLiteralUPDETraceWithChemRepBefore_zeroReaction
 
 end ShenWork.Paper2.IntervalChiNegH1ZeroStartComponents

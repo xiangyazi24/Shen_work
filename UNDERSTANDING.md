@@ -3360,6 +3360,15 @@ boundedness/sqrt/zero-start RHS packages.  This is a narrower non-circular
 interface, not a general producer; the construction layer still has to supply
 the literal initial trace and chem-representative seam.
 
+Task 119 adds the constant-source special case for that trace interface.
+`H1ZeroStartLiteralUPDETraceWithChemRepBefore_const` proves the literal initial
+PDE trace and chemotaxis-representative seam for constant trajectories
+`u ≡ c`, `v ≡ ellipticV p c` whenever the logistic reaction term
+`c * (p.a - p.b * c ^ p.α)` is zero.  The equilibrium and zero-reaction
+wrappers specialize this to the existing constant solution regimes.  This pairs
+with Task115's constant primitive C1/sign producer; it still does not supply a
+general B-form/Picard zero-start producer.
+
 The same Task118 commit records Q3559's matching current status for the
 primitive C1/sign half.  The
 raw B-form/Picard local output cannot be the zero-start trajectory because
