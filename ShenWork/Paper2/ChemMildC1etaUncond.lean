@@ -35,11 +35,13 @@
 import ShenWork.Paper2.ChemMildDifferentiableOn
 import ShenWork.Paper2.ChemMildC1etaAssembly
 import ShenWork.Paper2.IntervalChemFluxHolderSourceDecay
+import ShenWork.Paper2.IntervalMildToLocalExistence
 import ShenWork.Wiener.EWA.HolderCosineDecayDiffOn
 
 open MeasureTheory Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 open ShenWork.IntervalDomainRegularityBootstrap (unitIntervalCosineHeatSecondValue)
 
@@ -493,6 +495,97 @@ noncomputable def reactionDerivLegHolderConst (t η CL : ℝ) : ℝ :=
     (2 : ℝ) ^ (1 - η) *
       (secondDerivSmoothingConst ^ η * gradSmoothingConst ^ (1 - η)) *
         (t - s) ^ (-((1 + η) / 2) : ℝ) * CL
+
+/-- Time-cutoff logistic source, matching `logisticLifted p (u s)` on `0 < s ≤ T`.
+This is the reaction-source analogue of `chemFluxCthetaCutoffSource`. -/
+noncomputable def logisticCutoffSource
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) :
+    ℝ → ℝ → ℝ :=
+  fun s y => if 0 < s ∧ s ≤ T then logisticLifted p (u s) y else 0
+
+/-- The global smooth representative carried by the phase-1 C1/η route.  It agrees
+with the true lifted mild slice on `[0,1]`, but unlike the zero extension it is not
+forced to vanish off the interval. -/
+noncomputable def gradientMildPhase1ValueLegsCutoffRep
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (T t : ℝ) : ℝ → ℝ :=
+  fun x => initialValueLeg t (intervalDomainLift u₀) x
+    - p.χ₀ * chemLitLeg t (chemFluxCthetaCutoffSource p u T) x
+    + reactionValueLeg t (logisticCutoffSource p u T) x
+
+/-- The concrete mild slice agrees on `[0,1]` with the canonical global representative
+used by the phase-1 C1/η value-leg bridge.  This is deliberately an `EqOn`, not a
+global equality: outside `[0,1]`, `intervalDomainLift` is the zero extension while the
+heat/Duhamel representative is generally nonzero. -/
+theorem gradientMild_phase1ValueLegs_cutoffRep_eqOn_Icc
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ Dsol.T) :
+    Set.EqOn (intervalDomainLift (Dsol.u t))
+      (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+      (Set.Icc (0 : ℝ) 1) := by
+  intro x hx
+  have hmap :=
+    ShenWork.IntervalMildToLocalExistence.gradientMildSolution_lift_eq_gradientMildMapTermSum_on_Icc
+      p Dsol ht htT
+  have hchem :
+      chemLitLeg t (chemFluxCthetaCutoffSource p Dsol.u Dsol.T) x =
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z =>
+            intervalFullSemigroupOperator (t - s) (chemFluxLifted p (Dsol.u s)) z) x := by
+    unfold chemLitLeg
+    refine intervalIntegral.integral_congr_ae ?_
+    have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t :=
+      Set.uIoc_of_le ht.le
+    filter_upwards with s hs_mem
+    rw [huIoc_eq] at hs_mem
+    have hsT : s ≤ Dsol.T := le_trans hs_mem.2 htT
+    have hwin : 0 < s ∧ s ≤ Dsol.T := ⟨hs_mem.1, hsT⟩
+    have heq :
+        chemFluxCthetaCutoffSource p Dsol.u Dsol.T s =
+          chemFluxLifted p (Dsol.u s) := by
+      funext y
+      simp [chemFluxCthetaCutoffSource, hwin]
+    simp [heq]
+  have hreact :
+      reactionValueLeg t (logisticCutoffSource p Dsol.u Dsol.T) x =
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (logisticLifted p (Dsol.u s)) x := by
+    unfold reactionValueLeg
+    refine intervalIntegral.integral_congr_ae ?_
+    have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t :=
+      Set.uIoc_of_le ht.le
+    filter_upwards with s hs_mem
+    rw [huIoc_eq] at hs_mem
+    have hsT : s ≤ Dsol.T := le_trans hs_mem.2 htT
+    have hwin : 0 < s ∧ s ≤ Dsol.T := ⟨hs_mem.1, hsT⟩
+    have heq :
+        logisticCutoffSource p Dsol.u Dsol.T s = logisticLifted p (Dsol.u s) := by
+      funext y
+      simp [logisticCutoffSource, hwin]
+    simp [heq]
+  calc
+    intervalDomainLift (Dsol.u t) x
+        = ShenWork.IntervalMildToLocalExistence.gradientMildMapTermSum p u₀ Dsol.u t x :=
+          hmap hx
+    _ = gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t x := by
+          unfold ShenWork.IntervalMildToLocalExistence.gradientMildMapTermSum
+            ShenWork.IntervalMildToLocalExistence.gradientMildSemigroupTerm
+            ShenWork.IntervalMildToLocalExistence.gradientMildChemotaxisDuhamelTerm
+            ShenWork.IntervalMildToLocalExistence.gradientMildLogisticDuhamelTerm
+            gradientMildPhase1ValueLegsCutoffRep initialValueLeg
+          rw [hchem, hreact]
+          ring
+
+/-- Cosine-coefficient summability transfers across `[0,1]` equality.  This is the
+bridge from the smooth global representative back to the true lifted interval slice. -/
+theorem summable_abs_cosineCoeffs_of_eqOn_Icc {f g : ℝ → ℝ}
+    (hfg : Set.EqOn f g (Set.Icc (0 : ℝ) 1))
+    (hg : Summable (fun n : ℕ => |cosineCoeffs g n|)) :
+    Summable (fun n : ℕ => |cosineCoeffs f n|) := by
+  refine hg.congr ?_
+  intro n
+  rw [cosineCoeffs_congr_on_Icc hfg n]
 
 /-- The homogeneous initial value leg is globally differentiable at positive time. -/
 theorem initialValueLeg_differentiable
