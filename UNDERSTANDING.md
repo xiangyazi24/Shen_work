@@ -1,5 +1,21 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 242: PPID seed local existence from Picard frontier (2026-07-06)
+
+`IntervalDomainPPIDPicardFrontierSeed.lean` removes the separate PPID seed
+local-existence hypothesis from Task241.  A `PaperPositiveInitialDatum` carries
+both a per-datum sup bound and a per-datum positive floor, so it belongs to one
+threshold class.  Applying
+`ThresholdQuantBridge.thresholdQuantitativeLocalExistence_of_picardFrontier`
+at that class gives `localExistencePPID_of_picardFrontier`.
+
+The resulting theorem
+`PPIDThresholdReachability.theorem_1_1_intervalDomain_of_ppid_picardFrontier_persistence`
+proves `Theorem_1_1 intervalDomain p` from regime assumptions,
+`PicardRestartFrontier p`, and `ClassicalMinPersistence p`.  This is the current
+lean PPID threshold route: the all-PPID common-floor residuals are gone, and the
+remaining analytic inputs are the restart frontier and min-persistence.
+
 ## Task 241: PPID Picard-frontier bridge to Theorem 1.1 (2026-07-06)
 
 `IntervalDomainPPIDPicardFrontierTheorem11.lean` lowers the Task240
