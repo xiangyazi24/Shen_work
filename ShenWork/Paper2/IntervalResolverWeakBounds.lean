@@ -36,6 +36,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainResolverSupQuantitative
 import ShenWork.Paper2.IntervalDomainL2UEnergyUniformGammaGeOne
+import Mathlib.Analysis.PSeries
 
 open MeasureTheory intervalIntegral
 open ShenWork.IntervalDomain ShenWork.CosineSpectrum
@@ -164,6 +165,110 @@ noncomputable def intervalNeumannResolverGradHolderWeight
     (p : CM2Params) (θ : ℝ) (k : ℕ) : ℝ :=
   (((k : ℝ) * Real.pi) ^ (1 + θ)) /
     (p.μ + unitIntervalNeumannSpectrum.eigenvalue k)
+
+/-- Square summability of the fractional gradient Holder weight in the
+small-exponent range.  Since the denominator is quadratic in the Neumann
+frequency, the square behaves like `k^(-2 + 2θ)`, hence summability exactly for
+`θ < 1/2`. -/
+theorem intervalNeumannResolverGradHolderWeight_sq_summable_of_theta_lt_half
+    (p : CM2Params) {θ : ℝ} (hθlt : θ < (1 / 2 : ℝ)) :
+    Summable fun k : ℕ =>
+      (intervalNeumannResolverGradHolderWeight p θ k) ^ 2 := by
+  rw [← summable_nat_add_iff 1]
+  set α : ℝ := 2 - 2 * θ with hα
+  have hα_gt_one : 1 < α := by
+    rw [hα]
+    nlinarith [hθlt]
+  have hpi_pos : 0 < Real.pi := Real.pi_pos
+  have hmaj : Summable fun k : ℕ =>
+      Real.pi ^ (-α) * (((k : ℝ) + 1) ^ α)⁻¹ := by
+    have hp_abs : Summable fun k : ℕ => 1 / |(k : ℝ) + 1| ^ α :=
+      (Real.summable_one_div_nat_add_rpow 1 α).mpr hα_gt_one
+    have hp : Summable fun k : ℕ => (((k : ℝ) + 1) ^ α)⁻¹ := by
+      refine hp_abs.congr ?_
+      intro k
+      have hkpos : 0 < (k : ℝ) + 1 := by positivity
+      simp [one_div, abs_of_pos hkpos]
+    exact hp.mul_left (Real.pi ^ (-α))
+  refine Summable.of_nonneg_of_le (fun k => sq_nonneg _) ?_ hmaj
+  intro k
+  set n : ℝ := (k : ℝ) + 1 with hn
+  set K : ℝ := n * Real.pi with hK
+  have hn_pos : 0 < n := by
+    rw [hn]
+    positivity
+  have hK_pos : 0 < K := by
+    rw [hK]
+    positivity
+  have hK_nonneg : 0 ≤ K := hK_pos.le
+  have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1) :=
+    intervalNeumannResolver_denom_pos p (k + 1)
+  have hlam : unitIntervalNeumannSpectrum.eigenvalue (k + 1) = K ^ 2 := by
+    rw [hK, hn]
+    change ((k + 1 : ℕ) : ℝ) ^ 2 * Real.pi ^ 2 =
+      (((k : ℝ) + 1) * Real.pi) ^ 2
+    push_cast
+    ring
+  have hden_low : K ^ 2 ≤ p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1) := by
+    rw [hlam]
+    linarith [p.hμ.le]
+  have hKsq_pos : 0 < K ^ 2 := by positivity
+  have hnum_nonneg : 0 ≤ K ^ (1 + θ) :=
+    Real.rpow_nonneg hK_nonneg (1 + θ)
+  have hfrac_le : K ^ (1 + θ) /
+        (p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1))
+      ≤ K ^ (1 + θ) / K ^ 2 := by
+    exact div_le_div_of_nonneg_left hnum_nonneg hKsq_pos hden_low
+  have hfrac_nonneg : 0 ≤ K ^ (1 + θ) /
+      (p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1)) :=
+    div_nonneg hnum_nonneg hden_pos.le
+  have htail_eq :
+      intervalNeumannResolverGradHolderWeight p θ (k + 1) =
+        K ^ (1 + θ) /
+          (p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1)) := by
+    rw [intervalNeumannResolverGradHolderWeight, hK, hn]
+    push_cast
+    rfl
+  have hK_sq_inv : (K ^ 2)⁻¹ = K ^ (-(2 : ℝ)) := by
+    have hpow2 : K ^ (2 : ℝ) = K ^ 2 := Real.rpow_natCast K 2
+    rw [← hpow2]
+    exact (Real.rpow_neg hK_nonneg (2 : ℝ)).symm
+  have hpower_div : K ^ (1 + θ) / K ^ 2 = K ^ (θ - 1) := by
+    calc
+      K ^ (1 + θ) / K ^ 2
+          = K ^ (1 + θ) * (K ^ 2)⁻¹ := by
+              rw [div_eq_mul_inv]
+      _ = K ^ (1 + θ) * K ^ (-(2 : ℝ)) := by
+              rw [hK_sq_inv]
+      _ = K ^ ((1 + θ) + (-(2 : ℝ))) := by
+              rw [← Real.rpow_add hK_pos (1 + θ) (-(2 : ℝ))]
+      _ = K ^ (θ - 1) := by ring_nf
+  have hpower_sq : (K ^ (1 + θ) / K ^ 2) ^ 2 = K ^ (-α) := by
+    rw [hpower_div]
+    calc
+      (K ^ (θ - 1)) ^ 2
+          = (K ^ (θ - 1)) ^ (2 : ℝ) :=
+              (Real.rpow_natCast (K ^ (θ - 1)) 2).symm
+      _ = K ^ ((θ - 1) * (2 : ℝ)) := by
+              rw [← Real.rpow_mul hK_nonneg (θ - 1) (2 : ℝ)]
+      _ = K ^ (-α) := by
+              rw [hα]
+              ring_nf
+  have hK_majorant : K ^ (-α) =
+      Real.pi ^ (-α) * (((k : ℝ) + 1) ^ α)⁻¹ := by
+    rw [hK, hn]
+    rw [Real.mul_rpow (by positivity : 0 ≤ (k : ℝ) + 1) hpi_pos.le]
+    rw [Real.rpow_neg (by positivity : 0 ≤ (k : ℝ) + 1) α]
+    ring
+  calc
+    (intervalNeumannResolverGradHolderWeight p θ (k + 1)) ^ 2
+        = (K ^ (1 + θ) /
+            (p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1))) ^ 2 := by
+          rw [htail_eq]
+    _ ≤ (K ^ (1 + θ) / K ^ 2) ^ 2 :=
+          pow_le_pow_left₀ hfrac_nonneg hfrac_le 2
+    _ = K ^ (-α) := hpower_sq
+    _ = Real.pi ^ (-α) * (((k : ℝ) + 1) ^ α)⁻¹ := hK_majorant
 
 /-! ## B1 — source `ℓ²` from continuity (cosine–Bessel, no `hsol`) -/
 
@@ -816,6 +921,25 @@ theorem resolverGradReal_holder_Icc_of_bounded_of_gradHolderWeight_summable
           Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradHolderWeight p θ k) ^ 2) *
             (2 * (p.ν * M ^ p.γ))) * |x - y| ^ θ := by ring
 
+/-- Weak bounded-data spatial Holder bound for the resolver gradient in the
+small-exponent range `0 < θ < 1/2`, with the fractional spectral summability
+discharged by `intervalNeumannResolverGradHolderWeight_sq_summable_of_theta_lt_half`. -/
+theorem resolverGradReal_holder_Icc_of_bounded_smallTheta
+    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M θ : ℝ}
+    (hθ0 : 0 < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hlb : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
+    (hub : ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift u x ≤ M)
+    {x y : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    |resolverGradReal p u x - resolverGradReal p u y| ≤
+      ((2 : ℝ) ^ (1 - θ) *
+        Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradHolderWeight p θ k) ^ 2) *
+          (2 * (p.ν * M ^ p.γ))) * |x - y| ^ θ := by
+  have hθ1 : θ ≤ 1 := by nlinarith [hθlt]
+  exact resolverGradReal_holder_Icc_of_bounded_of_gradHolderWeight_summable
+    p hθ0 hθ1
+    (intervalNeumannResolverGradHolderWeight_sq_summable_of_theta_lt_half p hθlt)
+    hUcont hlb hub hx hy
 
 /-! ## B4 — resolver value/gradient DIFFERENCE Lipschitz (weak)
 
@@ -906,7 +1030,7 @@ theorem sourceCoeff_diff_energy_le_integral_of_continuousOn
       rw [← Complex.sub_re, ← intervalIntegral.integral_sub (hII1 m) (hII2 m)]
       congr 1; apply intervalIntegral.integral_congr; intro x _; push_cast; ring
     rcases eq_or_ne k 0 with hk | hk
-    · subst hk; simp only [if_pos rfl]; exact hlin 0
+    · subst hk; exact hlin 0
     · simp only [if_neg hk]; rw [← mul_sub, hlin k]
   -- now bound the energy.
   rw [coeffL2Energy]
