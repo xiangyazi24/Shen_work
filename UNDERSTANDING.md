@@ -3179,6 +3179,18 @@ separate time-integrability carries only under `H1ZeroStartPhysicalPrimitiveData
 it is not an unconditional headline theorem, and the physical
 identity/substitution plus sqrt-bound frontiers remain separate.
 
+Task 104 adds the post-Task103 route wrapper
+`H1PhysicalRHSStrictInitialRouteBefore_of_classical_zeroStartPrimitiveData`.
+It lowers the Task103 spatial Young data to
+`H1PhysicalRHSComponentSquareZeroDataBefore` and then reuses the existing
+classical component-square strict/initial route constructor.  The resulting
+physical strict/initial route still explicitly assumes
+`H1PhysicalRHSIdentityBefore`, `H1PhysicalRHSSqrtBoundsBefore`,
+`H1ZeroStartPhysicalPrimitiveDataBefore`, and a positive zero window
+`δ < T`.  Thus the route wiring from component-square estimates to the
+strict/initial H¹ package is now local, but no new identity, sqrt-bound, or
+zero-start primitive producer has been proved.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

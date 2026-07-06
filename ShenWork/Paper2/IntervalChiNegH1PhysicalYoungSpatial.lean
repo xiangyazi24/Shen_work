@@ -622,6 +622,32 @@ theorem H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
   H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_componentSquareZeroData
     (H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData h)
 
+/-- Classical strict-slab regularity plus zero-start primitive continuity
+supplies the physical strict/initial route, once the physical identity and
+sqrt estimates are supplied.  This is a route wrapper, not an unconditional
+bounded-before theorem. -/
+theorem
+    H1PhysicalRHSStrictInitialRouteBefore_of_classical_zeroStartPrimitiveData
+    {p : CM2Params} {T δ V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (H : H1ZeroStartPhysicalPrimitiveDataBefore p u v T)
+    (hId : H1PhysicalRHSIdentityBefore p u v T)
+    (hBounds : H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L)
+    (hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    H1PhysicalRHSStrictInitialRouteBefore p u v T V₁ V₂ M L := by
+  have hSpatial :
+      H1PhysicalRHSComponentSquareSpatialYoungDataBefore p u v T :=
+    H1PhysicalRHSComponentSquareSpatialYoungDataBefore_of_classical_zeroStartPrimitiveData
+      (p := p) (T := T) (δ := δ) (u := u) (v := v)
+      hsol H hδ_pos hδ_before
+  exact
+    H1PhysicalRHSStrictInitialRouteBefore_of_classical_componentSquareZero
+      (p := p) (T := T) (V₁ := V₁) (V₂ := V₂) (M := M) (L := L)
+      (u := u) (v := v)
+      hsol hId hBounds
+      (H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData hSpatial)
+
 #print axioms
   H1PhysicalTaxisX_norm_le_half_lapL2sq_add_half_taxisPartSq_of_spatial
 #print axioms
@@ -638,5 +664,7 @@ theorem H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
 #print axioms
   H1PhysicalRHSComponentSquareZeroDataBefore_of_spatialYoungData
 #print axioms H1PhysicalRHSYoungScalarZeroMajorantsBefore_of_spatialYoungData
+#print axioms
+  H1PhysicalRHSStrictInitialRouteBefore_of_classical_zeroStartPrimitiveData
 
 end ShenWork.Paper2.IntervalChiNegH1PhysicalYoungSpatial
