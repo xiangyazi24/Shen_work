@@ -14,7 +14,7 @@ namespace ShenWork.Paper2
 
 noncomputable section
 
-open ShenWork.IntervalDomain (intervalDomainPoint)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open AddSubgroup
 
 /-- Adding an integer multiple of the period does not change the period-2
@@ -781,6 +781,52 @@ noncomputable def NeumannHeatCommonFoldNoiseFor_of_bounded
           ∫ z : ℝ, f (addCircleTwoFoldTranslatePoint y z).1
             ∂(heatKernelNoiseMeasure t ht) := by
         exact (heatKernelNoiseMeasure_integral_eq_foldedHeatIntegral ht y f).symm
+
+/-- A pointwise bound on interval-domain data extends to the zero extension on
+the real line. -/
+theorem intervalDomainLift_abs_bound_of_interval_bound
+    {u₀ : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 ≤ M) (hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M) :
+    ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M := by
+  intro y
+  unfold intervalDomainLift
+  split_ifs with hy
+  · exact hu₀_bound ⟨y, hy⟩
+  · simpa using hM
+
+/-- Bounded measurable initial data can use the heat-kernel folded-noise
+producer directly, so the initial-leg Holder theorem no longer needs an
+external common-noise `hplan`. -/
+theorem InitialLegUniformHolderAtZero_of_bounded_initialDatumHolder
+    {u₀ : intervalDomainPoint → ℝ} {T θ H₀ M : ℝ}
+    (hθ0 : 0 < θ) (hH₀ : 0 ≤ H₀)
+    (hM : 0 ≤ M) (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀))
+    (hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M) :
+    InitialLegUniformHolderAtZero u₀ T θ H₀ := by
+  have hlift_bound : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M :=
+    intervalDomainLift_abs_bound_of_interval_bound hM hu₀_bound
+  exact InitialLegUniformHolderAtZero_of_common_fold_noise
+    hθ0 hH₀ hholder
+    (fun t ht _htT x y =>
+      NeumannHeatCommonFoldNoiseFor_of_bounded
+        ht x y hM hu₀_meas hlift_bound)
+
+/-- Small-time mild Holder wrapper for bounded measurable initial data, using
+the concrete heat-kernel folded-noise law. -/
+theorem mild_orderBox_smallTime_holder_of_bounded_initialDatumHolder
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ShenWork.IntervalMildPicard.GradientMildSolutionData p u₀)
+    {θ H₀ M : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hH₀ : 0 ≤ H₀)
+    (hM : 0 ≤ M) (hholder : InitialDatumHolder u₀ θ H₀)
+    (hu₀_meas : Measurable (intervalDomainLift u₀))
+    (hu₀_bound : ∀ x : intervalDomainPoint, |u₀ x| ≤ M) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  exact mild_orderBox_smallTime_holder_of_initialLeg_holder D hθ0 hθ1 hH₀
+    (InitialLegUniformHolderAtZero_of_bounded_initialDatumHolder
+      hθ0 hH₀ hM hholder hu₀_meas hu₀_bound)
 
 end
 
