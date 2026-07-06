@@ -1,5 +1,28 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 270: Chi-zero hsrc0-only resolver-source inputs (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs.lean` implements the
+Q3723 reduction for the `χ₀ = 0` route.  The new
+`ResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs` package carries only the
+bounded patched-source package
+`DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T`.  Its adapter chooses the
+canonical Picard-limit coefficient family
+`limitCoeff p u₀ D.u`, derives agreement with `D.u` from
+`TimeNhdSubtype.limit_lift_eq_cosineSeries_of_subtypeCont_patched`, and derives
+compact-window eigenvalue envelopes from
+`BddAdapterPatched.eigenvalue_mul_abs_limitCoeff_le_uniform_patched` plus
+`windowEigEnv_summable`.  The resulting no-K1 surface is then fed through
+Task269 to recover the power-source K1 fields.
+
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointHsrc0InputsFrontier.lean`
+routes this hsrc0-only surface through the source and iterate chi-zero headline
+wrappers.  This is still not an unconditional headline theorem: the route
+remains conditional on per-datum source or iterate data, u-side spectral
+agreement, the pointwise PDE identity, and the explicit full-horizon `hsrc0`
+package.  Q3723 also confirms that the full horizon `D.T` matters; a shorter
+bounded-source package would not fill all interior times.
+
 ## Task 269: Chi-zero no-K1 resolver-source envelope surface (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeOnlyNoJointNoK1Inputs.lean` removes the
