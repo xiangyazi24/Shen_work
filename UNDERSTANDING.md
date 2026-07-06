@@ -3234,6 +3234,13 @@ pointwise estimate package for the taxis, `u v_xx`, and reaction scalar terms.
 The zero-start primitive package also remains separate, so this is progress on
 the identity route, not an unconditional bounded-before headline.
 
+Task 108 removes the last identity-side carry.  The same Route-C identity file
+now proves `H1PhysicalRHSIdentityBefore_of_classicalSolution` by composing the
+existing `H1UxxL1ContBefore_of_classical_liftChemotaxisDivPhysicalRep`
+producer with Task107's exact physical substitution theorem.  Thus the
+concrete physical H¹ identity is axiom-clean from `IsPaper2ClassicalSolution`
+alone.  It should no longer be listed as a remaining physical-H¹ exit blocker.
+
 Task 109 adds the disjoint sqrt-bound reducer in
 `IntervalChiNegH1PhysicalSqrtBounds`.  It introduces
 `H1PhysicalRHSSqrtPointwiseEstimatesBefore`, an exact named record for the
@@ -3246,6 +3253,32 @@ they prove the current sqrt-bound interface from those explicit estimates via
 interval Cauchy-Schwarz and record assembly.  This intentionally does not
 derive uniform resolver bounds or the logistic reaction IBP estimate; those are
 now the honest remaining analytic inputs for the sqrt frontier.
+
+Task 110 updates the endpoint-data physical exit after Task108.  The new
+`boundedBefore_of_physical_classical_zeroStart_identityClosed_before` theorem
+in `IntervalChiNegH1PhysicalExit` reuses
+`H1PhysicalRHSIdentityBefore_of_classicalSolution`, so the endpoint-data
+bounded-before wrapper no longer asks for `H1PhysicalRHSIdentityBefore`
+explicitly.  Its route-level carries are now the zero-start primitive package,
+the sqrt-bound package, `H1InitialEndpointData`,
+`IntervalDomainL2SeedRegularityFrontier`, and the standard
+initial/boundedness environment.
+
+Task 111 follows the Q3544 zero-start primitive audit.  The audit found no
+source-grounded producer for `H1ZeroStartPhysicalPrimitiveDataBefore` from
+`IsPaper2ClassicalSolution`, `InitialTrace`, positivity, or endpoint data:
+the strict classical APIs are positive-time only and do not provide
+closed-slab data at `t = 0`.  `IntervalChiNegH1ZeroStartComponents` now splits
+that large package into
+`H1ZeroStartPhysicalPrimitiveContinuityBefore` for closed-slab continuity and
+positivity of `u`, `v`, `u_x`, and `v_x`, and
+`H1ZeroStartPhysicalPDESeamBefore` for zero-start continuity of `u_t` plus the
+endpoint-including interior equality between literal `liftDeriv2` and the
+physical RHS representative.  The constructor
+`H1ZeroStartPhysicalPrimitiveDataBefore_of_continuity_and_pdeSeam` is
+axiom-clean and only reassembles the old package.  This is not a mathematical
+closure; it marks the initial-time PDE seam as the real remaining
+zero-start blocker.
 
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 

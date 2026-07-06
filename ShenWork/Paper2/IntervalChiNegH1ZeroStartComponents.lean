@@ -71,9 +71,77 @@ structure H1ZeroStartPhysicalPrimitiveDataBefore
     Set.EqOn
       (Function.uncurry (fun t x => liftDeriv2 u t x))
       (Function.uncurry
+          (liftDeriv2PhysicalRHSWithChemRep p u
+            (liftChemotaxisDivPhysicalRep p u v)))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)
+
+/-- Zero-start primitive closed-slab continuity and positivity data, separated
+from the initial-time PDE seam. -/
+structure H1ZeroStartPhysicalPrimitiveContinuityBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
+  u_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  v_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  ux_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (u t)) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  vx_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (v t)) x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  u_pos0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ∀ z ∈ Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1,
+      0 <
+        Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x) z
+  v_nonneg0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ∀ z ∈ Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1,
+      0 ≤
+        Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x) z
+
+/-- The initial-time PDE seam needed by the zero-start physical H¹ route:
+closed-slab time-derivative continuity and endpoint-including interior
+agreement of literal `liftDeriv2` with the physical representative. -/
+structure H1ZeroStartPhysicalPDESeamBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ) (T : ℝ) : Prop where
+  time_cont0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    ContinuousOn
+      (Function.uncurry (fun t x => liftTimeDeriv u t x))
+      (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1)
+  eqInterior0 : ∀ {b : ℝ}, 0 ≤ b → b < T →
+    Set.EqOn
+      (Function.uncurry (fun t x => liftDeriv2 u t x))
+      (Function.uncurry
         (liftDeriv2PhysicalRHSWithChemRep p u
           (liftChemotaxisDivPhysicalRep p u v)))
       (Set.Icc (0 : ℝ) b ×ˢ Set.Ioo (0 : ℝ) 1)
+
+/-- Reassemble the original zero-start primitive package from the separated
+continuity/positivity data and the initial-time PDE seam. -/
+theorem H1ZeroStartPhysicalPrimitiveDataBefore_of_continuity_and_pdeSeam
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hcont : H1ZeroStartPhysicalPrimitiveContinuityBefore p u v T)
+    (hseam : H1ZeroStartPhysicalPDESeamBefore p u v T) :
+    H1ZeroStartPhysicalPrimitiveDataBefore p u v T where
+  u_cont0 := hcont.u_cont0
+  v_cont0 := hcont.v_cont0
+  ux_cont0 := hcont.ux_cont0
+  vx_cont0 := hcont.vx_cont0
+  u_pos0 := hcont.u_pos0
+  v_nonneg0 := hcont.v_nonneg0
+  time_cont0 := hseam.time_cont0
+  eqInterior0 := hseam.eqInterior0
 
 /-- Zero-start continuity of the physical chemotaxis-divergence representative
 from primitive zero-start continuity of `u`, `v`, `u_x`, and `v_x`.
@@ -291,6 +359,7 @@ theorem H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPrimitiveData
 
 section AxiomAudit
 
+#print axioms H1ZeroStartPhysicalPrimitiveDataBefore_of_continuity_and_pdeSeam
 #print axioms liftChemotaxisDivPhysicalRep_continuousOn_zeroSlab_of_primitives
 #print axioms H1ZeroStartPhysicalRHSDataBefore_of_zeroStartPrimitiveData
 #print axioms H1LiftDeriv2ZeroSlabRepBefore_of_zeroStartPrimitiveData
