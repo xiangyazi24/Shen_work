@@ -1,5 +1,31 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 245: PPID frontier surface trimmed to consumed restart/core fields (2026-07-06)
+
+`IntervalDomainPPIDRestartCoreFrontier.lean` records smaller per-datum spectral
+packages actually consumed by the PPID Picard-limit frontier bridge.  The core
+package contains `GradientMildHalfStepLogisticSourceData`, u-side
+time-neighborhood spectral agreement, resolver direct spectral data, and the
+pointwise PDE identity.  It intentionally omits the sup-norm derivative and
+initial-approach fields from `EndToEnd.PerDatumSpectralFrontier`, because those
+fields are not used to produce `ConeQuantBridge.PicardLimitRestartFrontier` in
+this PPID route.  It also omits resolver strict positivity, which is produced
+internally by `IntervalResolverStrictPositivity.mildChemicalConcentration_pos`.
+
+The same file also exposes a source-witness package, replacing resolver direct
+spectral data by the per-time clamped resolver-source witness consumed by
+`RegularityFrontierAssembly.hasResolverDirectSpectralData_of_clamped_perT0`.
+Finally, it exposes an iterate/source package in which the logistic half-step
+source data field is produced internally from
+`IntervalPicardLimitLogisticSource.PicardIterateConvergenceData`.
+
+The resulting chi-nonpositive and strict-negative PPID Theorem 1.1 wrappers are
+conditional on regime assumptions plus this smaller
+`PerDatumRestartCoreSpectralFrontier` producer, or the still-smaller
+`PerDatumSourceSpectralFrontier` / `PerDatumIterateSourceSpectralFrontier`
+producers.  The next analytic task should target one or more of those consumed
+fields, rather than the omitted fields.
+
 ## Task 244: PPID headline reduced to unified/spectral Picard frontier (2026-07-06)
 
 `IntervalDomainPPIDPicardLimitFrontier.lean` adds the current thinnest PPID
