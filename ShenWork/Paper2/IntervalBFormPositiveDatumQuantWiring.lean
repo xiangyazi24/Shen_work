@@ -191,7 +191,7 @@ by the quantitative local factory used by the restart/glue continuation route. -
 theorem paper2_theorem_1_1_general_chi_bform_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hBForm : PositiveDatumBFormLocalHyp p)
+    (_hBForm : PositiveDatumBFormLocalHyp p)
     (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
@@ -200,9 +200,8 @@ theorem paper2_theorem_1_1_general_chi_bform_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bform p hχ ha hb hγ_ge_one hBForm
-    (uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- General-χ B-form headline with the uniform-local-existence input replaced
 by the Picard-restart/min-persistence local-existence route. -/
@@ -384,7 +383,7 @@ replaced by the quantitative local factory. -/
 theorem paper2_theorem_1_1_general_chi_bform_negpart_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hPerDatum : BFormPositiveLocalFrontier p)
+    (_hPerDatum : BFormPositiveLocalFrontier p)
     (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
@@ -393,10 +392,8 @@ theorem paper2_theorem_1_1_general_chi_bform_negpart_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bform_negpart
-    p hχ ha hb hγ_ge_one hPerDatum
-    (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- Negative-part B-form headline with the uniform-local-existence input
 replaced by the Picard-restart/min-persistence local-existence route. -/
@@ -530,7 +527,7 @@ replaced by the quantitative local factory used by the restart/glue route. -/
 theorem paper2_theorem_1_1_general_chi_bformSq_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hBForm : PositiveDatumBFormLocalHypSq p)
+    (_hBForm : PositiveDatumBFormLocalHypSq p)
     (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
@@ -539,9 +536,8 @@ theorem paper2_theorem_1_1_general_chi_bformSq_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bformSq p hχ ha hb hγ_ge_one hBForm
-    (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- Squared-barrier B-form headline with the uniform-local-existence input
 replaced by the Picard-restart/min-persistence local-existence route. -/
@@ -623,7 +619,7 @@ input replaced by the quantitative local factory. -/
 theorem paper2_theorem_1_1_general_chi_bformSq_of_banked_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hbanked :
+    (_hbanked :
       ∀ u₀ : intervalDomainPoint → ℝ,
         PaperPositiveInitialDatum intervalDomain u₀ →
           ∃ DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData p u₀,
@@ -636,10 +632,8 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_banked_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bformSq_of_banked
-    p hχ ha hb hγ_ge_one hbanked
-    (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- Banked squared-barrier B-form headline with the uniform-local-existence
 input replaced by the Picard-restart/min-persistence local-existence route. -/
@@ -741,7 +735,7 @@ uniform-local-existence input replaced by the quantitative local factory. -/
 theorem paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hdeep :
+    (_hdeep :
       ∀ u₀ : intervalDomainPoint → ℝ,
         PaperPositiveInitialDatum intervalDomain u₀ →
           ∃ DB : ShenWork.IntervalConjugatePicard.ConjugateMildExistenceData p u₀,
@@ -754,10 +748,8 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bformSq_of_concrete_banked
-    p hχ ha hb hγ_ge_one hdeep
-    (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- Concrete-banked squared-barrier B-form headline with the
 uniform-local-existence input replaced by the Picard-restart/min-persistence
@@ -861,7 +853,7 @@ input replaced by the quantitative local factory. -/
 theorem paper2_theorem_1_1_general_chi_bformSq_regular_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hBForm : PositiveDatumBFormLocalHypSqRegular p)
+    (_hBForm : PositiveDatumBFormLocalHypSqRegular p)
     (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
@@ -870,10 +862,8 @@ theorem paper2_theorem_1_1_general_chi_bformSq_regular_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bformSq_regular
-    p hχ ha hb hγ_ge_one hBForm
-    (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- Regular squared-barrier B-form headline with the uniform-local-existence
 input replaced by the Picard-restart/min-persistence local-existence route. -/
@@ -957,7 +947,7 @@ input replaced by the quantitative local factory. -/
 theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_quant
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hdeepest : PositiveDatumBFormLocalHypSqDeepest p)
+    (_hdeepest : PositiveDatumBFormLocalHypSqDeepest p)
     (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
       ∀ {u₀ : intervalDomain.Point → ℝ},
         PositiveInitialDatum intervalDomain u₀ →
@@ -966,10 +956,8 @@ theorem paper2_theorem_1_1_general_chi_bformSq_of_deepest_from_quant
           IsPaper2ClassicalSolution intervalDomain p δ u v ∧
           InitialTrace intervalDomain u₀ u) :
     Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_general_chi_bformSq_of_deepest
-    p hχ ha hb hγ_ge_one hdeepest
-    (ShenWork.Paper2.BFormPositiveDatumLocal.uniformLocalExistence_of_quantitative_regime
-      p hχ ha hb hγ_ge_one hQuant)
+  FinalWiring.paper2_theorem_1_1_from_quant
+    p hχ ha hb hγ_ge_one hQuant
 
 /-- Deepest squared-barrier B-form headline with the uniform-local-existence
 input replaced by the Picard-restart/min-persistence local-existence route. -/
