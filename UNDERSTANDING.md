@@ -1,5 +1,31 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 255: PPID resolver-source window data lowered to primitive inputs (2026-07-06)
+
+`IntervalResolverSourceWindowInputs.lean` implements the Q3706 generic
+reduction.  The new `ResolverSourceWindowInputs` package is a producer-side
+ledger for one global cosine representation of `D.u`, pointwise positivity,
+compact positive lower bounds, compact upper and spatial K2 bounds, and
+power-source K1 coefficient time-regularity for
+`ν * intervalDomainLift (D.u σ) ^ γ`.  The theorem
+`resolverSourceWindowData_of_inputs` fixes the standard clamp window around
+each interior time and uses the already-proved
+`ResolverPowerDecay.powerSource_window_uniform_decay` to manufacture the
+per-window decay constant required by Task246's `ResolverSourceWindowData`.
+Thus the remaining source residual is now the primitive representation,
+lower-bound/K2, and power-K1 ledger, not the clamped existential window shape.
+
+`IntervalDomainPPIDResolverSourceInputsFrontier.lean` wires this primitive
+input package into the PPID restart route.  It exposes
+`PerDatumWindowInputsSourceSpectralFrontier` and the iterate variant, then
+reduces their chi-nonpositive and strict-negative Theorem 1.1 wrappers to the
+Task246/250 window-source frontier.  This is still a conditional reduction:
+Q3706 confirms that the non-`χ₀ = 0` producer for the primitive input fields is
+the real analytic frontier, and that downstream objects such as
+`GradientMildClassicalFrontierCoreData`, `IsPaper2ClassicalSolution`, `hpde_u`,
+or u-side time-neighborhood spectral agreement should not be used circularly to
+produce these resolver-source inputs.
+
 ## Task 250: PPID resolver-source decay lowered to spatial K2 data (2026-07-06)
 
 `IntervalResolverSourceWindowDecayFrontier.lean` lowers the
