@@ -186,6 +186,100 @@ theorem uniformLocalExistence_of_picardLimitFrontier_boundary_of_BForm
     (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
     hbdry hBForm
 
+/-- Quantitative local existence from the Picard-restart route, with the
+per-datum local seed supplied by the positive-datum B-form package. -/
+theorem quantitativeLocalExistence_of_picardFrontier_persistence_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  ThresholdQuantBridge.quantitativeLocalExistence_of_picardFrontier_persistence
+    p hχ ha hb hα_ge hγ_ge_one hPF hPersist
+    (positiveDatum_localExistence_of_BForm hBForm)
+
+/-- Quantitative local existence from the unified Picard-limit restart frontier,
+with the per-datum local seed supplied by the positive-datum B-form package. -/
+theorem quantitativeLocalExistence_of_picardLimitFrontier_persistence_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hPersist : QuantFromThreshold.ClassicalMinPersistence p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardFrontier_persistence_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hPersist hBForm
+
+/-- Quantitative local existence from the Picard-restart route and the boundary
+min-point persistence residual, with the per-datum local seed supplied by the
+positive-datum B-form package. -/
+theorem quantitativeLocalExistence_of_picardFrontier_boundary_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPF : ThresholdQuantBridge.PicardRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardFrontier_persistence_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one hPF
+    (classicalMinPersistence_of_boundary_regime p hχ ha hb hγ_ge_one hbdry)
+    hBForm
+
+/-- Quantitative local existence from the unified Picard-limit restart frontier
+and the boundary min-point persistence residual, with the per-datum local seed
+supplied by the positive-datum B-form package. -/
+theorem quantitativeLocalExistence_of_picardLimitFrontier_boundary_of_BForm
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_picardFrontier_boundary_of_BForm
+    p hχ ha hb hα_ge hγ_ge_one
+    (ConeQuantBridge.picardRestartFrontier_of_picardLimitFrontier hPLF)
+    hbdry hBForm
+
+/-- General-χ headline from the source-side hQuant package:
+B-form local seed, Picard-limit restart frontier, and boundary persistence. -/
+theorem paper2_theorem_1_1_general_chi_from_picardLimitFrontier_boundary_of_BForm_hQuant
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hbdry : BoundaryMinPersistenceBound p)
+    (hBForm : PositiveDatumBFormLocalHyp p) :
+    Theorem_1_1 intervalDomain p :=
+  FinalWiring.paper2_theorem_1_1_from_quant p hχ ha hb hγ_ge_one
+    (quantitativeLocalExistence_of_picardLimitFrontier_boundary_of_BForm
+      p hχ ha hb hα_ge hγ_ge_one hPLF hbdry hBForm)
+
 /-- General-χ B-form headline with the uniform-local-existence input replaced
 by the quantitative local factory used by the restart/glue continuation route. -/
 theorem paper2_theorem_1_1_general_chi_bform_from_quant
@@ -304,6 +398,12 @@ section AxiomAudit
 #print axioms uniformLocalExistence_of_picardFrontier_boundary
 #print axioms uniformLocalExistence_of_picardFrontier_boundary_of_BForm
 #print axioms uniformLocalExistence_of_picardLimitFrontier_boundary_of_BForm
+#print axioms quantitativeLocalExistence_of_picardFrontier_persistence_of_BForm
+#print axioms quantitativeLocalExistence_of_picardLimitFrontier_persistence_of_BForm
+#print axioms quantitativeLocalExistence_of_picardFrontier_boundary_of_BForm
+#print axioms quantitativeLocalExistence_of_picardLimitFrontier_boundary_of_BForm
+#print axioms
+  paper2_theorem_1_1_general_chi_from_picardLimitFrontier_boundary_of_BForm_hQuant
 #print axioms paper2_theorem_1_1_general_chi_bform_from_quant
 #print axioms paper2_theorem_1_1_general_chi_bform_from_picardFrontier_persistence
 #print axioms
