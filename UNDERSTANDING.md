@@ -1,5 +1,23 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 276: Chi-zero hsrc0 fed directly from the narrowed Hres core (2026-07-06)
+
+`IntervalResolverSourceWindowHsrc0FromCore.lean` bridges the existing
+`HresWiring.PicardIterateResidualCore` plus the per-iterate coefficient
+time-continuity provider into the Task270 hsrc0-only surface by directly reusing
+`HresWiring.duhamelSourceBddOn_of_core`.  This avoids duplicating the
+field-by-field bootstrap reconstruction: the core's per-window K2 data, Picard
+facts, slice continuity, and tower-style `hiter_cont` input are consumed once by
+the existing Hres producer, and the result is packaged as
+`ResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs`.
+
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointHsrc0InputsFrontier.lean`
+now adds source and iterate Hres-core/no-Hu surfaces.  These route through the
+new direct bridge into the hsrc0/no-Hu frontier and then into the chi-zero
+headline wrappers.  This makes the hsrc0/no-Hu frontier consumable directly from
+the narrowed core provider (`hFacts`, `hcont_iter`, `Wdata`, and `hiter_cont`)
+without carrying Hu or a prebuilt hsrc0 package as explicit sibling fields.
+
 ## Task 274: Chi-zero hsrc0 produced from iterate bootstrap inputs (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs.lean` now exposes

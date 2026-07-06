@@ -9,6 +9,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointInputsFrontier
 import ShenWork.Paper2.IntervalResolverSourceWindowEnvelopeOnlyNoJointHsrc0Inputs
+import ShenWork.Paper2.IntervalResolverSourceWindowHsrc0FromCore
 
 set_option linter.style.longLine false
 
@@ -18,6 +19,8 @@ open ShenWork.IntervalMildPicardRegularity
 open ShenWork.IntervalPicardLimitLogisticSource
 open ShenWork.IntervalMildToClassical
 open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreement)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
 open ShenWork.Paper2
 
 noncomputable section
@@ -299,6 +302,106 @@ theorem picardLimitRestartFrontier_of_iterateHsrc0BootstrapNoHuSourceSpectralFro
       iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_iterateHsrc0BootstrapNoHuSourceSpectralFrontier
         hα ha hb hu₀ (hIterSrc u₀ hu₀ D hD))
 
+/-- Source frontier where the hsrc0 input is produced from the narrowed Hres
+core and the per-iterate coefficient time-continuity provider. -/
+def PerDatumWindowHsrc0CoreNoHuSourceSpectralFrontier
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) : Prop :=
+  ∃ _S : GradientMildHalfStepLogisticSourceData D,
+  ∃ _C : HresWiring.PicardIterateResidualCore p u₀ D,
+  ∃ _hiter_cont : ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+    ContinuousOn
+      (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+      (Set.Icc a' τ),
+    (∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
+      intervalDomain.timeDeriv D.u t x =
+        intervalDomain.laplacian (D.u t) x
+          - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
+              (mildChemicalConcentration p D.u t) x
+          + D.u t x * (p.a - p.b * (D.u t x) ^ p.α))
+
+/-- Iterate frontier where the hsrc0 input is produced from the narrowed Hres
+core and per-iterate coefficient time continuity. -/
+def PerDatumIterateHsrc0CoreNoHuSourceSpectralFrontier
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) : Prop :=
+  ∃ _I : PicardIterateConvergenceData D,
+  ∃ _C : HresWiring.PicardIterateResidualCore p u₀ D,
+  ∃ _hiter_cont : ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+    ContinuousOn
+      (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+      (Set.Icc a' τ),
+    (∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
+      intervalDomain.timeDeriv D.u t x =
+        intervalDomain.laplacian (D.u t) x
+          - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
+              (mildChemicalConcentration p D.u t) x
+          + D.u t x * (p.a - p.b * (D.u t x) ^ p.α))
+
+/-- The narrowed Hres core surface fills the hsrc0/no-Hu source frontier. -/
+theorem windowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_windowHsrc0CoreNoHuSourceSpectralFrontier
+    {p : CM2Params}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {D : GradientMildSolutionData p u₀}
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (h : PerDatumWindowHsrc0CoreNoHuSourceSpectralFrontier p D) :
+    PerDatumWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier p D := by
+  obtain ⟨S, C, hiter_cont, hpde_u⟩ := h
+  exact ⟨S,
+    ResolverSourceWindowInput.resolverSourceWindowHsrc0Inputs_of_hresCore
+      hα ha hb hu₀ hDu C hiter_cont,
+    hpde_u⟩
+
+/-- Iterate version of the narrowed Hres core to hsrc0/no-Hu bridge. -/
+theorem iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_iterateHsrc0CoreNoHuSourceSpectralFrontier
+    {p : CM2Params}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {u₀ : intervalDomainPoint → ℝ} (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {D : GradientMildSolutionData p u₀}
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (h : PerDatumIterateHsrc0CoreNoHuSourceSpectralFrontier p D) :
+    PerDatumIterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier p D := by
+  obtain ⟨I, C, hiter_cont, hpde_u⟩ := h
+  exact ⟨I,
+    ResolverSourceWindowInput.resolverSourceWindowHsrc0Inputs_of_hresCore
+      hα ha hb hu₀ hDu C hiter_cont,
+    hpde_u⟩
+
+/-- Window Hres-core source data gives the unified Picard-limit restart frontier
+in the χ₀ = 0 branch. -/
+theorem picardLimitRestartFrontier_of_windowHsrc0CoreNoHuSourceSpectralFrontier
+    {p : CM2Params} (hχ0 : p.χ₀ = 0)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hSrc : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T →
+          PerDatumWindowHsrc0CoreNoHuSourceSpectralFrontier p D) :
+    ConeQuantBridge.PicardLimitRestartFrontier p :=
+  picardLimitRestartFrontier_of_windowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier
+    hχ0 hα ha hb
+    (fun u₀ hu₀ D hD =>
+      windowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_windowHsrc0CoreNoHuSourceSpectralFrontier
+        hα ha hb hu₀ hD (hSrc u₀ hu₀ D hD))
+
+/-- Iterate Hres-core source data gives the unified Picard-limit restart
+frontier in the χ₀ = 0 branch. -/
+theorem picardLimitRestartFrontier_of_iterateHsrc0CoreNoHuSourceSpectralFrontier
+    {p : CM2Params} (hχ0 : p.χ₀ = 0)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hIterSrc : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T →
+          PerDatumIterateHsrc0CoreNoHuSourceSpectralFrontier p D) :
+    ConeQuantBridge.PicardLimitRestartFrontier p :=
+  picardLimitRestartFrontier_of_iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier
+    hχ0 hα ha hb
+    (fun u₀ hu₀ D hD =>
+      iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_iterateHsrc0CoreNoHuSourceSpectralFrontier
+        hα ha hb hu₀ hD (hIterSrc u₀ hu₀ D hD))
+
 end ShenWork.Paper2.PPIDThresholdReachability
 
 namespace ShenWork.Paper2.ConeQuantBridge
@@ -406,11 +509,47 @@ theorem paper2_theorem_1_1_chiZero_of_iterateHsrc0BootstrapNoHuSourceSpectralFro
       iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_iterateHsrc0BootstrapNoHuSourceSpectralFrontier
         hα_ge ha.le hb.le hu₀ (hIterSrc u₀ hu₀ D hD))
 
+/-- The χ₀ = 0 headline route where hsrc0 is produced from the narrowed Hres
+core and Hu is not carried separately. -/
+theorem paper2_theorem_1_1_chiZero_of_windowHsrc0CoreNoHuSourceSpectralFrontier
+    (p : CM2Params) (hχ : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hSrc : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T →
+          PerDatumWindowHsrc0CoreNoHuSourceSpectralFrontier p D) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_chiZero_of_windowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier
+    p hχ ha hb hα_ge hγ_ge_one
+    (fun u₀ hu₀ D hD =>
+      windowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_windowHsrc0CoreNoHuSourceSpectralFrontier
+        hα_ge ha.le hb.le hu₀ hD (hSrc u₀ hu₀ D hD))
+
+/-- Iterate version of the χ₀ = 0 Hres-core headline route with no separate Hu
+input. -/
+theorem paper2_theorem_1_1_chiZero_of_iterateHsrc0CoreNoHuSourceSpectralFrontier
+    (p : CM2Params) (hχ : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hIterSrc : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T →
+          PerDatumIterateHsrc0CoreNoHuSourceSpectralFrontier p D) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_chiZero_of_iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier
+    p hχ ha hb hα_ge hγ_ge_one
+    (fun u₀ hu₀ D hD =>
+      iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier_of_iterateHsrc0CoreNoHuSourceSpectralFrontier
+        hα_ge ha.le hb.le hu₀ hD (hIterSrc u₀ hu₀ D hD))
+
 #print axioms paper2_theorem_1_1_chiZero_of_windowEnvelopeOnlyNoJointHsrc0InputsSourceSpectralFrontier
 #print axioms paper2_theorem_1_1_chiZero_of_iterateWindowEnvelopeOnlyNoJointHsrc0InputsSourceSpectralFrontier
 #print axioms paper2_theorem_1_1_chiZero_of_windowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier
 #print axioms paper2_theorem_1_1_chiZero_of_iterateWindowEnvelopeOnlyNoJointHsrc0NoHuInputsSourceSpectralFrontier
 #print axioms paper2_theorem_1_1_chiZero_of_windowHsrc0BootstrapNoHuSourceSpectralFrontier
 #print axioms paper2_theorem_1_1_chiZero_of_iterateHsrc0BootstrapNoHuSourceSpectralFrontier
+#print axioms paper2_theorem_1_1_chiZero_of_windowHsrc0CoreNoHuSourceSpectralFrontier
+#print axioms paper2_theorem_1_1_chiZero_of_iterateHsrc0CoreNoHuSourceSpectralFrontier
 
 end ShenWork.Paper2.ConeQuantBridge
