@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalChiNegH1PhysicalScalarContinuity
+import ShenWork.Paper2.IntervalChiNegH1InitialDerivativeRHS
 import ShenWork.Paper2.IntervalChiNegH1ZeroSlabPhysicalRHS
 
 /-!
@@ -17,6 +18,8 @@ open ShenWork.IntervalDomain
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalChiNegH1Energy
 open ShenWork.Paper2.IntervalChiNegH1EnergyIdentity
+open ShenWork.Paper2.IntervalChiNegH1DerivativeIntegrability
+open ShenWork.Paper2.IntervalChiNegH1InitialDerivativeRHS
 open ShenWork.Paper2.IntervalChiNegH1LiftDeriv2Transfer
 open ShenWork.Paper2.IntervalChiNegH1ChemDivRepresentative
 open ShenWork.Paper2.IntervalChiNegH1PhysicalInitialRHS
@@ -65,6 +68,46 @@ private theorem continuousOn_slice_of_uncurry
     intro x hx
     exact ⟨⟨le_rfl, le_rfl⟩, hx⟩
   simpa [Function.uncurry] using hF.comp hpair hmaps
+
+private theorem continuousOn_Ioc_of_continuousOn_strictWindows
+    {f : ℝ → ℝ} {T δ : ℝ}
+    (_hδ_pos : 0 < δ) (hδ_before : δ < T)
+    (hcont : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn f (Set.Icc a b)) :
+    ContinuousOn f (Set.Ioc (0 : ℝ) δ) := by
+  intro r hr
+  let a : ℝ := r / 2
+  have ha_pos : 0 < a := by
+    dsimp [a]
+    linarith [hr.1]
+  have ha_lt_r : a < r := by
+    dsimp [a]
+    linarith [hr.1]
+  have ha_le_delta : a ≤ δ := by
+    dsimp [a]
+    linarith [hr.1, hr.2]
+  have hstrict : ContinuousOn f (Set.Icc a δ) :=
+    hcont ha_pos ha_le_delta hδ_before
+  have hrIcc : r ∈ Set.Icc a δ :=
+    ⟨le_of_lt ha_lt_r, hr.2⟩
+  have hwithin : ContinuousWithinAt f (Set.Icc a δ) r :=
+    hstrict r hrIcc
+  refine hwithin.mono_of_mem_nhdsWithin ?_
+  refine
+    Filter.mem_of_superset
+      (inter_mem_nhdsWithin (Set.Ioc (0 : ℝ) δ)
+        (Ioi_mem_nhds ha_lt_r)) ?_
+  intro y hy
+  exact ⟨le_of_lt hy.2, hy.1.2⟩
+
+private theorem aestronglyMeasurable_on_Ioc_of_continuousOn_strictWindows
+    {f : ℝ → ℝ} {T δ : ℝ}
+    (hδ_pos : 0 < δ) (hδ_before : δ < T)
+    (hcont : ∀ {a b : ℝ}, 0 < a → a ≤ b → b < T →
+      ContinuousOn f (Set.Icc a b)) :
+    AEStronglyMeasurable f (volume.restrict (Set.Ioc (0 : ℝ) δ)) :=
+  (continuousOn_Ioc_of_continuousOn_strictWindows
+    hδ_pos hδ_before hcont).aestronglyMeasurable measurableSet_Ioc
 
 private theorem
     abs_liftDeriv2_mul_part_aestronglyMeasurable_of_rep_product_cont
@@ -376,6 +419,40 @@ theorem H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution
     (H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
       (p := p) (u := u) (v := v) (T := T) hsol)
 
+/-- Classical strict-positive-time component continuity supplies the assembled
+physical RHS a.e.-strong measurability on any zero-start window before `T`.
+This is only a measurability producer; it does not provide any time
+integrability or majorant. -/
+theorem H1PhysicalRHSValue_aestronglyMeasurableBefore_of_classicalSolution
+    {p : CM2Params} {T δ : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hδ_pos : 0 < δ) (hδ_before : δ < T) :
+    AEStronglyMeasurable
+      (H1IdentityRHSValue p u
+        (H1PhysicalTaxisX p u v)
+        (H1PhysicalUvxxX p u v)
+        (H1PhysicalReactX p u))
+      (volume.restrict (Set.Ioc (0 : ℝ) δ)) := by
+  have hStrict :=
+    H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution
+      (p := p) (u := u) (v := v) (T := T) hsol
+  exact
+    H1IdentityRHSValue_aestronglyMeasurable_of_components
+      (p := p) (u := u)
+      (taxisX := H1PhysicalTaxisX p u v)
+      (uvxx := H1PhysicalUvxxX p u v)
+      (reactX := H1PhysicalReactX p u)
+      (s := Set.Ioc (0 : ℝ) δ)
+      (aestronglyMeasurable_on_Ioc_of_continuousOn_strictWindows
+        hδ_pos hδ_before hStrict.components.lap_cont)
+      (aestronglyMeasurable_on_Ioc_of_continuousOn_strictWindows
+        hδ_pos hδ_before hStrict.components.taxis_cont)
+      (aestronglyMeasurable_on_Ioc_of_continuousOn_strictWindows
+        hδ_pos hδ_before hStrict.components.uvxx_cont)
+      (aestronglyMeasurable_on_Ioc_of_continuousOn_strictWindows
+        hδ_pos hδ_before hStrict.components.react_cont)
+
 /-- Classical strict-slab representative continuity supplies the three
 abs-product measurability fields needed by the component-square spatial Young
 adapter.  This is only a measurability producer; it does not provide the square
@@ -589,6 +666,8 @@ theorem H1PhysicalRHSStrictInitialRouteBefore_of_classical_componentSquareZero
   H1PhysicalRHSRepIntegrandsContinuousStrictBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSComponentsContinuousStrictBefore_of_classicalSolution
+#print axioms
+  H1PhysicalRHSValue_aestronglyMeasurableBefore_of_classicalSolution
 #print axioms
   H1PhysicalRHSAbsProductsMeasBefore_of_classicalSolution
 #print axioms

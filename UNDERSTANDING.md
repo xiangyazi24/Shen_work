@@ -3135,6 +3135,18 @@ does not produce time integrability of `lapL2sq` or of the physical square
 profiles; those remain separate one-dimensional-in-time obligations, alongside
 RHS measurability, the physical identity, and sqrt bounds.
 
+Task 101 removes the assembled RHS measurability carry for the physical
+component-square route.  Following the Q3533 audit,
+`IntervalChiNegH1PhysicalClassicalContinuity` now has the local strict-window
+adapter from `ContinuousOn f (Icc a b)` on all positive windows to
+`AEStronglyMeasurable f (volume.restrict (Ioc 0 δ))`, and the concrete theorem
+`H1PhysicalRHSValue_aestronglyMeasurableBefore_of_classicalSolution`.  It feeds
+the four strict physical component-continuity fields into the existing
+`H1IdentityRHSValue_aestronglyMeasurable_of_components` combiner.  This is only
+RHS measurability: the time integrability of `lapL2sq` and the three physical
+square profiles, the physical identity/substitution, and sqrt bounds remain
+open frontiers.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
