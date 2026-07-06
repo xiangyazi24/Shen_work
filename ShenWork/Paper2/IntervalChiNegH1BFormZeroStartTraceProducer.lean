@@ -29,7 +29,7 @@ open ShenWork.IntervalPicardLimitBddHcontP
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData conjugatePicardLimit)
 open ShenWork.IntervalMildToClassical
-  (mildChemicalConcentration)
+  (mildChemicalConcentration mildChemical_nonneg)
 open ShenWork.IntervalDomainExistence.P3MoserEnergyContinuity
 open ShenWork.Paper2
 open ShenWork.Paper2.BFormDirectClassical
@@ -68,6 +68,124 @@ structure H1ZeroStartPrimitiveDerivativeZeroFaceTrace
       (Function.uncurry
         (fun (t : ℝ) (x : ℝ) => deriv (intervalDomainLift (v t)) x))
       (Set.Icc (0 : ℝ) b ×ˢ Set.Icc (0 : ℝ) 1) (0, x)
+
+/-- Static resolver nonnegativity for a continuous nonnegative interval profile.
+This is the time-free form of `mildChemical_nonneg`. -/
+theorem intervalNeumannResolverR_nonneg_of_continuous_nonneg
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    (hw_cont : Continuous w)
+    (hw_nonneg : ∀ y : intervalDomainPoint, 0 ≤ w y) :
+    ∀ x : intervalDomainPoint, 0 ≤ ShenWork.PDE.intervalNeumannResolverR p w x := by
+  intro x
+  have hcont_on : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift w) = w := by
+      ext ⟨y, hy⟩
+      simp [Set.restrict, intervalDomainLift, hy]
+      rfl
+    rw [this]
+    exact hw_cont
+  have hcont_src : Continuous
+      (fun y : intervalDomainPoint => p.ν * (w y) ^ p.γ) :=
+    continuous_const.mul (hw_cont.rpow_const (fun _ => Or.inr p.hγ.le))
+  set clip : ℝ → intervalDomainPoint := fun y =>
+    ⟨max 0 (min y 1), le_max_left 0 _,
+      max_le (by norm_num) (min_le_right y 1)⟩
+  have hclip_cont : Continuous clip :=
+    Continuous.subtype_mk
+      (continuous_const.max (continuous_id.min continuous_const)) _
+  set f : ℝ → ℝ :=
+    (fun y : intervalDomainPoint => p.ν * (w y) ^ p.γ) ∘ clip
+  have hf_cont : Continuous f := hcont_src.comp hclip_cont
+  have hf_nonneg : ∀ z, 0 ≤ f z := fun _ =>
+    mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+  have hf_coeff : ∀ k, ShenWork.IntervalNeumannFullKernel.cosineCoeffs f k =
+      (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re := by
+    intro k
+    have hsrc_eq :
+        (ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k).re =
+        ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (fun y => p.ν * intervalDomainLift w y ^ p.γ) k := by
+      simp [ShenWork.IntervalNeumannFullKernel.cosineCoeffs,
+        ShenWork.PDE.intervalNeumannResolverSourceCoeff, Complex.ofReal_re]
+    rw [hsrc_eq]
+    exact cosineCoeffs_congr_on_Icc (fun y hy => by
+      simp only [f, Function.comp, clip]
+      have hclip_eq : max 0 (min y 1) = y := by
+        rw [min_eq_left hy.2, max_eq_right hy.1]
+      simp only [hclip_eq, intervalDomainLift,
+        dif_pos (Set.mem_Icc.mpr hy)]) k
+  have ha_sq :
+      Summable
+        (fun k => (ShenWork.IntervalNeumannFullKernel.cosineCoeffs f k) ^ 2) := by
+    have h :=
+      ShenWork.IntervalResolverWeakBounds.resolverSourceCoeff_re_sq_summable_of_continuousOn
+        p hcont_on
+    simp only [ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+    exact h.congr (fun k => by rw [hf_coeff])
+  exact
+    ShenWork.IntervalResolverPositivity.intervalNeumannResolverR_nonneg_of_nonneg_source
+      hf_cont hf_nonneg hf_coeff ha_sq x
+
+/-- Paper-positive data give a nonnegative initial elliptic resolver. -/
+theorem intervalNeumannResolverR_nonneg_of_paperPositiveInitialDatum
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀) :
+    ∀ x : intervalDomainPoint, 0 ≤ ShenWork.PDE.intervalNeumannResolverR p u₀ x := by
+  have hu₀_cont : Continuous u₀ := (PaperPositiveInitialDatum.admissible hu₀).2
+  obtain ⟨η, hη, hfloor⟩ := PaperPositiveInitialDatum.floor hu₀
+  exact intervalNeumannResolverR_nonneg_of_continuous_nonneg p hu₀_cont
+    (fun y => le_trans (le_of_lt hη) (hfloor y))
+
+/-- Initialised chemical concentration: the resolver of the initial datum at
+`t ≤ 0`, and the usual mild chemical concentration at positive time. -/
+noncomputable def patchedChemical (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (t : ℝ) : intervalDomainPoint → ℝ :=
+  if t ≤ 0 then ShenWork.PDE.intervalNeumannResolverR p u₀
+  else mildChemicalConcentration p u t
+
+theorem patchedChemical_of_nonpos (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    {t : ℝ} (ht : t ≤ 0) :
+    patchedChemical p u₀ u t = ShenWork.PDE.intervalNeumannResolverR p u₀ := by
+  simp [patchedChemical, ht]
+
+theorem patchedChemical_of_pos (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    {t : ℝ} (ht : 0 < t) :
+    patchedChemical p u₀ u t = mildChemicalConcentration p u t := by
+  simp [patchedChemical, not_le.mpr ht]
+
+theorem patchedChemical_zero (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ) :
+    patchedChemical p u₀ u 0 = ShenWork.PDE.intervalNeumannResolverR p u₀ :=
+  patchedChemical_of_nonpos p u₀ u le_rfl
+
+/-- The zero-time patched chemical concentration is nonnegative for
+paper-positive data. -/
+theorem patchedChemical_zero_nonneg_of_paperPositiveInitialDatum
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (hu₀ : PaperPositiveInitialDatum intervalDomain u₀) :
+    ∀ x : intervalDomainPoint, 0 ≤ patchedChemical p u₀ u 0 x := by
+  intro x
+  rw [patchedChemical_zero]
+  exact intervalNeumannResolverR_nonneg_of_paperPositiveInitialDatum p hu₀ x
+
+/-- Positive-time patched chemical nonnegativity from the existing mild resolver
+theorem. -/
+theorem patchedChemical_pos_time_nonneg
+    (p : CM2Params) {T : ℝ} {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hu_nonneg : ∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x)
+    (hu_cont : ShenWork.IntervalMildPicard.HasContinuousSlices T u)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
+    ∀ x : intervalDomainPoint, 0 ≤ patchedChemical p u₀ u t x := by
+  intro x
+  rw [patchedChemical_of_pos p u₀ u ht]
+  exact mildChemical_nonneg p hu_nonneg hu_cont ht htT x
 
 /-- Combine the value/sign zero-face package with the derivative zero-face
 frontier into the full C¹ zero-face trace record. -/
@@ -278,6 +396,10 @@ section AxiomAudit
 #print axioms H1ZeroStartInitializedPrimitiveC1SignSource_of_BFormSq_zeroFace
 #print axioms H1ZeroStartPrimitiveC1ZeroFaceTrace_of_value_derivative
 #print axioms patchedSlice_lift_zeroFace_of_timeContinuousAt_zero
+#print axioms intervalNeumannResolverR_nonneg_of_continuous_nonneg
+#print axioms intervalNeumannResolverR_nonneg_of_paperPositiveInitialDatum
+#print axioms patchedChemical_zero_nonneg_of_paperPositiveInitialDatum
+#print axioms patchedChemical_pos_time_nonneg
 
 end AxiomAudit
 
