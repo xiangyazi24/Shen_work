@@ -66,6 +66,191 @@ theorem chemFlux_secondDeriv_slice_bound_of_CthetaSourceOn
     (H.flux_holder s hs0 hsT)
     hx
 
+/-- Local-window Duhamel-time form of the `C^θ` chem-flux frontier.  The
+source hypotheses are only used on `0 < s ≤ t ≤ T`; the two excluded endpoints
+`s = 0` and `s = t` are null for the interval integral. -/
+theorem chemFlux_secondDerivDuhamel_sup_bound_of_CthetaSourceOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ t : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ)
+    (ht : 0 < t) (htT : t ≤ T)
+    (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1)
+    (h2_int : IntervalIntegrable
+      (fun s : ℝ => deriv (fun z : ℝ => deriv
+        (fun w : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+            (t - s) (chemFluxLifted p (u s)) w) z) x)
+      volume 0 t) :
+    |∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) w) z) x|
+      ≤ ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ *
+          (t ^ (θ / 2 : ℝ) / (θ / 2)) * HQ := by
+  set Cθ : ℝ := ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ with hCθ
+  have hdom_int : IntervalIntegrable
+      (fun s : ℝ => Cθ * (t - s) ^ (-1 + θ / 2 : ℝ) * HQ) volume 0 t :=
+    (((ShenWork.IntervalNeumannFullKernel.intervalIntegrable_sub_rpow_hessian
+      (t := t) H.theta_pos).const_mul Cθ).mul_const HQ)
+  have hne_t : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hne_zero : ∀ᵐ s : ℝ ∂volume, s ≠ 0 := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hae : (fun s : ℝ => |deriv (fun z : ℝ => deriv
+        (fun w : ℝ =>
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+            (t - s) (chemFluxLifted p (u s)) w) z) x|)
+      ≤ᵐ[volume.restrict (Set.Icc 0 t)]
+      (fun s : ℝ => Cθ * (t - s) ^ (-1 + θ / 2 : ℝ) * HQ) := by
+    refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+    filter_upwards [hne_t, hne_zero] with s hs_ne_t hs_ne_zero hs_mem
+    have hs_pos : 0 < s := lt_of_le_of_ne hs_mem.1 (Ne.symm hs_ne_zero)
+    have hs_lt : s < t := lt_of_le_of_ne hs_mem.2 hs_ne_t
+    have hts : 0 < t - s := sub_pos.mpr hs_lt
+    have hsT : s ≤ T := le_trans hs_mem.2 htT
+    simpa [hCθ] using
+      (ShenWork.IntervalNeumannFullKernel.neumannHeatSecondDeriv_Ctheta_to_Linfty
+        hts H.theta_pos H.theta_lt_one
+        (H.flux_int s).aestronglyMeasurable
+        (H.flux_bound s hs_pos hsT)
+        H.HQ_nonneg
+        (H.flux_holder s hs_pos hsT)
+        hx)
+  calc |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => deriv
+            (fun w : ℝ =>
+              ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                (t - s) (chemFluxLifted p (u s)) w) z) x|
+      ≤ ∫ s in (0 : ℝ)..t, |deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) w) z) x| :=
+        intervalIntegral.abs_integral_le_integral_abs ht.le
+    _ ≤ ∫ s in (0 : ℝ)..t, Cθ * (t - s) ^ (-1 + θ / 2 : ℝ) * HQ :=
+        intervalIntegral.integral_mono_ae_restrict ht.le h2_int.abs hdom_int hae
+    _ = Cθ * (t ^ (θ / 2 : ℝ) / (θ / 2)) * HQ := by
+        rw [intervalIntegral.integral_mul_const, intervalIntegral.integral_const_mul,
+          ShenWork.IntervalNeumannFullKernel.integral_sub_rpow_hessian ht.le H.theta_pos]
+    _ = ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ *
+          (t ^ (θ / 2 : ℝ) / (θ / 2)) * HQ := by rw [hCθ]
+
+/-- Zero-time vanishing of the chemotaxis Hessian Duhamel integral from the
+local `ChemFluxCthetaSourceOn` frontier.  The returned window is chosen inside
+the frontier time `T`, so no global-in-time source bound is assumed. -/
+theorem chemFlux_secondDerivDuhamel_tendsto_zero_of_CthetaSourceOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ)
+    (hT : 0 < T)
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) w) z) x)
+        volume 0 t) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ => deriv
+            (fun w : ℝ =>
+              ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+                (t - s) (chemFluxLifted p (u s)) w) z) x| < ε := by
+  intro ε hε
+  let A : ℝ :=
+    ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ *
+      (1 / (θ / 2)) * HQ
+  have hθhalf_pos : 0 < θ / 2 := by linarith [H.theta_pos]
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    exact mul_nonneg
+      (mul_nonneg
+        (ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst_nonneg θ)
+        (by positivity))
+      H.HQ_nonneg
+  let δ₀ : ℝ := (ε / (A + 1)) ^ (2 / θ : ℝ)
+  have hbase_pos : 0 < ε / (A + 1) := by positivity
+  have hδ₀ : 0 < δ₀ := by
+    dsimp [δ₀]
+    positivity
+  refine ⟨min T δ₀, lt_min hT hδ₀, ?_⟩
+  intro t ht htδ x hx
+  have htT : t ≤ T := le_of_lt (lt_of_lt_of_le htδ (min_le_left T δ₀))
+  have htδ₀ : t < δ₀ := lt_of_lt_of_le htδ (min_le_right T δ₀)
+  have hbound :=
+    chemFlux_secondDerivDuhamel_sup_bound_of_CthetaSourceOn
+      H ht htT x hx (h2_int (t := t) (x := x) ht)
+  have hδpow : δ₀ ^ (θ / 2 : ℝ) = ε / (A + 1) := by
+    dsimp [δ₀]
+    rw [← Real.rpow_mul hbase_pos.le]
+    have hmul : (2 / θ : ℝ) * (θ / 2) = 1 := by
+      field_simp [ne_of_gt H.theta_pos]
+    rw [hmul, Real.rpow_one]
+  have htpow_bound : t ^ (θ / 2 : ℝ) < ε / (A + 1) := by
+    calc t ^ (θ / 2 : ℝ) < δ₀ ^ (θ / 2 : ℝ) :=
+          Real.rpow_lt_rpow ht.le htδ₀ hθhalf_pos
+      _ = ε / (A + 1) := hδpow
+  have htail :
+      ShenWork.IntervalNeumannFullKernel.weightedHeatHessConst θ *
+          (t ^ (θ / 2 : ℝ) / (θ / 2)) * HQ < ε := by
+    have hA_lt : A * t ^ (θ / 2 : ℝ) < ε := by
+      have hden_pos : 0 < A + 1 := by linarith
+      have hA_step : A * t ^ (θ / 2 : ℝ) ≤ A * (ε / (A + 1)) :=
+        mul_le_mul_of_nonneg_left (le_of_lt htpow_bound) hA_nonneg
+      have hfrac_lt : A * (ε / (A + 1)) < ε := by
+        calc
+          A * (ε / (A + 1)) = (A * ε) / (A + 1) := by ring
+          _ < ε := by
+            rw [div_lt_iff₀ hden_pos]
+            nlinarith [hε]
+      exact lt_of_le_of_lt hA_step hfrac_lt
+    simpa [A, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hA_lt
+  exact lt_of_le_of_lt hbound htail
+
+/-- Leibniz-facing form: from the local chem-flux `C^θ` frontier plus a
+derivative-under-the-time-integral identity, the spatial derivative of the
+gradient-Duhamel chemotaxis leg vanishes at zero time. -/
+theorem chemFlux_gradDuhamel_deriv_tendsto_zero_of_CthetaSourceOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {T θ CQ HQ : ℝ}
+    (H : ChemFluxCthetaSourceOn p u T θ CQ HQ)
+    (hT : 0 < T)
+    (h2_int : ∀ {t x : ℝ}, 0 < t →
+      IntervalIntegrable
+        (fun s : ℝ => deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) w) z) x)
+        volume 0 t)
+    (hLeibniz : ∀ {t x : ℝ}, 0 < t →
+      deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) z) y) x =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ => deriv
+          (fun w : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) w) z) x) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ → ∀ x : ℝ,
+      x ∈ Set.Icc (0 : ℝ) 1 →
+      |deriv (fun y : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator
+              (t - s) (chemFluxLifted p (u s)) z) y) x| < ε := by
+  intro ε hε
+  rcases chemFlux_secondDerivDuhamel_tendsto_zero_of_CthetaSourceOn
+      H hT h2_int ε hε with
+    ⟨δ, hδ, hδsmall⟩
+  exact ⟨δ, hδ, fun t ht htδ x hx => by
+    rw [hLeibniz (t := t) (x := x) ht]
+    exact hδsmall t ht htδ x hx⟩
+
 /-- Helper for bounding a triple product from absolute-value bounds. -/
 private theorem abs_mul_three_le {a b c A B C : ℝ}
     (ha : |a| ≤ A) (hb : |b| ≤ B) (hc : |c| ≤ C)
