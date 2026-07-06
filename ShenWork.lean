@@ -166,6 +166,7 @@ import ShenWork.Paper2.IntervalConjugatePicardInfThresholdDischarge
 import ShenWork.PDE.IntervalLiftEndpointDeriv
 import ShenWork.PDE.IntervalLogisticSourceTimeC1
 import ShenWork.PDE.IntervalSemigroupAtZero
+import ShenWork.PDE.IntervalSemigroupC1ApproxIdentity
 import ShenWork.PDE.IntervalWeakCosineIBP
 import ShenWork.PDE.PoincareInequality
 import ShenWork.Paper2.IntervalDomainConstExtendAdapter
