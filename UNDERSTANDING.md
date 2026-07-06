@@ -1,5 +1,24 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 268: Envelope/no-joint inputs combine two redundant-field reductions (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeOnlyNoJointInputs.lean` combines the
+no-`hbsum` envelope interface with the no-`hliftCont` source interface.  The new
+`ResolverSourceWindowEnvelopeOnlyNoJointInputs` package carries the coefficient
+agreement, compact-window envelope, and power-source K1 data, but neither
+per-time eigenvalue summability nor lifted joint continuity.  The former is
+recovered by `hbsum_of_envelope` on singleton time windows; the latter is
+recovered from the already-carried u-side
+`HasTimeNeighborhoodSpectralAgreement` via
+`RegularityFrontierAssembly.jointSolutionClosed_u_of_spectralAgreement`.
+
+`IntervalDomainPPIDResolverSourceEnvelopeOnlyNoJointInputsFrontier.lean` and
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointInputsFrontier.lean` route
+this thinner surface through the PPID and `χ₀ = 0` wrappers.  The remaining
+conditional producer frontier is now concentrated in faithful non-`χ₀ = 0`
+coefficient/agreement data, compact-window eigenvalue envelopes, and the
+power-source K1 time-regularity package.
+
 ## Task 265: Envelope-only inputs derive eigenvalue summability (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeOnlyInputs.lean` removes the redundant
