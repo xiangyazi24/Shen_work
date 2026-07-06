@@ -1,9 +1,8 @@
 /-
   ShenWork/Paper2/IntervalDomainLedgerSweep.lean
 
-  **Ledger sweep — discharge the now-derivable `Hu` field of
-  `LimitRegularityInputs` and re-export the tighter `χ₀ = 0` mild-local
-  corollary on the reduced ledger.**
+  **Ledger sweep — discharge derivable `LimitRegularityInputs` fields and
+  re-export tighter `χ₀ = 0` mild-local corollaries.**
 
   ## What this file does
 
@@ -35,13 +34,21 @@
 
   on the strictly smaller ledger (one fewer named frontier residual).
 
+  Since tasks 222--223, both `hpde_u` and `Hu` are produced directly inside
+  `MildLocalChi0.frontierCore_of_inputs` from the same localized restart/K1/K2
+  data.  This file therefore also exposes the stricter ledger
+
+      TightLimitRegularityInputs p u₀ D
+
+  which deletes BOTH `hpde_u` and `Hu`, reconstructs the legacy ledgers from it,
+  and re-exports the same top-level statements over that smaller interface.
+
   ## Frontier verdict for the four candidate fields (see the sweep audit)
 
-  * `hpde_u`   — RESIDUAL.  The only producer `mildSolution_parabolicPDE` delegates
-                 to `IsPaper2ClassicalSolution.pde_u` (circular); no spectral→
-                 pointwise PDE bridge concluding the parabolic identity from
-                 `HasTimeNeighborhoodSpectralAgreement` exists at this layer.
-  * `Hu`       — **DISCHARGED** here (this file): `Hu_of_restart`, net reduction.
+  * `hpde_u`   — **DISCHARGED** by `MildLocalChi0.hpde_u_of_localized_limit_spectral_data`,
+                 then deleted from the stricter ledger below.
+  * `Hu`       — **DISCHARGED** here: `Hu_of_reduced` / localized restart, and
+                 deleted from both reduced ledger interfaces.
   * `Hvpos`    — RESIDUAL.  `IntervalResolverPositivity` proves only NONNEG
                  (`0 ≤ R u`); the strict `0 < v` boundary positivity needs the
                  elliptic strong maximum principle, not wired.
@@ -277,5 +284,151 @@ theorem paper2_theorem_1_1_chiZero_of_reduced_inputs
   MildLocalChi0.paper2_theorem_1_1_chiZero_of_inputs
     p hχ0 ha hb hα_ge hγ_ge_one hPLF
     (fun u₀ hu₀ D hDu => limitRegularityInputs_of_reduced hχ0 (H u₀ hu₀ D hDu))
+
+/-! ## Tighter ledger: delete both `hpde_u` and `Hu` -/
+
+/-- **`TightLimitRegularityInputs p u₀ D`** — the `χ₀ = 0` residual ledger with
+both derivable frontier fields removed.
+
+Compared with `ReducedLimitRegularityInputs`, this structure deletes the
+`hpde_u` field as well as `Hu`.  The remaining frontier fields are the clamped
+resolver-source witness `Hvsrc` and strict resolver positivity `Hvpos`; the
+parabolic PDE identity is reconstructed by
+`MildLocalChi0.hpde_u_of_localized_limit_spectral_data` from the same localized
+restart/K1/K2/source data carried below. -/
+structure TightLimitRegularityInputs
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) where
+  -- structural regime parameters
+  hα : 1 ≤ p.α
+  ha : 0 ≤ p.a
+  hb : 0 ≤ p.b
+  -- H1 datum data
+  hu₀_cont : Continuous u₀
+  M₀ : ℝ
+  hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
+  -- mild fixed-point (= D.hmild)
+  hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+    intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
+  -- weak limit-source package (horizon-bounded; feeds the localized restart route)
+  hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
+    (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T
+  -- K2 spatial slice bounds (per time slice)
+  Msup : ℝ
+  -- per-slice cosine representation
+  bc : ℝ → ℕ → ℝ
+  hbsum : ∀ σ, 0 < σ → σ < D.T → Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+  hagree : ∀ σ, 0 < σ → σ < D.T → Set.EqOn (intervalDomainLift (D.u σ))
+    (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
+  hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
+  hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
+  -- K2 gradient/Hessian bounds, PER-COMPACT
+  hG1t : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
+  hG2t : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
+  hN0t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 0 = 0
+  hN1t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 1 = 0
+  -- K1 source-coefficient time-C¹ data
+  adott : ℝ → ℕ → ℝ
+  hderivt : ∀ σ, 0 < σ → σ < D.T → ∀ k, HasDerivAt
+    (fun r => cosineCoeffs
+      (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u r))) k)
+    (adott σ k) σ
+  hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T)
+  hMdott : ∀ a' b', 0 < a' → b' < D.T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
+    ∀ k, |adott σ k| ≤ Mdot
+  -- H3 slice continuity
+  hLc : ∀ t, 0 < t → t < D.T →
+    ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
+  -- ===== remaining frontier residuals (`hpde_u`/`Hu` are no longer carried) =====
+  Hvsrc : ∀ t₀, 0 < t₀ → t₀ < D.T →
+    ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
+      W ∈ 𝓝 t₀ ∧
+      (∀ s ∈ W, ∀ k, aC s k = (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
+  Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
+    0 < mildChemicalConcentration p D.u t x
+
+/-- Reconstruct the legacy reduced ledger from the tighter one by deriving the
+`hpde_u` field from localized restart/K1/K2/source data. -/
+def reducedLimitRegularityInputs_of_tight
+    {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (I : TightLimitRegularityInputs p u₀ D) :
+    ReducedLimitRegularityInputs p u₀ D where
+  hα := I.hα
+  ha := I.ha
+  hb := I.hb
+  hu₀_cont := I.hu₀_cont
+  M₀ := I.M₀
+  hu₀_bound := I.hu₀_bound
+  hfix := I.hfix
+  hsrc0 := I.hsrc0
+  Msup := I.Msup
+  bc := I.bc
+  hbsum := I.hbsum
+  hagree := I.hagree
+  hpost := I.hpost
+  hubt := I.hubt
+  hG1t := I.hG1t
+  hG2t := I.hG2t
+  hN0t := I.hN0t
+  hN1t := I.hN1t
+  adott := I.adott
+  hderivt := I.hderivt
+  hadotcontt := I.hadotcontt
+  hMdott := I.hMdott
+  hLc := I.hLc
+  hpde_u :=
+    MildLocalChi0.hpde_u_of_localized_limit_spectral_data hχ0
+      I.hα I.ha I.hb I.hu₀_cont I.hu₀_bound I.hfix I.hsrc0
+      (Msup := I.Msup)
+      I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
+      I.adott I.hderivt I.hadotcontt I.hMdott I.hLc
+  Hvsrc := I.Hvsrc
+  Hvpos := I.Hvpos
+
+/-- The tighter ledger reconstitutes the full `LimitRegularityInputs`: first
+derive `hpde_u`, then reuse the existing reduced-ledger reconstruction of `Hu`. -/
+def limitRegularityInputs_of_tight
+    {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (I : TightLimitRegularityInputs p u₀ D) :
+    LimitRegularityInputs p u₀ D :=
+  limitRegularityInputs_of_reduced hχ0
+    (reducedLimitRegularityInputs_of_tight hχ0 I)
+
+/-- **`hMildLocal`-abstract (χ₀ = 0) from the TIGHT residual ledger.**
+
+Same conclusion as the reduced-ledger wrapper, but the hypothesis no longer
+contains either `hpde_u` or `Hu`. -/
+theorem hMildLocal_chi0_zero_of_tight_inputs
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (hα_ge : 1 ≤ p.α)
+    (H : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
+        TightLimitRegularityInputs p u₀ D) :
+    RestartLocalWiring.IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p :=
+  MildLocalChi0.hMildLocal_chi0_zero_of_inputs p hχ0 hα_ge
+    (fun u₀ hu₀ D hDu => limitRegularityInputs_of_tight hχ0 (H u₀ hu₀ D hDu))
+
+/-- **Paper 2 Theorem 1.1 (χ₀ = 0) from the TIGHT residual ledger.**
+
+The local-side hypothesis carries only the non-derivable remainder after deleting
+`hpde_u` and `Hu`. -/
+theorem paper2_theorem_1_1_chiZero_of_tight_inputs
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
+    (hPLF : ConeQuantBridge.PicardLimitRestartFrontier p)
+    (H : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
+        TightLimitRegularityInputs p u₀ D) :
+    Theorem_1_1 intervalDomain p :=
+  MildLocalChi0.paper2_theorem_1_1_chiZero_of_inputs
+    p hχ0 ha hb hα_ge hγ_ge_one hPLF
+    (fun u₀ hu₀ D hDu => limitRegularityInputs_of_tight hχ0 (H u₀ hu₀ D hDu))
 
 end ShenWork.Paper2.LedgerSweep
