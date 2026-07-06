@@ -11,7 +11,7 @@ import ShenWork.Paper2.IntervalResolverStrictPositivity
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalGradientDuhamelMap
-  (IntervalMildSolution)
+  (IntervalMildSolution intervalGradientDuhamelMap)
 open ShenWork.IntervalConjugatePicard
   (ConjugateMildExistenceData conjugatePicardLimit)
 open ShenWork.IntervalMildToClassical
@@ -62,6 +62,20 @@ def bFormSpectralFrontier_of_noHvpos
       (ShenWork.IntervalResolverStrictPositivity.mildChemicalConcentration_pos
         p D t ht htT x)
 
+/-- B-form initial approach with the redundant `hVpos` field discharged
+internally. -/
+theorem gradientInitialApproach_of_BForm_noHvpos
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    (F : BFormSpectralFrontierNoHvpos p DB) :
+    ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u₀
+              (conjugatePicardLimit p u₀ DB.T) t x - u₀ x| < ε :=
+  gradientInitialApproach_of_BForm (bFormSpectralFrontier_of_noHvpos F)
+
 #print axioms bFormSpectralFrontier_of_noHvpos
+#print axioms gradientInitialApproach_of_BForm_noHvpos
 
 end ShenWork.Paper2.BFormEndToEnd
