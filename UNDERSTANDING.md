@@ -3234,6 +3234,19 @@ pointwise estimate package for the taxis, `u v_xx`, and reaction scalar terms.
 The zero-start primitive package also remains separate, so this is progress on
 the identity route, not an unconditional bounded-before headline.
 
+Task 109 adds the disjoint sqrt-bound reducer in
+`IntervalChiNegH1PhysicalSqrtBounds`.  It introduces
+`H1PhysicalRHSSqrtPointwiseEstimatesBefore`, an exact named record for the
+pointwise estimates still needed by `H1PhysicalRHSSqrtBoundsBefore`, and
+`H1PhysicalRHSL2SqrtBoundDataBefore`, a source-facing L² factor package for the
+taxis and `u v_xx` non-lap factors plus the explicit reaction bound.  The new
+theorems `H1PhysicalRHSSqrtBoundsBefore_of_pointwiseEstimates` and
+`H1PhysicalRHSSqrtBoundsBefore_of_L2SqrtBoundData` are axiom-clean reducers:
+they prove the current sqrt-bound interface from those explicit estimates via
+interval Cauchy-Schwarz and record assembly.  This intentionally does not
+derive uniform resolver bounds or the logistic reaction IBP estimate; those are
+now the honest remaining analytic inputs for the sqrt frontier.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
