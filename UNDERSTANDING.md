@@ -3345,6 +3345,35 @@ adds only `time_cont0_of_mixedWitnessBefore` and the reducer
 `H1ZeroStartPhysicalPDEInitialCompatibilityBefore_of_mixed`, with
 `eq0Interior` still explicit.
 
+Task 118 follows the Q3560 audit of `eq0Interior`.  The audit confirms that
+`IsPaper2ClassicalSolution`, mild/Duhamel construction data, `withInitialSlice`,
+P3/Moser scalar initial-window data, B-form identities, and mixed
+chem-divergence representatives do not currently produce the pointwise
+initial-time PDE trace needed by the zero-start H1 route.  The new
+`IntervalChiNegH1ZeroStartInitialTrace` file adds only the honest source-facing
+decomposition `H1ZeroStartLiteralUPDETraceWithChemRepBefore`: a literal initial
+`u`-PDE trace on the spatial interior plus an initial equality between the
+literal chemotaxis divergence lift and `liftChemotaxisDivPhysicalRep`.  The
+reducer `eq0Interior_of_initialLiteralUPDETrace_withChemRep` proves the existing
+`eq0Interior` target from those two fields without using downstream H1
+boundedness/sqrt/zero-start RHS packages.  This is a narrower non-circular
+interface, not a general producer; the construction layer still has to supply
+the literal initial trace and chem-representative seam.
+
+The same Task118 commit records Q3559's matching current status for the
+primitive C1/sign half.  The
+raw B-form/Picard local output cannot be the zero-start trajectory because
+`conjugatePicardLimit p u₀ T 0 x` is definitionally `0`; `InitialTrace` only
+gives right-time sup-norm convergence, not `u 0 = u₀`, and `patchedSlice` is
+only a u-value patch without a v patch or first-spatial-derivative trace.  The
+new `IntervalChiNegH1ZeroStartInitializedPrimitive` file therefore adds the
+guard package `H1ZeroStartInitializedPrimitiveC1SignSource`, which explicitly
+records `u 0 = u₀` and `v 0 = v₀` in addition to the closed-zero-slab primitive
+continuity/sign fields.  The reducer
+`H1ZeroStartClosedPrimitiveC1SignBefore_of_initializedSource` is only a
+projection into the current p-free target; it is a source-interface guard, not
+a proof that the general B-form/Picard construction supplies those fields.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
