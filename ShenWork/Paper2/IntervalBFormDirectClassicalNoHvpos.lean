@@ -8,6 +8,7 @@
 -/
 import ShenWork.Paper2.IntervalBFormDirectClassical
 import ShenWork.Paper2.IntervalBFormPositiveDatumLocalExistenceSqBankedConcrete
+import ShenWork.Paper2.IntervalDomainTheorem11StrongPath
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalConjugatePicard
@@ -93,9 +94,22 @@ theorem paperPositive_localExistence_of_BFormDirect_noHvpos
   paperPositive_localExistence_of_BFormDirect
     (bFormPaperLocalFrontier_of_noHvpos hPerDatum)
 
+/-- Direct B-form no-`hVpos` headline through the PPID-typed strong path. -/
+theorem paper2_theorem_1_1_general_chi_bformDirect_noHvpos_from_ppid_quant
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hPerDatum : BFormPaperLocalFrontierNoHvpos p)
+    (hQuant : ShenWork.Paper2.StrongPath.ChiNegDatumUniformConstructionPPID p) :
+    Theorem_1_1 intervalDomain p :=
+  ShenWork.Paper2.StrongPath.Theorem_1_1_intervalDomain_of_ppid_local_and_quant
+    p hχ ha hb hγ_ge_one
+    (paperPositive_localExistence_of_BFormDirect_noHvpos hPerDatum)
+    hQuant
+
 #print axioms bFormDirectFrontier_of_noHvpos
 #print axioms localClassicalSolution_of_BFormDirectFrontier_noHvpos
 #print axioms bFormPaperLocalFrontier_of_noHvpos
 #print axioms paperPositive_localExistence_of_BFormDirect_noHvpos
+#print axioms paper2_theorem_1_1_general_chi_bformDirect_noHvpos_from_ppid_quant
 
 end ShenWork.Paper2.BFormDirectClassical
