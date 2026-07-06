@@ -1,5 +1,16 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 279: Chi-nonpositive split via faithful negative frontier (2026-07-06)
+
+`IntervalDomainTheorem11ChiNonposFaithfulSplit.lean` exposes a general
+chi-nonpositive interval-domain wrapper whose zero branch uses the proved
+`intervalDomain_theorem_1_1_chiZero_unconditional` theorem and whose
+strict-negative branch carries only the PPID-typed faithful realization frontier
+`ChiNegStrongFaithfulRealizationFrontier`.  This is a route-facing narrowing of
+the negative residual from the stronger datum-uniform construction to the
+faithful no-`hfp` realization carrier.  It is still conditional on the
+strict-negative frontier; it does not prove the negative branch unconditionally.
+
 ## Task 277: Route-facing chi-zero headline alias (2026-07-06)
 
 `IntervalDomainChiZeroHeadline.lean` exposes
