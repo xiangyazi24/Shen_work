@@ -85,14 +85,9 @@ theorem paper2_theorem_1_1_of_hlocal_and_hUniform
           ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
             IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
             InitialTrace intervalDomain u₀ u)
-    (hUniform : IntervalDomainUniformLocalExistence p)
-    (hMildLocal :
-      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
+    (hUniform : IntervalDomainUniformLocalExistence p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
-    p hχ ha hb hγ_ge_one
-    (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
-      p hMildLocal)
-    hUniform
+    p hχ ha hb hγ_ge_one hlocal hUniform
 
 end ShenWork.Paper2.UniformContinuation
