@@ -35,6 +35,7 @@
 import ShenWork.Paper2.ChemMildDifferentiableOn
 import ShenWork.Paper2.ChemMildC1etaAssembly
 import ShenWork.Paper2.IntervalChemFluxHolderSourceDecay
+import ShenWork.Paper2.IntervalInitialHolderFoldedKernel
 import ShenWork.Paper2.IntervalMildToLocalExistence
 import ShenWork.Wiener.EWA.HolderCosineDecayDiffOn
 
@@ -498,6 +499,12 @@ noncomputable def reactionDerivLegHolderConst (t η CL : ℝ) : ℝ :=
     (2 : ℝ) ^ (1 - η) *
       (secondDerivSmoothingConst ^ η * gradSmoothingConst ^ (1 - η)) *
         (t - s) ^ (-((1 + η) / 2) : ℝ) * CL
+
+/-- Intrinsic sup bound for the zero extension of an initial `θ`-Holder datum:
+left-endpoint size plus the Holder constant. -/
+noncomputable def initialDatumHolderLiftBound
+    (u₀ : intervalDomainPoint → ℝ) (H₀ : ℝ) : ℝ :=
+  |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀
 
 /-- Time-cutoff logistic source, matching `logisticLifted p (u s)` on `0 < s ≤ T`.
 This is the reaction-source analogue of `chemFluxCthetaCutoffSource`. -/
@@ -1097,6 +1104,88 @@ theorem gradientMild_trueLift_cosineCoeffs_summable_of_phase1CutoffRep_smallThet
   exact summable_abs_cosineCoeffs_of_eqOn_Icc
     (gradientMild_phase1ValueLegs_cutoffRep_eqOn_Icc Dsol ht (le_of_lt htT))
     hsum
+
+/-- Intrinsic-initial-data version of the canonical phase-1 C1/η route.  The
+initial-value-leg measurable/bounded inputs are derived from `InitialDatumHolder`
+using the Task210 lift package, with bound `|u₀(0)| + H₀`. -/
+theorem chemMild_C1eta_slice_diffOn_of_phase1CutoffRep_initialHolder
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t θ η H₀ : ℝ}
+    (hη0 : 0 < η) (hθη : η < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ Dsol.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t < Dsol.T) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      DifferentiableOn ℝ
+        (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+        (Set.Icc (0:ℝ) 1) ∧
+        (∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+          |derivWithin
+              (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+              (Set.Icc (0:ℝ) 1) x -
+              derivWithin
+                (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+                (Set.Icc (0:ℝ) 1) y|
+            ≤ (initialValueLegDerivHolderConst t η
+                  (initialDatumHolderLiftBound u₀ H₀) +
+                |p.χ₀| * chemDuhamelConst t θ η HQ +
+                  reactionDerivLegHolderConst t η
+                    (Dsol.M * (p.a + p.b * Dsol.M ^ p.α))) *
+              |x - y| ^ η) ∧
+        Summable (fun n : ℕ =>
+          |cosineCoeffs
+            (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t) n|) := by
+  have hθ0 : 0 < θ := lt_trans hη0 hθη
+  have hθlt_one : θ < 1 := by linarith
+  have hη1 : η < 1 := lt_trans hθη hθlt_one
+  exact
+    chemMild_C1eta_slice_diffOn_of_gradientMild_phase1CutoffRep_smallTheta_components
+      (Dsol := Dsol) (H := H) (t := t) (θ := θ) (η := η)
+      (H₀ := H₀) (Cu₀ := initialDatumHolderLiftBound u₀ H₀)
+      hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
+      (initialDatumHolder_intervalDomainLift_aestronglyMeasurable_intervalMeasure
+        hθ0 hH₀_nonneg hholder)
+      (by
+        simpa [initialDatumHolderLiftBound] using
+          initialDatumHolder_intervalDomainLift_abs_bound hθ0 hH₀_nonneg hholder)
+      (by
+        unfold initialDatumHolderLiftBound
+        exact add_nonneg (abs_nonneg _) hH₀_nonneg)
+
+/-- Intrinsic-initial-data version of the true lifted-slice Wiener coefficient
+summability wrapper. -/
+theorem gradientMild_trueLift_coeffs_summable_of_phase1CutoffRep_initialHolder
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t θ η H₀ : ℝ}
+    (hη0 : 0 < η) (hθη : η < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (hplan : ∀ r, 0 < r → r ≤ Dsol.T → ∀ x y : intervalDomainPoint,
+      NeumannHeatContractiveCouplingFor r x y (intervalDomainLift u₀))
+    (ht : 0 < t) (htT : t < Dsol.T) :
+    Summable (fun n : ℕ => |cosineCoeffs (intervalDomainLift (Dsol.u t)) n|) := by
+  have hθ0 : 0 < θ := lt_trans hη0 hθη
+  have hθlt_one : θ < 1 := by linarith
+  have hη1 : η < 1 := lt_trans hθη hθlt_one
+  exact
+    gradientMild_trueLift_cosineCoeffs_summable_of_phase1CutoffRep_smallTheta_components
+      (Dsol := Dsol) (H := H) (t := t) (θ := θ) (η := η)
+      (H₀ := H₀) (Cu₀ := initialDatumHolderLiftBound u₀ H₀)
+      hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder hplan ht htT
+      (initialDatumHolder_intervalDomainLift_aestronglyMeasurable_intervalMeasure
+        hθ0 hH₀_nonneg hholder)
+      (by
+        simpa [initialDatumHolderLiftBound] using
+          initialDatumHolder_intervalDomainLift_abs_bound hθ0 hH₀_nonneg hholder)
+      (by
+        unfold initialDatumHolderLiftBound
+        exact add_nonneg (abs_nonneg _) hH₀_nonneg)
 
 /-- Small-exponent concrete chem-flux route to the `[0,1]` C1/eta slice conclusion
 with the canonical homogeneous initial value leg `S(t)u₀`. -/
