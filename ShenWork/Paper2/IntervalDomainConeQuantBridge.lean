@@ -162,22 +162,16 @@ theorem quantitativeLocalExistence_chiZero
   exact ⟨D.u, v, hsol.restrict_horizon hδ (le_of_eq hDT.symm), htrace⟩
 
 /-- **Paper 2 Theorem 1.1 for the χ₀ = 0 sub-regime** from
-`PicardLimitRestartFrontier` + `hlocal`: the hQuant input of the final
-wiring is now PROVED (modulo the shared restart frontier), with no
-threshold and no minimum-principle hypothesis. -/
+`PicardLimitRestartFrontier`: the hQuant input of the final wiring is now
+PROVED (modulo the shared restart frontier), with no threshold, no
+minimum-principle hypothesis, and no separate local-existence input. -/
 theorem paper2_theorem_1_1_chiZero_of_frontier
     (p : CM2Params) (hχ : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)
-    (hPLF : PicardLimitRestartFrontier p)
-    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
-      PositiveInitialDatum intervalDomain u₀ →
-        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
-          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
-          InitialTrace intervalDomain u₀ u) :
+    (hPLF : PicardLimitRestartFrontier p) :
     Theorem_1_1 intervalDomain p :=
-  RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
+  RestartLocalWiring.paper2_theorem_1_1_from_quant
     p (le_of_eq hχ) ha hb hγ_ge_one
     (quantitativeLocalExistence_chiZero p hχ hα_ge hPLF)
-    hlocal
 
 end ShenWork.Paper2.ConeQuantBridge
