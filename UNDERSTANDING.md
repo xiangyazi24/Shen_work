@@ -1,5 +1,31 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 269: Chi-zero no-K1 resolver-source envelope surface (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeOnlyNoJointNoK1Inputs.lean` removes the
+explicit power-source K1 fields from the `χ₀ = 0` resolver-source envelope
+surface.  The new
+`ResolverSourceWindowEnvelopeOnlyNoJointNoK1Inputs` package carries only the
+chosen coefficients `bc`, their agreement with the lifted solution, the
+compact-window eigenvalue envelope, and the explicit bounded patched-source
+package
+`DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T`.  In the adapter
+`resolverSourceWindowEnvelopeOnlyNoJointInputs_of_envelopeOnlyNoJointNoK1Inputs`,
+the missing power-source K1 fields are filled by the existing
+`ResolverPowerK1.powerK1_quadruple_of_subtypeCont`.  The required pointwise
+positivity, upper bound, fixed-point identity, K2 bounds, and const-extend
+continuity are derived from `D`, the singleton-envelope summability/K2
+reducers, and `ConstExtendAdapter`; the initial Fourier bound is derived from
+`PositiveInitialDatum`.
+
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyNoJointNoK1InputsFrontier.lean`
+routes this surface through the `χ₀ = 0` window and iterate headline wrappers.
+This is deliberately not exposed as a general `χ₀ ≤ 0` PPID wrapper: the K1
+producer consumes `p.χ₀ = 0`.  It is also still conditional on the explicit
+`hsrc0` package; Q3721 confirms that neither `GradientMildHalfStepLogisticSourceData`,
+`HasTimeNeighborhoodSpectralAgreement`, nor `D.u = picardLimit p u₀ D.T` alone
+produces `hsrc0`.
+
 ## Task 268: Envelope/no-joint inputs combine two redundant-field reductions (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeOnlyNoJointInputs.lean` combines the
