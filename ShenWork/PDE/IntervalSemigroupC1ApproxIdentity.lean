@@ -1,4 +1,5 @@
 import ShenWork.PDE.IntervalSemigroupUniform
+import ShenWork.PDE.IntervalFullKernelSourceIBP
 
 /-!
 # Conditional C1 approximate identity for the homogeneous initial leg
@@ -49,6 +50,14 @@ def InitialLegDerivativeCommutes (f df : ℝ → ℝ) : Prop :=
     deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x =
       intervalFullSemigroupOperator t df x
 
+/-- Uniform approximate identity on `[0,1]` for the conjugate-kernel
+representation of the homogeneous initial-leg derivative.  This is the
+remaining analytic input after applying source-side kernel IBP. -/
+def InitialLegConjugateDerivativeApprox (df : ℝ → ℝ) : Prop :=
+  ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+    ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |-(∫ y in (0 : ℝ)..1, df y * intervalNeumannConjugateKernel t x y) - df x| < ε
+
 /-- If the derivative field commutes with the homogeneous semigroup leg and the
 candidate derivative profile has value approximate identity, then the
 homogeneous C1 initial approach follows. -/
@@ -64,6 +73,63 @@ theorem initialLegC1Approx_of_valueApprox_of_commute
   refine ⟨δ, hδpos, ?_⟩
   intro t ht htδ x hx
   simpa [hcomm (t := t) ht x hx] using hδ t ht htδ x hx
+
+/-- The public source-IBP identity reduces homogeneous C1 initial approach to
+the conjugate-kernel approximate identity for the derivative profile. -/
+theorem initialLegC1Approx_of_conjugateApprox_of_sourceIBP
+    {f df : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf_bound : ∀ y, |f y| ≤ Cf)
+    (hf_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt f (df y) y)
+    (hdf_int : IntervalIntegrable df MeasureTheory.volume 0 1)
+    (happrox : InitialLegConjugateDerivativeApprox df) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x - df x| < ε := by
+  intro ε hε
+  rcases happrox ε hε with ⟨δ, hδpos, hδ⟩
+  refine ⟨δ, hδpos, ?_⟩
+  intro t ht htδ x hx
+  have hderiv :
+      deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x =
+        -(∫ y in (0 : ℝ)..1, df y * intervalNeumannConjugateKernel t x y) :=
+    deriv_intervalFullSemigroupOperator_eq_neg_conjugateKernel_source_integral
+      (t := t) ht (Q := f) (Q' := df) hf_meas hf_bound hf_deriv hdf_int x
+  rw [hderiv]
+  exact hδ t ht htδ x hx
+
+/-- Source-IBP reducer through a global C1 representative `Q` that agrees with
+the desired source `f` on `[0,1]`.  This is the safer form for zero-extended
+interval data, whose raw lift need not be globally differentiable at the
+endpoints. -/
+theorem initialLegC1Approx_of_conjugateApprox_of_Icc_repr
+    {f Q dQ : ℝ → ℝ}
+    (hfQ : ∀ y ∈ Set.Icc (0 : ℝ) 1, f y = Q y)
+    (hQ_meas : AEStronglyMeasurable Q (intervalMeasure 1))
+    {CQ : ℝ} (hQ_bound : ∀ y, |Q y| ≤ CQ)
+    (hQ_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q (dQ y) y)
+    (hdQ_int : IntervalIntegrable dQ MeasureTheory.volume 0 1)
+    (happrox : InitialLegConjugateDerivativeApprox dQ) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x - dQ x| < ε := by
+  intro ε hε
+  rcases happrox ε hε with ⟨δ, hδpos, hδ⟩
+  refine ⟨δ, hδpos, ?_⟩
+  intro t ht htδ x hx
+  have hfun :
+      (fun z : ℝ => intervalFullSemigroupOperator t f z) =
+        fun z : ℝ => intervalFullSemigroupOperator t Q z := by
+    funext z
+    exact intervalFullSemigroupOperator_congr_on_Icc hfQ t z
+  rw [hfun]
+  have hderiv :
+      deriv (fun z : ℝ => intervalFullSemigroupOperator t Q z) x =
+        -(∫ y in (0 : ℝ)..1, dQ y * intervalNeumannConjugateKernel t x y) :=
+    deriv_intervalFullSemigroupOperator_eq_neg_conjugateKernel_source_integral
+      (t := t) ht (Q := Q) (Q' := dQ) hQ_meas hQ_bound hQ_deriv hdQ_int x
+  rw [hderiv]
+  exact hδ t ht htδ x hx
 
 /-- The existing uniform value approximate identity supplies
 `InitialLegDerivativeValueApprox` for a globally continuous derivative
@@ -101,6 +167,44 @@ theorem intervalFullSemigroup_initialLegC1Approx_of_global_deriv_continuous_of_c
     (derivativeValueApprox_of_continuous
       (fun x : ℝ => deriv (intervalDomainLift u₀) x) hu₀x_cont)
     hcomm
+
+/-- Domain-facing source-IBP reducer for the homogeneous C1 initial approach.
+The derivative profile `du₀` is explicit, and the only convergence hypothesis is
+the conjugate-kernel approximate identity for `du₀`. -/
+theorem intervalFullSemigroup_initialLegC1Approx_of_conjugateApprox
+    {u₀ : intervalDomainPoint → ℝ} {du₀ : ℝ → ℝ}
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {Cu₀ : ℝ} (hu₀_bound : ∀ y, |intervalDomainLift u₀ y| ≤ Cu₀)
+    (hu₀_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+      HasDerivAt (intervalDomainLift u₀) (du₀ y) y)
+    (hdu₀_int : IntervalIntegrable du₀ MeasureTheory.volume 0 1)
+    (happrox : InitialLegConjugateDerivativeApprox du₀) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator t (intervalDomainLift u₀) z) x -
+          du₀ x| < ε :=
+  initialLegC1Approx_of_conjugateApprox_of_sourceIBP
+    hu₀_meas hu₀_bound hu₀_deriv hdu₀_int happrox
+
+/-- Domain-facing representative form for interval initial data.  The global
+representative `Q` supplies the differentiability required by source IBP, while
+the semigroup still acts on the original zero-extended interval source. -/
+theorem intervalFullSemigroup_initialLegC1Approx_of_Icc_repr_conjugateApprox
+    {u₀ : intervalDomainPoint → ℝ} {Q du₀ : ℝ → ℝ}
+    (hu₀Q : ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift u₀ y = Q y)
+    (hQ_meas : AEStronglyMeasurable Q (intervalMeasure 1))
+    {CQ : ℝ} (hQ_bound : ∀ y, |Q y| ≤ CQ)
+    (hQ_deriv : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt Q (du₀ y) y)
+    (hdu₀_int : IntervalIntegrable du₀ MeasureTheory.volume 0 1)
+    (happrox : InitialLegConjugateDerivativeApprox du₀) :
+    ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator t (intervalDomainLift u₀) z) x -
+          du₀ x| < ε :=
+  initialLegC1Approx_of_conjugateApprox_of_Icc_repr
+    hu₀Q hQ_meas hQ_bound hQ_deriv hdu₀_int happrox
 
 end
 
