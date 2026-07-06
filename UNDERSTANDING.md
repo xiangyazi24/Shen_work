@@ -3005,6 +3005,20 @@ integrability.  This is route wiring only; the source PDE estimates remain the
 continuity producers, additive local scalar majorants, physical identity, and
 square-root bounds.
 
+Task 92 makes the zero-window scalar majorant interface more source-friendly.
+`IntervalChiNegH1PhysicalInitialRHS` adds
+`H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore`, where PDE estimates may
+provide nonnegative majorizing functions directly on the common zero window.
+The adapter `H1PhysicalRHSAdditiveScalarZeroMajorantsBefore_of_nonneg` rewrites
+these nonnegative bounds into the existing norm-majorant interface, and
+`H1PhysicalRHSStrictInitialRouteBefore_of_nonnegScalar_zeroWindow` feeds that
+into the Task91 route constructor.  `IntervalChiNegH1PhysicalScalarContinuity`
+adds representative-integrand and direct part-continuity wrappers consuming the
+same nonnegative scalar majorants.  This remains wiring: the hard source
+producers are still the local nonnegative scalar bounds, strict-slab
+continuity, physical identity, and square-root bounds, not bounded-before,
+full RHS integrability, or derivative integrability.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**

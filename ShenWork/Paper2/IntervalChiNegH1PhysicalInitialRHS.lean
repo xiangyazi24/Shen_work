@@ -125,6 +125,62 @@ def H1PhysicalRHSAdditiveScalarZeroMajorantsBefore
       (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
         ‖H1PhysicalReactX p u r‖ ≤ ‖Greact r‖)
 
+/-- Source-friendly version of the additive local scalar majorants where the
+majorizing functions are known to be nonnegative a.e. on the zero window. -/
+def H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T : ℝ) : Prop :=
+  ∃ δ : ℝ,
+    0 < δ ∧ δ < T ∧
+    ∃ Glap Gtaxis Guvxx Greact : ℝ → ℝ,
+      IntervalIntegrable Glap volume (0 : ℝ) δ ∧
+      IntervalIntegrable Gtaxis volume (0 : ℝ) δ ∧
+      IntervalIntegrable Guvxx volume (0 : ℝ) δ ∧
+      IntervalIntegrable Greact volume (0 : ℝ) δ ∧
+      AEStronglyMeasurable
+        (H1IdentityRHSValue p u
+          (H1PhysicalTaxisX p u v)
+          (H1PhysicalUvxxX p u v)
+          (H1PhysicalReactX p u))
+        (volume.restrict (Set.Ioc (0 : ℝ) δ)) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ), 0 ≤ Glap r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ), 0 ≤ Gtaxis r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ), 0 ≤ Guvxx r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ), 0 ≤ Greact r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖lapL2sq u r‖ ≤ Glap r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖H1PhysicalTaxisX p u v r‖ ≤ Gtaxis r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖H1PhysicalUvxxX p u v r‖ ≤ Guvxx r) ∧
+      (∀ᵐ r ∂volume.restrict (Set.Ioc (0 : ℝ) δ),
+        ‖H1PhysicalReactX p u r‖ ≤ Greact r)
+
+/-- Nonnegative additive local scalar majorants produce the norm-majorant
+interface used by the route. -/
+theorem H1PhysicalRHSAdditiveScalarZeroMajorantsBefore_of_nonneg
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (h : H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSAdditiveScalarZeroMajorantsBefore p u v T := by
+  rcases h with
+    ⟨δ, hδ_pos, hδ_before, Glap, Gtaxis, Guvxx, Greact,
+      hGlap_int, hGtaxis_int, hGuvxx_int, hGreact_int, hRHS_meas,
+      hGlap_nonneg, hGtaxis_nonneg, hGuvxx_nonneg, hGreact_nonneg,
+      hLap_bound, hTaxis_bound, hUvxx_bound, hReact_bound⟩
+  refine
+    ⟨δ, hδ_pos, hδ_before, Glap, Gtaxis, Guvxx, Greact,
+      hGlap_int, hGtaxis_int, hGuvxx_int, hGreact_int, hRHS_meas,
+      ?_, ?_, ?_, ?_⟩
+  · filter_upwards [hGlap_nonneg, hLap_bound] with r hnonneg hbound
+    rwa [Real.norm_of_nonneg hnonneg]
+  · filter_upwards [hGtaxis_nonneg, hTaxis_bound] with r hnonneg hbound
+    rwa [Real.norm_of_nonneg hnonneg]
+  · filter_upwards [hGuvxx_nonneg, hUvxx_bound] with r hnonneg hbound
+    rwa [Real.norm_of_nonneg hnonneg]
+  · filter_upwards [hGreact_nonneg, hReact_bound] with r hnonneg hbound
+    rwa [Real.norm_of_nonneg hnonneg]
+
 /-- Additive local scalar majorants assemble to a local zero-window majorant
 for the concrete physical H¹ RHS. -/
 theorem H1PhysicalRHSZeroWindowMajorantBefore_of_additiveScalarMajorants
@@ -239,6 +295,21 @@ theorem H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
   ⟨hId, hBounds, hStrict,
     H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
       hStrict hAdd⟩
+
+/-- Nonnegative additive local scalar zero-window majorants assemble the
+strict/initial route after rewriting the nonnegative bounds as norm bounds. -/
+theorem H1PhysicalRHSStrictInitialRouteBefore_of_nonnegScalar_zeroWindow
+    {p : CM2Params} {T V₁ V₂ M L : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hId : H1PhysicalRHSIdentityBefore p u v T)
+    (hBounds : H1PhysicalRHSSqrtBoundsBefore p u v T V₁ V₂ M L)
+    (hStrict : H1PhysicalRHSComponentsContinuousStrictBefore p u v T)
+    (hNonneg :
+      H1PhysicalRHSAdditiveNonnegScalarZeroMajorantsBefore p u v T) :
+    H1PhysicalRHSStrictInitialRouteBefore p u v T V₁ V₂ M L :=
+  H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
+    hId hBounds hStrict
+    (H1PhysicalRHSAdditiveScalarZeroMajorantsBefore_of_nonneg hNonneg)
 
 /-- The physical initial majorant gives initial-window integrability of the
 assembled physical H¹ RHS. -/
@@ -358,7 +429,9 @@ theorem intervalDomain_boundedBefore_of_physicalStrictInitialRoute_before
 #print axioms H1PhysicalRHSInitialWindowMajorantBefore_of_zeroWindow_strict
 #print axioms
   H1PhysicalRHSInitialWindowMajorantBefore_of_additiveScalar_zeroWindow_strict
+#print axioms H1PhysicalRHSAdditiveScalarZeroMajorantsBefore_of_nonneg
 #print axioms H1PhysicalRHSStrictInitialRouteBefore_of_additiveScalar_zeroWindow
+#print axioms H1PhysicalRHSStrictInitialRouteBefore_of_nonnegScalar_zeroWindow
 #print axioms
   H1EnergyDerivativeInitialWindowIntegrableBefore_of_physicalZeroWindowMajorant
 #print axioms H1IdentityRHSIntegrableBefore_of_physicalStrictInitialRoute
