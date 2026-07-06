@@ -10,6 +10,7 @@ import ShenWork.Paper2.IntervalChemFluxHolderCommonFold
 open MeasureTheory
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalMildRegularityBootstrap (HasRestartCosineRepresentations)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 
 namespace ShenWork.Paper2
@@ -233,6 +234,83 @@ theorem chemMild_C1eta_sliceDiffOn_of_phase1ValueLegs_intrinsic_cutoff
     ⟨HQ, hHQ_nonneg, Dslice⟩
   refine ⟨HQ, hHQ_nonneg, ?_⟩
   exact chemMild_C1eta_slice_diffOn hη0 hη1.le Dslice hNeumann
+
+/-- Canonical phase-1 C1/eta route with intrinsic initial Holder data and no
+explicit heat-coupling input. -/
+theorem chemMild_C1eta_sliceDiffOn_of_phase1CutoffRep_initialHolder_intrinsic
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t θ η H₀ : ℝ}
+    (hη0 : 0 < η) (hθη : η < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (ht : 0 < t) (htT : t < Dsol.T) :
+    ∃ HQ : ℝ, 0 ≤ HQ ∧
+      DifferentiableOn ℝ
+        (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+        (Set.Icc (0:ℝ) 1) ∧
+        (∀ x ∈ Set.Icc (0:ℝ) 1, ∀ y ∈ Set.Icc (0:ℝ) 1,
+          |derivWithin
+              (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+              (Set.Icc (0:ℝ) 1) x -
+              derivWithin
+                (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+                (Set.Icc (0:ℝ) 1) y|
+            ≤ (initialValueLegDerivHolderConst t η
+                  (|u₀ ⟨0, by constructor <;> norm_num⟩| + H₀) +
+                |p.χ₀| * chemDuhamelConst t θ η HQ +
+                  reactionDerivLegHolderConst t η
+                    (Dsol.M * (p.a + p.b * Dsol.M ^ p.α))) *
+              |x - y| ^ η) ∧
+        Summable (fun n : ℕ =>
+          |cosineCoeffs
+            (gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t) n|) := by
+  have hθ0 : 0 < θ := lt_trans hη0 hθη
+  have hθlt_one : θ < 1 := by nlinarith [hθlt]
+  have hη1 : η < 1 := lt_trans hθη hθlt_one
+  exact
+    chemMild_C1eta_sliceDiffOn_of_phase1ValueLegs_intrinsic_cutoff
+      (Dsol := Dsol) (χ₀ := p.χ₀) (t := t) (θ := θ) (η := η)
+      (H₀ := H₀) (Cu₀ := |u₀ ⟨0, by constructor <;> norm_num⟩| + H₀)
+      (CL := Dsol.M * (p.a + p.b * Dsol.M ^ p.α))
+      (L := logisticCutoffSource p Dsol.u Dsol.T)
+      (w := gradientMildPhase1ValueLegsCutoffRep p u₀ Dsol.u Dsol.T t)
+      hη0 hη1 hθη hθ0 hθlt hH₀_nonneg hholder ht (le_of_lt htT)
+      (initialDatumHolder_intervalDomainLift_aestronglyMeasurable_intervalMeasure
+        hθ0 hH₀_nonneg hholder)
+      (by
+        simpa using
+          initialDatumHolder_intervalDomainLift_abs_bound hθ0 hH₀_nonneg hholder)
+      (add_nonneg (abs_nonneg _) hH₀_nonneg)
+      (logisticCutoffSource_measurable (p := p) (u := Dsol.u) (T := Dsol.T)
+        Dsol.hmeas)
+      (logisticCutoffSource_boundConst_nonneg (p := p) Dsol.hM)
+      (logisticCutoffSource_bound (p := p) (u := Dsol.u) (T := Dsol.T)
+        Dsol.hM Dsol.hbound)
+      (by intro x; rfl)
+      (gradientMild_phase1ValueLegs_cutoffRep_derivWithin_endpoint_zero
+        Dsol H ht htT)
+
+/-- The canonical no-hplan phase-1 representative route gives Wiener coefficient
+summability for the true lifted mild slice. -/
+theorem gradientMild_trueLift_coeffs_summable_of_phase1CutoffRep_initialHolder_intrinsic
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (Dsol : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations Dsol.T Dsol.u)
+    {t θ η H₀ : ℝ}
+    (hη0 : 0 < η) (hθη : η < θ) (hθlt : θ < (1 / 2 : ℝ))
+    (hH₀_nonneg : 0 ≤ H₀)
+    (hholder : InitialDatumHolder u₀ θ H₀)
+    (ht : 0 < t) (htT : t < Dsol.T) :
+    Summable (fun n : ℕ => |cosineCoeffs (intervalDomainLift (Dsol.u t)) n|) := by
+  rcases
+      chemMild_C1eta_sliceDiffOn_of_phase1CutoffRep_initialHolder_intrinsic
+        Dsol H hη0 hθη hθlt hH₀_nonneg hholder ht htT with
+    ⟨_HQ, _hHQ_nonneg, _hDiff, _hHolder, hsum⟩
+  exact summable_abs_cosineCoeffs_of_eqOn_Icc
+    (gradientMild_phase1ValueLegs_cutoffRep_eqOn_Icc Dsol ht (le_of_lt htT))
+    hsum
 
 end
 
