@@ -3306,6 +3306,45 @@ into the physical continuity subfrontier for any `CM2Params`.  This removes the
 irrelevant parameter from the source package but still leaves zero-start
 closed-slab primitive regularity/sign as a real construction-level obligation.
 
+Task 113 closes the reaction part of the H¹ physical sqrt-bound route.  The
+physical reaction file now supplies `H1PhysicalReactionIBPBoundDataBefore` and
+the classical-reaction sqrt-bound producer from classical solution data plus the
+scalar cap `p.a ≤ L`.  This discharges the reaction residual only; the taxis and
+`u_x v_x` pointwise estimates remain separate source-facing inputs.
+
+Task 114 splits the remaining physical chemotaxis sqrt source terms.  The new
+`IntervalChiNegH1PhysicalChemSqrtBounds` layer introduces
+`H1PhysicalChemResolverSupBefore` for fixed-before-`T` resolver-gradient,
+solution-sup, and physical-core bounds, lowers it to
+`H1PhysicalChemFactorBoundsBefore`, and the reaction file now rebuilds the
+older full `H1PhysicalRHSSqrtBoundsBefore` from chem-side L²/pointwise data plus
+the already-proved reaction IBP package.  This makes the current sqrt frontier
+explicit: uniform source constants for the two chemotaxis factors remain, while
+the logistic reaction term is no longer a residual.
+
+Task 115 follows the second-round zero-start source audits.  Q3551 confirms that
+there is still no general producer for
+`H1ZeroStartClosedPrimitiveC1SignBefore`: the raw `conjugatePicardLimit` is
+definitionally zero at `t = 0`, so the direct B-form/Picard output cannot prove
+the target's `u_pos0` field without a reinitialized trajectory carrying the
+actual initial datum at time zero.  `IntervalChiNegH1ZeroStartConstant` records
+only the honest constant-solution special case
+`H1ZeroStartClosedPrimitiveC1SignBefore_const`, using the existing constant lift
+and elliptic-resolver lemmas; it is not a general construction producer.
+
+Q3552 and Q3556 together fence off the other zero-start seam.  Q3552 confirms
+that the current P3/Moser/FTC/global-PDE-initial infrastructure gives scalar
+initial-window integrability/FTC data, not pointwise closed-time continuity of
+`liftTimeDeriv u` or the literal initial PDE trace.  Q3556 confirms that the
+mixed chemotaxis-divergence representative layer is also not a full producer:
+the capstone `ChemDivMixedTimeDerivClosedRepr` concerns
+`coupledChemDivTimeDerivativeLift`, not `liftTimeDeriv u`, while raw
+`ChemDivMixedReprWitnessData` can contribute only the `time_cont0` half through
+its `Utc` representative.  `IntervalChiNegH1ZeroStartMixedWitness` therefore
+adds only `time_cont0_of_mixedWitnessBefore` and the reducer
+`H1ZeroStartPhysicalPDEInitialCompatibilityBefore_of_mixed`, with
+`eq0Interior` still explicit.
+
 ### Dual-oracle R1 synthesis (Fable + ChatGPT, 2026-07-04)
 
 **Fable's key findings:**
