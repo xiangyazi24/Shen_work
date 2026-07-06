@@ -1,5 +1,14 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 263: Chi-zero headline wrappers from joint resolver-source inputs (2026-07-06)
+
+`IntervalDomainChiZeroResolverSourceJointInputsFrontier.lean` adds the
+`χ₀ = 0` headline wrappers for the Task259 joint-continuity resolver-source
+input surface.  This is wiring only: it routes the chi-zero headline through
+the existing primitive-input chi-zero wrapper after converting joint inputs to
+Task255 inputs.  It does not add a new producer for the remaining
+representation/envelope, spatial K2, or power-source K1 residuals.
+
 ## Task 259: PPID resolver-source easy fields reduced to joint continuity (2026-07-06)
 
 `IntervalResolverSourceWindowJointInputs.lean` implements the stricter Q3711
