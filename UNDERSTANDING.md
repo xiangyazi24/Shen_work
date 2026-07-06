@@ -1,5 +1,24 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 265: Envelope-only inputs derive eigenvalue summability (2026-07-06)
+
+`IntervalResolverSourceWindowEnvelopeOnlyInputs.lean` removes the redundant
+per-time `hbsum` field from the Task264 envelope surface.  The theorem
+`hbsum_of_envelope` applies the compact-window envelope to the singleton time
+window `[σ, σ]` and uses nonnegative summability comparison to recover
+`Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)`.  The adapter
+`resolverSourceWindowEnvelopeInputs_of_envelopeOnlyInputs` feeds the result
+back into the Task264 envelope input package, so all spatial K2 and downstream
+resolver-source machinery is reused unchanged.
+
+`IntervalDomainPPIDResolverSourceEnvelopeOnlyInputsFrontier.lean` and
+`IntervalDomainChiZeroResolverSourceEnvelopeOnlyInputsFrontier.lean` expose the
+same PPID and `χ₀ = 0` wrappers on this stricter no-`hbsum` input surface.  This
+is still conditional: it removes only a redundant summability field, while the
+real producer work remains faithful non-`χ₀ = 0` coefficients/agreement,
+compact-window envelopes, joint lift continuity, and power-source K1
+time-regularity.
+
 ## Task 264: Resolver-source spatial K2 reduced to coefficient envelopes (2026-07-06)
 
 `IntervalResolverSourceWindowEnvelopeInputs.lean` implements the Q3713
