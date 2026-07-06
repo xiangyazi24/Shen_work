@@ -144,6 +144,77 @@ def BoundaryMinPersistenceWindowBound (p : CM2Params) : Prop :=
             * sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
           deriv (fun r => intervalDomainLift (u r) ys) s
 
+/-- Left-endpoint half of the windowed boundary min-point derivative residual. -/
+def BoundaryMinPersistenceWindowLeftBound (p : CM2Params) : Prop :=
+  ∀ {u₀ : intervalDomainPoint → ℝ},
+    PositiveInitialDatum intervalDomain u₀ →
+    ∀ {M : ℝ}, 0 < M → (∀ x, |u₀ x| ≤ M) →
+    ∀ {t₁ T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}, 0 < t₁ →
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+      ∀ s ∈ Set.Ico (t₁ / 2) T,
+        intervalDomainLift (u s) 0 =
+          sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) →
+        -(|p.χ₀| * ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+              (p.ν * (SupNormBridge.regimeBound p M) ^ p.γ)
+            + p.b * (SupNormBridge.regimeBound p M) ^ p.α)
+            * sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+          deriv (fun r => intervalDomainLift (u r) 0) s
+
+/-- Right-endpoint half of the windowed boundary min-point derivative residual. -/
+def BoundaryMinPersistenceWindowRightBound (p : CM2Params) : Prop :=
+  ∀ {u₀ : intervalDomainPoint → ℝ},
+    PositiveInitialDatum intervalDomain u₀ →
+    ∀ {M : ℝ}, 0 < M → (∀ x, |u₀ x| ≤ M) →
+    ∀ {t₁ T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}, 0 < t₁ →
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+      ∀ s ∈ Set.Ico (t₁ / 2) T,
+        intervalDomainLift (u s) 1 =
+          sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) →
+        -(|p.χ₀| * ShenWork.MinPersistenceAtoms.fluxCoeffConst p.β
+              (p.ν * (SupNormBridge.regimeBound p M) ^ p.γ)
+            + p.b * (SupNormBridge.regimeBound p M) ^ p.α)
+            * sInf (intervalDomainLift (u s) '' Set.Icc (0 : ℝ) 1) ≤
+          deriv (fun r => intervalDomainLift (u r) 1) s
+
+/-- Bundled endpoint halves of the windowed boundary min-point derivative residual. -/
+structure BoundaryMinPersistenceWindowEndpointBounds (p : CM2Params) : Prop where
+  left : BoundaryMinPersistenceWindowLeftBound p
+  right : BoundaryMinPersistenceWindowRightBound p
+
+/-- The two endpoint residuals assemble the combined windowed boundary residual. -/
+theorem boundaryMinPersistenceWindowBound_of_endpoints
+    {p : CM2Params}
+    (hleft : BoundaryMinPersistenceWindowLeftBound p)
+    (hright : BoundaryMinPersistenceWindowRightBound p) :
+    BoundaryMinPersistenceWindowBound p := by
+  intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs ys _hys hys01 harg
+  rcases hys01 with h0 | h1
+  · subst h0
+    exact hleft hu₀ hM hbnd ht₁ hsol htr s hs harg
+  · subst h1
+    exact hright hu₀ hM hbnd ht₁ hsol htr s hs harg
+
+/-- A bundled endpoint residual supplies the combined windowed boundary residual. -/
+theorem boundaryMinPersistenceWindowBound_of_endpointBounds
+    {p : CM2Params}
+    (h : BoundaryMinPersistenceWindowEndpointBounds p) :
+    BoundaryMinPersistenceWindowBound p :=
+  boundaryMinPersistenceWindowBound_of_endpoints h.left h.right
+
+/-- The combined windowed boundary residual splits into its two endpoint halves. -/
+theorem endpointBounds_of_boundaryMinPersistenceWindowBound
+    {p : CM2Params}
+    (hbdry : BoundaryMinPersistenceWindowBound p) :
+    BoundaryMinPersistenceWindowEndpointBounds p where
+  left := by
+    intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs harg
+    exact hbdry hu₀ hM hbnd ht₁ hsol htr s hs 0 (by simp) (Or.inl rfl) harg
+  right := by
+    intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs harg
+    exact hbdry hu₀ hM hbnd ht₁ hsol htr s hs 1 (by simp) (Or.inr rfl) harg
+
 /-- The legacy boundary residual implies the windowed boundary residual. -/
 theorem boundaryMinPersistenceWindowBound_of_boundary
     {p : CM2Params} (hbdry : BoundaryMinPersistenceBound p) :
@@ -192,11 +263,11 @@ theorem classicalMinPersistence_of_boundary_window_regime
   exact hbdry hu₀ hM hbnd ht₁ hsol htr s hs ys hys hys01 harg
 
 /-- In the flux-free regime, the existing endpoint min-point estimates produce
-the corrected windowed boundary persistence residual. -/
-theorem boundaryMinPersistenceWindowBound_chiZero
+the left-endpoint corrected windowed boundary persistence residual. -/
+theorem boundaryMinPersistenceWindowLeftBound_chiZero
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) :
-    BoundaryMinPersistenceWindowBound p := by
-  intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs ys _hys hys01 harg
+    BoundaryMinPersistenceWindowLeftBound p := by
+  intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs harg
   have hs0 : 0 < s := lt_of_lt_of_le (by linarith : (0 : ℝ) < t₁ / 2) hs.1
   have hsT : s < T := hs.2
   have hMpos : (0 : ℝ) ≤ SupNormBridge.regimeBound p M :=
@@ -212,13 +283,48 @@ theorem boundaryMinPersistenceWindowBound_chiZero
       exact dif_pos x.2
     rw [hlift] at hb_abs
     exact (abs_le.mp hb_abs).2
-  rcases hys01 with h0 | h1
-  · subst h0
-    exact ShenWork.MinPersistenceAtoms.hbdry_left_chi0
-      hχ0 hsol hs0 hsT hMpos hu_le harg
-  · subst h1
-    exact ShenWork.MinPersistenceAtoms.hbdry_right_chi0
-      hχ0 hsol hs0 hsT hMpos hu_le harg
+  exact ShenWork.MinPersistenceAtoms.hbdry_left_chi0
+    hχ0 hsol hs0 hsT hMpos hu_le harg
+
+/-- In the flux-free regime, the existing endpoint min-point estimates produce
+the right-endpoint corrected windowed boundary persistence residual. -/
+theorem boundaryMinPersistenceWindowRightBound_chiZero
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    BoundaryMinPersistenceWindowRightBound p := by
+  intro u₀ hu₀ M hM hbnd t₁ T u v ht₁ hsol htr s hs harg
+  have hs0 : 0 < s := lt_of_lt_of_le (by linarith : (0 : ℝ) < t₁ / 2) hs.1
+  have hsT : s < T := hs.2
+  have hMpos : (0 : ℝ) ≤ SupNormBridge.regimeBound p M :=
+    (SupNormBridge.regimeBound_pos p hM).le
+  have hsup :=
+    ShenWork.MinPersistenceAtoms.hSupNorm_of_regime
+      p (le_of_eq hχ0) ha hb hu₀ hM hbnd ht₁ hsol.T_pos hsol htr
+  have hu_le : ∀ x : intervalDomainPoint, u s x ≤ SupNormBridge.regimeBound p M := by
+    intro x
+    have hb_abs := hsup s hs x.1
+    have hlift : intervalDomainLift (u s) x.1 = u s x := by
+      simp only [intervalDomainLift]
+      exact dif_pos x.2
+    rw [hlift] at hb_abs
+    exact (abs_le.mp hb_abs).2
+  exact ShenWork.MinPersistenceAtoms.hbdry_right_chi0
+    hχ0 hsol hs0 hsT hMpos hu_le harg
+
+/-- In the flux-free regime, the existing endpoint min-point estimates produce
+the bundled corrected endpoint residuals. -/
+theorem boundaryMinPersistenceWindowEndpointBounds_chiZero
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    BoundaryMinPersistenceWindowEndpointBounds p where
+  left := boundaryMinPersistenceWindowLeftBound_chiZero p hχ0 ha hb
+  right := boundaryMinPersistenceWindowRightBound_chiZero p hχ0 ha hb
+
+/-- In the flux-free regime, the existing endpoint min-point estimates produce
+the corrected windowed boundary persistence residual. -/
+theorem boundaryMinPersistenceWindowBound_chiZero
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    BoundaryMinPersistenceWindowBound p :=
+  boundaryMinPersistenceWindowBound_of_endpointBounds
+    (boundaryMinPersistenceWindowEndpointBounds_chiZero p hχ0 ha hb)
 
 /-- Quantitative local existence from the Picard-restart route and boundary
 min-point persistence, retaining the per-datum local seed as a source input. -/
@@ -612,8 +718,14 @@ section AxiomAudit
 #print axioms uniformLocalExistence_of_picardFrontier_persistence_of_BForm
 #print axioms uniformLocalExistence_of_picardLimitFrontier_persistence_of_BForm
 #print axioms classicalMinPersistence_of_boundary_regime
+#print axioms boundaryMinPersistenceWindowBound_of_endpoints
+#print axioms boundaryMinPersistenceWindowBound_of_endpointBounds
+#print axioms endpointBounds_of_boundaryMinPersistenceWindowBound
 #print axioms boundaryMinPersistenceWindowBound_of_boundary
 #print axioms classicalMinPersistence_of_boundary_window_regime
+#print axioms boundaryMinPersistenceWindowLeftBound_chiZero
+#print axioms boundaryMinPersistenceWindowRightBound_chiZero
+#print axioms boundaryMinPersistenceWindowEndpointBounds_chiZero
 #print axioms boundaryMinPersistenceWindowBound_chiZero
 #print axioms uniformLocalExistence_of_picardFrontier_boundary
 #print axioms uniformLocalExistence_of_picardFrontier_boundary_of_BForm
