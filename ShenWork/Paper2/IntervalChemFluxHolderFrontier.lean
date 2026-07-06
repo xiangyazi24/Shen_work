@@ -38,7 +38,8 @@ structure ChemFluxCthetaSourceOn
   flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (u s)) (intervalMeasure 1)
   flux_bound : ∀ s : ℝ, 0 < s → s ≤ T → ∀ y : ℝ,
     |chemFluxLifted p (u s) y| ≤ CQ
-  flux_cont : ∀ s : ℝ, 0 < s → s ≤ T → Continuous (chemFluxLifted p (u s))
+  flux_cont : ∀ s : ℝ, 0 < s → s ≤ T →
+    ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1)
   flux_holder : ∀ s : ℝ, 0 < s → s ≤ T →
     ∀ a b : ℝ, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
       |chemFluxLifted p (u s) a - chemFluxLifted p (u s) b| ≤

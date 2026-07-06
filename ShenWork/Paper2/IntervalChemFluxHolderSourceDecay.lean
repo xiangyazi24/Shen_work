@@ -5,11 +5,15 @@
 -/
 import ShenWork.Paper2.IntervalChemFluxHolderFrontier
 import ShenWork.Paper2.IntervalResolverHolder
+import ShenWork.Paper2.ChemMildHolderBootstrap
+import ShenWork.Paper2.IntervalBFormInitialTrace
+import ShenWork.Paper2.IntervalMildToClassical
 
 open MeasureTheory
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
 open ShenWork.PDE (intervalNeumannResolverR)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted)
+open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 
 namespace ShenWork.Paper2
 
@@ -86,7 +90,8 @@ theorem ChemFluxCthetaSourceOn_of_uniform_components
     (flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (u s)) (intervalMeasure 1))
     (flux_bound : ∀ s : ℝ, 0 < s → s ≤ T → ∀ y : ℝ,
       |chemFluxLifted p (u s) y| ≤ CQ)
-    (flux_cont : ∀ s : ℝ, 0 < s → s ≤ T → Continuous (chemFluxLifted p (u s)))
+    (flux_cont : ∀ s : ℝ, 0 < s → s ≤ T →
+      ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1))
     (hu_bound : ∀ s, 0 < s → s ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |intervalDomainLift (u s) x| ≤ U)
     (hg_bound : ∀ s, 0 < s → s ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -134,6 +139,85 @@ theorem ChemFluxCthetaSourceOn_of_uniform_components
     exact hbase.trans
       (mul_le_mul_of_nonneg_right hcomp_le
         (Real.rpow_nonneg (abs_nonneg _) _))
+
+/-- Mild-solution specialization of `ChemFluxCthetaSourceOn_of_uniform_components`.
+
+The `GradientMildSolutionData` fields discharge the source measurability, positive
+window sup bound, positive window continuity, the `u`-bound (`U = D.M`), and
+resolver nonnegativity.  The global integrability field is still explicit because
+`ChemFluxCthetaSourceOn` asks for `∀ s`, while `GradientMildSolutionData` only
+controls slices on the positive mild window. -/
+theorem ChemFluxCthetaSourceOn_of_gradientMild_uniform_components
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {θ HQ G Hu Hg Hv : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hHQ_nonneg : 0 ≤ HQ)
+    (hG_nonneg : 0 ≤ G)
+    (hHu_nonneg : 0 ≤ Hu) (hHg_nonneg : 0 ≤ Hg)
+    (hcomp_le : Hu * G + D.M * Hg + D.M * G * p.β * Hv ≤ HQ)
+    (flux_int : ∀ s : ℝ, Integrable (chemFluxLifted p (D.u s)) (intervalMeasure 1))
+    (hu_holder : ∀ s, 0 < s → s ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u s x - D.u s y| ≤ Hu * |x.1 - y.1| ^ θ)
+    (hg_bound : ∀ s, 0 < s → s ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |resolverGradReal p (D.u s) x| ≤ G)
+    (hg_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |resolverGradReal p (D.u s) a - resolverGradReal p (D.u s) b| ≤
+          Hg * |a - b| ^ θ)
+    (hR_holder : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalDomainLift (intervalNeumannResolverR p (D.u s)) a -
+            intervalDomainLift (intervalNeumannResolverR p (D.u s)) b| ≤
+          Hv * |a - b| ^ θ) :
+    ChemFluxCthetaSourceOn p D.u D.T θ
+      (D.M * (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * D.M ^ p.γ)))) HQ := by
+  set CQ : ℝ := D.M * (Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+      (2 * (p.ν * D.M ^ p.γ))) with hCQ
+  have hCQ_nonneg : 0 ≤ CQ := by
+    rw [hCQ]
+    exact mul_nonneg D.hM.le (mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg D.hM.le _))))
+  have hu_bound : ∀ s, 0 < s → s ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |intervalDomainLift (D.u s) x| ≤ D.M := by
+    intro s hs0 hsT x hx
+    simpa [intervalDomainLift, hx] using D.hbound s hs0 hsT ⟨x, hx⟩
+  have hR_nonneg : ∀ s, 0 < s → s ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 ≤ intervalDomainLift (intervalNeumannResolverR p (D.u s)) x := by
+    intro s hs0 hsT x hx
+    have hsub :=
+      ShenWork.IntervalMildToClassical.mildChemical_nonneg
+        (p := p) (u := D.u) (T := D.T) D.hnonneg D.hcont hs0 hsT ⟨x, hx⟩
+    simpa [ShenWork.IntervalMildToClassical.mildChemicalConcentration,
+      intervalDomainLift, hx] using hsub
+  have hu_holder_lift : ∀ s, 0 < s → s ≤ D.T → ∀ a b : ℝ,
+      a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalDomainLift (D.u s) a - intervalDomainLift (D.u s) b| ≤
+          Hu * |a - b| ^ θ := by
+    intro s hs0 hsT a b ha hb
+    simpa [intervalDomainLift, ha, hb] using
+      hu_holder s hs0 hsT ⟨a, ha⟩ ⟨b, hb⟩
+  refine ChemFluxCthetaSourceOn_of_uniform_components
+    (p := p) (u := D.u) (T := D.T) (θ := θ) (CQ := CQ) (HQ := HQ)
+    (U := D.M) (G := G) (Hu := Hu) (Hg := Hg) (Hv := Hv)
+    hθ0 hθ1 hCQ_nonneg hHQ_nonneg D.hM.le hG_nonneg
+    hHu_nonneg hHg_nonneg hcomp_le
+    (chemFluxLifted_uncurry_measurable (p := p) (u := D.u) D.hmeas)
+    flux_int ?_ ?_ hu_bound hg_bound hR_nonneg hu_holder_lift hg_holder hR_holder
+  · intro s hs0 hsT y
+    simpa [hCQ] using
+      BFormInitialTrace.chemFluxLifted_bound_of_ball
+        p D.hM.le (fun x => D.hbound s hs0 hsT x)
+        (fun x => D.hnonneg s hs0 hsT x)
+        (D.hcont s hs0 hsT) y
+  · intro s hs0 hsT
+    exact Continuous.continuousOn
+      (ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+        p (D.hcont s hs0 hsT) (fun x => D.hnonneg s hs0 hsT x))
 
 end
 
