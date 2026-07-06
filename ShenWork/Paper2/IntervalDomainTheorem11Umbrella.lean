@@ -1643,6 +1643,69 @@ theorem
   -- Step 6. Route through the existing Moser-closure Theorem 1.1 bridge.
   exact Theorem_1_1_intervalDomain_of_corrected_existence p hexist
 
+/-- **Paper 2-aligned umbrella theorem (γ≥1, no `extend_finite`).**
+
+This is the γ≥1 analogue of
+`Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_extend_finite`.
+The γ≥1 gluing closure supplies the paper-aligned restart/gluing interface, and
+the global-existence assembler uses only `localExistence`, `realize`, and
+`extend_mge`. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+ :
+    Theorem_1_1 intervalDomain p := by
+  have hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) := by
+    intro u₀ hu₀
+    exact hu₀.admissible.1
+  have hglue :
+      ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+    GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
+      p hχ ha hb hγ_ge_one
+  have hexist :
+      ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p :=
+    intervalDomainGlobalSolutionExists_nonminimal_of_continuation_and_gluing_no_extend_finite
+      p hχ ha hb hlocal hboundedInitial hrealize
+      hextend_of_not_mgeAlternative hglue
+  exact Theorem_1_1_intervalDomain_of_corrected_existence p hexist
+
 /-- **Paper 2-aligned bundled continuation data (γ ≥ 1).**
 
 Packages the four textbook PDE continuation hypotheses (`localExistence`,
@@ -1741,6 +1804,81 @@ theorem
     [hData : Fact (IntervalDomainPaper2ContinuationDataGammaGeOne p)] :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bundled
+    p hχ.out ha.out hb.out hγ_ge_one.out hData.out
+
+/-- **Paper 2-aligned bundled continuation data (γ ≥ 1), `extend_finite`
+eliminated.**  This is the gamma-specialized bundle with the same three
+genuine continuation fields as the generic no-`extend_finite` bundle, but
+using the γ≥1 gluing closure. -/
+structure IntervalDomainPaper2ContinuationDataGammaGeOne_no_extend_finite
+    (p : CM2Params) : Prop where
+  localExistence :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  realize :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ _hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+      ∃ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v ∧
+        InitialTrace intervalDomain u₀ u
+  extend_mge :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ (_hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+      {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v →
+        InitialTrace intervalDomain u₀ u →
+        1 ≤ p.m →
+        ¬ MGeOneFiniteHorizonAlternative intervalDomain
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u →
+        ShenWork.IntervalDomainExistence.ReachablePast p u₀
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀)
+
+/-- Bundled-input wrapper for the γ≥1 no-`extend_finite` umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite_bundled
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2ContinuationDataGammaGeOne_no_extend_finite p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite
+    p hχ ha hb hγ_ge_one hData.localExistence hData.realize
+    hData.extend_mge
+
+/-- Instance-facing bundled wrapper for the γ≥1 no-`extend_finite` umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2ContinuationDataGammaGeOne_no_extend_finite p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite_bundled
+    p hχ ha hb hγ_ge_one hData.out
+
+/-- Fully instance-facing bundled wrapper for the γ≥1 no-`extend_finite`
+umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite_bundledAllFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    [hγ_ge_one : Fact (1 ≤ p.γ)]
+    [hData : Fact
+      (IntervalDomainPaper2ContinuationDataGammaGeOne_no_extend_finite p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite_bundled
     p hχ.out ha.out hb.out hγ_ge_one.out hData.out
 
 /-! ## `hrealize` discharged internally for the γ≥1 regime
@@ -1850,6 +1988,46 @@ theorem
     p hχ ha hb hγ_ge_one hlocal
     (realize_of_regime_gammaGeOne p hχ ha hb hγ_ge_one hlocal)
     hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative
+
+/-- **Paper 2-aligned umbrella theorem (γ≥1), `hrealize` and
+`extend_finite` eliminated.**
+
+The finite-supremum realization is supplied internally by the γ≥1 overlap
+uniqueness chain, and the generic no-`extend_finite` global assembler then
+uses only the `extend_mge` continuation input. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize_no_extend_finite
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+ :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_extend_finite
+    p hχ ha hb hγ_ge_one hlocal
+    (realize_of_regime_gammaGeOne p hχ ha hb hγ_ge_one hlocal)
+    hextend_of_not_mgeAlternative
 
 /-! ## `hextend_mge` discharged via uniform local existence
 
@@ -2073,44 +2251,9 @@ theorem
             (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
               p u₀) :=
     extend_of_not_mgeAlternative_of_uniformLocalExistence p hUniform
-  -- Build `hextend_of_not_finiteAlternative` from `hUniform` as well.  The textbook
-  -- continuation theorem produces a δ-extension regardless of whether the finite
-  -- blow-up alternative occurs (it consumes the `M`-bound on `u₀`, period), so the
-  -- same `extend_of_not_mgeAlternative_of_uniformLocalExistence` argument
-  -- (with the `1 ≤ p.m` and `¬MGeOne` hypotheses unused) gives the
-  -- `¬ FiniteHorizonAlternative` variant too.
-  have hextend_finite :
-      ∀ u₀ : intervalDomain.Point → ℝ,
-        PositiveInitialDatum intervalDomain u₀ →
-      ∀ (_hbdd : BddAbove
-          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
-        {u v : ℝ → intervalDomain.Point → ℝ},
-          IsPaper2ClassicalSolution intervalDomain p
-            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
-              p u₀) u v →
-          InitialTrace intervalDomain u₀ u →
-          ¬ FiniteHorizonAlternative intervalDomain
-            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
-              p u₀) u →
-          ShenWork.IntervalDomainExistence.ReachablePast p u₀
-            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
-              p u₀) := by
-    intro u₀ hu₀ hbdd u v hsol htrace _hnot
-    -- Step 1: extract M > 0.
-    obtain ⟨M, hM_pos, hM_bound⟩ := exists_supBound_of_positiveInitialDatum hu₀
-    -- Step 2: apply textbook uniform continuation.
-    obtain ⟨δ, hδ_pos, hExtend⟩ := hUniform M hM_pos
-    set T_star := ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon p u₀
-    have hT_star_pos : 0 < T_star := hsol.T_pos
-    obtain ⟨u', v', hsol', htrace'⟩ :=
-      hExtend (u₀ := u₀) hu₀ hM_bound (T₀ := T_star) hT_star_pos hsol htrace
-    refine ⟨T_star + δ, ?_, ?_⟩
-    · linarith
-    · refine ⟨?_, u', v', hsol', htrace'⟩
-      linarith
-  -- Compose with the existing γ ≥ 1 + no_hrealize umbrella.
-  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize
-    p hχ ha hb hγ_ge_one hlocal hextend_finite hextend_mge
+  exact
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize_no_extend_finite
+      p hχ ha hb hγ_ge_one hlocal hextend_mge
 
 /-- **Paper 2-aligned bundled continuation data (γ ≥ 1), `hextend_mge`
 eliminated.**
