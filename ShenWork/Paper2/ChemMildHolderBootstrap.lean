@@ -798,4 +798,140 @@ theorem mild_orderBox_positiveTime_holder {p : CM2Params}
   rw [hassoc] at hsum
   exact hsum
 
+/-- Frontier input for a small-time Holder theorem: the homogeneous initial heat
+leg has a uniform spatial `C^θ` modulus all the way down to time zero. -/
+def InitialLegUniformHolderAtZero
+    (u₀ : intervalDomainPoint → ℝ) (T θ H₀ : ℝ) : Prop :=
+  ∀ t, 0 < t → t ≤ T → ∀ x y : intervalDomainPoint,
+    |intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 -
+        intervalFullSemigroupOperator t (intervalDomainLift u₀) y.1| ≤
+      H₀ * |x.1 - y.1| ^ θ
+
+/-- Uniform small-time Holder bound for the mild solution, conditional on the
+homogeneous initial leg already having a uniform Holder modulus at zero.  This
+is the small-time analogue of `mild_orderBox_positiveTime_holder`; it avoids the
+positive-time theorem's `τ^{-θ/2}` blow-up by taking the initial leg as an
+explicit frontier input. -/
+theorem mild_orderBox_smallTime_holder_of_initialLeg_holder {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ} (D : GradientMildSolutionData p u₀)
+    {θ H₀ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ < 1) (hH₀ : 0 ≤ H₀)
+    (hinit : InitialLegUniformHolderAtZero u₀ D.T θ H₀) :
+    ∃ K : ℝ, 0 ≤ K ∧ ∀ t, 0 < t → t ≤ D.T → ∀ x y : intervalDomainPoint,
+      |D.u t x - D.u t y| ≤ K * |x.1 - y.1| ^ θ := by
+  classical
+  set M := D.M with hMdef
+  have hMpos : 0 < M := D.hM
+  set base : ℝ := (2 : ℝ) ^ (1 - θ) * gradSmoothingConst ^ θ with hbase
+  have hbase_nn : 0 ≤ base := by
+    rw [hbase]; have := gradSmoothingConst_nonneg; positivity
+  set CL : ℝ := M * (p.a + p.b * M ^ p.α) with hCL
+  have hCL_nn : 0 ≤ CL := by
+    rw [hCL]; exact mul_nonneg hMpos.le (by have := p.ha; have := p.hb; positivity)
+  set CQ : ℝ := M * (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) * (2 * (p.ν * M ^ p.γ)))
+    with hCQ
+  have hCQ_nn : 0 ≤ CQ := by
+    rw [hCQ]; exact mul_nonneg hMpos.le (mul_nonneg (Real.sqrt_nonneg _)
+      (by have := p.hν; positivity))
+  set gbase : ℝ :=
+    (2 : ℝ) ^ (1 - θ) * (secondDerivSmoothingConst ^ θ * gradSmoothingConst ^ (1 - θ))
+    with hgbase
+  have hgbase_nn : 0 ≤ gbase := by
+    rw [hgbase]; have := secondDerivSmoothingConst_nonneg
+    have := gradSmoothingConst_nonneg; positivity
+  set UB_L : ℝ := D.T ^ (-(θ / 2) + 1) / (-(θ / 2) + 1) with hUBL
+  set UB_Q : ℝ := D.T ^ (-((1 + θ) / 2) + 1) / (-((1 + θ) / 2) + 1) with hUBQ
+  have hexpL : 0 < -(θ / 2) + 1 := by linarith
+  have hexpQ : 0 < -((1 + θ) / 2) + 1 := by linarith
+  have hTnn : 0 ≤ D.T := D.hT.le
+  have hUBL_nn : 0 ≤ UB_L := by
+    rw [hUBL]; exact div_nonneg (Real.rpow_nonneg hTnn _) hexpL.le
+  have hUBQ_nn : 0 ≤ UB_Q := by
+    rw [hUBQ]; exact div_nonneg (Real.rpow_nonneg hTnn _) hexpQ.le
+  set K : ℝ := H₀ + |p.χ₀| * (gbase * CQ * UB_Q) + base * CL * UB_L with hK
+  have hK_nn : 0 ≤ K := by
+    rw [hK]
+    have h2 : 0 ≤ |p.χ₀| * (gbase * CQ * UB_Q) :=
+      mul_nonneg (abs_nonneg _) (mul_nonneg (mul_nonneg hgbase_nn hCQ_nn) hUBQ_nn)
+    have h3 : 0 ≤ base * CL * UB_L := mul_nonneg (mul_nonneg hbase_nn hCL_nn) hUBL_nn
+    linarith
+  refine ⟨K, hK_nn, fun t htpos htT x y => ?_⟩
+  have hdxy_nn : 0 ≤ |x.1 - y.1| ^ θ := Real.rpow_nonneg (abs_nonneg _) _
+  set I1 : ℝ := intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 -
+      intervalFullSemigroupOperator t (intervalDomainLift u₀) y.1 with hI1
+  set I2 : ℝ := (∫ s in (0:ℝ)..t,
+      deriv (fun z => intervalFullSemigroupOperator (t - s) (chemFluxLifted p (D.u s)) z) x.1) -
+      (∫ s in (0:ℝ)..t,
+      deriv (fun z => intervalFullSemigroupOperator (t - s) (chemFluxLifted p (D.u s)) z) y.1)
+    with hI2
+  set I3 : ℝ := (∫ s in (0:ℝ)..t,
+      intervalFullSemigroupOperator (t - s) (logisticLifted p (D.u s)) x.1) -
+      (∫ s in (0:ℝ)..t,
+      intervalFullSemigroupOperator (t - s) (logisticLifted p (D.u s)) y.1)
+    with hI3
+  have hmildx := D.hmild t htpos htT x
+  have hmildy := D.hmild t htpos htT y
+  have hdiff : D.u t x - D.u t y = I1 + (-p.χ₀) * I2 + I3 := by
+    rw [hmildx, hmildy, hI1, hI2, hI3]
+    unfold intervalGradientDuhamelMap; ring
+  have hleg2 := holderLeg_chemotaxis (p := p) (u := D.u) (M := M) hMpos
+    D.hbound D.hnonneg D.hcont D.hmeas htpos htT hθ0 hθ1 x y
+  have hleg3 := holderLeg_reaction (p := p) (u := D.u) (M := M) hMpos
+    D.hbound D.hcont D.hmeas htpos htT hθ0 hθ1 x y
+  have hL1 : |I1| ≤ H₀ * |x.1 - y.1| ^ θ := by
+    rw [hI1]
+    exact hinit t htpos htT x y
+  have hintL : (∫ s in (0:ℝ)..t, base * (t - s) ^ (-(θ / 2) : ℝ) * CL)
+      ≤ base * CL * UB_L := by
+    have hfun_eq : (fun s : ℝ => base * (t - s) ^ (-(θ / 2) : ℝ) * CL)
+        = (fun s : ℝ => (base * CL) * (t - s) ^ (-(θ / 2) : ℝ)) := by funext s; ring
+    have heq : (∫ s in (0:ℝ)..t, base * (t - s) ^ (-(θ / 2) : ℝ) * CL)
+        = base * CL * (∫ s in (0:ℝ)..t, (t - s) ^ (-(θ / 2) : ℝ)) := by
+      rw [hfun_eq, intervalIntegral.integral_const_mul]
+    rw [heq]
+    have hbcl : 0 ≤ base * CL := mul_nonneg hbase_nn hCL_nn
+    have hint_le : (∫ s in (0:ℝ)..t, (t - s) ^ (-(θ / 2) : ℝ)) ≤ UB_L :=
+      duhamel_time_integral_le htpos.le htT (by linarith)
+    exact mul_le_mul_of_nonneg_left hint_le hbcl
+  have hL3 : |I3| ≤ (base * CL * UB_L) * |x.1 - y.1| ^ θ := by
+    rw [hI3]
+    refine hleg3.trans ?_
+    exact mul_le_mul_of_nonneg_right hintL hdxy_nn
+  have hintQ : (∫ s in (0:ℝ)..t, gbase * (t - s) ^ (-((1 + θ) / 2) : ℝ) * CQ)
+      ≤ gbase * CQ * UB_Q := by
+    have hfun_eq : (fun s : ℝ => gbase * (t - s) ^ (-((1 + θ) / 2) : ℝ) * CQ)
+        = (fun s : ℝ => (gbase * CQ) * (t - s) ^ (-((1 + θ) / 2) : ℝ)) := by
+          funext s; ring
+    have heq : (∫ s in (0:ℝ)..t, gbase * (t - s) ^ (-((1 + θ) / 2) : ℝ) * CQ)
+        = gbase * CQ * (∫ s in (0:ℝ)..t, (t - s) ^ (-((1 + θ) / 2) : ℝ)) := by
+      rw [hfun_eq, intervalIntegral.integral_const_mul]
+    rw [heq]
+    have hgcq : 0 ≤ gbase * CQ := mul_nonneg hgbase_nn hCQ_nn
+    have hint_le : (∫ s in (0:ℝ)..t, (t - s) ^ (-((1 + θ) / 2) : ℝ)) ≤ UB_Q :=
+      duhamel_gradTime_integral_le htpos.le htT hθ1
+    exact mul_le_mul_of_nonneg_left hint_le hgcq
+  have hL2 : |I2| ≤ (gbase * CQ * UB_Q) * |x.1 - y.1| ^ θ := by
+    rw [hI2]
+    refine hleg2.trans ?_
+    exact mul_le_mul_of_nonneg_right hintQ hdxy_nn
+  rw [hdiff]
+  have hχL2 : |(-p.χ₀) * I2| ≤ |p.χ₀| * ((gbase * CQ * UB_Q) * |x.1 - y.1| ^ θ) := by
+    rw [abs_mul, abs_neg]
+    exact mul_le_mul_of_nonneg_left hL2 (abs_nonneg _)
+  have htri : |I1 + (-p.χ₀) * I2 + I3| ≤ |I1| + |(-p.χ₀) * I2| + |I3| := by
+    refine (abs_add_le (I1 + (-p.χ₀) * I2) I3).trans ?_
+    gcongr
+    exact abs_add_le I1 ((-p.χ₀) * I2)
+  refine le_trans htri ?_
+  rw [hK, add_mul, add_mul]
+  have hsum := add_le_add (add_le_add hL1 hχL2) hL3
+  have hassoc : H₀ * |x.1 - y.1| ^ θ
+      + |p.χ₀| * ((gbase * CQ * UB_Q) * |x.1 - y.1| ^ θ)
+      + (base * CL * UB_L) * |x.1 - y.1| ^ θ
+      = H₀ * |x.1 - y.1| ^ θ
+        + |p.χ₀| * (gbase * CQ * UB_Q) * |x.1 - y.1| ^ θ
+        + base * CL * UB_L * |x.1 - y.1| ^ θ := by ring
+  rw [hassoc] at hsum
+  exact hsum
+
 end ShenWork.Paper2
