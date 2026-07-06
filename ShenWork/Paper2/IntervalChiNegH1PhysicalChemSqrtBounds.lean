@@ -69,6 +69,31 @@ structure H1PhysicalChemResolverSupBefore
         p.β * (deriv (intervalDomainLift (v τ)) x) ^ 2 /
           (1 + intervalDomainLift (v τ) x) ^ (p.β + 1)| ≤ V₂
 
+/-- Explicit source-side bound for the `u v_xx`/denominator-derivative core
+once `u`, `v`, and the resolver gradient have fixed-before-`T` sup bounds. -/
+def H1PhysicalChemUvxxCoreSupConstant (p : CM2Params) (M V G : ℝ) : ℝ :=
+  p.μ * V + p.ν * M ^ p.γ + p.β * G ^ 2
+
+/-- A more primitive fixed-before-`T` source residual: `u` is nonnegative and
+bounded by `M`, `v` is bounded by `V`, and the resolver gradient is bounded by
+`G`.  This is still source-facing; producing these constants uniformly is not
+done here. -/
+structure H1PhysicalChemValueGradSupBefore
+    (p : CM2Params) (u v : ℝ → intervalDomainPoint → ℝ)
+    (T M V G : ℝ) : Prop where
+  hM : 0 ≤ M
+  hV : 0 ≤ V
+  hG : 0 ≤ G
+  u_nonneg_le : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    ∀ x, x ∈ Set.Icc (0 : ℝ) 1 →
+      0 ≤ intervalDomainLift (u τ) x ∧ intervalDomainLift (u τ) x ≤ M
+  v_abs_le : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    ∀ x, x ∈ Set.Icc (0 : ℝ) 1 →
+      |intervalDomainLift (v τ) x| ≤ V
+  resolver_grad_le : ∀ τ, τ ∈ Set.Ioo (0 : ℝ) T →
+    ∀ x, x ∈ Set.Icc (0 : ℝ) 1 →
+      |resolverGradReal p (u τ) x| ≤ G
+
 private theorem H1PhysicalChemTaxisPart_le_of_resolverGrad
     {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
     {T V₁ τ x : ℝ}
@@ -146,6 +171,133 @@ private theorem H1PhysicalChemUvxxPart_le_of_core
     _ ≤ M * V₂ :=
         mul_le_mul hu hcore_bound (abs_nonneg core) hM
 
+private theorem H1PhysicalChemUvxxCore_le_of_valueGradSup
+    {p : CM2Params} {u v : ℝ → intervalDomainPoint → ℝ}
+    {T M V G τ x : ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    (hx : x ∈ Set.Icc (0 : ℝ) 1)
+    (hM : 0 ≤ M) (hV : 0 ≤ V) (hG : 0 ≤ G)
+    (hu : 0 ≤ intervalDomainLift (u τ) x ∧
+      intervalDomainLift (u τ) x ≤ M)
+    (hv : |intervalDomainLift (v τ) x| ≤ V)
+    (hg : |resolverGradReal p (u τ) x| ≤ G) :
+    |(p.μ * intervalDomainLift (v τ) x -
+        p.ν * (intervalDomainLift (u τ) x) ^ p.γ) /
+        (1 + intervalDomainLift (v τ) x) ^ p.β -
+      p.β * (deriv (intervalDomainLift (v τ)) x) ^ 2 /
+        (1 + intervalDomainLift (v τ) x) ^ (p.β + 1)|
+      ≤ H1PhysicalChemUvxxCoreSupConstant p M V G := by
+  set U : ℝ := intervalDomainLift (u τ) x with hU
+  set W : ℝ := intervalDomainLift (v τ) x with hW
+  set vx : ℝ := deriv (intervalDomainLift (v τ)) x with hvx
+  set denβ : ℝ := (1 + W) ^ p.β with hdenβ
+  set denβ1 : ℝ := (1 + W) ^ (p.β + 1) with hdenβ1
+  have hvx_eq : vx = resolverGradReal p (u τ) x := by
+    rw [hvx]
+    exact solution_lift_v_deriv_eq_resolverGrad_Icc hsol hτ hx
+  have hg_vx : |vx| ≤ G := by
+    simpa [hvx_eq] using hg
+  have hW_nonneg : 0 ≤ W := by
+    rw [hW]
+    exact solution_lift_v_nonneg_Icc hsol hτ x hx
+  have hbase : 1 ≤ 1 + W := by linarith
+  have hdenβ_ge : 1 ≤ denβ := by
+    rw [hdenβ]
+    exact Real.one_le_rpow hbase p.hβ
+  have hdenβ1_ge : 1 ≤ denβ1 := by
+    rw [hdenβ1]
+    exact Real.one_le_rpow hbase (by linarith [p.hβ] : 0 ≤ p.β + 1)
+  have hdenβ_pos : 0 < denβ := lt_of_lt_of_le zero_lt_one hdenβ_ge
+  have hdenβ1_pos : 0 < denβ1 := lt_of_lt_of_le zero_lt_one hdenβ1_ge
+  have hUpow_nonneg : 0 ≤ U ^ p.γ := Real.rpow_nonneg hu.1 p.γ
+  have hUpow_le : U ^ p.γ ≤ M ^ p.γ :=
+    Real.rpow_le_rpow hu.1 hu.2 p.hγ.le
+  have hUpow_abs_le : |U ^ p.γ| ≤ M ^ p.γ := by
+    rw [abs_of_nonneg hUpow_nonneg]
+    exact hUpow_le
+  have hMpow_nonneg : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM p.γ
+  have hnum₁ :
+      |p.μ * W - p.ν * U ^ p.γ| ≤ p.μ * V + p.ν * M ^ p.γ := by
+    calc
+      |p.μ * W - p.ν * U ^ p.γ|
+          = |p.μ * W + -(p.ν * U ^ p.γ)| := by rw [sub_eq_add_neg]
+      _ ≤ |p.μ * W| + |-(p.ν * U ^ p.γ)| := abs_add_le _ _
+      _ = |p.μ * W| + |p.ν * U ^ p.γ| := by rw [abs_neg]
+      _ = p.μ * |W| + p.ν * |U ^ p.γ| := by
+          rw [abs_mul, abs_mul, abs_of_nonneg p.hμ.le,
+            abs_of_nonneg p.hν.le]
+      _ ≤ p.μ * V + p.ν * M ^ p.γ :=
+          add_le_add
+            (mul_le_mul_of_nonneg_left (by simpa [W, hW] using hv) p.hμ.le)
+            (mul_le_mul_of_nonneg_left hUpow_abs_le p.hν.le)
+  have hnum₁_nonneg : 0 ≤ p.μ * V + p.ν * M ^ p.γ :=
+    add_nonneg (mul_nonneg p.hμ.le hV) (mul_nonneg p.hν.le hMpow_nonneg)
+  have hterm₁ :
+      |(p.μ * W - p.ν * U ^ p.γ) / denβ|
+        ≤ p.μ * V + p.ν * M ^ p.γ := by
+    calc
+      |(p.μ * W - p.ν * U ^ p.γ) / denβ|
+          = |p.μ * W - p.ν * U ^ p.γ| / denβ := by
+              rw [abs_div, abs_of_pos hdenβ_pos]
+      _ ≤ (p.μ * V + p.ν * M ^ p.γ) / denβ :=
+          div_le_div_of_nonneg_right hnum₁ hdenβ_pos.le
+      _ ≤ (p.μ * V + p.ν * M ^ p.γ) / 1 :=
+          div_le_div_of_nonneg_left hnum₁_nonneg zero_lt_one hdenβ_ge
+      _ = p.μ * V + p.ν * M ^ p.γ := by rw [div_one]
+  have hvx_sq_le : vx ^ 2 ≤ G ^ 2 := by
+    calc
+      vx ^ 2 = |vx| ^ 2 := by rw [sq_abs]
+      _ ≤ G ^ 2 := (sq_le_sq₀ (abs_nonneg vx) hG).2 hg_vx
+  have hnum₂ :
+      |p.β * vx ^ 2| ≤ p.β * G ^ 2 := by
+    calc
+      |p.β * vx ^ 2| = p.β * vx ^ 2 := by
+          rw [abs_of_nonneg (mul_nonneg p.hβ (sq_nonneg vx))]
+      _ ≤ p.β * G ^ 2 := mul_le_mul_of_nonneg_left hvx_sq_le p.hβ
+  have hnum₂_nonneg : 0 ≤ p.β * G ^ 2 :=
+    mul_nonneg p.hβ (sq_nonneg G)
+  have hterm₂ :
+      |p.β * vx ^ 2 / denβ1| ≤ p.β * G ^ 2 := by
+    calc
+      |p.β * vx ^ 2 / denβ1|
+          = |p.β * vx ^ 2| / denβ1 := by
+              rw [abs_div, abs_of_pos hdenβ1_pos]
+      _ ≤ (p.β * G ^ 2) / denβ1 :=
+          div_le_div_of_nonneg_right hnum₂ hdenβ1_pos.le
+      _ ≤ (p.β * G ^ 2) / 1 :=
+          div_le_div_of_nonneg_left hnum₂_nonneg zero_lt_one hdenβ1_ge
+      _ = p.β * G ^ 2 := by rw [div_one]
+  have hsum :
+      |(p.μ * W - p.ν * U ^ p.γ) / denβ -
+          p.β * vx ^ 2 / denβ1| ≤
+        |(p.μ * W - p.ν * U ^ p.γ) / denβ| +
+          |p.β * vx ^ 2 / denβ1| := by
+    calc
+      |(p.μ * W - p.ν * U ^ p.γ) / denβ -
+          p.β * vx ^ 2 / denβ1|
+          = |(p.μ * W - p.ν * U ^ p.γ) / denβ +
+              -(p.β * vx ^ 2 / denβ1)| := by rw [sub_eq_add_neg]
+      _ ≤ |(p.μ * W - p.ν * U ^ p.γ) / denβ| +
+            |-(p.β * vx ^ 2 / denβ1)| := abs_add_le _ _
+      _ = |(p.μ * W - p.ν * U ^ p.γ) / denβ| +
+            |p.β * vx ^ 2 / denβ1| := by rw [abs_neg]
+  calc
+    |(p.μ * intervalDomainLift (v τ) x -
+        p.ν * (intervalDomainLift (u τ) x) ^ p.γ) /
+        (1 + intervalDomainLift (v τ) x) ^ p.β -
+      p.β * (deriv (intervalDomainLift (v τ)) x) ^ 2 /
+        (1 + intervalDomainLift (v τ) x) ^ (p.β + 1)|
+        = |(p.μ * W - p.ν * U ^ p.γ) / denβ -
+            p.β * vx ^ 2 / denβ1| := by
+          simp [U, W, vx, denβ, denβ1]
+    _ ≤ |(p.μ * W - p.ν * U ^ p.γ) / denβ| +
+          |p.β * vx ^ 2 / denβ1| := hsum
+    _ ≤ (p.μ * V + p.ν * M ^ p.γ) + p.β * G ^ 2 :=
+        add_le_add hterm₁ hterm₂
+    _ = H1PhysicalChemUvxxCoreSupConstant p M V G := by
+        simp [H1PhysicalChemUvxxCoreSupConstant, add_assoc]
+
 /-- Fixed-before-`T` resolver/core sup data lower to the source-side physical
 chemotaxis factor bounds. -/
 theorem H1PhysicalChemFactorBoundsBefore_of_resolverSup
@@ -173,6 +325,42 @@ theorem H1PhysicalChemFactorBoundsBefore_of_resolverSup
         (V₂ := V₂) (M := M) (τ := τ) (x := x)
         h.hM (h.u_abs_le τ hτ x hx)
         (h.uvxx_core_le τ hτ x hx)
+
+/-- Fixed-before-`T` value/gradient sup data lower to the resolver/core residual
+needed by the physical H¹ sqrt route. -/
+theorem H1PhysicalChemResolverSupBefore_of_valueGradSup
+    {p : CM2Params} {T M V G : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (h : H1PhysicalChemValueGradSupBefore p u v T M V G) :
+    H1PhysicalChemResolverSupBefore p u v T G
+      (H1PhysicalChemUvxxCoreSupConstant p M V G) M := by
+  refine
+    { hV1 := h.hG
+      hV2 := ?_
+      hM := h.hM
+      u_abs_le := ?_
+      resolver_grad_le := h.resolver_grad_le
+      uvxx_core_le := ?_ }
+  · exact
+      add_nonneg
+        (add_nonneg
+          (mul_nonneg p.hμ.le h.hV)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg h.hM p.γ)))
+        (mul_nonneg p.hβ (sq_nonneg G))
+  · intro τ hτ x hx
+    have hu := h.u_nonneg_le τ hτ x hx
+    rw [abs_of_nonneg hu.1]
+    exact hu.2
+  · intro τ hτ x hx
+    exact
+      H1PhysicalChemUvxxCore_le_of_valueGradSup
+        (p := p) (T := T) (M := M) (V := V) (G := G)
+        (u := u) (v := v) hsol hτ hx
+        h.hM h.hV h.hG
+        (h.u_nonneg_le τ hτ x hx)
+        (h.v_abs_le τ hτ x hx)
+        (h.resolver_grad_le τ hτ x hx)
 
 private theorem continuousOn_slice_of_uncurry
     {F : ℝ → ℝ → ℝ} {r : ℝ} {s : Set ℝ}
@@ -569,7 +757,9 @@ theorem H1PhysicalRHSSqrtBoundsBefore_of_classical_resolverSup
 
 #print axioms H1PhysicalChemTaxisPart_le_of_resolverGrad
 #print axioms H1PhysicalChemUvxxPart_le_of_core
+#print axioms H1PhysicalChemUvxxCore_le_of_valueGradSup
 #print axioms H1PhysicalChemFactorBoundsBefore_of_resolverSup
+#print axioms H1PhysicalChemResolverSupBefore_of_valueGradSup
 #print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_factorBounds
 #print axioms H1PhysicalRHSSqrtBoundsBefore_of_classical_factorBounds
 #print axioms H1PhysicalChemL2SqrtBoundDataBefore_of_classical_resolverSup
