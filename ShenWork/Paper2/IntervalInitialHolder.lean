@@ -164,6 +164,29 @@ theorem addCircle_two_foldPoint_translate_contract_real
   have hxy := addCircle_two_dist_coe_eq_abs_Icc x.2 y.2
   simpa [addCircleTwoFoldPoint, htrans, hxy] using hrev
 
+/-- Fold the common period-2 translate of an interval point back to `[0,1]`. -/
+noncomputable def addCircleTwoFoldTranslatePoint
+    (x : intervalDomainPoint) (z : ℝ) : intervalDomainPoint :=
+  addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))
+
+/-- Coupling map induced by folding the same period-2 noise from two starting
+points. -/
+noncomputable def addCircleTwoFoldCouplingMap
+    (x y : intervalDomainPoint) (z : ℝ) : ℝ × ℝ :=
+  ((addCircleTwoFoldTranslatePoint x z).1, (addCircleTwoFoldTranslatePoint y z).1)
+
+/-- The folded common-noise coupling map is Borel-measurable. -/
+theorem addCircleTwoFoldCouplingMap_measurable
+    (x y : intervalDomainPoint) : Measurable (addCircleTwoFoldCouplingMap x y) := by
+  unfold addCircleTwoFoldCouplingMap addCircleTwoFoldTranslatePoint
+  exact (Continuous.prodMk
+    (Continuous.dist
+      ((AddCircle.continuous_mk' (2 : ℝ)).comp (continuous_const.add continuous_id))
+      continuous_const)
+    (Continuous.dist
+      ((AddCircle.continuous_mk' (2 : ℝ)).comp (continuous_const.add continuous_id))
+      continuous_const)).measurable
+
 /-- Common folded-noise interface for the reflected Neumann heat leg.  A
 producer should supply one noise law `ν` such that folding the same translated
 period-2 noise from `x` and `y` gives the two semigroup values.  This file only
@@ -184,6 +207,50 @@ structure NeumannHeatCommonFoldNoiseFor
     intervalFullSemigroupOperator t f y.1 =
       ∫ z : ℝ,
         f (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 ∂ν
+
+/-- Push a common folded-noise witness forward to the existing contractive
+coupling interface.  The extra measurability assumption is deliberately
+explicit: the common-noise witness controls the two pulled-back integrands, but
+for arbitrary `f` it does not by itself make the pushforward difference function
+strongly measurable off the range of the coupling map. -/
+noncomputable def NeumannHeatContractiveCouplingFor_of_common_fold_noise
+    {t : ℝ} {x y : intervalDomainPoint} {f : ℝ → ℝ}
+    (H : NeumannHeatCommonFoldNoiseFor t x y f)
+    (hdiff_sm : AEStronglyMeasurable
+      (fun z : ℝ × ℝ => f z.1 - f z.2)
+      (Measure.map (addCircleTwoFoldCouplingMap x y) H.ν)) :
+    NeumannHeatContractiveCouplingFor t x y f := by
+  let pair : ℝ → ℝ × ℝ := addCircleTwoFoldCouplingMap x y
+  have hpair_meas : Measurable pair := addCircleTwoFoldCouplingMap_measurable x y
+  have hpair_aem : AEMeasurable pair H.ν := hpair_meas.aemeasurable
+  haveI : IsProbabilityMeasure H.ν := H.prob
+  have hcomp_int : Integrable
+      ((fun z : ℝ × ℝ => f z.1 - f z.2) ∘ pair) H.ν := by
+    change Integrable (fun z : ℝ =>
+      f (addCircleTwoFoldPoint (((x.1 + z : ℝ) : AddCircle (2 : ℝ)))).1 -
+      f (addCircleTwoFoldPoint (((y.1 + z : ℝ) : AddCircle (2 : ℝ)))).1) H.ν
+    exact H.fx_integrable.sub H.fy_integrable
+  have hmap_int : Integrable (fun z : ℝ × ℝ => f z.1 - f z.2)
+      (Measure.map pair H.ν) :=
+    (integrable_map_measure hdiff_sm hpair_aem).2 hcomp_int
+  refine
+    { μ := Measure.map pair H.ν
+      prob := ?_
+      support := ?_
+      dist_le := ?_
+      diff_integrable := hmap_int
+      semigroup_diff_eq := ?_ }
+  · exact Measure.isProbabilityMeasure_map hpair_aem
+  · rw [ae_map_iff hpair_aem (by measurability)]
+    filter_upwards with z
+    simp [pair, addCircleTwoFoldCouplingMap]
+  · rw [ae_map_iff hpair_aem (by measurability)]
+    filter_upwards with z
+    simpa [pair, addCircleTwoFoldCouplingMap, addCircleTwoFoldTranslatePoint] using
+      addCircle_two_foldPoint_translate_contract_real x y z
+  · rw [H.sx_eq, H.sy_eq, ← integral_sub H.fx_integrable H.fy_integrable]
+    rw [integral_map hpair_aem hdiff_sm]
+    simp [pair, addCircleTwoFoldCouplingMap, addCircleTwoFoldTranslatePoint]
 
 /-- A common folded-noise representation preserves the initial Holder modulus
 for the homogeneous Neumann heat leg.  The proof uses only the deterministic
