@@ -1,5 +1,25 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 316: Direct conjugate/B-form `hpde_u` provider (2026-07-07)
+
+Q3792 audited the formulation itself: the old `IntervalGradientDuhamelMap`
+operator is not the Neumann divergence-source mild formulation for the PDE
+source `-χ ∂x Q`.  On the interval, `∂x K_N` and `-∂y K_N` are different kernel
+directions, so the correct PDE route should use
+`IntervalConjugateDuhamelMap.IntervalConjugateMildSolution` and the B-form
+source representation, not a conversion through `GradientMildSolutionData` or
+`hgradB`.
+
+`IntervalConjugatePdeUProvider.lean` adds
+`hpde_u_of_conjugatePicardLimit_open_sourceBridgeRepresentativeSubtypeLogisticData`.
+It composes Task313's endpoint-safe conjugate Picard `hB_global` producer with
+Task311's `hpde_u_of_bForm_global_generalChi` consumer.  The source split for
+`bFormSourceCoeffs` is definitional; the proof carries the same explicit
+source/time-C1, summability, integrability, and Fourier-data hypotheses as the
+two honest upstream producers.  This is a core PDE provider for the conjugate
+Picard/B-form route, not another headline alias and not an unconditional final
+theorem.
+
 ## Task 315: Integrated Ktilde identity for gradient mild data (2026-07-06)
 
 `IntervalGradientKtildeDuhamel.lean` adds the positive replacement for the false
