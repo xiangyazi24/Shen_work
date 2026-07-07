@@ -1,5 +1,26 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 312: Endpoint-insensitive B-kernel source bridge (2026-07-06)
+
+`IntervalSourceBridgeOpenRepresentative.lean` removes the remaining false
+closed-endpoint source-continuity input from the B-kernel source bridge.  The
+new normalized IBP theorem
+`cosineCoeffs_deriv_eq_sqrtLambda_sineCoeff_open_integrable` only requires the
+derivative representative to be interval-integrable on `[0,1]`.  This lets
+`divMode_of_sliceC1_open_representative` prove the divergence-mode identity from
+a continuous-on-`Icc` representative that agrees with the literal
+`coupledChemDivSourceLift` only on the open interior, using the endpoint-blind
+`BankChemSliceFix.cosineCoeffs_congr_on_Ioo`.
+
+The file then exposes `source_bridge_slice_open_representative` and
+`conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeData`.  These
+are the B-kernel analogues of the Task309/310 representative route: they still
+carry honest flux/logistic continuity, coefficient bounds, integrability, and
+within-interior derivative data, but they no longer ask for
+`Continuous (coupledChemDivSourceLift ...)` on the zero extension.  This is a
+core producer toward the Task311 global B-form `Hsource` route, not a headline
+alias.
+
 ## Task 311: General-chi `hpde_u` source producers (2026-07-06)
 
 `IntervalDomainPdeUGeneralChiProvider.lean` adds
