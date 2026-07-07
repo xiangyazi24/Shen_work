@@ -1,5 +1,29 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 322: Conjugate B-form/logistic source `TimeC1On` producers (2026-07-07)
+
+`IntervalConjugateBFormSourceTimeC1On.lean` adds a direct producer for the
+B-form bank's `hsrcBDirect` shape.  It instantiates the existing generic
+`ChemDivSolutionRegularityResidual` chain at
+`conjugatePicardLimit p u₀ T`, producing the chem-div source
+`DuhamelSourceTimeC1On`, then combines it with a carried logistic source
+`DuhamelSourceTimeC1On` via `bFormSource_duhamelSourceTimeC1On`.
+
+`IntervalConjugateLogisticLimitSourceTimeC1On.lean` adds the corresponding
+limit-passage producer for the logistic half:
+`conjLogSourceTimeC1On_limit_of_uniformLimit` applies the committed
+`duhamelSourceTimeC1On_of_uniform_limit` theorem to conjugate Picard iterates on
+an arbitrary closed window `[lo, hi]`, consuming iterate source packages,
+coefficient convergence, derivative uniform convergence, and common summable
+source/derivative bounds.
+
+This is not a headline wrapper.  It lowers `hsrcBDirect` to real analytic
+frontiers: the conjugate-iterate logistic source tower/uniform-limit data plus
+the chem-div regularity residual for the same trajectory.  Q3797 also flagged a
+remaining endpoint issue for the canonical window `[0, T]`: since
+`conjugatePicardLimit` is defined to be zero at time `0`, using the theorem at
+`lo = 0` needs a separate endpoint-compatibility argument.
+
 ## Task 321: B-form bank `Hinf` producer (2026-07-07)
 
 `IntervalBFormBankHinfProducer.lean` closes the B-form bank's `Hinf` field from
