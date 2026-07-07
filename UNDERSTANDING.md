@@ -1,5 +1,25 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 317: Windowed B-form source `hpde_u` producer (2026-07-07)
+
+`IntervalDomainPdeUGeneralChiProviderOn.lean` adds the window-local analogue of
+Task311's global B-form source producer:
+`Hsource_of_bForm_global_generalChiOn` and
+`hpde_u_of_bForm_global_generalChiOn`.  The input source regularity is now
+`DuhamelSourceTimeC1On aB 0 T`, matching the banked B-form route, rather than a
+global `DuhamelSourceTimeC1 aB`.
+
+The proof derives the missing restart summability from the homogeneous
+eigenvalue estimate plus
+`duhamelSpectralCoeff_eigenvalue_summable_on`, extracts the restart base
+coefficients from the global B-form cosine representation, and shifts the
+windowed source package from `[0,T]` to the half-step restart window
+`[0,T - t0/2]`.  It then feeds the existing
+`hpde_u_of_generalChi_sourceSpectralDataOn` consumer.  This is a genuine input
+lowering for Task316/Task311 surfaces, not a headline theorem and not a route
+through `GradientMildSolutionData`, `hgradB`, `IsPaper2ClassicalSolution`, or
+regularity bootstrap.
+
 ## Task 316: Direct conjugate/B-form `hpde_u` provider (2026-07-07)
 
 Q3792 audited the formulation itself: the old `IntervalGradientDuhamelMap`
