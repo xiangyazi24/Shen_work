@@ -1,5 +1,18 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 284: Chi-nonpositive reduced-core-data headline alias (2026-07-06)
+
+`IntervalDomainChiNonposHeadline.lean` now also exposes
+`paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_reducedCoreData`.
+The zero branch remains the unconditional chi-zero theorem; the strict-negative
+branch calls the landed
+`ChiNegResidual.theorem_1_1_intervalDomain_chiNeg_of_reducedCoreData`, which
+pushes the primitive local-existence residual through resolver estimates plus
+`CoupledDuhamelReducedClassicalCore` data.  This is a real narrowing of the
+route-facing negative hypothesis, but it is still conditional on supplying
+`CoupledFluxResolverReducedCoreData` whenever the strict-negative branch is
+entered.
+
 ## Task 283: Paper2 chi-nonpositive public headline aliases (2026-07-06)
 
 `IntervalDomainChiNonposHeadline.lean` exposes three public statement-layer
