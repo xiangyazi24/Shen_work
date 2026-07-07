@@ -28,3 +28,22 @@ theorem paper2_theorem_1_1_chiZero_headline
 #print axioms paper2_theorem_1_1_chiZero_headline
 
 end ShenWork.Paper2.ConeQuantBridge
+
+namespace ShenWork.Paper2
+
+/-- Public statement-layer name for the current chi-zero interval-domain
+headline.
+
+Scope: `intervalDomain`, chi-zero, strict logistic regime `0 < a`, `0 < b`,
+and `1 <= alpha`, `1 <= gamma`. This is not the general chi-nonpositive
+Paper2 theorem. -/
+theorem paper2_theorem_1_1_intervalDomain_chiZero_strictLogistic
+    (p : CM2Params) (hchi0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ) :
+    Theorem_1_1 intervalDomain p :=
+  ConeQuantBridge.paper2_theorem_1_1_chiZero_headline
+    p hchi0 ha hb halpha hgamma
+
+#print axioms paper2_theorem_1_1_intervalDomain_chiZero_strictLogistic
+
+end ShenWork.Paper2

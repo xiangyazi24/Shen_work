@@ -1,5 +1,15 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 280: Paper2 top-level chi-zero strict-logistic alias (2026-07-06)
+
+`IntervalDomainChiZeroHeadline.lean` now also exposes
+`paper2_theorem_1_1_intervalDomain_chiZero_strictLogistic` directly under the
+main `ShenWork.Paper2` namespace.  It is a public statement-layer alias to the
+Task277 cone/tower headline, not a new proof route.  The scope remains the
+chi-zero interval-domain strict-logistic fragment with `0 < p.a`, `0 < p.b`,
+`1 ≤ p.α`, and `1 ≤ p.γ`; it does not claim the general chi-nonpositive theorem
+or degenerate logistic parameters.
+
 ## Task 279: Chi-nonpositive split via faithful negative frontier (2026-07-06)
 
 `IntervalDomainTheorem11ChiNonposFaithfulSplit.lean` exposes a general
