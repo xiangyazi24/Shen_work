@@ -1,5 +1,22 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 318: Public restart-coefficient summability producer (2026-07-07)
+
+`IntervalBFormRestartCoeffSummability.lean` extracts the absolute summability of
+restart coefficients from bounded initial cosine coefficients plus source
+time-regularity.  The main theorem
+`localRestartCoeff_abs_summable_of_sourceC1On` is the window-local form; the file
+also exposes global and conjugate-Picard B-form corollaries.  This proof is
+upstream of the PDE identity: it uses only the homogeneous heat trace summability,
+the `DuhamelSourceTimeC1On` envelope, and the triangle inequality.
+
+`IntervalConjugatePdeUProvider.lean` no longer carries
+`hB_global_summable` as an external hypothesis.  Its direct conjugate/B-form
+`hpde_u` theorem derives that summability internally from the already-assumed
+global B-form source `DuhamelSourceTimeC1` and the initial coefficient bound.
+This reduces a visible Task316 analytic premise; it does not close the remaining
+source/time-C1, source-bridge side-condition, or Fourier-package producers.
+
 ## Task 317: Windowed B-form source `hpde_u` producer (2026-07-07)
 
 `IntervalDomainPdeUGeneralChiProviderOn.lean` adds the window-local analogue of

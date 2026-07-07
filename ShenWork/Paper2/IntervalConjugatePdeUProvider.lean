@@ -9,6 +9,7 @@
 -/
 import ShenWork.Paper2.IntervalSourceBridgeOpenRepresentative
 import ShenWork.Paper2.IntervalDomainPdeUGeneralChiProvider
+import ShenWork.Paper2.IntervalBFormRestartCoeffSummability
 
 open MeasureTheory Set Filter Topology
 open scoped Topology
@@ -49,10 +50,6 @@ theorem hpde_u_of_conjugatePicardLimit_open_sourceBridgeRepresentativeSubtypeLog
     (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀)
     (hsrcB : DuhamelSourceTimeC1
       (bFormSourceCoeffs p (conjugatePicardLimit p u₀ T)))
-    (hB_global_summable : ∀ t, 0 < t → t ≤ T →
-      Summable (fun n =>
-        |localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
-          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ T)) t n|))
     (hB_int : ∀ t, 0 < t → t ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
       IntervalIntegrable
         (fun s : ℝ => intervalConjugateKernelOperator (t - s)
@@ -120,6 +117,12 @@ theorem hpde_u_of_conjugatePicardLimit_open_sourceBridgeRepresentativeSubtypeLog
           - p.χ₀ * coupledChemDivSourceCoeffs p u σ n := by
     intro σ _hσ _hσT n
     rfl
+  have hB_global_summable : ∀ t, 0 < t → t ≤ T →
+      Summable (fun n =>
+        |localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+          (bFormSourceCoeffs p (conjugatePicardLimit p u₀ T)) t n|) :=
+    ShenWork.Paper2.BFormRestartCoeffSummability.conjugatePicardLimit_B_global_summable_of_sourceC1
+        hsrcB hu₀_bound
   simpa [u] using
     hpde_u_of_bForm_global_generalChi
       (p := p) (T := T) (u := u)
