@@ -55,6 +55,56 @@ theorem sineCoeffs_eqOn_Icc {f g : ℝ → ℝ}
       Real.sin ((n : ℝ) * Real.pi * x) * g x
     rw [h hx]
 
+private theorem intervalIntegral_congr_eqOn_Ioo_zero_one
+    {F G : ℝ → ℝ} (h : Set.EqOn F G (Set.Ioo (0 : ℝ) 1)) :
+    (∫ y in (0 : ℝ)..1, F y) = ∫ y in (0 : ℝ)..1, G y := by
+  refine intervalIntegral.integral_congr_ae ?_
+  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  filter_upwards
+    [(MeasureTheory.Ioo_ae_eq_Ioc
+      (a := (0 : ℝ)) (b := 1) (μ := volume)).symm] with y hy hyIoc
+  exact h (hy.mp hyIoc)
+
+private theorem ae_eqOn_Ioo_restrict_uIoc_zero_one
+    {F G : ℝ → ℝ} (h : Set.EqOn F G (Set.Ioo (0 : ℝ) 1)) :
+    F =ᵐ[volume.restrict (Set.uIoc (0 : ℝ) 1)] G := by
+  rw [Set.uIoc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  refine (MeasureTheory.ae_restrict_iff' measurableSet_Ioc).2 ?_
+  filter_upwards
+    [(MeasureTheory.Ioo_ae_eq_Ioc
+      (a := (0 : ℝ)) (b := 1) (μ := volume)).symm] with y hy hyIoc
+  exact h (hy.mp hyIoc)
+
+theorem sineCoeffs_eqOn_Ioo {f g : ℝ → ℝ}
+    (h : Set.EqOn f g (Set.Ioo (0 : ℝ) 1)) :
+    sineCoeffs f = sineCoeffs g := by
+  funext n
+  simp only [sineCoeffs]
+  split_ifs with hn
+  · rfl
+  · congr 1
+    exact intervalIntegral_congr_eqOn_Ioo_zero_one
+      (F := fun x => Real.sin ((n : ℝ) * Real.pi * x) * f x)
+      (G := fun x => Real.sin ((n : ℝ) * Real.pi * x) * g x)
+      (fun x hx => by
+        change Real.sin ((n : ℝ) * Real.pi * x) * f x =
+          Real.sin ((n : ℝ) * Real.pi * x) * g x
+        rw [h hx])
+
+private theorem ktilde_integral_congr_eqOn_Ioo
+    {t x : ℝ} {f g : ℝ → ℝ}
+    (h : Set.EqOn f g (Set.Ioo (0 : ℝ) 1)) :
+    (∫ y in (0 : ℝ)..1, f y * intervalNeumannConjugateKernel t x y)
+      =
+    ∫ y in (0 : ℝ)..1, g y * intervalNeumannConjugateKernel t x y := by
+  exact intervalIntegral_congr_eqOn_Ioo_zero_one
+    (F := fun y => f y * intervalNeumannConjugateKernel t x y)
+    (G := fun y => g y * intervalNeumannConjugateKernel t x y)
+    (fun y hy => by
+      change f y * intervalNeumannConjugateKernel t x y =
+        g y * intervalNeumannConjugateKernel t x y
+      rw [h hy])
+
 private theorem continuous_subtype_of_continuousOn_Icc {f : ℝ → ℝ}
     (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1)) :
     Continuous (fun x : intervalDomainPoint => f x.1) := by
@@ -401,6 +451,47 @@ theorem ktilde_source_integral_eq_sineHeatValue_open_of_continuousOn
   rw [hint, hsine]
   exact ktilde_source_integral_eq_sineHeatValue_open ht hfext hx
 
+/-- Endpoint-insensitive Ktilde-to-sine value theorem.
+
+Only the values on `(0,1)` matter for the interval integral and sine
+coefficients.  Thus a source that agrees on `(0,1)` with a continuous
+closed-interval representative has the same Ktilde/sine value, without asking
+the zero-extended source itself to be continuous at the endpoints. -/
+theorem ktilde_source_integral_eq_sineHeatValue_open_of_Ioo_eq_continuousOn
+    {t : ℝ} (ht : 0 < t) {f g : ℝ → ℝ}
+    (hg : ContinuousOn g (Set.Icc (0 : ℝ) 1))
+    (hfg : Set.EqOn f g (Set.Ioo (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    -(∫ y in (0 : ℝ)..1,
+        f y * intervalNeumannConjugateKernel t x y)
+      = unitIntervalSineHeatValue t (sineCoeffs f) x := by
+  have hint :
+      (∫ y in (0 : ℝ)..1,
+          f y * intervalNeumannConjugateKernel t x y)
+        =
+      ∫ y in (0 : ℝ)..1,
+          g y * intervalNeumannConjugateKernel t x y :=
+    ktilde_integral_congr_eqOn_Ioo (t := t) (x := x) hfg
+  have hsine : sineCoeffs f = sineCoeffs g := sineCoeffs_eqOn_Ioo hfg
+  rw [hint, hsine]
+  exact ktilde_source_integral_eq_sineHeatValue_open_of_continuousOn
+    (t := t) ht (f := g) hg hx
+
+/-- A source that agrees on `(0,1)` with a continuous closed-interval
+representative is interval-integrable on `[0,1]`.  This is the source-side
+integrability needed by the open IBP theorem, without endpoint continuity of
+the zero extension. -/
+theorem intervalIntegrable_of_Ioo_eq_continuousOn
+    {f g : ℝ → ℝ}
+    (hg : ContinuousOn g (Set.Icc (0 : ℝ) 1))
+    (hfg : Set.EqOn f g (Set.Ioo (0 : ℝ) 1)) :
+    IntervalIntegrable f volume (0 : ℝ) 1 := by
+  have hg_int : IntervalIntegrable g volume (0 : ℝ) 1 := by
+    exact (by
+      rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] :
+        ContinuousOn g (Set.uIcc (0 : ℝ) 1)).intervalIntegrable
+  exact hg_int.congr_ae (ae_eqOn_Ioo_restrict_uIoc_zero_one hfg).symm
+
 /-- Classical-solution producer for the open chemotaxis-flux derivative input
 used by the slice bridge below.  The derivative theorem is the existing
 physical flux statement; this lemma only rewrites its `deriv (lift resolver)`
@@ -578,6 +669,112 @@ theorem gradient_source_bridge_slice_open_continuousOn
     simp [coupledLogisticSourceCoeffs, coupledLogisticSourceLift, logisticLifted]
   rw [hgrad, hlog, ← hlog_coeff]
 
+/-- Endpoint-insensitive representative version of the per-slice
+gradient-source bridge.
+
+The chem-div source itself only needs interval integrability.  Its endpoint
+behavior is ignored by the kernel integral and sine coefficients, provided it
+agrees on `(0,1)` with a continuous closed-interval representative. -/
+theorem gradient_source_bridge_slice_open_representative
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {r x s : ℝ} (hr : 0 < r) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hchem_meas : AEStronglyMeasurable (chemFluxLifted p (u s)) (intervalMeasure 1))
+    (hchem_cont : ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1))
+    {Cchem : ℝ}
+    (hchem_bound : ∀ y : ℝ, |chemFluxLifted p (u s) y| ≤ Cchem)
+    (hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y)
+    (hdiv_int :
+      IntervalIntegrable (coupledChemDivSourceLift p u s) volume (0 : ℝ) 1)
+    {Gdiv : ℝ → ℝ}
+    (hdiv_rep_cont : ContinuousOn Gdiv (Set.Icc (0 : ℝ) 1))
+    (hdiv_rep_eq :
+      Set.EqOn (coupledChemDivSourceLift p u s) Gdiv (Set.Ioo (0 : ℝ) 1))
+    (hlog_cont : Continuous (intervalLogisticSource p (u s)))
+    {Mlog : ℝ}
+    (hlog_bound : ∀ n, |cosineCoeffs (logisticLifted p (u s)) n| ≤ Mlog) :
+    (-p.χ₀) *
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x
+      + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      =
+    (-p.χ₀) *
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x
+      + unitIntervalCosineHeatValue r
+          (coupledLogisticSourceCoeffs p u s) x := by
+  have hgrad_kernel :=
+    deriv_intervalFullSemigroupOperator_eq_neg_conjugateKernel_source_integral_open
+      hr hchem_meas hchem_bound hchem_cont hQderiv hdiv_int x
+  have hktilde :=
+    ktilde_source_integral_eq_sineHeatValue_open_of_Ioo_eq_continuousOn
+      (t := r) hr (f := coupledChemDivSourceLift p u s) (g := Gdiv)
+      hdiv_rep_cont hdiv_rep_eq hx
+  have hgrad :
+      deriv (fun z : ℝ =>
+        intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x =
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x := by
+    rw [hgrad_kernel, hktilde]
+  have hlog_bound' :
+      ∀ n, |cosineCoeffs (intervalDomainLift (intervalLogisticSource p (u s))) n|
+        ≤ Mlog := by
+    simpa [logisticLifted] using hlog_bound
+  have hlog :
+      intervalFullSemigroupOperator r (logisticLifted p (u s)) x =
+        unitIntervalCosineHeatValue r
+          (cosineCoeffs (logisticLifted p (u s))) x := by
+    have hraw :=
+      intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+        (t := r) hr (f := intervalLogisticSource p (u s)) hlog_cont
+        hlog_bound' (Set.Ioo_subset_Icc_self hx)
+    simpa [logisticLifted] using hraw
+  have hlog_coeff :
+      coupledLogisticSourceCoeffs p u s =
+        cosineCoeffs (logisticLifted p (u s)) := by
+    funext n
+    simp [coupledLogisticSourceCoeffs, coupledLogisticSourceLift, logisticLifted]
+  rw [hgrad, hlog, ← hlog_coeff]
+
+/-- Representative version of the slice bridge with source integrability
+derived from the continuous representative. -/
+theorem gradient_source_bridge_slice_open_representative_of_continuousOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {r x s : ℝ} (hr : 0 < r) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hchem_meas : AEStronglyMeasurable (chemFluxLifted p (u s)) (intervalMeasure 1))
+    (hchem_cont : ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1))
+    {Cchem : ℝ}
+    (hchem_bound : ∀ y : ℝ, |chemFluxLifted p (u s) y| ≤ Cchem)
+    (hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y)
+    {Gdiv : ℝ → ℝ}
+    (hdiv_rep_cont : ContinuousOn Gdiv (Set.Icc (0 : ℝ) 1))
+    (hdiv_rep_eq :
+      Set.EqOn (coupledChemDivSourceLift p u s) Gdiv (Set.Ioo (0 : ℝ) 1))
+    (hlog_cont : Continuous (intervalLogisticSource p (u s)))
+    {Mlog : ℝ}
+    (hlog_bound : ∀ n, |cosineCoeffs (logisticLifted p (u s)) n| ≤ Mlog) :
+    (-p.χ₀) *
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x
+      + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      =
+    (-p.χ₀) *
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x
+      + unitIntervalCosineHeatValue r
+          (coupledLogisticSourceCoeffs p u s) x := by
+  have hdiv_int :
+      IntervalIntegrable (coupledChemDivSourceLift p u s) volume (0 : ℝ) 1 :=
+    intervalIntegrable_of_Ioo_eq_continuousOn hdiv_rep_cont hdiv_rep_eq
+  exact gradient_source_bridge_slice_open_representative
+    (p := p) (u := u) (r := r) (x := x) (s := s) hr hx
+    hchem_meas hchem_cont (Cchem := Cchem) hchem_bound hQderiv hdiv_int
+    (Gdiv := Gdiv) hdiv_rep_cont hdiv_rep_eq hlog_cont
+    (Mlog := Mlog) hlog_bound
+
 /-- Classical/ball discharger for the easy inputs of the continuous-on
 gradient-source bridge.  The remaining `hdiv_cont` input is intentionally left
 explicit: it is the genuine chem-div source regularity frontier, not a wrapper
@@ -633,5 +830,65 @@ theorem gradient_source_bridge_slice_open_of_classical_ball
     (p := p) (u := u) (r := r) (x := x) (s := s) hr hx
     hchem_meas hchem_cont (Cchem := Cchem) hchem_bound hQderiv hdiv_cont
     hlog_cont (Mlog := 2 * (M * (p.a + p.b * M ^ p.α))) hlog_bound
+
+/-- Classical/ball discharger for the endpoint-insensitive representative
+bridge.  This removes the false endpoint-continuity burden from the actual
+zero-extended chem-div source: the remaining source obligation is agreement on
+`(0,1)` with a continuous closed-interval representative; interval
+integrability is derived from that representative. -/
+theorem gradient_source_bridge_slice_open_of_classical_ball_representative
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    {M r x s : ℝ} (hr : 0 < r) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u
+      (coupledChemicalConcentration p u))
+    (hs : s ∈ Set.Ioo (0 : ℝ) T)
+    (hu_cont : Continuous (u s))
+    (hu_nonneg : ∀ y : intervalDomainPoint, 0 ≤ u s y)
+    (hM : 0 < M)
+    (hu_bound : ∀ y : intervalDomainPoint, |u s y| ≤ M)
+    {Gdiv : ℝ → ℝ}
+    (hdiv_rep_cont : ContinuousOn Gdiv (Set.Icc (0 : ℝ) 1))
+    (hdiv_rep_eq :
+      Set.EqOn (coupledChemDivSourceLift p u s) Gdiv (Set.Ioo (0 : ℝ) 1)) :
+    (-p.χ₀) *
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x
+      + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      =
+    (-p.χ₀) *
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x
+      + unitIntervalCosineHeatValue r
+          (coupledLogisticSourceCoeffs p u s) x := by
+  have hchem_cont_global :
+      Continuous (chemFluxLifted p (u s)) :=
+    ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+      p hu_cont hu_nonneg
+  have hchem_meas :
+      AEStronglyMeasurable (chemFluxLifted p (u s)) (intervalMeasure 1) :=
+    hchem_cont_global.aestronglyMeasurable
+  have hchem_cont :
+      ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1) :=
+    hchem_cont_global.continuousOn
+  obtain ⟨Cchem, _hCchem_nonneg, hchem_bound⟩ :=
+    ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_bounded_of_continuous
+      p hu_bound hM.le hu_cont hu_nonneg
+  have hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y :=
+    chemFluxLifted_hasDerivWithinAt_coupledChemDivSourceLift_open_of_classical
+      hsol hs
+  have hlog_cont : Continuous (intervalLogisticSource p (u s)) :=
+    intervalLogisticSource_continuous_of_continuous hu_cont
+  have hlog_bound :
+      ∀ n : ℕ,
+        |cosineCoeffs (logisticLifted p (u s)) n| ≤
+          2 * (M * (p.a + p.b * M ^ p.α)) :=
+    logisticLifted_cosineCoeffs_bound_of_ball p hM hu_cont hu_bound
+  exact gradient_source_bridge_slice_open_representative_of_continuousOn
+    (p := p) (u := u) (r := r) (x := x) (s := s) hr hx
+    hchem_meas hchem_cont (Cchem := Cchem) hchem_bound hQderiv
+    (Gdiv := Gdiv) hdiv_rep_cont hdiv_rep_eq hlog_cont
+    (Mlog := 2 * (M * (p.a + p.b * M ^ p.α))) hlog_bound
 
 end ShenWork.Paper2.IntervalGradientSourceBridgeOpen
