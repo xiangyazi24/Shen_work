@@ -2,6 +2,7 @@ import ShenWork.Paper2.IntervalGradientSourceIBPOpen
 import ShenWork.PDE.IntervalSemigroupNeumann
 import ShenWork.PDE.IntervalFullKernelSpectralClean
 import ShenWork.Paper2.IntervalDivergenceModeIdentity
+import ShenWork.Paper2.IntervalMildPicardThreshold
 
 open MeasureTheory intervalIntegral
 open scoped Topology
@@ -15,6 +16,7 @@ open ShenWork.IntervalFullKernelSpectralClean
 open ShenWork.IntervalSemigroupNeumann
 open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalMildPicardThreshold (unitClip unitClip_continuous unitClip_of_mem)
 open ShenWork.Paper2.IntervalDivergenceModeIdentity
 
 /-- The sine-basis heat value on `[0,1]`, with the same heat eigenvalues as the
@@ -23,6 +25,47 @@ def unitIntervalSineHeatValue (t : ℝ) (a : ℕ → ℝ) (x : ℝ) : ℝ :=
   ∑' n : ℕ,
     Real.exp (-t * unitIntervalCosineEigenvalue n) *
       Real.sin ((n : ℝ) * Real.pi * x) * a n
+
+/-- The globally bounded primitive used to feed the full-kernel derivative
+theorem.  It agrees with the usual primitive `∫₀ˣ f` on `[0,1]`, but clips the
+upper endpoint outside `[0,1]`, so it remains bounded on all of `ℝ`. -/
+def clippedPrimitive (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y in (0 : ℝ)..(unitClip x).1, f y
+
+private theorem clippedPrimitive_eq_intervalPrimitive_on_Icc
+    {f : ℝ → ℝ} {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    clippedPrimitive f x = ∫ y in (0 : ℝ)..x, f y := by
+  simp [clippedPrimitive, unitClip_of_mem hx]
+
+private theorem intervalPrimitive_hasDerivAt {f : ℝ → ℝ} (hf : Continuous f) (x : ℝ) :
+    HasDerivAt (fun z : ℝ => ∫ y in (0 : ℝ)..z, f y) (f x) x :=
+  intervalIntegral.integral_hasDerivAt_right
+    (hf.intervalIntegrable (0 : ℝ) x)
+    (hf.stronglyMeasurableAtFilter volume (𝓝 x))
+    hf.continuousAt
+
+private theorem intervalPrimitive_continuous {f : ℝ → ℝ} (hf : Continuous f) :
+    Continuous fun z : ℝ => ∫ y in (0 : ℝ)..z, f y :=
+  continuous_iff_continuousAt.mpr fun x =>
+    (intervalPrimitive_hasDerivAt hf x).continuousAt
+
+theorem clippedPrimitive_continuous {f : ℝ → ℝ} (hf : Continuous f) :
+    Continuous (clippedPrimitive f) := by
+  have hval : Continuous fun x : ℝ => (unitClip x).1 :=
+    continuous_subtype_val.comp unitClip_continuous
+  exact (intervalPrimitive_continuous hf).comp hval
+
+theorem clippedPrimitive_hasDerivWithinAt_Ioi
+    {f : ℝ → ℝ} (hf : Continuous f) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivWithinAt (clippedPrimitive f) (f x) (Set.Ioi x) x := by
+  have hbase := (intervalPrimitive_hasDerivAt hf x).hasDerivWithinAt (s := Set.Ioi x)
+  have heq :
+      clippedPrimitive f =ᶠ[nhdsWithin x (Set.Ioi x)]
+        (fun z : ℝ => ∫ y in (0 : ℝ)..z, f y) := by
+    filter_upwards [nhdsWithin_le_nhds (IsOpen.mem_nhds isOpen_Ioo hx)] with z hz
+    exact clippedPrimitive_eq_intervalPrimitive_on_Icc (Set.Ioo_subset_Icc_self hz)
+  exact hbase.congr_of_eventuallyEq heq
+    (clippedPrimitive_eq_intervalPrimitive_on_Icc (Set.Ioo_subset_Icc_self hx))
 
 /-- `sqrt ((nπ)^2) = nπ` in the repository's interval normalization. -/
 theorem sqrt_unitIntervalCosineEigenvalue_eq_kpi (n : ℕ) :
@@ -178,5 +221,57 @@ theorem neg_conjugateKernel_source_integral_eq_sineHeatValue_open
   rw [← hker]
   exact deriv_intervalFullSemigroupOperator_eq_sineHeatValue_open ht hQcont
     hQderiv hQ'_int hM hx
+
+/-- Direct Ktilde-to-sine value theorem for continuous source data, on the open
+spatial interval.  This is the value-form version of the Task294 gradient-source
+IBP bridge: the conjugate-kernel source integral is exactly the sine heat value
+of the source's sine coefficients.
+
+The proof uses a clipped primitive `Q = ∫₀^{clip x} f`: it is globally bounded,
+continuous, and has right derivative `f` on `(0,1)`, so the open gradient-source
+bridge above applies without any closed-endpoint derivative hypothesis. -/
+theorem ktilde_source_integral_eq_sineHeatValue_open
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    -(∫ y in (0 : ℝ)..1,
+        f y * intervalNeumannConjugateKernel t x y)
+      = unitIntervalSineHeatValue t (sineCoeffs f) x := by
+  set Q : ℝ → ℝ := clippedPrimitive f with hQdef
+  have hQcont : Continuous Q := by
+    rw [hQdef]
+    exact clippedPrimitive_continuous hf
+  have hQmeas : AEStronglyMeasurable Q (intervalMeasure 1) :=
+    hQcont.aestronglyMeasurable
+  have hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt Q (f y) (Set.Ioi y) y := by
+    intro y hy
+    rw [hQdef]
+    exact clippedPrimitive_hasDerivWithinAt_Ioi hf hy
+  have hf_int : IntervalIntegrable f volume 0 1 :=
+    hf.intervalIntegrable 0 1
+  set P : ℝ → ℝ := fun z : ℝ => ∫ y in (0 : ℝ)..z, f y with hPdef
+  have hPcont : Continuous P := by
+    rw [hPdef]
+    exact intervalPrimitive_continuous hf
+  obtain ⟨B, hB⟩ :=
+    (isCompact_Icc (a := (0 : ℝ)) (b := 1)).exists_bound_of_continuousOn
+      (hPcont.continuousOn (s := Set.Icc (0 : ℝ) 1))
+  have hQ_bound_global : ∀ y : ℝ, |Q y| ≤ |B| := by
+    intro y
+    have hyclip : (unitClip y).1 ∈ Set.Icc (0 : ℝ) 1 := (unitClip y).2
+    have hQeq : Q y = P (unitClip y).1 := by
+      rw [hQdef, hPdef]
+      rfl
+    rw [hQeq]
+    exact le_trans (by simpa [Real.norm_eq_abs] using hB (unitClip y).1 hyclip)
+      (le_abs_self B)
+  have hQ_bound_Icc : ∀ y ∈ Set.Icc (0 : ℝ) 1, |Q y| ≤ |B| := by
+    intro y _hy
+    exact hQ_bound_global y
+  have hQ_coeff_bound : ∀ n, |cosineCoeffs Q n| ≤ 2 * |B| :=
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      hQcont.continuousOn (abs_nonneg B) hQ_bound_Icc
+  exact neg_conjugateKernel_source_integral_eq_sineHeatValue_open
+    ht hQmeas hQ_bound_global hQcont hQderiv hf_int hQ_coeff_bound hx
 
 end ShenWork.Paper2.IntervalGradientSourceBridgeOpen
