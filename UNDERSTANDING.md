@@ -4061,3 +4061,22 @@ representative for `coupledChemDivSourceLift` on each interior time slice.
 Q3785 independently warned that this integrated equality is still a value-level
 bridge, not an `hpde_u` producer: true `hpde_u` still requires local restart
 coefficient/source time-C1 data as in `IntervalDomainPdeUGeneralChi`.
+
+Task310 discharges Task309's remaining explicit representative input without
+returning to `IsPaper2ClassicalSolution`.  The new
+`IntervalGradientSourceBridgeRegularityRepresentative` file defines the closed
+spatial representative `gradientBridgeChemDivWithinRep` using `derivWithin` on
+`[0,1]`; this avoids the false endpoint-continuity demand that an ordinary
+global derivative representative would impose on the zero-extended lift.  From
+closed-C2/Neumann data in `intervalDomainClassicalRegularity`, positivity of
+the mild datum, `mildChemical_nonneg`, and the resolver identities, it proves
+continuity on `[0,1]` and equality with `coupledChemDivSourceLift` on `(0,1)`.
+
+The public bridge
+`gradientMildDuhamelTerms_eq_integral_mixedSpectralSource_of_gradientMildSolutionData_and_regular`
+now needs only `GradientMildSolutionData` plus
+`intervalDomainClassicalRegularity D.T D.u (coupledChemicalConcentration p D.u)`
+for this source-certificate route.  This is still intentionally a non-PDE
+value/integral source bridge; the next core headline work is to feed exact
+source coefficient/time-C1 data into the `IntervalDomainPdeUGeneralChi`
+`hpde_u` producer, not to add more aliases around this bridge.
