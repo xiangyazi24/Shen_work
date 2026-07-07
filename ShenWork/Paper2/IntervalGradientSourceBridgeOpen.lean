@@ -3,6 +3,7 @@ import ShenWork.PDE.IntervalSemigroupNeumann
 import ShenWork.PDE.IntervalFullKernelSpectralClean
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.PDE.IntervalChemDivAEMeasurable
+import ShenWork.PDE.IntervalSpectralSubtypeAdapter
 import ShenWork.Paper2.IntervalDivergenceModeIdentity
 import ShenWork.Paper2.IntervalMildPicardThreshold
 import ShenWork.Paper2.IntervalGradientDuhamelMap
@@ -20,7 +21,11 @@ open ShenWork.IntervalSemigroupNeumann
 open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalDomain
   (intervalMeasure intervalDomain intervalDomainPoint intervalDomainLift
-    intervalDomainChemotaxisDiv)
+    intervalDomainChemotaxisDiv intervalDomainConstExtend constExtend_continuous
+    constExtend_eq_lift_on_Icc)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
+open ShenWork.IntervalSpectralSubtypeAdapter
+  (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont)
 open ShenWork.IntervalMildPicardThreshold (unitClip unitClip_continuous unitClip_of_mem)
 open ShenWork.Paper2.IntervalDivergenceModeIdentity
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
@@ -34,6 +39,27 @@ def unitIntervalSineHeatValue (t : ℝ) (a : ℕ → ℝ) (x : ℝ) : ℝ :=
   ∑' n : ℕ,
     Real.exp (-t * unitIntervalCosineEigenvalue n) *
       Real.sin ((n : ℝ) * Real.pi * x) * a n
+
+theorem sineCoeffs_eqOn_Icc {f g : ℝ → ℝ}
+    (h : Set.EqOn f g (Set.Icc (0 : ℝ) 1)) :
+    sineCoeffs f = sineCoeffs g := by
+  funext n
+  simp only [sineCoeffs]
+  split_ifs with hn
+  · rfl
+  · congr 1
+    apply intervalIntegral.integral_congr
+    intro x hx
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hx
+    change Real.sin ((n : ℝ) * Real.pi * x) * f x =
+      Real.sin ((n : ℝ) * Real.pi * x) * g x
+    rw [h hx]
+
+private theorem continuous_subtype_of_continuousOn_Icc {f : ℝ → ℝ}
+    (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1)) :
+    Continuous (fun x : intervalDomainPoint => f x.1) := by
+  rw [← continuousOn_univ]
+  exact hf.comp continuous_subtype_val.continuousOn (fun x _ => x.2)
 
 /-- The globally bounded primitive used to feed the full-kernel derivative
 theorem.  It agrees with the usual primitive `∫₀ˣ f` on `[0,1]`, but clips the
@@ -283,6 +309,45 @@ theorem ktilde_source_integral_eq_sineHeatValue_open
   exact neg_conjugateKernel_source_integral_eq_sineHeatValue_open
     ht hQmeas hQ_bound_global hQcont hQderiv hf_int hQ_coeff_bound hx
 
+/-- Continuous-on-`[0,1]` Ktilde-to-sine value theorem.
+
+This is the satisfiable form for zero-extended interval sources: the kernel
+integral and sine coefficients only see `[0,1]`, so a constant extension of the
+subtype slice supplies the global-continuity input required by the older theorem. -/
+theorem ktilde_source_integral_eq_sineHeatValue_open_of_continuousOn
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    -(∫ y in (0 : ℝ)..1,
+        f y * intervalNeumannConjugateKernel t x y)
+      = unitIntervalSineHeatValue t (sineCoeffs f) x := by
+  let F : intervalDomainPoint → ℝ := fun y => f y.1
+  let fext : ℝ → ℝ := intervalDomainConstExtend F
+  have hFcont : Continuous F := continuous_subtype_of_continuousOn_Icc hf
+  have hfext : Continuous fext := by
+    change Continuous (intervalDomainConstExtend F)
+    exact constExtend_continuous hFcont
+  have hEq : Set.EqOn f fext (Set.Icc (0 : ℝ) 1) := by
+    intro y hy
+    change f y = intervalDomainConstExtend F y
+    rw [constExtend_eq_lift_on_Icc hy]
+    simp [intervalDomainLift, F, hy]
+  have hint :
+      (∫ y in (0 : ℝ)..1,
+          f y * intervalNeumannConjugateKernel t x y)
+        =
+      ∫ y in (0 : ℝ)..1,
+          fext y * intervalNeumannConjugateKernel t x y := by
+    apply intervalIntegral.integral_congr
+    intro y hy
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hy
+    change f y * intervalNeumannConjugateKernel t x y =
+      fext y * intervalNeumannConjugateKernel t x y
+    rw [hEq hy]
+  have hsine : sineCoeffs f = sineCoeffs fext := sineCoeffs_eqOn_Icc hEq
+  rw [hint, hsine]
+  exact ktilde_source_integral_eq_sineHeatValue_open ht hfext hx
+
 /-- Classical-solution producer for the open chemotaxis-flux derivative input
 used by the slice bridge below.  The derivative theorem is the existing
 physical flux statement; this lemma only rewrites its `deriv (lift resolver)`
@@ -388,6 +453,71 @@ theorem gradient_source_bridge_slice_open
           (cosineCoeffs (logisticLifted p (u s))) x :=
     intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
       hr hlog_cont hlog_bound (Set.Ioo_subset_Icc_self hx)
+  have hlog_coeff :
+      coupledLogisticSourceCoeffs p u s =
+        cosineCoeffs (logisticLifted p (u s)) := by
+    funext n
+    simp [coupledLogisticSourceCoeffs, coupledLogisticSourceLift, logisticLifted]
+  rw [hgrad, hlog, ← hlog_coeff]
+
+/-- Satisfiable continuous-on-`[0,1]` version of the per-slice gradient-source
+bridge.  This avoids the false global-continuity requirement on zero-extended
+interval data while keeping the same mixed sine/cosine conclusion. -/
+theorem gradient_source_bridge_slice_open_continuousOn
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {r x s : ℝ} (hr : 0 < r) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hchem_meas : AEStronglyMeasurable (chemFluxLifted p (u s)) (intervalMeasure 1))
+    (hchem_cont : ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1))
+    {Cchem : ℝ}
+    (hchem_bound : ∀ y : ℝ, |chemFluxLifted p (u s) y| ≤ Cchem)
+    (hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y)
+    (hdiv_cont : ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc (0 : ℝ) 1))
+    (hlog_cont : Continuous (intervalLogisticSource p (u s)))
+    {Mlog : ℝ}
+    (hlog_bound : ∀ n, |cosineCoeffs (logisticLifted p (u s)) n| ≤ Mlog) :
+    (-p.χ₀) *
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x
+      + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      =
+    (-p.χ₀) *
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x
+      + unitIntervalCosineHeatValue r
+          (coupledLogisticSourceCoeffs p u s) x := by
+  have hdiv_int :
+      IntervalIntegrable (coupledChemDivSourceLift p u s) volume (0 : ℝ) 1 :=
+    (by
+      rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] :
+        ContinuousOn (coupledChemDivSourceLift p u s) (Set.uIcc (0 : ℝ) 1)
+    ).intervalIntegrable
+  have hgrad_kernel :=
+    deriv_intervalFullSemigroupOperator_eq_neg_conjugateKernel_source_integral_open
+      hr hchem_meas hchem_bound hchem_cont hQderiv hdiv_int x
+  have hktilde :=
+    ktilde_source_integral_eq_sineHeatValue_open_of_continuousOn
+      (t := r) hr (f := coupledChemDivSourceLift p u s) hdiv_cont hx
+  have hgrad :
+      deriv (fun z : ℝ =>
+        intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x =
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x := by
+    rw [hgrad_kernel, hktilde]
+  have hlog_bound' :
+      ∀ n, |cosineCoeffs (intervalDomainLift (intervalLogisticSource p (u s))) n|
+        ≤ Mlog := by
+    simpa [logisticLifted] using hlog_bound
+  have hlog :
+      intervalFullSemigroupOperator r (logisticLifted p (u s)) x =
+        unitIntervalCosineHeatValue r
+          (cosineCoeffs (logisticLifted p (u s))) x := by
+    have hraw :=
+      intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+        (t := r) hr (f := intervalLogisticSource p (u s)) hlog_cont
+        hlog_bound' (Set.Ioo_subset_Icc_self hx)
+    simpa [logisticLifted] using hraw
   have hlog_coeff :
       coupledLogisticSourceCoeffs p u s =
         cosineCoeffs (logisticLifted p (u s)) := by
