@@ -1,5 +1,16 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 321: B-form bank `Hinf` producer (2026-07-07)
+
+`IntervalBFormBankHinfProducer.lean` closes the B-form bank's `Hinf` field from
+`ConjugateMildExistenceData`.  It packages the existing
+`IntervalBankInfAndLogSrcWiring` iterate bounds/integrability leaves into
+`conjugatePicardInfThresholdData_of_picard_bounds`, exposing
+`Hinf_of_conjugateMildExistenceData`.
+
+This is a real bank-field producer: it does not touch `hsrcBDirect`,
+`hchemIoo`, or any classical-solution output.
+
 ## Task 320: Direct On conjugate/B-form `hpde_u` provider (2026-07-07)
 
 `IntervalConjugatePdeUProviderOn.lean` composes the Task319 bank-shaped
