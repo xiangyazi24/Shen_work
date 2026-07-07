@@ -1,5 +1,28 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 283: Paper2 chi-nonpositive public headline aliases (2026-07-06)
+
+`IntervalDomainChiNonposHeadline.lean` exposes three public statement-layer
+entry points for the current interval-domain chi-nonpositive strict-logistic
+theorem surface.  The preferred PDE-level alias consumes only the strict-negative
+branch residual
+`ChiNegResidual.CoupledFluxClassicalLocalExistenceResidual`; the second exposes
+the PPID-typed faithful EWA frontier from Task279; the third exposes the
+EWA-free `ChiNegDatumUniformCore` abstract-core split.  In all three aliases the
+zero branch is the already unconditional chi-zero theorem, while the
+strict-negative branch remains conditional.  This is route exposure, not an
+unconditional chi-negative proof.
+
+## Task 282: Chi-nonpositive split via primitive local existence (2026-07-06)
+
+`IntervalDomainTheorem11ChiNonposLocalExistenceSplit.lean` adds the
+chi-nonpositive split whose strict-negative branch carries
+`ChiNegResidual.CoupledFluxClassicalLocalExistenceResidual`.  This is currently
+the most direct PDE-level residual for the negative branch because it avoids the
+known all-PPID uniform-floor/Wiener dead routes.  The theorem is still
+conditional on producing that local-existence factory whenever `p.χ₀ < 0`; it
+does not close the negative branch by itself.
+
 ## Task 280: Paper2 top-level chi-zero strict-logistic alias (2026-07-06)
 
 `IntervalDomainChiZeroHeadline.lean` now also exposes
