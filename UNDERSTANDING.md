@@ -1,5 +1,19 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 320: Direct On conjugate/B-form `hpde_u` provider (2026-07-07)
+
+`IntervalConjugatePdeUProviderOn.lean` composes the Task319 bank-shaped
+`hB_global` producer with Task317's window-local general-chi `hpde_u` producer.
+The new direct theorem
+`hpde_u_of_conjugatePicardLimit_open_sourceBridgeRepresentativeSubtypeLogisticDataOn`
+consumes `DuhamelSourceTimeC1On (bFormSourceCoeffs ...) 0 T` and
+`Continuous u₀`, instead of the old global source package and false continuity
+of `intervalDomainLift u₀`.
+
+This is still conditional on the real source-bridge side data, logistic/chem
+Fourier packages, and especially a producer for the bank's `hsrcBDirect`; it is
+not a headline alias.
+
 ## Task 319: Bank-shaped B-form global cosine producer (2026-07-07)
 
 `IntervalSourceBridgeOpenRepresentativeOn.lean` adds the core On/constant-init
