@@ -4027,3 +4027,14 @@ the existing `IntervalDuhamelIntegrability` value/gradient integrability atoms,
 and transfers the result back to the raw sources by `EqOn` on the integration
 interval.  The remaining inputs are now measurable/bounded source producers,
 not Duhamel integrability itself.
+
+Task308 adds those source certificates for packaged mild data in
+`IntervalGradientSourceBridgeSourceCertificates`.  It defines the order-box
+constants `gradientBridgeChemFluxBound` and `gradientBridgeLogisticBound`,
+proves their nonnegativity and the corresponding window bounds from
+`GradientMildSolutionData.hbound/hnonneg/hcont`, and combines the public
+chemFlux/logistic joint-measurability atoms with Task307 to prove
+`gradientMildDuhamelTerms_eq_integral_mixedSpectralSource_of_gradientMildSolutionData`.
+This moves the integrated mixed-source bridge from abstract source inputs to
+actual `GradientMildSolutionData`; the remaining real input is still the
+classical-solution identification consumed by the per-slice physical bridge.
