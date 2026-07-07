@@ -2,6 +2,7 @@ import ShenWork.Paper2.IntervalGradientSourceIBPOpen
 import ShenWork.PDE.IntervalSemigroupNeumann
 import ShenWork.PDE.IntervalFullKernelSpectralClean
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
+import ShenWork.PDE.IntervalChemDivAEMeasurable
 import ShenWork.Paper2.IntervalDivergenceModeIdentity
 import ShenWork.Paper2.IntervalMildPicardThreshold
 import ShenWork.Paper2.IntervalGradientDuhamelMap
@@ -17,12 +18,15 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalFullKernelSpectralClean
 open ShenWork.IntervalSemigroupNeumann
 open ShenWork.IntervalDuhamelClosedC2
-open ShenWork.IntervalDomain (intervalMeasure intervalDomainPoint)
+open ShenWork.IntervalDomain
+  (intervalMeasure intervalDomain intervalDomainPoint intervalDomainLift
+    intervalDomainChemotaxisDiv)
 open ShenWork.IntervalMildPicardThreshold (unitClip unitClip_continuous unitClip_of_mem)
 open ShenWork.Paper2.IntervalDivergenceModeIdentity
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
 open ShenWork.IntervalCoupledRegularityBootstrap
-  (coupledChemDivSourceLift coupledLogisticSourceCoeffs coupledLogisticSourceLift)
+  (coupledChemicalConcentration coupledChemDivSourceLift coupledLogisticSourceCoeffs
+    coupledLogisticSourceLift resolver_lift_deriv_eq_resolverGradReal_of_sourceDecay)
 
 /-- The sine-basis heat value on `[0,1]`, with the same heat eigenvalues as the
 Neumann cosine side.  Mode `0` contributes zero because `sin 0 = 0`. -/
@@ -278,6 +282,65 @@ theorem ktilde_source_integral_eq_sineHeatValue_open
       hQcont.continuousOn (abs_nonneg B) hQ_bound_Icc
   exact neg_conjugateKernel_source_integral_eq_sineHeatValue_open
     ht hQmeas hQ_bound_global hQcont hQderiv hf_int hQ_coeff_bound hx
+
+/-- Classical-solution producer for the open chemotaxis-flux derivative input
+used by the slice bridge below.  The derivative theorem is the existing
+physical flux statement; this lemma only rewrites its `deriv (lift resolver)`
+factor to `resolverGradReal` on the open interval. -/
+theorem chemFluxLifted_hasDerivWithinAt_coupledChemDivSourceLift_open_of_classical
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u
+      (coupledChemicalConcentration p u))
+    {s : ℝ} (hs : s ∈ Set.Ioo (0 : ℝ) T) :
+    ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y := by
+  intro y hy
+  have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+  let Y : intervalDomainPoint := ⟨y, hyIcc⟩
+  have hflux :
+      HasDerivAt
+        (fun y' : ℝ =>
+          intervalDomainLift (u s) y' *
+            deriv (intervalDomainLift (coupledChemicalConcentration p u s)) y' /
+            (1 + intervalDomainLift (coupledChemicalConcentration p u s) y') ^ p.β)
+        (intervalDomainChemotaxisDiv p (u s)
+          (coupledChemicalConcentration p u s) Y) y :=
+    solution_chemotaxisFlux_hasDerivAt
+      (p := p) (T := T) (u := u)
+      (v := coupledChemicalConcentration p u) hsol hs (y := Y) hy
+  have hdecay : SourceCoeffQuadraticDecay p (u s) :=
+    sourceCoeffQuadraticDecay_of_solution hsol hs
+  have heq_fun :
+      chemFluxLifted p (u s) =ᶠ[𝓝 y]
+        (fun y' : ℝ =>
+          intervalDomainLift (u s) y' *
+            deriv (intervalDomainLift (coupledChemicalConcentration p u s)) y' /
+            (1 + intervalDomainLift (coupledChemicalConcentration p u s) y') ^ p.β) := by
+    filter_upwards [IsOpen.mem_nhds isOpen_Ioo hy] with z hz
+    have hgradR :
+        deriv (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (u s))) z =
+          resolverGradReal p (u s) z := by
+      simpa [coupledChemicalConcentration] using
+        resolver_lift_deriv_eq_resolverGradReal_of_sourceDecay
+          (p := p) (u := u s) hdecay hz
+    unfold chemFluxLifted
+    simp [coupledChemicalConcentration]
+    rw [hgradR]
+  have hvalue :
+      intervalDomainChemotaxisDiv p (u s) (coupledChemicalConcentration p u s) Y =
+        coupledChemDivSourceLift p u s y := by
+    change intervalDomainChemotaxisDiv p (u s) (coupledChemicalConcentration p u s) Y =
+      intervalDomainLift
+        (fun x => intervalDomainChemotaxisDiv p (u s)
+          (coupledChemicalConcentration p u s) x) y
+    simp [intervalDomainLift, hyIcc, Y]
+  have hchem :
+      HasDerivAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) y := by
+    have h := hflux.congr_of_eventuallyEq heq_fun
+    rwa [hvalue] at h
+  exact hchem.hasDerivWithinAt
 
 /-- Per-slice gradient-source bridge for the actual weak Duhamel flux and
 logistic source.  The chemotaxis gradient leg is converted through the open
