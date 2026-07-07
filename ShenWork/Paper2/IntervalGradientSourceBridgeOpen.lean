@@ -61,6 +61,59 @@ private theorem continuous_subtype_of_continuousOn_Icc {f : ℝ → ℝ}
   rw [← continuousOn_univ]
   exact hf.comp continuous_subtype_val.continuousOn (fun x _ => x.2)
 
+/-- The subtype logistic source is continuous whenever the subtype profile is
+continuous.  This is the satisfiable continuity fact needed by the spectral
+adapter; it avoids asking the zero extension to be globally continuous. -/
+theorem intervalLogisticSource_continuous_of_continuous
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hw_cont : Continuous w) :
+    Continuous (intervalLogisticSource p w) := by
+  have hαnn : 0 ≤ p.α := p.hα.le
+  unfold intervalLogisticSource
+  exact hw_cont.mul
+    (continuous_const.sub
+      (continuous_const.mul (hw_cont.rpow_const (fun _ => Or.inr hαnn))))
+
+/-- Uniform cosine-coefficient bound for the lifted logistic slice from a
+subtype-continuous bounded profile. -/
+theorem logisticLifted_cosineCoeffs_bound_of_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M)
+    (hw_cont : Continuous w)
+    (hw_bound : ∀ y : intervalDomainPoint, |w y| ≤ M) :
+    ∀ n : ℕ,
+      |cosineCoeffs (logisticLifted p w) n| ≤
+        2 * (M * (p.a + p.b * M ^ p.α)) := by
+  have hlog_cont : Continuous (intervalLogisticSource p w) :=
+    intervalLogisticSource_continuous_of_continuous hw_cont
+  have hlog_cont_on :
+      ContinuousOn (logisticLifted p w) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq :
+        Set.restrict (Set.Icc (0 : ℝ) 1) (logisticLifted p w) =
+          intervalLogisticSource p w := by
+      ext ⟨x, hx⟩
+      simp only [Set.restrict, logisticLifted]
+      rw [intervalDomainLift]
+      simp only [dif_pos hx]
+      exact congr_arg (intervalLogisticSource p w) (Subtype.ext rfl)
+    rw [heq]
+    exact hlog_cont
+  have hBnn : 0 ≤ M * (p.a + p.b * M ^ p.α) := by
+    apply mul_nonneg hM.le
+    have : 0 ≤ p.b * M ^ p.α :=
+      mul_nonneg p.hb (Real.rpow_nonneg hM.le _)
+    linarith [p.ha]
+  have hbound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |logisticLifted p w x| ≤ M * (p.a + p.b * M ^ p.α) := by
+    intro x _hx
+    simpa [logisticLifted] using
+      ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound
+        p hM hw_bound x
+  exact
+    ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      hlog_cont_on hBnn hbound
+
 /-- The globally bounded primitive used to feed the full-kernel derivative
 theorem.  It agrees with the usual primitive `∫₀ˣ f` on `[0,1]`, but clips the
 upper endpoint outside `[0,1]`, so it remains bounded on all of `ℝ`. -/
@@ -524,5 +577,61 @@ theorem gradient_source_bridge_slice_open_continuousOn
     funext n
     simp [coupledLogisticSourceCoeffs, coupledLogisticSourceLift, logisticLifted]
   rw [hgrad, hlog, ← hlog_coeff]
+
+/-- Classical/ball discharger for the easy inputs of the continuous-on
+gradient-source bridge.  The remaining `hdiv_cont` input is intentionally left
+explicit: it is the genuine chem-div source regularity frontier, not a wrapper
+artifact. -/
+theorem gradient_source_bridge_slice_open_of_classical_ball
+    {p : CM2Params} {T : ℝ} {u : ℝ → intervalDomainPoint → ℝ}
+    {M r x s : ℝ} (hr : 0 < r) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u
+      (coupledChemicalConcentration p u))
+    (hs : s ∈ Set.Ioo (0 : ℝ) T)
+    (hu_cont : Continuous (u s))
+    (hu_nonneg : ∀ y : intervalDomainPoint, 0 ≤ u s y)
+    (hM : 0 < M)
+    (hu_bound : ∀ y : intervalDomainPoint, |u s y| ≤ M)
+    (hdiv_cont :
+      ContinuousOn (coupledChemDivSourceLift p u s) (Set.Icc (0 : ℝ) 1)) :
+    (-p.χ₀) *
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x
+      + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      =
+    (-p.χ₀) *
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x
+      + unitIntervalCosineHeatValue r
+          (coupledLogisticSourceCoeffs p u s) x := by
+  have hchem_cont_global :
+      Continuous (chemFluxLifted p (u s)) :=
+    ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+      p hu_cont hu_nonneg
+  have hchem_meas :
+      AEStronglyMeasurable (chemFluxLifted p (u s)) (intervalMeasure 1) :=
+    hchem_cont_global.aestronglyMeasurable
+  have hchem_cont :
+      ContinuousOn (chemFluxLifted p (u s)) (Set.Icc (0 : ℝ) 1) :=
+    hchem_cont_global.continuousOn
+  obtain ⟨Cchem, _hCchem_nonneg, hchem_bound⟩ :=
+    ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_bounded_of_continuous
+      p hu_bound hM.le hu_cont hu_nonneg
+  have hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y :=
+    chemFluxLifted_hasDerivWithinAt_coupledChemDivSourceLift_open_of_classical
+      hsol hs
+  have hlog_cont : Continuous (intervalLogisticSource p (u s)) :=
+    intervalLogisticSource_continuous_of_continuous hu_cont
+  have hlog_bound :
+      ∀ n : ℕ,
+        |cosineCoeffs (logisticLifted p (u s)) n| ≤
+          2 * (M * (p.a + p.b * M ^ p.α)) :=
+    logisticLifted_cosineCoeffs_bound_of_ball p hM hu_cont hu_bound
+  exact gradient_source_bridge_slice_open_continuousOn
+    (p := p) (u := u) (r := r) (x := x) (s := s) hr hx
+    hchem_meas hchem_cont (Cchem := Cchem) hchem_bound hQderiv hdiv_cont
+    hlog_cont (Mlog := 2 * (M * (p.a + p.b * M ^ p.α))) hlog_bound
 
 end ShenWork.Paper2.IntervalGradientSourceBridgeOpen
