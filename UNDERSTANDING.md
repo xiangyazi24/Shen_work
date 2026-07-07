@@ -1,5 +1,23 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 315: Integrated Ktilde identity for gradient mild data (2026-07-06)
+
+`IntervalGradientKtildeDuhamel.lean` adds the positive replacement for the false
+`hgradB` route:
+`gradientDuhamel_deriv_integral_eq_ktilde_source_integral_of_gradientMildRegularity`.
+For `GradientMildSolutionData` plus
+`intervalDomainClassicalRegularity D.T D.u (coupledChemicalConcentration p D.u)`,
+it integrates the open source-IBP theorem and proves that the gradient Neumann
+Duhamel leg equals the Ktilde source-derivative integral.  The proof uses the
+existing mild-regularity flux derivative producer and the endpoint-insensitive
+continuous representative for `coupledChemDivSourceLift`; no `hpde_u`,
+`IsPaper2ClassicalSolution`, or B-kernel conversion is used.
+
+This is still a value/kernel identity, not a local cosine restart package for
+`hpde_u_of_generalChi_sourceSpectralDataOn`.  The remaining design problem is
+how to connect the mixed sine/cosine source representation from Tasks297-310 to
+the PDE producer without reintroducing the false B-kernel bridge.
+
 ## Task 314: `hgradB` endpoint obstruction (2026-07-06)
 
 Q3790 audited the exposed `hgradB` input in
