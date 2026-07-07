@@ -4007,3 +4007,14 @@ spatial-derivative continuity and signs.
 - ChatGPT's no-bound interpolation route worth investigating as circularity break
 - Both agree initial-time is producible with local regularity data
 - Priority: ε refactor → (no-bound interp + initial-time) parallel → dyadic
+
+### Task306 gradient-source integration bridge (2026-07-06)
+
+Task305 closed the per-slice classical gradient-source identity without false
+endpoint continuity assumptions.  The next core step is to integrate that
+identity over the Duhamel time variable.  `IntervalGradientSourceBridgeIntegrated`
+adds the a.e. integrand bridge on `s in (0,t]`, discarding only the endpoint
+`s=t` where the heat time `t-s` is zero, and an integrated Duhamel bridge whose
+chemotaxis/logistic integrability inputs remain explicit.  This is deliberately
+not a headline wrapper and not a direct `hpde_u` producer; it only transports
+the verified per-slice identity into the time-integrated mild-map vocabulary.
