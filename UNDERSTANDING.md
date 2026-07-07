@@ -4038,3 +4038,26 @@ chemFlux/logistic joint-measurability atoms with Task307 to prove
 This moves the integrated mixed-source bridge from abstract source inputs to
 actual `GradientMildSolutionData`; the remaining real input is still the
 classical-solution identification consumed by the per-slice physical bridge.
+
+Task309 removes the `hpde_u` circularity from that remaining input.  Q3784
+identified that supplying Task308's `hclassical` through the existing classical
+producers would be circular, since those producers consume core data carrying
+`hpde_u`.  The new `IntervalGradientSourceBridgeRegularity` file therefore
+copies the actual pointwise flux differentiability calculation into
+`chemotaxisFlux_hasDerivAt_of_classicalRegularity_nonneg`, whose inputs are
+only `intervalDomainClassicalRegularity` and nonnegativity of the chemical
+component.  It then proves
+`chemFluxLifted_hasDerivWithinAt_coupledChemDivSourceLift_open_of_mildRegularity`
+for `GradientMildSolutionData` using closed-C2/Neumann source decay rather than
+`IsPaper2ClassicalSolution`.
+
+The same file lifts this to the slice and integrated bridge:
+`gradient_source_bridge_slice_open_of_gradientMildRegularity_representative`
+and
+`gradientMildDuhamelTerms_eq_integral_mixedSpectralSource_of_gradientMildSolutionData_and_regularRepr`.
+Thus the source-certificate bridge no longer asks for a full classical solution;
+it asks for non-PDE classical regularity plus an endpoint-insensitive continuous
+representative for `coupledChemDivSourceLift` on each interior time slice.
+Q3785 independently warned that this integrated equality is still a value-level
+bridge, not an `hpde_u` producer: true `hpde_u` still requires local restart
+coefficient/source time-C1 data as in `IntervalDomainPdeUGeneralChi`.
