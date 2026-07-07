@@ -1,8 +1,10 @@
 import ShenWork.Paper2.IntervalGradientSourceIBPOpen
 import ShenWork.PDE.IntervalSemigroupNeumann
 import ShenWork.PDE.IntervalFullKernelSpectralClean
+import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.Paper2.IntervalDivergenceModeIdentity
 import ShenWork.Paper2.IntervalMildPicardThreshold
+import ShenWork.Paper2.IntervalGradientDuhamelMap
 
 open MeasureTheory intervalIntegral
 open scoped Topology
@@ -15,9 +17,12 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalFullKernelSpectralClean
 open ShenWork.IntervalSemigroupNeumann
 open ShenWork.IntervalDuhamelClosedC2
-open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalDomain (intervalMeasure intervalDomainPoint)
 open ShenWork.IntervalMildPicardThreshold (unitClip unitClip_continuous unitClip_of_mem)
 open ShenWork.Paper2.IntervalDivergenceModeIdentity
+open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
+open ShenWork.IntervalCoupledRegularityBootstrap
+  (coupledChemDivSourceLift coupledLogisticSourceCoeffs coupledLogisticSourceLift)
 
 /-- The sine-basis heat value on `[0,1]`, with the same heat eigenvalues as the
 Neumann cosine side.  Mode `0` contributes zero because `sin 0 = 0`. -/
@@ -273,5 +278,58 @@ theorem ktilde_source_integral_eq_sineHeatValue_open
       hQcont.continuousOn (abs_nonneg B) hQ_bound_Icc
   exact neg_conjugateKernel_source_integral_eq_sineHeatValue_open
     ht hQmeas hQ_bound_global hQcont hQderiv hf_int hQ_coeff_bound hx
+
+/-- Per-slice gradient-source bridge for the actual weak Duhamel flux and
+logistic source.  The chemotaxis gradient leg is converted through the open
+Ktilde/sine bridge, while the logistic leg remains the standard Neumann cosine
+heat value. -/
+theorem gradient_source_bridge_slice_open
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {r x s : ℝ} (hr : 0 < r) (hx : x ∈ Set.Ioo (0 : ℝ) 1)
+    (hchem_cont : Continuous (chemFluxLifted p (u s)))
+    {Cchem : ℝ}
+    (hchem_bound : ∀ y : ℝ, |chemFluxLifted p (u s) y| ≤ Cchem)
+    (hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y)
+    (hdiv_cont : Continuous (coupledChemDivSourceLift p u s))
+    (hlog_cont : Continuous (logisticLifted p (u s)))
+    {Mlog : ℝ}
+    (hlog_bound : ∀ n, |cosineCoeffs (logisticLifted p (u s)) n| ≤ Mlog) :
+    (-p.χ₀) *
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x
+      + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      =
+    (-p.χ₀) *
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x
+      + unitIntervalCosineHeatValue r
+          (coupledLogisticSourceCoeffs p u s) x := by
+  have hgrad_kernel :=
+    deriv_intervalFullSemigroupOperator_eq_neg_conjugateKernel_source_integral_open
+      hr hchem_cont.aestronglyMeasurable hchem_bound hchem_cont.continuousOn
+      hQderiv (hdiv_cont.intervalIntegrable 0 1) x
+  have hktilde :=
+    ktilde_source_integral_eq_sineHeatValue_open
+      (t := r) hr (f := coupledChemDivSourceLift p u s) hdiv_cont hx
+  have hgrad :
+      deriv (fun z : ℝ =>
+        intervalFullSemigroupOperator r (chemFluxLifted p (u s)) z) x =
+        unitIntervalSineHeatValue r
+          (sineCoeffs (coupledChemDivSourceLift p u s)) x := by
+    rw [hgrad_kernel, hktilde]
+  have hlog :
+      intervalFullSemigroupOperator r (logisticLifted p (u s)) x =
+        unitIntervalCosineHeatValue r
+          (cosineCoeffs (logisticLifted p (u s))) x :=
+    intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
+      hr hlog_cont hlog_bound (Set.Ioo_subset_Icc_self hx)
+  have hlog_coeff :
+      coupledLogisticSourceCoeffs p u s =
+        cosineCoeffs (logisticLifted p (u s)) := by
+    funext n
+    simp [coupledLogisticSourceCoeffs, coupledLogisticSourceLift, logisticLifted]
+  rw [hgrad, hlog, ← hlog_coeff]
 
 end ShenWork.Paper2.IntervalGradientSourceBridgeOpen
