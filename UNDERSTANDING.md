@@ -1,5 +1,23 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 314: `hgradB` endpoint obstruction (2026-07-06)
+
+Q3790 audited the exposed `hgradB` input in
+`IntervalGradientBFormGlobalCosine.gradientMildSolution_bForm_global_cosine_of_gradB_sourceBridge`
+and found it is the wrong operator identity, not just an unproved lemma.  The
+gradient mild chemotaxis leg gives the open-kernel/Ktilde source identity
+`deriv S_N Q = -∫ Q' Ktilde`; it is not the B-kernel operator
+`intervalConjugateKernelOperator` applied to `Q`.
+
+`IntervalGradientBFormGlobalCosineObstruction.lean` records the concrete Lean
+consequence: any proof of the current `hgradB` shape would force the B-kernel
+Duhamel leg to vanish at both Neumann endpoints.  The gradient side vanishes at
+`x = 0,1` by `intervalFullSemigroupOperator_deriv_at_zero_eq_zero` and
+`intervalFullSemigroupOperator_deriv_at_one_eq_zero`; the B-kernel side is not
+expected to vanish for a general source.  This file is a route-pruning result:
+future core work should use the mixed sine/cosine Ktilde source route from
+Tasks297-310, not try to discharge `hgradB`.
+
 ## Task 313: Subtype-logistic B-kernel source bridge (2026-07-06)
 
 Q3789 pointed out that Task312 only removed the false endpoint-continuity
