@@ -1,5 +1,22 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 319: Bank-shaped B-form global cosine producer (2026-07-07)
+
+`IntervalSourceBridgeOpenRepresentativeOn.lean` adds the core On/constant-init
+B-form global cosine route recommended by Q3794.  The new theorem
+`intervalConjugateDuhamelMap_cosineSeries_on_constInit` is a genuine proof
+variant of the existing conjugate cosine-series assembly: the homogeneous leg
+uses the subtype-continuity spectral adapter, and the Duhamel leg uses
+`duhamelSpectral_eq_cosineSeries_on` from a `DuhamelSourceTimeC1On` package on
+`[0,T]`.
+
+The public producer
+`conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeSubtypeLogisticDataOn`
+now gives the bank-shaped `hB_global` field from `Continuous u₀` and windowed
+B-form source regularity, rather than the old global `DuhamelSourceTimeC1` plus
+false `Continuous (intervalDomainLift u₀)` assumption.  This still leaves the
+real source-regularity and chem-div representative producers open.
+
 ## Task 318: Public restart-coefficient summability producer (2026-07-07)
 
 `IntervalBFormRestartCoeffSummability.lean` extracts the absolute summability of
