@@ -11,7 +11,7 @@ open ShenWork.IntervalMildToClassical
 open ShenWork.IntervalNeumannFullKernel
   (intervalFullSemigroupOperator)
 open ShenWork.IntervalMildPicardThreshold
-  (unitClip unitClip_of_mem)
+  (unitClip unitClip_continuous unitClip_of_mem)
 open ShenWork.Paper2
 
 noncomputable section
@@ -30,6 +30,54 @@ structure SquareHeatSeed (u₀ f : ℝ → ℝ) : Prop where
   nonneg : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f y
   pos_somewhere : ∃ y₀ ∈ Set.Icc (0 : ℝ) 1, 0 < f y₀
   square_le_initial : ∀ y ∈ Set.Icc (0 : ℝ) 1, f y ^ 2 ≤ u₀ y
+
+/-- Floor-free square-heat seed attached to an interval positive datum.
+
+Unlike the constant seed used by the paper-positive route, this seed does not
+use a closed-domain positive floor.  The `unitClip` keeps it continuous on the
+whole real line even when the datum vanishes at the endpoints. -/
+def positiveInitialDatumSqrtSeed
+    (u₀ : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun y => Real.sqrt (u₀ (unitClip y))
+
+theorem positiveInitialDatumSqrtSeed_continuous
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    Continuous (positiveInitialDatumSqrtSeed u₀) := by
+  have hu_cont : Continuous u₀ := hu₀.admissible.2
+  exact Real.continuous_sqrt.comp (hu_cont.comp unitClip_continuous)
+
+/-- A `PositiveInitialDatum` supplies a nontrivial square-heat seed without
+any `paperPositiveFloor` hypothesis. -/
+theorem positiveInitialDatumSqrtSeed_squareHeatSeed
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    SquareHeatSeed (intervalDomainLift u₀)
+      (positiveInitialDatumSqrtSeed u₀) where
+  continuousOn := (positiveInitialDatumSqrtSeed_continuous hu₀).continuousOn
+  nonneg := by
+    intro y _hy
+    exact Real.sqrt_nonneg _
+  pos_somewhere := by
+    rcases positiveInitialDatum_intervalDomainLift_pos_somewhere hu₀ with
+      ⟨y₀, hy₀, hpos⟩
+    refine ⟨y₀, hy₀, ?_⟩
+    have hclip : u₀ (unitClip y₀) = intervalDomainLift u₀ y₀ := by
+      simp [intervalDomainLift, hy₀, unitClip_of_mem hy₀]
+    exact Real.sqrt_pos.mpr (by simpa [positiveInitialDatumSqrtSeed, hclip] using hpos)
+  square_le_initial := by
+    intro y hy
+    have hclip : u₀ (unitClip y) = intervalDomainLift u₀ y := by
+      simp [intervalDomainLift, hy, unitClip_of_mem hy]
+    have hnonneg : 0 ≤ u₀ (unitClip y) := by
+      simpa [hclip] using
+        positiveInitialDatum_intervalDomainLift_nonneg hu₀ y hy
+    calc
+      positiveInitialDatumSqrtSeed u₀ y ^ 2
+          = u₀ (unitClip y) := by
+            simp [positiveInitialDatumSqrtSeed, Real.sq_sqrt hnonneg]
+      _ = intervalDomainLift u₀ y := hclip
+      _ ≤ intervalDomainLift u₀ y := le_rfl
 
 /-- The semigroup positivity banked in `IntervalSemigroupConeAtoms` makes the
 squared heat barrier strictly positive for every positive time. -/
