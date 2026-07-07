@@ -4018,3 +4018,12 @@ adds the a.e. integrand bridge on `s in (0,t]`, discarding only the endpoint
 chemotaxis/logistic integrability inputs remain explicit.  This is deliberately
 not a headline wrapper and not a direct `hpde_u` producer; it only transports
 the verified per-slice identity into the time-integrated mild-map vocabulary.
+
+Task307 removes those two explicit integrability inputs under the standard
+bounded/jointly-measurable source surface.  The theorem
+`gradientMildDuhamelTerms_eq_integral_mixedSpectralSource_of_windowBounds`
+cuts the chemotaxis flux and logistic source to zero outside `(0,t]`, applies
+the existing `IntervalDuhamelIntegrability` value/gradient integrability atoms,
+and transfers the result back to the raw sources by `EqOn` on the integration
+interval.  The remaining inputs are now measurable/bounded source producers,
+not Duhamel integrability itself.
