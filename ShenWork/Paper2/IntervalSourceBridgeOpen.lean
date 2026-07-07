@@ -64,6 +64,9 @@ open ShenWork.IntervalCoupledRegularityBootstrap
    chemFluxLifted_endpoint_zero chemFluxLifted_endpoint_one)
 open ShenWork.IntervalGradientDuhamelMap (chemFluxLifted logisticLifted)
 open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.IntervalSourceCoefficientTimeC1 (localRestartCoeff)
+open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.Paper2.HSigmaScale (lam)
 open ShenWork.IntervalMildPicardRegularity
   (cosineCoeffs_pos_eq_integral cosineCoeffs_zero_eq_integral)
@@ -267,5 +270,98 @@ theorem hasDerivWithinAt_Ioi_of_contDiffOn
   have hIooW : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin x (Set.Ioi x) :=
     nhdsWithin_le_nhds hIoo
   exact Filter.mem_of_superset hIooW Set.Ioo_subset_Icc_self
+
+/-! ## Task 4 — the global B-form cosine representation from open slice data -/
+
+/-- `hB_global` for the conjugate Picard limit from the satisfiable open
+source-bridge data.  This fills the `hsource_bridge` argument of
+`conjugatePicardLimit_cosineSeries` by applying `source_bridge_slice_open` at
+each integration time. -/
+theorem conjugatePicardLimit_hB_global_of_open_sourceBridgeData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T M₀ : ℝ}
+    (hfix :
+      ShenWork.IntervalConjugateDuhamelMap.IntervalConjugateMildSolution
+        p T u₀ (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T))
+    (hu₀_cont : Continuous (intervalDomainLift u₀))
+    (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀)
+    (hsrcB : DuhamelSourceTimeC1
+      (bFormSourceCoeffs p
+        (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T)))
+    (hB_int : ∀ t, 0 < t → t ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      IntervalIntegrable
+        (fun s : ℝ => intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p
+            ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) x)
+        volume 0 t)
+    (hlog_int : ∀ t, 0 < t → t ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      IntervalIntegrable
+        (fun s : ℝ => intervalFullSemigroupOperator (t - s)
+          (logisticLifted p
+            ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) x)
+        volume 0 t)
+    (hchem_cont : ∀ s, 0 < s → s < T →
+      Continuous
+        (chemFluxLifted p
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)))
+    (hlog_cont : ∀ s, 0 < s → s < T →
+      Continuous
+        (logisticLifted p
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)))
+    (hlog_bound : ∀ s, 0 < s → s < T →
+      ∃ Mlog : ℝ, ∀ n,
+        |cosineCoeffs
+          (logisticLifted p
+            ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) n|
+          ≤ Mlog)
+    (hchem_bound : ∀ s, 0 < s → s < T →
+      ∃ Mchem : ℝ, ∀ n,
+        |coupledChemDivSourceCoeffs p
+          (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s n|
+          ≤ Mchem)
+    (hQderiv : ∀ s, 0 < s → s < T → ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt
+        (chemFluxLifted p
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s))
+        (coupledChemDivSourceLift p
+          (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s y)
+        (Set.Ioi y) y)
+    (hdivcont : ∀ s, 0 < s → s < T →
+      Continuous
+        (coupledChemDivSourceLift p
+          (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) :
+    ∀ t, 0 < t → t ≤ T →
+      Set.EqOn
+        (intervalDomainLift
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) t))
+        (fun x => ∑' n,
+          localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+            (bFormSourceCoeffs p
+              (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T))
+            t n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1) := by
+  intro t ht htT x hx
+  exact
+    ShenWork.IntervalConjugateCosineSeries.conjugatePicardLimit_cosineSeries
+      (p := p) (u₀ := u₀) (T := T) (t := t) (x := x) (M₀ := M₀)
+      hfix ht htT hx hu₀_cont hu₀_bound hsrcB
+      (hB_int t ht htT x hx)
+      (hlog_int t ht htT x hx)
+      (fun s hs => by
+        have hsT : s < T := lt_of_lt_of_le hs.2 htT
+        obtain ⟨Mlog, hMlog⟩ := hlog_bound s hs.1 hsT
+        obtain ⟨Mchem, hMchem⟩ := hchem_bound s hs.1 hsT
+        exact source_bridge_slice_open
+          (p := p)
+          (u := ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T)
+          (r := t - s) (x := x) (s := s)
+          (sub_pos.mpr hs.2) hx
+          (hchem_cont s hs.1 hsT)
+          (hlog_cont s hs.1 hsT)
+          (Mlog := Mlog) hMlog
+          (Mchem := Mchem) hMchem
+          (hQderiv s hs.1 hsT)
+          (hdivcont s hs.1 hsT))
+
+#print axioms conjugatePicardLimit_hB_global_of_open_sourceBridgeData
 
 end ShenWork.Paper2.IntervalSourceBridgeOpen
