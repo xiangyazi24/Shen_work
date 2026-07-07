@@ -1,5 +1,22 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 313: Subtype-logistic B-kernel source bridge (2026-07-06)
+
+Q3789 pointed out that Task312 only removed the false endpoint-continuity
+assumption for `coupledChemDivSourceLift`; the old bridge still asked for
+`Continuous (logisticLifted p (u s))`, which is the same zero-extension
+continuity hazard for positive endpoint data.  `IntervalSourceBridgeOpenRepresentative`
+now also exposes `source_bridge_slice_open_representative_subtypeLogistic` and
+`conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeSubtypeLogisticData`.
+These use `intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont`,
+so the logistic leg only requires
+`Continuous (intervalLogisticSource p (u s))` on the interval-domain subtype,
+while the cosine coefficient bound remains stated for `logisticLifted`.
+
+The older Task312 theorem is left in place as a compatibility API.  The
+subtype-logistic version is the paper-faithful endpoint-safe producer to use
+for the B-form `hB_global` route.
+
 ## Task 312: Endpoint-insensitive B-kernel source bridge (2026-07-06)
 
 `IntervalSourceBridgeOpenRepresentative.lean` removes the remaining false

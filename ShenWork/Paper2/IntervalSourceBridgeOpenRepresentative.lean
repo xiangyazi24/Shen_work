@@ -9,6 +9,7 @@
 -/
 import ShenWork.Paper2.IntervalSourceBridgeOpen
 import ShenWork.Paper2.IntervalBankChemSliceFix
+import ShenWork.PDE.IntervalSpectralSubtypeAdapter
 
 noncomputable section
 
@@ -17,6 +18,7 @@ namespace ShenWork.Paper2.IntervalSourceBridgeOpen
 open MeasureTheory intervalIntegral
 open scoped Real
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalNeumannFullKernel
   (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalConjugateDuhamelMap (intervalConjugateKernelOperator)
@@ -29,6 +31,9 @@ open ShenWork.IntervalBFormSpectral (bFormSourceCoeffs)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 open ShenWork.IntervalSourceCoefficientTimeC1 (localRestartCoeff)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalSemigroupComposition (expEigSummable)
+open ShenWork.IntervalSpectralSubtypeAdapter
+  (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont)
 open ShenWork.Paper2.HSigmaScale (lam)
 open ShenWork.IntervalMildPicardRegularity
   (cosineCoeffs_pos_eq_integral cosineCoeffs_zero_eq_integral)
@@ -85,6 +90,27 @@ private theorem intervalIntegrable_of_continuousOn_Icc {g : ℝ → ℝ}
   exact (by
     rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] :
       ContinuousOn g (Set.uIcc (0 : ℝ) 1)).intervalIntegrable
+
+private theorem heatValue_summand_summable
+    {r x M : ℝ} (hr : 0 < r) {a : ℕ → ℝ} (hbound : ∀ n, |a n| ≤ M) :
+    Summable (fun n => unitIntervalCosineHeatPointWeight r x n * a n) := by
+  have hMnn : 0 ≤ M := le_trans (abs_nonneg _) (hbound 0)
+  refine Summable.of_norm_bounded
+    (g := fun n => Real.exp (-r * unitIntervalCosineEigenvalue n) * M)
+    ((expEigSummable hr).mul_right M) (fun n => ?_)
+  rw [Real.norm_eq_abs, abs_mul]
+  unfold unitIntervalCosineHeatPointWeight
+  rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+  have hcos : |unitIntervalCosineMode n x| ≤ 1 := by
+    simpa [unitIntervalCosineMode] using Real.abs_cos_le_one ((n : ℝ) * Real.pi * x)
+  have hEnn : 0 ≤ Real.exp (-r * unitIntervalCosineEigenvalue n) := (Real.exp_pos _).le
+  calc Real.exp (-r * unitIntervalCosineEigenvalue n)
+          * |unitIntervalCosineMode n x| * |a n|
+      ≤ Real.exp (-r * unitIntervalCosineEigenvalue n) * 1 * M := by
+        apply mul_le_mul _ (hbound n) (abs_nonneg _)
+          (mul_nonneg hEnn (by norm_num))
+        exact mul_le_mul_of_nonneg_left hcos hEnn
+    _ = Real.exp (-r * unitIntervalCosineEigenvalue n) * M := by ring
 
 /-- Divergence-mode identity with an endpoint-insensitive continuous
 representative for the chem-div source. -/
@@ -147,6 +173,70 @@ theorem source_bridge_slice_open_representative
     hr hx hchem_cont hlog_cont hlog_bound hchem_bound
     (divMode_of_sliceC1_open_representative
       hchem_cont.continuousOn hQderiv hdiv_rep_cont hdiv_rep_eq)
+
+/-- Per-slice B-form source bridge with endpoint-insensitive representatives
+for the chem-div source and subtype continuity for the logistic source.  This
+avoids the false global-continuity requirement for the zero extension
+`logisticLifted`. -/
+theorem source_bridge_slice_open_representative_subtypeLogistic
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {r x : ℝ} (hr : 0 < r) (hx : x ∈ Set.Icc (0 : ℝ) 1)
+    {s : ℝ}
+    (hchem_cont : Continuous (chemFluxLifted p (u s)))
+    (hlog_cont : Continuous (intervalLogisticSource p (u s)))
+    {Mlog : ℝ}
+    (hlog_bound : ∀ n, |cosineCoeffs (logisticLifted p (u s)) n| ≤ Mlog)
+    {Mchem : ℝ}
+    (hchem_bound : ∀ n, |coupledChemDivSourceCoeffs p u s n| ≤ Mchem)
+    (hQderiv : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (chemFluxLifted p (u s))
+        (coupledChemDivSourceLift p u s y) (Set.Ioi y) y)
+    {Gdiv : ℝ → ℝ}
+    (hdiv_rep_cont : ContinuousOn Gdiv (Set.Icc (0 : ℝ) 1))
+    (hdiv_rep_eq :
+      Set.EqOn (coupledChemDivSourceLift p u s) Gdiv (Set.Ioo (0 : ℝ) 1)) :
+    (-p.χ₀) * intervalConjugateKernelOperator r (chemFluxLifted p (u s)) x
+        + intervalFullSemigroupOperator r (logisticLifted p (u s)) x
+      = unitIntervalCosineHeatValue r (bFormSourceCoeffs p u s) x := by
+  have hDivMode : ∀ n : ℕ,
+      ((n : ℝ) * Real.pi) * intervalSineInner (chemFluxLifted p (u s)) n
+        = coupledChemDivSourceCoeffs p u s n :=
+    divMode_of_sliceC1_open_representative
+      hchem_cont.continuousOn hQderiv hdiv_rep_cont hdiv_rep_eq
+  rw [ShenWork.Paper2.IntervalSourceBridgeTest.conjugateKernel_eq_heatValue_divMode
+    hr hchem_cont x]
+  have hlog_heat :
+      intervalFullSemigroupOperator r (logisticLifted p (u s)) x =
+        unitIntervalCosineHeatValue r
+          (cosineCoeffs (logisticLifted p (u s))) x := by
+    simpa [logisticLifted] using
+      intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+        (t := r) hr (f := intervalLogisticSource p (u s))
+        hlog_cont hlog_bound hx
+  rw [hlog_heat]
+  unfold unitIntervalCosineHeatValue
+  rw [show (fun n => unitIntervalCosineHeatPointWeight r x n *
+        (((n : ℝ) * Real.pi) * intervalSineInner (chemFluxLifted p (u s)) n))
+      = (fun n => unitIntervalCosineHeatPointWeight r x n *
+          coupledChemDivSourceCoeffs p u s n) from
+    funext (fun n => by rw [hDivMode n])]
+  rw [← tsum_mul_left]
+  rw [← Summable.tsum_add
+        ((heatValue_summand_summable (M := Mchem) hr hchem_bound).mul_left (-p.χ₀))
+        (heatValue_summand_summable (M := Mlog) hr hlog_bound)]
+  refine tsum_congr (fun n => ?_)
+  change (-p.χ₀) * (unitIntervalCosineHeatPointWeight r x n *
+          coupledChemDivSourceCoeffs p u s n)
+      + unitIntervalCosineHeatPointWeight r x n *
+          cosineCoeffs (logisticLifted p (u s)) n
+    = unitIntervalCosineHeatPointWeight r x n * bFormSourceCoeffs p u s n
+  change (-p.χ₀) * (unitIntervalCosineHeatPointWeight r x n *
+          coupledChemDivSourceCoeffs p u s n)
+      + unitIntervalCosineHeatPointWeight r x n *
+          coupledLogisticSourceCoeffs p u s n
+    = unitIntervalCosineHeatPointWeight r x n * bFormSourceCoeffs p u s n
+  unfold bFormSourceCoeffs
+  ring
 
 /-- `hB_global` for the conjugate Picard limit from open source-bridge data
 using endpoint-insensitive chem-div representatives. -/
@@ -239,8 +329,103 @@ theorem conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeData
           (hQderiv s hs.1 hsT)
           (Gdiv := Gdiv) hGcont hGeq)
 
+/-- `hB_global` for the conjugate Picard limit from endpoint-safe open
+source-bridge data.  This version removes both false ambient-continuity
+requirements: chem-div is supplied by an `Icc` representative and the logistic
+source is continuous as a subtype profile. -/
+theorem conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeSubtypeLogisticData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T M₀ : ℝ}
+    (hfix :
+      ShenWork.IntervalConjugateDuhamelMap.IntervalConjugateMildSolution
+        p T u₀ (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T))
+    (hu₀_cont : Continuous (intervalDomainLift u₀))
+    (hu₀_bound : ∀ n, |cosineCoeffs (intervalDomainLift u₀) n| ≤ M₀)
+    (hsrcB : DuhamelSourceTimeC1
+      (bFormSourceCoeffs p
+        (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T)))
+    (hB_int : ∀ t, 0 < t → t ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      IntervalIntegrable
+        (fun s : ℝ => intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p
+            ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) x)
+        volume 0 t)
+    (hlog_int : ∀ t, 0 < t → t ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      IntervalIntegrable
+        (fun s : ℝ => intervalFullSemigroupOperator (t - s)
+          (logisticLifted p
+            ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) x)
+        volume 0 t)
+    (hchem_cont : ∀ s, 0 < s → s < T →
+      Continuous
+        (chemFluxLifted p
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)))
+    (hlog_cont : ∀ s, 0 < s → s < T →
+      Continuous
+        (intervalLogisticSource p
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)))
+    (hlog_bound : ∀ s, 0 < s → s < T →
+      ∃ Mlog : ℝ, ∀ n,
+        |cosineCoeffs
+          (logisticLifted p
+            ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)) n|
+          ≤ Mlog)
+    (hchem_bound : ∀ s, 0 < s → s < T →
+      ∃ Mchem : ℝ, ∀ n,
+        |coupledChemDivSourceCoeffs p
+          (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s n|
+          ≤ Mchem)
+    (hQderiv : ∀ s, 0 < s → s < T → ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt
+        (chemFluxLifted p
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s))
+        (coupledChemDivSourceLift p
+          (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s y)
+        (Set.Ioi y) y)
+    (hdiv_rep : ∀ s, 0 < s → s < T →
+      ∃ Gdiv : ℝ → ℝ,
+        ContinuousOn Gdiv (Set.Icc (0 : ℝ) 1) ∧
+        Set.EqOn
+          (coupledChemDivSourceLift p
+            (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) s)
+          Gdiv (Set.Ioo (0 : ℝ) 1)) :
+    ∀ t, 0 < t → t ≤ T →
+      Set.EqOn
+        (intervalDomainLift
+          ((ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T) t))
+        (fun x => ∑' n,
+          localRestartCoeff (cosineCoeffs (intervalDomainLift u₀))
+            (bFormSourceCoeffs p
+              (ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T))
+            t n * cosineMode n x)
+        (Set.Icc (0 : ℝ) 1) := by
+  intro t ht htT x hx
+  exact
+    ShenWork.IntervalConjugateCosineSeries.conjugatePicardLimit_cosineSeries
+      (p := p) (u₀ := u₀) (T := T) (t := t) (x := x) (M₀ := M₀)
+      hfix ht htT hx hu₀_cont hu₀_bound hsrcB
+      (hB_int t ht htT x hx)
+      (hlog_int t ht htT x hx)
+      (fun s hs => by
+        have hsT : s < T := lt_of_lt_of_le hs.2 htT
+        obtain ⟨Mlog, hMlog⟩ := hlog_bound s hs.1 hsT
+        obtain ⟨Mchem, hMchem⟩ := hchem_bound s hs.1 hsT
+        obtain ⟨Gdiv, hGcont, hGeq⟩ := hdiv_rep s hs.1 hsT
+        exact source_bridge_slice_open_representative_subtypeLogistic
+          (p := p)
+          (u := ShenWork.IntervalConjugatePicard.conjugatePicardLimit p u₀ T)
+          (r := t - s) (x := x) (s := s)
+          (sub_pos.mpr hs.2) hx
+          (hchem_cont s hs.1 hsT)
+          (hlog_cont s hs.1 hsT)
+          (Mlog := Mlog) hMlog
+          (Mchem := Mchem) hMchem
+          (hQderiv s hs.1 hsT)
+          (Gdiv := Gdiv) hGcont hGeq)
+
 #print axioms divMode_of_sliceC1_open_representative
 #print axioms source_bridge_slice_open_representative
+#print axioms source_bridge_slice_open_representative_subtypeLogistic
 #print axioms conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeData
+#print axioms conjugatePicardLimit_hB_global_of_open_sourceBridgeRepresentativeSubtypeLogisticData
 
 end ShenWork.Paper2.IntervalSourceBridgeOpen
