@@ -1,5 +1,17 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 288: Chi-nonpositive B-form headline alias (2026-07-06)
+
+`IntervalDomainChiNonposHeadline.lean` now exposes
+`paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_picardLimitFrontier_BForm`.
+The zero branch is unconditional; the strict-negative branch consumes only the
+Picard-limit restart frontier and weak-positive B-form seed after `p.χ₀ < 0`
+has been selected.  The negative branch routes through the committed
+`ChiNegResidual.theorem_1_1_intervalDomain_chiNeg_of_picardLimitFrontier_BForm`
+bridge from Task285, where the boundary-window min-persistence input is
+supplied internally by the chi-nonpositive boundary limit bridge.  This is a
+public conditional route surface, not an unconditional chi-negative theorem.
+
 ## Task 284: Chi-nonpositive reduced-core-data headline alias (2026-07-06)
 
 `IntervalDomainChiNonposHeadline.lean` now also exposes

@@ -6,6 +6,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainTheorem11ChiNonposLocalExistenceSplit
 import ShenWork.Paper2.IntervalDomainThm11ChiNegReducedCoreData
+import ShenWork.Paper2.IntervalDomainThm11ChiNegResidualBFormQuant
 import ShenWork.Paper2.IntervalDomainTheorem11ChiNonposFaithfulSplit
 
 open ShenWork.IntervalDomain (intervalDomain)
@@ -13,6 +14,8 @@ open ShenWork.IntervalDomain (intervalDomain)
 noncomputable section
 
 namespace ShenWork.Paper2
+
+open ChiNegResidual
 
 /-- Public PDE-level chi-nonpositive interval-domain theorem in the strict
 logistic regime.  The zero branch is unconditional; the strict-negative branch
@@ -26,7 +29,7 @@ theorem paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_coupledFlu
     (halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ)
     (hnegLocal :
       p.χ₀ < 0 →
-        ChiNegResidual.CoupledFluxClassicalLocalExistenceResidual p) :
+        CoupledFluxClassicalLocalExistenceResidual p) :
     Theorem_1_1 intervalDomain p :=
   intervalDomain_theorem_1_1_chiNonpos_of_coupledFluxLocalExistence_negative
     p hchi ha hb halpha hgamma hnegLocal
@@ -43,11 +46,31 @@ theorem paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_reducedCor
     (ha : 0 < p.a) (hb : 0 < p.b)
     (halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ)
     (hnegCore :
-      p.χ₀ < 0 → ChiNegResidual.CoupledFluxResolverReducedCoreData p) :
+      p.χ₀ < 0 → CoupledFluxResolverReducedCoreData p) :
     Theorem_1_1 intervalDomain p := by
   rcases lt_or_eq_of_le hchi with hneg | hzero
-  · exact ChiNegResidual.theorem_1_1_intervalDomain_chiNeg_of_reducedCoreData
+  · exact theorem_1_1_intervalDomain_chiNeg_of_reducedCoreData
       p hneg ha hb halpha hgamma (hnegCore hneg)
+  · exact intervalDomain_theorem_1_1_chiZero_unconditional
+      p hzero ha hb halpha hgamma
+
+/-- Public B-form/frontier variant of the chi-nonpositive interval-domain
+theorem.  The zero branch is unconditional; the strict-negative branch consumes
+the Picard-limit restart frontier and B-form local seed only when the
+strict-negative branch is entered; min-persistence is discharged internally. -/
+theorem paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_picardLimitFrontier_BForm
+    (p : CM2Params) (hchi : p.χ₀ ≤ 0)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (halpha : 1 ≤ p.α) (hgamma : 1 ≤ p.γ)
+    (hnegPLF :
+      p.χ₀ < 0 → ConeQuantBridge.PicardLimitRestartFrontier p)
+    (hnegBForm :
+      p.χ₀ < 0 → BFormPositiveDatumLocal.PositiveDatumBFormLocalHyp p) :
+    Theorem_1_1 intervalDomain p := by
+  rcases lt_or_eq_of_le hchi with hneg | hzero
+  · exact ChiNegResidual.theorem_1_1_intervalDomain_chiNeg_of_picardLimitFrontier_BForm
+      p hneg ha hb halpha hgamma
+      (hnegPLF hneg) (hnegBForm hneg)
   · exact intervalDomain_theorem_1_1_chiZero_unconditional
       p hzero ha hb halpha hgamma
 
@@ -84,6 +107,8 @@ theorem paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_uniformCor
   paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_coupledFluxLocalExistence
 #print axioms
   paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_reducedCoreData
+#print axioms
+  paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_picardLimitFrontier_BForm
 #print axioms
   paper2_theorem_1_1_intervalDomain_chiNonpos_strictLogistic_of_strongFaithfulFrontier
 #print axioms
