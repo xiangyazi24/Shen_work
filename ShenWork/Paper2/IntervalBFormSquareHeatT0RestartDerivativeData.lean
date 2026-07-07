@@ -341,4 +341,68 @@ theorem bform_strictPos_via_t0_restart_semigroup
         (u := bformConjugatePicardLift p DB)
         hτ0 hf hK hl2 hL hcoeff hsuper hM hB hC hinitial)
 
+/-- Strict positivity through positive-time restart barriers when the square-heat
+seed may depend on the target time.
+
+This is the floor-free form of the restart argument: the proof no longer fixes a
+single seed such as `sqrt (paperPositiveFloor hu₀) / 2` for all target times.
+For each target `t`, the restart package supplies its own positive-time seed
+`f`, its semigroup bounds, and the comparison initial inequality at the chosen
+restart time `τ`. -/
+theorem bform_strictPos_via_t0_restart_semigroup_variableSeed
+    {p : CM2Params} {u₀ : ShenWork.IntervalDomain.intervalDomainPoint → ℝ}
+    {DB : ConjugateMildExistenceData p u₀}
+    {A D M : ℝ} {drift react : ℝ → ℝ → ℝ}
+    (hrestart :
+      ∀ t, 0 < t → t < DB.T →
+        ∃ τ, ∃ f : ℝ → ℝ, ∃ K : ℝ,
+          0 < τ ∧ τ < t ∧
+          SquareHeatSeed (ShenWork.IntervalDomain.intervalDomainLift u₀) f ∧
+          Continuous f ∧
+          (∀ n, |cosineCoeffs f n| ≤ K) ∧
+          Summable (fun n : ℕ => (cosineCoeffs f n) ^ 2) ∧
+          0 < DB.T - τ ∧
+          NeumannLinearDriftCoefficientsRegular (DB.T - τ)
+            (restartTimeShift τ drift) (restartTimeShift τ react) ∧
+          IsClassicalNeumannLinearDriftSuperSolution (DB.T - τ)
+            (restartTimeShift τ drift) (restartTimeShift τ react)
+            (restartTimeShift τ (bformConjugatePicardLift p DB)) ∧
+          A ^ 2 / 2 + D ≤ M ∧
+          (∀ s x, 0 < s → s < DB.T - τ → x ∈ Set.Ioo (0 : ℝ) 1 →
+            |drift (τ + s) x| ≤ A) ∧
+          (∀ s x, 0 < s → s < DB.T - τ → x ∈ Set.Ioo (0 : ℝ) 1 →
+            -react (τ + s) x ≤ D) ∧
+          (∀ x ∈ Set.Icc (0 : ℝ) 1,
+            squareHeatBarrier M f τ x ≤ bformConjugatePicardLift p DB τ x)) :
+    ∀ t x, 0 < t → t < DB.T →
+      0 < conjugatePicardLimit p u₀ DB.T t x := by
+  intro t x ht0 htT
+  rcases hrestart t ht0 htT with
+    ⟨τ, f, K, hτ0, hτt, hseed, hf, hK, hl2, hL, hcoeff, hsuper,
+      hM, hB, hC, hinitial⟩
+  let H : SquareHeatRestartStripData (DB.T - τ) τ A D M f drift react
+      (bformConjugatePicardLift p DB) :=
+    squareHeatRestartStripData_of_semigroup
+      (L := DB.T - τ) (τ := τ) (A := A) (D := D) (M := M)
+      (f := f) (B := drift) (C := react)
+      (u := bformConjugatePicardLift p DB)
+      hτ0 hf hK hl2 hL hcoeff hsuper hM hB hC hinitial
+  have hs0 : 0 < t - τ := by linarith
+  have hsL : t - τ < DB.T - τ := by linarith
+  have hx : x.1 ∈ Set.Icc (0 : ℝ) 1 := x.2
+  have hbarrier_pos :
+      0 < squareHeatBarrier M f t x.1 :=
+    squareHeatBarrier_pos (M := M) ht0
+      hseed.continuousOn hseed.nonneg hseed.pos_somewhere x.1
+  have hle_shift :=
+    square_heat_hbarrier_via_t0_restart (H := H)
+      (t - τ) x.1 hs0 hsL hx
+  have htime : τ + (t - τ) = t := by ring
+  have hle :
+      squareHeatBarrier M f t x.1 ≤
+        conjugatePicardLimit p u₀ DB.T t x := by
+    simpa [H, htime, bformConjugatePicardLift,
+      ShenWork.IntervalMildPicardThreshold.unitClip_of_mem hx] using hle_shift
+  exact lt_of_lt_of_le hbarrier_pos hle
+
 end ShenWork.Paper2.BFormPositiveDatumNegPart
