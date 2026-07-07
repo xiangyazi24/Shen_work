@@ -1,5 +1,58 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 311: General-chi `hpde_u` source producers (2026-07-06)
+
+`IntervalDomainPdeUGeneralChiProvider.lean` adds
+`ShenWork.IntervalDomainPdeUGeneralChi.Hsource_of_bForm_global_generalChi`.
+It turns global B-form cosine representation/source/Fourier data into the exact
+`Hsource` tuple consumed by
+`hpde_u_of_generalChi_sourceSpectralData`, using the restart identity
+`bForm_restart_of_global_cosine`, coefficient extraction at `t / 2`, the
+global source shift `DuhamelSourceTimeC1.shift_nonneg`, and the endpoint-safe
+`ChemDivCosineFourierDataIoo` package.  This producer is upstream of
+classical-solution packages: it does not consume `hpde_u`,
+`IsPaper2ClassicalSolution`, or regularity bootstrap data.  The same file also
+exposes the direct consumer `hpde_u_of_bForm_global_generalChi`.
+
+`IntervalDomainPdeUGeneralChiOn.lean` adds
+`ShenWork.IntervalDomainPdeUGeneralChi.hpde_u_of_generalChi_sourceSpectralDataOn`,
+the `DuhamelSourceTimeC1On` analogue of the existing general-chi PDE producer
+`hpde_u_of_generalChi_sourceSpectralData`.  The new core producer keeps the same
+Fourier/logistic/chem-div data at the target time, but it only asks the restart
+source coefficients to be `C¹` on a window `[0,W]` containing `t - offset`.
+This matches the B-form banked route, whose canonical source regularity is
+window-local rather than global, and removes the artificial mismatch between
+B-form source data and the general-chi `hpde_u` interface.
+
+`IntervalBFormSpectralProviderDischargeOn.lean` now exposes
+`ShenWork.IntervalConjugatePicard.timeDeriv_eq_of_rep_on_public`, a public
+wrapper around the already-proved private windowed restart time-derivative
+calculation.  No headline alias is claimed here: the remaining work is to
+produce either the global B-form data required by
+`Hsource_of_bForm_global_generalChi`, or the window-local `Hsource` package
+required by `hpde_u_of_generalChi_sourceSpectralDataOn`, from the
+B-form/gradient-source route without circularly using a classical PDE package.
+
+## Task 310: Gradient bridge representative for source integration (2026-07-06)
+
+`IntervalGradientSourceBridgeRegularityRepresentative.lean` identifies the
+chemotaxis-divergence source representative used by the gradient source bridge.
+For a mild-regular solution, the file proves that
+`coupledChemDivSourceLift p u` agrees on interior times and points with
+`gradientBridgeChemDivWithinRep p u`, and that this representative is
+continuous on compact space-time rectangles through the existing
+`intervalDomainChemotaxisDiv_continuousOn_Icc_of_mildRegularity` regularity
+theorem.
+
+The file also adds
+`ShenWork.IntervalMildToLocalExistence.gradientMildDuhamelTerms_eq_integral_mixedSpectralSource_of_gradientMildSolutionData_and_regular`.
+This rewrites `gradientMildDuhamelTerms` to the integral of the mixed
+logistic-minus-chemotaxis spectral source under the existing
+`GradientMildSolutionData` assumptions plus mild regularity.  It is a producer
+step toward the B-form/gradient route, not a headline theorem: the remaining
+hard work is still to turn these source representatives into the full B-form
+source package needed by the negative-chi local existence branch.
+
 ## Task 288: Chi-nonpositive B-form headline alias (2026-07-06)
 
 `IntervalDomainChiNonposHeadline.lean` now exposes

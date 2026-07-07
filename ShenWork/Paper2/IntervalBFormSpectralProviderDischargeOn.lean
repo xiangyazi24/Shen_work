@@ -396,6 +396,23 @@ private theorem timeDeriv_eq_of_rep_on
   show deriv (fun s => u s x) t₀ = _
   rw [hd.deriv, mul_one]
 
+/-- Public version of the windowed restart time-derivative identity.  This
+exposes the reusable On-source calculation without forcing downstream files to
+duplicate the long `restartCosineSeries_hasDerivAt_time_of_on` proof. -/
+theorem timeDeriv_eq_of_rep_on_public
+    {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ}
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} {W : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    {offset : ℝ} (hoff : 0 < t₀ - offset) (hoffW : t₀ - offset < W)
+    (hrep : ∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
+      u s y = ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n y.1)
+    (x : intervalDomainPoint) :
+    intervalDomain.timeDeriv u t₀ x
+      = ∑' n, (a (t₀ - offset) n - unitIntervalCosineEigenvalue n
+          * localRestartCoeff a₀ a (t₀ - offset) n) * cosineMode n x.1 :=
+  timeDeriv_eq_of_rep_on hM ha₀ src hoff hoffW hrep x
+
 /-! ## Theorem 1 On — localized B-form PDE with explicit hpost -/
 
 set_option maxHeartbeats 400000 in
