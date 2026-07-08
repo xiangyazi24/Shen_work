@@ -474,6 +474,42 @@ private theorem truncatedConjugatePicardIter_succ_restart_deriv_identity_residua
                   (truncatedWindowedSource Src n a hi s) z) x := by
   sorry
 
+/- Residual: prove the value-level restarted B-form identity on the open
+interior and justify the full-kernel spatial Leibniz step as a genuine
+`HasDerivAt`.  This is stronger than the `deriv` equality above: it records that
+the derivative exists at the interior point, with the same restarted derivative
+RHS. -/
+private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_residual
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G τ : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (_ha_nonneg : 0 ≤ a) (ha_lt_τ : a < τ)
+    (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivAt (intervalDomainLift (U (n + 1) τ))
+        (deriv
+            (fun z : ℝ =>
+              intervalFullSemigroupOperator (τ - a)
+                (intervalDomainLift (U (n + 1) a)) z) x
+          + ∫ s in a..τ, deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - s)
+                  (truncatedWindowedSource Src n a hi s) z) x)
+        x := by
+  sorry
+
 /- Residual: prove interior differentiability of the successor truncated Picard
 slice from the restarted B-form identity and full-kernel smoothing. -/
 private theorem truncatedConjugatePicardIter_succ_interior_differentiableAt_residual
@@ -496,7 +532,12 @@ private theorem truncatedConjugatePicardIter_succ_interior_differentiableAt_resi
       |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
     ∀ x ∈ Set.Ioo (0 : ℝ) 1,
       DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
-  sorry
+  intro x hx
+  exact
+    (truncatedConjugatePicardIter_succ_restart_hasDerivAt_residual
+      DT U hU Src hSrc
+      _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
+      _ha_nonneg ha_lt_τ hτhi hτT n hsrc x hx).differentiableAt
 
 /- Analytic helper sorry, isolated from the arithmetic estimate below.
 
