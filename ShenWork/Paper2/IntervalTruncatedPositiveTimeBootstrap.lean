@@ -108,7 +108,13 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     let B_F : ℝ := 0
     let Gw : ℝ := truncWindowA Mw A_L A_F p.χ₀ a lo hi
     have hGw_nn : 0 ≤ Gw := by
-      sorry -- Cg_nn * M_nn / sqrt_nn arithmetic
+      show 0 ≤ truncWindowA DT.M 0 0 p.χ₀ (t / 4) (t / 2) t
+      unfold truncWindowA
+      simp only [mul_zero, add_zero]
+      exact mul_nonneg
+        (div_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+          (Real.sqrt_nonneg _))
+        (le_of_lt DT.hM)
     have W : TruncatedGradientWindowWiring p U Src Mw A_L A_F B_F a lo hi Gw := by
       exact
         { hM_nonneg := le_of_lt DT.hM
