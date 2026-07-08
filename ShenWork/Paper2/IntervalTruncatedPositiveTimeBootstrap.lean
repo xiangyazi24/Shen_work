@@ -130,11 +130,27 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
           hleft := by sorry
           hbase := by sorry
           hsource_of_grad := by
-            intro n _hgrad s _ha_s _hs_hi y
-            show |truncatedLogisticLifted p (U n s) y
-              - p.χ₀ * truncatedChemFluxLifted p (U n s) y|
-              ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ Gw
-            sorry -- source bound from ball bound
+            intro n _hgrad s ha_s hs_hi y
+            have hball_cont := truncatedConjugatePicardIter_ball p u₀
+              DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+              DT.hbase_meas DT.hmeas_preserved n
+            have ha_pos : (0 : ℝ) < t / 4 := by linarith
+            have hs_pos : 0 < s := lt_of_lt_of_le ha_pos ha_s
+            have hs_T : s ≤ DT.T := le_trans hs_hi htT
+            have hball : ∀ x, |U n s x| ≤ DT.M := hball_cont.1 s hs_pos hs_T
+            apply abs_logistic_sub_chi_flux_le
+            · -- |logistic| ≤ A_L (from ball bound + truncatedLogisticLocal_abs_le)
+              have hlift_bound : |intervalDomainLift (U n s) y| ≤ DT.M := by
+                by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+                · simp only [intervalDomainLift, dif_pos hy]
+                  exact hball ⟨y, hy⟩
+                · simp only [intervalDomainLift, dif_neg hy, abs_zero]
+                  exact le_of_lt DT.hM
+              show |truncatedLogisticLifted p (U n s) y| ≤ A_L
+              sorry -- logistic bound (truncatedLogisticLocal_abs_le, defined later in file)
+            · -- |flux| ≤ A_F + B_F * G = A_F (B_F = 0)
+              simp only [B_F, mul_zero, add_zero]
+              sorry -- flux bound from ball bound (needs resolver spectral import)
           hkernel_step := by sorry }
     exact ⟨Gw, hGw_nn, fun n s hslo hshi x =>
       truncatedGradientWindow_all W n s hslo hshi x⟩
