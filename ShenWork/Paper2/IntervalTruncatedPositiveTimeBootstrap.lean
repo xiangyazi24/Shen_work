@@ -23,6 +23,8 @@
 import ShenWork.Paper2.IntervalBFormCron2TruncatedCoefficientWeakTest
 import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
 import ShenWork.Paper2.IntervalCoeffLadderFull
+import ShenWork.Paper2.IntervalCompactSliceGradientBounds
+import ShenWork.Paper2.IntervalConjugateKernelIBP
 import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
