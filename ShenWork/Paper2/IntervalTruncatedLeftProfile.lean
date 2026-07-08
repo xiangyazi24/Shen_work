@@ -58,6 +58,34 @@ def truncLeftD (M A_L A_F B_F chi lo : ℝ) : ℝ :=
   (K * beta * C * truncLeftKappa + K * (2 * Real.sqrt lo) * L0)
     / (1 - truncLeftB B_F chi lo)
 
+/-- Nonnegativity of the additive left-profile constant under the left
+contraction condition. -/
+theorem truncLeftD_nonneg
+    {M A_L A_F B_F chi lo : ℝ}
+    (hM : 0 ≤ M) (hAL : 0 ≤ A_L) (hAF : 0 ≤ A_F) (hBF : 0 ≤ B_F)
+    (hlo : 0 ≤ lo) (hcontr : truncLeftB B_F chi lo < 1) :
+    0 ≤ truncLeftD M A_L A_F B_F chi lo := by
+  have hden_pos : 0 < 1 - truncLeftB B_F chi lo := sub_pos.mpr hcontr
+  have hK : 0 ≤ heatGradientLinftyLinftyConstant := heatGradientLinftyLinftyConstant_nonneg
+  have hbeta : 0 ≤ |chi| * B_F := mul_nonneg (abs_nonneg chi) hBF
+  have hC : 0 ≤ heatGradientLinftyLinftyConstant * M := mul_nonneg hK hM
+  have hL0 : 0 ≤ A_L + |chi| * A_F :=
+    add_nonneg hAL (mul_nonneg (abs_nonneg chi) hAF)
+  have hnum₁ :
+      0 ≤ heatGradientLinftyLinftyConstant * (|chi| * B_F) *
+          (heatGradientLinftyLinftyConstant * M) * truncLeftKappa := by
+    unfold truncLeftKappa
+    exact mul_nonneg (mul_nonneg (mul_nonneg hK hbeta) hC)
+      (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))
+  have hnum₂ :
+      0 ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt lo) *
+          (A_L + |chi| * A_F) := by
+    exact mul_nonneg
+      (mul_nonneg hK (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))) hL0
+  unfold truncLeftD truncLeftSingularC truncLeftSourceConst truncLeftBeta
+  dsimp
+  exact div_nonneg (add_nonneg hnum₁ hnum₂) hden_pos.le
+
 /-- The left Volterra profile: `P(t') = C/√t' + D`. -/
 def truncLeftProfile (M A_L A_F B_F chi lo t' : ℝ) : ℝ :=
   truncLeftSingularC M / Real.sqrt t'

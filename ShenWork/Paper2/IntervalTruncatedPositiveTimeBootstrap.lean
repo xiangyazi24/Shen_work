@@ -30,6 +30,7 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
+import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.Wiener.EWA.SourceRealizesRecords
 
@@ -364,7 +365,14 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             -- where |S(a)(u₀)| ≤ M from hbase_ball at a = t/4 > 0.
             -- Then gradient of S(t'-a) applied to M-bounded input
             -- ≤ Cg / √(t'-a) * M ≤ Cg / √(lo-a) * M ≤ Gw.
-            sorry
+            dsimp only [Gw, Mw]
+            exact truncatedConjugatePicardIter_zero_window_gradient
+              (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
+              hAL_nn hAF_nn hΓ_M_nn
+              (by dsimp [a]; linarith)
+              (by dsimp [a, lo]; linarith)
+              (by dsimp [lo, hi]; linarith)
+              htT hBcontr
           hsource_of_grad := by
             intro n hgrad s ha_s hs_hi y
             have hball_cont := truncatedConjugatePicardIter_ball p u₀
@@ -416,7 +424,15 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
             -- The gradient bound follows from gradDuhamel_shifted_sup_bound.
-            sorry }
+            dsimp only [Mw]
+            exact truncatedConjugatePicardIter_succ_window_gradient
+              (p := p) (u₀ := u₀) DT U (by intro n s; rfl) Src
+              (by intro n s y; rfl)
+              hAL_nn hAF_nn hΓ_M_nn hGw_nn
+              (by dsimp [a]; linarith)
+              (by dsimp [a, lo]; linarith)
+              (by dsimp [lo, hi]; linarith)
+              htT }
     exact ⟨Gw, hGw_nn, fun n s hslo hshi x =>
       truncatedGradientWindow_all W n s hslo hshi x⟩
   -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]

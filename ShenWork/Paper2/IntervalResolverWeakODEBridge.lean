@@ -140,6 +140,7 @@ theorem resolverLapPhysicalReal_continuousAt_of_continuousOn
 theorem resolverGradReal_sub_eq_integral_lapPhysicalReal
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
     (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
     {a b : ℝ} (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1) :
     resolverGradReal p u b - resolverGradReal p u a
       = ∫ t in a..b, resolverLapPhysicalReal p u t := by
@@ -148,6 +149,7 @@ theorem resolverGradReal_sub_eq_integral_lapPhysicalReal
 theorem resolverGradReal_eventually_eq_primitive
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
     (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
     {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
     (fun z : ℝ => resolverGradReal p u z)
       =ᶠ[𝓝 x]
@@ -157,12 +159,13 @@ theorem resolverGradReal_eventually_eq_primitive
     IsOpen.mem_nhds isOpen_Ioo hx
   filter_upwards [hIoo_mem] with z hz
   have h := resolverGradReal_sub_eq_integral_lapPhysicalReal
-    p hUcont hx hz
+    p hUcont hUnonneg hx hz
   linarith
 
 theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
     (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
     {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
     HasDerivAt (fun z : ℝ => resolverGradReal p u z)
       (resolverLapPhysical p u ⟨x, Set.Ioo_subset_Icc_self hx⟩) x := by
@@ -185,7 +188,7 @@ theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
       (fun z : ℝ => resolverGradReal p u z)
         =ᶠ[𝓝 x]
       (fun z : ℝ => resolverGradReal p u x + ∫ t in x..z, q t) :=
-    resolverGradReal_eventually_eq_primitive p hUcont hx
+    resolverGradReal_eventually_eq_primitive p hUcont hUnonneg hx
   have hq_x : q x = resolverLapPhysical p u ⟨x, Set.Ioo_subset_Icc_self hx⟩ := by
     simp [q, resolverLapPhysicalReal, Set.Ioo_subset_Icc_self hx]
   rw [← hq_x]
