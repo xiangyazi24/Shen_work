@@ -28,6 +28,7 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.PDE.CosineSpectrum
+import ShenWork.Wiener.EWA.SourceRealizesRecords
 
 open MeasureTheory Set
 open scoped BigOperators Topology Real
@@ -144,7 +145,30 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     refine ⟨G, hG_nn, fun n x hx y hy => ?_⟩
     have ht_half : t / 2 ≤ t := half_le_self ht.le
     have hgt := hgrad n t ht_half le_rfl
-    sorry -- MVT: |deriv f| ≤ G → |f x - f y| ≤ G * |x - y| on convex [0,1]
+    -- MVT: Lipschitz on Ioo 0 1 → extend to Icc 0 1 via LipschitzOnWith.closure
+    set f := intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) with hf_def
+    -- DifferentiableAt on interior (from semigroup C² smoothing)
+    have hda : ∀ z ∈ Set.Ioo (0 : ℝ) 1, DifferentiableAt ℝ f z := by
+      sorry -- semigroup + Picard iterate → C² on (0,1) → DifferentiableAt
+    -- Lipschitz on Ioo from MVT (Convex.lipschitzOnWith)
+    have hlip_open : LipschitzOnWith ⟨G, hG_nn⟩ f (Set.Ioo (0 : ℝ) 1) :=
+      Convex.lipschitzOnWith_of_nnnorm_hasDerivWithin_le (convex_Ioo (0 : ℝ) 1)
+        (fun z hz => (hda z hz).hasDerivAt.hasDerivWithinAt)
+        (fun z _ => by exact_mod_cast hgt z)
+    -- ContinuousOn on Icc (from lift_continuousOn_Icc + Picard ball bound)
+    have hcont_n : Continuous (truncatedConjugatePicardIter p u₀ n t) :=
+      (truncatedConjugatePicardIter_ball p u₀ DT.hbase_ball DT.hbase_cont
+        DT.hmapsTo DT.hcont_preserved DT.hbase_meas DT.hmeas_preserved n).2
+        t ht htT
+    have hcont : ContinuousOn f (Set.Icc (0 : ℝ) 1) :=
+      ShenWork.EWA.lift_continuousOn_Icc hcont_n
+    -- Extend Lipschitz from Ioo to Icc = closure(Ioo)
+    have hlip_closed : LipschitzOnWith ⟨G, hG_nn⟩ f (Set.Icc (0 : ℝ) 1) := by
+      rw [← closure_Ioo (zero_ne_one' ℝ)]
+      exact hlip_open.closure (by rwa [closure_Ioo (zero_ne_one' ℝ)])
+    -- Convert LipschitzOnWith to the desired pointwise bound
+    have hdist := hlip_closed.dist_le_mul _ hx _ hy
+    rwa [Real.dist_eq, Real.dist_eq, NNReal.coe_mk] at hdist
   obtain ⟨G, hG_nn, hiter⟩ := hiter_lip
   refine ⟨G, hG_nn, fun x hx y hy => ?_⟩
   -- Step 2: Derive pointwise convergence from DT's geometric bound
