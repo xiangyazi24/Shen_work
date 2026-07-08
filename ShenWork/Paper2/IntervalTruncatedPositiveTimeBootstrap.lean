@@ -61,6 +61,31 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
 open ShenWork.Paper2.IntervalMildPicard (HasContinuousSlices)
 open ShenWork.CosineSpectrum (cosineMode unitIntervalCosineEigenvalue)
 
+/-! ## Level 0: Positive-time spatial regularity (analytic black box)
+
+The Picard limit is spatially Lipschitz at positive time.  This is the
+analytic frontier: heat semigroup smoothing → Volterra gradient contraction
+on the iterates → uniform Lipschitz constant → limit Lipschitz.
+
+The downstream coefficient arguments (IBP, source bounds, Sobolev ladder)
+consume ONLY this Lipschitz fact; they never touch the Volterra internals. -/
+
+/-- At positive time, the lifted Picard-limit slice is Lipschitz on [0,1].
+This is the key regularity black box that breaks the circularity between
+source bounds and gradient bounds.  The proof is: iterate-level heat
+smoothing gives each u_n Lipschitz at positive time, with constants uniform
+in n (Volterra contraction), so the Picard limit inherits Lipschitz. -/
+theorem truncatedPicardLimit_lipschitzOn_positive_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+      |intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
+       intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
+  sorry
+
 /-! ## Flux boundary vanishing (needed before IBP) -/
 
 theorem truncatedChemFluxLifted_zero_left'
@@ -299,14 +324,20 @@ theorem truncatedBFormSourceCoeff_bound_positive_time
   have hball : ∀ x : intervalDomainPoint, |u s x| ≤ SD.M :=
     SD.hbound s hs (le_trans hsT (le_of_eq rfl))
   have hcont_slice : Continuous (u s) := SD.hcont s hs (le_trans hsT (le_of_eq rfl))
-  have hcont_lift : ContinuousOn (intervalDomainLift (u s)) (Icc (0 : ℝ) 1) :=
-    sorry -- lift of continuous slice is ContinuousOn [0,1]
+  have hcont_lift : ContinuousOn (intervalDomainLift (u s)) (Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have hres : Set.restrict (Icc (0 : ℝ) 1) (intervalDomainLift (u s)) = u s := by
+      funext ⟨z, hz⟩
+      show intervalDomainLift (u s) z = u s ⟨z, hz⟩
+      rw [intervalDomainLift, dif_pos hz]
+    rw [hres]; exact hcont_slice
   -- Part 1: logistic bound
   have ⟨CL, hCL, hlog⟩ := truncatedLogisticSourceCoeff_bound_of_sup (p := p) DT.hM hcont_lift hball
-  -- Part 2: chemDiv bound (from flux W^{1,1} at positive time — via gradient bound)
+  -- Part 2: chemDiv bound (Lipschitz → flux W^{1,1} → IBP → bounded)
   have ⟨CC, hCC, hchem⟩ : ∃ CC : ℝ, 0 ≤ CC ∧ ∀ k,
       |truncatedChemDivSourceCoeff p u s k| ≤ CC := by
-    sorry -- needs truncatedChemDivSourceCoeff_bound_of_fluxW1 + flux regularity
+    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT hs hsT
+    sorry
   -- Triangle inequality
   exact ⟨CL + |p.χ₀| * CC, add_nonneg hCL (mul_nonneg (abs_nonneg _) hCC),
     fun k => by
