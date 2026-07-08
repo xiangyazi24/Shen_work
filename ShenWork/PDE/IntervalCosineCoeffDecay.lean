@@ -36,7 +36,7 @@ in `n` via `fco_neg`) are **absolutely summable**.  This is exactly the hypothes
 `intervalCosine_hasSum_pointwise` and `solution_v_eq_resolver_pointwise` — closing
 the VALUE-reconstruction gap (A) for any `C²`-Neumann interval datum.
 
-No `sorry`, no `admit`, no custom `axiom`.
+All proofs in this file are closed without placeholder declarations.
 -/
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.IntervalCosineInversion
@@ -44,6 +44,7 @@ import Mathlib.Analysis.PSeries
 
 open MeasureTheory intervalIntegral
 open ShenWork.IntervalDomain ShenWork.CosineSpectrum
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalSolutionCoeffDeriv ShenWork.IntervalEllipticCharacterization
 open ShenWork.IntervalCosineInversion
 open scoped Topology
@@ -51,6 +52,166 @@ open scoped Topology
 namespace ShenWork.IntervalCosineCoeffDecay
 
 noncomputable section
+
+/-! ## Normalized coefficient helpers and the C¹ transfer atom -/
+
+/-- For positive modes, the repo's normalized real cosine coefficient is
+`2` times the raw interval cosine integral. -/
+theorem cosineCoeffs_pos_eq_two_raw_integral
+    {f : ℝ → ℝ} {k : ℕ} (hk : k ≠ 0) :
+    cosineCoeffs f k =
+      2 * ∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x := by
+  simp only [cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+    if_neg hk,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  have hcast :
+      (fun x : ℝ =>
+          (Real.cos ((k : ℝ) * Real.pi * x) : ℂ) * ((f x : ℝ) : ℂ)) =
+        fun x : ℝ =>
+          ((Real.cos ((k : ℝ) * Real.pi * x) * f x : ℝ) : ℂ) := by
+    funext x
+    push_cast
+    ring
+  rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re]
+
+/-- `d/dx (sin(kπx)/(kπ)) = cos(kπx)` for nonzero modes. -/
+theorem hasDerivAt_sin_kpi_div (k : ℕ) (hk : k ≠ 0) (x : ℝ) :
+    HasDerivAt (fun y : ℝ => Real.sin ((k : ℝ) * Real.pi * y) /
+        ((k : ℝ) * Real.pi))
+      (Real.cos ((k : ℝ) * Real.pi * x)) x := by
+  have hkpi_ne : (k : ℝ) * Real.pi ≠ 0 := by
+    exact mul_ne_zero (by exact_mod_cast hk) Real.pi_ne_zero
+  have hinner : HasDerivAt (fun y : ℝ => (k : ℝ) * Real.pi * y)
+      ((k : ℝ) * Real.pi) x := by
+    simpa using (hasDerivAt_id x).const_mul ((k : ℝ) * Real.pi)
+  have hsin : HasDerivAt (fun y : ℝ => Real.sin ((k : ℝ) * Real.pi * y))
+      (Real.cos ((k : ℝ) * Real.pi * x) * ((k : ℝ) * Real.pi)) x :=
+    (Real.hasDerivAt_sin ((k : ℝ) * Real.pi * x)).comp x hinner
+  convert hsin.const_mul (1 / ((k : ℝ) * Real.pi)) using 1
+  · ext y
+    field_simp [hkpi_ne]
+  · field_simp [hkpi_ne]
+
+/-- Raw C¹ integration by parts for cosine coefficients.  The first derivative
+lands in the sine coefficient, not another cosine coefficient:
+`∫ cos(kπx) f = -(kπ)⁻¹ ∫ sin(kπx) f'` for `k ≥ 1`. -/
+theorem rawCosCoeff_eq_neg_inv_kpi_rawSinCoeff_deriv
+    {f f' : ℝ → ℝ} {k : ℕ} (hk : 1 ≤ k)
+    (hf : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt f (f' x) x)
+    (hf'int : IntervalIntegrable f' volume 0 1) :
+    (∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x)
+      = -(1 / ((k : ℝ) * Real.pi)) *
+          ∫ x in (0 : ℝ)..1, Real.sin ((k : ℝ) * Real.pi * x) * f' x := by
+  have hk_ne : k ≠ 0 := by omega
+  set u : ℝ → ℝ := fun y => Real.sin ((k : ℝ) * Real.pi * y) /
+    ((k : ℝ) * Real.pi) with hu_def
+  set u' : ℝ → ℝ := fun y => Real.cos ((k : ℝ) * Real.pi * y) with hu'_def
+  have hu : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt u (u' x) x := by
+    intro x _hx
+    simpa [hu_def, hu'_def] using hasDerivAt_sin_kpi_div k hk_ne x
+  have hu'_int : IntervalIntegrable u' volume 0 1 := by
+    apply Continuous.intervalIntegrable
+    fun_prop
+  have hibp := integral_mul_deriv_eq_deriv_mul hu hf hu'_int hf'int
+  have hu0 : u 0 = 0 := by
+    simp [hu_def]
+  have hu1 : u 1 = 0 := by
+    simp [hu_def, mul_assoc]
+  rw [hu0, hu1] at hibp
+  simp only [zero_mul, sub_zero, zero_sub] at hibp
+  have hflip :
+      (∫ x in (0 : ℝ)..1, u' x * f x)
+        = -(∫ x in (0 : ℝ)..1, u x * f' x) := by
+    linarith
+  have hleft :
+      (∫ x in (0 : ℝ)..1, u x * f' x)
+        = (1 / ((k : ℝ) * Real.pi)) *
+          ∫ x in (0 : ℝ)..1, Real.sin ((k : ℝ) * Real.pi * x) * f' x := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr (fun x _hx => ?_)
+    simp [hu_def, div_eq_mul_inv]
+    ring
+  calc
+    (∫ x in (0 : ℝ)..1, Real.cos ((k : ℝ) * Real.pi * x) * f x)
+        = ∫ x in (0 : ℝ)..1, u' x * f x := by
+          simp [hu'_def]
+    _ = -(∫ x in (0 : ℝ)..1, u x * f' x) := hflip
+    _ = -(1 / ((k : ℝ) * Real.pi)) *
+          ∫ x in (0 : ℝ)..1, Real.sin ((k : ℝ) * Real.pi * x) * f' x := by
+          rw [hleft]
+          ring
+
+/-- **Atom 2: C¹ coefficient decay.**  If the derivative has interval `L¹`
+mass bounded by `B`, then positive cosine modes decay like `1/(kπ)`. -/
+theorem intervalC1_cosineCoeff_linear_decay_of_deriv_bound
+    {f f' : ℝ → ℝ}
+    (hf : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt f (f' x) x)
+    (hf'int : IntervalIntegrable f' volume 0 1) {B : ℝ}
+    (hB : (∫ x in (0 : ℝ)..1, |f' x|) ≤ B) :
+    ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs f k| ≤ 2 * B / ((k : ℝ) * Real.pi) := by
+  intro k hk
+  have hk_ne : k ≠ 0 := by omega
+  have hk_pos : (0 : ℝ) < (k : ℝ) := by exact_mod_cast hk
+  have hkpi_pos : 0 < (k : ℝ) * Real.pi := mul_pos hk_pos Real.pi_pos
+  set raw : ℝ := ∫ x in (0 : ℝ)..1,
+    Real.cos ((k : ℝ) * Real.pi * x) * f x with hraw_def
+  set sraw : ℝ := ∫ x in (0 : ℝ)..1,
+    Real.sin ((k : ℝ) * Real.pi * x) * f' x with hsraw_def
+  have hraw :
+      raw = -(1 / ((k : ℝ) * Real.pi)) * sraw := by
+    simpa [hraw_def, hsraw_def]
+      using rawCosCoeff_eq_neg_inv_kpi_rawSinCoeff_deriv
+        (f := f) (f' := f') hk hf hf'int
+  have hf'_abs_int : IntervalIntegrable (fun x => |f' x|) volume 0 1 := by
+    simpa [Real.norm_eq_abs] using hf'int.norm
+  have hsin_cont :
+      ContinuousOn (fun x : ℝ => Real.sin ((k : ℝ) * Real.pi * x))
+        (Set.uIcc (0 : ℝ) 1) := by
+    fun_prop
+  have hsraw_int : IntervalIntegrable
+      (fun x => Real.sin ((k : ℝ) * Real.pi * x) * f' x) volume 0 1 :=
+    hf'int.continuousOn_mul hsin_cont
+  have hsraw_abs_int : IntervalIntegrable
+      (fun x => |Real.sin ((k : ℝ) * Real.pi * x) * f' x|) volume 0 1 := by
+    simpa [Real.norm_eq_abs] using hsraw_int.norm
+  have hsraw_bound : |sraw| ≤ B := by
+    calc
+      |sraw| ≤ ∫ x in (0 : ℝ)..1,
+          |Real.sin ((k : ℝ) * Real.pi * x) * f' x| := by
+            have h := intervalIntegral.abs_integral_le_integral_abs
+              (μ := volume) (a := (0 : ℝ)) (b := 1)
+              (f := fun x : ℝ => Real.sin ((k : ℝ) * Real.pi * x) * f' x)
+              (by norm_num : (0 : ℝ) ≤ 1)
+            simpa [hsraw_def, abs_mul] using h
+      _ ≤ ∫ x in (0 : ℝ)..1, |f' x| := by
+          refine intervalIntegral.integral_mono_on
+            (by norm_num : (0 : ℝ) ≤ 1) hsraw_abs_int hf'_abs_int ?_
+          intro x _hx
+          rw [abs_mul]
+          calc
+            |Real.sin ((k : ℝ) * Real.pi * x)| * |f' x|
+                ≤ 1 * |f' x| :=
+                  mul_le_mul_of_nonneg_right (Real.abs_sin_le_one _)
+                    (abs_nonneg _)
+            _ = |f' x| := one_mul _
+      _ ≤ B := hB
+  have hraw_bound : |raw| ≤ B / ((k : ℝ) * Real.pi) := by
+    rw [hraw, abs_mul, abs_neg,
+      abs_of_pos (by positivity : 0 < 1 / ((k : ℝ) * Real.pi))]
+    calc
+      1 / ((k : ℝ) * Real.pi) * |sraw|
+          ≤ 1 / ((k : ℝ) * Real.pi) * B :=
+            mul_le_mul_of_nonneg_left hsraw_bound (by positivity)
+      _ = B / ((k : ℝ) * Real.pi) := by ring
+  have hcoeff : cosineCoeffs f k = 2 * raw := by
+    simpa [hraw_def] using cosineCoeffs_pos_eq_two_raw_integral (f := f) hk_ne
+  rw [hcoeff, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+  calc
+    2 * |raw| ≤ 2 * (B / ((k : ℝ) * Real.pi)) :=
+      mul_le_mul_of_nonneg_left hraw_bound (by norm_num)
+    _ = 2 * B / ((k : ℝ) * Real.pi) := by ring
 
 /-! ## Uniform bound on the Laplacian cosine coefficient -/
 
@@ -172,6 +333,34 @@ theorem cosineCoeff_decay
       ≤ 1 / ((n:ℝ) * Real.pi) ^ 2 * M := by
         apply mul_le_mul_of_nonneg_left (hMbound n) (by positivity)
     _ = M / ((n:ℝ) * Real.pi) ^ 2 := by ring
+
+/-- **Atom 3: normalized C²-Neumann cosine-coefficient decay.**  This is the
+`cosineCoeffs` version of `cosineCoeff_decay`, using the repo's positive-mode
+normalization. -/
+theorem cosineCoeffs_C2_neumann_quadratic_decay_of_bound
+    {f : ℝ → ℝ} (hf : ContDiffOn ℝ 2 f (Set.Icc (0 : ℝ) 1))
+    (htend0 : Filter.Tendsto (deriv f) (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (htend1 : Filter.Tendsto (deriv f) (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
+    (hbc0 : deriv f 0 = 0) (hbc1 : deriv f 1 = 0)
+    {M : ℝ} (hMnonneg : 0 ≤ M)
+    (hMbound : ∀ n : ℕ,
+      |∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * deriv (deriv f) x| ≤ M) :
+    ∀ n : ℕ, 1 ≤ n →
+      |cosineCoeffs f n| ≤ 2 * M / ((n : ℝ) * Real.pi) ^ 2 := by
+  intro n hn
+  have hn_ne : n ≠ 0 := by omega
+  set raw : ℝ :=
+    ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x with hraw_def
+  have hraw_bound : |raw| ≤ M / ((n : ℝ) * Real.pi) ^ 2 := by
+    simpa [hraw_def] using
+      cosineCoeff_decay hf htend0 htend1 hbc0 hbc1 hMnonneg hMbound hn
+  have hcoeff : cosineCoeffs f n = 2 * raw := by
+    simpa [hraw_def] using cosineCoeffs_pos_eq_two_raw_integral (f := f) hn_ne
+  rw [hcoeff, abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+  calc
+    2 * |raw| ≤ 2 * (M / ((n : ℝ) * Real.pi) ^ 2) :=
+      mul_le_mul_of_nonneg_left hraw_bound (by norm_num)
+    _ = 2 * M / ((n : ℝ) * Real.pi) ^ 2 := by ring
 
 /-! ## Absolute summability of the `AddCircle 2` Fourier coefficients (gap A) -/
 

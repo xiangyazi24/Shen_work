@@ -28,8 +28,6 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.PDE.CosineSpectrum
 
-set_option linter.sorry false
-
 open MeasureTheory Set
 open scoped BigOperators Topology Real
 
@@ -50,7 +48,7 @@ open ShenWork.Paper2.IntervalCoeffLadderFull
 open ShenWork.Paper2.BFormPositiveDatumNegPart
   (truncatedChemFluxLifted truncatedChemDivSourceCoeff
    truncatedLogisticSourceCoeff truncatedBFormSourceCoeff
-   truncatedLogisticLifted
+   truncatedLogisticLocal truncatedLogisticLifted
    truncatedPicardCoeff truncatedPicardCoeffTimeDeriv
    truncatedPicardInitialCoeff
    truncatedConjugatePicardLimit
@@ -58,8 +56,8 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
    TruncatedConjugateMildSolutionData
    truncatedConjugateMildSolutionData_of_data
    negativePartTest cosineTestCoeff)
-open ShenWork.Paper2.IntervalMildPicard (HasContinuousSlices)
-open ShenWork.CosineSpectrum (cosineMode unitIntervalCosineEigenvalue)
+open ShenWork.IntervalMildPicard (HasContinuousSlices)
+open ShenWork.CosineSpectrum (cosineMode)
 
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
@@ -114,30 +112,51 @@ private theorem hasDerivAt_neg_cos_div_freq
       (Real.hasDerivAt_cos (ω * x)).comp x hlin
   have h := hcos.neg.div_const ω
   convert h using 1
-  · ext y; ring
-  · field_simp [hω]
+  field_simp [hω]
 
+set_option maxHeartbeats 1000000 in
 private theorem abs_integral_cos_mul_deriv_le
     {Q : ℝ → ℝ} {ω : ℝ}
     (hQ'_int : IntegrableOn (deriv Q) (Icc (0 : ℝ) 1) volume) :
     |∫ x in (0 : ℝ)..1, Real.cos (ω * x) * deriv Q x|
       ≤ ∫ x in (0 : ℝ)..1, |deriv Q x| := by
+  have hcos_cont : ContinuousOn (fun x : ℝ => Real.cos (ω * x))
+      (Icc (0 : ℝ) 1) := by
+    fun_prop
+  have hprod_int : IntervalIntegrable
+      (fun x : ℝ => Real.cos (ω * x) * deriv Q x) volume 0 1 := by
+    have hprod_on : IntegrableOn
+        (fun x : ℝ => deriv Q x * Real.cos (ω * x))
+        (Icc (0 : ℝ) 1) volume :=
+      hQ'_int.mul_continuousOn hcos_cont isCompact_Icc
+    have hprod_on_u : IntegrableOn
+        (fun x : ℝ => deriv Q x * Real.cos (ω * x))
+        (uIcc (0 : ℝ) 1) volume := by
+      rw [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+      exact hprod_on
+    convert hprod_on_u.intervalIntegrable using 1
+    ext x
+    ring
   have h1 :
       ‖∫ x in (0 : ℝ)..1, Real.cos (ω * x) * deriv Q x‖
         ≤ ∫ x in (0 : ℝ)..1, ‖Real.cos (ω * x) * deriv Q x‖ :=
-    intervalIntegral.norm_integral_le_integral_norm _
+    intervalIntegral.norm_integral_le_integral_norm (by norm_num : (0 : ℝ) ≤ 1)
   have h2 :
       (∫ x in (0 : ℝ)..1, ‖Real.cos (ω * x) * deriv Q x‖)
         ≤ ∫ x in (0 : ℝ)..1, |deriv Q x| := by
     refine intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1) ?_ ?_ ?_
-    · exact (hQ'_int.mul_continuousOn
-        ((continuous_cos.comp (continuous_const.mul continuous_id)).continuousOn)).norm.intervalIntegrable
-    · exact hQ'_int.abs.intervalIntegrable
+    · exact hprod_int.norm
+    · have hder_abs_on : IntegrableOn (fun x : ℝ => |deriv Q x|)
+          (uIcc (0 : ℝ) 1) volume := by
+        rw [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+        exact hQ'_int.abs
+      exact hder_abs_on.intervalIntegrable
     · intro x _
       rw [Real.norm_eq_abs, abs_mul]
       exact mul_le_of_le_one_left (abs_nonneg _) (Real.abs_cos_le_one _)
   simpa [Real.norm_eq_abs] using h1.trans h2
 
+set_option maxHeartbeats 1000000 in
 private theorem freq_mul_intervalSineInner_eq_boundary_plus_deriv
     {Q : ℝ → ℝ} {k : ℕ}
     (hk : k ≠ 0)
@@ -167,12 +186,22 @@ private theorem freq_mul_intervalSineInner_eq_boundary_plus_deriv
     intro x hx
     exact ((hA_deriv x).mul (hQ_deriv x hx)).hasDerivWithinAt
   have hA_derivQ_int : IntervalIntegrable (fun x => A x * deriv Q x) volume 0 1 :=
-    (hQ'_integrable.mul_continuousOn
-      ((by fun_prop : Continuous A).continuousOn)).intervalIntegrable
+    by
+      have hA_on : IntegrableOn (fun x => deriv Q x * A x)
+          (Icc (0 : ℝ) 1) volume :=
+        hQ'_integrable.mul_continuousOn
+          ((by fun_prop : Continuous A).continuousOn) isCompact_Icc
+      have hA_on_u : IntegrableOn (fun x => deriv Q x * A x)
+          (uIcc (0 : ℝ) 1) volume := by
+        rw [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+        exact hA_on
+      convert hA_on_u.intervalIntegrable using 1
+      ext x
+      ring
   have hsinQ_int : IntervalIntegrable (fun x => Real.sin (ω * x) * Q x) volume 0 1 := by
     apply ContinuousOn.intervalIntegrable
     rw [uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
-    exact ((continuous_sin.comp (continuous_const.mul continuous_id)).continuousOn).mul hQ_cont
+    exact ((by fun_prop : Continuous (fun x : ℝ => Real.sin (ω * x))).continuousOn).mul hQ_cont
   have hderiv_int : IntervalIntegrable
       (fun x => Real.sin (ω * x) * Q x + A x * deriv Q x) volume 0 1 :=
     hsinQ_int.add hA_derivQ_int
@@ -198,7 +227,6 @@ private theorem freq_mul_intervalSineInner_eq_boundary_plus_deriv
     rw [← intervalIntegral.integral_const_mul]
     refine intervalIntegral.integral_congr (fun x _ => ?_); ring
   unfold intervalSineInner; rw [if_neg hk, hI, hA0, hA1, hAint]
-  rw [show ((k : ℝ) * Real.pi) = ω by rw [hωdef]]
   field_simp [hω_ne]; ring
 
 /-- If a function `Q` is W¹,¹ on `[0,1]`, then its sine coefficient multiplied
@@ -225,15 +253,33 @@ theorem freq_mul_intervalSineInner_bound_of_W1
         4 * CQ + 2 * Cder := by
   intro k
   by_cases hk : k = 0
-  · subst k; simp [intervalSineInner, hCQ, hCder]
+  · subst k
+    have hnonneg : 0 ≤ 4 * CQ + 2 * Cder := by nlinarith
+    simpa [intervalSineInner] using hnonneg
   · rw [freq_mul_intervalSineInner_eq_boundary_plus_deriv hk hQ_cont hQ_deriv hQ'_integrable]
     have hcos : |Real.cos ((k : ℝ) * Real.pi)| ≤ 1 := Real.abs_cos_le_one _
     have hboundary :
         |2 * (-Real.cos ((k : ℝ) * Real.pi) * Q 1 + Q 0)| ≤ 4 * CQ := by
-      nlinarith [abs_add_le (2 * (-Real.cos ((k : ℝ) * Real.pi) * Q 1)) (2 * Q 0),
-        abs_mul (2 : ℝ) (-Real.cos ((k : ℝ) * Real.pi) * Q 1),
-        abs_mul (-Real.cos ((k : ℝ) * Real.pi)) (Q 1),
-        abs_neg (Real.cos ((k : ℝ) * Real.pi))]
+      have hcosQ : |(-Real.cos ((k : ℝ) * Real.pi)) * Q 1| ≤ CQ := by
+        rw [abs_mul, abs_neg]
+        calc
+          |Real.cos ((k : ℝ) * Real.pi)| * |Q 1| ≤ 1 * CQ :=
+            mul_le_mul hcos hQ1 (abs_nonneg _) (by norm_num)
+          _ = CQ := by ring
+      have hsum :
+          |(-Real.cos ((k : ℝ) * Real.pi)) * Q 1 + Q 0| ≤ 2 * CQ := by
+        calc
+          |(-Real.cos ((k : ℝ) * Real.pi)) * Q 1 + Q 0|
+              ≤ |(-Real.cos ((k : ℝ) * Real.pi)) * Q 1| + |Q 0| :=
+                abs_add_le _ _
+          _ ≤ CQ + CQ := add_le_add hcosQ hQ0
+          _ = 2 * CQ := by ring
+      rw [abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
+      calc
+        2 * |(-Real.cos ((k : ℝ) * Real.pi)) * Q 1 + Q 0|
+            ≤ 2 * (2 * CQ) :=
+              mul_le_mul_of_nonneg_left hsum (by norm_num)
+        _ = 4 * CQ := by ring
     have hint :
         |2 * ∫ x in (0 : ℝ)..1,
             Real.cos ((k : ℝ) * Real.pi * x) * deriv Q x|
@@ -250,6 +296,63 @@ theorem freq_mul_intervalSineInner_bound_of_W1
 
 /-! ## Level 0b: Truncated logistic source is bounded -/
 
+private theorem positivePart_le_abs (r : ℝ) :
+    positivePart r ≤ |r| := by
+  by_cases hr : 0 ≤ r
+  · simp [positivePart, hr, abs_of_nonneg hr]
+  · have hr' : r ≤ 0 := le_of_not_ge hr
+    simp [positivePart, hr', abs_of_nonpos hr']
+
+private theorem truncatedLogisticLocal_abs_le_of_abs_le
+    (p : CM2Params) {M r : ℝ} (hM : 0 < M) (hr : |r| ≤ M) :
+    |truncatedLogisticLocal p r| ≤
+      M * (p.a + p.b * M ^ p.α) := by
+  have hM_nonneg : 0 ≤ M := hM.le
+  have hpp_nonneg : 0 ≤ positivePart r := positivePart_nonneg r
+  have hpp_le_M : positivePart r ≤ M :=
+    (positivePart_le_abs r).trans hr
+  have hpow_nonneg : 0 ≤ (positivePart r) ^ p.α :=
+    Real.rpow_nonneg hpp_nonneg _
+  have hpow_le : (positivePart r) ^ p.α ≤ M ^ p.α :=
+    Real.rpow_le_rpow hpp_nonneg hpp_le_M p.hα.le
+  have hA_nonneg : 0 ≤ p.a + p.b * M ^ p.α :=
+    add_nonneg p.ha
+      (mul_nonneg p.hb (Real.rpow_nonneg hM_nonneg _))
+  have hinner :
+      |p.a - p.b * (positivePart r) ^ p.α|
+        ≤ p.a + p.b * M ^ p.α := by
+    calc
+      |p.a - p.b * (positivePart r) ^ p.α|
+          ≤ |p.a| + |p.b * (positivePart r) ^ p.α| := abs_sub _ _
+      _ = p.a + p.b * (positivePart r) ^ p.α := by
+          rw [abs_of_nonneg p.ha, abs_mul, abs_of_nonneg p.hb,
+            abs_of_nonneg hpow_nonneg]
+      _ ≤ p.a + p.b * M ^ p.α := by
+          exact add_le_add (le_refl p.a)
+            (mul_le_mul_of_nonneg_left hpow_le p.hb)
+  calc
+    |truncatedLogisticLocal p r|
+        = |r| * |p.a - p.b * (positivePart r) ^ p.α| := by
+          simp [truncatedLogisticLocal, abs_mul]
+    _ ≤ M * (p.a + p.b * M ^ p.α) :=
+        mul_le_mul hr hinner (abs_nonneg _) hM_nonneg
+
+private theorem truncatedLogisticLifted_continuousOn_of_lift_continuousOn
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    (hw : ContinuousOn (intervalDomainLift w) (Icc (0 : ℝ) 1)) :
+    ContinuousOn (truncatedLogisticLifted p w) (Icc (0 : ℝ) 1) := by
+  have hpos : ContinuousOn
+      (fun y : ℝ => positivePart (intervalDomainLift w y))
+      (Icc (0 : ℝ) 1) := by
+    intro x hx
+    simpa [positivePart] using (hw x hx).max continuousWithinAt_const
+  have hpow : ContinuousOn
+      (fun y : ℝ => (positivePart (intervalDomainLift w y)) ^ p.α)
+      (Icc (0 : ℝ) 1) :=
+    hpos.rpow_const (fun _ _ => Or.inr p.hα.le)
+  simpa [truncatedLogisticLifted, truncatedLogisticLocal] using
+    hw.mul (continuousOn_const.sub (continuousOn_const.mul hpow))
+
 /-- Cosine coefficients of the truncated logistic source are uniformly bounded
 when the solution is bounded.  The logistic source `r(a - b·r_+^α)` is
 pointwise bounded by a function of `a, b, α, M`, and its cosine coefficients
@@ -261,7 +364,27 @@ theorem truncatedLogisticSourceCoeff_bound_of_sup
     (hbound : ∀ x : intervalDomainPoint, |u s x| ≤ M) :
     ∃ CL : ℝ, 0 ≤ CL ∧ ∀ k : ℕ,
       |truncatedLogisticSourceCoeff p u s k| ≤ CL := by
-  sorry
+  set B : ℝ := M * (p.a + p.b * M ^ p.α) with hBdef
+  have hB_nonneg : 0 ≤ B := by
+    rw [hBdef]
+    exact mul_nonneg hM.le
+      (add_nonneg p.ha (mul_nonneg p.hb (Real.rpow_nonneg hM.le _)))
+  have hsrc_cont :
+      ContinuousOn (truncatedLogisticLifted p (u s)) (Icc (0 : ℝ) 1) :=
+    truncatedLogisticLifted_continuousOn_of_lift_continuousOn p hu_cont
+  have hsrc_bound :
+      ∀ x ∈ Icc (0 : ℝ) 1,
+        |truncatedLogisticLifted p (u s) x| ≤ B := by
+    intro x hx
+    have hx_bound : |intervalDomainLift (u s) x| ≤ M := by
+      simpa [intervalDomainLift, hx] using hbound ⟨x, hx⟩
+    simpa [B, hBdef, truncatedLogisticLifted] using
+      truncatedLogisticLocal_abs_le_of_abs_le p hM hx_bound
+  have hcoeff :=
+    cosineCoeffs_abs_le_of_continuous_bounded hsrc_cont hB_nonneg hsrc_bound
+  refine ⟨2 * B, mul_nonneg (by norm_num) hB_nonneg, ?_⟩
+  intro k
+  simpa [truncatedLogisticSourceCoeff] using hcoeff k
 
 /-! ## Level 1: Flux W¹,¹ gives bounded chemDiv coefficients -/
 

@@ -15,16 +15,17 @@ private theorem continuousOn_coeff_of_on {a : ℝ → ℕ → ℝ} {T : ℝ}
     ContinuousOn (fun s => a s n) (Icc 0 T) :=
   fun s hs => (src.hderiv s hs n).continuousWithinAt
 
-/-- Windowed spectral Duhamel ODE from `DuhamelSourceTimeC1On a 0 T`. -/
-theorem duhamelSpectralCoeff_hasDerivAt_of_on {a : ℝ → ℕ → ℝ} {T : ℝ}
-    (src : DuhamelSourceTimeC1On a 0 T)
-    {t : ℝ} (ht0 : 0 < t) (htT : t < T) (n : ℕ) :
+/-- Windowed spectral Duhamel ODE from only coefficient continuity on `[0,T]`. -/
+theorem duhamelSpectralCoeff_hasDerivAt_of_continuousOn
+    {a : ℝ → ℕ → ℝ} {T t : ℝ}
+    (ht0 : 0 < t) (htT : t < T)
+    (ha_cont : ∀ n, ContinuousOn (fun s => a s n) (Icc (0 : ℝ) T))
+    (n : ℕ) :
     HasDerivAt (fun r => duhamelSpectralCoeff a r n)
-      (a t n - unitIntervalCosineEigenvalue n * duhamelSpectralCoeff a t n) t := by
+      (a t n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t n) t := by
   set lam := unitIntervalCosineEigenvalue n
-  have hcontOn := continuousOn_coeff_of_on src n
-  have hcont_at : ContinuousAt (fun s => a s n) t :=
-    hcontOn.continuousAt (Icc_mem_nhds ht0 htT)
+  have hcontOn := ha_cont n
   set G : ℝ → ℝ := fun r => ∫ s in (0 : ℝ)..r, Real.exp (s * lam) * a s n
   have hfactor : ∀ r, duhamelSpectralCoeff a r n = Real.exp (-r * lam) * G r := by
     intro r; show (∫ s in (0:ℝ)..r, _) = _
@@ -59,6 +60,15 @@ theorem duhamelSpectralCoeff_hasDerivAt_of_on {a : ℝ → ℕ → ℝ} {T : ℝ
   rw [show (fun r => duhamelSpectralCoeff a r n) =
       (fun r => Real.exp (-r * lam) * G r) from funext hfactor, hfactor t]
   exact (hd_exp.mul hd_G).congr_deriv hderiv_val
+
+/-- Windowed spectral Duhamel ODE from `DuhamelSourceTimeC1On a 0 T`. -/
+theorem duhamelSpectralCoeff_hasDerivAt_of_on {a : ℝ → ℕ → ℝ} {T : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 T)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) (n : ℕ) :
+    HasDerivAt (fun r => duhamelSpectralCoeff a r n)
+      (a t n - unitIntervalCosineEigenvalue n * duhamelSpectralCoeff a t n) t := by
+  exact duhamelSpectralCoeff_hasDerivAt_of_continuousOn
+    ht0 htT (fun n => continuousOn_coeff_of_on src n) n
 
 /-- Windowed continuity of the Duhamel spectral coefficient on `(0,T)`. -/
 theorem duhamelSpectralCoeff_continuous_of_on {a : ℝ → ℕ → ℝ} {T : ℝ}
