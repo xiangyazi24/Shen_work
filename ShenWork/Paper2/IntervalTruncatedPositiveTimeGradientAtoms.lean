@@ -299,6 +299,48 @@ theorem truncatedConjugatePicardIter_zero_left_profile
       exact truncatedConjugatePicardIter_zero_lift_differentiableAt_Ioo
         hτ DT.hbase_lift_meas DT.hbase_lift_bound hx⟩
 
+/-!
+The next helper is the remaining analytic restart atom.
+
+It packages the non-algebraic part of the successor step: restart the B-form
+Picard iterate at time `a`, use the B-kernel integration-by-parts identity to
+rewrite the chemotaxis leg as a standard full-kernel Duhamel source with
+`Src`, differentiate the homogeneous and Duhamel legs, and apply the full-kernel
+gradient estimates.  The theorem below consumes this atom and proves the window
+monotonicity and constant arithmetic without any further analytic gap.
+-/
+
+private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G τ : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (_ha_nonneg : 0 ≤ a) (ha_lt_τ : a < τ)
+    (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    (∀ x : ℝ,
+      |deriv (intervalDomainLift (U (n + 1) τ)) x|
+        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (τ - a) * DT.M
+          + ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * (2 * Real.sqrt (τ - a))
+            * truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+    ∧ ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+        DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
+  -- Analytic gap: B-form restart split + IBP conversion + Leibniz for the
+  -- shifted full-kernel Duhamel integral.
+  sorry
+
 /-- Successor truncated Picard iterate affine gradient step on a positive window.
 
 Analytic content: restart the B-form Duhamel map at time `a`; rewrite the
@@ -328,7 +370,92 @@ theorem truncatedConjugatePicardIter_succ_window_gradient
           (truncWindowAffine DT.M A_L A_F B_F p.χ₀ a lo hi G) := by
   -- The hypotheses `hU` and `hSrc` identify the abstract wiring variables with
   -- the actual truncated Picard iterates and the post-IBP source.
-  intro n hsrc
-  sorry
+  intro n hsrc τ hτlo hτhi
+  have hK_nonneg :
+      0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hM_nonneg : 0 ≤ DT.M := le_of_lt DT.hM
+  have hCsrc_nonneg :
+      0 ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    unfold truncWindowSourceCL
+    exact add_nonneg _hAL_nonneg
+      (mul_nonneg (abs_nonneg p.χ₀)
+        (add_nonneg _hAF_nonneg (mul_nonneg _hBF_nonneg _hG_nonneg)))
+  have hlo_a_pos : 0 < lo - a := sub_pos.mpr _ha_lt_lo
+  have hτa : a < τ := lt_of_lt_of_le _ha_lt_lo hτlo
+  have hτ_a_pos : 0 < τ - a := sub_pos.mpr hτa
+  have hlo_a_le_τ_a : lo - a ≤ τ - a := sub_le_sub_right hτlo a
+  have hτ_a_le_hi_a : τ - a ≤ hi - a := sub_le_sub_right hτhi a
+  have hτT : τ ≤ DT.T := hτhi.trans _hhiT
+  have hraw :=
+    truncatedConjugatePicardIter_succ_restart_gradient_raw
+      (p := p) (u₀ := u₀) DT U hU Src hSrc
+      (A_L := A_L) (A_F := A_F) (B_F := B_F)
+      (a := a) (hi := hi) (G := G) (τ := τ)
+      _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
+      _ha_nonneg hτa hτhi hτT n hsrc
+  refine ⟨fun x => ?_, hraw.2⟩
+  have hhom :
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          / Real.sqrt (τ - a) * DT.M
+        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (lo - a) * DT.M := by
+    calc
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          / Real.sqrt (τ - a) * DT.M
+          = (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * DT.M) / Real.sqrt (τ - a) := by ring
+      _ ≤ (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * DT.M) / Real.sqrt (lo - a) :=
+            div_le_div_of_nonneg_left (mul_nonneg hK_nonneg hM_nonneg)
+              (Real.sqrt_pos_of_pos hlo_a_pos)
+              (Real.sqrt_le_sqrt hlo_a_le_τ_a)
+      _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (lo - a) * DT.M := by ring
+  have hduh :
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * (2 * Real.sqrt (τ - a))
+          * truncWindowSourceCL A_L A_F B_F p.χ₀ G
+        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * (2 * Real.sqrt (hi - a))
+            * truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    have hsqrt : Real.sqrt (τ - a) ≤ Real.sqrt (hi - a) :=
+      Real.sqrt_le_sqrt hτ_a_le_hi_a
+    have hfactor :
+        0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * 2 * truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+      exact mul_nonneg (mul_nonneg hK_nonneg (by norm_num)) hCsrc_nonneg
+    calc
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * (2 * Real.sqrt (τ - a))
+          * truncWindowSourceCL A_L A_F B_F p.χ₀ G
+          =
+        (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * 2 * truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+            * Real.sqrt (τ - a) := by ring
+      _ ≤
+        (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * 2 * truncWindowSourceCL A_L A_F B_F p.χ₀ G)
+            * Real.sqrt (hi - a) :=
+          mul_le_mul_of_nonneg_left hsqrt hfactor
+      _ =
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * (2 * Real.sqrt (hi - a))
+          * truncWindowSourceCL A_L A_F B_F p.χ₀ G := by ring
+  calc
+    |deriv (intervalDomainLift (U (n + 1) τ)) x|
+        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (τ - a) * DT.M
+          + ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * (2 * Real.sqrt (τ - a))
+            * truncWindowSourceCL A_L A_F B_F p.χ₀ G := hraw.1 x
+    _ ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (lo - a) * DT.M
+          + ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * (2 * Real.sqrt (hi - a))
+            * truncWindowSourceCL A_L A_F B_F p.χ₀ G := add_le_add hhom hduh
+    _ = truncWindowAffine DT.M A_L A_F B_F p.χ₀ a lo hi G := by
+      unfold truncWindowAffine truncWindowA truncWindowB truncWindowSourceCL
+      ring
 
 end ShenWork.Paper2.TruncatedPositiveTimeBootstrap
