@@ -235,6 +235,45 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
           exact add_le_add (add_le_add hterm₁ hterm₂) hterm₃
     _ = (M * H + p.β * M * Γ ^ 2) + Γ * G := by ring
 
+/-- Analytic product-rule package for the truncated chemotaxis flux on a bounded
+continuous slice.
+
+This is the named version of the local `hflux_terms` obligation used by the
+positive-time gradient bootstrap.  It packages:
+* the product/chain/quotient rule for
+  `positivePart(lift w) * resolverGradReal p w / (1 + lift(R w))^β`;
+* the `positivePart` Lipschitz derivative bound;
+* resolver gradient and physical Hessian bounds from the absolute `M`-ball;
+* denominator bounds from resolver nonnegativity.
+
+ANALYTIC GAP: for the signed truncated Picard iterates used here the repository
+does not currently expose the resolver nonnegativity / ODE-Hessian bridge under
+only `|w| ≤ M`.  The nonnegative-source API is insufficient because these
+iterates may be negative. -/
+private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (_hM : 0 < M) (_hw_cont : Continuous w)
+    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
+    ∃ dpos gp q qDen : ℝ,
+      deriv (truncatedChemFluxLifted p w) y =
+        dpos * resolverGradReal p w y * q
+          + positivePart (intervalDomainLift w y) * gp * q
+          - p.β * positivePart (intervalDomainLift w y)
+              * (resolverGradReal p w y) ^ 2 * qDen
+      ∧ |dpos| ≤ |deriv (intervalDomainLift w) y|
+      ∧ |resolverGradReal p w y| ≤
+          Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+            * (2 * (p.ν * M ^ p.γ))
+      ∧ |gp| ≤
+          p.μ * (Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ)))
+            + p.ν * M ^ p.γ
+      ∧ |q| ≤ 1
+      ∧ |qDen| ≤ 1 := by
+  sorry
+
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
 The Picard limit is spatially Lipschitz at positive time.  This is the
@@ -447,10 +486,10 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                     ∧ |gp| ≤ H_M
                     ∧ |q| ≤ 1
                     ∧ |qDen| ≤ 1 := by
-                -- Remaining analytic product-rule input:
-                -- positive-part chain rule, resolver gradient/Hessian bounds,
-                -- and the denominator estimates `(1+R)^(-β), (1+R)^(-β-1) ≤ 1`.
-                sorry
+                simpa [Γ_M, H_M, V_M] using
+                  truncatedChemFluxLifted_deriv_terms_of_abs_ball
+                    (p := p) (w := U n s) (M := DT.M) DT.hM
+                    (hball_cont.2 s hs_pos hs_T) hball y
               rcases hflux_terms with
                 ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
               exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
