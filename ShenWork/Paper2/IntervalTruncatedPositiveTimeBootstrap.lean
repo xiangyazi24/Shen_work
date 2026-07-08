@@ -26,6 +26,7 @@ import ShenWork.Paper2.IntervalCoeffLadderFull
 import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
+import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.PDE.CosineSpectrum
 
 open MeasureTheory Set
@@ -62,6 +63,7 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
    negativePartTest cosineTestCoeff)
 open ShenWork.IntervalMildPicard (HasContinuousSlices HasJointMeasurability)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.Paper2.TruncatedGradientWindow
 
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
@@ -91,7 +93,41 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
       ∀ s, t / 2 ≤ s → s ≤ t → ∀ x : ℝ,
         |deriv (intervalDomainLift (truncatedConjugatePicardIter p u₀ n s)) x|
           ≤ G := by
-    sorry -- gradient window wiring (hkernel_step, Q3955)
+    let U : ℕ → ℝ → intervalDomainPoint → ℝ :=
+      fun n s => truncatedConjugatePicardIter p u₀ n s
+    let Src : ℕ → ℝ → ℝ → ℝ :=
+      fun n s y =>
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * truncatedChemFluxLifted p (U n s) y
+    let a : ℝ := t / 4
+    let lo : ℝ := t / 2
+    let hi : ℝ := t
+    let Mw : ℝ := DT.M
+    let A_L : ℝ := 0
+    let A_F : ℝ := 0
+    let B_F : ℝ := 0
+    let Gw : ℝ := truncWindowA Mw A_L A_F p.χ₀ a lo hi
+    have hGw_nn : 0 ≤ Gw := by
+      sorry -- Cg_nn * M_nn / sqrt_nn arithmetic
+    have W : TruncatedGradientWindowWiring p U Src Mw A_L A_F B_F a lo hi Gw := by
+      exact
+        { hM_nonneg := le_of_lt DT.hM
+          hAL_nonneg := le_refl 0
+          hAF_nonneg := le_refl 0
+          hBF_nonneg := le_refl 0
+          hG_nonneg := hGw_nn
+          ha_lt_lo := by dsimp [a, lo]; linarith
+          hlo_le_hi := by dsimp [lo, hi]; linarith
+          hclosed := by
+            dsimp [Gw, A_L, A_F, B_F]
+            simp only [truncWindowAffine, truncWindowB, mul_zero, zero_mul, add_zero]
+            exact le_refl _
+          hleft := by sorry
+          hbase := by sorry
+          hsource_of_grad := by sorry
+          hkernel_step := by sorry }
+    exact ⟨Gw, hGw_nn, fun n s hslo hshi x =>
+      truncatedGradientWindow_all W n s hslo hshi x⟩
   -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]
   have hiter_lip : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
       ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
