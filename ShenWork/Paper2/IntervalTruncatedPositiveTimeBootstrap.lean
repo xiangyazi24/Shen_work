@@ -232,7 +232,10 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             exact affine_fixed_closes hBcontr
           hleft := by sorry
           hbase := by
-            -- U 0 t' = S(t')(lift u₀). Gradient ≤ Cg·t'^{-1/2}·M ≤ Cg·M/√(lo-a) ≤ Gw
+            -- U 0 t' = S(t')(lift u₀). Use restart: S(t') = S(t'-a)(S(a)(u₀))
+            -- where |S(a)(u₀)| ≤ M from hbase_ball at a = t/4 > 0.
+            -- Then gradient of S(t'-a) applied to M-bounded input
+            -- ≤ Cg / √(t'-a) * M ≤ Cg / √(lo-a) * M ≤ Gw.
             sorry
           hsource_of_grad := by
             intro n hgrad s ha_s hs_hi y
