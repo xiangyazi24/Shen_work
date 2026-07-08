@@ -51,11 +51,28 @@ Alternative route (Q3949, deeper but heavier):
 - Decision: stick with Q3948 Lipschitz approach for current bootstrap file;
   Q3949 route is backup if Lipschitz IBP proves too heavy in Lean
 
-Status: 16 sorries in bootstrap + 1 in gradient window = 17 total.
-Previous session closed logistic source + continuousOn; this session closed 3 algebraic (timeDeriv + tested summabilities).
-Level 0 is the bottleneck: uniform iterate Lipschitz needs gradient window wiring (hkernel_step from ChatGPT Q3955).
-All 15 sorries below Level 0 chain through it.
-Gradient window file compiles 0 sorry except shifted Duhamel (1 sorry).
+Status: 16 sorries in bootstrap, 0 in gradient window, 0 in IBP.
+Previous session closed logistic source + continuousOn; this session closed:
+- 3 algebraic sorries (timeDeriv summability + two tested summabilities) via Codex
+- `gradDuhamel_shifted_sup_bound` in gradient window (Q3958, now 0 sorry)
+- Level 0 limit passage (tendsto_nhds_limUnder + le_of_tendsto, proved inline)
+
+Level 0 decomposed into:
+1. `hiter_grad` (sorry L94): uniform iterate gradient bound from window [t/2, t]
+   - Needs `TruncatedGradientWindowWiring` instantiation
+   - Key missing piece: `hkernel_step` (restarted mild identity infrastructure)
+   - Q3955 dispatched but git-drop FAILED; needs re-dispatch or manual proof
+2. MVT (sorry L105): gradient bound → Lipschitz via Mean Value Theorem
+   - Needs `HasDerivWithinAt` on Icc 0 1 for lifted iterates
+   - Infrastructure exists in codebase but assembly non-trivial
+3. Limit passage (PROVED): `le_of_tendsto` + `tendsto_nhds_limUnder`
+
+All 16 sorries chain back to L94 (hiter_grad).
+
+Q3960 insight: `negativePartTest_diff_off_countable` (Level 4b) needs STRONGER
+positive-time regularity — Lipschitz alone doesn't give HasDerivAt off countable.
+Need C¹ or HasDerivAt-off-countable as a new black box. May need to restructure
+Level 4b sorry statements.
 
 Role: Codex grinds the individual sorries. I organize ChatGPT answers and coordinate.
 
