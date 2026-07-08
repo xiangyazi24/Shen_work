@@ -108,6 +108,23 @@ private theorem truncatedLogisticLocal_abs_le_of_abs_le'
     _ ≤ M * (p.a + p.b * M ^ p.α) :=
         mul_le_mul hr hinner (abs_nonneg _) hM_nonneg
 
+/-- Product-rule envelope for the truncated chemotaxis flux.
+
+This is the analytic frontier used by the positive-time gradient bootstrap:
+bounded iterate, an iterate-gradient envelope, resolver-gradient envelope
+`Γ`, and resolver weak-Laplacian envelope `H` give
+`|Q'| ≤ M H + β M Γ² + Γ G`. -/
+private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    {M Γ H G : ℝ}
+    (_hM : 0 < M)
+    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (_hgrad : ∀ x : ℝ, |deriv (intervalDomainLift w) x| ≤ G)
+    (y : ℝ) :
+    |deriv (truncatedChemFluxLifted p w) y| ≤
+      (M * H + p.β * M * Γ ^ 2) + Γ * G := by
+  sorry
+
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
 The Picard limit is spatially Lipschitz at positive time.  This is the
@@ -241,7 +258,11 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               -- Uses: |positivePart'| ≤ 1, IterGradOnWindow giving |u'| ≤ G,
               -- resolver gradient ≤ Γ_M, resolver second deriv ≤ H_M,
               -- (1+R)^β ≥ 1
-              sorry
+              dsimp only [A_F, B_F]
+              exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+                (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
+                (H := H_M) (G := Gw) DT.hM hball
+                (hgrad s ha_s hs_hi) y
           hkernel_step := by
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
