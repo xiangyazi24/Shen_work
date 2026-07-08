@@ -123,7 +123,12 @@ in n (Volterra contraction), so the Picard limit inherits Lipschitz. -/
 theorem truncatedPicardLimit_lipschitzOn_positive_time
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
-    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T)
+    (hcontr_grad : truncWindowB
+      (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+          * (2 * (p.ν * DT.M ^ p.γ)))
+      p.χ₀ (t / 4) t < 1) :
     ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
       |intervalDomainLift
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
@@ -181,8 +186,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))))
           (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))
       · exact mul_nonneg (mul_nonneg p.hβ (le_of_lt DT.hM)) (sq_nonneg _)
-    have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := by
-      sorry -- contraction: Cg · 2√(3t/4) · |χ₀| · Γ_M < 1 (needs t small enough)
+    have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := hcontr_grad
     let Gw : ℝ := truncWindowFixedG Mw A_L A_F B_F p.χ₀ a lo hi
     have hGw_nn : 0 ≤ Gw := by
       dsimp only [Gw]
@@ -697,7 +701,7 @@ theorem truncatedBFormSourceCoeff_bound_positive_time
   -- Part 2: chemDiv bound (Lipschitz → flux W^{1,1} → IBP → bounded)
   have ⟨CC, hCC, hchem⟩ : ∃ CC : ℝ, 0 ≤ CC ∧ ∀ k,
       |truncatedChemDivSourceCoeff p u s k| ≤ CC := by
-    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT hs hsT
+    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT hs hsT sorry
     sorry
   -- Triangle inequality
   exact ⟨CL + |p.χ₀| * CC, add_nonneg hCL (mul_nonneg (abs_nonneg _) hCC),
