@@ -86,13 +86,23 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
        intervalDomainLift
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
-  -- Step 1: Uniform iterate Lipschitz from gradient window contraction
+  -- Step 1a: Uniform iterate gradient bound from gradient window contraction
+  have hiter_grad : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
+      ∀ s, t / 2 ≤ s → s ≤ t → ∀ x : ℝ,
+        |deriv (intervalDomainLift (truncatedConjugatePicardIter p u₀ n s)) x|
+          ≤ G := by
+    sorry -- gradient window wiring (hkernel_step, Q3955)
+  -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]
   have hiter_lip : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
       ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
         |intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) x -
          intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) y|
           ≤ G * |x - y| := by
-    sorry -- needs gradient window wiring (hkernel_step from Q3955)
+    obtain ⟨G, hG_nn, hgrad⟩ := hiter_grad
+    refine ⟨G, hG_nn, fun n x hx y hy => ?_⟩
+    have ht_half : t / 2 ≤ t := half_le_self ht.le
+    have hgt := hgrad n t ht_half le_rfl
+    sorry -- MVT: |deriv f| ≤ G → |f x - f y| ≤ G * |x - y| on convex [0,1]
   obtain ⟨G, hG_nn, hiter⟩ := hiter_lip
   refine ⟨G, hG_nn, fun x hx y hy => ?_⟩
   -- Step 2: Derive pointwise convergence from DT's geometric bound
