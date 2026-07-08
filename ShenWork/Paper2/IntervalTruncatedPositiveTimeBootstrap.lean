@@ -66,6 +66,46 @@ open ShenWork.IntervalMildPicard (HasContinuousSlices HasJointMeasurability)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.Paper2.TruncatedGradientWindow
 
+/-! ## Helper: truncated logistic local bound -/
+
+private theorem positivePart_le_abs' (r : ℝ) :
+    positivePart r ≤ |r| := by
+  by_cases hr : 0 ≤ r
+  · simp [positivePart, hr, abs_of_nonneg hr]
+  · have hr' : r ≤ 0 := le_of_not_ge hr
+    simp [positivePart, hr', abs_of_nonpos hr']
+
+private theorem truncatedLogisticLocal_abs_le_of_abs_le'
+    (p : CM2Params) {M r : ℝ} (hM : 0 < M) (hr : |r| ≤ M) :
+    |truncatedLogisticLocal p r| ≤
+      M * (p.a + p.b * M ^ p.α) := by
+  have hM_nonneg : 0 ≤ M := hM.le
+  have hpp_nonneg : 0 ≤ positivePart r := positivePart_nonneg r
+  have hpp_le_M : positivePart r ≤ M :=
+    (positivePart_le_abs' r).trans hr
+  have hpow_nonneg : 0 ≤ (positivePart r) ^ p.α :=
+    Real.rpow_nonneg hpp_nonneg _
+  have hpow_le : (positivePart r) ^ p.α ≤ M ^ p.α :=
+    Real.rpow_le_rpow hpp_nonneg hpp_le_M p.hα.le
+  have hinner :
+      |p.a - p.b * (positivePart r) ^ p.α|
+        ≤ p.a + p.b * M ^ p.α := by
+    calc
+      |p.a - p.b * (positivePart r) ^ p.α|
+          ≤ |p.a| + |p.b * (positivePart r) ^ p.α| := abs_sub _ _
+      _ = p.a + p.b * (positivePart r) ^ p.α := by
+          rw [abs_of_nonneg p.ha, abs_mul, abs_of_nonneg p.hb,
+            abs_of_nonneg hpow_nonneg]
+      _ ≤ p.a + p.b * M ^ p.α := by
+          exact add_le_add (le_refl p.a)
+            (mul_le_mul_of_nonneg_left hpow_le p.hb)
+  calc
+    |truncatedLogisticLocal p r|
+        = |r| * |p.a - p.b * (positivePart r) ^ p.α| := by
+          simp [truncatedLogisticLocal, abs_mul]
+    _ ≤ M * (p.a + p.b * M ^ p.α) :=
+        mul_le_mul hr hinner (abs_nonneg _) hM_nonneg
+
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
 The Picard limit is spatially Lipschitz at positive time.  This is the
@@ -160,7 +200,8 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                 · simp only [intervalDomainLift, dif_neg hy, abs_zero]
                   exact le_of_lt DT.hM
               show |truncatedLogisticLifted p (U n s) y| ≤ A_L
-              sorry -- logistic bound (truncatedLogisticLocal_abs_le, defined later in file)
+              show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
+              exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
             · -- |flux| ≤ A_F + B_F * G = A_F (B_F = 0)
               simp only [B_F, mul_zero, add_zero]
               sorry -- flux bound from ball bound (needs resolver spectral import)
