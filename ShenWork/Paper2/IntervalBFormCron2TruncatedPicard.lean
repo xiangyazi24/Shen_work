@@ -8,8 +8,8 @@
 -/
 import ShenWork.Paper2.IntervalBFormNegativePartCron2
 
-open Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open Filter Topology MeasureTheory
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
 open ShenWork.IntervalMildPicard
 
@@ -356,6 +356,8 @@ structure TruncatedConjugateMildExistenceData (p : CM2Params)
   hC₀ : 0 ≤ C₀
   hbase_ball : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
     |truncatedConjugatePicardIter p u₀ 0 t x| ≤ M
+  hbase_lift_bound : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M
+  hbase_lift_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1)
   hbase_cont : HasContinuousSlices T (truncatedConjugatePicardIter p u₀ 0)
   hmapsTo : ∀ (w : ℝ → intervalDomainPoint → ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →

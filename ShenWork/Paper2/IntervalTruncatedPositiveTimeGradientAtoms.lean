@@ -133,7 +133,7 @@ theorem truncatedConjugatePicardIter_zero_window_gradient
     (_hBcontr : truncWindowB B_F p.χ₀ a hi < 1) :
     IterGradOnWindow U lo hi 0
       (truncWindowFixedG DT.M A_L A_F B_F p.χ₀ a lo hi) := by
-  intro τ hτlo hτhi x
+  intro τ hτlo _hτhi x
   have hτ_pos : 0 < τ := lt_of_lt_of_le (lt_trans _ha_pos _ha_lt_lo) hτlo
   have hloa_pos : 0 < lo - a := sub_pos.mpr _ha_lt_lo
   have hloa_le_τ : lo - a ≤ τ := by linarith
@@ -220,7 +220,8 @@ theorem truncatedConjugatePicardIter_zero_left_profile
     (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
     {A_L A_F B_F lo : ℝ}
     (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
-    (_hBF_nonneg : 0 ≤ B_F) (_hlo_pos : 0 < lo) :
+    (_hBF_nonneg : 0 ≤ B_F) (_hlo_pos : 0 < lo)
+    (_hBcontr : truncLeftB B_F p.χ₀ lo < 1) :
     IterGradLeftProfile U DT.M A_L A_F B_F p.χ₀ lo 0 := by
   intro τ hτ _hτlo x
   have hK_nonneg :
@@ -238,22 +239,25 @@ theorem truncatedConjugatePicardIter_zero_left_profile
       ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
           * τ ^ (-(1 / 2) : ℝ) * DT.M
         ≤ truncLeftSingularC DT.M / Real.sqrt τ := by
-    calc
-      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-          * τ ^ (-(1 / 2) : ℝ) * DT.M
-          = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-              / Real.sqrt τ * DT.M := by
-            rw [rpow_neg_half_eq_inv_sqrt hτ]
-            ring
-      _ = truncLeftSingularC DT.M / Real.sqrt τ := by
-            unfold truncLeftSingularC
-            ring
+    have hsing_eq :
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * τ ^ (-(1 / 2) : ℝ) * DT.M
+          = truncLeftSingularC DT.M / Real.sqrt τ := by
+      calc
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * τ ^ (-(1 / 2) : ℝ) * DT.M
+            = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                / Real.sqrt τ * DT.M := by
+              rw [rpow_neg_half_eq_inv_sqrt hτ]
+              ring
+        _ = truncLeftSingularC DT.M / Real.sqrt τ := by
+              unfold truncLeftSingularC
+              ring
+    exact hsing_eq.le
   have hD_nonneg :
       0 ≤ truncLeftD DT.M A_L A_F B_F p.χ₀ lo := by
-    exact truncLeftD_nonneg hM_nonneg _hAL_nonneg _hAF_nonneg _hBF_nonneg
-      _hlo_pos.le (truncLeftB_lt_one_of_lo (M := DT.M)
-        (A_L := A_L) (A_F := A_F) (B_F := B_F)
-        (chi := p.χ₀) _hlo_pos)
+    exact ShenWork.Paper2.TruncatedGradientWindow.truncLeftD_nonneg
+      hM_nonneg _hAL_nonneg _hAF_nonneg _hBF_nonneg _hlo_pos.le _hBcontr
   have hprofile :
       truncLeftSingularC DT.M / Real.sqrt τ
         ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo τ := by

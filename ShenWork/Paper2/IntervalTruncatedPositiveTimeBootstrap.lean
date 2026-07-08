@@ -347,7 +347,40 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               dsimp only [Gw]
               exact truncLeftProfile_le_Gw hM hAL_nn hAF_nn hΓ_M_nn ha
                 (by dsimp [lo, a]; ring) (by dsimp [hi, a]; ring) hBcontr
-            have base : IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo 0 := by sorry
+            have hleftContr : truncLeftB B_F p.χ₀ lo < 1 := by
+              have hsqrt_le : Real.sqrt lo ≤ Real.sqrt (hi - a) :=
+                Real.sqrt_le_sqrt (by dsimp [lo, hi, a]; linarith)
+              have htwo_sqrt_le :
+                  2 * Real.sqrt lo ≤ 2 * Real.sqrt (hi - a) :=
+                mul_le_mul_of_nonneg_left hsqrt_le (by norm_num)
+              have hK_nonneg :
+                  0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+                ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+              have hchiBF_nonneg : 0 ≤ |p.χ₀| * B_F :=
+                mul_nonneg (abs_nonneg p.χ₀) hΓ_M_nn
+              have hb_core :
+                  ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                      * (2 * Real.sqrt lo)
+                    ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                      * (2 * Real.sqrt (hi - a)) :=
+                mul_le_mul_of_nonneg_left htwo_sqrt_le hK_nonneg
+              have hb_le : truncLeftB B_F p.χ₀ lo ≤ truncWindowB B_F p.χ₀ a hi := by
+                rw [truncLeftB, truncWindowB, truncLeftBeta]
+                calc
+                  ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                        * (2 * Real.sqrt lo) * (|p.χ₀| * B_F)
+                      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                        * (2 * Real.sqrt (hi - a)) * (|p.χ₀| * B_F) :=
+                        mul_le_mul_of_nonneg_right hb_core hchiBF_nonneg
+                  _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                        * (2 * Real.sqrt (hi - a)) * |p.χ₀| * B_F := by ring
+              exact lt_of_le_of_lt hb_le hBcontr
+            have base : IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo 0 := by
+              dsimp only [Mw]
+              exact truncatedConjugatePicardIter_zero_left_profile
+                (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
+                hAL_nn hAF_nn hΓ_M_nn
+                (by dsimp [lo]; linarith) hleftContr
             have source : ∀ n, IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
                 ∀ s, 0 < s → s ≤ lo → ∀ y,
                   |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
