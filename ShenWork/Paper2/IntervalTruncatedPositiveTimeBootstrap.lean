@@ -104,34 +104,37 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     let lo : ℝ := t / 2
     let hi : ℝ := t
     let Mw : ℝ := DT.M
-    let A_L : ℝ := 0
-    let A_F : ℝ := 0
+    let A_L : ℝ := DT.M * (p.a + p.b * DT.M ^ p.α)
+    let A_F : ℝ := DT.M * (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+        * (2 * (p.ν * DT.M ^ p.γ)))
     let B_F : ℝ := 0
     let Gw : ℝ := truncWindowA Mw A_L A_F p.χ₀ a lo hi
     have hGw_nn : 0 ≤ Gw := by
-      show 0 ≤ truncWindowA DT.M 0 0 p.χ₀ (t / 4) (t / 2) t
-      unfold truncWindowA
-      simp only [mul_zero, add_zero]
-      exact mul_nonneg
-        (div_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
-          (Real.sqrt_nonneg _))
-        (le_of_lt DT.hM)
+      sorry -- Cg_nn * M_nn / sqrt_nn + Cg_nn * sqrt_nn * (A_L_nn + |χ₀| * A_F_nn)
     have W : TruncatedGradientWindowWiring p U Src Mw A_L A_F B_F a lo hi Gw := by
       exact
         { hM_nonneg := le_of_lt DT.hM
-          hAL_nonneg := le_refl 0
-          hAF_nonneg := le_refl 0
+          hAL_nonneg := by
+            sorry -- M * (a + b * M^α) ≥ 0 from all-nonneg params
+          hAF_nonneg := by
+            sorry -- M * √(Σ wt²) * 2ν * M^γ ≥ 0 from all-nonneg params
           hBF_nonneg := le_refl 0
           hG_nonneg := hGw_nn
           ha_lt_lo := by dsimp [a, lo]; linarith
           hlo_le_hi := by dsimp [lo, hi]; linarith
           hclosed := by
-            dsimp [Gw, A_L, A_F, B_F]
+            dsimp [Gw, B_F]
             simp only [truncWindowAffine, truncWindowB, mul_zero, zero_mul, add_zero]
             exact le_refl _
           hleft := by sorry
           hbase := by sorry
-          hsource_of_grad := by sorry
+          hsource_of_grad := by
+            intro n _hgrad s _ha_s _hs_hi y
+            show |truncatedLogisticLifted p (U n s) y
+              - p.χ₀ * truncatedChemFluxLifted p (U n s) y|
+              ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ Gw
+            sorry -- source bound from ball bound
           hkernel_step := by sorry }
     exact ⟨Gw, hGw_nn, fun n s hslo hshi x =>
       truncatedGradientWindow_all W n s hslo hshi x⟩
