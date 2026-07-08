@@ -310,6 +310,58 @@ gradient estimates.  The theorem below consumes this atom and proves the window
 monotonicity and constant arithmetic without any further analytic gap.
 -/
 
+private def truncatedWindowedSource
+    (Src : ℕ → ℝ → ℝ → ℝ) (n : ℕ) (a hi : ℝ) : ℝ → ℝ → ℝ :=
+  fun s y => if a ≤ s ∧ s ≤ hi then Src n s y else 0
+
+/- Analytic helper sorry, isolated from the arithmetic estimate below.
+
+This is the precise restart/IBP/Leibniz package needed by the raw gradient
+atom: restart the successor Picard iterate at time `a`, replace the B-kernel
+leg by the post-IBP full-kernel source on the active window, and justify the
+spatial derivative under the shifted Duhamel integral. -/
+private theorem truncatedConjugatePicardIter_succ_restart_gradient_split
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G τ : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (_ha_nonneg : 0 ≤ a) (ha_lt_τ : a < τ)
+    (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    AEStronglyMeasurable (intervalDomainLift (U (n + 1) a)) (intervalMeasure 1)
+      ∧ (∀ y : ℝ, |intervalDomainLift (U (n + 1) a) y| ≤ DT.M)
+      ∧ (∀ s, Integrable (truncatedWindowedSource Src n a hi s) (intervalMeasure 1))
+      ∧ (∀ x : ℝ, IntervalIntegrable
+          (fun s : ℝ => deriv
+            (fun z : ℝ =>
+              intervalFullSemigroupOperator (τ - s)
+                (truncatedWindowedSource Src n a hi s) z) x)
+          volume a τ)
+      ∧ (∀ x : ℝ,
+          deriv (intervalDomainLift (U (n + 1) τ)) x =
+            deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - a)
+                  (intervalDomainLift (U (n + 1) a)) z) x
+              + ∫ s in a..τ, deriv
+                  (fun z : ℝ =>
+                    intervalFullSemigroupOperator (τ - s)
+                      (truncatedWindowedSource Src n a hi s) z) x)
+      ∧ ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+          DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
+  -- Analytic gap: B-form restart split + IBP conversion + spatial Leibniz.
+  sorry
+
 private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
@@ -337,9 +389,63 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
             * truncWindowSourceCL A_L A_F B_F p.χ₀ G)
     ∧ ∀ x ∈ Set.Ioo (0 : ℝ) 1,
         DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
-  -- Analytic gap: B-form restart split + IBP conversion + Leibniz for the
-  -- shifted full-kernel Duhamel integral.
-  sorry
+  have hτa_pos : 0 < τ - a := sub_pos.mpr ha_lt_τ
+  have hCsrc_nonneg :
+      0 ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    unfold truncWindowSourceCL
+    exact add_nonneg _hAL_nonneg
+      (mul_nonneg (abs_nonneg p.χ₀)
+        (add_nonneg _hAF_nonneg (mul_nonneg _hBF_nonneg _hG_nonneg)))
+  have hwin_sup :
+      ∀ s y, |truncatedWindowedSource Src n a hi s y|
+        ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    intro s y
+    by_cases hs : a ≤ s ∧ s ≤ hi
+    · simpa [truncatedWindowedSource, hs] using hsrc s hs.1 hs.2 y
+    · simp [truncatedWindowedSource, hs, hCsrc_nonneg]
+  rcases truncatedConjugatePicardIter_succ_restart_gradient_split
+      DT U hU Src hSrc
+      _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
+      _ha_nonneg ha_lt_τ hτhi hτT n hsrc with
+    ⟨hrestart_meas, hrestart_bound, hq_int, hg_int, hsplit, hdiff⟩
+  refine ⟨?_, hdiff⟩
+  intro x
+  have hhom :
+      |deriv
+          (fun z : ℝ =>
+            intervalFullSemigroupOperator (τ - a)
+              (intervalDomainLift (U (n + 1) a)) z) x|
+        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (τ - a) * DT.M := by
+    have h :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+        hτa_pos hrestart_meas hrestart_bound x
+    calc
+      |deriv
+          (fun z : ℝ =>
+            intervalFullSemigroupOperator (τ - a)
+              (intervalDomainLift (U (n + 1) a)) z) x|
+          ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * (τ - a) ^ (-(1 / 2) : ℝ) * DT.M := h
+      _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              / Real.sqrt (τ - a) * DT.M := by
+            rw [rpow_neg_half_eq_inv_sqrt hτa_pos]
+            ring
+  have hduh :
+      |∫ s in a..τ, deriv
+          (fun z : ℝ =>
+            intervalFullSemigroupOperator (τ - s)
+              (truncatedWindowedSource Src n a hi s) z) x|
+        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * (2 * Real.sqrt (τ - a))
+            * truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    exact
+      ShenWork.Paper2.TruncatedGradientWindow.gradDuhamel_shifted_sup_bound
+        (a := a) (t := τ) (T := τ) _ha_nonneg ha_lt_τ le_rfl
+        (q := truncatedWindowedSource Src n a hi) hq_int
+        hCsrc_nonneg hwin_sup x (hg_int x)
+  rw [hsplit x]
+  exact (abs_add_le _ _).trans (add_le_add hhom hduh)
 
 /-- Successor truncated Picard iterate affine gradient step on a positive window.
 
