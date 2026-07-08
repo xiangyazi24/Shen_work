@@ -143,4 +143,26 @@ theorem truncatedGradientWindow_all
   | zero => exact W.hbase
   | succ n IH => exact truncatedGradientWindow_succ W IH
 
+/-! ## Shifted Duhamel gradient bound
+
+The gradient window uses a restart at time `a`. The Duhamel integral runs over
+`[a, t]`, which reduces to `[0, t-a]` after a shift. This wrapper applies the
+existing `gradDuhamel_sup_bound` to the shifted source. -/
+
+open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+
+theorem gradDuhamel_shifted_sup_bound
+    {a t T : ℝ} (ha : 0 ≤ a) (hat : a < t) (htT : t ≤ T)
+    {q : ℝ → ℝ → ℝ}
+    (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
+    {Cq : ℝ} (hCq : 0 ≤ Cq) (hq_sup : ∀ s y, |q s y| ≤ Cq) (x : ℝ)
+    (hg_int : IntervalIntegrable
+      (fun s : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x) volume a t) :
+    |∫ s in a..t, deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x|
+      ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt (T - a)) * Cq := by
+  sorry
+
 end ShenWork.Paper2.TruncatedGradientWindow

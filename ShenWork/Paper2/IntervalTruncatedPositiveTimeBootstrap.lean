@@ -616,9 +616,30 @@ theorem truncatedPicardCoeffTimeDeriv_summable_positive_time
     Summable (fun k : ℕ =>
       |truncatedPicardCoeffTimeDeriv p u₀
         (truncatedConjugatePicardLimit p u₀ DT.T) t k|) := by
-  have _heig := truncatedPicardCoeff_eigenvalue_weighted_summable_positive_time DT ht htT
-  have _hsrc := truncatedBFormSourceCoeff_summable_positive_time DT ht htT
-  sorry
+  have heig := truncatedPicardCoeff_eigenvalue_weighted_summable_positive_time DT ht htT
+  have hsrc := truncatedBFormSourceCoeff_summable_positive_time DT ht htT
+  refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_) (heig.add hsrc)
+  simp only [truncatedPicardCoeffTimeDeriv]
+  have hlam : 0 ≤ unitIntervalCosineEigenvalue k := by
+    unfold unitIntervalCosineEigenvalue
+    positivity
+  calc
+    |-(unitIntervalCosineEigenvalue k) *
+          truncatedPicardCoeff p u₀
+            (truncatedConjugatePicardLimit p u₀ DT.T) t k
+        + truncatedBFormSourceCoeff p
+            (truncatedConjugatePicardLimit p u₀ DT.T) t k|
+        ≤ |-(unitIntervalCosineEigenvalue k) *
+            truncatedPicardCoeff p u₀
+              (truncatedConjugatePicardLimit p u₀ DT.T) t k|
+          + |truncatedBFormSourceCoeff p
+              (truncatedConjugatePicardLimit p u₀ DT.T) t k| := abs_add_le _ _
+    _ = unitIntervalCosineEigenvalue k *
+          |truncatedPicardCoeff p u₀
+            (truncatedConjugatePicardLimit p u₀ DT.T) t k|
+        + |truncatedBFormSourceCoeff p
+            (truncatedConjugatePicardLimit p u₀ DT.T) t k| := by
+          rw [abs_mul, abs_neg, abs_of_nonneg hlam]
 
 /-! ## Level 4: Gradient bound and C¹ regularity -/
 
@@ -747,6 +768,51 @@ theorem truncatedPicardLimit_grad_rep_positive_time
 
 /-! ## Level 5b: Tested summability (bilinear products) -/
 
+private theorem negativePartTest_abs_le_positive_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t x| ≤ DT.M := by
+  intro x hx
+  have hbound :=
+    (truncatedConjugateMildSolutionData_of_data DT).hbound t ht htT ⟨x, hx⟩
+  have hval :
+      intervalDomainLift ((truncatedConjugatePicardLimit p u₀ DT.T) t) x =
+        (truncatedConjugatePicardLimit p u₀ DT.T) t ⟨x, hx⟩ := by
+    simp [intervalDomainLift, hx]
+  simp only [negativePartTest, BFormPositiveDatumNegPart.negativePartLift, abs_neg]
+  rw [hval]
+  set r := (truncatedConjugatePicardLimit p u₀ DT.T) t ⟨x, hx⟩ with hr
+  have hneg : |BFormPositiveDatumNegPart.negativePart r| ≤ |r| := by
+    by_cases hr_nonneg : 0 ≤ r
+    · simp [BFormPositiveDatumNegPart.negativePart_eq_zero_of_nonneg hr_nonneg]
+    · have hr_nonpos : r ≤ 0 := le_of_lt (lt_of_not_ge hr_nonneg)
+      simp [BFormPositiveDatumNegPart.negativePart_eq_neg_of_nonpos hr_nonpos, abs_neg]
+  exact hneg.trans hbound
+
+private theorem cosineTestCoeff_abs_le_of_bound
+    {φ : ℝ → ℝ} {B : ℝ}
+    (hφ : ∀ x ∈ Set.Icc (0 : ℝ) 1, |φ x| ≤ B) :
+    ∀ k : ℕ, |cosineTestCoeff φ k| ≤ B := by
+  intro k
+  have hnorm := intervalIntegral.norm_integral_le_of_norm_le_const
+    (a := (0 : ℝ)) (b := 1) (C := B)
+    (f := fun x : ℝ => cosineMode k x * φ x)
+    (fun x hx => by
+      rw [Real.norm_eq_abs, abs_mul]
+      have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := by
+        have hx_uIcc : x ∈ Set.uIcc (0 : ℝ) 1 := Set.uIoc_subset_uIcc hx
+        rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)] at hx_uIcc
+      have hcos : |cosineMode k x| ≤ 1 := by
+        simpa [cosineMode] using
+          Real.abs_cos_le_one ((k : ℝ) * Real.pi * x)
+      calc
+        |cosineMode k x| * |φ x| ≤ 1 * |φ x| :=
+          mul_le_mul_of_nonneg_right hcos (abs_nonneg _)
+        _ ≤ B := by simpa using hφ x hxIcc)
+  simpa [cosineTestCoeff, Real.norm_eq_abs] using hnorm
+
 /-- The Laplacian-tested summability: `∑ λ_k a_k · testCoeff_k` converges.
 This follows from eigenvalue-weighted summability of `a_k` and boundedness
 of test coefficients (cosine coefficients of a bounded function). -/
@@ -760,7 +826,43 @@ theorem truncatedPicardLimit_lap_summable_positive_time
           (truncatedConjugatePicardLimit p u₀ DT.T) t k *
         cosineTestCoeff
           (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t) k) := by
-  sorry
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  change Summable (fun k : ℕ =>
+      unitIntervalCosineEigenvalue k *
+        truncatedPicardCoeff p u₀ U t k *
+        cosineTestCoeff (negativePartTest U t) k)
+  have hcoeff :=
+    truncatedPicardCoeff_eigenvalue_weighted_summable_positive_time DT ht htT
+  have htest : ∀ k : ℕ, |cosineTestCoeff (negativePartTest U t) k| ≤ DT.M :=
+    cosineTestCoeff_abs_le_of_bound
+      (negativePartTest_abs_le_positive_time (DT := DT) ht htT)
+  have hmajor : Summable (fun k : ℕ =>
+      (unitIntervalCosineEigenvalue k *
+        |truncatedPicardCoeff p u₀ U t k|) * DT.M) := by
+    simpa [U] using hcoeff.mul_right DT.M
+  have habs : Summable (fun k : ℕ =>
+      |unitIntervalCosineEigenvalue k *
+        truncatedPicardCoeff p u₀ U t k *
+        cosineTestCoeff (negativePartTest U t) k|) := by
+    refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_) hmajor
+    have hlam : 0 ≤ unitIntervalCosineEigenvalue k := by
+      unfold unitIntervalCosineEigenvalue
+      positivity
+    calc
+      |unitIntervalCosineEigenvalue k *
+          truncatedPicardCoeff p u₀ U t k *
+          cosineTestCoeff (negativePartTest U t) k|
+          =
+        (unitIntervalCosineEigenvalue k *
+          |truncatedPicardCoeff p u₀ U t k|) *
+          |cosineTestCoeff (negativePartTest U t) k| := by
+            rw [abs_mul, abs_mul, abs_of_nonneg hlam]
+      _ ≤ (unitIntervalCosineEigenvalue k *
+          |truncatedPicardCoeff p u₀ U t k|) * DT.M :=
+            mul_le_mul_of_nonneg_left (htest k)
+              (mul_nonneg hlam (abs_nonneg _))
+  refine Summable.of_norm ?_
+  simpa [Real.norm_eq_abs] using habs
 
 /-- Source-tested summability: `∑ src_k · testCoeff_k` converges. -/
 theorem truncatedPicardLimit_source_summable_positive_time
@@ -772,6 +874,31 @@ theorem truncatedPicardLimit_source_summable_positive_time
           (truncatedConjugatePicardLimit p u₀ DT.T) t k *
         cosineTestCoeff
           (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t) k) := by
-  sorry
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  change Summable (fun k : ℕ =>
+      truncatedBFormSourceCoeff p U t k *
+        cosineTestCoeff (negativePartTest U t) k)
+  have hsrc := truncatedBFormSourceCoeff_summable_positive_time DT ht htT
+  have htest : ∀ k : ℕ, |cosineTestCoeff (negativePartTest U t) k| ≤ DT.M :=
+    cosineTestCoeff_abs_le_of_bound
+      (negativePartTest_abs_le_positive_time (DT := DT) ht htT)
+  have hmajor : Summable (fun k : ℕ =>
+      |truncatedBFormSourceCoeff p U t k| * DT.M) := by
+    simpa [U] using hsrc.mul_right DT.M
+  have habs : Summable (fun k : ℕ =>
+      |truncatedBFormSourceCoeff p U t k *
+        cosineTestCoeff (negativePartTest U t) k|) := by
+    refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_) hmajor
+    calc
+      |truncatedBFormSourceCoeff p U t k *
+        cosineTestCoeff (negativePartTest U t) k|
+          =
+        |truncatedBFormSourceCoeff p U t k| *
+          |cosineTestCoeff (negativePartTest U t) k| := by
+            rw [abs_mul]
+      _ ≤ |truncatedBFormSourceCoeff p U t k| * DT.M :=
+            mul_le_mul_of_nonneg_left (htest k) (abs_nonneg _)
+  refine Summable.of_norm ?_
+  simpa [Real.norm_eq_abs] using habs
 
 end ShenWork.Paper2.TruncatedPositiveTimeBootstrap
