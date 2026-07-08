@@ -69,9 +69,26 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
    negativePartTest cosineTestCoeff)
 open ShenWork.IntervalMildPicard (HasContinuousSlices HasJointMeasurability)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.CosineParsevalBridge (unitIntervalEvenReflection)
+open ShenWork.HeatKernelGradientEstimates
+  (unitIntervalNeumannCosineCoeff unitIntervalNeumannCosineCoeff_l2_bound)
+open ShenWork.PDE.ResolventEstimate (coeffL2Energy coeffL2Norm)
+open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 open ShenWork.Paper2.TruncatedGradientWindow
 
 /-! ## Helper: truncated logistic local bound -/
+
+private theorem lift_continuousOn_Icc_of_continuous
+    {g : intervalDomainPoint → ℝ} (hg : Continuous g) :
+    ContinuousOn (intervalDomainLift g) (Set.Icc (0 : ℝ) 1) := by
+  rw [continuousOn_iff_continuous_restrict]
+  have hres : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift g) = g := by
+    funext z
+    obtain ⟨z, hz⟩ := z
+    show intervalDomainLift g z = g ⟨z, hz⟩
+    rw [intervalDomainLift, dif_pos hz]
+  rw [hres]
+  exact hg
 
 private theorem positivePart_le_abs' (r : ℝ) :
     positivePart r ≤ |r| := by
@@ -253,13 +270,216 @@ only `|w| ≤ M`.  The nonnegative-source API is insufficient because these
 iterates may be negative. -/
 private theorem resolverGrad_abs_le_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
-    (_hM : 0 < M) (_hw_cont : Continuous w)
-    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
     |resolverGradReal p w y| ≤
       Real.sqrt (∑' k : ℕ,
         (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
         * (2 * (p.ν * M ^ p.γ)) := by
-  sorry
+  classical
+  have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+    lift_continuousOn_Icc_of_continuous hw_cont
+  have hM_nonneg : 0 ≤ M := hM.le
+  let A : ℕ → ℂ := fun k =>
+    ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k -
+      ShenWork.PDE.intervalNeumannResolverSourceCoeff p (fun _ => 0) k
+  let e : ℕ → ℝ := fun k => (A k).re
+  let m : ℕ → ℝ := fun k =>
+    (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * y)) /
+      (p.μ + unitIntervalNeumannSpectrum.eigenvalue k)
+  have hsrc :
+      Summable fun k : ℕ =>
+        ((ShenWork.PDE.intervalNeumannResolverSourceCoeff p w k -
+          ShenWork.PDE.intervalNeumannResolverSourceCoeff p (fun _ => 0) k).re) ^ 2 := by
+    simpa [ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero, sub_zero] using
+      ShenWork.IntervalResolverWeakBounds.resolverSourceCoeff_re_sq_summable_of_continuousOn
+        p hUcont
+  have he_sq : Summable fun k : ℕ => (e k) ^ 2 := by
+    simpa [e, A] using hsrc
+  have hm_sq : Summable fun k : ℕ => (m k) ^ 2 := by
+    refine Summable.of_nonneg_of_le (fun k => sq_nonneg _) ?_
+      (ShenWork.PDE.intervalNeumannResolverGradWeight_sq_summable p)
+    intro k
+    have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue k :=
+      ShenWork.PDE.intervalNeumannResolver_denom_pos p k
+    have hsin : (Real.sin ((k : ℝ) * Real.pi * y)) ^ 2 ≤ 1 := by
+      rw [sq_le_one_iff_abs_le_one]
+      exact Real.abs_sin_le_one _
+    have hgweq :
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2 =
+          ((k : ℝ) * Real.pi) ^ 2 /
+            (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) ^ 2 := by
+      rw [ShenWork.PDE.intervalNeumannResolverGradWeight, div_pow]
+    rw [hgweq]
+    dsimp [m]
+    rw [div_pow, mul_pow, neg_pow]
+    have hkp : (0 : ℝ) ≤ ((k : ℝ) * Real.pi) ^ 2 := by positivity
+    have hnum :
+        (-1 : ℝ) ^ 2 * ((k : ℝ) * Real.pi) ^ 2 *
+            (Real.sin ((k : ℝ) * Real.pi * y)) ^ 2 ≤
+          ((k : ℝ) * Real.pi) ^ 2 := by
+      have h1 : (-1 : ℝ) ^ 2 = 1 := by norm_num
+      rw [h1, one_mul]
+      nlinarith [hkp, hsin, sq_nonneg (Real.sin ((k : ℝ) * Real.pi * y))]
+    gcongr
+  have hterm : ∀ k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverCoeff p w k).re *
+          (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * y)) =
+        e k * m k := by
+    intro k
+    have hden : p.μ + unitIntervalNeumannSpectrum.eigenvalue k ≠ 0 :=
+      ne_of_gt (ShenWork.PDE.intervalNeumannResolver_denom_pos p k)
+    dsimp [e, A, m]
+    rw [ShenWork.IntervalResolverGradientBridge.resolverCoeff_re_eq p w k]
+    simp only [ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero]
+    field_simp [hden]
+    rw [Complex.zero_re]
+    ring
+  have hsum_eq :
+      resolverGradReal p w y = ∑' k : ℕ, e k * m k := by
+    unfold resolverGradReal
+    exact tsum_congr hterm
+  have hCS :
+      |∑' k : ℕ, e k * m k| ≤
+        Real.sqrt (∑' k : ℕ, (e k) ^ 2) *
+          Real.sqrt (∑' k : ℕ, (m k) ^ 2) :=
+    real_abs_tsum_mul_le_sqrt_tsum_sq_mul_sqrt_tsum_sq he_sq hm_sq
+  have hA_l2 :
+      Real.sqrt (∑' k : ℕ, (e k) ^ 2) ≤ coeffL2Norm A := by
+    rw [coeffL2Norm, coeffL2Energy]
+    apply Real.sqrt_le_sqrt
+    refine he_sq.tsum_le_tsum ?_
+      (ShenWork.PDE.intervalNeumannResolverR_source_l2_summable p w (fun _ => 0) hsrc)
+    intro k
+    have : (e k) ^ 2 = (A k).re * (A k).re := by
+      dsimp [e]
+      ring
+    rw [this]
+    calc
+      (A k).re * (A k).re ≤ Complex.normSq (A k) := Complex.re_sq_le_normSq _
+      _ = ‖A k‖ ^ 2 := (Complex.sq_norm _).symm
+  have hmW :
+      Real.sqrt (∑' k : ℕ, (m k) ^ 2) ≤
+        Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) := by
+    apply Real.sqrt_le_sqrt
+    refine hm_sq.tsum_le_tsum ?_
+      (ShenWork.PDE.intervalNeumannResolverGradWeight_sq_summable p)
+    intro k
+    have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue k :=
+      ShenWork.PDE.intervalNeumannResolver_denom_pos p k
+    have hsin : (Real.sin ((k : ℝ) * Real.pi * y)) ^ 2 ≤ 1 := by
+      rw [sq_le_one_iff_abs_le_one]
+      exact Real.abs_sin_le_one _
+    have hgweq :
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2 =
+          ((k : ℝ) * Real.pi) ^ 2 /
+            (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) ^ 2 := by
+      rw [ShenWork.PDE.intervalNeumannResolverGradWeight, div_pow]
+    rw [hgweq]
+    dsimp [m]
+    rw [div_pow, mul_pow, neg_pow]
+    have hkp : (0 : ℝ) ≤ ((k : ℝ) * Real.pi) ^ 2 := by positivity
+    have hnum :
+        (-1 : ℝ) ^ 2 * ((k : ℝ) * Real.pi) ^ 2 *
+            (Real.sin ((k : ℝ) * Real.pi * y)) ^ 2 ≤
+          ((k : ℝ) * Real.pi) ^ 2 := by
+      have h1 : (-1 : ℝ) ^ 2 = 1 := by norm_num
+      rw [h1, one_mul]
+      nlinarith [hkp, hsin, sq_nonneg (Real.sin ((k : ℝ) * Real.pi * y))]
+    gcongr
+  have hgcont : ContinuousOn
+      (fun x : ℝ => p.ν * intervalDomainLift w x ^ p.γ) (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.mul
+      (hUcont.rpow_const (fun _ _ => Or.inr p.hγ.le))
+  have hzero_cont : ContinuousOn
+      (fun x : ℝ => p.ν * intervalDomainLift (fun _ : intervalDomainPoint => 0) x ^ p.γ)
+      (Set.Icc (0 : ℝ) 1) := by
+    simpa [intervalDomainLift, Real.zero_rpow p.hγ.ne'] using (continuousOn_const :
+      ContinuousOn (fun _ : ℝ => (0 : ℝ)) (Set.Icc (0 : ℝ) 1))
+  have hA_energy :
+      coeffL2Energy A ≤
+        4 * ∫ x in (0 : ℝ)..1,
+          (p.ν * intervalDomainLift w x ^ p.γ) ^ 2 := by
+    have hbase :=
+      ShenWork.IntervalResolverWeakBounds.sourceCoeff_diff_energy_le_integral_of_continuousOn
+        (p := p) (u₁ := w) (u₂ := fun _ : intervalDomainPoint => 0) hgcont hzero_cont
+    simpa [A, ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero,
+      intervalDomainLift, Real.zero_rpow p.hγ.ne'] using hbase
+  have hsource_sq_le :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        (p.ν * intervalDomainLift w x ^ p.γ) ^ 2 ≤
+          (p.ν * M ^ p.γ) ^ 2 := by
+    intro x hx
+    have hlift_abs : |intervalDomainLift w x| ≤ M := by
+      simp only [intervalDomainLift, dif_pos hx]
+      exact hball ⟨x, hx⟩
+    have hpow_abs :
+        |intervalDomainLift w x ^ p.γ| ≤ M ^ p.γ :=
+      (Real.abs_rpow_le_abs_rpow (intervalDomainLift w x) p.γ).trans
+        (Real.rpow_le_rpow (abs_nonneg _) hlift_abs p.hγ.le)
+    have hB_nonneg : 0 ≤ p.ν * M ^ p.γ :=
+      mul_nonneg p.hν.le (Real.rpow_nonneg hM_nonneg _)
+    have hsrc_abs :
+        |p.ν * intervalDomainLift w x ^ p.γ| ≤ p.ν * M ^ p.γ := by
+      rw [abs_mul, abs_of_pos p.hν]
+      exact mul_le_mul_of_nonneg_left hpow_abs p.hν.le
+    rw [← sq_abs]
+    nlinarith [abs_nonneg (p.ν * intervalDomainLift w x ^ p.γ), hsrc_abs,
+      hB_nonneg, sq_nonneg (p.ν * M ^ p.γ - |p.ν * intervalDomainLift w x ^ p.γ|)]
+  have hsource_sq_cont : ContinuousOn
+      (fun x : ℝ => (p.ν * intervalDomainLift w x ^ p.γ) ^ 2)
+      (Set.uIcc (0 : ℝ) 1) := by
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+    exact hgcont.pow 2
+  have hIle :
+      (∫ x in (0 : ℝ)..1, (p.ν * intervalDomainLift w x ^ p.γ) ^ 2)
+        ≤ (p.ν * M ^ p.γ) ^ 2 := by
+    have hcI : IntervalIntegrable
+        (fun _ : ℝ => (p.ν * M ^ p.γ) ^ 2) volume 0 1 :=
+      (continuous_const).intervalIntegrable 0 1
+    have hmono := intervalIntegral.integral_mono_on (by norm_num)
+      hsource_sq_cont.intervalIntegrable hcI hsource_sq_le
+    have hconst :
+        (∫ _x in (0 : ℝ)..1, (p.ν * M ^ p.γ) ^ 2 ∂volume)
+          = (p.ν * M ^ p.γ) ^ 2 := by
+      rw [intervalIntegral.integral_const, sub_zero, one_smul]
+    rwa [hconst] at hmono
+  have hA_l2_bound : coeffL2Norm A ≤ 2 * (p.ν * M ^ p.γ) := by
+    have hB_nonneg : 0 ≤ p.ν * M ^ p.γ :=
+      mul_nonneg p.hν.le (Real.rpow_nonneg hM_nonneg _)
+    have henergy_bound :
+        coeffL2Energy A ≤ 4 * (p.ν * M ^ p.γ) ^ 2 :=
+      hA_energy.trans (mul_le_mul_of_nonneg_left hIle (by norm_num))
+    rw [coeffL2Norm]
+    calc
+      Real.sqrt (coeffL2Energy A)
+          ≤ Real.sqrt (4 * (p.ν * M ^ p.γ) ^ 2) :=
+            Real.sqrt_le_sqrt henergy_bound
+      _ = 2 * (p.ν * M ^ p.γ) := by
+            rw [show (4 : ℝ) = 2 ^ 2 by norm_num, ← mul_pow,
+              Real.sqrt_sq (mul_nonneg (by norm_num) hB_nonneg)]
+  rw [hsum_eq]
+  have hcoeff_nn : 0 ≤ coeffL2Norm A := Real.sqrt_nonneg _
+  have hW_nn :
+      0 ≤ Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) :=
+    Real.sqrt_nonneg _
+  calc
+    |∑' k : ℕ, e k * m k|
+        ≤ Real.sqrt (∑' k : ℕ, (e k) ^ 2) *
+            Real.sqrt (∑' k : ℕ, (m k) ^ 2) := hCS
+    _ ≤ coeffL2Norm A *
+          Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) :=
+        mul_le_mul hA_l2 hmW (Real.sqrt_nonneg _) hcoeff_nn
+    _ ≤ (2 * (p.ν * M ^ p.γ)) *
+          Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) :=
+        mul_le_mul_of_nonneg_right hA_l2_bound hW_nn
+    _ = Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+          (2 * (p.ν * M ^ p.γ)) := by ring
 
 private theorem resolverGrad_deriv_abs_le_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
