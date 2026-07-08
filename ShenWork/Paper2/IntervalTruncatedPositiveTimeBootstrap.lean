@@ -51,12 +51,16 @@ open ShenWork.Paper2.BFormPositiveDatumNegPart
    truncatedLogisticLocal truncatedLogisticLifted
    truncatedPicardCoeff truncatedPicardCoeffTimeDeriv
    truncatedPicardInitialCoeff
+   truncatedConjugatePicardIter
+   truncatedConjugatePicardIter_ball
+   truncatedConjugatePicardIter_geometric
    truncatedConjugatePicardLimit
+   truncatedConjugatePicardIter_pointwise_convergent
    TruncatedConjugateMildExistenceData
    TruncatedConjugateMildSolutionData
    truncatedConjugateMildSolutionData_of_data
    negativePartTest cosineTestCoeff)
-open ShenWork.IntervalMildPicard (HasContinuousSlices)
+open ShenWork.IntervalMildPicard (HasContinuousSlices HasJointMeasurability)
 open ShenWork.CosineSpectrum (cosineMode)
 
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
@@ -82,7 +86,57 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
        intervalDomainLift
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
-  sorry
+  -- Step 1: Uniform iterate Lipschitz from gradient window contraction
+  have hiter_lip : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
+      ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
+        |intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) x -
+         intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) y|
+          ≤ G * |x - y| := by
+    sorry -- needs gradient window wiring (hkernel_step from Q3955)
+  obtain ⟨G, hG_nn, hiter⟩ := hiter_lip
+  refine ⟨G, hG_nn, fun x hx y hy => ?_⟩
+  -- Step 2: Derive pointwise convergence from DT's geometric bound
+  have hball_cont := fun n =>
+    truncatedConjugatePicardIter_ball p u₀ DT.hbase_ball DT.hbase_cont
+      DT.hmapsTo DT.hcont_preserved DT.hbase_meas DT.hmeas_preserved n
+  have hball := fun n => (hball_cont n).1
+  have hcont_iterates := fun n => (hball_cont n).2
+  have hmeas_iterates : ∀ n,
+      ShenWork.IntervalMildPicard.HasJointMeasurability
+        (truncatedConjugatePicardIter p u₀ n) := by
+    intro n
+    induction n with
+    | zero => exact DT.hbase_meas
+    | succ n ih => exact DT.hmeas_preserved _ ih
+  have hgeom := truncatedConjugatePicardIter_geometric p u₀ DT.hK_nn hball
+    hcont_iterates hmeas_iterates DT.hcontr DT.hC₀ DT.hbase_diff
+  have hconv := truncatedConjugatePicardIter_pointwise_convergent
+    p u₀ DT.hK DT.hK_nn DT.hC₀ (fun n => hgeom n) t ht htT
+  -- Step 3: Pointwise tendsto of lifted iterates at x and y
+  have hlim_x : Filter.Tendsto
+      (fun n => intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) x)
+      Filter.atTop (nhds (intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) x)) := by
+    unfold intervalDomainLift truncatedConjugatePicardLimit
+    simp only [dif_pos hx, ht, htT, and_self, ite_true]
+    exact tendsto_nhds_limUnder (hconv ⟨x, hx⟩)
+  have hlim_y : Filter.Tendsto
+      (fun n => intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) y)
+      Filter.atTop (nhds (intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) y)) := by
+    unfold intervalDomainLift truncatedConjugatePicardLimit
+    simp only [dif_pos hy, ht, htT, and_self, ite_true]
+    exact tendsto_nhds_limUnder (hconv ⟨y, hy⟩)
+  -- Step 4: Limit passage via le_of_tendsto
+  have hlim_diff : Filter.Tendsto
+      (fun n => |intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) x -
+                 intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) y|)
+      Filter.atTop (nhds (|intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
+       intervalDomainLift
+        ((truncatedConjugatePicardLimit p u₀ DT.T) t) y|)) :=
+    (hlim_x.sub hlim_y).abs
+  exact le_of_tendsto hlim_diff (Filter.Eventually.of_forall (fun n => hiter n x hx y hy))
 
 /-! ## Flux boundary vanishing (needed before IBP) -/
 

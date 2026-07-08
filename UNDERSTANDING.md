@@ -51,9 +51,11 @@ Alternative route (Q3949, deeper but heavier):
 - Decision: stick with Q3948 Lipschitz approach for current bootstrap file;
   Q3949 route is backup if Lipschitz IBP proves too heavy in Lean
 
-Status: 15 sorries. Level 1-2 (IBP helpers, boundary vanishing, triangle) are proved.
-All sorry theorems have correct dependency arrows documented in the file.
-Compiles clean on uisai2 (only sorry warnings, zero errors).
+Status: 16 sorries in bootstrap + 1 in gradient window = 17 total.
+Previous session closed logistic source + continuousOn; this session closed 3 algebraic (timeDeriv + tested summabilities).
+Level 0 is the bottleneck: uniform iterate Lipschitz needs gradient window wiring (hkernel_step from ChatGPT Q3955).
+All 15 sorries below Level 0 chain through it.
+Gradient window file compiles 0 sorry except shifted Duhamel (1 sorry).
 
 Role: Codex grinds the individual sorries. I organize ChatGPT answers and coordinate.
 
