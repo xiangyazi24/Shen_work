@@ -208,7 +208,9 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             dsimp only [Gw]
             exact affine_fixed_closes hBcontr
           hleft := by sorry
-          hbase := by sorry
+          hbase := by
+            -- U 0 t' = S(t')(lift u₀). Gradient ≤ Cg·t'^{-1/2}·M ≤ Cg·M/√(lo-a) ≤ Gw
+            sorry
           hsource_of_grad := by
             intro n hgrad s ha_s hs_hi y
             have hball_cont := truncatedConjugatePicardIter_ball p u₀
