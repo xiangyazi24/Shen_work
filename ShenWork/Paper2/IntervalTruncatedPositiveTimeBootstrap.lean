@@ -28,6 +28,7 @@ import ShenWork.Paper2.IntervalConjugateKernelIBP
 import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
+import ShenWork.Paper2.IntervalResolverWeakLapBound
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
@@ -250,10 +251,55 @@ ANALYTIC GAP: for the signed truncated Picard iterates used here the repository
 does not currently expose the resolver nonnegativity / ODE-Hessian bridge under
 only `|w| ≤ M`.  The nonnegative-source API is insufficient because these
 iterates may be negative. -/
-private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
+private theorem resolverGrad_abs_le_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (_hM : 0 < M) (_hw_cont : Continuous w)
     (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
+    |resolverGradReal p w y| ≤
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+        * (2 * (p.ν * M ^ p.γ)) := by
+  sorry
+
+private theorem resolverGrad_deriv_abs_le_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (_hM : 0 < M) (_hw_cont : Continuous w)
+    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
+    |deriv (fun z : ℝ => resolverGradReal p w z) y| ≤
+      p.μ * (Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)))
+        + p.ν * M ^ p.γ := by
+  sorry
+
+private theorem resolverR_lift_nonneg_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (_hM : 0 < M) (_hw_cont : Continuous w)
+    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
+    0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
+  sorry
+
+private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (_hM : 0 < M) (_hw_cont : Continuous w)
+    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
+    ∃ dpos gp : ℝ,
+      deriv (truncatedChemFluxLifted p w) y =
+        dpos * resolverGradReal p w y *
+            (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β)
+          + positivePart (intervalDomainLift w y) * gp *
+            (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β)
+          - p.β * positivePart (intervalDomainLift w y)
+              * (resolverGradReal p w y) ^ 2 *
+            (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β - 1)
+      ∧ |dpos| ≤ |deriv (intervalDomainLift w) y|
+      ∧ gp = deriv (fun z : ℝ => resolverGradReal p w z) y := by
+  sorry
+
+private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
     ∃ dpos gp q qDen : ℝ,
       deriv (truncatedChemFluxLifted p w) y =
         dpos * resolverGradReal p w y * q
@@ -272,7 +318,51 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
             + p.ν * M ^ p.γ
       ∧ |q| ≤ 1
       ∧ |qDen| ≤ 1 := by
-  sorry
+  classical
+  obtain ⟨dpos, gp, hderiv, hdpos, hgp_eq⟩ :=
+    truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball y
+  let q : ℝ :=
+    (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β)
+  let qDen : ℝ :=
+    (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β - 1)
+  refine ⟨dpos, gp, q, qDen, ?_, hdpos, ?_, ?_, ?_, ?_⟩
+  · simpa [q, qDen] using hderiv
+  · exact resolverGrad_abs_le_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball y
+  · rw [hgp_eq]
+    exact resolverGrad_deriv_abs_le_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball y
+  · have hR_nonneg :
+        0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+      resolverR_lift_nonneg_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball y
+    have hbase : 1 ≤
+        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
+      linarith
+    have hq_nonneg : 0 ≤ q := by
+      exact Real.rpow_nonneg (by linarith : 0 ≤
+        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) _
+    have hq_le : q ≤ 1 := by
+      dsimp [q]
+      exact Real.rpow_le_one_of_one_le_of_nonpos hbase (by linarith [p.hβ])
+    rw [abs_of_nonneg hq_nonneg]
+    exact hq_le
+  · have hR_nonneg :
+        0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+      resolverR_lift_nonneg_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball y
+    have hbase : 1 ≤
+        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
+      linarith
+    have hqDen_nonneg : 0 ≤ qDen := by
+      exact Real.rpow_nonneg (by linarith : 0 ≤
+        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) _
+    have hqDen_le : qDen ≤ 1 := by
+      dsimp [qDen]
+      exact Real.rpow_le_one_of_one_le_of_nonpos hbase (by linarith [p.hβ])
+    rw [abs_of_nonneg hqDen_nonneg]
+    exact hqDen_le
 
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
