@@ -110,15 +110,28 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         * (2 * (p.ν * DT.M ^ p.γ)))
     let B_F : ℝ := 0
     let Gw : ℝ := truncWindowA Mw A_L A_F p.χ₀ a lo hi
+    have hAL_nn : 0 ≤ A_L := mul_nonneg (le_of_lt DT.hM) (add_nonneg p.ha
+      (mul_nonneg p.hb (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+    have hAF_nn : 0 ≤ A_F := mul_nonneg (le_of_lt DT.hM) (mul_nonneg
+      (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
+        (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _))))
     have hGw_nn : 0 ≤ Gw := by
-      sorry -- Cg_nn * M_nn / sqrt_nn + Cg_nn * sqrt_nn * (A_L_nn + |χ₀| * A_F_nn)
+      dsimp only [Gw]
+      simp only [truncWindowA]
+      apply add_nonneg
+      · exact mul_nonneg (div_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+          (Real.sqrt_nonneg _)) (le_of_lt DT.hM)
+      · exact mul_nonneg (mul_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+          (mul_nonneg (by positivity) (Real.sqrt_nonneg _)))
+          (add_nonneg hAL_nn (mul_nonneg (abs_nonneg _) hAF_nn))
     have W : TruncatedGradientWindowWiring p U Src Mw A_L A_F B_F a lo hi Gw := by
       exact
         { hM_nonneg := le_of_lt DT.hM
-          hAL_nonneg := by
-            sorry -- M * (a + b * M^α) ≥ 0 from all-nonneg params
-          hAF_nonneg := by
-            sorry -- M * √(Σ wt²) * 2ν * M^γ ≥ 0 from all-nonneg params
+          hAL_nonneg := mul_nonneg (le_of_lt DT.hM) (add_nonneg p.ha
+            (mul_nonneg p.hb (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+          hAF_nonneg := mul_nonneg (le_of_lt DT.hM) (mul_nonneg
+            (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
+              (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _))))
           hBF_nonneg := le_refl 0
           hG_nonneg := hGw_nn
           ha_lt_lo := by dsimp [a, lo]; linarith
