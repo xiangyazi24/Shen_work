@@ -136,54 +136,81 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
           ≤ G := by
     let U : ℕ → ℝ → intervalDomainPoint → ℝ :=
       fun n s => truncatedConjugatePicardIter p u₀ n s
+    -- Post-IBP source: logistic - χ₀ * flux' (flux DERIVATIVE, not raw flux).
+    -- After IBP (intervalConjugateKernelOperator_eq_semigroup_deriv), the
+    -- B-form iterate ∫B_N(t-s)(Q_n)ds becomes ∫S(t-s)(Q'_n)ds, so the
+    -- combined source for the standard Duhamel gradient estimate is L_n - χ₀·Q'_n.
     let Src : ℕ → ℝ → ℝ → ℝ :=
       fun n s y =>
         truncatedLogisticLifted p (U n s) y
-          - p.χ₀ * truncatedChemFluxLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y
     let a : ℝ := t / 4
     let lo : ℝ := t / 2
     let hi : ℝ := t
     let Mw : ℝ := DT.M
     let A_L : ℝ := DT.M * (p.a + p.b * DT.M ^ p.α)
-    let A_F : ℝ := DT.M * (Real.sqrt (∑' k : ℕ,
+    -- Resolver gradient envelope Γ_M = √(∑ gradWeight²) · 2νM^γ
+    let Γ_M : ℝ := Real.sqrt (∑' k : ℕ,
       (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
-        * (2 * (p.ν * DT.M ^ p.γ)))
-    let B_F : ℝ := 0
-    let Gw : ℝ := truncWindowA Mw A_L A_F p.χ₀ a lo hi
+        * (2 * (p.ν * DT.M ^ p.γ))
+    -- Resolver value envelope V_M = √(∑ resolverWeight²) · 2νM^γ
+    let V_M : ℝ := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+        * (2 * (p.ν * DT.M ^ p.γ))
+    -- Resolver second derivative bound H_M from elliptic equation R'' = μR - ρ(u):
+    -- |R''| ≤ μ|R| + |ρ| ≤ μ·V_M + ν·M^γ
+    let H_M : ℝ := p.μ * V_M + p.ν * DT.M ^ p.γ
+    -- After-IBP flux derivative bound:
+    -- |Q'| ≤ G · Γ_M + M · H_M + β · M · Γ_M²  (product rule)
+    -- So A_F = M · H_M + β · M · Γ_M², B_F = Γ_M
+    let A_F : ℝ := DT.M * H_M + p.β * DT.M * Γ_M ^ 2
+    let B_F : ℝ := Γ_M
+    -- Contraction coefficient: Cg · 2√(hi-a) · |χ₀| · Γ_M
+    -- For the fixed point to exist, need truncWindowB < 1.
+    -- Use the fixed-point formula Gw = truncWindowA / (1 - truncWindowB).
+    have hΓ_M_nn : 0 ≤ Γ_M := mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by positivity) (mul_nonneg (le_of_lt p.hν)
+        (Real.rpow_nonneg (le_of_lt DT.hM) _)))
     have hAL_nn : 0 ≤ A_L := mul_nonneg (le_of_lt DT.hM) (add_nonneg p.ha
       (mul_nonneg p.hb (Real.rpow_nonneg (le_of_lt DT.hM) _)))
-    have hAF_nn : 0 ≤ A_F := mul_nonneg (le_of_lt DT.hM) (mul_nonneg
-      (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
-        (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _))))
+    have hAF_nn : 0 ≤ A_F := by
+      dsimp only [A_F]
+      apply add_nonneg
+      · exact mul_nonneg (le_of_lt DT.hM) (add_nonneg (mul_nonneg (le_of_lt p.hμ)
+          (mul_nonneg (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
+            (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))))
+          (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+      · exact mul_nonneg (mul_nonneg p.hβ (le_of_lt DT.hM)) (sq_nonneg _)
+    have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := by
+      sorry -- contraction: Cg · 2√(3t/4) · |χ₀| · Γ_M < 1 (needs t small enough)
+    let Gw : ℝ := truncWindowFixedG Mw A_L A_F B_F p.χ₀ a lo hi
     have hGw_nn : 0 ≤ Gw := by
       dsimp only [Gw]
-      simp only [truncWindowA]
-      apply add_nonneg
-      · exact mul_nonneg (div_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
-          (Real.sqrt_nonneg _)) (le_of_lt DT.hM)
-      · exact mul_nonneg (mul_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
-          (mul_nonneg (by positivity) (Real.sqrt_nonneg _)))
-          (add_nonneg hAL_nn (mul_nonneg (abs_nonneg _) hAF_nn))
+      simp only [truncWindowFixedG, truncWindowA]
+      apply div_nonneg
+      · apply add_nonneg
+        · exact mul_nonneg (div_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+            (Real.sqrt_nonneg _)) (le_of_lt DT.hM)
+        · exact mul_nonneg (mul_nonneg ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+            (mul_nonneg (by positivity) (Real.sqrt_nonneg _)))
+            (add_nonneg hAL_nn (mul_nonneg (abs_nonneg _) hAF_nn))
+      · linarith
     have W : TruncatedGradientWindowWiring p U Src Mw A_L A_F B_F a lo hi Gw := by
       exact
         { hM_nonneg := le_of_lt DT.hM
-          hAL_nonneg := mul_nonneg (le_of_lt DT.hM) (add_nonneg p.ha
-            (mul_nonneg p.hb (Real.rpow_nonneg (le_of_lt DT.hM) _)))
-          hAF_nonneg := mul_nonneg (le_of_lt DT.hM) (mul_nonneg
-            (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
-              (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _))))
-          hBF_nonneg := le_refl 0
+          hAL_nonneg := hAL_nn
+          hAF_nonneg := hAF_nn
+          hBF_nonneg := hΓ_M_nn
           hG_nonneg := hGw_nn
           ha_lt_lo := by dsimp [a, lo]; linarith
           hlo_le_hi := by dsimp [lo, hi]; linarith
           hclosed := by
-            dsimp [Gw, B_F]
-            simp only [truncWindowAffine, truncWindowB, mul_zero, zero_mul, add_zero]
-            exact le_refl _
+            dsimp only [Gw]
+            exact affine_fixed_closes hBcontr
           hleft := by sorry
           hbase := by sorry
           hsource_of_grad := by
-            intro n _hgrad s ha_s hs_hi y
+            intro n hgrad s ha_s hs_hi y
             have hball_cont := truncatedConjugatePicardIter_ball p u₀
               DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
               DT.hbase_meas DT.hmeas_preserved n
@@ -202,10 +229,16 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               show |truncatedLogisticLifted p (U n s) y| ≤ A_L
               show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
               exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
-            · -- |flux| ≤ A_F + B_F * G = A_F (B_F = 0)
-              simp only [B_F, mul_zero, add_zero]
-              sorry -- flux bound from ball bound (needs resolver spectral import)
-          hkernel_step := by sorry }
+            · -- |flux'| ≤ A_F + B_F * G (product rule on truncatedChemFluxLifted)
+              -- Uses: |positivePart'| ≤ 1, IterGradOnWindow giving |u'| ≤ G,
+              -- resolver gradient ≤ Γ_M, resolver second deriv ≤ H_M,
+              -- (1+R)^β ≥ 1
+              sorry
+          hkernel_step := by
+            -- After IBP, the B-form iterate becomes standard Duhamel:
+            -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
+            -- The gradient bound follows from gradDuhamel_shifted_sup_bound.
+            sorry }
     exact ⟨Gw, hGw_nn, fun n s hslo hshi x =>
       truncatedGradientWindow_all W n s hslo hshi x⟩
   -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]
