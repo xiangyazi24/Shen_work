@@ -29,6 +29,7 @@ import ShenWork.Paper2.IntervalConjugateCosineSeries
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
+import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.Wiener.EWA.SourceRealizesRecords
 
@@ -117,13 +118,121 @@ bounded iterate, an iterate-gradient envelope, resolver-gradient envelope
 private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     (p : CM2Params) {w : intervalDomainPoint → ℝ}
     {M Γ H G : ℝ}
-    (_hM : 0 < M)
-    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
-    (_hgrad : ∀ x : ℝ, |deriv (intervalDomainLift w) x| ≤ G)
-    (y : ℝ) :
+    (hM : 0 < M)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hgrad : ∀ x : ℝ, |deriv (intervalDomainLift w) x| ≤ G)
+    (y : ℝ)
+    {dpos gp q qDen : ℝ}
+    (hderiv :
+      deriv (truncatedChemFluxLifted p w) y =
+        dpos * resolverGradReal p w y * q
+          + positivePart (intervalDomainLift w y) * gp * q
+          - p.β * positivePart (intervalDomainLift w y)
+              * (resolverGradReal p w y) ^ 2 * qDen)
+    (hdpos : |dpos| ≤ |deriv (intervalDomainLift w) y|)
+    (hgradR : |resolverGradReal p w y| ≤ Γ)
+    (hgp : |gp| ≤ H)
+    (hq : |q| ≤ 1)
+    (hqDen : |qDen| ≤ 1) :
     |deriv (truncatedChemFluxLifted p w) y| ≤
       (M * H + p.β * M * Γ ^ 2) + Γ * G := by
-  sorry
+  have hUpos_abs :
+      |positivePart (intervalDomainLift w y)| ≤ M := by
+    have hlift_abs : |intervalDomainLift w y| ≤ M := by
+      by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+      · simp only [intervalDomainLift, dif_pos hy]
+        exact hball ⟨y, hy⟩
+      · simp only [intervalDomainLift, dif_neg hy, abs_zero]
+        exact hM.le
+    rw [abs_of_nonneg (positivePart_nonneg _)]
+    exact (positivePart_le_abs' (intervalDomainLift w y)).trans hlift_abs
+  have hdG : |dpos| ≤ G := hdpos.trans (hgrad y)
+  have hG_nonneg : 0 ≤ G := (abs_nonneg dpos).trans hdG
+  have hΓ_nonneg : 0 ≤ Γ :=
+    (abs_nonneg (resolverGradReal p w y)).trans hgradR
+  have hH_nonneg : 0 ≤ H := (abs_nonneg gp).trans hgp
+  have hterm₁ :
+      |dpos * resolverGradReal p w y * q| ≤ Γ * G := by
+    have hprod :
+        |dpos| * |resolverGradReal p w y| ≤ G * Γ :=
+      mul_le_mul hdG hgradR (abs_nonneg _) hG_nonneg
+    calc
+      |dpos * resolverGradReal p w y * q|
+          = |dpos| * |resolverGradReal p w y| * |q| := by
+            rw [abs_mul, abs_mul]
+      _ ≤ G * Γ * 1 :=
+            mul_le_mul hprod hq (abs_nonneg _)
+              (mul_nonneg hG_nonneg hΓ_nonneg)
+      _ = Γ * G := by ring
+  have hterm₂ :
+      |positivePart (intervalDomainLift w y) * gp * q| ≤ M * H := by
+    have hprod :
+        |positivePart (intervalDomainLift w y)| * |gp| ≤ M * H :=
+      mul_le_mul hUpos_abs hgp (abs_nonneg _) hM.le
+    calc
+      |positivePart (intervalDomainLift w y) * gp * q|
+          = |positivePart (intervalDomainLift w y)| * |gp| * |q| := by
+            rw [abs_mul, abs_mul]
+      _ ≤ M * H * 1 :=
+            mul_le_mul hprod hq (abs_nonneg _)
+              (mul_nonneg hM.le hH_nonneg)
+      _ = M * H := by ring
+  have hgradR_sq : |resolverGradReal p w y| ^ 2 ≤ Γ ^ 2 := by
+    nlinarith [hgradR, abs_nonneg (resolverGradReal p w y), hΓ_nonneg,
+      sq_nonneg (Γ - |resolverGradReal p w y|)]
+  have hterm₃ :
+      |p.β * positivePart (intervalDomainLift w y)
+          * (resolverGradReal p w y) ^ 2 * qDen|
+        ≤ p.β * M * Γ ^ 2 := by
+    have hβU :
+        p.β * |positivePart (intervalDomainLift w y)| ≤ p.β * M :=
+      mul_le_mul_of_nonneg_left hUpos_abs p.hβ
+    have hβU_nonneg :
+        0 ≤ p.β * |positivePart (intervalDomainLift w y)| :=
+      mul_nonneg p.hβ (abs_nonneg _)
+    have hβUg :
+        p.β * |positivePart (intervalDomainLift w y)|
+            * |resolverGradReal p w y| ^ 2
+          ≤ p.β * M * Γ ^ 2 :=
+      mul_le_mul hβU hgradR_sq (sq_nonneg _)
+        (mul_nonneg p.hβ hM.le)
+    have hβMg_nonneg : 0 ≤ p.β * M * Γ ^ 2 :=
+      mul_nonneg (mul_nonneg p.hβ hM.le) (sq_nonneg _)
+    have hsq_abs :
+        |(resolverGradReal p w y) ^ 2|
+          = |resolverGradReal p w y| ^ 2 := by
+      rw [pow_two, abs_mul, pow_two]
+    calc
+      |p.β * positivePart (intervalDomainLift w y)
+          * (resolverGradReal p w y) ^ 2 * qDen|
+          = p.β * |positivePart (intervalDomainLift w y)|
+              * |resolverGradReal p w y| ^ 2 * |qDen| := by
+            rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg p.hβ, hsq_abs]
+      _ ≤ p.β * M * Γ ^ 2 * 1 :=
+            mul_le_mul hβUg hqDen (abs_nonneg _) hβMg_nonneg
+      _ = p.β * M * Γ ^ 2 := by ring
+  set A : ℝ := dpos * resolverGradReal p w y * q
+  set B : ℝ := positivePart (intervalDomainLift w y) * gp * q
+  set C : ℝ :=
+    p.β * positivePart (intervalDomainLift w y)
+      * (resolverGradReal p w y) ^ 2 * qDen
+  have htri : |A + B - C| ≤ |A| + |B| + |C| := by
+    calc
+      |A + B - C| = |(A + B) + -C| := by ring_nf
+      _ ≤ |A + B| + |-C| := abs_add_le _ _
+      _ = |A + B| + |C| := by rw [abs_neg]
+      _ ≤ (|A| + |B|) + |C| := by
+            simpa [add_assoc, add_comm, add_left_comm] using
+              add_le_add_left (abs_add_le A B) |C|
+      _ = |A| + |B| + |C| := by ring
+  calc
+    |deriv (truncatedChemFluxLifted p w) y|
+        = |A + B - C| := by
+          rw [hderiv]
+    _ ≤ |A| + |B| + |C| := htri
+    _ ≤ Γ * G + M * H + p.β * M * Γ ^ 2 := by
+          exact add_le_add (add_le_add hterm₁ hterm₂) hterm₃
+    _ = (M * H + p.β * M * Γ ^ 2) + Γ * G := by ring
 
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
@@ -230,7 +339,26 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
           hclosed := by
             dsimp only [Gw]
             exact affine_fixed_closes hBcontr
-          hleft := by sorry
+          hleft := by
+            have hM : 0 ≤ Mw := le_of_lt DT.hM
+            have ha : 0 < a := by dsimp [a]; linarith
+            have hPaG : truncLeftProfile Mw A_L A_F B_F p.χ₀ lo a ≤ Gw := by
+              dsimp only [Gw]
+              exact truncLeftProfile_le_Gw hM hAL_nn hAF_nn hΓ_M_nn ha
+                (by dsimp [lo, a]; ring) (by dsimp [hi, a]; ring) hBcontr
+            have base : IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo 0 := by sorry
+            have source : ∀ n, IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
+                ∀ s, 0 < s → s ≤ lo → ∀ y,
+                  |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
+                    truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+              sorry
+            have kernel : ∀ n, (∀ s, 0 < s → s ≤ lo → ∀ y,
+                |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
+                  truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
+                IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo (n + 1) := by
+              sorry
+            exact IterGradOnWindow.of_left_profile hM ha
+              (truncLeftProfile_all_of_wiring ⟨base, source, kernel⟩) hPaG
           hbase := by
             -- U 0 t' = S(t')(lift u₀). Use restart: S(t') = S(t'-a)(S(a)(u₀))
             -- where |S(a)(u₀)| ≤ M from hbase_ball at a = t/4 > 0.
@@ -262,10 +390,28 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               -- resolver gradient ≤ Γ_M, resolver second deriv ≤ H_M,
               -- (1+R)^β ≥ 1
               dsimp only [A_F, B_F]
+              have hflux_terms :
+                  ∃ dpos gp q qDen : ℝ,
+                    deriv (truncatedChemFluxLifted p (U n s)) y =
+                      dpos * resolverGradReal p (U n s) y * q
+                        + positivePart (intervalDomainLift (U n s) y) * gp * q
+                        - p.β * positivePart (intervalDomainLift (U n s) y)
+                            * (resolverGradReal p (U n s) y) ^ 2 * qDen
+                    ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
+                    ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
+                    ∧ |gp| ≤ H_M
+                    ∧ |q| ≤ 1
+                    ∧ |qDen| ≤ 1 := by
+                -- Remaining analytic product-rule input:
+                -- positive-part chain rule, resolver gradient/Hessian bounds,
+                -- and the denominator estimates `(1+R)^(-β), (1+R)^(-β-1) ≤ 1`.
+                sorry
+              rcases hflux_terms with
+                ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
               exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
                 (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
                 (H := H_M) (G := Gw) DT.hM hball
-                (hgrad s ha_s hs_hi) y
+                (hgrad s ha_s hs_hi) y hderiv hdpos hgradR hgp hq hqDen
           hkernel_step := by
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
