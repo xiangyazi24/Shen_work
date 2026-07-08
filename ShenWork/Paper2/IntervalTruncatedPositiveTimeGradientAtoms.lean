@@ -19,7 +19,9 @@ import ShenWork.Paper2.IntervalConjugateKernelIBP
 import ShenWork.Paper2.IntervalCompactSliceGradientBounds
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
+import ShenWork.Paper2.IntervalDuhamelIntegrability
 import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
+import ShenWork.PDE.IntervalSemigroupAtZero
 
 open MeasureTheory Set
 open scoped BigOperators Topology Real
@@ -32,7 +34,9 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMea
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
 open ShenWork.Paper2.BFormPositiveDatumNegPart
   (truncatedChemFluxLifted truncatedConjugatePicardIter
-   truncatedLogisticLifted TruncatedConjugateMildExistenceData)
+   truncatedConjugateDuhamelMap
+   truncatedLogisticLifted truncatedLogisticLocal
+   TruncatedConjugateMildExistenceData)
 open ShenWork.Paper2.TruncatedGradientWindow
 
 private theorem rpow_neg_half_eq_inv_sqrt {τ : ℝ} (hτ : 0 < τ) :
@@ -314,6 +318,186 @@ private def truncatedWindowedSource
     (Src : ℕ → ℝ → ℝ → ℝ) (n : ℕ) (a hi : ℝ) : ℝ → ℝ → ℝ :=
   fun s y => if a ≤ s ∧ s ≤ hi then Src n s y else 0
 
+private theorem truncatedWindowedSource_integrable_of_source_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    ∀ s, Integrable (truncatedWindowedSource Src n a hi s) (intervalMeasure 1) := by
+  have hCsrc_nonneg :
+      0 ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    unfold truncWindowSourceCL
+    exact add_nonneg _hAL_nonneg
+      (mul_nonneg (abs_nonneg p.χ₀)
+        (add_nonneg _hAF_nonneg (mul_nonneg _hBF_nonneg _hG_nonneg)))
+  have hmeas_iterates : ∀ k,
+      ShenWork.IntervalMildPicard.HasJointMeasurability
+        (truncatedConjugatePicardIter p u₀ k) := by
+    intro k
+    induction k with
+    | zero => exact DT.hbase_meas
+    | succ k ih => exact DT.hmeas_preserved _ ih
+  have hU_meas_n : Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (U n q.1) q.2) := by
+    have hfield :
+        (fun q : ℝ × ℝ => intervalDomainLift (U n q.1) q.2)
+          =
+        (fun q : ℝ × ℝ =>
+          intervalDomainLift (truncatedConjugatePicardIter p u₀ n q.1) q.2) := by
+      funext q
+      rw [hU n q.1]
+    rw [hfield]
+    exact hmeas_iterates n
+  intro s
+  by_cases hs : a ≤ s ∧ s ≤ hi
+  · have hlift_meas : Measurable (fun y : ℝ => intervalDomainLift (U n s) y) :=
+      hU_meas_n.comp measurable_prodMk_left
+    have hpos_meas : Measurable
+        (fun y : ℝ => positivePart (intervalDomainLift (U n s) y)) := by
+      simpa [positivePart] using hlift_meas.max measurable_const
+    have hpow_meas : Measurable
+        (fun y : ℝ => (positivePart (intervalDomainLift (U n s) y)) ^ p.α) := by
+      have hrpow : Measurable (fun r : ℝ => r ^ p.α) := by fun_prop
+      exact hrpow.comp hpos_meas
+    have hlog_meas : Measurable (fun y : ℝ =>
+        truncatedLogisticLifted p (U n s) y) := by
+      simpa [truncatedLogisticLifted, truncatedLogisticLocal] using
+        hlift_meas.mul (measurable_const.sub (measurable_const.mul hpow_meas))
+    have hflux_deriv_meas : Measurable (fun y : ℝ =>
+        deriv (truncatedChemFluxLifted p (U n s)) y) :=
+      measurable_deriv _
+    have hsrc_meas : Measurable (fun y : ℝ =>
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y) :=
+      hlog_meas.sub (measurable_const.mul hflux_deriv_meas)
+    have hSrc_fun :
+        (fun y : ℝ => Src n s y)
+          =
+        (fun y : ℝ =>
+          truncatedLogisticLifted p (U n s) y
+            - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y) := by
+      funext y
+      exact hSrc n s y
+    have hwin_eq :
+        truncatedWindowedSource Src n a hi s = Src n s := by
+      funext y
+      simp [truncatedWindowedSource, hs]
+    refine ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      (M := truncWindowSourceCL A_L A_F B_F p.χ₀ G) ?_ ?_
+    · rw [hwin_eq]
+      change AEStronglyMeasurable (fun y : ℝ => Src n s y) (intervalMeasure 1)
+      rw [hSrc_fun]
+      exact hsrc_meas.aestronglyMeasurable
+    · intro y
+      rw [hwin_eq]
+      exact hsrc s hs.1 hs.2 y
+  · refine ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      (M := truncWindowSourceCL A_L A_F B_F p.χ₀ G) ?_ ?_
+    · have hwin_eq :
+          truncatedWindowedSource Src n a hi s = fun _ : ℝ => 0 := by
+        funext y
+        simp [truncatedWindowedSource, hs]
+      rw [hwin_eq]
+      exact measurable_const.aestronglyMeasurable
+    · intro y
+      simp [truncatedWindowedSource, hs, hCsrc_nonneg]
+
+/- Residual: prove the shifted full-kernel gradient integrand is interval-integrable
+from the windowed truncated B-form source package.  This is the measurable
+dominated-convergence half of the spatial Leibniz argument. -/
+private theorem truncatedConjugatePicardIter_succ_gradientIntegrand_intervalIntegrable_residual
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G τ : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (_ha_nonneg : 0 ≤ a) (ha_lt_τ : a < τ)
+    (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    ∀ x : ℝ, IntervalIntegrable
+      (fun s : ℝ => deriv
+        (fun z : ℝ =>
+          intervalFullSemigroupOperator (τ - s)
+            (truncatedWindowedSource Src n a hi s) z) x)
+      volume a τ := by
+  sorry
+
+/- Residual: prove the restarted B-form Picard identity after the conjugate-kernel
+IBP conversion, then differentiate the homogeneous and shifted Duhamel legs. -/
+private theorem truncatedConjugatePicardIter_succ_restart_deriv_identity_residual
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G τ : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (_ha_nonneg : 0 ≤ a) (ha_lt_τ : a < τ)
+    (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    ∀ x : ℝ,
+      deriv (intervalDomainLift (U (n + 1) τ)) x =
+        deriv
+          (fun z : ℝ =>
+            intervalFullSemigroupOperator (τ - a)
+              (intervalDomainLift (U (n + 1) a)) z) x
+          + ∫ s in a..τ, deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - s)
+                  (truncatedWindowedSource Src n a hi s) z) x := by
+  sorry
+
+/- Residual: prove interior differentiability of the successor truncated Picard
+slice from the restarted B-form identity and full-kernel smoothing. -/
+private theorem truncatedConjugatePicardIter_succ_interior_differentiableAt_residual
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F a hi G τ : ℝ}
+    (_hAL_nonneg : 0 ≤ A_L) (_hAF_nonneg : 0 ≤ A_F)
+    (_hBF_nonneg : 0 ≤ B_F) (_hG_nonneg : 0 ≤ G)
+    (_ha_nonneg : 0 ≤ a) (ha_lt_τ : a < τ)
+    (hτhi : τ ≤ hi) (hτT : τ ≤ DT.T)
+    (n : ℕ)
+    (hsrc : ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
+      |Src n s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G) :
+    ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
+  sorry
+
 /- Analytic helper sorry, isolated from the arithmetic estimate below.
 
 This is the precise restart/IBP/Leibniz package needed by the raw gradient
@@ -357,10 +541,90 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_split
                   (fun z : ℝ =>
                     intervalFullSemigroupOperator (τ - s)
                       (truncatedWindowedSource Src n a hi s) z) x)
-      ∧ ∀ x ∈ Set.Ioo (0 : ℝ) 1,
-          DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
-  -- Analytic gap: B-form restart split + IBP conversion + spatial Leibniz.
-  sorry
+        ∧ ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+            DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x := by
+    have haT : a ≤ DT.T := (le_of_lt ha_lt_τ).trans hτT
+    have hball_cont_succ :=
+      ShenWork.Paper2.BFormPositiveDatumNegPart.truncatedConjugatePicardIter_ball
+        p u₀ DT.hbase_ball DT.hbase_cont
+        DT.hmapsTo DT.hcont_preserved DT.hbase_meas DT.hmeas_preserved (n + 1)
+    have hrestart_meas :
+        AEStronglyMeasurable (intervalDomainLift (U (n + 1) a)) (intervalMeasure 1) := by
+      by_cases ha0 : a = 0
+      · have hzero :
+          intervalDomainLift (U (n + 1) a) = fun _ : ℝ => 0 := by
+          subst a
+          funext y
+          rw [hU (n + 1) 0]
+          simp [truncatedConjugatePicardIter, truncatedConjugateDuhamelMap,
+            ShenWork.IntervalSemigroupAtZero.intervalFullSemigroupOperator_zero]
+        rw [hzero]
+        exact measurable_const.aestronglyMeasurable
+      · have ha_pos : 0 < a := lt_of_le_of_ne _ha_nonneg (Ne.symm ha0)
+        have hcont : Continuous (U (n + 1) a) := by
+          rw [hU (n + 1) a]
+          exact hball_cont_succ.2 a ha_pos haT
+        exact
+          ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous
+            hcont
+    have hrestart_bound :
+        ∀ y : ℝ, |intervalDomainLift (U (n + 1) a) y| ≤ DT.M := by
+      by_cases ha0 : a = 0
+      · have hzero :
+          intervalDomainLift (U (n + 1) a) = fun _ : ℝ => 0 := by
+          subst a
+          funext y
+          rw [hU (n + 1) 0]
+          simp [truncatedConjugatePicardIter, truncatedConjugateDuhamelMap,
+            ShenWork.IntervalSemigroupAtZero.intervalFullSemigroupOperator_zero]
+        intro y
+        rw [hzero]
+        simpa using (le_of_lt DT.hM)
+      · have ha_pos : 0 < a := lt_of_le_of_ne _ha_nonneg (Ne.symm ha0)
+        intro y
+        by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+        · rw [intervalDomainLift, dif_pos hy, hU (n + 1) a]
+          exact hball_cont_succ.1 a ha_pos haT ⟨y, hy⟩
+        · rw [intervalDomainLift, dif_neg hy, abs_zero]
+          exact le_of_lt DT.hM
+    have hq_int :
+        ∀ s, Integrable (truncatedWindowedSource Src n a hi s) (intervalMeasure 1) :=
+      truncatedWindowedSource_integrable_of_source_bound
+        DT U hU Src hSrc _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg n hsrc
+    have hg_int :
+        ∀ x : ℝ, IntervalIntegrable
+            (fun s : ℝ => deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - s)
+                  (truncatedWindowedSource Src n a hi s) z) x)
+            volume a τ :=
+      truncatedConjugatePicardIter_succ_gradientIntegrand_intervalIntegrable_residual
+        DT U hU Src hSrc
+        _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
+        _ha_nonneg ha_lt_τ hτhi hτT n hsrc
+    have hsplit :
+        ∀ x : ℝ,
+            deriv (intervalDomainLift (U (n + 1) τ)) x =
+              deriv
+                (fun z : ℝ =>
+                  intervalFullSemigroupOperator (τ - a)
+                    (intervalDomainLift (U (n + 1) a)) z) x
+                + ∫ s in a..τ, deriv
+                    (fun z : ℝ =>
+                      intervalFullSemigroupOperator (τ - s)
+                        (truncatedWindowedSource Src n a hi s) z) x :=
+      truncatedConjugatePicardIter_succ_restart_deriv_identity_residual
+        DT U hU Src hSrc
+        _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
+        _ha_nonneg ha_lt_τ hτhi hτT n hsrc
+    have hdiff :
+        ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+            DifferentiableAt ℝ (intervalDomainLift (U (n + 1) τ)) x :=
+      truncatedConjugatePicardIter_succ_interior_differentiableAt_residual
+        DT U hU Src hSrc
+        _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg
+        _ha_nonneg ha_lt_τ hτhi hτT n hsrc
+    exact ⟨hrestart_meas, hrestart_bound, hq_int, hg_int, hsplit, hdiff⟩
 
 private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
