@@ -11,6 +11,7 @@
 
 import ShenWork.Paper2.IntervalPicardIterateUniform
 import ShenWork.Paper2.IntervalBFormCron2TruncatedPicard
+import ShenWork.PDE.IntervalGradDuhamelBound
 
 open MeasureTheory Set
 open scoped BigOperators Topology Real
@@ -163,51 +164,72 @@ theorem gradDuhamel_shifted_sup_bound
     |∫ s in a..t, deriv
         (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x|
       ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt (T - a)) * Cq := by
-  let F : ℝ → ℝ := fun s : ℝ =>
-    deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x
-  let qshift : ℝ → ℝ → ℝ := fun r : ℝ => q (r + a)
-  have hdt_pos : 0 < t - a := sub_pos.mpr hat
-  have hdtT : t - a ≤ T - a := sub_le_sub_right htT a
-  have hq_int_shift : ∀ r, Integrable (qshift r) (intervalMeasure 1) := by
-    intro r
-    dsimp [qshift]
-    exact hq_int (r + a)
-  have hq_sup_shift : ∀ r y, |qshift r y| ≤ Cq := by
-    intro r y
-    dsimp [qshift]
-    exact hq_sup (r + a) y
-  have hgF_int : IntervalIntegrable F volume a t := by
-    simpa [F] using hg_int
-  have hF_shift :
-      (fun r : ℝ => deriv
-        (fun z : ℝ => intervalFullSemigroupOperator ((t - a) - r) (qshift r) z) x)
-        = fun r : ℝ => F (r + a) := by
-    funext r
-    dsimp [F, qshift]
-    rw [show (t - a) - r = t - (r + a) by ring]
-  have hg_shift : IntervalIntegrable
-      (fun r : ℝ => deriv
-        (fun z : ℝ => intervalFullSemigroupOperator ((t - a) - r) (qshift r) z) x)
-      volume 0 (t - a) := by
-    rw [hF_shift]
-    simpa using (hgF_int.comp_add_right a)
-  have hbound_shift :=
-    ShenWork.IntervalGradDuhamelBound.gradDuhamel_sup_bound
-      (t := t - a) (T := T - a) hdt_pos hdtT
-      (q := qshift) hq_int_shift hCq hq_sup_shift x hg_shift
-  have hIntegral_shift :
-      (∫ r in (0 : ℝ)..(t - a), deriv
-        (fun z : ℝ => intervalFullSemigroupOperator ((t - a) - r) (qshift r) z) x)
-        = ∫ s in a..t, F s := by
-    rw [hF_shift]
-    have hcomp := intervalIntegral.integral_comp_add_right
-      (f := F) (a := (0 : ℝ)) (b := t - a) a
-    simpa using hcomp
-  have hfinal :
-      |∫ s in a..t, F s|
-        ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt (T - a)) * Cq := by
-    rw [← hIntegral_shift]
-    exact hbound_shift
-  simpa [F] using hfinal
+  set Cg := heatGradientLinftyLinftyConstant with hCgdef
+  have hCgnn : 0 ≤ Cg := by
+    simpa [hCgdef] using heatGradientLinftyLinftyConstant_nonneg
+  have hat_le : a ≤ t := le_of_lt hat
+  have hTa : t - a ≤ T - a := by linarith
+  have hptw : ∀ s ∈ Set.Ioo a t,
+      |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x|
+        ≤ Cg * Cq * (t - s) ^ (-(1 / 2) : ℝ) := by
+    intro s hs
+    have hs0 : 0 ≤ s := le_trans ha hs.1.le
+    have h :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullCoupledDuhamel_grad_integrand_pointwise_bound
+        (t := t) (s := s) hs0 hs.2 (F := q s) (hq_int s)
+        (C_source := Cq) hCq (hq_sup s) x
+    calc
+      |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x|
+          ≤ Cg * (t - s) ^ (-(1 / 2) : ℝ) * Cq := by
+            simpa [hCgdef] using h
+      _ = Cg * Cq * (t - s) ^ (-(1 / 2) : ℝ) := by ring
+  have hsing_int : IntervalIntegrable
+      (fun s : ℝ => (t - s) ^ (-(1 / 2) : ℝ)) volume a t := by
+    have h0 : IntervalIntegrable
+        (fun u : ℝ => u ^ (-(1 / 2) : ℝ)) volume 0 (t - a) :=
+      intervalIntegral.intervalIntegrable_rpow' (by norm_num)
+    have h := (h0.comp_sub_left t).symm
+    simpa using h
+  have hdom_int : IntervalIntegrable
+      (fun s : ℝ => Cg * Cq * (t - s) ^ (-(1 / 2) : ℝ)) volume a t :=
+    hsing_int.const_mul (Cg * Cq)
+  have hsing_eq :
+      (∫ s in a..t, (t - s) ^ (-(1 / 2) : ℝ)) =
+        2 * Real.sqrt (t - a) := by
+    rw [intervalIntegral.integral_comp_sub_left
+      (fun u : ℝ => u ^ (-(1 / 2) : ℝ)) t]
+    simp only [sub_self]
+    rw [intervalIntegral.integral_rpow (Or.inl (by norm_num : (-1 : ℝ) < -(1 / 2)))]
+    have hexp : (-(1 / 2) : ℝ) + 1 = 1 / 2 := by norm_num
+    rw [hexp, Real.zero_rpow (by norm_num : (1 / 2 : ℝ) ≠ 0), sub_zero,
+      Real.sqrt_eq_rpow]
+    rw [div_eq_iff (by norm_num : (1 / 2 : ℝ) ≠ 0)]
+    ring
+  have hmono :
+      ∫ s in a..t,
+          |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x|
+        ≤ ∫ s in a..t, Cg * Cq * (t - s) ^ (-(1 / 2) : ℝ) := by
+    refine intervalIntegral.integral_mono_on_of_le_Ioo hat_le hg_int.abs hdom_int ?_
+    intro s hs
+    exact hptw s hs
+  calc
+    |∫ s in a..t, deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x|
+        ≤ ∫ s in a..t,
+            |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q s) z) x| :=
+      intervalIntegral.abs_integral_le_integral_abs hat_le
+    _ ≤ ∫ s in a..t, Cg * Cq * (t - s) ^ (-(1 / 2) : ℝ) := hmono
+    _ = Cg * Cq * (2 * Real.sqrt (t - a)) := by
+      rw [intervalIntegral.integral_const_mul, hsing_eq]
+    _ ≤ Cg * (2 * Real.sqrt (T - a)) * Cq := by
+      have hsqrt : 2 * Real.sqrt (t - a) ≤ 2 * Real.sqrt (T - a) := by
+        have hbase : Real.sqrt (t - a) ≤ Real.sqrt (T - a) :=
+          Real.sqrt_le_sqrt hTa
+        nlinarith
+      calc
+        Cg * Cq * (2 * Real.sqrt (t - a))
+            ≤ Cg * Cq * (2 * Real.sqrt (T - a)) :=
+          mul_le_mul_of_nonneg_left hsqrt (mul_nonneg hCgnn hCq)
+        _ = Cg * (2 * Real.sqrt (T - a)) * Cq := by ring
 
 end ShenWork.Paper2.TruncatedGradientWindow
