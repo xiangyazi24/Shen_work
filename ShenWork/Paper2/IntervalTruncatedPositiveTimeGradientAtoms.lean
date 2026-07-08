@@ -113,6 +113,30 @@ private theorem truncatedConjugatePicardIter_zero_lift_deriv_abs_le
     ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
       hτ hmeas hbound x
 
+private theorem truncatedConjugatePicardIter_zero_lift_differentiableAt_Ioo
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {τ M : ℝ} (hτ : 0 < τ)
+    (hmeas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    (hbound : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ M)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    DifferentiableAt ℝ
+      (intervalDomainLift (truncatedConjugatePicardIter p u₀ 0 τ)) x := by
+  have hEqOn : Set.EqOn
+      (intervalDomainLift (truncatedConjugatePicardIter p u₀ 0 τ))
+      (fun y : ℝ => intervalFullSemigroupOperator τ (intervalDomainLift u₀) y)
+      (Set.Icc (0 : ℝ) 1) := by
+    intro y hy
+    simp [truncatedConjugatePicardIter, intervalDomainLift, hy]
+  have hEq :
+      intervalDomainLift (truncatedConjugatePicardIter p u₀ 0 τ)
+        =ᶠ[𝓝 x]
+      (fun y : ℝ => intervalFullSemigroupOperator τ (intervalDomainLift u₀) y) :=
+    Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx)
+      (hEqOn.mono Set.Ioo_subset_Icc_self)
+  exact
+    (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+      hτ hmeas hbound x).differentiableAt.congr_of_eventuallyEq hEq
+
 /-- Zero-th truncated Picard iterate gradient bound on a positive window.
 
 Analytic content: use positive-time restart/Chapman-Kolmogorov for the heat
@@ -133,7 +157,7 @@ theorem truncatedConjugatePicardIter_zero_window_gradient
     (_hBcontr : truncWindowB B_F p.χ₀ a hi < 1) :
     IterGradOnWindow U lo hi 0
       (truncWindowFixedG DT.M A_L A_F B_F p.χ₀ a lo hi) := by
-  intro τ hτlo _hτhi x
+  intro τ hτlo _hτhi
   have hτ_pos : 0 < τ := lt_of_lt_of_le (lt_trans _ha_pos _ha_lt_lo) hτlo
   have hloa_pos : 0 < lo - a := sub_pos.mpr _ha_lt_lo
   have hloa_le_τ : lo - a ≤ τ := by linarith
@@ -141,72 +165,77 @@ theorem truncatedConjugatePicardIter_zero_window_gradient
       0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
     ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
   have hM_nonneg : 0 ≤ DT.M := le_of_lt DT.hM
-  have hheat :
-      |deriv (intervalDomainLift (U 0 τ)) x|
-        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-            * τ ^ (-(1 / 2) : ℝ) * DT.M := by
-    rw [hU 0 τ]
-    exact truncatedConjugatePicardIter_zero_lift_deriv_abs_le
-      hτ_pos DT.hbase_lift_meas DT.hbase_lift_bound x
-  have hsing :
-      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-          * τ ^ (-(1 / 2) : ℝ) * DT.M
-        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-            / Real.sqrt (lo - a) * DT.M := by
-    calc
-      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-          * τ ^ (-(1 / 2) : ℝ) * DT.M
-          = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-              / Real.sqrt τ * DT.M := by
-            rw [rpow_neg_half_eq_inv_sqrt hτ_pos]
-            ring
-      _ = (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-              * DT.M) / Real.sqrt τ := by ring
-      _ ≤ (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-              * DT.M) / Real.sqrt (lo - a) :=
-            div_le_div_of_nonneg_left (mul_nonneg hK_nonneg hM_nonneg)
-              (Real.sqrt_pos_of_pos hloa_pos)
-              (Real.sqrt_le_sqrt hloa_le_τ)
-      _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-              / Real.sqrt (lo - a) * DT.M := by ring
-  have hL_nonneg : 0 ≤ A_L + |p.χ₀| * A_F :=
-    add_nonneg _hAL_nonneg (mul_nonneg (abs_nonneg p.χ₀) _hAF_nonneg)
-  have hsrc_nonneg :
-      0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-          * (2 * Real.sqrt (hi - a)) * (A_L + |p.χ₀| * A_F) := by
-    exact mul_nonneg
-      (mul_nonneg hK_nonneg
-        (mul_nonneg (by norm_num) (Real.sqrt_nonneg _)))
-      hL_nonneg
-  have hA_nonneg :
-      0 ≤ truncWindowA DT.M A_L A_F p.χ₀ a lo hi := by
-    unfold truncWindowA
-    exact add_nonneg
-      (mul_nonneg
-        (div_nonneg hK_nonneg (Real.sqrt_nonneg _)) hM_nonneg)
-      hsrc_nonneg
-  have hA_ge_sing :
-      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-          / Real.sqrt (lo - a) * DT.M
-        ≤ truncWindowA DT.M A_L A_F p.χ₀ a lo hi := by
-    unfold truncWindowA
-    exact le_add_of_nonneg_right hsrc_nonneg
-  have hB_nonneg : 0 ≤ truncWindowB B_F p.χ₀ a hi := by
-    unfold truncWindowB
-    exact mul_nonneg
-      (mul_nonneg
+  refine ⟨fun x => by
+    have hheat :
+        |deriv (intervalDomainLift (U 0 τ)) x|
+          ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * τ ^ (-(1 / 2) : ℝ) * DT.M := by
+      rw [hU 0 τ]
+      exact truncatedConjugatePicardIter_zero_lift_deriv_abs_le
+        hτ_pos DT.hbase_lift_meas DT.hbase_lift_bound x
+    have hsing :
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * τ ^ (-(1 / 2) : ℝ) * DT.M
+          ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              / Real.sqrt (lo - a) * DT.M := by
+      calc
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * τ ^ (-(1 / 2) : ℝ) * DT.M
+            = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                / Real.sqrt τ * DT.M := by
+              rw [rpow_neg_half_eq_inv_sqrt hτ_pos]
+              ring
+        _ = (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                * DT.M) / Real.sqrt τ := by ring
+        _ ≤ (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                * DT.M) / Real.sqrt (lo - a) :=
+              div_le_div_of_nonneg_left (mul_nonneg hK_nonneg hM_nonneg)
+                (Real.sqrt_pos_of_pos hloa_pos)
+                (Real.sqrt_le_sqrt hloa_le_τ)
+        _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                / Real.sqrt (lo - a) * DT.M := by ring
+    have hL_nonneg : 0 ≤ A_L + |p.χ₀| * A_F :=
+      add_nonneg _hAL_nonneg (mul_nonneg (abs_nonneg p.χ₀) _hAF_nonneg)
+    have hsrc_nonneg :
+        0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * (2 * Real.sqrt (hi - a)) * (A_L + |p.χ₀| * A_F) := by
+      exact mul_nonneg
         (mul_nonneg hK_nonneg
           (mul_nonneg (by norm_num) (Real.sqrt_nonneg _)))
-        (abs_nonneg p.χ₀))
-      _hBF_nonneg
-  have hA_le_fixed :
-      truncWindowA DT.M A_L A_F p.χ₀ a lo hi
-        ≤ truncWindowFixedG DT.M A_L A_F B_F p.χ₀ a lo hi := by
-    unfold truncWindowFixedG
-    have hden_pos : 0 < 1 - truncWindowB B_F p.χ₀ a hi := by linarith
-    rw [le_div_iff₀ hden_pos]
-    nlinarith [mul_nonneg hA_nonneg hB_nonneg]
-  exact hheat.trans (hsing.trans (hA_ge_sing.trans hA_le_fixed))
+        hL_nonneg
+    have hA_nonneg :
+        0 ≤ truncWindowA DT.M A_L A_F p.χ₀ a lo hi := by
+      unfold truncWindowA
+      exact add_nonneg
+        (mul_nonneg
+          (div_nonneg hK_nonneg (Real.sqrt_nonneg _)) hM_nonneg)
+        hsrc_nonneg
+    have hA_ge_sing :
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            / Real.sqrt (lo - a) * DT.M
+          ≤ truncWindowA DT.M A_L A_F p.χ₀ a lo hi := by
+      unfold truncWindowA
+      exact le_add_of_nonneg_right hsrc_nonneg
+    have hB_nonneg : 0 ≤ truncWindowB B_F p.χ₀ a hi := by
+      unfold truncWindowB
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg hK_nonneg
+            (mul_nonneg (by norm_num) (Real.sqrt_nonneg _)))
+          (abs_nonneg p.χ₀))
+        _hBF_nonneg
+    have hA_le_fixed :
+        truncWindowA DT.M A_L A_F p.χ₀ a lo hi
+          ≤ truncWindowFixedG DT.M A_L A_F B_F p.χ₀ a lo hi := by
+      unfold truncWindowFixedG
+      have hden_pos : 0 < 1 - truncWindowB B_F p.χ₀ a hi := by linarith
+      rw [le_div_iff₀ hden_pos]
+      nlinarith [mul_nonneg hA_nonneg hB_nonneg]
+    exact hheat.trans (hsing.trans (hA_ge_sing.trans hA_le_fixed)),
+    fun x hx => by
+      rw [hU 0 τ]
+      exact truncatedConjugatePicardIter_zero_lift_differentiableAt_Ioo
+        hτ_pos DT.hbase_lift_meas DT.hbase_lift_bound hx⟩
 
 /-- Zero-th truncated Picard iterate left-profile gradient bound on `(0, lo]`.
 
@@ -223,47 +252,52 @@ theorem truncatedConjugatePicardIter_zero_left_profile
     (_hBF_nonneg : 0 ≤ B_F) (_hlo_pos : 0 < lo)
     (_hBcontr : truncLeftB B_F p.χ₀ lo < 1) :
     IterGradLeftProfile U DT.M A_L A_F B_F p.χ₀ lo 0 := by
-  intro τ hτ _hτlo x
+  intro τ hτ _hτlo
   have hK_nonneg :
       0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
     ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
   have hM_nonneg : 0 ≤ DT.M := le_of_lt DT.hM
-  have hheat :
-      |deriv (intervalDomainLift (U 0 τ)) x|
-        ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-            * τ ^ (-(1 / 2) : ℝ) * DT.M := by
-    rw [hU 0 τ]
-    exact truncatedConjugatePicardIter_zero_lift_deriv_abs_le
-      hτ DT.hbase_lift_meas DT.hbase_lift_bound x
-  have hsing :
-      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-          * τ ^ (-(1 / 2) : ℝ) * DT.M
-        ≤ truncLeftSingularC DT.M / Real.sqrt τ := by
-    have hsing_eq :
+  refine ⟨fun x => by
+    have hheat :
+        |deriv (intervalDomainLift (U 0 τ)) x|
+          ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * τ ^ (-(1 / 2) : ℝ) * DT.M := by
+      rw [hU 0 τ]
+      exact truncatedConjugatePicardIter_zero_lift_deriv_abs_le
+        hτ DT.hbase_lift_meas DT.hbase_lift_bound x
+    have hsing :
         ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
             * τ ^ (-(1 / 2) : ℝ) * DT.M
-          = truncLeftSingularC DT.M / Real.sqrt τ := by
-      calc
-        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-            * τ ^ (-(1 / 2) : ℝ) * DT.M
-            = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
-                / Real.sqrt τ * DT.M := by
-              rw [rpow_neg_half_eq_inv_sqrt hτ]
-              ring
-        _ = truncLeftSingularC DT.M / Real.sqrt τ := by
-              unfold truncLeftSingularC
-              ring
-    exact hsing_eq.le
-  have hD_nonneg :
-      0 ≤ truncLeftD DT.M A_L A_F B_F p.χ₀ lo := by
-    exact ShenWork.Paper2.TruncatedGradientWindow.truncLeftD_nonneg
-      hM_nonneg _hAL_nonneg _hAF_nonneg _hBF_nonneg _hlo_pos.le _hBcontr
-  have hprofile :
-      truncLeftSingularC DT.M / Real.sqrt τ
-        ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo τ := by
-    unfold truncLeftProfile
-    exact le_add_of_nonneg_right hD_nonneg
-  exact hheat.trans (hsing.trans hprofile)
+          ≤ truncLeftSingularC DT.M / Real.sqrt τ := by
+      have hsing_eq :
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * τ ^ (-(1 / 2) : ℝ) * DT.M
+            = truncLeftSingularC DT.M / Real.sqrt τ := by
+        calc
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * τ ^ (-(1 / 2) : ℝ) * DT.M
+              = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                  / Real.sqrt τ * DT.M := by
+                rw [rpow_neg_half_eq_inv_sqrt hτ]
+                ring
+          _ = truncLeftSingularC DT.M / Real.sqrt τ := by
+                unfold truncLeftSingularC
+                ring
+      exact hsing_eq.le
+    have hD_nonneg :
+        0 ≤ truncLeftD DT.M A_L A_F B_F p.χ₀ lo := by
+      exact ShenWork.Paper2.TruncatedGradientWindow.truncLeftD_nonneg
+        hM_nonneg _hAL_nonneg _hAF_nonneg _hBF_nonneg _hlo_pos.le _hBcontr
+    have hprofile :
+        truncLeftSingularC DT.M / Real.sqrt τ
+          ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo τ := by
+      unfold truncLeftProfile
+      exact le_add_of_nonneg_right hD_nonneg
+    exact hheat.trans (hsing.trans hprofile),
+    fun x hx => by
+      rw [hU 0 τ]
+      exact truncatedConjugatePicardIter_zero_lift_differentiableAt_Ioo
+        hτ DT.hbase_lift_meas DT.hbase_lift_bound hx⟩
 
 /-- Successor truncated Picard iterate affine gradient step on a positive window.
 

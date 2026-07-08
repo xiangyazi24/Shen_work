@@ -24,9 +24,11 @@ open ShenWork.HeatKernelGradientEstimates
 abbrev IterGradLeftProfile
     (U : ℕ → ℝ → intervalDomainPoint → ℝ)
     (M A_L A_F B_F chi lo : ℝ) (n : ℕ) : Prop :=
-  ∀ tau, 0 < tau → tau ≤ lo → ∀ x : ℝ,
-    |deriv (intervalDomainLift (U n tau)) x|
-      ≤ truncLeftProfile M A_L A_F B_F chi lo tau
+  ∀ tau, 0 < tau → tau ≤ lo →
+    (∀ x : ℝ, |deriv (intervalDomainLift (U n tau)) x|
+      ≤ truncLeftProfile M A_L A_F B_F chi lo tau) ∧
+      ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+        DifferentiableAt ℝ (intervalDomainLift (U n tau)) x
 
 /-- The left profile `P(t) = C / sqrt(t) + D` is decreasing in positive time. -/
 theorem truncLeftProfile_anti_mono_time
@@ -53,11 +55,14 @@ theorem IterGradOnWindow.of_left_profile
     (hprofile : ∀ n : ℕ, IterGradLeftProfile U M A_L A_F B_F chi lo n)
     (hPaG : truncLeftProfile M A_L A_F B_F chi lo a ≤ G) :
     ∀ n : ℕ, IterGradOnWindow U a lo n G := by
-  intro n t hat htlo x
+  intro n t hat htlo
   have htpos : 0 < t := lt_of_lt_of_le ha hat
-  exact ((hprofile n t htpos htlo x).trans
-    ((truncLeftProfile_anti_mono_time (M := M) (A_L := A_L) (A_F := A_F)
-      (B_F := B_F) (chi := chi) (lo := lo) hM ha hat).trans hPaG))
+  exact
+    ⟨fun x =>
+      ((hprofile n t htpos htlo).1 x).trans
+        ((truncLeftProfile_anti_mono_time (M := M) (A_L := A_L) (A_F := A_F)
+          (B_F := B_F) (chi := chi) (lo := lo) hM ha hat).trans hPaG),
+      (hprofile n t htpos htlo).2⟩
 
 /-- Analytic inputs needed to propagate the left Volterra profile. -/
 structure TruncatedLeftProfileWiring

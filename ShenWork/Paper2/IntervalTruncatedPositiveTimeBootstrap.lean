@@ -265,9 +265,13 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) y| ≤ G * |x - y| := by
   -- Step 1a: Uniform iterate gradient bound from gradient window contraction
   have hiter_grad : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
-      ∀ s, t / 2 ≤ s → s ≤ t → ∀ x : ℝ,
-        |deriv (intervalDomainLift (truncatedConjugatePicardIter p u₀ n s)) x|
-          ≤ G := by
+      ∀ s, t / 2 ≤ s → s ≤ t →
+        (∀ x : ℝ,
+          |deriv (intervalDomainLift (truncatedConjugatePicardIter p u₀ n s)) x|
+            ≤ G) ∧
+          ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+            DifferentiableAt ℝ
+              (intervalDomainLift (truncatedConjugatePicardIter p u₀ n s)) x := by
     let U : ℕ → ℝ → intervalDomainPoint → ℝ :=
       fun n s => truncatedConjugatePicardIter p u₀ n s
     -- Post-IBP source: logistic - χ₀ * flux' (flux DERIVATIVE, not raw flux).
@@ -452,7 +456,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
                 (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
                 (H := H_M) (G := Gw) DT.hM hball
-                (hgrad s ha_s hs_hi) y hderiv hdpos hgradR hgp hq hqDen
+                (hgrad s ha_s hs_hi).1 y hderiv hdpos hgradR hgp hq hqDen
           hkernel_step := by
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
@@ -466,8 +470,8 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               (by dsimp [a, lo]; linarith)
               (by dsimp [lo, hi]; linarith)
               htT }
-    exact ⟨Gw, hGw_nn, fun n s hslo hshi x =>
-      truncatedGradientWindow_all W n s hslo hshi x⟩
+    exact ⟨Gw, hGw_nn, fun n s hslo hshi =>
+      truncatedGradientWindow_all W n s hslo hshi⟩
   -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]
   have hiter_lip : ∃ G : ℝ, 0 ≤ G ∧ ∀ n : ℕ,
       ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
@@ -482,12 +486,13 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     set f := intervalDomainLift (truncatedConjugatePicardIter p u₀ n t) with hf_def
     -- DifferentiableAt on interior (from semigroup C² smoothing)
     have hda : ∀ z ∈ Set.Ioo (0 : ℝ) 1, DifferentiableAt ℝ f z := by
-      sorry -- semigroup + Picard iterate → C² on (0,1) → DifferentiableAt
+      intro z hz
+      simpa [hf_def] using hgt.2 z hz
     -- Lipschitz on Ioo from MVT (Convex.lipschitzOnWith)
     have hlip_open : LipschitzOnWith ⟨G, hG_nn⟩ f (Set.Ioo (0 : ℝ) 1) :=
       Convex.lipschitzOnWith_of_nnnorm_hasDerivWithin_le (convex_Ioo (0 : ℝ) 1)
         (fun z hz => (hda z hz).hasDerivAt.hasDerivWithinAt)
-        (fun z _ => by exact_mod_cast hgt z)
+        (fun z _ => by exact_mod_cast (hgt.1 z))
     -- ContinuousOn on Icc (from lift_continuousOn_Icc + Picard ball bound)
     have hcont_n : Continuous (truncatedConjugatePicardIter p u₀ n t) :=
       (truncatedConjugatePicardIter_ball p u₀ DT.hbase_ball DT.hbase_cont

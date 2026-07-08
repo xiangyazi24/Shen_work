@@ -133,9 +133,164 @@ theorem resolverLapPhysicalReal_continuousAt_of_continuousOn
     simp [resolverLapPhysicalReal, resolverLapPhysicalPlain, resolverLapPhysical,
       resolverValueSeriesReal, resolverPhysicalSourceReal, resolverPositiveSourceLifted,
       intervalNeumannResolverR, unitIntervalCosineMode, hzIcc]
-  exact hplain.congr_of_eventuallyEq hlocal.symm
+  exact hplain.congr_of_eventuallyEq hlocal
 
 /-! ### Integrated weak ODE and FTC bridge -/
+
+/-!
+The bridge lemmas below isolate the analytic work for the continuous-source
+route.
+
+* `resolverGradReal_sub_eq_tsum_lapCoeff_pairing` is Part 1 of the intended
+  proof: telescope the absolutely summable gradient sine series, apply the
+  one-mode FTC, then use `intervalNeumannResolverCoeff_elliptic` to rewrite
+  `-λₖ cₖ` as `μ cₖ - âₖ`.
+* `integral_lapPhysicalReal_eq_tsum_lapCoeff_pairing` is Part 2: use
+  `cosine_parseval_pairing` from `IntervalTruncatedTestedSpectral` with
+  `φ = Set.indicator (Set.Ioc a b) (fun _ => 1)` for both the resolver value
+  and physical source, then bridge the cosine coefficients back to
+  `(intervalNeumannResolverCoeff p u k).re` and
+  `(intervalNeumannResolverSourceCoeff p u k).re`.
+
+The Part 2 Parseval/coefficient-matching bridge remains a deliberately named
+residual rather than being hidden inside the main theorem.
+-/
+
+private lemma resolverCoeff_re_neg_lap_eq
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
+    -(((k : ℝ) * Real.pi) ^ 2) *
+        (intervalNeumannResolverCoeff p u k).re =
+      p.μ * (intervalNeumannResolverCoeff p u k).re -
+        (intervalNeumannResolverSourceCoeff p u k).re := by
+  have hellRe :
+      (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+          (intervalNeumannResolverCoeff p u k).re =
+        (intervalNeumannResolverSourceCoeff p u k).re := by
+    have hcast :
+        ((p.μ : ℂ) +
+            (ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k : ℂ)) =
+          (((p.μ +
+            ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k : ℝ)) : ℂ) := by
+      push_cast
+      ring
+    have hk := congrArg Complex.re (intervalNeumannResolverCoeff_elliptic p u k)
+    rw [hcast, Complex.re_ofReal_mul] at hk
+    exact hk
+  have hlam :
+      ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k =
+        ((k : ℝ) * Real.pi) ^ 2 := by
+    show ((k : ℝ) ^ 2 * Real.pi ^ 2) = _
+    ring
+  rw [hlam] at hellRe
+  linarith
+
+private lemma gradMode_sub_eq_neg_lap_integral_cosine
+    (k : ℕ) (a b : ℝ) :
+    (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * b)) -
+        (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * a))
+      =
+    -(((k : ℝ) * Real.pi) ^ 2) *
+      ∫ t in a..b, unitIntervalCosineMode k t := by
+  set K : ℝ := (k : ℝ) * Real.pi with hK
+  have hderiv : ∀ x ∈ Set.uIcc a b,
+      HasDerivAt (fun y : ℝ => -K * Real.sin (K * y))
+        (-K ^ 2 * unitIntervalCosineMode k x) x := by
+    intro x _hx
+    have hlin : HasDerivAt (fun y : ℝ => K * y) K x := by
+      simpa using (hasDerivAt_id x).const_mul K
+    have hsin :
+        HasDerivAt (fun y : ℝ => Real.sin (K * y))
+          (Real.cos (K * x) * K) x :=
+      (Real.hasDerivAt_sin (K * x)).comp x hlin
+    have hmain := hsin.const_mul (-K)
+    convert hmain using 1
+    · rw [unitIntervalCosineMode, hK]
+      ring
+  have hint :
+      IntervalIntegrable
+        (fun x : ℝ => -K ^ 2 * unitIntervalCosineMode k x) volume a b := by
+    have hcont :
+        Continuous (fun x : ℝ => -K ^ 2 * unitIntervalCosineMode k x) := by
+      unfold unitIntervalCosineMode
+      fun_prop
+    exact hcont.intervalIntegrable a b
+  have hFTC :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint
+  rw [intervalIntegral.integral_const_mul] at hFTC
+  rw [hK] at hFTC
+  exact hFTC.symm
+
+private theorem resolverGradReal_sub_eq_tsum_lapCoeff_pairing
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {a b : ℝ} :
+    resolverGradReal p u b - resolverGradReal p u a
+      =
+    ∑' k : ℕ,
+      (p.μ * (intervalNeumannResolverCoeff p u k).re -
+        (intervalNeumannResolverSourceCoeff p u k).re) *
+        ∫ t in a..b, unitIntervalCosineMode k t := by
+  classical
+  have hsrcL2 :
+      Summable fun k : ℕ => ((intervalNeumannResolverSourceCoeff p u k).re) ^ 2 := by
+    simpa [ShenWork.Paper2.intervalNeumannResolverSourceCoeff_zero] using
+      resolverSourceCoeff_re_sq_summable_of_continuousOn p hUcont
+  have hsum_b := resolver_sineSeries_summable_of_sourceL2 p hsrcL2 b
+  have hsum_a := resolver_sineSeries_summable_of_sourceL2 p hsrcL2 a
+  calc
+    resolverGradReal p u b - resolverGradReal p u a
+        =
+        ∑' k : ℕ,
+          (
+          (intervalNeumannResolverCoeff p u k).re *
+              (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * b)) -
+            (intervalNeumannResolverCoeff p u k).re *
+              (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * a))) := by
+          unfold resolverGradReal
+          rw [← hsum_b.tsum_sub hsum_a]
+    _ = ∑' k : ℕ,
+          (intervalNeumannResolverCoeff p u k).re *
+            ((-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * b)) -
+              (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * a))) := by
+          refine tsum_congr fun k => ?_
+          ring
+    _ = ∑' k : ℕ,
+          (p.μ * (intervalNeumannResolverCoeff p u k).re -
+            (intervalNeumannResolverSourceCoeff p u k).re) *
+            ∫ t in a..b, unitIntervalCosineMode k t := by
+          refine tsum_congr fun k => ?_
+          rw [gradMode_sub_eq_neg_lap_integral_cosine k a b]
+          calc
+            (intervalNeumannResolverCoeff p u k).re *
+                (-(((k : ℝ) * Real.pi) ^ 2) *
+                  ∫ t in a..b, unitIntervalCosineMode k t)
+                =
+              (-(((k : ℝ) * Real.pi) ^ 2) *
+                  (intervalNeumannResolverCoeff p u k).re) *
+                ∫ t in a..b, unitIntervalCosineMode k t := by
+                ring
+            _ =
+              (p.μ * (intervalNeumannResolverCoeff p u k).re -
+                (intervalNeumannResolverSourceCoeff p u k).re) *
+                ∫ t in a..b, unitIntervalCosineMode k t := by
+                rw [resolverCoeff_re_neg_lap_eq p u k]
+
+private theorem integral_lapPhysicalReal_eq_tsum_lapCoeff_pairing
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hUnonneg : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift u x)
+    {a b : ℝ} (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1) :
+    (∫ t in a..b, resolverLapPhysicalReal p u t)
+      =
+    ∑' k : ℕ,
+      (p.μ * (intervalNeumannResolverCoeff p u k).re -
+        (intervalNeumannResolverSourceCoeff p u k).re) *
+        ∫ t in a..b, unitIntervalCosineMode k t := by
+  -- Residual: L² Parseval pairing with the bounded measurable window test
+  -- `1_(a,b]`, plus coefficient matching for `resolverValueSeriesReal` and
+  -- `resolverPhysicalSourceReal`.  The source side is intentionally L²-based;
+  -- continuity alone does not give `∑ |âₖ| < ∞`.
+  sorry
 
 theorem resolverGradReal_sub_eq_integral_lapPhysicalReal
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
@@ -144,7 +299,16 @@ theorem resolverGradReal_sub_eq_integral_lapPhysicalReal
     {a b : ℝ} (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1) :
     resolverGradReal p u b - resolverGradReal p u a
       = ∫ t in a..b, resolverLapPhysicalReal p u t := by
-  sorry
+  calc
+    resolverGradReal p u b - resolverGradReal p u a
+        = ∑' k : ℕ,
+            (p.μ * (intervalNeumannResolverCoeff p u k).re -
+              (intervalNeumannResolverSourceCoeff p u k).re) *
+              ∫ t in a..b, unitIntervalCosineMode k t :=
+          resolverGradReal_sub_eq_tsum_lapCoeff_pairing p hUcont
+    _ = ∫ t in a..b, resolverLapPhysicalReal p u t :=
+          (integral_lapPhysicalReal_eq_tsum_lapCoeff_pairing
+            p hUcont hUnonneg ha hb).symm
 
 theorem resolverGradReal_eventually_eq_primitive
     (p : CM2Params) {u : intervalDomainPoint → ℝ}
@@ -173,9 +337,13 @@ theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
   have hq_cont : ContinuousAt q x :=
     resolverLapPhysicalReal_continuousAt_of_continuousOn p hUcont hx
   have hq_int : IntervalIntegrable q volume x x :=
-    intervalIntegrable_const.congr (Filter.EventuallyEq.refl _ _)
+    by
+      rw [intervalIntegrable_iff]
+      simp
   have hq_meas : StronglyMeasurableAtFilter q (𝓝 x) :=
-    hq_cont.stronglyMeasurableAtFilter
+    ContinuousAt.stronglyMeasurableAtFilter isOpen_Ioo
+      (fun y hy => resolverLapPhysicalReal_continuousAt_of_continuousOn p hUcont hy)
+      x hx
   have hFTC :
       HasDerivAt (fun z : ℝ => ∫ t in x..z, q t) (q x) x :=
     intervalIntegral.integral_hasDerivAt_right hq_int hq_meas hq_cont
@@ -192,6 +360,6 @@ theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
   have hq_x : q x = resolverLapPhysical p u ⟨x, Set.Ioo_subset_Icc_self hx⟩ := by
     simp [q, resolverLapPhysicalReal, Set.Ioo_subset_Icc_self hx]
   rw [← hq_x]
-  exact hprim.congr_of_eventuallyEq hev.symm
+  exact hprim.congr_of_eventuallyEq hev
 
 end ShenWork.IntervalResolverWeakBounds

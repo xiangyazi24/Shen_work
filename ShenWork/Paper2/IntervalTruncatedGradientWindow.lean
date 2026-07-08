@@ -55,16 +55,18 @@ theorem affine_fixed_closes {A B : ℝ} (hB : B < 1) :
 abbrev IterGradOnWindow
     (U : ℕ → ℝ → intervalDomainPoint → ℝ)
     (lo hi : ℝ) (n : ℕ) (G : ℝ) : Prop :=
-  ∀ t, lo ≤ t → t ≤ hi → ∀ x : ℝ,
-    |deriv (intervalDomainLift (U n t)) x| ≤ G
+  ∀ t, lo ≤ t → t ≤ hi →
+    (∀ x : ℝ, |deriv (intervalDomainLift (U n t)) x| ≤ G) ∧
+      ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+        DifferentiableAt ℝ (intervalDomainLift (U n t)) x
 
 theorem IterGradOnWindow.mono
     {U : ℕ → ℝ → intervalDomainPoint → ℝ}
     {lo hi : ℝ} {n : ℕ} {G₁ G₂ : ℝ}
     (hG : G₁ ≤ G₂) (H : IterGradOnWindow U lo hi n G₁) :
     IterGradOnWindow U lo hi n G₂ := by
-  intro t htlo hthi x
-  exact (H t htlo hthi x).trans hG
+  intro t htlo hthi
+  exact ⟨fun x => ((H t htlo hthi).1 x).trans hG, (H t htlo hthi).2⟩
 
 theorem IterGradOnWindow.glue_left
     {U : ℕ → ℝ → intervalDomainPoint → ℝ}
@@ -72,11 +74,11 @@ theorem IterGradOnWindow.glue_left
     (Hleft : IterGradOnWindow U a lo n G)
     (Hright : IterGradOnWindow U lo hi n G) :
     IterGradOnWindow U a hi n G := by
-  intro t hta hthi x
+  intro t hta hthi
   by_cases htlo : t ≤ lo
-  · exact Hleft t hta htlo x
+  · exact Hleft t hta htlo
   · have hlot : lo ≤ t := le_of_lt (lt_of_not_ge htlo)
-    exact Hright t hlot hthi x
+    exact Hright t hlot hthi
 
 theorem abs_logistic_sub_chi_flux_le
     {L Fp A_L A_F B_F χ G : ℝ}
