@@ -248,10 +248,9 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     |deriv (truncatedChemFluxLifted p w) y|
         = |A + B - C| := by
           rw [hderiv]
-    _ ≤ |A| + |B| + |C| := by
-          exact htri
+    _ ≤ |A| + |B| + |C| := htri
     _ ≤ Γ * G + M * H + p.β * M * Γ ^ 2 := by
-          linarith [hterm₁, hterm₂, hterm₃]
+          exact add_le_add (add_le_add hterm₁ hterm₂) hterm₃
     _ = (M * H + p.β * M * Γ ^ 2) + Γ * G := by ring
 
 private theorem truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
@@ -265,7 +264,7 @@ private theorem truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
     funext z
     by_cases hz : z ∈ Set.Icc (0 : ℝ) 1
     · simp [truncatedChemFluxLifted, F, intervalDomainLift, hz]
-    · simp [truncatedChemFluxLifted, F, intervalDomainLift, hz, positivePart]
+    · simp [truncatedChemFluxLifted, intervalDomainLift, hz, positivePart]
   let Uconst : ℝ → intervalDomainPoint → ℝ := fun _ => F
   rcases lt_or_ge y 0 with hy0 | hy0
   · have hzero :
@@ -1176,17 +1175,21 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                   (truncLeftD_nonneg hM hAL_nn hAF_nn hΓ_M_nn
                     (by dsimp [lo]; linarith) hleftContr)
               dsimp only [Src]
-              apply abs_logistic_sub_chi_flux_le
-              · have hlift_bound : |intervalDomainLift (U n s) y| ≤ DT.M := by
+              have hlog :
+                  |truncatedLogisticLifted p (U n s) y| ≤ A_L := by
+                have hlift_bound : |intervalDomainLift (U n s) y| ≤ DT.M := by
                   by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
                   · simp only [intervalDomainLift, dif_pos hy]
                     exact hball ⟨y, hy⟩
                   · simp only [intervalDomainLift, dif_neg hy, abs_zero]
                     exact le_of_lt DT.hM
-                show |truncatedLogisticLifted p (U n s) y| ≤ A_L
                 show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
                 exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
-              · by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+              have hflux :
+                  |deriv (truncatedChemFluxLifted p (U n s)) y| ≤
+                    A_F + B_F *
+                      truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+                by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
                 · dsimp only [A_F, B_F]
                   have hflux_terms :
                       ∃ dpos gp q qDen : ℝ,
@@ -1223,6 +1226,27 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                       (p := p) (w := U n s) hyIoo
                   rw [hflux_zero, abs_zero]
                   exact add_nonneg hAF_nn (mul_nonneg hΓ_M_nn hprofile_nonneg)
+              calc
+                |truncatedLogisticLifted p (U n s) y
+                    - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y|
+                    ≤ |truncatedLogisticLifted p (U n s) y|
+                      + |p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y| := by
+                      simpa using
+                        (abs_sub_le (truncatedLogisticLifted p (U n s) y) 0
+                          (p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y))
+                _ = |truncatedLogisticLifted p (U n s) y|
+                      + |p.χ₀| * |deriv (truncatedChemFluxLifted p (U n s)) y| := by
+                    rw [abs_mul]
+                _ ≤ A_L + |p.χ₀| *
+                      (A_F + B_F
+                        * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) := by
+                    exact add_le_add hlog
+                      (mul_le_mul_of_nonneg_left hflux (abs_nonneg p.χ₀))
+                _ = truncLeftSourceConst A_L A_F p.χ₀
+                      + truncLeftBeta B_F p.χ₀
+                        * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+                    simp [truncLeftSourceConst, truncLeftBeta]
+                    ring
             have kernel : ∀ n, (∀ s, 0 < s → s ≤ lo → ∀ y,
                 |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
                   truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
@@ -1263,38 +1287,37 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               show |truncatedLogisticLifted p (U n s) y| ≤ A_L
               show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
               exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
-            · -- |flux'| ≤ A_F + B_F * G (product rule on truncatedChemFluxLifted)
-              -- Uses: |positivePart'| ≤ 1, IterGradOnWindow giving |u'| ≤ G,
-              -- resolver gradient ≤ Γ_M, resolver second deriv ≤ H_M,
-              -- (1+R)^β ≥ 1
-              dsimp only [A_F, B_F]
-              have hflux_terms :
-                  ∃ dpos gp q qDen : ℝ,
-                    deriv (truncatedChemFluxLifted p (U n s)) y =
-                      dpos * resolverGradReal p (U n s) y * q
-                        + positivePart (intervalDomainLift (U n s) y) * gp * q
-                        - p.β * positivePart (intervalDomainLift (U n s) y)
-                            * (resolverGradReal p (U n s) y) ^ 2 * qDen
-                    ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
-                    ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
-                    ∧ |gp| ≤ H_M
-                    ∧ |q| ≤ 1
-                    ∧ |qDen| ≤ 1 := by
-                have hdiff_pos :
-                    0 < intervalDomainLift (U n s) y →
-                      DifferentiableAt ℝ (intervalDomainLift (U n s)) y := by
-                  intro _hy_pos
-                  sorry
-                simpa [Γ_M, H_M, V_M] using
-                  truncatedChemFluxLifted_deriv_terms_of_abs_ball
-                    (p := p) (w := U n s) (M := DT.M) DT.hM
-                    (hball_cont.2 s hs_pos hs_T) hball y hdiff_pos
-              rcases hflux_terms with
-                ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
-              exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
-                (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
-                (H := H_M) (G := Gw) DT.hM hball
-                (hgrad s ha_s hs_hi).1 y hderiv hdpos hgradR hgp hq hqDen
+            · by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+              · dsimp only [A_F, B_F]
+                have hflux_terms :
+                    ∃ dpos gp q qDen : ℝ,
+                      deriv (truncatedChemFluxLifted p (U n s)) y =
+                        dpos * resolverGradReal p (U n s) y * q
+                          + positivePart (intervalDomainLift (U n s) y) * gp * q
+                          - p.β * positivePart (intervalDomainLift (U n s) y)
+                              * (resolverGradReal p (U n s) y) ^ 2 * qDen
+                      ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
+                      ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
+                      ∧ |gp| ≤ H_M
+                      ∧ |q| ≤ 1
+                      ∧ |qDen| ≤ 1 := by
+                  have hdiff_pos :
+                      0 < intervalDomainLift (U n s) y →
+                        DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
+                    fun _ => (hgrad s ha_s hs_hi).2 y hyIoo
+                  simpa [Γ_M, H_M, V_M] using
+                    truncatedChemFluxLifted_deriv_terms_of_abs_ball
+                      (p := p) (w := U n s) (M := DT.M) DT.hM
+                      (hball_cont.2 s hs_pos hs_T) hball y hdiff_pos
+                rcases hflux_terms with
+                  ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
+                exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+                  (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
+                  (H := H_M) (G := Gw) DT.hM hball
+                  (hgrad s ha_s hs_hi).1 y hderiv hdpos hgradR hgp hq hqDen
+              · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo (p := p) (w := U n s) hyIoo,
+                    abs_zero]
+                exact add_nonneg hAF_nn (mul_nonneg hΓ_M_nn hGw_nn)
           hkernel_step := by
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
