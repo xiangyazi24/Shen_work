@@ -106,6 +106,7 @@ private theorem beta_half_integral_eq_pi {r : ℝ} (hr : 0 < r) :
     rw [uIcc_of_le hr.le] at hs
     have hs0 : 0 ≤ s := hs.1
     have hrs0 : 0 ≤ r - s := sub_nonneg.mpr hs.2
+    dsimp
     rw [Complex.ofReal_mul]
     have h1 :
         (((r - s : ℝ) ^ ((-1 : ℝ) / 2) : ℝ) : ℂ) =
@@ -186,9 +187,8 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
   have hmidr : r / 2 ≤ r := by linarith
   have hleft_s :
       IntervalIntegrable (fun s : ℝ => s ^ ((-1 : ℝ) / 2)) volume 0 (r / 2) := by
-    have hlt : (-1 : ℝ) < (-(1 / 2 : ℝ)) := by norm_num
-    simpa [one_div, neg_div] using
-      (intervalIntegral.intervalIntegrable_rpow' (a := (0 : ℝ)) (b := r / 2) hlt)
+    exact intervalIntegral.intervalIntegrable_rpow'
+      (by norm_num : (-1 : ℝ) < ((-1 : ℝ) / 2))
   have hleft_cont :
       ContinuousOn (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2))
         (Set.uIcc (0 : ℝ) (r / 2)) := by
@@ -205,9 +205,11 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     have hleft_raw := IntervalIntegrable.mul_continuousOn hleft_s hleft_cont
     simpa [mul_comm] using hleft_raw
   have hsub_all :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ))) volume 0 r := by
-    simpa only [one_div] using
-      ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2)) volume 0 r := by
+    convert ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r using 1
+    ext s
+    congr 1
+    norm_num
   have hright_rsub :
       IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2))
         volume (r / 2) r := by
