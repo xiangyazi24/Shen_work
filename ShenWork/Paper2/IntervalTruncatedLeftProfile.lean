@@ -110,14 +110,13 @@ private theorem beta_half_integral_eq_pi {r : ℝ} (hr : 0 < r) :
     have h1 :
         (((r - s : ℝ) ^ ((-1 : ℝ) / 2) : ℝ) : ℂ) =
           ((r : ℂ) - s) ^ (((-1 : ℝ) / 2 : ℝ) : ℂ) := by
-      simpa [show ((-1 : ℝ) / 2 = -(1 / 2 : ℝ)) by norm_num,
-        Complex.ofReal_sub] using
-        Complex.ofReal_cpow hrs0 (-(1 / 2 : ℝ))
+      simpa [Complex.ofReal_sub] using
+        Complex.ofReal_cpow hrs0 ((-1 : ℝ) / 2)
     have h2 :
         (((s : ℝ) ^ ((-1 : ℝ) / 2) : ℝ) : ℂ) =
           (s : ℂ) ^ (((-1 : ℝ) / 2 : ℝ) : ℂ) := by
-      simpa [show ((-1 : ℝ) / 2 = -(1 / 2 : ℝ)) by norm_num] using
-        Complex.ofReal_cpow hs0 (-(1 / 2 : ℝ))
+      simpa using
+        Complex.ofReal_cpow hs0 ((-1 : ℝ) / 2)
     rw [h1, h2]
     norm_num [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc]
   rw [htoC]
@@ -187,8 +186,9 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
   have hmidr : r / 2 ≤ r := by linarith
   have hleft_s :
       IntervalIntegrable (fun s : ℝ => s ^ ((-1 : ℝ) / 2)) volume 0 (r / 2) := by
-    exact intervalIntegral.intervalIntegrable_rpow'
-      (by norm_num : (-1 : ℝ) < (-(1 / 2 : ℝ)))
+    have hlt : (-1 : ℝ) < (-(1 / 2 : ℝ)) := by norm_num
+    simpa [one_div, neg_div] using
+      (intervalIntegral.intervalIntegrable_rpow' (a := (0 : ℝ)) (b := r / 2) hlt)
   have hleft_cont :
       ContinuousOn (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2))
         (Set.uIcc (0 : ℝ) (r / 2)) := by
@@ -202,12 +202,14 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
       IntervalIntegrable
         (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2))
         volume 0 (r / 2) := by
-    simpa [mul_comm] using hleft_s.continuousOn_mul hleft_cont
+    have hleft_raw := IntervalIntegrable.mul_continuousOn hleft_s hleft_cont
+    simpa [mul_comm] using hleft_raw
   have hsub_all :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2)) volume 0 r := by
-    exact ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ))) volume 0 r := by
+    simpa only [one_div] using
+      ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
   have hright_rsub :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)))
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2))
         volume (r / 2) r := by
     refine hsub_all.mono_set ?_
     intro x hx
