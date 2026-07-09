@@ -34,7 +34,6 @@ import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
 import ShenWork.PDE.CosineSpectrum
-import ShenWork.Wiener.EWA.SourceRealizesRecords
 
 open MeasureTheory Set Asymptotics
 open scoped BigOperators Topology Real
@@ -91,6 +90,30 @@ private theorem lift_continuousOn_Icc_of_continuous
   rw [hres]
   exact hg
 
+private theorem intervalDomainLift_continuousAt_of_continuous_of_mem_Ioo'
+    {w : intervalDomainPoint → ℝ} (hw : Continuous w)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    ContinuousAt (intervalDomainLift w) x := by
+  have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+    lift_continuousOn_Icc_of_continuous hw
+  have hIcc_nhds : Set.Icc (0 : ℝ) 1 ∈ 𝓝 x :=
+    Filter.mem_of_superset (isOpen_Ioo.mem_nhds hx) Set.Ioo_subset_Icc_self
+  exact hUcont.continuousAt hIcc_nhds
+
+private theorem hasDerivAt_mul_zero_of_continuousAt_zero_hasDerivAt_zero
+    {a b : ℝ → ℝ} {x b' : ℝ}
+    (ha : ContinuousAt a x) (hax : a x = 0)
+    (hb : HasDerivAt b b' x) (hbx : b x = 0) :
+    HasDerivAt (fun y : ℝ => a y * b y) 0 x := by
+  rw [hasDerivAt_iff_isLittleO]
+  have ha_o : a =o[𝓝 x] (fun _ : ℝ => (1 : ℝ)) := by
+    exact (isLittleO_one_iff ℝ).2 (by simpa [hax] using ha)
+  have hb_O : b =O[𝓝 x] fun y : ℝ => y - x := by
+    simpa [hbx] using hb.isBigO_sub
+  have hmul : (fun y : ℝ => a y * b y) =o[𝓝 x] fun y : ℝ => y - x := by
+    simpa using ha_o.mul_isBigO hb_O
+  simpa [hax, hbx] using hmul
+
 private theorem positivePart_le_abs' (r : ℝ) :
     positivePart r ≤ |r| := by
   by_cases hr : 0 ≤ r
@@ -137,7 +160,7 @@ bounded iterate, an iterate-gradient envelope, resolver-gradient envelope
 `|Q'| ≤ M H + β M Γ² + Γ G`. -/
 private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     (p : CM2Params) {w : intervalDomainPoint → ℝ}
-    {M Γ H G : ℝ}
+    {M Γ H G Q QDen : ℝ}
     (hM : 0 < M)
     (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
     (hgrad : ∀ x : ℝ, |deriv (intervalDomainLift w) x| ≤ G)
@@ -152,10 +175,12 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     (hdpos : |dpos| ≤ |deriv (intervalDomainLift w) y|)
     (hgradR : |resolverGradReal p w y| ≤ Γ)
     (hgp : |gp| ≤ H)
-    (hq : |q| ≤ 1)
-    (hqDen : |qDen| ≤ 1) :
+    (hQ_nonneg : 0 ≤ Q)
+    (hQDen_nonneg : 0 ≤ QDen)
+    (hq : |q| ≤ Q)
+    (hqDen : |qDen| ≤ QDen) :
     (|deriv (truncatedChemFluxLifted p w) y| ≤
-      (M * H + p.β * M * Γ ^ 2) + Γ * G) := by
+      (M * H * Q + p.β * M * Γ ^ 2 * QDen) + Γ * G * Q) := by
   have hUpos_abs :
       |positivePart (intervalDomainLift w y)| ≤ M := by
     have hlift_abs : |intervalDomainLift w y| ≤ M := by
@@ -172,7 +197,7 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     (abs_nonneg (resolverGradReal p w y)).trans hgradR
   have hH_nonneg : 0 ≤ H := (abs_nonneg gp).trans hgp
   have hterm₁ :
-      |dpos * resolverGradReal p w y * q| ≤ Γ * G := by
+      |dpos * resolverGradReal p w y * q| ≤ Γ * G * Q := by
     have hprod :
         |dpos| * |resolverGradReal p w y| ≤ G * Γ :=
       mul_le_mul hdG hgradR (abs_nonneg _) hG_nonneg
@@ -180,12 +205,12 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
       |dpos * resolverGradReal p w y * q|
           = |dpos| * |resolverGradReal p w y| * |q| := by
             rw [abs_mul, abs_mul]
-      _ ≤ G * Γ * 1 :=
+      _ ≤ G * Γ * Q :=
             mul_le_mul hprod hq (abs_nonneg _)
               (mul_nonneg hG_nonneg hΓ_nonneg)
-      _ = Γ * G := by ring
+      _ = Γ * G * Q := by ring
   have hterm₂ :
-      |positivePart (intervalDomainLift w y) * gp * q| ≤ M * H := by
+      |positivePart (intervalDomainLift w y) * gp * q| ≤ M * H * Q := by
     have hprod :
         |positivePart (intervalDomainLift w y)| * |gp| ≤ M * H :=
       mul_le_mul hUpos_abs hgp (abs_nonneg _) hM.le
@@ -193,17 +218,17 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
       |positivePart (intervalDomainLift w y) * gp * q|
           = |positivePart (intervalDomainLift w y)| * |gp| * |q| := by
             rw [abs_mul, abs_mul]
-      _ ≤ M * H * 1 :=
+      _ ≤ M * H * Q :=
             mul_le_mul hprod hq (abs_nonneg _)
               (mul_nonneg hM.le hH_nonneg)
-      _ = M * H := by ring
+      _ = M * H * Q := by ring
   have hgradR_sq : |resolverGradReal p w y| ^ 2 ≤ Γ ^ 2 := by
     nlinarith [hgradR, abs_nonneg (resolverGradReal p w y), hΓ_nonneg,
       sq_nonneg (Γ - |resolverGradReal p w y|)]
   have hterm₃ :
       |p.β * positivePart (intervalDomainLift w y)
           * (resolverGradReal p w y) ^ 2 * qDen|
-        ≤ p.β * M * Γ ^ 2 := by
+        ≤ p.β * M * Γ ^ 2 * QDen := by
     have hβU :
         p.β * |positivePart (intervalDomainLift w y)| ≤ p.β * M :=
       mul_le_mul_of_nonneg_left hUpos_abs p.hβ
@@ -228,9 +253,9 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
           = p.β * |positivePart (intervalDomainLift w y)|
               * |resolverGradReal p w y| ^ 2 * |qDen| := by
             rw [abs_mul, abs_mul, abs_mul, abs_of_nonneg p.hβ, hsq_abs]
-      _ ≤ p.β * M * Γ ^ 2 * 1 :=
+      _ ≤ p.β * M * Γ ^ 2 * QDen :=
             mul_le_mul hβUg hqDen (abs_nonneg _) hβMg_nonneg
-      _ = p.β * M * Γ ^ 2 := by ring
+      _ = p.β * M * Γ ^ 2 * QDen := by ring
   set A : ℝ := dpos * resolverGradReal p w y * q
   set B : ℝ := positivePart (intervalDomainLift w y) * gp * q
   set C : ℝ :=
@@ -250,9 +275,9 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
         = |A + B - C| := by
           rw [hderiv]
     _ ≤ |A| + |B| + |C| := htri
-    _ ≤ Γ * G + M * H + p.β * M * Γ ^ 2 := by
+    _ ≤ Γ * G * Q + M * H * Q + p.β * M * Γ ^ 2 * QDen := by
           exact add_le_add (add_le_add hterm₁ hterm₂) hterm₃
-    _ = (M * H + p.β * M * Γ ^ 2) + Γ * G := by ring
+    _ = (M * H * Q + p.β * M * Γ ^ 2 * QDen) + Γ * G * Q := by ring
 
 private theorem truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
     (p : CM2Params) (w : intervalDomainPoint → ℝ) {y : ℝ}
@@ -849,36 +874,90 @@ private theorem intervalDomainLift_pos_mem_Ioo_of_differentiableAt
     exact hne (tendsto_nhds_unique hlim hzero)
   exact ⟨lt_of_le_of_ne hyIcc.1 (Ne.symm hy0), lt_of_le_of_ne hyIcc.2 hy1⟩
 
-private theorem resolverR_lift_nonneg_and_flux_deriv_zero_of_lift_nonpos_of_abs_ball
-    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
-    (_hM : 0 < M) (_hw_cont : Continuous w)
-    (_hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
-    0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y
-      ∧ (intervalDomainLift w y ≤ 0 →
-        deriv (truncatedChemFluxLifted p w) y = 0) := by
-  sorry
-
-private theorem resolverR_lift_nonneg_of_abs_ball
+private theorem resolverR_lift_abs_le_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ) :
-    0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
-  (resolverR_lift_nonneg_and_flux_deriv_zero_of_lift_nonpos_of_abs_ball
-    (p := p) (w := w) (M := M) hM hw_cont hball y).1
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (y : ℝ) :
+    |intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y| ≤
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) := by
+  classical
+  let V : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+      * (2 * (p.ν * M ^ p.γ))
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · simpa [V, intervalDomainLift, hy, ShenWork.PDE.intervalNeumannResolverR,
+      unitIntervalCosineMode] using
+      resolverValueSeries_abs_le_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball y
+  · simp [V, intervalDomainLift, hy]
+    exact mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg hM.le _)))
+
+private theorem resolverR_lift_one_add_pos_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (y : ℝ) :
+    0 < 1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
+  let V : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+      * (2 * (p.ν * M ^ p.γ))
+  have hR_abs :
+      |intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y| ≤ V := by
+    simpa [V] using
+      resolverR_lift_abs_le_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball y
+  have hR_abs_lt :
+      |intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y| < 1 :=
+    lt_of_le_of_lt hR_abs (by simpa [V] using hsmall)
+  have hR_gt_neg_one :
+      -1 < intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+    (abs_lt.mp hR_abs_lt).1
+  linarith
+
+private theorem resolverR_lift_one_add_nonneg_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (y : ℝ) :
+    0 ≤ 1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+  (resolverR_lift_one_add_pos_of_abs_ball
+    (p := p) (w := w) (M := M) hM hw_cont hball hsmall y).le
 
 private theorem truncatedChemFluxLifted_deriv_zero_of_lift_nonpos_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) {y : ℝ}
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    {y : ℝ}
     (hy_nonpos : intervalDomainLift w y ≤ 0) :
-    deriv (truncatedChemFluxLifted p w) y = 0 :=
-  (resolverR_lift_nonneg_and_flux_deriv_zero_of_lift_nonpos_of_abs_ball
-    (p := p) (w := w) (M := M) hM hw_cont hball y).2 hy_nonpos
+    deriv (truncatedChemFluxLifted p w) y = 0 := by
+  sorry
 
 private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (y : ℝ)
     (hdiff : 0 < intervalDomainLift w y →
       DifferentiableAt ℝ (intervalDomainLift w) y) :
     ∃ dpos gp : ℝ,
@@ -903,10 +982,9 @@ private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
     have hflux_eq : truncatedChemFluxLifted p w =
         fun z => a z * g z * q z := by
       funext z
-      have hR_nonneg : 0 ≤ R z := by
-        simpa [R] using resolverR_lift_nonneg_of_abs_ball
-          (p := p) (w := w) (M := M) hM hw_cont hball z
-      have hbase_nonneg : 0 ≤ 1 + R z := by linarith
+      have hbase_nonneg : 0 ≤ 1 + R z := by
+        simpa [R] using resolverR_lift_one_add_nonneg_of_abs_ball
+          (p := p) (w := w) (M := M) hM hw_cont hball hsmall z
       unfold truncatedChemFluxLifted
       rw [div_eq_mul_inv, ← Real.rpow_neg hbase_nonneg]
     have hpos_ev : ∀ᶠ z in nhds y, 0 < intervalDomainLift w z :=
@@ -931,10 +1009,9 @@ private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
           (p := p) (u := w) hUcont hyIoo
     have hbase_has : HasDerivAt (fun z : ℝ => 1 + R z) (g y) y :=
       hR_has.const_add 1
-    have hR_nonneg_y : 0 ≤ R y := by
-      simpa [R] using resolverR_lift_nonneg_of_abs_ball
-        (p := p) (w := w) (M := M) hM hw_cont hball y
-    have hbase_pos : 0 < 1 + R y := by linarith
+    have hbase_pos : 0 < 1 + R y := by
+      simpa [R] using resolverR_lift_one_add_pos_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
     have hq_has :
         HasDerivAt q (g y * (-p.β) * (1 + R y) ^ (-p.β - 1)) y := by
       simpa [q, sub_eq_add_neg] using
@@ -955,7 +1032,7 @@ private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
     · have hflux_zero :
           deriv (truncatedChemFluxLifted p w) y = 0 :=
         truncatedChemFluxLifted_deriv_zero_of_lift_nonpos_of_abs_ball
-          (p := p) (w := w) (M := M) hM hw_cont hball hy_nonpos
+          (p := p) (w := w) (M := M) hM hw_cont hball hsmall hy_nonpos
       have hpp_zero : positivePart (intervalDomainLift w y) = 0 :=
         positivePart_eq_zero_of_nonpos hy_nonpos
       simp [hflux_zero, hpp_zero]
@@ -964,7 +1041,12 @@ private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
 private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) (y : ℝ)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    (y : ℝ)
     (hdiff : 0 < intervalDomainLift w y →
       DifferentiableAt ℝ (intervalDomainLift w) y) :
     ∃ dpos gp q qDen : ℝ,
@@ -983,13 +1065,41 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
             (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
               * (2 * (p.ν * M ^ p.γ)))
             + p.ν * M ^ p.γ
-      ∧ |q| ≤ 1
-      ∧ |qDen| ≤ 1 := by
+      ∧ |q| ≤
+          (1 - Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) ^ (-p.β)
+      ∧ |qDen| ≤
+          (1 - Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+              * (2 * (p.ν * M ^ p.γ))) ^ (-p.β - 1) := by
   classical
+  let V : ℝ := Real.sqrt (∑' k : ℕ,
+    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+      * (2 * (p.ν * M ^ p.γ))
   let q : ℝ :=
     (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β)
   let qDen : ℝ :=
     (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ (-p.β - 1)
+  have hV_lt_one : V < 1 := by
+    simpa [V] using hsmall
+  have hbase_lower :
+      1 - V ≤
+        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
+    have hR_abs :
+        |intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y| ≤ V := by
+      simpa [V] using
+        resolverR_lift_abs_le_of_abs_ball
+          (p := p) (w := w) (M := M) hM hw_cont hball y
+    have hR_ge : -V ≤
+        intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+      (abs_le.mp hR_abs).1
+    linarith
+  have hbase_pos :
+      0 < 1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+    resolverR_lift_one_add_pos_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
+  have hlower_pos : 0 < 1 - V := by linarith
   have hgrad_bound :
       |resolverGradReal p w y| ≤
         Real.sqrt (∑' k : ℕ,
@@ -997,38 +1107,28 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
           * (2 * (p.ν * M ^ p.γ)) :=
     resolverGrad_abs_le_of_abs_ball
       (p := p) (w := w) (M := M) hM hw_cont hball y
-  have hR_nonneg :
-      0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
-    resolverR_lift_nonneg_of_abs_ball
-      (p := p) (w := w) (M := M) hM hw_cont hball y
-  have hq_abs : |q| ≤ 1 := by
-    have hbase : 1 ≤
-        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
-      linarith
+  have hq_abs :
+      |q| ≤ (1 - V) ^ (-p.β) := by
     have hq_nonneg : 0 ≤ q := by
-      exact Real.rpow_nonneg (by linarith : 0 ≤
-        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) _
-    have hq_le : q ≤ 1 := by
+      exact Real.rpow_nonneg hbase_pos.le _
+    have hq_le : q ≤ (1 - V) ^ (-p.β) := by
       dsimp [q]
-      exact Real.rpow_le_one_of_one_le_of_nonpos hbase (by linarith [p.hβ])
+      exact Real.rpow_le_rpow_of_nonpos hlower_pos hbase_lower (by linarith [p.hβ])
     rw [abs_of_nonneg hq_nonneg]
     exact hq_le
-  have hqDen_abs : |qDen| ≤ 1 := by
-    have hbase : 1 ≤
-        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y := by
-      linarith
+  have hqDen_abs :
+      |qDen| ≤ (1 - V) ^ (-p.β - 1) := by
     have hqDen_nonneg : 0 ≤ qDen := by
-      exact Real.rpow_nonneg (by linarith : 0 ≤
-        1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) _
-    have hqDen_le : qDen ≤ 1 := by
+      exact Real.rpow_nonneg hbase_pos.le _
+    have hqDen_le : qDen ≤ (1 - V) ^ (-p.β - 1) := by
       dsimp [qDen]
-      exact Real.rpow_le_one_of_one_le_of_nonpos hbase (by linarith [p.hβ])
+      exact Real.rpow_le_rpow_of_nonpos hlower_pos hbase_lower (by linarith [p.hβ])
     rw [abs_of_nonneg hqDen_nonneg]
     exact hqDen_le
   by_cases hpos : 0 < intervalDomainLift w y
   · obtain ⟨dpos, gp, hderiv, hdpos, hgp_eq⟩ :=
       truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
-        (p := p) (w := w) (M := M) hM hw_cont hball y hdiff
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall y hdiff
     refine ⟨dpos, gp, q, qDen, ?_, hdpos, hgrad_bound, ?_, hq_abs, hqDen_abs⟩
     · simpa [q, qDen] using hderiv
     · rw [hgp_eq]
@@ -1042,7 +1142,7 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
     have hflux_zero :
         deriv (truncatedChemFluxLifted p w) y = 0 :=
       truncatedChemFluxLifted_deriv_zero_of_lift_nonpos_of_abs_ball
-        (p := p) (w := w) (M := M) hM hw_cont hball hy_nonpos
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall hy_nonpos
     have hMpow_nonneg : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM.le _
     have hsrc_nonneg : 0 ≤ p.ν * M ^ p.γ :=
       mul_nonneg p.hν.le hMpow_nonneg
@@ -1068,7 +1168,11 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
 private theorem truncatedChemFluxLifted_continuousOn_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) :
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1) :
     ContinuousOn (truncatedChemFluxLifted p w) (Set.Icc (0 : ℝ) 1) := by
   classical
   have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
@@ -1113,11 +1217,11 @@ private theorem truncatedChemFluxLifted_continuousOn_of_abs_ball
         (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^
           p.β ≠ 0 := by
     intro y _hy
-    have hR_nonneg :
-        0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
-      resolverR_lift_nonneg_of_abs_ball
-        (p := p) (w := w) (M := M) hM hw_cont hball y
-    exact ne_of_gt (Real.rpow_pos_of_pos (by linarith) p.β)
+    have hbase_pos :
+        0 < 1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+      resolverR_lift_one_add_pos_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
+    exact ne_of_gt (Real.rpow_pos_of_pos hbase_pos p.β)
   simpa [truncatedChemFluxLifted] using
     (hpp_cont.mul hgrad_cont).div hden_cont hden_ne
 
@@ -1139,10 +1243,17 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T)
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * DT.M ^ p.γ)) < 1)
     (hcontr_grad : truncWindowB
-      (Real.sqrt (∑' k : ℕ,
-        (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
-          * (2 * (p.ν * DT.M ^ p.γ)))
+      ((Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2)
+            * (2 * (p.ν * DT.M ^ p.γ))) *
+        (1 - Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+            * (2 * (p.ν * DT.M ^ p.γ))) ^ (-p.β))
       p.χ₀ (t / 4) t < 1) :
     ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
       |intervalDomainLift
@@ -1181,30 +1292,48 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
     let V_M : ℝ := Real.sqrt (∑' k : ℕ,
       (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
         * (2 * (p.ν * DT.M ^ p.γ))
+    let Q_M : ℝ := (1 - V_M) ^ (-p.β)
+    let QDen_M : ℝ := (1 - V_M) ^ (-p.β - 1)
     -- Resolver second derivative bound H_M from elliptic equation R'' = μR - ρ(u):
     -- |R''| ≤ μ|R| + |ρ| ≤ μ·V_M + ν·M^γ
     let H_M : ℝ := p.μ * V_M + p.ν * DT.M ^ p.γ
     -- After-IBP flux derivative bound:
-    -- |Q'| ≤ G · Γ_M + M · H_M + β · M · Γ_M²  (product rule)
-    -- So A_F = M · H_M + β · M · Γ_M², B_F = Γ_M
-    let A_F : ℝ := DT.M * H_M + p.β * DT.M * Γ_M ^ 2
-    let B_F : ℝ := Γ_M
+    -- |Q'| ≤ G · Γ_M · Q_M + M · H_M · Q_M + β · M · Γ_M² · QDen_M.
+    -- So A_F = M · H_M · Q_M + β · M · Γ_M² · QDen_M, B_F = Γ_M · Q_M.
+    let A_F : ℝ := DT.M * H_M * Q_M + p.β * DT.M * Γ_M ^ 2 * QDen_M
+    let B_F : ℝ := Γ_M * Q_M
     -- Contraction coefficient: Cg · 2√(hi-a) · |χ₀| · Γ_M
     -- For the fixed point to exist, need truncWindowB < 1.
     -- Use the fixed-point formula Gw = truncWindowA / (1 - truncWindowB).
     have hΓ_M_nn : 0 ≤ Γ_M := mul_nonneg (Real.sqrt_nonneg _)
       (mul_nonneg (by positivity) (mul_nonneg (le_of_lt p.hν)
         (Real.rpow_nonneg (le_of_lt DT.hM) _)))
+    have hV_M_lt_one : V_M < 1 := by
+      simpa [V_M] using hresolver_small
+    have hQ_M_nn : 0 ≤ Q_M := by
+      dsimp only [Q_M]
+      exact (Real.rpow_pos_of_pos (by linarith : 0 < 1 - V_M) _).le
+    have hQDen_M_nn : 0 ≤ QDen_M := by
+      dsimp only [QDen_M]
+      exact (Real.rpow_pos_of_pos (by linarith : 0 < 1 - V_M) _).le
+    have hBF_nn : 0 ≤ B_F := by
+      dsimp only [B_F]
+      exact mul_nonneg hΓ_M_nn hQ_M_nn
     have hAL_nn : 0 ≤ A_L := mul_nonneg (le_of_lt DT.hM) (add_nonneg p.ha
       (mul_nonneg p.hb (Real.rpow_nonneg (le_of_lt DT.hM) _)))
     have hAF_nn : 0 ≤ A_F := by
       dsimp only [A_F]
       apply add_nonneg
-      · exact mul_nonneg (le_of_lt DT.hM) (add_nonneg (mul_nonneg (le_of_lt p.hμ)
-          (mul_nonneg (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
-            (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))))
-          (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))
-      · exact mul_nonneg (mul_nonneg p.hβ (le_of_lt DT.hM)) (sq_nonneg _)
+      · exact mul_nonneg
+          (mul_nonneg (le_of_lt DT.hM)
+            (add_nonneg (mul_nonneg (le_of_lt p.hμ)
+              (mul_nonneg (Real.sqrt_nonneg _) (mul_nonneg (by positivity)
+                (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _)))))
+              (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg (le_of_lt DT.hM) _))))
+          hQ_M_nn
+      · exact mul_nonneg
+          (mul_nonneg (mul_nonneg p.hβ (le_of_lt DT.hM)) (sq_nonneg _))
+          hQDen_M_nn
     have hBcontr : truncWindowB B_F p.χ₀ a hi < 1 := hcontr_grad
     let Gw : ℝ := truncWindowFixedG Mw A_L A_F B_F p.χ₀ a lo hi
     have hGw_nn : 0 ≤ Gw := by
@@ -1223,7 +1352,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         { hM_nonneg := le_of_lt DT.hM
           hAL_nonneg := hAL_nn
           hAF_nonneg := hAF_nn
-          hBF_nonneg := hΓ_M_nn
+          hBF_nonneg := hBF_nn
           hG_nonneg := hGw_nn
           ha_lt_lo := by dsimp [a, lo]; linarith
           hlo_le_hi := by dsimp [lo, hi]; linarith
@@ -1235,7 +1364,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             have ha : 0 < a := by dsimp [a]; linarith
             have hPaG : truncLeftProfile Mw A_L A_F B_F p.χ₀ lo a ≤ Gw := by
               dsimp only [Gw]
-              exact truncLeftProfile_le_Gw hM hAL_nn hAF_nn hΓ_M_nn ha
+              exact truncLeftProfile_le_Gw hM hAL_nn hAF_nn hBF_nn ha
                 (by dsimp [lo, a]; ring) (by dsimp [hi, a]; ring) hBcontr
             have hleftContr : truncLeftB B_F p.χ₀ lo < 1 := by
               have hsqrt_le : Real.sqrt lo ≤ Real.sqrt (hi - a) :=
@@ -1247,7 +1376,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                   0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
                 ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
               have hchiBF_nonneg : 0 ≤ |p.χ₀| * B_F :=
-                mul_nonneg (abs_nonneg p.χ₀) hΓ_M_nn
+                mul_nonneg (abs_nonneg p.χ₀) hBF_nn
               have hb_core :
                   ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
                       * (2 * Real.sqrt lo)
@@ -1269,7 +1398,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               simpa [Mw] using
                 truncatedConjugatePicardIter_zero_left_profile
                   (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
-                  hAL_nn hAF_nn hΓ_M_nn
+                  hAL_nn hAF_nn hBF_nn
                   (by dsimp [lo]; linarith) hleftContr
             have source : ∀ n, IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
                 ∀ s, 0 < s → s ≤ lo → ∀ y,
@@ -1291,7 +1420,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                 unfold truncLeftProfile truncLeftSingularC
                 exact add_nonneg
                   (div_nonneg (mul_nonneg hK_nonneg hM) (Real.sqrt_nonneg _))
-                  (truncLeftD_nonneg hM hAL_nn hAF_nn hΓ_M_nn
+                  (truncLeftD_nonneg hM hAL_nn hAF_nn hBF_nn
                     (by dsimp [lo]; linarith) hleftContr)
               dsimp only [Src]
               have hlog :
@@ -1320,31 +1449,32 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                         ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
                         ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
                         ∧ |gp| ≤ H_M
-                        ∧ |q| ≤ 1
-                        ∧ |qDen| ≤ 1 := by
+                        ∧ |q| ≤ Q_M
+                        ∧ |qDen| ≤ QDen_M := by
                     have hdiff_pos :
                         0 < intervalDomainLift (U n s) y →
                           DifferentiableAt ℝ (intervalDomainLift (U n s)) y := by
                       intro _hy_pos
                       exact (hprofile s hs_pos hs_lo).2 y hyIoo
-                    simpa [Γ_M, H_M, V_M] using
+                    simpa [Γ_M, H_M, V_M, Q_M, QDen_M] using
                       truncatedChemFluxLifted_deriv_terms_of_abs_ball
                         (p := p) (w := U n s) (M := DT.M) DT.hM
-                        (hball_cont.2 s hs_pos hs_T) hball y hdiff_pos
+                        (hball_cont.2 s hs_pos hs_T) hball hresolver_small y hdiff_pos
                   rcases hflux_terms with
                     ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
-                  exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
-                    (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
-                    (H := H_M)
-                    (G := truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s)
-                    DT.hM hball (hprofile s hs_pos hs_lo).1 y
-                    hderiv hdpos hgradR hgp hq hqDen
+                  simpa [A_F, B_F, mul_assoc, mul_comm, mul_left_comm] using
+                    truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+                      (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
+                      (H := H_M) (Q := Q_M) (QDen := QDen_M)
+                      (G := truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s)
+                      DT.hM hball (hprofile s hs_pos hs_lo).1 y
+                      hderiv hdpos hgradR hgp hQ_M_nn hQDen_M_nn hq hqDen
                 · have hflux_zero :
                       deriv (truncatedChemFluxLifted p (U n s)) y = 0 :=
                     truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
                       (p := p) (w := U n s) hyIoo
                   rw [hflux_zero, abs_zero]
-                  exact add_nonneg hAF_nn (mul_nonneg hΓ_M_nn hprofile_nonneg)
+                  exact add_nonneg hAF_nn (mul_nonneg hBF_nn hprofile_nonneg)
               calc
                 |truncatedLogisticLifted p (U n s) y
                     - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y|
@@ -1381,7 +1511,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             dsimp only [Gw, Mw]
             exact truncatedConjugatePicardIter_zero_window_gradient
               (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
-              hAL_nn hAF_nn hΓ_M_nn
+              hAL_nn hAF_nn hBF_nn
               (by dsimp [a]; linarith)
               (by dsimp [a, lo]; linarith)
               (by dsimp [lo, hi]; linarith)
@@ -1418,25 +1548,27 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                       ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
                       ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
                       ∧ |gp| ≤ H_M
-                      ∧ |q| ≤ 1
-                      ∧ |qDen| ≤ 1 := by
+                      ∧ |q| ≤ Q_M
+                      ∧ |qDen| ≤ QDen_M := by
                   have hdiff_pos :
                       0 < intervalDomainLift (U n s) y →
                         DifferentiableAt ℝ (intervalDomainLift (U n s)) y :=
                     fun _ => (hgrad s ha_s hs_hi).2 y hyIoo
-                  simpa [Γ_M, H_M, V_M] using
+                  simpa [Γ_M, H_M, V_M, Q_M, QDen_M] using
                     truncatedChemFluxLifted_deriv_terms_of_abs_ball
                       (p := p) (w := U n s) (M := DT.M) DT.hM
-                      (hball_cont.2 s hs_pos hs_T) hball y hdiff_pos
+                      (hball_cont.2 s hs_pos hs_T) hball hresolver_small y hdiff_pos
                 rcases hflux_terms with
                   ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
-                exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
-                  (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
-                  (H := H_M) (G := Gw) DT.hM hball
-                  (hgrad s ha_s hs_hi).1 y hderiv hdpos hgradR hgp hq hqDen
+                simpa [A_F, B_F, mul_assoc, mul_comm, mul_left_comm] using
+                  truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+                    (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
+                    (H := H_M) (Q := Q_M) (QDen := QDen_M) (G := Gw) DT.hM hball
+                    (hgrad s ha_s hs_hi).1 y hderiv hdpos hgradR hgp
+                    hQ_M_nn hQDen_M_nn hq hqDen
               · rw [truncatedChemFluxLifted_deriv_eq_zero_off_Ioo (p := p) (w := U n s) hyIoo,
                     abs_zero]
-                exact add_nonneg hAF_nn (mul_nonneg hΓ_M_nn hGw_nn)
+                exact add_nonneg hAF_nn (mul_nonneg hBF_nn hGw_nn)
           hkernel_step := by
             -- After IBP, the B-form iterate becomes standard Duhamel:
             -- ∫₀ᵗ S(t-s)(Src_n(s)) ds where Src = logistic - χ₀·flux'.
@@ -1445,7 +1577,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
             exact truncatedConjugatePicardIter_succ_window_gradient
               (p := p) (u₀ := u₀) DT U (by intro n s; rfl) Src
               (by intro n s y; rfl)
-              hAL_nn hAF_nn hΓ_M_nn hGw_nn
+              hAL_nn hAF_nn hBF_nn hGw_nn
               (by dsimp [a]; linarith)
               (by dsimp [a, lo]; linarith)
               (by dsimp [lo, hi]; linarith)
@@ -1479,7 +1611,7 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         DT.hmapsTo DT.hcont_preserved DT.hbase_meas DT.hmeas_preserved n).2
         t ht htT
     have hcont : ContinuousOn f (Set.Icc (0 : ℝ) 1) :=
-      ShenWork.EWA.lift_continuousOn_Icc hcont_n
+      lift_continuousOn_Icc_of_continuous hcont_n
     -- Extend Lipschitz from Ioo to Icc = closure(Ioo)
     have hlip_closed : LipschitzOnWith ⟨G, hG_nn⟩ f (Set.Icc (0 : ℝ) 1) := by
       rw [← closure_Ioo (zero_ne_one' ℝ)]
@@ -1930,7 +2062,7 @@ private theorem truncatedBFormSourceCoeff_bound_positive_time_window_core
   have ⟨CC, hCC, hchem⟩ : ∃ CC : ℝ, 0 ≤ CC ∧
       ∀ σ, 0 < σ → σ ≤ t → ∀ k,
         |truncatedChemDivSourceCoeff p u σ k| ≤ CC := by
-    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT ht htT sorry
+    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT ht htT sorry sorry
     sorry
   -- Triangle inequality
   exact ⟨2 * B + |p.χ₀| * CC,
@@ -2405,13 +2537,13 @@ private theorem deriv_neg_negativePartLift_eq_zero_at_zero
   by_cases hdiff : DifferentiableAt ℝ φ (0 : ℝ)
   · have hev0 : φ =ᶠ[nhdsWithin (0 : ℝ) (Set.Iio 0)] (fun _ => 0) := by
       filter_upwards [self_mem_nhdsWithin] with y hy
-	      have hnot : y ∉ Set.Icc (0 : ℝ) 1 := fun hyIcc => not_le_of_gt hy hyIcc.1
-	      have hLift : intervalDomainLift w y = 0 := by
-	        simp [intervalDomainLift, hnot]
-	      have hNegLift : BFormPositiveDatumNegPart.negativePartLift w y = 0 := by
-	        rw [BFormPositiveDatumNegPart.negativePartLift, hLift]
-	        simp [BFormPositiveDatumNegPart.negativePart_eq_zero_of_nonneg]
-	      simp [φ, hNegLift]
+      have hnot : y ∉ Set.Icc (0 : ℝ) 1 := fun hyIcc => not_le_of_gt hy hyIcc.1
+      have hLift : intervalDomainLift w y = 0 := by
+        simp [intervalDomainLift, hnot]
+      have hNegLift : BFormPositiveDatumNegPart.negativePartLift w y = 0 := by
+        rw [BFormPositiveDatumNegPart.negativePartLift, hLift]
+        simp [BFormPositiveDatumNegPart.negativePart_eq_zero_of_nonneg]
+      simp [φ, hNegLift]
     have hval : φ (0 : ℝ) = 0 := by
       have hL : Filter.Tendsto φ
           (nhdsWithin (0 : ℝ) (Set.Iio 0)) (𝓝 0) :=
@@ -2437,13 +2569,13 @@ private theorem deriv_neg_negativePartLift_eq_zero_at_one
   by_cases hdiff : DifferentiableAt ℝ φ (1 : ℝ)
   · have hev1 : φ =ᶠ[nhdsWithin (1 : ℝ) (Set.Ioi 1)] (fun _ => 0) := by
       filter_upwards [self_mem_nhdsWithin] with y hy
-	      have hnot : y ∉ Set.Icc (0 : ℝ) 1 := fun hyIcc => not_le_of_gt hy hyIcc.2
-	      have hLift : intervalDomainLift w y = 0 := by
-	        simp [intervalDomainLift, hnot]
-	      have hNegLift : BFormPositiveDatumNegPart.negativePartLift w y = 0 := by
-	        rw [BFormPositiveDatumNegPart.negativePartLift, hLift]
-	        simp [BFormPositiveDatumNegPart.negativePart_eq_zero_of_nonneg]
-	      simp [φ, hNegLift]
+      have hnot : y ∉ Set.Icc (0 : ℝ) 1 := fun hyIcc => not_le_of_gt hy hyIcc.2
+      have hLift : intervalDomainLift w y = 0 := by
+        simp [intervalDomainLift, hnot]
+      have hNegLift : BFormPositiveDatumNegPart.negativePartLift w y = 0 := by
+        rw [BFormPositiveDatumNegPart.negativePartLift, hLift]
+        simp [BFormPositiveDatumNegPart.negativePart_eq_zero_of_nonneg]
+      simp [φ, hNegLift]
     have hval : φ (1 : ℝ) = 0 := by
       have hL : Filter.Tendsto φ
           (nhdsWithin (1 : ℝ) (Set.Ioi 1)) (𝓝 0) :=
@@ -2783,6 +2915,10 @@ on bounded input), and the product/quotient is continuous. -/
 theorem truncatedChemFlux_continuousOn_positive_time
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * DT.M ^ p.γ)) < 1)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
     ContinuousOn
       (truncatedChemFluxLifted p
@@ -2796,11 +2932,17 @@ theorem truncatedChemFlux_continuousOn_positive_time
       (M := SD.M) SD.hM
       (SD.hcont t ht htT)
       (SD.hbound t ht htT)
+      (by simpa [SD] using hresolver_small)
 
 private theorem truncatedChemFluxLifted_hasDerivAt_of_lift_hasDerivAt_not_bad
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) {y : ℝ}
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
+    (hsmall :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * M ^ p.γ)) < 1)
+    {y : ℝ}
     (hyIoo : y ∈ Set.Ioo (0 : ℝ) 1)
     (hw_has : HasDerivAt (intervalDomainLift w)
       (deriv (intervalDomainLift w) y) y)
@@ -2817,10 +2959,9 @@ private theorem truncatedChemFluxLifted_hasDerivAt_of_lift_hasDerivAt_not_bad
   have hflux_eq : truncatedChemFluxLifted p w =
       fun z => a z * g z * q z := by
     funext z
-    have hR_nonneg : 0 ≤ R z := by
-      simpa [R] using resolverR_lift_nonneg_of_abs_ball
-        (p := p) (w := w) (M := M) hM hw_cont hball z
-    have hbase_nonneg : 0 ≤ 1 + R z := by linarith
+    have hbase_nonneg : 0 ≤ 1 + R z := by
+      simpa [R] using resolverR_lift_one_add_nonneg_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall z
     unfold truncatedChemFluxLifted
     rw [div_eq_mul_inv, ← Real.rpow_neg hbase_nonneg]
   obtain ⟨dpos, ha_has⟩ :=
@@ -2838,10 +2979,9 @@ private theorem truncatedChemFluxLifted_hasDerivAt_of_lift_hasDerivAt_not_bad
         (p := p) (u := w) hUcont hyIoo
   have hbase_has : HasDerivAt (fun z : ℝ => 1 + R z) (g y) y :=
     hR_has.const_add 1
-  have hR_nonneg_y : 0 ≤ R y := by
-    simpa [R] using resolverR_lift_nonneg_of_abs_ball
-      (p := p) (w := w) (M := M) hM hw_cont hball y
-  have hbase_pos : 0 < 1 + R y := by linarith
+  have hbase_pos : 0 < 1 + R y := by
+    simpa [R] using resolverR_lift_one_add_pos_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
   have hq_has :
       HasDerivAt q (g y * (-p.β) * (1 + R y) ^ (-p.β - 1)) y := by
     simpa [q, sub_eq_add_neg] using
@@ -2868,6 +3008,10 @@ the (at most countable) transversal zero set of the solution. -/
 theorem truncatedChemFlux_diff_off_countable_positive_time
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * DT.M ^ p.γ)) < 1)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
     ∃ s_chem : Set ℝ, s_chem.Countable ∧
       ∀ x ∈ Ioo (0 : ℝ) 1 \ s_chem,
@@ -2912,6 +3056,7 @@ theorem truncatedChemFlux_diff_off_countable_positive_time
     simpa [w] using
       truncatedChemFluxLifted_hasDerivAt_of_lift_hasDerivAt_not_bad
         (p := p) (w := w) (M := SD.M) SD.hM hw_cont hball
+        (by simpa [SD] using hresolver_small)
         hxIoo hw_has hnot_bad
 
 /-- Bounded derivative of the truncated chemotaxis flux.  From bounded
@@ -2919,6 +3064,10 @@ gradient of `u`, resolver bounds, and the product rule. -/
 theorem truncatedChemFlux_deriv_bound_positive_time
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
+    (hresolver_small :
+      Real.sqrt (∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
+          * (2 * (p.ν * DT.M ^ p.γ)) < 1)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
     ∃ C_chem : ℝ, ∀ x ∈ Icc (0 : ℝ) 1,
       |deriv (truncatedChemFluxLifted p
@@ -2973,8 +3122,12 @@ theorem truncatedChemFlux_deriv_bound_positive_time
   let V_M : ℝ := Real.sqrt (∑' k : ℕ,
     (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
       * (2 * (p.ν * SD.M ^ p.γ))
+  let Q_M : ℝ := (1 - V_M) ^ (-p.β)
+  let QDen_M : ℝ := (1 - V_M) ^ (-p.β - 1)
   let H_M : ℝ := p.μ * V_M + p.ν * SD.M ^ p.γ
-  let C_chem : ℝ := (SD.M * H_M + p.β * SD.M * Γ_M ^ 2) + Γ_M * G
+  let C_chem : ℝ :=
+    (SD.M * H_M * Q_M + p.β * SD.M * Γ_M ^ 2 * QDen_M)
+      + Γ_M * G * Q_M
   have hΓ_M_nonneg : 0 ≤ Γ_M := by
     dsimp [Γ_M]
     exact mul_nonneg (Real.sqrt_nonneg _)
@@ -2985,6 +3138,14 @@ theorem truncatedChemFlux_deriv_bound_positive_time
     exact mul_nonneg (Real.sqrt_nonneg _)
       (mul_nonneg (by norm_num)
         (mul_nonneg (le_of_lt p.hν) (Real.rpow_nonneg SD.hM.le _)))
+  have hV_M_lt_one : V_M < 1 := by
+    simpa [V_M, SD] using hresolver_small
+  have hQ_M_nonneg : 0 ≤ Q_M := by
+    dsimp [Q_M]
+    exact (Real.rpow_pos_of_pos (by linarith : 0 < 1 - V_M) _).le
+  have hQDen_M_nonneg : 0 ≤ QDen_M := by
+    dsimp [QDen_M]
+    exact (Real.rpow_pos_of_pos (by linarith : 0 < 1 - V_M) _).le
   have hH_M_nonneg : 0 ≤ H_M := by
     dsimp [H_M]
     exact add_nonneg
@@ -2994,9 +3155,11 @@ theorem truncatedChemFlux_deriv_bound_positive_time
     dsimp [C_chem]
     exact add_nonneg
       (add_nonneg
-        (mul_nonneg SD.hM.le hH_M_nonneg)
-        (mul_nonneg (mul_nonneg p.hβ SD.hM.le) (sq_nonneg Γ_M)))
-      (mul_nonneg hΓ_M_nonneg hG_nonneg)
+        (mul_nonneg (mul_nonneg SD.hM.le hH_M_nonneg) hQ_M_nonneg)
+        (mul_nonneg
+          (mul_nonneg (mul_nonneg p.hβ SD.hM.le) (sq_nonneg Γ_M))
+          hQDen_M_nonneg))
+      (mul_nonneg (mul_nonneg hΓ_M_nonneg hG_nonneg) hQ_M_nonneg)
   refine ⟨C_chem, ?_⟩
   intro x hx
   change |deriv (truncatedChemFluxLifted p w) x| ≤ C_chem
@@ -3016,18 +3179,18 @@ theorem truncatedChemFlux_deriv_bound_positive_time
           ∧ |dpos| ≤ |deriv (intervalDomainLift w) x|
           ∧ |resolverGradReal p w x| ≤ Γ_M
           ∧ |gp| ≤ H_M
-          ∧ |q| ≤ 1
-          ∧ |qDen| ≤ 1 := by
-      simpa [Γ_M, V_M, H_M] using
+          ∧ |q| ≤ Q_M
+          ∧ |qDen| ≤ QDen_M := by
+      simpa [Γ_M, V_M, Q_M, QDen_M, H_M] using
         truncatedChemFluxLifted_deriv_terms_of_abs_ball
           (p := p) (w := w) (M := SD.M) SD.hM
-          hw_cont hball x hdiff_pos
-    simpa [C_chem] using
+          hw_cont hball (by simpa [SD] using hresolver_small) x hdiff_pos
+    simpa [C_chem, mul_assoc, mul_comm, mul_left_comm] using
       truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
         (p := p) (w := w) (M := SD.M) (Γ := Γ_M)
-        (H := H_M) (G := G)
+        (H := H_M) (G := G) (Q := Q_M) (QDen := QDen_M)
         SD.hM hball hgrad_all x
-        hderiv hdpos hgradR hgp hq hqDen
+        hderiv hdpos hgradR hgp hQ_M_nonneg hQDen_M_nonneg hq hqDen
   · have hzero :
         deriv (truncatedChemFluxLifted p w) x = 0 :=
       truncatedChemFluxLifted_deriv_eq_zero_off_Ioo

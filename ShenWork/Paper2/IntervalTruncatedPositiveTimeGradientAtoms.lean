@@ -47,6 +47,55 @@ private theorem rpow_neg_half_eq_inv_sqrt {τ : ℝ} (hτ : 0 < τ) :
   rw [show (-(1 / 2) : ℝ) = -((1 : ℝ) / 2) by norm_num,
     Real.rpow_neg hτ.le, hhalf, one_div]
 
+private theorem left_sub_kernel_interval_bound {a r : ℝ}
+    (hr : 0 < r) (ha : 0 ≤ a) (har : a ≤ r) :
+    ∫ s in a..r, (r - s) ^ (-(1 / 2) : ℝ) ≤ 2 * Real.sqrt r := by
+  have hnonneg :
+      0 ≤ᶠ[ae (volume.restrict (Set.Ioc (0 : ℝ) r))]
+        fun s : ℝ => (r - s) ^ (-(1 / 2) : ℝ) := by
+    refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    filter_upwards with s hs
+    exact Real.rpow_nonneg (sub_nonneg.mpr hs.2) _
+  have hmono :
+      ∫ s in a..r, (r - s) ^ (-(1 / 2) : ℝ)
+        ≤ ∫ s in (0 : ℝ)..r, (r - s) ^ (-(1 / 2) : ℝ) :=
+    intervalIntegral.integral_mono_interval
+      (c := (0 : ℝ)) (d := r) ha har le_rfl hnonneg
+      (ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r)
+  calc
+    ∫ s in a..r, (r - s) ^ (-(1 / 2) : ℝ)
+        ≤ ∫ s in (0 : ℝ)..r, (r - s) ^ (-(1 / 2) : ℝ) := hmono
+    _ = 2 * Real.sqrt r :=
+        ShenWork.IntervalGradDuhamelBound.integral_sub_rpow_neg_half hr.le
+
+private theorem left_hom_restart_limit_bound
+    {K M τ D R : ℝ} (hτ : 0 < τ)
+    (hbound : ∀ a, 0 < a → a < τ →
+      R ≤ K / Real.sqrt (τ - a) * M + D) :
+    R ≤ K / Real.sqrt τ * M + D := by
+  have hsub :
+      Tendsto (fun a : ℝ => τ - a) (𝓝[>] (0 : ℝ)) (𝓝 τ) := by
+    have h0 : Tendsto (fun a : ℝ => a) (𝓝[>] (0 : ℝ)) (𝓝 (0 : ℝ)) :=
+      tendsto_id.mono_left nhdsWithin_le_nhds
+    simpa using (tendsto_const_nhds.sub h0)
+  have hsqrt :
+      Tendsto (fun a : ℝ => Real.sqrt (τ - a)) (𝓝[>] (0 : ℝ))
+        (𝓝 (Real.sqrt τ)) :=
+    Real.continuous_sqrt.tendsto τ |>.comp hsub
+  have hsqrt_ne : Real.sqrt τ ≠ 0 := ne_of_gt (Real.sqrt_pos_of_pos hτ)
+  have hlim :
+      Tendsto (fun a : ℝ => K / Real.sqrt (τ - a) * M + D)
+        (𝓝[>] (0 : ℝ)) (𝓝 (K / Real.sqrt τ * M + D)) := by
+    exact ((tendsto_const_nhds.div hsqrt hsqrt_ne).mul tendsto_const_nhds).add
+      tendsto_const_nhds
+  have hevent :
+      (fun _ : ℝ => R) ≤ᶠ[𝓝[>] (0 : ℝ)]
+        fun a : ℝ => K / Real.sqrt (τ - a) * M + D := by
+    filter_upwards [self_mem_nhdsWithin,
+      nhdsWithin_le_nhds (Iio_mem_nhds hτ)] with a ha_pos ha_lt
+    exact hbound a ha_pos ha_lt
+  exact le_of_tendsto_of_tendsto tendsto_const_nhds hlim hevent
+
 private theorem truncatedConjugatePicardIter_zero_lift_deriv_abs_le
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {τ M : ℝ} (hτ : 0 < τ)
@@ -1378,6 +1427,579 @@ private theorem truncatedConjugatePicardIter_succ_restart_gradient_raw
       intervalDomainLift_deriv_eq_zero_off_Ioo (U (n + 1) τ) hxIoo
     rw [hzero, abs_zero]
     exact hRhs_nonneg
+
+private theorem gradDuhamel_left_profile_bound
+    {a τ M A_L A_F B_F chi lo : ℝ}
+    (hM : 0 ≤ M) (hAL : 0 ≤ A_L) (hAF : 0 ≤ A_F) (hBF : 0 ≤ B_F)
+    (ha_pos : 0 < a) (haτ : a < τ) (hτlo : τ ≤ lo)
+    (hcontr : truncLeftB B_F chi lo < 1)
+    {q : ℝ → ℝ → ℝ}
+    (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
+    (hsrc : ∀ s, a ≤ s → s ≤ τ → ∀ y : ℝ,
+      |q s y| ≤ truncLeftSourceConst A_L A_F chi
+        + truncLeftBeta B_F chi * truncLeftProfile M A_L A_F B_F chi lo s)
+    (x : ℝ)
+    (hg_int : IntervalIntegrable
+      (fun s : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x)
+      volume a τ) :
+    |∫ s in a..τ, deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x|
+      ≤ truncLeftD M A_L A_F B_F chi lo := by
+  have hτ_pos : 0 < τ := lt_trans ha_pos haτ
+  have ha_le_τ : a ≤ τ := le_of_lt haτ
+  set K : ℝ := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant with hK
+  set beta : ℝ := truncLeftBeta B_F chi with hbeta
+  set C : ℝ := truncLeftSingularC M with hC
+  set L0 : ℝ := truncLeftSourceConst A_L A_F chi with hL0
+  set D : ℝ := truncLeftD M A_L A_F B_F chi lo with hD
+  have hK_nonneg : 0 ≤ K := by
+    rw [hK]
+    exact ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hbeta_nonneg : 0 ≤ beta := by
+    rw [hbeta, truncLeftBeta]
+    exact mul_nonneg (abs_nonneg chi) hBF
+  have hC_nonneg : 0 ≤ C := by
+    rw [hC, truncLeftSingularC, ← hK]
+    exact mul_nonneg hK_nonneg hM
+  have hL0_nonneg : 0 ≤ L0 := by
+    rw [hL0, truncLeftSourceConst]
+    exact add_nonneg hAL (mul_nonneg (abs_nonneg chi) hAF)
+  have hD_nonneg : 0 ≤ D := by
+    rw [hD]
+    exact truncLeftD_nonneg hM hAL hAF hBF (le_trans hτ_pos.le hτlo) hcontr
+  let g : ℝ → ℝ := fun s : ℝ =>
+    deriv (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x
+  let dom : ℝ → ℝ := fun s : ℝ =>
+    K * (L0 + beta * D) * (τ - s) ^ (-(1 / 2 : ℝ))
+      + K * beta * C * ((τ - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+  have hsub_int :
+      IntervalIntegrable (fun s : ℝ => (τ - s) ^ (-(1 / 2 : ℝ))) volume a τ := by
+    have hall := ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half τ
+    refine hall.mono_set ?_
+    intro s hs
+    rw [Set.uIcc_of_le ha_le_τ] at hs
+    rw [Set.uIcc_of_le hτ_pos.le]
+    exact ⟨ha_pos.le.trans hs.1, hs.2⟩
+  have hbeta_int :
+      IntervalIntegrable
+        (fun s : ℝ => (τ - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+        volume a τ := by
+    have hall := left_beta_kernel_intervalIntegrable (r := τ) hτ_pos
+    refine hall.mono_set ?_
+    intro s hs
+    rw [Set.uIcc_of_le ha_le_τ] at hs
+    rw [Set.uIcc_of_le hτ_pos.le]
+    exact ⟨ha_pos.le.trans hs.1, hs.2⟩
+  have hdom_int : IntervalIntegrable dom volume a τ := by
+    dsimp [dom]
+    exact (hsub_int.const_mul (K * (L0 + beta * D))).add
+      (hbeta_int.const_mul (K * beta * C))
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ τ := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hae : (fun s : ℝ => |g s|) ≤ᵐ[volume.restrict (Set.Icc a τ)] dom := by
+    refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+    filter_upwards [hne] with s hs_ne hs_mem
+    have hs_a : a ≤ s := hs_mem.1
+    have hs_τ : s ≤ τ := hs_mem.2
+    have hs_lt_τ : s < τ := lt_of_le_of_ne hs_τ hs_ne
+    have hs_pos : 0 < s := lt_of_lt_of_le ha_pos hs_a
+    have hP_nonneg : 0 ≤ truncLeftProfile M A_L A_F B_F chi lo s := by
+      unfold truncLeftProfile
+      rw [← hC, ← hD]
+      exact add_nonneg (div_nonneg hC_nonneg (Real.sqrt_nonneg _)) hD_nonneg
+    have hsrc_nonneg :
+        0 ≤ truncLeftSourceConst A_L A_F chi
+            + truncLeftBeta B_F chi * truncLeftProfile M A_L A_F B_F chi lo s := by
+      rw [← hL0, ← hbeta]
+      exact add_nonneg hL0_nonneg (mul_nonneg hbeta_nonneg hP_nonneg)
+    have hslice :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullCoupledDuhamel_grad_integrand_pointwise_bound
+        (t := τ) (s := s) hs_pos.le hs_lt_τ (F := q s) (hq_int s)
+        (C_source :=
+          truncLeftSourceConst A_L A_F chi
+            + truncLeftBeta B_F chi * truncLeftProfile M A_L A_F B_F chi lo s)
+        hsrc_nonneg (hsrc s hs_a hs_τ) x
+    calc
+      |g s|
+          ≤ K * (τ - s) ^ (-(1 / 2 : ℝ))
+              * (truncLeftSourceConst A_L A_F chi
+                + truncLeftBeta B_F chi * truncLeftProfile M A_L A_F B_F chi lo s) := by
+            simpa [g, K, hK] using hslice
+      _ = dom s := by
+            dsimp [dom]
+            rw [truncLeftProfile, ← hC, ← hD, ← hL0, ← hbeta]
+            rw [rpow_neg_half_eq_inv_sqrt hs_pos]
+            ring
+  have hsub_nonneg :
+      0 ≤ᶠ[ae (volume.restrict (Set.Ioc (0 : ℝ) τ))]
+        fun s : ℝ => (τ - s) ^ (-(1 / 2 : ℝ)) := by
+    refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    filter_upwards with s hs
+    exact Real.rpow_nonneg (sub_nonneg.mpr hs.2) _
+  have hsub_bound :
+      ∫ s in a..τ, (τ - s) ^ (-(1 / 2 : ℝ)) ≤ 2 * Real.sqrt τ := by
+    have hmono :=
+      intervalIntegral.integral_mono_interval
+        (c := (0 : ℝ)) (d := τ) ha_pos.le ha_le_τ le_rfl hsub_nonneg
+        (ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half τ)
+    exact hmono.trans (by
+      rw [ShenWork.IntervalGradDuhamelBound.integral_sub_rpow_neg_half hτ_pos.le])
+  have hbeta_bound :
+      ∫ s in a..τ, (τ - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+        ≤ truncLeftKappa :=
+    left_beta_kernel_interval_bound (r := τ) hτ_pos ha_pos.le ha_le_τ
+  have hdom_bound :
+      ∫ s in a..τ, dom s
+        ≤ K * (2 * Real.sqrt τ * (L0 + beta * D) + beta * C * truncLeftKappa) := by
+    have hsub_part := hsub_int.const_mul (K * (L0 + beta * D))
+    have hbeta_part := hbeta_int.const_mul (K * beta * C)
+    have hLD_nonneg : 0 ≤ L0 + beta * D :=
+      add_nonneg hL0_nonneg (mul_nonneg hbeta_nonneg hD_nonneg)
+    have hsub_factor_nonneg : 0 ≤ K * (L0 + beta * D) :=
+      mul_nonneg hK_nonneg hLD_nonneg
+    have hbeta_factor_nonneg : 0 ≤ K * beta * C :=
+      mul_nonneg (mul_nonneg hK_nonneg hbeta_nonneg) hC_nonneg
+    calc
+      ∫ s in a..τ, dom s
+          = K * (L0 + beta * D)
+              * ∫ s in a..τ, (τ - s) ^ (-(1 / 2 : ℝ))
+            + K * beta * C
+              * ∫ s in a..τ,
+                  (τ - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) := by
+            dsimp [dom]
+            rw [intervalIntegral.integral_add hsub_part hbeta_part]
+            rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul]
+      _ ≤ K * (L0 + beta * D) * (2 * Real.sqrt τ)
+            + K * beta * C * truncLeftKappa := by
+            exact add_le_add
+              (mul_le_mul_of_nonneg_left hsub_bound hsub_factor_nonneg)
+              (mul_le_mul_of_nonneg_left hbeta_bound hbeta_factor_nonneg)
+      _ = K * (2 * Real.sqrt τ * (L0 + beta * D) + beta * C * truncLeftKappa) := by
+            ring
+  calc
+    |∫ s in a..τ, deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x|
+        = |∫ s in a..τ, g s| := rfl
+    _ ≤ ∫ s in a..τ, |g s| :=
+        intervalIntegral.abs_integral_le_integral_abs ha_le_τ
+    _ ≤ ∫ s in a..τ, dom s :=
+        intervalIntegral.integral_mono_ae_restrict ha_le_τ hg_int.abs hdom_int hae
+    _ ≤ K * (2 * Real.sqrt τ * (L0 + beta * D) + beta * C * truncLeftKappa) :=
+        hdom_bound
+    _ ≤ D := by
+        rw [hD, hK, hbeta, hC, hL0]
+        exact truncLeftD_step_bound hM hAL hAF hBF (le_trans hτ_pos.le hτlo)
+          hτ_pos.le hτlo hcontr
+
+private theorem gradDuhamel_left_profile_source_bound
+    {q : ℝ → ℝ → ℝ} {a τ M A_L A_F B_F chi lo : ℝ}
+    (hM : 0 ≤ M) (hAL : 0 ≤ A_L) (hAF : 0 ≤ A_F) (hBF : 0 ≤ B_F)
+    (hlo : 0 ≤ lo) (hcontr : truncLeftB B_F chi lo < 1)
+    (ha_pos : 0 < a) (haτ : a < τ) (hτlo : τ ≤ lo)
+    (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
+    (hsrc : ∀ s, a ≤ s → s ≤ τ → ∀ y : ℝ,
+      |q s y| ≤ truncLeftSourceConst A_L A_F chi
+        + truncLeftBeta B_F chi * truncLeftProfile M A_L A_F B_F chi lo s)
+    (x : ℝ)
+    (hg_int : IntervalIntegrable
+      (fun s : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x)
+      volume a τ) :
+    |∫ s in a..τ, deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x|
+      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+          (2 * Real.sqrt τ *
+            (truncLeftSourceConst A_L A_F chi
+              + truncLeftBeta B_F chi * truncLeftD M A_L A_F B_F chi lo)
+            + truncLeftBeta B_F chi * truncLeftSingularC M * truncLeftKappa) := by
+  set K : ℝ := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant with hK
+  set beta : ℝ := truncLeftBeta B_F chi with hbeta
+  set C : ℝ := truncLeftSingularC M with hC
+  set L0 : ℝ := truncLeftSourceConst A_L A_F chi with hL0
+  set D : ℝ := truncLeftD M A_L A_F B_F chi lo with hD
+  have hτ_pos : 0 < τ := ha_pos.trans haτ
+  have ha_nonneg : 0 ≤ a := ha_pos.le
+  have ha_le_τ : a ≤ τ := haτ.le
+  have hK_nonneg : 0 ≤ K := by
+    rw [hK]
+    exact ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hbeta_nonneg : 0 ≤ beta := by
+    rw [hbeta, truncLeftBeta]
+    exact mul_nonneg (abs_nonneg chi) hBF
+  have hC_nonneg : 0 ≤ C := by
+    rw [hC, truncLeftSingularC, ← hK]
+    exact mul_nonneg hK_nonneg hM
+  have hL0_nonneg : 0 ≤ L0 := by
+    rw [hL0, truncLeftSourceConst]
+    exact add_nonneg hAL (mul_nonneg (abs_nonneg chi) hAF)
+  have hD_nonneg : 0 ≤ D := by
+    rw [hD]
+    exact truncLeftD_nonneg hM hAL hAF hBF hlo hcontr
+  have hLD_nonneg : 0 ≤ L0 + beta * D :=
+    add_nonneg hL0_nonneg (mul_nonneg hbeta_nonneg hD_nonneg)
+  have hsub_int :
+      IntervalIntegrable (fun s : ℝ => (τ - s) ^ (-(1 / 2) : ℝ))
+        volume a τ := by
+    refine (ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half τ).mono_set ?_
+    intro s hs
+    rw [Set.uIcc_of_le ha_le_τ] at hs
+    rw [Set.uIcc_of_le hτ_pos.le]
+    exact ⟨ha_nonneg.trans hs.1, hs.2⟩
+  have hbeta_int :
+      IntervalIntegrable
+        (fun s : ℝ => (τ - s) ^ (-(1 / 2) : ℝ) * s ^ (-(1 / 2) : ℝ))
+        volume a τ := by
+    refine (left_beta_kernel_intervalIntegrable hτ_pos).mono_set ?_
+    intro s hs
+    rw [Set.uIcc_of_le ha_le_τ] at hs
+    rw [Set.uIcc_of_le hτ_pos.le]
+    exact ⟨ha_nonneg.trans hs.1, hs.2⟩
+  have hdom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          K * (τ - s) ^ (-(1 / 2) : ℝ)
+            * (L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D)))
+        volume a τ := by
+    have hsplit_int :
+        IntervalIntegrable
+          (fun s : ℝ =>
+            K * (L0 + beta * D) * (τ - s) ^ (-(1 / 2) : ℝ)
+              + K * beta * C *
+                ((τ - s) ^ (-(1 / 2) : ℝ) * s ^ (-(1 / 2) : ℝ)))
+          volume a τ :=
+      (hsub_int.const_mul (K * (L0 + beta * D))).add
+        (hbeta_int.const_mul (K * beta * C))
+    convert hsplit_int using 1
+    ext s
+    ring
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ τ := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hae :
+      (fun s : ℝ =>
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x|)
+        ≤ᵐ[volume.restrict (Set.Icc a τ)]
+      (fun s : ℝ =>
+        K * (τ - s) ^ (-(1 / 2) : ℝ)
+          * (L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D))) := by
+    refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+    filter_upwards [hne] with s hs_ne hs_mem
+    have hs_a : a ≤ s := hs_mem.1
+    have hs_τ : s ≤ τ := hs_mem.2
+    have hs_pos : 0 < s := ha_pos.trans_le hs_a
+    have hs0 : 0 ≤ s := hs_pos.le
+    have hsτ_lt : s < τ := lt_of_le_of_ne hs_τ hs_ne
+    have hslice_nonneg :
+        0 ≤ L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D) := by
+      exact add_nonneg hL0_nonneg
+        (mul_nonneg hbeta_nonneg
+          (add_nonneg (mul_nonneg hC_nonneg (Real.rpow_nonneg hs_pos.le _)) hD_nonneg))
+    have hslice_sup :
+        ∀ y : ℝ,
+          |q s y| ≤ L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D) := by
+      intro y
+      have hprofile_eq :
+          truncLeftProfile M A_L A_F B_F chi lo s =
+            C * s ^ (-(1 / 2) : ℝ) + D := by
+        rw [truncLeftProfile, ← hC, ← hD]
+        rw [rpow_neg_half_eq_inv_sqrt hs_pos]
+        ring
+      calc
+        |q s y|
+            ≤ truncLeftSourceConst A_L A_F chi
+                + truncLeftBeta B_F chi * truncLeftProfile M A_L A_F B_F chi lo s :=
+              hsrc s hs_a hs_τ y
+        _ = L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D) := by
+              rw [hprofile_eq, hL0, hbeta]
+    have hpt :=
+      ShenWork.IntervalNeumannFullKernel.intervalFullCoupledDuhamel_grad_integrand_pointwise_bound
+        hs0 hsτ_lt (hq_int s) hslice_nonneg hslice_sup x
+    simpa [hK] using hpt
+  have hdom_eq :
+      (fun s : ℝ =>
+        K * (τ - s) ^ (-(1 / 2) : ℝ)
+          * (L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D)))
+        =
+      (fun s : ℝ =>
+        K * (L0 + beta * D) * (τ - s) ^ (-(1 / 2) : ℝ)
+          + K * beta * C *
+            ((τ - s) ^ (-(1 / 2) : ℝ) * s ^ (-(1 / 2) : ℝ))) := by
+    funext s
+    ring
+  have hdom_eval :
+      ∫ s in a..τ,
+        K * (τ - s) ^ (-(1 / 2) : ℝ)
+          * (L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D))
+        =
+      K * (L0 + beta * D) *
+          (∫ s in a..τ, (τ - s) ^ (-(1 / 2) : ℝ))
+        + K * beta * C *
+          (∫ s in a..τ,
+            (τ - s) ^ (-(1 / 2) : ℝ) * s ^ (-(1 / 2) : ℝ)) := by
+    rw [hdom_eq]
+    rw [intervalIntegral.integral_add
+      (hsub_int.const_mul (K * (L0 + beta * D)))
+      (hbeta_int.const_mul (K * beta * C))]
+    rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul]
+  have hsub_bound :
+      ∫ s in a..τ, (τ - s) ^ (-(1 / 2) : ℝ) ≤ 2 * Real.sqrt τ :=
+    left_sub_kernel_interval_bound hτ_pos ha_nonneg ha_le_τ
+  have hbeta_bound :
+      ∫ s in a..τ,
+          (τ - s) ^ (-(1 / 2) : ℝ) * s ^ (-(1 / 2) : ℝ)
+        ≤ truncLeftKappa :=
+    left_beta_kernel_interval_bound hτ_pos ha_nonneg ha_le_τ
+  have hcoef₁ : 0 ≤ K * (L0 + beta * D) :=
+    mul_nonneg hK_nonneg hLD_nonneg
+  have hcoef₂ : 0 ≤ K * beta * C :=
+    mul_nonneg (mul_nonneg hK_nonneg hbeta_nonneg) hC_nonneg
+  calc
+    |∫ s in a..τ, deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x|
+        ≤ ∫ s in a..τ,
+            |deriv (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x| :=
+          intervalIntegral.abs_integral_le_integral_abs ha_le_τ
+    _ ≤ ∫ s in a..τ,
+          K * (τ - s) ^ (-(1 / 2) : ℝ)
+            * (L0 + beta * (C * s ^ (-(1 / 2) : ℝ) + D)) :=
+          intervalIntegral.integral_mono_ae_restrict ha_le_τ hg_int.abs hdom_int hae
+    _ = K * (L0 + beta * D) *
+          (∫ s in a..τ, (τ - s) ^ (-(1 / 2) : ℝ))
+        + K * beta * C *
+          (∫ s in a..τ,
+            (τ - s) ^ (-(1 / 2) : ℝ) * s ^ (-(1 / 2) : ℝ)) := hdom_eval
+    _ ≤ K * (L0 + beta * D) * (2 * Real.sqrt τ)
+        + K * beta * C * truncLeftKappa := by
+          exact add_le_add
+            (mul_le_mul_of_nonneg_left hsub_bound hcoef₁)
+            (mul_le_mul_of_nonneg_left hbeta_bound hcoef₂)
+    _ = K *
+        (2 * Real.sqrt τ * (L0 + beta * D) + beta * C * truncLeftKappa) := by
+          ring
+
+/-- Successor step for the left Volterra profile on `(0, lo]`.
+
+The restart point is first kept at `a > 0`, where the existing restart/IBP split
+supplies the derivative identity and integrability.  The Duhamel leg is bounded
+with the singular source envelope `L0 + beta * (C / sqrt s + D)`, and then
+`a → 0+` removes the artificial homogeneous restart loss. -/
+theorem truncatedConjugatePicardIter_succ_left_profile
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    {A_L A_F B_F lo : ℝ}
+    (hAL_nonneg : 0 ≤ A_L) (hAF_nonneg : 0 ≤ A_F)
+    (hBF_nonneg : 0 ≤ B_F)
+    (hlo_pos : 0 < lo) (hloT : lo ≤ DT.T)
+    (hcontr : truncLeftB B_F p.χ₀ lo < 1) :
+    ∀ n : ℕ,
+      (∀ s, 0 < s → s ≤ lo → ∀ y : ℝ,
+        |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀
+          + truncLeftBeta B_F p.χ₀
+            * truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo s) →
+      IterGradLeftProfile U DT.M A_L A_F B_F p.χ₀ lo (n + 1) := by
+  intro n hsrc τ hτ_pos hτlo
+  have hτT : τ ≤ DT.T := hτlo.trans hloT
+  have hM_nonneg : 0 ≤ DT.M := le_of_lt DT.hM
+  have hlo_nonneg : 0 ≤ lo := hlo_pos.le
+  have hK_nonneg :
+      0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  have hbeta_nonneg : 0 ≤ truncLeftBeta B_F p.χ₀ := by
+    unfold truncLeftBeta
+    exact mul_nonneg (abs_nonneg p.χ₀) hBF_nonneg
+  have hD_nonneg :
+      0 ≤ truncLeftD DT.M A_L A_F B_F p.χ₀ lo :=
+    truncLeftD_nonneg hM_nonneg hAL_nonneg hAF_nonneg hBF_nonneg hlo_nonneg hcontr
+  have hprofile_nonneg :
+      ∀ s, 0 ≤ s →
+        0 ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo s := by
+    intro s hs
+    unfold truncLeftProfile truncLeftSingularC
+    exact add_nonneg
+      (div_nonneg (mul_nonneg hK_nonneg hM_nonneg) (Real.sqrt_nonneg _))
+      hD_nonneg
+  have hflat_source :
+      ∀ a, 0 < a → a ≤ τ →
+        ∀ s, a ≤ s → s ≤ τ → ∀ y : ℝ,
+          |Src n s y| ≤
+            truncWindowSourceCL A_L A_F B_F p.χ₀
+              (truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a) := by
+    intro a ha_pos haτ_le s has hsτ y
+    have hs_pos : 0 < s := ha_pos.trans_le has
+    have hslo : s ≤ lo := hsτ.trans hτlo
+    have hsrc_s := hsrc s hs_pos hslo y
+    have hmono :
+        truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo s
+          ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a :=
+      truncLeftProfile_anti_mono_time
+        (M := DT.M) (A_L := A_L) (A_F := A_F) (B_F := B_F)
+        (chi := p.χ₀) (lo := lo) hM_nonneg ha_pos has
+    calc
+      |Src n s y|
+          ≤ truncLeftSourceConst A_L A_F p.χ₀
+              + truncLeftBeta B_F p.χ₀
+                * truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo s := hsrc_s
+      _ ≤ truncLeftSourceConst A_L A_F p.χ₀
+              + truncLeftBeta B_F p.χ₀
+                * truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a := by
+            exact add_le_add_left
+              (mul_le_mul_of_nonneg_left hmono hbeta_nonneg)
+              (truncLeftSourceConst A_L A_F p.χ₀)
+      _ = truncWindowSourceCL A_L A_F B_F p.χ₀
+              (truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a) := by
+            simp [truncWindowSourceCL, truncLeftSourceConst, truncLeftBeta]
+            ring
+  refine ⟨fun x => ?_, ?_⟩
+  · have hrestart_bound :
+        ∀ a, 0 < a → a < τ →
+          |deriv (intervalDomainLift (U (n + 1) τ)) x|
+            ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                / Real.sqrt (τ - a) * DT.M
+              + truncLeftD DT.M A_L A_F B_F p.χ₀ lo := by
+      intro a ha_pos haτ
+      have haτ_le : a ≤ τ := haτ.le
+      have hτa_pos : 0 < τ - a := sub_pos.mpr haτ
+      have hG_nonneg :
+          0 ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a :=
+        hprofile_nonneg a ha_pos.le
+      have hsrc_flat := hflat_source a ha_pos haτ_le
+      rcases truncatedConjugatePicardIter_succ_restart_gradient_split
+          (p := p) (u₀ := u₀) DT U hU Src hSrc
+          (A_L := A_L) (A_F := A_F) (B_F := B_F)
+          (a := a) (hi := τ)
+          (G := truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a)
+          (τ := τ)
+          hAL_nonneg hAF_nonneg hBF_nonneg hG_nonneg
+          ha_pos haτ le_rfl hτT n hsrc_flat with
+        ⟨hrestart_meas, hrestart_abs, hq_int, hg_int, hsplit, _hdiff⟩
+      have hD_step :
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              (2 * Real.sqrt τ *
+                (truncLeftSourceConst A_L A_F p.χ₀
+                  + truncLeftBeta B_F p.χ₀
+                    * truncLeftD DT.M A_L A_F B_F p.χ₀ lo)
+                + truncLeftBeta B_F p.χ₀ * truncLeftSingularC DT.M * truncLeftKappa)
+            ≤ truncLeftD DT.M A_L A_F B_F p.χ₀ lo :=
+        truncLeftD_step_bound
+          (M := DT.M) (A_L := A_L) (A_F := A_F) (B_F := B_F)
+          (chi := p.χ₀) (lo := lo) (τ := τ)
+          hM_nonneg hAL_nonneg hAF_nonneg hBF_nonneg
+          hlo_nonneg hτ_pos.le hτlo hcontr
+      have hhom :
+          |deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - a)
+                  (intervalDomainLift (U (n + 1) a)) z) x|
+            ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                / Real.sqrt (τ - a) * DT.M := by
+        have h :=
+          ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+            hτa_pos hrestart_meas hrestart_abs x
+        calc
+          |deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - a)
+                  (intervalDomainLift (U (n + 1) a)) z) x|
+              ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                  * (τ - a) ^ (-(1 / 2) : ℝ) * DT.M := h
+          _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                  / Real.sqrt (τ - a) * DT.M := by
+                rw [rpow_neg_half_eq_inv_sqrt hτa_pos]
+                ring
+      have hduh :
+          |∫ s in a..τ, deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - s)
+                  (truncatedWindowedSource Src n a τ s) z) x|
+            ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+                (2 * Real.sqrt τ *
+                  (truncLeftSourceConst A_L A_F p.χ₀
+                    + truncLeftBeta B_F p.χ₀
+                      * truncLeftD DT.M A_L A_F B_F p.χ₀ lo)
+                  + truncLeftBeta B_F p.χ₀ * truncLeftSingularC DT.M * truncLeftKappa) := by
+        refine gradDuhamel_left_profile_source_bound
+          (q := truncatedWindowedSource Src n a τ)
+          (M := DT.M) (A_L := A_L) (A_F := A_F) (B_F := B_F)
+          (chi := p.χ₀) (lo := lo)
+          hM_nonneg hAL_nonneg hAF_nonneg hBF_nonneg hlo_nonneg hcontr
+          ha_pos haτ hτlo hq_int ?_ x (hg_int x)
+        intro s has hsτ y
+        have hs_pos : 0 < s := ha_pos.trans_le has
+        have hslo : s ≤ lo := hsτ.trans hτlo
+        have hswin : a ≤ s ∧ s ≤ τ := ⟨has, hsτ⟩
+        simpa [truncatedWindowedSource, hswin] using hsrc s hs_pos hslo y
+      by_cases hxIoo : x ∈ Set.Ioo (0 : ℝ) 1
+      · rw [hsplit x hxIoo]
+        have hsum :=
+          (abs_add_le
+            (deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - a)
+                  (intervalDomainLift (U (n + 1) a)) z) x)
+            (∫ s in a..τ, deriv
+              (fun z : ℝ =>
+                intervalFullSemigroupOperator (τ - s)
+                  (truncatedWindowedSource Src n a τ s) z) x)).trans
+            (add_le_add hhom hduh)
+        exact hsum.trans
+          (add_le_add_left hD_step
+            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              / Real.sqrt (τ - a) * DT.M))
+      · have hzero :
+            deriv (intervalDomainLift (U (n + 1) τ)) x = 0 :=
+          intervalDomainLift_deriv_eq_zero_off_Ioo (U (n + 1) τ) hxIoo
+        have hhom_nonneg :
+            0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+                / Real.sqrt (τ - a) * DT.M := by
+          exact mul_nonneg
+            (div_nonneg hK_nonneg (Real.sqrt_nonneg _)) hM_nonneg
+        rw [hzero, abs_zero]
+        exact add_nonneg hhom_nonneg hD_nonneg
+    have hlimit :=
+      left_hom_restart_limit_bound
+        (K := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant)
+        (M := DT.M) (τ := τ)
+        (D := truncLeftD DT.M A_L A_F B_F p.χ₀ lo)
+        (R := |deriv (intervalDomainLift (U (n + 1) τ)) x|)
+        hτ_pos hrestart_bound
+    calc
+      |deriv (intervalDomainLift (U (n + 1) τ)) x|
+          ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              / Real.sqrt τ * DT.M
+            + truncLeftD DT.M A_L A_F B_F p.χ₀ lo := hlimit
+      _ = truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo τ := by
+            unfold truncLeftProfile truncLeftSingularC
+            ring
+  · let a0 : ℝ := τ / 2
+    have ha0_pos : 0 < a0 := by
+      dsimp [a0]
+      linarith
+    have ha0τ : a0 < τ := by
+      dsimp [a0]
+      linarith
+    have hG0_nonneg :
+        0 ≤ truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a0 :=
+      hprofile_nonneg a0 ha0_pos.le
+    have hsrc_flat0 := hflat_source a0 ha0_pos ha0τ.le
+    rcases truncatedConjugatePicardIter_succ_restart_gradient_split
+        (p := p) (u₀ := u₀) DT U hU Src hSrc
+        (A_L := A_L) (A_F := A_F) (B_F := B_F)
+        (a := a0) (hi := τ)
+        (G := truncLeftProfile DT.M A_L A_F B_F p.χ₀ lo a0)
+        (τ := τ)
+        hAL_nonneg hAF_nonneg hBF_nonneg hG0_nonneg
+        ha0_pos ha0τ le_rfl hτT n hsrc_flat0 with
+      ⟨_, _, _, _, _, hdiff⟩
+    exact hdiff
 
 /-- Successor truncated Picard iterate affine gradient step on a positive window.
 
