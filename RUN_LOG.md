@@ -397,6 +397,53 @@ but decomposition added focused helper sorries).
   Committed f7437994, pushed
 - GradientAtoms now 3 sorries (analytic residuals: value restart, Duhamel HasDerivAt, integrability)
 - bnghsawtn dispatched: Codex grinding GradientAtoms 3 residuals
-- bef1skabm STILL RUNNING: product rule with DifferentiableAt fix
-- Total: Bootstrap 21 + GradientAtoms 3 = 24
-  (Bootstrap 21 because Hessian Codex added hasDerivAt helper sorry)
+- bef1skabm DONE: product rule CLOSED with conditional hdiff parameter
+  Added 2 new helper sorries (nonneg+flux_zero combined, hdiff_pos at call site)
+- bnghsawtn DONE: GradientAtoms signature fix (0≤a → 0<a), closed 0 sorries
+  (value restart false at a=0, missing measurability block remaining 3)
+- 80ec9e42 committed+pushed: bootstrap product rule + Hessian + GradientAtoms sig fix
+- Remote build PASS (9207 jobs, 874s)
+
+**Update 2026-07-08 ~19:30 (wave 2 dispatches):**
+- byp0k9oac DONE: restructured summability to use eigenvalue-weighted (−1 sorry)
+- b3gi73pw7 DONE: Level 4 — no proofs found (0 change)
+- by028s9rf DONE: Left profile SOURCE STEP CLOSED (+helper deriv_eq_zero_off_Ioo) (−1 sorry)
+- btpdd96fq DONE: ChiNeg energy — no proofs found (0 change)
+- b2537274 committed+pushed: source step + summability restructure (21→19)
+- Remote build PASS (9207 jobs, 23s cached)
+
+**Update 2026-07-08 ~19:50 (wave 3 dispatches):**
+- be3qp98h8 RUNNING: Sobolev H¹ (L1830) — eigenvalue gain + exp decay
+- b98xb78a6 RUNNING: Left profile kernel step (L1235) — Volterra singular convolution
+- bxbyxe2yv RUNNING: ChiNeg joint continuity (L574) — spectral uniform convergence
+
+**Current sorry count:** Bootstrap 19 + GradientAtoms 3 + ChiNeg 4 = 26 total
+(ResolverWeakLapBound 1 sorry is non-critical — unused outside its file)
+
+Bootstrap L-numbers (current file):
+  - L739: HasDerivAt signed elliptic (blocked: needs SourceCoeffQuadraticDecay)
+  - L830: resolver nonneg + flux zero (FALSE for signed w — design gap)
+  - L1235: left profile kernel step (Codex b98xb78a6)
+  - L1292: hdiff_pos in hsource_of_grad (DifferentiableAt boundary issue)
+  - L1767-1768: chemDiv source bound (needs gradient contraction + Lipschitz)
+  - L1830: Sobolev Step 1 H¹ (Codex be3qp98h8)
+  - L1845: Sobolev Step 2 ℓ² source
+  - L1868: Sobolev Step 3 gradient ℓ¹
+  - L1885: Sobolev Step 4 ℓ¹ source
+  - L1900: Sobolev Step 5 eigenvalue-weighted
+  - L1973: gradient bound (Level 4)
+  - L1994: negPart diff off countable (Level 4b)
+  - L2005: negPart deriv bound (Level 4b)
+  - L2021: chemFlux continuousOn (Level 4c)
+  - L2038: chemFlux diff off countable (Level 4c)
+  - L2049: chemFlux deriv bound (Level 4c)
+  - L2067: timeDeriv series rep (Level 5)
+  - L2082: gradient series rep (Level 5)
+
+ChiNeg L-numbers:
+  - L574: joint continuity (Codex bxbyxe2yv)
+  - L609: time derivative window data
+  - L703: Jensen strict positivity (deep PDE)
+  - L722: iterate nonnegativity (likely FALSE — needs restructuring)
+
+GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability

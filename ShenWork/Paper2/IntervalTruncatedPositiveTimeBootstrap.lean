@@ -1002,6 +1002,62 @@ private theorem truncatedChemFluxLifted_deriv_terms_of_abs_ball
     rw [abs_of_nonneg hqDen_nonneg]
     exact hqDen_le
 
+private theorem truncatedChemFluxLifted_continuousOn_of_abs_ball
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) :
+    ContinuousOn (truncatedChemFluxLifted p w) (Set.Icc (0 : ℝ) 1) := by
+  classical
+  have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+    lift_continuousOn_Icc_of_continuous hw_cont
+  have hpos_cont : Continuous fun r : ℝ => positivePart r := by
+    simpa [positivePart] using (continuous_id.max continuous_const)
+  have hpp_cont :
+      ContinuousOn (fun y : ℝ => positivePart (intervalDomainLift w y))
+        (Set.Icc (0 : ℝ) 1) :=
+    hpos_cont.continuousOn.comp hUcont (fun _ _ => Set.mem_univ _)
+  have hgrad_cont :
+      ContinuousOn (fun y : ℝ => resolverGradReal p w y)
+        (Set.Icc (0 : ℝ) 1) :=
+    (resolverGradReal_continuous_of_continuousOn p hUcont).continuousOn
+  have hR_cont :
+      ContinuousOn
+        (intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w))
+        (Set.Icc (0 : ℝ) 1) := by
+    have hseries_cont : Continuous (fun y : ℝ =>
+        ∑' k : ℕ, (ShenWork.PDE.intervalNeumannResolverCoeff p w k).re *
+          unitIntervalCosineMode k y) :=
+      ShenWork.IntervalDuhamelIntegrability.resolverValueReal_continuous_of_continuousOn
+        p hUcont
+    refine hseries_cont.continuousOn.congr ?_
+    intro y hy
+    simp [intervalDomainLift, hy, ShenWork.PDE.intervalNeumannResolverR]
+  have hbase_cont :
+      ContinuousOn
+        (fun y : ℝ =>
+          1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y)
+        (Set.Icc (0 : ℝ) 1) :=
+    continuousOn_const.add hR_cont
+  have hden_cont :
+      ContinuousOn
+        (fun y : ℝ =>
+          (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^
+            p.β)
+        (Set.Icc (0 : ℝ) 1) :=
+    hbase_cont.rpow_const (fun _ _ => Or.inr p.hβ)
+  have hden_ne :
+      ∀ y ∈ Set.Icc (0 : ℝ) 1,
+        (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^
+          p.β ≠ 0 := by
+    intro y _hy
+    have hR_nonneg :
+        0 ≤ intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y :=
+      resolverR_lift_nonneg_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball y
+    exact ne_of_gt (Real.rpow_pos_of_pos (by linarith) p.β)
+  simpa [truncatedChemFluxLifted] using
+    (hpp_cont.mul hgrad_cont).div hden_cont hden_ne
+
 /-! ## Level 0: Positive-time spatial regularity (analytic black box)
 
 The Picard limit is spatially Lipschitz at positive time.  This is the
@@ -2042,7 +2098,14 @@ theorem truncatedChemFlux_continuousOn_positive_time
       (truncatedChemFluxLifted p
         ((truncatedConjugatePicardLimit p u₀ DT.T) t))
       (Icc (0 : ℝ) 1) := by
-  sorry
+  let SD : TruncatedConjugateMildSolutionData p u₀ :=
+    truncatedConjugateMildSolutionData_of_data DT
+  exact
+    truncatedChemFluxLifted_continuousOn_of_abs_ball
+      (p := p) (w := (truncatedConjugatePicardLimit p u₀ DT.T) t)
+      (M := SD.M) SD.hM
+      (SD.hcont t ht htT)
+      (SD.hbound t ht htT)
 
 /-- The truncated chemotaxis flux is differentiable off a countable set.
 Like the negative-part test, the only source of non-differentiability
