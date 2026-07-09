@@ -1066,4 +1066,359 @@ theorem resolverGradReal_hasDerivAt_physicalLap_of_continuousOn_via_FTC
   rw [← hq_x]
   exact hprim.congr_of_eventuallyEq hev
 
+/-! ### Signed-source variant
+
+The coefficient resolver is built from the signed source
+`ν * (intervalDomainLift u)^γ`.  The positive-part bridge above is the
+nonnegative specialization used by the physical PDE packaging; the truncated
+bootstrap also needs the signed interior ODE identity directly. -/
+
+def resolverSignedSourceReal (p : CM2Params)
+    (u : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun z => p.ν * intervalDomainLift u z ^ p.γ
+
+def resolverLapSignedPlain (p : CM2Params)
+    (u : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun z => p.μ * resolverValueSeriesReal p u z - resolverSignedSourceReal p u z
+
+private theorem resolverSignedSourceReal_continuousOn
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn (resolverSignedSourceReal p u) (Set.Icc (0 : ℝ) 1) := by
+  have hpow :
+      ContinuousOn
+        (fun z : ℝ => intervalDomainLift u z ^ p.γ)
+        (Set.Icc (0 : ℝ) 1) :=
+    hUcont.rpow_const (fun _ _ => Or.inr p.hγ.le)
+  simpa [resolverSignedSourceReal] using continuousOn_const.mul hpow
+
+private theorem resolverLapSignedPlain_continuousAt_of_continuousOn
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    ContinuousAt (resolverLapSignedPlain p u) x := by
+  have hR : ContinuousAt (resolverValueSeriesReal p u) x :=
+    (resolverValueSeriesReal_continuous_of_continuousOn p hUcont).continuousAt
+  have hS : ContinuousAt (resolverSignedSourceReal p u) x := by
+    have hsrc_on := resolverSignedSourceReal_continuousOn p hUcont
+    have hIcc_nhds : Set.Icc (0 : ℝ) 1 ∈ 𝓝 x :=
+      Filter.mem_of_superset (IsOpen.mem_nhds isOpen_Ioo hx) Set.Ioo_subset_Icc_self
+    exact hsrc_on.continuousAt hIcc_nhds
+  simpa [resolverLapSignedPlain] using (hR.const_mul p.μ).sub hS
+
+def resolverLapSignedReal (p : CM2Params)
+    (u : intervalDomainPoint → ℝ) (x : ℝ) : ℝ :=
+  if hx : x ∈ Set.Icc (0 : ℝ) 1 then
+    p.μ * intervalNeumannResolverR p u ⟨x, hx⟩ -
+      resolverSignedSourceReal p u x
+  else
+    0
+
+theorem resolverLapSignedReal_continuousAt_of_continuousOn
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    ContinuousAt (resolverLapSignedReal p u) x := by
+  have hplain : ContinuousAt (resolverLapSignedPlain p u) x :=
+    resolverLapSignedPlain_continuousAt_of_continuousOn p hUcont hx
+  have hIoo_nhds : Set.Ioo (0 : ℝ) 1 ∈ 𝓝 x :=
+    IsOpen.mem_nhds isOpen_Ioo hx
+  have hlocal :
+      resolverLapSignedReal p u =ᶠ[𝓝 x] resolverLapSignedPlain p u := by
+    filter_upwards [hIoo_nhds] with z hz
+    have hzIcc : z ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hz
+    simp [resolverLapSignedReal, resolverLapSignedPlain, resolverValueSeriesReal,
+      resolverSignedSourceReal, intervalNeumannResolverR, unitIntervalCosineMode, hzIcc]
+  exact hplain.congr_of_eventuallyEq hlocal
+
+private lemma resolverSignedSourceReal_cosineCoeff_eq
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
+    cosineCoeffs (resolverSignedSourceReal p u) k =
+      (intervalNeumannResolverSourceCoeff p u k).re := by
+  simp [resolverSignedSourceReal, cosineCoeffs, intervalNeumannResolverSourceCoeff]
+
+private theorem resolverSignedSourceReal_integral_tsum_of_le_bridge
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {a b : ℝ}
+    (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1)
+    (hab : a ≤ b) :
+    Summable (fun k : ℕ =>
+      (intervalNeumannResolverSourceCoeff p u k).re *
+        ∫ x in a..b, unitIntervalCosineMode k x) ∧
+    (∫ x in a..b, resolverSignedSourceReal p u x)
+      =
+    ∑' k : ℕ,
+      (intervalNeumannResolverSourceCoeff p u k).re *
+        ∫ x in a..b, unitIntervalCosineMode k x := by
+  classical
+  let ψ : ℝ → ℝ := (Set.Ioc a b).indicator (fun _ : ℝ => (1 : ℝ))
+  have hψm : AEStronglyMeasurable ψ (intervalMeasure 1) := by
+    exact ((measurable_const : Measurable (fun _ : ℝ => (1 : ℝ))).indicator
+      measurableSet_Ioc).aestronglyMeasurable
+  have hψb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |ψ x| ≤ (1 : ℝ) := by
+    intro x _; by_cases hxab : x ∈ Set.Ioc a b <;> simp [ψ, hxab]
+  have hparse := bridge_cosine_parseval_pairing
+    (f := resolverSignedSourceReal p u) (φ := ψ)
+    (resolverSignedSourceReal_continuousOn p hUcont) hψm hψb
+  have htest : ∀ k : ℕ,
+      bridgeCosineTestCoeff ψ k =
+        ∫ x in a..b, unitIntervalCosineMode k x := by
+    intro k
+    simpa [bridgeCosineTestCoeff, ψ] using
+      integral_zero_one_mul_indicator_Ioc_eq_intervalIntegral_of_le
+        (f := unitIntervalCosineMode k) ha.1 hb.2 hab
+  have htermsum :
+      Summable (fun k : ℕ =>
+        (intervalNeumannResolverSourceCoeff p u k).re *
+          ∫ x in a..b, unitIntervalCosineMode k x) := by
+    refine hparse.1.congr ?_
+    intro k
+    rw [resolverSignedSourceReal_cosineCoeff_eq p u k, htest k]
+  refine ⟨htermsum, ?_⟩
+  calc
+    ∫ x in a..b, resolverSignedSourceReal p u x
+        = ∫ x in (0 : ℝ)..1, resolverSignedSourceReal p u x * ψ x := by
+          exact (integral_zero_one_mul_indicator_Ioc_eq_intervalIntegral_of_le
+            (f := resolverSignedSourceReal p u) ha.1 hb.2 hab).symm
+    _ = ∑' k : ℕ,
+          cosineCoeffs (resolverSignedSourceReal p u) k *
+            bridgeCosineTestCoeff ψ k := hparse.2.symm
+    _ = ∑' k : ℕ,
+          (intervalNeumannResolverSourceCoeff p u k).re *
+            ∫ x in a..b, unitIntervalCosineMode k x := by
+          refine tsum_congr fun k => ?_
+          rw [resolverSignedSourceReal_cosineCoeff_eq p u k, htest k]
+
+private theorem integral_lapSignedReal_eq_tsum_lapCoeff_pairing_of_le
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {a b : ℝ} (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1)
+    (hab : a ≤ b) :
+    (∫ t in a..b, resolverLapSignedReal p u t)
+      =
+    ∑' k : ℕ,
+      (p.μ * (intervalNeumannResolverCoeff p u k).re -
+        (intervalNeumannResolverSourceCoeff p u k).re) *
+        ∫ t in a..b, unitIntervalCosineMode k t := by
+  classical
+  obtain ⟨hRsum, hRint_eq⟩ :=
+    resolverValueSeriesReal_integral_tsum_of_le_bridge p hUcont ha hb hab
+  obtain ⟨hSsum, hSint_eq⟩ :=
+    resolverSignedSourceReal_integral_tsum_of_le_bridge
+      p hUcont ha hb hab
+  have huIcc_sub : Set.uIcc a b ⊆ Set.Icc (0 : ℝ) 1 := by
+    intro x hx
+    have hxab : x ∈ Set.Icc a b := by
+      simpa [Set.uIcc_of_le hab] using hx
+    exact ⟨ha.1.le.trans hxab.1, hxab.2.trans hb.2.le⟩
+  have hR_intervalIntegrable :
+      IntervalIntegrable (resolverValueSeriesReal p u) volume a b :=
+    (resolverValueSeriesReal_continuous_of_continuousOn p hUcont).intervalIntegrable a b
+  have hS_intervalIntegrable :
+      IntervalIntegrable (resolverSignedSourceReal p u) volume a b := by
+    exact ((resolverSignedSourceReal_continuousOn p hUcont).mono huIcc_sub).intervalIntegrable
+  have hLap_eq :
+      (∫ t in a..b, resolverLapSignedReal p u t)
+        =
+      ∫ t in a..b,
+        (p.μ * resolverValueSeriesReal p u t - resolverSignedSourceReal p u t) := by
+    refine intervalIntegral.integral_congr ?_
+    intro x hx
+    have hxab : x ∈ Set.Icc a b := by
+      simpa [Set.uIcc_of_le hab] using hx
+    have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 :=
+      ⟨ha.1.le.trans hxab.1, hxab.2.trans hb.2.le⟩
+    simp [resolverLapSignedReal, resolverSignedSourceReal, resolverValueSeriesReal,
+      intervalNeumannResolverR, hxIcc]
+  have hμRsum :
+      Summable (fun k : ℕ =>
+        p.μ *
+          ((intervalNeumannResolverCoeff p u k).re *
+            ∫ t in a..b, unitIntervalCosineMode k t)) :=
+    hRsum.mul_left p.μ
+  have hR_const_mul :
+      (∫ x in a..b, p.μ * resolverValueSeriesReal p u x)
+        = p.μ * (∫ x in a..b, resolverValueSeriesReal p u x) := by
+    exact intervalIntegral.integral_const_mul
+      (a := a) (b := b) (μ := volume)
+      p.μ (fun x : ℝ => resolverValueSeriesReal p u x)
+  have hlinear :
+      (∫ x in a..b,
+        (p.μ * resolverValueSeriesReal p u x - resolverSignedSourceReal p u x))
+        =
+      p.μ * (∫ x in a..b, resolverValueSeriesReal p u x)
+        - (∫ x in a..b, resolverSignedSourceReal p u x) := by
+    rw [intervalIntegral.integral_sub
+      (hR_intervalIntegrable.const_mul p.μ) hS_intervalIntegrable]
+    exact congrArg
+      (fun z : ℝ => z - (∫ x in a..b, resolverSignedSourceReal p u x))
+      hR_const_mul
+  have hseries_sub :
+      p.μ * (∫ x in a..b, resolverValueSeriesReal p u x)
+        - (∫ x in a..b, resolverSignedSourceReal p u x)
+        =
+      p.μ * (∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re *
+          ∫ x in a..b, unitIntervalCosineMode k x)
+        - (∑' k : ℕ,
+          (intervalNeumannResolverSourceCoeff p u k).re *
+            ∫ x in a..b, unitIntervalCosineMode k x) := by
+    exact congrArg₂ (fun R S : ℝ => p.μ * R - S) hRint_eq hSint_eq
+  calc
+    ∫ t in a..b, resolverLapSignedReal p u t
+        =
+      ∫ t in a..b,
+        (p.μ * resolverValueSeriesReal p u t - resolverSignedSourceReal p u t) := hLap_eq
+    _ =
+      p.μ * (∫ t in a..b, resolverValueSeriesReal p u t)
+        - (∫ t in a..b, resolverSignedSourceReal p u t) := hlinear
+    _ =
+      p.μ * (∑' k : ℕ,
+        (intervalNeumannResolverCoeff p u k).re *
+          ∫ t in a..b, unitIntervalCosineMode k t)
+        - (∑' k : ℕ,
+          (intervalNeumannResolverSourceCoeff p u k).re *
+            ∫ t in a..b, unitIntervalCosineMode k t) := by
+          exact hseries_sub
+    _ =
+      (∑' k : ℕ,
+        p.μ *
+          ((intervalNeumannResolverCoeff p u k).re *
+            ∫ t in a..b, unitIntervalCosineMode k t))
+        - (∑' k : ℕ,
+          (intervalNeumannResolverSourceCoeff p u k).re *
+            ∫ t in a..b, unitIntervalCosineMode k t) := by
+          rw [tsum_mul_left]
+    _ =
+      ∑' k : ℕ,
+        ((p.μ *
+          ((intervalNeumannResolverCoeff p u k).re *
+            ∫ t in a..b, unitIntervalCosineMode k t)) -
+          (intervalNeumannResolverSourceCoeff p u k).re *
+            ∫ t in a..b, unitIntervalCosineMode k t) := by
+          exact (hμRsum.tsum_sub hSsum).symm
+    _ =
+      ∑' k : ℕ,
+        (p.μ * (intervalNeumannResolverCoeff p u k).re -
+          (intervalNeumannResolverSourceCoeff p u k).re) *
+          ∫ t in a..b, unitIntervalCosineMode k t := by
+          refine tsum_congr fun k => ?_
+          ring
+
+private theorem integral_lapSignedReal_eq_tsum_lapCoeff_pairing
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {a b : ℝ} (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1) :
+    (∫ t in a..b, resolverLapSignedReal p u t)
+      =
+    ∑' k : ℕ,
+      (p.μ * (intervalNeumannResolverCoeff p u k).re -
+        (intervalNeumannResolverSourceCoeff p u k).re) *
+        ∫ t in a..b, unitIntervalCosineMode k t := by
+  classical
+  by_cases hab : a ≤ b
+  · exact integral_lapSignedReal_eq_tsum_lapCoeff_pairing_of_le
+      p hUcont ha hb hab
+  · have hba : b ≤ a := le_of_not_ge hab
+    have hswap :=
+      integral_lapSignedReal_eq_tsum_lapCoeff_pairing_of_le
+        p hUcont hb ha hba
+    calc
+      ∫ t in a..b, resolverLapSignedReal p u t
+          = -(∫ t in b..a, resolverLapSignedReal p u t) := by
+            rw [intervalIntegral.integral_symm b a]
+      _ = -(∑' k : ℕ,
+            (p.μ * (intervalNeumannResolverCoeff p u k).re -
+              (intervalNeumannResolverSourceCoeff p u k).re) *
+              ∫ t in b..a, unitIntervalCosineMode k t) := by
+            rw [hswap]
+      _ = ∑' k : ℕ,
+            (p.μ * (intervalNeumannResolverCoeff p u k).re -
+              (intervalNeumannResolverSourceCoeff p u k).re) *
+              ∫ t in a..b, unitIntervalCosineMode k t := by
+            have hterm :
+                (fun k : ℕ =>
+                  (p.μ * (intervalNeumannResolverCoeff p u k).re -
+                    (intervalNeumannResolverSourceCoeff p u k).re) *
+                    ∫ t in b..a, unitIntervalCosineMode k t)
+                  =
+                fun k : ℕ =>
+                  -((p.μ * (intervalNeumannResolverCoeff p u k).re -
+                    (intervalNeumannResolverSourceCoeff p u k).re) *
+                    ∫ t in a..b, unitIntervalCosineMode k t) := by
+              funext k
+              rw [intervalIntegral.integral_symm a b]
+              ring
+            rw [hterm, tsum_neg]
+            simp
+
+theorem resolverGradReal_sub_eq_integral_lapSignedReal
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {a b : ℝ} (ha : a ∈ Set.Ioo (0 : ℝ) 1) (hb : b ∈ Set.Ioo (0 : ℝ) 1) :
+    resolverGradReal p u b - resolverGradReal p u a
+      = ∫ t in a..b, resolverLapSignedReal p u t := by
+  calc
+    resolverGradReal p u b - resolverGradReal p u a
+        = ∑' k : ℕ,
+            (p.μ * (intervalNeumannResolverCoeff p u k).re -
+              (intervalNeumannResolverSourceCoeff p u k).re) *
+              ∫ t in a..b, unitIntervalCosineMode k t :=
+          resolverGradReal_sub_eq_tsum_lapCoeff_pairing p hUcont
+    _ = ∫ t in a..b, resolverLapSignedReal p u t :=
+          (integral_lapSignedReal_eq_tsum_lapCoeff_pairing
+            p hUcont ha hb).symm
+
+theorem resolverGradReal_eventually_eq_signedPrimitive
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    (fun z : ℝ => resolverGradReal p u z)
+      =ᶠ[𝓝 x]
+    (fun z : ℝ => resolverGradReal p u x
+      + ∫ t in x..z, resolverLapSignedReal p u t) := by
+  have hIoo_mem : Set.Ioo (0 : ℝ) 1 ∈ 𝓝 x :=
+    IsOpen.mem_nhds isOpen_Ioo hx
+  filter_upwards [hIoo_mem] with z hz
+  have h := resolverGradReal_sub_eq_integral_lapSignedReal
+    p hUcont hx hz
+  linarith
+
+theorem resolverGradReal_hasDerivAt_signedLap_of_continuousOn
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt (fun z : ℝ => resolverGradReal p u z)
+      (p.μ * resolverValueSeriesReal p u x - resolverSignedSourceReal p u x) x := by
+  let q : ℝ → ℝ := resolverLapSignedReal p u
+  have hq_cont : ContinuousAt q x :=
+    resolverLapSignedReal_continuousAt_of_continuousOn p hUcont hx
+  have hq_int : IntervalIntegrable q volume x x := by
+    rw [intervalIntegrable_iff]
+    simp
+  have hq_meas : StronglyMeasurableAtFilter q (𝓝 x) :=
+    ContinuousAt.stronglyMeasurableAtFilter isOpen_Ioo
+      (fun y hy => resolverLapSignedReal_continuousAt_of_continuousOn p hUcont hy)
+      x hx
+  have hFTC :
+      HasDerivAt (fun z : ℝ => ∫ t in x..z, q t) (q x) x :=
+    intervalIntegral.integral_hasDerivAt_right hq_int hq_meas hq_cont
+  have hprim :
+      HasDerivAt
+        (fun z : ℝ => resolverGradReal p u x + ∫ t in x..z, q t)
+        (q x) x := by
+    simpa using hFTC.const_add (resolverGradReal p u x)
+  have hev :
+      (fun z : ℝ => resolverGradReal p u z)
+        =ᶠ[𝓝 x]
+      (fun z : ℝ => resolverGradReal p u x + ∫ t in x..z, q t) :=
+    resolverGradReal_eventually_eq_signedPrimitive p hUcont hx
+  have hq_x :
+      q x = p.μ * resolverValueSeriesReal p u x - resolverSignedSourceReal p u x := by
+    simp [q, resolverLapSignedReal, resolverValueSeriesReal,
+      resolverSignedSourceReal, intervalNeumannResolverR, Set.Ioo_subset_Icc_self hx]
+  rw [← hq_x]
+  exact hprim.congr_of_eventuallyEq hev
+
 end ShenWork.IntervalResolverWeakBounds

@@ -92,10 +92,12 @@ def truncLeftProfile (M A_L A_F B_F chi lo t' : ℝ) : ℝ :=
     + truncLeftD M A_L A_F B_F chi lo
 
 private theorem beta_half_integral_eq_pi {r : ℝ} (hr : 0 < r) :
-    ((∫ s in (0)..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2) : ℝ) : ℂ)
+    ((∫ s in (0)..r,
+        (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2) : ℝ) : ℂ)
       = (Real.pi : ℂ) := by
   have htoC :
-      ((∫ s in (0)..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2) : ℝ) : ℂ)
+      ((∫ s in (0)..r,
+          (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2) : ℝ) : ℂ)
         = ∫ s in (0)..r,
             (s : ℂ) ^ ((1/2 : ℂ) - 1) * ((r : ℂ) - s) ^ ((1/2 : ℂ) - 1) := by
     rw [← intervalIntegral.integral_ofReal]
@@ -104,9 +106,19 @@ private theorem beta_half_integral_eq_pi {r : ℝ} (hr : 0 < r) :
     rw [uIcc_of_le hr.le] at hs
     have hs0 : 0 ≤ s := hs.1
     have hrs0 : 0 ≤ r - s := sub_nonneg.mpr hs.2
-    push_cast
-    rw [Complex.ofReal_cpow hrs0 (-(1/2) : ℝ)]
-    rw [Complex.ofReal_cpow hs0 (-(1/2) : ℝ)]
+    rw [Complex.ofReal_mul]
+    have h1 :
+        (((r - s : ℝ) ^ ((-1 : ℝ) / 2) : ℝ) : ℂ) =
+          ((r : ℂ) - s) ^ (((-1 : ℝ) / 2 : ℝ) : ℂ) := by
+      simpa [show ((-1 : ℝ) / 2 = -(1 / 2 : ℝ)) by norm_num,
+        Complex.ofReal_sub] using
+        Complex.ofReal_cpow hrs0 (-(1 / 2 : ℝ))
+    have h2 :
+        (((s : ℝ) ^ ((-1 : ℝ) / 2) : ℝ) : ℂ) =
+          (s : ℂ) ^ (((-1 : ℝ) / 2 : ℝ) : ℂ) := by
+      simpa [show ((-1 : ℝ) / 2 = -(1 / 2 : ℝ)) by norm_num] using
+        Complex.ofReal_cpow hs0 (-(1 / 2 : ℝ))
+    rw [h1, h2]
     norm_num [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc]
   rw [htoC]
   have hscaled := Complex.betaIntegral_scaled (s := (1/2 : ℂ)) (t := (1/2 : ℂ)) (a := r) hr
@@ -155,27 +167,30 @@ private theorem profile_algebra_bound {X Y2 Y3 bL bW : ℝ}
 -- Theorem 1: Elementary Volterra integral bound
 -- ∫_0^r (r-s)^{-1/2} · s^{-1/2} ds ≤ 2√3 for 0 < r
 theorem left_beta_kernel_bound {r : ℝ} (hr : 0 < r) :
-    ∫ s in (0)..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2) ≤ truncLeftKappa := by
+    ∫ s in (0)..r, (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2)
+      ≤ truncLeftKappa := by
   have hC := beta_half_integral_eq_pi hr
-  have hReal : ∫ s in (0)..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2) = Real.pi := by
-    exact Complex.ofReal_injective hC
+  have hReal :
+      ∫ s in (0)..r, (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2)
+        = Real.pi := by
+    simpa only [one_div, neg_div] using Complex.ofReal_injective hC
   rw [hReal]
   exact pi_le_truncLeftKappa
 
 /-- Integrability of the beta-half kernel on its full interval. -/
 theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     IntervalIntegrable
-      (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2))
+      (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2))
       volume 0 r := by
   have hmid_pos : 0 < r / 2 := by linarith
   have h0mid : (0 : ℝ) ≤ r / 2 := le_of_lt hmid_pos
   have hmidr : r / 2 ≤ r := by linarith
   have hleft_s :
-      IntervalIntegrable (fun s : ℝ => s ^ ((-1:ℝ)/2)) volume 0 (r / 2) := by
+      IntervalIntegrable (fun s : ℝ => s ^ ((-1 : ℝ) / 2)) volume 0 (r / 2) := by
     exact intervalIntegral.intervalIntegrable_rpow'
-      (by norm_num : (-1 : ℝ) < ((-1:ℝ)/2))
+      (by norm_num : (-1 : ℝ) < (-(1 / 2 : ℝ)))
   have hleft_cont :
-      ContinuousOn (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2))
+      ContinuousOn (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2))
         (Set.uIcc (0 : ℝ) (r / 2)) := by
     refine (continuous_const.sub continuous_id).continuousOn.rpow_const ?_
     intro s hs
@@ -185,18 +200,14 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     exact ne_of_gt this
   have hleft :
       IntervalIntegrable
-        (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2))
+        (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2))
         volume 0 (r / 2) := by
     simpa [mul_comm] using hleft_s.continuousOn_mul hleft_cont
   have hsub_all :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2)) volume 0 r :=
-    by
-      convert ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r using 1
-      ext s
-      congr 1
-      norm_num
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2)) volume 0 r := by
+    exact ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
   have hright_rsub :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2))
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)))
         volume (r / 2) r := by
     refine hsub_all.mono_set ?_
     intro x hx
@@ -204,7 +215,7 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     rw [Set.uIcc_of_le hr.le]
     exact ⟨h0mid.trans hx.1, hx.2⟩
   have hright_cont :
-      ContinuousOn (fun s : ℝ => s ^ ((-1:ℝ)/2)) (Set.uIcc (r / 2) r) := by
+      ContinuousOn (fun s : ℝ => s ^ ((-1 : ℝ) / 2)) (Set.uIcc (r / 2) r) := by
     refine continuous_id.continuousOn.rpow_const ?_
     intro s hs
     left
@@ -212,7 +223,7 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     exact ne_of_gt (lt_of_lt_of_le hmid_pos hs.1)
   have hright :
       IntervalIntegrable
-        (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2))
+        (fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2))
         volume (r / 2) r :=
     hright_rsub.mul_continuousOn hright_cont
   exact hleft.trans hright
@@ -221,25 +232,23 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
 Volterra constant. -/
 theorem left_beta_kernel_interval_bound {a r : ℝ}
     (hr : 0 < r) (ha : 0 ≤ a) (har : a ≤ r) :
-    ∫ s in a..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2)
+    ∫ s in a..r, (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2)
       ≤ truncLeftKappa := by
   have hnonneg :
       0 ≤ᶠ[ae (volume.restrict (Set.Ioc (0 : ℝ) r))]
-        fun s : ℝ => (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2) := by
+        fun s : ℝ => (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2) := by
     refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
     filter_upwards with s hs
     exact mul_nonneg
       (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _)
       (Real.rpow_nonneg (le_of_lt hs.1) _)
   have hmono :
-      ∫ s in a..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2)
-        ≤ ∫ s in (0)..r, (r - s) ^ ((-1:ℝ)/2) * s ^ ((-1:ℝ)/2) :=
+      ∫ s in a..r, (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2)
+        ≤ ∫ s in (0)..r, (r - s) ^ ((-1 : ℝ) / 2) * s ^ ((-1 : ℝ) / 2) :=
     intervalIntegral.integral_mono_interval
       (c := (0 : ℝ)) (d := r) ha har le_rfl hnonneg
       (left_beta_kernel_intervalIntegrable hr)
-  exact hmono.trans (by
-    simpa [show (-(1:ℝ)/2) = ((-1:ℝ)/2) by norm_num] using
-      left_beta_kernel_bound hr)
+  exact hmono.trans (left_beta_kernel_bound hr)
 
 /-- The fixed additive part `D` of the left profile absorbs the singular
 Duhamel source contribution on every sub-time `τ ≤ lo`. -/
