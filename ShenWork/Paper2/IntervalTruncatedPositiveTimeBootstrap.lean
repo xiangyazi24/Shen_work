@@ -2734,6 +2734,70 @@ theorem truncatedChemFlux_continuousOn_positive_time
       (SD.hcont t ht htT)
       (SD.hbound t ht htT)
 
+private theorem truncatedChemFluxLifted_hasDerivAt_of_lift_hasDerivAt_not_bad
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hM : 0 < M) (hw_cont : Continuous w)
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) {y : ℝ}
+    (hyIoo : y ∈ Set.Ioo (0 : ℝ) 1)
+    (hw_has : HasDerivAt (intervalDomainLift w)
+      (deriv (intervalDomainLift w) y) y)
+    (hnot_bad :
+      intervalDomainLift w y = 0 → deriv (intervalDomainLift w) y = 0) :
+    HasDerivAt (truncatedChemFluxLifted p w)
+      (deriv (truncatedChemFluxLifted p w) y) y := by
+  classical
+  let R : ℝ → ℝ :=
+    fun z => intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) z
+  let g : ℝ → ℝ := fun z => resolverGradReal p w z
+  let a : ℝ → ℝ := fun z => positivePart (intervalDomainLift w z)
+  let q : ℝ → ℝ := fun z => (1 + R z) ^ (-p.β)
+  have hflux_eq : truncatedChemFluxLifted p w =
+      fun z => a z * g z * q z := by
+    funext z
+    have hR_nonneg : 0 ≤ R z := by
+      simpa [R] using resolverR_lift_nonneg_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball z
+    have hbase_nonneg : 0 ≤ 1 + R z := by linarith
+    unfold truncatedChemFluxLifted
+    rw [div_eq_mul_inv, ← Real.rpow_neg hbase_nonneg]
+  obtain ⟨dpos, ha_has⟩ :=
+    positivePart_comp_hasDerivAt_of_hasDerivAt_not_bad hw_has hnot_bad
+  obtain ⟨_src, hg_raw, _hsrc⟩ :=
+    resolverGradReal_hasDerivAt_signed_ellipticBound_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball y
+  have hg_has : HasDerivAt g (deriv g y) y := by
+    simpa [g, hg_raw.deriv] using hg_raw
+  have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+    lift_continuousOn_Icc_of_continuous hw_cont
+  have hR_has : HasDerivAt R (g y) y := by
+    simpa [R, g] using
+      ShenWork.IntervalResolverWeakBounds.intervalNeumannResolverR_lift_hasDerivAt_resolverGradReal_of_continuousOn
+        (p := p) (u := w) hUcont hyIoo
+  have hbase_has : HasDerivAt (fun z : ℝ => 1 + R z) (g y) y :=
+    hR_has.const_add 1
+  have hR_nonneg_y : 0 ≤ R y := by
+    simpa [R] using resolverR_lift_nonneg_of_abs_ball
+      (p := p) (w := w) (M := M) hM hw_cont hball y
+  have hbase_pos : 0 < 1 + R y := by linarith
+  have hq_has :
+      HasDerivAt q (g y * (-p.β) * (1 + R y) ^ (-p.β - 1)) y := by
+    simpa [q, sub_eq_add_neg] using
+      hbase_has.rpow_const (p := -p.β) (Or.inl (ne_of_gt hbase_pos))
+  have hag_has : HasDerivAt (fun z : ℝ => a z * g z)
+      (dpos * g y + a y * deriv g y) y := by
+    simpa using ha_has.mul hg_has
+  have hprod_has : HasDerivAt (fun z : ℝ => a z * g z * q z)
+      ((dpos * g y + a y * deriv g y) * q y
+        + (a y * g y) * (g y * (-p.β) * (1 + R y) ^ (-p.β - 1))) y := by
+    simpa only [Pi.mul_apply] using hag_has.mul hq_has
+  have hflux_has : HasDerivAt (truncatedChemFluxLifted p w)
+      ((dpos * g y + a y * deriv g y) * q y
+        + (a y * g y) * (g y * (-p.β) * (1 + R y) ^ (-p.β - 1))) y := by
+    rw [hflux_eq]
+    exact hprod_has
+  rw [hflux_has.deriv]
+  exact hflux_has
+
 /-- The truncated chemotaxis flux is differentiable off a countable set.
 Like the negative-part test, the only source of non-differentiability
 is `positivePart` in the flux definition, which is differentiable off
@@ -2749,7 +2813,43 @@ theorem truncatedChemFlux_diff_off_countable_positive_time
             ((truncatedConjugatePicardLimit p u₀ DT.T) t))
           (deriv (truncatedChemFluxLifted p
             ((truncatedConjugatePicardLimit p u₀ DT.T) t)) x) x := by
-  sorry
+  let w : intervalDomainPoint → ℝ :=
+    (truncatedConjugatePicardLimit p u₀ DT.T) t
+  let SD : TruncatedConjugateMildSolutionData p u₀ :=
+    truncatedConjugateMildSolutionData_of_data DT
+  have hdiff_Ioo :
+      ∀ x ∈ Ioo (0 : ℝ) 1,
+        DifferentiableAt ℝ (intervalDomainLift w) x := by
+    intro x hx
+    simpa [w] using
+      (truncatedPicardLimit_level5_series_reconstruction_positive_time
+        DT ht htT).2.2 x hx
+  have hball : ∀ x : intervalDomainPoint, |w x| ≤ SD.M := by
+    intro x
+    simpa [w, SD] using SD.hbound t ht htT x
+  have hw_cont : Continuous w := by
+    simpa [w, SD] using SD.hcont t ht htT
+  let s_chem : Set ℝ := transversalZeroSet (intervalDomainLift w)
+  refine ⟨s_chem, ?_, ?_⟩
+  · exact transversalZeroSet_countable_of_differentiableAt
+      (f := intervalDomainLift w) hdiff_Ioo
+  · intro x hx
+    have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := hx.1
+    have hx_not_s : x ∉ s_chem := hx.2
+    have hw_has :
+        HasDerivAt (intervalDomainLift w)
+          (deriv (intervalDomainLift w) x) x :=
+      (hdiff_Ioo x hxIoo).hasDerivAt
+    have hnot_bad :
+        intervalDomainLift w x = 0 →
+          deriv (intervalDomainLift w) x = 0 := by
+      intro hzero
+      by_contra hne
+      exact hx_not_s ⟨hxIoo, hzero, hne⟩
+    simpa [w] using
+      truncatedChemFluxLifted_hasDerivAt_of_lift_hasDerivAt_not_bad
+        (p := p) (w := w) (M := SD.M) SD.hM hw_cont hball
+        hxIoo hw_has hnot_bad
 
 /-- Bounded derivative of the truncated chemotaxis flux.  From bounded
 gradient of `u`, resolver bounds, and the product rule. -/
