@@ -356,3 +356,47 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
   `u_xx`-continuity-to-`ContinuousOn` bridge with the still-carried
   derivative-integrability input.  Local module build passes and a remote full
   build passes with `=== BUILD OK (71s) ===`.
+
+## Run 2026-07-08 18:06
+
+**Target:** Close all sorry in Paper 2 Theorem 1.1 bootstrap
+(IntervalTruncatedPositiveTimeBootstrap.lean and
+IntervalTruncatedPositiveTimeGradientAtoms.lean)
+
+**Starting state:** Bootstrap 21 sorry, GradientAtoms 1 sorry = 22 total.
+
+**Commits:**
+- 7161986e: GradientAtoms restart split properties 1-3, decompose 4-6 (1→3 focused)
+- 45c20863: Bootstrap resolverGrad_abs_le_of_abs_ball (signed Cauchy-Schwarz, 21→20)
+- 6f896903: GradientAtoms DifferentiableAt from HasDerivAt helper (restructured, 3→3)
+
+**Codex dispatches (parallel grinding):**
+- bgcmjccxl (DONE): resolver gradient bound for signed u → CLOSED
+- bebzlao0b (DONE): restart split properties → CLOSED 3/6, decomposed remaining
+- bv89mfx3l (DONE): gradient DifferentiableAt → closed from HasDerivAt
+- bkzxi59w9 (DONE): resolver Hessian bound → closed, added HasDerivAt helper sorry
+- bef1skabm (RUNNING): product rule derivative identity (hdiff fix)
+- bm09z68vp (RUNNING): gradient Leibniz restart identity
+
+**KEY BLOCKER — resolver nonneg (L737):**
+- `resolverR_lift_nonneg_of_abs_ball` is FALSE for signed iterates
+- Numerical verification confirms R(w) negative for signed w
+- Root cause: resolver source = ν·u^γ (full u, not positivePart)
+- Resolution needed: add V_M < 1 parameter or track (1-V_M)^{-β} constant
+- All 15+ downstream sorries chain through this gap
+- Design decision deferred to Xiang
+
+**Dependency chain:** product rule (L754) → chemDiv bound (L1517) → source bound (L1491) →
+Sobolev ladder (6 steps) → Level 4 regularity → Level 5 series reps
+
+**Current sorry count:** Bootstrap 20, GradientAtoms 3 = 23 total (down from 22,
+but decomposition added focused helper sorries).
+
+**Update 2026-07-08 ~19:30:**
+- bm09z68vp DONE: GradientAtoms restart deriv + HasDerivAt closed (2 sorries)
+  Committed f7437994, pushed
+- GradientAtoms now 3 sorries (analytic residuals: value restart, Duhamel HasDerivAt, integrability)
+- bnghsawtn dispatched: Codex grinding GradientAtoms 3 residuals
+- bef1skabm STILL RUNNING: product rule with DifferentiableAt fix
+- Total: Bootstrap 21 + GradientAtoms 3 = 24
+  (Bootstrap 21 because Hessian Codex added hasDerivAt helper sorry)
