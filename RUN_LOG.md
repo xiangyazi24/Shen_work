@@ -1,5 +1,43 @@
 # Shen Trilogy Formalization — RUN LOG
 
+## Run 2026-07-08 (automode, Paper 2 Theorem 1.1 unconditional)
+- doctrine: Close all remaining sorry in Paper 2 formalization
+- approval: automode continuation from prior session
+- starting avenue: Batch Codex dispatch for Bootstrap + GradientAtoms + ChiNeg sorries
+- end: (ongoing)
+- final result: (ongoing)
+
+### Sorry count tracker:
+| File | Start | Current | Target |
+|------|-------|---------|--------|
+| Bootstrap | 19 | 15 | 0 |
+| GradientAtoms | 3 | 3 | 0 |
+| ChiNeg | 4 | 4 | 0 |
+| ResolverWeakLap | 1 | 1 | 0 |
+| **Total** | **27** | **23** | **0** |
+
+### Commits:
+- **5012678c**: hdiff_pos closed (Ioo case split for DifferentiableAt)
+- **41508564**: chemFlux_continuousOn closed (Codex helper truncatedChemFluxLifted_continuousOn_of_abs_ball)
+- **269a57be**: Wave 3 harvest — H¹ (Sobolev Step 1) + Level 5 (timeDeriv+grad series) + negPart deriv bound + kernel infra. Net 17→15.
+
+### Codex in flight (12 tasks):
+1. b98xb78a6: kernel step (L1310)
+2. bhbj0fota: GradientAtoms 3 residuals
+3. baogbjtmc: ChiNeg positive-time joint continuity (L589)
+4. bwtb9gush: source coeff uniform bound (L2063)
+5. btkwi8wud: Level 5 reconstruction (L2535)
+6. b4qq76r3z: Level 4 diff-off-countable (L2410 + L2495)
+7. bbaix1o1t: gradient bound (L2389)
+8. byo6temjo: chemFlux deriv bound (L2506)
+9. b3q8w591t: Sobolev Step 2 ℓ² source (L2128)
+10-12. Earlier tasks (be3qp98h8, bcg402b89, b2qjls19k) — may have completed
+
+### Design gaps (not Codex-solvable):
+- **L830**: Resolver nonneg circular dependency (R≥0 needs w≥0, but w≥0 is what ChiNeg proves)
+- **ChiNeg L852**: hiter_nonneg (iterate nonnegativity — possibly FALSE as stated)
+- **L739**: HasDerivAt signed elliptic (blocked on SourceCoeffQuadraticDecay)
+
 ## Run 2026-07-03 (automode+fable-ora, DatumWienerData → Theorem_1_1)
 - doctrine: Complete the χ₀<0 assembly chain to Theorem_1_1
 - approval: automode continuation

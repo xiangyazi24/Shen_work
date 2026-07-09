@@ -165,17 +165,17 @@ theorem left_beta_kernel_bound {r : ℝ} (hr : 0 < r) :
 /-- Integrability of the beta-half kernel on its full interval. -/
 theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     IntervalIntegrable
-      (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+      (fun s : ℝ => (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2))
       volume 0 r := by
   have hmid_pos : 0 < r / 2 := by linarith
   have h0mid : (0 : ℝ) ≤ r / 2 := le_of_lt hmid_pos
   have hmidr : r / 2 ≤ r := by linarith
   have hleft_s :
-      IntervalIntegrable (fun s : ℝ => s ^ (-(1 / 2 : ℝ))) volume 0 (r / 2) := by
+      IntervalIntegrable (fun s : ℝ => s ^ (-(1:ℝ)/2)) volume 0 (r / 2) := by
     exact intervalIntegral.intervalIntegrable_rpow'
-      (by norm_num : (-1 : ℝ) < -(1 / 2 : ℝ))
+      (by norm_num : (-1 : ℝ) < (-(1:ℝ)/2))
   have hleft_cont :
-      ContinuousOn (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)))
+      ContinuousOn (fun s : ℝ => (r - s) ^ (-(1:ℝ)/2))
         (Set.uIcc (0 : ℝ) (r / 2)) := by
     refine (continuous_const.sub continuous_id).continuousOn.rpow_const ?_
     intro s hs
@@ -185,14 +185,14 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     exact ne_of_gt this
   have hleft :
       IntervalIntegrable
-        (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+        (fun s : ℝ => (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2))
         volume 0 (r / 2) := by
     simpa [mul_comm] using hleft_s.continuousOn_mul hleft_cont
   have hsub_all :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ))) volume 0 r :=
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1:ℝ)/2)) volume 0 r :=
     ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
   have hright_rsub :
-      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)))
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1:ℝ)/2))
         volume (r / 2) r := by
     refine hsub_all.mono_set ?_
     intro x hx
@@ -200,7 +200,7 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     rw [Set.uIcc_of_le hr.le]
     exact ⟨h0mid.trans hx.1, hx.2⟩
   have hright_cont :
-      ContinuousOn (fun s : ℝ => s ^ (-(1 / 2 : ℝ))) (Set.uIcc (r / 2) r) := by
+      ContinuousOn (fun s : ℝ => s ^ (-(1:ℝ)/2)) (Set.uIcc (r / 2) r) := by
     refine continuous_id.continuousOn.rpow_const ?_
     intro s hs
     left
@@ -208,7 +208,7 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
     exact ne_of_gt (lt_of_lt_of_le hmid_pos hs.1)
   have hright :
       IntervalIntegrable
-        (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+        (fun s : ℝ => (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2))
         volume (r / 2) r :=
     hright_rsub.mul_continuousOn hright_cont
   exact hleft.trans hright
@@ -217,19 +217,19 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
 Volterra constant. -/
 theorem left_beta_kernel_interval_bound {a r : ℝ}
     (hr : 0 < r) (ha : 0 ≤ a) (har : a ≤ r) :
-    ∫ s in a..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+    ∫ s in a..r, (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2)
       ≤ truncLeftKappa := by
   have hnonneg :
       0 ≤ᶠ[ae (volume.restrict (Set.Ioc (0 : ℝ) r))]
-        fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) := by
+        fun s : ℝ => (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2) := by
     refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
     filter_upwards with s hs
     exact mul_nonneg
       (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _)
       (Real.rpow_nonneg (le_of_lt hs.1) _)
   have hmono :
-      ∫ s in a..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
-        ≤ ∫ s in (0)..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) :=
+      ∫ s in a..r, (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2)
+        ≤ ∫ s in (0)..r, (r - s) ^ (-(1:ℝ)/2) * s ^ (-(1:ℝ)/2) :=
     intervalIntegral.integral_mono_interval
       (c := (0 : ℝ)) (d := r) ha har le_rfl hnonneg
       (left_beta_kernel_intervalIntegrable hr)

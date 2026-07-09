@@ -20,6 +20,7 @@ import ShenWork.Paper2.IntervalCompactSliceGradientBounds
 import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalDuhamelIntegrability
+import ShenWork.PDE.IntervalFullKernelLeibniz
 import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
 import ShenWork.PDE.IntervalSemigroupAtZero
 
@@ -318,6 +319,183 @@ private def truncatedWindowedSource
     (Src : ℕ → ℝ → ℝ → ℝ) (n : ℕ) (a hi : ℝ) : ℝ → ℝ → ℝ :=
   fun s y => if a ≤ s ∧ s ≤ hi then Src n s y else 0
 
+private theorem measurable_tsum_nat {α : Type*} [MeasurableSpace α]
+    {f : ℕ → α → ℝ} (hf : ∀ n, Measurable (f n)) :
+    Measurable (fun a : α => ∑' n : ℕ, f n a) := by
+  classical
+  let L := SummationFilter.unconditional ℕ
+  set S : Finset ℕ → α → ℝ := fun s a => ∑ n ∈ s, f n a with hSdef
+  have hS_meas : ∀ s, StronglyMeasurable (S s) := by
+    intro s
+    exact (Finset.measurable_sum _ (fun n _ => hf n)).stronglyMeasurable
+  set C : Set α := {a | ∃ c : ℝ, Tendsto (fun s : Finset ℕ => S s a) L.filter (nhds c)}
+    with hCdef
+  have hC_meas : MeasurableSet C := by
+    simpa [C] using MeasureTheory.StronglyMeasurable.measurableSet_exists_tendsto
+      (l := L.filter) (f := S) hS_meas
+  have hlim_meas : Measurable (fun a : α =>
+      L.filter.limUnder (fun s : Finset ℕ => S s a)) :=
+    (MeasureTheory.StronglyMeasurable.limUnder (l := L.filter) hS_meas).measurable
+  have h_eq : (fun a : α => ∑' n : ℕ, f n a) =
+      fun a : α => if a ∈ C then L.filter.limUnder (fun s : Finset ℕ => S s a) else 0 := by
+    funext a
+    by_cases ha : a ∈ C
+    · simp only [ha, if_true]
+      rcases ha with ⟨c, hc⟩
+      have hsum : Summable (fun n : ℕ => f n a) := ⟨c, hc⟩
+      exact hsum.hasSum.limUnder_eq.symm
+    · simp only [ha, if_false]
+      have hnot : ¬ Summable (fun n : ℕ => f n a) := by
+        intro hs
+        exact ha ⟨∑' n : ℕ, f n a, hs.hasSum⟩
+      exact tsum_eq_zero_of_not_summable hnot
+  rw [h_eq]
+  exact Measurable.ite hC_meas hlim_meas measurable_const
+
+private theorem intervalNeumannResolverSourceCoeff_time_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : ShenWork.IntervalMildPicard.HasJointMeasurability w) (k : ℕ) :
+    Measurable (fun s : ℝ => ShenWork.PDE.intervalNeumannResolverSourceCoeff p (w s) k) := by
+  set src : ℝ → ℝ → ℂ :=
+    fun s x => ((p.ν * intervalDomainLift (w s) x ^ p.γ : ℝ) : ℂ) with hsrc_def
+  have hsrc_meas : Measurable (fun q : ℝ × ℝ => src q.1 q.2) := by
+    have h_rpow : Measurable (fun x : ℝ => x ^ p.γ) := by fun_prop
+    have hpow : Measurable (fun q : ℝ × ℝ =>
+        intervalDomainLift (w q.1) q.2 ^ p.γ) :=
+      h_rpow.comp hum
+    have hreal : Measurable (fun q : ℝ × ℝ =>
+        p.ν * intervalDomainLift (w q.1) q.2 ^ p.γ) :=
+      measurable_const.mul hpow
+    exact Complex.continuous_ofReal.measurable.comp hreal
+  have hraw : ∀ n : ℕ, Measurable (fun s : ℝ =>
+      ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+        (fun x : ℝ => src s x) n) := by
+    intro n
+    set F : ℝ × ℝ → ℂ :=
+      fun q => (Real.cos ((n : ℝ) * Real.pi * q.2) : ℂ) * src q.1 q.2 with hF_def
+    have hF : Measurable F := by
+      have hcos : Measurable (fun q : ℝ × ℝ =>
+          (Real.cos ((n : ℝ) * Real.pi * q.2) : ℂ)) := by
+        fun_prop
+      exact hcos.mul hsrc_meas
+    have hI : StronglyMeasurable (fun s : ℝ =>
+        ∫ x : ℝ, F (s, x) ∂(volume.restrict (Set.Ioc (0 : ℝ) 1))) :=
+      MeasureTheory.StronglyMeasurable.integral_prod_right'
+        (ν := volume.restrict (Set.Ioc (0 : ℝ) 1)) hF.stronglyMeasurable
+    have hfun : (fun s : ℝ =>
+        ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+          (fun x : ℝ => src s x) n) =
+        fun s : ℝ => ∫ x : ℝ, F (s, x) ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+      funext s
+      rw [ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff,
+        intervalIntegral.integral_of_le (show (0 : ℝ) ≤ 1 by norm_num)]
+    rw [hfun]
+    exact hI.measurable
+  have hcoeff_real : Measurable (fun s : ℝ =>
+      ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff
+        (fun x : ℝ => src s x) k) := by
+    by_cases hk : k = 0
+    · subst k
+      have hre : Measurable (fun s : ℝ =>
+          (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+            (fun x : ℝ => src s x) 0).re) :=
+        Complex.continuous_re.measurable.comp (hraw 0)
+      simpa [ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff] using hre
+    · have hre : Measurable (fun s : ℝ =>
+          (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+            (fun x : ℝ => src s x) k).re) :=
+        Complex.continuous_re.measurable.comp (hraw k)
+      simpa [ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff, hk] using
+        (measurable_const.mul hre)
+  have hcomplex : Measurable (fun s : ℝ =>
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff
+        (fun x : ℝ => src s x) k : ℝ) : ℂ)) :=
+    Complex.continuous_ofReal.measurable.comp hcoeff_real
+  simpa [ShenWork.PDE.intervalNeumannResolverSourceCoeff, hsrc_def] using hcomplex
+
+private theorem intervalNeumannResolverCoeff_re_time_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : ShenWork.IntervalMildPicard.HasJointMeasurability w) (k : ℕ) :
+    Measurable (fun s : ℝ => (ShenWork.PDE.intervalNeumannResolverCoeff p (w s) k).re) := by
+  have hsource := intervalNeumannResolverSourceCoeff_time_measurable (p := p) (w := w) hum k
+  have hcoeff : Measurable (fun s : ℝ =>
+      ShenWork.PDE.intervalNeumannResolverCoeff p (w s) k) := by
+    unfold ShenWork.PDE.intervalNeumannResolverCoeff
+    unfold ShenWork.PDE.ResolventEstimate.shiftedNeumannResolventCoeff
+    exact measurable_const.mul hsource
+  exact Complex.continuous_re.measurable.comp hcoeff
+
+private theorem intervalNeumannResolverR_lift_joint_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : ShenWork.IntervalMildPicard.HasJointMeasurability w) :
+    Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) := by
+  have hseries : Measurable (fun q : ℝ × ℝ =>
+      ∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re *
+          unitIntervalCosineMode k q.2) := by
+    refine measurable_tsum_nat ?_
+    intro k
+    have hcoeff : Measurable (fun q : ℝ × ℝ =>
+        (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re) :=
+      (intervalNeumannResolverCoeff_re_time_measurable (p := p) (w := w) hum k).comp
+        measurable_fst
+    have hmode : Measurable (fun q : ℝ × ℝ => unitIntervalCosineMode k q.2) := by
+      unfold unitIntervalCosineMode
+      fun_prop
+    exact hcoeff.mul hmode
+  have hfun : (fun q : ℝ × ℝ =>
+      intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) =
+      fun q : ℝ × ℝ =>
+        if q.2 ∈ Set.Icc (0 : ℝ) 1 then
+          ∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re *
+              unitIntervalCosineMode k q.2
+        else 0 := by
+    funext q
+    by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+    · simp [intervalDomainLift, ShenWork.PDE.intervalNeumannResolverR, hy]
+    · simp [intervalDomainLift, hy]
+  rw [hfun]
+  exact Measurable.ite (measurableSet_Icc.preimage measurable_snd) hseries measurable_const
+
+private theorem resolverGradReal_joint_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : ShenWork.IntervalMildPicard.HasJointMeasurability w) :
+    Measurable (fun q : ℝ × ℝ => ShenWork.Paper2.resolverGradReal p (w q.1) q.2) := by
+  unfold ShenWork.Paper2.resolverGradReal
+  refine measurable_tsum_nat ?_
+  intro k
+  have hcoeff : Measurable (fun q : ℝ × ℝ =>
+      (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re) :=
+    (intervalNeumannResolverCoeff_re_time_measurable (p := p) (w := w) hum k).comp
+      measurable_fst
+  have hmode : Measurable (fun q : ℝ × ℝ =>
+      -((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * q.2)) := by
+    fun_prop
+  exact hcoeff.mul hmode
+
+private theorem truncatedChemFluxLifted_joint_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : ShenWork.IntervalMildPicard.HasJointMeasurability w) :
+    Measurable (Function.uncurry (fun s => truncatedChemFluxLifted p (w s))) := by
+  have hR := intervalNeumannResolverR_lift_joint_measurable (p := p) (w := w) hum
+  have hG := resolverGradReal_joint_measurable (p := p) (w := w) hum
+  have hpos : Measurable (fun q : ℝ × ℝ => positivePart (intervalDomainLift (w q.1) q.2)) := by
+    simpa [positivePart] using hum.max measurable_const
+  have hden_base : Measurable (fun q : ℝ × ℝ =>
+      1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) :=
+    measurable_const.add hR
+  have h_rpow : Measurable (fun x : ℝ => x ^ p.β) := by fun_prop
+  have hden : Measurable (fun q : ℝ × ℝ =>
+      (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) ^ p.β) :=
+    h_rpow.comp hden_base
+  have hnum : Measurable (fun q : ℝ × ℝ =>
+      positivePart (intervalDomainLift (w q.1) q.2)
+        * ShenWork.Paper2.resolverGradReal p (w q.1) q.2) :=
+    hpos.mul hG
+  simpa [Function.uncurry, truncatedChemFluxLifted] using hnum.div hden
+
 private theorem intervalDomainLift_deriv_eq_zero_off_Ioo
     (g : intervalDomainPoint → ℝ) {x : ℝ}
     (hx : x ∉ Set.Ioo (0 : ℝ) 1) :
@@ -438,6 +616,74 @@ private theorem truncatedWindowedSource_integrable_of_source_bound
     · intro y
       simp [truncatedWindowedSource, hs, hCsrc_nonneg]
 
+private theorem truncatedWindowedSource_measurable_of_source_formula
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (U : ℕ → ℝ → intervalDomainPoint → ℝ)
+    (hU : ∀ n s, U n s = truncatedConjugatePicardIter p u₀ n s)
+    (Src : ℕ → ℝ → ℝ → ℝ)
+    (hSrc : ∀ n s y,
+      Src n s y =
+        truncatedLogisticLifted p (U n s) y
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n s)) y)
+    (n : ℕ) {a hi : ℝ} :
+    Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)) := by
+  have hmeas_iterates : ∀ k,
+      ShenWork.IntervalMildPicard.HasJointMeasurability
+        (truncatedConjugatePicardIter p u₀ k) := by
+    intro k
+    induction k with
+    | zero => exact DT.hbase_meas
+    | succ k ih => exact DT.hmeas_preserved _ ih
+  have hU_joint :
+      ShenWork.IntervalMildPicard.HasJointMeasurability (fun s => U n s) := by
+    have hfield :
+        (fun q : ℝ × ℝ => intervalDomainLift ((fun s => U n s) q.1) q.2)
+          =
+        (fun q : ℝ × ℝ =>
+          intervalDomainLift (truncatedConjugatePicardIter p u₀ n q.1) q.2) := by
+      funext q
+      rw [hU n q.1]
+    rw [hfield]
+    exact hmeas_iterates n
+  have hU_meas_n : Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (U n q.1) q.2) := hU_joint
+  have hpos_meas : Measurable (fun q : ℝ × ℝ =>
+      positivePart (intervalDomainLift (U n q.1) q.2)) := by
+    simpa [positivePart] using hU_meas_n.max measurable_const
+  have hpow_meas : Measurable (fun q : ℝ × ℝ =>
+      (positivePart (intervalDomainLift (U n q.1) q.2)) ^ p.α) := by
+    have hrpow : Measurable (fun r : ℝ => r ^ p.α) := by fun_prop
+    exact hrpow.comp hpos_meas
+  have hlog_meas : Measurable (fun q : ℝ × ℝ =>
+      truncatedLogisticLifted p (U n q.1) q.2) := by
+    simpa [truncatedLogisticLifted, truncatedLogisticLocal] using
+      hU_meas_n.mul (measurable_const.sub (measurable_const.mul hpow_meas))
+  have hflux_meas :
+      Measurable (Function.uncurry (fun s => truncatedChemFluxLifted p (U n s))) :=
+    truncatedChemFluxLifted_joint_measurable (p := p) (w := fun s => U n s) hU_joint
+  have hflux_deriv_meas : Measurable (fun q : ℝ × ℝ =>
+      deriv (truncatedChemFluxLifted p (U n q.1)) q.2) := by
+    simpa [Function.uncurry] using
+      (measurable_deriv_with_param
+        (f := fun s : ℝ => truncatedChemFluxLifted p (U n s)) hflux_meas)
+  have hsrc_formula :
+      (fun q : ℝ × ℝ => Src n q.1 q.2)
+        =
+      (fun q : ℝ × ℝ =>
+        truncatedLogisticLifted p (U n q.1) q.2
+          - p.χ₀ * deriv (truncatedChemFluxLifted p (U n q.1)) q.2) := by
+    funext q
+    exact hSrc n q.1 q.2
+  have hSrcn_meas : Measurable (fun q : ℝ × ℝ => Src n q.1 q.2) := by
+    rw [hsrc_formula]
+    exact hlog_meas.sub (measurable_const.mul hflux_deriv_meas)
+  change Measurable (fun q : ℝ × ℝ =>
+    if a ≤ q.1 ∧ q.1 ≤ hi then Src n q.1 q.2 else 0)
+  refine Measurable.ite ?_ hSrcn_meas measurable_const
+  exact (measurableSet_le measurable_const measurable_fst).inter
+    (measurableSet_le measurable_fst measurable_const)
+
 private theorem truncatedConjugatePicardIter_succ_restart_meas_bound
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
@@ -532,6 +778,7 @@ This is the analytic dominated-convergence step with the integrable
 private theorem shiftedFullDuhamel_hasDerivAt_residual
     {a τ C : ℝ} (ha_lt_τ : a < τ)
     {q : ℝ → ℝ → ℝ}
+    (hq_meas : Measurable (Function.uncurry q))
     (hq_int : ∀ s, Integrable (q s) (intervalMeasure 1))
     (hC_nonneg : 0 ≤ C)
     (hq_sup : ∀ s y, |q s y| ≤ C) :
@@ -543,7 +790,95 @@ private theorem shiftedFullDuhamel_hasDerivAt_residual
           deriv (fun z : ℝ =>
             intervalFullSemigroupOperator (τ - s) (q s) z) x)
         x := by
-  sorry
+  intro x
+  let qshift : ℝ → ℝ → ℝ := fun r y => q (r + a) y
+  have hτa_pos : 0 < τ - a := sub_pos.mpr ha_lt_τ
+  have hqshift_meas : Measurable (Function.uncurry qshift) := by
+    change Measurable (fun q' : ℝ × ℝ => q (q'.1 + a) q'.2)
+    exact hq_meas.comp ((measurable_fst.add_const a).prodMk measurable_snd)
+  have hqshift_int : ∀ r, Integrable (qshift r) (intervalMeasure 1) := by
+    intro r
+    exact hq_int (r + a)
+  have hqshift_sup : ∀ r y, |qshift r y| ≤ C := by
+    intro r y
+    exact hq_sup (r + a) y
+  have hqshift_ae : AEStronglyMeasurable (Function.uncurry qshift)
+      ((volume.restrict (Set.uIoc (0 : ℝ) (τ - a))).prod (intervalMeasure 1)) :=
+    hqshift_meas.aestronglyMeasurable
+  have hval_meas : ∀ z : ℝ, AEStronglyMeasurable
+      (fun s : ℝ => intervalFullSemigroupOperator ((τ - a) - s) (qshift s) z)
+      (volume.restrict (Set.uIoc (0 : ℝ) (τ - a))) := fun z =>
+    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_s_dependent_aestronglyMeasurable_x
+      hτa_pos hqshift_ae z
+  have hderiv_meas : AEStronglyMeasurable
+      (fun s : ℝ =>
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator ((τ - a) - s) (qshift s) z) x)
+      (volume.restrict (Set.uIoc (0 : ℝ) (τ - a))) :=
+    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+      hτa_pos hqshift_ae hqshift_int hqshift_sup x
+  have hDom_int : IntervalIntegrable
+      (fun s : ℝ =>
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * C * ((τ - a) - s) ^ (-(1 / 2 : ℝ)))
+      volume (0 : ℝ) (τ - a) := by
+    rw [show (fun s : ℝ =>
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * C * ((τ - a) - s) ^ (-(1 / 2 : ℝ)))
+        =
+      (fun s : ℝ =>
+        (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * C) * ((τ - a) - s) ^ (-(1 / 2 : ℝ))) from by
+        funext s
+        ring]
+    exact
+      (ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half
+        (τ - a)).const_mul _
+  have hzero :=
+    ShenWork.IntervalNeumannFullKernel.intervalFullCoupledDuhamel_grad_integral_hasDerivAt
+      (t := τ - a) hτa_pos hqshift_int hC_nonneg hqshift_sup x
+      hval_meas hderiv_meas hDom_int
+  have hfun_shift :
+      (fun z : ℝ =>
+          ∫ s in a..τ, intervalFullSemigroupOperator (τ - s) (q s) z)
+        =
+      (fun z : ℝ =>
+          ∫ r in (0 : ℝ)..(τ - a),
+            intervalFullSemigroupOperator ((τ - a) - r) (qshift r) z) := by
+    funext z
+    let F : ℝ → ℝ := fun s : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z
+    have hF_shift :
+        (fun r : ℝ => intervalFullSemigroupOperator ((τ - a) - r) (qshift r) z)
+          = fun r : ℝ => F (r + a) := by
+      funext r
+      dsimp [F, qshift]
+      rw [show (τ - a) - r = τ - (r + a) by ring]
+    rw [hF_shift]
+    have hcomp := intervalIntegral.integral_comp_add_right
+      (f := F) (a := (0 : ℝ)) (b := τ - a) a
+    simpa [F] using hcomp.symm
+  have hderiv_shift :
+      (∫ s in a..τ,
+          deriv (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x)
+        =
+      ∫ r in (0 : ℝ)..(τ - a),
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator ((τ - a) - r) (qshift r) z) x := by
+    let F : ℝ → ℝ := fun s : ℝ =>
+      deriv (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x
+    have hF_shift :
+        (fun r : ℝ => deriv
+          (fun z : ℝ => intervalFullSemigroupOperator ((τ - a) - r) (qshift r) z) x)
+          = fun r : ℝ => F (r + a) := by
+      funext r
+      dsimp [F, qshift]
+      rw [show (τ - a) - r = τ - (r + a) by ring]
+    rw [hF_shift]
+    have hcomp := intervalIntegral.integral_comp_add_right
+      (f := F) (a := (0 : ℝ)) (b := τ - a) a
+    simpa [F] using hcomp.symm
+  rw [hfun_shift, hderiv_shift]
+  exact hzero
 
 /- Residual: prove the shifted full-kernel gradient integrand is interval-integrable
 from the windowed truncated B-form source package.  This is the measurable
@@ -572,7 +907,52 @@ private theorem truncatedConjugatePicardIter_succ_gradientIntegrand_intervalInte
           intervalFullSemigroupOperator (τ - s)
             (truncatedWindowedSource Src n a hi s) z) x)
       volume a τ := by
-  sorry
+  intro x
+  let q : ℝ → ℝ → ℝ := truncatedWindowedSource Src n a hi
+  let qshift : ℝ → ℝ → ℝ := fun r y => q (r + a) y
+  have hτa_pos : 0 < τ - a := sub_pos.mpr ha_lt_τ
+  have hCsrc_nonneg :
+      0 ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    unfold truncWindowSourceCL
+    exact add_nonneg _hAL_nonneg
+      (mul_nonneg (abs_nonneg p.χ₀)
+        (add_nonneg _hAF_nonneg (mul_nonneg _hBF_nonneg _hG_nonneg)))
+  have hq_meas : Measurable (Function.uncurry q) := by
+    exact truncatedWindowedSource_measurable_of_source_formula
+      DT U hU Src hSrc n
+  have hqshift_meas : Measurable (Function.uncurry qshift) := by
+    change Measurable (fun q' : ℝ × ℝ => q (q'.1 + a) q'.2)
+    exact hq_meas.comp ((measurable_fst.add_const a).prodMk measurable_snd)
+  have hq_sup : ∀ s y, |q s y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    intro s y
+    by_cases hs : a ≤ s ∧ s ≤ hi
+    · simpa [q, truncatedWindowedSource, hs] using hsrc s hs.1 hs.2 y
+    · simp [q, truncatedWindowedSource, hs, hCsrc_nonneg]
+  have hqshift_sup : ∀ r y, |qshift r y| ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
+    intro r y
+    exact hq_sup (r + a) y
+  have hg_shift : IntervalIntegrable
+      (fun r : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator ((τ - a) - r) (qshift r) z) x)
+      volume (0 : ℝ) (τ - a) :=
+    ShenWork.IntervalDuhamelIntegrability.gradDuhamel_intervalIntegrable_of_joint_measurable
+      (t := τ - a) hτa_pos hqshift_meas hCsrc_nonneg hqshift_sup x
+  let F : ℝ → ℝ := fun s : ℝ => deriv
+    (fun z : ℝ => intervalFullSemigroupOperator (τ - s) (q s) z) x
+  have hF_shift :
+      (fun r : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator ((τ - a) - r) (qshift r) z) x)
+        = fun r : ℝ => F (r + a) := by
+    funext r
+    dsimp [F, qshift, q]
+    rw [show (τ - a) - r = τ - (r + a) by ring]
+  have hF_comp : IntervalIntegrable (fun r : ℝ => F (r + a))
+      volume (0 : ℝ) (τ - a) := by
+    simpa [hF_shift] using hg_shift
+  have hF_int : IntervalIntegrable F volume ((0 : ℝ) + a) ((τ - a) + a) :=
+    (IntervalIntegrable.comp_add_right_iff
+      (f := F) (a := (0 : ℝ)) (b := τ - a) (c := a)).mp hF_comp
+  simpa [F, q] using hF_int
 
 private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -612,6 +992,10 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
       ∀ s, Integrable (truncatedWindowedSource Src n a hi s) (intervalMeasure 1) :=
     truncatedWindowedSource_integrable_of_source_bound
       DT U hU Src hSrc _hAL_nonneg _hAF_nonneg _hBF_nonneg _hG_nonneg n hsrc
+  have hq_meas :
+      Measurable (Function.uncurry (truncatedWindowedSource Src n a hi)) :=
+    truncatedWindowedSource_measurable_of_source_formula
+      DT U hU Src hSrc n
   have hCsrc_nonneg :
       0 ≤ truncWindowSourceCL A_L A_F B_F p.χ₀ G := by
     unfold truncWindowSourceCL
@@ -652,7 +1036,7 @@ private theorem truncatedConjugatePicardIter_succ_restart_hasDerivAt_Ioo_core
             intervalFullSemigroupOperator (τ - s)
               (truncatedWindowedSource Src n a hi s) z) x)
         x :=
-    shiftedFullDuhamel_hasDerivAt_residual ha_lt_τ hq_int
+    shiftedFullDuhamel_hasDerivAt_residual ha_lt_τ hq_meas hq_int
       hCsrc_nonneg hwin_sup x
   have hmodel :
       HasDerivAt
