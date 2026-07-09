@@ -173,7 +173,7 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
   have hleft_s :
       IntervalIntegrable (fun s : ℝ => s ^ ((-1:ℝ)/2)) volume 0 (r / 2) := by
     exact intervalIntegral.intervalIntegrable_rpow'
-      (by norm_num : (-1 : ℝ) < (-(1/2) : ℝ))
+      (by norm_num : (-1 : ℝ) < ((-1:ℝ)/2))
   have hleft_cont :
       ContinuousOn (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2))
         (Set.uIcc (0 : ℝ) (r / 2)) := by
@@ -191,8 +191,10 @@ theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
   have hsub_all :
       IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2)) volume 0 r :=
     by
-      simpa [show (-(1 / 2 : ℝ)) = ((-1 : ℝ) / 2) by norm_num] using
-        ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
+      convert ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r using 1
+      ext s
+      congr 1
+      norm_num
   have hright_rsub :
       IntervalIntegrable (fun s : ℝ => (r - s) ^ ((-1:ℝ)/2))
         volume (r / 2) r := by
@@ -235,7 +237,9 @@ theorem left_beta_kernel_interval_bound {a r : ℝ}
     intervalIntegral.integral_mono_interval
       (c := (0 : ℝ)) (d := r) ha har le_rfl hnonneg
       (left_beta_kernel_intervalIntegrable hr)
-  exact hmono.trans (by simpa using left_beta_kernel_bound hr)
+  exact hmono.trans (by
+    simpa [show (-(1:ℝ)/2) = ((-1:ℝ)/2) by norm_num] using
+      left_beta_kernel_bound hr)
 
 /-- The fixed additive part `D` of the left profile absorbs the singular
 Duhamel source contribution on every sub-time `τ ≤ lo`. -/
