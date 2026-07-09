@@ -153,8 +153,8 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     (hgp : |gp| ≤ H)
     (hq : |q| ≤ 1)
     (hqDen : |qDen| ≤ 1) :
-    |deriv (truncatedChemFluxLifted p w) y| ≤
-      (M * H + p.β * M * Γ ^ 2) + Γ * G := by
+    (|deriv (truncatedChemFluxLifted p w) y| ≤
+      (M * H + p.β * M * Γ ^ 2) + Γ * G) := by
   have hUpos_abs :
       |positivePart (intervalDomainLift w y)| ≤ M := by
     have hlift_abs : |intervalDomainLift w y| ≤ M := by
@@ -248,10 +248,56 @@ private theorem truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
     |deriv (truncatedChemFluxLifted p w) y|
         = |A + B - C| := by
           rw [hderiv]
-    _ ≤ |A| + |B| + |C| := htri
+    _ ≤ |A| + |B| + |C| := by
+          exact htri
     _ ≤ Γ * G + M * H + p.β * M * Γ ^ 2 := by
-          exact add_le_add (add_le_add hterm₁ hterm₂) hterm₃
+          linarith [hterm₁, hterm₂, hterm₃]
     _ = (M * H + p.β * M * Γ ^ 2) + Γ * G := by ring
+
+private theorem truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+    (p : CM2Params) (w : intervalDomainPoint → ℝ) {y : ℝ}
+    (hy : y ∉ Set.Ioo (0 : ℝ) 1) :
+    deriv (truncatedChemFluxLifted p w) y = 0 := by
+  let F : intervalDomainPoint → ℝ := fun x =>
+    positivePart (w x) * resolverGradReal p w x.1
+      / (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) x.1) ^ p.β
+  have hflux_eq : truncatedChemFluxLifted p w = intervalDomainLift F := by
+    funext z
+    by_cases hz : z ∈ Set.Icc (0 : ℝ) 1
+    · simp [truncatedChemFluxLifted, F, intervalDomainLift, hz]
+    · simp [truncatedChemFluxLifted, F, intervalDomainLift, hz, positivePart]
+  let Uconst : ℝ → intervalDomainPoint → ℝ := fun _ => F
+  rcases lt_or_ge y 0 with hy0 | hy0
+  · have hzero :
+        deriv (intervalDomainLift (Uconst 0)) y = 0 := by
+      simpa [Uconst] using
+        (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_eq_zero_on_Iio
+          Uconst 0 hy0)
+    simpa [hflux_eq, Uconst] using hzero
+  rcases lt_or_ge 1 y with hy1 | hy1
+  · have hzero :
+        deriv (intervalDomainLift (Uconst 0)) y = 0 := by
+      simpa [Uconst] using
+        (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_eq_zero_on_Ioi
+          Uconst 0 hy1)
+    simpa [hflux_eq, Uconst] using hzero
+  rcases eq_or_lt_of_le hy0 with hy_eq | hy_pos
+  · subst y
+    have hzero :
+        deriv (intervalDomainLift (Uconst 0)) 0 = 0 := by
+      simpa [Uconst] using
+        (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_eq_zero_at_left
+          Uconst 0)
+    simpa [hflux_eq, Uconst] using hzero
+  rcases eq_or_lt_of_le hy1 with hy_eq | hy_lt_one
+  · subst y
+    have hzero :
+        deriv (intervalDomainLift (Uconst 0)) 1 = 0 := by
+      simpa [Uconst] using
+        (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_eq_zero_at_right
+          Uconst 0)
+    simpa [hflux_eq, Uconst] using hzero
+  · exact False.elim (hy ⟨hy_pos, hy_lt_one⟩)
 
 /-- Analytic product-rule package for the truncated chemotaxis flux on a bounded
 continuous slice.
@@ -1102,16 +1148,81 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                         * (2 * Real.sqrt (hi - a)) * |p.χ₀| * B_F := by ring
               exact lt_of_le_of_lt hb_le hBcontr
             have base : IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo 0 := by
-              dsimp only [Mw]
-              exact truncatedConjugatePicardIter_zero_left_profile
-                (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
-                hAL_nn hAF_nn hΓ_M_nn
-                (by dsimp [lo]; linarith) hleftContr
+              simpa [Mw] using
+                truncatedConjugatePicardIter_zero_left_profile
+                  (p := p) (u₀ := u₀) DT U (by intro n s; rfl)
+                  hAL_nn hAF_nn hΓ_M_nn
+                  (by dsimp [lo]; linarith) hleftContr
             have source : ∀ n, IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo n →
                 ∀ s, 0 < s → s ≤ lo → ∀ y,
                   |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
                     truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
-              sorry
+              intro n hprofile s hs_pos hs_lo y
+              have hball_cont := truncatedConjugatePicardIter_ball p u₀
+                DT.hbase_ball DT.hbase_cont DT.hmapsTo DT.hcont_preserved
+                DT.hbase_meas DT.hmeas_preserved n
+              have hs_T : s ≤ DT.T := by
+                have hlo_t : lo ≤ t := by dsimp [lo]; linarith
+                exact hs_lo.trans (hlo_t.trans htT)
+              have hball : ∀ x, |U n s x| ≤ DT.M := hball_cont.1 s hs_pos hs_T
+              have hK_nonneg :
+                  0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+                ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+              have hprofile_nonneg :
+                  0 ≤ truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s := by
+                unfold truncLeftProfile truncLeftSingularC
+                exact add_nonneg
+                  (div_nonneg (mul_nonneg hK_nonneg hM) (Real.sqrt_nonneg _))
+                  (truncLeftD_nonneg hM hAL_nn hAF_nn hΓ_M_nn
+                    (by dsimp [lo]; linarith) hleftContr)
+              dsimp only [Src]
+              apply abs_logistic_sub_chi_flux_le
+              · have hlift_bound : |intervalDomainLift (U n s) y| ≤ DT.M := by
+                  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+                  · simp only [intervalDomainLift, dif_pos hy]
+                    exact hball ⟨y, hy⟩
+                  · simp only [intervalDomainLift, dif_neg hy, abs_zero]
+                    exact le_of_lt DT.hM
+                show |truncatedLogisticLifted p (U n s) y| ≤ A_L
+                show |truncatedLogisticLocal p (intervalDomainLift (U n s) y)| ≤ _
+                exact truncatedLogisticLocal_abs_le_of_abs_le' p DT.hM hlift_bound
+              · by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+                · dsimp only [A_F, B_F]
+                  have hflux_terms :
+                      ∃ dpos gp q qDen : ℝ,
+                        deriv (truncatedChemFluxLifted p (U n s)) y =
+                          dpos * resolverGradReal p (U n s) y * q
+                            + positivePart (intervalDomainLift (U n s) y) * gp * q
+                            - p.β * positivePart (intervalDomainLift (U n s) y)
+                                * (resolverGradReal p (U n s) y) ^ 2 * qDen
+                        ∧ |dpos| ≤ |deriv (intervalDomainLift (U n s)) y|
+                        ∧ |resolverGradReal p (U n s) y| ≤ Γ_M
+                        ∧ |gp| ≤ H_M
+                        ∧ |q| ≤ 1
+                        ∧ |qDen| ≤ 1 := by
+                    have hdiff_pos :
+                        0 < intervalDomainLift (U n s) y →
+                          DifferentiableAt ℝ (intervalDomainLift (U n s)) y := by
+                      intro _hy_pos
+                      exact (hprofile s hs_pos hs_lo).2 y hyIoo
+                    simpa [Γ_M, H_M, V_M] using
+                      truncatedChemFluxLifted_deriv_terms_of_abs_ball
+                        (p := p) (w := U n s) (M := DT.M) DT.hM
+                        (hball_cont.2 s hs_pos hs_T) hball y hdiff_pos
+                  rcases hflux_terms with
+                    ⟨dpos, gp, q, qDen, hderiv, hdpos, hgradR, hgp, hq, hqDen⟩
+                  exact truncatedChemFluxLifted_deriv_abs_le_of_ball_grad
+                    (p := p) (w := U n s) (M := DT.M) (Γ := Γ_M)
+                    (H := H_M)
+                    (G := truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s)
+                    DT.hM hball (hprofile s hs_pos hs_lo).1 y
+                    hderiv hdpos hgradR hgp hq hqDen
+                · have hflux_zero :
+                      deriv (truncatedChemFluxLifted p (U n s)) y = 0 :=
+                    truncatedChemFluxLifted_deriv_eq_zero_off_Ioo
+                      (p := p) (w := U n s) hyIoo
+                  rw [hflux_zero, abs_zero]
+                  exact add_nonneg hAF_nn (mul_nonneg hΓ_M_nn hprofile_nonneg)
             have kernel : ∀ n, (∀ s, 0 < s → s ≤ lo → ∀ y,
                 |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
                   truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
@@ -1702,19 +1813,6 @@ The dependency chain (non-circular, Q3942 architecture):
 
 Each step uses ONLY the output of the previous step, no circularity. -/
 
-/-- **ℓ¹ coefficient summability**: at positive time the Picard limit has
-summable cosine coefficients.  From the constant source bound, eigenvalue
-gain gives `|Duh_k| ≤ C/λ_k = O(1/k²)`, summable.  The homogeneous part
-has exponential decay.  This is the weakest regularity step. -/
-theorem truncatedPicardCoeff_summable_positive_time
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (DT : TruncatedConjugateMildExistenceData p u₀)
-    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
-    Summable (fun k : ℕ =>
-      |truncatedPicardCoeff p u₀
-        (truncatedConjugatePicardLimit p u₀ DT.T) t k|) := by
-  sorry
-
 /-- **H¹ at positive time (Sobolev ladder step 1).**  The truncated Picard
 coefficients satisfy `Σ λ_k |c_k(t)|² < ∞`.
 
@@ -1801,6 +1899,29 @@ theorem truncatedPicardCoeff_eigenvalue_weighted_summable_positive_time
   have _hl1_src := truncatedBFormSourceCoeff_summable_positive_time
     DT (by linarith : (0 : ℝ) < t / 2) (by linarith)
   sorry
+
+/-- **ℓ¹ coefficient summability**: at positive time the Picard limit has
+summable cosine coefficients.  This follows from the stronger eigenvalue
+weighted summability because `λ_k ≥ 1` for all positive modes, while the
+zero mode is a single term. -/
+theorem truncatedPicardCoeff_summable_positive_time
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
+    Summable (fun k : ℕ =>
+      |truncatedPicardCoeff p u₀
+        (truncatedConjugatePicardLimit p u₀ DT.T) t k|) := by
+  let U := truncatedConjugatePicardLimit p u₀ DT.T
+  have hweighted :
+      Summable (fun k : ℕ =>
+        unitIntervalCosineEigenvalue k *
+          |truncatedPicardCoeff p u₀ U t k|) := by
+    simpa [U] using
+      truncatedPicardCoeff_eigenvalue_weighted_summable_positive_time
+        (DT := DT) ht htT
+  exact
+    (ShenWork.IntervalDuhamelClosedC2.cosineCoeff_summable_of_eigenvalue_summable
+      (b := fun k : ℕ => truncatedPicardCoeff p u₀ U t k) hweighted).2
 
 /-- Time derivative coefficient summability.  `a'_k = -λ_k a_k + src_k`,
 so `|a'_k| ≤ λ_k|a_k| + |src_k|`.  Uses eigenvalue-weighted + source ℓ¹. -/
