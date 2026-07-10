@@ -274,4 +274,120 @@ theorem intervalConjugateDuhamel_hasDerivAt_fst_of_late_holder
     (bound_integrable := hbound_int) (h_diff := hDiff)
   exact hresult.2
 
+/-- The differentiated faithful conjugate Duhamel leg has a uniform spatial
+bound.  The same early/late envelope as in the differentiation theorem is
+integrated in time; the returned constant is deliberately existential because
+downstream bootstraps only need finiteness and nonnegativity. -/
+theorem intervalConjugateDuhamel_deriv_integral_uniformBound_of_late_holder
+    {t θ CQ HQ : ℝ} (ht : 0 < t) (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    (hCQ : 0 ≤ CQ) (hHQ : 0 ≤ HQ)
+    {F : ℝ → ℝ → ℝ}
+    (hF_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, Integrable (F s) (intervalMeasure 1))
+    (hF_bound : ∀ s y, |F s y| ≤ CQ)
+    (hF_cont : ∀ s, t / 2 < s → s < t →
+      ContinuousOn (F s) (Set.Icc (0 : ℝ) 1))
+    (hF_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a b : ℝ, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |F s a - F s b| ≤ HQ * |a - b| ^ θ)
+    (hF0 : ∀ s, F s 0 = 0) (hF1 : ∀ s, F s 1 = 0) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |∫ s in (0 : ℝ)..t, deriv
+        (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x| ≤ C := by
+  set Cmix : ℝ := 5 * Real.sqrt 2 / 2 with hCmix
+  set Cearly : ℝ := Cmix * (t / 2) ^ (-(1 : ℝ)) * CQ with hCearly
+  set Clate : ℝ := 2 * HQ * weightedHeatHessConst θ with hClate
+  set bound : ℝ → ℝ := fun s =>
+    Cearly + Clate * (t - s) ^ (-1 + θ / 2 : ℝ) with hbound
+  have hCmix_nn : 0 ≤ Cmix := by rw [hCmix]; positivity
+  have ht2 : 0 < t / 2 := by positivity
+  have hCearly_nn : 0 ≤ Cearly := by
+    rw [hCearly]
+    exact mul_nonneg
+      (mul_nonneg hCmix_nn (Real.rpow_nonneg ht2.le _)) hCQ
+  have hClate_nn : 0 ≤ Clate := by
+    rw [hClate]
+    exact mul_nonneg (mul_nonneg (by norm_num) hHQ)
+      (weightedHeatHessConst_nonneg θ)
+  have hbound_int : IntervalIntegrable bound volume 0 t := by
+    rw [hbound]
+    have hc : IntervalIntegrable (fun _ : ℝ => Cearly) volume 0 t :=
+      intervalIntegrable_const
+    have hl :=
+      (intervalIntegrable_sub_rpow_hessian (t := t) hθ0).const_mul Clate
+    exact hc.add hl
+  have hpt : ∀ s ∈ Set.Ioo (0 : ℝ) t, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x|
+        ≤ bound s := by
+    intro s hs x hx
+    have hlag : 0 < t - s := sub_pos.mpr hs.2
+    have hlate_nonneg : 0 ≤ Clate * (t - s) ^ (-1 + θ / 2 : ℝ) :=
+      mul_nonneg hClate_nn (Real.rpow_nonneg hlag.le _)
+    rcases le_or_gt s (t / 2) with hs_early | hs_late
+    · have hlag_ge : t / 2 ≤ t - s := by linarith
+      have hpow : (t - s) ^ (-(1 : ℝ)) ≤ (t / 2) ^ (-(1 : ℝ)) :=
+        Real.rpow_le_rpow_of_nonpos ht2 hlag_ge (by norm_num)
+      have hraw := intervalConjugateKernelOperator_deriv_abs_le
+        hlag (hF_int s) (hF_bound s) x
+      have hearly :
+          |deriv (fun z : ℝ =>
+            intervalConjugateKernelOperator (t - s) (F s) z) x| ≤ Cearly := by
+        refine hraw.trans ?_
+        rw [hCearly, hCmix]
+        exact mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hpow hCmix_nn) hCQ
+      rw [hbound]
+      linarith
+    · have hraw := intervalConjugateKernelOperator_deriv_Ctheta_to_Linfty
+        hlag hθ0 hθ1 (hF_int s) (hF_bound s)
+        (hF_cont s hs_late hs.2) hHQ (hF_holder s hs_late hs.2)
+        (hF0 s) (hF1 s) hx
+      have hlate :
+          |deriv (fun z : ℝ =>
+            intervalConjugateKernelOperator (t - s) (F s) z) x| ≤
+            Clate * (t - s) ^ (-1 + θ / 2 : ℝ) := by
+        rw [hClate]
+        simpa [mul_assoc] using hraw
+      rw [hbound]
+      linarith [hCearly_nn]
+  refine ⟨|∫ s in (0 : ℝ)..t, bound s|, abs_nonneg _, ?_⟩
+  intro x hx
+  have hF_ae : AEStronglyMeasurable (Function.uncurry F)
+      ((volume.restrict (Set.uIoc (0 : ℝ) t)).prod (intervalMeasure 1)) :=
+    hF_meas.aestronglyMeasurable
+  have hder_meas : AEStronglyMeasurable
+      (fun s : ℝ => deriv
+        (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x)
+      (volume.restrict (Set.uIoc (0 : ℝ) t)) :=
+    intervalConjugateKernelOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+      ht hF_ae hF_int hF_bound x
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton]
+    exact Real.volume_singleton
+  have hdom_ae : ∀ᵐ s ∂(volume.restrict (Set.uIoc (0 : ℝ) t)),
+      ‖deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x‖
+        ≤ bound s := by
+    rw [Set.uIoc_of_le ht.le, ae_restrict_iff' measurableSet_Ioc]
+    filter_upwards [hne] with s hst hs
+    rw [Real.norm_eq_abs]
+    exact hpt s ⟨hs.1, lt_of_le_of_ne hs.2 hst⟩ x hx
+  have hder_int : IntervalIntegrable
+      (fun s : ℝ => deriv
+        (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x)
+      volume 0 t := by
+    rw [intervalIntegrable_iff] at hbound_int ⊢
+    exact Integrable.mono' hbound_int hder_meas hdom_ae
+  calc
+    |∫ s in (0 : ℝ)..t, deriv
+        (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x|
+        ≤ ∫ s in (0 : ℝ)..t,
+            |deriv (fun z : ℝ =>
+              intervalConjugateKernelOperator (t - s) (F s) z) x| :=
+          intervalIntegral.abs_integral_le_integral_abs ht.le
+    _ ≤ ∫ s in (0 : ℝ)..t, bound s :=
+      intervalIntegral.integral_mono_on_of_le_Ioo ht.le hder_int.abs hbound_int
+        (fun s hs => hpt s hs x hx)
+    _ ≤ |∫ s in (0 : ℝ)..t, bound s| := le_abs_self _
+
 end ShenWork.IntervalNeumannFullKernel
