@@ -107,7 +107,7 @@ structure V5AnalyticResidual
     (C : UniformConjugateMildExistenceCore p u₀)
     extends UniformTruncatedFullCoreResidual p C where
   coefficient_weak_test :
-    ∀ t, 0 < t → t ≤ C.T →
+    ∀ t, 0 < t → t < C.T →
       TruncatedNegativePartCoefficientWeakTestData p truncCore.toData t
   initial_trace : InitialTrace intervalDomain u₀
     (truncatedConjugatePicardLimit p u₀ C.T)
@@ -138,7 +138,7 @@ structure V5EnergyAtoms
     (C : UniformConjugateMildExistenceCore p u₀)
     (H : V5AnalyticResidual p C) where
   E' : ℝ → ℝ
-  A1 : ∀ t, 0 < t → t ≤ C.T →
+  A1 : ∀ t, 0 < t → t < C.T →
     TruncatedNegativePartCoefficientWeakTestData p H.truncCore.toData t
   A2 : TruncatedPicardNegativePartEnergyEstimateA2Data
     p (u₀ := u₀) C.T E'
@@ -223,7 +223,7 @@ def A1_all
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (C : UniformConjugateMildExistenceCore p u₀)
     (H : V5AnalyticResidual p C) :
-    ∀ t, 0 < t → t ≤ C.T →
+    ∀ t, 0 < t → t < C.T →
       TruncatedNegativePartCoefficientWeakTestData p H.truncCore.toData t :=
   H.coefficient_weak_test
 

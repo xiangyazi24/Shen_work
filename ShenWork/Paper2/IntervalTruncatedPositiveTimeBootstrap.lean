@@ -34,6 +34,7 @@ import ShenWork.Paper2.IntervalTruncatedGradientWindow
 import ShenWork.Paper2.IntervalTruncatedLeftProfileWiring
 import ShenWork.Paper2.IntervalTruncatedPositiveTimeGradientAtoms
 import ShenWork.PDE.CosineSpectrum
+import ShenWork.PDE.IntervalCosineCoeffDecay
 
 open MeasureTheory Set Asymptotics
 open scoped BigOperators Topology Real
@@ -76,6 +77,112 @@ open ShenWork.PDE.ResolventEstimate (coeffL2Energy coeffL2Norm)
 open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 open ShenWork.Paper2.TruncatedGradientWindow
 
+/-- The physical post-IBP source represented by the truncated B-form
+coefficient family. -/
+def truncatedBFormPhysicalSource (p : CM2Params)
+    (u : ℝ → intervalDomainPoint → ℝ) (s y : ℝ) : ℝ :=
+  truncatedLogisticLifted p (u s) y
+    - p.χ₀ * deriv (truncatedChemFluxLifted p (u s)) y
+
+/-- Quantitative `C²`-Neumann data for the physical truncated source on a
+compact positive-time window.  The coefficient identity is the spatial IBP
+bridge; the remaining fields are ordinary physical-space regularity data. -/
+structure TruncatedSourceC2WindowData
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (DT : TruncatedConjugateMildExistenceData p u₀)
+    (c T' : ℝ) : Prop where
+  coeff_eq : ∀ s ∈ Set.Icc c T', ∀ k : ℕ,
+    truncatedBFormSourceCoeff p
+        (truncatedConjugatePicardLimit p u₀ DT.T) s k =
+      cosineCoeffs
+        (truncatedBFormPhysicalSource p
+          (truncatedConjugatePicardLimit p u₀ DT.T) s) k
+  continuous : ∀ s ∈ Set.Icc c T',
+    Continuous
+      (truncatedBFormPhysicalSource p
+        (truncatedConjugatePicardLimit p u₀ DT.T) s)
+  abs_bound : ∃ C₀ : ℝ, 0 ≤ C₀ ∧
+    ∀ s ∈ Set.Icc c T', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |truncatedBFormPhysicalSource p
+        (truncatedConjugatePicardLimit p u₀ DT.T) s x| ≤ C₀
+  contDiff_two : ∀ s ∈ Set.Icc c T',
+    ContDiffOn ℝ 2
+      (truncatedBFormPhysicalSource p
+        (truncatedConjugatePicardLimit p u₀ DT.T) s)
+      (Set.Icc (0 : ℝ) 1)
+  deriv_tendsto_zero : ∀ s ∈ Set.Icc c T',
+    Filter.Tendsto
+      (deriv (truncatedBFormPhysicalSource p
+        (truncatedConjugatePicardLimit p u₀ DT.T) s))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0)
+  deriv_tendsto_one : ∀ s ∈ Set.Icc c T',
+    Filter.Tendsto
+      (deriv (truncatedBFormPhysicalSource p
+        (truncatedConjugatePicardLimit p u₀ DT.T) s))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  deriv_zero : ∀ s ∈ Set.Icc c T',
+    deriv (truncatedBFormPhysicalSource p
+      (truncatedConjugatePicardLimit p u₀ DT.T) s) 0 = 0
+  deriv_one : ∀ s ∈ Set.Icc c T',
+    deriv (truncatedBFormPhysicalSource p
+      (truncatedConjugatePicardLimit p u₀ DT.T) s) 1 = 0
+  laplacian_coeff_bound : ∃ C : ℝ, 0 ≤ C ∧
+    ∀ s ∈ Set.Icc c T', ∀ k : ℕ,
+      |∫ x in (0 : ℝ)..1,
+        Real.cos ((k : ℝ) * Real.pi * x) *
+          deriv (deriv (truncatedBFormPhysicalSource p
+            (truncatedConjugatePicardLimit p u₀ DT.T) s)) x| ≤ C
+
+/-- Analytic data not present in `TruncatedConjugateMildExistenceData`.
+
+The fields are below the public spectral conclusions: restart/IBP for the
+iterates, compact-window physical `C²` source regularity, the coefficient
+restart identity, value-level spectral realization, and termwise time
+differentiation of that realized series. -/
+structure TruncatedPositiveTimeAnalyticData
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (DT : TruncatedConjugateMildExistenceData p u₀) : Prop where
+  iterate_restart : ∀ n : ℕ, ∀ {a τ : ℝ},
+    0 < a → a < τ → τ ≤ DT.T →
+      TruncatedRestartAnalyticData
+        p
+        (fun m s => truncatedConjugatePicardIter p u₀ m s)
+        (fun m s y =>
+          truncatedBFormPhysicalSource p
+            (fun r => truncatedConjugatePicardIter p u₀ m r) s y)
+        n a τ
+  source_c2 : ∀ {c T' : ℝ}, 0 < c → c < T' → T' ≤ DT.T →
+    TruncatedSourceC2WindowData p u₀ DT c T'
+  coefficient_restart : ∀ {c t : ℝ}, 0 < c → c < t → t ≤ DT.T →
+    ∀ k : ℕ,
+      truncatedPicardCoeff p u₀
+          (truncatedConjugatePicardLimit p u₀ DT.T) t k =
+        localRestartCoeff
+          (cosineCoeffs (intervalDomainLift
+            ((truncatedConjugatePicardLimit p u₀ DT.T) c)))
+          (fun r n => truncatedBFormSourceCoeff p
+            (truncatedConjugatePicardLimit p u₀ DT.T) (c + r) n)
+          (t - c) k
+  coefficient_realization : ∀ {s : ℝ}, 0 < s → s ≤ DT.T →
+    ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift
+          ((truncatedConjugatePicardLimit p u₀ DT.T) s) x =
+        ∑' k : ℕ,
+          truncatedPicardCoeff p u₀
+              (truncatedConjugatePicardLimit p u₀ DT.T) s k *
+            ShenWork.CosineSpectrum.cosineMode k x
+  coefficient_series_time_hasDerivAt : ∀ {t : ℝ},
+    0 < t → t < DT.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      HasDerivAt
+        (fun s => ∑' k : ℕ,
+          truncatedPicardCoeff p u₀
+              (truncatedConjugatePicardLimit p u₀ DT.T) s k *
+            ShenWork.CosineSpectrum.cosineMode k x)
+        (∑' k : ℕ,
+          truncatedPicardCoeffTimeDeriv p u₀
+              (truncatedConjugatePicardLimit p u₀ DT.T) t k *
+            ShenWork.CosineSpectrum.cosineMode k x) t
+
 /-! ## Helper: truncated logistic local bound -/
 
 private theorem lift_continuousOn_Icc_of_continuous
@@ -107,7 +214,9 @@ private theorem hasDerivAt_mul_zero_of_continuousAt_zero_hasDerivAt_zero
     HasDerivAt (fun y : ℝ => a y * b y) 0 x := by
   rw [hasDerivAt_iff_isLittleO]
   have ha_o : a =o[𝓝 x] (fun _ : ℝ => (1 : ℝ)) := by
-    exact (isLittleO_one_iff ℝ).2 (by simpa [hax] using ha)
+    apply (isLittleO_one_iff ℝ).2
+    rw [← hax]
+    exact ha
   have hb_O : b =O[𝓝 x] fun y : ℝ => y - x := by
     simpa [hbx] using hb.isBigO_sub
   have hmul : (fun y : ℝ => a y * b y) =o[𝓝 x] fun y : ℝ => y - x := by
@@ -947,7 +1056,88 @@ private theorem truncatedChemFluxLifted_deriv_zero_of_lift_nonpos_of_abs_ball
     {y : ℝ}
     (hy_nonpos : intervalDomainLift w y ≤ 0) :
     deriv (truncatedChemFluxLifted p w) y = 0 := by
-  sorry
+  by_cases hyIoo : y ∈ Set.Ioo (0 : ℝ) 1
+  · classical
+    let R : ℝ → ℝ :=
+      fun z => intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) z
+    let g : ℝ → ℝ := fun z => resolverGradReal p w z
+    let a : ℝ → ℝ := fun z => positivePart (intervalDomainLift w z)
+    let q : ℝ → ℝ := fun z => (1 + R z) ^ (-p.β)
+    let h : ℝ → ℝ := fun z => g z * q z
+    have hflux_eq : truncatedChemFluxLifted p w = fun z => a z * h z := by
+      funext z
+      have hbase_nonneg : 0 ≤ 1 + R z := by
+        simpa [R] using resolverR_lift_one_add_nonneg_of_abs_ball
+          (p := p) (w := w) (M := M) hM hw_cont hball hsmall z
+      unfold truncatedChemFluxLifted
+      rw [div_eq_mul_inv, ← Real.rpow_neg hbase_nonneg]
+      simp only [a, h, g, q, R]
+      ring
+    have ha_zero : a y = 0 :=
+      positivePart_eq_zero_of_nonpos hy_nonpos
+    have hUcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) :=
+      lift_continuousOn_Icc_of_continuous hw_cont
+    obtain ⟨_src, hg_raw, _hsrc⟩ :=
+      resolverGradReal_hasDerivAt_signed_ellipticBound_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball hyIoo
+    have hg_has : HasDerivAt g (deriv g y) y := by
+      simpa [g, hg_raw.deriv] using hg_raw
+    have hR_has : HasDerivAt R (g y) y := by
+      simpa [R, g] using
+        ShenWork.IntervalResolverWeakBounds.intervalNeumannResolverR_lift_hasDerivAt_resolverGradReal_of_continuousOn
+          (p := p) (u := w) hUcont hyIoo
+    have hbase_has : HasDerivAt (fun z : ℝ => 1 + R z) (g y) y :=
+      hR_has.const_add 1
+    have hbase_pos : 0 < 1 + R y := by
+      simpa [R] using resolverR_lift_one_add_pos_of_abs_ball
+        (p := p) (w := w) (M := M) hM hw_cont hball hsmall y
+    have hq_has :
+        HasDerivAt q (g y * (-p.β) * (1 + R y) ^ (-p.β - 1)) y := by
+      simpa [q, sub_eq_add_neg] using
+        hbase_has.rpow_const (p := -p.β) (Or.inl (ne_of_gt hbase_pos))
+    have hpp_cont : Continuous fun r : ℝ => positivePart r := by
+      simpa [positivePart] using (continuous_id.max continuous_const)
+    have ha_cont : ContinuousAt a y := by
+      simpa [a] using hpp_cont.continuousAt.comp
+        (intervalDomainLift_continuousAt_of_continuous_of_mem_Ioo' hw_cont hyIoo)
+    rw [hflux_eq]
+    by_cases hg_zero : g y = 0
+    · have hh_has : HasDerivAt h
+          (deriv g y * q y + g y *
+            (g y * (-p.β) * (1 + R y) ^ (-p.β - 1))) y := by
+        simpa [h] using hg_has.mul hq_has
+      have hh_zero : h y = 0 := by simp [h, hg_zero]
+      exact (hasDerivAt_mul_zero_of_continuousAt_zero_hasDerivAt_zero
+        ha_cont ha_zero hh_has hh_zero).deriv
+    · rcases lt_or_gt_of_ne hg_zero with hg_neg | hg_pos
+      · have hg_eventually : ∀ᶠ z in 𝓝 y, g z < 0 :=
+          hg_has.continuousAt.tendsto.eventually (isOpen_Iio.mem_nhds hg_neg)
+        have hmax : IsLocalMax (fun z => a z * h z) y := by
+          unfold IsLocalMax IsMaxFilter
+          filter_upwards [hg_eventually] with z hgz
+          have hq_nonneg : 0 ≤ q z :=
+            Real.rpow_nonneg
+              (resolverR_lift_one_add_nonneg_of_abs_ball
+                (p := p) (w := w) (M := M) hM hw_cont hball hsmall z) _
+          have hh_nonpos : h z ≤ 0 :=
+            mul_nonpos_of_nonpos_of_nonneg hgz.le hq_nonneg
+          simpa [ha_zero] using
+            (mul_nonpos_of_nonneg_of_nonpos (positivePart_nonneg _) hh_nonpos)
+        exact hmax.deriv_eq_zero
+      · have hg_eventually : ∀ᶠ z in 𝓝 y, 0 < g z :=
+          hg_has.continuousAt.tendsto.eventually (isOpen_Ioi.mem_nhds hg_pos)
+        have hmin : IsLocalMin (fun z => a z * h z) y := by
+          unfold IsLocalMin IsMinFilter
+          filter_upwards [hg_eventually] with z hgz
+          have hq_nonneg : 0 ≤ q z :=
+            Real.rpow_nonneg
+              (resolverR_lift_one_add_nonneg_of_abs_ball
+                (p := p) (w := w) (M := M) hM hw_cont hball hsmall z) _
+          have hh_nonneg : 0 ≤ h z := mul_nonneg hgz.le hq_nonneg
+          simpa [ha_zero] using
+            (mul_nonneg (positivePart_nonneg _) hh_nonneg)
+        exact hmin.deriv_eq_zero
+  · exact truncatedChemFluxLifted_deriv_eq_zero_off_Ioo p w hyIoo
 
 private theorem truncatedChemFluxLifted_deriv_product_rule_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
@@ -1234,6 +1424,7 @@ on the iterates → uniform Lipschitz constant → limit Lipschitz.
 The downstream coefficient arguments (IBP, source bounds, Sobolev ladder)
 consume ONLY this Lipschitz fact; they never touch the Volterra internals. -/
 
+set_option maxHeartbeats 2000000 in
 /-- At positive time, the lifted Picard-limit slice is Lipschitz on [0,1].
 This is the key regularity black box that breaks the circularity between
 source bounds and gradient bounds.  The proof is: iterate-level heat
@@ -1254,7 +1445,8 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
         (1 - Real.sqrt (∑' k : ℕ,
           (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2)
             * (2 * (p.ν * DT.M ^ p.γ))) ^ (-p.β))
-      p.χ₀ (t / 4) t < 1) :
+      p.χ₀ (t / 4) t < 1)
+    (HA : TruncatedPositiveTimeAnalyticData p u₀ DT) :
     ∃ G : ℝ, 0 ≤ G ∧ ∀ x ∈ Icc (0 : ℝ) 1, ∀ y ∈ Icc (0 : ℝ) 1,
       |intervalDomainLift
         ((truncatedConjugatePicardLimit p u₀ DT.T) t) x -
@@ -1500,7 +1692,20 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
                 |Src n s y| ≤ truncLeftSourceConst A_L A_F p.χ₀ +
                   truncLeftBeta B_F p.χ₀ * truncLeftProfile Mw A_L A_F B_F p.χ₀ lo s) →
                 IterGradLeftProfile U Mw A_L A_F B_F p.χ₀ lo (n + 1) := by
-              sorry
+              intro n hsrc
+              simpa [Mw] using
+                truncatedConjugatePicardIter_succ_left_profile
+                  (p := p) (u₀ := u₀) DT U (by intro m s; rfl) Src
+                  (by intro m s y; rfl)
+                  hAL_nn hAF_nn hBF_nn
+                  (by dsimp [lo]; linarith)
+                  (by dsimp [lo]; linarith)
+                  hleftContr
+                  (by
+                    intro m a' τ ha' ha'τ hτT
+                    simpa [U, Src, truncatedBFormPhysicalSource] using
+                      HA.iterate_restart m ha' ha'τ hτT)
+                  n hsrc
             exact IterGradOnWindow.of_left_profile hM ha
               (truncLeftProfile_all_of_wiring ⟨base, source, kernel⟩) hPaG
           hbase := by
@@ -1581,7 +1786,11 @@ theorem truncatedPicardLimit_lipschitzOn_positive_time
               (by dsimp [a]; linarith)
               (by dsimp [a, lo]; linarith)
               (by dsimp [lo, hi]; linarith)
-              htT }
+              htT
+              (by
+                intro n τ haτ hτT
+                simpa [U, Src, truncatedBFormPhysicalSource] using
+                  HA.iterate_restart n (by dsimp [a]; linarith) haτ hτT) }
     exact ⟨Gw, hGw_nn, fun n s hslo hshi =>
       truncatedGradientWindow_all W n s hslo hshi⟩
   -- Step 1b: MVT — uniform gradient ≤ G → uniform Lipschitz ≤ G on [0,1]
@@ -2004,102 +2213,39 @@ theorem truncatedChemDivSourceCoeff_bound_of_fluxW1
       simp only [truncatedChemDivSourceCoeff] at *
       linarith⟩
 
-/-! ## Level 2: Full source bounded at positive time -/
+/-! ## Level 2: Full source bounded on compact positive-time windows -/
 
-/-- At positive time, the truncated Picard limit has bounded source coefficients.
-This combines the bounded logistic source with bounded chemDiv (from flux W¹,¹).
-
-The proof uses the bootstrap:
-- At positive time, the Picard limit is C¹ (heat semigroup smoothing +
-  Volterra-type gradient contraction on the iterates)
-- C¹ solution → flux W¹,¹ (resolver spatial regularity)
-- Bounded logistic (from Picard ball) + bounded chemDiv → bounded total source -/
+/-- The physical `C²` source atom gives a coefficient bound uniform on
+`[c,t] ⊂ (0,T]`.  No uniform claim is made as `c → 0+`. -/
 private theorem truncatedBFormSourceCoeff_bound_positive_time_window_core
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
-    {t : ℝ} (ht : 0 < t) (htT : t ≤ DT.T) :
-    ∃ C : ℝ, 0 ≤ C ∧ ∀ σ, 0 < σ → σ ≤ t → ∀ k : ℕ,
+    (HA : TruncatedPositiveTimeAnalyticData p u₀ DT)
+    {c t : ℝ} (hc : 0 < c) (hct : c < t) (htT : t ≤ DT.T) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ σ ∈ Set.Icc c t, ∀ k : ℕ,
       |truncatedBFormSourceCoeff p
         (truncatedConjugatePicardLimit p u₀ DT.T) σ k| ≤ C := by
-  set u := truncatedConjugatePicardLimit p u₀ DT.T with hu_def
-  set SD : TruncatedConjugateMildSolutionData p u₀ :=
-    truncatedConjugateMildSolutionData_of_data DT
-  let B : ℝ := SD.M * (p.a + p.b * SD.M ^ p.α)
-  have hB_nonneg : 0 ≤ B := by
-    dsimp [B]
-    exact mul_nonneg SD.hM.le
-      (add_nonneg p.ha (mul_nonneg p.hb (Real.rpow_nonneg SD.hM.le _)))
-  -- Part 1: logistic bound
-  have hlog : ∀ σ, 0 < σ → σ ≤ t → ∀ k : ℕ,
-      |truncatedLogisticSourceCoeff p u σ k| ≤ 2 * B := by
-    intro σ hσ hσt k
-    have hball : ∀ x : intervalDomainPoint, |u σ x| ≤ SD.M :=
-      SD.hbound σ hσ (le_trans hσt (le_trans htT (le_of_eq rfl)))
-    have hcont_slice : Continuous (u σ) :=
-      SD.hcont σ hσ (le_trans hσt (le_trans htT (le_of_eq rfl)))
-    have hcont_lift : ContinuousOn (intervalDomainLift (u σ)) (Icc (0 : ℝ) 1) := by
-      rw [continuousOn_iff_continuous_restrict]
-      have hres : Set.restrict (Icc (0 : ℝ) 1) (intervalDomainLift (u σ)) = u σ := by
-        funext ⟨z, hz⟩
-        show intervalDomainLift (u σ) z = u σ ⟨z, hz⟩
-        rw [intervalDomainLift, dif_pos hz]
-      rw [hres]; exact hcont_slice
-    have hsrc_cont :
-        ContinuousOn (truncatedLogisticLifted p (u σ)) (Icc (0 : ℝ) 1) :=
-      truncatedLogisticLifted_continuousOn_of_lift_continuousOn p hcont_lift
-    have hsrc_bound :
-        ∀ x ∈ Icc (0 : ℝ) 1,
-          |truncatedLogisticLifted p (u σ) x| ≤ B := by
-      intro x hx
-      have hx_bound : |intervalDomainLift (u σ) x| ≤ SD.M := by
-        simpa [intervalDomainLift, hx] using hball ⟨x, hx⟩
-      simpa [B, truncatedLogisticLifted] using
-        truncatedLogisticLocal_abs_le_of_abs_le p SD.hM hx_bound
-    have hcoeff :=
-      cosineCoeffs_abs_le_of_continuous_bounded hsrc_cont hB_nonneg hsrc_bound
-    simpa [truncatedLogisticSourceCoeff] using hcoeff k
-  -- Part 2: chemDiv bound (Lipschitz → flux W^{1,1} → IBP → bounded)
-  have ⟨CC, hCC, hchem⟩ : ∃ CC : ℝ, 0 ≤ CC ∧
-      ∀ σ, 0 < σ → σ ≤ t → ∀ k,
-        |truncatedChemDivSourceCoeff p u σ k| ≤ CC := by
-    have _hlip := truncatedPicardLimit_lipschitzOn_positive_time DT ht htT sorry sorry
-    sorry
-  -- Triangle inequality
-  exact ⟨2 * B + |p.χ₀| * CC,
-    add_nonneg (mul_nonneg (by norm_num) hB_nonneg) (mul_nonneg (abs_nonneg _) hCC),
-    fun σ hσ hσt k => by
-      simp only [truncatedBFormSourceCoeff]
-      have h1 := hlog σ hσ hσt k
-      have h2 : |p.χ₀| * |truncatedChemDivSourceCoeff p u σ k| ≤ |p.χ₀| * CC :=
-        mul_le_mul_of_nonneg_left (hchem σ hσ hσt k) (abs_nonneg _)
-      have htri : |truncatedLogisticSourceCoeff p u σ k
-              - p.χ₀ * truncatedChemDivSourceCoeff p u σ k|
-          ≤ |truncatedLogisticSourceCoeff p u σ k|
-            + |p.χ₀| * |truncatedChemDivSourceCoeff p u σ k| := by
-        calc |truncatedLogisticSourceCoeff p u σ k
-                - p.χ₀ * truncatedChemDivSourceCoeff p u σ k|
-            ≤ |truncatedLogisticSourceCoeff p u σ k|
-              + |-(p.χ₀ * truncatedChemDivSourceCoeff p u σ k)| := by
-              rw [show truncatedLogisticSourceCoeff p u σ k
-                - p.χ₀ * truncatedChemDivSourceCoeff p u σ k
-                = truncatedLogisticSourceCoeff p u σ k
-                + (-(p.χ₀ * truncatedChemDivSourceCoeff p u σ k)) from sub_eq_add_neg _ _]
-              exact abs_add_le _ _
-          _ = |truncatedLogisticSourceCoeff p u σ k|
-              + |p.χ₀| * |truncatedChemDivSourceCoeff p u σ k| := by
-              rw [abs_neg, abs_mul]
-      linarith⟩
+  let H := HA.source_c2 hc hct htT
+  obtain ⟨C₀, hC₀, habs⟩ := H.abs_bound
+  refine ⟨2 * C₀, mul_nonneg (by norm_num) hC₀, ?_⟩
+  intro σ hσ k
+  have hcoeff := cosineCoeffs_abs_le_of_continuous_bounded
+    (H.continuous σ hσ).continuousOn hC₀ (habs σ hσ)
+  rw [H.coeff_eq σ hσ k]
+  exact hcoeff k
 
 theorem truncatedBFormSourceCoeff_bound_positive_time
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
+    (HA : TruncatedPositiveTimeAnalyticData p u₀ DT)
     {s : ℝ} (hs : 0 < s) (hsT : s ≤ DT.T) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ k : ℕ,
       |truncatedBFormSourceCoeff p
         (truncatedConjugatePicardLimit p u₀ DT.T) s k| ≤ C := by
   obtain ⟨C, hC, hbound⟩ :=
-    truncatedBFormSourceCoeff_bound_positive_time_window_core DT hs hsT
-  exact ⟨C, hC, hbound s hs le_rfl⟩
+    truncatedBFormSourceCoeff_bound_positive_time_window_core DT HA
+      (half_pos hs) (half_lt_self hs) hsT
+  exact ⟨C, hC, hbound s ⟨half_le_self hs.le, le_rfl⟩⟩
 
 private theorem summable_one_div_unitIntervalCosineEigenvalue :
     Summable (fun k : ℕ => 1 / unitIntervalCosineEigenvalue k) := by
@@ -2279,6 +2425,12 @@ private theorem truncatedPicardInitialCoeff_abs_le_two_M
   exact hcoeff.trans
     (mul_le_mul_of_nonneg_left hnorm_le (by norm_num : (0 : ℝ) ≤ 2))
 
+/-- **OPEN (uniform source envelope).**  The window route
+(`truncatedBFormSourceCoeff_bound_positive_time_window_core`) only gives a
+bound on `[c,t]` with `0 < c`, with no uniform claim as `c → 0+`.  The
+uniform `[0,t]` envelope needed by Sobolev ladder step 1 must come from the
+ball-bound route (Q3942: ball bound → logistic O(1) + chemDiv via flux W¹,¹),
+which was mid-rewrite when the run was interrupted. -/
 theorem truncatedBFormSourceCoeff_bound_on_positive_time_interval
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀)
@@ -2286,25 +2438,7 @@ theorem truncatedBFormSourceCoeff_bound_on_positive_time_interval
     ∃ C : ℝ, 0 ≤ C ∧ ∀ s, 0 ≤ s → s ≤ t → ∀ k : ℕ,
       |truncatedBFormSourceCoeff p
         (truncatedConjugatePicardLimit p u₀ DT.T) s k| ≤ C := by
-  obtain ⟨C, hC, hpos⟩ :=
-    truncatedBFormSourceCoeff_bound_positive_time_window_core DT ht htT
-  refine ⟨C, hC, ?_⟩
-  intro s hs hst k
-  by_cases hs0 : s = 0
-  · subst s
-    have hzero :
-        truncatedBFormSourceCoeff p
-          (truncatedConjugatePicardLimit p u₀ DT.T) 0 k = 0 := by
-      simp [truncatedBFormSourceCoeff, truncatedLogisticSourceCoeff,
-        truncatedChemDivSourceCoeff, truncatedConjugatePicardLimit,
-        truncatedLogisticLifted, truncatedLogisticLocal, truncatedChemFluxLifted,
-        intervalSineInner, intervalDomainLift]
-    simpa [hzero] using hC
-  · have hspos : 0 < s := by
-      rcases lt_or_eq_of_le hs with hlt | heq
-      · exact hlt
-      · exact False.elim (hs0 heq.symm)
-    exact hpos s hspos hst k
+  sorry
 
 /-! ## Level 3: Sobolev ladder for positive-time coefficient regularity
 
@@ -2803,7 +2937,7 @@ private theorem transversalZeroSet_countable_of_differentiableAt
   have hdisc : IsDiscrete S := by
     rw [isDiscrete_iff_nhdsNE]
     intro x hx
-    rw [← Filter.mem_iff_inf_principal_compl]
+    rw [Filter.inf_principal_eq_bot]
     have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := hx.1
     have hxderiv : deriv f x ≠ 0 := hx.2.2
     have hev : ∀ᶠ z in 𝓝[≠] x, f z ≠ (0 : ℝ) :=
@@ -2854,9 +2988,17 @@ theorem negativePartTest_diff_off_countable_of_gradient_bound
       intro hzero
       by_contra hne
       exact hx_not_s ⟨hxIoo, hzero, hne⟩
-    simpa [negativePartTest, w] using
+    have hneg :=
       neg_negativePartLift_hasDerivAt_of_lift_hasDerivAt_not_bad
         (w := w) hw_has hnot_bad
+    have hdiff : DifferentiableAt ℝ
+        (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t) x := by
+      have hgoal : negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t
+          = fun y : ℝ =>
+            -BFormPositiveDatumNegPart.negativePartLift w y := rfl
+      rw [hgoal]
+      exact hneg.differentiableAt
+    exact hdiff.hasDerivAt
 
 /-- The negative-part test has a bounded derivative.  Since
 `|(-f)_+'| ≤ |f'|`, the bound is the gradient bound of `u`. -/

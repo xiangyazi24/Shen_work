@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalChiNegStampacchiaRefactor
+import ShenWork.Paper2.IntervalUniformConjugateCore
 import ShenWork.Paper2.IntervalBFormFaithfulBridgeProducer
 import ShenWork.Paper2.IntervalBFormCron2RegularNegativePartEnergy
 
@@ -193,7 +193,7 @@ Gronwall argument starts at an arbitrary positive time, so it only needs the
 energy derivative strictly inside `(0, T)`. -/
 structure NegativePartEnergyCoreRegularPositiveTimeDataFor
     (p : CM2Params) (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) where
-  weak_test : ∀ t, 0 < t → t ≤ T → NegativePartWeakTestIdentityAt p u t
+  weak_test : ∀ t, 0 < t → t < T → NegativePartWeakTestIdentityAt p u t
   ell : ℝ
   hell_nonneg : 0 ≤ ell
   E' : ℝ → ℝ
@@ -223,7 +223,7 @@ theorem nonneg_of_negativePartEnergyCoreRegularPositiveTimeDataFor
       H.E' τ ≤ (2 * H.ell) * E τ := by
     intro τ hτ0 hτT
     have hhalf := negativePart_half_energy_deriv_le_regular
-      H.estimate (H.weak_test τ hτ0 hτT.le) hτ0 hτT.le
+      H.estimate (H.weak_test τ hτ0 hτT) hτ0 hτT.le
     nlinarith
   have hgron :
       ∃ K : ℝ, 0 ≤ K ∧ ∀ s τ, 0 < s → s ≤ τ → τ ≤ T →
@@ -276,7 +276,7 @@ theorem nonneg_of_negativePartEnergyCoreRegularDataFor
     (H : NegativePartEnergyCoreRegularDataFor p T u) :
     ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint, 0 ≤ u t x :=
   nonneg_of_negativePartEnergyCoreRegularPositiveTimeDataFor
-    { weak_test := H.weak_test
+    { weak_test := fun t ht htT => H.weak_test t ht htT.le
       ell := H.ell
       hell_nonneg := H.hell_nonneg
       E' := H.E'
@@ -291,7 +291,7 @@ theorem nonneg_of_negativePartEnergyCoreRegularDataFor
 truncated Picard limit. -/
 structure TruncatedPicardNegativePartEnergyCoreRegularPositiveTimeData
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ} (T : ℝ) where
-  weak_test : ∀ t, 0 < t → t ≤ T →
+  weak_test : ∀ t, 0 < t → t < T →
     NegativePartWeakTestIdentityAt p (truncatedConjugatePicardLimit p u₀ T) t
   ell : ℝ
   hell_nonneg : 0 ≤ ell
