@@ -6,7 +6,7 @@
   the result into the raw lower-pinned statement interfaces.
 -/
 import ShenWork.Paper1.UpperBarrierContact
-import ShenWork.Paper1.WaveLemma42ParamCore
+import ShenWork.Paper1.WaveLemma42ParamCoreOnTrap
 
 namespace ShenWork.Paper1
 
@@ -52,7 +52,7 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
               ∃ hpar :
-                PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+                PaperLowerRawRouteAParamProducerFloorOnTrap
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
                   hcond.hκ0.le (le_trans zero_le_one hcond.hM),
@@ -60,15 +60,19 @@ structure Paper1PositiveLowerRawCapRouteAParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
+                  PaperRotheSeqStepDependenceOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
+                  PaperRotheTailUniformOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
                   PaperLowerPinnedStationaryFlatFloor p c (kappa c)
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (rotheSeqOfPaperFromTrap p c lam (MChi p)
+                      (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                      (le_trans zero_le_one hcond.hM)) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   (∀ U : ℝ → ℝ,
                     InLowerPinnedMonotoneTrap (kappa c) (MChi p)
@@ -89,12 +93,13 @@ theorem paper1_positiveRawContactData_of_routeAParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp,
-      hcontact⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep, htail,
+      hconv, hsmp, hcontact⟩
   obtain ⟨U, hpin, hprofile⟩ :=
-    b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+    b1_chiPos_existence_paper_routeA_paramCore_onTrap_of_cubeApproxData
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hstep htail
+      hconv.stationary hsmp hconv.flat
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -132,7 +137,7 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
               ∃ hpar :
-                PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+                PaperLowerRawRouteAParamProducerFloorOnTrap
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
                   hcond.hκ0.le (le_trans zero_le_one hcond.hM),
@@ -140,15 +145,19 @@ structure Paper1PositiveLowerRawCapRouteASmoothParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
+                  PaperRotheSeqStepDependenceOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
+                  PaperRotheTailUniformOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
                   PaperLowerPinnedStationaryFlatFloor p c (kappa c)
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (rotheSeqOfPaperFromTrap p c lam (MChi p)
+                      (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                      (le_trans zero_le_one hcond.hM)) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
@@ -172,12 +181,13 @@ theorem paper1_positiveRawSmoothContactData_of_routeAParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp,
-      hreg, hsmooth⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep, htail,
+      hconv, hsmp, hreg, hsmooth⟩
   obtain ⟨U, hpin, hprofile⟩ :=
-    b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+    b1_chiPos_existence_paper_routeA_paramCore_onTrap_of_cubeApproxData
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hstep htail
+      hconv.stationary hsmp hconv.flat
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -219,7 +229,7 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
               ∃ hpar :
-                PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+                PaperLowerRawRouteAParamProducerFloorOnTrap
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
                   hcond.hκ0.le (le_trans zero_le_one hcond.hM),
@@ -227,15 +237,19 @@ structure Paper1PositiveLowerRawCapRouteARemainingParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
+                  PaperRotheSeqStepDependenceOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
+                  PaperRotheTailUniformOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
                   PaperLowerPinnedStationaryFlatFloor p c (kappa c)
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (rotheSeqOfPaperFromTrap p c lam (MChi p)
+                      (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                      (le_trans zero_le_one hcond.hM)) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
@@ -263,7 +277,7 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                 positivePaperLemma42ExactConditions_of_branchCap
                   p hα hχ_nonneg hχ_small hc
               ∃ hpar :
-                PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+                PaperLowerRawRouteAParamProducerFloorOnTrap
                   p c lam (MChi p) (kappa c)
                   (positiveBranchTailCap p c) D Λ
                   hcond.hκ0.le (le_trans zero_le_one hcond.hM),
@@ -271,15 +285,19 @@ structure Paper1PositiveLowerRawCapRouteAHmkConstParamData : Prop where
                   paperDMin p.χ (MChi p) (kappa c)
                     (positiveBranchTailCap p c) p.m p.γ c < D ∧
                   0 ≤ Λ ∧ Λ ≤ MChi p ∧
+                  PaperRotheSeqStepDependenceOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
+                  PaperRotheTailUniformOnTrap p c lam (MChi p)
+                    (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                    (le_trans zero_le_one hcond.hM) ∧
                   PaperLowerPinnedStationaryFlatFloor p c (kappa c)
                     (MChi p)
                     (lowerBarrierRaw (kappa c)
                       (positiveBranchTailCap p c) D)
-                    (rotheSeqOfPaperFromPositiveCond p c lam (MChi p)
-                      (kappa c) (positiveBranchTailCap p c) Λ hcond
-                      (fun u =>
-                        paperLowerRawRouteAParamProducer
-                          (hpar.producer u))) ∧
+                    (rotheSeqOfPaperFromTrap p c lam (MChi p)
+                      (kappa c) Λ hpar.toPaperProducer hcond.hκ0.le
+                      (le_trans zero_le_one hcond.hM)) ∧
                   StationaryStrongMaxPrinciple p c (kappa c) (MChi p) ∧
                   StationaryC2RegularityFromEquation p c (kappa c)
                     (MChi p) ∧
@@ -298,11 +316,11 @@ theorem paper1_routeARemainingParamData_of_routeAHmkConstParamData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv,
-      hsmp, hreg, hconst⟩
+    ⟨hmκ, lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep,
+      htail, hconv, hsmp, hreg, hconst⟩
   exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp, hreg,
-      fun U hpin hprofile =>
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep, htail,
+      hconv, hsmp, hreg, fun U hpin hprofile =>
         PositiveUpperBarrierRemainingContactResidual.of_constLeftPlateau_positiveRegion
           (p := p) (c := c) (U := U)
           hα hχ_nonneg hχ_small hc hmκ hpin.bare
@@ -321,12 +339,13 @@ theorem paper1_positiveRawRemainingContactData_of_routeARemainingParamData
     positivePaperLemma42ExactConditions_of_branchCap
       p hα hχ_nonneg hχ_small hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp,
-      hreg, hres⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep, htail,
+      hconv, hsmp, hreg, hres⟩
   obtain ⟨U, hpin, hprofile⟩ :=
-    b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
+    b1_chiPos_existence_paper_routeA_paramCore_onTrap_of_cubeApproxData
       p c lam (MChi p) (kappa c) (positiveBranchTailCap p c) D Λ
-      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hconv hsmp
+      hcond hD_gt hD_ge_one hΛ0 hΛM hpar hstep htail
+      hconv.stationary hsmp hconv.flat
   exact
     ⟨positiveBranchTailCap p c, D, U,
       le_trans zero_le_one hD_ge_one,
@@ -344,15 +363,15 @@ theorem paper1_routeASmoothParamData_of_routeARemainingParamData
   refine ⟨?_⟩
   intro p hα hχ_nonneg hχ_small c hc
   rcases hData.produce p hα hχ_nonneg hχ_small c hc with
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp,
-      hreg, hres⟩
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep, htail,
+      hconv, hsmp, hreg, hres⟩
   have hχ_star : p.χ < chiStar p :=
     lt_of_lt_of_le hχ_small (min_le_right _ _)
   have hM0 : 0 ≤ MChi p :=
     (MChi_pos_of_chi_lt_chiStar p hχ_star).le
   exact
-    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hconv, hsmp, hreg,
-      fun U hpin hprofile =>
+    ⟨lam, D, Λ, hpar, hD_ge_one, hD_gt, hΛ0, hΛM, hstep, htail,
+      hconv, hsmp, hreg, fun U hpin hprofile =>
         positiveUpperBarrierSmoothBranchNoContact_of_remainingResidual
           hM0 hpin.bare hprofile.stationary_eq hreg
           (hres U hpin hprofile)⟩
@@ -471,6 +490,17 @@ theorem paper1_positiveStrictBarrierBranch_of_routeAHmkConstParamData
     Paper1PositiveCriticalFrozenStationaryStrictBarrierBranch :=
   paper1_positiveStrictBarrierBranch_of_routeARemainingParamData
     (paper1_routeARemainingParamData_of_routeAHmkConstParamData hData)
+
+section AxiomAudit
+
+#print axioms positivePaperLemma42ExactConditions_of_branchCap
+#print axioms paper1_positiveRawContactData_of_routeAParamData
+#print axioms paper1_positiveRawSmoothContactData_of_routeAParamData
+#print axioms paper1_positiveRawRemainingContactData_of_routeARemainingParamData
+#print axioms paper1_mainStatementTargets_of_routeARemainingParamData
+#print axioms paper1_combinedStatementTargets_of_routeARemainingParamData
+
+end AxiomAudit
 
 end
 

@@ -23,16 +23,13 @@ def paperRouteAParamGreenCore
         PerStepBoxZWitness p c lam M κ B sigma aL C_R m_sigma u Z
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap)
-    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
-    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0) :
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u :=
   paperGreenStepInputRouteACore_of_trap_fixedSource
     (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ) (u := u)
     params.hu params.hlam params.basePaperSuper
     (paperStepFixedSourceExistsForSuperTrap_of_params params wit)
-    hrest hZsuper
+    hrest
 
 /-- Route-A lower-raw producer core whose Green core is not carried directly:
 it is assembled from the explicit per-step source-box parameter package. -/
@@ -55,20 +52,17 @@ structure PaperLowerRawStepProducerRouteAParamCore
           params.hlam params.hrpκ params.hrmκ params.hκ params.hM
           params.hBnn params.hu.trap
   rest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u
-  zsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
-      (∀ x, Z x ≤ upperBarrier κ M x) →
-        ∀ x, paperWaveOperator p c u Z x ≤ 0
   lowerRawAux :
     InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
       ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
         rotheSeqOfPaper p c lam M κ Λ u
           (paperRotheStepProducer_of_routeA_greenCore
-            (paperRouteAParamGreenCore params witness rest zsuper)) hκ hM k x) →
+            (paperRouteAParamGreenCore params witness rest)) hκ hM k x) →
         ∃ C_chem La Lb,
           PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
             (rotheSeqOfPaper p c lam M κ Λ u
               (paperRotheStepProducer_of_routeA_greenCore
-                (paperRouteAParamGreenCore params witness rest zsuper))
+                (paperRouteAParamGreenCore params witness rest))
               hκ hM (k + 1))
 
 /-- The Route-A Green core produced by the parameterized lower-raw core. -/
@@ -78,7 +72,7 @@ def paperLowerRawRouteAParamGreenCore
     (h : PaperLowerRawStepProducerRouteAParamCore
       p c lam M κ κtilde D Λ hκ hM u) :
     PaperGreenStepInputRouteACore p c lam M κ Λ u :=
-  paperRouteAParamGreenCore h.params h.witness h.rest h.zsuper
+  paperRouteAParamGreenCore h.params h.witness h.rest
 
 /-- The paper Rothe producer induced by a parameterized Route-A lower-raw core. -/
 def paperLowerRawRouteAParamProducer
@@ -101,9 +95,14 @@ def paperLowerRawStepProducerRouteACore_of_paramCore
   green := paperLowerRawRouteAParamGreenCore h
   lowerRawAux := h.lowerRawAux
 
-/-- Route-A paper Rothe parabolic floor whose per-step Green core is assembled
-from explicit source-box parameter data, with the automatic `barLip` field
-removed. -/
+/-- Legacy obstruction interface.
+
+This floor quantifies its parameter core over every function, although the core
+itself proves membership in the nonnegative wave trap.  It is therefore empty,
+as proved below, and must not be used as a headline hypothesis.  It remains only
+so historical imports keep elaborating; new code uses the trap-indexed floor. -/
+@[deprecated "Empty all-profile obstruction; use the trap-indexed floor"
+  (since := "2026-07-10")]
 structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
@@ -117,8 +116,28 @@ structure PaperLowerRawParabolicFloorRouteAParamCoreNoBar
     PaperRotheTailUniform p c lam M κ Λ
       (fun u => paperLowerRawRouteAParamProducer (producer u)) hκ hM
 
-/-- Forget the explicit source-box parameter layer to the existing Route-A
-no-`barLip` floor. -/
+/-- The all-profile parameter floor is uninhabited.
+
+Each parameterized producer contains a proof that its frozen profile belongs to
+the nonnegative wave trap, while the floor asks for such a producer for every
+function `u`.  Applying it to the constant function `-1` gives a contradiction.
+Consequently this floor cannot be used as an honest headline hypothesis; a
+nonvacuous construction must index the producer by trapped profiles. -/
+theorem not_paperLowerRawParabolicFloorRouteAParamCoreNoBar
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {hκ : 0 ≤ κ} {hM : 0 ≤ M} :
+    IsEmpty (PaperLowerRawParabolicFloorRouteAParamCoreNoBar
+      p c lam M κ κtilde D Λ hκ hM) :=
+  ⟨by
+    intro h
+    have hnonneg :=
+      (h.producer (fun _ : ℝ => (-1 : ℝ))).params.hu.nonneg 0
+    norm_num at hnonneg⟩
+
+/-- Legacy conversion out of the empty all-profile floor.  It is retained for
+API compatibility and is not part of the audited existence route. -/
+@[deprecated "Conversion from an empty legacy floor"
+  (since := "2026-07-10")]
 def paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar
     {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
     {hκ : 0 ≤ κ} {hM : 0 ≤ M}
@@ -130,8 +149,10 @@ def paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar
   step := h.step
   tail := h.tail
 
-/-- B1 χ≤0 Route-A wrapper after replacing the monolithic Route-A per-step
-producer residual by the explicit source-box parameter layer. -/
+/-- Legacy χ≤0 obstruction wrapper over the empty all-profile floor.  It is not
+a headline theorem; use the trap-indexed Route-A endpoint instead. -/
+@[deprecated "Vacuous legacy wrapper; use the trap-indexed Route-A endpoint"
+  (since := "2026-07-10")]
 theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -155,8 +176,10 @@ theorem b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar hpar)
     hconv hsmp
 
-/-- B1 χ≥0 Route-A wrapper after replacing the monolithic Route-A per-step
-producer residual by the explicit source-box parameter layer. -/
+/-- Legacy χ≥0 obstruction wrapper over the empty all-profile floor.  It is not
+a headline theorem; use the trap-indexed Route-A endpoint instead. -/
+@[deprecated "Vacuous legacy wrapper; use the trap-indexed Route-A endpoint"
+  (since := "2026-07-10")]
 theorem b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
@@ -185,6 +208,7 @@ section AxiomAudit
 #print axioms paperRouteAParamGreenCore
 #print axioms paperLowerRawStepProducerRouteACore_of_paramCore
 #print axioms paperLowerRawParabolicFloorRouteACoreNoBar_of_paramCoreNoBar
+#print axioms not_paperLowerRawParabolicFloorRouteAParamCoreNoBar
 #print axioms b1_chiNeg_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_routeA_paramCore_noBar_of_cubeApproxData
 
