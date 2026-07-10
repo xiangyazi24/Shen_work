@@ -512,3 +512,5 @@ import ShenWork.Paper2.IntervalConjugateMildCthetaFlux
 import ShenWork.Paper2.IntervalConjugateDuhamelSpatialC1
 import ShenWork.Paper2.IntervalConjugateMildSpatialC1
 import ShenWork.Paper2.IntervalConjugateMildChemFluxC1
+import ShenWork.Paper2.IntervalConjugateSemigroupComposition
+import ShenWork.Paper2.IntervalConjugateMildPositiveTimeC1
