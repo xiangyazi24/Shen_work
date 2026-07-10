@@ -507,3 +507,5 @@ import ShenWork.Paper2.IntervalTruncatedPositiveTimeBootstrap
 import ShenWork.Paper2.IntervalTruncatedTestedSpectral
 import ShenWork.Paper2.IntervalConjugateKernelHolder
 import ShenWork.Paper2.IntervalConjugateMildHolderBootstrap
+import ShenWork.Paper2.IntervalConjugateKernelCtheta
+import ShenWork.Paper2.IntervalConjugateMildCthetaFlux
