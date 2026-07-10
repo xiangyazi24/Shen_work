@@ -1,0 +1,51 @@
+You are working in /Users/huangx/repos/Shen_work (Lean 4 project).
+
+## Task: Fix unsatisfiable coefficient gap in Moser dissipation PDE theorem
+
+Read CODEX_SPEC_surplus_fix.md for full context. The short version:
+
+The current theorem intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE
+takes a universally-quantified gap condition (forall A K > 0, 2 < q*A) that is
+UNSATISFIABLE. Fix by writing a new version with a combined energy+gap hypothesis.
+
+### Steps:
+
+1. Read these files to understand the existing code:
+   - ShenWork/Paper2/Statements.lean lines 1095-1120 (LpBootstrapEnergyInequality)
+   - ShenWork/PDE/P3MoserIntegratedClosure.lean lines 242-273 (exists_pos_eps_mul_le_sub_of_coeff_gap)
+   - ShenWork/PDE/P3MoserIntegratedClosure.lean lines 789-853 (higherPowerWindowCoeffFrontier)
+   - ShenWork/PDE/P3MoserIntegratedClosure.lean lines 1687-1777 (dissipation from coeffGap)
+   - ShenWork/PDE/P3MoserIntegratedDissipationPDE.lean (current PDE theorem)
+   - CODEX_SPEC_surplus_fix.md (full spec)
+
+2. Create ShenWork/PDE/P3MoserIntegratedDissipationPDEv2.lean with:
+
+   a) LpBootstrapEnergyInequalityWithGap definition: same as LpBootstrapEnergyInequality
+      but with an extra conjunction (2 : R) < pExp * A after the energy inequality.
+      Copy the EXACT body of LpBootstrapEnergyInequality from Statements.lean and add
+      the gap conjunct.
+
+   b) A helper to extract plain LpBootstrapEnergyInequality from the WithGap version.
+
+   c) A higher-power window frontier theorem that takes the combined hypothesis.
+      Mirror the proof of integratedHigherPowerEnergyWindowCoeffFrontier_of_LpBootstrapEnergyInequality
+      (line 789) but replace the separate hsurplus with inline surplus derivation from the gap.
+
+   d) Chain through the same downstream path to get IntegratedMoserDissipationDropBefore.
+
+   e) The PDE-facing theorem:
+      intervalDomain_integratedMoserDissipationDropBefore_of_globalPDE_v2
+      Same as current but with hgap replaced by:
+      (hgap : LpBootstrapEnergyInequalityWithGap intervalDomain u T rho p0)
+
+3. Add import ShenWork.PDE.P3MoserIntegratedDissipationPDEv2 to ShenWork.lean
+
+4. Verify: lake env lean ShenWork/PDE/P3MoserIntegratedDissipationPDEv2.lean
+
+### Important:
+- Use same open namespaces as P3MoserIntegratedDissipationPDE.lean
+- set_option linter.style.longLine false
+- noncomputable section
+- 0 sorry, 0 custom axiom, 0 native_decide
+- #print axioms = [propext, Classical.choice, Quot.sound]
+- Do NOT modify existing files except ShenWork.lean (for import)

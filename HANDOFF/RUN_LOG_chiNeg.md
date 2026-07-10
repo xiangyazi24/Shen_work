@@ -1,0 +1,45 @@
+# RUN_LOG — Chi-Negative Atoms Autonomous Run
+
+## Run 2026-07-07 ~09:15
+- doctrine: HANDOFF/DOCTRINE-chiNeg-atoms.md
+- approval: Xiang "继续推，派 Codex 攻 transfer atoms" + /automode
+- starting avenue: (a) Direct bootstrap on the limit
+- chatgpt usage: Q3799 (R1, 7.5min), Q3800 (R2, 26min), Q3804 (R3, 8.5min) — 3 rounds
+- fable usage: R1 (2.8min), R2 (2.3min), R3 (6.6min), R4 (6.5min) — 4 rounds
+- codex deliveries: 6 files, 1253 lines, 0 sorry
+- gain accounting resolved: ChatGPT Q3810 confirms +1 net gain per pass on chem branch (elliptic gain essential). 4 passes sufficient for Σ λ_k |û_k| < ∞. No 5th pass needed — uniform derivative bound via ‖F_t‖_∞.
+- codex wave 2: source continuity + ladder passes delivered (0 sorry)
+- codex wave 3: logistic TimeC1On + chemDiv TimeC1On (conditional) + final assembly delivered
+- final assembly: `coupledFluxClassicalLocalExistenceResidual_unconditional` carries `FinalAssemblyResidualFrontier` as single remaining hypothesis
+- total: 11 Codex deliveries, ~1807 lines new code, 0 sorry in all proof terms
+- remaining: `FinalAssemblyResidualFrontier` = ladder envelopes + flux time-regularity + weak→paper-positive + uniform horizon
+- final assembly: BUILD PASSED, 0 sorry, axiom-clean on uisai2
+- end: 2026-07-07 ~11:40 (avenue (a) milestone reached)
+- ladder full: DELIVERED (261 lines, 0 sorry) — WindowCoefficientEnvelope + 4-pass gain + eigenvalue summability
+- heat strict positivity: DELIVERED (41 lines, 0 sorry) — S(t)u₀ > 0 for weak PID
+- flux time-regularity: Codex running (last pending task)
+- FinalAssemblyResidualFrontier status: ladder ✅, heat pos ✅, flux time-reg 🔄, uniform horizon ⏳
+- uniform horizon gap: CoupledFluxClassicalLocalExistenceResidual needs delta(M) uniform over all PID u₀ with |u₀|≤M; current core uses PPID floor in T calculation; needs contraction-only core or a posteriori positivity
+- total deliveries: 16 Codex files, ~2613 lines, 0 sorry
+- CRITICAL DISCOVERY: FinalAssemblyResidualFrontier UNSATISFIABLE (Codex proved ¬FinalAssemblyResidualFrontier) — the old interface required PPID inside a weak-PID quantifier. Counterexample: x(1-x) is PID but not PPID.
+- FIX: rewrite assembly to use heat-smoothing bridge internally (weak PID → run uniform core → heat smooth → PPID restart → spectral bootstrap). V2 assembly dispatched.
+- V2 assembly: DELIVERED (230 lines, 0 sorry). Carries PPIDSpectralBootstrapFrontier + HeatRestartPatchFrontier. Both satisfiable.
+- oracle round 2: ChatGPT confirms 4-hypothesis decomposition; patch theorem is the remaining real gap; OR no-patch route if mild solution is classical on full (0,T)
+- Fable oracle: still running (~12 min deep analysis)
+- remaining gap: close HeatRestartPatchFrontier (nonnegativity + positivity of uniform core Picard limit)
+- OR: prove mild solution from uniform core is DIRECTLY classical on (0,T) without restart
+- Fable R5: heat-smoothing bridge is circular; correct route is Stampacchia negpart energy + square-heat barrier
+- Fable R5 design fork: paper excludes endpoint-vanishing data; formalization is STRONGER
+- Xiang decision: 走弱 PID, 只要是真的 ("如果你的结论比论文更强，那你要看看是不是真的")
+- oracle round 3: Fable + ChatGPT both checking mathematical truth of weak PID version
+- V3 assembly Codex running: honest frontier with nonneg+pos as explicit gaps
+- total Codex deliveries: 17+ files, ~2843+ lines, 0 sorry
+- oracle truth check: BOTH confirm weak PID is TRUE (Fable: strong MP + Hopf; ChatGPT: standard parabolic)
+- Xiang decision: "只要是真的就做" — route (A) weak PID confirmed
+- V3 final assembly updated with both frontier constructors, 0 sorry, 250 lines
+- spectral frontier: conditional constructor delivered (needs ladder output + source TimeC1On)
+- core frontier: conditional constructor delivered (needs hnonneg + hpos)
+- IRREDUCIBLE REMAINING: hnonneg (Stampacchia) + hpos (strong max principle) — standard PDE, mathematically true, not yet formalized
+- total Codex deliveries: 19 files (including V3 updates), ~3000+ lines, 0 sorry
+- oracle rounds: Fable 6, ChatGPT 5
+- final result: CONDITIONAL on 2 standard PDE facts (Stampacchia nonnegativity + strong parabolic maximum principle). Full architecture end-to-end wired.

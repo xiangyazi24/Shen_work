@@ -521,6 +521,82 @@ theorem resolverGrad_sup_le_of_bounded
   exact mul_le_mul_of_nonneg_left
     (source_coeffL2Norm_le_of_bounded p hUcont hlb hub) (Real.sqrt_nonneg _)
 
+/-- The resolver gradient coefficients satisfy the `ℓ¹` majorant needed for
+termwise differentiation when the source lift is continuous on `[0,1]`. -/
+theorem resolverCoeff_re_abs_mul_kpi_summable_of_continuousOn
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1)) :
+    Summable fun k : ℕ =>
+      |(intervalNeumannResolverCoeff p u k).re| * ((k : ℝ) * Real.pi) := by
+  have hsrcL2 :
+      Summable fun k : ℕ =>
+        ((intervalNeumannResolverSourceCoeff p u k).re) ^ 2 := by
+    simpa [intervalNeumannResolverSourceCoeff_zero, sub_zero] using
+      resolverSourceCoeff_re_sq_summable_of_continuousOn p hUcont
+  have hwg : Summable fun k : ℕ =>
+      (intervalNeumannResolverGradWeight p k) ^ 2 :=
+    intervalNeumannResolverGradWeight_sq_summable p
+  refine Summable.of_nonneg_of_le
+    (fun k => mul_nonneg (abs_nonneg _) (by positivity)) ?_
+    ((hsrcL2.add hwg).div_const 2)
+  intro k
+  have hd : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue k :=
+    intervalNeumannResolver_denom_pos p k
+  set s := (intervalNeumannResolverSourceCoeff p u k).re with hs
+  set Wg := intervalNeumannResolverGradWeight p k with hWg
+  have hWgnn : 0 ≤ Wg := by
+    rw [hWg, intervalNeumannResolverGradWeight]
+    positivity
+  have hWgeq : Wg = ((k : ℝ) * Real.pi) /
+      (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) := rfl
+  calc
+    |(intervalNeumannResolverCoeff p u k).re| * ((k : ℝ) * Real.pi)
+        = |s| / (p.μ + unitIntervalNeumannSpectrum.eigenvalue k) *
+            ((k : ℝ) * Real.pi) := by
+          rw [resolverCoeff_re_eq, abs_div, abs_of_pos hd, ← hs]
+    _ = |s| * Wg := by
+          rw [hWgeq]
+          ring
+    _ ≤ (s ^ 2 + Wg ^ 2) / 2 := by
+          have h := two_mul_le_add_sq |s| Wg
+          rw [sq_abs] at h
+          nlinarith [h]
+    _ = (((intervalNeumannResolverSourceCoeff p u k).re) ^ 2 +
+          (intervalNeumannResolverGradWeight p k) ^ 2) / 2 := by
+          rw [hs, hWg]
+
+/-- On interior points, the lifted resolver value has derivative equal to the
+plain real resolver gradient, under only continuity of the source lift. -/
+theorem intervalNeumannResolverR_lift_hasDerivAt_resolverGradReal_of_continuousOn
+    (p : CM2Params) {u : intervalDomainPoint → ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivAt
+      (fun z : ℝ => intervalDomainLift (intervalNeumannResolverR p u) z)
+      (resolverGradReal p u x) x := by
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 :=
+    Set.mem_Icc.2 ⟨le_of_lt hx.1, le_of_lt hx.2⟩
+  have hnhds : Set.Ioo (0 : ℝ) 1 ∈ nhds x :=
+    IsOpen.mem_nhds isOpen_Ioo hx
+  set g : ℝ → ℝ := fun z : ℝ =>
+    ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+      Real.cos ((k : ℝ) * Real.pi * z) with hg_def
+  have hmaj :
+      Summable fun k : ℕ =>
+        |(intervalNeumannResolverCoeff p u k).re| * ((k : ℝ) * Real.pi) :=
+    resolverCoeff_re_abs_mul_kpi_summable_of_continuousOn p hUcont
+  have hgrad_at : HasDerivAt g (intervalNeumannResolverRGrad p u ⟨x, hxIcc⟩) x :=
+    resolverR_hasDerivAt_grad (p := p) (u := u) hmaj x hxIcc
+  rw [← resolverGradReal_eq p u ⟨x, hxIcc⟩] at hgrad_at
+  have heq :
+      (fun z : ℝ => intervalDomainLift (intervalNeumannResolverR p u) z)
+        =ᶠ[nhds x] g := by
+    refine Filter.eventuallyEq_of_mem hnhds (fun z hz => ?_)
+    have hzIcc : z ∈ Set.Icc (0 : ℝ) 1 :=
+      Set.mem_Icc.2 ⟨le_of_lt hz.1, le_of_lt hz.2⟩
+    rw [intervalDomainLift, dif_pos hzIcc, hg_def, resolverR_apply_eq]
+  exact hgrad_at.congr_of_eventuallyEq heq
+
 /-- Each Neumann cosine mode is spatially Lipschitz with constant `kπ`. -/
 private theorem unitIntervalCosineMode_abs_sub_le
     (k : ℕ) (x y : ℝ) :
