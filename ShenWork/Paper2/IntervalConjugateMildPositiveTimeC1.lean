@@ -800,6 +800,302 @@ theorem conjugateMild_chemDuhamel_deriv_holder_interior
   rw [hder_eq x, hder_eq y, hH]
   exact hholder
 
+/-- On every closed positive-time strip, one Holder constant controls the
+spatial derivative of the actual chemotaxis Duhamel leg. -/
+theorem conjugateMild_chemDuhamel_deriv_positiveTime_holder_uniform
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {τ eta : ℝ} (hτ : 0 < τ) (heta0 : 0 < eta) (heta1 : eta < 1) :
+    ∃ H : ℝ, 0 ≤ H ∧ ∀ t, τ ≤ t → t ≤ D.T →
+      ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+        |(∫ s in (0 : ℝ)..t, deriv
+            (fun z : ℝ => intervalConjugateKernelOperator (t - s)
+              (chemFluxLifted p (D.u s)) z) x) -
+          (∫ s in (0 : ℝ)..t, deriv
+            (fun z : ℝ => intervalConjugateKernelOperator (t - s)
+              (chemFluxLifted p (D.u s)) z) y)| ≤
+        H * |x - y| ^ eta := by
+  set CQ : ℝ := D.M * (Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * D.M ^ p.γ))) with hCQ
+  have hCQ_nn : 0 ≤ CQ := by
+    rw [hCQ]
+    exact mul_nonneg D.hM.le
+      (mul_nonneg (Real.sqrt_nonneg _)
+        (mul_nonneg (by norm_num)
+          (mul_nonneg p.hν.le (Real.rpow_nonneg D.hM.le _))))
+  set F : ℝ → ℝ → ℝ := fun s z =>
+    if 0 < s ∧ s ≤ D.T then chemFluxLifted p (D.u s) z else 0 with hF
+  have hF_eq : ∀ {s : ℝ}, 0 < s → s ≤ D.T →
+      F s = chemFluxLifted p (D.u s) := by
+    intro s hs0 hsT
+    funext z
+    simp [hF, hs0, hsT]
+  have hF_bound : ∀ s z, |F s z| ≤ CQ := by
+    intro s z
+    simp only [hF]
+    split_ifs with hs
+    · rw [hCQ]
+      exact ShenWork.IntervalConjugateChemFluxIntegrable.chemFluxLifted_sup_bound_of_ball
+        p D.hM.le (D.hbound s hs.1 hs.2) (D.hnonneg s hs.1 hs.2)
+          (D.hcont s hs.1 hs.2) z
+    · simpa using hCQ_nn
+  have hF_meas : Measurable (Function.uncurry F) := by
+    have hbase := ShenWork.Paper2.chemFluxLifted_uncurry_measurable
+      (p := p) (u := D.u) D.hmeas
+    simp only [hF]
+    refine Measurable.ite ?_ hbase measurable_const
+    exact ((isOpen_Ioi.preimage continuous_fst).measurableSet).inter
+      ((isClosed_Iic.preimage continuous_fst).measurableSet)
+  have hF_int : ∀ s, Integrable (F s) (intervalMeasure 1) := by
+    intro s
+    simp only [hF]
+    split_ifs with hs
+    · exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
+        p (D.hbound s hs.1 hs.2) D.hM.le (D.hcont s hs.1 hs.2)
+          (D.hnonneg s hs.1 hs.2)
+    · simp
+  have hτ2 : 0 < τ / 2 := by positivity
+  have hτ4 : 0 < τ / 4 := by positivity
+  obtain ⟨HQ, hHQ_nn, hQholder⟩ :=
+    conjugateMild_chemFlux_positiveTime_holder D hu₀ hu₀_meas
+      (θ := (1 / 4 : ℝ)) (by norm_num) (by norm_num) hτ2
+  obtain ⟨CQd, hCQd_nn, hQderiv_bound_strip⟩ :=
+    conjugateMild_chemFlux_deriv_positiveTime_uniformBound
+      D hu₀ hu₀_meas hτ2
+  have hF0 : ∀ s, F s 0 = 0 := by
+    intro s
+    simp only [hF]
+    split_ifs
+    · exact ShenWork.IntervalCoupledRegularityBootstrap.chemFluxLifted_endpoint_zero
+        p (D.u s)
+    · rfl
+  have hF1 : ∀ s, F s 1 = 0 := by
+    intro s
+    simp only [hF]
+    split_ifs
+    · exact ShenWork.IntervalCoupledRegularityBootstrap.chemFluxLifted_endpoint_one
+        p (D.u s)
+    · rfl
+  set Aeta : ℝ := (2 : ℝ) ^ (1 - eta) *
+    (secondDerivSmoothingConst ^ eta * gradSmoothingConst ^ (1 - eta)) with hAeta
+  set Cearly : ℝ := Aeta * (τ / 4) ^ (-((1 + eta) / 2) : ℝ) *
+    (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+      (τ / 4) ^ (-(1 / 2) : ℝ) * CQ) with hCearly
+  set Clate : ℝ := Aeta * CQd with hClate
+  set UB : ℝ :=
+    D.T ^ (-((1 + eta) / 2) + 1) / (-((1 + eta) / 2) + 1) with hUB
+  set H : ℝ := Cearly * D.T + Clate * UB with hH
+  have hAeta_nn : 0 ≤ Aeta := by
+    rw [hAeta]
+    exact mul_nonneg
+      (Real.rpow_nonneg (by norm_num) _)
+      (mul_nonneg (Real.rpow_nonneg secondDerivSmoothingConst_nonneg _)
+        (Real.rpow_nonneg gradSmoothingConst_nonneg _))
+  have hCearly_nn : 0 ≤ Cearly := by
+    rw [hCearly]
+    exact mul_nonneg
+      (mul_nonneg hAeta_nn (Real.rpow_nonneg hτ4.le _))
+      (mul_nonneg
+        (mul_nonneg
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+          (Real.rpow_nonneg hτ4.le _)) hCQ_nn)
+  have hClate_nn : 0 ≤ Clate := mul_nonneg hAeta_nn hCQd_nn
+  have hUB_nn : 0 ≤ UB := by
+    rw [hUB]
+    exact div_nonneg (Real.rpow_nonneg D.hT.le _) (by linarith)
+  have hH_nn : 0 ≤ H := by
+    rw [hH]
+    exact add_nonneg (mul_nonneg hCearly_nn D.hT.le)
+      (mul_nonneg hClate_nn hUB_nn)
+  refine ⟨H, hH_nn, ?_⟩
+  intro t hτt htT x hx y hy
+  have ht : 0 < t := lt_of_lt_of_le hτ hτt
+  have hF_cont : ∀ s, t / 2 < s → s < t →
+      ContinuousOn (F s) (Set.Icc (0 : ℝ) 1) := by
+    intro s hs2 hst
+    have hs0 : 0 < s := by linarith
+    have hsT : s ≤ D.T := (le_of_lt hst).trans htT
+    rw [hF_eq hs0 hsT]
+    exact (ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+      p (D.hcont s hs0 hsT) (D.hnonneg s hs0 hsT)).continuousOn
+  have hF_holder : ∀ s, t / 2 < s → s < t →
+      ∀ a b : ℝ, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+        |F s a - F s b| ≤ HQ * |a - b| ^ (1 / 4 : ℝ) := by
+    intro s hs2 hst a b ha hb
+    have hs0 : 0 < s := by linarith
+    have hsT : s ≤ D.T := (le_of_lt hst).trans htT
+    rw [hF_eq hs0 hsT]
+    exact hQholder s ⟨by linarith, hsT⟩ a b ha hb
+  have hder_int : ∀ z ∈ Set.Icc (0 : ℝ) 1,
+      IntervalIntegrable
+        (fun s : ℝ => deriv
+          (fun w : ℝ => intervalConjugateKernelOperator (t - s) (F s) w) z)
+        volume 0 t :=
+    ShenWork.IntervalNeumannFullKernel.intervalConjugateDuhamel_deriv_intervalIntegrable_of_late_holder
+      ht (by norm_num : (0 : ℝ) < 1 / 4) (by norm_num : (1 / 4 : ℝ) < 1)
+        hCQ_nn hHQ_nn hF_meas hF_int hF_bound hF_cont hF_holder hF0 hF1
+  set phi : ℝ → ℝ := fun s =>
+    Cearly + Clate * (t - s) ^ (-((1 + eta) / 2) : ℝ) with hphi
+  have hphi_int : IntervalIntegrable phi volume 0 t := by
+    rw [hphi]
+    have hc : IntervalIntegrable (fun _ : ℝ => Cearly) volume 0 t :=
+      intervalIntegrable_const
+    have hl := (duhamel_holder_gradTime_integrand_integrable ht heta0 heta1).const_mul
+      Clate
+    exact hc.add hl
+  have hpoint : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      ∀ a ∈ Set.Ioo (0 : ℝ) 1, ∀ b ∈ Set.Ioo (0 : ℝ) 1,
+        |deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) a -
+          deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) b| ≤
+            phi s * |a - b| ^ eta := by
+    intro s hs a ha b hb
+    have hsT : s ≤ D.T := (le_of_lt hs.2).trans htT
+    have hFs_eq := hF_eq hs.1 hsT
+    have hQcont : Continuous (F s) := by
+      rw [hFs_eq]
+      exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_continuous_of_continuous
+        p (D.hcont s hs.1 hsT) (D.hnonneg s hs.1 hsT)
+    rcases le_or_gt s (t / 2) with hs_early | hs_late
+    · have hlag : 0 < t - s := sub_pos.mpr hs.2
+      have hhalfpos : 0 < (t - s) / 2 := by positivity
+      have hraw := intervalConjugateKernelOperator_deriv_holder_of_split
+        hlag heta0 heta1 hQcont (hF_int s) (hF_bound s) ha hb
+      have hhalf_ge : τ / 4 ≤ (t - s) / 2 := by linarith
+      have hp1 :
+          ((t - s) / 2) ^ (-((1 + eta) / 2) : ℝ) ≤
+            (τ / 4) ^ (-((1 + eta) / 2) : ℝ) :=
+        Real.rpow_le_rpow_of_nonpos hτ4 hhalf_ge (by linarith)
+      have hp2 :
+          ((t - s) / 2) ^ (-(1 / 2) : ℝ) ≤
+            (τ / 4) ^ (-(1 / 2) : ℝ) :=
+        Real.rpow_le_rpow_of_nonpos hτ4 hhalf_ge (by norm_num)
+      have hgrad_nn :
+          0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant :=
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+      have hinner :
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              ((t - s) / 2) ^ (-(1 / 2) : ℝ) * CQ ≤
+            ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              (τ / 4) ^ (-(1 / 2) : ℝ) * CQ :=
+        mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hp2 hgrad_nn) hCQ_nn
+      have hcoef :
+          Aeta * ((t - s) / 2) ^ (-((1 + eta) / 2) : ℝ) *
+            (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+                ((t - s) / 2) ^ (-(1 / 2) : ℝ) * CQ) ≤ Cearly := by
+        rw [hCearly]
+        have hinner_nn :
+            0 ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+              ((t - s) / 2) ^ (-(1 / 2) : ℝ) * CQ :=
+          mul_nonneg
+            (mul_nonneg hgrad_nn (Real.rpow_nonneg hhalfpos.le _)) hCQ_nn
+        exact mul_le_mul
+          (mul_le_mul_of_nonneg_left hp1 hAeta_nn) hinner
+          hinner_nn
+          (mul_nonneg hAeta_nn (Real.rpow_nonneg hτ4.le _))
+      have hearly := hraw.trans
+        (mul_le_mul_of_nonneg_right hcoef (Real.rpow_nonneg (abs_nonneg _) _))
+      rw [hphi]
+      exact hearly.trans
+        (mul_le_mul_of_nonneg_right (le_add_of_nonneg_right
+          (mul_nonneg hClate_nn (Real.rpow_nonneg (sub_nonneg.mpr hs.2.le) _)))
+          (Real.rpow_nonneg (abs_nonneg _) _))
+    · have hs2le : t / 2 ≤ s := le_of_lt hs_late
+      have hQderiv : ∀ z ∈ Set.Ioo (0 : ℝ) 1,
+          HasDerivAt (F s) (deriv (F s) z) z := by
+        intro z hz
+        rw [hFs_eq]
+        exact (conjugateMild_chemFlux_differentiableAt_interior
+          D hu₀ hu₀_meas hs.1 hsT hz).hasDerivAt
+      have hQderiv_int : IntervalIntegrable (deriv (F s)) volume 0 1 := by
+        rw [hFs_eq]
+        exact conjugateMild_chemFlux_deriv_intervalIntegrable
+          D hu₀ hu₀_meas hs.1 hsT
+      have hQderiv_bound : ∀ z, |deriv (F s) z| ≤ CQd := by
+        intro z
+        rw [hFs_eq]
+        by_cases hz : z ∈ Set.Ioo (0 : ℝ) 1
+        · exact hQderiv_bound_strip s (by linarith) hsT z hz
+        · rw [chemFluxLifted_deriv_eq_zero_off_Ioo p (D.u s) hz, abs_zero]
+          exact hCQd_nn
+      have hraw := intervalConjugateKernelOperator_deriv_holder_of_deriv
+        (sub_pos.mpr hs.2) heta0 heta1 hQcont hQderiv hQderiv_int
+          (by
+            rw [hFs_eq]
+            exact ShenWork.IntervalCoupledRegularityBootstrap.chemFluxLifted_endpoint_zero
+              p (D.u s))
+          (by
+            rw [hFs_eq]
+            exact ShenWork.IntervalCoupledRegularityBootstrap.chemFluxLifted_endpoint_one
+              p (D.u s))
+          hQderiv_bound ha hb
+      have hlate :
+          |deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) a -
+            deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) b| ≤
+              Clate * (t - s) ^ (-((1 + eta) / 2) : ℝ) * |a - b| ^ eta := by
+        rw [hClate, hAeta]
+        convert hraw using 1 <;> ring
+      rw [hphi]
+      exact hlate.trans
+        (mul_le_mul_of_nonneg_right (le_add_of_nonneg_left hCearly_nn)
+          (Real.rpow_nonneg (abs_nonneg _) _))
+  have hbound_ae : ∀ᵐ s ∂(volume.restrict (Set.Icc (0 : ℝ) t)),
+      |deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) x -
+        deriv (fun z : ℝ => intervalConjugateKernelOperator (t - s) (F s) z) y| ≤
+          phi s * |x - y| ^ eta := by
+    rw [ae_restrict_iff' measurableSet_Icc]
+    have hne0 : ∀ᵐ s : ℝ ∂volume, s ≠ 0 := by
+      rw [ae_iff]
+      simp only [not_not, Set.setOf_eq_eq_singleton]
+      exact Real.volume_singleton
+    have hnet : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+      rw [ae_iff]
+      simp only [not_not, Set.setOf_eq_eq_singleton]
+      exact Real.volume_singleton
+    filter_upwards [hne0, hnet] with s hs0 hst hs
+    exact hpoint s ⟨lt_of_le_of_ne hs.1 hs0.symm, lt_of_le_of_ne hs.2 hst⟩
+      x hx y hy
+  have hholder := holder_of_duhamel_integral ht.le
+    (hder_int x (Set.Ioo_subset_Icc_self hx))
+    (hder_int y (Set.Ioo_subset_Icc_self hy)) hphi_int hbound_ae
+  have hder_eq : ∀ z,
+      (∫ s in (0 : ℝ)..t, deriv
+        (fun w : ℝ => intervalConjugateKernelOperator (t - s)
+          (chemFluxLifted p (D.u s)) w) z) =
+      ∫ s in (0 : ℝ)..t, deriv
+        (fun w : ℝ => intervalConjugateKernelOperator (t - s) (F s) w) z := by
+    intro z
+    apply intervalIntegral.integral_congr_ae
+    apply Filter.Eventually.of_forall
+    intro s hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    rw [hF_eq hs.1 (hs.2.trans htT)]
+  have hphi_le : (∫ s in (0 : ℝ)..t, phi s) ≤ H := by
+    have hpow_int := duhamel_holder_gradTime_integrand_integrable ht heta0 heta1
+    have heq :
+        (∫ s in (0 : ℝ)..t, phi s) =
+          Cearly * t + Clate *
+            (∫ s in (0 : ℝ)..t, (t - s) ^ (-((1 + eta) / 2) : ℝ)) := by
+      rw [hphi, intervalIntegral.integral_add intervalIntegrable_const
+        (hpow_int.const_mul Clate), intervalIntegral.integral_const,
+        intervalIntegral.integral_const_mul]
+      simp only [smul_eq_mul]
+      ring
+    rw [heq, hH]
+    exact add_le_add
+      (mul_le_mul_of_nonneg_left htT hCearly_nn)
+      (mul_le_mul_of_nonneg_left
+        (by
+          rw [hUB]
+          exact duhamel_gradTime_integral_le ht.le htT heta1)
+        hClate_nn)
+  rw [hder_eq x, hder_eq y]
+  exact hholder.trans
+    (mul_le_mul_of_nonneg_right hphi_le (Real.rpow_nonneg (abs_nonneg _) _))
+
 /-- Every positive-time faithful mild slice is spatially `C1,eta` on the open
 interval: its actual interior derivative has a power Holder modulus. -/
 theorem conjugateMild_intervalDomainLift_deriv_holder_interior
@@ -910,6 +1206,184 @@ theorem conjugateMild_intervalDomainLift_deriv_holder_interior
     rw [hreact_eq x, hreact_eq y, ← hHreact] at hraw
     exact hraw
   have hchem := hchem_holder x hx y hy
+  rw [hwhole_deriv x hx, hwhole_deriv y hy]
+  calc
+    |(I x + (-p.χ₀) * Cleg x + Rleg x) -
+        (I y + (-p.χ₀) * Cleg y + Rleg y)|
+        = |(I x - I y) + (-p.χ₀) * (Cleg x - Cleg y) +
+            (Rleg x - Rleg y)| := by ring_nf
+    _ ≤ |I x - I y| + |(-p.χ₀) * (Cleg x - Cleg y)| +
+          |Rleg x - Rleg y| := by
+        linarith [abs_add_le ((I x - I y) + (-p.χ₀) * (Cleg x - Cleg y))
+          (Rleg x - Rleg y),
+          abs_add_le (I x - I y) ((-p.χ₀) * (Cleg x - Cleg y))]
+    _ ≤ Hinit * |x - y| ^ eta + |p.χ₀| * (Hchem * |x - y| ^ eta) +
+          Hreact * |x - y| ^ eta := by
+        rw [abs_mul, abs_neg]
+        exact add_le_add (add_le_add hinit_holder
+          (mul_le_mul_of_nonneg_left hchem (abs_nonneg _))) hreact_holder
+    _ = H * |x - y| ^ eta := by rw [hH]; ring
+
+/-- The actual spatial derivative has one power-Holder modulus on every closed
+positive-time strip. -/
+theorem conjugateMild_intervalDomainLift_deriv_positiveTime_holder_uniform
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : ConjugateMildSolutionData p u₀)
+    (hu₀ : ∀ x, |intervalDomainLift u₀ x| ≤ D.M)
+    (hu₀_meas : AEStronglyMeasurable (intervalDomainLift u₀) (intervalMeasure 1))
+    {τ eta : ℝ} (hτ : 0 < τ) (heta0 : 0 < eta) (heta1 : eta < 1) :
+    ∃ H : ℝ, 0 ≤ H ∧ ∀ t, τ ≤ t → t ≤ D.T →
+      ∀ x ∈ Set.Ioo (0 : ℝ) 1, ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+        |deriv (intervalDomainLift (D.u t)) x -
+          deriv (intervalDomainLift (D.u t)) y| ≤ H * |x - y| ^ eta := by
+  obtain ⟨Hchem, hHchem_nn, hchem_holder⟩ :=
+    conjugateMild_chemDuhamel_deriv_positiveTime_holder_uniform
+      D hu₀ hu₀_meas hτ heta0 heta1
+  set CL : ℝ := D.M * (p.a + p.b * D.M ^ p.α) with hCL
+  have hCL_nn : 0 ≤ CL := by
+    rw [hCL]
+    exact logisticCutoffSource_boundConst_nonneg (p := p) D.hM
+  set Aeta : ℝ := (2 : ℝ) ^ (1 - eta) *
+    (secondDerivSmoothingConst ^ eta * gradSmoothingConst ^ (1 - eta)) with hAeta
+  set UB : ℝ :=
+    D.T ^ (-((1 + eta) / 2) + 1) / (-((1 + eta) / 2) + 1) with hUB
+  set Hinit : ℝ := Aeta * τ ^ (-((1 + eta) / 2) : ℝ) * D.M with hHinit
+  set Hreact : ℝ := Aeta * CL * UB with hHreact
+  set H : ℝ := Hinit + |p.χ₀| * Hchem + Hreact with hH
+  have hAeta_nn : 0 ≤ Aeta := by
+    rw [hAeta]
+    exact mul_nonneg
+      (Real.rpow_nonneg (by norm_num) _)
+      (mul_nonneg (Real.rpow_nonneg secondDerivSmoothingConst_nonneg _)
+        (Real.rpow_nonneg gradSmoothingConst_nonneg _))
+  have hUB_nn : 0 ≤ UB := by
+    rw [hUB]
+    exact div_nonneg (Real.rpow_nonneg D.hT.le _) (by linarith)
+  have hHinit_nn : 0 ≤ Hinit := by
+    rw [hHinit]
+    exact mul_nonneg
+      (mul_nonneg hAeta_nn (Real.rpow_nonneg hτ.le _)) D.hM.le
+  have hHreact_nn : 0 ≤ Hreact := by
+    rw [hHreact]
+    exact mul_nonneg (mul_nonneg hAeta_nn hCL_nn) hUB_nn
+  have hH_nn : 0 ≤ H := by
+    rw [hH]
+    exact add_nonneg
+      (add_nonneg hHinit_nn (mul_nonneg (abs_nonneg _) hHchem_nn)) hHreact_nn
+  let L : ℝ → ℝ → ℝ := logisticCutoffSource p D.u D.T
+  have hL_meas : Measurable (Function.uncurry L) := by
+    simpa [L] using logisticCutoffSource_measurable
+      (p := p) (u := D.u) (T := D.T) D.hmeas
+  have hL_bound : ∀ s y, |L s y| ≤ CL := by
+    intro s y
+    dsimp [L]
+    rw [hCL]
+    exact logisticCutoffSource_bound (p := p) (u := D.u)
+      (T := D.T) D.hM D.hbound s y
+  refine ⟨H, hH_nn, ?_⟩
+  intro t hτt htT x hx y hy
+  have ht : 0 < t := lt_of_lt_of_le hτ hτt
+  let I : ℝ → ℝ := fun z =>
+    ∫ w, deriv (fun q : ℝ => intervalNeumannFullKernel t q w) z *
+      intervalDomainLift u₀ w ∂(intervalMeasure 1)
+  let Cleg : ℝ → ℝ := fun z =>
+    ∫ s in (0 : ℝ)..t, deriv
+      (fun w : ℝ => intervalConjugateKernelOperator (t - s)
+        (chemFluxLifted p (D.u s)) w) z
+  let Rleg : ℝ → ℝ := fun z =>
+    ∫ s in (0 : ℝ)..t, deriv
+      (fun w : ℝ => intervalFullSemigroupOperator (t - s)
+        (logisticLifted p (D.u s)) w) z
+  have hwhole_deriv : ∀ z ∈ Set.Ioo (0 : ℝ) 1,
+      deriv (intervalDomainLift (D.u t)) z =
+        I z + (-p.χ₀) * Cleg z + Rleg z := by
+    intro z hz
+    have hwhole := conjugateMild_intervalDomainLift_hasDerivAt_interior
+      D hu₀ hu₀_meas (θ := (1 / 4 : ℝ)) (by norm_num) (by norm_num)
+        ht htT hz
+    simpa [I, Cleg, Rleg] using hwhole.deriv
+  have hreact_eq : ∀ z, reactionDerivLeg t L z = Rleg z := by
+    intro z
+    unfold reactionDerivLeg
+    dsimp [Rleg]
+    apply intervalIntegral.integral_congr_ae
+    apply Filter.Eventually.of_forall
+    intro s hs
+    rw [Set.uIoc_of_le ht.le] at hs
+    have hsT : s ≤ D.T := hs.2.trans htT
+    have heq : L s = logisticLifted p (D.u s) := by
+      funext w
+      simp [L, logisticCutoffSource, hs.1, hsT]
+    rw [heq]
+  have hxIcc := Set.Ioo_subset_Icc_self hx
+  have hyIcc := Set.Ioo_subset_Icc_self hy
+  have hsx :=
+    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+      ht hu₀_meas hu₀ x
+  have hsy :=
+    ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+      ht hu₀_meas hu₀ y
+  have hsx_eq :
+      deriv (fun z : ℝ => intervalFullSemigroupOperator t (intervalDomainLift u₀) z) x =
+        I x := by
+    simpa [I] using hsx.deriv
+  have hsy_eq :
+      deriv (fun z : ℝ => intervalFullSemigroupOperator t (intervalDomainLift u₀) z) y =
+        I y := by
+    simpa [I] using hsy.deriv
+  have hinit_const_le :
+      initialValueLegDerivHolderConst t eta D.M ≤ Hinit := by
+    have hpow :
+        t ^ (-((1 + eta) / 2) : ℝ) ≤
+          τ ^ (-((1 + eta) / 2) : ℝ) :=
+      Real.rpow_le_rpow_of_nonpos hτ hτt (by linarith)
+    rw [initialValueLegDerivHolderConst, hHinit, hAeta]
+    exact mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_left hpow hAeta_nn) D.hM.le
+  have hreact_const_le : reactionDerivLegHolderConst t eta CL ≤ Hreact := by
+    have hpow_int := duhamel_holder_gradTime_integrand_integrable ht heta0 heta1
+    have heq :
+        reactionDerivLegHolderConst t eta CL =
+          Aeta * CL *
+            (∫ s in (0 : ℝ)..t, (t - s) ^ (-((1 + eta) / 2) : ℝ)) := by
+      unfold reactionDerivLegHolderConst
+      rw [show
+          (fun s : ℝ => (2 : ℝ) ^ (1 - eta) *
+              (secondDerivSmoothingConst ^ eta * gradSmoothingConst ^ (1 - eta)) *
+                (t - s) ^ (-((1 + eta) / 2) : ℝ) * CL) =
+            (fun s : ℝ => (Aeta * CL) *
+              (t - s) ^ (-((1 + eta) / 2) : ℝ)) by
+          funext s
+          rw [hAeta]
+          ring,
+        intervalIntegral.integral_const_mul]
+    rw [heq, hHreact]
+    exact mul_le_mul_of_nonneg_left
+      (by
+        rw [hUB]
+        exact duhamel_gradTime_integral_le ht.le htT heta1)
+      (mul_nonneg hAeta_nn hCL_nn)
+  have hinit_holder : |I x - I y| ≤ Hinit * |x - y| ^ eta := by
+    have hraw := initialValueLeg_deriv_holder_Icc
+      ht heta0 heta1 hu₀_meas hu₀ x hxIcc y hyIcc
+    change
+      |deriv (fun z : ℝ => intervalFullSemigroupOperator t
+          (intervalDomainLift u₀) z) x -
+        deriv (fun z : ℝ => intervalFullSemigroupOperator t
+          (intervalDomainLift u₀) z) y| ≤
+        initialValueLegDerivHolderConst t eta D.M * |x - y| ^ eta at hraw
+    rw [hsx_eq, hsy_eq] at hraw
+    exact hraw.trans
+      (mul_le_mul_of_nonneg_right hinit_const_le
+        (Real.rpow_nonneg (abs_nonneg _) _))
+  have hreact_holder : |Rleg x - Rleg y| ≤ Hreact * |x - y| ^ eta := by
+    have hraw := reactionDerivLeg_holder_Icc
+      ht heta0 heta1 hL_meas hCL_nn hL_bound x hxIcc y hyIcc
+    rw [hreact_eq x, hreact_eq y] at hraw
+    exact hraw.trans
+      (mul_le_mul_of_nonneg_right hreact_const_le
+        (Real.rpow_nonneg (abs_nonneg _) _))
+  have hchem := hchem_holder t hτt htT x hx y hy
   rw [hwhole_deriv x hx, hwhole_deriv y hy]
   calc
     |(I x + (-p.χ₀) * Cleg x + Rleg x) -
