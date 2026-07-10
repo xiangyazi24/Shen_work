@@ -1,5 +1,81 @@
 # UNDERSTANDING.md — Shen_work
 
+## Task 323: Truncated positive-time bootstrap — Sobolev ladder (2026-07-08)
+
+File: `ShenWork/Paper2/IntervalTruncatedPositiveTimeBootstrap.lean`
+
+Goal: close the sorry `truncatedPositiveTimeSpectralData_of_existenceData` in
+`IntervalTruncatedTestedSpectral.lean`, making Paper 2 Theorem 1.1 unconditional.
+
+Architecture (validated by ChatGPT Q3942 + Q3945):
+
+```
+ball bound
+  → source O(1) [Level 2: truncatedBFormSourceCoeff_bound_positive_time — DONE]
+  → eigenvalue gain → H¹ [truncatedPicardCoeff_h1_positive_time]
+  → source ℓ² [truncatedBFormSourceCoeff_l2_positive_time]
+  → eigenvalue gain → H² (hidden stronger output)
+  → gradient ℓ¹ [truncatedPicardCoeff_grad_l1_positive_time] (Cauchy-Schwarz corollary)
+  → source ℓ¹ [truncatedBFormSourceCoeff_summable_positive_time] (two IBPs + H²)
+  → eigenvalue gain → eigenvalue-weighted summability [truncatedPicardCoeff_eigenvalue_weighted_summable_positive_time]
+```
+
+Key infrastructure wrappers needed (from Q3945):
+- `l2_source_to_H2_duhamel`: ℓ² envelope → Σ (λ_k |Duh_k|)² < ∞
+- `source_l1_to_eigenvalue_weighted_duhamel`: ℓ¹ envelope → Σ λ_k |Duh_k| < ∞
+- Both are thin wrappers around `eigenvalue_mul_abs_duhamelSpectralCoeff_le_of_bound`
+
+Key IBP facts:
+- `kπ · sineInner(F,k) = cosCoeff(F',k)` (first IBP, uses F(0)=F(1)=0)
+- `cosCoeff(F',k) = -sineCoeff(F'',k)/(kπ)` (second IBP, sin vanishes at endpoints — no F' boundary needed)
+- Logistic: g = f(u), g'(0)=g'(1)=0 (Neumann), two IBPs → O(1/k²) → ℓ¹
+- ChemDiv: F'' ∈ L² → sineCoeff(F'') ∈ ℓ² → divided by kπ → ℓ¹ by Cauchy-Schwarz
+
+Level 0 (Lipschitz black box) — Q3948 architecture (validated):
+- The naive "continuous → flux W^{1,1}" route is CIRCULAR (continuity alone ≠ BV/Lipschitz)
+- Correct route: iterate-level positive-window Lipschitz bootstrap
+  1. Operator-level IBP: B_N(t)F = S_N(t)(F') when F(0)=F(1)=0, F∈W^{1,1}
+     - Endpoints: `truncatedChemFluxLifted_zero_left/right` already proved
+     - This eliminates the 1/(t-s) singularity (reduces to √(t-s) integrable)
+  2. Small-window contraction: G_{n+1} ≤ A_win + B_win * G_n with B_win < 1
+  3. Uniform iterate Lipschitz → limit Lipschitz (by uniform convergence)
+  4. Limit Lipschitz → flux W^{1,∞} → source O(1) via IBP
+- Key reusable pieces: `gradDuhamel_sup_bound`, `cosineCoeffs_abs_le_of_continuous_bounded`
+- NOT reusable: `TowerInputs` (has hχ0), `G1profile`/`CL` (logistic-only)
+
+Alternative route (Q3949, deeper but heavier):
+- Time-weighted H¹ Picard majorant: P_n(T) = sup_{0<t≤T} √t ‖u_n(t)‖_{H¹}
+- Closure: P_{n+1}(T) ≤ C₀ + C₁T + C₂√T·P_n(T), small T makes C₂√T < 1
+- ℓ² source → gradient ℓ¹ via (t-s)^{-3/4} smoothing (integrable in 1D)
+- Does NOT use modewise eigenvalue gain → avoids divergent harmonic series
+- Decision: stick with Q3948 Lipschitz approach for current bootstrap file;
+  Q3949 route is backup if Lipschitz IBP proves too heavy in Lean
+
+Status: 16 sorries in bootstrap, 0 in gradient window, 0 in IBP.
+Previous session closed logistic source + continuousOn; this session closed:
+- 3 algebraic sorries (timeDeriv summability + two tested summabilities) via Codex
+- `gradDuhamel_shifted_sup_bound` in gradient window (Q3958, now 0 sorry)
+- Level 0 limit passage (tendsto_nhds_limUnder + le_of_tendsto, proved inline)
+
+Level 0 decomposed into:
+1. `hiter_grad` (sorry L94): uniform iterate gradient bound from window [t/2, t]
+   - Needs `TruncatedGradientWindowWiring` instantiation
+   - Key missing piece: `hkernel_step` (restarted mild identity infrastructure)
+   - Q3955 dispatched but git-drop FAILED; needs re-dispatch or manual proof
+2. MVT (sorry L105): gradient bound → Lipschitz via Mean Value Theorem
+   - Needs `HasDerivWithinAt` on Icc 0 1 for lifted iterates
+   - Infrastructure exists in codebase but assembly non-trivial
+3. Limit passage (PROVED): `le_of_tendsto` + `tendsto_nhds_limUnder`
+
+All 16 sorries chain back to L94 (hiter_grad).
+
+Q3960 insight: `negativePartTest_diff_off_countable` (Level 4b) needs STRONGER
+positive-time regularity — Lipschitz alone doesn't give HasDerivAt off countable.
+Need C¹ or HasDerivAt-off-countable as a new black box. May need to restructure
+Level 4b sorry statements.
+
+Role: Codex grinds the individual sorries. I organize ChatGPT answers and coordinate.
+
 ## Task 322: Conjugate B-form/logistic source `TimeC1On` producers (2026-07-07)
 
 `IntervalConjugateBFormSourceTimeC1On.lean` adds a direct producer for the

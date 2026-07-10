@@ -1,5 +1,6 @@
 import ShenWork.Paper2.IntervalBFormFaithfulBridgeProducer
-import ShenWork.Paper2.IntervalBFormCron2SemigroupWeakDuhamel
+import ShenWork.Paper2.IntervalBFormCron2CoefficientWeakTest
+import ShenWork.Paper2.IntervalBFormCron2RegularNegativePartEnergy
 
 open Filter Topology Set MeasureTheory
 open scoped Topology
@@ -13,20 +14,14 @@ noncomputable section
 
 namespace ShenWork.Paper2.BFormPositiveDatumNegPart
 
-/-- Regular mild-to-weak data for the negative-part test, stated directly for
-the faithful truncated Picard fixed point. -/
+/-- Regular mild-to-weak data for the negative-part test, stated directly by
+the coefficient weak-test route for the faithful truncated Picard fixed point. -/
 structure TruncatedNegativePartMildToWeakRegularData
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (DT : TruncatedConjugateMildExistenceData p u₀) where
-  flux_test_duality :
+  coeff_weak :
     ∀ t, 0 < t → t ≤ DT.T →
-      ∀ s, 0 < s → s < t →
-        BNDualityForFluxTestAt p
-          (truncatedConjugatePicardLimit p u₀ DT.T) t s
-          (negativePartTest (truncatedConjugatePicardLimit p u₀ DT.T) t)
-  semigroup_weak_facts :
-    NegativePartStandardHeatSemigroupDuhamelFacts p DT.T u₀
-      (truncatedConjugatePicardLimit p u₀ DT.T)
+      TruncatedNegativePartCoefficientWeakTestData p DT t
 
 def TruncatedNegativePartMildToWeakRegularData.semigroup_weak
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -34,8 +29,10 @@ def TruncatedNegativePartMildToWeakRegularData.semigroup_weak
     (H : TruncatedNegativePartMildToWeakRegularData p DT) :
     NegativePartMildSemigroupWeakAfterFluxTestDuality p DT.T u₀
       (truncatedConjugatePicardLimit p u₀ DT.T) :=
-  negativePartMildSemigroupWeakAfterFluxTestDuality_of_standardHeatSemigroupDuhamelFacts
-    H.semigroup_weak_facts
+  negativePartMildSemigroupWeakAfterFluxTestDuality_of_coefficientWeakTestData
+    (p := p) (T := DT.T) (u₀ := u₀)
+    (u := truncatedConjugatePicardLimit p u₀ DT.T)
+    { coeff_weak := H.coeff_weak }
 
 def TruncatedNegativePartMildToWeakRegularData.weakTest
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -45,13 +42,8 @@ def TruncatedNegativePartMildToWeakRegularData.weakTest
       NegativePartWeakTestIdentityAt p
         (truncatedConjugatePicardLimit p u₀ DT.T) t := by
   intro t ht htT
-  have hmild :
-      TruncatedConjugateMildSolution p DT.T u₀
-        (truncatedConjugatePicardLimit p u₀ DT.T) :=
-    (truncatedConjugateMildSolutionData_of_data DT).hmild
-  exact H.semigroup_weak hmild t ht htT
-    (fun s hs hst =>
-      (H.flux_test_duality t ht htT s hs hst).duality hst)
+  exact truncatedNegativePartWeakTestIdentityAt_of_coefficientData
+    (H.coeff_weak t ht htT)
 
 /-- Regular negative-part energy core for the faithful truncated Picard fixed
 point itself, with no bridge through the full Picard limit. -/

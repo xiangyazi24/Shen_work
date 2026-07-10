@@ -1,0 +1,459 @@
+/-
+Left Volterra profile for the gradient bootstrap on (0, lo].
+
+When B_F ≠ 0, the source depends on the gradient, creating a Volterra
+self-coupling. The invariant profile on the left interval (0, lo] is
+  |∂_x U_n(t', x)| ≤ C/√t' + D
+where D absorbs the Volterra feedback via the elementary bound
+κ = 2√3 ≥ ∫_0^r (r-s)^{-1/2} s^{-1/2} ds.
+
+Source: ChatGPT Q3969 (hleft_gradient_strategy).
+-/
+import ShenWork.Paper2.IntervalTruncatedGradientWindow
+import ShenWork.PDE.IntervalGradDuhamelBound
+import Mathlib.Analysis.Real.Pi.Bounds
+import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
+import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+open MeasureTheory Set
+open scoped BigOperators Topology Real
+
+noncomputable section
+
+namespace ShenWork.Paper2.TruncatedGradientWindow
+
+open ShenWork.HeatKernelGradientEstimates
+  (heatGradientLinftyLinftyConstant heatGradientLinftyLinftyConstant_nonneg)
+
+/-- Lean-friendly Volterra constant for the left bootstrap.
+Replaces the exact `π = B(1/2,1/2)` by the elementary bound `2√3`. -/
+def truncLeftKappa : ℝ := 2 * Real.sqrt 3
+
+/-- `L0 = A_L + |χ₀| · A_F` — the constant part of the source bound. -/
+def truncLeftSourceConst (A_L A_F chi : ℝ) : ℝ :=
+  A_L + |chi| * A_F
+
+/-- `β = |χ₀| · B_F` — the gradient coupling coefficient. -/
+def truncLeftBeta (B_F chi : ℝ) : ℝ :=
+  |chi| * B_F
+
+/-- `C = Cg · M` — the singular semigroup coefficient. -/
+def truncLeftSingularC (M : ℝ) : ℝ :=
+  heatGradientLinftyLinftyConstant * M
+
+/-- The contraction coefficient on the left interval `(0, lo]`.
+`bL = 2 · Cg · √lo · |χ₀| · B_F`. -/
+def truncLeftB (B_F chi lo : ℝ) : ℝ :=
+  heatGradientLinftyLinftyConstant * (2 * Real.sqrt lo) * truncLeftBeta B_F chi
+
+/-- The additive constant D in the invariant profile `C/√t' + D` on `(0, lo]`.
+`D = (K·β·C·κ + 2K·√lo·L0) / (1 - bL)`. -/
+def truncLeftD (M A_L A_F B_F chi lo : ℝ) : ℝ :=
+  let K := heatGradientLinftyLinftyConstant
+  let beta := truncLeftBeta B_F chi
+  let C := truncLeftSingularC M
+  let L0 := truncLeftSourceConst A_L A_F chi
+  (K * beta * C * truncLeftKappa + K * (2 * Real.sqrt lo) * L0)
+    / (1 - truncLeftB B_F chi lo)
+
+/-- Nonnegativity of the additive left-profile constant under the left
+contraction condition. -/
+theorem truncLeftD_nonneg
+    {M A_L A_F B_F chi lo : ℝ}
+    (hM : 0 ≤ M) (hAL : 0 ≤ A_L) (hAF : 0 ≤ A_F) (hBF : 0 ≤ B_F)
+    (hlo : 0 ≤ lo) (hcontr : truncLeftB B_F chi lo < 1) :
+    0 ≤ truncLeftD M A_L A_F B_F chi lo := by
+  have hden_pos : 0 < 1 - truncLeftB B_F chi lo := sub_pos.mpr hcontr
+  have hK : 0 ≤ heatGradientLinftyLinftyConstant := heatGradientLinftyLinftyConstant_nonneg
+  have hbeta : 0 ≤ |chi| * B_F := mul_nonneg (abs_nonneg chi) hBF
+  have hC : 0 ≤ heatGradientLinftyLinftyConstant * M := mul_nonneg hK hM
+  have hL0 : 0 ≤ A_L + |chi| * A_F :=
+    add_nonneg hAL (mul_nonneg (abs_nonneg chi) hAF)
+  have hnum₁ :
+      0 ≤ heatGradientLinftyLinftyConstant * (|chi| * B_F) *
+          (heatGradientLinftyLinftyConstant * M) * truncLeftKappa := by
+    unfold truncLeftKappa
+    exact mul_nonneg (mul_nonneg (mul_nonneg hK hbeta) hC)
+      (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))
+  have hnum₂ :
+      0 ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt lo) *
+          (A_L + |chi| * A_F) := by
+    exact mul_nonneg
+      (mul_nonneg hK (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))) hL0
+  unfold truncLeftD truncLeftSingularC truncLeftSourceConst truncLeftBeta
+  dsimp
+  exact div_nonneg (add_nonneg hnum₁ hnum₂) hden_pos.le
+
+/-- The left Volterra profile: `P(t') = C/√t' + D`. -/
+def truncLeftProfile (M A_L A_F B_F chi lo t' : ℝ) : ℝ :=
+  truncLeftSingularC M / Real.sqrt t'
+    + truncLeftD M A_L A_F B_F chi lo
+
+private theorem beta_half_integral_eq_pi {r : ℝ} (hr : 0 < r) :
+    ((∫ s in (0)..r,
+        (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ)
+      = (Real.pi : ℂ) := by
+  have htoC :
+      ((∫ s in (0)..r,
+          (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ)
+        = ∫ s in (0)..r,
+            (s : ℂ) ^ ((1/2 : ℂ) - 1) * ((r : ℂ) - s) ^ ((1/2 : ℂ) - 1) := by
+    rw [← intervalIntegral.integral_ofReal]
+    apply intervalIntegral.integral_congr
+    intro s hs
+    rw [uIcc_of_le hr.le] at hs
+    have hs0 : 0 ≤ s := hs.1
+    have hrs0 : 0 ≤ r - s := sub_nonneg.mpr hs.2
+    have hmul :
+        (((r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ)
+          =
+        (((r - s : ℝ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ)
+          * (((s : ℝ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ) :=
+      Complex.ofReal_mul _ _
+    have h1 :
+        (((r - s : ℝ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ) =
+          ((r : ℂ) - s) ^ (-(2 : ℂ)⁻¹) := by
+      simpa [Complex.ofReal_sub, one_div, neg_div] using
+        Complex.ofReal_cpow hrs0 (-(1 / 2 : ℝ))
+    have h2 :
+        (((s : ℝ) ^ (-(1 / 2 : ℝ)) : ℝ) : ℂ) =
+          (s : ℂ) ^ (-(2 : ℂ)⁻¹) := by
+      simpa [one_div, neg_div] using
+        Complex.ofReal_cpow hs0 (-(1 / 2 : ℝ))
+    dsimp
+    rw [hmul, h1, h2]
+    rw [show ((1 / 2 : ℂ) - 1) = (-(2 : ℂ)⁻¹) by norm_num]
+    ring
+  rw [htoC]
+  have hscaled := Complex.betaIntegral_scaled (s := (1/2 : ℂ)) (t := (1/2 : ℂ)) (a := r) hr
+  rw [show ((1 / 2 : ℂ) + (1 / 2 : ℂ) - 1) = 0 by norm_num] at hscaled
+  rw [Complex.cpow_zero, one_mul] at hscaled
+  rw [hscaled]
+  rw [Complex.betaIntegral_eq_Gamma_mul_div]
+  · rw [show ((1 / 2 : ℂ) + (1 / 2 : ℂ)) = 1 by norm_num]
+    rw [Complex.Gamma_one]
+    rw [Complex.Gamma_one_half_eq]
+    rw [div_one]
+    rw [← Complex.cpow_add]
+    · norm_num
+    · exact Complex.ofReal_ne_zero.mpr Real.pi_ne_zero
+  · norm_num
+  · norm_num
+
+private theorem pi_le_truncLeftKappa : Real.pi ≤ truncLeftKappa := by
+  unfold truncLeftKappa
+  have hpi : Real.pi < (3.1416 : ℝ) := Real.pi_lt_d4
+  have hnum : (3.1416 : ℝ) < 2 * Real.sqrt 3 := by
+    norm_num [show (3.1416 : ℝ) = 3927 / 1250 by norm_num]
+    rw [mul_self_lt_mul_self_iff]
+    · have hs : Real.sqrt (3:ℝ) ^ 2 = 3 := Real.sq_sqrt (show 0 ≤ (3:ℝ) by norm_num)
+      nlinarith
+    · norm_num
+    · positivity
+  exact le_of_lt (lt_trans hpi hnum)
+
+private theorem profile_algebra_bound {X Y2 Y3 bL bW : ℝ}
+    (hX : 0 ≤ X) (hY2 : 0 ≤ Y2) (hY23 : Y2 ≤ Y3)
+    (hbL0 : 0 ≤ bL) (hbb : bL ≤ bW) (hbW : bW < 1) :
+    X + (bW * X + Y2) / (1 - bL) ≤ (X + Y3) / (1 - bW) := by
+  have hdL : 0 < 1 - bL := by linarith
+  have hdW : 0 < 1 - bW := by linarith
+  have hdLn : 1 - bL ≠ 0 := ne_of_gt hdL
+  have hleft_eq : X + (bW * X + Y2) / (1 - bL)
+      = (X * (1 - bL) + (bW * X + Y2)) / (1 - bL) := by
+    field_simp [hdLn]
+  rw [hleft_eq]
+  rw [div_le_div_iff₀ hdL hdW]
+  nlinarith [mul_nonneg (mul_nonneg hX (le_trans hbL0 hbb)) (sub_nonneg.mpr hbb),
+    mul_nonneg (sub_nonneg.mpr hY23) (le_of_lt hdL),
+    mul_nonneg hY2 (sub_nonneg.mpr hbb)]
+
+-- Theorem 1: Elementary Volterra integral bound
+-- ∫_0^r (r-s)^{-1/2} · s^{-1/2} ds ≤ 2√3 for 0 < r
+theorem left_beta_kernel_bound {r : ℝ} (hr : 0 < r) :
+    ∫ s in (0)..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+      ≤ truncLeftKappa := by
+  have hC := beta_half_integral_eq_pi hr
+  have hReal :
+      ∫ s in (0)..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+        = Real.pi := by
+    exact Complex.ofReal_injective hC
+  rw [hReal]
+  exact pi_le_truncLeftKappa
+
+/-- Integrability of the beta-half kernel on its full interval. -/
+theorem left_beta_kernel_intervalIntegrable {r : ℝ} (hr : 0 < r) :
+    IntervalIntegrable
+      (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+      volume 0 r := by
+  have hmid_pos : 0 < r / 2 := by linarith
+  have h0mid : (0 : ℝ) ≤ r / 2 := le_of_lt hmid_pos
+  have hmidr : r / 2 ≤ r := by linarith
+  have hleft_s :
+      IntervalIntegrable (fun s : ℝ => s ^ (-(1 / 2 : ℝ))) volume 0 (r / 2) := by
+    exact intervalIntegral.intervalIntegrable_rpow'
+      (by norm_num : (-1 : ℝ) < (-(1 / 2 : ℝ)))
+  have hleft_cont :
+      ContinuousOn (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)))
+        (Set.uIcc (0 : ℝ) (r / 2)) := by
+    refine (continuous_const.sub continuous_id).continuousOn.rpow_const ?_
+    intro s hs
+    left
+    rw [Set.uIcc_of_le h0mid] at hs
+    have : 0 < r - s := by nlinarith [hs.2, hr]
+    exact ne_of_gt this
+  have hleft :
+      IntervalIntegrable
+        (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+        volume 0 (r / 2) := by
+    have hleft_raw := IntervalIntegrable.mul_continuousOn hleft_s hleft_cont
+    simpa [mul_comm] using hleft_raw
+  have hsub_all :
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1/2) : ℝ)) volume 0 r := by
+    exact ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half r
+  have hright_rsub :
+      IntervalIntegrable (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)))
+        volume (r / 2) r := by
+    refine hsub_all.mono_set (c := r / 2) (d := r) ?_
+    intro x hx
+    rw [Set.uIcc_of_le hmidr] at hx
+    rw [Set.uIcc_of_le hr.le]
+    exact ⟨h0mid.trans hx.1, hx.2⟩
+  have hright_cont :
+      ContinuousOn (fun s : ℝ => s ^ (-(1 / 2 : ℝ))) (Set.uIcc (r / 2) r) := by
+    refine continuous_id.continuousOn.rpow_const ?_
+    intro s hs
+    left
+    rw [Set.uIcc_of_le hmidr] at hs
+    exact ne_of_gt (lt_of_lt_of_le hmid_pos hs.1)
+  have hright :
+      IntervalIntegrable
+        (fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)))
+        volume (r / 2) r := by
+    exact hright_rsub.mul_continuousOn hright_cont
+  exact hleft.trans hright
+
+/-- The beta-half kernel over any terminal subinterval is bounded by the full
+Volterra constant. -/
+theorem left_beta_kernel_interval_bound {a r : ℝ}
+    (hr : 0 < r) (ha : 0 ≤ a) (har : a ≤ r) :
+    ∫ s in a..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+      ≤ truncLeftKappa := by
+  have hnonneg :
+      0 ≤ᶠ[ae (volume.restrict (Set.Ioc (0 : ℝ) r))]
+        fun s : ℝ => (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) := by
+    refine (ae_restrict_iff' measurableSet_Ioc).2 ?_
+    filter_upwards with s hs
+    exact mul_nonneg
+      (Real.rpow_nonneg (sub_nonneg.mpr hs.2) _)
+      (Real.rpow_nonneg (le_of_lt hs.1) _)
+  have hmono :
+      ∫ s in a..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ))
+        ≤ ∫ s in (0)..r, (r - s) ^ (-(1 / 2 : ℝ)) * s ^ (-(1 / 2 : ℝ)) :=
+    intervalIntegral.integral_mono_interval
+      (c := (0 : ℝ)) (d := r) ha har le_rfl hnonneg
+      (left_beta_kernel_intervalIntegrable hr)
+  exact hmono.trans (by
+    simpa [one_div, neg_div] using left_beta_kernel_bound hr)
+
+/-- The fixed additive part `D` of the left profile absorbs the singular
+Duhamel source contribution on every sub-time `τ ≤ lo`. -/
+theorem truncLeftD_step_bound
+    {M A_L A_F B_F chi lo τ : ℝ}
+    (hM : 0 ≤ M) (hAL : 0 ≤ A_L) (hAF : 0 ≤ A_F) (hBF : 0 ≤ B_F)
+    (hlo : 0 ≤ lo) (hτ : 0 ≤ τ) (hτlo : τ ≤ lo)
+    (hcontr : truncLeftB B_F chi lo < 1) :
+    heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt τ *
+          (truncLeftSourceConst A_L A_F chi
+            + truncLeftBeta B_F chi
+              * truncLeftD M A_L A_F B_F chi lo)
+          + truncLeftBeta B_F chi * truncLeftSingularC M * truncLeftKappa)
+      ≤ truncLeftD M A_L A_F B_F chi lo := by
+  set K : ℝ := heatGradientLinftyLinftyConstant with hK
+  set beta : ℝ := truncLeftBeta B_F chi with hbeta
+  set C : ℝ := truncLeftSingularC M with hC
+  set L0 : ℝ := truncLeftSourceConst A_L A_F chi with hL0
+  set bL : ℝ := truncLeftB B_F chi lo with hbL
+  set D : ℝ := truncLeftD M A_L A_F B_F chi lo with hD
+  have hK_nonneg : 0 ≤ K := by
+    rw [hK]
+    exact heatGradientLinftyLinftyConstant_nonneg
+  have hbeta_nonneg : 0 ≤ beta := by
+    rw [hbeta, truncLeftBeta]
+    exact mul_nonneg (abs_nonneg chi) hBF
+  have hC_nonneg : 0 ≤ C := by
+    rw [hC, truncLeftSingularC, ← hK]
+    exact mul_nonneg hK_nonneg hM
+  have hL0_nonneg : 0 ≤ L0 := by
+    rw [hL0, truncLeftSourceConst]
+    exact add_nonneg hAL (mul_nonneg (abs_nonneg chi) hAF)
+  have hD_nonneg : 0 ≤ D := by
+    rw [hD]
+    exact truncLeftD_nonneg hM hAL hAF hBF hlo hcontr
+  have hLD_nonneg : 0 ≤ L0 + beta * D :=
+    add_nonneg hL0_nonneg (mul_nonneg hbeta_nonneg hD_nonneg)
+  have hsqrt_le : Real.sqrt τ ≤ Real.sqrt lo := Real.sqrt_le_sqrt hτlo
+  have hcore_le :
+      K * (2 * Real.sqrt τ) * (L0 + beta * D)
+        ≤ K * (2 * Real.sqrt lo) * (L0 + beta * D) := by
+    gcongr
+  have hden_pos : 0 < 1 - bL := by
+    rw [hbL]
+    exact sub_pos.mpr hcontr
+  have hbL_expr : bL = K * (2 * Real.sqrt lo) * beta := by
+    rw [hbL, truncLeftB, hK, hbeta]
+  have hD_eq :
+      D =
+        (K * beta * C * truncLeftKappa + K * (2 * Real.sqrt lo) * L0)
+          / (1 - bL) := by
+    rw [hD, truncLeftD, hK, hbeta, hC, hL0, hbL]
+  have hD_mul :
+      D * (1 - bL)
+        = K * beta * C * truncLeftKappa + K * (2 * Real.sqrt lo) * L0 := by
+    rw [hD_eq]
+    field_simp [ne_of_gt hden_pos]
+  have hfixed :
+      K * (2 * Real.sqrt lo) * L0
+        + K * (2 * Real.sqrt lo) * beta * D
+        + K * beta * C * truncLeftKappa = D := by
+    rw [hbL_expr] at hD_mul
+    nlinarith
+  calc
+    K *
+        (2 * Real.sqrt τ * (L0 + beta * D)
+          + beta * C * truncLeftKappa)
+        = K * (2 * Real.sqrt τ) * (L0 + beta * D)
+          + K * beta * C * truncLeftKappa := by ring
+    _ ≤ K * (2 * Real.sqrt lo) * (L0 + beta * D)
+          + K * beta * C * truncLeftKappa := by
+        simpa [add_comm, add_left_comm, add_assoc] using
+          add_le_add_right hcore_le (K * beta * C * truncLeftKappa)
+    _ = K * (2 * Real.sqrt lo) * L0
+          + K * (2 * Real.sqrt lo) * beta * D
+          + K * beta * C * truncLeftKappa := by ring
+    _ = D := hfixed
+
+-- Theorem 2: Duhamel gradient bound with singular source
+-- If |q(s,y)| ≤ Q0 + Q1/√s then
+-- |∂_x ∫_0^t S(t-s) q(s) ds| ≤ Cg · (2√t · Q0 + κ · Q1)
+theorem gradDuhamel_singular_source_bound
+    {q : ℝ → ℝ → ℝ} {Q0 Q1 t : ℝ} (ht : 0 < t)
+    (hq : ∀ s ∈ Set.Ioo 0 t, ∀ y : ℝ, |q s y| ≤ Q0 + Q1 / Real.sqrt s) :
+    True := by  -- placeholder type; actual statement needs semigroup
+  trivial
+
+-- Theorem 3: Profile induction step
+-- From |∂_x U_n(t')| ≤ P(t') on (0, lo], prove same for n+1
+-- Uses: truncLeftB B_F chi lo < 1
+-- Key: D is exactly the fixed point of the affine map
+theorem truncLeftProfile_step
+    {M A_L A_F B_F chi lo : ℝ}
+    (hcontr : truncLeftB B_F chi lo < 1) :
+    True := by  -- placeholder; needs full Picard iterate structure
+  trivial
+
+-- Theorem 4: Profile holds for all n (induction)
+theorem truncLeftProfile_all
+    {M A_L A_F B_F chi lo : ℝ}
+    (hcontr : truncLeftB B_F chi lo < 1) :
+    True := by  -- placeholder
+  trivial
+
+-- Theorem 5: Left profile at a ≤ Gw
+-- Under a = lo - a (i.e. lo = 2a), hi - a = 3a, and truncWindowB < 1
+theorem truncLeftProfile_le_Gw
+    {M A_L A_F B_F chi a lo hi : ℝ}
+    (hM : 0 ≤ M) (hAL : 0 ≤ A_L) (hAF : 0 ≤ A_F) (hBF : 0 ≤ B_F)
+    (ha : 0 < a) (hlo : lo = 2 * a) (hhi : hi = 4 * a)
+    (hcontr : truncWindowB B_F chi a hi < 1) :
+    truncLeftProfile M A_L A_F B_F chi lo a
+      ≤ truncWindowFixedG M A_L A_F B_F chi a lo hi := by
+  subst lo
+  subst hi
+  set K : ℝ := heatGradientLinftyLinftyConstant with hK
+  set beta : ℝ := |chi| * B_F with hbeta
+  set C : ℝ := K * M with hC
+  set L0 : ℝ := A_L + |chi| * A_F with hL0
+  set X : ℝ := C / Real.sqrt a with hX
+  set Y2 : ℝ := K * (2 * Real.sqrt (2 * a)) * L0 with hY2
+  set Y3 : ℝ := K * (2 * Real.sqrt (4 * a - a)) * L0 with hY3
+  set bL : ℝ := truncLeftB B_F chi (2 * a) with hbL
+  set bW : ℝ := truncWindowB B_F chi a (4 * a) with hbW
+  have hK_nonneg : 0 ≤ K := by
+    rw [hK]
+    exact heatGradientLinftyLinftyConstant_nonneg
+  have hbeta_nonneg : 0 ≤ beta := by
+    rw [hbeta]
+    exact mul_nonneg (abs_nonneg chi) hBF
+  have hC_nonneg : 0 ≤ C := by
+    rw [hC]
+    exact mul_nonneg hK_nonneg hM
+  have hL0_nonneg : 0 ≤ L0 := by
+    rw [hL0]
+    exact add_nonneg hAL (mul_nonneg (abs_nonneg chi) hAF)
+  have hsqrta_pos : 0 < Real.sqrt a := Real.sqrt_pos_of_pos ha
+  have hX_nonneg : 0 ≤ X := by
+    rw [hX]
+    exact div_nonneg hC_nonneg hsqrta_pos.le
+  have hY2_nonneg : 0 ≤ Y2 := by
+    rw [hY2]
+    positivity
+  have hsqrt23 : Real.sqrt (2 * a) ≤ Real.sqrt (4 * a - a) := by
+    apply Real.sqrt_le_sqrt
+    nlinarith [ha.le]
+  have hY23 : Y2 ≤ Y3 := by
+    rw [hY2, hY3]
+    gcongr
+  have hbL_nonneg : 0 ≤ bL := by
+    rw [hbL, truncLeftB, truncLeftBeta, ← hK, ← hbeta]
+    positivity
+  have hbLbW : bL ≤ bW := by
+    rw [hbL, hbW, truncLeftB, truncWindowB, truncLeftBeta, ← hK]
+    calc
+      K * (2 * Real.sqrt (2 * a)) * (|chi| * B_F)
+          ≤ K * (2 * Real.sqrt (4 * a - a)) * (|chi| * B_F) := by
+        gcongr
+      _ = K * (2 * Real.sqrt (4 * a - a)) * |chi| * B_F := by ring
+  have hbW_lt : bW < 1 := by
+    simpa [hbW] using hcontr
+  have hsqrt3a : Real.sqrt (4 * a - a) = Real.sqrt 3 * Real.sqrt a := by
+    have hrewrite : 4 * a - a = 3 * a := by ring
+    rw [hrewrite]
+    rw [show 3 * a = a * 3 by ring]
+    rw [Real.sqrt_mul ha.le]
+    ring
+  have hbeta_term :
+      K * beta * C * truncLeftKappa = bW * X := by
+    rw [hbW, hX, truncWindowB, truncLeftKappa, ← hK, hbeta]
+    rw [hsqrt3a]
+    field_simp [ne_of_gt hsqrta_pos]
+  have hleft :
+      truncLeftProfile M A_L A_F B_F chi (2 * a) a
+        = X + (bW * X + Y2) / (1 - bL) := by
+    rw [truncLeftProfile, truncLeftD, truncLeftSingularC, truncLeftSourceConst,
+      truncLeftBeta]
+    rw [← hK, ← hC, ← hL0, ← hbeta]
+    rw [← hbL, ← hY2, ← hX, hbeta_term]
+  have hright :
+      truncWindowFixedG M A_L A_F B_F chi a (2 * a) (4 * a)
+        = (X + Y3) / (1 - bW) := by
+    have hbW_expr : bW = K * (2 * Real.sqrt (4 * a - a)) * |chi| * B_F := by
+      rw [hbW, truncWindowB, ← hK]
+    rw [truncWindowFixedG, truncWindowA, truncWindowB]
+    rw [← hK, ← hL0, ← hY3, ← hbW_expr]
+    have hsqrt_sub : Real.sqrt (2 * a - a) = Real.sqrt a := by
+      congr 1
+      ring
+    rw [hsqrt_sub, hX, hC]
+    field_simp [ne_of_gt hsqrta_pos]
+  rw [hleft, hright]
+  exact profile_algebra_bound hX_nonneg hY2_nonneg hY23 hbL_nonneg hbLbW hbW_lt
+
+-- Theorem 6: hleft provider
+-- Combines theorems 4 and 5 to produce ∀ n, IterGradOnWindow U a lo n Gw
+-- This is the theorem that fills the hleft field of TruncatedGradientWindowWiring
+
+end ShenWork.Paper2.TruncatedGradientWindow

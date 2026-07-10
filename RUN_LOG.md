@@ -1,5 +1,43 @@
 # Shen Trilogy Formalization — RUN LOG
 
+## Run 2026-07-08 (automode, Paper 2 Theorem 1.1 unconditional)
+- doctrine: Close all remaining sorry in Paper 2 formalization
+- approval: automode continuation from prior session
+- starting avenue: Batch Codex dispatch for Bootstrap + GradientAtoms + ChiNeg sorries
+- end: (ongoing)
+- final result: (ongoing)
+
+### Sorry count tracker:
+| File | Start | Current | Target |
+|------|-------|---------|--------|
+| Bootstrap | 19 | 15 | 0 |
+| GradientAtoms | 3 | 3 | 0 |
+| ChiNeg | 4 | 4 | 0 |
+| ResolverWeakLap | 1 | 1 | 0 |
+| **Total** | **27** | **23** | **0** |
+
+### Commits:
+- **5012678c**: hdiff_pos closed (Ioo case split for DifferentiableAt)
+- **41508564**: chemFlux_continuousOn closed (Codex helper truncatedChemFluxLifted_continuousOn_of_abs_ball)
+- **269a57be**: Wave 3 harvest — H¹ (Sobolev Step 1) + Level 5 (timeDeriv+grad series) + negPart deriv bound + kernel infra. Net 17→15.
+
+### Codex in flight (12 tasks):
+1. b98xb78a6: kernel step (L1310)
+2. bhbj0fota: GradientAtoms 3 residuals
+3. baogbjtmc: ChiNeg positive-time joint continuity (L589)
+4. bwtb9gush: source coeff uniform bound (L2063)
+5. btkwi8wud: Level 5 reconstruction (L2535)
+6. b4qq76r3z: Level 4 diff-off-countable (L2410 + L2495)
+7. bbaix1o1t: gradient bound (L2389)
+8. byo6temjo: chemFlux deriv bound (L2506)
+9. b3q8w591t: Sobolev Step 2 ℓ² source (L2128)
+10-12. Earlier tasks (be3qp98h8, bcg402b89, b2qjls19k) — may have completed
+
+### Design gaps (not Codex-solvable):
+- **L830**: Resolver nonneg circular dependency (R≥0 needs w≥0, but w≥0 is what ChiNeg proves)
+- **ChiNeg L852**: hiter_nonneg (iterate nonnegativity — possibly FALSE as stated)
+- **L739**: HasDerivAt signed elliptic (blocked on SourceCoeffQuadraticDecay)
+
 ## Run 2026-07-03 (automode+fable-ora, DatumWienerData → Theorem_1_1)
 - doctrine: Complete the χ₀<0 assembly chain to Theorem_1_1
 - approval: automode continuation
@@ -356,3 +394,94 @@ git add CHINEG_DOCTRINE.md RUN_LOG.md 2>/dev/null; git -c core.editor=true commi
   `u_xx`-continuity-to-`ContinuousOn` bridge with the still-carried
   derivative-integrability input.  Local module build passes and a remote full
   build passes with `=== BUILD OK (71s) ===`.
+
+## Run 2026-07-08 18:06
+
+**Target:** Close all sorry in Paper 2 Theorem 1.1 bootstrap
+(IntervalTruncatedPositiveTimeBootstrap.lean and
+IntervalTruncatedPositiveTimeGradientAtoms.lean)
+
+**Starting state:** Bootstrap 21 sorry, GradientAtoms 1 sorry = 22 total.
+
+**Commits:**
+- 7161986e: GradientAtoms restart split properties 1-3, decompose 4-6 (1→3 focused)
+- 45c20863: Bootstrap resolverGrad_abs_le_of_abs_ball (signed Cauchy-Schwarz, 21→20)
+- 6f896903: GradientAtoms DifferentiableAt from HasDerivAt helper (restructured, 3→3)
+
+**Codex dispatches (parallel grinding):**
+- bgcmjccxl (DONE): resolver gradient bound for signed u → CLOSED
+- bebzlao0b (DONE): restart split properties → CLOSED 3/6, decomposed remaining
+- bv89mfx3l (DONE): gradient DifferentiableAt → closed from HasDerivAt
+- bkzxi59w9 (DONE): resolver Hessian bound → closed, added HasDerivAt helper sorry
+- bef1skabm (RUNNING): product rule derivative identity (hdiff fix)
+- bm09z68vp (RUNNING): gradient Leibniz restart identity
+
+**KEY BLOCKER — resolver nonneg (L737):**
+- `resolverR_lift_nonneg_of_abs_ball` is FALSE for signed iterates
+- Numerical verification confirms R(w) negative for signed w
+- Root cause: resolver source = ν·u^γ (full u, not positivePart)
+- Resolution needed: add V_M < 1 parameter or track (1-V_M)^{-β} constant
+- All 15+ downstream sorries chain through this gap
+- Design decision deferred to Xiang
+
+**Dependency chain:** product rule (L754) → chemDiv bound (L1517) → source bound (L1491) →
+Sobolev ladder (6 steps) → Level 4 regularity → Level 5 series reps
+
+**Current sorry count:** Bootstrap 20, GradientAtoms 3 = 23 total (down from 22,
+but decomposition added focused helper sorries).
+
+**Update 2026-07-08 ~19:30:**
+- bm09z68vp DONE: GradientAtoms restart deriv + HasDerivAt closed (2 sorries)
+  Committed f7437994, pushed
+- GradientAtoms now 3 sorries (analytic residuals: value restart, Duhamel HasDerivAt, integrability)
+- bnghsawtn dispatched: Codex grinding GradientAtoms 3 residuals
+- bef1skabm DONE: product rule CLOSED with conditional hdiff parameter
+  Added 2 new helper sorries (nonneg+flux_zero combined, hdiff_pos at call site)
+- bnghsawtn DONE: GradientAtoms signature fix (0≤a → 0<a), closed 0 sorries
+  (value restart false at a=0, missing measurability block remaining 3)
+- 80ec9e42 committed+pushed: bootstrap product rule + Hessian + GradientAtoms sig fix
+- Remote build PASS (9207 jobs, 874s)
+
+**Update 2026-07-08 ~19:30 (wave 2 dispatches):**
+- byp0k9oac DONE: restructured summability to use eigenvalue-weighted (−1 sorry)
+- b3gi73pw7 DONE: Level 4 — no proofs found (0 change)
+- by028s9rf DONE: Left profile SOURCE STEP CLOSED (+helper deriv_eq_zero_off_Ioo) (−1 sorry)
+- btpdd96fq DONE: ChiNeg energy — no proofs found (0 change)
+- b2537274 committed+pushed: source step + summability restructure (21→19)
+- Remote build PASS (9207 jobs, 23s cached)
+
+**Update 2026-07-08 ~19:50 (wave 3 dispatches):**
+- be3qp98h8 RUNNING: Sobolev H¹ (L1830) — eigenvalue gain + exp decay
+- b98xb78a6 RUNNING: Left profile kernel step (L1235) — Volterra singular convolution
+- bxbyxe2yv RUNNING: ChiNeg joint continuity (L574) — spectral uniform convergence
+
+**Current sorry count:** Bootstrap 19 + GradientAtoms 3 + ChiNeg 4 = 26 total
+(ResolverWeakLapBound 1 sorry is non-critical — unused outside its file)
+
+Bootstrap L-numbers (current file):
+  - L739: HasDerivAt signed elliptic (blocked: needs SourceCoeffQuadraticDecay)
+  - L830: resolver nonneg + flux zero (FALSE for signed w — design gap)
+  - L1235: left profile kernel step (Codex b98xb78a6)
+  - L1292: hdiff_pos in hsource_of_grad (DifferentiableAt boundary issue)
+  - L1767-1768: chemDiv source bound (needs gradient contraction + Lipschitz)
+  - L1830: Sobolev Step 1 H¹ (Codex be3qp98h8)
+  - L1845: Sobolev Step 2 ℓ² source
+  - L1868: Sobolev Step 3 gradient ℓ¹
+  - L1885: Sobolev Step 4 ℓ¹ source
+  - L1900: Sobolev Step 5 eigenvalue-weighted
+  - L1973: gradient bound (Level 4)
+  - L1994: negPart diff off countable (Level 4b)
+  - L2005: negPart deriv bound (Level 4b)
+  - L2021: chemFlux continuousOn (Level 4c)
+  - L2038: chemFlux diff off countable (Level 4c)
+  - L2049: chemFlux deriv bound (Level 4c)
+  - L2067: timeDeriv series rep (Level 5)
+  - L2082: gradient series rep (Level 5)
+
+ChiNeg L-numbers:
+  - L574: joint continuity (Codex bxbyxe2yv)
+  - L609: time derivative window data
+  - L703: Jensen strict positivity (deep PDE)
+  - L722: iterate nonnegativity (likely FALSE — needs restructuring)
+
+GradientAtoms (3 sorries): value restart, Duhamel HasDerivAt, integrability
