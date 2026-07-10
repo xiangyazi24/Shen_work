@@ -509,3 +509,5 @@ import ShenWork.Paper2.IntervalConjugateKernelHolder
 import ShenWork.Paper2.IntervalConjugateMildHolderBootstrap
 import ShenWork.Paper2.IntervalConjugateKernelCtheta
 import ShenWork.Paper2.IntervalConjugateMildCthetaFlux
+import ShenWork.Paper2.IntervalConjugateDuhamelSpatialC1
+import ShenWork.Paper2.IntervalConjugateMildSpatialC1
