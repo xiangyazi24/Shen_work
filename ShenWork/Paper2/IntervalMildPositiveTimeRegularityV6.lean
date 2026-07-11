@@ -154,7 +154,24 @@ commit-`fe90ef7c` definitions:
   `any α<1` per-pass gain still crosses the `H^{s}` (`s>5/2`) threshold in
   finitely many passes — finite termination holds without the sharp `+1`.
 
-Drop-in target for Codex/cq31 (Q4277). -/
+LEAN ROUTE (cq36/Q4296 — use THIS, not an abstract H^r Sobolev/Moser/elliptic
+stack, which Mathlib lacks turnkey and is a large detour).  Prove the coefficient
+decay DIRECTLY by elementary interval integration-by-parts on the cosine
+coefficient:
+  `source_k = ∫₀¹ S(x) cos(kπx) dx`; integrate by parts twice — each IBP yields a
+  `1/(kπ)` factor and the boundary terms VANISH by the Neumann conditions (odd
+  derivatives `S', S'''` vanish at `0,1`), giving
+  `source_k = −(1/(kπ)²) ∫₀¹ S''(x) cos(kπx) dx`, hence `|source_k| ≤ (C/k²)·sup|S''|`.
+  So `WindowSourceEnvelope (m-1)` reduces to a POINTWISE derivative bound
+  `sup|∂ₓ^{(m-1)} (source)|` — obtained from pointwise bounds on `u, R, Q`
+  (the δ-floor supplies `u^{γ-2}`), NOT from abstract `H^r`.  Matches the repo's
+  existing coefficient-decay lemmas (`cosineCoeffs_C2_neumann_quadratic_decay_of_bound`).
+  The elliptic R-gain is just the cosine MULTIPLIER `R̂_k = f̂_k/(μ+νλ_k)`
+  (cq38): dividing coefficients gives the `+2` gain for free, Neumann automatic.
+So the crux = { pointwise derivative bounds on `u^γ, R, Q` (δ-floored for `u^{γ-2}`)
+  + elementary IBP giving the `k`-decay }.  Coefficient-level and elementary.
+
+Drop-in target for Codex/cq31 (Q4277) + cq36 (Q4296). -/
 def SourceFromSolutionEnvelopePass
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (S : ConjugateMildSolutionData p u₀) : Type :=
