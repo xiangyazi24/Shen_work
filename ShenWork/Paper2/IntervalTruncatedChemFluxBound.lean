@@ -41,6 +41,66 @@ private theorem positivePart_le_abs (r : ℝ) :
   · have hr' : r ≤ 0 := le_of_not_ge hr
     simp [positivePart, hr', abs_of_nonpos hr']
 
+/-- The resolver driven by the positive part of a continuous slice is
+nonnegative on the lifted closed interval, with no smallness assumption. -/
+theorem resolverR_positivePart_lift_nonneg_of_continuous
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    (hw_cont : Continuous w) (y : ℝ) :
+    0 ≤ intervalDomainLift
+      (ShenWork.PDE.intervalNeumannResolverR p
+        (fun x => positivePart (w x))) y := by
+  let wPos : intervalDomainPoint → ℝ := fun x => positivePart (w x)
+  have hwPos_cont : Continuous wPos := by
+    simpa [wPos, positivePart] using hw_cont.max continuous_const
+  have hwPos_nonneg : ∀ x, 0 ≤ wPos x := fun x => positivePart_nonneg (w x)
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · have hcont_on :
+        ContinuousOn (intervalDomainLift wPos) (Set.Icc (0 : ℝ) 1) :=
+      lift_continuousOn_Icc_of_continuous hwPos_cont
+    open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+        ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+        ShenWork.IntervalNeumannFullKernel ShenWork.IntervalResolverPositivity in
+    have hR_nonneg_pt : 0 ≤ intervalNeumannResolverR p wPos ⟨y, hy⟩ := by
+      have hcont_src : Continuous
+          (fun x : intervalDomainPoint => p.ν * (wPos x) ^ p.γ) :=
+        continuous_const.mul
+          (hwPos_cont.rpow_const (fun _ => Or.inr p.hγ.le))
+      set clip : ℝ → intervalDomainPoint := fun x =>
+        ⟨max 0 (min x 1), le_max_left 0 _,
+          max_le (by norm_num) (min_le_right x 1)⟩
+      have hclip_cont : Continuous clip :=
+        Continuous.subtype_mk
+          (continuous_const.max (continuous_id.min continuous_const)) _
+      set f : ℝ → ℝ :=
+        (fun x : intervalDomainPoint => p.ν * (wPos x) ^ p.γ) ∘ clip
+      have hf_cont : Continuous f := hcont_src.comp hclip_cont
+      have hf_nonneg : ∀ z, 0 ≤ f z := fun z =>
+        mul_nonneg p.hν.le (Real.rpow_nonneg (hwPos_nonneg _) _)
+      have hf_coeff : ∀ k, cosineCoeffs f k =
+          (intervalNeumannResolverSourceCoeff p wPos k).re := by
+        intro k
+        have hsrc_eq :
+            (intervalNeumannResolverSourceCoeff p wPos k).re =
+            cosineCoeffs
+              (fun x => p.ν * intervalDomainLift wPos x ^ p.γ) k := by
+          simp [cosineCoeffs, intervalNeumannResolverSourceCoeff,
+            Complex.ofReal_re]
+        rw [hsrc_eq]
+        exact cosineCoeffs_congr_on_Icc (fun x hx => by
+          simp only [f, Function.comp, clip]
+          have hclip_eq : max 0 (min x 1) = x := by
+            rw [min_eq_left hx.2, max_eq_right hx.1]
+          simp only [hclip_eq, intervalDomainLift,
+            dif_pos (Set.mem_Icc.mpr hx)]) k
+      have ha : Summable (fun k => (cosineCoeffs f k) ^ 2) := by
+        have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+        simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+        exact h.congr (fun k => by rw [hf_coeff])
+      exact intervalNeumannResolverR_nonneg_of_nonneg_source
+        hf_cont hf_nonneg hf_coeff ha ⟨y, hy⟩
+    simpa [wPos, intervalDomainLift, hy] using hR_nonneg_pt
+  · simp [intervalDomainLift, hy]
+
 private theorem truncatedLogisticLocal_abs_le_of_abs_le
     (p : CM2Params) {M r : ℝ} (hM : 0 < M) (hr : |r| ≤ M) :
     |truncatedLogisticLocal p r| ≤
@@ -470,52 +530,33 @@ absolute ball. -/
 theorem truncatedChemFluxLifted_abs_le_of_abs_ball
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hM : 0 < M) (hw_cont : Continuous w)
-    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M)
-    (hresolver_small :
-      Real.sqrt (∑' k : ℕ,
-        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
-          (2 * (p.ν * M ^ p.γ)) < 1) :
+    (hball : ∀ x : intervalDomainPoint, |w x| ≤ M) :
     ∀ y : ℝ,
       |truncatedChemFluxLifted p w y| ≤
         M *
           (Real.sqrt (∑' k : ℕ,
             (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
-              (2 * (p.ν * M ^ p.γ))) *
-          (1 - Real.sqrt (∑' k : ℕ,
-            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
-              (2 * (p.ν * M ^ p.γ))) ^ (-p.β) := by
+              (2 * (p.ν * M ^ p.γ))) := by
   classical
   intro y
+  let wPos : intervalDomainPoint → ℝ := fun x => positivePart (w x)
   let Γ : ℝ := Real.sqrt (∑' k : ℕ,
     (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
       (2 * (p.ν * M ^ p.γ))
-  let V : ℝ := Real.sqrt (∑' k : ℕ,
-    (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
-      (2 * (p.ν * M ^ p.γ))
-  let R : ℝ := intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y
   have hM_nonneg : 0 ≤ M := hM.le
   have hΓ_nonneg : 0 ≤ Γ := by
     exact mul_nonneg (Real.sqrt_nonneg _)
       (mul_nonneg (by norm_num)
         (mul_nonneg p.hν.le (Real.rpow_nonneg hM_nonneg _)))
-  have hV_nonneg : 0 ≤ V := by
-    exact mul_nonneg (Real.sqrt_nonneg _)
-      (mul_nonneg (by norm_num)
-        (mul_nonneg p.hν.le (Real.rpow_nonneg hM_nonneg _)))
-  have hV_lt_one : V < 1 := by
-    simpa [V] using hresolver_small
-  have hR_abs : |R| ≤ V := by
-    simpa [R, V] using
-      resolverR_lift_abs_le_of_abs_ball p hM hw_cont hball y
-  have hbase_lower : 1 - V ≤ 1 + R := by
-    have hR_lower : -V ≤ R := (abs_le.mp hR_abs).1
-    linarith
-  have hbase_pos : 0 < 1 + R := by
-    have hR_lower : -V ≤ R := (abs_le.mp hR_abs).1
-    linarith
-  have hlower_pos : 0 < 1 - V := by linarith
-  have hgrad : |resolverGradReal p w y| ≤ Γ := by
-    simpa [Γ] using resolverGrad_abs_le_of_abs_ball p hM hw_cont hball y
+  have hwPos_cont : Continuous wPos := by
+    simpa [wPos, positivePart] using hw_cont.max continuous_const
+  have hwPos_ball : ∀ x : intervalDomainPoint, |wPos x| ≤ M := by
+    intro x
+    rw [abs_of_nonneg (positivePart_nonneg (w x))]
+    exact (positivePart_le_abs (w x)).trans (hball x)
+  have hgrad : |resolverGradReal p wPos y| ≤ Γ := by
+    simpa [Γ] using
+      resolverGrad_abs_le_of_abs_ball p hM hwPos_cont hwPos_ball y
   have hlift_abs : |intervalDomainLift w y| ≤ M := by
     by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
     · simpa [intervalDomainLift, hy] using hball ⟨y, hy⟩
@@ -523,42 +564,38 @@ theorem truncatedChemFluxLifted_abs_le_of_abs_ball
   have hpos_abs : |positivePart (intervalDomainLift w y)| ≤ M := by
     rw [abs_of_nonneg (positivePart_nonneg _)]
     exact (positivePart_le_abs _).trans hlift_abs
-  have hq_nonneg : 0 ≤ (1 + R) ^ (-p.β) :=
-    Real.rpow_nonneg hbase_pos.le _
-  have hQ_nonneg : 0 ≤ (1 - V) ^ (-p.β) :=
-    Real.rpow_nonneg hlower_pos.le _
-  have hq : (1 + R) ^ (-p.β) ≤ (1 - V) ^ (-p.β) :=
-    Real.rpow_le_rpow_of_nonpos hlower_pos hbase_lower (by linarith [p.hβ])
+  have hR_nonneg :
+      0 ≤ intervalDomainLift
+        (ShenWork.PDE.intervalNeumannResolverR p wPos) y := by
+    simpa [wPos] using
+      resolverR_positivePart_lift_nonneg_of_continuous p hw_cont y
+  have hden_ge_one :
+      1 ≤ (1 + intervalDomainLift
+        (ShenWork.PDE.intervalNeumannResolverR p wPos) y) ^ p.β :=
+    Real.one_le_rpow (by linarith [hR_nonneg]) p.hβ
   have hnum :
-      |positivePart (intervalDomainLift w y)| * |resolverGradReal p w y| ≤ M * Γ :=
+      |positivePart (intervalDomainLift w y)| * |resolverGradReal p wPos y| ≤
+        M * Γ :=
     mul_le_mul hpos_abs hgrad (abs_nonneg _) hM_nonneg
-  have hnum_nonneg :
-      0 ≤ |positivePart (intervalDomainLift w y)| * |resolverGradReal p w y| :=
-    mul_nonneg (abs_nonneg _) (abs_nonneg _)
   unfold truncatedChemFluxLifted
-  rw [abs_div, abs_mul]
-  have hden_pos : 0 < (1 + R) ^ p.β := Real.rpow_pos_of_pos hbase_pos _
-  have hrewrite :
-      |positivePart (intervalDomainLift w y)| * |resolverGradReal p w y| /
-          |(1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ p.β|
-        = |positivePart (intervalDomainLift w y)| * |resolverGradReal p w y| *
-            (1 + R) ^ (-p.β) := by
-    rw [show intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y = R by rfl,
-      abs_of_pos hden_pos, div_eq_mul_inv, ← Real.rpow_neg hbase_pos.le]
-  rw [hrewrite]
   calc
-    |positivePart (intervalDomainLift w y)| * |resolverGradReal p w y| *
-          (1 + R) ^ (-p.β)
-        ≤ (M * Γ) * (1 - V) ^ (-p.β) :=
-      mul_le_mul hnum hq hq_nonneg (mul_nonneg hM_nonneg hΓ_nonneg)
-    _ = M * Γ * (1 - V) ^ (-p.β) := by ring
+    |positivePart (intervalDomainLift w y) * resolverGradReal p wPos y /
+        (1 + intervalDomainLift
+          (ShenWork.PDE.intervalNeumannResolverR p wPos) y) ^ p.β|
+        = |positivePart (intervalDomainLift w y) * resolverGradReal p wPos y| /
+            |(1 + intervalDomainLift
+              (ShenWork.PDE.intervalNeumannResolverR p wPos) y) ^ p.β| :=
+          abs_div _ _
+    _ ≤ |positivePart (intervalDomainLift w y) * resolverGradReal p wPos y| / 1 := by
+      apply div_le_div_of_nonneg_left (abs_nonneg _) one_pos
+      rwa [abs_of_nonneg (zero_le_one.trans hden_ge_one)]
+    _ = |positivePart (intervalDomainLift w y)| * |resolverGradReal p wPos y| := by
+      rw [div_one, abs_mul]
+    _ ≤ M * Γ := hnum
     _ = M *
           (Real.sqrt (∑' k : ℕ,
             (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
-              (2 * (p.ν * M ^ p.γ))) *
-          (1 - Real.sqrt (∑' k : ℕ,
-            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
-              (2 * (p.ν * M ^ p.γ))) ^ (-p.β) := by
+              (2 * (p.ν * M ^ p.γ))) := by
       rfl
 
 /-- Time-family wrapper of `truncatedChemFluxLifted_abs_le_of_abs_ball`; only
@@ -568,22 +605,15 @@ theorem truncatedChemFluxLifted_abs_le_on_window_of_abs_ball
     (hM : 0 < M)
     (hw_cont : ∀ s, a ≤ s → s ≤ hi → Continuous (w s))
     (hball : ∀ s, a ≤ s → s ≤ hi →
-      ∀ x : intervalDomainPoint, |w s x| ≤ M)
-    (hresolver_small :
-      Real.sqrt (∑' k : ℕ,
-        (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
-          (2 * (p.ν * M ^ p.γ)) < 1) :
+      ∀ x : intervalDomainPoint, |w s x| ≤ M) :
     ∀ s, a ≤ s → s ≤ hi → ∀ y : ℝ,
       |truncatedChemFluxLifted p (w s) y| ≤
         M *
           (Real.sqrt (∑' k : ℕ,
             (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
-              (2 * (p.ν * M ^ p.γ))) *
-          (1 - Real.sqrt (∑' k : ℕ,
-            (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
-              (2 * (p.ν * M ^ p.γ))) ^ (-p.β) := by
+              (2 * (p.ν * M ^ p.γ))) := by
   intro s has hshi
   exact truncatedChemFluxLifted_abs_le_of_abs_ball
-    p hM (hw_cont s has hshi) (hball s has hshi) hresolver_small
+    p hM (hw_cont s has hshi) (hball s has hshi)
 
 end ShenWork.Paper2.TruncatedPositiveTimeBootstrap

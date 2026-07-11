@@ -33,8 +33,10 @@ the original flux with only the leading `u` factor replaced by `u_+`. -/
 def truncatedChemFluxLifted (p : CM2Params)
     (w : intervalDomainPoint → ℝ) : ℝ → ℝ :=
   fun y =>
-    positivePart (intervalDomainLift w y) * resolverGradReal p w y
-      / (1 + intervalDomainLift (intervalNeumannResolverR p w) y) ^ p.β
+    positivePart (intervalDomainLift w y)
+        * resolverGradReal p (fun x => positivePart (w x)) y
+      / (1 + intervalDomainLift
+          (intervalNeumannResolverR p (fun x => positivePart (w x))) y) ^ p.β
 
 /-- A nonnegative-friendly local logistic source.  The precise analytic
 one-sided estimate is part of the weak-energy certificate below. -/
