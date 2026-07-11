@@ -538,3 +538,4 @@ import ShenWork.Paper2.IntervalFullDuhamelTimeDerivativeHolder
 import ShenWork.Paper2.IntervalJointContinuityUniformTrace
 import ShenWork.Paper2.IntervalConjugateMildLogisticTimeDerivative
 import ShenWork.Paper2.IntervalConjugateMildChemDivJointContinuity
+import ShenWork.Paper2.IntervalConjugateSemigroupTimeDerivative
